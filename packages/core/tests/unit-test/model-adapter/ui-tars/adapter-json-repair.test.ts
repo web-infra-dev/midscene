@@ -1,4 +1,4 @@
-import { ResolvedModelAdapter } from '@/ai-model/models/resolved';
+import { ResolvedModelAdapter } from '@/ai-model/model-adapter/resolve';
 import { uiTarsAdapters } from '@/ai-model/models/ui-tars/adapter';
 import { describe, expect, it, vi } from 'vitest';
 

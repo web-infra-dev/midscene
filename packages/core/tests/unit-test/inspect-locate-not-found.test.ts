@@ -1,5 +1,5 @@
+import { ResolvedModelAdapter } from '@/ai-model/model-adapter/resolve';
 import { getModelRuntime } from '@/ai-model/models';
-import { ResolvedModelAdapter } from '@/ai-model/models/resolved';
 import { callAIWithObjectResponse } from '@/ai-model/service-caller/index';
 import { AiLocateElement, AiLocateSection } from '@/ai-model/workflows/inspect';
 import type { LocateFn } from '@/ai-model/workflows/inspect/types';

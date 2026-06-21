@@ -1,7 +1,7 @@
+import type { ResolvedCustomPlanningDefinition } from '@/ai-model/model-adapter/custom-planning-types';
 import { AIResponseParseError } from '@/ai-model/service-caller';
 import { resolvePlanningTapLocator } from '@/ai-model/workflows/inspect/planning-action-locate';
 import { runCustomPlanning } from '@/ai-model/workflows/planning/custom-planning';
-import type { ResolvedCustomPlanningDefinition } from '@/ai-model/workflows/planning/custom-planning-types';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@/ai-model/workflows/planning/custom-planning', () => ({

@@ -1,7 +1,7 @@
-import { resolveCustomPlanningDefinition } from '@/ai-model/adapter-resolver/custom-planning';
 import { ConversationHistory } from '@/ai-model/conversation-history';
+import { resolveCustomPlanningDefinition } from '@/ai-model/model-adapter/planning';
+import { ResolvedModelAdapter } from '@/ai-model/model-adapter/resolve';
 import { getModelRuntime } from '@/ai-model/models';
-import { ResolvedModelAdapter } from '@/ai-model/models/resolved';
 import { uiTarsAdapters } from '@/ai-model/models/ui-tars/adapter';
 import { createUiTarsPlanner } from '@/ai-model/models/ui-tars/planning';
 import { callAIWithStringResponse } from '@/ai-model/service-caller/index';

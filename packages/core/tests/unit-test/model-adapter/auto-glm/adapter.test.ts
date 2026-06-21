@@ -1,5 +1,5 @@
+import { ResolvedModelAdapter } from '@/ai-model/model-adapter/resolve';
 import { autoGlmAdapters } from '@/ai-model/models/auto-glm/adapter';
-import { ResolvedModelAdapter } from '@/ai-model/models/resolved';
 import { describe, expect, it } from 'vitest';
 
 const autoGlmAdapter = new ResolvedModelAdapter(

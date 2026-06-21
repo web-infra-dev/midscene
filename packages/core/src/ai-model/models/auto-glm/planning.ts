@@ -1,6 +1,6 @@
 import { assert } from '@midscene/shared/utils';
+import type { CustomPlanningDefinition } from '../../model-adapter/custom-planning-types';
 import { createCoordinateDistanceToPixels } from '../../shared/model-locate-result';
-import type { CustomPlanningDefinition } from '../../workflows/planning/custom-planning-types';
 import { transformAutoGLMAction } from './actions';
 import { parseAutoGLMPlanningResponse } from './parser';
 import {

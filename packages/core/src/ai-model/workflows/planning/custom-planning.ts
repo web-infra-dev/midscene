@@ -2,16 +2,16 @@ import { type TUserPrompt, userPromptToString } from '@/common';
 import type { PlanningAIResponse, PlanningAction } from '@/types';
 import type { ChatCompletionMessageParam } from 'openai/resources/index';
 import { ScreenshotItem } from '../../../screenshot-item';
+import type {
+  CustomPlanningInput,
+  CustomPlanningMessageConfig,
+  ResolvedCustomPlanningDefinition,
+} from '../../model-adapter/custom-planning-types';
 import {
   AIResponseParseError,
   callAIWithStringResponse,
 } from '../../service-caller/index';
 import { prepareModelImage } from '../image-preprocess';
-import type {
-  CustomPlanningInput,
-  CustomPlanningMessageConfig,
-  ResolvedCustomPlanningDefinition,
-} from './custom-planning-types';
 import { normalizePlanningActionLocateFields } from './locate-normalization';
 import type { PlanOptions } from './types';
 

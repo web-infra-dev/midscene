@@ -1,3 +1,4 @@
+import { ResolvedModelAdapter } from '@/ai-model/model-adapter/resolve';
 import {
   type AutoGLMParsedAction,
   type BackAction,
@@ -13,7 +14,6 @@ import {
   transformAutoGLMAction,
 } from '@/ai-model/models/auto-glm/actions';
 import { autoGlmAdapters } from '@/ai-model/models/auto-glm/adapter';
-import { ResolvedModelAdapter } from '@/ai-model/models/resolved';
 import { createCoordinateDistanceToPixels } from '@/ai-model/shared/model-locate-result';
 import type { DeviceAction } from '@/device';
 import { describe, expect, it } from 'vitest';

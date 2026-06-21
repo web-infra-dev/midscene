@@ -4,8 +4,8 @@ import type {
   LocateResultAdapter,
   LocateResultCoordinates,
   ResolvedLocateResultCoordinates,
-} from '../../shared/model-locate-result/types';
-import type { PlanOptions } from './types';
+} from '../shared/model-locate-result/types';
+import type { PlanOptions } from '../workflows/planning/types';
 
 export interface CustomPlanningInput {
   // Original prompt from aiAct. Multimodal images are extracted before planning

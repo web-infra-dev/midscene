@@ -1,8 +1,8 @@
-import { resolveCustomPlanningDefinition } from '@/ai-model/adapter-resolver/custom-planning';
 import { ConversationHistory } from '@/ai-model/conversation-history';
+import { resolveCustomPlanningDefinition } from '@/ai-model/model-adapter/planning';
+import { ResolvedModelAdapter } from '@/ai-model/model-adapter/resolve';
 import { autoGlmAdapters } from '@/ai-model/models/auto-glm/adapter';
 import { createAutoGlmPlanner } from '@/ai-model/models/auto-glm/planning';
-import { ResolvedModelAdapter } from '@/ai-model/models/resolved';
 import { callAIWithStringResponse } from '@/ai-model/service-caller/index';
 import { runCustomPlanning } from '@/ai-model/workflows/planning/custom-planning';
 import type { PlanOptions } from '@/ai-model/workflows/planning/types';

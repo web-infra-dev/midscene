@@ -1,6 +1,11 @@
 import { type TModelFamily, UITarsModelVersion } from '@midscene/shared/env';
 import { assert } from '@midscene/shared/utils';
 import { jsonrepair } from 'jsonrepair';
+import type {
+  JsonParserContext,
+  JsonParserSource,
+  ModelAdapterDefinition,
+} from '../../model-adapter/types';
 import {
   extractJSONFromCodeBlock,
   safeParseJson,
@@ -9,11 +14,6 @@ import {
   type LocateResultValue,
   unwrapCoordinateListLikeInput,
 } from '../../shared/model-locate-result';
-import type {
-  JsonParserContext,
-  JsonParserSource,
-  ModelAdapterDefinition,
-} from '../types';
 import { createUiTarsPlanner } from './planning';
 
 const defaultVlmUiTarsReplanningCycleLimit = 40;
