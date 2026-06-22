@@ -1114,6 +1114,41 @@ describe('toolDefaults (deep locate / deep think)', () => {
     consoleSpy.mockRestore();
   });
 
+  it('does not render aiAct dump progress without core progress listener', async () => {
+    const unsubscribe = vi.fn();
+    const aiAction = vi.fn().mockResolvedValue('Settings opened.');
+    const addDumpUpdateListener = vi.fn(() => unsubscribe);
+    const commonTools = generateCommonTools(async () => ({
+      aiAction,
+      addDumpUpdateListener,
+      getActionSpace: vi.fn().mockResolvedValue([]),
+      page: { screenshotBase64: vi.fn().mockResolvedValue(screenshotBase64) },
+    }));
+    const actTool = commonTools.find((tool) => tool.name === 'act');
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+    await withCliVerboseContext(
+      {
+        enabled: true,
+        scriptName: 'midscene-web',
+        commandName: 'act',
+      },
+      async () => {
+        await actTool?.handler({ prompt: 'open settings' });
+      },
+    );
+
+    const messages = consoleSpy.mock.calls.flatMap(([message]) =>
+      String(message).split('\n'),
+    );
+    expect(
+      messages.some((message) => message.startsWith('[Midscene][aiAct]')),
+    ).toBe(false);
+    expect(addDumpUpdateListener).not.toHaveBeenCalled();
+    expect(unsubscribe).not.toHaveBeenCalled();
+    consoleSpy.mockRestore();
+  });
+
   it('emits human-readable aiAct planning failure details', async () => {
     let dumpListener:
       | ((dump: string, executionDump?: unknown) => void)
@@ -1351,48 +1386,37 @@ describe('toolDefaults (deep locate / deep think)', () => {
     consoleSpy.mockRestore();
   });
 
-  it('emits jsonl verbose dump update events while act is running', async () => {
-    let dumpListener:
-      | ((dump: string, executionDump?: unknown) => void)
+  it('emits jsonl aiAct progress events while act is running', async () => {
+    let progressListener:
+      | ((event: Record<string, unknown>) => void)
       | undefined;
     const unsubscribe = vi.fn();
     const aiAction = vi.fn().mockImplementation(async () => {
-      dumpListener?.('{}', {
-        id: 'execution-1',
-        name: 'AI Action',
-        description: 'open settings',
-        tasks: [
-          {
-            taskId: 'task-1',
-            type: 'Planning',
-            subType: 'Locate',
-            status: 'running',
-            param: { prompt: 'open settings' },
-            timing: { cost: 12 },
-            recorder: [
-              {
-                timing: 'after-calling',
-                screenshot: {
-                  toSerializable: () => ({
-                    type: 'midscene_screenshot_ref',
-                    id: 'shot-1',
-                    storage: 'file',
-                    path: './screenshots/shot-1.png',
-                  }),
-                },
-              },
-            ],
-          },
-        ],
+      progressListener?.({
+        type: 'aiAct',
+        sequence: 1,
+        event: 'plan_thinking',
+        planIndex: 1,
+        planLimit: 3,
+        screenshot: {
+          toSerializable: () => ({
+            type: 'midscene_screenshot_ref',
+            id: 'shot-1',
+            storage: 'file',
+            path: './screenshots/shot-1.png',
+          }),
+        },
       });
       return 'done';
     });
-    const addDumpUpdateListener = vi.fn((listener) => {
-      dumpListener = listener;
+    const addDumpUpdateListener = vi.fn(() => unsubscribe);
+    const addAiActProgressListener = vi.fn((listener) => {
+      progressListener = listener;
       return unsubscribe;
     });
     const commonTools = generateCommonTools(async () => ({
       aiAction,
+      addAiActProgressListener,
       addDumpUpdateListener,
       reportFile: '/tmp/midscene-report.html',
       getActionSpace: vi.fn().mockResolvedValue([]),
@@ -1427,33 +1451,27 @@ describe('toolDefaults (deep locate / deep think)', () => {
     );
     expect(progressEvents).toContainEqual(
       expect.objectContaining({
-        event: 'dump_update',
+        event: 'ai_act_progress',
         command: 'act',
         tool: 'act',
-        report: '/tmp/midscene-report.html',
-        execution: expect.objectContaining({
-          id: 'execution-1',
-          name: 'AI Action',
-          taskCount: 1,
+        aiAct: expect.objectContaining({
+          type: 'aiAct',
+          sequence: 1,
+          event: 'plan_thinking',
+          planIndex: 1,
+          planLimit: 3,
+          screenshots: [
+            expect.objectContaining({
+              id: 'shot-1',
+              storage: 'file',
+              path: './screenshots/shot-1.png',
+            }),
+          ],
         }),
-        task: expect.objectContaining({
-          id: 'task-1',
-          type: 'Planning',
-          subType: 'Locate',
-          status: 'running',
-          param: 'open settings',
-          message: 'Planning/Locate running: open settings',
-        }),
-        screenshots: [
-          expect.objectContaining({
-            id: 'shot-1',
-            storage: 'file',
-            path: './screenshots/shot-1.png',
-          }),
-        ],
       }),
     );
-    expect(addDumpUpdateListener).toHaveBeenCalledOnce();
+    expect(addAiActProgressListener).toHaveBeenCalledOnce();
+    expect(addDumpUpdateListener).not.toHaveBeenCalled();
     expect(unsubscribe).toHaveBeenCalledOnce();
     consoleSpy.mockRestore();
   });

@@ -552,18 +552,6 @@ function renderCliVerboseEventText(
         buildAiActProgressEventLines(progressEvent),
       );
     }
-    case 'ai_act_start': {
-      const prompt = compactText(event.prompt);
-      const text = prompt
-        ? `[Midscene][aiAct] Start: ${prompt}`
-        : '[Midscene][aiAct] Start';
-      return renderLinesOnce(context, [
-        {
-          key: `aiAct:start:${prompt}`,
-          text,
-        },
-      ]);
-    }
     case 'command_start': {
       if (isActVerboseEvent(command, tool)) {
         return undefined;
@@ -580,18 +568,7 @@ function renderCliVerboseEventText(
       return `[Midscene] ${tool ?? command} ready`;
     case 'dump_update': {
       if (isActVerboseEvent(command, tool)) {
-        const lines = Array.isArray(event.aiActTimeline)
-          ? event.aiActTimeline.filter(isRecord).flatMap((line) => {
-              if (
-                typeof line.key === 'string' &&
-                typeof line.text === 'string'
-              ) {
-                return [{ key: line.key, text: line.text }];
-              }
-              return [];
-            })
-          : [];
-        return renderLinesOnce(context, lines);
+        return undefined;
       }
 
       const task = isRecord(event.task) ? event.task : undefined;
@@ -707,6 +684,10 @@ export function attachCliVerboseDumpListener(
         aiAct: progress,
       });
     });
+  }
+
+  if (isActTool) {
+    return () => {};
   }
 
   if (typeof agent.addDumpUpdateListener !== 'function') {
