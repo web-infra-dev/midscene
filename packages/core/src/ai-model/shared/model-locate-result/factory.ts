@@ -27,7 +27,7 @@ const rawLocateValueFields = {
   },
 } as const;
 
-function resolveLocateResultCoordinates(
+export function resolveLocateResultCoordinates(
   coordinates: LocateResultCoordinates,
 ): ResolvedLocateResultCoordinates {
   const order = coordinates.order ?? 'xy';
@@ -198,7 +198,6 @@ function createStandardLocateResultAdapterImplementation(
     };
   };
   return {
-    kind: 'standard',
     promptSpec: createLocateResultPromptSpec(resolvedCoordinates),
     adaptElementLocateResultToPixelBbox,
     adaptSectionLocateResultToPixelBboxGroup,
@@ -215,21 +214,26 @@ export function createLocateResultAdapter(
       : createStandardLocateResultAdapterImplementation(config);
 
   return {
-    kind: adapter.kind,
     promptSpec: adapter.promptSpec,
-    adaptElementLocateResultToPixelBbox: (input, ctx) =>
+    adaptElementLocateResultToPixelBbox: (
+      input: unknown,
+      ctx: LocateResultContext,
+    ) =>
       finalizePixelBbox(
         adapter.adaptElementLocateResultToPixelBbox(input, ctx),
         input,
         ctx,
       ),
-    adaptSectionLocateResultToPixelBboxGroup: (input, ctx) =>
+    adaptSectionLocateResultToPixelBboxGroup: (
+      input: unknown,
+      ctx: LocateResultContext,
+    ) =>
       finalizeSectionLocatePixelBboxGroup(
         adapter.adaptSectionLocateResultToPixelBboxGroup(input, ctx),
         input,
         ctx,
       ),
-    adaptPlanningParamToPixelBbox: (input, ctx) =>
+    adaptPlanningParamToPixelBbox: (input: unknown, ctx: LocateResultContext) =>
       finalizePixelBbox(
         adapter.adaptPlanningParamToPixelBbox(input, ctx),
         input,

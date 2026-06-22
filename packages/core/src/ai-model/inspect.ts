@@ -10,7 +10,6 @@ import type {
 import { generateElementByRect } from '@midscene/shared/extractor';
 import { cropByRect, scaleImage } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
-import type { LocateResultElement } from '@midscene/shared/types';
 import { assert } from '@midscene/shared/utils';
 import type {
   ChatCompletionSystemMessageParam,
@@ -53,7 +52,9 @@ import {
 } from './workflows/inspect/locate-result-rect';
 import { mapSearchAreaPixelBboxToOriginalPixelBbox } from './workflows/inspect/search-area-mapping';
 import type {
+  LocateModelResponse,
   LocateOptions,
+  LocateRequestContext,
   LocateResult,
   SearchAreaConfig,
 } from './workflows/inspect/types';
@@ -118,42 +119,122 @@ export async function AiLocateElement(
   options: LocateOptions & { targetElementDescription: TUserPrompt },
 ): Promise<LocateResult> {
   const { targetElementDescription, ...locateOptions } = options;
+  assert(
+    targetElementDescription,
+    'cannot find the target element description',
+  );
+
+  const { context } = locateOptions;
+  const locateImage = locateOptions.searchConfig?.image ?? {
+    imageBase64: context.screenshot.base64,
+    width: context.shotSize.width,
+    height: context.shotSize.height,
+  };
+  const referenceImageMessages =
+    typeof targetElementDescription === 'string'
+      ? undefined
+      : await multimodalPromptToChatMessages(
+          userPromptToMultimodalPrompt(targetElementDescription),
+        );
+  const locateRequest: LocateRequestContext = {
+    elementDescriptionText: userPromptToString(targetElementDescription),
+    locateImage,
+    referenceImageMessages,
+    options: locateOptions,
+  };
+
   const locateAdapter = options.modelRuntime.adapter.locate;
-  if (locateAdapter.kind === 'custom') {
-    return locateAdapter.locateFn(targetElementDescription, locateOptions);
+  const locateFn =
+    locateAdapter.kind === 'custom' ? locateAdapter.locateFn : genericLocate;
+  const locateResponse = await locateFn(
+    targetElementDescription,
+    locateOptions,
+    locateRequest,
+  );
+  const {
+    locatedPixelBbox,
+    rawResponse,
+    rawChoiceMessage,
+    usage,
+    reasoningContent,
+    errors = [],
+  } = locateResponse;
+  const baseLocateResult = {
+    rawResponse,
+    rawChoiceMessage,
+    usage,
+    reasoning_content: reasoningContent,
+  };
+
+  if (!locatedPixelBbox) {
+    return {
+      rect: undefined,
+      parseResult: {
+        element: undefined,
+        errors,
+      },
+      ...baseLocateResult,
+    };
   }
-  return genericLocate(targetElementDescription, locateOptions);
+
+  try {
+    const rect = pixelBboxToRect(
+      mapSearchAreaPixelBboxToOriginalPixelBbox(
+        locatedPixelBbox,
+        locateOptions.searchConfig?.mapping,
+      ),
+    );
+    debugInspect('resRect', rect);
+
+    return {
+      rect,
+      parseResult: {
+        element: generateElementByRect(
+          rect,
+          locateRequest.elementDescriptionText,
+        ),
+        errors: [],
+      },
+      ...baseLocateResult,
+    };
+  } catch (error) {
+    const msg =
+      error instanceof Error
+        ? `Failed to parse locate result: ${error.message}`
+        : 'unknown error in locate';
+    return {
+      rect: undefined,
+      parseResult: {
+        element: undefined,
+        errors: errors.length > 0 ? [...errors, `(${msg})`] : [msg],
+      },
+      ...baseLocateResult,
+    };
+  }
 }
 
 export async function genericLocate(
-  elementDescription: TUserPrompt,
+  _elementDescription: TUserPrompt,
   options: LocateOptions,
-): Promise<LocateResult> {
-  const { context } = options;
+  locateRequest: LocateRequestContext,
+): Promise<LocateModelResponse> {
   const modelRuntime = options.modelRuntime;
   const { adapter } = modelRuntime;
   assert(
     adapter.locate.kind === 'standard',
     'generic locate requires a standard locate adapter',
   );
-  const screenshotBase64 = context.screenshot.base64;
-
-  assert(elementDescription, 'cannot find the target element description');
-  const elementDescriptionText = userPromptToString(elementDescription);
-  const userInstructionPrompt = findElementPrompt(elementDescriptionText);
+  const userInstructionPrompt = findElementPrompt(
+    locateRequest.elementDescriptionText,
+  );
   const systemPrompt = systemPromptToLocateElement(
     adapter.locate.resultAdapter.promptSpec,
   );
 
-  const modelImage = options.searchConfig?.image ?? {
-    imageBase64: screenshotBase64,
-    width: context.shotSize.width,
-    height: context.shotSize.height,
-  };
   const preparedImage = await prepareModelImage({
-    imageBase64: modelImage.imageBase64,
-    width: modelImage.width,
-    height: modelImage.height,
+    imageBase64: locateRequest.locateImage.imageBase64,
+    width: locateRequest.locateImage.width,
+    height: locateRequest.locateImage.height,
     policy: adapter.imagePreprocess,
   });
 
@@ -179,11 +260,8 @@ export async function genericLocate(
     },
   ];
 
-  if (typeof elementDescription !== 'string') {
-    const addOns = await multimodalPromptToChatMessages(
-      userPromptToMultimodalPrompt(elementDescription),
-    );
-    msgs.push(...addOns);
+  if (locateRequest.referenceImageMessages) {
+    msgs.push(...locateRequest.referenceImageMessages);
   }
 
   let res: Awaited<
@@ -212,63 +290,37 @@ export async function genericLocate(
         ? callError.rawChoiceMessage
         : undefined;
     return {
-      rect: undefined,
-      parseResult: {
-        element: undefined,
-        errors: [`AI call error: ${errorMessage}`],
-      },
       rawResponse,
       rawChoiceMessage,
       usage,
-      reasoning_content: undefined,
+      errors: [`AI call error: ${errorMessage}`],
     };
   }
 
   const rawResponse = JSON.stringify(res.content);
 
-  let resRect: Rect | undefined;
-  let matchedElement: LocateResultElement | undefined;
   let errors: string[] | undefined =
     'errors' in res.content ? res.content.errors : [];
   const resultAdapter = adapter.locate.resultAdapter;
   if (!hasLocateResult(res.content, resultAdapter.promptSpec.resultKey)) {
     return {
-      rect: undefined,
-      parseResult: {
-        element: undefined,
-        errors: errors as string[],
-      },
       rawResponse,
       rawChoiceMessage: res.rawChoiceMessage,
       usage: res.usage,
-      reasoning_content: res.reasoning_content,
+      reasoningContent: res.reasoning_content,
+      errors: errors as string[],
     };
   }
 
+  let targetPixelBbox;
   try {
-    const mapping = options.searchConfig?.mapping;
-    const targetPixelBbox = resultAdapter.adaptElementLocateResultToPixelBbox(
+    targetPixelBbox = resultAdapter.adaptElementLocateResultToPixelBbox(
       res.content,
       {
         preparedSize: preparedImage.preparedSize,
         contentSize: preparedImage.contentSize,
       },
     );
-    resRect = pixelBboxToRect(
-      mapSearchAreaPixelBboxToOriginalPixelBbox(targetPixelBbox, mapping),
-    );
-
-    debugInspect('resRect', resRect);
-
-    const element: LocateResultElement = generateElementByRect(
-      resRect,
-      elementDescriptionText as string,
-    );
-    errors = [];
-
-    if (element) {
-      matchedElement = element;
-    }
   } catch (e) {
     const msg =
       e instanceof Error
@@ -282,15 +334,12 @@ export async function genericLocate(
   }
 
   return {
-    rect: resRect,
-    parseResult: {
-      element: matchedElement,
-      errors: errors as string[],
-    },
+    locatedPixelBbox: targetPixelBbox,
     rawResponse,
     rawChoiceMessage: res.rawChoiceMessage,
     usage: res.usage,
-    reasoning_content: res.reasoning_content,
+    reasoningContent: res.reasoning_content,
+    errors: errors as string[],
   };
 }
 

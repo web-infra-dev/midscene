@@ -1,6 +1,11 @@
 import { type TModelFamily, UITarsModelVersion } from '@midscene/shared/env';
 import { assert } from '@midscene/shared/utils';
 import { jsonrepair } from 'jsonrepair';
+import type {
+  JsonParserContext,
+  JsonParserSource,
+  ModelAdapterDefinition,
+} from '../../model-adapter/types';
 import {
   extractJSONFromCodeBlock,
   safeParseJson,
@@ -9,12 +14,7 @@ import {
   type LocateResultValue,
   unwrapCoordinateListLikeInput,
 } from '../../shared/model-locate-result';
-import type {
-  JsonParserContext,
-  JsonParserSource,
-  ModelAdapterDefinition,
-} from '../types';
-import { uiTarsPlanning } from './planning';
+import { createUiTarsPlanner } from './planning';
 
 const defaultVlmUiTarsReplanningCycleLimit = 40;
 
@@ -193,8 +193,7 @@ function createUiTarsAdapter(
       kind: 'custom',
       cacheEnabled: false,
       defaultReplanningCycleLimit: defaultVlmUiTarsReplanningCycleLimit,
-      planFn: (userInstruction, options) =>
-        uiTarsPlanning(userInstruction, options, uiTarsModelVersion),
+      planner: createUiTarsPlanner(uiTarsModelVersion),
     },
     locate: {
       resultAdapter: {

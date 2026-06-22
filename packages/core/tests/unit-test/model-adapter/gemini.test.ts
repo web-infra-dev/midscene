@@ -1,8 +1,8 @@
+import { ResolvedModelAdapter } from '@/ai-model/model-adapter/resolve';
 import {
   extractGeminiContentAndReasoning,
   geminiAdapters,
 } from '@/ai-model/models/gemini';
-import { ResolvedModelAdapter } from '@/ai-model/models/resolved';
 import { describe, expect, it } from 'vitest';
 
 const geminiAdapter = new ResolvedModelAdapter(geminiAdapters.gemini, 'gemini');

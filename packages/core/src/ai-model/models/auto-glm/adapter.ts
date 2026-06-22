@@ -1,23 +1,9 @@
 import type { TModelFamily } from '@midscene/shared/env';
-import type { ModelAdapterDefinition } from '../types';
-import { autoGlmLocate } from './locate';
-import { autoGlmPlanning } from './planning';
-import {
-  getAutoGLMChineseLocatePrompt,
-  getAutoGLMChinesePlanPrompt,
-  getAutoGLMMultilingualLocatePrompt,
-  getAutoGLMMultilingualPlanPrompt,
-} from './prompt';
+import type { ModelAdapterDefinition } from '../../model-adapter/types';
+import { createAutoGlmPlanningTapLocator } from './locate';
+import { createAutoGlmPlanner } from './planning';
 
-const defaultAutoGlmReplanningCycleLimit = 100;
-
-function createAutoGlmAdapter({
-  getPlanPrompt,
-  getLocatePrompt,
-}: {
-  getPlanPrompt: () => string;
-  getLocatePrompt: () => string;
-}): ModelAdapterDefinition {
+function createAutoGlmAdapter(isMultilingual: boolean): ModelAdapterDefinition {
   return {
     chatCompletion: {
       unsupportedUserConfig: [
@@ -49,27 +35,19 @@ function createAutoGlmAdapter({
     planning: {
       kind: 'custom',
       cacheEnabled: false,
-      defaultReplanningCycleLimit: defaultAutoGlmReplanningCycleLimit,
-      planFn: (userInstruction, options) =>
-        autoGlmPlanning(userInstruction, options, getPlanPrompt),
+      defaultReplanningCycleLimit: 100,
+      planner: createAutoGlmPlanner(isMultilingual),
     },
     locate: {
       kind: 'custom',
-      locateFn: (elementDescription, options) =>
-        autoGlmLocate(elementDescription, options, getLocatePrompt),
+      planningTapLocator: createAutoGlmPlanningTapLocator(isMultilingual),
     },
   };
 }
 
 export const autoGlmAdapters = {
-  'auto-glm': createAutoGlmAdapter({
-    getPlanPrompt: getAutoGLMChinesePlanPrompt,
-    getLocatePrompt: getAutoGLMChineseLocatePrompt,
-  }),
-  'auto-glm-multilingual': createAutoGlmAdapter({
-    getPlanPrompt: getAutoGLMMultilingualPlanPrompt,
-    getLocatePrompt: getAutoGLMMultilingualLocatePrompt,
-  }),
+  'auto-glm': createAutoGlmAdapter(false),
+  'auto-glm-multilingual': createAutoGlmAdapter(true),
 } satisfies Pick<
   Record<TModelFamily, ModelAdapterDefinition>,
   'auto-glm' | 'auto-glm-multilingual'
