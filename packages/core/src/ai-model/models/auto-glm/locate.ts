@@ -1,29 +1,9 @@
-import type { PixelBbox, PlanningAction } from '@/types';
 import type { PlanningTapLocatorDefinition } from '../../model-adapter/types';
+import { getTapLocatedPixelBbox } from '../../shared/planning-action';
 import {
   getAutoGLMChineseLocatePrompt,
   getAutoGLMMultilingualLocatePrompt,
 } from './prompt';
-
-type TapPlanningAction = PlanningAction<{
-  locate: {
-    locatedPixelBbox: PixelBbox;
-  };
-}>;
-
-function getTapLocatedPixelBbox(
-  actions: PlanningAction[],
-): PixelBbox | undefined {
-  for (const action of actions) {
-    if (action.type !== 'Tap') {
-      continue;
-    }
-
-    return (action as TapPlanningAction).param.locate.locatedPixelBbox;
-  }
-
-  return undefined;
-}
 
 export function createAutoGlmPlanningTapLocator(
   isMultilingual: boolean,
