@@ -14,18 +14,26 @@ Midscene 新增 AndroidWorld benchmark 报告。使用 v1.9.5 测试时，Midsce
 
 ### 模型与规划更新
 
+- `aiAct` 支持图片提示。
 - `MIDSCENE_MODEL_REASONING_ENABLED` 支持 `default`，适配模型默认思考行为。
+- Gemini thinking content 与 GPT-5 reasoning 配置处理更完整。
 - `aiAct` 在缓存失效时会回退到模型规划，并清空对应缓存。
+- AI 请求错误会包含重试次数信息；模型响应解析失败时会保留原始响应；解析后的 locate 结果会先校验再使用。
+- 模型 dump 会暴露更多模型响应元数据，包括 raw choice message，以及 usage 中的响应模型名。
 - `deepLocate` 的搜索区域会显示在报告上。
 
 ### Chrome 扩展
 
 - Chrome 扩展 Bridge mode 支持文件上传。
+- Bridge mode 文件上传支持 file chooser accept 过滤与 WSL 文件路径。
 
 ### YAML、CLI 与 MCP
 
+- `1.9.8` 是最后一个包含 MCP 支持的 Midscene 版本。后续版本会下线 MCP server 包，改为推荐 Skills 与各平台 CLI。
+- 各平台 CLI 支持传入 agent behavior init args。
 - CLI 的 YAML 脚本新增 HarmonyOS target，HarmonyOS 自动化可以通过与 Web、Android、iOS、Computer 一致的脚本运行器流程执行。详见：[YAML 脚本自动化](./automate-with-scripts-in-yaml)、[HarmonyOS API](./harmony-api-reference)
 - YAML Web config 支持自定义 HTTP headers。
+- YAML Web config 支持通过 `downloadPath` 指定浏览器下载目录。
 - YAML 执行会暴露真实错误，不再只落到静默的 "not executed" 结果。
 - YAML 批量执行支持重试失败用例。
 - YAML 成功执行后会打印报告路径。
@@ -36,12 +44,25 @@ Midscene 新增 AndroidWorld benchmark 报告。使用 v1.9.5 测试时，Midsce
 
 ### 报告
 
+- `recordToReport` 支持自定义截图。
 - Report 导出会让图片路径与导出的截图保持一致。
 - Report 新增 JSON tree view，方便查看结构化任务和模型数据。
+- 优化 Report 截图、标签、Playground server origin 处理与上下文间距。
+
+### Studio 与 Recorder
+
+- 稳定 Studio recorder 描述与预览输入合并行为。
+- Studio 会更安全地处理无效的模型环境变量配置。
+- Recorder 工作流支持生成 Markdown replay output。
 
 ### Android 自动化
 
 - 改进 Android action controls 和规划提示，提升原生移动端自动化流程的稳定性。
+
+### Computer 自动化
+
+- Computer desktop automation 新增 Intel packaging。
+- Libnut 滚动现在每个 tick 会发出完整的一次 wheel delta。
 
 ### 问题修复
 

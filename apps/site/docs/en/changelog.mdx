@@ -14,18 +14,26 @@ Midscene now includes an AndroidWorld benchmark report. With v1.9.5, Midscene ac
 
 ### Model and Planning Updates
 
+- `aiAct` now supports image prompts.
 - `MIDSCENE_MODEL_REASONING_ENABLED` now supports `default`, so Midscene can follow each model family's default thinking behavior.
+- Gemini thinking content and GPT-5 reasoning configuration are now handled more completely.
 - `aiAct` falls back to model planning when a cached plan becomes invalid, and clears the corresponding cache entry.
+- AI request errors now include retry-attempt details, parse failures preserve raw model responses, and parsed locate results are validated before use.
+- Model dumps now expose more model response metadata, including raw choice messages and response model names in usage data.
 - The `deepLocate` search area is now displayed in reports.
 
 ### Chrome Extension
 
 - Chrome extension Bridge mode now supports file upload.
+- Bridge-mode file uploads now honor file chooser accept filters and WSL file paths.
 
 ### YAML, CLI, and MCP
 
+- `1.9.8` is the final Midscene version that includes MCP support. Later versions retire MCP server packages in favor of Skills and the platform CLIs.
+- Platform CLIs now accept agent behavior init args.
 - YAML scripts now support the HarmonyOS target in the CLI, so HarmonyOS automation can be driven through the same script runner workflow as Web, Android, iOS, and Computer. See: [Automate with Scripts in YAML](./automate-with-scripts-in-yaml), [HarmonyOS API](./harmony-api-reference)
 - YAML Web config supports custom HTTP headers for browser automation.
+- YAML Web config supports `downloadPath` for browser downloads.
 - YAML runs now surface real execution errors instead of ending as a silent "not executed" case.
 - YAML batch runs can retry failed cases.
 - Successful YAML runs now print the report path.
@@ -36,12 +44,25 @@ Midscene now includes an AndroidWorld benchmark report. With v1.9.5, Midscene ac
 
 ### Reports
 
+- `recordToReport` now supports custom screenshots.
 - Report exports keep image paths aligned with exported screenshots.
 - Reports include a JSON tree view for inspecting structured task and model data.
+- Report screenshots, labels, playground server origin handling, and context spacing were refined.
+
+### Studio and Recorder
+
+- Studio recorder descriptions and preview input coalescing were stabilized.
+- Studio now handles invalid model environment configuration more safely.
+- Recorder workflows can generate Markdown replay output.
 
 ### Android Automation
 
 - Android action controls and planning guidance were improved for native mobile automation flows.
+
+### Computer Automation
+
+- Computer desktop automation now ships Intel packaging.
+- Libnut scrolling now emits one full wheel delta per scroll tick.
 
 ### Bug Fixes
 
