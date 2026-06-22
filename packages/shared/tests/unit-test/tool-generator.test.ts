@@ -1003,6 +1003,96 @@ describe('toolDefaults (deep locate / deep think)', () => {
     consoleSpy.mockRestore();
   });
 
+  it('emits human-readable aiAct planning failure details', async () => {
+    let dumpListener:
+      | ((dump: string, executionDump?: unknown) => void)
+      | undefined;
+    const unsubscribe = vi.fn();
+    const reportFile = join(
+      process.cwd(),
+      'midscene_run/report/midscene-report.html',
+    );
+    const aiAction = vi.fn().mockImplementation(async () => {
+      dumpListener?.('{}', {
+        id: 'execution-1',
+        name: 'Act - open settings',
+        description: 'open settings',
+        tasks: [
+          {
+            taskId: 'plan-failed',
+            type: 'Planning',
+            subType: 'Plan',
+            status: 'failed',
+            param: {
+              userInstruction: 'open settings',
+              replanningCycleLimit: 3,
+            },
+            uiContext: {
+              screenshot: {
+                toSerializable: () => ({
+                  type: 'midscene_screenshot_ref',
+                  id: 'failed-shot',
+                  storage: 'file',
+                  path: './screenshots/failed-shot.png',
+                }),
+              },
+            },
+            output: {
+              log: 'The settings entry is not visible.',
+              shouldContinuePlanning: false,
+            },
+            errorMessage: 'Task failed: The settings entry is not visible.',
+          },
+        ],
+      });
+      throw new Error('Task failed: The settings entry is not visible.');
+    });
+    const addDumpUpdateListener = vi.fn((listener) => {
+      dumpListener = listener;
+      return unsubscribe;
+    });
+    const commonTools = generateCommonTools(async () => ({
+      aiAction,
+      addDumpUpdateListener,
+      reportFile,
+      getActionSpace: vi.fn().mockResolvedValue([]),
+      page: { screenshotBase64: vi.fn().mockResolvedValue(screenshotBase64) },
+    }));
+    const actTool = commonTools.find((tool) => tool.name === 'act');
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    const consoleErrorSpy = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => {});
+
+    const result = await withCliVerboseContext(
+      {
+        enabled: true,
+        scriptName: 'midscene-web',
+        commandName: 'act',
+      },
+      async () => actTool?.handler({ prompt: 'open settings' }),
+    );
+
+    const messages = consoleSpy.mock.calls.flatMap(([message]) =>
+      String(message).split('\n'),
+    );
+    expect(result?.isError).toBe(true);
+    expect(messages).toContain('[Midscene][aiAct] Start: open settings');
+    expect(messages).toContain(
+      '[Midscene][aiAct][Plan 1/3] Thinking with the latest screenshot: midscene_run/report/screenshots/failed-shot.png',
+    );
+    expect(messages).toContain(
+      '[Midscene][aiAct][Plan 1/3] Failed: Task failed: The settings entry is not visible.',
+    );
+    expect(messages).not.toContain(
+      '[Midscene][aiAct] Complete: The settings entry is not visible.',
+    );
+    expect(addDumpUpdateListener).toHaveBeenCalledOnce();
+    expect(unsubscribe).toHaveBeenCalledOnce();
+    consoleSpy.mockRestore();
+    consoleErrorSpy.mockRestore();
+  });
+
   it('exports inline verbose dump screenshots to readable file paths', async () => {
     let dumpListener:
       | ((dump: string, executionDump?: unknown) => void)

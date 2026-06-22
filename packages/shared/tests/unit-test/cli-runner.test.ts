@@ -786,6 +786,23 @@ describe('runToolsCLI', () => {
     vi.restoreAllMocks();
   });
 
+  it('emits an aiAct failure line when a verbose act command throws', async () => {
+    const handler = vi.fn().mockRejectedValue(new Error('boom'));
+    const tools = createMockTools([{ name: 'act', handler }]);
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+    await expect(
+      runToolsCLI(tools, 'test-cli', {
+        argv: ['--verbose', 'act'],
+      }),
+    ).rejects.toThrow('boom');
+
+    const messages = consoleSpy.mock.calls.map(([message]) => String(message));
+    expect(messages).toContain('[Midscene][aiAct] Failed: boom');
+    expect(tools.destroy).toHaveBeenCalledOnce();
+    vi.restoreAllMocks();
+  });
+
   it('matches commands case-insensitively', async () => {
     const handler = vi.fn().mockResolvedValue({
       content: [{ type: 'text', text: 'tapped' }],
