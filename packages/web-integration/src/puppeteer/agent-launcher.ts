@@ -3,6 +3,7 @@ import path from 'node:path';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 
+import { resolveBrowserAgentRuntimeOptions } from '@/common/browser-agent';
 import {
   defaultViewportHeight,
   defaultViewportWidth,
@@ -385,10 +386,6 @@ export async function puppeteerAgentForTarget(
 
   const { aiActionContext, ...preferenceToUse } = preference ?? {};
 
-  const forceSameTabNavigation =
-    typeof target.forceSameTabNavigation !== 'undefined'
-      ? target.forceSameTabNavigation
-      : true;
   const mode = target.mode ?? 'page';
 
   if (mode !== 'page' && mode !== 'browser') {
@@ -397,20 +394,12 @@ export async function puppeteerAgentForTarget(
     );
   }
 
-  if (mode === 'page' && target.autoFollowNewPage) {
-    throw new Error(
-      '[midscene] autoFollowNewPage requires browser mode. Use browser: or web.mode: browser.',
-    );
-  }
-
-  if (
-    mode === 'browser' &&
-    typeof target.forceSameTabNavigation !== 'undefined'
-  ) {
-    throw new Error(
-      '[midscene] forceSameTabNavigation cannot be used in browser mode. Use page: or web.mode: page when same-tab navigation is required.',
-    );
-  }
+  const runtimeOptions = resolveBrowserAgentRuntimeOptions({
+    agentName: 'YAML web target',
+    pageScope: mode,
+    forceSameTabNavigation: target.forceSameTabNavigation,
+    autoFollowNewPage: target.autoFollowNewPage,
+  });
 
   const commonAgentOpts = {
     ...preferenceToUse,
@@ -427,11 +416,11 @@ export async function puppeteerAgentForTarget(
       ? await PuppeteerBrowserAgent.create(page.browser(), {
           ...commonAgentOpts,
           initialPage: page,
-          autoFollowNewPage: target.autoFollowNewPage ?? false,
+          autoFollowNewPage: runtimeOptions.autoFollowNewPage,
         })
       : new PuppeteerAgent(page, {
           ...commonAgentOpts,
-          forceSameTabNavigation,
+          forceSameTabNavigation: runtimeOptions.forceSameTabNavigation,
         });
 
   freeFn.push({

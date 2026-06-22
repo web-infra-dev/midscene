@@ -1,17 +1,27 @@
 import {
+  BrowserAwareAgent,
+  resolveBrowserAgentRuntimeOptions,
+} from '@/common/browser-agent';
+import {
   applyForceChromeSelectRendering,
   isRetryableBrowserNavigationError,
 } from '@/common/web-agent';
 import type { WebPageAgentOpt } from '@/web-element';
-import { Agent as PageAgent } from '@midscene/core/agent';
 import { getDebug } from '@midscene/shared/logger';
-import type { Page as PuppeteerPage } from 'puppeteer';
+import type {
+  Page as PuppeteerPage,
+  Target as PuppeteerTarget,
+} from 'puppeteer';
 import { forceClosePopup } from './base-page';
 import { PuppeteerWebPage } from './page';
 
 const debug = getDebug('puppeteer:agent');
 
-export class PuppeteerPageAgent extends PageAgent<PuppeteerWebPage> {
+export class PuppeteerPageAgent extends BrowserAwareAgent<
+  PuppeteerWebPage,
+  PuppeteerPage,
+  PuppeteerTarget
+> {
   protected isRetryableContextError(error: unknown): boolean {
     return isRetryableBrowserNavigationError(error);
   }
@@ -25,10 +35,14 @@ export class PuppeteerPageAgent extends PageAgent<PuppeteerWebPage> {
     const webPage = new PuppeteerWebPage(page, opts);
     super(webPage, opts);
 
-    const { forceSameTabNavigation = true, forceChromeSelectRendering } =
-      opts ?? {};
+    const { forceSameTabNavigation, forceChromeSelectRendering } = opts ?? {};
+    const runtimeOptions = resolveBrowserAgentRuntimeOptions({
+      agentName: 'PuppeteerPageAgent',
+      pageScope: 'page',
+      forceSameTabNavigation,
+    });
 
-    if (forceSameTabNavigation) {
+    if (runtimeOptions.forceSameTabNavigation) {
       forceClosePopup(page, debug);
     }
 

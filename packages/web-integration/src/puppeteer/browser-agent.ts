@@ -1,13 +1,14 @@
 import {
   type BrowserAgentAdapter,
   BrowserAgentPageController,
+  BrowserAwareAgent,
+  resolveBrowserAgentRuntimeOptions,
 } from '@/common/browser-agent';
 import {
   applyForceChromeSelectRendering,
   isRetryableBrowserNavigationError,
 } from '@/common/web-agent';
 import type { WebPageAgentOpt } from '@/web-element';
-import { Agent as PageAgent } from '@midscene/core/agent';
 import { getDebug } from '@midscene/shared/logger';
 import type {
   Browser as PuppeteerBrowser,
@@ -43,11 +44,17 @@ export type PuppeteerBrowserAgentCreateOpt = PuppeteerBrowserAgentOpt & {
   initialPage?: PuppeteerPage;
 };
 
-export class PuppeteerBrowserAgent extends PageAgent<PuppeteerWebPage> {
-  private readonly pageController: BrowserAgentPageController<
+export class PuppeteerBrowserAgent extends BrowserAwareAgent<
+  PuppeteerWebPage,
+  PuppeteerPage,
+  PuppeteerTarget
+> {
+  private get pageController(): BrowserAgentPageController<
     PuppeteerPage,
     PuppeteerTarget
-  >;
+  > {
+    return this.getPageController();
+  }
 
   protected isRetryableContextError(error: unknown): boolean {
     return isRetryableBrowserNavigationError(error);
@@ -69,29 +76,32 @@ export class PuppeteerBrowserAgent extends PageAgent<PuppeteerWebPage> {
       );
     }
 
-    const {
-      autoFollowNewPage = false,
-      newPageTimeout = 5000,
-      ...agentOpts
-    } = opts ?? {};
+    const { autoFollowNewPage, newPageTimeout, ...agentOpts } = opts ?? {};
+    const runtimeOptions = resolveBrowserAgentRuntimeOptions({
+      agentName: 'PuppeteerBrowserAgent',
+      pageScope: 'browser',
+      forceSameTabNavigation: (opts as WebPageAgentOpt | undefined)
+        ?.forceSameTabNavigation,
+      autoFollowNewPage,
+      newPageTimeout,
+    });
     const { forceChromeSelectRendering } = agentOpts;
     const webPage = new PuppeteerWebPage(initialPage, {
       ...agentOpts,
-      forceSameTabNavigation: false,
+      forceSameTabNavigation: runtimeOptions.forceSameTabNavigation,
     });
-    super(webPage, agentOpts);
-
-    this.pageController = new BrowserAgentPageController({
+    const pageController = new BrowserAgentPageController({
       agentName: 'PuppeteerBrowserAgent',
       adapter: createPuppeteerBrowserAdapter(browser),
-      getActivePage: () => this.interface.underlyingPage as PuppeteerPage,
+      getActivePage: () => webPage.underlyingPage as PuppeteerPage,
       setActivePageValue: (page) => {
-        this.interface.underlyingPage = page;
+        webPage.underlyingPage = page;
       },
-      autoFollowNewPage,
-      newPageTimeout,
+      autoFollowNewPage: runtimeOptions.autoFollowNewPage,
+      newPageTimeout: runtimeOptions.newPageTimeout,
       debug,
     });
+    super(webPage, agentOpts, pageController);
 
     applyForceChromeSelectRendering(
       initialPage,
@@ -135,7 +145,6 @@ export class PuppeteerBrowserAgent extends PageAgent<PuppeteerWebPage> {
   }
 
   async destroy() {
-    this.pageController.destroy();
     await super.destroy();
   }
 }

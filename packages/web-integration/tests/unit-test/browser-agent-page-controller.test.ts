@@ -1,4 +1,7 @@
-import { BrowserAgentPageController } from '@/common/browser-agent';
+import {
+  BrowserAgentPageController,
+  resolveBrowserAgentRuntimeOptions,
+} from '@/common/browser-agent';
 import { describe, expect, it, vi } from 'vitest';
 
 type PageMock = {
@@ -118,5 +121,55 @@ describe('BrowserAgentPageController', () => {
     await expect(ctx.controller.setActivePage(closedPage)).rejects.toThrow(
       '[midscene] Cannot set TestBrowserAgent active page to a closed or invalid page.',
     );
+  });
+});
+
+describe('resolveBrowserAgentRuntimeOptions', () => {
+  it('keeps page mode locked by default', () => {
+    expect(
+      resolveBrowserAgentRuntimeOptions({
+        agentName: 'TestPageAgent',
+        pageScope: 'page',
+      }),
+    ).toEqual({
+      pageScope: 'page',
+      forceSameTabNavigation: true,
+      autoFollowNewPage: false,
+      newPageTimeout: 5000,
+    });
+  });
+
+  it('keeps browser mode browser-controlled by default', () => {
+    expect(
+      resolveBrowserAgentRuntimeOptions({
+        agentName: 'TestBrowserAgent',
+        pageScope: 'browser',
+      }),
+    ).toEqual({
+      pageScope: 'browser',
+      forceSameTabNavigation: false,
+      autoFollowNewPage: false,
+      newPageTimeout: 5000,
+    });
+  });
+
+  it('rejects auto-follow in page mode', () => {
+    expect(() =>
+      resolveBrowserAgentRuntimeOptions({
+        agentName: 'TestPageAgent',
+        pageScope: 'page',
+        autoFollowNewPage: true,
+      }),
+    ).toThrow('autoFollowNewPage requires browser mode');
+  });
+
+  it('rejects same-tab forcing in browser mode', () => {
+    expect(() =>
+      resolveBrowserAgentRuntimeOptions({
+        agentName: 'TestBrowserAgent',
+        pageScope: 'browser',
+        forceSameTabNavigation: false,
+      }),
+    ).toThrow('forceSameTabNavigation cannot be used in browser mode');
   });
 });

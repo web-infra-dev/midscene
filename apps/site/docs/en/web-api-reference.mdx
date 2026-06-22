@@ -59,6 +59,7 @@ In addition to the base agent options, Puppeteer exposes:
 :::info
 
 - One agent per page: by default (`forceSameTabNavigation: true`), Midscene opens new links in the current tab for easier debugging. Set it to `false` if you want normal new-tab behavior and create a new `PuppeteerAgent` for each page yourself. Use `PuppeteerBrowserAgent` when the same Agent should manage browser-level page switching.
+- `PuppeteerAgent` / `PuppeteerPageAgent` remains page-scoped for compatibility. It does not expose browser-level page switching unless you explicitly choose `PuppeteerBrowserAgent`.
 - For the full list of interaction methods, see [API reference (Common)](./api#interaction-methods).
 
 :::
@@ -169,6 +170,7 @@ const agent = new PlaywrightPageAgent(page, {
 :::info
 
 - One agent per page: with `forceSameTabNavigation` (default `true`), Midscene intercepts new tabs for stability. Set it to `false` to allow normal new tabs and create a new `PlaywrightAgent` for each page yourself. Use `PlaywrightBrowserAgent` when the same Agent should manage browser-context-level page switching.
+- `PlaywrightAgent` / `PlaywrightPageAgent` remains page-scoped for compatibility. It does not expose browser-level page switching unless you explicitly choose `PlaywrightBrowserAgent`.
 - For the full list of interaction methods, see [API reference (Common)](./api#interaction-methods).
 
 :::

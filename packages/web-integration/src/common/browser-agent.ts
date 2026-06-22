@@ -1,4 +1,9 @@
+import type { AgentOpt } from '@midscene/core';
+import { Agent as CoreAgent } from '@midscene/core/agent';
+import type { AbstractInterface } from '@midscene/core/device';
 import type { DebugFunction } from '@midscene/shared/logger';
+
+export type BrowserAgentPageScope = 'page' | 'browser';
 
 export type BrowserAgentAdapter<Page, NewPageEvent> = {
   pages(): Page[] | Promise<Page[]>;
@@ -20,6 +25,93 @@ export type BrowserAgentPageControllerOptions<Page, NewPageEvent> = {
   newPageTimeout: number;
   debug: DebugFunction;
 };
+
+export type BrowserAgentRuntimeOptions = {
+  agentName: string;
+  pageScope: BrowserAgentPageScope;
+  forceSameTabNavigation?: boolean;
+  autoFollowNewPage?: boolean;
+  newPageTimeout?: number;
+};
+
+export type ResolvedBrowserAgentRuntimeOptions = {
+  pageScope: BrowserAgentPageScope;
+  forceSameTabNavigation: boolean;
+  autoFollowNewPage: boolean;
+  newPageTimeout: number;
+};
+
+const DEFAULT_NEW_PAGE_TIMEOUT = 5000;
+
+export function resolveBrowserAgentRuntimeOptions({
+  agentName,
+  pageScope,
+  forceSameTabNavigation,
+  autoFollowNewPage,
+  newPageTimeout = DEFAULT_NEW_PAGE_TIMEOUT,
+}: BrowserAgentRuntimeOptions): ResolvedBrowserAgentRuntimeOptions {
+  if (pageScope === 'page') {
+    if (autoFollowNewPage) {
+      throw new Error(
+        `[midscene] autoFollowNewPage requires browser mode for ${agentName}. Use BrowserAgent when one agent should follow newly opened pages.`,
+      );
+    }
+
+    return {
+      pageScope,
+      forceSameTabNavigation: forceSameTabNavigation ?? true,
+      autoFollowNewPage: false,
+      newPageTimeout,
+    };
+  }
+
+  if (typeof forceSameTabNavigation !== 'undefined') {
+    throw new Error(
+      `[midscene] forceSameTabNavigation cannot be used in browser mode for ${agentName}. Use PageAgent when same-tab navigation is required.`,
+    );
+  }
+
+  return {
+    pageScope,
+    forceSameTabNavigation: false,
+    autoFollowNewPage: autoFollowNewPage ?? false,
+    newPageTimeout,
+  };
+}
+
+export abstract class BrowserAwareAgent<
+  InterfaceType extends AbstractInterface,
+  Page,
+  NewPageEvent,
+> extends CoreAgent<InterfaceType> {
+  private readonly browserPageController?: BrowserAgentPageController<
+    Page,
+    NewPageEvent
+  >;
+
+  protected constructor(
+    interfaceInstance: InterfaceType,
+    opts?: AgentOpt,
+    pageController?: BrowserAgentPageController<Page, NewPageEvent>,
+  ) {
+    super(interfaceInstance, opts);
+    this.browserPageController = pageController;
+  }
+
+  protected getPageController() {
+    if (!this.browserPageController) {
+      throw new Error(
+        `[midscene] ${this.constructor.name} is running in page mode and cannot control browser pages.`,
+      );
+    }
+    return this.browserPageController;
+  }
+
+  async destroy() {
+    this.browserPageController?.destroy();
+    await super.destroy();
+  }
+}
 
 export class BrowserAgentPageController<Page, NewPageEvent> {
   private readonly agentName: string;

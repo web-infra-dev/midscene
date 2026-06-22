@@ -1,3 +1,4 @@
+import { resolveBrowserAgentRuntimeOptions } from '@/common/browser-agent';
 import {
   PlaywrightAgent,
   PlaywrightBrowserAgent,
@@ -155,6 +156,15 @@ export const PlaywrightAiFixture = (options?: PlaywrightAiFixtureOptions) => {
         );
       }
 
+      const runtimeOptions = resolveBrowserAgentRuntimeOptions({
+        agentName: 'PlaywrightAiFixture',
+        pageScope: autoFollowNewPage ? 'browser' : 'page',
+        forceSameTabNavigation: autoFollowNewPage
+          ? undefined
+          : forceSameTabNavigation,
+        autoFollowNewPage,
+      });
+
       const commonAgentOpts = {
         testId: reportTag,
         reportFileName: reportTag,
@@ -169,11 +179,11 @@ export const PlaywrightAiFixture = (options?: PlaywrightAiFixtureOptions) => {
       const agent = autoFollowNewPage
         ? new PlaywrightBrowserAgent(page.context(), page, {
             ...commonAgentOpts,
-            autoFollowNewPage: true,
+            autoFollowNewPage: runtimeOptions.autoFollowNewPage,
           })
         : new PlaywrightAgent(page, {
             ...commonAgentOpts,
-            forceSameTabNavigation,
+            forceSameTabNavigation: runtimeOptions.forceSameTabNavigation,
           });
       pageAgentMap[idForPage] = agent;
       const records = getAgentRecordsForTest(testInfo);

@@ -59,6 +59,7 @@ const agent = new PuppeteerPageAgent(page, {
 :::info
 
 - 每个页面一个 Agent：默认情况下（`forceSameTabNavigation: true`）Midscene 会拦截新标签并在当前页打开，便于调试；若想保留浏览器原生的新标签行为可设为 `false`，并自行给每个页面创建新的 `PuppeteerAgent`。如果需要同一个 Agent 管理浏览器级别的页面切换，请使用 `PuppeteerBrowserAgent`。
+- `PuppeteerAgent` / `PuppeteerPageAgent` 为了兼容性仍保持 page-scoped 语义，不会暴露浏览器级别的页面切换能力；需要时请显式选择 `PuppeteerBrowserAgent`。
 - 更多交互方法请参考 [API 参考（通用）](./api#interaction-methods)。
 
 :::
@@ -169,6 +170,7 @@ const agent = new PlaywrightPageAgent(page, {
 :::info
 
 - 每个页面一个 Agent：默认 `forceSameTabNavigation` 为 `true`，Midscene 会拦截新标签确保稳定性；如需浏览器原生新标签行为请设为 `false`，并自行给每个页面创建新的 `PlaywrightAgent`。如果需要同一个 Agent 管理 browser context 级别的页面切换，请使用 `PlaywrightBrowserAgent`。
+- `PlaywrightAgent` / `PlaywrightPageAgent` 为了兼容性仍保持 page-scoped 语义，不会暴露浏览器级别的页面切换能力；需要时请显式选择 `PlaywrightBrowserAgent`。
 - 更多交互方法请参考 [API 参考（通用）](./api#interaction-methods)。
 
 :::

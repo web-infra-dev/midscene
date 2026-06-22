@@ -1,13 +1,14 @@
 import {
   type BrowserAgentAdapter,
   BrowserAgentPageController,
+  BrowserAwareAgent,
+  resolveBrowserAgentRuntimeOptions,
 } from '@/common/browser-agent';
 import {
   applyForceChromeSelectRendering,
   isRetryableBrowserNavigationError,
 } from '@/common/web-agent';
 import type { WebPageAgentOpt } from '@/web-element';
-import { Agent as PageAgent } from '@midscene/core/agent';
 import { getDebug } from '@midscene/shared/logger';
 import type {
   BrowserContext as PlaywrightBrowserContext,
@@ -41,11 +42,17 @@ export type PlaywrightBrowserAgentCreateOpt = PlaywrightBrowserAgentOpt & {
   initialPage?: PlaywrightPage;
 };
 
-export class PlaywrightBrowserAgent extends PageAgent<PlaywrightWebPage> {
-  private readonly pageController: BrowserAgentPageController<
+export class PlaywrightBrowserAgent extends BrowserAwareAgent<
+  PlaywrightWebPage,
+  PlaywrightPage,
+  PlaywrightPage
+> {
+  private get pageController(): BrowserAgentPageController<
     PlaywrightPage,
     PlaywrightPage
-  >;
+  > {
+    return this.getPageController();
+  }
 
   protected isRetryableContextError(error: unknown): boolean {
     return isRetryableBrowserNavigationError(error);
@@ -67,29 +74,32 @@ export class PlaywrightBrowserAgent extends PageAgent<PlaywrightWebPage> {
       );
     }
 
-    const {
-      autoFollowNewPage = false,
-      newPageTimeout = 5000,
-      ...agentOpts
-    } = opts ?? {};
+    const { autoFollowNewPage, newPageTimeout, ...agentOpts } = opts ?? {};
+    const runtimeOptions = resolveBrowserAgentRuntimeOptions({
+      agentName: 'PlaywrightBrowserAgent',
+      pageScope: 'browser',
+      forceSameTabNavigation: (opts as WebPageAgentOpt | undefined)
+        ?.forceSameTabNavigation,
+      autoFollowNewPage,
+      newPageTimeout,
+    });
     const { forceChromeSelectRendering } = agentOpts;
     const webPage = new PlaywrightWebPage(initialPage, {
       ...agentOpts,
-      forceSameTabNavigation: false,
+      forceSameTabNavigation: runtimeOptions.forceSameTabNavigation,
     });
-    super(webPage, agentOpts);
-
-    this.pageController = new BrowserAgentPageController({
+    const pageController = new BrowserAgentPageController({
       agentName: 'PlaywrightBrowserAgent',
       adapter: createPlaywrightBrowserAdapter(context),
-      getActivePage: () => this.interface.underlyingPage as PlaywrightPage,
+      getActivePage: () => webPage.underlyingPage as PlaywrightPage,
       setActivePageValue: (page) => {
-        this.interface.underlyingPage = page;
+        webPage.underlyingPage = page;
       },
-      autoFollowNewPage,
-      newPageTimeout,
+      autoFollowNewPage: runtimeOptions.autoFollowNewPage,
+      newPageTimeout: runtimeOptions.newPageTimeout,
       debug,
     });
+    super(webPage, agentOpts, pageController);
 
     applyForceChromeSelectRendering(
       initialPage,
@@ -132,7 +142,6 @@ export class PlaywrightBrowserAgent extends PageAgent<PlaywrightWebPage> {
   }
 
   async destroy() {
-    this.pageController.destroy();
     await super.destroy();
   }
 }
