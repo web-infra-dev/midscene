@@ -1,4 +1,4 @@
-import type { PlanningAction, PlanningLocateParam } from '@/types';
+import type { PixelBbox, PlanningAction, PlanningLocateParam } from '@/types';
 
 export type LocateActionParam = {
   locate: PlanningLocateParam;
@@ -24,3 +24,24 @@ export type DragAndDropPlanningAction = PlanningAction<{
 }> & {
   type: 'DragAndDrop';
 };
+
+type TapPlanningActionWithLocatedPixelBbox = PlanningAction<{
+  locate: {
+    locatedPixelBbox: PixelBbox;
+  };
+}>;
+
+export function getTapLocatedPixelBbox(
+  actions: PlanningAction[],
+): PixelBbox | undefined {
+  for (const action of actions) {
+    if (action.type !== 'Tap') {
+      continue;
+    }
+
+    return (action as TapPlanningActionWithLocatedPixelBbox).param.locate
+      .locatedPixelBbox;
+  }
+
+  return undefined;
+}
