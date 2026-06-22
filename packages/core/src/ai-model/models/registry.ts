@@ -13,6 +13,7 @@ import { geminiAdapters } from './gemini';
 import { glmAdapters } from './glm';
 import { gptAdapters } from './gpt';
 import { kimiAdapters } from './kimi';
+import { maiUiAdapters } from './mai-ui/adapter';
 import { mimoAdapters } from './mimo';
 import { qwenAdapters } from './qwen';
 import { uiTarsAdapters } from './ui-tars/adapter';
@@ -24,6 +25,7 @@ export const MODEL_ADAPTER_CONFIGS = {
   ...uiTarsAdapters,
   ...glmAdapters,
   ...autoGlmAdapters,
+  ...maiUiAdapters,
   ...gptAdapters,
   ...kimiAdapters,
   ...mimoAdapters,

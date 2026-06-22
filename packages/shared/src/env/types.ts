@@ -299,6 +299,7 @@ export type TModelFamily =
   | 'glm-v'
   | 'auto-glm'
   | 'auto-glm-multilingual'
+  | 'mai-ui'
   | 'gpt-5'
   | 'kimi'
   | 'xiaomi-mimo';
@@ -318,6 +319,7 @@ export const MODEL_FAMILY_VALUES: TModelFamily[] = [
   'glm-v',
   'auto-glm',
   'auto-glm-multilingual',
+  'mai-ui',
   'gpt-5',
   'kimi',
   'xiaomi-mimo',
