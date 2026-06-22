@@ -29,6 +29,20 @@ async function playwrightInputCenter(page: any): Promise<[number, number]> {
   });
 }
 
+async function playwrightInputValue(page: any): Promise<string> {
+  return page.locator('#target').evaluate((el: HTMLInputElement) => el.value);
+}
+
+async function playwrightBrowserUserAgent(page: any): Promise<string> {
+  const client = await page.context().newCDPSession(page);
+  try {
+    const version = await client.send('Browser.getVersion');
+    return version.userAgent;
+  } finally {
+    await client.detach().catch(() => undefined);
+  }
+}
+
 describe('BasePage clearInput CDP selectAll', () => {
   describe('Puppeteer', () => {
     let browser: PuppeteerBrowser;
@@ -76,6 +90,7 @@ describe('BasePage clearInput CDP selectAll', () => {
         // CI installs Puppeteer's Chrome cache, but not Playwright's browser
         // bundle because dependencies are installed with --ignore-scripts.
         executablePath: puppeteer.executablePath(),
+        args: ['--no-sandbox', '--disable-setuid-sandbox'],
       });
     }, TEST_TIMEOUT_MS);
 
@@ -94,14 +109,89 @@ describe('BasePage clearInput CDP selectAll', () => {
 
         await webPage.clearInput({ center } as any);
 
-        const value = await page.locator('#target').evaluate((el) => {
-          return (el as HTMLInputElement).value;
-        });
+        const value = await playwrightInputValue(page);
         await page.close();
 
         expect(value).toBe('');
       },
       TEST_TIMEOUT_MS,
     );
+
+    describe('with spoofed browser-level user agent', () => {
+      const linuxUserAgent =
+        'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.7680.31 Safari/537.36';
+      const macUserAgent =
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.7680.31 Safari/537.36';
+      const spoofedUserAgent =
+        process.platform === 'darwin' ? linuxUserAgent : macUserAgent;
+      const spoofedUserAgentMarker =
+        process.platform === 'darwin' ? 'X11; Linux x86_64' : 'Macintosh';
+      const localSelectAllModifier =
+        process.platform === 'darwin' ? 'Meta' : 'Control';
+
+      let spoofedBrowser: PlaywrightBrowser;
+
+      beforeAll(async () => {
+        spoofedBrowser = await chromium.launch({
+          headless: true,
+          executablePath: puppeteer.executablePath(),
+          args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            `--user-agent=${spoofedUserAgent}`,
+          ],
+        });
+      }, TEST_TIMEOUT_MS);
+
+      afterAll(async () => {
+        await spoofedBrowser?.close();
+      }, TEST_TIMEOUT_MS);
+
+      test(
+        'clears input with CDP selectAll when browser platform is changed by UA',
+        async () => {
+          const page = await spoofedBrowser.newPage();
+          await page.setContent(PAGE_HTML);
+
+          const browserUserAgent = await playwrightBrowserUserAgent(page);
+          expect(browserUserAgent).toContain(spoofedUserAgentMarker);
+
+          const webPage = new PlaywrightWebPage(page);
+          const center = await playwrightInputCenter(page);
+
+          await webPage.clearInput({ center } as any);
+
+          const value = await playwrightInputValue(page);
+          await page.close();
+
+          expect(value).toBe('');
+        },
+        TEST_TIMEOUT_MS,
+      );
+
+      test(
+        'does not clear input with local-platform modifier+A when browser platform is changed by UA',
+        async () => {
+          const page = await spoofedBrowser.newPage();
+          await page.setContent(PAGE_HTML);
+
+          const browserUserAgent = await playwrightBrowserUserAgent(page);
+          expect(browserUserAgent).toContain(spoofedUserAgentMarker);
+
+          const center = await playwrightInputCenter(page);
+          await page.mouse.click(center[0], center[1]);
+          await page.keyboard.down(localSelectAllModifier);
+          await page.keyboard.press('a');
+          await page.keyboard.up(localSelectAllModifier);
+          await page.keyboard.press('Backspace');
+
+          const value = await playwrightInputValue(page);
+          await page.close();
+
+          expect(value).not.toBe('');
+        },
+        TEST_TIMEOUT_MS,
+      );
+    });
   });
 });

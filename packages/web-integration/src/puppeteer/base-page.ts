@@ -820,6 +820,12 @@ export class Page<
   private async selectAllByCdp(): Promise<void> {
     const client = await this.createInputCdpSession();
     try {
+      // Use the browser editing command instead of Modifier+A. Playwright's
+      // Chromium input layer derives the browser platform from
+      // Browser.getVersion().userAgent, while Modifier+A shortcuts are often
+      // chosen from local process.platform. If a Linux browser is launched with
+      // a macOS browser-level UA, Chromium treats select-all as Cmd+A instead
+      // of Ctrl+A, so the local-platform shortcut can fail.
       await client.send('Input.dispatchKeyEvent', {
         type: 'rawKeyDown',
 
