@@ -1,3 +1,5 @@
+import { existsSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { pixelBboxToRect } from '@/ai-model/workflows/inspect/locate-result-rect';
 import type { TMultimodalPrompt, TUserPrompt } from '@/common';
 import type { AbstractInterface } from '@/device';
@@ -26,7 +28,7 @@ import {
 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { _keyDefinitions } from '@midscene/shared/us-keyboard-layout';
-import { assert, logMsg, uuid } from '@midscene/shared/utils';
+import { assert, ifInBrowser, logMsg, uuid } from '@midscene/shared/utils';
 import dayjs from 'dayjs';
 import type { TaskCache } from './task-cache';
 import { debug as cacheDebug } from './task-cache';
@@ -213,6 +215,51 @@ export function printReportMsg(filepath: string) {
     return;
   }
   logMsg(`Midscene - report file updated: ${filepath}`);
+}
+
+type NormalizeFilePathsOptions = {
+  fileExists?: (path: string) => boolean;
+  isInBrowser?: boolean;
+  resolvePath?: (path: string) => string;
+  wslDistroName?: string;
+  cwd?: string;
+};
+
+export function normalizeFilePaths(
+  files: string[],
+  options: NormalizeFilePathsOptions = {},
+): string[] {
+  const {
+    fileExists = existsSync,
+    isInBrowser = ifInBrowser,
+    resolvePath = resolve,
+    wslDistroName = process.env.WSL_DISTRO_NAME,
+    cwd = process.cwd(),
+  } = options;
+
+  if (isInBrowser) {
+    throw new Error('File chooser is not supported in browser environment');
+  }
+
+  return files.map((file) => {
+    const absolutePath = resolvePath(file);
+    if (!fileExists(absolutePath)) {
+      throw new Error(
+        `File not found: ${file}. Resolved to: ${absolutePath}. Current working directory: ${cwd}`,
+      );
+    }
+
+    if (!wslDistroName) {
+      return absolutePath;
+    }
+
+    const wslMount = absolutePath.match(/^\/mnt\/([a-z])\//);
+    if (wslMount) {
+      return `${wslMount[1].toUpperCase()}:\\${absolutePath.slice(7).replace(/\//g, '\\')}`;
+    }
+
+    return `\\\\wsl$\\${wslDistroName}${absolutePath.replace(/\//g, '\\')}`;
+  });
 }
 
 export function isPixelBbox(value: unknown): value is PixelBbox {

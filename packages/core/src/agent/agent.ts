@@ -50,9 +50,8 @@ import {
   parseYamlScript,
 } from '../yaml/index';
 
-import { existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
-import { basename, resolve } from 'node:path';
+import { basename } from 'node:path';
 import type { AbstractInterface } from '@/device';
 import type { TaskRunner } from '@/task-runner';
 import {
@@ -86,6 +85,7 @@ import {
   commonContextParser,
   createScreenshotBoundUIContext,
   getReportFileName,
+  normalizeFilePaths,
   parsePrompt,
 } from './utils';
 
@@ -1705,36 +1705,9 @@ export class Agent<
     return null;
   }
 
-  private normalizeFilePaths(files: string[]): string[] {
-    if (ifInBrowser) {
-      throw new Error('File chooser is not supported in browser environment');
-    }
-
-    return files.map((file) => {
-      const absolutePath = resolve(file);
-      if (!existsSync(absolutePath)) {
-        throw new Error(
-          `File not found: ${file}. Resolved to: ${absolutePath}. Current working directory: ${process.cwd()}`,
-        );
-      }
-      // WSL: convert paths so Windows Chrome can read the file
-      const wslDistro = process.env.WSL_DISTRO_NAME;
-      if (wslDistro) {
-        // /mnt/c/... → C:\...
-        const wslMount = absolutePath.match(/^\/mnt\/([a-z])\//);
-        if (wslMount) {
-          return `${wslMount[1].toUpperCase()}:\\${absolutePath.slice(7).replace(/\//g, '\\')}`;
-        }
-        // /home/... or other WSL paths → \\wsl$\<distro>\...
-        return `\\\\wsl$\\${wslDistro}${absolutePath.replace(/\//g, '\\')}`;
-      }
-      return absolutePath;
-    });
-  }
-
   private normalizeFileInput(files: string | string[]): string[] {
     const filesArray = Array.isArray(files) ? files : [files];
-    return this.normalizeFilePaths(filesArray);
+    return normalizeFilePaths(filesArray);
   }
 
   /**
