@@ -274,6 +274,12 @@ const mid = new PlaywrightAgent(page, {
 });
 ```
 
+### 浏览器支持说明
+
+Midscene 的部分 Web 自动化能力依赖 Chromium-based browser 提供的 Chrome DevTools Protocol（CDP），例如浏览器级事件、触摸手势，以及一些交互操作中使用的 CDP fallback 路径。
+
+使用 Playwright 时，推荐使用 Chromium。Firefox 和 WebKit 可能可以覆盖基础的 Playwright-native 操作，但依赖 CDP 的 Midscene 能力可能会在这些浏览器内核上报错。
+
 ### 连接远程 Playwright 浏览器并接入 Midscene Agent
 
 :::info 示例项目

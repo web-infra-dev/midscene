@@ -114,6 +114,12 @@ const mid = new PuppeteerAgent(page, {
 });
 ```
 
+### 浏览器支持说明
+
+Midscene 的部分 Web 自动化能力依赖 Chromium-based browser 提供的 Chrome DevTools Protocol（CDP），例如浏览器级事件、触摸手势，以及一些交互操作中使用的 CDP fallback 路径。
+
+使用 Puppeteer 时，推荐使用 Chrome、Chromium 或其他 Chromium-based browser。不提供兼容 CDP 能力的浏览器，可能会在 Midscene 使用 CDP-backed features 时报错。
+
 ### 连接远程 Puppeteer 浏览器并接入 Midscene Agent
 
 :::info 示例项目

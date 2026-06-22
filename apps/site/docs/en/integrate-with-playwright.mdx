@@ -275,6 +275,12 @@ const mid = new PlaywrightAgent(page, {
 });
 ```
 
+### Browser support
+
+Some Midscene web automation features rely on Chrome DevTools Protocol (CDP), which is provided by Chromium-based browsers. These include browser-level events, touch gestures, and CDP fallback paths used by specific interactions.
+
+When using Playwright, Chromium is the recommended browser engine. Firefox and WebKit may work for basic Playwright-native operations, but Midscene features that depend on CDP may report errors on those engines.
+
 ### Connect Midscene Agent to a Remote Playwright Browser
 
 :::info Example Project
