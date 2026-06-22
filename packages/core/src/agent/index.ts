@@ -16,6 +16,13 @@ export { type LocateCache, type PlanningCache, TaskCache } from './task-cache';
 export { cacheFileExt } from './task-cache';
 
 export { TaskExecutor } from './tasks';
+export type {
+  GherkinStepKeyword,
+  RunGherkinScenarioOptions,
+  RunGherkinScenarioResult,
+  RunGherkinScenarioStepAction,
+  RunGherkinScenarioStepResult,
+} from './run-gherkin-scenario';
 
 export type { AgentOpt } from '../types';
 export type { AiActOptions } from './agent';

@@ -697,6 +697,9 @@ export class TaskExecutor {
     modelRuntime: ModelRuntime,
     opt?: ServiceExtractOption,
     multimodalPrompt?: TMultimodalPrompt,
+    executionOptions?: {
+      abortSignal?: AbortSignal;
+    },
   ) {
     const queryTask: ExecutionTaskInsightQueryApply = {
       type: 'Insight',
@@ -769,6 +772,7 @@ export class TaskExecutor {
             extraPageDescription,
             multimodalPrompt,
             uiContext,
+            executionOptions,
           );
         } catch (error) {
           if (error instanceof ServiceError) {
@@ -826,6 +830,9 @@ export class TaskExecutor {
     modelRuntime: ModelRuntime,
     opt?: ServiceExtractOption,
     multimodalPrompt?: TMultimodalPrompt,
+    executionOptions?: {
+      abortSignal?: AbortSignal;
+    },
   ): Promise<ExecutionResult<T>> {
     const session = this.createExecutionSession(
       taskTitleStr(
@@ -840,6 +847,7 @@ export class TaskExecutor {
       modelRuntime,
       opt,
       multimodalPrompt,
+      executionOptions,
     );
 
     const runner = session.getRunner();

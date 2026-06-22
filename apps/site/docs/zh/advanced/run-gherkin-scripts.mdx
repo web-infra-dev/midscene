@@ -1,0 +1,93 @@
+# 运行 Gherkin 脚本
+
+> 此特性尚在测试中，未来 API 可能会发生变更。
+>
+> 从 Midscene 1.10 版本开始支持。
+
+在 AI 自然语言驱动 GUI 自动化的背景下，Gherkin 很适合用来编写 GUI 操作用例：每一步操作都可以保持自然语言表达，同时又保留清晰的测试结构。
+
+Gherkin 是一种用纯文本描述行为示例的语法，常用于 BDD（Behavior-Driven Development，行为驱动开发）流程。一个场景通常由一组步骤组成。完整语法可以参考官方的 [Cucumber Gherkin reference](https://cucumber.io/docs/gherkin/reference)。
+
+```gherkin
+Feature: Todo list
+Scenario: Add a todo
+  Given the todo page is open
+  When I add "Buy milk"
+  Then the todo list contains "Buy milk"
+```
+
+Midscene 支持运行一个 Gherkin Scenario，用它来更紧凑地描述一段 AI 自动化流程。Midscene 会把 scenario 文本解析成 Agent 调用，因此脚本可以保持接近业务语言的可读性，同时底层仍然复用 `aiAct` 和 `aiAssert`。
+
+## 支持规则
+
+Midscene 支持的是一个聚焦的 Gherkin 子集：
+
+- `Given` 会映射到 `aiAct`，用于处理前置条件或准备步骤。
+- `When` 会映射到 `aiAct`，用于处理用户操作步骤。
+- `Then` 会映射到 `aiAssert`，用于处理验证步骤。
+- `And` 和 `But` 会沿用前一个主关键字。例如，跟在 `Then` 后面的 `And` 也会映射到 `aiAssert`。关键字匹配不区分大小写，因此 `AND` 也支持。
+- `Feature:` 是可选的，会作为元信息记录。
+- 只支持一个 `Scenario:`。也可以不写 `Scenario:`，直接写一组步骤。
+
+下面这些 Gherkin 特性暂不支持：
+
+- `Background`
+- `Scenario Outline` 或 `Scenario Template`
+- `Examples`
+- `Rule`
+- data tables
+- doc strings
+- 在同一段输入中包含多个 `Scenario:`
+
+## 在 YAML 中使用
+
+在 YAML flow 中使用 `runGherkinScenario` 步骤。它的值应该是一段块字符串，里面放一个 scenario。
+
+```yaml
+web:
+  url: http://localhost:3000/todos
+
+tasks:
+  - name: Add a todo item
+    flow:
+      - runGherkinScenario: |
+          Feature: Todo list
+          Scenario: Add a todo
+            Given the todo page is open
+            When I add "Buy milk" as a todo item
+            Then the todo list contains "Buy milk"
+            And the todo count is 1
+```
+
+YAML 执行时，Midscene 会按步骤运行这个 scenario。`Given` 和 `When` 步骤会调用 `aiAct`，`Then` 以及后面这个 `And` 步骤会调用 `aiAssert`。
+
+YAML 中的 `runGherkinScenario` 会固定禁用这个 scenario 内部的 `aiAct` 缓存，让每个 Gherkin 步骤都基于当前页面状态重新解释。
+
+也可以在一个 scenario 里写更长的流程，包含多组 Given / When / Then。Midscene 仍然会把它当作一个 scenario，并按顺序执行每个步骤。
+
+```yaml
+web:
+  url: http://localhost:3000/checkout
+
+tasks:
+  - name: Complete checkout
+    flow:
+      - runGherkinScenario: |
+          Feature: Checkout
+          Scenario: Place an order with a saved address
+            Given the shopping cart contains "Midscene Mug"
+            When I open the cart page
+            Then the cart shows "Midscene Mug"
+            And the subtotal is visible
+
+            Given the checkout page is open
+            When I choose the saved shipping address
+            Then the shipping address section shows the selected address
+
+            Given the payment section is visible
+            When I choose the saved credit card and submit the order
+            Then the order confirmation page is displayed
+            And the confirmation page shows an order number
+```
+
+这种写法适合一个业务 scenario 自然包含多个 UI 阶段的情况，例如购物车确认、配送地址选择、支付和最终确认。

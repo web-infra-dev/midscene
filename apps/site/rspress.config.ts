@@ -269,6 +269,10 @@ export default defineConfig(async () => {
             sectionHeaderText: 'Advanced',
           },
           {
+            text: 'Run Gherkin scripts',
+            link: '/advanced/run-gherkin-scripts',
+          },
+          {
             text: 'FAQ',
             link: '/faq',
           },
@@ -457,6 +461,10 @@ export default defineConfig(async () => {
           },
           {
             sectionHeaderText: '进阶',
+          },
+          {
+            text: '运行 Gherkin 脚本',
+            link: '/zh/advanced/run-gherkin-scripts',
           },
           {
             text: '常见问题 FAQ',

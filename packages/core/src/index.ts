@@ -57,7 +57,17 @@ export type {
   DetailedLocateParam,
 } from './yaml';
 
-export { Agent, type AgentOpt, type AiActOptions, createAgent } from './agent';
+export {
+  Agent,
+  type AgentOpt,
+  type AiActOptions,
+  type GherkinStepKeyword,
+  type RunGherkinScenarioOptions,
+  type RunGherkinScenarioResult,
+  type RunGherkinScenarioStepAction,
+  type RunGherkinScenarioStepResult,
+  createAgent,
+} from './agent';
 
 // Dump utilities
 export {
