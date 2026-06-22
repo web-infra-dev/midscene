@@ -3,6 +3,7 @@ import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import { z } from 'zod';
 import { type TUserPrompt, getMidsceneLocationSchema } from '../../../common';
+import { ScreenshotItem } from '../../../screenshot-item';
 import { ConversationHistory } from '../../conversation-history';
 import type { ResolvedCustomPlanningDefinition } from '../../model-adapter/custom-planning-types';
 import type { PlanningTapLocatorDefinition } from '../../model-adapter/types';
@@ -39,10 +40,10 @@ async function buildPlanningTapLocatorPlanOptions(
     ...options,
     context: {
       ...context,
-      screenshot: {
-        ...context.screenshot,
-        base64: locateImage.imageBase64,
-      } as typeof context.screenshot,
+      screenshot: ScreenshotItem.create(
+        locateImage.imageBase64,
+        context.screenshot.capturedAt,
+      ),
       shotSize: {
         width: locateImage.width,
         height: locateImage.height,

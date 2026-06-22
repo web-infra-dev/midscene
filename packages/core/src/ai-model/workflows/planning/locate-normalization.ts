@@ -10,14 +10,6 @@ import type {
 
 const debug = getDebug('planning');
 
-function hasLocatedPixelBbox(locateResult: unknown): boolean {
-  return (
-    !!locateResult &&
-    typeof locateResult === 'object' &&
-    'locatedPixelBbox' in locateResult
-  );
-}
-
 export function normalizePlanningActionLocateFields(
   actions: PlanningAction[],
   {
@@ -47,9 +39,6 @@ export function normalizePlanningActionLocateFields(
     locateFields.forEach((field) => {
       const locateResult = action.param?.[field];
       if (!locateResult) {
-        return;
-      }
-      if (hasLocatedPixelBbox(locateResult)) {
         return;
       }
 

@@ -2,6 +2,7 @@ import type { ResolvedCustomPlanningDefinition } from '@/ai-model/model-adapter/
 import { AIResponseParseError } from '@/ai-model/service-caller';
 import { resolvePlanningTapLocator } from '@/ai-model/workflows/inspect/planning-action-locate';
 import { runCustomPlanning } from '@/ai-model/workflows/planning/custom-planning';
+import { ScreenshotItem } from '@/screenshot-item';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@/ai-model/workflows/planning/custom-planning', () => ({
@@ -30,10 +31,10 @@ function createPlanner(): ResolvedCustomPlanningDefinition<null> {
 function createLocateRequest() {
   const options = {
     context: {
-      screenshot: {
-        base64: 'data:image/png;base64,SCREENSHOT==',
-        capturedAt: 123,
-      },
+      screenshot: ScreenshotItem.create(
+        'data:image/png;base64,SCREENSHOT==',
+        123,
+      ),
       shotSize: {
         width: 1000,
         height: 800,
@@ -115,6 +116,7 @@ describe('resolvePlanningTapLocator', () => {
     expect(planOptions.context.screenshot.base64).toBe(
       'data:image/png;base64,CROP==',
     );
+    expect(planOptions.context.screenshot.capturedAt).toBe(123);
     expect(planOptions.context.shotSize).toEqual({ width: 320, height: 240 });
     expect(planOptions.includeLocateInPlanning).toBe(true);
     expect(planOptions.actionSpace.map((action: any) => action.name)).toEqual([
