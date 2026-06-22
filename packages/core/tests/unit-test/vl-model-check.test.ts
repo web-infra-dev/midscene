@@ -1,29 +1,27 @@
 import { Agent } from '@/agent/agent';
 import type { AbstractInterface } from '@/device';
-import { describe, expect, it, vi } from 'vitest';
+import * as coreActual from '@midscene/core' with { rstest: 'importActual' };
+import { describe, expect, it, rs } from '@rstest/core';
 
 // Mock dependencies
-vi.mock('@midscene/core/utils', () => ({
-  writeLogFile: vi.fn(() => null),
-  reportHTMLContent: vi.fn(() => ''),
-  stringifyDumpData: vi.fn(() => '{}'),
+rs.mock('@midscene/core/utils', () => ({
+  writeLogFile: rs.fn(() => null),
+  reportHTMLContent: rs.fn(() => ''),
+  stringifyDumpData: rs.fn(() => '{}'),
   groupedActionDumpFileExt: '.json',
   getVersion: () => '0.0.0-test',
-  sleep: vi.fn(() => Promise.resolve()),
+  sleep: rs.fn(() => Promise.resolve()),
 }));
 
-vi.mock('@midscene/shared/logger', () => ({
-  getDebug: vi.fn(() => vi.fn()),
-  logMsg: vi.fn(),
+rs.mock('@midscene/shared/logger', () => ({
+  getDebug: rs.fn(() => rs.fn()),
+  logMsg: rs.fn(),
 }));
 
-vi.mock('@midscene/core', async () => {
-  const actual = await vi.importActual('@midscene/core');
-  return {
-    ...actual,
-    Insight: vi.fn().mockImplementation(() => ({})),
-  };
-});
+rs.mock('@midscene/core', () => ({
+  ...coreActual,
+  Insight: rs.fn().mockImplementation(() => ({})),
+}));
 
 const mockedModelConfig = {
   MIDSCENE_MODEL_NAME: 'gpt-4o',
@@ -36,9 +34,9 @@ const createMockInterface = (
 ) =>
   ({
     interfaceType,
-    destroy: vi.fn(),
-    size: vi.fn().mockResolvedValue({}),
-    actionSpace: vi.fn(() => []),
+    destroy: rs.fn(),
+    size: rs.fn().mockResolvedValue({}),
+    actionSpace: rs.fn(() => []),
   }) as unknown as AbstractInterface;
 
 describe('VL Model Check for Different Interface Types', () => {

@@ -1,5 +1,5 @@
 import { DEFAULT_WDA_PORT } from '@midscene/shared/constants';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
 import { IOSWebDriverClient } from '../../src/ios-webdriver-client';
 
 describe('IOSWebDriverClient - WDA 5.x-7.x Compatibility', () => {
@@ -15,12 +15,12 @@ describe('IOSWebDriverClient - WDA 5.x-7.x Compatibility', () => {
   });
 
   afterEach(() => {
-    vi.restoreAllMocks();
+    rs.restoreAllMocks();
   });
 
   describe('tap() fallback logic', () => {
     it('should use new endpoint when it succeeds', async () => {
-      const makeRequestSpy = vi.spyOn(client as any, 'makeRequest');
+      const makeRequestSpy = rs.spyOn(client as any, 'makeRequest');
       makeRequestSpy.mockResolvedValueOnce({ status: 0 });
 
       await client.tap(100, 200);
@@ -35,7 +35,7 @@ describe('IOSWebDriverClient - WDA 5.x-7.x Compatibility', () => {
     });
 
     it('should fallback to legacy endpoint when new endpoint fails', async () => {
-      const makeRequestSpy = vi.spyOn(client as any, 'makeRequest');
+      const makeRequestSpy = rs.spyOn(client as any, 'makeRequest');
 
       // First call (new endpoint) fails
       makeRequestSpy.mockRejectedValueOnce(new Error('New endpoint not found'));
@@ -61,7 +61,7 @@ describe('IOSWebDriverClient - WDA 5.x-7.x Compatibility', () => {
     });
 
     it('should throw error when both endpoints fail', async () => {
-      const makeRequestSpy = vi.spyOn(client as any, 'makeRequest');
+      const makeRequestSpy = rs.spyOn(client as any, 'makeRequest');
 
       // Both calls fail
       makeRequestSpy.mockRejectedValueOnce(new Error('New endpoint failed'));
@@ -75,7 +75,7 @@ describe('IOSWebDriverClient - WDA 5.x-7.x Compatibility', () => {
     });
 
     it('should handle different coordinate types', async () => {
-      const makeRequestSpy = vi.spyOn(client as any, 'makeRequest');
+      const makeRequestSpy = rs.spyOn(client as any, 'makeRequest');
       makeRequestSpy.mockResolvedValue({ status: 0 });
 
       await client.tap(0, 0);
@@ -99,7 +99,7 @@ describe('IOSWebDriverClient - WDA 5.x-7.x Compatibility', () => {
 
   describe('getScreenScale() fallback logic', () => {
     it('should return scale when endpoint succeeds with scale value', async () => {
-      const makeRequestSpy = vi.spyOn(client as any, 'makeRequest');
+      const makeRequestSpy = rs.spyOn(client as any, 'makeRequest');
       makeRequestSpy.mockResolvedValueOnce({
         status: 0,
         value: { scale: 3 },
@@ -116,9 +116,9 @@ describe('IOSWebDriverClient - WDA 5.x-7.x Compatibility', () => {
     });
 
     it('should enter fallback logic when endpoint succeeds but has no scale', async () => {
-      const makeRequestSpy = vi.spyOn(client as any, 'makeRequest');
-      const takeScreenshotSpy = vi.spyOn(client, 'takeScreenshot');
-      const getWindowSizeSpy = vi.spyOn(client, 'getWindowSize');
+      const makeRequestSpy = rs.spyOn(client as any, 'makeRequest');
+      const takeScreenshotSpy = rs.spyOn(client, 'takeScreenshot');
+      const getWindowSizeSpy = rs.spyOn(client, 'getWindowSize');
 
       // First call: endpoint succeeds but no scale
       makeRequestSpy.mockResolvedValueOnce({
@@ -143,9 +143,9 @@ describe('IOSWebDriverClient - WDA 5.x-7.x Compatibility', () => {
     });
 
     it('should enter fallback logic when endpoint fails', async () => {
-      const makeRequestSpy = vi.spyOn(client as any, 'makeRequest');
-      const takeScreenshotSpy = vi.spyOn(client, 'takeScreenshot');
-      const getWindowSizeSpy = vi.spyOn(client, 'getWindowSize');
+      const makeRequestSpy = rs.spyOn(client as any, 'makeRequest');
+      const takeScreenshotSpy = rs.spyOn(client, 'takeScreenshot');
+      const getWindowSizeSpy = rs.spyOn(client, 'getWindowSize');
 
       // First call: endpoint fails
       makeRequestSpy.mockRejectedValueOnce(new Error('Endpoint not found'));
@@ -167,8 +167,8 @@ describe('IOSWebDriverClient - WDA 5.x-7.x Compatibility', () => {
     });
 
     it('should return null when both endpoint and calculation fail', async () => {
-      const makeRequestSpy = vi.spyOn(client as any, 'makeRequest');
-      const takeScreenshotSpy = vi.spyOn(client, 'takeScreenshot');
+      const makeRequestSpy = rs.spyOn(client as any, 'makeRequest');
+      const takeScreenshotSpy = rs.spyOn(client, 'takeScreenshot');
 
       // First call: endpoint fails
       makeRequestSpy.mockRejectedValueOnce(new Error('Endpoint failed'));
@@ -183,9 +183,9 @@ describe('IOSWebDriverClient - WDA 5.x-7.x Compatibility', () => {
     });
 
     it('should handle response without value field gracefully', async () => {
-      const makeRequestSpy = vi.spyOn(client as any, 'makeRequest');
-      const takeScreenshotSpy = vi.spyOn(client, 'takeScreenshot');
-      const getWindowSizeSpy = vi.spyOn(client, 'getWindowSize');
+      const makeRequestSpy = rs.spyOn(client as any, 'makeRequest');
+      const takeScreenshotSpy = rs.spyOn(client, 'takeScreenshot');
+      const getWindowSizeSpy = rs.spyOn(client, 'getWindowSize');
 
       // Endpoint returns response without value field
       makeRequestSpy.mockResolvedValueOnce({
@@ -209,9 +209,9 @@ describe('IOSWebDriverClient - WDA 5.x-7.x Compatibility', () => {
     });
 
     it('should handle scale value of 0 as invalid and trigger fallback', async () => {
-      const makeRequestSpy = vi.spyOn(client as any, 'makeRequest');
-      const takeScreenshotSpy = vi.spyOn(client, 'takeScreenshot');
-      const getWindowSizeSpy = vi.spyOn(client, 'getWindowSize');
+      const makeRequestSpy = rs.spyOn(client as any, 'makeRequest');
+      const takeScreenshotSpy = rs.spyOn(client, 'takeScreenshot');
+      const getWindowSizeSpy = rs.spyOn(client, 'getWindowSize');
 
       // Endpoint returns scale: 0 (invalid)
       makeRequestSpy.mockResolvedValueOnce({
@@ -235,7 +235,7 @@ describe('IOSWebDriverClient - WDA 5.x-7.x Compatibility', () => {
 
   describe('Compatibility scenarios', () => {
     it('should work with WDA 5.x (legacy tap endpoint)', async () => {
-      const makeRequestSpy = vi.spyOn(client as any, 'makeRequest');
+      const makeRequestSpy = rs.spyOn(client as any, 'makeRequest');
 
       // Simulate WDA 5.x: new endpoint doesn't exist
       makeRequestSpy.mockRejectedValueOnce(
@@ -254,7 +254,7 @@ describe('IOSWebDriverClient - WDA 5.x-7.x Compatibility', () => {
     });
 
     it('should work with WDA 6.x/7.x (new tap endpoint)', async () => {
-      const makeRequestSpy = vi.spyOn(client as any, 'makeRequest');
+      const makeRequestSpy = rs.spyOn(client as any, 'makeRequest');
 
       // Simulate WDA 6.x/7.x: new endpoint works
       makeRequestSpy.mockResolvedValueOnce({ status: 0 });
@@ -270,7 +270,7 @@ describe('IOSWebDriverClient - WDA 5.x-7.x Compatibility', () => {
     });
 
     it('should handle WDA versions with different screen endpoint responses', async () => {
-      const makeRequestSpy = vi.spyOn(client as any, 'makeRequest');
+      const makeRequestSpy = rs.spyOn(client as any, 'makeRequest');
 
       // Test different scale values
       const testCases = [1, 2, 3, 4];

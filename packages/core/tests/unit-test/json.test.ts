@@ -3,7 +3,7 @@ import {
   extractJSONFromCodeBlock,
   parseModelResponseJson,
 } from '@/ai-model/service-caller/json';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 
 describe('extractJSONFromCodeBlock', () => {
   it('should extract JSON from a direct JSON object', () => {

@@ -1,5 +1,5 @@
 import type { MjpegStreamOptions } from '@midscene/core/device';
-import { describe, expect, test, vi } from 'vitest';
+import { describe, expect, rs, test } from '@rstest/core';
 import { PlaygroundServer } from '../../src/server';
 
 function createMockStreamResponse() {
@@ -65,9 +65,9 @@ function getRouteHandler(
 
 describe('PlaygroundServer MJPEG streaming', () => {
   test('GET /screenshot recreates a factory-backed agent when the page session is closed', async () => {
-    const firstDestroy = vi.fn();
-    const secondDestroy = vi.fn();
-    const agentFactory = vi
+    const firstDestroy = rs.fn();
+    const secondDestroy = rs.fn();
+    const agentFactory = rs
       .fn()
       .mockResolvedValueOnce({
         destroy: firstDestroy,
@@ -106,9 +106,9 @@ describe('PlaygroundServer MJPEG streaming', () => {
   });
 
   test('GET /mjpeg recreates a factory-backed agent when interface stream startup sees a closed page', async () => {
-    const firstDestroy = vi.fn();
-    const stop = vi.fn();
-    const agentFactory = vi
+    const firstDestroy = rs.fn();
+    const stop = rs.fn();
+    const agentFactory = rs
       .fn()
       .mockResolvedValueOnce({
         destroy: firstDestroy,
@@ -142,7 +142,7 @@ describe('PlaygroundServer MJPEG streaming', () => {
 
     const server = new PlaygroundServer(agentFactory as any);
     await server.launch(6125);
-    vi.useFakeTimers();
+    rs.useFakeTimers();
     const mjpegHandler = getRouteHandler(server, 'get', '/mjpeg');
     try {
       const request = createMockRequest();
@@ -157,17 +157,17 @@ describe('PlaygroundServer MJPEG streaming', () => {
       ).toBe(true);
 
       request.listeners.get('close')?.();
-      await vi.advanceTimersByTimeAsync(2000);
+      await rs.advanceTimersByTimeAsync(2000);
       expect(stop).toHaveBeenCalledTimes(1);
     } finally {
-      vi.useRealTimers();
+      rs.useRealTimers();
     }
   });
 
   test('GET /mjpeg streams frames from an interface MJPEG producer', async () => {
-    const stop = vi.fn();
+    const stop = rs.fn();
     let capturedSignal: AbortSignal | undefined;
-    const startMjpegStream = vi.fn(async ({ signal, onFrame }) => {
+    const startMjpegStream = rs.fn(async ({ signal, onFrame }) => {
       capturedSignal = signal;
       onFrame({
         data: Buffer.from('frame-one').toString('base64'),
@@ -189,7 +189,7 @@ describe('PlaygroundServer MJPEG streaming', () => {
     } as any);
 
     await server.launch(6120);
-    vi.useFakeTimers();
+    rs.useFakeTimers();
     const mjpegHandler = getRouteHandler(server, 'get', '/mjpeg');
     try {
       expect(mjpegHandler).toBeTypeOf('function');
@@ -215,11 +215,11 @@ describe('PlaygroundServer MJPEG streaming', () => {
       request.listeners.get('close')?.();
       expect(capturedSignal?.aborted).toBe(false);
       expect(stop).not.toHaveBeenCalled();
-      await vi.advanceTimersByTimeAsync(2000);
+      await rs.advanceTimersByTimeAsync(2000);
       expect(capturedSignal?.aborted).toBe(true);
       expect(stop).toHaveBeenCalledTimes(1);
     } finally {
-      vi.useRealTimers();
+      rs.useRealTimers();
     }
   });
 
@@ -229,11 +229,11 @@ describe('PlaygroundServer MJPEG streaming', () => {
     // sending FIN. To stop those zombie sockets from eating the per-origin
     // connection pool, a new /mjpeg request destroys any existing
     // subscriber responses for the same producer.
-    const stop = vi.fn();
+    const stop = rs.fn();
     let emitFrame:
       | ((frame: { data: string; contentType: string }) => void)
       | undefined;
-    const startMjpegStream = vi.fn(async ({ onFrame }) => {
+    const startMjpegStream = rs.fn(async ({ onFrame }) => {
       emitFrame = onFrame;
       onFrame({
         data: Buffer.from('frame-one').toString('base64'),
@@ -255,7 +255,7 @@ describe('PlaygroundServer MJPEG streaming', () => {
     } as any);
 
     await server.launch(6123);
-    vi.useFakeTimers();
+    rs.useFakeTimers();
     try {
       const mjpegHandler = getRouteHandler(server, 'get', '/mjpeg');
       const requestOne = createMockRequest();
@@ -292,18 +292,18 @@ describe('PlaygroundServer MJPEG streaming', () => {
       ).toBe(true);
 
       requestTwo.listeners.get('close')?.();
-      await vi.advanceTimersByTimeAsync(2000);
+      await rs.advanceTimersByTimeAsync(2000);
       expect(stop).toHaveBeenCalledTimes(1);
     } finally {
-      vi.useRealTimers();
+      rs.useRealTimers();
     }
   });
 
   test('GET /mjpeg falls back to screenshot polling when producer startup fails', async () => {
-    const screenshotBase64 = vi.fn(async () =>
+    const screenshotBase64 = rs.fn(async () =>
       Buffer.from('polling-frame').toString('base64'),
     );
-    const startMjpegStream = vi.fn(async () => {
+    const startMjpegStream = rs.fn(async () => {
       throw new Error('CDP unavailable');
     });
 
@@ -337,11 +337,11 @@ describe('PlaygroundServer MJPEG streaming', () => {
   });
 
   test('GET /mjpeg falls back to screenshot polling when producer emits no initial frame', async () => {
-    const stop = vi.fn();
-    const screenshotBase64 = vi.fn(async () =>
+    const stop = rs.fn();
+    const screenshotBase64 = rs.fn(async () =>
       Buffer.from('polling-after-empty-stream').toString('base64'),
     );
-    const startMjpegStream = vi.fn(async () => ({ stop }));
+    const startMjpegStream = rs.fn(async () => ({ stop }));
 
     const server = new PlaygroundServer({
       interface: {
@@ -354,14 +354,14 @@ describe('PlaygroundServer MJPEG streaming', () => {
     } as any);
 
     await server.launch(6122);
-    vi.useFakeTimers();
+    rs.useFakeTimers();
     try {
       const mjpegHandler = getRouteHandler(server, 'get', '/mjpeg');
       const request = createMockRequest();
       const response = createMockStreamResponse();
 
       const streamPromise = mjpegHandler(request, response);
-      await vi.advanceTimersByTimeAsync(1500);
+      await rs.advanceTimersByTimeAsync(1500);
       await Promise.resolve();
 
       expect(startMjpegStream).toHaveBeenCalledTimes(1);
@@ -372,10 +372,10 @@ describe('PlaygroundServer MJPEG streaming', () => {
       ).toContain('polling-after-empty-stream');
 
       request.listeners.get('close')?.();
-      await vi.runOnlyPendingTimersAsync();
+      await rs.runOnlyPendingTimersAsync();
       await streamPromise;
     } finally {
-      vi.useRealTimers();
+      rs.useRealTimers();
     }
   });
 });

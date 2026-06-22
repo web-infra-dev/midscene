@@ -5,57 +5,56 @@ import type { ReportActionDump } from '@midscene/core';
 import { Agent as PageAgent } from '@midscene/core/agent';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import { globalConfigManager } from '@midscene/shared/env';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, rs } from '@rstest/core';
 
 declare const __VERSION__: string;
-// Mock only the necessary parts to avoid side effects
-vi.mock('@midscene/core/utils', async () => {
-  const actual = await vi.importActual('@midscene/core/utils');
-  return {
-    ...actual,
-    writeLogFile: vi.fn(() => null),
-    reportHTMLContent: vi.fn(() => ''),
-    stringifyDumpData: vi.fn(() => '{}'),
-    groupedActionDumpFileExt: '.json',
-    getVersion: () => __VERSION__,
-    sleep: vi.fn(() => Promise.resolve()),
-  };
-});
+import * as coreActual from '@midscene/core' with { rstest: 'importActual' };
+// Mock only the necessary parts to avoid side effects.
+// Use top-level `importActual` attribute imports rather than calling
+// `rs.importActual()` inside the factory: rstest hoists mock factories above
+// imports and does not reliably resolve an in-factory `importActual`, which
+// drops every real export (e.g. `processCacheConfig`) and leaves them undefined.
+import * as coreUtilsActual from '@midscene/core/utils' with {
+  rstest: 'importActual',
+};
 
-vi.mock('@midscene/shared/logger', () => ({
-  getDebug: vi.fn(() => vi.fn()),
-  logMsg: vi.fn(),
+rs.mock('@midscene/core/utils', () => ({
+  ...coreUtilsActual,
+  writeLogFile: rs.fn(() => null),
+  reportHTMLContent: rs.fn(() => ''),
+  stringifyDumpData: rs.fn(() => '{}'),
+  groupedActionDumpFileExt: '.json',
+  getVersion: () => __VERSION__,
+  sleep: rs.fn(() => Promise.resolve()),
 }));
 
-vi.mock('@midscene/core', async () => {
-  const actual = await vi.importActual('@midscene/core');
-  return {
-    ...actual,
-    Insight: vi.fn().mockImplementation(() => ({})),
-  };
-});
+rs.mock('@midscene/shared/logger', () => ({
+  getDebug: rs.fn(() => rs.fn()),
+  logMsg: rs.fn(),
+}));
 
-// Partial mock for utils - only mock the async functions that need mocking
-vi.mock('@/common/utils', async () => {
-  const actual = await vi.importActual('@/common/utils');
-  return {
-    ...actual,
-    WebPageContextParser: vi.fn().mockResolvedValue({}),
-    printReportMsg: vi.fn(),
-  };
-});
+rs.mock('@midscene/core', () => ({
+  ...coreActual,
+  Insight: rs.fn().mockImplementation(() => ({})),
+}));
+
+// NOTE: the previous `@/common/utils` mock was a dead no-op — that module does
+// not exist (its `WebPageContextParser`/`printReportMsg` live in `@/utils` and
+// `@midscene/core/agent`). Under vitest the factory never ran because nothing
+// imports `@/common/utils`; the rstest `importActual` import attribute would
+// force-resolve it and fail, so the stale mock is removed entirely.
 
 // Mock page implementation
 const mockPage = {
   interfaceType: 'puppeteer',
   mouse: {
-    click: vi.fn(),
+    click: rs.fn(),
   },
-  actionSpace: vi.fn(() => []),
-  screenshotBase64: vi.fn().mockResolvedValue('mock-screenshot'),
-  evaluateJavaScript: vi.fn(),
-  size: vi.fn().mockResolvedValue({}),
-  destroy: vi.fn(),
+  actionSpace: rs.fn(() => []),
+  screenshotBase64: rs.fn().mockResolvedValue('mock-screenshot'),
+  evaluateJavaScript: rs.fn(),
+  size: rs.fn().mockResolvedValue({}),
+  destroy: rs.fn(),
 } as unknown as AbstractWebPage;
 
 const mockedModelConfig = {
@@ -67,14 +66,14 @@ const mockedModelConfig = {
 
 // Mock task executor
 const mockTaskExecutor = {
-  runPlans: vi.fn(),
+  runPlans: rs.fn(),
 } as any;
 
 describe('PageAgent RightClick', () => {
   let agent: PageAgent;
 
   beforeEach(() => {
-    vi.clearAllMocks();
+    rs.clearAllMocks();
 
     // Create agent instance
     agent = new PageAgent(mockPage, {
@@ -149,7 +148,7 @@ describe('PageAgent logContent', () => {
 
 describe('PageAgent reportFileName', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    rs.clearAllMocks();
   });
 
   it('should use external reportFileName when provided', () => {
@@ -240,7 +239,7 @@ describe('PageAgent aiWaitFor', () => {
   let mockTaskExecutor: any;
 
   beforeEach(() => {
-    vi.clearAllMocks();
+    rs.clearAllMocks();
 
     // Create agent instance
     agent = new PageAgent(mockPage, {
@@ -251,7 +250,7 @@ describe('PageAgent aiWaitFor', () => {
 
     // Mock the task executor with waitFor method
     mockTaskExecutor = {
-      waitFor: vi.fn(),
+      waitFor: rs.fn(),
     };
 
     // Replace the taskExecutor with our mock
@@ -379,7 +378,7 @@ describe('PageAgent aiWaitFor', () => {
 
 describe('PageAgent cache configuration', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    rs.clearAllMocks();
   });
 
   describe('new cache object API', () => {
@@ -556,7 +555,7 @@ describe('PageAgent cache configuration', () => {
 
   describe('backward compatibility with cacheId', () => {
     it('should work with cacheId when MIDSCENE_CACHE=true', () => {
-      const globalConfigSpy = vi
+      const globalConfigSpy = rs
         .spyOn(globalConfigManager, 'getEnvConfigInBoolean')
         .mockReturnValue(true);
 
@@ -574,7 +573,7 @@ describe('PageAgent cache configuration', () => {
     });
 
     it('should not create cache with cacheId when MIDSCENE_CACHE=false', () => {
-      const globalConfigSpy = vi
+      const globalConfigSpy = rs
         .spyOn(globalConfigManager, 'getEnvConfigInBoolean')
         .mockReturnValue(false);
 
@@ -589,7 +588,7 @@ describe('PageAgent cache configuration', () => {
     });
 
     it('should prefer new cache config over cacheId', () => {
-      const globalConfigSpy = vi
+      const globalConfigSpy = rs
         .spyOn(globalConfigManager, 'getEnvConfigInBoolean')
         .mockReturnValue(true);
 
@@ -625,7 +624,7 @@ describe('PageAgent cache configuration', () => {
       });
 
       // Mock the flushCacheToFile method
-      const flushSpy = vi.spyOn(agent.taskCache!, 'flushCacheToFile');
+      const flushSpy = rs.spyOn(agent.taskCache!, 'flushCacheToFile');
 
       await agent.flushCache({ cleanUnused: true });
 
@@ -639,7 +638,7 @@ describe('PageAgent cache configuration', () => {
       });
 
       // Mock the flushCacheToFile method
-      const flushSpy = vi.spyOn(agent.taskCache!, 'flushCacheToFile');
+      const flushSpy = rs.spyOn(agent.taskCache!, 'flushCacheToFile');
 
       await agent.flushCache({ cleanUnused: false });
 
@@ -662,7 +661,7 @@ describe('PageAgent aiAct abortSignal', () => {
   let mockTaskExecutor: any;
 
   beforeEach(() => {
-    vi.clearAllMocks();
+    rs.clearAllMocks();
 
     agent = new PageAgent(mockPage, {
       generateReport: false,
@@ -671,8 +670,8 @@ describe('PageAgent aiAct abortSignal', () => {
     });
 
     mockTaskExecutor = {
-      action: vi.fn(),
-      loadYamlFlowAsPlanning: vi.fn(),
+      action: rs.fn(),
+      loadYamlFlowAsPlanning: rs.fn(),
     };
 
     agent.taskExecutor = mockTaskExecutor;

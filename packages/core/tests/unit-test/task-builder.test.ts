@@ -4,7 +4,7 @@ import { getModelRuntime } from '@/ai-model/models';
 import { AbstractInterface, defineActionSleep } from '@/device';
 import type Service from '@/service';
 import type { DeviceAction, PlanningAction } from '@/types';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, rs } from '@rstest/core';
 import { z } from 'zod';
 
 class MockInterface extends AbstractInterface {
@@ -51,7 +51,7 @@ describe('TaskBuilder', () => {
   });
 
   afterEach(() => {
-    vi.useRealTimers();
+    rs.useRealTimers();
   });
 
   it('normalizes the deprecated locate deepThink alias before task reporting', () => {
@@ -76,14 +76,14 @@ describe('TaskBuilder', () => {
       name: 'Tap',
       description: 'mock tap action',
       paramSchema: actionSchema,
-      call: vi.fn(),
+      call: rs.fn(),
     };
 
     const mockInterface = new MockInterface([mockAction, defineActionSleep()]);
 
     const insightService = {
-      contextRetrieverFn: vi.fn(),
-      locate: vi.fn(),
+      contextRetrieverFn: rs.fn(),
+      locate: rs.fn(),
     } as unknown as Service;
 
     const taskBuilder = new TaskBuilder({
@@ -133,8 +133,8 @@ describe('TaskBuilder', () => {
   it('throws when building an executable task for an action outside actionSpace', async () => {
     const mockInterface = new MockInterface([defineActionSleep()]);
     const insightService = {
-      contextRetrieverFn: vi.fn(),
-      locate: vi.fn(),
+      contextRetrieverFn: rs.fn(),
+      locate: rs.fn(),
     } as unknown as Service;
     const taskBuilder = new TaskBuilder({
       interfaceInstance: mockInterface,
@@ -154,11 +154,11 @@ describe('TaskBuilder', () => {
   });
 
   it('supports fast-path action delays for system actions', async () => {
-    vi.useFakeTimers();
+    rs.useFakeTimers();
 
-    const defaultBeforeHook = vi.fn(async () => undefined);
-    const defaultAfterHook = vi.fn(async () => undefined);
-    const defaultActionCall = vi.fn(async () => undefined);
+    const defaultBeforeHook = rs.fn(async () => undefined);
+    const defaultAfterHook = rs.fn(async () => undefined);
+    const defaultActionCall = rs.fn(async () => undefined);
     const defaultAction: DeviceAction = {
       name: 'DefaultExit',
       description: 'default exit action',
@@ -169,9 +169,9 @@ describe('TaskBuilder', () => {
     defaultInterface.beforeInvokeAction = defaultBeforeHook;
     defaultInterface.afterInvokeAction = defaultAfterHook;
 
-    const fastBeforeHook = vi.fn(async () => undefined);
-    const fastAfterHook = vi.fn(async () => undefined);
-    const fastActionCall = vi.fn(async () => undefined);
+    const fastBeforeHook = rs.fn(async () => undefined);
+    const fastAfterHook = rs.fn(async () => undefined);
+    const fastActionCall = rs.fn(async () => undefined);
     const fastAction: DeviceAction = {
       name: 'FastExit',
       description: 'fast exit action',
@@ -185,8 +185,8 @@ describe('TaskBuilder', () => {
     fastInterface.afterInvokeAction = fastAfterHook;
 
     const insightService = {
-      contextRetrieverFn: vi.fn(),
-      locate: vi.fn(),
+      contextRetrieverFn: rs.fn(),
+      locate: rs.fn(),
     } as unknown as Service;
 
     const defaultTaskBuilder = new TaskBuilder({
@@ -221,19 +221,19 @@ describe('TaskBuilder', () => {
 
     const defaultPromise = defaultTask.executor(defaultTask.param, taskContext);
 
-    await vi.advanceTimersByTimeAsync(199);
+    await rs.advanceTimersByTimeAsync(199);
     expect(defaultBeforeHook).toHaveBeenCalledTimes(1);
     expect(defaultActionCall).not.toHaveBeenCalled();
     expect(defaultAfterHook).not.toHaveBeenCalled();
 
-    await vi.advanceTimersByTimeAsync(1);
+    await rs.advanceTimersByTimeAsync(1);
     expect(defaultActionCall).toHaveBeenCalledTimes(1);
     expect(defaultAfterHook).not.toHaveBeenCalled();
 
-    await vi.advanceTimersByTimeAsync(299);
+    await rs.advanceTimersByTimeAsync(299);
     expect(defaultAfterHook).not.toHaveBeenCalled();
 
-    await vi.advanceTimersByTimeAsync(1);
+    await rs.advanceTimersByTimeAsync(1);
     await expect(defaultPromise).resolves.toEqual({ output: undefined });
     expect(defaultAfterHook).toHaveBeenCalledTimes(1);
 
@@ -245,7 +245,7 @@ describe('TaskBuilder', () => {
   });
 
   it('allows actions to attach planning feedback to the running task', async () => {
-    const actionCall = vi.fn(async () => '0\n');
+    const actionCall = rs.fn(async () => '0\n');
     const readStateAction: DeviceAction<{ key: string }, string> = {
       name: 'ReadState',
       description: 'read state',
@@ -262,8 +262,8 @@ describe('TaskBuilder', () => {
     };
     const mockInterface = new MockInterface([readStateAction]);
     const insightService = {
-      contextRetrieverFn: vi.fn(),
-      locate: vi.fn(),
+      contextRetrieverFn: rs.fn(),
+      locate: rs.fn(),
     } as unknown as Service;
     const taskBuilder = new TaskBuilder({
       interfaceInstance: mockInterface,

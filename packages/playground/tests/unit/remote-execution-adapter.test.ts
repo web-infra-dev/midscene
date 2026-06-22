@@ -1,14 +1,14 @@
 import type { DeviceAction } from '@midscene/core';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, rs } from '@rstest/core';
 import { RemoteExecutionAdapter } from '../../src/adapters/remote-execution';
 import type { ExecutionOptions, FormValue } from '../../src/types';
 
 // Mock fetch
-const mockFetch = vi.fn();
-vi.stubGlobal('fetch', mockFetch);
+const mockFetch = rs.fn();
+rs.stubGlobal('fetch', mockFetch);
 
 // Mock PLAYGROUND_SERVER_PORT
-vi.mock('@midscene/shared/constants', () => ({
+rs.mock('@midscene/shared/constants', () => ({
   PLAYGROUND_SERVER_PORT: 3000,
 }));
 
@@ -17,7 +17,7 @@ describe('RemoteExecutionAdapter', () => {
   const mockServerUrl = 'http://localhost:3000';
 
   beforeEach(() => {
-    vi.clearAllMocks();
+    rs.clearAllMocks();
     adapter = new RemoteExecutionAdapter(mockServerUrl);
 
     // Mock window object to simulate browser environment
@@ -44,7 +44,7 @@ describe('RemoteExecutionAdapter', () => {
       const action: DeviceAction<unknown> = {
         name: 'test',
         description: 'Test action',
-        call: vi.fn(),
+        call: rs.fn(),
       };
       const params = { prompt: 'test prompt' };
       const options: ExecutionOptions = { deepLocate: true };
@@ -63,7 +63,7 @@ describe('RemoteExecutionAdapter', () => {
         name: 'test',
         description: 'Test action',
         paramSchema: { shape: { field: {} } } as any,
-        call: vi.fn(),
+        call: rs.fn(),
       };
       const params = {
         field: 'value',
@@ -178,7 +178,7 @@ describe('RemoteExecutionAdapter', () => {
       const networkError = new Error('Network error');
       mockFetch.mockRejectedValueOnce(networkError);
 
-      const consoleSpy = vi
+      const consoleSpy = rs
         .spyOn(console, 'error')
         .mockImplementation(() => {});
 
@@ -224,7 +224,7 @@ describe('RemoteExecutionAdapter', () => {
 
       const mockActions = [{ name: 'click', description: 'Click action' }];
       const context = {
-        actionSpace: vi.fn().mockResolvedValue(mockActions),
+        actionSpace: rs.fn().mockResolvedValue(mockActions),
       };
 
       const result = await adapter.getActionSpace(context);
@@ -236,7 +236,7 @@ describe('RemoteExecutionAdapter', () => {
     it('should return empty array when all methods fail', async () => {
       mockFetch.mockRejectedValueOnce(new Error('Network error'));
 
-      const consoleSpy = vi
+      const consoleSpy = rs
         .spyOn(console, 'error')
         .mockImplementation(() => {});
 
@@ -295,7 +295,7 @@ describe('RemoteExecutionAdapter', () => {
     it('should return false when fetch fails', async () => {
       mockFetch.mockRejectedValueOnce(new Error('Network error'));
 
-      const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const consoleSpy = rs.spyOn(console, 'warn').mockImplementation(() => {});
 
       const result = await adapter.checkStatus();
 
@@ -342,7 +342,7 @@ describe('RemoteExecutionAdapter', () => {
         json: () => Promise.resolve({ error: 'Model name is required' }),
       });
 
-      const consoleSpy = vi
+      const consoleSpy = rs
         .spyOn(console, 'error')
         .mockImplementation(() => {});
 
@@ -420,7 +420,7 @@ describe('RemoteExecutionAdapter', () => {
     });
 
     it('should handle invalid requestId', async () => {
-      const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const consoleSpy = rs.spyOn(console, 'warn').mockImplementation(() => {});
 
       const result = await adapter.getTaskProgress('  ');
 
@@ -437,7 +437,7 @@ describe('RemoteExecutionAdapter', () => {
         statusText: 'Not Found',
       });
 
-      const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const consoleSpy = rs.spyOn(console, 'warn').mockImplementation(() => {});
 
       const result = await adapter.getTaskProgress('req-123');
 
@@ -499,7 +499,7 @@ describe('RemoteExecutionAdapter', () => {
     it('should handle network errors', async () => {
       mockFetch.mockRejectedValueOnce(new Error('Network error'));
 
-      const consoleSpy = vi
+      const consoleSpy = rs
         .spyOn(console, 'error')
         .mockImplementation(() => {});
 
@@ -635,7 +635,7 @@ describe('RemoteExecutionAdapter', () => {
         status: 409,
         statusText: 'Conflict',
       });
-      const consoleWarnSpy = vi
+      const consoleWarnSpy = rs
         .spyOn(console, 'warn')
         .mockImplementation(() => {});
 

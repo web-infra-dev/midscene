@@ -1,5 +1,5 @@
 import { EventEmitter } from 'node:events';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, rs } from '@rstest/core';
 import { registerWindowRevealHandlers } from '../src/main/window-reveal';
 
 class FakeWindow extends EventEmitter {
@@ -29,7 +29,7 @@ function register(window: FakeWindow) {
 }
 
 afterEach(() => {
-  vi.useRealTimers();
+  rs.useRealTimers();
 });
 
 describe('window reveal handlers', () => {
@@ -83,11 +83,11 @@ describe('window reveal handlers', () => {
   });
 
   it('falls back to a timeout when lifecycle events never arrive', () => {
-    vi.useFakeTimers();
+    rs.useFakeTimers();
     const window = new FakeWindow();
 
     register(window);
-    vi.advanceTimersByTime(2000);
+    rs.advanceTimersByTime(2000);
 
     expect(window.showCalls).toBe(1);
   });

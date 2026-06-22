@@ -1,8 +1,8 @@
 import { AgentOverChromeBridge } from '@/bridge-mode/agent-cli-side';
 import { sleep } from '@midscene/core/utils';
-import { describe, it, vi } from 'vitest';
+import { describe, it, rs } from '@rstest/core';
 
-vi.setConfig({
+rs.setConfig({
   testTimeout: 300 * 1000,
 });
 
@@ -11,9 +11,6 @@ const describeIf = process.env.BRIDGE_MODE ? describe : describe.skip;
 describeIf('open new tab in bridge mode', () => {
   it(
     'open new tab',
-    {
-      timeout: 3 * 60 * 1000,
-    },
     async () => {
       const agent = new AgentOverChromeBridge();
       await agent.connectNewTabWithUrl('https://www.baidu.com');
@@ -27,5 +24,6 @@ describeIf('open new tab in bridge mode', () => {
 
       await agent.destroy();
     },
+    3 * 60 * 1000,
   );
 });

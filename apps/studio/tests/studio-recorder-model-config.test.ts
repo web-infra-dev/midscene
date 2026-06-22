@@ -1,11 +1,11 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
 
-const visualizerState = vi.hoisted(() => ({
+const visualizerState = rs.hoisted(() => ({
   config: {} as Record<string, string>,
-  loadConfig: vi.fn(),
+  loadConfig: rs.fn(),
 }));
 
-vi.mock('@midscene/visualizer', () => ({
+rs.mock('@midscene/visualizer', () => ({
   useEnvConfig: {
     getState: () => visualizerState,
   },
@@ -31,7 +31,7 @@ beforeEach(() => {
   } as Storage;
   visualizerState.config = {};
   visualizerState.loadConfig.mockReset();
-  vi.resetModules();
+  rs.resetModules();
 });
 
 afterEach(() => {

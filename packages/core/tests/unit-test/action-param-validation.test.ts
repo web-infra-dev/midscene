@@ -5,7 +5,7 @@ import {
   defineAction,
   defineActionInput,
 } from '@/device';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 import { z } from 'zod';
 
 describe('Action Parameter Validation', () => {
@@ -568,14 +568,14 @@ describe('Action Parameter Validation', () => {
 
   describe('defineActionInput', () => {
     it('should pass keyboardTypeDelay to typeText', async () => {
-      const typeTextMock = vi.fn().mockResolvedValue(undefined);
-      const clearInputMock = vi.fn().mockResolvedValue(undefined);
+      const typeTextMock = rs.fn().mockResolvedValue(undefined);
+      const clearInputMock = rs.fn().mockResolvedValue(undefined);
 
       const action = defineActionInput({
         typeText: typeTextMock,
         clearInput: clearInputMock,
-        keyboardPress: vi.fn(),
-        cursorMove: vi.fn(),
+        keyboardPress: rs.fn(),
+        cursorMove: rs.fn(),
       });
 
       await action.call({
@@ -593,13 +593,13 @@ describe('Action Parameter Validation', () => {
     });
 
     it('should pass autoDismissKeyboard to typeText', async () => {
-      const typeTextMock = vi.fn().mockResolvedValue(undefined);
+      const typeTextMock = rs.fn().mockResolvedValue(undefined);
 
       const action = defineActionInput({
         typeText: typeTextMock,
-        clearInput: vi.fn(),
-        keyboardPress: vi.fn(),
-        cursorMove: vi.fn(),
+        clearInput: rs.fn(),
+        keyboardPress: rs.fn(),
+        cursorMove: rs.fn(),
       });
 
       await action.call({
@@ -617,14 +617,14 @@ describe('Action Parameter Validation', () => {
     });
 
     it('should call clearInput when mode is clear', async () => {
-      const typeTextMock = vi.fn();
-      const clearInputMock = vi.fn().mockResolvedValue(undefined);
+      const typeTextMock = rs.fn();
+      const clearInputMock = rs.fn().mockResolvedValue(undefined);
 
       const action = defineActionInput({
         typeText: typeTextMock,
         clearInput: clearInputMock,
-        keyboardPress: vi.fn(),
-        cursorMove: vi.fn(),
+        keyboardPress: rs.fn(),
+        cursorMove: rs.fn(),
       });
 
       await action.call({
@@ -637,13 +637,13 @@ describe('Action Parameter Validation', () => {
     });
 
     it('should convert append mode to typeOnly', async () => {
-      const typeTextMock = vi.fn().mockResolvedValue(undefined);
+      const typeTextMock = rs.fn().mockResolvedValue(undefined);
 
       const action = defineActionInput({
         typeText: typeTextMock,
-        clearInput: vi.fn(),
-        keyboardPress: vi.fn(),
-        cursorMove: vi.fn(),
+        clearInput: rs.fn(),
+        keyboardPress: rs.fn(),
+        cursorMove: rs.fn(),
       });
 
       await action.call({

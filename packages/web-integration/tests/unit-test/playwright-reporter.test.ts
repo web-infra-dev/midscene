@@ -9,41 +9,40 @@ import {
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import MidsceneReporter from '@/playwright/reporter';
+import * as coreAgentActual from '@midscene/core/agent' with {
+  rstest: 'importActual',
+};
+import * as sharedUtilsActual from '@midscene/shared/utils' with {
+  rstest: 'importActual',
+};
 import type { TestCase, TestResult } from '@playwright/test/reporter';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
 
-vi.mock('@midscene/shared/common', () => ({
-  getMidsceneRunSubDir: vi.fn(),
+rs.mock('@midscene/shared/common', () => ({
+  getMidsceneRunSubDir: rs.fn(),
 }));
 
-vi.mock('@midscene/core/agent', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@midscene/core/agent')>();
-  return {
-    ...actual,
-    printReportMsg: vi.fn(),
-  };
-});
+rs.mock('@midscene/core/agent', () => ({
+  ...coreAgentActual,
+  printReportMsg: rs.fn(),
+}));
 
-vi.mock('@midscene/shared/utils', async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import('@midscene/shared/utils')>();
-  return {
-    ...actual,
-    logMsg: vi.fn(),
-  };
-});
+rs.mock('@midscene/shared/utils', () => ({
+  ...sharedUtilsActual,
+  logMsg: rs.fn(),
+}));
 
 describe('MidsceneReporter', () => {
   let tempDir: string;
   let outputDir: string;
 
   beforeEach(async () => {
-    vi.clearAllMocks();
+    rs.clearAllMocks();
     tempDir = mkdtempSync(join(tmpdir(), 'midscene-test-'));
     outputDir = join(tempDir, 'output');
 
     const { getMidsceneRunSubDir } = await import('@midscene/shared/common');
-    vi.mocked(getMidsceneRunSubDir).mockReturnValue(outputDir);
+    rs.mocked(getMidsceneRunSubDir).mockReturnValue(outputDir);
   });
 
   afterEach(() => {
@@ -84,7 +83,7 @@ describe('MidsceneReporter', () => {
   describe('report collection', () => {
     it('should ignore tests without Midscene annotations', async () => {
       const reporter = new MidsceneReporter({ type: 'merged' });
-      const mergeSpy = vi.spyOn<any, any>(
+      const mergeSpy = rs.spyOn<any, any>(
         reporter as any,
         'finalizeMergedReport',
       );

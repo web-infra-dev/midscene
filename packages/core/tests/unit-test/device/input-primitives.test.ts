@@ -1,14 +1,14 @@
 import { defineActionsFromInputPrimitives } from '@/device';
 import type { ExecutorContext } from '@/types';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 
 const mockExecutorContext = { task: {} } as ExecutorContext;
 
 describe('defineActionsFromInputPrimitives', () => {
   it('should expose configured system input primitives as actions', async () => {
-    const backButton = vi.fn();
-    const homeButton = vi.fn();
-    const recentAppsButton = vi.fn();
+    const backButton = rs.fn();
+    const homeButton = rs.fn();
+    const recentAppsButton = rs.fn();
 
     const actions = defineActionsFromInputPrimitives(
       {

@@ -1,19 +1,19 @@
 import { existsSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { getMidsceneRunBaseDir } from '@midscene/shared/common';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
 import { agentForRDPComputer, agentFromComputer } from '../../src/agent';
 import { ComputerMidsceneTools } from '../../src/agent-tools';
 
-vi.mock('../../src/agent', () => ({
-  agentFromComputer: vi.fn(),
-  agentForRDPComputer: vi.fn(),
+rs.mock('../../src/agent', () => ({
+  agentFromComputer: rs.fn(),
+  agentForRDPComputer: rs.fn(),
 }));
 
-vi.mock('../../src/device', () => ({
-  ComputerDevice: vi.fn().mockImplementation(() => ({
-    actionSpace: vi.fn().mockReturnValue([]),
-    destroy: vi.fn(),
+rs.mock('../../src/device', () => ({
+  ComputerDevice: rs.fn().mockImplementation(() => ({
+    actionSpace: rs.fn().mockReturnValue([]),
+    destroy: rs.fn(),
   })),
 }));
 
@@ -23,13 +23,13 @@ const validPngBase64 =
 function createMockAgent() {
   return {
     interface: {
-      screenshotBase64: vi.fn().mockResolvedValue(validPngBase64),
+      screenshotBase64: rs.fn().mockResolvedValue(validPngBase64),
     },
     page: {
-      screenshotBase64: vi.fn().mockResolvedValue(validPngBase64),
+      screenshotBase64: rs.fn().mockResolvedValue(validPngBase64),
     },
-    aiAction: vi.fn().mockResolvedValue('done'),
-    destroy: vi.fn(),
+    aiAction: rs.fn().mockResolvedValue('done'),
+    destroy: rs.fn(),
   };
 }
 
@@ -43,12 +43,12 @@ function clearCliReportSession(): void {
 describe('ComputerMidsceneTools', () => {
   beforeEach(() => {
     clearCliReportSession();
-    vi.mocked(agentFromComputer).mockResolvedValue(createMockAgent() as any);
-    vi.mocked(agentForRDPComputer).mockResolvedValue(createMockAgent() as any);
+    rs.mocked(agentFromComputer).mockResolvedValue(createMockAgent() as any);
+    rs.mocked(agentForRDPComputer).mockResolvedValue(createMockAgent() as any);
   });
 
   afterEach(() => {
-    vi.clearAllMocks();
+    rs.clearAllMocks();
     clearCliReportSession();
   });
 
@@ -103,7 +103,7 @@ describe('ComputerMidsceneTools', () => {
 
   it('passes top-level display-id alias to act', async () => {
     const mockAgent = createMockAgent();
-    vi.mocked(agentFromComputer).mockResolvedValue(mockAgent as any);
+    rs.mocked(agentFromComputer).mockResolvedValue(mockAgent as any);
 
     const tools = new ComputerMidsceneTools();
     await tools.initTools();
@@ -278,7 +278,7 @@ describe('ComputerMidsceneTools', () => {
 
   it('reuses the Computer agent when called twice with identical init args', async () => {
     const mockAgent = createMockAgent();
-    vi.mocked(agentFromComputer).mockResolvedValue(mockAgent as any);
+    rs.mocked(agentFromComputer).mockResolvedValue(mockAgent as any);
 
     const tools = new ComputerMidsceneTools();
     await tools.initTools();
@@ -301,7 +301,7 @@ describe('ComputerMidsceneTools', () => {
   it('rebuilds the Computer agent when init args change', async () => {
     const firstAgent = createMockAgent();
     const secondAgent = createMockAgent();
-    vi.mocked(agentFromComputer)
+    rs.mocked(agentFromComputer)
       .mockResolvedValueOnce(firstAgent as any)
       .mockResolvedValueOnce(secondAgent as any);
 
@@ -330,7 +330,7 @@ describe('ComputerMidsceneTools', () => {
   it('rebuilds the Computer agent when init args are omitted after being set', async () => {
     const firstAgent = createMockAgent();
     const secondAgent = createMockAgent();
-    vi.mocked(agentFromComputer)
+    rs.mocked(agentFromComputer)
       .mockResolvedValueOnce(firstAgent as any)
       .mockResolvedValueOnce(secondAgent as any);
 

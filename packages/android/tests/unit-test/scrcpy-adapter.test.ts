@@ -1,43 +1,41 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
 import type { DevicePhysicalInfo } from '../../src/scrcpy-device-adapter';
 import { ScrcpyDeviceAdapter } from '../../src/scrcpy-device-adapter';
 import { DEFAULT_SCRCPY_CONFIG } from '../../src/scrcpy-manager';
+import * as scrcpyManagerActual from '../../src/scrcpy-manager' with {
+  rstest: 'importActual',
+};
 
 // Mock @yume-chan packages (ESM-only, used via dynamic import in ensureManager)
-vi.mock('@yume-chan/adb', () => ({
-  Adb: vi.fn().mockImplementation(() => ({})),
-  AdbServerClient: vi.fn().mockImplementation(() => ({
-    createTransport: vi.fn().mockResolvedValue({}),
+rs.mock('@yume-chan/adb', () => ({
+  Adb: rs.fn().mockImplementation(() => ({})),
+  AdbServerClient: rs.fn().mockImplementation(() => ({
+    createTransport: rs.fn().mockResolvedValue({}),
   })),
 }));
 
-vi.mock('@yume-chan/adb-server-node-tcp', () => ({
-  AdbServerNodeTcpConnector: vi.fn(),
+rs.mock('@yume-chan/adb-server-node-tcp', () => ({
+  AdbServerNodeTcpConnector: rs.fn(),
 }));
 
 // Mock ScrcpyScreenshotManager returned by dynamic import in ensureManager
 const createMockManager = () => ({
-  validateEnvironment: vi.fn().mockResolvedValue(undefined),
-  ensureConnected: vi.fn().mockResolvedValue(undefined),
-  getScreenshotJpeg: vi.fn().mockResolvedValue(Buffer.from('fake-png')),
-  getResolution: vi.fn().mockReturnValue(null),
-  disconnect: vi.fn().mockResolvedValue(undefined),
+  validateEnvironment: rs.fn().mockResolvedValue(undefined),
+  ensureConnected: rs.fn().mockResolvedValue(undefined),
+  getScreenshotJpeg: rs.fn().mockResolvedValue(Buffer.from('fake-png')),
+  getResolution: rs.fn().mockReturnValue(null),
+  disconnect: rs.fn().mockResolvedValue(undefined),
 });
 
 let currentMockManager: ReturnType<typeof createMockManager>;
 
-vi.mock('../../src/scrcpy-manager', async (importOriginal) => {
-  const original = (await importOriginal()) as Record<string, unknown>;
-  return {
-    ...original,
-    ScrcpyScreenshotManager: vi
-      .fn()
-      .mockImplementation(() => currentMockManager),
-  };
-});
+rs.mock('../../src/scrcpy-manager', () => ({
+  ...scrcpyManagerActual,
+  ScrcpyScreenshotManager: rs.fn().mockImplementation(() => currentMockManager),
+}));
 
-vi.mock('@midscene/shared/img', () => ({
-  createImgBase64ByFormat: vi
+rs.mock('@midscene/shared/img', () => ({
+  createImgBase64ByFormat: rs
     .fn()
     .mockReturnValue('data:image/png;base64,test'),
 }));
@@ -55,7 +53,7 @@ describe('ScrcpyDeviceAdapter', () => {
   });
 
   afterEach(() => {
-    vi.clearAllMocks();
+    rs.clearAllMocks();
   });
 
   describe('isEnabled', () => {
@@ -105,7 +103,6 @@ describe('ScrcpyDeviceAdapter', () => {
     it('should treat maxSize=0 as explicit (no auto-calculation)', () => {
       const adapter = new ScrcpyDeviceAdapter('device', { maxSize: 0 });
       const config = adapter.resolveConfig(defaultDeviceInfo);
-      // maxSize=0 means "no scaling" in scrcpy, should not auto-calculate
       expect(config.maxSize).toBe(0);
     });
 
@@ -338,7 +335,7 @@ describe('ScrcpyDeviceAdapter', () => {
     it('should clear manager and resolvedConfig', async () => {
       const adapter = new ScrcpyDeviceAdapter('device', undefined);
       (adapter as any).manager = currentMockManager;
-      adapter.resolveConfig(defaultDeviceInfo); // populate cache
+      adapter.resolveConfig(defaultDeviceInfo);
 
       await adapter.disconnect();
 

@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
 import { LocalExecutionAdapter } from '../src/adapters/local-execution';
 import type { PlaygroundAgent } from '../src/types';
 
@@ -10,7 +10,7 @@ describe('LocalExecutionAdapter - Config Recreation', () => {
   let agentFactoryCallCount: number;
 
   beforeEach(() => {
-    vi.unstubAllEnvs();
+    rs.unstubAllEnvs();
     agentFactoryCallCount = 0;
 
     // Create a mock agent
@@ -20,19 +20,19 @@ describe('LocalExecutionAdapter - Config Recreation', () => {
           interfaceType: 'puppeteer',
           actionSpace: () => [],
         } as any,
-        getActionSpace: vi.fn(async () => []),
-        destroy: vi.fn(async () => {}),
-        dumpDataString: vi.fn(() => '{"executions":[]}'),
-        reportHTMLString: vi.fn(() => '<html></html>'),
-        writeOutActionDumps: vi.fn(),
-        resetDump: vi.fn(),
-        addDumpUpdateListener: vi.fn(() => () => {}),
+        getActionSpace: rs.fn(async () => []),
+        destroy: rs.fn(async () => {}),
+        dumpDataString: rs.fn(() => '{"executions":[]}'),
+        reportHTMLString: rs.fn(() => '<html></html>'),
+        writeOutActionDumps: rs.fn(),
+        resetDump: rs.fn(),
+        addDumpUpdateListener: rs.fn(() => () => {}),
       }) as any;
 
     mockAgent = createMockAgent();
 
     // Create a factory that returns new agents
-    mockAgentFactory = vi.fn(async () => {
+    mockAgentFactory = rs.fn(async () => {
       agentFactoryCallCount++;
       console.log(`Agent factory called (count: ${agentFactoryCallCount})`);
       return createMockAgent();
@@ -40,8 +40,8 @@ describe('LocalExecutionAdapter - Config Recreation', () => {
   });
 
   afterEach(() => {
-    vi.clearAllMocks();
-    vi.unstubAllEnvs();
+    rs.clearAllMocks();
+    rs.unstubAllEnvs();
   });
 
   it('should recreate agent when overrideConfig is called', async () => {
@@ -97,7 +97,7 @@ describe('LocalExecutionAdapter - Config Recreation', () => {
   });
 
   it('should handle recreation failure gracefully', async () => {
-    const failingFactory = vi.fn(async () => {
+    const failingFactory = rs.fn(async () => {
       throw new Error('Factory failed');
     });
 

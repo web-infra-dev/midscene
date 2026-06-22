@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from '@rstest/core';
 import { webPlaygroundPlatform } from '../../src/platform';
 import { StaticPageAgent } from '../../src/static';
 

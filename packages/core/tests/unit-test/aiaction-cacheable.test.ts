@@ -1,20 +1,21 @@
 import { TaskCache, TaskExecutor } from '@/agent';
 import { getModelRuntime } from '@/ai-model/models';
+import * as planningActual from '@/ai-model/workflows/planning' with {
+  rstest: 'importActual',
+};
 import type { AbstractInterface } from '@/device';
 import { ScreenshotItem } from '@/screenshot-item';
 import type { ExecutionTask, ExecutionTaskApply } from '@/types';
 import { uuid } from '@midscene/shared/utils';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, rs } from '@rstest/core';
 import type Service from '../../src';
 import { getMidsceneLocationSchema, z } from '../../src';
 
 // Mock AI planning to avoid real AI calls
-vi.mock('@/ai-model/workflows/planning', async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import('@/ai-model/workflows/planning')>();
+rs.mock('@/ai-model/workflows/planning', () => {
   return {
-    ...actual,
-    genericXmlPlan: vi.fn().mockResolvedValue({
+    ...planningActual,
+    genericXmlPlan: rs.fn().mockResolvedValue({
       actions: [
         {
           type: 'Click',
@@ -54,26 +55,26 @@ describe('aiAction cacheable option propagation', () => {
     // Create mock interface
     mockInterface = {
       interfaceType: 'web',
-      screenshotBase64: vi.fn().mockResolvedValue(validBase64Image),
-      size: vi.fn().mockResolvedValue({ width: 1920, height: 1080 }),
-      actionSpace: vi.fn().mockReturnValue([
+      screenshotBase64: rs.fn().mockResolvedValue(validBase64Image),
+      size: rs.fn().mockResolvedValue({ width: 1920, height: 1080 }),
+      actionSpace: rs.fn().mockReturnValue([
         {
           name: 'Click',
           paramSchema: z.object({
             locate: getMidsceneLocationSchema(),
           }),
-          call: vi.fn().mockResolvedValue({}),
+          call: rs.fn().mockResolvedValue({}),
         },
       ]),
-      cacheFeatureForPoint: vi.fn().mockResolvedValue({
+      cacheFeatureForPoint: rs.fn().mockResolvedValue({
         feature: 'mock-feature',
       }),
-      rectMatchesCacheFeature: vi.fn().mockResolvedValue(undefined),
+      rectMatchesCacheFeature: rs.fn().mockResolvedValue(undefined),
     };
 
     // Create mock insight
     mockService = {
-      contextRetrieverFn: vi.fn().mockImplementation(async () => ({
+      contextRetrieverFn: rs.fn().mockImplementation(async () => ({
         screenshot: ScreenshotItem.create(validBase64Image, Date.now()),
         shotSize: { width: 1920, height: 1080 },
         shrunkShotToLogicalRatio: 1,
@@ -83,7 +84,7 @@ describe('aiAction cacheable option propagation', () => {
           children: [],
         },
       })),
-      locate: vi.fn().mockResolvedValue({
+      locate: rs.fn().mockResolvedValue({
         element: {
           id: 'element-id',
           center: [100, 100],
@@ -107,7 +108,7 @@ describe('aiAction cacheable option propagation', () => {
 
   it('should propagate cacheable: false to locate subtasks in aiAction', async () => {
     // Create a spy on matchElementFromCache to verify it's not called
-    const matchElementFromCacheSpy = vi.spyOn(taskCache, 'matchLocateCache');
+    const matchElementFromCacheSpy = rs.spyOn(taskCache, 'matchLocateCache');
 
     // Mock planning result with a Locate action followed by Click
     // This simulates the typical aiAction behavior
@@ -182,11 +183,11 @@ describe('aiAction cacheable option propagation', () => {
   it.skip('should propagate cacheable: false through action method', async () => {
     // This test verifies that the action method propagates cacheable: false to subtasks
     // We'll verify this through the convertPlanToExecutable method that's called internally
-    const convertPlanSpy = vi.spyOn(taskExecutor, 'convertPlanToExecutable');
+    const convertPlanSpy = rs.spyOn(taskExecutor, 'convertPlanToExecutable');
 
     // Mock the planning result
     // @ts-ignore: historical skipped test uses an old locate result shape.
-    vi.spyOn(mockService, 'locate').mockResolvedValue({
+    rs.spyOn(mockService, 'locate').mockResolvedValue({
       element: {
         description: 'element-id',
         center: [100, 100],
@@ -331,7 +332,7 @@ describe('aiAction cacheable option propagation', () => {
   // TODO: Fix this test - Agent API changed, needs update to match new constructor
   it.skip('should fall through to normal execution when cache yamlWorkflow is undefined', async () => {
     // Mock matchPlanCache to return a cache entry with undefined yamlWorkflow
-    const matchPlanCacheSpy = vi
+    const matchPlanCacheSpy = rs
       .spyOn(taskCache, 'matchPlanCache')
       .mockReturnValue({
         cacheContent: {
@@ -340,11 +341,11 @@ describe('aiAction cacheable option propagation', () => {
           yamlWorkflow: undefined as any,
         },
         cacheUsable: false,
-        updateFn: vi.fn(),
+        updateFn: rs.fn(),
       });
 
     // Mock the action method to track if it gets called (normal execution path)
-    const actionSpy = vi
+    const actionSpy = rs
       .spyOn(taskExecutor, 'action')
       .mockResolvedValue({} as any);
 
@@ -361,19 +362,19 @@ describe('aiAction cacheable option propagation', () => {
     });
 
     // Mock the modelConfigManager to return valid config
-    vi.spyOn(agent as any, 'modelConfigManager', 'get').mockReturnValue({
+    rs.spyOn(agent as any, 'modelConfigManager', 'get').mockReturnValue({
       getModelConfig: (intent: string) => ({
         baseUrl: 'https://test.com',
         apiKey: 'test-key',
         model: 'gpt-4o-mini',
         modelFamily: true,
       }),
-      throwErrorIfNonVLModel: vi.fn(),
-      getUploadTestServerUrl: vi.fn().mockReturnValue(undefined),
+      throwErrorIfNonVLModel: rs.fn(),
+      getUploadTestServerUrl: rs.fn().mockReturnValue(undefined),
     });
 
     // Spy on runYaml to ensure it's NOT called with undefined
-    const runYamlSpy = vi.spyOn(agent, 'runYaml');
+    const runYamlSpy = rs.spyOn(agent, 'runYaml');
 
     // Call aiAct
     await agent.aiAct('test prompt');
@@ -391,7 +392,7 @@ describe('aiAction cacheable option propagation', () => {
   // TODO: Fix this test - Agent API changed, needs update to match new constructor
   it.skip('should fall through to normal execution when cache yamlWorkflow is empty string', async () => {
     // Mock matchPlanCache to return a cache entry with empty string yamlWorkflow
-    const matchPlanCacheSpy = vi
+    const matchPlanCacheSpy = rs
       .spyOn(taskCache, 'matchPlanCache')
       .mockReturnValue({
         cacheContent: {
@@ -400,11 +401,11 @@ describe('aiAction cacheable option propagation', () => {
           yamlWorkflow: '',
         },
         cacheUsable: false,
-        updateFn: vi.fn(),
+        updateFn: rs.fn(),
       });
 
     // Mock the action method to track if it gets called (normal execution path)
-    const actionSpy = vi
+    const actionSpy = rs
       .spyOn(taskExecutor, 'action')
       .mockResolvedValue({} as any);
 
@@ -421,19 +422,19 @@ describe('aiAction cacheable option propagation', () => {
     });
 
     // Mock the modelConfigManager to return valid config
-    vi.spyOn(agent as any, 'modelConfigManager', 'get').mockReturnValue({
+    rs.spyOn(agent as any, 'modelConfigManager', 'get').mockReturnValue({
       getModelConfig: (intent: string) => ({
         baseUrl: 'https://test.com',
         apiKey: 'test-key',
         model: 'gpt-4o-mini',
         modelFamily: true,
       }),
-      throwErrorIfNonVLModel: vi.fn(),
-      getUploadTestServerUrl: vi.fn().mockReturnValue(undefined),
+      throwErrorIfNonVLModel: rs.fn(),
+      getUploadTestServerUrl: rs.fn().mockReturnValue(undefined),
     });
 
     // Spy on runYaml to ensure it's NOT called with empty string
-    const runYamlSpy = vi.spyOn(agent, 'runYaml');
+    const runYamlSpy = rs.spyOn(agent, 'runYaml');
 
     // Call aiAct
     await agent.aiAct('test prompt');
@@ -451,7 +452,7 @@ describe('aiAction cacheable option propagation', () => {
   // TODO: Fix this test - Agent API changed, needs update to match new constructor
   it.skip('should fall through to normal execution when cache yamlWorkflow is whitespace-only', async () => {
     // Mock matchPlanCache to return a cache entry with whitespace-only yamlWorkflow
-    const matchPlanCacheSpy = vi
+    const matchPlanCacheSpy = rs
       .spyOn(taskCache, 'matchPlanCache')
       .mockReturnValue({
         cacheContent: {
@@ -460,11 +461,11 @@ describe('aiAction cacheable option propagation', () => {
           yamlWorkflow: '   \n\t  ',
         },
         cacheUsable: false,
-        updateFn: vi.fn(),
+        updateFn: rs.fn(),
       });
 
     // Mock the action method to track if it gets called (normal execution path)
-    const actionSpy = vi
+    const actionSpy = rs
       .spyOn(taskExecutor, 'action')
       .mockResolvedValue({} as any);
 
@@ -481,19 +482,19 @@ describe('aiAction cacheable option propagation', () => {
     });
 
     // Mock the modelConfigManager to return valid config
-    vi.spyOn(agent as any, 'modelConfigManager', 'get').mockReturnValue({
+    rs.spyOn(agent as any, 'modelConfigManager', 'get').mockReturnValue({
       getModelConfig: (intent: string) => ({
         baseUrl: 'https://test.com',
         apiKey: 'test-key',
         model: 'gpt-4o-mini',
         modelFamily: true,
       }),
-      throwErrorIfNonVLModel: vi.fn(),
-      getUploadTestServerUrl: vi.fn().mockReturnValue(undefined),
+      throwErrorIfNonVLModel: rs.fn(),
+      getUploadTestServerUrl: rs.fn().mockReturnValue(undefined),
     });
 
     // Spy on runYaml to ensure it's NOT called with whitespace
-    const runYamlSpy = vi.spyOn(agent, 'runYaml');
+    const runYamlSpy = rs.spyOn(agent, 'runYaml');
 
     // Call aiAct
     await agent.aiAct('test prompt');
@@ -513,7 +514,7 @@ describe('aiAction cacheable option propagation', () => {
     const validYaml = 'actions:\n  - type: Click\n    thought: test';
 
     // Mock matchPlanCache to return a cache entry with valid yamlWorkflow
-    const matchPlanCacheSpy = vi
+    const matchPlanCacheSpy = rs
       .spyOn(taskCache, 'matchPlanCache')
       .mockReturnValue({
         cacheContent: {
@@ -522,11 +523,11 @@ describe('aiAction cacheable option propagation', () => {
           yamlWorkflow: validYaml,
         },
         cacheUsable: true,
-        updateFn: vi.fn(),
+        updateFn: rs.fn(),
       });
 
     // Mock the action method - it should NOT be called when using cache
-    const actionSpy = vi
+    const actionSpy = rs
       .spyOn(taskExecutor, 'action')
       .mockResolvedValue({} as any);
 
@@ -543,19 +544,19 @@ describe('aiAction cacheable option propagation', () => {
     });
 
     // Mock the modelConfigManager to return valid config
-    vi.spyOn(agent as any, 'modelConfigManager', 'get').mockReturnValue({
+    rs.spyOn(agent as any, 'modelConfigManager', 'get').mockReturnValue({
       getModelConfig: (intent: string) => ({
         baseUrl: 'https://test.com',
         apiKey: 'test-key',
         model: 'gpt-4o-mini',
         modelFamily: true,
       }),
-      throwErrorIfNonVLModel: vi.fn(),
-      getUploadTestServerUrl: vi.fn().mockReturnValue(undefined),
+      throwErrorIfNonVLModel: rs.fn(),
+      getUploadTestServerUrl: rs.fn().mockReturnValue(undefined),
     });
 
     // Mock runYaml to avoid actual execution
-    const runYamlSpy = vi.spyOn(agent, 'runYaml').mockResolvedValue({} as any);
+    const runYamlSpy = rs.spyOn(agent, 'runYaml').mockResolvedValue({} as any);
 
     // Call aiAct
     await agent.aiAct('test prompt');

@@ -8,11 +8,11 @@ import {
   beforeEach,
   describe,
   it,
-  vi,
-} from 'vitest';
+  rs,
+} from '@rstest/core';
 import { HarmonyAgent, HarmonyDevice, getConnectedDevices } from '../../src';
 
-vi.setConfig({
+rs.setConfig({
   testTimeout: 240 * 1000,
 });
 

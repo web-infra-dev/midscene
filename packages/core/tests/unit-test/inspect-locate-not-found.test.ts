@@ -4,18 +4,38 @@ import { callAIWithObjectResponse } from '@/ai-model/service-caller/index';
 import { AiLocateElement, AiLocateSection } from '@/ai-model/workflows/inspect';
 import type { LocateFn } from '@/ai-model/workflows/inspect/types';
 import type { IModelConfig } from '@midscene/shared/env';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, rs } from '@rstest/core';
 import { createFakeContext } from '../utils';
 
-vi.mock('@/ai-model/service-caller/index', async () => {
-  const actual = await vi.importActual<
-    typeof import('@/ai-model/service-caller/index')
-  >('@/ai-model/service-caller/index');
+// Stub only the exports `inspect.ts` imports, sharing one hoisted mock object so
+// the source under test and the test file see the same spies.
+const serviceCallerMock = rs.hoisted(() => {
+  class AIResponseParseError extends Error {
+    rawResponse: string;
+    usage?: unknown;
+    rawChoiceMessage?: unknown;
+
+    constructor(
+      message: string,
+      rawResponse: string,
+      usage?: unknown,
+      rawChoiceMessage?: unknown,
+    ) {
+      super(message);
+      this.name = 'AIResponseParseError';
+      this.rawResponse = rawResponse;
+      this.usage = usage;
+      this.rawChoiceMessage = rawChoiceMessage;
+    }
+  }
+
   return {
-    ...actual,
-    callAIWithObjectResponse: vi.fn(),
+    AIResponseParseError,
+    callAI: rs.fn(),
+    callAIWithObjectResponse: rs.fn(),
   };
 });
+rs.mock('@/ai-model/service-caller/index', () => serviceCallerMock);
 
 describe('locate not-found parsing', () => {
   const modelConfig: IModelConfig = {
@@ -27,11 +47,11 @@ describe('locate not-found parsing', () => {
   };
 
   beforeEach(() => {
-    vi.clearAllMocks();
+    rs.clearAllMocks();
   });
 
   it('keeps locate errors without parsing coordinates when result key is missing', async () => {
-    vi.mocked(callAIWithObjectResponse).mockResolvedValue({
+    rs.mocked(callAIWithObjectResponse).mockResolvedValue({
       content: { errors: ['target element is not found'] },
       usage: undefined,
       contentString: '{"errors":["target element is not found"]}',
@@ -51,7 +71,7 @@ describe('locate not-found parsing', () => {
   });
 
   it('skips coordinate parsing when result key is missing even without errors', async () => {
-    vi.mocked(callAIWithObjectResponse).mockResolvedValue({
+    rs.mocked(callAIWithObjectResponse).mockResolvedValue({
       content: {},
       usage: undefined,
       contentString: '{}',
@@ -71,7 +91,7 @@ describe('locate not-found parsing', () => {
   });
 
   it('skips coordinate parsing when result key is an empty array', async () => {
-    vi.mocked(callAIWithObjectResponse).mockResolvedValue({
+    rs.mocked(callAIWithObjectResponse).mockResolvedValue({
       content: { bbox: [], errors: ['target element is not found'] },
       usage: undefined,
       contentString: '{"bbox":[],"errors":["target element is not found"]}',
@@ -91,7 +111,7 @@ describe('locate not-found parsing', () => {
   });
 
   it('returns locate parsing errors when result adapter cannot map coordinates', async () => {
-    vi.mocked(callAIWithObjectResponse).mockResolvedValue({
+    rs.mocked(callAIWithObjectResponse).mockResolvedValue({
       content: {
         bbox: [100, Number.NaN, 300, 400],
         errors: ['model returned invalid coordinates'],
@@ -118,7 +138,7 @@ describe('locate not-found parsing', () => {
   });
 
   it('passes locate request context to custom locate and maps its bbox result', async () => {
-    const locateFn = vi.fn<LocateFn>().mockResolvedValue({
+    const locateFn = rs.fn<LocateFn>().mockResolvedValue({
       locatedPixelBbox: [100, 50, 130, 70],
       rawResponse: 'custom locate response',
       usage: { total_tokens: 12 } as any,
@@ -194,7 +214,7 @@ describe('locate not-found parsing', () => {
   });
 
   it('keeps section locate error without parsing coordinates when result key is missing', async () => {
-    vi.mocked(callAIWithObjectResponse).mockResolvedValue({
+    rs.mocked(callAIWithObjectResponse).mockResolvedValue({
       content: { error: 'target section is not found' },
       usage: undefined,
       contentString: '{"error":"target section is not found"}',
@@ -211,7 +231,7 @@ describe('locate not-found parsing', () => {
   });
 
   it('keeps section locate error without parsing coordinates when result key is an empty array', async () => {
-    vi.mocked(callAIWithObjectResponse).mockResolvedValue({
+    rs.mocked(callAIWithObjectResponse).mockResolvedValue({
       content: { bbox: [], error: 'target section is not found' },
       usage: undefined,
       contentString: '{"bbox":[],"error":"target section is not found"}',

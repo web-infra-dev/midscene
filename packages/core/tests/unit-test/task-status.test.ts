@@ -1,5 +1,5 @@
 import { deriveCaseStatus, deriveTaskStatus } from '@/dump/task-status';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 
 describe('deriveTaskStatus', () => {
   it('treats a thrown / failed task as failed', () => {

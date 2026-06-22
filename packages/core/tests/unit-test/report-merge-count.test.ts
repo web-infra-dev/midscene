@@ -20,7 +20,7 @@ import {
   type UIContext,
 } from '@/types';
 import { antiEscapeScriptTag } from '@midscene/shared/utils';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 
 // ---------- helpers ----------
 

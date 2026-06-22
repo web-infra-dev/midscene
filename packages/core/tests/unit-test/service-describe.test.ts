@@ -1,45 +1,44 @@
 import { getModelRuntime } from '@/ai-model/models';
 import { elementDescriberInstruction } from '@/ai-model/prompt/describe';
 import { AIResponseParseError } from '@/ai-model/service-caller';
+import * as serviceCallerActual from '@/ai-model/service-caller' with {
+  rstest: 'importActual',
+};
 import Service from '@/service';
 import type { IModelConfig } from '@midscene/shared/env';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import * as sharedImgActual from '@midscene/shared/img' with {
+  rstest: 'importActual',
+};
+import { beforeEach, describe, expect, it, rs } from '@rstest/core';
 import { createFakeContext } from '../utils';
 
-const { mockCallAIWithObjectResponse } = vi.hoisted(() => ({
-  mockCallAIWithObjectResponse: vi.fn(),
+const { mockCallAIWithObjectResponse } = rs.hoisted(() => ({
+  mockCallAIWithObjectResponse: rs.fn(),
 }));
 const {
   mockCompositeElementInfoImg,
   mockCompositePointMarkerImg,
   mockCropByRect,
   mockResizeImgBase64,
-} = vi.hoisted(() => ({
-  mockCompositeElementInfoImg: vi.fn(),
-  mockCompositePointMarkerImg: vi.fn(),
-  mockCropByRect: vi.fn(),
-  mockResizeImgBase64: vi.fn(),
+} = rs.hoisted(() => ({
+  mockCompositeElementInfoImg: rs.fn(),
+  mockCompositePointMarkerImg: rs.fn(),
+  mockCropByRect: rs.fn(),
+  mockResizeImgBase64: rs.fn(),
 }));
 
-vi.mock('@/ai-model/service-caller', async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import('@/ai-model/service-caller')>();
-  return {
-    ...actual,
-    callAIWithObjectResponse: mockCallAIWithObjectResponse,
-  };
-});
+rs.mock('@/ai-model/service-caller', () => ({
+  ...serviceCallerActual,
+  callAIWithObjectResponse: mockCallAIWithObjectResponse,
+}));
 
-vi.mock('@midscene/shared/img', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@midscene/shared/img')>();
-  return {
-    ...actual,
-    compositeElementInfoImg: mockCompositeElementInfoImg,
-    compositePointMarkerImg: mockCompositePointMarkerImg,
-    cropByRect: mockCropByRect,
-    resizeImgBase64: mockResizeImgBase64,
-  };
-});
+rs.mock('@midscene/shared/img', () => ({
+  ...sharedImgActual,
+  compositeElementInfoImg: mockCompositeElementInfoImg,
+  compositePointMarkerImg: mockCompositePointMarkerImg,
+  cropByRect: mockCropByRect,
+  resizeImgBase64: mockResizeImgBase64,
+}));
 
 describe('service.describe', () => {
   const modelConfig: IModelConfig = {

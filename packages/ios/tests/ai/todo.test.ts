@@ -1,9 +1,9 @@
 import { sleep } from '@midscene/core/utils';
 import { DEFAULT_WDA_PORT } from '@midscene/shared/constants';
-import { beforeAll, describe, expect, it, vi } from 'vitest';
+import { beforeAll, describe, expect, it, rs } from '@rstest/core';
 import { agentFromWebDriverAgent, checkIOSEnvironment } from '../../src';
 
-vi.setConfig({
+rs.setConfig({
   testTimeout: 240 * 1000,
   hookTimeout: 240 * 1000, // Add hook timeout for beforeAll
 });

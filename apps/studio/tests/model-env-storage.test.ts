@@ -1,9 +1,9 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
 
-const loadConfigMock = vi.fn<(text: string) => void>();
+const loadConfigMock = rs.fn<(text: string) => void>();
 let memoryStore: Record<string, string> = {};
 
-vi.mock('@midscene/visualizer', () => ({
+rs.mock('@midscene/visualizer', () => ({
   useEnvConfig: {
     getState: () => ({
       loadConfig: loadConfigMock,
@@ -28,7 +28,7 @@ beforeEach(() => {
     length: 0,
   } as Storage;
   loadConfigMock.mockReset();
-  vi.resetModules();
+  rs.resetModules();
 });
 
 afterEach(() => {

@@ -1,6 +1,6 @@
 import { AgentProgressBus } from '@/agent/progress';
 import type { AgentProgressEvent } from '@/types';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 
 describe('AgentProgressBus', () => {
   it('wraps payloads in an envelope and stamps a monotonic sequence', async () => {
@@ -67,7 +67,7 @@ describe('AgentProgressBus', () => {
 
   it('stops delivering after the disposer returned by subscribe is called', async () => {
     const bus = new AgentProgressBus();
-    const listener = vi.fn();
+    const listener = rs.fn();
     const dispose = bus.subscribe(listener);
 
     await bus.publish('aiAct', 'start', {});
@@ -80,8 +80,8 @@ describe('AgentProgressBus', () => {
 
   it('removes a listener by reference via unsubscribe', async () => {
     const bus = new AgentProgressBus();
-    const keep = vi.fn();
-    const drop = vi.fn();
+    const keep = rs.fn();
+    const drop = rs.fn();
     bus.subscribe(keep);
     bus.subscribe(drop);
 
@@ -94,9 +94,9 @@ describe('AgentProgressBus', () => {
 
   it('clears all listeners', async () => {
     const bus = new AgentProgressBus();
-    const listener = vi.fn();
+    const listener = rs.fn();
     bus.subscribe(listener);
-    bus.subscribe(vi.fn());
+    bus.subscribe(rs.fn());
 
     bus.clear();
     await bus.publish('aiAct', 'start', {});
@@ -107,7 +107,7 @@ describe('AgentProgressBus', () => {
 
   it('isolates a throwing listener so the others still run and publish resolves', async () => {
     const bus = new AgentProgressBus();
-    const after = vi.fn();
+    const after = rs.fn();
     bus.subscribe(() => {
       throw new Error('listener boom');
     });

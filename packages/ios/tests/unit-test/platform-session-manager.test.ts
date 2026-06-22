@@ -1,14 +1,14 @@
-import { beforeEach, describe, expect, test, vi } from 'vitest';
+import { beforeEach, describe, expect, rs, test } from '@rstest/core';
 
-const agentFromWebDriverAgentMock = vi.fn();
-const getConnectedDeviceInfoMock = vi.fn();
-const findAvailablePortMock = vi.fn(async (port: number) => port);
+const agentFromWebDriverAgentMock = rs.fn();
+const getConnectedDeviceInfoMock = rs.fn();
+const findAvailablePortMock = rs.fn(async (port: number) => port);
 
-vi.mock('@midscene/shared/node', () => ({
+rs.mock('@midscene/shared/node', () => ({
   findAvailablePort: findAvailablePortMock,
 }));
 
-vi.mock('../../src/agent', () => ({
+rs.mock('../../src/agent', () => ({
   agentFromWebDriverAgent: agentFromWebDriverAgentMock,
 }));
 
@@ -16,12 +16,12 @@ const mockAgent = {
   interface: {
     getConnectedDeviceInfo: getConnectedDeviceInfoMock,
   },
-  destroy: vi.fn(),
+  destroy: rs.fn(),
 };
 
 describe('iosPlaygroundPlatform session manager', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    rs.clearAllMocks();
     agentFromWebDriverAgentMock.mockResolvedValue({
       ...mockAgent,
       interface: {

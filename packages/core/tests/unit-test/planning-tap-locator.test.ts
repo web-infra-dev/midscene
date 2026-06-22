@@ -3,10 +3,10 @@ import { AIResponseParseError } from '@/ai-model/service-caller';
 import { resolvePlanningTapLocator } from '@/ai-model/workflows/inspect/planning-action-locate';
 import { runCustomPlanning } from '@/ai-model/workflows/planning/custom-planning';
 import { ScreenshotItem } from '@/screenshot-item';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, rs } from '@rstest/core';
 
-vi.mock('@/ai-model/workflows/planning/custom-planning', () => ({
-  runCustomPlanning: vi.fn(),
+rs.mock('@/ai-model/workflows/planning/custom-planning', () => ({
+  runCustomPlanning: rs.fn(),
 }));
 
 function createPlanner(): ResolvedCustomPlanningDefinition<null> {
@@ -80,12 +80,12 @@ function createLocateRequest() {
 
 describe('resolvePlanningTapLocator', () => {
   beforeEach(() => {
-    vi.mocked(runCustomPlanning).mockReset();
+    rs.mocked(runCustomPlanning).mockReset();
   });
 
   it('runs the resolved planner once with tap locate options and returns the configured bbox', async () => {
     const actions = [{ type: 'Tap', param: {} }];
-    vi.mocked(runCustomPlanning).mockResolvedValueOnce({
+    rs.mocked(runCustomPlanning).mockResolvedValueOnce({
       actions,
       shouldContinuePlanning: false,
       rawResponse: 'raw planning response',
@@ -94,7 +94,7 @@ describe('resolvePlanningTapLocator', () => {
       log: 'planner reasoning',
     });
 
-    const getLocatedPixelBbox = vi.fn((): [number, number, number, number] => [
+    const getLocatedPixelBbox = rs.fn((): [number, number, number, number] => [
       1, 2, 3, 4,
     ]);
     const locate = resolvePlanningTapLocator(
@@ -112,7 +112,7 @@ describe('resolvePlanningTapLocator', () => {
     );
 
     const [, planOptions, locatorPlanner] =
-      vi.mocked(runCustomPlanning).mock.calls[0];
+      rs.mocked(runCustomPlanning).mock.calls[0];
     expect(planOptions.context.screenshot.base64).toBe(
       'data:image/png;base64,CROP==',
     );
@@ -142,7 +142,7 @@ describe('resolvePlanningTapLocator', () => {
   });
 
   it('returns an error when the planner actions do not contain a tap bbox', async () => {
-    vi.mocked(runCustomPlanning).mockResolvedValueOnce({
+    rs.mocked(runCustomPlanning).mockResolvedValueOnce({
       actions: [{ type: 'Scroll', param: {} }],
       shouldContinuePlanning: false,
       rawResponse: 'raw planning response',
@@ -175,7 +175,7 @@ describe('resolvePlanningTapLocator', () => {
   it('preserves raw response metadata from planner parse errors', async () => {
     const rawChoiceMessage = { role: 'assistant', content: 'bad response' };
     const usage = { total_tokens: 5 } as any;
-    vi.mocked(runCustomPlanning).mockRejectedValueOnce(
+    rs.mocked(runCustomPlanning).mockRejectedValueOnce(
       new AIResponseParseError(
         'Parse error: malformed response',
         'raw malformed response',

@@ -12,14 +12,14 @@ import {
   describe,
   expect,
   it,
-  vi,
-} from 'vitest';
+  rs,
+} from '@rstest/core';
 import { HarmonyAgent, agentFromHdcDevice } from '../../src/agent';
 import { HarmonyDevice } from '../../src/device';
 import * as Utils from '../../src/utils';
 
-vi.mock('../../src/device');
-vi.mock('../../src/utils');
+rs.mock('../../src/device');
+rs.mock('../../src/utils');
 
 const mockedModelConfig = {
   MIDSCENE_MODEL_NAME: 'mock',
@@ -33,19 +33,19 @@ describe('HarmonyAgent', () => {
     (HarmonyDevice as Mock).mockImplementation(() => {
       return {
         interfaceType: 'harmony',
-        actionSpace: vi.fn().mockReturnValue([]),
-        screenshotBase64: vi.fn(),
-        size: vi.fn(),
-        url: vi.fn(),
-        launch: vi.fn(),
-        destroy: vi.fn(),
-        setAppNameMapping: vi.fn(),
+        actionSpace: rs.fn().mockReturnValue([]),
+        screenshotBase64: rs.fn(),
+        size: rs.fn(),
+        url: rs.fn(),
+        launch: rs.fn(),
+        destroy: rs.fn(),
+        setAppNameMapping: rs.fn(),
       };
     });
   });
 
   afterEach(() => {
-    vi.restoreAllMocks();
+    rs.restoreAllMocks();
   });
 
   describe('constructor', () => {
@@ -61,7 +61,7 @@ describe('HarmonyAgent', () => {
 
     it('should inject default music app name mappings into device', () => {
       const mockPage = new HarmonyDevice('test-device');
-      const setAppNameMappingSpy = vi.spyOn(mockPage, 'setAppNameMapping');
+      const setAppNameMappingSpy = rs.spyOn(mockPage, 'setAppNameMapping');
 
       new HarmonyAgent(mockPage, {
         modelConfig: mockedModelConfig,
@@ -83,14 +83,14 @@ describe('HarmonyAgent', () => {
 
       const mockPage = new HarmonyDevice('test-device');
 
-      vi.spyOn(mockPage, 'screenshotBase64').mockResolvedValue(validPngBase64);
-      vi.spyOn(mockPage, 'size').mockResolvedValue({ width: 375, height: 812 });
+      rs.spyOn(mockPage, 'screenshotBase64').mockResolvedValue(validPngBase64);
+      rs.spyOn(mockPage, 'size').mockResolvedValue({ width: 375, height: 812 });
 
-      const launchSpy = vi
+      const launchSpy = rs
         .spyOn(mockPage, 'launch')
         .mockResolvedValue(mockPage);
 
-      vi.spyOn(mockPage, 'actionSpace').mockReturnValue([
+      rs.spyOn(mockPage, 'actionSpace').mockReturnValue([
         {
           name: 'Launch',
           paramSchema: undefined,
@@ -131,15 +131,15 @@ describe('HarmonyAgent', () => {
       const validPngBase64 =
         'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
       const mockPage = new HarmonyDevice('test-device');
-      vi.spyOn(mockPage, 'screenshotBase64').mockResolvedValue(validPngBase64);
-      vi.spyOn(mockPage, 'size').mockResolvedValue({ width: 375, height: 812 });
+      rs.spyOn(mockPage, 'screenshotBase64').mockResolvedValue(validPngBase64);
+      rs.spyOn(mockPage, 'size').mockResolvedValue({ width: 375, height: 812 });
       if (typeof (mockPage as any).terminate !== 'function') {
-        (mockPage as any).terminate = vi.fn().mockResolvedValue(undefined);
+        (mockPage as any).terminate = rs.fn().mockResolvedValue(undefined);
       }
-      const terminateSpy = vi
+      const terminateSpy = rs
         .spyOn(mockPage as any, 'terminate')
         .mockResolvedValue(undefined);
-      vi.spyOn(mockPage, 'actionSpace').mockReturnValue([
+      rs.spyOn(mockPage, 'actionSpace').mockReturnValue([
         { name: 'Launch', paramSchema: undefined, call: async () => {} },
         {
           name: 'Terminate',
@@ -159,36 +159,36 @@ describe('HarmonyAgent', () => {
   });
 
   describe('agentFromHdcDevice', () => {
-    let mockConnect: ReturnType<typeof vi.fn>;
+    let mockConnect: ReturnType<typeof rs.fn>;
 
     function setupMockDevice() {
-      mockConnect = vi.fn().mockResolvedValue({});
+      mockConnect = rs.fn().mockResolvedValue({});
       (HarmonyDevice as Mock).mockImplementation(() => ({
         connect: mockConnect,
         interfaceType: 'harmony',
-        actionSpace: vi.fn().mockReturnValue([]),
-        screenshotBase64: vi.fn(),
-        size: vi.fn().mockResolvedValue({ width: 0, height: 0 }),
-        url: vi.fn(),
-        launch: vi.fn(),
-        setAppNameMapping: vi.fn(),
+        actionSpace: rs.fn().mockReturnValue([]),
+        screenshotBase64: rs.fn(),
+        size: rs.fn().mockResolvedValue({ width: 0, height: 0 }),
+        url: rs.fn(),
+        launch: rs.fn(),
+        setAppNameMapping: rs.fn(),
       }));
     }
 
     beforeEach(() => {
-      vi.stubEnv(MIDSCENE_USE_DOUBAO_VISION, 'true');
-      vi.stubEnv(MIDSCENE_MODEL_NAME, 'mock');
-      vi.stubEnv(OPENAI_API_KEY, 'mock');
-      vi.stubEnv(OPENAI_BASE_URL, 'mock');
+      rs.stubEnv(MIDSCENE_USE_DOUBAO_VISION, 'true');
+      rs.stubEnv(MIDSCENE_MODEL_NAME, 'mock');
+      rs.stubEnv(OPENAI_API_KEY, 'mock');
+      rs.stubEnv(OPENAI_BASE_URL, 'mock');
     });
 
     afterEach(() => {
-      vi.unstubAllEnvs();
+      rs.unstubAllEnvs();
     });
 
     it('should use the first device if no deviceId is provided', async () => {
       const mockDevices = [{ deviceId: 'device-1' }, { deviceId: 'device-2' }];
-      vi.spyOn(Utils, 'getConnectedDevices').mockResolvedValue(mockDevices);
+      rs.spyOn(Utils, 'getConnectedDevices').mockResolvedValue(mockDevices);
       setupMockDevice();
 
       const agent = await agentFromHdcDevice();

@@ -1,10 +1,10 @@
 import { AiLocateElement, AiLocateSection } from '@/ai-model';
 import { getModelRuntime } from '@/ai-model/models';
 import { globalModelConfigManager } from '@midscene/shared/env';
-import { expect, test, vi } from 'vitest';
+import { expect, rs, test } from '@rstest/core';
 import { getContextFromFixture } from '../evaluation';
 
-vi.setConfig({
+rs.setConfig({
   testTimeout: 120 * 1000,
 });
 
