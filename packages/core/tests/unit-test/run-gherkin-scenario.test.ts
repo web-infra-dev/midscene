@@ -196,6 +196,31 @@ And the todo app is open
     );
   });
 
+  it('throws when an anonymous scenario starts with an unknown step keyword', () => {
+    expect(() =>
+      parseGherkinScenario(`
+Givn the todo page is open
+When I add "Buy milk"
+Then the todo list contains "Buy milk"
+`),
+    ).toThrow(
+      'runGherkinScenario does not support content at line 2: Givn the todo page is open',
+    );
+  });
+
+  it('throws when a Scenario block starts with an unknown step keyword', () => {
+    expect(() =>
+      parseGherkinScenario(`
+Scenario: Add a todo
+Givn the todo page is open
+When I add "Buy milk"
+Then the todo list contains "Buy milk"
+`),
+    ).toThrow(
+      'runGherkinScenario does not support content at line 3: Givn the todo page is open',
+    );
+  });
+
   it('wraps step execution errors with line and step context', async () => {
     const agent = createAgentStub();
     (agent as any).aiAssert = vi.fn(async () => {

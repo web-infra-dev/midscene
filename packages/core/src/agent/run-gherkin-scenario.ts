@@ -115,7 +115,6 @@ export const parseGherkinScenario = (
   let scenario: string | undefined;
   let scenarioCount = 0;
   let section: 'prelude' | 'scenario' = 'prelude';
-  let hasSeenStepInSection = false;
 
   for (const [lineIndex, rawLine] of lines.entries()) {
     const lineNumber = lineIndex + 1;
@@ -145,7 +144,6 @@ export const parseGherkinScenario = (
 
     const headerMatch = line.match(headerPattern);
     if (headerMatch) {
-      hasSeenStepInSection = false;
       scenarioCount += 1;
       scenario = headerMatch[2].trim() || undefined;
       section = 'scenario';
@@ -166,11 +164,6 @@ export const parseGherkinScenario = (
         anonymousSteps.push(step);
       }
 
-      hasSeenStepInSection = true;
-      continue;
-    }
-
-    if (!hasSeenStepInSection) {
       continue;
     }
 
