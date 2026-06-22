@@ -9,3 +9,9 @@
 - 下一步：验证 MAI-UI 的 `SCALE_FACTOR = 999` 坐标协议在真实模型和设备上的表现；接入侧目前按 MAI-UI Python demo 的实际实现使用 `normalizedBy: 999`。
 - 下一步：确认 MAI-UI 的 `ask_user` 和 MCP tool call 是否需要映射到 Midscene 现有 action space，当前实现会对这些 action 明确抛错，避免静默误执行。
 - 搁置原因：本轮只做 adapter 接入和 unit/build 验证，没有运行真实模型或设备自动化。
+## Mano-CUA adaptor 后续验证
+
+- 背景：已新增 `mano-cua` custom planning adaptor，按 model card 的 XML action 和 0-1000 坐标协议解析规划结果。
+- 下一步：用真实 `Mano-CUA-4B-Thinking-1.1` 服务验证 OpenAI-compatible `/v1/chat/completions` 图文请求、输出格式和 action mapping 是否稳定。
+- 下一步：确认 `open_app` / `open_url` 在 `@midscene/computer` 场景是否需要新增或复用平台级 `Launch` 能力；当前 adapter 只在 actionSpace 已存在 `Launch` 时映射，否则明确抛错。
+- 搁置原因：本轮只做 adapter 接入和 unit/build 验证，没有运行真实模型服务或桌面自动化。
