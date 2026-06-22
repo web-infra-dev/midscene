@@ -11,6 +11,7 @@ import type {
   PlanningLocateParam,
   PlanningLocateParamWithLocatedPixelBbox,
   Rect,
+  ScrollParam,
   Size,
   UIContext,
 } from '@/types';
@@ -34,6 +35,28 @@ import type { TaskCache } from './task-cache';
 import { debug as cacheDebug } from './task-cache';
 
 const agentDebug = getDebug('agent');
+
+const legacyScrollTypeMap = {
+  once: 'singleAction',
+  untilBottom: 'scrollToBottom',
+  untilTop: 'scrollToTop',
+  untilRight: 'scrollToRight',
+  untilLeft: 'scrollToLeft',
+} as const;
+
+export const normalizeScrollType = (
+  scrollType: string | undefined,
+): ScrollParam['scrollType'] | undefined => {
+  if (!scrollType) {
+    return undefined;
+  }
+
+  if (scrollType in legacyScrollTypeMap) {
+    return legacyScrollTypeMap[scrollType as keyof typeof legacyScrollTypeMap];
+  }
+
+  return scrollType as ScrollParam['scrollType'];
+};
 
 export async function commonContextParser(
   interfaceInstance: AbstractInterface,

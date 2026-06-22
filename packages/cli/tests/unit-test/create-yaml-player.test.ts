@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs';
+import path from 'node:path';
 import { createYamlPlayer, launchServer } from '@/create-yaml-player';
 import type { MidsceneYamlScript, MidsceneYamlScriptEnv } from '@midscene/core';
 import { processCacheConfig } from '@midscene/core/utils';
@@ -47,9 +48,25 @@ vi.mock('@midscene/web/bridge-mode', () => ({
   AgentOverChromeBridge: vi.fn(),
 }));
 
-vi.mock('@midscene/web/puppeteer-agent-launcher', () => ({
-  puppeteerAgentForTarget: vi.fn(),
-}));
+vi.mock('@midscene/web/puppeteer-agent-launcher', async (importOriginal) => {
+  const original =
+    await importOriginal<
+      typeof import('@midscene/web/puppeteer-agent-launcher')
+    >();
+  return {
+    ...original,
+    buildDownloadBehavior: (downloadPath: string | undefined) =>
+      downloadPath
+        ? {
+            policy: 'allow',
+            downloadPath: downloadPath.startsWith('/')
+              ? downloadPath
+              : `${process.cwd()}/${downloadPath.replace(/^\.\//, '')}`,
+          }
+        : undefined,
+    puppeteerAgentForTarget: vi.fn(),
+  };
+});
 
 vi.mock('@midscene/web/puppeteer', () => ({
   PuppeteerAgent: vi.fn(),
@@ -274,6 +291,42 @@ describe('create-yaml-player', () => {
       const result = await createYamlPlayer(mockFilePath, mockScript, options);
 
       expect(result).toBe(mockPlayer);
+    });
+
+    test('should pass web downloadPath to puppeteer agent launcher', async () => {
+      const mockScript: MidsceneYamlScript = {
+        web: {
+          url: 'http://example.com',
+          downloadPath: './downloads',
+        },
+        tasks: [],
+      };
+      const mockAgent = { destroy: vi.fn() };
+      let setupFnCallback: (() => Promise<any>) | undefined;
+
+      vi.mocked(puppeteerAgentForTarget).mockResolvedValue({
+        agent: mockAgent as any,
+        freeFn: [],
+      });
+      vi.mocked(ScriptPlayer).mockImplementation((script, setupFn) => {
+        setupFnCallback = setupFn as () => Promise<any>;
+        return {
+          addCleanup: vi.fn(),
+        } as unknown as ScriptPlayer<MidsceneYamlScriptEnv>;
+      });
+
+      await createYamlPlayer(mockFilePath, mockScript);
+      await setupFnCallback?.();
+
+      expect(puppeteerAgentForTarget).toHaveBeenCalledWith(
+        expect.objectContaining({
+          url: 'http://example.com',
+          downloadPath: './downloads',
+        }),
+        expect.any(Object),
+        undefined,
+        undefined,
+      );
     });
   });
 
@@ -821,6 +874,44 @@ describe('create-yaml-player', () => {
       );
     });
 
+    test('should warn that downloadPath is ignored in bridge mode', async () => {
+      const mockScript: MidsceneYamlScript = {
+        web: {
+          url: 'http://example.com',
+          bridgeMode: 'newTabWithUrl',
+          downloadPath: './downloads',
+        },
+        tasks: [],
+      };
+
+      const mockAgent = {
+        destroy: vi.fn(),
+        connectNewTabWithUrl: vi.fn().mockResolvedValue(undefined),
+      };
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      let setupFnCallback: (() => Promise<any>) | undefined;
+
+      vi.mocked(readFileSync).mockReturnValue('mock yaml content');
+      vi.mocked(parseYamlScript).mockReturnValue(mockScript);
+      vi.mocked(AgentOverChromeBridge).mockImplementation(
+        () => mockAgent as any,
+      );
+      vi.mocked(ScriptPlayer).mockImplementation((script, setupFn) => {
+        setupFnCallback = setupFn as () => Promise<any>;
+        return {
+          addCleanup: vi.fn(),
+        } as unknown as ScriptPlayer<MidsceneYamlScriptEnv>;
+      });
+
+      await createYamlPlayer(mockFilePath, mockScript);
+      await setupFnCallback?.();
+
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('downloadPath'),
+      );
+      warnSpy.mockRestore();
+    });
+
     test('should handle undefined aiActionContext gracefully for Android', async () => {
       const mockScript: MidsceneYamlScript = {
         android: {
@@ -1300,6 +1391,7 @@ describe('create-yaml-player', () => {
       expect(puppeteer.connect).toHaveBeenCalledWith({
         browserWSEndpoint: 'ws://localhost:9222/devtools/browser/xxx',
         defaultViewport: null,
+        downloadBehavior: undefined,
       });
 
       // Should reuse puppeteerAgentForTarget (page setup: viewport, userAgent, etc.)
@@ -1309,6 +1401,53 @@ describe('create-yaml-player', () => {
         mockBrowser, // CDP browser passed as browser param
         undefined, // no shared page
       );
+    });
+
+    test('should configure download behavior via Puppeteer connect options in CDP mode', async () => {
+      const mockScript: MidsceneYamlScript = {
+        web: {
+          url: 'http://example.com',
+          cdpEndpoint: 'ws://localhost:9222/devtools/browser/xxx',
+          downloadPath: './downloads',
+        },
+        tasks: [],
+      };
+
+      const mockBrowser = {
+        disconnect: vi.fn(),
+      };
+      const mockAgent = { destroy: vi.fn() };
+      let setupFnCallback: (() => Promise<any>) | undefined;
+
+      vi.mocked(readFileSync).mockReturnValue('mock yaml content');
+      vi.mocked(parseYamlScript).mockReturnValue(mockScript);
+
+      const puppeteer = (await import('puppeteer')).default;
+      vi.mocked(puppeteer.connect).mockResolvedValue(mockBrowser as any);
+
+      vi.mocked(puppeteerAgentForTarget).mockResolvedValue({
+        agent: mockAgent as any,
+        freeFn: [],
+      });
+
+      vi.mocked(ScriptPlayer).mockImplementation((script, setupFn) => {
+        setupFnCallback = setupFn as () => Promise<any>;
+        return {
+          addCleanup: vi.fn(),
+        } as unknown as ScriptPlayer<MidsceneYamlScriptEnv>;
+      });
+
+      await createYamlPlayer(mockFilePath, mockScript);
+      await setupFnCallback?.();
+
+      expect(puppeteer.connect).toHaveBeenCalledWith({
+        browserWSEndpoint: 'ws://localhost:9222/devtools/browser/xxx',
+        defaultViewport: null,
+        downloadBehavior: {
+          policy: 'allow',
+          downloadPath: path.resolve('./downloads'),
+        },
+      });
     });
 
     test('should pass agent options in CDP mode via puppeteerAgentForTarget', async () => {

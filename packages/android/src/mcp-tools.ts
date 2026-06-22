@@ -1,6 +1,13 @@
 import { z } from '@midscene/core';
 import { getDebug } from '@midscene/shared/logger';
 import {
+  type AgentBehaviorInitArgs,
+  agentBehaviorInitArgShape,
+  extractAgentBehaviorInitArgs,
+  getAgentInitArgsSignature,
+  shouldRebuildAgentForInitArgs,
+} from '@midscene/shared/mcp/agent-behavior-init-args';
+import {
   BaseMidsceneTools,
   type InitArgSpec,
 } from '@midscene/shared/mcp/base-tools';
@@ -10,25 +17,46 @@ import { AndroidDevice } from './device';
 
 const debug = getDebug('mcp:android-tools');
 
+type AndroidInitArgs = AgentBehaviorInitArgs & {
+  deviceId?: string;
+  useScrcpy?: boolean;
+};
+
+function adaptAndroidInitArgs(
+  extracted: Record<string, unknown> | undefined,
+): AndroidInitArgs | undefined {
+  if (!extracted) {
+    return undefined;
+  }
+
+  const initArgs: AndroidInitArgs = {
+    ...(typeof extracted.deviceId === 'string'
+      ? { deviceId: extracted.deviceId }
+      : {}),
+    ...(typeof extracted.useScrcpy === 'boolean'
+      ? { useScrcpy: extracted.useScrcpy }
+      : {}),
+    ...(extractAgentBehaviorInitArgs(extracted as AgentBehaviorInitArgs) ?? {}),
+  };
+
+  return Object.keys(initArgs).length > 0 ? initArgs : undefined;
+}
+
 /**
  * Android-specific tools manager
  * Extends BaseMidsceneTools to provide Android ADB device connection tools
  */
 export class AndroidMidsceneTools extends BaseMidsceneTools<
   AndroidAgent,
-  {
-    deviceId?: string;
-    useScrcpy?: boolean;
-  }
+  AndroidInitArgs
 > {
+  private lastInitArgsSignature?: string;
+
   protected getCliReportSessionName() {
     return 'midscene-android';
   }
 
-  protected readonly initArgSpec: InitArgSpec<{
-    deviceId?: string;
-    useScrcpy?: boolean;
-  }> = {
+  protected readonly initArgSpec: InitArgSpec<AndroidInitArgs> = {
     namespace: 'android',
     shape: {
       deviceId: z
@@ -39,14 +67,12 @@ export class AndroidMidsceneTools extends BaseMidsceneTools<
         .boolean()
         .optional()
         .describe('Enable scrcpy accelerated screenshots'),
+      ...agentBehaviorInitArgShape,
     },
     cli: {
       preferBareKeys: true,
     },
-    adapt: (extracted) => ({
-      deviceId: extracted?.deviceId as string | undefined,
-      useScrcpy: extracted?.useScrcpy as boolean | undefined,
-    }),
+    adapt: adaptAndroidInitArgs,
   };
 
   protected createTemporaryDevice() {
@@ -55,14 +81,16 @@ export class AndroidMidsceneTools extends BaseMidsceneTools<
     return new AndroidDevice('temp-for-action-space', {});
   }
 
-  protected async ensureAgent(initArgs?: {
-    deviceId?: string;
-    useScrcpy?: boolean;
-  }): Promise<AndroidAgent> {
+  protected async ensureAgent(
+    initArgs?: AndroidInitArgs,
+  ): Promise<AndroidAgent> {
     const deviceId = initArgs?.deviceId;
-    if (this.agent && deviceId) {
-      // If a specific deviceId is requested and we have an agent,
-      // destroy it to create a new one with the new device
+    const nextSignature = getAgentInitArgsSignature(initArgs);
+
+    if (
+      this.agent &&
+      shouldRebuildAgentForInitArgs(this.lastInitArgsSignature, nextSignature)
+    ) {
       try {
         await this.agent.destroy?.();
       } catch (error) {
@@ -79,10 +107,12 @@ export class AndroidMidsceneTools extends BaseMidsceneTools<
     const reportOptions = this.readCliReportAgentOptions();
     const agent = await agentFromAdbDevice(deviceId, {
       autoDismissKeyboard: false,
+      ...(extractAgentBehaviorInitArgs(initArgs) ?? {}),
       ...(initArgs?.useScrcpy ? { scrcpyConfig: { enabled: true } } : {}),
       ...(reportOptions ?? {}),
     });
     this.agent = agent;
+    this.lastInitArgsSignature = nextSignature;
     return agent;
   }
 
@@ -111,6 +141,7 @@ export class AndroidMidsceneTools extends BaseMidsceneTools<
               debug('Failed to destroy agent during connect:', error);
             }
             this.agent = undefined;
+            this.lastInitArgsSignature = undefined;
           }
           const agent = await this.ensureAgent(initArgs);
           const screenshot = await agent.page.screenshotBase64();

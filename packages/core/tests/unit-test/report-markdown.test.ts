@@ -47,6 +47,7 @@ describe('report-markdown', () => {
               type: 'screenshot',
               ts: 1710000000050,
               timing: 'after click',
+              description: 'Post-click state',
               screenshot: {
                 type: 'midscene_screenshot_ref',
                 id: 'shot-recorder-single',
@@ -68,6 +69,7 @@ describe('report-markdown', () => {
     expect(result.markdown).toContain('![task-1](./screenshots/');
     expect(result.markdown).toContain('### Recorder');
     expect(result.markdown).toContain('timing=after click');
+    expect(result.markdown).toContain('description=Post-click state');
     expect(result.markdown).toContain('Screen size: 1280 x 720');
     expect(result.attachments).toHaveLength(2);
     expect(result.attachments[0].suggestedFileName).toContain('.png');

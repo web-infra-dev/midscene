@@ -166,6 +166,11 @@ web:
   # Path to a JSON format browser cookie file, optional.
   cookie: <path-to-cookie-file>
 
+  # Chrome download directory (Puppeteer only), optional.
+  # Relative paths are resolved from the current working directory.
+  # Not supported in bridge mode.
+  downloadPath: <path-to-download-directory>
+
   # Extra HTTP headers sent with every request (Puppeteer only), optional.
   # Useful when the server validates custom request headers.
   # Values must be strings; quote values YAML would treat as a boolean or number, e.g. "true".
