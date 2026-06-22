@@ -1,5 +1,5 @@
 import type { DeviceAction } from '@midscene/core';
-import { ExecutionDump, runConnectivityTest } from '@midscene/core';
+import { ReportActionDump, runConnectivityTest } from '@midscene/core';
 import {
   globalModelConfigManager,
   overrideAIConfig,
@@ -257,7 +257,7 @@ describe('LocalExecutionAdapter', () => {
 
       expect(result).toEqual({
         result: 'test result',
-        dump: expect.any(ExecutionDump),
+        dump: expect.any(ReportActionDump),
         reportHTML: null,
         error: null,
       });
@@ -271,12 +271,12 @@ describe('LocalExecutionAdapter', () => {
     });
 
     it('should use empty actionSpace when agent has no getActionSpace', async () => {
-      const agentWithoutActionSpace: PlaygroundAgent = {
+      const agentWithoutActionSpace = {
         dumpDataString: () => '{}',
         reportHTMLString: () => '',
         writeOutActionDumps: () => {},
         resetDump: () => {},
-      };
+      } as unknown as PlaygroundAgent;
       const localAdapter = new LocalExecutionAdapter(agentWithoutActionSpace);
 
       const value: FormValue = { type: 'click', prompt: 'click button' };
@@ -314,14 +314,16 @@ describe('LocalExecutionAdapter', () => {
 
       expect(result).toEqual({
         success: true,
-        dump: expect.any(ExecutionDump),
+        dump: expect.any(ReportActionDump),
         reportHTML: null,
       });
       expect(mockAgent.destroy).toHaveBeenCalled();
     });
 
     it('should return error when no agent', async () => {
-      const adapterNoAgent = new LocalExecutionAdapter({});
+      const adapterNoAgent = new LocalExecutionAdapter(
+        {} as unknown as PlaygroundAgent,
+      );
       (adapterNoAgent as any).agent = null;
 
       const result = await adapterNoAgent.cancelTask('request-123');
@@ -343,7 +345,7 @@ describe('LocalExecutionAdapter', () => {
 
       expect(result).toEqual({
         error: 'Failed to cancel: Destroy failed',
-        dump: expect.any(ExecutionDump),
+        dump: expect.any(ReportActionDump),
         reportHTML: null,
       });
       expect(consoleSpy).toHaveBeenCalledWith(
