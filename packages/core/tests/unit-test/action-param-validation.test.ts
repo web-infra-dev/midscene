@@ -1,6 +1,6 @@
 import { getMidsceneLocationSchema, parseActionParam } from '@/ai-model';
 import { actionKeyboardPressParamSchema, defineAction } from '@/device';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 import { z } from 'zod';
 
 describe('Action Parameter Validation', () => {

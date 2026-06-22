@@ -1,5 +1,5 @@
 import { z } from '@midscene/core';
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from '@rstest/core';
 import { serializeZodField } from '../../src/server';
 
 describe('serializeZodField', () => {

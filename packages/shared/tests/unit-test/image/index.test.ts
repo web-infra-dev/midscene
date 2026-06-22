@@ -1,7 +1,15 @@
 import { readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import {
+  afterAll,
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  rs,
+} from '@rstest/core';
 import {
   compositePointMarkerImg,
   httpImg2Base64,
@@ -20,6 +28,38 @@ import {
   saveBase64Image,
 } from '../../../src/img/transform';
 import { getFixture } from '../../utils';
+
+/**
+ * rstest mocks operate on rsbuild's bundled module graph. Native modules like
+ * `sharp` are auto-externalized and bypass the rstest mock map, so mocking
+ * `'sharp'` directly has no effect on the dynamic `await import('sharp')`
+ * inside `src/img/get-sharp.ts`. Instead, we mock the in-repo wrapper
+ * `get-sharp` itself — that module is part of the bundle and rstest can
+ * intercept it. A `rs.hoisted` block carries the shared spy/state across the
+ * hoisted `rs.mock` factory and the test bodies.
+ */
+const mocks = rs.hoisted(() => ({
+  metadataFn: rs.fn(() => {
+    throw new Error('sharp is not available');
+  }),
+  useMockedSharp: { current: false },
+}));
+
+// Factory is intentionally sync — rs.mock treats Promise returns as the
+// exports object itself, which breaks `import getSharp from './get-sharp'`.
+// Inside the synchronous factory we expose the same async `default` signature
+// as the real wrapper and delegate to real `sharp` when the fallback flag is
+// not set.
+// TODO(rstest): mock 'sharp' directly when externalized deps are mockable — https://github.com/web-infra-dev/rstest/issues/1456
+rs.mock('../../../src/img/get-sharp', () => ({
+  default: async () => {
+    if (mocks.useMockedSharp.current) {
+      return (() => ({ metadata: mocks.metadataFn })) as any;
+    }
+    const realSharp = await import('sharp');
+    return realSharp.default;
+  },
+}));
 
 describe('imageInfoOfBase64', () => {
   it('returns correct dimensions for PNG image', async () => {
@@ -238,7 +278,7 @@ describe('image utils', () => {
 
   it('httpImg2Base64', async () => {
     const mockResponse = Buffer.from('image-data');
-    const fetchSpy = vi.spyOn(global, 'fetch').mockResolvedValue(
+    const fetchSpy = rs.spyOn(global, 'fetch').mockResolvedValue(
       new Response(mockResponse, {
         status: 200,
         headers: { 'content-type': 'image/svg+xml' },
@@ -352,20 +392,18 @@ describe('resizeAndConvertImgBuffer', () => {
   });
 
   describe('fallback photon', () => {
-    const metadataFn = vi.fn(() => {
-      throw new Error('sharp is not available');
+    const { metadataFn } = mocks;
+
+    beforeEach(() => {
+      mocks.useMockedSharp.current = true;
     });
 
-    beforeAll(() => {
-      vi.doMock('sharp', () => ({
-        default: () => ({
-          metadata: metadataFn,
-        }),
-      }));
+    afterEach(() => {
+      mocks.useMockedSharp.current = false;
     });
 
     afterAll(() => {
-      vi.resetAllMocks();
+      rs.resetAllMocks();
     });
 
     it('fallback photon no-resize will get original format', async () => {

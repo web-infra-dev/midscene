@@ -1,5 +1,5 @@
 import type { IModelConfig } from '@midscene/shared/env';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, rs } from '@rstest/core';
 import { callAIWithStringResponse } from '../../../src/ai-model';
 import { getModelRuntime } from '../../../src/ai-model/models';
 import {
@@ -8,11 +8,11 @@ import {
 } from '../../../src/ai-model/prompt/markdown-generator';
 import type { ChromeRecordedEvent } from '../../../src/ai-model/prompt/recorder-generation-common';
 
-vi.mock('../../../src/ai-model', () => ({
-  callAIWithStringResponse: vi.fn(),
+rs.mock('../../../src/ai-model', () => ({
+  callAIWithStringResponse: rs.fn(),
 }));
 
-const mockCallAIWithStringResponse = vi.mocked(callAIWithStringResponse);
+const mockCallAIWithStringResponse = rs.mocked(callAIWithStringResponse);
 
 const mockedModelConfig = {
   modelName: 'mock',
@@ -51,7 +51,7 @@ const mockEvents: ChromeRecordedEvent[] = [
 
 describe('markdown-generator', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    rs.clearAllMocks();
   });
 
   it('creates a compact aiAct-focused prompt with recorder data', () => {

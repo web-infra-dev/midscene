@@ -8,7 +8,7 @@ import {
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { runFrameworkTestConfig } from '@/framework/command';
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from '@rstest/core';
 
 const createTempDir = () => mkdtempSync(join(tmpdir(), 'midscene-command-'));
 

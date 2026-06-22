@@ -1,8 +1,8 @@
 import { sleep } from '@midscene/core/utils';
-import { describe, it, vi } from 'vitest';
+import { describe, it, rs } from '@rstest/core';
 import { ComputerDevice, agentFromComputer } from '../../src';
 
-vi.setConfig({
+rs.setConfig({
   testTimeout: 120 * 1000,
 });
 

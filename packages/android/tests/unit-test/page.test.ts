@@ -1,8 +1,11 @@
 import fs from 'node:fs';
+import * as fsActual from 'node:fs' with { rstest: 'importActual' };
 import type { ExecutorContext } from '@midscene/core';
 import * as CoreUtils from '@midscene/core/utils';
 import * as ImgUtils from '@midscene/shared/img';
-import { ADB } from 'appium-adb';
+import * as sharedImgActual from '@midscene/shared/img' with {
+  rstest: 'importActual',
+};
 import {
   type Mock,
   type Mocked,
@@ -11,8 +14,9 @@ import {
   describe,
   expect,
   it,
-  vi,
-} from 'vitest';
+  rs,
+} from '@rstest/core';
+import { ADB } from 'appium-adb';
 import { AndroidDevice, escapeForShell } from '../../src/device';
 
 // Mock the entire appium-adb module
@@ -21,19 +25,19 @@ const createMockAdb = () => ({
     FULL: 'full',
     STDOUT: 'stdout',
   },
-  startUri: vi.fn(),
-  startApp: vi.fn(),
-  activateApp: vi.fn(),
-  shell: vi.fn(),
-  getScreenDensity: vi.fn(),
-  takeScreenshot: vi.fn(),
-  pull: vi.fn(),
-  inputText: vi.fn(),
-  keyevent: vi.fn(),
-  clearTextField: vi.fn(),
-  hideKeyboard: vi.fn(),
-  push: vi.fn(),
-  isSoftKeyboardPresent: vi.fn().mockResolvedValue(false),
+  startUri: rs.fn(),
+  startApp: rs.fn(),
+  activateApp: rs.fn(),
+  shell: rs.fn(),
+  getScreenDensity: rs.fn(),
+  takeScreenshot: rs.fn(),
+  pull: rs.fn(),
+  inputText: rs.fn(),
+  keyevent: rs.fn(),
+  clearTextField: rs.fn(),
+  hideKeyboard: rs.fn(),
+  push: rs.fn(),
+  isSoftKeyboardPresent: rs.fn().mockResolvedValue(false),
 });
 
 let mockAdbInstance: ReturnType<typeof createMockAdb>;
@@ -44,9 +48,9 @@ const createValidPngBuffer = (size = 64) =>
     Buffer.alloc(Math.max(size - 8, 0)),
   ]);
 
-vi.mock('appium-adb', () => {
+rs.mock('appium-adb', () => {
   return {
-    ADB: vi.fn(() => {
+    ADB: rs.fn(() => {
       if (!mockAdbInstance) {
         mockAdbInstance = createMockAdb();
       }
@@ -55,12 +59,11 @@ vi.mock('appium-adb', () => {
   };
 });
 
-vi.mock('@midscene/core/utils');
-vi.mock('@midscene/shared/img', async (importOriginal) => {
-  const original =
-    await importOriginal<typeof import('@midscene/shared/img')>();
+// TODO(rstest): drop { mock: true } when bare auto-automock lands — https://github.com/web-infra-dev/rspack/pull/14418
+rs.mock('@midscene/core/utils', { mock: true });
+rs.mock('@midscene/shared/img', () => {
   const validateScreenshotBuffer =
-    original.validateScreenshotBuffer ??
+    sharedImgActual.validateScreenshotBuffer ??
     ((
       screenshotBuffer: Buffer | undefined,
       options: {
@@ -74,7 +77,7 @@ vi.mock('@midscene/shared/img', async (importOriginal) => {
           `${options.label} validation failed: buffer size ${bufferSize} bytes`,
         );
       }
-      if (!original.isValidImageBuffer(screenshotBuffer)) {
+      if (!sharedImgActual.isValidImageBuffer(screenshotBuffer)) {
         throw new Error(`${options.label} buffer has invalid image format`);
       }
       if (options.minBufferSize && bufferSize < options.minBufferSize) {
@@ -84,29 +87,24 @@ vi.mock('@midscene/shared/img', async (importOriginal) => {
       }
     });
   return {
-    ...original,
-    createImgBase64ByFormat: vi.fn(),
-    resizeAndConvertImgBuffer: vi.fn(),
+    ...sharedImgActual,
+    createImgBase64ByFormat: rs.fn(),
+    resizeAndConvertImgBuffer: rs.fn(),
     validateScreenshotBuffer,
   };
 });
-vi.mock('node:fs', async (importOriginal) => {
-  const original = (await importOriginal()) as {
-    default: Record<string, unknown>;
-  };
-  return {
-    ...original,
+rs.mock('node:fs', () => ({
+  ...fsActual,
+  promises: {
+    readFile: rs.fn(),
+  },
+  default: {
+    ...fsActual.default,
     promises: {
-      readFile: vi.fn(),
+      readFile: rs.fn(),
     },
-    default: {
-      ...original.default,
-      promises: {
-        readFile: vi.fn(),
-      },
-    },
-  };
-});
+  },
+}));
 
 describe('AndroidDevice', () => {
   let device: AndroidDevice;
@@ -127,11 +125,11 @@ describe('AndroidDevice', () => {
       scrcpyConfig: { enabled: false },
     });
     // Manually assign the mocked adb instance
-    vi.spyOn(device, 'getAdb').mockResolvedValue(mockAdb);
+    rs.spyOn(device, 'getAdb').mockResolvedValue(mockAdb);
   });
 
   afterEach(() => {
-    vi.restoreAllMocks();
+    rs.restoreAllMocks();
   });
 
   it('should throw error if deviceId is not provided', () => {
@@ -328,7 +326,7 @@ Stdout:
 
   describe('size', () => {
     it('should calculate screen size', async () => {
-      vi.spyOn(device as any, 'getScreenSize').mockResolvedValue({
+      rs.spyOn(device as any, 'getScreenSize').mockResolvedValue({
         override: '1080x1920',
         physical: '1080x1920',
         orientation: 0,
@@ -341,13 +339,13 @@ Stdout:
       expect(size1).toEqual({ width: 540, height: 960 });
       expect(size2).toEqual(size1);
       // Caching is removed, so it should be called twice
-      expect(vi.spyOn(device as any, 'getScreenSize')).toHaveBeenCalledTimes(2);
+      expect(rs.spyOn(device as any, 'getScreenSize')).toHaveBeenCalledTimes(2);
     });
   });
 
   describe('adjustCoordinates derives scale from size()', () => {
     const mockPhysicalInfo = (w: number, h: number) => {
-      vi.spyOn(device as any, 'getDevicePhysicalInfo').mockResolvedValue({
+      rs.spyOn(device as any, 'getDevicePhysicalInfo').mockResolvedValue({
         physicalWidth: w,
         physicalHeight: h,
         dpr: 2,
@@ -360,7 +358,7 @@ Stdout:
       // Physical 1080x1920, logical 540x960 → scale 0.5
       // coordinates: 200/0.5=400, 400/0.5=800
       mockPhysicalInfo(1080, 1920);
-      vi.spyOn(device, 'size').mockResolvedValue({
+      rs.spyOn(device, 'size').mockResolvedValue({
         width: 540,
         height: 960,
       });
@@ -373,7 +371,7 @@ Stdout:
       // Physical 1080x1920, user overrides size() → width=360
       // scaleX = 360/1080 = 1/3, so 100/(1/3)=300, 200/(1/3)=600
       mockPhysicalInfo(1080, 1920);
-      vi.spyOn(device, 'size').mockResolvedValue({
+      rs.spyOn(device, 'size').mockResolvedValue({
         width: 360,
         height: 640,
       });
@@ -386,7 +384,7 @@ Stdout:
       // Physical 1080x1920, logical 540x960 → scale 0.5
       // click at (100, 200) → physical (200, 400)
       mockPhysicalInfo(1080, 1920);
-      vi.spyOn(device, 'size').mockResolvedValue({
+      rs.spyOn(device, 'size').mockResolvedValue({
         width: 540,
         height: 960,
       });
@@ -399,7 +397,7 @@ Stdout:
 
     it('should handle 1:1 scale (no scaling)', async () => {
       mockPhysicalInfo(1080, 1920);
-      vi.spyOn(device, 'size').mockResolvedValue({
+      rs.spyOn(device, 'size').mockResolvedValue({
         width: 1080,
         height: 1920,
       });
@@ -413,7 +411,7 @@ Stdout:
       // scaleX = 540/1080 = 0.5, scaleY = 640/1920 = 1/3
       // x: 100/0.5=200, y: 100/(1/3)=300
       mockPhysicalInfo(1080, 1920);
-      vi.spyOn(device, 'size').mockResolvedValue({
+      rs.spyOn(device, 'size').mockResolvedValue({
         width: 540,
         height: 640,
       });
@@ -424,7 +422,7 @@ Stdout:
 
     it('should cache scale and not call size() repeatedly', async () => {
       mockPhysicalInfo(1080, 1920);
-      const sizeSpy = vi.spyOn(device, 'size').mockResolvedValue({
+      const sizeSpy = rs.spyOn(device, 'size').mockResolvedValue({
         width: 540,
         height: 960,
       });
@@ -491,11 +489,11 @@ Stdout:
 
   describe('screenshotBase64', () => {
     beforeEach(() => {
-      vi.spyOn(device, 'size').mockResolvedValue({
+      rs.spyOn(device, 'size').mockResolvedValue({
         width: 1080,
         height: 1920,
       });
-      vi.spyOn(ImgUtils, 'resizeAndConvertImgBuffer').mockImplementation(
+      rs.spyOn(ImgUtils, 'resizeAndConvertImgBuffer').mockImplementation(
         async (format, buffer) => ({
           buffer,
           format,
@@ -508,7 +506,7 @@ Stdout:
       mockAdb.takeScreenshot.mockResolvedValue(mockBuffer);
 
       // Mock createImgBase64ByFormat
-      vi.spyOn(ImgUtils, 'createImgBase64ByFormat').mockReturnValue(
+      rs.spyOn(ImgUtils, 'createImgBase64ByFormat').mockReturnValue(
         `data:image/png;base64,${mockBuffer.toString('base64')}`,
       );
 
@@ -520,11 +518,11 @@ Stdout:
     it('should fall back to screencap and pull if takeScreenshot fails', async () => {
       mockAdb.takeScreenshot.mockRejectedValue(new Error('fail'));
       const mockBuffer = createValidPngBuffer();
-      vi.spyOn(CoreUtils, 'getTmpFile').mockReturnValue('/tmp/test.png');
+      rs.spyOn(CoreUtils, 'getTmpFile').mockReturnValue('/tmp/test.png');
       (fs.promises.readFile as Mock).mockResolvedValue(mockBuffer);
 
       // Mock createImgBase64ByFormat
-      vi.spyOn(ImgUtils, 'createImgBase64ByFormat').mockReturnValue(
+      rs.spyOn(ImgUtils, 'createImgBase64ByFormat').mockReturnValue(
         `data:image/png;base64,${mockBuffer.toString('base64')}`,
       );
 
@@ -543,13 +541,13 @@ Stdout:
       const defaultDevice = new AndroidDevice('test-device', {
         scrcpyConfig: { enabled: false },
       });
-      vi.spyOn(defaultDevice, 'getAdb').mockResolvedValue(mockAdb);
+      rs.spyOn(defaultDevice, 'getAdb').mockResolvedValue(mockAdb);
       mockAdb.takeScreenshot.mockRejectedValue(new Error('fail'));
       const smallValidPng = createValidPngBuffer(7 * 1024);
-      vi.spyOn(CoreUtils, 'getTmpFile').mockReturnValue('/tmp/small.png');
+      rs.spyOn(CoreUtils, 'getTmpFile').mockReturnValue('/tmp/small.png');
       (fs.promises.readFile as Mock).mockResolvedValue(smallValidPng);
 
-      vi.spyOn(ImgUtils, 'createImgBase64ByFormat').mockReturnValue(
+      rs.spyOn(ImgUtils, 'createImgBase64ByFormat').mockReturnValue(
         `data:image/png;base64,${smallValidPng.toString('base64')}`,
       );
 
@@ -563,10 +561,10 @@ Stdout:
       const defaultDevice = new AndroidDevice('test-device', {
         scrcpyConfig: { enabled: false },
       });
-      vi.spyOn(defaultDevice, 'getAdb').mockResolvedValue(mockAdb);
+      rs.spyOn(defaultDevice, 'getAdb').mockResolvedValue(mockAdb);
       mockAdb.takeScreenshot.mockRejectedValue(new Error('fail'));
       const tinyValidPng = createValidPngBuffer(512);
-      vi.spyOn(CoreUtils, 'getTmpFile').mockReturnValue('/tmp/tiny.png');
+      rs.spyOn(CoreUtils, 'getTmpFile').mockReturnValue('/tmp/tiny.png');
       (fs.promises.readFile as Mock).mockResolvedValue(tinyValidPng);
 
       await expect(defaultDevice.screenshotBase64()).rejects.toThrow(
@@ -576,7 +574,7 @@ Stdout:
 
     it('should reject empty fallback screenshots', async () => {
       mockAdb.takeScreenshot.mockRejectedValue(new Error('fail'));
-      vi.spyOn(CoreUtils, 'getTmpFile').mockReturnValue('/tmp/empty.png');
+      rs.spyOn(CoreUtils, 'getTmpFile').mockReturnValue('/tmp/empty.png');
       (fs.promises.readFile as Mock).mockResolvedValue(Buffer.alloc(0));
 
       await expect(device.screenshotBase64()).rejects.toThrow(
@@ -589,10 +587,10 @@ Stdout:
         minScreenshotBufferSize: 10 * 1024,
         scrcpyConfig: { enabled: false },
       });
-      vi.spyOn(minSizeDevice, 'getAdb').mockResolvedValue(mockAdb);
+      rs.spyOn(minSizeDevice, 'getAdb').mockResolvedValue(mockAdb);
       mockAdb.takeScreenshot.mockRejectedValue(new Error('fail'));
       const smallValidPng = createValidPngBuffer(7 * 1024);
-      vi.spyOn(CoreUtils, 'getTmpFile').mockReturnValue('/tmp/small.png');
+      rs.spyOn(CoreUtils, 'getTmpFile').mockReturnValue('/tmp/small.png');
       (fs.promises.readFile as Mock).mockResolvedValue(smallValidPng);
 
       await expect(minSizeDevice.screenshotBase64()).rejects.toThrow(
@@ -603,7 +601,7 @@ Stdout:
 
   describe('mouse', () => {
     it('click should call shell with adjusted coordinates', async () => {
-      vi.spyOn(device as any, 'adjustCoordinates').mockResolvedValue({
+      rs.spyOn(device as any, 'adjustCoordinates').mockResolvedValue({
         x: 200,
         y: 300,
       });
@@ -616,7 +614,7 @@ Stdout:
     it('drag should call shell with adjusted coordinates', async () => {
       const from = { x: 10, y: 20 };
       const to = { x: 30, y: 40 };
-      vi.spyOn(device as any, 'adjustCoordinates')
+      rs.spyOn(device as any, 'adjustCoordinates')
         .mockResolvedValueOnce({ x: 20, y: 40 })
         .mockResolvedValueOnce({ x: 60, y: 80 });
       await device.inputPrimitives.pointer.dragAndDrop(from, to);
@@ -772,8 +770,8 @@ Stdout:
           imeStrategy: 'yadb-for-non-ascii',
           autoDismissKeyboard: false,
         };
-        vi.spyOn(device as any, 'ensureYadb').mockResolvedValue(undefined);
-        vi.spyOn(device as any, 'execYadb').mockResolvedValue(undefined);
+        rs.spyOn(device as any, 'ensureYadb').mockResolvedValue(undefined);
+        rs.spyOn(device as any, 'execYadb').mockResolvedValue(undefined);
         mockAdb.isSoftKeyboardPresent.mockResolvedValue({
           isKeyboardShown: false,
           canCloseKeyboard: true,
@@ -1136,7 +1134,7 @@ Stdout:
 
     it('type should hide keyboard when shown', async () => {
       device.options = { imeStrategy: 'yadb-for-non-ascii' };
-      vi.spyOn(device as any, 'ensureYadb').mockResolvedValue(undefined);
+      rs.spyOn(device as any, 'ensureYadb').mockResolvedValue(undefined);
       // First call returns true (keyboard shown), second returns false (keyboard hidden)
       mockAdb.isSoftKeyboardPresent
         .mockResolvedValueOnce({
@@ -1209,7 +1207,7 @@ Stdout:
 
     describe('autoDismissKeyboard option', () => {
       beforeEach(() => {
-        vi.spyOn(device as any, 'ensureYadb').mockResolvedValue(undefined);
+        rs.spyOn(device as any, 'ensureYadb').mockResolvedValue(undefined);
       });
 
       it('should hide keyboard when autoDismissKeyboard is true (default)', async () => {
@@ -1289,7 +1287,7 @@ Stdout:
 
     describe('keyboardDismissStrategy option', () => {
       beforeEach(() => {
-        vi.spyOn(device as any, 'ensureYadb').mockResolvedValue(undefined);
+        rs.spyOn(device as any, 'ensureYadb').mockResolvedValue(undefined);
         mockAdb.keyevent.mockClear();
         mockAdb.isSoftKeyboardPresent.mockClear();
       });
@@ -1341,7 +1339,7 @@ Stdout:
 
         // Mock hideKeyboard to use a small timeout for faster test
         const originalHideKeyboard = (device as any).hideKeyboard.bind(device);
-        vi.spyOn(device as any, 'hideKeyboard').mockImplementation(
+        rs.spyOn(device as any, 'hideKeyboard').mockImplementation(
           async (options) => {
             // Use 150ms timeout to ensure at least one check in the loop
             const result = await originalHideKeyboard(options, 150);
@@ -1407,7 +1405,7 @@ Stdout:
 
         // Mock hideKeyboard to use a small timeout for faster test
         const originalHideKeyboard = (device as any).hideKeyboard.bind(device);
-        vi.spyOn(device as any, 'hideKeyboard').mockImplementation(
+        rs.spyOn(device as any, 'hideKeyboard').mockImplementation(
           async (options) => {
             // Use 150ms timeout to ensure at least one check in the loop
             const result = await originalHideKeyboard(options, 150);
@@ -1503,12 +1501,12 @@ Stdout:
 
         // Mock hideKeyboard to use a small timeout for faster test
         const originalHideKeyboard = (device as any).hideKeyboard.bind(device);
-        vi.spyOn(device as any, 'hideKeyboard').mockImplementation(
+        rs.spyOn(device as any, 'hideKeyboard').mockImplementation(
           (options) => originalHideKeyboard(options, 100), // Use 100ms timeout instead of default 1000ms
         );
 
         // Spy on console.warn to verify warning is logged
-        const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+        const warnSpy = rs.spyOn(console, 'warn').mockImplementation(() => {});
 
         // Should not throw error anymore
         await device.inputPrimitives.keyboard.typeText('hello', {
@@ -1544,14 +1542,14 @@ Stdout:
 
   describe('scrolling', () => {
     beforeEach(() => {
-      vi.spyOn(device, 'size').mockResolvedValue({
+      rs.spyOn(device, 'size').mockResolvedValue({
         width: 1080,
         height: 1920,
       });
     });
 
     it('scrollUp should call scroll with negative Y delta', async () => {
-      const wheelSpy = vi
+      const wheelSpy = rs
         .spyOn(device as any, 'scroll')
         .mockResolvedValue(undefined);
       await device.scrollUp(100);
@@ -1559,7 +1557,7 @@ Stdout:
     });
 
     it('scrollDown should call scroll with positive Y delta', async () => {
-      const wheelSpy = vi
+      const wheelSpy = rs
         .spyOn(device as any, 'scroll')
         .mockResolvedValue(undefined);
       await device.scrollDown(100);
@@ -1568,7 +1566,7 @@ Stdout:
 
     describe('scroll input validation', () => {
       beforeEach(() => {
-        vi.spyOn(console, 'warn').mockImplementation(() => {});
+        rs.spyOn(console, 'warn').mockImplementation(() => {});
       });
 
       it('should throw error when both deltaX and deltaY are zero', async () => {
@@ -1578,7 +1576,7 @@ Stdout:
       });
 
       it('should allow scrolling with non-zero deltaX and zero deltaY', async () => {
-        vi.spyOn(device as any, 'adjustCoordinates')
+        rs.spyOn(device as any, 'adjustCoordinates')
           .mockResolvedValueOnce({ x: 270, y: 480 })
           .mockResolvedValueOnce({ x: 170, y: 480 });
 
@@ -1591,7 +1589,7 @@ Stdout:
       });
 
       it('should allow scrolling with zero deltaX and non-zero deltaY', async () => {
-        vi.spyOn(device as any, 'adjustCoordinates')
+        rs.spyOn(device as any, 'adjustCoordinates')
           .mockResolvedValueOnce({ x: 270, y: 480 })
           .mockResolvedValueOnce({ x: 270, y: 240 });
 
@@ -1604,7 +1602,7 @@ Stdout:
       });
 
       it('should allow symmetric horizontal range from the same start position', async () => {
-        const adjustCoordinatesSpy = vi
+        const adjustCoordinatesSpy = rs
           .spyOn(device as any, 'adjustCoordinates')
           .mockImplementation(async (...args: unknown[]) => {
             const [x, y] = args as [number, number];
@@ -1628,7 +1626,7 @@ Stdout:
         adjustCoordinatesSpy.mockRestore();
       });
       it('should allow scrolling with both deltaX and deltaY non-zero', async () => {
-        vi.spyOn(device as any, 'adjustCoordinates')
+        rs.spyOn(device as any, 'adjustCoordinates')
           .mockResolvedValueOnce({ x: 270, y: 480 })
           .mockResolvedValueOnce({ x: 220, y: 405 });
 
@@ -1641,7 +1639,7 @@ Stdout:
       });
 
       it('should warn when explicit scrollDown distance exceeds the swipe boundary', async () => {
-        vi.spyOn(device as any, 'adjustCoordinates').mockImplementation(
+        rs.spyOn(device as any, 'adjustCoordinates').mockImplementation(
           async (...args: unknown[]) => {
             const [x, y] = args as [number, number];
             return { x, y };
@@ -1657,7 +1655,7 @@ Stdout:
       });
 
       it('should not warn for internal scrollToBottom clamp behavior', async () => {
-        vi.spyOn(device as any, 'adjustCoordinates').mockImplementation(
+        rs.spyOn(device as any, 'adjustCoordinates').mockImplementation(
           async (...args: unknown[]) => {
             const [x, y] = args as [number, number];
             return { x, y };
@@ -1912,15 +1910,15 @@ Stdout:
 
     describe('scroll methods with calculateScrollEndPoint integration', () => {
       beforeEach(() => {
-        vi.spyOn(device as any, 'dragPoint').mockResolvedValue(undefined);
-        vi.spyOn(console, 'warn').mockImplementation(() => {});
+        rs.spyOn(device as any, 'dragPoint').mockResolvedValue(undefined);
+        rs.spyOn(console, 'warn').mockImplementation(() => {});
       });
 
       it('scrollDown with startPoint should use calculateScrollEndPoint', async () => {
         const startPoint = { left: 100, top: 200 };
         const scrollDistance = 300;
 
-        const calculateScrollEndPointSpy = vi.spyOn(
+        const calculateScrollEndPointSpy = rs.spyOn(
           device as any,
           'calculateScrollEndPoint',
         );
@@ -1940,7 +1938,7 @@ Stdout:
         const startPoint = { left: 100, top: 200 };
         const scrollDistance = 300;
 
-        const calculateScrollEndPointSpy = vi.spyOn(
+        const calculateScrollEndPointSpy = rs.spyOn(
           device as any,
           'calculateScrollEndPoint',
         );
@@ -1960,7 +1958,7 @@ Stdout:
         const startPoint = { left: 100, top: 200 };
         const scrollDistance = 150;
 
-        const calculateScrollEndPointSpy = vi.spyOn(
+        const calculateScrollEndPointSpy = rs.spyOn(
           device as any,
           'calculateScrollEndPoint',
         );
@@ -1980,7 +1978,7 @@ Stdout:
         const startPoint = { left: 100, top: 200 };
         const scrollDistance = 150;
 
-        const calculateScrollEndPointSpy = vi.spyOn(
+        const calculateScrollEndPointSpy = rs.spyOn(
           device as any,
           'calculateScrollEndPoint',
         );
@@ -2001,7 +1999,7 @@ Stdout:
         const scrollDistance = 300;
         const mockEndPoint = { x: 100, y: 100 }; // Mocked calculated end point
 
-        vi.spyOn(device as any, 'calculateScrollEndPoint').mockReturnValue(
+        rs.spyOn(device as any, 'calculateScrollEndPoint').mockReturnValue(
           mockEndPoint,
         );
 
@@ -2018,7 +2016,7 @@ Stdout:
         const scrollDistance = 200;
         const mockEndPoint = { x: 150, y: 600 }; // Mocked calculated end point
 
-        vi.spyOn(device as any, 'calculateScrollEndPoint').mockReturnValue(
+        rs.spyOn(device as any, 'calculateScrollEndPoint').mockReturnValue(
           mockEndPoint,
         );
 
@@ -2035,7 +2033,7 @@ Stdout:
         const scrollDistance = 100;
         const mockEndPoint = { x: 600, y: 300 }; // Mocked calculated end point
 
-        vi.spyOn(device as any, 'calculateScrollEndPoint').mockReturnValue(
+        rs.spyOn(device as any, 'calculateScrollEndPoint').mockReturnValue(
           mockEndPoint,
         );
 
@@ -2052,7 +2050,7 @@ Stdout:
         const scrollDistance = 80;
         const mockEndPoint = { x: 120, y: 250 }; // Mocked calculated end point
 
-        vi.spyOn(device as any, 'calculateScrollEndPoint').mockReturnValue(
+        rs.spyOn(device as any, 'calculateScrollEndPoint').mockReturnValue(
           mockEndPoint,
         );
 
@@ -2067,7 +2065,7 @@ Stdout:
       it('scroll methods should use default scroll distance when not provided', async () => {
         const startPoint = { left: 100, top: 200 };
 
-        const calculateScrollEndPointSpy = vi.spyOn(
+        const calculateScrollEndPointSpy = rs.spyOn(
           device as any,
           'calculateScrollEndPoint',
         );
@@ -2139,7 +2137,7 @@ Stdout:
     };
 
     beforeEach(() => {
-      vi.spyOn(
+      rs.spyOn(
         AndroidDevice.prototype as any,
         'getScreenSize',
       ).mockResolvedValue({
@@ -2153,7 +2151,7 @@ Stdout:
       if (deviceWithDisplay) {
         deviceWithDisplay.destroy();
       }
-      vi.restoreAllMocks();
+      rs.restoreAllMocks();
     });
 
     describe('displayId', () => {
@@ -2190,7 +2188,7 @@ Stdout:
       };
 
       beforeEach(() => {
-        vi.spyOn(
+        rs.spyOn(
           AndroidDevice.prototype as any,
           'getScreenSize',
         ).mockResolvedValue({
@@ -2204,7 +2202,7 @@ Stdout:
         if (deviceWithDisplay) {
           deviceWithDisplay.destroy();
         }
-        vi.restoreAllMocks();
+        rs.restoreAllMocks();
       });
 
       it('should include display argument in shell commands when displayId is set', async () => {
@@ -2215,7 +2213,7 @@ Stdout:
         // Setup mock using global mockAdbInstance
         setupMockAdb(mockAdbInstance);
 
-        vi.spyOn(deviceWithDisplay, 'getAdb').mockResolvedValue(
+        rs.spyOn(deviceWithDisplay, 'getAdb').mockResolvedValue(
           mockAdbInstance as any,
         );
 
@@ -2405,7 +2403,7 @@ Stdout:
       );
 
       // Mock size method
-      vi.spyOn(deviceWithDisplay, 'size').mockResolvedValue({
+      rs.spyOn(deviceWithDisplay, 'size').mockResolvedValue({
         width: 1080,
         height: 1920,
       });
@@ -2435,7 +2433,7 @@ Stdout:
         Promise.resolve(mockAdbInstance);
 
       // Mock ensureYadb method
-      vi.spyOn(deviceWithDisplay as any, 'ensureYadb').mockResolvedValue(
+      rs.spyOn(deviceWithDisplay as any, 'ensureYadb').mockResolvedValue(
         undefined,
       );
 
@@ -2497,7 +2495,7 @@ Stdout:
         Promise.resolve(mockAdbInstance);
 
       // Mock adjustCoordinates to pass through (this test focuses on displayId arg)
-      vi.spyOn(
+      rs.spyOn(
         deviceWithDisplay as any,
         'adjustCoordinates',
       ).mockImplementation(async (...args: unknown[]) => {
@@ -2547,7 +2545,7 @@ Stdout:
       );
 
       // Mock size method
-      vi.spyOn(deviceWithDisplay, 'size').mockResolvedValue({
+      rs.spyOn(deviceWithDisplay, 'size').mockResolvedValue({
         width: 1080,
         height: 1920,
       });

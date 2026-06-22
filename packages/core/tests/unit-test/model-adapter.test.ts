@@ -3,7 +3,7 @@ import { ResolvedModelAdapter } from '@/ai-model/model-adapter/resolve';
 import { getModelAdapter } from '@/ai-model/models';
 import { MODEL_ADAPTER_CONFIGS } from '@/ai-model/models/registry';
 import { MODEL_FAMILY_VALUES } from '@midscene/shared/env';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 
 function createTestPlannerDefinition(): CustomPlanningDefinition<null> {
   return {
@@ -123,7 +123,7 @@ describe('ResolvedModelAdapter', () => {
   });
 
   it('keeps custom planner and locate definitions while applying policy defaults', () => {
-    const locateFn = vi.fn();
+    const locateFn = rs.fn();
     const adapter = new ResolvedModelAdapter(
       {
         planning: {
@@ -198,7 +198,7 @@ describe('ResolvedModelAdapter', () => {
           {
             planning: {
               kind: 'custom',
-              planFn: vi.fn(),
+              planFn: rs.fn(),
             },
             locate: {
               kind: 'custom',
@@ -267,7 +267,7 @@ describe('ResolvedModelAdapter', () => {
   });
 
   it('keeps custom planning functions as a fallback escape hatch', () => {
-    const planFn = vi.fn();
+    const planFn = rs.fn();
     const adapter = new ResolvedModelAdapter(
       {
         planning: {
@@ -291,7 +291,7 @@ describe('ResolvedModelAdapter', () => {
   });
 
   it('allows adapters to opt custom locate into search area', () => {
-    const locateFn = vi.fn();
+    const locateFn = rs.fn();
     const adapter = new ResolvedModelAdapter(
       {
         locate: {

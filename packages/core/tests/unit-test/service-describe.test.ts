@@ -1,23 +1,22 @@
 import { getModelRuntime } from '@/ai-model/models';
 import { elementDescriberInstruction } from '@/ai-model/prompt/describe';
 import { AIResponseParseError } from '@/ai-model/service-caller';
+import * as serviceCallerActual from '@/ai-model/service-caller' with {
+  rstest: 'importActual',
+};
 import Service from '@/service';
 import type { IModelConfig } from '@midscene/shared/env';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, rs } from '@rstest/core';
 import { createFakeContext } from '../utils';
 
-const { mockCallAIWithObjectResponse } = vi.hoisted(() => ({
-  mockCallAIWithObjectResponse: vi.fn(),
+const { mockCallAIWithObjectResponse } = rs.hoisted(() => ({
+  mockCallAIWithObjectResponse: rs.fn(),
 }));
 
-vi.mock('@/ai-model/service-caller', async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import('@/ai-model/service-caller')>();
-  return {
-    ...actual,
-    callAIWithObjectResponse: mockCallAIWithObjectResponse,
-  };
-});
+rs.mock('@/ai-model/service-caller', () => ({
+  ...serviceCallerActual,
+  callAIWithObjectResponse: mockCallAIWithObjectResponse,
+}));
 
 describe('service.describe', () => {
   const modelConfig: IModelConfig = {

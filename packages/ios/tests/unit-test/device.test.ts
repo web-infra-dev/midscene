@@ -1,14 +1,15 @@
 import type { DeviceAction, ExecutorContext } from '@midscene/core';
 import { DEFAULT_WDA_PORT } from '@midscene/shared/constants';
 import { WDAManager } from '@midscene/webdriver';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
 import { IOSDevice } from '../../src/device';
 import { IOSWebDriverClient } from '../../src/ios-webdriver-client';
 
 // Mock dependencies
-vi.mock('../../src/utils');
-vi.mock('../../src/ios-webdriver-client');
-vi.mock('@midscene/webdriver');
+// TODO(rstest): drop { mock: true } when bare auto-automock lands — https://github.com/web-infra-dev/rspack/pull/14418
+rs.mock('../../src/utils', { mock: true });
+rs.mock('../../src/ios-webdriver-client', { mock: true });
+rs.mock('@midscene/webdriver', { mock: true });
 
 const mockExecutorContext = { task: {} } as ExecutorContext;
 const getInternalTextInput = (target: IOSDevice) =>
@@ -20,34 +21,34 @@ describe('IOSDevice', () => {
   let device: IOSDevice;
   let mockWdaClient: any;
 
-  const MockedWdaClient = vi.mocked(IOSWebDriverClient);
-  const MockedWdaManager = vi.mocked(WDAManager);
+  const MockedWdaClient = rs.mocked(IOSWebDriverClient);
+  const MockedWdaManager = rs.mocked(WDAManager);
 
   beforeEach(async () => {
     // Setup mock WDA client
     mockWdaClient = {
-      createSession: vi
+      createSession: rs
         .fn()
         .mockResolvedValue({ sessionId: 'test-session-id' }),
-      setupExistingSession: vi.fn().mockResolvedValue(undefined),
-      deleteSession: vi.fn().mockResolvedValue(undefined),
-      getWindowSize: vi.fn().mockResolvedValue({ width: 375, height: 812 }),
-      takeScreenshot: vi.fn().mockResolvedValue('base64-screenshot'),
-      tap: vi.fn().mockResolvedValue(undefined),
-      doubleTap: vi.fn().mockResolvedValue(undefined),
-      tripleTap: vi.fn().mockResolvedValue(undefined),
-      longPress: vi.fn().mockResolvedValue(undefined),
-      swipe: vi.fn().mockResolvedValue(undefined),
-      pinch: vi.fn().mockResolvedValue(undefined),
-      typeText: vi.fn().mockResolvedValue(undefined),
-      clearActiveElement: vi.fn().mockResolvedValue(true),
-      pressKey: vi.fn().mockResolvedValue(undefined),
-      pressHomeButton: vi.fn().mockResolvedValue(undefined),
-      launchApp: vi.fn().mockResolvedValue(undefined),
-      terminateApp: vi.fn().mockResolvedValue(undefined),
-      openUrl: vi.fn().mockResolvedValue(undefined),
-      dismissKeyboard: vi.fn().mockResolvedValue(true),
-      makeRequest: vi.fn().mockResolvedValue(null),
+      setupExistingSession: rs.fn().mockResolvedValue(undefined),
+      deleteSession: rs.fn().mockResolvedValue(undefined),
+      getWindowSize: rs.fn().mockResolvedValue({ width: 375, height: 812 }),
+      takeScreenshot: rs.fn().mockResolvedValue('base64-screenshot'),
+      tap: rs.fn().mockResolvedValue(undefined),
+      doubleTap: rs.fn().mockResolvedValue(undefined),
+      tripleTap: rs.fn().mockResolvedValue(undefined),
+      longPress: rs.fn().mockResolvedValue(undefined),
+      swipe: rs.fn().mockResolvedValue(undefined),
+      pinch: rs.fn().mockResolvedValue(undefined),
+      typeText: rs.fn().mockResolvedValue(undefined),
+      clearActiveElement: rs.fn().mockResolvedValue(true),
+      pressKey: rs.fn().mockResolvedValue(undefined),
+      pressHomeButton: rs.fn().mockResolvedValue(undefined),
+      launchApp: rs.fn().mockResolvedValue(undefined),
+      terminateApp: rs.fn().mockResolvedValue(undefined),
+      openUrl: rs.fn().mockResolvedValue(undefined),
+      dismissKeyboard: rs.fn().mockResolvedValue(true),
+      makeRequest: rs.fn().mockResolvedValue(null),
       sessionInfo: {
         sessionId: 'test-session-id',
         capabilities: {},
@@ -55,26 +56,26 @@ describe('IOSDevice', () => {
     };
 
     // Add getDeviceInfo mock
-    mockWdaClient.getDeviceInfo = vi.fn().mockResolvedValue({
+    mockWdaClient.getDeviceInfo = rs.fn().mockResolvedValue({
       udid: 'test-device-udid',
       name: 'Test Device',
       model: 'iPhone 15',
     });
 
     // Add getScreenScale mock for new DPR detection
-    mockWdaClient.getScreenScale = vi.fn().mockResolvedValue(2);
+    mockWdaClient.getScreenScale = rs.fn().mockResolvedValue(2);
 
     MockedWdaClient.mockImplementation(() => mockWdaClient);
 
     // Setup mock WDA manager
     const mockWdaManager = {
-      start: vi.fn().mockResolvedValue(undefined),
-      stop: vi.fn().mockResolvedValue(undefined),
-      isRunning: vi.fn().mockReturnValue(true),
-      getPort: vi.fn().mockReturnValue(DEFAULT_WDA_PORT),
+      start: rs.fn().mockResolvedValue(undefined),
+      stop: rs.fn().mockResolvedValue(undefined),
+      isRunning: rs.fn().mockReturnValue(true),
+      getPort: rs.fn().mockReturnValue(DEFAULT_WDA_PORT),
     };
 
-    MockedWdaManager.getInstance = vi.fn().mockReturnValue(mockWdaManager);
+    MockedWdaManager.getInstance = rs.fn().mockReturnValue(mockWdaManager);
 
     device = new IOSDevice({
       wdaPort: DEFAULT_WDA_PORT,
@@ -83,7 +84,7 @@ describe('IOSDevice', () => {
   });
 
   afterEach(async () => {
-    vi.clearAllMocks();
+    rs.clearAllMocks();
     if (device) {
       await device.destroy();
     }
@@ -179,7 +180,7 @@ describe('IOSDevice', () => {
       const customAction: DeviceAction = {
         name: 'CustomAction',
         description: 'A custom action for testing',
-        call: vi.fn(async () => undefined),
+        call: rs.fn(async () => undefined),
       };
 
       const deviceWithCustomActions = new IOSDevice({
@@ -275,7 +276,7 @@ describe('IOSDevice', () => {
     });
 
     it('should handle connection failure', async () => {
-      mockWdaClient.createSession = vi
+      mockWdaClient.createSession = rs
         .fn()
         .mockRejectedValue(new Error('Connection failed'));
 
@@ -322,7 +323,7 @@ describe('IOSDevice', () => {
     });
 
     it('should handle app terminate failure', async () => {
-      mockWdaClient.terminateApp = vi
+      mockWdaClient.terminateApp = rs
         .fn()
         .mockRejectedValue(new Error('App terminate failed'));
       await device.connect();
@@ -334,7 +335,7 @@ describe('IOSDevice', () => {
 
     it('should handle URL launch with HTTP URL', async () => {
       // Add openUrl method to mock
-      mockWdaClient.openUrl = vi.fn().mockResolvedValue(undefined);
+      mockWdaClient.openUrl = rs.fn().mockResolvedValue(undefined);
       await device.connect();
 
       await device.launch('https://www.apple.com');
@@ -345,7 +346,7 @@ describe('IOSDevice', () => {
 
     it('should handle URL launch with custom scheme', async () => {
       // Add openUrl method to mock
-      mockWdaClient.openUrl = vi.fn().mockResolvedValue(undefined);
+      mockWdaClient.openUrl = rs.fn().mockResolvedValue(undefined);
       await device.connect();
 
       await device.launch('myapp://deep/link');
@@ -354,13 +355,13 @@ describe('IOSDevice', () => {
 
     it('should fallback to Safari when direct URL opening fails', async () => {
       // Mock openUrl to fail, other methods to succeed
-      mockWdaClient.openUrl = vi
+      mockWdaClient.openUrl = rs
         .fn()
         .mockRejectedValue(new Error('Direct URL failed'));
-      mockWdaClient.terminateApp = vi.fn().mockResolvedValue(undefined);
-      mockWdaClient.launchApp = vi.fn().mockResolvedValue(undefined);
-      mockWdaClient.typeText = vi.fn().mockResolvedValue(undefined);
-      mockWdaClient.pressKey = vi.fn().mockResolvedValue(undefined);
+      mockWdaClient.terminateApp = rs.fn().mockResolvedValue(undefined);
+      mockWdaClient.launchApp = rs.fn().mockResolvedValue(undefined);
+      mockWdaClient.typeText = rs.fn().mockResolvedValue(undefined);
+      mockWdaClient.pressKey = rs.fn().mockResolvedValue(undefined);
       await device.connect();
 
       await device.launch('https://www.example.com');
@@ -487,7 +488,7 @@ describe('IOSDevice', () => {
     });
 
     it('should handle session creation timeout', async () => {
-      mockWdaClient.createSession = vi.fn().mockImplementation(() => {
+      mockWdaClient.createSession = rs.fn().mockImplementation(() => {
         return new Promise((_, reject) => {
           setTimeout(() => reject(new Error('Session creation timeout')), 100);
         });
@@ -500,7 +501,7 @@ describe('IOSDevice', () => {
 
     it('should handle screenshot failure gracefully', async () => {
       await device.connect();
-      mockWdaClient.takeScreenshot = vi
+      mockWdaClient.takeScreenshot = rs
         .fn()
         .mockRejectedValue(new Error('Screenshot failed'));
 
@@ -511,7 +512,7 @@ describe('IOSDevice', () => {
 
     it('should handle app launch failure', async () => {
       await device.connect();
-      mockWdaClient.launchApp = vi
+      mockWdaClient.launchApp = rs
         .fn()
         .mockRejectedValue(new Error('App launch failed'));
 
@@ -522,14 +523,14 @@ describe('IOSDevice', () => {
 
     it('should handle tap operation failure', async () => {
       await device.connect();
-      mockWdaClient.tap = vi.fn().mockRejectedValue(new Error('Tap failed'));
+      mockWdaClient.tap = rs.fn().mockRejectedValue(new Error('Tap failed'));
 
       await expect(device.tap(100, 200)).rejects.toThrow('Tap failed');
     });
 
     it('should handle text input failure', async () => {
       await device.connect();
-      mockWdaClient.typeText = vi
+      mockWdaClient.typeText = rs
         .fn()
         .mockRejectedValue(new Error('Type text failed'));
 
@@ -543,18 +544,18 @@ describe('IOSDevice', () => {
     beforeEach(async () => {
       await device.connect();
       // Mock makeRequest for keyboard operations
-      mockWdaClient.makeRequest = vi.fn().mockResolvedValue(null);
+      mockWdaClient.makeRequest = rs.fn().mockResolvedValue(null);
     });
 
     it('should handle keyboard dismissal with default strategy', async () => {
       // Mock dismissKeyboard to fail so it falls back to swipe gesture
-      mockWdaClient.dismissKeyboard = vi
+      mockWdaClient.dismissKeyboard = rs
         .fn()
         .mockRejectedValue(new Error('dismissKeyboard not available'));
-      mockWdaClient.getWindowSize = vi
+      mockWdaClient.getWindowSize = rs
         .fn()
         .mockResolvedValue({ width: 375, height: 812 });
-      mockWdaClient.swipe = vi.fn().mockResolvedValue(undefined);
+      mockWdaClient.swipe = rs.fn().mockResolvedValue(undefined);
 
       const result = await device.hideKeyboard();
       expect(result).toBe(true);
@@ -563,13 +564,13 @@ describe('IOSDevice', () => {
 
     it('should handle keyboard dismissal failure', async () => {
       // Mock both dismissKeyboard and swipe to fail to simulate total failure
-      mockWdaClient.dismissKeyboard = vi
+      mockWdaClient.dismissKeyboard = rs
         .fn()
         .mockRejectedValue(new Error('dismissKeyboard failed'));
-      mockWdaClient.getWindowSize = vi
+      mockWdaClient.getWindowSize = rs
         .fn()
         .mockResolvedValue({ width: 375, height: 812 });
-      mockWdaClient.swipe = vi
+      mockWdaClient.swipe = rs
         .fn()
         .mockRejectedValue(new Error('Swipe failed'));
 
@@ -581,14 +582,14 @@ describe('IOSDevice', () => {
       // Mock the WDA client before creating the device
       const mockBackend = {
         ...mockWdaClient,
-        createSession: vi.fn().mockResolvedValue({ sessionId: 'test-session' }),
-        typeText: vi.fn().mockResolvedValue(undefined),
-        dismissKeyboard: vi
+        createSession: rs.fn().mockResolvedValue({ sessionId: 'test-session' }),
+        typeText: rs.fn().mockResolvedValue(undefined),
+        dismissKeyboard: rs
           .fn()
           .mockRejectedValue(new Error('dismissKeyboard not available')),
-        getWindowSize: vi.fn().mockResolvedValue({ width: 375, height: 812 }),
-        getScreenScale: vi.fn().mockResolvedValue(2),
-        swipe: vi.fn().mockResolvedValue(undefined),
+        getWindowSize: rs.fn().mockResolvedValue({ width: 375, height: 812 }),
+        getScreenScale: rs.fn().mockResolvedValue(2),
+        swipe: rs.fn().mockResolvedValue(undefined),
         sessionInfo: { sessionId: 'test-session' }, // Ensure session info is available
       };
       MockedWdaClient.mockImplementation(() => mockBackend);
@@ -612,7 +613,7 @@ describe('IOSDevice', () => {
     });
 
     it('should handle different screen sizes', async () => {
-      mockWdaClient.getWindowSize = vi
+      mockWdaClient.getWindowSize = rs
         .fn()
         .mockResolvedValue({ width: 1920, height: 1080 });
 

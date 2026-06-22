@@ -5,22 +5,22 @@ import {
   callAIWithObjectResponse,
 } from '@/ai-model/service-caller';
 import type { IModelConfig } from '@midscene/shared/env';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, rs } from '@rstest/core';
 
-const { mockDebugLog, mockWarnLog } = vi.hoisted(() => ({
-  mockDebugLog: vi.fn(),
-  mockWarnLog: vi.fn(),
+const { mockDebugLog, mockWarnLog } = rs.hoisted(() => ({
+  mockDebugLog: rs.fn(),
+  mockWarnLog: rs.fn(),
 }));
-const mockCreate = vi.fn();
+const mockCreate = rs.fn();
 
-vi.mock('@midscene/shared/logger', () => ({
-  getDebug: vi.fn((_topic, options) =>
+rs.mock('@midscene/shared/logger', () => ({
+  getDebug: rs.fn((_topic, options) =>
     options?.console ? mockWarnLog : mockDebugLog,
   ),
 }));
 
-vi.mock('openai', () => ({
-  default: vi.fn().mockImplementation(() => ({
+rs.mock('openai', () => ({
+  default: rs.fn().mockImplementation(() => ({
     chat: {
       completions: {
         create: mockCreate,

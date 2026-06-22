@@ -1,7 +1,7 @@
 import { locateResultExampleRegions } from '@/ai-model/prompts/locate-result-coordinates';
 import { createLocateResultAdapter } from '@/ai-model/shared/model-locate-result';
 import { pixelBboxToRect } from '@/ai-model/workflows/inspect/locate-result-rect';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 
 const locateCtx = (width: number, height: number) => ({
   preparedSize: { width, height },
@@ -373,11 +373,11 @@ describe('createLocateResultAdapter', () => {
   });
 
   it('allows custom parsing and mapping in standard definition', () => {
-    const parseRawLocateValue = vi.fn(() => ({
+    const parseRawLocateValue = rs.fn(() => ({
       type: 'point' as const,
       coordinates: [3, 4] as [number, number],
     }));
-    const mapLocateResultToPixelBbox = vi.fn(
+    const mapLocateResultToPixelBbox = rs.fn(
       (): [number, number, number, number] => [1, 2, 3, 4],
     );
     const adapter = createLocateResultAdapter({
@@ -465,7 +465,7 @@ describe('createLocateResultAdapter', () => {
   });
 
   it('allows custom adapters to own prompt contract and locate result mapping', () => {
-    const adaptElementLocateResultToPixelBbox = vi.fn(
+    const adaptElementLocateResultToPixelBbox = rs.fn(
       (input: unknown, { preparedSize }: ReturnType<typeof locateCtx>) => {
         const { width, height } = preparedSize;
         const [x, y, boxWidth, boxHeight] = (
@@ -480,10 +480,10 @@ describe('createLocateResultAdapter', () => {
         ] as [number, number, number, number];
       },
     );
-    const adaptSectionLocateResultToPixelBboxGroup = vi.fn((input, ctx) => ({
+    const adaptSectionLocateResultToPixelBboxGroup = rs.fn((input, ctx) => ({
       target: adaptElementLocateResultToPixelBbox(input, ctx),
     }));
-    const adaptPlanningParamToPixelBbox = vi.fn(
+    const adaptPlanningParamToPixelBbox = rs.fn(
       adaptElementLocateResultToPixelBbox,
     );
     const adapter = createLocateResultAdapter({

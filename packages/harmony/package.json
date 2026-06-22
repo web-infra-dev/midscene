@@ -38,10 +38,10 @@
     "dev": "npm run build:watch",
     "build": "rslib build",
     "build:watch": "rslib build --watch --no-clean",
-    "test": "vitest --run",
-    "test:u": "vitest --run -u",
-    "test:ai": "AI_TEST_TYPE=harmony vitest --run",
-    "test:ai:cache": "MIDSCENE_CACHE=true AI_TEST_TYPE=harmony vitest --run"
+    "test": "rstest",
+    "test:u": "rstest -u",
+    "test:ai": "AI_TEST_TYPE=harmony rstest",
+    "test:ai:cache": "MIDSCENE_CACHE=true AI_TEST_TYPE=harmony rstest"
   },
   "dependencies": {
     "@midscene/core": "workspace:*",
@@ -52,10 +52,10 @@
   },
   "devDependencies": {
     "@rslib/core": "^0.18.3",
+    "@rstest/core": "0.10.6",
     "@types/node": "^18.0.0",
     "dotenv": "^16.4.5",
     "typescript": "^5.8.3",
-    "vitest": "3.0.5",
     "zod": "^3.25.1"
   },
   "license": "MIT"

@@ -1,8 +1,8 @@
+import { afterEach, beforeAll, describe, expect, it, rs } from '@rstest/core';
 /** @vitest-environment jsdom */
 import { act, createElement } from 'react';
 import { createRoot } from 'react-dom/client';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import ScreenshotViewer from '../src/component/screenshot-viewer';
 
 describe('ScreenshotViewer', () => {
@@ -15,7 +15,7 @@ describe('ScreenshotViewer', () => {
   });
 
   afterEach(() => {
-    vi.useRealTimers();
+    rs.useRealTimers();
   });
 
   it('renders a screen-only variant without viewer chrome', () => {
@@ -48,7 +48,7 @@ describe('ScreenshotViewer', () => {
   });
 
   it('reconnects an MJPEG image when the first frame never loads', async () => {
-    vi.useFakeTimers();
+    rs.useFakeTimers();
     const container = document.createElement('div');
     document.body.appendChild(container);
     const root = createRoot(container);
@@ -74,7 +74,7 @@ describe('ScreenshotViewer', () => {
     const initialSrc = initialImage?.src;
 
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(2500);
+      await rs.advanceTimersByTimeAsync(2500);
     });
 
     const retriedImage = container.querySelector(
@@ -90,8 +90,8 @@ describe('ScreenshotViewer', () => {
   });
 
   it('does not call the screenshot API while MJPEG preview is active', async () => {
-    vi.useFakeTimers();
-    const getScreenshot = vi.fn(async () => null);
+    rs.useFakeTimers();
+    const getScreenshot = rs.fn(async () => null);
     const container = document.createElement('div');
     document.body.appendChild(container);
     const root = createRoot(container);
@@ -109,7 +109,7 @@ describe('ScreenshotViewer', () => {
     });
 
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(5000);
+      await rs.advanceTimersByTimeAsync(5000);
     });
 
     await act(async () => {

@@ -1,8 +1,8 @@
 import type { PlaygroundControllerResult } from '@midscene/playground-app';
 import type { StudioPlaygroundContextValue } from '@renderer/playground/types';
+import { describe, expect, it, rs } from '@rstest/core';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { describe, expect, it, vi } from 'vitest';
 import MainContent from '../src/renderer/components/MainContent';
 import { StudioPlaygroundContext } from '../src/renderer/playground/useStudioPlayground';
 
@@ -11,7 +11,7 @@ type ReadyStudioPlaygroundContextValue = Extract<
   { phase: 'ready' }
 >;
 
-vi.mock('@midscene/playground-app', () => ({
+rs.mock('@midscene/playground-app', () => ({
   // Real PlaygroundPreview pulls in a WASM helper through visualizer; the
   // tests only care that MainContent threads the connecting overlay
   // through, so stub it down to that overlay.
@@ -41,9 +41,9 @@ function createReadyContextValue(): ReadyStudioPlaygroundContextValue {
         },
       },
       actions: {
-        refreshSessionSetup: vi.fn(async () => undefined),
-        createSession: vi.fn(async () => false),
-        destroySession: vi.fn(async () => undefined),
+        refreshSessionSetup: rs.fn(async () => undefined),
+        createSession: rs.fn(async () => false),
+        destroySession: rs.fn(async () => undefined),
       },
     } as unknown as PlaygroundControllerResult,
     discoveredDevices: {
@@ -59,9 +59,9 @@ function createReadyContextValue(): ReadyStudioPlaygroundContextValue {
       harmony: [],
       web: [],
     },
-    refreshDiscoveredDevices: vi.fn(async () => undefined),
-    restartPlayground: vi.fn(async () => undefined),
-    setDiscoveryPollingPaused: vi.fn(),
+    refreshDiscoveredDevices: rs.fn(async () => undefined),
+    restartPlayground: rs.fn(async () => undefined),
+    setDiscoveryPollingPaused: rs.fn(),
   };
 }
 
@@ -72,7 +72,7 @@ function createConnectedWebContextValue(): ReadyStudioPlaygroundContextValue {
     serverOnline: true,
     isUserOperating: false,
     playgroundSDK: {
-      interact: vi.fn(async () => ({ ok: true })),
+      interact: rs.fn(async () => ({ ok: true })),
     },
     runtimeInfo: {
       platformId: 'web',
@@ -149,7 +149,7 @@ function createConnectedComputerContextValue(): ReadyStudioPlaygroundContextValu
     serverOnline: true,
     isUserOperating: false,
     playgroundSDK: {
-      interact: vi.fn(async () => ({ ok: true })),
+      interact: rs.fn(async () => ({ ok: true })),
     },
     runtimeInfo: {
       platformId: 'computer',

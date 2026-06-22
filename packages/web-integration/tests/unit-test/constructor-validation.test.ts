@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 
 describe('PlaywrightAgent constructor validation', () => {
   it('should throw when page is undefined', async () => {

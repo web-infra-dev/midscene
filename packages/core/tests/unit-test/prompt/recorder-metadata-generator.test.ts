@@ -1,13 +1,13 @@
 import type { IModelConfig } from '@midscene/shared/env';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, rs } from '@rstest/core';
 import { generateRecorderSessionMetadata } from '../../../src/ai-model/prompt/recorder-metadata-generator';
 import { callAIWithObjectResponse } from '../../../src/ai-model/service-caller';
 
-vi.mock('../../../src/ai-model/service-caller', () => ({
-  callAIWithObjectResponse: vi.fn(),
+rs.mock('../../../src/ai-model/service-caller', () => ({
+  callAIWithObjectResponse: rs.fn(),
 }));
 
-const mockCallAIWithObjectResponse = vi.mocked(callAIWithObjectResponse);
+const mockCallAIWithObjectResponse = rs.mocked(callAIWithObjectResponse);
 
 const mockedModelConfig = {
   modelName: 'mock',
@@ -18,7 +18,7 @@ const mockedModelConfig = {
 
 describe('recorder-metadata-generator', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    rs.clearAllMocks();
     mockCallAIWithObjectResponse.mockResolvedValue({
       content: {
         title: 'Example Recording',

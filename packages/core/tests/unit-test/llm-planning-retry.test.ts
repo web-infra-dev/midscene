@@ -2,16 +2,17 @@ import { ConversationHistory } from '@/ai-model/conversation-history';
 import { plan } from '@/ai-model/llm-planning';
 import { getModelRuntime } from '@/ai-model/models';
 import { callAI } from '@/ai-model/service-caller/index';
+import * as serviceCallerActual from '@/ai-model/service-caller/index' with {
+  rstest: 'importActual',
+};
 import type { DeviceAction, UIContext } from '@/types';
 import type { IModelConfig } from '@midscene/shared/env';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, rs } from '@rstest/core';
 
-vi.mock('@/ai-model/service-caller/index', async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import('@/ai-model/service-caller/index')>();
+rs.mock('@/ai-model/service-caller/index', () => {
   return {
-    ...actual,
-    callAI: vi.fn(),
+    ...serviceCallerActual,
+    callAI: rs.fn(),
   };
 });
 
@@ -42,12 +43,12 @@ const mockActionSpace = (): DeviceAction[] => [
   {
     name: 'Tap',
     description: 'Tap an element',
-    call: vi.fn(),
+    call: rs.fn(),
   },
 ];
 
 const latestImageDetail = () => {
-  const messages = vi.mocked(callAI).mock.calls[0]?.[0];
+  const messages = rs.mocked(callAI).mock.calls[0]?.[0];
   const latestMessage = messages?.at(-1);
   const imagePart = Array.isArray(latestMessage?.content)
     ? latestMessage.content.find((part) => part.type === 'image_url')
@@ -55,15 +56,15 @@ const latestImageDetail = () => {
   return imagePart?.image_url.detail;
 };
 
-const latestCallAIOptions = () => vi.mocked(callAI).mock.calls[0]?.[2];
+const latestCallAIOptions = () => rs.mocked(callAI).mock.calls[0]?.[2];
 
 describe('plan XML parse retry', () => {
   beforeEach(() => {
-    vi.mocked(callAI).mockReset();
+    rs.mocked(callAI).mockReset();
   });
 
   it('should retry once when XML response parsing fails', async () => {
-    vi.mocked(callAI)
+    rs.mocked(callAI)
       .mockResolvedValueOnce(
         mockAIResponse(`<log>Tap button</log>
 <action-type>Tap</action-type>
@@ -89,7 +90,7 @@ describe('plan XML parse retry', () => {
   });
 
   it('should tell the model when no previous aiAct actions have been executed', async () => {
-    vi.mocked(callAI).mockResolvedValueOnce(
+    rs.mocked(callAI).mockResolvedValueOnce(
       mockAIResponse(`<log>Tap button</log>
 <action-type>Tap</action-type>`),
     );
@@ -103,7 +104,7 @@ describe('plan XML parse retry', () => {
       deepThink: false,
     });
 
-    const messages = vi.mocked(callAI).mock.calls[0]?.[0];
+    const messages = rs.mocked(callAI).mock.calls[0]?.[0];
     const latestMessage = messages?.at(-1);
     const textPart = Array.isArray(latestMessage?.content)
       ? latestMessage.content.find((part) => part.type === 'text')
@@ -119,7 +120,7 @@ describe('plan XML parse retry', () => {
   });
 
   it('marks planning as requiring original image detail when locate is included', async () => {
-    vi.mocked(callAI).mockResolvedValueOnce(
+    rs.mocked(callAI).mockResolvedValueOnce(
       mockAIResponse(`<log>Tap button</log>
 <action-type>Tap</action-type>`),
     );

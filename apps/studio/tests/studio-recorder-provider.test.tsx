@@ -1,8 +1,8 @@
 /** @vitest-environment jsdom */
 import type { StudioPlaygroundContextValue } from '@renderer/playground/types';
+import { afterEach, beforeAll, describe, expect, it, rs } from '@rstest/core';
 import { act, createElement, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
-import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { StudioPlaygroundContext } from '../src/renderer/playground/useStudioPlayground';
 import { StudioRecorderProvider } from '../src/renderer/recorder/StudioRecorderProvider';
 import {
@@ -17,8 +17,8 @@ type ReadyStudioPlaygroundContext = Extract<
   { phase: 'ready' }
 >;
 
-vi.mock('../src/renderer/recorder/codegen', () => ({
-  describeStudioRecorderEventsWithAI: vi.fn(
+rs.mock('../src/renderer/recorder/codegen', () => ({
+  describeStudioRecorderEventsWithAI: rs.fn(
     async (events: Array<Record<string, unknown>>) =>
       events.map((event) => ({
         ...event,
@@ -29,16 +29,16 @@ vi.mock('../src/renderer/recorder/codegen', () => ({
         },
       })),
   ),
-  generateStudioRecorderCodeWithAI: vi.fn(async (_session, options) => {
+  generateStudioRecorderCodeWithAI: rs.fn(async (_session, options) => {
     const type = options?.type || 'markdown';
     options?.onChunk?.(`partial ${type}\n`);
     return `ai ${type}\n`;
   }),
-  generateStudioRecorderMetadataWithAI: vi.fn(async () => ({
+  generateStudioRecorderMetadataWithAI: rs.fn(async () => ({
     title: 'Browsing Midscene.js Documentation',
     description: 'The user visited the Midscene.js introduction page.',
   })),
-  generateStudioRecorderYamlWithAI: vi.fn(async (_session, options) => {
+  generateStudioRecorderYamlWithAI: rs.fn(async (_session, options) => {
     options?.onChunk?.('partial yaml\n');
     return 'ai yaml\n';
   }),
@@ -51,7 +51,7 @@ beforeAll(() => {
 });
 
 afterEach(() => {
-  vi.clearAllMocks();
+  rs.clearAllMocks();
 });
 
 async function flushPromises() {
@@ -98,12 +98,12 @@ function createConnectedStudioContext({
     error?: string;
   };
   events?: unknown[];
-  describeRecorderEventAtPoint?: ReturnType<typeof vi.fn>;
+  describeRecorderEventAtPoint?: ReturnType<typeof rs.fn>;
 } = {}) {
-  const interact = vi.fn(async (_payload?: unknown) => ({ ok: true }));
-  const startRecorderSession = vi.fn(async () => startResult);
-  const stopRecorderSession = vi.fn(async () => ({ ok: true }));
-  const getRecorderEvents = vi.fn(async (since = 0) => ({
+  const interact = rs.fn(async (_payload?: unknown) => ({ ok: true }));
+  const startRecorderSession = rs.fn(async () => startResult);
+  const stopRecorderSession = rs.fn(async () => ({ ok: true }));
+  const getRecorderEvents = rs.fn(async (since = 0) => ({
     events: since === 0 ? events : [],
     nextIndex: since === 0 ? events.length : since,
   }));
@@ -153,9 +153,9 @@ function createConnectedStudioContext({
         },
       },
       actions: {
-        refreshSessionSetup: vi.fn(async () => undefined),
-        createSession: vi.fn(async () => false),
-        destroySession: vi.fn(async () => undefined),
+        refreshSessionSetup: rs.fn(async () => undefined),
+        createSession: rs.fn(async () => false),
+        destroySession: rs.fn(async () => undefined),
       },
     } as unknown as ReadyStudioPlaygroundContext['controller'],
     discoveredDevices: {
@@ -173,9 +173,9 @@ function createConnectedStudioContext({
       harmony: [],
       web: [],
     },
-    refreshDiscoveredDevices: vi.fn(async () => undefined),
-    restartPlayground: vi.fn(async () => undefined),
-    setDiscoveryPollingPaused: vi.fn(),
+    refreshDiscoveredDevices: rs.fn(async () => undefined),
+    restartPlayground: rs.fn(async () => undefined),
+    setDiscoveryPollingPaused: rs.fn(),
   };
 
   return {
@@ -308,7 +308,7 @@ describe('StudioRecorderProvider preview recording', () => {
   });
 
   it('serializes overlapping preview recorder drains so cursor advances in order', async () => {
-    vi.useFakeTimers();
+    rs.useFakeTimers();
     const firstPoll = createDeferred<{
       events: unknown[];
       nextIndex: number;
@@ -356,10 +356,10 @@ describe('StudioRecorderProvider preview recording', () => {
       expect(getRecorderEvents).toHaveBeenCalledWith(0);
 
       await act(async () => {
-        await vi.advanceTimersByTimeAsync(500);
+        await rs.advanceTimersByTimeAsync(500);
       });
       await act(async () => {
-        await vi.advanceTimersByTimeAsync(500);
+        await rs.advanceTimersByTimeAsync(500);
       });
       expect(getRecorderEvents).toHaveBeenCalledTimes(2);
       expect(getRecorderEvents).toHaveBeenNthCalledWith(2, 0);
@@ -378,7 +378,7 @@ describe('StudioRecorderProvider preview recording', () => {
       ]);
     } finally {
       await mounted.cleanup();
-      vi.useRealTimers();
+      rs.useRealTimers();
     }
   });
 
@@ -439,7 +439,7 @@ describe('StudioRecorderProvider preview recording', () => {
       timestamp: 123,
       hashId: 'click-ai-describe-verify-failed',
     };
-    const describeRecorderEventAtPoint = vi.fn(async () => ({
+    const describeRecorderEventAtPoint = rs.fn(async () => ({
       ok: false,
       error: 'aiDescribe verification failed.',
       trace: {
@@ -510,7 +510,7 @@ describe('StudioRecorderProvider preview recording', () => {
       timestamp: 123,
       hashId: 'scroll-recorder-ai',
     };
-    const describeRecorderEventAtPoint = vi.fn(async () => ({
+    const describeRecorderEventAtPoint = rs.fn(async () => ({
       ok: true,
       event,
     }));
@@ -544,7 +544,7 @@ describe('StudioRecorderProvider preview recording', () => {
   });
 
   it('uses a detailed heuristic description when scroll recorderAI fails', async () => {
-    vi.mocked(describeStudioRecorderEventsWithAI).mockRejectedValueOnce(
+    rs.mocked(describeStudioRecorderEventsWithAI).mockRejectedValueOnce(
       new Error('model unavailable'),
     );
     const event = {
@@ -566,7 +566,7 @@ describe('StudioRecorderProvider preview recording', () => {
       timestamp: 123,
       hashId: 'scroll-heuristic',
     };
-    const describeRecorderEventAtPoint = vi.fn();
+    const describeRecorderEventAtPoint = rs.fn();
     const { context } = createConnectedStudioContext({
       events: [event],
       describeRecorderEventAtPoint,
@@ -597,7 +597,7 @@ describe('StudioRecorderProvider preview recording', () => {
   });
 
   it('falls back to recorderAI when aiDescribe times out', async () => {
-    vi.useFakeTimers();
+    rs.useFakeTimers();
     const event = {
       type: 'click',
       source: 'studio-preview',
@@ -608,7 +608,7 @@ describe('StudioRecorderProvider preview recording', () => {
       timestamp: 123,
       hashId: 'click-ai-describe-timeout',
     };
-    const describeRecorderEventAtPoint = vi.fn(
+    const describeRecorderEventAtPoint = rs.fn(
       () => new Promise<never>(() => undefined),
     );
     const { context } = createConnectedStudioContext({
@@ -624,7 +624,7 @@ describe('StudioRecorderProvider preview recording', () => {
       await flushPromises();
 
       await act(async () => {
-        await vi.advanceTimersByTimeAsync(32_000);
+        await rs.advanceTimersByTimeAsync(32_000);
       });
       await flushPromises();
       await flushPromises();
@@ -648,7 +648,7 @@ describe('StudioRecorderProvider preview recording', () => {
       });
     } finally {
       await mounted.cleanup();
-      vi.useRealTimers();
+      rs.useRealTimers();
     }
   });
 
@@ -1184,7 +1184,7 @@ describe('StudioRecorderProvider preview recording', () => {
   });
 
   it('describes merged input with the same canonical event for aiDescribe and recorderAI fallback', async () => {
-    vi.mocked(describeStudioRecorderEventsWithAI).mockResolvedValueOnce([
+    rs.mocked(describeStudioRecorderEventsWithAI).mockResolvedValueOnce([
       {
         type: 'input',
         actionType: 'Input',
@@ -1195,7 +1195,7 @@ describe('StudioRecorderProvider preview recording', () => {
         },
       } as any,
     ]);
-    const describeRecorderEventAtPoint = vi.fn(async (event) => ({
+    const describeRecorderEventAtPoint = rs.fn(async (event) => ({
       ok: true,
       event: {
         ...event,
@@ -1309,7 +1309,7 @@ describe('StudioRecorderProvider preview recording', () => {
   });
 
   it('uses recorder input value when recorderAI describes input target', async () => {
-    vi.mocked(describeStudioRecorderEventsWithAI).mockResolvedValueOnce([
+    rs.mocked(describeStudioRecorderEventsWithAI).mockResolvedValueOnce([
       {
         type: 'input',
         actionType: 'Input',
@@ -1456,7 +1456,7 @@ describe('StudioRecorderProvider preview recording', () => {
   });
 
   it('marks failed preview descriptions as heuristic instead of leaving them pending', async () => {
-    vi.mocked(describeStudioRecorderEventsWithAI).mockRejectedValueOnce(
+    rs.mocked(describeStudioRecorderEventsWithAI).mockRejectedValueOnce(
       new Error('model unavailable'),
     );
     const event = {
@@ -1567,7 +1567,7 @@ describe('StudioRecorderProvider preview recording', () => {
       ok: boolean;
       event: typeof describedFinalEvent;
     }>();
-    const describeRecorderEventAtPoint = vi.fn(() => describeDeferred.promise);
+    const describeRecorderEventAtPoint = rs.fn(() => describeDeferred.promise);
     const { context, stopRecorderSession, getRecorderEvents } =
       createConnectedStudioContext({ describeRecorderEventAtPoint });
     let stopped = false;
@@ -1636,7 +1636,7 @@ describe('StudioRecorderProvider preview recording', () => {
     }));
     const firstDeferred = createDeferred<any>();
     const secondDeferred = createDeferred<any>();
-    const describeRecorderEventAtPoint = vi
+    const describeRecorderEventAtPoint = rs
       .fn()
       .mockReturnValueOnce(firstDeferred.promise)
       .mockReturnValueOnce(secondDeferred.promise)
@@ -1811,8 +1811,8 @@ describe('StudioRecorderProvider preview recording', () => {
     await flushPromises();
 
     const sessionId = mounted.recorder?.currentSession?.id;
-    const onChunk = vi.fn();
-    const onProgress = vi.fn();
+    const onChunk = rs.fn();
+    const onProgress = rs.fn();
     let yaml = '';
     await act(async () => {
       yaml = await mounted.recorder!.generateSessionYaml(sessionId!, {

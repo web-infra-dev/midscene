@@ -9,60 +9,60 @@ import {
 } from '@/agent-tools-puppeteer';
 import { AgentOverChromeBridge } from '@/bridge-mode';
 import { PuppeteerAgent } from '@/puppeteer';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
 
 const validPngBase64 =
   'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
 
 const mockPage = {
-  url: vi.fn(() => 'https://example.com/'),
-  bringToFront: vi.fn(),
-  goto: vi.fn(),
-  setViewport: vi.fn(),
-  target: vi.fn(() => ({ _targetId: 'target-1' })),
+  url: rs.fn(() => 'https://example.com/'),
+  bringToFront: rs.fn(),
+  goto: rs.fn(),
+  setViewport: rs.fn(),
+  target: rs.fn(() => ({ _targetId: 'target-1' })),
 };
 
 const mockBrowser = {
-  pages: vi.fn(async () => [mockPage]),
-  newPage: vi.fn(async () => mockPage),
-  disconnect: vi.fn(),
-  close: vi.fn(),
+  pages: rs.fn(async () => [mockPage]),
+  newPage: rs.fn(async () => mockPage),
+  disconnect: rs.fn(),
+  close: rs.fn(),
 };
 
-vi.mock('puppeteer-core', () => ({
+rs.mock('puppeteer-core', () => ({
   default: {
-    connect: vi.fn(async () => mockBrowser),
+    connect: rs.fn(async () => mockBrowser),
   },
 }));
 
-vi.mock('@/bridge-mode', () => ({
-  AgentOverChromeBridge: vi.fn().mockImplementation(() => ({
-    connectCurrentTab: vi.fn(),
-    connectNewTabWithUrl: vi.fn(),
+rs.mock('@/bridge-mode', () => ({
+  AgentOverChromeBridge: rs.fn().mockImplementation(() => ({
+    connectCurrentTab: rs.fn(),
+    connectNewTabWithUrl: rs.fn(),
     page: {
-      screenshotBase64: vi.fn(async () => validPngBase64),
+      screenshotBase64: rs.fn(async () => validPngBase64),
     },
-    destroy: vi.fn(),
+    destroy: rs.fn(),
   })),
 }));
 
-vi.mock('@/puppeteer', () => ({
-  PuppeteerAgent: vi.fn().mockImplementation(() => ({
+rs.mock('@/puppeteer', () => ({
+  PuppeteerAgent: rs.fn().mockImplementation(() => ({
     page: {
-      screenshotBase64: vi.fn(async () => validPngBase64),
+      screenshotBase64: rs.fn(async () => validPngBase64),
     },
-    destroy: vi.fn(),
+    destroy: rs.fn(),
   })),
 }));
 
-vi.mock('@/cdp-proxy-manager', () => ({
-  getProxyEndpoint: vi.fn(async () => 'ws://127.0.0.1:9222/devtools/browser/1'),
+rs.mock('@/cdp-proxy-manager', () => ({
+  getProxyEndpoint: rs.fn(async () => 'ws://127.0.0.1:9222/devtools/browser/1'),
 }));
 
-vi.mock('@/cdp-target-store', () => ({
-  cleanupTargetIdFile: vi.fn(),
-  readSavedTargetId: vi.fn(() => undefined),
-  saveTargetId: vi.fn(),
+rs.mock('@/cdp-target-store', () => ({
+  cleanupTargetIdFile: rs.fn(),
+  readSavedTargetId: rs.fn(() => undefined),
+  saveTargetId: rs.fn(),
 }));
 
 function createPersistenceRoot(): {
@@ -89,7 +89,7 @@ type WebInitArgTestFactory = () => {
 
 describe('web agent tool init args', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    rs.clearAllMocks();
   });
 
   afterEach(() => {
@@ -180,7 +180,7 @@ describe('web agent tool init args', () => {
       }),
     );
     expect(
-      vi.mocked(AgentOverChromeBridge).mock.results[0].value
+      rs.mocked(AgentOverChromeBridge).mock.results[0].value
         .connectNewTabWithUrl,
     ).toHaveBeenCalledWith('https://example.com');
   });
@@ -223,17 +223,17 @@ describe('web agent tool init args', () => {
     try {
       const firstAgent = {
         page: {
-          screenshotBase64: vi.fn(async () => validPngBase64),
+          screenshotBase64: rs.fn(async () => validPngBase64),
         },
-        destroy: vi.fn(),
+        destroy: rs.fn(),
       };
       const secondAgent = {
         page: {
-          screenshotBase64: vi.fn(async () => validPngBase64),
+          screenshotBase64: rs.fn(async () => validPngBase64),
         },
-        destroy: vi.fn(),
+        destroy: rs.fn(),
       };
-      vi.mocked(PuppeteerAgent)
+      rs.mocked(PuppeteerAgent)
         .mockReturnValueOnce(firstAgent as any)
         .mockReturnValueOnce(secondAgent as any);
 
@@ -272,17 +272,17 @@ describe('web agent tool init args', () => {
     try {
       const firstAgent = {
         page: {
-          screenshotBase64: vi.fn(async () => validPngBase64),
+          screenshotBase64: rs.fn(async () => validPngBase64),
         },
-        destroy: vi.fn(),
+        destroy: rs.fn(),
       };
       const secondAgent = {
         page: {
-          screenshotBase64: vi.fn(async () => validPngBase64),
+          screenshotBase64: rs.fn(async () => validPngBase64),
         },
-        destroy: vi.fn(),
+        destroy: rs.fn(),
       };
-      vi.mocked(PuppeteerAgent)
+      rs.mocked(PuppeteerAgent)
         .mockReturnValueOnce(firstAgent as any)
         .mockReturnValueOnce(secondAgent as any);
 
@@ -300,7 +300,7 @@ describe('web agent tool init args', () => {
 
       expect(PuppeteerAgent).toHaveBeenCalledTimes(2);
       expect(firstAgent.destroy).toHaveBeenCalledTimes(1);
-      const lastAgentOptions = vi.mocked(PuppeteerAgent).mock.calls.at(-1)?.[1];
+      const lastAgentOptions = rs.mocked(PuppeteerAgent).mock.calls.at(-1)?.[1];
       expect(lastAgentOptions).not.toHaveProperty('waitAfterAction');
     } finally {
       rmSync(root, { recursive: true, force: true });
@@ -315,7 +315,7 @@ describe('web agent tool init args', () => {
       }),
       () => {
         expect(AgentOverChromeBridge).toHaveBeenCalledTimes(2);
-        const openUrlCallCount = vi
+        const openUrlCallCount = rs
           .mocked(AgentOverChromeBridge)
           .mock.results.map((result) => result.value.connectNewTabWithUrl)
           .reduce(

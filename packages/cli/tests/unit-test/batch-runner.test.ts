@@ -15,68 +15,66 @@ import type {
   ScriptPlayerStatusValue,
 } from '@midscene/core';
 import { type ScriptPlayer, parseYamlScript } from '@midscene/core/yaml';
+import * as coreYamlActual from '@midscene/core/yaml' with {
+  rstest: 'importActual',
+};
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
+import * as puppeteerAgentLauncherActual from '@midscene/web/puppeteer-agent-launcher' with {
+  rstest: 'importActual',
+};
+import { beforeEach, describe, expect, rs, test } from '@rstest/core';
 import puppeteer from 'puppeteer';
-import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 // Mock all dependencies
-vi.mock('node:fs');
-vi.mock('puppeteer', () => ({
+// TODO(rstest): drop { mock: true } when bare auto-automock lands — https://github.com/web-infra-dev/rspack/pull/14418
+rs.mock('node:fs', { mock: true });
+rs.mock('puppeteer', () => ({
   default: {
-    launch: vi.fn().mockResolvedValue({
-      close: vi.fn().mockResolvedValue(undefined),
-      newPage: vi.fn().mockResolvedValue({
-        browser: vi.fn().mockReturnValue({}),
-        close: vi.fn().mockResolvedValue(undefined),
+    launch: rs.fn().mockResolvedValue({
+      close: rs.fn().mockResolvedValue(undefined),
+      newPage: rs.fn().mockResolvedValue({
+        browser: rs.fn().mockReturnValue({}),
+        close: rs.fn().mockResolvedValue(undefined),
       }),
     }),
-    connect: vi.fn().mockResolvedValue({
-      disconnect: vi.fn(),
-      close: vi.fn().mockResolvedValue(undefined),
-      newPage: vi.fn().mockResolvedValue({
-        browser: vi.fn().mockReturnValue({}),
-        close: vi.fn().mockResolvedValue(undefined),
+    connect: rs.fn().mockResolvedValue({
+      disconnect: rs.fn(),
+      close: rs.fn().mockResolvedValue(undefined),
+      newPage: rs.fn().mockResolvedValue({
+        browser: rs.fn().mockReturnValue({}),
+        close: rs.fn().mockResolvedValue(undefined),
       }),
-      pages: vi.fn().mockResolvedValue([]),
+      pages: rs.fn().mockResolvedValue([]),
     }),
   },
 }));
-vi.mock('@/create-yaml-player');
-vi.mock('@midscene/shared/common');
-vi.mock('@midscene/core/yaml', async (importOriginal) => {
-  const original = await importOriginal<typeof import('@midscene/core/yaml')>();
-  return {
-    ...original,
-    parseYamlScript: vi.fn(),
-  };
-});
-vi.mock('@/printer', () => ({
+rs.mock('@/create-yaml-player', { mock: true });
+rs.mock('@midscene/shared/common', { mock: true });
+rs.mock('@midscene/core/yaml', () => ({
+  ...coreYamlActual,
+  parseYamlScript: rs.fn(),
+}));
+rs.mock('@/printer', () => ({
   isTTY: false,
-  contextInfo: vi.fn().mockReturnValue({ mergedText: 'test info' }),
-  contextTaskListSummary: vi.fn().mockReturnValue('test summary'),
+  contextInfo: rs.fn().mockReturnValue({ mergedText: 'test info' }),
+  contextTaskListSummary: rs.fn().mockReturnValue('test summary'),
   spinnerInterval: 80,
 }));
-vi.mock('@/tty-renderer');
-vi.mock('@midscene/web/puppeteer-agent-launcher', async (importOriginal) => {
-  const original =
-    await importOriginal<
-      typeof import('@midscene/web/puppeteer-agent-launcher')
-    >();
-  return {
-    ...original,
-    buildDownloadBehavior: (downloadPath: string | undefined) =>
-      downloadPath
-        ? {
-            policy: 'allow',
-            downloadPath: downloadPath.startsWith('/')
-              ? downloadPath
-              : `${process.cwd()}/${downloadPath.replace(/^\.\//, '')}`,
-          }
-        : undefined,
-  };
-});
-vi.mock('@midscene/web/bridge-mode');
-vi.mock('@midscene/android');
+rs.mock('@/tty-renderer', { mock: true });
+rs.mock('@midscene/web/puppeteer-agent-launcher', () => ({
+  ...puppeteerAgentLauncherActual,
+  buildDownloadBehavior: (downloadPath: string | undefined) =>
+    downloadPath
+      ? {
+          policy: 'allow',
+          downloadPath: downloadPath.startsWith('/')
+            ? downloadPath
+            : `${process.cwd()}/${downloadPath.replace(/^\.\//, '')}`,
+        }
+      : undefined,
+}));
+rs.mock('@midscene/web/bridge-mode', { mock: true });
+rs.mock('@midscene/android', { mock: true });
 
 const mockBatchConfig = {
   files: ['file1.yml', 'file2.yml', 'file3.yml'],
@@ -110,12 +108,12 @@ const createMockPlayer = (
     result: { test: 'data' },
     errorInSetup: success ? null : new Error('Mock error'),
     taskStatusList: [],
-    run: vi.fn().mockImplementation(async () => {
+    run: rs.fn().mockImplementation(async () => {
       mockPlayer.status = success ? 'done' : 'error';
       return undefined;
     }),
     script: mockYamlScript,
-    setupAgent: vi.fn(),
+    setupAgent: rs.fn(),
     unnamedResultIndex: 0,
     pageAgent: null,
     currentTaskIndex: undefined,
@@ -126,23 +124,23 @@ const createMockPlayer = (
 
 describe('BatchRunner', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    rs.clearAllMocks();
 
-    vi.mocked(readFileSync).mockReturnValue('mock yaml content');
-    vi.mocked(mkdirSync).mockImplementation(() => undefined);
-    vi.mocked(writeFileSync).mockImplementation(() => undefined);
-    vi.mocked(statSync).mockReturnValue({ isFile: () => true } as Stats);
-    vi.mocked(existsSync).mockReturnValue(true);
+    rs.mocked(readFileSync).mockReturnValue('mock yaml content');
+    rs.mocked(mkdirSync).mockImplementation(() => undefined);
+    rs.mocked(writeFileSync).mockImplementation(() => undefined);
+    rs.mocked(statSync).mockReturnValue({ isFile: () => true } as Stats);
+    rs.mocked(existsSync).mockReturnValue(true);
 
-    vi.mocked(parseYamlScript).mockReturnValue(
+    rs.mocked(parseYamlScript).mockReturnValue(
       mockYamlScript as MidsceneYamlScript,
     );
 
-    vi.mocked(createYamlPlayer).mockImplementation(async () =>
+    rs.mocked(createYamlPlayer).mockImplementation(async () =>
       createMockPlayer(),
     );
 
-    vi.mocked(getMidsceneRunSubDir).mockReturnValue('/test/output');
+    rs.mocked(getMidsceneRunSubDir).mockReturnValue('/test/output');
   });
 
   describe('shareBrowserContext logic', () => {
@@ -157,14 +155,14 @@ describe('BatchRunner', () => {
 
       expect(puppeteer.launch).toHaveBeenCalledTimes(1);
 
-      const browserInstance = (await vi.mocked(puppeteer.launch).mock.results[0]
+      const browserInstance = (await rs.mocked(puppeteer.launch).mock.results[0]
         .value) as any;
-      expect(vi.mocked(createYamlPlayer)).toHaveBeenCalledWith(
+      expect(rs.mocked(createYamlPlayer)).toHaveBeenCalledWith(
         'web1.yml',
         expect.any(Object),
         expect.objectContaining({ browser: browserInstance }),
       );
-      expect(vi.mocked(createYamlPlayer)).toHaveBeenCalledWith(
+      expect(rs.mocked(createYamlPlayer)).toHaveBeenCalledWith(
         'web2.yml',
         expect.any(Object),
         expect.objectContaining({ browser: browserInstance }),
@@ -193,7 +191,7 @@ describe('BatchRunner', () => {
       expect(puppeteer.launch).toHaveBeenCalledTimes(1);
 
       // Verify that puppeteer.launch was called with the correct arguments
-      const launchCall = vi.mocked(puppeteer.launch).mock.calls[0][0];
+      const launchCall = rs.mocked(puppeteer.launch).mock.calls[0][0];
       expect(launchCall).toHaveProperty('args');
       expect(launchCall?.args).toEqual(
         expect.arrayContaining([
@@ -221,7 +219,7 @@ describe('BatchRunner', () => {
 
       expect(puppeteer.launch).toHaveBeenCalledTimes(1);
 
-      const launchCall = vi.mocked(puppeteer.launch).mock.calls[0][0];
+      const launchCall = rs.mocked(puppeteer.launch).mock.calls[0][0];
       expect(launchCall).toHaveProperty('acceptInsecureCerts', true);
     });
 
@@ -242,7 +240,7 @@ describe('BatchRunner', () => {
 
       expect(puppeteer.launch).toHaveBeenCalledTimes(1);
 
-      const launchCall = vi.mocked(puppeteer.launch).mock.calls[0][0];
+      const launchCall = rs.mocked(puppeteer.launch).mock.calls[0][0];
       expect(launchCall).toHaveProperty('downloadBehavior', {
         policy: 'allow',
         downloadPath: path.resolve('./downloads'),
@@ -260,12 +258,12 @@ describe('BatchRunner', () => {
 
       expect(puppeteer.launch).not.toHaveBeenCalled();
 
-      expect(vi.mocked(createYamlPlayer)).toHaveBeenCalledWith(
+      expect(rs.mocked(createYamlPlayer)).toHaveBeenCalledWith(
         'web1.yml',
         expect.any(Object),
         expect.not.objectContaining({ browser: expect.anything() }),
       );
-      expect(vi.mocked(createYamlPlayer)).toHaveBeenCalledWith(
+      expect(rs.mocked(createYamlPlayer)).toHaveBeenCalledWith(
         'web2.yml',
         expect.any(Object),
         expect.not.objectContaining({ browser: expect.anything() }),
@@ -280,7 +278,7 @@ describe('BatchRunner', () => {
         globalConfig: {},
       };
       // mock file config to be android only
-      vi.mocked(parseYamlScript).mockReturnValue({
+      rs.mocked(parseYamlScript).mockReturnValue({
         tasks: [],
         android: { deviceId: 'test' },
       });
@@ -342,16 +340,16 @@ describe('BatchRunner', () => {
     });
 
     test('should disconnect (not close) browser in CDP mode', async () => {
-      const mockDisconnect = vi.fn();
-      const mockClose = vi.fn().mockResolvedValue(undefined);
-      vi.mocked(puppeteer.connect).mockResolvedValue({
+      const mockDisconnect = rs.fn();
+      const mockClose = rs.fn().mockResolvedValue(undefined);
+      rs.mocked(puppeteer.connect).mockResolvedValue({
         disconnect: mockDisconnect,
         close: mockClose,
-        newPage: vi.fn().mockResolvedValue({
-          browser: vi.fn().mockReturnValue({}),
-          close: vi.fn().mockResolvedValue(undefined),
+        newPage: rs.fn().mockResolvedValue({
+          browser: rs.fn().mockReturnValue({}),
+          close: rs.fn().mockResolvedValue(undefined),
         }),
-        pages: vi.fn().mockResolvedValue([]),
+        pages: rs.fn().mockResolvedValue([]),
       } as any);
 
       const config = {
@@ -382,7 +380,7 @@ describe('BatchRunner', () => {
     });
 
     test('run executes files successfully with default options', async () => {
-      vi.mocked(createYamlPlayer).mockImplementation(async () =>
+      rs.mocked(createYamlPlayer).mockImplementation(async () =>
         createMockPlayer(true),
       );
       const executor = new BatchRunner(mockBatchConfig);
@@ -392,7 +390,7 @@ describe('BatchRunner', () => {
     });
 
     test('run executes files successfully with options', async () => {
-      vi.mocked(createYamlPlayer).mockImplementation(async () =>
+      rs.mocked(createYamlPlayer).mockImplementation(async () =>
         createMockPlayer(true),
       );
       const executor = new BatchRunner(mockBatchConfig);
@@ -407,7 +405,7 @@ describe('BatchRunner', () => {
     test('run stops on first failure when continueOnError=false', async () => {
       const config = { ...mockBatchConfig, continueOnError: false };
       let callCount = 0;
-      vi.mocked(createYamlPlayer).mockImplementation(async () => {
+      rs.mocked(createYamlPlayer).mockImplementation(async () => {
         const shouldFail = callCount === 0;
         callCount++;
         return createMockPlayer(!shouldFail);
@@ -437,7 +435,7 @@ describe('BatchRunner', () => {
     test('run continues on failure when continueOnError=true', async () => {
       const config = { ...mockBatchConfig, continueOnError: true };
       let callCount = 0;
-      vi.mocked(createYamlPlayer).mockImplementation(async () => {
+      rs.mocked(createYamlPlayer).mockImplementation(async () => {
         const shouldFail = callCount === 0;
         callCount++;
         return createMockPlayer(!shouldFail);
@@ -468,12 +466,12 @@ describe('BatchRunner', () => {
     });
 
     test('generates correct summary file structure', async () => {
-      vi.mocked(createYamlPlayer).mockImplementation(async () =>
+      rs.mocked(createYamlPlayer).mockImplementation(async () =>
         createMockPlayer(true),
       );
       const executor = new BatchRunner(mockBatchConfig);
       await executor.run();
-      const writeFileCalls = vi.mocked(writeFileSync).mock.calls;
+      const writeFileCalls = rs.mocked(writeFileSync).mock.calls;
       const summaryCall = writeFileCalls.find(
         (call) => call[0] === '/test/output/test-summary.json',
       );
@@ -496,7 +494,7 @@ describe('BatchRunner', () => {
     });
 
     test('getExecutionSummary returns correct summary', async () => {
-      vi.mocked(createYamlPlayer).mockImplementation(async () =>
+      rs.mocked(createYamlPlayer).mockImplementation(async () =>
         createMockPlayer(true),
       );
       await executor.run();
@@ -509,7 +507,7 @@ describe('BatchRunner', () => {
     });
 
     test('getFailedFiles returns failed files', async () => {
-      vi.mocked(createYamlPlayer).mockImplementation(async (file) =>
+      rs.mocked(createYamlPlayer).mockImplementation(async (file) =>
         createMockPlayer(file !== 'file1.yml'),
       );
       const config = { ...mockBatchConfig, continueOnError: true };
@@ -528,8 +526,8 @@ describe('BatchRunner', () => {
     });
 
     test('printExecutionSummary prints and returns success status', async () => {
-      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
-      vi.mocked(createYamlPlayer).mockImplementation(async () =>
+      const consoleSpy = rs.spyOn(console, 'log').mockImplementation(() => {});
+      rs.mocked(createYamlPlayer).mockImplementation(async () =>
         createMockPlayer(true),
       );
       await executor.run();
@@ -545,8 +543,8 @@ describe('BatchRunner', () => {
     });
 
     test('printExecutionSummary shows failed files when there are failures', async () => {
-      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
-      vi.mocked(createYamlPlayer).mockImplementation(async (file) =>
+      const consoleSpy = rs.spyOn(console, 'log').mockImplementation(() => {});
+      rs.mocked(createYamlPlayer).mockImplementation(async (file) =>
         createMockPlayer(file !== 'file1.yml'),
       );
       const config = { ...mockBatchConfig, continueOnError: true };
@@ -561,7 +559,7 @@ describe('BatchRunner', () => {
     });
 
     test('continueOnError: failed tasks should be counted as failed files', async () => {
-      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+      const consoleSpy = rs.spyOn(console, 'log').mockImplementation(() => {});
 
       // Create a mock player that simulates continueOnError behavior:
       // - player.status = 'done' (execution completed)
@@ -587,11 +585,11 @@ describe('BatchRunner', () => {
                 { status: 'done' },
               ]
             : [{ status: 'done' }],
-          run: vi.fn().mockImplementation(async () => {
+          run: rs.fn().mockImplementation(async () => {
             return undefined;
           }),
           script: mockYamlScript,
-          setupAgent: vi.fn(),
+          setupAgent: rs.fn(),
           unnamedResultIndex: 0,
           pageAgent: null,
           currentTaskIndex: undefined,
@@ -600,7 +598,7 @@ describe('BatchRunner', () => {
         return mockPlayer as unknown as ScriptPlayer<MidsceneYamlScriptEnv>;
       };
 
-      vi.mocked(createYamlPlayer).mockImplementation(async (file) =>
+      rs.mocked(createYamlPlayer).mockImplementation(async (file) =>
         createMockPlayerWithFailedTasks(file),
       );
 
@@ -626,21 +624,21 @@ describe('BatchRunner', () => {
 
   describe('BatchRunner output file existence check', () => {
     test('output field contains file path when file exists', async () => {
-      vi.mocked(existsSync).mockReturnValue(true);
+      rs.mocked(existsSync).mockReturnValue(true);
       const executor = new BatchRunner(mockBatchConfig);
       const results = await executor.run();
       expect(results[0].output).toBe('/test/output/file.json');
     });
 
     test('output field is undefined when file does not exist', async () => {
-      vi.mocked(existsSync).mockReturnValue(false);
+      rs.mocked(existsSync).mockReturnValue(false);
       const executor = new BatchRunner(mockBatchConfig);
       const results = await executor.run();
       expect(results[0].output).toBeUndefined();
     });
 
     test('output field is undefined when player.output is null', async () => {
-      vi.mocked(createYamlPlayer).mockImplementation(async () => {
+      rs.mocked(createYamlPlayer).mockImplementation(async () => {
         const mockPlayer = createMockPlayer(true);
         mockPlayer.output = null as any;
         return mockPlayer;
@@ -651,7 +649,7 @@ describe('BatchRunner', () => {
     });
 
     test('existsSync is called with correct file path', async () => {
-      const mockExistsSync = vi.mocked(existsSync).mockReturnValue(true);
+      const mockExistsSync = rs.mocked(existsSync).mockReturnValue(true);
       const executor = new BatchRunner(mockBatchConfig);
       await executor.run();
       expect(mockExistsSync).toHaveBeenCalledWith('/test/output/file.json');
@@ -660,7 +658,7 @@ describe('BatchRunner', () => {
 
   describe('Error message collection in summary', () => {
     test('should collect specific error message from failed task instead of generic "Execution failed"', async () => {
-      vi.mocked(createYamlPlayer).mockImplementation(async () => {
+      rs.mocked(createYamlPlayer).mockImplementation(async () => {
         const mockPlayer = {
           status: 'error' as ScriptPlayerStatusValue,
           output: '/test/output/file.json',
@@ -673,9 +671,9 @@ describe('BatchRunner', () => {
               error: new Error('Specific error: element not found on page'),
             },
           ],
-          run: vi.fn().mockImplementation(async () => undefined),
+          run: rs.fn().mockImplementation(async () => undefined),
           script: mockYamlScript,
-          setupAgent: vi.fn(),
+          setupAgent: rs.fn(),
           unnamedResultIndex: 0,
           pageAgent: null,
           currentTaskIndex: undefined,
@@ -695,7 +693,7 @@ describe('BatchRunner', () => {
     });
 
     test('should join multiple task error messages with semicolons', async () => {
-      vi.mocked(createYamlPlayer).mockImplementation(async () => {
+      rs.mocked(createYamlPlayer).mockImplementation(async () => {
         const mockPlayer = {
           status: 'done' as ScriptPlayerStatusValue,
           output: '/test/output/file.json',
@@ -707,9 +705,9 @@ describe('BatchRunner', () => {
             { status: 'done' },
             { status: 'error', error: new Error('Third task failed') },
           ],
-          run: vi.fn().mockImplementation(async () => undefined),
+          run: rs.fn().mockImplementation(async () => undefined),
           script: mockYamlScript,
-          setupAgent: vi.fn(),
+          setupAgent: rs.fn(),
           unnamedResultIndex: 0,
           pageAgent: null,
           currentTaskIndex: undefined,
@@ -730,7 +728,7 @@ describe('BatchRunner', () => {
     });
 
     test('should use errorInSetup message when available', async () => {
-      vi.mocked(createYamlPlayer).mockImplementation(async () => {
+      rs.mocked(createYamlPlayer).mockImplementation(async () => {
         const mockPlayer = {
           status: 'error' as ScriptPlayerStatusValue,
           output: '/test/output/file.json',
@@ -738,9 +736,9 @@ describe('BatchRunner', () => {
           result: {},
           errorInSetup: new Error('Setup failed: invalid URL'),
           taskStatusList: [],
-          run: vi.fn().mockImplementation(async () => undefined),
+          run: rs.fn().mockImplementation(async () => undefined),
           script: mockYamlScript,
-          setupAgent: vi.fn(),
+          setupAgent: rs.fn(),
           unnamedResultIndex: 0,
           pageAgent: null,
           currentTaskIndex: undefined,
@@ -774,13 +772,13 @@ describe('BatchRunner', () => {
         dotenvDebug: true,
         dotenvOverride: false,
       });
-      vi.mocked(parseYamlScript).mockReturnValue(
+      rs.mocked(parseYamlScript).mockReturnValue(
         JSON.parse(JSON.stringify(baseFileConfig)),
       );
 
       await runner.run();
 
-      const createYamlPlayerSpy = vi.mocked(createYamlPlayer);
+      const createYamlPlayerSpy = rs.mocked(createYamlPlayer);
       expect(createYamlPlayerSpy).toHaveBeenCalled();
       const call = createYamlPlayerSpy.mock.calls[0];
       // The script passed to the player should be unchanged
@@ -803,13 +801,13 @@ describe('BatchRunner', () => {
         dotenvDebug: true,
         dotenvOverride: false,
       });
-      vi.mocked(parseYamlScript).mockReturnValue(
+      rs.mocked(parseYamlScript).mockReturnValue(
         JSON.parse(JSON.stringify(baseFileConfig)),
       );
 
       await runner.run();
 
-      const createYamlPlayerSpy = vi.mocked(createYamlPlayer);
+      const createYamlPlayerSpy = rs.mocked(createYamlPlayer);
       const call = createYamlPlayerSpy.mock.calls[0];
       const script = call[1]!;
 
@@ -832,13 +830,13 @@ describe('BatchRunner', () => {
         dotenvDebug: true,
         dotenvOverride: false,
       });
-      vi.mocked(parseYamlScript).mockReturnValue(
+      rs.mocked(parseYamlScript).mockReturnValue(
         JSON.parse(JSON.stringify(baseFileConfig)),
       );
 
       await runner.run();
 
-      const createYamlPlayerSpy = vi.mocked(createYamlPlayer);
+      const createYamlPlayerSpy = rs.mocked(createYamlPlayer);
       const call = createYamlPlayerSpy.mock.calls[0];
       const script = call[1]!;
 
@@ -863,13 +861,13 @@ describe('BatchRunner', () => {
         dotenvDebug: true,
         dotenvOverride: false,
       });
-      vi.mocked(parseYamlScript).mockReturnValue(
+      rs.mocked(parseYamlScript).mockReturnValue(
         JSON.parse(JSON.stringify(fileConfigWithoutWebAndroid)),
       );
 
       await runner.run();
 
-      const createYamlPlayerSpy = vi.mocked(createYamlPlayer);
+      const createYamlPlayerSpy = rs.mocked(createYamlPlayer);
       const call = createYamlPlayerSpy.mock.calls[0];
       const script = call[1]!;
 
@@ -881,7 +879,7 @@ describe('BatchRunner', () => {
 
     test('should not launch puppeteer if no web tasks are present', async () => {
       const puppeteer = await import('puppeteer');
-      const launchSpy = vi.spyOn(puppeteer.default, 'launch');
+      const launchSpy = rs.spyOn(puppeteer.default, 'launch');
 
       const runner = new BatchRunner({
         ...mockBatchConfig,
@@ -897,7 +895,7 @@ describe('BatchRunner', () => {
         tasks: [{ name: 'android task', flow: [{ ai: 'do something' }] }],
         android: { deviceId: 'test-device' },
       };
-      vi.mocked(parseYamlScript).mockReturnValue(androidOnlyScript);
+      rs.mocked(parseYamlScript).mockReturnValue(androidOnlyScript);
 
       await runner.run();
 

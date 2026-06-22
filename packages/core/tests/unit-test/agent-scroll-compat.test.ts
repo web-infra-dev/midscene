@@ -1,9 +1,9 @@
 import { Agent } from '@/agent';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 
 const createAgentStub = () => {
   const agent = Object.create(Agent.prototype) as Agent<any>;
-  (agent as any).callActionInActionSpace = vi.fn(async () => undefined);
+  (agent as any).callActionInActionSpace = rs.fn(async () => undefined);
   return agent;
 };
 
@@ -11,7 +11,7 @@ describe('Agent aiScroll legacy scrollType compatibility', () => {
   it('normalizes legacy scrollType values in legacy signature', async () => {
     const agent = createAgentStub();
     const callActionSpy = (agent as any).callActionInActionSpace as ReturnType<
-      typeof vi.fn
+      typeof rs.fn
     >;
 
     await agent.aiScroll({ direction: 'down', scrollType: 'once' } as any);
@@ -28,7 +28,7 @@ describe('Agent aiScroll legacy scrollType compatibility', () => {
   it('normalizes legacy scrollType values in new signature', async () => {
     const agent = createAgentStub();
     const callActionSpy = (agent as any).callActionInActionSpace as ReturnType<
-      typeof vi.fn
+      typeof rs.fn
     >;
 
     await agent.aiScroll('product list', {
@@ -48,7 +48,7 @@ describe('Agent aiScroll legacy scrollType compatibility', () => {
   it('uses new signature when scroll options is an empty object', async () => {
     const agent = createAgentStub();
     const callActionSpy = (agent as any).callActionInActionSpace as ReturnType<
-      typeof vi.fn
+      typeof rs.fn
     >;
 
     await agent.aiScroll('计数器', {} as any);
@@ -67,7 +67,7 @@ describe('Agent aiScroll legacy scrollType compatibility', () => {
   it('uses new signature when locatePrompt is an object with prompt', async () => {
     const agent = createAgentStub();
     const callActionSpy = (agent as any).callActionInActionSpace as ReturnType<
-      typeof vi.fn
+      typeof rs.fn
     >;
 
     await agent.aiScroll({ prompt: '计数器' } as any, {} as any);
@@ -86,7 +86,7 @@ describe('Agent aiScroll legacy scrollType compatibility', () => {
   it('treats null locatePrompt as a global scroll', async () => {
     const agent = createAgentStub();
     const callActionSpy = (agent as any).callActionInActionSpace as ReturnType<
-      typeof vi.fn
+      typeof rs.fn
     >;
 
     await agent.aiScroll(

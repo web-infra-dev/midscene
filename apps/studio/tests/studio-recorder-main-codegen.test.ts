@@ -1,23 +1,23 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, rs } from '@rstest/core';
 
-vi.mock('@midscene/core/ai-model', () => ({
-  generateRecorderSessionMetadata: vi.fn(async () => ({
+rs.mock('@midscene/core/ai-model', () => ({
+  generateRecorderSessionMetadata: rs.fn(async () => ({
     title: 'Browsing Midscene.js Documentation',
     description: 'The user visited the Midscene.js introduction page.',
   })),
-  generatePlaywrightTest: vi.fn(
+  generatePlaywrightTest: rs.fn(
     async () => 'import { test } from "@playwright/test";\n',
   ),
-  convertRecordLogIntoMarkdown: vi.fn(
+  convertRecordLogIntoMarkdown: rs.fn(
     async () => '# Replay recording\n\n## Steps\n1. Open page\n',
   ),
-  generateRecorderYamlTest: vi.fn(
+  generateRecorderYamlTest: rs.fn(
     async () => 'web:\n  url: "https://example.com"\n',
   ),
 }));
 
-vi.mock('@midscene/playground/recorder-ui-describer', () => ({
-  describeRecorderUIEvents: vi.fn(async () => []),
+rs.mock('@midscene/playground/recorder-ui-describer', () => ({
+  describeRecorderUIEvents: rs.fn(async () => []),
 }));
 
 import {
@@ -34,7 +34,7 @@ import type { GenerateRecorderCodeRequest } from '../src/shared/electron-contrac
 
 describe('Studio recorder codegen in main', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    rs.clearAllMocks();
   });
 
   const yamlRequest: Omit<GenerateRecorderCodeRequest, 'type'> = {
@@ -100,7 +100,7 @@ describe('Studio recorder codegen in main', () => {
   });
 
   it('retries Markdown replay generation without screenshots after input length errors', async () => {
-    vi.mocked(convertRecordLogIntoMarkdown)
+    rs.mocked(convertRecordLogIntoMarkdown)
       .mockRejectedValueOnce(
         new Error(
           'failed to call AI model service: Range of input length should be [1, 991808]',

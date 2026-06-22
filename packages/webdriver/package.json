@@ -14,7 +14,7 @@
     "dev": "npm run build:watch",
     "build": "rslib build",
     "build:watch": "rslib build --watch --no-clean",
-    "test": "vitest --run",
+    "test": "rstest",
     "lint": "biome check .",
     "lint:fix": "biome check . --write"
   },
@@ -24,9 +24,9 @@
   },
   "devDependencies": {
     "@rslib/core": "^0.18.3",
+    "@rstest/core": "0.10.6",
     "@types/node": "^18.0.0",
-    "typescript": "^5.8.3",
-    "vitest": "3.0.5"
+    "typescript": "^5.8.3"
   },
   "exports": {
     ".": {

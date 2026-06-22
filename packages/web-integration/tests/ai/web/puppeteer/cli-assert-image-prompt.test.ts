@@ -5,7 +5,7 @@ import type {
   BaseAgent,
   ToolDefinition,
 } from '@midscene/shared/agent-tools/types';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 import { createTestContext } from './test-utils';
 import { launchPage } from './utils';
 

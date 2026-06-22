@@ -1,38 +1,38 @@
 import type { ExecutorContext } from '@midscene/core';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
 
-const mockState = vi.hoisted(() => {
-  const execSync = vi.fn();
-  const execFileSync = vi.fn();
+const mockState = rs.hoisted(() => {
+  const execSync = rs.fn();
+  const execFileSync = rs.fn();
 
-  const screenshot = vi.fn(async () => Buffer.from('png')) as ReturnType<
-    typeof vi.fn
+  const screenshot = rs.fn(async () => Buffer.from('png')) as ReturnType<
+    typeof rs.fn
   > & {
-    listDisplays: ReturnType<typeof vi.fn>;
+    listDisplays: ReturnType<typeof rs.fn>;
   };
-  screenshot.listDisplays = vi.fn(async () => [
+  screenshot.listDisplays = rs.fn(async () => [
     { id: 1, name: 'Display 1', primary: true },
   ]);
 
   let mousePos = { x: 10, y: 20 };
   const libnut = {
-    getScreenSize: vi.fn(() => ({ width: 800, height: 600 })),
-    getMousePos: vi.fn(() => ({ ...mousePos })),
-    moveMouse: vi.fn((x: number, y: number) => {
+    getScreenSize: rs.fn(() => ({ width: 800, height: 600 })),
+    getMousePos: rs.fn(() => ({ ...mousePos })),
+    moveMouse: rs.fn((x: number, y: number) => {
       mousePos = { x, y };
     }),
-    mouseClick: vi.fn(),
-    mouseToggle: vi.fn(),
-    scrollMouse: vi.fn(),
-    keyTap: vi.fn(),
-    typeString: vi.fn(),
-    getActiveWindow: vi.fn(() => 0),
-    getWindowRect: vi.fn(),
-    focusWindow: vi.fn(),
+    mouseClick: rs.fn(),
+    mouseToggle: rs.fn(),
+    scrollMouse: rs.fn(),
+    keyTap: rs.fn(),
+    typeString: rs.fn(),
+    getActiveWindow: rs.fn(() => 0),
+    getWindowRect: rs.fn(),
+    focusWindow: rs.fn(),
   };
 
-  const createRequire = vi.fn(() =>
-    vi.fn(() => ({
+  const createRequire = rs.fn(() =>
+    rs.fn(() => ({
       libnut,
     })),
   );
@@ -68,16 +68,16 @@ const mockState = vi.hoisted(() => {
   };
 });
 
-vi.mock('node:child_process', () => ({
+rs.mock('node:child_process', () => ({
   execSync: mockState.execSync,
   execFileSync: mockState.execFileSync,
 }));
 
-vi.mock('screenshot-desktop', () => ({
+rs.mock('screenshot-desktop', () => ({
   default: mockState.screenshot,
 }));
 
-vi.mock('node:module', () => ({
+rs.mock('node:module', () => ({
   createRequire: mockState.createRequire,
 }));
 
@@ -90,8 +90,8 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  vi.useRealTimers();
-  vi.resetModules();
+  rs.useRealTimers();
+  rs.resetModules();
   Object.defineProperty(process, 'platform', { value: originalPlatform });
 });
 
@@ -187,7 +187,7 @@ describe('ComputerDevice destroy input gate', () => {
 
     const tapPromise = device.inputPrimitives.pointer.tap({ x: 200, y: 120 });
 
-    await vi.waitFor(() => {
+    await rs.waitFor(() => {
       expect(mockState.libnut.mouseToggle).toHaveBeenCalledWith('down', 'left');
     });
 
@@ -209,9 +209,9 @@ describe('ComputerInputDriver native arg handling', () => {
     const driver = new ComputerInputDriver({
       getLibnut: () => mockState.libnut,
       useAppleScript: () => false,
-      sendKeyViaAppleScript: vi.fn(),
-      runPhasedScroll: vi.fn(() => true),
-      debug: vi.fn(),
+      sendKeyViaAppleScript: rs.fn(),
+      runPhasedScroll: rs.fn(() => true),
+      debug: rs.fn(),
     });
 
     driver.mouseClick('right');
@@ -231,9 +231,9 @@ describe('ComputerInputDriver native arg handling', () => {
     const driver = new ComputerInputDriver({
       getLibnut: () => mockState.libnut,
       useAppleScript: () => false,
-      sendKeyViaAppleScript: vi.fn(),
-      runPhasedScroll: vi.fn(() => true),
-      debug: vi.fn(),
+      sendKeyViaAppleScript: rs.fn(),
+      runPhasedScroll: rs.fn(() => true),
+      debug: rs.fn(),
     });
 
     driver.keyTap('backspace');
@@ -305,16 +305,16 @@ describe('ComputerDevice pointer input', () => {
   it('holds tap until the requested duration elapses', async () => {
     const device = await createConnectedDevice();
 
-    vi.useFakeTimers();
+    rs.useFakeTimers();
     const tapPromise = device.inputPrimitives.pointer!.tap(
       { x: 100, y: 120 },
       { duration: 250 },
     );
 
-    await vi.advanceTimersByTimeAsync(64);
+    await rs.advanceTimersByTimeAsync(64);
     expect(mockState.libnut.mouseToggle).not.toHaveBeenCalled();
 
-    await vi.advanceTimersByTimeAsync(50);
+    await rs.advanceTimersByTimeAsync(50);
     expect(mockState.libnut.mouseToggle).toHaveBeenCalledTimes(1);
     expect(mockState.libnut.mouseToggle).toHaveBeenNthCalledWith(
       1,
@@ -322,10 +322,10 @@ describe('ComputerDevice pointer input', () => {
       'left',
     );
 
-    await vi.advanceTimersByTimeAsync(249);
+    await rs.advanceTimersByTimeAsync(249);
     expect(mockState.libnut.mouseToggle).toHaveBeenCalledTimes(1);
 
-    await vi.advanceTimersByTimeAsync(1);
+    await rs.advanceTimersByTimeAsync(1);
     await tapPromise;
     expect(mockState.libnut.mouseToggle).toHaveBeenCalledTimes(2);
     expect(mockState.libnut.mouseToggle).toHaveBeenNthCalledWith(
@@ -342,13 +342,13 @@ describe('ComputerDevice pointer input', () => {
       .mockReturnValueOnce(Buffer.from('100\tElectron'))
       .mockReturnValueOnce(Buffer.from('200\tSafari'));
 
-    vi.useFakeTimers();
+    rs.useFakeTimers();
     const tapPromise = device.inputPrimitives.pointer!.tap({
       x: 100,
       y: 120,
     });
 
-    await vi.advanceTimersByTimeAsync(64 + 50 + 100 + 120 + 50 + 100);
+    await rs.advanceTimersByTimeAsync(64 + 50 + 100 + 120 + 50 + 100);
     await tapPromise;
 
     expect(mockState.execFileSync).toHaveBeenCalledTimes(2);

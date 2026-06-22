@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, rs } from '@rstest/core';
 import {
   DEVICE_DISCOVERY_POLL_INTERVAL_MS,
   createDeviceDiscoveryService,
@@ -6,13 +6,13 @@ import {
 
 describe('createDeviceDiscoveryService', () => {
   afterEach(() => {
-    vi.useRealTimers();
+    rs.useRealTimers();
   });
 
   it('refreshes immediately and publishes changed snapshots to listeners', async () => {
-    vi.useFakeTimers();
+    rs.useFakeTimers();
 
-    const discoverDevices = vi
+    const discoverDevices = rs
       .fn()
       .mockResolvedValueOnce({
         devices: [
@@ -41,7 +41,7 @@ describe('createDeviceDiscoveryService', () => {
       discoverDevices,
       intervalMs: DEVICE_DISCOVERY_POLL_INTERVAL_MS,
     });
-    const listener = vi.fn();
+    const listener = rs.fn();
     const unsubscribe = service.subscribe(listener);
 
     await service.getSnapshot();
@@ -60,7 +60,7 @@ describe('createDeviceDiscoveryService', () => {
       errors: [],
     });
 
-    await vi.advanceTimersByTimeAsync(DEVICE_DISCOVERY_POLL_INTERVAL_MS);
+    await rs.advanceTimersByTimeAsync(DEVICE_DISCOVERY_POLL_INTERVAL_MS);
 
     expect(discoverDevices).toHaveBeenCalledTimes(2);
     expect(listener).toHaveBeenCalledTimes(2);
@@ -81,9 +81,9 @@ describe('createDeviceDiscoveryService', () => {
   });
 
   it('pauses background polling while still allowing forced refreshes', async () => {
-    vi.useFakeTimers();
+    rs.useFakeTimers();
 
-    const discoverDevices = vi.fn().mockResolvedValue({
+    const discoverDevices = rs.fn().mockResolvedValue({
       devices: [
         {
           platformId: 'android',
@@ -104,14 +104,14 @@ describe('createDeviceDiscoveryService', () => {
     expect(discoverDevices).toHaveBeenCalledTimes(1);
 
     service.setPollingPaused(true);
-    await vi.advanceTimersByTimeAsync(DEVICE_DISCOVERY_POLL_INTERVAL_MS * 2);
+    await rs.advanceTimersByTimeAsync(DEVICE_DISCOVERY_POLL_INTERVAL_MS * 2);
     expect(discoverDevices).toHaveBeenCalledTimes(1);
 
     await service.getSnapshot({ forceRefresh: true });
     expect(discoverDevices).toHaveBeenCalledTimes(2);
 
     service.setPollingPaused(false);
-    await vi.advanceTimersByTimeAsync(DEVICE_DISCOVERY_POLL_INTERVAL_MS);
+    await rs.advanceTimersByTimeAsync(DEVICE_DISCOVERY_POLL_INTERVAL_MS);
     expect(discoverDevices).toHaveBeenCalledTimes(4);
 
     service.close();

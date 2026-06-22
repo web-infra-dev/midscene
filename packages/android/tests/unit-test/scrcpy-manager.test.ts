@@ -1,22 +1,22 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, rs } from '@rstest/core';
 import { ScrcpyScreenshotManager } from '../../src/scrcpy-manager';
 
 describe('ScrcpyScreenshotManager', () => {
   afterEach(() => {
-    vi.restoreAllMocks();
+    rs.restoreAllMocks();
   });
 
   describe('validateEnvironment', () => {
     it('should succeed when ffmpeg is available', async () => {
       const manager = new ScrcpyScreenshotManager({} as any);
-      vi.spyOn(manager as any, 'checkFfmpegAvailable').mockResolvedValue(true);
+      rs.spyOn(manager as any, 'checkFfmpegAvailable').mockResolvedValue(true);
 
       await expect(manager.validateEnvironment()).resolves.toBeUndefined();
     });
 
     it('should throw when ffmpeg is not available', async () => {
       const manager = new ScrcpyScreenshotManager({} as any);
-      vi.spyOn(manager as any, 'checkFfmpegAvailable').mockResolvedValue(false);
+      rs.spyOn(manager as any, 'checkFfmpegAvailable').mockResolvedValue(false);
 
       await expect(manager.validateEnvironment()).rejects.toThrow(
         'ffmpeg is not available',
@@ -25,7 +25,7 @@ describe('ScrcpyScreenshotManager', () => {
 
     it('should throw when checkFfmpegAvailable throws an error', async () => {
       const manager = new ScrcpyScreenshotManager({} as any);
-      vi.spyOn(manager as any, 'checkFfmpegAvailable').mockRejectedValue(
+      rs.spyOn(manager as any, 'checkFfmpegAvailable').mockRejectedValue(
         new Error('unexpected error'),
       );
 
@@ -36,7 +36,7 @@ describe('ScrcpyScreenshotManager', () => {
 
     it('should cache ffmpeg check result (only check once on success)', async () => {
       const manager = new ScrcpyScreenshotManager({} as any);
-      const spy = vi
+      const spy = rs
         .spyOn(manager as any, 'checkFfmpegAvailable')
         .mockResolvedValue(true);
 
@@ -48,10 +48,10 @@ describe('ScrcpyScreenshotManager', () => {
 
     it('should be independent from ensureConnected', async () => {
       const manager = new ScrcpyScreenshotManager({} as any);
-      vi.spyOn(manager as any, 'checkFfmpegAvailable').mockResolvedValue(true);
+      rs.spyOn(manager as any, 'checkFfmpegAvailable').mockResolvedValue(true);
 
       // validateEnvironment should not trigger ensureConnected logic
-      const ensureConnectedSpy = vi.spyOn(manager, 'ensureConnected');
+      const ensureConnectedSpy = rs.spyOn(manager, 'ensureConnected');
 
       await manager.validateEnvironment();
 
@@ -154,7 +154,7 @@ describe('ScrcpyScreenshotManager', () => {
       (manager as any).lastRawKeyframe = Buffer.from('keyframe');
       (manager as any).isInitialized = true;
       (manager as any).keyframeResolvers = [() => {}];
-      (manager as any).streamReader = { cancel: vi.fn() };
+      (manager as any).streamReader = { cancel: rs.fn() };
 
       await manager.disconnect();
 
@@ -180,7 +180,7 @@ describe('ScrcpyScreenshotManager', () => {
     it('should handle scrcpyClient.close() error gracefully', async () => {
       const manager = new ScrcpyScreenshotManager({} as any);
       (manager as any).scrcpyClient = {
-        close: vi.fn().mockRejectedValue(new Error('close failed')),
+        close: rs.fn().mockRejectedValue(new Error('close failed')),
       };
 
       // Should not throw
@@ -191,7 +191,7 @@ describe('ScrcpyScreenshotManager', () => {
 
     it('should cancel streamReader to stop consumeFramesLoop', async () => {
       const manager = new ScrcpyScreenshotManager({} as any);
-      const cancelFn = vi.fn();
+      const cancelFn = rs.fn();
       (manager as any).streamReader = { cancel: cancelFn };
 
       await manager.disconnect();
@@ -204,7 +204,7 @@ describe('ScrcpyScreenshotManager', () => {
       const manager = new ScrcpyScreenshotManager({} as any);
       let clientNulledBeforeClose = false;
       (manager as any).scrcpyClient = {
-        close: vi.fn().mockImplementation(async () => {
+        close: rs.fn().mockImplementation(async () => {
           // At this point, scrcpyClient should already be null
           clientNulledBeforeClose = (manager as any).scrcpyClient === null;
         }),

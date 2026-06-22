@@ -1,7 +1,7 @@
 import { PuppeteerAgent } from '@/puppeteer';
 import { sleep } from '@midscene/core/utils';
 import { globalModelConfigManager } from '@midscene/shared/env';
-import { describe, it } from 'vitest';
+import { describe, it } from '@rstest/core';
 import {
   DEFAULT_TEST_TIMEOUT,
   createTestContext,

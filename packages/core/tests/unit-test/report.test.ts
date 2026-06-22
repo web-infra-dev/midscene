@@ -8,7 +8,7 @@ import {
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 import {
   extractAllDumpScriptsSync,
   generateImageScriptTag,
@@ -153,7 +153,6 @@ describe('reportMergingTool', () => {
 
   it(
     'should merge 100 mocked reports, and delete original reports after that.',
-    { timeout: 30 * 1000 },
     async () => {
       const tool = new ReportMergingTool();
       let mergedReportPath: string | null = null;
@@ -188,6 +187,7 @@ describe('reportMergingTool', () => {
         }
       }
     },
+    30 * 1000,
   );
 
   it('should merge directory mode reports and copy screenshots', async () => {
@@ -443,7 +443,6 @@ describe('reportMergingTool', () => {
 
   it(
     'should use constant memory when merging reports with large inline images',
-    { timeout: 2 * 60 * 1000 },
     async () => {
       // This test verifies that streaming works correctly by checking:
       // 1. All images are correctly merged
@@ -534,5 +533,6 @@ ${imageScripts}
         rmSync(tmpDir, { recursive: true, force: true });
       }
     },
+    2 * 60 * 1000,
   );
 });

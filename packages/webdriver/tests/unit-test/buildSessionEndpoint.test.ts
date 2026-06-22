@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 import { WebDriverClient } from '../../src/clients/WebDriverClient';
 
 // Expose protected method for testing
@@ -54,7 +54,7 @@ describe('WebDriverClient external session cleanup', () => {
       host: 'localhost',
       sessionId: 'external-session',
     });
-    const makeRequestSpy = vi.spyOn(client as any, 'makeRequest');
+    const makeRequestSpy = rs.spyOn(client as any, 'makeRequest');
 
     expect(client.sessionInfo?.sessionId).toBe('external-session');
 

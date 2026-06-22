@@ -24,7 +24,7 @@ import {
 } from '@/types';
 import { uuid } from '@midscene/shared/utils';
 import { antiEscapeScriptTag, escapeScriptTag } from '@midscene/shared/utils';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from '@rstest/core';
 
 function fakeBase64(sizeBytes: number): string {
   return `data:image/png;base64,${'A'.repeat(sizeBytes)}`;
@@ -162,9 +162,18 @@ describe('browser parse simulation for merged directory-mode reports', () => {
     // Read the full merged HTML
     const mergedHtml = readFileSync(mergedPath!, 'utf-8');
 
-    // Verify merged file is not bloated with garbage from streamImageScriptsToFile
-    const mergedSizeMB = mergedHtml.length / 1024 / 1024;
-    expect(mergedSizeMB).toBeLessThan(15);
+    // Verify merged file is not bloated with garbage from streamImageScriptsToFile.
+    // A single directory-mode report is ~the report template size; a correct
+    // merge keeps the template once and stores screenshots as files, so the
+    // merged size should stay close to one source report. Guarding relative to a
+    // single report (instead of a brittle absolute cap) still catches real bloat
+    // — inlined screenshots or a duplicated template would push it past ~2x —
+    // without breaking every time the report viewer bundle grows.
+    const singleReportBytes = readFileSync(
+      join(tmpDir, 'step2-report-0', 'index.html'),
+      'utf-8',
+    ).length;
+    expect(mergedHtml.length).toBeLessThan(singleReportBytes * 1.5);
 
     // Verify base URL fix script is injected
     expect(mergedHtml).toContain('document.createElement("base")');

@@ -5,7 +5,7 @@ import {
   resolveRstestCoreImportPath,
   runRstestYamlProject,
 } from '@/framework/rstest-runner';
-import { afterEach, describe, expect, test } from 'vitest';
+import { afterEach, describe, expect, test } from '@rstest/core';
 
 describe('rstest runner', () => {
   test('resolves the bundled Rstest core import path', () => {

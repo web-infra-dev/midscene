@@ -1,9 +1,10 @@
 import { readFileSync } from 'node:fs';
+import path from 'node:path';
 import type {
   PlaygroundSessionField,
   PlaygroundSessionSetup,
 } from '@midscene/playground';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 import { getPlatformSelectorOptions } from '../src/SessionSetupPanel';
 
 const setup: PlaygroundSessionSetup = {
@@ -75,8 +76,10 @@ describe('SessionSetupPanel', () => {
   });
 
   it('keeps long setup forms reachable inside constrained sidebars', () => {
+    // Resolve from the package root (process.cwd() when rstest runs the suite);
+    // `import.meta.url` points into the bundled temp dir, not the source tree.
     const styles = readFileSync(
-      new URL('../src/SessionSetupPanel.less', import.meta.url),
+      path.resolve(process.cwd(), 'src/SessionSetupPanel.less'),
       'utf8',
     );
     const panelRule =

@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import type { Rect, Size } from '@midscene/core';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 import { ComputerAgent, RDPDevice } from '../../../src';
 import type {
   RDPBackendClient,
@@ -143,79 +143,75 @@ function isPointInsideRect(x: number, y: number, rect: Rect): boolean {
   );
 }
 
-describe(
-  '@midscene/computer RDP AI login flow',
-  {
-    timeout: 3 * 60 * 1000,
-  },
-  () => {
-    it('uses the screenshot to fill the login form and click Login', async () => {
-      const usernameRect = findRectByContent(fixture.tree, 'Username');
-      const passwordRect = findRectByContent(fixture.tree, 'Password');
-      const loginRect = findRectByContent(fixture.tree, 'Login');
+rs.setConfig({ testTimeout: 3 * 60 * 1000 });
 
-      const backend = new FixtureRDPBackend(fixture);
-      const device = new RDPDevice({
-        host: '10.75.166.249',
-        username: 'Admin',
-        backend,
-      });
-      await device.connect();
+describe('@midscene/computer RDP AI login flow', () => {
+  it('uses the screenshot to fill the login form and click Login', async () => {
+    const usernameRect = findRectByContent(fixture.tree, 'Username');
+    const passwordRect = findRectByContent(fixture.tree, 'Password');
+    const loginRect = findRectByContent(fixture.tree, 'Login');
 
-      const agent = new ComputerAgent(device, {
-        aiActionContext:
-          'You are controlling a remote desktop through the RDP protocol. Use Input for text fields and Tap for buttons based only on the visible screenshot.',
-        generateReport: true,
-        autoPrintReportMsg: false,
-        reportFileName: 'rdp-fixture-login-form-ai-report',
-      });
-
-      try {
-        await agent.aiAct(
-          'Click the Username field and type standard_user. Click the Password field and type secret_sauce. Then click the Login button.',
-        );
-      } finally {
-        await device.destroy();
-      }
-
-      const typedValues = backend.calls
-        .filter((call): call is Extract<BackendCall, { name: 'typeText' }> => {
-          return call.name === 'typeText';
-        })
-        .map((call) => call.args[0]);
-      expect(typedValues).toEqual(
-        expect.arrayContaining(['standard_user', 'secret_sauce']),
-      );
-
-      const movedPoints = backend.calls
-        .filter((call): call is Extract<BackendCall, { name: 'mouseMove' }> => {
-          return call.name === 'mouseMove';
-        })
-        .map((call) => ({
-          x: call.args[0],
-          y: call.args[1],
-        }));
-      expect(
-        movedPoints.some(({ x, y }) => isPointInsideRect(x, y, usernameRect)),
-      ).toBe(true);
-      expect(
-        movedPoints.some(({ x, y }) => isPointInsideRect(x, y, passwordRect)),
-      ).toBe(true);
-      expect(
-        movedPoints.some(({ x, y }) => isPointInsideRect(x, y, loginRect)),
-      ).toBe(true);
-
-      const leftClicks = backend.calls.filter((call) => {
-        return (
-          call.name === 'mouseButton' &&
-          call.args[0] === 'left' &&
-          call.args[1] === 'click'
-        );
-      });
-      expect(leftClicks.length).toBeGreaterThanOrEqual(3);
-      expect(
-        backend.calls.filter((call) => call.name === 'clearInput').length,
-      ).toBeGreaterThanOrEqual(2);
+    const backend = new FixtureRDPBackend(fixture);
+    const device = new RDPDevice({
+      host: '10.75.166.249',
+      username: 'Admin',
+      backend,
     });
-  },
-);
+    await device.connect();
+
+    const agent = new ComputerAgent(device, {
+      aiActionContext:
+        'You are controlling a remote desktop through the RDP protocol. Use Input for text fields and Tap for buttons based only on the visible screenshot.',
+      generateReport: true,
+      autoPrintReportMsg: false,
+      reportFileName: 'rdp-fixture-login-form-ai-report',
+    });
+
+    try {
+      await agent.aiAct(
+        'Click the Username field and type standard_user. Click the Password field and type secret_sauce. Then click the Login button.',
+      );
+    } finally {
+      await device.destroy();
+    }
+
+    const typedValues = backend.calls
+      .filter((call): call is Extract<BackendCall, { name: 'typeText' }> => {
+        return call.name === 'typeText';
+      })
+      .map((call) => call.args[0]);
+    expect(typedValues).toEqual(
+      expect.arrayContaining(['standard_user', 'secret_sauce']),
+    );
+
+    const movedPoints = backend.calls
+      .filter((call): call is Extract<BackendCall, { name: 'mouseMove' }> => {
+        return call.name === 'mouseMove';
+      })
+      .map((call) => ({
+        x: call.args[0],
+        y: call.args[1],
+      }));
+    expect(
+      movedPoints.some(({ x, y }) => isPointInsideRect(x, y, usernameRect)),
+    ).toBe(true);
+    expect(
+      movedPoints.some(({ x, y }) => isPointInsideRect(x, y, passwordRect)),
+    ).toBe(true);
+    expect(
+      movedPoints.some(({ x, y }) => isPointInsideRect(x, y, loginRect)),
+    ).toBe(true);
+
+    const leftClicks = backend.calls.filter((call) => {
+      return (
+        call.name === 'mouseButton' &&
+        call.args[0] === 'left' &&
+        call.args[1] === 'click'
+      );
+    });
+    expect(leftClicks.length).toBeGreaterThanOrEqual(3);
+    expect(
+      backend.calls.filter((call) => call.name === 'clearInput').length,
+    ).toBeGreaterThanOrEqual(2);
+  });
+});
