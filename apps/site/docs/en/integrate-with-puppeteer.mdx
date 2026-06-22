@@ -114,6 +114,12 @@ const mid = new PuppeteerAgent(page, {
 });
 ```
 
+### Browser support
+
+Some Midscene web automation features rely on Chrome DevTools Protocol (CDP), which is provided by Chromium-based browsers. These include browser-level events, touch gestures, and CDP fallback paths used by specific interactions.
+
+When using Puppeteer, Chrome, Chromium, or another Chromium-based browser is recommended. Browsers that do not provide compatible CDP support may report errors when Midscene uses CDP-backed features.
+
 ### Connect Midscene Agent to a Remote Puppeteer Browser
 
 :::info Example Project
