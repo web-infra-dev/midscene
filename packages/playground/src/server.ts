@@ -4,13 +4,20 @@ import type { Server } from 'node:http';
 import { dirname, join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type {
+  AgentDescribeElementAtPointResult,
   DeviceAction,
+  ElementDescriberRuntime,
   ExecutionDump,
   ExecutionTask,
   ExecutorContext,
 } from '@midscene/core';
-import { ReportActionDump, runConnectivityTest } from '@midscene/core';
+import {
+  ReportActionDump,
+  describeElementAtPoint,
+  runConnectivityTest,
+} from '@midscene/core';
 import type { Agent as PageAgent } from '@midscene/core/agent';
+import { getModelRuntime } from '@midscene/core/ai-model';
 import { getTmpDir, sleep } from '@midscene/core/utils';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import { PLAYGROUND_SERVER_PORT } from '@midscene/shared/constants';
@@ -65,6 +72,23 @@ const RECORDER_CAPTURE_AFTER_INTERACT_DELAY_MS = 250;
 const RECORDER_AI_DESCRIBE_AFTER_INTERACT_TIMEOUT_MS = 30_000;
 const RECORDER_AI_DESCRIBE_SCREENSHOT_DUMP_DIR =
   'recorder-ai-describe-screenshots';
+
+function createElementDescriberRuntime(
+  agent: PageAgent,
+): ElementDescriberRuntime {
+  const modelConfigManager = agent.modelConfigManager;
+  const missingModelRuntime =
+    undefined as unknown as ElementDescriberRuntime['describeModelRuntime'];
+  return {
+    service: agent.service,
+    describeModelRuntime: modelConfigManager
+      ? getModelRuntime(modelConfigManager.getModelConfig('insight'))
+      : missingModelRuntime,
+    locateModelRuntime: modelConfigManager
+      ? getModelRuntime(modelConfigManager.getModelConfig('default'))
+      : missingModelRuntime,
+  };
+}
 
 function extractBase64Payload(value: string): {
   base64: string;
@@ -896,25 +920,6 @@ type PlaygroundDescribeElementProgress = {
   verifyResult?: PlaygroundDescribeElementVerifyResult;
 };
 
-type PlaygroundDescribeElementAtPointOptions = {
-  verifyPrompt?: boolean;
-  screenshotBase64?: string;
-  coordinateSpace?: 'screenshot' | 'logical';
-  logicalSize?: { width: number; height: number };
-  onProgress?: (progress: PlaygroundDescribeElementProgress) => void;
-};
-
-type PlaygroundScreenshotDescribeAgent = {
-  describeElementAtPoint: (
-    center: [number, number],
-    opt?: PlaygroundDescribeElementAtPointOptions,
-  ) => Promise<{
-    prompt?: string;
-    deepLocate?: boolean;
-    verifyResult?: PlaygroundDescribeElementVerifyResult;
-  }>;
-};
-
 const RECOVERABLE_PAGE_SESSION_ERROR_PATTERN =
   /Session closed|page has been closed|target closed|browser has been closed|Target page, context or browser has been closed/i;
 
@@ -1690,7 +1695,7 @@ class PlaygroundServer {
       let screenshotPersistError: string | undefined;
       let annotatedScreenshotPersistError: string | undefined;
 
-      if (status === 'failed') {
+      if (status === 'failed' || extra.verifyResult?.pass === false) {
         try {
           const screenshotDump = await persistRecorderAiDescribeScreenshot(
             event,
@@ -1734,7 +1739,7 @@ class PlaygroundServer {
         trace,
       };
     }
-    if (typeof agent?.describeElementAtPoint !== 'function') {
+    if (!agent) {
       const error = 'Active agent does not support describeElementAtPoint.';
       const trace = await finishTrace('failed', { error });
       debugInteract('recorder aiDescribe trace:', trace);
@@ -1754,11 +1759,8 @@ class PlaygroundServer {
     let elementDescription: string | undefined;
     let deepLocate: boolean | undefined;
     let verifyResult:
-      | Awaited<
-          ReturnType<
-            PlaygroundScreenshotDescribeAgent['describeElementAtPoint']
-          >
-        >['verifyResult']
+      | AgentDescribeElementAtPointResult['verifyResult']
+      | PlaygroundDescribeElementVerifyResult
       | undefined;
     try {
       if (typeof x !== 'number' || typeof y !== 'number') {
@@ -1778,10 +1780,9 @@ class PlaygroundServer {
       }
       const verifyPrompt = shouldVerifyRecorderAiDescribeEvent(event);
       modelCallStartedAt = Date.now();
+      const elementDescriber = createElementDescriberRuntime(agent);
       const describeResult = await withTimeout(
-        (
-          agent as unknown as PlaygroundScreenshotDescribeAgent
-        ).describeElementAtPoint([x, y], {
+        describeElementAtPoint(elementDescriber, [x, y], {
           verifyPrompt,
           screenshotBase64: eventScreenshot,
           coordinateSpace: 'logical',
@@ -1802,8 +1803,11 @@ class PlaygroundServer {
       if (!elementDescription) {
         throw new Error('aiDescribe returned an empty element description.');
       }
-      if (verifyResult && verifyResult.pass === false) {
-        throw new Error('aiDescribe verification failed.');
+      if (describeResult.success === false) {
+        throw new Error(
+          describeResult.error ||
+            `aiDescribe ${describeResult.failureStage || 'unknown'} failed.`,
+        );
       }
       const semanticAction = buildRecorderSemanticAction(
         event.actionType || event.type,
@@ -1834,6 +1838,7 @@ class PlaygroundServer {
                 centerDistance: verifyResult?.centerDistance,
                 expectedCenter: [x, y],
                 actualCenter: verifyResult?.center,
+                annotatedScreenshotPath: trace.annotatedScreenshotRef?.path,
               },
             },
           ),

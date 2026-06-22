@@ -120,6 +120,9 @@ export interface AgentDescribeElementAtPointResult {
   prompt: string;
   deepLocate: boolean;
   verifyResult?: LocateValidatorResult;
+  success: boolean;
+  error?: string;
+  failureStage?: 'describe' | 'verify';
 }
 
 /**

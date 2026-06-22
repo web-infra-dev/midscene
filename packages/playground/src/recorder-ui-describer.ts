@@ -1,5 +1,5 @@
-import type { IModelConfig } from '@midscene/shared/env';
-import { compositeElementInfoImg } from '@midscene/shared/img';
+import type { Rect } from '@midscene/core';
+import { type IModelConfig, ModelConfigManager } from '@midscene/shared/env';
 import type {
   MidsceneRecorderEvent,
   MidsceneRecorderPageInfo,
@@ -11,9 +11,8 @@ import {
   buildMidsceneRecorderReplayInstruction,
   getMidsceneRecorderSemantic,
 } from '@midscene/shared/recorder';
-import { RECORDER_UI_DESCRIBER_SYSTEM_PROMPT } from './ai-model/prompt/recorder-ui-describer';
-import { callAIWithObjectResponse } from './ai-model/service-caller';
-import type { Rect } from './types';
+import { callAIWithObjectResponse } from './recorder-ai-service';
+import { RECORDER_UI_DESCRIBER_SYSTEM_PROMPT } from './recorder-ui-describer-prompt';
 
 export interface DescribeRecorderUIEventInput {
   event: MidsceneRecorderEvent;
@@ -47,6 +46,35 @@ const RECORDER_UI_DESCRIBER_DEFAULT_CONCURRENCY = 2;
 
 function delay(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function isResolvedModelConfig(
+  modelConfig: IModelConfig | Record<string, unknown>,
+): modelConfig is IModelConfig {
+  return (
+    typeof modelConfig.modelName === 'string' &&
+    (typeof modelConfig.modelDescription === 'string' ||
+      typeof modelConfig.intent === 'string' ||
+      typeof modelConfig.slot === 'string' ||
+      typeof modelConfig.openaiApiKey === 'string')
+  );
+}
+
+function resolveRecorderModelConfig(
+  modelConfig: IModelConfig | Record<string, unknown>,
+): IModelConfig {
+  if (isResolvedModelConfig(modelConfig)) {
+    return modelConfig;
+  }
+  const rawModelConfig = Object.entries(modelConfig).reduce<
+    Record<string, string | number>
+  >((result, [key, value]) => {
+    if (typeof value === 'string' || typeof value === 'number') {
+      result[key] = value;
+    }
+    return result;
+  }, {});
+  return new ModelConfigManager(rawModelConfig).getModelConfig('default');
 }
 
 function clamp(value: number, min: number, max: number) {
@@ -595,6 +623,9 @@ async function createScreenshotWithBox(
   if (!screenshot) {
     return undefined;
   }
+  const { compositeElementInfoImg } = await import(
+    /* @vite-ignore */ '@midscene/shared/img'
+  );
   return compositeElementInfoImg({
     inputImgBase64: screenshot,
     size: event.pageInfo,
@@ -636,7 +667,7 @@ function createFallbackEvent(
 
 export async function describeRecorderUIEvent(
   input: DescribeRecorderUIEventInput,
-  modelConfig: IModelConfig,
+  modelConfig: IModelConfig | Record<string, unknown>,
   options: DescribeRecorderUIEventOptions = {},
 ): Promise<DescribeRecorderUIEventResult> {
   const event = input.event;
@@ -655,12 +686,13 @@ export async function describeRecorderUIEvent(
 
   let screenshotWithBox: string | undefined;
   try {
+    const resolvedModelConfig = resolveRecorderModelConfig(modelConfig);
     screenshotWithBox = await createScreenshotWithBox(event, rect);
     const semanticFields = await describeWithRetry(
       event,
       input.target,
       screenshotWithBox || screenshot,
-      modelConfig,
+      resolvedModelConfig,
       {
         maxRetries: options.maxRetries ?? RECORDER_UI_DESCRIBER_DEFAULT_RETRIES,
         retryDelayMs:
@@ -692,7 +724,7 @@ export async function describeRecorderUIEvent(
 
 export async function describeRecorderUIEvents(
   inputs: DescribeRecorderUIEventInput[],
-  modelConfig: IModelConfig,
+  modelConfig: IModelConfig | Record<string, unknown>,
   options: DescribeRecorderUIEventOptions = {},
 ): Promise<DescribeRecorderUIEventResult[]> {
   const concurrency = Math.max(

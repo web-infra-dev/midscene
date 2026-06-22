@@ -20,6 +20,12 @@
       "require": "./dist/lib/index.js",
       "import": "./dist/es/index.mjs",
       "default": "./dist/es/index.mjs"
+    },
+    "./recorder-ui-describer": {
+      "types": "./dist/types/recorder-ui-describer.d.ts",
+      "require": "./dist/lib/recorder-ui-describer.js",
+      "import": "./dist/es/recorder-ui-describer.mjs",
+      "default": "./dist/es/recorder-ui-describer.mjs"
     }
   },
   "files": ["dist", "static"],

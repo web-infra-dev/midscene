@@ -37,16 +37,6 @@ export type {
   RecorderYamlGenerationInput,
   YamlGenerationOptions,
 } from './prompt/yaml-generator';
-export {
-  describeRecorderUIEvent,
-  describeRecorderUIEvents,
-  getRecorderUIEventTargetRect,
-} from '../recorder-ui-describer';
-export type {
-  DescribeRecorderUIEventInput,
-  DescribeRecorderUIEventOptions,
-  DescribeRecorderUIEventResult,
-} from '../recorder-ui-describer';
 
 export type { ChatCompletionMessageParam } from 'openai/resources/index';
 

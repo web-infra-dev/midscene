@@ -63,6 +63,17 @@ export {
   type AiActOptions,
   createAgent,
 } from './agent';
+export {
+  describeElementAtPoint,
+  verifyElementDescriptionAtPoint,
+  verifyElementByServiceLocate,
+  verifyLocator,
+  type DescribeElementAtPointOptions,
+  type DescribeElementCoordinateSpace,
+  type ElementDescriberRuntime,
+  type VerifyElementDescriptionAtPointOptions,
+  type VerifyElementByServiceLocateOptions,
+} from './element-describer';
 
 // Dump utilities
 export {

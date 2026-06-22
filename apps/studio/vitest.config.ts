@@ -9,6 +9,10 @@ export default defineConfig({
       '@preload': path.resolve(__dirname, 'src/preload'),
       '@renderer': path.resolve(__dirname, 'src/renderer'),
       '@shared': path.resolve(__dirname, 'src/shared'),
+      '@midscene/playground/recorder-ui-describer$': path.resolve(
+        __dirname,
+        '../../packages/playground/src/recorder-ui-describer.ts',
+      ),
     },
   },
   test: {

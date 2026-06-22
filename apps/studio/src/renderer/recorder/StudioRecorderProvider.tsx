@@ -980,6 +980,28 @@ export function StudioRecorderProvider({ children }: PropsWithChildren) {
                   result.trace.annotatedScreenshotRef?.path,
               }
             : undefined;
+        const elementDescription = result.trace?.elementDescription?.trim();
+        if (elementDescription && result.trace?.verifyPassed === false) {
+          const semanticAction = buildRecorderSemanticAction(event);
+          return normalizeInputRecorderSemantic({
+            ...event,
+            semantic: {
+              source: 'aiDescribe',
+              status: 'ready',
+              elementDescription,
+              replayInstruction: buildMidsceneRecorderReplayInstruction(
+                semanticAction,
+                elementDescription,
+              ),
+              actionSummary: buildMidsceneRecorderActionSummary(
+                semanticAction,
+                elementDescription,
+              ),
+              confidence: 'low',
+              ...(aiDescribe ? { aiDescribe } : {}),
+            },
+          });
+        }
         return {
           ...event,
           semantic: {
