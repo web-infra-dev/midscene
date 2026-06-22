@@ -10,6 +10,7 @@ import { autoGlmAdapters } from './auto-glm/adapter';
 import { defaultOpenAICompatibleAdapterConfig } from './default';
 import { doubaoAdapters } from './doubao';
 import { geminiAdapters } from './gemini';
+import { guiPlusAdapters } from './gui-plus/adapter';
 import { glmAdapters } from './glm';
 import { gptAdapters } from './gpt';
 import { kimiAdapters } from './kimi';
@@ -24,6 +25,7 @@ export const MODEL_ADAPTER_CONFIGS = {
   ...uiTarsAdapters,
   ...glmAdapters,
   ...autoGlmAdapters,
+  ...guiPlusAdapters,
   ...gptAdapters,
   ...kimiAdapters,
   ...mimoAdapters,
