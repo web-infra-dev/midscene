@@ -144,7 +144,7 @@ describe('TaskExecutor custom planning adapters', () => {
           locate: {
             prompt: 'button',
             deepLocate: true,
-            locatedPixelBbox: [10, 20, 30, 40],
+            point: [500, 500],
           },
         },
       },
@@ -175,5 +175,8 @@ describe('TaskExecutor custom planning adapters', () => {
       }),
     );
     expect(convertSpy.mock.calls[0][0][0].param.locate.deepLocate).toBe(true);
+    expect(
+      convertSpy.mock.calls[0][0][0].param.locate.locatedPixelBbox,
+    ).toHaveLength(4);
   });
 });

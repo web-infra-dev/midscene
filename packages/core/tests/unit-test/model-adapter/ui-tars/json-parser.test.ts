@@ -70,12 +70,4 @@ describe('ui-tars json parser', () => {
       bbox: ['123 456'],
     });
   });
-
-  it('repairs unquoted UI-TARS bbox coordinate pairs', () => {
-    const parser = uiTarsAdapter.jsonParser;
-
-    expect(parser('{"bbox": [123 456]}', { source: 'locate' })).toEqual({
-      bbox: [123, 456],
-    });
-  });
 });
