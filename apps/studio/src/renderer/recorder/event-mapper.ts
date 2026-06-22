@@ -48,6 +48,5 @@ export function mapPreviewRecorderEventToStudioRecordedEvent(input: {
           },
     target: input.target,
     pageInfo: input.event.pageInfo ?? { width: 0, height: 0 },
-    descriptionLoading: input.event.descriptionLoading ?? false,
   };
 }

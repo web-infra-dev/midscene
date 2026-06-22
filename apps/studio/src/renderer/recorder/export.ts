@@ -1,6 +1,7 @@
 import {
   createMidsceneRecorderMarkdownScreenshotAssets,
   getMidsceneRecorderEventDescription,
+  getMidsceneRecorderSemantic,
   sanitizeMidsceneRecorderFileName,
 } from '@midscene/shared/recorder';
 import type {
@@ -102,72 +103,70 @@ function markdownTableCell(value: string) {
     .replace(/\r?\n/g, '<br>');
 }
 
-function isPendingRecorderDescription(value?: string) {
-  return value?.trim() === 'AI is analyzing element...';
-}
-
-function markdownZipPath(relativePath: string) {
-  return relativePath.replace(/^\.\//, '');
-}
-
-function screenshotAssetMap(
-  session: StudioRecordingSession,
-  screenshotBaseDir: string,
-) {
-  const assets = createMidsceneRecorderMarkdownScreenshotAssets(
-    session.events,
-    {
-      baseDir: screenshotBaseDir,
-    },
-  );
-  return {
-    assets,
-    assetByHashId: new Map(
-      assets.map((asset) => [asset.eventHashId, asset.relativePath]),
-    ),
-  };
-}
-
-function addMarkdownScreenshotAssetsToZip(
-  zip: JSZip,
-  session: StudioRecordingSession,
-  options: {
-    screenshotBaseDir: string;
-    zipPrefix?: string;
-  },
-) {
-  const assets = createMidsceneRecorderMarkdownScreenshotAssets(
-    session.events,
-    {
-      baseDir: options.screenshotBaseDir,
-    },
-  );
-  for (const asset of assets) {
-    zip.file(
-      `${options.zipPrefix || ''}${markdownZipPath(asset.relativePath)}`,
-      asset.base64Data,
-      {
-        base64: true,
-      },
-    );
-  }
-  return assets;
-}
-
-function rewriteMarkdownScreenshotBaseDir(
-  markdown: string,
-  screenshotBaseDir: string,
-) {
-  if (screenshotBaseDir === './screenshots') {
-    return markdown;
-  }
-  return markdown.split('./screenshots/').join(`${screenshotBaseDir}/`);
-}
-
 function createMarkdownReplayManifest(
   session: StudioRecordingSession,
   source: 'ai' | 'local-fallback',
 ) {
+  type ManifestSemantic = {
+    source: string;
+    status: string;
+    confidence?: string;
+    error?: string;
+    aiDescribe?: {
+      verifyPassed?: boolean;
+      deepLocate?: boolean;
+      centerDistance?: number;
+      annotatedScreenshotPath?: string;
+    };
+    fallbackFrom?: ManifestSemantic;
+  };
+  const serializeSemantic = (
+    semantic: ReturnType<typeof getMidsceneRecorderSemantic>,
+  ): ManifestSemantic | undefined => {
+    if (!semantic) {
+      return undefined;
+    }
+    return {
+      source: semantic.source,
+      status: semantic.status,
+      confidence: semantic.confidence,
+      ...(semantic.error ? { error: semantic.error } : {}),
+      ...(semantic.aiDescribe
+        ? {
+            aiDescribe: {
+              verifyPassed: semantic.aiDescribe.verifyPassed,
+              deepLocate: semantic.aiDescribe.deepLocate,
+              centerDistance: semantic.aiDescribe.centerDistance,
+              annotatedScreenshotPath:
+                semantic.aiDescribe.annotatedScreenshotPath,
+            },
+          }
+        : {}),
+      ...(semantic.fallbackFrom
+        ? { fallbackFrom: serializeSemantic(semantic.fallbackFrom) }
+        : {}),
+    };
+  };
+  const events = session.events.map((event) => {
+    const semantic = getMidsceneRecorderSemantic(event);
+    return {
+      hashId: event.hashId,
+      type: event.type,
+      semantic: serializeSemantic(semantic) || {
+        source: 'heuristic',
+        status: 'ready',
+        confidence: 'low',
+      },
+    };
+  });
+  const descriptionSourceCounts = events.reduce<Record<string, number>>(
+    (counts, event) => {
+      counts[event.semantic.source] = (counts[event.semantic.source] || 0) + 1;
+      return counts;
+    },
+    {},
+  );
+
   return JSON.stringify(
     {
       artifact: 'markdown-replay',
@@ -176,6 +175,8 @@ function createMarkdownReplayManifest(
       sessionId: session.id,
       sessionName: session.name,
       exportedAt: new Date().toISOString(),
+      descriptionSourceCounts,
+      events,
     },
     null,
     2,
@@ -197,11 +198,12 @@ function stepText(event: StudioRecordedEvent) {
   switch (event.type) {
     case 'navigation':
       return event.url ? `Open ${event.url}` : description;
-    case 'click':
-      return event.elementDescription &&
-        !isPendingRecorderDescription(event.elementDescription)
+    case 'click': {
+      const semantic = getMidsceneRecorderSemantic(event);
+      return semantic?.elementDescription
         ? `Tap "${description}"`
-        : `Tap the target shown in the screenshot. Recorded hint: ${description}`;
+        : `Tap the recorded target. Recorded hint: ${description}`;
+    }
     case 'input':
       return `Input ${JSON.stringify(event.value || '')} into "${description}"`;
     case 'keydown':
@@ -310,12 +312,7 @@ export function generateStudioRecorderYaml(session: StudioRecordingSession) {
 
 export function generateStudioRecorderMarkdownReplay(
   session: StudioRecordingSession,
-  options: {
-    screenshotBaseDir?: string;
-  } = {},
 ) {
-  const screenshotBaseDir = options.screenshotBaseDir || './screenshots';
-  const { assetByHashId } = screenshotAssetMap(session, screenshotBaseDir);
   const lines = [
     `# ${session.name}`,
     '',
@@ -341,10 +338,6 @@ export function generateStudioRecorderMarkdownReplay(
   } else {
     session.events.forEach((event, index) => {
       lines.push(`${index + 1}. ${stepText(event)}`);
-      const screenshotPath = assetByHashId.get(event.hashId);
-      if (screenshotPath) {
-        lines.push(`   ![step context](${screenshotPath})`);
-      }
     });
   }
 
@@ -420,27 +413,26 @@ export async function createStudioRecorderZipBase64(
   zip.file('recordings.md', generateStudioRecorderMarkdown(sessions));
   for (const session of sessions) {
     const baseName = `${sanitizeFileName(session.name)}-${session.id}`;
-    const markdownScreenshotBaseDir = `./${baseName}/screenshots`;
     const markdownSource = session.generatedCode?.markdown
       ? 'ai'
       : 'local-fallback';
     const markdown =
       session.generatedCode?.markdown ||
-      generateStudioRecorderMarkdownReplay(session, {
-        screenshotBaseDir: markdownScreenshotBaseDir,
-      });
-    zip.file(
-      `markdown/${baseName}.md`,
-      rewriteMarkdownScreenshotBaseDir(markdown, markdownScreenshotBaseDir),
-    );
+      generateStudioRecorderMarkdownReplay(session);
+    zip.file(`markdown/${baseName}.md`, markdown);
     zip.file(
       `markdown/${baseName}.manifest.json`,
       createMarkdownReplayManifest(session, markdownSource),
     );
-    addMarkdownScreenshotAssetsToZip(zip, session, {
-      screenshotBaseDir: markdownScreenshotBaseDir,
-      zipPrefix: 'markdown/',
-    });
+    for (const screenshot of createMidsceneRecorderMarkdownScreenshotAssets(
+      session.events,
+    )) {
+      zip.file(
+        `markdown/${screenshot.relativePath.replace(/^\.\//, '')}`,
+        screenshot.base64Data,
+        { base64: true },
+      );
+    }
     zip.file(
       `${baseName}.yaml`,
       session.generatedCode?.yaml || generateStudioRecorderYaml(session),
@@ -470,9 +462,17 @@ export async function createStudioRecorderMarkdownZipBase64(
     'recording.manifest.json',
     createMarkdownReplayManifest(session, markdownSource),
   );
-  addMarkdownScreenshotAssetsToZip(zip, session, {
-    screenshotBaseDir: './screenshots',
-  });
+  for (const screenshot of createMidsceneRecorderMarkdownScreenshotAssets(
+    session.events,
+  )) {
+    zip.file(
+      screenshot.relativePath.replace(/^\.\//, ''),
+      screenshot.base64Data,
+      {
+        base64: true,
+      },
+    );
+  }
   return zip.generateAsync({ type: 'base64' });
 }
 

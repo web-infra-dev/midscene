@@ -19,6 +19,10 @@ export {
   preProcessImageUrl,
   parseBase64,
   createImgBase64ByFormat,
+  inferBase64ImageFormat,
+  normalizeBase64Image,
+  normalizeScreenshotBase64,
+  type NormalizeScreenshotBase64Options,
 } from './transform';
 export {
   processImageElementInfo,

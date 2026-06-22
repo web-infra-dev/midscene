@@ -644,6 +644,7 @@
   height: 44px;
   flex: 0 0 44px;
   border-radius: 20px;
+  overflow: visible;
 }
 
 .studio-recorder-floating-header {
@@ -823,6 +824,8 @@
 }
 
 .studio-recorder-floating-card-expanded
+  .history-modal-overlay.studio-recorder-history-modal-overlay.history-modal-overlay-in-container,
+.studio-recorder-floating-card-collapsed
   .history-modal-overlay.studio-recorder-history-modal-overlay.history-modal-overlay-in-container {
   top: 52px !important;
   bottom: auto;

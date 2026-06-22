@@ -140,7 +140,7 @@ export interface PrepareRecorderMarkdownReplayResult {
 export type ChooseReplayFileResult =
   | {
       type: 'markdown';
-      path: string;
+      content: string;
       displayName: string;
     }
   | {

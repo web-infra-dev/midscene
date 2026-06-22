@@ -165,6 +165,20 @@ export interface MidsceneYamlScriptWebEnv
   forceSameTabNavigation?: boolean; // if track the newly opened tab, true for default in yaml script
 
   /**
+   * Chrome download directory (Puppeteer only, not supported in bridge mode).
+   *
+   * Relative paths are resolved from the current working directory.
+   *
+   * @example
+   * ```yaml
+   * web:
+   *   url: https://example.com
+   *   downloadPath: ./downloads
+   * ```
+   */
+  downloadPath?: string;
+
+  /**
    * Custom Chrome launch arguments (Puppeteer only, not supported in bridge mode).
    *
    * Allows passing custom command-line arguments to Chrome/Chromium when launching the browser.

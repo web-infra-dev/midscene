@@ -7,6 +7,11 @@ import {
   VerticalAlignTopOutlined,
 } from '@ant-design/icons';
 import {
+  getMidsceneRecorderEventDescription,
+  getMidsceneRecorderSemantic,
+} from '@midscene/shared/recorder';
+import {
+  App as AntdApp,
   Button,
   Card,
   Image,
@@ -14,7 +19,6 @@ import {
   Space,
   Timeline,
   Typography,
-  message,
 } from 'antd';
 import { useEffect, useRef, useState } from 'react';
 import { ShinyText } from './components/shiny-text';
@@ -32,6 +36,7 @@ export const RecordTimeline = ({
   events,
   onEventClick,
 }: RecordTimelineProps) => {
+  const { message } = AntdApp.useApp();
   const [expandedEvents, setExpandedEvents] = useState<Set<number>>(new Set());
   const timelineRootRef = useRef<HTMLDivElement>(null);
 
@@ -147,7 +152,7 @@ export const RecordTimeline = ({
     Boolean(value && /^\s*\d+(?:\.\d+)?,\s*\d+(?:\.\d+)?\s*$/.test(value));
 
   const getDisplayDescription = (event: RecordedEvent) =>
-    event.elementDescription || event.actionSummary || event.replayInstruction;
+    getMidsceneRecorderEventDescription(event);
 
   const getEventTitle = (event: RecordedEvent) => {
     switch (event.type) {
@@ -182,7 +187,7 @@ export const RecordTimeline = ({
     switch (event.type) {
       case 'click':
       case 'drag':
-        if (event.descriptionLoading === true) {
+        if (getMidsceneRecorderSemantic(event)?.status === 'pending') {
           return (
             <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
               <Text>{eventTitle} - </Text>
@@ -196,10 +201,7 @@ export const RecordTimeline = ({
           );
         }
 
-        if (
-          event.descriptionLoading === false &&
-          getDisplayDescription(event)
-        ) {
+        if (getMidsceneRecorderSemantic(event)?.status === 'ready') {
           return (
             <Text>
               {eventTitle} - {getDisplayDescription(event)}
@@ -210,10 +212,7 @@ export const RecordTimeline = ({
         return <Text>{eventTitle}</Text>;
 
       case 'input':
-        if (
-          event.descriptionLoading === false &&
-          getDisplayDescription(event)
-        ) {
+        if (getMidsceneRecorderSemantic(event)?.status === 'ready') {
           return (
             <Text>
               {eventTitle} - {getDisplayDescription(event)}
@@ -248,10 +247,7 @@ export const RecordTimeline = ({
         );
 
       case 'navigation': {
-        const navigationDescription =
-          event.actionSummary ||
-          event.replayInstruction ||
-          event.elementDescription;
+        const navigationDescription = getDisplayDescription(event);
         if (navigationDescription) {
           return (
             <Text>
@@ -416,7 +412,7 @@ export const RecordTimeline = ({
                 <Card
                   size="small"
                   style={{ backgroundColor: '#f5f5f5' }}
-                  bodyStyle={{ padding: '0px' }}
+                  styles={{ body: { padding: '0px' } }}
                 >
                   <div style={{ position: 'relative' }}>
                     <pre

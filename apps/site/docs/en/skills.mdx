@@ -1,8 +1,8 @@
 # Control any platform with Skills
 
-[Agent Skills](https://github.com/anthropics/skills) are a format for extending AI coding agents with specialized capabilities. Midscene provides Agent Skills that let AI coding tools (like Claude Code, Cline, etc.) drive UI automation through CLI commands — no MCP server setup required.
+[Agent Skills](https://github.com/anthropics/skills) are a format for extending AI coding agents with specialized capabilities. Midscene provides Agent Skills that let AI coding tools (like Claude Code, Cline, etc.) drive UI automation through CLI commands.
 
-Unlike [MCP integration](./mcp), Skills work by running CLI commands directly in the terminal. The AI agent acts as the brain: it takes screenshots, analyzes the UI, and decides which actions to perform next.
+Skills work by running CLI commands directly in the terminal. The AI agent acts as the brain: it takes screenshots, analyzes the UI, and decides which actions to perform next.
 
 ## Supported platforms
 
@@ -15,6 +15,8 @@ Unlike [MCP integration](./mcp), Skills work by running CLI commands directly in
 | HarmonyOS Device Automation | `@midscene/harmony` | `npx @midscene/harmony` | HarmonyOS device control via HDC |
 
 In default Puppeteer mode, you can override the default `1440x800` viewport with `--viewport-width <width>` and `--viewport-height <height>`. These flags are only supported in default Puppeteer mode, not in `--bridge` or `--cdp` mode.
+
+If Chrome is installed in a non-standard location, set `MIDSCENE_CHROME_PATH` to the Chrome executable path. `MIDSCENE_MCP_CHROME_PATH` is still accepted as a temporary migration alias.
 
 ## Installation
 

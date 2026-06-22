@@ -12,6 +12,6 @@ export default defineConfig({
   test: {
     coverage: createCoverageConfig(__dirname),
     environment: 'node',
-    include: ['tests/**/*.test.ts'],
+    include: ['tests/**/*.test.ts', 'src/**/*.test.ts'],
   },
 });

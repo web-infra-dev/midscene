@@ -232,7 +232,11 @@ export const extractDefaultValue = (field: ZodType): unknown => {
   return undefined;
 };
 
-import type { ExecutionDump, IExecutionDump } from '@midscene/core';
+import type {
+  ExecutionDump,
+  IExecutionDump,
+  IReportActionDump,
+} from '@midscene/core';
 import type {
   BeforeActionHook,
   ExecutionOptions,
@@ -243,7 +247,7 @@ import type {
 // result type
 export interface PlaygroundResult {
   result: any;
-  dump?: ExecutionDump | IExecutionDump | null;
+  dump?: ExecutionDump | IExecutionDump | IReportActionDump | null;
   reportHTML?: string | null;
   error: string | null;
 }
@@ -304,10 +308,16 @@ export interface FormValue {
   params?: Record<string, unknown>;
 }
 
+export interface ExecutionReportDisplay {
+  type?: string;
+  prompt?: string;
+}
+
 export interface ExternalRunRequest {
   id: string;
   value: FormValue;
   displayContent?: string;
+  reportDisplay?: ExecutionReportDisplay;
 }
 
 // ExecutionOptions is imported from playground package to ensure consistency
@@ -332,11 +342,11 @@ export interface PlaygroundSDKLike {
     callback: (dump: string, executionDump?: ExecutionDump) => void,
   ) => void;
   cancelExecution?(requestId: string): Promise<{
-    dump: ExecutionDump | null;
+    dump: ExecutionDump | IExecutionDump | IReportActionDump | null;
     reportHTML: string | null;
   } | null>;
   getCurrentExecutionData?(): Promise<{
-    dump: ExecutionDump | null;
+    dump: ExecutionDump | IExecutionDump | IReportActionDump | null;
     reportHTML: string | null;
   }>;
   overrideConfig?(config: any): Promise<void>;

@@ -204,14 +204,47 @@ export function createStudioRecorderTargetSignature(
   });
 }
 
+function createStudioRecorderHistoryTargetSignature(
+  target: StudioRecorderTarget | null,
+): string | null {
+  if (!target) {
+    return null;
+  }
+
+  switch (target.platformId) {
+    case 'web':
+      return JSON.stringify({ platformId: target.platformId });
+    case 'android':
+    case 'harmony':
+      return JSON.stringify({
+        platformId: target.platformId,
+        deviceId: target.deviceId ?? target.values.deviceId,
+      });
+    case 'computer':
+      return JSON.stringify({
+        platformId: target.platformId,
+        displayId: target.values.displayId ?? target.deviceId,
+      });
+    case 'ios':
+      return JSON.stringify({
+        platformId: target.platformId,
+        host: target.values.host,
+        port: target.values.port,
+      });
+    default:
+      return createStudioRecorderTargetSignature(target);
+  }
+}
+
 export function isStudioRecorderSessionForTarget(
   session: StudioRecordingSession,
   target: StudioRecorderTarget | null,
 ) {
-  const targetSignature = createStudioRecorderTargetSignature(target);
+  const targetSignature = createStudioRecorderHistoryTargetSignature(target);
   return (
     targetSignature !== null &&
-    createStudioRecorderTargetSignature(session.target) === targetSignature
+    createStudioRecorderHistoryTargetSignature(session.target) ===
+      targetSignature
   );
 }
 

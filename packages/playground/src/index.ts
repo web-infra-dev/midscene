@@ -7,6 +7,14 @@ export {
   executeAction,
 } from './common';
 export { PlaygroundServer } from './server';
+export {
+  describeRecorderUIEvent,
+  describeRecorderUIEvents,
+  getRecorderUIEventTargetRect,
+  type DescribeRecorderUIEventInput,
+  type DescribeRecorderUIEventOptions,
+  type DescribeRecorderUIEventResult,
+} from './recorder-ui-describer';
 export { playgroundForAgent } from './launcher';
 export { playgroundForAgentFactory } from './launcher';
 export { playgroundForSessionManager } from './launcher';
@@ -60,6 +68,7 @@ export type {
   PlaygroundPreviewDescriptor,
   PlaygroundPreviewKind,
   PlaygroundRecorderCapabilitiesResult,
+  PlaygroundRecorderDescribeResult,
   PlaygroundRecorderEvent,
   PlaygroundRecorderEventsResult,
   PlaygroundRecorderSourceKind,

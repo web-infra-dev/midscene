@@ -11,7 +11,14 @@ import {
   PauseOutlined,
   ThunderboltOutlined,
 } from '@ant-design/icons';
-import { Button, Dropdown, Progress, Switch, Tooltip, message } from 'antd';
+import {
+  App as AntdApp,
+  Button,
+  Dropdown,
+  Progress,
+  Switch,
+  Tooltip,
+} from 'antd';
 import GlobalPerspectiveIcon from '../../icons/global-perspective.svg';
 import PlayerSettingIcon from '../../icons/player-setting.svg';
 import { type PlaybackSpeedType, useGlobalPreference } from '../../store/store';
@@ -64,6 +71,7 @@ export function Player(props?: {
   onDownloadReport?: ReportDownloadHandler;
   onTaskChange?: (taskId: string | null) => void;
 }) {
+  const { message } = AntdApp.useApp();
   const {
     autoZoom,
     setAutoZoom,

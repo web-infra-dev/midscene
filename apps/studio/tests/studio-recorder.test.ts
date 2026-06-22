@@ -4,7 +4,7 @@ import { toStudioRecorderCodegenInput } from '../src/renderer/recorder/codegen-a
 import { mapPreviewRecorderEventToStudioRecordedEvent } from '../src/renderer/recorder/event-mapper';
 import { generateStudioRecorderYaml } from '../src/renderer/recorder/export';
 import {
-  createRecorderMarkdownReplayRequest,
+  createRecorderAiActReplayPrompt,
   getRecorderYamlReplayContent,
 } from '../src/renderer/recorder/replay';
 import {
@@ -87,18 +87,46 @@ describe('studio recorder selectors', () => {
     ).toEqual({ displayId: '1' });
   });
 
-  it('filters recording history by the current target', () => {
+  it('filters recording history by platform-appropriate target granularity', () => {
     const webTarget = {
       platformId: 'web' as const,
       deviceId: 'https://example.com',
       label: 'Example',
       values: { url: 'https://example.com' },
     };
+    const otherWebTarget = {
+      platformId: 'web' as const,
+      deviceId: 'https://midscenejs.com',
+      label: 'Midscene',
+      values: {
+        url: 'https://midscenejs.com',
+        viewportWidth: 1280,
+        viewportHeight: 720,
+      },
+    };
     const androidTarget = {
       platformId: 'android' as const,
       deviceId: 'emulator-5554',
       label: 'Pixel',
       values: { deviceId: 'emulator-5554' },
+    };
+    const otherAndroidTarget = {
+      platformId: 'android' as const,
+      deviceId: 'emulator-5556',
+      label: 'Pixel 2',
+      values: { deviceId: 'emulator-5556' },
+    };
+    const computerTarget = {
+      platformId: 'computer' as const,
+      deviceId: '1',
+      label: 'Display 1',
+      values: { displayId: '1' },
+    };
+    const iosTarget = {
+      platformId: 'ios' as const,
+      deviceId: '127.0.0.1:8100',
+      label: 'iPhone',
+      values: { host: '127.0.0.1', port: 8100 },
     };
     const sessions = [
       {
@@ -111,21 +139,74 @@ describe('studio recorder selectors', () => {
         events: [],
       },
       {
-        id: 'android-session',
-        name: 'android',
+        id: 'other-web-session',
+        name: 'other web',
         status: 'completed' as const,
         createdAt: 2,
         updatedAt: 2,
+        target: otherWebTarget,
+        events: [],
+      },
+      {
+        id: 'android-session',
+        name: 'android',
+        status: 'completed' as const,
+        createdAt: 3,
+        updatedAt: 3,
         target: androidTarget,
+        events: [],
+      },
+      {
+        id: 'other-android-session',
+        name: 'other android',
+        status: 'completed' as const,
+        createdAt: 4,
+        updatedAt: 4,
+        target: otherAndroidTarget,
+        events: [],
+      },
+      {
+        id: 'computer-session',
+        name: 'computer',
+        status: 'completed' as const,
+        createdAt: 5,
+        updatedAt: 5,
+        target: computerTarget,
+        events: [],
+      },
+      {
+        id: 'ios-session',
+        name: 'ios',
+        status: 'completed' as const,
+        createdAt: 6,
+        updatedAt: 6,
+        target: iosTarget,
         events: [],
       },
     ];
 
     expect(
+      filterStudioRecorderSessionsForTarget(sessions, {
+        ...webTarget,
+        deviceId: 'https://changed.example',
+        values: { url: 'https://changed.example' },
+      }).map((session) => session.id),
+    ).toEqual(['web-session', 'other-web-session']);
+    expect(
       filterStudioRecorderSessionsForTarget(sessions, androidTarget).map(
         (session) => session.id,
       ),
     ).toEqual(['android-session']);
+    expect(
+      filterStudioRecorderSessionsForTarget(sessions, computerTarget).map(
+        (session) => session.id,
+      ),
+    ).toEqual(['computer-session']);
+    expect(
+      filterStudioRecorderSessionsForTarget(sessions, iosTarget).map(
+        (session) => session.id,
+      ),
+    ).toEqual(['ios-session']);
     expect(filterStudioRecorderSessionsForTarget(sessions, null)).toEqual([]);
   });
 });
@@ -167,7 +248,11 @@ describe('studio recorder event mapper', () => {
         target,
         event: {
           type: 'click',
-          elementDescription: 'Introduction',
+          semantic: {
+            source: 'aiDescribe',
+            status: 'ready',
+            elementDescription: 'Introduction',
+          },
           elementRect: { x: 10, y: 20 },
           pageInfo: { width: 1200, height: 800 },
           timestamp: 124,
@@ -177,7 +262,9 @@ describe('studio recorder event mapper', () => {
     ).toMatchObject({
       type: 'click',
       actionType: 'Click',
-      elementDescription: 'Introduction',
+      semantic: {
+        elementDescription: 'Introduction',
+      },
       elementRect: { x: 10, y: 20 },
     });
   });
@@ -248,7 +335,11 @@ describe('studio recorder export', () => {
           pageInfo: { width: 100, height: 100 },
           timestamp: 1,
           hashId: 'event-1',
-          elementDescription: 'Tap at (10, 20)',
+          semantic: {
+            source: 'heuristic',
+            status: 'ready',
+            elementDescription: 'Tap at (10, 20)',
+          },
         },
       ],
     };
@@ -309,14 +400,26 @@ describe('studio recorder codegen adapter', () => {
     expect(input.events[0]).not.toHaveProperty('target');
     expect(input.events[0]).not.toHaveProperty('platformId');
     expect(input.events[0]).not.toHaveProperty('rawPayload');
+
+    expect(
+      toStudioRecorderCodegenInput(session, { maxScreenshots: 0 }),
+    ).toMatchObject({
+      maxScreenshots: 0,
+    });
+
+    expect(
+      toStudioRecorderCodegenInput(session, { maxScreenshots: 3 }),
+    ).toMatchObject({
+      maxScreenshots: 3,
+    });
   });
 });
 
 describe('studio recorder replay adapters', () => {
-  it('creates a Markdown replay request from AI generated Markdown and screenshots', () => {
+  it('creates an aiAct replay prompt from AI generated Markdown', () => {
     const session: StudioRecordingSession = {
       id: 'session-1',
-      name: 'Replay login',
+      name: 'Replay workflow',
       status: 'completed',
       createdAt: 1,
       updatedAt: 2,
@@ -346,19 +449,44 @@ describe('studio recorder replay adapters', () => {
         },
       ],
       generatedCode: {
-        markdown: '# Replay login\n\n## Steps\n1. Tap login\n',
+        markdown: '# Replay workflow\n\n## Steps\n1. Tap primary action\n',
       },
     };
 
-    expect(createRecorderMarkdownReplayRequest(session)).toMatchObject({
-      markdown: '# Replay login\n\n## Steps\n1. Tap login\n',
-      screenshots: [
-        {
-          relativePath: './screenshots/event-001-click.png',
-          base64Data: 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJ',
-        },
-      ],
-    });
+    const prompt = createRecorderAiActReplayPrompt(session);
+
+    expect(prompt).toContain(
+      '# Replay workflow\n\n## Steps\n1. Tap primary action\n',
+    );
+    expect(prompt).toContain('Follow the recorded Markdown steps in order');
+    expect(prompt).toContain('user-intent replay');
+    expect(prompt).toContain(
+      'Treat the ordered Steps as required workflow actions',
+    );
+    expect(prompt).toContain('recorded goal and surrounding steps');
+    expect(prompt).toContain('Preserve recorded input values exactly');
+    expect(prompt).toContain(
+      'scroll/search within that region instead of defaulting to the whole page',
+    );
+    expect(prompt).toContain(
+      'Treat each recorded step as an intent with an expected outcome',
+    );
+    expect(prompt).toContain(
+      'do not treat a later UI state as proof that earlier actions were performed',
+    );
+    expect(prompt).toContain(
+      'return to the earliest unsatisfied prerequisite state',
+    );
+    expect(prompt).toContain(
+      'If the intended outcome of the missing step is already satisfied',
+    );
+    expect(prompt).toContain(
+      'Do not undo visible progress or change durable application state',
+    );
+    expect(prompt).not.toMatch(
+      /\blogin\b|authorization|SMS|phone|one-tap|product|recommendations|hot search/i,
+    );
+    expect(prompt).not.toContain('./screenshots/');
   });
 
   it('requires AI generated replay artifacts', () => {
@@ -376,7 +504,7 @@ describe('studio recorder replay adapters', () => {
       events: [],
     };
 
-    expect(() => createRecorderMarkdownReplayRequest(session)).toThrow(
+    expect(() => createRecorderAiActReplayPrompt(session)).toThrow(
       'Generate Markdown before replay.',
     );
     expect(() => getRecorderYamlReplayContent(session)).toThrow(

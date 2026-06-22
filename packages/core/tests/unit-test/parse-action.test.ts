@@ -1,4 +1,3 @@
-import { getSummary } from '@/ai-model/prompt/ui-tars-planning';
 import { actionParser } from '@ui-tars/action-parser';
 import { describe, expect, it } from 'vitest';
 
@@ -143,26 +142,5 @@ Action: right_single(start_box='(300,200)')`;
     expect(parsed[0].action_type).toBe('right_single');
     expect(parsed[0].action_inputs.start_box).toBeDefined();
     expect(parsed[0].thought).toBe('Right-click to open context menu');
-  });
-});
-
-describe('getSummary', () => {
-  it('should extract summary from prediction text', () => {
-    const text = `Reflection: Previous steps completed
-Action_Summary: Click submit button
-Action: click(start_box='(100,200,300,400)')`;
-
-    const summary = getSummary(text);
-    expect(summary).toBe(
-      "Action_Summary: Click submit button\nAction: click(start_box='(100,200,300,400)')",
-    );
-  });
-
-  it('should handle text without reflection', () => {
-    const text = `Action_Summary: Type username
-Action: type(content='user')`;
-
-    const summary = getSummary(text);
-    expect(summary).toBe(text);
   });
 });

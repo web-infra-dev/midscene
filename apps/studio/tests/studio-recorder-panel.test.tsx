@@ -9,36 +9,43 @@ const mocks = vi.hoisted(() => ({
   recorder: null as any,
 }));
 
-vi.mock('antd', () => ({
-  Button: ({ children, icon, ...props }: any) =>
-    createElement('button', { type: 'button', ...props }, icon, children),
-  Input: ({ allowClear, className, prefix, ...props }: any) =>
-    createElement('label', null, prefix, createElement('input', props)),
-  Popover: ({ children, content, onOpenChange, open }: any) => {
-    const triggerElement = children as ReactElement<{
-      onClick?: (event: MouseEvent) => void;
-    }>;
-    const trigger = isValidElement(children)
-      ? cloneElement(triggerElement, {
-          onClick: (event: MouseEvent) => {
-            triggerElement.props.onClick?.(event);
-            onOpenChange?.(!open);
-          },
-        } as any)
-      : children;
-    return createElement('span', null, trigger, open ? content : null);
-  },
-  Tooltip: ({ children }: { children: ReactNode }) => children,
-  Typography: {
-    Text: ({ children }: { children: ReactNode }) =>
-      createElement('span', null, children),
-  },
-  message: {
+vi.mock('antd', () => {
+  const message = {
     error: vi.fn(),
     info: vi.fn(),
     success: vi.fn(),
-  },
-}));
+  };
+
+  return {
+    App: Object.assign(({ children }: { children: ReactNode }) => children, {
+      useApp: () => ({ message }),
+    }),
+    Button: ({ children, icon, ...props }: any) =>
+      createElement('button', { type: 'button', ...props }, icon, children),
+    Input: ({ allowClear, className, prefix, ...props }: any) =>
+      createElement('label', null, prefix, createElement('input', props)),
+    Popover: ({ children, content, onOpenChange, open }: any) => {
+      const triggerElement = children as ReactElement<{
+        onClick?: (event: MouseEvent) => void;
+      }>;
+      const trigger = isValidElement(children)
+        ? cloneElement(triggerElement, {
+            onClick: (event: MouseEvent) => {
+              triggerElement.props.onClick?.(event);
+              onOpenChange?.(!open);
+            },
+          } as any)
+        : children;
+      return createElement('span', null, trigger, open ? content : null);
+    },
+    Tooltip: ({ children }: { children: ReactNode }) => children,
+    Typography: {
+      Text: ({ children }: { children: ReactNode }) =>
+        createElement('span', null, children),
+    },
+    message,
+  };
+});
 
 vi.mock('@midscene/recorder', () => ({
   RecordTimeline: ({ events }: { events: Array<{ actionSummary?: string }> }) =>
@@ -609,6 +616,15 @@ describe('StudioRecorderPanel', () => {
     expect(
       container.querySelector('.studio-recorder-floating-status-running'),
     ).toBeNull();
+
+    const historyButton = container.querySelector(
+      'button[aria-label="Recording history"]',
+    );
+    await act(async () => {
+      historyButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+
+    expect(document.body.textContent).toContain('Existing recording');
 
     await unmount(root);
   });

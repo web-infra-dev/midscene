@@ -10,7 +10,6 @@ import {
   type ActionParam,
   type ActionReturn,
   type AgentAssertOpt,
-  type AgentDescribeElementAtPointResult,
   type AgentOpt,
   type AgentWaitForOpt,
   type DeepThinkOption,
@@ -21,11 +20,10 @@ import {
   type ExecutionTaskLog,
   type LocateOption,
   type LocateResultElement,
-  type LocateValidatorResult,
-  type LocatorValidatorOption,
   type OnTaskStartTip,
   type PlanningAction,
-  type Rect,
+  type RecordToReportOptions,
+  type RecordToReportScreenshot,
   ReportActionDump,
   type ReportMeta,
   type ScrollParam,
@@ -49,9 +47,8 @@ import {
   parseYamlScript,
 } from '../yaml/index';
 
-import { existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
-import { basename, resolve } from 'node:path';
+import { basename } from 'node:path';
 import type { AbstractInterface } from '@/device';
 import type { TaskRunner } from '@/task-runner';
 import {
@@ -67,6 +64,7 @@ import { assert, ifInBrowser, uuid } from '@midscene/shared/utils';
 import { defineActionSleep } from '../device';
 import { validateAgentCacheInput } from './cache-config';
 import { buildPromptWithContext } from './prompt-context';
+import { normalizeRecordToReportScreenshot } from './record-to-report';
 import {
   type RunGherkinScenarioOptions,
   type RunGherkinScenarioResult,
@@ -87,50 +85,20 @@ import {
   taskTitleStr,
   typeStr,
 } from './ui-utils';
-import { commonContextParser, getReportFileName, parsePrompt } from './utils';
+import {
+  commonContextParser,
+  getReportFileName,
+  normalizeFilePaths,
+  normalizeScrollType,
+  parsePrompt,
+} from './utils';
 
 const debug = getDebug('agent');
 const warn = getDebug('agent', { console: true });
 
-const distanceOfTwoPoints = (p1: [number, number], p2: [number, number]) => {
-  const [x1, y1] = p1;
-  const [x2, y2] = p2;
-  return Math.round(Math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2));
-};
-
-const includedInRect = (point: [number, number], rect: Rect) => {
-  const [x, y] = point;
-  const { left, top, width, height } = rect;
-  return x >= left && x <= left + width && y >= top && y <= top + height;
-};
-
 const defaultServiceExtractOption: ServiceExtractOption = {
   domIncluded: false,
   screenshotIncluded: true,
-};
-
-const legacyScrollTypeMap = {
-  once: 'singleAction',
-  untilBottom: 'scrollToBottom',
-  untilTop: 'scrollToTop',
-  untilRight: 'scrollToRight',
-  untilLeft: 'scrollToLeft',
-} as const;
-
-type LegacyScrollType = keyof typeof legacyScrollTypeMap;
-
-const normalizeScrollType = (
-  scrollType: ScrollParam['scrollType'] | LegacyScrollType | undefined,
-): ScrollParam['scrollType'] | undefined => {
-  if (!scrollType) {
-    return scrollType;
-  }
-
-  if (scrollType in legacyScrollTypeMap) {
-    return legacyScrollTypeMap[scrollType as LegacyScrollType];
-  }
-
-  return scrollType as ScrollParam['scrollType'];
 };
 
 export type AiActOptions = {
@@ -825,10 +793,7 @@ export class Agent<
 
     if (opt) {
       const normalizedScrollType = normalizeScrollType(
-        (opt as ScrollParam).scrollType as
-          | ScrollParam['scrollType']
-          | LegacyScrollType
-          | undefined,
+        (opt as ScrollParam).scrollType,
       );
 
       if (normalizedScrollType !== (opt as ScrollParam).scrollType) {
@@ -923,9 +888,24 @@ export class Agent<
         opt?.context !== undefined ? opt.context : this.aiActContext;
       const cachePrompt = buildPromptWithContext(taskPrompt, aiActContext);
       // Controls the aiAct planning mode, such as sub-goal prompts and locate result strategy.
-      const deepThink = opt?.deepThink === true;
+      let deepThink = opt?.deepThink === true;
+      if (deepThink && planningModel.adapter.planning.kind === 'custom') {
+        warn(
+          `The "deepThink" option is not supported for aiAct with custom planning adapters (modelFamily: ${planningModel.config.modelFamily ?? 'unknown'}). It will be ignored.`,
+        );
+        deepThink = false;
+      }
 
-      const deepLocate = opt?.deepLocate;
+      let deepLocate = opt?.deepLocate;
+      if (
+        deepLocate &&
+        !planningModel.adapter.planning.supportsActionDeepLocate
+      ) {
+        warn(
+          `The "deepLocate" option is not supported for aiAct with the current planning adapter (modelFamily: ${planningModel.config.modelFamily ?? 'unknown'}). It will be ignored.`,
+        );
+        deepLocate = false;
+      }
 
       const noIndividualLocateModel = planningModel.config.slot === 'default';
 
@@ -1125,104 +1105,6 @@ export class Agent<
     return this.aiString(prompt, opt);
   }
 
-  async describeElementAtPoint(
-    center: [number, number],
-    opt?: {
-      verifyPrompt?: boolean;
-      retryLimit?: number;
-      deepLocate?: boolean;
-    } & LocatorValidatorOption,
-  ): Promise<AgentDescribeElementAtPointResult> {
-    const { verifyPrompt = true, retryLimit = 3 } = opt || {};
-
-    let success = false;
-    let retryCount = 0;
-    let resultPrompt = '';
-    let deepLocate = opt?.deepLocate || false;
-    let verifyResult: LocateValidatorResult | undefined;
-
-    while (!success && retryCount < retryLimit) {
-      if (retryCount >= 2) {
-        deepLocate = true;
-      }
-      debug(
-        'aiDescribe',
-        center,
-        'verifyPrompt',
-        verifyPrompt,
-        'retryCount',
-        retryCount,
-        'deepLocate',
-        deepLocate,
-      );
-      // use same intent as aiLocate
-      const modelRuntime = this.resolveModelRuntime('insight');
-
-      const text = await this.service.describe(center, modelRuntime, {
-        deepLocate,
-      });
-      debug('aiDescribe text', text);
-      assert(text.description, `failed to describe element at [${center}]`);
-      resultPrompt = text.description;
-
-      if (!verifyPrompt) {
-        success = true;
-        break;
-      }
-
-      // Don't pass deepLocate to verification locate — the description was generated
-      // from a cropped view (deepLocate describe), but verification should use regular
-      // locate on the full screenshot to confirm the description works universally.
-      // Passing deepLocate here would add another first-pass locate and search-area
-      // crop around an already element-level description, which is not the intent of
-      // verification.
-      verifyResult = await this.verifyLocator(
-        resultPrompt,
-        undefined,
-        center,
-        opt,
-      );
-      if (verifyResult.pass) {
-        success = true;
-      } else {
-        retryCount++;
-      }
-    }
-
-    return {
-      prompt: resultPrompt,
-      deepLocate,
-      verifyResult,
-    };
-  }
-
-  async verifyLocator(
-    prompt: string,
-    locateOpt: LocateOption | undefined,
-    expectCenter: [number, number],
-    verifyLocateOption?: LocatorValidatorOption,
-  ): Promise<LocateValidatorResult> {
-    debug('verifyLocator', prompt, locateOpt, expectCenter, verifyLocateOption);
-
-    const { center: verifyCenter, rect: verifyRect } = await this.aiLocate(
-      prompt,
-      locateOpt,
-    );
-    const distance = distanceOfTwoPoints(expectCenter, verifyCenter);
-    const included = includedInRect(expectCenter, verifyRect);
-    const pass =
-      distance <= (verifyLocateOption?.centerDistanceThreshold || 20) ||
-      included;
-    const verifyResult = {
-      pass,
-      rect: verifyRect,
-      center: verifyCenter,
-      centerDistance: distance,
-    };
-    debug('aiDescribe verifyResult', verifyResult);
-    return verifyResult;
-  }
-
   /**
    * Locate an element and return both its center point and an approximate rect.
    *
@@ -1248,6 +1130,7 @@ export class Agent<
       plans,
       planningModel,
       defaultModel,
+      opt?.uiContext ? { uiContext: opt.uiContext } : undefined,
     );
 
     const { element } = output;
@@ -1465,27 +1348,56 @@ export class Agent<
     }
   }
 
-  async recordToReport(
-    title?: string,
-    opt?: {
-      content?: string;
-      screenshotBase64?: string;
-    },
-  ) {
-    // 1. screenshot
-    const base64 =
-      opt?.screenshotBase64 ?? (await this.interface.screenshotBase64());
+  async recordToReport(title?: string, opt?: RecordToReportOptions) {
     const now = Date.now();
-    const screenshot = ScreenshotItem.create(base64, now);
-    // 2. build recorder
-    const recorder: ExecutionRecorderItem[] = [
-      {
-        type: 'screenshot',
-        ts: now,
-        screenshot,
+    const screenshots = opt?.screenshots;
+    const screenshotBase64 = opt?.screenshotBase64;
+    const hasScreenshots = screenshots !== undefined;
+    const hasScreenshotBase64 = screenshotBase64 !== undefined;
+    if (hasScreenshots && !Array.isArray(screenshots)) {
+      throw new Error('recordToReport: screenshots must be an array');
+    }
+    if (hasScreenshotBase64 && typeof screenshotBase64 !== 'string') {
+      throw new Error('recordToReport: screenshotBase64 must be a string');
+    }
+    if (hasScreenshots && hasScreenshotBase64) {
+      throw new Error(
+        'recordToReport: provide only one of screenshots or screenshotBase64',
+      );
+    }
+    if (opt && 'subType' in opt) {
+      throw new Error('recordToReport: subType is not supported');
+    }
+    const customScreenshots = hasScreenshots ? screenshots : undefined;
+    if (customScreenshots && customScreenshots.length === 0) {
+      throw new Error('recordToReport: screenshots cannot be empty');
+    }
+    const screenshotInputs: RecordToReportScreenshot[] =
+      customScreenshots ??
+      (hasScreenshotBase64
+        ? [{ base64: screenshotBase64 }]
+        : [{ base64: await this.interface.screenshotBase64() }]);
+
+    // 1. build recorder
+    const recorder: ExecutionRecorderItem[] = screenshotInputs.map(
+      (screenshotInput, index) => {
+        const normalizedScreenshotInput = normalizeRecordToReportScreenshot(
+          screenshotInput,
+          index,
+        );
+        const ts = now + index;
+        return {
+          type: 'screenshot',
+          ts,
+          screenshot: ScreenshotItem.create(
+            normalizedScreenshotInput.base64,
+            ts,
+          ),
+          description: normalizedScreenshotInput.description,
+        };
       },
-    ];
-    // 3. build ExecutionTaskLog
+    );
+    // 2. build ExecutionTaskLog
     const task: ExecutionTaskLog = {
       taskId: uuid(),
       type: 'Log',
@@ -1502,7 +1414,7 @@ export class Agent<
       },
       executor: async () => {},
     };
-    // 4. build ExecutionDump
+    // 3. build ExecutionDump
     const executionDump = new ExecutionDump({
       id: uuid(),
       logTime: now,
@@ -1510,7 +1422,7 @@ export class Agent<
       description: opt?.content || '',
       tasks: [task],
     });
-    // 5. append to execution dump
+    // 4. append to execution dump
     this.appendExecutionDump(executionDump);
 
     this.writeOutActionDumps(executionDump);
@@ -1658,25 +1570,9 @@ export class Agent<
     return null;
   }
 
-  private normalizeFilePaths(files: string[]): string[] {
-    if (ifInBrowser) {
-      throw new Error('File chooser is not supported in browser environment');
-    }
-
-    return files.map((file) => {
-      const absolutePath = resolve(file);
-      if (!existsSync(absolutePath)) {
-        throw new Error(
-          `File not found: ${file}. Resolved to: ${absolutePath}. Current working directory: ${process.cwd()}`,
-        );
-      }
-      return absolutePath;
-    });
-  }
-
   private normalizeFileInput(files: string | string[]): string[] {
     const filesArray = Array.isArray(files) ? files : [files];
-    return this.normalizeFilePaths(filesArray);
+    return normalizeFilePaths(filesArray);
   }
 
   /**

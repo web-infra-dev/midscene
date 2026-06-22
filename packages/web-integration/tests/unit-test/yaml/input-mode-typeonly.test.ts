@@ -2,9 +2,10 @@ import { commonWebActionsForWebPage } from '@/web-page';
 import { describe, expect, test, vi } from 'vitest';
 
 describe('Input action typeOnly mode', () => {
-  test('typeOnly mode should click to focus but not clear input', async () => {
+  test('typeOnly mode should preserve current focus and not clear input', async () => {
     const clearInputMock = vi.fn();
     const mouseClickMock = vi.fn();
+    const keyboardPressMock = vi.fn();
     const keyboardTypeMock = vi.fn();
 
     // Create a mock page object
@@ -18,7 +19,7 @@ describe('Input action typeOnly mode', () => {
       },
       keyboard: {
         type: keyboardTypeMock,
-        press: vi.fn(),
+        press: keyboardPressMock,
       },
     } as any;
 
@@ -42,9 +43,10 @@ describe('Input action typeOnly mode', () => {
     // Verify: clearInput should NOT be called
     expect(clearInputMock).not.toHaveBeenCalled();
 
-    // Verify: mouse.click should be called to focus the element
-    expect(mouseClickMock).toHaveBeenCalledTimes(1);
-    expect(mouseClickMock).toHaveBeenCalledWith(100, 200, { button: 'left' });
+    // Verify: typeOnly preserves the existing active element. This is needed
+    // for pages that auto-focus the next field after a button click.
+    expect(mouseClickMock).not.toHaveBeenCalled();
+    expect(keyboardPressMock).not.toHaveBeenCalled();
 
     // Verify: keyboard.type should be called with the value
     expect(keyboardTypeMock).toHaveBeenCalledWith('new text');

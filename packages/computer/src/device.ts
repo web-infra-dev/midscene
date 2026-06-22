@@ -90,6 +90,35 @@ const EDGE_SCROLL_STEPS = 400;
 // minimum of 10 steps so small distances still feel momentum-like.
 const PHASED_PIXELS_PER_STEP = 30;
 const PHASED_MIN_STEPS = 10;
+// libnut fallback (Windows / Linux, and macOS when phased-scroll is
+// unavailable). libnut.scrollMouse(x, y) is *not* a portable pixel API:
+//   - macOS:   y is a CG pixel scroll delta
+//   - Linux:   y is the number of XButton4/5 press-release pairs (1 = one
+//              wheel notch)
+//   - Windows: y is forwarded directly to MOUSEEVENTF_WHEEL's `mouseData`,
+//              where the unit is WHEEL_DELTA (= 120) per detent
+// Calling scrollMouse(0, 6) on Windows therefore sends `mouseData = 6` —
+// far below one detent — which gets silently accumulated and is frequently
+// discarded by Chromium's WheelEventQueue (Electron apps like Lark/Feishu
+// see this as "scroll did nothing"). Always emit one detent per call, and
+// pace the calls so blink doesn't coalesce them into a single tick.
+const LIBNUT_FALLBACK_PIXELS_PER_DETENT = 100;
+const LIBNUT_FALLBACK_TICK_DELAY_MS = 30;
+const LIBNUT_FALLBACK_MAX_DETENTS = 200;
+const LIBNUT_FALLBACK_DETENT_AMOUNT = process.platform === 'win32' ? 120 : 1;
+// Edge scrolls (scrollToTop / scrollToBottom / ...) must drive all the way to
+// the boundary on every backend. The phased path requests EDGE_SCROLL_TOTAL_PX
+// (50_000 px); the libnut fallback aims for the same distance, capped at
+// LIBNUT_FALLBACK_MAX_DETENTS so a misconfigured screen size can't wedge the
+// process. Chromium clamps wheel events at the boundary, so overshooting is
+// free. Exported for regression coverage.
+export const LIBNUT_FALLBACK_EDGE_DETENTS = Math.min(
+  LIBNUT_FALLBACK_MAX_DETENTS,
+  Math.max(
+    1,
+    Math.ceil(EDGE_SCROLL_TOTAL_PX / LIBNUT_FALLBACK_PIXELS_PER_DETENT),
+  ),
+);
 // Default scroll distance is 70% of the screen size on the relevant axis,
 // matching the web puppeteer/chrome-extension behavior so a model that simply
 // says "scroll down" without a distance gets a roughly one-screen scroll on
@@ -105,6 +134,9 @@ type EdgeScrollType =
 interface EdgeScrollStrategy {
   direction: ScrollDirection;
   key: 'home' | 'end';
+  // Unit vector for libnut.scrollMouse direction. Magnitude is applied
+  // separately by emitDetents() so each call is one full detent on every
+  // platform (see LIBNUT_FALLBACK_DETENT_AMOUNT).
   libnut: readonly [number, number];
 }
 
@@ -112,10 +144,10 @@ interface EdgeScrollStrategy {
 // only requires one entry here; the three backends (phased binary /
 // AppleScript / libnut) all read from the same spec.
 const EDGE_SCROLL_SPEC: Record<EdgeScrollType, EdgeScrollStrategy> = {
-  scrollToTop: { direction: 'up', key: 'home', libnut: [0, 10] },
-  scrollToBottom: { direction: 'down', key: 'end', libnut: [0, -10] },
-  scrollToLeft: { direction: 'left', key: 'home', libnut: [-10, 0] },
-  scrollToRight: { direction: 'right', key: 'end', libnut: [10, 0] },
+  scrollToTop: { direction: 'up', key: 'home', libnut: [0, 1] },
+  scrollToBottom: { direction: 'down', key: 'end', libnut: [0, -1] },
+  scrollToLeft: { direction: 'left', key: 'home', libnut: [-1, 0] },
+  scrollToRight: { direction: 'right', key: 'end', libnut: [1, 0] },
 };
 
 // macOS AppleScript key code mapping
@@ -1170,13 +1202,47 @@ Original error: ${lastRawMessage}`,
     this.inputDriver.sendKey(key, modifiers);
   }
 
-  private async performScroll(param: any): Promise<void> {
+  private resolveUntargetedScrollPoint(screenSize: Size): Point {
+    if (process.platform === 'win32') {
+      const activeWindowRect = this.inputDriver.getActiveWindowRect();
+      if (activeWindowRect) {
+        return {
+          x: activeWindowRect.x + activeWindowRect.width / 2,
+          y: activeWindowRect.y + activeWindowRect.height / 2,
+        };
+      }
+    }
+
+    return this.toGlobalPoint({
+      x: screenSize.width / 2,
+      y: screenSize.height / 2,
+    });
+  }
+
+  private async moveMouseToScrollTarget(param: any): Promise<Size | undefined> {
     if (param.locate) {
       const element = param.locate as LocateResultElement;
       const [x, y] = element.center;
       const point = this.toGlobalPoint({ x, y });
       this.inputDriver.moveMouse(Math.round(point.x), Math.round(point.y));
+      return undefined;
     }
+
+    // Wheel events are delivered to the window under the cursor. For an
+    // untargeted "scroll down", anchor the cursor in the active viewport
+    // instead of relying on wherever the previous action left it.
+    const screenSize = await this.size();
+    if (process.platform === 'win32' && this.inputDriver.focusActiveWindow()) {
+      await this.inputDriver.delay(CLICK_FOCUS_SETTLE_DELAY);
+    }
+    const point = this.resolveUntargetedScrollPoint(screenSize);
+    this.inputDriver.moveMouse(Math.round(point.x), Math.round(point.y));
+    await this.inputDriver.delay(MOUSE_MOVE_EFFECT_WAIT);
+    return screenSize;
+  }
+
+  private async performScroll(param: any): Promise<void> {
+    let screenSize = await this.moveMouseToScrollTarget(param);
 
     const scrollType = param?.scrollType;
 
@@ -1202,11 +1268,13 @@ Original error: ${lastRawMessage}`,
         return;
       }
 
-      const [dx, dy] = edgeSpec.libnut;
-      for (let i = 0; i < SCROLL_REPEAT_COUNT; i++) {
-        this.inputDriver.scrollMouse(dx, dy);
-        await this.inputDriver.delay(SCROLL_STEP_DELAY);
-      }
+      const [ux, uy] = edgeSpec.libnut;
+      await this.inputDriver.emitScrollDetents(
+        ux * LIBNUT_FALLBACK_DETENT_AMOUNT,
+        uy * LIBNUT_FALLBACK_DETENT_AMOUNT,
+        LIBNUT_FALLBACK_EDGE_DETENTS,
+        LIBNUT_FALLBACK_TICK_DELAY_MS,
+      );
       return;
     }
 
@@ -1220,9 +1288,8 @@ Original error: ${lastRawMessage}`,
       const isHorizontal = direction === 'left' || direction === 'right';
 
       let distance: number | undefined = param?.distance ?? undefined;
-      let screenSize: Size | undefined;
       if (!distance) {
-        screenSize = await this.size();
+        screenSize ??= await this.size();
         const base = isHorizontal ? screenSize.width : screenSize.height;
         distance = Math.max(
           1,
@@ -1253,16 +1320,23 @@ Original error: ${lastRawMessage}`,
         return;
       }
 
-      const ticks = Math.ceil(distance / 100);
-      const directionMap: Record<string, [number, number]> = {
-        up: [0, ticks],
-        down: [0, -ticks],
-        left: [-ticks, 0],
-        right: [ticks, 0],
+      const detents = Math.min(
+        LIBNUT_FALLBACK_MAX_DETENTS,
+        Math.max(1, Math.ceil(distance / LIBNUT_FALLBACK_PIXELS_PER_DETENT)),
+      );
+      const directionUnit: Record<string, [number, number]> = {
+        up: [0, 1],
+        down: [0, -1],
+        left: [-1, 0],
+        right: [1, 0],
       };
-
-      const [dx, dy] = directionMap[direction] || [0, -ticks];
-      this.inputDriver.scrollMouse(dx, dy);
+      const [ux, uy] = directionUnit[direction] || [0, -1];
+      await this.inputDriver.emitScrollDetents(
+        ux * LIBNUT_FALLBACK_DETENT_AMOUNT,
+        uy * LIBNUT_FALLBACK_DETENT_AMOUNT,
+        detents,
+        LIBNUT_FALLBACK_TICK_DELAY_MS,
+      );
       await this.inputDriver.delay(SCROLL_COMPLETE_DELAY);
       return;
     }

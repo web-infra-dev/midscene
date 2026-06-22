@@ -404,6 +404,7 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
     const registrationVersion = ++this.fileChooserRegistrationVersion;
     const tabId = await this.getTabIdOrConnectToCurrentTab();
 
+    await this.ensureDebuggerAttached();
     await this.sendCommandToDebugger('Page.enable', {});
     await this.sendCommandToDebugger('DOM.enable', {});
     await this.sendCommandToDebugger('Page.setInterceptFileChooserDialog', {

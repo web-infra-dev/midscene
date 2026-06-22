@@ -1,3 +1,4 @@
+import path from 'node:path';
 import {
   defaultViewportHeight,
   defaultViewportWidth,
@@ -135,6 +136,78 @@ describe('launchPuppeteerPage', () => {
     await launchPuppeteerPage({ url: 'https://example.com' });
 
     expect(pageMock.setExtraHTTPHeaders).not.toHaveBeenCalled();
+  });
+
+  it('configures Chrome download behavior when downloadPath is provided', async () => {
+    await launchPuppeteerPage({
+      url: 'https://example.com',
+      downloadPath: './downloads',
+    });
+
+    expect(mockLaunch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        downloadBehavior: {
+          policy: 'allow',
+          downloadPath: path.resolve('./downloads'),
+        },
+      }),
+    );
+  });
+
+  it('does not configure Chrome download behavior when downloadPath is omitted', async () => {
+    await launchPuppeteerPage({ url: 'https://example.com' });
+
+    expect(mockLaunch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        downloadBehavior: undefined,
+      }),
+    );
+  });
+
+  it('builds Chrome download behavior from a relative downloadPath', async () => {
+    const { buildDownloadBehavior } = await import(
+      '@/puppeteer/agent-launcher'
+    );
+
+    expect(buildDownloadBehavior('./downloads')).toEqual({
+      policy: 'allow',
+      downloadPath: path.resolve('./downloads'),
+    });
+  });
+
+  it('does not build Chrome download behavior when downloadPath is omitted', async () => {
+    const { buildDownloadBehavior } = await import(
+      '@/puppeteer/agent-launcher'
+    );
+
+    expect(buildDownloadBehavior(undefined)).toBeUndefined();
+  });
+
+  it('does not configure Chrome download behavior on an externally provided browser', async () => {
+    await launchPuppeteerPage(
+      {
+        url: 'https://example.com',
+        downloadPath: './downloads',
+      },
+      undefined,
+      browserMock as any,
+    );
+
+    expect(mockLaunch).not.toHaveBeenCalled();
+  });
+
+  it('does not configure Chrome download behavior on an externally provided page', async () => {
+    await launchPuppeteerPage(
+      {
+        url: 'https://example.com',
+        downloadPath: './downloads',
+      },
+      undefined,
+      browserMock as any,
+      pageMock as any,
+    );
+
+    expect(mockLaunch).not.toHaveBeenCalled();
   });
 
   it('passes yaml waitForNetworkIdle settings to the agent for later actions', async () => {

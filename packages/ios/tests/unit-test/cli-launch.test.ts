@@ -1,7 +1,7 @@
 import { runToolsCLI } from '@midscene/shared/cli';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { agentFromWebDriverAgent } from '../../src/agent';
-import { IOSMidsceneTools } from '../../src/mcp-tools';
+import { IOSMidsceneTools } from '../../src/agent-tools';
 
 // Mock the agent entry point only. IOSDevice is intentionally NOT mocked so
 // that the real actionSpace (including Launch/Terminate) reaches the tool

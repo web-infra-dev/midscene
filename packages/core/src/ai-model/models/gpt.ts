@@ -4,7 +4,7 @@ import type {
   ChatCompletionParamsResult,
   ImageDetail,
   ModelAdapterDefinition,
-} from './types';
+} from '../model-adapter/types';
 
 const originalImageDetailForDefaultIntent = (
   input: ChatCompletionCallContext,

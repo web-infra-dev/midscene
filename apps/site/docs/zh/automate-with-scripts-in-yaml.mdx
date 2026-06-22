@@ -165,6 +165,11 @@ web:
   # JSON 格式的浏览器 Cookie 文件路径，可选
   cookie: <path-to-cookie-file>
 
+  # Chrome 下载目录（仅 Puppeteer 模式），可选
+  # 相对路径会基于当前工作目录解析
+  # bridgeMode 不支持该选项
+  downloadPath: <path-to-download-directory>
+
   # 随每个请求发送的额外 HTTP 请求头（仅 Puppeteer 模式），可选
   # 适用于服务器会校验自定义请求头的场景
   # 值必须是字符串；像 true、false、纯数字这类会被 YAML 解析为非字符串的值需加引号，如 "true"

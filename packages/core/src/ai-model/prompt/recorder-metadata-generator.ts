@@ -4,8 +4,10 @@ import {
   type MidsceneRecorderTarget,
   getMidsceneRecorderEventDescription,
   getMidsceneRecorderScreenshotsForLLM,
+  getMidsceneRecorderSemantic,
 } from '@midscene/shared/recorder';
 import { callAIWithObjectResponse } from '../service-caller/index';
+import { compactRecorderSemanticForGeneration } from './recorder-generation-common';
 
 export interface RecorderMetadataGenerationInput {
   target: MidsceneRecorderTarget;
@@ -54,10 +56,9 @@ function summarizeRecorderEvents(input: RecorderMetadataGenerationInput) {
       title: event.title,
       value: event.value,
       description: getMidsceneRecorderEventDescription(event),
-      elementDescription: event.elementDescription,
-      replayInstruction: event.replayInstruction,
-      actionSummary: event.actionSummary,
-      semanticConfidence: event.semanticConfidence,
+      semantic: compactRecorderSemanticForGeneration(
+        getMidsceneRecorderSemantic(event),
+      ),
     })),
   };
 }

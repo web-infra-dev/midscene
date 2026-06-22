@@ -124,8 +124,8 @@ Convert events:
 - scroll → aiScroll with appropriate direction and semantic scroll area
 - keydown → aiKeyboardPress
 - Add aiAssert for important state changes
-- Prefer event.replayInstruction and event.elementDescription when descriptionSource is "ai".
-- If descriptionSource is "fallback", use the screenshot/context to write the best visual instruction, and avoid raw coordinates unless there is no reliable semantic description.
+- Prefer event.semantic.replayInstruction and event.semantic.elementDescription when event.semantic.source is "aiDescribe" or "recorderAI" and event.semantic.status is "ready".
+- If event.semantic.source is "heuristic" or event.semantic.status is "pending"/"failed", use the screenshot/context to write the best visual instruction, and avoid raw coordinates unless there is no reliable semantic description.
 - Screenshot assets are context only. Use their eventIndex/eventHashId relationship to understand the matching event, but do not include screenshot file paths in the YAML unless the Midscene YAML API explicitly needs them.${getYamlLanguageInstruction(language)}
 
 Important: Return ONLY the raw YAML content. Do NOT wrap the response in markdown code blocks (no \`\`\`yaml or \`\`\`). Start directly with the YAML content.`,

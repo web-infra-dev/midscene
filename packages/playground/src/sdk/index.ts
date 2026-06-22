@@ -5,6 +5,7 @@ import { LocalExecutionAdapter } from '../adapters/local-execution';
 import { RemoteExecutionAdapter } from '../adapters/remote-execution';
 import type {
   PlaygroundRecorderCapabilitiesResult,
+  PlaygroundRecorderDescribeResult,
   PlaygroundRecorderEvent,
   PlaygroundRecorderEventsResult,
   PlaygroundRecorderStartResult,
@@ -35,6 +36,7 @@ export interface PlaygroundInteractResult {
 export type PlaygroundPageRecordedEvent = PlaygroundRecorderEvent;
 export type {
   PlaygroundRecorderCapabilitiesResult,
+  PlaygroundRecorderDescribeResult,
   PlaygroundRecorderEventsResult,
   PlaygroundRecorderStartResult,
 };
@@ -299,6 +301,18 @@ export class PlaygroundSDK {
       return this.adapter.getRecorderEvents(since);
     }
     return { events: [], nextIndex: since };
+  }
+
+  async describeRecorderEventAtPoint(
+    event: PlaygroundRecorderEvent,
+  ): Promise<PlaygroundRecorderDescribeResult> {
+    if (this.adapter instanceof RemoteExecutionAdapter) {
+      return this.adapter.describeRecorderEventAtPoint(event);
+    }
+    return {
+      ok: false,
+      error: 'Recorder aiDescribe requires remote execution',
+    };
   }
 
   // Get interface information (type and description)

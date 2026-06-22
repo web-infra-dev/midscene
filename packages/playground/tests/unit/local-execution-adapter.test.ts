@@ -1,5 +1,5 @@
 import type { DeviceAction } from '@midscene/core';
-import { ExecutionDump, runConnectivityTest } from '@midscene/core';
+import { ReportActionDump, runConnectivityTest } from '@midscene/core';
 import {
   globalModelConfigManager,
   overrideAIConfig,
@@ -257,7 +257,7 @@ describe('LocalExecutionAdapter', () => {
 
       expect(result).toEqual({
         result: 'test result',
-        dump: expect.any(ExecutionDump),
+        dump: expect.any(ReportActionDump),
         reportHTML: null,
         error: null,
       });
@@ -314,7 +314,7 @@ describe('LocalExecutionAdapter', () => {
 
       expect(result).toEqual({
         success: true,
-        dump: expect.any(ExecutionDump),
+        dump: expect.any(ReportActionDump),
         reportHTML: null,
       });
       expect(mockAgent.destroy).toHaveBeenCalled();
@@ -345,7 +345,7 @@ describe('LocalExecutionAdapter', () => {
 
       expect(result).toEqual({
         error: 'Failed to cancel: Destroy failed',
-        dump: expect.any(ExecutionDump),
+        dump: expect.any(ReportActionDump),
         reportHTML: null,
       });
       expect(consoleSpy).toHaveBeenCalledWith(

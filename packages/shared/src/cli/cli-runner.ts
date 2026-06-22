@@ -2,14 +2,14 @@ import { existsSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import dotenv from 'dotenv';
-import { getDebug } from '../logger';
-import type { BaseMidsceneTools } from '../mcp/base-tools';
-import { stripBehaviorFlags } from '../mcp/tool-defaults';
+import type { BaseMidsceneTools } from '../agent-tools/base-tools';
+import { stripBehaviorFlags } from '../agent-tools/tool-defaults';
 import type {
   ToolDefinition,
   ToolResult,
   ToolResultContent,
-} from '../mcp/types';
+} from '../agent-tools/types';
+import { getDebug } from '../logger';
 import {
   canonicalizeCliArgKeys,
   formatCliValidationError,

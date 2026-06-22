@@ -1,8 +1,8 @@
 # 使用 Skills 控制任意平台
 
-[Agent Skills](https://github.com/anthropics/skills) 是一种扩展 AI 编程助手能力的格式。Midscene 提供了 Agent Skills，让 AI 编程工具（如 Claude Code、Cline 等）可以通过 CLI 命令驱动 UI 自动化，无需配置 MCP 服务。
+[Agent Skills](https://github.com/anthropics/skills) 是一种扩展 AI 编程助手能力的格式。Midscene 提供了 Agent Skills，让 AI 编程工具（如 Claude Code、Cline 等）可以通过 CLI 命令驱动 UI 自动化。
 
-与 [MCP 集成](./mcp) 不同，Skills 通过在终端中直接运行 CLI 命令来工作。AI 编程助手充当“大脑”：截图、分析 UI、决定下一步操作。
+Skills 通过在终端中直接运行 CLI 命令来工作。AI 编程助手充当“大脑”：截图、分析 UI、决定下一步操作。
 
 ## 支持的平台
 
@@ -15,6 +15,8 @@
 | HarmonyOS Device Automation | `@midscene/harmony` | `npx @midscene/harmony` | 通过 HDC 控制鸿蒙设备 |
 
 在默认 Puppeteer 模式下，可以通过 `--viewport-width <width>` 和 `--viewport-height <height>` 覆盖默认的 `1440x800` 视口尺寸。这两个参数仅支持默认 Puppeteer 模式，不支持 `--bridge` 或 `--cdp` 模式。
+
+如果 Chrome 安装在非标准路径，请将 `MIDSCENE_CHROME_PATH` 设置为 Chrome 可执行文件路径。`MIDSCENE_MCP_CHROME_PATH` 会暂时作为迁移别名继续生效。
 
 ## 安装
 

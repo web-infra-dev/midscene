@@ -5,7 +5,6 @@ import {
   systemPromptToTaskPlanning,
 } from '@/ai-model/prompt/llm-planning';
 import { systemPromptToLocateSection } from '@/ai-model/prompt/llm-section-locator';
-import { getUiTarsPlanningPrompt } from '@/ai-model/prompt/ui-tars-planning';
 import type { LocateResultPromptSpec } from '@/ai-model/shared/model-locate-result';
 import { defineActionInput, defineActionSwipe } from '@/device';
 import { getMidsceneLocationSchema } from '@/index';
@@ -17,7 +16,6 @@ import {
   systemPromptToExtract,
 } from '../../../src/ai-model/prompt/extraction';
 import { mockActionSpace } from '../../common';
-import { mockNonChinaTimeZone, restoreIntl } from '../mocks/intl-mock';
 
 // Mock getPreferredLanguage to ensure consistent test output
 vi.mock('@midscene/shared/env', async (importOriginal) => {
@@ -543,17 +541,6 @@ describe('system prompts', () => {
   it('locator - gemini', () => {
     const prompt = systemPromptToLocateElement(locatePromptSpecFor('gemini'));
     expect(prompt).toMatchSnapshot();
-  });
-
-  it('ui-tars planning', () => {
-    // Mock Intl to ensure non-China timezone
-    mockNonChinaTimeZone();
-
-    const prompt = getUiTarsPlanningPrompt();
-    expect(prompt).toMatchSnapshot();
-
-    // Restore original Intl
-    restoreIntl();
   });
 });
 

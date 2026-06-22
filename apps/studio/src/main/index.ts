@@ -72,7 +72,7 @@ const STUDIO_E2E_READY_MARKER = 'MIDSCENE_STUDIO_E2E_READY';
 const STUDIO_E2E_FAILED_MARKER = 'MIDSCENE_STUDIO_E2E_FAILED';
 
 // Expose the Chromium DevTools Protocol on a fixed port in dev so external
-// profilers (e.g. chrome-devtools-mcp at http://localhost:9224) can attach to
+// profilers (for example, a CDP client at http://localhost:9224) can attach to
 // the renderer without the user keeping DevTools open. Production builds never
 // set this — it would be a liability. The port can be overridden with the
 // MIDSCENE_STUDIO_CDP_PORT env var when multiple dev instances are running.
@@ -524,7 +524,7 @@ const registerIpcHandlers = () => {
         }
         return {
           type: 'markdown',
-          path: markdownPath,
+          content: await readFile(markdownPath, 'utf-8'),
           displayName: `${path.basename(filePath)}/${path.basename(markdownPath)}`,
         };
       }
@@ -537,7 +537,7 @@ const registerIpcHandlers = () => {
       if (type === 'markdown') {
         return {
           type,
-          path: filePath,
+          content: await readFile(filePath, 'utf-8'),
           displayName: path.basename(filePath),
         };
       }

@@ -30,7 +30,11 @@ const mockEvents: ChromeRecordedEvent[] = [
   {
     type: 'click',
     timestamp: 2000,
-    elementDescription: 'Login button',
+    semantic: {
+      source: 'aiDescribe',
+      status: 'ready',
+      elementDescription: 'Login button',
+    },
     pageInfo: { width: 1280, height: 720 },
     hashId: 'click-1',
   },
@@ -112,7 +116,11 @@ describe('yaml-generator', () => {
             type: 'click',
             source: 'studio-preview',
             actionType: 'Click',
-            elementDescription: 'Use documentation link',
+            semantic: {
+              source: 'aiDescribe',
+              status: 'ready',
+              elementDescription: 'Use documentation link',
+            },
             elementRect: { x: 73, y: 1071 },
             pageInfo: { width: 1080, height: 1920 },
             timestamp: 1000,
@@ -160,7 +168,11 @@ describe('yaml-generator', () => {
           {
             type: 'click',
             timestamp: 2000,
-            elementDescription: 'Login button',
+            semantic: {
+              source: 'aiDescribe',
+              status: 'ready',
+              elementDescription: 'Login button',
+            },
             screenshotWithBox:
               'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSK',
             pageInfo: { width: 1280, height: 720 },

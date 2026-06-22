@@ -6,6 +6,8 @@ import type {
 import { parseStructuredParams } from '../common';
 import type {
   PlaygroundRecorderCapabilitiesResult,
+  PlaygroundRecorderDescribeResult,
+  PlaygroundRecorderEvent,
   PlaygroundRecorderEventsResult,
   PlaygroundRecorderSourceKind,
   PlaygroundRecorderStartResult,
@@ -212,6 +214,7 @@ export class RemoteExecutionAdapter extends BasePlaygroundAdapter {
       { key: 'screenshotIncluded', value: options.screenshotIncluded },
       { key: 'domIncluded', value: options.domIncluded },
       { key: 'deviceOptions', value: options.deviceOptions },
+      { key: 'reportDisplay', value: options.reportDisplay },
       { key: 'params', value: value.params },
     ] as const;
 
@@ -640,6 +643,45 @@ export class RemoteExecutionAdapter extends BasePlaygroundAdapter {
     } catch (error) {
       console.error('Failed to poll recorder events:', error);
       return { events: [], nextIndex: since };
+    }
+  }
+
+  async describeRecorderEventAtPoint(
+    event: PlaygroundRecorderEvent,
+  ): Promise<PlaygroundRecorderDescribeResult> {
+    if (!this.serverUrl) {
+      return { ok: false, error: 'No server URL configured' };
+    }
+
+    try {
+      const response = await fetch(
+        `${this.serverUrl}/recorder/describe-event`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ event }),
+        },
+      );
+      const data = (await response
+        .json()
+        .catch(() => null)) as PlaygroundRecorderDescribeResult | null;
+      if (!response.ok) {
+        return {
+          ok: false,
+          error:
+            data?.error ||
+            `Recorder describe request failed (${response.status})`,
+        };
+      }
+      return data || { ok: false, error: 'Empty recorder describe response' };
+    } catch (error) {
+      return {
+        ok: false,
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Failed to describe recorder event',
+      };
     }
   }
 

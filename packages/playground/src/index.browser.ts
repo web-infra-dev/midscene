@@ -53,6 +53,7 @@ export type {
   PlaygroundPreviewDescriptor,
   PlaygroundPreviewKind,
   PlaygroundRecorderCapabilitiesResult,
+  PlaygroundRecorderDescribeResult,
   PlaygroundRecorderEvent,
   PlaygroundRecorderEventsResult,
   PlaygroundRecorderSourceKind,

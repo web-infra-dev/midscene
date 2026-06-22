@@ -264,8 +264,11 @@ function recorderMarkdownSection(
   const attachments: MarkdownAttachment[] = [];
 
   recorder.forEach((item, recorderIndex) => {
+    const descriptionText = item.description
+      ? `, description=${item.description}`
+      : '';
     lines.push(
-      `- #${recorderIndex + 1} type=${item.type}, ts=${formatTime(item.ts)}, timing=${item.timing || 'N/A'}`,
+      `- #${recorderIndex + 1} type=${item.type}, ts=${formatTime(item.ts)}, timing=${item.timing || 'N/A'}${descriptionText}`,
     );
 
     if (!item.screenshot) {

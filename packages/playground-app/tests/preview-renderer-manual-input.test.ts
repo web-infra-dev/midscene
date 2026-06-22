@@ -202,6 +202,8 @@ describe('PreviewRenderer manual web input', () => {
       actionType: 'Input',
       value: 'hel',
       mode: 'typeOnly',
+      x: 50,
+      y: 50,
     });
 
     await act(async () => {
@@ -246,6 +248,8 @@ describe('PreviewRenderer manual web input', () => {
       actionType: 'Input',
       value: 'o',
       mode: 'typeOnly',
+      x: 50,
+      y: 50,
     });
     expect(interact).toHaveBeenNthCalledWith(4, {
       actionType: 'KeyboardPress',
@@ -383,6 +387,8 @@ describe('PreviewRenderer manual web input', () => {
       actionType: 'Input',
       value: 'z',
       mode: 'typeOnly',
+      x: 50,
+      y: 50,
     });
 
     container.remove();

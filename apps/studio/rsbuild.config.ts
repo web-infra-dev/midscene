@@ -153,6 +153,7 @@ export default defineConfig({
           '@midscene/harmony',
           '@midscene/ios',
           '@midscene/playground',
+          '@midscene/playground/recorder-ui-describer',
         ],
         sourceMap: true,
       },

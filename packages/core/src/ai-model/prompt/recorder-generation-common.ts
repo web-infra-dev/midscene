@@ -2,9 +2,11 @@ import {
   DEFAULT_MIDSCENE_RECORDER_MARKDOWN_MAX_SCREENSHOTS,
   type MidsceneRecorderEvent,
   type MidsceneRecorderMarkdownScreenshotAsset,
+  type MidsceneRecorderSemantic,
   type MidsceneRecorderTarget,
   createMidsceneRecorderMarkdownScreenshotAssets,
   getMidsceneRecorderEventDescription,
+  getMidsceneRecorderSemantic,
 } from '@midscene/shared/recorder';
 
 export interface EventCounts {
@@ -26,16 +28,19 @@ export interface ProcessedEvent {
   timestamp: number;
   source?: string;
   actionType?: string;
-  descriptionSource?: string;
-  descriptionError?: string;
   url?: string;
   title?: string;
-  elementDescription?: string;
-  replayInstruction?: string;
-  actionSummary?: string;
-  semanticConfidence?: string;
+  semantic?: MidsceneRecorderSemantic;
   description?: string;
   value?: string;
+  typedText?: string;
+  inputIndex?: number;
+  isSequentialInput?: boolean;
+  hasNeighborInput?: boolean;
+  previousInputDescription?: string;
+  previousActionDescription?: string;
+  nextActionDescription?: string;
+  neighborInputValues?: string[];
   pageInfo?: any;
   elementRect?: any;
   screenshotPath?: string;
@@ -57,6 +62,9 @@ export interface RecorderGenerationContext {
 }
 
 export type ChromeRecordedEvent = MidsceneRecorderEvent;
+
+const MAX_RECORDER_GENERATION_SEMANTIC_TEXT_LENGTH = 1200;
+const MAX_RECORDER_GENERATION_SEMANTIC_ERROR_LENGTH = 400;
 
 export interface RecorderGenerationOptions {
   testName?: string;
@@ -89,6 +97,64 @@ export interface FilteredEvents {
 
 function cleanRecorderSemanticField(value?: string) {
   return value?.trim() === 'AI is analyzing element...' ? undefined : value;
+}
+
+function truncateRecorderGenerationText(value: string, maxLength: number) {
+  if (value.length <= maxLength) {
+    return value;
+  }
+  return `${value.slice(0, maxLength)}... [truncated ${value.length - maxLength} chars]`;
+}
+
+function compactRecorderSemanticText(value?: string) {
+  const cleaned = cleanRecorderSemanticField(value);
+  return cleaned
+    ? truncateRecorderGenerationText(
+        cleaned,
+        MAX_RECORDER_GENERATION_SEMANTIC_TEXT_LENGTH,
+      )
+    : undefined;
+}
+
+function compactRecorderSemanticError(value?: string) {
+  return value
+    ? truncateRecorderGenerationText(
+        value,
+        MAX_RECORDER_GENERATION_SEMANTIC_ERROR_LENGTH,
+      )
+    : undefined;
+}
+
+export function compactRecorderSemanticForGeneration(
+  semantic?: MidsceneRecorderSemantic,
+): MidsceneRecorderSemantic | undefined {
+  if (!semantic) {
+    return undefined;
+  }
+
+  return {
+    source: semantic.source,
+    status: semantic.status,
+    confidence: semantic.confidence,
+    elementDescription: compactRecorderSemanticText(
+      semantic.elementDescription,
+    ),
+    replayInstruction: compactRecorderSemanticText(semantic.replayInstruction),
+    actionSummary: compactRecorderSemanticText(semantic.actionSummary),
+    error: compactRecorderSemanticError(semantic.error),
+    ...(semantic.aiDescribe
+      ? {
+          aiDescribe: {
+            verifyPrompt: semantic.aiDescribe.verifyPrompt,
+            verifyPassed: semantic.aiDescribe.verifyPassed,
+            deepLocate: semantic.aiDescribe.deepLocate,
+            centerDistance: semantic.aiDescribe.centerDistance,
+            expectedCenter: semantic.aiDescribe.expectedCenter,
+            actualCenter: semantic.aiDescribe.actualCenter,
+          },
+        }
+      : {}),
+  };
 }
 
 export const validateEvents = (events: ChromeRecordedEvent[]): void => {
@@ -135,10 +201,14 @@ export const extractInputDescriptions = (
   inputEvents: ChromeRecordedEvent[],
 ): InputDescription[] => {
   return inputEvents
-    .map((event) => ({
-      description: cleanRecorderSemanticField(event.elementDescription) || '',
-      value: event.value || '',
-    }))
+    .map((event) => {
+      const semantic = getMidsceneRecorderSemantic(event);
+      return {
+        description:
+          cleanRecorderSemanticField(semantic?.elementDescription) || '',
+        value: event.value || '',
+      };
+    })
     .filter((item) => item.description && item.value);
 };
 
@@ -146,26 +216,67 @@ export const processEventsForLLM = (
   events: ChromeRecordedEvent[],
   screenshotPathByEventHash: Map<string, string> = new Map(),
 ): ProcessedEvent[] => {
-  return events.map((event) => ({
-    hashId: event.hashId,
-    type: event.type,
-    timestamp: event.timestamp,
-    source: event.source,
-    actionType: event.actionType,
-    descriptionSource: event.descriptionSource,
-    descriptionError: event.descriptionError,
-    url: event.url,
-    title: event.title,
-    elementDescription: cleanRecorderSemanticField(event.elementDescription),
-    replayInstruction: cleanRecorderSemanticField(event.replayInstruction),
-    actionSummary: cleanRecorderSemanticField(event.actionSummary),
-    semanticConfidence: event.semanticConfidence,
-    description: getMidsceneRecorderEventDescription(event),
-    value: event.value,
-    pageInfo: event.pageInfo,
-    elementRect: event.elementRect,
-    screenshotPath: screenshotPathByEventHash.get(event.hashId),
-  }));
+  let inputIndex = 0;
+  return events.map((event, index) => {
+    const previousEvent = events[index - 1];
+    const nextEvent = events[index + 1];
+    const previousInput = events
+      .slice(0, index)
+      .reverse()
+      .find((candidate) => candidate.type === 'input');
+    const nextInput = events
+      .slice(index + 1)
+      .find((candidate) => candidate.type === 'input');
+    const isInput = event.type === 'input';
+    const inputSequenceIndex = isInput ? ++inputIndex : undefined;
+    const hasNeighborInput = Boolean(previousInput || nextInput);
+    const neighborInputValues = isInput
+      ? [previousInput?.value, nextInput?.value].filter(
+          (value): value is string => Boolean(value),
+        )
+      : undefined;
+    const semantic = compactRecorderSemanticForGeneration(
+      getMidsceneRecorderSemantic(event),
+    );
+
+    return {
+      hashId: event.hashId,
+      type: event.type,
+      timestamp: event.timestamp,
+      source: event.source,
+      actionType: event.actionType,
+      url: event.url,
+      title: event.title,
+      semantic,
+      description: getMidsceneRecorderEventDescription(event),
+      value: event.value,
+      previousActionDescription: previousEvent
+        ? getMidsceneRecorderEventDescription(previousEvent)
+        : undefined,
+      nextActionDescription: nextEvent
+        ? getMidsceneRecorderEventDescription(nextEvent)
+        : undefined,
+      ...(isInput
+        ? {
+            typedText: event.value || '',
+            inputIndex: inputSequenceIndex,
+            isSequentialInput:
+              previousEvent?.type === 'input' || nextEvent?.type === 'input',
+            hasNeighborInput,
+            previousInputDescription: previousInput
+              ? getMidsceneRecorderEventDescription(previousInput)
+              : undefined,
+            neighborInputValues:
+              neighborInputValues && neighborInputValues.length > 0
+                ? neighborInputValues
+                : undefined,
+          }
+        : {}),
+      pageInfo: event.pageInfo,
+      elementRect: event.elementRect,
+      screenshotPath: screenshotPathByEventHash.get(event.hashId),
+    };
+  });
 };
 
 export const prepareEventSummary = (
@@ -185,7 +296,7 @@ export const prepareEventSummary = (
       : '';
 
   const clickDescriptions = filteredEvents.clickEvents
-    .map((event) => event.elementDescription)
+    .map((event) => getMidsceneRecorderSemantic(event)?.elementDescription)
     .filter((desc): desc is string => Boolean(desc))
     .slice(0, 10);
 

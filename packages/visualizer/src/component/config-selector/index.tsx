@@ -94,6 +94,15 @@ export const ConfigSelector: React.FC<ConfigSelectorProps> = ({
   }
 
   const configItems: MenuProps['items'] = buildConfigItems();
+  const dropdownTrigger = trigger ?? (
+    <button
+      aria-label="Open run configuration"
+      className="selector-trigger-button"
+      type="button"
+    >
+      <SettingOutlined width={24} height={24} />
+    </button>
+  );
 
   return (
     <div className="selector-trigger">
@@ -105,7 +114,7 @@ export const ConfigSelector: React.FC<ConfigSelectorProps> = ({
         placement={popupPlacement}
         trigger={['click']}
       >
-        {trigger ?? <SettingOutlined width={24} height={24} />}
+        {dropdownTrigger}
       </Dropdown>
     </div>
   );

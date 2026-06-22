@@ -1,6 +1,6 @@
 /// <reference types="chrome" />
 import { globalThemeConfig } from '@midscene/visualizer';
-import { Button, Checkbox, ConfigProvider } from 'antd';
+import { App as AntdApp, Button, Checkbox, ConfigProvider } from 'antd';
 import { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { workerMessageTypes } from '../../utils/workerMessageTypes';
@@ -69,40 +69,42 @@ function ConfirmDialog() {
 
   return (
     <ConfigProvider theme={globalThemeConfig()}>
-      <div className="confirm-dialog">
-        <div className="confirm-header">
-          <img src="/icon128.png" alt="Midscene" className="confirm-logo" />
-          <h2 className="confirm-title">Midscene Bridge</h2>
-        </div>
+      <AntdApp component={false}>
+        <div className="confirm-dialog">
+          <div className="confirm-header">
+            <img src="/icon128.png" alt="Midscene" className="confirm-logo" />
+            <h2 className="confirm-title">Midscene Bridge</h2>
+          </div>
 
-        <div className="confirm-content">
-          <p className="confirm-message">
-            Midscene CLI is requesting to control this browser.
-          </p>
-          <div className="server-info">
-            <span className="server-label">Server:</span>
-            <span className="server-url">{serverUrl}</span>
+          <div className="confirm-content">
+            <p className="confirm-message">
+              Midscene CLI is requesting to control this browser.
+            </p>
+            <div className="server-info">
+              <span className="server-label">Server:</span>
+              <span className="server-url">{serverUrl}</span>
+            </div>
+          </div>
+
+          <div className="confirm-options">
+            <Checkbox
+              checked={rememberChoice}
+              onChange={(e) => setRememberChoice(e.target.checked)}
+            >
+              Remember this choice
+            </Checkbox>
+          </div>
+
+          <div className="confirm-footer">
+            <div className="confirm-buttons">
+              <Button onClick={handleDeny}>Deny ({countdown}s)</Button>
+              <Button type="primary" onClick={handleAllow}>
+                Allow
+              </Button>
+            </div>
           </div>
         </div>
-
-        <div className="confirm-options">
-          <Checkbox
-            checked={rememberChoice}
-            onChange={(e) => setRememberChoice(e.target.checked)}
-          >
-            Remember this choice
-          </Checkbox>
-        </div>
-
-        <div className="confirm-footer">
-          <div className="confirm-buttons">
-            <Button onClick={handleDeny}>Deny ({countdown}s)</Button>
-            <Button type="primary" onClick={handleAllow}>
-              Allow
-            </Button>
-          </div>
-        </div>
-      </div>
+      </AntdApp>
     </ConfigProvider>
   );
 }

@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import type { MidsceneRecorderEvent } from '../../src/recorder';
 import {
   DEFAULT_MIDSCENE_RECORDER_MARKDOWN_MAX_SCREENSHOTS,
+  buildMidsceneRecorderActionSummary,
+  buildMidsceneRecorderReplayInstruction,
   createMidsceneRecorderMarkdownScreenshotAssets,
   getMidsceneRecorderEventDescription,
   getMidsceneRecorderScreenshotsForLLM,
@@ -49,7 +51,11 @@ describe('recorder shared schema helpers', () => {
       getMidsceneRecorderEventDescription({
         type: 'click',
         actionType: 'Click',
-        elementDescription: 'Submit button',
+        semantic: {
+          source: 'aiDescribe',
+          status: 'ready',
+          elementDescription: 'Submit button',
+        },
         pageInfo: { width: 100, height: 100 },
         timestamp: 1,
         hashId: 'click-1',
@@ -73,7 +79,11 @@ describe('recorder shared schema helpers', () => {
       getMidsceneRecorderEventDescription({
         type: 'input',
         actionType: 'Input',
-        elementDescription: 'AI is analyzing element...',
+        semantic: {
+          source: 'recorderAI',
+          status: 'pending',
+          elementDescription: 'AI is analyzing element...',
+        },
         value: '2',
         pageInfo: { width: 100, height: 100 },
         timestamp: 1,
@@ -150,7 +160,11 @@ describe('recorder shared schema helpers', () => {
         },
         {
           type: 'click',
-          elementDescription: 'Submit',
+          semantic: {
+            source: 'aiDescribe',
+            status: 'ready',
+            elementDescription: 'Submit',
+          },
           screenshotWithBox: jpeg,
           pageInfo: { width: 100, height: 100 },
           timestamp: 2,
@@ -228,5 +242,45 @@ describe('recorder shared schema helpers', () => {
     expect(assets.at(-1)?.relativePath).toBe(
       './screenshots/event-010-scroll.png',
     );
+  });
+
+  it('builds canonical semantic replay instructions and action summaries', () => {
+    expect(
+      buildMidsceneRecorderReplayInstruction(
+        { type: 'click', actionType: 'Tap' },
+        'Submit button',
+      ),
+    ).toBe('Tap on the element described as "Submit button".');
+    expect(
+      buildMidsceneRecorderActionSummary(
+        { type: 'click', actionType: 'RightClick' },
+        'Context menu item',
+      ),
+    ).toBe('Right click Context menu item');
+    expect(
+      buildMidsceneRecorderReplayInstruction(
+        { type: 'input', actionType: 'Input', value: 'hello' },
+        'message field',
+      ),
+    ).toBe('Input "hello" into the element described as "message field".');
+    expect(
+      buildMidsceneRecorderReplayInstruction(
+        {
+          type: 'scroll',
+          actionType: 'Scroll',
+          value: 'down 600',
+          scrollDestinationDescription: 'settings section',
+        },
+        'main panel',
+      ),
+    ).toBe(
+      'Scroll the page/region with description "main panel" by value "down 600" until "settings section" is visible.',
+    );
+    expect(
+      buildMidsceneRecorderActionSummary(
+        { type: 'navigation', actionType: 'NavigationChanged', url: '/done' },
+        '/done',
+      ),
+    ).toBe('Wait for navigation to complete at /done');
   });
 });

@@ -1,8 +1,8 @@
 import {
   generateCommonTools,
   generateToolsFromActionSpace,
-} from '@/mcp/tool-generator';
-import { composeUserPrompt } from '@/mcp/user-prompt';
+} from '@/agent-tools/tool-generator';
+import { composeUserPrompt } from '@/agent-tools/user-prompt';
 import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 
@@ -106,6 +106,28 @@ describe('generateToolsFromActionSpace', () => {
         prompt: 'the login button',
       },
     });
+  });
+
+  it('preserves locate field descriptions after making locate.prompt optional', () => {
+    const [tool] = generateToolsFromActionSpace(
+      [
+        {
+          name: 'Tap',
+          description: 'Tap the element',
+          paramSchema: z.object({
+            locate: locateSchema.describe('The element to be tapped'),
+          }),
+        },
+      ],
+      async () => ({
+        getActionSpace: vi.fn().mockResolvedValue([]),
+        page: {
+          screenshotBase64: vi.fn().mockResolvedValue(screenshotBase64),
+        },
+      }),
+    );
+
+    expect(tool.schema.locate.description).toBe('The element to be tapped');
   });
 
   it('falls back to aiAction when direct action execution is unavailable', async () => {

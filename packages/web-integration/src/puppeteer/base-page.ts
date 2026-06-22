@@ -112,6 +112,8 @@ export class Page<
     onFrame: MjpegStreamOptions['onFrame'];
     onError?: MjpegStreamOptions['onError'];
   };
+  private visualUpdateFlushInFlight: Promise<void> | null = null;
+  private visualUpdateFlushQueued = false;
   interfaceType: AgentType;
 
   actionSpace(): DeviceAction[] {
@@ -533,6 +535,35 @@ export class Page<
       debugPage('screencast visual refresh failed: %s', error);
       activeStream.onError?.(error);
     }
+  }
+
+  schedulePendingVisualUpdate(): void {
+    if (!this.activeMjpegStream) {
+      return;
+    }
+
+    if (this.visualUpdateFlushInFlight) {
+      this.visualUpdateFlushQueued = true;
+      return;
+    }
+
+    const flushTask = (async () => {
+      do {
+        this.visualUpdateFlushQueued = false;
+        await this.flushPendingVisualUpdate();
+      } while (this.visualUpdateFlushQueued);
+    })()
+      .catch((error) => {
+        debugPage('scheduled screencast visual refresh failed: %s', error);
+      })
+      .finally(() => {
+        if (this.visualUpdateFlushInFlight === flushTask) {
+          this.visualUpdateFlushInFlight = null;
+        }
+        this.visualUpdateFlushQueued = false;
+      });
+
+    this.visualUpdateFlushInFlight = flushTask;
   }
 
   async startMjpegStream(

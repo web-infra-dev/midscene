@@ -11,7 +11,7 @@ import {
   globalThemeConfig,
   useEnvConfig,
 } from '@midscene/visualizer';
-import { ConfigProvider, Dropdown } from 'antd';
+import { App as AntdApp, ConfigProvider, Dropdown } from 'antd';
 import { useCallback, useEffect, useState } from 'react';
 import { BrowserExtensionPlayground } from '../../components/playground';
 import Bridge from '../bridge';
@@ -140,38 +140,40 @@ export function PlaygroundPopup() {
 
   return (
     <ConfigProvider theme={globalThemeConfig()}>
-      <div className="popup-wrapper">
-        {/* top navigation bar */}
-        <div className="popup-nav">
-          <div className="nav-left">
-            <Dropdown
-              menu={{ items: menuItems }}
-              trigger={['click']}
-              placement="bottomLeft"
-              overlayClassName="mode-selector-dropdown"
-            >
-              <MenuOutlined className="nav-icon menu-trigger" />
-            </Dropdown>
-            <span className="nav-title">
-              {currentMode === 'playground'
-                ? 'Playground'
-                : currentMode === 'recorder'
-                  ? 'Recorder'
-                  : 'Bridge Mode'}
-            </span>
+      <AntdApp component={false}>
+        <div className="popup-wrapper">
+          {/* top navigation bar */}
+          <div className="popup-nav">
+            <div className="nav-left">
+              <Dropdown
+                menu={{ items: menuItems }}
+                trigger={['click']}
+                placement="bottomLeft"
+                overlayClassName="mode-selector-dropdown"
+              >
+                <MenuOutlined className="nav-icon menu-trigger" />
+              </Dropdown>
+              <span className="nav-title">
+                {currentMode === 'playground'
+                  ? 'Playground'
+                  : currentMode === 'recorder'
+                    ? 'Recorder'
+                    : 'Bridge Mode'}
+              </span>
+            </div>
+            <div className="nav-right">
+              <NavActions
+                showTooltipWhenEmpty={false}
+                showModelName={false}
+                playgroundSDK={playgroundSDK}
+              />
+            </div>
           </div>
-          <div className="nav-right">
-            <NavActions
-              showTooltipWhenEmpty={false}
-              showModelName={false}
-              playgroundSDK={playgroundSDK}
-            />
-          </div>
-        </div>
 
-        {/* main content area */}
-        {renderContent()}
-      </div>
+          {/* main content area */}
+          {renderContent()}
+        </div>
+      </AntdApp>
     </ConfigProvider>
   );
 }

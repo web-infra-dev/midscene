@@ -1,4 +1,9 @@
 import { PuppeteerAgent } from '@/puppeteer';
+import {
+  type ElementDescriberRuntime,
+  describeElementAtPoint,
+} from '@midscene/core';
+import { getModelRuntime } from '@midscene/core/ai-model';
 import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_TEST_TIMEOUT,
@@ -16,6 +21,20 @@ async function getLogoCenter(
   })) as [number, number];
 }
 
+function createElementDescriberRuntime(
+  agent: PuppeteerAgent,
+): ElementDescriberRuntime {
+  return {
+    service: agent.service,
+    describeModelRuntime: getModelRuntime(
+      agent.modelConfigManager.getModelConfig('insight'),
+    ),
+    locateModelRuntime: getModelRuntime(
+      agent.modelConfigManager.getModelConfig('default'),
+    ),
+  };
+}
+
 describe(
   'Element Describer Tests',
   () => {
@@ -28,11 +47,15 @@ describe(
       ctx.agent = new PuppeteerAgent(originPage);
 
       const center = await getLogoCenter(originPage);
-      const describeResult = await ctx.agent.describeElementAtPoint(center, {
-        verifyPrompt: false,
-        centerDistanceThreshold: 100,
-        retryLimit: 5,
-      });
+      const describeResult = await describeElementAtPoint(
+        createElementDescriberRuntime(ctx.agent),
+        center,
+        {
+          verifyPrompt: false,
+          centerDistanceThreshold: 100,
+          retryLimit: 5,
+        },
+      );
       expect(describeResult.prompt).toBeTruthy();
       expect(describeResult.verifyResult).toBeUndefined();
     });
@@ -44,12 +67,16 @@ describe(
       ctx.agent = new PuppeteerAgent(originPage);
 
       const center = await getLogoCenter(originPage);
-      const describeResult = await ctx.agent.describeElementAtPoint(center, {
-        verifyPrompt: false,
-        deepLocate: true,
-        centerDistanceThreshold: 150,
-        retryLimit: 5,
-      });
+      const describeResult = await describeElementAtPoint(
+        createElementDescriberRuntime(ctx.agent),
+        center,
+        {
+          verifyPrompt: false,
+          deepLocate: true,
+          centerDistanceThreshold: 150,
+          retryLimit: 5,
+        },
+      );
       expect(describeResult.prompt).toBeTruthy();
       expect(describeResult.verifyResult).toBeUndefined();
     });

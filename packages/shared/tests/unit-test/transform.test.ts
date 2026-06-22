@@ -1,6 +1,12 @@
 import path from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
-import { preProcessImageUrl, scaleImage } from '../../src/img/transform';
+import {
+  inferBase64ImageFormat,
+  normalizeBase64Image,
+  normalizeScreenshotBase64,
+  preProcessImageUrl,
+  scaleImage,
+} from '../../src/img/transform';
 
 describe('preapareImageUrl', () => {
   it('url is not a string will throw an error', async () => {
@@ -68,6 +74,70 @@ describe('preapareImageUrl', () => {
       `data:image/svg+xml;base64,${mockData.toString('base64')}`,
     );
     fetchSpy.mockRestore();
+  });
+});
+
+describe('normalizeBase64Image', () => {
+  it('keeps existing image data urls and trims surrounding whitespace', () => {
+    expect(normalizeBase64Image(' data:image/png;base64,aaa\r\nbbb ')).toBe(
+      'data:image/png;base64,aaa\r\nbbb',
+    );
+  });
+
+  it('wraps bare png base64 as an image data url', () => {
+    expect(normalizeBase64Image(' iVBORw0KGgoaaa\r\nbbb ')).toBe(
+      'data:image/png;base64,iVBORw0KGgoaaabbb',
+    );
+  });
+
+  it('wraps bare non-png base64 as jpeg for compatibility', () => {
+    expect(normalizeBase64Image(' /9j/4AAQ SkZJRg== ')).toBe(
+      'data:image/jpeg;base64,/9j/4AAQSkZJRg==',
+    );
+  });
+});
+
+describe('normalizeScreenshotBase64', () => {
+  it('accepts PNG and JPEG data urls', () => {
+    expect(
+      normalizeScreenshotBase64(' data:image/png;base64,aaa\r\nbbb '),
+    ).toBe('data:image/png;base64,aaabbb');
+    expect(normalizeScreenshotBase64('data:image/jpeg;base64,/9j/4AAQ')).toBe(
+      'data:image/jpeg;base64,/9j/4AAQ',
+    );
+  });
+
+  it('normalizes jpg data urls to jpeg', () => {
+    expect(normalizeScreenshotBase64('data:image/jpg;base64,/9j/4AAQ')).toBe(
+      'data:image/jpeg;base64,/9j/4AAQ',
+    );
+  });
+
+  it('wraps raw base64 as PNG', () => {
+    expect(normalizeScreenshotBase64(' iVBORw0KGgo aaa\r\nbbb ')).toBe(
+      'data:image/png;base64,iVBORw0KGgoaaabbb',
+    );
+  });
+
+  it('uses the provided label in validation errors', () => {
+    expect(() =>
+      normalizeScreenshotBase64(' ', { label: 'custom screenshot' }),
+    ).toThrow('custom screenshot cannot be empty');
+
+    expect(() =>
+      normalizeScreenshotBase64('data:image/svg+xml;base64,aaa', {
+        label: 'custom screenshot',
+      }),
+    ).toThrow(
+      'custom screenshot must be a PNG/JPEG data URI or raw PNG base64 string',
+    );
+  });
+});
+
+describe('inferBase64ImageFormat', () => {
+  it('detects png payloads and otherwise falls back to jpeg', () => {
+    expect(inferBase64ImageFormat('iVBORw0KGgoaaa')).toBe('png');
+    expect(inferBase64ImageFormat('/9j/4AAQSkZJRg==')).toBe('jpeg');
   });
 });
 

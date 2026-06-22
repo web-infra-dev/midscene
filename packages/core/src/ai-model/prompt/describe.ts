@@ -7,6 +7,7 @@ const examplesMap: Record<string, string[]> = {
     '"顶部导航栏中文字为"首页"的链接"',
     '"联系表单中的提交按钮"',
     '"aria-label 为"打开菜单"的菜单图标"',
+    '"左侧导航栏中当前分组标题右侧的折叠图标"',
   ],
   English: [
     '"Login button with text \'Sign In\'"',
@@ -14,6 +15,7 @@ const examplesMap: Record<string, string[]> = {
     '"Navigation link with text \'Home\' in header"',
     '"Submit button in contact form"',
     '"Menu icon with aria-label \'Open menu\'"',
+    '"Collapse icon to the right of the current section title in the left sidebar"',
   ],
 };
 
@@ -46,6 +48,7 @@ DESCRIPTION STRUCTURE:
    - Visual features: "blue background", "with icon"
    - Relative position: "below search bar", "in sidebar"
    - Parent context: "in login form", "in main menu"
+   - Neighboring stable text: "to the right of the 'Settings' section title"
 
 GUIDELINES:
 - Keep description under 25 words
@@ -54,6 +57,11 @@ GUIDELINES:
 - Avoid page-specific or temporary content
 - Don't mention the red rectangle or selection box
 - Focus on stable, reusable characteristics
+- If the selected point/box is inside a text input, textarea, search box, or form field, describe the whole field/control, not the individual placeholder character, typed character, caret, or inner text fragment.
+- For icon-only buttons or unlabeled controls, include the nearest stable label, section title, menu item text, row text, or parent region that owns the control.
+- When multiple similar icons or controls appear in a list/sidebar/menu, the description MUST distinguish the selected one by its owning stable text or section, not by generic position such as "bottom", "nearby", or "sidebar button".
+- For expand/collapse, disclosure, chevron, close, menu, and settings icons, describe both the icon purpose and the stable text/section it controls.
+- Use the actual visible neighboring text from the current screenshot when available; do not copy labels from the examples.
 - **Write the description in ${preferredLanguage}**
 
 EXAMPLES:

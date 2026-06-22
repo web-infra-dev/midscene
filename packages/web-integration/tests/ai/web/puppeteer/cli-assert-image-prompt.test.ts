@@ -1,7 +1,10 @@
 import path from 'node:path';
 import { PuppeteerAgent } from '@/puppeteer';
-import { generateCommonTools } from '@midscene/shared/mcp/tool-generator';
-import type { BaseAgent, ToolDefinition } from '@midscene/shared/mcp/types';
+import { generateCommonTools } from '@midscene/shared/agent-tools/tool-generator';
+import type {
+  BaseAgent,
+  ToolDefinition,
+} from '@midscene/shared/agent-tools/types';
 import { describe, expect, it } from 'vitest';
 import { createTestContext } from './test-utils';
 import { launchPage } from './utils';
@@ -12,7 +15,7 @@ const GITHUB_LOGO_FIXTURE = path.resolve(
 );
 
 /**
- * Exercise the CLI / MCP `assert` tool exposed by `generateCommonTools`
+ * Exercise the CLI `assert` tool exposed by `generateCommonTools`
  * with multimodal image params. This proves the CLI handler path
  * (`npx @midscene/* assert --prompt … --image … --image-name …`) forwards the image
  * reference all the way to `agent.aiAssert` and the real model call

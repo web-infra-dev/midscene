@@ -240,6 +240,40 @@ describe('common utilities', () => {
       warnSpy.mockRestore();
     });
 
+    it('should not pass report display metadata to action-space actions', async () => {
+      const mockCallAction = vi.fn().mockResolvedValue('action result');
+      const activeAgent = createMockPlaygroundAgent({
+        callActionInActionSpace: mockCallAction,
+      });
+
+      const action: DeviceAction<unknown> = {
+        name: 'Tap',
+        interfaceAlias: 'aiTap',
+        description: 'Tap action',
+        call: vi.fn(),
+      };
+
+      await executeAction(
+        activeAgent,
+        'aiTap',
+        [action],
+        {
+          type: 'aiTap',
+          prompt: 'tap login button',
+        },
+        {
+          deepLocate: false,
+          reportDisplay: {
+            prompt: 'Recorder Markdown Replay: login flow',
+          },
+        },
+      );
+
+      expect(mockCallAction.mock.calls[0][1]).not.toHaveProperty(
+        'reportDisplay',
+      );
+    });
+
     it('should keep deepThink for aiAct action without warning', async () => {
       const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
       const mockCallAction = vi.fn().mockResolvedValue('action result');
@@ -310,6 +344,42 @@ describe('common utilities', () => {
       warnSpy.mockRestore();
     });
 
+    it('should map report display metadata to aiAct internal report options', async () => {
+      const mockAiAct = vi.fn().mockResolvedValue('aiAct result');
+      const activeAgent = createMockPlaygroundAgent({
+        aiAct: mockAiAct,
+      });
+
+      const result = await executeAction(
+        activeAgent,
+        'aiAct',
+        [],
+        {
+          type: 'aiAct',
+          prompt: 'Replay the following Midscene Studio recording...',
+        },
+        {
+          deepLocate: true,
+          requestId: 'req-replay',
+          reportDisplay: {
+            prompt: 'Recorder Markdown Replay: login flow',
+          },
+        },
+      );
+
+      expect(result).toBe('aiAct result');
+      expect(mockAiAct).toHaveBeenCalledWith(
+        'Replay the following Midscene Studio recording...',
+        {
+          deepLocate: true,
+          requestId: 'req-replay',
+          _internalReportDisplay: {
+            prompt: 'Recorder Markdown Replay: login flow',
+          },
+        },
+      );
+    });
+
     it('should handle aiAssert action specially', async () => {
       const mockAiAssert = vi.fn().mockResolvedValue({
         pass: true,
@@ -339,21 +409,21 @@ describe('common utilities', () => {
       });
     });
 
-    it('should fallback to agent method when action not found', async () => {
+    it('should call allowlisted agent methods when action not found', async () => {
       const mockCustomAction = vi.fn().mockResolvedValue('custom result');
       const activeAgent = createMockPlaygroundAgent({
-        customAction: mockCustomAction,
+        aiString: mockCustomAction,
       });
 
       const value: FormValue = {
-        type: 'customAction',
+        type: 'aiString',
         prompt: 'test prompt',
       };
       const options: ExecutionOptions = {};
 
       const result = await executeAction(
         activeAgent,
-        'customAction',
+        'aiString',
         [],
         value,
         options,
@@ -361,6 +431,27 @@ describe('common utilities', () => {
 
       expect(result).toBe('custom result');
       expect(mockCustomAction).toHaveBeenCalledWith('test prompt', options);
+    });
+
+    it('should reject non-allowlisted agent methods when action not found', async () => {
+      const mockCustomAction = vi.fn().mockResolvedValue('custom result');
+      const activeAgent = createMockPlaygroundAgent({
+        customAction: mockCustomAction,
+      });
+
+      await expect(
+        executeAction(
+          activeAgent,
+          'customAction',
+          [],
+          {
+            type: 'customAction',
+            prompt: 'test prompt',
+          },
+          {},
+        ),
+      ).rejects.toThrow('Unknown action type: customAction');
+      expect(mockCustomAction).not.toHaveBeenCalled();
     });
 
     it('should throw error for unknown action type', async () => {

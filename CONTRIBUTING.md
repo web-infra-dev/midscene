@@ -87,7 +87,7 @@ git config user.email "SOME_EMAIL@example.com"
   Playwright/Puppeteer integration and main web e2e coverage. The package name is `@midscene/web`.
 - `packages/shared`: shared utilities used across the monorepo. The package name is `@midscene/shared`.
 - `packages/{android,ios,computer,harmony}`: platform runtimes. Matching
-  `*-mcp` and `*-playground` packages live alongside them. The package names are `@midscene/android`, `@midscene/ios`, `@midscene/computer`, `@midscene/harmony`.
+  `*-playground` packages live alongside them. The package names are `@midscene/android`, `@midscene/ios`, `@midscene/computer`, `@midscene/harmony`.
 - `packages/visualizer` and `apps/report`: report rendering and viewer UI.
 - `apps/site`: documentation site. The Nx project name is `doc`, not `site`.
 - `apps/chrome-extension`, `apps/playground`, `apps/report`,
@@ -288,14 +288,13 @@ Every commit **must** include a scope. The scope must be one of the following:
 *   `llm`
 *   `playwright`
 *   `puppeteer`
-*   `mcp`
 *   `bridge`
 *   *(All top-level directories in the apps and packages directories)*
 *   *(Consider adding other relevant top-level packages or areas here if needed)*
 
 **Examples:**
 
-*   `feat(mcp): add screenshot tool with element selection`
+*   `feat(bridge): add screenshot tool with element selection`
 *   `fix(android): correct adb connection issue on windows`
 *   `refactor(llm): simplify prompt generation logic`
 *   `chore(workflow): update commitlint configuration`

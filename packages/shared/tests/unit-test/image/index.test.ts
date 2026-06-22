@@ -271,6 +271,21 @@ describe('image utils', () => {
     expect(body).toBe('iVBORw0KGgoAAAANSUhEUgAAAu4AAAU2CAYAAADK1zMG');
   });
 
+  it('parseBase64 accepts raw jpeg base64 bodies', () => {
+    const base64 = '/9j/4AAQSkZJRgABAQAAAQABAAD/2w==';
+    const { mimeType, body } = parseBase64(base64);
+    expect(mimeType).toBe('image/jpeg');
+    expect(body).toBe(base64);
+  });
+
+  it('parseBase64 accepts raw png base64 bodies with wrapping', () => {
+    const base64 =
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAAB\r\nCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=';
+    const { mimeType, body } = parseBase64(base64);
+    expect(mimeType).toBe('image/png');
+    expect(body).toBe(base64.replace(/\s/g, ''));
+  });
+
   it('parseBase64, invalid', () => {
     const base64 = 'IamNotBase64';
     expect(() => parseBase64(base64)).toThrowError(

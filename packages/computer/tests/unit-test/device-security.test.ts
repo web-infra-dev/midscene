@@ -26,6 +26,9 @@ const mockState = vi.hoisted(() => {
     scrollMouse: vi.fn(),
     keyTap: vi.fn(),
     typeString: vi.fn(),
+    getActiveWindow: vi.fn(() => 0),
+    getWindowRect: vi.fn(),
+    focusWindow: vi.fn(),
   };
 
   const createRequire = vi.fn(() =>
@@ -48,6 +51,10 @@ const mockState = vi.hoisted(() => {
     libnut.scrollMouse.mockClear();
     libnut.keyTap.mockClear();
     libnut.typeString.mockClear();
+    libnut.getActiveWindow.mockClear();
+    libnut.getActiveWindow.mockReturnValue(0);
+    libnut.getWindowRect.mockClear();
+    libnut.focusWindow.mockClear();
     createRequire.mockClear();
   };
 
@@ -112,6 +119,15 @@ async function runPointerTap(
 ): Promise<void> {
   const device = await createConnectedDevice();
   await device.inputPrimitives.pointer!.tap(point, opts);
+}
+
+async function createConnectedDeviceForPlatform(platform: NodeJS.Platform) {
+  Object.defineProperty(process, 'platform', { value: platform });
+  const device = await createConnectedDevice();
+  mockState.libnut.moveMouse.mockClear();
+  mockState.libnut.mouseClick.mockClear();
+  mockState.libnut.scrollMouse.mockClear();
+  return device;
 }
 
 describe('ComputerDevice AppleScript security', () => {
@@ -226,6 +242,44 @@ describe('ComputerInputDriver native arg handling', () => {
 
     driver.keyTap('a', ['command']);
     expect(mockState.libnut.keyTap).toHaveBeenLastCalledWith('a', ['command']);
+  });
+});
+
+describe('ComputerDevice scroll targeting', () => {
+  it('anchors untargeted libnut scrolls at screen center without clicking', async () => {
+    const device = await createConnectedDeviceForPlatform('win32');
+
+    await device.inputPrimitives.scroll!.scroll({
+      scrollType: 'singleAction',
+      direction: 'down',
+    });
+
+    expect(mockState.libnut.moveMouse).toHaveBeenCalledWith(400, 300);
+    expect(mockState.libnut.focusWindow).not.toHaveBeenCalled();
+    expect(mockState.libnut.mouseClick).not.toHaveBeenCalled();
+    expect(mockState.libnut.scrollMouse).toHaveBeenCalled();
+  });
+
+  it('focuses and anchors untargeted Windows scrolls at the active window center', async () => {
+    const device = await createConnectedDeviceForPlatform('win32');
+    mockState.libnut.getActiveWindow.mockReturnValue(123);
+    mockState.libnut.getWindowRect.mockReturnValue({
+      x: 40,
+      y: 80,
+      width: 360,
+      height: 500,
+    });
+
+    await device.inputPrimitives.scroll!.scroll({
+      scrollType: 'singleAction',
+      direction: 'down',
+    });
+
+    expect(mockState.libnut.getWindowRect).toHaveBeenCalledWith(123);
+    expect(mockState.libnut.focusWindow).toHaveBeenCalledWith(123);
+    expect(mockState.libnut.moveMouse).toHaveBeenCalledWith(220, 330);
+    expect(mockState.libnut.mouseClick).not.toHaveBeenCalled();
+    expect(mockState.libnut.scrollMouse).toHaveBeenCalled();
   });
 });
 

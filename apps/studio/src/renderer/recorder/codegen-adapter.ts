@@ -27,6 +27,7 @@ export function toStudioRecorderCodegenInput(
   session: StudioRecordingSession,
   options: {
     language?: string;
+    maxScreenshots?: number;
   } = {},
 ): RecorderYamlGenerationInput {
   return {
@@ -35,6 +36,8 @@ export function toStudioRecorderCodegenInput(
     testName: session.name,
     includeTimestamps: true,
     language: options.language || getPreferredLanguage(),
-    maxScreenshots: DEFAULT_MIDSCENE_RECORDER_MARKDOWN_MAX_SCREENSHOTS,
+    maxScreenshots:
+      options.maxScreenshots ??
+      DEFAULT_MIDSCENE_RECORDER_MARKDOWN_MAX_SCREENSHOTS,
   };
 }

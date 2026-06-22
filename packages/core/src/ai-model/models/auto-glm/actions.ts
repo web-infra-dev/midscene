@@ -1,35 +1,18 @@
 import type { DeviceAction } from '@/device';
-import type {
-  PlanningAction,
-  PlanningLocateParamWithLocatedPixelBbox,
-} from '@/types';
+import type { PlanningAction } from '@/types';
 import { getDebug } from '@midscene/shared/logger';
-import { finalizePixelBbox } from '../../shared/model-locate-result/bbox';
-import { mapLocateResultToPixelBboxByCoordinates } from '../../shared/model-locate-result/pixel-bbox-mapper';
+import type { CoordinateDistanceAxis } from '../../shared/model-locate-result';
+import type {
+  LocatePlanningAction,
+  ScrollPlanningAction,
+} from '../../shared/planning-action';
 
 const debug = getDebug('auto-glm-actions');
 
-/**
- * Auto-GLM coordinate system range: [0, AUTO_GLM_COORDINATE_MAX]
- */
-const AUTO_GLM_COORDINATE_MAX = 1000;
-
-function autoGLMCoordinateToLocateParam(
-  coordinate: [number, number],
-  size: { width: number; height: number },
-): PlanningLocateParamWithLocatedPixelBbox {
-  const ctx = { preparedSize: size };
-  const pixelBbox = mapLocateResultToPixelBboxByCoordinates(
-    { type: 'point', coordinates: coordinate },
-    ctx,
-    { shape: 'point', order: 'xy', normalizedBy: AUTO_GLM_COORDINATE_MAX },
-  );
-
-  return {
-    prompt: '',
-    locatedPixelBbox: finalizePixelBbox(pixelBbox, coordinate, ctx),
-  };
-}
+type CoordinateDistanceToPixels = (
+  delta: number,
+  axis: CoordinateDistanceAxis,
+) => number;
 
 export interface BaseAction {
   _metadata: string;
@@ -117,7 +100,7 @@ export interface FinishAction extends BaseAction {
   message: string;
 }
 
-export type ParsedAction =
+export type AutoGLMParsedAction =
   | TapAction
   | DoubleTapAction
   | TypeAction
@@ -151,9 +134,14 @@ function findActionName(
 }
 
 export function transformAutoGLMAction(
-  action: ParsedAction,
-  size: { width: number; height: number },
-  actionSpace?: DeviceAction[],
+  action: AutoGLMParsedAction,
+  {
+    actionSpace,
+    coordinateDistanceToPixels,
+  }: {
+    actionSpace?: DeviceAction[];
+    coordinateDistanceToPixels: CoordinateDistanceToPixels;
+  },
 ): PlanningAction[] {
   try {
     switch (action._metadata) {
@@ -188,35 +176,33 @@ export function transformAutoGLMAction(
           case 'Tap': {
             const tapAction = doAction as TapAction;
             debug('Transform Tap action:', tapAction);
-            const locate = autoGLMCoordinateToLocateParam(
-              tapAction.element,
-              size,
-            );
 
             return [
               {
                 type: 'Tap',
                 param: {
-                  locate,
+                  locate: {
+                    point: tapAction.element,
+                    prompt: '',
+                  },
                 },
-              },
+              } satisfies LocatePlanningAction<'Tap'>,
             ];
           }
           case 'Double Tap': {
             const doubleTapAction = doAction as DoubleTapAction;
             debug('Transform Double Tap action:', doubleTapAction);
-            const locate = autoGLMCoordinateToLocateParam(
-              doubleTapAction.element,
-              size,
-            );
 
             return [
               {
                 type: 'DoubleClick',
                 param: {
-                  locate,
+                  locate: {
+                    point: doubleTapAction.element,
+                    prompt: '',
+                  },
                 },
-              },
+              } satisfies LocatePlanningAction<'DoubleClick'>,
             ];
           }
           case 'Type': {
@@ -236,12 +222,7 @@ export function transformAutoGLMAction(
             const swipeAction = doAction as SwipeAction;
             debug('Transform Swipe action:', swipeAction);
 
-            const locate = autoGLMCoordinateToLocateParam(
-              swipeAction.start,
-              size,
-            );
-
-            // Calculate horizontal and vertical delta in [0,AUTO_GLM_COORDINATE_MAX] coordinate system
+            // Calculate horizontal and vertical delta in the model coordinate system.
             const deltaX = swipeAction.end[0] - swipeAction.start[0];
             const deltaY = swipeAction.end[1] - swipeAction.start[1];
 
@@ -254,15 +235,11 @@ export function transformAutoGLMAction(
 
             if (absDeltaY > absDeltaX) {
               // Vertical scroll
-              distance = Math.round(
-                (absDeltaY * size.height) / AUTO_GLM_COORDINATE_MAX,
-              );
+              distance = coordinateDistanceToPixels(deltaY, 'y');
               direction = deltaY > 0 ? 'up' : 'down';
             } else {
               // Horizontal scroll
-              distance = Math.round(
-                (absDeltaX * size.width) / AUTO_GLM_COORDINATE_MAX,
-              );
+              distance = coordinateDistanceToPixels(deltaX, 'x');
               direction = deltaX > 0 ? 'left' : 'right';
             }
 
@@ -274,31 +251,33 @@ export function transformAutoGLMAction(
               {
                 type: 'Scroll',
                 param: {
-                  locate,
+                  locate: {
+                    point: swipeAction.start,
+                    prompt: '',
+                  },
                   // The scrolling direction here all refers to which direction of the page's content will appear on the screen.
                   distance,
                   direction,
                 },
                 thought: swipeAction.think || '',
-              },
+              } satisfies ScrollPlanningAction,
             ];
           }
           case 'Long Press': {
             const longPressAction = doAction as LongPressAction;
             debug('Transform Long Press action:', longPressAction);
-            const locate = autoGLMCoordinateToLocateParam(
-              longPressAction.element,
-              size,
-            );
 
             return [
               {
                 type: 'LongPress',
                 param: {
-                  locate,
+                  locate: {
+                    point: longPressAction.element,
+                    prompt: '',
+                  },
                 },
                 thought: longPressAction.think || '',
-              },
+              } satisfies LocatePlanningAction<'LongPress'>,
             ];
           }
           case 'Back': {

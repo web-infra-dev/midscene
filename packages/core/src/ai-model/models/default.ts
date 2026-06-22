@@ -1,4 +1,4 @@
-import type { ModelAdapterDefinition } from './types';
+import type { ModelAdapterDefinition } from '../model-adapter/types';
 
 export const defaultOpenAICompatibleAdapterConfig: ModelAdapterDefinition = {
   chatCompletion: {

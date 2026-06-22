@@ -524,5 +524,65 @@ describe('Agent with custom OpenAI client', () => {
         (agent as any).modelConfigManager.getModelConfig('planning').slot,
       ).toBe('default');
     });
+
+    it('should disable deepThink before resolving custom planning strategy', async () => {
+      const mockInterface = createMockInterface();
+      const agent = new Agent(mockInterface, {
+        modelConfig: {
+          ...defaultModelConfig,
+          [MIDSCENE_MODEL_FAMILY]: 'auto-glm',
+        },
+      });
+      const actionSpy = vi
+        .spyOn((agent as any).taskExecutor, 'action')
+        .mockResolvedValue({
+          output: {
+            yamlFlow: [],
+          },
+        });
+      const warnSpy = vi
+        .spyOn(console, 'warn')
+        .mockImplementation(() => undefined);
+
+      await agent.aiAct('click the submit button', { deepThink: true });
+
+      expect(warnSpy).toHaveBeenCalledWith(
+        '[Midscene]',
+        'The "deepThink" option is not supported for aiAct with custom planning adapters (modelFamily: auto-glm). It will be ignored.',
+      );
+      expect(actionSpy).toHaveBeenCalled();
+      expect(actionSpy.mock.calls[0][3]).toBe(true);
+      expect(actionSpy.mock.calls[0][7]).toBe(1);
+      expect(actionSpy.mock.calls[0][8]).toBe(false);
+    });
+
+    it('should disable deepLocate before running custom planning', async () => {
+      const mockInterface = createMockInterface();
+      const agent = new Agent(mockInterface, {
+        modelConfig: {
+          ...defaultModelConfig,
+          [MIDSCENE_MODEL_FAMILY]: 'auto-glm',
+        },
+      });
+      const actionSpy = vi
+        .spyOn((agent as any).taskExecutor, 'action')
+        .mockResolvedValue({
+          output: {
+            yamlFlow: [],
+          },
+        });
+      const warnSpy = vi
+        .spyOn(console, 'warn')
+        .mockImplementation(() => undefined);
+
+      await agent.aiAct('click the submit button', { deepLocate: true });
+
+      expect(warnSpy).toHaveBeenCalledWith(
+        '[Midscene]',
+        'The "deepLocate" option is not supported for aiAct with the current planning adapter (modelFamily: auto-glm). It will be ignored.',
+      );
+      expect(actionSpy).toHaveBeenCalled();
+      expect(actionSpy.mock.calls[0][10]).toBe(false);
+    });
   });
 });

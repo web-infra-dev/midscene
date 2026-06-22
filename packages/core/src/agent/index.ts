@@ -1,9 +1,6 @@
 export { Agent, createAgent } from './agent';
 export { commonContextParser } from './utils';
-export {
-  getReportFileName,
-  printReportMsg,
-} from './utils';
+export { getReportFileName, printReportMsg } from './utils';
 export {
   extractInsightParam,
   locateParamStr,
@@ -25,4 +22,5 @@ export type {
 } from './run-gherkin-scenario';
 
 export type { AgentOpt } from '../types';
+export type { RecordToReportOptions, RecordToReportScreenshot } from '../types';
 export type { AiActOptions } from './agent';
