@@ -382,6 +382,43 @@ export interface ExecutionTaskProgressOptions {
   onTaskStart?: (task: ExecutionTask) => Promise<void> | void;
 }
 
+export type AiActProgressEventName =
+  | 'start'
+  | 'plan_thinking'
+  | 'plan_planned'
+  | 'plan_action'
+  | 'plan_failed'
+  | 'action_running'
+  | 'action_done'
+  | 'action_failed'
+  | 'complete'
+  | 'failed';
+
+export interface AiActProgressAction {
+  name: string;
+  target?: string;
+  point?: [number, number];
+  bbox?: [number, number, number, number];
+}
+
+export interface AiActProgressEvent {
+  type: 'aiAct';
+  event: AiActProgressEventName;
+  sequence?: number;
+  prompt?: string;
+  planIndex?: number;
+  planLimit?: number;
+  screenshot?: ScreenshotItem;
+  message?: string;
+  action?: AiActProgressAction;
+  durationMs?: number;
+  error?: string;
+}
+
+export type AiActProgressListener = (
+  event: AiActProgressEvent,
+) => Promise<void> | void;
+
 export interface ExecutionRecorderItem {
   type: 'screenshot';
   ts: number;

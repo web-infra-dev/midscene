@@ -113,6 +113,20 @@ export interface RecordToReportOptions {
   screenshots?: RecordToReportScreenshot[];
 }
 
+export interface BaseAiActProgressEvent {
+  type?: unknown;
+  event?: unknown;
+  sequence?: unknown;
+  prompt?: unknown;
+  planIndex?: unknown;
+  planLimit?: unknown;
+  screenshot?: unknown;
+  message?: unknown;
+  action?: unknown;
+  durationMs?: unknown;
+  error?: unknown;
+}
+
 /**
  * Base agent interface
  * Represents a platform-specific agent (Android, iOS, Web)
@@ -127,6 +141,9 @@ export interface BaseAgent {
   };
   addDumpUpdateListener?: (
     listener: (dump: string, executionDump?: unknown) => void,
+  ) => () => void;
+  addAiActProgressListener?: (
+    listener: (event: BaseAiActProgressEvent) => void,
   ) => () => void;
   recordToReport?: (
     title?: string,

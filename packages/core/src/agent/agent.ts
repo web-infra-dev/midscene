@@ -12,6 +12,8 @@ import {
   type AgentAssertOpt,
   type AgentOpt,
   type AgentWaitForOpt,
+  type AiActProgressEvent,
+  type AiActProgressListener,
   type DeepThinkOption,
   type DeviceAction,
   ExecutionDump,
@@ -139,6 +141,8 @@ export class Agent<
   private dumpUpdateListeners: Array<
     (dump: string, executionDump?: ExecutionDump) => void
   > = [];
+
+  private aiActProgressListeners: AiActProgressListener[] = [];
 
   get onDumpUpdate():
     | ((dump: string, executionDump?: ExecutionDump) => void)
@@ -308,6 +312,9 @@ export class Agent<
               console.error('Error in onDumpUpdate listener', error);
             }
           }
+        },
+        onAiActProgress: async (event) => {
+          await this.notifyAiActProgressListeners(event);
         },
       },
     });
@@ -1269,6 +1276,49 @@ export class Agent<
    */
   clearDumpUpdateListeners(): void {
     this.dumpUpdateListeners = [];
+  }
+
+  /**
+   * Add an aiAct progress listener.
+   * @param listener Listener function
+   * @returns A remove function that can be called to remove this listener
+   */
+  addAiActProgressListener(listener: AiActProgressListener): () => void {
+    this.aiActProgressListeners.push(listener);
+
+    return () => {
+      this.removeAiActProgressListener(listener);
+    };
+  }
+
+  /**
+   * Remove an aiAct progress listener.
+   * @param listener The listener function to remove
+   */
+  removeAiActProgressListener(listener: AiActProgressListener): void {
+    const index = this.aiActProgressListeners.indexOf(listener);
+    if (index > -1) {
+      this.aiActProgressListeners.splice(index, 1);
+    }
+  }
+
+  /**
+   * Clear all aiAct progress listeners.
+   */
+  clearAiActProgressListeners(): void {
+    this.aiActProgressListeners = [];
+  }
+
+  private async notifyAiActProgressListeners(
+    event: AiActProgressEvent,
+  ): Promise<void> {
+    for (const listener of this.aiActProgressListeners) {
+      try {
+        await listener(event);
+      } catch (error) {
+        console.error('Error in onAiActProgress listener', error);
+      }
+    }
   }
 
   private notifyDumpUpdateListeners(executionDump?: ExecutionDump) {

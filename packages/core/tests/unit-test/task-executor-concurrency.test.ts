@@ -146,6 +146,74 @@ describe('TaskExecutor concurrency isolation', () => {
     await Promise.all([actionPromiseA, actionPromiseB]);
   });
 
+  it('emits semantic aiAct progress events from planning and action execution', async () => {
+    const progressEvents: string[] = [];
+    taskExecutor = new TaskExecutor(mockInterface, mockService, {
+      replanningCycleLimit: 3,
+      actionSpace: emptyParamActionSpace,
+      hooks: {
+        onAiActProgress: (event) => {
+          progressEvents.push(
+            [
+              event.event,
+              event.planIndex,
+              event.planLimit,
+              event.message,
+              event.action?.name,
+              event.durationMs === undefined
+                ? undefined
+                : Math.round(event.durationMs),
+            ]
+              .filter((item) => item !== undefined)
+              .join('|'),
+          );
+        },
+      },
+    });
+
+    vi.mocked(genericXmlPlan).mockResolvedValue({
+      actions: [
+        {
+          type: 'Noop',
+          param: {},
+        },
+      ],
+      yamlFlow: [],
+      shouldContinuePlanning: false,
+      log: 'Need to run the noop action.',
+      rawResponse: '',
+      finalizeSuccess: true,
+      finalizeMessage: 'Noop done.',
+    });
+    vi.spyOn(taskExecutor, 'convertPlanToExecutable').mockResolvedValue({
+      tasks: [
+        {
+          type: 'Action Space',
+          subType: 'Noop',
+          executor: async () => undefined,
+        },
+      ],
+      yamlFlow: [],
+    } as any);
+
+    await taskExecutor.action(
+      'run noop',
+      planningModel(),
+      defaultModel(),
+      true,
+    );
+
+    expect(progressEvents).toEqual([
+      'start|3',
+      'plan_thinking|1|3',
+      'plan_planned|1|3|Need to run the noop action.',
+      'plan_action|1|3|Noop|Noop',
+      'action_running|1|3|Noop|Noop',
+      expect.stringMatching(/^action_done\|1\|3\|Noop\|Noop\|\d+$/),
+      'complete|1|3|Noop done.',
+    ]);
+  });
+
   it('should use device-local formatted time for replanning feedback', async () => {
     const seenPendingFeedback: string[] = [];
     mockInterface.getDeviceLocalTimeString = vi

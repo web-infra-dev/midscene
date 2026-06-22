@@ -1,4 +1,9 @@
-import { type CliVerboseLine, buildAiActTimelineLines } from './verbose-ai-act';
+import {
+  type CliAiActProgressEvent,
+  type CliVerboseLine,
+  buildAiActProgressEventLines,
+  normalizeAiActProgressEventForCli,
+} from './verbose-ai-act';
 import {
   type CliVerboseScreenshotCollectOptions,
   type CliVerboseScreenshotExportMode,
@@ -35,6 +40,9 @@ export interface CliVerboseEvent {
 type DumpUpdateAgent = {
   addDumpUpdateListener?: (
     listener: (dump: string, executionDump?: unknown) => void,
+  ) => () => void;
+  addAiActProgressListener?: (
+    listener: (event: CliAiActProgressEvent) => void,
   ) => () => void;
   reportFile?: string | null;
 };
@@ -531,6 +539,19 @@ function renderCliVerboseEventText(
   const tool = typeof event.tool === 'string' ? event.tool : undefined;
 
   switch (event.event) {
+    case 'ai_act_progress': {
+      if (!isActVerboseEvent(command, tool)) {
+        return undefined;
+      }
+      const progressEvent = isRecord(event.aiAct) ? event.aiAct : undefined;
+      if (!progressEvent) {
+        return undefined;
+      }
+      return renderLinesOnce(
+        context,
+        buildAiActProgressEventLines(progressEvent),
+      );
+    }
     case 'ai_act_start': {
       const prompt = compactText(event.prompt);
       const text = prompt
@@ -664,15 +685,37 @@ export function attachCliVerboseDumpListener(
   if (!isCliVerboseEnabled()) {
     return () => {};
   }
+
+  const isActTool = options?.toolName === 'act';
+  const screenshotExportCache = new Map<string, string>();
+
+  if (isActTool && typeof agent.addAiActProgressListener === 'function') {
+    return agent.addAiActProgressListener((aiActEvent) => {
+      const context = getCliVerboseContext();
+      const isTextMode = context.format !== 'jsonl';
+      const progress = normalizeAiActProgressEventForCli(aiActEvent, {
+        reportFile: agent.reportFile,
+        exportMode: isTextMode ? 'report' : 'none',
+        cache: screenshotExportCache,
+      });
+      if (!progress) {
+        return;
+      }
+      emitCliVerboseEvent({
+        event: 'ai_act_progress',
+        tool: options?.toolName,
+        aiAct: progress,
+      });
+    });
+  }
+
   if (typeof agent.addDumpUpdateListener !== 'function') {
     return () => {};
   }
 
-  const screenshotExportCache = new Map<string, string>();
   return agent.addDumpUpdateListener((_dump, executionDump) => {
     const context = getCliVerboseContext();
     const isTextMode = context.format !== 'jsonl';
-    const isActTool = options?.toolName === 'act';
     const summaryExportMode: CliVerboseScreenshotExportMode =
       isTextMode && !isActTool ? 'tmp' : 'none';
     const summary = summarizeDumpUpdate(executionDump, {
@@ -682,19 +725,10 @@ export function attachCliVerboseDumpListener(
     if (!summary) {
       return;
     }
-    const aiActTimeline =
-      isTextMode && isActTool
-        ? buildAiActTimelineLines(executionDump, {
-            reportFile: agent.reportFile,
-            exportMode: 'report',
-            cache: screenshotExportCache,
-          })
-        : undefined;
     emitCliVerboseEvent({
       event: 'dump_update',
       tool: options?.toolName,
       report: agent.reportFile || undefined,
-      ...(aiActTimeline ? { aiActTimeline } : {}),
       ...summary,
     });
   });

@@ -2,7 +2,6 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import dotenv from 'dotenv';
 import type { BaseMidsceneTools } from '../agent-tools/base-tools';
-import { getDebug } from '../logger';
 import {
   TOOL_BEHAVIOR_FLAGS,
   stripBehaviorFlags,
@@ -12,6 +11,7 @@ import type {
   ToolResult,
   ToolResultContent,
 } from '../agent-tools/types';
+import { getDebug } from '../logger';
 import {
   canonicalizeCliArgKeys,
   formatCliValidationError,
@@ -155,7 +155,7 @@ function printGlobalOptions(): void {
     {
       flag: `--${cliVerboseFlag}`,
       description:
-        'Print progress while the command is running. Use --verbose=jsonl for structured events.',
+        'Print progress while the command is running. act prints readable progress by default. Use --verbose=jsonl for structured events.',
     },
     ...TOOL_BEHAVIOR_FLAGS.map((flag) => ({
       flag: `--${flag.cli}`,
@@ -282,9 +282,11 @@ export async function runToolsCLI(
 
   debug('command: %s, args: %s', match.name, JSON.stringify(handlerArgs));
 
+  const verboseEnabled = verbose || match.name === 'act';
+
   await withCliVerboseContext(
     {
-      enabled: verbose,
+      enabled: verboseEnabled,
       format: verboseFormat,
       scriptName,
       commandName: match.name,

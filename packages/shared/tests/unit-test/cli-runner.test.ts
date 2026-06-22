@@ -786,14 +786,14 @@ describe('runToolsCLI', () => {
     vi.restoreAllMocks();
   });
 
-  it('emits an aiAct failure line when a verbose act command throws', async () => {
+  it('emits an aiAct failure line when an act command throws by default', async () => {
     const handler = vi.fn().mockRejectedValue(new Error('boom'));
     const tools = createMockTools([{ name: 'act', handler }]);
     const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
 
     await expect(
       runToolsCLI(tools, 'test-cli', {
-        argv: ['--verbose', 'act'],
+        argv: ['act'],
       }),
     ).rejects.toThrow('boom');
 
