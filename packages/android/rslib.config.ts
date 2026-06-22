@@ -37,7 +37,6 @@ export default defineConfig({
     entry: {
       index: './src/index.ts',
       cli: './src/cli.ts',
-      'mcp-server': './src/mcp-server.ts',
     },
     define: {
       __VERSION__: JSON.stringify(version),

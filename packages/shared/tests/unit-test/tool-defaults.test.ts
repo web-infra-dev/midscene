@@ -3,7 +3,7 @@ import {
   mergeToolDefaults,
   resolveToolDefaults,
   stripBehaviorFlags,
-} from '@/mcp/tool-defaults';
+} from '@/agent-tools/tool-defaults';
 import { describe, expect, it } from 'vitest';
 
 describe('mergeToolDefaults', () => {

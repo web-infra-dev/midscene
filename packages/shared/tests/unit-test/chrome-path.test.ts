@@ -3,13 +3,18 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import {
   getSystemChromePath,
   resolveChromePath,
-} from '../../src/mcp/chrome-path';
+} from '../../src/agent-tools/chrome-path';
 
 vi.mock('node:fs', () => ({
   existsSync: vi.fn(),
 }));
 
+vi.mock('../../src/logger', () => ({
+  getDebug: vi.fn(() => vi.fn()),
+}));
+
 vi.mock('../../src/env', () => ({
+  MIDSCENE_CHROME_PATH: 'MIDSCENE_CHROME_PATH',
   MIDSCENE_MCP_CHROME_PATH: 'MIDSCENE_MCP_CHROME_PATH',
   globalConfigManager: {
     getEnvConfigValue: vi.fn(),
@@ -81,17 +86,38 @@ describe('Chrome Path Resolution', () => {
       const customPath = '/custom/chrome/path';
       vi.mocked(
         envModule.globalConfigManager.getEnvConfigValue,
-      ).mockReturnValue(customPath);
+      ).mockImplementation((key) =>
+        key === 'MIDSCENE_CHROME_PATH' ? customPath : undefined,
+      );
       vi.mocked(existsSync).mockReturnValue(true);
 
       expect(resolveChromePath()).toBe(customPath);
+    });
+
+    test('should fallback to legacy MCP chrome path when primary env is unset', async () => {
+      const consoleWarnSpy = vi
+        .spyOn(console, 'warn')
+        .mockImplementation(() => {});
+      const envModule = await import('../../src/env');
+      const legacyPath = '/legacy/chrome/path';
+      vi.mocked(
+        envModule.globalConfigManager.getEnvConfigValue,
+      ).mockImplementation((key) =>
+        key === 'MIDSCENE_MCP_CHROME_PATH' ? legacyPath : undefined,
+      );
+      vi.mocked(existsSync).mockReturnValue(true);
+
+      expect(resolveChromePath()).toBe(legacyPath);
+      consoleWarnSpy.mockRestore();
     });
 
     test('should fallback to system path when env is auto', async () => {
       const envModule = await import('../../src/env');
       vi.mocked(
         envModule.globalConfigManager.getEnvConfigValue,
-      ).mockReturnValue('auto');
+      ).mockImplementation((key) =>
+        key === 'MIDSCENE_CHROME_PATH' ? 'auto' : undefined,
+      );
 
       expect(() => resolveChromePath()).toThrow('Chrome not found');
     });

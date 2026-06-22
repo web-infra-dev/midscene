@@ -15,7 +15,7 @@ import { existsSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
 import { getDebug } from '@midscene/shared/logger';
 import { TARGET_ID_FILE } from './cdp-proxy-constants';
 
-const debug = getDebug('mcp:cdp:target-store');
+const debug = getDebug('agent-tools:cdp:target-store');
 
 /**
  * Read the saved targetId, or null if no command has stored one yet.

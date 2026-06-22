@@ -71,9 +71,9 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   featureRichAPIs: '丰富的 API',
   featureRichAPIsDesc:
     '既能自动规划完整流程，也提供 aiTap、aiAssert 等原子 API，用于精确测试。',
-  featureSkillsMcp: 'Skills 与 MCP',
-  featureSkillsMcpDesc:
-    '开箱即用的 Skills 让 AI 编程 Agent 测试你的 UI；MCP Server 把 Midscene 暴露给其他 Agent。',
+  featureSkills: 'Skills',
+  featureSkillsDesc:
+    '开箱即用的 Skills 让 AI 编程 Agent 通过 Midscene CLI 测试你的 UI。',
   featureReportsPlayground: '报告与 Playground',
   featureReportsPlaygroundDesc:
     '在可视化报告中逐步回放，并在 Playground 里快速试验。',
@@ -83,7 +83,7 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   featureBenchmarkDesc:
     '查看 AndroidWorld benchmark 分数、运行配置、报告文件和验收备注。',
   featureRichAPIsLink: '/api',
-  featureSkillsMcpLink: '/skills',
+  featureSkillsLink: '/skills',
   featureReportsPlaygroundLink: '/quick-experience',
   featureFlexibleIntegrationLink: '/automate-with-scripts-in-yaml',
   featureBenchmarkLink: '/android-world-benchmark-report',

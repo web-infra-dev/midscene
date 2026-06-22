@@ -1,8 +1,8 @@
 import {
   generateCommonTools,
   generateToolsFromActionSpace,
-} from '@/mcp/tool-generator';
-import { composeUserPrompt } from '@/mcp/user-prompt';
+} from '@/agent-tools/tool-generator';
+import { composeUserPrompt } from '@/agent-tools/user-prompt';
 import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 

@@ -5,11 +5,11 @@ import { type Server, createServer } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { parseWebCliOptions } from '@/cli-options';
 import {
   type PuppeteerPersistenceOptions,
   WebPuppeteerMidsceneTools,
-} from '@/mcp-tools-puppeteer';
+} from '@/agent-tools-puppeteer';
+import { parseWebCliOptions } from '@/cli-options';
 import { runToolsCLI } from '@midscene/shared/cli';
 import puppeteer from 'puppeteer-core';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';

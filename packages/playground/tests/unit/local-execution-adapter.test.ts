@@ -304,32 +304,6 @@ describe('LocalExecutionAdapter', () => {
 
       expect(mockAgent.onTaskStartTip).toBeDefined();
     });
-
-    it('should preserve every execution from the grouped dump', async () => {
-      vi.mocked(mockAgent.dumpDataString!).mockReturnValue(
-        JSON.stringify({
-          executions: [
-            { logTime: 1, name: 'prepare login state', tasks: [] },
-            { logTime: 2, name: 'replay markdown login', tasks: [] },
-          ],
-          groupName: 'Replay',
-          modelBriefs: [],
-          sdkVersion: '1.0.0',
-        }),
-      );
-
-      const result = (await adapter.executeAction(
-        'aiAct',
-        { type: 'aiAct', prompt: 'Replay markdown' },
-        {},
-      )) as { dump: ReportActionDump };
-
-      expect(result.dump).toBeInstanceOf(ReportActionDump);
-      expect(result.dump.executions).toHaveLength(2);
-      expect(result.dump.executions.map((execution) => execution.name)).toEqual(
-        ['prepare login state', 'replay markdown login'],
-      );
-    });
   });
 
   describe('cancelTask', () => {

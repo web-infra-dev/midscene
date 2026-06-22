@@ -3,6 +3,7 @@ import {
   MIDSCENE_ADB_PATH,
   MIDSCENE_CACHE,
   MIDSCENE_CACHE_MAX_FILENAME_LENGTH,
+  MIDSCENE_MCP_CHROME_PATH,
   MIDSCENE_MODEL_API_KEY,
   MIDSCENE_MODEL_BASE_URL,
   MIDSCENE_MODEL_NAME,
@@ -70,6 +71,7 @@ describe('overrideAIConfig', () => {
         [MIDSCENE_ADB_PATH]: '/custom/adb/path',
         [MIDSCENE_CACHE]: 'true',
         [MIDSCENE_CACHE_MAX_FILENAME_LENGTH]: '200',
+        [MIDSCENE_MCP_CHROME_PATH]: '/custom/chrome/path',
         [MIDSCENE_PREFERRED_LANGUAGE]: 'zh-CN',
       }),
     ).not.toThrow();

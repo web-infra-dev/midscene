@@ -64,17 +64,8 @@ export function assert(condition: any, message?: string): asserts condition {
   }
 }
 
-let isMcp = false;
-
-export function setIsMcp(value: boolean) {
-  isMcp = value;
-}
-
-//mcp need use obj format to console msg: https://github.com/modelcontextprotocol/typescript-sdk/issues/244
 export function logMsg(...message: Parameters<typeof console.log>) {
-  if (!isMcp) {
-    console.log(...message);
-  }
+  console.log(...message);
 }
 
 export async function repeat(
