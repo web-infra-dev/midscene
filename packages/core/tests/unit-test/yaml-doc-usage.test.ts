@@ -401,7 +401,6 @@ tasks:
   - name: Gherkin scenario
     flow:
       - runGherkinScenario: |
-          Feature: Todo list
           Scenario: Add a todo
             Given the todo page is open
             When I add "Buy milk"

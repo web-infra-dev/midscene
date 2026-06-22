@@ -9,7 +9,6 @@ In AI-driven GUI automation, Gherkin is a natural fit because each GUI operation
 Gherkin is a plain-text syntax for describing behavior with examples. It is often used in BDD workflows, where a scenario is written as a sequence of steps. See the official [Cucumber Gherkin reference](https://cucumber.io/docs/gherkin/reference) for the full syntax.
 
 ```gherkin
-Feature: Todo list
 Scenario: Add a todo
   Given the todo page is open
   When I add "Buy milk"
@@ -26,11 +25,11 @@ Midscene supports a focused subset of Gherkin:
 - `When` maps to `aiAct`. Midscene treats it as a user action step.
 - `Then` maps to `aiAssert`. Midscene treats it as a verification step.
 - `And` and `But` reuse the previous primary keyword. For example, an `And` after `Then` also maps to `aiAssert`. Keywords are matched case-insensitively, so `AND` is also supported.
-- `Feature:` is optional and is used as metadata.
 - Exactly one `Scenario:` is supported. You may also write only steps without a `Scenario:` header.
 
 These Gherkin features are not supported:
 
+- `Feature`
 - `Background`
 - `Scenario Outline` or `Scenario Template`
 - `Examples`
@@ -51,7 +50,6 @@ tasks:
   - name: Add a todo item
     flow:
       - runGherkinScenario: |
-          Feature: Todo list
           Scenario: Add a todo
             Given the todo page is open
             When I add "Buy milk" as a todo item
@@ -73,7 +71,6 @@ tasks:
   - name: Complete checkout
     flow:
       - runGherkinScenario: |
-          Feature: Checkout
           Scenario: Place an order with a saved address
             Given the shopping cart contains "Midscene Mug"
             When I open the cart page

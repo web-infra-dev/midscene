@@ -12,7 +12,6 @@ export type RunGherkinScenarioStepResult = {
 };
 
 export type RunGherkinScenarioResult = {
-  feature?: string;
   scenario?: string;
   steps: RunGherkinScenarioStepResult[];
 };
@@ -37,7 +36,6 @@ type RawGherkinStep = {
 };
 
 type ParsedGherkinScenario = {
-  feature?: string;
   scenario?: string;
   steps: ParsedGherkinStep[];
 };
@@ -52,9 +50,9 @@ type GherkinScenarioAgent = {
 };
 
 const stepKeywordPattern = /^(Given|When|Then|And|But)\s+(.+)$/i;
-const headerPattern = /^(Feature|Scenario):\s*(.*)$/i;
+const headerPattern = /^(Scenario):\s*(.*)$/i;
 const unsupportedHeaderPattern =
-  /^(Background|Scenario Outline|Scenario Template|Examples|Rule):/i;
+  /^(Feature|Background|Scenario Outline|Scenario Template|Examples|Rule):/i;
 
 const normalizeStepKeyword = (keyword: string): GherkinStepKeyword => {
   const lowerKeyword = keyword.toLowerCase();
@@ -63,12 +61,6 @@ const normalizeStepKeyword = (keyword: string): GherkinStepKeyword => {
   if (lowerKeyword === 'then') return 'Then';
   if (lowerKeyword === 'and') return 'And';
   return 'But';
-};
-
-const normalizeHeaderKeyword = (keyword: string): 'Feature' | 'Scenario' => {
-  const lowerKeyword = keyword.toLowerCase();
-  if (lowerKeyword === 'feature') return 'Feature';
-  return 'Scenario';
 };
 
 const isPrimaryKeyword = (
@@ -120,10 +112,9 @@ export const parseGherkinScenario = (
   const lines = scenarioText.split(/\r?\n/);
   const scenarioSteps: RawGherkinStep[] = [];
   const anonymousSteps: RawGherkinStep[] = [];
-  let feature: string | undefined;
   let scenario: string | undefined;
   let scenarioCount = 0;
-  let section: 'prelude' | 'feature' | 'scenario' = 'prelude';
+  let section: 'prelude' | 'scenario' = 'prelude';
   let hasSeenStepInSection = false;
 
   for (const [lineIndex, rawLine] of lines.entries()) {
@@ -154,20 +145,7 @@ export const parseGherkinScenario = (
 
     const headerMatch = line.match(headerPattern);
     if (headerMatch) {
-      const headerKeyword = normalizeHeaderKeyword(headerMatch[1]);
       hasSeenStepInSection = false;
-
-      if (headerKeyword === 'Feature') {
-        if (feature !== undefined) {
-          throw new Error(
-            `runGherkinScenario expects at most one Feature, but found another at line ${lineNumber}.`,
-          );
-        }
-        feature = headerMatch[2].trim() || undefined;
-        section = 'feature';
-        continue;
-      }
-
       scenarioCount += 1;
       scenario = headerMatch[2].trim() || undefined;
       section = 'scenario';
@@ -220,7 +198,6 @@ export const parseGherkinScenario = (
   }
 
   return {
-    feature,
     scenario,
     steps: resolveSteps(rawSteps),
   };
@@ -286,7 +263,6 @@ export const runGherkinScenario = async (
   }
 
   return {
-    feature: parsedScenario.feature,
     scenario: parsedScenario.scenario,
     steps,
   };

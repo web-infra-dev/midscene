@@ -44,7 +44,6 @@ And the cart total should be visible
       'Verify that the cart total should be visible',
     );
     expect(result).toEqual({
-      feature: undefined,
       scenario: undefined,
       steps: [
         {
@@ -117,19 +116,16 @@ Then the list should be empty
     );
   });
 
-  it('supports one Scenario with Feature metadata', async () => {
+  it('supports one Scenario', async () => {
     const agent = createAgentStub();
 
     const result = await agent.runGherkinScenario(`
-Feature: Todo
-
 Scenario: Add a todo item
   Given the todo app is open
   When I add "Buy milk"
   Then the list should contain "Buy milk"
 `);
 
-    expect(result.feature).toBe('Todo');
     expect(result.scenario).toBe('Add a todo item');
     expect(result.steps.map((step) => step.text)).toEqual([
       'the todo app is open',
@@ -140,25 +136,32 @@ Scenario: Add a todo item
     expect(agent.aiAssert).toHaveBeenCalledTimes(1);
   });
 
-  it('throws when the input contains Background', () => {
+  it('throws when the input contains Feature', () => {
     expect(() =>
       parseGherkinScenario(`
 Feature: Todo
 
+Scenario: Add
+  Given the todo app is open
+`),
+    ).toThrow('runGherkinScenario does not support "Feature: Todo" at line 2.');
+  });
+
+  it('throws when the input contains Background', () => {
+    expect(() =>
+      parseGherkinScenario(`
 Background:
   Given the todo app is open
 
 Scenario: Add
   When I add "Buy milk"
 `),
-    ).toThrow('runGherkinScenario does not support "Background:" at line 4.');
+    ).toThrow('runGherkinScenario does not support "Background:" at line 2.');
   });
 
   it('throws when the input contains multiple scenarios', () => {
     expect(() =>
       parseGherkinScenario(`
-Feature: Todo
-
 Scenario: Add
   Given the todo app is open
 

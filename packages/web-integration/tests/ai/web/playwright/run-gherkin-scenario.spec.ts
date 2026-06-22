@@ -19,8 +19,6 @@ test('agent.runGherkinScenario runs one Gherkin scenario', async ({
   const agent = await agentForPage(page);
   await agent.runGherkinScenario(
     `
-Feature: Gherkin todo creation
-
 Scenario: Create one task
   Given the Gherkin Todo Lab page is open and ready for input
   When I create a task named "Review Gherkin API"
