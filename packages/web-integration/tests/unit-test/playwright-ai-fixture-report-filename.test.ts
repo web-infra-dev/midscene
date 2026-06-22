@@ -21,13 +21,13 @@
  * synthesizes, then invoke `fixture.ai({page}, ...)` which is the cheapest
  * code path that runs `createOrReuseAgentForPage`.
  */
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, rs } from '@rstest/core';
 
-const mockState = vi.hoisted(() => ({
+const mockState = rs.hoisted(() => ({
   ctorOpts: [] as any[],
 }));
 
-vi.mock('@/playwright/index', () => {
+rs.mock('@/playwright/index', () => {
   class MockPlaywrightAgent {
     reportFile?: string;
 
@@ -45,7 +45,7 @@ import { PlaywrightAiFixture } from '@/playwright/ai-fixture';
 
 const createPage = () =>
   ({
-    on: vi.fn(),
+    on: rs.fn(),
   }) as any;
 
 const runAi = async (testInfo: any) => {

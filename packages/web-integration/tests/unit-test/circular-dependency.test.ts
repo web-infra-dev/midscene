@@ -1,7 +1,7 @@
 import { exec } from 'node:child_process';
 import { resolve } from 'node:path';
 import { promisify } from 'node:util';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 
 const execAsync = promisify(exec);
 

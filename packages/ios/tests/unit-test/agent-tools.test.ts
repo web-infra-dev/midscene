@@ -1,15 +1,15 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
 import { agentFromWebDriverAgent } from '../../src/agent';
 import { IOSMidsceneTools } from '../../src/agent-tools';
 
-vi.mock('../../src/agent', () => ({
-  agentFromWebDriverAgent: vi.fn(),
+rs.mock('../../src/agent', () => ({
+  agentFromWebDriverAgent: rs.fn(),
 }));
 
-vi.mock('../../src/device', () => ({
-  IOSDevice: vi.fn().mockImplementation(() => ({
-    actionSpace: vi.fn().mockReturnValue([]),
-    destroy: vi.fn(),
+rs.mock('../../src/device', () => ({
+  IOSDevice: rs.fn().mockImplementation(() => ({
+    actionSpace: rs.fn().mockReturnValue([]),
+    destroy: rs.fn(),
   })),
 }));
 
@@ -19,22 +19,22 @@ const validPngBase64 =
 function createMockAgent() {
   return {
     page: {
-      screenshotBase64: vi.fn().mockResolvedValue(validPngBase64),
+      screenshotBase64: rs.fn().mockResolvedValue(validPngBase64),
     },
-    aiAction: vi.fn().mockResolvedValue('done'),
-    destroy: vi.fn(),
+    aiAction: rs.fn().mockResolvedValue('done'),
+    destroy: rs.fn(),
   };
 }
 
 describe('IOSMidsceneTools', () => {
   beforeEach(() => {
-    vi.mocked(agentFromWebDriverAgent).mockResolvedValue(
+    rs.mocked(agentFromWebDriverAgent).mockResolvedValue(
       createMockAgent() as any,
     );
   });
 
   afterEach(() => {
-    vi.clearAllMocks();
+    rs.clearAllMocks();
   });
 
   it('passes namespaced ios init args to take_screenshot', async () => {
@@ -75,7 +75,7 @@ describe('IOSMidsceneTools', () => {
 
   it('passes top-level ios aliases to act', async () => {
     const mockAgent = createMockAgent();
-    vi.mocked(agentFromWebDriverAgent).mockResolvedValue(mockAgent as any);
+    rs.mocked(agentFromWebDriverAgent).mockResolvedValue(mockAgent as any);
 
     const tools = new IOSMidsceneTools();
     await tools.initTools();
@@ -137,7 +137,7 @@ describe('IOSMidsceneTools', () => {
 
   it('reuses the iOS agent when called twice with identical init args', async () => {
     const mockAgent = createMockAgent();
-    vi.mocked(agentFromWebDriverAgent).mockResolvedValue(mockAgent as any);
+    rs.mocked(agentFromWebDriverAgent).mockResolvedValue(mockAgent as any);
 
     const tools = new IOSMidsceneTools();
     await tools.initTools();
@@ -156,7 +156,7 @@ describe('IOSMidsceneTools', () => {
   it('rebuilds the iOS agent when init args change', async () => {
     const firstAgent = createMockAgent();
     const secondAgent = createMockAgent();
-    vi.mocked(agentFromWebDriverAgent)
+    rs.mocked(agentFromWebDriverAgent)
       .mockResolvedValueOnce(firstAgent as any)
       .mockResolvedValueOnce(secondAgent as any);
 
@@ -177,7 +177,7 @@ describe('IOSMidsceneTools', () => {
   it('rebuilds the iOS agent when init args are omitted after being set', async () => {
     const firstAgent = createMockAgent();
     const secondAgent = createMockAgent();
-    vi.mocked(agentFromWebDriverAgent)
+    rs.mocked(agentFromWebDriverAgent)
       .mockResolvedValueOnce(firstAgent as any)
       .mockResolvedValueOnce(secondAgent as any);
 
@@ -195,7 +195,7 @@ describe('IOSMidsceneTools', () => {
 
     expect(agentFromWebDriverAgent).toHaveBeenCalledTimes(2);
     expect(firstAgent.destroy).toHaveBeenCalledTimes(1);
-    const lastAgentOptions = vi
+    const lastAgentOptions = rs
       .mocked(agentFromWebDriverAgent)
       .mock.calls.at(-1)?.[0];
     expect(lastAgentOptions).toEqual(
@@ -210,7 +210,7 @@ describe('IOSMidsceneTools', () => {
   it('rebuilds the iOS agent when only the external WDA session changes', async () => {
     const firstAgent = createMockAgent();
     const secondAgent = createMockAgent();
-    vi.mocked(agentFromWebDriverAgent)
+    rs.mocked(agentFromWebDriverAgent)
       .mockResolvedValueOnce(firstAgent as any)
       .mockResolvedValueOnce(secondAgent as any);
 

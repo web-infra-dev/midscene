@@ -4,7 +4,7 @@ import {
   defineActionPinch,
   normalizePinchParam,
 } from '@/device';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 
 describe('Pinch Action Parameter Validation', () => {
   describe('ActionPinchParamSchema', () => {
@@ -114,7 +114,7 @@ describe('Pinch Action Parameter Validation', () => {
     });
 
     it('should invoke the pinch primitive with normalized params', async () => {
-      const pinchFn = vi.fn();
+      const pinchFn = rs.fn();
       const action = defineActionPinch({
         pinch: pinchFn,
         size: async () => ({ width: 400, height: 800 }),

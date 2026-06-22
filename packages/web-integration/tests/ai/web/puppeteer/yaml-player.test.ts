@@ -4,11 +4,11 @@ import { puppeteerAgentForTarget } from '@/puppeteer/agent-launcher';
 import type { MidsceneYamlScriptWebEnv } from '@midscene/core';
 import { ScriptPlayer, parseYamlScript } from '@midscene/core/yaml';
 import { assert, uuid } from '@midscene/shared/utils';
-import { describe, expect, test, vi } from 'vitest';
+import { describe, expect, rs, test } from '@rstest/core';
 
 const runYaml = async (yamlString: string, ignoreStatusAssertion = false) => {
   const script = parseYamlScript(yamlString);
-  const statusUpdate = vi.fn();
+  const statusUpdate = rs.fn();
   const player = new ScriptPlayer<MidsceneYamlScriptWebEnv>(
     script,
     puppeteerAgentForTarget,

@@ -1,11 +1,11 @@
 /** @vitest-environment jsdom */
 import { PREVIEW_TEXT_INPUT_BATCH_DELAY_MS } from '@midscene/shared/constants';
+import { afterEach, beforeAll, describe, expect, it, rs } from '@rstest/core';
 import { act, createElement } from 'react';
 import { createRoot } from 'react-dom/client';
-import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { PreviewRenderer } from '../src/PreviewRenderer';
 
-vi.mock('@midscene/visualizer', () => ({
+rs.mock('@midscene/visualizer', () => ({
   ScreenshotViewer: () => null,
 }));
 
@@ -18,7 +18,7 @@ beforeAll(() => {
 });
 
 afterEach(() => {
-  vi.useRealTimers();
+  rs.useRealTimers();
 });
 
 async function flushPromises() {
@@ -30,11 +30,11 @@ async function flushPromises() {
 describe('PreviewRenderer manual web input', () => {
   it('ignores transient interface-info failures while polling manual control size', async () => {
     const playgroundSDK = {
-      getInterfaceInfo: vi.fn(async () => {
+      getInterfaceInfo: rs.fn(async () => {
         throw new Error('server restarting');
       }),
-      getScreenshot: vi.fn(async () => null),
-      interact: vi.fn(async () => ({ ok: true })),
+      getScreenshot: rs.fn(async () => null),
+      interact: rs.fn(async () => ({ ok: true })),
     };
     const container = document.createElement('div');
     document.body.appendChild(container);
@@ -75,15 +75,15 @@ describe('PreviewRenderer manual web input', () => {
   });
 
   it('batches keyboard input and sends typeOnly text to the active web page', async () => {
-    vi.useFakeTimers();
-    const interact = vi.fn(async () => ({ ok: true }));
+    rs.useFakeTimers();
+    const interact = rs.fn(async () => ({ ok: true }));
     const playgroundSDK = {
-      getInterfaceInfo: vi.fn(async () => ({
+      getInterfaceInfo: rs.fn(async () => ({
         type: 'puppeteer',
         size: { width: 100, height: 100 },
         actionTypes: ['Tap', 'DragAndDrop', 'KeyboardPress', 'Input'],
       })),
-      getScreenshot: vi.fn(async () => null),
+      getScreenshot: rs.fn(async () => null),
       interact,
     };
     const container = document.createElement('div');
@@ -121,11 +121,11 @@ describe('PreviewRenderer manual web input', () => {
     expect(keyboardSink).toBeTruthy();
     Object.defineProperty(overlay, 'setPointerCapture', {
       configurable: true,
-      value: vi.fn(),
+      value: rs.fn(),
     });
     Object.defineProperty(overlay, 'releasePointerCapture', {
       configurable: true,
-      value: vi.fn(),
+      value: rs.fn(),
     });
     Object.defineProperty(overlay, 'getBoundingClientRect', {
       configurable: true,
@@ -189,7 +189,7 @@ describe('PreviewRenderer manual web input', () => {
     expect(interact).toHaveBeenCalledTimes(1);
 
     await act(async () => {
-      vi.advanceTimersByTime(PREVIEW_TEXT_INPUT_BATCH_DELAY_MS);
+      rs.advanceTimersByTime(PREVIEW_TEXT_INPUT_BATCH_DELAY_MS);
     });
     await flushPromises();
 
@@ -269,7 +269,7 @@ describe('PreviewRenderer manual web input', () => {
     });
 
     await act(async () => {
-      vi.advanceTimersByTime(PREVIEW_TEXT_INPUT_BATCH_DELAY_MS);
+      rs.advanceTimersByTime(PREVIEW_TEXT_INPUT_BATCH_DELAY_MS);
     });
     await flushPromises();
     expect(interact).toHaveBeenCalledTimes(7);
@@ -281,15 +281,15 @@ describe('PreviewRenderer manual web input', () => {
   });
 
   it('flushes pending keyboard input before unmounting', async () => {
-    vi.useFakeTimers();
-    const interact = vi.fn(async () => ({ ok: true }));
+    rs.useFakeTimers();
+    const interact = rs.fn(async () => ({ ok: true }));
     const playgroundSDK = {
-      getInterfaceInfo: vi.fn(async () => ({
+      getInterfaceInfo: rs.fn(async () => ({
         type: 'puppeteer',
         size: { width: 100, height: 100 },
         actionTypes: ['Tap', 'DragAndDrop', 'KeyboardPress', 'Input'],
       })),
-      getScreenshot: vi.fn(async () => null),
+      getScreenshot: rs.fn(async () => null),
       interact,
     };
     const container = document.createElement('div');
@@ -327,11 +327,11 @@ describe('PreviewRenderer manual web input', () => {
     expect(keyboardSink).toBeTruthy();
     Object.defineProperty(overlay, 'setPointerCapture', {
       configurable: true,
-      value: vi.fn(),
+      value: rs.fn(),
     });
     Object.defineProperty(overlay, 'releasePointerCapture', {
       configurable: true,
-      value: vi.fn(),
+      value: rs.fn(),
     });
     Object.defineProperty(overlay, 'getBoundingClientRect', {
       configurable: true,

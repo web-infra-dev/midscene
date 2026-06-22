@@ -3,7 +3,7 @@ import { AiLocateSection } from '@/ai-model/workflows/inspect';
 import { getTmpFile } from '@/utils';
 import { globalModelConfigManager } from '@midscene/shared/env';
 import { saveBase64Image } from '@midscene/shared/img';
-import { expect, test } from 'vitest';
+import { expect, test } from '@rstest/core';
 import { getContextFromFixture } from '../evaluation';
 
 const modelConfig = globalModelConfigManager.getModelConfig('default');
@@ -11,9 +11,6 @@ const modelRuntime = getModelRuntime(modelConfig);
 
 test.skipIf(!modelConfig.modelFamily)(
   'locate section',
-  {
-    timeout: 120 * 1000,
-  },
   async () => {
     const { context } = await getContextFromFixture('antd-tooltip');
     const { searchAreaConfig } = await AiLocateSection({
@@ -30,4 +27,5 @@ test.skipIf(!modelConfig.modelFamily)(
       outputPath: tmpFile!,
     });
   },
+  120 * 1000,
 );

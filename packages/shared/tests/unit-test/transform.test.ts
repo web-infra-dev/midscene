@@ -1,5 +1,5 @@
 import path from 'node:path';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 import {
   inferBase64ImageFormat,
   normalizeBase64Image,
@@ -58,7 +58,7 @@ describe('preapareImageUrl', () => {
 
   it('http url will be converted to base64 if convertHttpImage2Base64 is true', async () => {
     const mockData = Buffer.from('image-data');
-    const fetchSpy = vi.spyOn(global, 'fetch').mockResolvedValue(
+    const fetchSpy = rs.spyOn(global, 'fetch').mockResolvedValue(
       new Response(mockData, {
         status: 200,
         headers: { 'content-type': 'image/svg+xml' },
@@ -183,7 +183,7 @@ describe('scaleImage', () => {
     const getSharpModule = await import('../../src/img/get-sharp');
     const originalGetSharp = getSharpModule.default;
 
-    vi.spyOn(getSharpModule, 'default').mockRejectedValue(
+    rs.spyOn(getSharpModule, 'default').mockRejectedValue(
       new Error('Sharp not available'),
     );
 
@@ -196,7 +196,7 @@ describe('scaleImage', () => {
     );
 
     // Restore original implementation
-    vi.spyOn(getSharpModule, 'default').mockResolvedValue(
+    rs.spyOn(getSharpModule, 'default').mockResolvedValue(
       await originalGetSharp(),
     );
   });
@@ -204,11 +204,11 @@ describe('scaleImage', () => {
   it('should fall back to Photon when Sharp throws during processing', async () => {
     // Mock getSharp to return a mock Sharp that throws during processing
     const getSharpModule = await import('../../src/img/get-sharp');
-    const mockSharp = vi.fn(() => {
+    const mockSharp = rs.fn(() => {
       throw new Error('Sharp processing failed');
     });
 
-    vi.spyOn(getSharpModule, 'default').mockResolvedValue(mockSharp as any);
+    rs.spyOn(getSharpModule, 'default').mockResolvedValue(mockSharp as any);
 
     const result = await scaleImage(onePixelWhiteImage, 3);
 
@@ -219,6 +219,6 @@ describe('scaleImage', () => {
     );
 
     // Restore
-    vi.restoreAllMocks();
+    rs.restoreAllMocks();
   });
 });

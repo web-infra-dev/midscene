@@ -4,7 +4,6 @@ import {
   OPENAI_API_KEY,
   OPENAI_BASE_URL,
 } from '@midscene/shared/env';
-import { ADB } from 'appium-adb';
 import {
   type Mock,
   afterEach,
@@ -12,15 +11,16 @@ import {
   describe,
   expect,
   it,
-  vi,
-} from 'vitest';
+  rs,
+} from '@rstest/core';
+import { ADB } from 'appium-adb';
 import { AndroidAgent, agentFromAdbDevice } from '../../src/agent';
 import { AndroidDevice } from '../../src/device';
 import * as Utils from '../../src/utils';
 
-vi.mock('appium-adb');
-vi.mock('../../src/device');
-vi.mock('../../src/utils');
+rs.mock('appium-adb');
+rs.mock('../../src/device');
+rs.mock('../../src/utils');
 
 const MockedAndroidDevice = AndroidDevice as unknown as Mock;
 
@@ -36,20 +36,20 @@ describe('AndroidAgent', () => {
     MockedAndroidDevice.mockImplementation(() => {
       return {
         interfaceType: 'android',
-        actionSpace: vi.fn().mockReturnValue([]),
-        screenshotBase64: vi.fn(),
-        size: vi.fn(),
-        getElementsInfo: vi.fn(),
-        url: vi.fn(),
-        launch: vi.fn(),
-        destroy: vi.fn(),
-        setAppNameMapping: vi.fn(),
+        actionSpace: rs.fn().mockReturnValue([]),
+        screenshotBase64: rs.fn(),
+        size: rs.fn(),
+        getElementsInfo: rs.fn(),
+        url: rs.fn(),
+        launch: rs.fn(),
+        destroy: rs.fn(),
+        setAppNameMapping: rs.fn(),
       };
     });
   });
 
   afterEach(() => {
-    vi.restoreAllMocks();
+    rs.restoreAllMocks();
   });
 
   describe('constructor', () => {
@@ -73,17 +73,17 @@ describe('AndroidAgent', () => {
       const mockPage = new AndroidDevice('test-device');
 
       // Add necessary mocks for the device
-      vi.spyOn(mockPage, 'screenshotBase64').mockResolvedValue(validPngBase64);
-      vi.spyOn(mockPage, 'size').mockResolvedValue({ width: 375, height: 812 });
-      vi.spyOn(mockPage, 'getElementsInfo').mockResolvedValue([]);
-      vi.spyOn(mockPage, 'url').mockResolvedValue('https://example.com');
+      rs.spyOn(mockPage, 'screenshotBase64').mockResolvedValue(validPngBase64);
+      rs.spyOn(mockPage, 'size').mockResolvedValue({ width: 375, height: 812 });
+      rs.spyOn(mockPage, 'getElementsInfo').mockResolvedValue([]);
+      rs.spyOn(mockPage, 'url').mockResolvedValue('https://example.com');
 
-      const launchSpy = vi
+      const launchSpy = rs
         .spyOn(mockPage, 'launch')
         .mockResolvedValue(mockPage);
 
       // Mock actionSpace to call the actual device methods
-      vi.spyOn(mockPage, 'actionSpace').mockReturnValue([
+      rs.spyOn(mockPage, 'actionSpace').mockReturnValue([
         {
           name: 'Launch',
           paramSchema: undefined,
@@ -126,17 +126,17 @@ describe('AndroidAgent', () => {
       const validPngBase64 =
         'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
       const mockPage = new AndroidDevice('test-device');
-      vi.spyOn(mockPage, 'screenshotBase64').mockResolvedValue(validPngBase64);
-      vi.spyOn(mockPage, 'size').mockResolvedValue({ width: 375, height: 812 });
-      vi.spyOn(mockPage, 'getElementsInfo').mockResolvedValue([]);
-      vi.spyOn(mockPage, 'url').mockResolvedValue('https://example.com');
+      rs.spyOn(mockPage, 'screenshotBase64').mockResolvedValue(validPngBase64);
+      rs.spyOn(mockPage, 'size').mockResolvedValue({ width: 375, height: 812 });
+      rs.spyOn(mockPage, 'getElementsInfo').mockResolvedValue([]);
+      rs.spyOn(mockPage, 'url').mockResolvedValue('https://example.com');
       if (typeof (mockPage as any).terminate !== 'function') {
-        (mockPage as any).terminate = vi.fn().mockResolvedValue(undefined);
+        (mockPage as any).terminate = rs.fn().mockResolvedValue(undefined);
       }
-      const terminateSpy = vi
+      const terminateSpy = rs
         .spyOn(mockPage as any, 'terminate')
         .mockResolvedValue(undefined);
-      vi.spyOn(mockPage, 'actionSpace').mockReturnValue([
+      rs.spyOn(mockPage, 'actionSpace').mockReturnValue([
         { name: 'Launch', paramSchema: undefined, call: async () => {} },
         {
           name: 'Terminate',
@@ -158,11 +158,11 @@ describe('AndroidAgent', () => {
   describe('runAdbShell', () => {
     it('should pass timeout options to adb.shell without changing action schema', async () => {
       const mockPage = new AndroidDevice('test-device');
-      const shell = vi.fn().mockResolvedValue({
+      const shell = rs.fn().mockResolvedValue({
         stdout: 'adb-result',
         stderr: '',
       });
-      (mockPage as any).getAdb = vi.fn().mockResolvedValue({
+      (mockPage as any).getAdb = rs.fn().mockResolvedValue({
         shell,
         EXEC_OUTPUT_FORMAT: { FULL: 'full' },
       });
@@ -186,11 +186,11 @@ describe('AndroidAgent', () => {
         0x00000000: fffffffd 00000008 006f004e 00690020 '........N.o. .i.'
         0x00000010: 00650074 0073006d 00000000 000003a4 't.e.m.s.........'
       )`;
-      const shell = vi.fn().mockResolvedValue({
+      const shell = rs.fn().mockResolvedValue({
         stdout: rawOutput,
         stderr: '',
       });
-      (mockPage as any).getAdb = vi.fn().mockResolvedValue({
+      (mockPage as any).getAdb = rs.fn().mockResolvedValue({
         shell,
         EXEC_OUTPUT_FORMAT: { FULL: 'full' },
       });
@@ -210,11 +210,11 @@ describe('AndroidAgent', () => {
 
     it('should throw when adb shell exits zero with stderr output', async () => {
       const mockPage = new AndroidDevice('test-device');
-      const shell = vi.fn().mockResolvedValue({
+      const shell = rs.fn().mockResolvedValue({
         stdout: '',
         stderr: 'No shell command implementation.',
       });
-      (mockPage as any).getAdb = vi.fn().mockResolvedValue({
+      (mockPage as any).getAdb = rs.fn().mockResolvedValue({
         shell,
         EXEC_OUTPUT_FORMAT: { FULL: 'full' },
       });
@@ -234,11 +234,11 @@ describe('AndroidAgent', () => {
 
     it('should truncate stdout and stderr in adb shell stderr errors', async () => {
       const mockPage = new AndroidDevice('test-device');
-      const shell = vi.fn().mockResolvedValue({
+      const shell = rs.fn().mockResolvedValue({
         stdout: 'o'.repeat(240),
         stderr: 'e'.repeat(240),
       });
-      (mockPage as any).getAdb = vi.fn().mockResolvedValue({
+      (mockPage as any).getAdb = rs.fn().mockResolvedValue({
         shell,
         EXEC_OUTPUT_FORMAT: { FULL: 'full' },
       });
@@ -265,12 +265,12 @@ ${'o'.repeat(200)}
         0x00000000: fffffffd 00000008 006f004e 00690020 '........N.o. .i.'
         0x00000010: 00650074 0073006d 00000000 000003a4 't.e.m.s.........'
       )`;
-      const runAdbShellCall = vi.fn().mockResolvedValue(rawOutput);
-      vi.spyOn(device, 'screenshotBase64').mockResolvedValue(validPngBase64);
-      vi.spyOn(device, 'size').mockResolvedValue({ width: 375, height: 812 });
-      vi.spyOn(device, 'getElementsInfo').mockResolvedValue([]);
-      vi.spyOn(device, 'url').mockResolvedValue('https://example.com');
-      vi.spyOn(device, 'actionSpace').mockReturnValue([
+      const runAdbShellCall = rs.fn().mockResolvedValue(rawOutput);
+      rs.spyOn(device, 'screenshotBase64').mockResolvedValue(validPngBase64);
+      rs.spyOn(device, 'size').mockResolvedValue({ width: 375, height: 812 });
+      rs.spyOn(device, 'getElementsInfo').mockResolvedValue([]);
+      rs.spyOn(device, 'url').mockResolvedValue('https://example.com');
+      rs.spyOn(device, 'actionSpace').mockReturnValue([
         {
           name: 'RunAdbShell',
           paramSchema: undefined,
@@ -296,34 +296,34 @@ ${'o'.repeat(200)}
 
   describe('agentFromAdbDevice', () => {
     beforeEach(() => {
-      vi.stubEnv(MIDSCENE_USE_DOUBAO_VISION, 'true');
-      vi.stubEnv(MIDSCENE_MODEL_NAME, 'mock');
-      vi.stubEnv(OPENAI_API_KEY, 'mock');
-      vi.stubEnv(OPENAI_BASE_URL, 'mock');
+      rs.stubEnv(MIDSCENE_USE_DOUBAO_VISION, 'true');
+      rs.stubEnv(MIDSCENE_MODEL_NAME, 'mock');
+      rs.stubEnv(OPENAI_API_KEY, 'mock');
+      rs.stubEnv(OPENAI_BASE_URL, 'mock');
     });
 
     afterEach(() => {
-      vi.unstubAllEnvs();
+      rs.unstubAllEnvs();
     });
 
     it('should use the first device if no deviceId is provided', async () => {
       const mockDevices = [{ udid: 'device-1' }, { udid: 'device-2' }];
-      vi.spyOn(Utils, 'getConnectedDevices').mockResolvedValue(
+      rs.spyOn(Utils, 'getConnectedDevices').mockResolvedValue(
         mockDevices as any,
       );
-      const mockConnect = vi.fn().mockResolvedValue(new ADB());
+      const mockConnect = rs.fn().mockResolvedValue(new ADB());
       MockedAndroidDevice.mockImplementation((deviceId, options) => {
         return {
           connect: mockConnect,
-          constructor: vi.fn(),
+          constructor: rs.fn(),
           interfaceType: 'android',
-          actionSpace: vi.fn().mockReturnValue([]),
-          screenshotBase64: vi.fn(),
-          size: vi.fn().mockResolvedValue({ width: 0, height: 0 }),
-          getElementsInfo: vi.fn(),
-          url: vi.fn(),
-          launch: vi.fn(),
-          setAppNameMapping: vi.fn(),
+          actionSpace: rs.fn().mockReturnValue([]),
+          screenshotBase64: rs.fn(),
+          size: rs.fn().mockResolvedValue({ width: 0, height: 0 }),
+          getElementsInfo: rs.fn(),
+          url: rs.fn(),
+          launch: rs.fn(),
+          setAppNameMapping: rs.fn(),
         };
       });
 
@@ -339,19 +339,19 @@ ${'o'.repeat(200)}
     });
 
     it('should use the specified deviceId', async () => {
-      const mockConnect = vi.fn().mockResolvedValue(new ADB());
+      const mockConnect = rs.fn().mockResolvedValue(new ADB());
       MockedAndroidDevice.mockImplementation((deviceId, options) => {
         return {
           connect: mockConnect,
-          constructor: vi.fn(),
+          constructor: rs.fn(),
           interfaceType: 'android',
-          actionSpace: vi.fn().mockReturnValue([]),
-          screenshotBase64: vi.fn(),
-          size: vi.fn().mockResolvedValue({ width: 0, height: 0 }),
-          getElementsInfo: vi.fn(),
-          url: vi.fn(),
-          launch: vi.fn(),
-          setAppNameMapping: vi.fn(),
+          actionSpace: rs.fn().mockReturnValue([]),
+          screenshotBase64: rs.fn(),
+          size: rs.fn().mockResolvedValue({ width: 0, height: 0 }),
+          getElementsInfo: rs.fn(),
+          url: rs.fn(),
+          launch: rs.fn(),
+          setAppNameMapping: rs.fn(),
         };
       });
 
@@ -366,19 +366,19 @@ ${'o'.repeat(200)}
     });
 
     it('should pass options to AndroidDevice', async () => {
-      const mockConnect = vi.fn().mockResolvedValue(new ADB());
+      const mockConnect = rs.fn().mockResolvedValue(new ADB());
       MockedAndroidDevice.mockImplementation((deviceId, options) => {
         return {
           connect: mockConnect,
-          constructor: vi.fn(),
+          constructor: rs.fn(),
           interfaceType: 'android',
-          actionSpace: vi.fn().mockReturnValue([]),
-          screenshotBase64: vi.fn(),
-          size: vi.fn().mockResolvedValue({ width: 0, height: 0 }),
-          getElementsInfo: vi.fn(),
-          url: vi.fn(),
-          launch: vi.fn(),
-          setAppNameMapping: vi.fn(),
+          actionSpace: rs.fn().mockReturnValue([]),
+          screenshotBase64: rs.fn(),
+          size: rs.fn().mockResolvedValue({ width: 0, height: 0 }),
+          getElementsInfo: rs.fn(),
+          url: rs.fn(),
+          launch: rs.fn(),
+          setAppNameMapping: rs.fn(),
         };
       });
 

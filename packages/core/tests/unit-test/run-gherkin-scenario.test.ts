@@ -1,11 +1,11 @@
 import { Agent } from '@/agent';
 import { parseGherkinScenario } from '@/agent/run-gherkin-scenario';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 
 const createAgentStub = () => {
   const agent = Object.create(Agent.prototype) as Agent<any>;
-  (agent as any).aiAct = vi.fn(async () => undefined);
-  (agent as any).aiAssert = vi.fn(async () => undefined);
+  (agent as any).aiAct = rs.fn(async () => undefined);
+  (agent as any).aiAssert = rs.fn(async () => undefined);
   return agent;
 };
 
@@ -236,7 +236,7 @@ Then the todo list contains "Buy milk"
 
   it('wraps step execution errors with semantic action, line, and step context', async () => {
     const agent = createAgentStub();
-    (agent as any).aiAssert = vi.fn(async () => {
+    (agent as any).aiAssert = rs.fn(async () => {
       throw new Error('not visible');
     });
 
@@ -252,7 +252,7 @@ Then the list should be empty
 
   it('reports inherited And or But semantics in execution errors', async () => {
     const agent = createAgentStub();
-    (agent as any).aiAssert = vi
+    (agent as any).aiAssert = rs
       .fn()
       .mockResolvedValueOnce(undefined)
       .mockRejectedValueOnce(new Error('not visible'));

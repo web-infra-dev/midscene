@@ -1,34 +1,34 @@
 import { commonContextParser } from '@/agent/utils';
 import type { AbstractInterface } from '@/device';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, rs } from '@rstest/core';
 
-vi.mock('@midscene/shared/img', () => ({
-  imageInfoOfBase64: vi.fn(),
-  resizeImgBase64: vi.fn().mockResolvedValue('mock-resized-base64-data'),
+rs.mock('@midscene/shared/img', () => ({
+  imageInfoOfBase64: rs.fn(),
+  resizeImgBase64: rs.fn().mockResolvedValue('mock-resized-base64-data'),
 }));
 
 import { imageInfoOfBase64, resizeImgBase64 } from '@midscene/shared/img';
 
-const mockedImageInfo = vi.mocked(imageInfoOfBase64);
-const mockedResizeImg = vi.mocked(resizeImgBase64);
+const mockedImageInfo = rs.mocked(imageInfoOfBase64);
+const mockedResizeImg = rs.mocked(resizeImgBase64);
 
 function createMockInterface(
   logicalWidth: number,
   logicalHeight: number,
 ): AbstractInterface {
   return {
-    screenshotBase64: vi.fn().mockResolvedValue('mock-base64-data'),
-    size: vi
+    screenshotBase64: rs.fn().mockResolvedValue('mock-base64-data'),
+    size: rs
       .fn()
       .mockResolvedValue({ width: logicalWidth, height: logicalHeight }),
-    actionSpace: vi.fn(() => []),
-    describe: vi.fn(() => ''),
+    actionSpace: rs.fn(() => []),
+    describe: rs.fn(() => ''),
   } as unknown as AbstractInterface;
 }
 
 describe('commonContextParser screenshotShrinkFactor', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    rs.clearAllMocks();
   });
 
   it('does not shrink when screenshotShrinkFactor is not provided', async () => {

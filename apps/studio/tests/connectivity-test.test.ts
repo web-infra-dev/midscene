@@ -1,7 +1,7 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, rs } from '@rstest/core';
 
-vi.mock('@midscene/core/ai-model', () => ({
-  runConnectivityTest: vi.fn(),
+rs.mock('@midscene/core/ai-model', () => ({
+  runConnectivityTest: rs.fn(),
 }));
 
 import { runConnectivityTest as runCoreConnectivityTest } from '@midscene/core/ai-model';
@@ -9,11 +9,11 @@ import { runConnectivityTest } from '../src/main/playground/connectivity-test';
 
 describe('runConnectivityTest', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    rs.clearAllMocks();
   });
 
   it('runs the Studio model config through the core connectivity suite', async () => {
-    vi.mocked(runCoreConnectivityTest).mockResolvedValue({
+    rs.mocked(runCoreConnectivityTest).mockResolvedValue({
       passed: true,
     });
 
@@ -56,7 +56,7 @@ describe('runConnectivityTest', () => {
   });
 
   it('supports compatible alias keys when building the core config', async () => {
-    vi.mocked(runCoreConnectivityTest).mockResolvedValue({
+    rs.mocked(runCoreConnectivityTest).mockResolvedValue({
       passed: true,
     });
 

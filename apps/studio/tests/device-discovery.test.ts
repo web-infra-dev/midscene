@@ -1,5 +1,8 @@
+import * as childProcessActual from 'node:child_process' with {
+  rstest: 'importActual',
+};
 import { DEFAULT_WDA_PORT } from '@midscene/shared/constants';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
 
 type ExecFileCallback = (
   error: Error | null,
@@ -7,40 +10,37 @@ type ExecFileCallback = (
   stderr: string,
 ) => void;
 
-const mocks = vi.hoisted(() => ({
-  ensureStudioShellEnvHydrated: vi.fn(),
-  getConnectedDevicesWithDetails: vi.fn(),
-  getConnectedHarmonyDevices: vi.fn(),
-  getConnectedDisplays: vi.fn(),
-  execFile: vi.fn(),
-  debugLog: vi.fn(),
+const mocks = rs.hoisted(() => ({
+  ensureStudioShellEnvHydrated: rs.fn(),
+  getConnectedDevicesWithDetails: rs.fn(),
+  getConnectedHarmonyDevices: rs.fn(),
+  getConnectedDisplays: rs.fn(),
+  execFile: rs.fn(),
+  debugLog: rs.fn(),
 }));
 
-vi.mock('node:child_process', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('node:child_process')>();
-  return {
-    ...actual,
-    execFile: mocks.execFile,
-  };
-});
+rs.mock('node:child_process', () => ({
+  ...childProcessActual,
+  execFile: mocks.execFile,
+}));
 
-vi.mock('@midscene/android', () => ({
+rs.mock('@midscene/android', () => ({
   getConnectedDevicesWithDetails: mocks.getConnectedDevicesWithDetails,
 }));
 
-vi.mock('@midscene/harmony', () => ({
+rs.mock('@midscene/harmony', () => ({
   getConnectedDevices: mocks.getConnectedHarmonyDevices,
 }));
 
-vi.mock('@midscene/computer', () => ({
+rs.mock('@midscene/computer', () => ({
   getConnectedDisplays: mocks.getConnectedDisplays,
 }));
 
-vi.mock('@midscene/shared/logger', () => ({
+rs.mock('@midscene/shared/logger', () => ({
   getDebug: () => mocks.debugLog,
 }));
 
-vi.mock('../src/main/shell-env', () => ({
+rs.mock('../src/main/shell-env', () => ({
   ensureStudioShellEnvHydrated: mocks.ensureStudioShellEnvHydrated,
 }));
 
@@ -64,8 +64,8 @@ import {
 
 describe('discoverAllDevices', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
-    vi.stubGlobal('fetch', vi.fn());
+    rs.clearAllMocks();
+    rs.stubGlobal('fetch', rs.fn());
     mocks.ensureStudioShellEnvHydrated.mockReturnValue({
       applied: false,
       mutatedKeys: [],
@@ -77,8 +77,8 @@ describe('discoverAllDevices', () => {
   });
 
   afterEach(() => {
-    vi.useRealTimers();
-    vi.unstubAllGlobals();
+    rs.useRealTimers();
+    rs.unstubAllGlobals();
   });
 
   it('aggregates discovered devices across Android, iOS, Harmony, and Computer', async () => {
@@ -92,7 +92,7 @@ describe('discoverAllDevices', () => {
       { id: 1, name: 'Studio Display', primary: true },
       { id: 2, name: '', primary: false },
     ]);
-    vi.mocked(fetch).mockResolvedValue({
+    rs.mocked(fetch).mockResolvedValue({
       ok: true,
       json: async () => ({
         value: {
@@ -178,7 +178,7 @@ describe('discoverAllDevices', () => {
     mocks.getConnectedDevicesWithDetails.mockResolvedValue([]);
     mocks.getConnectedHarmonyDevices.mockResolvedValue([]);
     mocks.getConnectedDisplays.mockResolvedValue([]);
-    vi.mocked(fetch).mockResolvedValue({
+    rs.mocked(fetch).mockResolvedValue({
       ok: true,
       json: async () => ({
         value: {
@@ -203,7 +203,7 @@ describe('discoverAllDevices', () => {
     mocks.getConnectedDisplays.mockResolvedValue([
       { id: 9, name: 'External Monitor', primary: false },
     ]);
-    vi.mocked(fetch).mockRejectedValue(new Error('connect ECONNREFUSED'));
+    rs.mocked(fetch).mockRejectedValue(new Error('connect ECONNREFUSED'));
 
     await expect(discoverAllDevices()).resolves.toEqual({
       devices: [
@@ -253,7 +253,7 @@ describe('discoverAllDevices', () => {
       new Error('hdc package probe failed'),
     );
     mocks.getConnectedDisplays.mockResolvedValue([]);
-    vi.mocked(fetch).mockRejectedValue(new Error('connect ECONNREFUSED'));
+    rs.mocked(fetch).mockRejectedValue(new Error('connect ECONNREFUSED'));
     mocks.execFile.mockImplementation((_command, cliArgs, ...args) => {
       const [firstArg] = cliArgs as string[];
       if (firstArg === 'devices') {
@@ -277,7 +277,7 @@ describe('discoverAllDevices', () => {
     );
     mocks.getConnectedHarmonyDevices.mockResolvedValue([]);
     mocks.getConnectedDisplays.mockResolvedValue([]);
-    vi.mocked(fetch).mockRejectedValue(new Error('connect ECONNREFUSED'));
+    rs.mocked(fetch).mockRejectedValue(new Error('connect ECONNREFUSED'));
     mocks.execFile.mockImplementation((_command, cliArgs, ...args) => {
       const [firstArg] = cliArgs as string[];
       if (firstArg === 'devices') {
@@ -317,7 +317,7 @@ describe('discoverAllDevices', () => {
       new Error('HDC command timed out'),
     );
     mocks.getConnectedDisplays.mockResolvedValue([]);
-    vi.mocked(fetch).mockRejectedValue(new Error('connect ECONNREFUSED'));
+    rs.mocked(fetch).mockRejectedValue(new Error('connect ECONNREFUSED'));
     mocks.execFile.mockImplementation((_command, cliArgs, ...args) => {
       const [firstArg] = cliArgs as string[];
       if (firstArg === 'list') {
@@ -341,7 +341,7 @@ describe('discoverAllDevices', () => {
   });
 
   it('keeps discovery responsive when a platform probe never settles', async () => {
-    vi.useFakeTimers();
+    rs.useFakeTimers();
     mocks.getConnectedDevicesWithDetails.mockResolvedValue([
       { udid: 'emulator-5554', label: 'Pixel 8', state: 'device' },
     ]);
@@ -349,10 +349,10 @@ describe('discoverAllDevices', () => {
       () => new Promise(() => undefined),
     );
     mocks.getConnectedDisplays.mockResolvedValue([]);
-    vi.mocked(fetch).mockRejectedValue(new Error('connect ECONNREFUSED'));
+    rs.mocked(fetch).mockRejectedValue(new Error('connect ECONNREFUSED'));
 
     const discovery = discoverAllDevices();
-    await vi.advanceTimersByTimeAsync(DEVICE_PLATFORM_DISCOVERY_TIMEOUT_MS);
+    await rs.advanceTimersByTimeAsync(DEVICE_PLATFORM_DISCOVERY_TIMEOUT_MS);
 
     await expect(discovery).resolves.toEqual({
       devices: [

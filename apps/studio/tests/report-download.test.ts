@@ -1,13 +1,13 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 import { saveReportWithElectronShell } from '../src/renderer/playground/report-download';
 
 describe('saveReportWithElectronShell', () => {
   it('writes the selected report file after the user confirms the save dialog', async () => {
     const shell = {
-      chooseReportSavePath: vi
+      chooseReportSavePath: rs
         .fn()
         .mockResolvedValue('/tmp/midscene-report.html'),
-      writeReportFile: vi.fn().mockResolvedValue(undefined),
+      writeReportFile: rs.fn().mockResolvedValue(undefined),
     };
 
     await saveReportWithElectronShell(
@@ -29,8 +29,8 @@ describe('saveReportWithElectronShell', () => {
 
   it('does not write a file when the user cancels the save dialog', async () => {
     const shell = {
-      chooseReportSavePath: vi.fn().mockResolvedValue(null),
-      writeReportFile: vi.fn().mockResolvedValue(undefined),
+      chooseReportSavePath: rs.fn().mockResolvedValue(null),
+      writeReportFile: rs.fn().mockResolvedValue(undefined),
     };
 
     await saveReportWithElectronShell(

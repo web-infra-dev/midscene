@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from '@rstest/core';
 import { PlaygroundServer } from '../../src/server';
 
 describe('PlaygroundServer runtime metadata APIs', () => {

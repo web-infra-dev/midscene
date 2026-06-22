@@ -1,6 +1,6 @@
+import { describe, expect, it } from '@rstest/core';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { describe, expect, it } from 'vitest';
 import ConnectingPreview from '../src/renderer/components/ConnectingPreview';
 
 describe('ConnectingPreview', () => {

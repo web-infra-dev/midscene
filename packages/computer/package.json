@@ -28,9 +28,9 @@
     "build:native": "node ./scripts/build-native.mjs",
     "prepublishOnly": "node ./scripts/prepublish-native.mjs",
     "dev": "rslib build --watch",
-    "test": "vitest run",
-    "test:ai": "AI_TEST_TYPE=computer vitest run",
-    "test:ai:rdp": "AI_TEST_TYPE=computer-rdp vitest run"
+    "test": "rstest",
+    "test:ai": "AI_TEST_TYPE=computer rstest",
+    "test:ai:rdp": "AI_TEST_TYPE=computer-rdp rstest"
   },
   "dependencies": {
     "@computer-use/libnut": "^4.2.0",
@@ -44,11 +44,11 @@
   },
   "devDependencies": {
     "@rslib/core": "^0.18.3",
+    "@rstest/core": "0.11.0",
     "@types/node": "^18.0.0",
     "@types/screenshot-desktop": "1.15.0",
     "dotenv": "^16.4.5",
     "tsx": "^4.19.2",
-    "typescript": "^5.8.3",
-    "vitest": "3.0.5"
+    "typescript": "^5.8.3"
   }
 }

@@ -1,6 +1,6 @@
+import { afterEach, describe, expect, it, rs } from '@rstest/core';
 /** @vitest-environment jsdom */
 import JSZip from 'jszip';
-import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   createStudioRecorderMarkdownZipBase64,
   createStudioRecorderZipBase64,
@@ -12,17 +12,17 @@ import type { ElectronShellApi } from '../src/shared/electron-contract';
 
 describe('studio recorder export', () => {
   afterEach(() => {
-    vi.restoreAllMocks();
+    rs.restoreAllMocks();
     document.body.innerHTML = '';
     (window as Window & { electronShell?: unknown }).electronShell = undefined;
   });
 
   it('falls back to browser download when generic file IPC is unavailable', async () => {
-    const click = vi.fn();
-    const writeFile = vi.fn();
+    const click = rs.fn();
+    const writeFile = rs.fn();
     const originalCreateElement = document.createElement.bind(document);
-    const createObjectURL = vi.fn(() => 'blob:studio-recorder-export');
-    const revokeObjectURL = vi.fn();
+    const createObjectURL = rs.fn(() => 'blob:studio-recorder-export');
+    const revokeObjectURL = rs.fn();
 
     Object.defineProperty(window.URL, 'createObjectURL', {
       configurable: true,
@@ -32,7 +32,7 @@ describe('studio recorder export', () => {
       configurable: true,
       value: revokeObjectURL,
     });
-    vi.spyOn(document, 'createElement').mockImplementation((tagName) => {
+    rs.spyOn(document, 'createElement').mockImplementation((tagName) => {
       const element = originalCreateElement(tagName);
       if (String(tagName) === 'a') {
         Object.defineProperty(element, 'click', {
@@ -44,7 +44,7 @@ describe('studio recorder export', () => {
     });
 
     (window as Window & { electronShell?: unknown }).electronShell = {
-      chooseFileSavePath: vi.fn(async () => {
+      chooseFileSavePath: rs.fn(async () => {
         throw new Error(
           "Error invoking remote method 'shell:choose-file-save-path': Error: No handler registered",
         );

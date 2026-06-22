@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 import { shouldRenderCustomEmptyState } from '../src/component/universal-playground/empty-state';
 import type { InfoListItem } from '../src/types';
 

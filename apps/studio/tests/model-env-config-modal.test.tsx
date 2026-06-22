@@ -1,8 +1,8 @@
+import { afterEach, describe, expect, it, rs } from '@rstest/core';
 // @vitest-environment jsdom
 import { type ComponentProps, act, createElement } from 'react';
 import { createRoot } from 'react-dom/client';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ModelEnvConfigModal } from '../src/renderer/components/ShellLayout/ModelEnvConfigModal';
 import type { ConnectivityTestResult } from '../src/shared/electron-contract';
 
@@ -93,8 +93,8 @@ async function unmountModal(root: ReturnType<typeof createRoot>) {
 
 describe('ModelEnvConfigModal', () => {
   afterEach(() => {
-    vi.useRealTimers();
-    vi.unstubAllGlobals();
+    rs.useRealTimers();
+    rs.unstubAllGlobals();
     document.body.replaceChildren();
   });
 
@@ -192,15 +192,15 @@ describe('ModelEnvConfigModal', () => {
   });
 
   it('starts spinning only while the connectivity test is running', async () => {
-    const onSave = vi.fn();
+    const onSave = rs.fn();
     const { container, root } = await renderModal(VALID_ENV_TEXT, { onSave });
-    const runConnectivityTest = vi.fn(
+    const runConnectivityTest = rs.fn(
       () =>
         new Promise<ConnectivityTestResult>(() => {
           // Keep the request pending so the rendered state can be inspected.
         }),
     );
-    vi.stubGlobal('studioRuntime', {
+    rs.stubGlobal('studioRuntime', {
       runConnectivityTest,
     });
 
@@ -228,13 +228,13 @@ describe('ModelEnvConfigModal', () => {
     let resolveConnectivityTest:
       | ((value: ConnectivityTestResult) => void)
       | undefined;
-    const runConnectivityTest = vi.fn(
+    const runConnectivityTest = rs.fn(
       () =>
         new Promise<ConnectivityTestResult>((resolve) => {
           resolveConnectivityTest = resolve;
         }),
     );
-    vi.stubGlobal('studioRuntime', {
+    rs.stubGlobal('studioRuntime', {
       runConnectivityTest,
     });
 
@@ -278,10 +278,10 @@ describe('ModelEnvConfigModal', () => {
   });
 
   it('shows failure status when connectivity test rejects', async () => {
-    const onSave = vi.fn();
+    const onSave = rs.fn();
     const { container, root } = await renderModal(VALID_ENV_TEXT, { onSave });
-    vi.stubGlobal('studioRuntime', {
-      runConnectivityTest: vi.fn().mockRejectedValue(new Error('Network down')),
+    rs.stubGlobal('studioRuntime', {
+      runConnectivityTest: rs.fn().mockRejectedValue(new Error('Network down')),
     });
 
     await act(async () => {
@@ -343,11 +343,11 @@ describe('ModelEnvConfigModal', () => {
   });
 
   it('restores default connectivity button style after a successful test', async () => {
-    vi.useFakeTimers();
-    const onSave = vi.fn();
+    rs.useFakeTimers();
+    const onSave = rs.fn();
     const { container, root } = await renderModal(VALID_ENV_TEXT, { onSave });
-    vi.stubGlobal('studioRuntime', {
-      runConnectivityTest: vi
+    rs.stubGlobal('studioRuntime', {
+      runConnectivityTest: rs
         .fn()
         .mockResolvedValue(PASSED_CONNECTIVITY_RESULT),
     });
@@ -374,7 +374,7 @@ describe('ModelEnvConfigModal', () => {
     );
 
     await act(async () => {
-      vi.advanceTimersByTime(1800);
+      rs.advanceTimersByTime(1800);
       await Promise.resolve();
     });
 
@@ -384,10 +384,10 @@ describe('ModelEnvConfigModal', () => {
   });
 
   it('does not run connectivity test before the user clicks test', async () => {
-    const runConnectivityTest = vi
+    const runConnectivityTest = rs
       .fn()
       .mockResolvedValue(PASSED_CONNECTIVITY_RESULT);
-    vi.stubGlobal('studioRuntime', {
+    rs.stubGlobal('studioRuntime', {
       runConnectivityTest,
     });
     const { container, root } = await renderModal(VALID_ENV_TEXT);
@@ -414,10 +414,10 @@ describe('ModelEnvConfigModal', () => {
   });
 
   it('matches the imported failure status visual scale', async () => {
-    const onSave = vi.fn();
+    const onSave = rs.fn();
     const { container, root } = await renderModal(VALID_ENV_TEXT, { onSave });
-    vi.stubGlobal('studioRuntime', {
-      runConnectivityTest: vi
+    rs.stubGlobal('studioRuntime', {
+      runConnectivityTest: rs
         .fn()
         .mockResolvedValue(FAILED_CONNECTIVITY_RESULT),
     });
@@ -463,8 +463,8 @@ describe('ModelEnvConfigModal', () => {
 
   it('shows a fallback when a failed connectivity result has no message', async () => {
     const { container, root } = await renderModal(VALID_ENV_TEXT);
-    vi.stubGlobal('studioRuntime', {
-      runConnectivityTest: vi.fn().mockResolvedValue({
+    rs.stubGlobal('studioRuntime', {
+      runConnectivityTest: rs.fn().mockResolvedValue({
         passed: false,
       } satisfies ConnectivityTestResult),
     });
@@ -482,7 +482,7 @@ describe('ModelEnvConfigModal', () => {
   });
 
   it('closes via Escape key while open', async () => {
-    const onClose = vi.fn();
+    const onClose = rs.fn();
     const container = document.createElement('div');
     document.body.appendChild(container);
     const root = createRoot(container);

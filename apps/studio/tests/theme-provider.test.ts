@@ -1,7 +1,8 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+// @vitest-environment jsdom
+import { beforeEach, describe, expect, it, rs } from '@rstest/core';
 
 async function loadModule() {
-  vi.resetModules();
+  rs.resetModules();
   return import('../src/renderer/theme/ThemeProvider');
 }
 
@@ -21,7 +22,7 @@ function setMatchMedia(initial: boolean) {
     addListener: () => undefined,
     removeListener: () => undefined,
   } as unknown as MediaQueryList;
-  window.matchMedia = vi.fn().mockReturnValue(media);
+  window.matchMedia = rs.fn().mockReturnValue(media);
   return {
     flip(next: boolean) {
       (media as { matches: boolean }).matches = next;

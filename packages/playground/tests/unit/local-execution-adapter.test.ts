@@ -1,9 +1,19 @@
 import type { DeviceAction } from '@midscene/core';
 import { ReportActionDump, runConnectivityTest } from '@midscene/core';
+// Top-level `importActual` attribute imports keep the real exports of these
+// modules. rstest resolves an async mock factory to an empty module, so a
+// partial mock must use a sync factory whose actuals come from an import
+// attribute binding.
+import * as midsceneCoreActual from '@midscene/core' with {
+  rstest: 'importActual',
+};
 import { ModelConfigManager, overrideAIConfig } from '@midscene/shared/env';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, rs } from '@rstest/core';
 import { LocalExecutionAdapter } from '../../src/adapters/local-execution';
 import * as common from '../../src/common';
+import * as commonActual from '../../src/common' with {
+  rstest: 'importActual',
+};
 import type {
   ExecutionOptions,
   FormValue,
@@ -11,44 +21,38 @@ import type {
 } from '../../src/types';
 
 // Mock dependencies
-vi.mock('@midscene/core', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@midscene/core')>();
-  return {
-    ...actual,
-    runConnectivityTest: vi.fn(),
-  };
-});
+rs.mock('@midscene/core', () => ({
+  ...midsceneCoreActual,
+  runConnectivityTest: rs.fn(),
+}));
 
-vi.mock('@midscene/shared/env');
+rs.mock('@midscene/shared/env');
 
 // Import the real parseStructuredParams function for use in adapter
-vi.mock('../../src/common', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../../src/common')>();
-  return {
-    ...actual,
-    executeAction: vi.fn(),
-  };
-});
+rs.mock('../../src/common', () => ({
+  ...commonActual,
+  executeAction: rs.fn(),
+}));
 
 describe('LocalExecutionAdapter', () => {
   let mockAgent: PlaygroundAgent;
   let adapter: LocalExecutionAdapter;
 
   beforeEach(() => {
-    vi.clearAllMocks();
+    rs.clearAllMocks();
     mockAgent = {
-      getActionSpace: vi.fn(),
-      callActionInActionSpace: vi.fn(),
-      onTaskStartTip: vi.fn(),
-      destroy: vi.fn(),
-      dumpDataString: vi
+      getActionSpace: rs.fn(),
+      callActionInActionSpace: rs.fn(),
+      onTaskStartTip: rs.fn(),
+      destroy: rs.fn(),
+      dumpDataString: rs
         .fn()
         .mockReturnValue(JSON.stringify({ executions: [{}] })),
-      reportHTMLString: vi.fn().mockReturnValue(''),
-      writeOutActionDumps: vi.fn(),
-      resetDump: vi.fn(),
-      addDumpUpdateListener: vi.fn(() => vi.fn()), // Returns a remove function
-      removeDumpUpdateListener: vi.fn(),
+      reportHTMLString: rs.fn().mockReturnValue(''),
+      writeOutActionDumps: rs.fn(),
+      resetDump: rs.fn(),
+      addDumpUpdateListener: rs.fn(() => rs.fn()), // Returns a remove function
+      removeDumpUpdateListener: rs.fn(),
     } as unknown as PlaygroundAgent;
     adapter = new LocalExecutionAdapter(mockAgent);
   });
@@ -64,7 +68,7 @@ describe('LocalExecutionAdapter', () => {
       const action: DeviceAction<unknown> = {
         name: 'test',
         description: 'Test action',
-        call: vi.fn(),
+        call: rs.fn(),
       };
       const params = { prompt: 'test prompt' };
       const options: ExecutionOptions = { deepLocate: true };
@@ -83,7 +87,7 @@ describe('LocalExecutionAdapter', () => {
         name: 'test',
         description: 'Test action',
         paramSchema: { shape: { locateField: {}, otherField: {} } } as any,
-        call: vi.fn(),
+        call: rs.fn(),
       };
       const params = {
         locateField: 'button',
@@ -113,13 +117,13 @@ describe('LocalExecutionAdapter', () => {
       const { findAllMidsceneLocatorField } = await import(
         '@midscene/core/ai-model'
       );
-      vi.mocked(findAllMidsceneLocatorField).mockReturnValue([]);
+      rs.mocked(findAllMidsceneLocatorField).mockReturnValue([]);
 
       const action: DeviceAction<unknown> = {
         name: 'test',
         description: 'Test action',
         paramSchema: { shape: { field1: {}, field2: {} } } as any,
-        call: vi.fn(),
+        call: rs.fn(),
       };
       const params = {
         field1: 'value1',
@@ -163,10 +167,10 @@ describe('LocalExecutionAdapter', () => {
   describe('getActionSpace', () => {
     it('should get action space from page', async () => {
       const mockActions: DeviceAction<unknown>[] = [
-        { name: 'click', description: 'Click action', call: vi.fn() },
+        { name: 'click', description: 'Click action', call: rs.fn() },
       ];
       const mockPage = {
-        actionSpace: vi.fn().mockResolvedValue(mockActions),
+        actionSpace: rs.fn().mockResolvedValue(mockActions),
       };
 
       // Make sure the agent doesn't have getActionSpace, so it falls back to context
@@ -208,7 +212,7 @@ describe('LocalExecutionAdapter', () => {
         modelName: 'test-insight-model',
         intent: 'insight',
       } as any;
-      const getModelConfig = vi
+      const getModelConfig = rs
         .fn()
         .mockReturnValueOnce(modelConfig)
         .mockReturnValueOnce(planningModelConfig)
@@ -217,13 +221,13 @@ describe('LocalExecutionAdapter', () => {
         passed: true,
       };
 
-      vi.mocked(ModelConfigManager).mockImplementation(
+      rs.mocked(ModelConfigManager).mockImplementation(
         () =>
           ({
             getModelConfig,
           }) as any,
       );
-      vi.mocked(runConnectivityTest).mockResolvedValue(result);
+      rs.mocked(runConnectivityTest).mockResolvedValue(result);
 
       await expect(adapter.runConnectivityTest(aiConfig)).resolves.toEqual(
         result,
@@ -240,14 +244,14 @@ describe('LocalExecutionAdapter', () => {
 
   describe('executeAction', () => {
     beforeEach(() => {
-      vi.mocked(common.executeAction).mockResolvedValue('test result');
+      rs.mocked(common.executeAction).mockResolvedValue('test result');
     });
 
     it('should execute action with agent and actionSpace', async () => {
       const mockActionSpace: DeviceAction<unknown>[] = [
-        { name: 'click', description: 'Click action', call: vi.fn() },
+        { name: 'click', description: 'Click action', call: rs.fn() },
       ];
-      vi.mocked(mockAgent.getActionSpace!).mockResolvedValue(mockActionSpace);
+      rs.mocked(mockAgent.getActionSpace!).mockResolvedValue(mockActionSpace);
 
       const value: FormValue = { type: 'click', prompt: 'click button' };
       const options: ExecutionOptions = {};
@@ -294,7 +298,7 @@ describe('LocalExecutionAdapter', () => {
 
     it('should setup progress tracking when requestId provided', async () => {
       const mockActionSpace: DeviceAction<unknown>[] = [];
-      vi.mocked(mockAgent.getActionSpace!).mockResolvedValue(mockActionSpace);
+      rs.mocked(mockAgent.getActionSpace!).mockResolvedValue(mockActionSpace);
 
       const value: FormValue = { type: 'click', prompt: 'click button' };
       const options: ExecutionOptions = { requestId: 'request-123' };
@@ -307,7 +311,7 @@ describe('LocalExecutionAdapter', () => {
 
   describe('cancelTask', () => {
     it('should destroy agent successfully', async () => {
-      vi.mocked(mockAgent.destroy!).mockResolvedValue(undefined);
+      rs.mocked(mockAgent.destroy!).mockResolvedValue(undefined);
 
       const result = await adapter.cancelTask('request-123');
 
@@ -334,9 +338,9 @@ describe('LocalExecutionAdapter', () => {
 
     it('should handle destroy error', async () => {
       const destroyError = new Error('Destroy failed');
-      vi.mocked(mockAgent.destroy!).mockRejectedValue(destroyError);
+      rs.mocked(mockAgent.destroy!).mockRejectedValue(destroyError);
 
-      const consoleSpy = vi
+      const consoleSpy = rs
         .spyOn(console, 'error')
         .mockImplementation(() => {});
 
