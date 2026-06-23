@@ -231,7 +231,14 @@ describe('cross-origin iframe element cache', { timeout: 60_000 }, () => {
   it('resolves Playwright cache xpaths through cross-origin iframes', async () => {
     let browser: PlaywrightBrowser | undefined;
     try {
-      browser = await chromium.launch({ headless: true });
+      browser = await chromium.launch({
+        headless: true,
+        executablePath: puppeteer.executablePath(),
+        args:
+          process.platform === 'win32'
+            ? []
+            : ['--no-sandbox', '--disable-setuid-sandbox'],
+      });
       const page = await browser.newPage({
         viewport: { width: 900, height: 600 },
         deviceScaleFactor: 1,
