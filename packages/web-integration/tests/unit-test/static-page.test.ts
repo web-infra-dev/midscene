@@ -5,13 +5,13 @@ import { StaticPage } from '../../src/static';
 const screenshotBase64 = 'data:image/png;base64,abc123';
 
 function createContext(
-  screenshot: unknown,
+  screenshot: ConstructorParameters<typeof StaticPage>[0]['screenshot'],
 ): ConstructorParameters<typeof StaticPage>[0] {
   return {
     shotSize: { width: 800, height: 600 },
     shrunkShotToLogicalRatio: 1,
     screenshot,
-  } as ConstructorParameters<typeof StaticPage>[0];
+  };
 }
 
 describe('StaticPage', () => {
@@ -19,6 +19,12 @@ describe('StaticPage', () => {
     const page = new StaticPage(
       createContext(ScreenshotItem.create(screenshotBase64, Date.now())),
     );
+
+    await expect(page.screenshotBase64()).resolves.toBe(screenshotBase64);
+  });
+
+  it('returns base64 from a restored report screenshot object', async () => {
+    const page = new StaticPage(createContext({ base64: screenshotBase64 }));
 
     await expect(page.screenshotBase64()).resolves.toBe(screenshotBase64);
   });

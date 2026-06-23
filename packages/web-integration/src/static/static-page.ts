@@ -12,28 +12,29 @@ const ThrowNotImplemented = (methodName: string) => {
   );
 };
 
+type SerializedStaticScreenshot = {
+  base64?: unknown;
+  _base64?: unknown;
+  type?: unknown;
+};
+
 type StaticPageUIContext = Omit<
   UIContext,
   'deprecatedDpr' | 'screenshot'
 > & {
-  screenshot: unknown;
+  screenshot: UIContext['screenshot'] | SerializedStaticScreenshot;
 };
 
-function screenshotBase64FromContext(screenshot: unknown): string {
-  if (typeof screenshot === 'string') {
-    return screenshot;
-  }
-
-  const record =
-    screenshot && typeof screenshot === 'object'
-      ? (screenshot as Record<string, unknown>)
-      : undefined;
-  const base64 = record?.base64 ?? record?._base64;
+function screenshotBase64FromContext(
+  screenshot: StaticPageUIContext['screenshot'],
+): string {
+  const record = screenshot as SerializedStaticScreenshot;
+  const base64 = record.base64 ?? record._base64;
   if (typeof base64 === 'string') {
     return base64;
   }
 
-  if (record?.type === 'midscene_screenshot_ref') {
+  if (record.type === 'midscene_screenshot_ref') {
     throw new Error(
       'StaticPage screenshot is a serialized reference without base64 data',
     );
