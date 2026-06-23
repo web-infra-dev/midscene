@@ -515,9 +515,24 @@ export async function AiLocateAllElements(
   const errors: string[] = Array.isArray(res.content.errors)
     ? [...res.content.errors]
     : [];
-  const rawElements = Array.isArray(res.content.elements)
-    ? res.content.elements
-    : [];
+  if (!Array.isArray(res.content.elements)) {
+    return {
+      rawResponse,
+      rawChoiceMessage: res.rawChoiceMessage,
+      usage: res.usage,
+      reasoning_content: res.reasoning_content,
+      parseResult: {
+        elements: [],
+        errors: [
+          ...errors,
+          'AI response error: locate all response must contain an elements array',
+        ],
+        fatalError: true,
+      },
+    };
+  }
+
+  const rawElements = res.content.elements;
   const elements: LocateResultElement[] = [];
 
   rawElements.forEach((rawElement, index) => {
@@ -543,6 +558,11 @@ export async function AiLocateAllElements(
     }
   });
 
+  const fatalError = rawElements.length > 0 && elements.length === 0;
+  if (fatalError) {
+    errors.push('AI response error: failed to parse every locate all element');
+  }
+
   return {
     rawResponse,
     rawChoiceMessage: res.rawChoiceMessage,
@@ -551,6 +571,7 @@ export async function AiLocateAllElements(
     parseResult: {
       elements: sortAndDedupeLocateElements(elements),
       errors,
+      fatalError,
     },
   };
 }

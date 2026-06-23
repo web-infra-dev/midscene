@@ -18,6 +18,11 @@ export interface LocateOption extends Partial<TMultimodalPrompt> {
   fileChooserAccept?: string | string[]; // file path(s) to upload when tapping triggers a file chooser
 }
 
+export interface LocateAllOption extends Partial<TMultimodalPrompt> {
+  prompt?: TUserPrompt;
+  uiContext?: UIContext;
+}
+
 export interface ServiceExtractOption {
   domIncluded?: boolean | 'visible-only';
   screenshotIncluded?: boolean;
