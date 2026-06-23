@@ -28,6 +28,10 @@ export function normalizePlanningActionLocateFields(
     const actionInActionSpace = actionSpace.find(
       (actionInSpace) => actionInSpace.name === action.type,
     );
+    if (!actionInActionSpace) {
+      debug('skip locate normalization for action outside actionSpace', action);
+      return;
+    }
 
     debug('actionInActionSpace matched', actionInActionSpace);
     const locateFields = actionInActionSpace

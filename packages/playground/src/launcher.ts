@@ -2,7 +2,10 @@ import { spawn } from 'node:child_process';
 import type { Agent } from '@midscene/core/agent';
 import { PLAYGROUND_SERVER_PORT } from '@midscene/shared/constants';
 import cors, { type CorsOptions } from 'cors';
-import PlaygroundServer from './server';
+import PlaygroundServer, {
+  buildPlaygroundBrowserUrl,
+  resolvePlaygroundBrowserHost,
+} from './server';
 import type { AgentFactory } from './types';
 
 export interface LaunchPlaygroundOptions {
@@ -201,7 +204,8 @@ function createPlaygroundLauncher(agentOrFactory: LaunchableAgentSource) {
         console.log(`✅ Playground server started on port ${port}`);
       }
 
-      const url = `http://127.0.0.1:${port}`;
+      const host = resolvePlaygroundBrowserHost();
+      const url = buildPlaygroundBrowserUrl(host, port);
 
       // Open browser if requested
       if (openBrowser) {
@@ -211,7 +215,7 @@ function createPlaygroundLauncher(agentOrFactory: LaunchableAgentSource) {
       return {
         server: launchedServer,
         port,
-        host: '127.0.0.1',
+        host,
         close: async () => {
           if (verbose) {
             console.log('🛑 Shutting down Midscene Playground...');
