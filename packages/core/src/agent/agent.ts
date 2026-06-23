@@ -1163,6 +1163,12 @@ export class Agent<
     const { textPrompt, multimodalPrompt } = parsePrompt(assertionWithContext);
     const assertionText =
       typeof assertion === 'string' ? assertion : assertion.prompt;
+    // The context is folded into `textPrompt` so the model receives it, but the
+    // report should display only the clean assertion (mirroring how aiAct keeps
+    // its context out of the displayed prompt). Skip the override when no
+    // context was added so the report keeps the original demand verbatim.
+    const reportDescription =
+      textPrompt === assertionText ? undefined : assertionText;
 
     try {
       const { output, thought } =
@@ -1175,6 +1181,7 @@ export class Agent<
           {
             abortSignal: opt?.abortSignal,
           },
+          reportDescription,
         );
 
       const pass = Boolean(output);

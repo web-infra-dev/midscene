@@ -113,6 +113,8 @@ describe('Agent per-call context option', () => {
       {
         abortSignal: undefined,
       },
+      // report keeps the clean assertion, not the context-augmented prompt
+      'The success toast is visible',
     );
     expect(result).toEqual({
       pass: true,
@@ -141,6 +143,8 @@ describe('Agent per-call context option', () => {
       {
         abortSignal: abortController.signal,
       },
+      // no context added, so no separate report description
+      undefined,
     );
   });
 });

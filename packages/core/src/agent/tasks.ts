@@ -695,7 +695,12 @@ export class TaskExecutor {
     executionOptions?: {
       abortSignal?: AbortSignal;
     },
+    // Clean text shown in the report instead of the model-facing `demand`.
+    // Used when `demand` carries extra context (e.g. aiAssert context) that
+    // should reach the model but stay out of the report for readability.
+    reportDescription?: string,
   ) {
+    const displayDemand = reportDescription ?? demand;
     const queryTask: ExecutionTaskInsightQueryApply = {
       type: 'Insight',
       subType: type,
@@ -703,10 +708,10 @@ export class TaskExecutor {
         domIncluded: opt?.domIncluded,
         dataDemand: multimodalPrompt
           ? ({
-              demand,
+              demand: displayDemand,
               multimodalPrompt,
             } as never)
-          : demand, // for user param presentation in report right sidebar
+          : displayDemand, // for user param presentation in report right sidebar
       },
       executor: async (param, taskContext) => {
         const { task } = taskContext;
@@ -828,11 +833,14 @@ export class TaskExecutor {
     executionOptions?: {
       abortSignal?: AbortSignal;
     },
+    // Clean text shown in the report instead of the model-facing `demand`.
+    reportDescription?: string,
   ): Promise<ExecutionResult<T>> {
     const session = this.createExecutionSession(
       taskTitleStr(
         type,
-        typeof demand === 'string' ? demand : JSON.stringify(demand),
+        reportDescription ??
+          (typeof demand === 'string' ? demand : JSON.stringify(demand)),
       ),
     );
 
@@ -843,6 +851,7 @@ export class TaskExecutor {
       opt,
       multimodalPrompt,
       executionOptions,
+      reportDescription,
     );
 
     const runner = session.getRunner();

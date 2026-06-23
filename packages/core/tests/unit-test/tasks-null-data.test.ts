@@ -679,6 +679,56 @@ describe('TaskExecutor - Null Data Handling', () => {
       });
     });
 
+    it('shows reportDescription in the report while sending demand to the model', async () => {
+      const mockInsight = {
+        contextRetrieverFn: vi.fn(async () => await createMockUIContext()),
+        extract: vi.fn(async () => ({
+          data: { StatementIsTruthy: true },
+          usage: { totalTokens: 100 },
+          thought: 'looks good',
+          dump: createMockDump({ StatementIsTruthy: true }, 'looks good', {
+            totalTokens: 100,
+          }),
+        })),
+        onceDumpUpdatedFn: undefined,
+      } as any;
+
+      const mockModelConfig: IModelConfig = {
+        modelName: 'mock-model',
+        modelDescription: 'mock-model-description',
+        intent: 'default',
+        slot: 'default',
+      };
+
+      const taskExecutor = new TaskExecutor({} as any, mockInsight, {
+        actionSpace: [],
+      });
+
+      const queryTask = await (taskExecutor as any).createTypeQueryTask(
+        'Assert',
+        'Context for this request:\nThe user is a buyer.\n\nthe cart is empty',
+        getModelRuntime(mockModelConfig),
+        {},
+        undefined,
+        undefined,
+        // clean assertion shown in the report
+        'the cart is empty',
+      );
+
+      // report sidebar shows the clean assertion, not the context blob
+      expect(queryTask.param.dataDemand).toBe('the cart is empty');
+
+      await queryTask.executor({}, {
+        task: queryTask,
+        uiContext: await createEmptyUIContext(),
+      } as any);
+
+      // the model still receives the context-augmented demand
+      const [demandArg] = mockInsight.extract.mock.calls[0];
+      expect(demandArg.StatementIsTruthy).toContain('The user is a buyer.');
+      expect(demandArg.StatementIsTruthy).toContain('the cart is empty');
+    });
+
     it('should handle null data for Number type query', async () => {
       const mockInsight = {
         contextRetrieverFn: vi.fn(async () => await createMockUIContext()),
