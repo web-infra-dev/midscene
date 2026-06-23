@@ -14,7 +14,7 @@ const defaultModel = {
 const createAgentStub = () => {
   const agent = Object.create(Agent.prototype) as Agent<any>;
   const taskExecutor = {
-    action: vi.fn(async () => ({
+    action: vi.fn(async (..._args: unknown[]) => ({
       output: {
         output: 'done',
         yamlFlow: [],
