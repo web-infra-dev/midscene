@@ -9,15 +9,18 @@ vi.mock('@/create-yaml-player', () => ({
   createYamlPlayer: vi.fn(),
 }));
 
-const createPlayer = (overrides: Record<string, any> = {}) => ({
-  status: 'done',
-  output: '/tmp/output.json',
-  reportFile: '/tmp/report.html',
-  errorInSetup: undefined,
-  taskStatusList: [],
-  run: vi.fn().mockResolvedValue(undefined),
-  ...overrides,
-});
+type YamlPlayer = Awaited<ReturnType<typeof createYamlPlayer>>;
+
+const createPlayer = (overrides: Partial<YamlPlayer> = {}): YamlPlayer =>
+  ({
+    status: 'done',
+    output: '/tmp/output.json',
+    reportFile: '/tmp/report.html',
+    errorInSetup: undefined,
+    taskStatusList: [],
+    run: vi.fn().mockResolvedValue(undefined),
+    ...overrides,
+  }) as YamlPlayer;
 
 const createTempDir = () => mkdtempSync(join(tmpdir(), 'midscene-yaml-case-'));
 
@@ -31,7 +34,7 @@ describe('runYamlCase', () => {
     const output = join(root, 'output.json');
     writeFileSync(output, '{}');
     const player = createPlayer({ output });
-    vi.mocked(createYamlPlayer).mockResolvedValue(player as any);
+    vi.mocked(createYamlPlayer).mockResolvedValue(player);
 
     try {
       const result = await runYamlCase({ file: 'relative.yaml', headed: true });
@@ -58,7 +61,7 @@ describe('runYamlCase', () => {
       },
       tasks: [],
     };
-    vi.mocked(createYamlPlayer).mockResolvedValue(player as any);
+    vi.mocked(createYamlPlayer).mockResolvedValue(player);
 
     await runYamlCase({ file: 'relative.yaml', executionConfig });
 
@@ -73,7 +76,7 @@ describe('runYamlCase', () => {
     const root = createTempDir();
     const yaml = join(root, 'case.yaml');
     const player = createPlayer();
-    vi.mocked(createYamlPlayer).mockResolvedValue(player as any);
+    vi.mocked(createYamlPlayer).mockResolvedValue(player);
     writeFileSync(yaml, 'web:\n  url: https://file.example\ntasks: []\n');
 
     try {
@@ -102,11 +105,51 @@ describe('runYamlCase', () => {
     }
   });
 
+  test('merges global config into a provided execution config', async () => {
+    const player = createPlayer();
+    vi.mocked(createYamlPlayer).mockResolvedValue(player);
+
+    await runYamlCase({
+      file: 'checkout.feature',
+      executionConfig: {
+        tasks: [
+          {
+            name: 'Add item',
+            flow: [{ aiAct: 'I add an item' }],
+          },
+        ],
+      },
+      globalConfig: {
+        web: {
+          url: 'https://shop.example',
+          viewportWidth: 1280,
+        },
+      },
+    });
+
+    expect(createYamlPlayer).toHaveBeenCalledWith(
+      expect.stringMatching(/checkout\.feature$/),
+      {
+        tasks: [
+          {
+            name: 'Add item',
+            flow: [{ aiAct: 'I add an item' }],
+          },
+        ],
+        web: {
+          url: 'https://shop.example',
+          viewportWidth: 1280,
+        },
+      },
+      { headed: undefined, keepWindow: undefined },
+    );
+  });
+
   test('normalizes target config and merges global platform config', async () => {
     const root = createTempDir();
     const yaml = join(root, 'case.yaml');
     const player = createPlayer();
-    vi.mocked(createYamlPlayer).mockResolvedValue(player as any);
+    vi.mocked(createYamlPlayer).mockResolvedValue(player);
     writeFileSync(
       yaml,
       [
@@ -171,7 +214,7 @@ describe('runYamlCase', () => {
       status: 'error',
       errorInSetup: error,
     });
-    vi.mocked(createYamlPlayer).mockResolvedValue(player as any);
+    vi.mocked(createYamlPlayer).mockResolvedValue(player);
 
     await expect(runYamlCase({ file: 'broken.yaml' })).rejects.toThrow(
       'setup failed',
@@ -193,7 +236,7 @@ describe('runYamlCase', () => {
         },
       ],
     });
-    vi.mocked(createYamlPlayer).mockResolvedValue(player as any);
+    vi.mocked(createYamlPlayer).mockResolvedValue(player);
 
     try {
       await expect(runYamlCase({ file: 'failed.yaml' })).rejects.toThrow(
@@ -224,7 +267,7 @@ describe('runYamlCase', () => {
         },
       ],
     });
-    vi.mocked(createYamlPlayer).mockResolvedValue(player as any);
+    vi.mocked(createYamlPlayer).mockResolvedValue(player);
 
     try {
       const result = await runYamlCaseResult({ file: 'partial.yaml' });

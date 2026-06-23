@@ -170,6 +170,43 @@ export function defineYamlCaseTest(test: any, options: any) {
     }
   });
 
+  test('rejects feature files with shared browser context', async () => {
+    const root = createTempDir();
+    const feature = join(root, 'checkout.feature');
+    writeFileSync(
+      feature,
+      'Feature: Checkout\nScenario: Add item\nGiven I open the page\n',
+    );
+
+    try {
+      await expect(
+        runFrameworkTestConfig(
+          {
+            files: [feature],
+            concurrent: 1,
+            continueOnError: false,
+            summary: 'summary.json',
+            shareBrowserContext: true,
+            globalConfig: {},
+            headed: false,
+            keepWindow: false,
+            dotenvOverride: false,
+            dotenvDebug: false,
+          },
+          {
+            outputDir: join(root, 'generated-runner'),
+            frameworkImport: '@test/framework',
+            stdio: 'pipe',
+          },
+        ),
+      ).rejects.toThrow(
+        'shareBrowserContext is not supported for .feature files',
+      );
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
   test('lets Rstest schedule virtual entries by concurrency and stops after failure', async () => {
     const root = createTempDir();
     const runDir = join(root, 'midscene-run');

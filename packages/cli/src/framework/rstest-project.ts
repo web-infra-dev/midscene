@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, rmSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
 import {
   basename,
   dirname,
@@ -10,6 +10,7 @@ import {
 } from 'node:path';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import type { BatchRunnerConfig } from '../batch-runner';
+import { compileFeatureFile, isFeatureFile } from './feature-file';
 import { resolveRstestCoreImportPath } from './rstest-dependencies';
 import type { RunYamlCaseOptions } from './yaml-case';
 
@@ -51,6 +52,20 @@ export interface GeneratedYamlTestCase {
   testName: string;
 }
 
+export interface GeneratedFeatureLoaderCase {
+  caseId: string;
+  testName: string;
+  resultFile: string;
+  caseOptions?: RstestYamlCaseOptions;
+  webRuntimeOptions?: WebYamlRuntimeOptions;
+}
+
+export interface GeneratedFeatureLoaderOptions {
+  frameworkImport: string;
+  rstestCoreImport: string;
+  featureCasesByFile: Record<string, GeneratedFeatureLoaderCase[]>;
+}
+
 export interface GeneratedYamlBatchTest {
   testModule: string;
   testName: string;
@@ -68,6 +83,7 @@ export interface GeneratedRstestYamlProject {
   testTimeout: number;
   bail?: number;
   retry?: number;
+  featureLoaderOptions?: GeneratedFeatureLoaderOptions;
 }
 
 const toPosixPath = (value: string): string => value.split(sep).join('/');
@@ -143,6 +159,92 @@ defineYamlBatchTest(test, testOptions);
 `;
 };
 
+const createGeneratedProjectEntries = (options: {
+  files: string[];
+  projectDir: string;
+  resultDir: string;
+  frameworkImport: string;
+  rstestCoreImport: string;
+  caseOptions?: Record<string, RstestYamlCaseOptions>;
+  webRuntimeOptions?: Record<string, WebYamlRuntimeOptions>;
+}) => {
+  let caseIndex = 0;
+  const include: string[] = [];
+  const virtualModules: Record<string, string> = {};
+  const cases: GeneratedYamlTestCase[] = [];
+  const featureCasesByFile: Record<string, GeneratedFeatureLoaderCase[]> = {};
+
+  for (const file of options.files) {
+    const yamlFile = resolve(file);
+    const relativeTestName = resolveTestName(options.projectDir, yamlFile);
+
+    if (!isFeatureFile(yamlFile)) {
+      const fileStem = safeFileStem(yamlFile, caseIndex);
+      caseIndex += 1;
+      const testModule = toVirtualModuleId(fileStem);
+      const resultFile = join(options.resultDir, `${fileStem}.json`);
+      virtualModules[testModule] = createGeneratedTestContent({
+        rstestCoreImport: options.rstestCoreImport,
+        frameworkImport: options.frameworkImport,
+        yamlFile,
+        resultFile,
+        testName: relativeTestName,
+        caseOptions: options.caseOptions?.[yamlFile],
+        webRuntimeOptions: options.webRuntimeOptions?.[yamlFile],
+      });
+      include.push(testModule);
+      cases.push({
+        yamlFile,
+        testModule,
+        resultFile,
+        testName: relativeTestName,
+      });
+      continue;
+    }
+
+    const content = readFileSync(yamlFile, 'utf8');
+    include.push(yamlFile);
+    const scenarios = compileFeatureFile(content, yamlFile);
+
+    featureCasesByFile[yamlFile] = scenarios.map((scenario) => {
+      const scenarioFileName = `${basename(
+        yamlFile,
+        extname(yamlFile),
+      )}-${scenario.scenarioName.toLowerCase()}`;
+      const fileStem = safeFileStem(
+        join(dirname(yamlFile), scenarioFileName),
+        caseIndex,
+      );
+      caseIndex += 1;
+      const resultFile = join(options.resultDir, `${fileStem}.json`);
+      const testName = `${relativeTestName} > ${scenario.testName}`;
+      cases.push({
+        yamlFile,
+        testModule: yamlFile,
+        resultFile,
+        testName,
+      });
+      return {
+        caseId: scenario.caseId,
+        testName,
+        resultFile,
+        caseOptions: options.caseOptions?.[yamlFile],
+        webRuntimeOptions: options.webRuntimeOptions?.[yamlFile],
+      };
+    });
+  }
+
+  const featureLoaderOptions = Object.keys(featureCasesByFile).length
+    ? {
+        frameworkImport: options.frameworkImport,
+        rstestCoreImport: options.rstestCoreImport,
+        featureCasesByFile,
+      }
+    : undefined;
+
+  return { include, virtualModules, cases, featureLoaderOptions };
+};
+
 // Anchor the framework entry on this bundle's own directory rather than
 // `process.argv[1]`. The command-line entry can be a `.bin` symlink, an
 // `npx` cache path, or a wrapper script whose directory does not lead to the
@@ -193,28 +295,19 @@ export function createRstestYamlProject(
   rmSync(outputDir, { recursive: true, force: true });
   mkdirSync(resultDir, { recursive: true });
 
-  const virtualModules: Record<string, string> = {};
-  const cases = options.files.map((file, index) => {
-    const yamlFile = resolve(file);
-    const testName = resolveTestName(projectDir, yamlFile);
-    const fileStem = safeFileStem(yamlFile, index);
-    const resultFile = join(resultDir, `${fileStem}.json`);
-    const testModule = toVirtualModuleId(fileStem);
-    virtualModules[testModule] = createGeneratedTestContent({
-      rstestCoreImport,
-      frameworkImport,
-      yamlFile,
-      resultFile,
-      testName,
-      caseOptions: options.caseOptions?.[yamlFile],
-      webRuntimeOptions: options.webRuntimeOptions?.[yamlFile],
-    });
-    return { yamlFile, testModule, resultFile, testName };
+  const generated = createGeneratedProjectEntries({
+    files: options.files,
+    projectDir,
+    resultDir,
+    frameworkImport,
+    rstestCoreImport,
+    caseOptions: options.caseOptions,
+    webRuntimeOptions: options.webRuntimeOptions,
   });
 
   if (options.batchConfig) {
     const resultFiles = Object.fromEntries(
-      cases.map((item) => [item.yamlFile, item.resultFile]),
+      generated.cases.map((item) => [item.yamlFile, item.resultFile]),
     );
     const batchTest = {
       testModule: RSTEST_YAML_BATCH_TEST_MODULE,
@@ -234,7 +327,7 @@ export function createRstestYamlProject(
           resultFiles,
         }),
       },
-      cases,
+      cases: generated.cases,
       batchTest,
       maxConcurrency: 1,
       testTimeout,
@@ -246,9 +339,10 @@ export function createRstestYamlProject(
     projectDir,
     outputDir,
     resultDir,
-    include: cases.map((item) => item.testModule),
-    virtualModules,
-    cases,
+    include: generated.include,
+    virtualModules: generated.virtualModules,
+    cases: generated.cases,
+    featureLoaderOptions: generated.featureLoaderOptions,
     maxConcurrency: options.maxConcurrency,
     testTimeout,
     bail: options.bail,

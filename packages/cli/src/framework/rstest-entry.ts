@@ -91,10 +91,12 @@ const appendAttemptHistory = (
 
 const createRuntimeFailureResult = (
   file: string,
+  testName: string,
   startTime: number,
   error: unknown,
 ): MidsceneYamlConfigResult => ({
   file,
+  testName,
   success: false,
   executed: true,
   duration: Date.now() - startTime,
@@ -117,7 +119,10 @@ export const defineYamlCaseTest = (
         ...options.webRuntimeOptions,
         file,
       });
-      result = appendAttemptHistory(options.resultFile, result);
+      result = appendAttemptHistory(options.resultFile, {
+        ...result,
+        testName: options.testName,
+      });
       writeResultFile(options.resultFile, result);
 
       if (!result.success) {
@@ -127,7 +132,7 @@ export const defineYamlCaseTest = (
       if (!result) {
         const failureResult = appendAttemptHistory(
           options.resultFile,
-          createRuntimeFailureResult(file, startTime, error),
+          createRuntimeFailureResult(file, options.testName, startTime, error),
         );
         writeResultFile(options.resultFile, failureResult);
       }

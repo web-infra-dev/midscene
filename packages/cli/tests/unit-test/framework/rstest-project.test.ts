@@ -204,6 +204,217 @@ describe('rstest yaml project generation', () => {
     }
   });
 
+  test('includes feature files directly and precomputes scenario loader metadata', () => {
+    const root = createTempDir();
+    const outputDir = join(root, 'runner');
+    const feature = join(root, 'features', 'checkout.feature');
+    mkdirSync(join(root, 'features'), { recursive: true });
+    writeFileSync(
+      feature,
+      [
+        'Feature: Checkout',
+        'Scenario: Add item',
+        '  Given I open the product page',
+        '  When I add the item to the cart',
+        '  Then the cart shows one item',
+        '',
+        'Scenario: Remove item',
+        '  Given the cart has one item',
+        '  When I remove it',
+        '  Then the cart is empty',
+        '',
+      ].join('\n'),
+    );
+
+    try {
+      const project = createRstestYamlProject({
+        files: [feature],
+        projectDir: root,
+        outputDir,
+        frameworkImport: '@test/framework',
+        rstestCoreImport: '@test/rstest-core',
+      });
+
+      expect(project.cases).toHaveLength(2);
+      expect(project.cases.map((item) => item.testName)).toEqual([
+        'features/checkout.feature > Checkout > Add item',
+        'features/checkout.feature > Checkout > Remove item',
+      ]);
+      expect(project.include).toEqual([feature]);
+      expect(project.virtualModules).toEqual({});
+      expect(project.featureLoaderOptions?.featureCasesByFile[feature]).toEqual(
+        [
+          expect.objectContaining({
+            caseId: '3',
+            testName: 'features/checkout.feature > Checkout > Add item',
+            resultFile: join(
+              outputDir,
+              'results',
+              '001-checkout-add-item.json',
+            ),
+          }),
+          expect.objectContaining({
+            caseId: '7',
+            testName: 'features/checkout.feature > Checkout > Remove item',
+            resultFile: join(
+              outputDir,
+              'results',
+              '002-checkout-remove-item.json',
+            ),
+          }),
+        ],
+      );
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  test('adds deterministic suffixes for duplicate feature scenario test names', () => {
+    const root = createTempDir();
+    const outputDir = join(root, 'runner');
+    const feature = join(root, 'features', 'checkout.feature');
+    mkdirSync(join(root, 'features'), { recursive: true });
+    writeFileSync(
+      feature,
+      [
+        'Feature: Checkout',
+        'Scenario: Retry checkout',
+        '  Given I open checkout',
+        'Scenario: Complete payment',
+        '  Given I pay for the order',
+        'Scenario: Retry checkout',
+        '  Given I refresh checkout',
+        '',
+      ].join('\n'),
+    );
+
+    try {
+      const project = createRstestYamlProject({
+        files: [feature],
+        projectDir: root,
+        outputDir,
+        frameworkImport: '@test/framework',
+        rstestCoreImport: '@test/rstest-core',
+      });
+
+      expect(project.cases.map((item) => item.testName)).toEqual([
+        'features/checkout.feature > Checkout > Retry checkout #1',
+        'features/checkout.feature > Checkout > Complete payment',
+        'features/checkout.feature > Checkout > Retry checkout #2',
+      ]);
+      expect(
+        project.featureLoaderOptions?.featureCasesByFile[feature].map(
+          (item) => item.testName,
+        ),
+      ).toEqual([
+        'features/checkout.feature > Checkout > Retry checkout #1',
+        'features/checkout.feature > Checkout > Complete payment',
+        'features/checkout.feature > Checkout > Retry checkout #2',
+      ]);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  test('precomputes one feature loader case per scenario outline example', () => {
+    const root = createTempDir();
+    const outputDir = join(root, 'runner');
+    const feature = join(root, 'features', 'checkout.feature');
+    mkdirSync(join(root, 'features'), { recursive: true });
+    writeFileSync(
+      feature,
+      [
+        'Feature: Checkout',
+        'Rule: Cart quantities',
+        '  Scenario Outline: Add quantities',
+        '    When I add <qty> <item>',
+        '    Then the cart has <qty> item',
+        '',
+        '    Examples:',
+        '      | qty | item  |',
+        '      | 2   | hats  |',
+        '      | 3   | shoes |',
+        '',
+      ].join('\n'),
+    );
+
+    try {
+      const project = createRstestYamlProject({
+        files: [feature],
+        projectDir: root,
+        outputDir,
+        frameworkImport: '@test/framework',
+        rstestCoreImport: '@test/rstest-core',
+      });
+
+      expect(project.cases.map((item) => item.testName)).toEqual([
+        'features/checkout.feature > Checkout > Cart quantities > Add quantities #1',
+        'features/checkout.feature > Checkout > Cart quantities > Add quantities #2',
+      ]);
+      expect(project.featureLoaderOptions?.featureCasesByFile[feature]).toEqual(
+        [
+          expect.objectContaining({
+            caseId: '6:3',
+            testName:
+              'features/checkout.feature > Checkout > Cart quantities > Add quantities #1',
+          }),
+          expect.objectContaining({
+            caseId: '6:4',
+            testName:
+              'features/checkout.feature > Checkout > Cart quantities > Add quantities #2',
+          }),
+        ],
+      );
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  test('does not suffix same scenario names under different rules in Rstest metadata', () => {
+    const root = createTempDir();
+    const outputDir = join(root, 'runner');
+    const feature = join(root, 'features', 'checkout.feature');
+    mkdirSync(join(root, 'features'), { recursive: true });
+    writeFileSync(
+      feature,
+      [
+        'Feature: Checkout',
+        'Rule: Buyer cart',
+        '  Scenario: Review cart',
+        '    Then the buyer cart is visible',
+        'Rule: Admin cart',
+        '  Scenario: Review cart',
+        '    Then the admin cart is visible',
+        '',
+      ].join('\n'),
+    );
+
+    try {
+      const project = createRstestYamlProject({
+        files: [feature],
+        projectDir: root,
+        outputDir,
+        frameworkImport: '@test/framework',
+        rstestCoreImport: '@test/rstest-core',
+      });
+
+      expect(project.cases.map((item) => item.testName)).toEqual([
+        'features/checkout.feature > Checkout > Buyer cart > Review cart',
+        'features/checkout.feature > Checkout > Admin cart > Review cart',
+      ]);
+      expect(
+        project.featureLoaderOptions?.featureCasesByFile[feature].map(
+          (item) => item.testName,
+        ),
+      ).toEqual([
+        'features/checkout.feature > Checkout > Buyer cart > Review cart',
+        'features/checkout.feature > Checkout > Admin cart > Review cart',
+      ]);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
   test('generates a single batch virtual entry for shared browser context', () => {
     const root = createTempDir();
     const outputDir = join(root, 'runner');

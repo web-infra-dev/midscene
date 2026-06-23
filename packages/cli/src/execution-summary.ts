@@ -204,6 +204,9 @@ const createRetryAttemptReport = (
 const errorMessageOf = (error: unknown): string =>
   error instanceof Error ? error.message : String(error);
 
+const resultDisplayName = (result: MidsceneYamlConfigResult): string =>
+  result.testName ?? result.file;
+
 const warnRetryReportFailure = (message: string): void => {
   try {
     mkdirSync(getMidsceneRunSubDir('log'), { recursive: true });
@@ -249,7 +252,7 @@ export function writeExecutionSummaryFile(
       const retryReport = createRetryAttemptReportSafely(result);
 
       return {
-        script: relative(outputDir, result.file),
+        script: result.testName ?? relative(outputDir, result.file),
         success: result.success,
         resultType: result.resultType,
         output: result.output
@@ -340,7 +343,7 @@ export function printExecutionSummary(
   if (successfulFiles.length > 0) {
     console.log('\n✅ Successful files:');
     successfulFiles.forEach((result) => {
-      console.log(`   ${result.file}`);
+      console.log(`   ${resultDisplayName(result)}`);
       printResultArtifacts(result);
     });
   }
@@ -348,7 +351,7 @@ export function printExecutionSummary(
   if (failedFiles.length > 0) {
     console.log('\n❌ Failed files');
     failedFiles.forEach((result) => {
-      console.log(`   ${result.file}`);
+      console.log(`   ${resultDisplayName(result)}`);
       if (result.error) {
         console.log(`     Error: ${result.error}`);
       }
@@ -360,7 +363,7 @@ export function printExecutionSummary(
       '\n⚠️  Partial failed files (some tasks failed with continueOnError)',
     );
     partialFailedFiles.forEach((result) => {
-      console.log(`   ${result.file}`);
+      console.log(`   ${resultDisplayName(result)}`);
       if (result.error) {
         console.log(`     Error: ${result.error}`);
       }
@@ -370,7 +373,7 @@ export function printExecutionSummary(
   if (notExecutedFiles.length > 0) {
     console.log('\n⏸️ Not executed files');
     notExecutedFiles.forEach((result) => {
-      console.log(`   ${result.file}`);
+      console.log(`   ${resultDisplayName(result)}`);
     });
   }
 

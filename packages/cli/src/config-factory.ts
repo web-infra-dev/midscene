@@ -105,7 +105,9 @@ export async function parseConfigYaml(
 
   // Validate that at least one file was found
   if (files.length === 0) {
-    throw new Error('No YAML files found matching the patterns in "files"');
+    throw new Error(
+      'No YAML or feature files found matching the patterns in "files"',
+    );
   }
 
   // Generate default summary filename

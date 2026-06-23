@@ -171,6 +171,38 @@ describe('execution summary', () => {
     }
   });
 
+  test('uses testName as the summary script label when present', () => {
+    const root = mkdtempSync(join(tmpdir(), 'midscene-summary-'));
+    const runDir = join(root, 'midscene-run');
+    const previousRunDir = process.env.MIDSCENE_RUN_DIR;
+    process.env.MIDSCENE_RUN_DIR = runDir;
+
+    try {
+      const summaryPath = writeExecutionSummaryFile('summary.json', [
+        {
+          file: join(root, 'features', 'checkout.feature'),
+          testName: 'features/checkout.feature > Checkout > Add item',
+          success: true,
+          executed: true,
+          duration: 10,
+          resultType: 'success',
+        },
+      ]);
+
+      const summary = JSON.parse(readFileSync(summaryPath, 'utf8'));
+      expect(summary.results[0].script).toBe(
+        'features/checkout.feature > Checkout > Add item',
+      );
+    } finally {
+      if (previousRunDir === undefined) {
+        Reflect.deleteProperty(process.env, 'MIDSCENE_RUN_DIR');
+      } else {
+        process.env.MIDSCENE_RUN_DIR = previousRunDir;
+      }
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
   test('writes distinct retry reports for YAML files with duplicate basenames', () => {
     const root = mkdtempSync(join(tmpdir(), 'midscene-summary-'));
     const runDir = join(root, 'midscene-run');

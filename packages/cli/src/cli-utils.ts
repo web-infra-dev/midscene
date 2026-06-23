@@ -139,7 +139,11 @@ Examples:
   };
 };
 
-// match yml or yaml files
+const RUNNABLE_FILE_EXTENSIONS = ['.yml', '.yaml', '.feature'];
+
+const isRunnableFile = (file: string): boolean =>
+  RUNNABLE_FILE_EXTENSIONS.some((ext) => file.endsWith(ext));
+
 export async function matchYamlFiles(
   fileGlob: string,
   options?: {
@@ -147,7 +151,7 @@ export async function matchYamlFiles(
   },
 ) {
   if (existsSync(fileGlob) && statSync(fileGlob).isDirectory()) {
-    fileGlob = join(fileGlob, '**/*.{yml,yaml}');
+    fileGlob = join(fileGlob, '**/*.{yml,yaml,feature}');
   }
 
   const { cwd } = options || {};
@@ -160,7 +164,5 @@ export async function matchYamlFiles(
     cwd,
   });
 
-  return files
-    .filter((file) => file.endsWith('.yml') || file.endsWith('.yaml'))
-    .sort();
+  return files.filter(isRunnableFile).sort();
 }

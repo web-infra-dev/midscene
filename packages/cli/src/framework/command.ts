@@ -9,6 +9,7 @@ import {
   printExecutionSummary,
   writeExecutionSummaryFile,
 } from '../execution-summary';
+import { isFeatureFile } from './feature-file';
 import {
   type GeneratedRstestYamlProject,
   type RstestYamlCaseOptions,
@@ -68,7 +69,10 @@ const readProjectResults = (
       ) as MidsceneYamlConfigResult;
     }
 
-    return createNotExecutedYamlResult(item.yamlFile);
+    return {
+      ...createNotExecutedYamlResult(item.yamlFile),
+      testName: item.testName,
+    };
   });
 
 export async function runFrameworkTestConfig(
@@ -76,6 +80,9 @@ export async function runFrameworkTestConfig(
   commandOptions: FrameworkTestCommandOptions = {},
 ): Promise<number> {
   printExecutionPlan(config);
+  if (config.shareBrowserContext && config.files.some(isFeatureFile)) {
+    throw new Error('shareBrowserContext is not supported for .feature files');
+  }
 
   const projectDir = resolve(commandOptions.projectDir || process.cwd());
   const project = createRstestYamlProject({
