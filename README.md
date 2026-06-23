@@ -65,7 +65,7 @@ Midscene works anywhere you can take a screenshot — web browsers, Android, iOS
 
 ## ✨ Driven by Multimodal Models
 
-Midscene is all-in on pure vision for UI actions: element localization is based on screenshots only. It runs on multimodal models with strong UI localization, such as `Qwen3.x`, `Doubao-Seed-2.0`, `GLM-4.6V`, `gemini-3.5-flash`, and `UI-TARS`, including open-source options you can self-host. For data extraction and page understanding, you can still opt in to include DOM when needed.
+Midscene is all-in on pure vision for UI actions: element localization is based on screenshots only. It runs on multimodal models with strong UI localization, such as `Qwen3.x`, `Doubao-Seed-2.1`, `GLM-4.6V`, `gemini-3.5-flash`, and `UI-TARS`, including open-source options you can self-host. For data extraction and page understanding, you can still opt in to include DOM when needed.
 
 Read more about [Model Strategy](https://midscenejs.com/model-strategy).
 
