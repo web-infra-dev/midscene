@@ -26,7 +26,7 @@ export function normalizePlanningActionLocateFields(
 ): void {
   actions.forEach((action) => {
     const actionInActionSpace = actionSpace.find(
-      (item) => item.name === action.type,
+      (actionInSpace) => actionInSpace.name === action.type,
     );
     if (!actionInActionSpace) {
       debug('skip locate normalization for action outside actionSpace', action);
@@ -34,9 +34,9 @@ export function normalizePlanningActionLocateFields(
     }
 
     debug('actionInActionSpace matched', actionInActionSpace);
-    const locateFields = findAllMidsceneLocatorField(
-      actionInActionSpace.paramSchema,
-    );
+    const locateFields = actionInActionSpace
+      ? findAllMidsceneLocatorField(actionInActionSpace.paramSchema)
+      : [];
 
     debug('locateFields', locateFields);
 
