@@ -12,7 +12,9 @@ import type {
   ExecutionTaskActionApply,
   ExecutionTaskApply,
   ExecutionTaskHitBy,
+  ExecutionTaskPlanningLocateAllApply,
   ExecutionTaskPlanningLocateApply,
+  LocateAllResultWithDump,
   LocateResultElement,
   LocateResultWithDump,
   PlanningAction,
@@ -98,6 +100,16 @@ export function locatePlanForLocate(param: string | DetailedLocateParam) {
   return locatePlan;
 }
 
+export function locatePlanForLocateAll(param: string | DetailedLocateParam) {
+  const locate = normalizeLocateParam(param);
+  const locatePlan: PlanningAction<PlanningLocateParam> = {
+    type: 'LocateAll',
+    param: locate,
+    thought: '',
+  };
+  return locatePlan;
+}
+
 interface TaskBuilderDeps {
   interfaceInstance: AbstractInterface;
   service: Service;
@@ -175,6 +187,14 @@ export class TaskBuilder {
             context,
           ),
       ],
+      [
+        'LocateAll',
+        (plan) =>
+          this.handleLocateAllPlan(
+            plan as PlanningAction<PlanningLocateParam>,
+            context,
+          ),
+      ],
       ['Finished', (plan) => this.handleFinishedPlan(plan, context)],
     ]);
 
@@ -210,6 +230,14 @@ export class TaskBuilder {
     context: PlanBuildContext,
   ): Promise<void> {
     const taskLocate = this.createLocateTask(plan, plan.param, context);
+    context.tasks.push(taskLocate);
+  }
+
+  private async handleLocateAllPlan(
+    plan: PlanningAction<PlanningLocateParam>,
+    context: PlanBuildContext,
+  ): Promise<void> {
+    const taskLocate = this.createLocateAllTask(plan, plan.param, context);
     context.tasks.push(taskLocate);
   }
 
@@ -702,6 +730,98 @@ export class TaskBuilder {
             },
           },
           hitBy,
+        };
+      },
+    };
+
+    return taskLocator;
+  }
+
+  private createLocateAllTask(
+    plan: PlanningAction<PlanningLocateParam>,
+    detailedLocateParam: DetailedLocateParam | string,
+    context: PlanBuildContext,
+  ): ExecutionTaskPlanningLocateAllApply {
+    const { defaultModel, abortSignal } = context;
+    const locateParam = normalizeLocateParam(detailedLocateParam);
+
+    const taskLocator: ExecutionTaskPlanningLocateAllApply = {
+      type: 'Planning',
+      subType: 'LocateAll',
+      param: locateParam,
+      thought: plan.thought,
+      executor: async (param, taskContext) => {
+        const { task } = taskContext;
+        let { uiContext } = taskContext;
+
+        assert(
+          param?.prompt,
+          `No prompt to locate all, param=${JSON.stringify(param)}`,
+        );
+
+        if (!uiContext) {
+          uiContext = await this.service.contextRetrieverFn();
+        }
+
+        assert(uiContext, 'uiContext is required for Service task');
+
+        let locateDump: ServiceDump | undefined;
+        let locateResult: LocateAllResultWithDump | undefined;
+
+        const applyDump = (dump?: ServiceDump) => {
+          if (!dump) {
+            return;
+          }
+          locateDump = dump;
+          task.log = {
+            dump,
+            rawResponse: dump.taskInfo?.rawResponse,
+            rawChoiceMessage: dump.taskInfo?.rawChoiceMessage,
+          };
+          task.usage = withUsageIntent(dump.taskInfo?.usage, 'default');
+          if (dump.taskInfo?.reasoning_content) {
+            task.reasoning_content = dump.taskInfo.reasoning_content;
+          }
+        };
+
+        const timing = taskContext.task.timing;
+        try {
+          setTimingFieldOnce(timing, 'callAiStart');
+          locateResult = await this.service.locateAll(
+            param,
+            {
+              context: uiContext,
+            },
+            defaultModel,
+            abortSignal,
+          );
+          applyDump(locateResult.dump);
+        } catch (error) {
+          if (error instanceof ServiceError) {
+            applyDump(error.dump);
+          }
+          throw error;
+        } finally {
+          setTimingFieldOnce(timing, 'callAiEnd');
+        }
+
+        const invalidElementReason = locateResult.elements
+          .map((element) => invalidLocateElementReason(element))
+          .find((reason): reason is string => !!reason);
+        if (invalidElementReason) {
+          if (locateDump) {
+            throw new ServiceError(invalidElementReason, locateDump);
+          }
+          throw new Error(invalidElementReason);
+        }
+
+        return {
+          output: {
+            elements: locateResult.elements.map((element) => ({
+              ...element,
+              dpr: uiContext.deprecatedDpr,
+            })),
+          },
         };
       },
     };

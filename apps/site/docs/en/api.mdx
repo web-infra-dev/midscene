@@ -981,6 +981,51 @@ const locateInfo = await agent.aiLocate(
 console.log(locateInfo);
 ```
 
+### `agent.aiLocateAll()`
+
+Locate all elements that match a natural language description in one model call.
+
+- Type
+
+```typescript
+function aiLocateAll(
+  locate: string | Object,
+  options?: Object,
+): Promise<
+  Array<{
+    rect: {
+      left: number;
+      top: number;
+      width: number;
+      height: number;
+    };
+    center: [number, number];
+    dpr: number; // device pixel ratio
+  }>
+>;
+```
+
+- Parameters:
+
+  - `locate: string | Object` - A natural language description shared by all target elements, or [prompting with images](#prompting-with-images).
+  - `options?: Object` - Optional, a configuration object. `uiContext` and image prompt options are supported. Single-element optimizations such as `xpath`, cache lookup, and `deepLocate` are not applied to `aiLocateAll()`.
+
+- Return Value:
+
+  - Returns all visible elements that match the description.
+  - Results are ordered from top-to-bottom, then left-to-right.
+  - Returns an empty array when no matching element is found.
+  - Like `aiLocate()`, `rect` may be an approximate box when the underlying model only supports point grounding. Prefer `center` when you only need a stable click target.
+
+- Examples:
+
+```typescript
+const buttons = await agent.aiLocateAll('all Add to cart buttons');
+for (const button of buttons) {
+  console.log(button.center);
+}
+```
+
 ### `agent.aiWaitFor()`
 
 Wait until a specified condition, described in natural language, becomes true. Considering the cost of AI calls, the check interval will not exceed the specified `checkIntervalMs`.
