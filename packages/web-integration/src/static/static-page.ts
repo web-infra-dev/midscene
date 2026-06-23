@@ -24,22 +24,16 @@ function screenshotBase64FromContext(screenshot: unknown): string {
     return screenshot;
   }
 
-  if (!screenshot || typeof screenshot !== 'object') {
-    throw new Error('StaticPage screenshot must be a base64 string');
+  const record =
+    screenshot && typeof screenshot === 'object'
+      ? (screenshot as Record<string, unknown>)
+      : undefined;
+  const base64 = record?.base64 ?? record?._base64;
+  if (typeof base64 === 'string') {
+    return base64;
   }
 
-  const record = screenshot as Record<string, unknown>;
-  if (typeof record.base64 === 'string') {
-    return record.base64;
-  }
-
-  // Server-mode report playback sends UIContext through JSON. ScreenshotItem
-  // instances lose their getter there, but keep the in-memory payload here.
-  if (typeof record._base64 === 'string') {
-    return record._base64;
-  }
-
-  if (record.type === 'midscene_screenshot_ref') {
+  if (record?.type === 'midscene_screenshot_ref') {
     throw new Error(
       'StaticPage screenshot is a serialized reference without base64 data',
     );
