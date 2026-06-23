@@ -63,7 +63,12 @@ import { getDebug } from '@midscene/shared/logger';
 import { assert, ifInBrowser, uuid } from '@midscene/shared/utils';
 import { defineActionSleep } from '../device';
 import { validateAgentCacheInput } from './cache-config';
+import { buildPromptWithContext } from './prompt-context';
 import { normalizeRecordToReportScreenshot } from './record-to-report';
+import {
+  type RunGherkinScenarioOptions,
+  runGherkinScenario,
+} from './run-gherkin-scenario';
 import { markdownToAiActPrompt } from './run-markdown';
 import { TaskCache } from './task-cache';
 import {
@@ -101,6 +106,7 @@ export type AiActOptions = {
   deepThink?: DeepThinkOption;
   deepLocate?: boolean;
   abortSignal?: AbortSignal;
+  context?: string;
 };
 
 type AiActInternalOptions = AiActOptions & {
@@ -877,6 +883,9 @@ export class Agent<
     const runAiAct = async () => {
       const planningModel = this.resolveModelRuntime('planning');
       const defaultModel = this.resolveModelRuntime('default');
+      const aiActContext =
+        opt?.context !== undefined ? opt.context : this.aiActContext;
+      const cachePrompt = buildPromptWithContext(taskPrompt, aiActContext);
       // Controls the aiAct planning mode, such as sub-goal prompts and locate result strategy.
       let deepThink = opt?.deepThink === true;
       if (deepThink && planningModel.adapter.planning.kind === 'custom') {
@@ -913,7 +922,7 @@ export class Agent<
       const matchedCache =
         !planCacheEnabled || cacheable === false
           ? undefined
-          : this.taskCache?.matchPlanCache(taskPrompt);
+          : this.taskCache?.matchPlanCache(cachePrompt);
       let cachedYamlFailed = false;
       if (
         matchedCache?.cacheUsable &&
@@ -949,7 +958,7 @@ export class Agent<
         planningModel,
         defaultModel,
         includeLocateInPlanning,
-        this.aiActContext,
+        aiActContext,
         cacheable,
         replanningCycleLimit,
         imagesIncludeCount,
@@ -981,7 +990,7 @@ export class Agent<
         this.taskCache.updateOrAppendCacheRecord(
           {
             type: 'plan',
-            prompt: taskPrompt,
+            prompt: cachePrompt,
             yamlWorkflow: yamlFlowStr,
           },
           matchedCache,
@@ -1007,6 +1016,13 @@ export class Agent<
         prompt: basename(markdownPath),
       },
     } as AiActOptions);
+  }
+
+  async runGherkinScenario(
+    scenarioText: string,
+    opt?: RunGherkinScenarioOptions,
+  ): Promise<void> {
+    return runGherkinScenario(this, scenarioText, opt);
   }
 
   /**
@@ -1139,7 +1155,11 @@ export class Agent<
         defaultServiceExtractOption.screenshotIncluded,
     };
 
-    const { textPrompt, multimodalPrompt } = parsePrompt(assertion);
+    const assertionWithContext = buildPromptWithContext(
+      assertion,
+      opt?.context,
+    );
+    const { textPrompt, multimodalPrompt } = parsePrompt(assertionWithContext);
     const assertionText =
       typeof assertion === 'string' ? assertion : assertion.prompt;
 
@@ -1151,6 +1171,9 @@ export class Agent<
           modelRuntime,
           serviceOpt,
           multimodalPrompt,
+          {
+            abortSignal: opt?.abortSignal,
+          },
         );
 
       const pass = Boolean(output);

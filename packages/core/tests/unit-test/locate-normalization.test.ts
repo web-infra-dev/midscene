@@ -24,6 +24,33 @@ const locateResultContext = {
 };
 
 describe('normalizePlanningActionLocateFields', () => {
+  it('leaves actions unchanged when the planned action is outside the action space', () => {
+    const adaptPlanningParamToPixelBbox = vi.fn();
+    const actions: PlanningAction[] = [
+      {
+        type: 'UnknownAction',
+        param: {},
+      },
+    ];
+
+    normalizePlanningActionLocateFields(actions, {
+      actionSpace,
+      includeLocateInPlanning: true,
+      locateResultAdapter: {
+        adaptPlanningParamToPixelBbox,
+      } as any,
+      locateResultContext,
+    });
+
+    expect(adaptPlanningParamToPixelBbox).not.toHaveBeenCalled();
+    expect(actions).toEqual([
+      {
+        type: 'UnknownAction',
+        param: {},
+      },
+    ]);
+  });
+
   it('normalizes locate params with the configured locate adapter', () => {
     const adaptPlanningParamToPixelBbox = vi.fn(() => [10, 20, 30, 40]);
     const actions: PlanningAction[] = [

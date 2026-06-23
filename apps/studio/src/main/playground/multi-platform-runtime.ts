@@ -26,7 +26,9 @@ function getErrorMessage(error: unknown): string {
 
 type PlaygroundCoreModules = Pick<
   MultiPlatformRuntimeModules,
-  'launchPreparedPlaygroundPlatform' | 'prepareMultiPlatformPlayground'
+  | 'buildPlaygroundBrowserUrl'
+  | 'launchPreparedPlaygroundPlatform'
+  | 'prepareMultiPlatformPlayground'
 >;
 
 type AndroidPlaygroundModule = typeof import('@midscene/android-playground');
@@ -62,6 +64,7 @@ type MultiPlatformRuntimeModules = {
   iosPlaygroundPlatform: IosPlaygroundModule['iosPlaygroundPlatform'];
   launchPreparedPlaygroundPlatform: PlaygroundModule['launchPreparedPlaygroundPlatform'];
   prepareMultiPlatformPlayground: PlaygroundModule['prepareMultiPlatformPlayground'];
+  buildPlaygroundBrowserUrl: PlaygroundModule['buildPlaygroundBrowserUrl'];
   PuppeteerAgent: StudioPuppeteerAgentConstructor;
   launchPuppeteerPage: StudioLaunchPuppeteerPage;
 };
@@ -97,12 +100,16 @@ export async function loadPlaygroundCoreModules(): Promise<PlaygroundCoreModules
       'launchPreparedPlaygroundPlatform'
     >
   >('@midscene/playground', 'dist/lib/platform-launcher.js');
+  const serverModule = requirePackageModule<
+    Pick<typeof import('@midscene/playground'), 'buildPlaygroundBrowserUrl'>
+  >('@midscene/playground', 'dist/lib/server.js');
 
   return {
     prepareMultiPlatformPlayground:
       multiPlatformModule.prepareMultiPlatformPlayground,
     launchPreparedPlaygroundPlatform:
       platformLauncherModule.launchPreparedPlaygroundPlatform,
+    buildPlaygroundBrowserUrl: serverModule.buildPlaygroundBrowserUrl,
   };
 }
 
@@ -183,6 +190,7 @@ export async function loadMultiPlatformRuntimeModules(): Promise<MultiPlatformRu
       playgroundCoreModules.launchPreparedPlaygroundPlatform,
     prepareMultiPlatformPlayground:
       playgroundCoreModules.prepareMultiPlatformPlayground,
+    buildPlaygroundBrowserUrl: playgroundCoreModules.buildPlaygroundBrowserUrl,
     PuppeteerAgent: webPlaygroundModule.PuppeteerAgent,
     launchPuppeteerPage: webPlaygroundModule.launchPuppeteerPage,
   };
@@ -722,7 +730,10 @@ export function createMultiPlatformRuntimeService({
         launchResult = nextLaunchResult;
         bootstrap = {
           status: 'ready',
-          serverUrl: `http://${nextLaunchResult.host}:${nextLaunchResult.port}`,
+          serverUrl: playgroundCoreModules.buildPlaygroundBrowserUrl(
+            nextLaunchResult.host,
+            nextLaunchResult.port,
+          ),
           port: nextLaunchResult.port,
           error: null,
         };

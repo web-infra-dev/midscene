@@ -45,6 +45,7 @@ import type {
   MidsceneYamlFlowItemAIWaitFor,
   MidsceneYamlFlowItemEvaluateJavaScript,
   MidsceneYamlFlowItemLogScreenshot,
+  MidsceneYamlFlowItemRunGherkinScenario,
   MidsceneYamlFlowItemSleep,
   MidsceneYamlScript,
   MidsceneYamlScriptEnv,
@@ -380,6 +381,17 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
 
       assert(promptForAI, 'missing prompt for ai (aiAct)');
       await agent.aiAct(promptForAI, actionOptions);
+    } else if (
+      'runGherkinScenario' in
+      (flowItem as MidsceneYamlFlowItemRunGherkinScenario)
+    ) {
+      const gherkinScenarioTask =
+        flowItem as MidsceneYamlFlowItemRunGherkinScenario;
+      const { runGherkinScenario } = gherkinScenarioTask;
+      assert(runGherkinScenario, 'missing scenario for runGherkinScenario');
+      await agent.runGherkinScenario(runGherkinScenario, {
+        cacheable: false,
+      });
     } else if ('aiAssert' in (flowItem as MidsceneYamlFlowItemAIAssert)) {
       const assertTask = flowItem as MidsceneYamlFlowItemAIAssert;
       const {

@@ -46,7 +46,7 @@ export class PuppeteerAgent extends PageAgent<PuppeteerWebPage> {
     const webPage = new PuppeteerWebPage(page, opts);
     super(webPage, opts);
 
-    const { forceSameTabNavigation = true, forceChromeSelectRendering } =
+    const { forceSameTabNavigation = true, forceChromeSelectRendering = true } =
       opts ?? {};
 
     if (forceSameTabNavigation) {
@@ -54,11 +54,15 @@ export class PuppeteerAgent extends PageAgent<PuppeteerWebPage> {
     }
 
     if (forceChromeSelectRendering) {
-      const puppeteerVersion = getPuppeteerVersion();
-      if (puppeteerVersion && !semver.gte(puppeteerVersion, '24.6.0')) {
-        console.warn(
-          `[midscene:error] forceChromeSelectRendering requires Puppeteer > 24.6.0, but current version is ${puppeteerVersion}. This feature may not work correctly.`,
-        );
+      // Only warn about version requirements when the user explicitly opted in;
+      // it is on by default, so we should not nag users on older Puppeteer.
+      if (opts?.forceChromeSelectRendering === true) {
+        const puppeteerVersion = getPuppeteerVersion();
+        if (puppeteerVersion && !semver.gte(puppeteerVersion, '24.6.0')) {
+          console.warn(
+            `[midscene:error] forceChromeSelectRendering requires Puppeteer > 24.6.0, but current version is ${puppeteerVersion}. This feature may not work correctly.`,
+          );
+        }
       }
       applyChromeSelectRendering(page);
     }

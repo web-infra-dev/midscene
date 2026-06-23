@@ -1,5 +1,27 @@
 # 更新日志
 
+## v1.10 - BDD 风格脚本、Doubao-Seed-2.1 与 MCP 下线
+
+v1.10 新增 BDD 风格的 Gherkin 脚本执行能力，升级推荐模型到 Doubao-Seed-2.1，并正式下线 MCP server 包，后续推荐通过 Skills 与各平台 CLI 让 AI Agent 驱动 Midscene。
+
+### BDD 风格脚本（Gherkin）
+
+- 新增 `agent.runGherkinScenario()`，可在 JavaScript / TypeScript 中直接运行 Gherkin 场景。
+- YAML flow 新增 `runGherkinScenario` 步骤，可把自然语言场景写成 `Given` / `When` / `Then` 结构并按步骤执行。
+- `Given` / `When` 会映射为 `aiAct`，`Then` 以及跟随它的 `And` / `But` 会映射为 `aiAssert`，让测试用例既保持自然语言可读性，又有稳定的步骤结构。
+- 当前支持围绕单个 `Scenario` 的 Gherkin 子集，BDD 相关能力仍处于 Beta 阶段。详见：[BDD 风格脚本（Gherkin）](./advanced/bdd-style-scripts-with-gherkin)
+
+### 新增模型支持
+
+- 推荐并支持 `Doubao-Seed-2.1-turbo`，在当前私有测评集中具备很快的定位速度和良好的定位效果。
+- 豆包 Seed 系列统一使用 `MIDSCENE_MODEL_FAMILY="doubao-seed"`，同时继续兼容旧的 `doubao-vision` family。详见：[常用模型配置](./model-common-config#doubao-seed-model)、[模型策略](./model-strategy)
+
+### MCP 下线
+
+- Midscene 不再发布 MCP server 包，包括 `@midscene/web-bridge-mcp`、`@midscene/android-mcp`、`@midscene/ios-mcp`、`@midscene/harmony-mcp`、`@midscene/computer-mcp` 和 `@midscene/mcp`。
+- 需要 AI 编程 Agent 操作浏览器、移动设备或桌面应用时，请改用 [Skills](./skills) 与各平台 CLI。
+- 如果仍依赖 MCP server，请将 Midscene 固定在 `1.9.8`。这是最后一个包含 MCP 支持的版本。详见：[MCP 集成已下线](./mcp)
+
 ## v1.9 - 新增模型支持、YAML 自动化与 AndroidWorld Benchmark
 
 v1.9 版本扩展了模型支持，改进了 YAML 自动化，并提升了报告查看、Android 自动化、Web 输入和桌面自动化的稳定性。

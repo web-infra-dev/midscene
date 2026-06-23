@@ -9,7 +9,7 @@ const dumpFilePath = join(__dirname, '../../fixtures/ui-context.json');
 const context = readFileSync(dumpFilePath, { encoding: 'utf-8' });
 const contextJson = JSON.parse(context);
 
-contextJson.screenshot = contextJson.screenshotBase64;
+contextJson.screenshot = { base64: contextJson.screenshotBase64 };
 
 describe(
   'static page agent',
