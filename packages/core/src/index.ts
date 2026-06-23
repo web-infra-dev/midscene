@@ -63,9 +63,6 @@ export {
   type AiActOptions,
   type GherkinStepKeyword,
   type RunGherkinScenarioOptions,
-  type RunGherkinScenarioResult,
-  type RunGherkinScenarioStepAction,
-  type RunGherkinScenarioStepResult,
   createAgent,
 } from './agent';
 export {

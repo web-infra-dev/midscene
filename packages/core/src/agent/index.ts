@@ -16,9 +16,6 @@ export { TaskExecutor } from './tasks';
 export type {
   GherkinStepKeyword,
   RunGherkinScenarioOptions,
-  RunGherkinScenarioResult,
-  RunGherkinScenarioStepAction,
-  RunGherkinScenarioStepResult,
 } from './run-gherkin-scenario';
 
 export type { AgentOpt } from '../types';

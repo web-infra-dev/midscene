@@ -2,19 +2,7 @@ import type { AiActOptions } from './agent';
 
 export type GherkinStepKeyword = 'Given' | 'When' | 'Then' | 'And' | 'But';
 
-export type RunGherkinScenarioStepAction = 'aiAct' | 'aiAssert';
-
-export type RunGherkinScenarioStepResult = {
-  keyword: GherkinStepKeyword;
-  text: string;
-  action: RunGherkinScenarioStepAction;
-  status: 'passed';
-};
-
-export type RunGherkinScenarioResult = {
-  scenario?: string;
-  steps: RunGherkinScenarioStepResult[];
-};
+type RunGherkinScenarioStepAction = 'aiAct' | 'aiAssert';
 
 export type RunGherkinScenarioOptions = AiActOptions & {
   context?: string;
@@ -208,13 +196,44 @@ const buildStepPrompt = (step: ParsedGherkinStep) => {
   return `Verify that ${step.text}`;
 };
 
+const describeStepExecution = (
+  step: ParsedGherkinStep,
+  action: RunGherkinScenarioStepAction,
+) => {
+  const keywordMapping =
+    step.keyword === step.effectiveKeyword
+      ? step.keyword
+      : `${step.keyword} as ${step.effectiveKeyword}`;
+
+  if (step.effectiveKeyword === 'Given') {
+    return `setting up the precondition (${keywordMapping} -> ${action})`;
+  }
+
+  if (step.effectiveKeyword === 'When') {
+    return `performing the user action (${keywordMapping} -> ${action})`;
+  }
+
+  return `verifying the expected result (${keywordMapping} -> ${action})`;
+};
+
+const describeErrorCause = (error: unknown) => {
+  if (error instanceof Error && error.message) {
+    return ` Original error: ${error.message}`;
+  }
+
+  return '';
+};
+
 export const runGherkinScenario = async (
   agent: GherkinScenarioAgent,
   scenarioText: string,
   opt?: RunGherkinScenarioOptions,
-): Promise<RunGherkinScenarioResult> => {
+): Promise<void> => {
   const parsedScenario = parseGherkinScenario(scenarioText);
-  const steps: RunGherkinScenarioStepResult[] = [];
+  const aiActOptions: AiActOptions = {
+    ...opt,
+    cacheable: false,
+  };
 
   for (const step of parsedScenario.steps) {
     throwIfAborted(opt?.abortSignal);
@@ -225,11 +244,7 @@ export const runGherkinScenario = async (
 
     try {
       if (action === 'aiAct') {
-        if (opt) {
-          await agent.aiAct(prompt, opt);
-        } else {
-          await agent.aiAct(prompt);
-        }
+        await agent.aiAct(prompt, aiActOptions);
       } else if (opt?.context || opt?.abortSignal) {
         await agent.aiAssert(prompt, undefined, {
           context: opt.context,
@@ -240,23 +255,16 @@ export const runGherkinScenario = async (
       }
     } catch (error) {
       throw new Error(
-        `runGherkinScenario failed at line ${step.lineNumber}: ${step.keyword} ${step.text}`,
+        `runGherkinScenario failed while ${describeStepExecution(
+          step,
+          action,
+        )} at line ${step.lineNumber}: ${step.keyword} ${step.text}.${describeErrorCause(
+          error,
+        )}`,
         {
           cause: error,
         },
       );
     }
-
-    steps.push({
-      keyword: step.keyword,
-      text: step.text,
-      action,
-      status: 'passed',
-    });
   }
-
-  return {
-    scenario: parsedScenario.scenario,
-    steps,
-  };
 };

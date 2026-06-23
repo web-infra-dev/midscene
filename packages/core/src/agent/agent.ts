@@ -67,7 +67,6 @@ import { buildPromptWithContext } from './prompt-context';
 import { normalizeRecordToReportScreenshot } from './record-to-report';
 import {
   type RunGherkinScenarioOptions,
-  type RunGherkinScenarioResult,
   runGherkinScenario,
 } from './run-gherkin-scenario';
 import { markdownToAiActPrompt } from './run-markdown';
@@ -1022,7 +1021,7 @@ export class Agent<
   async runGherkinScenario(
     scenarioText: string,
     opt?: RunGherkinScenarioOptions,
-  ): Promise<RunGherkinScenarioResult> {
+  ): Promise<void> {
     return runGherkinScenario(this, scenarioText, opt);
   }
 
