@@ -2,7 +2,10 @@ import { spawn } from 'node:child_process';
 import type { Agent } from '@midscene/core/agent';
 import { PLAYGROUND_SERVER_PORT } from '@midscene/shared/constants';
 import cors, { type CorsOptions } from 'cors';
-import PlaygroundServer, { resolvePlaygroundBrowserHost } from './server';
+import PlaygroundServer, {
+  buildPlaygroundBrowserUrl,
+  resolvePlaygroundBrowserHost,
+} from './server';
 import type { AgentFactory } from './types';
 
 export interface LaunchPlaygroundOptions {
@@ -202,7 +205,7 @@ function createPlaygroundLauncher(agentOrFactory: LaunchableAgentSource) {
       }
 
       const host = resolvePlaygroundBrowserHost();
-      const url = `http://${host}:${port}`;
+      const url = buildPlaygroundBrowserUrl(host, port);
 
       // Open browser if requested
       if (openBrowser) {

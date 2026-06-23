@@ -464,6 +464,12 @@ export function resolvePlaygroundBrowserHost(): string {
     : listenHost;
 }
 
+export function buildPlaygroundBrowserUrl(host: string, port: number): string {
+  const normalizedHost =
+    host.includes(':') && !host.startsWith('[') ? `[${host}]` : host;
+  return `http://${normalizedHost}:${port}`;
+}
+
 function serializeAiConfigSignature(aiConfig: Record<string, unknown>): string {
   return JSON.stringify(
     Object.entries(aiConfig).sort(([leftKey], [rightKey]) =>
