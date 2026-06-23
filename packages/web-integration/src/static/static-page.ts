@@ -1,4 +1,9 @@
-import type { DeviceAction, Point, UIContext } from '@midscene/core';
+import type {
+  DeviceAction,
+  Point,
+  ScreenshotRef,
+  UIContext,
+} from '@midscene/core';
 import type { AbstractInterface } from '@midscene/core/device';
 import {
   type InputPrimitives,
@@ -16,7 +21,7 @@ type SerializedStaticScreenshot = {
   base64?: unknown;
   _base64?: unknown;
   type?: unknown;
-};
+} & Partial<Omit<ScreenshotRef, 'type'>>;
 
 type StaticPageUIContext = Omit<
   UIContext,
