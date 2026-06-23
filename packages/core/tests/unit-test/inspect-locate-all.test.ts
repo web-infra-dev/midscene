@@ -61,7 +61,55 @@ describe('AiLocateAllElements', () => {
       expect.stringMatching(/Failed to parse locate result #4/),
     ]);
     expect(result.rawChoiceMessage).toEqual({ role: 'assistant' });
+    expect(result.rawResponse).toBe('{}');
     expect(result.usage).toEqual({ total_tokens: 10 });
     expect(result.reasoning_content).toBe('all locate reasoning');
+  });
+
+  it('marks malformed top-level locate-all responses as fatal', async () => {
+    vi.mocked(callAIWithObjectResponse).mockResolvedValue({
+      content: {
+        bbox: [100, 100, 120, 120],
+      },
+      rawChoiceMessage: { role: 'assistant' },
+      contentString: '{}',
+    });
+
+    const result = await AiLocateAllElements({
+      context: createFakeContext(),
+      targetElementDescription: 'submit buttons',
+      modelRuntime: getModelRuntime(modelConfig),
+    });
+
+    expect(result.parseResult).toEqual({
+      elements: [],
+      errors: [
+        'AI response error: locate all response must contain an elements array',
+      ],
+      fatalError: true,
+    });
+  });
+
+  it('marks responses as fatal when every returned candidate fails to parse', async () => {
+    vi.mocked(callAIWithObjectResponse).mockResolvedValue({
+      content: {
+        elements: [{ bbox: [10, 20, Number.NaN, 40] }],
+      },
+      rawChoiceMessage: { role: 'assistant' },
+      contentString: '{}',
+    });
+
+    const result = await AiLocateAllElements({
+      context: createFakeContext(),
+      targetElementDescription: 'submit buttons',
+      modelRuntime: getModelRuntime(modelConfig),
+    });
+
+    expect(result.parseResult.elements).toEqual([]);
+    expect(result.parseResult.errors).toEqual([
+      expect.stringMatching(/Failed to parse locate result #1/),
+      'AI response error: failed to parse every locate all element',
+    ]);
+    expect(result.parseResult.fatalError).toBe(true);
   });
 });

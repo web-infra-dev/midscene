@@ -413,7 +413,6 @@ describe('player action dispatch ordering', () => {
         flow: [
           {
             aiLocateAll: 'all delete buttons',
-            cacheable: false,
             name: 'buttons',
           },
         ],
@@ -424,9 +423,7 @@ describe('player action dispatch ordering', () => {
 
       await player.playTask(taskStatus, agent);
 
-      expect(agent.aiLocateAll).toHaveBeenCalledWith('all delete buttons', {
-        cacheable: false,
-      });
+      expect(agent.aiLocateAll).toHaveBeenCalledWith('all delete buttons', {});
       expect(player.result.buttons).toBe(locateAllResult);
     });
 

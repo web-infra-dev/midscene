@@ -154,6 +154,7 @@ export type TaskTitleType =
   | 'Assert'
   | 'WaitFor'
   | 'Locate'
+  | 'LocateAll'
   | 'Markdown'
   | 'Boolean'
   | 'Number'

@@ -973,7 +973,7 @@ function aiLocateAll(
 - 参数：
 
   - `locate: string | object` - 所有目标元素共用的自然语言描述，或[使用图片作为提示词](#使用图片作为提示词)。
-  - `options?: object` - 可选配置对象。支持 `uiContext` 和图片提示词相关配置。`xpath`、定位缓存、`deepLocate` 等单元素定位优化不会应用到 `aiLocateAll()`。
+  - `options?: object` - 可选配置对象。支持 `uiContext` 和图片提示词相关配置。`xpath`、定位缓存、`deepLocate` 等单元素定位优化不会应用到 `aiLocateAll()`；传入这些选项会抛错。
 
 - 返回值：
 
