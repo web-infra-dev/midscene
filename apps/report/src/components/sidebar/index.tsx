@@ -534,9 +534,15 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
   const totalTimeTooltip = useMemo(() => {
     if (!timingRange) return null;
     return (
-      <div>
-        <div>Start: {fullTimeStrWithMilliseconds(timingRange.earliest)}</div>
-        <div>End: {fullTimeStrWithMilliseconds(timingRange.latest)}</div>
+      <div className="total-time-tooltip-content">
+        <span className="total-time-tooltip-label">Start</span>
+        <span className="total-time-tooltip-value">
+          {fullTimeStrWithMilliseconds(timingRange.earliest)}
+        </span>
+        <span className="total-time-tooltip-label">End</span>
+        <span className="total-time-tooltip-value">
+          {fullTimeStrWithMilliseconds(timingRange.latest)}
+        </span>
       </div>
     );
   }, [timingRange]);
