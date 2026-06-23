@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>AI Act File Upload</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 32px;
+    }
+
+    #upload-button {
+      background: #1264a3;
+      border: 0;
+      color: #fff;
+      cursor: pointer;
+      padding: 10px 16px;
+    }
+
+    #selected-file-name {
+      margin-top: 16px;
+    }
+  </style>
+</head>
+<body>
+  <h1>AI Act File Upload</h1>
+  <input id="file-input" type="file" style="display: none;">
+  <button id="upload-button" type="button">Upload document</button>
+  <div id="selected-file-name">No file selected</div>
+
+  <script>
+    const fileInput = document.getElementById('file-input');
+    const uploadButton = document.getElementById('upload-button');
+    const selectedFileName = document.getElementById('selected-file-name');
+
+    uploadButton.addEventListener('click', () => {
+      fileInput.click();
+    });
+
+    fileInput.addEventListener('change', () => {
+      selectedFileName.textContent = fileInput.files[0]
+        ? fileInput.files[0].name
+        : 'No file selected';
+    });
+  </script>
+</body>
+</html>
