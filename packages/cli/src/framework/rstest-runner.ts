@@ -116,8 +116,8 @@ const mapRunErrorsToCases = (
   const matchFileCases = (
     file: TestRunResult['files'][number],
   ): GeneratedYamlTestCase[] => {
-    const fileKeys = [file.name, file.testPath].filter(
-      (key): key is string => Boolean(key),
+    const fileKeys = [file.name, file.testPath].filter((key): key is string =>
+      Boolean(key),
     );
     for (const key of fileKeys) {
       const matched = byTestModule.get(key);
