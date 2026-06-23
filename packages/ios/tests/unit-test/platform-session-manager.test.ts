@@ -37,8 +37,8 @@ describe('iosPlaygroundPlatform session manager', () => {
 
   test('returns WDA setup fields and creates a connected session', async () => {
     const { iosPlaygroundPlatform } = await import('../../src/platform');
-    const prepared = await iosPlaygroundPlatform.prepare();
-    const setup = await prepared.sessionManager?.getSetupSchema();
+    const prepared = await iosPlaygroundPlatform.prepare({});
+    const setup = await prepared.sessionManager!.getSetupSchema!();
 
     expect(setup?.fields).toMatchObject([
       { key: 'host', defaultValue: 'localhost' },
@@ -67,7 +67,7 @@ describe('iosPlaygroundPlatform session manager', () => {
 
   test('reuses the agent factory for follow-up playground sessions', async () => {
     const { iosPlaygroundPlatform } = await import('../../src/platform');
-    const prepared = await iosPlaygroundPlatform.prepare();
+    const prepared = await iosPlaygroundPlatform.prepare({});
     const created = await prepared.sessionManager?.createSession({
       host: 'https://wda.example.com',
       port: '8300',

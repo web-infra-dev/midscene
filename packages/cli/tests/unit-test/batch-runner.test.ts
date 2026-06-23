@@ -6,6 +6,7 @@ import {
   statSync,
   writeFileSync,
 } from 'node:fs';
+import path from 'node:path';
 import { BatchRunner } from '@/batch-runner';
 import { createYamlPlayer } from '@/create-yaml-player';
 import type {
@@ -61,7 +62,18 @@ vi.mock('@midscene/web/puppeteer-agent-launcher', async (importOriginal) => {
     await importOriginal<
       typeof import('@midscene/web/puppeteer-agent-launcher')
     >();
-  return { ...original };
+  return {
+    ...original,
+    buildDownloadBehavior: (downloadPath: string | undefined) =>
+      downloadPath
+        ? {
+            policy: 'allow',
+            downloadPath: downloadPath.startsWith('/')
+              ? downloadPath
+              : `${process.cwd()}/${downloadPath.replace(/^\.\//, '')}`,
+          }
+        : undefined,
+  };
 });
 vi.mock('@midscene/web/bridge-mode');
 vi.mock('@midscene/android');
@@ -213,6 +225,30 @@ describe('BatchRunner', () => {
       expect(launchCall).toHaveProperty('acceptInsecureCerts', true);
     });
 
+    test('should pass downloadPath to Puppeteer launch options when shareBrowserContext is true', async () => {
+      const config = {
+        ...mockBatchConfig,
+        shareBrowserContext: true,
+        files: ['web1.yml'],
+        globalConfig: {
+          web: {
+            url: 'http://example.com',
+            downloadPath: './downloads',
+          },
+        },
+      };
+      const runner = new BatchRunner(config);
+      await runner.run();
+
+      expect(puppeteer.launch).toHaveBeenCalledTimes(1);
+
+      const launchCall = vi.mocked(puppeteer.launch).mock.calls[0][0];
+      expect(launchCall).toHaveProperty('downloadBehavior', {
+        policy: 'allow',
+        downloadPath: path.resolve('./downloads'),
+      });
+    });
+
     test('should not create a shared browser instance when shareBrowserContext is false', async () => {
       const config = {
         ...mockBatchConfig,
@@ -273,9 +309,36 @@ describe('BatchRunner', () => {
       expect(puppeteer.connect).toHaveBeenCalledWith({
         browserWSEndpoint: 'ws://localhost:9222/devtools/browser/xxx',
         defaultViewport: null,
+        downloadBehavior: undefined,
       });
       // Should NOT call launch
       expect(puppeteer.launch).not.toHaveBeenCalled();
+    });
+
+    test('should pass downloadPath to Puppeteer connect options when shareBrowserContext uses CDP', async () => {
+      const config = {
+        ...mockBatchConfig,
+        shareBrowserContext: true,
+        files: ['web1.yml'],
+        globalConfig: {
+          web: {
+            url: 'http://example.com',
+            cdpEndpoint: 'ws://localhost:9222/devtools/browser/xxx',
+            downloadPath: './downloads',
+          },
+        },
+      };
+      const runner = new BatchRunner(config);
+      await runner.run();
+
+      expect(puppeteer.connect).toHaveBeenCalledWith({
+        browserWSEndpoint: 'ws://localhost:9222/devtools/browser/xxx',
+        defaultViewport: null,
+        downloadBehavior: {
+          policy: 'allow',
+          downloadPath: path.resolve('./downloads'),
+        },
+      });
     });
 
     test('should disconnect (not close) browser in CDP mode', async () => {

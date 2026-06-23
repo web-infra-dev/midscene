@@ -1,6 +1,6 @@
 import { createReportCliCommands } from '@midscene/core';
 import { reportCLIError, runToolsCLI } from '@midscene/shared/cli';
-import { AndroidMidsceneTools } from './mcp-tools';
+import { AndroidMidsceneTools } from './agent-tools';
 
 declare const __VERSION__: string;
 const tools = new AndroidMidsceneTools();

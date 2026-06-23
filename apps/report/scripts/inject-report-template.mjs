@@ -3,14 +3,17 @@ import assert from 'node:assert';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import {
+  buildReportTemplateInjection,
+  isReportTemplateInjectableFile,
+  reportTemplateMagicString,
+  reportTemplateReplacedMark,
+  reportTemplateReplacementRegExp,
+} from '../../../scripts/report-template-utils.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const reportRoot = path.resolve(__dirname, '..');
 const repoRoot = path.resolve(reportRoot, '..', '..');
-
-const magicString = 'REPLACE_ME_WITH_REPORT_HTML';
-const replacedMark = '/*REPORT_HTML_REPLACED*/';
-const regExpForReplace = /\/\*REPORT_HTML_REPLACED\*\/.*/;
 
 const srcPath = path.join(reportRoot, 'dist', 'index.html');
 if (!fs.existsSync(srcPath)) {
@@ -19,14 +22,13 @@ if (!fs.existsSync(srcPath)) {
   );
 }
 
-const tplFileContent = fs
-  .readFileSync(srcPath, 'utf-8')
-  .replaceAll(magicString, '');
+const { sanitizedTplFileContent, finalContent } = buildReportTemplateInjection(
+  fs.readFileSync(srcPath, 'utf-8'),
+);
 assert(
-  !tplFileContent.includes(magicString),
+  !sanitizedTplFileContent.includes(reportTemplateMagicString),
   'magic string should not be in the template file',
 );
-const finalContent = `${replacedMark}${JSON.stringify(tplFileContent)}`;
 
 const corePkgDir = path.join(repoRoot, 'packages', 'core');
 const corePkgJson = JSON.parse(
@@ -41,34 +43,31 @@ const corePkgDistDir = path.join(corePkgDir, 'dist');
 const jsFiles = fs.readdirSync(corePkgDistDir, { recursive: true });
 let replacedCount = 0;
 for (const file of jsFiles) {
-  if (
-    typeof file === 'string' &&
-    (file.endsWith('.js') || file.endsWith('.mjs'))
-  ) {
+  if (isReportTemplateInjectableFile(file)) {
     const filePath = path.join(corePkgDistDir, file);
     const fileContent = fs.readFileSync(filePath, 'utf-8');
-    if (fileContent.includes(replacedMark)) {
+    if (fileContent.includes(reportTemplateReplacedMark)) {
       assert(
-        regExpForReplace.test(fileContent),
+        reportTemplateReplacementRegExp.test(fileContent),
         'a replaced mark is found but cannot match',
       );
       const replacedContent = fileContent.replace(
-        regExpForReplace,
+        reportTemplateReplacementRegExp,
         () => finalContent,
       );
       fs.writeFileSync(filePath, replacedContent);
       replacedCount++;
       console.log(`Template updated in file ${filePath}`);
-    } else if (fileContent.includes(magicString)) {
+    } else if (fileContent.includes(reportTemplateMagicString)) {
       const magicStringCount = (
-        fileContent.match(new RegExp(magicString, 'g')) || []
+        fileContent.match(new RegExp(reportTemplateMagicString, 'g')) || []
       ).length;
       assert(
         magicStringCount === 1,
         'magic string shows more than once in the file, cannot process',
       );
       const replacedContent = fileContent.replace(
-        `'${magicString}'`,
+        `'${reportTemplateMagicString}'`,
         () => finalContent,
       );
       fs.writeFileSync(filePath, replacedContent);

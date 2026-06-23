@@ -22,6 +22,19 @@ const agent = await agentForRDPComputer({
 });
 ```
 
+When the machine running Midscene has multiple outbound routes, pass
+`localAddress` to bind the RDP TCP connection to a specific local source IP:
+
+```ts
+const agent = await agentForRDPComputer({
+  host: '10.0.0.10',
+  username: 'Admin',
+  password: 'secret',
+  localAddress: '10.0.0.20',
+  ignoreCertificate: true,
+});
+```
+
 RDP usage requires:
 
 - a reachable Windows machine with RDP enabled

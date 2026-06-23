@@ -32,7 +32,7 @@ function generateNReports(
       dumpString: content,
     });
     t.append({
-      reportFilePath: reportPath,
+      reportFilePath: reportPath!,
       reportAttributes: {
         testDescription: `desc${i}`,
         testDuration: 1,
@@ -44,6 +44,13 @@ function generateNReports(
   }
   return expectedContents;
 }
+
+const getReportInfos = (tool: ReportMergingTool) =>
+  (
+    tool as unknown as {
+      reportInfos: Array<{ reportFilePath: string }>;
+    }
+  ).reportInfos;
 
 describe('reportMergingTool', () => {
   it('should merge 3 mocked reports', async () => {
@@ -83,7 +90,7 @@ describe('reportMergingTool', () => {
       expect(mergedReportContent).contains(content);
     });
     // assert source report files deleted successfully
-    tool.reportInfos.forEach((el: any) => {
+    getReportInfos(tool).forEach((el) => {
       expect(existsSync(el.reportFilePath)).toBe(false);
     });
   });
@@ -172,7 +179,7 @@ describe('reportMergingTool', () => {
         expect(mergedReportPath).not.toBeNull();
         expect(existsSync(mergedReportPath!)).toBe(true);
         // assert source report files deleted successfully
-        tool.reportInfos.forEach((el: any) => {
+        getReportInfos(tool).forEach((el) => {
           expect(existsSync(el.reportFilePath)).toBe(false);
         });
       } finally {

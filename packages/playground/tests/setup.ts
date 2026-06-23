@@ -22,20 +22,26 @@ vi.mock('@midscene/shared/img/get-photon', () => ({
   default: vi.fn(),
 }));
 
-vi.mock('@midscene/shared/env', () => ({
-  overrideAIConfig: vi.fn(),
-  resetAIConfig: vi.fn(),
-  globalModelConfigManager: {
-    getModelConfig: vi.fn(() => ({
-      modelName: 'mock-model',
-    })),
-  },
-  globalConfigManager: {
-    get: vi.fn(() => ({})),
-    set: vi.fn(),
-    reset: vi.fn(),
-  },
-}));
+vi.mock('@midscene/shared/env', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@midscene/shared/env')>();
+  return {
+    ...actual,
+    overrideAIConfig: vi.fn(),
+    resetAIConfig: vi.fn(),
+    globalModelConfigManager: {
+      ...actual.globalModelConfigManager,
+      getModelConfig: vi.fn(() => ({
+        modelName: 'mock-model',
+      })),
+    },
+    globalConfigManager: {
+      ...actual.globalConfigManager,
+      get: vi.fn(() => ({})),
+      set: vi.fn(),
+      reset: vi.fn(),
+    },
+  };
+});
 
 // Mock findAllMidsceneLocatorField to detect locator fields in schema
 vi.mock('@midscene/core/ai-model', async (importOriginal) => {
@@ -65,6 +71,8 @@ vi.mock('@midscene/core/agent', async (importOriginal) => {
   return {
     ...actual,
     Agent: class MockAgent {
+      device: any;
+
       constructor(device: any) {
         this.device = device;
       }
@@ -79,8 +87,8 @@ vi.mock('@midscene/core/agent', async (importOriginal) => {
         return ['mock', 'query', 'result'];
       }
 
-      async aiAct(prompt: string) {
-        console.log(`Mock AI Action: ${prompt}`);
+      async aiAct(prompt: unknown) {
+        console.log(`Mock AI Action: ${JSON.stringify(prompt)}`);
         return 'Mock action completed';
       }
     },
@@ -92,6 +100,7 @@ vi.mock('express', () => {
     use: vi.fn(),
     get: vi.fn(),
     post: vi.fn(),
+    options: vi.fn(),
     delete: vi.fn(),
     listen: vi.fn((...args: any[]) => {
       const callback = args.find((a: any) => typeof a === 'function');
@@ -105,6 +114,7 @@ vi.mock('express', () => {
   });
   mockExpress.static = vi.fn();
   mockExpress.json = vi.fn(() => (req: any, res: any, next: any) => next());
+  mockExpress.text = vi.fn(() => (req: any, res: any, next: any) => next());
   return { default: mockExpress };
 });
 

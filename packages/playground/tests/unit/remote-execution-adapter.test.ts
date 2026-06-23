@@ -28,8 +28,8 @@ describe('RemoteExecutionAdapter', () => {
   });
 
   describe('constructor', () => {
-    it('should use default port when no serverUrl provided', () => {
-      const defaultAdapter = new RemoteExecutionAdapter();
+    it('should construct without a configured serverUrl', () => {
+      const defaultAdapter = new RemoteExecutionAdapter('');
       expect(defaultAdapter).toBeDefined();
     });
 
@@ -148,7 +148,7 @@ describe('RemoteExecutionAdapter', () => {
     });
 
     it('should throw error when no server URL provided', async () => {
-      const adapterNoUrl = new RemoteExecutionAdapter();
+      const adapterNoUrl = new RemoteExecutionAdapter('');
       (adapterNoUrl as any).serverUrl = undefined;
 
       const value: FormValue = { type: 'click', prompt: 'click button' };
@@ -283,7 +283,7 @@ describe('RemoteExecutionAdapter', () => {
     });
 
     it('should return false when no server URL', async () => {
-      const adapterNoUrl = new RemoteExecutionAdapter();
+      const adapterNoUrl = new RemoteExecutionAdapter('');
       (adapterNoUrl as any).serverUrl = undefined;
 
       const result = await adapterNoUrl.checkStatus();
@@ -325,7 +325,7 @@ describe('RemoteExecutionAdapter', () => {
     });
 
     it('should throw error when no server URL', async () => {
-      const adapterNoUrl = new RemoteExecutionAdapter();
+      const adapterNoUrl = new RemoteExecutionAdapter('');
       (adapterNoUrl as any).serverUrl = undefined;
 
       const aiConfig = { model: 'test' };
@@ -408,7 +408,7 @@ describe('RemoteExecutionAdapter', () => {
     });
 
     it('should return undefined tip when no server URL', async () => {
-      const adapterNoUrl = new RemoteExecutionAdapter();
+      const adapterNoUrl = new RemoteExecutionAdapter('');
       (adapterNoUrl as any).serverUrl = undefined;
 
       const result = await adapterNoUrl.getTaskProgress('req-123');
@@ -466,7 +466,7 @@ describe('RemoteExecutionAdapter', () => {
     });
 
     it('should return error when no server URL', async () => {
-      const adapterNoUrl = new RemoteExecutionAdapter();
+      const adapterNoUrl = new RemoteExecutionAdapter('');
       (adapterNoUrl as any).serverUrl = undefined;
 
       const result = await adapterNoUrl.cancelTask('req-123');

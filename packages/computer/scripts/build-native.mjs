@@ -72,6 +72,42 @@ function buildPhasedScroll() {
   console.log(`[build:native] Built ${path.relative(packageRoot, outputPath)}`);
 }
 
+function buildDisplayInfo() {
+  if (process.platform !== 'darwin') {
+    console.warn(
+      `[build:native] Skipping display-info build on unsupported platform ${process.platform}`,
+    );
+    return;
+  }
+
+  const outputDir = path.join(packageRoot, 'bin', 'darwin');
+  const outputPath = path.join(outputDir, 'display-info');
+  mkdirSync(outputDir, { recursive: true });
+
+  run('clang', [
+    '-O2',
+    '-arch',
+    'arm64',
+    '-arch',
+    'x86_64',
+    '-framework',
+    'ApplicationServices',
+    '-framework',
+    'CoreGraphics',
+    '-o',
+    outputPath,
+    path.join(packageRoot, 'native', 'display-info.m'),
+  ]);
+
+  if (!existsSync(outputPath)) {
+    throw new Error(
+      `Expected display-info helper at ${path.relative(packageRoot, outputPath)}`,
+    );
+  }
+
+  console.log(`[build:native] Built ${path.relative(packageRoot, outputPath)}`);
+}
+
 function buildRdpHelper() {
   const target = rdpPlatformTargets[process.platform];
   if (!target) {
@@ -123,6 +159,7 @@ function buildRdpHelper() {
 try {
   mkdirSync(buildRoot, { recursive: true });
   buildPhasedScroll();
+  buildDisplayInfo();
   buildRdpHelper();
 } catch (error) {
   console.error(

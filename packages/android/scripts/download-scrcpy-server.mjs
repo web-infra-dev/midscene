@@ -1,8 +1,9 @@
 #!/usr/bin/env node
-import { Buffer } from 'node:buffer';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { getDownloadMaxRetries, retryDownload } from './download-retry.mjs';
+import { downloadGitHubReleaseAssetWithApiFallback } from './github-release-asset.mjs';
 import { createLoggedProxyDispatcher } from './proxy-dispatcher.mjs';
 
 const scriptPath = fileURLToPath(import.meta.url);
@@ -73,18 +74,17 @@ export async function downloadScrcpyServerReleaseAsset({
   version = SCRCPY_VERSION,
   dispatcher,
 }) {
-  const response = await fetchImpl(getScrcpyServerDownloadUrl(version), {
-    ...(dispatcher ? { dispatcher } : {}),
+  await downloadGitHubReleaseAssetWithApiFallback({
+    assetName: `scrcpy-server-${version}`,
+    destinationPath,
+    directUrl: getScrcpyServerDownloadUrl(version),
+    dispatcher,
+    fetchImpl,
+    fsApi,
+    owner: 'Genymobile',
+    repo: 'scrcpy',
+    version,
   });
-
-  if (!response.ok) {
-    throw new Error(
-      `Response code ${response.status} (${response.statusText})`,
-    );
-  }
-
-  const arrayBuffer = await response.arrayBuffer();
-  await fsApi.writeFile(destinationPath, Buffer.from(arrayBuffer));
 }
 
 export async function main() {
@@ -143,29 +143,24 @@ export async function main() {
 
   await fs.mkdir(binDir, { recursive: true });
 
-  const maxRetries = 3;
+  const maxRetries = getDownloadMaxRetries();
   const downloadedFile = path.join(binDir, `scrcpy-server-${SCRCPY_VERSION}`);
   await fs.rm(downloadedFile, { force: true });
   const dispatcher = createLoggedProxyDispatcher({
     logPrefix: 'scrcpy',
   });
 
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    try {
+  await retryDownload({
+    label: 'scrcpy',
+    maxRetries,
+    download: async () => {
       await downloadScrcpyServerReleaseAsset({
         destinationPath: downloadedFile,
         dispatcher,
         version: SCRCPY_VERSION,
       });
-      break;
-    } catch (err) {
-      if (attempt === maxRetries) throw err;
-      console.log(
-        `[scrcpy] Download attempt ${attempt} failed: ${err.message}, retrying in ${attempt * 2}s...`,
-      );
-      await new Promise((r) => setTimeout(r, attempt * 2000));
-    }
-  }
+    },
+  });
 
   await installDownloadedScrcpyServer({
     serverBinPath,

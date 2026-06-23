@@ -6,6 +6,11 @@ import { describe, expect, it, vi } from 'vitest';
 import MainContent from '../src/renderer/components/MainContent';
 import { StudioPlaygroundContext } from '../src/renderer/playground/useStudioPlayground';
 
+type ReadyStudioPlaygroundContextValue = Extract<
+  StudioPlaygroundContextValue,
+  { phase: 'ready' }
+>;
+
 vi.mock('@midscene/playground-app', () => ({
   // Real PlaygroundPreview pulls in a WASM helper through visualizer; the
   // tests only care that MainContent threads the connecting overlay
@@ -14,7 +19,7 @@ vi.mock('@midscene/playground-app', () => ({
     connectingOverlay ?? null,
 }));
 
-function createReadyContextValue(): StudioPlaygroundContextValue {
+function createReadyContextValue(): ReadyStudioPlaygroundContextValue {
   return {
     phase: 'ready',
     serverUrl: 'http://127.0.0.1:5800',
@@ -60,7 +65,7 @@ function createReadyContextValue(): StudioPlaygroundContextValue {
   };
 }
 
-function createConnectedWebContextValue(): StudioPlaygroundContextValue {
+function createConnectedWebContextValue(): ReadyStudioPlaygroundContextValue {
   const context = createReadyContextValue();
   context.controller.state = {
     ...context.controller.state,
@@ -95,7 +100,7 @@ function createConnectedWebContextValue(): StudioPlaygroundContextValue {
   return context;
 }
 
-function createDisconnectedWebContextValue(): StudioPlaygroundContextValue {
+function createDisconnectedWebContextValue(): ReadyStudioPlaygroundContextValue {
   const context = createReadyContextValue();
   context.controller.state = {
     ...context.controller.state,
@@ -111,7 +116,7 @@ function createDisconnectedWebContextValue(): StudioPlaygroundContextValue {
   return context;
 }
 
-function createOpeningWebContextValue(): StudioPlaygroundContextValue {
+function createOpeningWebContextValue(): ReadyStudioPlaygroundContextValue {
   const context = createDisconnectedWebContextValue();
   context.controller.state = {
     ...context.controller.state,
@@ -120,7 +125,7 @@ function createOpeningWebContextValue(): StudioPlaygroundContextValue {
   return context;
 }
 
-function createOpeningComputerWithStaleAndroidContextValue(): StudioPlaygroundContextValue {
+function createOpeningComputerWithStaleAndroidContextValue(): ReadyStudioPlaygroundContextValue {
   const context = createReadyContextValue();
   context.controller.state = {
     ...context.controller.state,
@@ -137,7 +142,7 @@ function createOpeningComputerWithStaleAndroidContextValue(): StudioPlaygroundCo
   return context;
 }
 
-function createConnectedComputerContextValue(): StudioPlaygroundContextValue {
+function createConnectedComputerContextValue(): ReadyStudioPlaygroundContextValue {
   const context = createReadyContextValue();
   context.controller.state = {
     ...context.controller.state,
@@ -251,6 +256,31 @@ describe('MainContent overview', () => {
     );
 
     expect(html).toContain('ADB not detected');
+  });
+
+  it('replaces the HarmonyOS empty state with an hdc-missing hint when discovery reports a toolchain error', () => {
+    const baseContext = createReadyContextValue();
+    if (baseContext.phase !== 'ready') {
+      throw new Error('expected ready context');
+    }
+    const context: StudioPlaygroundContextValue = {
+      ...baseContext,
+      discoveryErrors: {
+        harmony: { platformId: 'harmony', kind: 'toolchain-missing' },
+      },
+    };
+
+    const html = renderToStaticMarkup(
+      createElement(
+        StudioPlaygroundContext.Provider,
+        { value: context },
+        createElement(MainContent, {
+          activeView: 'overview',
+        }),
+      ),
+    );
+
+    expect(html).toContain('HDC not detected');
   });
 
   it('keeps the disconnect control out of the window drag region', () => {

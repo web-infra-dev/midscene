@@ -75,7 +75,7 @@ describe('harmonyPlaygroundPlatform', () => {
       staticDir: '/tmp/harmony-static',
       deferConnection: true,
     });
-    const setup = await prepared.sessionManager?.getSetupSchema();
+    const setup = await prepared.sessionManager!.getSetupSchema!();
 
     expect(prepared.metadata).toMatchObject({
       sessionConnected: false,
@@ -107,7 +107,7 @@ describe('harmonyPlaygroundPlatform', () => {
       deferConnection: true,
     });
 
-    const setup = await prepared.sessionManager?.getSetupSchema();
+    const setup = await prepared.sessionManager!.getSetupSchema!();
 
     expect(setup?.targets).toEqual([]);
     expect(setup?.autoSubmitWhenReady).toBe(false);
@@ -126,7 +126,7 @@ describe('harmonyPlaygroundPlatform', () => {
       deferConnection: true,
     });
 
-    const setup = await prepared.sessionManager?.getSetupSchema();
+    const setup = await prepared.sessionManager!.getSetupSchema!();
 
     expect(setup?.targets).toEqual([]);
     expect(setup?.autoSubmitWhenReady).toBe(false);
@@ -142,7 +142,7 @@ describe('harmonyPlaygroundPlatform', () => {
 
     const { harmonyPlaygroundPlatform } = await import('../../src/platform');
 
-    await expect(harmonyPlaygroundPlatform.prepare()).rejects.toThrow(
+    await expect(harmonyPlaygroundPlatform.prepare({})).rejects.toThrow(
       'No HarmonyOS devices found',
     );
   });

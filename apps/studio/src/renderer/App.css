@@ -17,6 +17,7 @@
   --color-surface-active: var(--midscene-surface-active);
   --color-border-subtle: var(--midscene-border-subtle);
   --color-border-strong: var(--midscene-border-strong);
+  --color-border-control: var(--midscene-border-control);
   --color-divider: var(--midscene-divider);
   --color-text-primary: var(--midscene-text-primary);
   --color-text-secondary: var(--midscene-text-secondary);
@@ -45,6 +46,7 @@
   --midscene-surface-active: rgba(0, 0, 0, 0.1);
   --midscene-border-subtle: #ececec;
   --midscene-border-strong: #e9ecf3;
+  --midscene-border-control: #e9ecf3;
   --midscene-divider: rgba(0, 0, 0, 0.08);
   --midscene-text-primary: #0d0d0d;
   --midscene-text-secondary: #474848;
@@ -73,6 +75,7 @@
   --midscene-surface-active: rgba(255, 255, 255, 0.15);
   --midscene-border-subtle: #2e2e2e;
   --midscene-border-strong: rgba(255, 255, 255, 0.08);
+  --midscene-border-control: #454545;
   --midscene-divider: rgba(255, 255, 255, 0.08);
   --midscene-text-primary: #ffffff;
   --midscene-text-secondary: #d0d0d1;

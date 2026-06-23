@@ -95,6 +95,16 @@ function getTouchInput(input: InputPrimitives): TouchInputPrimitives {
   return input.touch;
 }
 
+function getScrollInput(input: InputPrimitives) {
+  if (!input.scroll) {
+    throw new PointerInputError(
+      'Scroll input is not supported on this device',
+      404,
+    );
+  }
+  return input.scroll;
+}
+
 /**
  * Translate an `/interact` request body into device input primitive calls.
  *
@@ -197,6 +207,49 @@ export async function dispatchPointer(
         autoDismissKeyboard,
         target,
         replace: mode !== 'typeOnly',
+      });
+    }
+
+    case 'Scroll': {
+      const scroll = getScrollInput(input);
+      const x =
+        typeof body.x === 'number' ? requireNumber(body.x, 'x') : undefined;
+      const y =
+        typeof body.y === 'number' ? requireNumber(body.y, 'y') : undefined;
+      const direction =
+        body.direction === 'up' ||
+        body.direction === 'down' ||
+        body.direction === 'left' ||
+        body.direction === 'right'
+          ? body.direction
+          : 'down';
+      const scrollType =
+        body.scrollType === 'scrollToBottom' ||
+        body.scrollType === 'scrollToTop' ||
+        body.scrollType === 'scrollToLeft' ||
+        body.scrollType === 'scrollToRight' ||
+        body.scrollType === 'singleAction'
+          ? body.scrollType
+          : 'singleAction';
+      const distance =
+        typeof body.distance === 'number'
+          ? requireNumber(body.distance, 'distance')
+          : undefined;
+      return ensureCapability(
+        scroll.scroll,
+        'Scroll',
+      )({
+        direction,
+        scrollType,
+        distance,
+        locate:
+          x !== undefined && y !== undefined
+            ? {
+                center: [x, y],
+                rect: { left: x, top: y, width: 1, height: 1 },
+                description: 'manual scroll target',
+              }
+            : undefined,
       });
     }
 

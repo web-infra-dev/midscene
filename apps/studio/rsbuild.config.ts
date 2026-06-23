@@ -20,6 +20,9 @@ import {
 const rendererAssetPrefix = './';
 
 export default defineConfig({
+  source: {
+    tsconfigPath: 'tsconfig.build.json',
+  },
   tools: {
     rspack: {
       ignoreWarnings: commonIgnoreWarnings,
@@ -81,6 +84,10 @@ export default defineConfig({
         __dirname,
         '../../packages/visualizer/src/index.tsx',
       ),
+      '@midscene/visualizer/history-selector$': path.join(
+        __dirname,
+        '../../packages/visualizer/src/component/history-selector/index.tsx',
+      ),
       '@midscene/web/static$': path.join(
         __dirname,
         '../../packages/web-integration/src/static/index.ts',
@@ -96,7 +103,7 @@ export default defineConfig({
   environments: {
     renderer: {
       html: {
-        title: 'Midscene Studio',
+        title: 'Midscene Studio Beta',
       },
       source: {
         entry: {
@@ -146,6 +153,7 @@ export default defineConfig({
           '@midscene/harmony',
           '@midscene/ios',
           '@midscene/playground',
+          '@midscene/playground/recorder-ui-describer',
         ],
         sourceMap: true,
       },

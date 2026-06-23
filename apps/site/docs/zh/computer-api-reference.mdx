@@ -101,6 +101,8 @@ const agent = await agentForRDPComputer({
   port: 3389,
   username: 'Admin',
   password: 'replace-with-your-password',
+  // 可选：把 TCP 连接绑定到这个本地源 IP。
+  localAddress: '10.75.166.10',
   ignoreCertificate: true,
 });
 
@@ -112,6 +114,9 @@ await agent.aiAct('Open Settings');
 :::tip 示例：通过 RDP 控制远程 Windows 桌面
 一个可直接运行的 Demo：连接远程 Windows，打开「设置」并进入「Windows 更新」，最后输出一份结构化报告：[https://github.com/web-infra-dev/midscene-example/tree/main/computer/rdp-demo](https://github.com/web-infra-dev/midscene-example/tree/main/computer/rdp-demo)
 :::
+
+当运行 Midscene 的机器存在多条出站路由，且 RDP 服务器要求从指定本地源
+IP 访问时，可以使用 `localAddress`。这里传入的是 IP 地址，不是网卡名。
 
 ## 设备管理
 
@@ -181,6 +186,12 @@ if (!env.available) {
 - `aiLocate(description: string)`：定位元素
 - 更多...
 
+定位元素后，还可以使用即时操作（Instant Action）进行直接、确定性的控制：
+
+- `aiTap()`、`aiDoubleClick()`、`aiRightClick()`、`aiHover()`：鼠标操作
+- `aiInput()`、`aiClearInput()`、`aiKeyboardPress()`：键盘操作
+- `aiScroll()`：滚动操作
+
 详见 [通用 API 参考](./api)。
 
 ## 可用操作
@@ -215,12 +226,16 @@ await agent.aiAct('右键点击桌面');
 await agent.aiAct('右键点击文件');
 ```
 
-#### MouseMove（移动鼠标）
+#### MouseMove（移动鼠标 / 悬停）
 
-移动鼠标到目标元素。
+将鼠标移动到目标元素上，也就是鼠标悬停（hover），例如用于触发悬停菜单或提示框。
 
 ```typescript
+// 自然语言形式（移动鼠标 / 悬停）
 await agent.aiAct('移动鼠标到菜单项');
+
+// 即时操作：一次调用完成定位并悬停
+await agent.aiHover('菜单项「Products」');
 ```
 
 #### DragAndDrop（拖放）

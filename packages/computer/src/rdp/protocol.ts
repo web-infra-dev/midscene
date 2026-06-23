@@ -11,6 +11,7 @@ export interface RDPConnectionConfig {
   username?: string;
   password?: string;
   domain?: string;
+  localAddress?: string;
   adminSession?: boolean;
   ignoreCertificate?: boolean;
   securityProtocol?: RDPSecurityProtocol;

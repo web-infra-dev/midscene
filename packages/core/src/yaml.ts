@@ -1,5 +1,9 @@
 import type { TMultimodalPrompt, TUserPrompt } from './common';
-import type { AndroidDeviceOpt, IOSDeviceOpt } from './device';
+import type {
+  AndroidDeviceOpt,
+  HarmonyDeviceOpt,
+  IOSDeviceOpt,
+} from './device';
 import type { AgentOpt, LocateResultElement, Rect } from './types';
 import type { UIContext } from './types';
 
@@ -54,6 +58,7 @@ export interface MidsceneYamlScript {
   web?: MidsceneYamlScriptWebEnv;
   android?: MidsceneYamlScriptAndroidEnv;
   ios?: MidsceneYamlScriptIOSEnv;
+  harmony?: MidsceneYamlScriptHarmonyEnv;
   computer?: MidsceneYamlScriptComputerEnv;
 
   interface?: MidsceneYamlScriptEnvGeneralInterface;
@@ -138,7 +143,40 @@ export interface MidsceneYamlScriptWebEnv
     continueOnNetworkIdleError?: boolean; // should continue if failed to wait for network idle, true for default
   };
   cookie?: string;
+
+  /**
+   * Extra HTTP headers sent with every request (Puppeteer only, not supported
+   * in bridge mode). Useful when the server validates custom request headers.
+   *
+   * Header values must be strings. Quote values that YAML would otherwise parse
+   * as a boolean or number (e.g. `true`, `false`, `123`), such as `"true"`.
+   *
+   * @example
+   * ```yaml
+   * web:
+   *   url: https://example.com
+   *   extraHTTPHeaders:
+   *     X-Custom-Token: my-token
+   *     Accept-Language: en-US
+   * ```
+   */
+  extraHTTPHeaders?: Record<string, string>;
+
   forceSameTabNavigation?: boolean; // if track the newly opened tab, true for default in yaml script
+
+  /**
+   * Chrome download directory (Puppeteer only, not supported in bridge mode).
+   *
+   * Relative paths are resolved from the current working directory.
+   *
+   * @example
+   * ```yaml
+   * web:
+   *   url: https://example.com
+   *   downloadPath: ./downloads
+   * ```
+   */
+  downloadPath?: string;
 
   /**
    * Custom Chrome launch arguments (Puppeteer only, not supported in bridge mode).
@@ -196,6 +234,19 @@ export interface MidsceneYamlScriptIOSEnv
   launch?: string;
 }
 
+export interface MidsceneYamlScriptHarmonyEnv
+  extends MidsceneYamlScriptConfig,
+    Omit<HarmonyDeviceOpt, 'customActions'> {
+  // The HarmonyOS device ID to connect to, optional, will use the first device if not specified
+  deviceId?: string;
+
+  // The app package to launch, optional, will use the current screen if not specified
+  launch?: string;
+
+  // Custom mapping of app names to bundle names, user-provided mappings take precedence over defaults
+  appNameMapping?: Record<string, string>;
+}
+
 export interface MidsceneYamlScriptComputerEnv
   extends MidsceneYamlScriptConfig {
   // The display ID to use, optional, will use the primary display if not specified
@@ -206,13 +257,15 @@ export type MidsceneYamlScriptEnv =
   | MidsceneYamlScriptWebEnv
   | MidsceneYamlScriptAndroidEnv
   | MidsceneYamlScriptIOSEnv
+  | MidsceneYamlScriptHarmonyEnv
   | MidsceneYamlScriptComputerEnv;
 
 export interface MidsceneYamlFlowItemAIAction {
   // defined as aiAction for backward compatibility
-  aiAction?: string;
-  ai?: string; // this is the shortcut for aiAct
-  aiAct?: string;
+  aiAction?: TUserPrompt | null;
+  ai?: TUserPrompt | null; // this is the shortcut for aiAct
+  aiAct?: TUserPrompt | null;
+  instruction?: TUserPrompt;
   aiActionProgressTips?: string[];
   cacheable?: boolean;
   [key: string]: unknown;
@@ -270,6 +323,13 @@ export type ScriptPlayerStatusValue = 'init' | 'running' | 'done' | 'error';
 export interface MidsceneYamlConfig {
   concurrent?: number;
   continueOnError?: boolean;
+  /**
+   * Number of times to retry a failed yaml file before marking it as failed.
+   * A value of 2 means each failing case is re-executed up to 2 extra times
+   * (3 attempts in total). Only the cases that failed in the previous attempt
+   * are retried. Defaults to 0 (no retry).
+   */
+  retry?: number;
   summary?: string;
   shareBrowserContext?: boolean;
   web?: MidsceneYamlScriptWebEnv;
@@ -287,12 +347,30 @@ export interface MidsceneYamlConfigOutput {
   path?: string;
 }
 
+export type MidsceneYamlConfigResultType =
+  | 'success'
+  | 'failed'
+  | 'partialFailed'
+  | 'notExecuted';
+
+export interface MidsceneYamlConfigAttempt {
+  attempt: number;
+  success: boolean;
+  output?: string | null;
+  report?: string | null;
+  error?: string;
+  duration?: number;
+  resultType?: MidsceneYamlConfigResultType;
+}
+
 export interface MidsceneYamlConfigResult {
   file: string;
   success: boolean;
   executed: boolean;
   output?: string | null;
   report?: string | null;
+  retryReport?: string | null;
+  attempts?: MidsceneYamlConfigAttempt[];
   error?: string;
   duration?: number;
   /**
@@ -302,5 +380,5 @@ export interface MidsceneYamlConfigResult {
    * - 'partialFailed': Some tasks failed but execution continued (continueOnError)
    * - 'notExecuted': Not executed due to previous failures
    */
-  resultType?: 'success' | 'failed' | 'partialFailed' | 'notExecuted';
+  resultType?: MidsceneYamlConfigResultType;
 }

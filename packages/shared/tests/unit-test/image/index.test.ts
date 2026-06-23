@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import {
+  compositePointMarkerImg,
   httpImg2Base64,
   imageInfoOfBase64,
   isValidPNGImageBuffer,
@@ -111,6 +112,23 @@ describe('image utils', () => {
     expect(resizedBase64).toContain(';base64,');
   });
 
+  it('compositePointMarkerImg keeps image dimensions and marks a point', async () => {
+    const image = getFixture('icon.png');
+    const base64 = localImg2Base64(image);
+
+    const markedBase64 = await compositePointMarkerImg({
+      inputImgBase64: base64,
+      point: { x: 20, y: 20 },
+    });
+
+    expect(markedBase64).toContain(';base64,');
+    expect(markedBase64).not.toBe(base64);
+
+    const originalInfo = await imageInfoOfBase64(base64);
+    const markedInfo = await imageInfoOfBase64(markedBase64);
+    expect(markedInfo).toEqual(originalInfo);
+  });
+
   it('paddingToMatchBlockByBase64', async () => {
     const image = getFixture('heytea.jpeg');
     const base64 = localImg2Base64(image);
@@ -127,49 +145,15 @@ describe('image utils', () => {
     // console.log('tmpFile', tmpFile);
   });
 
-  it('cropByRect, with padding', async () => {
+  it('cropByRect', async () => {
     const image = getFixture('heytea.jpeg');
     const base64 = localImg2Base64(image);
-    const croppedBase64 = await cropByRect(
-      base64,
-      {
-        left: 200,
-        top: 80,
-        width: 100,
-        height: 400,
-      },
-      true,
-    );
-
-    expect(croppedBase64).toBeTruthy();
-
-    const info = await imageInfoOfBase64(croppedBase64.imageBase64);
-    // biome-ignore lint/style/noUnusedTemplateLiteral: by intention
-    expect(info.width).toMatchInlineSnapshot(`112`);
-    // biome-ignore lint/style/noUnusedTemplateLiteral: by intention
-    expect(info.height).toMatchInlineSnapshot(`420`);
-
-    const tmpFile = join(tmpdir(), 'heytea-cropped.jpeg');
-    await saveBase64Image({
-      base64Data: croppedBase64.imageBase64,
-      outputPath: tmpFile,
+    const croppedBase64 = await cropByRect(base64, {
+      left: 200,
+      top: 80,
+      width: 100,
+      height: 400,
     });
-    console.log('cropped image saved to', tmpFile);
-  });
-
-  it('cropByRect, without padding', async () => {
-    const image = getFixture('heytea.jpeg');
-    const base64 = localImg2Base64(image);
-    const croppedBase64 = await cropByRect(
-      base64,
-      {
-        left: 200,
-        top: 80,
-        width: 100,
-        height: 400,
-      },
-      false,
-    );
 
     expect(croppedBase64).toBeTruthy();
 
@@ -285,6 +269,21 @@ describe('image utils', () => {
     const { mimeType, body } = parseBase64(base64);
     expect(mimeType).toBe('image/png');
     expect(body).toBe('iVBORw0KGgoAAAANSUhEUgAAAu4AAAU2CAYAAADK1zMG');
+  });
+
+  it('parseBase64 accepts raw jpeg base64 bodies', () => {
+    const base64 = '/9j/4AAQSkZJRgABAQAAAQABAAD/2w==';
+    const { mimeType, body } = parseBase64(base64);
+    expect(mimeType).toBe('image/jpeg');
+    expect(body).toBe(base64);
+  });
+
+  it('parseBase64 accepts raw png base64 bodies with wrapping', () => {
+    const base64 =
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAAB\r\nCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=';
+    const { mimeType, body } = parseBase64(base64);
+    expect(mimeType).toBe('image/png');
+    expect(body).toBe(base64.replace(/\s/g, ''));
   });
 
   it('parseBase64, invalid', () => {

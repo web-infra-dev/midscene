@@ -1,14 +1,15 @@
 {
   "name": "midscene",
   "private": true,
-  "version": "1.8.7",
+  "version": "1.9.8",
   "scripts": {
     "dev": "node scripts/dev-prepare.js && nx run-many --target=build:watch --exclude=android-playground,chrome-extension,@midscene/report,doc --verbose --parallel=6",
     "build": "nx run-many --target=build --exclude=doc --verbose",
     "build:packages": "pnpm -r --filter './packages/**' --if-present run build",
     "build:skip-cache": "npm run clean && nx run-many --target=build --exclude=doc --verbose --skip-nx-cache",
-    "test": "nx run-many --target=test --projects=@midscene/core,@midscene/shared,@midscene/visualizer,@midscene/web,@midscene/cli,@midscene/android,@midscene/ios,@midscene/computer,@midscene/android-mcp,@midscene/ios-mcp,@midscene/web-bridge-mcp,@midscene/playground,studio  --verbose",
-    "test:coverage": "nx run-many --target=test --projects=@midscene/core,@midscene/shared,@midscene/visualizer,@midscene/web,@midscene/cli,@midscene/android,@midscene/ios,@midscene/computer,@midscene/android-mcp,@midscene/ios-mcp,@midscene/web-bridge-mcp,@midscene/playground,studio --verbose -- --coverage",
+    "type-check:tests": "node scripts/type-check-tests.mjs",
+    "test": "nx run-many --target=test --verbose",
+    "test:coverage": "nx run-many --target=test --verbose -- --coverage",
     "test:ai": "nx run-many --target=test:ai --projects=@midscene/core,@midscene/web,@midscene/cli,@midscene/computer --verbose",
     "test:ai:coverage": "MIDSCENE_COVERAGE_DIR=coverage-ai nx run-many --target=test:ai --projects=@midscene/core,@midscene/web,@midscene/cli,@midscene/computer --verbose -- --coverage",
     "e2e": "nx run @midscene/web:e2e --verbose --exclude-task-dependencies",
@@ -68,6 +69,7 @@
     "pretty-quick": "3.1.3",
     "semver": "7.5.2",
     "rimraf": "~5.0.10",
-    "simple-git-hooks": "^2.13.1"
+    "simple-git-hooks": "^2.13.1",
+    "typescript": "^5.8.3"
   }
 }

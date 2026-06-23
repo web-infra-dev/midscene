@@ -168,18 +168,20 @@ function launch(target: string): Promise<void>;
 
 #### `agent.runAdbShell()`
 
-通过连接的设备运行原始的 `adb shell` 命令。
+通过连接的设备运行原始的 `adb shell` 命令。传入的内容只需要包含 shell 命令本身，不要包含 `adb shell` 前缀。
 
 ```ts
 function runAdbShell(command: string, opt?: { timeout?: number }): Promise<string>;
 ```
 
-- `command: string` —— 原样传递给 `adb shell` 的命令。
+- `command: string` —— 原样传递给 `adb shell` 的命令。例如要传 `input tap 100 200`，不要传 `adb shell input tap 100 200`。
 - `opt.timeout?: number` —— 可选的命令执行超时时间，单位为毫秒。
 
 ```ts
 const result = await agent.runAdbShell('dumpsys battery', { timeout: 60 * 1000 });
 console.log(result);
+
+await agent.runAdbShell('input tap 100 200');
 ```
 
 #### `agent.terminate()`

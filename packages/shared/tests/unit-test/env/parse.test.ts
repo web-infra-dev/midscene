@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { version } from '../../../package.json';
+import { DEFAULT_MODEL_CONFIG_KEYS } from '../../../src/env/constants';
 import {
   getUITarsModelVersion,
   legacyConfigToModelFamily,
+  parseOpenaiSdkConfig,
   validateModelFamily,
 } from '../../../src/env/parse-model-config';
 import { UITarsModelVersion } from '../../../src/env/types';
@@ -36,17 +38,22 @@ describe('getUITarsModelVersion', () => {
     expect(getUITarsModelVersion('gemini')).toBeUndefined();
     expect(getUITarsModelVersion('glm-v')).toBeUndefined();
     expect(getUITarsModelVersion('gpt-5')).toBeUndefined();
+    expect(getUITarsModelVersion('kimi')).toBeUndefined();
+    expect(getUITarsModelVersion('xiaomi-mimo')).toBeUndefined();
   });
 });
 
 describe('validateModelFamily', () => {
   it('should not throw on valid model families', () => {
     expect(() => validateModelFamily('qwen3-vl')).not.toThrow();
+    expect(() => validateModelFamily('qwen3')).not.toThrow();
     expect(() => validateModelFamily('qwen3.6')).not.toThrow();
     expect(() => validateModelFamily('doubao-vision')).not.toThrow();
     expect(() => validateModelFamily('gemini')).not.toThrow();
     expect(() => validateModelFamily('glm-v')).not.toThrow();
     expect(() => validateModelFamily('gpt-5')).not.toThrow();
+    expect(() => validateModelFamily('kimi')).not.toThrow();
+    expect(() => validateModelFamily('xiaomi-mimo')).not.toThrow();
     expect(() => validateModelFamily('vlm-ui-tars')).not.toThrow();
     expect(() => validateModelFamily(undefined)).not.toThrow();
   });
@@ -103,5 +110,31 @@ describe('legacyConfigToModelFamily', () => {
         [MIDSCENE_USE_QWEN_VL]: '1',
       }),
     ).toThrow('Only one vision mode can be enabled at a time.');
+  });
+});
+
+describe('parseOpenaiSdkConfig', () => {
+  it('parses numeric temperature', () => {
+    const result = parseOpenaiSdkConfig({
+      keys: DEFAULT_MODEL_CONFIG_KEYS,
+      provider: {
+        MIDSCENE_MODEL_NAME: 'gpt-4o',
+        MIDSCENE_MODEL_TEMPERATURE: '0.7',
+      },
+    });
+
+    expect(result.temperature).toBe(0.7);
+  });
+
+  it('ignores non-numeric temperature values', () => {
+    const result = parseOpenaiSdkConfig({
+      keys: DEFAULT_MODEL_CONFIG_KEYS,
+      provider: {
+        MIDSCENE_MODEL_NAME: 'gpt-4o',
+        MIDSCENE_MODEL_TEMPERATURE: 'abc',
+      },
+    });
+
+    expect(result.temperature).toBeUndefined();
   });
 });

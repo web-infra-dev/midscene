@@ -29,7 +29,7 @@ describe('LongPress Action', () => {
         { locate: { prompt: 'the message bubble' } },
         ActionLongPressParamSchema,
       );
-      expect(parsed.locate).toEqual({ prompt: 'the message bubble' });
+      expect(parsed!.locate).toEqual({ prompt: 'the message bubble' });
     });
 
     it('should accept custom duration', () => {
@@ -37,7 +37,7 @@ describe('LongPress Action', () => {
         { locate: { prompt: 'the message bubble' }, duration: 2000 },
         ActionLongPressParamSchema,
       );
-      expect(parsed.duration).toBe(2000);
+      expect(parsed!.duration).toBe(2000);
     });
 
     it('should leave duration undefined when omitted so each device can apply its own default', () => {
@@ -45,7 +45,7 @@ describe('LongPress Action', () => {
         { locate: { prompt: 'the message bubble' } },
         ActionLongPressParamSchema,
       );
-      expect(parsed.duration).toBeUndefined();
+      expect(parsed!.duration).toBeUndefined();
     });
   });
 

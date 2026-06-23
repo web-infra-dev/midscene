@@ -6,7 +6,9 @@ describe('runSingleFlight', () => {
     const pendingRef: { current: Promise<string> | null } = {
       current: null,
     };
-    let resolveTask: ((value: string) => void) | null = null;
+    let resolveTask: (value: string) => void = () => {
+      throw new Error('task resolver was not initialized');
+    };
     const task = vi.fn(
       () =>
         new Promise<string>((resolve) => {
@@ -20,7 +22,7 @@ describe('runSingleFlight', () => {
     expect(task).toHaveBeenCalledTimes(1);
     expect(second).toBe(first);
 
-    resolveTask?.('done');
+    resolveTask('done');
 
     await expect(first).resolves.toBe('done');
     await expect(second).resolves.toBe('done');

@@ -2,6 +2,7 @@ import {
   type AIArgs,
   callAIWithObjectResponse,
   callAIWithStringResponse,
+  getModelRuntime,
 } from '@midscene/core/ai-model';
 import type { ChromeRecordedEvent } from '@midscene/recorder';
 import type { IModelConfig } from '@midscene/shared/env';
@@ -623,7 +624,10 @@ const generateAIMindmap = async (
       },
     ];
 
-    const response = await callAIWithStringResponse(prompt, modelConfig);
+    const response = await callAIWithStringResponse(
+      prompt,
+      getModelRuntime(modelConfig),
+    );
 
     if (response?.content && typeof response.content === 'string') {
       return response.content as string;

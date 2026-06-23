@@ -434,29 +434,38 @@ std::string ExtractRequestId(std::string_view line) {
 }
 
 std::optional<ParsedRequest> ParseRequestLine(std::string_view line) {
-  JsonParser parser(line);
-  JsonValue root = parser.Parse();
-  if (!root.IsObject()) {
+  // The JSON parser throws on malformed/partial input. Callers treat a missing
+  // value as a recoverable "bad request" (logged and skipped), so a parse
+  // failure must never escape this function — an uncaught exception here would
+  // propagate out of main() and abort the whole helper process, tearing down
+  // the live RDP session.
+  try {
+    JsonParser parser(line);
+    JsonValue root = parser.Parse();
+    if (!root.IsObject()) {
+      return std::nullopt;
+    }
+
+    const JsonObject& request_object = root.AsObject();
+    const auto request_id = GetStringField(request_object, "id");
+    const JsonObject* payload = GetObjectField(request_object, "payload");
+    if (!request_id.has_value() || !payload) {
+      return std::nullopt;
+    }
+
+    const auto type_name = GetStringField(*payload, "type");
+    if (!type_name.has_value()) {
+      return std::nullopt;
+    }
+
+    return ParsedRequest{
+        *request_id,
+        ParseRequestType(*type_name).value_or(RequestType::kUnknown),
+        *payload,
+    };
+  } catch (const std::exception&) {
     return std::nullopt;
   }
-
-  const JsonObject& request_object = root.AsObject();
-  const auto request_id = GetStringField(request_object, "id");
-  const JsonObject* payload = GetObjectField(request_object, "payload");
-  if (!request_id.has_value() || !payload) {
-    return std::nullopt;
-  }
-
-  const auto type_name = GetStringField(*payload, "type");
-  if (!type_name.has_value()) {
-    return std::nullopt;
-  }
-
-  return ParsedRequest{
-      *request_id,
-      ParseRequestType(*type_name).value_or(RequestType::kUnknown),
-      *payload,
-  };
 }
 
 std::optional<std::string> GetStringField(const JsonObject& object,

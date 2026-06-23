@@ -14,6 +14,10 @@ import type {
   PlaygroundAgent,
 } from '../../src/types';
 
+const createMockPlaygroundAgent = (
+  partial: Partial<PlaygroundAgent> = {},
+): PlaygroundAgent => partial as PlaygroundAgent;
+
 describe('common utilities', () => {
   describe('API constants', () => {
     it('should have correct data extraction APIs', () => {
@@ -151,9 +155,9 @@ describe('common utilities', () => {
   describe('executeAction', () => {
     it('should execute action through callActionInActionSpace when available', async () => {
       const mockCallAction = vi.fn().mockResolvedValue('action result');
-      const activeAgent: PlaygroundAgent = {
+      const activeAgent = createMockPlaygroundAgent({
         callActionInActionSpace: mockCallAction,
-      };
+      });
 
       const action: DeviceAction<unknown> = {
         name: 'testAction',
@@ -196,9 +200,9 @@ describe('common utilities', () => {
       // TODO: Remove this test and the corresponding warning once migration is complete.
       const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
       const mockCallAction = vi.fn().mockResolvedValue('action result');
-      const activeAgent: PlaygroundAgent = {
+      const activeAgent = createMockPlaygroundAgent({
         callActionInActionSpace: mockCallAction,
-      };
+      });
 
       const action: DeviceAction<unknown> = {
         name: 'Tap',
@@ -221,7 +225,7 @@ describe('common utilities', () => {
       const actionParams = mockCallAction.mock.calls[0][1];
       expect(actionParams.deepThink).toBe(true);
       expect(warnSpy).toHaveBeenCalledWith(
-        '[Playground] Received deepThink in non-aiAct action options. deepThink is expected to be used with aiAct during migration.',
+        '[Playground] Received deepThink in non-aiAct action options. deepThink is expected to be used with aiAct/runMarkdown during migration.',
         {
           actionType: 'aiTap',
           options: {
@@ -236,12 +240,46 @@ describe('common utilities', () => {
       warnSpy.mockRestore();
     });
 
+    it('should not pass report display metadata to action-space actions', async () => {
+      const mockCallAction = vi.fn().mockResolvedValue('action result');
+      const activeAgent = createMockPlaygroundAgent({
+        callActionInActionSpace: mockCallAction,
+      });
+
+      const action: DeviceAction<unknown> = {
+        name: 'Tap',
+        interfaceAlias: 'aiTap',
+        description: 'Tap action',
+        call: vi.fn(),
+      };
+
+      await executeAction(
+        activeAgent,
+        'aiTap',
+        [action],
+        {
+          type: 'aiTap',
+          prompt: 'tap login button',
+        },
+        {
+          deepLocate: false,
+          reportDisplay: {
+            prompt: 'Recorder Markdown Replay: login flow',
+          },
+        },
+      );
+
+      expect(mockCallAction.mock.calls[0][1]).not.toHaveProperty(
+        'reportDisplay',
+      );
+    });
+
     it('should keep deepThink for aiAct action without warning', async () => {
       const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
       const mockCallAction = vi.fn().mockResolvedValue('action result');
-      const activeAgent: PlaygroundAgent = {
+      const activeAgent = createMockPlaygroundAgent({
         callActionInActionSpace: mockCallAction,
-      };
+      });
 
       const action: DeviceAction<unknown> = {
         name: 'aiAction',
@@ -264,11 +302,82 @@ describe('common utilities', () => {
       const actionParams = mockCallAction.mock.calls[0][1];
       expect(actionParams.deepThink).toBe(true);
       expect(warnSpy).not.toHaveBeenCalledWith(
-        '[Playground] Received deepThink in non-aiAct action options. deepThink is expected to be used with aiAct during migration.',
+        '[Playground] Received deepThink in non-aiAct action options. deepThink is expected to be used with aiAct/runMarkdown during migration.',
         expect.anything(),
       );
 
       warnSpy.mockRestore();
+    });
+
+    it('should keep deepThink for runMarkdown without warning', async () => {
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const mockRunMarkdown = vi.fn().mockResolvedValue('markdown result');
+      const activeAgent: PlaygroundAgent = {
+        runMarkdown: mockRunMarkdown,
+      } as unknown as PlaygroundAgent;
+
+      const value: FormValue = {
+        type: 'runMarkdown',
+        prompt: '/tmp/recording.md',
+      };
+
+      const result = await executeAction(
+        activeAgent,
+        'runMarkdown',
+        [],
+        value,
+        {
+          deepLocate: false,
+          deepThink: true,
+          requestId: 'req-3',
+        },
+      );
+
+      expect(result).toBe('markdown result');
+      expect(mockRunMarkdown).toHaveBeenCalledWith('/tmp/recording.md', {
+        deepLocate: false,
+        deepThink: true,
+        requestId: 'req-3',
+      });
+      expect(warnSpy).not.toHaveBeenCalled();
+
+      warnSpy.mockRestore();
+    });
+
+    it('should map report display metadata to aiAct internal report options', async () => {
+      const mockAiAct = vi.fn().mockResolvedValue('aiAct result');
+      const activeAgent = createMockPlaygroundAgent({
+        aiAct: mockAiAct,
+      });
+
+      const result = await executeAction(
+        activeAgent,
+        'aiAct',
+        [],
+        {
+          type: 'aiAct',
+          prompt: 'Replay the following Midscene Studio recording...',
+        },
+        {
+          deepLocate: true,
+          requestId: 'req-replay',
+          reportDisplay: {
+            prompt: 'Recorder Markdown Replay: login flow',
+          },
+        },
+      );
+
+      expect(result).toBe('aiAct result');
+      expect(mockAiAct).toHaveBeenCalledWith(
+        'Replay the following Midscene Studio recording...',
+        {
+          deepLocate: true,
+          requestId: 'req-replay',
+          _internalReportDisplay: {
+            prompt: 'Recorder Markdown Replay: login flow',
+          },
+        },
+      );
     });
 
     it('should handle aiAssert action specially', async () => {
@@ -276,9 +385,9 @@ describe('common utilities', () => {
         pass: true,
         thought: 'test thought',
       });
-      const activeAgent: PlaygroundAgent = {
+      const activeAgent = createMockPlaygroundAgent({
         aiAssert: mockAiAssert,
-      };
+      });
 
       const value: FormValue = {
         type: 'aiAssert',
@@ -300,21 +409,21 @@ describe('common utilities', () => {
       });
     });
 
-    it('should fallback to agent method when action not found', async () => {
+    it('should call allowlisted agent methods when action not found', async () => {
       const mockCustomAction = vi.fn().mockResolvedValue('custom result');
-      const activeAgent: PlaygroundAgent = {
-        customAction: mockCustomAction,
-      };
+      const activeAgent = createMockPlaygroundAgent({
+        aiString: mockCustomAction,
+      });
 
       const value: FormValue = {
-        type: 'customAction',
+        type: 'aiString',
         prompt: 'test prompt',
       };
       const options: ExecutionOptions = {};
 
       const result = await executeAction(
         activeAgent,
-        'customAction',
+        'aiString',
         [],
         value,
         options,
@@ -324,8 +433,29 @@ describe('common utilities', () => {
       expect(mockCustomAction).toHaveBeenCalledWith('test prompt', options);
     });
 
+    it('should reject non-allowlisted agent methods when action not found', async () => {
+      const mockCustomAction = vi.fn().mockResolvedValue('custom result');
+      const activeAgent = createMockPlaygroundAgent({
+        customAction: mockCustomAction,
+      });
+
+      await expect(
+        executeAction(
+          activeAgent,
+          'customAction',
+          [],
+          {
+            type: 'customAction',
+            prompt: 'test prompt',
+          },
+          {},
+        ),
+      ).rejects.toThrow('Unknown action type: customAction');
+      expect(mockCustomAction).not.toHaveBeenCalled();
+    });
+
     it('should throw error for unknown action type', async () => {
-      const activeAgent: PlaygroundAgent = {};
+      const activeAgent = createMockPlaygroundAgent();
       const value: FormValue = {
         type: 'unknownAction',
         prompt: 'test prompt',
@@ -339,9 +469,9 @@ describe('common utilities', () => {
 
     it('should find action by interfaceAlias', async () => {
       const mockCallAction = vi.fn().mockResolvedValue('alias result');
-      const activeAgent: PlaygroundAgent = {
+      const activeAgent = createMockPlaygroundAgent({
         callActionInActionSpace: mockCallAction,
-      };
+      });
 
       const action: DeviceAction<unknown> = {
         name: 'realName',

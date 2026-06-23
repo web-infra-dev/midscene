@@ -27,6 +27,9 @@ const prepareCache = (
     cache.appendCache(data);
   });
 
+  if (!cache.cacheFilePath) {
+    throw new Error('Expected TaskCache to create a cache file path');
+  }
   return cache.cacheFilePath;
 };
 
@@ -293,6 +296,47 @@ describe('TaskCache', { timeout: 20000 }, () => {
     const located = newTaskCache.matchLocateCache(prompt);
     expect(located).toBeDefined();
     expect(located?.cacheContent.cache?.xpaths).toEqual([longXpath]);
+  });
+
+  it('should match plan cache with image prompt by deep equality', () => {
+    const prompt = {
+      prompt: 'complete the flow using the image',
+      images: [
+        {
+          name: 'target image',
+          url: 'https://example.com/image.png',
+        },
+      ],
+      convertHttpImage2Base64: true,
+    } as any;
+    const yamlWorkflow = `tasks:
+  - name: cached
+    flow:
+      - aiTap: submit button
+`;
+    const cacheFilePath = prepareCache([
+      {
+        type: 'plan',
+        prompt,
+        yamlWorkflow,
+      },
+    ]);
+
+    const matchedCache = new TaskCache(uuid(), true, cacheFilePath);
+    expect(matchedCache.matchPlanCache(prompt)).toBeDefined();
+
+    const unmatchedCache = new TaskCache(uuid(), true, cacheFilePath);
+    expect(
+      unmatchedCache.matchPlanCache({
+        ...prompt,
+        images: [
+          {
+            name: 'target image',
+            url: 'https://example.com/other-image.png',
+          },
+        ],
+      }),
+    ).toBeUndefined();
   });
 
   it('migrates legacy locate cache xpaths to cache entry when matching', () => {

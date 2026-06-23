@@ -16,6 +16,7 @@ import { matchYamlFiles } from './cli-utils';
 export const defaultConfig = {
   concurrent: 1,
   continueOnError: false,
+  retry: 0,
   shareBrowserContext: false,
   headed: false,
   keepWindow: false,
@@ -26,6 +27,7 @@ export const defaultConfig = {
 export interface ConfigFactoryOptions {
   concurrent?: number;
   continueOnError?: boolean;
+  retry?: number;
   summary?: string;
   shareBrowserContext?: boolean;
   headed?: boolean;
@@ -41,6 +43,7 @@ export interface ConfigFactoryOptions {
 export interface ParsedConfig {
   concurrent: number;
   continueOnError: boolean;
+  retry: number;
   summary: string;
   shareBrowserContext: boolean;
   web?: MidsceneYamlScriptWebEnv;
@@ -115,6 +118,7 @@ export async function parseConfigYaml(
     concurrent: configYaml.concurrent ?? defaultConfig.concurrent,
     continueOnError:
       configYaml.continueOnError ?? defaultConfig.continueOnError,
+    retry: configYaml.retry ?? defaultConfig.retry,
     summary: configYaml.summary ?? defaultSummary,
     shareBrowserContext:
       configYaml.shareBrowserContext ?? defaultConfig.shareBrowserContext,
@@ -169,6 +173,7 @@ export async function createConfig(
     files,
     concurrent: options?.concurrent ?? parsedConfig.concurrent,
     continueOnError: options?.continueOnError ?? parsedConfig.continueOnError,
+    retry: options?.retry ?? parsedConfig.retry,
     summary: options?.summary ?? parsedConfig.summary,
     shareBrowserContext:
       options?.shareBrowserContext ?? parsedConfig.shareBrowserContext,
@@ -199,6 +204,7 @@ export async function createFilesConfig(
     files,
     concurrent: options.concurrent ?? defaultConfig.concurrent,
     continueOnError: options.continueOnError ?? defaultConfig.continueOnError,
+    retry: options.retry ?? defaultConfig.retry,
     summary: options.summary ?? defaultSummary,
     shareBrowserContext:
       options.shareBrowserContext ?? defaultConfig.shareBrowserContext,

@@ -17,6 +17,9 @@ on:
 permissions:
   contents: read
 
+env:
+  ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
+
 jobs:
   headless-linux-ai-todo:
     runs-on: ubuntu-22.04

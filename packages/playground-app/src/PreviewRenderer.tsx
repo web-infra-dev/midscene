@@ -2,12 +2,13 @@ import type {
   PlaygroundRuntimeInfo,
   PlaygroundSDK,
 } from '@midscene/playground';
+import { PREVIEW_TEXT_INPUT_BATCH_DELAY_MS } from '@midscene/shared/constants';
 import {
   ScreenshotViewer,
   type ScreenshotViewerMode,
 } from '@midscene/visualizer';
 import { WebCodecsVideoDecoder } from '@yume-chan/scrcpy-decoder-webcodecs';
-import { Alert, Popover, message } from 'antd';
+import { Alert, App as AntdApp, Popover } from 'antd';
 import React, {
   type CSSProperties,
   type ReactNode,
@@ -24,6 +25,7 @@ import { type ScrcpyErrorOverlayRenderer, ScrcpyPanel } from './ScrcpyPanel';
 import {
   type ManualDragActionType,
   buildManualDragInteractPayload,
+  buildManualScrollInteractPayload,
 } from './manual-interaction';
 import { resolvePreviewConnectionInfo } from './runtime-info';
 import type { ScrcpyPreviewStatus } from './scrcpy-preview';
@@ -70,6 +72,7 @@ export function PreviewRenderer({
   serverOnline,
   isUserOperating,
 }: PreviewRendererProps) {
+  const { message } = AntdApp.useApp();
   const previewConnection = resolvePreviewConnectionInfo(
     runtimeInfo,
     serverUrl,
@@ -82,7 +85,15 @@ export function PreviewRenderer({
   // the real stream resolution by a few pixels.
   const [streamSize, setStreamSize] = useState<DeviceSize | null>(null);
   const [actionTypes, setActionTypes] = useState<string[] | null>(null);
+  const [scrcpyStatus, setScrcpyStatus] =
+    useState<ScrcpyPreviewStatus>('connecting');
   const manualControlQueueRef = useRef<Promise<unknown>>(Promise.resolve());
+  const pendingTextInputRef = useRef('');
+  const pendingTextInputPointRef = useRef<{ x: number; y: number } | null>(
+    null,
+  );
+  const textInputTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const textInputFlushPromiseRef = useRef<Promise<void> | null>(null);
   // Shared with the active preview component (ScrcpyPanel / ScreenshotViewer)
   // and the interaction layer so pointer coords always project against the
   // real screen-mirror box, not the outer panel that may include chrome.
@@ -110,6 +121,7 @@ export function PreviewRenderer({
     actionTypes?.includes('KeyboardPress') ||
     actionTypes?.includes('Input') ||
     false;
+  const manualScrollEnabled = actionTypes?.includes('Scroll') ?? false;
 
   const enqueueManualControl = useCallback(
     <TResult,>(task: () => Promise<TResult>): Promise<TResult> => {
@@ -117,7 +129,7 @@ export function PreviewRenderer({
       manualControlQueueRef.current = nextTask.catch(() => undefined);
       return nextTask;
     },
-    [],
+    [message],
   );
 
   // Pull device size and actionSpace from /interface-info so the interaction
@@ -190,6 +202,23 @@ export function PreviewRenderer({
     onDeviceSizeChange?.(streamSize ?? deviceSize);
   }, [deviceSize, onDeviceSizeChange, streamSize]);
 
+  // Fall back to screenshot polling when WebCodecs is unavailable
+  // (e.g. non-secure context over HTTP with a LAN IP)
+  const scrcpyAvailable =
+    previewConnection.type === 'scrcpy' && WebCodecsVideoDecoder.isSupported;
+  const useScreenshot =
+    previewConnection.type === 'screenshot' ||
+    (previewConnection.type === 'scrcpy' && !scrcpyAvailable);
+
+  // Show a hint when scrcpy is expected but WebCodecs is unavailable due to insecure context
+  const showInsecureContextHint =
+    previewConnection.type === 'scrcpy' &&
+    !WebCodecsVideoDecoder.isSupported &&
+    isNonLocalhostHttp();
+  const previewInteractionEnabled =
+    previewConnection.type !== 'none' &&
+    (!scrcpyAvailable || scrcpyStatus === 'connected');
+
   const showManualControlError = useCallback(
     (fallback: string, error?: string) => {
       message.open({
@@ -201,8 +230,59 @@ export function PreviewRenderer({
     [],
   );
 
+  const clearTextInputTimer = useCallback(() => {
+    if (textInputTimerRef.current) {
+      clearTimeout(textInputTimerRef.current);
+      textInputTimerRef.current = null;
+    }
+  }, []);
+
+  const flushPendingTextInput = useCallback((): Promise<void> => {
+    clearTextInputTimer();
+
+    const text = pendingTextInputRef.current;
+    const point = pendingTextInputPointRef.current;
+    if (!text) {
+      return textInputFlushPromiseRef.current ?? Promise.resolve();
+    }
+
+    pendingTextInputRef.current = '';
+    pendingTextInputPointRef.current = null;
+    const previousFlush = textInputFlushPromiseRef.current ?? Promise.resolve();
+    const flushPromise = previousFlush
+      .catch(() => undefined)
+      .then(async () => {
+        const res = await enqueueManualControl(() =>
+          playgroundSDK.interact({
+            actionType: 'Input',
+            value: text,
+            mode: 'typeOnly',
+            ...(point ? { x: point.x, y: point.y } : {}),
+          }),
+        );
+        if (!res.ok) {
+          showManualControlError('Input failed', res.error);
+        }
+      });
+
+    const trackedFlushPromise = flushPromise.finally(() => {
+      if (textInputFlushPromiseRef.current === trackedFlushPromise) {
+        textInputFlushPromiseRef.current = null;
+      }
+    });
+
+    textInputFlushPromiseRef.current = trackedFlushPromise;
+    return textInputFlushPromiseRef.current;
+  }, [
+    clearTextInputTimer,
+    enqueueManualControl,
+    playgroundSDK,
+    showManualControlError,
+  ]);
+
   const handleTap = useCallback(
     async (point: { x: number; y: number }) => {
+      await flushPendingTextInput();
       const res = await enqueueManualControl(() =>
         playgroundSDK.interact({
           actionType: 'Tap',
@@ -214,7 +294,12 @@ export function PreviewRenderer({
         showManualControlError('Tap failed', res.error);
       }
     },
-    [enqueueManualControl, playgroundSDK, showManualControlError],
+    [
+      enqueueManualControl,
+      flushPendingTextInput,
+      playgroundSDK,
+      showManualControlError,
+    ],
   );
 
   const handleSwipe = useCallback(
@@ -223,6 +308,7 @@ export function PreviewRenderer({
       end: { x: number; y: number },
       duration: number,
     ) => {
+      await flushPendingTextInput();
       const res = await enqueueManualControl(() =>
         playgroundSDK.interact(
           buildManualDragInteractPayload(
@@ -239,6 +325,7 @@ export function PreviewRenderer({
     },
     [
       enqueueManualControl,
+      flushPendingTextInput,
       manualDragActionType,
       playgroundSDK,
       showManualControlError,
@@ -246,25 +333,63 @@ export function PreviewRenderer({
   );
 
   const handleTextInput = useCallback(
-    async (text: string) => {
+    (text: string, point?: { x: number; y: number }) => {
       if (!text) return;
-      const res = await enqueueManualControl(() =>
-        playgroundSDK.interact({
-          actionType: 'Input',
-          value: text,
-          mode: 'typeOnly',
-        }),
-      );
-      if (!res.ok) {
-        showManualControlError('Input failed', res.error);
+      pendingTextInputRef.current += text;
+      if (point) {
+        pendingTextInputPointRef.current = point;
       }
+      clearTextInputTimer();
+      textInputTimerRef.current = setTimeout(() => {
+        void flushPendingTextInput();
+      }, PREVIEW_TEXT_INPUT_BATCH_DELAY_MS);
     },
-    [enqueueManualControl, playgroundSDK, showManualControlError],
+    [clearTextInputTimer, flushPendingTextInput],
   );
+
+  useEffect(() => {
+    if (serverOnline && previewInteractionEnabled && manualKeyboardEnabled) {
+      return;
+    }
+    clearTextInputTimer();
+    pendingTextInputRef.current = '';
+    pendingTextInputPointRef.current = null;
+  }, [
+    clearTextInputTimer,
+    manualKeyboardEnabled,
+    previewInteractionEnabled,
+    serverOnline,
+  ]);
+
+  useEffect(() => {
+    return () => {
+      if (
+        serverOnline &&
+        previewInteractionEnabled &&
+        manualKeyboardEnabled &&
+        pendingTextInputRef.current
+      ) {
+        void flushPendingTextInput();
+        return;
+      }
+      clearTextInputTimer();
+      pendingTextInputPointRef.current = null;
+    };
+  }, [
+    clearTextInputTimer,
+    flushPendingTextInput,
+    manualKeyboardEnabled,
+    previewConnection.type,
+    previewInteractionEnabled,
+    runtimeInfo,
+    serverOnline,
+    serverUrl,
+  ]);
 
   const handleKeyboardPress = useCallback(
     async (keyName: string) => {
       if (!keyName) return;
+      await flushPendingTextInput();
       const res = await enqueueManualControl(() =>
         playgroundSDK.interact({
           actionType: 'KeyboardPress',
@@ -275,22 +400,42 @@ export function PreviewRenderer({
         showManualControlError('Keyboard press failed', res.error);
       }
     },
-    [enqueueManualControl, playgroundSDK, showManualControlError],
+    [
+      enqueueManualControl,
+      flushPendingTextInput,
+      playgroundSDK,
+      showManualControlError,
+    ],
   );
 
-  // Fall back to screenshot polling when WebCodecs is unavailable
-  // (e.g. non-secure context over HTTP with a LAN IP)
-  const scrcpyAvailable =
-    previewConnection.type === 'scrcpy' && WebCodecsVideoDecoder.isSupported;
-  const useScreenshot =
-    previewConnection.type === 'screenshot' ||
-    (previewConnection.type === 'scrcpy' && !scrcpyAvailable);
+  const handleWheelScroll = useCallback(
+    async (
+      point: { x: number; y: number },
+      delta: { deltaX: number; deltaY: number },
+    ) => {
+      await flushPendingTextInput();
+      const res = await enqueueManualControl(() =>
+        playgroundSDK.interact(buildManualScrollInteractPayload(point, delta)),
+      );
+      if (!res.ok) {
+        showManualControlError('Scroll failed', res.error);
+      }
+    },
+    [
+      enqueueManualControl,
+      flushPendingTextInput,
+      playgroundSDK,
+      showManualControlError,
+    ],
+  );
 
-  // Show a hint when scrcpy is expected but WebCodecs is unavailable due to insecure context
-  const showInsecureContextHint =
-    previewConnection.type === 'scrcpy' &&
-    !WebCodecsVideoDecoder.isSupported &&
-    isNonLocalhostHttp();
+  const handleScrcpyStatusChange = useCallback(
+    (status: ScrcpyPreviewStatus, statusText: string) => {
+      setScrcpyStatus(status);
+      onScrcpyStatusChange?.(status, statusText);
+    },
+    [onScrcpyStatusChange],
+  );
 
   return (
     <div
@@ -373,7 +518,7 @@ export function PreviewRenderer({
           connectingOverlay={connectingOverlay}
           deviceId={previewConnection.deviceId}
           onIntrinsicSize={setStreamSize}
-          onStatusChange={onScrcpyStatusChange}
+          onStatusChange={handleScrcpyStatusChange}
           renderErrorOverlay={renderErrorOverlay}
           serverUrl={previewConnection.scrcpyUrl}
           viewportStyle={scrcpyViewportStyle}
@@ -396,14 +541,14 @@ export function PreviewRenderer({
       )}
       <DeviceInteractionLayer
         enabled={
-          manualControlEnabled &&
-          serverOnline &&
-          previewConnection.type !== 'none'
+          manualControlEnabled && serverOnline && previewInteractionEnabled
         }
         deviceSize={deviceSize}
         contentRef={previewContentRef}
         onTap={handleTap}
         onSwipe={handleSwipe}
+        scrollEnabled={manualScrollEnabled}
+        onWheelScroll={handleWheelScroll}
         keyboardEnabled={manualKeyboardEnabled}
         onTextInput={handleTextInput}
         onKeyboardPress={handleKeyboardPress}

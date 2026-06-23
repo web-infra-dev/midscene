@@ -51,7 +51,7 @@ describe('PlaywrightAiFixture option forwarding', () => {
       replanningCycleLimit: 9,
       waitAfterAction: 120,
       aiActContext: 'fixture-level-context',
-      useDeviceTimestamp: true,
+      useDeviceTime: true,
       enableTouchEventsInActionSpace: true,
       forceChromeSelectRendering: true,
     });
@@ -65,7 +65,7 @@ describe('PlaywrightAiFixture option forwarding', () => {
       replanningCycleLimit: 9,
       waitAfterAction: 120,
       aiActContext: 'fixture-level-context',
-      useDeviceTimestamp: true,
+      useDeviceTime: true,
       enableTouchEventsInActionSpace: true,
       forceChromeSelectRendering: true,
       generateReport: true,

@@ -37,7 +37,7 @@ export type {
   RDPScrollDirection,
 } from './rdp/protocol';
 
-export { ComputerMidsceneTools } from './mcp-tools';
+export { ComputerMidsceneTools } from './agent-tools';
 export { overrideAIConfig } from '@midscene/shared/env';
 export {
   checkComputerEnvironment,

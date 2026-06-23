@@ -351,8 +351,8 @@ describe('player action dispatch ordering', () => {
     });
   });
 
-  describe('player variable interpolation', () => {
-    it('should replace $var with stored result value', async () => {
+  describe('player task dispatch without runtime result interpolation', () => {
+    it('should pass $var text through as a literal value', async () => {
       const player = createPlayerWithActionSpace([]);
       const agent = createMockAgent();
       player.result.product_id = '110';
@@ -369,32 +369,11 @@ describe('player action dispatch ordering', () => {
 
       expect(agent.callActionInActionSpace).toHaveBeenCalledWith(
         'Input',
-        expect.objectContaining({ value: '110' }),
+        expect.objectContaining({ value: '$product_id' }),
       );
     });
 
-    it('should preserve non-string types for $var replacement', async () => {
-      const player = createPlayerWithActionSpace([]);
-      const agent = createMockAgent();
-      player.result.count = 42;
-
-      const taskStatus = {
-        name: 'test',
-        flow: [{ aiInput: 'qty field', value: '$count' }],
-        index: 0,
-        status: 'running' as const,
-        totalSteps: 1,
-      };
-
-      await player.playTask(taskStatus, agent);
-
-      expect(agent.callActionInActionSpace).toHaveBeenCalledWith(
-        'Input',
-        expect.objectContaining({ value: '42' }),
-      );
-    });
-
-    it('should interpolate ${var} inside strings', async () => {
+    it('should pass ${var} text through as a literal value', async () => {
       const player = createPlayerWithActionSpace([]);
       const agent = createMockAgent({
         aiQuery: vi.fn().mockResolvedValue('query-result'),
@@ -412,12 +391,12 @@ describe('player action dispatch ordering', () => {
       await player.playTask(taskStatus, agent);
 
       expect(agent.aiQuery).toHaveBeenCalledWith(
-        'search for product-110',
+        'search for product-${product_id}',
         expect.anything(),
       );
     });
 
-    it('should throw when referencing undefined variable', async () => {
+    it('should not throw when a literal variable-like value is undefined', async () => {
       const player = createPlayerWithActionSpace([]);
       const agent = createMockAgent();
 
@@ -429,12 +408,15 @@ describe('player action dispatch ordering', () => {
         totalSteps: 1,
       };
 
-      await expect(player.playTask(taskStatus, agent)).rejects.toThrow(
-        'Variable "undefined_var" is not defined',
+      await player.playTask(taskStatus, agent);
+
+      expect(agent.callActionInActionSpace).toHaveBeenCalledWith(
+        'Input',
+        expect.objectContaining({ value: '$undefined_var' }),
       );
     });
 
-    it('should replace variables in nested objects', async () => {
+    it('should pass variable-like values through in nested objects', async () => {
       const player = createPlayerWithActionSpace([]);
       const agent = createMockAgent({
         aiTap: vi.fn().mockResolvedValue('tap-result'),
@@ -455,7 +437,10 @@ describe('player action dispatch ordering', () => {
 
       await player.playTask(taskStatus, agent);
 
-      expect(agent.aiTap).toHaveBeenCalledWith('search box', expect.anything());
+      expect(agent.aiTap).toHaveBeenCalledWith(
+        '$prompt_text',
+        expect.anything(),
+      );
     });
   });
 
@@ -496,7 +481,6 @@ describe('player action dispatch ordering', () => {
       {
         name: 'test',
         flow,
-        index: 0,
         status: 'running' as const,
         totalSteps: flow.length,
       },

@@ -1,9 +1,9 @@
 import { join } from 'node:path';
-import { execa } from 'execa';
+import { createConfig } from '@/config-factory';
+import { runFrameworkTestConfig } from '@/framework/command';
 import { createServer } from 'http-server';
 import { afterAll, beforeAll, describe, expect, test, vi } from 'vitest';
 
-const cliBin = require.resolve('../../bin/midscene');
 vi.setConfig({
   testTimeout: 60 * 1000,
 });
@@ -31,23 +31,26 @@ describe('shareBrowserContext - Storage Sharing', () => {
   });
 
   test('should preserve all storage types when shareBrowserContext is true', async () => {
-    const indexYamlPath = join(
+    const scriptDir = join(__dirname, '../share_context_test_scripts');
+    const indexYamlPath = join(scriptDir, 'index.yaml');
+    const frameworkImport = join(
       __dirname,
-      '../share_context_test_scripts/index.yaml',
+      '../../src/framework/rstest-entry.ts',
     );
+    const previousCwd = process.cwd();
 
-    const result = await execa(cliBin, ['--config', indexYamlPath], {
-      cwd: join(__dirname, '../share_context_test_scripts'),
-      reject: false,
-      all: true,
-    });
+    process.chdir(scriptDir);
+    try {
+      const config = await createConfig(indexYamlPath);
+      const exitCode = await runFrameworkTestConfig(config, {
+        projectDir: scriptDir,
+        frameworkImport,
+        stdio: 'pipe',
+      });
 
-    const output = result.all || result.stdout;
-    console.log('=== Test Output ===');
-    console.log(output);
-    console.log('Exit code:', result.exitCode);
-
-    // Test should pass - all storage preserved
-    expect(result.exitCode).toBe(0);
+      expect(exitCode).toBe(0);
+    } finally {
+      process.chdir(previousCwd);
+    }
   });
 });

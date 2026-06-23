@@ -31,3 +31,33 @@
 .playground-shell .playground-container {
   background: var(--midscene-surface);
 }
+
+.playground-shell-mode-menu {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.playground-shell-mode-icon {
+  display: inline-flex;
+  height: 16px;
+  width: 16px;
+  align-items: center;
+  justify-content: center;
+  color: var(--midscene-text-secondary);
+}
+
+.playground-shell-mode-button-icon {
+  display: inline-flex;
+  width: 16px;
+  height: 16px;
+  align-items: center;
+  justify-content: center;
+}
+
+.playground-shell-mode-button-icon img,
+.playground-shell-mode-button-icon svg {
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
+}

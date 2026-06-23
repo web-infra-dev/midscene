@@ -71,7 +71,7 @@ function createDump(groupName: string, taskCount: number): ReportActionDump {
     sdkVersion: '1.0.0-test',
     groupName,
     groupDescription: `desc of ${groupName}`,
-    modelBriefs: ['test-model'],
+    modelBriefs: [{ name: 'test-model' }],
     executions: [
       new ExecutionDump({
         id: `${groupName}-exec-0`,
@@ -404,7 +404,7 @@ describe('ReportMergingTool merged dump count verification', () => {
       const groupMeta: ReportMeta = {
         groupName: `multi-group-${i}`,
         sdkVersion: '1.0.0-test',
-        modelBriefs: ['test-model'],
+        modelBriefs: [{ name: 'test-model' }],
       };
       for (let e = 0; e < execsPerReport; e++) {
         const exec = new ExecutionDump({

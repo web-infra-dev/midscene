@@ -231,17 +231,15 @@ async function publish(version) {
       throw new Error(errorMsg);
     }
 
-    // `--provenance` attaches a Sigstore-signed attestation linking the
-    // tarball to this workflow run. Combined with npm Trusted Publishers
-    // (configured per package on npmjs.com), no long-lived NPM_TOKEN is
-    // required — pnpm forwards the publish call to the bundled npm CLI,
-    // which exchanges the GitHub OIDC token for a short-lived publish token.
+    // npm Trusted Publishers generate provenance automatically for GitHub
+    // Actions publishes. Do not pass `--provenance` explicitly here: npm 11
+    // already creates the transparency-log entry for trusted publishing, and
+    // an extra flag can make the publish fail with a duplicate tlog entry.
     let publishArgs = [
       '-r',
       'publish',
       '--access',
       'public',
-      '--provenance',
       '--no-git-checks',
     ];
     if (version) {

@@ -2,6 +2,7 @@ type ModelEnvConfigStatusKind = 'success' | 'error';
 
 interface ModelEnvConfigStatusProps {
   kind: ModelEnvConfigStatusKind;
+  message?: string;
 }
 
 function ErrorStatusIcon() {
@@ -62,21 +63,29 @@ function SuccessStatusIcon() {
   );
 }
 
-export function ModelEnvConfigStatus({ kind }: ModelEnvConfigStatusProps) {
+export function ModelEnvConfigStatus({
+  kind,
+  message: customMessage,
+}: ModelEnvConfigStatusProps) {
   const isSuccess = kind === 'success';
   const statusClasses = isSuccess
     ? 'bg-status-success-bg text-status-success-fg'
     : 'bg-[#E13E37]/11 text-[#E13E37]';
-  const message = isSuccess ? 'Test passed.' : 'Test failed. Please try again.';
+  const message =
+    customMessage ??
+    (isSuccess ? 'Test passed.' : 'Test failed. Please try again.');
 
   return (
     <div className="relative z-10 mt-[12px] px-[21px]">
       <div
-        className={`box-border flex h-[32px] w-[360px] items-center justify-between rounded-[8px] px-[12px] py-[8px] ${statusClasses}`}
+        className={`box-border flex min-h-[32px] w-[360px] items-start justify-between rounded-[8px] px-[12px] py-[8px] ${statusClasses}`}
       >
-        <div className="flex items-center gap-[10px]">
+        <div className="flex min-w-0 flex-1 items-start gap-[10px]">
           {isSuccess ? <SuccessStatusIcon /> : <ErrorStatusIcon />}
-          <span className="overflow-hidden whitespace-nowrap font-sans text-[12px] font-normal leading-[14.5px]">
+          <span
+            className="min-w-0 flex-1 whitespace-normal break-words font-sans text-[12px] font-normal leading-[16px]"
+            title={message}
+          >
             {message}
           </span>
         </div>

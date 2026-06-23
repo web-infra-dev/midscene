@@ -3,10 +3,10 @@ import { join } from 'node:path';
 import { createReportCliCommands } from '@midscene/core';
 import { reportCLIError, runToolsCLI } from '@midscene/shared/cli';
 import dotenv from 'dotenv';
+import { WebMidsceneTools } from './agent-tools';
+import { WebCdpMidsceneTools } from './agent-tools-cdp';
+import { WebPuppeteerMidsceneTools } from './agent-tools-puppeteer';
 import { parseWebCliOptions } from './cli-options';
-import { WebMidsceneTools } from './mcp-tools';
-import { WebCdpMidsceneTools } from './mcp-tools-cdp';
-import { WebPuppeteerMidsceneTools } from './mcp-tools-puppeteer';
 
 // Load .env early so MIDSCENE_CDP_ENDPOINT is available during arg parsing
 const envFile = join(process.cwd(), '.env');

@@ -12,6 +12,14 @@ namespace midscene::rdp {
 
 namespace {
 
+std::string NormalizeRdpHost(std::string_view host) {
+  if (host.size() >= 2 && host.front() == '[' && host.back() == ']' &&
+      host.find(':') != std::string_view::npos) {
+    return std::string(host.substr(1, host.size() - 2));
+  }
+  return std::string(host);
+}
+
 ConnectionConfig ParseConnectionConfig(const JsonObject& payload) {
   const JsonObject* config = GetObjectField(payload, "config");
   if (!config) {
@@ -24,7 +32,7 @@ ConnectionConfig ParseConnectionConfig(const JsonObject& payload) {
   }
 
   ConnectionConfig parsed;
-  parsed.host = *host;
+  parsed.host = NormalizeRdpHost(*host);
   if (const auto port = GetIntField(*config, "port"); port.has_value()) {
     parsed.port = static_cast<uint16_t>(*port);
   }
@@ -36,6 +44,10 @@ ConnectionConfig ParseConnectionConfig(const JsonObject& payload) {
   }
   if (const auto domain = GetStringField(*config, "domain"); domain.has_value()) {
     parsed.domain = *domain;
+  }
+  if (const auto local_address = GetStringField(*config, "localAddress");
+      local_address.has_value()) {
+    parsed.local_address = *local_address;
   }
   if (const auto admin_session = GetBoolField(*config, "adminSession");
       admin_session.has_value()) {
@@ -285,18 +297,32 @@ int main() {
   midscene::rdp::FreeRdpSessionTransport transport;
   std::string line;
   while (std::getline(std::cin, line)) {
-    const auto request = midscene::rdp::ParseRequestLine(line);
-    const std::string request_id =
-        request.has_value() ? request->id : midscene::rdp::ExtractRequestId(line);
+    // A single malformed request, or any unexpected exception while handling
+    // one, must never abort the helper: that would kill the live RDP session
+    // mid-automation. Degrade to an error response and keep serving.
+    try {
+      const auto request = midscene::rdp::ParseRequestLine(line);
+      if (!request.has_value()) {
+        std::fprintf(stderr, "Failed to parse helper request JSON\n");
+        std::fflush(stderr);
+        const std::string request_id = midscene::rdp::ExtractRequestId(line);
+        std::cout << midscene::rdp::MakeErrorResponse(
+                         request_id, "invalid_request",
+                         "Failed to parse helper request JSON")
+                  << '\n';
+        std::cout.flush();
+        continue;
+      }
 
-    if (!request.has_value()) {
-      std::fprintf(stderr, "Failed to parse helper request JSON\n");
-      std::fflush(stderr);
-      continue;
+      std::cout << midscene::rdp::HandleRequest(*request, transport) << '\n';
+      std::cout.flush();
+    } catch (const std::exception& error) {
+      const std::string request_id = midscene::rdp::ExtractRequestId(line);
+      std::cout << midscene::rdp::MakeErrorResponse(request_id, "internal_error",
+                                                    error.what())
+                << '\n';
+      std::cout.flush();
     }
-
-    std::cout << midscene::rdp::HandleRequest(*request, transport) << '\n';
-    std::cout.flush();
   }
 
   transport.Disconnect();

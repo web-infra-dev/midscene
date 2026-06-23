@@ -3,15 +3,34 @@ import type {
   StreamingCodeGenerationOptions,
 } from '@midscene/core';
 import {
-  generateYamlTest as generateYamlTestCore,
-  generateYamlTestStream as generateYamlTestStreamCore,
+  generateRecorderYamlTest,
+  generateRecorderYamlTestStream,
 } from '@midscene/core/ai-model';
 import type { ChromeRecordedEvent } from '@midscene/recorder';
 import type { IModelConfig } from '@midscene/shared/env';
+import type { MidsceneRecorderTarget } from '@midscene/shared/recorder';
 import { recordLogger } from '../logger';
 import { extractNavigationAndViewportInfo } from './playwrightGenerator';
 import { handleTestGenerationError } from './shared/testGenerationUtils';
 import type { YamlGenerationOptions } from './shared/types';
+
+function createWebRecorderTarget(
+  events: ChromeRecordedEvent[],
+): MidsceneRecorderTarget {
+  const navigationInfo = extractNavigationAndViewportInfo(events);
+  const url = navigationInfo.urls[0] || '';
+  const viewport = navigationInfo.initialViewport;
+  return {
+    platformId: 'web',
+    deviceId: url || undefined,
+    label: url || 'Web',
+    values: {
+      url,
+      ...(viewport?.width ? { viewportWidth: viewport.width } : {}),
+      ...(viewport?.height ? { viewportHeight: viewport.height } : {}),
+    },
+  };
+}
 
 /**
  * Generates YAML test configuration from recorded events using AI
@@ -23,22 +42,16 @@ export const generateYamlTest = async (
   modelConfig: IModelConfig,
 ): Promise<string> => {
   try {
-    // Extract navigation and viewport information
-    const navigationInfo = extractNavigationAndViewportInfo(events);
-
     recordLogger.info('Starting AI-powered YAML test generation', {
       eventsCount: events.length,
     });
 
-    // Merge navigation and viewport info into options
-    const enhancedOptions = {
-      ...options,
-      navigationInfo,
-    };
-
-    const yamlContent = await generateYamlTestCore(
-      events,
-      enhancedOptions,
+    const yamlContent = await generateRecorderYamlTest(
+      {
+        ...options,
+        target: createWebRecorderTarget(events),
+        events,
+      },
       modelConfig,
     );
 
@@ -106,9 +119,6 @@ export const generateYamlTestStream = async (
   modelConfig: IModelConfig,
 ): Promise<StreamingAIResponse> => {
   try {
-    // Extract navigation and viewport information
-    const navigationInfo = extractNavigationAndViewportInfo(events);
-
     recordLogger.info(
       'Starting AI-powered YAML test generation with streaming',
       {
@@ -116,15 +126,13 @@ export const generateYamlTestStream = async (
       },
     );
 
-    // Merge navigation and viewport info into options
-    const enhancedOptions = {
-      ...options,
-      navigationInfo,
-    };
-
-    const result = await generateYamlTestStreamCore(
-      events,
-      enhancedOptions,
+    const result = await generateRecorderYamlTestStream(
+      {
+        ...options,
+        target: createWebRecorderTarget(events),
+        events,
+      },
+      options,
       modelConfig,
     );
 

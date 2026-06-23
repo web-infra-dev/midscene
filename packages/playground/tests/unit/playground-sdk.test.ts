@@ -14,6 +14,10 @@ import type {
 vi.mock('../../src/adapters/local-execution');
 vi.mock('../../src/adapters/remote-execution');
 
+const createMockPlaygroundAgent = (
+  partial: Partial<PlaygroundAgent> = {},
+): PlaygroundAgent => partial as PlaygroundAgent;
+
 describe('PlaygroundSDK', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -21,7 +25,7 @@ describe('PlaygroundSDK', () => {
 
   describe('constructor', () => {
     it('should create LocalExecutionAdapter for local-execution type', () => {
-      const mockAgent: PlaygroundAgent = {};
+      const mockAgent = createMockPlaygroundAgent();
       const config: PlaygroundConfig = {
         type: 'local-execution',
         agent: mockAgent,
@@ -89,7 +93,7 @@ describe('PlaygroundSDK', () => {
 
       const config: PlaygroundConfig = {
         type: 'local-execution',
-        agent: {},
+        agent: createMockPlaygroundAgent(),
       };
 
       const sdk = new PlaygroundSDK(config);
@@ -120,7 +124,7 @@ describe('PlaygroundSDK', () => {
 
       const sdk = new PlaygroundSDK({
         type: 'local-execution',
-        agent: {},
+        agent: createMockPlaygroundAgent(),
       });
       sdk.setBeforeActionHook(beforeActionHook);
 
@@ -145,7 +149,7 @@ describe('PlaygroundSDK', () => {
 
       const sdk = new PlaygroundSDK({
         type: 'local-execution',
-        agent: {},
+        agent: createMockPlaygroundAgent(),
       });
       sdk.setBeforeActionHook(beforeActionHook);
       sdk.setBeforeActionHook(undefined);
@@ -168,7 +172,7 @@ describe('PlaygroundSDK', () => {
 
       const config: PlaygroundConfig = {
         type: 'local-execution',
-        agent: {},
+        agent: createMockPlaygroundAgent(),
       };
 
       const sdk = new PlaygroundSDK(config);
@@ -189,7 +193,7 @@ describe('PlaygroundSDK', () => {
 
       const config: PlaygroundConfig = {
         type: 'local-execution',
-        agent: {},
+        agent: createMockPlaygroundAgent(),
       };
 
       const sdk = new PlaygroundSDK(config);
@@ -215,7 +219,7 @@ describe('PlaygroundSDK', () => {
 
       const config: PlaygroundConfig = {
         type: 'local-execution',
-        agent: {},
+        agent: createMockPlaygroundAgent(),
       };
 
       const sdk = new PlaygroundSDK(config);
@@ -236,7 +240,7 @@ describe('PlaygroundSDK', () => {
 
       const config: PlaygroundConfig = {
         type: 'local-execution',
-        agent: {},
+        agent: createMockPlaygroundAgent(),
       };
 
       const sdk = new PlaygroundSDK(config);
@@ -258,7 +262,7 @@ describe('PlaygroundSDK', () => {
     it('should return true for LocalExecutionAdapter', async () => {
       const config: PlaygroundConfig = {
         type: 'local-execution',
-        agent: {},
+        agent: createMockPlaygroundAgent(),
       };
 
       const sdk = new PlaygroundSDK(config);
@@ -293,7 +297,7 @@ describe('PlaygroundSDK', () => {
 
       const config: PlaygroundConfig = {
         type: 'local-execution',
-        agent: {},
+        agent: createMockPlaygroundAgent(),
       };
 
       const sdk = new PlaygroundSDK(config);
@@ -334,7 +338,7 @@ describe('PlaygroundSDK', () => {
 
       const sdk = new PlaygroundSDK({
         type: 'local-execution',
-        agent: {},
+        agent: createMockPlaygroundAgent(),
       });
 
       const result = await sdk.runConnectivityTest();
@@ -367,7 +371,7 @@ describe('PlaygroundSDK', () => {
     it('should return error message for LocalExecutionAdapter', async () => {
       const config: PlaygroundConfig = {
         type: 'local-execution',
-        agent: {},
+        agent: createMockPlaygroundAgent(),
       };
 
       const sdk = new PlaygroundSDK(config);
@@ -407,7 +411,7 @@ describe('PlaygroundSDK', () => {
       });
       const sdk = new PlaygroundSDK({
         type: 'local-execution',
-        agent: {},
+        agent: createMockPlaygroundAgent(),
       });
 
       await expect(sdk.getRuntimeInfo()).resolves.toMatchObject({

@@ -4,13 +4,24 @@ import type { CodeGenerationChunk, StreamingCallback } from '@/types';
 // Error class that preserves usage and rawResponse when AI call parsing fails
 export class AIResponseParseError extends Error {
   usage?: AIUsageInfo;
+  /**
+   * Adapter-extracted content used by Midscene for parsing. This is not the
+   * full provider response or choices[0].message.
+   */
   rawResponse: string;
+  rawChoiceMessage?: unknown;
 
-  constructor(message: string, rawResponse: string, usage?: AIUsageInfo) {
+  constructor(
+    message: string,
+    rawResponse: string,
+    usage?: AIUsageInfo,
+    rawChoiceMessage?: unknown,
+  ) {
     super(message);
     this.name = 'AIResponseParseError';
     this.rawResponse = rawResponse;
     this.usage = usage;
+    this.rawChoiceMessage = rawChoiceMessage;
   }
 }
 import {
@@ -18,30 +29,85 @@ import {
   MIDSCENE_LANGFUSE_DEBUG,
   MIDSCENE_LANGSMITH_DEBUG,
   type TModelFamily,
-  type UITarsModelVersion,
   globalConfigManager,
 } from '@midscene/shared/env';
 
 import { getDebug } from '@midscene/shared/logger';
 import { assert, ifInBrowser } from '@midscene/shared/utils';
-import { jsonrepair } from 'jsonrepair';
 import OpenAI from 'openai';
 import type { ChatCompletionMessageParam } from 'openai/resources/index';
 import type { Stream } from 'openai/streaming';
-import type { AIArgs } from '../../common';
-import { isAutoGLM, isUITars } from '../auto-glm/util';
+import { type ModelRuntime, getModelRuntime } from '../models';
+import type { AIArgs } from '../types';
 import {
   callAIWithCodexAppServer,
   isCodexAppServerProvider,
 } from './codex-app-server';
-import { shouldForceOriginalImageDetail } from './image-detail';
+import type { JsonParserSource } from './json';
 import {
   buildRequestAbortSignal,
   isHardTimeoutError,
   resolveEffectiveTimeoutMs,
 } from './request-timeout';
+export {
+  extractJSONFromCodeBlock,
+  normalJsonParser,
+  safeParseJson,
+} from './json';
+export type { JsonParser } from './json';
 
-async function createChatClient({
+function stringifyForDebug(value: unknown): string {
+  try {
+    return JSON.stringify(value);
+  } catch (_error) {
+    return String(value);
+  }
+}
+
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+function toError(error: unknown): Error {
+  return error instanceof Error ? error : new Error(String(error));
+}
+
+function normalizeRetryCount(retryCount: unknown): number {
+  if (typeof retryCount !== 'number' || !Number.isFinite(retryCount)) {
+    return 1;
+  }
+
+  return Math.max(0, Math.floor(retryCount));
+}
+
+function appendAIRequestFailureSummary<T extends Error>(
+  error: T,
+  attemptErrors: Array<{ attempt: number; error: unknown }>,
+  maxAttempts: number,
+): T {
+  const failedAttempts = attemptErrors.length;
+  const retries = Math.max(0, failedAttempts - 1);
+  const retryLabel = retries === 1 ? 'retry' : 'retries';
+  const originalMessage = error.message;
+  const previousAttemptErrors = attemptErrors.slice(0, -1);
+
+  error.message = `AI model request failed after ${retries} ${retryLabel} (${failedAttempts}/${maxAttempts} attempts). Last error: ${originalMessage}`;
+
+  if (previousAttemptErrors.length === 0) {
+    return error;
+  }
+
+  const details = previousAttemptErrors
+    .map(
+      ({ attempt, error }) => `Attempt ${attempt}: ${getErrorMessage(error)}`,
+    )
+    .join('\n');
+
+  error.message = `${error.message}\nPrevious AI call attempt errors:\n${details}`;
+  return error;
+}
+
+export async function createChatClient({
   modelConfig,
 }: {
   modelConfig: IModelConfig;
@@ -49,7 +115,6 @@ async function createChatClient({
   completion: OpenAI.Chat.Completions;
   modelName: string;
   modelDescription: string;
-  uiTarsModelVersion?: UITarsModelVersion;
   modelFamily: TModelFamily | undefined;
 }> {
   const {
@@ -60,7 +125,6 @@ async function createChatClient({
     openaiApiKey,
     openaiExtraConfig,
     modelDescription,
-    uiTarsModelVersion,
     modelFamily,
     createOpenAIClient,
     timeout,
@@ -221,40 +285,31 @@ async function createChatClient({
     completion: openai.chat.completions,
     modelName,
     modelDescription,
-    uiTarsModelVersion,
     modelFamily,
   };
 }
 
+interface CallAIOptions {
+  stream?: boolean;
+  onChunk?: StreamingCallback;
+  abortSignal?: AbortSignal;
+  requiresOriginalImageDetail?: boolean;
+}
+
 export async function callAI(
   messages: ChatCompletionMessageParam[],
-  modelConfig: IModelConfig,
-  options?: {
-    stream?: boolean;
-    onChunk?: StreamingCallback;
-    abortSignal?: AbortSignal;
-    forceOriginalImageDetail?: boolean;
-  },
+  modelRuntime: ModelRuntime,
+  options?: CallAIOptions,
 ): Promise<{
   content: string;
   reasoning_content?: string;
+  rawChoiceMessage?: unknown;
   usage?: AIUsageInfo;
   isStreamed: boolean;
 }> {
-  if (isCodexAppServerProvider(modelConfig.openaiBaseURL)) {
-    if (
-      !modelConfig.modelFamily &&
-      hasExplicitReasoningConfig({
-        reasoningEnabled: modelConfig.reasoningEnabled,
-        reasoningEffort: modelConfig.reasoningEffort,
-        reasoningBudget: modelConfig.reasoningBudget,
-      })
-    ) {
-      throw new Error(
-        'Reasoning config requires MIDSCENE_MODEL_FAMILY. Set MIDSCENE_MODEL_FAMILY when using MIDSCENE_MODEL_REASONING_ENABLED / MIDSCENE_MODEL_REASONING_EFFORT / MIDSCENE_MODEL_REASONING_BUDGET.',
-      );
-    }
+  const { config: modelConfig, adapter } = modelRuntime;
 
+  if (isCodexAppServerProvider(modelConfig.openaiBaseURL)) {
     return callAIWithCodexAppServer(messages, modelConfig, {
       stream: options?.stream,
       onChunk: options?.onChunk,
@@ -263,15 +318,10 @@ export async function callAI(
     });
   }
 
-  const {
-    completion,
-    modelName,
-    modelDescription,
-    uiTarsModelVersion,
-    modelFamily,
-  } = await createChatClient({
-    modelConfig,
-  });
+  const { completion, modelName, modelDescription, modelFamily } =
+    await createChatClient({
+      modelConfig,
+    });
   const effectiveTimeoutMs = resolveEffectiveTimeoutMs(modelConfig);
 
   const extraBody = modelConfig.extraBody;
@@ -283,21 +333,32 @@ export async function callAI(
 
   const startTime = Date.now();
 
-  const temperature = (() => {
-    if (modelFamily === 'gpt-5') {
-      debugCall('temperature is ignored for gpt-5');
-      return undefined;
-    }
-    return modelConfig.temperature ?? 0;
-  })();
-
   const isStreaming = options?.stream && options?.onChunk;
+  const chatCompletionInput = {
+    intent: modelConfig.intent,
+    userConfig: {
+      temperature: modelConfig.temperature,
+      reasoningEnabled: modelConfig.reasoningEnabled,
+      reasoningEffort: modelConfig.reasoningEffort,
+      reasoningBudget: modelConfig.reasoningBudget,
+    },
+    requiresOriginalImageDetail: options?.requiresOriginalImageDetail,
+  };
+  const { config: adapterChatCompletionParams } =
+    adapter.chatCompletion.buildChatCompletionParams(chatCompletionInput);
+  debugCall(
+    `adapter chat completion params: ${stringifyForDebug({
+      config: adapterChatCompletionParams,
+    })}`,
+  );
   let content: string | undefined;
   let accumulated = '';
   let accumulatedReasoning = '';
+  let rawChoiceMessage: unknown;
   let usage: OpenAI.CompletionUsage | undefined;
   let timeCost: number | undefined;
   let requestId: string | null | undefined;
+  let responseModelName: string | undefined;
 
   const hasUsableText = (value: string | null | undefined): value is string =>
     typeof value === 'string' && value.trim().length > 0;
@@ -313,6 +374,7 @@ export async function callAI(
     )?.prompt_tokens_details?.cached_tokens;
 
     return {
+      ...usageData,
       prompt_tokens: usageData.prompt_tokens ?? 0,
       completion_tokens: usageData.completion_tokens ?? 0,
       total_tokens: usageData.total_tokens ?? 0,
@@ -320,48 +382,27 @@ export async function callAI(
       time_cost: timeCost ?? 0,
       model_name: modelName,
       model_description: modelDescription,
+      response_model_name: responseModelName,
       slot: modelConfig.slot,
+      // Agent task layers fill semantic intent after the raw model call.
       intent: undefined,
       request_id: requestId ?? undefined,
     } satisfies AIUsageInfo;
   };
 
-  const commonConfig = {
-    temperature,
-    stream: !!isStreaming,
-    ...(modelFamily === 'qwen2.5-vl' // qwen vl v2 specific config
-      ? {
-          vl_high_resolution_images: true,
-        }
-      : {}),
+  const requestConfig = {
+    ...adapterChatCompletionParams,
+    ...(extraBody ?? {}),
   };
+  const temperature = requestConfig.temperature;
 
-  if (isAutoGLM(modelFamily)) {
-    (commonConfig as unknown as Record<string, number>).top_p = 0.85;
-    (commonConfig as unknown as Record<string, number>).frequency_penalty = 0.2;
-  }
+  const imageDetail =
+    adapter.chatCompletion.resolveImageDetail(chatCompletionInput);
 
-  const {
-    config: reasoningEffortConfig,
-    debugMessage: reasoningEffortDebugMessage,
-  } = resolveReasoningConfig({
-    reasoningEnabled: modelConfig.reasoningEnabled,
-    reasoningEffort: modelConfig.reasoningEffort,
-    reasoningBudget: modelConfig.reasoningBudget,
-    modelFamily,
-  });
-  if (reasoningEffortDebugMessage) {
-    debugCall(reasoningEffortDebugMessage);
-  }
-
-  const shouldUseOriginalImageDetail =
-    options?.forceOriginalImageDetail ||
-    shouldForceOriginalImageDetail(modelConfig);
-
-  // For default-intent GPT-5 calls, request original image detail to preserve
-  // screenshot resolution for localization-sensitive tasks.
+  // Some adapters request original image detail to preserve screenshot
+  // resolution for localization-sensitive tasks.
   const messagesWithImageDetail: ChatCompletionMessageParam[] = (() => {
-    if (!shouldUseOriginalImageDetail) {
+    if (!imageDetail) {
       return messages;
     }
 
@@ -376,7 +417,7 @@ export async function callAI(
             ...part,
             image_url: {
               ...part.image_url,
-              detail: 'original',
+              detail: imageDetail,
             },
           };
         }
@@ -403,9 +444,8 @@ export async function callAI(
           {
             model: modelName,
             messages: messagesWithImageDetail,
-            ...commonConfig,
-            ...reasoningEffortConfig,
-            ...extraBody,
+            ...requestConfig,
+            stream: true,
           },
           {
             stream: true,
@@ -418,13 +458,18 @@ export async function callAI(
         requestId = stream._request_id;
 
         for await (const chunk of stream) {
-          const content = chunk.choices?.[0]?.delta?.content || '';
-          const reasoning_content =
-            (chunk.choices?.[0]?.delta as any)?.reasoning_content || '';
+          const parsedChunk = adapter.chatCompletion.extractContentAndReasoning(
+            chunk.choices?.[0]?.delta,
+          );
+          const content = parsedChunk.content || '';
+          const reasoning_content = parsedChunk.reasoning_content || '';
 
           // Check for usage info in any chunk (OpenAI provides usage in separate chunks)
           if (chunk.usage) {
             usage = chunk.usage;
+          }
+          if (chunk.model) {
+            responseModelName = chunk.model;
           }
 
           if (content || reasoning_content) {
@@ -479,11 +524,12 @@ export async function callAI(
       );
     } else {
       // Non-streaming with retry logic
-      const retryCount = modelConfig.retryCount ?? 1;
+      const retryCount = normalizeRetryCount(modelConfig.retryCount);
       const retryInterval = modelConfig.retryInterval ?? 2000;
       const maxAttempts = retryCount + 1; // retryCount=1 means 2 total attempts (1 initial + 1 retry)
 
       let lastError: Error | undefined;
+      const attemptErrors: Array<{ attempt: number; error: unknown }> = [];
 
       for (let attempt = 1; attempt <= maxAttempts; attempt++) {
         const { signal: attemptSignal, cleanup: cleanupAttemptSignal } =
@@ -493,9 +539,8 @@ export async function callAI(
             {
               model: modelName,
               messages: messagesWithImageDetail,
-              ...commonConfig,
-              ...reasoningEffortConfig,
-              ...extraBody,
+              ...requestConfig,
+              stream: false,
             } as any,
             { signal: attemptSignal },
           );
@@ -503,7 +548,7 @@ export async function callAI(
           timeCost = Date.now() - startTime;
 
           debugProfileStats(
-            `model, ${modelName}, mode, ${modelFamily || 'default'}, ui-tars-version, ${uiTarsModelVersion}, prompt-tokens, ${result.usage?.prompt_tokens || ''}, completion-tokens, ${result.usage?.completion_tokens || ''}, total-tokens, ${result.usage?.total_tokens || ''}, cost-ms, ${timeCost}, requestId, ${result._request_id || ''}, temperature, ${temperature ?? ''}`,
+            `model, ${modelName}, mode, ${modelFamily || 'default'}, prompt-tokens, ${result.usage?.prompt_tokens || ''}, completion-tokens, ${result.usage?.completion_tokens || ''}, total-tokens, ${result.usage?.total_tokens || ''}, cost-ms, ${timeCost}, requestId, ${result._request_id || ''}, temperature, ${temperature ?? ''}`,
           );
 
           debugProfileDetail(
@@ -516,11 +561,16 @@ export async function callAI(
             );
           }
 
-          content = result.choices[0].message.content!;
-          accumulatedReasoning =
-            (result.choices[0].message as any)?.reasoning_content || '';
+          rawChoiceMessage = result.choices[0].message;
+          const parsedMessage =
+            adapter.chatCompletion.extractContentAndReasoning(
+              result.choices[0].message,
+            );
+          content = parsedMessage.content;
+          accumulatedReasoning = parsedMessage.reasoning_content;
           usage = result.usage;
           requestId = result._request_id;
+          responseModelName = result.model;
 
           if (!hasUsableText(content) && hasUsableText(accumulatedReasoning)) {
             warnCall('empty content from AI model, using reasoning content');
@@ -532,12 +582,14 @@ export async function callAI(
               'empty content from AI model',
               JSON.stringify(result),
               buildUsageInfo(usage, requestId),
+              rawChoiceMessage,
             );
           }
 
           break; // Success, exit retry loop
         } catch (error) {
-          lastError = error as Error;
+          lastError = toError(error);
+          attemptErrors.push({ attempt, error });
           const wasHardTimeout = isHardTimeoutError(lastError);
           if (wasHardTimeout) {
             warnCall(
@@ -560,7 +612,15 @@ export async function callAI(
       }
 
       if (!content) {
-        throw lastError;
+        assert(
+          lastError,
+          'AI model request failed without recording an attempt error',
+        );
+        throw appendAIRequestFailureSummary(
+          lastError,
+          attemptErrors,
+          maxAttempts,
+        );
       }
     }
 
@@ -584,6 +644,7 @@ export async function callAI(
     return {
       content: content || '',
       reasoning_content: accumulatedReasoning || undefined,
+      rawChoiceMessage,
       usage: buildUsageInfo(usage, requestId),
       isStreamed: !!isStreaming,
     };
@@ -606,308 +667,79 @@ export async function callAI(
 
 export async function callAIWithObjectResponse<T>(
   messages: ChatCompletionMessageParam[],
-  modelConfig: IModelConfig,
+  // Keep IModelConfig compatibility for midscene-example/connectivity-test/tests/connectivity.test.ts; internal workflow callers should pass ModelRuntime instead.
+  model: IModelConfig | ModelRuntime,
   options?: {
     abortSignal?: AbortSignal;
+    jsonParserSource?: JsonParserSource;
   },
 ): Promise<{
+  // TODO: `content` is a misleading name here because this is already the parsed object response. Consider renaming it to `object` or `data`.
   content: T;
   contentString: string;
   usage?: AIUsageInfo;
   reasoning_content?: string;
+  rawChoiceMessage?: unknown;
 }> {
-  const response = await callAI(messages, modelConfig, {
+  const modelRuntime = resolveCompatibleModelRuntime(model);
+  const { config: modelConfig, adapter } = modelRuntime;
+  const response = await callAI(messages, modelRuntime, {
     abortSignal: options?.abortSignal,
   });
   assert(response, 'empty response');
-  const modelFamily = modelConfig.modelFamily;
-  const jsonContent = safeParseJson(response.content, modelFamily);
+  let jsonContent: unknown;
+  try {
+    jsonContent = adapter.jsonParser(response.content, {
+      source: options?.jsonParserSource ?? 'generic-object',
+    });
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    throw new AIResponseParseError(
+      errorMessage,
+      response.content,
+      response.usage,
+    );
+  }
   if (typeof jsonContent !== 'object') {
     throw new AIResponseParseError(
       `failed to parse json response from model (${modelConfig.modelName}): ${response.content}`,
       response.content,
       response.usage,
+      response.rawChoiceMessage,
     );
   }
   return {
-    content: jsonContent,
+    content: jsonContent as T,
     contentString: response.content,
     usage: response.usage,
     reasoning_content: response.reasoning_content,
+    rawChoiceMessage: response.rawChoiceMessage,
   };
+}
+
+function resolveCompatibleModelRuntime(
+  model: IModelConfig | ModelRuntime,
+): ModelRuntime {
+  if ('config' in model && 'adapter' in model) {
+    return model;
+  }
+
+  return getModelRuntime(model);
 }
 
 export async function callAIWithStringResponse(
   msgs: AIArgs,
-  modelConfig: IModelConfig,
-  options?: {
-    abortSignal?: AbortSignal;
-  },
-): Promise<{ content: string; usage?: AIUsageInfo }> {
-  const { content, usage } = await callAI(msgs, modelConfig, {
-    abortSignal: options?.abortSignal,
-  });
-  return { content, usage };
-}
-
-export function extractJSONFromCodeBlock(response: string) {
-  try {
-    // First, try to match a JSON object directly in the response
-    const jsonMatch = response.match(/^\s*(\{[\s\S]*\})\s*$/);
-    if (jsonMatch) {
-      return jsonMatch[1];
-    }
-
-    // If no direct JSON object is found, try to extract JSON from a code block
-    const codeBlockMatch = response.match(
-      /```(?:json)?\s*(\{[\s\S]*?\})\s*```/,
-    );
-    if (codeBlockMatch) {
-      return codeBlockMatch[1];
-    }
-
-    // If no code block is found, try to find a JSON-like structure in the text
-    const jsonLikeMatch = response.match(/\{[\s\S]*\}/);
-    if (jsonLikeMatch) {
-      return jsonLikeMatch[0];
-    }
-  } catch {}
-  // If no JSON-like structure is found, return the original response
-  return response;
-}
-
-export function preprocessDoubaoBboxJson(input: string) {
-  if (input.includes('bbox')) {
-    // when its values like 940 445 969 490, replace all /\d+\s+\d+/g with /$1,$2/g
-    while (/\d+\s+\d+/.test(input)) {
-      input = input.replace(/(\d+)\s+(\d+)/g, '$1,$2');
-    }
-  }
-  return input;
-}
-
-function hasExplicitReasoningConfig({
-  reasoningEnabled,
-  reasoningEffort,
-  reasoningBudget,
-}: {
-  reasoningEnabled?: boolean;
-  reasoningEffort?: string;
-  reasoningBudget?: number;
-}): boolean {
-  return (
-    reasoningEnabled !== undefined ||
-    !!reasoningEffort ||
-    reasoningBudget !== undefined
+  modelRuntime: ModelRuntime,
+  options?: Pick<CallAIOptions, 'abortSignal' | 'requiresOriginalImageDetail'>,
+): Promise<{
+  content: string;
+  usage?: AIUsageInfo;
+  rawChoiceMessage?: unknown;
+}> {
+  const { content, usage, rawChoiceMessage } = await callAI(
+    msgs,
+    modelRuntime,
+    options,
   );
-}
-
-const SUPPORTED_REASONING_FAMILIES = [
-  'qwen3-vl',
-  'qwen3.5',
-  'qwen3.6',
-  'doubao-vision',
-  'doubao-seed',
-  'glm-v',
-] as const satisfies readonly TModelFamily[];
-
-type SupportedReasoningFamily = (typeof SUPPORTED_REASONING_FAMILIES)[number];
-
-function isSupportedReasoningFamily(
-  family: TModelFamily | undefined,
-): family is SupportedReasoningFamily {
-  return (
-    !!family &&
-    (SUPPORTED_REASONING_FAMILIES as readonly TModelFamily[]).includes(family)
-  );
-}
-
-function supportedReasoningFamilyNames(): string {
-  return SUPPORTED_REASONING_FAMILIES.join(', ');
-}
-
-export function resolveReasoningConfig({
-  reasoningEnabled,
-  reasoningEffort,
-  reasoningBudget,
-  modelFamily,
-}: {
-  reasoningEnabled?: boolean;
-  reasoningEffort?: string;
-  reasoningBudget?: number;
-  modelFamily?: TModelFamily;
-}): {
-  config: Record<string, unknown>;
-  debugMessage?: string;
-} {
-  const hasExplicitConfig = hasExplicitReasoningConfig({
-    reasoningEnabled,
-    reasoningEffort,
-    reasoningBudget,
-  });
-
-  if (hasExplicitConfig) {
-    if (!modelFamily) {
-      throw new Error(
-        `Reasoning config requires MIDSCENE_MODEL_FAMILY. Set MIDSCENE_MODEL_FAMILY to a supported family such as ${supportedReasoningFamilyNames()}, or remove MIDSCENE_MODEL_REASONING_ENABLED / MIDSCENE_MODEL_REASONING_EFFORT / MIDSCENE_MODEL_REASONING_BUDGET.`,
-      );
-    }
-
-    // GPT-5 over Chat Completions is intentionally unsupported here because
-    // its reasoning effort compatibility varies by model version.
-    if (!isSupportedReasoningFamily(modelFamily)) {
-      throw new Error(
-        `Reasoning config is not supported for model family "${modelFamily}". Use a supported family such as ${supportedReasoningFamilyNames()}, or remove MIDSCENE_MODEL_REASONING_ENABLED / MIDSCENE_MODEL_REASONING_EFFORT / MIDSCENE_MODEL_REASONING_BUDGET.`,
-      );
-    }
-  } else if (!isSupportedReasoningFamily(modelFamily)) {
-    return { config: {} };
-  }
-
-  const effectiveReasoningEnabled = reasoningEnabled ?? false;
-
-  const debugMessages: string[] = [];
-  const config: Record<string, unknown> = {};
-
-  if (
-    modelFamily === 'qwen3-vl' ||
-    modelFamily === 'qwen3.5' ||
-    modelFamily === 'qwen3.6'
-  ) {
-    // reasoningEnabled → enable_thinking
-    config.enable_thinking = effectiveReasoningEnabled;
-    debugMessages.push(`enable_thinking=${effectiveReasoningEnabled}`);
-    // reasoningBudget → thinking_budget
-    if (reasoningBudget !== undefined) {
-      config.thinking_budget = reasoningBudget;
-      debugMessages.push(`thinking_budget=${reasoningBudget}`);
-    }
-    // reasoningEffort is ignored for qwen
-  } else if (modelFamily === 'doubao-vision' || modelFamily === 'doubao-seed') {
-    // reasoningEnabled → thinking.type
-    config.thinking = {
-      type: effectiveReasoningEnabled ? 'enabled' : 'disabled',
-    };
-    debugMessages.push(
-      `thinking.type=${effectiveReasoningEnabled ? 'enabled' : 'disabled'}`,
-    );
-    // reasoningEffort → reasoning_effort
-    if (reasoningEffort) {
-      config.reasoning_effort = reasoningEffort;
-      debugMessages.push(`reasoning_effort="${reasoningEffort}"`);
-    }
-    // reasoningBudget is ignored for doubao
-  } else if (modelFamily === 'glm-v') {
-    // reasoningEnabled → thinking.type
-    config.thinking = {
-      type: effectiveReasoningEnabled ? 'enabled' : 'disabled',
-    };
-    debugMessages.push(
-      `thinking.type=${effectiveReasoningEnabled ? 'enabled' : 'disabled'}`,
-    );
-    // reasoningEffort and reasoningBudget are ignored for glm-v
-  }
-
-  return {
-    config,
-    debugMessage: debugMessages.length
-      ? `reasoning config for ${modelFamily}: ${debugMessages.join(', ')}`
-      : undefined,
-  };
-}
-
-/**
- * Normalize a parsed JSON object by trimming whitespace from:
- * 1. All object keys (e.g., " prompt " -> "prompt")
- * 2. All string values (e.g., " Tap " -> "Tap")
- * This handles LLM output that may include leading/trailing spaces.
- */
-function normalizeJsonObject(obj: any): any {
-  // Handle null and undefined
-  if (obj === null || obj === undefined) {
-    return obj;
-  }
-
-  // Handle arrays - recursively normalize each element
-  if (Array.isArray(obj)) {
-    return obj.map((item) => normalizeJsonObject(item));
-  }
-
-  // Handle objects
-  if (typeof obj === 'object') {
-    const normalized: any = {};
-
-    for (const [key, value] of Object.entries(obj)) {
-      // Trim the key to remove leading/trailing spaces
-      const trimmedKey = key.trim();
-
-      // Recursively normalize the value
-      let normalizedValue = normalizeJsonObject(value);
-
-      // Trim all string values
-      if (typeof normalizedValue === 'string') {
-        normalizedValue = normalizedValue.trim();
-      }
-
-      normalized[trimmedKey] = normalizedValue;
-    }
-
-    return normalized;
-  }
-
-  // Handle primitive strings
-  if (typeof obj === 'string') {
-    return obj.trim();
-  }
-
-  // Return other primitives as-is
-  return obj;
-}
-
-export function safeParseJson(
-  input: string,
-  modelFamily: TModelFamily | undefined,
-) {
-  const cleanJsonString = extractJSONFromCodeBlock(input);
-  // match the point
-  if (cleanJsonString?.match(/\((\d+),(\d+)\)/)) {
-    return cleanJsonString
-      .match(/\((\d+),(\d+)\)/)
-      ?.slice(1)
-      .map(Number);
-  }
-
-  let parsed: any;
-  let lastError: unknown;
-  try {
-    parsed = JSON.parse(cleanJsonString);
-    return normalizeJsonObject(parsed);
-  } catch (error) {
-    lastError = error;
-  }
-  try {
-    parsed = JSON.parse(jsonrepair(cleanJsonString));
-    return normalizeJsonObject(parsed);
-  } catch (error) {
-    lastError = error;
-  }
-
-  if (
-    modelFamily === 'doubao-vision' ||
-    modelFamily === 'doubao-seed' ||
-    isUITars(modelFamily)
-  ) {
-    const jsonString = preprocessDoubaoBboxJson(cleanJsonString);
-    try {
-      parsed = JSON.parse(jsonrepair(jsonString));
-      return normalizeJsonObject(parsed);
-    } catch (error) {
-      lastError = error;
-    }
-  }
-  throw Error(
-    `failed to parse LLM response into JSON. Error - ${String(
-      lastError ?? 'unknown error',
-    )}. Response - \n ${input}`,
-  );
+  return { content, usage, rawChoiceMessage };
 }

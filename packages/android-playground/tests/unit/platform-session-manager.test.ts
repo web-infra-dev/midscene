@@ -53,8 +53,8 @@ describe('androidPlaygroundPlatform session manager', () => {
 
   test('returns device setup fields and creates a connected session', async () => {
     const { androidPlaygroundPlatform } = await import('../../src/platform');
-    const prepared = await androidPlaygroundPlatform.prepare();
-    const setup = await prepared.sessionManager?.getSetupSchema();
+    const prepared = await androidPlaygroundPlatform.prepare({});
+    const setup = await prepared.sessionManager!.getSetupSchema!();
 
     expect(setup?.fields[0]).toMatchObject({
       key: 'deviceId',
@@ -82,9 +82,9 @@ describe('androidPlaygroundPlatform session manager', () => {
       .mockRejectedValueOnce(new Error('adb executable not found'));
 
     const { androidPlaygroundPlatform } = await import('../../src/platform');
-    const prepared = await androidPlaygroundPlatform.prepare();
+    const prepared = await androidPlaygroundPlatform.prepare({});
 
-    const setup = await prepared.sessionManager?.getSetupSchema();
+    const setup = await prepared.sessionManager!.getSetupSchema!();
     expect(setup?.targets).toEqual([]);
     expect(setup?.autoSubmitWhenReady).toBe(false);
     expect(setup?.notice).toMatchObject({
@@ -101,7 +101,7 @@ describe('androidPlaygroundPlatform session manager', () => {
     );
 
     const { androidPlaygroundPlatform } = await import('../../src/platform');
-    const prepared = await androidPlaygroundPlatform.prepare();
+    const prepared = await androidPlaygroundPlatform.prepare({});
 
     await expect(prepared.sessionManager?.createSession({})).rejects.toThrow(
       'adb executable not found',

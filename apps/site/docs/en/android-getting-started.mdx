@@ -348,6 +348,33 @@ With auto dismiss disabled, the keyboard will remain visible and may cover a lar
 - Using `aiAct` to manually dismiss the keyboard, e.g. `await agent.aiAct('tap the collapse button on the keyboard')`
 - Installing and switching to [ADBKeyBoard](https://github.com/senzhk/ADBKeyBoard) — a minimal virtual keyboard that takes up very little screen space, so it barely affects screen interactions even when visible
 
+### English text is rewritten by the Android keyboard
+
+If the report shows the correct input parameter, but the app receives different text, missing text, or Chinese/pinyin candidates, the active Android input method may be rewriting the text. This can happen when pure ASCII text goes through the native `adb input text` path while a Chinese keyboard or autocorrect keyboard is active.
+
+Use the existing `imeStrategy` option and force all text input through yadb:
+
+```typescript
+const device = new AndroidDevice('device-id', {
+  imeStrategy: 'always-yadb',
+});
+```
+
+For YAML scripts:
+
+```yaml
+android:
+  imeStrategy: always-yadb
+```
+
+Or set the environment variable:
+
+```bash
+export MIDSCENE_ANDROID_IME_STRATEGY=always-yadb
+```
+
+This is different from text being cleared after typing. If the text is entered correctly and then disappears, check `keyboardDismissStrategy` or `autoDismissKeyboard` instead.
+
 ### How do I use a custom adb path or remote adb server?
 
 Set the environment variables first:

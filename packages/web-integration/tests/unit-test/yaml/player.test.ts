@@ -1,8 +1,8 @@
 import path, { join, resolve } from 'node:path';
-import { assert } from '@midscene/shared/utils';
 
 import { existsSync, readFileSync } from 'node:fs';
 import type { PageAgent } from '@/index';
+import { Agent } from '@midscene/core';
 import type {
   DeviceAction,
   MidsceneYamlScriptWebEnv,
@@ -116,20 +116,30 @@ describe('yaml utils', () => {
   });
 
   test('player - bad params', async () => {
-    await expect(async () => {
-      await runYaml(`
+    await expect(
+      Agent.prototype.runYaml.call(
+        {} as Agent,
+        `
           target:
             serve: ${serverRoot}
-        `);
-    }).rejects.toThrow();
+        `,
+      ),
+    ).rejects.toThrow(
+      /property "tasks" is required in yaml script\s*, failed to load yaml/,
+    );
 
-    await expect(async () => {
-      await runYaml(`
+    await expect(
+      Agent.prototype.runYaml.call(
+        {} as Agent,
+        `
           target:
             serve: ${serverRoot}
             viewportWidth: 0
-        `);
-    }).rejects.toThrow();
+        `,
+      ),
+    ).rejects.toThrow(
+      /property "tasks" is required in yaml script\s*, failed to load yaml/,
+    );
   });
 });
 

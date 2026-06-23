@@ -7,6 +7,14 @@ export {
   executeAction,
 } from './common';
 export { PlaygroundServer } from './server';
+export {
+  describeRecorderUIEvent,
+  describeRecorderUIEvents,
+  getRecorderUIEventTargetRect,
+  type DescribeRecorderUIEventInput,
+  type DescribeRecorderUIEventOptions,
+  type DescribeRecorderUIEventResult,
+} from './recorder-ui-describer';
 export { playgroundForAgent } from './launcher';
 export { playgroundForAgentFactory } from './launcher';
 export { playgroundForSessionManager } from './launcher';
@@ -24,11 +32,16 @@ export {
 } from './multi-platform';
 
 // SDK exports
-export { PlaygroundSDK } from './sdk';
+export { PlaygroundSDK } from './sdk/index';
 export { BasePlaygroundAdapter } from './adapters/base';
 export { LocalExecutionAdapter } from './adapters/local-execution';
 export { RemoteExecutionAdapter } from './adapters/remote-execution';
 
+export type {
+  PlaygroundInteractPayload,
+  PlaygroundInteractResult,
+  PlaygroundPageRecordedEvent,
+} from './sdk/index';
 export type {
   BeforeActionHook,
   ExecutionOptions,
@@ -54,6 +67,12 @@ export type {
   PlaygroundPreviewCapability,
   PlaygroundPreviewDescriptor,
   PlaygroundPreviewKind,
+  PlaygroundRecorderCapabilitiesResult,
+  PlaygroundRecorderDescribeResult,
+  PlaygroundRecorderEvent,
+  PlaygroundRecorderEventsResult,
+  PlaygroundRecorderSourceKind,
+  PlaygroundRecorderStartResult,
   PlaygroundSidecar,
   PreparedPlaygroundPlatform,
   PlaygroundSessionField,

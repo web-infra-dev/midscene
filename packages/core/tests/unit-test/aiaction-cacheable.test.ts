@@ -1,30 +1,44 @@
 import { TaskCache, TaskExecutor } from '@/agent';
+import { getModelRuntime } from '@/ai-model/models';
 import type { AbstractInterface } from '@/device';
 import { ScreenshotItem } from '@/screenshot-item';
+import type { ExecutionTask, ExecutionTaskApply } from '@/types';
 import { uuid } from '@midscene/shared/utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type Service from '../../src';
 import { getMidsceneLocationSchema, z } from '../../src';
 
 // Mock AI planning to avoid real AI calls
-vi.mock('@/ai-model/llm-planning', () => ({
-  plan: vi.fn().mockResolvedValue({
-    actions: [
-      {
-        type: 'Click',
-        param: {
-          locate: {
-            prompt: 'button',
+vi.mock('@/ai-model/workflows/planning', async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import('@/ai-model/workflows/planning')>();
+  return {
+    ...actual,
+    genericXmlPlan: vi.fn().mockResolvedValue({
+      actions: [
+        {
+          type: 'Click',
+          param: {
+            locate: {
+              prompt: 'button',
+            },
           },
+          thought: 'test thought',
         },
-        thought: 'test thought',
-      },
-    ],
-    more_actions_needed_by_instruction: false,
-    log: 'test log',
-    yamlFlow: [],
-  }),
-}));
+      ],
+      more_actions_needed_by_instruction: false,
+      log: 'test log',
+      yamlFlow: [],
+    }),
+  };
+});
+
+const createRuntimeTask = (task: ExecutionTaskApply): ExecutionTask => ({
+  ...task,
+  taskId: 'runtime-task',
+  status: 'running',
+  timing: { start: Date.now(), end: 0, cost: 0 },
+});
 
 describe('aiAction cacheable option propagation', () => {
   let taskExecutor: TaskExecutor;
@@ -123,14 +137,16 @@ describe('aiAction cacheable option propagation', () => {
     // Mock model config
     const mockModelConfig = {
       modelFamily: undefined,
-      model: 'test-model',
+      modelName: 'test-model',
+      modelDescription: 'test model',
+      intent: 'default',
     } as any;
 
     // Call convertPlanToExecutable with cacheable: false
     const { tasks } = await taskExecutor.convertPlanToExecutable(
       mockPlans,
-      mockModelConfig,
-      mockModelConfig,
+      getModelRuntime(mockModelConfig),
+      getModelRuntime(mockModelConfig),
       {
         cacheable: false,
       },
@@ -150,14 +166,7 @@ describe('aiAction cacheable option propagation', () => {
     // Execute the locate task to verify cache is not used
     if (locateTask) {
       await locateTask.executor(locateTask.param, {
-        task: {
-          type: 'Planning',
-          subType: 'Locate',
-          param: locateTask.param,
-          status: 'running',
-          timing: { start: Date.now(), end: 0, cost: 0 },
-          executor: locateTask.executor,
-        },
+        task: createRuntimeTask(locateTask),
       });
 
       // Verify cache was not queried (or if queried, was rejected due to cacheable: false)
@@ -176,13 +185,12 @@ describe('aiAction cacheable option propagation', () => {
     const convertPlanSpy = vi.spyOn(taskExecutor, 'convertPlanToExecutable');
 
     // Mock the planning result
+    // @ts-ignore: historical skipped test uses an old locate result shape.
     vi.spyOn(mockService, 'locate').mockResolvedValue({
       element: {
-        id: 'element-id',
+        description: 'element-id',
         center: [100, 100],
         rect: { left: 90, top: 90, width: 20, height: 20 },
-        xpaths: [],
-        attributes: {},
       },
     });
 
@@ -201,19 +209,24 @@ describe('aiAction cacheable option propagation', () => {
 
     convertPlanSpy.mockResolvedValue({
       tasks: [],
-      planLog: 'test',
-      usedModel: { model: 'test-model', modelFamily: undefined },
-      yamlFlow: [],
     });
 
     // Call action with cacheable: false
     const result = await taskExecutor.action(
       'click the button',
-      {},
-      {},
+      getModelRuntime({
+        modelName: 'test-model',
+        modelDescription: 'test model',
+        intent: 'default',
+      } as any),
+      getModelRuntime({
+        modelName: 'test-model',
+        modelDescription: 'test model',
+        intent: 'default',
+      } as any),
+      true, // includeLocateInPlanning: true
       undefined,
       false, // cacheable: false
-      true, // includeBboxInPlanning: true
     );
 
     // Verify the result
@@ -245,14 +258,16 @@ describe('aiAction cacheable option propagation', () => {
     // Mock model config
     const mockModelConfig = {
       modelFamily: undefined,
-      model: 'test-model',
+      modelName: 'test-model',
+      modelDescription: 'test model',
+      intent: 'default',
     } as any;
 
     // Call convertPlanToExecutable without cacheable option (should default to allowing cache)
     const { tasks } = await taskExecutor.convertPlanToExecutable(
       mockPlans,
-      mockModelConfig,
-      mockModelConfig,
+      getModelRuntime(mockModelConfig),
+      getModelRuntime(mockModelConfig),
     );
 
     // Verify that we have tasks
@@ -286,14 +301,16 @@ describe('aiAction cacheable option propagation', () => {
     // Mock model config
     const mockModelConfig = {
       modelFamily: undefined,
-      model: 'test-model',
+      modelName: 'test-model',
+      modelDescription: 'test model',
+      intent: 'default',
     } as any;
 
     // Call convertPlanToExecutable with cacheable: true
     const { tasks } = await taskExecutor.convertPlanToExecutable(
       mockPlans,
-      mockModelConfig,
-      mockModelConfig,
+      getModelRuntime(mockModelConfig),
+      getModelRuntime(mockModelConfig),
       {
         cacheable: true,
       },
@@ -333,6 +350,7 @@ describe('aiAction cacheable option propagation', () => {
 
     // Create a minimal Agent instance for testing with proper model config
     const { Agent } = await import('@/agent');
+    // @ts-ignore: historical skipped test still uses the old Agent constructor shape.
     const agent = new Agent(mockInterface, mockService, {
       taskCache,
       modelConfig: {
@@ -392,6 +410,7 @@ describe('aiAction cacheable option propagation', () => {
 
     // Create a minimal Agent instance for testing with proper model config
     const { Agent } = await import('@/agent');
+    // @ts-ignore: historical skipped test still uses the old Agent constructor shape.
     const agent = new Agent(mockInterface, mockService, {
       taskCache,
       modelConfig: {
@@ -451,6 +470,7 @@ describe('aiAction cacheable option propagation', () => {
 
     // Create a minimal Agent instance for testing with proper model config
     const { Agent } = await import('@/agent');
+    // @ts-ignore: historical skipped test still uses the old Agent constructor shape.
     const agent = new Agent(mockInterface, mockService, {
       taskCache,
       modelConfig: {
@@ -512,6 +532,7 @@ describe('aiAction cacheable option propagation', () => {
 
     // Create a minimal Agent instance for testing with proper model config
     const { Agent } = await import('@/agent');
+    // @ts-ignore: historical skipped test still uses the old Agent constructor shape.
     const agent = new Agent(mockInterface, mockService, {
       taskCache,
       modelConfig: {

@@ -22,6 +22,14 @@ function createExecution(
   id: string,
   screenshot: ScreenshotItem | ScreenshotRef,
 ): ExecutionDump {
+  // Some report fixtures intentionally model already-serialized dumps with
+  // ScreenshotRef, while ExecutionTask still types live UIContext screenshots
+  // as ScreenshotItem.
+  const uiContextScreenshot =
+    screenshot instanceof ScreenshotItem
+      ? screenshot
+      : (screenshot as unknown as ScreenshotItem);
+
   return new ExecutionDump({
     id,
     logTime: Date.now(),
@@ -33,10 +41,11 @@ function createExecution(
         subType: 'Locate',
         param: { prompt: 'find something' },
         uiContext: {
-          screenshot,
+          screenshot: uiContextScreenshot,
           shotSize: { width: 1920, height: 1080 },
           shrunkShotToLogicalRatio: 1,
         },
+        executor: async () => undefined,
         recorder: [],
         status: 'finished',
       },

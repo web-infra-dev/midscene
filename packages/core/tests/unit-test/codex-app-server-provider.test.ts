@@ -116,6 +116,16 @@ describe('codex app-server provider helper', () => {
         },
       }),
     ).toBe('none');
+
+    expect(
+      resolveCodexReasoningEffort({
+        reasoningEnabled: 'default',
+        modelConfig: {
+          ...baseModelConfig,
+          reasoningEffort: 'medium',
+        },
+      }),
+    ).toBeUndefined();
   });
 
   it('converts chat messages into codex turn payload', () => {

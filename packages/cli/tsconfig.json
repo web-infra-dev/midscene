@@ -22,6 +22,9 @@
       "path": "../core"
     },
     {
+      "path": "../harmony"
+    },
+    {
       "path": "../ios"
     },
     {

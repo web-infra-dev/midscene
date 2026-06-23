@@ -25,10 +25,7 @@ export const getContextFromFixture = async (
 ): Promise<{
   context: UIContext;
 }> => {
-  const targetDir = path.join(
-    __dirname,
-    `../../evaluation/page-data/${pageName}`,
-  );
+  const targetDir = path.join(__dirname, `./fixtures/page-data/${pageName}`);
   const context = await buildContext(targetDir);
   return { context };
 };

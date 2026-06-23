@@ -1,7 +1,11 @@
-import type { Size } from '@midscene/core';
+import type {
+  ExecutorContext,
+  LocateResultElement,
+  Size,
+} from '@midscene/core';
+import { describe, expect, it } from 'vitest';
 import { ComputerAgent, RDPDevice, agentForRDPComputer } from '../../../src';
 import type {
-  LocateResultElement,
   RDPBackendClient,
   RDPConnectionConfig,
   RDPConnectionInfo,
@@ -9,6 +13,7 @@ import type {
   RDPMouseButtonAction,
   RDPScrollDirection,
 } from '../../../src';
+import { formatRdpServerAddress } from '../../../src/rdp/address';
 
 class FakeRDPBackend implements RDPBackendClient {
   calls: Array<{ name: string; args: unknown[] }> = [];
@@ -17,7 +22,7 @@ class FakeRDPBackend implements RDPBackendClient {
     this.calls.push({ name: 'connect', args: [config] });
     return {
       sessionId: 'session-1',
-      server: `${config.host}:${config.port || 3389}`,
+      server: formatRdpServerAddress(config.host, config.port || 3389),
       size: { width: 1920, height: 1080 },
     };
   }
@@ -69,12 +74,14 @@ class FakeRDPBackend implements RDPBackendClient {
   }
 }
 
+const mockExecutorContext = { task: {} } as ExecutorContext;
+
 function createLocate(
   center: [number, number],
   content = 'target',
 ): LocateResultElement {
   return {
-    id: content,
+    description: content,
     rect: {
       left: center[0] - 10,
       top: center[1] - 10,
@@ -82,7 +89,6 @@ function createLocate(
       height: 20,
     },
     center,
-    content,
   };
 }
 
@@ -100,6 +106,93 @@ describe('@midscene/computer RDP device', () => {
     expect(agent.interface.interfaceType).toBe('rdp');
     expect(agent.interface.describe()).toContain('10.0.0.1:3389');
     expect(backend.calls[0]?.name).toBe('connect');
+  });
+
+  it('forwards only serializable connection settings to the backend', async () => {
+    const backend = new FakeRDPBackend();
+    const device = new RDPDevice({
+      host: '10.0.0.3',
+      port: 3389,
+      username: 'Admin',
+      password: 'secret',
+      localAddress: '10.0.0.20',
+      ignoreCertificate: true,
+      backend,
+      customActions: [],
+    });
+    await device.connect();
+
+    const connectCall = backend.calls.find((call) => call.name === 'connect');
+    const config = connectCall?.args[0] as Record<string, unknown>;
+    // The backend instance and custom actions are runtime objects that must
+    // never be serialized into the helper's JSON connection request.
+    expect(config).not.toHaveProperty('backend');
+    expect(config).not.toHaveProperty('customActions');
+    expect(config).toMatchObject({
+      host: '10.0.0.3',
+      port: 3389,
+      username: 'Admin',
+      password: 'secret',
+      localAddress: '10.0.0.20',
+      ignoreCertificate: true,
+    });
+  });
+
+  it('passes localAddress through agentForRDPComputer', async () => {
+    const backend = new FakeRDPBackend();
+    await agentForRDPComputer({
+      host: '10.0.0.4',
+      port: 3389,
+      username: 'Admin',
+      localAddress: '10.0.0.20',
+      backend,
+      generateReport: false,
+    });
+
+    expect(backend.calls[0]).toEqual({
+      name: 'connect',
+      args: [
+        expect.objectContaining({
+          host: '10.0.0.4',
+          localAddress: '10.0.0.20',
+        }),
+      ],
+    });
+  });
+
+  it('normalizes and brackets IPv6 hosts in RDP device metadata', async () => {
+    const backend = new FakeRDPBackend();
+    const device = new RDPDevice({
+      host: '[2001:db8::10]',
+      port: 3390,
+      backend,
+    });
+    await device.connect();
+
+    expect(backend.calls[0]).toEqual({
+      name: 'connect',
+      args: [
+        expect.objectContaining({
+          host: '2001:db8::10',
+          port: 3390,
+        }),
+      ],
+    });
+    expect(device.describe()).toContain('[2001:db8::10]:3390');
+
+    const listDisplays = device
+      .actionSpace()
+      .find((action) => action.name === 'ListDisplays');
+
+    await expect(
+      listDisplays!.call(undefined, mockExecutorContext),
+    ).resolves.toEqual([
+      {
+        id: 'session-1',
+        name: 'RDP [2001:db8::10]:3390 (1920x1080)',
+        primary: true,
+      },
+    ]);
   });
 
   it('allows ComputerAgent to wrap an RDP device directly', async () => {
@@ -126,9 +219,12 @@ describe('@midscene/computer RDP device', () => {
     const tap = device.actionSpace().find((action) => action.name === 'Tap');
     expect(tap).toBeDefined();
 
-    await tap!.call({
-      locate: createLocate([100, 200]),
-    });
+    await tap!.call(
+      {
+        locate: createLocate([100, 200]),
+      },
+      mockExecutorContext,
+    );
 
     const mouseMoves = backend.calls.filter(
       (call) => call.name === 'mouseMove',
@@ -157,11 +253,14 @@ describe('@midscene/computer RDP device', () => {
       .find((action) => action.name === 'Input');
     expect(input).toBeDefined();
 
-    await input!.call({
-      value: 'hello',
-      mode: 'replace',
-      locate: createLocate([5, 5], 'field'),
-    });
+    await input!.call(
+      {
+        value: 'hello',
+        mode: 'replace',
+        locate: createLocate([5, 5], 'field'),
+      },
+      mockExecutorContext,
+    );
 
     expect(backend.calls).toEqual(
       expect.arrayContaining([
@@ -187,7 +286,9 @@ describe('@midscene/computer RDP device', () => {
       .find((action) => action.name === 'ListDisplays');
     expect(listDisplays).toBeDefined();
 
-    await expect(listDisplays!.call(undefined)).resolves.toEqual([
+    await expect(
+      listDisplays!.call(undefined, mockExecutorContext),
+    ).resolves.toEqual([
       {
         id: 'session-1',
         name: 'RDP 10.0.0.1:3389 (1920x1080)',
@@ -209,9 +310,12 @@ describe('@midscene/computer RDP device', () => {
       .find((action) => action.name === 'Hover');
     expect(hover).toBeDefined();
 
-    await hover!.call({
-      locate: createLocate([300, 400], 'hover-target'),
-    });
+    await hover!.call(
+      {
+        locate: createLocate([300, 400], 'hover-target'),
+      },
+      mockExecutorContext,
+    );
 
     const mouseMoves = backend.calls.filter(
       (call) => call.name === 'mouseMove',
@@ -239,12 +343,15 @@ describe('@midscene/computer RDP device', () => {
       .find((action) => action.name === 'Scroll');
     expect(scroll).toBeDefined();
 
-    await scroll!.call({
-      direction: 'down',
-      distance: 360,
-      scrollType: 'singleAction',
-      locate: createLocate([640, 360], 'scroll-target'),
-    });
+    await scroll!.call(
+      {
+        direction: 'down',
+        distance: 360,
+        scrollType: 'singleAction',
+        locate: createLocate([640, 360], 'scroll-target'),
+      },
+      mockExecutorContext,
+    );
 
     const wheelCalls = backend.calls.filter((call) => call.name === 'wheel');
     expect(wheelCalls).toEqual([
@@ -267,10 +374,13 @@ describe('@midscene/computer RDP device', () => {
       .find((action) => action.name === 'DragAndDrop');
     expect(dragAndDrop).toBeDefined();
 
-    await dragAndDrop!.call({
-      from: createLocate([200, 220], 'drag-source'),
-      to: createLocate([800, 640], 'drag-target'),
-    });
+    await dragAndDrop!.call(
+      {
+        from: createLocate([200, 220], 'drag-source'),
+        to: createLocate([800, 640], 'drag-target'),
+      },
+      mockExecutorContext,
+    );
 
     const mouseButtons = backend.calls.filter(
       (call) => call.name === 'mouseButton',

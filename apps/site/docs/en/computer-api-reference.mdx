@@ -101,6 +101,8 @@ const agent = await agentForRDPComputer({
   port: 3389,
   username: 'Admin',
   password: 'replace-with-your-password',
+  // Optional: bind the TCP connection to this local source IP.
+  localAddress: '10.75.166.10',
   ignoreCertificate: true,
 });
 
@@ -112,6 +114,10 @@ await agent.aiAct('Open Settings');
 :::tip Example: Remote Windows desktop over RDP
 A runnable demo that connects to a remote Windows machine over RDP, opens Settings, navigates into Windows Update, and emits a structured report: [https://github.com/web-infra-dev/midscene-example/tree/main/computer/rdp-demo](https://github.com/web-infra-dev/midscene-example/tree/main/computer/rdp-demo)
 :::
+
+Use `localAddress` only when the machine running Midscene has multiple outbound
+routes and the RDP server must be reached from a specific local source IP. Pass
+an IP address, not a network interface name.
 
 ## Device Management
 
@@ -181,6 +187,12 @@ The `ComputerAgent` class extends `PageAgent<ComputerDevice>` and inherits all c
 - `aiLocate(description: string)`: Locate an element
 - And more...
 
+Instant actions are also available for direct, deterministic control once an element is located:
+
+- `aiTap()`, `aiDoubleClick()`, `aiRightClick()`, `aiHover()`: Mouse actions
+- `aiInput()`, `aiClearInput()`, `aiKeyboardPress()`: Keyboard actions
+- `aiScroll()`: Scroll action
+
 See [Common API Reference](./api) for details.
 
 ## Available Actions
@@ -215,12 +227,16 @@ await agent.aiAct('right-click on the desktop');
 await agent.aiAct('right-click on the file');
 ```
 
-#### MouseMove
+#### MouseMove (Hover)
 
-Move mouse to an element.
+Move the mouse to an element — also known as hovering — for example to reveal a hover menu or tooltip.
 
 ```typescript
+// Natural-language form (move mouse / hover)
 await agent.aiAct('move mouse to the menu item');
+
+// Instant action: locate and hover in one call
+await agent.aiHover('the menu item "Products"');
 ```
 
 #### DragAndDrop

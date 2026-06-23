@@ -72,9 +72,12 @@ export default function UpdaterSection({
         <span className="shrink-0 font-sans text-[13px] leading-[22px] text-text-secondary">
           Version
         </span>
-        <div className="flex min-w-0 items-center gap-[8px]">
+        <div className="flex min-w-0 flex-1 items-center justify-end gap-[8px]">
           {updateAction}
-          <span className="shrink-0 font-sans text-[12px] leading-[18px] text-text-tertiary">
+          <span
+            className="min-w-0 truncate font-sans text-[12px] leading-[18px] text-text-tertiary"
+            title={versionLabel}
+          >
             {versionLabel}
           </span>
         </div>

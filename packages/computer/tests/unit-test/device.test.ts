@@ -48,6 +48,12 @@ describe('ComputerDevice', () => {
     expect(actionNames).toContain('Scroll');
     expect(actionNames).toContain('KeyboardPress');
 
+    // Mouse actions, including Hover (aiHover) — see issue #2413
+    expect(actionNames).toContain('Hover');
+    expect(actionNames).toContain('DoubleClick');
+    expect(actionNames).toContain('RightClick');
+    expect(actionNames).toContain('DragAndDrop');
+
     console.log('Available actions:', actionNames);
   });
 });

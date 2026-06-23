@@ -14,6 +14,10 @@ import {
 import { sleep } from '@midscene/core/utils';
 import { getDebug } from '@midscene/shared/logger';
 import type { DisplayInfo } from '../device';
+import {
+  formatRdpServerAddress,
+  normalizeRdpConnectionConfig,
+} from './address';
 import { createDefaultRDPBackendClient } from './backend-client';
 import type {
   RDPBackendClient,
@@ -185,24 +189,26 @@ export class RDPDevice implements AbstractInterface {
   };
 
   constructor(options: RDPDeviceOpt) {
+    const normalizedOptions = normalizeRdpConnectionConfig(options);
     this.options = {
       port: 3389,
       securityProtocol: 'auto',
       ignoreCertificate: false,
-      ...options,
+      ...normalizedOptions,
     };
     this.backend = options.backend || createDefaultRDPBackendClient();
   }
 
   describe(): string {
     const port = this.options.port || 3389;
+    const server = formatRdpServerAddress(this.options.host, port);
     const username = this.options.username
       ? ` as ${this.options.username}`
       : '';
     const session = this.connectionInfo?.sessionId
       ? ` [session ${this.connectionInfo.sessionId}]`
       : '';
-    return `RDP Device ${this.options.host}:${port}${username}${session}`;
+    return `RDP Device ${server}${username}${session}`;
   }
 
   async connect(): Promise<void> {
@@ -212,7 +218,16 @@ export class RDPDevice implements AbstractInterface {
       port: this.options.port,
       username: this.options.username,
     });
-    this.connectionInfo = await this.backend.connect(this.options);
+    // Only forward serializable connection settings. `backend` and
+    // `customActions` are runtime objects (the backend instance even holds a
+    // live child process with circular references); leaking them into the
+    // config sent over the helper's JSON protocol corrupts the request line.
+    const {
+      backend: _backend,
+      customActions: _customActions,
+      ...config
+    } = this.options;
+    this.connectionInfo = await this.backend.connect(config);
     this.cursorPosition = [
       Math.round(this.connectionInfo.size.width / 2),
       Math.round(this.connectionInfo.size.height / 2),
@@ -248,10 +263,16 @@ export class RDPDevice implements AbstractInterface {
         call: async (): Promise<DisplayInfo[]> => {
           this.assertConnected();
           const size = await this.size();
+          const server =
+            this.connectionInfo?.server ||
+            formatRdpServerAddress(
+              this.options.host,
+              this.options.port || 3389,
+            );
           return [
             {
               id: this.connectionInfo?.sessionId || this.options.host,
-              name: `RDP ${this.connectionInfo?.server || this.options.host} (${size.width}x${size.height})`,
+              name: `RDP ${server} (${size.width}x${size.height})`,
               primary: true,
             },
           ];

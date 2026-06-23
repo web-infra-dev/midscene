@@ -1,6 +1,6 @@
 {
   "name": "@midscene/ios",
-  "version": "1.8.7",
+  "version": "1.9.8",
   "repository": {
     "type": "git",
     "url": "https://github.com/web-infra-dev/midscene.git",
@@ -32,11 +32,6 @@
       "types": "./dist/types/bin.d.ts",
       "import": "./dist/es/bin.mjs",
       "require": "./dist/lib/bin.js"
-    },
-    "./mcp-server": {
-      "types": "./dist/types/mcp-server.d.ts",
-      "import": "./dist/es/mcp-server.mjs",
-      "require": "./dist/lib/mcp-server.js"
     },
     "./package.json": "./package.json"
   },

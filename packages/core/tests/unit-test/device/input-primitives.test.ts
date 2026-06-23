@@ -1,5 +1,8 @@
 import { defineActionsFromInputPrimitives } from '@/device';
+import type { ExecutorContext } from '@/types';
 import { describe, expect, it, vi } from 'vitest';
+
+const mockExecutorContext = { task: {} } as ExecutorContext;
 
 describe('defineActionsFromInputPrimitives', () => {
   it('should expose configured system input primitives as actions', async () => {
@@ -46,9 +49,9 @@ describe('defineActionsFromInputPrimitives', () => {
     expect(actions[0].delayBeforeRunner).toBe(0);
     expect(actions[0].delayAfterRunner).toBe(0);
 
-    await actions[0].call(undefined);
-    await actions[1].call(undefined);
-    await actions[2].call(undefined);
+    await actions[0].call(undefined, mockExecutorContext);
+    await actions[1].call(undefined, mockExecutorContext);
+    await actions[2].call(undefined, mockExecutorContext);
 
     expect(backButton).toHaveBeenCalledTimes(1);
     expect(homeButton).toHaveBeenCalledTimes(1);

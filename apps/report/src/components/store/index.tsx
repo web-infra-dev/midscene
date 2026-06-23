@@ -3,12 +3,12 @@ import type { PlaywrightTaskAttributes } from '@/types';
 import type {
   ExecutionDump,
   ExecutionTask,
-  ExecutionTaskPlanningLocate,
   GroupedActionDump,
   LocateResultElement,
   ModelBrief,
   ServiceDump,
 } from '@midscene/core';
+import { getTaskServiceDump } from '@midscene/core';
 import type { AnimationScript } from '@midscene/visualizer';
 import {
   allScriptsFromDump,
@@ -209,7 +209,7 @@ export const useExecutionDump = create<DumpStoreType>((set, get) => {
         task.type === 'Insight' ||
         (task.type === 'Planning' && task.subType === 'Locate')
       ) {
-        const dump = (task as ExecutionTaskPlanningLocate).log;
+        const dump = getTaskServiceDump(task);
         set({
           insightDump: dump,
         });

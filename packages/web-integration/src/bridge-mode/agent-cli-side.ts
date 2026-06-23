@@ -1,4 +1,6 @@
 import { Agent, type AgentOpt } from '@midscene/core/agent';
+import type { FileChooserHandler } from '@midscene/core/device';
+import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import { commonWebActionsForWebPage } from '../web-page';
 import type { KeyboardAction, MouseAction } from '../web-page';
@@ -19,7 +21,22 @@ interface ChromeExtensionPageCliSide extends ExtensionBridgePageBrowserSide {
   showStatusMessage: (message: string) => Promise<void>;
 }
 
+type BridgeSerializedError = {
+  message: string;
+  name?: string;
+  stack?: string;
+};
+
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const debug = getDebug('web:bridge:agent-cli-side');
+
+function deserializeBridgeError(error: BridgeSerializedError): Error {
+  const result = new Error(error.message);
+  result.name = error.name || 'Error';
+  result.stack = error.stack;
+  return result;
+}
 
 // actually, this is a proxy to the page in browser side
 export const getBridgePageInCliSide = (options?: {
@@ -40,10 +57,47 @@ export const getBridgePageInCliSide = (options?: {
   server.listen({
     timeout: options?.timeout,
   });
+
+  let fileChooserEnabled = false;
+  let fileChooserError: Error | undefined;
+
+  const fileChooserBridgeMethods = new Set<string>([
+    BridgeEvent.RegisterFileChooserAccept,
+    BridgeEvent.ClearFileChooserAccept,
+    BridgeEvent.GetFileChooserError,
+  ]);
+
+  const syncFileChooserError = async () => {
+    if (!fileChooserEnabled) return;
+    try {
+      const error = await server.call<BridgeSerializedError | undefined>(
+        BridgeEvent.GetFileChooserError,
+        [],
+        5000,
+      );
+      if (error) {
+        fileChooserError = deserializeBridgeError(error);
+      }
+    } catch (error) {
+      fileChooserError =
+        error instanceof Error ? error : new Error(String(error));
+    }
+  };
+
   const bridgeCaller = (method: string, timeout?: number) => {
     return async (...args: any[]) => {
-      const response = await server.call(method, args, timeout);
-      return response;
+      try {
+        const response = await server.call(method, args, timeout);
+        if (!fileChooserBridgeMethods.has(method)) {
+          await syncFileChooserError();
+        }
+        return response;
+      } catch (error) {
+        if (!fileChooserBridgeMethods.has(method)) {
+          await syncFileChooserError();
+        }
+        throw error;
+      }
     };
   };
   const page = {
@@ -74,6 +128,47 @@ export const getBridgePageInCliSide = (options?: {
 
       if (Object.keys(page).includes(prop)) {
         return page[prop as keyof typeof page];
+      }
+
+      if (prop === 'registerFileChooserListener') {
+        return async (
+          handler: (chooser: FileChooserHandler) => Promise<void>,
+        ) => {
+          fileChooserEnabled = true;
+          fileChooserError = undefined;
+          try {
+            await handler({
+              accept: async (files: string[]) => {
+                await server.call(BridgeEvent.RegisterFileChooserAccept, [
+                  files,
+                ]);
+              },
+            });
+          } catch (error) {
+            fileChooserEnabled = false;
+            fileChooserError =
+              error instanceof Error ? error : new Error(String(error));
+            throw fileChooserError;
+          }
+
+          return {
+            dispose: () => {
+              fileChooserEnabled = false;
+              server
+                .call(BridgeEvent.ClearFileChooserAccept, [], 5000)
+                .catch((error) => {
+                  debug(
+                    'failed to clear bridge file chooser accept: %O',
+                    error,
+                  );
+                });
+            },
+            getError: async () => {
+              await syncFileChooserError();
+              return fileChooserError;
+            },
+          };
+        };
       }
 
       if (prop === 'mouse') {

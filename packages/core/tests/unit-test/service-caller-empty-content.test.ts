@@ -22,6 +22,7 @@ describe('service-caller empty content handling', () => {
     const { callAI, AIResponseParseError } = await import(
       '@/ai-model/service-caller'
     );
+    const { getModelRuntime } = await import('@/ai-model/models');
 
     mockCreate.mockResolvedValue({
       choices: [{ message: { content: '' } }],
@@ -29,7 +30,11 @@ describe('service-caller empty content handling', () => {
         prompt_tokens: 12,
         completion_tokens: 0,
         total_tokens: 12,
+        prompt_tokens_details: {
+          cached_tokens: 7,
+        },
       },
+      model: 'gpt-4o-2024-08-06',
       _request_id: 'req_test_123',
     });
 
@@ -42,7 +47,10 @@ describe('service-caller empty content handling', () => {
       slot: 'default',
     };
 
-    const promise = callAI([{ role: 'user', content: 'hello' }], modelConfig);
+    const promise = callAI(
+      [{ role: 'user', content: 'hello' }],
+      getModelRuntime(modelConfig),
+    );
 
     await expect(promise).rejects.toBeInstanceOf(AIResponseParseError);
 
@@ -54,8 +62,13 @@ describe('service-caller empty content handling', () => {
         prompt_tokens: 12,
         completion_tokens: 0,
         total_tokens: 12,
+        cached_input: 7,
+        prompt_tokens_details: {
+          cached_tokens: 7,
+        },
         model_name: 'gpt-4o',
         model_description: 'test model',
+        response_model_name: 'gpt-4o-2024-08-06',
         slot: 'default',
         request_id: 'req_test_123',
       });

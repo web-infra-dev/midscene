@@ -5,7 +5,7 @@ import Icon, {
   UpOutlined,
 } from '@ant-design/icons';
 import { Alert, Button, Form, List, Typography } from 'antd';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { usePlaygroundExecution } from '../../hooks/usePlaygroundExecution';
 import { usePlaygroundState } from '../../hooks/usePlaygroundState';
 import { useEnvConfig } from '../../store/store';
@@ -23,12 +23,15 @@ import { shouldOffsetEmptyStateForPromptInput } from '../../utils/prompt-input-u
 import { PromptInput } from '../prompt-input';
 import ShinyText from '../shiny-text';
 import { shouldRenderCustomEmptyState } from './empty-state';
+import { shouldExecuteExternalRunRequest } from './external-run';
 import {
   createStorageProvider,
   detectBestStorageType,
 } from './providers/storage-provider';
 
 const { Text } = Typography;
+const handledExternalRunRequestIds = new Set<string>();
+const MAX_HANDLED_EXTERNAL_RUN_REQUEST_IDS = 100;
 
 // Function to get stable ID for SDK (adapter-driven)
 function getSDKId(sdk: any): string {
@@ -70,13 +73,7 @@ export function UniversalPlayground({
   const [form] = Form.useForm();
   const { config } = useEnvConfig();
   const [sdkReady, setSdkReady] = useState(false);
-
-  // Initialize form with default type on mount
-  useEffect(() => {
-    form.setFieldsValue({
-      type: defaultMainButtons[0],
-    });
-  }, [form]);
+  const lastExternalRunRequestIdRef = useRef<string | null>(null);
 
   // Initialize SDK ID on mount for remote execution
   useEffect(() => {
@@ -103,6 +100,10 @@ export function UniversalPlayground({
   // Use custom hooks for state management
   // Determine the storage provider based on configuration
   const effectiveStorage = useMemo(() => {
+    if (componentConfig.persistMessages === false) {
+      return null;
+    }
+
     // If external storage is provided, use it
     if (storage) {
       return storage;
@@ -123,7 +124,13 @@ export function UniversalPlayground({
     console.log(`Using ${bestStorageType} storage for namespace: ${namespace}`);
 
     return createStorageProvider(bestStorageType, namespace);
-  }, [storage, sdkReady, componentConfig.storageNamespace, playgroundSDK]);
+  }, [
+    storage,
+    sdkReady,
+    componentConfig.storageNamespace,
+    componentConfig.persistMessages,
+    playgroundSDK,
+  ]);
 
   const {
     loading,
@@ -138,6 +145,7 @@ export function UniversalPlayground({
     verticalMode,
     replayCounter,
     setReplayCounter,
+    messagesInitialized,
     infoListRef,
     currentRunningIdRef,
     interruptedFlagRef,
@@ -148,6 +156,8 @@ export function UniversalPlayground({
     effectiveStorage,
     contextProvider,
     branding.targetName,
+    componentConfig.persistMessages !== false &&
+      !componentConfig.storageNamespace,
   );
 
   // Use execution hook
@@ -192,6 +202,47 @@ export function UniversalPlayground({
     }
   }, [form, executeAction]);
 
+  useEffect(() => {
+    const request = componentConfig.externalRunRequest;
+    if (
+      !request ||
+      !shouldExecuteExternalRunRequest({
+        request,
+        handledRequestIds: handledExternalRunRequestIds,
+        lastRequestId: lastExternalRunRequestIdRef.current,
+        sdkReady,
+        messagesInitialized,
+      })
+    ) {
+      return;
+    }
+    lastExternalRunRequestIdRef.current = request.id;
+    handledExternalRunRequestIds.add(request.id);
+    if (
+      handledExternalRunRequestIds.size > MAX_HANDLED_EXTERNAL_RUN_REQUEST_IDS
+    ) {
+      const oldestRequestId = handledExternalRunRequestIds
+        .values()
+        .next().value;
+      if (oldestRequestId) {
+        handledExternalRunRequestIds.delete(oldestRequestId);
+      }
+    }
+    executeAction(request.value, {
+      displayContent: request.displayContent,
+      ...(request.reportDisplay
+        ? { reportDisplay: request.reportDisplay }
+        : {}),
+    }).catch((error) => {
+      notifyError(error, { title: 'Execution failed' });
+    });
+  }, [
+    componentConfig.externalRunRequest,
+    executeAction,
+    messagesInitialized,
+    sdkReady,
+  ]);
+
   // Check if run button should be enabled
   const configAlreadySet = Object.keys(config || {}).length >= 1;
   const runButtonEnabled =
@@ -204,7 +255,7 @@ export function UniversalPlayground({
   // one-frame window where downstream consumers (e.g. PromptInput minimal
   // chrome) observe an empty type and run type-sync effects unnecessarily.
   const watchedType = Form.useWatch('type', form);
-  const selectedType = watchedType || form.getFieldValue('type');
+  const selectedType = watchedType || defaultMainButtons[0];
 
   // Determine service mode based on SDK adapter type
   const serviceMode = useMemo(() => {
@@ -365,7 +416,12 @@ export function UniversalPlayground({
 
   return (
     <div className={`playground-container ${layout}-mode ${className}`.trim()}>
-      <Form form={form} onFinish={handleFormRun} className="command-form">
+      <Form
+        form={form}
+        onFinish={handleFormRun}
+        className="command-form"
+        initialValues={{ type: defaultMainButtons[0] }}
+      >
         {/* Context Preview Section */}
         {finalShowContextPreview && (
           <div className="context-preview-section">
@@ -465,38 +521,42 @@ export function UniversalPlayground({
                                   )
                                 : null;
                             return (
-                              <>
-                                {action && (
-                                  <span className="progress-action-item">
-                                    {action}
-                                    <span
-                                      className={`progress-status-icon ${state}`}
-                                    >
-                                      {state === 'loading' ? (
-                                        <LoadingOutlined spin />
-                                      ) : state === 'error' ? (
-                                        '✗'
-                                      ) : domainIcon !== null ? (
-                                        domainIcon
-                                      ) : (
-                                        '✓'
-                                      )}
-                                    </span>
+                              <div className="progress-row">
+                                {action ? (
+                                  <span
+                                    className={`progress-status-icon ${state}`}
+                                  >
+                                    {state === 'loading' ? (
+                                      <LoadingOutlined spin />
+                                    ) : state === 'error' ? (
+                                      '✗'
+                                    ) : domainIcon !== null ? (
+                                      domainIcon
+                                    ) : (
+                                      '✓'
+                                    )}
                                   </span>
-                                )}
-                                {description && (
-                                  <div>
-                                    <ShinyText
-                                      text={description}
-                                      className="progress-description"
-                                      disabled={!shouldShowLoading}
-                                    />
-                                  </div>
-                                )}
-                                {item.result?.error && (
-                                  <ErrorMessage error={item.result.error} />
-                                )}
-                              </>
+                                ) : null}
+                                <div className="progress-row-content">
+                                  {action ? (
+                                    <span className="progress-action-item">
+                                      {action}
+                                    </span>
+                                  ) : null}
+                                  {description ? (
+                                    <div className="progress-description-wrap">
+                                      <ShinyText
+                                        text={description}
+                                        className="progress-description"
+                                        disabled={!shouldShowLoading}
+                                      />
+                                    </div>
+                                  ) : null}
+                                  {item.result?.error && (
+                                    <ErrorMessage error={item.result.error} />
+                                  )}
+                                </div>
+                              </div>
                             );
                           })()}
                         </div>

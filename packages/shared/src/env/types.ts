@@ -8,10 +8,11 @@ export const MIDSCENE_DEBUG_MODEL_RESPONSE = 'MIDSCENE_DEBUG_MODEL_RESPONSE';
 export const MIDSCENE_DANGEROUSLY_PRINT_ALL_CONFIG =
   'MIDSCENE_DANGEROUSLY_PRINT_ALL_CONFIG';
 export const MIDSCENE_DEBUG_MODE = 'MIDSCENE_DEBUG_MODE';
-export const MIDSCENE_MCP_USE_PUPPETEER_MODE =
-  'MIDSCENE_MCP_USE_PUPPETEER_MODE';
+export const MIDSCENE_CHROME_PATH = 'MIDSCENE_CHROME_PATH';
+/**
+ * @deprecated Use MIDSCENE_CHROME_PATH instead. This is kept for backward compatibility.
+ */
 export const MIDSCENE_MCP_CHROME_PATH = 'MIDSCENE_MCP_CHROME_PATH';
-export const MIDSCENE_MCP_ANDROID_MODE = 'MIDSCENE_MCP_ANDROID_MODE';
 export const DOCKER_CONTAINER = 'DOCKER_CONTAINER';
 
 // Observability
@@ -34,6 +35,8 @@ export const MIDSCENE_MODEL_REASONING_ENABLED =
   'MIDSCENE_MODEL_REASONING_ENABLED';
 export const MIDSCENE_MODEL_REASONING_BUDGET =
   'MIDSCENE_MODEL_REASONING_BUDGET';
+
+export type TModelReasoningEnabled = boolean | 'default';
 
 /**
  * @deprecated Use MIDSCENE_MODEL_API_KEY instead. This is kept for backward compatibility.
@@ -164,8 +167,6 @@ export const BASIC_ENV_KEYS = [
 
 export const BOOLEAN_ENV_KEYS = [
   MIDSCENE_CACHE,
-  MIDSCENE_MCP_USE_PUPPETEER_MODE,
-  MIDSCENE_MCP_ANDROID_MODE,
   MIDSCENE_LANGSMITH_DEBUG,
   MIDSCENE_LANGFUSE_DEBUG,
   MIDSCENE_REPORT_QUIET,
@@ -186,6 +187,7 @@ export const STRING_ENV_KEYS = [
   MIDSCENE_REPORT_TAG_NAME,
   MIDSCENE_PREFERRED_LANGUAGE,
   MATCH_BY_POSITION,
+  MIDSCENE_CHROME_PATH,
   MIDSCENE_MCP_CHROME_PATH,
   DOCKER_CONTAINER,
 ] as const;
@@ -285,6 +287,7 @@ export type TGlobalConfig = Record<TEnvKeys, string | undefined>;
 export type TModelFamily =
   | 'qwen2.5-vl'
   | 'qwen3-vl'
+  | 'qwen3'
   | 'qwen3.5'
   | 'qwen3.6'
   | 'doubao-vision'
@@ -296,7 +299,9 @@ export type TModelFamily =
   | 'glm-v'
   | 'auto-glm'
   | 'auto-glm-multilingual'
-  | 'gpt-5';
+  | 'gpt-5'
+  | 'kimi'
+  | 'xiaomi-mimo';
 
 export const MODEL_FAMILY_VALUES: TModelFamily[] = [
   'doubao-vision',
@@ -304,6 +309,7 @@ export const MODEL_FAMILY_VALUES: TModelFamily[] = [
   'gemini',
   'qwen2.5-vl',
   'qwen3-vl',
+  'qwen3',
   'qwen3.5',
   'qwen3.6',
   'vlm-ui-tars',
@@ -313,6 +319,8 @@ export const MODEL_FAMILY_VALUES: TModelFamily[] = [
   'auto-glm',
   'auto-glm-multilingual',
   'gpt-5',
+  'kimi',
+  'xiaomi-mimo',
 ];
 
 export interface IModelConfigForInsight {
@@ -378,7 +386,7 @@ export interface IModelConfigForDefault {
   [MIDSCENE_MODEL_TEMPERATURE]?: string;
   // reasoning effort
   [MIDSCENE_MODEL_REASONING_EFFORT]?: string;
-  // enable reasoning (boolean as string)
+  // enable reasoning (boolean/default as string)
   [MIDSCENE_MODEL_REASONING_ENABLED]?: string;
   // reasoning budget (number as string)
   [MIDSCENE_MODEL_REASONING_BUDGET]?: string;
@@ -497,8 +505,9 @@ export interface IModelConfig {
   /**
    * Enable/disable reasoning for the model.
    * Passed through to model-family-specific parameters (e.g., enable_thinking for qwen, thinking.type for doubao/glm-v).
+   * "default" means following the model provider's default without sending reasoning controls.
    */
-  reasoningEnabled?: boolean;
+  reasoningEnabled?: TModelReasoningEnabled;
   /**
    * Reasoning token budget for the model.
    * Passed through to model-family-specific parameters (e.g., thinking_budget for qwen).

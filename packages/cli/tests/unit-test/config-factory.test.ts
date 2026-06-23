@@ -77,6 +77,7 @@ summary: "yaml-summary.json"
       expect(result).toEqual({
         concurrent: 3,
         continueOnError: true,
+        retry: 0,
         headed: true,
         keepWindow: true,
         dotenvOverride: true,
@@ -103,11 +104,26 @@ summary: "yaml-summary.json"
 
       expect(result.concurrent).toBe(1);
       expect(result.continueOnError).toBe(false);
+      expect(result.retry).toBe(0);
       expect(result.headed).toBe(false);
       expect(result.keepWindow).toBe(false);
       expect(result.dotenvOverride).toBe(false);
       expect(result.dotenvDebug).toBe(false);
       expect(result.summary).toMatch(/index-\d+\.json$/);
+    });
+
+    test('should parse the retry option from the config YAML', async () => {
+      const mockYamlContent = `files: ["*.yml"]\nretry: 2`;
+      const mockParsedYaml = { files: ['*.yml'], retry: 2 };
+
+      vi.mocked(readFileSync).mockReturnValue(mockYamlContent);
+      vi.mocked(interpolateEnvVars).mockReturnValue(mockYamlContent);
+      vi.mocked(yamlLoad).mockReturnValue(mockParsedYaml);
+      vi.mocked(matchYamlFiles).mockResolvedValue(['test.yml']);
+
+      const result = await parseConfigYaml(mockIndexPath);
+
+      expect(result.retry).toBe(2);
     });
 
     test('should throw an error if "files" is not an array', async () => {
@@ -349,6 +365,7 @@ concurrent: 2
         files: ['test1.yml', 'test1.yml', 'testA.yml', 'testB.yml'],
         concurrent: 1,
         continueOnError: false,
+        retry: 0,
         shareBrowserContext: false,
         summary: expect.stringMatching(/summary-\d+\.json$/),
         headed: false,
@@ -367,6 +384,15 @@ concurrent: 2
       expect(matchYamlFiles).toHaveBeenCalledWith(patterns[1], {
         cwd: process.cwd(),
       });
+    });
+
+    test('should forward the retry option through createFilesConfig', async () => {
+      const patterns = ['*.yml'];
+      vi.mocked(matchYamlFiles).mockResolvedValue(['file1.yml']);
+
+      const result = await createFilesConfig(patterns, { retry: 3 });
+
+      expect(result.retry).toBe(3);
     });
 
     test('should create config with all custom options and expand patterns', async () => {
@@ -392,6 +418,7 @@ concurrent: 2
         files: expandedFiles,
         concurrent: 3,
         continueOnError: true,
+        retry: 0,
         summary: 'custom.json',
         shareBrowserContext: true,
         headed: true,
@@ -405,6 +432,66 @@ concurrent: 2
       });
       expect(matchYamlFiles).toHaveBeenCalledWith(patterns[0], {
         cwd: process.cwd(),
+      });
+    });
+
+    test('should create config for the documented YAML runner config-file example', async () => {
+      const patterns = [
+        './scripts/search-iphone.yaml',
+        './scripts/search-laptop.yaml',
+        './scripts/search-headphones.yaml',
+        './scripts/search-camera.yaml',
+      ];
+      vi.mocked(matchYamlFiles)
+        .mockResolvedValueOnce(['./scripts/search-iphone.yaml'])
+        .mockResolvedValueOnce(['./scripts/search-laptop.yaml'])
+        .mockResolvedValueOnce(['./scripts/search-headphones.yaml'])
+        .mockResolvedValueOnce(['./scripts/search-camera.yaml']);
+
+      const result = await createFilesConfig(patterns, {
+        concurrent: 4,
+        continueOnError: true,
+        shareBrowserContext: true,
+        summary: 'doc-summary.json',
+        web: {
+          userAgent: 'Doc Agent',
+          viewportWidth: 1440,
+          viewportHeight: 900,
+        },
+        android: {
+          deviceId: 'android-doc-device',
+        },
+        ios: {
+          wdaPort: 8100,
+          wdaHost: '127.0.0.1',
+        },
+      });
+
+      expect(result).toEqual({
+        files: patterns,
+        concurrent: 4,
+        continueOnError: true,
+        retry: 0,
+        shareBrowserContext: true,
+        summary: 'doc-summary.json',
+        headed: false,
+        keepWindow: false,
+        dotenvOverride: false,
+        dotenvDebug: false,
+        globalConfig: {
+          web: {
+            userAgent: 'Doc Agent',
+            viewportWidth: 1440,
+            viewportHeight: 900,
+          },
+          android: {
+            deviceId: 'android-doc-device',
+          },
+          ios: {
+            wdaPort: 8100,
+            wdaHost: '127.0.0.1',
+          },
+        },
       });
     });
   });

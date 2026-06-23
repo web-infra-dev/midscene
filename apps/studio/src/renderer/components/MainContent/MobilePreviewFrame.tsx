@@ -80,7 +80,7 @@ export function MobilePreviewFrame({
     .filter(Boolean)
     .join(' ');
   const viewportClassName = enabled
-    ? 'shrink-0 translate-y-[-26px] overflow-hidden rounded-[8px] border border-border-subtle'
+    ? 'shrink-0 translate-y-[-18px] overflow-hidden rounded-[8px] border border-border-subtle'
     : 'h-full w-full min-h-0 overflow-hidden';
   const viewportStyle = enabled
     ? viewportSize.width > 0 && viewportSize.height > 0

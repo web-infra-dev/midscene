@@ -1,6 +1,7 @@
 import {
   type ChatCompletionMessageParam,
   callAIWithStringResponse,
+  getModelRuntime,
 } from '@midscene/core/ai-model';
 import type {
   ConnectivityTestRequest,
@@ -40,15 +41,16 @@ export async function runConnectivityTest(
   );
 
   try {
+    const modelRuntime = getModelRuntime({
+      ...resolvedWithConfig.modelConfig,
+      timeout: Math.min(
+        resolvedWithConfig.modelConfig.timeout ?? CONNECTIVITY_TIMEOUT_MS,
+        CONNECTIVITY_TIMEOUT_MS,
+      ),
+    });
     const { content } = await callAIWithStringResponse(
       CONNECTIVITY_PROMPT,
-      {
-        ...resolvedWithConfig.modelConfig,
-        timeout: Math.min(
-          resolvedWithConfig.modelConfig.timeout ?? CONNECTIVITY_TIMEOUT_MS,
-          CONNECTIVITY_TIMEOUT_MS,
-        ),
-      },
+      modelRuntime,
       {
         abortSignal: controller.signal,
       },

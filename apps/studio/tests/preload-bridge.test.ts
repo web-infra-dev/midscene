@@ -28,6 +28,7 @@ describe('preload bridge', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.invoke.mockResolvedValue(undefined);
+    vi.unstubAllEnvs();
   });
 
   it('exposes shell, studio runtime, and updater APIs that proxy over IPC', async () => {
@@ -48,15 +49,24 @@ describe('preload bridge', () => {
     expect(shellApi).toBeDefined();
     expect(studioRuntimeApi).toBeDefined();
     expect(updaterApi).toBeDefined();
+    expect(studioRuntimeApi.recorderEntryEnabled).toBe(false);
 
     await shellApi.closeWindow();
     await shellApi.minimizeWindow();
     await shellApi.openExternalUrl('https://midscenejs.com');
     await shellApi.chooseReportSavePath('report.html');
+    await shellApi.chooseFileSavePath({
+      defaultFileName: 'recording.json',
+      filters: [{ name: 'JSON', extensions: ['json'] }],
+    });
     await shellApi.toggleMaximizeWindow();
     await shellApi.writeReportFile({
       path: '/tmp/report.html',
       content: '<html />',
+    });
+    await shellApi.writeFile({
+      path: '/tmp/recording.json',
+      content: '{}',
     });
 
     await studioRuntimeApi.getPlaygroundBootstrap();
@@ -70,6 +80,57 @@ describe('preload bridge', () => {
       apiKey: 'sk-test',
       baseUrl: 'https://api.example.com/v1',
       model: 'gpt-4o',
+    });
+    await studioRuntimeApi.generateRecorderCode({
+      type: 'playwright',
+      input: {
+        target: {
+          platformId: 'web',
+          label: 'Web',
+          values: { url: 'https://example.com' },
+        },
+        events: [
+          {
+            type: 'navigation',
+            pageInfo: { width: 1280, height: 720 },
+            timestamp: 1,
+            hashId: 'event-1',
+            url: 'https://example.com',
+          },
+        ],
+        testName: 'recording',
+      },
+      modelConfig: {
+        modelName: 'gpt-4o',
+        modelDescription: '',
+        intent: 'default',
+        slot: 'default',
+      },
+    });
+    await studioRuntimeApi.generateRecorderMetadata({
+      input: {
+        target: {
+          platformId: 'web',
+          label: 'Web',
+          values: { url: 'https://example.com' },
+        },
+        events: [
+          {
+            type: 'navigation',
+            pageInfo: { width: 1280, height: 720 },
+            timestamp: 1,
+            hashId: 'event-1',
+            url: 'https://example.com',
+          },
+        ],
+        fallbackName: 'recording',
+      },
+      modelConfig: {
+        modelName: 'gpt-4o',
+        modelDescription: '',
+        intent: 'default',
+        slot: 'default',
+      },
     });
     stopListening();
 
@@ -86,12 +147,26 @@ describe('preload bridge', () => {
       [IPC_CHANNELS.minimizeWindow],
       [IPC_CHANNELS.openExternalUrl, 'https://midscenejs.com'],
       [IPC_CHANNELS.chooseReportSavePath, 'report.html'],
+      [
+        IPC_CHANNELS.chooseFileSavePath,
+        {
+          defaultFileName: 'recording.json',
+          filters: [{ name: 'JSON', extensions: ['json'] }],
+        },
+      ],
       [IPC_CHANNELS.toggleMaximizeWindow],
       [
         IPC_CHANNELS.writeReportFile,
         {
           path: '/tmp/report.html',
           content: '<html />',
+        },
+      ],
+      [
+        IPC_CHANNELS.writeFile,
+        {
+          path: '/tmp/recording.json',
+          content: '{}',
         },
       ],
       [IPC_CHANNELS.getPlaygroundBootstrap],
@@ -104,6 +179,63 @@ describe('preload bridge', () => {
           apiKey: 'sk-test',
           baseUrl: 'https://api.example.com/v1',
           model: 'gpt-4o',
+        },
+      ],
+      [
+        IPC_CHANNELS.generateRecorderCode,
+        {
+          type: 'playwright',
+          input: {
+            target: {
+              platformId: 'web',
+              label: 'Web',
+              values: { url: 'https://example.com' },
+            },
+            events: [
+              {
+                type: 'navigation',
+                pageInfo: { width: 1280, height: 720 },
+                timestamp: 1,
+                hashId: 'event-1',
+                url: 'https://example.com',
+              },
+            ],
+            testName: 'recording',
+          },
+          modelConfig: {
+            modelName: 'gpt-4o',
+            modelDescription: '',
+            intent: 'default',
+            slot: 'default',
+          },
+        },
+      ],
+      [
+        IPC_CHANNELS.generateRecorderMetadata,
+        {
+          input: {
+            target: {
+              platformId: 'web',
+              label: 'Web',
+              values: { url: 'https://example.com' },
+            },
+            events: [
+              {
+                type: 'navigation',
+                pageInfo: { width: 1280, height: 720 },
+                timestamp: 1,
+                hashId: 'event-1',
+                url: 'https://example.com',
+              },
+            ],
+            fallbackName: 'recording',
+          },
+          modelConfig: {
+            modelName: 'gpt-4o',
+            modelDescription: '',
+            intent: 'default',
+            slot: 'default',
+          },
         },
       ],
       [IPC_CHANNELS.updaterCheck],
@@ -128,5 +260,17 @@ describe('preload bridge', () => {
       IPC_CHANNELS.updaterStatus,
       expect.any(Function),
     );
+  });
+
+  it('exposes the runtime recorder entry flag from the launch environment', async () => {
+    vi.stubEnv('VITE_STUDIO_RECORDER_ENABLED', 'true');
+
+    await loadModule();
+
+    const studioRuntimeApi = mocks.exposeInMainWorld.mock.calls.find(
+      ([name]) => name === 'studioRuntime',
+    )?.[1];
+
+    expect(studioRuntimeApi?.recorderEntryEnabled).toBe(true);
   });
 });

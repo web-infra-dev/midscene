@@ -1,7 +1,14 @@
+import {
+  RECORDER_INPUT_BATCH_DELAY_MS,
+  RECORDER_SCROLL_BATCH_DELAY_MS,
+} from '@midscene/shared/constants';
 import { isNotContainerElement } from '@midscene/shared/extractor';
 import { getElementXpath } from '@midscene/shared/extractor';
+import type { MidsceneRecorderEvent } from '@midscene/shared/recorder';
 
-const DEBUG = localStorage.getItem('DEBUG') === 'true'; // Based on process.env.NODE_ENV
+const DEBUG =
+  typeof localStorage !== 'undefined' &&
+  localStorage.getItem('DEBUG') === 'true'; // Based on process.env.NODE_ENV
 // localStorage.setItem('DEBUG', 'true');
 
 function debugLog(...args: any[]) {
@@ -31,33 +38,7 @@ function generateHashId(
   return Math.abs(hash).toString(36);
 }
 
-export interface ChromeRecordedEvent {
-  type: 'click' | 'scroll' | 'input' | 'navigation' | 'setViewport' | 'keydown';
-  url?: string;
-  title?: string;
-  value?: string;
-  elementRect?: {
-    left?: number;
-    top?: number;
-    width?: number;
-    height?: number;
-    x?: number;
-    y?: number;
-  };
-  pageInfo: {
-    width: number;
-    height: number;
-  };
-  screenshotBefore?: string;
-  screenshotAfter?: string;
-  elementDescription?: string;
-  // Loading state for AI description generation
-  descriptionLoading?: boolean;
-  // Boxed screenshot with element highlighted
-  screenshotWithBox?: string;
-  timestamp: number;
-  hashId: string;
-}
+export type ChromeRecordedEvent = MidsceneRecorderEvent;
 
 // Event type definition
 export interface RecordedEvent extends ChromeRecordedEvent {
@@ -113,9 +94,9 @@ export class EventRecorder {
   private isRecording = false;
   private eventCallback: EventCallback;
   private scrollThrottleTimer: number | null = null;
-  private scrollThrottleDelay = 200; // 200ms throttle
+  private scrollThrottleDelay = RECORDER_SCROLL_BATCH_DELAY_MS;
   private inputThrottleTimer: number | null = null;
-  private inputThrottleDelay = 300; // 300ms throttle for input events
+  private inputThrottleDelay = RECORDER_INPUT_BATCH_DELAY_MS;
   private lastViewportScroll: { x: number; y: number } | null = null;
   private sessionId: string;
   private mutationObserver: MutationObserver | null = null;
@@ -506,8 +487,7 @@ export function convertToChromeEvent(
     pageInfo: event.pageInfo,
     screenshotBefore: event.screenshotBefore,
     screenshotAfter: event.screenshotAfter,
-    elementDescription: event.elementDescription,
-    descriptionLoading: event.descriptionLoading,
+    semantic: event.semantic,
     screenshotWithBox: event.screenshotWithBox,
     timestamp: event.timestamp,
     hashId: event.hashId,

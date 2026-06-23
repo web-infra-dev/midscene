@@ -33,6 +33,13 @@ should point here instead of duplicating rules.
 - Add or update tests when behavior changes. Start with the nearest unit test
   suite; use AI tests or e2e only when the change actually depends on model
   behavior or browser/device integration.
+- Report app e2e tests under `apps/report/e2e` are also dogfooding Midscene's
+  AI capabilities. Do not stabilize them by replacing core `aiAssert`,
+  `aiTap`, `aiHover`, or similar coverage with raw DOM-only `javascript`
+  checks unless the test is explicitly meant to validate DOM plumbing. For
+  `apps/report/e2e/report-single.yaml`, keep the report loading assertions on
+  `aiAssert`; if they are flaky, improve the prompt, timing, or fixture while
+  preserving `aiAssert` coverage.
 - Do not hand-edit generated output under `dist/` or `apps/site/doc_build/`.
 - When changing shared packages or exported entry points, run a focused build
   for the affected project before finishing.
@@ -62,6 +69,26 @@ should point here instead of duplicating rules.
 - Before editing site copy, read `apps/site/agents.md` for terminology rules.
   It already documents translation constraints such as keeping `API Key` and
   `Agent` untranslated in Chinese where appropriate.
+
+### Upgrading recommended models
+
+`apps/site/docs/{en,zh}/model-strategy.mdx` and
+`apps/site/docs/{en,zh}/model-common-config.mdx` are the source of truth for
+which models we recommend and the exact model/family strings. When the
+recommended models or their versions change (e.g. `qwen3-vl` → `qwen3.x`,
+`gemini-3-flash` → `gemini-3.5-flash`), update the strategy/config docs first,
+then propagate the new model names to every place that markets the supported
+model list:
+
+- `README.md` and `README.zh.md` (the "Driven by Visual Language Model"
+  section).
+- `apps/site/docs/en/introduction.mdx` and
+  `apps/site/docs/zh/introduction.mdx` (same section).
+
+Keep all four spots in sync and consistent with the strategy/config docs.
+Leave historical references in `changelog.mdx` alone, and keep illustrative
+"newer beats older" comparisons in `faq.md` intact. Remember README and
+introduction are bilingual: update the en/zh counterparts in the same change.
 
 ## Validation Guidance
 

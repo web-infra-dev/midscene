@@ -1,18 +1,15 @@
+import { getModelRuntime } from '@/ai-model/models';
 import Service from '@/service';
 import type { IModelConfig } from '@midscene/shared/env';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createFakeContext } from '../utils';
 
 vi.mock('@/ai-model/inspect', () => ({
+  AIResponseParseError: class AIResponseParseError extends Error {},
   AiExtractElementInfo: vi.fn(),
   AiLocateElement: vi.fn(),
   AiLocateSection: vi.fn(),
   buildSearchAreaConfig: vi.fn(),
-}));
-
-vi.mock('@/ai-model/service-caller', () => ({
-  AIResponseParseError: class AIResponseParseError extends Error {},
-  callAIWithObjectResponse: vi.fn(),
 }));
 
 import {
@@ -29,21 +26,20 @@ describe('service.locate deepLocate routing', () => {
     intent: 'default',
     slot: 'default',
   };
+  const modelRuntime = getModelRuntime(modelConfig);
 
   beforeEach(() => {
     vi.clearAllMocks();
 
     vi.mocked(AiLocateElement).mockResolvedValue({
       parseResult: {
-        elements: [
-          {
-            center: [120, 220],
-            rect: { left: 100, top: 200, width: 40, height: 40 },
-            description: 'target',
-            xpaths: ['/html/body/button[1]'],
-            attributes: {},
-          },
-        ] as any,
+        element: {
+          center: [120, 220],
+          rect: { left: 100, top: 200, width: 40, height: 40 },
+          description: 'target',
+          xpaths: ['/html/body/button[1]'],
+          attributes: {},
+        } as any,
         errors: [],
       },
       rect: { left: 100, top: 200, width: 40, height: 40 },
@@ -53,21 +49,37 @@ describe('service.locate deepLocate routing', () => {
     } as any);
 
     vi.mocked(AiLocateSection).mockResolvedValue({
-      rect: { left: 10, top: 20, width: 300, height: 200 },
-      imageBase64: 'data:image/png;base64,AAA',
-      scale: 2,
+      searchAreaConfig: {
+        sourceRect: { left: 10, top: 20, width: 300, height: 200 },
+        image: {
+          imageBase64: 'data:image/png;base64,AAA',
+          width: 300,
+          height: 200,
+        },
+        mapping: {
+          offset: { x: 10, y: 20 },
+          scale: 2,
+        },
+      },
       rawResponse: '{}',
       usage: undefined,
     });
 
     vi.mocked(buildSearchAreaConfig).mockResolvedValue({
-      rect: { left: 20, top: 30, width: 280, height: 180 },
-      imageBase64: 'data:image/png;base64,BBB',
-      scale: 2,
+      sourceRect: { left: 20, top: 30, width: 280, height: 180 },
+      image: {
+        imageBase64: 'data:image/png;base64,BBB',
+        width: 280,
+        height: 180,
+      },
+      mapping: {
+        offset: { x: 20, y: 30 },
+        scale: 2,
+      },
     });
   });
 
-  it('uses planLocatedElement and skips AiLocateSection when provided', async () => {
+  it('uses planLocatedElement and skips first-pass locate when provided', async () => {
     const service = new Service(createFakeContext());
     const planLocatedElement = {
       center: [150, 250],
@@ -80,7 +92,7 @@ describe('service.locate deepLocate routing', () => {
     await service.locate(
       { prompt: 'target', deepLocate: true },
       { planLocatedElement },
-      modelConfig,
+      modelRuntime,
     );
 
     expect(buildSearchAreaConfig).toHaveBeenCalledWith(
@@ -88,19 +100,46 @@ describe('service.locate deepLocate routing', () => {
         baseRect: planLocatedElement.rect,
       }),
     );
+    expect(AiLocateElement).toHaveBeenCalledTimes(1);
     expect(AiLocateSection).not.toHaveBeenCalled();
   });
 
-  it('falls back to AiLocateSection when planLocatedElement is missing', async () => {
+  it('uses AiLocateSection to build search area when the model supports it', async () => {
     const service = new Service(createFakeContext());
 
     await service.locate(
       { prompt: 'target', deepLocate: true },
       {},
-      modelConfig,
+      modelRuntime,
     );
 
-    expect(AiLocateSection).toHaveBeenCalled();
+    expect(AiLocateSection).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sectionDescription: 'target',
+      }),
+    );
+    expect(AiLocateElement).toHaveBeenCalledTimes(1);
     expect(buildSearchAreaConfig).not.toHaveBeenCalled();
+  });
+
+  it('uses first-pass locate when the model does not support search-area locate', async () => {
+    const service = new Service(createFakeContext());
+
+    await service.locate(
+      { prompt: 'target', deepLocate: true },
+      {},
+      getModelRuntime({
+        ...modelConfig,
+        modelFamily: 'auto-glm',
+      }),
+    );
+
+    expect(AiLocateSection).not.toHaveBeenCalled();
+    expect(AiLocateElement).toHaveBeenCalledTimes(2);
+    expect(buildSearchAreaConfig).toHaveBeenCalledWith(
+      expect.objectContaining({
+        baseRect: { left: 100, top: 200, width: 40, height: 40 },
+      }),
+    );
   });
 });

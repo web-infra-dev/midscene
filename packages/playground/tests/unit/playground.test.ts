@@ -1,5 +1,5 @@
 import type { DeviceAction } from '@midscene/core';
-import { ExecutionDump } from '@midscene/core';
+import { ReportActionDump } from '@midscene/core';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { LocalExecutionAdapter } from '../../src/adapters/local-execution';
 import { RemoteExecutionAdapter } from '../../src/adapters/remote-execution';
@@ -10,6 +10,10 @@ import type {
   PlaygroundAgent,
   PlaygroundConfig,
 } from '../../src/types';
+
+const createMockPlaygroundAgent = (
+  partial: Partial<PlaygroundAgent> = {},
+): PlaygroundAgent => partial as PlaygroundAgent;
 
 describe('Playground Integration Tests', () => {
   describe('End-to-end workflow with LocalExecutionAdapter', () => {
@@ -107,7 +111,7 @@ describe('Playground Integration Tests', () => {
             },
           },
         },
-        dump: expect.any(ExecutionDump),
+        dump: expect.any(ReportActionDump),
         reportHTML: null,
         error: null,
       });
@@ -135,7 +139,7 @@ describe('Playground Integration Tests', () => {
             screenshotIncluded: true,
           },
         },
-        dump: expect.any(ExecutionDump),
+        dump: expect.any(ReportActionDump),
         reportHTML: null,
         error: null,
       });
@@ -228,7 +232,7 @@ describe('Playground Integration Tests', () => {
 
       expect(result).toEqual({
         success: true,
-        dump: expect.any(ExecutionDump),
+        dump: expect.any(ReportActionDump),
         reportHTML: null,
       });
     });
@@ -261,12 +265,13 @@ describe('Playground Integration Tests', () => {
       const action: DeviceAction<unknown> = {
         name: 'scroll',
         description: 'Scroll action',
+        call: async () => undefined,
         paramSchema: {
           shape: {
             direction: {},
             distance: {},
           },
-        },
+        } as any,
       };
 
       const params = {
@@ -302,7 +307,7 @@ describe('Playground Integration Tests', () => {
     it('should create LocalExecutionAdapter for local-execution type', () => {
       const config: PlaygroundConfig = {
         type: 'local-execution',
-        agent: {},
+        agent: createMockPlaygroundAgent(),
       };
 
       const sdk = new PlaygroundSDK(config);
@@ -334,9 +339,9 @@ describe('Playground Integration Tests', () => {
     it('should provide consistent interface across adapters', async () => {
       const localConfig: PlaygroundConfig = {
         type: 'local-execution',
-        agent: {
+        agent: createMockPlaygroundAgent({
           getActionSpace: async () => [],
-        },
+        }),
       };
 
       const remoteConfig: PlaygroundConfig = {

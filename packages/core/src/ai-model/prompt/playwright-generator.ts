@@ -6,7 +6,8 @@ import { PLAYWRIGHT_EXAMPLE_CODE } from '@midscene/shared/constants';
 import type { IModelConfig } from '@midscene/shared/env';
 import type { ChatCompletionMessageParam } from 'openai/resources/index';
 import { callAI, callAIWithStringResponse } from '../index';
-// Import shared utilities and types from yaml-generator
+import { type ModelRuntime, getModelRuntime } from '../models';
+// Import shared utilities and types from yaml generation.
 import {
   type ChromeRecordedEvent,
   type EventCounts,
@@ -21,7 +22,7 @@ import {
   prepareEventSummary,
   processEventsForLLM,
   validateEvents,
-} from './yaml-generator';
+} from './recorder-generation-common';
 
 // Playwright-specific interfaces
 export interface PlaywrightGenerationOptions {
@@ -56,14 +57,23 @@ export {
   validateEvents,
 };
 
+function resolveModelRuntime(model: IModelConfig | ModelRuntime): ModelRuntime {
+  if ('config' in model && 'adapter' in model) {
+    return model;
+  }
+  return getModelRuntime(model);
+}
+
 /**
  * Generates Playwright test code from recorded events
  */
 export const generatePlaywrightTest = async (
   events: ChromeRecordedEvent[],
   options: PlaywrightGenerationOptions,
-  modelConfig: IModelConfig,
+  model: IModelConfig | ModelRuntime,
 ): Promise<string> => {
+  const modelRuntime = resolveModelRuntime(model);
+
   // Validate input
   validateEvents(events);
 
@@ -126,7 +136,7 @@ ${PLAYWRIGHT_EXAMPLE_CODE}`;
     },
   ];
 
-  const response = await callAIWithStringResponse(prompt, modelConfig);
+  const response = await callAIWithStringResponse(prompt, modelRuntime);
 
   if (response?.content && typeof response.content === 'string') {
     return response.content;
@@ -141,8 +151,10 @@ ${PLAYWRIGHT_EXAMPLE_CODE}`;
 export const generatePlaywrightTestStream = async (
   events: ChromeRecordedEvent[],
   options: PlaywrightGenerationOptions & StreamingCodeGenerationOptions,
-  modelConfig: IModelConfig,
+  model: IModelConfig | ModelRuntime,
 ): Promise<StreamingAIResponse> => {
+  const modelRuntime = resolveModelRuntime(model);
+
   // Validate input
   validateEvents(events);
 
@@ -208,13 +220,13 @@ ${PLAYWRIGHT_EXAMPLE_CODE}`;
 
   if (options.stream && options.onChunk) {
     // Use streaming
-    return await callAI(prompt, modelConfig, {
+    return await callAI(prompt, modelRuntime, {
       stream: true,
       onChunk: options.onChunk,
     });
   } else {
     // Fallback to non-streaming
-    const response = await callAIWithStringResponse(prompt, modelConfig);
+    const response = await callAIWithStringResponse(prompt, modelRuntime);
 
     if (response?.content && typeof response.content === 'string') {
       return {

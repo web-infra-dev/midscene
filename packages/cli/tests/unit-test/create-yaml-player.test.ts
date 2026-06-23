@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs';
+import path from 'node:path';
 import { createYamlPlayer, launchServer } from '@/create-yaml-player';
 import type { MidsceneYamlScript, MidsceneYamlScriptEnv } from '@midscene/core';
 import { processCacheConfig } from '@midscene/core/utils';
@@ -39,13 +40,33 @@ vi.mock('@midscene/ios', () => ({
   agentFromWebDriverAgent: vi.fn(),
 }));
 
+vi.mock('@midscene/harmony', () => ({
+  agentFromHdcDevice: vi.fn(),
+}));
+
 vi.mock('@midscene/web/bridge-mode', () => ({
   AgentOverChromeBridge: vi.fn(),
 }));
 
-vi.mock('@midscene/web/puppeteer-agent-launcher', () => ({
-  puppeteerAgentForTarget: vi.fn(),
-}));
+vi.mock('@midscene/web/puppeteer-agent-launcher', async (importOriginal) => {
+  const original =
+    await importOriginal<
+      typeof import('@midscene/web/puppeteer-agent-launcher')
+    >();
+  return {
+    ...original,
+    buildDownloadBehavior: (downloadPath: string | undefined) =>
+      downloadPath
+        ? {
+            policy: 'allow',
+            downloadPath: downloadPath.startsWith('/')
+              ? downloadPath
+              : `${process.cwd()}/${downloadPath.replace(/^\.\//, '')}`,
+          }
+        : undefined,
+    puppeteerAgentForTarget: vi.fn(),
+  };
+});
 
 vi.mock('@midscene/web/puppeteer', () => ({
   PuppeteerAgent: vi.fn(),
@@ -61,6 +82,7 @@ vi.mock('puppeteer', () => ({
 import { agentFromAdbDevice } from '@midscene/android';
 import { getReportFileName } from '@midscene/core/agent';
 import { ScriptPlayer, parseYamlScript } from '@midscene/core/yaml';
+import { agentFromHdcDevice } from '@midscene/harmony';
 import { agentFromWebDriverAgent } from '@midscene/ios';
 import { globalConfigManager } from '@midscene/shared/env';
 import { AgentOverChromeBridge } from '@midscene/web/bridge-mode';
@@ -270,6 +292,42 @@ describe('create-yaml-player', () => {
 
       expect(result).toBe(mockPlayer);
     });
+
+    test('should pass web downloadPath to puppeteer agent launcher', async () => {
+      const mockScript: MidsceneYamlScript = {
+        web: {
+          url: 'http://example.com',
+          downloadPath: './downloads',
+        },
+        tasks: [],
+      };
+      const mockAgent = { destroy: vi.fn() };
+      let setupFnCallback: (() => Promise<any>) | undefined;
+
+      vi.mocked(puppeteerAgentForTarget).mockResolvedValue({
+        agent: mockAgent as any,
+        freeFn: [],
+      });
+      vi.mocked(ScriptPlayer).mockImplementation((script, setupFn) => {
+        setupFnCallback = setupFn as () => Promise<any>;
+        return {
+          addCleanup: vi.fn(),
+        } as unknown as ScriptPlayer<MidsceneYamlScriptEnv>;
+      });
+
+      await createYamlPlayer(mockFilePath, mockScript);
+      await setupFnCallback?.();
+
+      expect(puppeteerAgentForTarget).toHaveBeenCalledWith(
+        expect.objectContaining({
+          url: 'http://example.com',
+          downloadPath: './downloads',
+        }),
+        expect.any(Object),
+        undefined,
+        undefined,
+      );
+    });
   });
 
   describe('Cache configuration - Legacy compatibility mode', () => {
@@ -368,7 +426,7 @@ describe('create-yaml-player', () => {
       });
     });
 
-    test('should disable cache when cache is explicitly false', () => {
+    test('should preserve explicit cache false', () => {
       // When cache is explicitly set to false in YAML script
       const fileName = 'my-test-script';
       const result = processCacheConfig(false, fileName);
@@ -376,8 +434,48 @@ describe('create-yaml-player', () => {
       // Environment variable should not be checked for explicit cache: false
       expect(globalConfigManager.getEnvConfigInBoolean).not.toHaveBeenCalled();
 
-      // Verify that cache is disabled
-      expect(result).toBeUndefined();
+      // Verify that explicit disablement survives the first normalization layer.
+      expect(result).toBe(false);
+    });
+
+    test('should pass explicit cache false to the web agent even when legacy env enables cache', async () => {
+      vi.mocked(globalConfigManager.getEnvConfigInBoolean).mockReturnValue(
+        true,
+      );
+
+      const mockScript: MidsceneYamlScript = {
+        web: { url: 'http://example.com' },
+        agent: {
+          cache: false,
+        },
+        tasks: [],
+      };
+      const mockAgent = { destroy: vi.fn() };
+      let setupFnCallback: (() => Promise<any>) | undefined;
+
+      vi.mocked(puppeteerAgentForTarget).mockResolvedValue({
+        agent: mockAgent as any,
+        freeFn: [],
+      });
+      vi.mocked(ScriptPlayer).mockImplementation((script, setupFn) => {
+        setupFnCallback = setupFn as () => Promise<any>;
+        return {
+          addCleanup: vi.fn(),
+        } as unknown as ScriptPlayer<MidsceneYamlScriptEnv>;
+      });
+
+      await createYamlPlayer(mockFilePath, mockScript);
+      await setupFnCallback?.();
+
+      expect(globalConfigManager.getEnvConfigInBoolean).not.toHaveBeenCalled();
+      expect(puppeteerAgentForTarget).toHaveBeenCalledWith(
+        expect.any(Object),
+        expect.objectContaining({
+          cache: false,
+        }),
+        undefined,
+        undefined,
+      );
     });
   });
 
@@ -493,6 +591,88 @@ describe('create-yaml-player', () => {
           launch: mockIOSOptions.launch,
         }),
       );
+    });
+
+    test('should pass all HarmonyOS device options from YAML to agentFromHdcDevice', async () => {
+      const mockHarmonyOptions = {
+        deviceId: 'harmony-device-1',
+        hdcPath: '/custom/path/to/hdc',
+        autoDismissKeyboard: true,
+        keyboardDismissStrategy: 'esc-first' as const,
+        appNameMapping: { 携程: 'com.ctrip.harmonynext' },
+        launch: 'com.example.app',
+      };
+
+      const mockScript: MidsceneYamlScript = {
+        harmony: mockHarmonyOptions,
+        tasks: [],
+      };
+
+      const mockAgent = { destroy: vi.fn(), launch: vi.fn() };
+      let setupFnCallback: (() => Promise<any>) | undefined;
+
+      vi.mocked(readFileSync).mockReturnValue('mock yaml content');
+      vi.mocked(parseYamlScript).mockReturnValue(mockScript);
+      vi.mocked(agentFromHdcDevice).mockResolvedValue(mockAgent as any);
+      vi.mocked(ScriptPlayer).mockImplementation((script, setupFn) => {
+        setupFnCallback = setupFn as () => Promise<any>;
+        return {
+          addCleanup: vi.fn(),
+        } as unknown as ScriptPlayer<MidsceneYamlScriptEnv>;
+      });
+
+      await createYamlPlayer(mockFilePath, mockScript);
+
+      if (setupFnCallback) {
+        await setupFnCallback();
+      }
+
+      // Verify agentFromHdcDevice was called with deviceId and all options
+      expect(agentFromHdcDevice).toHaveBeenCalledWith(
+        mockHarmonyOptions.deviceId,
+        expect.objectContaining({
+          hdcPath: mockHarmonyOptions.hdcPath,
+          autoDismissKeyboard: mockHarmonyOptions.autoDismissKeyboard,
+          keyboardDismissStrategy: mockHarmonyOptions.keyboardDismissStrategy,
+          appNameMapping: mockHarmonyOptions.appNameMapping,
+          launch: mockHarmonyOptions.launch,
+        }),
+      );
+      // Verify launch was triggered
+      expect(mockAgent.launch).toHaveBeenCalledWith(mockHarmonyOptions.launch);
+    });
+
+    test('should connect first HarmonyOS device when deviceId is omitted', async () => {
+      const mockScript: MidsceneYamlScript = {
+        harmony: {},
+        tasks: [],
+      };
+
+      const mockAgent = { destroy: vi.fn(), launch: vi.fn() };
+      let setupFnCallback: (() => Promise<any>) | undefined;
+
+      vi.mocked(readFileSync).mockReturnValue('mock yaml content');
+      vi.mocked(parseYamlScript).mockReturnValue(mockScript);
+      vi.mocked(agentFromHdcDevice).mockResolvedValue(mockAgent as any);
+      vi.mocked(ScriptPlayer).mockImplementation((script, setupFn) => {
+        setupFnCallback = setupFn as () => Promise<any>;
+        return {
+          addCleanup: vi.fn(),
+        } as unknown as ScriptPlayer<MidsceneYamlScriptEnv>;
+      });
+
+      await createYamlPlayer(mockFilePath, mockScript);
+
+      if (setupFnCallback) {
+        await setupFnCallback();
+      }
+
+      expect(agentFromHdcDevice).toHaveBeenCalledWith(
+        undefined,
+        expect.any(Object),
+      );
+      // No launch field, so launch should not be triggered
+      expect(mockAgent.launch).not.toHaveBeenCalled();
     });
 
     test('should handle Android config with minimal options', async () => {
@@ -694,6 +874,44 @@ describe('create-yaml-player', () => {
       );
     });
 
+    test('should warn that downloadPath is ignored in bridge mode', async () => {
+      const mockScript: MidsceneYamlScript = {
+        web: {
+          url: 'http://example.com',
+          bridgeMode: 'newTabWithUrl',
+          downloadPath: './downloads',
+        },
+        tasks: [],
+      };
+
+      const mockAgent = {
+        destroy: vi.fn(),
+        connectNewTabWithUrl: vi.fn().mockResolvedValue(undefined),
+      };
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      let setupFnCallback: (() => Promise<any>) | undefined;
+
+      vi.mocked(readFileSync).mockReturnValue('mock yaml content');
+      vi.mocked(parseYamlScript).mockReturnValue(mockScript);
+      vi.mocked(AgentOverChromeBridge).mockImplementation(
+        () => mockAgent as any,
+      );
+      vi.mocked(ScriptPlayer).mockImplementation((script, setupFn) => {
+        setupFnCallback = setupFn as () => Promise<any>;
+        return {
+          addCleanup: vi.fn(),
+        } as unknown as ScriptPlayer<MidsceneYamlScriptEnv>;
+      });
+
+      await createYamlPlayer(mockFilePath, mockScript);
+      await setupFnCallback?.();
+
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('downloadPath'),
+      );
+      warnSpy.mockRestore();
+    });
+
     test('should handle undefined aiActionContext gracefully for Android', async () => {
       const mockScript: MidsceneYamlScript = {
         android: {
@@ -858,7 +1076,7 @@ describe('create-yaml-player', () => {
       }
 
       // Verify all agent options were passed
-      // Note: YAML testId takes precedence over fileName
+      // Explicit YAML reportFileName should be passed through unchanged.
       expect(puppeteerAgentForTarget).toHaveBeenCalledWith(
         expect.any(Object),
         expect.objectContaining({
@@ -866,7 +1084,7 @@ describe('create-yaml-player', () => {
           groupDescription: 'Custom description',
           generateReport: true,
           autoPrintReportMsg: false,
-          reportFileName: 'custom-report-mock-report',
+          reportFileName: 'custom-report',
           replanningCycleLimit: 25,
           aiActionContext: 'Test context',
         }),
@@ -948,7 +1166,7 @@ describe('create-yaml-player', () => {
 
       expect(agentFromWebDriverAgent).toHaveBeenCalledWith(
         expect.objectContaining({
-          reportFileName: 'ios-test-report-mock-report',
+          reportFileName: 'ios-test-report',
           autoPrintReportMsg: true,
         }),
       );
@@ -1173,6 +1391,7 @@ describe('create-yaml-player', () => {
       expect(puppeteer.connect).toHaveBeenCalledWith({
         browserWSEndpoint: 'ws://localhost:9222/devtools/browser/xxx',
         defaultViewport: null,
+        downloadBehavior: undefined,
       });
 
       // Should reuse puppeteerAgentForTarget (page setup: viewport, userAgent, etc.)
@@ -1182,6 +1401,53 @@ describe('create-yaml-player', () => {
         mockBrowser, // CDP browser passed as browser param
         undefined, // no shared page
       );
+    });
+
+    test('should configure download behavior via Puppeteer connect options in CDP mode', async () => {
+      const mockScript: MidsceneYamlScript = {
+        web: {
+          url: 'http://example.com',
+          cdpEndpoint: 'ws://localhost:9222/devtools/browser/xxx',
+          downloadPath: './downloads',
+        },
+        tasks: [],
+      };
+
+      const mockBrowser = {
+        disconnect: vi.fn(),
+      };
+      const mockAgent = { destroy: vi.fn() };
+      let setupFnCallback: (() => Promise<any>) | undefined;
+
+      vi.mocked(readFileSync).mockReturnValue('mock yaml content');
+      vi.mocked(parseYamlScript).mockReturnValue(mockScript);
+
+      const puppeteer = (await import('puppeteer')).default;
+      vi.mocked(puppeteer.connect).mockResolvedValue(mockBrowser as any);
+
+      vi.mocked(puppeteerAgentForTarget).mockResolvedValue({
+        agent: mockAgent as any,
+        freeFn: [],
+      });
+
+      vi.mocked(ScriptPlayer).mockImplementation((script, setupFn) => {
+        setupFnCallback = setupFn as () => Promise<any>;
+        return {
+          addCleanup: vi.fn(),
+        } as unknown as ScriptPlayer<MidsceneYamlScriptEnv>;
+      });
+
+      await createYamlPlayer(mockFilePath, mockScript);
+      await setupFnCallback?.();
+
+      expect(puppeteer.connect).toHaveBeenCalledWith({
+        browserWSEndpoint: 'ws://localhost:9222/devtools/browser/xxx',
+        defaultViewport: null,
+        downloadBehavior: {
+          policy: 'allow',
+          downloadPath: path.resolve('./downloads'),
+        },
+      });
     });
 
     test('should pass agent options in CDP mode via puppeteerAgentForTarget', async () => {
@@ -1319,6 +1585,33 @@ describe('create-yaml-player', () => {
       // The setup function should throw
       await expect(setupFnCallback!()).rejects.toThrow(
         'cdpEndpoint and bridgeMode are mutually exclusive',
+      );
+    });
+
+    test('should throw when harmony is combined with another target', async () => {
+      const mockScript: MidsceneYamlScript = {
+        web: { url: 'http://example.com' },
+        harmony: { deviceId: 'harmony-device-1' },
+        tasks: [],
+      };
+
+      let setupFnCallback: (() => Promise<any>) | undefined;
+
+      vi.mocked(readFileSync).mockReturnValue('mock yaml content');
+      vi.mocked(parseYamlScript).mockReturnValue(mockScript);
+
+      vi.mocked(ScriptPlayer).mockImplementation((script, setupFn) => {
+        setupFnCallback = setupFn as () => Promise<any>;
+        return {
+          addCleanup: vi.fn(),
+        } as unknown as ScriptPlayer<MidsceneYamlScriptEnv>;
+      });
+
+      await createYamlPlayer(mockFilePath, mockScript);
+
+      // The setup function should reject because two targets are specified
+      await expect(setupFnCallback!()).rejects.toThrow(
+        /Only one target type can be specified, but found multiple: web, harmony/,
       );
     });
   });

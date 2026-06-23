@@ -10,7 +10,13 @@
       "@shared/*": ["./src/shared/*"]
     }
   },
-  "include": ["src"],
+  "include": [
+    "src",
+    "tests",
+    "rsbuild.config.ts",
+    "scripts/**/*.d.mts",
+    "../../scripts/rsbuild-utils.ts"
+  ],
   "references": [
     {
       "path": "../../packages/android"
@@ -38,6 +44,9 @@
     },
     {
       "path": "../../packages/playground-app"
+    },
+    {
+      "path": "../../packages/recorder"
     },
     {
       "path": "../../packages/shared"

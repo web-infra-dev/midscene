@@ -38,6 +38,21 @@ describe('report task tag flags', () => {
     expect(hasDeepThinkFlag(task as ExecutionTask)).toBe(false);
   });
 
+  it('does not treat deprecated locate deepThink as aiAct deepThink', () => {
+    const task = {
+      type: 'Planning',
+      subType: 'Locate',
+      taskId: 'locate-old-alias',
+      status: 'finished',
+      param: {
+        prompt: 'target button',
+        deepThink: true,
+      },
+    };
+
+    expect(hasDeepThinkFlag(task as ExecutionTask)).toBe(false);
+  });
+
   it('consumes deepLocate from locate task dump params', () => {
     const task = {
       type: 'Planning',

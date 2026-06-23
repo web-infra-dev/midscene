@@ -1,24 +1,138 @@
 # 更新日志
 
-## v1.8 - YAML 变量复用、设备集成与模型行为更新
+## v1.9 - 新增模型支持、YAML 自动化与 AndroidWorld Benchmark
 
-v1.8 版本新增 YAML 步骤结果复用能力，调整模型思考模式默认行为，并补充了多项设备与平台集成能力。
+v1.9 版本扩展了模型支持，改进了 YAML 自动化，并提升了报告查看、Android 自动化、Web 输入和桌面自动化的稳定性。
+
+### AndroidWorld Benchmark
+
+Midscene 新增 AndroidWorld benchmark 报告。使用 v1.9.5 测试时，Midscene 达到 **Pass@1 93.10%**、**Pass@2 95.69%**、**Pass@3 97.41%**。详见：[AndroidWorld Benchmark 报告](./android-world-benchmark-report)
+
+### 新增模型支持
+
+- 新增 Kimi 和 Xiaomi MiMo 模型支持。详见：[常用模型配置](./model-common-config)
+
+### 模型与规划更新
+
+- `aiAct` 支持图片提示。
+- `MIDSCENE_MODEL_REASONING_ENABLED` 支持 `default`，适配模型默认思考行为。
+- Gemini thinking content 与 GPT-5 reasoning 配置处理更完整。
+- `aiAct` 在缓存失效时会回退到模型规划，并清空对应缓存。
+- AI 请求错误会包含重试次数信息；模型响应解析失败时会保留原始响应；解析后的 locate 结果会先校验再使用。
+- 模型 dump 会暴露更多模型响应元数据，包括 raw choice message，以及 usage 中的响应模型名。
+- `deepLocate` 的搜索区域会显示在报告上。
+
+### Chrome 扩展
+
+- Chrome 扩展 Bridge mode 支持文件上传。
+- Bridge mode 文件上传支持 file chooser accept 过滤与 WSL 文件路径。
+
+### YAML、CLI 与 MCP
+
+- `1.9.8` 是最后一个包含 MCP 支持的 Midscene 版本。后续版本会下线 MCP server 包，改为推荐 Skills 与各平台 CLI。
+- 各平台 CLI 支持传入 agent behavior init args。
+- CLI 的 YAML 脚本新增 HarmonyOS target，HarmonyOS 自动化可以通过与 Web、Android、iOS、Computer 一致的脚本运行器流程执行。详见：[YAML 脚本自动化](./automate-with-scripts-in-yaml)、[HarmonyOS API](./harmony-api-reference)
+- YAML Web config 支持自定义 HTTP headers。
+- YAML Web config 支持通过 `downloadPath` 指定浏览器下载目录。
+- YAML 执行会暴露真实错误，不再只落到静默的 "not executed" 结果。
+- YAML 批量执行支持重试失败用例。
+- YAML 成功执行后会打印报告路径。
+- 显式指定的 YAML report 文件名会被正确保留。
+- CLI / MCP / Skill 流程可以通过共享参数暴露 `deepLocate` / `deepThink` 控制项。
+- Assert CLI / MCP 工具会转发自定义失败信息，让断言失败更清晰。
+- CLI 会从 CLI 包自身解析 `@rstest/core`，并延迟加载 Rstest core，让外部启动路径下的 framework 执行更稳定。
+
+### 报告
+
+- `recordToReport` 支持自定义截图。
+- Report 导出会让图片路径与导出的截图保持一致。
+- Report 新增 JSON tree view，方便查看结构化任务和模型数据。
+- 优化 Report 截图、标签、Playground server origin 处理与上下文间距。
+
+### Studio 与 Recorder
+
+- 稳定 Studio recorder 描述与预览输入合并行为。
+- Studio 会更安全地处理无效的模型环境变量配置。
+- Recorder 工作流支持生成 Markdown replay output。
+
+### Android 自动化
+
+- 改进 Android action controls 和规划提示，提升原生移动端自动化流程的稳定性。
+
+### Computer 自动化
+
+- Computer desktop automation 新增 Intel packaging。
+- Libnut 滚动现在每个 tick 会发出完整的一次 wheel delta。
+
+### 问题修复
+
+- 修复 Web integration 中 `longPress` 时长被限制在 600ms 的问题。
+- 修复 Web 输入框在输入过程中重新渲染时可能丢字符的问题。
+- 修复部分环境下 HarmonyOS MCP 因 `photon` / `sharp` WASM 初始化失败而无法启动的问题。
+- 修复 Computer RDP 首帧空白截图问题。
+- 自动修复 Computer phased-scroll helper 缺失可执行权限的问题。
+- 补充 elevated Windows 应用输入丢失警告。
+- 补充 Computer 自动化的 IPv6 RDP host 支持。
+
+### 文档更新
+
+- 补充 Azure OpenAI-compatible endpoint 配置说明。
+
+## v1.8 - Midscene Studio 桌面端与多平台增强
+
+v1.8 版本带来全新的桌面端应用 **Midscene Studio**，新增长按/清空输入等多项 API，并对模型规划行为、设备集成、报告系统和 MCP 工具集进行了全面升级。
+
+### 全新桌面端应用 Midscene Studio（Beta）
+
+Midscene Studio 是一个基于 Electron 的桌面应用，把多平台 Playground 整合进一个原生界面，开箱即用。当前处于 **Beta** 阶段，可从 [latest release 页面](https://github.com/web-infra-dev/midscene/releases/latest) 选择 `midscene-studio-beta-*` 资源下载最新版 Studio，欢迎试用并反馈问题：
+
+- **多平台 Playground**：Web、Android、iOS、HarmonyOS、Computer 在同一个 Studio 应用中无缝切换
+- **设备交互预览**：Android / iOS / HarmonyOS 设备预览支持手动鼠标和触控控制；Web 预览支持实时画面流式渲染
+
+#### 下一步：在 Studio 中录制生成可回放的 Midscene 脚本
+
+我们正在 Studio 中打造一条「录制 → 脚本 → 回放」的闭环工作流：直接在 Studio 里对真实设备进行操作录制，自动生成结构化的 Midscene 脚本，并能即时在 Studio 内重新回放、调试、导出。该能力将在后续版本中陆续开放，敬请期待。
 
 ### YAML 工作流增强
 
-- 带有 `name` 的 YAML 步骤可以在后续步骤中通过 `$name` 和 `${name}` 复用结果。详见：[YAML 脚本自动化](./automate-with-scripts-in-yaml#复用步骤结果)
-- Android `runAdbShell` 在 JavaScript API 和 YAML 脚本中都支持 `timeout` 选项。详见：[Android API](./android-api-reference)、[YAML 脚本自动化](./automate-with-scripts-in-yaml)
+- **Android runAdbShell timeout**：在 JavaScript API 和 YAML 脚本中都支持 `timeout` 选项。详见：[Android API](./android-api-reference)、[YAML 脚本自动化](./automate-with-scripts-in-yaml)
+
+### 新增交互 API
+
+- **`agent.aiLongPress()`**：对指定元素执行长按操作，适用于触发长按菜单等场景。详见 [API 文档](./api.mdx#agentailongpress)
+- **`agent.aiClearInput()`**：清空指定输入框的内容，适合把清空当作独立一步的场景。详见 [API 文档](./api.mdx#agentaiclearinput)
 
 ### 设备与平台集成
 
-- iOS 支持连接外部 WebDriverAgent 会话，方便复用已有 WDA 环境
-- Computer MCP / CLI 连接工具支持传入 RDP 连接选项
+- **iOS 连接外部 WDA 会话**：iOS 支持连接已有的 WebDriverAgent 会话，方便复用外部 WDA 环境
+- **iOS 设备实现可覆盖**：允许使用自定义 iOSDevice 实现，便于深度扩展或定制
+- **Computer 远程桌面**：Computer MCP / CLI 连接工具支持传入 RDP 连接选项，可直接接管远程 Windows 桌面
+- **`agentForComputer` 命名修正**：新增 `agentForComputer` 作为主推 API，原有 `agentFromComputer` 保留为向后兼容别名
+- **Puppeteer CLI viewport 选项**：Puppeteer CLI 新增窗口尺寸配置，方便在命令行中指定运行时的浏览器视口
 
 ### 模型与规划行为
 
-- 模型使用意图与实际解析到的配置槽位分离，多模型 Planning、定位和报告展示更清晰
-- 对于已支持的模型系列，Midscene 默认关闭模型原生思考，以提升执行速度和稳定性。详见：[模型原生的思考模式](./model-strategy#模型原生的思考模式)
-- 支持豆包低延迟模式配置方式，可通过 `MIDSCENE_MODEL_EXTRA_BODY_JSON={"service_tier":"fast"}` 开启。详见：[常用模型配置](./model-common-config)
+- **使用意图与配置槽位分离**：模型使用意图与实际解析到的配置槽位分离，多模型 Planning、定位和报告展示更清晰
+- **默认关闭原生思考**：对于已支持的模型系列，Midscene 默认关闭模型原生思考，以提升执行速度和稳定性。详见：[模型原生的思考模式](./model-strategy#模型原生的思考模式)
+- **豆包低延迟模式**：支持豆包低延迟模式配置方式，可通过 `MIDSCENE_MODEL_EXTRA_BODY_JSON={"service_tier":"fast"}` 开启。详见：[常用模型配置](./model-common-config)
+- **GLM-5V-Turbo 支持**：新增智谱 GLM-5V-Turbo 模型支持。详见：[常用模型配置](./model-common-config)
+- **滚动选择规划优化**：优化滚动选择（scrollable select）的规划流程，提升复杂下拉与滚轮选择场景的成功率
+
+### MCP 与平台 CLI
+
+- **新增 `assert` MCP 工具**：MCP 新增基于 `aiAssert` 的断言工具，AI 助手可以直接调用断言能力。详见：[MCP 服务](./mcp)
+- **Assert 支持图片提示**：Assert CLI / MCP 工具支持传入图片作为提示词，便于结合参考图进行断言
+- **平台 CLI 接受裸初始化参数**：各平台 CLI 简化参数传递方式，直接接受平台 Agent 构造参数
+- **Playwright fixture 透传 Agent 选项**：`PlaywrightAiFixture` 支持透传 `PlaywrightAgent` 构造参数，便于复用 fixture 时自定义 Agent 配置
+
+### 报告系统
+
+- **CLI 合并报告**：CLI 新增 `report-tool merge` 子命令，可将多份报告文件合并为一个，便于集中查看
+- **报告中记录截图工具调用**：截图工具（`take_screenshot`）的调用现在会在报告中显示，便于排查截图相关问题
+
+### Chrome 扩展
+
+- **Chrome Web Store 发布自动化**：扩展发布到 Chrome Web Store 的流程已自动化，缩短发布周期
 
 ### 问题修复
 
@@ -27,7 +141,16 @@ v1.8 版本新增 YAML 步骤结果复用能力，调整模型思考模式默认
 - 修复新标签页导航后的 Bridge 连接问题
 - 修复 iOS / HarmonyOS / Computer Playground 点击投影问题
 - 修复 HarmonyOS 单次调用 `autoDismissKeyboard` 的配置不生效问题
-- 修复 Android Playground 视频流内存占用问题
+- 修复 Android Playground 视频流内存占用过高的问题
+- 修复 Computer 滚动默认距离与 Web 不一致的问题
+- 修复部分模型返回归一化 [0,1000] 坐标超出范围的边界问题
+- 修复 Bridge 模式下 `aiAct` 选项未被继承的问题
+- 修复 Action API 返回值与文档不一致的问题
+- 修复 `maxTokens` 与意图模型配置不匹配的问题
+- 修复服务端端口探测时未使用 `0.0.0.0` 与实际监听 host 不一致的问题
+- 修复 `aiAct` 中 deepThink 标记在报告中丢失的问题
+- 修复 iOS 输入时偶发的字符丢失问题
+- 修复 HarmonyOS system action 延迟覆盖逻辑
 
 ## v1.7 - 灵活处理报告文件、支持 Qwen 3.6 模型
 
@@ -665,7 +788,7 @@ v0.28 版本推出了与任意界面集成的功能。定义符合 `AbstractInte
 - 为 Playwright fixture 补全所有 agent api，简化测试脚本编写，解决使用 agentForPage 无法生成报告的问题
 
 ### Android 自动化增强
-- 新增隐藏键盘策略（[keyboardDismissStrategy](./integrate-with-android#androiddevice-的构造函数)），允许指定自动隐藏键盘的方式
+- 新增隐藏键盘策略（[keyboardDismissStrategy](./android-api-reference#androiddevice)），允许指定自动隐藏键盘的方式
 
 ### 报告功能优化
 - 报告内容引入懒解析，解决大体积报告的崩溃问题
@@ -936,7 +1059,7 @@ const agent = await agentFromAdbDevice('s4ey59', {
 立即升级版本，体验这些强大新功能！
 
 * [自定义报告节点 API 文档](/zh/api.mdx#agentlogscreenshot)
-* [Android 更多配置项 API 文档](/zh/integrate-with-android.mdx#androiddevice-%E7%9A%84%E6%9E%84%E9%80%A0%E5%87%BD%E6%95%B0)
+* [Android 更多配置项 API 文档](/zh/android-api-reference#androiddevice)
 
 
 ## v0.17 - 让 AI 看见页面 DOM

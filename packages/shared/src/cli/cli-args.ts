@@ -1,6 +1,6 @@
 import { z } from 'zod';
+import type { ToolCliOption, ToolDefinition } from '../agent-tools/types';
 import { getKeyAliases } from '../key-alias-utils';
-import type { ToolCliOption, ToolDefinition } from '../mcp/types';
 import { CLIError } from './cli-error';
 
 export function parseValue(raw: string): unknown {

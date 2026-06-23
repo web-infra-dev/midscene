@@ -352,6 +352,104 @@ describe('runToolsCLI', () => {
     consoleSpy.mockRestore();
   });
 
+  it('strips a global --deep-locate flag and applies deep locate defaults', async () => {
+    const handler = vi
+      .fn()
+      .mockResolvedValue({ content: [{ type: 'text', text: 'ok' }] });
+    const tools = createMockTools([{ name: 'tap', handler }]);
+    tools.setToolDefaults = vi.fn();
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+    // The flag is placed before the command; it must be removed so 'tap'
+    // resolves as the command instead of being treated as unknown.
+    await runToolsCLI(tools, 'test-cli', {
+      argv: ['--deep-locate', 'tap', '--locate', 'btn'],
+    });
+
+    expect(tools.setToolDefaults).toHaveBeenCalledWith({
+      locate: { deepLocate: true },
+      act: { deepLocate: true },
+    });
+    expect(handler).toHaveBeenCalledTimes(1);
+    consoleSpy.mockRestore();
+  });
+
+  it('strips --deep-locate even when it follows the command', async () => {
+    const handler = vi
+      .fn()
+      .mockResolvedValue({ content: [{ type: 'text', text: 'ok' }] });
+    const tools = createMockTools([{ name: 'tap', handler }]);
+    tools.setToolDefaults = vi.fn();
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+    await runToolsCLI(tools, 'test-cli', {
+      argv: ['tap', '--deep-locate', '--locate', 'btn'],
+    });
+
+    expect(tools.setToolDefaults).toHaveBeenCalledWith({
+      locate: { deepLocate: true },
+      act: { deepLocate: true },
+    });
+    expect(handler).toHaveBeenCalledTimes(1);
+    consoleSpy.mockRestore();
+  });
+
+  it('does not set tool defaults without a behavior flag', async () => {
+    const handler = vi
+      .fn()
+      .mockResolvedValue({ content: [{ type: 'text', text: 'ok' }] });
+    const tools = createMockTools([{ name: 'tap', handler }]);
+    tools.setToolDefaults = vi.fn();
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+    await runToolsCLI(tools, 'test-cli', {
+      argv: ['tap', '--locate', 'btn'],
+    });
+
+    expect(tools.setToolDefaults).not.toHaveBeenCalled();
+    expect(handler).toHaveBeenCalledTimes(1);
+    consoleSpy.mockRestore();
+  });
+
+  it('strips a global --deep-think flag and applies act defaults', async () => {
+    const handler = vi
+      .fn()
+      .mockResolvedValue({ content: [{ type: 'text', text: 'ok' }] });
+    const tools = createMockTools([{ name: 'act', handler }]);
+    tools.setToolDefaults = vi.fn();
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+    await runToolsCLI(tools, 'test-cli', {
+      argv: ['--deep-think', 'act', '--prompt', 'open settings'],
+    });
+
+    expect(tools.setToolDefaults).toHaveBeenCalledWith({
+      act: { deepThink: true },
+    });
+    expect(handler).toHaveBeenCalledTimes(1);
+    consoleSpy.mockRestore();
+  });
+
+  it('merges defaults when both flags are present', async () => {
+    const handler = vi
+      .fn()
+      .mockResolvedValue({ content: [{ type: 'text', text: 'ok' }] });
+    const tools = createMockTools([{ name: 'act', handler }]);
+    tools.setToolDefaults = vi.fn();
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+    await runToolsCLI(tools, 'test-cli', {
+      argv: ['act', '--deep-locate', '--deep-think', '--prompt', 'go'],
+    });
+
+    expect(tools.setToolDefaults).toHaveBeenCalledWith({
+      locate: { deepLocate: true },
+      act: { deepLocate: true, deepThink: true },
+    });
+    expect(handler).toHaveBeenCalledTimes(1);
+    consoleSpy.mockRestore();
+  });
+
   function createDetailedMockTools() {
     return {
       initTools: vi.fn().mockResolvedValue(undefined),

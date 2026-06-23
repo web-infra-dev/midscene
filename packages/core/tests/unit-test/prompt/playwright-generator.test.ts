@@ -1,6 +1,7 @@
 import type { IModelConfig } from '@midscene/shared/env';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { callAIWithStringResponse } from '../../../src/ai-model';
+import { getModelRuntime } from '../../../src/ai-model/models';
 import {
   type ChromeRecordedEvent,
   type PlaywrightGenerationOptions,
@@ -34,33 +35,49 @@ describe('playwright-generator', () => {
       url: 'https://example.com',
       title: 'Example Page',
       screenshotBefore: 'data:image/png;base64,screenshot1',
+      pageInfo: { width: 1280, height: 800 },
+      hashId: 'nav-1',
     },
     {
       type: 'click',
       timestamp: 2000,
-      elementDescription: 'Login button',
+      semantic: {
+        source: 'heuristic',
+        status: 'ready',
+        elementDescription: 'Login button',
+      },
       screenshotWithBox: 'data:image/png;base64,screenshot2',
+      pageInfo: { width: 1280, height: 800 },
+      hashId: 'click-1',
     },
     {
       type: 'input',
       timestamp: 3000,
-      elementDescription: 'Username field',
+      semantic: {
+        source: 'heuristic',
+        status: 'ready',
+        elementDescription: 'Username field',
+      },
       value: 'testuser',
       screenshotAfter: 'data:image/png;base64,screenshot3',
+      pageInfo: { width: 1280, height: 800 },
+      hashId: 'input-1',
     },
     {
       type: 'scroll',
       timestamp: 4000,
+      pageInfo: { width: 1280, height: 800 },
+      hashId: 'scroll-1',
     },
   ];
 
   describe('getScreenshotsForLLM', () => {
-    test('should extract screenshots prioritizing navigation and click events', () => {
+    test('should keep screenshot context distributed across the timeline', () => {
       const screenshots = getScreenshotsForLLM(mockEvents, 2);
 
       expect(screenshots).toHaveLength(2);
-      expect(screenshots[0]).toBe('data:image/png;base64,screenshot1'); // navigation event
-      expect(screenshots[1]).toBe('data:image/png;base64,screenshot2'); // click event with box
+      expect(screenshots[0]).toBe('data:image/png;base64,screenshot1'); // first screenshot
+      expect(screenshots[1]).toBe('data:image/png;base64,screenshot3'); // last screenshot
     });
 
     test('should respect maxScreenshots limit', () => {
@@ -78,6 +95,8 @@ describe('playwright-generator', () => {
           screenshotBefore: 'data:image/png;base64,before',
           screenshotAfter: 'data:image/png;base64,after',
           screenshotWithBox: 'data:image/png;base64,withbox',
+          pageInfo: { width: 1280, height: 800 },
+          hashId: 'box-click',
         },
       ];
 
@@ -133,20 +152,38 @@ describe('playwright-generator', () => {
         {
           type: 'input',
           timestamp: 1000,
-          elementDescription: '',
+          semantic: {
+            source: 'heuristic',
+            status: 'ready',
+            elementDescription: '',
+          },
           value: 'test',
+          pageInfo: { width: 1280, height: 800 },
+          hashId: 'empty-input',
         },
         {
           type: 'input',
           timestamp: 2000,
-          elementDescription: 'Field',
+          semantic: {
+            source: 'heuristic',
+            status: 'ready',
+            elementDescription: 'Field',
+          },
           value: '',
+          pageInfo: { width: 1280, height: 800 },
+          hashId: 'empty-value',
         },
         {
           type: 'input',
           timestamp: 3000,
-          elementDescription: 'Valid field',
+          semantic: {
+            source: 'heuristic',
+            status: 'ready',
+            elementDescription: 'Valid field',
+          },
           value: 'valid value',
+          pageInfo: { width: 1280, height: 800 },
+          hashId: 'valid-input',
         },
       ];
 
@@ -161,19 +198,39 @@ describe('playwright-generator', () => {
       const processed = processEventsForLLM(mockEvents);
 
       expect(processed).toHaveLength(4);
-      expect(processed[0]).toEqual({
-        type: 'navigation',
-        timestamp: 1000,
-        url: 'https://example.com',
-        title: 'Example Page',
-        elementDescription: undefined,
-        value: undefined,
-        pageInfo: undefined,
-        elementRect: undefined,
-      });
+      expect(processed[0]).toEqual(
+        expect.objectContaining({
+          hashId: 'nav-1',
+          screenshotPath: undefined,
+          type: 'navigation',
+          timestamp: 1000,
+          url: 'https://example.com',
+          title: 'Example Page',
+          semantic: undefined,
+          description: 'Navigate to https://example.com',
+          value: undefined,
+          pageInfo: { width: 1280, height: 800 },
+          elementRect: undefined,
+          actionType: undefined,
+          source: undefined,
+        }),
+      );
+    });
+
+    test('should attach screenshot paths when provided', () => {
+      const processed = processEventsForLLM(
+        mockEvents,
+        new Map([['click-1', './screenshots/event-002-click.png']]),
+      );
+
+      expect(processed[1]).toEqual(
+        expect.objectContaining({
+          hashId: 'click-1',
+          screenshotPath: './screenshots/event-002-click.png',
+        }),
+      );
     });
   });
-
   describe('prepareEventSummary', () => {
     test('should create comprehensive event summary', () => {
       const summary = prepareEventSummary(mockEvents, {
@@ -274,12 +331,13 @@ test('Generated test', async ({ aiInput, aiAssert, aiTap, page }) => {
       intent: 'default',
       slot: 'default',
     } as const satisfies IModelConfig;
+    const mockedModelRuntime = getModelRuntime(mockedModelConfig);
 
     test('should generate Playwright test successfully', async () => {
       const result = await generatePlaywrightTest(
         mockEvents,
         {},
-        mockedModelConfig,
+        mockedModelRuntime,
       );
 
       expect(result).toBe(mockPlaywrightCode);
@@ -297,7 +355,16 @@ test('Generated test', async ({ aiInput, aiAssert, aiTap, page }) => {
             content: expect.any(Array),
           }),
         ]),
-        mockedModelConfig,
+        mockedModelRuntime,
+      );
+    });
+
+    test('should accept model config for compatibility', async () => {
+      await generatePlaywrightTest(mockEvents, {}, mockedModelConfig);
+
+      expect(mockCallAiWithStringResponse).toHaveBeenCalledWith(
+        expect.any(Array),
+        mockedModelRuntime,
       );
     });
 
@@ -310,7 +377,7 @@ test('Generated test', async ({ aiInput, aiAssert, aiTap, page }) => {
         maxScreenshots: 2,
       };
 
-      await generatePlaywrightTest(mockEvents, options, mockedModelConfig);
+      await generatePlaywrightTest(mockEvents, options, mockedModelRuntime);
 
       const callArgs = mockCallAiWithStringResponse.mock.calls[0];
       const userMessage = callArgs[0][1];
@@ -336,7 +403,7 @@ test('Generated test', async ({ aiInput, aiAssert, aiTap, page }) => {
         maxScreenshots: 2,
       };
 
-      await generatePlaywrightTest(mockEvents, options, mockedModelConfig);
+      await generatePlaywrightTest(mockEvents, options, mockedModelRuntime);
 
       const callArgs = mockCallAiWithStringResponse.mock.calls[0];
       const userMessage = callArgs[0][1];
@@ -350,7 +417,7 @@ test('Generated test', async ({ aiInput, aiAssert, aiTap, page }) => {
 
     test('should throw error for empty events', async () => {
       await expect(
-        generatePlaywrightTest([], {}, mockedModelConfig),
+        generatePlaywrightTest([], {}, mockedModelRuntime),
       ).rejects.toThrow('No events provided for test generation');
     });
 
@@ -360,7 +427,7 @@ test('Generated test', async ({ aiInput, aiAssert, aiTap, page }) => {
       );
 
       await expect(
-        generatePlaywrightTest(mockEvents, {}, mockedModelConfig),
+        generatePlaywrightTest(mockEvents, {}, mockedModelRuntime),
       ).rejects.toThrow('AI service unavailable');
     });
   });

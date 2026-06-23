@@ -91,6 +91,9 @@ describe('chrome extension smoke test', () => {
   // ── 4. Run aiAct Task ─────────────────────────────────────────────────
 
   it('playground: run aiAct to add a todo item', async () => {
+    await agent.aiAct(`Click the "Action" button in ${SIDE_PANEL}`);
+    await sleep(500);
+
     await agent.aiAct(
       `In ${SIDE_PANEL}, click the text input area and type: Enter "Learn JS today" in the task box, then press Enter`,
     );

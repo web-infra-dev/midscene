@@ -8,6 +8,7 @@ import { paramStr, typeStr } from '@midscene/core/agent';
 import { useCallback } from 'react';
 import { useEnvConfig } from '../store/store';
 import type {
+  ExecutionReportDisplay,
   FormValue,
   InfoListItem,
   PlaygroundSDKLike,
@@ -63,6 +64,29 @@ function wrapExecutionDumpForReplay(
   };
 }
 
+function isReportActionDump(
+  dump: ExecutionDump | IExecutionDump | IReportActionDump | null | undefined,
+): dump is IReportActionDump {
+  return Array.isArray((dump as IReportActionDump | undefined)?.executions);
+}
+
+function replayInfoFromDump(
+  dump: ExecutionDump | IExecutionDump | IReportActionDump | null | undefined,
+  deviceType?: string,
+) {
+  if (!dump) return null;
+
+  if (isReportActionDump(dump)) {
+    return allScriptsFromDump(dump);
+  }
+
+  if (dump.tasks && Array.isArray(dump.tasks)) {
+    return allScriptsFromDump(wrapExecutionDumpForReplay(dump, deviceType));
+  }
+
+  return null;
+}
+
 export interface UsePlaygroundExecutionOptions {
   playgroundSDK: PlaygroundSDKLike | null;
   storage: StorageProvider | undefined | null;
@@ -76,6 +100,15 @@ export interface UsePlaygroundExecutionOptions {
   currentRunningIdRef: React.MutableRefObject<number | null>;
   interruptedFlagRef: React.MutableRefObject<Record<number, boolean>>;
   deviceType?: string;
+}
+
+export interface RunActionOptions {
+  displayContent?: string;
+  reportDisplay?: ExecutionReportDisplay;
+}
+
+function shouldForwardDeepThink(actionType: string) {
+  return actionType === 'aiAct' || actionType === 'runMarkdown';
 }
 
 /**
@@ -110,7 +143,7 @@ export function usePlaygroundExecution(options: UsePlaygroundExecutionOptions) {
 
   // Handle form submission and execution
   const handleRun = useCallback(
-    async (value: FormValue) => {
+    async (value: FormValue, runOptions: RunActionOptions = {}) => {
       // Check if SDK is available
       if (!playgroundSDK) {
         console.warn('PlaygroundSDK is not available');
@@ -122,7 +155,9 @@ export function usePlaygroundExecution(options: UsePlaygroundExecutionOptions) {
       const actionType = value.type;
 
       // Create display content for user input
-      const displayContent = `${value.type}: ${value.prompt || JSON.stringify(value.params)}`;
+      const displayContent =
+        runOptions.displayContent ||
+        `${value.type}: ${value.prompt || JSON.stringify(value.params)}`;
 
       // Add user input to info list
       const userItem: InfoListItem = {
@@ -206,10 +241,11 @@ export function usePlaygroundExecution(options: UsePlaygroundExecutionOptions) {
         }
 
         // During deepThink -> deepLocate migration:
-        // keep deepThink only for aiAct, and avoid passing it to non-aiAct actions.
-        if (actionType !== 'aiAct' && deepThink === true) {
+        // keep deepThink only for aiAct-like planning APIs, and avoid passing it
+        // to script runners such as runYaml.
+        if (!shouldForwardDeepThink(actionType) && deepThink === true) {
           console.warn(
-            '[Playground] Non-aiAct action will be executed without deepThink. deepThink is only forwarded for aiAct.',
+            '[Playground] Non-aiAct action will be executed without deepThink. deepThink is only forwarded for aiAct and runMarkdown.',
             {
               actionType,
               requestId: thisRunningId.toString(),
@@ -222,7 +258,8 @@ export function usePlaygroundExecution(options: UsePlaygroundExecutionOptions) {
         const executionOptions = {
           requestId: thisRunningId.toString(),
           deepLocate,
-          ...(actionType === 'aiAct' && resolvedDeepThink !== undefined
+          ...(shouldForwardDeepThink(actionType) &&
+          resolvedDeepThink !== undefined
             ? { deepThink: resolvedDeepThink }
             : {}),
           screenshotIncluded,
@@ -233,6 +270,9 @@ export function usePlaygroundExecution(options: UsePlaygroundExecutionOptions) {
             keyboardDismissStrategy,
             alwaysRefreshScreenInfo,
           },
+          ...(runOptions.reportDisplay
+            ? { reportDisplay: runOptions.reportDisplay }
+            : {}),
         };
         result.result = await playgroundSDK.executeAction(
           actionType,
@@ -280,12 +320,8 @@ export function usePlaygroundExecution(options: UsePlaygroundExecutionOptions) {
       // Generate replay info for all APIs (including noReplayAPIs)
       // This allows noReplayAPIs to display both output and report
       if (result?.dump) {
-        if (result.dump.tasks && Array.isArray(result.dump.tasks)) {
-          const groupedDump = wrapExecutionDumpForReplay(
-            result.dump,
-            deviceType,
-          );
-          const info = allScriptsFromDump(groupedDump);
+        const info = replayInfoFromDump(result.dump, deviceType);
+        if (info) {
           setReplayCounter((c) => c + 1);
           replayInfo = info;
           counter = replayCounter + 1;
@@ -376,7 +412,7 @@ export function usePlaygroundExecution(options: UsePlaygroundExecutionOptions) {
 
         // If cancelExecution didn't return data, try getCurrentExecutionData as fallback
         let executionData: {
-          dump: ExecutionDump | null;
+          dump: ExecutionDump | IExecutionDump | IReportActionDump | null;
           reportHTML: string | null;
         } | null = null;
 
@@ -423,15 +459,8 @@ export function usePlaygroundExecution(options: UsePlaygroundExecutionOptions) {
           let replayInfo = null;
           let counter = replayCounter;
 
-          if (
-            executionData.dump?.tasks &&
-            Array.isArray(executionData.dump.tasks)
-          ) {
-            const groupedDump = wrapExecutionDumpForReplay(
-              executionData.dump,
-              deviceType,
-            );
-            replayInfo = allScriptsFromDump(groupedDump);
+          replayInfo = replayInfoFromDump(executionData.dump, deviceType);
+          if (replayInfo) {
             setReplayCounter((c) => c + 1);
             counter = replayCounter + 1;
           }

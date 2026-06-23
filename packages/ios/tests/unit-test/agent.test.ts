@@ -13,6 +13,11 @@ import { IOSDevice } from '../../src/device';
 vi.mock('../../src/device');
 
 const MockedIOSDevice = vi.mocked(IOSDevice);
+const doMockVirtual = vi.doMock as unknown as (
+  path: string,
+  factory: () => unknown,
+  options: { virtual: true },
+) => void;
 
 const mockedModelConfig = {
   MIDSCENE_MODEL_NAME: 'mock',
@@ -210,7 +215,7 @@ describe('IOSAgent', () => {
       const setAppNameMappingSpy = vi.fn();
       const moduleName = 'test-ios-device-override';
 
-      vi.doMock(
+      doMockVirtual(
         moduleName,
         () => ({
           IOSDevice: class {
@@ -238,7 +243,7 @@ describe('IOSAgent', () => {
       const moduleName = 'test-ios-device-override-env';
       vi.stubEnv(MIDSCENE_IOS_DEVICE_CLASS_OVERRIDE, moduleName);
 
-      vi.doMock(
+      doMockVirtual(
         moduleName,
         () => ({
           default: class {

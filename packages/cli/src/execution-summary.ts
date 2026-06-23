@@ -1,0 +1,384 @@
+import { createHash } from 'node:crypto';
+import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { basename, dirname, extname, relative, resolve } from 'node:path';
+import type {
+  MidsceneYamlConfigAttempt,
+  MidsceneYamlConfigResult,
+  MidsceneYamlScriptEnv,
+  TestStatus,
+} from '@midscene/core';
+import { ReportMergingTool } from '@midscene/core';
+import type { ScriptPlayer } from '@midscene/core/yaml';
+import { getMidsceneRunSubDir } from '@midscene/shared/common';
+import { getDebug } from '@midscene/shared/logger';
+
+const warnRetryReport = getDebug('execution-summary', { console: true });
+
+export interface ExecutionPlanConfig {
+  files: string[];
+  concurrent: number;
+  continueOnError: boolean;
+  retry?: number;
+  summary: string;
+  shareBrowserContext?: boolean;
+  headed: boolean;
+  keepWindow: boolean;
+}
+
+export interface ExecutionSummary {
+  total: number;
+  successful: number;
+  failed: number;
+  partialFailed: number;
+  notExecuted: number;
+  totalDuration: number;
+}
+
+type ResultType = MidsceneYamlConfigResult['resultType'];
+
+export const notExecutedError = 'Not executed (previous task failed)';
+
+export function createNotExecutedYamlResult(
+  file: string,
+): MidsceneYamlConfigResult {
+  return {
+    file,
+    success: false,
+    executed: false,
+    output: undefined,
+    report: undefined,
+    duration: 0,
+    resultType: 'notExecuted',
+    error: notExecutedError,
+  };
+}
+
+export function createExecutedYamlResult(options: {
+  file: string;
+  player: ScriptPlayer<MidsceneYamlScriptEnv>;
+  duration: number;
+}): MidsceneYamlConfigResult {
+  const { file, player, duration } = options;
+  const hasFailedTasks =
+    player.taskStatusList?.some((task) => task.status === 'error') ?? false;
+  const hasPlayerError = player.status === 'error';
+
+  let success: boolean;
+  let resultType: 'success' | 'failed' | 'partialFailed';
+
+  if (hasPlayerError) {
+    success = false;
+    resultType = 'failed';
+  } else if (hasFailedTasks) {
+    success = false;
+    resultType = 'partialFailed';
+  } else {
+    success = true;
+    resultType = 'success';
+  }
+
+  let outputPath: string | undefined = player.output || undefined;
+  if (outputPath && !existsSync(outputPath)) {
+    outputPath = undefined;
+  }
+
+  let errorMessage: string | undefined;
+  if (player.errorInSetup?.message) {
+    errorMessage = player.errorInSetup.message;
+  } else if (hasPlayerError || hasFailedTasks) {
+    const taskErrors = player.taskStatusList
+      ?.filter((task) => task.status === 'error' && task.error?.message)
+      .map((task) => task.error!.message);
+    if (taskErrors && taskErrors.length > 0) {
+      errorMessage = taskErrors.join('; ');
+    } else if (hasPlayerError) {
+      errorMessage = 'Execution failed';
+    } else {
+      errorMessage = 'Some tasks failed';
+    }
+  }
+
+  return {
+    file,
+    success,
+    executed: true,
+    output: outputPath,
+    report: player.reportFile || undefined,
+    duration,
+    resultType,
+    error: errorMessage,
+  };
+}
+
+export function getExecutionSummary(
+  results: MidsceneYamlConfigResult[],
+): ExecutionSummary {
+  return {
+    total: results.length,
+    successful: getResultsByType(results, 'success').length,
+    failed: getResultsByType(results, 'failed').length,
+    partialFailed: getResultsByType(results, 'partialFailed').length,
+    notExecuted: getResultsByType(results, 'notExecuted').length,
+    totalDuration: results.reduce((sum, r) => sum + (r.duration || 0), 0),
+  };
+}
+
+export function getResultsByType(
+  results: MidsceneYamlConfigResult[],
+  resultType: ResultType,
+): MidsceneYamlConfigResult[] {
+  return results.filter((result) => result.resultType === resultType);
+}
+
+export function getResultFilesByType(
+  results: MidsceneYamlConfigResult[],
+  resultType: ResultType,
+): string[] {
+  return getResultsByType(results, resultType).map((result) => result.file);
+}
+
+export function getSummaryAbsolutePath(summary: string): string {
+  return resolve(getMidsceneRunSubDir('output'), summary);
+}
+
+const toOutputRelativePath = (outputDir: string, filePath: string): string => {
+  const relativePath = relative(outputDir, filePath);
+  return relativePath.startsWith('.') ? relativePath : `./${relativePath}`;
+};
+
+const toTestStatus = (
+  attempt: Pick<MidsceneYamlConfigAttempt, 'success' | 'resultType'>,
+): TestStatus => {
+  if (attempt.success) return 'passed';
+  if (attempt.resultType === 'notExecuted') return 'skipped';
+  return 'failed';
+};
+
+const safeReportNamePart = (value: string): string =>
+  value.replace(/[:*?"<>|# ]/g, '-');
+
+const createRetryReportName = (file: string): string => {
+  const fileName = basename(file, extname(file)) || 'yaml';
+  const fileHash = createHash('sha1')
+    .update(resolve(file))
+    .digest('hex')
+    .slice(0, 8);
+  return `${safeReportNamePart(fileName)}-${fileHash}-retry-attempts`;
+};
+
+const createRetryAttemptReport = (
+  result: MidsceneYamlConfigResult,
+): string | undefined => {
+  const attemptsWithReports = result.attempts?.filter(
+    (attempt) => attempt.report && existsSync(attempt.report),
+  );
+  if (!attemptsWithReports || attemptsWithReports.length <= 1) {
+    return undefined;
+  }
+
+  const tool = new ReportMergingTool();
+  for (const attempt of attemptsWithReports) {
+    const status = toTestStatus(attempt);
+    tool.append({
+      reportFilePath: attempt.report!,
+      reportAttributes: {
+        testDuration: attempt.duration ?? 0,
+        testStatus: status,
+        testTitle: `Attempt ${attempt.attempt}: ${status} - ${basename(result.file)}`,
+        testId: `${safeReportNamePart(basename(result.file))}-attempt-${attempt.attempt}`,
+        testDescription:
+          attempt.error ??
+          (attempt.success ? 'YAML attempt passed' : 'YAML attempt failed'),
+      },
+    });
+  }
+
+  return (
+    tool.mergeReports(createRetryReportName(result.file), {
+      outputDir: getMidsceneRunSubDir('report'),
+      overwrite: true,
+    }) || undefined
+  );
+};
+
+const errorMessageOf = (error: unknown): string =>
+  error instanceof Error ? error.message : String(error);
+
+const warnRetryReportFailure = (message: string): void => {
+  try {
+    mkdirSync(getMidsceneRunSubDir('log'), { recursive: true });
+    warnRetryReport(message);
+  } catch {
+    // Summary output is more important than warning output.
+  }
+};
+
+const createRetryAttemptReportSafely = (
+  result: MidsceneYamlConfigResult,
+): { report?: string; failed: boolean } => {
+  try {
+    return {
+      report: createRetryAttemptReport(result),
+      failed: false,
+    };
+  } catch (error) {
+    warnRetryReportFailure(
+      `Failed to merge retry attempt report for ${result.file}: ${errorMessageOf(
+        error,
+      )}`,
+    );
+    return { failed: true };
+  }
+};
+
+export function writeExecutionSummaryFile(
+  summary: string,
+  results: MidsceneYamlConfigResult[],
+): string {
+  const indexPath = getSummaryAbsolutePath(summary);
+  const outputDir = dirname(indexPath);
+  mkdirSync(outputDir, { recursive: true });
+
+  const executionSummary = getExecutionSummary(results);
+  const indexData = {
+    summary: {
+      ...executionSummary,
+      generatedAt: new Date().toLocaleString(),
+    },
+    results: results.map((result) => {
+      const retryReport = createRetryAttemptReportSafely(result);
+
+      return {
+        script: relative(outputDir, result.file),
+        success: result.success,
+        resultType: result.resultType,
+        output: result.output
+          ? toOutputRelativePath(outputDir, result.output)
+          : undefined,
+        report: result.report ? relative(outputDir, result.report) : undefined,
+        retryReport: retryReport.report
+          ? relative(outputDir, retryReport.report)
+          : !retryReport.failed && result.retryReport
+            ? relative(outputDir, result.retryReport)
+            : undefined,
+        attempts: result.attempts?.map((attempt) => ({
+          attempt: attempt.attempt,
+          success: attempt.success,
+          resultType: attempt.resultType,
+          output: attempt.output
+            ? toOutputRelativePath(outputDir, attempt.output)
+            : undefined,
+          report: attempt.report
+            ? relative(outputDir, attempt.report)
+            : undefined,
+          error: attempt.error,
+          duration: attempt.duration,
+        })),
+        error: result.error,
+        duration: result.duration,
+      };
+    }),
+  };
+
+  writeFileSync(indexPath, JSON.stringify(indexData, null, 2));
+  return indexPath;
+}
+
+export function printExecutionPlan(config: ExecutionPlanConfig): void {
+  console.log('   Scripts:');
+  for (const file of config.files) {
+    console.log(`     - ${file}`);
+  }
+  console.log('📋 Execution plan');
+  console.log(`   Concurrency: ${config.concurrent}`);
+  console.log(`   Keep window: ${config.keepWindow}`);
+  console.log(`   Headed: ${config.headed}`);
+  console.log(`   Continue on error: ${config.continueOnError}`);
+  console.log(`   Retry: ${config.retry ?? 0}`);
+  console.log(
+    `   Share browser context: ${config.shareBrowserContext ?? false}`,
+  );
+  console.log(`   Summary output: ${config.summary}`);
+}
+
+export function printExecutionFinished(): void {
+  console.log('Execution finished:');
+}
+
+const printResultArtifacts = (result: MidsceneYamlConfigResult): void => {
+  if (result.report) {
+    console.log(`     Report: ${result.report}`);
+  }
+  if (result.output) {
+    console.log(`     Output: ${result.output}`);
+  }
+};
+
+export function printExecutionSummary(
+  results: MidsceneYamlConfigResult[],
+  summaryPath: string,
+): boolean {
+  const summary = getExecutionSummary(results);
+  const successfulFiles = getResultsByType(results, 'success');
+  const failedFiles = getResultsByType(results, 'failed');
+  const partialFailedFiles = getResultsByType(results, 'partialFailed');
+  const notExecutedFiles = getResultsByType(results, 'notExecuted');
+  const success =
+    summary.failed === 0 &&
+    summary.partialFailed === 0 &&
+    summary.notExecuted === 0;
+
+  console.log('\n📊 Execution Summary:');
+  console.log(`   Total files: ${summary.total}`);
+  console.log(`   Successful: ${summary.successful}`);
+  console.log(`   Failed: ${summary.failed}`);
+  console.log(`   Partial failed: ${summary.partialFailed}`);
+  console.log(`   Not executed: ${summary.notExecuted}`);
+  console.log(`   Duration: ${(summary.totalDuration / 1000).toFixed(2)}s`);
+  console.log(`   Summary: ${summaryPath}`);
+
+  if (successfulFiles.length > 0) {
+    console.log('\n✅ Successful files:');
+    successfulFiles.forEach((result) => {
+      console.log(`   ${result.file}`);
+      printResultArtifacts(result);
+    });
+  }
+
+  if (failedFiles.length > 0) {
+    console.log('\n❌ Failed files');
+    failedFiles.forEach((result) => {
+      console.log(`   ${result.file}`);
+      if (result.error) {
+        console.log(`     Error: ${result.error}`);
+      }
+    });
+  }
+
+  if (partialFailedFiles.length > 0) {
+    console.log(
+      '\n⚠️  Partial failed files (some tasks failed with continueOnError)',
+    );
+    partialFailedFiles.forEach((result) => {
+      console.log(`   ${result.file}`);
+      if (result.error) {
+        console.log(`     Error: ${result.error}`);
+      }
+    });
+  }
+
+  if (notExecutedFiles.length > 0) {
+    console.log('\n⏸️ Not executed files');
+    notExecutedFiles.forEach((result) => {
+      console.log(`   ${result.file}`);
+    });
+  }
+
+  if (success) {
+    console.log('\n🎉 All files executed successfully!');
+  } else {
+    console.log('\n⚠️ Some files failed or were not executed.');
+  }
+
+  return success;
+}

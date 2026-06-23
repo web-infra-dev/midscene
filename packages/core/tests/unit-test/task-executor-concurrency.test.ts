@@ -1,14 +1,22 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+vi.mock('@/ai-model/workflows/planning', async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import('@/ai-model/workflows/planning')>();
+  return {
+    ...actual,
+    genericXmlPlan: vi.fn(),
+  };
+});
+
 import { TaskExecutor } from '@/agent/tasks';
+import { getModelRuntime } from '@/ai-model/models';
+import { genericXmlPlan } from '@/ai-model/workflows/planning';
 import type { AbstractInterface } from '@/device';
 import { ScreenshotItem } from '@/screenshot-item';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { DeviceAction, ExecutorContext } from '@/types';
+import { z } from 'zod';
 import type Service from '../../src';
-
-vi.mock('@/ai-model/llm-planning', () => ({
-  plan: vi.fn(),
-}));
-
-import { plan } from '@/ai-model/llm-planning';
 
 const validBase64Image =
   'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
@@ -22,6 +30,29 @@ const createDeferred = () => {
   return { promise, resolve };
 };
 
+const planningModel = () =>
+  getModelRuntime({
+    modelName: 'planning-model',
+    modelDescription: 'planning-model',
+    intent: 'planning',
+    slot: 'planning',
+  });
+const defaultModel = () =>
+  getModelRuntime({
+    modelName: 'default-model',
+    modelDescription: 'default-model',
+    intent: 'default',
+    slot: 'default',
+  });
+const emptyParamActionSpace: DeviceAction[] = [
+  {
+    name: 'Noop',
+    description: 'noop',
+    paramSchema: z.object({}),
+    call: async () => undefined,
+  },
+];
+
 describe('TaskExecutor concurrency isolation', () => {
   let taskExecutor: TaskExecutor;
   let mockInterface: AbstractInterface;
@@ -30,7 +61,7 @@ describe('TaskExecutor concurrency isolation', () => {
   beforeEach(() => {
     mockInterface = {
       interfaceType: 'web',
-      actionSpace: vi.fn().mockReturnValue([]),
+      actionSpace: vi.fn().mockReturnValue(emptyParamActionSpace),
     } as unknown as AbstractInterface;
 
     mockService = {
@@ -48,7 +79,7 @@ describe('TaskExecutor concurrency isolation', () => {
 
     taskExecutor = new TaskExecutor(mockInterface, mockService, {
       replanningCycleLimit: 1,
-      actionSpace: [],
+      actionSpace: emptyParamActionSpace,
     });
 
     vi.spyOn(taskExecutor, 'convertPlanToExecutable').mockResolvedValue({
@@ -68,37 +99,39 @@ describe('TaskExecutor concurrency isolation', () => {
 
     const seenHistories: any[] = [];
 
-    vi.mocked(plan).mockImplementation(async (_instruction, opts: any) => {
-      seenHistories.push(opts.conversationHistory);
-      if (seenHistories.length === 2) {
-        waitForBothCalls.resolve();
-      }
+    vi.mocked(genericXmlPlan).mockImplementation(
+      async (_instruction, opts: any) => {
+        seenHistories.push(opts.conversationHistory);
+        if (seenHistories.length === 2) {
+          waitForBothCalls.resolve();
+        }
 
-      if (seenHistories.length < 2) {
-        await releasePlans.promise;
-      }
+        if (seenHistories.length < 2) {
+          await releasePlans.promise;
+        }
 
-      return {
-        actions: [],
-        yamlFlow: [],
-        shouldContinuePlanning: false,
-        log: '',
-        rawResponse: '',
-        finalizeSuccess: true,
-        finalizeMessage: 'done',
-      };
-    });
+        return {
+          actions: [],
+          yamlFlow: [],
+          shouldContinuePlanning: false,
+          log: '',
+          rawResponse: '',
+          finalizeSuccess: true,
+          finalizeMessage: 'done',
+        };
+      },
+    );
 
     const actionPromiseA = taskExecutor.action(
       'first prompt',
-      { modelName: 'planning-model' } as any,
-      { modelName: 'default-model' } as any,
+      planningModel(),
+      defaultModel(),
       true,
     );
     const actionPromiseB = taskExecutor.action(
       'second prompt',
-      { modelName: 'planning-model' } as any,
-      { modelName: 'default-model' } as any,
+      planningModel(),
+      defaultModel(),
       true,
     );
 
@@ -117,7 +150,7 @@ describe('TaskExecutor concurrency isolation', () => {
       .mockResolvedValue('2023-10-15 15:37:00 (YYYY-MM-DD HH:mm:ss)');
     taskExecutor = new TaskExecutor(mockInterface, mockService, {
       replanningCycleLimit: 1,
-      actionSpace: [],
+      actionSpace: emptyParamActionSpace,
       useDeviceTime: true,
     });
     vi.spyOn(taskExecutor, 'convertPlanToExecutable').mockResolvedValue({
@@ -125,7 +158,7 @@ describe('TaskExecutor concurrency isolation', () => {
       yamlFlow: [],
     } as any);
 
-    vi.mocked(plan)
+    vi.mocked(genericXmlPlan)
       .mockImplementationOnce(async (_instruction, opts: any) => {
         seenPendingFeedback.push(
           opts.conversationHistory.pendingFeedbackMessage,
@@ -155,12 +188,7 @@ describe('TaskExecutor concurrency isolation', () => {
         };
       });
 
-    await taskExecutor.action(
-      'prompt',
-      { modelName: 'planning-model' } as any,
-      { modelName: 'default-model' } as any,
-      true,
-    );
+    await taskExecutor.action('prompt', planningModel(), defaultModel(), true);
 
     expect(mockInterface.getDeviceLocalTimeString).toHaveBeenCalledWith(
       undefined,
@@ -171,6 +199,369 @@ describe('TaskExecutor concurrency isolation', () => {
     ]);
   });
 
+  it('should pass RunAdbShell planning feedback into the next planning request', async () => {
+    const seenPendingFeedback: string[] = [];
+    const planningFeedback = `RunAdbShell returned stdout. The stdout may indicate success or failure.
+Command: settings get system screen_brightness
+Stdout:
+0`;
+
+    vi.spyOn(taskExecutor, 'convertPlanToExecutable')
+      .mockResolvedValueOnce({
+        tasks: [
+          {
+            type: 'Action Space',
+            subType: 'RunAdbShell',
+            param: { command: 'settings get system screen_brightness' },
+            executor: async (_param: unknown, context: ExecutorContext) => {
+              context.task.planningFeedback = planningFeedback;
+              return {
+                output: '0',
+              };
+            },
+          },
+        ],
+        yamlFlow: [],
+      } as any)
+      .mockResolvedValue({
+        tasks: [],
+        yamlFlow: [],
+      } as any);
+
+    vi.mocked(genericXmlPlan)
+      .mockImplementationOnce(async (_instruction, opts: any) => {
+        seenPendingFeedback.push(
+          opts.conversationHistory.pendingFeedbackMessage,
+        );
+        opts.conversationHistory.resetPendingFeedbackMessageIfExists();
+        return {
+          actions: [
+            {
+              type: 'RunAdbShell',
+              param: { command: 'settings get system screen_brightness' },
+              thought: 'read brightness state from adb shell',
+            },
+          ],
+          yamlFlow: [],
+          shouldContinuePlanning: true,
+          log: 'first plan',
+          rawResponse: '',
+        };
+      })
+      .mockImplementationOnce(async (_instruction, opts: any) => {
+        seenPendingFeedback.push(
+          opts.conversationHistory.pendingFeedbackMessage,
+        );
+        opts.conversationHistory.resetPendingFeedbackMessageIfExists();
+        return {
+          actions: [],
+          yamlFlow: [],
+          shouldContinuePlanning: false,
+          log: '',
+          rawResponse: '',
+          finalizeSuccess: true,
+          finalizeMessage: 'done',
+        };
+      });
+
+    await taskExecutor.action(
+      'check brightness with adb shell',
+      planningModel(),
+      defaultModel(),
+      true,
+    );
+
+    expect(seenPendingFeedback[0]).toBe('');
+    expect(seenPendingFeedback[1]).toContain(planningFeedback);
+  });
+
+  it('should truncate oversized planning feedback before the next planning request', async () => {
+    const seenPendingFeedback: string[] = [];
+    const longFeedback = 'x'.repeat(600);
+
+    vi.spyOn(taskExecutor, 'convertPlanToExecutable')
+      .mockResolvedValueOnce({
+        tasks: [
+          {
+            type: 'Action Space',
+            subType: 'RunAdbShell',
+            param: { command: 'cat big-file' },
+            executor: async (_param: unknown, context: ExecutorContext) => {
+              context.task.planningFeedback = longFeedback;
+              return {
+                output: longFeedback,
+              };
+            },
+          },
+        ],
+        yamlFlow: [],
+      } as any)
+      .mockResolvedValue({
+        tasks: [],
+        yamlFlow: [],
+      } as any);
+
+    vi.mocked(genericXmlPlan)
+      .mockImplementationOnce(async (_instruction, opts: any) => {
+        seenPendingFeedback.push(
+          opts.conversationHistory.pendingFeedbackMessage,
+        );
+        opts.conversationHistory.resetPendingFeedbackMessageIfExists();
+        return {
+          actions: [
+            {
+              type: 'RunAdbShell',
+              param: { command: 'cat big-file' },
+              thought: 'read a large file',
+            },
+          ],
+          yamlFlow: [],
+          shouldContinuePlanning: true,
+          log: 'first plan',
+          rawResponse: '',
+        };
+      })
+      .mockImplementationOnce(async (_instruction, opts: any) => {
+        seenPendingFeedback.push(
+          opts.conversationHistory.pendingFeedbackMessage,
+        );
+        opts.conversationHistory.resetPendingFeedbackMessageIfExists();
+        return {
+          actions: [],
+          yamlFlow: [],
+          shouldContinuePlanning: false,
+          log: '',
+          rawResponse: '',
+          finalizeSuccess: true,
+          finalizeMessage: 'done',
+        };
+      });
+
+    await taskExecutor.action(
+      'read big file with adb shell',
+      planningModel(),
+      defaultModel(),
+      true,
+    );
+
+    expect(seenPendingFeedback[1]).toContain('x'.repeat(500));
+    expect(seenPendingFeedback[1]).not.toContain('x'.repeat(600));
+    expect(seenPendingFeedback[1]).toContain(
+      '...[truncated, 100 more characters]',
+    );
+  });
+
+  it('should collect all planning feedback instead of the final task output', async () => {
+    const seenPendingFeedback: string[] = [];
+    vi.setSystemTime(new Date(2023, 9, 15, 8, 30, 0));
+    const firstPlanningFeedback = `RunAdbShell returned stdout. The stdout may indicate success or failure.
+Command: settings get system screen_brightness
+Stdout:
+0`;
+    const secondPlanningFeedback = `RunAdbShell returned stdout. The stdout may indicate success or failure.
+Command: settings get system screen_off_timeout
+Stdout:
+30000`;
+    const thirdPlanningFeedback = `RunAdbShell returned stdout. The stdout may indicate success or failure.
+Command: dumpsys window
+Stdout:
+mCurrentFocus=Window{abc}`;
+    const finalActionOutput = 'tap-output';
+
+    vi.spyOn(taskExecutor, 'convertPlanToExecutable')
+      .mockResolvedValueOnce({
+        tasks: [
+          {
+            type: 'Action Space',
+            subType: 'RunAdbShell',
+            param: { command: 'settings get system screen_brightness' },
+            executor: async (_param: unknown, context: ExecutorContext) => {
+              context.task.planningFeedback = firstPlanningFeedback;
+              return {
+                output: '0',
+              };
+            },
+          },
+          {
+            type: 'Action Space',
+            subType: 'RunAdbShell',
+            param: { command: 'settings get system screen_off_timeout' },
+            executor: async (_param: unknown, context: ExecutorContext) => {
+              context.task.planningFeedback = secondPlanningFeedback;
+              return {
+                output: '30000',
+              };
+            },
+          },
+          {
+            type: 'Action Space',
+            subType: 'RunAdbShell',
+            param: { command: 'dumpsys window' },
+            executor: async (_param: unknown, context: ExecutorContext) => {
+              context.task.planningFeedback = thirdPlanningFeedback;
+              return {
+                output: 'mCurrentFocus=Window{abc}',
+              };
+            },
+          },
+          {
+            type: 'Action Space',
+            subType: 'Tap',
+            param: { x: 10, y: 20 },
+            executor: async () => ({
+              output: finalActionOutput,
+            }),
+          },
+        ],
+        yamlFlow: [],
+      } as any)
+      .mockResolvedValue({
+        tasks: [],
+        yamlFlow: [],
+      } as any);
+
+    vi.mocked(genericXmlPlan)
+      .mockImplementationOnce(async (_instruction, opts: any) => {
+        seenPendingFeedback.push(
+          opts.conversationHistory.pendingFeedbackMessage,
+        );
+        opts.conversationHistory.resetPendingFeedbackMessageIfExists();
+        return {
+          actions: [
+            {
+              type: 'RunAdbShell',
+              param: { command: 'settings get system screen_brightness' },
+              thought: 'read brightness state from adb shell',
+            },
+            {
+              type: 'RunAdbShell',
+              param: { command: 'settings get system screen_off_timeout' },
+              thought: 'read screen timeout state from adb shell',
+            },
+            {
+              type: 'RunAdbShell',
+              param: { command: 'dumpsys window' },
+              thought: 'read current focus from adb shell',
+            },
+            {
+              type: 'Tap',
+              param: { x: 10, y: 20 },
+              thought: 'tap after adb shell',
+            },
+          ],
+          yamlFlow: [],
+          shouldContinuePlanning: true,
+          log: 'first plan',
+          rawResponse: '',
+        };
+      })
+      .mockImplementationOnce(async (_instruction, opts: any) => {
+        seenPendingFeedback.push(
+          opts.conversationHistory.pendingFeedbackMessage,
+        );
+        opts.conversationHistory.resetPendingFeedbackMessageIfExists();
+        return {
+          actions: [],
+          yamlFlow: [],
+          shouldContinuePlanning: false,
+          log: '',
+          rawResponse: '',
+          finalizeSuccess: true,
+          finalizeMessage: 'done',
+        };
+      });
+
+    await taskExecutor.action(
+      'check brightness',
+      planningModel(),
+      defaultModel(),
+      true,
+    );
+
+    expect(
+      seenPendingFeedback[1],
+    ).toBe(`Time: 2023-10-15 08:30:00 (YYYY-MM-DD HH:mm:ss), ${firstPlanningFeedback}
+
+${secondPlanningFeedback}
+
+${thirdPlanningFeedback}`);
+    expect(seenPendingFeedback[1]).not.toContain(finalActionOutput);
+  });
+
+  it('should not pass empty planning feedback into the next planning request', async () => {
+    const seenPendingFeedback: string[] = [];
+    taskExecutor = new TaskExecutor(mockInterface, mockService, {
+      replanningCycleLimit: 1,
+      actionSpace: [],
+    });
+    vi.spyOn(taskExecutor, 'convertPlanToExecutable')
+      .mockResolvedValueOnce({
+        tasks: [
+          {
+            type: 'Action Space',
+            subType: 'WriteState',
+            param: { key: 'clipboard' },
+            executor: async (_param: unknown, context: ExecutorContext) => {
+              context.task.planningFeedback = '';
+              return {
+                output: '',
+              };
+            },
+          },
+        ],
+        yamlFlow: [],
+      } as any)
+      .mockResolvedValue({
+        tasks: [],
+        yamlFlow: [],
+      } as any);
+
+    vi.mocked(genericXmlPlan)
+      .mockImplementationOnce(async (_instruction, opts: any) => {
+        seenPendingFeedback.push(
+          opts.conversationHistory.pendingFeedbackMessage,
+        );
+        opts.conversationHistory.resetPendingFeedbackMessageIfExists();
+        return {
+          actions: [
+            {
+              type: 'WriteState',
+              param: { key: 'clipboard' },
+              thought: 'write state',
+            },
+          ],
+          yamlFlow: [],
+          shouldContinuePlanning: true,
+          log: 'first plan',
+          rawResponse: '',
+        };
+      })
+      .mockImplementationOnce(async (_instruction, opts: any) => {
+        seenPendingFeedback.push(
+          opts.conversationHistory.pendingFeedbackMessage,
+        );
+        opts.conversationHistory.resetPendingFeedbackMessageIfExists();
+        return {
+          actions: [],
+          yamlFlow: [],
+          shouldContinuePlanning: false,
+          log: '',
+          rawResponse: '',
+          finalizeSuccess: true,
+          finalizeMessage: 'done',
+        };
+      });
+
+    await taskExecutor.action(
+      'copy clipboard',
+      planningModel(),
+      defaultModel(),
+      true,
+    );
+
+    expect(seenPendingFeedback[1]).not.toContain('WriteState');
+  });
+
   it('should fall back to runtime time instead of device timestamp when device-local time is unavailable', async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date(2023, 9, 15, 8, 30, 0));
@@ -178,7 +569,7 @@ describe('TaskExecutor concurrency isolation', () => {
     const seenPendingFeedback: string[] = [];
     taskExecutor = new TaskExecutor(mockInterface, mockService, {
       replanningCycleLimit: 1,
-      actionSpace: [],
+      actionSpace: emptyParamActionSpace,
       useDeviceTime: true,
     });
     vi.spyOn(taskExecutor, 'convertPlanToExecutable').mockResolvedValue({
@@ -186,7 +577,7 @@ describe('TaskExecutor concurrency isolation', () => {
       yamlFlow: [],
     } as any);
 
-    vi.mocked(plan)
+    vi.mocked(genericXmlPlan)
       .mockImplementationOnce(async (_instruction, opts: any) => {
         seenPendingFeedback.push(
           opts.conversationHistory.pendingFeedbackMessage,
@@ -216,12 +607,7 @@ describe('TaskExecutor concurrency isolation', () => {
         };
       });
 
-    await taskExecutor.action(
-      'prompt',
-      { modelName: 'planning-model' } as any,
-      { modelName: 'default-model' } as any,
-      true,
-    );
+    await taskExecutor.action('prompt', planningModel(), defaultModel(), true);
 
     expect(seenPendingFeedback).toEqual([
       '',

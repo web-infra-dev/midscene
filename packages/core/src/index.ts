@@ -57,7 +57,23 @@ export type {
   DetailedLocateParam,
 } from './yaml';
 
-export { Agent, type AgentOpt, type AiActOptions, createAgent } from './agent';
+export {
+  Agent,
+  type AgentOpt,
+  type AiActOptions,
+  createAgent,
+} from './agent';
+export {
+  describeElementAtPoint,
+  verifyElementDescriptionAtPoint,
+  verifyElementByServiceLocate,
+  verifyLocator,
+  type DescribeElementAtPointOptions,
+  type DescribeElementCoordinateSpace,
+  type ElementDescriberRuntime,
+  type VerifyElementDescriptionAtPointOptions,
+  type VerifyElementByServiceLocateOptions,
+} from './element-describer';
 
 // Dump utilities
 export {
@@ -70,6 +86,10 @@ export {
   generateImageScriptTag,
   generateDumpScriptTag,
 } from './dump';
+export {
+  getTaskSearchArea,
+  getTaskServiceDump,
+} from './dump/task-service-dump';
 
 // Report generator
 export type { IReportGenerator } from './report-generator';

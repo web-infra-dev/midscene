@@ -1,5 +1,7 @@
 #pragma once
 
+#include <atomic>
+#include <condition_variable>
 #include <cstdint>
 #include <mutex>
 #include <optional>
@@ -68,6 +70,17 @@ class FreeRdpSessionTransport final : public SessionTransport {
   bool IsConnected() const override;
   std::optional<ErrorPayload> LastError() const override;
   void MarkGdiInitialized();
+  // Chain a frame-paint hook onto the update pipeline after GDI callbacks are
+  // installed, so the session can tell when desktop pixels reach the primary
+  // framebuffer.
+  void HookEndPaint(rdpUpdate* update);
+  // Records that at least one paint has reached the local framebuffer and
+  // wakes Connect().
+  void MarkFramePainted(std::optional<RawFrame> first_frame = std::nullopt);
+  bool HasFramePainted() const;
+  BOOL CallOriginalEndPaint(rdpContext* context);
+  // Mark the session as no longer active and wake any first-frame waiter.
+  void SignalSessionInactive();
 
   FreeRdpSessionTransport(const FreeRdpSessionTransport&) = delete;
   FreeRdpSessionTransport& operator=(const FreeRdpSessionTransport&) = delete;
@@ -81,6 +94,19 @@ class FreeRdpSessionTransport final : public SessionTransport {
   bool running_ = false;
   bool connected_ = false;
   bool gdi_initialized_ = false;
+  // Number of desktop paints that have reached the local framebuffer. A fresh
+  // RDP session exposes a zero-filled (all black) buffer until the first paint
+  // is processed, so screenshots taken before this is > 0 would be blank.
+  std::atomic<uint64_t> frames_painted_{0};
+  // Tracks whether the session is still alive while Connect() waits for the
+  // first frame, so a drop during that window wakes the wait immediately
+  // instead of stalling until the timeout.
+  std::atomic<bool> session_active_{false};
+  std::condition_variable frame_cv_;
+  std::mutex frame_mutex_;
+  std::optional<RawFrame> first_frame_;
+  bool first_frame_consumed_ = false;
+  pEndPaint original_end_paint_ = nullptr;
   uint16_t mouse_x_ = 0;
   uint16_t mouse_y_ = 0;
   std::string session_id_;

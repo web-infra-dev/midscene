@@ -6,13 +6,23 @@ import { createRoot } from 'react-dom/client';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 import MainContent from '../src/renderer/components/MainContent';
 import { StudioPlaygroundContext } from '../src/renderer/playground/useStudioPlayground';
+import { StudioRecorderContext } from '../src/renderer/recorder/useStudioRecorder';
+
+type ReadyStudioPlaygroundContextValue = Extract<
+  StudioPlaygroundContextValue,
+  { phase: 'ready' }
+>;
 
 vi.mock('@midscene/playground-app', () => ({
   PlaygroundPreview: () => null,
 }));
 
 beforeAll(() => {
-  globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+  (
+    globalThis as typeof globalThis & {
+      IS_REACT_ACT_ENVIRONMENT?: boolean;
+    }
+  ).IS_REACT_ACT_ENVIRONMENT = true;
 });
 
 async function flushPromises() {
@@ -21,7 +31,17 @@ async function flushPromises() {
   });
 }
 
-function createConnectedWebContextValue(): StudioPlaygroundContextValue {
+function createDeferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((promiseResolve, promiseReject) => {
+    resolve = promiseResolve;
+    reject = promiseReject;
+  });
+  return { promise, reject, resolve };
+}
+
+function createConnectedWebContextValue(): ReadyStudioPlaygroundContextValue {
   return {
     phase: 'ready',
     serverUrl: 'http://127.0.0.1:5800',
@@ -118,6 +138,85 @@ describe('MainContent web navigation', () => {
     expect(
       context.controller.state.playgroundSDK.getInterfaceInfo,
     ).toHaveBeenCalled();
+
+    await act(async () => {
+      root.unmount();
+    });
+    container.remove();
+  });
+
+  it('stops an active recorder before disconnecting the live session', async () => {
+    const context = createConnectedWebContextValue();
+    const stopDeferred = createDeferred<void>();
+    const stopRecording = vi.fn(() => stopDeferred.promise);
+    const destroySession = context.controller.actions
+      .destroySession as ReturnType<typeof vi.fn>;
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+
+    await act(async () => {
+      root.render(
+        createElement(
+          StudioPlaygroundContext.Provider,
+          { value: context },
+          createElement(
+            StudioRecorderContext.Provider,
+            {
+              value: {
+                state: {
+                  initialized: true,
+                  initializing: false,
+                  sessions: [],
+                  currentSessionId: 'recording-1',
+                  isRecording: true,
+                  error: null,
+                },
+                currentSession: null,
+                currentTarget: null,
+                canStartRecording: true,
+                startRecording: vi.fn(),
+                stopRecording,
+                deleteSession: vi.fn(),
+                renameSession: vi.fn(),
+                selectSession: vi.fn(),
+                generateSessionYaml: vi.fn(),
+                generateSessionCode: vi.fn(),
+                exportAllZip: vi.fn(),
+                exportSessionCode: vi.fn(),
+                exportSessionJson: vi.fn(),
+              } as any,
+            },
+            createElement(MainContent, {
+              activeView: 'device',
+            }),
+          ),
+        ),
+      );
+    });
+
+    const disconnectButton = container.querySelector<HTMLButtonElement>(
+      'button[aria-label="Disconnect"]',
+    );
+    expect(disconnectButton).not.toBeNull();
+
+    await act(async () => {
+      disconnectButton?.dispatchEvent(
+        new MouseEvent('click', { bubbles: true }),
+      );
+      await Promise.resolve();
+    });
+
+    expect(stopRecording).toHaveBeenCalledTimes(1);
+    expect(destroySession).not.toHaveBeenCalled();
+
+    await act(async () => {
+      stopDeferred.resolve();
+      await stopDeferred.promise;
+      await Promise.resolve();
+    });
+
+    expect(destroySession).toHaveBeenCalledTimes(1);
 
     await act(async () => {
       root.unmount();

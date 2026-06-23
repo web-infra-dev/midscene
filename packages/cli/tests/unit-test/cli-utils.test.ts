@@ -82,6 +82,8 @@ describe('parseProcessArgs', () => {
       '--dotenv-debug',
       '--concurrent',
       '3',
+      '--retry',
+      '2',
       '--summary',
       'report.json',
     ];
@@ -93,6 +95,7 @@ describe('parseProcessArgs', () => {
     expect(options['dotenv-override']).toBe(true);
     expect(options['dotenv-debug']).toBe(true);
     expect(options.concurrent).toBe(3);
+    expect(options.retry).toBe(2);
     expect(options.summary).toBe('report.json');
   });
 
@@ -320,6 +323,69 @@ describe('parseProcessArgs', () => {
       wdaPort: 8100,
       'device-id': 'test-ios',
       deviceId: 'test-ios',
+    });
+  });
+
+  test('should parse every documented YAML runner command-line option', async () => {
+    process.argv = [
+      'node',
+      'midscene',
+      '--config',
+      './config.yaml',
+      '--files',
+      './login.yaml',
+      './buy/*.yaml',
+      './checkout.yaml',
+      '--concurrent',
+      '4',
+      '--continue-on-error',
+      '--share-browser-context',
+      '--summary',
+      'summary.json',
+      '--headed',
+      '--keep-window',
+      '--web.userAgent',
+      'Doc Agent',
+      '--web.viewportWidth',
+      '1440',
+      '--web.viewportHeight',
+      '900',
+      '--android.deviceId',
+      'android-doc-device',
+      '--ios.wdaPort',
+      '8100',
+      '--ios.wdaHost',
+      '127.0.0.1',
+      '--dotenv-debug',
+      '--dotenv-override',
+    ];
+
+    const { path, files, options } = await parseProcessArgs();
+
+    expect(path).toBeUndefined();
+    expect(files).toEqual(['./login.yaml', './buy/*.yaml', './checkout.yaml']);
+    expect(options).toMatchObject({
+      config: './config.yaml',
+      concurrent: 4,
+      'continue-on-error': true,
+      'share-browser-context': true,
+      summary: 'summary.json',
+      headed: true,
+      'keep-window': true,
+      'dotenv-debug': true,
+      'dotenv-override': true,
+      web: {
+        userAgent: 'Doc Agent',
+        viewportWidth: 1440,
+        viewportHeight: 900,
+      },
+      android: {
+        deviceId: 'android-doc-device',
+      },
+      ios: {
+        wdaPort: 8100,
+        wdaHost: '127.0.0.1',
+      },
     });
   });
 

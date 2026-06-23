@@ -42,6 +42,10 @@ export type AIUsageInfo = Record<string, any> & {
   model_name: string | undefined;
   model_description: string | undefined;
   /**
+   * Raw top-level `.model` value returned by the model service response.
+   */
+  response_model_name: string | undefined;
+  /**
    * Semantic intent of the model call, such as default, planning, or insight.
    */
   intent: string | undefined;
@@ -65,12 +69,16 @@ export type AISingleElementResponseByPosition = {
   text: string;
 };
 
-export interface AIElementCoordinatesResponse {
-  bbox: [number, number, number, number];
+export type LocateResultPoint = [number, number];
+export type Bbox = [number, number, number, number];
+export type LocateResultBbox = Bbox;
+export type PixelBbox = Bbox;
+
+export interface AIElementLocateResponse {
+  bbox?: LocateResultBbox;
+  point?: LocateResultPoint;
   errors?: string[];
 }
-
-export type AIElementResponse = AIElementCoordinatesResponse;
 
 export interface AIDataExtractionResponse<DataDemand> {
   data: DataDemand;
@@ -79,8 +87,10 @@ export interface AIDataExtractionResponse<DataDemand> {
 }
 
 export interface AISectionLocatorResponse {
-  bbox: [number, number, number, number];
-  references_bbox?: [number, number, number, number][];
+  bbox?: LocateResultBbox;
+  point?: LocateResultPoint;
+  references_bbox?: LocateResultBbox[];
+  references_point?: LocateResultPoint[];
   error?: string;
 }
 
@@ -103,12 +113,16 @@ export interface LocateValidatorResult {
   rect: Rect;
   center: [number, number];
   centerDistance?: number;
+  includedInRect?: boolean;
 }
 
 export interface AgentDescribeElementAtPointResult {
   prompt: string;
   deepLocate: boolean;
   verifyResult?: LocateValidatorResult;
+  success: boolean;
+  error?: string;
+  failureStage?: 'describe' | 'verify';
 }
 
 /**
@@ -165,10 +179,20 @@ export type DeepThinkOption = 'unset' | true | false;
 export interface ServiceTaskInfo {
   durationMs: number;
   formatResponse?: string;
+  /**
+   * Adapter-extracted content used by Midscene for parsing. This is not the
+   * full provider response or choices[0].message.
+   */
   rawResponse?: string;
+  rawChoiceMessage?: unknown;
   usage?: AIUsageInfo;
   searchArea?: Rect;
+  /**
+   * Adapter-extracted content from the search-area model call. This is not the
+   * full provider response or choices[0].message.
+   */
   searchAreaRawResponse?: string;
+  searchAreaRawChoiceMessage?: unknown;
   searchAreaUsage?: AIUsageInfo;
   reasoning_content?: string;
 }
@@ -195,7 +219,7 @@ export interface ServiceDump extends DumpMeta {
     dataDemand?: ServiceExtractParam;
     assertion?: TUserPrompt;
   };
-  matchedElement: LocateResultElement[];
+  matchedElement?: LocateResultElement[];
   matchedRect?: Rect;
   deepLocate?: boolean;
   data: any;
@@ -259,8 +283,14 @@ export interface AgentAssertOpt {
  */
 
 export interface PlanningLocateParam extends DetailedLocateParam {
-  bbox?: [number, number, number, number];
+  bbox?: LocateResultBbox;
+  point?: LocateResultPoint;
 }
+
+export type PlanningLocateParamWithLocatedPixelBbox = PlanningLocateParam & {
+  /** Pixel bbox of the located element in screenshot coordinates. */
+  locatedPixelBbox: PixelBbox;
+};
 
 export interface PlanningAction<ParamType = any> {
   thought?: string;
@@ -294,7 +324,12 @@ export interface PlanningAIResponse
   extends Omit<RawResponsePlanningAIResponse, 'action'> {
   actions?: PlanningAction[];
   usage?: AIUsageInfo;
+  /**
+   * Adapter-extracted content used by Midscene for parsing. This is not the
+   * full provider response or choices[0].message.
+   */
   rawResponse?: string;
+  rawChoiceMessage?: unknown;
   yamlFlow?: MidsceneYamlFlowItem[];
   yamlString?: string;
   error?: string;
@@ -351,7 +386,28 @@ export interface ExecutionRecorderItem {
   type: 'screenshot';
   ts: number;
   screenshot?: ScreenshotItem;
+  description?: string;
   timing?: string;
+}
+
+export interface RecordToReportScreenshot {
+  /**
+   * PNG/JPEG data URI, or raw PNG base64 body.
+   */
+  base64: string;
+  description?: string;
+}
+
+export interface RecordToReportOptions {
+  content?: string;
+  /**
+   * @deprecated Use `screenshots: [{ base64 }]` instead.
+   */
+  screenshotBase64?: string;
+  /**
+   * Custom screenshots to display under a single report entry.
+   */
+  screenshots?: RecordToReportScreenshot[];
 }
 
 export type ExecutionTaskType = 'Planning' | 'Insight' | 'Action Space' | 'Log';
@@ -411,6 +467,11 @@ export type ExecutionTask<
   > & {
     taskId: string;
     status: 'pending' | 'running' | 'finished' | 'failed' | 'cancelled';
+    /**
+     * Optional feedback produced by a task for the next planning round.
+     * This is execution metadata, not part of the action return value.
+     */
+    planningFeedback?: string;
     error?: Error;
     errorMessage?: string;
     errorStack?: string;
@@ -432,6 +493,12 @@ export type ExecutionTask<
       cost?: number;
     };
     usage?: AIUsageInfo;
+    /**
+     * Pixel rect of the deepLocate first-stage search area in screenshot
+     * coordinates. Used by reports to explain the crop/zoom area that the
+     * final locate ran against.
+     */
+    searchArea?: Rect;
     searchAreaUsage?: AIUsageInfo;
     reasoning_content?: string;
   };
@@ -534,7 +601,8 @@ task - planning
 */
 
 export interface ExecutionTaskPlanningParam {
-  userInstruction: string;
+  userInstruction: TUserPrompt;
+  userInstructionDisplay?: string;
   aiActContext?: string;
   imagesIncludeCount?: number;
   deepThink?: DeepThinkOption;
@@ -665,12 +733,15 @@ export interface DeviceAction<TParam = any, TReturn = any> {
   description?: string;
   interfaceAlias?: string;
   paramSchema?: z.ZodType<TParam>;
-  call: (param: TParam, context: ExecutorContext) => Promise<TReturn> | TReturn;
+  call: (
+    param: TParam,
+    context?: ExecutorContext,
+  ) => Promise<TReturn> | TReturn;
   delayBeforeRunner?: number;
   delayAfterRunner?: number;
   /**
    * An example param object for this action.
-   * Locate fields with { prompt } will automatically get bbox injected when needed.
+   * Locate fields with { prompt } may be resolved to internal pixel bboxes when needed.
    */
   sample?: { [K in keyof TParam]?: any };
 }
@@ -762,7 +833,8 @@ export interface AgentOpt {
   cache?: Cache;
   /**
    * Maximum number of replanning cycles for aiAct.
-   * Defaults to 20 (40 for `vlm-ui-tars`) when not provided.
+   * Defaults are resolved by the active model adapter: 20 for standard planning,
+   * 40 for UI-TARS, and 100 for Auto-GLM.
    * If omitted, the agent will also read `MIDSCENE_REPLANNING_CYCLE_LIMIT` for backward compatibility.
    */
   replanningCycleLimit?: number;

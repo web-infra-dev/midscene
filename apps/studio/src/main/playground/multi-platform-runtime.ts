@@ -701,7 +701,7 @@ export function createMultiPlatformRuntimeService({
           await playgroundCoreModules.prepareMultiPlatformPlayground(
             platforms,
             {
-              title: 'Midscene Studio',
+              title: 'Midscene Studio Beta',
               description: 'Multi-platform playground',
               selectorFieldKey: 'platformId',
               selectorVariant: 'cards',

@@ -2,7 +2,7 @@
  * Test for bbox locate cache bug fix
  *
  * Bug description:
- * When planning returns actions with bbox coordinates (includeBboxInPlanning=true),
+ * When planning returns actions with bbox coordinates (includeLocateInPlanning=true),
  * the locate cache was not being written. This caused:
  * - 1st execution: only plan cache written
  * - 2nd execution: plan cache hit, but locate needs AI call
@@ -14,9 +14,11 @@
  */
 import { type LocateCache, TaskCache } from '@/agent';
 import { TaskBuilder } from '@/agent/task-builder';
+import { getModelRuntime } from '@/ai-model/models';
 import type { AbstractInterface } from '@/device';
 import { ScreenshotItem } from '@/screenshot-item';
 import type Service from '@/service';
+import type { ExecutionTask, ExecutionTaskApply, ServiceDump } from '@/types';
 import type { IModelConfig } from '@midscene/shared/env';
 import { uuid } from '@midscene/shared/utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -50,6 +52,15 @@ const createMockUIContext = async (
   return { screenshot, shotSize, shrunkShotToLogicalRatio: 1 };
 };
 
+const createRuntimeTask = (task: ExecutionTaskApply): ExecutionTask => ({
+  ...task,
+  taskId: 'runtime-task',
+  status: 'running',
+  timing: { start: Date.now(), end: 0, cost: 0 },
+});
+
+const mockServiceDump = {} as ServiceDump;
+
 describe('bbox locate cache fix', () => {
   let taskBuilder: TaskBuilder;
   let mockInterface: AbstractInterface;
@@ -68,6 +79,7 @@ describe('bbox locate cache fix', () => {
     intent: 'default',
     slot: 'default',
   };
+  const mockModelRuntime = getModelRuntime(mockModelConfig);
 
   beforeEach(() => {
     // Create mock interface with typed methods
@@ -122,7 +134,7 @@ describe('bbox locate cache fix', () => {
           xpaths: ['/html/body/input[1]'],
           attributes: {},
         },
-        dump: {},
+        dump: mockServiceDump,
       }),
     } as unknown as Service;
 
@@ -154,14 +166,19 @@ describe('bbox locate cache fix', () => {
 
   describe('when planning returns actions with bbox', () => {
     it('should write locate cache even when bbox is used for positioning', async () => {
-      // Mock planning result with bbox (simulates includeBboxInPlanning=true)
+      // Mock planning result with bbox (simulates includeLocateInPlanning=true)
       const plansWithBbox = [
         {
           type: 'Tap',
           param: {
             locate: {
               prompt: 'search input box',
-              bbox: [450, 280, 550, 320] as [number, number, number, number],
+              locatedPixelBbox: [450, 280, 550, 320] as [
+                number,
+                number,
+                number,
+                number,
+              ],
             },
           },
           thought: 'tap the search box',
@@ -171,8 +188,8 @@ describe('bbox locate cache fix', () => {
       // Convert plans to executable tasks
       const { tasks } = await taskBuilder.build(
         plansWithBbox,
-        mockModelConfig,
-        mockModelConfig,
+        mockModelRuntime,
+        mockModelRuntime,
         { cacheable: true },
       );
 
@@ -182,14 +199,7 @@ describe('bbox locate cache fix', () => {
 
       // Execute the locate task
       const result = await locateTask!.executor(locateTask!.param, {
-        task: {
-          type: 'Planning',
-          subType: 'Locate',
-          param: locateTask!.param,
-          status: 'running',
-          timing: { start: Date.now(), end: 0, cost: 0 },
-          executor: locateTask!.executor,
-        },
+        task: createRuntimeTask(locateTask!),
         uiContext: await createMockUIContext(validBase64Image),
       });
 
@@ -218,7 +228,12 @@ describe('bbox locate cache fix', () => {
           param: {
             locate: {
               prompt: 'submit button',
-              bbox: [100, 200, 200, 250] as [number, number, number, number],
+              locatedPixelBbox: [100, 200, 200, 250] as [
+                number,
+                number,
+                number,
+                number,
+              ],
             },
           },
           thought: 'tap submit',
@@ -227,21 +242,14 @@ describe('bbox locate cache fix', () => {
 
       const { tasks } = await taskBuilder.build(
         plansWithBbox,
-        mockModelConfig,
-        mockModelConfig,
+        mockModelRuntime,
+        mockModelRuntime,
       );
 
       const locateTask = tasks.find((task) => task.subType === 'Locate');
 
       await locateTask!.executor(locateTask!.param, {
-        task: {
-          type: 'Planning',
-          subType: 'Locate',
-          param: locateTask!.param,
-          status: 'running',
-          timing: { start: Date.now(), end: 0, cost: 0 },
-          executor: locateTask!.executor,
-        },
+        task: createRuntimeTask(locateTask!),
         uiContext: await createMockUIContext(validBase64Image),
       });
 
@@ -256,7 +264,12 @@ describe('bbox locate cache fix', () => {
           param: {
             locate: {
               prompt: 'submit button',
-              bbox: [100, 200, 200, 250] as [number, number, number, number],
+              locatedPixelBbox: [100, 200, 200, 250] as [
+                number,
+                number,
+                number,
+                number,
+              ],
               deepLocate: true,
             },
           },
@@ -266,21 +279,14 @@ describe('bbox locate cache fix', () => {
 
       const { tasks } = await taskBuilder.build(
         plansWithBboxAndDeepLocate,
-        mockModelConfig,
-        mockModelConfig,
+        mockModelRuntime,
+        mockModelRuntime,
       );
 
       const locateTask = tasks.find((task) => task.subType === 'Locate');
 
       const result = await locateTask!.executor(locateTask!.param, {
-        task: {
-          type: 'Planning',
-          subType: 'Locate',
-          param: locateTask!.param,
-          status: 'running',
-          timing: { start: Date.now(), end: 0, cost: 0 },
-          executor: locateTask!.executor,
-        },
+        task: createRuntimeTask(locateTask!),
         uiContext: await createMockUIContext(validBase64Image),
       });
 
@@ -288,7 +294,7 @@ describe('bbox locate cache fix', () => {
       expect(mockService.locate).toHaveBeenCalledWith(
         expect.objectContaining({
           prompt: 'submit button',
-          bbox: [100, 200, 200, 250],
+          locatedPixelBbox: [100, 200, 200, 250],
           deepLocate: true,
         }),
         expect.objectContaining({
@@ -302,7 +308,9 @@ describe('bbox locate cache fix', () => {
           }),
         }),
         expect.objectContaining({
-          modelName: 'test-model',
+          config: expect.objectContaining({
+            modelName: 'test-model',
+          }),
         }),
         undefined,
       );
@@ -341,7 +349,12 @@ describe('bbox locate cache fix', () => {
           param: {
             locate: {
               prompt: 'existing element',
-              bbox: [100, 100, 200, 150] as [number, number, number, number],
+              locatedPixelBbox: [100, 100, 200, 150] as [
+                number,
+                number,
+                number,
+                number,
+              ],
             },
           },
           thought: 'tap existing element',
@@ -350,8 +363,8 @@ describe('bbox locate cache fix', () => {
 
       const { tasks } = await taskBuilderWithCache.build(
         plansWithBbox,
-        mockModelConfig,
-        mockModelConfig,
+        mockModelRuntime,
+        mockModelRuntime,
       );
 
       const locateTask = tasks.find((task) => task.subType === 'Locate');
@@ -360,14 +373,7 @@ describe('bbox locate cache fix', () => {
       vi.mocked(mockInterface.cacheFeatureForPoint!).mockClear();
 
       await locateTask!.executor(locateTask!.param, {
-        task: {
-          type: 'Planning',
-          subType: 'Locate',
-          param: locateTask!.param,
-          status: 'running',
-          timing: { start: Date.now(), end: 0, cost: 0 },
-          executor: locateTask!.executor,
-        },
+        task: createRuntimeTask(locateTask!),
         uiContext: await createMockUIContext(validBase64Image),
       });
 
@@ -377,9 +383,6 @@ describe('bbox locate cache fix', () => {
   });
 
   it('should annotate AI locate usage with default intent while preserving raw slot', async () => {
-    vi.mocked(mockInterface.rectMatchesCacheFeature).mockResolvedValue(
-      undefined,
-    );
     vi.mocked(mockService.locate).mockResolvedValueOnce({
       element: {
         id: 'element-id',
@@ -414,22 +417,15 @@ describe('bbox locate cache fix', () => {
           thought: 'tap the search box',
         },
       ],
-      mockModelConfig,
-      mockModelConfig,
+      mockModelRuntime,
+      mockModelRuntime,
       { cacheable: false },
     );
 
     const locateTask = tasks.find((task) => task.subType === 'Locate');
     expect(locateTask).toBeDefined();
 
-    const runtimeTask = {
-      type: 'Planning',
-      subType: 'Locate',
-      param: locateTask!.param,
-      status: 'running',
-      timing: { start: Date.now(), end: 0, cost: 0 },
-      executor: locateTask!.executor,
-    } as any;
+    const runtimeTask = createRuntimeTask(locateTask!);
 
     await locateTask!.executor(locateTask!.param, {
       task: runtimeTask,
@@ -496,20 +492,13 @@ describe('bbox locate cache fix', () => {
 
       const { tasks } = await taskBuilderWithCache.build(
         plansWithoutBbox,
-        mockModelConfig,
-        mockModelConfig,
+        mockModelRuntime,
+        mockModelRuntime,
       );
 
       const locateTask = tasks.find((task) => task.subType === 'Locate');
       const result = await locateTask!.executor(locateTask!.param, {
-        task: {
-          type: 'Planning',
-          subType: 'Locate',
-          param: locateTask!.param,
-          status: 'running',
-          timing: { start: Date.now(), end: 0, cost: 0 },
-          executor: locateTask!.executor,
-        },
+        task: createRuntimeTask(locateTask!),
         uiContext: await createMockUIContext(validBase64Image),
       });
 
@@ -530,7 +519,12 @@ describe('bbox locate cache fix', () => {
           param: {
             locate: {
               prompt: '',
-              bbox: [100, 100, 200, 150] as [number, number, number, number],
+              locatedPixelBbox: [100, 100, 200, 150] as [
+                number,
+                number,
+                number,
+                number,
+              ],
             },
           },
           thought: 'tap element',
@@ -539,22 +533,15 @@ describe('bbox locate cache fix', () => {
 
       const { tasks } = await taskBuilder.build(
         plansWithBbox,
-        mockModelConfig,
-        mockModelConfig,
+        mockModelRuntime,
+        mockModelRuntime,
       );
 
       const locateTask = tasks.find((task) => task.subType === 'Locate');
 
       // Should not throw even with empty prompt
       const result = await locateTask!.executor(locateTask!.param, {
-        task: {
-          type: 'Planning',
-          subType: 'Locate',
-          param: locateTask!.param,
-          status: 'running',
-          timing: { start: Date.now(), end: 0, cost: 0 },
-          executor: locateTask!.executor,
-        },
+        task: createRuntimeTask(locateTask!),
         uiContext: await createMockUIContext(validBase64Image),
       });
 
@@ -569,7 +556,12 @@ describe('bbox locate cache fix', () => {
           param: {
             locate: {
               prompt: 'no cache element',
-              bbox: [100, 100, 200, 150] as [number, number, number, number],
+              locatedPixelBbox: [100, 100, 200, 150] as [
+                number,
+                number,
+                number,
+                number,
+              ],
             },
           },
           thought: 'tap without cache',
@@ -578,22 +570,15 @@ describe('bbox locate cache fix', () => {
 
       const { tasks } = await taskBuilder.build(
         plansWithBbox,
-        mockModelConfig,
-        mockModelConfig,
+        mockModelRuntime,
+        mockModelRuntime,
         { cacheable: false },
       );
 
       const locateTask = tasks.find((task) => task.subType === 'Locate');
 
       await locateTask!.executor(locateTask!.param, {
-        task: {
-          type: 'Planning',
-          subType: 'Locate',
-          param: locateTask!.param,
-          status: 'running',
-          timing: { start: Date.now(), end: 0, cost: 0 },
-          executor: locateTask!.executor,
-        },
+        task: createRuntimeTask(locateTask!),
         uiContext: await createMockUIContext(validBase64Image),
       });
 
@@ -618,7 +603,12 @@ describe('bbox locate cache fix', () => {
           param: {
             locate: {
               prompt: 'element with no cache features',
-              bbox: [100, 100, 200, 150] as [number, number, number, number],
+              locatedPixelBbox: [100, 100, 200, 150] as [
+                number,
+                number,
+                number,
+                number,
+              ],
             },
           },
           thought: 'tap element',
@@ -627,22 +617,15 @@ describe('bbox locate cache fix', () => {
 
       const { tasks } = await taskBuilder.build(
         plansWithBbox,
-        mockModelConfig,
-        mockModelConfig,
+        mockModelRuntime,
+        mockModelRuntime,
       );
 
       const locateTask = tasks.find((task) => task.subType === 'Locate');
 
       // Should not throw
       const result = await locateTask!.executor(locateTask!.param, {
-        task: {
-          type: 'Planning',
-          subType: 'Locate',
-          param: locateTask!.param,
-          status: 'running',
-          timing: { start: Date.now(), end: 0, cost: 0 },
-          executor: locateTask!.executor,
-        },
+        task: createRuntimeTask(locateTask!),
         uiContext: await createMockUIContext(validBase64Image),
       });
 
@@ -686,13 +669,11 @@ describe('bbox locate cache fix', () => {
       // 3. Mock AI locate to return new element with new xpath
       vi.mocked(mockService.locate).mockResolvedValue({
         element: {
-          id: 'new-element',
+          description: 'new-element',
           center: [600, 400],
           rect: { left: 550, top: 380, width: 100, height: 40 },
-          xpaths: ['/html/body/div[2]/label[1]'], // New valid xpath
-          attributes: {},
         },
-        dump: {},
+        dump: mockServiceDump,
       });
 
       // 4. Mock cacheFeatureForPoint to return new xpath
@@ -724,22 +705,15 @@ describe('bbox locate cache fix', () => {
 
       const { tasks } = await taskBuilderWithCache.build(
         plans,
-        mockModelConfig,
-        mockModelConfig,
+        mockModelRuntime,
+        mockModelRuntime,
       );
 
       const locateTask = tasks.find((task) => task.subType === 'Locate');
       expect(locateTask).toBeDefined();
 
       await locateTask!.executor(locateTask!.param, {
-        task: {
-          type: 'Planning',
-          subType: 'Locate',
-          param: locateTask!.param,
-          status: 'running',
-          timing: { start: Date.now(), end: 0, cost: 0 },
-          executor: locateTask!.executor,
-        },
+        task: createRuntimeTask(locateTask!),
         uiContext: await createMockUIContext(validBase64Image),
       });
 
@@ -791,13 +765,11 @@ describe('bbox locate cache fix', () => {
       // Mock AI locate success with new xpath
       vi.mocked(mockService.locate).mockResolvedValue({
         element: {
-          id: 'submit-btn',
+          description: 'submit-btn',
           center: [500, 300],
           rect: { left: 450, top: 280, width: 100, height: 40 },
-          xpaths: ['/html/body/form[1]/button[1]'], // New xpath
-          attributes: {},
         },
-        dump: {},
+        dump: mockServiceDump,
       });
 
       vi.mocked(mockInterface.cacheFeatureForPoint!).mockResolvedValue({
@@ -827,21 +799,14 @@ describe('bbox locate cache fix', () => {
 
       const { tasks } = await taskBuilderWithCache.build(
         plansWithoutBbox,
-        mockModelConfig,
-        mockModelConfig,
+        mockModelRuntime,
+        mockModelRuntime,
       );
 
       const locateTask = tasks.find((task) => task.subType === 'Locate');
 
       await locateTask!.executor(locateTask!.param, {
-        task: {
-          type: 'Planning',
-          subType: 'Locate',
-          param: locateTask!.param,
-          status: 'running',
-          timing: { start: Date.now(), end: 0, cost: 0 },
-          executor: locateTask!.executor,
-        },
+        task: createRuntimeTask(locateTask!),
         uiContext: await createMockUIContext(validBase64Image),
       });
 

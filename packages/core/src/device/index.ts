@@ -1,10 +1,11 @@
+import type { ModelRuntime } from '@/ai-model/models';
 import { getMidsceneLocationSchema } from '@/common';
 import type {
   ActionScrollParam,
   DeviceAction,
+  ExecutorContext,
   LocateResultElement,
 } from '@/types';
-import type { IModelConfig } from '@midscene/shared/env';
 import type { ElementNode } from '@midscene/shared/extractor';
 import { getDebug } from '@midscene/shared/logger';
 import { _keyDefinitions } from '@midscene/shared/us-keyboard-layout';
@@ -13,6 +14,11 @@ import type { ElementCacheFeature, Rect, Size, UIContext } from '../types';
 
 export interface FileChooserHandler {
   accept(files: string[]): Promise<void>;
+}
+
+export interface FileChooserRegistration {
+  dispose: () => void;
+  getError: () => Error | undefined | Promise<Error | undefined>;
 }
 
 export interface MjpegStreamFrame {
@@ -137,7 +143,7 @@ export abstract class AbstractInterface {
     center: [number, number],
     options?: {
       targetDescription?: string;
-      modelConfig?: IModelConfig;
+      modelRuntime?: ModelRuntime;
     },
   ): Promise<ElementCacheFeature>;
   abstract rectMatchesCacheFeature?(
@@ -153,7 +159,7 @@ export abstract class AbstractInterface {
   // for web only
   registerFileChooserListener?(
     handler: (chooser: FileChooserHandler) => Promise<void>,
-  ): Promise<{ dispose: () => void; getError: () => Error | undefined }>;
+  ): Promise<FileChooserRegistration>;
 
   // @deprecated do NOT extend this method
   abstract getElementsNodeTree?: () => Promise<ElementNode>;
@@ -191,6 +197,13 @@ export abstract class AbstractInterface {
   flushPendingVisualUpdate?(): Promise<void>;
 
   /**
+   * Optional non-blocking variant of `flushPendingVisualUpdate`. Keyboard-
+   * heavy preview interactions can schedule a coalesced refresh here without
+   * stalling the input hot path.
+   */
+  schedulePendingVisualUpdate?(): void;
+
+  /**
    * Optional navigation state probe for browser-like interfaces, used to drive
    * loading indicators in playground UIs. Returning `undefined` means the
    * interface does not expose this concept.
@@ -218,7 +231,10 @@ export const defineAction = <
     description: string;
     interfaceAlias?: string;
     paramSchema?: TSchema;
-    call: (param: TRuntime) => Promise<TReturn> | TReturn;
+    call: (
+      param: TRuntime,
+      context?: ExecutorContext,
+    ) => Promise<TReturn> | TReturn;
   } & Partial<
     Omit<
       DeviceAction<TRuntime, TReturn>,
@@ -391,7 +407,7 @@ export const actionInputParamSchema = z.object({
     .union([z.string(), z.number()])
     .transform((val) => String(val))
     .describe(
-      'The text to input. Provide the final content for replace/append modes, or an empty string when using clear mode to remove existing text.',
+      'The text to input. Provide the final content for replace mode, only the inserted characters for typeOnly mode, or an empty string when using clear mode to remove existing text.',
     ),
   locate: getMidsceneLocationSchema()
     .describe(inputLocateDescription)
@@ -400,7 +416,7 @@ export const actionInputParamSchema = z.object({
     .enum(['replace', 'clear', 'typeOnly'])
     .default('replace')
     .describe(
-      'Input mode: "replace" (default) - clear the field and input the value; "typeOnly" - type the value directly without clearing the field first; "clear" - clear the field without inputting new text.',
+      'Input mode: "replace" (default) - clear the field and input the value; "typeOnly" - type the value directly without clearing the field first, and should be set explicitly for incremental edits after moving the cursor; "clear" - clear the field without inputting new text.',
     ),
   autoDismissKeyboard: z
     .boolean()
@@ -730,7 +746,7 @@ export const defineActionSwipe = (config: {
   return defineAction<typeof ActionSwipeParamSchema, ActionSwipeParam>({
     name: 'Swipe',
     description:
-      'Perform a touch gesture for interactions beyond regular scrolling (e.g., flip pages in a carousel, dismiss a notification, swipe-to-delete a list item). For regular content scrolling, use Scroll instead. Use "distance" + "direction" for relative movement, or "end" for precise endpoint.',
+      'Perform a touch gesture for interactions beyond regular scrolling (e.g., adjust a continuous control such as a slider, flip pages in a carousel, dismiss a notification, swipe-to-delete a list item). For regular content scrolling, use Scroll instead. Use "distance" + "direction" for relative movement, or "start" + "end" for precise endpoint movement.',
     paramSchema: ActionSwipeParamSchema,
     sample: {
       start: { prompt: 'center of the notification' },

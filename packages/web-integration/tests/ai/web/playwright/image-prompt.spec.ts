@@ -1,17 +1,12 @@
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { sleep } from '@midscene/core/utils';
 import { expect } from '@playwright/test';
 import { test } from './fixture';
 
 const CACHE_TIME_OUT = process.env.MIDSCENE_CACHE;
 
-test('prompting with images', async ({
-  page,
-  aiBoolean,
-  aiAction,
-  aiAssert,
-  aiTap,
-}) => {
+test('prompting with images', async ({ page, aiBoolean, aiAssert, aiTap }) => {
   if (CACHE_TIME_OUT) {
     test.setTimeout(200 * 1000);
   }
@@ -102,4 +97,47 @@ test('does not treat reference image content as current screenshot content', asy
       },
     ],
   });
+});
+
+test('aiAct follows reference image order', async ({ page, aiAct }) => {
+  if (CACHE_TIME_OUT) {
+    test.setTimeout(200 * 1000);
+  }
+
+  const fixtureDir = path.resolve(__dirname, '__fixtures__/image-prompt-order');
+  const imageA = path.join(fixtureDir, 'image-a.png');
+  const imageB = path.join(fixtureDir, 'image-b.png');
+  const imageC = path.join(fixtureDir, 'image-c.png');
+  const imageD = path.join(fixtureDir, 'image-d.png');
+
+  await page.goto(pathToFileURL(path.join(fixtureDir, 'index.html')).href);
+
+  // Correct click order by fruit: apple, orange, banana, pear.
+  await aiAct({
+    prompt:
+      'Click the four icons on the page in this exact order: Image A, then Image B, then Image C, then Image D.',
+    images: [
+      {
+        name: 'Image A',
+        url: imageA,
+      },
+      {
+        name: 'Image B',
+        url: imageB,
+      },
+      {
+        name: 'Image C',
+        url: imageC,
+      },
+      {
+        name: 'Image D',
+        url: imageD,
+      },
+    ],
+  });
+
+  await expect(page.locator('#result')).toHaveText('已经按照预期顺序点击');
+  await expect
+    .poll(() => page.evaluate(() => (window as any).clickedSlots))
+    .toEqual(['slot-3', 'slot-4', 'slot-1', 'slot-2']);
 });

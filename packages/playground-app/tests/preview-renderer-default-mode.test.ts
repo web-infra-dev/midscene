@@ -3,7 +3,7 @@ import { act, createElement } from 'react';
 import { createRoot } from 'react-dom/client';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 
-const screenshotViewerMock = vi.fn(() => null);
+const screenshotViewerMock = vi.fn((props: unknown) => null);
 
 vi.mock('@midscene/visualizer', () => ({
   ScreenshotViewer: (props: unknown) => screenshotViewerMock(props),

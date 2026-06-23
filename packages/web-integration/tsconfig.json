@@ -5,12 +5,12 @@
       "@/*": ["./src/*"]
     },
     "target": "es6",
-    "rootDir": "./src",
+    "rootDir": ".",
     "declarationDir": "dist/types",
     "types": ["node"]
   },
   "exclude": ["node_modules"],
-  "include": ["src", "./vitest.config"],
+  "include": ["src", "tests"],
   "references": [
     {
       "path": "../core"

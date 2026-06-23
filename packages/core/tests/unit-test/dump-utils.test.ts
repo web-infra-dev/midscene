@@ -98,6 +98,10 @@ describe('dump/screenshot-restoration', () => {
     img2: 'data:image/png;base64,def456',
   };
   const resolver = (ref: { id: string }) => imageMap[ref.id] ?? '';
+  const restoreForTest = (
+    data: unknown,
+    resolveImage: (ref: { id: string }) => string = resolver,
+  ) => restoreImageReferences(data, resolveImage as any) as any;
 
   describe('restoreImageReferences', () => {
     it('should restore screenshot references to { base64 } format via lazy getter', () => {
@@ -110,7 +114,7 @@ describe('dump/screenshot-restoration', () => {
           storage: 'inline',
         },
       };
-      const result = restoreImageReferences(data, resolver);
+      const result = restoreForTest(data);
       // Lazy getter: accessing .base64 triggers resolution
       expect(result.screenshot.base64).toBe('data:image/png;base64,abc123');
     });
@@ -129,7 +133,7 @@ describe('dump/screenshot-restoration', () => {
           },
         },
       };
-      const result = restoreImageReferences(data, resolver);
+      const result = restoreForTest(data);
       expect(result.level1.level2.screenshot.base64).toBe(
         'data:image/png;base64,def456',
       );
@@ -152,7 +156,7 @@ describe('dump/screenshot-restoration', () => {
           storage: 'inline',
         },
       ];
-      const result = restoreImageReferences(data, resolver);
+      const result = restoreForTest(data);
       expect(result[0].base64).toBe('data:image/png;base64,abc123');
       expect(result[1].base64).toBe('data:image/png;base64,def456');
     });
@@ -167,7 +171,7 @@ describe('dump/screenshot-restoration', () => {
           storage: 'inline',
         },
       };
-      const result = restoreImageReferences(data, resolver);
+      const result = restoreForTest(data);
       // Default resolver returns '' for IDs not in imageMap
       expect(result.screenshot.base64).toBe('');
     });
@@ -184,7 +188,7 @@ describe('dump/screenshot-restoration', () => {
           storage: 'inline',
         },
       };
-      const result = restoreImageReferences(data, directoryResolver);
+      const result = restoreForTest(data, directoryResolver);
       expect(result.screenshot.base64).toBe('./screenshots/uuid-abc-123.png');
     });
 
@@ -198,7 +202,7 @@ describe('dump/screenshot-restoration', () => {
           storage: 'inline',
         },
       };
-      const result = restoreImageReferences(data, resolver);
+      const result = restoreForTest(data);
       expect(result.screenshot.base64).toBe('data:image/png;base64,abc123');
       expect(result.screenshot.capturedAt).toBe(1700000000123);
     });
@@ -225,7 +229,7 @@ describe('dump/screenshot-restoration', () => {
           },
         ],
       };
-      const result = restoreImageReferences(data, directoryResolver);
+      const result = restoreForTest(data, directoryResolver);
       expect(result.executions[0].tasks[0].uiContext.screenshot.base64).toBe(
         './screenshots/abc-123-def.png',
       );
@@ -259,7 +263,7 @@ describe('dump/screenshot-restoration', () => {
           storage: 'inline',
         },
       };
-      const result = restoreImageReferences(data, countingResolver);
+      const result = restoreForTest(data, countingResolver);
       expect(resolveCount).toBe(0); // Not resolved yet
 
       // Access only one — trigger lazy resolution
@@ -283,7 +287,7 @@ describe('dump/screenshot-restoration', () => {
         mimeType: 'image/png',
         storage: 'inline',
       };
-      const result = restoreImageReferences(data, resolver);
+      const result = restoreForTest(data);
       const json = JSON.parse(JSON.stringify(result));
       expect(json.base64).toBe('data:image/png;base64,abc123');
     });

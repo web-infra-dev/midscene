@@ -1,7 +1,7 @@
 /**
- * Internal-only helpers for CLI/MCP argument key aliasing.
+ * Internal-only helpers for CLI argument key aliasing.
  * Not re-exported from the package entry point — keep consumers within
- * `cli/` and `mcp/`.
+ * `cli/`.
  */
 
 export function kebabToCamel(str: string): string {

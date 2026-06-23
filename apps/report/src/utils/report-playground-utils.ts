@@ -1,5 +1,4 @@
 import { type AgentFactory, PlaygroundSDK } from '@midscene/playground';
-import { PLAYGROUND_SERVER_PORT } from '@midscene/shared/constants';
 
 export type ServiceModeType = 'Server' | 'In-Browser' | 'In-Browser-Extension';
 
@@ -20,7 +19,6 @@ export function getReportPlaygroundSDK(
   if (serviceMode === 'Server') {
     return new PlaygroundSDK({
       type: 'remote-execution',
-      serverUrl: `http://localhost:${PLAYGROUND_SERVER_PORT}`,
     });
   }
   // For In-Browser and In-Browser-Extension modes, use local execution

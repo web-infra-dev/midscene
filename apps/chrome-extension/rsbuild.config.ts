@@ -93,6 +93,7 @@ export default defineConfig({
     externals: ['sharp'],
   },
   source: {
+    tsconfigPath: 'tsconfig.build.json',
     define: {
       __SDK_VERSION__: JSON.stringify(version),
     },

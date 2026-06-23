@@ -11,7 +11,7 @@ const debugUpdaterHandlers = getDebug('studio:updater-handlers', {
   console: true,
 });
 
-const UPDATER_CACHE_DIR_NAME = 'midscene-studio-updater';
+const UPDATER_CACHE_DIR_NAME = 'midscene-studio-beta-updater';
 
 interface MacUpdateScriptOptions {
   appPath: string;
@@ -179,17 +179,20 @@ async function installMacUpdate(updater: StudioUpdater): Promise<void> {
     return;
   }
 
-  // process.resourcesPath => .../Midscene Studio.app/Contents/Resources
+  // process.resourcesPath => .../Midscene Studio Beta.app/Contents/Resources
   // Step up two levels to reach the .app bundle root so the script can
   // replace it atomically.
   const appPath = path.resolve(process.resourcesPath, '..', '..');
   const execName = path.basename(process.execPath);
-  const tempDir = path.join(app.getPath('temp'), 'midscene-studio-update');
+  const tempDir = path.join(app.getPath('temp'), 'midscene-studio-beta-update');
   const scriptPath = path.join(
     app.getPath('temp'),
-    'midscene-studio-update.sh',
+    'midscene-studio-beta-update.sh',
   );
-  const logPath = path.join(app.getPath('temp'), 'midscene-studio-update.log');
+  const logPath = path.join(
+    app.getPath('temp'),
+    'midscene-studio-beta-update.log',
+  );
 
   const script = buildMacUpdateScript({
     appPath,

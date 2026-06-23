@@ -105,10 +105,12 @@ describe('ModelEnvConfigModal', () => {
 
     expect(html).toContain('box-border flex h-[404px] w-[400px]');
     expect(html).toContain('text-[16px] font-semibold leading-[24px]');
-    expect(html).toContain(
-      'w-[210px] items-center rounded-[32px] bg-surface-muted',
-    );
-    expect(html).toContain('border-border-subtle bg-surface-elevated');
+    expect(html).toContain('w-[210px]');
+    expect(html).toContain('items-center');
+    expect(html).toContain('rounded-[32px]');
+    expect(html).toContain('bg-surface-muted');
+    expect(html).toContain('border-border-control');
+    expect(html).toContain('bg-surface-elevated');
     expect(html).toContain('text-[12px] font-normal leading-[14.5px]');
     expect(html).toContain('bg-brand');
     expect(html).toContain('shadow-[0px_4px_20px_rgba(0,0,0,0.05)]');
@@ -125,9 +127,12 @@ describe('ModelEnvConfigModal', () => {
     );
     expect(html).toContain('model-env-close.svg');
     expect(html).toContain('class="h-[16px] w-[16px]"');
-    expect(html).toContain(
-      'flex h-[32px] w-[159px] items-center gap-[4px] rounded-[8px] border border-border-subtle bg-surface-elevated px-[12px]',
-    );
+    expect(html).toContain('h-[32px]');
+    expect(html).toContain('w-[159px]');
+    expect(html).toContain('gap-[4px]');
+    expect(html).toContain('rounded-[8px]');
+    expect(html).toContain('border-border-control');
+    expect(html).toContain('bg-surface-elevated');
     expect(html).toContain('text-text-primary leading-[16px]');
     expect(html).not.toMatch(/[\u4e00-\u9fff]/);
   });
@@ -140,6 +145,31 @@ describe('ModelEnvConfigModal', () => {
     const validRender = await renderModal(VALID_ENV_TEXT);
     expect(getConnectivityButton(validRender.container).disabled).toBe(false);
     await unmountModal(validRender.root);
+  });
+
+  it('shows invalid model family without crashing the modal', async () => {
+    const { container, root } = await renderModal(
+      [
+        'MIDSCENE_MODEL_BASE_URL=https://example.com/v1',
+        'MIDSCENE_MODEL_API_KEY=sk-test',
+        'MIDSCENE_MODEL_NAME=qwen3-vl-plus',
+        'MIDSCENE_MODEL_FAMILY=1',
+      ].join('\n'),
+    );
+
+    expect(getConnectivityButton(container).disabled).toBe(true);
+    expect(container.textContent).toContain(
+      'Invalid MIDSCENE_MODEL_FAMILY value: 1',
+    );
+    const errorMessage = Array.from(container.querySelectorAll('span')).find(
+      (item) =>
+        item.textContent?.includes('Invalid MIDSCENE_MODEL_FAMILY value: 1'),
+    );
+    expect(errorMessage?.className).toContain('whitespace-normal');
+    expect(errorMessage?.className).not.toContain('text-ellipsis');
+    expect(container.querySelector('.h-\\[524px\\]')).toBeTruthy();
+
+    await unmountModal(root);
   });
 
   it('starts spinning only while the connectivity test is running', async () => {
@@ -444,7 +474,8 @@ describe('ModelEnvConfigModal', () => {
     expect(html).toContain('translate-y-[79.5px]');
     expect(html).toContain('flex flex-col gap-[24px]');
     expect(html).toContain('h-[61px]');
-    expect(html).toContain('h-[36px] px-[12px]');
+    expect(html).toContain('h-[36px]');
+    expect(html).toContain('px-[12px]');
     expect(html).toContain('MIDSCENE_MODEL_API_KEY');
     expect(html).not.toContain('The format is KEY=VALUE');
 

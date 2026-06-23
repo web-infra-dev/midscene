@@ -1,3 +1,4 @@
+import { getModelRuntime } from '@/ai-model/models';
 import { callAI } from '@/ai-model/service-caller';
 import type { CodeGenerationChunk } from '@/types';
 import { globalModelConfigManager } from '@midscene/shared/env';
@@ -16,6 +17,7 @@ vi.setConfig({
 });
 
 const defaultModelConfig = globalModelConfigManager.getModelConfig('default');
+const defaultModelRuntime = getModelRuntime(defaultModelConfig);
 
 describe(
   'Streaming functionality',
@@ -40,7 +42,7 @@ describe(
               'Explain the concept of artificial intelligence in 3-4 sentences.',
           },
         ],
-        defaultModelConfig,
+        defaultModelRuntime,
         {
           stream: true,
           onChunk: (chunk: CodeGenerationChunk) => {
@@ -113,7 +115,7 @@ describe(
             ],
           },
         ],
-        defaultModelConfig,
+        defaultModelRuntime,
         {
           stream: true,
           onChunk: (chunk: CodeGenerationChunk) => {
@@ -155,7 +157,7 @@ describe(
             content: 'What is 15 multiplied by 8? Show your thinking process.',
           },
         ],
-        defaultModelConfig,
+        defaultModelRuntime,
         {
           stream: true,
           onChunk: (chunk: CodeGenerationChunk) => {
@@ -187,7 +189,7 @@ describe(
             content: 'Count from 1 to 10, with each number on a new line.',
           },
         ],
-        defaultModelConfig,
+        defaultModelRuntime,
         {
           stream: true,
           onChunk: (chunk: CodeGenerationChunk) => {
@@ -223,7 +225,7 @@ describe(
             content: 'Say "Hi"',
           },
         ],
-        defaultModelConfig,
+        defaultModelRuntime,
         {
           stream: true,
           onChunk: (chunk: CodeGenerationChunk) => {
@@ -257,7 +259,7 @@ describe(
             content: 'Write a brief paragraph about the weather.',
           },
         ],
-        defaultModelConfig,
+        defaultModelRuntime,
         {
           stream: true,
           onChunk: (chunk: CodeGenerationChunk) => {
@@ -296,7 +298,7 @@ describe(
             content: 'What is programming?',
           },
         ],
-        defaultModelConfig,
+        defaultModelRuntime,
         {
           stream: true,
           // onChunk is intentionally omitted

@@ -1,3 +1,4 @@
+import type { DeviceAction, ExecutorContext } from '@midscene/core';
 import { DEFAULT_WDA_PORT } from '@midscene/shared/constants';
 import { WDAManager } from '@midscene/webdriver';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -8,6 +9,12 @@ import { IOSWebDriverClient } from '../../src/ios-webdriver-client';
 vi.mock('../../src/utils');
 vi.mock('../../src/ios-webdriver-client');
 vi.mock('@midscene/webdriver');
+
+const mockExecutorContext = { task: {} } as ExecutorContext;
+const getInternalTextInput = (target: IOSDevice) =>
+  target as unknown as {
+    typeText(text: string): Promise<void>;
+  };
 
 describe('IOSDevice', () => {
   let device: IOSDevice;
@@ -169,11 +176,10 @@ describe('IOSDevice', () => {
     });
 
     it('should include custom actions when provided', () => {
-      const customAction = {
+      const customAction: DeviceAction = {
         name: 'CustomAction',
         description: 'A custom action for testing',
-        paramSchema: {},
-        call: vi.fn(),
+        call: vi.fn(async () => undefined),
       };
 
       const deviceWithCustomActions = new IOSDevice({
@@ -205,9 +211,12 @@ describe('IOSDevice', () => {
         .actionSpace()
         .find((action) => action.name === 'Tap');
 
-      await tapAction?.call({
-        locate: { center: [11.2, 22.8] },
-      } as any);
+      await tapAction?.call(
+        {
+          locate: { center: [11.2, 22.8] },
+        } as any,
+        mockExecutorContext,
+      );
       await device.inputPrimitives.pointer.tap({ x: 33.2, y: 44.8 });
 
       expect(mockWdaClient.tap).toHaveBeenNthCalledWith(1, 11, 23);
@@ -219,12 +228,15 @@ describe('IOSDevice', () => {
         .actionSpace()
         .find((action) => action.name === 'Input');
 
-      await inputAction?.call({
-        value: 'from action',
-        locate: { center: [10, 20] },
-        mode: 'replace',
-        autoDismissKeyboard: false,
-      } as any);
+      await inputAction?.call(
+        {
+          value: 'from action',
+          locate: { center: [10, 20] },
+          mode: 'replace',
+          autoDismissKeyboard: false,
+        } as any,
+        mockExecutorContext,
+      );
       await device.inputPrimitives.keyboard.typeText('from pointer', {
         target: {
           center: [30, 40],
@@ -383,7 +395,7 @@ describe('IOSDevice', () => {
     it('should type text', async () => {
       await device.connect();
 
-      await device.typeText('Hello World');
+      await getInternalTextInput(device).typeText('Hello World');
       expect(mockWdaClient.typeText).toHaveBeenCalledWith('Hello World');
     });
 
@@ -521,7 +533,9 @@ describe('IOSDevice', () => {
         .fn()
         .mockRejectedValue(new Error('Type text failed'));
 
-      await expect(device.typeText('test')).rejects.toThrow('Type text failed');
+      await expect(
+        getInternalTextInput(device).typeText('test'),
+      ).rejects.toThrow('Type text failed');
     });
   });
 
@@ -584,7 +598,7 @@ describe('IOSDevice', () => {
       });
 
       await deviceWithAutoDismiss.connect();
-      await deviceWithAutoDismiss.typeText('test text');
+      await getInternalTextInput(deviceWithAutoDismiss).typeText('test text');
 
       // Should call typeText and swipe (for keyboard dismiss)
       expect(mockBackend.typeText).toHaveBeenCalledWith('test text');

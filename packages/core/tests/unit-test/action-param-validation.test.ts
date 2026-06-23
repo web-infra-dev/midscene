@@ -66,13 +66,12 @@ describe('Action Parameter Validation', () => {
       };
 
       const parsed = parseActionParam(rawParam, schema);
-
       // Locator field should not be parsed/validated
-      expect(parsed.locate).toEqual({
+      expect(parsed!.locate).toEqual({
         prompt: 'button',
         deepLocate: true,
       });
-      expect(parsed.value).toBe('test');
+      expect(parsed!.value).toBe('test');
     });
 
     it('should handle optional locator fields', () => {
@@ -203,8 +202,7 @@ describe('Action Parameter Validation', () => {
       };
 
       const parsed = parseActionParam(rawParam, schema);
-
-      expect(parsed.duration).toBe(500);
+      expect(parsed!.duration).toBe(500);
     });
 
     it('should throw error for out-of-range numbers', () => {
@@ -294,8 +292,8 @@ describe('Action Parameter Validation', () => {
       const parsed = parseActionParam(rawParam, schema);
 
       // Locate field should be passed through unchanged
-      expect(parsed.locate).toEqual(rawParam.locate);
-      expect(parsed.value).toBe('test');
+      expect(parsed!.locate).toEqual(rawParam.locate);
+      expect(parsed!.value).toBe('test');
     });
 
     it('should skip validation for locate fields even with missing fields', () => {
@@ -316,9 +314,8 @@ describe('Action Parameter Validation', () => {
 
       // Should not throw - locate fields are not validated
       const parsed = parseActionParam(rawParam, schema);
-
-      expect(parsed.locate).toEqual(rawParam.locate);
-      expect(parsed.value).toBe('test');
+      expect(parsed!.locate).toEqual(rawParam.locate);
+      expect(parsed!.value).toBe('test');
     });
 
     it('should transform locate field coordinates when shrunkShotToLogicalRatio !== 1', () => {
@@ -339,13 +336,12 @@ describe('Action Parameter Validation', () => {
       const parsed = parseActionParam(rawParam, schema, {
         shrunkShotToLogicalRatio: 2,
       });
-
-      expect(parsed.locate).toEqual({
+      expect(parsed!.locate).toEqual({
         center: [100, 200],
         rect: { left: 50, top: 150, width: 100, height: 100 },
         description: 'button',
       });
-      expect(parsed.value).toBe('test');
+      expect(parsed!.value).toBe('test');
     });
 
     it('should not transform coordinates when shrunkShotToLogicalRatio is 1', () => {
@@ -366,8 +362,7 @@ describe('Action Parameter Validation', () => {
       const parsed = parseActionParam(rawParam, schema, {
         shrunkShotToLogicalRatio: 1,
       });
-
-      expect(parsed.locate).toEqual(rawParam.locate);
+      expect(parsed!.locate).toEqual(rawParam.locate);
     });
 
     it('should not transform coordinates when shrunkShotToLogicalRatio is not provided', () => {
@@ -386,8 +381,7 @@ describe('Action Parameter Validation', () => {
       };
 
       const parsed = parseActionParam(rawParam, schema);
-
-      expect(parsed.locate).toEqual(rawParam.locate);
+      expect(parsed!.locate).toEqual(rawParam.locate);
     });
 
     it('should transform multiple locate fields with shrunkShotToLogicalRatio', () => {
@@ -414,13 +408,12 @@ describe('Action Parameter Validation', () => {
       const parsed = parseActionParam(rawParam, schema, {
         shrunkShotToLogicalRatio: 2,
       });
-
-      expect(parsed.from).toEqual({
+      expect(parsed!.from).toEqual({
         center: [100, 200],
         rect: { left: 50, top: 150, width: 100, height: 100 },
         description: 'start',
       });
-      expect(parsed.to).toEqual({
+      expect(parsed!.to).toEqual({
         center: [300, 400],
         rect: { left: 250, top: 350, width: 100, height: 100 },
         description: 'end',
@@ -446,7 +439,7 @@ describe('Action Parameter Validation', () => {
       });
 
       // Should pass through as-is since there's no center/rect to transform
-      expect(parsed.locate).toEqual({
+      expect(parsed!.locate).toEqual({
         prompt: 'some button',
         deepThink: true,
       });
@@ -488,9 +481,8 @@ describe('Action Parameter Validation', () => {
       };
 
       const parsed = parseActionParam(rawParam, actionKeyboardPressParamSchema);
-
-      expect(parsed.keyName).toEqual('Control+V');
-      expect(parsed.locate).toEqual({
+      expect(parsed!.keyName).toEqual('Control+V');
+      expect(parsed!.locate).toEqual({
         prompt: 'text input field',
         deepLocate: false,
       });

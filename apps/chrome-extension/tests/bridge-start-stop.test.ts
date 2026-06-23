@@ -20,9 +20,9 @@ import { describe, expect, it, vi } from 'vitest';
 // ExtensionBridgePageBrowserSide which requires a browser environment.
 // Instead, we test the core state machine logic directly.
 
-describe('BridgeConnector start/stop state machine', () => {
-  type BridgeStatus = 'listening' | 'connected' | 'disconnected' | 'closed';
+type BridgeStatus = 'listening' | 'connected' | 'disconnected' | 'closed';
 
+describe('BridgeConnector start/stop state machine', () => {
   // Minimal state machine that mirrors BridgeConnector logic
   class TestBridgeConnector {
     status: BridgeStatus = 'closed';
@@ -150,7 +150,10 @@ describe('Worker bridge message handling', () => {
   });
 
   it('BRIDGE_START message should work without serverEndpoint', () => {
-    const request = {
+    const request: {
+      type: 'bridge-start';
+      payload?: { serverEndpoint?: string };
+    } = {
       type: 'bridge-start',
       payload: {},
     };
@@ -168,24 +171,6 @@ describe('Worker bridge message handling', () => {
 // ─── UI state tests ──────────────────────────────────────────────────────────
 
 describe('Bridge UI state logic', () => {
-  it('server URL input should be enabled when status is closed', () => {
-    const bridgeStatus = 'closed';
-    const disabled = bridgeStatus !== 'closed';
-    expect(disabled).toBe(false);
-  });
-
-  it('server URL input should be disabled when status is listening', () => {
-    const bridgeStatus = 'listening';
-    const disabled = bridgeStatus !== 'closed';
-    expect(disabled).toBe(true);
-  });
-
-  it('server URL input should be disabled when status is connected', () => {
-    const bridgeStatus = 'connected';
-    const disabled = bridgeStatus !== 'closed';
-    expect(disabled).toBe(true);
-  });
-
   it('should determine correct button label based on status', () => {
     // The toggle button should show "Stop" when the bridge loop is running
     // (listening, connected, or disconnected/reconnecting),

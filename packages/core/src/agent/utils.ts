@@ -1,35 +1,90 @@
+import { existsSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { pixelBboxToRect } from '@/ai-model/workflows/inspect/locate-result-rect';
 import type { TMultimodalPrompt, TUserPrompt } from '@/common';
 import type { AbstractInterface } from '@/device';
 import { ScreenshotItem } from '@/screenshot-item';
 import type {
   ElementCacheFeature,
   LocateResultElement,
+  PixelBbox,
   PlanningLocateParam,
+  PlanningLocateParamWithLocatedPixelBbox,
   Rect,
+  ScrollParam,
+  Size,
   UIContext,
 } from '@/types';
 import { uploadTestInfoToServer } from '@/utils';
-import type { TModelFamily } from '@midscene/shared/env';
 import {
   MIDSCENE_REPORT_QUIET,
   MIDSCENE_REPORT_TAG_NAME,
   globalConfigManager,
 } from '@midscene/shared/env';
 import { generateElementByRect } from '@midscene/shared/extractor';
-import { imageInfoOfBase64, resizeImgBase64 } from '@midscene/shared/img';
+import {
+  createImgBase64ByFormat,
+  imageInfoOfBase64,
+  resizeImgBase64,
+} from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { _keyDefinitions } from '@midscene/shared/us-keyboard-layout';
-import { assert, logMsg, uuid } from '@midscene/shared/utils';
+import { assert, ifInBrowser, logMsg, uuid } from '@midscene/shared/utils';
 import dayjs from 'dayjs';
 import type { TaskCache } from './task-cache';
 import { debug as cacheDebug } from './task-cache';
+
+const agentDebug = getDebug('agent');
+const screenshotDataUrlPattern = /^data:image\/[a-zA-Z0-9.+-]+;base64,/i;
+
+const inferBase64ImageFormat = (base64Body: string) => {
+  if (base64Body.startsWith('iVBORw0KGgo')) {
+    return 'png';
+  }
+  return 'jpeg';
+};
+
+const normalizeScreenshotBase64 = (screenshotBase64: string) => {
+  const trimmedBase64 = screenshotBase64.trim();
+  if (screenshotDataUrlPattern.test(trimmedBase64)) {
+    return trimmedBase64;
+  }
+
+  const base64Body = trimmedBase64.replace(/\s/g, '');
+  assert(base64Body, 'screenshotBase64 must include image data');
+  return createImgBase64ByFormat(
+    inferBase64ImageFormat(base64Body),
+    base64Body,
+  );
+};
+
+const legacyScrollTypeMap = {
+  once: 'singleAction',
+  untilBottom: 'scrollToBottom',
+  untilTop: 'scrollToTop',
+  untilRight: 'scrollToRight',
+  untilLeft: 'scrollToLeft',
+} as const;
+
+export const normalizeScrollType = (
+  scrollType: string | undefined,
+): ScrollParam['scrollType'] | undefined => {
+  if (!scrollType) {
+    return undefined;
+  }
+
+  if (scrollType in legacyScrollTypeMap) {
+    return legacyScrollTypeMap[scrollType as keyof typeof legacyScrollTypeMap];
+  }
+
+  return scrollType as ScrollParam['scrollType'];
+};
 
 export async function commonContextParser(
   interfaceInstance: AbstractInterface,
   _opt: {
     uploadServerUrl?: string;
     screenshotShrinkFactor?: number;
-    modelFamily?: TModelFamily;
   },
 ): Promise<UIContext> {
   const debug = getDebug('commonContextParser');
@@ -158,6 +213,39 @@ export async function commonContextParser(
   };
 }
 
+export async function createScreenshotBoundUIContext(
+  screenshotBase64: string,
+  opt: {
+    screenshotSize?: Size;
+  },
+): Promise<UIContext> {
+  const normalizedScreenshotBase64 =
+    normalizeScreenshotBase64(screenshotBase64);
+  const actualScreenshotSize = await imageInfoOfBase64(
+    normalizedScreenshotBase64,
+  );
+  if (
+    opt.screenshotSize &&
+    (opt.screenshotSize.width !== actualScreenshotSize.width ||
+      opt.screenshotSize.height !== actualScreenshotSize.height)
+  ) {
+    agentDebug(
+      'describeElementAtPoint screenshotSize mismatch, use actual size',
+      {
+        provided: opt.screenshotSize,
+        actual: actualScreenshotSize,
+      },
+    );
+  }
+
+  return {
+    screenshot: ScreenshotItem.create(normalizedScreenshotBase64, Date.now()),
+    shotSize: actualScreenshotSize,
+    shrunkShotToLogicalRatio: 1,
+    _isFrozen: true,
+  };
+}
+
 export function getReportFileName(tag = 'web') {
   const reportTagName = globalConfigManager.getEnvConfigValue(
     MIDSCENE_REPORT_TAG_NAME,
@@ -175,42 +263,85 @@ export function printReportMsg(filepath: string) {
   logMsg(`Midscene - report file updated: ${filepath}`);
 }
 
-export function ifPlanLocateParamIsBbox(
-  planLocateParam: PlanningLocateParam,
-): boolean {
-  return !!(
-    planLocateParam.bbox &&
-    Array.isArray(planLocateParam.bbox) &&
-    planLocateParam.bbox.length === 4
+type NormalizeFilePathsOptions = {
+  fileExists?: (path: string) => boolean;
+  isInBrowser?: boolean;
+  resolvePath?: (path: string) => string;
+  wslDistroName?: string;
+  cwd?: string;
+};
+
+export function normalizeFilePaths(
+  files: string[],
+  options: NormalizeFilePathsOptions = {},
+): string[] {
+  const {
+    fileExists = existsSync,
+    isInBrowser = ifInBrowser,
+    resolvePath = resolve,
+    wslDistroName = process.env.WSL_DISTRO_NAME,
+    cwd = process.cwd(),
+  } = options;
+
+  if (isInBrowser) {
+    throw new Error('File chooser is not supported in browser environment');
+  }
+
+  return files.map((file) => {
+    const absolutePath = resolvePath(file);
+    if (!fileExists(absolutePath)) {
+      throw new Error(
+        `File not found: ${file}. Resolved to: ${absolutePath}. Current working directory: ${cwd}`,
+      );
+    }
+
+    if (!wslDistroName) {
+      return absolutePath;
+    }
+
+    const wslMount = absolutePath.match(/^\/mnt\/([a-z])\//);
+    if (wslMount) {
+      return `${wslMount[1].toUpperCase()}:\\${absolutePath.slice(7).replace(/\//g, '\\')}`;
+    }
+
+    return `\\\\wsl$\\${wslDistroName}${absolutePath.replace(/\//g, '\\')}`;
+  });
+}
+
+export function isPixelBbox(value: unknown): value is PixelBbox {
+  return (
+    Array.isArray(value) &&
+    value.length === 4 &&
+    value.every((item) => typeof item === 'number' && Number.isFinite(item))
   );
 }
 
+type PlanningLocateParamWithMaybeLocatedPixelBbox = PlanningLocateParam & {
+  locatedPixelBbox?: unknown;
+};
+
+export function ifPlanLocateParamHasLocatedPixelBbox(
+  planLocateParam: PlanningLocateParamWithMaybeLocatedPixelBbox,
+): planLocateParam is PlanningLocateParamWithLocatedPixelBbox {
+  return isPixelBbox(planLocateParam.locatedPixelBbox);
+}
+
 export function matchElementFromPlan(
-  planLocateParam: PlanningLocateParam,
+  planLocateParam: PlanningLocateParamWithLocatedPixelBbox,
 ): LocateResultElement | undefined {
   if (!planLocateParam) {
     return undefined;
   }
 
-  if (planLocateParam.bbox) {
-    // Convert bbox [x1, y1, x2, y2] to rect {left, top, width, height}
-    const rect = {
-      left: planLocateParam.bbox[0],
-      top: planLocateParam.bbox[1],
-      width: planLocateParam.bbox[2] - planLocateParam.bbox[0] + 1,
-      height: planLocateParam.bbox[3] - planLocateParam.bbox[1] + 1,
-    };
+  const rect = pixelBboxToRect(planLocateParam.locatedPixelBbox);
 
-    const element = generateElementByRect(
-      rect,
-      typeof planLocateParam.prompt === 'string'
-        ? planLocateParam.prompt
-        : planLocateParam.prompt?.prompt || '',
-    );
-    return element;
-  }
-
-  return undefined;
+  const element = generateElementByRect(
+    rect,
+    typeof planLocateParam.prompt === 'string'
+      ? planLocateParam.prompt
+      : planLocateParam.prompt?.prompt || '',
+  );
+  return element;
 }
 
 export async function matchElementFromCache(

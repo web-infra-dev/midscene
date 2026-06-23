@@ -1,6 +1,7 @@
 import Service from '@midscene/core';
 import type { Rect, UIContext } from '@midscene/core';
 import { ScreenshotItem } from '@midscene/core';
+import { getModelRuntime } from '@midscene/core/ai-model';
 import type { RecordedEvent } from '@midscene/recorder';
 import { globalModelConfigManager } from '@midscene/shared/env';
 import { compositeElementInfoImg } from '@midscene/shared/img';
@@ -121,7 +122,7 @@ export const generateAIDescription = async (
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
         const modelConfig = globalModelConfigManager.getModelConfig('default');
-        return await service.describe(rect, modelConfig);
+        return await service.describe(rect, getModelRuntime(modelConfig));
       } catch (err) {
         lastError = err;
         if (attempt < maxRetries) {

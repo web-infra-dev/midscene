@@ -11,7 +11,6 @@ import {
 import type { StudioSidebarPlatformKey } from '../../playground/types';
 import { useStudioPlayground } from '../../playground/useStudioPlayground';
 import { MaskedIcon } from '../MaskedIcon';
-import { ConnectionStatusDot } from '../PlaygroundShell';
 import SettingsDock from '../SettingsDock';
 import type { ShellActiveView } from '../ShellLayout/types';
 
@@ -74,10 +73,10 @@ function DeviceRow({
 }) {
   return (
     <button
-      className={`flex h-8 w-full cursor-pointer appearance-none items-center gap-[6px] rounded-[10px] border-0 px-[12px] text-left outline-none transition-colors focus-visible:bg-surface-hover-strong ${
+      className={`flex h-8 w-full cursor-pointer appearance-none items-center gap-[6px] rounded-[10px] border-0 px-[12px] text-left outline-none transition-colors focus-visible:bg-surface-hover-strong dark:focus-visible:bg-white/[0.18] ${
         selected
-          ? 'bg-surface-hover hover:bg-surface-hover'
-          : 'bg-transparent hover:bg-surface-hover active:bg-surface-active'
+          ? 'bg-surface-hover hover:bg-surface-hover dark:bg-white/[0.1] dark:hover:bg-white/[0.18]'
+          : 'bg-transparent hover:bg-surface-hover active:bg-surface-active dark:hover:bg-white/[0.16] dark:active:bg-white/[0.2]'
       }`}
       onClick={onClick}
       type="button"
@@ -93,9 +92,13 @@ function DeviceRow({
         {label}
       </span>
       <span className="flex h-4 w-4 shrink-0 items-center justify-center">
-        <ConnectionStatusDot
-          size={6}
-          status={status === 'active' ? 'connected' : 'disconnected'}
+        <span
+          aria-hidden="true"
+          className={`h-[8px] w-[8px] rounded-full ${
+            status === 'active'
+              ? 'bg-status-success shadow-[0_0_0_2px_rgba(66,181,108,0.25)]'
+              : 'bg-[#BFC0C1] shadow-[0_0_0_2px_rgba(182,182,182,0.22)]'
+          }`}
         />
       </span>
     </button>
@@ -300,10 +303,10 @@ export default function Sidebar({
   return (
     <div className="flex flex-col">
       <button
-        className={`flex h-8 w-full appearance-none items-center gap-[6px] border-0 px-[12px] text-left outline-none focus-visible:bg-surface-hover-strong ${
+        className={`flex h-8 w-full appearance-none items-center gap-[6px] border-0 px-[12px] text-left outline-none focus-visible:bg-surface-hover-strong dark:focus-visible:bg-white/[0.18] ${
           overviewActive
-            ? 'rounded-[10px] bg-black/5'
-            : 'rounded-lg bg-transparent hover:bg-surface-hover'
+            ? 'rounded-[10px] bg-black/5 dark:bg-white/[0.1]'
+            : 'rounded-lg bg-transparent hover:bg-surface-hover dark:hover:bg-white/[0.16]'
         }`}
         onClick={onSelectOverview}
         type="button"
@@ -341,42 +344,44 @@ export default function Sidebar({
                 />
 
                 {hasDevices ? (
-                  section.devices.map((device) => {
-                    // Single-source-of-truth selection: only one row
-                    // may ever be highlighted, even while sticky / form /
-                    // connected diverge during a fast re-click. Sticky
-                    // wins (matches the user's intent the instant they
-                    // click), with form / connected as fallbacks.
-                    // On Overview we suppress every highlight because
-                    // the page is meant to be a "no device picked yet"
-                    // state.
-                    let selected = false;
-                    if (activeView !== 'overview') {
-                      if (stickySelection) {
-                        selected =
-                          stickySelection.platformKey === section.key &&
-                          stickySelection.deviceId === device.id;
-                      } else if (
-                        formSelectedDeviceId &&
-                        formSelectedPlatformKey
-                      ) {
-                        selected =
-                          formSelectedPlatformKey === section.key &&
-                          formSelectedDeviceId === device.id;
-                      } else if (connectedDeviceId && connectedPlatformKey) {
-                        selected =
-                          connectedPlatformKey === section.key &&
-                          connectedDeviceId === device.id;
+                  <div className="flex flex-col gap-[4px]">
+                    {section.devices.map((device) => {
+                      // Single-source-of-truth selection: only one row
+                      // may ever be highlighted, even while sticky / form /
+                      // connected diverge during a fast re-click. Sticky
+                      // wins (matches the user's intent the instant they
+                      // click), with form / connected as fallbacks.
+                      // On Overview we suppress every highlight because
+                      // the page is meant to be a "no device picked yet"
+                      // state.
+                      let selected = false;
+                      if (activeView !== 'overview') {
+                        if (stickySelection) {
+                          selected =
+                            stickySelection.platformKey === section.key &&
+                            stickySelection.deviceId === device.id;
+                        } else if (
+                          formSelectedDeviceId &&
+                          formSelectedPlatformKey
+                        ) {
+                          selected =
+                            formSelectedPlatformKey === section.key &&
+                            formSelectedDeviceId === device.id;
+                        } else if (connectedDeviceId && connectedPlatformKey) {
+                          selected =
+                            connectedPlatformKey === section.key &&
+                            connectedDeviceId === device.id;
+                        }
                       }
-                    }
-                    return (
-                      <DeviceRow
-                        key={device.id}
-                        selected={selected}
-                        {...device}
-                      />
-                    );
-                  })
+                      return (
+                        <DeviceRow
+                          key={device.id}
+                          selected={selected}
+                          {...device}
+                        />
+                      );
+                    })}
+                  </div>
                 ) : (
                   <EmptyDeviceRow
                     key={`${EMPTY_DEVICE_ID_PREFIX}${section.key}`}
@@ -397,11 +402,6 @@ export interface SidebarFooterProps {
   onEnvClick?: () => void;
   /** Surface a "missing config" red badge on the env dock row. */
   envAlert?: boolean;
-  /**
-   * Surface a red badge on the settings dock row when an update is
-   * available to download or already downloaded and waiting to install.
-   */
-  hasUpdateReady?: boolean;
 }
 
 export function SidebarFooter({
@@ -409,12 +409,10 @@ export function SidebarFooter({
   settingsOpen,
   onToggleSettings,
   onEnvClick,
-  hasUpdateReady,
 }: SidebarFooterProps) {
   return (
     <SettingsDock
       envAlert={envAlert}
-      hasUpdateReady={hasUpdateReady}
       onEnvClick={onEnvClick}
       onToggleSettings={onToggleSettings}
       settingsOpen={settingsOpen}

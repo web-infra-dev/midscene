@@ -1,4 +1,4 @@
-import { existsSync } from 'node:fs';
+import { existsSync, statSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { getPhasedScrollBinary } from '../../src/device';
@@ -25,5 +25,14 @@ describe('phased-scroll binary resolution', () => {
     const pkgRoot = resolve(__dirname, '../..');
     expect(binPath.startsWith(pkgRoot)).toBe(true);
     expect(binPath.endsWith('bin/darwin/phased-scroll')).toBe(true);
+  });
+
+  it('resolved binary is executable (self-heals stripped exec bit)', () => {
+    if (process.platform !== 'darwin') return;
+    const binPath = getPhasedScrollBinary() as string;
+    // npm tarball extraction can land the file as 0644. The resolver should
+    // have already restored the executable bit before returning the path.
+    const mode = statSync(binPath).mode & 0o111;
+    expect(mode).not.toBe(0);
   });
 });

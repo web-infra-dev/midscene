@@ -13,6 +13,9 @@ import {
 } from '../../scripts/rsbuild-utils.ts';
 
 export default defineConfig({
+  source: {
+    tsconfigPath: 'tsconfig.build.json',
+  },
   tools: {
     rspack: {
       ignoreWarnings: commonIgnoreWarnings,

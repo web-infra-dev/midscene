@@ -10,7 +10,7 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('electron', () => ({
   app: {
-    getName: () => 'Midscene Studio',
+    getName: () => 'Midscene Studio Beta',
     getPath: (name: string) =>
       name === 'home' ? mocks.homeDir : path.join(mocks.homeDir, name),
     isPackaged: true,
@@ -62,12 +62,12 @@ describe('shellQuote', () => {
 
 describe('buildMacUpdateScript', () => {
   const baseOptions = {
-    appPath: '/Applications/Midscene Studio.app',
-    execName: 'Midscene Studio',
-    zipPath: '/tmp/midscene/Midscene-Studio-darwin-arm64.zip',
-    tempDir: '/tmp/midscene-studio-update',
-    scriptPath: '/tmp/midscene-studio-update.sh',
-    logPath: '/tmp/midscene-studio-update.log',
+    appPath: '/Applications/Midscene Studio Beta.app',
+    execName: 'Midscene Studio Beta',
+    zipPath: '/tmp/midscene/Midscene-Studio-Beta-darwin-arm64.zip',
+    tempDir: '/tmp/midscene-studio-beta-update',
+    scriptPath: '/tmp/midscene-studio-beta-update.sh',
+    logPath: '/tmp/midscene-studio-beta-update.log',
   };
 
   it('produces a runnable bash script with all paths quoted', async () => {
@@ -76,8 +76,10 @@ describe('buildMacUpdateScript', () => {
     );
     const script = buildMacUpdateScript(baseOptions);
     expect(script.startsWith('#!/bin/bash\n')).toBe(true);
-    expect(script).toContain(`APP_PATH='/Applications/Midscene Studio.app'`);
-    expect(script).toContain(`EXEC_NAME='Midscene Studio'`);
+    expect(script).toContain(
+      `APP_PATH='/Applications/Midscene Studio Beta.app'`,
+    );
+    expect(script).toContain(`EXEC_NAME='Midscene Studio Beta'`);
     // Critical guard: refuse to mv into a path that still exists.
     expect(script).toContain('if [ -e "$APP_PATH" ]');
     expect(script).toContain('/bin/rm -rf "$APP_PATH"');
@@ -113,9 +115,9 @@ describe('updater handlers', () => {
         root,
         'Library',
         'Caches',
-        'midscene-studio-updater',
+        'midscene-studio-beta-updater',
         'pending',
-        'midscene-studio-v1.8.1-darwin-arm64.zip',
+        'midscene-studio-beta-v1.8.1-darwin-arm64.zip',
       );
       await fs.mkdir(path.dirname(zipPath), { recursive: true });
       await fs.writeFile(zipPath, 'zip');

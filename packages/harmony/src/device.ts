@@ -11,8 +11,8 @@ import {
 } from '@midscene/core';
 import {
   type AbstractInterface,
-  type HarmonyDeviceInputOpt,
-  type HarmonyDeviceOpt,
+  type HarmonyDeviceInputOpt as CoreHarmonyDeviceInputOpt,
+  type HarmonyDeviceOpt as CoreHarmonyDeviceOpt,
   type MobileInputPrimitives,
   type PointerPoint,
   createDefaultMobileActions,
@@ -25,7 +25,13 @@ import { getDebug } from '@midscene/shared/logger';
 import { normalizeForComparison, repeat } from '@midscene/shared/utils';
 import { HdcClient } from './hdc';
 
-export type { HarmonyDeviceOpt } from '@midscene/core/device';
+type KeyboardDismissStrategy = 'esc-first' | 'back-first';
+
+export type HarmonyDeviceInputOpt = CoreHarmonyDeviceInputOpt & {
+  keyboardDismissStrategy?: KeyboardDismissStrategy;
+};
+
+export type HarmonyDeviceOpt = CoreHarmonyDeviceOpt & HarmonyDeviceInputOpt;
 
 const defaultScrollUntilTimes = 10;
 const defaultFastSwipeSpeed = 2000;
@@ -158,18 +164,22 @@ export class HarmonyDevice implements AbstractInterface {
     },
     keyboard: {
       keyboardPress: (keyName) => this.pressKey(keyName),
-      typeText: (value, opts) =>
-        opts?.focusOnly
+      typeText: (value, opts) => {
+        const harmonyOpts = opts as
+          | (typeof opts & HarmonyDeviceInputOpt)
+          | undefined;
+        return harmonyOpts?.focusOnly
           ? Promise.resolve()
           : this.typeText(
               value,
-              opts?.target as LocateResultElement | undefined,
-              opts?.replace ?? true,
+              harmonyOpts?.target as LocateResultElement | undefined,
+              harmonyOpts?.replace ?? true,
               {
-                autoDismissKeyboard: opts?.autoDismissKeyboard,
-                keyboardDismissStrategy: opts?.keyboardDismissStrategy,
+                autoDismissKeyboard: harmonyOpts?.autoDismissKeyboard,
+                keyboardDismissStrategy: harmonyOpts?.keyboardDismissStrategy,
               },
-            ),
+            );
+      },
       clearInput: (target) =>
         this.clearInput(target as ElementInfo | undefined),
       cursorMove: async (direction, times = 1) => {

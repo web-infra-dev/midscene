@@ -1,6 +1,7 @@
 import { unlinkSync, writeFileSync } from 'node:fs';
 import { join, relative, resolve } from 'node:path';
 import { Agent } from '@/agent';
+import { normalizeFilePaths } from '@/agent/utils';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 const createMockInterface = () =>
@@ -11,6 +12,11 @@ const createMockInterface = () =>
 
 const fixturesDir = join(__dirname, '../fixtures');
 const testFilePath = join(fixturesDir, 'path-test-file.txt');
+const hadWslDistroName = Object.prototype.hasOwnProperty.call(
+  process.env,
+  'WSL_DISTRO_NAME',
+);
+const originalWslDistroName = process.env.WSL_DISTRO_NAME;
 
 // resolve() resolves based on process.cwd(), compute fixture path relative to cwd
 const relativeFromCwd = relative(process.cwd(), testFilePath);
@@ -19,6 +25,7 @@ describe('fileChooserAccept relative path support', () => {
   let agent: Agent;
 
   beforeAll(() => {
+    Reflect.deleteProperty(process.env, 'WSL_DISTRO_NAME');
     writeFileSync(testFilePath, 'path test content');
     agent = new Agent(createMockInterface(), {
       modelConfig: {
@@ -32,6 +39,12 @@ describe('fileChooserAccept relative path support', () => {
     try {
       unlinkSync(testFilePath);
     } catch {}
+
+    if (hadWslDistroName) {
+      process.env.WSL_DISTRO_NAME = originalWslDistroName;
+    } else {
+      Reflect.deleteProperty(process.env, 'WSL_DISTRO_NAME');
+    }
   });
 
   it('should resolve relative path with ./ prefix', () => {
@@ -119,5 +132,55 @@ describe('fileChooserAccept relative path support', () => {
 
     expect(result).toEqual([testFilePath, testFilePath]);
     expect(result.length).toBe(2);
+  });
+});
+
+describe('normalizeFilePaths', () => {
+  it('throws in browser environments', () => {
+    expect(() =>
+      normalizeFilePaths(['file.txt'], { isInBrowser: true }),
+    ).toThrow('File chooser is not supported in browser environment');
+  });
+
+  it('resolves relative paths and validates existence', () => {
+    const result = normalizeFilePaths(['./upload.txt'], {
+      fileExists: (filePath) => filePath === '/project/upload.txt',
+      resolvePath: () => '/project/upload.txt',
+      wslDistroName: '',
+    });
+
+    expect(result).toEqual(['/project/upload.txt']);
+  });
+
+  it('throws with the original and resolved paths when a file does not exist', () => {
+    expect(() =>
+      normalizeFilePaths(['./missing.txt'], {
+        cwd: '/project',
+        fileExists: () => false,
+        resolvePath: () => '/project/missing.txt',
+      }),
+    ).toThrow(
+      'File not found: ./missing.txt. Resolved to: /project/missing.txt. Current working directory: /project',
+    );
+  });
+
+  it('converts WSL mounted Windows drive paths for Windows Chrome', () => {
+    const result = normalizeFilePaths(['/mnt/c/Users/me/upload.zip'], {
+      fileExists: () => true,
+      resolvePath: (filePath) => filePath,
+      wslDistroName: 'Ubuntu-22.04',
+    });
+
+    expect(result).toEqual(['C:\\Users\\me\\upload.zip']);
+  });
+
+  it('converts WSL distro-local paths to UNC paths for Windows Chrome', () => {
+    const result = normalizeFilePaths(['/home/me/upload.zip'], {
+      fileExists: () => true,
+      resolvePath: (filePath) => filePath,
+      wslDistroName: 'Ubuntu-22.04',
+    });
+
+    expect(result).toEqual(['\\\\wsl$\\Ubuntu-22.04\\home\\me\\upload.zip']);
   });
 });

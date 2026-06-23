@@ -5,12 +5,12 @@
     "paths": {
       "@/*": ["./src/*"]
     },
-    "rootDir": "src",
+    "rootDir": ".",
     "target": "ES2022",
     "types": ["react", "node"],
     "declarationDir": "dist/types"
   },
-  "include": ["src", "builder"],
+  "include": ["src", "tests"],
   "references": [
     {
       "path": "../core"

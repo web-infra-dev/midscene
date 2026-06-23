@@ -291,10 +291,11 @@ describe('locator', () => {
     it('should return null for xpath with multiple matches', () => {
       // Mock multiple matches scenario
       const originalEvaluate = global.document.evaluate;
-      global.document.evaluate = () => ({
-        snapshotLength: 2, // Multiple matches
-        snapshotItem: () => new MockElement('div', 'Multiple') as any,
-      });
+      global.document.evaluate = () =>
+        ({
+          snapshotLength: 2, // Multiple matches
+          snapshotItem: () => new MockElement('div', 'Multiple') as any,
+        }) as unknown as XPathResult;
 
       const result = getNodeInfoByXpath('/html/body/div');
 

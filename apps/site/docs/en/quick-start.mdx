@@ -1,0 +1,106 @@
+import { PackageManagerTabs } from '@theme';
+import QuickModelConfig from './common/quick-model-config.mdx';
+
+# Quick Start
+
+Get a feel for Midscene in a few minutes. There are two ways to start, and you can do either one first:
+
+- **No code** — install the Chrome extension and try Midscene on any web page, without setting up a project.
+- **Write a script** — use the JavaScript SDK to build a repeatable automation.
+
+Both need a multimodal model configured, so let's set that up first.
+
+## Configure a model
+
+<QuickModelConfig />
+
+> Using a different model (Doubao, GLM, Gemini, GPT-5…)? See [Configure your model](./model-common-config) for every supported provider.
+
+You'll reuse these values in whichever path you pick below — paste them into the extension's settings, or set them as environment variables for the SDK.
+
+## Try it with no code (Chrome extension)
+
+Think of the extension as a **playground for Midscene** — much like an API Playground, it's an interactive sandbox where you can try natural-language prompts, preview the results immediately, and debug, all without writing or running any code. Because it shares the same core as the `@midscene/web` SDK, anything you validate here behaves the same once you script it.
+
+1. Install Midscene from the Chrome Web Store:
+
+   <a href="https://chromewebstore.google.com/detail/midscene/gbldofcpkknbggpkmbdaefngejllnief" target="_blank"><img src="https://lf3-static.bytednsdoc.com/obj/eden-cn/vhaeh7vhabf/chrome_extension_store_btn.png" width="200" /></a>
+
+2. Open the **Midscene** panel (it may be folded under the Chrome extensions icon) — a sidebar appears on the right side of the browser.
+3. Click the settings (gear) icon and paste your model configuration. The extension accepts the same `export KEY="value"` format shown in [Configure a model](#configure-a-model) above.
+4. Open any web page, type an instruction — an action, a data query, or an assertion — and watch Midscene operate the page for you.
+
+For the full walkthrough and troubleshooting, see [Quick experience by Chrome extension](./quick-experience).
+
+## Write your first script (SDK)
+
+Prefer code? Build a repeatable automation with the JavaScript SDK. This example uses the browser (Playwright).
+
+### Step 1. Install dependencies
+
+<PackageManagerTabs command="install @midscene/web playwright tsx --save-dev" />
+
+### Step 2. Set the model environment variables
+
+Set the values from [Configure a model](#configure-a-model) as environment variables, or put them in a `.env` file and load it with [dotenv](https://www.npmjs.com/package/dotenv).
+
+### Step 3. Write the script
+
+Save the following as `./demo.ts`. It opens eBay, searches for headphones, reads the result list, and asserts the page state — all described in natural language:
+
+```typescript title="./demo.ts"
+import { chromium } from 'playwright';
+import { PlaywrightAgent } from '@midscene/web/playwright';
+import 'dotenv/config'; // load environment variables from .env if present
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+Promise.resolve(
+  (async () => {
+    const browser = await chromium.launch({ headless: false }); // 👀 watch it run
+    const page = await browser.newPage();
+    await page.goto('https://www.ebay.com');
+    await sleep(3000);
+
+    // 👀 init the Midscene agent
+    const agent = new PlaywrightAgent(page);
+
+    // 👀 act with natural language
+    await agent.aiAct('type "Headphones" in the search box, then hit Enter');
+    await agent.aiWaitFor('there is at least one headphone product in the list');
+
+    // 👀 extract structured data
+    const items = await agent.aiQuery(
+      '{ title: string, price: number }[], the headphone products in the list',
+    );
+    console.log('headphones in stock:', items);
+
+    // 👀 assert with natural language
+    await agent.aiAssert('There is a category filter on the left side');
+
+    await browser.close();
+  })(),
+);
+```
+
+### Step 4. Run it
+
+```bash
+npx tsx demo.ts
+```
+
+### Step 5. View the report
+
+After a successful run, Midscene prints something like:
+
+```log
+Midscene - report file updated: ./midscene_run/report/some_id.html
+```
+
+Open that HTML file in your browser to replay every action, query, and assertion step by step. The report is the tool most developers rely on to understand and debug what the AI did.
+
+## Next steps
+
+- **Use it in your tests**: [Integrate with Playwright](./integrate-with-playwright) to add Midscene to your existing suite.
+- **Other platforms**: get started on [Android](./android-getting-started), [iOS](./ios-getting-started), [HarmonyOS](./harmony-getting-started), or [desktop](./computer-getting-started).
+- **Go further**: improve results with [Model strategy](./model-strategy), or look up every method in the [API reference](./api).

@@ -94,7 +94,7 @@ describe('MidsceneReporter', () => {
           id: 'test-id-0',
           title: 'No Report',
           annotations: [],
-        } as TestCase,
+        } as unknown as TestCase,
         { status: 'passed', duration: 1 } as TestResult,
       );
       await reporter.onEnd();

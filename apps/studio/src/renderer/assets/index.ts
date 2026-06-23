@@ -61,6 +61,8 @@ export const assetUrls = {
     ios: new URL('./sidebar-ios.png', import.meta.url).href,
     leftSidebar: new URL('../../../assets/left-sidebar.svg', import.meta.url)
       .href,
+    collapse: new URL('./sidebar-collapse.svg', import.meta.url).href,
+    expand: new URL('./sidebar-expand.svg', import.meta.url).href,
     overview: new URL('./sidebar-overview.png', import.meta.url).href,
     settings: new URL('./sidebar-settings.png', import.meta.url).href,
     web: new URL('./sidebar-web.png', import.meta.url).href,

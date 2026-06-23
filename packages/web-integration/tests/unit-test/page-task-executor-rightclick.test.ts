@@ -1,5 +1,6 @@
 import type { DeviceAction, PlanningAction } from '@midscene/core';
 import { TaskExecutor } from '@midscene/core/agent';
+import { getModelRuntime } from '@midscene/core/ai-model';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock page with mouse operations
@@ -15,7 +16,7 @@ const mockPage = {
       {
         name: 'RightClick',
         call: (param, context) => {
-          if (!context.element) {
+          if (!context?.element) {
             throw new Error('Element not found');
           }
           mockPage.mouse.click(
@@ -38,6 +39,13 @@ const mockInsight = {
   }),
 } as any;
 
+const mockModelRuntime = getModelRuntime({
+  modelName: 'mock-model',
+  modelDescription: 'mock-model-description',
+  intent: 'default',
+  slot: 'default',
+});
+
 describe('TaskExecutor RightClick Action', () => {
   let taskExecutor: TaskExecutor;
 
@@ -51,18 +59,21 @@ describe('TaskExecutor RightClick Action', () => {
   it('should execute RightClick action correctly', async () => {
     const rightClickPlan: PlanningAction = {
       type: 'RightClick',
-      param: null,
-      thought: 'Right click on the element to open context menu',
-      locate: {
-        prompt: 'button to right click',
-        id: 'test-element-id',
+      param: {
+        locate: {
+          prompt: 'button to right click',
+          id: 'test-element-id',
+        },
       },
+      thought: 'Right click on the element to open context menu',
     };
 
     // Test plan conversion instead of full execution
-    const { tasks } = await (taskExecutor as any).convertPlanToExecutable([
-      rightClickPlan,
-    ]);
+    const { tasks } = await (taskExecutor as any).convertPlanToExecutable(
+      [rightClickPlan],
+      mockModelRuntime,
+      mockModelRuntime,
+    );
 
     expect(tasks).toHaveLength(1);
     expect(tasks[0].type).toBe('Action Space');
@@ -80,20 +91,17 @@ describe('TaskExecutor RightClick Action', () => {
         id: 'trigger-element',
       },
       thought: 'Locate the element to right click',
-      locate: {
-        prompt: 'context menu trigger',
-        id: 'trigger-element',
-      },
     };
 
     const rightClickPlan: PlanningAction = {
       type: 'RightClick',
-      param: null,
-      thought: 'Right click to open context menu',
-      locate: {
-        prompt: 'context menu trigger',
-        id: 'trigger-element',
+      param: {
+        locate: {
+          prompt: 'context menu trigger',
+          id: 'trigger-element',
+        },
       },
+      thought: 'Right click to open context menu',
     };
 
     const plans = [locatePlan, rightClickPlan];
@@ -101,6 +109,8 @@ describe('TaskExecutor RightClick Action', () => {
     // Convert plans to executable tasks
     const { tasks } = await (taskExecutor as any).convertPlanToExecutable(
       plans,
+      mockModelRuntime,
+      mockModelRuntime,
     );
 
     expect(tasks).toHaveLength(2);
@@ -117,17 +127,20 @@ describe('TaskExecutor RightClick Action', () => {
   it('should call mouse.click with right button option', async () => {
     const rightClickPlan: PlanningAction = {
       type: 'RightClick',
-      param: null,
-      thought: 'Right click test',
-      locate: {
-        prompt: 'test element',
-        id: 'test-id',
+      param: {
+        locate: {
+          prompt: 'test element',
+          id: 'test-id',
+        },
       },
+      thought: 'Right click test',
     };
 
-    const { tasks } = await (taskExecutor as any).convertPlanToExecutable([
-      rightClickPlan,
-    ]);
+    const { tasks } = await (taskExecutor as any).convertPlanToExecutable(
+      [rightClickPlan],
+      mockModelRuntime,
+      mockModelRuntime,
+    );
     const rightClickTask = tasks[0];
 
     // Mock element for executor context
@@ -170,17 +183,20 @@ describe('TaskExecutor RightClick Action', () => {
   it('should throw error when element is not found for RightClick', async () => {
     const rightClickPlan: PlanningAction = {
       type: 'RightClick',
-      param: null,
-      thought: 'Right click test',
-      locate: {
-        prompt: 'non-existent element',
-        id: 'non-existent-id',
+      param: {
+        locate: {
+          prompt: 'non-existent element',
+          id: 'non-existent-id',
+        },
       },
+      thought: 'Right click test',
     };
 
-    const { tasks } = await (taskExecutor as any).convertPlanToExecutable([
-      rightClickPlan,
-    ]);
+    const { tasks } = await (taskExecutor as any).convertPlanToExecutable(
+      [rightClickPlan],
+      mockModelRuntime,
+      mockModelRuntime,
+    );
     const rightClickTask = tasks[0];
 
     const mockContext = {

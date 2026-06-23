@@ -1,35 +1,28 @@
 import type {
   AIDataExtractionResponse,
-  AIElementResponse,
+  AIElementLocateResponse,
   AISectionLocatorResponse,
   AIUsageInfo,
   Rect,
   ServiceExtractOption,
   UIContext,
 } from '@/types';
-import type { IModelConfig } from '@midscene/shared/env';
-import {
-  generateElementByPoint,
-  generateElementByRect,
-} from '@midscene/shared/extractor/dom-util';
-import {
-  cropByRect,
-  paddingToMatchBlockByBase64,
-  preProcessImageUrl,
-  scaleImage,
-} from '@midscene/shared/img';
+import { generateElementByRect } from '@midscene/shared/extractor';
+import { cropByRect, scaleImage } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
-import type { LocateResultElement } from '@midscene/shared/types';
 import { assert } from '@midscene/shared/utils';
 import type {
   ChatCompletionSystemMessageParam,
   ChatCompletionUserMessageParam,
 } from 'openai/resources/index';
 import type { TMultimodalPrompt, TUserPrompt } from '../common';
-import { adaptBboxToRect, expandSearchArea, mergeRects } from '../common';
-import { parseAutoGLMLocateResponse } from './auto-glm/parser';
-import { getAutoGLMLocatePrompt } from './auto-glm/prompt';
-import { isAutoGLM } from './auto-glm/util';
+import {
+  expandSearchArea,
+  multimodalPromptToChatMessages,
+  userPromptToMultimodalPrompt,
+  userPromptToString,
+} from '../common';
+import type { ModelRuntime } from './models';
 import {
   extractDataQueryPrompt,
   parseXMLExtractionResponse,
@@ -51,10 +44,22 @@ import {
   AIResponseParseError,
   callAI,
   callAIWithObjectResponse,
-  callAIWithStringResponse,
 } from './service-caller/index';
+import { prepareModelImage } from './workflows/image-preprocess';
+import {
+  mergePixelBboxesToRect,
+  pixelBboxToRect,
+} from './workflows/inspect/locate-result-rect';
+import { mapSearchAreaPixelBboxToOriginalPixelBbox } from './workflows/inspect/search-area-mapping';
+import type {
+  LocateModelResponse,
+  LocateOptions,
+  LocateRequestContext,
+  LocateResult,
+  SearchAreaConfig,
+} from './workflows/inspect/types';
 
-export type AIArgs = [
+export type InspectAIArgs = [
   ChatCompletionSystemMessageParam,
   ...ChatCompletionUserMessageParam[],
 ];
@@ -62,148 +67,180 @@ export type AIArgs = [
 const debugInspect = getDebug('ai:inspect');
 const debugSection = getDebug('ai:section');
 
+export {
+  userPromptToString as extraTextFromUserPrompt,
+  multimodalPromptToChatMessages as promptsToChatParam,
+} from '../common';
+
+function hasLocateResult(input: unknown, resultKey: string) {
+  if (!input || typeof input !== 'object') {
+    return false;
+  }
+
+  const record = input as Record<string, unknown>;
+  const locateResult = record[resultKey];
+  return Array.isArray(locateResult)
+    ? locateResult.length > 0
+    : locateResult !== undefined;
+}
+
 export async function buildSearchAreaConfig(options: {
   context: UIContext;
   baseRect: Rect;
-  modelFamily: IModelConfig['modelFamily'];
-}): Promise<{ rect: Rect; imageBase64: string; scale: number }> {
-  const { context, baseRect, modelFamily } = options;
+}): Promise<SearchAreaConfig> {
+  const { context, baseRect } = options;
   const scaleRatio = 2;
   const sectionRect = expandSearchArea(baseRect, context.shotSize);
 
   const croppedResult = await cropByRect(
     context.screenshot.base64,
     sectionRect,
-    modelFamily === 'qwen2.5-vl',
   );
 
   const scaledResult = await scaleImage(croppedResult.imageBase64, scaleRatio);
-  sectionRect.width = scaledResult.width;
-  sectionRect.height = scaledResult.height;
   return {
-    rect: sectionRect,
-    imageBase64: scaledResult.imageBase64,
-    scale: scaleRatio,
+    sourceRect: sectionRect,
+    image: {
+      imageBase64: scaledResult.imageBase64,
+      width: scaledResult.width,
+      height: scaledResult.height,
+    },
+    mapping: {
+      offset: {
+        x: sectionRect.left,
+        y: sectionRect.top,
+      },
+      scale: scaleRatio,
+    },
   };
 }
 
-const extraTextFromUserPrompt = (prompt: TUserPrompt): string => {
-  if (typeof prompt === 'string') {
-    return prompt;
-  } else {
-    return prompt.prompt;
-  }
-};
-
-const promptsToChatParam = async (
-  multimodalPrompt: TMultimodalPrompt,
-): Promise<ChatCompletionUserMessageParam[]> => {
-  const msgs: ChatCompletionUserMessageParam[] = [];
-  if (multimodalPrompt?.images?.length) {
-    msgs.push({
-      role: 'user',
-      content: [
-        {
-          type: 'text',
-          text: 'Next, I will provide all the reference images. These reference images are supporting context only, not the current screenshot being evaluated, unless the task explicitly asks for comparison or matching.',
-        },
-      ],
-    });
-
-    for (const item of multimodalPrompt.images) {
-      const base64 = await preProcessImageUrl(
-        item.url,
-        !!multimodalPrompt.convertHttpImage2Base64,
-      );
-
-      msgs.push({
-        role: 'user',
-        content: [
-          {
-            type: 'text',
-            text: `this is the reference image named '${item.name}'. It is a reference image, not the current screenshot:`,
-          },
-        ],
-      });
-
-      msgs.push({
-        role: 'user',
-        content: [
-          {
-            type: 'image_url',
-            image_url: {
-              url: base64,
-              detail: 'high',
-            },
-          },
-        ],
-      });
-    }
-  }
-  return msgs;
-};
-
-export async function AiLocateElement(options: {
-  context: UIContext;
-  targetElementDescription: TUserPrompt;
-  searchConfig?: Awaited<ReturnType<typeof AiLocateSection>>;
-  modelConfig: IModelConfig;
-  abortSignal?: AbortSignal;
-}): Promise<{
-  parseResult: {
-    elements: LocateResultElement[];
-    errors?: string[];
-  };
-  rect?: Rect;
-  rawResponse: string;
-  usage?: AIUsageInfo;
-  reasoning_content?: string;
-}> {
-  const { context, targetElementDescription, modelConfig } = options;
-  const { modelFamily } = modelConfig;
-  const screenshotBase64 = context.screenshot.base64;
-
+export async function AiLocateElement(
+  options: LocateOptions & { targetElementDescription: TUserPrompt },
+): Promise<LocateResult> {
+  const { targetElementDescription, ...locateOptions } = options;
   assert(
     targetElementDescription,
     'cannot find the target element description',
   );
-  const targetElementDescriptionText = extraTextFromUserPrompt(
+
+  const { context } = locateOptions;
+  const locateImage = locateOptions.searchConfig?.image ?? {
+    imageBase64: context.screenshot.base64,
+    width: context.shotSize.width,
+    height: context.shotSize.height,
+  };
+  const referenceImageMessages =
+    typeof targetElementDescription === 'string'
+      ? undefined
+      : await multimodalPromptToChatMessages(
+          userPromptToMultimodalPrompt(targetElementDescription),
+        );
+  const locateRequest: LocateRequestContext = {
+    elementDescriptionText: userPromptToString(targetElementDescription),
+    locateImage,
+    referenceImageMessages,
+    options: locateOptions,
+  };
+
+  const locateAdapter = options.modelRuntime.adapter.locate;
+  const locateFn =
+    locateAdapter.kind === 'custom' ? locateAdapter.locateFn : genericLocate;
+  const locateResponse = await locateFn(
     targetElementDescription,
+    locateOptions,
+    locateRequest,
   );
-  const userInstructionPrompt = findElementPrompt(targetElementDescriptionText);
-  const systemPrompt = isAutoGLM(modelFamily)
-    ? getAutoGLMLocatePrompt(modelFamily)
-    : systemPromptToLocateElement(modelFamily);
+  const {
+    locatedPixelBbox,
+    rawResponse,
+    rawChoiceMessage,
+    usage,
+    reasoningContent,
+    errors = [],
+  } = locateResponse;
+  const baseLocateResult = {
+    rawResponse,
+    rawChoiceMessage,
+    usage,
+    reasoning_content: reasoningContent,
+  };
 
-  let imagePayload = screenshotBase64;
-  let imageWidth = context.shotSize.width;
-  let imageHeight = context.shotSize.height;
-  let originalImageWidth = imageWidth;
-  let originalImageHeight = imageHeight;
-
-  if (options.searchConfig) {
-    assert(
-      options.searchConfig.rect,
-      'searchArea is provided but its rect cannot be found. Failed to locate element',
-    );
-    assert(
-      options.searchConfig.imageBase64,
-      'searchArea is provided but its imageBase64 cannot be found. Failed to locate element',
-    );
-
-    imagePayload = options.searchConfig.imageBase64;
-    imageWidth = options.searchConfig.rect?.width;
-    imageHeight = options.searchConfig.rect?.height;
-    originalImageWidth = imageWidth;
-    originalImageHeight = imageHeight;
-  } else if (modelFamily === 'qwen2.5-vl') {
-    const paddedResult = await paddingToMatchBlockByBase64(imagePayload);
-    imageWidth = paddedResult.width;
-    imageHeight = paddedResult.height;
-    imagePayload = paddedResult.imageBase64;
+  if (!locatedPixelBbox) {
+    return {
+      rect: undefined,
+      parseResult: {
+        element: undefined,
+        errors,
+      },
+      ...baseLocateResult,
+    };
   }
 
-  const msgs: AIArgs = [
+  try {
+    const rect = pixelBboxToRect(
+      mapSearchAreaPixelBboxToOriginalPixelBbox(
+        locatedPixelBbox,
+        locateOptions.searchConfig?.mapping,
+      ),
+    );
+    debugInspect('resRect', rect);
+
+    return {
+      rect,
+      parseResult: {
+        element: generateElementByRect(
+          rect,
+          locateRequest.elementDescriptionText,
+        ),
+        errors: [],
+      },
+      ...baseLocateResult,
+    };
+  } catch (error) {
+    const msg =
+      error instanceof Error
+        ? `Failed to parse locate result: ${error.message}`
+        : 'unknown error in locate';
+    return {
+      rect: undefined,
+      parseResult: {
+        element: undefined,
+        errors: errors.length > 0 ? [...errors, `(${msg})`] : [msg],
+      },
+      ...baseLocateResult,
+    };
+  }
+}
+
+export async function genericLocate(
+  _elementDescription: TUserPrompt,
+  options: LocateOptions,
+  locateRequest: LocateRequestContext,
+): Promise<LocateModelResponse> {
+  const modelRuntime = options.modelRuntime;
+  const { adapter } = modelRuntime;
+  assert(
+    adapter.locate.kind === 'standard',
+    'generic locate requires a standard locate adapter',
+  );
+  const userInstructionPrompt = findElementPrompt(
+    locateRequest.elementDescriptionText,
+  );
+  const systemPrompt = systemPromptToLocateElement(
+    adapter.locate.resultAdapter.promptSpec,
+  );
+
+  const preparedImage = await prepareModelImage({
+    imageBase64: locateRequest.locateImage.imageBase64,
+    width: locateRequest.locateImage.width,
+    height: locateRequest.locateImage.height,
+    policy: adapter.imagePreprocess,
+  });
+
+  const imagePayload = preparedImage.imageBase64;
+
+  const msgs: InspectAIArgs = [
     { role: 'system', content: systemPrompt },
     {
       role: 'user',
@@ -217,102 +254,29 @@ export async function AiLocateElement(options: {
         },
         {
           type: 'text',
-          text: isAutoGLM(modelFamily)
-            ? `Tap: ${userInstructionPrompt}`
-            : userInstructionPrompt,
+          text: userInstructionPrompt,
         },
       ],
     },
   ];
 
-  if (typeof targetElementDescription !== 'string') {
-    const addOns = await promptsToChatParam({
-      images: targetElementDescription.images,
-      convertHttpImage2Base64: targetElementDescription.convertHttpImage2Base64,
-    });
-    msgs.push(...addOns);
-  }
-
-  if (isAutoGLM(modelFamily)) {
-    const { content: rawResponseContent, usage } =
-      await callAIWithStringResponse(msgs, modelConfig, {
-        abortSignal: options.abortSignal,
-      });
-
-    debugInspect('auto-glm rawResponse:', rawResponseContent);
-
-    const parsed = parseAutoGLMLocateResponse(rawResponseContent);
-
-    debugInspect('auto-glm thinking:', parsed.think);
-    debugInspect('auto-glm coordinates:', parsed.coordinates);
-
-    let resRect: Rect | undefined;
-    let matchedElements: LocateResultElement[] = [];
-    let errors: string[] = [];
-
-    if (parsed.error || !parsed.coordinates) {
-      errors = [parsed.error || 'Failed to parse auto-glm response'];
-      debugInspect('auto-glm parse error:', errors[0]);
-    } else {
-      const { x, y } = parsed.coordinates;
-
-      debugInspect('auto-glm coordinates [0-999]:', { x, y });
-
-      // Convert auto-glm coordinates [0,999] to pixel bbox
-      // Map from [0,999] to pixel coordinates
-      const pixelX = Math.round((x * imageWidth) / 1000);
-      const pixelY = Math.round((y * imageHeight) / 1000);
-
-      debugInspect('auto-glm pixel coordinates:', { pixelX, pixelY });
-
-      // Apply offset if searching in a cropped area
-      let finalX = pixelX;
-      let finalY = pixelY;
-      if (options.searchConfig?.rect) {
-        finalX += options.searchConfig.rect.left;
-        finalY += options.searchConfig.rect.top;
-      }
-
-      const element: LocateResultElement = generateElementByPoint(
-        [finalX, finalY],
-        targetElementDescriptionText as string,
-      );
-
-      resRect = element.rect;
-      debugInspect('auto-glm resRect:', resRect);
-
-      if (element) {
-        matchedElements = [element];
-      }
-    }
-
-    return {
-      rect: resRect,
-      parseResult: {
-        elements: matchedElements,
-        errors,
-      },
-      rawResponse: rawResponseContent,
-      usage,
-      reasoning_content: parsed.think,
-    };
+  if (locateRequest.referenceImageMessages) {
+    msgs.push(...locateRequest.referenceImageMessages);
   }
 
   let res: Awaited<
-    ReturnType<
-      typeof callAIWithObjectResponse<AIElementResponse | [number, number]>
-    >
+    ReturnType<typeof callAIWithObjectResponse<AIElementLocateResponse>>
   >;
   try {
-    res = await callAIWithObjectResponse<AIElementResponse | [number, number]>(
+    res = await callAIWithObjectResponse<AIElementLocateResponse>(
       msgs,
-      modelConfig,
+      modelRuntime,
       {
         abortSignal: options.abortSignal,
+        jsonParserSource: 'locate',
       },
     );
   } catch (callError) {
-    // Return error with usage and rawResponse if available
     const errorMessage =
       callError instanceof Error ? callError.message : String(callError);
     const rawResponse =
@@ -321,58 +285,46 @@ export async function AiLocateElement(options: {
         : errorMessage;
     const usage =
       callError instanceof AIResponseParseError ? callError.usage : undefined;
+    const rawChoiceMessage =
+      callError instanceof AIResponseParseError
+        ? callError.rawChoiceMessage
+        : undefined;
     return {
-      rect: undefined,
-      parseResult: {
-        elements: [],
-        errors: [`AI call error: ${errorMessage}`],
-      },
       rawResponse,
+      rawChoiceMessage,
       usage,
-      reasoning_content: undefined,
+      errors: [`AI call error: ${errorMessage}`],
     };
   }
 
   const rawResponse = JSON.stringify(res.content);
 
-  let resRect: Rect | undefined;
-  let matchedElements: LocateResultElement[] = [];
   let errors: string[] | undefined =
     'errors' in res.content ? res.content.errors : [];
+  const resultAdapter = adapter.locate.resultAdapter;
+  if (!hasLocateResult(res.content, resultAdapter.promptSpec.resultKey)) {
+    return {
+      rawResponse,
+      rawChoiceMessage: res.rawChoiceMessage,
+      usage: res.usage,
+      reasoningContent: res.reasoning_content,
+      errors: errors as string[],
+    };
+  }
+
+  let targetPixelBbox;
   try {
-    if (
-      'bbox' in res.content &&
-      Array.isArray(res.content.bbox) &&
-      res.content.bbox.length >= 1
-    ) {
-      resRect = adaptBboxToRect(
-        res.content.bbox,
-        imageWidth,
-        imageHeight,
-        options.searchConfig?.rect?.left,
-        options.searchConfig?.rect?.top,
-        originalImageWidth,
-        originalImageHeight,
-        modelFamily,
-        options.searchConfig?.scale,
-      );
-
-      debugInspect('resRect', resRect);
-
-      const element: LocateResultElement = generateElementByRect(
-        resRect,
-        targetElementDescriptionText as string,
-      );
-      errors = [];
-
-      if (element) {
-        matchedElements = [element];
-      }
-    }
+    targetPixelBbox = resultAdapter.adaptElementLocateResultToPixelBbox(
+      res.content,
+      {
+        preparedSize: preparedImage.preparedSize,
+        contentSize: preparedImage.contentSize,
+      },
+    );
   } catch (e) {
     const msg =
       e instanceof Error
-        ? `Failed to parse bbox: ${e.message}`
+        ? `Failed to parse locate result: ${e.message}`
         : 'unknown error in locate';
     if (!errors || errors?.length === 0) {
       errors = [msg];
@@ -382,39 +334,49 @@ export async function AiLocateElement(options: {
   }
 
   return {
-    rect: resRect,
-    parseResult: {
-      elements: matchedElements as LocateResultElement[],
-      errors: errors as string[],
-    },
+    locatedPixelBbox: targetPixelBbox,
     rawResponse,
+    rawChoiceMessage: res.rawChoiceMessage,
     usage: res.usage,
-    reasoning_content: res.reasoning_content,
+    reasoningContent: res.reasoning_content,
+    errors: errors as string[],
   };
 }
 
 export async function AiLocateSection(options: {
   context: UIContext;
   sectionDescription: TUserPrompt;
-  modelConfig: IModelConfig;
+  modelRuntime: ModelRuntime;
   abortSignal?: AbortSignal;
 }): Promise<{
-  rect?: Rect;
-  imageBase64?: string;
-  scale?: number;
+  searchAreaConfig?: SearchAreaConfig;
   error?: string;
   rawResponse: string;
+  rawChoiceMessage?: unknown;
   usage?: AIUsageInfo;
 }> {
-  const { context, sectionDescription, modelConfig } = options;
-  const { modelFamily } = modelConfig;
-  const screenshotBase64 = context.screenshot.base64;
-
-  const systemPrompt = systemPromptToLocateSection(modelFamily);
-  const sectionLocatorInstructionText = sectionLocatorInstruction(
-    extraTextFromUserPrompt(sectionDescription),
+  const { context, sectionDescription } = options;
+  const modelRuntime = options.modelRuntime;
+  const { adapter } = modelRuntime;
+  assert(
+    adapter.locate.kind === 'standard',
+    'section locate requires a standard locate adapter',
   );
-  const msgs: AIArgs = [
+  const screenshotBase64 = context.screenshot.base64;
+  const preparedImage = await prepareModelImage({
+    imageBase64: screenshotBase64,
+    width: context.shotSize.width,
+    height: context.shotSize.height,
+    policy: adapter.imagePreprocess,
+  });
+
+  const systemPrompt = systemPromptToLocateSection(
+    adapter.locate.resultAdapter.promptSpec,
+  );
+  const sectionLocatorInstructionText = sectionLocatorInstruction(
+    userPromptToString(sectionDescription),
+  );
+  const msgs: InspectAIArgs = [
     { role: 'system', content: systemPrompt },
     {
       role: 'user',
@@ -422,7 +384,7 @@ export async function AiLocateSection(options: {
         {
           type: 'image_url',
           image_url: {
-            url: screenshotBase64,
+            url: preparedImage.imageBase64,
             detail: 'high',
           },
         },
@@ -435,10 +397,9 @@ export async function AiLocateSection(options: {
   ];
 
   if (typeof sectionDescription !== 'string') {
-    const addOns = await promptsToChatParam({
-      images: sectionDescription.images,
-      convertHttpImage2Base64: sectionDescription.convertHttpImage2Base64,
-    });
+    const addOns = await multimodalPromptToChatMessages(
+      userPromptToMultimodalPrompt(sectionDescription),
+    );
     msgs.push(...addOns);
   }
 
@@ -448,13 +409,13 @@ export async function AiLocateSection(options: {
   try {
     result = await callAIWithObjectResponse<AISectionLocatorResponse>(
       msgs,
-      modelConfig,
+      modelRuntime,
       {
         abortSignal: options.abortSignal,
+        jsonParserSource: 'section-locator',
       },
     );
   } catch (callError) {
-    // Return error with usage and rawResponse if available
     const errorMessage =
       callError instanceof Error ? callError.message : String(callError);
     const rawResponse =
@@ -463,11 +424,15 @@ export async function AiLocateSection(options: {
         : errorMessage;
     const usage =
       callError instanceof AIResponseParseError ? callError.usage : undefined;
+    const rawChoiceMessage =
+      callError instanceof AIResponseParseError
+        ? callError.rawChoiceMessage
+        : undefined;
     return {
-      rect: undefined,
-      imageBase64: undefined,
+      searchAreaConfig: undefined,
       error: `AI call error: ${errorMessage}`,
       rawResponse,
+      rawChoiceMessage,
       usage,
     };
   }
@@ -475,41 +440,28 @@ export async function AiLocateSection(options: {
   let searchAreaConfig:
     | Awaited<ReturnType<typeof buildSearchAreaConfig>>
     | undefined;
-  const sectionBbox = result.content.bbox;
-  if (sectionBbox) {
-    const targetRect = adaptBboxToRect(
-      sectionBbox,
-      context.shotSize.width,
-      context.shotSize.height,
-      0,
-      0,
-      context.shotSize.width,
-      context.shotSize.height,
-      modelFamily,
-    );
-    debugSection('original targetRect %j', targetRect);
+  let sectionError = result.content.error;
+  const resultAdapter = adapter.locate.resultAdapter;
+  if (!hasLocateResult(result.content, resultAdapter.promptSpec.resultKey)) {
+    return {
+      searchAreaConfig: undefined,
+      error: sectionError,
+      rawResponse: JSON.stringify(result.content),
+      rawChoiceMessage: result.rawChoiceMessage,
+      usage: result.usage,
+    };
+  }
 
-    const referenceBboxList = result.content.references_bbox || [];
-    debugSection('referenceBboxList %j', referenceBboxList);
-
-    const referenceRects = referenceBboxList
-      .filter((bbox) => Array.isArray(bbox))
-      .map((bbox) => {
-        return adaptBboxToRect(
-          bbox,
-          context.shotSize.width,
-          context.shotSize.height,
-          0,
-          0,
-          context.shotSize.width,
-          context.shotSize.height,
-          modelFamily,
-        );
+  try {
+    const adaptedResult =
+      resultAdapter.adaptSectionLocateResultToPixelBboxGroup(result.content, {
+        preparedSize: preparedImage.preparedSize,
+        contentSize: preparedImage.contentSize,
       });
-    debugSection('referenceRects %j', referenceRects);
-
-    // merge the sectionRect and referenceRects
-    const mergedRect = mergeRects([targetRect, ...referenceRects]);
+    const mergedRect = mergePixelBboxesToRect([
+      adaptedResult.target,
+      ...(adaptedResult.references ?? []),
+    ]);
     debugSection('mergedRect %j', mergedRect);
 
     const expandedRect = expandSearchArea(mergedRect, context.shotSize);
@@ -520,25 +472,31 @@ export async function AiLocateSection(options: {
     searchAreaConfig = await buildSearchAreaConfig({
       context,
       baseRect: mergedRect,
-      modelFamily,
     });
 
     debugSection(
-      'scaled sectionRect from %dx%d to %dx%d (scale=%d)',
+      'scaled section image from %dx%d to %dx%d (scale=%d)',
       originalWidth,
       originalHeight,
-      searchAreaConfig.rect.width,
-      searchAreaConfig.rect.height,
-      searchAreaConfig.scale,
+      searchAreaConfig.image.width,
+      searchAreaConfig.image.height,
+      searchAreaConfig.mapping.scale,
     );
+  } catch (error) {
+    const parseErrorMessage =
+      error instanceof Error
+        ? `Failed to parse section locate result: ${error.message}`
+        : 'unknown error in section locate';
+    sectionError = sectionError
+      ? `${sectionError} (${parseErrorMessage})`
+      : parseErrorMessage;
   }
 
   return {
-    rect: searchAreaConfig?.rect,
-    imageBase64: searchAreaConfig?.imageBase64,
-    scale: searchAreaConfig?.scale,
-    error: result.content.error,
+    searchAreaConfig,
+    error: sectionError,
     rawResponse: JSON.stringify(result.content),
+    rawChoiceMessage: result.rawChoiceMessage,
     usage: result.usage,
   };
 }
@@ -549,9 +507,9 @@ export async function AiExtractElementInfo<T>(options: {
   context: UIContext;
   pageDescription?: string;
   extractOption?: ServiceExtractOption;
-  modelConfig: IModelConfig;
+  modelRuntime: ModelRuntime;
 }) {
-  const { dataQuery, context, extractOption, multimodalPrompt, modelConfig } =
+  const { dataQuery, context, extractOption, multimodalPrompt, modelRuntime } =
     options;
   const systemPrompt = systemPromptToExtract({
     screenshotIncluded: extractOption?.screenshotIncluded !== false,
@@ -586,7 +544,7 @@ export async function AiExtractElementInfo<T>(options: {
     text: extractDataPromptText,
   });
 
-  const msgs: AIArgs = [
+  const msgs: InspectAIArgs = [
     { role: 'system', content: systemPrompt },
     {
       role: 'user',
@@ -595,10 +553,7 @@ export async function AiExtractElementInfo<T>(options: {
   ];
 
   if (multimodalPrompt) {
-    const addOns = await promptsToChatParam({
-      images: multimodalPrompt.images,
-      convertHttpImage2Base64: multimodalPrompt.convertHttpImage2Base64,
-    });
+    const addOns = await multimodalPromptToChatMessages(multimodalPrompt);
     msgs.push(...addOns);
   }
 
@@ -606,26 +561,27 @@ export async function AiExtractElementInfo<T>(options: {
     content: rawResponse,
     usage,
     reasoning_content,
-  } = await callAI(msgs, modelConfig);
+    rawChoiceMessage,
+  } = await callAI(msgs, modelRuntime);
 
-  // Parse XML response to JSON object
   let parseResult: AIDataExtractionResponse<T>;
   try {
     parseResult = parseXMLExtractionResponse<T>(rawResponse);
   } catch (parseError) {
-    // Throw AIResponseParseError with usage and rawResponse preserved
     const errorMessage =
       parseError instanceof Error ? parseError.message : String(parseError);
     throw new AIResponseParseError(
       `XML parse error: ${errorMessage}`,
       rawResponse,
       usage,
+      rawChoiceMessage,
     );
   }
 
   return {
     parseResult,
     rawResponse,
+    rawChoiceMessage,
     usage,
     reasoning_content,
   };
@@ -633,8 +589,7 @@ export async function AiExtractElementInfo<T>(options: {
 
 export async function AiJudgeOrderSensitive(
   description: string,
-  callAIFn: typeof callAIWithObjectResponse<{ isOrderSensitive: boolean }>,
-  modelConfig: IModelConfig,
+  modelRuntime: ModelRuntime,
 ): Promise<{
   isOrderSensitive: boolean;
   usage?: AIUsageInfo;
@@ -642,7 +597,7 @@ export async function AiJudgeOrderSensitive(
   const systemPrompt = systemPromptToJudgeOrderSensitive();
   const userPrompt = orderSensitiveJudgePrompt(description);
 
-  const msgs: AIArgs = [
+  const msgs: InspectAIArgs = [
     { role: 'system', content: systemPrompt },
     {
       role: 'user',
@@ -652,7 +607,13 @@ export async function AiJudgeOrderSensitive(
 
   debugInspect('AiJudgeOrderSensitive: description=%s', description);
 
-  const result = await callAIFn(msgs, modelConfig);
+  const result = await callAIWithObjectResponse<{ isOrderSensitive: boolean }>(
+    msgs,
+    modelRuntime,
+    {
+      jsonParserSource: 'generic-object',
+    },
+  );
 
   return {
     isOrderSensitive: result.content.isOrderSensitive ?? false,

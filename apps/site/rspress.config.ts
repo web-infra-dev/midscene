@@ -56,6 +56,11 @@ export default defineConfig(async () => {
       light: '/midscene_with_text_light.png',
       dark: '/midscene_with_text_dark.png',
     },
+    markdown: {
+      link: {
+        checkDeadLinks: true,
+      },
+    },
     themeConfig: {
       lastUpdated: true,
       socialLinks: [
@@ -107,27 +112,38 @@ export default defineConfig(async () => {
       sidebar: {
         '/': [
           {
-            sectionHeaderText: 'Getting started',
+            sectionHeaderText: 'Introduction',
           },
           {
             text: 'Introduction',
             link: '/introduction',
           },
           {
-            text: 'Model strategy',
-            link: '/model-strategy',
+            text: 'Quick start 🔥',
+            link: '/quick-start',
           },
           {
-            text: 'Common model configuration 🔥',
-            link: '/model-common-config',
+            text: 'Showcases',
+            link: '/showcases',
           },
           {
             text: 'Control any platform with Skills 🔥',
             link: '/skills',
           },
           {
-            text: 'Showcases',
-            link: '/showcases',
+            sectionHeaderText: 'Models',
+          },
+          {
+            text: 'Model strategy',
+            link: '/model-strategy',
+          },
+          {
+            text: 'Configure your model 🔥',
+            link: '/model-common-config',
+          },
+          {
+            text: 'All configuration options',
+            link: '/model-config',
           },
           {
             sectionHeaderText: 'Web browser',
@@ -239,19 +255,11 @@ export default defineConfig(async () => {
             link: '/integrate-with-any-interface',
           },
           {
-            text: 'Expose agent as MCP server',
-            link: '/mcp',
-          },
-          {
-            sectionHeaderText: 'API and config',
+            sectionHeaderText: 'API reference',
           },
           {
             text: 'API reference (Common)',
             link: '/api',
-          },
-          {
-            text: 'Model configuration',
-            link: '/model-config',
           },
           {
             sectionHeaderText: 'Advanced',
@@ -266,6 +274,10 @@ export default defineConfig(async () => {
           },
           {
             sectionHeaderText: 'More',
+          },
+          {
+            text: 'Android World Benchmark Report',
+            link: '/android-world-benchmark-report',
           },
           {
             text: 'Changelog',
@@ -286,28 +298,38 @@ export default defineConfig(async () => {
         ],
         '/zh': [
           {
-            text: '快速开始',
-            sectionHeaderText: '快速开始',
+            sectionHeaderText: '介绍',
           },
           {
             text: '介绍',
             link: '/zh/introduction',
           },
           {
-            text: '模型策略',
-            link: '/zh/model-strategy',
+            text: '快速开始 🔥',
+            link: '/zh/quick-start',
           },
           {
-            text: '常用模型配置 🔥',
-            link: '/zh/model-common-config',
+            text: '案例展示',
+            link: '/zh/showcases',
           },
           {
             text: '使用 Skills 控制任意平台 🔥',
             link: '/zh/skills',
           },
           {
-            text: '案例展示',
-            link: '/zh/showcases',
+            sectionHeaderText: '模型',
+          },
+          {
+            text: '模型策略',
+            link: '/zh/model-strategy',
+          },
+          {
+            text: '配置你的模型 🔥',
+            link: '/zh/model-common-config',
+          },
+          {
+            text: '全部配置项',
+            link: '/zh/model-config',
           },
           {
             sectionHeaderText: 'Web 浏览器',
@@ -419,19 +441,11 @@ export default defineConfig(async () => {
             link: '/zh/integrate-with-any-interface',
           },
           {
-            text: '将设备操作暴露为 MCP',
-            link: '/zh/mcp',
-          },
-          {
-            sectionHeaderText: 'API 与配置',
+            sectionHeaderText: 'API 参考',
           },
           {
             text: 'API 参考（公共）',
             link: '/zh/api',
-          },
-          {
-            text: '模型配置',
-            link: '/zh/model-config',
           },
           {
             sectionHeaderText: '进阶',
@@ -446,6 +460,10 @@ export default defineConfig(async () => {
           },
           {
             sectionHeaderText: '更多',
+          },
+          {
+            text: 'Android World Benchmark 测试报告',
+            link: '/zh/android-world-benchmark-report',
           },
           {
             text: '更新日志',
@@ -578,11 +596,11 @@ export default defineConfig(async () => {
           },
           {
             from: '^/web-mcp(?:\\.html)?/?$',
-            to: '/mcp',
+            to: '/skills',
           },
           {
             from: '^/mcp-android(?:\\.html)?/?$',
-            to: '/mcp',
+            to: '/skills',
           },
           {
             from: '^/blog-support-android-automation(?:\\.html)?/?$',
@@ -602,11 +620,11 @@ export default defineConfig(async () => {
           },
           {
             from: '^/zh/web-mcp(?:\\.html)?/?$',
-            to: '/zh/mcp',
+            to: '/zh/skills',
           },
           {
             from: '^/zh/mcp-android(?:\\.html)?/?$',
-            to: '/zh/mcp',
+            to: '/zh/skills',
           },
           {
             from: '^/zh/integrate-with-android(?:\\.html)?/?$',

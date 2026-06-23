@@ -7,9 +7,10 @@ import {
   shouldUseDesktopPreviewPadding,
   shouldUseMobilePreviewFrame,
 } from '../src/renderer/components/MainContent/preview-layout';
+import type { StudioPlatformId } from '../src/shared/electron-contract';
 
 function createRuntimeInfo(
-  platformId: PlaygroundRuntimeInfo['platformId'],
+  platformId: StudioPlatformId,
   interfaceType?: string,
 ): PlaygroundRuntimeInfo {
   return {

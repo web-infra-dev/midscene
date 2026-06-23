@@ -1,9 +1,19 @@
 import { TaskExecutor } from '@/agent/tasks';
-import * as aiModel from '@/ai-model';
+import { getModelRuntime } from '@/ai-model/models';
+import { genericXmlPlan } from '@/ai-model/workflows/planning';
 import { ScreenshotItem } from '@/screenshot-item';
-import type { ServiceDump } from '@/types';
+import type { AIUsageInfo, ServiceDump } from '@/types';
 import type { IModelConfig } from '@midscene/shared/env';
 import { describe, expect, it, vi } from 'vitest';
+
+vi.mock('@/ai-model/workflows/planning', async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import('@/ai-model/workflows/planning')>();
+  return {
+    ...actual,
+    genericXmlPlan: vi.fn(),
+  };
+});
 
 // Helper function to create mock UIContext with ScreenshotItem
 const createMockUIContext = async (screenshotData = 'mock-screenshot') => {
@@ -24,21 +34,35 @@ const createEmptyUIContext = async () => {
   };
 };
 
+const createMockUsage = (totalTokens: number): AIUsageInfo => ({
+  prompt_tokens: 0,
+  completion_tokens: 0,
+  total_tokens: totalTokens,
+  cached_input: undefined,
+  time_cost: undefined,
+  model_name: undefined,
+  model_description: undefined,
+  response_model_name: undefined,
+  intent: undefined,
+  slot: undefined,
+  request_id: undefined,
+});
+
 // Helper function to create mock ServiceDump
 const createMockDump = (
   data: any,
   thought?: string,
   usage?: { totalTokens: number },
 ): ServiceDump => ({
+  logTime: Date.now(),
   type: 'extract',
   logId: 'mock-log-id',
   userQuery: {},
-  matchedElement: [],
   data,
   taskInfo: {
     durationMs: 100,
     rawResponse: JSON.stringify(data),
-    usage: usage ? { inputTokens: 0, outputTokens: 0, ...usage } : undefined,
+    usage: usage ? createMockUsage(usage.totalTokens) : undefined,
     reasoning_content: thought,
   },
 });
@@ -81,7 +105,7 @@ describe('TaskExecutor - Null Data Handling', () => {
       const queryTask = await (taskExecutor as any).createTypeQueryTask(
         'WaitFor',
         'Element is visible',
-        mockModelConfig,
+        getModelRuntime(mockModelConfig),
         {},
         {}, // ServiceExtractOption
       );
@@ -125,7 +149,7 @@ describe('TaskExecutor - Null Data Handling', () => {
       const queryTask = await (taskExecutor as any).createTypeQueryTask(
         'WaitFor',
         'Button is enabled',
-        mockModelConfig,
+        getModelRuntime(mockModelConfig),
         {},
       );
 
@@ -166,7 +190,7 @@ describe('TaskExecutor - Null Data Handling', () => {
       const queryTask = await (taskExecutor as any).createTypeQueryTask(
         'Assert',
         'Page title is correct',
-        mockModelConfig,
+        getModelRuntime(mockModelConfig),
         {},
       );
 
@@ -183,7 +207,7 @@ describe('TaskExecutor - Null Data Handling', () => {
           StatementIsTruthy:
             'Boolean, based on the current screenshot and its contents if provided, unless the user explicitly asks to compare with reference images, whether the following statement is true: Page title is correct',
         },
-        mockModelConfig,
+        getModelRuntime(mockModelConfig),
         {},
         '',
         undefined,
@@ -223,7 +247,7 @@ describe('TaskExecutor - Null Data Handling', () => {
       const queryTask = await (taskExecutor as any).createTypeQueryTask(
         'WaitFor',
         'Element is visible',
-        mockModelConfig,
+        getModelRuntime(mockModelConfig),
         {},
       );
 
@@ -237,7 +261,7 @@ describe('TaskExecutor - Null Data Handling', () => {
           StatementIsTruthy:
             "Boolean, the user wants to do some 'wait for' operation. based on the current screenshot and its contents if provided, unless the user explicitly asks to compare with reference images, please check whether the following statement is true: Element is visible",
         },
-        mockModelConfig,
+        getModelRuntime(mockModelConfig),
         {},
         '',
         undefined,
@@ -290,7 +314,7 @@ describe('TaskExecutor - Null Data Handling', () => {
       const queryTask = await (taskExecutor as any).createTypeQueryTask(
         'Boolean',
         'Element is visible',
-        mockModelConfig,
+        getModelRuntime(mockModelConfig),
         {},
       );
 
@@ -311,7 +335,7 @@ describe('TaskExecutor - Null Data Handling', () => {
     });
 
     it('should preserve planning intent while recording resolved config slot', async () => {
-      const planSpy = vi.spyOn(aiModel, 'plan').mockResolvedValue({
+      const planSpy = vi.mocked(genericXmlPlan).mockResolvedValue({
         actions: [],
         usage: {
           prompt_tokens: 20,
@@ -355,8 +379,8 @@ describe('TaskExecutor - Null Data Handling', () => {
 
       const result = await taskExecutor.action(
         'complete the task',
-        planningModelConfig,
-        defaultModelConfig,
+        getModelRuntime(planningModelConfig),
+        getModelRuntime(defaultModelConfig),
         false,
       );
 
@@ -367,7 +391,7 @@ describe('TaskExecutor - Null Data Handling', () => {
         slot: 'default',
       });
 
-      planSpy.mockRestore();
+      planSpy.mockReset();
     });
 
     it('should preserve existing intent and warn instead of overwriting it', async () => {
@@ -416,7 +440,7 @@ describe('TaskExecutor - Null Data Handling', () => {
       const queryTask = await (taskExecutor as any).createTypeQueryTask(
         'Boolean',
         'Element is visible',
-        mockModelConfig,
+        getModelRuntime(mockModelConfig),
         {},
       );
 
@@ -465,7 +489,7 @@ describe('TaskExecutor - Null Data Handling', () => {
       const queryTask = await (taskExecutor as any).createTypeQueryTask(
         'WaitFor',
         'Element is visible',
-        mockModelConfig,
+        getModelRuntime(mockModelConfig),
         {},
       );
 
@@ -504,7 +528,7 @@ describe('TaskExecutor - Null Data Handling', () => {
       const queryTask = await (taskExecutor as any).createTypeQueryTask(
         'Query',
         { question: 'What is the title?' },
-        mockModelConfig,
+        getModelRuntime(mockModelConfig),
         {},
       );
 
@@ -545,7 +569,7 @@ describe('TaskExecutor - Null Data Handling', () => {
       const queryTask = await (taskExecutor as any).createTypeQueryTask(
         'String',
         'Extract the username',
-        mockModelConfig,
+        getModelRuntime(mockModelConfig),
         {},
       );
 
@@ -589,7 +613,7 @@ describe('TaskExecutor - Null Data Handling', () => {
       const queryTask = await (taskExecutor as any).createTypeQueryTask(
         'Number',
         'Extract the price',
-        mockModelConfig,
+        getModelRuntime(mockModelConfig),
         {},
       );
 
@@ -603,7 +627,7 @@ describe('TaskExecutor - Null Data Handling', () => {
           Number:
             'Number, based on the current screenshot and its contents if provided, unless the user explicitly asks to compare with reference images, Extract the price',
         },
-        mockModelConfig,
+        getModelRuntime(mockModelConfig),
         {},
         '',
         undefined,
@@ -645,7 +669,7 @@ describe('TaskExecutor - Null Data Handling', () => {
       const queryTask = await (taskExecutor as any).createTypeQueryTask(
         'Number',
         'Extract the price',
-        mockModelConfig,
+        getModelRuntime(mockModelConfig),
         { domIncluded: true },
       );
 
@@ -683,7 +707,7 @@ describe('TaskExecutor - Null Data Handling', () => {
       const queryTask = await (taskExecutor as any).createTypeQueryTask(
         'Number',
         'Extract the price',
-        mockModelConfig,
+        getModelRuntime(mockModelConfig),
         {},
       );
 
@@ -697,7 +721,7 @@ describe('TaskExecutor - Null Data Handling', () => {
           Number:
             'Number, based on the current screenshot and its contents if provided, unless the user explicitly asks to compare with reference images, Extract the price',
         },
-        mockModelConfig,
+        getModelRuntime(mockModelConfig),
         {},
         '',
         undefined,
@@ -728,6 +752,7 @@ describe('TaskExecutor - Null Data Handling', () => {
         modelName: 'mock-model',
         modelDescription: 'mock-model-description',
         intent: 'default',
+        slot: 'default',
       };
 
       const taskExecutor = new TaskExecutor({} as any, mockInsight, {
@@ -737,7 +762,7 @@ describe('TaskExecutor - Null Data Handling', () => {
       const queryTask = await (taskExecutor as any).createTypeQueryTask(
         'Boolean',
         'there is a like button',
-        mockModelConfig,
+        getModelRuntime(mockModelConfig),
         {},
       );
 
@@ -751,7 +776,7 @@ describe('TaskExecutor - Null Data Handling', () => {
           Boolean:
             'Boolean, based on the current screenshot and its contents if provided, unless the user explicitly asks to compare with reference images, there is a like button',
         },
-        mockModelConfig,
+        getModelRuntime(mockModelConfig),
         {},
         '',
         undefined,

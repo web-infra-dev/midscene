@@ -55,7 +55,7 @@ jobs:
           ${{ runner.os }}-playwright-
 
     - name: Install dependencies
-      run: pnpm install --frozen-lockfile
+      run: pnpm install --frozen-lockfile --ignore-scripts
 
     - name: Install Playwright dependencies
       run: |
@@ -70,6 +70,9 @@ jobs:
       run: |
         cd packages/web-integration
         npx puppeteer browsers install chrome
+
+    - name: Build project
+      run: pnpm run build
 
     - name: Run e2e tests
       run: pnpm run e2e
@@ -148,7 +151,7 @@ jobs:
           ${{ runner.os }}-playwright-
 
     - name: Install dependencies
-      run: pnpm install --frozen-lockfile
+      run: pnpm install --frozen-lockfile --ignore-scripts
 
     - name: Install Playwright dependencies
       run: |
@@ -163,6 +166,9 @@ jobs:
       run: |
         cd packages/web-integration
         npx puppeteer browsers install chrome
+
+    - name: Build project
+      run: pnpm run build
 
     - name: Run apps/report e2e tests
       run: cd apps/report && pnpm run e2e

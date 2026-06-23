@@ -29,6 +29,7 @@ export default defineConfig({
     },
   ],
   source: {
+    tsconfigPath: 'tsconfig.build.json',
     define: {
       __VERSION__: JSON.stringify(version),
     },
@@ -37,4 +38,7 @@ export default defineConfig({
     sourceMap: true,
   },
   plugins: [createTypeCheckPlugin()],
+  performance: {
+    buildCache: false,
+  },
 });

@@ -1,6 +1,6 @@
 import './App.less';
 
-import { Alert, ConfigProvider, Empty, theme } from 'antd';
+import { Alert, App as AntdApp, ConfigProvider, Empty, theme } from 'antd';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 
@@ -317,35 +317,37 @@ function Visualizer(props: VisualizerProps): JSX.Element {
         algorithm: isDarkMode ? theme.darkAlgorithm : theme.defaultAlgorithm,
       }}
     >
-      <div
-        className="page-container"
-        key={`render-${globalRenderCount}`}
-        style={{ height: containerHeight }}
-        data-theme={isDarkMode ? 'dark' : 'light'}
-      >
-        <div className="page-nav">
-          <div className="page-nav-left">
-            <Logo />
-          </div>
-          <div className="page-nav-right">
-            <div className="page-nav-version">
-              {sdkVersion ? `v${sdkVersion}` : 'unknown version'}
-              {modelBriefText ? ` | ${modelBriefText}` : ''}
+      <AntdApp component={false}>
+        <div
+          className="page-container"
+          key={`render-${globalRenderCount}`}
+          style={{ height: containerHeight }}
+          data-theme={isDarkMode ? 'dark' : 'light'}
+        >
+          <div className="page-nav">
+            <div className="page-nav-left">
+              <Logo />
             </div>
-            <div className="theme-divider" />
-            <button
-              type="button"
-              className="theme-toggle-button"
-              onClick={() => setIsDarkMode(!isDarkMode)}
-              aria-label="Toggle theme"
-            >
-              {isDarkMode ? <ThemeDarkIcon /> : <ThemeLightIcon />}
-            </button>
+            <div className="page-nav-right">
+              <div className="page-nav-version">
+                {sdkVersion ? `v${sdkVersion}` : 'unknown version'}
+                {modelBriefText ? ` | ${modelBriefText}` : ''}
+              </div>
+              <div className="theme-divider" />
+              <button
+                type="button"
+                className="theme-toggle-button"
+                onClick={() => setIsDarkMode(!isDarkMode)}
+                aria-label="Toggle theme"
+              >
+                {isDarkMode ? <ThemeDarkIcon /> : <ThemeLightIcon />}
+              </button>
+            </div>
           </div>
+          {mainContent}
         </div>
-        {mainContent}
-      </div>
-      <GlobalHoverPreview />
+        <GlobalHoverPreview />
+      </AntdApp>
     </ConfigProvider>
   );
 }

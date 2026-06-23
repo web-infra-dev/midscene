@@ -26,7 +26,7 @@ describe('platform descriptors', () => {
     });
 
     expect(descriptor.id).toBe('test');
-    await expect(descriptor.prepare()).resolves.toMatchObject({
+    await expect(descriptor.prepare(undefined)).resolves.toMatchObject({
       platformId: 'test',
       title: 'Test Platform',
       preview: {

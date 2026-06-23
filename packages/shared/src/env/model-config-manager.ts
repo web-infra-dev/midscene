@@ -69,16 +69,19 @@ export class ModelConfigManager {
       default: {
         ...defaultConfig,
         intent: 'default',
+        slot: 'default',
         createOpenAIClient: this.createOpenAIClientFn,
       },
       insight: {
         ...(insightConfig || defaultConfig),
         intent: 'insight',
+        slot: insightConfig ? 'insight' : 'default',
         createOpenAIClient: this.createOpenAIClientFn,
       },
       planning: {
         ...(planningConfig || defaultConfig),
         intent: 'planning',
+        slot: planningConfig ? 'planning' : 'default',
         createOpenAIClient: this.createOpenAIClientFn,
       },
     };
@@ -145,7 +148,7 @@ export class ModelConfigManager {
 
     if (!modelConfig.modelFamily) {
       throw new Error(
-        'MIDSCENE_MODEL_FAMILY is not set to a visual language model (VL model), the element localization can not be achieved. Check your model configuration. See https://midscenejs.com/model-strategy.html',
+        'MIDSCENE_MODEL_FAMILY is not set to a multimodal model with UI localization, so element localization cannot be achieved. Check your model configuration. See https://midscenejs.com/model-strategy.html',
       );
     }
   }

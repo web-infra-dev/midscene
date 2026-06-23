@@ -136,7 +136,6 @@ export class ReportGenerator implements IReportGenerator {
     if (options.reuseExistingReport) {
       this.hydrateStateFromExistingReport();
     }
-    this.printReportPath('will be generated at');
   }
 
   static create(
@@ -150,11 +149,11 @@ export class ReportGenerator implements IReportGenerator {
     },
   ): IReportGenerator {
     assertReportGenerationOptions(opts);
+    validateReportFileName(reportFileName);
     if (opts.generateReport === false) return nullReportGenerator;
 
     // In browser environment, file system is not available
     if (ifInBrowser) return nullReportGenerator;
-    validateReportFileName(reportFileName);
 
     const reportRootDir = getMidsceneRunSubDir('report');
     const outputDir = join(reportRootDir, reportFileName);
@@ -205,7 +204,6 @@ export class ReportGenerator implements IReportGenerator {
       return undefined;
     }
 
-    this.printReportPath('finalized');
     return this.reportPath;
   }
 
@@ -213,17 +211,17 @@ export class ReportGenerator implements IReportGenerator {
     return this.reportPath;
   }
 
-  private printReportPath(verb: string): void {
+  private printReportPath(): void {
     if (!this.autoPrint || !this.reportPath) return;
     if (globalConfigManager.getEnvConfigInBoolean(MIDSCENE_REPORT_QUIET))
       return;
 
     if (this.screenshotMode === 'directory') {
       logMsg(
-        `Midscene - report ${verb}: npx serve ${dirname(this.reportPath)}`,
+        `Midscene - report file updated: npx serve ${dirname(this.reportPath)}`,
       );
     } else {
-      logMsg(`Midscene - report ${verb}: ${this.reportPath}`);
+      logMsg(`Midscene - report file updated: ${this.reportPath}`);
     }
   }
 
@@ -245,7 +243,7 @@ export class ReportGenerator implements IReportGenerator {
 
     if (!this.firstWriteDone) {
       this.firstWriteDone = true;
-      this.printReportPath('generated');
+      this.printReportPath();
     }
   }
 

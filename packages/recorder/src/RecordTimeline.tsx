@@ -7,6 +7,11 @@ import {
   VerticalAlignTopOutlined,
 } from '@ant-design/icons';
 import {
+  getMidsceneRecorderEventDescription,
+  getMidsceneRecorderSemantic,
+} from '@midscene/shared/recorder';
+import {
+  App as AntdApp,
   Button,
   Card,
   Image,
@@ -14,9 +19,8 @@ import {
   Space,
   Timeline,
   Typography,
-  message,
 } from 'antd';
-import React, { useState, useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ShinyText } from './components/shiny-text';
 import type { RecordedEvent } from './recorder';
 import './RecordTimeline.css';
@@ -32,19 +36,24 @@ export const RecordTimeline = ({
   events,
   onEventClick,
 }: RecordTimelineProps) => {
+  const { message } = AntdApp.useApp();
   const [expandedEvents, setExpandedEvents] = useState<Set<number>>(new Set());
-  console.log('events', events);
+  const timelineRootRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
-    // use className and querySelector to get internal div
     if (events.length > 0) {
-      const timeline = document.querySelector(
-        '.ant-timeline',
-      ) as HTMLDivElement;
+      const timeline =
+        timelineRootRef.current?.querySelector<HTMLElement>('.ant-timeline');
       if (timeline) {
-        timeline.scrollIntoView({
-          behavior: 'smooth',
-          block: 'end',
-        });
+        const nextScrollTop = timeline.scrollHeight;
+        if (typeof timeline.scrollTo === 'function') {
+          timeline.scrollTo({
+            top: nextScrollTop,
+            behavior: 'smooth',
+          });
+        } else {
+          timeline.scrollTop = nextScrollTop;
+        }
       }
     }
   }, [events.length]);
@@ -92,6 +101,8 @@ export const RecordTimeline = ({
     switch (type) {
       case 'click':
         return <AimOutlined style={{ color: '#1890ff' }} />;
+      case 'drag':
+        return <AimOutlined style={{ color: '#13c2c2' }} />;
       case 'input':
         return <EditOutlined style={{ color: '#52c41a' }} />;
       case 'scroll':
@@ -111,6 +122,8 @@ export const RecordTimeline = ({
     switch (type) {
       case 'click':
         return '#1890ff';
+      case 'drag':
+        return '#13c2c2';
       case 'input':
         return '#52c41a';
       case 'scroll':
@@ -135,16 +148,24 @@ export const RecordTimeline = ({
     });
   };
 
+  const isCoordinateValue = (value?: string) =>
+    Boolean(value && /^\s*\d+(?:\.\d+)?,\s*\d+(?:\.\d+)?\s*$/.test(value));
+
+  const getDisplayDescription = (event: RecordedEvent) =>
+    getMidsceneRecorderEventDescription(event);
+
   const getEventTitle = (event: RecordedEvent) => {
     switch (event.type) {
       case 'click':
         if (event.targetTagName === 'BUTTON') {
           return 'Click Button';
         }
-        if (event.value) {
+        if (event.value && !isCoordinateValue(event.value)) {
           return `Click Element "${event.value}"`;
         }
         return 'Click';
+      case 'drag':
+        return 'Drag';
       case 'input':
         return 'Input';
       case 'scroll':
@@ -165,16 +186,13 @@ export const RecordTimeline = ({
 
     switch (event.type) {
       case 'click':
-        if (
-          event.descriptionLoading === true &&
-          event.elementRect?.x !== undefined &&
-          event.elementRect?.y !== undefined
-        ) {
+      case 'drag':
+        if (getMidsceneRecorderSemantic(event)?.status === 'pending') {
           return (
             <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
               <Text>{eventTitle} - </Text>
               <ShinyText
-                text={`(${event.elementRect!.x}, ${event.elementRect!.y})`}
+                text="analyzing target..."
                 disabled={false}
                 speed={3}
                 className="step-title-shiny"
@@ -183,10 +201,10 @@ export const RecordTimeline = ({
           );
         }
 
-        if (event.descriptionLoading === false && event.elementDescription) {
+        if (getMidsceneRecorderSemantic(event)?.status === 'ready') {
           return (
-            <Text className="">
-              {eventTitle} - {event.elementDescription}
+            <Text>
+              {eventTitle} - {getDisplayDescription(event)}
             </Text>
           );
         }
@@ -194,10 +212,10 @@ export const RecordTimeline = ({
         return <Text>{eventTitle}</Text>;
 
       case 'input':
-        if (event.descriptionLoading === false && event.elementDescription) {
+        if (getMidsceneRecorderSemantic(event)?.status === 'ready') {
           return (
             <Text>
-              {eventTitle} - {event.elementDescription}
+              {eventTitle} - {getDisplayDescription(event)}
             </Text>
           );
         }
@@ -215,21 +233,28 @@ export const RecordTimeline = ({
         );
 
       case 'scroll':
-        if (event.elementDescription) {
+        if (getDisplayDescription(event)) {
           return (
             <Text>
-              {eventTitle} - {event.value?.split(' ')[0] || ''}
+              {eventTitle} - {getDisplayDescription(event)}
             </Text>
           );
         }
         return (
           <Text>
-            {eventTitle} - Position: ({event.elementRect?.x || 0},{' '}
-            {event.elementRect?.y || 0})
+            {eventTitle} - {event.value?.split(' ')[0] || 'recorded scroll'}
           </Text>
         );
 
       case 'navigation': {
+        const navigationDescription = getDisplayDescription(event);
+        if (navigationDescription) {
+          return (
+            <Text>
+              {eventTitle} - {navigationDescription}
+            </Text>
+          );
+        }
         const truncatedUrl =
           event.url && event.url.length > 50
             ? `${event.url.substring(0, 50)}...`
@@ -387,7 +412,7 @@ export const RecordTimeline = ({
                 <Card
                   size="small"
                   style={{ backgroundColor: '#f5f5f5' }}
-                  bodyStyle={{ padding: '0px' }}
+                  styles={{ body: { padding: '0px' } }}
                 >
                   <div style={{ position: 'relative' }}>
                     <pre
@@ -434,7 +459,7 @@ export const RecordTimeline = ({
   });
 
   return (
-    <div style={{ padding: '3px' }}>
+    <div ref={timelineRootRef} style={{ minHeight: 0, padding: '3px' }}>
       <Space direction="vertical" size="large" style={{ width: '100%' }}>
         <Timeline
           mode="left"

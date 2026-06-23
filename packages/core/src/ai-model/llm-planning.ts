@@ -1,33 +1,24 @@
+import { type TUserPrompt, userPromptToString } from '@/common';
 import type {
-  DeviceAction,
-  InterfaceType,
   PlanningAIResponse,
   RawResponsePlanningAIResponse,
-  UIContext,
 } from '@/types';
-import type { IModelConfig, TModelFamily } from '@midscene/shared/env';
-import { paddingToMatchBlockByBase64 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import type { ChatCompletionMessageParam } from 'openai/resources/index';
-import {
-  buildYamlFlowFromPlans,
-  fillBboxParam,
-  findActionInActionSpaceOrThrow,
-  findAllMidsceneLocatorField,
-} from '../common';
-import type { ConversationHistory } from './conversation-history';
+import { buildYamlFlowFromPlans } from '../common';
+import { planningModelFamilyRequiredForLocateMessage } from './errors';
 import { systemPromptToTaskPlanning } from './prompt/llm-planning';
 import {
   extractXMLTag,
   parseMarkFinishedIndexes,
   parseSubGoalsFromXML,
 } from './prompt/util';
-import {
-  AIResponseParseError,
-  callAI,
-  safeParseJson,
-} from './service-caller/index';
+import { AIResponseParseError, callAI } from './service-caller/index';
+import type { JsonParser, JsonParserSource } from './service-caller/json';
+import { prepareModelImage } from './workflows/image-preprocess';
+import { normalizePlanningActionLocateFields } from './workflows/planning/locate-normalization';
+import type { PlanOptions } from './workflows/planning/types';
 
 const debug = getDebug('planning');
 const warnLog = getDebug('planning', { console: true });
@@ -36,11 +27,11 @@ const noPreviousActionsText =
   'No previous actions have been executed in this aiAct execution yet. If the instruction asks for actions, choose the first action to execute.';
 
 /**
- * Parse XML response from LLM and convert to RawResponsePlanningAIResponse
+ * Parse XML response from LLM and convert to RawResponsePlanningAIResponse.
  */
 export function parseXMLPlanningResponse(
   xmlString: string,
-  modelFamily: TModelFamily | undefined,
+  jsonParser: JsonParser,
 ): RawResponsePlanningAIResponse {
   const thought = extractXMLTag(xmlString, 'thought');
   const memory = extractXMLTag(xmlString, 'memory');
@@ -83,7 +74,11 @@ export function parseXMLPlanningResponse(
     if (actionParamStr) {
       try {
         // Parse the JSON string in action-param-json
-        param = safeParseJson(actionParamStr, modelFamily);
+        param = jsonParser(actionParamStr, {
+          source: 'planning-action-param',
+          preserveStringValueKeys:
+            type.toLowerCase() === 'input' ? ['value'] : undefined,
+        });
       } catch (e) {
         throw new Error(`Failed to parse action-param-json: ${e}`);
       }
@@ -109,66 +104,62 @@ export function parseXMLPlanningResponse(
 }
 
 export async function plan(
-  userInstruction: string,
-  opts: {
-    context: UIContext;
-    interfaceType: InterfaceType;
-    actionSpace: DeviceAction<any>[];
-    actionContext?: string;
-    modelConfig: IModelConfig;
-    conversationHistory: ConversationHistory;
-    includeBbox: boolean;
-    imagesIncludeCount?: number;
-    // Controls aiAct planning prompt shape and state updates, such as sub-goals.
-    deepThink?: boolean;
-    abortSignal?: AbortSignal;
-  },
+  userInstruction: TUserPrompt,
+  opts: PlanOptions,
 ): Promise<PlanningAIResponse> {
-  const { context, modelConfig, conversationHistory } = opts;
+  const { context, conversationHistory } = opts;
+  const modelRuntime = opts.modelRuntime;
+  const { adapter } = modelRuntime;
   const { shotSize } = context;
   const screenshotBase64 = context.screenshot.base64;
 
-  const { modelFamily } = modelConfig;
+  if (opts.includeLocateInPlanning && !modelRuntime.config.modelFamily) {
+    throw new Error(
+      planningModelFamilyRequiredForLocateMessage(modelRuntime.config.slot),
+    );
+  }
+
+  const locateResultAdapter =
+    modelRuntime.config.modelFamily && adapter.locate.kind === 'standard'
+      ? adapter.locate.resultAdapter
+      : undefined;
 
   // Only enable sub-goals when aiAct is in deep-thinking planning mode.
   const includeSubGoals = opts.deepThink === true;
 
   const systemPrompt = await systemPromptToTaskPlanning({
     actionSpace: opts.actionSpace,
-    modelFamily,
-    includeBbox: opts.includeBbox,
+    locatePromptSpec: locateResultAdapter?.promptSpec,
+    includeLocateInPlanning: opts.includeLocateInPlanning,
     includeThought: true, // always include thought
     includeSubGoals,
   });
 
-  let imagePayload = screenshotBase64;
-  let imageWidth = shotSize.width;
-  let imageHeight = shotSize.height;
-  const rightLimit = imageWidth;
-  const bottomLimit = imageHeight;
+  const preparedImage = await prepareModelImage({
+    imageBase64: screenshotBase64,
+    width: shotSize.width,
+    height: shotSize.height,
+    policy: adapter.imagePreprocess,
+  });
+  const imagePayload = preparedImage.imageBase64;
 
-  // Process image based on VL mode requirements
-  if (modelFamily === 'qwen2.5-vl') {
-    const paddedResult = await paddingToMatchBlockByBase64(imagePayload);
-    imageWidth = paddedResult.width;
-    imageHeight = paddedResult.height;
-    imagePayload = paddedResult.imageBase64;
-  }
-
+  const userInstructionText = userPromptToString(userInstruction);
   const actionContext = opts.actionContext
     ? `<high_priority_knowledge>${opts.actionContext}</high_priority_knowledge>\n`
     : '';
 
+  const referenceImageMessages = opts.referenceImageMessages ?? [];
   const instruction: ChatCompletionMessageParam[] = [
     {
       role: 'user',
       content: [
         {
           type: 'text',
-          text: `${actionContext}<user_instruction>${userInstruction}</user_instruction>`,
+          text: `${actionContext}<user_instruction>${userInstructionText}</user_instruction>`,
         },
       ],
     },
+    ...referenceImageMessages,
   ];
 
   let latestFeedbackMessage: ChatCompletionMessageParam;
@@ -243,28 +234,30 @@ export async function plan(
     content: rawResponse,
     usage,
     reasoning_content,
-  } = await callAI(msgs, modelConfig, {
+    rawChoiceMessage,
+  } = await callAI(msgs, modelRuntime, {
     abortSignal: opts.abortSignal,
-    // When GPT-5 planning includes bbox, the planning call also performs
-    // localization, so the screenshot should be sent with original detail.
-    forceOriginalImageDetail: modelFamily === 'gpt-5' && opts.includeBbox,
+    // Planning with locate results is localization-sensitive. Adapters decide
+    // whether this should request original image detail.
+    requiresOriginalImageDetail: opts.includeLocateInPlanning,
   });
 
   // Parse XML response to JSON object, retry once on parse failure
   let planFromAI: RawResponsePlanningAIResponse;
   try {
     try {
-      planFromAI = parseXMLPlanningResponse(rawResponse, modelFamily);
+      planFromAI = parseXMLPlanningResponse(rawResponse, adapter.jsonParser);
     } catch {
-      const retry = await callAI(msgs, modelConfig, {
+      const retry = await callAI(msgs, modelRuntime, {
         abortSignal: opts.abortSignal,
         // Keep retry requests consistent with the initial planning call.
-        forceOriginalImageDetail: modelFamily === 'gpt-5' && opts.includeBbox,
+        requiresOriginalImageDetail: opts.includeLocateInPlanning,
       });
       rawResponse = retry.content;
       usage = retry.usage;
       reasoning_content = retry.reasoning_content;
-      planFromAI = parseXMLPlanningResponse(rawResponse, modelFamily);
+      rawChoiceMessage = retry.rawChoiceMessage;
+      planFromAI = parseXMLPlanningResponse(rawResponse, adapter.jsonParser);
     }
 
     if (planFromAI.action && planFromAI.finalizeSuccess !== undefined) {
@@ -292,6 +285,7 @@ export async function plan(
       ...planFromAI,
       actions,
       rawResponse,
+      rawChoiceMessage,
       usage,
       reasoning_content,
       yamlFlow: buildYamlFlowFromPlans(actions, opts.actionSpace),
@@ -300,32 +294,14 @@ export async function plan(
 
     assert(planFromAI, "can't get plans from AI");
 
-    actions.forEach((action) => {
-      const type = action.type;
-      const actionInActionSpace = findActionInActionSpaceOrThrow(
-        type,
-        opts.actionSpace,
-      );
-
-      debug('actionInActionSpace matched', actionInActionSpace);
-      const locateFields = actionInActionSpace
-        ? findAllMidsceneLocatorField(actionInActionSpace.paramSchema)
-        : [];
-
-      debug('locateFields', locateFields);
-
-      locateFields.forEach((field) => {
-        const locateResult = action.param[field];
-        if (locateResult && modelFamily !== undefined) {
-          // Always use model family to fill bbox parameters
-          action.param[field] = fillBboxParam(
-            locateResult,
-            imageWidth,
-            imageHeight,
-            modelFamily,
-          );
-        }
-      });
+    normalizePlanningActionLocateFields(actions, {
+      actionSpace: opts.actionSpace,
+      includeLocateInPlanning: opts.includeLocateInPlanning,
+      locateResultAdapter,
+      locateResultContext: {
+        preparedSize: preparedImage.preparedSize,
+        contentSize: preparedImage.contentSize,
+      },
     });
 
     // Update sub-goals in conversation history only in planning deep-think mode.
@@ -373,6 +349,7 @@ export async function plan(
       `XML parse error: ${errorMessage}`,
       rawResponse,
       usage,
+      rawChoiceMessage,
     );
   }
 }

@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { getKeyCommands } from '@/web-page';
+import { ScreenshotItem } from '@midscene/core';
 import {
   buildDetailedLocateParam,
   buildDetailedLocateParamAndRestParams,
@@ -165,7 +166,7 @@ describe('buildDetailedLocateParamAndRestParams', () => {
       tree: { node: null, children: [] },
       shotSize: { width: 800, height: 600 },
       shrunkShotToLogicalRatio: 1,
-      screenshotBase64: 'mock-base64-string',
+      screenshot: ScreenshotItem.create('mock-base64-string', Date.now()),
     };
     const options = {
       deepLocate: true,

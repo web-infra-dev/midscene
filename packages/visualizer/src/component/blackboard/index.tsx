@@ -14,7 +14,9 @@ export const Blackboard = (props: {
   const highlightElements: BaseElement[] = props.highlightElements || [];
   const highlightRect = props.highlightRect;
 
-  if (!props.uiContext?.shotSize) {
+  const shotSize = props.uiContext?.shotSize;
+
+  if (!shotSize) {
     return (
       <div className="blackboard">
         <div className="blackboard-main-content" style={{ padding: '20px' }}>
@@ -25,7 +27,6 @@ export const Blackboard = (props: {
   }
 
   const context = props.uiContext;
-  const { shotSize, screenshot } = context;
   const screenWidth = shotSize.width;
   const screenHeight = shotSize.height;
 
@@ -35,13 +36,8 @@ export const Blackboard = (props: {
   );
 
   const screenshotBase64 = React.useMemo(() => {
-    if (!screenshot) return '';
-    if (typeof screenshot === 'object' && 'base64' in screenshot) {
-      return (screenshot as { base64: string }).base64;
-    }
-    if (typeof screenshot === 'string') return screenshot;
-    return '';
-  }, [screenshot]);
+    return context?.screenshot?.base64 || '';
+  }, [context]);
 
   const highlightBoxes = highlightOverlays.map((highlight) =>
     getCenterHighlightBox(highlight),

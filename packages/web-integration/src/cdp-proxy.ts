@@ -22,7 +22,7 @@
  *  3. SIGTERM / SIGINT.
  *  4. Duplicate proxy detected on startup (exits 0 with stderr notice).
  *
- * Usage (spawned by mcp-tools-cdp.ts):
+ * Usage (spawned by agent-tools-cdp.ts):
  *   node cdp-proxy.js <chrome-ws-endpoint>
  *
  * On startup, prints the proxy endpoint to stdout as a single JSON line:

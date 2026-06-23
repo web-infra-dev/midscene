@@ -39,6 +39,8 @@ All agents share these base options:
   - For mobile devices, setting `screenshotShrinkFactor` to 2 can reduce token consumption while maintaining clarity, but it is not recommended to set it higher than 3, as this may cause the image to be too blurry and affect the AI model's understanding.
   - For web pages, if the content is complex or contains a lot of details, it is not recommended to set `screenshotShrinkFactor` to avoid overly blurry screenshots. Additionally, if you want higher clarity for web page screenshots, you can configure Puppeteer or Playwright's `deviceScaleFactor` to 2, which will allow Puppeteer or Playwright to render the page as if it were a high-definition screen.
 
+The device CLIs expose these same Agent behavior options per call. Convert the camelCase API option to a bare kebab-case flag, such as `waitAfterAction` -> `--wait-after-action`. See [Skills](./skills) for the platform CLI entry points.
+
 ### Custom model configuration
 
 Use `modelConfig: Record<string, string | number>` to configure models directly in code instead of environment variables.
@@ -50,10 +52,10 @@ Use `modelConfig: Record<string, string | number>` to configure models directly 
 ```typescript
 const agent = new PuppeteerAgent(page, {
   modelConfig: {
-    MIDSCENE_MODEL_NAME: 'qwen3-vl-plus',
+    MIDSCENE_MODEL_NAME: 'qwen3.7-plus',
     MIDSCENE_MODEL_BASE_URL: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
     MIDSCENE_MODEL_API_KEY: 'sk-...',
-    MIDSCENE_MODEL_FAMILY: 'qwen3-vl'
+    MIDSCENE_MODEL_FAMILY: 'qwen3'
   }
 });
 ```
@@ -63,10 +65,10 @@ const agent = new PuppeteerAgent(page, {
 const agent = new PuppeteerAgent(page, {
   modelConfig: {
     // default
-    MIDSCENE_MODEL_NAME: 'qwen3-vl-plus',
+    MIDSCENE_MODEL_NAME: 'qwen3.7-plus',
     MIDSCENE_MODEL_API_KEY: 'sk-default-key',
     MIDSCENE_MODEL_BASE_URL: '.....',
-    MIDSCENE_MODEL_FAMILY: 'qwen3-vl',
+    MIDSCENE_MODEL_FAMILY: 'qwen3',
 
     // planning intent
     MIDSCENE_PLANNING_MODEL_NAME: 'gpt-5.1',
@@ -162,17 +164,17 @@ function ai(prompt: string): Promise<string | undefined>; // shorthand form
   - `prompt: string` - A natural language description of the UI steps.
   - `options?: Object` - Optional, a configuration object containing:
     - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
-    - `deepThink?: 'unset' | true | false` - Controls how strongly Midscene guides `aiAct` to think during planning. When enabled, `aiAct` focuses more on task decomposition and separates task planning from UI element locating into different model calls. For compatibility, `'unset'` is accepted and treated the same as `false`. [Learn more about deepThink](./model-strategy#about-the-deepthink-option-in-aiact).
+    - `deepThink?: 'unset' | true | false` - Controls the planning implementation used by Midscene when `aiAct` performs planning. When enabled, `aiAct` focuses more on task decomposition and separates task planning from UI element locating into different model calls. For compatibility, `'unset'` is accepted and treated the same as `false`. [Learn more about deepThink](./model-strategy#about-the-deepthink-option-in-aiact).
     - `deepLocate?: boolean` - Whether to enable [Deep Locate](#deep-locate-deeplocate). False by default.
-    - `fileChooserAccept?: string | string[]` - When a file chooser pops up, specify the file path(s) to accept. Can be a single file path or an array of paths. Only available in web pages (Playwright, Puppeteer).
+    - `fileChooserAccept?: string | string[]` - When a file chooser pops up, specify the file path(s) to accept. Can be a single file path or an array of paths. Only available in web pages (Playwright, Puppeteer, or Chrome extension Bridge mode).
       - **Note**: If the file input does not support multiple files (no `multiple` attribute) but multiple files are provided, an error will be thrown.
       - **Note**: If a file chooser is triggered but no `fileChooserAccept` parameter is provided, the file chooser will be ignored and the page can continue to operate normally.
+      - **Note**: Chrome extension Bridge mode does not support directory upload inputs (`webkitdirectory` / `directory`). Use Playwright for directory uploads.
     - `abortSignal?: AbortSignal` - An optional [AbortSignal](https://developer.mozilla.org/en-US/docs/Web/API/AbortSignal) that allows you to abort the `aiAct` execution. When the signal is triggered, Midscene will stop the current planning loop and throw an error. This is useful for implementing timeouts or user-initiated cancellations.
 
 - Return Value:
 
-  - Returns a Promise that resolves to the final output string when the instruction asks Midscene to return or tell you some information. If the task only performs actions and no output is produced, it resolves to `undefined`.
-  - If execution fails, an error is thrown.
+  - Returns a Promise that resolves to void when all steps are completed; if execution fails, an error is thrown.
 
 - Examples:
 
@@ -194,12 +196,6 @@ setTimeout(() => controller.abort('timeout'), 30000); // 30s timeout
 await agent.aiAct('Fill in the form and submit', {
   abortSignal: controller.signal,
 });
-
-// Ask aiAct to return information after completing the task
-const heading = await agent.aiAct(
-  'Search for "Midscene" on Google and return only the heading of the first result page',
-);
-expect(heading).toContain('Midscene');
 
 // For complex tasks, you can enable the deepThink parameter
 await agent.aiAct('Complete the GitHub account registration form. The region must be set to "Canada". Make sure no fields on the form are missed and all form fields pass validation. Just fill in the form fields without actually submitting the registration. Finally, return the actual content filled in the form fields', { deepThink: true });
@@ -234,9 +230,10 @@ function aiTap(locate: string | Object, options?: Object): Promise<void>;
     - `deepLocate?: boolean` - Whether to enable [Deep Locate](#deep-locate-deeplocate). Previously named `deepThink`, now renamed to `deepLocate`. False by default.
     - `xpath?: string` - The xpath of the element to operate. If provided, Midscene will first use this xpath to locate the element before using the cache and the AI model. Empty by default.
     - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
-    - `fileChooserAccept?: string | string[]` - When a file chooser pops up, specify the file path(s) to accept. Can be a single file path or an array of paths. Only available in web pages (Playwright, Puppeteer).
+    - `fileChooserAccept?: string | string[]` - When a file chooser pops up, specify the file path(s) to accept. Can be a single file path or an array of paths. Only available in web pages (Playwright, Puppeteer, or Chrome extension Bridge mode).
       - **Note**: If the file input does not support multiple files (no `multiple` attribute) but multiple files are provided, an error will be thrown.
       - **Note**: If a file chooser is triggered but no `fileChooserAccept` parameter is provided, the file chooser will be ignored and the page can continue to operate normally.
+      - **Note**: Chrome extension Bridge mode does not support directory upload inputs (`webkitdirectory` / `directory`). Use Playwright for directory uploads.
 
 - Return Value:
 
@@ -259,7 +256,7 @@ await agent.aiTap('Upload images', { fileChooserAccept: ['./image1.jpg', './imag
 
 ### `agent.aiHover()`
 
-> Only available in web pages, not available in Android.
+> Available in web pages and PC desktop (`@midscene/computer`), not available on mobile devices (Android / iOS).
 
 Move mouse over something.
 
@@ -715,6 +712,8 @@ await agent.aiRightClick('The file name at the top of the page', {
 
 Ask the AI model any question about the current page. It returns the answer in string from the AI model.
 
+`aiAsk()` is fully equivalent to `aiString()`.
+
 - Type
 
 ```typescript
@@ -855,6 +854,8 @@ const numberB = await agent.aiNumber(
 ### `agent.aiString()`
 
 Extract a string value from the UI.
+
+`aiString()` is fully equivalent to `aiAsk()`.
 
 - Type
 
@@ -1126,19 +1127,43 @@ console.log(result);
 
 ### `agent.recordToReport()`
 
-Log the current screenshot with a description in the report file.
+Log the current screenshot with a description in the report file by default, or
+record screenshots provided by the caller.
 
 - Type
 
 ```typescript
-function recordToReport(title?: string, options?: Object): Promise<void>;
+interface RecordToReportOptions {
+  content?: string;
+  /** @deprecated Use screenshots instead. */
+  screenshotBase64?: string;
+  screenshots?: {
+    /**
+     * PNG/JPEG data URI, or raw PNG base64 body.
+     */
+    base64: string;
+    description?: string;
+  }[];
+}
+
+function recordToReport(
+  title?: string,
+  options?: RecordToReportOptions,
+): Promise<void>;
 ```
 
 - Parameters:
 
   - `title?: string` - Optional, the title of the screenshot, if not provided, the title will be 'untitled'.
-  - `options?: Object` - Optional, a configuration object containing:
+  - `options?: RecordToReportOptions` - Optional, a configuration object containing:
     - `content?: string` - The description of the screenshot.
+    - `screenshots?: Array<{ base64: string; description?: string }>` - Record one or more provided screenshots under one report entry. When this option is set, Midscene will not capture another screenshot automatically. `base64` should be a PNG/JPEG data URI such as `data:image/png;base64,...`; a raw base64 body is also accepted and treated as PNG.
+
+- Compatibility:
+
+  `screenshotBase64?: string` is still accepted as a backward-compatible
+  single-screenshot override. Prefer `screenshots: [{ base64 }]` for new code.
+  Provide only one of `screenshots` or `screenshotBase64`.
 
 - Return Value:
 
@@ -1149,6 +1174,22 @@ function recordToReport(title?: string, options?: Object): Promise<void>;
 ```typescript
 await agent.recordToReport('Login page', {
   content: 'User A',
+});
+
+const before = await page.screenshot({ encoding: 'base64' });
+const after = await page.screenshot({ encoding: 'base64' });
+await agent.recordToReport('Checkout comparison', {
+  content: 'Compare the state before and after submit.',
+  screenshots: [
+    {
+      base64: `data:image/png;base64,${before}`,
+      description: 'Before submit',
+    },
+    {
+      base64: `data:image/png;base64,${after}`,
+      description: 'After submit',
+    },
+  ],
 });
 ```
 
@@ -1233,12 +1274,11 @@ console.log(logContent);
 
 ## Deep Locate (deepLocate)
 
-`deepLocate` is an optional parameter available on all APIs that require element location (`aiTap`, `aiHover`, `aiInput`, `aiKeyboardPress`, `aiScroll`, `aiDoubleClick`, `aiRightClick`, `aiLocate`, etc.).
+`deepLocate` is an optional parameter available on all APIs that require element location (`aiAct`, `aiTap`, `aiHover`, `aiInput`, `aiKeyboardPress`, `aiScroll`, `aiDoubleClick`, `aiRightClick`, `aiLocate`, etc.).
 
-When enabled, Midscene will call the AI model twice to precisely locate the element, which can improve accuracy. This is especially useful when the target element is small or hard to distinguish from its surroundings. For newer models (e.g. Qwen3 / Doubao 1.6 / Gemini 3), the gain is less noticeable in most cases, so enable it only when needed.
+When enabled, Midscene will call the AI model twice to precisely locate the element, which can improve accuracy. This is especially useful when the target element is small or hard to distinguish from its surroundings. For newer models (e.g. Qwen3.x / Doubao 2.0 / Gemini 3.5), the gain is less noticeable in most cases, so enable it only when needed.
 
 - **Default**: `false`
-- **Parameter renamed**: Previously named `deepThink`, renamed to `deepLocate` since v1.5.1. The old `deepThink` parameter remains compatible.
 
 ```typescript
 // Enable deepLocate to precisely locate hard-to-identify elements
@@ -1247,12 +1287,15 @@ await agent.aiTap('Shopping cart icon in the top right', { deepLocate: true });
 
 :::note
 
-`deepThink` in `aiAct()` and `deepLocate` here are completely different features:
+Historically, the name `deepThink` has carried two different meanings across APIs:
 
-- `deepLocate`: Controls the **precision of element location** by making Midscene run two locate passes to improve accuracy.
-- `deepThink` in `aiAct()`: Controls the **planning mode** by guiding task decomposition and planning-only reasoning.
+- In `aiAct()`, `deepThink` has always meant **planning mode**, guiding task decomposition and planning-focused reasoning. See [aiAct deepThink documentation](./model-strategy#about-the-deepthink-option-in-aiact) for details.
+- In single-step action methods such as `aiTap` and `aiHover`, the old `deepThink` meant **enhanced element location**, equivalent to today's `deepLocate`.
 
-[See aiAct deepThink documentation](./model-strategy#about-the-deepthink-option-in-aiact)
+To separate these two meanings, `deepThink` has been reserved for planning mode since v1.5.1, while enhanced element location is consistently named `deepLocate`.
+
+- For `aiAct()`, you can use both `deepThink` and `deepLocate`: `deepThink` controls planning mode, while `deepLocate` controls the Deep Locate behavior described in this section.
+- For single-step action methods such as `aiTap` and `aiHover`, use the clearer `deepLocate` parameter when you need to improve location precision. The old `deepThink` parameter remains compatible and is equivalent to `deepLocate`.
 
 :::
 
