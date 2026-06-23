@@ -145,4 +145,21 @@ describe('AiExtractElementInfo prompt assembly', () => {
       ],
     });
   });
+
+  it('passes abortSignal to the AI caller', async () => {
+    const abortController = new AbortController();
+
+    await AiExtractElementInfo<{ result: boolean }>({
+      context: createFakeContext(),
+      dataQuery: {
+        StatementIsTruthy: 'Boolean, whether the success toast is visible',
+      },
+      modelRuntime: getModelRuntime(modelConfig),
+      abortSignal: abortController.signal,
+    });
+
+    expect(vi.mocked(callAI).mock.calls[0]?.[2]).toEqual({
+      abortSignal: abortController.signal,
+    });
+  });
 });

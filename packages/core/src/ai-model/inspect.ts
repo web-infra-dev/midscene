@@ -508,6 +508,7 @@ export async function AiExtractElementInfo<T>(options: {
   pageDescription?: string;
   extractOption?: ServiceExtractOption;
   modelRuntime: ModelRuntime;
+  abortSignal?: AbortSignal;
 }) {
   const { dataQuery, context, extractOption, multimodalPrompt, modelRuntime } =
     options;
@@ -562,7 +563,9 @@ export async function AiExtractElementInfo<T>(options: {
     usage,
     reasoning_content,
     rawChoiceMessage,
-  } = await callAI(msgs, modelRuntime);
+  } = await callAI(msgs, modelRuntime, {
+    abortSignal: options.abortSignal,
+  });
 
   let parseResult: AIDataExtractionResponse<T>;
   try {
