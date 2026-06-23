@@ -130,6 +130,29 @@ describe('TaskBuilder', () => {
     ]);
   });
 
+  it('throws when building an executable task for an action outside actionSpace', async () => {
+    const mockInterface = new MockInterface([defineActionSleep()]);
+    const insightService = {
+      contextRetrieverFn: vi.fn(),
+      locate: vi.fn(),
+    } as unknown as Service;
+    const taskBuilder = new TaskBuilder({
+      interfaceInstance: mockInterface,
+      service: insightService,
+      actionSpace: mockInterface.actionSpace(),
+    });
+
+    await expect(
+      taskBuilder.build(
+        [{ type: 'Tap', thought: 'tap missing action', param: {} }],
+        mockModelRuntime,
+        mockModelRuntime,
+      ),
+    ).rejects.toThrow(
+      /Action type 'Tap' is not in the current action space. Available actions: Sleep/,
+    );
+  });
+
   it('supports fast-path action delays for system actions', async () => {
     vi.useFakeTimers();
 
