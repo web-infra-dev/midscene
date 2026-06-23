@@ -8,7 +8,6 @@ import {
   RadiusSettingOutlined,
   RightOutlined,
 } from '@ant-design/icons';
-import { useState } from 'react';
 import type {
   ExecutionTaskAction,
   ExecutionTaskInsightAssertion,
@@ -23,6 +22,7 @@ import {
   timeCostStrElement,
 } from '@midscene/visualizer';
 import { Tag, Tooltip } from 'antd';
+import { useState } from 'react';
 import { isElementField, useExecutionDump } from '../store';
 
 function isPlainObject(value: unknown): value is Record<string, any> {
@@ -1058,12 +1058,7 @@ const DetailSide = (): JSX.Element => {
           }
 
           outputItems.push(
-            <Card
-              key={key}
-              liteMode={true}
-              title={key}
-              content={content}
-            />,
+            <Card key={key} liteMode={true} title={key} content={content} />,
           );
         });
       } else {
