@@ -1,5 +1,27 @@
 # Changelog
 
+## v1.10 - BDD-Style Scripts, Doubao-Seed-2.1, and MCP Retirement
+
+v1.10 adds BDD-style Gherkin script execution, upgrades the recommended Doubao model to Doubao-Seed-2.1, and formally retires MCP server packages. Going forward, use Skills and the platform CLIs when AI agents need to drive Midscene.
+
+### BDD-Style Scripts with Gherkin
+
+- Added `agent.runGherkinScenario()` for running Gherkin scenarios directly from JavaScript / TypeScript.
+- Added the `runGherkinScenario` step for YAML flows, so natural-language scenarios can be written as `Given` / `When` / `Then` steps and executed in order.
+- `Given` / `When` map to `aiAct`, while `Then` and following `And` / `But` steps map to `aiAssert`. This keeps test cases readable in natural language while giving them a stable step structure.
+- Midscene currently supports a single-`Scenario` subset of Gherkin. BDD-related capabilities are still in Beta. See: [BDD-Style Scripts with Gherkin](./advanced/bdd-style-scripts-with-gherkin)
+
+### New Model Support
+
+- Recommended and supported `Doubao-Seed-2.1-turbo`, which has very fast localization speed and strong localization quality in our current private evaluation set.
+- The Doubao Seed family now uses `MIDSCENE_MODEL_FAMILY="doubao-seed"`, while the legacy `doubao-vision` family remains compatible. See: [Common Model Configuration](./model-common-config#doubao-seed-model), [Model Strategy](./model-strategy)
+
+### MCP Retirement
+
+- Midscene no longer ships MCP server packages, including `@midscene/web-bridge-mcp`, `@midscene/android-mcp`, `@midscene/ios-mcp`, `@midscene/harmony-mcp`, `@midscene/computer-mcp`, and `@midscene/mcp`.
+- Use [Skills](./skills) and the platform CLIs when AI coding agents need to operate browsers, mobile devices, or desktop apps.
+- If you still depend on MCP servers, pin Midscene to `1.9.8`. This is the final version that includes MCP support. See: [MCP Integration Has Been Retired](./mcp)
+
 ## v1.9 - New Model Support, YAML Automation, and AndroidWorld Benchmark
 
 v1.9 expands model support, improves YAML automation, and makes reports, Android automation, Web input, and desktop automation more reliable.
