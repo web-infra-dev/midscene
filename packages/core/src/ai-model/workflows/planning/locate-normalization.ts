@@ -34,9 +34,9 @@ export function normalizePlanningActionLocateFields(
     }
 
     debug('actionInActionSpace matched', actionInActionSpace);
-    const locateFields = actionInActionSpace
-      ? findAllMidsceneLocatorField(actionInActionSpace.paramSchema)
-      : [];
+    const locateFields = findAllMidsceneLocatorField(
+      actionInActionSpace.paramSchema,
+    );
 
     debug('locateFields', locateFields);
 

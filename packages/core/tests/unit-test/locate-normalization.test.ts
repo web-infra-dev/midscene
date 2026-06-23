@@ -24,7 +24,7 @@ const locateResultContext = {
 };
 
 describe('normalizePlanningActionLocateFields', () => {
-  it('leaves actions unchanged when no action schema is available for locate normalization', () => {
+  it('leaves actions unchanged when the planned action is outside the action space', () => {
     const adaptPlanningParamToPixelBbox = vi.fn();
     const actions: PlanningAction[] = [
       {
