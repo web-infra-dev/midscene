@@ -396,6 +396,40 @@ describe('player action dispatch ordering', () => {
       );
     });
 
+    it('should dispatch aiLocateAll through the simple AI task map', async () => {
+      const player = createPlayerWithActionSpace([]);
+      const locateAllResult = [
+        {
+          center: [10, 20],
+          rect: { left: 5, top: 10, width: 10, height: 20 },
+        },
+      ];
+      const agent = createMockAgent({
+        aiLocateAll: vi.fn().mockResolvedValue(locateAllResult),
+      });
+
+      const taskStatus = {
+        name: 'test',
+        flow: [
+          {
+            aiLocateAll: 'all delete buttons',
+            cacheable: false,
+            name: 'buttons',
+          },
+        ],
+        index: 0,
+        status: 'running' as const,
+        totalSteps: 1,
+      };
+
+      await player.playTask(taskStatus, agent);
+
+      expect(agent.aiLocateAll).toHaveBeenCalledWith('all delete buttons', {
+        cacheable: false,
+      });
+      expect(player.result.buttons).toBe(locateAllResult);
+    });
+
     it('should not throw when a literal variable-like value is undefined', async () => {
       const player = createPlayerWithActionSpace([]);
       const agent = createMockAgent();

@@ -88,7 +88,7 @@ import {
 } from './run-gherkin-scenario';
 import { markdownToAiActPrompt } from './run-markdown';
 import { TaskCache } from './task-cache';
-import { TaskExecutor, locatePlanForLocate, withFileChooser } from './tasks';
+import { TaskExecutionError, TaskExecutor, locatePlanForLocate, locatePlanForLocateAll, withFileChooser } from './tasks';
 import {
   UIObservationImpl,
   type UIObserver,
@@ -1369,6 +1369,33 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
       center: element?.center,
       dpr: element?.dpr,
     } as Pick<LocateResultElement, 'rect' | 'center' | 'dpr'>;
+  }
+
+  async aiLocateAll(prompt: TUserPrompt, opt?: LocateOption) {
+    const locateParam = buildDetailedLocateParam(prompt, opt);
+    assert(locateParam, 'cannot get locate param for aiLocateAll');
+    const locatePlan = locatePlanForLocateAll(locateParam);
+    const plans = [locatePlan];
+    const defaultModel = this.resolveModelRuntime('default');
+    const planningModel = this.resolveModelRuntime('planning');
+
+    const { output } = await this.taskExecutor.runPlans(
+      taskTitleStr('Locate', locateParamStr(locateParam)),
+      plans,
+      planningModel,
+      defaultModel,
+      opt?.uiContext ? { uiContext: opt.uiContext } : undefined,
+    );
+
+    const { elements } = output;
+
+    return (elements || []).map(
+      (element: LocateResultElement & { dpr?: number }) => ({
+        rect: element.rect,
+        center: element.center,
+        dpr: element.dpr,
+      }),
+    );
   }
 
   async aiAssert(
