@@ -1,4 +1,7 @@
-import { findAllMidsceneLocatorField } from '@/common';
+import {
+  findActionInActionSpaceOrThrow,
+  findAllMidsceneLocatorField,
+} from '@/common';
 import type { DeviceAction } from '@/device';
 import type { PlanningAction } from '@/types';
 import { getDebug } from '@midscene/shared/logger';
@@ -25,14 +28,15 @@ export function normalizePlanningActionLocateFields(
   },
 ): void {
   actions.forEach((action) => {
-    const actionInActionSpace = actionSpace.find(
-      (actionInSpace) => actionInSpace.name === action.type,
+    const actionInActionSpace = findActionInActionSpaceOrThrow(
+      action.type,
+      actionSpace,
     );
 
     debug('actionInActionSpace matched', actionInActionSpace);
-    const locateFields = actionInActionSpace
-      ? findAllMidsceneLocatorField(actionInActionSpace.paramSchema)
-      : [];
+    const locateFields = findAllMidsceneLocatorField(
+      actionInActionSpace.paramSchema,
+    );
 
     debug('locateFields', locateFields);
 

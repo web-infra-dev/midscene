@@ -452,6 +452,24 @@ function createRecorderAiDescribeTraceBase(
   };
 }
 
+/** Default `0.0.0.0`. Override via `MIDSCENE_PLAYGROUND_HOST` (e.g. `127.0.0.1`). */
+export function resolvePlaygroundListenHost(): string {
+  return process.env.MIDSCENE_PLAYGROUND_HOST?.trim() || '0.0.0.0';
+}
+
+export function resolvePlaygroundBrowserHost(): string {
+  const listenHost = resolvePlaygroundListenHost();
+  return listenHost === '0.0.0.0' || listenHost === '::'
+    ? '127.0.0.1'
+    : listenHost;
+}
+
+export function buildPlaygroundBrowserUrl(host: string, port: number): string {
+  const normalizedHost =
+    host.includes(':') && !host.startsWith('[') ? `[${host}]` : host;
+  return `http://${normalizedHost}:${port}`;
+}
+
 function serializeAiConfigSignature(aiConfig: Record<string, unknown>): string {
   return JSON.stringify(
     Object.entries(aiConfig).sort(([leftKey], [rightKey]) =>
@@ -3392,7 +3410,8 @@ class PlaygroundServer {
 
     return new Promise((resolve) => {
       const serverPort = this.port ?? defaultPort;
-      this.server = this._app.listen(serverPort, '0.0.0.0', () => {
+      const listenHost = resolvePlaygroundListenHost();
+      this.server = this._app.listen(serverPort, listenHost, () => {
         resolve(this);
       });
     });
