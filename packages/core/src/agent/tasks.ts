@@ -45,7 +45,7 @@ import {
 } from './progress';
 import { TaskBuilder } from './task-builder';
 import type { TaskCache } from './task-cache';
-export { locatePlanForLocate } from './task-builder';
+export { locatePlanForLocate, locatePlanForLocateAll } from './task-builder';
 import { setTimingFieldOnce } from '@/task-timing';
 import { descriptionOfTree } from '@midscene/shared/extractor';
 import { type TaskTitleType, taskTitleStr } from './ui-utils';

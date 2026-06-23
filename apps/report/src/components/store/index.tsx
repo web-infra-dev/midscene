@@ -207,7 +207,8 @@ export const useExecutionDump = create<DumpStoreType>((set, get) => {
       console.log('will set task', task);
       if (
         task.type === 'Insight' ||
-        (task.type === 'Planning' && task.subType === 'Locate')
+        (task.type === 'Planning' &&
+          (task.subType === 'Locate' || task.subType === 'LocateAll'))
       ) {
         const dump = getTaskServiceDump(task);
         set({

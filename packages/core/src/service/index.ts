@@ -1,6 +1,7 @@
 import { defaultModelFamilyRequiredForLocateMessage } from '@/ai-model/errors';
 import {
   AiExtractElementInfo,
+  AiLocateAllElements,
   AiLocateElement,
   AiLocateSection,
   buildSearchAreaConfig,
@@ -17,6 +18,7 @@ import type {
   AIDescribeElementResponse,
   AIUsageInfo,
   DetailedLocateParam,
+  LocateAllResultWithDump,
   LocateResultElement,
   LocateResultWithDump,
   PartialServiceDumpFromSDK,
@@ -196,6 +198,79 @@ export default class Service {
     return {
       element: null,
       rect,
+      dump,
+    };
+  }
+
+  async locateAll(
+    query: PlanningLocateParam,
+    opt: LocateOpts,
+    modelRuntime: ModelRuntime,
+    abortSignal?: AbortSignal,
+  ): Promise<LocateAllResultWithDump> {
+    const { config: modelConfig } = modelRuntime;
+    const queryPrompt = typeof query === 'string' ? query : query.prompt;
+    assert(queryPrompt, 'query is required for locate all');
+    assert(
+      typeof query === 'object',
+      'query should be an object for locate all',
+    );
+
+    if (!modelConfig.modelFamily) {
+      throw new Error(defaultModelFamilyRequiredForLocateMessage);
+    }
+
+    const context = opt?.context || (await this.contextRetrieverFn());
+    const startTime = Date.now();
+    const {
+      parseResult,
+      rawResponse,
+      rawChoiceMessage,
+      usage,
+      reasoning_content,
+    } = await AiLocateAllElements({
+      context,
+      targetElementDescription: queryPrompt,
+      modelRuntime,
+      abortSignal,
+    });
+
+    const timeCost = Date.now() - startTime;
+    const taskInfo: ServiceTaskInfo = {
+      ...(this.taskInfo ? this.taskInfo : {}),
+      durationMs: timeCost,
+      rawResponse: JSON.stringify(rawResponse),
+      rawChoiceMessage,
+      formatResponse: JSON.stringify(parseResult),
+      usage,
+      reasoning_content,
+    };
+
+    let errorLog: string | undefined;
+    if (parseResult.errors?.length) {
+      errorLog = `failed to locate all elements: \n${parseResult.errors.join(
+        '\n',
+      )}`;
+    }
+
+    const dump = createServiceDump({
+      type: 'locate',
+      userQuery: {
+        element: queryPrompt,
+      },
+      matchedElement: parseResult.elements,
+      data: null,
+      taskInfo,
+      deepLocate: false,
+      error: errorLog,
+    });
+
+    if (parseResult.fatalError) {
+      throw new ServiceError(errorLog || 'failed to locate all elements', dump);
+    }
+
+    return {
+      elements: parseResult.elements,
       dump,
     };
   }

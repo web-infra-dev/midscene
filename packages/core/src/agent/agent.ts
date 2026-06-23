@@ -80,6 +80,7 @@ import {
   TaskExecutionError,
   TaskExecutor,
   locatePlanForLocate,
+  locatePlanForLocateAll,
   withFileChooser,
 } from './tasks';
 import { UIObserver, type UIObserverOption } from './ui-observer';
@@ -1309,6 +1310,33 @@ export class Agent<
       center: element?.center,
       dpr: element?.dpr,
     } as Pick<LocateResultElement, 'rect' | 'center'>;
+  }
+
+  async aiLocateAll(prompt: TUserPrompt, opt?: LocateOption) {
+    const locateParam = buildDetailedLocateParam(prompt, opt);
+    assert(locateParam, 'cannot get locate param for aiLocateAll');
+    const locatePlan = locatePlanForLocateAll(locateParam);
+    const plans = [locatePlan];
+    const defaultModel = this.resolveModelRuntime('default');
+    const planningModel = this.resolveModelRuntime('planning');
+
+    const { output } = await this.taskExecutor.runPlans(
+      taskTitleStr('Locate', locateParamStr(locateParam)),
+      plans,
+      planningModel,
+      defaultModel,
+      opt?.uiContext ? { uiContext: opt.uiContext } : undefined,
+    );
+
+    const { elements } = output;
+
+    return (elements || []).map(
+      (element: LocateResultElement & { dpr?: number }) => ({
+        rect: element.rect,
+        center: element.center,
+        dpr: element.dpr,
+      }),
+    );
   }
 
   async aiAssert(
