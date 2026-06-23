@@ -40,8 +40,11 @@ import type {
 } from 'puppeteer';
 import {
   type CacheFeatureOptions,
+  type CrossOriginIframeSignal,
   type WebElementCacheFeature,
+  type XpathsByPointResult,
   buildRectFromElementInfo,
+  isCrossOriginIframeSignal,
   judgeOrderSensitive,
   sanitizeXpaths,
 } from '../common/cache-helper';
@@ -88,6 +91,16 @@ type ScreencastCdpSession = PageCdpSession & {
     event: 'Page.screencastFrame',
     handler: (event: ScreencastFrameEvent) => void,
   ): void;
+};
+
+type FrameContext =
+  | PuppeteerPage
+  | PuppeteerFrame
+  | PlaywrightPage
+  | PlaywrightFrame;
+
+type EvaluatableFrameContext = {
+  evaluate<R>(script: string): Promise<R>;
 };
 
 function isClosedPageError(error: unknown) {
@@ -270,34 +283,19 @@ export class Page<
   ): Promise<string[] | null> {
     const elementInfosScriptContent = getElementInfosScriptContent();
 
-    const result = await this.evaluateJavaScript(
+    const result = await this.evaluateJavaScript<XpathsByPointResult>(
       `${elementInfosScriptContent}midscene_element_inspector.getXpathsByPoint({left: ${point.left}, top: ${point.top}}, ${isOrderSensitive})`,
     );
 
-    if (
-      result &&
-      typeof result === 'object' &&
-      '__crossOriginIframe' in result
-    ) {
-      return this.handleCrossOriginXpathsByPoint(
-        result as {
-          __crossOriginIframe: true;
-          iframeXpath: string;
-          translatedPoint: { left: number; top: number };
-        },
-        isOrderSensitive,
-      );
+    if (isCrossOriginIframeSignal(result)) {
+      return this.handleCrossOriginXpathsByPoint(result, isOrderSensitive);
     }
 
     return result;
   }
 
   private async handleCrossOriginXpathsByPoint(
-    signal: {
-      __crossOriginIframe: true;
-      iframeXpath: string;
-      translatedPoint: { left: number; top: number };
-    },
+    signal: CrossOriginIframeSignal,
     isOrderSensitive: boolean,
     depth = 0,
   ): Promise<string[] | null> {
@@ -325,24 +323,17 @@ export class Page<
     }
 
     const elementInfosScriptContent = getElementInfosScriptContent();
-    const innerResult = await this.evaluateInContext(
+    const innerResult = await this.evaluateInContext<XpathsByPointResult>(
       frame,
       `${elementInfosScriptContent}midscene_element_inspector.getXpathsByPoint({left: ${signal.translatedPoint.left}, top: ${signal.translatedPoint.top}}, ${isOrderSensitive})`,
     );
 
-    if (
-      innerResult &&
-      typeof innerResult === 'object' &&
-      '__crossOriginIframe' in (innerResult as any)
-    ) {
-      const innerSignal = innerResult as {
-        __crossOriginIframe: true;
-        iframeXpath: string;
-        translatedPoint: { left: number; top: number };
-      };
-      innerSignal.iframeXpath = `${signal.iframeXpath}${SUB_XPATH_SEPARATOR}${innerSignal.iframeXpath}`;
+    if (isCrossOriginIframeSignal(innerResult)) {
       return this.handleCrossOriginXpathsByPoint(
-        innerSignal,
+        {
+          ...innerResult,
+          iframeXpath: `${signal.iframeXpath}${SUB_XPATH_SEPARATOR}${innerResult.iframeXpath}`,
+        },
         isOrderSensitive,
         depth + 1,
       );
@@ -359,11 +350,7 @@ export class Page<
   }
 
   private async findFrameByXpath(
-    parentContext:
-      | PuppeteerPage
-      | PuppeteerFrame
-      | PlaywrightPage
-      | PlaywrightFrame,
+    parentContext: FrameContext,
     iframeXpath: string,
   ): Promise<PuppeteerFrame | PlaywrightFrame | null> {
     const parts = iframeXpath
@@ -381,11 +368,7 @@ export class Page<
   }
 
   private async findSingleFrameByXpath(
-    parentContext:
-      | PuppeteerPage
-      | PuppeteerFrame
-      | PlaywrightPage
-      | PlaywrightFrame,
+    parentContext: FrameContext,
     xpath: string,
   ): Promise<PuppeteerFrame | PlaywrightFrame | null> {
     try {
@@ -427,10 +410,10 @@ export class Page<
   }
 
   private async evaluateInContext<R>(
-    context: PuppeteerPage | PuppeteerFrame | PlaywrightPage | PlaywrightFrame,
+    context: FrameContext,
     script: string,
   ): Promise<R> {
-    return (context as any).evaluate(script);
+    return (context as EvaluatableFrameContext).evaluate<R>(script);
   }
 
   private async resolveMultiFrameElementInfo(

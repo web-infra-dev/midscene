@@ -18,6 +18,25 @@ export interface CrossOriginIframeSignal {
   translatedPoint: { left: number; top: number };
 }
 
+export type XpathsByPointResult = string[] | CrossOriginIframeSignal | null;
+
+export function isCrossOriginIframeSignal(
+  value: unknown,
+): value is CrossOriginIframeSignal {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+
+  const signal = value as Partial<CrossOriginIframeSignal>;
+  return (
+    signal.__crossOriginIframe === true &&
+    typeof signal.iframeXpath === 'string' &&
+    !!signal.translatedPoint &&
+    typeof signal.translatedPoint.left === 'number' &&
+    typeof signal.translatedPoint.top === 'number'
+  );
+}
+
 /** Parse the non-standard `zoom` CSS property (Chromium-only) with fallback to 1 */
 function parseCSSZoom(style: CSSStyleDeclaration): number {
   return (
@@ -292,7 +311,7 @@ export function getXpathsById(id: string): string[] | null {
 export function getXpathsByPoint(
   point: Point,
   isOrderSensitive: boolean,
-): string[] | null {
+): XpathsByPointResult {
   let currentWindow: Window =
     typeof window !== 'undefined' ? window : (undefined as any);
   let currentDocument: Document =
@@ -368,13 +387,13 @@ export function getXpathsByPoint(
         }
 
         // contentDocument is null — cross-origin iframe (browser returns null instead of throwing)
-        return buildCrossOriginSignal() as any;
+        return buildCrossOriginSignal();
       } catch (error) {
         logger(
           '[midscene:locator] iframe penetration failed (cross-origin?):',
           error,
         );
-        return buildCrossOriginSignal() as any;
+        return buildCrossOriginSignal();
       }
     }
 

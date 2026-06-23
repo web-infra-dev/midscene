@@ -16,8 +16,11 @@ interface GlobalWithMidscene {
     isNotContainerElement: unknown;
     getElementXpath: unknown;
     getElementInfoByXpath: unknown;
+    getElementInfoByXpathInCurrentFrame: unknown;
+    getIframeRectByXpath: unknown;
     descriptionOfTree: unknown;
     getXpathsByPoint: unknown;
+    isCrossOriginIframeSignal: unknown;
     truncateText: unknown;
     [key: string]: unknown;
   };
@@ -92,11 +95,16 @@ describe('IIFE bundle runtime behavior', () => {
         'getElementXpath',
         // Used by Puppeteer and Chrome Extension cache lookup flows.
         'getElementInfoByXpath',
+        // Used by Puppeteer and Playwright cross-origin iframe cache lookup flows.
+        'getElementInfoByXpathInCurrentFrame',
+        // Used by Puppeteer and Playwright cross-origin iframe cache lookup flows.
+        'getIframeRectByXpath',
         // Not found in runtime calls; suspected removable from the IIFE surface.
         'descriptionOfTree',
         // Used by Puppeteer and Chrome Extension cache lookup flows.
         'getXpathsByPoint',
-        // Not found in runtime calls; suspected removable from the IIFE surface.
+        // Exported with the cross-origin iframe signal type guard.
+        'isCrossOriginIframeSignal',
         'truncateText',
       ];
 

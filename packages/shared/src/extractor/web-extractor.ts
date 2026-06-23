@@ -41,6 +41,21 @@ function tagNameOfNode(node: globalThis.Node): string {
   return tagName ? `<${tagName}>` : '';
 }
 
+function offsetRectByBasePoint<T extends { left: number; top: number }>(
+  rect: T,
+  basePoint: Point,
+): T {
+  if (basePoint.left === 0 && basePoint.top === 0) {
+    return rect;
+  }
+
+  return {
+    ...rect,
+    left: rect.left + basePoint.left,
+    top: rect.top + basePoint.top,
+  };
+}
+
 export function collectElementInfo(
   node: Node,
   currentWindow: typeof window,
@@ -49,7 +64,7 @@ export function collectElementInfo(
   basePoint: Point = { left: 0, top: 0 },
   isContainer = false, // if true, the element will be considered as a container
 ): WebElementInfo | null | any {
-  const rect = elementRect(node, currentWindow, currentDocument, baseZoom);
+  let rect = elementRect(node, currentWindow, currentDocument, baseZoom);
 
   if (!rect) {
     return null;
@@ -62,10 +77,7 @@ export function collectElementInfo(
     return null;
   }
 
-  if (basePoint.left !== 0 || basePoint.top !== 0) {
-    rect.left += basePoint.left;
-    rect.top += basePoint.top;
-  }
+  rect = offsetRectByBasePoint(rect, basePoint);
   // Skip elements that cover the entire viewport, as they are likely background containers
   // rather than meaningful interactive elements
   if (rect.height >= window.innerHeight && rect.width >= window.innerWidth) {
@@ -119,7 +131,7 @@ export function collectElementInfo(
   }
 
   if (isButtonElement(node)) {
-    const rect = mergeElementAndChildrenRects(
+    let rect = mergeElementAndChildrenRects(
       node,
       currentWindow,
       currentDocument,
@@ -128,6 +140,7 @@ export function collectElementInfo(
     if (!rect) {
       return null;
     }
+    rect = offsetRectByBasePoint(rect, basePoint);
     const attributes = getNodeAttributes(node, currentWindow);
     const pseudo = getPseudoElementContent(node, currentWindow);
     const content = node.innerText || pseudo.before || pseudo.after || '';

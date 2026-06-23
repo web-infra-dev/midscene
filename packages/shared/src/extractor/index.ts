@@ -43,9 +43,10 @@ export {
   getElementInfoByXpathInCurrentFrame,
   getIframeRectByXpath,
   getElementXpath,
+  isCrossOriginIframeSignal,
 } from './locator';
 
-export type { CrossOriginIframeSignal } from './locator';
+export type { CrossOriginIframeSignal, XpathsByPointResult } from './locator';
 
 export { generateElementByPoint, generateElementByRect } from './dom-util';
 

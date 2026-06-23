@@ -28,7 +28,9 @@ import type { Protocol as CDPTypes } from 'devtools-protocol';
 import {
   type CacheFeatureOptions,
   type WebElementCacheFeature,
+  type XpathsByPointResult,
   buildRectFromElementInfo,
+  isCrossOriginIframeSignal,
   judgeOrderSensitive,
   sanitizeXpaths,
 } from '../common/cache-helper';
@@ -573,7 +575,10 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
     return treeToList(tree);
   }
 
-  async getXpathsByPoint(point: Point, isOrderSensitive = false) {
+  async getXpathsByPoint(
+    point: Point,
+    isOrderSensitive = false,
+  ): Promise<XpathsByPointResult> {
     const script = await getHtmlElementScript();
 
     await this.sendCommandToDebugger<
@@ -587,7 +592,7 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
       expression: `window.midscene_element_inspector.getXpathsByPoint({left: ${point.left}, top: ${point.top}}, ${isOrderSensitive})`,
       returnByValue: true,
     });
-    return result.result.value;
+    return result.result.value as XpathsByPointResult;
   }
 
   async getElementInfoByXpath(xpath: string) {
@@ -616,6 +621,13 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
     try {
       const isOrderSensitive = await judgeOrderSensitive(options, debug);
       const xpaths = await this.getXpathsByPoint(point, isOrderSensitive);
+      if (isCrossOriginIframeSignal(xpaths)) {
+        debug(
+          'cacheFeatureForPoint hit cross-origin iframe in chrome extension; caching iframe xpath fallback: %s',
+          xpaths.iframeXpath,
+        );
+        return { xpaths: sanitizeXpaths([xpaths.iframeXpath]) };
+      }
       return { xpaths: sanitizeXpaths(xpaths) };
     } catch (error) {
       debug('cacheFeatureForPoint failed: %O', error);

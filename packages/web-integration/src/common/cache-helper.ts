@@ -8,6 +8,14 @@ export type WebElementCacheFeature = ElementCacheFeature & {
   xpaths?: string[];
 };
 
+export interface CrossOriginIframeSignal {
+  __crossOriginIframe: true;
+  iframeXpath: string;
+  translatedPoint: { left: number; top: number };
+}
+
+export type XpathsByPointResult = string[] | CrossOriginIframeSignal | null;
+
 // Shared function to sanitize xpaths
 export const sanitizeXpaths = (xpaths: unknown): string[] => {
   if (!Array.isArray(xpaths)) {
@@ -18,6 +26,23 @@ export const sanitizeXpaths = (xpaths: unknown): string[] => {
     (xpath): xpath is string => typeof xpath === 'string' && xpath.length > 0,
   );
 };
+
+export function isCrossOriginIframeSignal(
+  value: unknown,
+): value is CrossOriginIframeSignal {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+
+  const signal = value as Partial<CrossOriginIframeSignal>;
+  return (
+    signal.__crossOriginIframe === true &&
+    typeof signal.iframeXpath === 'string' &&
+    !!signal.translatedPoint &&
+    typeof signal.translatedPoint.left === 'number' &&
+    typeof signal.translatedPoint.top === 'number'
+  );
+}
 
 // Cache feature extraction options interface
 export interface CacheFeatureOptions {

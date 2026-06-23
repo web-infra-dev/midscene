@@ -128,6 +128,18 @@ describe('ChromeExtensionProxyPage cache methods', () => {
 
       expect(result).toEqual({ xpaths: [] });
     });
+
+    it('should cache iframe xpath fallback for cross-origin iframe signals', async () => {
+      vi.spyOn(page, 'getXpathsByPoint').mockResolvedValue({
+        __crossOriginIframe: true,
+        iframeXpath: '/html/body/iframe[1]',
+        translatedPoint: { left: 20, top: 30 },
+      });
+
+      const result = await page.cacheFeatureForPoint([100, 200]);
+
+      expect(result).toEqual({ xpaths: ['/html/body/iframe[1]'] });
+    });
   });
 
   describe('rectMatchesCacheFeature', () => {
