@@ -145,10 +145,21 @@ You can control model-native thinking with the following reasoning settings.
   - `false`: Force-disable model-native thinking (Midscene's default behavior).
   - `true`: Force-enable model-native thinking.
   - `default`: Follow the model's default behavior. Midscene will not send any setting that enables or disables thinking. In this case, explicitly configured `MIDSCENE_MODEL_REASONING_BUDGET` and `MIDSCENE_MODEL_REASONING_EFFORT` will also be ignored.
-- `MIDSCENE_MODEL_REASONING_BUDGET`: Controls the model's thinking budget (supported by some models). See [Common Model Configuration](./model-common-config) for examples.
-- `MIDSCENE_MODEL_REASONING_EFFORT`: Controls the model's thinking effort (supported by some models). See [Common Model Configuration](./model-common-config) for examples.
+  - The following models currently support this setting:
+    - Qwen: corresponds to `enable_thinking` in the Qwen docs.
+    - Doubao: corresponds to `thinking.type` in the Doubao docs.
+    - Zhipu GLM: corresponds to `thinking.type` in the Zhipu docs.
+    - GPT-5: corresponds to `reasoning_effort` in the OpenAI docs. Midscene uses `medium` when enabled and `none` when disabled.
+    - Kimi: corresponds to `thinking.type` in the Kimi docs.
+    - Xiaomi Mimo: corresponds to `thinking.type` in the Xiaomi Mimo docs.
+- `MIDSCENE_MODEL_REASONING_BUDGET`: Controls the model's thinking budget. The following models currently support this setting:
+  - Qwen: corresponds to `thinking_budget` in the Qwen docs.
+- `MIDSCENE_MODEL_REASONING_EFFORT`: Controls the model's thinking effort. The following models currently support this setting:
+  - Doubao: corresponds to `reasoning_effort` in the Doubao docs.
+  - Gemini: corresponds to `thinking_config.thinking_level` in the Gemini docs.
+  - GPT-5: corresponds to `reasoning_effort` in the OpenAI docs.
 
-Note: Different model providers use different parameters to control model-native thinking. If an explicit reasoning setting is not supported by the current model, Midscene ignores that setting instead of guessing provider-specific private parameters.
+Note: Different model providers use different parameters to control model-native thinking. For specific values and supported model versions, see the official docs from each model provider. If an explicit reasoning setting is not supported by the current model, Midscene ignores that setting instead of guessing provider-specific private parameters.
 
 ### "MIDSCENE_MODEL_FAMILY is not set to a multimodal model" error
 
