@@ -52,7 +52,7 @@ export class PlaywrightAgent extends PageAgent<PlaywrightWebPage> {
     const webPage = new PlaywrightWebPage(page, opts);
     super(webPage, opts);
 
-    const { forceSameTabNavigation = true, forceChromeSelectRendering } =
+    const { forceSameTabNavigation = true, forceChromeSelectRendering = true } =
       opts ?? {};
 
     if (forceSameTabNavigation) {
@@ -60,12 +60,15 @@ export class PlaywrightAgent extends PageAgent<PlaywrightWebPage> {
     }
 
     if (forceChromeSelectRendering) {
-      // Check Playwright version requirement (>= 1.52)
-      const playwrightVersion = getPlaywrightVersion();
-      if (playwrightVersion && !semver.gte(playwrightVersion, '1.52.0')) {
-        console.warn(
-          `[midscene:error] forceChromeSelectRendering requires Playwright >= 1.52.0, but current version is ${playwrightVersion}. This feature may not work correctly.`,
-        );
+      // Only warn about version requirements when the user explicitly opted in;
+      // it is on by default, so we should not nag users on older Playwright.
+      if (opts?.forceChromeSelectRendering === true) {
+        const playwrightVersion = getPlaywrightVersion();
+        if (playwrightVersion && !semver.gte(playwrightVersion, '1.52.0')) {
+          console.warn(
+            `[midscene:error] forceChromeSelectRendering requires Playwright >= 1.52.0, but current version is ${playwrightVersion}. This feature may not work correctly.`,
+          );
+        }
       }
       applyChromeSelectRendering(page);
     }

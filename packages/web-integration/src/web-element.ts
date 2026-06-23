@@ -28,6 +28,9 @@ export type WebPageOpt = {
    * Reference: https://developer.chrome.com/blog/a-customizable-select
    *
    * When enabled, adds a style tag with `select { appearance: base-select !important; }` to the page.
+   *
+   * Defaults to `true`. Set to `false` to opt out (e.g. on older Chrome/driver
+   * versions that do not support `appearance: base-select`).
    */
   forceChromeSelectRendering?: boolean;
   beforeInvokeAction?: () => Promise<void>;
