@@ -1,5 +1,17 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { getXpathsByPoint } from '../../src/extractor/locator';
+import {
+  type XpathsByPointResult,
+  getXpathsByPoint,
+} from '../../src/extractor/locator';
+
+function expectXpathArray(
+  result: XpathsByPointResult,
+): asserts result is string[] {
+  expect(Array.isArray(result)).toBe(true);
+  if (!Array.isArray(result)) {
+    throw new Error('Expected getXpathsByPoint to return xpath array');
+  }
+}
 
 // Mock DOM environment for testing
 class MockElement {
@@ -108,6 +120,7 @@ describe('locator - multiple SVG icons', () => {
     const xpaths = getXpathsByPoint(point, true);
 
     expect(xpaths).toBeDefined();
+    expectXpathArray(xpaths);
     expect(xpaths).toHaveLength(1);
 
     // Should include svg[4] to distinguish from other SVG icons
@@ -151,6 +164,10 @@ describe('locator - multiple SVG icons', () => {
     const xpath1 = getXpathsByPoint({ left: 100, top: 100 }, true);
     const xpath2 = getXpathsByPoint({ left: 200, top: 100 }, true);
     const xpath3 = getXpathsByPoint({ left: 300, top: 100 }, true);
+
+    expectXpathArray(xpath1);
+    expectXpathArray(xpath2);
+    expectXpathArray(xpath3);
 
     // All xpaths should be different
     expect(xpath1?.[0]).not.toBe(xpath2?.[0]);

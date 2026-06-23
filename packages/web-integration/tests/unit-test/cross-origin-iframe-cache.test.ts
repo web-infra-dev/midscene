@@ -2,7 +2,12 @@ import { type Server, createServer } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { WebPage as PlaywrightWebPage } from '@/playwright/page';
 import { PuppeteerWebPage } from '@/puppeteer/page';
-import { type Browser as PlaywrightBrowser, chromium } from 'playwright';
+import {
+  type Browser as PlaywrightBrowser,
+  type ElementHandle as PlaywrightElementHandle,
+  type Frame as PlaywrightFrame,
+  chromium,
+} from 'playwright';
 import puppeteer, {
   type Browser as PuppeteerBrowser,
   type Page as PuppeteerPage,
@@ -30,12 +35,6 @@ type RectLike = {
 };
 
 type BrowserPoint = [number, number];
-
-type FrameElementHandle =
-  | PuppeteerElementHandle<HTMLIFrameElement>
-  | import('playwright').ElementHandle<HTMLIFrameElement>;
-
-type BrowserFrame = PuppeteerFrame | import('playwright').Frame;
 
 const childHtml = `<!doctype html>
 <html>
@@ -117,17 +116,34 @@ function readRect(el: Element): RectLike {
   };
 }
 
-async function pointInsideCrossOriginButton(
-  iframeHandle: FrameElementHandle,
-  frame: BrowserFrame,
-): Promise<BrowserPoint> {
-  const iframeRect = await iframeHandle.evaluate(readRect);
-  const buttonRect = await frame.$eval('#target-button', readRect);
-
+function pointInsideRects(
+  iframeRect: RectLike,
+  buttonRect: RectLike,
+): BrowserPoint {
   return [
     Math.round(iframeRect.left + buttonRect.left + buttonRect.width / 2),
     Math.round(iframeRect.top + buttonRect.top + buttonRect.height / 2),
   ];
+}
+
+async function pointInsidePuppeteerCrossOriginButton(
+  iframeHandle: PuppeteerElementHandle<HTMLIFrameElement>,
+  frame: PuppeteerFrame,
+): Promise<BrowserPoint> {
+  const iframeRect = await iframeHandle.evaluate(readRect);
+  const buttonRect = await frame.$eval('#target-button', readRect);
+
+  return pointInsideRects(iframeRect, buttonRect);
+}
+
+async function pointInsidePlaywrightCrossOriginButton(
+  iframeHandle: PlaywrightElementHandle<HTMLIFrameElement>,
+  frame: PlaywrightFrame,
+): Promise<BrowserPoint> {
+  const iframeRect = await iframeHandle.evaluate(readRect);
+  const buttonRect = await frame.$eval('#target-button', readRect);
+
+  return pointInsideRects(iframeRect, buttonRect);
 }
 
 async function expectCrossOriginCacheRoundTrip(
@@ -135,10 +151,15 @@ async function expectCrossOriginCacheRoundTrip(
   point: BrowserPoint,
 ) {
   const feature = await page.cacheFeatureForPoint(point);
+  const xpaths = feature.xpaths;
 
-  expect(feature.xpaths?.[0]).toContain('|>>|');
-  expect(feature.xpaths?.[0]).toMatch(/iframe/);
-  expect(feature.xpaths?.[0]).toMatch(/button/);
+  expect(Array.isArray(xpaths)).toBe(true);
+  if (!Array.isArray(xpaths)) {
+    throw new Error('Expected cache feature to contain xpath array');
+  }
+  expect(xpaths[0]).toContain('|>>|');
+  expect(xpaths[0]).toMatch(/iframe/);
+  expect(xpaths[0]).toMatch(/button/);
 
   const rect = await page.rectMatchesCacheFeature(feature);
   expect(rect.width).toBeGreaterThan(0);
@@ -196,7 +217,10 @@ describe('cross-origin iframe element cache', { timeout: 60_000 }, () => {
       expect(frame).toBeTruthy();
       await frame!.waitForSelector('#target-button');
 
-      const point = await pointInsideCrossOriginButton(iframeHandle, frame!);
+      const point = await pointInsidePuppeteerCrossOriginButton(
+        iframeHandle,
+        frame!,
+      );
       const midscenePage = new PuppeteerWebPage(puppeteerPage);
       await expectCrossOriginCacheRoundTrip(midscenePage, point);
     } finally {
@@ -214,12 +238,17 @@ describe('cross-origin iframe element cache', { timeout: 60_000 }, () => {
       });
       await page.goto(parentUrl);
 
-      const iframeHandle = await page.waitForSelector('#cross-origin-frame');
+      const iframeHandle = (await page.waitForSelector(
+        '#cross-origin-frame',
+      )) as PlaywrightElementHandle<HTMLIFrameElement>;
       const frame = await iframeHandle.contentFrame();
       expect(frame).toBeTruthy();
       await frame!.waitForSelector('#target-button');
 
-      const point = await pointInsideCrossOriginButton(iframeHandle, frame!);
+      const point = await pointInsidePlaywrightCrossOriginButton(
+        iframeHandle,
+        frame!,
+      );
       const midscenePage = new PlaywrightWebPage(page);
       await expectCrossOriginCacheRoundTrip(midscenePage, point);
     } finally {

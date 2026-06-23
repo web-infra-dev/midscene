@@ -1,9 +1,19 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  type XpathsByPointResult,
   getElementInfoByXpath,
   getNodeInfoByXpath,
   getXpathsByPoint,
 } from '../../src/extractor/locator';
+
+function expectXpathArray(
+  result: XpathsByPointResult,
+): asserts result is string[] {
+  expect(Array.isArray(result)).toBe(true);
+  if (!Array.isArray(result)) {
+    throw new Error('Expected getXpathsByPoint to return xpath array');
+  }
+}
 
 // Mock DOM environment for testing
 class MockElement {
@@ -148,6 +158,7 @@ describe('locator', () => {
       // Test order-sensitive mode
       const orderSensitiveXpaths = getXpathsByPoint(point, true);
       expect(orderSensitiveXpaths).toBeDefined();
+      expectXpathArray(orderSensitiveXpaths);
       expect(orderSensitiveXpaths).toHaveLength(1);
       expect(typeof orderSensitiveXpaths?.[0]).toBe('string');
       expect(orderSensitiveXpaths?.[0]).toMatch(/button/);
@@ -158,6 +169,7 @@ describe('locator', () => {
       // Test order-insensitive mode
       const orderInsensitiveXpaths = getXpathsByPoint(point, false);
       expect(orderInsensitiveXpaths).toBeDefined();
+      expectXpathArray(orderInsensitiveXpaths);
       expect(orderInsensitiveXpaths).toHaveLength(1);
       expect(typeof orderInsensitiveXpaths?.[0]).toBe('string');
       expect(orderInsensitiveXpaths?.[0]).toMatch(/button/);
@@ -201,6 +213,7 @@ describe('locator', () => {
       const xpaths = getXpathsByPoint(point, true);
 
       expect(xpaths).toBeDefined();
+      expectXpathArray(xpaths);
       expect(xpaths).toHaveLength(1);
       // Should include the <svg> tag in the xpath to distinguish between multiple SVG icons
       // but skip internal SVG child elements (path)
@@ -216,6 +229,7 @@ describe('locator', () => {
       const xpaths = getXpathsByPoint(point, true);
 
       expect(xpaths).toBeDefined();
+      expectXpathArray(xpaths);
       expect(xpaths).toHaveLength(1);
       // elementFromPoint returns the span element, xpath uses index in order-sensitive mode
       expect(xpaths?.[0]).toMatch(/\/html\/body\/div\[1\]\/span\[1\]/);
@@ -226,6 +240,7 @@ describe('locator', () => {
       const xpaths = getXpathsByPoint(point, false);
 
       expect(xpaths).toBeDefined();
+      expectXpathArray(xpaths);
       expect(xpaths).toHaveLength(1);
       // For order-insensitive mode, the span (leaf) uses text matching
       expect(xpaths?.[0]).toMatch(
@@ -241,6 +256,7 @@ describe('locator', () => {
       const point = { left: 100, top: 200 };
       const xpaths = getXpathsByPoint(point, true);
 
+      expectXpathArray(xpaths);
       expect(xpaths?.[0]).toMatch(/^\/html/); // Should start with /html
       expect(xpaths?.[0]).toMatch(/\[\d+\]$/); // Should end with [number] for order-sensitive
     });
@@ -249,6 +265,7 @@ describe('locator', () => {
       const point = { left: 100, top: 200 };
       const xpaths = getXpathsByPoint(point, false);
 
+      expectXpathArray(xpaths);
       expect(xpaths?.[0]).toMatch(/^\/html/); // Should start with /html
       expect(xpaths?.[0]).not.toMatch(/\[\d+\]$/); // Should NOT end with [number] for order-insensitive
 

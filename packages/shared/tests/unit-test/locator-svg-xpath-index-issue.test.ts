@@ -2,7 +2,19 @@
  * @vitest-environment jsdom
  */
 import { beforeEach, describe, expect, it } from 'vitest';
-import { getXpathsByPoint } from '../../src/extractor/locator';
+import {
+  type XpathsByPointResult,
+  getXpathsByPoint,
+} from '../../src/extractor/locator';
+
+function expectXpathArray(
+  result: XpathsByPointResult,
+): asserts result is string[] {
+  expect(Array.isArray(result)).toBe(true);
+  if (!Array.isArray(result)) {
+    throw new Error('Expected getXpathsByPoint to return xpath array');
+  }
+}
 
 // Test the exact scenario from user's issue
 describe('locator - SVG XPath index issue', () => {
@@ -99,6 +111,7 @@ describe('locator - SVG XPath index issue', () => {
       // Generate XPath by clicking on the path
       const xpaths = getXpathsByPoint({ left: 100, top: 100 }, true);
 
+      expectXpathArray(xpaths);
       console.log('Generated XPath:', xpaths?.[0]);
       expect(xpaths).not.toBeNull();
       // SVG elements use *[name()="svg"] syntax due to namespace
