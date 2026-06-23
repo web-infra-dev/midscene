@@ -1051,7 +1051,7 @@ function aiLocateAll(
       height: number;
     };
     center: [number, number];
-    dpr: number; // device pixel ratio
+    dpr?: number; // device pixel ratio
   }>
 >;
 ```
@@ -1059,7 +1059,7 @@ function aiLocateAll(
 - Parameters:
 
   - `locate: string | Object` - A natural language description shared by all target elements, or [prompting with images](#prompting-with-images).
-  - `options?: Object` - Optional, a configuration object. `uiContext` and image prompt options are supported. Single-element optimizations such as `xpath`, cache lookup, and `deepLocate` are not applied to `aiLocateAll()`.
+  - `options?: Object` - Optional, a configuration object. `uiContext` and image prompt options are supported. Single-element optimizations such as `xpath`, cache lookup, and `deepLocate` are not applied to `aiLocateAll()`; passing these options throws an error.
 
 - Return Value:
 
