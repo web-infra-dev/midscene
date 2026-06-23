@@ -24,7 +24,8 @@ const locateResultContext = {
 };
 
 describe('normalizePlanningActionLocateFields', () => {
-  it('throws when a planned action is not in the action space', () => {
+  it('skips locate normalization when a planned action is not in the action space', () => {
+    const adaptPlanningParamToPixelBbox = vi.fn();
     const actions: PlanningAction[] = [
       {
         type: 'UnknownAction',
@@ -32,16 +33,22 @@ describe('normalizePlanningActionLocateFields', () => {
       },
     ];
 
-    expect(() =>
-      normalizePlanningActionLocateFields(actions, {
-        actionSpace,
-        includeLocateInPlanning: true,
-        locateResultAdapter: {
-          adaptPlanningParamToPixelBbox: vi.fn(),
-        } as any,
-        locateResultContext,
-      }),
-    ).toThrow(/not in the current action space/);
+    normalizePlanningActionLocateFields(actions, {
+      actionSpace,
+      includeLocateInPlanning: true,
+      locateResultAdapter: {
+        adaptPlanningParamToPixelBbox,
+      } as any,
+      locateResultContext,
+    });
+
+    expect(adaptPlanningParamToPixelBbox).not.toHaveBeenCalled();
+    expect(actions).toEqual([
+      {
+        type: 'UnknownAction',
+        param: {},
+      },
+    ]);
   });
 
   it('normalizes locate params with the configured locate adapter', () => {
