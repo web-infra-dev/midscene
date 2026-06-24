@@ -1,8 +1,13 @@
 import fs from 'node:fs';
+import {
+  type Server as NodeServer,
+  createServer as createNodeServer,
+} from 'node:http';
+import type { AddressInfo } from 'node:net';
 import path from 'node:path';
 import { PuppeteerAgent } from '@/puppeteer';
 import { sleep } from '@midscene/core/utils';
-import { createServer } from 'http-server';
+import { createServer as createStaticServer } from 'http-server';
 import {
   afterAll,
   afterEach,
@@ -16,6 +21,105 @@ import { launchPage } from './utils';
 
 const FIXTURES_DIR = path.join(__dirname, '../../fixtures');
 
+type RectLike = {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+};
+
+type BrowserPoint = [number, number];
+
+const crossOriginChildHtml = `<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      body { margin: 0; font-family: sans-serif; }
+      #target-button {
+        position: absolute;
+        left: 64px;
+        top: 48px;
+        width: 148px;
+        height: 44px;
+      }
+    </style>
+  </head>
+  <body>
+    <button id="target-button">Cross Origin Submit</button>
+  </body>
+</html>`;
+
+function crossOriginParentHtml(childUrl: string) {
+  return `<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      body { margin: 0; font-family: sans-serif; }
+      #cross-origin-frame {
+        position: absolute;
+        left: 120px;
+        top: 90px;
+        width: 420px;
+        height: 220px;
+        border: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Parent page</h1>
+    <iframe id="cross-origin-frame" src="${childUrl}"></iframe>
+  </body>
+</html>`;
+}
+
+function listenNodeServer(server: NodeServer): Promise<string> {
+  return new Promise((resolve, reject) => {
+    server.once('error', reject);
+    server.listen(0, '127.0.0.1', () => {
+      const address = server.address() as AddressInfo;
+      resolve(`http://127.0.0.1:${address.port}`);
+    });
+  });
+}
+
+function closeNodeServer(server: NodeServer | undefined): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (!server?.listening) {
+      resolve();
+      return;
+    }
+    server.close((error) => {
+      if (error) {
+        reject(error);
+        return;
+      }
+      resolve();
+    });
+  });
+}
+
+function readRect(element: Element): RectLike {
+  const rect = element.getBoundingClientRect();
+  return {
+    left: rect.left,
+    top: rect.top,
+    width: rect.width,
+    height: rect.height,
+  };
+}
+
+function pointInsideRects(
+  iframeRect: RectLike,
+  buttonRect: RectLike,
+): BrowserPoint {
+  return [
+    Math.round(iframeRect.left + buttonRect.left + buttonRect.width / 2),
+    Math.round(iframeRect.top + buttonRect.top + buttonRect.height / 2),
+  ];
+}
+
 vi.setConfig({
   testTimeout: 3 * 60 * 1000,
 });
@@ -28,7 +132,7 @@ describe('iframe element locate and cache (puppeteer agent)', () => {
 
   beforeAll(async () => {
     localServer = await new Promise((resolve, reject) => {
-      const server = createServer({ root: FIXTURES_DIR });
+      const server = createStaticServer({ root: FIXTURES_DIR });
       server.listen(port, '127.0.0.1', () => resolve(server));
       server.server.on('error', reject);
     });
@@ -301,5 +405,71 @@ describe('iframe element locate and cache (puppeteer agent)', () => {
         xpaths: ['/html/body/iframe[99]|>>|/html/body/button[1]'],
       }),
     ).rejects.toThrow();
+  });
+
+  it('cacheFeatureForPoint should round-trip an element inside a cross-origin iframe', async () => {
+    let childServer: NodeServer | undefined;
+    let parentServer: NodeServer | undefined;
+
+    try {
+      childServer = createNodeServer((_req, res) => {
+        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+        res.end(crossOriginChildHtml);
+      });
+      const childOrigin = await listenNodeServer(childServer);
+
+      parentServer = createNodeServer((_req, res) => {
+        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+        res.end(crossOriginParentHtml(`${childOrigin}/child.html`));
+      });
+      const parentOrigin = await listenNodeServer(parentServer);
+
+      const { originPage, reset } = await launchPage(
+        `${parentOrigin}/parent.html`,
+        {
+          viewport: { width: 900, height: 600, deviceScaleFactor: 1 },
+        },
+      );
+      resetFn = reset;
+
+      await originPage.waitForSelector('#cross-origin-frame');
+      const iframeHandle = await originPage.$('#cross-origin-frame');
+      const frame = await iframeHandle!.contentFrame();
+      expect(frame).toBeTruthy();
+      await frame!.waitForSelector('#target-button');
+
+      agent = new PuppeteerAgent(originPage);
+
+      const iframeRect = await iframeHandle!.evaluate(readRect);
+      const buttonRect = await frame!.$eval('#target-button', readRect);
+      const point = pointInsideRects(iframeRect, buttonRect);
+
+      const feature = (await agent.page.cacheFeatureForPoint?.(point)) as
+        | { xpaths: string[] }
+        | undefined;
+
+      expect(feature).toBeDefined();
+      expect(feature!.xpaths).toBeDefined();
+      expect(feature!.xpaths.length).toBeGreaterThan(0);
+      expect(feature!.xpaths[0]).toContain('|>>|');
+      expect(feature!.xpaths[0]).toMatch(/iframe/);
+      expect(feature!.xpaths[0]).toMatch(/button/);
+
+      const rect = await agent.page.rectMatchesCacheFeature?.(feature!);
+      expect(rect).toBeDefined();
+      expect(rect!.width).toBeGreaterThan(0);
+      expect(rect!.height).toBeGreaterThan(0);
+      expect(
+        Math.abs(rect!.left + rect!.width / 2 - point[0]),
+      ).toBeLessThanOrEqual(3);
+      expect(
+        Math.abs(rect!.top + rect!.height / 2 - point[1]),
+      ).toBeLessThanOrEqual(3);
+    } finally {
+      await Promise.all([
+        closeNodeServer(parentServer),
+        closeNodeServer(childServer),
+      ]);
+    }
   });
 });
