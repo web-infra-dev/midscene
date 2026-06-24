@@ -112,11 +112,7 @@ describe('runConnectivityTest service load order', () => {
     });
 
     expect(result.passed).toBe(true);
-    expect(result.checks.map((item) => item.intent)).toEqual([
-      'planning',
-      'insight',
-      'default',
-    ]);
+    expect(result.message).toBeUndefined();
     expect(mocks.AiLocateElement).toHaveBeenCalledWith(
       expect.objectContaining({
         targetElementDescription: 'the main todo input box',

@@ -3,6 +3,7 @@ import type {
   DeviceAction,
   ExecutionDump,
 } from '@midscene/core';
+import type { TModelConfig } from '@midscene/shared/env';
 import { parseStructuredParams } from '../common';
 import type {
   PlaygroundRecorderCapabilitiesResult,
@@ -327,13 +328,17 @@ export class RemoteExecutionAdapter extends BasePlaygroundAdapter {
     }
   }
 
-  async runConnectivityTest(): Promise<ConnectivityTestResult> {
+  async runConnectivityTest(
+    aiConfig: TModelConfig,
+  ): Promise<ConnectivityTestResult> {
     if (!this.serverUrl) {
       throw new Error('Server URL not configured');
     }
 
     const response = await fetch(`${this.serverUrl}/connectivity-test`, {
       method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ config: aiConfig }),
     });
 
     if (!response.ok) {

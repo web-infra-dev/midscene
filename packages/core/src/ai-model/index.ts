@@ -7,7 +7,6 @@ export {
 export { getModelRuntime, type ModelRuntime } from './models';
 export {
   runConnectivityTest,
-  type ConnectivityCheckResultItem,
   type ConnectivityTestConfig,
   type ConnectivityTestResult,
 } from './connectivity/index';

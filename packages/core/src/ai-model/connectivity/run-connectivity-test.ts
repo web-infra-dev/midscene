@@ -12,7 +12,7 @@ import {
 
 const TEXT_EXPECTED_TOKEN = 'CONNECTIVITY_OK';
 
-export interface ConnectivityCheckResultItem {
+interface ConnectivityCheckResultItem {
   name: 'text' | 'vision' | 'aiLocate';
   intent: TIntent;
   modelName: string;
@@ -24,7 +24,7 @@ export interface ConnectivityCheckResultItem {
 
 export interface ConnectivityTestResult {
   passed: boolean;
-  checks: ConnectivityCheckResultItem[];
+  message?: string;
 }
 
 export interface ConnectivityTestConfig {
@@ -90,6 +90,33 @@ function buildCheckResult(
     modelFamily: config.modelFamily,
     ...result,
   };
+}
+
+function formatConnectivityCheckName(
+  check: ConnectivityCheckResultItem,
+): string {
+  const checkName =
+    check.name === 'aiLocate'
+      ? 'AI locate check'
+      : `${check.name[0]?.toUpperCase()}${check.name.slice(1)} check`;
+  const modelLabel = check.modelName || check.intent;
+  return `${checkName} - ${modelLabel} (${check.intent})`;
+}
+
+function buildConnectivityFailureMessage(
+  checks: ConnectivityCheckResultItem[],
+): string {
+  const failedChecks = checks.filter((item) => !item.passed);
+  if (failedChecks.length === 0) {
+    return 'Connectivity test failed, but no failed check details were generated.';
+  }
+
+  return failedChecks
+    .map((item) => {
+      const detail = item.message || 'Failed without details.';
+      return `[${formatConnectivityCheckName(item)}]: ${detail}`;
+    })
+    .join('\n');
 }
 
 async function runTextConnectivityCheck(
@@ -212,8 +239,9 @@ export async function runConnectivityTest(
     runAiLocateConnectivityCheck(defaultModelRuntime),
   ]);
 
+  const passed = checks.every((item) => item.passed);
   return {
-    passed: checks.every((item) => item.passed),
-    checks,
+    passed,
+    message: passed ? undefined : buildConnectivityFailureMessage(checks),
   };
 }

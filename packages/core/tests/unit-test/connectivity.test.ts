@@ -92,21 +92,7 @@ describe('runConnectivityTest', () => {
     });
 
     expect(result.passed).toBe(true);
-    expect(result.checks.map((item) => item.intent)).toEqual([
-      'planning',
-      'insight',
-      'default',
-    ]);
-    expect(result.checks.map((item) => item.modelName)).toEqual([
-      'test-planning-model',
-      'test-insight-model',
-      'test-model',
-    ]);
-    expect(result.checks.map((item) => item.passed)).toEqual([
-      true,
-      true,
-      true,
-    ]);
+    expect(result.message).toBeUndefined();
     expect(locate).toHaveBeenCalledWith(
       { prompt: 'the main todo input box' },
       {},
@@ -165,9 +151,14 @@ describe('runConnectivityTest', () => {
     });
 
     expect(result.passed).toBe(false);
-    expect(result.checks).toHaveLength(3);
-    expect(result.checks[0]?.passed).toBe(false);
-    expect(result.checks[1]?.message).toContain('vision failed');
-    expect(result.checks[2]?.passed).toBe(false);
+    expect(result.message).toContain(
+      '[Text check - test-planning-model (planning)]: Unexpected response: wrong-token',
+    );
+    expect(result.message).toContain(
+      '[Vision check - test-insight-model (insight)]: vision failed',
+    );
+    expect(result.message).toContain(
+      '[AI locate check - test-model (default)]: Invalid locate result:',
+    );
   });
 });

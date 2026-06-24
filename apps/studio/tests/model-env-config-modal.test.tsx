@@ -1,9 +1,10 @@
 // @vitest-environment jsdom
-import { act, createElement } from 'react';
+import { type ComponentProps, act, createElement } from 'react';
 import { createRoot } from 'react-dom/client';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ModelEnvConfigModal } from '../src/renderer/components/ShellLayout/ModelEnvConfigModal';
+import type { ConnectivityTestResult } from '../src/shared/electron-contract';
 
 const VALID_ENV_TEXT = [
   'OPENAI_API_KEY=sk-example',
@@ -18,11 +19,24 @@ const FORM_ENV_TEXT = [
   'MIDSCENE_USE_QWEN_VL=true',
 ].join('\n');
 
+const PASSED_CONNECTIVITY_RESULT: ConnectivityTestResult = {
+  passed: true,
+};
+
+const FAILED_CONNECTIVITY_RESULT: ConnectivityTestResult = {
+  passed: false,
+  message:
+    '[Text check - gpt-4o (planning)]: Network error\n[Vision check - gpt-4o (insight)]: Invalid image response',
+};
+
 (
   globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
 ).IS_REACT_ACT_ENVIRONMENT = true;
 
-async function renderModal(textValue: string) {
+async function renderModal(
+  textValue: string,
+  props: Partial<ComponentProps<typeof ModelEnvConfigModal>> = {},
+) {
   const container = document.createElement('div');
   document.body.appendChild(container);
   const root = createRoot(container);
@@ -32,6 +46,7 @@ async function renderModal(textValue: string) {
         onClose: () => undefined,
         open: true,
         textValue,
+        ...props,
       }),
     );
   });
@@ -41,7 +56,7 @@ async function renderModal(textValue: string) {
 function getConnectivityButton(container: HTMLElement) {
   const button = Array.from(container.querySelectorAll('button')).find(
     (item) =>
-      item.textContent?.includes('Connectivity test') ||
+      item.textContent?.includes('Verify and Save Model') ||
       item.textContent?.includes('Testing...'),
   );
   expect(button).toBeTruthy();
@@ -78,6 +93,7 @@ async function unmountModal(root: ReturnType<typeof createRoot>) {
 
 describe('ModelEnvConfigModal', () => {
   afterEach(() => {
+    vi.useRealTimers();
     vi.unstubAllGlobals();
     document.body.replaceChildren();
   });
@@ -117,7 +133,7 @@ describe('ModelEnvConfigModal', () => {
     expect(html).toContain('.env Style');
     expect(html).toContain('Form Style');
     expect(html).toContain('The format is KEY=VALUE');
-    expect(html).toContain('Connectivity test');
+    expect(html).toContain('Verify and Save Model');
     expect(html).toContain('bg-black/35 font-sans');
     expect(html).toContain('m-0 font-sans text-[16px]');
     expect(html).not.toContain("font-['Inter']");
@@ -128,8 +144,11 @@ describe('ModelEnvConfigModal', () => {
     expect(html).toContain('model-env-close.svg');
     expect(html).toContain('class="h-[16px] w-[16px]"');
     expect(html).toContain('h-[32px]');
-    expect(html).toContain('w-[159px]');
-    expect(html).toContain('gap-[4px]');
+    expect(html).toContain('justify-end');
+    expect(html).toContain('gap-[16px]');
+    expect(html).toContain('w-auto min-w-[190px]');
+    expect(html).not.toContain('Cancel');
+    expect(html).toContain('gap-[6px]');
     expect(html).toContain('rounded-[8px]');
     expect(html).toContain('border-border-control');
     expect(html).toContain('bg-surface-elevated');
@@ -165,7 +184,7 @@ describe('ModelEnvConfigModal', () => {
       (item) =>
         item.textContent?.includes('Invalid MIDSCENE_MODEL_FAMILY value: 1'),
     );
-    expect(errorMessage?.className).toContain('whitespace-normal');
+    expect(errorMessage?.className).toContain('whitespace-pre-wrap');
     expect(errorMessage?.className).not.toContain('text-ellipsis');
     expect(container.querySelector('.h-\\[524px\\]')).toBeTruthy();
 
@@ -173,10 +192,11 @@ describe('ModelEnvConfigModal', () => {
   });
 
   it('starts spinning only while the connectivity test is running', async () => {
-    const { container, root } = await renderModal(VALID_ENV_TEXT);
+    const onSave = vi.fn();
+    const { container, root } = await renderModal(VALID_ENV_TEXT, { onSave });
     const runConnectivityTest = vi.fn(
       () =>
-        new Promise<{ ok: true; sample: string }>(() => {
+        new Promise<ConnectivityTestResult>(() => {
           // Keep the request pending so the rendered state can be inspected.
         }),
     );
@@ -195,6 +215,7 @@ describe('ModelEnvConfigModal', () => {
     });
 
     expect(runConnectivityTest).toHaveBeenCalledOnce();
+    expect(onSave).not.toHaveBeenCalled();
     expect(button.disabled).toBe(true);
     expect(button.textContent).toContain('Testing...');
     expect(button.querySelector('img')?.className).toContain('animate-spin');
@@ -205,11 +226,11 @@ describe('ModelEnvConfigModal', () => {
   it('invalidates a running connectivity test when the config changes', async () => {
     const { container, root } = await renderModal(VALID_ENV_TEXT);
     let resolveConnectivityTest:
-      | ((value: { ok: true; sample: string }) => void)
+      | ((value: ConnectivityTestResult) => void)
       | undefined;
     const runConnectivityTest = vi.fn(
       () =>
-        new Promise<{ ok: true; sample: string }>((resolve) => {
+        new Promise<ConnectivityTestResult>((resolve) => {
           resolveConnectivityTest = resolve;
         }),
     );
@@ -235,13 +256,18 @@ describe('ModelEnvConfigModal', () => {
     });
 
     expect(runConnectivityTest).toHaveBeenCalledOnce();
+    expect(runConnectivityTest).toHaveBeenCalledWith({
+      MIDSCENE_MODEL: 'gpt-4o',
+      OPENAI_API_KEY: 'sk-example',
+      OPENAI_BASE_URL: 'https://api.example.com/v1',
+    });
     expect(getConnectivityButton(container).disabled).toBe(false);
     expect(getConnectivityButton(container).textContent).toContain(
-      'Connectivity test',
+      'Verify and Save Model',
     );
 
     await act(async () => {
-      resolveConnectivityTest?.({ ok: true, sample: 'ok' });
+      resolveConnectivityTest?.(PASSED_CONNECTIVITY_RESULT);
       await Promise.resolve();
     });
 
@@ -252,7 +278,8 @@ describe('ModelEnvConfigModal', () => {
   });
 
   it('shows failure status when connectivity test rejects', async () => {
-    const { container, root } = await renderModal(VALID_ENV_TEXT);
+    const onSave = vi.fn();
+    const { container, root } = await renderModal(VALID_ENV_TEXT, { onSave });
     vi.stubGlobal('studioRuntime', {
       runConnectivityTest: vi.fn().mockRejectedValue(new Error('Network down')),
     });
@@ -262,7 +289,8 @@ describe('ModelEnvConfigModal', () => {
       await Promise.resolve();
     });
 
-    expect(container.textContent).toContain('Test failed. Please try again.');
+    expect(container.textContent).toContain('Network down');
+    expect(onSave).not.toHaveBeenCalled();
     expect(getConnectivityButton(container).disabled).toBe(false);
 
     await unmountModal(root);
@@ -315,12 +343,13 @@ describe('ModelEnvConfigModal', () => {
   });
 
   it('restores default connectivity button style after a successful test', async () => {
-    const { container, root } = await renderModal(VALID_ENV_TEXT);
+    vi.useFakeTimers();
+    const onSave = vi.fn();
+    const { container, root } = await renderModal(VALID_ENV_TEXT, { onSave });
     vi.stubGlobal('studioRuntime', {
-      runConnectivityTest: vi.fn().mockResolvedValue({
-        ok: true,
-        sample: 'ok',
-      }),
+      runConnectivityTest: vi
+        .fn()
+        .mockResolvedValue(PASSED_CONNECTIVITY_RESULT),
     });
 
     await act(async () => {
@@ -329,10 +358,11 @@ describe('ModelEnvConfigModal', () => {
     });
 
     const button = getConnectivityButton(container);
+    expect(onSave).not.toHaveBeenCalled();
     expect(container.textContent).toContain('Test passed.');
     expect(container.innerHTML).toContain('bg-status-success-bg');
     expect(container.innerHTML).toContain('text-status-success-fg');
-    expect(button.textContent).toContain('Connectivity test');
+    expect(button.textContent).toContain('Verify and Save Model');
     expect(button.textContent).not.toContain('Test passed');
     expect(button.innerHTML).toContain('text-text-primary leading-[16px]');
     expect(button.innerHTML).not.toContain('model-env-connectivity.svg');
@@ -343,14 +373,20 @@ describe('ModelEnvConfigModal', () => {
       'h-4 w-4 shrink-0 text-text-primary',
     );
 
+    await act(async () => {
+      vi.advanceTimersByTime(1800);
+      await Promise.resolve();
+    });
+
+    expect(onSave).toHaveBeenCalledWith({ text: VALID_ENV_TEXT });
+
     await unmountModal(root);
   });
 
   it('does not run connectivity test before the user clicks test', async () => {
-    const runConnectivityTest = vi.fn().mockResolvedValue({
-      ok: true,
-      sample: 'ok',
-    });
+    const runConnectivityTest = vi
+      .fn()
+      .mockResolvedValue(PASSED_CONNECTIVITY_RESULT);
     vi.stubGlobal('studioRuntime', {
       runConnectivityTest,
     });
@@ -378,12 +414,12 @@ describe('ModelEnvConfigModal', () => {
   });
 
   it('matches the imported failure status visual scale', async () => {
-    const { container, root } = await renderModal(VALID_ENV_TEXT);
+    const onSave = vi.fn();
+    const { container, root } = await renderModal(VALID_ENV_TEXT, { onSave });
     vi.stubGlobal('studioRuntime', {
-      runConnectivityTest: vi.fn().mockResolvedValue({
-        error: 'Network error',
-        ok: false,
-      }),
+      runConnectivityTest: vi
+        .fn()
+        .mockResolvedValue(FAILED_CONNECTIVITY_RESULT),
     });
 
     await act(async () => {
@@ -394,10 +430,20 @@ describe('ModelEnvConfigModal', () => {
     expect(container.innerHTML).toContain('h-[444px] w-[400px]');
     expect(container.innerHTML).toContain('bg-[#E13E37]/11');
     expect(container.innerHTML).toContain('text-[#E13E37]');
-    expect(container.textContent).toContain('Test failed. Please try again.');
+    expect(container.textContent).toContain(
+      '[Text check - gpt-4o (planning)]: Network error',
+    );
+    expect(container.textContent).toContain(
+      '[Vision check - gpt-4o (insight)]: Invalid image response',
+    );
+    expect(container.innerHTML).toContain('whitespace-pre-wrap');
+    expect(onSave).not.toHaveBeenCalled();
+    expect(container.textContent).not.toContain(
+      'Test failed. Please try again.',
+    );
     expect(container.textContent).not.toMatch(/[\u4e00-\u9fff]/);
     expect(getConnectivityButton(container).textContent).toContain(
-      'Connectivity test',
+      'Verify and Save Model',
     );
     expect(getConnectivityButton(container).textContent).not.toContain(
       'Test failed',
@@ -410,6 +456,26 @@ describe('ModelEnvConfigModal', () => {
     );
     expect(getConnectivityButton(container).innerHTML).toContain(
       'M5 8.00002V3.95856L8.5 5.97929L12 8.00002L8.5 10.0208L5 12.0415V8.00002Z',
+    );
+
+    await unmountModal(root);
+  });
+
+  it('shows a fallback when a failed connectivity result has no message', async () => {
+    const { container, root } = await renderModal(VALID_ENV_TEXT);
+    vi.stubGlobal('studioRuntime', {
+      runConnectivityTest: vi.fn().mockResolvedValue({
+        passed: false,
+      } satisfies ConnectivityTestResult),
+    });
+
+    await act(async () => {
+      getConnectivityButton(container).click();
+      await Promise.resolve();
+    });
+
+    expect(container.textContent).toContain(
+      'Connectivity test failed without details.',
     );
 
     await unmountModal(root);

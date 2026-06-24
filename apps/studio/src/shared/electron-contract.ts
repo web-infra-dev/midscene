@@ -1,5 +1,8 @@
-import type { RecorderYamlGenerationInput } from '@midscene/core/ai-model';
-import type { IModelConfig } from '@midscene/shared/env';
+import type {
+  ConnectivityTestResult,
+  RecorderYamlGenerationInput,
+} from '@midscene/core/ai-model';
+import type { IModelConfig, TModelConfig } from '@midscene/shared/env';
 import type {
   MidsceneRecorderEvent,
   MidsceneRecorderTarget,
@@ -46,11 +49,8 @@ export const IPC_CHANNELS = {
   updaterStatus: 'updater:status',
 } as const;
 
-export interface ConnectivityTestRequest {
-  apiKey: string;
-  baseUrl: string;
-  model: string;
-}
+export type ConnectivityTestRequest = TModelConfig;
+export type { ConnectivityTestResult };
 
 export interface WriteReportFileRequest {
   path: string;
@@ -73,10 +73,6 @@ export interface WriteFileRequest {
   content: string;
   encoding?: 'utf-8' | 'base64';
 }
-
-export type ConnectivityTestResult =
-  | { ok: true; sample: string }
-  | { ok: false; error: string };
 
 export type StudioRecorderCodeType = 'markdown' | 'yaml' | 'playwright';
 
