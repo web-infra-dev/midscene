@@ -146,6 +146,128 @@ describe('TaskExecutor concurrency isolation', () => {
     await Promise.all([actionPromiseA, actionPromiseB]);
   });
 
+  it('isolates aiAct progress between concurrent action calls on one executor', async () => {
+    // Two concurrent action() calls share one executor. Call A is held mid-
+    // action while call B runs to completion (and tears down its own batch
+    // state). The per-call reporter must stay isolated so A still reports its
+    // own action_done with its own plan limit after B finishes.
+    const aInBatch = createDeferred();
+    const releaseA = createDeferred();
+
+    const progress: Array<{
+      phase: string;
+      name?: string;
+      planLimit?: number;
+    }> = [];
+
+    const taskExecutorLocal = new TaskExecutor(mockInterface, mockService, {
+      replanningCycleLimit: 1,
+      actionSpace: emptyParamActionSpace,
+      hooks: {
+        onProgress: (_scope, phase, data) => {
+          const payload = (data ?? {}) as Record<string, any>;
+          progress.push({
+            phase,
+            name: payload.action?.name,
+            planLimit: payload.planLimit,
+          });
+        },
+      },
+    });
+
+    vi.mocked(genericXmlPlan).mockImplementation(async (instruction: any) => {
+      // Gate B's plan until A is executing inside its action batch, so the
+      // two batches are guaranteed to overlap.
+      if (instruction === 'B') {
+        await aInBatch.promise;
+      }
+      return {
+        actions: [{ type: instruction === 'A' ? 'TapA' : 'TapB', param: {} }],
+        yamlFlow: [],
+        shouldContinuePlanning: false,
+        log: '',
+        rawResponse: '',
+        finalizeSuccess: true,
+        finalizeMessage: 'done',
+      } as any;
+    });
+
+    vi.spyOn(taskExecutorLocal, 'convertPlanToExecutable').mockImplementation(
+      (async (plans: any[]) => {
+        const type = plans[0]?.type;
+        if (type === 'TapA') {
+          return {
+            tasks: [
+              {
+                type: 'Action Space',
+                subType: 'TapA',
+                param: {},
+                executor: async () => {
+                  aInBatch.resolve();
+                  await releaseA.promise;
+                  return undefined;
+                },
+              },
+            ],
+            yamlFlow: [],
+          };
+        }
+        return {
+          tasks: [
+            {
+              type: 'Action Space',
+              subType: 'TapB',
+              param: {},
+              executor: async () => undefined,
+            },
+          ],
+          yamlFlow: [],
+        };
+      }) as any,
+    );
+
+    const promiseA = taskExecutorLocal.action(
+      'A',
+      planningModel(),
+      defaultModel(),
+      true,
+      undefined,
+      undefined,
+      5,
+    );
+    const promiseB = taskExecutorLocal.action(
+      'B',
+      planningModel(),
+      defaultModel(),
+      true,
+      undefined,
+      undefined,
+      9,
+    );
+
+    // B completes (and tears down its batch) while A is still blocked.
+    await promiseB;
+    releaseA.resolve();
+    await promiseA;
+
+    const tapA = progress.filter((event) => event.name === 'TapA');
+    const tapB = progress.filter((event) => event.name === 'TapB');
+
+    // A's action_done survives B's teardown, and each call keeps its own limit.
+    expect(tapA.map((event) => event.phase)).toEqual([
+      'plan_action',
+      'action_running',
+      'action_done',
+    ]);
+    expect(tapA.every((event) => event.planLimit === 5)).toBe(true);
+    expect(tapB.map((event) => event.phase)).toEqual([
+      'plan_action',
+      'action_running',
+      'action_done',
+    ]);
+    expect(tapB.every((event) => event.planLimit === 9)).toBe(true);
+  });
+
   it('emits semantic aiAct progress events from planning and action execution', async () => {
     const progressEvents: string[] = [];
     const progressScopes = new Set<string>();

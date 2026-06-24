@@ -114,12 +114,6 @@ export class TaskExecutor {
 
   useDeviceTime?: boolean;
 
-  // Reporter that maps the runner's native task events to aiAct action
-  // progress for the action batch currently running. Set while a planned batch
-  // runs and cleared afterwards, so task events fired outside a batch (e.g. the
-  // planning task itself) are ignored.
-  private activeActionReporter?: (event: TaskRunnerEvent) => Promise<void>;
-
   // @deprecated use .interface instead
   get page() {
     return this.interface;
@@ -470,11 +464,19 @@ export class TaskExecutor {
     const promptDisplay =
       reportOptions?.prompt || userPromptToString(userPrompt);
 
+    // Per-call reporter that maps the runner's native task events to aiAct
+    // action progress for the action batch currently running. Kept local (not
+    // on the instance) so concurrent aiAct() calls on the same executor stay
+    // isolated; it is set while a planned batch runs and cleared afterwards.
+    let activeActionReporter:
+      | ((event: TaskRunnerEvent) => Promise<void>)
+      | undefined;
+
     const session = this.createExecutionSession(
       taskTitleStr(reportOptions?.type || 'Act', promptDisplay),
       {
         onTaskEvent: async (event) => {
-          await this.activeActionReporter?.(event);
+          await activeActionReporter?.(event);
         },
       },
     );
@@ -750,7 +752,7 @@ export class TaskExecutor {
       // Scope a reporter to this replanning round so native task events from the
       // runner are mapped to aiAct progress with the right plan context; cleared
       // in `finally` so events fired between batches are ignored.
-      this.activeActionReporter = createAiActActionReporter(
+      activeActionReporter = createAiActActionReporter(
         planIndex,
         replanningCycleLimit,
         (phase, data) => this.emitAiActProgress(phase, data),
@@ -778,7 +780,7 @@ export class TaskExecutor {
           errorCountInOnePlanningLoop,
         );
       } finally {
-        this.activeActionReporter = undefined;
+        activeActionReporter = undefined;
       }
 
       if (errorCountInOnePlanningLoop > maxErrorCountAllowedInOnePlanningLoop) {
