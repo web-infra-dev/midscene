@@ -14,8 +14,8 @@ import {
 } from '@midscene/core/agent';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import { uuid } from '@midscene/shared/utils';
+import { afterAll, beforeAll, describe, expect, it, rs } from '@rstest/core';
 import yaml from 'js-yaml';
-import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 const prepareCache = (
   caches: (PlanningCache | LocateCache)[],
@@ -33,13 +33,13 @@ const prepareCache = (
   return cache.cacheFilePath;
 };
 
-describe('TaskCache', { timeout: 20000 }, () => {
+describe('TaskCache', () => {
   beforeAll(() => {
-    vi.resetModules();
+    rs.resetModules();
   });
 
   afterAll(() => {
-    vi.restoreAllMocks();
+    rs.restoreAllMocks();
   });
 
   it('should create cache file', () => {

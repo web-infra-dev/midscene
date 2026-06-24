@@ -1,5 +1,5 @@
 import { defaultExtractContentAndReasoning } from '@/ai-model/model-adapter/chat-completion';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 
 describe('chat completion content extraction', () => {
   it('returns empty strings for undefined input', () => {

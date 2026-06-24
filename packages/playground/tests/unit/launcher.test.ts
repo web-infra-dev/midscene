@@ -1,5 +1,5 @@
 import path from 'node:path';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 import {
   playgroundForAgent,
   playgroundForAgentFactory,
@@ -10,7 +10,7 @@ import { buildPlaygroundBrowserUrl } from '../../src/server';
 function createMockAgent() {
   return {
     interface: {},
-    destroy: vi.fn(async () => {}),
+    destroy: rs.fn(async () => {}),
   } as any;
 }
 
@@ -71,9 +71,9 @@ describe('playground launcher', () => {
   });
 
   it('should launch from agent factory and allow server configuration', async () => {
-    const agentFactory = vi.fn(async () => createMockAgent());
+    const agentFactory = rs.fn(async () => createMockAgent());
     let configuredServer: any;
-    const configureServer = vi.fn((server: any) => {
+    const configureServer = rs.fn((server: any) => {
       configuredServer = server;
     });
 
@@ -97,8 +97,8 @@ describe('playground launcher', () => {
   it('should manage prepared platform sidecars for direct agent platforms', async () => {
     const sidecar = {
       id: 'mock-sidecar',
-      start: vi.fn(async () => {}),
-      stop: vi.fn(async () => {}),
+      start: rs.fn(async () => {}),
+      stop: rs.fn(async () => {}),
     };
 
     const result = await launchPreparedPlaygroundPlatform(

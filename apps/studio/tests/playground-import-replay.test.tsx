@@ -1,27 +1,27 @@
+import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
 // @vitest-environment jsdom
 import { act, createElement } from 'react';
 import { createRoot } from 'react-dom/client';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const mocks = vi.hoisted(() => ({
+const mocks = rs.hoisted(() => ({
   latestPlaygroundConfig: null as any,
   playground: null as any,
   recorder: null as any,
 }));
 
-vi.mock('antd', () => ({
+rs.mock('antd', () => ({
   App: {
     useApp: () => ({
       message: {
-        error: vi.fn(),
-        info: vi.fn(),
+        error: rs.fn(),
+        info: rs.fn(),
       },
     }),
   },
   Tooltip: ({ children }: { children: React.ReactNode }) => children,
 }));
 
-vi.mock('@midscene/playground-app', () => ({
+rs.mock('@midscene/playground-app', () => ({
   PlaygroundConversationPanel: ({ playgroundConfig }: any) => {
     mocks.latestPlaygroundConfig = playgroundConfig;
     return createElement(
@@ -32,20 +32,20 @@ vi.mock('@midscene/playground-app', () => ({
   },
 }));
 
-vi.mock('../src/renderer/components/Recorder', () => ({
+rs.mock('../src/renderer/components/Recorder', () => ({
   StudioRecorderPanel: () => null,
 }));
 
-vi.mock('../src/renderer/components/PlaygroundShell/mode-icons', () => ({
+rs.mock('../src/renderer/components/PlaygroundShell/mode-icons', () => ({
   ApiPlaygroundModeIcon: () => createElement('span'),
   RecorderModeIcon: () => createElement('span'),
 }));
 
-vi.mock('../src/renderer/playground/useStudioPlayground', () => ({
+rs.mock('../src/renderer/playground/useStudioPlayground', () => ({
   useStudioPlayground: () => mocks.playground,
 }));
 
-vi.mock('../src/renderer/recorder/useStudioRecorder', () => ({
+rs.mock('../src/renderer/recorder/useStudioRecorder', () => ({
   useStudioRecorder: () => mocks.recorder,
 }));
 
@@ -78,10 +78,10 @@ function createReadyPlayground() {
       },
     },
     phase: 'ready',
-    refreshDiscoveredDevices: vi.fn(async () => undefined),
-    restartPlayground: vi.fn(async () => undefined),
+    refreshDiscoveredDevices: rs.fn(async () => undefined),
+    restartPlayground: rs.fn(async () => undefined),
     serverUrl: 'http://localhost:5800',
-    setDiscoveryPollingPaused: vi.fn(),
+    setDiscoveryPollingPaused: rs.fn(),
   };
 }
 
@@ -91,7 +91,7 @@ function createRecorder() {
     state: {
       isRecording: false,
     },
-    stopRecording: vi.fn(async () => undefined),
+    stopRecording: rs.fn(async () => undefined),
   };
 }
 
@@ -118,7 +118,7 @@ describe('Studio Playground imported replay', () => {
     mocks.playground = createReadyPlayground();
     mocks.recorder = createRecorder();
     window.studioRuntime = {
-      chooseReplayFile: vi.fn(async () => ({
+      chooseReplayFile: rs.fn(async () => ({
         content: '# Replay\n\n## Steps\n1. Tap login',
         displayName: 'recording.md',
         type: 'markdown',
@@ -129,7 +129,7 @@ describe('Studio Playground imported replay', () => {
 
   afterEach(() => {
     document.body.replaceChildren();
-    vi.restoreAllMocks();
+    rs.restoreAllMocks();
   });
 
   it('wraps imported Markdown content into an aiAct replay request', async () => {

@@ -1,16 +1,17 @@
 import type { IModelConfig } from '@midscene/shared/env';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, rs } from '@rstest/core';
 
-const mockCreate = vi.fn();
-
-vi.mock('openai', () => ({
-  default: vi.fn().mockImplementation(() => ({
-    chat: {
-      completions: {
-        create: mockCreate,
-      },
+const mockCreate = rs.fn();
+const mockOpenAICtor = rs.fn().mockImplementation(() => ({
+  chat: {
+    completions: {
+      create: mockCreate,
     },
-  })),
+  },
+}));
+
+rs.mock('openai', () => ({
+  default: mockOpenAICtor,
 }));
 
 const baseConfig = (overrides: Partial<IModelConfig> = {}): IModelConfig =>
@@ -27,7 +28,7 @@ const baseConfig = (overrides: Partial<IModelConfig> = {}): IModelConfig =>
 
 describe('service-caller request timeout', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    rs.clearAllMocks();
   });
 
   it('resolves default, custom and disabled timeout values', async () => {
@@ -155,10 +156,7 @@ describe('service-caller request timeout', () => {
       getModelRuntime(baseConfig()),
     );
 
-    const OpenAI = (await import('openai')).default as unknown as ReturnType<
-      typeof vi.fn
-    >;
-    const lastCallOptions = OpenAI.mock.calls.at(-1)?.[0];
+    const lastCallOptions = mockOpenAICtor.mock.calls.at(-1)?.[0];
     expect(lastCallOptions?.timeout).toBe(180_000);
     expect(lastCallOptions?.maxRetries).toBe(0);
   });
@@ -290,10 +288,7 @@ describe('service-caller request timeout', () => {
       getModelRuntime(baseConfig({ timeout: 0 })),
     );
 
-    const OpenAI = (await import('openai')).default as unknown as ReturnType<
-      typeof vi.fn
-    >;
-    const lastCallOptions = OpenAI.mock.calls.at(-1)?.[0];
+    const lastCallOptions = mockOpenAICtor.mock.calls.at(-1)?.[0];
     // When timeout is disabled we should NOT forward a timeout to the SDK.
     expect(lastCallOptions?.timeout).toBeUndefined();
 

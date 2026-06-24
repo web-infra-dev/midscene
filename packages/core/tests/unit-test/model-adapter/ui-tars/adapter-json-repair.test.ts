@@ -1,18 +1,17 @@
 import { ResolvedModelAdapter } from '@/ai-model/model-adapter/resolve';
 import { uiTarsAdapters } from '@/ai-model/models/ui-tars/adapter';
-import { describe, expect, it, vi } from 'vitest';
+import * as serviceCallerJsonActual from '@/ai-model/service-caller/json' with {
+  rstest: 'importActual',
+};
+import { describe, expect, it, rs } from '@rstest/core';
 
-vi.mock('@/ai-model/service-caller/json', async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import('@/ai-model/service-caller/json')>();
-  return {
-    ...actual,
-    extractJSONFromCodeBlock: vi.fn((raw: string) => raw),
-    safeParseJson: vi.fn(() => {
-      throw new Error('first safe parse failed');
-    }),
-  };
-});
+rs.mock('@/ai-model/service-caller/json', () => ({
+  ...serviceCallerJsonActual,
+  extractJSONFromCodeBlock: rs.fn((raw: string) => raw),
+  safeParseJson: rs.fn(() => {
+    throw new Error('first safe parse failed');
+  }),
+}));
 
 const uiTarsAdapter = new ResolvedModelAdapter(
   uiTarsAdapters['vlm-ui-tars'],

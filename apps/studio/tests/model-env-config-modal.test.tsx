@@ -1,8 +1,8 @@
+import { afterEach, describe, expect, it, rs } from '@rstest/core';
 // @vitest-environment jsdom
 import { act, createElement } from 'react';
 import { createRoot } from 'react-dom/client';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ModelEnvConfigModal } from '../src/renderer/components/ShellLayout/ModelEnvConfigModal';
 
 const VALID_ENV_TEXT = [
@@ -78,7 +78,7 @@ async function unmountModal(root: ReturnType<typeof createRoot>) {
 
 describe('ModelEnvConfigModal', () => {
   afterEach(() => {
-    vi.unstubAllGlobals();
+    rs.unstubAllGlobals();
     document.body.replaceChildren();
   });
 
@@ -125,7 +125,13 @@ describe('ModelEnvConfigModal', () => {
     expect(html).toContain(
       'M5 8.00002V3.95856L8.5 5.97929L12 8.00002L8.5 10.0208L5 12.0415V8.00002Z',
     );
-    expect(html).toContain('model-env-close.svg');
+    // The close button renders the model-env-close.svg asset. Its src form is
+    // bundler-dependent — a hashed `.svg` file URL, an inlined `data:` URI, or
+    // (in the rstest test build) the svg source encoded into the URL — so assert
+    // on the close-icon <img> referencing an svg rather than a literal filename.
+    expect(html).toMatch(
+      /<img[^>]*\bsrc="[^"]*(?:model-env-close[^"]*\.svg|data:image\/svg\+xml|%3Csvg)/i,
+    );
     expect(html).toContain('class="h-[16px] w-[16px]"');
     expect(html).toContain('h-[32px]');
     expect(html).toContain('w-[159px]');
@@ -174,13 +180,13 @@ describe('ModelEnvConfigModal', () => {
 
   it('starts spinning only while the connectivity test is running', async () => {
     const { container, root } = await renderModal(VALID_ENV_TEXT);
-    const runConnectivityTest = vi.fn(
+    const runConnectivityTest = rs.fn(
       () =>
         new Promise<{ ok: true; sample: string }>(() => {
           // Keep the request pending so the rendered state can be inspected.
         }),
     );
-    vi.stubGlobal('studioRuntime', {
+    rs.stubGlobal('studioRuntime', {
       runConnectivityTest,
     });
 
@@ -207,13 +213,13 @@ describe('ModelEnvConfigModal', () => {
     let resolveConnectivityTest:
       | ((value: { ok: true; sample: string }) => void)
       | undefined;
-    const runConnectivityTest = vi.fn(
+    const runConnectivityTest = rs.fn(
       () =>
         new Promise<{ ok: true; sample: string }>((resolve) => {
           resolveConnectivityTest = resolve;
         }),
     );
-    vi.stubGlobal('studioRuntime', {
+    rs.stubGlobal('studioRuntime', {
       runConnectivityTest,
     });
 
@@ -253,8 +259,8 @@ describe('ModelEnvConfigModal', () => {
 
   it('shows failure status when connectivity test rejects', async () => {
     const { container, root } = await renderModal(VALID_ENV_TEXT);
-    vi.stubGlobal('studioRuntime', {
-      runConnectivityTest: vi.fn().mockRejectedValue(new Error('Network down')),
+    rs.stubGlobal('studioRuntime', {
+      runConnectivityTest: rs.fn().mockRejectedValue(new Error('Network down')),
     });
 
     await act(async () => {
@@ -316,8 +322,8 @@ describe('ModelEnvConfigModal', () => {
 
   it('restores default connectivity button style after a successful test', async () => {
     const { container, root } = await renderModal(VALID_ENV_TEXT);
-    vi.stubGlobal('studioRuntime', {
-      runConnectivityTest: vi.fn().mockResolvedValue({
+    rs.stubGlobal('studioRuntime', {
+      runConnectivityTest: rs.fn().mockResolvedValue({
         ok: true,
         sample: 'ok',
       }),
@@ -347,11 +353,11 @@ describe('ModelEnvConfigModal', () => {
   });
 
   it('does not run connectivity test before the user clicks test', async () => {
-    const runConnectivityTest = vi.fn().mockResolvedValue({
+    const runConnectivityTest = rs.fn().mockResolvedValue({
       ok: true,
       sample: 'ok',
     });
-    vi.stubGlobal('studioRuntime', {
+    rs.stubGlobal('studioRuntime', {
       runConnectivityTest,
     });
     const { container, root } = await renderModal(VALID_ENV_TEXT);
@@ -379,8 +385,8 @@ describe('ModelEnvConfigModal', () => {
 
   it('matches the imported failure status visual scale', async () => {
     const { container, root } = await renderModal(VALID_ENV_TEXT);
-    vi.stubGlobal('studioRuntime', {
-      runConnectivityTest: vi.fn().mockResolvedValue({
+    rs.stubGlobal('studioRuntime', {
+      runConnectivityTest: rs.fn().mockResolvedValue({
         error: 'Network error',
         ok: false,
       }),
@@ -416,7 +422,7 @@ describe('ModelEnvConfigModal', () => {
   });
 
   it('closes via Escape key while open', async () => {
-    const onClose = vi.fn();
+    const onClose = rs.fn();
     const container = document.createElement('div');
     document.body.appendChild(container);
     const root = createRoot(container);

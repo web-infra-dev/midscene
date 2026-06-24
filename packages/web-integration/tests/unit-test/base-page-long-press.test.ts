@@ -1,44 +1,44 @@
 import { Page } from '@/puppeteer/base-page';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, rs } from '@rstest/core';
 
-vi.mock('@midscene/shared/logger', () => ({
-  getDebug: vi.fn(() => vi.fn()),
-  logMsg: vi.fn(),
+rs.mock('@midscene/shared/logger', () => ({
+  getDebug: rs.fn(() => rs.fn()),
+  logMsg: rs.fn(),
 }));
 
-vi.mock('@midscene/shared/node', () => ({
-  getElementInfosScriptContent: vi.fn(() => ''),
-  getExtraReturnLogic: vi.fn(() => Promise.resolve('() => ({})')),
+rs.mock('@midscene/shared/node', () => ({
+  getElementInfosScriptContent: rs.fn(() => ''),
+  getExtraReturnLogic: rs.fn(() => Promise.resolve('() => ({})')),
 }));
 
-vi.mock('@/web-element', () => ({
-  WebPageContextParser: vi.fn(),
+rs.mock('@/web-element', () => ({
+  WebPageContextParser: rs.fn(),
 }));
 
-vi.mock('@/web-page', () => ({
-  commonWebActionsForWebPage: vi.fn(() => []),
+rs.mock('@/web-page', () => ({
+  commonWebActionsForWebPage: rs.fn(() => []),
 }));
 
 const createMockPage = () => {
-  const mouse = { move: vi.fn(), down: vi.fn(), up: vi.fn() };
+  const mouse = { move: rs.fn(), down: rs.fn(), up: rs.fn() };
   const underlyingPage = {
     url: () => 'http://example.com',
     mouse,
-    keyboard: { down: vi.fn(), up: vi.fn(), press: vi.fn(), type: vi.fn() },
-    evaluate: vi.fn(),
+    keyboard: { down: rs.fn(), up: rs.fn(), press: rs.fn(), type: rs.fn() },
+    evaluate: rs.fn(),
   } as any;
   return { underlyingPage, mouse };
 };
 
 describe('Page.longPress - duration handling', () => {
   afterEach(() => {
-    vi.restoreAllMocks();
+    rs.restoreAllMocks();
   });
 
   // Run the press immediately instead of actually waiting, and capture the
   // requested delay so we can assert how long the button is held down.
   const spyHeldDuration = () => {
-    const setTimeoutSpy = vi
+    const setTimeoutSpy = rs
       .spyOn(global, 'setTimeout')
       .mockImplementation((fn: any) => {
         fn();

@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 import {
   DEFAULT_REPORT_FILE_NAME,
   triggerReportDownload,
@@ -6,7 +6,7 @@ import {
 
 describe('triggerReportDownload', () => {
   it('delegates to the host-provided download handler when present', async () => {
-    const onDownloadReport = vi.fn().mockResolvedValue(undefined);
+    const onDownloadReport = rs.fn().mockResolvedValue(undefined);
 
     await triggerReportDownload({
       content: '<html>report</html>',
@@ -24,20 +24,20 @@ describe('triggerReportDownload', () => {
       href: '',
       download: '',
       style: { display: '' },
-      click: vi.fn(),
+      click: rs.fn(),
     };
     const documentRef = {
       body: {
-        appendChild: vi.fn(),
-        removeChild: vi.fn(),
+        appendChild: rs.fn(),
+        removeChild: rs.fn(),
       },
-      createElement: vi.fn(() => anchor),
+      createElement: rs.fn(() => anchor),
     };
     const urlRef = {
-      createObjectURL: vi.fn(() => 'blob:report'),
-      revokeObjectURL: vi.fn(),
+      createObjectURL: rs.fn(() => 'blob:report'),
+      revokeObjectURL: rs.fn(),
     };
-    const blobFactory = vi.fn(() => ({}) as Blob);
+    const blobFactory = rs.fn(() => ({}) as Blob);
 
     await triggerReportDownload({
       content: '<html>blob-report</html>',

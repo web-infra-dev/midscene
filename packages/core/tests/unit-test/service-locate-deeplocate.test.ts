@@ -1,15 +1,15 @@
 import { getModelRuntime } from '@/ai-model/models';
 import Service from '@/service';
 import type { IModelConfig } from '@midscene/shared/env';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, rs } from '@rstest/core';
 import { createFakeContext } from '../utils';
 
-vi.mock('@/ai-model/inspect', () => ({
+rs.mock('@/ai-model/inspect', () => ({
   AIResponseParseError: class AIResponseParseError extends Error {},
-  AiExtractElementInfo: vi.fn(),
-  AiLocateElement: vi.fn(),
-  AiLocateSection: vi.fn(),
-  buildSearchAreaConfig: vi.fn(),
+  AiExtractElementInfo: rs.fn(),
+  AiLocateElement: rs.fn(),
+  AiLocateSection: rs.fn(),
+  buildSearchAreaConfig: rs.fn(),
 }));
 
 import {
@@ -29,9 +29,9 @@ describe('service.locate deepLocate routing', () => {
   const modelRuntime = getModelRuntime(modelConfig);
 
   beforeEach(() => {
-    vi.clearAllMocks();
+    rs.clearAllMocks();
 
-    vi.mocked(AiLocateElement).mockResolvedValue({
+    rs.mocked(AiLocateElement).mockResolvedValue({
       parseResult: {
         element: {
           center: [120, 220],
@@ -48,7 +48,7 @@ describe('service.locate deepLocate routing', () => {
       reasoning_content: undefined,
     } as any);
 
-    vi.mocked(AiLocateSection).mockResolvedValue({
+    rs.mocked(AiLocateSection).mockResolvedValue({
       searchAreaConfig: {
         sourceRect: { left: 10, top: 20, width: 300, height: 200 },
         image: {
@@ -65,7 +65,7 @@ describe('service.locate deepLocate routing', () => {
       usage: undefined,
     });
 
-    vi.mocked(buildSearchAreaConfig).mockResolvedValue({
+    rs.mocked(buildSearchAreaConfig).mockResolvedValue({
       sourceRect: { left: 20, top: 30, width: 280, height: 180 },
       image: {
         imageBase64: 'data:image/png;base64,BBB',

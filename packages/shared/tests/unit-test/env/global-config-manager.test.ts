@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
 import {
   MIDSCENE_ADB_PATH,
   MIDSCENE_CACHE,
@@ -16,7 +16,7 @@ import { GlobalConfigManager } from '../../../src/env/global-config-manager';
 
 describe('overrideAIConfig', () => {
   afterEach(() => {
-    vi.unstubAllEnvs();
+    rs.unstubAllEnvs();
   });
 
   it('should throw if called with invalid key', () => {
@@ -97,9 +97,9 @@ describe('overrideAIConfig', () => {
     globalConfigManager.registerModelConfigManager(new ModelConfigManager());
 
     // Set initial environment values
-    vi.stubEnv(MIDSCENE_ADB_PATH, '/original/adb/path');
-    vi.stubEnv(MIDSCENE_CACHE, 'false');
-    vi.stubEnv(MIDSCENE_MODEL_NAME, 'gpt-3.5-turbo');
+    rs.stubEnv(MIDSCENE_ADB_PATH, '/original/adb/path');
+    rs.stubEnv(MIDSCENE_CACHE, 'false');
+    rs.stubEnv(MIDSCENE_MODEL_NAME, 'gpt-3.5-turbo');
 
     // Override with new values
     globalConfigManager.overrideAIConfig({
@@ -123,9 +123,9 @@ describe('overrideAIConfig', () => {
     globalConfigManager.registerModelConfigManager(new ModelConfigManager());
 
     // Set initial environment values
-    vi.stubEnv(MIDSCENE_ADB_PATH, '/original/adb/path');
-    vi.stubEnv(MIDSCENE_CACHE, 'false');
-    vi.stubEnv(MIDSCENE_CACHE_MAX_FILENAME_LENGTH, '100');
+    rs.stubEnv(MIDSCENE_ADB_PATH, '/original/adb/path');
+    rs.stubEnv(MIDSCENE_CACHE, 'false');
+    rs.stubEnv(MIDSCENE_CACHE_MAX_FILENAME_LENGTH, '100');
 
     // Override with extend mode
     globalConfigManager.overrideAIConfig(
@@ -152,7 +152,7 @@ describe('overrideAIConfig', () => {
   });
 
   it('should warn when overriding already read keys', () => {
-    const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const consoleSpy = rs.spyOn(console, 'warn').mockImplementation(() => {});
     const globalConfigManager = new GlobalConfigManager();
     globalConfigManager.registerModelConfigManager(new ModelConfigManager());
 
@@ -213,8 +213,8 @@ describe('overrideAIConfig', () => {
     globalConfigManager.registerModelConfigManager(new ModelConfigManager());
 
     // Set initial environment values
-    vi.stubEnv(MIDSCENE_ADB_PATH, '/env/adb/path');
-    vi.stubEnv(MIDSCENE_CACHE, 'false');
+    rs.stubEnv(MIDSCENE_ADB_PATH, '/env/adb/path');
+    rs.stubEnv(MIDSCENE_CACHE, 'false');
 
     // First override in extend mode
     globalConfigManager.overrideAIConfig(
@@ -260,7 +260,7 @@ describe('overrideAIConfig', () => {
     globalConfigManager.registerModelConfigManager(new ModelConfigManager());
 
     // Set initial environment values
-    vi.stubEnv(MIDSCENE_ADB_PATH, '/original/path');
+    rs.stubEnv(MIDSCENE_ADB_PATH, '/original/path');
 
     // Get config to cache it
     expect(globalConfigManager.getEnvConfigValue(MIDSCENE_ADB_PATH)).toBe(
@@ -280,7 +280,7 @@ describe('overrideAIConfig', () => {
 
   it('should clear model config map when override is called', () => {
     const modelConfigManager = new ModelConfigManager();
-    const clearModelConfigMapSpy = vi.spyOn(
+    const clearModelConfigMapSpy = rs.spyOn(
       modelConfigManager,
       'clearModelConfigMap',
     );
@@ -305,13 +305,13 @@ describe('overrideAIConfig', () => {
 
 describe('getEnvConfigValueAsNumber', () => {
   beforeEach(() => {
-    vi.stubEnv(MIDSCENE_ADB_PATH, '<test-adb-path>');
-    vi.stubEnv(MIDSCENE_CACHE_MAX_FILENAME_LENGTH, '100');
-    vi.stubEnv(MIDSCENE_CACHE, '');
+    rs.stubEnv(MIDSCENE_ADB_PATH, '<test-adb-path>');
+    rs.stubEnv(MIDSCENE_CACHE_MAX_FILENAME_LENGTH, '100');
+    rs.stubEnv(MIDSCENE_CACHE, '');
   });
 
   afterEach(() => {
-    vi.unstubAllEnvs();
+    rs.unstubAllEnvs();
   });
 
   it('should return number for valid numeric string values', () => {
@@ -326,7 +326,7 @@ describe('getEnvConfigValueAsNumber', () => {
   });
 
   it('should return undefined for non-numeric string values', () => {
-    vi.stubEnv(MIDSCENE_ADB_PATH, 'not-a-number');
+    rs.stubEnv(MIDSCENE_ADB_PATH, 'not-a-number');
 
     const globalConfigManager = new GlobalConfigManager();
     globalConfigManager.registerModelConfigManager(new ModelConfigManager());
@@ -348,7 +348,7 @@ describe('getEnvConfigValueAsNumber', () => {
   });
 
   it('should return undefined for empty string values', () => {
-    vi.stubEnv(MIDSCENE_CACHE_MAX_FILENAME_LENGTH, '');
+    rs.stubEnv(MIDSCENE_CACHE_MAX_FILENAME_LENGTH, '');
 
     const globalConfigManager = new GlobalConfigManager();
     globalConfigManager.registerModelConfigManager(new ModelConfigManager());
@@ -361,7 +361,7 @@ describe('getEnvConfigValueAsNumber', () => {
   });
 
   it('should handle decimal values', () => {
-    vi.stubEnv(MIDSCENE_CACHE_MAX_FILENAME_LENGTH, '123.45');
+    rs.stubEnv(MIDSCENE_CACHE_MAX_FILENAME_LENGTH, '123.45');
 
     const globalConfigManager = new GlobalConfigManager();
     globalConfigManager.registerModelConfigManager(new ModelConfigManager());
@@ -374,7 +374,7 @@ describe('getEnvConfigValueAsNumber', () => {
   });
 
   it('should handle zero values', () => {
-    vi.stubEnv(MIDSCENE_CACHE_MAX_FILENAME_LENGTH, '0');
+    rs.stubEnv(MIDSCENE_CACHE_MAX_FILENAME_LENGTH, '0');
 
     const globalConfigManager = new GlobalConfigManager();
     globalConfigManager.registerModelConfigManager(new ModelConfigManager());
@@ -387,7 +387,7 @@ describe('getEnvConfigValueAsNumber', () => {
   });
 
   it('should handle negative values', () => {
-    vi.stubEnv(MIDSCENE_CACHE_MAX_FILENAME_LENGTH, '-100');
+    rs.stubEnv(MIDSCENE_CACHE_MAX_FILENAME_LENGTH, '-100');
 
     const globalConfigManager = new GlobalConfigManager();
     globalConfigManager.registerModelConfigManager(new ModelConfigManager());
@@ -400,7 +400,7 @@ describe('getEnvConfigValueAsNumber', () => {
   });
 
   it('should trim whitespace before conversion', () => {
-    vi.stubEnv(MIDSCENE_CACHE_MAX_FILENAME_LENGTH, '  100  ');
+    rs.stubEnv(MIDSCENE_CACHE_MAX_FILENAME_LENGTH, '  100  ');
 
     const globalConfigManager = new GlobalConfigManager();
     globalConfigManager.registerModelConfigManager(new ModelConfigManager());
@@ -452,15 +452,15 @@ describe('getEnvConfigValueAsNumber', () => {
 
 describe('getEnvConfigValue', () => {
   beforeEach(() => {
-    vi.stubEnv(MIDSCENE_MODEL_NAME, '<test-model>');
-    vi.stubEnv(OPENAI_API_KEY, '<test-openai-api-key>');
-    vi.stubEnv(OPENAI_BASE_URL, '<test-openai-base-url>');
+    rs.stubEnv(MIDSCENE_MODEL_NAME, '<test-model>');
+    rs.stubEnv(OPENAI_API_KEY, '<test-openai-api-key>');
+    rs.stubEnv(OPENAI_BASE_URL, '<test-openai-base-url>');
     // Reset MIDSCENE_CACHE to ensure tests start with clean state
-    vi.stubEnv(MIDSCENE_CACHE, '');
+    rs.stubEnv(MIDSCENE_CACHE, '');
   });
 
   afterEach(() => {
-    vi.unstubAllEnvs();
+    rs.unstubAllEnvs();
   });
 
   it('should throw if key is not supported', () => {
@@ -496,9 +496,9 @@ describe('getEnvConfigValue', () => {
   });
 
   it('should return the correct value from process.env', () => {
-    vi.stubEnv(MIDSCENE_ADB_PATH, '<test-adb-path>');
-    vi.stubEnv(MIDSCENE_CACHE_MAX_FILENAME_LENGTH, '100');
-    vi.stubEnv(MIDSCENE_CACHE, 'true');
+    rs.stubEnv(MIDSCENE_ADB_PATH, '<test-adb-path>');
+    rs.stubEnv(MIDSCENE_CACHE_MAX_FILENAME_LENGTH, '100');
+    rs.stubEnv(MIDSCENE_CACHE, 'true');
 
     const globalConfigManager = new GlobalConfigManager();
     globalConfigManager.registerModelConfigManager(new ModelConfigManager());

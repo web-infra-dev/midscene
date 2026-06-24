@@ -1,6 +1,6 @@
 import { getModelAdapter } from '@/ai-model/models';
 import { safeParseJson } from '@/ai-model/service-caller/json';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 
 describe('service-caller', () => {
   const parseJson = (

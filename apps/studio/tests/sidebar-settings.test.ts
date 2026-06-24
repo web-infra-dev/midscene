@@ -1,6 +1,6 @@
+import { describe, expect, it } from '@rstest/core';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { describe, expect, it } from 'vitest';
 import SettingsDock from '../src/renderer/components/SettingsDock';
 import SettingsPanel from '../src/renderer/components/SettingsPanel';
 import { ThemeProvider } from '../src/renderer/theme/ThemeProvider';

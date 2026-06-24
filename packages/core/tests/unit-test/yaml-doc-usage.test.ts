@@ -1,39 +1,39 @@
 import { Agent } from '@/agent';
 import { ScriptPlayer } from '@/yaml/player';
 import { interpolateEnvVars, parseYamlScript } from '@/yaml/utils';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, rs } from '@rstest/core';
 
 const createDocAgent = (overrides: Record<string, any> = {}) => {
   const agent = {
     reportFile: '/tmp/doc-report.html',
     dump: { executions: [] },
     onTaskStartTip: undefined,
-    aiAct: vi.fn(async () => undefined),
-    aiTap: vi.fn(async () => undefined),
-    aiScroll: vi.fn(async () => undefined),
-    aiQuery: vi.fn(async () => ({ id: 'SKU-123', title: 'doc item' })),
-    aiNumber: vi.fn(async () => 42),
-    aiString: vi.fn(async () => 'SKU-123'),
-    aiBoolean: vi.fn(async () => true),
-    aiAsk: vi.fn(async () => 'answer'),
-    aiLocate: vi.fn(async () => ({
+    aiAct: rs.fn(async () => undefined),
+    aiTap: rs.fn(async () => undefined),
+    aiScroll: rs.fn(async () => undefined),
+    aiQuery: rs.fn(async () => ({ id: 'SKU-123', title: 'doc item' })),
+    aiNumber: rs.fn(async () => 42),
+    aiString: rs.fn(async () => 'SKU-123'),
+    aiBoolean: rs.fn(async () => true),
+    aiAsk: rs.fn(async () => 'answer'),
+    aiLocate: rs.fn(async () => ({
       rect: { x: 1, y: 2, width: 3, height: 4 },
     })),
-    aiWaitFor: vi.fn(async () => undefined),
-    aiAssert: vi.fn(async () => ({
+    aiWaitFor: rs.fn(async () => undefined),
+    aiAssert: rs.fn(async () => ({
       pass: true,
       thought: 'ok',
       message: 'passed',
     })),
-    runGherkinScenario: vi.fn(async () => ({
+    runGherkinScenario: rs.fn(async () => ({
       steps: [],
     })),
-    evaluateJavaScript: vi.fn(async () => 'js-result'),
-    recordToReport: vi.fn(async () => undefined),
-    recordErrorToReport: vi.fn(async () => undefined),
-    runAdbShell: vi.fn(async () => 'adb-result'),
-    callActionInActionSpace: vi.fn(async () => 'action-result'),
-    getActionSpace: vi.fn(async () => [
+    evaluateJavaScript: rs.fn(async () => 'js-result'),
+    recordToReport: rs.fn(async () => undefined),
+    recordErrorToReport: rs.fn(async () => undefined),
+    runAdbShell: rs.fn(async () => 'adb-result'),
+    callActionInActionSpace: rs.fn(async () => 'action-result'),
+    getActionSpace: rs.fn(async () => [
       { name: 'Hover', interfaceAlias: 'aiHover' },
       { name: 'DoubleClick', interfaceAlias: 'aiDoubleClick' },
       { name: 'RightClick', interfaceAlias: 'aiRightClick' },
@@ -42,7 +42,7 @@ const createDocAgent = (overrides: Record<string, any> = {}) => {
       { name: 'RunAdbShell', interfaceAlias: 'runAdbShell' },
       { name: 'RunWdaRequest', interfaceAlias: 'runWdaRequest' },
     ]),
-    _unstableLogContent: vi.fn(() => ({ logs: [] })),
+    _unstableLogContent: rs.fn(() => ({ logs: [] })),
     ...overrides,
   };
 
@@ -51,7 +51,7 @@ const createDocAgent = (overrides: Record<string, any> = {}) => {
 
 describe('YAML docs usage coverage', () => {
   afterEach(() => {
-    vi.restoreAllMocks();
+    rs.restoreAllMocks();
     Reflect.deleteProperty(process.env, 'DOC_ENABLED');
     Reflect.deleteProperty(process.env, 'DOC_HOST');
     Reflect.deleteProperty(process.env, 'DOC_TOPIC');
@@ -439,7 +439,7 @@ tasks:
         name: title
 `);
     const agent = createDocAgent({
-      aiAssert: vi.fn(async () => ({
+      aiAssert: rs.fn(async () => ({
         pass: false,
         thought: 'failed',
         message: 'doc failure',
@@ -470,7 +470,7 @@ tasks:
         name: gate
 `);
     const agent = createDocAgent({
-      evaluateJavaScript: vi.fn(async () => {
+      evaluateJavaScript: rs.fn(async () => {
         throw error;
       }),
     });
@@ -505,7 +505,7 @@ tasks:
         name: gate
 `);
     const agent = createDocAgent({
-      aiAct: vi.fn(async () => {
+      aiAct: rs.fn(async () => {
         agent.dump.executions.push({
           id: 'recovered-agent-action',
           logTime: Date.now(),
@@ -521,7 +521,7 @@ tasks:
           ],
         });
       }),
-      evaluateJavaScript: vi.fn(async () => {
+      evaluateJavaScript: rs.fn(async () => {
         throw error;
       }),
     });
@@ -557,7 +557,7 @@ tasks:
       - aiAct: Click the broken button
 `);
     const agent = createDocAgent({
-      aiAct: vi.fn(async () => {
+      aiAct: rs.fn(async () => {
         agent.dump.executions.push({
           id: 'failed-agent-action',
           logTime: Date.now(),
@@ -735,8 +735,8 @@ tasks:
     });
 
     const agent = createDocAgent({
-      aiString: vi.fn(async () => 'RUNTIME-123'),
-      aiQuery: vi.fn(async () => 'search-result'),
+      aiString: rs.fn(async () => 'RUNTIME-123'),
+      aiQuery: rs.fn(async () => 'search-result'),
     });
     const player = new ScriptPlayer(
       script,

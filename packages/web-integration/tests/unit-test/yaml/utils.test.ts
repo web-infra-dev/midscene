@@ -1,5 +1,5 @@
 import { buildYaml, parseYamlScript } from '@midscene/core/yaml';
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from '@rstest/core';
 
 describe('utils', () => {
   test('build yaml', () => {

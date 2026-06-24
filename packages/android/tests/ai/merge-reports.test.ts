@@ -6,7 +6,6 @@ import {
 import type { TestStatus } from '@midscene/core';
 import { ReportMergingTool } from '@midscene/core/report';
 import { sleep } from '@midscene/core/utils';
-import type ADB from 'appium-adb';
 import {
   afterAll,
   afterEach,
@@ -14,7 +13,8 @@ import {
   beforeEach,
   describe,
   it,
-} from 'vitest';
+} from '@rstest/core';
+import type ADB from 'appium-adb';
 
 describe('Test Setting', () => {
   let page: AndroidDevice;

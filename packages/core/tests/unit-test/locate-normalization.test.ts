@@ -2,7 +2,7 @@ import { normalizePlanningActionLocateFields } from '@/ai-model/workflows/planni
 import { getMidsceneLocationSchema } from '@/common';
 import type { DeviceAction } from '@/device';
 import type { PlanningAction } from '@/types';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 import { z } from 'zod';
 
 const actionSpace: DeviceAction[] = [
@@ -25,7 +25,7 @@ const locateResultContext = {
 
 describe('normalizePlanningActionLocateFields', () => {
   it('leaves actions unchanged when the planned action is outside the action space', () => {
-    const adaptPlanningParamToPixelBbox = vi.fn();
+    const adaptPlanningParamToPixelBbox = rs.fn();
     const actions: PlanningAction[] = [
       {
         type: 'UnknownAction',
@@ -52,7 +52,7 @@ describe('normalizePlanningActionLocateFields', () => {
   });
 
   it('normalizes locate params with the configured locate adapter', () => {
-    const adaptPlanningParamToPixelBbox = vi.fn(() => [10, 20, 30, 40]);
+    const adaptPlanningParamToPixelBbox = rs.fn(() => [10, 20, 30, 40]);
     const actions: PlanningAction[] = [
       {
         type: 'Tap',
@@ -85,7 +85,7 @@ describe('normalizePlanningActionLocateFields', () => {
   });
 
   it('keeps only the prompt in prompt-only planning mode', () => {
-    const adaptPlanningParamToPixelBbox = vi.fn();
+    const adaptPlanningParamToPixelBbox = rs.fn();
     const actions: PlanningAction[] = [
       {
         type: 'Tap',

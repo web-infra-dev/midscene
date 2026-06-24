@@ -1,8 +1,8 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, rs } from '@rstest/core';
 
-vi.mock('@midscene/core/ai-model', () => ({
-  callAIWithStringResponse: vi.fn(),
-  getModelRuntime: vi.fn((config) => ({
+rs.mock('@midscene/core/ai-model', () => ({
+  callAIWithStringResponse: rs.fn(),
+  getModelRuntime: rs.fn((config) => ({
     config,
     adapter: {},
   })),
@@ -16,11 +16,11 @@ import { runConnectivityTest } from '../src/main/playground/connectivity-test';
 
 describe('runConnectivityTest', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    rs.clearAllMocks();
   });
 
   it('runs the connectivity probe through the shared AI caller', async () => {
-    vi.mocked(callAIWithStringResponse).mockResolvedValue({
+    rs.mocked(callAIWithStringResponse).mockResolvedValue({
       content: 'CONNECTIVITY_OK',
     } as never);
 
@@ -88,7 +88,7 @@ describe('runConnectivityTest', () => {
   it('maps aborts to the existing timeout error', async () => {
     const abortError = new Error('aborted');
     abortError.name = 'AbortError';
-    vi.mocked(callAIWithStringResponse).mockRejectedValue(abortError as never);
+    rs.mocked(callAIWithStringResponse).mockRejectedValue(abortError as never);
 
     await expect(
       runConnectivityTest({

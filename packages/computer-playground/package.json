@@ -18,7 +18,7 @@
   "scripts": {
     "dev": "npm run build:watch",
     "dev:server": "npm run build && ./bin/computer-playground",
-    "test": "vitest --run",
+    "test": "rstest",
     "build": "rslib build",
     "build:watch": "rslib build --watch --no-clean"
   },
@@ -33,11 +33,11 @@
   },
   "devDependencies": {
     "@rslib/core": "^0.18.3",
+    "@rstest/core": "0.10.6",
     "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",
     "@types/node": "^18.0.0",
-    "typescript": "^5.8.3",
-    "vitest": "3.0.5"
+    "typescript": "^5.8.3"
   },
   "license": "MIT"
 }

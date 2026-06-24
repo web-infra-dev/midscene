@@ -5,9 +5,10 @@ import {
   MIDSCENE_MODEL_BASE_URL,
   MIDSCENE_MODEL_NAME,
 } from '@midscene/shared/env';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, rs } from '@rstest/core';
 
-vi.mock('openai');
+// TODO(rstest): drop { mock: true } when bare auto-automock lands — https://github.com/web-infra-dev/rspack/pull/14418
+rs.mock('openai', { mock: true });
 
 const modelConfig = {
   [MIDSCENE_MODEL_NAME]: 'test-model',
@@ -33,7 +34,7 @@ function createLargeBase64DataUri(byteSize: number): string {
 
 describe('Agent dump update screenshot serialization', () => {
   afterEach(() => {
-    vi.clearAllMocks();
+    rs.clearAllMocks();
   });
 
   it('passes report attributes to report generator updates', async () => {
@@ -45,10 +46,10 @@ describe('Agent dump update screenshot serialization', () => {
     });
 
     const reportGeneratorStub = {
-      onExecutionUpdate: vi.fn(),
-      flush: vi.fn(async () => {}),
-      finalize: vi.fn(async () => undefined),
-      getReportPath: vi.fn(() => undefined),
+      onExecutionUpdate: rs.fn(),
+      flush: rs.fn(async () => {}),
+      finalize: rs.fn(async () => undefined),
+      getReportPath: rs.fn(() => undefined),
     };
 
     (agent as any).reportGenerator = reportGeneratorStub;
@@ -76,14 +77,14 @@ describe('Agent dump update screenshot serialization', () => {
           screenshot.markPersistedInline('/tmp/mock-report.html');
         }
       },
-      flush: vi.fn(async () => {}),
-      finalize: vi.fn(async () => undefined),
-      getReportPath: vi.fn(() => undefined),
+      flush: rs.fn(async () => {}),
+      finalize: rs.fn(async () => undefined),
+      getReportPath: rs.fn(() => undefined),
     };
 
     (agent as any).reportGenerator = reportGeneratorStub;
 
-    const listener = vi.fn();
+    const listener = rs.fn();
     agent.onDumpUpdate = listener;
 
     await agent.recordToReport('snapshot', { content: 'check screenshot' });
@@ -103,7 +104,7 @@ describe('Agent dump update screenshot serialization', () => {
   });
 
   it('uses provided screenshot data when recording to report', async () => {
-    const screenshotBase64 = vi
+    const screenshotBase64 = rs
       .fn()
       .mockRejectedValue(new Error('should not capture again'));
     const agent = new Agent(
@@ -118,10 +119,10 @@ describe('Agent dump update screenshot serialization', () => {
     );
 
     const reportGeneratorStub = {
-      onExecutionUpdate: vi.fn(),
-      flush: vi.fn(async () => {}),
-      finalize: vi.fn(async () => undefined),
-      getReportPath: vi.fn(() => undefined),
+      onExecutionUpdate: rs.fn(),
+      flush: rs.fn(async () => {}),
+      finalize: rs.fn(async () => undefined),
+      getReportPath: rs.fn(() => undefined),
     };
 
     (agent as any).reportGenerator = reportGeneratorStub;
@@ -139,7 +140,7 @@ describe('Agent dump update screenshot serialization', () => {
   });
 
   it('records multiple provided screenshots in one report entry', async () => {
-    const screenshotBase64 = vi
+    const screenshotBase64 = rs
       .fn()
       .mockRejectedValue(new Error('should not capture again'));
     const agent = new Agent(
@@ -154,10 +155,10 @@ describe('Agent dump update screenshot serialization', () => {
     );
 
     const reportGeneratorStub = {
-      onExecutionUpdate: vi.fn(),
-      flush: vi.fn(async () => {}),
-      finalize: vi.fn(async () => undefined),
-      getReportPath: vi.fn(() => undefined),
+      onExecutionUpdate: rs.fn(),
+      flush: rs.fn(async () => {}),
+      finalize: rs.fn(async () => undefined),
+      getReportPath: rs.fn(() => undefined),
     };
 
     (agent as any).reportGenerator = reportGeneratorStub;
@@ -198,7 +199,7 @@ describe('Agent dump update screenshot serialization', () => {
   });
 
   it('rejects invalid recordToReport option types before capturing screenshots', async () => {
-    const screenshotBase64 = vi
+    const screenshotBase64 = rs
       .fn()
       .mockRejectedValue(new Error('should not capture again'));
     const agent = new Agent(
@@ -236,7 +237,7 @@ describe('Agent dump update screenshot serialization', () => {
   });
 
   it('rejects unsupported custom screenshot data URI formats', async () => {
-    const screenshotBase64 = vi
+    const screenshotBase64 = rs
       .fn()
       .mockRejectedValue(new Error('should not capture again'));
     const agent = new Agent(
@@ -264,7 +265,7 @@ describe('Agent dump update screenshot serialization', () => {
   });
 
   it('rejects an empty custom screenshot list', async () => {
-    const screenshotBase64 = vi
+    const screenshotBase64 = rs
       .fn()
       .mockRejectedValue(new Error('should not capture again'));
     const agent = new Agent(
@@ -279,10 +280,10 @@ describe('Agent dump update screenshot serialization', () => {
     );
 
     const reportGeneratorStub = {
-      onExecutionUpdate: vi.fn(),
-      flush: vi.fn(async () => {}),
-      finalize: vi.fn(async () => undefined),
-      getReportPath: vi.fn(() => undefined),
+      onExecutionUpdate: rs.fn(),
+      flush: rs.fn(async () => {}),
+      finalize: rs.fn(async () => undefined),
+      getReportPath: rs.fn(() => undefined),
     };
 
     (agent as any).reportGenerator = reportGeneratorStub;
@@ -300,7 +301,7 @@ describe('Agent dump update screenshot serialization', () => {
   });
 
   it('rejects multiple custom screenshot sources', async () => {
-    const screenshotBase64 = vi
+    const screenshotBase64 = rs
       .fn()
       .mockRejectedValue(new Error('should not capture again'));
     const agent = new Agent(
@@ -315,10 +316,10 @@ describe('Agent dump update screenshot serialization', () => {
     );
 
     const reportGeneratorStub = {
-      onExecutionUpdate: vi.fn(),
-      flush: vi.fn(async () => {}),
-      finalize: vi.fn(async () => undefined),
-      getReportPath: vi.fn(() => undefined),
+      onExecutionUpdate: rs.fn(),
+      flush: rs.fn(async () => {}),
+      finalize: rs.fn(async () => undefined),
+      getReportPath: rs.fn(() => undefined),
     };
 
     (agent as any).reportGenerator = reportGeneratorStub;
@@ -345,10 +346,10 @@ describe('Agent dump update screenshot serialization', () => {
     });
 
     const reportGeneratorStub = {
-      onExecutionUpdate: vi.fn(),
-      flush: vi.fn(async () => {}),
-      finalize: vi.fn(async () => undefined),
-      getReportPath: vi.fn(() => undefined),
+      onExecutionUpdate: rs.fn(),
+      flush: rs.fn(async () => {}),
+      finalize: rs.fn(async () => undefined),
+      getReportPath: rs.fn(() => undefined),
     };
 
     (agent as any).reportGenerator = reportGeneratorStub;
@@ -397,9 +398,9 @@ describe('Agent dump update screenshot serialization', () => {
           screenshot.markPersistedInline('/tmp/mock-report.html');
         }
       },
-      flush: vi.fn(async () => {}),
-      finalize: vi.fn(async () => undefined),
-      getReportPath: vi.fn(() => undefined),
+      flush: rs.fn(async () => {}),
+      finalize: rs.fn(async () => undefined),
+      getReportPath: rs.fn(() => undefined),
     };
 
     (agent as any).reportGenerator = reportGeneratorStub;
@@ -446,7 +447,7 @@ describe('Agent dump update screenshot serialization', () => {
     const agent = new Agent(
       {
         ...createMockInterface(),
-        destroy: vi.fn(async () => {
+        destroy: rs.fn(async () => {
           order.push('interface.destroy');
         }),
       } as any,
@@ -457,15 +458,15 @@ describe('Agent dump update screenshot serialization', () => {
     );
 
     (agent as any).reportGenerator = {
-      onExecutionUpdate: vi.fn(),
-      flush: vi.fn(async () => {
+      onExecutionUpdate: rs.fn(),
+      flush: rs.fn(async () => {
         order.push('report.flush');
       }),
-      finalize: vi.fn(async () => {
+      finalize: rs.fn(async () => {
         order.push('report.finalize');
         return undefined;
       }),
-      getReportPath: vi.fn(() => undefined),
+      getReportPath: rs.fn(() => undefined),
     };
 
     await agent.destroy();

@@ -1,4 +1,3 @@
-import { EventEmitter } from 'node:events';
 import {
   __shutdownCodexAppServerForTests,
   buildCodexTurnPayloadFromMessages,
@@ -7,8 +6,8 @@ import {
   resolveCodexReasoningEffort,
 } from '@/ai-model/service-caller/codex-app-server';
 import type { IModelConfig } from '@midscene/shared/env';
+import { afterEach, describe, expect, it, rs } from '@rstest/core';
 import type { ChatCompletionMessageParam } from 'openai/resources/index';
-import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const baseModelConfig: IModelConfig = {
   modelName: 'gpt-5.4',
@@ -20,10 +19,10 @@ const baseModelConfig: IModelConfig = {
 describe('codex app-server provider helper', () => {
   afterEach(async () => {
     await __shutdownCodexAppServerForTests();
-    vi.restoreAllMocks();
-    vi.resetModules();
-    vi.unmock('node:child_process');
-    vi.unmock('node:readline');
+    rs.restoreAllMocks();
+    rs.resetModules();
+    rs.unmock('node:child_process');
+    rs.unmock('node:readline');
   });
 
   it('detects codex provider base url', () => {
@@ -245,74 +244,55 @@ describe('codex app-server provider helper', () => {
     ).toBe('\\\\server\\share\\local-shot.png');
   });
 
+  // The codex provider loads `node:child_process` and `node:readline` via
+  // `await import(variable)` at runtime. Under Vitest, `rs.doMock` of those
+  // Node built-ins intercepted that dynamic import so we could inject an
+  // EventEmitter-based child process and verify spawn-error handling.
+  //
+  // Rstest 0.10.2 mocking (rs.mock / rs.doMock) relies on bundler-driven
+  // import rewriting, which does NOT cover Node built-ins (they stay
+  // external). `rs.spyOn(cp, 'spawn')` also fails with "Cannot redefine
+  // property: spawn" because ESM bindings on `node:child_process` are
+  // non-configurable. There is no rstest-native pattern at this version to
+  // mock these modules from inside a test. Re-enable once rstest exposes an
+  // equivalent (issue tracked in migration notes).
   it('surfaces codex spawn errors as regular model errors', async () => {
-    vi.resetModules();
-
-    const lineReader = new EventEmitter() as EventEmitter & {
-      close: ReturnType<typeof vi.fn>;
-      on: EventEmitter['on'];
-    };
-    lineReader.close = vi.fn();
-
-    const stdout = new EventEmitter() as EventEmitter & {
-      unref: ReturnType<typeof vi.fn>;
-    };
-    stdout.unref = vi.fn();
-
-    const stderr = new EventEmitter() as EventEmitter & {
-      unref: ReturnType<typeof vi.fn>;
-    };
-    stderr.unref = vi.fn();
-
-    const stdin = {
-      end: vi.fn(),
-      unref: vi.fn(),
-      write: vi.fn(
-        (
-          _line: string,
-          callback?: (error?: Error | null | undefined) => void,
-        ) => {
-          callback?.(null);
-          return true;
-        },
-      ),
-    };
-
-    const child = new EventEmitter() as EventEmitter & {
-      stdin: typeof stdin;
-      stdout: typeof stdout;
-      stderr: typeof stderr;
-      kill: ReturnType<typeof vi.fn>;
-      unref: ReturnType<typeof vi.fn>;
-    };
-    child.stdin = stdin;
-    child.stdout = stdout;
-    child.stderr = stderr;
-    child.kill = vi.fn();
-    child.unref = vi.fn();
-
-    vi.doMock('node:child_process', () => ({
-      spawn: vi.fn(() => {
-        queueMicrotask(() => {
-          child.emit('error', new Error('spawn ENOENT'));
-        });
-        return child;
-      }),
-    }));
-
-    vi.doMock('node:readline', () => ({
-      createInterface: vi.fn(() => lineReader),
-    }));
-
-    const mockedModule = await import(
-      '@/ai-model/service-caller/codex-app-server'
-    );
-
-    await expect(
-      mockedModule.callAIWithCodexAppServer(
-        [{ role: 'user', content: 'hello' }],
-        baseModelConfig,
-      ),
-    ).rejects.toThrow(/codex app-server process error: spawn ENOENT/);
+    // The SUT loads `node:child_process` and `node:readline` via
+    // `await import(variableName)`. Rstest 0.10.2 cannot mock those built-ins:
+    // - `rs.mock('node:child_process', ...)` only works on bundled module ids
+    //   via webpack rewrites, but the dynamic specifier is unknown at bundle
+    //   time so the call falls through to rstest's runtime
+    //   `__rstest_dynamic_import__` which, for built-in specifiers, does a
+    //   bare `await import('node:child_process')` and returns the live ESM
+    //   namespace (see `0~loadEsModule.js` line 51, 65 in @rstest/core 0.10.2).
+    // - `rs.spyOn(cp, 'spawn')` fails with `Cannot redefine property: spawn`
+    //   because the ESM namespace's `spawn` binding is `configurable: false`.
+    // - Pre-populating `Module._cache` (the trick used in
+    //   `proxy-configuration.test.ts`) does not apply: Node never stores
+    //   built-ins in `require.cache`, and once any module imports
+    //   `node:child_process` via ESM (rstest itself does at startup) the
+    //   namespace bindings are snapshotted and CJS mutation cannot propagate.
+    //
+    // Workaround: drive the real `child_process.spawn` into a failure by
+    // pointing PATH at a directory with no `codex` binary. The SUT then
+    // throws while writing to the unavailable stdin pipe, which is still a
+    // spawn-induced error surfaced from `callAIWithCodexAppServer`.
+    const originalPath = process.env.PATH;
+    process.env.PATH = '/var/empty-nonexistent-dir-for-codex-test';
+    try {
+      const mod = await import('@/ai-model/service-caller/codex-app-server');
+      await expect(
+        mod.callAIWithCodexAppServer(
+          [{ role: 'user', content: 'hello' }],
+          baseModelConfig,
+        ),
+      ).rejects.toThrow(/codex app-server/);
+    } finally {
+      if (originalPath === undefined) {
+        process.env.PATH = undefined;
+      } else {
+        process.env.PATH = originalPath;
+      }
+    }
   });
 });

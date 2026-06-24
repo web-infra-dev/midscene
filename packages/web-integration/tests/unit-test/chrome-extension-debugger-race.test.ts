@@ -1,21 +1,21 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
 
 // Mock chrome API
-vi.stubGlobal('chrome', {
+rs.stubGlobal('chrome', {
   tabs: {
-    update: vi.fn(),
-    get: vi.fn(),
-    query: vi.fn(),
+    update: rs.fn(),
+    get: rs.fn(),
+    query: rs.fn(),
   },
   debugger: {
-    attach: vi.fn(),
-    detach: vi.fn(),
-    sendCommand: vi.fn(),
+    attach: rs.fn(),
+    detach: rs.fn(),
+    sendCommand: rs.fn(),
   },
 });
 
-vi.mock('@midscene/shared/logger', () => ({
-  getDebug: vi.fn(() => vi.fn()),
+rs.mock('@midscene/shared/logger', () => ({
+  getDebug: rs.fn(() => rs.fn()),
 }));
 
 import ChromeExtensionProxyPage from '../../src/chrome-extension/page';
@@ -24,7 +24,7 @@ describe('debugger detach race during lazy attach', () => {
   let page: ChromeExtensionProxyPage;
 
   beforeEach(() => {
-    vi.clearAllMocks();
+    rs.clearAllMocks();
     page = new ChromeExtensionProxyPage(true);
     // Simulate that connectNewTabWithUrl already set the active tab
     // and waited for navigation to finish; the tab is now stable.
@@ -40,7 +40,7 @@ describe('debugger detach race during lazy attach', () => {
   });
 
   afterEach(() => {
-    vi.restoreAllMocks();
+    rs.restoreAllMocks();
   });
 
   it('size() succeeds even if enableWaterFlowAnimation transiently fails after attach', async () => {

@@ -1,7 +1,7 @@
 import { join } from 'node:path';
 import { matchYamlFiles, parseProcessArgs } from '@/cli-utils';
 import { launchServer } from '@/create-yaml-player';
-import { afterEach, describe, expect, test } from 'vitest';
+import { afterEach, describe, expect, test } from '@rstest/core';
 
 (global as any).__VERSION__ = '0.0.0-test';
 

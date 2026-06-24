@@ -1,6 +1,6 @@
 import path from 'node:path';
 import type { PuppeteerAgent } from '@/puppeteer';
-import { afterEach } from 'vitest';
+import { afterEach } from '@rstest/core';
 
 /**
  * Path to fixtures directory

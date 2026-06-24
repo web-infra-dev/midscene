@@ -6,7 +6,7 @@ import {
   defaultPuppeteerWindowViewportSize,
   defaultStaticPageViewportSize,
 } from '@/common/viewport';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 
 describe('WebPuppeteerMidsceneTools', () => {
   it('builds detached Chrome args from the configured viewport', () => {

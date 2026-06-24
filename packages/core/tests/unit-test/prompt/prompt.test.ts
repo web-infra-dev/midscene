@@ -9,7 +9,10 @@ import type { LocateResultPromptSpec } from '@/ai-model/shared/model-locate-resu
 import { defineActionInput, defineActionSwipe } from '@/device';
 import { getMidsceneLocationSchema } from '@/index';
 import type { TModelFamily } from '@midscene/shared/env';
-import { describe, expect, it, vi } from 'vitest';
+import * as sharedEnvActual from '@midscene/shared/env' with {
+  rstest: 'importActual',
+};
+import { describe, expect, it, rs } from '@rstest/core';
 import { z } from 'zod';
 import {
   extractDataQueryPrompt,
@@ -18,13 +21,10 @@ import {
 import { mockActionSpace } from '../../common';
 
 // Mock getPreferredLanguage to ensure consistent test output
-vi.mock('@midscene/shared/env', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@midscene/shared/env')>();
-  return {
-    ...actual,
-    getPreferredLanguage: vi.fn().mockReturnValue('English'),
-  };
-});
+rs.mock('@midscene/shared/env', () => ({
+  ...sharedEnvActual,
+  getPreferredLanguage: rs.fn().mockReturnValue('English'),
+}));
 
 const mockLocatorScheme =
   '{"bbox": [number, number, number, number], "prompt": string}';

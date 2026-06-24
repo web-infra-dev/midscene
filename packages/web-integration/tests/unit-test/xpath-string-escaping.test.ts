@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 
 describe('XPath String Escaping', () => {
   it('should properly escape XPath strings with single quotes using JSON.stringify', () => {

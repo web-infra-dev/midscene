@@ -1,10 +1,10 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, rs } from '@rstest/core';
 
-const { playgroundSDKMock } = vi.hoisted(() => ({
-  playgroundSDKMock: vi.fn(),
+const { playgroundSDKMock } = rs.hoisted(() => ({
+  playgroundSDKMock: rs.fn(),
 }));
 
-vi.mock('@midscene/playground', () => ({
+rs.mock('@midscene/playground', () => ({
   PlaygroundSDK: playgroundSDKMock,
 }));
 
@@ -12,7 +12,7 @@ import { getReportPlaygroundSDK } from '../src/utils/report-playground-utils';
 
 describe('getReportPlaygroundSDK', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    rs.clearAllMocks();
   });
 
   it('lets PlaygroundSDK resolve the remote server URL in Server mode', () => {
@@ -30,7 +30,7 @@ describe('getReportPlaygroundSDK', () => {
   });
 
   it('uses local execution with agent factory outside Server mode', () => {
-    const agentFactory = vi.fn();
+    const agentFactory = rs.fn();
 
     getReportPlaygroundSDK('In-Browser', undefined, agentFactory);
 

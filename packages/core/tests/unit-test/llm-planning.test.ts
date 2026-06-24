@@ -12,18 +12,18 @@ import {
   OPENAI_API_KEY,
   OPENAI_BASE_URL,
 } from '@midscene/shared/env';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
 import { z } from 'zod';
 
 describe('llm planning - doubao', () => {
   beforeEach(() => {
-    vi.stubEnv(OPENAI_BASE_URL, 'http://mock');
-    vi.stubEnv(OPENAI_API_KEY, 'mock');
-    vi.stubEnv(MIDSCENE_USE_DOUBAO_VISION, 'true');
+    rs.stubEnv(OPENAI_BASE_URL, 'http://mock');
+    rs.stubEnv(OPENAI_API_KEY, 'mock');
+    rs.stubEnv(MIDSCENE_USE_DOUBAO_VISION, 'true');
   });
 
   afterEach(() => {
-    vi.unstubAllEnvs();
+    rs.unstubAllEnvs();
   });
 
   it('adapts doubao locate result to pixel bbox', () => {

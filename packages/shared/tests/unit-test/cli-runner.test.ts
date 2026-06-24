@@ -6,7 +6,7 @@ import {
   reportCLIError,
   runToolsCLI,
 } from '@/cli';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 import { z } from 'zod';
 
 describe('parseValue', () => {
@@ -271,14 +271,14 @@ describe('CLIError', () => {
 
 describe('reportCLIError', () => {
   it('prints CLIError messages and returns their exit code', () => {
-    const log = vi.fn();
+    const log = rs.fn();
 
     expect(reportCLIError(new CLIError('bad args', 2), log)).toBe(2);
     expect(log).toHaveBeenCalledWith('bad args');
   });
 
   it('prints non-CLI errors and returns exit code 1', () => {
-    const log = vi.fn();
+    const log = rs.fn();
     const error = new Error('boom');
 
     expect(reportCLIError(error, log)).toBe(1);
@@ -294,9 +294,9 @@ describe('runToolsCLI', () => {
     }>,
   ) {
     return {
-      initTools: vi.fn().mockResolvedValue(undefined),
-      destroy: vi.fn().mockResolvedValue(undefined),
-      getToolDefinitions: vi.fn().mockReturnValue(
+      initTools: rs.fn().mockResolvedValue(undefined),
+      destroy: rs.fn().mockResolvedValue(undefined),
+      getToolDefinitions: rs.fn().mockReturnValue(
         definitions.map((d) => ({
           name: d.name,
           description: `${d.name} command`,
@@ -309,7 +309,7 @@ describe('runToolsCLI', () => {
 
   it('prints help when no command given', async () => {
     const tools = createMockTools([]);
-    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    const consoleSpy = rs.spyOn(console, 'log').mockImplementation(() => {});
     await runToolsCLI(tools, 'test-cli', { argv: [] });
     expect(consoleSpy).toHaveBeenCalled();
     consoleSpy.mockRestore();
@@ -317,7 +317,7 @@ describe('runToolsCLI', () => {
 
   it('prints help for --help flag', async () => {
     const tools = createMockTools([]);
-    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    const consoleSpy = rs.spyOn(console, 'log').mockImplementation(() => {});
     await runToolsCLI(tools, 'test-cli', {
       argv: ['--help'],
       version: '1.2.3',
@@ -328,7 +328,7 @@ describe('runToolsCLI', () => {
 
   it('prints version for --version flag', async () => {
     const tools = createMockTools([]);
-    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    const consoleSpy = rs.spyOn(console, 'log').mockImplementation(() => {});
 
     await runToolsCLI(tools, 'test-cli', {
       argv: ['--version'],
@@ -341,7 +341,7 @@ describe('runToolsCLI', () => {
 
   it('prints version for version command', async () => {
     const tools = createMockTools([]);
-    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    const consoleSpy = rs.spyOn(console, 'log').mockImplementation(() => {});
 
     await runToolsCLI(tools, 'test-cli', {
       argv: ['version'],
@@ -353,12 +353,12 @@ describe('runToolsCLI', () => {
   });
 
   it('strips a global --deep-locate flag and applies deep locate defaults', async () => {
-    const handler = vi
+    const handler = rs
       .fn()
       .mockResolvedValue({ content: [{ type: 'text', text: 'ok' }] });
     const tools = createMockTools([{ name: 'tap', handler }]);
-    tools.setToolDefaults = vi.fn();
-    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    tools.setToolDefaults = rs.fn();
+    const consoleSpy = rs.spyOn(console, 'log').mockImplementation(() => {});
 
     // The flag is placed before the command; it must be removed so 'tap'
     // resolves as the command instead of being treated as unknown.
@@ -375,12 +375,12 @@ describe('runToolsCLI', () => {
   });
 
   it('strips --deep-locate even when it follows the command', async () => {
-    const handler = vi
+    const handler = rs
       .fn()
       .mockResolvedValue({ content: [{ type: 'text', text: 'ok' }] });
     const tools = createMockTools([{ name: 'tap', handler }]);
-    tools.setToolDefaults = vi.fn();
-    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    tools.setToolDefaults = rs.fn();
+    const consoleSpy = rs.spyOn(console, 'log').mockImplementation(() => {});
 
     await runToolsCLI(tools, 'test-cli', {
       argv: ['tap', '--deep-locate', '--locate', 'btn'],
@@ -395,12 +395,12 @@ describe('runToolsCLI', () => {
   });
 
   it('does not set tool defaults without a behavior flag', async () => {
-    const handler = vi
+    const handler = rs
       .fn()
       .mockResolvedValue({ content: [{ type: 'text', text: 'ok' }] });
     const tools = createMockTools([{ name: 'tap', handler }]);
-    tools.setToolDefaults = vi.fn();
-    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    tools.setToolDefaults = rs.fn();
+    const consoleSpy = rs.spyOn(console, 'log').mockImplementation(() => {});
 
     await runToolsCLI(tools, 'test-cli', {
       argv: ['tap', '--locate', 'btn'],
@@ -412,12 +412,12 @@ describe('runToolsCLI', () => {
   });
 
   it('strips a global --deep-think flag and applies act defaults', async () => {
-    const handler = vi
+    const handler = rs
       .fn()
       .mockResolvedValue({ content: [{ type: 'text', text: 'ok' }] });
     const tools = createMockTools([{ name: 'act', handler }]);
-    tools.setToolDefaults = vi.fn();
-    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    tools.setToolDefaults = rs.fn();
+    const consoleSpy = rs.spyOn(console, 'log').mockImplementation(() => {});
 
     await runToolsCLI(tools, 'test-cli', {
       argv: ['--deep-think', 'act', '--prompt', 'open settings'],
@@ -431,12 +431,12 @@ describe('runToolsCLI', () => {
   });
 
   it('merges defaults when both flags are present', async () => {
-    const handler = vi
+    const handler = rs
       .fn()
       .mockResolvedValue({ content: [{ type: 'text', text: 'ok' }] });
     const tools = createMockTools([{ name: 'act', handler }]);
-    tools.setToolDefaults = vi.fn();
-    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    tools.setToolDefaults = rs.fn();
+    const consoleSpy = rs.spyOn(console, 'log').mockImplementation(() => {});
 
     await runToolsCLI(tools, 'test-cli', {
       argv: ['act', '--deep-locate', '--deep-think', '--prompt', 'go'],
@@ -452,9 +452,9 @@ describe('runToolsCLI', () => {
 
   function createDetailedMockTools() {
     return {
-      initTools: vi.fn().mockResolvedValue(undefined),
-      destroy: vi.fn().mockResolvedValue(undefined),
-      getToolDefinitions: vi.fn().mockReturnValue([
+      initTools: rs.fn().mockResolvedValue(undefined),
+      destroy: rs.fn().mockResolvedValue(undefined),
+      getToolDefinitions: rs.fn().mockReturnValue([
         {
           name: 'connect',
           description: 'Connect to a device for automation',
@@ -462,13 +462,13 @@ describe('runToolsCLI', () => {
             url: { description: 'The device URL to connect to' },
             timeout: { description: 'Connection timeout in ms' },
           },
-          handler: vi.fn(),
+          handler: rs.fn(),
         },
         {
           name: 'disconnect',
           description: 'Disconnect from the current device',
           schema: {},
-          handler: vi.fn(),
+          handler: rs.fn(),
         },
         {
           name: 'take_screenshot',
@@ -476,7 +476,7 @@ describe('runToolsCLI', () => {
           schema: {
             format: { description: 'Image format (png or jpg)' },
           },
-          handler: vi.fn(),
+          handler: rs.fn(),
         },
         {
           name: 'tap',
@@ -486,7 +486,7 @@ describe('runToolsCLI', () => {
             x: { description: 'X coordinate to tap' },
             y: { description: 'Y coordinate to tap' },
           },
-          handler: vi.fn(),
+          handler: rs.fn(),
         },
       ]),
     } as any;
@@ -495,7 +495,7 @@ describe('runToolsCLI', () => {
   it('--help output matches snapshot', async () => {
     const tools = createDetailedMockTools();
     const lines: string[] = [];
-    const consoleSpy = vi
+    const consoleSpy = rs
       .spyOn(console, 'log')
       .mockImplementation((...args: any[]) => {
         lines.push(args.map(String).join(' '));
@@ -513,7 +513,7 @@ describe('runToolsCLI', () => {
   it('command --help output matches snapshot', async () => {
     const tools = createDetailedMockTools();
     const lines: string[] = [];
-    const consoleSpy = vi
+    const consoleSpy = rs
       .spyOn(console, 'log')
       .mockImplementation((...args: any[]) => {
         lines.push(args.map(String).join(' '));
@@ -529,9 +529,9 @@ describe('runToolsCLI', () => {
 
   it('prefers CLI display metadata for command help output', async () => {
     const tools = {
-      initTools: vi.fn().mockResolvedValue(undefined),
-      destroy: vi.fn().mockResolvedValue(undefined),
-      getToolDefinitions: vi.fn().mockReturnValue([
+      initTools: rs.fn().mockResolvedValue(undefined),
+      destroy: rs.fn().mockResolvedValue(undefined),
+      getToolDefinitions: rs.fn().mockReturnValue([
         {
           name: 'android_connect',
           description: 'Connect to Android device',
@@ -548,12 +548,12 @@ describe('runToolsCLI', () => {
               },
             },
           },
-          handler: vi.fn(),
+          handler: rs.fn(),
         },
       ]),
     } as any;
     const lines: string[] = [];
-    const consoleSpy = vi
+    const consoleSpy = rs
       .spyOn(console, 'log')
       .mockImplementation((...args: any[]) => {
         lines.push(args.map(String).join(' '));
@@ -572,9 +572,9 @@ describe('runToolsCLI', () => {
 
   it('rejects disallowed dotted init-arg spellings via CLI schema', async () => {
     const tools = {
-      initTools: vi.fn().mockResolvedValue(undefined),
-      destroy: vi.fn().mockResolvedValue(undefined),
-      getToolDefinitions: vi.fn().mockReturnValue([
+      initTools: rs.fn().mockResolvedValue(undefined),
+      destroy: rs.fn().mockResolvedValue(undefined),
+      getToolDefinitions: rs.fn().mockReturnValue([
         {
           name: 'android_connect',
           description: 'Connect to Android device',
@@ -591,7 +591,7 @@ describe('runToolsCLI', () => {
               },
             },
           },
-          handler: vi.fn(),
+          handler: rs.fn(),
         },
       ]),
     } as any;
@@ -613,23 +613,23 @@ describe('runToolsCLI', () => {
         handler: async () => ({ content: [], isError: false }),
       },
     ]);
-    vi.spyOn(console, 'error').mockImplementation(() => {});
-    vi.spyOn(console, 'log').mockImplementation(() => {});
+    rs.spyOn(console, 'error').mockImplementation(() => {});
+    rs.spyOn(console, 'log').mockImplementation(() => {});
 
     await expect(
       runToolsCLI(tools, 'test-cli', { argv: ['unknown'] }),
     ).rejects.toThrow(CLIError);
 
-    vi.restoreAllMocks();
+    rs.restoreAllMocks();
   });
 
   it('executes matched command with parsed args', async () => {
-    const handler = vi.fn().mockResolvedValue({
+    const handler = rs.fn().mockResolvedValue({
       content: [{ type: 'text', text: 'Connected' }],
       isError: false,
     });
     const tools = createMockTools([{ name: 'test_connect', handler }]);
-    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    const consoleSpy = rs.spyOn(console, 'log').mockImplementation(() => {});
 
     await runToolsCLI(tools, 'test-cli', {
       stripPrefix: 'test_',
@@ -642,12 +642,12 @@ describe('runToolsCLI', () => {
   });
 
   it('strips platform prefix from command names', async () => {
-    const handler = vi.fn().mockResolvedValue({
+    const handler = rs.fn().mockResolvedValue({
       content: [{ type: 'text', text: 'ok' }],
       isError: false,
     });
     const tools = createMockTools([{ name: 'android_disconnect', handler }]);
-    vi.spyOn(console, 'log').mockImplementation(() => {});
+    rs.spyOn(console, 'log').mockImplementation(() => {});
 
     await runToolsCLI(tools, 'test-cli', {
       stripPrefix: 'android_',
@@ -655,30 +655,30 @@ describe('runToolsCLI', () => {
     });
 
     expect(handler).toHaveBeenCalledWith({});
-    vi.restoreAllMocks();
+    rs.restoreAllMocks();
   });
 
   it('calls destroy after successful command', async () => {
-    const handler = vi.fn().mockResolvedValue({
+    const handler = rs.fn().mockResolvedValue({
       content: [{ type: 'text', text: 'done' }],
       isError: false,
     });
     const tools = createMockTools([{ name: 'connect', handler }]);
-    vi.spyOn(console, 'log').mockImplementation(() => {});
+    rs.spyOn(console, 'log').mockImplementation(() => {});
 
     await runToolsCLI(tools, 'test-cli', { argv: ['connect'] });
 
     expect(tools.destroy).toHaveBeenCalledOnce();
-    vi.restoreAllMocks();
+    rs.restoreAllMocks();
   });
 
   it('calls destroy before throwing on command error', async () => {
-    const handler = vi.fn().mockResolvedValue({
+    const handler = rs.fn().mockResolvedValue({
       content: [{ type: 'text', text: 'Something went wrong' }],
       isError: true,
     });
     const tools = createMockTools([{ name: 'fail_cmd', handler }]);
-    vi.spyOn(console, 'error').mockImplementation(() => {});
+    rs.spyOn(console, 'error').mockImplementation(() => {});
 
     await expect(
       runToolsCLI(tools, 'test-cli', {
@@ -688,16 +688,16 @@ describe('runToolsCLI', () => {
     ).rejects.toThrow(CLIError);
 
     expect(tools.destroy).toHaveBeenCalledOnce();
-    vi.restoreAllMocks();
+    rs.restoreAllMocks();
   });
 
   it('matches commands case-insensitively', async () => {
-    const handler = vi.fn().mockResolvedValue({
+    const handler = rs.fn().mockResolvedValue({
       content: [{ type: 'text', text: 'tapped' }],
       isError: false,
     });
     const tools = createMockTools([{ name: 'Tap', handler }]);
-    vi.spyOn(console, 'log').mockImplementation(() => {});
+    rs.spyOn(console, 'log').mockImplementation(() => {});
 
     // Uppercase tool name should match lowercase user input
     await runToolsCLI(tools, 'test-cli', { argv: ['tap'] });
@@ -709,22 +709,22 @@ describe('runToolsCLI', () => {
     await runToolsCLI(tools, 'test-cli', { argv: ['Tap'] });
     expect(handler).toHaveBeenCalled();
 
-    vi.restoreAllMocks();
+    rs.restoreAllMocks();
   });
 
   it('displays command names as lowercase in help', async () => {
     const tools = createMockTools([
       {
         name: 'Tap',
-        handler: vi.fn().mockResolvedValue({ content: [], isError: false }),
+        handler: rs.fn().mockResolvedValue({ content: [], isError: false }),
       },
       {
         name: 'Scroll',
-        handler: vi.fn().mockResolvedValue({ content: [], isError: false }),
+        handler: rs.fn().mockResolvedValue({ content: [], isError: false }),
       },
     ]);
     const lines: string[] = [];
-    vi.spyOn(console, 'log').mockImplementation((...args: any[]) => {
+    rs.spyOn(console, 'log').mockImplementation((...args: any[]) => {
       lines.push(args.map(String).join(' '));
     });
 
@@ -741,13 +741,13 @@ describe('runToolsCLI', () => {
       expect(cmdName).toBe(cmdName.toLowerCase());
     }
 
-    vi.restoreAllMocks();
+    rs.restoreAllMocks();
   });
 
   it('shows command help with --help after command name', async () => {
-    const handler = vi.fn();
+    const handler = rs.fn();
     const tools = createMockTools([{ name: 'connect', handler }]);
-    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    const consoleSpy = rs.spyOn(console, 'log').mockImplementation(() => {});
 
     await runToolsCLI(tools, 'test-cli', {
       argv: ['connect', '--help'],
@@ -760,11 +760,11 @@ describe('runToolsCLI', () => {
 
   it('supports shared extra commands', async () => {
     const tools = createMockTools([]);
-    const extraHandler = vi.fn().mockResolvedValue({
+    const extraHandler = rs.fn().mockResolvedValue({
       content: [{ type: 'text', text: 'split done' }],
       isError: false,
     });
-    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    const consoleSpy = rs.spyOn(console, 'log').mockImplementation(() => {});
 
     await runToolsCLI(tools, 'test-cli', {
       argv: [
@@ -799,14 +799,14 @@ describe('runToolsCLI', () => {
   });
 
   it('canonicalizes kebab-case spellings to schema keys before dispatch', async () => {
-    const handler = vi.fn().mockResolvedValue({
+    const handler = rs.fn().mockResolvedValue({
       content: [{ type: 'text', text: 'ok' }],
       isError: false,
     });
     const tools = {
-      initTools: vi.fn().mockResolvedValue(undefined),
-      destroy: vi.fn().mockResolvedValue(undefined),
-      getToolDefinitions: vi.fn().mockReturnValue([
+      initTools: rs.fn().mockResolvedValue(undefined),
+      destroy: rs.fn().mockResolvedValue(undefined),
+      getToolDefinitions: rs.fn().mockReturnValue([
         {
           name: 'assert',
           description: 'assert',
@@ -818,7 +818,7 @@ describe('runToolsCLI', () => {
         },
       ]),
     } as any;
-    vi.spyOn(console, 'log').mockImplementation(() => {});
+    rs.spyOn(console, 'log').mockImplementation(() => {});
 
     await runToolsCLI(tools, 'test-cli', {
       argv: [
@@ -836,18 +836,18 @@ describe('runToolsCLI', () => {
       prompt: 'p',
       imageName: ['a', 'b'],
     });
-    vi.restoreAllMocks();
+    rs.restoreAllMocks();
   });
 
   it('canonicalizes preferredName/aliases for namespaced fields', async () => {
-    const handler = vi.fn().mockResolvedValue({
+    const handler = rs.fn().mockResolvedValue({
       content: [{ type: 'text', text: 'ok' }],
       isError: false,
     });
     const tools = {
-      initTools: vi.fn().mockResolvedValue(undefined),
-      destroy: vi.fn().mockResolvedValue(undefined),
-      getToolDefinitions: vi.fn().mockReturnValue([
+      initTools: rs.fn().mockResolvedValue(undefined),
+      destroy: rs.fn().mockResolvedValue(undefined),
+      getToolDefinitions: rs.fn().mockReturnValue([
         {
           name: 'android_connect',
           description: 'connect',
@@ -864,7 +864,7 @@ describe('runToolsCLI', () => {
         },
       ]),
     } as any;
-    vi.spyOn(console, 'log').mockImplementation(() => {});
+    rs.spyOn(console, 'log').mockImplementation(() => {});
 
     await runToolsCLI(tools, 'midscene-android', {
       stripPrefix: 'android_',
@@ -874,15 +874,15 @@ describe('runToolsCLI', () => {
     expect(handler).toHaveBeenCalledWith({
       'android.deviceId': 'emulator-5554',
     });
-    vi.restoreAllMocks();
+    rs.restoreAllMocks();
   });
 
   it('throws CLIError when the same field is set under conflicting spellings', async () => {
-    const handler = vi.fn();
+    const handler = rs.fn();
     const tools = {
-      initTools: vi.fn().mockResolvedValue(undefined),
-      destroy: vi.fn().mockResolvedValue(undefined),
-      getToolDefinitions: vi.fn().mockReturnValue([
+      initTools: rs.fn().mockResolvedValue(undefined),
+      destroy: rs.fn().mockResolvedValue(undefined),
+      getToolDefinitions: rs.fn().mockReturnValue([
         {
           name: 'assert',
           description: 'assert',
@@ -894,7 +894,7 @@ describe('runToolsCLI', () => {
         },
       ]),
     } as any;
-    vi.spyOn(console, 'error').mockImplementation(() => {});
+    rs.spyOn(console, 'error').mockImplementation(() => {});
 
     await expect(
       runToolsCLI(tools, 'test-cli', {
@@ -910,6 +910,6 @@ describe('runToolsCLI', () => {
       }),
     ).rejects.toThrow(/Conflicting CLI options.*image-name/);
     expect(handler).not.toHaveBeenCalled();
-    vi.restoreAllMocks();
+    rs.restoreAllMocks();
   });
 });

@@ -8,7 +8,7 @@ import { dumpActionParam, findAllMidsceneLocatorField } from '@/common';
 import { getMidsceneLocationSchema } from '@/index';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import { uuid } from '@midscene/shared/utils';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 import { z } from 'zod';
 import {
   ifPlanLocateParamHasLocatedPixelBbox,
@@ -160,90 +160,86 @@ describe('utils', () => {
     expect(groupIds[0]).toBe(groupIds[1]);
   });
 
-  it(
-    'should handle multiple large reports correctly',
-    { timeout: 30000 },
-    async () => {
-      const tmpFile = createTempHtmlFile('');
+  it('should handle multiple large reports correctly', async () => {
+    const tmpFile = createTempHtmlFile('');
 
-      // Create a large string of approximately 100MB
-      const generateLargeString = (sizeInMB: number, identifier: string) => {
-        const approximateCharsPer1MB = 1024 * 1024; // 1MB in characters
-        const totalChars = approximateCharsPer1MB * sizeInMB;
+    // Create a large string of approximately 100MB
+    const generateLargeString = (sizeInMB: number, identifier: string) => {
+      const approximateCharsPer1MB = 1024 * 1024; // 1MB in characters
+      const totalChars = approximateCharsPer1MB * sizeInMB;
 
-        // Create a basic JSON structure with a very large string
-        const baseObj = {
-          id: identifier,
-          timestamp: new Date().toISOString(),
-          data: 'X'.repeat(totalChars - 100), // subtract a small amount for the JSON structure
-        };
-
-        return JSON.stringify(baseObj);
+      // Create a basic JSON structure with a very large string
+      const baseObj = {
+        id: identifier,
+        timestamp: new Date().toISOString(),
+        data: 'X'.repeat(totalChars - 100), // subtract a small amount for the JSON structure
       };
 
-      // Monitor memory usage
-      const startMemory = process.memoryUsage();
-      const heapTotalBefore = startMemory.heapTotal / 1024 / 1024;
-      const heapUsedBefore = startMemory.heapUsed / 1024 / 1024;
-      console.log(
-        'Memory usage before test:',
-        `RSS: ${Math.round(startMemory.rss / 1024 / 1024)}MB, ` +
-          `Heap Total: ${heapTotalBefore}MB, ` +
-          `Heap Used: ${heapUsedBefore}MB`,
-      );
+      return JSON.stringify(baseObj);
+    };
 
-      // Store start time
-      const startTime = Date.now();
+    // Monitor memory usage
+    const startMemory = process.memoryUsage();
+    const heapTotalBefore = startMemory.heapTotal / 1024 / 1024;
+    const heapUsedBefore = startMemory.heapUsed / 1024 / 1024;
+    console.log(
+      'Memory usage before test:',
+      `RSS: ${Math.round(startMemory.rss / 1024 / 1024)}MB, ` +
+        `Heap Total: ${heapTotalBefore}MB, ` +
+        `Heap Used: ${heapUsedBefore}MB`,
+    );
 
-      // Generate 10 large reports (each ~100MB)
-      const numberOfReports = 10;
-      // Write the large reports
-      for (let i = 0; i < numberOfReports; i++) {
-        const reportPath = reportHTMLContent(
-          {
-            dumpString: generateLargeString(100, `large-report-${i + 1}`),
-            attributes: {
-              report_number: `${i + 1}`,
-              report_size: '100MB',
-            },
+    // Store start time
+    const startTime = Date.now();
+
+    // Generate 10 large reports (each ~100MB)
+    const numberOfReports = 10;
+    // Write the large reports
+    for (let i = 0; i < numberOfReports; i++) {
+      const reportPath = reportHTMLContent(
+        {
+          dumpString: generateLargeString(100, `large-report-${i + 1}`),
+          attributes: {
+            report_number: `${i + 1}`,
+            report_size: '100MB',
           },
-          tmpFile,
-          true,
-        );
-        expect(reportPath).toBe(tmpFile);
-      }
-
-      // Calculate execution time
-      const executionTime = Date.now() - startTime;
-      console.log(`Execution time: ${executionTime}ms`);
-
-      // Check memory usage after test
-      const endMemory = process.memoryUsage();
-      const rssAfter = endMemory.rss / 1024 / 1024;
-      const heapTotalAfter = endMemory.heapTotal / 1024 / 1024;
-      const heapUsedAfter = endMemory.heapUsed / 1024 / 1024;
-      console.log(
-        'Memory usage after test:',
-        `RSS: ${Math.round(rssAfter)}MB, ` +
-          `Heap Total: ${heapTotalAfter}MB, ` +
-          `Heap Used: ${heapUsedAfter}MB`,
+        },
+        tmpFile,
+        true,
       );
+      expect(reportPath).toBe(tmpFile);
+    }
 
-      // Check if file exists
-      expect(existsSync(tmpFile)).toBe(true);
+    // Calculate execution time
+    const executionTime = Date.now() - startTime;
+    console.log(`Execution time: ${executionTime}ms`);
 
-      // Verify file size is approximately (100MB * 10) + template size
-      const stats = statSync(tmpFile);
-      const fileSizeInMB = stats.size / (1024 * 1024);
-      console.log(`File size: ${fileSizeInMB.toFixed(2)}MB`);
+    // Check memory usage after test
+    const endMemory = process.memoryUsage();
+    const rssAfter = endMemory.rss / 1024 / 1024;
+    const heapTotalAfter = endMemory.heapTotal / 1024 / 1024;
+    const heapUsedAfter = endMemory.heapUsed / 1024 / 1024;
+    console.log(
+      'Memory usage after test:',
+      `RSS: ${Math.round(rssAfter)}MB, ` +
+        `Heap Total: ${heapTotalAfter}MB, ` +
+        `Heap Used: ${heapUsedAfter}MB`,
+    );
 
-      await new Promise((resolve) => setTimeout(resolve, 5000));
+    // Check if file exists
+    expect(existsSync(tmpFile)).toBe(true);
 
-      // We expect the file to be approximately 700MB plus template overhead
-      const expectedMinSize = 1000; // 10 reports × 100MB
-      expect(fileSizeInMB).toBeGreaterThan(expectedMinSize);
-    },
-  );
+    // Verify file size is approximately (100MB * 10) + template size
+    const stats = statSync(tmpFile);
+    const fileSizeInMB = stats.size / (1024 * 1024);
+    console.log(`File size: ${fileSizeInMB.toFixed(2)}MB`);
+
+    await new Promise((resolve) => setTimeout(resolve, 5000));
+
+    // We expect the file to be approximately 700MB plus template overhead
+    const expectedMinSize = 1000; // 10 reports × 100MB
+    expect(fileSizeInMB).toBeGreaterThan(expectedMinSize);
+  }, 30000);
 
   it('reportHTMLContent array with xss', () => {
     const reportContent = reportHTMLContent({

@@ -21,7 +21,7 @@ import {
   type ReportMeta,
   type UIContext,
 } from '@/types';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
 import {
   countGroupedDumpScripts,
   extractGroupedDumpScripts,
@@ -603,10 +603,10 @@ describe('ReportGenerator — append-only model', () => {
   });
 
   describe('autoPrint — report path logging', () => {
-    let logSpy: ReturnType<typeof vi.spyOn>;
+    let logSpy: ReturnType<typeof rs.spyOn>;
 
     beforeEach(() => {
-      logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+      logSpy = rs.spyOn(console, 'log').mockImplementation(() => {});
     });
 
     afterEach(() => {

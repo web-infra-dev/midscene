@@ -7,7 +7,7 @@ import {
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
 import { ScreenshotStore } from '../../src/dump/screenshot-store';
 import { ScreenshotItem } from '../../src/screenshot-item';
 
@@ -66,7 +66,7 @@ describe('ScreenshotStore', () => {
 
   it('supports inline mode persistence + lazy restore', async () => {
     const reportPath = join(tmpRoot, 'inline.html');
-    const appendInline = vi.fn((id: string, base64: string) => {
+    const appendInline = rs.fn((id: string, base64: string) => {
       writeFileSync(
         reportPath,
         `<script type="midscene-image" data-id="${id}">${base64}</script>`,
@@ -88,7 +88,7 @@ describe('ScreenshotStore', () => {
   it('can ensure shared file copy while preserving inline mode semantics', async () => {
     const reportPath = join(tmpRoot, 'inline-with-file-copy.html');
     const screenshotsDir = join(tmpRoot, 'screenshots');
-    const appendInline = vi.fn((id: string, base64: string) => {
+    const appendInline = rs.fn((id: string, base64: string) => {
       writeFileSync(
         reportPath,
         `<script type="midscene-image" data-id="${id}">${base64}</script>`,
@@ -116,7 +116,7 @@ describe('ScreenshotStore', () => {
   it('keeps supporting ensureFileCopy as a deprecated alias', async () => {
     const reportPath = join(tmpRoot, 'inline-with-deprecated-file-copy.html');
     const screenshotsDir = join(tmpRoot, 'screenshots');
-    const appendInline = vi.fn((id: string, base64: string) => {
+    const appendInline = rs.fn((id: string, base64: string) => {
       writeFileSync(
         reportPath,
         `<script type="midscene-image" data-id="${id}">${base64}</script>`,
