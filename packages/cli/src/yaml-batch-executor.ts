@@ -37,6 +37,14 @@ import { TTYWindowRenderer } from './tty-renderer';
 
 export interface BatchRunnerConfig {
   files: string[];
+  /**
+   * Setup yaml files executed serially, in order, before the main `files`.
+   * They reuse the shared browser context, so any prerequisite state (e.g. a
+   * login) is visible to every main file. A setup failure aborts the batch and
+   * leaves the main files not executed. Only honored when
+   * `shareBrowserContext` is true; the config layer rejects other combinations.
+   */
+  setupFiles?: string[];
   concurrent: number;
   continueOnError: boolean;
   /**
@@ -97,11 +105,23 @@ class YamlBatchExecutor {
     }
 
     // Prepare file contexts
+    const setupContextList: BatchFileContext[] = [];
     const fileContextList: BatchFileContext[] = [];
     let browser: Browser | null = null;
     let sharedPage: Page | null = null;
 
     try {
+      // Create setup contexts (serial prerequisites) before the main files so
+      // the TTY plan lists them first and they reuse the same browser context.
+      for (const file of this.config.setupFiles ?? []) {
+        const fileConfig = await this.loadFileConfig(file);
+        const context = await this.createFileContext(file, fileConfig, {
+          headed,
+          keepWindow,
+        });
+        setupContextList.push(context);
+      }
+
       // First, create all file contexts without a browser instance
       for (const file of this.config.files) {
         const fileConfig = await this.loadFileConfig(file);
@@ -113,7 +133,7 @@ class YamlBatchExecutor {
       }
 
       // Now, check if any of the tasks require a web browser
-      const needsBrowser = fileContextList.some(
+      const needsBrowser = [...setupContextList, ...fileContextList].some(
         (ctx) =>
           Object.keys(
             ctx.executionConfig.web || ctx.executionConfig.target || {},
@@ -162,15 +182,17 @@ class YamlBatchExecutor {
         sharedPage = await browser.newPage();
 
         // Assign the browser instance and shared page to all contexts
-        for (const context of fileContextList) {
+        for (const context of [...setupContextList, ...fileContextList]) {
           context.options.browser = browser;
           context.options.page = sharedPage;
         }
       }
 
       // Execute files
-      const { executedResults, notExecutedContexts } =
-        await this.executeFiles(fileContextList);
+      const { executedResults, notExecutedContexts } = await this.executeFiles(
+        setupContextList,
+        fileContextList,
+      );
 
       // Process results
       this.results = await this.processResults(
@@ -231,11 +253,14 @@ class YamlBatchExecutor {
     };
   }
 
-  private async executeFiles(fileContextList: BatchFileContext[]): Promise<{
+  private async executeFiles(
+    setupContextList: BatchFileContext[],
+    fileContextList: BatchFileContext[],
+  ): Promise<{
     executedResults: Array<MidsceneYamlFileContext & { duration: number }>;
     notExecutedContexts: Array<{
       file: string;
-      player: ScriptPlayer<MidsceneYamlScriptEnv>;
+      player: ScriptPlayer<MidsceneYamlScriptEnv> | null;
     }>;
   }> {
     const executedResults: Array<
@@ -243,12 +268,13 @@ class YamlBatchExecutor {
     > = [];
     const notExecutedContexts: Array<{
       file: string;
-      player: ScriptPlayer<MidsceneYamlScriptEnv>;
+      player: ScriptPlayer<MidsceneYamlScriptEnv> | null;
     }> = [];
 
-    // Pre-create all player contexts for displaying task lists
+    // Pre-create all player contexts for displaying task lists. Setup files
+    // come first so the rendered plan reflects the serial-then-parallel order.
     const allFileContexts: MidsceneYamlFileContext[] = [];
-    for (const context of fileContextList) {
+    for (const context of [...setupContextList, ...fileContextList]) {
       // Create a ScriptPlayer that will be used for actual execution
       const player = await createYamlPlayer(
         context.file,
@@ -335,13 +361,30 @@ class YamlBatchExecutor {
         return executedContext;
       };
 
-      // Execute based on concurrency and error handling settings
-      await this.executeConcurrently(
-        fileContextList,
+      // Run setup files serially, in order. A setup failure aborts the batch:
+      // remaining setup files and every main file are marked as not executed.
+      // This holds regardless of `continueOnError`, since the main files rely
+      // on the prerequisite state the setup files establish.
+      const setupFailed = await this.executeSetupFiles(
+        setupContextList,
         executeFile,
         executedResults,
         notExecutedContexts,
       );
+
+      if (setupFailed) {
+        for (const context of fileContextList) {
+          notExecutedContexts.push({ file: context.file, player: null });
+        }
+      } else {
+        // Execute based on concurrency and error handling settings
+        await this.executeConcurrently(
+          fileContextList,
+          executeFile,
+          executedResults,
+          notExecutedContexts,
+        );
+      }
 
       // Print final summary for non-TTY mode
       if (!isTTY) {
@@ -359,6 +402,40 @@ class YamlBatchExecutor {
     }
 
     return { executedResults, notExecutedContexts };
+  }
+
+  /**
+   * Execute setup files one at a time, in declared order. Returns true as soon
+   * as a setup file errors, after marking the remaining setup files as not
+   * executed. The failing setup file itself is recorded as an executed (failed)
+   * result so the summary points at the prerequisite that broke.
+   */
+  private async executeSetupFiles(
+    setupContextList: BatchFileContext[],
+    executeFile: (
+      context: BatchFileContext,
+    ) => Promise<MidsceneYamlFileContext & { duration: number }>,
+    executedResults: Array<MidsceneYamlFileContext & { duration: number }>,
+    notExecutedContexts: Array<{
+      file: string;
+      player: ScriptPlayer<MidsceneYamlScriptEnv> | null;
+    }>,
+  ): Promise<boolean> {
+    let setupFailed = false;
+    for (const context of setupContextList) {
+      if (setupFailed) {
+        notExecutedContexts.push({ file: context.file, player: null });
+        continue;
+      }
+
+      const executedContext = await executeFile(context);
+      executedResults.push(executedContext);
+
+      if (executedContext.player.status === 'error') {
+        setupFailed = true;
+      }
+    }
+    return setupFailed;
   }
 
   private async executeConcurrently(

@@ -489,6 +489,67 @@ describe('BatchRunner', () => {
     });
   });
 
+  describe('setupFiles serial execution', () => {
+    const setupConfig = {
+      ...mockBatchConfig,
+      shareBrowserContext: true,
+      setupFiles: ['login.yml'],
+      files: ['search.yml', 'report.yml'],
+      concurrent: 2,
+    };
+
+    const trackRunOrder = (
+      runOrder: string[],
+      shouldSucceed: (file: string) => boolean,
+    ) => {
+      vi.mocked(createYamlPlayer).mockImplementation(async (file) => {
+        const player = createMockPlayer(shouldSucceed(file as string));
+        const originalRun = player.run;
+        (player as unknown as { run: () => Promise<void> }).run = vi.fn(
+          async () => {
+            runOrder.push(file as string);
+            return originalRun();
+          },
+        );
+        return player;
+      });
+    };
+
+    test('runs setup files before the main files and executes all', async () => {
+      const runOrder: string[] = [];
+      trackRunOrder(runOrder, () => true);
+
+      const runner = new BatchRunner(setupConfig);
+      await runner.run();
+
+      expect(runOrder[0]).toBe('login.yml');
+      expect(runOrder).toContain('search.yml');
+      expect(runOrder).toContain('report.yml');
+      expect(runner.getNotExecutedFiles()).toEqual([]);
+      expect(runner.getSuccessfulFiles().sort()).toEqual([
+        'login.yml',
+        'report.yml',
+        'search.yml',
+      ]);
+    });
+
+    test('aborts main files when a setup file fails', async () => {
+      const runOrder: string[] = [];
+      trackRunOrder(runOrder, (file) => file !== 'login.yml');
+
+      const runner = new BatchRunner(setupConfig);
+      await runner.run();
+
+      // The main files must never run once the prerequisite setup fails.
+      expect(runOrder).toEqual(['login.yml']);
+      expect(runner.getFailedFiles()).toEqual(['login.yml']);
+      expect(runner.getNotExecutedFiles().sort()).toEqual([
+        'report.yml',
+        'search.yml',
+      ]);
+    });
+  });
+
   describe('Common functionality', () => {
     let executor: BatchRunner;
     beforeEach(() => {

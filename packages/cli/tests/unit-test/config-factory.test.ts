@@ -88,6 +88,7 @@ summary: "yaml-summary.json"
         patterns: ['*.yml'],
         shareBrowserContext: false,
         files: ['file1.yml'],
+        setupFiles: [],
       });
     });
 
@@ -148,6 +149,70 @@ summary: "yaml-summary.json"
 
       await expect(parseConfigYaml(mockIndexPath)).rejects.toThrow(
         'No YAML files found matching the patterns in "files"',
+      );
+    });
+
+    test('should expand setupFiles patterns ahead of the main files', async () => {
+      const mockYamlContent = `
+setupFiles:
+  - "login.yml"
+files:
+  - "*.yml"
+`;
+      const mockParsedYaml = {
+        setupFiles: ['login.yml'],
+        files: ['*.yml'],
+      };
+
+      vi.mocked(readFileSync).mockReturnValue(mockYamlContent);
+      vi.mocked(interpolateEnvVars).mockReturnValue(mockYamlContent);
+      vi.mocked(yamlLoad).mockReturnValue(mockParsedYaml);
+      // First call expands `files`, second call expands `setupFiles`
+      vi.mocked(matchYamlFiles)
+        .mockResolvedValueOnce(['search.yml'])
+        .mockResolvedValueOnce(['login.yml']);
+
+      const result = await parseConfigYaml(mockIndexPath);
+
+      expect(result.files).toEqual(['search.yml']);
+      expect(result.setupFiles).toEqual(['login.yml']);
+    });
+
+    test('should default setupFiles to an empty array when absent', async () => {
+      const mockYamlContent = `files: ["*.yml"]`;
+      const mockParsedYaml = { files: ['*.yml'] };
+
+      vi.mocked(readFileSync).mockReturnValue(mockYamlContent);
+      vi.mocked(interpolateEnvVars).mockReturnValue(mockYamlContent);
+      vi.mocked(yamlLoad).mockReturnValue(mockParsedYaml);
+      vi.mocked(matchYamlFiles).mockResolvedValue(['test.yml']);
+
+      const result = await parseConfigYaml(mockIndexPath);
+
+      expect(result.setupFiles).toEqual([]);
+    });
+
+    test('should throw when setupFiles patterns match nothing', async () => {
+      const mockYamlContent = `
+setupFiles:
+  - "login.yml"
+files:
+  - "*.yml"
+`;
+      const mockParsedYaml = {
+        setupFiles: ['login.yml'],
+        files: ['*.yml'],
+      };
+
+      vi.mocked(readFileSync).mockReturnValue(mockYamlContent);
+      vi.mocked(interpolateEnvVars).mockReturnValue(mockYamlContent);
+      vi.mocked(yamlLoad).mockReturnValue(mockParsedYaml);
+      vi.mocked(matchYamlFiles)
+        .mockResolvedValueOnce(['search.yml']) // files
+        .mockResolvedValueOnce([]); // setupFiles match nothing
+
+      await expect(parseConfigYaml(mockIndexPath)).rejects.toThrow(
+        'No YAML files found matching the patterns in "setupFiles"',
       );
     });
 
@@ -272,6 +337,54 @@ concurrent: 2
       expect(result.globalConfig).toEqual(expectedGlobalConfig);
     });
 
+    test('should keep setupFiles when shareBrowserContext is enabled', async () => {
+      const mockYamlContent = `
+setupFiles:
+  - login.yml
+files:
+  - search.yml
+shareBrowserContext: true
+`;
+      const mockParsedYaml = {
+        setupFiles: ['login.yml'],
+        files: ['search.yml'],
+        shareBrowserContext: true,
+      };
+      vi.mocked(readFileSync).mockReturnValue(mockYamlContent);
+      vi.mocked(yamlLoad).mockReturnValue(mockParsedYaml);
+      vi.mocked(matchYamlFiles)
+        .mockResolvedValueOnce(['search.yml']) // files
+        .mockResolvedValueOnce(['login.yml']); // setupFiles
+
+      const result = await createConfig('/test/index.yml');
+
+      expect(result.shareBrowserContext).toBe(true);
+      expect(result.setupFiles).toEqual(['login.yml']);
+      expect(result.files).toEqual(['search.yml']);
+    });
+
+    test('should reject setupFiles without shareBrowserContext', async () => {
+      const mockYamlContent = `
+setupFiles:
+  - login.yml
+files:
+  - search.yml
+`;
+      const mockParsedYaml = {
+        setupFiles: ['login.yml'],
+        files: ['search.yml'],
+      };
+      vi.mocked(readFileSync).mockReturnValue(mockYamlContent);
+      vi.mocked(yamlLoad).mockReturnValue(mockParsedYaml);
+      vi.mocked(matchYamlFiles)
+        .mockResolvedValueOnce(['search.yml']) // files
+        .mockResolvedValueOnce(['login.yml']); // setupFiles
+
+      await expect(createConfig('/test/index.yml')).rejects.toThrow(
+        'setupFiles requires shareBrowserContext: true',
+      );
+    });
+
     test('should override config files with command-line files parameter', async () => {
       const mockYamlContent = `
 files:
@@ -363,6 +476,7 @@ concurrent: 2
       // This is expected behavior - patterns are evaluated independently
       expect(result).toEqual({
         files: ['test1.yml', 'test1.yml', 'testA.yml', 'testB.yml'],
+        setupFiles: [],
         concurrent: 1,
         continueOnError: false,
         retry: 0,
@@ -384,6 +498,32 @@ concurrent: 2
       expect(matchYamlFiles).toHaveBeenCalledWith(patterns[1], {
         cwd: process.cwd(),
       });
+    });
+
+    test('should expand setupFiles when shareBrowserContext is enabled', async () => {
+      const patterns = ['search.yml'];
+      vi.mocked(matchYamlFiles)
+        .mockResolvedValueOnce(['search.yml']) // files
+        .mockResolvedValueOnce(['login.yml']); // setupFiles
+
+      const result = await createFilesConfig(patterns, {
+        shareBrowserContext: true,
+        setupFiles: ['login.yml'],
+      });
+
+      expect(result.setupFiles).toEqual(['login.yml']);
+      expect(result.files).toEqual(['search.yml']);
+    });
+
+    test('should reject setupFiles without shareBrowserContext', async () => {
+      const patterns = ['search.yml'];
+      vi.mocked(matchYamlFiles)
+        .mockResolvedValueOnce(['search.yml']) // files
+        .mockResolvedValueOnce(['login.yml']); // setupFiles
+
+      await expect(
+        createFilesConfig(patterns, { setupFiles: ['login.yml'] }),
+      ).rejects.toThrow('setupFiles requires shareBrowserContext: true');
     });
 
     test('should forward the retry option through createFilesConfig', async () => {
@@ -416,6 +556,7 @@ concurrent: 2
 
       expect(result).toEqual({
         files: expandedFiles,
+        setupFiles: [],
         concurrent: 3,
         continueOnError: true,
         retry: 0,
@@ -469,6 +610,7 @@ concurrent: 2
 
       expect(result).toEqual({
         files: patterns,
+        setupFiles: [],
         concurrent: 4,
         continueOnError: true,
         retry: 0,

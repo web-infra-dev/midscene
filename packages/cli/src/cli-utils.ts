@@ -47,6 +47,12 @@ Usage:
         string: true,
         description: 'A list of yaml files to run, separated by space',
       },
+      'setup-files': {
+        type: 'array',
+        string: true,
+        description:
+          'A list of yaml files to run serially before the main files. Requires --share-browser-context',
+      },
       config: {
         type: 'string',
         description:
