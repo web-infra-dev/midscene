@@ -9,27 +9,36 @@ export interface CliVerboseLine {
   text: string;
 }
 
-export interface CliAiActProgressEvent {
-  type?: unknown;
-  event?: unknown;
+/** Generic progress-bus envelope as seen by the CLI (all fields untrusted). */
+export interface CliAgentProgressEvent {
+  scope?: unknown;
+  phase?: unknown;
+  sequence?: unknown;
+  data?: unknown;
+}
+
+/** Flattened, render-ready aiAct payload derived from the envelope. */
+export interface CliAiActProgressPayload {
+  phase?: unknown;
   sequence?: unknown;
   prompt?: unknown;
   planIndex?: unknown;
   planLimit?: unknown;
-  screenshot?: unknown;
   action?: unknown;
   thought?: unknown;
   log?: unknown;
   output?: unknown;
   durationMs?: unknown;
   error?: unknown;
-}
-
-export interface CliAiActProgressPayload
-  extends Omit<CliAiActProgressEvent, 'screenshot'> {
   screenshots?: Array<Record<string, unknown>>;
   screenshotPath?: string;
+  // Lets the payload satisfy the generic `Record<string, unknown>` dispatch
+  // boundary while keeping the named fields documented.
+  [key: string]: unknown;
 }
+
+/** aiAct scope tag on the progress bus (mirrors core's `aiActProgressScope`). */
+export const cliAiActProgressScope = 'aiAct';
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -92,7 +101,7 @@ function eventKey(event: CliAiActProgressPayload, suffix: string): string {
 
   return [
     'aiAct',
-    compactText(event.event),
+    compactText(event.phase),
     compactText(event.planIndex),
     suffix,
   ]
@@ -198,14 +207,13 @@ export function normalizeAiActProgressEventForCli(
   event: unknown,
   screenshotOptions: CliVerboseScreenshotCollectOptions = {},
 ): CliAiActProgressPayload | undefined {
-  if (!isRecord(event) || event.type !== 'aiAct') {
+  if (!isRecord(event) || event.scope !== cliAiActProgressScope) {
     return undefined;
   }
 
-  const screenshots = collectScreenshotRefs(
-    event.screenshot,
-    screenshotOptions,
-  );
+  const data = isRecord(event.data) ? event.data : {};
+
+  const screenshots = collectScreenshotRefs(data.screenshot, screenshotOptions);
   const latestPath = screenshots
     .slice()
     .reverse()
@@ -218,9 +226,6 @@ export function normalizeAiActProgressEventForCli(
       : undefined;
 
   const {
-    type,
-    event: eventName,
-    sequence,
     prompt,
     planIndex,
     planLimit,
@@ -230,12 +235,11 @@ export function normalizeAiActProgressEventForCli(
     output,
     durationMs,
     error,
-  } = event;
+  } = data;
 
   return {
-    type,
-    event: eventName,
-    sequence,
+    phase: event.phase,
+    sequence: event.sequence,
     prompt,
     planIndex,
     planLimit,
@@ -253,7 +257,7 @@ export function normalizeAiActProgressEventForCli(
 export function buildAiActProgressEventLines(
   event: CliAiActProgressPayload,
 ): CliVerboseLine[] {
-  const eventName = typeof event.event === 'string' ? event.event : '';
+  const phase = typeof event.phase === 'string' ? event.phase : '';
   const prefix = planPrefix(event);
   const error = compactText(event.error);
   const duration =
@@ -262,7 +266,7 @@ export function buildAiActProgressEventLines(
       : '';
   const action = parseAction(event.action);
 
-  switch (eventName) {
+  switch (phase) {
     case 'start': {
       const prompt = compactText(event.prompt);
       return [
@@ -362,3 +366,22 @@ export function buildAiActProgressEventLines(
       return [];
   }
 }
+
+/**
+ * A producer-specific renderer for the generic CLI progress dispatcher: turn a
+ * raw progress envelope into a normalized payload, then that payload into
+ * verbose lines. New producers register their own renderer; the dispatcher core
+ * stays untouched.
+ */
+export interface CliProgressRenderer {
+  normalize(
+    event: unknown,
+    screenshotOptions: CliVerboseScreenshotCollectOptions,
+  ): Record<string, unknown> | undefined;
+  buildLines(payload: Record<string, unknown>): CliVerboseLine[];
+}
+
+export const aiActCliProgressRenderer: CliProgressRenderer = {
+  normalize: normalizeAiActProgressEventForCli,
+  buildLines: buildAiActProgressEventLines,
+};

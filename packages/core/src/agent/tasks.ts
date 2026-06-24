@@ -15,8 +15,9 @@ import type Service from '@/service';
 import type { TaskRunner, TaskRunnerEvent } from '@/task-runner';
 import { TaskExecutionError } from '@/task-runner';
 import type {
-  AiActProgressEvent,
-  AiActProgressListener,
+  AgentProgressListener,
+  AiActProgressData,
+  AiActProgressPhase,
   DeviceAction,
   ExecutionTask,
   ExecutionTaskApply,
@@ -33,7 +34,7 @@ import type {
   ServiceExtractParam,
   UIContext,
 } from '@/types';
-import { ServiceError } from '@/types';
+import { ServiceError, aiActProgressScope } from '@/types';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import { errorMessageForAiAct, extractProgressAction } from './ai-act-progress';
@@ -58,7 +59,7 @@ interface TaskExecutorHooks {
     runner: TaskRunner,
     error?: TaskExecutionError,
   ) => Promise<void> | void;
-  onAiActProgress?: AiActProgressListener;
+  onProgress?: AgentProgressListener;
 }
 
 // The runner reports task transitions natively, but it has no notion of the
@@ -118,7 +119,7 @@ export class TaskExecutor {
 
   useDeviceTime?: boolean;
 
-  private aiActProgressSequence = 0;
+  private progressSequence = 0;
 
   private activeAiActPlan?: ActiveAiActPlan;
 
@@ -192,22 +193,43 @@ export class TaskExecutor {
     return this.providedActionSpace;
   }
 
-  private async emitAiActProgress(
-    event: Omit<AiActProgressEvent, 'type'>,
+  /**
+   * Publish one event onto the generic progress bus. The task layer is just a
+   * producer here: it stamps a monotonic sequence and forwards the structured
+   * payload under the given scope. It has no knowledge of how the event is
+   * rendered or consumed.
+   */
+  private async emitProgress(
+    scope: string,
+    phase: string,
+    data: unknown,
   ): Promise<void> {
-    if (!this.hooks?.onAiActProgress) {
+    if (!this.hooks?.onProgress) {
       return;
     }
 
     try {
-      await this.hooks.onAiActProgress({
-        type: 'aiAct',
-        sequence: ++this.aiActProgressSequence,
-        ...event,
+      await this.hooks.onProgress({
+        scope,
+        phase,
+        sequence: ++this.progressSequence,
+        data,
       });
     } catch (error) {
-      console.error('Error in onAiActProgress listener', error);
+      console.error('Error in onProgress listener', error);
     }
+  }
+
+  /**
+   * aiAct-flavored convenience over {@link emitProgress}: aiAct is the first
+   * producer ("pilot") on the generic bus, so its events are simply tagged with
+   * the `aiAct` scope.
+   */
+  private emitAiActProgress(
+    phase: AiActProgressPhase,
+    data: AiActProgressData,
+  ): Promise<void> {
+    return this.emitProgress(aiActProgressScope, phase, data);
   }
 
   /**
@@ -234,22 +256,19 @@ export class TaskExecutor {
 
     switch (event.kind) {
       case 'start':
-        await this.emitAiActProgress({
-          event: 'plan_action',
+        await this.emitAiActProgress('plan_action', {
           planIndex,
           planLimit,
           action,
         });
-        await this.emitAiActProgress({
-          event: 'action_running',
+        await this.emitAiActProgress('action_running', {
           planIndex,
           planLimit,
           action,
         });
         break;
       case 'finish':
-        await this.emitAiActProgress({
-          event: 'action_done',
+        await this.emitAiActProgress('action_done', {
           planIndex,
           planLimit,
           action,
@@ -257,8 +276,7 @@ export class TaskExecutor {
         });
         break;
       case 'error':
-        await this.emitAiActProgress({
-          event: 'action_failed',
+        await this.emitAiActProgress('action_failed', {
           planIndex,
           planLimit,
           action,
@@ -545,8 +563,7 @@ export class TaskExecutor {
       );
     }
 
-    await this.emitAiActProgress({
-      event: 'start',
+    await this.emitAiActProgress('start', {
       prompt: promptDisplay,
       planLimit: replanningCycleLimit,
     });
@@ -558,8 +575,7 @@ export class TaskExecutor {
       output: undefined;
       runner: TaskRunner;
     }> => {
-      await this.emitAiActProgress({
-        event: 'failed',
+      await this.emitAiActProgress('failed', {
         ...(planIndex ? { planIndex } : {}),
         planLimit: replanningCycleLimit,
         error: errorMsg,
@@ -621,8 +637,7 @@ export class TaskExecutor {
             assert(uiContext, 'uiContext is required for Planning task');
             const planningUiContext = uiContext as UIContext;
             const timing = executorContext.task.timing;
-            await this.emitAiActProgress({
-              event: 'plan_thinking',
+            await this.emitAiActProgress('plan_thinking', {
               planIndex,
               planLimit: replanningCycleLimit,
               screenshot: planningUiContext.screenshot,
@@ -673,8 +688,7 @@ export class TaskExecutor {
                   rawChoiceMessage: planError.rawChoiceMessage,
                 };
               }
-              await this.emitAiActProgress({
-                event: 'plan_failed',
+              await this.emitAiActProgress('plan_failed', {
                 planIndex,
                 planLimit: replanningCycleLimit,
                 error: errorMessageForAiAct(planError),
@@ -726,8 +740,7 @@ export class TaskExecutor {
             // consumer decides which field to surface and how to format it.
             // `finalizeMessage` is intentionally left for the `complete` event.
             if (log || thought) {
-              await this.emitAiActProgress({
-                event: 'plan_planned',
+              await this.emitAiActProgress('plan_planned', {
                 planIndex,
                 planLimit: replanningCycleLimit,
                 ...(log ? { log } : {}),
@@ -737,8 +750,7 @@ export class TaskExecutor {
 
             if (error) {
               const errorMessage = `Failed to continue: ${error}\n${log || ''}`;
-              await this.emitAiActProgress({
-                event: 'plan_failed',
+              await this.emitAiActProgress('plan_failed', {
                 planIndex,
                 planLimit: replanningCycleLimit,
                 error: errorMessage,
@@ -750,8 +762,7 @@ export class TaskExecutor {
             // Check if task was finalized with failure
             if (finalizeSuccess === false) {
               const errorMessage = `Task failed: ${finalizeMessage || 'No error message provided'}\n${log || ''}`;
-              await this.emitAiActProgress({
-                event: 'plan_failed',
+              await this.emitAiActProgress('plan_failed', {
                 planIndex,
                 planLimit: replanningCycleLimit,
                 error: errorMessage,
@@ -888,8 +899,7 @@ export class TaskExecutor {
     // Carry the raw final text; the consumer formats it. `outputString` is the
     // model's finalize message, with the latest plan's log/thought as fallback
     // context for consumers that want to show why the run completed.
-    await this.emitAiActProgress({
-      event: 'complete',
+    await this.emitAiActProgress('complete', {
       planIndex: latestPlanIndex,
       planLimit: replanningCycleLimit,
       ...((outputString ?? latestPlanResult?.output)

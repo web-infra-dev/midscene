@@ -1,8 +1,8 @@
 import {
-  type CliAiActProgressEvent,
+  type CliProgressRenderer,
   type CliVerboseLine,
-  buildAiActProgressEventLines,
-  normalizeAiActProgressEventForCli,
+  aiActCliProgressRenderer,
+  cliAiActProgressScope,
 } from './verbose-ai-act';
 import {
   type CliVerboseScreenshotCollectOptions,
@@ -12,6 +12,27 @@ import {
 } from './verbose-screenshot';
 
 export const cliVerboseFlag = 'verbose';
+
+// Scope -> renderer registry for the generic progress bus. Adding a new
+// producer means registering one entry here; the dispatcher core below is
+// producer-agnostic.
+const progressRenderers: Record<string, CliProgressRenderer> = {
+  [cliAiActProgressScope]: aiActCliProgressRenderer,
+};
+
+function progressRendererForEvent(
+  event: unknown,
+): { scope: string; renderer: CliProgressRenderer } | undefined {
+  if (typeof event !== 'object' || event === null) {
+    return undefined;
+  }
+  const scope = (event as { scope?: unknown }).scope;
+  if (typeof scope !== 'string') {
+    return undefined;
+  }
+  const renderer = progressRenderers[scope];
+  return renderer ? { scope, renderer } : undefined;
+}
 
 const progressEventName = 'midscene_progress';
 const cliVerboseContextKey = '__midscene_cli_verbose_context__';
@@ -41,9 +62,10 @@ type DumpUpdateAgent = {
   addDumpUpdateListener?: (
     listener: (dump: string, executionDump?: unknown) => void,
   ) => () => void;
-  addAiActProgressListener?: (
-    listener: (event: CliAiActProgressEvent) => void,
-  ) => () => void;
+  // Generic progress bus. `addAiActProgressListener` is kept as a back-compat
+  // fallback for agents that predate the generic listener.
+  addProgressListener?: (listener: (event: unknown) => void) => () => void;
+  addAiActProgressListener?: (listener: (event: unknown) => void) => () => void;
   reportFile?: string | null;
 };
 
@@ -539,18 +561,16 @@ function renderCliVerboseEventText(
   const tool = typeof event.tool === 'string' ? event.tool : undefined;
 
   switch (event.event) {
-    case 'ai_act_progress': {
-      if (!isActVerboseEvent(command, tool)) {
+    case 'agent_progress': {
+      const scope = typeof event.scope === 'string' ? event.scope : undefined;
+      const renderer = scope ? progressRenderers[scope] : undefined;
+      const progressEvent = isRecord(event.progress)
+        ? event.progress
+        : undefined;
+      if (!renderer || !progressEvent) {
         return undefined;
       }
-      const progressEvent = isRecord(event.aiAct) ? event.aiAct : undefined;
-      if (!progressEvent) {
-        return undefined;
-      }
-      return renderLinesOnce(
-        context,
-        buildAiActProgressEventLines(progressEvent),
-      );
+      return renderLinesOnce(context, renderer.buildLines(progressEvent));
     }
     case 'command_start': {
       if (isActVerboseEvent(command, tool)) {
@@ -666,11 +686,24 @@ export function attachCliVerboseDumpListener(
   const isActTool = options?.toolName === 'act';
   const screenshotExportCache = new Map<string, string>();
 
-  if (isActTool && typeof agent.addAiActProgressListener === 'function') {
-    return agent.addAiActProgressListener((aiActEvent) => {
+  // Prefer the generic progress bus; fall back to the aiAct-only listener for
+  // agents that have not adopted it yet.
+  const subscribeProgress =
+    typeof agent.addProgressListener === 'function'
+      ? agent.addProgressListener.bind(agent)
+      : typeof agent.addAiActProgressListener === 'function'
+        ? agent.addAiActProgressListener.bind(agent)
+        : undefined;
+
+  if (isActTool && subscribeProgress) {
+    return subscribeProgress((event) => {
+      const match = progressRendererForEvent(event);
+      if (!match) {
+        return;
+      }
       const context = getCliVerboseContext();
       const isTextMode = context.format !== 'jsonl';
-      const progress = normalizeAiActProgressEventForCli(aiActEvent, {
+      const progress = match.renderer.normalize(event, {
         reportFile: agent.reportFile,
         exportMode: isTextMode ? 'report' : 'none',
         cache: screenshotExportCache,
@@ -679,9 +712,10 @@ export function attachCliVerboseDumpListener(
         return;
       }
       emitCliVerboseEvent({
-        event: 'ai_act_progress',
+        event: 'agent_progress',
         tool: options?.toolName,
-        aiAct: progress,
+        scope: match.scope,
+        progress,
       });
     });
   }

@@ -382,7 +382,37 @@ export interface ExecutionTaskProgressOptions {
   onTaskStart?: (task: ExecutionTask) => Promise<void> | void;
 }
 
-export type AiActProgressEventName =
+/**
+ * Generic agent progress bus.
+ *
+ * Progress notifications are a single, generic stream the agent broadcasts as
+ * it works. Each event is a thin envelope: a `scope` naming the producer, a
+ * `phase` within that producer's lifecycle, a monotonic `sequence`, and a
+ * structured, presentation-free `data` payload. The bus knows nothing about any
+ * particular producer's payload - consumers narrow by `scope`. `aiAct` is the
+ * first producer ("pilot") on this bus; others (queries, waits, ...) can be
+ * added without touching the bus, the listener API, or the renderer core.
+ */
+export interface AgentProgressEvent<
+  TScope extends string = string,
+  TData = unknown,
+  TPhase extends string = string,
+> {
+  scope: TScope;
+  phase: TPhase;
+  sequence: number;
+  data: TData;
+}
+
+export type AgentProgressListener<
+  TScope extends string = string,
+  TData = unknown,
+  TPhase extends string = string,
+> = (event: AgentProgressEvent<TScope, TData, TPhase>) => Promise<void> | void;
+
+// --- aiAct: the first producer on the generic progress bus ---
+
+export type AiActProgressPhase =
   | 'start'
   | 'plan_thinking'
   | 'plan_planned'
@@ -408,26 +438,20 @@ export interface AiActProgressAction {
 }
 
 /**
- * A native progress notification emitted by the task layer.
- *
- * The task layer only reports *what happened* as structured data: the action
- * involved, the raw text the model produced, timings and errors. It does not
- * assemble human-readable log lines or truncate strings - that presentation
- * concern belongs to whichever layer consumes the stream (e.g. the CLI verbose
- * renderer). This keeps the task layer free of display logic and lets each
- * consumer format the same events however it needs.
+ * Structured payload carried by aiAct progress events. The producer only
+ * reports *what happened* as data: the action involved, the raw text the model
+ * produced, timings and errors. It never assembles human-readable log lines or
+ * truncates strings for display - that belongs to whichever layer consumes the
+ * stream (e.g. the CLI verbose renderer).
  */
-export interface AiActProgressEvent {
-  type: 'aiAct';
-  event: AiActProgressEventName;
-  sequence?: number;
-  /** Original user instruction, present on the `start` event. */
+export interface AiActProgressData {
+  /** Original user instruction, present on the `start` phase. */
   prompt?: string;
   planIndex?: number;
   planLimit?: number;
   /** Latest screenshot, present on `plan_thinking`. */
   screenshot?: ScreenshotItem;
-  /** Structured action descriptor, present on the `*action*` events. */
+  /** Structured action descriptor, present on the `*action*` phases. */
   action?: AiActProgressAction;
   /**
    * Raw, untruncated semantic text produced by the model. Consumers choose
@@ -440,6 +464,14 @@ export interface AiActProgressEvent {
   durationMs?: number;
   error?: string;
 }
+
+export const aiActProgressScope = 'aiAct';
+
+export type AiActProgressEvent = AgentProgressEvent<
+  'aiAct',
+  AiActProgressData,
+  AiActProgressPhase
+>;
 
 export type AiActProgressListener = (
   event: AiActProgressEvent,

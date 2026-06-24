@@ -113,20 +113,12 @@ export interface RecordToReportOptions {
   screenshots?: RecordToReportScreenshot[];
 }
 
-export interface BaseAiActProgressEvent {
-  type?: unknown;
-  event?: unknown;
+/** Generic progress-bus envelope as seen by tool consumers (all untrusted). */
+export interface BaseAgentProgressEvent {
+  scope?: unknown;
+  phase?: unknown;
   sequence?: unknown;
-  prompt?: unknown;
-  planIndex?: unknown;
-  planLimit?: unknown;
-  screenshot?: unknown;
-  action?: unknown;
-  thought?: unknown;
-  log?: unknown;
-  output?: unknown;
-  durationMs?: unknown;
-  error?: unknown;
+  data?: unknown;
 }
 
 /**
@@ -144,8 +136,11 @@ export interface BaseAgent {
   addDumpUpdateListener?: (
     listener: (dump: string, executionDump?: unknown) => void,
   ) => () => void;
+  addProgressListener?: (
+    listener: (event: BaseAgentProgressEvent) => void,
+  ) => () => void;
   addAiActProgressListener?: (
-    listener: (event: BaseAiActProgressEvent) => void,
+    listener: (event: BaseAgentProgressEvent) => void,
   ) => () => void;
   recordToReport?: (
     title?: string,

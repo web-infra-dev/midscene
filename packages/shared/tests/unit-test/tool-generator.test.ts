@@ -760,10 +760,12 @@ describe('toolDefaults (deep locate / deep think)', () => {
     );
     let sequence = 1;
     const emitProgress = (event: Record<string, unknown>) => {
+      const { event: phase, ...data } = event;
       progressListener?.({
-        type: 'aiAct',
+        scope: 'aiAct',
+        phase,
         sequence: sequence++,
-        ...event,
+        data,
       });
     };
     const progressScreenshot = (id: string) => ({
@@ -1037,13 +1039,13 @@ describe('toolDefaults (deep locate / deep think)', () => {
       dumpListener = listener;
       return unsubscribe;
     });
-    const addAiActProgressListener = vi.fn((listener) => {
+    const addProgressListener = vi.fn((listener) => {
       progressListener = listener;
       return unsubscribe;
     });
     const commonTools = generateCommonTools(async () => ({
       aiAction,
-      addAiActProgressListener,
+      addProgressListener,
       addDumpUpdateListener,
       reportFile,
       getActionSpace: vi.fn().mockResolvedValue([]),
@@ -1112,7 +1114,7 @@ describe('toolDefaults (deep locate / deep think)', () => {
         message.includes('[Midscene][aiAct][Plan 1/10] Action: Tap'),
       ),
     ).toHaveLength(1);
-    expect(addAiActProgressListener).toHaveBeenCalledOnce();
+    expect(addProgressListener).toHaveBeenCalledOnce();
     expect(addDumpUpdateListener).not.toHaveBeenCalled();
     expect(unsubscribe).toHaveBeenCalledOnce();
     consoleSpy.mockRestore();
@@ -1167,10 +1169,12 @@ describe('toolDefaults (deep locate / deep think)', () => {
     );
     let sequence = 1;
     const emitProgress = (event: Record<string, unknown>) => {
+      const { event: phase, ...data } = event;
       progressListener?.({
-        type: 'aiAct',
+        scope: 'aiAct',
+        phase,
         sequence: sequence++,
-        ...event,
+        data,
       });
     };
     const aiAction = vi.fn().mockImplementation(async () => {
@@ -1237,13 +1241,13 @@ describe('toolDefaults (deep locate / deep think)', () => {
       dumpListener = listener;
       return unsubscribe;
     });
-    const addAiActProgressListener = vi.fn((listener) => {
+    const addProgressListener = vi.fn((listener) => {
       progressListener = listener;
       return unsubscribe;
     });
     const commonTools = generateCommonTools(async () => ({
       aiAction,
-      addAiActProgressListener,
+      addProgressListener,
       addDumpUpdateListener,
       reportFile,
       getActionSpace: vi.fn().mockResolvedValue([]),
@@ -1278,7 +1282,7 @@ describe('toolDefaults (deep locate / deep think)', () => {
     expect(messages).not.toContain(
       '[Midscene][aiAct] Complete: The settings entry is not visible.',
     );
-    expect(addAiActProgressListener).toHaveBeenCalledOnce();
+    expect(addProgressListener).toHaveBeenCalledOnce();
     expect(addDumpUpdateListener).not.toHaveBeenCalled();
     expect(unsubscribe).toHaveBeenCalledOnce();
     consoleSpy.mockRestore();
@@ -1306,11 +1310,13 @@ describe('toolDefaults (deep locate / deep think)', () => {
     };
     const aiAction = vi.fn().mockImplementation(async () => {
       progressListener?.({
-        type: 'aiAct',
+        scope: 'aiAct',
         sequence: 1,
-        event: 'plan_thinking',
-        planIndex: 1,
-        screenshot: inlineScreenshot,
+        phase: 'plan_thinking',
+        data: {
+          planIndex: 1,
+          screenshot: inlineScreenshot,
+        },
       });
       dumpListener?.('{}', {
         id: 'execution-1',
@@ -1340,13 +1346,13 @@ describe('toolDefaults (deep locate / deep think)', () => {
       dumpListener = listener;
       return unsubscribe;
     });
-    const addAiActProgressListener = vi.fn((listener) => {
+    const addProgressListener = vi.fn((listener) => {
       progressListener = listener;
       return unsubscribe;
     });
     const commonTools = generateCommonTools(async () => ({
       aiAction,
-      addAiActProgressListener,
+      addProgressListener,
       addDumpUpdateListener,
       reportFile: '/tmp/midscene-report.html',
       getActionSpace: vi.fn().mockResolvedValue([]),
@@ -1384,7 +1390,7 @@ describe('toolDefaults (deep locate / deep think)', () => {
     expect(screenshotPath).toBeDefined();
     expect(existsSync(screenshotPath!)).toBe(true);
     expect(readFileSync(screenshotPath!, 'utf8')).toBe('foo');
-    expect(addAiActProgressListener).toHaveBeenCalledOnce();
+    expect(addProgressListener).toHaveBeenCalledOnce();
     expect(addDumpUpdateListener).not.toHaveBeenCalled();
     expect(unsubscribe).toHaveBeenCalledOnce();
     consoleSpy.mockRestore();
@@ -1397,30 +1403,32 @@ describe('toolDefaults (deep locate / deep think)', () => {
     const unsubscribe = vi.fn();
     const aiAction = vi.fn().mockImplementation(async () => {
       progressListener?.({
-        type: 'aiAct',
+        scope: 'aiAct',
         sequence: 1,
-        event: 'plan_thinking',
-        planIndex: 1,
-        planLimit: 3,
-        screenshot: {
-          toSerializable: () => ({
-            type: 'midscene_screenshot_ref',
-            id: 'shot-1',
-            storage: 'file',
-            path: './screenshots/shot-1.png',
-          }),
+        phase: 'plan_thinking',
+        data: {
+          planIndex: 1,
+          planLimit: 3,
+          screenshot: {
+            toSerializable: () => ({
+              type: 'midscene_screenshot_ref',
+              id: 'shot-1',
+              storage: 'file',
+              path: './screenshots/shot-1.png',
+            }),
+          },
         },
       });
       return 'done';
     });
     const addDumpUpdateListener = vi.fn(() => unsubscribe);
-    const addAiActProgressListener = vi.fn((listener) => {
+    const addProgressListener = vi.fn((listener) => {
       progressListener = listener;
       return unsubscribe;
     });
     const commonTools = generateCommonTools(async () => ({
       aiAction,
-      addAiActProgressListener,
+      addProgressListener,
       addDumpUpdateListener,
       reportFile: '/tmp/midscene-report.html',
       getActionSpace: vi.fn().mockResolvedValue([]),
@@ -1455,13 +1463,13 @@ describe('toolDefaults (deep locate / deep think)', () => {
     );
     expect(progressEvents).toContainEqual(
       expect.objectContaining({
-        event: 'ai_act_progress',
+        event: 'agent_progress',
         command: 'act',
         tool: 'act',
-        aiAct: expect.objectContaining({
-          type: 'aiAct',
+        scope: 'aiAct',
+        progress: expect.objectContaining({
+          phase: 'plan_thinking',
           sequence: 1,
-          event: 'plan_thinking',
           planIndex: 1,
           planLimit: 3,
           screenshots: [
@@ -1474,7 +1482,7 @@ describe('toolDefaults (deep locate / deep think)', () => {
         }),
       }),
     );
-    expect(addAiActProgressListener).toHaveBeenCalledOnce();
+    expect(addProgressListener).toHaveBeenCalledOnce();
     expect(addDumpUpdateListener).not.toHaveBeenCalled();
     expect(unsubscribe).toHaveBeenCalledOnce();
     consoleSpy.mockRestore();

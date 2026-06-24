@@ -148,29 +148,32 @@ describe('TaskExecutor concurrency isolation', () => {
 
   it('emits semantic aiAct progress events from planning and action execution', async () => {
     const progressEvents: string[] = [];
+    const progressScopes = new Set<string>();
     taskExecutor = new TaskExecutor(mockInterface, mockService, {
       replanningCycleLimit: 3,
       actionSpace: emptyParamActionSpace,
       hooks: {
-        onAiActProgress: (event) => {
-          // The event carries structured data only (no pre-baked `message`);
-          // surface the single semantic field that matters per event.
+        onProgress: (event) => {
+          // Generic envelope: { scope, phase, sequence, data }. aiAct is just a
+          // scope on the bus; the structured payload lives in `data`.
+          progressScopes.add(event.scope);
+          const data = (event.data ?? {}) as Record<string, any>;
           const semantic =
-            event.output ??
-            event.log ??
-            event.thought ??
-            event.error ??
-            event.prompt;
+            data.output ??
+            data.log ??
+            data.thought ??
+            data.error ??
+            data.prompt;
           progressEvents.push(
             [
-              event.event,
-              event.planIndex,
-              event.planLimit,
+              event.phase,
+              data.planIndex,
+              data.planLimit,
               semantic,
-              event.action?.name,
-              event.durationMs === undefined
+              data.action?.name,
+              data.durationMs === undefined
                 ? undefined
-                : Math.round(event.durationMs),
+                : Math.round(data.durationMs),
             ]
               .filter((item) => item !== undefined)
               .join('|'),
@@ -220,6 +223,8 @@ describe('TaskExecutor concurrency isolation', () => {
       expect.stringMatching(/^action_done\|1\|3\|Noop\|\d+$/),
       'complete|1|3|Noop done.',
     ]);
+    // Every event flows through the generic bus tagged with the aiAct scope.
+    expect([...progressScopes]).toEqual(['aiAct']);
   });
 
   it('should use device-local formatted time for replanning feedback', async () => {
