@@ -161,7 +161,7 @@ describe('TaskExecutor concurrency isolation', () => {
       replanningCycleLimit: 1,
       actionSpace: emptyParamActionSpace,
       hooks: {
-        onProgress: (_scope, phase, data) => {
+        onProgress: async (_scope, phase, data) => {
           const payload = (data ?? {}) as Record<string, any>;
           progress.push({
             phase,
