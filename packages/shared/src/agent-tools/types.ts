@@ -121,8 +121,10 @@ export interface BaseAiActProgressEvent {
   planIndex?: unknown;
   planLimit?: unknown;
   screenshot?: unknown;
-  message?: unknown;
   action?: unknown;
+  thought?: unknown;
+  log?: unknown;
+  output?: unknown;
   durationMs?: unknown;
   error?: unknown;
 }

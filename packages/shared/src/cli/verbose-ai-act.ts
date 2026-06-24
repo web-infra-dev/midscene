@@ -17,8 +17,10 @@ export interface CliAiActProgressEvent {
   planIndex?: unknown;
   planLimit?: unknown;
   screenshot?: unknown;
-  message?: unknown;
   action?: unknown;
+  thought?: unknown;
+  log?: unknown;
+  output?: unknown;
   durationMs?: unknown;
   error?: unknown;
 }
@@ -60,6 +62,16 @@ function numericValue(value: unknown): number | undefined {
     : undefined;
 }
 
+function firstText(values: unknown[]): string {
+  for (const value of values) {
+    const text = compactText(value);
+    if (text) {
+      return text;
+    }
+  }
+  return '';
+}
+
 function planPrefix(event: CliAiActProgressPayload): string {
   const planIndex = numericValue(event.planIndex);
   if (!planIndex) {
@@ -82,11 +94,104 @@ function eventKey(event: CliAiActProgressPayload, suffix: string): string {
     'aiAct',
     compactText(event.event),
     compactText(event.planIndex),
-    compactText(event.message),
     suffix,
   ]
     .filter(Boolean)
     .join(':');
+}
+
+// --- Structured action -> human-readable text (presentation lives here) ---
+
+interface ParsedAiActAction {
+  name: string;
+  target?: string;
+  point?: [number, number];
+  bbox?: [number, number, number, number];
+  param?: unknown;
+}
+
+function integerText(value: number): string {
+  return String(Math.round(value));
+}
+
+function numberTuple2(value: unknown): [number, number] | undefined {
+  if (
+    Array.isArray(value) &&
+    value.length >= 2 &&
+    typeof value[0] === 'number' &&
+    typeof value[1] === 'number'
+  ) {
+    return [value[0], value[1]];
+  }
+  return undefined;
+}
+
+function numberTuple4(
+  value: unknown,
+): [number, number, number, number] | undefined {
+  if (
+    Array.isArray(value) &&
+    value.length >= 4 &&
+    value.slice(0, 4).every((item) => typeof item === 'number')
+  ) {
+    return [value[0], value[1], value[2], value[3]];
+  }
+  return undefined;
+}
+
+function parseAction(value: unknown): ParsedAiActAction | undefined {
+  if (!isRecord(value) || typeof value.name !== 'string') {
+    return undefined;
+  }
+  return {
+    name: value.name,
+    target: typeof value.target === 'string' ? value.target : undefined,
+    point: numberTuple2(value.point),
+    bbox: numberTuple4(value.bbox),
+    param: value.param,
+  };
+}
+
+function formatPoint(point: [number, number]): string {
+  return `(${integerText(point[0])}, ${integerText(point[1])})`;
+}
+
+function formatBbox(bbox: [number, number, number, number]): string {
+  return `(${bbox.map(integerText).join(',')})`;
+}
+
+function sleepActionText(action: ParsedAiActAction): string | undefined {
+  if (action.name !== 'Sleep' || !isRecord(action.param)) {
+    return undefined;
+  }
+  const timeMs =
+    numericValue(action.param.timeMs) ??
+    numericValue(action.param.duration) ??
+    numericValue(action.param.timeoutMs);
+  return timeMs !== undefined ? `Sleep ${integerText(timeMs)}ms` : undefined;
+}
+
+function plannedActionText(action: ParsedAiActAction): string {
+  if (action.point) {
+    const targetSegment = action.target ? ` "${action.target}"` : '';
+    const bboxSegment = action.bbox ? `, bbox=${formatBbox(action.bbox)}` : '';
+    return `${action.name}${targetSegment} at ${formatPoint(action.point)}${bboxSegment}`;
+  }
+
+  const sleep = sleepActionText(action);
+  if (sleep) {
+    return sleep;
+  }
+
+  const paramText = compactText(action.param);
+  return paramText ? `${action.name}: ${paramText}` : action.name;
+}
+
+function runningActionText(action: ParsedAiActAction): string {
+  if (action.point) {
+    return `${action.name} at ${formatPoint(action.point)}`;
+  }
+  return plannedActionText(action);
 }
 
 export function normalizeAiActProgressEventForCli(
@@ -119,8 +224,10 @@ export function normalizeAiActProgressEventForCli(
     prompt,
     planIndex,
     planLimit,
-    message,
     action,
+    thought,
+    log,
+    output,
     durationMs,
     error,
   } = event;
@@ -132,8 +239,10 @@ export function normalizeAiActProgressEventForCli(
     prompt,
     planIndex,
     planLimit,
-    message,
     action,
+    thought,
+    log,
+    output,
     durationMs,
     error,
     ...(screenshots.length > 0 ? { screenshots } : {}),
@@ -146,12 +255,12 @@ export function buildAiActProgressEventLines(
 ): CliVerboseLine[] {
   const eventName = typeof event.event === 'string' ? event.event : '';
   const prefix = planPrefix(event);
-  const message = compactText(event.message);
   const error = compactText(event.error);
   const duration =
     typeof event.durationMs === 'number'
       ? ` cost=${Math.round(event.durationMs)}ms`
       : '';
+  const action = parseAction(event.action);
 
   switch (eventName) {
     case 'start': {
@@ -179,21 +288,23 @@ export function buildAiActProgressEventLines(
               text: `${prefix} Thinking with the latest screenshot`,
             },
           ];
-    case 'plan_planned':
-      return message
+    case 'plan_planned': {
+      const text = firstText([event.log, event.thought, event.output]);
+      return text
         ? [
             {
               key: eventKey(event, 'planned'),
-              text: `${prefix} Planned: ${message}`,
+              text: `${prefix} Planned: ${text}`,
             },
           ]
         : [];
+    }
     case 'plan_action':
-      return message
+      return action
         ? [
             {
               key: eventKey(event, 'action'),
-              text: `${prefix} Action: ${message}`,
+              text: `${prefix} Action: ${plannedActionText(action)}`,
             },
           ]
         : [];
@@ -201,24 +312,24 @@ export function buildAiActProgressEventLines(
       return [
         {
           key: eventKey(event, 'plan_failed'),
-          text: `${prefix} Failed${error || message ? `: ${error || message}` : ''}`,
+          text: `${prefix} Failed${error ? `: ${error}` : ''}`,
         },
       ];
     case 'action_running':
-      return message
+      return action
         ? [
             {
               key: eventKey(event, 'action_running'),
-              text: `[Midscene][aiAct][Action] Running: ${message}`,
+              text: `[Midscene][aiAct][Action] Running: ${runningActionText(action)}`,
             },
           ]
         : [];
     case 'action_done':
-      return message
+      return action
         ? [
             {
               key: eventKey(event, 'action_done'),
-              text: `[Midscene][aiAct][Action] Done: ${message}${duration}`,
+              text: `[Midscene][aiAct][Action] Done: ${action.name}${duration}`,
             },
           ]
         : [];
@@ -226,23 +337,25 @@ export function buildAiActProgressEventLines(
       return [
         {
           key: eventKey(event, 'action_failed'),
-          text: `[Midscene][aiAct][Action] Failed${message ? `: ${message}` : ''}${duration}${
-            error ? ` error=${error}` : ''
-          }`,
+          text: `[Midscene][aiAct][Action] Failed${
+            action ? `: ${action.name}` : ''
+          }${duration}${error ? ` error=${error}` : ''}`,
         },
       ];
-    case 'complete':
+    case 'complete': {
+      const text = firstText([event.output, event.log, event.thought]);
       return [
         {
           key: eventKey(event, 'complete'),
-          text: `[Midscene][aiAct] Complete${message ? `: ${message}` : ''}`,
+          text: `[Midscene][aiAct] Complete${text ? `: ${text}` : ''}`,
         },
       ];
+    }
     case 'failed':
       return [
         {
           key: eventKey(event, 'failed'),
-          text: `[Midscene][aiAct] Failed${error || message ? `: ${error || message}` : ''}`,
+          text: `[Midscene][aiAct] Failed${error ? `: ${error}` : ''}`,
         },
       ];
     default:

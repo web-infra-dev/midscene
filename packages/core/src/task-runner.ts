@@ -19,12 +19,36 @@ import { assert, uuid } from '@midscene/shared/utils';
 const debug = getDebug('task-runner');
 const UI_CONTEXT_CACHE_TTL_MS = 300;
 
+/**
+ * A native, per-task lifecycle notification. The runner is the single source
+ * of truth for when a task actually transitions, so it reports each transition
+ * exactly once with the task that changed. Consumers no longer have to re-scan
+ * the task list and diff it against remembered keys to reconstruct this stream.
+ */
+export type TaskRunnerEventKind =
+  | 'append'
+  | 'start'
+  | 'finish'
+  | 'error'
+  | 'cancel';
+
+export interface TaskRunnerEvent {
+  kind: TaskRunnerEventKind;
+  task: ExecutionTask;
+  runner: TaskRunner;
+}
+
+export type TaskRunnerEventListener = (
+  event: TaskRunnerEvent,
+) => Promise<void> | void;
+
 type TaskRunnerInitOptions = ExecutionTaskProgressOptions & {
   tasks?: ExecutionTaskApply[];
   onTaskUpdate?: (
     runner: TaskRunner,
     error?: TaskExecutionError,
   ) => Promise<void> | void;
+  onTaskEvent?: TaskRunnerEventListener;
 };
 
 type TaskRunnerOperationOptions = {
@@ -48,6 +72,8 @@ export class TaskRunner {
     | ((runner: TaskRunner, error?: TaskExecutionError) => Promise<void> | void)
     | undefined;
 
+  private readonly onTaskEvent?: TaskRunnerEventListener | undefined;
+
   private readonly executionLogTime: number;
 
   constructor(
@@ -65,6 +91,7 @@ export class TaskRunner {
     this.onTaskStart = options?.onTaskStart;
     this.uiContextBuilder = uiContextBuilder;
     this.onTaskUpdate = options?.onTaskUpdate;
+    this.onTaskEvent = options?.onTaskEvent;
     this.executionLogTime = Date.now();
   }
 
@@ -73,6 +100,20 @@ export class TaskRunner {
       return;
     }
     await this.onTaskUpdate(this, error);
+  }
+
+  private async emitTaskEvent(
+    kind: TaskRunnerEventKind,
+    task: ExecutionTask,
+  ): Promise<void> {
+    if (!this.onTaskEvent) {
+      return;
+    }
+    try {
+      await this.onTaskEvent({ kind, task, runner: this });
+    } catch (error) {
+      console.error('Error in onTaskEvent listener', error);
+    }
   }
 
   private lastUiContext?: {
@@ -178,15 +219,20 @@ export class TaskRunner {
       options,
       `task runner is in error state, cannot append task\nerror=${this.latestErrorTask()?.error}\n${this.latestErrorTask()?.errorStack}`,
     );
+    const appended: ExecutionTask[] = [];
     if (Array.isArray(task)) {
-      this.tasks.push(...task.map((item) => this.markTaskAsPending(item)));
+      appended.push(...task.map((item) => this.markTaskAsPending(item)));
     } else {
-      this.tasks.push(this.markTaskAsPending(task));
+      appended.push(this.markTaskAsPending(task));
     }
+    this.tasks.push(...appended);
     if (this.status !== 'running') {
       this.status = 'pending';
     }
     await this.emitOnTaskUpdate();
+    for (const appendedTask of appended) {
+      await this.emitTaskEvent('append', appendedTask);
+    }
   }
 
   async appendAndFlush(
@@ -237,6 +283,7 @@ export class TaskRunner {
       try {
         task.status = 'running';
         await this.emitOnTaskUpdate();
+        await this.emitTaskEvent('start', task);
         try {
           if (this.onTaskStart) {
             await this.onTaskStart(task);
@@ -308,6 +355,7 @@ export class TaskRunner {
         task.timing.end = Date.now();
         task.timing.cost = task.timing.end - task.timing.start;
         await this.emitOnTaskUpdate();
+        await this.emitTaskEvent('finish', task);
         taskIndex++;
       } catch (e: any) {
         successfullyCompleted = false;
@@ -320,16 +368,22 @@ export class TaskRunner {
         task.timing.end = Date.now();
         task.timing.cost = task.timing.end - task.timing.start;
         await this.emitOnTaskUpdate();
+        await this.emitTaskEvent('error', task);
         break;
       }
     }
 
     // set all remaining tasks as cancelled
+    const cancelledTasks: ExecutionTask[] = [];
     for (let i = taskIndex + 1; i < this.tasks.length; i++) {
       this.tasks[i].status = 'cancelled';
+      cancelledTasks.push(this.tasks[i]);
     }
-    if (taskIndex + 1 < this.tasks.length) {
+    if (cancelledTasks.length > 0) {
       await this.emitOnTaskUpdate();
+      for (const cancelledTask of cancelledTasks) {
+        await this.emitTaskEvent('cancel', cancelledTask);
+      }
     }
 
     let finalizeError: TaskExecutionError | undefined;

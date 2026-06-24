@@ -1,33 +1,22 @@
-import type {
-  AiActProgressAction,
-  ExecutionTask,
-  PlanningAIResponse,
-} from '@/types';
+import type { AiActProgressAction, ExecutionTask } from '@/types';
+
+/**
+ * Structured extraction helpers for aiAct progress notifications.
+ *
+ * This module turns a raw {@link ExecutionTask} into the structured
+ * {@link AiActProgressAction} carried by progress events. It deliberately does
+ * NOT build human-readable strings, truncate text for display, or format
+ * coordinates into log lines - that is the consumer's job. Everything here is a
+ * data transform that yields plain numbers/objects.
+ */
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-function compactText(value: unknown): string {
-  if (value === undefined || value === null || value === '') {
-    return '';
-  }
-
-  if (typeof value === 'string') {
-    return value.length > 180 ? `${value.slice(0, 177)}...` : value;
-  }
-
-  if (typeof value === 'number' || typeof value === 'boolean') {
-    return String(value);
-  }
-
-  try {
-    const json = JSON.stringify(value);
-    return json.length > 180 ? `${json.slice(0, 177)}...` : json;
-  } catch {
-    return String(value);
-  }
-}
+// Keep params from bloating the progress payload without rendering them: this
+// only bounds the size of the structured value, it never formats it.
+const maxCompactStringLength = 180;
 
 function compactProgressValue(value: unknown): unknown {
   if (value === undefined || value === null) {
@@ -35,7 +24,9 @@ function compactProgressValue(value: unknown): unknown {
   }
 
   if (typeof value === 'string') {
-    return value.length > 180 ? `${value.slice(0, 177)}...` : value;
+    return value.length > maxCompactStringLength
+      ? `${value.slice(0, maxCompactStringLength - 3)}...`
+      : value;
   }
 
   if (typeof value === 'number' || typeof value === 'boolean') {
@@ -89,88 +80,6 @@ function summarizeParam(param: unknown): unknown {
   return compactProgressValue(record);
 }
 
-function summarizeUserInstruction(value: unknown): string {
-  if (typeof value === 'string') {
-    return compactText(value);
-  }
-
-  if (isRecord(value) && typeof value.prompt === 'string') {
-    return compactText(value.prompt);
-  }
-
-  return compactText(value);
-}
-
-function summarizeSubGoals(value: unknown): string {
-  if (!Array.isArray(value) || value.length === 0) {
-    return '';
-  }
-
-  const goals = value
-    .slice(0, 6)
-    .map((goal) => {
-      if (!isRecord(goal)) {
-        return '';
-      }
-      const index = typeof goal.index === 'number' ? `${goal.index}. ` : '';
-      const status = typeof goal.status === 'string' ? `[${goal.status}] ` : '';
-      const description =
-        typeof goal.description === 'string' ? goal.description : '';
-      return `${index}${status}${description}`.trim();
-    })
-    .filter(Boolean);
-
-  return goals.length > 0 ? `sub-goals: ${goals.join('; ')}` : '';
-}
-
-function actionOutputText(value: unknown): string {
-  if (!Array.isArray(value) || value.length === 0) {
-    return '';
-  }
-
-  const action = value.find(isRecord);
-  if (!action) {
-    return '';
-  }
-
-  return (
-    compactText(action.log) ||
-    compactText(action.thought) ||
-    compactText(summarizeParam(action.param))
-  );
-}
-
-export function plannedTextForAiAct(
-  planResult: PlanningAIResponse | undefined,
-): string {
-  if (!planResult) {
-    return '';
-  }
-
-  return (
-    compactText(planResult.log) ||
-    compactText(planResult.thought) ||
-    summarizeSubGoals(planResult.updateSubGoals) ||
-    actionOutputText(planResult.actions) ||
-    compactText(planResult.output)
-  );
-}
-
-export function completeTextForAiAct(
-  planResult: PlanningAIResponse | undefined,
-): string {
-  if (!planResult) {
-    return '';
-  }
-
-  return (
-    compactText(planResult.output) ||
-    (planResult.shouldContinuePlanning === false
-      ? plannedTextForAiAct(planResult)
-      : '')
-  );
-}
-
 export function errorMessageForAiAct(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
@@ -179,18 +88,6 @@ function numberFromUnknown(value: unknown): number | undefined {
   return typeof value === 'number' && Number.isFinite(value)
     ? value
     : undefined;
-}
-
-function integerText(value: number): string {
-  return String(Math.round(value));
-}
-
-function formatPoint(point: readonly [number, number]): string {
-  return `(${integerText(point[0])}, ${integerText(point[1])})`;
-}
-
-function formatBbox(bbox: readonly [number, number, number, number]): string {
-  return `(${bbox.map(integerText).join(',')})`;
 }
 
 function bboxArrayFromProperty(
@@ -295,11 +192,13 @@ function bboxFromLocateLike(
 }
 
 function targetTextFromLocateLike(value: Record<string, unknown>): string {
-  return (
-    compactText(value.description) ||
-    compactText(value.prompt) ||
-    summarizeUserInstruction(value)
-  );
+  if (typeof value.description === 'string') {
+    return value.description;
+  }
+  if (typeof value.prompt === 'string') {
+    return value.prompt;
+  }
+  return '';
 }
 
 function isLocateLike(value: unknown): value is Record<string, unknown> {
@@ -354,98 +253,51 @@ function hasUnresolvedLocateLikeParam(param: unknown): boolean {
   });
 }
 
-export interface AiActActionProgressText {
-  action: AiActProgressAction;
-  planned: string;
-  running: string;
-  done: string;
-}
-
-function sleepActionText(
-  actionName: string,
-  param: unknown,
-): AiActActionProgressText | undefined {
-  if (actionName !== 'Sleep' || !isRecord(param)) {
-    return undefined;
-  }
-
-  const timeMs =
-    numberFromUnknown(param.timeMs) ??
-    numberFromUnknown(param.duration) ??
-    numberFromUnknown(param.timeoutMs);
-  const planned = timeMs ? `Sleep ${integerText(timeMs)}ms` : 'Sleep';
-  return {
-    action: { name: actionName },
-    planned,
-    running: planned,
-    done: 'Sleep',
-  };
-}
-
-function locateActionText(
-  actionName: string,
-  param: unknown,
-): AiActActionProgressText | undefined {
-  const locate = firstLocateLikeParam(param);
-  if (!locate) {
-    return undefined;
-  }
-
-  const point = pointFromLocateLike(locate);
-  const bbox = bboxFromLocateLike(locate);
-  if (!point) {
-    return undefined;
-  }
-
-  const target = targetTextFromLocateLike(locate);
-  const targetSegment = target ? ` "${target}"` : '';
-  const pointSegment = ` at ${formatPoint(point)}`;
-  const bboxSegment = bbox ? `, bbox=${formatBbox(bbox)}` : '';
-  return {
-    action: {
-      name: actionName,
-      ...(target ? { target } : {}),
-      point,
-      ...(bbox ? { bbox } : {}),
-    },
-    planned: `${actionName}${targetSegment}${pointSegment}${bboxSegment}`,
-    running: `${actionName} at ${formatPoint(point)}`,
-    done: actionName,
-  };
-}
-
-function genericActionText(
-  actionName: string,
-  param: unknown,
-): AiActActionProgressText | undefined {
-  if (hasUnresolvedLocateLikeParam(param)) {
-    return undefined;
-  }
-
-  const paramText = compactText(summarizeParam(param));
-  const planned = paramText ? `${actionName}: ${paramText}` : actionName;
-  return {
-    action: { name: actionName },
-    planned,
-    running: planned,
-    done: actionName,
-  };
-}
-
-export function actionProgressTextForAiAct(
+/**
+ * Extract the structured action descriptor for an Action Space task, or
+ * `undefined` when the task is not a reportable action yet (e.g. a locate param
+ * that has not been resolved to coordinates). Returns plain data only.
+ */
+export function extractProgressAction(
   task: ExecutionTask,
-): AiActActionProgressText | undefined {
-  if (task.type !== 'Action Space' || task.subType === 'Finished') {
+): AiActProgressAction | undefined {
+  if (
+    task.type !== 'Action Space' ||
+    task.subType === 'Finished' ||
+    task.subType === 'Error'
+  ) {
     return undefined;
   }
 
-  const actionName =
+  const name =
     typeof task.subType === 'string' && task.subType.length > 0
       ? task.subType
       : 'Action';
-  return (
-    sleepActionText(actionName, task.param) ||
-    locateActionText(actionName, task.param) ||
-    genericActionText(actionName, task.param)
-  );
+
+  const locate = firstLocateLikeParam(task.param);
+  if (locate) {
+    const point = pointFromLocateLike(locate);
+    if (point) {
+      const bbox = bboxFromLocateLike(locate);
+      const target = targetTextFromLocateLike(locate);
+      return {
+        name,
+        ...(target ? { target } : {}),
+        point,
+        ...(bbox ? { bbox } : {}),
+      };
+    }
+  }
+
+  // A locate-like param that has not resolved to a point/bbox is not reportable
+  // yet; skip it so the consumer never renders a half-resolved action.
+  if (hasUnresolvedLocateLikeParam(task.param)) {
+    return undefined;
+  }
+
+  const param = summarizeParam(task.param);
+  return {
+    name,
+    ...(param !== undefined && param !== '' ? { param } : {}),
+  };
 }

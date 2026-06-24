@@ -949,25 +949,30 @@ describe('toolDefaults (deep locate / deep think)', () => {
         event: 'plan_planned',
         planIndex: 1,
         planLimit: 10,
-        message: 'Need to open settings first.',
+        log: 'Need to open settings first.',
       });
       emitProgress({
         event: 'plan_action',
         planIndex: 1,
         planLimit: 10,
-        message: 'Tap "Submit button" at (100, 200), bbox=(80,180,120,220)',
+        action: {
+          name: 'Tap',
+          target: 'Submit button',
+          point: [100, 200],
+          bbox: [80, 180, 120, 220],
+        },
       });
       emitProgress({
         event: 'action_running',
         planIndex: 1,
         planLimit: 10,
-        message: 'Tap at (100, 200)',
+        action: { name: 'Tap', point: [100, 200] },
       });
       emitProgress({
         event: 'action_done',
         planIndex: 1,
         planLimit: 10,
-        message: 'Tap',
+        action: { name: 'Tap' },
         durationMs: 208,
       });
       emitProgress({
@@ -980,25 +985,25 @@ describe('toolDefaults (deep locate / deep think)', () => {
         event: 'plan_planned',
         planIndex: 2,
         planLimit: 10,
-        message: 'The page is still transitioning, so wait briefly.',
+        log: 'The page is still transitioning, so wait briefly.',
       });
       emitProgress({
         event: 'plan_action',
         planIndex: 2,
         planLimit: 10,
-        message: 'Sleep 2000ms',
+        action: { name: 'Sleep', param: { timeMs: 2000 } },
       });
       emitProgress({
         event: 'action_running',
         planIndex: 2,
         planLimit: 10,
-        message: 'Sleep 2000ms',
+        action: { name: 'Sleep', param: { timeMs: 2000 } },
       });
       emitProgress({
         event: 'action_done',
         planIndex: 2,
         planLimit: 10,
-        message: 'Sleep',
+        action: { name: 'Sleep' },
         durationMs: 2004,
       });
       emitProgress({
@@ -1011,14 +1016,13 @@ describe('toolDefaults (deep locate / deep think)', () => {
         event: 'plan_planned',
         planIndex: 3,
         planLimit: 10,
-        message:
-          'The selected page is open, so the requested task is complete.',
+        log: 'The selected page is open, so the requested task is complete.',
       });
       emitProgress({
         event: 'complete',
         planIndex: 3,
         planLimit: 10,
-        message: 'Settings opened.',
+        output: 'Settings opened.',
       });
       emitDump([plan1, tapStringPending]);
       emitDump([plan1, tapPending]);

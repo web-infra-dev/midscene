@@ -12,7 +12,7 @@ import {
 } from '@/common';
 import type { AbstractInterface, FileChooserHandler } from '@/device';
 import type Service from '@/service';
-import type { TaskRunner } from '@/task-runner';
+import type { TaskRunner, TaskRunnerEvent } from '@/task-runner';
 import { TaskExecutionError } from '@/task-runner';
 import type {
   AiActProgressEvent,
@@ -36,12 +36,7 @@ import type {
 import { ServiceError } from '@/types';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
-import {
-  actionProgressTextForAiAct,
-  completeTextForAiAct,
-  errorMessageForAiAct,
-  plannedTextForAiAct,
-} from './ai-act-progress';
+import { errorMessageForAiAct, extractProgressAction } from './ai-act-progress';
 import { ExecutionSession } from './execution-session';
 import { TaskBuilder } from './task-builder';
 import type { TaskCache } from './task-cache';
@@ -66,11 +61,14 @@ interface TaskExecutorHooks {
   onAiActProgress?: AiActProgressListener;
 }
 
-interface AiActActionProgressContext {
+// The runner reports task transitions natively, but it has no notion of the
+// planning loop. This is the only loop state the aiAct mapper needs: which
+// replanning round is currently executing actions. It is set while a planned
+// batch runs and cleared afterwards, so task events fired outside an action
+// batch (e.g. the planning task itself) are ignored.
+interface ActiveAiActPlan {
   planIndex: number;
   planLimit: number;
-  taskStartIndex: number;
-  emittedKeys: Set<string>;
 }
 
 export type ActionReportOptions = {
@@ -122,6 +120,8 @@ export class TaskExecutor {
 
   private aiActProgressSequence = 0;
 
+  private activeAiActPlan?: ActiveAiActPlan;
+
   // @deprecated use .interface instead
   get page() {
     return this.interface;
@@ -167,6 +167,7 @@ export class TaskExecutor {
         runner: TaskRunner,
         error?: TaskExecutionError,
       ) => Promise<void> | void;
+      onTaskEvent?: (event: TaskRunnerEvent) => Promise<void> | void;
     },
   ) {
     return new ExecutionSession(
@@ -182,6 +183,7 @@ export class TaskExecutor {
           await this.hooks?.onTaskUpdate?.(runner, error);
           await options?.onTaskUpdate?.(runner, error);
         },
+        ...(options?.onTaskEvent ? { onTaskEvent: options.onTaskEvent } : {}),
       },
     );
   }
@@ -208,78 +210,64 @@ export class TaskExecutor {
     }
   }
 
-  private async emitAiActActionProgress(
-    runner: TaskRunner,
-    context: AiActActionProgressContext,
-  ): Promise<void> {
-    const tasks = runner.tasks.slice(context.taskStartIndex);
-    for (const task of tasks) {
-      if (
-        task.type !== 'Action Space' ||
-        task.subType === 'Finished' ||
-        task.subType === 'Error'
-      ) {
-        continue;
-      }
+  /**
+   * Map a native task-lifecycle event from the runner onto the aiAct progress
+   * stream. Each transition fires once by construction, so there is no scanning
+   * and no dedup bookkeeping: a single `start` becomes the "planned" + "running"
+   * pair (coordinates are resolved by the time an action starts), and
+   * `finish`/`error` become the "done"/"failed" notifications. Events outside an
+   * active action batch (no `activeAiActPlan`) are ignored.
+   */
+  private async handleAiActTaskEvent(event: TaskRunnerEvent): Promise<void> {
+    const plan = this.activeAiActPlan;
+    if (!plan) {
+      return;
+    }
 
-      const progressText = actionProgressTextForAiAct(task);
-      if (!progressText) {
-        continue;
-      }
+    const action = extractProgressAction(event.task);
+    if (!action) {
+      return;
+    }
 
-      const keyPrefix = `aiAct:${context.planIndex}:${task.taskId}`;
-      const emitOnce = async (
-        key: string,
-        event: Omit<AiActProgressEvent, 'type'>,
-      ) => {
-        const fullKey = `${keyPrefix}:${key}`;
-        if (context.emittedKeys.has(fullKey)) {
-          return;
-        }
-        context.emittedKeys.add(fullKey);
-        await this.emitAiActProgress(event);
-      };
+    const { planIndex, planLimit } = plan;
+    const durationMs = event.task.timing?.cost;
 
-      await emitOnce('planned', {
-        event: 'plan_action',
-        planIndex: context.planIndex,
-        planLimit: context.planLimit,
-        message: progressText.planned,
-        action: progressText.action,
-      });
-
-      if (task.status === 'running') {
-        await emitOnce('running', {
+    switch (event.kind) {
+      case 'start':
+        await this.emitAiActProgress({
+          event: 'plan_action',
+          planIndex,
+          planLimit,
+          action,
+        });
+        await this.emitAiActProgress({
           event: 'action_running',
-          planIndex: context.planIndex,
-          planLimit: context.planLimit,
-          message: progressText.running,
-          action: progressText.action,
+          planIndex,
+          planLimit,
+          action,
         });
-      }
-
-      if (task.status === 'finished') {
-        await emitOnce('finished', {
+        break;
+      case 'finish':
+        await this.emitAiActProgress({
           event: 'action_done',
-          planIndex: context.planIndex,
-          planLimit: context.planLimit,
-          message: progressText.done,
-          action: progressText.action,
-          durationMs: task.timing?.cost,
+          planIndex,
+          planLimit,
+          action,
+          durationMs,
         });
-      }
-
-      if (task.status === 'failed') {
-        await emitOnce('failed', {
+        break;
+      case 'error':
+        await this.emitAiActProgress({
           event: 'action_failed',
-          planIndex: context.planIndex,
-          planLimit: context.planLimit,
-          message: progressText.done,
-          action: progressText.action,
-          durationMs: task.timing?.cost,
-          error: task.errorMessage,
+          planIndex,
+          planLimit,
+          action,
+          durationMs,
+          error: event.task.errorMessage,
         });
-      }
+        break;
+      default:
+        break;
     }
   }
 
@@ -536,16 +524,12 @@ export class TaskExecutor {
     const conversationHistory = new ConversationHistory();
     const promptDisplay =
       reportOptions?.prompt || userPromptToString(userPrompt);
-    let activeAiActActionProgress: AiActActionProgressContext | undefined;
 
     const session = this.createExecutionSession(
       taskTitleStr(reportOptions?.type || 'Act', promptDisplay),
       {
-        onTaskUpdate: async (runner) => {
-          if (!activeAiActActionProgress) {
-            return;
-          }
-          await this.emitAiActActionProgress(runner, activeAiActActionProgress);
+        onTaskEvent: async (event) => {
+          await this.handleAiActTaskEvent(event);
         },
       },
     );
@@ -579,7 +563,6 @@ export class TaskExecutor {
         ...(planIndex ? { planIndex } : {}),
         planLimit: replanningCycleLimit,
         error: errorMsg,
-        message: errorMsg,
       });
       return session.appendErrorPlan(errorMsg);
     };
@@ -695,7 +678,6 @@ export class TaskExecutor {
                 planIndex,
                 planLimit: replanningCycleLimit,
                 error: errorMessageForAiAct(planError),
-                message: errorMessageForAiAct(planError),
               });
               throw planError;
             } finally {
@@ -740,13 +722,16 @@ export class TaskExecutor {
             };
             executorContext.uiContext = planningUiContext;
 
-            const plannedText = plannedTextForAiAct(planResult);
-            if (plannedText) {
+            // Forward the raw in-progress reasoning the model produced; the
+            // consumer decides which field to surface and how to format it.
+            // `finalizeMessage` is intentionally left for the `complete` event.
+            if (log || thought) {
               await this.emitAiActProgress({
                 event: 'plan_planned',
                 planIndex,
                 planLimit: replanningCycleLimit,
-                message: plannedText,
+                ...(log ? { log } : {}),
+                ...(thought ? { thought } : {}),
               });
             }
 
@@ -757,7 +742,6 @@ export class TaskExecutor {
                 planIndex,
                 planLimit: replanningCycleLimit,
                 error: errorMessage,
-                message: errorMessage,
               });
             }
 
@@ -771,7 +755,6 @@ export class TaskExecutor {
                 planIndex,
                 planLimit: replanningCycleLimit,
                 error: errorMessage,
-                message: errorMessage,
               });
               assert(false, errorMessage);
             }
@@ -826,11 +809,12 @@ export class TaskExecutor {
       const initialTimeString = await this.getTimeString();
 
       const taskCountBeforeRun = runner.tasks.length;
-      activeAiActActionProgress = {
+      // Mark which replanning round is executing so native task events from the
+      // runner are attributed to the right plan; cleared in `finally` so events
+      // fired between batches are ignored.
+      this.activeAiActPlan = {
         planIndex,
         planLimit: replanningCycleLimit,
-        taskStartIndex: taskCountBeforeRun,
-        emittedKeys: new Set(),
       };
       try {
         await session.appendAndRun(executables.tasks);
@@ -855,7 +839,7 @@ export class TaskExecutor {
           errorCountInOnePlanningLoop,
         );
       } finally {
-        activeAiActActionProgress = undefined;
+        this.activeAiActPlan = undefined;
       }
 
       if (errorCountInOnePlanningLoop > maxErrorCountAllowedInOnePlanningLoop) {
@@ -901,11 +885,20 @@ export class TaskExecutor {
       }
     }
 
+    // Carry the raw final text; the consumer formats it. `outputString` is the
+    // model's finalize message, with the latest plan's log/thought as fallback
+    // context for consumers that want to show why the run completed.
     await this.emitAiActProgress({
       event: 'complete',
       planIndex: latestPlanIndex,
       planLimit: replanningCycleLimit,
-      message: outputString || completeTextForAiAct(latestPlanResult),
+      ...((outputString ?? latestPlanResult?.output)
+        ? { output: outputString ?? latestPlanResult?.output }
+        : {}),
+      ...(latestPlanResult?.log ? { log: latestPlanResult.log } : {}),
+      ...(latestPlanResult?.thought
+        ? { thought: latestPlanResult.thought }
+        : {}),
     });
 
     return {

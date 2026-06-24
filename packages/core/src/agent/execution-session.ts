@@ -1,4 +1,8 @@
-import { type TaskExecutionError, TaskRunner } from '@/task-runner';
+import {
+  type TaskExecutionError,
+  TaskRunner,
+  type TaskRunnerEventListener,
+} from '@/task-runner';
 import type {
   ExecutionTaskApply,
   ExecutionTaskProgressOptions,
@@ -11,6 +15,7 @@ type ExecutionSessionOptions = ExecutionTaskProgressOptions & {
     runner: TaskRunner,
     error?: TaskExecutionError,
   ) => Promise<void> | void;
+  onTaskEvent?: TaskRunnerEventListener;
 };
 
 /**

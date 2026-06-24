@@ -153,12 +153,20 @@ describe('TaskExecutor concurrency isolation', () => {
       actionSpace: emptyParamActionSpace,
       hooks: {
         onAiActProgress: (event) => {
+          // The event carries structured data only (no pre-baked `message`);
+          // surface the single semantic field that matters per event.
+          const semantic =
+            event.output ??
+            event.log ??
+            event.thought ??
+            event.error ??
+            event.prompt;
           progressEvents.push(
             [
               event.event,
               event.planIndex,
               event.planLimit,
-              event.message,
+              semantic,
               event.action?.name,
               event.durationMs === undefined
                 ? undefined
@@ -204,12 +212,12 @@ describe('TaskExecutor concurrency isolation', () => {
     );
 
     expect(progressEvents).toEqual([
-      'start|3',
+      'start|3|run noop',
       'plan_thinking|1|3',
       'plan_planned|1|3|Need to run the noop action.',
-      'plan_action|1|3|Noop|Noop',
-      'action_running|1|3|Noop|Noop',
-      expect.stringMatching(/^action_done\|1\|3\|Noop\|Noop\|\d+$/),
+      'plan_action|1|3|Noop',
+      'action_running|1|3|Noop',
+      expect.stringMatching(/^action_done\|1\|3\|Noop\|\d+$/),
       'complete|1|3|Noop done.',
     ]);
   });

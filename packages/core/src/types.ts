@@ -399,18 +399,44 @@ export interface AiActProgressAction {
   target?: string;
   point?: [number, number];
   bbox?: [number, number, number, number];
+  /**
+   * Structured, compacted summary of the action params for actions that are
+   * not described by a point/bbox (e.g. `Sleep` -> `{ timeMs }`). This is data,
+   * never a pre-formatted display string; consumers decide how to render it.
+   */
+  param?: unknown;
 }
 
+/**
+ * A native progress notification emitted by the task layer.
+ *
+ * The task layer only reports *what happened* as structured data: the action
+ * involved, the raw text the model produced, timings and errors. It does not
+ * assemble human-readable log lines or truncate strings - that presentation
+ * concern belongs to whichever layer consumes the stream (e.g. the CLI verbose
+ * renderer). This keeps the task layer free of display logic and lets each
+ * consumer format the same events however it needs.
+ */
 export interface AiActProgressEvent {
   type: 'aiAct';
   event: AiActProgressEventName;
   sequence?: number;
+  /** Original user instruction, present on the `start` event. */
   prompt?: string;
   planIndex?: number;
   planLimit?: number;
+  /** Latest screenshot, present on `plan_thinking`. */
   screenshot?: ScreenshotItem;
-  message?: string;
+  /** Structured action descriptor, present on the `*action*` events. */
   action?: AiActProgressAction;
+  /**
+   * Raw, untruncated semantic text produced by the model. Consumers choose
+   * which field to surface and how to format/truncate it.
+   */
+  thought?: string;
+  log?: string;
+  output?: string;
+  /** Wall-clock cost of an action, present on `action_done`/`action_failed`. */
   durationMs?: number;
   error?: string;
 }
