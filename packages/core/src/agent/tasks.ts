@@ -58,7 +58,7 @@ interface ExecutionResult<OutputType = any> {
 }
 
 interface TaskExecutorHooks {
-  onTaskUpdate?: (
+  onSnapshotChange?: (
     runner: TaskRunner,
     error?: TaskExecutionError,
   ) => Promise<void> | void;
@@ -161,7 +161,7 @@ export class TaskExecutor {
     options?: {
       tasks?: ExecutionTaskApply[];
       uiContext?: UIContext;
-      onTaskUpdate?: (
+      onSnapshotChange?: (
         runner: TaskRunner,
         error?: TaskExecutionError,
       ) => Promise<void> | void;
@@ -177,9 +177,9 @@ export class TaskExecutor {
       {
         onTaskStart: this.onTaskStartCallback,
         tasks: options?.tasks,
-        onTaskUpdate: async (runner, error) => {
-          await this.hooks?.onTaskUpdate?.(runner, error);
-          await options?.onTaskUpdate?.(runner, error);
+        onSnapshotChange: async (runner, error) => {
+          await this.hooks?.onSnapshotChange?.(runner, error);
+          await options?.onSnapshotChange?.(runner, error);
         },
         ...(options?.onTaskEvent ? { onTaskEvent: options.onTaskEvent } : {}),
       },

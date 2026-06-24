@@ -44,7 +44,13 @@ export type TaskRunnerEventListener = (
 
 type TaskRunnerInitOptions = ExecutionTaskProgressOptions & {
   tasks?: ExecutionTaskApply[];
-  onTaskUpdate?: (
+  /**
+   * Coarse "the execution snapshot changed" signal. Fires on any state change
+   * (append, status flips, completion) with the whole runner, so consumers can
+   * re-dump/re-render the current snapshot. Deliberately batch-granular, unlike
+   * the per-task {@link onTaskEvent} stream.
+   */
+  onSnapshotChange?: (
     runner: TaskRunner,
     error?: TaskExecutionError,
   ) => Promise<void> | void;
@@ -68,7 +74,7 @@ export class TaskRunner {
 
   private readonly uiContextBuilder: () => Promise<UIContext>;
 
-  private readonly onTaskUpdate?:
+  private readonly onSnapshotChange?:
     | ((runner: TaskRunner, error?: TaskExecutionError) => Promise<void> | void)
     | undefined;
 
@@ -90,16 +96,16 @@ export class TaskRunner {
     );
     this.onTaskStart = options?.onTaskStart;
     this.uiContextBuilder = uiContextBuilder;
-    this.onTaskUpdate = options?.onTaskUpdate;
+    this.onSnapshotChange = options?.onSnapshotChange;
     this.onTaskEvent = options?.onTaskEvent;
     this.executionLogTime = Date.now();
   }
 
-  private async emitOnTaskUpdate(error?: TaskExecutionError): Promise<void> {
-    if (!this.onTaskUpdate) {
+  private async emitSnapshotChange(error?: TaskExecutionError): Promise<void> {
+    if (!this.onSnapshotChange) {
       return;
     }
-    await this.onTaskUpdate(this, error);
+    await this.onSnapshotChange(this, error);
   }
 
   private async emitTaskEvent(
@@ -229,7 +235,7 @@ export class TaskRunner {
     if (this.status !== 'running') {
       this.status = 'pending';
     }
-    await this.emitOnTaskUpdate();
+    await this.emitSnapshotChange();
     for (const appendedTask of appended) {
       await this.emitTaskEvent('append', appendedTask);
     }
@@ -265,7 +271,7 @@ export class TaskRunner {
     }
 
     this.status = 'running';
-    await this.emitOnTaskUpdate();
+    await this.emitSnapshotChange();
     let taskIndex = nextPendingIndex;
     let successfullyCompleted = true;
 
@@ -282,7 +288,7 @@ export class TaskRunner {
       };
       try {
         task.status = 'running';
-        await this.emitOnTaskUpdate();
+        await this.emitSnapshotChange();
         await this.emitTaskEvent('start', task);
         try {
           if (this.onTaskStart) {
@@ -354,7 +360,7 @@ export class TaskRunner {
         task.status = 'finished';
         task.timing.end = Date.now();
         task.timing.cost = task.timing.end - task.timing.start;
-        await this.emitOnTaskUpdate();
+        await this.emitSnapshotChange();
         await this.emitTaskEvent('finish', task);
         taskIndex++;
       } catch (e: any) {
@@ -367,7 +373,7 @@ export class TaskRunner {
         task.status = 'failed';
         task.timing.end = Date.now();
         task.timing.cost = task.timing.end - task.timing.start;
-        await this.emitOnTaskUpdate();
+        await this.emitSnapshotChange();
         await this.emitTaskEvent('error', task);
         break;
       }
@@ -380,7 +386,7 @@ export class TaskRunner {
       cancelledTasks.push(this.tasks[i]);
     }
     if (cancelledTasks.length > 0) {
-      await this.emitOnTaskUpdate();
+      await this.emitSnapshotChange();
       for (const cancelledTask of cancelledTasks) {
         await this.emitTaskEvent('cancel', cancelledTask);
       }
@@ -398,10 +404,10 @@ export class TaskRunner {
       finalizeError = new TaskExecutionError(message, this, errorTask, {
         cause: errorTask?.error,
       });
-      await this.emitOnTaskUpdate(finalizeError);
+      await this.emitSnapshotChange(finalizeError);
     } else {
       this.status = 'completed';
-      await this.emitOnTaskUpdate();
+      await this.emitSnapshotChange();
     }
 
     if (finalizeError) {
