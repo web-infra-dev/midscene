@@ -1,12 +1,24 @@
 import './App.less';
 
-import { Alert, App as AntdApp, ConfigProvider, Empty, theme } from 'antd';
+import { CopyOutlined, DownloadOutlined } from '@ant-design/icons';
+import {
+  Alert,
+  App as AntdApp,
+  Button,
+  ConfigProvider,
+  Empty,
+  Segmented,
+  Tooltip,
+  message,
+  theme,
+} from 'antd';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 
 import {
   GroupedActionDump,
   dedupeExecutionsKeepLatest,
+  reportToMarkdown,
   restoreImageReferences,
 } from '@midscene/core';
 import { antiEscapeScriptTag } from '@midscene/shared/utils';
@@ -16,6 +28,7 @@ import {
   globalThemeConfig,
   useGlobalPreference,
 } from '@midscene/visualizer';
+import AgentScreenshotView from './components/agent-screenshot-view';
 import DetailPanel from './components/detail-panel';
 import DetailSide from './components/detail-side';
 import GlobalHoverPreview from './components/global-hover-preview';
@@ -28,8 +41,15 @@ import ThemeLightIcon from './icons/theme-light.svg?react';
 import type {
   PlaywrightTaskAttributes,
   PlaywrightTasks,
+  ReportViewMode,
   VisualizerProps,
 } from './types';
+import {
+  downloadMarkdownZip,
+  getReportMarkdownView,
+  markdownArchiveBaseName,
+  markdownZipDownloadTooltip,
+} from './utils/markdown-export';
 import { formatModelBriefText } from './utils/model-brief';
 import { getPlayerViewOptions } from './utils/player-only';
 import {
@@ -102,6 +122,12 @@ function Visualizer(props: VisualizerProps): JSX.Element {
   });
   const dump = useExecutionDump((store) => store.dump);
   const [timelineCollapsed, setTimelineCollapsed] = useState(false);
+  const [reportViewMode, setReportViewMode] = useState<ReportViewMode>('human');
+  const [selectedMarkdownImagePath, setSelectedMarkdownImagePath] = useState<
+    string | null
+  >(null);
+  const [selectedMarkdownImageRequestId, setSelectedMarkdownImageRequestId] =
+    useState(0);
   const {
     modelCallDetailsEnabled: proModeEnabled,
     setModelCallDetailsEnabled: setProModeEnabled,
@@ -164,6 +190,62 @@ function Visualizer(props: VisualizerProps): JSX.Element {
       dumps.every((d) => d.attributes?.playwright_test_status === 'skipped'),
     [dumps],
   );
+  const reportMarkdownView = useMemo(() => {
+    if (reportViewMode !== 'markdown') {
+      return null;
+    }
+    return getReportMarkdownView(dump, reportToMarkdown);
+  }, [dump, reportViewMode]);
+  const readyReportMarkdown =
+    reportMarkdownView?.status === 'ready' ? reportMarkdownView : null;
+  const reportArchiveBaseName = useMemo(
+    () => markdownArchiveBaseName(dump),
+    [dump],
+  );
+
+  const handleCopyReportMarkdown = async () => {
+    if (!readyReportMarkdown) {
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(readyReportMarkdown.markdown);
+      message.success('Markdown copied');
+    } catch {
+      message.error('Copy failed');
+    }
+  };
+
+  const handleDownloadReportMarkdownZip = async () => {
+    if (!readyReportMarkdown) {
+      return;
+    }
+
+    try {
+      const result = await downloadMarkdownZip(
+        readyReportMarkdown.markdown,
+        readyReportMarkdown.attachments,
+        reportArchiveBaseName,
+      );
+      if (result.missingAttachmentCount > 0) {
+        message.warning(
+          `${result.missingAttachmentCount} screenshot link${
+            result.missingAttachmentCount === 1 ? '' : 's'
+          } kept as markdown reference${
+            result.missingAttachmentCount === 1 ? '' : 's'
+          } but not packaged.`,
+        );
+      } else {
+        message.success('Markdown and images downloaded');
+      }
+    } catch {
+      message.error('Download failed');
+    }
+  };
+  const handleMarkdownImageClick = (markdownPath: string) => {
+    setSelectedMarkdownImagePath(markdownPath);
+    setSelectedMarkdownImageRequestId((current) => current + 1);
+  };
 
   const renderContent = () => {
     if (dump && dump.executions.length === 0) {
@@ -249,6 +331,9 @@ function Visualizer(props: VisualizerProps): JSX.Element {
             onProModeChange={setProModeEnabled}
             replayAllScripts={replayAllScripts}
             setReplayAllMode={setReplayAllMode}
+            reportViewMode={reportViewMode}
+            reportMarkdownView={reportMarkdownView}
+            onMarkdownImageClick={handleMarkdownImageClick}
           />
         </div>
         <div
@@ -273,28 +358,38 @@ function Visualizer(props: VisualizerProps): JSX.Element {
           }}
         />
         <div className="main-right">
-          <div
-            className="main-right-header"
-            onClick={() => setTimelineCollapsed(!timelineCollapsed)}
-            style={{ cursor: 'pointer', userSelect: 'none' }}
-          >
-            <span
-              className="timeline-collapse-icon"
-              style={{
-                display: 'inline-block',
-                marginRight: 8,
-                transition: 'transform 0.2s',
-                transform: timelineCollapsed
-                  ? 'rotate(-90deg)'
-                  : 'rotate(0deg)',
-              }}
-            >
-              ▼
-            </span>
-            Record
-          </div>
-          {!timelineCollapsed && <Timeline key={mainLayoutChangeFlag} />}
-          <div className="main-content">{content}</div>
+          {reportViewMode === 'markdown' ? (
+            <AgentScreenshotView
+              markdownView={reportMarkdownView}
+              selectedMarkdownImagePath={selectedMarkdownImagePath}
+              selectedMarkdownImageRequestId={selectedMarkdownImageRequestId}
+            />
+          ) : (
+            <>
+              <div
+                className="main-right-header"
+                onClick={() => setTimelineCollapsed(!timelineCollapsed)}
+                style={{ cursor: 'pointer', userSelect: 'none' }}
+              >
+                <span
+                  className="timeline-collapse-icon"
+                  style={{
+                    display: 'inline-block',
+                    marginRight: 8,
+                    transition: 'transform 0.2s',
+                    transform: timelineCollapsed
+                      ? 'rotate(-90deg)'
+                      : 'rotate(0deg)',
+                  }}
+                >
+                  ▼
+                </span>
+                Record
+              </div>
+              {!timelineCollapsed && <Timeline key={mainLayoutChangeFlag} />}
+              <div className="main-content">{content}</div>
+            </>
+          )}
         </div>
       </div>
     );
@@ -381,6 +476,46 @@ function Visualizer(props: VisualizerProps): JSX.Element {
               <div className="page-nav">
                 <div className="page-nav-left">
                   <Logo />
+                  {executionDump && (
+                    <Segmented
+                      size="small"
+                      className="report-view-mode-switch"
+                      value={reportViewMode}
+                      options={[
+                        { label: 'Human View', value: 'human' },
+                        { label: 'Markdown View', value: 'markdown' },
+                      ]}
+                      onChange={(value) => {
+                        setReportViewMode(value as ReportViewMode);
+                        setSelectedMarkdownImagePath(null);
+                        setSelectedMarkdownImageRequestId(0);
+                      }}
+                    />
+                  )}
+                  {reportViewMode === 'markdown' && (
+                    <div className="report-markdown-actions">
+                      <Tooltip title="Copy report.md markdown">
+                        <Button
+                          type="text"
+                          size="small"
+                          icon={<CopyOutlined />}
+                          disabled={!readyReportMarkdown}
+                          onClick={() => void handleCopyReportMarkdown()}
+                          aria-label="Copy report markdown"
+                        />
+                      </Tooltip>
+                      <Tooltip title={markdownZipDownloadTooltip}>
+                        <Button
+                          type="text"
+                          size="small"
+                          icon={<DownloadOutlined />}
+                          disabled={!readyReportMarkdown}
+                          onClick={() => void handleDownloadReportMarkdownZip()}
+                          aria-label="Download markdown and images ZIP"
+                        />
+                      </Tooltip>
+                    </div>
+                  )}
                 </div>
                 <div className="page-nav-right">
                   <div className="page-nav-version">

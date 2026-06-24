@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import {
   extractImageByIdSync,
   extractLastDumpScriptSync,
+  generateAgentReportComment,
   generateImageScriptTag,
   streamImageScriptsToFile,
 } from '../../src/dump/html-utils';
@@ -21,6 +22,75 @@ describe('html-utils', () => {
       const source = readFileSync(sourceFile, 'utf8');
       expect(source).not.toContain(unsafeCloseTag);
     }
+  });
+
+  it('generates a compact agent analysis comment for report HTML', () => {
+    const comment = generateAgentReportComment({
+      sdkVersion: '1.0.0',
+      groupName: 'checkout -- flow',
+      modelBriefs: [
+        {
+          intent: 'planning',
+          name: 'gpt-4o',
+          modelDescription: 'vision planner',
+        },
+      ],
+      executions: [
+        {
+          logTime: 1710000000000,
+          name: 'exec',
+          tasks: [
+            {
+              taskId: 'task-1',
+              type: 'Action Space',
+              subType: 'Tap',
+              status: 'finished',
+              executor: async () => {},
+            } as any,
+          ],
+        },
+      ],
+    });
+
+    expect(comment).toContain('For Agent Analysis');
+    expect(comment).toContain('script[type="midscene_web_dump"]');
+    expect(comment).toContain('script[type="midscene-image"]');
+    expect(comment).toContain('planning: gpt-4o (vision planner)');
+    expect(comment).toContain('checkout - - flow');
+    expect(comment).not.toContain('checkout -- flow');
+  });
+
+  it('falls back agent comment model info to task usage', () => {
+    const comment = generateAgentReportComment({
+      sdkVersion: '1.0.0',
+      groupName: 'usage model report',
+      modelBriefs: [],
+      executions: [
+        {
+          logTime: 1710000000000,
+          name: 'exec',
+          tasks: [
+            {
+              taskId: 'task-1',
+              type: 'Planning',
+              subType: 'Plan',
+              status: 'finished',
+              usage: {
+                intent: 'planning',
+                model_name: 'openai_qwen3.5-plus',
+                model_description: 'qwen3.5 mode',
+              },
+              executor: async () => {},
+            } as any,
+          ],
+        },
+      ],
+    });
+
+    expect(comment).toContain(
+      'Models: planning: openai_qwen3.5-plus (qwen3.5 mode)',
+    );
+    expect(comment).not.toContain('No report-level model metadata recorded');
   });
 
   describe('extractImageByIdSync', () => {

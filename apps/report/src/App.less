@@ -137,6 +137,9 @@ footer.mt-8 {
   .page-nav-left {
     display: flex;
     flex-direction: row;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
 
     .page-nav-title {
       padding-left: 4px;
@@ -148,6 +151,32 @@ footer.mt-8 {
         font-weight: normal;
         color: #808080;
         font-size: 12px;
+      }
+    }
+
+    .report-view-mode-switch {
+      flex-shrink: 0;
+
+      .ant-segmented-item-label {
+        min-height: 26px;
+        line-height: 26px;
+        padding-inline: 12px;
+      }
+    }
+
+    .report-markdown-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      min-width: 0;
+
+      .ant-btn {
+        height: 28px;
+      }
+
+      .ant-btn:not(.ant-btn-icon-only) {
+        padding-inline: 10px;
+        font-size: 13px;
       }
     }
   }
@@ -191,6 +220,24 @@ footer.mt-8 {
       svg {
         width: 20px;
         height: 20px;
+      }
+    }
+  }
+}
+
+@media (max-width: 960px) {
+  .page-nav {
+    .page-nav-left {
+      gap: 8px;
+
+      .report-view-mode-switch .ant-segmented-item-label {
+        padding-inline: 8px;
+      }
+
+      .report-markdown-actions .ant-btn:not(.ant-btn-icon-only) {
+        max-width: 148px;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
     }
   }

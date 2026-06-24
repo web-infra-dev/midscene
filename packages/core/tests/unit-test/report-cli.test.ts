@@ -374,7 +374,7 @@ describe('createReportCliCommands', () => {
     expect(mdContent).toContain('# markdown-test');
     expect(mdContent).toContain('# execution-exec-md-1');
     expect(mdContent).toContain('# execution-exec-md-2');
-    expect(mdContent).toContain('Suggested execution markdown files');
+    expect(mdContent).not.toContain('Suggested execution markdown files');
 
     expect(existsSync(join(outputDir, 'screenshots'))).toBe(true);
   });
