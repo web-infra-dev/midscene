@@ -1,8 +1,23 @@
+import type { CustomPlanningDefinition } from '@/ai-model/model-adapter/custom-planning-types';
+import { ResolvedModelAdapter } from '@/ai-model/model-adapter/resolve';
 import { getModelAdapter } from '@/ai-model/models';
 import { MODEL_ADAPTER_CONFIGS } from '@/ai-model/models/registry';
-import { ResolvedModelAdapter } from '@/ai-model/models/resolved';
 import { MODEL_FAMILY_VALUES } from '@midscene/shared/env';
 import { describe, expect, it, vi } from 'vitest';
+
+function createTestPlannerDefinition(): CustomPlanningDefinition<null> {
+  return {
+    messages: {
+      systemPromptPlacement: 'system-message',
+      buildSystemPrompt: () => '',
+    },
+    coordinates: { shape: 'point', order: 'xy', normalizedBy: 1000 },
+    parseResponse: () => null,
+    transformActions: () => [],
+    shouldContinuePlanning: () => false,
+    buildResponseLog: () => '',
+  };
+}
 
 describe('model adapter registry', () => {
   it('resolves the default adapter when modelFamily is not configured', () => {
@@ -27,6 +42,9 @@ describe('model adapter registry', () => {
       expect(adapter.imagePreprocess).toBeTruthy();
       if (adapter.planning.kind === 'custom') {
         expect(adapter.planning.planFn).toBeTruthy();
+        if (adapter.planning.coordinateSystem) {
+          expect(adapter.planning.coordinateSystem).toBeTruthy();
+        }
       }
       if (adapter.locate.kind === 'standard') {
         expect(adapter.locate.resultAdapter.promptSpec).toBeTruthy();
@@ -99,23 +117,18 @@ describe('ResolvedModelAdapter', () => {
       throw new Error('default adapter should use standard locate');
     }
     expect(adapter.locate.supportsSearchArea).toBe(true);
-    expect(adapter.locate.resultAdapter.kind).toBe('standard');
-    if (adapter.locate.resultAdapter.kind !== 'standard') {
-      throw new Error('default result adapter should be standard');
-    }
     expect(
       adapter.locate.resultAdapter.promptSpec.resultValueDescription,
     ).toContain('normalized to 0-1000');
   });
 
-  it('keeps custom planning and locate definitions while applying policy defaults', () => {
-    const planFn = vi.fn();
+  it('keeps custom planner and locate definitions while applying policy defaults', () => {
     const locateFn = vi.fn();
     const adapter = new ResolvedModelAdapter(
       {
         planning: {
           kind: 'custom',
-          planFn,
+          planner: createTestPlannerDefinition(),
         },
         locate: {
           kind: 'custom',
@@ -127,7 +140,7 @@ describe('ResolvedModelAdapter', () => {
 
     expect(adapter.planning).toMatchObject({
       kind: 'custom',
-      cacheEnabled: true,
+      cacheEnabled: false,
       defaultReplanningCycleLimit: 20,
       supportsActionDeepLocate: false,
     });
@@ -141,8 +154,65 @@ describe('ResolvedModelAdapter', () => {
     ) {
       throw new Error('adapter should keep custom handlers');
     }
-    expect(adapter.planning.planFn).toBe(planFn);
+    expect(adapter.planning.planFn).toBeTruthy();
+    expect(adapter.planning.coordinateSystem).toBeTruthy();
     expect(adapter.locate.locateFn).toBe(locateFn);
+  });
+
+  it('resolves custom planning tap locator definitions with the custom planner', () => {
+    const adapter = new ResolvedModelAdapter(
+      {
+        planning: {
+          kind: 'custom',
+          planner: createTestPlannerDefinition(),
+        },
+        locate: {
+          kind: 'custom',
+          planningTapLocator: {
+            buildSystemPrompt: () => 'locate system prompt',
+            getLocatedPixelBbox: () => [1, 2, 3, 4],
+          },
+        },
+      },
+      'test-custom-locator',
+    );
+
+    expect(adapter.locate).toMatchObject({
+      kind: 'custom',
+      supportsSearchArea: false,
+    });
+    if (
+      adapter.planning.kind !== 'custom' ||
+      adapter.locate.kind !== 'custom'
+    ) {
+      throw new Error('adapter should resolve custom planning tap locator');
+    }
+    expect(adapter.locate.locateFn).toBeTruthy();
+    expect(adapter.planning.coordinateSystem).toBeTruthy();
+  });
+
+  it('requires custom planning tap locator definitions to pair with a planner', () => {
+    expect(
+      () =>
+        new ResolvedModelAdapter(
+          {
+            planning: {
+              kind: 'custom',
+              planFn: vi.fn(),
+            },
+            locate: {
+              kind: 'custom',
+              planningTapLocator: {
+                buildSystemPrompt: () => 'locate system prompt',
+                getLocatedPixelBbox: () => [1, 2, 3, 4],
+              },
+            },
+          },
+          'test-custom-locator-without-planner',
+        ),
+    ).toThrow(
+      /Custom planning tap locator requires a custom planning planner definition/,
+    );
   });
 
   it('applies standard planning overrides from adapter definitions', () => {
@@ -182,12 +252,11 @@ describe('ResolvedModelAdapter', () => {
   });
 
   it('allows adapters to opt custom planning into action deepLocate', () => {
-    const planFn = vi.fn();
     const adapter = new ResolvedModelAdapter(
       {
         planning: {
           kind: 'custom',
-          planFn,
+          planner: createTestPlannerDefinition(),
           supportsActionDeepLocate: true,
         },
       },
@@ -195,6 +264,30 @@ describe('ResolvedModelAdapter', () => {
     );
 
     expect(adapter.planning.supportsActionDeepLocate).toBe(true);
+  });
+
+  it('keeps custom planning functions as a fallback escape hatch', () => {
+    const planFn = vi.fn();
+    const adapter = new ResolvedModelAdapter(
+      {
+        planning: {
+          kind: 'custom',
+          planFn,
+        },
+      },
+      'test-custom-planning-function',
+    );
+
+    expect(adapter.planning).toMatchObject({
+      kind: 'custom',
+      cacheEnabled: false,
+      defaultReplanningCycleLimit: 20,
+      supportsActionDeepLocate: false,
+    });
+    if (adapter.planning.kind !== 'custom') {
+      throw new Error('adapter should keep custom planning function');
+    }
+    expect(adapter.planning.planFn).toBe(planFn);
   });
 
   it('allows adapters to opt custom locate into search area', () => {

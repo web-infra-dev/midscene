@@ -1,7 +1,11 @@
 import { DownOutlined, SearchOutlined, UpOutlined } from '@ant-design/icons';
 import type { GroupedActionDump } from '@midscene/core';
-import { iconForStatus, timeCostStrElement } from '@midscene/visualizer';
-import { Input } from 'antd';
+import {
+  fullTimeStrWithMilliseconds,
+  iconForStatus,
+  timeCostStrElement,
+} from '@midscene/visualizer';
+import { Input, Tooltip } from 'antd';
 import type React from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { PlaywrightTaskAttributes, PlaywrightTasks } from '../../types';
@@ -32,6 +36,41 @@ const STATUS_DISPLAY_LABEL: Partial<
   skipped: 'skipped',
 };
 
+type TimingRange = {
+  earliest: number;
+  latest: number;
+  duration: number;
+};
+
+const getTimingRangeFromTasks = (tasks: GroupedActionDump['executions']) => {
+  let earliest: number | null = null;
+  let latest: number | null = null;
+
+  tasks.forEach((execution) => {
+    execution.tasks.forEach((task) => {
+      const timestamps = [task.timing?.start, task.timing?.end].filter(
+        (timestamp): timestamp is number => typeof timestamp === 'number',
+      );
+
+      timestamps.forEach((timestamp) => {
+        earliest =
+          earliest === null ? timestamp : Math.min(earliest, timestamp);
+        latest = latest === null ? timestamp : Math.max(latest, timestamp);
+      });
+    });
+  });
+
+  if (earliest === null || latest === null) {
+    return null;
+  }
+
+  return {
+    earliest,
+    latest,
+    duration: Math.max(0, latest - earliest),
+  };
+};
+
 function PlaywrightCaseTitle(props: {
   attributes: Pick<
     PlaywrightTaskAttributes,
@@ -40,19 +79,41 @@ function PlaywrightCaseTitle(props: {
     | 'playwright_test_duration'
     | 'playwright_test_status'
   >;
+  timingRange?: TimingRange | null;
 }): JSX.Element {
-  const { attributes } = props;
+  const { attributes, timingRange } = props;
   const status = iconForStatus(attributes.playwright_test_status);
-  const costStr = attributes.playwright_test_duration;
+  const duration = timingRange?.duration ?? attributes.playwright_test_duration;
   const extraStatusLabel =
     STATUS_DISPLAY_LABEL[attributes.playwright_test_status];
-  const cost = costStr ? (
-    <span className="cost-str">
-      {' '}
-      ({timeCostStrElement(Number(costStr) || 0)}
-      {extraStatusLabel ? `, ${extraStatusLabel}` : ''})
-    </span>
-  ) : null;
+  const cost =
+    typeof duration === 'number' ? (
+      <span className="cost-str">
+        {' '}
+        {timingRange ? (
+          <Tooltip
+            title={
+              <div>
+                <div>
+                  Start: {fullTimeStrWithMilliseconds(timingRange.earliest)}
+                </div>
+                <div>
+                  End: {fullTimeStrWithMilliseconds(timingRange.latest)}
+                </div>
+              </div>
+            }
+          >
+            ({timeCostStrElement(duration)}
+            {extraStatusLabel ? `, ${extraStatusLabel}` : ''})
+          </Tooltip>
+        ) : (
+          <>
+            ({timeCostStrElement(duration)}
+            {extraStatusLabel ? `, ${extraStatusLabel}` : ''})
+          </>
+        )}
+      </span>
+    ) : null;
 
   return (
     <span>
@@ -73,6 +134,7 @@ export function PlaywrightCaseSelector({
   if (!dumps || dumps.length === 0) return null;
   if (dumps.length === 1 && !dumps[0].attributes?.is_merged) return null;
 
+  const selected = useExecutionDump((store: DumpStoreType) => store.dump);
   const playwrightAttributes = useExecutionDump(
     (store) => store.playwrightAttributes,
   );
@@ -124,10 +186,19 @@ export function PlaywrightCaseSelector({
     };
   }, [isExpanded]);
 
-  const titleForDump = (
-    dump: Pick<PlaywrightTasks, 'attributes'>,
-    key: React.Key,
-  ) => <PlaywrightCaseTitle key={key} attributes={dump.attributes} />;
+  const titleForDump = (dump: PlaywrightTasks, key: React.Key) => {
+    const dumpContent = dump.get();
+    const timingRange = dumpContent?.executions
+      ? getTimingRangeFromTasks(dumpContent.executions)
+      : null;
+    return (
+      <PlaywrightCaseTitle
+        key={key}
+        attributes={dump.attributes}
+        timingRange={timingRange}
+      />
+    );
+  };
 
   const filteredDumps = useMemo(() => {
     let result = dumps || [];
@@ -181,8 +252,16 @@ export function PlaywrightCaseSelector({
     setIsExpanded(false);
   };
 
+  const selectedTimingRange = useMemo(() => {
+    if (!selected?.executions) return null;
+    return getTimingRangeFromTasks(selected.executions);
+  }, [selected]);
+
   const displayHeader = playwrightAttributes ? (
-    <PlaywrightCaseTitle attributes={playwrightAttributes} />
+    <PlaywrightCaseTitle
+      attributes={playwrightAttributes}
+      timingRange={selectedTimingRange}
+    />
   ) : (
     'Select a case'
   );

@@ -1,13 +1,13 @@
 import type { TModelFamily } from '@midscene/shared/env';
 import type OpenAI from 'openai';
-import { defaultExtractContentAndReasoning } from './chat-content';
+import { defaultExtractContentAndReasoning } from '../model-adapter/chat-completion';
 import type {
   ChatCompletionCallContext,
   ChatCompletionContentSource,
   ChatCompletionParamsResult,
   ContentAndReasoning,
   ModelAdapterDefinition,
-} from './types';
+} from '../model-adapter/types';
 
 type GeminiContentPart = Record<string, unknown> & {
   text?: string;

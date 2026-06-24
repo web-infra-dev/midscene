@@ -622,6 +622,13 @@ tasks:
         errorMessage: <error-message> # Optional, the error message to print if the assertion fails.
         name: <name> # Optional, give the assertion a name, which will be used as a key in the JSON output.
 
+      # Run one Gherkin Scenario. This is a Beta feature available starting in Midscene 1.10.
+      - runGherkinScenario: |
+          Scenario: Add a todo item
+            Given the todo page is open
+            When I add a todo item named "Buy milk"
+            Then the todo list should contain "Buy milk"
+
       # Wait for a specified amount of time.
       - sleep: <ms>
 
@@ -633,6 +640,8 @@ tasks:
     flow:
       # ...
 ```
+
+`runGherkinScenario` is a Beta feature available starting in Midscene 1.10. For supported rules and limitations, see [BDD-style scripts with Gherkin](./advanced/bdd-style-scripts-with-gherkin).
 
 #### Step Result Names
 

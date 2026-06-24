@@ -292,6 +292,9 @@ export default class Service {
     pageDescription?: string,
     multimodalPrompt?: TMultimodalPrompt,
     context?: UIContext,
+    executionOptions?: {
+      abortSignal?: AbortSignal;
+    },
   ): Promise<ServiceExtractResult<T>> {
     assert(context, 'context is required for extract');
     assert(
@@ -317,6 +320,7 @@ export default class Service {
         extractOption: opt,
         modelRuntime,
         pageDescription,
+        abortSignal: executionOptions?.abortSignal,
       });
       parseResult = result.parseResult;
       rawResponse = result.rawResponse;

@@ -65,7 +65,12 @@ import { assert, ifInBrowser, uuid } from '@midscene/shared/utils';
 import { defineActionSleep } from '../device';
 import { validateAgentCacheInput } from './cache-config';
 import { AgentProgressBus } from './progress';
+import { buildPromptWithContext } from './prompt-context';
 import { normalizeRecordToReportScreenshot } from './record-to-report';
+import {
+  type RunGherkinScenarioOptions,
+  runGherkinScenario,
+} from './run-gherkin-scenario';
 import { markdownToAiActPrompt } from './run-markdown';
 import { TaskCache } from './task-cache';
 import {
@@ -103,6 +108,7 @@ export type AiActOptions = {
   deepThink?: DeepThinkOption;
   deepLocate?: boolean;
   abortSignal?: AbortSignal;
+  context?: string;
 };
 
 type AiActInternalOptions = AiActOptions & {
@@ -884,10 +890,28 @@ export class Agent<
     const runAiAct = async () => {
       const planningModel = this.resolveModelRuntime('planning');
       const defaultModel = this.resolveModelRuntime('default');
+      const aiActContext =
+        opt?.context !== undefined ? opt.context : this.aiActContext;
+      const cachePrompt = buildPromptWithContext(taskPrompt, aiActContext);
       // Controls the aiAct planning mode, such as sub-goal prompts and locate result strategy.
-      const deepThink = opt?.deepThink === true;
+      let deepThink = opt?.deepThink === true;
+      if (deepThink && planningModel.adapter.planning.kind === 'custom') {
+        warn(
+          `The "deepThink" option is not supported for aiAct with custom planning adapters (modelFamily: ${planningModel.config.modelFamily ?? 'unknown'}). It will be ignored.`,
+        );
+        deepThink = false;
+      }
 
-      const deepLocate = opt?.deepLocate;
+      let deepLocate = opt?.deepLocate;
+      if (
+        deepLocate &&
+        !planningModel.adapter.planning.supportsActionDeepLocate
+      ) {
+        warn(
+          `The "deepLocate" option is not supported for aiAct with the current planning adapter (modelFamily: ${planningModel.config.modelFamily ?? 'unknown'}). It will be ignored.`,
+        );
+        deepLocate = false;
+      }
 
       const noIndividualLocateModel = planningModel.config.slot === 'default';
 
@@ -905,7 +929,7 @@ export class Agent<
       const matchedCache =
         !planCacheEnabled || cacheable === false
           ? undefined
-          : this.taskCache?.matchPlanCache(taskPrompt);
+          : this.taskCache?.matchPlanCache(cachePrompt);
       let cachedYamlFailed = false;
       if (
         matchedCache?.cacheUsable &&
@@ -941,7 +965,7 @@ export class Agent<
         planningModel,
         defaultModel,
         includeLocateInPlanning,
-        this.aiActContext,
+        aiActContext,
         cacheable,
         replanningCycleLimit,
         imagesIncludeCount,
@@ -973,7 +997,7 @@ export class Agent<
         this.taskCache.updateOrAppendCacheRecord(
           {
             type: 'plan',
-            prompt: taskPrompt,
+            prompt: cachePrompt,
             yamlWorkflow: yamlFlowStr,
           },
           matchedCache,
@@ -999,6 +1023,13 @@ export class Agent<
         prompt: basename(markdownPath),
       },
     } as AiActOptions);
+  }
+
+  async runGherkinScenario(
+    scenarioText: string,
+    opt?: RunGherkinScenarioOptions,
+  ): Promise<void> {
+    return runGherkinScenario(this, scenarioText, opt);
   }
 
   /**
@@ -1131,7 +1162,11 @@ export class Agent<
         defaultServiceExtractOption.screenshotIncluded,
     };
 
-    const { textPrompt, multimodalPrompt } = parsePrompt(assertion);
+    const assertionWithContext = buildPromptWithContext(
+      assertion,
+      opt?.context,
+    );
+    const { textPrompt, multimodalPrompt } = parsePrompt(assertionWithContext);
     const assertionText =
       typeof assertion === 'string' ? assertion : assertion.prompt;
 
@@ -1143,6 +1178,9 @@ export class Agent<
           modelRuntime,
           serviceOpt,
           multimodalPrompt,
+          {
+            abortSignal: opt?.abortSignal,
+          },
         );
 
       const pass = Boolean(output);

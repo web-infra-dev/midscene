@@ -1,3 +1,4 @@
+import type { PixelBbox, PlanningAction } from '@/types';
 import type {
   IModelConfig,
   TIntent,
@@ -12,10 +13,12 @@ import type {
 import type {
   LocateResultAdapter,
   LocateResultAdapterDefinition,
+  ResolvedLocateResultCoordinates,
 } from '../shared/model-locate-result/types';
 import type { ImagePreprocessPolicy } from '../workflows/image-preprocess';
 import type { LocateFn } from '../workflows/inspect/types';
 import type { PlanFn } from '../workflows/planning/types';
+import type { CustomPlanningDefinition } from './custom-planning-types';
 
 export type {
   ImagePreprocessPolicy,
@@ -104,6 +107,15 @@ export type ImagePreprocessDefinition = Partial<ImagePreprocessPolicy>;
 interface PlanningPolicy {
   cacheEnabled: boolean;
   defaultReplanningCycleLimit: number;
+  /**
+   * Whether aiAct can use planning action coordinates as the first-stage
+   * search area for deepLocate.
+   *
+   * Custom planning models may return only action coordinates without a target
+   * element description. Those results can be used as direct plan hits, but
+   * cannot drive deepLocate's second-stage locate call because that call also
+   * needs a query prompt describing the target element.
+   */
   supportsActionDeepLocate: boolean;
 }
 
@@ -114,18 +126,37 @@ export type PlanningAdapter =
   | (PlanningPolicy & {
       kind: 'custom';
       planFn: PlanFn;
+      coordinateSystem?: ResolvedLocateResultCoordinates;
     });
 
 export type PlanningDefinition =
   | (Partial<PlanningPolicy> & {
       kind?: 'standard';
     })
-  | (Partial<PlanningPolicy> & {
-      kind: 'custom';
-      planFn: PlanFn;
-    });
+  | (Partial<PlanningPolicy> &
+      (
+        | {
+            kind: 'custom';
+            planner: CustomPlanningDefinition<any>;
+            planFn?: never;
+          }
+        | {
+            kind: 'custom';
+            planFn: PlanFn;
+            planner?: never;
+          }
+      ));
 
 interface LocatePolicy {
+  /**
+   * Whether the locate adapter supports finding a coarse search area before the
+   * final element locate step.
+   *
+   * Some custom model families provide their own planning flow but do not
+   * support standalone locate/section-locate. They cannot behave like standard
+   * deepLocate, where a reference element is first located to build the search
+   * area for the final locate call.
+   */
   supportsSearchArea: boolean;
 }
 
@@ -146,10 +177,23 @@ type StandardLocateDefinition = Partial<LocatePolicy> & {
   resultAdapter?: LocateResultAdapterDefinition;
 };
 
+export interface PlanningTapLocatorDefinition {
+  buildSystemPrompt(): string;
+  getLocatedPixelBbox(actions: PlanningAction[]): PixelBbox | undefined;
+}
+
 type CustomLocateDefinition = Partial<LocatePolicy> & {
   kind: 'custom';
-  locateFn: LocateFn;
-};
+} & (
+    | {
+        locateFn: LocateFn;
+        planningTapLocator?: never;
+      }
+    | {
+        planningTapLocator: PlanningTapLocatorDefinition;
+        locateFn?: never;
+      }
+  );
 
 export type LocateDefinition =
   | StandardLocateDefinition

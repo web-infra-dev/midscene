@@ -1061,6 +1061,56 @@ console.log(result);
 
 :::
 
+### `agent.runGherkinScenario()`
+
+运行一个 Gherkin Scenario，并把其中的步骤映射为 Midscene Agent 调用。
+
+:::caution Beta
+
+此 API 从 Midscene 1.10 开始支持，目前仍处于 Beta 阶段。未来 API 可能发生变化。
+
+:::
+
+- 类型
+
+```typescript
+function runGherkinScenario(
+  scenarioText: string,
+  options?: {
+    context?: string;
+    abortSignal?: AbortSignal;
+    deepThink?: 'unset' | true | false;
+    deepLocate?: boolean;
+  },
+): Promise<void>;
+```
+
+- 参数：
+
+  - `scenarioText: string` - 一个 Gherkin scenario，或者一组不带 `Scenario:` 头部的 Gherkin 步骤
+  - `options?: Object` - 可选的运行选项
+    - `context?: string` - 本次运行使用的临时上下文
+    - `abortSignal?: AbortSignal` - 用于中止本次运行的可选信号
+    - `deepThink?: 'unset' | true | false` - 传给 `Given` 和 `When` 步骤对应的 `aiAct`
+    - `deepLocate?: boolean` - 传给 `Given` 和 `When` 步骤对应的 `aiAct`
+
+- 返回值：
+
+  - `Promise<void>` - 所有步骤执行完成后 resolve。如果某个步骤失败，错误文案会包含 Gherkin 行号、原始步骤，以及当时正在执行的 Midscene 语义动作。
+
+- 示例：
+
+```typescript
+await agent.runGherkinScenario(`
+Scenario: 添加待办事项
+  Given 待办事项页面已经打开
+  When 我添加一条名为“买牛奶”的待办事项
+  Then 待办事项列表中应该包含“买牛奶”
+`);
+```
+
+关于支持规则、限制、缓存行为和 YAML 用法，请参考 [BDD 风格脚本（Gherkin）](./advanced/bdd-style-scripts-with-gherkin)。
+
 ### `agent.setAIActContext()`
 
 设置在调用 `agent.aiAct()` 或 `agent.ai()` 时，发送给 AI 模型的背景知识。这个设置会覆盖之前的设置。
