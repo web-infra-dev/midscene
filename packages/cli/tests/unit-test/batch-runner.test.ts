@@ -548,6 +548,32 @@ describe('BatchRunner', () => {
         'search.yml',
       ]);
     });
+
+    test('throws when setupFiles is set without shareBrowserContext', async () => {
+      const config = {
+        ...mockBatchConfig,
+        shareBrowserContext: false,
+        setupFiles: ['login.yml'],
+        files: ['search.yml'],
+      };
+      const runner = new BatchRunner(config);
+      await expect(runner.run()).rejects.toThrow(
+        'setupFiles requires shareBrowserContext: true',
+      );
+    });
+
+    test('throws when a yaml file is both a setup and a main file', async () => {
+      const config = {
+        ...mockBatchConfig,
+        shareBrowserContext: true,
+        setupFiles: ['login.yml'],
+        files: ['login.yml', 'search.yml'],
+      };
+      const runner = new BatchRunner(config);
+      await expect(runner.run()).rejects.toThrow(
+        'appears in both setupFiles and files',
+      );
+    });
   });
 
   describe('Common functionality', () => {

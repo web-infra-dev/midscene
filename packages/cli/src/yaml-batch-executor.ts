@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import type {
   MidsceneYamlConfigResult,
   MidsceneYamlScript,
@@ -98,6 +99,16 @@ class YamlBatchExecutor {
     const generateSummary = options.generateSummary ?? true;
     const shouldPrintExecutionPlan = options.printExecutionPlan ?? true;
     const { keepWindow, headed } = this.config;
+    const setupFiles = this.config.setupFiles ?? [];
+
+    // Setup files rely on the shared page to hand prerequisite state to the
+    // main files. Enforce that invariant here too, so the executor stays
+    // correct even if it is constructed directly, bypassing the config layer.
+    if (setupFiles.length > 0 && !this.config.shareBrowserContext) {
+      throw new Error(
+        'setupFiles requires shareBrowserContext: true, otherwise the setup state cannot be shared with the main files',
+      );
+    }
 
     // Print execution plan
     if (shouldPrintExecutionPlan) {
@@ -113,7 +124,7 @@ class YamlBatchExecutor {
     try {
       // Create setup contexts (serial prerequisites) before the main files so
       // the TTY plan lists them first and they reuse the same browser context.
-      for (const file of this.config.setupFiles ?? []) {
+      for (const file of setupFiles) {
         const fileConfig = await this.loadFileConfig(file);
         const context = await this.createFileContext(file, fileConfig, {
           headed,
@@ -130,6 +141,21 @@ class YamlBatchExecutor {
           keepWindow,
         });
         fileContextList.push(context);
+      }
+
+      // A yaml file cannot be both a setup and a main file: players are keyed
+      // by resolved path, so the same file in both lists would silently reuse
+      // one already-finished player. Reject the overlap explicitly instead.
+      const setupPaths = new Set(
+        setupContextList.map((ctx) => resolve(ctx.file)),
+      );
+      const conflict = fileContextList.find((ctx) =>
+        setupPaths.has(resolve(ctx.file)),
+      );
+      if (conflict) {
+        throw new Error(
+          `"${conflict.file}" appears in both setupFiles and files; a yaml file cannot be both a setup and a main file`,
+        );
       }
 
       // Now, check if any of the tasks require a web browser
