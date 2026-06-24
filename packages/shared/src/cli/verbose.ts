@@ -62,10 +62,8 @@ type DumpUpdateAgent = {
   addDumpUpdateListener?: (
     listener: (dump: string, executionDump?: unknown) => void,
   ) => () => void;
-  // Generic progress bus. `addAiActProgressListener` is kept as a back-compat
-  // fallback for agents that predate the generic listener.
+  // Generic progress bus; consumers narrow by `event.scope`.
   addProgressListener?: (listener: (event: unknown) => void) => () => void;
-  addAiActProgressListener?: (listener: (event: unknown) => void) => () => void;
   reportFile?: string | null;
 };
 
@@ -686,17 +684,8 @@ export function attachCliVerboseDumpListener(
   const isActTool = options?.toolName === 'act';
   const screenshotExportCache = new Map<string, string>();
 
-  // Prefer the generic progress bus; fall back to the aiAct-only listener for
-  // agents that have not adopted it yet.
-  const subscribeProgress =
-    typeof agent.addProgressListener === 'function'
-      ? agent.addProgressListener.bind(agent)
-      : typeof agent.addAiActProgressListener === 'function'
-        ? agent.addAiActProgressListener.bind(agent)
-        : undefined;
-
-  if (isActTool && subscribeProgress) {
-    return subscribeProgress((event) => {
+  if (isActTool && typeof agent.addProgressListener === 'function') {
+    return agent.addProgressListener((event) => {
       const match = progressRendererForEvent(event);
       if (!match) {
         return;

@@ -1,4 +1,10 @@
-import type { AiActProgressAction, ExecutionTask } from '@/types';
+import type { TaskRunnerEvent } from '@/task-runner';
+import type {
+  AiActProgressAction,
+  AiActProgressData,
+  AiActProgressPhase,
+  ExecutionTask,
+} from '@/types';
 
 /**
  * Structured extraction helpers for aiAct progress notifications.
@@ -299,5 +305,55 @@ export function extractProgressAction(
   return {
     name,
     ...(param !== undefined && param !== '' ? { param } : {}),
+  };
+}
+
+export type AiActProgressEmit = (
+  phase: AiActProgressPhase,
+  data: AiActProgressData,
+) => void | Promise<void>;
+
+/**
+ * Translate the runner's native task-lifecycle events into aiAct action
+ * progress for a single planning round.
+ *
+ * Returned as a closure so each action batch captures its own plan context
+ * instead of the executor threading it through shared mutable state. The
+ * mapping is deliberate and one-shot per transition: a `start` (coordinates are
+ * resolved by the time an action starts) becomes the "planned" + "running"
+ * pair, and `finish`/`error` become "done"/"failed".
+ */
+export function createAiActActionReporter(
+  planIndex: number,
+  planLimit: number,
+  emit: AiActProgressEmit,
+): (event: TaskRunnerEvent) => Promise<void> {
+  return async (event) => {
+    const action = extractProgressAction(event.task);
+    if (!action) {
+      return;
+    }
+
+    const base = { planIndex, planLimit, action };
+    const durationMs = event.task.timing?.cost;
+
+    switch (event.kind) {
+      case 'start':
+        await emit('plan_action', base);
+        await emit('action_running', base);
+        break;
+      case 'finish':
+        await emit('action_done', { ...base, durationMs });
+        break;
+      case 'error':
+        await emit('action_failed', {
+          ...base,
+          durationMs,
+          error: event.task.errorMessage,
+        });
+        break;
+      default:
+        break;
+    }
   };
 }

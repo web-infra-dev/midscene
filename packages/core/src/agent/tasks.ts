@@ -37,7 +37,10 @@ import type {
 import { ServiceError, aiActProgressScope } from '@/types';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
-import { errorMessageForAiAct, extractProgressAction } from './ai-act-progress';
+import {
+  createAiActActionReporter,
+  errorMessageForAiAct,
+} from './ai-act-progress';
 import { ExecutionSession } from './execution-session';
 import { TaskBuilder } from './task-builder';
 import type { TaskCache } from './task-cache';
@@ -60,16 +63,6 @@ interface TaskExecutorHooks {
     error?: TaskExecutionError,
   ) => Promise<void> | void;
   onProgress?: AgentProgressListener;
-}
-
-// The runner reports task transitions natively, but it has no notion of the
-// planning loop. This is the only loop state the aiAct mapper needs: which
-// replanning round is currently executing actions. It is set while a planned
-// batch runs and cleared afterwards, so task events fired outside an action
-// batch (e.g. the planning task itself) are ignored.
-interface ActiveAiActPlan {
-  planIndex: number;
-  planLimit: number;
 }
 
 export type ActionReportOptions = {
@@ -121,7 +114,11 @@ export class TaskExecutor {
 
   private progressSequence = 0;
 
-  private activeAiActPlan?: ActiveAiActPlan;
+  // Reporter that maps the runner's native task events to aiAct action
+  // progress for the action batch currently running. Set while a planned batch
+  // runs and cleared afterwards, so task events fired outside a batch (e.g. the
+  // planning task itself) are ignored.
+  private activeActionReporter?: (event: TaskRunnerEvent) => Promise<void>;
 
   // @deprecated use .interface instead
   get page() {
@@ -230,63 +227,6 @@ export class TaskExecutor {
     data: AiActProgressData,
   ): Promise<void> {
     return this.emitProgress(aiActProgressScope, phase, data);
-  }
-
-  /**
-   * Map a native task-lifecycle event from the runner onto the aiAct progress
-   * stream. Each transition fires once by construction, so there is no scanning
-   * and no dedup bookkeeping: a single `start` becomes the "planned" + "running"
-   * pair (coordinates are resolved by the time an action starts), and
-   * `finish`/`error` become the "done"/"failed" notifications. Events outside an
-   * active action batch (no `activeAiActPlan`) are ignored.
-   */
-  private async handleAiActTaskEvent(event: TaskRunnerEvent): Promise<void> {
-    const plan = this.activeAiActPlan;
-    if (!plan) {
-      return;
-    }
-
-    const action = extractProgressAction(event.task);
-    if (!action) {
-      return;
-    }
-
-    const { planIndex, planLimit } = plan;
-    const durationMs = event.task.timing?.cost;
-
-    switch (event.kind) {
-      case 'start':
-        await this.emitAiActProgress('plan_action', {
-          planIndex,
-          planLimit,
-          action,
-        });
-        await this.emitAiActProgress('action_running', {
-          planIndex,
-          planLimit,
-          action,
-        });
-        break;
-      case 'finish':
-        await this.emitAiActProgress('action_done', {
-          planIndex,
-          planLimit,
-          action,
-          durationMs,
-        });
-        break;
-      case 'error':
-        await this.emitAiActProgress('action_failed', {
-          planIndex,
-          planLimit,
-          action,
-          durationMs,
-          error: event.task.errorMessage,
-        });
-        break;
-      default:
-        break;
-    }
   }
 
   /**
@@ -547,7 +487,7 @@ export class TaskExecutor {
       taskTitleStr(reportOptions?.type || 'Act', promptDisplay),
       {
         onTaskEvent: async (event) => {
-          await this.handleAiActTaskEvent(event);
+          await this.activeActionReporter?.(event);
         },
       },
     );
@@ -820,13 +760,14 @@ export class TaskExecutor {
       const initialTimeString = await this.getTimeString();
 
       const taskCountBeforeRun = runner.tasks.length;
-      // Mark which replanning round is executing so native task events from the
-      // runner are attributed to the right plan; cleared in `finally` so events
-      // fired between batches are ignored.
-      this.activeAiActPlan = {
+      // Scope a reporter to this replanning round so native task events from the
+      // runner are mapped to aiAct progress with the right plan context; cleared
+      // in `finally` so events fired between batches are ignored.
+      this.activeActionReporter = createAiActActionReporter(
         planIndex,
-        planLimit: replanningCycleLimit,
-      };
+        replanningCycleLimit,
+        (phase, data) => this.emitAiActProgress(phase, data),
+      );
       try {
         await session.appendAndRun(executables.tasks);
         this.setPendingFeedbackMessage(
@@ -850,7 +791,7 @@ export class TaskExecutor {
           errorCountInOnePlanningLoop,
         );
       } finally {
-        this.activeAiActPlan = undefined;
+        this.activeActionReporter = undefined;
       }
 
       if (errorCountInOnePlanningLoop > maxErrorCountAllowedInOnePlanningLoop) {

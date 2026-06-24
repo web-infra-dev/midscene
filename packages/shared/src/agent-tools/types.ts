@@ -139,9 +139,6 @@ export interface BaseAgent {
   addProgressListener?: (
     listener: (event: BaseAgentProgressEvent) => void,
   ) => () => void;
-  addAiActProgressListener?: (
-    listener: (event: BaseAgentProgressEvent) => void,
-  ) => () => void;
   recordToReport?: (
     title?: string,
     opt?: RecordToReportOptions,

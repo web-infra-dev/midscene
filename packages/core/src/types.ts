@@ -467,16 +467,6 @@ export interface AiActProgressData {
 
 export const aiActProgressScope = 'aiAct';
 
-export type AiActProgressEvent = AgentProgressEvent<
-  'aiAct',
-  AiActProgressData,
-  AiActProgressPhase
->;
-
-export type AiActProgressListener = (
-  event: AiActProgressEvent,
-) => Promise<void> | void;
-
 export interface ExecutionRecorderItem {
   type: 'screenshot';
   ts: number;

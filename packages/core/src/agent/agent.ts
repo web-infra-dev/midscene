@@ -14,8 +14,6 @@ import {
   type AgentProgressEvent,
   type AgentProgressListener,
   type AgentWaitForOpt,
-  type AiActProgressEvent,
-  type AiActProgressListener,
   type DeepThinkOption,
   type DeviceAction,
   ExecutionDump,
@@ -36,7 +34,6 @@ import {
   type ServiceExtractParam,
   type TestStatus,
   type UIContext,
-  aiActProgressScope,
 } from '../types';
 import type { MidsceneYamlScript } from '../yaml';
 
@@ -146,10 +143,8 @@ export class Agent<
   > = [];
 
   // Generic progress bus: every producer (aiAct today, more later) broadcasts
-  // through here. aiAct listeners are kept as a convenience filter over it.
+  // through here. Consumers narrow by `event.scope`.
   private progressListeners: AgentProgressListener[] = [];
-
-  private aiActProgressListeners: AiActProgressListener[] = [];
 
   get onDumpUpdate():
     | ((dump: string, executionDump?: ExecutionDump) => void)
@@ -1311,43 +1306,10 @@ export class Agent<
   }
 
   /**
-   * Clear all generic progress listeners. aiAct convenience listeners are left
-   * intact; use {@link clearAiActProgressListeners} for those.
+   * Clear all generic progress listeners.
    */
   clearProgressListeners(): void {
     this.progressListeners = [];
-  }
-
-  /**
-   * Add an aiAct progress listener. This is a convenience filter over the
-   * generic progress bus that only delivers events from the `aiAct` producer.
-   * @param listener Listener function
-   * @returns A remove function that can be called to remove this listener
-   */
-  addAiActProgressListener(listener: AiActProgressListener): () => void {
-    this.aiActProgressListeners.push(listener);
-
-    return () => {
-      this.removeAiActProgressListener(listener);
-    };
-  }
-
-  /**
-   * Remove an aiAct progress listener.
-   * @param listener The listener function to remove
-   */
-  removeAiActProgressListener(listener: AiActProgressListener): void {
-    const index = this.aiActProgressListeners.indexOf(listener);
-    if (index > -1) {
-      this.aiActProgressListeners.splice(index, 1);
-    }
-  }
-
-  /**
-   * Clear all aiAct progress listeners.
-   */
-  clearAiActProgressListeners(): void {
-    this.aiActProgressListeners = [];
   }
 
   private async notifyProgressListeners(
@@ -1358,18 +1320,6 @@ export class Agent<
         await listener(event);
       } catch (error) {
         console.error('Error in onProgress listener', error);
-      }
-    }
-
-    // Fan out to the aiAct convenience listeners for the pilot producer.
-    if (event.scope === aiActProgressScope) {
-      const aiActEvent = event as AiActProgressEvent;
-      for (const listener of this.aiActProgressListeners) {
-        try {
-          await listener(aiActEvent);
-        } catch (error) {
-          console.error('Error in onAiActProgress listener', error);
-        }
       }
     }
   }
