@@ -232,6 +232,64 @@ function sendKeyViaAppleScript(key: string, modifiers: string[] = []): void {
 }
 
 // Lazy load libnut with fallback
+const POWERSHELL_TIMEOUT_MS = 15_000;
+// CopyFromScreen output can be several MB once base64-encoded.
+const POWERSHELL_MAX_BUFFER = 64 * 1024 * 1024;
+
+function escapePowershellSingleQuoted(value: string): string {
+  return value.replace(/'/g, "''");
+}
+
+/**
+ * Run a PowerShell script and return its stdout. The script is passed via
+ * `-EncodedCommand` (UTF-16LE base64) to avoid any shell quoting/escaping and
+ * the Git Bash argument mangling that breaks screenshot-desktop (#2150).
+ * `powershell.exe` (Windows PowerShell 5.x) is used because it ships with
+ * System.Windows.Forms / System.Drawing out of the box.
+ */
+function runPowershell(script: string): string {
+  const encoded = Buffer.from(script, 'utf16le').toString('base64');
+  return execFileSync(
+    'powershell.exe',
+    [
+      '-NoProfile',
+      '-NonInteractive',
+      '-ExecutionPolicy',
+      'Bypass',
+      '-EncodedCommand',
+      encoded,
+    ],
+    {
+      encoding: 'utf8',
+      timeout: POWERSHELL_TIMEOUT_MS,
+      maxBuffer: POWERSHELL_MAX_BUFFER,
+      windowsHide: true,
+    },
+  );
+}
+
+/** Enumerate Windows monitors via PowerShell (screenshot-desktop's .bat-based
+ * listDisplays is broken under Claude Code — see #2150). */
+function listWindowsDisplays(): DisplayInfo[] {
+  const script = `
+Add-Type -AssemblyName System.Windows.Forms
+$s = [System.Windows.Forms.Screen]::AllScreens | ForEach-Object {
+  [PSCustomObject]@{ id = $_.DeviceName; name = $_.DeviceName; primary = $_.Primary }
+}
+ConvertTo-Json @($s) -Compress
+`.trim();
+  const parsed = JSON.parse(runPowershell(script).trim()) as Array<{
+    id: string;
+    name?: string;
+    primary?: boolean;
+  }>;
+  return parsed.map((d) => ({
+    id: String(d.id),
+    name: d.name || String(d.id),
+    primary: d.primary || false,
+  }));
+}
+
 let libnut: LibNut | null = null;
 let libnutLoadError: Error | null = null;
 
@@ -835,6 +893,11 @@ export class ComputerDevice implements AbstractInterface {
    */
   static async listDisplays(): Promise<DisplayInfo[]> {
     try {
+      // screenshot-desktop's Windows listDisplays uses the same broken polyglot
+      // .bat as its capture path (#2150); enumerate via PowerShell instead.
+      if (process.platform === 'win32') {
+        return listWindowsDisplays();
+      }
       const displays: ScreenshotDisplay[] = await screenshot.listDisplays();
       return displays.map((d) => ({
         id: String(d.id),
@@ -1030,6 +1093,18 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
     }
     debugDevice('Taking screenshot', { displayId: this.displayId });
 
+    // Windows: screenshot-desktop captures through a polyglot .bat that
+    // self-compiles via csc.exe and then re-launches the compiled exe. That
+    // chain breaks under the POSIX-flavored environment Claude Code / Git Bash
+    // inject (PATH/SystemRoot/COMSPEC), so the capture fails even though the
+    // host can screenshot fine from a plain terminal (issue #2150). Capture
+    // through PowerShell instead — System.Drawing.CopyFromScreen works in
+    // virtual-desktop coordinates, so it captures any monitor (including
+    // secondary displays at negative offsets) without csc/.bat/.NET source.
+    if (process.platform === 'win32') {
+      return this.screenshotViaPowershell();
+    }
+
     const options: ScreenshotOptions = { format: 'png' };
     if (this.displayId !== undefined) {
       // On macOS: displayId is screenshot-desktop's screen index.
@@ -1096,6 +1171,62 @@ Original error: ${lastRawMessage}`,
       );
     }
     throw new Error(`Failed to take screenshot: ${lastRawMessage}`);
+  }
+
+  /**
+   * Windows screenshot path that bypasses screenshot-desktop's polyglot .bat
+   * (see screenshotBase64 for the rationale). Captures via PowerShell +
+   * System.Drawing, which honors `displayId` by matching the monitor's
+   * DeviceName and captures in virtual-desktop coordinates, so secondary
+   * displays — including those at negative offsets — are supported.
+   *
+   * Note: the script makes the process system-DPI-aware (SetProcessDPIAware)
+   * so captures return physical pixels. On mixed-DPI multi-monitor setups a
+   * non-primary monitor may still be off by its per-monitor scale factor;
+   * system DPI awareness covers the common single-scale and uniform-scale
+   * cases that #2150 reports.
+   */
+  private screenshotViaPowershell(): string {
+    const deviceName = this.displayId ? String(this.displayId) : '';
+    const target = deviceName
+      ? `[System.Windows.Forms.Screen]::AllScreens | Where-Object { $_.DeviceName -eq '${escapePowershellSingleQuoted(deviceName)}' } | Select-Object -First 1`
+      : '$null';
+    const script = `
+$ErrorActionPreference = 'Stop'
+Add-Type -AssemblyName System.Windows.Forms, System.Drawing
+Add-Type @"
+using System;
+using System.Runtime.InteropServices;
+public class NutDpi { [DllImport("user32.dll")] public static extern bool SetProcessDPIAware(); }
+"@
+[NutDpi]::SetProcessDPIAware() | Out-Null
+$screen = ${target}
+if (-not $screen) { $screen = [System.Windows.Forms.Screen]::PrimaryScreen }
+$b = $screen.Bounds
+$bmp = New-Object System.Drawing.Bitmap($b.Width, $b.Height)
+$g = [System.Drawing.Graphics]::FromImage($bmp)
+$g.CopyFromScreen($b.X, $b.Y, 0, 0, $bmp.Size)
+$ms = New-Object System.IO.MemoryStream
+$bmp.Save($ms, [System.Drawing.Imaging.ImageFormat]::Png)
+[Console]::Out.Write([Convert]::ToBase64String($ms.ToArray()))
+$g.Dispose(); $bmp.Dispose(); $ms.Dispose()
+`.trim();
+
+    let stdout: string;
+    try {
+      stdout = runPowershell(script);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(`Failed to take screenshot on Windows: ${message}`);
+    }
+
+    const body = stdout.trim();
+    if (!body) {
+      throw new Error(
+        'Failed to take screenshot on Windows: PowerShell returned no image data',
+      );
+    }
+    return createImgBase64ByFormat('png', body);
   }
 
   async size(): Promise<Size> {

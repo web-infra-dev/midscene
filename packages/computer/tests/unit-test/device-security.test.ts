@@ -3,7 +3,27 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockState = vi.hoisted(() => {
   const execSync = vi.fn();
-  const execFileSync = vi.fn();
+  // 1x1 PNG, base64-encoded — what the Windows PowerShell capture prints.
+  const FAKE_PNG_BASE64 =
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+  // Windows screenshot/listDisplays go through `powershell.exe -EncodedCommand`
+  // now (issue #2150); answer based on which script is being run.
+  const execFileSync = vi.fn((file?: string, args?: string[]) => {
+    if (file === 'powershell.exe' && args) {
+      const idx = args.indexOf('-EncodedCommand');
+      const script =
+        idx >= 0
+          ? Buffer.from(args[idx + 1], 'base64').toString('utf16le')
+          : '';
+      if (script.includes('CopyFromScreen')) {
+        return FAKE_PNG_BASE64;
+      }
+      return JSON.stringify([
+        { id: '\\\\.\\DISPLAY1', name: '\\\\.\\DISPLAY1', primary: true },
+      ]);
+    }
+    return undefined;
+  });
 
   const screenshot = vi.fn(async () => Buffer.from('png')) as ReturnType<
     typeof vi.fn
@@ -40,7 +60,8 @@ const mockState = vi.hoisted(() => {
   const reset = () => {
     mousePos = { x: 10, y: 20 };
     execSync.mockReset();
-    execFileSync.mockReset();
+    // mockClear (not mockReset) so the powershell-aware implementation survives.
+    execFileSync.mockClear();
     screenshot.mockClear();
     screenshot.listDisplays.mockClear();
     libnut.getScreenSize.mockClear();
