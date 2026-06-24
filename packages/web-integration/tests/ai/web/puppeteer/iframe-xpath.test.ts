@@ -30,6 +30,10 @@ type RectLike = {
 
 type BrowserPoint = [number, number];
 
+type CacheFeatureWithXpaths = {
+  xpaths?: string[];
+};
+
 const crossOriginChildHtml = `<!doctype html>
 <html>
   <head>
@@ -465,6 +469,134 @@ describe('iframe element locate and cache (puppeteer agent)', () => {
       expect(
         Math.abs(rect!.top + rect!.height / 2 - point[1]),
       ).toBeLessThanOrEqual(3);
+    } finally {
+      await Promise.all([
+        closeNodeServer(parentServer),
+        closeNodeServer(childServer),
+      ]);
+    }
+  });
+
+  it('cache should write and reuse a cross-origin iframe locator cache on second run', async () => {
+    let childServer: NodeServer | undefined;
+    let parentServer: NodeServer | undefined;
+    const cacheId = `cross-origin-iframe-cache-test-${Date.now()}`;
+    const prompt = 'the "Cross Origin Submit" button';
+
+    try {
+      childServer = createNodeServer((_req, res) => {
+        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+        res.end(crossOriginChildHtml);
+      });
+      const childOrigin = await listenNodeServer(childServer);
+
+      parentServer = createNodeServer((_req, res) => {
+        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+        res.end(crossOriginParentHtml(`${childOrigin}/child.html`));
+      });
+      const parentOrigin = await listenNodeServer(parentServer);
+      const parentUrl = `${parentOrigin}/parent.html`;
+
+      let cacheFilePath: string | undefined;
+
+      // First run writes the cross-origin locator cache to disk.
+      {
+        const { originPage, reset } = await launchPage(parentUrl, {
+          viewport: { width: 900, height: 600, deviceScaleFactor: 1 },
+        });
+        resetFn = reset;
+
+        await originPage.waitForSelector('#cross-origin-frame');
+        const iframeHandle = await originPage.$('#cross-origin-frame');
+        const frame = await iframeHandle!.contentFrame();
+        expect(frame).toBeTruthy();
+        await frame!.waitForSelector('#target-button');
+
+        agent = new PuppeteerAgent(originPage, {
+          cache: { id: cacheId, strategy: 'write-only' },
+        });
+
+        const result = await agent.aiLocate(prompt);
+        expect(result.center).toBeDefined();
+        expect(result.center![0]).toBeGreaterThan(0);
+        expect(result.center![1]).toBeGreaterThan(0);
+
+        await sleep(1000);
+
+        cacheFilePath = agent.taskCache?.cacheFilePath;
+        expect(cacheFilePath).toBeDefined();
+        expect(fs.existsSync(cacheFilePath!)).toBe(true);
+
+        const cacheContent = fs.readFileSync(cacheFilePath!, 'utf-8');
+        expect(cacheContent).toContain(prompt);
+        expect(cacheContent).toContain('|>>|');
+        expect(cacheContent).toMatch(/iframe/);
+        expect(cacheContent).toMatch(/button/);
+
+        await agent.destroy();
+        agent = undefined;
+        await reset();
+        resetFn = undefined;
+      }
+
+      // Second run reads the same cache file and re-locates via cached xpath.
+      {
+        const { originPage, reset } = await launchPage(parentUrl, {
+          viewport: { width: 900, height: 600, deviceScaleFactor: 1 },
+        });
+        resetFn = reset;
+
+        await originPage.waitForSelector('#cross-origin-frame');
+        const iframeHandle = await originPage.$('#cross-origin-frame');
+        const frame = await iframeHandle!.contentFrame();
+        expect(frame).toBeTruthy();
+        await frame!.waitForSelector('#target-button');
+
+        const iframeRect = await iframeHandle!.evaluate(readRect);
+        const buttonRect = await frame!.$eval('#target-button', readRect);
+        const expectedPoint = pointInsideRects(iframeRect, buttonRect);
+
+        agent = new PuppeteerAgent(originPage, {
+          cache: { id: cacheId, strategy: 'read-only' },
+        });
+
+        const originalRectMatchesCacheFeature =
+          agent.page.rectMatchesCacheFeature?.bind(agent.page);
+        expect(originalRectMatchesCacheFeature).toBeDefined();
+
+        let matchedFeature: CacheFeatureWithXpaths | undefined;
+        let matchedCenter: BrowserPoint | undefined;
+        agent.page.rectMatchesCacheFeature = async (feature) => {
+          matchedFeature = feature as CacheFeatureWithXpaths;
+          const rect = await originalRectMatchesCacheFeature!(feature);
+          matchedCenter = [
+            Math.round(rect.left + rect.width / 2),
+            Math.round(rect.top + rect.height / 2),
+          ];
+          return rect;
+        };
+
+        const result = await agent.aiLocate(prompt);
+        expect(result.center).toBeDefined();
+        expect(matchedFeature).toBeDefined();
+        expect(matchedFeature!.xpaths).toBeDefined();
+        expect(matchedFeature!.xpaths![0]).toContain('|>>|');
+        expect(matchedFeature!.xpaths![0]).toMatch(/iframe/);
+        expect(matchedFeature!.xpaths![0]).toMatch(/button/);
+        expect(matchedCenter).toBeDefined();
+        expect(
+          Math.abs(matchedCenter![0] - expectedPoint[0]),
+        ).toBeLessThanOrEqual(3);
+        expect(
+          Math.abs(matchedCenter![1] - expectedPoint[1]),
+        ).toBeLessThanOrEqual(3);
+        expect(
+          Math.abs(result.center![0] - matchedCenter![0]),
+        ).toBeLessThanOrEqual(1);
+        expect(
+          Math.abs(result.center![1] - matchedCenter![1]),
+        ).toBeLessThanOrEqual(1);
+      }
     } finally {
       await Promise.all([
         closeNodeServer(parentServer),
