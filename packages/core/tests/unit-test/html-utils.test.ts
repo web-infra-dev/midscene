@@ -93,6 +93,23 @@ describe('html-utils', () => {
     expect(comment).not.toContain('No report-level model metadata recorded');
   });
 
+  it('keeps agent analysis comments optional for incomplete execution dumps', () => {
+    const comment = generateAgentReportComment({
+      sdkVersion: '1.0.0',
+      groupName: 'incomplete report',
+      modelBriefs: [],
+      executions: [
+        {
+          logTime: 1710000000000,
+          name: 'exec',
+        } as any,
+      ],
+    });
+
+    expect(comment).toContain('Executions: 1; Tasks: 0');
+    expect(comment).toContain('Models: No model metadata recorded');
+  });
+
   describe('extractImageByIdSync', () => {
     const fixturesDir = join(__dirname, '../fixtures/report-samples');
     const inlineSamplePath = join(fixturesDir, 'inline-sample.html');

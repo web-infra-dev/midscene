@@ -41,8 +41,10 @@ function formatUsageModelForAgent(source: string, usage: AIUsageInfo): string {
 
 function collectUsageModelsForAgent(report: IReportActionDump): string {
   const models = new Map<string, string>();
-  for (const execution of report.executions) {
-    for (const task of execution.tasks) {
+  const executions = Array.isArray(report.executions) ? report.executions : [];
+  for (const execution of executions) {
+    const tasks = Array.isArray(execution.tasks) ? execution.tasks : [];
+    for (const task of tasks) {
       const taskWithUsage = task as {
         usage?: AIUsageInfo;
         searchAreaUsage?: AIUsageInfo;
@@ -81,7 +83,7 @@ export function generateAgentReportComment(report: IReportActionDump): string {
     `Report: ${cleanHtmlCommentValue(report.groupName)}`,
     `SDK: ${cleanHtmlCommentValue(report.sdkVersion)}`,
     `Device: ${cleanHtmlCommentValue(report.deviceType)}`,
-    `Executions: ${report.executions.length}; Tasks: ${taskCount}`,
+    `Executions: ${executions.length}; Tasks: ${taskCount}`,
     `Models: ${cleanHtmlCommentValue(modelBriefs)}`,
     'Structured report JSON is stored in script[type="midscene_web_dump"] tags near this comment.',
     'Screenshots are stored as script[type="midscene-image"] tags or files referenced by screenshot refs.',
