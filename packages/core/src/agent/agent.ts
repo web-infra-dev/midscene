@@ -11,6 +11,7 @@ import {
   type ActionReturn,
   type AgentAssertOpt,
   type AgentOpt,
+  type AgentProgressListener,
   type AgentWaitForOpt,
   type DeepThinkOption,
   type DeviceAction,
@@ -63,6 +64,7 @@ import { getDebug } from '@midscene/shared/logger';
 import { assert, ifInBrowser, uuid } from '@midscene/shared/utils';
 import { defineActionSleep } from '../device';
 import { validateAgentCacheInput } from './cache-config';
+import { AgentProgressBus } from './progress';
 import { buildPromptWithContext } from './prompt-context';
 import { normalizeRecordToReportScreenshot } from './record-to-report';
 import {
@@ -145,6 +147,10 @@ export class Agent<
   private dumpUpdateListeners: Array<
     (dump: string, executionDump?: ExecutionDump) => void
   > = [];
+
+  // Generic progress bus: every producer (aiAct today, more later) broadcasts
+  // through here. Consumers narrow by `event.scope`.
+  private readonly progressBus = new AgentProgressBus();
 
   get onDumpUpdate():
     | ((dump: string, executionDump?: ExecutionDump) => void)
@@ -296,7 +302,7 @@ export class Agent<
       useDeviceTime: this.opts.useDeviceTime,
       actionSpace: this.fullActionSpace,
       hooks: {
-        onTaskUpdate: async (runner) => {
+        onSnapshotChange: async (runner) => {
           const executionDump = runner.dump();
           this.appendExecutionDump(executionDump, runner);
 
@@ -315,6 +321,7 @@ export class Agent<
             }
           }
         },
+        onProgress: this.progressBus.publish,
       },
     });
     this.dump = this.resetDump();
@@ -1307,6 +1314,31 @@ export class Agent<
    */
   clearDumpUpdateListeners(): void {
     this.dumpUpdateListeners = [];
+  }
+
+  /**
+   * Subscribe to the generic agent progress bus. The listener receives every
+   * progress event regardless of producer; narrow by `event.scope` to handle a
+   * specific producer (e.g. `'aiAct'`).
+   * @param listener Listener function
+   * @returns A remove function that can be called to remove this listener
+   */
+  addProgressListener(listener: AgentProgressListener): () => void {
+    return this.progressBus.subscribe(listener);
+  }
+
+  /**
+   * Remove a progress listener added via {@link addProgressListener}.
+   */
+  removeProgressListener(listener: AgentProgressListener): void {
+    this.progressBus.unsubscribe(listener);
+  }
+
+  /**
+   * Clear all generic progress listeners.
+   */
+  clearProgressListeners(): void {
+    this.progressBus.clear();
   }
 
   private notifyDumpUpdateListeners(executionDump?: ExecutionDump) {

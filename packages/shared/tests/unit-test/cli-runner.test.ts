@@ -1,3 +1,4 @@
+import { existsSync, readFileSync } from 'node:fs';
 import {
   CLIError,
   parseCliArgs,
@@ -411,6 +412,27 @@ describe('runToolsCLI', () => {
     consoleSpy.mockRestore();
   });
 
+  it('writes image tool results with an extension matching the mime type', async () => {
+    const handler = vi.fn().mockResolvedValue({
+      content: [{ type: 'image', data: 'aGVsbG8=', mimeType: 'image/jpeg' }],
+      isError: false,
+    });
+    const tools = createMockTools([{ name: 'take_screenshot', handler }]);
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+    await runToolsCLI(tools, 'test-cli', { argv: ['take_screenshot'] });
+
+    const message = consoleSpy.mock.calls
+      .map(([line]) => String(line))
+      .find((line) => line.startsWith('Screenshot saved: '));
+    expect(message).toMatch(/^Screenshot saved: .+screenshot-\d+\.jpeg$/);
+    const screenshotPath = message?.replace('Screenshot saved: ', '');
+    expect(screenshotPath).toBeDefined();
+    expect(existsSync(screenshotPath!)).toBe(true);
+    expect(readFileSync(screenshotPath!, 'utf8')).toBe('hello');
+    consoleSpy.mockRestore();
+  });
+
   it('strips a global --deep-think flag and applies act defaults', async () => {
     const handler = vi
       .fn()
@@ -641,6 +663,64 @@ describe('runToolsCLI', () => {
     consoleSpy.mockRestore();
   });
 
+  it('strips global --verbose and emits readable progress lines', async () => {
+    const handler = vi.fn().mockResolvedValue({
+      content: [{ type: 'text', text: 'Connected' }],
+      isError: false,
+    });
+    const tools = createMockTools([{ name: 'connect', handler }]);
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+    await runToolsCLI(tools, 'test-cli', {
+      argv: ['--verbose', 'connect', '--url', 'https://example.com'],
+    });
+
+    expect(handler).toHaveBeenCalledWith({ url: 'https://example.com' });
+    const messages = consoleSpy.mock.calls.map(([message]) => String(message));
+    expect(messages).toEqual([
+      '[Midscene] connect started (url=https://example.com)',
+      'Connected',
+      expect.stringMatching(/^\[Midscene\] connect finished in \d+ms$/),
+    ]);
+    consoleSpy.mockRestore();
+  });
+
+  it('preserves structured command args in jsonl verbose progress events', async () => {
+    const handler = vi.fn().mockResolvedValue({
+      content: [{ type: 'text', text: 'Tapped' }],
+      isError: false,
+    });
+    const tools = createMockTools([{ name: 'tap', handler }]);
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+    await runToolsCLI(tools, 'test-cli', {
+      argv: [
+        '--verbose=jsonl',
+        'tap',
+        '--locate',
+        '{"prompt":"Submit","deepLocate":true}',
+      ],
+    });
+
+    const progressEvents = consoleSpy.mock.calls
+      .map(([message]) => String(message))
+      .filter((message) => message.includes('"type":"midscene_progress"'))
+      .map((message) => JSON.parse(message));
+    expect(progressEvents[0]).toMatchObject({
+      event: 'command_start',
+      type: 'midscene_progress',
+      scriptName: 'test-cli',
+      command: 'tap',
+      args: {
+        locate: {
+          prompt: 'Submit',
+          deepLocate: true,
+        },
+      },
+    });
+    consoleSpy.mockRestore();
+  });
+
   it('strips platform prefix from command names', async () => {
     const handler = vi.fn().mockResolvedValue({
       content: [{ type: 'text', text: 'ok' }],
@@ -691,6 +771,38 @@ describe('runToolsCLI', () => {
     vi.restoreAllMocks();
   });
 
+  it('calls destroy when a command handler throws', async () => {
+    const handler = vi.fn().mockRejectedValue(new Error('boom'));
+    const tools = createMockTools([{ name: 'explode', handler }]);
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+
+    await expect(
+      runToolsCLI(tools, 'test-cli', {
+        argv: ['--verbose', 'explode'],
+      }),
+    ).rejects.toThrow('boom');
+
+    expect(tools.destroy).toHaveBeenCalledOnce();
+    vi.restoreAllMocks();
+  });
+
+  it('emits an aiAct failure line when an act command throws by default', async () => {
+    const handler = vi.fn().mockRejectedValue(new Error('boom'));
+    const tools = createMockTools([{ name: 'act', handler }]);
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+    await expect(
+      runToolsCLI(tools, 'test-cli', {
+        argv: ['act'],
+      }),
+    ).rejects.toThrow('boom');
+
+    const messages = consoleSpy.mock.calls.map(([message]) => String(message));
+    expect(messages).toContain('[Midscene][aiAct] Failed: boom');
+    expect(tools.destroy).toHaveBeenCalledOnce();
+    vi.restoreAllMocks();
+  });
+
   it('matches commands case-insensitively', async () => {
     const handler = vi.fn().mockResolvedValue({
       content: [{ type: 'text', text: 'tapped' }],
@@ -735,7 +847,13 @@ describe('runToolsCLI', () => {
     expect(output).toContain('  tap');
     expect(output).toContain('  scroll');
     // Command names column should not have uppercase originals
-    const commandLines = output.split('\n').filter((l) => l.startsWith('  '));
+    const commandLines = output
+      .split('\n')
+      .slice(
+        output.split('\n').indexOf('Commands:') + 1,
+        output.split('\n').indexOf('Global Options:'),
+      )
+      .filter((l) => l.startsWith('  '));
     for (const line of commandLines) {
       const cmdName = line.trimStart().split(/\s{2,}/)[0];
       expect(cmdName).toBe(cmdName.toLowerCase());
