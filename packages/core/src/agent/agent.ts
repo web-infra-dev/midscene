@@ -11,7 +11,6 @@ import {
   type ActionReturn,
   type AgentAssertOpt,
   type AgentOpt,
-  type AgentProgressEvent,
   type AgentProgressListener,
   type AgentWaitForOpt,
   type DeepThinkOption,
@@ -65,6 +64,7 @@ import { getDebug } from '@midscene/shared/logger';
 import { assert, ifInBrowser, uuid } from '@midscene/shared/utils';
 import { defineActionSleep } from '../device';
 import { validateAgentCacheInput } from './cache-config';
+import { AgentProgressBus } from './progress';
 import { normalizeRecordToReportScreenshot } from './record-to-report';
 import { markdownToAiActPrompt } from './run-markdown';
 import { TaskCache } from './task-cache';
@@ -144,7 +144,7 @@ export class Agent<
 
   // Generic progress bus: every producer (aiAct today, more later) broadcasts
   // through here. Consumers narrow by `event.scope`.
-  private progressListeners: AgentProgressListener[] = [];
+  private readonly progressBus = new AgentProgressBus();
 
   get onDumpUpdate():
     | ((dump: string, executionDump?: ExecutionDump) => void)
@@ -315,9 +315,7 @@ export class Agent<
             }
           }
         },
-        onProgress: async (event) => {
-          await this.notifyProgressListeners(event);
-        },
+        onProgress: this.progressBus.publish,
       },
     });
     this.dump = this.resetDump();
@@ -1288,40 +1286,21 @@ export class Agent<
    * @returns A remove function that can be called to remove this listener
    */
   addProgressListener(listener: AgentProgressListener): () => void {
-    this.progressListeners.push(listener);
-
-    return () => {
-      this.removeProgressListener(listener);
-    };
+    return this.progressBus.subscribe(listener);
   }
 
   /**
    * Remove a progress listener added via {@link addProgressListener}.
    */
   removeProgressListener(listener: AgentProgressListener): void {
-    const index = this.progressListeners.indexOf(listener);
-    if (index > -1) {
-      this.progressListeners.splice(index, 1);
-    }
+    this.progressBus.unsubscribe(listener);
   }
 
   /**
    * Clear all generic progress listeners.
    */
   clearProgressListeners(): void {
-    this.progressListeners = [];
-  }
-
-  private async notifyProgressListeners(
-    event: AgentProgressEvent,
-  ): Promise<void> {
-    for (const listener of this.progressListeners) {
-      try {
-        await listener(event);
-      } catch (error) {
-        console.error('Error in onProgress listener', error);
-      }
-    }
+    this.progressBus.clear();
   }
 
   private notifyDumpUpdateListeners(executionDump?: ExecutionDump) {

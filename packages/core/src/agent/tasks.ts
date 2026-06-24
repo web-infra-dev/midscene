@@ -15,7 +15,6 @@ import type Service from '@/service';
 import type { TaskRunner, TaskRunnerEvent } from '@/task-runner';
 import { TaskExecutionError } from '@/task-runner';
 import type {
-  AgentProgressListener,
   AiActProgressData,
   AiActProgressPhase,
   DeviceAction,
@@ -37,11 +36,12 @@ import type {
 import { ServiceError, aiActProgressScope } from '@/types';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
+import { ExecutionSession } from './execution-session';
 import {
+  type AgentProgressPublisher,
   createAiActActionReporter,
   errorMessageForAiAct,
-} from './ai-act-progress';
-import { ExecutionSession } from './execution-session';
+} from './progress';
 import { TaskBuilder } from './task-builder';
 import type { TaskCache } from './task-cache';
 export { locatePlanForLocate } from './task-builder';
@@ -62,7 +62,9 @@ interface TaskExecutorHooks {
     runner: TaskRunner,
     error?: TaskExecutionError,
   ) => Promise<void> | void;
-  onProgress?: AgentProgressListener;
+  // Publish onto the agent's progress bus. The bus owns sequencing, so the
+  // executor is a pure producer: it names the scope/phase and hands over data.
+  onProgress?: AgentProgressPublisher;
 }
 
 export type ActionReportOptions = {
@@ -111,8 +113,6 @@ export class TaskExecutor {
   waitAfterAction?: number;
 
   useDeviceTime?: boolean;
-
-  private progressSequence = 0;
 
   // Reporter that maps the runner's native task events to aiAct action
   // progress for the action batch currently running. Set while a planned batch
@@ -191,30 +191,17 @@ export class TaskExecutor {
   }
 
   /**
-   * Publish one event onto the generic progress bus. The task layer is just a
-   * producer here: it stamps a monotonic sequence and forwards the structured
-   * payload under the given scope. It has no knowledge of how the event is
-   * rendered or consumed.
+   * Publish one event onto the agent's progress bus. The task layer is a pure
+   * producer here: it names the scope/phase and forwards the structured
+   * payload; the bus stamps the sequence and isolates listener errors. It has
+   * no knowledge of how the event is rendered or consumed.
    */
   private async emitProgress(
     scope: string,
     phase: string,
     data: unknown,
   ): Promise<void> {
-    if (!this.hooks?.onProgress) {
-      return;
-    }
-
-    try {
-      await this.hooks.onProgress({
-        scope,
-        phase,
-        sequence: ++this.progressSequence,
-        data,
-      });
-    } catch (error) {
-      console.error('Error in onProgress listener', error);
-    }
+    await this.hooks?.onProgress?.(scope, phase, data);
   }
 
   /**

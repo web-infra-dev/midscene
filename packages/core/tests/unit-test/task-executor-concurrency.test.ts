@@ -153,27 +153,28 @@ describe('TaskExecutor concurrency isolation', () => {
       replanningCycleLimit: 3,
       actionSpace: emptyParamActionSpace,
       hooks: {
-        onProgress: (event) => {
-          // Generic envelope: { scope, phase, sequence, data }. aiAct is just a
-          // scope on the bus; the structured payload lives in `data`.
-          progressScopes.add(event.scope);
-          const data = (event.data ?? {}) as Record<string, any>;
+        // The executor is a pure producer: it publishes (scope, phase, data)
+        // and the bus stamps the sequence. aiAct is just a scope; the
+        // structured payload lives in `data`.
+        onProgress: async (scope, phase, data) => {
+          progressScopes.add(scope);
+          const payload = (data ?? {}) as Record<string, any>;
           const semantic =
-            data.output ??
-            data.log ??
-            data.thought ??
-            data.error ??
-            data.prompt;
+            payload.output ??
+            payload.log ??
+            payload.thought ??
+            payload.error ??
+            payload.prompt;
           progressEvents.push(
             [
-              event.phase,
-              data.planIndex,
-              data.planLimit,
+              phase,
+              payload.planIndex,
+              payload.planLimit,
               semantic,
-              data.action?.name,
-              data.durationMs === undefined
+              payload.action?.name,
+              payload.durationMs === undefined
                 ? undefined
-                : Math.round(data.durationMs),
+                : Math.round(payload.durationMs),
             ]
               .filter((item) => item !== undefined)
               .join('|'),
