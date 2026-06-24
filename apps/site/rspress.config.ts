@@ -265,6 +265,10 @@ export default defineConfig(async () => {
             sectionHeaderText: 'Advanced',
           },
           {
+            text: 'BDD-style scripts with Gherkin',
+            link: '/advanced/bdd-style-scripts-with-gherkin',
+          },
+          {
             text: 'FAQ',
             link: '/faq',
           },
@@ -449,6 +453,10 @@ export default defineConfig(async () => {
           },
           {
             sectionHeaderText: '进阶',
+          },
+          {
+            text: 'BDD 风格脚本（Gherkin）',
+            link: '/zh/advanced/bdd-style-scripts-with-gherkin',
           },
           {
             text: '常见问题 FAQ',

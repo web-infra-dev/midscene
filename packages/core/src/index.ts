@@ -61,6 +61,8 @@ export {
   Agent,
   type AgentOpt,
   type AiActOptions,
+  type GherkinStepKeyword,
+  type RunGherkinScenarioOptions,
   createAgent,
 } from './agent';
 export {

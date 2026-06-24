@@ -57,16 +57,18 @@ export function applyForceChromeSelectRendering(
   runtime: BrowserRuntime,
   enabled?: boolean,
 ): void {
-  if (!enabled) {
+  if (enabled === false) {
     return;
   }
 
   const config = browserRuntimeConfig[runtime];
-  const version = getPackageVersion(config.packageName);
-  if (version && !semver.gte(version, config.minimumVersion)) {
-    console.warn(
-      `[midscene:error] forceChromeSelectRendering requires ${config.displayName} ${config.requirementLabel}, but current version is ${version}. This feature may not work correctly.`,
-    );
+  if (enabled === true) {
+    const version = getPackageVersion(config.packageName);
+    if (version && !semver.gte(version, config.minimumVersion)) {
+      console.warn(
+        `[midscene:error] forceChromeSelectRendering requires ${config.displayName} ${config.requirementLabel}, but current version is ${version}. This feature may not work correctly.`,
+      );
+    }
   }
   forceChromeSelectRendering(page);
 }

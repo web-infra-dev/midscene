@@ -278,6 +278,12 @@ const mid = new PlaywrightBrowserAgent(context, page, {
 
 当你要显式指定初始 active page 时，使用 `new PlaywrightBrowserAgent(context, page, options)`。当你希望 Midscene 自动选择或创建初始 active page 时，使用 `PlaywrightBrowserAgent.create(context, options)`；这个工厂会优先使用 `initialPage`，否则复用 context 里的第一个页面，或者创建一个新页面。
 
+### 浏览器支持说明
+
+Midscene 的部分 Web 自动化能力依赖 Chromium-based browser 提供的 Chrome DevTools Protocol（CDP），例如浏览器级事件、触摸手势，以及一些交互操作中使用的 CDP fallback 路径。
+
+使用 Playwright 时，推荐使用 Chromium。Firefox 和 WebKit 可能可以覆盖基础的 Playwright-native 操作，但依赖 CDP 的 Midscene 能力可能会在这些浏览器内核上报错。
+
 ### 连接远程 Playwright 浏览器并接入 Midscene Agent
 
 :::info 示例项目
@@ -384,7 +390,7 @@ npx playwright install --with-deps chromium
 
 建议先检查报告中的截图：如果点击下拉框后，报告截图里确实没有出现下拉选项，基本就可以判断是这个问题。
 
-可以开启 `forceChromeSelectRendering` 选项，强制由 Chrome 来渲染 `select` 下拉框。这样下拉框就会出现在页面截图中，也能被 Playwright 正常识别。开启后，下拉框样式通常会和操作系统默认样式有明显区别。
+Midscene 默认开启 `forceChromeSelectRendering` 选项，强制由 Chrome 来渲染 `select` 下拉框，这样下拉框就会出现在页面截图中，也能被 Playwright 正常识别。开启后，下拉框样式通常会和操作系统默认样式有明显区别。如果需要恢复系统原生渲染，可将 `forceChromeSelectRendering` 设为 `false`。
 
 ### 浏览器界面持续闪动
 

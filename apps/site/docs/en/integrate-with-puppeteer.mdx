@@ -118,6 +118,12 @@ const mid = new PuppeteerBrowserAgent(browser, page, {
 
 Use `new PuppeteerBrowserAgent(browser, page, options)` when you explicitly choose the initial active page. Use `PuppeteerBrowserAgent.create(browser, options)` when you want Midscene to choose or create the initial active page; the factory uses `initialPage` when provided, otherwise it reuses the first existing browser page or creates a new page.
 
+### Browser support
+
+Some Midscene web automation features rely on Chrome DevTools Protocol (CDP), which is provided by Chromium-based browsers. These include browser-level events, touch gestures, and CDP fallback paths used by specific interactions.
+
+When using Puppeteer, Chrome, Chromium, or another Chromium-based browser is recommended. Browsers that do not provide compatible CDP support may report errors when Midscene uses CDP-backed features.
+
 ### Connect Midscene Agent to a Remote Puppeteer Browser
 
 :::info Example Project
@@ -226,7 +232,7 @@ npx puppeteer browsers install chrome --base-url="https://registry.npmmirror.com
 
 If the dropdown options do not appear in the report screenshot after you click the field, the page is usually using a native `select` element. In that case, the expanded dropdown is rendered by the operating system instead of inside the webpage.
 
-You can enable `forceChromeSelectRendering` to force Chrome to render the dropdown. For the detailed explanation and how to confirm the issue, see [Playwright FAQ — Cannot click the dropdown](./integrate-with-playwright#cannot-click-the-dropdown).
+Midscene enables `forceChromeSelectRendering` by default to force Chrome to render the dropdown; set it to `false` to opt out. For the detailed explanation and how to confirm the issue, see [Playwright FAQ — Cannot click the dropdown](./integrate-with-playwright#cannot-click-the-dropdown).
 
 ### The webpage continues to flash when running in headed mode
 

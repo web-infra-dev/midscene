@@ -6,7 +6,7 @@ import type {
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import type { ChatCompletionMessageParam } from 'openai/resources/index';
-import { buildYamlFlowFromPlans, findAllMidsceneLocatorField } from '../common';
+import { buildYamlFlowFromPlans } from '../common';
 import { planningModelFamilyRequiredForLocateMessage } from './errors';
 import { systemPromptToTaskPlanning } from './prompt/llm-planning';
 import {
@@ -17,6 +17,7 @@ import {
 import { AIResponseParseError, callAI } from './service-caller/index';
 import type { JsonParser, JsonParserSource } from './service-caller/json';
 import { prepareModelImage } from './workflows/image-preprocess';
+import { normalizePlanningActionLocateFields } from './workflows/planning/locate-normalization';
 import type { PlanOptions } from './workflows/planning/types';
 
 const debug = getDebug('planning');
@@ -293,46 +294,14 @@ export async function plan(
 
     assert(planFromAI, "can't get plans from AI");
 
-    actions.forEach((action) => {
-      const type = action.type;
-      const actionInActionSpace = opts.actionSpace.find(
-        (action) => action.name === type,
-      );
-
-      debug('actionInActionSpace matched', actionInActionSpace);
-      const locateFields = actionInActionSpace
-        ? findAllMidsceneLocatorField(actionInActionSpace.paramSchema)
-        : [];
-
-      debug('locateFields', locateFields);
-
-      locateFields.forEach((field) => {
-        const locateResult = action.param[field];
-        if (locateResult) {
-          if (!opts.includeLocateInPlanning) {
-            if (typeof locateResult === 'object') {
-              // In prompt-only planning mode, ignore any accidental coordinates from the model.
-              action.param[field] = { prompt: locateResult.prompt };
-            }
-            return;
-          }
-
-          assert(
-            locateResultAdapter,
-            'generic planning locate normalization requires a standard locate adapter',
-          );
-          action.param[field] = {
-            ...locateResult,
-            locatedPixelBbox: locateResultAdapter.adaptPlanningParamToPixelBbox(
-              locateResult,
-              {
-                preparedSize: preparedImage.preparedSize,
-                contentSize: preparedImage.contentSize,
-              },
-            ),
-          };
-        }
-      });
+    normalizePlanningActionLocateFields(actions, {
+      actionSpace: opts.actionSpace,
+      includeLocateInPlanning: opts.includeLocateInPlanning,
+      locateResultAdapter,
+      locateResultContext: {
+        preparedSize: preparedImage.preparedSize,
+        contentSize: preparedImage.contentSize,
+      },
     });
 
     // Update sub-goals in conversation history only in planning deep-think mode.

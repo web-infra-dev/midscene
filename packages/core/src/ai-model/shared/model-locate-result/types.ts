@@ -38,7 +38,6 @@ export interface SectionLocatePixelBboxGroup {
 }
 
 export interface LocateResultAdapter {
-  kind: 'standard' | 'custom';
   promptSpec: LocateResultPromptSpec;
   /**
    * Converts a locate payload to a pixel bbox. This adapter intentionally does

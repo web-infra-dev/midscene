@@ -287,6 +287,10 @@ export interface MidsceneYamlFlowItemAIWaitFor extends ServiceExtractOption {
   timeout?: number;
 }
 
+export interface MidsceneYamlFlowItemRunGherkinScenario {
+  runGherkinScenario: string;
+}
+
 export interface MidsceneYamlFlowItemEvaluateJavaScript {
   javascript: string;
   name?: string;
@@ -306,6 +310,7 @@ export type MidsceneYamlFlowItem =
   | MidsceneYamlFlowItemAIAction
   | MidsceneYamlFlowItemAIAssert
   | MidsceneYamlFlowItemAIWaitFor
+  | MidsceneYamlFlowItemRunGherkinScenario
   | MidsceneYamlFlowItemEvaluateJavaScript
   | MidsceneYamlFlowItemSleep
   | MidsceneYamlFlowItemLogScreenshot;
