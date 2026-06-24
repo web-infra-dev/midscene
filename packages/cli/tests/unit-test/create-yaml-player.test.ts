@@ -32,6 +32,9 @@ vi.mock('@midscene/core/yaml', async (importOriginal) => {
 });
 
 vi.mock('@midscene/core/agent', () => ({
+  Agent: class MockAgent {
+    async destroy() {}
+  },
   createAgent: vi.fn(),
   getReportFileName: vi.fn((tag: string) => `${tag}-mock-report`),
 }));
