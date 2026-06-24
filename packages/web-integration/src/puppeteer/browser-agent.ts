@@ -2,6 +2,8 @@ import {
   type BrowserAgentAdapter,
   BrowserAgentPageController,
   BrowserAwareAgent,
+  appendBrowserAgentPageActions,
+  createBrowserAgentPageActions,
   resolveBrowserAgentRuntimeOptions,
 } from '@/common/browser-agent';
 import {
@@ -26,6 +28,8 @@ const createPuppeteerBrowserAdapter = (
   newPage: () => browser.newPage(),
   isPageClosed: (page) => page.isClosed(),
   bringToFront: (page) => page.bringToFront(),
+  pageTitle: (page) => page.title(),
+  pageUrl: (page) => page.url(),
   onNewPage: (handler) => browser.on('targetcreated', handler),
   offNewPage: (handler) => browser.off('targetcreated', handler),
   isNewPageEvent: (target) => target.type() === 'page',
@@ -86,9 +90,28 @@ export class PuppeteerBrowserAgent extends BrowserAwareAgent<
       newPageTimeout,
     });
     const { forceChromeSelectRendering } = agentOpts;
+    const pageControllerRef: {
+      current?: BrowserAgentPageController<PuppeteerPage, PuppeteerTarget>;
+    } = {};
+    const getPageController = () => {
+      if (!pageControllerRef.current) {
+        throw new Error(
+          '[midscene] PuppeteerBrowserAgent page controller is not initialized.',
+        );
+      }
+      return pageControllerRef.current;
+    };
+    const browserActions = createBrowserAgentPageActions({
+      agentName: 'PuppeteerBrowserAgent',
+      getPageController,
+    });
     const webPage = new PuppeteerWebPage(initialPage, {
       ...agentOpts,
       forceSameTabNavigation: runtimeOptions.forceSameTabNavigation,
+      customActions: appendBrowserAgentPageActions(
+        agentOpts.customActions,
+        browserActions,
+      ),
     });
     const pageController = new BrowserAgentPageController({
       agentName: 'PuppeteerBrowserAgent',
@@ -101,6 +124,7 @@ export class PuppeteerBrowserAgent extends BrowserAwareAgent<
       newPageTimeout: runtimeOptions.newPageTimeout,
       debug,
     });
+    pageControllerRef.current = pageController;
     super(webPage, agentOpts, pageController);
 
     applyForceChromeSelectRendering(
