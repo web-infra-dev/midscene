@@ -1,0 +1,750 @@
+import ShowcaseComputer from './showcases-computer.mdx';
+import StartExperience from './common/start-experience.mdx';
+import SetupEnv from './common/setup-env.mdx';
+
+import { PackageManagerTabs } from '@theme';
+
+# PC Desktop Automation Support
+
+Midscene can drive native keyboard and mouse controls to support PC desktop automation on Windows, macOS, and Linux.
+
+By leveraging a visual model solution, the automation process works with any desktop application—whether built with Electron, Qt, WPF, or native technologies. Developers only need to focus on the final user experience when debugging UI automation scripts.
+
+The PC desktop automation solution comes with all the features of Midscene:
+
+- Supports zero-code trial using Playground
+- Supports JavaScript SDK for scripting
+- Supports automation scripts in YAML format and command-line tools
+- Supports HTML reports to replay all operation paths
+- Works across Windows, macOS, and Linux platforms
+- Headless mode for Linux CI via Xvfb (no physical display required)
+- Multi-display support for complex setups
+
+## Showcases
+
+<ShowcaseComputer />
+
+See more showcases: [showcases](./showcases.mdx)
+
+This guide walks you through everything required to automate PC desktop applications with Midscene: install dependencies, configure model credentials, and run your first JavaScript script.
+
+:::info Demo Projects
+
+Control PC desktop with JavaScript: [https://github.com/web-infra-dev/midscene-example/tree/main/computer/javascript-sdk-demo](https://github.com/web-infra-dev/midscene-example/tree/main/computer/javascript-sdk-demo)
+
+Integrate Vitest for testing: [https://github.com/web-infra-dev/midscene-example/tree/main/computer/vitest-demo](https://github.com/web-infra-dev/midscene-example/tree/main/computer/vitest-demo)
+
+Control a remote Windows desktop over RDP: [https://github.com/web-infra-dev/midscene-example/tree/main/computer/rdp-demo](https://github.com/web-infra-dev/midscene-example/tree/main/computer/rdp-demo)
+
+Test [Obsidian](https://obsidian.md/) (an Electron app) on headless Linux CI with `@midscene/computer`: [https://github.com/web-infra-dev/midscene-example/tree/main/computer/electron-demo](https://github.com/web-infra-dev/midscene-example/tree/main/computer/electron-demo)
+
+:::
+
+<SetupEnv />
+
+## System Requirements
+
+### Node.js
+
+Node.js 18.19.0 or higher is required.
+
+### Platform-Specific Dependencies
+
+**macOS**: Accessibility permissions are required for keyboard and mouse control. When you run the script for the first time, macOS will prompt you to grant access. Go to **System Settings > Privacy & Security > Accessibility** and enable permissions for the application running your script (e.g., Terminal, iTerm2, VS Code, WebStorm, or other IDEs). For more details, see [nut.js macOS setup](https://github.com/nut-tree/nut.js#macos).
+
+**Windows**: No extra setup is needed for ordinary apps. However, Windows isolates input across privilege levels (UIPI): a non-elevated process **cannot** send mouse or keyboard input to a window that runs **as Administrator** (elevated). The input is silently dropped — the cursor still moves to the right spot, but clicks and keystrokes have no effect. Prefer running the target application without Administrator privileges. If the target application must stay elevated, run the terminal or Node.js that launches Midscene **as Administrator** too, so both processes share the same privilege level. See [Windows: clicks have no effect on some apps](#windows-clicks-have-no-effect-on-some-apps).
+
+**Linux**: [ImageMagick](https://imagemagick.org/script/download.php) is required for screenshot functionality.
+
+**Headless Linux (CI)**: To run desktop automation on a headless Linux server (e.g. GitHub Actions), install Xvfb and its dependencies, then enable headless mode:
+
+```bash
+# Install dependencies
+sudo apt-get install -y xvfb x11-xserver-utils imagemagick
+```
+
+```typescript
+// Option 1: Pass headless option
+const agent = await agentForComputer({ headless: true });
+
+// Option 2: Set environment variable
+// MIDSCENE_COMPUTER_HEADLESS_LINUX=true npx tsx example.ts
+```
+
+Xvfb creates a virtual display so that mouse, keyboard, and screenshot operations work without a physical monitor. See [API Reference](#api-reference) for details.
+
+## Try Playground (no code)
+
+Playground is the fastest way to validate the connection and observe AI-driven steps without writing code. It shares the same core as `@midscene/computer`, so anything that works here will behave the same once scripted.
+
+<video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/pc-twitter2.mp4" controls/>
+
+1. Launch the Playground CLI:
+
+```bash
+npx --yes @midscene/computer-playground
+```
+
+2. Click the gear icon in the Playground window, then paste your API key configuration. Refer back to [Model configuration](./model-config) if you still need credentials.
+
+## Start experiencing
+
+<StartExperience />
+
+## Integration with Midscene Agent
+
+Once Playground works, move to a repeatable script with the JavaScript SDK.
+
+### Step 1. Install dependencies
+
+<PackageManagerTabs command="install @midscene/computer" />
+
+### Step 2. Write your first script
+
+Create `example.ts`:
+
+```typescript
+import { agentForComputer } from '@midscene/computer';
+
+(async () => {
+  // Create an agent
+  const agent = await agentForComputer({
+    aiActionContext: 'You are controlling a desktop computer.',
+  });
+
+  // Take a screenshot and query information
+  const screenInfo = await agent.aiQuery(
+    '{width: number, height: number}, get screen resolution'
+  );
+  console.log('Screen resolution:', screenInfo);
+
+  // Move mouse to center
+  await agent.aiAct('move mouse to center of screen');
+
+  // Assert screen has content
+  await agent.aiAssert('The screen has visible content');
+
+  console.log('Desktop automation completed!');
+})();
+```
+
+### Step 3. Run the script
+
+```bash
+npx tsx example.ts
+```
+
+## Connect to a Remote Windows Desktop via RDP
+
+`@midscene/computer` can also drive a remote Windows desktop directly over the RDP protocol through the dedicated `agentForRDPComputer()` factory.
+
+### Prerequisites
+
+1. A reachable Windows machine with RDP enabled.
+2. [FreeRDP](https://www.freerdp.com/) installed on the machine running your script.
+
+### Example
+
+```typescript
+import { agentForRDPComputer } from '@midscene/computer';
+
+const agent = await agentForRDPComputer({
+  aiActionContext:
+    'You are controlling a remote Windows desktop over the RDP protocol.',
+  host: '10.75.166.249',
+  port: 3389,
+  username: 'Admin',
+  password: 'replace-with-your-password',
+  ignoreCertificate: true,
+});
+
+await agent.aiWaitFor('The remote Windows desktop is visible');
+await agent.aiAct('Click the Windows Start button');
+await agent.aiAct('Open Settings');
+await agent.aiAssert('The Windows Settings window is visible');
+```
+
+### Common RDP Options
+
+- `host`: Remote Windows host or IP.
+- `port`: RDP port. Defaults to `3389`.
+- `username` / `password`: Account credentials for the remote session.
+- `domain`: Optional Windows domain.
+- `ignoreCertificate`: Skip certificate validation for self-signed setups.
+- `desktopWidth` / `desktopHeight`: Request a specific remote desktop resolution.
+- `adminSession`: Request the remote admin session when the server allows it.
+
+RDP sessions are exposed to Midscene as a single remote display. You can still use the same `aiAct`, `aiQuery`, `aiAssert`, and report features as local desktop automation.
+
+## Multi-Display Support
+
+If you have multiple displays, you can control a specific one:
+
+```typescript
+import { ComputerDevice, agentForComputer } from '@midscene/computer';
+
+// List all displays
+const displays = await ComputerDevice.listDisplays();
+console.log('Available displays:', displays);
+
+// Connect to a specific display
+const agent = await agentForComputer({
+  displayId: displays[0].id,
+});
+```
+
+## Example Usage
+
+### Basic Mouse Operations
+
+```typescript
+// Click at center of screen
+await agent.aiAct('click mouse at center of screen');
+
+// Move mouse to a specific location
+await agent.aiAct('move mouse to top-left corner');
+
+// Double-click
+await agent.aiAct('double-click on the desktop icon');
+
+// Right-click
+await agent.aiAct('right-click to open context menu');
+```
+
+### Keyboard Operations
+
+```typescript
+// Type text
+await agent.aiAct('type "Hello World"');
+
+// Press keyboard shortcuts
+if (process.platform === 'darwin') {
+  await agent.aiAct('press Cmd+Space to open Spotlight');
+  await agent.aiAct('type "Calculator" and press Enter');
+} else {
+  await agent.aiAct('press Windows key');
+  await agent.aiAct('type "Calculator" and press Enter');
+}
+
+// Press function keys
+await agent.aiAct('press Escape');
+await agent.aiAct('press Enter');
+```
+
+### Query Information
+
+```typescript
+// Extract screen information
+const info = await agent.aiQuery(
+  '{hasDesktop: boolean, visibleApps: string[]}, check if desktop is visible and list visible apps'
+);
+
+// Locate elements
+const position = await agent.aiLocate('the File menu');
+console.log('File menu position:', position);
+```
+
+### Complex Workflows
+
+```typescript
+// Open an application and interact with it
+await agent.aiAct('open Finder');
+await agent.aiWaitFor('Finder window is visible');
+
+await agent.aiAct('click on Documents folder');
+await agent.aiAct('press Cmd+N to create new folder');
+await agent.aiAct('type "My Project"');
+await agent.aiAct('press Enter');
+
+await agent.aiAssert('A folder named "My Project" exists');
+```
+
+## Environment Check
+
+You can check if your system is properly configured:
+
+```typescript
+import { checkComputerEnvironment } from '@midscene/computer';
+
+const env = await checkComputerEnvironment();
+console.log('Platform:', env.platform);
+console.log('Available:', env.available);
+console.log('Displays:', env.displays);
+
+if (!env.available) {
+  console.error('Environment not available:', env.error);
+}
+```
+
+## FAQ
+
+### macOS: Script cannot control mouse or keyboard
+
+macOS requires Accessibility permissions for keyboard and mouse control. Go to **System Settings > Privacy & Security > Accessibility** and enable the toggle for the application running your script (e.g., Terminal, iTerm2, VS Code, or WebStorm).
+
+If you have already granted permission but it still doesn't work, try removing the app from the Accessibility list and re-adding it — macOS sometimes caches stale permissions.
+
+### Windows: clicks have no effect on some apps
+
+If the cursor moves to the correct position but clicks or key presses do nothing on a particular application — while other apps work fine — check whether the target app is running **as Administrator** (elevated). Windows UIPI blocks input injected from a lower-privilege process into an elevated window and drops it silently, with no error.
+
+Prefer lowering the target application's privilege level first, for example by launching it without "Run as Administrator" or disabling any setting that always starts it elevated. If the target app must stay elevated, run the terminal or Node.js that launches Midscene **as Administrator** so it matches the target app's privilege level, then try again. System-level shortcuts such as `Win+Tab` are handled by the shell and keep working even when this happens, which is why keyboard shortcuts may appear to work while in-app clicks do not.
+
+> The health check logged at connection time prints this troubleshooting link when Midscene is not running as Administrator on Windows.
+
+### Linux: Screenshots or interactions fail on a headless server
+
+A headless Linux environment (e.g. CI) has no physical display. You need to install Xvfb and ImageMagick, and enable headless mode:
+
+```bash
+sudo apt-get install -y xvfb x11-xserver-utils imagemagick
+```
+
+```typescript
+const agent = await agentForComputer({ headless: true });
+```
+
+Or set the environment variable:
+
+```bash
+MIDSCENE_COMPUTER_HEADLESS_LINUX=true npx tsx example.ts
+```
+
+## API reference {#api-reference}
+
+This section documents the PC desktop-specific APIs provided by `@midscene/computer`.
+
+For common APIs that work across all platforms, see [Common API Reference](./api).
+
+### Agent Creation
+
+`agentForComputer(opts?): Promise<ComputerAgent>`
+
+Create an agent for local desktop automation.
+
+> Backward compatibility: `agentFromComputer` is still available as an alias.
+
+`agentForRDPComputer(opts): Promise<ComputerAgent<RDPDevice>>`
+
+Create an agent for remote Windows desktop automation over RDP.
+
+**Parameters:**
+
+```typescript
+interface BaseComputerAgentOpt {
+  // Agent options (inherited from AgentOpt)
+  aiActionContext?: string;
+  cache?: boolean;
+  // ... other AgentOpt properties
+
+  customActions?: DeviceAction<any>[];
+}
+
+interface LocalComputerAgentOpt extends BaseComputerAgentOpt {
+
+  // Local desktop options
+  displayId?: string;
+  headless?: boolean;
+  xvfbResolution?: string;
+}
+
+interface RDPComputerAgentOpt extends BaseComputerAgentOpt {
+  host: string;
+  port?: number;
+  username?: string;
+  password?: string;
+  domain?: string;
+  adminSession?: boolean;
+  ignoreCertificate?: boolean;
+  securityProtocol?: 'auto' | 'tls' | 'nla' | 'rdp';
+  desktopWidth?: number;
+  desktopHeight?: number;
+}
+```
+
+#### Local Desktop Options
+
+- `displayId` (optional): Specify which display to control. Get available displays with `ComputerDevice.listDisplays()`.
+- `customActions` (optional): Add custom actions to the device.
+- `headless` (optional, Linux only): Set to `true` to start a virtual display via [Xvfb](https://www.x.org/releases/X11R7.6/doc/man/man1/Xvfb.1.xhtml), enabling desktop automation on headless Linux servers and CI environments without a physical display. Can also be set via the `MIDSCENE_COMPUTER_HEADLESS_LINUX=true` environment variable.
+- `xvfbResolution` (optional): Resolution for the Xvfb virtual display. Defaults to `'1920x1080x24'`.
+
+#### RDP Options
+
+- `host`: Remote Windows host or IP.
+- `port`: RDP port. Defaults to `3389`.
+- `username` / `password`: Credentials for the remote session.
+- `domain`: Optional Windows domain.
+- `adminSession`: Request the remote admin session when the server allows it.
+- `ignoreCertificate`: Skip certificate validation for self-signed setups.
+- `securityProtocol`: Choose `'auto'`, `'tls'`, `'nla'`, or `'rdp'`.
+- `desktopWidth` / `desktopHeight`: Request a specific remote desktop resolution.
+
+:::tip Example: Testing Electron Apps on Headless Linux CI
+A complete demo of testing [Obsidian](https://obsidian.md/) (an Electron app) on headless Linux CI with `@midscene/computer`: [https://github.com/web-infra-dev/midscene-example/tree/main/computer/electron-demo](https://github.com/web-infra-dev/midscene-example/tree/main/computer/electron-demo)
+:::
+
+**Example:**
+
+```typescript
+import { agentForComputer } from '@midscene/computer';
+
+// Connect to primary display
+const agent = await agentForComputer({
+  aiActionContext: 'You are automating a desktop application.',
+});
+
+// Connect to specific display
+const displays = await ComputerDevice.listDisplays();
+const agent2 = await agentForComputer({
+  displayId: displays[1].id,
+});
+```
+
+**Example: connect to a remote Windows desktop over RDP**
+
+```typescript
+import { agentForRDPComputer } from '@midscene/computer';
+
+const agent = await agentForRDPComputer({
+  aiActionContext:
+    'You are controlling a remote Windows desktop over the RDP protocol.',
+  host: '10.75.166.249',
+  port: 3389,
+  username: 'Admin',
+  password: 'replace-with-your-password',
+  // Optional: bind the TCP connection to this local source IP.
+  localAddress: '10.75.166.10',
+  ignoreCertificate: true,
+});
+
+await agent.aiWaitFor('The remote Windows desktop is visible');
+await agent.aiAct('Click the Windows Start button');
+await agent.aiAct('Open Settings');
+```
+
+:::tip Example: Remote Windows desktop over RDP
+A runnable demo that connects to a remote Windows machine over RDP, opens Settings, navigates into Windows Update, and emits a structured report: [https://github.com/web-infra-dev/midscene-example/tree/main/computer/rdp-demo](https://github.com/web-infra-dev/midscene-example/tree/main/computer/rdp-demo)
+:::
+
+Use `localAddress` only when the machine running Midscene has multiple outbound
+routes and the RDP server must be reached from a specific local source IP. Pass
+an IP address, not a network interface name.
+
+### Device Management
+
+`ComputerDevice.listDisplays(): Promise<DisplayInfo[]>`
+
+List all available displays.
+
+**Returns:**
+
+```typescript
+interface DisplayInfo {
+  id: string;
+  name: string;
+  primary?: boolean;
+}
+```
+
+**Example:**
+
+```typescript
+import { ComputerDevice } from '@midscene/computer';
+
+const displays = await ComputerDevice.listDisplays();
+console.log('Available displays:', displays);
+// [
+//   { id: '0', name: 'Built-in Display', primary: true },
+//   { id: '1', name: 'External Display', primary: false }
+// ]
+```
+
+`checkComputerEnvironment(): Promise<EnvironmentCheck>`
+
+Check if the computer environment is properly configured.
+
+**Returns:**
+
+```typescript
+interface EnvironmentCheck {
+  available: boolean;
+  error?: string;
+  platform: string;
+  displays: number;
+}
+```
+
+**Example:**
+
+```typescript
+import { checkComputerEnvironment } from '@midscene/computer';
+
+const env = await checkComputerEnvironment();
+console.log('Environment check:', env);
+
+if (!env.available) {
+  console.error('Environment error:', env.error);
+}
+```
+
+### ComputerAgent
+
+The `ComputerAgent` class extends `PageAgent<ComputerDevice>` and inherits all common agent methods:
+
+- `aiAct(action: string)`: Perform an action with AI
+- `aiQuery(query: string)`: Extract information with AI
+- `aiAssert(assertion: string)`: Assert a condition with AI
+- `aiWaitFor(condition: string)`: Wait for a condition
+- `aiLocate(description: string)`: Locate an element
+- And more...
+
+Instant actions are also available for direct, deterministic control once an element is located:
+
+- `aiTap()`, `aiDoubleClick()`, `aiRightClick()`, `aiHover()`: Mouse actions
+- `aiInput()`, `aiClearInput()`, `aiKeyboardPress()`: Keyboard actions
+- `aiScroll()`: Scroll action
+
+See [Common API Reference](./api) for details.
+
+### Available Actions
+
+The `ComputerDevice` supports the following actions:
+
+#### Mouse Actions
+
+##### Tap (Click)
+
+Single click at the target location.
+
+```typescript
+await agent.aiAct('click on the File menu');
+await agent.aiAct('click at center of screen');
+```
+
+##### DoubleClick
+
+Double-click at the target location.
+
+```typescript
+await agent.aiAct('double-click on the desktop icon');
+```
+
+##### RightClick
+
+Right-click to open context menu.
+
+```typescript
+await agent.aiAct('right-click on the desktop');
+await agent.aiAct('right-click on the file');
+```
+
+##### MouseMove (Hover)
+
+Move the mouse to an element — also known as hovering — for example to reveal a hover menu or tooltip.
+
+```typescript
+// Natural-language form (move mouse / hover)
+await agent.aiAct('move mouse to the menu item');
+
+// Instant action: locate and hover in one call
+await agent.aiHover('the menu item "Products"');
+```
+
+##### DragAndDrop
+
+Drag from one location and drop at another.
+
+```typescript
+await agent.aiAct('drag the file to the folder');
+```
+
+#### Keyboard Actions
+
+##### KeyboardPress
+
+Press keyboard keys with optional modifiers.
+
+**Supported keys:**
+- Regular keys: `a-z`, `0-9`, `Enter`, `Escape`, `Space`, `Tab`, etc.
+- Arrow keys: `ArrowUp`, `ArrowDown`, `ArrowLeft`, `ArrowRight`
+- Function keys: `F1`-`F12`
+- Modifiers: `Command`/`Cmd` (macOS), `Control`/`Ctrl`, `Alt`, `Shift`, `Win` (Windows)
+- Media keys: `VolumeUp`, `VolumeDown`, `Mute`, etc.
+
+**Examples:**
+
+```typescript
+// Simple key press
+await agent.aiAct('press Enter');
+await agent.aiAct('press Escape');
+
+// Key combinations (platform-specific)
+if (process.platform === 'darwin') {
+  // macOS
+  await agent.aiAct('press Cmd+Space');  // Open Spotlight
+  await agent.aiAct('press Cmd+Tab');    // App switcher
+  await agent.aiAct('press Cmd+C');      // Copy
+  await agent.aiAct('press Cmd+V');      // Paste
+} else {
+  // Windows/Linux
+  await agent.aiAct('press Windows key'); // Start menu
+  await agent.aiAct('press Alt+Tab');     // App switcher
+  await agent.aiAct('press Ctrl+C');      // Copy
+  await agent.aiAct('press Ctrl+V');      // Paste
+}
+
+// Arrow keys
+await agent.aiAct('press ArrowDown');
+await agent.aiAct('press ArrowUp');
+
+// Function keys
+await agent.aiAct('press F5');  // Refresh
+```
+
+##### Input
+
+Type text into an input field.
+
+```typescript
+await agent.aiAct('type "Hello World" in the search box');
+await agent.aiAct('type "my-document.txt"');
+```
+
+##### ClearInput
+
+Clear the content of an input field.
+
+```typescript
+await agent.aiAct('clear the text field');
+```
+
+#### Scroll Actions
+
+Scroll the screen or a specific area.
+
+```typescript
+// Scroll directions
+await agent.aiAct('scroll down');
+await agent.aiAct('scroll up');
+await agent.aiAct('scroll left');
+await agent.aiAct('scroll right');
+
+// Scroll to positions
+await agent.aiAct('scroll to top');
+await agent.aiAct('scroll to bottom');
+```
+
+#### Display Actions
+
+##### ListDisplays
+
+Get information about all connected displays.
+
+```typescript
+const displays = await ComputerDevice.listDisplays();
+```
+
+When you use RDP, `ListDisplays` returns the current remote session as a single display.
+
+### Examples
+
+#### Open Application and Navigate
+
+```typescript
+import { agentForComputer } from '@midscene/computer';
+
+const agent = await agentForComputer();
+
+// Open application
+if (process.platform === 'darwin') {
+  await agent.aiAct('press Cmd+Space');
+  await agent.aiAct('type "TextEdit" and press Enter');
+} else {
+  await agent.aiAct('press Windows key');
+  await agent.aiAct('type "Notepad" and press Enter');
+}
+
+await agent.aiWaitFor('text editor window is visible');
+
+// Type content
+await agent.aiAct('type "Hello, Midscene!"');
+
+// Save file
+if (process.platform === 'darwin') {
+  await agent.aiAct('press Cmd+S');
+} else {
+  await agent.aiAct('press Ctrl+S');
+}
+```
+
+#### Multi-Display Workflow
+
+```typescript
+import { ComputerDevice, agentForComputer } from '@midscene/computer';
+
+// List displays
+const displays = await ComputerDevice.listDisplays();
+console.log(`Found ${displays.length} displays`);
+
+// Control primary display
+const agent1 = await agentForComputer({
+  displayId: displays[0].id,
+});
+await agent1.aiAct('move mouse to center of screen');
+
+// Control secondary display
+if (displays.length > 1) {
+  const agent2 = await agentForComputer({
+    displayId: displays[1].id,
+  });
+  await agent2.aiAct('move mouse to center of screen');
+}
+```
+
+#### Web Browser Automation
+
+```typescript
+import { agentForComputer } from '@midscene/computer';
+
+const agent = await agentForComputer();
+
+// Open browser
+if (process.platform === 'darwin') {
+  await agent.aiAct('press Cmd+Space');
+  await agent.aiAct('type "Safari" and press Enter');
+} else {
+  await agent.aiAct('press Windows key');
+  await agent.aiAct('type "Chrome" and press Enter');
+}
+
+await agent.aiWaitFor('browser window is open');
+
+// Navigate
+await agent.aiAct('click on address bar');
+await agent.aiAct('type "example.com" and press Enter');
+await agent.aiWaitFor('page has loaded');
+
+// Extract information
+const title = await agent.aiQuery('string, get the page title');
+console.log('Page title:', title);
+```
+
+### TypeScript Types
+
+```typescript
+import type {
+  ComputerAgent,
+  ComputerAgentOpt,
+  ComputerDevice,
+  ComputerDeviceOpt,
+  DisplayInfo,
+  EnvironmentCheck,
+} from '@midscene/computer';
+```
+
+### See Also
+
+- [Common API Reference](./api) - APIs that work across all platforms
+- [Model Configuration](./model-config) - Configure AI models
+- [Caching](./caching) - Improve performance with caching

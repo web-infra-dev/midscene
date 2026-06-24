@@ -1,0 +1,553 @@
+import StartExperience from './common/start-experience.mdx';
+import ShowcaseAndroid from './showcases-android.mdx';
+import SetupEnv from './common/setup-env.mdx';
+
+import { PackageManagerTabs } from '@theme';
+
+# Android 自动化支持
+
+Midscene 可以驱动 adb 工具来实现 Android 自动化。
+
+由于适配了视觉模型方案，整个自动化过程可以适配任意的 App 技术栈，无论是 Native、Flutter 还是 React Native 构建的 App 或小程序都能使用。开发者只需面向最终效果调试 UI 自动化脚本即可。
+
+Android UI 自动化解决方案具备 Midscene 的全部特性：
+
+- 支持使用 Playground 进行零代码试用。
+- 支持 JavaScript SDK。
+- 支持使用 YAML 格式的自动化脚本和命令行工具。
+- 支持生成 HTML 报告来回放所有操作路径。
+
+## 案例展示
+
+<ShowcaseAndroid />
+
+查看更多案例：[showcases](./showcases.mdx)
+
+本指南将带你完成使用 Midscene 自动化 Android 设备所需的一切：通过 adb 连接真机、配置模型 API Key、体验零代码 Playground，并运行你的首个 JavaScript 脚本。
+
+:::info 示例项目
+
+使用 JavaScript 控制 Android 设备：[https://github.com/web-infra-dev/midscene-example/blob/main/android/javascript-sdk-demo](https://github.com/web-infra-dev/midscene-example/blob/main/android/javascript-sdk-demo)
+
+集成 Vitest 进行测试：[https://github.com/web-infra-dev/midscene-example/tree/main/android/vitest-demo](https://github.com/web-infra-dev/midscene-example/tree/main/android/vitest-demo)
+
+:::
+
+<SetupEnv />
+
+## 准备工作
+
+在编写脚本前，先确认 adb 能够连接设备且设备信任当前电脑。
+
+### 安装 adb 并设置 `ANDROID_HOME`
+
+- 通过 [Android Studio](https://developer.android.com/studio) 或 [命令行工具](https://developer.android.com/studio#command-line-tools-only) 安装 adb
+- 验证安装是否成功：
+
+```bash
+adb --version
+```
+
+出现类似输出表示安装成功：
+
+```log
+Android Debug Bridge version 1.0.41
+Version 34.0.4-10411341
+Installed as /usr/local/bin//adb
+Running on Darwin 24.3.0 (arm64)
+```
+
+- 按 [Android environment variables](https://developer.android.com/tools/variables) 设置 `ANDROID_HOME`，并验证：
+
+```bash
+echo $ANDROID_HOME
+```
+
+有输出即代表配置成功：
+
+```log
+/Users/your_username/Library/Android/sdk
+```
+
+### 启用 USB 调试并验证设备
+
+在系统设置的开发者选项中开启 **USB 调试**（若有 **USB 调试（安全设置）** 也请一并开启），然后用数据线连接手机。
+
+<p align="center">
+  <img src="/android-usb-debug-en.png" alt="android usb debug" width="400"/>
+</p>
+
+验证连接：
+
+```bash
+adb devices -l
+```
+
+出现类似输出代表连接成功：
+
+```log
+List of devices attached
+s4ey59	device usb:34603008X product:cezanne model:M2006J device:cezan transport_id:3
+```
+
+## 试用 Playground（零代码）
+
+Playground 是验证连接、观察 AI Agent 的最快方式，无需编写代码。它与 `@midscene/android` 共享相同的代码实现，因此在 Playground 上验证通过的流程，用脚本运行时也完全一致。
+
+<video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/booking2.mp4" controls/>
+
+1. 启动 Playground CLI：
+
+```bash
+npx --yes @midscene/android-playground
+```
+
+2. 点击 Playground 窗口中的齿轮按钮，粘贴你的 API Key 配置。如果还没有 API Key，请回到 [模型配置](./model-config) 获取。
+
+![](/android-set-env.png)
+
+## 开始体验
+
+<StartExperience />
+
+## 集成 Midscene Agent
+
+当 Playground 运行正常后，就可以切换到可复用的 JavaScript 脚本。
+
+### 第 1 步：安装依赖
+
+<PackageManagerTabs command="install @midscene/android dotenv --save-dev" />
+
+### 第 2 步：编写脚本
+
+下面的示例会在设备上打开浏览器、搜索 eBay，并断言结果列表。
+
+```typescript title="./demo.ts"
+import 'dotenv/config'; // 通过 dotenv/config 自动加载 .env 文件中的环境变量
+import {
+  AndroidAgent,
+  AndroidDevice,
+  getConnectedDevices,
+} from '@midscene/android';
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+Promise.resolve(
+  (async () => {
+    const devices = await getConnectedDevices();
+    const device = new AndroidDevice(devices[0].udid);
+
+    const agent = new AndroidAgent(device, {
+      aiActionContext:
+        'If any location, permission, user agreement, etc. popup, click agree. If login page pops up, close it.',
+    });
+    await device.connect();
+
+    await agent.aiAct('open browser and navigate to ebay.com');
+    await sleep(5000);
+    await agent.aiAct('type "Headphones" in search box, hit Enter');
+    await agent.aiWaitFor('There is at least one headphone product');
+
+    const items = await agent.aiQuery(
+      '{itemTitle: string, price: Number}[], find item in list and corresponding price',
+    );
+    console.log('headphones in stock', items);
+
+    await agent.aiAssert('There is a category filter on the left');
+  })(),
+);
+```
+
+### 第 3 步：运行示例
+
+```bash
+npx tsx demo.ts
+```
+
+### 第 4 步：查看报告
+
+脚本成功后会输出 `Midscene - report file updated: /path/to/report/some_id.html`。在浏览器中打开该 HTML 文件即可回放每一步交互、查询与断言。
+
+## 进阶
+
+当你需要自定义设备行为、把 Midscene 接入独立框架，或排查 adb 问题时，可参考本节内容。更多构造函数参数可前往 [API 参考（Android）](#api-reference)。
+
+### 扩展 Android 上的 Midscene
+
+使用 `defineAction()` 定义自定义手势，并通过 `customActions` 传入。Midscene 会把自定义动作追加到规划器中，让 AI 可以调用你领域特定的动作名。
+
+```typescript
+import { getMidsceneLocationSchema, z } from '@midscene/core';
+import { defineAction } from '@midscene/core/device';
+import { AndroidAgent, AndroidDevice, getConnectedDevices } from '@midscene/android';
+
+const ContinuousClick = defineAction({
+  name: 'continuousClick',
+  description: 'Click the same target repeatedly',
+  paramSchema: z.object({
+    locate: getMidsceneLocationSchema(),
+    count: z.number().int().positive().describe('How many times to click'),
+  }),
+  async call(param) {
+    const { locate, count } = param;
+    console.log('click target center', locate.center);
+    console.log('click count', count);
+  },
+});
+
+const devices = await getConnectedDevices();
+const device = new AndroidDevice(devices[0].udid);
+await device.connect();
+
+const agent = new AndroidAgent(device, {
+  customActions: [ContinuousClick],
+});
+
+await agent.aiAct('click the red button five times');
+```
+
+关于自定义动作和动作 Schema 的更多解释，请参阅 [与任意界面集成](./integrate-with-any-interface#define-a-custom-action)。
+
+## 常见问题
+
+### 为什么连接了设备，但仍然无法控制？
+
+一个典型的错误信息是：
+
+```
+Error:
+Exception occurred while executing 'tap':
+java.lang.SecurityException: Injecting input events requires the caller (or the source of the instrumentation, if any) to have the INJECT_EVENTS permission.
+```
+
+请在系统设置的开发者选项中确认以下选项已开启：
+
+1. **USB 调试**
+2. **USB 调试（安全设置）**（如果存在）
+
+<p align="center">
+  <img src="/android-usb-debug.png" alt="android usb debug" width="400" />
+</p>
+
+### 输入文本后，输入框内容被清空或消失
+
+Midscene 在输入文本后会自动隐藏键盘，默认行为是发送 **ESC 按键事件**。然而，部分输入框（尤其是 WebView 中的输入框）会监听 ESC 按键事件，导致以下副作用：
+
+- 清空刚输入的文本
+- 关闭包含输入框的弹窗或模态框
+- 导航离开当前页面
+
+你可以按以下优先级逐步尝试解决：
+
+**方案一：改用 BACK 键(Android 返回键)隐藏键盘**
+
+将 `keyboardDismissStrategy` 设为 `'back-first'`，用 Android BACK 键替代 ESC 键来隐藏键盘：
+
+```typescript
+const device = new AndroidDevice('device-id', {
+  keyboardDismissStrategy: 'back-first',
+});
+```
+
+**方案二：关闭自动隐藏键盘**
+
+如果你的输入框同时监听了 BACK 键，可以彻底关闭自动隐藏键盘，由 AI Agent 或后续操作自行管理键盘状态：
+
+```typescript
+const device = new AndroidDevice('device-id', {
+  autoDismissKeyboard: false,
+});
+```
+
+关闭后键盘不会自动隐藏，可能导致键盘覆盖大量屏幕区域。你可以通过以下方式应对：
+
+- 使用 `aiAct` 指令手动隐藏键盘，例如 `await agent.aiAct('点击键盘上的收起按钮')`
+- 安装并切换到 [ADBKeyBoard](https://github.com/senzhk/ADBKeyBoard)——这是一款极小面积的虚拟键盘，即使不隐藏也几乎不影响屏幕操作
+
+### 英文文本被 Android 输入法改写
+
+如果报告中显示的输入参数是正确的，但 App 实际收到的是不同文本、缺字，或被改成中文/拼音候选词，通常是当前 Android 输入法改写了输入内容。纯 ASCII 文本如果走原生 `adb input text` 路径，在中文输入法或带自动纠错的输入法下就可能出现这个问题。
+
+使用已有的 `imeStrategy` 选项，将所有文本输入强制改为 yadb：
+
+```typescript
+const device = new AndroidDevice('device-id', {
+  imeStrategy: 'always-yadb',
+});
+```
+
+YAML 脚本中可以这样配置：
+
+```yaml
+android:
+  imeStrategy: always-yadb
+```
+
+也可以通过环境变量设置：
+
+```bash
+export MIDSCENE_ANDROID_IME_STRATEGY=always-yadb
+```
+
+这和“输入后被清空”不是同一个问题。如果文本先正确输入、随后消失，请优先检查 `keyboardDismissStrategy` 或 `autoDismissKeyboard`。
+
+### 如何使用自定义的 adb 路径或远程 adb 服务器？
+
+通过环境变量设置：
+
+```bash
+export MIDSCENE_ADB_PATH=/path/to/adb
+export MIDSCENE_ADB_REMOTE_HOST=192.168.1.100
+export MIDSCENE_ADB_REMOTE_PORT=5037
+```
+
+也可以通过 AndroidDevice 构造函数传入：
+
+```typescript
+const device = new AndroidDevice('s4ey59', {
+  androidAdbPath: '/path/to/adb',
+  remoteAdbHost: '192.168.1.100',
+  remoteAdbPort: 5037,
+});
+```
+
+## 更多
+
+- 查看所有 Agent 方法：[API 参考（通用）](./api#interaction-methods)
+- Android 专属参数与接口：[Android Agent API](#api-reference)
+- 示例项目
+  - Android JavaScript SDK 示例：[https://github.com/web-infra-dev/midscene-example/blob/main/android/javascript-sdk-demo](https://github.com/web-infra-dev/midscene-example/blob/main/android/javascript-sdk-demo)
+  - Android + Vitest 示例：[https://github.com/web-infra-dev/midscene-example/tree/main/android/vitest-demo](https://github.com/web-infra-dev/midscene-example/tree/main/android/vitest-demo)
+
+## API 参考 {#api-reference}
+
+当你需要自定义设备行为、把 Midscene 接入框架，或排查 adb 问题时，请查阅本节。关于通用构造函数（报告、Hook、缓存等）的参数说明，请参考平台无关的 [API 参考](./api)。
+
+### Action Space（动作空间）
+
+`AndroidDevice` 使用以下动作空间，Midscene Agent 在规划任务时可以使用这些操作：
+
+- `Tap` —— 点击元素。
+- `DoubleClick` —— 双击元素。
+- `Input` —— 输入文本，支持 `replace`/`typeOnly`/`clear` 模式（`append` 是 `typeOnly` 的已废弃别名）。支持可选参数 `autoDismissKeyboard`。
+- `Scroll` —— 以元素为起点或从屏幕中央向上/下/左/右滚动，支持滚动到顶/底/左/右。
+- `DragAndDrop` —— 从一个元素拖拽到另一个元素。
+- `KeyboardPress` —— 按下指定键位。
+- `LongPress` —— 长按目标元素，可选自定义时长。
+- `PullGesture` —— 上拉或下拉（如下拉刷新），可选距离与持续时间。
+- `Pinch` —— 双指缩放手势。`scale > 1` 放大，`scale < 1` 缩小。
+- `ClearInput` —— 清空输入框内容。
+- `Launch` —— 打开网页或 `package/.Activity`。
+- `Terminate` —— 按包名强制停止应用。
+- `RunAdbShell` —— 执行原始 `adb shell` 命令。
+- `AndroidBackButton` —— 触发系统返回。
+- `AndroidHomeButton` —— 回到桌面。
+- `AndroidRecentAppsButton` —— 打开多任务/最近应用。
+
+### AndroidDevice {#androiddevice}
+
+创建一个可供 AndroidAgent 驱动的 adb 设备实例。
+
+#### 导入
+
+```ts
+import { AndroidDevice, getConnectedDevices } from '@midscene/android';
+```
+
+#### 构造函数
+
+```ts
+const device = new AndroidDevice(deviceId, {
+  // 设备参数...
+});
+```
+
+#### 设备选项
+
+- `deviceId: string` —— 来自 `adb devices` 或 `getConnectedDevices()` 的值。
+- `autoDismissKeyboard?: boolean` —— 输入完成后自动隐藏键盘，默认 `true`。
+- `keyboardDismissStrategy?: 'esc-first' | 'back-first'` —— 关闭键盘的顺序，默认 `'esc-first'`。
+- `androidAdbPath?: string` —— adb 可执行文件的自定义路径。
+- `remoteAdbHost?: string` / `remoteAdbPort?: number` —— 指向远程 adb server。
+- `imeStrategy?: 'always-yadb' | 'yadb-for-non-ascii'` —— 控制何时调用 [yadb](https://github.com/ysbing/YADB) 进行文本输入，默认 `'yadb-for-non-ascii'`。
+  - `'yadb-for-non-ascii'`（默认）—— 对 Unicode 字符（包括 Latin Unicode 如 ö、é、ñ）、中文、日文以及格式化符号（如 %s、%d）使用 yadb。纯 ASCII 文本使用更快的原生 `adb input text`。
+  - `'always-yadb'` —— 对所有文本输入始终使用 yadb，提供最大兼容性，但对纯 ASCII 文本稍慢。
+- `displayId?: number` —— 在设备镜像多个屏幕时，选择特定虚拟屏幕。
+- `screenshotResizeScale?: number` —— **已废弃。** 此选项已移除，不再生效。如需控制发送给 AI 模型的截图尺寸，请使用 `AgentOpt` 中的 `screenshotShrinkFactor`。
+- `minScreenshotBufferSize?: number` —— 截图 buffer 大小校验阈值，单位为字节；低于该值的 buffer 会被视为截图采集失败或已损坏。默认 `1024`（1KB）。设置为 `0` 仅跳过此大小校验；Midscene 仍会拒绝空 buffer 和无效图片格式。
+- `alwaysRefreshScreenInfo?: boolean` —— 每一步都重新查询旋转角度与屏幕尺寸，默认 `false`。
+- `scrcpyConfig?: object` —— Scrcpy 高性能截图配置，默认关闭。详见下方 [Scrcpy 截图模式](#scrcpy)。
+
+#### Scrcpy 截图模式 {#scrcpy}
+
+默认情况下，Midscene 通过 `adb shell screencap` 截图，每次耗时约 500–2000ms。开启 Scrcpy 模式后，通过 H.264 视频流实时获取画面，每次截图耗时约 **100–200ms**。
+
+**开启方式：**
+
+```ts
+const device = new AndroidDevice(deviceId, {
+  scrcpyConfig: {
+    enabled: true,
+  },
+});
+```
+
+**可选参数：**
+
+| 参数 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `enabled` | `boolean` | `false` | 是否启用 Scrcpy 截图 |
+| `maxSize` | `number` | `0` | 视频流最大分辨率（宽或高），`0` 表示不缩放 |
+| `videoBitRate` | `number` | `2000000` | H.264 编码码率（bps） |
+| `idleTimeoutMs` | `number` | `30000` | 空闲超时后自动断开连接（ms），设为 `0` 禁用 |
+
+:::tip
+Scrcpy 模式在连接失败时会自动降级到 ADB 截图，无需额外处理。
+:::
+
+#### 使用说明
+
+- 可以使用 `getConnectedDevices()` 发现设备，`udid` 与 `adb devices` 输出一致。
+- 可以使用 `remoteAdbHost/remoteAdbPort` 连接远程 adb；如果 adb 不在 PATH 中，可设置 `androidAdbPath`。
+
+#### 示例
+
+##### 快速开始
+
+```ts
+import { AndroidAgent, AndroidDevice, getConnectedDevices } from '@midscene/android';
+
+const [first] = await getConnectedDevices();
+const device = new AndroidDevice(first.udid);
+await device.connect();
+
+const agent = new AndroidAgent(device, {
+  aiActionContext: 'If a permissions dialog appears, accept it.',
+});
+
+await agent.launch('https://www.ebay.com');
+await agent.aiAct('search "Headphones" and wait for results');
+const items = await agent.aiQuery(
+  '{itemTitle: string, price: number}[], find item in list and corresponding price',
+);
+console.log(items);
+```
+
+##### 启动原生 App
+
+```ts
+await agent.launch('com.android.settings/.Settings');
+await agent.back();
+await agent.home();
+```
+
+### AndroidAgent {#androidagent}
+
+将 Midscene 的 AI 规划能力绑定到 AndroidDevice，实现 UI 自动化。
+
+#### 导入
+
+```ts
+import { AndroidAgent } from '@midscene/android';
+```
+
+#### 构造函数
+
+```ts
+const agent = new AndroidAgent(device, {
+  // 通用 Agent 参数...
+});
+```
+
+#### Android 特有选项
+
+- `customActions?: DeviceAction[]` —— 通过 `defineAction` 扩展规划器的可用动作。
+- `appNameMapping?: Record<string, string>` —— 将友好的应用名称映射到包名。当你在 `launch(target)` 里传入应用名称时，Agent 会在此映射中查找对应的包名；若未找到映射，则按原样尝试启动 `target`。
+- 其余字段与 [API constructors](./api#common-parameters) 一致：`generateReport`、`reportFileName`、`aiActionContext`、`modelConfig`、`cacheId`、`createOpenAIClient`、`onTaskStartTip` 等。
+
+#### 使用说明
+
+:::info
+
+- 一个设备连接对应一个 Agent。
+- `launch`、`terminate`、`runAdbShell` 等 Android 专属辅助函数也可在 YAML 脚本中使用，语法见 [Android 平台特定动作](./automate-with-scripts-in-yaml#the-android-part)。
+- 通用交互方法请查阅 [API 参考（通用）](./api#interaction-methods)。
+
+:::
+
+#### Android 特有方法
+
+##### `agent.launch()`
+
+启动网页或原生 Android activity/package。
+
+```ts
+function launch(target: string): Promise<void>;
+```
+
+- `target: string` —— 可以是网页 URL，也可以是 `package/.Activity` 形式的字符串，例如 `com.android.settings/.Settings`，也可以是应用包名、URL 或应用名称。若传入应用名称且在 `appNameMapping` 中存在映射，将自动解析为对应包名；若未找到映射，则直接按 `target` 启动。
+
+##### `agent.runAdbShell()`
+
+通过连接的设备运行原始的 `adb shell` 命令。传入的内容只需要包含 shell 命令本身，不要包含 `adb shell` 前缀。
+
+```ts
+function runAdbShell(command: string, opt?: { timeout?: number }): Promise<string>;
+```
+
+- `command: string` —— 原样传递给 `adb shell` 的命令。例如要传 `input tap 100 200`，不要传 `adb shell input tap 100 200`。
+- `opt.timeout?: number` —— 可选的命令执行超时时间，单位为毫秒。
+
+```ts
+const result = await agent.runAdbShell('dumpsys battery', { timeout: 60 * 1000 });
+console.log(result);
+
+await agent.runAdbShell('input tap 100 200');
+```
+
+##### `agent.terminate()`
+
+终止（强制停止）正在运行的 Android 应用。
+
+```ts
+function terminate(uri: string): Promise<void>;
+```
+
+- `uri: string` —— 应用包名、`appNameMapping` 中的应用名称，或 `package/.Activity`（仅使用包名部分）。
+
+```ts
+await agent.terminate('com.android.settings');
+```
+
+##### 导航辅助
+
+- `agent.back(): Promise<void>` —— 触发 Android 系统的返回操作。
+- `agent.home(): Promise<void>` —— 返回桌面。
+- `agent.recentApps(): Promise<void>` —— 打开多任务/最近应用界面。
+
+#### 辅助工具
+
+##### `agentFromAdbDevice()`
+
+从任意已连接的 adb 设备创建 `AndroidAgent`。
+
+```ts
+function agentFromAdbDevice(
+  deviceId?: string,
+  opts?: PageAgentOpt & AndroidDeviceOpt,
+): Promise<AndroidAgent>;
+```
+
+- `deviceId?: string` —— 连接特定设备；留空表示使用“第一个可用设备”。
+- `opts?: PageAgentOpt & AndroidDeviceOpt` —— 在一个对象中合并 Agent 选项与 [`AndroidDevice`](#androiddevice) 的设置。
+
+##### `getConnectedDevices()`
+
+列举 Midscene 可驱动的 adb 设备。
+
+```ts
+function getConnectedDevices(): Promise<Array<{
+  udid: string;
+  state: string;
+  port?: number;
+}>>;
+```

@@ -1,9 +1,27 @@
 import StartExperience from './common/start-experience.mdx';
+import ShowcaseAndroid from './showcases-android.mdx';
 import SetupEnv from './common/setup-env.mdx';
 
 import { PackageManagerTabs } from '@theme';
 
-# Android Getting Started
+# Android Automation Support
+
+Midscene can drive adb tools to support Android automation.
+
+By adapting a visual model solution, the automation process works with any app tech stack—whether built with Native, Flutter, React Native, or Lynx. Developers only need to focus on the final experience when debugging UI automation scripts.
+
+The Android UI automation solution comes with all the features of Midscene:
+
+- Supports zero-code trial using Playground.
+- Supports JavaScript SDK.
+- Supports automation scripts in YAML format and command-line tools.
+- Supports HTML reports to replay all operation paths.
+
+## Showcases
+
+<ShowcaseAndroid />
+
+See more showcases: [showcases](./showcases.mdx)
 
 This guide walks you through everything required to automate an Android device with Midscene: connect a real phone over adb, configure model credentials, try the no-code Playground, and run your first JavaScript script.
 
@@ -151,7 +169,7 @@ Successful runs print `Midscene - report file updated: /path/to/report/some_id.h
 
 ## Advanced
 
-Use this section when you need to customize device behavior, wire Midscene into your framework, or troubleshoot adb issues. For detailed constructor parameters, jump to the [API reference(Android)](./android-api-reference).
+Use this section when you need to customize device behavior, wire Midscene into your framework, or troubleshoot adb issues. For detailed constructor parameters, jump to the [API reference(Android)](#api-reference).
 
 ### Extend Midscene on Android
 
@@ -192,7 +210,7 @@ See [Integrate with any interface](./integrate-with-any-interface#define-a-custo
 ## More
 
 - For every Agent method, check the [API reference (Common)](./api#interaction-methods).
-- For the Android API reference, see [Android Agent API](./android-api-reference).
+- For the Android API reference, see [Android Agent API](#api-reference).
 - Demo projects
   - Android JavaScript SDK demo: [https://github.com/web-infra-dev/midscene-example/blob/main/android/javascript-sdk-demo](https://github.com/web-infra-dev/midscene-example/blob/main/android/javascript-sdk-demo)
   - Android + Vitest demo: [https://github.com/web-infra-dev/midscene-example/tree/main/android/vitest-demo](https://github.com/web-infra-dev/midscene-example/tree/main/android/vitest-demo)
@@ -393,4 +411,239 @@ const device = new AndroidDevice('s4ey59', {
   remoteAdbHost: '192.168.1.100',
   remoteAdbPort: 5037,
 });
+```
+
+## API reference {#api-reference}
+
+Use this doc when you need to customize Midscene's Android automation or review Android-only constructor options. For shared parameters (reporting, hooks, caching, etc.), see the platform-agnostic [API reference (Common)](./api).
+
+### Action Space
+
+`AndroidDevice` uses the following action space; the Midscene Agent can use these actions while planning tasks:
+
+- `Tap` &mdash; Tap an element.
+- `DoubleClick` &mdash; Double-tap an element.
+- `Input` &mdash; Enter text with `replace`/`typeOnly`/`clear` modes (`append` is a deprecated alias for `typeOnly`). Supports optional `autoDismissKeyboard` parameter.
+- `Scroll` &mdash; Scroll from an element or screen center in any direction, with helpers to reach the top, bottom, left, or right.
+- `DragAndDrop` &mdash; Drag from one element to another.
+- `KeyboardPress` &mdash; Press a specified key.
+- `LongPress` &mdash; Long-press a target element with optional duration.
+- `PullGesture` &mdash; Pull up or down (e.g., to refresh) with optional distance and duration.
+- `Pinch` &mdash; Two-finger pinch gesture. Use `scale > 1` to zoom in, `scale < 1` to zoom out.
+- `ClearInput` &mdash; Clear the contents of an input field.
+- `Launch` &mdash; Open a web URL or `package/.Activity` string.
+- `Terminate` &mdash; Force-stop an app by package name.
+- `RunAdbShell` &mdash; Execute raw `adb shell` commands.
+- `AndroidBackButton` &mdash; Trigger the system back action.
+- `AndroidHomeButton` &mdash; Return to the home screen.
+- `AndroidRecentAppsButton` &mdash; Open the multitasking/recent apps view.
+
+### AndroidDevice {#androiddevice}
+
+Create a connection to an adb-managed device that an AndroidAgent can drive.
+
+#### Import
+
+```ts
+import { AndroidDevice, getConnectedDevices } from '@midscene/android';
+```
+
+#### Constructor
+
+```ts
+const device = new AndroidDevice(deviceId, {
+  // device options...
+});
+```
+
+#### Device options
+
+- `deviceId: string` &mdash; Value returned by `adb devices` or `getConnectedDevices()`.
+- `autoDismissKeyboard?: boolean` &mdash; Automatically hide the keyboard after input. Default `true`.
+- `keyboardDismissStrategy?: 'esc-first' | 'back-first'` &mdash; Order for dismissing keyboards. Default `'esc-first'`.
+- `androidAdbPath?: string` &mdash; Custom path to the adb executable.
+- `remoteAdbHost?: string` / `remoteAdbPort?: number` &mdash; Point to a remote adb server.
+- `imeStrategy?: 'always-yadb' | 'yadb-for-non-ascii'` &mdash; Choose when to invoke [yadb](https://github.com/ysbing/YADB) for text input. Default `'yadb-for-non-ascii'`.
+  - `'yadb-for-non-ascii'` (default) &mdash; Uses yadb for Unicode characters (including Latin Unicode like ö, é, ñ), Chinese, Japanese, and format specifiers (like %s, %d). Pure ASCII text uses the faster native `adb input text`.
+  - `'always-yadb'` &mdash; Always uses yadb for all text input, providing maximum compatibility but slightly slower for pure ASCII text.
+- `displayId?: number` &mdash; Target a specific virtual display if the device mirrors multiple displays.
+- `screenshotResizeScale?: number` &mdash; **Deprecated.** This option has been removed and no longer has any effect. Use `screenshotShrinkFactor` in `AgentOpt` instead to control screenshot size sent to the AI model.
+- `minScreenshotBufferSize?: number` &mdash; Screenshot buffer size validation threshold in bytes. Buffers below this value are treated as failed or corrupted captures. Default `1024` (1KB). Set to `0` to skip only this size check; Midscene still rejects empty buffers and invalid image formats.
+- `alwaysRefreshScreenInfo?: boolean` &mdash; Re-query rotation and screen size every step. Default `false`.
+- `scrcpyConfig?: object` &mdash; Scrcpy high-performance screenshot configuration, disabled by default. See [Scrcpy Screenshot Mode](#scrcpy) below.
+
+#### Scrcpy Screenshot Mode {#scrcpy}
+
+By default, Midscene captures screenshots via `adb shell screencap`, which takes ~500–2000ms per call. Enabling Scrcpy mode streams H.264 video from the device and captures frames in real time, reducing screenshot latency to approximately **100–200ms**.
+
+**How to enable:**
+
+```ts
+const device = new AndroidDevice(deviceId, {
+  scrcpyConfig: {
+    enabled: true,
+  },
+});
+```
+
+**Optional parameters:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `enabled` | `boolean` | `false` | Enable Scrcpy screenshots |
+| `maxSize` | `number` | `0` | Max video dimension (width or height). `0` = no scaling |
+| `videoBitRate` | `number` | `2000000` | H.264 encoding bitrate (bps) |
+| `idleTimeoutMs` | `number` | `30000` | Auto-disconnect after idle (ms). Set to `0` to disable |
+
+:::tip
+Scrcpy mode automatically falls back to ADB screenshots if the connection fails. No extra error handling is needed.
+:::
+
+#### Usage notes
+
+- Discover devices with `getConnectedDevices()`; the `udid` matches `adb devices`.
+- Supports remote adb via `remoteAdbHost/remoteAdbPort`; set `androidAdbPath` if adb is not on PATH.
+- Use `screenshotShrinkFactor` in `AgentOpt` to cut latency on high-DPI devices.
+
+#### Examples
+
+##### Quick start
+
+```ts
+import { AndroidAgent, AndroidDevice, getConnectedDevices } from '@midscene/android';
+
+const [first] = await getConnectedDevices();
+const device = new AndroidDevice(first.udid);
+await device.connect();
+
+const agent = new AndroidAgent(device, {
+  aiActionContext: 'If a permissions dialog appears, accept it.',
+});
+
+await agent.launch('https://www.ebay.com');
+await agent.aiAct('search "Headphones" and wait for results');
+const items = await agent.aiQuery(
+  '{itemTitle: string, price: number}[], find item in list and corresponding price',
+);
+console.log(items);
+```
+
+##### Launch native packages
+
+```ts
+await agent.launch('com.android.settings/.Settings');
+await agent.back();
+await agent.home();
+```
+
+### AndroidAgent {#androidagent}
+
+Wire Midscene's AI planner to an AndroidDevice for UI automation.
+
+#### Import
+
+```ts
+import { AndroidAgent } from '@midscene/android';
+```
+
+#### Constructor
+
+```ts
+const agent = new AndroidAgent(device, {
+  // common agent options...
+});
+```
+
+#### Android-specific options
+
+- `customActions?: DeviceAction[]` &mdash; Extend planning with actions defined via `defineAction`.
+- `appNameMapping?: Record<string, string>` &mdash; Map friendly app names to package names. When you pass an app name to `launch(target)`, the agent will look up the package name in this mapping. If no mapping is found, it will attempt to launch `target` as-is. User-provided mappings take precedence over default mappings.
+- All other fields match [API constructors](./api#common-parameters): `generateReport`, `reportFileName`, `aiActionContext`, `modelConfig`, `cacheId`, `createOpenAIClient`, `onTaskStartTip`, and more.
+
+#### Usage notes
+
+:::info
+
+- Use one agent per device connection.
+- Android-only helpers such as `launch`, `terminate`, and `runAdbShell` are also exposed in YAML scripts. See [Android platform-specific actions](./automate-with-scripts-in-yaml#the-android-part).
+- For shared interaction methods, see [API reference (Common)](./api#interaction-methods).
+
+:::
+
+#### Android-specific methods
+
+##### `agent.launch()`
+
+Launch a web URL or native Android activity/package.
+
+```ts
+function launch(target: string): Promise<void>;
+```
+
+- `target: string` &mdash; Can be a web URL, a string in `package/.Activity` format (e.g., `com.android.settings/.Settings`), an app package name, or an app name. If you pass an app name and it exists in `appNameMapping`, it will be automatically resolved to the mapped package name; otherwise, `target` will be launched as-is.
+
+##### `agent.runAdbShell()`
+
+Run a raw `adb shell` command through the connected device. Pass only the shell command itself, without the `adb shell` prefix.
+
+```ts
+function runAdbShell(command: string, opt?: { timeout?: number }): Promise<string>;
+```
+
+- `command: string` &mdash; Command passed verbatim to `adb shell`. For example, use `input tap 100 200`, not `adb shell input tap 100 200`.
+- `opt.timeout?: number` &mdash; Optional command execution timeout in milliseconds.
+
+```ts
+const result = await agent.runAdbShell('dumpsys battery', { timeout: 60 * 1000 });
+console.log(result);
+
+await agent.runAdbShell('input tap 100 200');
+```
+
+##### `agent.terminate()`
+
+Terminate (force-stop) a running Android app.
+
+```ts
+function terminate(uri: string): Promise<void>;
+```
+
+- `uri: string` &mdash; Package name, app name in `appNameMapping`, or `package/.Activity` (only the package part is used).
+
+```ts
+await agent.terminate('com.android.settings');
+```
+
+##### Navigation helpers
+
+- `agent.back(): Promise<void>` &mdash; Trigger the Android system Back action.
+- `agent.home(): Promise<void>` &mdash; Return to the launcher.
+- `agent.recentApps(): Promise<void>` &mdash; Open the Recents/Overview screen.
+
+#### Helper utilities
+
+##### `agentFromAdbDevice()`
+
+Create an `AndroidAgent` from any connected adb device.
+
+```ts
+function agentFromAdbDevice(
+  deviceId?: string,
+  opts?: PageAgentOpt & AndroidDeviceOpt,
+): Promise<AndroidAgent>;
+```
+
+- `deviceId?: string` &mdash; Connect to a specific device; omitted means “first available”.
+- `opts?: PageAgentOpt & AndroidDeviceOpt` &mdash; Combine agent options with [AndroidDevice](#androiddevice) settings.
+
+##### `getConnectedDevices()`
+
+Enumerate adb devices Midscene can drive.
+
+```ts
+function getConnectedDevices(): Promise<Array<{
+  udid: string;
+  state: string;
+  port?: number;
+}>>;
 ```
