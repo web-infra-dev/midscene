@@ -9,6 +9,17 @@ import { createFakeContext } from '../utils';
 const { mockCallAIWithObjectResponse } = vi.hoisted(() => ({
   mockCallAIWithObjectResponse: vi.fn(),
 }));
+const {
+  mockCompositeElementInfoImg,
+  mockCompositePointMarkerImg,
+  mockCropByRect,
+  mockResizeImgBase64,
+} = vi.hoisted(() => ({
+  mockCompositeElementInfoImg: vi.fn(),
+  mockCompositePointMarkerImg: vi.fn(),
+  mockCropByRect: vi.fn(),
+  mockResizeImgBase64: vi.fn(),
+}));
 
 vi.mock('@/ai-model/service-caller', async (importOriginal) => {
   const actual =
@@ -16,6 +27,17 @@ vi.mock('@/ai-model/service-caller', async (importOriginal) => {
   return {
     ...actual,
     callAIWithObjectResponse: mockCallAIWithObjectResponse,
+  };
+});
+
+vi.mock('@midscene/shared/img', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@midscene/shared/img')>();
+  return {
+    ...actual,
+    compositeElementInfoImg: mockCompositeElementInfoImg,
+    compositePointMarkerImg: mockCompositePointMarkerImg,
+    cropByRect: mockCropByRect,
+    resizeImgBase64: mockResizeImgBase64,
   };
 });
 
@@ -31,15 +53,40 @@ describe('service.describe', () => {
 
   beforeEach(() => {
     mockCallAIWithObjectResponse.mockReset();
+    mockCompositeElementInfoImg.mockReset();
+    mockCompositeElementInfoImg.mockResolvedValue(
+      'data:image/png;base64,boxed',
+    );
+    mockCompositePointMarkerImg.mockReset();
+    mockCompositePointMarkerImg.mockResolvedValue(
+      'data:image/png;base64,point',
+    );
+    mockCropByRect.mockReset();
+    mockCropByRect.mockResolvedValue({
+      width: 400,
+      height: 400,
+      imageBase64: 'data:image/png;base64,cropped',
+    });
+    mockResizeImgBase64.mockReset();
+    mockResizeImgBase64.mockResolvedValue('data:image/png;base64,resized');
   });
 
   it('instructs icon-only controls to include owning stable context', () => {
     const prompt = elementDescriberInstruction();
 
-    expect(prompt).toContain('For icon-only buttons or unlabeled controls');
-    expect(prompt).toContain('nearest stable label, section title');
-    expect(prompt).toContain('When multiple similar icons or controls appear');
-    expect(prompt).toContain('owning stable text or section');
+    expect(prompt).toContain('Target first');
+    expect(prompt).toContain('smallest real UI part');
+    expect(prompt).toContain('Owner/context');
+    expect(prompt).toContain('Similar candidates');
+    expect(prompt).toContain('same row, card, field, header, or group');
+    expect(prompt).toContain('For tiny or icon-only controls');
+    expect(prompt).toContain('For compound controls or stacked glyphs');
+    expect(prompt).toContain('For inline text, links, or substrings');
+    expect(prompt).toContain('For repeated rows, cards, or options');
+    expect(prompt).toContain('Use selected, highlighted, hovered');
+    expect(prompt).toContain('if the callout endpoint/center is inside');
+    expect(prompt).toContain('empty region/gap');
+    expect(prompt).toContain('Do not borrow the text, glyph, direction');
   });
 
   it('recovers a description response with unescaped quotes in the string value', async () => {
@@ -61,6 +108,239 @@ describe('service.describe', () => {
       description:
         '顶部搜索栏中的搜索输入框，placeholder 为"搜索你感兴趣的内容"',
     });
+  });
+
+  it('uses a 1px rectangle marker for explicitly provided small target rects', async () => {
+    mockCallAIWithObjectResponse.mockResolvedValueOnce({
+      content: { description: 'small target' },
+    });
+
+    const service = new Service(createFakeContext());
+    const result = await service.describe(
+      { left: 10, top: 20, width: 30, height: 30 },
+      modelRuntime,
+    );
+
+    expect(result).toEqual({ description: 'small target' });
+    expect(mockCompositeElementInfoImg).toHaveBeenCalledWith(
+      expect.objectContaining({
+        elementsPositionInfo: [
+          {
+            rect: { left: 10, top: 20, width: 30, height: 30 },
+          },
+        ],
+        borderThickness: 1,
+      }),
+    );
+    expect(mockCompositePointMarkerImg).not.toHaveBeenCalled();
+  });
+
+  it('uses a 2px rectangle marker for larger target rects', async () => {
+    mockCallAIWithObjectResponse.mockResolvedValueOnce({
+      content: { description: 'large target' },
+    });
+
+    const service = new Service(createFakeContext());
+    await service.describe(
+      { left: 10, top: 20, width: 80, height: 50 },
+      modelRuntime,
+    );
+
+    expect(mockCompositeElementInfoImg).toHaveBeenCalledWith(
+      expect.objectContaining({
+        elementsPositionInfo: [
+          {
+            rect: { left: 10, top: 20, width: 80, height: 50 },
+          },
+        ],
+        borderThickness: 2,
+      }),
+    );
+    expect(mockCompositePointMarkerImg).not.toHaveBeenCalled();
+  });
+
+  it('uses a rectangle marker for small target rects during deep locate retries', async () => {
+    mockCallAIWithObjectResponse.mockResolvedValueOnce({
+      content: { description: 'small target retry' },
+    });
+
+    const service = new Service(createFakeContext());
+    await service.describe(
+      { left: 10, top: 20, width: 30, height: 30 },
+      modelRuntime,
+      { deepLocate: true },
+    );
+
+    expect(mockCompositeElementInfoImg).toHaveBeenCalledWith(
+      expect.objectContaining({
+        elementsPositionInfo: [
+          {
+            rect: { left: 10, top: 20, width: 30, height: 30 },
+          },
+        ],
+        borderThickness: 1,
+      }),
+    );
+    expect(mockCompositePointMarkerImg).not.toHaveBeenCalled();
+  });
+
+  it('uses a rectangle marker for thin wide target regions', async () => {
+    mockCallAIWithObjectResponse.mockResolvedValue({
+      content: { description: 'thin blank region' },
+    });
+
+    const service = new Service(createFakeContext());
+    await service.describe(
+      { left: 10, top: 20, width: 120, height: 30 },
+      modelRuntime,
+      { deepLocate: true },
+    );
+
+    expect(mockCompositeElementInfoImg).toHaveBeenCalledWith(
+      expect.objectContaining({
+        elementsPositionInfo: [
+          {
+            rect: { left: 28, top: 23, width: 84, height: 24 },
+          },
+        ],
+        borderThickness: 2,
+      }),
+    );
+    expect(mockCompositePointMarkerImg).not.toHaveBeenCalled();
+  });
+
+  it('uses only the deep-locate crop for wide target rect retries', async () => {
+    mockCallAIWithObjectResponse.mockResolvedValueOnce({
+      content: { description: 'wide target with deep-locate context' },
+    });
+
+    const service = new Service(createFakeContext());
+    const result = await service.describe(
+      { left: 10, top: 20, width: 120, height: 30 },
+      modelRuntime,
+      { deepLocate: true },
+    );
+
+    expect(result).toEqual({
+      description: 'wide target with deep-locate context',
+    });
+    expect(mockCallAIWithObjectResponse).toHaveBeenCalledTimes(1);
+    expect(mockCropByRect).toHaveBeenCalledTimes(1);
+    expect(mockCropByRect).not.toHaveBeenCalledWith(
+      expect.stringMatching(/^data:image\/.+;base64,/),
+      { left: 10, top: 20, width: 120, height: 30 },
+    );
+
+    const msgs = mockCallAIWithObjectResponse.mock.calls[0][0];
+    expect(msgs[1].content).toEqual([
+      {
+        type: 'text',
+        text: 'Full screenshot with a temporary callout marking the target:',
+      },
+      {
+        type: 'image_url',
+        image_url: {
+          url: 'data:image/png;base64,resized',
+          detail: 'high',
+        },
+      },
+    ]);
+  });
+
+  it('keeps wider horizontal context for label-like targets during deep locate retries', async () => {
+    mockCallAIWithObjectResponse.mockResolvedValueOnce({
+      content: { description: 'row status label' },
+    });
+
+    const service = new Service(createFakeContext());
+    await service.describe(
+      { left: 1500, top: 500, width: 56, height: 20 },
+      modelRuntime,
+      { deepLocate: true },
+    );
+
+    expect(mockCropByRect).toHaveBeenCalledWith('data:image/png;base64,boxed', {
+      left: 664,
+      top: 310,
+      width: 1152,
+      height: 400,
+    });
+  });
+
+  it('uses a point marker without cropping for bare point targets', async () => {
+    mockCallAIWithObjectResponse.mockResolvedValueOnce({
+      content: { description: 'point target' },
+    });
+
+    const service = new Service(createFakeContext());
+    await service.describe([100, 100], modelRuntime);
+
+    expect(mockCropByRect).not.toHaveBeenCalled();
+    expect(mockCompositePointMarkerImg).toHaveBeenCalledWith(
+      expect.objectContaining({
+        point: { x: 100, y: 100 },
+      }),
+    );
+    expect(mockCompositeElementInfoImg).not.toHaveBeenCalled();
+  });
+
+  it('keeps wider horizontal row context for bare point targets during deep locate retries', async () => {
+    mockCallAIWithObjectResponse.mockResolvedValueOnce({
+      content: { description: 'point target with row context' },
+    });
+
+    const service = new Service(createFakeContext());
+    const result = await service.describe([1500, 500], modelRuntime, {
+      deepLocate: true,
+    });
+
+    expect(result).toMatchObject({
+      description: 'point target with row context',
+    });
+
+    expect(mockCropByRect).toHaveBeenCalledWith('data:image/png;base64,point', {
+      left: 636,
+      top: 300,
+      width: 1152,
+      height: 400,
+    });
+    expect(mockCompositePointMarkerImg).toHaveBeenCalledWith(
+      expect.objectContaining({
+        point: { x: 1500, y: 500 },
+      }),
+    );
+    expect(mockCompositeElementInfoImg).not.toHaveBeenCalled();
+    expect(mockCallAIWithObjectResponse).toHaveBeenCalledTimes(1);
+  });
+
+  it('includes retry feedback text before the marked screenshot', async () => {
+    mockCallAIWithObjectResponse.mockResolvedValueOnce({
+      content: { description: 'refined target' },
+    });
+
+    const service = new Service(createFakeContext());
+    await service.describe([100, 100], modelRuntime, {
+      feedback: 'Previous description matched a different element.',
+    });
+
+    const msgs = mockCallAIWithObjectResponse.mock.calls[0][0];
+    expect(msgs[1].content).toEqual([
+      {
+        type: 'text',
+        text: 'Previous description matched a different element.',
+      },
+      {
+        type: 'text',
+        text: 'Full screenshot with a temporary callout marking the target:',
+      },
+      {
+        type: 'image_url',
+        image_url: {
+          url: 'data:image/png;base64,point',
+          detail: 'high',
+        },
+      },
+    ]);
   });
 
   it('recovers from structured AI response parse errors when rawResponse is available', async () => {

@@ -1,9 +1,14 @@
 import type { TModelFamily } from '@midscene/shared/env';
 import {
+  type LocateResultContext,
   type LocateResultValue,
   type PixelBbox,
   unwrapCoordinateListLikeInput,
 } from '../shared/model-locate-result';
+import {
+  finalizePixelBbox,
+  mapNormalizedCoordinatesToPixelBbox,
+} from '../shared/model-locate-result/bbox';
 import type {
   ChatCompletionCallContext,
   ChatCompletionParamsResult,
@@ -51,6 +56,60 @@ function normalizeQwen25ResultToPixelBbox(
   }
 
   return topLeftPointToPixelBbox(result.coordinates[0], result.coordinates[1]);
+}
+
+function normalizeQwen3ResultToPixelBbox(
+  result: LocateResultValue,
+  ctx: LocateResultContext,
+): PixelBbox {
+  const normalizedBy = 1000;
+  const { width, height } = ctx.preparedSize;
+
+  if (result.type !== 'bbox') {
+    const [x, y] = result.coordinates;
+    return finalizePixelBbox(
+      mapNormalizedCoordinatesToPixelBbox(
+        [x, y, x + normalizedBy / 100, y + normalizedBy / 100],
+        normalizedBy,
+        width,
+        height,
+      ),
+      result.coordinates,
+      ctx,
+    );
+  }
+
+  const [left, top, right, bottom] = result.coordinates;
+  const looksLikePixelBbox =
+    result.coordinates.some((value) => value > normalizedBy) &&
+    left <= width - 1 &&
+    right <= width - 1 &&
+    top <= height - 1 &&
+    bottom <= height - 1;
+
+  if (looksLikePixelBbox) {
+    return finalizePixelBbox(
+      [
+        Math.round(left),
+        Math.round(top),
+        Math.round(right),
+        Math.round(bottom),
+      ],
+      result.coordinates,
+      ctx,
+    );
+  }
+
+  return finalizePixelBbox(
+    mapNormalizedCoordinatesToPixelBbox(
+      result.coordinates,
+      normalizedBy,
+      width,
+      height,
+    ),
+    result.coordinates,
+    ctx,
+  );
 }
 
 const buildQwenChatCompletionParams = (
@@ -110,6 +169,7 @@ const qwen3Adapter: ModelAdapterDefinition = {
   locate: {
     resultAdapter: {
       coordinates: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
+      mapLocateResultToPixelBbox: normalizeQwen3ResultToPixelBbox,
     },
   },
 };

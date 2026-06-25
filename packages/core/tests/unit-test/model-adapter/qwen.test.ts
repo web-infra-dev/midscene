@@ -298,6 +298,51 @@ describe('qwen model adapter', () => {
     });
   });
 
+  it('normalizes qwen3-vl 0-1000 bbox coordinates', () => {
+    const locateAdapter = qwen3VlAdapter.locate;
+    expect(locateAdapter.kind).toBe('standard');
+    if (locateAdapter.kind !== 'standard') {
+      throw new Error('qwen3-vl should use standard locate adapter');
+    }
+
+    const result =
+      locateAdapter.resultAdapter.adaptElementLocateResultToPixelBbox(
+        [500, 250, 750, 500],
+        { preparedSize: { width: 2000, height: 1000 } },
+      );
+    expect(result).toEqual([1000, 250, 1499, 500]);
+  });
+
+  it('accepts qwen3-vl pixel bbox fallback when coordinates exceed 1000', () => {
+    const locateAdapter = qwen3VlAdapter.locate;
+    expect(locateAdapter.kind).toBe('standard');
+    if (locateAdapter.kind !== 'standard') {
+      throw new Error('qwen3-vl should use standard locate adapter');
+    }
+
+    const result =
+      locateAdapter.resultAdapter.adaptElementLocateResultToPixelBbox(
+        [1530, 429, 1556, 571],
+        { preparedSize: { width: 2000, height: 1000 } },
+      );
+    expect(result).toEqual([1530, 429, 1556, 571]);
+  });
+
+  it('throws when qwen3-vl pixel bbox fallback exceeds image size', () => {
+    const locateAdapter = qwen3VlAdapter.locate;
+    expect(locateAdapter.kind).toBe('standard');
+    if (locateAdapter.kind !== 'standard') {
+      throw new Error('qwen3-vl should use standard locate adapter');
+    }
+
+    expect(() =>
+      locateAdapter.resultAdapter.adaptElementLocateResultToPixelBbox(
+        [1530, 429, 2050, 571],
+        { preparedSize: { width: 2000, height: 1000 } },
+      ),
+    ).toThrow(/outside the image size|exceed/);
+  });
+
   it('normalizes actual-pixel bbox coordinates for qwen2.5-vl', () => {
     const locateAdapter = qwen25Adapter.locate;
     expect(locateAdapter.kind).toBe('standard');

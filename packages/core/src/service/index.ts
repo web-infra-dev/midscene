@@ -13,7 +13,6 @@ import {
 } from '@/ai-model/service-caller';
 import type { AIArgs } from '@/ai-model/types';
 import type { SearchAreaConfig } from '@/ai-model/workflows/inspect/types';
-import { expandSearchArea } from '@/common';
 import type {
   AIDescribeElementResponse,
   AIUsageInfo,
@@ -30,12 +29,21 @@ import type {
   UIContext,
 } from '@/types';
 import { ServiceError } from '@/types';
-import { compositeElementInfoImg, cropByRect } from '@midscene/shared/img';
+import {
+  compositeElementInfoImg,
+  compositePointMarkerImg,
+  cropByRect,
+  resizeImgBase64,
+} from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import type { TMultimodalPrompt, TUserPrompt } from '../common';
 import {
   createServiceDump,
+  expandDescribeDeepSearchArea,
+  getDescribeDeepLocateResizeSize,
+  getDescribeMarkerBorderThickness,
+  getDescribeMarkerRect,
   recoverDescribeResponseFromParseError,
 } from './utils';
 
@@ -63,6 +71,7 @@ interface LocateSearchAreaResult {
 }
 
 const debug = getDebug('ai:service');
+
 export default class Service {
   contextRetrieverFn: () => Promise<UIContext> | UIContext;
 
@@ -398,8 +407,19 @@ export default class Service {
     opt?: {
       deepLocate?: boolean;
       context?: UIContext;
+      feedback?: string;
     },
-  ): Promise<Pick<AIDescribeElementResponse, 'description'>> {
+  ): Promise<
+    Pick<
+      AIDescribeElementResponse,
+      | 'description'
+      | 'target'
+      | 'primitive'
+      | 'owner'
+      | 'disambiguator'
+      | 'context'
+    >
+  > {
     assert(target, 'target is required for service.describe');
     const context = opt?.context || (await this.contextRetrieverFn());
     const { shotSize } = context;
@@ -409,7 +429,8 @@ export default class Service {
 
     // Convert [x,y] center point to Rect if needed
     const defaultRectSize = 30;
-    const targetRect: Rect = Array.isArray(target)
+    const targetFromPoint = Array.isArray(target);
+    const targetRect: Rect = targetFromPoint
       ? {
           left: Math.floor(target[0] - defaultRectSize / 2),
           top: Math.floor(target[1] - defaultRectSize / 2),
@@ -418,29 +439,45 @@ export default class Service {
         }
       : target;
 
-    let imagePayload = await compositeElementInfoImg({
-      inputImgBase64: screenshotBase64,
-      size: shotSize,
-      elementsPositionInfo: [
-        {
-          rect: targetRect,
-        },
-      ],
-      borderThickness: 3,
-    });
+    const usePointMarker = targetFromPoint;
+    let imagePayload = usePointMarker
+      ? await compositePointMarkerImg({
+          inputImgBase64: screenshotBase64,
+          size: shotSize,
+          point: {
+            x: targetRect.left + targetRect.width / 2,
+            y: targetRect.top + targetRect.height / 2,
+          },
+        })
+      : await compositeElementInfoImg({
+          inputImgBase64: screenshotBase64,
+          size: shotSize,
+          elementsPositionInfo: [
+            {
+              rect: getDescribeMarkerRect(targetRect),
+            },
+          ],
+          borderThickness: getDescribeMarkerBorderThickness(targetRect),
+          centerPoint: true,
+        });
 
     if (opt?.deepLocate) {
-      const searchArea = expandSearchArea(targetRect, shotSize);
+      const searchArea = expandDescribeDeepSearchArea(targetRect, shotSize, {
+        keepWideContext: targetFromPoint,
+      });
       // Always crop in describe mode. Unlike locate's deepLocate (where
       // cropping too small loses context for finding elements), describe's
       // deepLocate intentionally zooms in so the model produces a more
       // precise description from a focused view. expandSearchArea already
       // guarantees a minimum 400x400 area with surrounding context.
-      // Describe is not a coordinate-parsing flow, so it does not need image
-      // padding for bbox normalization.
+      // Describe is not a coordinate-parsing flow, so it can safely resize the
+      // cropped view to make small glyphs and text easier to read.
       debug('describe: cropping to searchArea', searchArea);
       const croppedResult = await cropByRect(imagePayload, searchArea);
-      imagePayload = croppedResult.imageBase64;
+      const resizeSize = getDescribeDeepLocateResizeSize(croppedResult);
+      imagePayload = resizeSize
+        ? await resizeImgBase64(croppedResult.imageBase64, resizeSize)
+        : croppedResult.imageBase64;
     }
 
     const msgs: AIArgs = [
@@ -448,6 +485,18 @@ export default class Service {
       {
         role: 'user',
         content: [
+          ...(opt?.feedback
+            ? [
+                {
+                  type: 'text' as const,
+                  text: opt.feedback,
+                },
+              ]
+            : []),
+          {
+            type: 'text' as const,
+            text: 'Full screenshot with a temporary callout marking the target:',
+          },
           {
             type: 'image_url',
             image_url: {

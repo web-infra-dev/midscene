@@ -2,9 +2,146 @@ import {
   AIResponseParseError,
   extractJSONFromCodeBlock,
 } from '@/ai-model/service-caller';
-import type { AIDescribeElementResponse } from '@/types';
-import type { DumpMeta, PartialServiceDumpFromSDK, ServiceDump } from '@/types';
+import { expandSearchArea } from '@/common';
+import type {
+  AIDescribeElementResponse,
+  DumpMeta,
+  PartialServiceDumpFromSDK,
+  Rect,
+  ServiceDump,
+  Size,
+} from '@/types';
 import { uuid } from '@midscene/shared/utils';
+
+export const DESCRIBE_POINT_MARKER_MAX_SIZE = 40;
+export const DESCRIBE_RECT_MARKER_BORDER_THICKNESS = 1;
+export const DESCRIBE_LARGE_RECT_MARKER_BORDER_THICKNESS = 2;
+const DESCRIBE_DEEP_LOCATE_MAX_LONG_EDGE = 1000;
+const DESCRIBE_DEEP_LOCATE_SCALE = 2;
+const DESCRIBE_DEEP_WIDE_CONTEXT_MIN_WIDTH = 900;
+const DESCRIBE_DEEP_WIDE_CONTEXT_WIDTH_RATIO = 0.6;
+const DESCRIBE_DEEP_WIDE_CONTEXT_TARGET_X_RATIO = 0.75;
+const DESCRIBE_DEEP_WIDE_CONTEXT_MIN_HEIGHT = 400;
+export const DESCRIBE_WIDE_MARKER_INSET_MIN_WIDTH = 100;
+const DESCRIBE_WIDE_MARKER_HORIZONTAL_INSET_RATIO = 0.15;
+const DESCRIBE_WIDE_MARKER_VERTICAL_INSET_RATIO = 0.1;
+
+export function clampRect(rect: Rect, size: Size): Rect {
+  const width = Math.min(rect.width, size.width);
+  const height = Math.min(rect.height, size.height);
+  return {
+    left: Math.max(0, Math.min(rect.left, size.width - width)),
+    top: Math.max(0, Math.min(rect.top, size.height - height)),
+    width,
+    height,
+  };
+}
+
+function unionRects(a: Rect, b: Rect, size: Size): Rect {
+  const left = Math.max(0, Math.min(a.left, b.left));
+  const top = Math.max(0, Math.min(a.top, b.top));
+  const right = Math.min(
+    size.width,
+    Math.max(a.left + a.width, b.left + b.width),
+  );
+  const bottom = Math.min(
+    size.height,
+    Math.max(a.top + a.height, b.top + b.height),
+  );
+  return {
+    left,
+    top,
+    width: right - left,
+    height: bottom - top,
+  };
+}
+
+export function expandDescribeDeepSearchArea(
+  rect: Rect,
+  screenSize: Size,
+  opt?: { keepWideContext?: boolean },
+): Rect {
+  const base = expandSearchArea(rect, screenSize);
+  const shouldKeepWideRowContext =
+    rect.width >= DESCRIBE_POINT_MARKER_MAX_SIZE || opt?.keepWideContext;
+
+  if (!shouldKeepWideRowContext) {
+    return base;
+  }
+
+  const minWidth = Math.min(
+    screenSize.width,
+    Math.max(
+      base.width,
+      DESCRIBE_DEEP_WIDE_CONTEXT_MIN_WIDTH,
+      Math.round(screenSize.width * DESCRIBE_DEEP_WIDE_CONTEXT_WIDTH_RATIO),
+    ),
+  );
+  const minHeight = Math.min(
+    screenSize.height,
+    Math.max(base.height, DESCRIBE_DEEP_WIDE_CONTEXT_MIN_HEIGHT),
+  );
+  const centerX = rect.left + rect.width / 2;
+  const centerY = rect.top + rect.height / 2;
+  const wideContext = clampRect(
+    {
+      left: Math.round(
+        centerX - minWidth * DESCRIBE_DEEP_WIDE_CONTEXT_TARGET_X_RATIO,
+      ),
+      top: Math.round(centerY - minHeight / 2),
+      width: minWidth,
+      height: minHeight,
+    },
+    screenSize,
+  );
+
+  return unionRects(base, wideContext, screenSize);
+}
+
+export function getDescribeMarkerRect(rect: Rect): Rect {
+  if (rect.width < DESCRIBE_WIDE_MARKER_INSET_MIN_WIDTH) {
+    return rect;
+  }
+
+  const horizontalInset = Math.round(
+    rect.width * DESCRIBE_WIDE_MARKER_HORIZONTAL_INSET_RATIO,
+  );
+  const verticalInset = Math.round(
+    rect.height * DESCRIBE_WIDE_MARKER_VERTICAL_INSET_RATIO,
+  );
+
+  return {
+    left: rect.left + horizontalInset,
+    top: rect.top + verticalInset,
+    width: Math.max(rect.width - horizontalInset * 2, 1),
+    height: Math.max(rect.height - verticalInset * 2, 1),
+  };
+}
+
+export function getDescribeMarkerBorderThickness(rect: Rect): number {
+  return rect.width <= DESCRIBE_POINT_MARKER_MAX_SIZE &&
+    rect.height <= DESCRIBE_POINT_MARKER_MAX_SIZE
+    ? DESCRIBE_RECT_MARKER_BORDER_THICKNESS
+    : DESCRIBE_LARGE_RECT_MARKER_BORDER_THICKNESS;
+}
+
+export function getDescribeDeepLocateResizeSize(size: Size): Size | undefined {
+  const maxEdge = Math.max(size.width, size.height);
+  if (!maxEdge) {
+    return undefined;
+  }
+  const scale = Math.min(
+    DESCRIBE_DEEP_LOCATE_SCALE,
+    DESCRIBE_DEEP_LOCATE_MAX_LONG_EDGE / maxEdge,
+  );
+  if (scale <= 1.05) {
+    return undefined;
+  }
+  return {
+    width: Math.round(size.width * scale),
+    height: Math.round(size.height * scale),
+  };
+}
 
 export function createServiceDump(
   data: PartialServiceDumpFromSDK,

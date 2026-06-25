@@ -70,6 +70,7 @@ export {
   verifyLocator,
   type DescribeElementAtPointOptions,
   type DescribeElementCoordinateSpace,
+  type DescribeElementRetryStrategy,
   type ElementDescriberRuntime,
   type VerifyElementDescriptionAtPointOptions,
   type VerifyElementByServiceLocateOptions,
