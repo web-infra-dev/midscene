@@ -526,18 +526,40 @@ export async function AiExtractElementInfo<T>(options: {
   const userContent: ChatCompletionUserMessageParam['content'] = [];
 
   if (extractOption?.screenshotIncluded !== false) {
-    userContent.push({
-      type: 'text',
-      text: 'This is the current screenshot to evaluate. Unless <DATA_DEMAND> explicitly asks for comparison or matching against reference images, base your answer on this screenshot and its contents when provided.',
-    });
+    const screenshotSequence = context.screenshotSequence;
+    if (screenshotSequence && screenshotSequence.length > 1) {
+      userContent.push({
+        type: 'text',
+        text: `The following ${screenshotSequence.length} images are consecutive screenshots captured over a short time window, ordered from earliest to latest. They may reveal transient UI (such as toasts, carousel banners, or auto-hiding controls) that is visible in only some frames. Consider all of them when answering; the last image is the most recent state. Unless <DATA_DEMAND> explicitly asks for comparison or matching against reference images, base your answer on these screenshots and their contents.`,
+      });
 
-    userContent.push({
-      type: 'image_url',
-      image_url: {
-        url: screenshotBase64,
-        detail: 'high',
-      },
-    });
+      screenshotSequence.forEach((frame, index) => {
+        userContent.push({
+          type: 'text',
+          text: `Frame ${index + 1}/${screenshotSequence.length}`,
+        });
+        userContent.push({
+          type: 'image_url',
+          image_url: {
+            url: frame.base64,
+            detail: 'high',
+          },
+        });
+      });
+    } else {
+      userContent.push({
+        type: 'text',
+        text: 'This is the current screenshot to evaluate. Unless <DATA_DEMAND> explicitly asks for comparison or matching against reference images, base your answer on this screenshot and its contents when provided.',
+      });
+
+      userContent.push({
+        type: 'image_url',
+        image_url: {
+          url: screenshotBase64,
+          detail: 'high',
+        },
+      });
+    }
   }
 
   userContent.push({

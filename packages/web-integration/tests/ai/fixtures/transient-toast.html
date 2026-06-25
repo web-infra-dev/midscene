@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Transient Toast</title>
+    <style>
+      body {
+        font-family: -apple-system, Segoe UI, Roboto, sans-serif;
+        margin: 0;
+        height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #f4f4f5;
+      }
+      #submit {
+        padding: 16px 36px;
+        font-size: 22px;
+        border: none;
+        border-radius: 8px;
+        background: #2563eb;
+        color: #fff;
+        cursor: pointer;
+      }
+      #toast {
+        position: fixed;
+        top: 48px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #d92d20;
+        color: #fff;
+        padding: 18px 30px;
+        border-radius: 8px;
+        font-size: 24px;
+        font-weight: 600;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+        display: none;
+        z-index: 9999;
+      }
+      #toast.show {
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <button id="submit">Submit</button>
+    <div id="toast" role="alert">Login failed: incorrect password</div>
+    <script>
+      (function () {
+        var toast = document.getElementById('toast');
+        var timers = [];
+        function clearTimers() {
+          timers.forEach(clearTimeout);
+          timers = [];
+        }
+        // Show the toast after `appearDelay` ms, then auto-hide after
+        // `visibleMs` ms. This mimics an async server response whose toast is
+        // short-lived: a screenshot taken too early (before it appears) or too
+        // late (after it hides) misses it entirely.
+        window.flashToast = function (appearDelay, visibleMs) {
+          clearTimers();
+          toast.classList.remove('show');
+          timers.push(
+            setTimeout(function () {
+              toast.classList.add('show');
+              timers.push(
+                setTimeout(function () {
+                  toast.classList.remove('show');
+                }, visibleMs),
+              );
+            }, appearDelay),
+          );
+        };
+        document.getElementById('submit').addEventListener('click', function () {
+          window.flashToast(1500, 1200);
+        });
+      })();
+    </script>
+  </body>
+</html>

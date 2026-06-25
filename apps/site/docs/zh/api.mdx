@@ -715,6 +715,7 @@ function aiAsk(prompt: string | Object, options?: Object): Promise<string>;
   - `options?: Object` - 可选，一个配置对象，包含：
     - `domIncluded?: boolean | 'visible-only'` - 是否向模型发送精简后的 DOM 信息，一般用于提取 UI 中不可见的属性，比如图片的链接。如果设置为 `'visible-only'`，则只发送可见的元素。默认值为 false。
     - `screenshotIncluded?: boolean` - 是否向模型发送截图。默认值为 true。
+    - `frameSequence?: boolean | { count?: number; intervalMs?: number }` - 在一小段时间窗口内连续采集多帧,并一起发送给模型(而不是单张截图),让模型能观察到瞬时 UI,例如 toast 提示、轮播 banner、自动隐藏的控件。默认关闭。传 `true` 使用默认值(间隔 1 秒采集 4 帧,`count` 会被限制在 2~8),或传对象自定义 `count` / `intervalMs`。会增加 token 消耗;当 `screenshotIncluded` 为 `false` 时该选项不生效。
 
 - 返回值：
 
@@ -745,6 +746,7 @@ function aiQuery<T>(dataDemand: string | Object, options?: Object): Promise<T>;
   - `options?: Object` - 可选，一个配置对象，包含：
     - `domIncluded?: boolean | 'visible-only'` - 是否向模型发送精简后的 DOM 信息，一般用于提取 UI 中不可见的属性，比如图片的链接。如果设置为 `'visible-only'`，则只发送可见的元素。默认值为 false。
     - `screenshotIncluded?: boolean` - 是否向模型发送截图。默认值为 true。
+    - `frameSequence?: boolean | { count?: number; intervalMs?: number }` - 在一小段时间窗口内连续采集多帧,并一起发送给模型(而不是单张截图),让模型能观察到瞬时 UI,例如 toast 提示、轮播 banner、自动隐藏的控件。默认关闭。传 `true` 使用默认值(间隔 1 秒采集 4 帧,`count` 会被限制在 2~8),或传对象自定义 `count` / `intervalMs`。会增加 token 消耗;当 `screenshotIncluded` 为 `false` 时该选项不生效。
 
 - 返回值：
 
@@ -796,6 +798,7 @@ function aiBoolean(prompt: string | Object, options?: Object): Promise<boolean>;
   - `options?: Object` - 可选，一个配置对象，包含：
     - `domIncluded?: boolean | 'visible-only'` - 是否向模型发送精简后的 DOM 信息，一般用于提取 UI 中不可见的属性，比如图片的链接。如果设置为 `'visible-only'`，则只发送可见的元素。默认值为 false。
     - `screenshotIncluded?: boolean` - 是否向模型发送截图。默认值为 true。
+    - `frameSequence?: boolean | { count?: number; intervalMs?: number }` - 在一小段时间窗口内连续采集多帧,并一起发送给模型(而不是单张截图),让模型能观察到瞬时 UI,例如 toast 提示、轮播 banner、自动隐藏的控件。默认关闭。传 `true` 使用默认值(间隔 1 秒采集 4 帧,`count` 会被限制在 2~8),或传对象自定义 `count` / `intervalMs`。会增加 token 消耗;当 `screenshotIncluded` 为 `false` 时该选项不生效。
 
 - 返回值：
 
@@ -828,6 +831,7 @@ function aiNumber(prompt: string | Object, options?: Object): Promise<number>;
   - `options?: Object` - 可选，一个配置对象，包含：
     - `domIncluded?: boolean | 'visible-only'` - 是否向模型发送精简后的 DOM 信息，一般用于提取 UI 中不可见的属性，比如图片的链接。如果设置为 `'visible-only'`，则只发送可见的元素。默认值为 false。
     - `screenshotIncluded?: boolean` - 是否向模型发送截图。默认值为 true。
+    - `frameSequence?: boolean | { count?: number; intervalMs?: number }` - 在一小段时间窗口内连续采集多帧,并一起发送给模型(而不是单张截图),让模型能观察到瞬时 UI,例如 toast 提示、轮播 banner、自动隐藏的控件。默认关闭。传 `true` 使用默认值(间隔 1 秒采集 4 帧,`count` 会被限制在 2~8),或传对象自定义 `count` / `intervalMs`。会增加 token 消耗;当 `screenshotIncluded` 为 `false` 时该选项不生效。
 
 - 返回值：
 
@@ -862,6 +866,7 @@ function aiString(prompt: string | Object, options?: Object): Promise<string>;
   - `options?: Object` - 可选，一个配置对象，包含：
     - `domIncluded?: boolean | 'visible-only'` - 是否向模型发送精简后的 DOM 信息，一般用于提取 UI 中不可见的属性，比如图片的链接。如果设置为 `'visible-only'`，则只发送可见的元素。默认值为 false。
     - `screenshotIncluded?: boolean` - 是否向模型发送截图。默认值为 true。
+    - `frameSequence?: boolean | { count?: number; intervalMs?: number }` - 在一小段时间窗口内连续采集多帧,并一起发送给模型(而不是单张截图),让模型能观察到瞬时 UI,例如 toast 提示、轮播 banner、自动隐藏的控件。默认关闭。传 `true` 使用默认值(间隔 1 秒采集 4 帧,`count` 会被限制在 2~8),或传对象自定义 `count` / `intervalMs`。会增加 token 消耗;当 `screenshotIncluded` 为 `false` 时该选项不生效。
 
 - 返回值：
 
@@ -901,6 +906,7 @@ function aiAssert(
   - options?: Object - 可选，一个配置对象，包含：
     - `domIncluded?: boolean | 'visible-only'` - 是否向模型发送精简后的 DOM 信息，一般用于提取 UI 中不可见的属性，比如图片的链接。如果设置为 `'visible-only'`，则只发送可见的元素。默认值为 false。
     - `screenshotIncluded?: boolean` - 是否向模型发送截图。默认值为 true。
+    - `frameSequence?: boolean | { count?: number; intervalMs?: number }` - 在一小段时间窗口内连续采集多帧,并一起发送给模型(而不是单张截图),让模型能观察到瞬时 UI,例如 toast 提示、轮播 banner、自动隐藏的控件。默认关闭。传 `true` 使用默认值(间隔 1 秒采集 4 帧,`count` 会被限制在 2~8),或传对象自定义 `count` / `intervalMs`。会增加 token 消耗;当 `screenshotIncluded` 为 `false` 时该选项不生效。
 
 - 返回值：
 

@@ -726,6 +726,7 @@ function aiAsk(prompt: string | Object, options?: Object): Promise<string>;
   - `options?: Object` - Optional, a configuration object containing:
     - `domIncluded?: boolean | 'visible-only'` - Whether to send simplified DOM information to the model, usually used for extracting invisible attributes like image links. If set to `'visible-only'`, only the visible elements will be sent. False by default.
     - `screenshotIncluded?: boolean` - Whether to send screenshot to the model. True by default.
+    - `frameSequence?: boolean | { count?: number; intervalMs?: number }` - Capture a short sequence of frames over a time window and send them all to the model instead of a single screenshot, so it can observe transient UI such as toasts, carousel banners, or auto-hiding controls. Off by default. Set `true` for defaults (4 frames at 1s intervals; `count` is clamped to 2–8), or pass an object to tune `count` / `intervalMs`. Costs more tokens, and has no effect when `screenshotIncluded` is `false`.
 
 - Return Value:
 
@@ -756,6 +757,7 @@ function aiQuery<T>(dataDemand: string | Object, options?: Object): Promise<T>;
   - `options?: Object` - Optional, a configuration object containing:
     - `domIncluded?: boolean | 'visible-only'` - Whether to send simplified DOM information to the model, usually used for extracting invisible attributes like image links. If set to `'visible-only'`, only the visible elements will be sent. False by default.
     - `screenshotIncluded?: boolean` - Whether to send screenshot to the model. True by default.
+    - `frameSequence?: boolean | { count?: number; intervalMs?: number }` - Capture a short sequence of frames over a time window and send them all to the model instead of a single screenshot, so it can observe transient UI such as toasts, carousel banners, or auto-hiding controls. Off by default. Set `true` for defaults (4 frames at 1s intervals; `count` is clamped to 2–8), or pass an object to tune `count` / `intervalMs`. Costs more tokens, and has no effect when `screenshotIncluded` is `false`.
 
 - Return Value:
 
@@ -805,6 +807,7 @@ function aiBoolean(prompt: string | Object, options?: Object): Promise<boolean>;
   - `options?: Object` - Optional, a configuration object containing:
     - `domIncluded?: boolean | 'visible-only'` - Whether to send simplified DOM information to the model, usually used for extracting invisible attributes like image links. If set to `'visible-only'`, only the visible elements will be sent. False by default.
     - `screenshotIncluded?: boolean` - Whether to send screenshot to the model. True by default.
+    - `frameSequence?: boolean | { count?: number; intervalMs?: number }` - Capture a short sequence of frames over a time window and send them all to the model instead of a single screenshot, so it can observe transient UI such as toasts, carousel banners, or auto-hiding controls. Off by default. Set `true` for defaults (4 frames at 1s intervals; `count` is clamped to 2–8), or pass an object to tune `count` / `intervalMs`. Costs more tokens, and has no effect when `screenshotIncluded` is `false`.
 - Return Value:
 
   - Returns a `Promise<boolean>` when AI returns a boolean value.
@@ -835,6 +838,7 @@ function aiNumber(prompt: string | Object, options?: Object): Promise<number>;
   - `options?: Object` - Optional, a configuration object containing:
     - `domIncluded?: boolean | 'visible-only'` - Whether to send simplified DOM information to the model, usually used for extracting invisible attributes like image links. If set to `'visible-only'`, only the visible elements will be sent. False by default.
     - `screenshotIncluded?: boolean` - Whether to send screenshot to the model. True by default.
+    - `frameSequence?: boolean | { count?: number; intervalMs?: number }` - Capture a short sequence of frames over a time window and send them all to the model instead of a single screenshot, so it can observe transient UI such as toasts, carousel banners, or auto-hiding controls. Off by default. Set `true` for defaults (4 frames at 1s intervals; `count` is clamped to 2–8), or pass an object to tune `count` / `intervalMs`. Costs more tokens, and has no effect when `screenshotIncluded` is `false`.
 - Return Value:
 
   - Returns a `Promise<number>` when AI returns a number value.
@@ -868,6 +872,7 @@ function aiString(prompt: string | Object, options?: Object): Promise<string>;
   - `options?: Object` - Optional, a configuration object containing:
     - `domIncluded?: boolean | 'visible-only'` - Whether to send simplified DOM information to the model, usually used for extracting invisible attributes like image links. If set to `'visible-only'`, only the visible elements will be sent. False by default.
     - `screenshotIncluded?: boolean` - Whether to send screenshot to the model. True by default.
+    - `frameSequence?: boolean | { count?: number; intervalMs?: number }` - Capture a short sequence of frames over a time window and send them all to the model instead of a single screenshot, so it can observe transient UI such as toasts, carousel banners, or auto-hiding controls. Off by default. Set `true` for defaults (4 frames at 1s intervals; `count` is clamped to 2–8), or pass an object to tune `count` / `intervalMs`. Costs more tokens, and has no effect when `screenshotIncluded` is `false`.
 - Return Value:
 
   - Returns a `Promise<string>` when AI returns a string value.
@@ -906,6 +911,7 @@ function aiAssert(
   - `options?: Object` - Optional, a configuration object containing:
     - `domIncluded?: boolean | 'visible-only'` - Whether to send simplified DOM information to the model, usually used for extracting invisible attributes like image links. If set to `'visible-only'`, only the visible elements will be sent. False by default.
     - `screenshotIncluded?: boolean` - Whether to send screenshot to the model. True by default.
+    - `frameSequence?: boolean | { count?: number; intervalMs?: number }` - Capture a short sequence of frames over a time window and send them all to the model instead of a single screenshot, so it can observe transient UI such as toasts, carousel banners, or auto-hiding controls. Off by default. Set `true` for defaults (4 frames at 1s intervals; `count` is clamped to 2–8), or pass an object to tune `count` / `intervalMs`. Costs more tokens, and has no effect when `screenshotIncluded` is `false`.
 
 - Return Value:
 

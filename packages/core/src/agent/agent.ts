@@ -18,6 +18,7 @@ import {
   type ExecutionRecorderItem,
   type ExecutionTask,
   type ExecutionTaskLog,
+  type FrameSequenceOption,
   type LocateOption,
   type LocateResultElement,
   type OnTaskStartTip,
@@ -386,6 +387,87 @@ export class Agent<
 
   async _snapshotContext(): Promise<UIContext> {
     return await this.getUIContext('locate');
+  }
+
+  private static readonly FRAME_SEQUENCE_DEFAULT_COUNT = 4;
+  private static readonly FRAME_SEQUENCE_MIN_COUNT = 2;
+  private static readonly FRAME_SEQUENCE_MAX_COUNT = 8;
+  private static readonly FRAME_SEQUENCE_DEFAULT_INTERVAL_MS = 1000;
+
+  private normalizeFrameSequenceOption(
+    frameSequence: boolean | FrameSequenceOption,
+  ): { count: number; intervalMs: number } {
+    const raw = typeof frameSequence === 'object' ? frameSequence : {};
+    const count = Math.min(
+      Agent.FRAME_SEQUENCE_MAX_COUNT,
+      Math.max(
+        Agent.FRAME_SEQUENCE_MIN_COUNT,
+        Math.round(raw.count ?? Agent.FRAME_SEQUENCE_DEFAULT_COUNT),
+      ),
+    );
+    const intervalMs = Math.max(
+      0,
+      raw.intervalMs ?? Agent.FRAME_SEQUENCE_DEFAULT_INTERVAL_MS,
+    );
+    return { count, intervalMs };
+  }
+
+  /**
+   * Capture a sequence of screenshots over a short time window and return a
+   * UIContext whose `screenshot` is the latest frame and whose
+   * `screenshotSequence` holds every captured frame in temporal order. Used by
+   * extract/assert flows to let the model observe transient UI.
+   */
+  private async captureUIContextSequence(
+    frameSequence: boolean | FrameSequenceOption,
+  ): Promise<UIContext> {
+    // A frozen context never changes between frames, so a sequence is pointless.
+    if (this.frozenUIContext) {
+      return this.frozenUIContext;
+    }
+
+    const { count, intervalMs } =
+      this.normalizeFrameSequenceOption(frameSequence);
+
+    const frames: ScreenshotItem[] = [];
+    let lastContext: UIContext | undefined;
+    for (let i = 0; i < count; i++) {
+      if (i > 0 && intervalMs > 0) {
+        await new Promise((resolve) => setTimeout(resolve, intervalMs));
+      }
+      lastContext = await this.getUIContext('assert');
+      frames.push(lastContext.screenshot);
+    }
+
+    assert(lastContext, 'failed to capture any frame for frame sequence');
+    return {
+      ...lastContext,
+      screenshotSequence: frames,
+    };
+  }
+
+  /**
+   * Build the execution options for extract/assert flows. When the caller
+   * enables `frameSequence` (and screenshots are not disabled), capture a frame
+   * sequence up front and pass it down as the UIContext so the model observes
+   * transient UI.
+   */
+  private async buildExtractExecutionOptions(
+    opt?: ServiceExtractOption,
+    abortSignal?: AbortSignal,
+  ): Promise<{ abortSignal?: AbortSignal; uiContext?: UIContext }> {
+    const executionOptions: {
+      abortSignal?: AbortSignal;
+      uiContext?: UIContext;
+    } = { abortSignal };
+
+    if (opt?.frameSequence && opt?.screenshotIncluded !== false) {
+      executionOptions.uiContext = await this.captureUIContextSequence(
+        opt.frameSequence,
+      );
+    }
+
+    return executionOptions;
   }
 
   /**
@@ -1037,11 +1119,14 @@ export class Agent<
     opt: ServiceExtractOption = defaultServiceExtractOption,
   ): Promise<ReturnType> {
     const modelRuntime = this.resolveModelRuntime('insight');
+    const executionOptions = await this.buildExtractExecutionOptions(opt);
     const { output } = await this.taskExecutor.createTypeQueryExecution(
       'Query',
       demand,
       modelRuntime,
       opt,
+      undefined,
+      executionOptions,
     );
     return output as ReturnType;
   }
@@ -1053,12 +1138,14 @@ export class Agent<
     const modelRuntime = this.resolveModelRuntime('insight');
 
     const { textPrompt, multimodalPrompt } = parsePrompt(prompt);
+    const executionOptions = await this.buildExtractExecutionOptions(opt);
     const { output } = await this.taskExecutor.createTypeQueryExecution(
       'Boolean',
       textPrompt,
       modelRuntime,
       opt,
       multimodalPrompt,
+      executionOptions,
     );
     return output as boolean;
   }
@@ -1070,12 +1157,14 @@ export class Agent<
     const modelRuntime = this.resolveModelRuntime('insight');
 
     const { textPrompt, multimodalPrompt } = parsePrompt(prompt);
+    const executionOptions = await this.buildExtractExecutionOptions(opt);
     const { output } = await this.taskExecutor.createTypeQueryExecution(
       'Number',
       textPrompt,
       modelRuntime,
       opt,
       multimodalPrompt,
+      executionOptions,
     );
     return output as number;
   }
@@ -1087,12 +1176,14 @@ export class Agent<
     const modelRuntime = this.resolveModelRuntime('insight');
 
     const { textPrompt, multimodalPrompt } = parsePrompt(prompt);
+    const executionOptions = await this.buildExtractExecutionOptions(opt);
     const { output } = await this.taskExecutor.createTypeQueryExecution(
       'String',
       textPrompt,
       modelRuntime,
       opt,
       multimodalPrompt,
+      executionOptions,
     );
     return output as string;
   }
@@ -1163,6 +1254,11 @@ export class Agent<
     const assertionText =
       typeof assertion === 'string' ? assertion : assertion.prompt;
 
+    const executionOptions = await this.buildExtractExecutionOptions(
+      { ...serviceOpt, frameSequence: opt?.frameSequence },
+      opt?.abortSignal,
+    );
+
     try {
       const { output, thought } =
         await this.taskExecutor.createTypeQueryExecution<boolean>(
@@ -1171,9 +1267,7 @@ export class Agent<
           modelRuntime,
           serviceOpt,
           multimodalPrompt,
-          {
-            abortSignal: opt?.abortSignal,
-          },
+          executionOptions,
         );
 
       const pass = Boolean(output);

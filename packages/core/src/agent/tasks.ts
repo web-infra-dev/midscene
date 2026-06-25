@@ -827,6 +827,7 @@ export class TaskExecutor {
     multimodalPrompt?: TMultimodalPrompt,
     executionOptions?: {
       abortSignal?: AbortSignal;
+      uiContext?: UIContext;
     },
   ): Promise<ExecutionResult<T>> {
     const session = this.createExecutionSession(
@@ -834,6 +835,9 @@ export class TaskExecutor {
         type,
         typeof demand === 'string' ? demand : JSON.stringify(demand),
       ),
+      executionOptions?.uiContext
+        ? { uiContext: executionOptions.uiContext }
+        : undefined,
     );
 
     const queryTask = await this.createTypeQueryTask(
