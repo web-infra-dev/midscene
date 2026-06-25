@@ -41,13 +41,15 @@ describe('Windows screenshot via PowerShell (issue #2150)', () => {
     expect(execFileSync.mock.calls[0][0]).toBe('powershell.exe');
     expect(base64).toBe(`data:image/png;base64,${FAKE_PNG_BASE64}`);
 
-    // Without a displayId the script falls back to the primary screen.
+    // Without a displayId the script falls back to the primary screen and
+    // never does a lookup that could fail.
     const script = decodeEncodedCommand(execFileSync.mock.calls[0]);
     expect(script).toContain('CopyFromScreen');
     expect(script).toContain('PrimaryScreen');
+    expect(script).not.toContain('throw');
   });
 
-  it('targets the requested display by DeviceName', async () => {
+  it('targets the requested display by DeviceName and fails fast if missing', async () => {
     Object.defineProperty(process, 'platform', { value: 'win32' });
     const { ComputerDevice } = await import('../../src/device');
 
@@ -55,7 +57,11 @@ describe('Windows screenshot via PowerShell (issue #2150)', () => {
     await device.screenshotBase64();
 
     const script = decodeEncodedCommand(execFileSync.mock.calls[0]);
-    expect(script).toContain("DeviceName -eq '\\\\.\\DISPLAY2'");
+    expect(script).toContain('DeviceName -eq $dn');
+    expect(script).toContain("$dn = '\\\\.\\DISPLAY2'");
+    // A requested-but-missing display must throw, not fall back to primary.
+    expect(script).toContain('throw "Requested display not found');
+    expect(script).not.toContain('PrimaryScreen');
   });
 
   it('throws when PowerShell returns no image data', async () => {

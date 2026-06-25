@@ -1188,9 +1188,15 @@ Original error: ${lastRawMessage}`,
    */
   private screenshotViaPowershell(): string {
     const deviceName = this.displayId ? String(this.displayId) : '';
-    const target = deviceName
-      ? `[System.Windows.Forms.Screen]::AllScreens | Where-Object { $_.DeviceName -eq '${escapePowershellSingleQuoted(deviceName)}' } | Select-Object -First 1`
-      : '$null';
+    // A requested displayId that cannot be matched (stale saved id, unplugged
+    // monitor) must fail fast rather than silently capturing the primary
+    // display — otherwise downstream coordinates/actions land on the wrong
+    // monitor. Only fall back to primary when no displayId was supplied.
+    const selectScreen = deviceName
+      ? `$dn = '${escapePowershellSingleQuoted(deviceName)}'
+$screen = [System.Windows.Forms.Screen]::AllScreens | Where-Object { $_.DeviceName -eq $dn } | Select-Object -First 1
+if (-not $screen) { throw "Requested display not found: $dn" }`
+      : '$screen = [System.Windows.Forms.Screen]::PrimaryScreen';
     const script = `
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Windows.Forms, System.Drawing
@@ -1200,8 +1206,7 @@ using System.Runtime.InteropServices;
 public class NutDpi { [DllImport("user32.dll")] public static extern bool SetProcessDPIAware(); }
 "@
 [NutDpi]::SetProcessDPIAware() | Out-Null
-$screen = ${target}
-if (-not $screen) { $screen = [System.Windows.Forms.Screen]::PrimaryScreen }
+${selectScreen}
 $b = $screen.Bounds
 $bmp = New-Object System.Drawing.Bitmap($b.Width, $b.Height)
 $g = [System.Drawing.Graphics]::FromImage($bmp)
