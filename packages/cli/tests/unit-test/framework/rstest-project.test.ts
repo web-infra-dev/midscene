@@ -370,6 +370,48 @@ describe('rstest yaml project generation', () => {
     }
   });
 
+  test('turns invalid feature files into Rstest failure cases instead of throwing during project generation', () => {
+    const root = createTempDir();
+    const outputDir = join(root, 'runner');
+    const feature = join(root, 'features', 'broken.feature');
+    mkdirSync(join(root, 'features'), { recursive: true });
+    writeFileSync(
+      feature,
+      [
+        'Feature: Broken',
+        'Scenario Outline: Missing rows',
+        '  When I add <qty> items',
+        '  Examples:',
+        '    | qty |',
+        '',
+      ].join('\n'),
+    );
+
+    try {
+      const project = createRstestYamlProject({
+        files: [feature],
+        projectDir: root,
+        outputDir,
+        frameworkImport: '@test/framework',
+        rstestCoreImport: '@test/rstest-core',
+      });
+
+      expect(project.cases).toHaveLength(1);
+      expect(project.cases[0].testName).toBe('features/broken.feature');
+      expect(project.include).toEqual([
+        'virtual:midscene-yaml/001-broken.test.ts',
+      ]);
+      expect(project.virtualModules[project.include[0]]).toContain(
+        'test("features/broken.feature"',
+      );
+      expect(project.virtualModules[project.include[0]]).toContain(
+        'Scenario Outline requires at least one Examples row',
+      );
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
   test('does not suffix same scenario names under different rules in Rstest metadata', () => {
     const root = createTempDir();
     const outputDir = join(root, 'runner');

@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import {
   type RstestRspackDeps,
   createRstestInlineConfig,
+  resolveDefaultFeatureLoaderPath,
   runRstestYamlProject,
 } from '@/framework/rstest-runner';
 import { describe, expect, test, vi } from 'vitest';
@@ -185,6 +186,15 @@ describe('rstest runner config', () => {
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
+  });
+
+  test('resolves the feature loader from both root and framework bundle directories', () => {
+    expect(resolveDefaultFeatureLoaderPath('/repo/dist/lib')).toBe(
+      '/repo/dist/lib/framework/feature-loader.js',
+    );
+    expect(resolveDefaultFeatureLoaderPath('/repo/dist/lib/framework')).toBe(
+      '/repo/dist/lib/framework/feature-loader.js',
+    );
   });
 
   test('records unreported test errors against only the matching scenario result file', async () => {

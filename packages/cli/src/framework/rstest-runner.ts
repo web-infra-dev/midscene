@@ -1,5 +1,5 @@
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { basename, dirname, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import type { MidsceneYamlConfigResult } from '@midscene/core';
 import type { RstestUserConfig, TestRunResult } from '@rstest/core/api';
@@ -17,7 +17,12 @@ export interface RunRstestYamlProjectOptions {
   stdio?: 'inherit' | 'pipe';
 }
 
-const DEFAULT_FEATURE_LOADER_PATH = join(__dirname, 'feature-loader.js');
+export const resolveDefaultFeatureLoaderPath = (
+  moduleDir = __dirname,
+): string =>
+  basename(moduleDir) === 'framework'
+    ? join(moduleDir, 'feature-loader.js')
+    : join(moduleDir, 'framework', 'feature-loader.js');
 
 type RspackPluginInput = Parameters<
   Parameters<
@@ -264,7 +269,7 @@ export function createRstestInlineConfig(
         config.module.rules.push({
           test: /\.feature$/,
           type: 'javascript/auto',
-          loader: deps.featureLoaderPath ?? DEFAULT_FEATURE_LOADER_PATH,
+          loader: deps.featureLoaderPath ?? resolveDefaultFeatureLoaderPath(),
           options: project.featureLoaderOptions,
         });
       },

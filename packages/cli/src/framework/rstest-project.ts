@@ -54,6 +54,7 @@ export interface GeneratedYamlTestCase {
 
 export interface GeneratedFeatureLoaderCase {
   caseId: string;
+  yamlFile: string;
   testName: string;
   resultFile: string;
   caseOptions?: RstestYamlCaseOptions;
@@ -159,6 +160,17 @@ defineYamlBatchTest(test, testOptions);
 `;
 };
 
+const createGeneratedFailureTestContent = (options: {
+  rstestCoreImport: string;
+  testName: string;
+  error: string;
+}): string => `import { test } from ${toImportLiteral(options.rstestCoreImport)};
+
+test(${JSON.stringify(options.testName)}, () => {
+  throw new Error(${JSON.stringify(options.error)});
+});
+`;
+
 const createGeneratedProjectEntries = (options: {
   files: string[];
   projectDir: string;
@@ -202,9 +214,31 @@ const createGeneratedProjectEntries = (options: {
       continue;
     }
 
-    const content = readFileSync(yamlFile, 'utf8');
+    let scenarios: ReturnType<typeof compileFeatureFile>;
+    try {
+      scenarios = compileFeatureFile(readFileSync(yamlFile, 'utf8'), yamlFile);
+    } catch (error) {
+      const fileStem = safeFileStem(yamlFile, caseIndex);
+      caseIndex += 1;
+      const testModule = toVirtualModuleId(fileStem);
+      const resultFile = join(options.resultDir, `${fileStem}.json`);
+      const message = error instanceof Error ? error.message : String(error);
+      virtualModules[testModule] = createGeneratedFailureTestContent({
+        rstestCoreImport: options.rstestCoreImport,
+        testName: relativeTestName,
+        error: message,
+      });
+      include.push(testModule);
+      cases.push({
+        yamlFile,
+        testModule,
+        resultFile,
+        testName: relativeTestName,
+      });
+      continue;
+    }
+
     include.push(yamlFile);
-    const scenarios = compileFeatureFile(content, yamlFile);
 
     featureCasesByFile[yamlFile] = scenarios.map((scenario) => {
       const scenarioFileName = `${basename(
@@ -226,9 +260,13 @@ const createGeneratedProjectEntries = (options: {
       });
       return {
         caseId: scenario.caseId,
+        yamlFile,
         testName,
         resultFile,
-        caseOptions: options.caseOptions?.[yamlFile],
+        caseOptions: {
+          ...options.caseOptions?.[yamlFile],
+          executionConfig: scenario.executionConfig,
+        },
         webRuntimeOptions: options.webRuntimeOptions?.[yamlFile],
       };
     });
