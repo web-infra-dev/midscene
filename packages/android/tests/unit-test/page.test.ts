@@ -2250,7 +2250,7 @@ Stdout:
         );
         (deviceWithDisplay as any).devicePixelRatio = 1;
 
-        await deviceWithDisplay.inputPrimitives.touch.pinch(
+        await deviceWithDisplay.inputPrimitives.touch.pinch!(
           { x: 1280, y: 720 },
           { startDistance: 600, endDistance: 200, duration: 1200 },
         );
@@ -2282,7 +2282,7 @@ Stdout:
         (deviceWithDisplay as any).devicePixelRatio = 1;
 
         await expect(
-          deviceWithDisplay.inputPrimitives.touch.pinch(
+          deviceWithDisplay.inputPrimitives.touch.pinch!(
             { x: 1280, y: 720 },
             { startDistance: 600, endDistance: 200, duration: 1200 },
           ),
