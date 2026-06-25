@@ -1,17 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@midscene/core/ai-model', () => ({
-  callAIWithStringResponse: vi.fn(),
-  getModelRuntime: vi.fn((config) => ({
-    config,
-    adapter: {},
-  })),
+  runConnectivityTest: vi.fn(),
 }));
 
-import {
-  callAIWithStringResponse,
-  getModelRuntime,
-} from '@midscene/core/ai-model';
+import { runConnectivityTest as runCoreConnectivityTest } from '@midscene/core/ai-model';
 import { runConnectivityTest } from '../src/main/playground/connectivity-test';
 
 describe('runConnectivityTest', () => {
@@ -19,86 +12,82 @@ describe('runConnectivityTest', () => {
     vi.clearAllMocks();
   });
 
-  it('runs the connectivity probe through the shared AI caller', async () => {
-    vi.mocked(callAIWithStringResponse).mockResolvedValue({
-      content: 'CONNECTIVITY_OK',
-    } as never);
+  it('runs the Studio model config through the core connectivity suite', async () => {
+    vi.mocked(runCoreConnectivityTest).mockResolvedValue({
+      passed: true,
+    });
 
     const result = await runConnectivityTest({
-      apiKey: 'sk-test',
-      baseUrl: 'https://api.example.com/v1',
-      model: 'gpt-4o',
+      MIDSCENE_MODEL_API_KEY: 'sk-test',
+      MIDSCENE_MODEL_BASE_URL: 'https://api.example.com/v1',
+      MIDSCENE_MODEL_NAME: 'gpt-4o',
+      MIDSCENE_MODEL_FAMILY: 'gpt-5',
     });
 
     expect(result).toEqual({
-      ok: true,
-      sample: 'CONNECTIVITY_OK',
+      passed: true,
     });
-    expect(getModelRuntime).toHaveBeenCalledWith(
-      expect.objectContaining({
+    expect(runCoreConnectivityTest).toHaveBeenCalledWith({
+      defaultModelConfig: expect.objectContaining({
         openaiApiKey: 'sk-test',
         openaiBaseURL: 'https://api.example.com/v1',
         modelName: 'gpt-4o',
+        modelFamily: 'gpt-5',
         intent: 'default',
         slot: 'default',
-        timeout: 30_000,
       }),
-    );
-    expect(callAIWithStringResponse).toHaveBeenCalledWith(
-      [
-        {
-          role: 'system',
-          content: 'Reply with the exact token the user asks for.',
-        },
-        {
-          role: 'user',
-          content: 'Return exactly CONNECTIVITY_OK',
-        },
-      ],
+      planningModelConfig: expect.objectContaining({
+        openaiApiKey: 'sk-test',
+        openaiBaseURL: 'https://api.example.com/v1',
+        modelName: 'gpt-4o',
+        modelFamily: 'gpt-5',
+        intent: 'planning',
+        slot: 'default',
+      }),
+      insightModelConfig: expect.objectContaining({
+        openaiApiKey: 'sk-test',
+        openaiBaseURL: 'https://api.example.com/v1',
+        modelName: 'gpt-4o',
+        modelFamily: 'gpt-5',
+        intent: 'insight',
+        slot: 'default',
+      }),
+    });
+  });
+
+  it('supports compatible alias keys when building the core config', async () => {
+    vi.mocked(runCoreConnectivityTest).mockResolvedValue({
+      passed: true,
+    });
+
+    await runConnectivityTest({
+      OPENAI_API_KEY: 'sk-test',
+      OPENAI_BASE_URL: 'https://api.example.com/v1',
+      MIDSCENE_MODEL: 'gpt-4o',
+    });
+
+    expect(runCoreConnectivityTest).toHaveBeenCalledWith(
       expect.objectContaining({
-        config: expect.objectContaining({
+        defaultModelConfig: expect.objectContaining({
           openaiApiKey: 'sk-test',
           openaiBaseURL: 'https://api.example.com/v1',
           modelName: 'gpt-4o',
-          intent: 'default',
-          slot: 'default',
-          timeout: 30_000,
         }),
-      }),
-      expect.objectContaining({
-        abortSignal: expect.any(AbortSignal),
       }),
     );
   });
 
-  it('returns config validation errors before invoking the AI caller', async () => {
+  it('returns config validation errors before invoking the core suite', async () => {
     await expect(
       runConnectivityTest({
-        apiKey: 'sk-test',
-        baseUrl: '',
-        model: 'gpt-4o',
+        MIDSCENE_MODEL_API_KEY: 'sk-test',
+        MIDSCENE_MODEL_BASE_URL: '',
+        MIDSCENE_MODEL_NAME: 'gpt-4o',
       }),
-    ).resolves.toEqual({
-      ok: false,
-      error: 'Missing required keys: OPENAI_BASE_URL',
+    ).resolves.toMatchObject({
+      passed: false,
+      message: 'Missing required keys: OPENAI_BASE_URL',
     });
-    expect(callAIWithStringResponse).not.toHaveBeenCalled();
-  });
-
-  it('maps aborts to the existing timeout error', async () => {
-    const abortError = new Error('aborted');
-    abortError.name = 'AbortError';
-    vi.mocked(callAIWithStringResponse).mockRejectedValue(abortError as never);
-
-    await expect(
-      runConnectivityTest({
-        apiKey: 'sk-test',
-        baseUrl: 'https://api.example.com/v1',
-        model: 'gpt-4o',
-      }),
-    ).resolves.toEqual({
-      ok: false,
-      error: 'Request timed out.',
-    });
+    expect(runCoreConnectivityTest).not.toHaveBeenCalled();
   });
 });

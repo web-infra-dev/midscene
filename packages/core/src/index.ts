@@ -15,7 +15,6 @@ export {
   TUserPromptSchema,
   type TMultimodalPrompt,
   type TUserPrompt,
-  type ConnectivityCheckResultItem,
   type ConnectivityTestConfig,
   type ConnectivityTestResult,
 } from './ai-model/index';

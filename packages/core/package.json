@@ -105,6 +105,7 @@
     "@types/node-fetch": "2.6.11",
     "@types/semver": "7.7.0",
     "langsmith": "^0.3.74",
+    "sharp": "^0.34.3",
     "typescript": "^5.8.3",
     "vitest": "3.0.5"
   },

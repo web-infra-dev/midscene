@@ -5,7 +5,8 @@ import type {
 } from '@midscene/core';
 import { ReportActionDump, runConnectivityTest } from '@midscene/core';
 import {
-  globalModelConfigManager,
+  ModelConfigManager,
+  type TModelConfig,
   overrideAIConfig,
 } from '@midscene/shared/env';
 import { uuid } from '@midscene/shared/utils';
@@ -133,11 +134,14 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
     console.log('Config updated. Agent will be recreated on next execution.');
   }
 
-  async runConnectivityTest(): Promise<ConnectivityTestResult> {
+  async runConnectivityTest(
+    aiConfig: TModelConfig,
+  ): Promise<ConnectivityTestResult> {
+    const modelConfigManager = new ModelConfigManager(aiConfig);
     return runConnectivityTest({
-      defaultModelConfig: globalModelConfigManager.getModelConfig('default'),
-      planningModelConfig: globalModelConfigManager.getModelConfig('planning'),
-      insightModelConfig: globalModelConfigManager.getModelConfig('insight'),
+      defaultModelConfig: modelConfigManager.getModelConfig('default'),
+      planningModelConfig: modelConfigManager.getModelConfig('planning'),
+      insightModelConfig: modelConfigManager.getModelConfig('insight'),
     });
   }
 

@@ -1,5 +1,6 @@
 import type { ConnectivityTestResult, DeviceAction } from '@midscene/core';
 import { PLAYGROUND_SERVER_PORT } from '@midscene/shared/constants';
+import type { TModelConfig } from '@midscene/shared/env';
 import type { BasePlaygroundAdapter } from '../adapters/base';
 import { LocalExecutionAdapter } from '../adapters/local-execution';
 import { RemoteExecutionAdapter } from '../adapters/remote-execution';
@@ -164,8 +165,10 @@ export class PlaygroundSDK {
     return this.adapter.overrideConfig(aiConfig);
   }
 
-  async runConnectivityTest(): Promise<ConnectivityTestResult> {
-    return this.adapter.runConnectivityTest();
+  async runConnectivityTest(
+    aiConfig: TModelConfig,
+  ): Promise<ConnectivityTestResult> {
+    return this.adapter.runConnectivityTest(aiConfig);
   }
 
   // Get task progress (for remote execution)

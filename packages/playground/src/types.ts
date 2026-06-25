@@ -1,5 +1,6 @@
 import type { ConnectivityTestResult, DeviceAction } from '@midscene/core';
 import type { Agent } from '@midscene/core/agent';
+import type { TModelConfig } from '@midscene/shared/env';
 
 export interface PlaygroundAgent extends Agent {
   [key: string]: any; // Allow dynamic method access for backward compatibility
@@ -119,5 +120,5 @@ export interface PlaygroundAdapter {
   ): Promise<unknown>;
 
   getActionSpace?(context: any): Promise<DeviceAction<unknown>[]>;
-  runConnectivityTest?(): Promise<ConnectivityTestResult>;
+  runConnectivityTest?(config: TModelConfig): Promise<ConnectivityTestResult>;
 }
