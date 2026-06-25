@@ -113,6 +113,34 @@ describe('ReportGenerator — append-only model', () => {
     }
   });
 
+  // Writer contract for the self-describing screenshot mode. The merger reads
+  // this attribute back to decide directory vs inline, so the generated value
+  // must match for both modes (see report.ts readDeclaredScreenshotMode).
+  describe('data-screenshot-mode attribute', () => {
+    it.each(['inline', 'directory'] as const)(
+      'stamps data-screenshot-mode="%s" on the dump script tag',
+      async (mode) => {
+        const reportPath =
+          mode === 'directory'
+            ? join(tmpDir, 'dir-mode', 'index.html')
+            : join(tmpDir, 'inline-mode.html');
+        const generator = new ReportGenerator({
+          reportPath,
+          screenshotMode: mode,
+          autoPrint: false,
+        });
+        generator.onExecutionUpdate(
+          createExecution([ScreenshotItem.create(fakeBase64(100), Date.now())]),
+          defaultReportMeta,
+        );
+        await generator.finalize();
+
+        const html = readFileSync(reportPath, 'utf-8');
+        expect(html).toContain(`data-screenshot-mode="${mode}"`);
+      },
+    );
+  });
+
   describe('inline mode — append-only strategy', () => {
     it('should write each screenshot image tag exactly once across multiple updates', async () => {
       const reportPath = join(tmpDir, 'inline-test.html');

@@ -13,6 +13,7 @@ import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import { antiEscapeScriptTag, logMsg } from '@midscene/shared/utils';
 import { getReportFileName } from './agent';
 import {
+  DATA_SCREENSHOT_MODE_ATTR,
   extractAllDumpScriptsSync,
   extractLastDumpScriptSync,
   getBaseUrlFixScript,
@@ -27,20 +28,64 @@ import {
   type ExecutionDump,
   type IExecutionDump,
   ReportActionDump,
+  type ScreenshotMode,
 } from './types';
 import type { ReportFileWithAttributes } from './types';
 import { getReportTpl, getVersion, reportHTMLContent } from './utils';
 
 /**
+ * Read the screenshot storage mode a report declared at generation time.
+ *
+ * Reports written by current versions stamp `data-screenshot-mode` onto every
+ * dump script tag, so we only need to peek at the first real dump script (the
+ * template's bundled JS also references the dump type string, hence the
+ * `data-group-id` filter) and can stop streaming immediately.
+ *
+ * Returns undefined for legacy reports that predate the attribute or for
+ * unreadable files, letting the caller fall back to a filesystem heuristic.
+ */
+const screenshotModeAttrRegExp = new RegExp(
+  `${DATA_SCREENSHOT_MODE_ATTR}="(inline|directory)"`,
+);
+
+function readDeclaredScreenshotMode(
+  reportFilePath: string,
+): ScreenshotMode | undefined {
+  let mode: ScreenshotMode | undefined;
+  try {
+    streamDumpScriptsSync(reportFilePath, ({ openTag }) => {
+      // Skip false matches from the template's bundled JS code.
+      if (!openTag.includes('data-group-id')) return false;
+      const match = openTag.match(screenshotModeAttrRegExp);
+      mode = match?.[1] as ScreenshotMode | undefined;
+      return true; // the first real dump script decides the mode
+    });
+  } catch {
+    // Unreadable / non-existent file — let the caller fall back.
+  }
+  return mode;
+}
+
+/**
  * Check if a report is in directory mode (html-and-external-assets).
  * Directory mode reports: {name}/index.html + {name}/screenshots/
+ *
+ * The mode is read from the report's own `data-screenshot-mode` metadata, which
+ * is authoritative regardless of whether the run happened to capture any
+ * screenshots. For legacy reports without the attribute we fall back to the old
+ * filesystem heuristic (an `index.html` that has a sibling `screenshots/` dir).
  */
 export function isDirectoryModeReport(reportFilePath: string): boolean {
-  const reportDir = path.dirname(reportFilePath);
-  return (
-    path.basename(reportFilePath) === 'index.html' &&
-    existsSync(path.join(reportDir, 'screenshots'))
-  );
+  // Directory-mode reports are always written as `{name}/index.html`, so any
+  // other filename is inline. Short-circuit before touching the file so the
+  // common inline case (`{name}.html`) costs nothing.
+  if (path.basename(reportFilePath) !== 'index.html') return false;
+
+  const declared = readDeclaredScreenshotMode(reportFilePath);
+  if (declared) return declared === 'directory';
+
+  // Legacy fallback for reports generated before screenshotMode was embedded.
+  return existsSync(path.join(path.dirname(reportFilePath), 'screenshots'));
 }
 
 /**
@@ -163,11 +208,15 @@ export class ReportMergingTool {
       mkdirSync(targetDir, { recursive: true });
     }
 
-    // Check if any source report is directory mode
-    const hasDirectoryModeReport = this.reportInfos.some((info) => {
-      const reportFilePath = info.reportFilePath;
-      return Boolean(reportFilePath && isDirectoryModeReport(reportFilePath));
-    });
+    // Resolve each report's mode exactly once. isDirectoryModeReport reads the
+    // file to find the authoritative metadata, so recomputing it per phase
+    // (selection / merge loop / deletion) would re-scan every report 3x.
+    const isDirModeByIndex = this.reportInfos.map((info) =>
+      Boolean(
+        info.reportFilePath && isDirectoryModeReport(info.reportFilePath),
+      ),
+    );
+    const hasDirectoryModeReport = isDirModeByIndex.some(Boolean);
 
     const resolvedName =
       reportFileName === 'AUTO'
@@ -229,19 +278,23 @@ export class ReportMergingTool {
         let mergedGroupId = `merged-group-${i}`;
 
         if (reportInfo.reportFilePath) {
-          if (isDirectoryModeReport(reportInfo.reportFilePath)) {
-            // Directory mode: copy external screenshot files
+          if (isDirModeByIndex[i]) {
+            // Directory mode: copy external screenshot files. A directory-mode
+            // report can legitimately have no screenshots/ dir (a run that
+            // captured nothing), so only copy when the source dir exists.
             const reportDir = path.dirname(reportInfo.reportFilePath);
             const screenshotsDir = path.join(reportDir, 'screenshots');
-            const mergedScreenshotsDir = path.join(
-              path.dirname(outputFilePath),
-              'screenshots',
-            );
-            mkdirSync(mergedScreenshotsDir, { recursive: true });
-            for (const file of readdirSync(screenshotsDir)) {
-              const src = path.join(screenshotsDir, file);
-              const dest = path.join(mergedScreenshotsDir, file);
-              copyFileSync(src, dest);
+            if (existsSync(screenshotsDir)) {
+              const mergedScreenshotsDir = path.join(
+                path.dirname(outputFilePath),
+                'screenshots',
+              );
+              mkdirSync(mergedScreenshotsDir, { recursive: true });
+              for (const file of readdirSync(screenshotsDir)) {
+                const src = path.join(screenshotsDir, file);
+                const dest = path.join(mergedScreenshotsDir, file);
+                copyFileSync(src, dest);
+              }
             }
           } else {
             // Inline mode: stream image scripts to output file
@@ -277,6 +330,9 @@ export class ReportMergingTool {
             dumpString,
             attributes: {
               'data-group-id': mergedGroupId,
+              [DATA_SCREENSHOT_MODE_ATTR]: hasDirectoryModeReport
+                ? 'directory'
+                : 'inline',
               playwright_test_duration: reportAttributes.testDuration,
               playwright_test_status: reportAttributes.testStatus,
               playwright_test_title: reportAttributes.testTitle,
@@ -300,11 +356,13 @@ export class ReportMergingTool {
 
       // Remove original reports if needed
       if (rmOriginalReports) {
-        for (const info of this.reportInfos) {
+        for (let i = 0; i < this.reportInfos.length; i++) {
+          const info = this.reportInfos[i];
           if (!info.reportFilePath) continue;
           try {
-            if (isDirectoryModeReport(info.reportFilePath)) {
-              // Directory mode: remove the entire report directory
+            if (isDirModeByIndex[i]) {
+              // Directory mode: remove the entire report directory, including a
+              // screenshot-less run that only has index.html.
               const reportDir = path.dirname(info.reportFilePath);
               rmSync(reportDir, { recursive: true, force: true });
             } else {

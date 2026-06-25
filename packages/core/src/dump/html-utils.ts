@@ -451,6 +451,14 @@ export function getBaseUrlFixScript(): string {
   return _baseUrlFixScript;
 }
 
+/**
+ * Dump-script attribute that records how the report file stores screenshots.
+ * Written by the report generator and the merger, read back when deciding
+ * whether a report is in directory mode. Kept here, next to dump-tag
+ * generation, so the writer and reader share one source of truth.
+ */
+export const DATA_SCREENSHOT_MODE_ATTR = 'data-screenshot-mode';
+
 export function generateDumpScriptTag(
   json: string,
   attributes?: Record<string, string | number | boolean>,
