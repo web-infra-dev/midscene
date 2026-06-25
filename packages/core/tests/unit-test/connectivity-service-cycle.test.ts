@@ -64,6 +64,7 @@ describe('runConnectivityTest service load order', () => {
     modelFamily: 'qwen2.5-vl',
     intent: 'default',
     slot: 'default',
+    retryCount: 3,
   };
   const planningModelConfig: IModelConfig = {
     modelName: 'test-planning-model',
@@ -71,6 +72,7 @@ describe('runConnectivityTest service load order', () => {
     modelFamily: 'qwen2.5-vl',
     intent: 'planning',
     slot: 'planning',
+    retryCount: 3,
   };
   const insightModelConfig: IModelConfig = {
     modelName: 'test-insight-model',
@@ -78,6 +80,7 @@ describe('runConnectivityTest service load order', () => {
     modelFamily: 'gpt-5',
     intent: 'insight',
     slot: 'insight',
+    retryCount: 3,
   };
 
   beforeEach(() => {
@@ -117,10 +120,14 @@ describe('runConnectivityTest service load order', () => {
       expect.objectContaining({
         targetElementDescription: 'the main todo input box',
         modelRuntime: expect.objectContaining({
-          config: defaultModelConfig,
+          config: expect.objectContaining({
+            ...defaultModelConfig,
+            retryCount: 0,
+          }),
         }),
       }),
     );
+    expect(defaultModelConfig.retryCount).toBe(3);
   });
 
   it('keeps service independent from the ai-model barrel', () => {
