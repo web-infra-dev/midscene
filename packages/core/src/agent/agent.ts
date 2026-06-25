@@ -393,6 +393,7 @@ export class Agent<
   private static readonly FRAME_SEQUENCE_MIN_COUNT = 2;
   private static readonly FRAME_SEQUENCE_MAX_COUNT = 8;
   private static readonly FRAME_SEQUENCE_DEFAULT_INTERVAL_MS = 1000;
+  private static readonly FRAME_SEQUENCE_MAX_INTERVAL_MS = 10000;
 
   private normalizeFrameSequenceOption(
     frameSequence: boolean | FrameSequenceOption,
@@ -405,9 +406,9 @@ export class Agent<
         Math.round(raw.count ?? Agent.FRAME_SEQUENCE_DEFAULT_COUNT),
       ),
     );
-    const intervalMs = Math.max(
-      0,
-      raw.intervalMs ?? Agent.FRAME_SEQUENCE_DEFAULT_INTERVAL_MS,
+    const intervalMs = Math.min(
+      Agent.FRAME_SEQUENCE_MAX_INTERVAL_MS,
+      Math.max(0, raw.intervalMs ?? Agent.FRAME_SEQUENCE_DEFAULT_INTERVAL_MS),
     );
     return { count, intervalMs };
   }
@@ -1255,7 +1256,7 @@ export class Agent<
       typeof assertion === 'string' ? assertion : assertion.prompt;
 
     const executionOptions = await this.buildExtractExecutionOptions(
-      { ...serviceOpt, frameSequence: opt?.frameSequence },
+      opt,
       opt?.abortSignal,
     );
 

@@ -774,6 +774,14 @@ export class TaskExecutor {
             applyDump(error.dump);
           }
           throw error;
+        } finally {
+          // A frame sequence is a transient model input: it is not persisted in
+          // the report. Release the extra frames once the model call is done so
+          // their base64 is not retained for the lifetime of the dump. The
+          // representative `screenshot` is kept.
+          if (uiContext?.screenshotSequence) {
+            uiContext.screenshotSequence = undefined;
+          }
         }
 
         const { data, thought, dump } = extractResult;
@@ -884,8 +892,17 @@ export class TaskExecutor {
       checkIntervalMs,
       domIncluded,
       screenshotIncluded,
+      frameSequence,
       ...restOpt
     } = opt;
+    if (frameSequence) {
+      // waitFor is itself a polling loop, so it already re-samples the screen
+      // over time. The single-shot frameSequence capture does not apply here;
+      // ignore it explicitly instead of letting it silently no-op.
+      warnLog(
+        'frameSequence is ignored by aiWaitFor (it already polls over time). Use aiAssert with { frameSequence } for a one-shot multi-frame check.',
+      );
+    }
     const serviceExtractOpt: ServiceExtractOption = {
       domIncluded,
       screenshotIncluded,
