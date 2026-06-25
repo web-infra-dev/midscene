@@ -418,6 +418,57 @@ describe('reportMergingTool', () => {
     }
   });
 
+  // Regression for the real-world report: a legacy directory-based report
+  // (`{name}/index.html`) that predates data-screenshot-mode AND inlines its
+  // screenshots (no screenshots/ dir). Such a report reads as inline screenshot
+  // mode, so the merged output is a single file — but rmOriginalReports must
+  // still remove the whole source folder, not orphan it.
+  it('removes the folder of a legacy inline-screenshot directory report on rmOriginalReports', () => {
+    const tmpDir = join(tmpdir(), `midscene-legacy-folder-rm-${Date.now()}`);
+    mkdirSync(tmpDir, { recursive: true });
+    try {
+      const tool = new ReportMergingTool();
+      const reportDirs: string[] = [];
+      for (const name of ['playwright-merged-a', 'playwright-merged-b']) {
+        const reportDir = join(tmpDir, name);
+        mkdirSync(reportDir, { recursive: true }); // no screenshots/ dir
+        reportDirs.push(reportDir);
+        const dumpJson = JSON.stringify({ groupName: name, executions: [] });
+        const indexHtml = join(reportDir, 'index.html');
+        // No data-screenshot-mode attribute (legacy) + an inline image tag.
+        writeFileSync(
+          indexHtml,
+          `${getReportTpl()}\n<script type="midscene_web_dump" data-group-id="${name}">${dumpJson}</script>\n${generateImageScriptTag(`${name}-img`, 'data:image/png;base64,AAAA')}`,
+        );
+        tool.append({
+          reportFilePath: indexHtml,
+          reportAttributes: {
+            testDescription: name,
+            testDuration: 1,
+            testId: name,
+            testStatus: 'passed',
+            testTitle: name,
+          },
+        });
+      }
+
+      const mergedPath = tool.mergeReports('legacy-folder-rm-test', {
+        rmOriginalReports: true,
+        overwrite: true,
+      });
+
+      expect(existsSync(mergedPath!)).toBe(true);
+      // Merged as inline → single .html file (not a directory).
+      expect(mergedPath!.endsWith('index.html')).toBe(false);
+      // The source folders must be removed, not orphaned.
+      for (const dir of reportDirs) {
+        expect(existsSync(dir)).toBe(false);
+      }
+    } finally {
+      rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
   it('should merge a single report', async () => {
     const tool = new ReportMergingTool();
     generateNReports(1, 'single report content', tool, true, 'merge-1-test');

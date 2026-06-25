@@ -89,6 +89,21 @@ export function isDirectoryModeReport(reportFilePath: string): boolean {
 }
 
 /**
+ * Whether a report lives in its own dedicated directory (`{name}/index.html`)
+ * rather than being a single standalone file (`{name}.html`).
+ *
+ * This is a structural fact about *where the report file sits*, independent of
+ * how it stores screenshots: a directory report can keep screenshots external
+ * (a `screenshots/` sibling) OR inline them into `index.html`. Deletion needs
+ * this — not the screenshot mode — to decide whether to remove the whole
+ * directory or just unlink a file, so that an inline-screenshot report nested in
+ * its own folder still has the folder removed instead of being orphaned.
+ */
+function isDirectoryBasedReport(reportFilePath: string): boolean {
+  return path.basename(reportFilePath) === 'index.html';
+}
+
+/**
  * Deduplicate executions by stable id, keeping only the last occurrence.
  * Old-format executions without id are always preserved.
  */
@@ -208,9 +223,10 @@ export class ReportMergingTool {
       mkdirSync(targetDir, { recursive: true });
     }
 
-    // Resolve each report's mode exactly once. isDirectoryModeReport reads the
-    // file to find the authoritative metadata, so recomputing it per phase
-    // (selection / merge loop / deletion) would re-scan every report 3x.
+    // Resolve each report's screenshot mode exactly once. isDirectoryModeReport
+    // reads the file to find the authoritative metadata, so recomputing it for
+    // both the output-path decision and the per-report merge loop would re-scan
+    // every report twice.
     const isDirModeByIndex = this.reportInfos.map((info) =>
       Boolean(
         info.reportFilePath && isDirectoryModeReport(info.reportFilePath),
@@ -356,13 +372,12 @@ export class ReportMergingTool {
 
       // Remove original reports if needed
       if (rmOriginalReports) {
-        for (let i = 0; i < this.reportInfos.length; i++) {
-          const info = this.reportInfos[i];
+        for (const info of this.reportInfos) {
           if (!info.reportFilePath) continue;
           try {
-            if (isDirModeByIndex[i]) {
-              // Directory mode: remove the entire report directory, including a
-              // screenshot-less run that only has index.html.
+            if (isDirectoryBasedReport(info.reportFilePath)) {
+              // The report owns its directory (`{name}/index.html`) — remove the
+              // whole folder, whether screenshots are external or inlined.
               const reportDir = path.dirname(info.reportFilePath);
               rmSync(reportDir, { recursive: true, force: true });
             } else {
