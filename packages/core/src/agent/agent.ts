@@ -414,13 +414,42 @@ export class Agent<
   }
 
   /**
+   * Sleep for `ms`, but reject early if `abortSignal` fires so a cancelled
+   * frame-sequence capture does not keep waiting out the interval.
+   */
+  private interruptibleSleep(
+    ms: number,
+    abortSignal?: AbortSignal,
+  ): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
+      if (abortSignal?.aborted) {
+        reject(abortSignal.reason);
+        return;
+      }
+      const onAbort = () => {
+        clearTimeout(timer);
+        reject(abortSignal?.reason);
+      };
+      const timer = setTimeout(() => {
+        abortSignal?.removeEventListener('abort', onAbort);
+        resolve();
+      }, ms);
+      abortSignal?.addEventListener('abort', onAbort, { once: true });
+    });
+  }
+
+  /**
    * Capture a sequence of screenshots over a short time window and return a
    * UIContext whose `screenshot` is the latest frame and whose
    * `screenshotSequence` holds every captured frame in temporal order. Used by
    * extract/assert flows to let the model observe transient UI.
+   *
+   * Honors `abortSignal` between frames so a cancelled assertion stops
+   * capturing promptly instead of waiting out the whole window.
    */
   private async captureUIContextSequence(
     frameSequence: boolean | FrameSequenceOption,
+    abortSignal?: AbortSignal,
   ): Promise<UIContext> {
     // A frozen context never changes between frames, so a sequence is pointless.
     if (this.frozenUIContext) {
@@ -433,9 +462,11 @@ export class Agent<
     const frames: ScreenshotItem[] = [];
     let lastContext: UIContext | undefined;
     for (let i = 0; i < count; i++) {
+      abortSignal?.throwIfAborted();
       if (i > 0 && intervalMs > 0) {
-        await new Promise((resolve) => setTimeout(resolve, intervalMs));
+        await this.interruptibleSleep(intervalMs, abortSignal);
       }
+      abortSignal?.throwIfAborted();
       lastContext = await this.getUIContext('assert');
       frames.push(lastContext.screenshot);
     }
@@ -465,6 +496,7 @@ export class Agent<
     if (opt?.frameSequence && opt?.screenshotIncluded !== false) {
       executionOptions.uiContext = await this.captureUIContextSequence(
         opt.frameSequence,
+        abortSignal,
       );
     }
 

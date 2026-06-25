@@ -86,4 +86,41 @@ describe('Agent frame sequence switch', () => {
 
     expect(getUIContext).not.toHaveBeenCalled();
   });
+
+  it('does not capture any frame when the signal is already aborted', async () => {
+    const { agent, getUIContext } = createAgentStub();
+    const controller = new AbortController();
+    controller.abort();
+
+    await expect(
+      agent.aiAssert('a toast appeared', undefined, {
+        keepRawResponse: true,
+        abortSignal: controller.signal,
+        frameSequence: true,
+      }),
+    ).rejects.toBeDefined();
+
+    expect(getUIContext).not.toHaveBeenCalled();
+  });
+
+  it('stops capturing promptly when aborted mid-sequence', async () => {
+    const { agent, getUIContext } = createAgentStub();
+    const controller = new AbortController();
+    // Abort right after the first frame is captured.
+    getUIContext.mockImplementationOnce(async () => {
+      controller.abort();
+      return fakeContext('frame-0');
+    });
+
+    await expect(
+      agent.aiAssert('a toast appeared', undefined, {
+        keepRawResponse: true,
+        abortSignal: controller.signal,
+        frameSequence: { count: 6, intervalMs: 50 },
+      }),
+    ).rejects.toBeDefined();
+
+    // Should bail out long before capturing all 6 frames.
+    expect(getUIContext.mock.calls.length).toBeLessThan(6);
+  });
 });
