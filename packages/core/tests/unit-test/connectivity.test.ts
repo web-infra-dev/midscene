@@ -39,6 +39,7 @@ describe('runConnectivityTest', () => {
     modelFamily: 'qwen2.5-vl',
     intent: 'default',
     slot: 'default',
+    retryCount: 3,
   };
   const planningModelConfig: IModelConfig = {
     modelName: 'test-planning-model',
@@ -46,6 +47,7 @@ describe('runConnectivityTest', () => {
     modelFamily: 'qwen2.5-vl',
     intent: 'planning',
     slot: 'planning',
+    retryCount: 3,
   };
   const insightModelConfig: IModelConfig = {
     modelName: 'test-insight-model',
@@ -53,6 +55,7 @@ describe('runConnectivityTest', () => {
     modelFamily: 'gpt-5',
     intent: 'insight',
     slot: 'insight',
+    retryCount: 3,
   };
 
   beforeEach(() => {
@@ -97,19 +100,31 @@ describe('runConnectivityTest', () => {
       { prompt: 'the main todo input box' },
       {},
       expect.objectContaining({
-        config: defaultModelConfig,
+        config: expect.objectContaining({
+          ...defaultModelConfig,
+          retryCount: 0,
+        }),
       }),
     );
     expect(vi.mocked(callAI).mock.calls[0]?.[1]).toEqual(
       expect.objectContaining({
-        config: planningModelConfig,
+        config: expect.objectContaining({
+          ...planningModelConfig,
+          retryCount: 0,
+        }),
       }),
     );
     expect(vi.mocked(callAI).mock.calls[1]?.[1]).toEqual(
       expect.objectContaining({
-        config: insightModelConfig,
+        config: expect.objectContaining({
+          ...insightModelConfig,
+          retryCount: 0,
+        }),
       }),
     );
+    expect(defaultModelConfig.retryCount).toBe(3);
+    expect(planningModelConfig.retryCount).toBe(3);
+    expect(insightModelConfig.retryCount).toBe(3);
     const visionCall = vi.mocked(callAI).mock.calls[1]?.[0]?.[0];
     expect(visionCall).toMatchObject({
       role: 'user',
