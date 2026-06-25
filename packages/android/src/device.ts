@@ -159,7 +159,10 @@ export class AndroidDevice implements AbstractInterface {
         await this.ensureYadb();
         const adb = await this.getAdb();
         await adb.shell(
-          `app_process${this.getDisplayArg()} -Djava.class.path=/data/local/tmp/yadb /data/local/tmp com.ysbing.yadb.Main -pinch ${adjCenterX} ${adjCenterY} ${adjStartDist} ${adjEndDist} ${opts.duration}`,
+          // Note: do not append getDisplayArg() here. `app_process` is the ART
+          // runtime launcher and does not accept the `-d <displayId>` flag the
+          // way `input`/`dumpsys` do; passing it makes the VM fail to start.
+          `app_process -Djava.class.path=/data/local/tmp/yadb /data/local/tmp com.ysbing.yadb.Main -pinch ${adjCenterX} ${adjCenterY} ${adjStartDist} ${adjEndDist} ${opts.duration}`,
         );
       },
     },
@@ -562,7 +565,8 @@ ${Object.keys(size)
     const adb = await this.getAdb();
 
     await adb.shell(
-      `app_process${this.getDisplayArg()} -Djava.class.path=/data/local/tmp/yadb /data/local/tmp com.ysbing.yadb.Main -keyboard '${keyboardContent}'`,
+      // `app_process` (ART launcher) does not accept the `-d <displayId>` flag.
+      `app_process -Djava.class.path=/data/local/tmp/yadb /data/local/tmp com.ysbing.yadb.Main -keyboard '${keyboardContent}'`,
     );
   }
 
@@ -1197,7 +1201,8 @@ ${Object.keys(size)
     } else {
       // Use the yadb tool to clear the input box
       await adb.shell(
-        `app_process${this.getDisplayArg()} -Djava.class.path=/data/local/tmp/yadb /data/local/tmp com.ysbing.yadb.Main -keyboardClear`,
+        // `app_process` (ART launcher) does not accept the `-d <displayId>` flag.
+        'app_process -Djava.class.path=/data/local/tmp/yadb /data/local/tmp com.ysbing.yadb.Main -keyboardClear',
       );
     }
 
