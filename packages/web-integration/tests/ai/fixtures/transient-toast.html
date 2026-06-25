@@ -3,20 +3,47 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Transient Toast</title>
+    <title>Sign in</title>
     <style>
       body {
         font-family: -apple-system, Segoe UI, Roboto, sans-serif;
         margin: 0;
-        height: 100vh;
+        min-height: 100vh;
         display: flex;
         align-items: center;
         justify-content: center;
         background: #f4f4f5;
       }
-      #submit {
-        padding: 16px 36px;
+      .card {
+        width: 320px;
+        padding: 32px;
+        background: #fff;
+        border-radius: 12px;
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+      }
+      .card h1 {
         font-size: 22px;
+        margin: 0 0 8px;
+      }
+      .card label {
+        display: block;
+        font-size: 13px;
+        color: #555;
+        margin: 16px 0 6px;
+      }
+      .card input {
+        width: 100%;
+        box-sizing: border-box;
+        padding: 10px 12px;
+        font-size: 15px;
+        border: 1px solid #d4d4d8;
+        border-radius: 8px;
+      }
+      #signin {
+        width: 100%;
+        margin-top: 24px;
+        padding: 12px;
+        font-size: 16px;
         border: none;
         border-radius: 8px;
         background: #2563eb;
@@ -25,14 +52,14 @@
       }
       #toast {
         position: fixed;
-        top: 48px;
+        top: 40px;
         left: 50%;
         transform: translateX(-50%);
         background: #d92d20;
         color: #fff;
-        padding: 18px 30px;
+        padding: 16px 28px;
         border-radius: 8px;
-        font-size: 24px;
+        font-size: 20px;
         font-weight: 600;
         box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
         display: none;
@@ -44,37 +71,41 @@
     </style>
   </head>
   <body>
-    <button id="submit">Submit</button>
+    <form class="card" id="login" onsubmit="return false">
+      <h1>Sign in</h1>
+      <label for="username">Username</label>
+      <input id="username" type="text" autocomplete="off" />
+      <label for="password">Password</label>
+      <input id="password" type="password" autocomplete="off" />
+      <button id="signin" type="submit">Sign in</button>
+    </form>
     <div id="toast" role="alert">Login failed: incorrect password</div>
     <script>
       (function () {
         var toast = document.getElementById('toast');
         var timers = [];
-        function clearTimers() {
-          timers.forEach(clearTimeout);
-          timers = [];
-        }
-        // Show the toast after `appearDelay` ms, then auto-hide after
-        // `visibleMs` ms. This mimics an async server response whose toast is
-        // short-lived: a screenshot taken too early (before it appears) or too
-        // late (after it hides) misses it entirely.
-        window.flashToast = function (appearDelay, visibleMs) {
-          clearTimers();
-          toast.classList.remove('show');
-          timers.push(
-            setTimeout(function () {
-              toast.classList.add('show');
-              timers.push(
-                setTimeout(function () {
-                  toast.classList.remove('show');
-                }, visibleMs),
-              );
-            }, appearDelay),
-          );
-        };
-        document.getElementById('submit').addEventListener('click', function () {
-          window.flashToast(1500, 1200);
-        });
+        // Real page behavior: clicking "Sign in" kicks off an async auth check
+        // and, ~1.5s later, shows a short-lived error toast that auto-hides
+        // after ~1.8s. A screenshot taken too early (before it appears) or too
+        // late (after it hides) misses it entirely — exactly the transient-UI
+        // problem behind issues #1653 / #2100 / #2272.
+        document
+          .getElementById('signin')
+          .addEventListener('click', function () {
+            timers.forEach(clearTimeout);
+            timers = [];
+            toast.classList.remove('show');
+            timers.push(
+              setTimeout(function () {
+                toast.classList.add('show');
+                timers.push(
+                  setTimeout(function () {
+                    toast.classList.remove('show');
+                  }, 1800),
+                );
+              }, 1500),
+            );
+          });
       })();
     </script>
   </body>

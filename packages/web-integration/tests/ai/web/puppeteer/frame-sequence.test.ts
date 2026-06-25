@@ -11,19 +11,17 @@ import { launchPage } from './utils';
 const modelConfig = globalModelConfigManager.getModelConfig('default');
 const canRunAiTest = !!modelConfig.modelFamily && !!modelConfig.openaiApiKey;
 
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
-declare global {
-  interface Window {
-    flashToast: (appearDelay: number, visibleMs: number) => void;
-  }
-}
-
 /**
- * Reproduces issues #1653 / #2100 / #2272: a short-lived toast appears after an
- * action and auto-hides. A single screenshot easily misses it, while the
- * `frameSequence` switch captures several frames over a time window so the
- * model can observe the transient toast.
+ * Real-world reproduction of issues #1653 / #2100 / #2272.
+ *
+ * A user signs in and the page shows a short-lived "Login failed" toast that
+ * appears ~1.5s after the click and auto-hides ~1.8s later. The whole flow is
+ * driven by real agent actions (aiTap / aiInput / aiBoolean) against the page's
+ * natural behavior:
+ *  - a single screenshot, captured right after the click (before the toast
+ *    appears), misses it;
+ *  - the `frameSequence` switch captures several frames across the window, so
+ *    the model observes the transient toast.
  */
 describe(
   'puppeteer integration - frameSequence (transient toast)',
@@ -31,7 +29,7 @@ describe(
     const ctx = createTestContext();
 
     it.skipIf(!canRunAiTest)(
-      'observes a transient toast that a single screenshot misses',
+      'observes a transient login-failed toast triggered by a real click',
       async () => {
         const htmlPath = getFixturePath('transient-toast.html');
         const { originPage, reset } = await launchPage(`file://${htmlPath}`, {
@@ -43,25 +41,25 @@ describe(
         ctx.resetFn = reset;
         ctx.agent = new PuppeteerAgent(originPage);
 
+        // Real form interaction.
+        await ctx.agent.aiInput('the username field', { value: 'test-user' });
+        await ctx.agent.aiInput('the password field', { value: 'wrong-pass' });
+
         // --- Control: single screenshot (switch OFF) ---
-        // Trigger the toast: it appears ~1.5s later and stays for ~1.2s. The
-        // default single-frame capture happens immediately (well before the
-        // toast appears), so the model should not see any toast right now.
-        await originPage.evaluate(() => window.flashToast(1500, 1200));
+        // Click "Sign in". The page reveals the error toast ~1.5s later. The
+        // default single-frame check captures right after the click, before the
+        // toast appears, so the model does not see it.
+        await ctx.agent.aiTap('the Sign in button');
         const seenWithSingleFrame = await ctx.agent.aiBoolean(
-          'an error toast or notification message is visible on the page right now',
+          'an error toast or "login failed" message is visible on the page right now',
         );
 
-        // Let the toast fully disappear before the next round.
-        await sleep(3000);
-
         // --- Frame sequence: switch ON ---
-        // Trigger the same toast and capture 7 frames at 500ms intervals
-        // (~3s window). Some frames fall inside the toast's visible window, so
-        // the model can observe it.
-        await originPage.evaluate(() => window.flashToast(1500, 1200));
+        // Click "Sign in" again to trigger a fresh toast and observe a sequence
+        // of frames across the toast's visible window (7 frames at 500ms).
+        await ctx.agent.aiTap('the Sign in button');
         const seenWithFrameSequence = await ctx.agent.aiBoolean(
-          'an error toast or notification message appears in any of these frames',
+          'a "login failed" error toast appears in any of these frames',
           { frameSequence: { count: 7, intervalMs: 500 } },
         );
 
