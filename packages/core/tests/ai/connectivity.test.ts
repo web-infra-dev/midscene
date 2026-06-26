@@ -39,6 +39,7 @@ vi.setConfig({
       globalModelConfigManager.getModelConfig('planning');
     const insightModelConfig = () =>
       globalModelConfigManager.getModelConfig('insight');
+    const defaultModelRuntime = () => getModelRuntime(defaultModelConfig());
 
     beforeAll(() => {
       const result = dotenv.config({
@@ -52,7 +53,6 @@ vi.setConfig({
     });
 
     it('text only', async () => {
-      const defaultModelRuntime = getModelRuntime(defaultModelConfig());
       const result = await callAI(
         [
           {
@@ -65,7 +65,7 @@ vi.setConfig({
               '鲁迅认识周树人吗？回答我：1. 分析原因 2.回答：是/否/无效问题',
           },
         ],
-        defaultModelRuntime,
+        defaultModelRuntime(),
       );
 
       expect(result.content.length).toBeGreaterThan(1);
@@ -83,7 +83,7 @@ vi.setConfig({
             content: '3 x 5 = ?',
           },
         ],
-        defaultModelConfig(),
+        defaultModelRuntime(),
       );
       expect(result.content).toEqual({ answer: 15 });
     });
@@ -111,14 +111,13 @@ vi.setConfig({
             content: '3 x 5 = ?',
           },
         ],
-        defaultModelConfig(),
+        defaultModelRuntime(),
       );
       expect(result.content).toEqual({ answer: 15 });
     });
 
     it('image input', async () => {
       const imagePath = getFixture('baidu.png');
-      const defaultModelRuntime = getModelRuntime(defaultModelConfig());
       const result = await callAI(
         [
           {
@@ -138,7 +137,7 @@ vi.setConfig({
             ],
           },
         ],
-        defaultModelRuntime,
+        defaultModelRuntime(),
       );
 
       expect(result.content.length).toBeGreaterThan(10);
