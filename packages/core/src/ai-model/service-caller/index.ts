@@ -37,7 +37,7 @@ import { assert, ifInBrowser } from '@midscene/shared/utils';
 import OpenAI from 'openai';
 import type { ChatCompletionMessageParam } from 'openai/resources/index';
 import type { Stream } from 'openai/streaming';
-import { type ModelRuntime, getModelRuntime } from '../models';
+import type { ModelRuntime } from '../models';
 import type { AIArgs } from '../types';
 import {
   callAIWithCodexAppServer,
@@ -703,8 +703,7 @@ export async function callAI(
 
 export async function callAIWithObjectResponse<T>(
   messages: ChatCompletionMessageParam[],
-  // Keep IModelConfig compatibility for midscene-example/connectivity-test/tests/connectivity.test.ts; internal workflow callers should pass ModelRuntime instead.
-  model: IModelConfig | ModelRuntime,
+  modelRuntime: ModelRuntime,
   options?: {
     abortSignal?: AbortSignal;
     jsonParserSource?: JsonParserSource;
@@ -717,7 +716,6 @@ export async function callAIWithObjectResponse<T>(
   reasoning_content?: string;
   rawChoiceMessage?: unknown;
 }> {
-  const modelRuntime = resolveCompatibleModelRuntime(model);
   const { config: modelConfig, adapter } = modelRuntime;
   const response = await callAI(messages, modelRuntime, {
     abortSignal: options?.abortSignal,
@@ -751,16 +749,6 @@ export async function callAIWithObjectResponse<T>(
     reasoning_content: response.reasoning_content,
     rawChoiceMessage: response.rawChoiceMessage,
   };
-}
-
-function resolveCompatibleModelRuntime(
-  model: IModelConfig | ModelRuntime,
-): ModelRuntime {
-  if ('config' in model && 'adapter' in model) {
-    return model;
-  }
-
-  return getModelRuntime(model);
 }
 
 export async function callAIWithStringResponse(

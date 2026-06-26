@@ -1,4 +1,5 @@
 import type { Rect } from '@midscene/core';
+import { type ModelRuntime, getModelRuntime } from '@midscene/core/ai-model';
 import type { IModelConfig } from '@midscene/shared/env';
 import type {
   MidsceneRecorderEvent,
@@ -445,7 +446,7 @@ async function describeWithRetry(
   event: MidsceneRecorderEvent,
   target: MidsceneRecorderTarget | undefined,
   highlightedScreenshot: string,
-  modelConfig: IModelConfig,
+  modelRuntime: ModelRuntime,
   options: Required<
     Pick<DescribeRecorderUIEventOptions, 'maxRetries' | 'retryDelayMs'>
   >,
@@ -515,7 +516,7 @@ The target or region is highlighted in the screenshot below. Convert this event 
               content: userContent,
             },
           ],
-          modelConfig,
+          modelRuntime,
         );
 
       const content = response.content;
@@ -655,12 +656,13 @@ export async function describeRecorderUIEvent(
 
   let screenshotWithBox: string | undefined;
   try {
+    const modelRuntime = getModelRuntime(modelConfig);
     screenshotWithBox = await createScreenshotWithBox(event, rect);
     const semanticFields = await describeWithRetry(
       event,
       input.target,
       screenshotWithBox || screenshot,
-      modelConfig,
+      modelRuntime,
       {
         maxRetries: options.maxRetries ?? RECORDER_UI_DESCRIBER_DEFAULT_RETRIES,
         retryDelayMs:
