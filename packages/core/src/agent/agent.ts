@@ -459,6 +459,46 @@ export class Agent<
     const { count, intervalMs } =
       this.normalizeFrameSequenceOption(frameSequence);
 
+    // Fast path: devices with a continuous frame stream (e.g. iOS WDA MJPEG)
+    // sample recent frames far faster than repeated screenshotBase64() calls.
+    // We pull the earlier frames from the stream and capture the representative
+    // (last) frame with a normal full-quality screenshot.
+    const fastCapture = this.interface.captureFrameSequence?.bind(
+      this.interface,
+    );
+    if (fastCapture) {
+      try {
+        const earlier = await fastCapture({
+          count: count - 1,
+          intervalMs,
+          abortSignal,
+        });
+        abortSignal?.throwIfAborted();
+        const representative = await this.getUIContext('assert');
+        const frames = [
+          ...earlier.map((frame) =>
+            ScreenshotItem.create(frame.base64, frame.capturedAt),
+          ),
+          representative.screenshot,
+        ];
+        if (frames.length > 1) {
+          return {
+            ...representative,
+            screenshotSequence: frames,
+          };
+        }
+        // Stream yielded no earlier frames; fall through to sequential capture.
+      } catch (error) {
+        if (abortSignal?.aborted) {
+          throw error;
+        }
+        debug(
+          'frame sequence fast path failed, falling back to sequential capture: %s',
+          error,
+        );
+      }
+    }
+
     const frames: ScreenshotItem[] = [];
     let lastContext: UIContext | undefined;
     for (let i = 0; i < count; i++) {

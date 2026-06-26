@@ -181,6 +181,23 @@ export abstract class AbstractInterface {
   mjpegStreamUrl?: string;
 
   /**
+   * Optional fast multi-frame capture for transient-UI observation
+   * (`frameSequence`). Devices that maintain a continuous frame stream — e.g.
+   * iOS sampling WDA's MJPEG server — implement this to sample recent frames far
+   * faster than repeated `screenshotBase64()` calls, so short-lived UI (toasts,
+   * carousels) is not missed.
+   *
+   * Returns frames in temporal order (earliest first). Each `base64` is a full
+   * `data:image/...;base64,` data URL. May return fewer frames than requested
+   * (e.g. the stream is not ready yet); callers should degrade gracefully.
+   */
+  captureFrameSequence?(opt: {
+    count: number;
+    intervalMs: number;
+    abortSignal?: AbortSignal;
+  }): Promise<Array<{ base64: string; capturedAt: number }>>;
+
+  /**
    * Optional in-process MJPEG frame producer. Implementations can push raw
    * base64 frames here when there is no standalone native MJPEG URL, e.g.
    * Chromium CDP Page.startScreencast for web previews.

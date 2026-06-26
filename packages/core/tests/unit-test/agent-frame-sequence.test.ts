@@ -15,7 +15,9 @@ const fakeContext = (tag: string): UIContext =>
     shrunkShotToLogicalRatio: 1,
   }) as UIContext;
 
-const createAgentStub = () => {
+const createAgentStub = (
+  opts: { captureFrameSequence?: (...args: any[]) => any } = {},
+) => {
   const agent = Object.create(Agent.prototype) as Agent<any>;
   const createTypeQueryExecution = vi.fn(async () => ({
     output: true,
@@ -24,6 +26,10 @@ const createAgentStub = () => {
   (agent as any).opts = {};
   (agent as any).taskExecutor = { createTypeQueryExecution };
   (agent as any).resolveModelRuntime = vi.fn(() => defaultModel);
+  // The interface is consulted for an optional fast frame-sequence source.
+  (agent as any).interface = opts.captureFrameSequence
+    ? { captureFrameSequence: opts.captureFrameSequence }
+    : {};
 
   let counter = 0;
   const getUIContext = vi.fn(async () => fakeContext(`frame-${counter++}`));
@@ -122,5 +128,43 @@ describe('Agent frame sequence switch', () => {
 
     // Should bail out long before capturing all 6 frames.
     expect(getUIContext.mock.calls.length).toBeLessThan(6);
+  });
+
+  it('uses the device fast frame source when available', async () => {
+    const captureFrameSequence = vi.fn(async ({ count }: { count: number }) =>
+      Array.from({ length: count }, (_, i) => ({
+        base64: `data:image/jpeg;base64,stream-${i}`,
+        capturedAt: 1000 + i,
+      })),
+    );
+    const { agent, getUIContext } = createAgentStub({ captureFrameSequence });
+
+    await agent.aiAssert('a toast appeared', undefined, {
+      keepRawResponse: true,
+      frameSequence: { count: 5, intervalMs: 100 },
+    });
+
+    // Earlier frames come from the stream (count - 1)...
+    expect(captureFrameSequence).toHaveBeenCalledWith(
+      expect.objectContaining({ count: 4, intervalMs: 100 }),
+    );
+    // ...and exactly one representative is captured via the normal screenshot.
+    expect(getUIContext).toHaveBeenCalledTimes(1);
+  });
+
+  it('falls back to sequential capture when the fast source fails', async () => {
+    const captureFrameSequence = vi.fn(async () => {
+      throw new Error('stream unavailable');
+    });
+    const { agent, getUIContext } = createAgentStub({ captureFrameSequence });
+
+    await agent.aiAssert('a toast appeared', undefined, {
+      keepRawResponse: true,
+      frameSequence: { count: 4, intervalMs: 0 },
+    });
+
+    expect(captureFrameSequence).toHaveBeenCalledTimes(1);
+    // Fallback path captures all 4 frames sequentially via screenshots.
+    expect(getUIContext).toHaveBeenCalledTimes(4);
   });
 });
