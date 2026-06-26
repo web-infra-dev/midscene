@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { IOSDevice } from '../../src/device';
 import {
   MjpegFrameSource,
   extractJpegFrames,
@@ -63,6 +64,28 @@ describe('extractJpegFrames', () => {
     );
     expect(frames).toHaveLength(1);
     expect([...rest]).toEqual([0xff]);
+  });
+});
+
+describe('IOSDevice MJPEG frame source opt-in', () => {
+  it('does not expose captureFrameSequence by default', () => {
+    const device = new IOSDevice({ wdaMjpegPort: 9123 });
+    expect(device.captureFrameSequence).toBeUndefined();
+  });
+
+  it('exposes captureFrameSequence when explicitly enabled', () => {
+    const device = new IOSDevice({
+      wdaMjpegPort: 9123,
+      wdaMjpegFrameSource: { enabled: true },
+    });
+    expect(typeof device.captureFrameSequence).toBe('function');
+  });
+
+  it('builds the stream URL from the per-device wdaMjpegPort (multi-device)', () => {
+    const a = new IOSDevice({ wdaHost: '127.0.0.1', wdaMjpegPort: 9101 });
+    const b = new IOSDevice({ wdaHost: '127.0.0.1', wdaMjpegPort: 9102 });
+    expect(a.mjpegStreamUrl).toBe('http://127.0.0.1:9101');
+    expect(b.mjpegStreamUrl).toBe('http://127.0.0.1:9102');
   });
 });
 

@@ -38,13 +38,25 @@ const iosInitArgShape = {
     .number()
     .optional()
     .describe('WebDriverAgent MJPEG streaming port'),
+  wdaMjpegFrameSource: z
+    .object({ enabled: z.boolean().optional() })
+    .optional()
+    .describe(
+      'Opt-in: use the WDA MJPEG stream as a fast frameSequence frame source (default off)',
+    ),
   ...agentBehaviorInitArgShape,
 };
 
 type IOSInitArgs = AgentBehaviorInitArgs &
   Pick<
     IOSDeviceOpt,
-    'deviceId' | 'wdaHost' | 'wdaPort' | 'sessionId' | 'useWDA' | 'wdaMjpegPort'
+    | 'deviceId'
+    | 'wdaHost'
+    | 'wdaPort'
+    | 'sessionId'
+    | 'useWDA'
+    | 'wdaMjpegPort'
+    | 'wdaMjpegFrameSource'
   >;
 
 function getTargetIdentity(initArgs?: IOSInitArgs): string {

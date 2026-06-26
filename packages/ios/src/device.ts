@@ -52,6 +52,12 @@ export class IOSDevice implements AbstractInterface {
   mjpegStreamUrl: string;
   /** Lazily-started consumer of the WDA MJPEG stream, used by frameSequence. */
   private mjpegFrameSource: MjpegFrameSource | null = null;
+  /**
+   * Fast frame-sequence capability. Only wired up when the MJPEG frame source
+   * is opt-in enabled; otherwise left undefined so frameSequence falls back to
+   * sequential screenshots.
+   */
+  captureFrameSequence?: AbstractInterface['captureFrameSequence'];
   private appNameMapping: Record<string, string> = {};
   interfaceType: InterfaceType = 'ios';
   uri: string | undefined;
@@ -235,6 +241,14 @@ export class IOSDevice implements AbstractInterface {
     });
     this.wdaManager = WDAManager.getInstance(wdaPort, wdaHost);
     this.mjpegStreamUrl = `http://${wdaHost}:${mjpegPort}`;
+
+    // Opt-in (default off), mirroring Android scrcpy: only expose the fast
+    // MJPEG frame-source capability when explicitly enabled. When off,
+    // frameSequence falls back to sequential screenshotBase64() capture.
+    if (options?.wdaMjpegFrameSource?.enabled) {
+      this.captureFrameSequence = (frameOpt) =>
+        this.captureFrameSequenceImpl(frameOpt);
+    }
   }
 
   describe(): string {
@@ -435,8 +449,11 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
    * MJPEG stream instead — pulling is near-instant, so frames land at the
    * requested cadence. Throws if the stream is unavailable; the caller falls
    * back to sequential `screenshotBase64()` capture.
+   *
+   * Opt-in: only wired up as the `captureFrameSequence` capability (in the
+   * constructor) when `wdaMjpegFrameSource.enabled` is set, mirroring scrcpy.
    */
-  async captureFrameSequence(opt: {
+  private async captureFrameSequenceImpl(opt: {
     count: number;
     intervalMs: number;
     abortSignal?: AbortSignal;
