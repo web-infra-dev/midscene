@@ -6,17 +6,23 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 const FAKE_PNG_BASE64 =
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
 
-const execFileSync = vi.fn(() => FAKE_PNG_BASE64);
+// Typed params so `mock.calls[i]` is a `[file, args, options]` tuple the type
+// checker can index into.
+const execFileSync = vi.fn(
+  (_file: string, _args: string[], _options?: unknown): string =>
+    FAKE_PNG_BASE64,
+);
 
 vi.mock('node:child_process', () => ({
-  execFileSync: (...args: unknown[]) => execFileSync(...args),
+  execFileSync: (file: string, args: string[], options?: unknown) =>
+    execFileSync(file, args, options),
   execSync: vi.fn(),
   spawnSync: vi.fn(),
 }));
 
 /** Decode the -EncodedCommand argument back to the PowerShell script. */
-function decodeEncodedCommand(call: unknown[]): string {
-  const args = call[1] as string[];
+function decodeEncodedCommand(call: [string, string[], unknown?]): string {
+  const args = call[1];
   const idx = args.indexOf('-EncodedCommand');
   return Buffer.from(args[idx + 1], 'base64').toString('utf16le');
 }

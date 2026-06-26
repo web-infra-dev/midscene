@@ -8,22 +8,30 @@ const mockState = vi.hoisted(() => {
     'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
   // Windows screenshot/listDisplays go through `powershell.exe -EncodedCommand`
   // now (issue #2150); answer based on which script is being run.
-  const execFileSync = vi.fn((file?: string, args?: string[]) => {
-    if (file === 'powershell.exe' && args) {
-      const idx = args.indexOf('-EncodedCommand');
-      const script =
-        idx >= 0
-          ? Buffer.from(args[idx + 1], 'base64').toString('utf16le')
-          : '';
-      if (script.includes('CopyFromScreen')) {
-        return FAKE_PNG_BASE64;
+  const execFileSync = vi.fn(
+    (
+      file?: string,
+      args?: string[],
+      // Return type stays wide (string | Buffer) so other tests can stub
+      // Buffer outputs (e.g. the frontmost-app osascript probe) via
+      // mockReturnValueOnce.
+    ): string | Buffer | undefined => {
+      if (file === 'powershell.exe' && args) {
+        const idx = args.indexOf('-EncodedCommand');
+        const script =
+          idx >= 0
+            ? Buffer.from(args[idx + 1], 'base64').toString('utf16le')
+            : '';
+        if (script.includes('CopyFromScreen')) {
+          return FAKE_PNG_BASE64;
+        }
+        return JSON.stringify([
+          { id: '\\\\.\\DISPLAY1', name: '\\\\.\\DISPLAY1', primary: true },
+        ]);
       }
-      return JSON.stringify([
-        { id: '\\\\.\\DISPLAY1', name: '\\\\.\\DISPLAY1', primary: true },
-      ]);
-    }
-    return undefined;
-  });
+      return undefined;
+    },
+  );
 
   const screenshot = vi.fn(async () => Buffer.from('png')) as ReturnType<
     typeof vi.fn
