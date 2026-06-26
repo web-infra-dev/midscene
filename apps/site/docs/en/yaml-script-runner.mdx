@@ -215,7 +215,7 @@ Call the Agent's [`runYaml`](./api#runyaml) method to execute YAML from JavaScri
 The CLI provides parameters to control how scripts run:
 
 - `--files <file1> <file2> ...`: List of script files. Executes in order, sequentially by default (`--concurrent` is `1`), or concurrently when `--concurrent` is set. Supports [glob](https://www.npmjs.com/package/glob) patterns; when a glob pattern or directory matches multiple files, matched files are added to the execution list in lexicographic path order.
-- `--setup-files <file1> <file2> ...`: Setup scripts that run serially, in order, before the main `--files`. They run inside the same shared browser context, so prerequisite state such as a login established here is visible to every main script. Any setup failure aborts the whole batch and the main scripts are reported as not executed. Requires `--share-browser-context`.
+- `--setup <file>`: A setup script that runs before the main `--files`. It runs inside the same shared browser context, so prerequisite state such as a login established here is visible to every main script. A setup failure aborts the whole batch and the main scripts are reported as not executed. Requires `--share-browser-context`. To run multiple setup scripts serially, use the `setupFiles` array in a config file instead.
 - `--concurrent <number>`: Number of concurrent executions. Default `1`.
 - `--continue-on-error`: Continue running remaining scripts even if one fails. Default off.
 - `--retry <number>`: Number of times to retry a failed script. Only the scripts that failed in the previous attempt are retried, which helps with unstable networks or unstable model output. Default `0`. (Not effective together with `--share-browser-context`, where the whole batch shares a single run.)

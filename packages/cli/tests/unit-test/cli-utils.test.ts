@@ -64,11 +64,11 @@ describe('parseProcessArgs', () => {
     expect(files).toEqual(['file1.yml', 'file2.yml']);
   });
 
-  test('should parse --setup-files argument', async () => {
+  test('should parse --setup argument', async () => {
     process.argv = [
       'node',
       'midscene',
-      '--setup-files',
+      '--setup',
       'login.yml',
       '--files',
       'search.yml',
@@ -76,7 +76,7 @@ describe('parseProcessArgs', () => {
     ];
     const { files, options } = await parseProcessArgs();
     expect(files).toEqual(['search.yml', 'report.yml']);
-    expect(options['setup-files']).toEqual(['login.yml']);
+    expect(options.setup).toBe('login.yml');
   });
 
   test('should parse --config argument', async () => {

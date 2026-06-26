@@ -47,11 +47,10 @@ Usage:
         string: true,
         description: 'A list of yaml files to run, separated by space',
       },
-      'setup-files': {
-        type: 'array',
-        string: true,
+      setup: {
+        type: 'string',
         description:
-          'A list of yaml files to run serially before the main files. Requires --share-browser-context',
+          'A yaml file to run before the main files. Requires --share-browser-context',
       },
       config: {
         type: 'string',
