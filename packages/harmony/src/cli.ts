@@ -1,6 +1,6 @@
 import { createReportCliCommands } from '@midscene/core';
 import { reportCLIError, runToolsCLI } from '@midscene/shared/cli';
-import { HarmonyMidsceneTools } from './mcp-tools';
+import { HarmonyMidsceneTools } from './agent-tools';
 
 declare const __VERSION__: string;
 const tools = new HarmonyMidsceneTools();

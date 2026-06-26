@@ -331,7 +331,6 @@ describe('PlaygroundSDK', () => {
     it('should delegate to LocalExecutionAdapter', async () => {
       const mockRunConnectivityTest = vi.fn().mockResolvedValue({
         passed: true,
-        checks: [],
       });
       const MockAdapter = vi.mocked(LocalExecutionAdapter);
       MockAdapter.prototype.runConnectivityTest = mockRunConnectivityTest;
@@ -341,16 +340,16 @@ describe('PlaygroundSDK', () => {
         agent: createMockPlaygroundAgent(),
       });
 
-      const result = await sdk.runConnectivityTest();
+      const aiConfig = { MIDSCENE_MODEL_NAME: 'test-model' };
+      const result = await sdk.runConnectivityTest(aiConfig);
 
       expect(result.passed).toBe(true);
-      expect(mockRunConnectivityTest).toHaveBeenCalled();
+      expect(mockRunConnectivityTest).toHaveBeenCalledWith(aiConfig);
     });
 
     it('should delegate to RemoteExecutionAdapter', async () => {
       const mockRunConnectivityTest = vi.fn().mockResolvedValue({
         passed: true,
-        checks: [],
       });
       const MockAdapter = vi.mocked(RemoteExecutionAdapter);
       MockAdapter.prototype.runConnectivityTest = mockRunConnectivityTest;
@@ -360,10 +359,11 @@ describe('PlaygroundSDK', () => {
         serverUrl: 'http://localhost:3000',
       });
 
-      const result = await sdk.runConnectivityTest();
+      const aiConfig = { MIDSCENE_MODEL_NAME: 'test-model' };
+      const result = await sdk.runConnectivityTest(aiConfig);
 
       expect(result.passed).toBe(true);
-      expect(mockRunConnectivityTest).toHaveBeenCalled();
+      expect(mockRunConnectivityTest).toHaveBeenCalledWith(aiConfig);
     });
   });
 

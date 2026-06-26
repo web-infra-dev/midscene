@@ -25,6 +25,9 @@ const createDocAgent = (overrides: Record<string, any> = {}) => {
       thought: 'ok',
       message: 'passed',
     })),
+    runGherkinScenario: vi.fn(async () => ({
+      steps: [],
+    })),
     evaluateJavaScript: vi.fn(async () => 'js-result'),
     recordToReport: vi.fn(async () => undefined),
     recordErrorToReport: vi.fn(async () => undefined),
@@ -388,6 +391,37 @@ tasks:
       id: 'SKU-123',
       title: 'doc item',
     });
+  });
+
+  it('runs a Gherkin scenario from YAML with cache disabled', async () => {
+    const script = parseYamlScript(`
+web:
+  url: about:blank
+tasks:
+  - name: Gherkin scenario
+    flow:
+      - runGherkinScenario: |
+          Scenario: Add a todo
+            Given the todo page is open
+            When I add "Buy milk"
+            Then the todo list contains "Buy milk"
+`);
+    const agent = createDocAgent();
+    const player = new ScriptPlayer(script, async () => ({
+      agent,
+      freeFn: [],
+    }));
+
+    await player.run();
+
+    expect(player.status).toBe('done');
+    expect(agent.runGherkinScenario).toHaveBeenCalledTimes(1);
+    expect(agent.runGherkinScenario).toHaveBeenCalledWith(
+      expect.stringContaining('Scenario: Add a todo'),
+      {
+        cacheable: false,
+      },
+    );
   });
 
   it('continues to the next task when documented task continueOnError is enabled', async () => {

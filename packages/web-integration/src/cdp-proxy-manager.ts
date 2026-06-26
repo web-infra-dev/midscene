@@ -8,7 +8,7 @@
  * to browser-level endpoints via `/json/version`, since puppeteer-core
  * cannot connect to page-level URLs directly.
  *
- * Other modules (notably `mcp-tools-cdp.ts`) use this through the
+ * Other modules (notably `agent-tools-cdp.ts`) use this through the
  * `getProxyEndpoint()` entry point and never touch the metadata files
  * themselves. The cross-command targetId is a separate concern owned by
  * `cdp-target-store.ts`.
@@ -26,7 +26,7 @@ import {
 } from './cdp-proxy-constants';
 import { cleanupTargetIdFile } from './cdp-target-store';
 
-const debug = getDebug('mcp:cdp:proxy');
+const debug = getDebug('agent-tools:cdp:proxy');
 
 /** Time to wait for the proxy to exit on SIGTERM before resorting to SIGKILL. */
 const PROXY_TERM_GRACE_MS = 2000;

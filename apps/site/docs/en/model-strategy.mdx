@@ -44,7 +44,7 @@ If you are unsure where to start, pick whichever model is easiest to access toda
 
 | Model family | Deployment | Midscene notes |
 | --- | --- | --- |
-| Doubao Seed Model<br />[Quick setup](./model-common-config#doubao-seed-model) | Volcano Engine:<br />[Doubao-Seed-1.6-Vision](https://www.volcengine.com/docs/82379/1799865)<br />[Doubao-Seed-2.0-Lite](https://www.volcengine.com/docs/82379/1799865) | ⭐⭐⭐⭐<br />Strong at UI planning and targeting<br />Slightly slower |
+| Doubao Seed Model<br />[Quick setup](./model-common-config#doubao-seed-model) | Volcano Engine:<br />[Doubao-Seed-2.1-turbo](https://www.volcengine.com/docs/82379/1799865) | ⭐⭐⭐⭐⭐<br />Strong localization quality<br />Fastest localization speed in our current private evaluation set |
 | Qwen3.x<br />[Quick setup](./model-common-config#qwen3x) | [Alibaba Cloud](https://help.aliyun.com/zh/model-studio/vision)<br/>[OpenRouter](https://openrouter.ai/qwen) | ⭐⭐⭐⭐<br />Stronger than Qwen3-VL and Qwen2.5-VL |
 | Zhipu GLM-4.6V<br />[Quick setup](./model-common-config#glm-v) | [Z.AI (Global)](https://docs.z.ai/guides/vlm/glm-4.6v)<br/>[BigModel (CN)](https://docs.bigmodel.cn/cn/guide/models/vlm/glm-4.6v) | Newly integrated, welcome to try it out<br />Weights open-sourced on [HuggingFace](https://huggingface.co/zai-org/GLM-4.6V) |
 | Zhipu AutoGLM<br />[Quick setup](./model-common-config#auto-glm) | [Z.AI (Global)](https://z.ai/model-api/AutoGLM/AutoGLM-Phone-9B)<br/>[BigModel (CN)](https://docs.bigmodel.cn/cn/guide/models/autoglm) | Designed for mobile app operations<br />For `aiAssert`, `aiQuery`, and other page-understanding tasks, pair it with a separate Insight model |
@@ -145,10 +145,21 @@ You can control model-native thinking with the following reasoning settings.
   - `false`: Force-disable model-native thinking (Midscene's default behavior).
   - `true`: Force-enable model-native thinking.
   - `default`: Follow the model's default behavior. Midscene will not send any setting that enables or disables thinking. In this case, explicitly configured `MIDSCENE_MODEL_REASONING_BUDGET` and `MIDSCENE_MODEL_REASONING_EFFORT` will also be ignored.
-- `MIDSCENE_MODEL_REASONING_BUDGET`: Controls the model's thinking budget (supported by some models). See [Common Model Configuration](./model-common-config) for examples.
-- `MIDSCENE_MODEL_REASONING_EFFORT`: Controls the model's thinking effort (supported by some models). See [Common Model Configuration](./model-common-config) for examples.
+  - The following models currently support this setting:
+    - Qwen: corresponds to `enable_thinking` in the Qwen docs.
+    - Doubao: corresponds to `thinking.type` in the Doubao docs.
+    - Zhipu GLM: corresponds to `thinking.type` in the Zhipu docs.
+    - GPT-5: corresponds to `reasoning_effort` in the OpenAI docs. Midscene uses `medium` when enabled and `none` when disabled.
+    - Kimi: corresponds to `thinking.type` in the Kimi docs.
+    - Xiaomi Mimo: corresponds to `thinking.type` in the Xiaomi Mimo docs.
+- `MIDSCENE_MODEL_REASONING_BUDGET`: Controls the model's thinking budget. The following models currently support this setting:
+  - Qwen: corresponds to `thinking_budget` in the Qwen docs.
+- `MIDSCENE_MODEL_REASONING_EFFORT`: Controls the model's thinking effort. The following models currently support this setting:
+  - Doubao: corresponds to `reasoning_effort` in the Doubao docs.
+  - Gemini: corresponds to `thinking_config.thinking_level` in the Gemini docs.
+  - GPT-5: corresponds to `reasoning_effort` in the OpenAI docs.
 
-Note: Different model providers use different parameters to control model-native thinking. If an explicit reasoning setting is not supported by the current model, Midscene ignores that setting instead of guessing provider-specific private parameters.
+Note: Different model providers use different parameters to control model-native thinking. For specific values and supported model versions, see the official docs from each model provider. If an explicit reasoning setting is not supported by the current model, Midscene ignores that setting instead of guessing provider-specific private parameters.
 
 ### "MIDSCENE_MODEL_FAMILY is not set to a multimodal model" error
 

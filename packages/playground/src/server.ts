@@ -22,6 +22,7 @@ import { getTmpDir, sleep } from '@midscene/core/utils';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import { PLAYGROUND_SERVER_PORT } from '@midscene/shared/constants';
 import {
+  ModelConfigManager,
   globalModelConfigManager,
   overrideAIConfig,
 } from '@midscene/shared/env';
@@ -450,6 +451,24 @@ function createRecorderAiDescribeTraceBase(
     pageInfo: event.pageInfo,
     screenshotBytes: estimateBase64Bytes(eventScreenshot),
   };
+}
+
+/** Default `0.0.0.0`. Override via `MIDSCENE_PLAYGROUND_HOST` (e.g. `127.0.0.1`). */
+export function resolvePlaygroundListenHost(): string {
+  return process.env.MIDSCENE_PLAYGROUND_HOST?.trim() || '0.0.0.0';
+}
+
+export function resolvePlaygroundBrowserHost(): string {
+  const listenHost = resolvePlaygroundListenHost();
+  return listenHost === '0.0.0.0' || listenHost === '::'
+    ? '127.0.0.1'
+    : listenHost;
+}
+
+export function buildPlaygroundBrowserUrl(host: string, port: number): string {
+  const normalizedHost =
+    host.includes(':') && !host.startsWith('[') ? `[${host}]` : host;
+  return `http://${normalizedHost}:${port}`;
 }
 
 function serializeAiConfigSignature(aiConfig: Record<string, unknown>): string {
@@ -3293,29 +3312,29 @@ class PlaygroundServer {
       });
     });
 
-    this.app.post(
-      '/connectivity-test',
-      async (_req: Request, res: Response) => {
-        try {
-          const result = await runConnectivityTest({
-            defaultModelConfig:
-              globalModelConfigManager.getModelConfig('default'),
-            planningModelConfig:
-              globalModelConfigManager.getModelConfig('planning'),
-            insightModelConfig:
-              globalModelConfigManager.getModelConfig('insight'),
-          });
-          return res.json(result);
-        } catch (error: unknown) {
-          const errorMessage =
-            error instanceof Error ? error.message : 'Unknown error';
-          console.error(`Connectivity test failed: ${errorMessage}`);
-          return res.status(500).json({
-            error: errorMessage,
+    this.app.post('/connectivity-test', async (req: Request, res: Response) => {
+      try {
+        if (!req.body?.config) {
+          return res.status(400).json({
+            error: 'Model config is required for connectivity test.',
           });
         }
-      },
-    );
+        const modelConfigManager = new ModelConfigManager(req.body.config);
+        const result = await runConnectivityTest({
+          defaultModelConfig: modelConfigManager.getModelConfig('default'),
+          planningModelConfig: modelConfigManager.getModelConfig('planning'),
+          insightModelConfig: modelConfigManager.getModelConfig('insight'),
+        });
+        return res.json(result);
+      } catch (error: unknown) {
+        const errorMessage =
+          error instanceof Error ? error.message : 'Unknown error';
+        console.error(`Connectivity test failed: ${errorMessage}`);
+        return res.status(500).json({
+          error: errorMessage,
+        });
+      }
+    });
   }
 
   /**
@@ -3392,7 +3411,8 @@ class PlaygroundServer {
 
     return new Promise((resolve) => {
       const serverPort = this.port ?? defaultPort;
-      this.server = this._app.listen(serverPort, '0.0.0.0', () => {
+      const listenHost = resolvePlaygroundListenHost();
+      this.server = this._app.listen(serverPort, listenHost, () => {
         resolve(this);
       });
     });

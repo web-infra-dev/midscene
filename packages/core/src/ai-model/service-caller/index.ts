@@ -289,15 +289,17 @@ export async function createChatClient({
   };
 }
 
+interface CallAIOptions {
+  stream?: boolean;
+  onChunk?: StreamingCallback;
+  abortSignal?: AbortSignal;
+  requiresOriginalImageDetail?: boolean;
+}
+
 export async function callAI(
   messages: ChatCompletionMessageParam[],
   modelRuntime: ModelRuntime,
-  options?: {
-    stream?: boolean;
-    onChunk?: StreamingCallback;
-    abortSignal?: AbortSignal;
-    requiresOriginalImageDetail?: boolean;
-  },
+  options?: CallAIOptions,
 ): Promise<{
   content: string;
   reasoning_content?: string;
@@ -728,9 +730,7 @@ function resolveCompatibleModelRuntime(
 export async function callAIWithStringResponse(
   msgs: AIArgs,
   modelRuntime: ModelRuntime,
-  options?: {
-    abortSignal?: AbortSignal;
-  },
+  options?: Pick<CallAIOptions, 'abortSignal' | 'requiresOriginalImageDetail'>,
 ): Promise<{
   content: string;
   usage?: AIUsageInfo;
@@ -739,9 +739,7 @@ export async function callAIWithStringResponse(
   const { content, usage, rawChoiceMessage } = await callAI(
     msgs,
     modelRuntime,
-    {
-      abortSignal: options?.abortSignal,
-    },
+    options,
   );
   return { content, usage, rawChoiceMessage };
 }

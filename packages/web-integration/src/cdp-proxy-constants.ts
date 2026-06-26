@@ -1,5 +1,5 @@
 /**
- * Shared constants for CDP proxy discovery between cdp-proxy.ts and mcp-tools-cdp.ts.
+ * Shared constants for CDP proxy discovery between cdp-proxy.ts and agent-tools-cdp.ts.
  */
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';

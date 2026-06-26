@@ -561,9 +561,9 @@ export function FeatureSections() {
                 </div>
               </TiltCard>
 
-              {/* Skills & MCP Card */}
+              {/* Skills Card */}
               <TiltCard
-                href={tUrl(t('featureSkillsMcpLink'))}
+                href={tUrl(t('featureSkillsLink'))}
                 className="w-full md:w-[381px] md:h-[289px] flex flex-col group cursor-pointer"
               >
                 <div className="flex flex-col gap-[17px] h-full">
@@ -577,7 +577,7 @@ export function FeatureSections() {
                     >
                       <img
                         src="/icon/ai-tap.svg"
-                        alt="Skills & MCP"
+                        alt="Skills"
                         className="w-12 h-12 md:w-16 md:h-16"
                       />
                     </div>
@@ -592,16 +592,16 @@ export function FeatureSections() {
                     >
                       <img
                         src="/icon/ai-tap.svg"
-                        alt="Skills & MCP"
+                        alt="Skills"
                         className="w-12 h-12 md:w-16 md:h-16"
                       />
                     </div>
                   </div>
                   <p className="font-sans text-xl md:text-2xl font-medium leading-6 text-black dark:text-white">
-                    {t('featureSkillsMcp')}
+                    {t('featureSkills')}
                   </p>
                   <div className="font-sans text-sm md:text-base font-normal leading-5 md:leading-6 text-black/70 dark:text-white/70">
-                    {t('featureSkillsMcpDesc')}
+                    {t('featureSkillsDesc')}
                   </div>
                 </div>
               </TiltCard>

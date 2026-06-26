@@ -61,9 +61,12 @@ type ScreencastFrameEvent = {
   sessionId: number;
 };
 
-type ScreencastCdpSession = {
+type PageCdpSession = {
   send(method: string, params?: Record<string, unknown>): Promise<unknown>;
   detach(): Promise<void>;
+};
+
+type ScreencastCdpSession = PageCdpSession & {
   on(
     event: 'Page.screencastFrame',
     handler: (event: ScreencastFrameEvent) => void,
@@ -383,11 +386,7 @@ export class Page<
           'playwright screenshot failed, trying CDP fallback: %s',
           error,
         );
-        base64 = await this.screenshotBase64ByPlaywrightCdp(
-          page,
-          imgType,
-          quality,
-        );
+        base64 = await this.screenshotBase64ByPlaywrightCdp(imgType, quality);
       }
     } else {
       throw new Error('Unsupported page type for screenshot');
@@ -398,18 +397,10 @@ export class Page<
   }
 
   private async screenshotBase64ByPlaywrightCdp(
-    page: PlaywrightPage,
     imgType: 'jpeg' | 'png',
     quality?: number,
   ) {
-    const browserName = page.context().browser()?.browserType().name();
-    if (browserName && browserName !== 'chromium') {
-      throw new Error(
-        `CDP screenshot fallback requires Chromium-based browser, but current browser is "${browserName}".`,
-      );
-    }
-
-    const client = await page.context().newCDPSession(page);
+    const client = await this.createPageCdpSession('CDP screenshot fallback');
     try {
       const result = (await new Promise<{
         data: string;
@@ -444,20 +435,43 @@ export class Page<
     }
   }
 
-  private async createScreencastCdpSession(): Promise<ScreencastCdpSession> {
+  private async createPageCdpSession(
+    featureName: string,
+  ): Promise<PageCdpSession> {
     if (this.interfaceType === 'puppeteer') {
       const page = this.underlyingPage as PuppeteerPage;
-      return (await page.target().createCDPSession()) as ScreencastCdpSession;
+      // Puppeteer has exposed CDP sessions through both page.createCDPSession()
+      // and the historical page.target().createCDPSession() API. Support both
+      // here so CDP-backed actions work across Puppeteer versions and wrapped
+      // page objects that may only expose one of the two shapes.
+      const pageWithCdp = page as PuppeteerPage & {
+        createCDPSession?: () => Promise<unknown>;
+      };
+      if (typeof pageWithCdp.createCDPSession === 'function') {
+        return (await pageWithCdp.createCDPSession()) as unknown as PageCdpSession;
+      }
+
+      const target = page.target?.();
+      if (typeof target?.createCDPSession === 'function') {
+        return (await target.createCDPSession()) as unknown as PageCdpSession;
+      }
+
+      throw new Error(
+        `${featureName} requires a browser page with CDP session support.`,
+      );
     }
 
     const page = this.underlyingPage as PlaywrightPage;
     const browserName = page.context().browser()?.browserType().name();
     if (browserName && browserName !== 'chromium') {
       throw new Error(
-        `CDP screencast requires Chromium-based browser, but current browser is "${browserName}".`,
+        `${featureName} requires Chromium-based browser, but current browser is "${browserName}".`,
       );
     }
-    return (await page.context().newCDPSession(page)) as ScreencastCdpSession;
+
+    return (await page
+      .context()
+      .newCDPSession(page)) as unknown as PageCdpSession;
   }
 
   async waitForDomQuiet(opts?: {
@@ -573,7 +587,9 @@ export class Page<
     if (typeof this.underlyingPage.bringToFront === 'function') {
       await this.underlyingPage.bringToFront();
     }
-    const client = await this.createScreencastCdpSession();
+    const client = (await this.createPageCdpSession(
+      'CDP screencast',
+    )) as ScreencastCdpSession;
     let stopped = false;
     const streamToken = Symbol('mjpeg-stream');
 
@@ -798,37 +814,46 @@ export class Page<
     };
   }
 
+  private async selectAllByCdp(): Promise<void> {
+    const client = await this.createPageCdpSession('clearInput');
+    try {
+      // Use the browser editing command instead of Modifier+A. Playwright's
+      // Chromium input layer derives the browser platform from
+      // Browser.getVersion().userAgent, while Modifier+A shortcuts are often
+      // chosen from local process.platform. If a Linux browser is launched with
+      // a macOS browser-level UA, Chromium treats select-all as Cmd+A instead
+      // of Ctrl+A, so the local-platform shortcut can fail.
+      await client.send('Input.dispatchKeyEvent', {
+        type: 'rawKeyDown',
+
+        commands: ['selectAll'],
+      });
+      await client.send('Input.dispatchKeyEvent', {
+        type: 'keyUp',
+      });
+    } finally {
+      await client.detach().catch(() => undefined);
+    }
+  }
+
   async clearInput(element?: ElementInfo): Promise<void> {
     const backspace = async () => {
       await sleep(100);
       await this.keyboard.press([{ key: 'Backspace' }]);
     };
 
-    const isMac = process.platform === 'darwin';
     debugPage('clearInput begin');
-    if (isMac) {
-      if (this.interfaceType === 'puppeteer') {
-        // https://github.com/segment-boneyard/nightmare/issues/810#issuecomment-452669866
-        element &&
-          (await this.mouse.click(element.center[0], element.center[1], {
-            count: 3,
-          }));
-        await backspace();
-      }
 
-      element && (await this.mouse.click(element.center[0], element.center[1]));
-      await this.underlyingPage.keyboard.down('Meta');
-      await this.underlyingPage.keyboard.press('a');
-      await this.underlyingPage.keyboard.up('Meta');
+    element && (await this.mouse.click(element.center[0], element.center[1]));
+    try {
+      await this.selectAllByCdp();
       await backspace();
-    } else {
-      element && (await this.mouse.click(element.center[0], element.center[1]));
-      await this.underlyingPage.keyboard.down('Control');
-      await this.underlyingPage.keyboard.press('a');
-      await this.underlyingPage.keyboard.up('Control');
-      await backspace();
+    } catch (error) {
+      debugPage('clearInput cdp selectAll failed', error);
+      throw error;
+    } finally {
+      debugPage('clearInput end');
     }
-    debugPage('clearInput end');
   }
 
   private everMoved = false;
@@ -939,9 +964,7 @@ export class Page<
   async stopLoading(): Promise<void> {
     debugPage('stop loading');
     if (this.interfaceType === 'puppeteer') {
-      const client = await (this.underlyingPage as PuppeteerPage)
-        .target()
-        .createCDPSession();
+      const client = await this.createPageCdpSession('stopLoading');
       try {
         await client.send('Page.stopLoading');
       } finally {
@@ -1080,23 +1103,9 @@ export class Page<
       detach(): Promise<void>;
     };
 
-    let client: TouchClient;
-    if (this.interfaceType === 'puppeteer') {
-      const page = this.underlyingPage as PuppeteerPage;
-      client = (await page.target().createCDPSession()) as TouchClient;
-    } else if (this.interfaceType === 'playwright') {
-      const page = this.underlyingPage as PlaywrightPage;
-      // CDP is Chromium-only; Firefox/WebKit do not support it
-      const browserName = page.context().browser()?.browserType().name();
-      if (browserName && browserName !== 'chromium') {
-        throw new Error(
-          `Pinch gesture requires Chromium-based browser, but current browser is "${browserName}". CDP touch events are not supported in Firefox/WebKit.`,
-        );
-      }
-      client = (await page.context().newCDPSession(page)) as TouchClient;
-    } else {
-      return;
-    }
+    const client = (await this.createPageCdpSession(
+      'Pinch gesture',
+    )) as TouchClient;
 
     try {
       await client.send('Input.dispatchTouchEvent', {
@@ -1136,13 +1145,13 @@ export class Page<
     }
   }
 
-  private async ensurePuppeteerFileChooserSession(
-    page: PuppeteerPage,
-  ): Promise<CDPSession> {
+  private async ensurePuppeteerFileChooserSession(): Promise<CDPSession> {
     if (this.puppeteerFileChooserSession) {
       return this.puppeteerFileChooserSession;
     }
-    const session = await page.target().createCDPSession();
+    const session = (await this.createPageCdpSession(
+      'Puppeteer file chooser',
+    )) as unknown as CDPSession;
     await session.send('Page.enable');
     await session.send('DOM.enable');
     await session.send('Page.setInterceptFileChooserDialog', { enabled: true });
@@ -1161,8 +1170,7 @@ export class Page<
       );
     }
 
-    const page = this.underlyingPage as PuppeteerPage;
-    const session = await this.ensurePuppeteerFileChooserSession(page);
+    const session = await this.ensurePuppeteerFileChooserSession();
     if (this.puppeteerFileChooserHandler) {
       session.off('Page.fileChooserOpened', this.puppeteerFileChooserHandler);
     }
@@ -1273,9 +1281,20 @@ export function forceClosePopup(
  *
  * Adds a style tag with CSS rules to make all select elements use base-select appearance.
  */
+// Track pages that already have the select-rendering style wired up so the
+// immediate injection and the `load` listener are only registered once per page,
+// even if multiple agents are created for the same page.
+const forceSelectRenderingPages = new WeakSet<object>();
+
 export function forceChromeSelectRendering(
   page: PuppeteerPage | PlaywrightPage,
 ): void {
+  // Only inject once per page to avoid stacking duplicate `load` listeners.
+  if (forceSelectRenderingPages.has(page)) {
+    return;
+  }
+  forceSelectRenderingPages.add(page);
+
   // Force Chrome to render select elements using base-select appearance
   // Reference: https://developer.chrome.com/blog/a-customizable-select
   const styleContent = `

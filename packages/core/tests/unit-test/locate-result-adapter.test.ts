@@ -501,7 +501,6 @@ describe('createLocateResultAdapter', () => {
       adaptPlanningParamToPixelBbox,
     });
 
-    expect(adapter.kind).toBe('custom');
     expect(adapter.promptSpec.resultKey).toBe('region');
     expect(adapter.promptSpec.exampleValues[0]).toEqual([0.1, 0.2, 0.3, 0.4]);
     expect(

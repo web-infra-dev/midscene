@@ -27,7 +27,7 @@ self.addEventListener('unhandledrejection', (event) => {
   console.error('[ServiceWorker] Unhandled promise rejection:', event.reason);
 });
 
-// Background Bridge for MCP connection
+// Background Bridge for external automation connections
 const BRIDGE_PERMISSION_KEY = 'midscene_bridge_permission';
 const BRIDGE_STOPPED_KEY = 'midscene_bridge_stopped';
 let backgroundBridge: BridgeConnector | null = null;

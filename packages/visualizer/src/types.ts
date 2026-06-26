@@ -4,6 +4,7 @@ import type {
   ModelBrief,
   UIContext,
 } from '@midscene/core';
+import type { TModelConfig } from '@midscene/shared/env';
 import type { ComponentType, ReactNode } from 'react';
 
 // Zod schema related types - compatible with actual zod types
@@ -350,7 +351,7 @@ export interface PlaygroundSDKLike {
     reportHTML: string | null;
   }>;
   overrideConfig?(config: any): Promise<void>;
-  runConnectivityTest?(): Promise<ConnectivityTestResult>;
+  runConnectivityTest?(config: TModelConfig): Promise<ConnectivityTestResult>;
   checkStatus?(): Promise<boolean>;
   getServiceMode?(): 'In-Browser-Extension' | 'Server';
   getRuntimeInfo?(): Promise<PlaygroundRuntimeInfo | null>;

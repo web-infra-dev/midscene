@@ -39,7 +39,7 @@ All agents share these base options:
   - For mobile devices, setting `screenshotShrinkFactor` to 2 can reduce token consumption while maintaining clarity, but it is not recommended to set it higher than 3, as this may cause the image to be too blurry and affect the AI model's understanding.
   - For web pages, if the content is complex or contains a lot of details, it is not recommended to set `screenshotShrinkFactor` to avoid overly blurry screenshots. Additionally, if you want higher clarity for web page screenshots, you can configure Puppeteer or Playwright's `deviceScaleFactor` to 2, which will allow Puppeteer or Playwright to render the page as if it were a high-definition screen.
 
-The MCP tools and device CLIs expose these same Agent behavior options per call. In CLIs, convert the camelCase API option to a bare kebab-case flag, such as `waitAfterAction` -> `--wait-after-action`. In MCP calls, keep the camelCase option under the platform namespace, such as `android.waitAfterAction` or `web.waitAfterAction`. See [Configure Agent behavior per call](./mcp#configure-agent-behavior-per-call) for examples.
+The device CLIs expose these same Agent behavior options per call. Convert the camelCase API option to a bare kebab-case flag, such as `waitAfterAction` -> `--wait-after-action`. See [Skills](./skills) for the platform CLI entry points.
 
 ### Custom model configuration
 
@@ -1069,6 +1069,56 @@ console.log(result);
 For more information about YAML scripts, please refer to [Automate with Scripts in YAML](./automate-with-scripts-in-yaml).
 
 :::
+
+### `agent.runGherkinScenario()`
+
+Run one Gherkin Scenario and map its steps to Midscene Agent calls.
+
+:::caution Beta
+
+This API is available starting in Midscene 1.10 and is still in Beta. The API may change in future releases.
+
+:::
+
+- Type
+
+```typescript
+function runGherkinScenario(
+  scenarioText: string,
+  options?: {
+    context?: string;
+    abortSignal?: AbortSignal;
+    deepThink?: 'unset' | true | false;
+    deepLocate?: boolean;
+  },
+): Promise<void>;
+```
+
+- Parameters:
+
+  - `scenarioText: string` - One Gherkin scenario, or a list of Gherkin steps without the `Scenario:` header.
+  - `options?: Object` - Optional runtime options.
+    - `context?: string` - Temporary context for this run.
+    - `abortSignal?: AbortSignal` - An optional signal for aborting the run.
+    - `deepThink?: 'unset' | true | false` - Passed to `aiAct` for `Given` and `When` steps.
+    - `deepLocate?: boolean` - Passed to `aiAct` for `Given` and `When` steps.
+
+- Returns:
+
+  - `Promise<void>` - Resolves after all steps finish. If a step fails, the error message includes the Gherkin line, the original step, and the Midscene semantic action being executed.
+
+- Example:
+
+```typescript
+await agent.runGherkinScenario(`
+Scenario: Add a todo item
+  Given the todo page is open
+  When I add a todo item named "Buy milk"
+  Then the todo list should contain "Buy milk"
+`);
+```
+
+For supported rules, limitations, cache behavior, and YAML usage, see [BDD-style scripts with Gherkin](./advanced/bdd-style-scripts-with-gherkin).
 
 ### `agent.setAIActContext()`
 

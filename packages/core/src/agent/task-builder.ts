@@ -1,5 +1,6 @@
 import { findAllMidsceneLocatorField, parseActionParam } from '@/ai-model';
 import type { ModelRuntime } from '@/ai-model/models';
+import { findActionInActionSpaceOrThrow } from '@/common';
 import type { AbstractInterface } from '@/device';
 import type Service from '@/service';
 import { setTimingFieldOnce } from '@/task-timing';
@@ -218,20 +219,15 @@ export class TaskBuilder {
   ): Promise<void> {
     const planType = plan.type;
     const actionSpace = this.actionSpace;
-    const action = actionSpace.find((item) => item.name === planType);
+    const action = findActionInActionSpaceOrThrow(planType, actionSpace);
     const param = plan.param;
 
-    if (!action) {
-      throw new Error(`Action type '${planType}' not found`);
-    }
+    const locateFields = findAllMidsceneLocatorField(action.paramSchema);
 
-    const locateFields = action
-      ? findAllMidsceneLocatorField(action.paramSchema)
-      : [];
-
-    const requiredLocateFields = action
-      ? findAllMidsceneLocatorField(action.paramSchema, true)
-      : [];
+    const requiredLocateFields = findAllMidsceneLocatorField(
+      action.paramSchema,
+      true,
+    );
 
     locateFields.forEach((field) => {
       if (param[field]) {

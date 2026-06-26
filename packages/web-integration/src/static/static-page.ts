@@ -1,4 +1,9 @@
-import type { DeviceAction, Point, UIContext } from '@midscene/core';
+import type {
+  DeviceAction,
+  Point,
+  ScreenshotRef,
+  UIContext,
+} from '@midscene/core';
 import type { AbstractInterface } from '@midscene/core/device';
 import {
   type InputPrimitives,
@@ -12,7 +17,38 @@ const ThrowNotImplemented = (methodName: string) => {
   );
 };
 
-type StaticPageUIContext = Omit<UIContext, 'deprecatedDpr'>;
+type SerializedStaticScreenshot = {
+  base64?: unknown;
+  _base64?: unknown;
+  type?: unknown;
+} & Partial<Omit<ScreenshotRef, 'type'>>;
+
+type StaticPageUIContext = Omit<
+  UIContext,
+  'deprecatedDpr' | 'screenshot'
+> & {
+  screenshot: UIContext['screenshot'] | SerializedStaticScreenshot;
+};
+
+function screenshotBase64FromContext(
+  screenshot: StaticPageUIContext['screenshot'],
+): string {
+  const record = screenshot as SerializedStaticScreenshot;
+  const base64 = record.base64 ?? record._base64;
+  if (typeof base64 === 'string') {
+    return base64;
+  }
+
+  if (record.type === 'midscene_screenshot_ref') {
+    throw new Error(
+      'StaticPage screenshot is a serialized reference without base64 data',
+    );
+  }
+
+  throw new Error(
+    'StaticPage screenshot must include base64 data before execution',
+  );
+}
 
 export default class StaticPage implements AbstractInterface {
   interfaceType = 'static';
@@ -78,11 +114,7 @@ export default class StaticPage implements AbstractInterface {
   }
 
   async screenshotBase64() {
-    const screenshot = this.uiContext.screenshot;
-    if (typeof screenshot === 'object' && 'base64' in screenshot) {
-      return (screenshot as { base64: string }).base64;
-    }
-    return screenshot as unknown as string;
+    return screenshotBase64FromContext(this.uiContext.screenshot);
   }
 
   async url() {

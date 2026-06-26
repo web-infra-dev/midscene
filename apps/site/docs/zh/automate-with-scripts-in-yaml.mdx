@@ -629,6 +629,13 @@ tasks:
         errorMessage: <error-message> # 可选，当断言失败时打印的错误信息。
         name: <name> # 可选，给断言一个名称，会在 JSON 输出中作为 key 使用
 
+      # 运行一个 Gherkin Scenario。此功能从 Midscene 1.10 开始支持，目前仍处于 Beta 阶段。
+      - runGherkinScenario: |
+          Scenario: 添加待办事项
+            Given 待办事项页面已经打开
+            When 我添加一条名为“买牛奶”的待办事项
+            Then 待办事项列表中应该包含“买牛奶”
+
       # 等待一定时间
       - sleep: <ms>
 
@@ -640,6 +647,8 @@ tasks:
     flow:
       # ...
 ```
+
+`runGherkinScenario` 从 Midscene 1.10 开始支持，目前仍处于 Beta 阶段。支持规则和限制请参考 [BDD 风格脚本（Gherkin）](./advanced/bdd-style-scripts-with-gherkin)。
 
 #### 步骤结果名称
 

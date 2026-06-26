@@ -1,5 +1,27 @@
 # 更新日志
 
+## v1.10 - BDD 风格脚本、Doubao-Seed-2.1 与 MCP 下线
+
+v1.10 新增 BDD 风格的 Gherkin 脚本执行能力，升级推荐模型到 Doubao-Seed-2.1，并正式下线 MCP server 包，后续推荐通过 Skills 与各平台 CLI 让 AI Agent 驱动 Midscene。
+
+### BDD 风格脚本（Gherkin）
+
+- 新增 `agent.runGherkinScenario()`，可在 JavaScript / TypeScript 中直接运行 Gherkin 场景。
+- YAML flow 新增 `runGherkinScenario` 步骤，可把自然语言场景写成 `Given` / `When` / `Then` 结构并按步骤执行。
+- `Given` / `When` 会映射为 `aiAct`，`Then` 以及跟随它的 `And` / `But` 会映射为 `aiAssert`，让测试用例既保持自然语言可读性，又有稳定的步骤结构。
+- 当前支持围绕单个 `Scenario` 的 Gherkin 子集，BDD 相关能力仍处于 Beta 阶段。详见：[BDD 风格脚本（Gherkin）](./advanced/bdd-style-scripts-with-gherkin)
+
+### 新增模型支持
+
+- 推荐并支持 `Doubao-Seed-2.1-turbo`，在当前私有测评集中具备很快的定位速度和良好的定位效果。
+- 豆包 Seed 系列统一使用 `MIDSCENE_MODEL_FAMILY="doubao-seed"`，同时继续兼容旧的 `doubao-vision` family。详见：[常用模型配置](./model-common-config#doubao-seed-model)、[模型策略](./model-strategy)
+
+### MCP 下线
+
+- Midscene 不再发布 MCP server 包，包括 `@midscene/web-bridge-mcp`、`@midscene/android-mcp`、`@midscene/ios-mcp`、`@midscene/harmony-mcp`、`@midscene/computer-mcp` 和 `@midscene/mcp`。
+- 需要 AI 编程 Agent 操作浏览器、移动设备或桌面应用时，请改用 [Skills](./skills) 与各平台 CLI。
+- 如果仍依赖 MCP server，请将 Midscene 固定在 `1.9.8`。这是最后一个包含 MCP 支持的版本。详见：[MCP 集成已下线](./mcp)
+
 ## v1.9 - 新增模型支持、YAML 自动化与 AndroidWorld Benchmark
 
 v1.9 版本扩展了模型支持，改进了 YAML 自动化，并提升了报告查看、Android 自动化、Web 输入和桌面自动化的稳定性。
@@ -14,18 +36,26 @@ Midscene 新增 AndroidWorld benchmark 报告。使用 v1.9.5 测试时，Midsce
 
 ### 模型与规划更新
 
+- `aiAct` 支持图片提示。
 - `MIDSCENE_MODEL_REASONING_ENABLED` 支持 `default`，适配模型默认思考行为。
+- Gemini thinking content 与 GPT-5 reasoning 配置处理更完整。
 - `aiAct` 在缓存失效时会回退到模型规划，并清空对应缓存。
+- AI 请求错误会包含重试次数信息；模型响应解析失败时会保留原始响应；解析后的 locate 结果会先校验再使用。
+- 模型 dump 会暴露更多模型响应元数据，包括 raw choice message，以及 usage 中的响应模型名。
 - `deepLocate` 的搜索区域会显示在报告上。
 
 ### Chrome 扩展
 
 - Chrome 扩展 Bridge mode 支持文件上传。
+- Bridge mode 文件上传支持 file chooser accept 过滤与 WSL 文件路径。
 
 ### YAML、CLI 与 MCP
 
+- `1.9.8` 是最后一个包含 MCP 支持的 Midscene 版本。后续版本会下线 MCP server 包，改为推荐 Skills 与各平台 CLI。
+- 各平台 CLI 支持传入 agent behavior init args。
 - CLI 的 YAML 脚本新增 HarmonyOS target，HarmonyOS 自动化可以通过与 Web、Android、iOS、Computer 一致的脚本运行器流程执行。详见：[YAML 脚本自动化](./automate-with-scripts-in-yaml)、[HarmonyOS API](./harmony-api-reference)
 - YAML Web config 支持自定义 HTTP headers。
+- YAML Web config 支持通过 `downloadPath` 指定浏览器下载目录。
 - YAML 执行会暴露真实错误，不再只落到静默的 "not executed" 结果。
 - YAML 批量执行支持重试失败用例。
 - YAML 成功执行后会打印报告路径。
@@ -36,12 +66,25 @@ Midscene 新增 AndroidWorld benchmark 报告。使用 v1.9.5 测试时，Midsce
 
 ### 报告
 
+- `recordToReport` 支持自定义截图。
 - Report 导出会让图片路径与导出的截图保持一致。
 - Report 新增 JSON tree view，方便查看结构化任务和模型数据。
+- 优化 Report 截图、标签、Playground server origin 处理与上下文间距。
+
+### Studio 与 Recorder
+
+- 稳定 Studio recorder 描述与预览输入合并行为。
+- Studio 会更安全地处理无效的模型环境变量配置。
+- Recorder 工作流支持生成 Markdown replay output。
 
 ### Android 自动化
 
 - 改进 Android action controls 和规划提示，提升原生移动端自动化流程的稳定性。
+
+### Computer 自动化
+
+- Computer desktop automation 新增 Intel packaging。
+- Libnut 滚动现在每个 tick 会发出完整的一次 wheel delta。
 
 ### 问题修复
 

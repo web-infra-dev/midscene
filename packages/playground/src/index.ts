@@ -6,7 +6,7 @@ export {
   validateStructuredParams,
   executeAction,
 } from './common';
-export { PlaygroundServer } from './server';
+export { buildPlaygroundBrowserUrl, PlaygroundServer } from './server';
 export {
   describeRecorderUIEvent,
   describeRecorderUIEvents,

@@ -255,10 +255,6 @@ export default defineConfig(async () => {
             link: '/integrate-with-any-interface',
           },
           {
-            text: 'Expose agent as MCP server',
-            link: '/mcp',
-          },
-          {
             sectionHeaderText: 'API reference',
           },
           {
@@ -267,6 +263,10 @@ export default defineConfig(async () => {
           },
           {
             sectionHeaderText: 'Advanced',
+          },
+          {
+            text: 'BDD-style scripts with Gherkin',
+            link: '/advanced/bdd-style-scripts-with-gherkin',
           },
           {
             text: 'FAQ',
@@ -445,10 +445,6 @@ export default defineConfig(async () => {
             link: '/zh/integrate-with-any-interface',
           },
           {
-            text: '将设备操作暴露为 MCP',
-            link: '/zh/mcp',
-          },
-          {
             sectionHeaderText: 'API 参考',
           },
           {
@@ -457,6 +453,10 @@ export default defineConfig(async () => {
           },
           {
             sectionHeaderText: '进阶',
+          },
+          {
+            text: 'BDD 风格脚本（Gherkin）',
+            link: '/zh/advanced/bdd-style-scripts-with-gherkin',
           },
           {
             text: '常见问题 FAQ',
@@ -604,11 +604,11 @@ export default defineConfig(async () => {
           },
           {
             from: '^/web-mcp(?:\\.html)?/?$',
-            to: '/mcp',
+            to: '/skills',
           },
           {
             from: '^/mcp-android(?:\\.html)?/?$',
-            to: '/mcp',
+            to: '/skills',
           },
           {
             from: '^/blog-support-android-automation(?:\\.html)?/?$',
@@ -628,11 +628,11 @@ export default defineConfig(async () => {
           },
           {
             from: '^/zh/web-mcp(?:\\.html)?/?$',
-            to: '/zh/mcp',
+            to: '/zh/skills',
           },
           {
             from: '^/zh/mcp-android(?:\\.html)?/?$',
-            to: '/zh/mcp',
+            to: '/zh/skills',
           },
           {
             from: '^/zh/integrate-with-android(?:\\.html)?/?$',

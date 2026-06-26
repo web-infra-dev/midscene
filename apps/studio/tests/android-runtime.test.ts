@@ -19,6 +19,12 @@ type HarmonyModuleLoader = NonNullable<
   RuntimeServiceOptions['loadHarmonyModule']
 >;
 
+const buildPlaygroundBrowserUrl = (host: string, port: number) => {
+  const normalizedHost =
+    host.includes(':') && !host.startsWith('[') ? `[${host}]` : host;
+  return `http://${normalizedHost}:${port}`;
+};
+
 describe('android runtime CORS policy', () => {
   it('allows Studio origins used by Electron and local renderer dev', () => {
     expect(isAllowedStudioOrigin(undefined)).toBe(true);
@@ -94,12 +100,13 @@ describe('playground runtime bootstrap', () => {
         ({
           launchPreparedPlaygroundPlatform: async () => ({
             close: async () => undefined,
-            host: '127.0.0.1',
+            host: '::1',
             port: 5800,
             server: {
               setPreparedPlatform: () => undefined,
             },
           }),
+          buildPlaygroundBrowserUrl,
           prepareMultiPlatformPlayground: async (
             platforms: RegisteredPlaygroundPlatform[],
           ) => {
@@ -143,7 +150,7 @@ describe('playground runtime bootstrap', () => {
 
     await expect(runtime.start()).resolves.toEqual({
       status: 'ready',
-      serverUrl: 'http://127.0.0.1:5800',
+      serverUrl: 'http://[::1]:5800',
       port: 5800,
       error: null,
     });
@@ -209,6 +216,7 @@ describe('playground runtime bootstrap', () => {
               setPreparedPlatform: () => undefined,
             },
           }),
+          buildPlaygroundBrowserUrl,
           prepareMultiPlatformPlayground: async (
             platforms: RegisteredPlaygroundPlatform[],
           ) => {
@@ -329,6 +337,7 @@ describe('playground runtime bootstrap', () => {
               setPreparedPlatform: () => undefined,
             },
           }),
+          buildPlaygroundBrowserUrl,
           prepareMultiPlatformPlayground: async (
             platforms: RegisteredPlaygroundPlatform[],
           ) => {

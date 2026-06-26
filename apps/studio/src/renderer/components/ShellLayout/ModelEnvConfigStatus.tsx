@@ -83,7 +83,7 @@ export function ModelEnvConfigStatus({
         <div className="flex min-w-0 flex-1 items-start gap-[10px]">
           {isSuccess ? <SuccessStatusIcon /> : <ErrorStatusIcon />}
           <span
-            className="min-w-0 flex-1 whitespace-normal break-words font-sans text-[12px] font-normal leading-[16px]"
+            className="min-w-0 flex-1 whitespace-pre-wrap break-words font-sans text-[12px] font-normal leading-[16px]"
             title={message}
           >
             {message}

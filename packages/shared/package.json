@@ -1,6 +1,6 @@
 {
   "name": "@midscene/shared",
-  "version": "1.9.8",
+  "version": "1.10.0",
   "repository": "https://github.com/web-infra-dev/midscene",
   "homepage": "https://midscenejs.com/",
   "types": "./dist/types/index.d.ts",
@@ -57,15 +57,25 @@
       "import": "./dist/es/common.mjs",
       "require": "./dist/lib/common.js"
     },
-    "./mcp": {
-      "types": "./dist/types/mcp/index.d.ts",
-      "import": "./dist/es/mcp/index.mjs",
-      "require": "./dist/lib/mcp/index.js"
+    "./agent-tools": {
+      "types": "./dist/types/agent-tools/index.d.ts",
+      "import": "./dist/es/agent-tools/index.mjs",
+      "require": "./dist/lib/agent-tools/index.js"
+    },
+    "./agent-tools/*": {
+      "types": "./dist/types/agent-tools/*.d.ts",
+      "import": "./dist/es/agent-tools/*.mjs",
+      "require": "./dist/lib/agent-tools/*.js"
     },
     "./cli": {
       "types": "./dist/types/cli/index.d.ts",
       "import": "./dist/es/cli/index.mjs",
       "require": "./dist/lib/cli/index.js"
+    },
+    "./recorder": {
+      "types": "./dist/types/recorder.d.ts",
+      "import": "./dist/es/recorder.mjs",
+      "require": "./dist/lib/recorder.js"
     },
     "./logger": {
       "types": "./dist/types/logger.d.ts",
@@ -90,11 +100,9 @@
     "test:u": "vitest --run -u"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "1.10.2",
     "@silvia-odwyer/photon": "0.3.3",
     "@silvia-odwyer/photon-node": "0.3.3",
     "debug": "4.4.0",
-    "express": "^4.21.2",
     "js-sha256": "0.11.0",
     "sharp": "^0.34.3",
     "dotenv": "^16.4.5",
@@ -104,11 +112,10 @@
   "devDependencies": {
     "@rslib/core": "^0.18.3",
     "@types/debug": "4.1.12",
-    "@types/express": "^4.17.21",
     "@types/node": "^18.0.0",
     "@ui-tars/shared": "1.2.0",
     "openai": "6.3.0",
-    "rimraf": "~3.0.2",
+    "rimraf": "~5.0.10",
     "typescript": "^5.8.3",
     "vitest": "3.0.5"
   },

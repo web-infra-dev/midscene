@@ -1,8 +1,11 @@
+import { existsSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import {
   generateCommonTools,
   generateToolsFromActionSpace,
-} from '@/mcp/tool-generator';
-import { composeUserPrompt } from '@/mcp/user-prompt';
+} from '@/agent-tools/tool-generator';
+import { composeUserPrompt } from '@/agent-tools/user-prompt';
+import { withCliVerboseContext } from '@/cli';
 import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 
@@ -741,6 +744,748 @@ describe('toolDefaults (deep locate / deep think)', () => {
       deepThink: false,
       deepLocate: true,
     });
+  });
+
+  it('emits human-readable aiAct verbose timeline while act is running', async () => {
+    let dumpListener:
+      | ((dump: string, executionDump?: unknown) => void)
+      | undefined;
+    let progressListener:
+      | ((event: Record<string, unknown>) => void)
+      | undefined;
+    const unsubscribe = vi.fn();
+    const reportFile = join(
+      process.cwd(),
+      'midscene_run/report/midscene-report.html',
+    );
+    let sequence = 1;
+    const emitProgress = (event: Record<string, unknown>) => {
+      const { event: phase, ...data } = event;
+      progressListener?.({
+        scope: 'aiAct',
+        phase,
+        sequence: sequence++,
+        data,
+      });
+    };
+    const progressScreenshot = (id: string) => ({
+      toSerializable: () => ({
+        type: 'midscene_screenshot_ref',
+        id,
+        storage: 'file',
+        path: `./screenshots/${id}.png`,
+      }),
+    });
+    const plan1 = {
+      taskId: 'plan-1',
+      type: 'Planning',
+      subType: 'Plan',
+      status: 'finished',
+      param: {
+        userInstruction: 'open settings',
+        replanningCycleLimit: 10,
+      },
+      uiContext: {
+        screenshot: {
+          toSerializable: () => ({
+            type: 'midscene_screenshot_ref',
+            id: 'shot-1',
+            storage: 'file',
+            path: './screenshots/shot-1.png',
+          }),
+        },
+      },
+      output: {
+        log: 'Need to open settings first.',
+        actions: [
+          {
+            type: 'Tap',
+            param: { locate: { prompt: 'Submit button' } },
+          },
+        ],
+        shouldContinuePlanning: true,
+      },
+      timing: { cost: 20 },
+    };
+    const locate1 = {
+      taskId: 'locate-1',
+      type: 'Planning',
+      subType: 'Locate',
+      status: 'finished',
+      param: { prompt: 'Submit button' },
+      output: {
+        element: {
+          description: 'Submit button',
+          center: [100, 200],
+          rect: { left: 80, top: 180, width: 40, height: 40 },
+        },
+      },
+      timing: { cost: 12 },
+    };
+    const tapRunning = {
+      taskId: 'tap-1',
+      type: 'Action Space',
+      subType: 'Tap',
+      status: 'running',
+      param: {
+        locate: {
+          description: 'Submit button',
+          center: [100, 200],
+          rect: { left: 80, top: 180, width: 40, height: 40 },
+        },
+      },
+    };
+    const tapStringPending = {
+      taskId: 'tap-string',
+      type: 'Action Space',
+      subType: 'Tap',
+      status: 'pending',
+      param: { locate: 'Submit button' },
+    };
+    const tapPending = {
+      taskId: 'tap-1',
+      type: 'Action Space',
+      subType: 'Tap',
+      status: 'pending',
+      param: {
+        locate: {
+          prompt: 'Submit button',
+          bbox: [8, 18, 12, 22],
+          locatedPixelBbox: [80, 180, 120, 220],
+        },
+      },
+    };
+    const tapFinished = {
+      ...tapRunning,
+      status: 'finished',
+      timing: { cost: 208 },
+    };
+    const plan2 = {
+      taskId: 'plan-2',
+      type: 'Planning',
+      subType: 'Plan',
+      status: 'finished',
+      param: {
+        userInstruction: 'open settings',
+        replanningCycleLimit: 10,
+      },
+      uiContext: {
+        screenshot: {
+          toSerializable: () => ({
+            type: 'midscene_screenshot_ref',
+            id: 'shot-2',
+            storage: 'file',
+            path: './screenshots/shot-2.png',
+          }),
+        },
+      },
+      output: {
+        log: 'The page is still transitioning, so wait briefly.',
+        actions: [
+          {
+            type: 'Sleep',
+            param: { timeMs: 2000 },
+          },
+        ],
+        shouldContinuePlanning: true,
+      },
+    };
+    const sleepRunning = {
+      taskId: 'sleep-1',
+      type: 'Action Space',
+      subType: 'Sleep',
+      status: 'running',
+      param: { timeMs: 2000 },
+    };
+    const sleepFinished = {
+      ...sleepRunning,
+      status: 'finished',
+      timing: { cost: 2004 },
+    };
+    const plan3 = {
+      taskId: 'plan-3',
+      type: 'Planning',
+      subType: 'Plan',
+      status: 'finished',
+      param: {
+        userInstruction: 'open settings',
+        replanningCycleLimit: 10,
+      },
+      uiContext: {
+        screenshot: {
+          toSerializable: () => ({
+            type: 'midscene_screenshot_ref',
+            id: 'shot-3',
+            storage: 'file',
+            path: './screenshots/shot-3.png',
+          }),
+        },
+      },
+      output: {
+        log: 'The selected page is open, so the requested task is complete.',
+        output: 'Settings opened.',
+        shouldContinuePlanning: false,
+      },
+    };
+    const emitDump = (tasks: unknown[]) => {
+      dumpListener?.('{}', {
+        id: 'execution-1',
+        name: 'Act - open settings',
+        description: 'open settings',
+        tasks,
+      });
+    };
+    const aiAction = vi.fn().mockImplementation(async () => {
+      emitProgress({
+        event: 'start',
+        prompt: 'open settings',
+        planLimit: 10,
+      });
+      emitProgress({
+        event: 'plan_thinking',
+        planIndex: 1,
+        planLimit: 10,
+        screenshot: progressScreenshot('shot-1'),
+      });
+      emitProgress({
+        event: 'plan_planned',
+        planIndex: 1,
+        planLimit: 10,
+        log: 'Need to open settings first.',
+      });
+      emitProgress({
+        event: 'plan_action',
+        planIndex: 1,
+        planLimit: 10,
+        action: {
+          name: 'Tap',
+          target: 'Submit button',
+          point: [100, 200],
+          bbox: [80, 180, 120, 220],
+        },
+      });
+      emitProgress({
+        event: 'action_running',
+        planIndex: 1,
+        planLimit: 10,
+        action: { name: 'Tap', point: [100, 200] },
+      });
+      emitProgress({
+        event: 'action_done',
+        planIndex: 1,
+        planLimit: 10,
+        action: { name: 'Tap' },
+        durationMs: 208,
+      });
+      emitProgress({
+        event: 'plan_thinking',
+        planIndex: 2,
+        planLimit: 10,
+        screenshot: progressScreenshot('shot-2'),
+      });
+      emitProgress({
+        event: 'plan_planned',
+        planIndex: 2,
+        planLimit: 10,
+        log: 'The page is still transitioning, so wait briefly.',
+      });
+      emitProgress({
+        event: 'plan_action',
+        planIndex: 2,
+        planLimit: 10,
+        action: { name: 'Sleep', param: { timeMs: 2000 } },
+      });
+      emitProgress({
+        event: 'action_running',
+        planIndex: 2,
+        planLimit: 10,
+        action: { name: 'Sleep', param: { timeMs: 2000 } },
+      });
+      emitProgress({
+        event: 'action_done',
+        planIndex: 2,
+        planLimit: 10,
+        action: { name: 'Sleep' },
+        durationMs: 2004,
+      });
+      emitProgress({
+        event: 'plan_thinking',
+        planIndex: 3,
+        planLimit: 10,
+        screenshot: progressScreenshot('shot-3'),
+      });
+      emitProgress({
+        event: 'plan_planned',
+        planIndex: 3,
+        planLimit: 10,
+        log: 'The selected page is open, so the requested task is complete.',
+      });
+      emitProgress({
+        event: 'complete',
+        planIndex: 3,
+        planLimit: 10,
+        output: 'Settings opened.',
+      });
+      emitDump([plan1, tapStringPending]);
+      emitDump([plan1, tapPending]);
+      emitDump([plan1, locate1, tapRunning]);
+      emitDump([plan1, locate1, tapFinished]);
+      emitDump([plan1, locate1, tapFinished, plan2, sleepRunning]);
+      emitDump([plan1, locate1, tapFinished, plan2, sleepFinished]);
+      emitDump([plan1, locate1, tapFinished, plan2, sleepFinished, plan3]);
+      return 'Settings opened.';
+    });
+    const addDumpUpdateListener = vi.fn((listener) => {
+      dumpListener = listener;
+      return unsubscribe;
+    });
+    const addProgressListener = vi.fn((listener) => {
+      progressListener = listener;
+      return unsubscribe;
+    });
+    const commonTools = generateCommonTools(async () => ({
+      aiAction,
+      addProgressListener,
+      addDumpUpdateListener,
+      reportFile,
+      getActionSpace: vi.fn().mockResolvedValue([]),
+      page: { screenshotBase64: vi.fn().mockResolvedValue(screenshotBase64) },
+    }));
+    const actTool = commonTools.find((tool) => tool.name === 'act');
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+    await withCliVerboseContext(
+      {
+        enabled: true,
+        scriptName: 'midscene-web',
+        commandName: 'act',
+      },
+      async () => {
+        await actTool?.handler({ prompt: 'open settings' });
+      },
+    );
+
+    const messages = consoleSpy.mock.calls.flatMap(([message]) =>
+      String(message).split('\n'),
+    );
+    expect(messages).toContain('[Midscene][aiAct] Start: open settings');
+    expect(messages).toContain(
+      '[Midscene][aiAct][Plan 1/10] Thinking with the latest screenshot: midscene_run/report/screenshots/shot-1.png',
+    );
+    expect(messages).toContain(
+      '[Midscene][aiAct][Plan 1/10] Planned: Need to open settings first.',
+    );
+    expect(messages).toContain(
+      '[Midscene][aiAct][Plan 1/10] Action: Tap "Submit button" at (100, 200), bbox=(80,180,120,220)',
+    );
+    expect(messages).not.toContain(
+      '[Midscene][aiAct][Plan 1/10] Action: Tap: {"locate":"Submit button"}',
+    );
+    expect(messages).toContain(
+      '[Midscene][aiAct][Action] Running: Tap at (100, 200)',
+    );
+    expect(messages).toContain(
+      '[Midscene][aiAct][Action] Done: Tap cost=208ms',
+    );
+    expect(messages).toContain(
+      '[Midscene][aiAct][Plan 2/10] Thinking with the latest screenshot: midscene_run/report/screenshots/shot-2.png',
+    );
+    expect(messages).toContain(
+      '[Midscene][aiAct][Plan 2/10] Planned: The page is still transitioning, so wait briefly.',
+    );
+    expect(messages).toContain(
+      '[Midscene][aiAct][Plan 2/10] Action: Sleep 2000ms',
+    );
+    expect(messages).toContain(
+      '[Midscene][aiAct][Action] Running: Sleep 2000ms',
+    );
+    expect(messages).toContain(
+      '[Midscene][aiAct][Action] Done: Sleep cost=2004ms',
+    );
+    expect(messages).toContain(
+      '[Midscene][aiAct][Plan 3/10] Thinking with the latest screenshot: midscene_run/report/screenshots/shot-3.png',
+    );
+    expect(messages).toContain(
+      '[Midscene][aiAct][Plan 3/10] Planned: The selected page is open, so the requested task is complete.',
+    );
+    expect(messages).toContain('[Midscene][aiAct] Complete: Settings opened.');
+    expect(
+      messages.filter((message) =>
+        message.includes('[Midscene][aiAct][Plan 1/10] Action: Tap'),
+      ),
+    ).toHaveLength(1);
+    expect(addProgressListener).toHaveBeenCalledOnce();
+    expect(addDumpUpdateListener).not.toHaveBeenCalled();
+    expect(unsubscribe).toHaveBeenCalledOnce();
+    consoleSpy.mockRestore();
+  });
+
+  it('does not render aiAct dump progress without core progress listener', async () => {
+    const unsubscribe = vi.fn();
+    const aiAction = vi.fn().mockResolvedValue('Settings opened.');
+    const addDumpUpdateListener = vi.fn(() => unsubscribe);
+    const commonTools = generateCommonTools(async () => ({
+      aiAction,
+      addDumpUpdateListener,
+      getActionSpace: vi.fn().mockResolvedValue([]),
+      page: { screenshotBase64: vi.fn().mockResolvedValue(screenshotBase64) },
+    }));
+    const actTool = commonTools.find((tool) => tool.name === 'act');
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+    await withCliVerboseContext(
+      {
+        enabled: true,
+        scriptName: 'midscene-web',
+        commandName: 'act',
+      },
+      async () => {
+        await actTool?.handler({ prompt: 'open settings' });
+      },
+    );
+
+    const messages = consoleSpy.mock.calls.flatMap(([message]) =>
+      String(message).split('\n'),
+    );
+    expect(
+      messages.some((message) => message.startsWith('[Midscene][aiAct]')),
+    ).toBe(false);
+    expect(addDumpUpdateListener).not.toHaveBeenCalled();
+    expect(unsubscribe).not.toHaveBeenCalled();
+    consoleSpy.mockRestore();
+  });
+
+  it('emits human-readable aiAct planning failure details', async () => {
+    let dumpListener:
+      | ((dump: string, executionDump?: unknown) => void)
+      | undefined;
+    let progressListener:
+      | ((event: Record<string, unknown>) => void)
+      | undefined;
+    const unsubscribe = vi.fn();
+    const reportFile = join(
+      process.cwd(),
+      'midscene_run/report/midscene-report.html',
+    );
+    let sequence = 1;
+    const emitProgress = (event: Record<string, unknown>) => {
+      const { event: phase, ...data } = event;
+      progressListener?.({
+        scope: 'aiAct',
+        phase,
+        sequence: sequence++,
+        data,
+      });
+    };
+    const aiAction = vi.fn().mockImplementation(async () => {
+      emitProgress({
+        event: 'start',
+        prompt: 'open settings',
+        planLimit: 3,
+      });
+      emitProgress({
+        event: 'plan_thinking',
+        planIndex: 1,
+        planLimit: 3,
+        screenshot: {
+          toSerializable: () => ({
+            type: 'midscene_screenshot_ref',
+            id: 'failed-shot',
+            storage: 'file',
+            path: './screenshots/failed-shot.png',
+          }),
+        },
+      });
+      emitProgress({
+        event: 'plan_failed',
+        planIndex: 1,
+        planLimit: 3,
+        message: 'Task failed: The settings entry is not visible.',
+        error: 'Task failed: The settings entry is not visible.',
+      });
+      dumpListener?.('{}', {
+        id: 'execution-1',
+        name: 'Act - open settings',
+        description: 'open settings',
+        tasks: [
+          {
+            taskId: 'plan-failed',
+            type: 'Planning',
+            subType: 'Plan',
+            status: 'failed',
+            param: {
+              userInstruction: 'open settings',
+              replanningCycleLimit: 3,
+            },
+            uiContext: {
+              screenshot: {
+                toSerializable: () => ({
+                  type: 'midscene_screenshot_ref',
+                  id: 'failed-shot',
+                  storage: 'file',
+                  path: './screenshots/failed-shot.png',
+                }),
+              },
+            },
+            output: {
+              log: 'The settings entry is not visible.',
+              shouldContinuePlanning: false,
+            },
+            errorMessage: 'Task failed: The settings entry is not visible.',
+          },
+        ],
+      });
+      throw new Error('Task failed: The settings entry is not visible.');
+    });
+    const addDumpUpdateListener = vi.fn((listener) => {
+      dumpListener = listener;
+      return unsubscribe;
+    });
+    const addProgressListener = vi.fn((listener) => {
+      progressListener = listener;
+      return unsubscribe;
+    });
+    const commonTools = generateCommonTools(async () => ({
+      aiAction,
+      addProgressListener,
+      addDumpUpdateListener,
+      reportFile,
+      getActionSpace: vi.fn().mockResolvedValue([]),
+      page: { screenshotBase64: vi.fn().mockResolvedValue(screenshotBase64) },
+    }));
+    const actTool = commonTools.find((tool) => tool.name === 'act');
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    const consoleErrorSpy = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => {});
+
+    const result = await withCliVerboseContext(
+      {
+        enabled: true,
+        scriptName: 'midscene-web',
+        commandName: 'act',
+      },
+      async () => actTool?.handler({ prompt: 'open settings' }),
+    );
+
+    const messages = consoleSpy.mock.calls.flatMap(([message]) =>
+      String(message).split('\n'),
+    );
+    expect(result?.isError).toBe(true);
+    expect(messages).toContain('[Midscene][aiAct] Start: open settings');
+    expect(messages).toContain(
+      '[Midscene][aiAct][Plan 1/3] Thinking with the latest screenshot: midscene_run/report/screenshots/failed-shot.png',
+    );
+    expect(messages).toContain(
+      '[Midscene][aiAct][Plan 1/3] Failed: Task failed: The settings entry is not visible.',
+    );
+    expect(messages).not.toContain(
+      '[Midscene][aiAct] Complete: The settings entry is not visible.',
+    );
+    expect(addProgressListener).toHaveBeenCalledOnce();
+    expect(addDumpUpdateListener).not.toHaveBeenCalled();
+    expect(unsubscribe).toHaveBeenCalledOnce();
+    consoleSpy.mockRestore();
+    consoleErrorSpy.mockRestore();
+  });
+
+  it('exports inline verbose dump screenshots to readable file paths', async () => {
+    let dumpListener:
+      | ((dump: string, executionDump?: unknown) => void)
+      | undefined;
+    let progressListener:
+      | ((event: Record<string, unknown>) => void)
+      | undefined;
+    const unsubscribe = vi.fn();
+    const inlineScreenshot = {
+      extension: 'png',
+      rawBase64: 'Zm9v',
+      toSerializable: () => ({
+        type: 'midscene_screenshot_ref',
+        id: 'inline-shot-1',
+        capturedAt: 1000,
+        mimeType: 'image/png',
+        storage: 'inline',
+      }),
+    };
+    const aiAction = vi.fn().mockImplementation(async () => {
+      progressListener?.({
+        scope: 'aiAct',
+        sequence: 1,
+        phase: 'plan_thinking',
+        data: {
+          planIndex: 1,
+          screenshot: inlineScreenshot,
+        },
+      });
+      dumpListener?.('{}', {
+        id: 'execution-1',
+        name: 'Act - open settings',
+        tasks: [
+          {
+            taskId: 'plan-1',
+            type: 'Planning',
+            subType: 'Plan',
+            status: 'running',
+            param: { userInstruction: 'open settings' },
+            uiContext: {
+              screenshot: inlineScreenshot,
+            },
+            recorder: [
+              {
+                timing: 'after-calling',
+                screenshot: inlineScreenshot,
+              },
+            ],
+          },
+        ],
+      });
+      return 'done';
+    });
+    const addDumpUpdateListener = vi.fn((listener) => {
+      dumpListener = listener;
+      return unsubscribe;
+    });
+    const addProgressListener = vi.fn((listener) => {
+      progressListener = listener;
+      return unsubscribe;
+    });
+    const commonTools = generateCommonTools(async () => ({
+      aiAction,
+      addProgressListener,
+      addDumpUpdateListener,
+      reportFile: '/tmp/midscene-report.html',
+      getActionSpace: vi.fn().mockResolvedValue([]),
+      page: { screenshotBase64: vi.fn().mockResolvedValue(screenshotBase64) },
+    }));
+    const actTool = commonTools.find((tool) => tool.name === 'act');
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+    await withCliVerboseContext(
+      {
+        enabled: true,
+        scriptName: 'midscene-web',
+        commandName: 'act',
+      },
+      async () => {
+        await actTool?.handler({ prompt: 'open settings' });
+      },
+    );
+
+    const messages = consoleSpy.mock.calls.flatMap(([message]) =>
+      String(message).split('\n'),
+    );
+    const screenshotMessage = messages.find((message) =>
+      message.includes(
+        '[Midscene][aiAct][Plan 1] Thinking with the latest screenshot: ',
+      ),
+    );
+    expect(screenshotMessage).toMatch(
+      /^\[Midscene\]\[aiAct\]\[Plan 1\] Thinking with the latest screenshot: .+screenshots\/inline-shot-1\.png$/,
+    );
+    const screenshotPath = screenshotMessage?.replace(
+      '[Midscene][aiAct][Plan 1] Thinking with the latest screenshot: ',
+      '',
+    );
+    expect(screenshotPath).toBeDefined();
+    expect(existsSync(screenshotPath!)).toBe(true);
+    expect(readFileSync(screenshotPath!, 'utf8')).toBe('foo');
+    expect(addProgressListener).toHaveBeenCalledOnce();
+    expect(addDumpUpdateListener).not.toHaveBeenCalled();
+    expect(unsubscribe).toHaveBeenCalledOnce();
+    consoleSpy.mockRestore();
+  });
+
+  it('emits jsonl aiAct progress events while act is running', async () => {
+    let progressListener:
+      | ((event: Record<string, unknown>) => void)
+      | undefined;
+    const unsubscribe = vi.fn();
+    const aiAction = vi.fn().mockImplementation(async () => {
+      progressListener?.({
+        scope: 'aiAct',
+        sequence: 1,
+        phase: 'plan_thinking',
+        data: {
+          planIndex: 1,
+          planLimit: 3,
+          screenshot: {
+            toSerializable: () => ({
+              type: 'midscene_screenshot_ref',
+              id: 'shot-1',
+              storage: 'file',
+              path: './screenshots/shot-1.png',
+            }),
+          },
+        },
+      });
+      return 'done';
+    });
+    const addDumpUpdateListener = vi.fn(() => unsubscribe);
+    const addProgressListener = vi.fn((listener) => {
+      progressListener = listener;
+      return unsubscribe;
+    });
+    const commonTools = generateCommonTools(async () => ({
+      aiAction,
+      addProgressListener,
+      addDumpUpdateListener,
+      reportFile: '/tmp/midscene-report.html',
+      getActionSpace: vi.fn().mockResolvedValue([]),
+      page: { screenshotBase64: vi.fn().mockResolvedValue(screenshotBase64) },
+    }));
+    const actTool = commonTools.find((tool) => tool.name === 'act');
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+    await withCliVerboseContext(
+      {
+        enabled: true,
+        format: 'jsonl',
+        scriptName: 'midscene-web',
+        commandName: 'act',
+      },
+      async () => {
+        await actTool?.handler({ prompt: 'open settings' });
+      },
+    );
+
+    const progressEvents = consoleSpy.mock.calls
+      .map(([message]) => String(message))
+      .filter((message) => message.includes('"type":"midscene_progress"'))
+      .map((message) => JSON.parse(message));
+    expect(progressEvents).toContainEqual(
+      expect.objectContaining({
+        event: 'agent_ready',
+        scriptName: 'midscene-web',
+        command: 'act',
+        tool: 'act',
+      }),
+    );
+    expect(progressEvents).toContainEqual(
+      expect.objectContaining({
+        event: 'agent_progress',
+        command: 'act',
+        tool: 'act',
+        scope: 'aiAct',
+        progress: expect.objectContaining({
+          phase: 'plan_thinking',
+          sequence: 1,
+          planIndex: 1,
+          planLimit: 3,
+          screenshots: [
+            expect.objectContaining({
+              id: 'shot-1',
+              storage: 'file',
+              path: './screenshots/shot-1.png',
+            }),
+          ],
+        }),
+      }),
+    );
+    expect(addProgressListener).toHaveBeenCalledOnce();
+    expect(addDumpUpdateListener).not.toHaveBeenCalled();
+    expect(unsubscribe).toHaveBeenCalledOnce();
+    consoleSpy.mockRestore();
   });
 
   it('lets an explicit act deepLocate arg override the server default', async () => {

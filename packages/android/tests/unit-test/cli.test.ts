@@ -1,5 +1,5 @@
 /**
- * Integration test for the Android MCP CLI path.
+ * Integration test for the Android tool CLI path.
  *
  * Exercises the full `runToolsCLI(argv) → parseCliArgs → handler dispatch →
  * ensureAgent → agentFromAdbDevice` chain with a real AndroidMidsceneTools
@@ -9,7 +9,7 @@
 import { runToolsCLI } from '@midscene/shared/cli';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { agentFromAdbDevice } from '../../src/agent';
-import { AndroidMidsceneTools } from '../../src/mcp-tools';
+import { AndroidMidsceneTools } from '../../src/agent-tools';
 
 vi.mock('../../src/agent', () => ({
   agentFromAdbDevice: vi.fn(),

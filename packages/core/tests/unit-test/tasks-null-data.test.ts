@@ -34,6 +34,13 @@ const createEmptyUIContext = async () => {
   };
 };
 
+const expectEmptyUIContext = () =>
+  expect.objectContaining({
+    screenshot: expect.any(ScreenshotItem),
+    shotSize: { width: 0, height: 0 },
+    shrunkShotToLogicalRatio: 1,
+  });
+
 const createMockUsage = (totalTokens: number): AIUsageInfo => ({
   prompt_tokens: 0,
   completion_tokens: 0,
@@ -211,7 +218,8 @@ describe('TaskExecutor - Null Data Handling', () => {
         {},
         '',
         undefined,
-        expect.anything(),
+        expectEmptyUIContext(),
+        undefined,
       );
     });
 
@@ -265,7 +273,8 @@ describe('TaskExecutor - Null Data Handling', () => {
         {},
         '',
         undefined,
-        expect.anything(),
+        expectEmptyUIContext(),
+        undefined,
       );
       expect(result.output).toBe(true);
       expect(result.thought).toBe('Condition is met');
@@ -631,7 +640,8 @@ describe('TaskExecutor - Null Data Handling', () => {
         {},
         '',
         undefined,
-        expect.anything(),
+        expectEmptyUIContext(),
+        undefined,
       );
       expect(result.output).toBe(42);
       expect(result.thought).toBe('Extracted the numeric value successfully');
@@ -725,7 +735,8 @@ describe('TaskExecutor - Null Data Handling', () => {
         {},
         '',
         undefined,
-        expect.anything(),
+        expectEmptyUIContext(),
+        undefined,
       );
       expect(result.output).toBeNull();
     });
@@ -780,7 +791,8 @@ describe('TaskExecutor - Null Data Handling', () => {
         {},
         '',
         undefined,
-        expect.anything(),
+        expectEmptyUIContext(),
+        undefined,
       );
       expect(result.output).toBe(true);
     });

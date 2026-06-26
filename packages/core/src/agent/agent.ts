@@ -11,6 +11,7 @@ import {
   type ActionReturn,
   type AgentAssertOpt,
   type AgentOpt,
+  type AgentProgressListener,
   type AgentWaitForOpt,
   type DeepThinkOption,
   type DeviceAction,
@@ -63,7 +64,13 @@ import { getDebug } from '@midscene/shared/logger';
 import { assert, ifInBrowser, uuid } from '@midscene/shared/utils';
 import { defineActionSleep } from '../device';
 import { validateAgentCacheInput } from './cache-config';
+import { AgentProgressBus } from './progress';
+import { buildPromptWithContext } from './prompt-context';
 import { normalizeRecordToReportScreenshot } from './record-to-report';
+import {
+  type RunGherkinScenarioOptions,
+  runGherkinScenario,
+} from './run-gherkin-scenario';
 import { markdownToAiActPrompt } from './run-markdown';
 import { TaskCache } from './task-cache';
 import {
@@ -101,6 +108,7 @@ export type AiActOptions = {
   deepThink?: DeepThinkOption;
   deepLocate?: boolean;
   abortSignal?: AbortSignal;
+  context?: string;
 };
 
 type AiActInternalOptions = AiActOptions & {
@@ -139,6 +147,10 @@ export class Agent<
   private dumpUpdateListeners: Array<
     (dump: string, executionDump?: ExecutionDump) => void
   > = [];
+
+  // Generic progress bus: every producer (aiAct today, more later) broadcasts
+  // through here. Consumers narrow by `event.scope`.
+  private readonly progressBus = new AgentProgressBus();
 
   get onDumpUpdate():
     | ((dump: string, executionDump?: ExecutionDump) => void)
@@ -290,7 +302,7 @@ export class Agent<
       useDeviceTime: this.opts.useDeviceTime,
       actionSpace: this.fullActionSpace,
       hooks: {
-        onTaskUpdate: async (runner) => {
+        onSnapshotChange: async (runner) => {
           const executionDump = runner.dump();
           this.appendExecutionDump(executionDump, runner);
 
@@ -309,6 +321,7 @@ export class Agent<
             }
           }
         },
+        onProgress: this.progressBus.publish,
       },
     });
     this.dump = this.resetDump();
@@ -877,10 +890,28 @@ export class Agent<
     const runAiAct = async () => {
       const planningModel = this.resolveModelRuntime('planning');
       const defaultModel = this.resolveModelRuntime('default');
+      const aiActContext =
+        opt?.context !== undefined ? opt.context : this.aiActContext;
+      const cachePrompt = buildPromptWithContext(taskPrompt, aiActContext);
       // Controls the aiAct planning mode, such as sub-goal prompts and locate result strategy.
-      const deepThink = opt?.deepThink === true;
+      let deepThink = opt?.deepThink === true;
+      if (deepThink && planningModel.adapter.planning.kind === 'custom') {
+        warn(
+          `The "deepThink" option is not supported for aiAct with custom planning adapters (modelFamily: ${planningModel.config.modelFamily ?? 'unknown'}). It will be ignored.`,
+        );
+        deepThink = false;
+      }
 
-      const deepLocate = opt?.deepLocate;
+      let deepLocate = opt?.deepLocate;
+      if (
+        deepLocate &&
+        !planningModel.adapter.planning.supportsActionDeepLocate
+      ) {
+        warn(
+          `The "deepLocate" option is not supported for aiAct with the current planning adapter (modelFamily: ${planningModel.config.modelFamily ?? 'unknown'}). It will be ignored.`,
+        );
+        deepLocate = false;
+      }
 
       const noIndividualLocateModel = planningModel.config.slot === 'default';
 
@@ -898,7 +929,7 @@ export class Agent<
       const matchedCache =
         !planCacheEnabled || cacheable === false
           ? undefined
-          : this.taskCache?.matchPlanCache(taskPrompt);
+          : this.taskCache?.matchPlanCache(cachePrompt);
       let cachedYamlFailed = false;
       if (
         matchedCache?.cacheUsable &&
@@ -934,7 +965,7 @@ export class Agent<
         planningModel,
         defaultModel,
         includeLocateInPlanning,
-        this.aiActContext,
+        aiActContext,
         cacheable,
         replanningCycleLimit,
         imagesIncludeCount,
@@ -966,7 +997,7 @@ export class Agent<
         this.taskCache.updateOrAppendCacheRecord(
           {
             type: 'plan',
-            prompt: taskPrompt,
+            prompt: cachePrompt,
             yamlWorkflow: yamlFlowStr,
           },
           matchedCache,
@@ -992,6 +1023,13 @@ export class Agent<
         prompt: basename(markdownPath),
       },
     } as AiActOptions);
+  }
+
+  async runGherkinScenario(
+    scenarioText: string,
+    opt?: RunGherkinScenarioOptions,
+  ): Promise<void> {
+    return runGherkinScenario(this, scenarioText, opt);
   }
 
   /**
@@ -1124,7 +1162,11 @@ export class Agent<
         defaultServiceExtractOption.screenshotIncluded,
     };
 
-    const { textPrompt, multimodalPrompt } = parsePrompt(assertion);
+    const assertionWithContext = buildPromptWithContext(
+      assertion,
+      opt?.context,
+    );
+    const { textPrompt, multimodalPrompt } = parsePrompt(assertionWithContext);
     const assertionText =
       typeof assertion === 'string' ? assertion : assertion.prompt;
 
@@ -1136,6 +1178,9 @@ export class Agent<
           modelRuntime,
           serviceOpt,
           multimodalPrompt,
+          {
+            abortSignal: opt?.abortSignal,
+          },
         );
 
       const pass = Boolean(output);
@@ -1269,6 +1314,31 @@ export class Agent<
    */
   clearDumpUpdateListeners(): void {
     this.dumpUpdateListeners = [];
+  }
+
+  /**
+   * Subscribe to the generic agent progress bus. The listener receives every
+   * progress event regardless of producer; narrow by `event.scope` to handle a
+   * specific producer (e.g. `'aiAct'`).
+   * @param listener Listener function
+   * @returns A remove function that can be called to remove this listener
+   */
+  addProgressListener(listener: AgentProgressListener): () => void {
+    return this.progressBus.subscribe(listener);
+  }
+
+  /**
+   * Remove a progress listener added via {@link addProgressListener}.
+   */
+  removeProgressListener(listener: AgentProgressListener): void {
+    this.progressBus.unsubscribe(listener);
+  }
+
+  /**
+   * Clear all generic progress listeners.
+   */
+  clearProgressListeners(): void {
+    this.progressBus.clear();
   }
 
   private notifyDumpUpdateListeners(executionDump?: ExecutionDump) {

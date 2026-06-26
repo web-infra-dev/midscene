@@ -32,16 +32,6 @@ vi.mock('@/ai-model/inspect', () => ({
   buildSearchAreaConfig: mocks.buildSearchAreaConfig,
 }));
 
-vi.mock('@midscene/shared/img', async () => {
-  const actual = await vi.importActual<typeof import('@midscene/shared/img')>(
-    '@midscene/shared/img',
-  );
-  return {
-    ...actual,
-    imageInfoOfBase64: vi.fn().mockResolvedValue({ width: 800, height: 450 }),
-  };
-});
-
 import { runConnectivityTest } from '@/ai-model/connectivity';
 
 function readImports(filePath: string): string[] {
@@ -122,11 +112,7 @@ describe('runConnectivityTest service load order', () => {
     });
 
     expect(result.passed).toBe(true);
-    expect(result.checks.map((item) => item.intent)).toEqual([
-      'planning',
-      'insight',
-      'default',
-    ]);
+    expect(result.message).toBeUndefined();
     expect(mocks.AiLocateElement).toHaveBeenCalledWith(
       expect.objectContaining({
         targetElementDescription: 'the main todo input box',
