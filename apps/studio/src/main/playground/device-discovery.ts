@@ -34,6 +34,15 @@ export const DEVICE_PLATFORM_DISCOVERY_TIMEOUT_MS = 10_000;
 export const DEVICE_DISCOVERY_POLL_INTERVAL_MS = 5000;
 const execFileAsync = promisify(execFile);
 
+function safeDebugLog(...args: Parameters<typeof debugLog>): void {
+  try {
+    debugLog(...args);
+  } catch {
+    // Packaged Electron apps can have closed stdio streams. Device discovery
+    // must never crash the main process just because debug logging cannot write.
+  }
+}
+
 export interface DeviceDiscoveryService {
   close(): void;
   getSnapshot(options?: {
@@ -213,7 +222,7 @@ async function withPlatformDiscoveryTimeout(
   let timeoutId: ReturnType<typeof globalThis.setTimeout> | undefined;
   const timeout = new Promise<PlatformScanResult>((resolve) => {
     timeoutId = setTimeout(() => {
-      debugLog(
+      safeDebugLog(
         `${platformId} scan timed out after ${DEVICE_PLATFORM_DISCOVERY_TIMEOUT_MS}ms`,
       );
       resolve(timeoutScanResult(platformId));
@@ -277,7 +286,7 @@ export function createDeviceDiscoveryService({
       try {
         listener(devices);
       } catch (error) {
-        debugLog('device discovery listener failed:', error);
+        safeDebugLog('device discovery listener failed:', error);
       }
     });
   };
@@ -311,7 +320,7 @@ export function createDeviceDiscoveryService({
 
     intervalId = setIntervalFn(() => {
       void refreshSnapshot().catch((error) => {
-        debugLog('device discovery refresh failed:', error);
+        safeDebugLog('device discovery refresh failed:', error);
       });
     }, intervalMs);
   };
@@ -323,7 +332,7 @@ export function createDeviceDiscoveryService({
 
     started = true;
     void refreshSnapshot().catch((error) => {
-      debugLog('initial device discovery refresh failed:', error);
+      safeDebugLog('initial device discovery refresh failed:', error);
     });
     ensurePolling();
   };
@@ -353,7 +362,7 @@ export function createDeviceDiscoveryService({
       }
 
       void refreshSnapshot().catch((error) => {
-        debugLog('device discovery resume refresh failed:', error);
+        safeDebugLog('device discovery resume refresh failed:', error);
       });
       ensurePolling();
     },
@@ -396,7 +405,7 @@ export async function discoverAllDevices(): Promise<DiscoverDevicesResult> {
         errors.push(scan.value.error);
       }
     } else {
-      debugLog('platform scan rejected:', scan.reason);
+      safeDebugLog('platform scan rejected:', scan.reason);
     }
   }
 
@@ -423,11 +432,11 @@ async function scanAndroidDevices(): Promise<PlatformScanResult> {
       })),
     };
   } catch (err) {
-    debugLog('android scan failed:', err);
+    safeDebugLog('android scan failed:', err);
     try {
       return await scanAndroidDevicesFromCli();
     } catch (fallbackError) {
-      debugLog('android cli fallback failed:', fallbackError);
+      safeDebugLog('android cli fallback failed:', fallbackError);
       return { devices: [], error: toolchainMissing('android') };
     }
   }
@@ -482,7 +491,7 @@ async function scanIOSDevices(): Promise<PlatformScanResult> {
     // iOS WDA probe failing just means no local WDA is running. That is
     // the dominant case (no developer has WDA up by default), not a
     // toolchain problem — do not surface it as an error to the UI.
-    debugLog('ios scan failed:', err);
+    safeDebugLog('ios scan failed:', err);
     return { devices: [] };
   } finally {
     clearTimeout(timeoutId);
@@ -509,11 +518,11 @@ async function scanHarmonyDevices(): Promise<PlatformScanResult> {
       })),
     };
   } catch (err) {
-    debugLog('harmony scan failed:', err);
+    safeDebugLog('harmony scan failed:', err);
     try {
       return await scanHarmonyDevicesFromCli();
     } catch (fallbackError) {
-      debugLog('harmony cli fallback failed:', fallbackError);
+      safeDebugLog('harmony cli fallback failed:', fallbackError);
       return { devices: [], error: toolchainMissing('harmony') };
     }
   }
@@ -536,7 +545,7 @@ async function scanComputerDisplays(): Promise<PlatformScanResult> {
       })),
     };
   } catch (err) {
-    debugLog('computer scan failed:', err);
+    safeDebugLog('computer scan failed:', err);
     return { devices: [] };
   }
 }
