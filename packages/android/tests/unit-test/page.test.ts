@@ -2231,6 +2231,70 @@ Stdout:
           expect.stringContaining('input -d 2 swipe'),
         );
       });
+
+      it('should NOT pass the display argument to app_process (yadb) pinch even when displayId is set', async () => {
+        // `app_process` is the ART runtime launcher and does not accept the
+        // `-d <displayId>` flag the way `input`/`dumpsys` do. Passing it makes
+        // the VM fail to start and breaks aiPinch. See getDisplayArg().
+        deviceWithDisplay = new AndroidDevice('test-device', {
+          displayId: 0,
+        });
+
+        setupMockAdb(mockAdbInstance);
+
+        vi.spyOn(deviceWithDisplay, 'getAdb').mockResolvedValue(
+          mockAdbInstance as any,
+        );
+        vi.spyOn(deviceWithDisplay as any, 'ensureYadb').mockResolvedValue(
+          undefined,
+        );
+        (deviceWithDisplay as any).devicePixelRatio = 1;
+
+        await deviceWithDisplay.inputPrimitives.touch.pinch!(
+          { x: 1280, y: 720 },
+          { startDistance: 600, endDistance: 200, duration: 1200 },
+        );
+
+        const pinchCall = mockAdbInstance.shell.mock.calls.find(
+          (call: unknown[]) =>
+            typeof call[0] === 'string' && call[0].includes('-pinch'),
+        );
+        expect(pinchCall).toBeDefined();
+        expect(pinchCall![0]).toContain('app_process -Djava.class.path');
+        expect(pinchCall![0]).not.toContain('app_process -d');
+      });
+
+      it('should throw when pinch is called on a non-default display (displayId > 0)', async () => {
+        // yadb only injects into the default display, so a non-default display
+        // would silently land the pinch on the main screen. Fail fast instead.
+        deviceWithDisplay = new AndroidDevice('test-device', {
+          displayId: 2,
+        });
+
+        setupMockAdb(mockAdbInstance);
+
+        vi.spyOn(deviceWithDisplay, 'getAdb').mockResolvedValue(
+          mockAdbInstance as any,
+        );
+        vi.spyOn(deviceWithDisplay as any, 'ensureYadb').mockResolvedValue(
+          undefined,
+        );
+        (deviceWithDisplay as any).devicePixelRatio = 1;
+
+        await expect(
+          deviceWithDisplay.inputPrimitives.touch.pinch!(
+            { x: 1280, y: 720 },
+            { startDistance: 600, endDistance: 200, duration: 1200 },
+          ),
+        ).rejects.toThrow(/non-default display/);
+
+        // No yadb command should have been issued.
+        const pinchCall = mockAdbInstance.shell.mock.calls.find(
+          (call: unknown[]) =>
+            typeof call[0] === 'string' && call[0].includes('-pinch'),
+        );
+        expect(pinchCall).toBeUndefined();
+      });
     });
 
     it('should not include display argument in shell commands when displayId is not set', async () => {
