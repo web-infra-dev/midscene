@@ -246,19 +246,16 @@ function escapePowershellSingleQuoted(value: string): string {
  * the Git Bash argument mangling that breaks screenshot-desktop (#2150).
  * `powershell.exe` (Windows PowerShell 5.x) is used because it ships with
  * System.Windows.Forms / System.Drawing out of the box.
+ *
+ * No `-ExecutionPolicy Bypass`: execution policy only gates `.ps1` script
+ * files, not inline `-EncodedCommand`/`-Command` input, so it would be a
+ * no-op here while making the invocation look more privileged to auditing.
  */
 function runPowershell(script: string): string {
   const encoded = Buffer.from(script, 'utf16le').toString('base64');
   return execFileSync(
     'powershell.exe',
-    [
-      '-NoProfile',
-      '-NonInteractive',
-      '-ExecutionPolicy',
-      'Bypass',
-      '-EncodedCommand',
-      encoded,
-    ],
+    ['-NoProfile', '-NonInteractive', '-EncodedCommand', encoded],
     {
       encoding: 'utf8',
       timeout: POWERSHELL_TIMEOUT_MS,
@@ -1180,11 +1177,15 @@ Original error: ${lastRawMessage}`,
    * DeviceName and captures in virtual-desktop coordinates, so secondary
    * displays — including those at negative offsets — are supported.
    *
-   * Note: the script makes the process system-DPI-aware (SetProcessDPIAware)
-   * so captures return physical pixels. On mixed-DPI multi-monitor setups a
-   * non-primary monitor may still be off by its per-monitor scale factor;
-   * system DPI awareness covers the common single-scale and uniform-scale
-   * cases that #2150 reports.
+   * Note: the process is left at its default (DPI-unaware) state on purpose.
+   * Making it DPI-aware would require a runtime `Add-Type` C# compile (csc) —
+   * the exact .NET-compiler dependency this PR removes by dropping
+   * screenshot-desktop's polyglot .bat — so it is intentionally avoided here.
+   * As a result, captures on a scaled display come back at logical (scaled)
+   * resolution. That is sufficient for the #2150 fix (the health check only
+   * needs a successful capture). Per-monitor DPI / coordinate accuracy is a
+   * separate Windows concern to be addressed in a follow-up with real-device
+   * verification.
    */
   private screenshotViaPowershell(): string {
     const deviceName = this.displayId ? String(this.displayId) : '';
@@ -1200,12 +1201,6 @@ if (-not $screen) { throw "Requested display not found: $dn" }`
     const script = `
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Windows.Forms, System.Drawing
-Add-Type @"
-using System;
-using System.Runtime.InteropServices;
-public class NutDpi { [DllImport("user32.dll")] public static extern bool SetProcessDPIAware(); }
-"@
-[NutDpi]::SetProcessDPIAware() | Out-Null
 ${selectScreen}
 $b = $screen.Bounds
 $bmp = New-Object System.Drawing.Bitmap($b.Width, $b.Height)

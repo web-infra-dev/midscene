@@ -41,12 +41,23 @@ describe('Windows screenshot via PowerShell (issue #2150)', () => {
     expect(execFileSync.mock.calls[0][0]).toBe('powershell.exe');
     expect(base64).toBe(`data:image/png;base64,${FAKE_PNG_BASE64}`);
 
+    // ExecutionPolicy only gates .ps1 files, not -EncodedCommand input, so it
+    // must not be passed.
+    const args = execFileSync.mock.calls[0][1] as string[];
+    expect(args).not.toContain('-ExecutionPolicy');
+    expect(args).not.toContain('Bypass');
+
     // Without a displayId the script falls back to the primary screen and
     // never does a lookup that could fail.
     const script = decodeEncodedCommand(execFileSync.mock.calls[0]);
     expect(script).toContain('CopyFromScreen');
     expect(script).toContain('PrimaryScreen');
     expect(script).not.toContain('throw');
+
+    // No runtime C# compile: this PR's whole point is to drop the .NET
+    // compiler dependency, so the DPI Add-Type/csc path must not reappear.
+    expect(script).not.toContain('SetProcessDPIAware');
+    expect(script).not.toContain('DllImport');
   });
 
   it('targets the requested display by DeviceName and fails fast if missing', async () => {
