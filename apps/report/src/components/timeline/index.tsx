@@ -5,6 +5,11 @@ import type { ExecutionTask } from '@midscene/core';
 import { useTheme } from '@midscene/visualizer';
 import { useAllCurrentTasks, useExecutionDump } from '../store';
 import { buildTimelineScreenshots } from './build-timeline-screenshots';
+import {
+  DEFAULT_TIMELINE_MAX_TIME_MS,
+  createTimelineScale,
+  formatTimelineTime,
+} from './timeline-scale';
 
 interface TimelineItem {
   id: string;
@@ -65,7 +70,7 @@ const TimelineWidget = (props: {
   const { isDarkMode } = useTheme();
 
   const allScreenshots = props.screenshots || [];
-  let maxTime = 500;
+  let maxTime = DEFAULT_TIMELINE_MAX_TIME_MS;
   if (allScreenshots.length >= 2) {
     maxTime = Math.max(
       allScreenshots[allScreenshots.length - 1].timeOffset,
@@ -125,30 +130,12 @@ const TimelineWidget = (props: {
     const { clientWidth } = domRef.current;
     const canvasWidth = clientWidth * sizeRatio;
     const canvasHeight = BASE_HEIGHT * sizeRatio;
-
-    // Grid calculations
-    let singleGridWidth = 100 * sizeRatio;
-    let gridCount = Math.floor(canvasWidth / singleGridWidth);
-    const stepCandidate = [
-      50, 100, 200, 300, 500, 1000, 2000, 3000, 5000, 6000, 8000, 9000, 10000,
-      20000, 30000, 40000, 60000, 90000, 12000, 300000,
-    ];
-    let timeStep = stepCandidate[0];
-    for (let i = stepCandidate.length - 1; i >= 0; i--) {
-      if (gridCount * stepCandidate[i] >= maxTime) {
-        timeStep = stepCandidate[i];
-      }
-    }
-    const gridRatio = maxTime / (gridCount * timeStep);
-    if (gridRatio <= 0.8) {
-      singleGridWidth = Math.floor(singleGridWidth * (1 / gridRatio) * 0.9);
-      gridCount = Math.floor(canvasWidth / singleGridWidth);
-    }
-
-    const leftForTimeOffset = (t: number) =>
-      Math.floor((singleGridWidth * t) / timeStep);
-    const timeOffsetForLeft = (l: number) =>
-      Math.floor((l * timeStep) / singleGridWidth);
+    const { timeStep, visibleMaxTime, leftForTimeOffset, timeOffsetForLeft } =
+      createTimelineScale({
+        canvasWidth,
+        maxTime,
+        sizeRatio,
+      });
 
     // Create canvas
     const canvas = document.createElement('canvas');
@@ -161,11 +148,6 @@ const TimelineWidget = (props: {
     const screenshotTop = timeTitleBottom + commonPadding * 1.5;
     const screenshotMaxHeight =
       canvasHeight - screenshotTop - commonPadding * 1.5;
-
-    const formatTime = (num: number) => {
-      const s = num / 1000;
-      return s % 1 === 0 ? `${s}s` : `${s.toFixed(1)}s`;
-    };
 
     // Viewport-aware lazy loading: downsample by pixel position, then load rest
     const { imgCache } = stateRef.current;
@@ -266,12 +248,16 @@ const TimelineWidget = (props: {
 
       // Grid lines + time labels
       ctx.font = `${timeContentFontSize}px sans-serif`;
-      for (let i = 1; i <= gridCount; i++) {
-        const x = leftForTimeOffset(i * timeStep);
+      for (
+        let tickMs = timeStep;
+        tickMs <= visibleMaxTime;
+        tickMs += timeStep
+      ) {
+        const x = leftForTimeOffset(tickMs);
         ctx.fillStyle = hexToCSS(gridLineColor);
         ctx.fillRect(x, 0, sizeRatio, canvasHeight);
 
-        const label = formatTime(i * timeStep);
+        const label = formatTimelineTime(tickMs);
         const tw = ctx.measureText(label).width;
         ctx.fillStyle = hexToCSS(gridTextColor);
         ctx.fillText(
@@ -354,7 +340,7 @@ const TimelineWidget = (props: {
         }
 
         // Time label at cursor
-        const label = formatTime(timeOffsetForLeft(hoverX));
+        const label = formatTimelineTime(timeOffsetForLeft(hoverX));
         const tw = ctx.measureText(label).width;
         ctx.fillStyle = hexToCSS(titleBg);
         ctx.fillRect(hoverX + 5, timeTextTop, tw + 10, timeContentFontSize + 4);
