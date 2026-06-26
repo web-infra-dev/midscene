@@ -530,7 +530,7 @@ export async function AiExtractElementInfo<T>(options: {
     if (screenshotSequence && screenshotSequence.length > 1) {
       userContent.push({
         type: 'text',
-        text: `The following ${screenshotSequence.length} images are consecutive screenshots captured over a short time window, ordered from earliest to latest. They may reveal transient UI (such as toasts, carousel banners, or auto-hiding controls) that is visible in only some frames. Consider all of them when answering; the last image is the most recent state. Unless <DATA_DEMAND> explicitly asks for comparison or matching against reference images, base your answer on these screenshots and their contents.`,
+        text: `The following ${screenshotSequence.length} images are consecutive screenshots captured over a short time window (a few seconds), ordered from earliest to latest. Treat them together as a SINGLE observation of that time window, not as separate states to judge independently. Transient UI such as toasts, banners, flashes, or auto-hiding controls may appear in only some frames and already be gone by the last frame. When the statement or question is about whether something appears, pops up, is shown, or happens (an event), answer based on whether it holds in ANY of the frames — treat it as TRUE even if it is no longer visible in the last frame; do NOT require it to remain visible in the final frame. Only restrict your answer to the last (most recent) frame when the statement is explicitly about the current or final state. Unless <DATA_DEMAND> explicitly asks for comparison or matching against reference images, base your answer on these screenshots and their contents.`,
       });
 
       screenshotSequence.forEach((frame, index) => {
