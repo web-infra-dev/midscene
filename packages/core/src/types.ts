@@ -728,6 +728,13 @@ export type ExecutionTaskPlanningLocate =
   ExecutionTask<ExecutionTaskPlanningLocateApply>;
 
 /*
+How a report file stores screenshots:
+- `inline`: base64 image script tags embedded in the single HTML file
+- `directory`: external PNG files under a sibling `screenshots/` dir
+*/
+export type ScreenshotMode = 'inline' | 'directory';
+
+/*
 Report metadata - extracted from ReportActionDump for per-execution writes
 */
 export interface ReportMeta {

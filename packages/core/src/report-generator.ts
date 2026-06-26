@@ -20,6 +20,7 @@ import {
 } from '@midscene/shared/env';
 import { ifInBrowser, logMsg, uuid } from '@midscene/shared/utils';
 import {
+  DATA_SCREENSHOT_MODE_ATTR,
   generateDumpScriptTag,
   generateImageScriptTag,
   getBaseUrlFixScript,
@@ -30,6 +31,7 @@ import {
   ReportActionDump,
   type ReportAttributes,
   type ReportMeta,
+  type ScreenshotMode,
 } from './types';
 import { getReportTpl } from './utils';
 
@@ -86,7 +88,7 @@ export function assertReportGenerationOptions(opts: {
 
 export class ReportGenerator implements IReportGenerator {
   private reportPath: string;
-  private screenshotMode: 'inline' | 'directory';
+  private screenshotMode: ScreenshotMode;
   private shouldPersistExecutionDump: boolean;
   private autoPrint: boolean;
   private firstWriteDone = false;
@@ -111,7 +113,7 @@ export class ReportGenerator implements IReportGenerator {
 
   constructor(options: {
     reportPath: string;
-    screenshotMode: 'inline' | 'directory';
+    screenshotMode: ScreenshotMode;
     persistExecutionDump?: boolean;
     autoPrint?: boolean;
     reuseExistingReport?: boolean;
@@ -287,6 +289,9 @@ export class ReportGenerator implements IReportGenerator {
   private getDumpScriptAttributes(): Record<string, string> {
     return {
       'data-group-id': this.reportStreamId,
+      // Self-describe how this report file stores screenshots so consumers
+      // (merge/delete) never have to guess the mode from the filesystem.
+      [DATA_SCREENSHOT_MODE_ATTR]: this.screenshotMode,
       ...this.reportAttributes,
     };
   }
