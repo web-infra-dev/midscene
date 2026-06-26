@@ -1,7 +1,7 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
 exports[`yaml utils > basic build && load 1`] = `
-"target:
+"page:
   url: https://bing.com
   waitForNetworkIdle:
     timeout: 1000
@@ -15,7 +15,7 @@ tasks:
 
 exports[`yaml utils > basic build && load 2`] = `
 {
-  "target": {
+  "page": {
     "url": "https://bing.com",
     "waitForNetworkIdle": {
       "continueOnNetworkIdleError": true,

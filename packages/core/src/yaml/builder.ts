@@ -10,7 +10,7 @@ export function buildYaml(
   tasks: MidsceneYamlTask[],
 ) {
   const result: MidsceneYamlScript = {
-    target: env,
+    page: env,
     tasks,
   };
 
