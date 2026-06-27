@@ -162,6 +162,7 @@ describe('Android CLI integration', () => {
     });
     expect(mockAgent.aiAction).toHaveBeenCalledWith('open settings', {
       deepThink: false,
+      screenshotShrinkFactor: 2,
     });
   });
 

@@ -109,6 +109,12 @@ export type AiActOptions = {
   deepLocate?: boolean;
   abortSignal?: AbortSignal;
   context?: string;
+  /**
+   * Override the Agent-level screenshot shrink factor for this aiAct call.
+   * Useful for CLI/MCP act invocations that need smaller planning screenshots
+   * without rebuilding the Agent instance.
+   */
+  screenshotShrinkFactor?: number;
 };
 
 type AiActInternalOptions = AiActOptions & {
@@ -1007,7 +1013,17 @@ export class Agent<
       return actionOutput?.output;
     };
 
-    return await runAiAct();
+    if (opt?.screenshotShrinkFactor === undefined) {
+      return await runAiAct();
+    }
+
+    const previousScreenshotShrinkFactor = this.opts.screenshotShrinkFactor;
+    this.opts.screenshotShrinkFactor = opt.screenshotShrinkFactor;
+    try {
+      return await runAiAct();
+    } finally {
+      this.opts.screenshotShrinkFactor = previousScreenshotShrinkFactor;
+    }
   }
 
   async runMarkdown(
