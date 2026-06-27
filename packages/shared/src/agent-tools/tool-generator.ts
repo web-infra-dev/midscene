@@ -10,7 +10,6 @@ import {
   isMidsceneLocatorField,
   unwrapZodField,
 } from '../zod-schema-utils';
-import { extractAgentBehaviorInitArgs } from './agent-behavior-init-args';
 import { getErrorMessage } from './error-formatter';
 import type { ToolDefaults } from './tool-defaults';
 import type {
@@ -535,38 +534,6 @@ async function captureFailureResult(
   }
 }
 
-function extractPerCallAgentBehaviorOptions(
-  args: Record<string, unknown>,
-): Record<string, unknown> | undefined {
-  const directOptions = extractAgentBehaviorInitArgs(args);
-  if (directOptions?.screenshotShrinkFactor !== undefined) {
-    return { screenshotShrinkFactor: directOptions.screenshotShrinkFactor };
-  }
-
-  const dottedScreenshotShrinkFactor = Object.entries(args).find(
-    ([key, value]) =>
-      key.endsWith('.screenshotShrinkFactor') && typeof value === 'number',
-  )?.[1];
-  if (typeof dottedScreenshotShrinkFactor === 'number') {
-    return { screenshotShrinkFactor: dottedScreenshotShrinkFactor };
-  }
-
-  for (const value of Object.values(args)) {
-    if (!value || typeof value !== 'object' || Array.isArray(value)) {
-      continue;
-    }
-
-    const nestedOptions = extractAgentBehaviorInitArgs(
-      value as Record<string, unknown>,
-    );
-    if (nestedOptions?.screenshotShrinkFactor !== undefined) {
-      return { screenshotShrinkFactor: nestedOptions.screenshotShrinkFactor };
-    }
-  }
-
-  return undefined;
-}
-
 function mergeToolCliMetadata(
   base?: ToolCliMetadata,
   extra?: ToolCliMetadata,
@@ -777,10 +744,6 @@ export function generateCommonTools(
             if (args.deepThink !== undefined) {
               actOptions.deepThink = args.deepThink;
             }
-            Object.assign(
-              actOptions,
-              extractPerCallAgentBehaviorOptions(args) ?? {},
-            );
             const result = await agent.aiAction(prompt, actOptions);
             return await captureScreenshotResult(agent, 'act', result);
           } finally {

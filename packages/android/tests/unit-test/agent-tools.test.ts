@@ -209,6 +209,42 @@ describe('AndroidMidsceneTools', () => {
     expect(mockAgent.destroy).not.toHaveBeenCalled();
   });
 
+  it('rebuilds before act when screenshot shrink factor changes', async () => {
+    const firstAgent = createMockAgent();
+    const secondAgent = createMockAgent();
+    vi.mocked(agentFromAdbDevice)
+      .mockResolvedValueOnce(firstAgent as any)
+      .mockResolvedValueOnce(secondAgent as any);
+
+    const tools = new AndroidMidsceneTools();
+    await tools.initTools();
+
+    const takeScreenshotTool = tools
+      .getToolDefinitions()
+      .find((tool) => tool.name === 'take_screenshot');
+    const actTool = tools
+      .getToolDefinitions()
+      .find((tool) => tool.name === 'act');
+
+    await takeScreenshotTool?.handler({
+      android: { deviceId: 'device-A' },
+    });
+    await actTool?.handler({
+      prompt: 'open settings',
+      android: { deviceId: 'device-A', screenshotShrinkFactor: 2 },
+    });
+
+    expect(agentFromAdbDevice).toHaveBeenCalledTimes(2);
+    expect(firstAgent.destroy).toHaveBeenCalledTimes(1);
+    expect(agentFromAdbDevice).toHaveBeenLastCalledWith('device-A', {
+      autoDismissKeyboard: false,
+      screenshotShrinkFactor: 2,
+    });
+    expect(secondAgent.aiAction).toHaveBeenCalledWith('open settings', {
+      deepThink: false,
+    });
+  });
+
   it('rebuilds the Android agent when init args change', async () => {
     const firstAgent = createMockAgent();
     const secondAgent = createMockAgent();
