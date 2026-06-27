@@ -2790,8 +2790,9 @@ class PlaygroundServer {
       }
 
       try {
+        const inlineScreenshots = screenshotIncluded !== false;
         const dumpString = agent.dumpDataString({
-          inlineScreenshots: true,
+          inlineScreenshots,
         });
         if (dumpString) {
           const groupedDump = ReportActionDump.fromSerializedString(dumpString);
@@ -2800,7 +2801,7 @@ class PlaygroundServer {
           response.dump = null;
         }
         response.reportHTML =
-          agent.reportHTMLString({ inlineScreenshots: true }) || null;
+          agent.reportHTMLString({ inlineScreenshots }) || null;
 
         agent.writeOutActionDumps();
         agent.resetDump();
