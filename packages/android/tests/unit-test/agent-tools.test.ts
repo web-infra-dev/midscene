@@ -209,12 +209,9 @@ describe('AndroidMidsceneTools', () => {
     expect(mockAgent.destroy).not.toHaveBeenCalled();
   });
 
-  it('rebuilds before act when screenshot shrink factor changes', async () => {
-    const firstAgent = createMockAgent();
-    const secondAgent = createMockAgent();
-    vi.mocked(agentFromAdbDevice)
-      .mockResolvedValueOnce(firstAgent as any)
-      .mockResolvedValueOnce(secondAgent as any);
+  it('throws before act when screenshot shrink factor conflicts with the connected agent', async () => {
+    const mockAgent = createMockAgent();
+    vi.mocked(agentFromAdbDevice).mockResolvedValue(mockAgent as any);
 
     const tools = new AndroidMidsceneTools();
     await tools.initTools();
@@ -229,28 +226,29 @@ describe('AndroidMidsceneTools', () => {
     await takeScreenshotTool?.handler({
       android: { deviceId: 'device-A' },
     });
-    await actTool?.handler({
+
+    const result = await actTool?.handler({
       prompt: 'open settings',
       android: { deviceId: 'device-A', screenshotShrinkFactor: 2 },
     });
 
-    expect(agentFromAdbDevice).toHaveBeenCalledTimes(2);
-    expect(firstAgent.destroy).toHaveBeenCalledTimes(1);
-    expect(agentFromAdbDevice).toHaveBeenLastCalledWith('device-A', {
-      autoDismissKeyboard: false,
-      screenshotShrinkFactor: 2,
-    });
-    expect(secondAgent.aiAction).toHaveBeenCalledWith('open settings', {
-      deepThink: false,
-    });
+    expect(result?.isError).toBe(true);
+    expect(result?.content[0]).toEqual(
+      expect.objectContaining({
+        text: expect.stringContaining(
+          'Agent is already connected with different initialization options',
+        ),
+      }),
+    );
+
+    expect(agentFromAdbDevice).toHaveBeenCalledTimes(1);
+    expect(mockAgent.destroy).not.toHaveBeenCalled();
+    expect(mockAgent.aiAction).not.toHaveBeenCalled();
   });
 
-  it('rebuilds the Android agent when init args change', async () => {
-    const firstAgent = createMockAgent();
-    const secondAgent = createMockAgent();
-    vi.mocked(agentFromAdbDevice)
-      .mockResolvedValueOnce(firstAgent as any)
-      .mockResolvedValueOnce(secondAgent as any);
+  it('throws when Android init args change after connection', async () => {
+    const mockAgent = createMockAgent();
+    vi.mocked(agentFromAdbDevice).mockResolvedValue(mockAgent as any);
 
     const tools = new AndroidMidsceneTools();
     await tools.initTools();
@@ -262,24 +260,26 @@ describe('AndroidMidsceneTools', () => {
     await takeScreenshotTool?.handler({
       android: { deviceId: 'device-A', waitAfterAction: 650 },
     });
-    await takeScreenshotTool?.handler({
+    const result = await takeScreenshotTool?.handler({
       android: { deviceId: 'device-A', waitAfterAction: 900 },
     });
 
-    expect(agentFromAdbDevice).toHaveBeenCalledTimes(2);
-    expect(firstAgent.destroy).toHaveBeenCalledTimes(1);
-    expect(agentFromAdbDevice).toHaveBeenLastCalledWith('device-A', {
-      autoDismissKeyboard: false,
-      waitAfterAction: 900,
-    });
+    expect(result?.isError).toBe(true);
+    expect(result?.content[0]).toEqual(
+      expect.objectContaining({
+        text: expect.stringContaining(
+          'Agent is already connected with different initialization options',
+        ),
+      }),
+    );
+
+    expect(agentFromAdbDevice).toHaveBeenCalledTimes(1);
+    expect(mockAgent.destroy).not.toHaveBeenCalled();
   });
 
-  it('rebuilds the Android agent when init args are omitted after being set', async () => {
-    const firstAgent = createMockAgent();
-    const secondAgent = createMockAgent();
-    vi.mocked(agentFromAdbDevice)
-      .mockResolvedValueOnce(firstAgent as any)
-      .mockResolvedValueOnce(secondAgent as any);
+  it('reuses the Android agent when init args are omitted after being set', async () => {
+    const mockAgent = createMockAgent();
+    vi.mocked(agentFromAdbDevice).mockResolvedValue(mockAgent as any);
 
     const tools = new AndroidMidsceneTools();
     await tools.initTools();
@@ -293,10 +293,7 @@ describe('AndroidMidsceneTools', () => {
     });
     await takeScreenshotTool?.handler({});
 
-    expect(agentFromAdbDevice).toHaveBeenCalledTimes(2);
-    expect(firstAgent.destroy).toHaveBeenCalledTimes(1);
-    expect(agentFromAdbDevice).toHaveBeenLastCalledWith(undefined, {
-      autoDismissKeyboard: false,
-    });
+    expect(agentFromAdbDevice).toHaveBeenCalledTimes(1);
+    expect(mockAgent.destroy).not.toHaveBeenCalled();
   });
 });

@@ -156,12 +156,9 @@ describe('HarmonyMidsceneTools', () => {
     expect(mockAgent.destroy).not.toHaveBeenCalled();
   });
 
-  it('rebuilds the Harmony agent when init args change', async () => {
-    const firstAgent = createMockAgent();
-    const secondAgent = createMockAgent();
-    vi.mocked(agentFromHdcDevice)
-      .mockResolvedValueOnce(firstAgent as any)
-      .mockResolvedValueOnce(secondAgent as any);
+  it('throws when Harmony init args change after connection', async () => {
+    const mockAgent = createMockAgent();
+    vi.mocked(agentFromHdcDevice).mockResolvedValue(mockAgent as any);
 
     const tools = new HarmonyMidsceneTools();
     await tools.initTools();
@@ -173,24 +170,26 @@ describe('HarmonyMidsceneTools', () => {
     await takeScreenshotTool?.handler({
       harmony: { deviceId: 'device-A', waitAfterAction: 650 },
     });
-    await takeScreenshotTool?.handler({
+    const result = await takeScreenshotTool?.handler({
       harmony: { deviceId: 'device-B', waitAfterAction: 650 },
     });
 
-    expect(agentFromHdcDevice).toHaveBeenCalledTimes(2);
-    expect(firstAgent.destroy).toHaveBeenCalledTimes(1);
-    expect(agentFromHdcDevice).toHaveBeenLastCalledWith('device-B', {
-      autoDismissKeyboard: false,
-      waitAfterAction: 650,
-    });
+    expect(result?.isError).toBe(true);
+    expect(result?.content[0]).toEqual(
+      expect.objectContaining({
+        text: expect.stringContaining(
+          'Agent is already connected with different initialization options',
+        ),
+      }),
+    );
+
+    expect(agentFromHdcDevice).toHaveBeenCalledTimes(1);
+    expect(mockAgent.destroy).not.toHaveBeenCalled();
   });
 
-  it('rebuilds the Harmony agent when init args are omitted after being set', async () => {
-    const firstAgent = createMockAgent();
-    const secondAgent = createMockAgent();
-    vi.mocked(agentFromHdcDevice)
-      .mockResolvedValueOnce(firstAgent as any)
-      .mockResolvedValueOnce(secondAgent as any);
+  it('reuses the Harmony agent when init args are omitted after being set', async () => {
+    const mockAgent = createMockAgent();
+    vi.mocked(agentFromHdcDevice).mockResolvedValue(mockAgent as any);
 
     const tools = new HarmonyMidsceneTools();
     await tools.initTools();
@@ -204,10 +203,7 @@ describe('HarmonyMidsceneTools', () => {
     });
     await takeScreenshotTool?.handler({});
 
-    expect(agentFromHdcDevice).toHaveBeenCalledTimes(2);
-    expect(firstAgent.destroy).toHaveBeenCalledTimes(1);
-    expect(agentFromHdcDevice).toHaveBeenLastCalledWith(undefined, {
-      autoDismissKeyboard: false,
-    });
+    expect(agentFromHdcDevice).toHaveBeenCalledTimes(1);
+    expect(mockAgent.destroy).not.toHaveBeenCalled();
   });
 });

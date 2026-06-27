@@ -298,12 +298,9 @@ describe('ComputerMidsceneTools', () => {
     expect(mockAgent.destroy).not.toHaveBeenCalled();
   });
 
-  it('rebuilds the Computer agent when init args change', async () => {
-    const firstAgent = createMockAgent();
-    const secondAgent = createMockAgent();
-    vi.mocked(agentFromComputer)
-      .mockResolvedValueOnce(firstAgent as any)
-      .mockResolvedValueOnce(secondAgent as any);
+  it('throws when Computer init args change after connection', async () => {
+    const mockAgent = createMockAgent();
+    vi.mocked(agentFromComputer).mockResolvedValue(mockAgent as any);
 
     const tools = new ComputerMidsceneTools();
     await tools.initTools();
@@ -315,24 +312,26 @@ describe('ComputerMidsceneTools', () => {
     await takeScreenshotTool?.handler({
       computer: { 'display-id': 'display-2', waitAfterAction: 650 },
     });
-    await takeScreenshotTool?.handler({
+    const result = await takeScreenshotTool?.handler({
       computer: { 'display-id': 'display-2', waitAfterAction: 900 },
     });
 
-    expect(agentFromComputer).toHaveBeenCalledTimes(2);
-    expect(firstAgent.destroy).toHaveBeenCalledTimes(1);
-    expect(agentFromComputer).toHaveBeenLastCalledWith({
-      displayId: 'display-2',
-      waitAfterAction: 900,
-    });
+    expect(result?.isError).toBe(true);
+    expect(result?.content[0]).toEqual(
+      expect.objectContaining({
+        text: expect.stringContaining(
+          'Agent is already connected with different initialization options',
+        ),
+      }),
+    );
+
+    expect(agentFromComputer).toHaveBeenCalledTimes(1);
+    expect(mockAgent.destroy).not.toHaveBeenCalled();
   });
 
-  it('rebuilds the Computer agent when init args are omitted after being set', async () => {
-    const firstAgent = createMockAgent();
-    const secondAgent = createMockAgent();
-    vi.mocked(agentFromComputer)
-      .mockResolvedValueOnce(firstAgent as any)
-      .mockResolvedValueOnce(secondAgent as any);
+  it('reuses the Computer agent when init args are omitted after being set', async () => {
+    const mockAgent = createMockAgent();
+    vi.mocked(agentFromComputer).mockResolvedValue(mockAgent as any);
 
     const tools = new ComputerMidsceneTools();
     await tools.initTools();
@@ -346,8 +345,7 @@ describe('ComputerMidsceneTools', () => {
     });
     await takeScreenshotTool?.handler({});
 
-    expect(agentFromComputer).toHaveBeenCalledTimes(2);
-    expect(firstAgent.destroy).toHaveBeenCalledTimes(1);
-    expect(agentFromComputer).toHaveBeenLastCalledWith(undefined);
+    expect(agentFromComputer).toHaveBeenCalledTimes(1);
+    expect(mockAgent.destroy).not.toHaveBeenCalled();
   });
 });

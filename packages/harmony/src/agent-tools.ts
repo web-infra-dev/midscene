@@ -4,7 +4,6 @@ import {
   agentBehaviorInitArgShape,
   extractAgentBehaviorInitArgs,
   getAgentInitArgsSignature,
-  shouldRebuildAgentForInitArgs,
 } from '@midscene/shared/agent-tools/agent-behavior-init-args';
 import {
   BaseMidsceneTools,
@@ -75,14 +74,12 @@ export class HarmonyMidsceneTools extends BaseMidsceneTools<
 
     if (
       this.agent &&
-      shouldRebuildAgentForInitArgs(this.lastInitArgsSignature, nextSignature)
+      nextSignature !== undefined &&
+      this.lastInitArgsSignature !== nextSignature
     ) {
-      try {
-        await this.agent.destroy?.();
-      } catch (error) {
-        debug('Failed to destroy agent during cleanup:', error);
-      }
-      this.agent = undefined;
+      throw new Error(
+        'Agent is already connected with different initialization options. Run the connect command again with the new options before executing this tool.',
+      );
     }
 
     if (this.agent) {

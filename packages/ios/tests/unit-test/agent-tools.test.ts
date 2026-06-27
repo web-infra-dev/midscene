@@ -153,12 +153,9 @@ describe('IOSMidsceneTools', () => {
     expect(mockAgent.destroy).not.toHaveBeenCalled();
   });
 
-  it('rebuilds the iOS agent when init args change', async () => {
-    const firstAgent = createMockAgent();
-    const secondAgent = createMockAgent();
-    vi.mocked(agentFromWebDriverAgent)
-      .mockResolvedValueOnce(firstAgent as any)
-      .mockResolvedValueOnce(secondAgent as any);
+  it('throws when iOS init args change after connection', async () => {
+    const mockAgent = createMockAgent();
+    vi.mocked(agentFromWebDriverAgent).mockResolvedValue(mockAgent as any);
 
     const tools = new IOSMidsceneTools();
     await tools.initTools();
@@ -168,18 +165,26 @@ describe('IOSMidsceneTools', () => {
       .find((tool) => tool.name === 'take_screenshot');
 
     await takeScreenshotTool?.handler({ ios: { deviceId: 'udid-A' } });
-    await takeScreenshotTool?.handler({ ios: { deviceId: 'udid-B' } });
+    const result = await takeScreenshotTool?.handler({
+      ios: { deviceId: 'udid-B' },
+    });
 
-    expect(agentFromWebDriverAgent).toHaveBeenCalledTimes(2);
-    expect(firstAgent.destroy).toHaveBeenCalledTimes(1);
+    expect(result?.isError).toBe(true);
+    expect(result?.content[0]).toEqual(
+      expect.objectContaining({
+        text: expect.stringContaining(
+          'Agent is already connected with different initialization options',
+        ),
+      }),
+    );
+
+    expect(agentFromWebDriverAgent).toHaveBeenCalledTimes(1);
+    expect(mockAgent.destroy).not.toHaveBeenCalled();
   });
 
-  it('rebuilds the iOS agent when init args are omitted after being set', async () => {
-    const firstAgent = createMockAgent();
-    const secondAgent = createMockAgent();
-    vi.mocked(agentFromWebDriverAgent)
-      .mockResolvedValueOnce(firstAgent as any)
-      .mockResolvedValueOnce(secondAgent as any);
+  it('reuses the iOS agent when init args are omitted after being set', async () => {
+    const mockAgent = createMockAgent();
+    vi.mocked(agentFromWebDriverAgent).mockResolvedValue(mockAgent as any);
 
     const tools = new IOSMidsceneTools();
     await tools.initTools();
@@ -193,26 +198,13 @@ describe('IOSMidsceneTools', () => {
     });
     await takeScreenshotTool?.handler({});
 
-    expect(agentFromWebDriverAgent).toHaveBeenCalledTimes(2);
-    expect(firstAgent.destroy).toHaveBeenCalledTimes(1);
-    const lastAgentOptions = vi
-      .mocked(agentFromWebDriverAgent)
-      .mock.calls.at(-1)?.[0];
-    expect(lastAgentOptions).toEqual(
-      expect.objectContaining({
-        autoDismissKeyboard: false,
-      }),
-    );
-    expect(lastAgentOptions).not.toHaveProperty('deviceId');
-    expect(lastAgentOptions).not.toHaveProperty('waitAfterAction');
+    expect(agentFromWebDriverAgent).toHaveBeenCalledTimes(1);
+    expect(mockAgent.destroy).not.toHaveBeenCalled();
   });
 
-  it('rebuilds the iOS agent when only the external WDA session changes', async () => {
-    const firstAgent = createMockAgent();
-    const secondAgent = createMockAgent();
-    vi.mocked(agentFromWebDriverAgent)
-      .mockResolvedValueOnce(firstAgent as any)
-      .mockResolvedValueOnce(secondAgent as any);
+  it('throws when only the external WDA session changes after connection', async () => {
+    const mockAgent = createMockAgent();
+    vi.mocked(agentFromWebDriverAgent).mockResolvedValue(mockAgent as any);
 
     const tools = new IOSMidsceneTools();
     await tools.initTools();
@@ -228,7 +220,7 @@ describe('IOSMidsceneTools', () => {
         sessionId: 'session-A',
       },
     });
-    await takeScreenshotTool?.handler({
+    const result = await takeScreenshotTool?.handler({
       ios: {
         wdaHost: '127.0.0.1',
         wdaPort: 8100,
@@ -236,15 +228,16 @@ describe('IOSMidsceneTools', () => {
       },
     });
 
-    expect(agentFromWebDriverAgent).toHaveBeenCalledTimes(2);
-    expect(firstAgent.destroy).toHaveBeenCalledTimes(1);
-    expect(agentFromWebDriverAgent).toHaveBeenLastCalledWith(
+    expect(result?.isError).toBe(true);
+    expect(result?.content[0]).toEqual(
       expect.objectContaining({
-        autoDismissKeyboard: false,
-        wdaHost: '127.0.0.1',
-        wdaPort: 8100,
-        sessionId: 'session-B',
+        text: expect.stringContaining(
+          'Agent is already connected with different initialization options',
+        ),
       }),
     );
+
+    expect(agentFromWebDriverAgent).toHaveBeenCalledTimes(1);
+    expect(mockAgent.destroy).not.toHaveBeenCalled();
   });
 });
