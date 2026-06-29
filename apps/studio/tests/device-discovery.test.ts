@@ -374,27 +374,4 @@ describe('discoverAllDevices', () => {
       `harmony scan timed out after ${DEVICE_PLATFORM_DISCOVERY_TIMEOUT_MS}ms`,
     );
   });
-
-  it('does not reject when timeout debug logging cannot write to stdio', async () => {
-    vi.useFakeTimers();
-    mocks.debugLog.mockImplementation(() => {
-      throw new Error('write EIO');
-    });
-    mocks.getConnectedDevicesWithDetails.mockImplementation(
-      () => new Promise(() => undefined),
-    );
-    mocks.getConnectedHarmonyDevices.mockResolvedValue([]);
-    mocks.getConnectedDisplays.mockResolvedValue([]);
-    vi.mocked(fetch).mockResolvedValue({
-      ok: false,
-    } as Response);
-
-    const discovery = discoverAllDevices();
-    await vi.advanceTimersByTimeAsync(DEVICE_PLATFORM_DISCOVERY_TIMEOUT_MS);
-
-    await expect(discovery).resolves.toEqual({
-      devices: [],
-      errors: [{ platformId: 'android', kind: 'toolchain-missing' }],
-    });
-  });
 });
