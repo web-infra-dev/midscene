@@ -38,7 +38,7 @@ export interface ConfigFactoryOptions {
   android?: Partial<MidsceneYamlScriptAndroidEnv>;
   ios?: Partial<MidsceneYamlScriptIOSEnv>;
   files?: string[];
-  setupFiles?: string[];
+  setup?: string;
 }
 
 export interface ParsedConfig {
@@ -52,7 +52,7 @@ export interface ParsedConfig {
   ios?: MidsceneYamlScriptIOSEnv;
   target?: MidsceneYamlScriptWebEnv;
   files: string[];
-  setupFiles: string[];
+  setup?: string;
   patterns: string[]; // Keep patterns for reference
   headed: boolean;
   keepWindow: boolean;
@@ -86,20 +86,43 @@ async function expandFilePatterns(
 }
 
 /**
- * Setup files only make sense when the batch shares one browser context: the
- * prerequisite state they establish (typically a login) is carried to the main
+ * A setup file only makes sense when the batch shares one browser context: the
+ * prerequisite state it establishes (typically a login) is carried to the main
  * files through the shared page. Without sharing, that state cannot reach the
  * main files, so reject the combination loudly instead of silently dropping it.
  */
-function assertSetupFilesUsage(
-  setupFiles: string[],
+function assertSetupUsage(
+  setup: string | undefined,
   shareBrowserContext: boolean,
 ): void {
-  if (setupFiles.length > 0 && !shareBrowserContext) {
+  if (setup && !shareBrowserContext) {
     throw new Error(
-      'setupFiles requires shareBrowserContext: true, otherwise the setup state cannot be shared with the main files',
+      'setup requires shareBrowserContext: true, otherwise the setup state cannot be shared with the main files',
     );
   }
+}
+
+/**
+ * Resolve the optional single setup file. It supports glob/relative paths like
+ * the main files, but must reference exactly one file.
+ */
+async function resolveSetupFile(
+  setup: string | undefined,
+  basePath: string,
+): Promise<string | undefined> {
+  if (!setup) {
+    return undefined;
+  }
+  const matched = await expandFilePatterns([setup], basePath);
+  if (matched.length === 0) {
+    throw new Error(`No YAML file found matching "setup": ${setup}`);
+  }
+  if (matched.length > 1) {
+    throw new Error(
+      `"setup" must reference a single YAML file, but "${setup}" matched ${matched.length} files`,
+    );
+  }
+  return matched[0];
 }
 
 export async function parseConfigYaml(
@@ -127,14 +150,8 @@ export async function parseConfigYaml(
     throw new Error('No YAML files found matching the patterns in "files"');
   }
 
-  // Expand the optional serial setup files (run before the main files)
-  const setupPatterns = configYaml.setupFiles ?? [];
-  const setupFiles = await expandFilePatterns(setupPatterns, basePath);
-  if (setupPatterns.length > 0 && setupFiles.length === 0) {
-    throw new Error(
-      'No YAML files found matching the patterns in "setupFiles"',
-    );
-  }
+  // Resolve the optional setup file (runs before the main files)
+  const setup = await resolveSetupFile(configYaml.setup, basePath);
 
   // Generate default summary filename
   const configFileName = basename(configYamlPath, extname(configYamlPath));
@@ -155,7 +172,7 @@ export async function parseConfigYaml(
     ios: configYaml.ios,
     patterns: configYaml.files,
     files,
-    setupFiles,
+    setup,
     headed: configYaml.headed ?? defaultConfig.headed,
     keepWindow: configYaml.keepWindow ?? defaultConfig.keepWindow,
     dotenvOverride: configYaml.dotenvOverride ?? defaultConfig.dotenvOverride,
@@ -198,20 +215,20 @@ export async function createConfig(
     files = await expandFilePatterns(options.files, basePath);
   }
 
-  // Command-line setupFiles, when provided, override the config file ones.
-  let setupFiles = parsedConfig.setupFiles;
-  if (options?.setupFiles && options.setupFiles.length > 0) {
+  // Command-line setup, when provided, overrides the config file one.
+  let setup = parsedConfig.setup;
+  if (options?.setup) {
     const basePath = dirname(resolve(configYamlPath));
-    setupFiles = await expandFilePatterns(options.setupFiles, basePath);
+    setup = await resolveSetupFile(options.setup, basePath);
   }
 
   const shareBrowserContext =
     options?.shareBrowserContext ?? parsedConfig.shareBrowserContext;
-  assertSetupFilesUsage(setupFiles, shareBrowserContext);
+  assertSetupUsage(setup, shareBrowserContext);
 
   return {
     files,
-    setupFiles,
+    setup,
     concurrent: options?.concurrent ?? parsedConfig.concurrent,
     continueOnError: options?.continueOnError ?? parsedConfig.continueOnError,
     retry: options?.retry ?? parsedConfig.retry,
@@ -230,9 +247,7 @@ export async function createFilesConfig(
   options: ConfigFactoryOptions = {},
 ): Promise<BatchRunnerConfig> {
   const files = await expandFilePatterns(patterns, cwd());
-  const setupFiles = options.setupFiles
-    ? await expandFilePatterns(options.setupFiles, cwd())
-    : [];
+  const setup = await resolveSetupFile(options.setup, cwd());
   // Generate default summary filename if not provided
   const timestamp = Date.now();
   const defaultSummary = `summary-${timestamp}.json`;
@@ -245,11 +260,11 @@ export async function createFilesConfig(
 
   const shareBrowserContext =
     options.shareBrowserContext ?? defaultConfig.shareBrowserContext;
-  assertSetupFilesUsage(setupFiles, shareBrowserContext);
+  assertSetupUsage(setup, shareBrowserContext);
 
   return {
     files,
-    setupFiles,
+    setup,
     concurrent: options.concurrent ?? defaultConfig.concurrent,
     continueOnError: options.continueOnError ?? defaultConfig.continueOnError,
     retry: options.retry ?? defaultConfig.retry,

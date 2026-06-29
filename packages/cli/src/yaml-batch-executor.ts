@@ -39,13 +39,13 @@ import { TTYWindowRenderer } from './tty-renderer';
 export interface BatchRunnerConfig {
   files: string[];
   /**
-   * Setup yaml files executed serially, in order, before the main `files`.
-   * They reuse the shared browser context, so any prerequisite state (e.g. a
-   * login) is visible to every main file. A setup failure aborts the batch and
-   * leaves the main files not executed. Only honored when
-   * `shareBrowserContext` is true; the config layer rejects other combinations.
+   * A setup yaml file executed before the main `files`. It reuses the shared
+   * browser context, so any prerequisite state (e.g. a login) is visible to
+   * every main file. A setup failure aborts the batch and leaves the main files
+   * not executed. Only honored when `shareBrowserContext` is true; the config
+   * layer rejects other combinations.
    */
-  setupFiles?: string[];
+  setup?: string;
   concurrent: number;
   continueOnError: boolean;
   /**
@@ -99,14 +99,14 @@ class YamlBatchExecutor {
     const generateSummary = options.generateSummary ?? true;
     const shouldPrintExecutionPlan = options.printExecutionPlan ?? true;
     const { keepWindow, headed } = this.config;
-    const setupFiles = this.config.setupFiles ?? [];
+    const setup = this.config.setup;
 
-    // Setup files rely on the shared page to hand prerequisite state to the
-    // main files. Enforce that invariant here too, so the executor stays
+    // The setup file relies on the shared page to hand prerequisite state to
+    // the main files. Enforce that invariant here too, so the executor stays
     // correct even if it is constructed directly, bypassing the config layer.
-    if (setupFiles.length > 0 && !this.config.shareBrowserContext) {
+    if (setup && !this.config.shareBrowserContext) {
       throw new Error(
-        'setupFiles requires shareBrowserContext: true, otherwise the setup state cannot be shared with the main files',
+        'setup requires shareBrowserContext: true, otherwise the setup state cannot be shared with the main files',
       );
     }
 
@@ -116,21 +116,20 @@ class YamlBatchExecutor {
     }
 
     // Prepare file contexts
-    const setupContextList: BatchFileContext[] = [];
+    let setupContext: BatchFileContext | undefined;
     const fileContextList: BatchFileContext[] = [];
     let browser: Browser | null = null;
     let sharedPage: Page | null = null;
 
     try {
-      // Create setup contexts (serial prerequisites) before the main files so
-      // the TTY plan lists them first and they reuse the same browser context.
-      for (const file of setupFiles) {
-        const fileConfig = await this.loadFileConfig(file);
-        const context = await this.createFileContext(file, fileConfig, {
+      // Create the setup context (prerequisite) before the main files so the
+      // TTY plan lists it first and it reuses the same browser context.
+      if (setup) {
+        const fileConfig = await this.loadFileConfig(setup);
+        setupContext = await this.createFileContext(setup, fileConfig, {
           headed,
           keepWindow,
         });
-        setupContextList.push(context);
       }
 
       // First, create all file contexts without a browser instance
@@ -143,23 +142,27 @@ class YamlBatchExecutor {
         fileContextList.push(context);
       }
 
-      // A yaml file cannot be both a setup and a main file: players are keyed
-      // by resolved path, so the same file in both lists would silently reuse
+      // A yaml file cannot be both the setup and a main file: players are keyed
+      // by resolved path, so the same file in both roles would silently reuse
       // one already-finished player. Reject the overlap explicitly instead.
-      const setupPaths = new Set(
-        setupContextList.map((ctx) => resolve(ctx.file)),
-      );
-      const conflict = fileContextList.find((ctx) =>
-        setupPaths.has(resolve(ctx.file)),
-      );
-      if (conflict) {
-        throw new Error(
-          `"${conflict.file}" appears in both setupFiles and files; a yaml file cannot be both a setup and a main file`,
+      if (setupContext) {
+        const setupPath = resolve(setupContext.file);
+        const conflict = fileContextList.find(
+          (ctx) => resolve(ctx.file) === setupPath,
         );
+        if (conflict) {
+          throw new Error(
+            `"${conflict.file}" is used as both the setup file and a main file; a yaml file cannot be both`,
+          );
+        }
       }
 
+      const allContexts = setupContext
+        ? [setupContext, ...fileContextList]
+        : fileContextList;
+
       // Now, check if any of the tasks require a web browser
-      const needsBrowser = [...setupContextList, ...fileContextList].some(
+      const needsBrowser = allContexts.some(
         (ctx) =>
           Object.keys(
             ctx.executionConfig.web || ctx.executionConfig.target || {},
@@ -208,7 +211,7 @@ class YamlBatchExecutor {
         sharedPage = await browser.newPage();
 
         // Assign the browser instance and shared page to all contexts
-        for (const context of [...setupContextList, ...fileContextList]) {
+        for (const context of allContexts) {
           context.options.browser = browser;
           context.options.page = sharedPage;
         }
@@ -216,7 +219,7 @@ class YamlBatchExecutor {
 
       // Execute files
       const { executedResults, notExecutedContexts } = await this.executeFiles(
-        setupContextList,
+        setupContext,
         fileContextList,
       );
 
@@ -280,7 +283,7 @@ class YamlBatchExecutor {
   }
 
   private async executeFiles(
-    setupContextList: BatchFileContext[],
+    setupContext: BatchFileContext | undefined,
     fileContextList: BatchFileContext[],
   ): Promise<{
     executedResults: Array<MidsceneYamlFileContext & { duration: number }>;
@@ -297,10 +300,13 @@ class YamlBatchExecutor {
       player: ScriptPlayer<MidsceneYamlScriptEnv> | null;
     }> = [];
 
-    // Pre-create all player contexts for displaying task lists. Setup files
-    // come first so the rendered plan reflects the serial-then-parallel order.
+    // Pre-create all player contexts for displaying task lists. The setup file
+    // comes first so the rendered plan reflects the setup-then-parallel order.
     const allFileContexts: MidsceneYamlFileContext[] = [];
-    for (const context of [...setupContextList, ...fileContextList]) {
+    const orderedContexts = setupContext
+      ? [setupContext, ...fileContextList]
+      : fileContextList;
+    for (const context of orderedContexts) {
       // Create a ScriptPlayer that will be used for actual execution
       const player = await createYamlPlayer(
         context.file,
@@ -387,16 +393,16 @@ class YamlBatchExecutor {
         return executedContext;
       };
 
-      // Run setup files serially, in order. A setup failure aborts the batch:
-      // remaining setup files and every main file are marked as not executed.
-      // This holds regardless of `continueOnError`, since the main files rely
-      // on the prerequisite state the setup files establish.
-      const setupFailed = await this.executeSetupFiles(
-        setupContextList,
-        executeFile,
-        executedResults,
-        notExecutedContexts,
-      );
+      // Run the setup file first, if any. A setup failure aborts the batch:
+      // every main file is marked as not executed. This holds regardless of
+      // `continueOnError`, since the main files rely on the prerequisite state
+      // the setup file establishes.
+      let setupFailed = false;
+      if (setupContext) {
+        const executedContext = await executeFile(setupContext);
+        executedResults.push(executedContext);
+        setupFailed = executedContext.player.status === 'error';
+      }
 
       if (setupFailed) {
         for (const context of fileContextList) {
@@ -428,40 +434,6 @@ class YamlBatchExecutor {
     }
 
     return { executedResults, notExecutedContexts };
-  }
-
-  /**
-   * Execute setup files one at a time, in declared order. Returns true as soon
-   * as a setup file errors, after marking the remaining setup files as not
-   * executed. The failing setup file itself is recorded as an executed (failed)
-   * result so the summary points at the prerequisite that broke.
-   */
-  private async executeSetupFiles(
-    setupContextList: BatchFileContext[],
-    executeFile: (
-      context: BatchFileContext,
-    ) => Promise<MidsceneYamlFileContext & { duration: number }>,
-    executedResults: Array<MidsceneYamlFileContext & { duration: number }>,
-    notExecutedContexts: Array<{
-      file: string;
-      player: ScriptPlayer<MidsceneYamlScriptEnv> | null;
-    }>,
-  ): Promise<boolean> {
-    let setupFailed = false;
-    for (const context of setupContextList) {
-      if (setupFailed) {
-        notExecutedContexts.push({ file: context.file, player: null });
-        continue;
-      }
-
-      const executedContext = await executeFile(context);
-      executedResults.push(executedContext);
-
-      if (executedContext.player.status === 'error') {
-        setupFailed = true;
-      }
-    }
-    return setupFailed;
   }
 
   private async executeConcurrently(

@@ -16,7 +16,7 @@ const warnRetryReport = getDebug('execution-summary', { console: true });
 
 export interface ExecutionPlanConfig {
   files: string[];
-  setupFiles?: string[];
+  setup?: string;
   concurrent: number;
   continueOnError: boolean;
   retry?: number;
@@ -286,11 +286,9 @@ export function writeExecutionSummaryFile(
 }
 
 export function printExecutionPlan(config: ExecutionPlanConfig): void {
-  if (config.setupFiles && config.setupFiles.length > 0) {
-    console.log('   Setup scripts (serial):');
-    for (const file of config.setupFiles) {
-      console.log(`     - ${file}`);
-    }
+  if (config.setup) {
+    console.log('   Setup script:');
+    console.log(`     - ${config.setup}`);
   }
   console.log('   Scripts:');
   for (const file of config.files) {

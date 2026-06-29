@@ -489,11 +489,11 @@ describe('BatchRunner', () => {
     });
   });
 
-  describe('setupFiles serial execution', () => {
+  describe('setup execution', () => {
     const setupConfig = {
       ...mockBatchConfig,
       shareBrowserContext: true,
-      setupFiles: ['login.yml'],
+      setup: 'login.yml',
       files: ['search.yml', 'report.yml'],
       concurrent: 2,
     };
@@ -515,7 +515,7 @@ describe('BatchRunner', () => {
       });
     };
 
-    test('runs setup files before the main files and executes all', async () => {
+    test('runs the setup file before the main files and executes all', async () => {
       const runOrder: string[] = [];
       trackRunOrder(runOrder, () => true);
 
@@ -533,7 +533,7 @@ describe('BatchRunner', () => {
       ]);
     });
 
-    test('aborts main files when a setup file fails', async () => {
+    test('aborts main files when the setup file fails', async () => {
       const runOrder: string[] = [];
       trackRunOrder(runOrder, (file) => file !== 'login.yml');
 
@@ -549,29 +549,29 @@ describe('BatchRunner', () => {
       ]);
     });
 
-    test('throws when setupFiles is set without shareBrowserContext', async () => {
+    test('throws when setup is set without shareBrowserContext', async () => {
       const config = {
         ...mockBatchConfig,
         shareBrowserContext: false,
-        setupFiles: ['login.yml'],
+        setup: 'login.yml',
         files: ['search.yml'],
       };
       const runner = new BatchRunner(config);
       await expect(runner.run()).rejects.toThrow(
-        'setupFiles requires shareBrowserContext: true',
+        'setup requires shareBrowserContext: true',
       );
     });
 
-    test('throws when a yaml file is both a setup and a main file', async () => {
+    test('throws when a yaml file is both the setup and a main file', async () => {
       const config = {
         ...mockBatchConfig,
         shareBrowserContext: true,
-        setupFiles: ['login.yml'],
+        setup: 'login.yml',
         files: ['login.yml', 'search.yml'],
       };
       const runner = new BatchRunner(config);
       await expect(runner.run()).rejects.toThrow(
-        'appears in both setupFiles and files',
+        'is used as both the setup file and a main file',
       );
     });
   });

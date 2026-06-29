@@ -88,7 +88,7 @@ summary: "yaml-summary.json"
         patterns: ['*.yml'],
         shareBrowserContext: false,
         files: ['file1.yml'],
-        setupFiles: [],
+        setup: undefined,
       });
     });
 
@@ -152,22 +152,21 @@ summary: "yaml-summary.json"
       );
     });
 
-    test('should expand setupFiles patterns ahead of the main files', async () => {
+    test('should resolve the setup file ahead of the main files', async () => {
       const mockYamlContent = `
-setupFiles:
-  - "login.yml"
+setup: "login.yml"
 files:
   - "*.yml"
 `;
       const mockParsedYaml = {
-        setupFiles: ['login.yml'],
+        setup: 'login.yml',
         files: ['*.yml'],
       };
 
       vi.mocked(readFileSync).mockReturnValue(mockYamlContent);
       vi.mocked(interpolateEnvVars).mockReturnValue(mockYamlContent);
       vi.mocked(yamlLoad).mockReturnValue(mockParsedYaml);
-      // First call expands `files`, second call expands `setupFiles`
+      // First call expands `files`, second call resolves `setup`
       vi.mocked(matchYamlFiles)
         .mockResolvedValueOnce(['search.yml'])
         .mockResolvedValueOnce(['login.yml']);
@@ -175,10 +174,10 @@ files:
       const result = await parseConfigYaml(mockIndexPath);
 
       expect(result.files).toEqual(['search.yml']);
-      expect(result.setupFiles).toEqual(['login.yml']);
+      expect(result.setup).toBe('login.yml');
     });
 
-    test('should default setupFiles to an empty array when absent', async () => {
+    test('should leave setup undefined when absent', async () => {
       const mockYamlContent = `files: ["*.yml"]`;
       const mockParsedYaml = { files: ['*.yml'] };
 
@@ -189,18 +188,17 @@ files:
 
       const result = await parseConfigYaml(mockIndexPath);
 
-      expect(result.setupFiles).toEqual([]);
+      expect(result.setup).toBeUndefined();
     });
 
-    test('should throw when setupFiles patterns match nothing', async () => {
+    test('should throw when the setup pattern matches nothing', async () => {
       const mockYamlContent = `
-setupFiles:
-  - "login.yml"
+setup: "login.yml"
 files:
   - "*.yml"
 `;
       const mockParsedYaml = {
-        setupFiles: ['login.yml'],
+        setup: 'login.yml',
         files: ['*.yml'],
       };
 
@@ -209,10 +207,33 @@ files:
       vi.mocked(yamlLoad).mockReturnValue(mockParsedYaml);
       vi.mocked(matchYamlFiles)
         .mockResolvedValueOnce(['search.yml']) // files
-        .mockResolvedValueOnce([]); // setupFiles match nothing
+        .mockResolvedValueOnce([]); // setup matches nothing
 
       await expect(parseConfigYaml(mockIndexPath)).rejects.toThrow(
-        'No YAML files found matching the patterns in "setupFiles"',
+        'No YAML file found matching "setup"',
+      );
+    });
+
+    test('should throw when the setup pattern matches multiple files', async () => {
+      const mockYamlContent = `
+setup: "setup-*.yml"
+files:
+  - "*.yml"
+`;
+      const mockParsedYaml = {
+        setup: 'setup-*.yml',
+        files: ['*.yml'],
+      };
+
+      vi.mocked(readFileSync).mockReturnValue(mockYamlContent);
+      vi.mocked(interpolateEnvVars).mockReturnValue(mockYamlContent);
+      vi.mocked(yamlLoad).mockReturnValue(mockParsedYaml);
+      vi.mocked(matchYamlFiles)
+        .mockResolvedValueOnce(['search.yml']) // files
+        .mockResolvedValueOnce(['setup-a.yml', 'setup-b.yml']); // setup matches >1
+
+      await expect(parseConfigYaml(mockIndexPath)).rejects.toThrow(
+        'must reference a single YAML file',
       );
     });
 
@@ -337,16 +358,15 @@ concurrent: 2
       expect(result.globalConfig).toEqual(expectedGlobalConfig);
     });
 
-    test('should keep setupFiles when shareBrowserContext is enabled', async () => {
+    test('should keep setup when shareBrowserContext is enabled', async () => {
       const mockYamlContent = `
-setupFiles:
-  - login.yml
+setup: login.yml
 files:
   - search.yml
 shareBrowserContext: true
 `;
       const mockParsedYaml = {
-        setupFiles: ['login.yml'],
+        setup: 'login.yml',
         files: ['search.yml'],
         shareBrowserContext: true,
       };
@@ -354,34 +374,33 @@ shareBrowserContext: true
       vi.mocked(yamlLoad).mockReturnValue(mockParsedYaml);
       vi.mocked(matchYamlFiles)
         .mockResolvedValueOnce(['search.yml']) // files
-        .mockResolvedValueOnce(['login.yml']); // setupFiles
+        .mockResolvedValueOnce(['login.yml']); // setup
 
       const result = await createConfig('/test/index.yml');
 
       expect(result.shareBrowserContext).toBe(true);
-      expect(result.setupFiles).toEqual(['login.yml']);
+      expect(result.setup).toBe('login.yml');
       expect(result.files).toEqual(['search.yml']);
     });
 
-    test('should reject setupFiles without shareBrowserContext', async () => {
+    test('should reject setup without shareBrowserContext', async () => {
       const mockYamlContent = `
-setupFiles:
-  - login.yml
+setup: login.yml
 files:
   - search.yml
 `;
       const mockParsedYaml = {
-        setupFiles: ['login.yml'],
+        setup: 'login.yml',
         files: ['search.yml'],
       };
       vi.mocked(readFileSync).mockReturnValue(mockYamlContent);
       vi.mocked(yamlLoad).mockReturnValue(mockParsedYaml);
       vi.mocked(matchYamlFiles)
         .mockResolvedValueOnce(['search.yml']) // files
-        .mockResolvedValueOnce(['login.yml']); // setupFiles
+        .mockResolvedValueOnce(['login.yml']); // setup
 
       await expect(createConfig('/test/index.yml')).rejects.toThrow(
-        'setupFiles requires shareBrowserContext: true',
+        'setup requires shareBrowserContext: true',
       );
     });
 
@@ -476,7 +495,7 @@ concurrent: 2
       // This is expected behavior - patterns are evaluated independently
       expect(result).toEqual({
         files: ['test1.yml', 'test1.yml', 'testA.yml', 'testB.yml'],
-        setupFiles: [],
+        setup: undefined,
         concurrent: 1,
         continueOnError: false,
         retry: 0,
@@ -500,30 +519,30 @@ concurrent: 2
       });
     });
 
-    test('should expand setupFiles when shareBrowserContext is enabled', async () => {
+    test('should resolve setup when shareBrowserContext is enabled', async () => {
       const patterns = ['search.yml'];
       vi.mocked(matchYamlFiles)
         .mockResolvedValueOnce(['search.yml']) // files
-        .mockResolvedValueOnce(['login.yml']); // setupFiles
+        .mockResolvedValueOnce(['login.yml']); // setup
 
       const result = await createFilesConfig(patterns, {
         shareBrowserContext: true,
-        setupFiles: ['login.yml'],
+        setup: 'login.yml',
       });
 
-      expect(result.setupFiles).toEqual(['login.yml']);
+      expect(result.setup).toBe('login.yml');
       expect(result.files).toEqual(['search.yml']);
     });
 
-    test('should reject setupFiles without shareBrowserContext', async () => {
+    test('should reject setup without shareBrowserContext', async () => {
       const patterns = ['search.yml'];
       vi.mocked(matchYamlFiles)
         .mockResolvedValueOnce(['search.yml']) // files
-        .mockResolvedValueOnce(['login.yml']); // setupFiles
+        .mockResolvedValueOnce(['login.yml']); // setup
 
       await expect(
-        createFilesConfig(patterns, { setupFiles: ['login.yml'] }),
-      ).rejects.toThrow('setupFiles requires shareBrowserContext: true');
+        createFilesConfig(patterns, { setup: 'login.yml' }),
+      ).rejects.toThrow('setup requires shareBrowserContext: true');
     });
 
     test('should forward the retry option through createFilesConfig', async () => {
@@ -556,7 +575,7 @@ concurrent: 2
 
       expect(result).toEqual({
         files: expandedFiles,
-        setupFiles: [],
+        setup: undefined,
         concurrent: 3,
         continueOnError: true,
         retry: 0,
@@ -610,7 +629,7 @@ concurrent: 2
 
       expect(result).toEqual({
         files: patterns,
-        setupFiles: [],
+        setup: undefined,
         concurrent: 4,
         continueOnError: true,
         retry: 0,

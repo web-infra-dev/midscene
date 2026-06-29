@@ -341,13 +341,13 @@ export interface MidsceneYamlConfig {
   android?: MidsceneYamlScriptAndroidEnv;
   ios?: MidsceneYamlScriptIOSEnv;
   /**
-   * Setup yaml files that run serially, in order, before the main `files`.
-   * They share the same browser context as the main files, so authentication
-   * or other prerequisite state established here is visible to every main
-   * file. Any setup failure aborts the whole batch and the main files are
-   * marked as not executed. Only meaningful with `shareBrowserContext: true`.
+   * A setup yaml file that runs before the main `files`. It shares the same
+   * browser context as the main files, so authentication or other prerequisite
+   * state established here is visible to every main file. A setup failure
+   * aborts the whole batch and the main files are marked as not executed. Only
+   * meaningful with `shareBrowserContext: true`.
    */
-  setupFiles?: string[];
+  setup?: string;
   files: string[];
   headed?: boolean;
   keepWindow?: boolean;

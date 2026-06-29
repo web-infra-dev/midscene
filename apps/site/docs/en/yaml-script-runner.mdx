@@ -215,7 +215,7 @@ Call the Agent's [`runYaml`](./api#runyaml) method to execute YAML from JavaScri
 The CLI provides parameters to control how scripts run:
 
 - `--files <file1> <file2> ...`: List of script files. Executes in order, sequentially by default (`--concurrent` is `1`), or concurrently when `--concurrent` is set. Supports [glob](https://www.npmjs.com/package/glob) patterns; when a glob pattern or directory matches multiple files, matched files are added to the execution list in lexicographic path order.
-- `--setup <file>`: A setup script that runs before the main `--files`. It runs inside the same shared browser context, so prerequisite state such as a login established here is visible to every main script. A setup failure aborts the whole batch and the main scripts are reported as not executed. Requires `--share-browser-context`. To run multiple setup scripts serially, use the `setupFiles` array in a config file instead.
+- `--setup <file>`: A setup script that runs before the main `--files`. It runs inside the same shared browser context, so prerequisite state such as a login established here is visible to every main script. A setup failure aborts the whole batch and the main scripts are reported as not executed. Requires `--share-browser-context`.
 - `--concurrent <number>`: Number of concurrent executions. Default `1`.
 - `--continue-on-error`: Continue running remaining scripts even if one fails. Default off.
 - `--retry <number>`: Number of times to retry a failed script. Only the scripts that failed in the previous attempt are retried, which helps with unstable networks or unstable model output. Default `0`. (Not effective together with `--share-browser-context`, where the whole batch shares a single run.)
@@ -269,13 +269,12 @@ Run with:
 midscene --config ./config.yaml
 ```
 
-#### Run a serial setup before parallel scripts
+#### Run a setup before parallel scripts
 
-When several independent scripts all depend on the same prerequisite (for example a login), list the prerequisite under `setupFiles`. Setup scripts run serially, in order, before the main `files`; once they all succeed, the main scripts run with the configured concurrency. Setup and main scripts share one browser context, so the login state is carried over. `setupFiles` requires `shareBrowserContext: true`.
+When several independent scripts all depend on the same prerequisite (for example a login), put the prerequisite under `setup`. The setup script runs before the main `files`; once it succeeds, the main scripts run with the configured concurrency. Setup and main scripts share one browser context, so the login state is carried over. `setup` requires `shareBrowserContext: true`.
 
 ```yaml
-setupFiles:
-  - ./scripts/login.yaml
+setup: ./scripts/login.yaml
 
 files:
   - ./scripts/search.yaml
@@ -286,7 +285,7 @@ shareBrowserContext: true
 concurrent: 3
 ```
 
-If any setup script fails, the batch is aborted and the main scripts are reported as not executed.
+If the setup script fails, the batch is aborted and the main scripts are reported as not executed.
 
 ## FAQ
 
