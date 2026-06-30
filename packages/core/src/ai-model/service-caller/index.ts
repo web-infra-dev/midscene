@@ -51,8 +51,7 @@ import {
 } from './request-timeout';
 export {
   extractJSONFromCodeBlock,
-  normalJsonParser,
-  safeParseJson,
+  parseModelResponseJson,
 } from './json';
 export type { JsonParser } from './json';
 

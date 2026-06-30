@@ -4,6 +4,7 @@ import type {
   ChatCompletionParamsResult,
   ModelAdapterDefinition,
 } from '../model-adapter/types';
+import { isLocateIntent } from './utils/intent';
 
 const buildGlmChatCompletionParams = (
   input: ChatCompletionCallContext,
@@ -14,6 +15,12 @@ const buildGlmChatCompletionParams = (
 
   if (userConfig.temperature !== undefined) {
     commonOverrideConfig.temperature = userConfig.temperature;
+  }
+
+  // Zhipu structured output JSON mode:
+  // https://docs.bigmodel.cn/cn/guide/capabilities/struct-output
+  if (isLocateIntent(input.intent)) {
+    commonOverrideConfig.response_format = { type: 'json_object' };
   }
 
   const modelSpecificConfig: Record<string, unknown> = {};

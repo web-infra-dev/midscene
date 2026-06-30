@@ -1,100 +1,15 @@
 import type { TModelFamily } from '@midscene/shared/env';
 import { assert } from '@midscene/shared/utils';
-import { jsonrepair } from 'jsonrepair';
 import type {
   ChatCompletionCallContext,
   ChatCompletionParamsResult,
-  JsonParserContext,
-  JsonParserSource,
   ModelAdapterDefinition,
 } from '../model-adapter/types';
-import {
-  extractJSONFromCodeBlock,
-  safeParseJson,
-} from '../service-caller/json';
+import { parseModelResponseJson } from '../service-caller/json';
 import {
   type LocateResultValue,
   unwrapCoordinateListLikeInput,
 } from '../shared/model-locate-result';
-
-export function normalizeDoubaoJsonObject(
-  obj: any,
-  context: Pick<JsonParserContext, 'preserveStringValueKeys'> = {},
-): any {
-  if (obj === null || obj === undefined) {
-    return obj;
-  }
-
-  if (Array.isArray(obj)) {
-    return obj.map((item) => normalizeDoubaoJsonObject(item, context));
-  }
-
-  if (typeof obj === 'object') {
-    const normalized: any = {};
-    for (const [key, value] of Object.entries(obj)) {
-      const trimmedKey = key.trim();
-      const preserveStringValue =
-        context.preserveStringValueKeys?.includes(trimmedKey) ?? false;
-      const normalizedValue =
-        typeof value === 'string'
-          ? preserveStringValue
-            ? value
-            : value.trim()
-          : normalizeDoubaoJsonObject(value, context);
-      normalized[trimmedKey] = normalizedValue;
-    }
-    return normalized;
-  }
-
-  return typeof obj === 'string' ? obj.trim() : obj;
-}
-
-export function shouldRepairDoubaoLocateJson(source: JsonParserSource) {
-  return (
-    source === 'locate' ||
-    source === 'section-locator' ||
-    source === 'planning-action-param'
-  );
-}
-
-export function preprocessDoubaoLocateJson(input: string) {
-  if (input.includes('bbox')) {
-    while (/\d+\s+\d+/.test(input)) {
-      input = input.replace(/(\d+)\s+(\d+)/g, '$1,$2');
-    }
-  }
-  return input;
-}
-
-const doubaoJsonParser: ModelAdapterDefinition['jsonParser'] = (
-  raw,
-  context = { source: 'generic-object' },
-) => {
-  const { source } = context;
-  try {
-    return safeParseJson(raw, context);
-  } catch (firstError) {
-    if (!shouldRepairDoubaoLocateJson(source)) {
-      throw firstError;
-    }
-
-    const jsonString = preprocessDoubaoLocateJson(
-      extractJSONFromCodeBlock(raw),
-    );
-    try {
-      return normalizeDoubaoJsonObject(
-        JSON.parse(jsonrepair(jsonString)),
-        context,
-      );
-    } catch (error) {
-      throw Error(
-        `failed to parse LLM response into JSON. Error - ${String(
-          error ?? firstError ?? 'unknown error',
-        )}. Response - \n ${raw}`,
-      );
-    }
-  }
-};
 
 export function parseDoubaoRawLocateValue(input: unknown): LocateResultValue {
   const bbox = unwrapCoordinateListLikeInput(input as any);
@@ -194,7 +109,7 @@ const buildDoubaoChatCompletionParams = (
 };
 
 const doubaoVisionAdapter: ModelAdapterDefinition = {
-  jsonParser: doubaoJsonParser,
+  jsonParser: parseModelResponseJson,
   chatCompletion: {
     unsupportedUserConfig: ['reasoningBudget'],
     buildChatCompletionParams: buildDoubaoChatCompletionParams,

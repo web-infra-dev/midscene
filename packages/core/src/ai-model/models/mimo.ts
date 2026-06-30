@@ -4,6 +4,7 @@ import type {
   ChatCompletionParamsResult,
   ModelAdapterDefinition,
 } from '../model-adapter/types';
+import { isLocateIntent } from './utils/intent';
 
 const buildMimoChatCompletionParams = (
   input: ChatCompletionCallContext,
@@ -14,9 +15,9 @@ const buildMimoChatCompletionParams = (
 
   // https://platform.xiaomimimo.com/docs/zh-CN/api/chat/openai-api
   // Observed with thinking disabled: Mimo needs json_object to return JSON.
-  commonOverrideConfig.response_format = {
-    type: intent === 'default' ? 'json_object' : 'text',
-  };
+  if (isLocateIntent(intent)) {
+    commonOverrideConfig.response_format = { type: 'json_object' };
+  }
 
   if (userConfig.temperature !== undefined) {
     commonOverrideConfig.temperature = userConfig.temperature;
