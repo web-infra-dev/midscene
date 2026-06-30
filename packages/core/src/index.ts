@@ -86,7 +86,10 @@ export {
   parseDumpScriptAttributes,
   generateImageScriptTag,
   generateDumpScriptTag,
+  deriveTaskStatus,
+  deriveCaseStatus,
 } from './dump';
+export type { TaskStatusFields, DerivedTaskStatus } from './dump';
 export {
   getTaskSearchArea,
   getTaskServiceDump,
