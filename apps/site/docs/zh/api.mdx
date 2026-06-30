@@ -1310,6 +1310,82 @@ const logContent = agent._unstableLogContent();
 console.log(logContent);
 ```
 
+## 大模型用量指标
+
+Midscene 会记录每一次大模型调用的 token 用量。你可以在运行时从 agent 读取聚合后的总量,这对于成本可观测性以及配合 Langfuse 等工具按用例(spec)追踪非常有用。
+
+### `agent.metrics`
+
+一个 getter,返回自 agent 创建以来(或自上次调用 `resetMetrics()` 以来)累计的大模型用量快照。
+
+- 类型
+
+```typescript
+interface UsageBucket {
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
+  calls: number;
+}
+
+interface MidsceneUsageMetrics {
+  totalPromptTokens: number;
+  totalCompletionTokens: number;
+  totalTokens: number;
+  totalCachedInput: number;
+  totalTimeCostMs: number;
+  calls: number;
+  // 按调用意图拆分:`planning`、`insight`、`default`。
+  byIntent: Record<string, UsageBucket>;
+  // 按模型名称拆分。
+  byModel: Record<string, UsageBucket>;
+}
+```
+
+- 示例
+
+```typescript
+await agent.aiAct('搜索耳机');
+const usage = agent.metrics;
+console.log(usage.totalTokens, usage.byIntent, usage.byModel);
+```
+
+### `agent.resetMetrics()`
+
+清空已累计的指标。在一个逻辑单元(例如一个测试 spec)开始时调用,即可只统计此后产生的用量。请在两次操作之间调用,不要在某个操作执行途中调用,否则进行中的操作可能被重复计数。
+
+- 类型
+
+```typescript
+function resetMetrics(): void;
+```
+
+- 示例:按 spec 追踪成本
+
+```typescript
+beforeEach(() => agent.resetMetrics());
+
+afterEach(() => {
+  const usage = agent.metrics;
+  langfuse.track('MidsceneUsage', {
+    value: usage.totalTokens,
+    metadata: usage,
+  });
+});
+```
+
+### `onLLMUsage` 选项
+
+如需实时追踪,可在构造 agent 时传入 `onLLMUsage` 回调。每次大模型调用的用量一旦就绪即触发一次,回调参数为原始用量信息(token 数、模型名、意图、请求 id 等)。
+
+```typescript
+const agent = new PuppeteerAgent(page, {
+  onLLMUsage: (usage) => {
+    langfuse.event({ name: usage.intent, value: usage.total_tokens });
+  },
+});
+```
+
 ## 属性
 
 ### `.reportFile`

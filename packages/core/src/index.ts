@@ -61,7 +61,9 @@ export {
   type AgentOpt,
   type AiActOptions,
   type GherkinStepKeyword,
+  type MidsceneUsageMetrics,
   type RunGherkinScenarioOptions,
+  type UsageBucket,
   createAgent,
 } from './agent';
 export {
