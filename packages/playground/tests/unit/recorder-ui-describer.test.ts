@@ -74,9 +74,9 @@ describe('recorder-ui-describer', () => {
     expect(result.event.semantic?.elementDescription).toBe(
       'close icon button in the top-right corner',
     );
-    const [, passedModelConfig] = vi.mocked(callAIWithObjectResponse).mock
+    const [, passedModelRuntime] = vi.mocked(callAIWithObjectResponse).mock
       .calls[0];
-    expect(passedModelConfig).toMatchObject({
+    expect(passedModelRuntime.config).toMatchObject({
       modelName: 'mock-model',
       openaiBaseURL: 'https://example.test/v1',
       openaiApiKey: 'mock-key',

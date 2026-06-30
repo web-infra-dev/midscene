@@ -92,6 +92,15 @@ function buildCheckResult(
   };
 }
 
+function buildConnectivityModelRuntime(
+  modelConfig: IModelConfig,
+): ModelRuntime {
+  return getModelRuntime({
+    ...modelConfig,
+    retryCount: 0,
+  });
+}
+
 function formatConnectivityCheckName(
   check: ConnectivityCheckResultItem,
 ): string {
@@ -230,9 +239,15 @@ async function runAiLocateConnectivityCheck(
 export async function runConnectivityTest(
   config: ConnectivityTestConfig,
 ): Promise<ConnectivityTestResult> {
-  const planningModelRuntime = getModelRuntime(config.planningModelConfig);
-  const insightModelRuntime = getModelRuntime(config.insightModelConfig);
-  const defaultModelRuntime = getModelRuntime(config.defaultModelConfig);
+  const planningModelRuntime = buildConnectivityModelRuntime(
+    config.planningModelConfig,
+  );
+  const insightModelRuntime = buildConnectivityModelRuntime(
+    config.insightModelConfig,
+  );
+  const defaultModelRuntime = buildConnectivityModelRuntime(
+    config.defaultModelConfig,
+  );
   const checks = await Promise.all([
     runTextConnectivityCheck(planningModelRuntime),
     runVisionConnectivityCheck(insightModelRuntime),
