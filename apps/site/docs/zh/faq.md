@@ -75,6 +75,17 @@ MIDSCENE_MODEL_INIT_CONFIG_JSON='{"defaultQuery":{"api-version":"preview"},"defa
 
 Azure AD / keyless 鉴权（`DefaultAzureCredential`）的方式现在已经不再支持，请使用 API Key 的方式。
 
+## 使用 Azure OpenAI 时点击坐标偏移
+
+在使用 GPT-5 系列模型时，你可能会发现：同一份脚本在 OpenAI 官方 API 上点击位置正确，但切到 Azure OpenAI 后点击位置出现固定比例的偏移。这个偏移和分辨率相关：截图较大时（如 `1920x1080`）出现，截图较小时（如 `1280x600`）则正常。
+
+原因在于 Azure 端的图片处理。GPT-5 返回的是基于它实际看到的截图尺寸的绝对坐标，而 Midscene 发送图片时带上了 `"detail": "original"`，让模型看到原始分辨率的图片（参见 [GPT-5 说明](./model-common-config#gpt-5-4)）。Azure 没有正确处理 `"detail": "original"`，会在服务端对大图进行缩放（短边被压缩到 768）。于是模型在缩放后的坐标系里作答，而 Midscene 仍按原始分辨率还原坐标，最终产生按比例的偏移。可以通过 token 消耗来验证 `original` 是否生效：如果 `original` 生效，图片的 token 消耗会明显更高。
+
+有两种规避办法：
+
+1. 使用 OpenAI 官方的 GPT-5 端点，或其他能按原始分辨率返回坐标的定位模型。
+2. 通过 Agent 参数 `screenshotShrinkFactor` 把截图预先缩放到较小尺寸，使图片不触发 Azure 的服务端缩放阈值。详见 [`screenshotShrinkFactor`](./api)。
+
 ## 如何配置 midscene_run 目录？
 
 Midscene 会将运行产物（报告、日志、缓存等）保存在 `midscene_run` 目录下。默认情况下，该目录会创建在当前工作目录下。

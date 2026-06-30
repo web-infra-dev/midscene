@@ -75,6 +75,17 @@ MIDSCENE_MODEL_INIT_CONFIG_JSON='{"defaultQuery":{"api-version":"preview"},"defa
 
 Azure AD / keyless auth (`DefaultAzureCredential`) is not supported. Use an API key.
 
+## Clicks are offset when using Azure OpenAI
+
+With a GPT-5 family model, you may find that the same script clicks the correct spot on the official OpenAI API but a consistently offset spot on Azure OpenAI. The offset scales with resolution: it appears at large screenshots (e.g. `1920x1080`) and disappears at small ones (e.g. `1280x600`).
+
+The cause is image handling on the Azure side. GPT-5 returns absolute coordinates based on the screenshot it actually sees, and Midscene sends the screenshot with `"detail": "original"` so the model sees the full-resolution image (see the [GPT-5 notes](./model-common-config#gpt-5-4)). Azure does not honor `"detail": "original"`, so it downscales large images server-side (the short side is capped at 768). The model then answers in the downscaled coordinate space while Midscene maps coordinates against the original resolution, producing a proportional offset. You can confirm `original` is not taking effect by checking token usage: when `original` works, image token consumption is noticeably higher.
+
+There are two ways to work around it:
+
+1. Use the official OpenAI GPT-5 endpoint, or another grounding model that returns coordinates in the original resolution.
+2. Pre-shrink the screenshot with the `screenshotShrinkFactor` agent option so the image stays under Azure's downscale threshold and no server-side resizing happens. See [`screenshotShrinkFactor`](./api).
+
 ## How to improve the running time?
 
 There are several ways to improve the running time:
