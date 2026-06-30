@@ -38,6 +38,7 @@ export const glmAdapters = {
     chatCompletion: {
       unsupportedUserConfig: ['reasoningEffort', 'reasoningBudget'],
       buildChatCompletionParams: buildGlmChatCompletionParams,
+      useReasoningAsContentFallback: true,
     },
     locate: {
       resultAdapter: {

@@ -363,6 +363,22 @@ export async function callAI(
   const hasUsableText = (value: string | null | undefined): value is string =>
     typeof value === 'string' && value.trim().length > 0;
 
+  const resolveContentWithReasoningFallback = (
+    contentValue: string | undefined,
+    reasoningContent: string,
+  ) => {
+    if (
+      !hasUsableText(contentValue) &&
+      adapter.chatCompletion.useReasoningAsContentFallback &&
+      hasUsableText(reasoningContent)
+    ) {
+      warnCall('empty content from AI model, using reasoning content');
+      return reasoningContent;
+    }
+
+    return contentValue;
+  };
+
   const buildUsageInfo = (
     usageData?: OpenAI.CompletionUsage,
     requestId?: string | null,
@@ -503,6 +519,12 @@ export async function callAI(
               };
             }
 
+            const finalAccumulated = resolveContentWithReasoningFallback(
+              accumulated,
+              accumulatedReasoning,
+            );
+            accumulated = finalAccumulated || '';
+
             // Send final chunk
             const finalChunk: CodeGenerationChunk = {
               content: '',
@@ -572,10 +594,10 @@ export async function callAI(
           requestId = result._request_id;
           responseModelName = result.model;
 
-          if (!hasUsableText(content) && hasUsableText(accumulatedReasoning)) {
-            warnCall('empty content from AI model, using reasoning content');
-            content = accumulatedReasoning;
-          }
+          content = resolveContentWithReasoningFallback(
+            content,
+            accumulatedReasoning,
+          );
 
           if (!hasUsableText(content)) {
             throw new AIResponseParseError(
