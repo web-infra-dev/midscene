@@ -83,7 +83,7 @@ The cause is image handling on the Azure side. GPT-5 returns absolute coordinate
 
 There are two ways to work around it:
 
-1. Use the official OpenAI GPT-5 endpoint, or another grounding model that returns coordinates in the original resolution.
+1. Use the official OpenAI GPT-5, or configure a separate model dedicated to grounding (localization) and keep the Azure GPT-5 only as the planning model.
 2. Pre-shrink the screenshot with the `screenshotShrinkFactor` agent option so the image stays under Azure's downscale threshold and no server-side resizing happens. See [`screenshotShrinkFactor`](./api).
 
 ## How to improve the running time?
