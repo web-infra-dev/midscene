@@ -45,6 +45,11 @@ import {
 } from './codex-app-server';
 import type { JsonParserSource } from './json';
 import {
+  type OpenAIErrorResponseContext,
+  formatOpenAIAPIErrorDetails,
+  wrapOpenAICompatibleFetch,
+} from './openai-error';
+import {
   buildRequestAbortSignal,
   isHardTimeoutError,
   resolveEffectiveTimeoutMs,
@@ -116,6 +121,7 @@ export async function createChatClient({
   modelName: string;
   modelDescription: string;
   modelFamily: TModelFamily | undefined;
+  openAIErrorResponseContext: OpenAIErrorResponseContext;
 }> {
   const {
     socksProxy,
@@ -223,6 +229,7 @@ export async function createChatClient({
   }
 
   const effectiveTimeoutMs = resolveEffectiveTimeoutMs({ timeout });
+  const openAIErrorResponseContext: OpenAIErrorResponseContext = {};
   const openAIOptions = {
     baseURL: openaiBaseURL,
     apiKey: openaiApiKey,
@@ -230,6 +237,7 @@ export async function createChatClient({
     // Note: Type assertion needed due to undici version mismatch between dependencies
     ...(proxyAgent ? { fetchOptions: { dispatcher: proxyAgent as any } } : {}),
     ...openaiExtraConfig,
+    fetch: wrapOpenAICompatibleFetch(openAIErrorResponseContext),
     // Midscene already handles retries in callAI(), so disable SDK-level retries
     // to avoid duplicate attempts and duplicated backoff latency.
     maxRetries: 0,
@@ -286,6 +294,7 @@ export async function createChatClient({
     modelName,
     modelDescription,
     modelFamily,
+    openAIErrorResponseContext,
   };
 }
 
@@ -318,10 +327,15 @@ export async function callAI(
     });
   }
 
-  const { completion, modelName, modelDescription, modelFamily } =
-    await createChatClient({
-      modelConfig,
-    });
+  const {
+    completion,
+    modelName,
+    modelDescription,
+    modelFamily,
+    openAIErrorResponseContext,
+  } = await createChatClient({
+    modelConfig,
+  });
   const effectiveTimeoutMs = resolveEffectiveTimeoutMs(modelConfig);
 
   const extraBody = modelConfig.extraBody;
@@ -678,7 +692,7 @@ export async function callAI(
     }
 
     const newError = new Error(
-      `failed to call ${isStreaming ? 'streaming ' : ''}AI model service (${modelName}): ${e.message}\nTrouble shooting: https://midscenejs.com/model-provider.html`,
+      `failed to call ${isStreaming ? 'streaming ' : ''}AI model service (${modelName}): ${e.message}${formatOpenAIAPIErrorDetails(e, openAIErrorResponseContext)}\nTrouble shooting: https://midscenejs.com/model-provider.html`,
       {
         cause: e,
       },
