@@ -217,6 +217,19 @@ Midscene disables model-native thinking by default for the best execution speed 
 
 ## Other Models
 
+### Gemma Vision Models {#gemma}
+
+For local OpenAI-compatible Gemma vision deployments, point Midscene to your local server and use `gemma` as the model family. Example:
+
+```bash
+MIDSCENE_MODEL_BASE_URL="http://localhost:8080/v1"
+MIDSCENE_MODEL_API_KEY="local"
+MIDSCENE_MODEL_NAME="../google-gemma/models/gemma-4-26b-a4b-it-8bit"
+MIDSCENE_MODEL_FAMILY="gemma"
+```
+
+The Gemma family uses Midscene's standard normalized `[xmin, ymin, xmax, ymax]` bounding-box contract and does not send Qwen-specific thinking parameters.
+
 ### Qwen3-VL {#qwen3-vl}
 
 Using Alibaba Cloud's `qwen3-vl-plus` as an example:
@@ -290,7 +303,7 @@ export MIDSCENE_MODEL_FAMILY="qwen3.5"
 
 # Planning model: GPT-5.4
 export MIDSCENE_PLANNING_MODEL_API_KEY="sk-..."    # Your GPT-5.4 API key
-export MIDSCENE_PLANNING_MODEL_BASE_URL="https://..." 
+export MIDSCENE_PLANNING_MODEL_BASE_URL="https://..."
 export MIDSCENE_PLANNING_MODEL_NAME="gpt-5.4"
 export MIDSCENE_PLANNING_MODEL_FAMILY="gpt-5"
 

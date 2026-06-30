@@ -36,6 +36,7 @@ describe('getUITarsModelVersion', () => {
     expect(getUITarsModelVersion('qwen3-vl')).toBeUndefined();
     expect(getUITarsModelVersion('doubao-vision')).toBeUndefined();
     expect(getUITarsModelVersion('gemini')).toBeUndefined();
+    expect(getUITarsModelVersion('gemma')).toBeUndefined();
     expect(getUITarsModelVersion('glm-v')).toBeUndefined();
     expect(getUITarsModelVersion('gpt-5')).toBeUndefined();
     expect(getUITarsModelVersion('kimi')).toBeUndefined();
@@ -48,6 +49,7 @@ describe('validateModelFamily', () => {
     expect(() => validateModelFamily('qwen3-vl')).not.toThrow();
     expect(() => validateModelFamily('qwen3')).not.toThrow();
     expect(() => validateModelFamily('qwen3.6')).not.toThrow();
+    expect(() => validateModelFamily('gemma')).not.toThrow();
     expect(() => validateModelFamily('doubao-vision')).not.toThrow();
     expect(() => validateModelFamily('gemini')).not.toThrow();
     expect(() => validateModelFamily('glm-v')).not.toThrow();

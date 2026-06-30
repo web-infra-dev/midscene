@@ -222,6 +222,19 @@ Midscene 默认关闭模型原生思考，以获得最佳的执行速度和稳�
 
 ## 其他模型
 
+### Gemma 视觉模型 {#gemma}
+
+对于本地 OpenAI 兼容的 Gemma 视觉模型部署，可以将 Midscene 指向本地服务，并使用 `gemma` 作为模型系列。示例：
+
+```bash
+MIDSCENE_MODEL_BASE_URL="http://localhost:8080/v1"
+MIDSCENE_MODEL_API_KEY="local"
+MIDSCENE_MODEL_NAME="../google-gemma/models/gemma-4-26b-a4b-it-8bit"
+MIDSCENE_MODEL_FAMILY="gemma"
+```
+
+Gemma 系列使用 Midscene 标准的归一化 `[xmin, ymin, xmax, ymax]` 边界框协议，并且不会发送 Qwen 专用的 thinking 参数。
+
 ### 千问 Qwen3-VL {#qwen3-vl}
 
 以 [阿里云](https://www.aliyun.com/) 的 `qwen3-vl-plus` 模型为例，环境变量配置如下：
