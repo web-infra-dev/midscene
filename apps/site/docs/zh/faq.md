@@ -47,7 +47,15 @@ MIDSCENE_MODEL_API_KEY="<your-azure-api-key>"
 
 也就是说，`MIDSCENE_MODEL_NAME`、`MIDSCENE_MODEL_FAMILY` 等其他配置仍然按 [模型配置](./model-common-config) 中对应模型的说明填写；Azure 只是鉴权方式有所差异的模型供应商，而非一种特殊模型。
 
-这会走普通 OpenAI-compatible 路径，以 `Authorization: Bearer ...` 请求头发送 `POST /openai/v1/chat/completions`。`MIDSCENE_MODEL_BASE_URL` 不要追加 `/chat/completions`，`/openai/v1` 端点也不要追加 `api-version`。
+这会走普通 OpenAI-compatible 路径，以 `Authorization: Bearer ...` 请求头发送 `POST /openai/v1/chat/completions`。`MIDSCENE_MODEL_BASE_URL` 不要追加 `/chat/completions`。大多数 `/openai/v1` 端点不需要 `api-version`。
+
+如果你的资源仍然以 `400 Missing required query parameter: api-version` 报错，说明该资源的 `/openai/v1` surface 尚未 GA。可以通过 `defaultQuery` 注入这个查询参数：
+
+```bash
+MIDSCENE_MODEL_INIT_CONFIG_JSON='{"defaultQuery":{"api-version":"preview"}}'
+```
+
+`api-version` 的值按你的资源要求填写（`preview`，或 Azure 门户里显示的带日期版本，如 `2025-01-01-preview`）。这样每个请求都会变成 `.../openai/v1/chat/completions?api-version=preview`。
 
 如果某个 Azure-compatible 网关只接受 `api-key` 请求头，可以额外添加下面的配置，通过 header 发送真实 API Key：
 
@@ -57,6 +65,13 @@ MIDSCENE_MODEL_INIT_CONFIG_JSON='{"defaultHeaders":{"api-key":"<your-azure-api-k
 ```
 
 这里的 `MIDSCENE_MODEL_API_KEY="placeholder"` 只是为了满足 OpenAI SDK 的初始化要求，真实 API Key 会通过 `defaultHeaders.api-key` 发送。
+
+当某个资源同时需要 `api-version` 和 `api-key` 请求头时，可以把两种兜底配置合并：
+
+```bash
+MIDSCENE_MODEL_API_KEY="placeholder"
+MIDSCENE_MODEL_INIT_CONFIG_JSON='{"defaultQuery":{"api-version":"preview"},"defaultHeaders":{"api-key":"<your-azure-api-key>"}}'
+```
 
 Azure AD / keyless 鉴权（`DefaultAzureCredential`）的方式现在已经不再支持，请使用 API Key 的方式。
 

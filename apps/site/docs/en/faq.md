@@ -47,7 +47,15 @@ MIDSCENE_MODEL_API_KEY="<your-azure-api-key>"
 
 In other words, other settings such as `MIDSCENE_MODEL_NAME` and `MIDSCENE_MODEL_FAMILY` should still follow the corresponding model section in [Model configuration](./model-common-config). Azure is only a model provider with different authentication, not a special model.
 
-This uses the normal OpenAI-compatible path and sends `POST /openai/v1/chat/completions` with `Authorization: Bearer ...`. Do not append `/chat/completions` to `MIDSCENE_MODEL_BASE_URL`, and do not add `api-version` for `/openai/v1` endpoints.
+This uses the normal OpenAI-compatible path and sends `POST /openai/v1/chat/completions` with `Authorization: Bearer ...`. Do not append `/chat/completions` to `MIDSCENE_MODEL_BASE_URL`. For most `/openai/v1` endpoints you do not need `api-version`.
+
+If your resource still rejects the request with `400 Missing required query parameter: api-version`, the `/openai/v1` surface on that specific resource has not GA'd yet. Inject the query parameter through `defaultQuery`:
+
+```bash
+MIDSCENE_MODEL_INIT_CONFIG_JSON='{"defaultQuery":{"api-version":"preview"}}'
+```
+
+Use the `api-version` value your resource expects (`preview`, or a dated version like `2025-01-01-preview` shown in the Azure portal). This turns every request into `.../openai/v1/chat/completions?api-version=preview`.
 
 If an Azure-compatible gateway only accepts the `api-key` header, use this fallback:
 
@@ -57,6 +65,13 @@ MIDSCENE_MODEL_INIT_CONFIG_JSON='{"defaultHeaders":{"api-key":"<your-azure-api-k
 ```
 
 In this fallback, `MIDSCENE_MODEL_API_KEY="placeholder"` only satisfies the OpenAI SDK constructor check. The real key is sent through `defaultHeaders.api-key`.
+
+These two fallbacks can be combined when a resource needs both `api-version` and the `api-key` header:
+
+```bash
+MIDSCENE_MODEL_API_KEY="placeholder"
+MIDSCENE_MODEL_INIT_CONFIG_JSON='{"defaultQuery":{"api-version":"preview"},"defaultHeaders":{"api-key":"<your-azure-api-key>"}}'
+```
 
 Azure AD / keyless auth (`DefaultAzureCredential`) is not supported. Use an API key.
 
