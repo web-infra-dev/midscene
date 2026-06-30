@@ -45,7 +45,36 @@ describe('service-caller reasoning fallback', () => {
     mockWarnLog.mockClear();
   });
 
-  it('uses reasoning_content when content is empty and modelFamily is unset', async () => {
+  it('throws when content is empty and reasoning fallback is not enabled', async () => {
+    mockCreate.mockResolvedValue({
+      choices: [
+        {
+          message: {
+            content: '',
+            reasoning_content:
+              '<action-type>Tap</action-type><action-param-json>{"locate":{"prompt":"POI RichInfo tab"}}</action-param-json>',
+          },
+        },
+      ],
+      usage: {
+        prompt_tokens: 10,
+        completion_tokens: 20,
+        total_tokens: 30,
+      },
+    });
+
+    await expect(
+      callAI(
+        [{ role: 'user', content: 'next action' }],
+        getModelRuntime({
+          ...baseModelConfig,
+          retryCount: 0,
+        }),
+      ),
+    ).rejects.toBeInstanceOf(AIResponseParseError);
+  });
+
+  it('uses reasoning_content when content is empty and qwen enables reasoning fallback', async () => {
     mockCreate.mockResolvedValue({
       choices: [
         {
@@ -65,7 +94,10 @@ describe('service-caller reasoning fallback', () => {
 
     const response = await callAI(
       [{ role: 'user', content: 'next action' }],
-      getModelRuntime(baseModelConfig),
+      getModelRuntime({
+        ...baseModelConfig,
+        modelFamily: 'qwen3',
+      }),
     );
 
     expect(response.content).toContain('<action-type>Tap</action-type>');
@@ -103,7 +135,7 @@ describe('service-caller reasoning fallback', () => {
     });
   });
 
-  it('parses object responses from reasoning_content when content is blank', async () => {
+  it('parses qwen object responses from reasoning_content when content is blank', async () => {
     mockCreate.mockResolvedValue({
       choices: [
         {
@@ -124,7 +156,10 @@ describe('service-caller reasoning fallback', () => {
     const response = await callAIWithObjectResponse<{
       type: string;
       param: { locate: { prompt: string } };
-    }>([{ role: 'user', content: 'next action' }], baseModelConfig);
+    }>([{ role: 'user', content: 'next action' }], {
+      ...baseModelConfig,
+      modelFamily: 'qwen3',
+    });
 
     expect(response.content).toEqual({
       type: 'Tap',

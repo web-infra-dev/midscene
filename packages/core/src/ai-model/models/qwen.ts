@@ -106,6 +106,15 @@ const qwen3Adapter: ModelAdapterDefinition = {
   chatCompletion: {
     unsupportedUserConfig: ['reasoningEffort'],
     buildChatCompletionParams: buildQwenChatCompletionParams,
+    messageExtraction: {
+      kind: 'default',
+      // DashScope returns Qwen thinking as `reasoning_content`. vLLM's
+      // OpenAI-compatible server is migrating the recommended field to
+      // `reasoning`, so Qwen adapters accept both serving conventions:
+      // https://github.com/vllm-project/vllm/issues/27755
+      reasoningContentKeys: ['reasoning_content', 'reasoning'],
+    },
+    useReasoningAsContentFallback: true,
   },
   locate: {
     resultAdapter: {

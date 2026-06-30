@@ -36,6 +36,7 @@ export const kimiAdapters = {
     chatCompletion: {
       unsupportedUserConfig: ['reasoningEffort', 'reasoningBudget'],
       buildChatCompletionParams: buildKimiChatCompletionParams,
+      useReasoningAsContentFallback: true,
     },
     locate: {
       resultAdapter: {

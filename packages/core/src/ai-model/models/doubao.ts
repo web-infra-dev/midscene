@@ -198,6 +198,7 @@ const doubaoVisionAdapter: ModelAdapterDefinition = {
   chatCompletion: {
     unsupportedUserConfig: ['reasoningBudget'],
     buildChatCompletionParams: buildDoubaoChatCompletionParams,
+    useReasoningAsContentFallback: true,
   },
   locate: {
     resultAdapter: {
