@@ -37,13 +37,16 @@ import {
 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
+import type { ChatCompletionContentPart } from 'openai/resources/index';
 import type { TMultimodalPrompt, TUserPrompt } from '../common';
 import {
   createServiceDump,
-  expandDescribeDeepSearchArea,
+  getDescribeDeepContextAreas,
   getDescribeDeepLocateResizeSize,
   getDescribeMarkerBorderThickness,
   getDescribeMarkerRect,
+  getDescribeOverviewResizeSize,
+  getRectInCrop,
   recoverDescribeResponseFromParseError,
 } from './utils';
 
@@ -409,21 +412,10 @@ export default class Service {
     target: Rect | [number, number],
     modelRuntime: ModelRuntime,
     opt?: {
-      deepLocate?: boolean;
+      deepDescribe?: boolean;
       context?: UIContext;
-      feedback?: string;
     },
-  ): Promise<
-    Pick<
-      AIDescribeElementResponse,
-      | 'description'
-      | 'target'
-      | 'primitive'
-      | 'owner'
-      | 'disambiguator'
-      | 'context'
-    >
-  > {
+  ): Promise<Pick<AIDescribeElementResponse, 'description'>> {
     assert(target, 'target is required for service.describe');
     const context = opt?.context || (await this.contextRetrieverFn());
     const { shotSize } = context;
@@ -444,7 +436,7 @@ export default class Service {
       : target;
 
     const usePointMarker = targetFromPoint;
-    let imagePayload = usePointMarker
+    const imagePayload = usePointMarker
       ? await compositePointMarkerImg({
           inputImgBase64: screenshotBase64,
           size: shotSize,
@@ -465,50 +457,112 @@ export default class Service {
           centerPoint: true,
         });
 
-    if (opt?.deepLocate) {
-      const searchArea = expandDescribeDeepSearchArea(targetRect, shotSize, {
-        keepWideContext: targetFromPoint,
+    const shouldDeepDescribe = opt?.deepDescribe;
+    let imageContent: ChatCompletionContentPart[];
+    if (shouldDeepDescribe) {
+      const overviewResizeSize = getDescribeOverviewResizeSize(shotSize);
+      const overviewPayload = overviewResizeSize
+        ? await resizeImgBase64(imagePayload, overviewResizeSize)
+        : imagePayload;
+      const contextAreas = getDescribeDeepContextAreas(targetRect, shotSize, {
+        targetFromPoint,
       });
-      // Always crop in describe mode. Unlike locate's deepLocate (where
-      // cropping too small loses context for finding elements), describe's
-      // deepLocate intentionally zooms in so the model produces a more
-      // precise description from a focused view. expandSearchArea already
-      // guarantees a minimum 400x400 area with surrounding context.
-      // Describe is not a coordinate-parsing flow, so it can safely resize the
-      // cropped view to make small glyphs and text easier to read.
-      debug('describe: cropping to searchArea', searchArea);
-      const croppedResult = await cropByRect(imagePayload, searchArea);
-      const resizeSize = getDescribeDeepLocateResizeSize(croppedResult);
-      imagePayload = resizeSize
-        ? await resizeImgBase64(croppedResult.imageBase64, resizeSize)
-        : croppedResult.imageBase64;
+      const contextImages = await Promise.all(
+        contextAreas.map(async (area) => {
+          debug('describe: cropping deep context area', area);
+          const croppedResult = await cropByRect(screenshotBase64, area.rect);
+          const cropSize = {
+            width: croppedResult.width,
+            height: croppedResult.height,
+          };
+          const targetInCrop = getRectInCrop(targetRect, area.rect, cropSize);
+          const markedCropPayload = targetFromPoint
+            ? await compositePointMarkerImg({
+                inputImgBase64: croppedResult.imageBase64,
+                size: cropSize,
+                point: {
+                  x: targetInCrop.left + targetInCrop.width / 2,
+                  y: targetInCrop.top + targetInCrop.height / 2,
+                },
+              })
+            : await compositeElementInfoImg({
+                inputImgBase64: croppedResult.imageBase64,
+                size: cropSize,
+                elementsPositionInfo: [
+                  {
+                    rect: getDescribeMarkerRect(targetInCrop),
+                  },
+                ],
+                borderThickness: getDescribeMarkerBorderThickness(targetInCrop),
+                centerPoint: true,
+              });
+          const resizeSize = getDescribeDeepLocateResizeSize(croppedResult);
+          return {
+            kind: area.kind,
+            axisMode: area.axisMode,
+            imageBase64: resizeSize
+              ? await resizeImgBase64(markedCropPayload, resizeSize)
+              : markedCropPayload,
+          };
+        }),
+      );
+      const contextImageContent =
+        contextImages.flatMap<ChatCompletionContentPart>((item, index) => [
+          {
+            type: 'text',
+            text:
+              item.kind === 'focused'
+                ? `Image ${index + 2}: focused detail crop around the target, for reading text, icon shape, and exact local boundaries.`
+                : `Image ${index + 2}: ${item.axisMode} structural context crop near the target, for disambiguating nearby rows, columns, panels, or repeated controls.`,
+          },
+          {
+            type: 'image_url',
+            image_url: {
+              url: item.imageBase64,
+              detail: 'high',
+            },
+          },
+        ]);
+
+      imageContent = [
+        {
+          type: 'text' as const,
+          text: 'Use these images together to describe the real UI target marked by the temporary callout. Do not describe the marker itself.',
+        },
+        {
+          type: 'text' as const,
+          text: 'Image 1: low-resolution full screenshot overview with the target marker, for page position and ownership context.',
+        },
+        {
+          type: 'image_url' as const,
+          image_url: {
+            url: overviewPayload,
+            detail: 'high',
+          },
+        },
+        ...contextImageContent,
+      ];
+    } else {
+      imageContent = [
+        {
+          type: 'text' as const,
+          text: 'Full screenshot with a temporary callout marking the target:',
+        },
+        {
+          type: 'image_url' as const,
+          image_url: {
+            url: imagePayload,
+            detail: 'high',
+          },
+        },
+      ];
     }
 
     const msgs: AIArgs = [
       { role: 'system', content: systemPrompt },
       {
         role: 'user',
-        content: [
-          ...(opt?.feedback
-            ? [
-                {
-                  type: 'text' as const,
-                  text: opt.feedback,
-                },
-              ]
-            : []),
-          {
-            type: 'text' as const,
-            text: 'Full screenshot with a temporary callout marking the target:',
-          },
-          {
-            type: 'image_url',
-            image_url: {
-              url: imagePayload,
-              detail: 'high',
-            },
-          },
-        ],
+        content: imageContent,
       },
     ];
 

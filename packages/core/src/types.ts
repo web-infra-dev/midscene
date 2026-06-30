@@ -9,7 +9,6 @@ import type {
   Size,
 } from '@midscene/shared/types';
 import type { z } from 'zod';
-import type { DescribeElementPrimitive } from './ai-model/prompt/describe';
 import type { TUserPrompt } from './common';
 import type { ScreenshotItem } from './screenshot-item';
 import type {
@@ -101,11 +100,6 @@ export interface AIAssertionResponse {
 }
 
 export interface AIDescribeElementResponse {
-  target?: string;
-  primitive?: string;
-  owner?: string;
-  disambiguator?: string;
-  context?: string;
   description: string;
   error?: string;
 }
@@ -122,35 +116,10 @@ export interface LocateValidatorResult {
   includedInRect?: boolean;
 }
 
-export interface DescribeElementVisualDiagnosticResult {
-  failureType:
-    | 'neighbor-or-similar-element'
-    | 'table-context-mismatch'
-    | 'no-locator-result'
-    | 'over-broad-description'
-    | 'unknown';
-  confidence?: number;
-  centerPrimitive?: DescribeElementPrimitive;
-  glyph?: string;
-  primitiveEvidence?: string;
-  wrongMatchSummary?: string;
-  describeInstruction?: string;
-  locateInstruction?: string;
-  isPrimitiveConsistentWithContext?: boolean;
-  uncertaintyReason?: string;
-  error?: string;
-}
-
 export interface AgentDescribeElementAtPointResult {
   prompt: string;
-  target?: string;
-  primitive?: string;
-  owner?: string;
-  disambiguator?: string;
-  context?: string;
   deepLocate: boolean;
-  retryStrategy?: 'none' | 'diagnostic';
-  visualDiagnostic?: DescribeElementVisualDiagnosticResult;
+  deepDescribe: boolean;
   verifyResult?: LocateValidatorResult;
   success: boolean;
   error?: string;

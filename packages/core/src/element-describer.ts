@@ -1,24 +1,9 @@
 import type { ModelRuntime } from '@/ai-model/models';
-import {
-  buildDescribeRetryDiagnosticPrompt,
-  buildDiagnosticRetryHint,
-} from '@/ai-model/prompt/describe';
-import { callAIWithObjectResponse } from '@/ai-model/service-caller';
-import {
-  compositeElementInfoImg,
-  compositePointMarkerImg,
-  cropByRect,
-} from '@midscene/shared/img';
 import { assert } from '@midscene/shared/utils';
 import { createScreenshotBoundUIContext } from './agent/utils';
 import type Service from './service';
-import {
-  getDescribeMarkerBorderThickness,
-  getDescribeMarkerRect,
-} from './service/utils';
 import type {
   AgentDescribeElementAtPointResult,
-  DescribeElementVisualDiagnosticResult,
   LocateOption,
   LocateResultElement,
   LocateValidatorResult,
@@ -34,19 +19,16 @@ export type DescribeElementCoordinateSpace = 'screenshot' | 'logical';
 export type LocatorVerifyFn = (input: {
   prompt: string;
   expectCenter: [number, number];
-  deepLocate: boolean;
   retryCount: number;
   verifyResult: LocateValidatorResult;
 }) => LocateValidatorResult | boolean;
 
-export type DescribeElementRetryStrategy = 'none' | 'diagnostic';
-
 export type DescribeElementAtPointOptions = {
   verifyPrompt?: boolean;
   retryLimit?: number;
+  deepDescribe?: boolean;
   deepLocate?: boolean;
   targetRect?: Rect;
-  retryStrategy?: DescribeElementRetryStrategy;
   locatorVerifyFn?: LocatorVerifyFn;
   screenshotBase64?: string;
   screenshotSize?: Size;
@@ -54,8 +36,8 @@ export type DescribeElementAtPointOptions = {
   logicalSize?: Size;
   onProgress?: (progress: {
     prompt?: string;
+    deepDescribe?: boolean;
     deepLocate?: boolean;
-    visualDiagnostic?: DescribeElementVisualDiagnosticResult;
     verifyResult?: LocateValidatorResult;
   }) => void;
 } & LocatorValidatorOption;
@@ -70,11 +52,10 @@ type ScreenshotBoundContextOptions = {
 export type VerifyElementDescriptionAtPointOptions =
   ScreenshotBoundContextOptions & LocatorValidatorOption;
 
-export type VerifyElementByServiceLocateOptions =
-  VerifyElementDescriptionAtPointOptions &
-    Pick<LocateOption, 'cacheable' | 'deepLocate' | 'xpath'> & {
-      abortSignal?: AbortSignal;
-    };
+type LocateAndVerifyOptions = VerifyElementDescriptionAtPointOptions &
+  Pick<LocateOption, 'cacheable' | 'deepLocate' | 'xpath'> & {
+    abortSignal?: AbortSignal;
+  };
 
 export type ElementDescriberRuntime = {
   service: Pick<Service, 'describe' | 'locate'>;
@@ -85,25 +66,6 @@ export type ElementDescriberRuntime = {
 type ServiceDescribeOptions = NonNullable<
   Parameters<ElementDescriberRuntime['service']['describe']>[2]
 >;
-type ElementDescriptionDescriptor = Pick<
-  AgentDescribeElementAtPointResult,
-  'target' | 'primitive' | 'owner' | 'disambiguator' | 'context'
->;
-type DescribeTargetMarker = Rect | [number, number];
-
-const VISUAL_DIAGNOSTIC_CENTER_CROP_SIZE = 128;
-const VISUAL_DIAGNOSTIC_MIN_CONFIDENCE = 0.65;
-
-function normalizeDescribeRetryStrategy(
-  retryStrategy?: DescribeElementRetryStrategy,
-): DescribeElementRetryStrategy {
-  const normalized = retryStrategy || 'none';
-  assert(
-    normalized === 'none' || normalized === 'diagnostic',
-    `Unsupported describe retry strategy: ${normalized}`,
-  );
-  return normalized;
-}
 
 const distanceOfTwoPoints = (p1: [number, number], p2: [number, number]) => {
   const [x1, y1] = p1;
@@ -228,18 +190,11 @@ export async function verifyLocator(
   locateOpt: LocateOption | undefined,
   expectCenter: [number, number],
   verifyLocateOption?: LocatorValidatorOption &
-    Pick<LocateOption, 'deepLocate'> & {
-      tightLocate?: boolean;
-      descriptor?: ElementDescriptionDescriptor;
-      locateInstruction?: string;
-    },
+    Pick<LocateOption, 'deepLocate'>,
 ): Promise<LocateValidatorResult> {
   return locateAndVerify(runtime, prompt, expectCenter, {
     centerDistanceThreshold: verifyLocateOption?.centerDistanceThreshold,
     deepLocate: verifyLocateOption?.deepLocate,
-    tightLocate: verifyLocateOption?.tightLocate,
-    descriptor: verifyLocateOption?.descriptor,
-    locateInstruction: verifyLocateOption?.locateInstruction,
     uiContext: locateOpt?.uiContext,
   });
 }
@@ -265,281 +220,12 @@ function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
-function buildTightLocatePrompt(
-  description: string,
-  locateInstruction?: string,
-): string {
-  return [
-    'Locate the tightest bounding box for the exact target described below.',
-    'First identify the target type, then return only that exact target: substring, link segment, icon, control body, dropdown trigger/value, option row, status label, or cell content.',
-    'Do not return a parent container, whole sentence, whole text line, whole row, or group of adjacent text/links when the description names a smaller target.',
-    'If the target is a wrapped text or link, return a tight box around a distinctive visible segment instead of one large box covering every wrapped line.',
-    'If the target is an input/select/dropdown/filter field body, current value, trigger, or blank field region, return that field/control body or value region instead of a trailing icon or nearby header.',
-    'If the target is a tiny icon/control among adjacent similar icons, use the described local order or relative position within that group and return only that glyph/control.',
-    locateInstruction
-      ? `Diagnostic locator constraint: ${locateInstruction}`
-      : undefined,
-    `Target: ${description}`,
-  ]
-    .filter(Boolean)
-    .join('\n');
-}
-
-function buildStructuredLocatePrompt(
-  description: string,
-  descriptor?: ElementDescriptionDescriptor,
-  locateInstruction?: string,
-): string {
-  const entries = [
-    ['target primitive', descriptor?.primitive],
-    ['target itself', descriptor?.target],
-    ['owner/context', descriptor?.owner],
-    ['disambiguator', descriptor?.disambiguator],
-    ['nearby context', descriptor?.context],
-  ].filter((entry): entry is [string, string] => Boolean(entry[1]?.trim()));
-
-  if (entries.length === 0) {
-    return buildTightLocatePrompt(description, locateInstruction);
-  }
-
-  return [
-    'Locate the tightest bounding box for the exact target described below.',
-    'Use the structured fields to separate the target itself from owner/context.',
-    ...entries.map(([label, value]) => `- ${label}: ${value}`),
-    `- final locator description: ${description}`,
-    '',
-    'Selection rules:',
-    '- Return the target itself, not the owner/context used only to disambiguate it.',
-    '- If the primitive is icon, arrow, control, button accessory, or region, do not return adjacent text just because it names the owner.',
-    '- If the primitive is a tiny icon/control among adjacent similar icons, use the disambiguator or nearby context for local order/relative position and return only that glyph/control.',
-    '- If the primitive is text, link, status, or input value, return only that tight text/control region, not the whole row, card, sentence, or container.',
-    '- If a text or link target wraps across lines, return a tight box around a distinctive visible segment of the target text. For CJK link labels, the first 2-4 visible characters are enough when unique.',
-    '- If the primitive is dropdown or option, return the dropdown trigger/current value/control body or the option row/text itself. Treat select/combobox controls as dropdown. Do not retarget to a trailing search, clear, or arrow icon unless the primitive is explicitly icon/arrow and the endpoint is on that glyph.',
-    '- If the primitive is input, control, region, or blank field body, return the field/control body or value region, not a trailing search/dropdown/clear icon and not a nearby table header.',
-    '- For repeated candidates, choose the one in the same local owner/context and disambiguator.',
-    locateInstruction
-      ? `- Diagnostic locator constraint: ${locateInstruction}`
-      : undefined,
-  ]
-    .filter(Boolean)
-    .join('\n');
-}
-
-function compactDescriptionDescriptor(
-  descriptor?: ElementDescriptionDescriptor,
-): ElementDescriptionDescriptor {
-  return Object.fromEntries(
-    Object.entries(descriptor || {}).filter(([, value]) =>
-      Boolean(value?.trim()),
-    ),
-  ) as ElementDescriptionDescriptor;
-}
-
-function mentionsTemporaryAnnotation(value?: string): boolean {
-  if (!value) {
-    return false;
-  }
-
-  return /红框|标注|标记|选区|选择框|临时标识|准星|callout|marker|annotation|crosshair|selection box|red rectangle|temporary overlay/i.test(
-    value,
-  )
-    ? true
-    : /(?:red|blue)\s+(?:marker|box|rectangle|dot|ring|line|border|callout)|(?:红色|蓝色).*(?:框|点|线|圈|标注|标记)/i.test(
-        value,
-      );
-}
-
-function sanitizeDiagnosticInstruction(value?: string): string | undefined {
-  const trimmed = value?.trim();
-  if (!trimmed || mentionsTemporaryAnnotation(trimmed)) {
-    return undefined;
-  }
-  return trimmed;
-}
-
-function clampCropAroundPoint(
-  center: [number, number],
-  imageSize: Size,
-  cropSize = VISUAL_DIAGNOSTIC_CENTER_CROP_SIZE,
-): Rect {
-  const width = Math.min(cropSize, imageSize.width);
-  const height = Math.min(cropSize, imageSize.height);
-  const maxLeft = Math.max(0, imageSize.width - width);
-  const maxTop = Math.max(0, imageSize.height - height);
-  return {
-    left: Math.max(0, Math.min(Math.round(center[0] - width / 2), maxLeft)),
-    top: Math.max(0, Math.min(Math.round(center[1] - height / 2), maxTop)),
-    width,
-    height,
-  };
-}
-
-function normalizeVisualDiagnosticResult(
-  result: DescribeElementVisualDiagnosticResult | undefined,
-): DescribeElementVisualDiagnosticResult | undefined {
-  if (!result?.failureType) {
-    return undefined;
-  }
-  return {
-    failureType: result.failureType,
-    confidence:
-      typeof result.confidence === 'number' &&
-      Number.isFinite(result.confidence)
-        ? Math.max(0, Math.min(1, result.confidence))
-        : undefined,
-    centerPrimitive: result.centerPrimitive,
-    glyph: result.glyph?.trim() || undefined,
-    primitiveEvidence: result.primitiveEvidence?.trim() || undefined,
-    wrongMatchSummary: result.wrongMatchSummary?.trim() || undefined,
-    describeInstruction: sanitizeDiagnosticInstruction(
-      result.describeInstruction,
-    ),
-    locateInstruction: sanitizeDiagnosticInstruction(result.locateInstruction),
-    isPrimitiveConsistentWithContext:
-      typeof result.isPrimitiveConsistentWithContext === 'boolean'
-        ? result.isPrimitiveConsistentWithContext
-        : undefined,
-    uncertaintyReason: result.uncertaintyReason?.trim() || undefined,
-  };
-}
-
-function shouldApplyVisualDiagnosticFeedback(
-  result: DescribeElementVisualDiagnosticResult,
-): boolean {
-  return (
-    result.failureType !== 'unknown' &&
-    (result.confidence ?? 0) >= VISUAL_DIAGNOSTIC_MIN_CONFIDENCE &&
-    result.centerPrimitive !== 'unknown' &&
-    result.isPrimitiveConsistentWithContext !== false
-  );
-}
-
-async function buildDiagnosticScreenshot(input: {
-  screenshotBase64: string;
-  shotSize: Size;
-  targetMarker: DescribeTargetMarker;
-  verifyResult?: LocateValidatorResult;
-}): Promise<{ imageBase64: string; hasLocatorMarker: boolean }> {
-  let imageBase64 = Array.isArray(input.targetMarker)
-    ? await compositePointMarkerImg({
-        inputImgBase64: input.screenshotBase64,
-        size: input.shotSize,
-        point: {
-          x: input.targetMarker[0],
-          y: input.targetMarker[1],
-        },
-        indexId: 1,
-      })
-    : await compositeElementInfoImg({
-        inputImgBase64: input.screenshotBase64,
-        size: input.shotSize,
-        elementsPositionInfo: [
-          {
-            rect: getDescribeMarkerRect(input.targetMarker),
-            indexId: 1,
-          },
-        ],
-        borderThickness: getDescribeMarkerBorderThickness(input.targetMarker),
-        centerPoint: true,
-      });
-
-  if (!input.verifyResult?.center) {
-    return { imageBase64, hasLocatorMarker: false };
-  }
-
-  imageBase64 = await compositePointMarkerImg({
-    inputImgBase64: imageBase64,
-    size: input.shotSize,
-    point: {
-      x: input.verifyResult.center[0],
-      y: input.verifyResult.center[1],
-    },
-    indexId: 2,
-  });
-
-  return { imageBase64, hasLocatorMarker: true };
-}
-
-async function buildDescribeRetryDiagnosticFeedback(
-  runtime: Pick<ElementDescriberRuntime, 'describeModelRuntime'>,
-  input: {
-    prompt: string;
-    descriptor?: ElementDescriptionDescriptor;
-    screenshotContext?: UIContext;
-    expectCenter: [number, number];
-    targetMarker: DescribeTargetMarker;
-    verifyResult?: LocateValidatorResult;
-    error?: string;
-  },
-): Promise<
-  | {
-      feedback?: string;
-      diagnostic?: DescribeElementVisualDiagnosticResult;
-    }
-  | undefined
-> {
-  if (!input.screenshotContext) {
-    return undefined;
-  }
-
-  const screenshotBase64 = input.screenshotContext.screenshot.base64;
-  const shotSize = input.screenshotContext.shotSize;
-  const centerCropRect = clampCropAroundPoint(input.expectCenter, shotSize);
-  const verifySummary = input.verifyResult
-    ? {
-        pass: input.verifyResult.pass,
-        locatedCenter: input.verifyResult.center,
-        locatedRect: input.verifyResult.rect,
-        centerDistance: input.verifyResult.centerDistance,
-        includedInRect: input.verifyResult.includedInRect,
-      }
-    : undefined;
-
-  try {
-    const diagnosticScreenshot = await buildDiagnosticScreenshot({
-      screenshotBase64,
-      shotSize,
-      targetMarker: input.targetMarker,
-      verifyResult: input.verifyResult,
-    });
-    const rawCenterCrop = await cropByRect(screenshotBase64, centerCropRect);
-    const messages = buildDescribeRetryDiagnosticPrompt({
-      previousDescription: input.prompt,
-      previousStructuredDescriptor: input.descriptor,
-      verifierResult: verifySummary,
-      verifierError: input.error,
-      diagnosticScreenshotBase64: diagnosticScreenshot.imageBase64,
-      rawCenterCropBase64: rawCenterCrop.imageBase64,
-      hasLocatorMarker: diagnosticScreenshot.hasLocatorMarker,
-    });
-
-    const result =
-      await callAIWithObjectResponse<DescribeElementVisualDiagnosticResult>(
-        messages,
-        runtime.describeModelRuntime,
-      );
-    const diagnostic = normalizeVisualDiagnosticResult(result.content);
-    if (!diagnostic || result.content.error) {
-      return undefined;
-    }
-    return {
-      diagnostic,
-      feedback: shouldApplyVisualDiagnosticFeedback(diagnostic)
-        ? buildDiagnosticRetryHint(diagnostic)
-        : undefined,
-    };
-  } catch {
-    return undefined;
-  }
-}
-
 export async function describeElementAtPoint(
   runtime: ElementDescriberRuntime,
   center: [number, number],
   opt?: DescribeElementAtPointOptions,
 ): Promise<AgentDescribeElementAtPointResult> {
-  const { verifyPrompt = true, retryLimit = 4 } = opt || {};
-  const retryStrategy = normalizeDescribeRetryStrategy(opt?.retryStrategy);
+  const { verifyPrompt = true, retryLimit = 3 } = opt || {};
   const { screenshotContext, locateOpt, targetCenter, targetRect } =
     await createScreenshotBoundLocatorContext(center, opt);
   const describeTarget = targetRect ?? targetCenter;
@@ -547,16 +233,19 @@ export async function describeElementAtPoint(
   let success = false;
   let retryCount = 0;
   let resultPrompt = '';
-  let descriptor: ElementDescriptionDescriptor | undefined;
+  const autoRetryDeepDescribe = opt?.deepDescribe === undefined;
+  const autoRetryDeepLocate = opt?.deepLocate === undefined;
+  let deepDescribe = opt?.deepDescribe || false;
   let deepLocate = opt?.deepLocate || false;
   let verifyResult: LocateValidatorResult | undefined;
   let lastError: string | undefined;
   let failureStage: AgentDescribeElementAtPointResult['failureStage'];
-  let describeFeedback: string | undefined;
-  let visualDiagnostic: DescribeElementVisualDiagnosticResult | undefined;
 
   while (!success && retryCount < retryLimit) {
-    if (retryCount >= 1) {
+    if (retryCount >= 1 && autoRetryDeepDescribe) {
+      deepDescribe = true;
+    }
+    if (retryCount >= 1 && autoRetryDeepLocate) {
       deepLocate = true;
     }
     const describeModelRuntime = runtime.describeModelRuntime;
@@ -568,13 +257,11 @@ export async function describeElementAtPoint(
     };
     const describeOpt: ServiceDescribeOptions = screenshotContext
       ? {
-          deepLocate,
+          deepDescribe,
           context: screenshotContext,
-          feedback: describeFeedback,
         }
       : {
-          deepLocate,
-          feedback: describeFeedback,
+          deepDescribe,
         };
     let text: Awaited<
       ReturnType<ElementDescriberRuntime['service']['describe']>
@@ -589,10 +276,8 @@ export async function describeElementAtPoint(
       return {
         prompt: resultPrompt,
         deepLocate,
+        deepDescribe,
         verifyResult,
-        retryStrategy,
-        visualDiagnostic,
-        ...compactDescriptionDescriptor(descriptor),
         success: false,
         error: errorMessage(error),
         failureStage: 'describe',
@@ -602,35 +287,24 @@ export async function describeElementAtPoint(
       return {
         prompt: resultPrompt,
         deepLocate,
+        deepDescribe,
         verifyResult,
-        retryStrategy,
-        visualDiagnostic,
-        ...compactDescriptionDescriptor(descriptor),
         success: false,
         error: `failed to describe element at [${targetCenter}]`,
         failureStage: 'describe',
       };
     }
     resultPrompt = text.description;
-    descriptor = compactDescriptionDescriptor({
-      target: text.target?.trim(),
-      primitive: text.primitive?.trim(),
-      owner: text.owner?.trim(),
-      disambiguator: text.disambiguator?.trim(),
-      context: text.context?.trim(),
-    });
     if (!verifyPrompt) {
       opt?.onProgress?.({
         prompt: resultPrompt,
+        deepDescribe,
         deepLocate,
-        visualDiagnostic,
       });
       success = true;
       break;
     }
 
-    let failedVerifyResult: LocateValidatorResult | undefined;
-    let failedError: string | undefined;
     try {
       const candidateVerifyResult = await verifyLocator(
         retryRuntime,
@@ -640,22 +314,18 @@ export async function describeElementAtPoint(
         {
           ...opt,
           deepLocate,
-          tightLocate: true,
-          descriptor,
-          locateInstruction: visualDiagnostic?.locateInstruction,
         },
       );
       verifyResult = applyLocatorVerifyFn(opt?.locatorVerifyFn, {
         prompt: resultPrompt,
         expectCenter: targetCenter,
-        deepLocate,
         retryCount,
         verifyResult: candidateVerifyResult,
       });
       opt?.onProgress?.({
         prompt: resultPrompt,
+        deepDescribe,
         deepLocate,
-        visualDiagnostic,
         verifyResult,
       });
       if (verifyResult.pass) {
@@ -663,42 +333,15 @@ export async function describeElementAtPoint(
         break;
       }
       lastError = undefined;
-      failedVerifyResult = verifyResult;
       failureStage = 'verify';
     } catch (error) {
       lastError = errorMessage(error);
-      failedError = lastError;
       failureStage = 'verify';
       opt?.onProgress?.({
         prompt: resultPrompt,
+        deepDescribe,
         deepLocate,
-        visualDiagnostic,
       });
-    }
-
-    if (!success && retryCount + 1 < retryLimit) {
-      let diagnosticFeedback:
-        | Awaited<ReturnType<typeof buildDescribeRetryDiagnosticFeedback>>
-        | undefined;
-      if (retryStrategy === 'diagnostic') {
-        diagnosticFeedback = await buildDescribeRetryDiagnosticFeedback(
-          retryRuntime,
-          {
-            prompt: resultPrompt,
-            descriptor,
-            screenshotContext,
-            expectCenter: targetCenter,
-            targetMarker: describeTarget,
-            verifyResult: failedVerifyResult,
-            error: failedError || lastError,
-          },
-        );
-        visualDiagnostic = diagnosticFeedback?.diagnostic;
-      }
-      describeFeedback =
-        retryStrategy === 'diagnostic'
-          ? diagnosticFeedback?.feedback
-          : undefined;
     }
     retryCount++;
   }
@@ -706,9 +349,7 @@ export async function describeElementAtPoint(
   return {
     prompt: resultPrompt,
     deepLocate,
-    retryStrategy,
-    visualDiagnostic,
-    ...compactDescriptionDescriptor(descriptor),
+    deepDescribe,
     verifyResult,
     success,
     error:
@@ -734,38 +375,19 @@ export async function verifyElementDescriptionAtPoint(
   return verifyLocator(runtime, description, locateOpt, targetCenter, opt);
 }
 
-export async function verifyElementByServiceLocate(
-  runtime: Pick<ElementDescriberRuntime, 'service' | 'locateModelRuntime'>,
-  description: string,
-  center: [number, number],
-  opt?: VerifyElementByServiceLocateOptions,
-): Promise<LocateValidatorResult> {
-  return locateAndVerify(runtime, description, center, opt);
-}
-
 async function locateAndVerify(
   runtime: Pick<ElementDescriberRuntime, 'service' | 'locateModelRuntime'>,
   description: string,
   center: [number, number],
-  opt?: VerifyElementByServiceLocateOptions & {
+  opt?: LocateAndVerifyOptions & {
     uiContext?: UIContext;
-    tightLocate?: boolean;
-    descriptor?: ElementDescriptionDescriptor;
-    locateInstruction?: string;
   },
 ): Promise<LocateValidatorResult> {
   assert(description?.trim(), 'description must not be empty');
   const { screenshotContext, targetCenter } =
     await createScreenshotBoundLocatorContext(center, opt);
   const context = opt?.uiContext || screenshotContext;
-  const locateDescription = opt?.tightLocate
-    ? buildStructuredLocatePrompt(
-        description,
-        opt.descriptor,
-        opt.locateInstruction,
-      )
-    : description;
-  const locateParam = buildDetailedLocateParam(locateDescription, {
+  const locateParam = buildDetailedLocateParam(description, {
     cacheable: opt?.cacheable,
     deepLocate: opt?.deepLocate,
     xpath: opt?.xpath,

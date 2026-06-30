@@ -62,11 +62,11 @@ describe('service.describe', () => {
       'data:image/png;base64,point',
     );
     mockCropByRect.mockReset();
-    mockCropByRect.mockResolvedValue({
-      width: 400,
-      height: 400,
+    mockCropByRect.mockImplementation(async (_imageBase64, rect) => ({
+      width: rect.width,
+      height: rect.height,
       imageBase64: 'data:image/png;base64,cropped',
-    });
+    }));
     mockResizeImgBase64.mockReset();
     mockResizeImgBase64.mockResolvedValue('data:image/png;base64,resized');
   });
@@ -159,7 +159,7 @@ describe('service.describe', () => {
     expect(mockCompositePointMarkerImg).not.toHaveBeenCalled();
   });
 
-  it('uses a rectangle marker for small target rects during deep locate retries', async () => {
+  it('uses a rectangle marker for small target rects during deepDescribe retries', async () => {
     mockCallAIWithObjectResponse.mockResolvedValueOnce({
       content: { description: 'small target retry' },
     });
@@ -168,7 +168,7 @@ describe('service.describe', () => {
     await service.describe(
       { left: 10, top: 20, width: 30, height: 30 },
       modelRuntime,
-      { deepLocate: true },
+      { deepDescribe: true },
     );
 
     expect(mockCompositeElementInfoImg).toHaveBeenCalledWith(
@@ -193,7 +193,7 @@ describe('service.describe', () => {
     await service.describe(
       { left: 10, top: 20, width: 120, height: 30 },
       modelRuntime,
-      { deepLocate: true },
+      { deepDescribe: true },
     );
 
     expect(mockCompositeElementInfoImg).toHaveBeenCalledWith(
@@ -209,7 +209,7 @@ describe('service.describe', () => {
     expect(mockCompositePointMarkerImg).not.toHaveBeenCalled();
   });
 
-  it('uses only the deep-locate crop for wide target rect retries', async () => {
+  it('sends overview, focused crop, and axis context for deepDescribe retries', async () => {
     mockCallAIWithObjectResponse.mockResolvedValueOnce({
       content: { description: 'wide target with deep-locate context' },
     });
@@ -218,36 +218,38 @@ describe('service.describe', () => {
     const result = await service.describe(
       { left: 10, top: 20, width: 120, height: 30 },
       modelRuntime,
-      { deepLocate: true },
+      { deepDescribe: true },
     );
 
     expect(result).toEqual({
       description: 'wide target with deep-locate context',
     });
     expect(mockCallAIWithObjectResponse).toHaveBeenCalledTimes(1);
-    expect(mockCropByRect).toHaveBeenCalledTimes(1);
+    expect(mockCropByRect).toHaveBeenCalledTimes(2);
+    expect(mockCropByRect.mock.calls.map(([image]) => image)).not.toContain(
+      'data:image/png;base64,boxed',
+    );
     expect(mockCropByRect).not.toHaveBeenCalledWith(
       expect.stringMatching(/^data:image\/.+;base64,/),
       { left: 10, top: 20, width: 120, height: 30 },
     );
 
     const msgs = mockCallAIWithObjectResponse.mock.calls[0][0];
-    expect(msgs[1].content).toEqual([
-      {
-        type: 'text',
-        text: 'Full screenshot with a temporary callout marking the target:',
-      },
-      {
-        type: 'image_url',
-        image_url: {
-          url: 'data:image/png;base64,resized',
-          detail: 'high',
-        },
-      },
+    const content = msgs[1].content as Array<{
+      type: string;
+      text?: string;
+      image_url?: { url: string; detail: string };
+    }>;
+    expect(content.filter((item) => item.type === 'image_url')).toHaveLength(3);
+    expect(content.map((item) => item.text).filter(Boolean)).toEqual([
+      'Use these images together to describe the real UI target marked by the temporary callout. Do not describe the marker itself.',
+      'Image 1: low-resolution full screenshot overview with the target marker, for page position and ownership context.',
+      'Image 2: focused detail crop around the target, for reading text, icon shape, and exact local boundaries.',
+      'Image 3: horizontal structural context crop near the target, for disambiguating nearby rows, columns, panels, or repeated controls.',
     ]);
   });
 
-  it('keeps wider horizontal context for label-like targets during deep locate retries', async () => {
+  it('keeps wider horizontal context for label-like targets during deepDescribe retries', async () => {
     mockCallAIWithObjectResponse.mockResolvedValueOnce({
       content: { description: 'row status label' },
     });
@@ -256,15 +258,29 @@ describe('service.describe', () => {
     await service.describe(
       { left: 1500, top: 500, width: 56, height: 20 },
       modelRuntime,
-      { deepLocate: true },
+      { deepDescribe: true },
     );
 
-    expect(mockCropByRect).toHaveBeenCalledWith('data:image/png;base64,boxed', {
+    expect(mockCropByRect).toHaveBeenCalledWith(expect.any(String), {
       left: 664,
       top: 310,
       width: 1152,
       height: 400,
     });
+    expect(mockCropByRect.mock.calls.map(([image]) => image)).not.toContain(
+      'data:image/png;base64,boxed',
+    );
+    expect(mockCompositeElementInfoImg).toHaveBeenCalledWith(
+      expect.objectContaining({
+        inputImgBase64: 'data:image/png;base64,cropped',
+        size: { width: 1152, height: 400 },
+        elementsPositionInfo: [
+          {
+            rect: { left: 836, top: 190, width: 56, height: 20 },
+          },
+        ],
+      }),
+    );
   });
 
   it('uses a point marker without cropping for bare point targets', async () => {
@@ -284,63 +300,43 @@ describe('service.describe', () => {
     expect(mockCompositeElementInfoImg).not.toHaveBeenCalled();
   });
 
-  it('keeps wider horizontal row context for bare point targets during deep locate retries', async () => {
+  it('keeps wider horizontal row context for bare point targets during deepDescribe retries', async () => {
     mockCallAIWithObjectResponse.mockResolvedValueOnce({
       content: { description: 'point target with row context' },
     });
 
     const service = new Service(createFakeContext());
     const result = await service.describe([1500, 500], modelRuntime, {
-      deepLocate: true,
+      deepDescribe: true,
     });
 
     expect(result).toMatchObject({
       description: 'point target with row context',
     });
 
-    expect(mockCropByRect).toHaveBeenCalledWith('data:image/png;base64,point', {
+    expect(mockCropByRect).toHaveBeenCalledWith(expect.any(String), {
       left: 636,
       top: 300,
       width: 1152,
       height: 400,
     });
+    expect(mockCropByRect.mock.calls.map(([image]) => image)).not.toContain(
+      'data:image/png;base64,point',
+    );
     expect(mockCompositePointMarkerImg).toHaveBeenCalledWith(
       expect.objectContaining({
         point: { x: 1500, y: 500 },
       }),
     );
+    expect(mockCompositePointMarkerImg).toHaveBeenCalledWith(
+      expect.objectContaining({
+        inputImgBase64: 'data:image/png;base64,cropped',
+        size: { width: 1152, height: 400 },
+        point: { x: 864, y: 200 },
+      }),
+    );
     expect(mockCompositeElementInfoImg).not.toHaveBeenCalled();
     expect(mockCallAIWithObjectResponse).toHaveBeenCalledTimes(1);
-  });
-
-  it('includes retry feedback text before the marked screenshot', async () => {
-    mockCallAIWithObjectResponse.mockResolvedValueOnce({
-      content: { description: 'refined target' },
-    });
-
-    const service = new Service(createFakeContext());
-    await service.describe([100, 100], modelRuntime, {
-      feedback: 'Previous description matched a different element.',
-    });
-
-    const msgs = mockCallAIWithObjectResponse.mock.calls[0][0];
-    expect(msgs[1].content).toEqual([
-      {
-        type: 'text',
-        text: 'Previous description matched a different element.',
-      },
-      {
-        type: 'text',
-        text: 'Full screenshot with a temporary callout marking the target:',
-      },
-      {
-        type: 'image_url',
-        image_url: {
-          url: 'data:image/png;base64,point',
-          detail: 'high',
-        },
-      },
-    ]);
   });
 
   it('recovers from structured AI response parse errors when rawResponse is available', async () => {

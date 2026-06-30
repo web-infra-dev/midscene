@@ -67,14 +67,11 @@ export {
 export {
   describeElementAtPoint,
   verifyElementDescriptionAtPoint,
-  verifyElementByServiceLocate,
   verifyLocator,
   type DescribeElementAtPointOptions,
   type DescribeElementCoordinateSpace,
-  type DescribeElementRetryStrategy,
   type ElementDescriberRuntime,
   type VerifyElementDescriptionAtPointOptions,
-  type VerifyElementByServiceLocateOptions,
 } from './element-describer';
 
 // Dump utilities

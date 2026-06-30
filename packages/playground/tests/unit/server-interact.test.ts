@@ -783,6 +783,9 @@ describe('PlaygroundServer manual interaction APIs', () => {
     const describeElementAtPoint = mockDescribeElementAtPoint(async () => ({
       prompt: 'login button',
       deepLocate: false,
+      success: false,
+      error: 'describeElementAtPoint verify failed',
+      failureStage: 'verify',
       verifyResult: {
         pass: false,
         rect: { left: 10, top: 10, width: 5, height: 5 },
@@ -843,6 +846,7 @@ describe('PlaygroundServer manual interaction APIs', () => {
           source: 'aiDescribe',
           status: 'ready',
           elementDescription: 'login button',
+          confidence: 'low',
           aiDescribe: {
             verifyPrompt: true,
             verifyPassed: false,

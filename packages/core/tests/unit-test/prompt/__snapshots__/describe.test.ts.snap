@@ -44,11 +44,6 @@ EXAMPLES:
 
 Return JSON:
 {
-  "target": "the smallest indicated UI part itself, including visible text/icon/control type when identifiable",
-  "primitive": "text | icon | arrow | input | dropdown | option | button | link | status | checkbox | radio | switch | tab | menuitem | slider | image | control | region | blank | unknown",
-  "owner": "nearest stable owner text, label, group, row, or column context",
-  "disambiguator": "same-owner anchor, visible index, sub-part, position, or empty string",
-  "context": "stable owner, row/column, neighboring text, or adjacent controls that disambiguate the target",
   "description": "unique element identifier",
   "error"?: "error message if any"
 }"
