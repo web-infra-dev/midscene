@@ -21,6 +21,7 @@ import DetailSide from './components/detail-side';
 import GlobalHoverPreview from './components/global-hover-preview';
 import Sidebar from './components/sidebar';
 import { type DumpStoreType, useExecutionDump } from './components/store';
+import { useTaskHashAnchor } from './components/store/use-task-hash-anchor';
 import Timeline from './components/timeline';
 import ThemeDarkIcon from './icons/theme-dark.svg?react';
 import ThemeLightIcon from './icons/theme-light.svg?react';
@@ -103,6 +104,9 @@ function Visualizer(props: VisualizerProps): JSX.Element {
     darkModeEnabled: isDarkMode,
     setDarkModeEnabled: setIsDarkMode,
   } = useGlobalPreference();
+
+  // Keep the URL hash in sync with the selected sidebar task (deep-linking).
+  useTaskHashAnchor();
 
   useEffect(() => {
     document.documentElement.setAttribute(

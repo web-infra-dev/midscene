@@ -18,6 +18,7 @@ import {
   hasDeepLocateFlag,
   hasDeepThinkFlag,
 } from '../../utils/report-task-tags';
+import { anchorIdForTask } from '../../utils/task-anchor';
 import ReportOverview from '../report-overview';
 
 // Extended task type with searchAreaUsage
@@ -680,8 +681,14 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
           <div className="table-body">
             {tableData.map((record) => {
               if (record.isGroupHeader) {
+                // Group headers are not selectable; the id only makes them a
+                // plain `#group-<index>` scroll target, with no hash sync.
                 return (
-                  <div key={record.key} className="group-header-row">
+                  <div
+                    key={record.key}
+                    id={record.key}
+                    className="group-header-row"
+                  >
                     <div className="side-sub-title">{record.groupName}</div>
                   </div>
                 );
@@ -691,10 +698,14 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
               const isSelected = task === activeTask;
               const isPlaying = task === playingTask;
               const taskId = task.taskId;
+              // Single source of truth for the anchor format so the row id,
+              // the hash we write, and the hash we resolve never drift apart.
+              const anchorId = anchorIdForTask(task);
 
               return (
                 <div
                   key={record.key}
+                  id={anchorId}
                   data-task-id={taskId}
                   className={`task-row ${isSelected ? 'selected' : ''} ${isPlaying ? 'playing' : ''}`}
                   onClick={() => {
