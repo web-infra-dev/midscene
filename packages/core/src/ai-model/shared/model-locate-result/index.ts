@@ -10,6 +10,7 @@ export {
 export type { CoordinateDistanceAxis } from './coordinate-distance';
 export {
   createLocateResultValue,
+  parseCoordinateList,
   unwrapCoordinateListLikeInput,
 } from './parse';
 export type {

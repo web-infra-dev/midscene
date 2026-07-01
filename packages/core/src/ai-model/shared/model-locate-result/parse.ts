@@ -27,7 +27,7 @@ export function unwrapCoordinateListLikeInput(
   return coordinateList as string;
 }
 
-function parseCoordinateList(input: unknown, label: string): number[] {
+export function parseCoordinateList(input: unknown, label: string): number[] {
   const unwrapped = unwrapCoordinateListLikeInput(
     input as CoordinateListLikeInput,
   );
