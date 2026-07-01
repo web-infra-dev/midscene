@@ -1,6 +1,7 @@
 import './index.less';
 import { useAllCurrentTasks, useExecutionDump } from '@/components/store';
 import type { AIUsageInfo, ExecutionTask } from '@midscene/core';
+import { deriveTaskStatus } from '@midscene/core';
 import { typeStr } from '@midscene/core/agent';
 import {
   type AnimationScript,
@@ -126,28 +127,12 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
 
   // Helper functions for rendering
   const getStatusIcon = (task: ExecutionTaskWithSearchAreaUsage) => {
-    const isFinished = task.status === 'finished';
-    const isError = isFinished && (task.error || task.errorMessage);
-
-    if (isError) {
-      return iconForStatus('failed');
-    }
-
-    const isAssertFinishedWithWarning =
-      isFinished && task.subType === 'WaitFor' && task.output === false;
-
-    if (isAssertFinishedWithWarning) {
-      return iconForStatus('finishedWithWarning');
-    }
-
-    const isAssertFailed =
-      task.subType === 'Assert' && isFinished && task.output === false;
-
-    if (isAssertFailed) {
-      return iconForStatus('failed');
-    }
-
-    return iconForStatus(task.status);
+    // Share the same failure semantics as the merged-report status derivation
+    // (deriveTaskStatus) so step icons and merged Passed/Failed never diverge.
+    const status = deriveTaskStatus(task);
+    // `warning` maps to the dedicated warning icon; every other value is a
+    // status string iconForStatus already understands.
+    return iconForStatus(status === 'warning' ? 'finishedWithWarning' : status);
   };
 
   const getTitleIcon = (task: ExecutionTaskWithSearchAreaUsage) => {
