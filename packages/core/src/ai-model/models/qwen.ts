@@ -7,10 +7,25 @@ import type {
 import {
   type LocateResultValue,
   type PixelBbox,
+  createLocateResultValue,
+  isBboxLocateResultValue,
   unwrapCoordinateListLikeInput,
 } from '../shared/model-locate-result';
 
 const defaultBboxSize = 20;
+const qwen25BboxCoordinatesMeta = {
+  shape: 'bbox',
+  order: 'xy',
+} as const;
+const qwen25PointCoordinatesMeta = {
+  shape: 'point',
+  order: 'xy',
+} as const;
+const qwen3BboxCoordinatesMeta = {
+  shape: 'bbox',
+  order: 'xy',
+  normalizedBy: 1000,
+} as const;
 
 function topLeftPointToPixelBbox(x: number, y: number): PixelBbox {
   return [
@@ -29,28 +44,35 @@ function parseQwen25RawLocateValue(input: unknown): LocateResultValue {
   }
 
   if (typeof bbox[2] === 'number' && typeof bbox[3] === 'number') {
-    return {
-      type: 'bbox',
-      coordinates: [bbox[0], bbox[1], bbox[2], bbox[3]],
-    };
+    return createLocateResultValue(qwen25BboxCoordinatesMeta, [
+      bbox[0],
+      bbox[1],
+      bbox[2],
+      bbox[3],
+    ]);
   }
 
-  return { type: 'point', coordinates: [bbox[0], bbox[1]] };
+  return createLocateResultValue(qwen25PointCoordinatesMeta, [
+    bbox[0],
+    bbox[1],
+  ]);
 }
 
 function normalizeQwen25ResultToPixelBbox(
   result: LocateResultValue,
 ): PixelBbox {
-  if (result.type === 'bbox') {
+  if (isBboxLocateResultValue(result)) {
+    const { coordinates } = result;
     return [
-      Math.round(result.coordinates[0]),
-      Math.round(result.coordinates[1]),
-      Math.round(result.coordinates[2]),
-      Math.round(result.coordinates[3]),
+      Math.round(coordinates[0]),
+      Math.round(coordinates[1]),
+      Math.round(coordinates[2]),
+      Math.round(coordinates[3]),
     ];
   }
 
-  return topLeftPointToPixelBbox(result.coordinates[0], result.coordinates[1]);
+  const { coordinates } = result;
+  return topLeftPointToPixelBbox(coordinates[0], coordinates[1]);
 }
 
 const buildQwenChatCompletionParams = (
@@ -118,7 +140,7 @@ const qwen3Adapter: ModelAdapterDefinition = {
   },
   locate: {
     resultAdapter: {
-      coordinates: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
+      coordinates: qwen3BboxCoordinatesMeta,
     },
   },
 };
@@ -138,7 +160,7 @@ export const qwenAdapters = {
     },
     locate: {
       resultAdapter: {
-        coordinates: { shape: 'bbox', order: 'xy' },
+        coordinates: qwen25BboxCoordinatesMeta,
         parseRawLocateValue: parseQwen25RawLocateValue,
         mapLocateResultToPixelBbox: normalizeQwen25ResultToPixelBbox,
       },

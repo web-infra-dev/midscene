@@ -1,5 +1,11 @@
 import type {
+  BboxLocateResultCoordinates,
+  BboxLocateResultValue,
+  LocateResultBbox,
+  LocateResultPoint,
   LocateResultValue,
+  PointLocateResultCoordinates,
+  PointLocateResultValue,
   ResolvedLocateResultCoordinates,
 } from './types';
 
@@ -48,6 +54,36 @@ function parseCoordinateList(input: unknown, label: string): number[] {
   return numericValues;
 }
 
+export function createLocateResultValue(
+  coordinatesMeta: PointLocateResultCoordinates,
+  coordinates: number[],
+): PointLocateResultValue;
+export function createLocateResultValue(
+  coordinatesMeta: BboxLocateResultCoordinates,
+  coordinates: number[],
+): BboxLocateResultValue;
+export function createLocateResultValue(
+  coordinatesMeta: ResolvedLocateResultCoordinates,
+  coordinates: number[],
+): LocateResultValue {
+  if (coordinatesMeta.shape === 'point') {
+    return {
+      coordinates: [coordinates[0], coordinates[1]] as LocateResultPoint,
+      coordinatesMeta,
+    };
+  }
+
+  return {
+    coordinates: [
+      coordinates[0],
+      coordinates[1],
+      coordinates[2],
+      coordinates[3],
+    ] as LocateResultBbox,
+    coordinatesMeta,
+  };
+}
+
 export function parseNumericLocateResult(
   resolvedCoordinates: ResolvedLocateResultCoordinates,
   input: unknown,
@@ -57,7 +93,7 @@ export function parseNumericLocateResult(
     if (point.length < 2) {
       throw new Error(`invalid point data: ${JSON.stringify(input)} `);
     }
-    return { type: 'point', coordinates: [point[0], point[1]] };
+    return createLocateResultValue(resolvedCoordinates, point);
   }
 
   const bbox = parseCoordinateList(input, 'bbox');
@@ -65,8 +101,5 @@ export function parseNumericLocateResult(
     throw new Error(`invalid bbox data: ${JSON.stringify(input)} `);
   }
 
-  return {
-    type: 'bbox',
-    coordinates: [bbox[0], bbox[1], bbox[2], bbox[3]],
-  };
+  return createLocateResultValue(resolvedCoordinates, bbox);
 }

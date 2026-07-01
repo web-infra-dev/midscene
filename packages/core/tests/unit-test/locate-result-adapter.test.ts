@@ -198,8 +198,8 @@ describe('createLocateResultAdapter', () => {
     const adapter = createLocateResultAdapter({
       coordinates: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
       parseRawLocateValue: () => ({
-        type: 'bbox',
         coordinates: [652, '233; 713 251;'] as any,
+        coordinatesMeta: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
       }),
     });
 
@@ -374,8 +374,8 @@ describe('createLocateResultAdapter', () => {
 
   it('allows custom parsing and mapping in standard definition', () => {
     const parseRawLocateValue = vi.fn(() => ({
-      type: 'point' as const,
       coordinates: [3, 4] as [number, number],
+      coordinatesMeta: { shape: 'point' as const, order: 'xy' as const },
     }));
     const mapLocateResultToPixelBbox = vi.fn(
       (): [number, number, number, number] => [1, 2, 3, 4],
@@ -401,7 +401,10 @@ describe('createLocateResultAdapter', () => {
     expect(parseRawLocateValue).toHaveBeenCalledWith({ x: 3, y: 4 });
     expect(parseRawLocateValue).toHaveBeenCalledWith({ x: 5, y: 6 });
     expect(mapLocateResultToPixelBbox).toHaveBeenCalledWith(
-      { type: 'point', coordinates: [3, 4] },
+      {
+        coordinates: [3, 4],
+        coordinatesMeta: { shape: 'point', order: 'xy' },
+      },
       locateCtx(100, 100),
     );
   });

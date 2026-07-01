@@ -6,9 +6,44 @@ export type PixelBbox = Bbox;
 export type NonEmptyArray<T> = [T, ...T[]];
 export type RawLocateValue = unknown;
 
+export type LocateResultPoint = [number, number];
+export type PointLocateResultCoordinates = ResolvedLocateResultCoordinates & {
+  shape: 'point';
+};
+export type BboxLocateResultCoordinates = ResolvedLocateResultCoordinates & {
+  shape: 'bbox';
+};
+
 export type LocateResultValue =
-  | { type: 'bbox'; coordinates: LocateResultBbox }
-  | { type: 'point'; coordinates: [number, number] };
+  | {
+      coordinates: LocateResultPoint;
+      coordinatesMeta: PointLocateResultCoordinates;
+    }
+  | {
+      coordinates: LocateResultBbox;
+      coordinatesMeta: BboxLocateResultCoordinates;
+    };
+
+export type PointLocateResultValue = Extract<
+  LocateResultValue,
+  { coordinatesMeta: { shape: 'point' } }
+>;
+export type BboxLocateResultValue = Extract<
+  LocateResultValue,
+  { coordinatesMeta: { shape: 'bbox' } }
+>;
+
+export function isBboxLocateResultValue(
+  result: LocateResultValue,
+): result is BboxLocateResultValue {
+  return result.coordinatesMeta.shape === 'bbox';
+}
+
+export function isPointLocateResultValue(
+  result: LocateResultValue,
+): result is PointLocateResultValue {
+  return result.coordinatesMeta.shape === 'point';
+}
 
 export type LocateResultShape = 'bbox' | 'point';
 
@@ -69,11 +104,17 @@ export interface LocateResultCoordinates {
   normalizedBy?: number;
 }
 
-export interface ResolvedLocateResultCoordinates {
-  shape: LocateResultShape;
-  order: 'xy' | 'yx';
-  normalizedBy?: number;
-}
+export type ResolvedLocateResultCoordinates =
+  | {
+      shape: 'point';
+      order: 'xy' | 'yx';
+      normalizedBy?: number;
+    }
+  | {
+      shape: 'bbox';
+      order: 'xy' | 'yx';
+      normalizedBy?: number;
+    };
 
 export type RawLocateValueParser = (input: RawLocateValue) => LocateResultValue;
 export type LocateResultPixelBboxMapper = (
@@ -89,9 +130,9 @@ export type LocateResultPixelBboxMapper = (
  *    raw result parser, and a default pixel bbox mapper.
  * 2. `parseRawLocateValue` converts that raw result value into Midscene's
  *    internal `LocateResultValue` shape:
- *    `{ type: 'bbox' | 'point', coordinates: ... }`. Omit it when the model
- *    returns a plain numeric bbox/point matching `coordinates`; provide it when the
- *    model needs repair or fallback handling.
+ *    `{ coordinates, coordinatesMeta }`. Omit it when the model returns a
+ *    plain numeric bbox/point matching `coordinates`; provide it when the
+ *    model needs repair, fallback handling, or per-result coordinate metadata.
  * 3. `mapLocateResultToPixelBbox` converts the parsed result into a pixel bbox
  *    `[left, top, right, bottom]`. Omit it when `coordinates` is enough to describe
  *    the coordinate system and order; provide it only for model-specific
@@ -132,13 +173,13 @@ export type LocateResultPixelBboxMapper = (
  * resultAdapter: {
  *   coordinates: { shape: 'bbox', order: 'xy' },
  *   parseRawLocateValue: (raw) => ({
- *     type: 'bbox',
  *     coordinates: [
  *       Number((raw as any).left),
  *       Number((raw as any).top),
  *       Number((raw as any).right),
  *       Number((raw as any).bottom),
  *     ],
+ *     coordinatesMeta: { shape: 'bbox', order: 'xy' },
  *   }),
  *   mapLocateResultToPixelBbox: (result) => result.coordinates,
  * }
@@ -154,8 +195,8 @@ export type StandardLocateResultAdapterDefinition = {
   coordinates: LocateResultCoordinates;
   /**
    * Parses the picked raw value into a `LocateResultValue`. This function
-   * should handle response repair and bbox-vs-point fallback only;
-   * coordinate-system conversion should stay in `mapLocateResultToPixelBbox`.
+   * should handle response repair, bbox-vs-point fallback, and the coordinate
+   * metadata that describes the parsed coordinates.
    */
   parseRawLocateValue?: RawLocateValueParser;
   /**
