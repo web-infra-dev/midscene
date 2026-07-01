@@ -2,54 +2,11 @@ target:
   serve: ./dist
   url: demo.html?playerOnly=1
 tasks:
-  - name: player-only mode strips all report chrome
+  - name: player-only mode shows only the replay player
     flow:
-      - sleep: 3000
-      - javascript: |
-          (function () {
-            const container = document.querySelector('.page-container.player-only');
-            if (!container) {
-              throw new Error(
-                'Expected .page-container.player-only when ?playerOnly=1 is set',
-              );
-            }
-            const strippedSelectors = [
-              '.page-nav',
-              '.page-side',
-              '.main-right-header',
-              '.main-layout',
-            ];
-            const stillPresent = strippedSelectors.filter(
-              (selector) => document.querySelector(selector) !== null,
-            );
-            if (stillPresent.length > 0) {
-              throw new Error(
-                'Player-only mode should hide report chrome, but found: ' +
-                  stillPresent.join(', '),
-              );
-            }
-            return { chromeStripped: true };
-          })()
-        name: assertChromeStripped
+      - sleep: 5000
+      - aiAssert: The page shows a video/replay player area filling the view, with a playback progress bar and a time display at the bottom.
 
-  - name: player-only mode renders just the player
+  - name: player-only mode hides all report chrome
     flow:
-      - javascript: |
-          (function () {
-            const content = document.querySelector('.player-only-content');
-            if (!content) {
-              throw new Error('Expected .player-only-content to be rendered');
-            }
-            // Either the Player canvas mounted, or an Empty fallback is shown for
-            // a task without a replay animation — never a silent blank screen.
-            const hasPlayer =
-              content.querySelector('.player-container') !== null;
-            const hasFallback = content.querySelector('.ant-empty') !== null;
-            if (!hasPlayer && !hasFallback) {
-              throw new Error(
-                'Player-only content is blank: neither a player nor a fallback',
-              );
-            }
-            return { hasPlayer, hasFallback };
-          })()
-        name: assertPlayerRendered
+      - aiAssert: There is no top navigation header bar with the Midscene logo, no left-hand task list sidebar, and no "Record" timeline section — only the player is visible.

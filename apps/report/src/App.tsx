@@ -326,9 +326,11 @@ function Visualizer(props: VisualizerProps): JSX.Element {
   }, []);
 
   // In player-only mode, skip every piece of chrome and render just the Player.
-  // There is no sidebar here to enable "replay all", so we always show the
-  // active task's replay (deep-linkable via the `#task-<id>` hash anchor).
-  const playerOnlyScripts = activeExecutionAnimation || [];
+  // Mirror the main view's script source: the report opens in "replay all" mode
+  // by default (whole-flow animation); deep-linking to a `#task-<id>` anchor
+  // switches to that single task's replay.
+  const playerOnlyScripts =
+    (replayAllMode ? replayAllScripts : activeExecutionAnimation) || [];
   let playerOnlyContent: JSX.Element;
   if (!executionDump) {
     playerOnlyContent = <Empty description="Loading report content..." />;
@@ -345,6 +347,7 @@ function Visualizer(props: VisualizerProps): JSX.Element {
         replayScripts={playerOnlyScripts}
         imageWidth={insightWidth || 0}
         imageHeight={insightHeight || 0}
+        onTaskChange={replayAllMode ? setPlayingTaskId : undefined}
       />
     );
   }
