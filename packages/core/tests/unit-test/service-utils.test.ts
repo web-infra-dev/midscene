@@ -51,6 +51,25 @@ describe('service describe utils', () => {
     ]);
   });
 
+  it('uses balanced context for point targets on square-ish screenshots', () => {
+    const searchAreas = getDescribeDeepContextAreas(
+      { left: 435, top: 435, width: 30, height: 30 },
+      { width: 960, height: 900 },
+      { targetFromPoint: true },
+    );
+
+    expect(searchAreas[1]).toEqual({
+      kind: 'axis',
+      axisMode: 'balanced',
+      rect: {
+        left: 150,
+        top: 150,
+        width: 600,
+        height: 600,
+      },
+    });
+  });
+
   it('maps target rectangles into cropped image coordinates', () => {
     expect(
       getRectInCrop(

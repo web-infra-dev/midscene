@@ -45,6 +45,11 @@ import {
 } from './codex-app-server';
 import type { JsonParserSource } from './json';
 import {
+  type OpenAIErrorResponseContext,
+  formatOpenAIAPIErrorDetails,
+  wrapOpenAICompatibleFetch,
+} from './openai-error';
+import {
   buildRequestAbortSignal,
   isHardTimeoutError,
   resolveEffectiveTimeoutMs,
@@ -116,6 +121,7 @@ export async function createChatClient({
   modelName: string;
   modelDescription: string;
   modelFamily: TModelFamily | undefined;
+  openAIErrorResponseContext: OpenAIErrorResponseContext;
 }> {
   const {
     socksProxy,
@@ -223,6 +229,7 @@ export async function createChatClient({
   }
 
   const effectiveTimeoutMs = resolveEffectiveTimeoutMs({ timeout });
+  const openAIErrorResponseContext: OpenAIErrorResponseContext = {};
   const openAIOptions = {
     baseURL: openaiBaseURL,
     apiKey: openaiApiKey,
@@ -230,6 +237,7 @@ export async function createChatClient({
     // Note: Type assertion needed due to undici version mismatch between dependencies
     ...(proxyAgent ? { fetchOptions: { dispatcher: proxyAgent as any } } : {}),
     ...openaiExtraConfig,
+    fetch: wrapOpenAICompatibleFetch(openAIErrorResponseContext),
     // Midscene already handles retries in callAI(), so disable SDK-level retries
     // to avoid duplicate attempts and duplicated backoff latency.
     maxRetries: 0,
@@ -286,6 +294,7 @@ export async function createChatClient({
     modelName,
     modelDescription,
     modelFamily,
+    openAIErrorResponseContext,
   };
 }
 
@@ -318,10 +327,15 @@ export async function callAI(
     });
   }
 
-  const { completion, modelName, modelDescription, modelFamily } =
-    await createChatClient({
-      modelConfig,
-    });
+  const {
+    completion,
+    modelName,
+    modelDescription,
+    modelFamily,
+    openAIErrorResponseContext,
+  } = await createChatClient({
+    modelConfig,
+  });
   const effectiveTimeoutMs = resolveEffectiveTimeoutMs(modelConfig);
 
   const extraBody = modelConfig.extraBody;
@@ -362,6 +376,22 @@ export async function callAI(
 
   const hasUsableText = (value: string | null | undefined): value is string =>
     typeof value === 'string' && value.trim().length > 0;
+
+  const resolveContentWithReasoningFallback = (
+    contentValue: string | undefined,
+    reasoningContent: string,
+  ) => {
+    if (
+      !hasUsableText(contentValue) &&
+      adapter.chatCompletion.useReasoningAsContentFallback &&
+      hasUsableText(reasoningContent)
+    ) {
+      warnCall('empty content from AI model, using reasoning content');
+      return reasoningContent;
+    }
+
+    return contentValue;
+  };
 
   const buildUsageInfo = (
     usageData?: OpenAI.CompletionUsage,
@@ -503,6 +533,12 @@ export async function callAI(
               };
             }
 
+            const finalAccumulated = resolveContentWithReasoningFallback(
+              accumulated,
+              accumulatedReasoning,
+            );
+            accumulated = finalAccumulated || '';
+
             // Send final chunk
             const finalChunk: CodeGenerationChunk = {
               content: '',
@@ -572,10 +608,10 @@ export async function callAI(
           requestId = result._request_id;
           responseModelName = result.model;
 
-          if (!hasUsableText(content) && hasUsableText(accumulatedReasoning)) {
-            warnCall('empty content from AI model, using reasoning content');
-            content = accumulatedReasoning;
-          }
+          content = resolveContentWithReasoningFallback(
+            content,
+            accumulatedReasoning,
+          );
 
           if (!hasUsableText(content)) {
             throw new AIResponseParseError(
@@ -656,7 +692,7 @@ export async function callAI(
     }
 
     const newError = new Error(
-      `failed to call ${isStreaming ? 'streaming ' : ''}AI model service (${modelName}): ${e.message}\nTrouble shooting: https://midscenejs.com/model-provider.html`,
+      `failed to call ${isStreaming ? 'streaming ' : ''}AI model service (${modelName}): ${e.message}${formatOpenAIAPIErrorDetails(e, openAIErrorResponseContext)}\nTrouble shooting: https://midscenejs.com/model-provider.html`,
       {
         cause: e,
       },

@@ -13,7 +13,7 @@ import {
   extractAllDumpScriptsSync,
   generateImageScriptTag,
 } from '../../src/dump/html-utils';
-import { ReportMergingTool } from '../../src/report';
+import { ReportMergingTool, isDirectoryModeReport } from '../../src/report';
 import { ReportActionDump } from '../../src/types';
 import { getReportTpl, getTmpFile, writeDumpReport } from '../../src/utils';
 
@@ -325,6 +325,142 @@ describe('reportMergingTool', () => {
       expect(existsSync(mergedPath!)).toBe(true);
 
       // Verify original directories are completely removed
+      for (const dir of reportDirs) {
+        expect(existsSync(dir)).toBe(false);
+      }
+    } finally {
+      rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  // Regression: a directory-mode report whose run captured no screenshots has
+  // no screenshots/ dir. It must still be recognized as directory mode (via the
+  // self-described data-screenshot-mode attribute) and its whole directory must
+  // be removed by rmOriginalReports — not just the index.html, leaving the dir.
+  const writeDirModeReport = (
+    reportDir: string,
+    name: string,
+    withScreenshots: boolean,
+  ): string => {
+    mkdirSync(reportDir, { recursive: true });
+    if (withScreenshots) {
+      const screenshotsDir = join(reportDir, 'screenshots');
+      mkdirSync(screenshotsDir, { recursive: true });
+      writeFileSync(join(screenshotsDir, 'img.png'), 'fake-png');
+    }
+    const dumpJson = JSON.stringify({ groupName: name, executions: [] });
+    const indexHtml = join(reportDir, 'index.html');
+    writeFileSync(
+      indexHtml,
+      `${getReportTpl()}\n<script type="midscene_web_dump" data-group-id="${name}" data-screenshot-mode="directory">${dumpJson}</script>`,
+    );
+    return indexHtml;
+  };
+
+  it('detects directory mode from metadata even without a screenshots dir', () => {
+    const tmpDir = join(tmpdir(), `midscene-dir-mode-meta-${Date.now()}`);
+    try {
+      const noShots = writeDirModeReport(
+        join(tmpDir, 'no-shots'),
+        'no-shots',
+        false,
+      );
+      const withShots = writeDirModeReport(
+        join(tmpDir, 'with-shots'),
+        'with-shots',
+        true,
+      );
+      expect(isDirectoryModeReport(noShots)).toBe(true);
+      expect(isDirectoryModeReport(withShots)).toBe(true);
+    } finally {
+      rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  it('removes the whole directory of a screenshot-less directory mode report on rmOriginalReports', () => {
+    const tmpDir = join(tmpdir(), `midscene-dir-mode-noss-rm-${Date.now()}`);
+    mkdirSync(tmpDir, { recursive: true });
+    try {
+      const tool = new ReportMergingTool();
+      const reportDirs: string[] = [];
+      // One report with screenshots, one without — both directory mode.
+      for (const [name, withShots] of [
+        ['with-shots', true],
+        ['no-shots', false],
+      ] as const) {
+        const reportDir = join(tmpDir, name);
+        reportDirs.push(reportDir);
+        const indexHtml = writeDirModeReport(reportDir, name, withShots);
+        tool.append({
+          reportFilePath: indexHtml,
+          reportAttributes: {
+            testDescription: name,
+            testDuration: 1,
+            testId: name,
+            testStatus: 'passed',
+            testTitle: name,
+          },
+        });
+      }
+
+      const mergedPath = tool.mergeReports('dir-mode-noss-rm-test', {
+        rmOriginalReports: true,
+        overwrite: true,
+      });
+
+      expect(existsSync(mergedPath!)).toBe(true);
+      // Both original directories must be gone, including the screenshot-less one.
+      for (const dir of reportDirs) {
+        expect(existsSync(dir)).toBe(false);
+      }
+    } finally {
+      rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  // Regression for the real-world report: a legacy directory-based report
+  // (`{name}/index.html`) that predates data-screenshot-mode AND inlines its
+  // screenshots (no screenshots/ dir). Such a report reads as inline screenshot
+  // mode, so the merged output is a single file — but rmOriginalReports must
+  // still remove the whole source folder, not orphan it.
+  it('removes the folder of a legacy inline-screenshot directory report on rmOriginalReports', () => {
+    const tmpDir = join(tmpdir(), `midscene-legacy-folder-rm-${Date.now()}`);
+    mkdirSync(tmpDir, { recursive: true });
+    try {
+      const tool = new ReportMergingTool();
+      const reportDirs: string[] = [];
+      for (const name of ['playwright-merged-a', 'playwright-merged-b']) {
+        const reportDir = join(tmpDir, name);
+        mkdirSync(reportDir, { recursive: true }); // no screenshots/ dir
+        reportDirs.push(reportDir);
+        const dumpJson = JSON.stringify({ groupName: name, executions: [] });
+        const indexHtml = join(reportDir, 'index.html');
+        // No data-screenshot-mode attribute (legacy) + an inline image tag.
+        writeFileSync(
+          indexHtml,
+          `${getReportTpl()}\n<script type="midscene_web_dump" data-group-id="${name}">${dumpJson}</script>\n${generateImageScriptTag(`${name}-img`, 'data:image/png;base64,AAAA')}`,
+        );
+        tool.append({
+          reportFilePath: indexHtml,
+          reportAttributes: {
+            testDescription: name,
+            testDuration: 1,
+            testId: name,
+            testStatus: 'passed',
+            testTitle: name,
+          },
+        });
+      }
+
+      const mergedPath = tool.mergeReports('legacy-folder-rm-test', {
+        rmOriginalReports: true,
+        overwrite: true,
+      });
+
+      expect(existsSync(mergedPath!)).toBe(true);
+      // Merged as inline → single .html file (not a directory).
+      expect(mergedPath!.endsWith('index.html')).toBe(false);
+      // The source folders must be removed, not orphaned.
       for (const dir of reportDirs) {
         expect(existsSync(dir)).toBe(false);
       }

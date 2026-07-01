@@ -1,6 +1,5 @@
 import type { TModelFamily } from '@midscene/shared/env';
 import type OpenAI from 'openai';
-import { defaultExtractContentAndReasoning } from '../model-adapter/chat-completion';
 import type {
   ChatCompletionCallContext,
   ChatCompletionContentSource,
@@ -174,21 +173,22 @@ export const extractGeminiContentAndReasoning = (
     };
   }
 
-  const result = defaultExtractContentAndReasoning(
-    message as ChatCompletionContentSource,
-  );
+  const content = typeof message.content === 'string' ? message.content : '';
   // In real Gemini OpenAI-compatible responses we observed that
   // `include_thoughts` can still return a plain string `message.content`,
   // with the thought summary prepended as `<thought>...</thought>` before the
   // visible answer. Keep content unchanged, but extract that leading thought
   // text for report display.
-  const geminiReasoningContent = extractInlineThought(result.content) || '';
+  const geminiReasoningContent = extractInlineThought(content) || '';
 
   return {
-    content: result.content,
+    content,
     reasoning_content: formatReasoningContent({
       geminiReasoningContent,
-      providerReasoningContent: result.reasoning_content,
+      providerReasoningContent:
+        typeof message.reasoning_content === 'string'
+          ? message.reasoning_content
+          : '',
     }),
   };
 };
@@ -198,7 +198,10 @@ export const geminiAdapters = {
     chatCompletion: {
       unsupportedUserConfig: ['reasoningEnabled', 'reasoningBudget'],
       buildChatCompletionParams: buildGeminiChatCompletionParams,
-      extractContentAndReasoning: extractGeminiContentAndReasoning,
+      messageExtraction: {
+        kind: 'custom',
+        extractContentAndReasoning: extractGeminiContentAndReasoning,
+      },
     },
     locate: {
       resultAdapter: {

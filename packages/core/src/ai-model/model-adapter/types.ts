@@ -89,9 +89,24 @@ export interface ChatCompletionAdapter {
   ): ChatCompletionParamsResult;
   resolveImageDetail(input: ChatCompletionCallInput): ImageDetail | undefined;
   extractContentAndReasoning: ExtractContentAndReasoning;
+  useReasoningAsContentFallback: boolean;
 }
 
-export interface ChatCompletionDefinition {
+type ChatCompletionMessageExtraction =
+  | {
+      messageExtraction?: {
+        kind: 'default';
+        reasoningContentKeys?: string[];
+      };
+    }
+  | {
+      messageExtraction: {
+        kind: 'custom';
+        extractContentAndReasoning: ExtractContentAndReasoning;
+      };
+    };
+
+export type ChatCompletionDefinition = ChatCompletionMessageExtraction & {
   unsupportedUserConfig?: ChatCompletionUnsupportedUserConfig[];
   buildChatCompletionParams?: (
     input: ChatCompletionCallContext,
@@ -99,8 +114,8 @@ export interface ChatCompletionDefinition {
   resolveImageDetail?: (
     input: ChatCompletionCallContext,
   ) => ImageDetail | undefined;
-  extractContentAndReasoning?: ExtractContentAndReasoning;
-}
+  useReasoningAsContentFallback?: boolean;
+};
 
 export type ImagePreprocessDefinition = Partial<ImagePreprocessPolicy>;
 

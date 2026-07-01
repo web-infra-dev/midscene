@@ -489,6 +489,93 @@ describe('BatchRunner', () => {
     });
   });
 
+  describe('setup execution', () => {
+    const setupConfig = {
+      ...mockBatchConfig,
+      shareBrowserContext: true,
+      setup: 'login.yml',
+      files: ['search.yml', 'report.yml'],
+      concurrent: 2,
+    };
+
+    const trackRunOrder = (
+      runOrder: string[],
+      shouldSucceed: (file: string) => boolean,
+    ) => {
+      vi.mocked(createYamlPlayer).mockImplementation(async (file) => {
+        const player = createMockPlayer(shouldSucceed(file as string));
+        const originalRun = player.run;
+        (player as unknown as { run: () => Promise<void> }).run = vi.fn(
+          async () => {
+            runOrder.push(file as string);
+            return originalRun();
+          },
+        );
+        return player;
+      });
+    };
+
+    test('runs the setup file before the main files and executes all', async () => {
+      const runOrder: string[] = [];
+      trackRunOrder(runOrder, () => true);
+
+      const runner = new BatchRunner(setupConfig);
+      await runner.run();
+
+      expect(runOrder[0]).toBe('login.yml');
+      expect(runOrder).toContain('search.yml');
+      expect(runOrder).toContain('report.yml');
+      expect(runner.getNotExecutedFiles()).toEqual([]);
+      expect(runner.getSuccessfulFiles().sort()).toEqual([
+        'login.yml',
+        'report.yml',
+        'search.yml',
+      ]);
+    });
+
+    test('aborts main files when the setup file fails', async () => {
+      const runOrder: string[] = [];
+      trackRunOrder(runOrder, (file) => file !== 'login.yml');
+
+      const runner = new BatchRunner(setupConfig);
+      await runner.run();
+
+      // The main files must never run once the prerequisite setup fails.
+      expect(runOrder).toEqual(['login.yml']);
+      expect(runner.getFailedFiles()).toEqual(['login.yml']);
+      expect(runner.getNotExecutedFiles().sort()).toEqual([
+        'report.yml',
+        'search.yml',
+      ]);
+    });
+
+    test('throws when setup is set without shareBrowserContext', async () => {
+      const config = {
+        ...mockBatchConfig,
+        shareBrowserContext: false,
+        setup: 'login.yml',
+        files: ['search.yml'],
+      };
+      const runner = new BatchRunner(config);
+      await expect(runner.run()).rejects.toThrow(
+        'setup requires shareBrowserContext: true',
+      );
+    });
+
+    test('throws when a yaml file is both the setup and a main file', async () => {
+      const config = {
+        ...mockBatchConfig,
+        shareBrowserContext: true,
+        setup: 'login.yml',
+        files: ['login.yml', 'search.yml'],
+      };
+      const runner = new BatchRunner(config);
+      await expect(runner.run()).rejects.toThrow(
+        'is used as both the setup file and a main file',
+      );
+    });
+  });
+
   describe('Common functionality', () => {
     let executor: BatchRunner;
     beforeEach(() => {

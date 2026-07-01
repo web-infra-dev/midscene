@@ -23,6 +23,11 @@ const DESCRIBE_WIDE_MARKER_VERTICAL_INSET_RATIO = 0.1;
 // Deep describe uses a small image set: an overview, a focused crop, and one
 // structural crop. Keep the pixel budget centralized so future A/B tuning does
 // not scatter model/context-size heuristics across the crop code.
+//
+// The aspect thresholds are conservative heuristics, not fitted constants. For
+// point targets we do not know the real target shape, so the screen-aspect
+// thresholds keep a dead zone around square-ish screenshots and fall back to
+// balanced context unless the page is clearly wide or tall.
 export const DESCRIBE_DEEP_CONTEXT_CONFIG = {
   resize: {
     cropMaxLongEdge: 1000,
@@ -30,12 +35,12 @@ export const DESCRIBE_DEEP_CONTEXT_CONFIG = {
     overviewMaxLongEdge: 1200,
   },
   axisSelection: {
-    targetHorizontalAspect: 1.35,
-    targetVerticalAspect: 0.75,
-    pointScreenHorizontalAspect: 1.15,
-    pointScreenVerticalAspect: 0.85,
-    screenHorizontalAspect: 1.35,
-    screenVerticalAspect: 0.85,
+    targetHorizontalAspectThreshold: 1.35,
+    targetVerticalAspectThreshold: 0.75,
+    pointScreenHorizontalAspectThreshold: 1.15,
+    pointScreenVerticalAspectThreshold: 0.85,
+    screenHorizontalAspectThreshold: 1.35,
+    screenVerticalAspectThreshold: 0.85,
   },
   horizontalContext: {
     minWidth: 900,
@@ -111,28 +116,28 @@ function chooseDescribeAxisContextMode(
 
   if (
     rect.width >= DESCRIBE_POINT_MARKER_MAX_SIZE &&
-    rectAspect >= axisSelection.targetHorizontalAspect
+    rectAspect >= axisSelection.targetHorizontalAspectThreshold
   ) {
     return 'horizontal';
   }
   if (
     rect.height >= DESCRIBE_POINT_MARKER_MAX_SIZE &&
-    rectAspect <= axisSelection.targetVerticalAspect
+    rectAspect <= axisSelection.targetVerticalAspectThreshold
   ) {
     return 'vertical';
   }
   if (opt?.targetFromPoint) {
-    if (screenAspect >= axisSelection.pointScreenHorizontalAspect) {
+    if (screenAspect >= axisSelection.pointScreenHorizontalAspectThreshold) {
       return 'horizontal';
     }
-    if (screenAspect <= axisSelection.pointScreenVerticalAspect) {
+    if (screenAspect <= axisSelection.pointScreenVerticalAspectThreshold) {
       return 'vertical';
     }
   }
-  if (screenAspect >= axisSelection.screenHorizontalAspect) {
+  if (screenAspect >= axisSelection.screenHorizontalAspectThreshold) {
     return 'horizontal';
   }
-  if (screenAspect <= axisSelection.screenVerticalAspect) {
+  if (screenAspect <= axisSelection.screenVerticalAspectThreshold) {
     return 'vertical';
   }
   return 'balanced';
