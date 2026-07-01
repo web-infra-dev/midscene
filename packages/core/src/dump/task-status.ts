@@ -8,20 +8,21 @@
  * functions over plain dump fields — lets the front-end icons and the backend
  * `mergeReportFiles` attribute derivation share the exact same logic.
  */
-import type { TestStatus } from '../types';
+import type { ExecutionTask, TestStatus } from '../types';
 
 /**
- * Minimal structural shape of a task needed to derive its status. Declared
- * loosely so both the full `ExecutionTask` and the front-end task variants
- * (which carry extra fields) satisfy it without coupling to a concrete type.
+ * The subset of a task's fields needed to derive its status, picked from
+ * `ExecutionTask` so the field names/types stay defined in one place. It is a
+ * structural subset, so both the full `ExecutionTask` and the front-end task
+ * variants (which carry extra fields) satisfy it.
  */
-export interface TaskStatusFields {
-  status?: 'pending' | 'running' | 'finished' | 'failed' | 'cancelled';
-  subType?: string;
-  error?: unknown;
-  errorMessage?: string;
-  output?: unknown;
-}
+export type TaskStatusFields = Partial<
+  Pick<ExecutionTask, 'status' | 'subType' | 'error' | 'errorMessage'> & {
+    // `output` is only ever compared to `false`; keep it `unknown` rather than
+    // the picked generic `any` so the field stays type-safe for callers.
+    output: unknown;
+  }
+>;
 
 export type DerivedTaskStatus =
   | 'passed'
