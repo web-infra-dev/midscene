@@ -120,6 +120,10 @@ export MIDSCENE_RUN_DIR="/tmp/midscene_output"
 
 在报告页面的链接后添加查询参数即可覆盖 **Focus on cursor** 和 **Show element markers** 开关的默认值，决定是否在报告中聚焦鼠标位置和元素标记。使用 `focusOnCursor` 和 `showElementMarkers`，参数值支持 `true`、`false`、`1` 或 `0`，例如：`...?focusOnCursor=false&showElementMarkers=true`。
 
+## 如何把报告以纯播放器的形式嵌入其它页面?
+
+当你需要把报告嵌入到别的页面(例如放进 `iframe`)时,在报告链接后添加 `playerOnly` 查询参数,即可隐藏所有外围界面(顶部栏、侧边栏、时间线和详情面板),只保留回放播放器。参数值支持 `true`、`1`、`yes` 或 `on`,例如:`...?playerOnly=1`。它可以和 `#task-<id>` 锚点组合使用,从而深链到某一具体步骤并只展示该步骤的播放器:`...?playerOnly=1#task-0-5`。
+
 ## 元素定位出现偏移
 
 如果在使用 Midscene 时遇到元素定位不准确的问题，可以按照以下步骤排查和解决：

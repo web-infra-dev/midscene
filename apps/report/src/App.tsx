@@ -31,6 +31,7 @@ import type {
   VisualizerProps,
 } from './types';
 import { formatModelBriefText } from './utils/model-brief';
+import { isPlayerOnlyMode } from './utils/player-only';
 import {
   getEmptyDumpDescription,
   parseDumpAttributes,
@@ -79,6 +80,9 @@ function Visualizer(props: VisualizerProps): JSX.Element {
   const replayAllScripts = useExecutionDump(
     (store) => store.allExecutionAnimation,
   );
+  const activeExecutionAnimation = useExecutionDump(
+    (store) => store.activeExecutionAnimation,
+  );
   const insightWidth = useExecutionDump((store) => store.insightWidth);
   const insightHeight = useExecutionDump((store) => store.insightHeight);
   const replayAllMode = useExecutionDump((store) => store.replayAllMode);
@@ -104,6 +108,10 @@ function Visualizer(props: VisualizerProps): JSX.Element {
     darkModeEnabled: isDarkMode,
     setDarkModeEnabled: setIsDarkMode,
   } = useGlobalPreference();
+
+  // Player-only mode: an embedding page can pass `?playerOnly=1` to strip all
+  // report chrome (nav, sidebar, timeline, detail side) and keep just the Player.
+  const playerOnly = useMemo(() => isPlayerOnlyMode(), []);
 
   // Keep the URL hash in sync with the selected sidebar task (deep-linking).
   useTaskHashAnchor();
@@ -193,8 +201,11 @@ function Visualizer(props: VisualizerProps): JSX.Element {
     );
   };
 
-  let mainContent: JSX.Element;
-  if (allSkipped && (!dump || dump.executions.length === 0)) {
+  // Skip building the report chrome entirely when only the Player is requested.
+  let mainContent: JSX.Element | null = null;
+  if (playerOnly) {
+    // Player-only mode renders `playerOnlyContent`; leave `mainContent` unused.
+  } else if (allSkipped && (!dump || dump.executions.length === 0)) {
     mainContent = (
       <div className="main-right">
         <Empty
@@ -314,6 +325,30 @@ function Visualizer(props: VisualizerProps): JSX.Element {
     };
   }, []);
 
+  // In player-only mode, skip every piece of chrome and render just the Player.
+  // There is no sidebar here to enable "replay all", so we always show the
+  // active task's replay (deep-linkable via the `#task-<id>` hash anchor).
+  const playerOnlyScripts = activeExecutionAnimation || [];
+  let playerOnlyContent: JSX.Element;
+  if (!executionDump) {
+    playerOnlyContent = <Empty description="Loading report content..." />;
+  } else if (playerOnlyScripts.length === 0) {
+    // Player renders nothing for empty scripts; show feedback instead of a blank
+    // page (e.g. the active task is not a Planning step with a replay animation).
+    playerOnlyContent = (
+      <Empty description="No replay available for this step." />
+    );
+  } else {
+    playerOnlyContent = (
+      <Player
+        key={`${executionDumpLoadId}`}
+        replayScripts={playerOnlyScripts}
+        imageWidth={insightWidth || 0}
+        imageHeight={insightHeight || 0}
+      />
+    );
+  }
+
   return (
     <ConfigProvider
       theme={{
@@ -323,32 +358,38 @@ function Visualizer(props: VisualizerProps): JSX.Element {
     >
       <AntdApp component={false}>
         <div
-          className="page-container"
+          className={`page-container${playerOnly ? ' player-only' : ''}`}
           key={`render-${globalRenderCount}`}
           style={{ height: containerHeight }}
           data-theme={isDarkMode ? 'dark' : 'light'}
         >
-          <div className="page-nav">
-            <div className="page-nav-left">
-              <Logo />
-            </div>
-            <div className="page-nav-right">
-              <div className="page-nav-version">
-                {sdkVersion ? `v${sdkVersion}` : 'unknown version'}
-                {modelBriefText ? ` | ${modelBriefText}` : ''}
+          {playerOnly ? (
+            <div className="player-only-content">{playerOnlyContent}</div>
+          ) : (
+            <>
+              <div className="page-nav">
+                <div className="page-nav-left">
+                  <Logo />
+                </div>
+                <div className="page-nav-right">
+                  <div className="page-nav-version">
+                    {sdkVersion ? `v${sdkVersion}` : 'unknown version'}
+                    {modelBriefText ? ` | ${modelBriefText}` : ''}
+                  </div>
+                  <div className="theme-divider" />
+                  <button
+                    type="button"
+                    className="theme-toggle-button"
+                    onClick={() => setIsDarkMode(!isDarkMode)}
+                    aria-label="Toggle theme"
+                  >
+                    {isDarkMode ? <ThemeDarkIcon /> : <ThemeLightIcon />}
+                  </button>
+                </div>
               </div>
-              <div className="theme-divider" />
-              <button
-                type="button"
-                className="theme-toggle-button"
-                onClick={() => setIsDarkMode(!isDarkMode)}
-                aria-label="Toggle theme"
-              >
-                {isDarkMode ? <ThemeDarkIcon /> : <ThemeLightIcon />}
-              </button>
-            </div>
-          </div>
-          {mainContent}
+              {mainContent}
+            </>
+          )}
         </div>
         <GlobalHoverPreview />
       </AntdApp>

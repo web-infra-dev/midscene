@@ -119,6 +119,10 @@ For more configuration options, see [Model configuration](./model-config).
 ## How do I control the report player's default replay style via a link?
 
 You can override the default values of the **Focus on cursor** and **Show element markers** toggles by adding query parameters to the report URL, which determines whether the report highlights the cursor position and element markers. Use `focusOnCursor` and `showElementMarkers` with values such as `true`, `false`, `1`, or `0`. For example: `...?focusOnCursor=false&showElementMarkers=true`.
+
+## How do I embed the report as a bare player?
+
+When embedding the report in another page (for example, in an `iframe`), add the `playerOnly` query parameter to strip all the surrounding chrome (top bar, sidebar, timeline, and detail side) and keep only the replay player. Use values such as `true`, `1`, `yes`, or `on`, for example: `...?playerOnly=1`. It composes with the `#task-<id>` hash anchor, so you can deep-link to a specific step and show only its player: `...?playerOnly=1#task-0-5`.
  
 ## Inaccurate Element Positioning
 
