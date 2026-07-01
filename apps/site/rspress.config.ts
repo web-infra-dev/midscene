@@ -169,64 +169,23 @@ export default defineConfig(async () => {
             link: '/web-api-reference',
           },
           {
-            sectionHeaderText: 'Android',
+            sectionHeaderText: 'More platforms',
           },
           {
-            text: 'Introduction',
-            link: '/android-introduction',
+            text: 'Android',
+            link: '/android',
           },
           {
-            text: 'Getting started',
-            link: '/android-getting-started',
+            text: 'iOS',
+            link: '/ios',
           },
           {
-            text: 'API reference (Android)',
-            link: '/android-api-reference',
+            text: 'HarmonyOS',
+            link: '/harmony',
           },
           {
-            sectionHeaderText: 'iOS',
-          },
-          {
-            text: 'Introduction',
-            link: '/ios-introduction',
-          },
-          {
-            text: 'Getting started',
-            link: '/ios-getting-started',
-          },
-          {
-            text: 'API reference (iOS)',
-            link: '/ios-api-reference',
-          },
-          {
-            sectionHeaderText: 'HarmonyOS',
-          },
-          {
-            text: 'Introduction',
-            link: '/harmony-introduction',
-          },
-          {
-            text: 'Getting started',
-            link: '/harmony-getting-started',
-          },
-          {
-            text: 'API reference (HarmonyOS)',
-            link: '/harmony-api-reference',
-          },
-          {
-            sectionHeaderText: 'PC Desktop',
-          },
-          {
-            text: 'Introduction',
-            link: '/computer-introduction',
-          },
-          {
-            text: 'Getting started',
-            link: '/computer-getting-started',
-          },
-          {
-            text: 'API reference (PC Desktop)',
-            link: '/computer-api-reference',
+            text: 'PC Desktop',
+            link: '/computer',
           },
           {
             sectionHeaderText: 'YAML automation',
@@ -359,64 +318,23 @@ export default defineConfig(async () => {
             link: '/zh/web-api-reference',
           },
           {
-            sectionHeaderText: 'Android',
+            sectionHeaderText: '更多平台',
           },
           {
-            text: '介绍',
-            link: '/zh/android-introduction',
+            text: 'Android',
+            link: '/zh/android',
           },
           {
-            text: '开始使用',
-            link: '/zh/android-getting-started',
+            text: 'iOS',
+            link: '/zh/ios',
           },
           {
-            text: 'API 参考（Android）',
-            link: '/zh/android-api-reference',
+            text: 'HarmonyOS',
+            link: '/zh/harmony',
           },
           {
-            sectionHeaderText: 'iOS',
-          },
-          {
-            text: '介绍',
-            link: '/zh/ios-introduction',
-          },
-          {
-            text: '开始使用',
-            link: '/zh/ios-getting-started',
-          },
-          {
-            text: 'API 参考（iOS）',
-            link: '/zh/ios-api-reference',
-          },
-          {
-            sectionHeaderText: 'HarmonyOS',
-          },
-          {
-            text: '介绍',
-            link: '/zh/harmony-introduction',
-          },
-          {
-            text: '开始使用',
-            link: '/zh/harmony-getting-started',
-          },
-          {
-            text: 'API 参考（HarmonyOS）',
-            link: '/zh/harmony-api-reference',
-          },
-          {
-            sectionHeaderText: 'PC 桌面',
-          },
-          {
-            text: '介绍',
-            link: '/zh/computer-introduction',
-          },
-          {
-            text: '开始使用',
-            link: '/zh/computer-getting-started',
-          },
-          {
-            text: 'API 参考（PC 桌面）',
-            link: '/zh/computer-api-reference',
+            text: 'PC 桌面',
+            link: '/zh/computer',
           },
           {
             sectionHeaderText: 'YAML automation',
@@ -567,24 +485,120 @@ export default defineConfig(async () => {
       pluginClientRedirects({
         redirects: [
           {
+            from: '^/android-introduction(?:\\.html)?/?$',
+            to: '/android',
+          },
+          {
+            from: '^/android-getting-started(?:\\.html)?/?$',
+            to: '/android',
+          },
+          {
+            from: '^/android-api-reference(?:\\.html)?/?$',
+            to: '/android#api-reference',
+          },
+          {
+            from: '^/ios-introduction(?:\\.html)?/?$',
+            to: '/ios',
+          },
+          {
+            from: '^/ios-getting-started(?:\\.html)?/?$',
+            to: '/ios',
+          },
+          {
+            from: '^/ios-api-reference(?:\\.html)?/?$',
+            to: '/ios#api-reference',
+          },
+          {
+            from: '^/harmony-introduction(?:\\.html)?/?$',
+            to: '/harmony',
+          },
+          {
+            from: '^/harmony-getting-started(?:\\.html)?/?$',
+            to: '/harmony',
+          },
+          {
+            from: '^/harmony-api-reference(?:\\.html)?/?$',
+            to: '/harmony#api-reference',
+          },
+          {
+            from: '^/computer-introduction(?:\\.html)?/?$',
+            to: '/computer',
+          },
+          {
+            from: '^/computer-getting-started(?:\\.html)?/?$',
+            to: '/computer',
+          },
+          {
+            from: '^/computer-api-reference(?:\\.html)?/?$',
+            to: '/computer#api-reference',
+          },
+          {
+            from: '^/zh/android-introduction(?:\\.html)?/?$',
+            to: '/zh/android',
+          },
+          {
+            from: '^/zh/android-getting-started(?:\\.html)?/?$',
+            to: '/zh/android',
+          },
+          {
+            from: '^/zh/android-api-reference(?:\\.html)?/?$',
+            to: '/zh/android#api-reference',
+          },
+          {
+            from: '^/zh/ios-introduction(?:\\.html)?/?$',
+            to: '/zh/ios',
+          },
+          {
+            from: '^/zh/ios-getting-started(?:\\.html)?/?$',
+            to: '/zh/ios',
+          },
+          {
+            from: '^/zh/ios-api-reference(?:\\.html)?/?$',
+            to: '/zh/ios#api-reference',
+          },
+          {
+            from: '^/zh/harmony-introduction(?:\\.html)?/?$',
+            to: '/zh/harmony',
+          },
+          {
+            from: '^/zh/harmony-getting-started(?:\\.html)?/?$',
+            to: '/zh/harmony',
+          },
+          {
+            from: '^/zh/harmony-api-reference(?:\\.html)?/?$',
+            to: '/zh/harmony#api-reference',
+          },
+          {
+            from: '^/zh/computer-introduction(?:\\.html)?/?$',
+            to: '/zh/computer',
+          },
+          {
+            from: '^/zh/computer-getting-started(?:\\.html)?/?$',
+            to: '/zh/computer',
+          },
+          {
+            from: '^/zh/computer-api-reference(?:\\.html)?/?$',
+            to: '/zh/computer#api-reference',
+          },
+          {
             from: '^/integrate-with-android(?:\\.html)?/?$',
-            to: '/android-getting-started',
+            to: '/android',
           },
           {
             from: '^/integrate-with-ios(?:\\.html)?/?$',
-            to: '/ios-getting-started',
+            to: '/ios',
           },
           {
             from: '^/integrate-with-harmony(?:\\.html)?/?$',
-            to: '/harmony-getting-started',
+            to: '/harmony',
           },
           {
             from: '^/android-playground(?:\\.html)?/?$',
-            to: '/android-introduction',
+            to: '/android',
           },
           {
             from: '^/ios-playground(?:\\.html)?/?$',
-            to: '/ios-getting-started',
+            to: '/ios',
           },
           {
             from: '^/choose-a-model(?:\\.html)?/?$',
@@ -612,19 +626,19 @@ export default defineConfig(async () => {
           },
           {
             from: '^/blog-support-android-automation(?:\\.html)?/?$',
-            to: '/android-introduction',
+            to: '/android',
           },
           {
             from: '^/blog-support-ios-automation(?:\\.html)?/?$',
-            to: '/ios-introduction',
+            to: '/ios',
           },
           {
             from: '^/quick-experience-with-android(?:\\.html)?/?$',
-            to: '/android-getting-started',
+            to: '/android',
           },
           {
             from: '^/quick-experience-with-ios(?:\\.html)?/?$',
-            to: '/ios-getting-started',
+            to: '/ios',
           },
           {
             from: '^/zh/web-mcp(?:\\.html)?/?$',
@@ -636,31 +650,31 @@ export default defineConfig(async () => {
           },
           {
             from: '^/zh/integrate-with-android(?:\\.html)?/?$',
-            to: '/zh/android-getting-started',
+            to: '/zh/android',
           },
           {
             from: '^/zh/integrate-with-ios(?:\\.html)?/?$',
-            to: '/zh/ios-getting-started',
+            to: '/zh/ios',
           },
           {
             from: '^/zh/integrate-with-harmony(?:\\.html)?/?$',
-            to: '/zh/harmony-getting-started',
+            to: '/zh/harmony',
           },
           {
             from: '^/zh/blog-support-android-automation(?:\\.html)?/?$',
-            to: '/zh/android-introduction',
+            to: '/zh/android',
           },
           {
             from: '^/zh/blog-support-ios-automation(?:\\.html)?/?$',
-            to: '/zh/ios-introduction',
+            to: '/zh/ios',
           },
           {
             from: '^/zh/quick-experience-with-android(?:\\.html)?/?$',
-            to: '/zh/android-getting-started',
+            to: '/zh/android',
           },
           {
             from: '^/zh/quick-experience-with-ios(?:\\.html)?/?$',
-            to: '/zh/ios-getting-started',
+            to: '/zh/ios',
           },
           {
             from: '^/zh/choose-a-model(?:\\.html)?/?$',
@@ -680,11 +694,11 @@ export default defineConfig(async () => {
           },
           {
             from: '^/zh/android-playground(?:\\.html)?/?$',
-            to: '/zh/android-introduction',
+            to: '/zh/android',
           },
           {
             from: '^/zh/ios-playground(?:\\.html)?/?$',
-            to: '/zh/ios-getting-started',
+            to: '/zh/ios',
           },
           {
             from: '^/command-line-tools(?:\\.html)?/?$',
