@@ -31,7 +31,7 @@ import type {
   VisualizerProps,
 } from './types';
 import { formatModelBriefText } from './utils/model-brief';
-import { isPlayerOnlyMode } from './utils/player-only';
+import { getPlayerViewOptions } from './utils/player-only';
 import {
   getEmptyDumpDescription,
   parseDumpAttributes,
@@ -109,9 +109,14 @@ function Visualizer(props: VisualizerProps): JSX.Element {
     setDarkModeEnabled: setIsDarkMode,
   } = useGlobalPreference();
 
-  // Player-only mode: an embedding page can pass `?playerOnly=1` to strip all
-  // report chrome (nav, sidebar, timeline, detail side) and keep just the Player.
-  const playerOnly = useMemo(() => isPlayerOnlyMode(), []);
+  // Player view flags from the URL: an embedding page can pass `?player-only=1`
+  // to strip all report chrome (nav, sidebar, timeline, detail side) and keep
+  // just the Player, plus `play-control=1` / `auto-play=1` to tune it.
+  const {
+    playerOnly,
+    playControl,
+    autoPlay: playerAutoPlay,
+  } = useMemo(() => getPlayerViewOptions(), []);
 
   // Keep the URL hash in sync with the selected sidebar task (deep-linking).
   useTaskHashAnchor();
@@ -348,6 +353,8 @@ function Visualizer(props: VisualizerProps): JSX.Element {
         imageWidth={insightWidth || 0}
         imageHeight={insightHeight || 0}
         onTaskChange={replayAllMode ? setPlayingTaskId : undefined}
+        hideControls={!playControl}
+        autoPlay={playerAutoPlay}
       />
     );
   }

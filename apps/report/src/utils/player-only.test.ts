@@ -1,32 +1,39 @@
 import { describe, expect, it } from 'vitest';
-import { parsePlayerOnlyParam } from './player-only';
+import { parsePlayerViewOptions } from './player-only';
 
-describe('parsePlayerOnlyParam', () => {
-  it('returns false when the param is absent', () => {
-    expect(parsePlayerOnlyParam('')).toBe(false);
-    expect(parsePlayerOnlyParam('?focusOnCursor=true')).toBe(false);
+describe('parsePlayerViewOptions', () => {
+  it('defaults every flag to false when the params are absent', () => {
+    expect(parsePlayerViewOptions('')).toEqual({
+      playerOnly: false,
+      playControl: false,
+      autoPlay: false,
+    });
   });
 
-  it('treats a bare flag as enabled', () => {
-    expect(parsePlayerOnlyParam('?playerOnly')).toBe(true);
-    expect(parsePlayerOnlyParam('?playerOnly=')).toBe(true);
+  it('enables each flag only for the exact value "1"', () => {
+    expect(parsePlayerViewOptions('?player-only=1')).toMatchObject({
+      playerOnly: true,
+    });
+    expect(parsePlayerViewOptions('?play-control=1')).toMatchObject({
+      playControl: true,
+    });
+    expect(parsePlayerViewOptions('?auto-play=1')).toMatchObject({
+      autoPlay: true,
+    });
   });
 
-  it('accepts truthy values regardless of case and whitespace', () => {
-    for (const value of ['1', 'true', 'TRUE', 'yes', 'on', ' On ']) {
-      expect(
-        parsePlayerOnlyParam(`?playerOnly=${encodeURIComponent(value)}`),
-      ).toBe(true);
+  it('does not accept truthy aliases or a bare flag', () => {
+    for (const value of ['true', 'yes', 'on', '2', '01', '']) {
+      expect(parsePlayerViewOptions(`?player-only=${value}`).playerOnly).toBe(
+        false,
+      );
     }
+    expect(parsePlayerViewOptions('?player-only').playerOnly).toBe(false);
   });
 
-  it('rejects falsy or unknown values', () => {
-    for (const value of ['0', 'false', 'no', 'off', 'nope']) {
-      expect(parsePlayerOnlyParam(`?playerOnly=${value}`)).toBe(false);
-    }
-  });
-
-  it('coexists with other query params', () => {
-    expect(parsePlayerOnlyParam('?darkMode=true&playerOnly=1')).toBe(true);
+  it('parses all three flags together', () => {
+    expect(
+      parsePlayerViewOptions('?player-only=1&play-control=1&auto-play=1'),
+    ).toEqual({ playerOnly: true, playControl: true, autoPlay: true });
   });
 });

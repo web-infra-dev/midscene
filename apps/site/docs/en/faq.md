@@ -122,7 +122,12 @@ You can override the default values of the **Focus on cursor** and **Show elemen
 
 ## How do I embed the report as a bare player?
 
-When embedding the report in another page (for example, in an `iframe`), add the `playerOnly` query parameter to strip all the surrounding chrome (top bar, sidebar, timeline, and detail side) and keep only the replay player. Use values such as `true`, `1`, `yes`, or `on`, for example: `...?playerOnly=1`. It composes with the `#task-<id>` hash anchor, so you can deep-link to a specific step and show only its player: `...?playerOnly=1#task-0-5`.
+When embedding the report in another page (for example, in an `iframe`), add the `player-only=1` query parameter to strip all the surrounding chrome (top bar, sidebar, timeline, and detail side) and keep only the replay player. Two more flags tune the embedded player:
+
+- `play-control=1` — show the bottom playback control bar (hidden by default).
+- `auto-play=1` — start playback automatically on load.
+
+Each flag is a strict on/off switch and is only enabled by the exact value `1`; other values are ignored. A typical embed uses all three, for example: `...?player-only=1&play-control=1&auto-play=1`. It also composes with the `#task-<id>` hash anchor, so you can deep-link to a specific step and show only its player: `...?player-only=1#task-0-5`.
  
 ## Inaccurate Element Positioning
 

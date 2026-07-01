@@ -1,46 +1,47 @@
 /**
- * Player-only mode lets an embedding page strip every piece of report chrome
- * (nav bar, sidebar, timeline, detail side) and keep just the replay Player.
+ * URL flags that let an embedding page (e.g. an iframe) tailor the report's
+ * player. Each flag is a strict `=1` switch — no `true`/`yes`/`on` aliases.
  *
- * Enable it by adding the `playerOnly` query param to the report URL, e.g.
- * `report.html?playerOnly=1`. It composes with the `#task-<id>` hash anchor,
- * so an embedder can deep-link to a specific step and show only its player.
+ * - `player-only=1`  strip all report chrome (nav, sidebar, timeline, detail
+ *   side) and keep just the replay player.
+ * - `play-control=1` show the bottom playback control bar.
+ * - `auto-play=1`    start playback automatically on load.
+ *
+ * Example: `report.html?player-only=1&play-control=1&auto-play=1`.
  */
 
-export const PLAYER_ONLY_PARAM = 'playerOnly';
+export const PLAYER_ONLY_PARAM = 'player-only';
+export const PLAY_CONTROL_PARAM = 'play-control';
+export const AUTO_PLAY_PARAM = 'auto-play';
 
-// Mirrors the truthy set used by the other report query params (`focusOnCursor`,
-// `showElementMarkers`, `darkMode`) in `@midscene/visualizer` store, kept local
-// so this pure util has no dependency on that antd-heavy package.
-const TRUTHY_VALUES = new Set(['1', 'true', 'yes', 'on']);
-
-/**
- * Parse a raw location search string (e.g. `?playerOnly=1`) into a boolean.
- *
- * Semantics (intentionally a strict on/off mode switch):
- * - Absent param -> `false`.
- * - Truthy value (`1`/`true`/`yes`/`on`, case-insensitive) -> `true`.
- * - Any other value -> `false`.
- * - Unlike the other report params, a bare flag (`?playerOnly`) or an empty
- *   value (`?playerOnly=`) also enables the mode, so embedders can drop it in
- *   without a value.
- */
-export function parsePlayerOnlyParam(search: string): boolean {
-  const params = new URLSearchParams(search);
-  if (!params.has(PLAYER_ONLY_PARAM)) {
-    return false;
-  }
-  const value = params.get(PLAYER_ONLY_PARAM);
-  if (value === null || value === '') {
-    return true;
-  }
-  return TRUTHY_VALUES.has(value.trim().toLowerCase());
+export interface PlayerViewOptions {
+  /** Render only the replay player, hiding every other piece of report UI. */
+  playerOnly: boolean;
+  /** Show the bottom playback control bar. */
+  playControl: boolean;
+  /** Start playback automatically on load. */
+  autoPlay: boolean;
 }
 
-/** Whether the current page requested player-only mode via the URL. */
-export function isPlayerOnlyMode(): boolean {
+/** A flag is enabled only when its value is exactly `1`. */
+function isFlagEnabled(params: URLSearchParams, name: string): boolean {
+  return params.get(name) === '1';
+}
+
+/** Parse a raw location search string (e.g. `?player-only=1`) into options. */
+export function parsePlayerViewOptions(search: string): PlayerViewOptions {
+  const params = new URLSearchParams(search);
+  return {
+    playerOnly: isFlagEnabled(params, PLAYER_ONLY_PARAM),
+    playControl: isFlagEnabled(params, PLAY_CONTROL_PARAM),
+    autoPlay: isFlagEnabled(params, AUTO_PLAY_PARAM),
+  };
+}
+
+/** Read the player view options from the current page URL. */
+export function getPlayerViewOptions(): PlayerViewOptions {
   if (typeof window === 'undefined') {
-    return false;
+    return { playerOnly: false, playControl: false, autoPlay: false };
   }
-  return parsePlayerOnlyParam(window.location.search);
+  return parsePlayerViewOptions(window.location.search);
 }

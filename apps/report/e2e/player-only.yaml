@@ -1,6 +1,6 @@
 target:
   serve: ./dist
-  url: demo.html?playerOnly=1
+  url: demo.html?player-only=1&play-control=1&auto-play=1
 tasks:
   - name: player-only mode shows only the replay player
     flow:
