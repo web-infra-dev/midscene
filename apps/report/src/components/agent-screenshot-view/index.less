@@ -1,0 +1,188 @@
+@import '../common.less';
+
+.agent-screenshot-view {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-width: 0;
+  background: #fff;
+}
+
+.agent-screenshot-header {
+  height: 50px;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  padding: 0 16px 0 17px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid @border-color;
+}
+
+.agent-screenshot-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.agent-screenshot-count {
+  min-width: 20px;
+  height: 20px;
+  box-sizing: border-box;
+  padding: 0 6px;
+  border-radius: 10px;
+  background: #f2f4f7;
+  color: #595959;
+  font-size: 12px;
+  line-height: 20px;
+  text-align: center;
+}
+
+.agent-screenshot-list {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.agent-screenshot-item {
+  margin: 0;
+  border: 1px solid @border-color;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #fff;
+  flex-shrink: 0;
+  transition:
+    border-color 0.18s,
+    box-shadow 0.18s;
+
+  &.selected {
+    border-color: #1677ff;
+    box-shadow: 0 0 0 2px rgba(22, 119, 255, 0.18);
+  }
+
+  figcaption {
+    min-height: 54px;
+    box-sizing: border-box;
+    padding: 8px 12px;
+    display: grid;
+    grid-template-columns: 36px minmax(0, 1fr);
+    gap: 8px;
+    align-items: center;
+    color: #595959;
+    font-size: 12px;
+    border-bottom: 1px solid @border-color;
+    background: #fafafa;
+  }
+
+  .agent-screenshot-index {
+    color: #8c8c8c;
+    font-weight: 600;
+  }
+
+  .agent-screenshot-file {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  .agent-screenshot-file-name,
+  .agent-screenshot-path {
+    display: block;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .agent-screenshot-file-name {
+    color: #262626;
+    font-weight: 500;
+  }
+
+  .agent-screenshot-path {
+    color: #667085;
+    font-family:
+      'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', 'Fira Mono',
+      'Roboto Mono', monospace;
+    font-size: 11px;
+    line-height: 16px;
+  }
+
+  .agent-screenshot-image-frame {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    background: #f8fafc;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+
+  .agent-screenshot-preview-missing {
+    color: #8c8c8c;
+    font-size: 12px;
+  }
+}
+
+.agent-screenshot-empty {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+[data-theme='dark'] {
+  .agent-screenshot-view {
+    background: #1f1f1f;
+  }
+
+  .agent-screenshot-header,
+  .agent-screenshot-item,
+  .agent-screenshot-item figcaption {
+    border-color: rgba(255, 255, 255, 0.12);
+  }
+
+  .agent-screenshot-count,
+  .agent-screenshot-item figcaption {
+    background: #2c2e31;
+    color: #f8fafd;
+  }
+
+  .agent-screenshot-file-name {
+    color: #f8fafd;
+  }
+
+  .agent-screenshot-path,
+  .agent-screenshot-preview-missing {
+    color: rgba(248, 250, 253, 0.7);
+  }
+
+  .agent-screenshot-item {
+    background: #1f1f1f;
+
+    &.selected {
+      border-color: #69b1ff;
+      box-shadow: 0 0 0 2px rgba(105, 177, 255, 0.22);
+    }
+  }
+
+  .agent-screenshot-image-frame {
+    background: #141414;
+  }
+}

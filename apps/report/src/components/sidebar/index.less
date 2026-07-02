@@ -7,7 +7,7 @@
   width: 100%;
   height: 100%;
   min-width: 270px;
-  overflow-x: auto;
+  overflow-x: hidden;
   overflow-y: hidden;
   box-sizing: border-box;
   border-radius: 16px;
@@ -27,11 +27,39 @@
       align-items: center;
       justify-content: space-between;
       width: 100%;
+      min-width: 0;
+
+      .page-nav-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        width: 100%;
+        min-width: 0;
+      }
+
+      .page-nav-title {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
 
       .page-nav-toolbar {
         display: flex;
         align-items: center;
-        gap: 16px;
+        gap: 6px;
+        flex-shrink: 0;
+
+        .ant-btn {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 28px;
+          height: 28px;
+          padding: 0;
+          border-radius: 8px;
+        }
 
         .icon-button {
           cursor: pointer;
@@ -46,6 +74,86 @@
             background: #e6e8eb;
           }
         }
+      }
+
+      .report-markdown-sidebar-actions {
+        margin-left: auto;
+      }
+    }
+  }
+
+  .agent-markdown-sidebar {
+    flex: 1;
+    min-height: 0;
+    padding: 0 12px 12px;
+    overflow: hidden;
+
+    &.empty {
+      padding: 20px;
+      color: #808080;
+      font-size: 12px;
+    }
+  }
+
+  .agent-markdown-source {
+    box-sizing: border-box;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 12px;
+    overflow: auto;
+    border: 1px solid @border-color;
+    border-radius: 8px;
+    background: #f8fafc;
+    color: #1f2937;
+    font-family:
+      'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', 'Fira Mono',
+      'Roboto Mono', monospace;
+    font-size: 12px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+
+    .agent-markdown-line {
+      min-height: 19px;
+    }
+
+    .line-heading {
+      color: #0969da;
+      font-weight: 600;
+    }
+
+    .line-table {
+      color: #8250df;
+    }
+
+    .line-list {
+      color: #0550ae;
+    }
+
+    .line-code,
+    .line-fence {
+      color: #57606a;
+      background: rgba(175, 184, 193, 0.12);
+    }
+
+    .line-image {
+      color: #1f883d;
+    }
+
+    .agent-markdown-image-link {
+      display: inline;
+      margin: 0;
+      padding: 0;
+      border: none;
+      background: transparent;
+      color: #1677ff;
+      font: inherit;
+      text-align: left;
+      cursor: pointer;
+
+      &:hover {
+        text-decoration: underline;
       }
     }
   }
@@ -484,13 +592,24 @@
       background: #1f1f1f;
 
       .page-nav-left {
-        .page-nav-toolbar .icon-button {
-          &:hover {
-            background: #2c2e31;
+        .page-nav-toolbar {
+          .ant-btn:not(:disabled) {
+            color: #f8fafd;
+
+            &:hover {
+              background: #2c2e31;
+              color: #f8fafd;
+            }
           }
 
-          svg {
-            color: #f8fafd;
+          .icon-button {
+            &:hover {
+              background: #2c2e31;
+            }
+
+            svg {
+              color: #f8fafd;
+            }
           }
         }
 
@@ -506,6 +625,35 @@
 
     .side-sub-title {
       color: #f8fafd;
+    }
+
+    .agent-markdown-source {
+      border-color: rgba(255, 255, 255, 0.12);
+      background: #141414;
+      color: #f8fafd;
+
+      .line-heading {
+        color: #69b1ff;
+      }
+
+      .line-table {
+        color: #d3adf7;
+      }
+
+      .line-list {
+        color: #91caff;
+      }
+
+      .line-code,
+      .line-fence {
+        color: rgba(248, 250, 253, 0.72);
+        background: rgba(255, 255, 255, 0.08);
+      }
+
+      .line-image,
+      .agent-markdown-image-link {
+        color: #95de64;
+      }
     }
 
     .tasks-table {

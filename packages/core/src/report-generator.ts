@@ -21,6 +21,7 @@ import {
 import { ifInBrowser, logMsg, uuid } from '@midscene/shared/utils';
 import {
   DATA_SCREENSHOT_MODE_ATTR,
+  generateAgentReportComment,
   generateDumpScriptTag,
   generateImageScriptTag,
   getBaseUrlFixScript,
@@ -105,7 +106,11 @@ export class ReportGenerator implements IReportGenerator {
   // Tracks the last execution + groupMeta for re-writing on finalize
   private lastExecution?: ExecutionDump;
   private lastReportMeta?: ReportMeta;
+  private executionsByKey = new Map<string, ExecutionDump>();
+  private executionCommentKeyByObject = new WeakMap<ExecutionDump, string>();
+  private executionCommentKeyIndex = 0;
   private reportAttributes: Record<string, string> = {};
+  private agentCommentWritten = false;
 
   // write queue for serial execution
   private writeQueue: Promise<void> = Promise.resolve();
@@ -182,6 +187,7 @@ export class ReportGenerator implements IReportGenerator {
   ): void {
     this.lastExecution = execution;
     this.lastReportMeta = reportMeta;
+    this.executionsByKey.set(this.getExecutionCommentKey(execution), execution);
     this.mergeReportAttributes(attributes);
     this.writeQueue = this.writeQueue.then(async () => {
       if (this.destroyed) return;
@@ -206,6 +212,7 @@ export class ReportGenerator implements IReportGenerator {
       return undefined;
     }
 
+    await this.appendAgentReportComment();
     return this.reportPath;
   }
 
@@ -381,6 +388,30 @@ export class ReportGenerator implements IReportGenerator {
     );
   }
 
+  private async appendAgentReportComment(): Promise<void> {
+    if (
+      this.agentCommentWritten ||
+      !this.lastReportMeta ||
+      this.executionsByKey.size === 0
+    ) {
+      return;
+    }
+
+    const reportDump = new ReportActionDump({
+      sdkVersion: this.lastReportMeta.sdkVersion,
+      groupName: this.lastReportMeta.groupName,
+      groupDescription: this.lastReportMeta.groupDescription,
+      modelBriefs: this.lastReportMeta.modelBriefs,
+      deviceType: this.lastReportMeta.deviceType,
+      executions: Array.from(this.executionsByKey.values()),
+    });
+    await appendFileAsync(
+      this.reportPath,
+      `\n${generateAgentReportComment(reportDump)}`,
+    );
+    this.agentCommentWritten = true;
+  }
+
   private getExecutionLogKey(execution: ExecutionDump): string {
     if (!execution.id) {
       throw new Error(
@@ -388,6 +419,21 @@ export class ReportGenerator implements IReportGenerator {
       );
     }
     return `id:${execution.id}`;
+  }
+
+  private getExecutionCommentKey(execution: ExecutionDump): string {
+    if (execution.id) {
+      return `id:${execution.id}`;
+    }
+
+    const existingKey = this.executionCommentKeyByObject.get(execution);
+    if (existingKey) {
+      return existingKey;
+    }
+
+    const key = `no-id:${this.executionCommentKeyIndex++}`;
+    this.executionCommentKeyByObject.set(execution, key);
+    return key;
   }
 
   private async persistExecutionDumpToFile(
