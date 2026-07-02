@@ -108,18 +108,30 @@ const readProjectResults = (
     };
   });
 
+const assertFeatureFilesUseRstest = (config: BatchRunnerConfig): void => {
+  if (config.setup && isFeatureFile(config.setup)) {
+    throw new Error('.feature files are not supported as setup files');
+  }
+  if (!config.files.some(isFeatureFile)) return;
+  if (config.keepWindow) {
+    throw new Error('.feature files are not supported in keepWindow mode');
+  }
+  if (config.shareBrowserContext) {
+    throw new Error('shareBrowserContext is not supported for .feature files');
+  }
+};
+
 export async function runFrameworkTestConfig(
   config: BatchRunnerConfig,
   commandOptions: FrameworkTestCommandOptions = {},
 ): Promise<number> {
+  assertFeatureFilesUseRstest(config);
+
   if (config.keepWindow) {
     return runConfigInMainProcess(config, commandOptions);
   }
 
   printExecutionPlan(config);
-  if (config.shareBrowserContext && config.files.some(isFeatureFile)) {
-    throw new Error('shareBrowserContext is not supported for .feature files');
-  }
 
   const projectDir = resolve(commandOptions.projectDir || process.cwd());
   const project = createRstestYamlProject({

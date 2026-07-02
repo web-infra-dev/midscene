@@ -207,6 +207,79 @@ export function defineYamlCaseTest(test: any, options: any) {
     }
   });
 
+  test('rejects feature files before the keepWindow in-process runner', async () => {
+    const root = createTempDir();
+    const feature = join(root, 'checkout.feature');
+    writeFileSync(
+      feature,
+      'Feature: Checkout\nScenario: Add item\nGiven I open the page\n',
+    );
+
+    try {
+      await expect(
+        runFrameworkTestConfig(
+          {
+            files: [feature],
+            concurrent: 1,
+            continueOnError: false,
+            summary: 'summary.json',
+            shareBrowserContext: false,
+            globalConfig: {},
+            headed: true,
+            keepWindow: true,
+            dotenvOverride: false,
+            dotenvDebug: false,
+          },
+          {
+            inProcessRunner: async () => {
+              throw new Error('in-process runner should not run');
+            },
+          },
+        ),
+      ).rejects.toThrow('.feature files are not supported in keepWindow mode');
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  test('rejects feature setup files before the in-process YAML runner', async () => {
+    const root = createTempDir();
+    const yaml = join(root, 'case.yaml');
+    const featureSetup = join(root, 'setup.feature');
+    writeFileSync(yaml, 'web:\n  url: about:blank\ntasks: []\n');
+    writeFileSync(
+      featureSetup,
+      'Feature: Setup\nScenario: Sign in\nGiven I sign in\n',
+    );
+
+    try {
+      await expect(
+        runFrameworkTestConfig(
+          {
+            files: [yaml],
+            setup: featureSetup,
+            concurrent: 1,
+            continueOnError: false,
+            summary: 'summary.json',
+            shareBrowserContext: true,
+            globalConfig: {},
+            headed: true,
+            keepWindow: true,
+            dotenvOverride: false,
+            dotenvDebug: false,
+          },
+          {
+            inProcessRunner: async () => {
+              throw new Error('in-process runner should not run');
+            },
+          },
+        ),
+      ).rejects.toThrow('.feature files are not supported as setup files');
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
   test('lets Rstest schedule virtual entries by concurrency and stops after failure', async () => {
     const root = createTempDir();
     const runDir = join(root, 'midscene-run');
