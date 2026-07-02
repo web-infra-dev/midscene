@@ -61,18 +61,33 @@ const normalizeTargetConfig = (
   }
 };
 
-const createExecutionConfig = (
-  file: string,
-  globalConfig: RunYamlCaseGlobalConfig,
+const mergeGlobalConfig = (
+  fileConfig: MidsceneYamlScript,
+  globalConfig?: RunYamlCaseGlobalConfig,
 ): MidsceneYamlScript => {
-  const content = readFileSync(file, 'utf8');
-  const fileConfig = cloneJson(parseYamlScript(content, file));
-  normalizeTargetConfig(fileConfig);
+  const clonedFileConfig = cloneJson(fileConfig);
+  normalizeTargetConfig(clonedFileConfig);
+
+  if (!globalConfig) return clonedFileConfig;
 
   const clonedGlobalConfig = cloneJson(globalConfig);
   normalizeTargetConfig(clonedGlobalConfig);
 
-  return merge(fileConfig, clonedGlobalConfig);
+  return merge(clonedFileConfig, clonedGlobalConfig);
+};
+
+const createExecutionConfig = (
+  file: string,
+  globalConfig?: RunYamlCaseGlobalConfig,
+  executionConfig?: MidsceneYamlScript,
+): MidsceneYamlScript | undefined => {
+  if (executionConfig) {
+    return mergeGlobalConfig(executionConfig, globalConfig);
+  }
+  if (!globalConfig) return undefined;
+
+  const content = readFileSync(file, 'utf8');
+  return mergeGlobalConfig(parseYamlScript(content, file), globalConfig);
 };
 
 export const getYamlPlayerFailure = (
@@ -161,11 +176,11 @@ export async function runYamlCaseResult(
 ): Promise<MidsceneYamlConfigResult> {
   const file = resolve(options.file);
   const startTime = Date.now();
-  const executionConfig =
-    options.executionConfig ||
-    (options.globalConfig
-      ? createExecutionConfig(file, options.globalConfig)
-      : undefined);
+  const executionConfig = createExecutionConfig(
+    file,
+    options.globalConfig,
+    options.executionConfig,
+  );
   const player = await createYamlPlayer(file, executionConfig, {
     headed: options.headed,
     keepWindow: options.keepWindow,

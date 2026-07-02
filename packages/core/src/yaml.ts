@@ -378,6 +378,7 @@ export interface MidsceneYamlConfigAttempt {
 
 export interface MidsceneYamlConfigResult {
   file: string;
+  testName?: string;
   success: boolean;
   executed: boolean;
   output?: string | null;

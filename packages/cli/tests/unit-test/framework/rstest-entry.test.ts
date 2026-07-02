@@ -137,4 +137,41 @@ describe('defineYamlCaseTest', () => {
       rmSync(root, { recursive: true, force: true });
     }
   });
+
+  test('writes the Rstest test name into case result metadata', async () => {
+    const root = createTempDir();
+    const feature = join(root, 'checkout.feature');
+    const resultFile = join(root, 'results', 'checkout-add-item.json');
+    writeFileSync(
+      feature,
+      'Feature: Checkout\nScenario: Add item\nGiven I open the page\n',
+    );
+    mocks.runYamlCaseResult.mockResolvedValueOnce({
+      file: feature,
+      success: true,
+      executed: true,
+      duration: 10,
+      resultType: 'success',
+    });
+
+    try {
+      defineYamlCaseTest(injectedRstestTest(), {
+        testName: 'features/checkout.feature > Checkout > Add item',
+        yamlFile: feature,
+        resultFile,
+      });
+
+      const [, runCase] = mocks.rstestTest.mock.calls[0];
+      await expect(runCase()).resolves.toBeUndefined();
+
+      const result = JSON.parse(readFileSync(resultFile, 'utf8'));
+      expect(result).toMatchObject({
+        file: feature,
+        testName: 'features/checkout.feature > Checkout > Add item',
+        success: true,
+      });
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
 });

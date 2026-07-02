@@ -764,6 +764,12 @@ importers:
 
   packages/cli:
     dependencies:
+      '@cucumber/gherkin':
+        specifier: 41.0.0
+        version: 41.0.0
+      '@cucumber/messages':
+        specifier: 33.0.3
+        version: 33.0.3
       '@midscene/android':
         specifier: workspace:*
         version: link:../android
@@ -2076,6 +2082,12 @@ packages:
   '@ctrl/tinycolor@3.6.1':
     resolution: {integrity: sha512-SITSV6aIXsuVNV3f3O0f2n/cgyEDWoSqtZMYiAmcsYHydcKrOz3gUxB/iXd/Qf08+IZX4KpgNbvUdMBmWz+kcA==}
     engines: {node: '>=10'}
+
+  '@cucumber/gherkin@41.0.0':
+    resolution: {integrity: sha512-pKGx1EzNjtWbpw74kEevKDMj71dF3ZSaFJpLYuWVvRZKe+Cwoq5iEkuMaELIg1jxIu8jH/A2HPMpMR8UBvdG0w==}
+
+  '@cucumber/messages@33.0.3':
+    resolution: {integrity: sha512-5Afh4Yu4sVBlY0KXO/QLIx8UE6QrMJCnFfP0JOp40XS0NUlZ0Om8ItW3alc/QN0pt/melVzoanPLk0j1i4HgIQ==}
 
   '@devicefarmer/adbkit-logcat@2.1.3':
     resolution: {integrity: sha512-yeaGFjNBc/6+svbDeul1tNHtNChw6h8pSHAt5D+JsedUrMTN7tla7B15WLDyekxsuS2XlZHRxpuC6m92wiwCNw==}
@@ -12089,6 +12101,12 @@ snapshots:
   '@csstools/css-tokenizer@4.0.0': {}
 
   '@ctrl/tinycolor@3.6.1': {}
+
+  '@cucumber/gherkin@41.0.0':
+    dependencies:
+      '@cucumber/messages': 33.0.3
+
+  '@cucumber/messages@33.0.3': {}
 
   '@devicefarmer/adbkit-logcat@2.1.3': {}
 

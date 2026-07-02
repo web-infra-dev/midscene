@@ -43,6 +43,7 @@ export default defineConfig({
     entry: {
       index: 'src/index.ts',
       'framework/index': 'src/framework/index.ts',
+      'framework/feature-loader': 'src/framework/feature-loader.ts',
     },
     define: {
       __VERSION__: JSON.stringify(version),

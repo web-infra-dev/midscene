@@ -19,6 +19,8 @@
     "test:ai:temp": "AITEST=true BRIDGE_MODE=true vitest tests/bridge.test.ts"
   },
   "dependencies": {
+    "@cucumber/gherkin": "41.0.0",
+    "@cucumber/messages": "33.0.3",
     "@midscene/android": "workspace:*",
     "@midscene/computer": "workspace:*",
     "@midscene/core": "workspace:*",

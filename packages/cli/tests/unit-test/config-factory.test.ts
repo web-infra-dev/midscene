@@ -148,8 +148,24 @@ summary: "yaml-summary.json"
       vi.mocked(matchYamlFiles).mockResolvedValue([]); // No files found
 
       await expect(parseConfigYaml(mockIndexPath)).rejects.toThrow(
-        'No YAML files found matching the patterns in "files"',
+        'No YAML or feature files found matching the patterns in "files"',
       );
+    });
+
+    test('should accept feature files in config patterns', async () => {
+      const mockYamlContent = `files: ["features/*.feature"]`;
+      const mockParsedYaml = { files: ['features/*.feature'] };
+
+      vi.mocked(readFileSync).mockReturnValue(mockYamlContent);
+      vi.mocked(interpolateEnvVars).mockReturnValue(mockYamlContent);
+      vi.mocked(yamlLoad).mockReturnValue(mockParsedYaml);
+      vi.mocked(matchYamlFiles).mockResolvedValue([
+        '/test/features/checkout.feature',
+      ]);
+
+      const result = await parseConfigYaml(mockIndexPath);
+
+      expect(result.files).toEqual(['/test/features/checkout.feature']);
     });
 
     test('should resolve the setup file ahead of the main files', async () => {
