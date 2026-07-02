@@ -4,6 +4,36 @@ import type {
   ChatCompletionParamsResult,
   ModelAdapterDefinition,
 } from '../model-adapter/types';
+import {
+  type LocateResultValue,
+  createLocateResultValue,
+  parseCoordinateList,
+} from '../shared/model-locate-result';
+
+const kimiNormalizedPointCoordinatesMeta = {
+  shape: 'point',
+  order: 'xy',
+  normalizedBy: 1,
+} as const;
+const kimiPixelPointCoordinatesMeta = {
+  shape: 'point',
+  order: 'xy',
+} as const;
+
+function parseKimiRawLocateValue(input: unknown): LocateResultValue {
+  const point = parseCoordinateList(input, 'point');
+  if (point.length < 2) {
+    throw new Error(`invalid point data: ${JSON.stringify(input)} `);
+  }
+  const [x, y] = point;
+  // Keep this compatible with OSWorld's Kimi adapter: values <= 1 are
+  // normalized coordinates, otherwise they are treated as screenshot pixels.
+  const coordinatesMeta =
+    x <= 1 && y <= 1
+      ? kimiNormalizedPointCoordinatesMeta
+      : kimiPixelPointCoordinatesMeta;
+  return createLocateResultValue(coordinatesMeta, [x, y]);
+}
 
 const buildKimiChatCompletionParams = (
   input: ChatCompletionCallContext,
@@ -40,7 +70,8 @@ export const kimiAdapters = {
     },
     locate: {
       resultAdapter: {
-        coordinates: { shape: 'point', order: 'xy', normalizedBy: 1 },
+        coordinates: kimiNormalizedPointCoordinatesMeta,
+        parseRawLocateValue: parseKimiRawLocateValue,
       },
     },
   },

@@ -16,16 +16,16 @@ const defaultBboxSize = 20; // must be even number
 
 function resolveCoordinateLimits(
   result: LocateResultValue,
-  resolvedCoordinates: ResolvedLocateResultCoordinates,
   width: number,
   height: number,
 ): number[] {
+  const resolvedCoordinates = result.coordinatesMeta;
   const normalizedBy = resolvedCoordinates.normalizedBy;
   if (normalizedBy !== undefined) {
     return result.coordinates.map(() => normalizedBy);
   }
 
-  if (result.type === 'bbox') {
+  if (resolvedCoordinates.shape === 'bbox') {
     return resolvedCoordinates.order === 'yx'
       ? [height, width, height, width]
       : [width, height, width, height];
@@ -36,17 +36,12 @@ function resolveCoordinateLimits(
 
 function assertLocateResultCoordinates(
   result: LocateResultValue,
-  resolvedCoordinates: ResolvedLocateResultCoordinates,
   width: number,
   height: number,
 ) {
+  const resolvedCoordinates = result.coordinatesMeta;
   const normalizedBy = resolvedCoordinates.normalizedBy;
-  const limits = resolveCoordinateLimits(
-    result,
-    resolvedCoordinates,
-    width,
-    height,
-  );
+  const limits = resolveCoordinateLimits(result, width, height);
   const outOfRange = result.coordinates.some((value, index) => {
     const limit = limits[index];
     return (
@@ -110,13 +105,13 @@ function reorderCoordinatesToXy(
 export function mapLocateResultToPixelBboxByCoordinates(
   result: LocateResultValue,
   { preparedSize }: { preparedSize: { width: number; height: number } },
-  resolvedCoordinates: ResolvedLocateResultCoordinates,
 ): PixelBbox {
-  // The parsed result type decides whether this maps a bbox or expands a point.
-  // `resolvedCoordinates` describes coordinate order and normalization only.
+  // The parsed result metadata decides whether this maps a bbox or expands a
+  // point, and how to interpret coordinate order and normalization.
   const { width, height } = preparedSize;
+  const resolvedCoordinates = result.coordinatesMeta;
   const normalizedBy = resolvedCoordinates.normalizedBy;
-  assertLocateResultCoordinates(result, resolvedCoordinates, width, height);
+  assertLocateResultCoordinates(result, width, height);
 
   const xyCoordinates = reorderCoordinatesToXy(
     result.coordinates,
