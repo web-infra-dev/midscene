@@ -22,6 +22,7 @@ describe('formatTimelineTime', () => {
 
 describe('pickNiceStep', () => {
   it('rounds rough steps up to readable values', () => {
+    expect(pickNiceStep(0.2)).toBe(1);
     expect(pickNiceStep(73)).toBe(100);
     expect(pickNiceStep(420)).toBe(500);
     expect(pickNiceStep(1700)).toBe(2000);
@@ -74,5 +75,23 @@ describe('createTimelineScale', () => {
     expect(scale.timeStep).toBe(100);
     expect(scale.leftForTimeOffset(250)).toBe(500);
     expect(scale.leftForTimeOffset(500)).toBe(1000);
+  });
+
+  it('uses size ratio when choosing the readable tick step', () => {
+    const lowDensityScale = createTimelineScale({
+      canvasWidth: 1000,
+      maxTime: 1000,
+      sizeRatio: 1,
+    });
+    const highDensityScale = createTimelineScale({
+      canvasWidth: 1000,
+      maxTime: 1000,
+      sizeRatio: 2,
+    });
+
+    expect(lowDensityScale.timeStep).toBe(100);
+    expect(highDensityScale.timeStep).toBe(200);
+    expect(lowDensityScale.leftForTimeOffset(500)).toBe(500);
+    expect(highDensityScale.leftForTimeOffset(500)).toBe(500);
   });
 });

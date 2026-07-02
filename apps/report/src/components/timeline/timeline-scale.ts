@@ -31,7 +31,9 @@ export const pickNiceStep = (roughStepMs: number): number => {
   const factor =
     NICE_STEP_FACTORS.find((candidate) => candidate >= normalized) ?? 10;
 
-  return factor * magnitude;
+  // Timeline labels are rendered at integer millisecond precision, so sub-ms
+  // ticks would collapse into duplicate labels such as "0ms".
+  return Math.max(1, factor * magnitude);
 };
 
 export const createTimelineScale = ({

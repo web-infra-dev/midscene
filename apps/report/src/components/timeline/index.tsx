@@ -248,11 +248,7 @@ const TimelineWidget = (props: {
 
       // Grid lines + time labels
       ctx.font = `${timeContentFontSize}px sans-serif`;
-      for (
-        let tickMs = timeStep;
-        tickMs <= visibleMaxTime;
-        tickMs += timeStep
-      ) {
+      for (let tickMs = timeStep; tickMs < visibleMaxTime; tickMs += timeStep) {
         const x = leftForTimeOffset(tickMs);
         ctx.fillStyle = hexToCSS(gridLineColor);
         ctx.fillRect(x, 0, sizeRatio, canvasHeight);
