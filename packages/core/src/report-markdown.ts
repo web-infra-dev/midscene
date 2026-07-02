@@ -3,7 +3,6 @@ import { ScreenshotItem } from '@/screenshot-item';
 import type {
   AIUsageInfo,
   ExecutionDump,
-  ExecutionRecorderItem,
   ExecutionTask,
   IExecutionDump,
   IReportActionDump,
@@ -495,13 +494,16 @@ function screenshotAttachment(
   taskIndex: number,
   options?: {
     fallbackIdSuffix?: string;
+    label?: string;
   },
 ): { markdown: string; attachment: MarkdownAttachment } {
+  const markdownLabel = options?.label || `task-${taskIndex + 1}`;
+
   if (screenshot instanceof ScreenshotItem) {
     const ext = screenshot.extension;
     const suggestedFileName = `execution-${executionIndex + 1}-task-${taskIndex + 1}-${screenshot.id}.${ext}`;
     return {
-      markdown: `\n![task-${taskIndex + 1}](${screenshotBaseDir}/${suggestedFileName})`,
+      markdown: `\n![${markdownLabel}](${screenshotBaseDir}/${suggestedFileName})`,
       attachment: {
         id: screenshot.id,
         suggestedFileName,
@@ -518,7 +520,7 @@ function screenshotAttachment(
     const ext = ref.mimeType === 'image/jpeg' ? 'jpeg' : 'png';
     const suggestedFileName = `execution-${executionIndex + 1}-task-${taskIndex + 1}-${ref.id}.${ext}`;
     return {
-      markdown: `\n![task-${taskIndex + 1}](${screenshotBaseDir}/${suggestedFileName})`,
+      markdown: `\n![${markdownLabel}](${screenshotBaseDir}/${suggestedFileName})`,
       attachment: {
         id: ref.id,
         suggestedFileName,
@@ -536,7 +538,7 @@ function screenshotAttachment(
     const ext = sourceRef.mimeType === 'image/jpeg' ? 'jpeg' : 'png';
     const suggestedFileName = `execution-${executionIndex + 1}-task-${taskIndex + 1}-${sourceRef.id}.${ext}`;
     return {
-      markdown: `\n![task-${taskIndex + 1}](${screenshotBaseDir}/${suggestedFileName})`,
+      markdown: `\n![${markdownLabel}](${screenshotBaseDir}/${suggestedFileName})`,
       attachment: {
         id: sourceRef.id,
         suggestedFileName,
@@ -558,7 +560,7 @@ function screenshotAttachment(
     const id = `restored-${executionIndex + 1}-${taskIndex + 1}${idSuffix}`;
     const suggestedFileName = `execution-${executionIndex + 1}-task-${taskIndex + 1}-${id}.${ext}`;
     return {
-      markdown: `\n![task-${taskIndex + 1}](${screenshotBaseDir}/${suggestedFileName})`,
+      markdown: `\n![${markdownLabel}](${screenshotBaseDir}/${suggestedFileName})`,
       attachment: {
         id,
         suggestedFileName,
@@ -575,44 +577,78 @@ function screenshotAttachment(
   );
 }
 
-function recorderMarkdownSection(
-  recorder: ExecutionRecorderItem[] | undefined,
+function imageLabelSuffix(value: string): string {
+  return (
+    value
+      .toLowerCase()
+      .replace(/[^a-z0-9._-]+/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '') || 'screenshot'
+  );
+}
+
+function screenshotsMarkdownSection(
+  task: ExecutionTask,
   screenshotBaseDir: string,
   executionIndex: number,
   taskIndex: number,
 ): { lines: string[]; attachments: MarkdownAttachment[] } {
-  if (!recorder?.length) {
-    return { lines: [], attachments: [] };
+  const lines: string[] = ['', '### Screenshots'];
+  const attachments: MarkdownAttachment[] = [];
+  let screenshotIndex = 0;
+
+  if (task.uiContext?.screenshot) {
+    const imageResult = screenshotAttachment(
+      task.uiContext.screenshot,
+      screenshotBaseDir,
+      executionIndex,
+      taskIndex,
+      {
+        fallbackIdSuffix: 'ui-context',
+        label: `task-${taskIndex + 1}-ui-context`,
+      },
+    );
+    const time = resolveTaskTiming(task);
+    screenshotIndex += 1;
+    lines.push(
+      `- #${screenshotIndex} type=ui-context, ts=${formatTime(time.start)}, timing=ui-context`,
+    );
+    lines.push(imageResult.markdown);
+    attachments.push(imageResult.attachment);
   }
 
-  const lines: string[] = ['', '### Recorder'];
-  const attachments: MarkdownAttachment[] = [];
-
-  recorder.forEach((item, recorderIndex) => {
-    const descriptionText = item.description
-      ? `, description=${item.description}`
-      : '';
-    lines.push(
-      `- #${recorderIndex + 1} type=${item.type}, ts=${formatTime(item.ts)}, timing=${item.timing || 'N/A'}${descriptionText}`,
-    );
-
+  task.recorder?.forEach((item, recorderIndex) => {
     if (!item.screenshot) {
       return;
     }
+
+    const descriptionText = item.description
+      ? `, description=${item.description}`
+      : '';
+    const timing = item.timing || 'N/A';
+    screenshotIndex += 1;
+    lines.push(
+      `- #${screenshotIndex} type=${item.type}, ts=${formatTime(item.ts)}, timing=${timing}${descriptionText}`,
+    );
 
     const imageResult = screenshotAttachment(
       item.screenshot,
       screenshotBaseDir,
       executionIndex,
       taskIndex,
-      { fallbackIdSuffix: `recorder-${recorderIndex + 1}` },
+      {
+        fallbackIdSuffix: `recorder-${recorderIndex + 1}`,
+        label: `task-${taskIndex + 1}-${imageLabelSuffix(timing)}`,
+      },
     );
 
     lines.push(imageResult.markdown);
     attachments.push(imageResult.attachment);
   });
 
-  return { lines, attachments };
+  return screenshotIndex > 0
+    ? { lines, attachments }
+    : { lines: [], attachments };
 }
 
 function renderExecution(
@@ -702,27 +738,15 @@ function renderExecution(
       (task as ExecutionTaskWithExtraUsage).reasoning_content,
     );
 
-    if (task.uiContext?.screenshot) {
-      const imageResult = screenshotAttachment(
-        task.uiContext.screenshot,
-        screenshotBaseDir,
-        executionIndex,
-        taskIndex,
-      );
-
-      lines.push(imageResult.markdown);
-      attachments.push(imageResult.attachment);
-    }
-
-    const recorderSection = recorderMarkdownSection(
-      task.recorder,
+    const screenshotsSection = screenshotsMarkdownSection(
+      task,
       screenshotBaseDir,
       executionIndex,
       taskIndex,
     );
-    if (recorderSection.lines.length) {
-      lines.push(...recorderSection.lines);
-      attachments.push(...recorderSection.attachments);
+    if (screenshotsSection.lines.length) {
+      lines.push(...screenshotsSection.lines);
+      attachments.push(...screenshotsSection.attachments);
     }
   });
 

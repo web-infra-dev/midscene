@@ -1,14 +1,12 @@
 import './App.less';
 
-import { CopyOutlined, DownloadOutlined } from '@ant-design/icons';
+import { DownOutlined } from '@ant-design/icons';
 import {
   Alert,
   App as AntdApp,
-  Button,
   ConfigProvider,
+  Dropdown,
   Empty,
-  Segmented,
-  Tooltip,
   message,
   theme,
 } from 'antd';
@@ -48,7 +46,6 @@ import {
   downloadMarkdownZip,
   getReportMarkdownView,
   markdownArchiveBaseName,
-  markdownZipDownloadTooltip,
 } from './utils/markdown-export';
 import { formatModelBriefText } from './utils/model-brief';
 import { getPlayerViewOptions } from './utils/player-only';
@@ -123,6 +120,8 @@ function Visualizer(props: VisualizerProps): JSX.Element {
   const dump = useExecutionDump((store) => store.dump);
   const [timelineCollapsed, setTimelineCollapsed] = useState(false);
   const [reportViewMode, setReportViewMode] = useState<ReportViewMode>('human');
+  const [reportViewModeDropdownOpen, setReportViewModeDropdownOpen] =
+    useState(false);
   const [selectedMarkdownImagePath, setSelectedMarkdownImagePath] = useState<
     string | null
   >(null);
@@ -202,6 +201,16 @@ function Visualizer(props: VisualizerProps): JSX.Element {
     () => markdownArchiveBaseName(dump),
     [dump],
   );
+  const reportViewModeLabel =
+    reportViewMode === 'markdown' ? 'Markdown View' : 'Human View';
+  const handleReportViewModeChange = (mode: ReportViewMode) => {
+    if (mode === reportViewMode) {
+      return;
+    }
+    setReportViewMode(mode);
+    setSelectedMarkdownImagePath(null);
+    setSelectedMarkdownImageRequestId(0);
+  };
 
   const handleCopyReportMarkdown = async () => {
     if (!readyReportMarkdown) {
@@ -334,6 +343,11 @@ function Visualizer(props: VisualizerProps): JSX.Element {
             reportViewMode={reportViewMode}
             reportMarkdownView={reportMarkdownView}
             onMarkdownImageClick={handleMarkdownImageClick}
+            reportMarkdownActionsDisabled={!readyReportMarkdown}
+            onCopyReportMarkdown={() => void handleCopyReportMarkdown()}
+            onDownloadReportMarkdownZip={() =>
+              void handleDownloadReportMarkdownZip()
+            }
           />
         </div>
         <div
@@ -477,44 +491,31 @@ function Visualizer(props: VisualizerProps): JSX.Element {
                 <div className="page-nav-left">
                   <Logo />
                   {executionDump && (
-                    <Segmented
-                      size="small"
-                      className="report-view-mode-switch"
-                      value={reportViewMode}
-                      options={[
-                        { label: 'Human View', value: 'human' },
-                        { label: 'Markdown View', value: 'markdown' },
-                      ]}
-                      onChange={(value) => {
-                        setReportViewMode(value as ReportViewMode);
-                        setSelectedMarkdownImagePath(null);
-                        setSelectedMarkdownImageRequestId(0);
+                    <Dropdown
+                      trigger={['click']}
+                      placement="bottomLeft"
+                      open={reportViewModeDropdownOpen}
+                      onOpenChange={setReportViewModeDropdownOpen}
+                      menu={{
+                        items: [
+                          { key: 'human', label: 'Human View' },
+                          { key: 'markdown', label: 'Markdown View' },
+                        ],
+                        onClick: ({ key }) => {
+                          handleReportViewModeChange(key as ReportViewMode);
+                          setReportViewModeDropdownOpen(false);
+                        },
                       }}
-                    />
-                  )}
-                  {reportViewMode === 'markdown' && (
-                    <div className="report-markdown-actions">
-                      <Tooltip title="Copy report.md markdown">
-                        <Button
-                          type="text"
-                          size="small"
-                          icon={<CopyOutlined />}
-                          disabled={!readyReportMarkdown}
-                          onClick={() => void handleCopyReportMarkdown()}
-                          aria-label="Copy report markdown"
-                        />
-                      </Tooltip>
-                      <Tooltip title={markdownZipDownloadTooltip}>
-                        <Button
-                          type="text"
-                          size="small"
-                          icon={<DownloadOutlined />}
-                          disabled={!readyReportMarkdown}
-                          onClick={() => void handleDownloadReportMarkdownZip()}
-                          aria-label="Download markdown and images ZIP"
-                        />
-                      </Tooltip>
-                    </div>
+                    >
+                      <button
+                        type="button"
+                        className="report-view-mode-dropdown"
+                        aria-expanded={reportViewModeDropdownOpen}
+                      >
+                        <span>{reportViewModeLabel}</span>
+                        <DownOutlined />
+                      </button>
+                    </Dropdown>
                   )}
                 </div>
                 <div className="page-nav-right">

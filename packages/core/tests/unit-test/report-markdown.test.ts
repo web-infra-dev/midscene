@@ -66,11 +66,18 @@ describe('report-markdown', () => {
 
     expect(result.markdown).toContain('# single execution');
     expect(result.markdown).toContain('Tap - Submit');
-    expect(result.markdown).toContain('![task-1](./screenshots/');
-    expect(result.markdown).toContain('### Recorder');
+    expect(result.markdown).toContain('### Screenshots');
+    expect(result.markdown).toContain(
+      '- #1 type=ui-context, ts=2024-03-09T16:00:00.000Z, timing=ui-context',
+    );
+    expect(result.markdown).toContain('![task-1-ui-context](./screenshots/');
+    expect(result.markdown).toContain('![task-1-after-click](./screenshots/');
     expect(result.markdown).toContain('timing=after click');
     expect(result.markdown).toContain('description=Post-click state');
     expect(result.markdown).toContain('Screen size: 1280 x 720');
+    expect(result.markdown.indexOf('### Screenshots')).toBeLessThan(
+      result.markdown.indexOf('![task-1-ui-context](./screenshots/'),
+    );
     expect(result.attachments).toHaveLength(2);
     expect(result.attachments[0].suggestedFileName).toContain('.png');
     expect(result.markdown).toContain(
@@ -384,7 +391,8 @@ describe('report-markdown', () => {
 
     const result = executionToMarkdown(execution);
 
-    expect(result.markdown).toContain('### Recorder');
+    expect(result.markdown).toContain('### Screenshots');
+    expect(result.markdown).toContain('timing=ui-context');
     expect(result.markdown).toContain('timing=after action');
     expect(result.attachments).toHaveLength(2);
     expect(result.attachments[0].base64Data).toBe(

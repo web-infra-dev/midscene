@@ -48,8 +48,18 @@
       .page-nav-toolbar {
         display: flex;
         align-items: center;
-        gap: 16px;
+        gap: 6px;
         flex-shrink: 0;
+
+        .ant-btn {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 28px;
+          height: 28px;
+          padding: 0;
+          border-radius: 8px;
+        }
 
         .icon-button {
           cursor: pointer;
@@ -64,6 +74,10 @@
             background: #e6e8eb;
           }
         }
+      }
+
+      .report-markdown-sidebar-actions {
+        margin-left: auto;
       }
     }
   }
@@ -578,13 +592,24 @@
       background: #1f1f1f;
 
       .page-nav-left {
-        .page-nav-toolbar .icon-button {
-          &:hover {
-            background: #2c2e31;
+        .page-nav-toolbar {
+          .ant-btn:not(:disabled) {
+            color: #f8fafd;
+
+            &:hover {
+              background: #2c2e31;
+              color: #f8fafd;
+            }
           }
 
-          svg {
-            color: #f8fafd;
+          .icon-button {
+            &:hover {
+              background: #2c2e31;
+            }
+
+            svg {
+              color: #f8fafd;
+            }
           }
         }
 

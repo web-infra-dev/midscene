@@ -1,5 +1,6 @@
 import './index.less';
 import { useAllCurrentTasks, useExecutionDump } from '@/components/store';
+import { CopyOutlined, DownloadOutlined } from '@ant-design/icons';
 import type { AIUsageInfo, ExecutionTask } from '@midscene/core';
 import { deriveTaskStatus } from '@midscene/core';
 import { typeStr } from '@midscene/core/agent';
@@ -9,13 +10,16 @@ import {
   iconForStatus,
   timeCostStrElement,
 } from '@midscene/visualizer';
-import { Alert, Checkbox, Tag, Tooltip } from 'antd';
+import { Alert, Button, Checkbox, Tag, Tooltip } from 'antd';
 import { useEffect, useMemo } from 'react';
 import CameraIcon from '../../icons/camera.svg?react';
 import MessageIcon from '../../icons/message.svg?react';
 import PlayIcon from '../../icons/play.svg?react';
 import type { PlaywrightTasks, ReportViewMode } from '../../types';
-import type { MarkdownView } from '../../utils/markdown-export';
+import {
+  type MarkdownView,
+  markdownZipDownloadTooltip,
+} from '../../utils/markdown-export';
 import {
   hasDeepLocateFlag,
   hasDeepThinkFlag,
@@ -47,6 +51,9 @@ interface SidebarProps {
   reportViewMode?: ReportViewMode;
   reportMarkdownView?: MarkdownView | null;
   onMarkdownImageClick?: (markdownPath: string) => void;
+  reportMarkdownActionsDisabled?: boolean;
+  onCopyReportMarkdown?: () => void;
+  onDownloadReportMarkdownZip?: () => void;
 }
 
 const Sidebar = (props: SidebarProps = {}): JSX.Element => {
@@ -58,6 +65,9 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
     reportViewMode = 'human',
     reportMarkdownView,
     onMarkdownImageClick,
+    reportMarkdownActionsDisabled = true,
+    onCopyReportMarkdown,
+    onDownloadReportMarkdownZip,
   } = props;
   const groupedDump = useExecutionDump((store) => store.dump);
   const playwrightAttributes = useExecutionDump(
@@ -927,22 +937,50 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
     );
   }
 
+  const pageNavToolbar =
+    reportViewMode === 'markdown' ? (
+      <div className="page-nav-toolbar report-markdown-sidebar-actions">
+        <Tooltip title="Copy report.md markdown">
+          <Button
+            type="text"
+            size="small"
+            icon={<CopyOutlined />}
+            disabled={reportMarkdownActionsDisabled}
+            onClick={onCopyReportMarkdown}
+            aria-label="Copy report markdown"
+          />
+        </Tooltip>
+        <Tooltip title={markdownZipDownloadTooltip}>
+          <Button
+            type="text"
+            size="small"
+            icon={<DownloadOutlined />}
+            disabled={reportMarkdownActionsDisabled}
+            onClick={onDownloadReportMarkdownZip}
+            aria-label="Download markdown and images ZIP"
+          />
+        </Tooltip>
+      </div>
+    ) : (
+      <div className="page-nav-toolbar">
+        <div
+          className="icon-button"
+          onClick={() => {
+            setReplayAllMode?.(true);
+          }}
+        >
+          <PlayIcon />
+        </div>
+      </div>
+    );
+
   return (
     <div className="side-bar">
       <div className="page-nav">
         <div className="page-nav-left">
           <div className="page-nav-top">
             <div className="page-nav-title">Report</div>
-            <div className="page-nav-toolbar">
-              <div
-                className="icon-button"
-                onClick={() => {
-                  setReplayAllMode?.(true);
-                }}
-              >
-                <PlayIcon />
-              </div>
-            </div>
+            {pageNavToolbar}
           </div>
         </div>
       </div>
