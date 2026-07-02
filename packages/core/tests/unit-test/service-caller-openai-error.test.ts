@@ -109,7 +109,44 @@ describe('service-caller OpenAI error handling', () => {
         { attempt: 1, body: 'first body' },
         { attempt: 3, body: 'third body' },
       ],
+      fetchErrors: [{ attempt: 2, error: 'Error: network error' }],
     });
+  });
+
+  it('records and reports original fetch errors before rethrowing them', async () => {
+    const { formatOpenAIAPIErrorDetails, wrapOpenAICompatibleFetch } =
+      await import('@/ai-model/service-caller/openai-error');
+    const context = {};
+    const cause = Object.assign(
+      new Error(
+        'Connect Timeout Error (attempted addresses: 2605:340::1:443, timeout: 10000ms)',
+      ),
+      {
+        name: 'ConnectTimeoutError',
+        code: 'UND_ERR_CONNECT_TIMEOUT',
+      },
+    );
+    const fetchError = Object.assign(new TypeError('fetch failed'), {
+      cause,
+    });
+    globalThis.fetch = vi.fn().mockRejectedValue(fetchError);
+
+    await expect(
+      wrapOpenAICompatibleFetch(context)('https://example.com'),
+    ).rejects.toBe(fetchError);
+
+    expect(context).toEqual({
+      fetchErrors: [
+        {
+          attempt: 1,
+          error:
+            'TypeError: fetch failed\nCause: ConnectTimeoutError [UND_ERR_CONNECT_TIMEOUT]: Connect Timeout Error (attempted addresses: 2605:340::1:443, timeout: 10000ms)',
+        },
+      ],
+    });
+    expect(formatOpenAIAPIErrorDetails(fetchError, context)).toContain(
+      'OpenAI fetch error (attempt 1): TypeError: fetch failed\nCause: ConnectTimeoutError [UND_ERR_CONNECT_TIMEOUT]: Connect Timeout Error (attempted addresses: 2605:340::1:443, timeout: 10000ms)',
+    );
   });
 
   it('exposes raw body fields that a bare OpenAI APIError drops', async () => {
