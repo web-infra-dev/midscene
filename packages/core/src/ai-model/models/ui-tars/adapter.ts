@@ -12,11 +12,22 @@ import {
 } from '../../service-caller/json';
 import {
   type LocateResultValue,
+  createLocateResultValue,
   unwrapCoordinateListLikeInput,
 } from '../../shared/model-locate-result';
 import { createUiTarsPlanner } from './planning';
 
 const defaultVlmUiTarsReplanningCycleLimit = 40;
+const uiTarsBboxCoordinatesMeta = {
+  shape: 'bbox',
+  order: 'xy',
+  normalizedBy: 1000,
+} as const;
+const uiTarsPointCoordinatesMeta = {
+  shape: 'point',
+  order: 'xy',
+  normalizedBy: 1000,
+} as const;
 
 function normalizeJsonObject(
   obj: any,
@@ -106,15 +117,12 @@ function parseUiTarsRawLocateValue(input: unknown): LocateResultValue {
     );
     const splitted = bbox.split(' ');
     if (splitted.length === 4) {
-      return {
-        type: 'bbox',
-        coordinates: [
-          Number(splitted[0]),
-          Number(splitted[1]),
-          Number(splitted[2]),
-          Number(splitted[3]),
-        ],
-      };
+      return createLocateResultValue(uiTarsBboxCoordinatesMeta, [
+        Number(splitted[0]),
+        Number(splitted[1]),
+        Number(splitted[2]),
+        Number(splitted[3]),
+      ]);
     }
     throw new Error(`invalid bbox data string for ui-tars mode: ${bbox}`);
   }
@@ -137,10 +145,12 @@ function parseUiTarsRawLocateValue(input: unknown): LocateResultValue {
   }
 
   if (bboxList.length === 4 || bboxList.length === 5) {
-    return {
-      type: 'bbox',
-      coordinates: [bboxList[0], bboxList[1], bboxList[2], bboxList[3]],
-    };
+    return createLocateResultValue(uiTarsBboxCoordinatesMeta, [
+      bboxList[0],
+      bboxList[1],
+      bboxList[2],
+      bboxList[3],
+    ]);
   }
 
   if (
@@ -149,14 +159,19 @@ function parseUiTarsRawLocateValue(input: unknown): LocateResultValue {
     bboxList.length === 3 ||
     bboxList.length === 7
   ) {
-    return { type: 'point', coordinates: [bboxList[0], bboxList[1]] };
+    return createLocateResultValue(uiTarsPointCoordinatesMeta, [
+      bboxList[0],
+      bboxList[1],
+    ]);
   }
 
   if (bbox.length === 8) {
-    return {
-      type: 'bbox',
-      coordinates: [bboxList[0], bboxList[1], bboxList[4], bboxList[5]],
-    };
+    return createLocateResultValue(uiTarsBboxCoordinatesMeta, [
+      bboxList[0],
+      bboxList[1],
+      bboxList[4],
+      bboxList[5],
+    ]);
   }
 
   const msg = `invalid bbox data for ui-tars mode: ${JSON.stringify(bbox)} `;
@@ -197,7 +212,7 @@ function createUiTarsAdapter(
     },
     locate: {
       resultAdapter: {
-        coordinates: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
+        coordinates: uiTarsBboxCoordinatesMeta,
         parseRawLocateValue: parseUiTarsRawLocateValue,
       },
     },

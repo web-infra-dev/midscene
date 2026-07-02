@@ -77,9 +77,9 @@ describe('preload bridge', () => {
     );
     await studioRuntimeApi.setDiscoveryPollingPaused(true);
     await studioRuntimeApi.runConnectivityTest({
-      apiKey: 'sk-test',
-      baseUrl: 'https://api.example.com/v1',
-      model: 'gpt-4o',
+      MIDSCENE_MODEL_API_KEY: 'sk-test',
+      MIDSCENE_MODEL_BASE_URL: 'https://api.example.com/v1',
+      MIDSCENE_MODEL_NAME: 'gpt-4o',
     });
     await studioRuntimeApi.generateRecorderCode({
       type: 'playwright',
@@ -176,9 +176,9 @@ describe('preload bridge', () => {
       [
         IPC_CHANNELS.runConnectivityTest,
         {
-          apiKey: 'sk-test',
-          baseUrl: 'https://api.example.com/v1',
-          model: 'gpt-4o',
+          MIDSCENE_MODEL_API_KEY: 'sk-test',
+          MIDSCENE_MODEL_BASE_URL: 'https://api.example.com/v1',
+          MIDSCENE_MODEL_NAME: 'gpt-4o',
         },
       ],
       [

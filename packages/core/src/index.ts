@@ -15,7 +15,6 @@ export {
   TUserPromptSchema,
   type TMultimodalPrompt,
   type TUserPrompt,
-  type ConnectivityCheckResultItem,
   type ConnectivityTestConfig,
   type ConnectivityTestResult,
 } from './ai-model/index';
@@ -87,7 +86,10 @@ export {
   parseDumpScriptAttributes,
   generateImageScriptTag,
   generateDumpScriptTag,
+  deriveTaskStatus,
+  deriveCaseStatus,
 } from './dump';
+export type { TaskStatusFields, DerivedTaskStatus } from './dump';
 export {
   getTaskSearchArea,
   getTaskServiceDump,

@@ -42,6 +42,7 @@ export const mimoAdapters = {
     chatCompletion: {
       unsupportedUserConfig: ['reasoningEffort', 'reasoningBudget'],
       buildChatCompletionParams: buildMimoChatCompletionParams,
+      useReasoningAsContentFallback: true,
     },
   },
 } satisfies Pick<Record<TModelFamily, ModelAdapterDefinition>, 'xiaomi-mimo'>;

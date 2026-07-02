@@ -22,6 +22,7 @@ import { getTmpDir, sleep } from '@midscene/core/utils';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import { PLAYGROUND_SERVER_PORT } from '@midscene/shared/constants';
 import {
+  ModelConfigManager,
   globalModelConfigManager,
   overrideAIConfig,
 } from '@midscene/shared/env';
@@ -3311,29 +3312,29 @@ class PlaygroundServer {
       });
     });
 
-    this.app.post(
-      '/connectivity-test',
-      async (_req: Request, res: Response) => {
-        try {
-          const result = await runConnectivityTest({
-            defaultModelConfig:
-              globalModelConfigManager.getModelConfig('default'),
-            planningModelConfig:
-              globalModelConfigManager.getModelConfig('planning'),
-            insightModelConfig:
-              globalModelConfigManager.getModelConfig('insight'),
-          });
-          return res.json(result);
-        } catch (error: unknown) {
-          const errorMessage =
-            error instanceof Error ? error.message : 'Unknown error';
-          console.error(`Connectivity test failed: ${errorMessage}`);
-          return res.status(500).json({
-            error: errorMessage,
+    this.app.post('/connectivity-test', async (req: Request, res: Response) => {
+      try {
+        if (!req.body?.config) {
+          return res.status(400).json({
+            error: 'Model config is required for connectivity test.',
           });
         }
-      },
-    );
+        const modelConfigManager = new ModelConfigManager(req.body.config);
+        const result = await runConnectivityTest({
+          defaultModelConfig: modelConfigManager.getModelConfig('default'),
+          planningModelConfig: modelConfigManager.getModelConfig('planning'),
+          insightModelConfig: modelConfigManager.getModelConfig('insight'),
+        });
+        return res.json(result);
+      } catch (error: unknown) {
+        const errorMessage =
+          error instanceof Error ? error.message : 'Unknown error';
+        console.error(`Connectivity test failed: ${errorMessage}`);
+        return res.status(500).json({
+          error: errorMessage,
+        });
+      }
+    });
   }
 
   /**

@@ -1051,6 +1051,9 @@ importers:
       langsmith:
         specifier: ^0.3.74
         version: 0.3.74(@opentelemetry/api@1.9.0)(@opentelemetry/exporter-trace-otlp-proto@0.210.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@2.4.0(@opentelemetry/api@1.9.0))(openai@6.3.0(ws@8.20.0)(zod@3.25.76))
+      sharp:
+        specifier: ^0.34.3
+        version: 0.34.3
       typescript:
         specifier: ^5.8.3
         version: 5.8.3

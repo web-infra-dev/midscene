@@ -1,9 +1,6 @@
 import type { DeviceAction } from '@midscene/core';
 import { ReportActionDump, runConnectivityTest } from '@midscene/core';
-import {
-  globalModelConfigManager,
-  overrideAIConfig,
-} from '@midscene/shared/env';
+import { ModelConfigManager, overrideAIConfig } from '@midscene/shared/env';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { LocalExecutionAdapter } from '../../src/adapters/local-execution';
 import * as common from '../../src/common';
@@ -200,7 +197,8 @@ describe('LocalExecutionAdapter', () => {
   });
 
   describe('runConnectivityTest', () => {
-    it('should use current default model config and delegate to core', async () => {
+    it('should use the provided config without overriding global config', async () => {
+      const aiConfig = { MIDSCENE_MODEL_NAME: 'test-model' };
       const modelConfig = { modelName: 'test-model' } as any;
       const planningModelConfig = {
         modelName: 'test-planning-model',
@@ -210,27 +208,28 @@ describe('LocalExecutionAdapter', () => {
         modelName: 'test-insight-model',
         intent: 'insight',
       } as any;
-      const result = {
-        passed: true,
-        checks: [],
-      };
-
-      vi.mocked(globalModelConfigManager.getModelConfig)
+      const getModelConfig = vi
+        .fn()
         .mockReturnValueOnce(modelConfig)
         .mockReturnValueOnce(planningModelConfig)
         .mockReturnValueOnce(insightModelConfig);
+      const result = {
+        passed: true,
+      };
+
+      vi.mocked(ModelConfigManager).mockImplementation(
+        () =>
+          ({
+            getModelConfig,
+          }) as any,
+      );
       vi.mocked(runConnectivityTest).mockResolvedValue(result);
 
-      await expect(adapter.runConnectivityTest()).resolves.toEqual(result);
-      expect(globalModelConfigManager.getModelConfig).toHaveBeenCalledWith(
-        'default',
+      await expect(adapter.runConnectivityTest(aiConfig)).resolves.toEqual(
+        result,
       );
-      expect(globalModelConfigManager.getModelConfig).toHaveBeenCalledWith(
-        'planning',
-      );
-      expect(globalModelConfigManager.getModelConfig).toHaveBeenCalledWith(
-        'insight',
-      );
+      expect(ModelConfigManager).toHaveBeenCalledWith(aiConfig);
+      expect(overrideAIConfig).not.toHaveBeenCalled();
       expect(runConnectivityTest).toHaveBeenCalledWith({
         defaultModelConfig: modelConfig,
         planningModelConfig,

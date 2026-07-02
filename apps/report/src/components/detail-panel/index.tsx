@@ -143,7 +143,9 @@ const capturedAtText = (capturedAt?: number): string => {
   return 'captured at unknown';
 };
 
-const DetailPanel = (): JSX.Element => {
+const DetailPanel = ({
+  autoPlay,
+}: { autoPlay?: boolean } = {}): JSX.Element => {
   const insightDump = useExecutionDump((store) => store.insightDump);
   const _contextLoadId = useExecutionDump((store) => store._contextLoadId);
   const activeExecution = useExecutionDump((store) => store.activeExecution);
@@ -210,6 +212,7 @@ const DetailPanel = (): JSX.Element => {
         replayScripts={animationScripts || []}
         imageWidth={imageWidth || 0}
         imageHeight={imageHeight || 0}
+        autoPlay={autoPlay}
       />
     );
   } else if (viewType === VIEW_TYPE_MARKDOWN) {

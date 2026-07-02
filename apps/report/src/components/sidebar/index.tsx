@@ -1,6 +1,7 @@
 import './index.less';
 import { useAllCurrentTasks, useExecutionDump } from '@/components/store';
 import type { AIUsageInfo, ExecutionTask } from '@midscene/core';
+import { deriveTaskStatus } from '@midscene/core';
 import { typeStr } from '@midscene/core/agent';
 import {
   type AnimationScript,
@@ -18,6 +19,7 @@ import {
   hasDeepLocateFlag,
   hasDeepThinkFlag,
 } from '../../utils/report-task-tags';
+import { anchorIdForTask } from '../../utils/task-anchor';
 import ReportOverview from '../report-overview';
 
 // Extended task type with searchAreaUsage
@@ -125,28 +127,12 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
 
   // Helper functions for rendering
   const getStatusIcon = (task: ExecutionTaskWithSearchAreaUsage) => {
-    const isFinished = task.status === 'finished';
-    const isError = isFinished && (task.error || task.errorMessage);
-
-    if (isError) {
-      return iconForStatus('failed');
-    }
-
-    const isAssertFinishedWithWarning =
-      isFinished && task.subType === 'WaitFor' && task.output === false;
-
-    if (isAssertFinishedWithWarning) {
-      return iconForStatus('finishedWithWarning');
-    }
-
-    const isAssertFailed =
-      task.subType === 'Assert' && isFinished && task.output === false;
-
-    if (isAssertFailed) {
-      return iconForStatus('failed');
-    }
-
-    return iconForStatus(task.status);
+    // Share the same failure semantics as the merged-report status derivation
+    // (deriveTaskStatus) so step icons and merged Passed/Failed never diverge.
+    const status = deriveTaskStatus(task);
+    // `warning` maps to the dedicated warning icon; every other value is a
+    // status string iconForStatus already understands.
+    return iconForStatus(status === 'warning' ? 'finishedWithWarning' : status);
   };
 
   const getTitleIcon = (task: ExecutionTaskWithSearchAreaUsage) => {
@@ -680,8 +666,14 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
           <div className="table-body">
             {tableData.map((record) => {
               if (record.isGroupHeader) {
+                // Group headers are not selectable; the id only makes them a
+                // plain `#group-<index>` scroll target, with no hash sync.
                 return (
-                  <div key={record.key} className="group-header-row">
+                  <div
+                    key={record.key}
+                    id={record.key}
+                    className="group-header-row"
+                  >
                     <div className="side-sub-title">{record.groupName}</div>
                   </div>
                 );
@@ -691,10 +683,14 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
               const isSelected = task === activeTask;
               const isPlaying = task === playingTask;
               const taskId = task.taskId;
+              // Single source of truth for the anchor format so the row id,
+              // the hash we write, and the hash we resolve never drift apart.
+              const anchorId = anchorIdForTask(task);
 
               return (
                 <div
                   key={record.key}
+                  id={anchorId}
                   data-task-id={taskId}
                   className={`task-row ${isSelected ? 'selected' : ''} ${isPlaying ? 'playing' : ''}`}
                   onClick={() => {

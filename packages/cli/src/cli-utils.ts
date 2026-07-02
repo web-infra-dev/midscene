@@ -47,6 +47,11 @@ Usage:
         string: true,
         description: 'A list of yaml files to run, separated by space',
       },
+      setup: {
+        type: 'string',
+        description:
+          'A yaml file to run before the main files. Requires --share-browser-context',
+      },
       config: {
         type: 'string',
         description:

@@ -64,6 +64,7 @@ Promise.resolve(
       android: options.android,
       ios: options.ios,
       files: cmdFiles,
+      setup: options.setup as string | undefined,
     };
 
     let config;

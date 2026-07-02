@@ -65,7 +65,12 @@ export function getDebug(
       const baseFn = getDebug(topic);
       const wrapper = (...args: unknown[]): void => {
         baseFn(...args);
-        console.warn('[Midscene]', ...args);
+        try {
+          console.warn('[Midscene]', ...args);
+        } catch {
+          // Packaged Electron apps can have closed stdio streams. Debug logging
+          // must not crash callers just because console output cannot write.
+        }
       };
       debugInstances.set(cacheKey, wrapper);
     } else {

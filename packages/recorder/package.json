@@ -1,5 +1,6 @@
 {
   "name": "@midscene/recorder",
+  "private": true,
   "version": "1.10.0",
   "repository": {
     "type": "git",

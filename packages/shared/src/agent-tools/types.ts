@@ -113,6 +113,14 @@ export interface RecordToReportOptions {
   screenshots?: RecordToReportScreenshot[];
 }
 
+/** Generic progress-bus envelope as seen by tool consumers (all untrusted). */
+export interface BaseAgentProgressEvent {
+  scope?: unknown;
+  phase?: unknown;
+  sequence?: unknown;
+  data?: unknown;
+}
+
 /**
  * Base agent interface
  * Represents a platform-specific agent (Android, iOS, Web)
@@ -121,9 +129,16 @@ export interface RecordToReportOptions {
 export interface BaseAgent {
   getActionSpace(): Promise<ActionSpaceItem[]>;
   destroy?(): Promise<void>;
+  reportFile?: string | null;
   page?: {
     screenshotBase64(): Promise<string>;
   };
+  addDumpUpdateListener?: (
+    listener: (dump: string, executionDump?: unknown) => void,
+  ) => () => void;
+  addProgressListener?: (
+    listener: (event: BaseAgentProgressEvent) => void,
+  ) => () => void;
   recordToReport?: (
     title?: string,
     opt?: RecordToReportOptions,

@@ -8,7 +8,6 @@ import {
   OPENAI_BASE_URL,
   type TModelConfig,
 } from '@midscene/shared/env';
-import type { ConnectivityTestRequest } from './electron-contract';
 
 const LEGACY_MODEL_NAME_KEYS = ['MIDSCENE_MODEL', 'OPENAI_MODEL'] as const;
 
@@ -29,16 +28,6 @@ export type ModelConnectionErrorKind =
 export interface ModelConnectionError {
   kind: ModelConnectionErrorKind;
   error: string;
-}
-
-export function connectivityRequestToModelConfig(
-  request: ConnectivityTestRequest,
-): TModelConfig {
-  return {
-    [MIDSCENE_MODEL_API_KEY]: request.apiKey,
-    [MIDSCENE_MODEL_BASE_URL]: request.baseUrl,
-    [MIDSCENE_MODEL_NAME]: request.model,
-  };
 }
 
 export function resolveModelConnection(
@@ -97,7 +86,7 @@ export function resolveModelConnectionWithConfig(
   };
 }
 
-function normalizeStudioModelProvider(
+export function normalizeStudioModelProvider(
   provider: Record<string, string | number | undefined>,
 ): Record<string, string | undefined> {
   const normalizedProvider = {

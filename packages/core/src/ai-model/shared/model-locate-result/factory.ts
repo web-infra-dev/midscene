@@ -72,12 +72,17 @@ function assertValidParsedLocateResult(result: LocateResultValue): void {
     );
   }
 
+  const coordinatesMeta = result.coordinatesMeta;
   const expectedLength =
-    result.type === 'bbox' ? 4 : result.type === 'point' ? 2 : 0;
+    coordinatesMeta?.shape === 'bbox'
+      ? 4
+      : coordinatesMeta?.shape === 'point'
+        ? 2
+        : 0;
   if (!expectedLength) {
     throw new Error(
-      `invalid parsed locate result: unsupported type ${JSON.stringify(
-        (result as { type?: unknown }).type,
+      `invalid parsed locate result: unsupported coordinatesMeta.shape ${JSON.stringify(
+        coordinatesMeta?.shape,
       )}`,
     );
   }
@@ -91,7 +96,7 @@ function assertValidParsedLocateResult(result: LocateResultValue): void {
     )
   ) {
     throw new Error(
-      `invalid parsed locate result: ${result.type} coordinates must be ${expectedLength} finite numbers, got ${JSON.stringify(
+      `invalid parsed locate result: ${coordinatesMeta.shape} coordinates must be ${expectedLength} finite numbers, got ${JSON.stringify(
         coordinates,
       )}`,
     );
@@ -150,12 +155,7 @@ function createStandardLocateResultAdapterImplementation(
     ((input) => parseNumericLocateResult(resolvedCoordinates, input));
   const mapLocateResultToPixelBbox =
     config.mapLocateResultToPixelBbox ??
-    ((result, ctx) =>
-      mapLocateResultToPixelBboxByCoordinates(
-        result,
-        ctx,
-        resolvedCoordinates,
-      ));
+    ((result, ctx) => mapLocateResultToPixelBboxByCoordinates(result, ctx));
 
   const mapRawLocateValueToPixelBbox = (
     rawResult: unknown,

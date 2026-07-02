@@ -12,9 +12,35 @@ export interface MidsceneYamlFileContext {
   player: ScriptPlayer<MidsceneYamlScriptEnv>;
 }
 
-export const isTTY = process.env.MIDSCENE_CLI_LOG_ON_NON_TTY
-  ? false
-  : process.stdout.isTTY;
+/**
+ * Decide whether the interactive (spinner / in-place redraw) renderer is safe
+ * to use. Besides a real TTY, we honor well-known "I'm not an interactive
+ * terminal" signals so that CI pipelines and Kubernetes pods do not get their
+ * stream-based log collectors (Fluentd / Filebeat) flooded with raw
+ * `\x1b[1A\x1b[2K` cursor-control sequences.
+ *
+ * - `MIDSCENE_CLI_LOG_ON_NON_TTY`: explicit opt-out (existing flag).
+ * - `NO_COLOR`: https://no-color.org convention.
+ * - `TERM=dumb`: terminal that cannot handle cursor movement.
+ * - `CI`: generic CI flag set by virtually every CI provider; relevant when the
+ *   environment still allocates a pseudo-TTY (e.g. `kubectl exec -t`).
+ */
+export function resolveIsTTY(
+  env: NodeJS.ProcessEnv = process.env,
+  stdoutIsTTY: boolean | undefined = process.stdout.isTTY,
+): boolean {
+  if (
+    env.MIDSCENE_CLI_LOG_ON_NON_TTY ||
+    env.NO_COLOR ||
+    env.TERM === 'dumb' ||
+    env.CI
+  ) {
+    return false;
+  }
+  return Boolean(stdoutIsTTY);
+}
+
+export const isTTY = resolveIsTTY();
 export const indent = '  ';
 export const spinnerInterval = 80;
 export const spinnerFrames = ['◰', '◳', '◲', '◱']; // https://github.com/sindresorhus/cli-spinners/blob/main/spinners.json

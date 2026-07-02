@@ -302,12 +302,12 @@ describe('doubao model adapter', () => {
 
   it('parses raw Doubao locate values directly', () => {
     expect(parseDoubaoRawLocateValue('100 200 300 400')).toEqual({
-      type: 'bbox',
       coordinates: [100, 200, 300, 400],
+      coordinatesMeta: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
     });
     expect(parseDoubaoRawLocateValue(['100', '200', '300', '400'])).toEqual({
-      type: 'bbox',
       coordinates: [100, 200, 300, 400],
+      coordinatesMeta: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
     });
     expect(() => parseDoubaoRawLocateValue('100 200 300 400 ')).toThrow(
       /invalid bbox data string/,

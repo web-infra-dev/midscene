@@ -202,54 +202,60 @@ describe('Chrome Extension Event Recording - Crash Reproduction', () => {
   );
 
   /**
-   * Direct comparison: measure the ratio of peak heap between old and new.
+   * Direct comparison: measure how many bytes each approach pushes through the
+   * serialize/deserialize (structured-clone) boundary.
+   *
+   * We compare cumulative serialized bytes rather than live `heapUsed` deltas:
+   * the serialized payloads are transient and get garbage-collected, so a
+   * post-GC heap measurement mostly reflects the retained events array (which
+   * is identical for both approaches) plus GC noise — that made the old
+   * heap-delta comparison flaky (it could even read a negative "growth"). The
+   * byte volume moved across the message boundary is the deterministic signal
+   * behind the heap blow-up: old is O(n^2), new is O(n).
    */
   it(
-    'NEW approach uses significantly less peak memory than OLD',
+    'NEW approach serializes far fewer bytes than OLD',
     () => {
-      // --- Old approach ---
-      if (global.gc) global.gc();
-      const oldBaseline = getHeapUsedMB();
-      const oldEvents: MockEvent[] = [];
+      const EVENT_COUNT = 40;
 
-      for (let i = 0; i < 40; i++) {
+      // --- Old approach: re-serialize the FULL array on every event (O(n^2)) ---
+      const oldEvents: MockEvent[] = [];
+      let oldTotalBytes = 0;
+      for (let i = 0; i < EVENT_COUNT; i++) {
         oldEvents.push(createMockEvent(i));
         const s = JSON.stringify({ action: 'events', data: oldEvents });
+        oldTotalBytes += s.length;
         JSON.parse(s);
       }
-      const oldPeak = getHeapUsedMB();
-      const oldGrowth = oldPeak - oldBaseline;
 
-      // Force cleanup
-      oldEvents.length = 0;
-      if (global.gc) global.gc();
-
-      // --- New approach ---
-      const newBaseline = getHeapUsedMB();
-      const newEvents: MockEvent[] = [];
-
-      for (let i = 0; i < 40; i++) {
+      // --- New approach: serialize only the new event each time (O(n)) ---
+      let newTotalBytes = 0;
+      for (let i = 0; i < EVENT_COUNT; i++) {
         const event = createMockEvent(i);
-        newEvents.push(event);
         const s = JSON.stringify({
           action: 'event-update',
           data: event,
           eventIndex: i,
         });
+        newTotalBytes += s.length;
         JSON.parse(s);
       }
-      const newPeak = getHeapUsedMB();
-      const newGrowth = newPeak - newBaseline;
+
+      const oldTotalMB = oldTotalBytes / (1024 * 1024);
+      const newTotalMB = newTotalBytes / (1024 * 1024);
 
       console.log('\n=== COMPARISON (40 events) ===');
-      console.log(`Old heap growth: ${oldGrowth.toFixed(0)} MB`);
-      console.log(`New heap growth: ${newGrowth.toFixed(0)} MB`);
+      console.log(`Old total serialized: ${oldTotalMB.toFixed(0)} MB`);
+      console.log(`New total serialized: ${newTotalMB.toFixed(0)} MB`);
       console.log(
-        `Ratio: old is ${(oldGrowth / Math.max(newGrowth, 1)).toFixed(1)}x more memory`,
+        `Ratio: old serializes ${(oldTotalBytes / Math.max(newTotalBytes, 1)).toFixed(1)}x more bytes`,
       );
 
-      // The old approach must use significantly more memory
-      expect(oldGrowth).toBeGreaterThan(newGrowth);
+      // The full-array approach serializes the whole growing array on every
+      // event, so it moves dramatically more bytes than the incremental one.
+      // For 40 events the real ratio is ~20x; assert a conservative 5x so the
+      // check stays deterministic and robust.
+      expect(oldTotalBytes).toBeGreaterThan(newTotalBytes * 5);
     },
     STRESS_TEST_TIMEOUT_MS,
   );

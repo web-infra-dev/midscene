@@ -148,6 +148,17 @@ export class AndroidDevice implements AbstractInterface {
         }
       },
       pinch: async (center, opts) => {
+        // yadb only injects gestures into the default display, so a non-default
+        // display would silently land the pinch on the main screen. Fail fast
+        // instead of misleading the caller.
+        if (
+          typeof this.options?.displayId === 'number' &&
+          this.options.displayId !== 0
+        ) {
+          throw new Error(
+            `Pinch is not supported on a non-default display (displayId=${this.options.displayId}). The underlying yadb tool only injects gestures into the default display.`,
+          );
+        }
         const { x: adjCenterX, y: adjCenterY } = await this.adjustCoordinates(
           Math.round(center.x),
           Math.round(center.y),
@@ -159,7 +170,10 @@ export class AndroidDevice implements AbstractInterface {
         await this.ensureYadb();
         const adb = await this.getAdb();
         await adb.shell(
-          `app_process${this.getDisplayArg()} -Djava.class.path=/data/local/tmp/yadb /data/local/tmp com.ysbing.yadb.Main -pinch ${adjCenterX} ${adjCenterY} ${adjStartDist} ${adjEndDist} ${opts.duration}`,
+          // Note: do not append getDisplayArg() here. `app_process` is the ART
+          // runtime launcher and does not accept the `-d <displayId>` flag the
+          // way `input`/`dumpsys` do; passing it makes the VM fail to start.
+          `app_process -Djava.class.path=/data/local/tmp/yadb /data/local/tmp com.ysbing.yadb.Main -pinch ${adjCenterX} ${adjCenterY} ${adjStartDist} ${adjEndDist} ${opts.duration}`,
         );
       },
     },
@@ -557,12 +571,14 @@ ${Object.keys(size)
   }
 
   async execYadb(keyboardContent: string): Promise<void> {
+    this.warnYadbOnNonDefaultDisplay('keyboard input');
     await this.ensureYadb();
 
     const adb = await this.getAdb();
 
     await adb.shell(
-      `app_process${this.getDisplayArg()} -Djava.class.path=/data/local/tmp/yadb /data/local/tmp com.ysbing.yadb.Main -keyboard '${keyboardContent}'`,
+      // `app_process` (ART launcher) does not accept the `-d <displayId>` flag.
+      `app_process -Djava.class.path=/data/local/tmp/yadb /data/local/tmp com.ysbing.yadb.Main -keyboard '${keyboardContent}'`,
     );
   }
 
@@ -1196,8 +1212,10 @@ ${Object.keys(size)
       await adb.clearTextField(100);
     } else {
       // Use the yadb tool to clear the input box
+      this.warnYadbOnNonDefaultDisplay('keyboard clear');
       await adb.shell(
-        `app_process${this.getDisplayArg()} -Djava.class.path=/data/local/tmp/yadb /data/local/tmp com.ysbing.yadb.Main -keyboardClear`,
+        // `app_process` (ART launcher) does not accept the `-d <displayId>` flag.
+        'app_process -Djava.class.path=/data/local/tmp/yadb /data/local/tmp com.ysbing.yadb.Main -keyboardClear',
       );
     }
 
@@ -1890,6 +1908,24 @@ ${Object.keys(size)
     return typeof this.options?.displayId === 'number'
       ? ` -d ${this.options.displayId}`
       : '';
+  }
+
+  /**
+   * yadb (launched via `app_process`) cannot target a specific display and
+   * always acts on the default display. When a non-default display is
+   * configured, warn so the caller knows the operation lands on the main
+   * screen instead of failing silently. Unlike pinch, keyboard operations also
+   * have an `input`-based path, so we warn rather than throw.
+   */
+  private warnYadbOnNonDefaultDisplay(operation: string): void {
+    if (
+      typeof this.options?.displayId === 'number' &&
+      this.options.displayId !== 0
+    ) {
+      warnDevice(
+        `yadb ${operation} cannot target display ${this.options.displayId}; it will act on the default display.`,
+      );
+    }
   }
 
   async getPhysicalDisplayId(): Promise<string | null> {

@@ -47,7 +47,15 @@ MIDSCENE_MODEL_API_KEY="<your-azure-api-key>"
 
 也就是说，`MIDSCENE_MODEL_NAME`、`MIDSCENE_MODEL_FAMILY` 等其他配置仍然按 [模型配置](./model-common-config) 中对应模型的说明填写；Azure 只是鉴权方式有所差异的模型供应商，而非一种特殊模型。
 
-这会走普通 OpenAI-compatible 路径，以 `Authorization: Bearer ...` 请求头发送 `POST /openai/v1/chat/completions`。`MIDSCENE_MODEL_BASE_URL` 不要追加 `/chat/completions`，`/openai/v1` 端点也不要追加 `api-version`。
+这会走普通 OpenAI-compatible 路径，以 `Authorization: Bearer ...` 请求头发送 `POST /openai/v1/chat/completions`。`MIDSCENE_MODEL_BASE_URL` 不要追加 `/chat/completions`。大多数 `/openai/v1` 端点不需要 `api-version`。
+
+如果你的资源仍然以 `400 Missing required query parameter: api-version` 报错，说明该资源的 `/openai/v1` surface 尚未 GA。可以通过 `defaultQuery` 注入这个查询参数：
+
+```bash
+MIDSCENE_MODEL_INIT_CONFIG_JSON='{"defaultQuery":{"api-version":"preview"}}'
+```
+
+`api-version` 的值按你的资源要求填写（`preview`，或 Azure 门户里显示的带日期版本，如 `2025-01-01-preview`）。这样每个请求都会变成 `.../openai/v1/chat/completions?api-version=preview`。
 
 如果某个 Azure-compatible 网关只接受 `api-key` 请求头，可以额外添加下面的配置，通过 header 发送真实 API Key：
 
@@ -58,7 +66,25 @@ MIDSCENE_MODEL_INIT_CONFIG_JSON='{"defaultHeaders":{"api-key":"<your-azure-api-k
 
 这里的 `MIDSCENE_MODEL_API_KEY="placeholder"` 只是为了满足 OpenAI SDK 的初始化要求，真实 API Key 会通过 `defaultHeaders.api-key` 发送。
 
+当某个资源同时需要 `api-version` 和 `api-key` 请求头时，可以把两种兜底配置合并：
+
+```bash
+MIDSCENE_MODEL_API_KEY="placeholder"
+MIDSCENE_MODEL_INIT_CONFIG_JSON='{"defaultQuery":{"api-version":"preview"},"defaultHeaders":{"api-key":"<your-azure-api-key>"}}'
+```
+
 Azure AD / keyless 鉴权（`DefaultAzureCredential`）的方式现在已经不再支持，请使用 API Key 的方式。
+
+## 使用 Azure OpenAI 时点击坐标偏移
+
+在使用 GPT-5 系列模型时，你可能会发现：同一份脚本在 OpenAI 官方 API 上点击位置正确，但切到 Azure OpenAI 后点击位置出现固定比例的偏移。这个偏移和分辨率相关：截图较大时（如 `1920x1080`）出现，截图较小时（如 `1280x600`）则正常。
+
+原因在于 Azure 端的图片处理。GPT-5 返回的是基于它实际看到的截图尺寸的绝对坐标，而 Midscene 发送图片时带上了 `"detail": "original"`，让模型看到原始分辨率的图片（参见 [GPT-5 说明](./model-common-config#gpt-5-4)）。Azure 没有正确处理 `"detail": "original"`，会在服务端对大图进行缩放（短边被压缩到 768）。于是模型在缩放后的坐标系里作答，而 Midscene 仍按原始分辨率还原坐标，最终产生按比例的偏移。可以通过 token 消耗来验证 `original` 是否生效：如果 `original` 生效，图片的 token 消耗会明显更高。
+
+有两种规避办法：
+
+1. 使用 OpenAI 官方的 GPT-5，或配置其他模型单独用于定位，而只把 Azure 平台的 GPT-5 作为规划模型。
+2. 通过 Agent 参数 `screenshotShrinkFactor` 把截图预先缩放到较小尺寸，使图片不触发 Azure 的服务端缩放阈值。详见 [`screenshotShrinkFactor`](./api)。
 
 ## 如何配置 midscene_run 目录？
 
@@ -93,6 +119,15 @@ export MIDSCENE_RUN_DIR="/tmp/midscene_output"
 ## 如何通过链接控制报告中播放器的默认回放样式？
 
 在报告页面的链接后添加查询参数即可覆盖 **Focus on cursor** 和 **Show element markers** 开关的默认值，决定是否在报告中聚焦鼠标位置和元素标记。使用 `focusOnCursor` 和 `showElementMarkers`，参数值支持 `true`、`false`、`1` 或 `0`，例如：`...?focusOnCursor=false&showElementMarkers=true`。
+
+## 如何把报告以纯播放器的形式嵌入其它页面?
+
+当你需要把报告嵌入到别的页面(例如放进 `iframe`)时,在报告链接后添加 `player-only=1` 查询参数,即可隐藏所有外围界面(顶部栏、侧边栏、时间线和详情面板),只保留回放播放器。另外两个参数用来调整播放器:
+
+- `play-control=1` —— 在 player-only 模式下显示底部播放控制条(默认隐藏)。仅接受 `=1` 开启。
+- `auto-play` —— 是否在加载后自动播放。它独立于 `player-only`,对所有报告播放器都生效。**默认开启**;添加 `auto-play=0` 可关闭自动播放。
+
+典型的嵌入形如 `...?player-only=1&play-control=1`。它同样可以和 `#task-<id>` 锚点组合使用,从而深链到某一具体步骤并只展示该步骤的播放器:`...?player-only=1#task-0-5`。若想让任意报告(无论是否嵌入)打开时不自动播放,使用 `...?auto-play=0`。
 
 ## 元素定位出现偏移
 
