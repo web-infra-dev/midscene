@@ -109,14 +109,14 @@ function Visualizer(props: VisualizerProps): JSX.Element {
     setDarkModeEnabled: setIsDarkMode,
   } = useGlobalPreference();
 
-  // Player view flags from the URL: an embedding page can pass `?player-only=1`
-  // to strip all report chrome (nav, sidebar, timeline, detail side) and keep
-  // just the Player, plus `play-control=1` / `auto-play=1` to tune it.
-  const {
-    playerOnly,
-    playControl,
-    autoPlay: playerAutoPlay,
-  } = useMemo(() => getPlayerViewOptions(), []);
+  // Player view flags from the URL. `player-only=1` strips all report chrome
+  // (nav, sidebar, timeline, detail side) and keeps just the Player; in that
+  // mode `play-control=1` shows the control bar. `auto-play` is independent of
+  // player-only and applies to every report player (on by default, `=0` off).
+  const { playerOnly, playControl, autoPlay } = useMemo(
+    () => getPlayerViewOptions(),
+    [],
+  );
 
   // Keep the URL hash in sync with the selected sidebar task (deep-linking).
   useTaskHashAnchor();
@@ -185,6 +185,7 @@ function Visualizer(props: VisualizerProps): JSX.Element {
             imageWidth={insightWidth!}
             imageHeight={insightHeight!}
             onTaskChange={setPlayingTaskId}
+            autoPlay={autoPlay}
           />
         </div>
       );
@@ -193,7 +194,7 @@ function Visualizer(props: VisualizerProps): JSX.Element {
       <PanelGroup autoSaveId="page-detail-layout-v2" direction="horizontal">
         <Panel defaultSize={75} maxSize={95}>
           <div className="main-content-container">
-            <DetailPanel />
+            <DetailPanel autoPlay={autoPlay} />
           </div>
         </Panel>
         <PanelResizeHandle className="resize-handle" />
@@ -354,7 +355,7 @@ function Visualizer(props: VisualizerProps): JSX.Element {
         imageHeight={insightHeight || 0}
         onTaskChange={replayAllMode ? setPlayingTaskId : undefined}
         hideControls={!playControl}
-        autoPlay={playerAutoPlay}
+        autoPlay={autoPlay}
       />
     );
   }
