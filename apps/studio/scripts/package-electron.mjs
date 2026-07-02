@@ -197,12 +197,24 @@ export const shouldUseShellForCommand = (
   platform = process.platform,
 ) => platform === 'win32' && /\.(cmd|bat)$/i.test(command);
 
+export const quoteWindowsShellArg = (arg) => {
+  if (arg === '') {
+    return '""';
+  }
+  if (!/[\s"&|<>()^]/.test(arg)) {
+    return arg;
+  }
+  return `"${arg.replace(/(["&|<>()^])/g, '^$1')}"`;
+};
+
 const run = (command, args, { cwd = workspaceRootDir, env } = {}) =>
   new Promise((resolve, reject) => {
-    const child = spawn(command, args, {
+    const shell = shouldUseShellForCommand(command);
+    const spawnArgs = shell ? args.map(quoteWindowsShellArg) : args;
+    const child = spawn(command, spawnArgs, {
       cwd,
       env: env ? { ...process.env, ...env } : process.env,
-      shell: shouldUseShellForCommand(command),
+      shell,
       stdio: 'inherit',
     });
 
