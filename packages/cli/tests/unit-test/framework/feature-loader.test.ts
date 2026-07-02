@@ -1,4 +1,6 @@
-import { transformFeatureFileToRstestModule } from '@/framework/feature-loader';
+import featureLoader, {
+  transformFeatureFileToRstestModule,
+} from '@/framework/feature-loader';
 import { describe, expect, test } from 'vitest';
 
 describe('feature file loader', () => {
@@ -124,5 +126,23 @@ describe('feature file loader', () => {
       '"resultFile": "/tmp/results/002-retry-checkout.json"',
     );
     expect(output).toContain('"aiAct": "I refresh checkout"');
+  });
+
+  test('throws when Rspack loader metadata is missing for the feature file', () => {
+    expect(() =>
+      featureLoader.call(
+        {
+          resourcePath: '/repo/features/missing.feature',
+          getOptions: () => ({
+            frameworkImport: '/repo/packages/cli/dist/lib/framework/index.js',
+            rstestCoreImport: '/repo/node_modules/@rstest/core/dist/index.js',
+            featureCasesByFile: {},
+          }),
+        },
+        '',
+      ),
+    ).toThrow(
+      '/repo/features/missing.feature: Missing feature loader metadata',
+    );
   });
 });

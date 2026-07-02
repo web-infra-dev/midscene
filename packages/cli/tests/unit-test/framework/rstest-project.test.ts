@@ -511,4 +511,37 @@ describe('rstest yaml project generation', () => {
       rmSync(root, { recursive: true, force: true });
     }
   });
+
+  test('rejects feature files in shared browser batch projects', () => {
+    const root = createTempDir();
+    const outputDir = join(root, 'runner');
+    const feature = join(root, 'checkout.feature');
+    writeFileSync(
+      feature,
+      'Feature: Checkout\nScenario: Add item\nGiven I open the page\n',
+    );
+
+    try {
+      expect(() =>
+        createRstestYamlProject({
+          files: [feature],
+          projectDir: root,
+          outputDir,
+          batchConfig: {
+            files: [feature],
+            concurrent: 1,
+            continueOnError: true,
+            summary: 'summary.json',
+            shareBrowserContext: true,
+            headed: false,
+            keepWindow: false,
+            dotenvOverride: false,
+            dotenvDebug: false,
+          },
+        }),
+      ).toThrow('shareBrowserContext is not supported for .feature files');
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
 });

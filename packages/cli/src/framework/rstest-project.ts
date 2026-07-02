@@ -317,6 +317,10 @@ export const resolveDefaultFrameworkImport = (moduleDir?: string): string => {
 export function createRstestYamlProject(
   options: CreateRstestYamlProjectOptions,
 ): GeneratedRstestYamlProject {
+  if (options.batchConfig && options.files.some(isFeatureFile)) {
+    throw new Error('shareBrowserContext is not supported for .feature files');
+  }
+
   const projectDir = resolve(options.projectDir || process.cwd());
   const outputDir =
     options.outputDir ||

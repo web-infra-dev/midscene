@@ -35,10 +35,14 @@ export default function featureLoader(
 ): string {
   const loaderOptions = this.getOptions();
   const featureFile = this.resourcePath;
+  const cases = loaderOptions.featureCasesByFile[featureFile];
+  if (!cases) {
+    throw new Error(`${featureFile}: Missing feature loader metadata`);
+  }
 
   return transformFeatureFileToRstestModule({
     frameworkImport: loaderOptions.frameworkImport,
     rstestCoreImport: loaderOptions.rstestCoreImport,
-    cases: loaderOptions.featureCasesByFile[featureFile] ?? [],
+    cases,
   });
 }
