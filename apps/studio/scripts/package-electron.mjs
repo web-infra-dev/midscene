@@ -36,6 +36,7 @@ export const artifactDir = path.join(releaseWorkspaceDir, 'artifacts');
 const packagingWorkspaceDir = path.join(releaseWorkspaceDir, 'workspace');
 const packagedDir = path.join(releaseWorkspaceDir, 'packaged');
 const packagedAppId = 'midscene-studio-beta';
+const packagedWindowsAppId = 'ai.midscene.studio.beta';
 const packagedProductName = 'Midscene Studio Beta';
 const packagedIgnorePatterns = [
   /^\/pnpm-lock\.yaml$/,
@@ -196,12 +197,24 @@ export const shouldUseShellForCommand = (
   platform = process.platform,
 ) => platform === 'win32' && /\.(cmd|bat)$/i.test(command);
 
+export const quoteWindowsShellArg = (arg) => {
+  if (arg === '') {
+    return '""';
+  }
+  if (!/[\s"&|<>()^]/.test(arg)) {
+    return arg;
+  }
+  return `"${arg.replace(/(["&|<>()^])/g, '^$1')}"`;
+};
+
 const run = (command, args, { cwd = workspaceRootDir, env } = {}) =>
   new Promise((resolve, reject) => {
-    const child = spawn(command, args, {
+    const shell = shouldUseShellForCommand(command);
+    const spawnArgs = shell ? args.map(quoteWindowsShellArg) : args;
+    const child = spawn(command, spawnArgs, {
       cwd,
       env: env ? { ...process.env, ...env } : process.env,
-      shell: shouldUseShellForCommand(command),
+      shell,
       stdio: 'inherit',
     });
 
@@ -433,6 +446,53 @@ export const buildPackagerOptions = ({ arch, outDir, platform, stageDir }) => ({
 
 const packageManagerCommand =
   process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm';
+
+export const buildWindowsNsisArtifactName = (baseName) =>
+  `${baseName}-setup.exe`;
+
+export const buildWindowsNsisConfig = ({ artifactName, iconPath }) => ({
+  appId: packagedWindowsAppId,
+  productName: packagedProductName,
+  directories: {
+    output: artifactDir,
+  },
+  win: {
+    executableName: packagedAppId,
+    target: [
+      {
+        target: 'nsis',
+        arch: ['x64'],
+      },
+    ],
+    ...(iconPath ? { icon: iconPath } : {}),
+  },
+  nsis: {
+    oneClick: true,
+    perMachine: false,
+    allowElevation: false,
+    artifactName,
+    shortcutName: packagedProductName,
+    uninstallDisplayName: packagedProductName,
+    createDesktopShortcut: 'always',
+  },
+  npmRebuild: false,
+  publish: null,
+});
+
+export const buildWindowsNsisInstallerArgs = ({
+  arch,
+  configPath,
+  packagedAppPath,
+}) => [
+  'exec',
+  'electron-builder',
+  '--win',
+  'nsis',
+  `--${arch}`,
+  `--prepackaged=${packagedAppPath}`,
+  `--config=${configPath}`,
+  '--publish=never',
+];
 
 let cachedStudioElectronVersion;
 let cachedStudioPackageJson;
@@ -2257,6 +2317,52 @@ export const notarizePackagedMacApp = async ({
   return true;
 };
 
+export const buildWindowsNsisInstaller = async ({
+  arch,
+  baseName,
+  packagedAppPath,
+}) => {
+  if (arch !== 'x64') {
+    throw new Error(
+      `Windows NSIS packaging only supports x64 for now, received "${arch}".`,
+    );
+  }
+
+  const artifactName = buildWindowsNsisArtifactName(baseName);
+  const installerPath = path.join(artifactDir, artifactName);
+  const configPath = path.join(artifactDir, `${baseName}.nsis.config.json`);
+  await removeIfExists(installerPath);
+  await removeIfExists(`${installerPath}.blockmap`);
+  await fs.mkdir(artifactDir, { recursive: true });
+  await fs.writeFile(
+    configPath,
+    `${JSON.stringify(
+      buildWindowsNsisConfig({
+        artifactName,
+        iconPath: resolvePackagerIconPath('win32'),
+      }),
+      null,
+      2,
+    )}\n`,
+  );
+
+  try {
+    await run(
+      packageManagerCommand,
+      buildWindowsNsisInstallerArgs({
+        arch,
+        configPath,
+        packagedAppPath,
+      }),
+      { cwd: studioRootDir },
+    );
+  } finally {
+    await removeIfExists(configPath);
+  }
+
+  return installerPath;
+};
+
 export const packageStudioElectronApp = async ({
   version,
   platform = process.platform,
@@ -2349,11 +2455,22 @@ export const packageStudioElectronApp = async ({
     artifactPath,
   });
 
+  let updaterArtifactPath = artifactPath;
+  let windowsInstallerArtifactPath;
+  if (platform === 'win32') {
+    windowsInstallerArtifactPath = await buildWindowsNsisInstaller({
+      arch,
+      baseName,
+      packagedAppPath,
+    });
+    updaterArtifactPath = windowsInstallerArtifactPath;
+  }
+
   // Emit the electron-updater channel manifest (latest-*.yml + beta-*.yml
   // when the version is prerelease) so the GitHub Release surfaces the
-  // sha512/size the autoUpdater needs to verify the zip.
+  // sha512/size the autoUpdater needs to verify the matching update artifact.
   const updateMetadata = await writeUpdateMetadataForArtifact({
-    artifactPath,
+    artifactPath: updaterArtifactPath,
     artifactDir,
     platform,
     version: normalizedVersion,
@@ -2362,6 +2479,11 @@ export const packageStudioElectronApp = async ({
   console.log(`Packaged Midscene Studio archive: ${artifactPath}`);
   if (dmgArtifactPath) {
     console.log(`Packaged Midscene Studio dmg: ${dmgArtifactPath}`);
+  }
+  if (windowsInstallerArtifactPath) {
+    console.log(
+      `Packaged Midscene Studio Windows installer: ${windowsInstallerArtifactPath}`,
+    );
   }
   for (const ymlPath of updateMetadata.writtenPaths) {
     console.log(`Wrote updater manifest: ${ymlPath}`);

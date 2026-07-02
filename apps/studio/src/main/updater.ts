@@ -7,14 +7,11 @@ import { autoUpdater } from 'electron-updater';
 
 const debugUpdater = getDebug('studio:updater', { console: true });
 
-// Studio ships on Windows/Linux as a zip from @electron/packager (no NSIS
-// installer, no AppImage). electron-updater can't replace a running binary
-// in either case — NsisUpdater needs an installer it doesn't have, and the
-// Linux flow only knows how to relaunch an AppImage. We keep
-// checkForUpdates working so the user sees that a new version exists, but
-// route them to the GitHub Releases page to grab the next zip manually.
-const EXTERNAL_DOWNLOAD_ONLY =
-  process.platform === 'win32' || process.platform === 'linux';
+// Linux still ships as a plain zip from @electron/packager, and the updater
+// only knows how to relaunch Linux AppImage/DEB/RPM-style targets. Windows
+// release packaging now publishes an NSIS setup.exe, so NsisUpdater can keep
+// the normal download + quitAndInstall path there.
+const EXTERNAL_DOWNLOAD_ONLY = process.platform === 'linux';
 
 const BACKGROUND_POLL_FIRST_DELAY_MS = 10_000;
 const BACKGROUND_POLL_INTERVAL_MS = 30 * 60 * 1000;
@@ -49,9 +46,9 @@ export class StudioUpdater {
 
     this.getMainWindow = getWindow;
 
-    // On macOS we route install through our own script and trigger
-    // download manually; on Windows/Linux the artifact is unusable
-    // without manual replacement. So autoDownload stays off everywhere.
+    // On macOS we route install through our own script and trigger downloads
+    // manually; Linux still routes users to the release page. Keep
+    // autoDownload off so the renderer-owned flow remains consistent.
     autoUpdater.autoDownload = false;
     autoUpdater.channel = 'latest';
     autoUpdater.allowPrerelease = false;

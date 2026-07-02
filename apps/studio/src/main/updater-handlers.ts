@@ -236,7 +236,7 @@ export function resolveUpdaterCheckStatus(
         releaseNotes: normalizeReleaseNotes(
           (updateInfo as { releaseNotes?: unknown }).releaseNotes,
         ),
-        externalDownloadOnly: platform === 'win32' || platform === 'linux',
+        externalDownloadOnly: platform === 'linux',
       };
     }
   }
