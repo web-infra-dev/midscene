@@ -30,7 +30,7 @@ const buildGeminiChatCompletionParams = (
   input: ChatCompletionCallContext,
 ): ChatCompletionParamsResult => {
   const { midsceneDefaults, userConfig } = input;
-  const { reasoningEnabled, reasoningEffort, reasoningBudget } = userConfig;
+  const { reasoningEnabled, reasoningEffort } = userConfig;
   const commonOverrideConfig: Record<string, unknown> = {};
 
   if (userConfig.temperature !== undefined) {
@@ -40,47 +40,30 @@ const buildGeminiChatCompletionParams = (
   const modelSpecificConfig: {
     extra_body?: {
       google?: {
-        thinking_config: Record<string, unknown>;
+        thinking_config: {
+          include_thoughts: true;
+          thinking_level: string;
+        };
       };
     };
-    reasoning_effort?: unknown;
   } = {};
 
   if (reasoningEnabled !== 'default') {
-    if (reasoningEnabled) {
-      // Gemini exposes different thinking knobs across model generations:
-      // 2.5 models support `thinking_budget`, while 3.x models support
-      // `thinking_level`. Pass through whichever user option is configured.
-      // `thinking_config` and OpenAI-compatible `reasoning_effort` are
-      // mutually exclusive. Request thought summaries only when we send
-      // `thinking_config`; otherwise fall back to `reasoning_effort: medium`.
-      if (reasoningEffort || reasoningBudget !== undefined) {
-        const thinkingConfig: {
-          include_thoughts: boolean;
-          thinking_level?: string;
-          thinking_budget?: number;
-        } = {
+    // Gemini cannot fully disable native thinking, so "disabled" maps to the
+    // lowest thinking level. `include_thoughts` only controls whether Gemini
+    // returns thought summaries; it does not enable thinking, and thought token
+    // usage is based on the full thoughts Gemini generates regardless of
+    // whether summaries are included.
+    modelSpecificConfig.extra_body = {
+      google: {
+        thinking_config: {
           include_thoughts: true,
-        };
-        if (reasoningEffort) {
-          thinkingConfig.thinking_level = reasoningEffort;
-        }
-        if (reasoningBudget !== undefined) {
-          thinkingConfig.thinking_budget = reasoningBudget;
-        }
-        modelSpecificConfig.extra_body = {
-          google: {
-            thinking_config: thinkingConfig,
-          },
-        };
-      } else {
-        modelSpecificConfig.reasoning_effort = 'medium';
-      }
-    } else {
-      // Gemini 3.x cannot fully disable native thinking, so use the lowest
-      // supported effort unless the user explicitly requests another level.
-      modelSpecificConfig.reasoning_effort = 'minimal';
-    }
+          thinking_level: reasoningEnabled
+            ? (reasoningEffort ?? 'medium')
+            : 'minimal',
+        },
+      },
+    };
   }
 
   return {
@@ -204,7 +187,7 @@ export const extractGeminiContentAndReasoning = (
 export const geminiAdapters = {
   gemini: {
     chatCompletion: {
-      unsupportedUserConfig: [],
+      unsupportedUserConfig: ['reasoningBudget'],
       buildChatCompletionParams: buildGeminiChatCompletionParams,
       messageExtraction: {
         kind: 'custom',
