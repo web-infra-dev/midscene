@@ -7,6 +7,7 @@ import Service from '../service/index';
 // DO NOT import from '../index' as it creates a circular dependency:
 // index.ts -> agent/index.ts -> agent/agent.ts -> index.ts
 import {
+  type AIUsageInfo,
   type ActionParam,
   type ActionReturn,
   type AgentAssertOpt,
@@ -64,6 +65,7 @@ import { getDebug } from '@midscene/shared/logger';
 import { assert, ifInBrowser, uuid } from '@midscene/shared/utils';
 import { defineActionSleep } from '../device';
 import { validateAgentCacheInput } from './cache-config';
+import { MetricsCollector, type MidsceneUsageMetrics } from './metrics';
 import { AgentProgressBus } from './progress';
 import { buildPromptWithContext } from './prompt-context';
 import { normalizeRecordToReportScreenshot } from './record-to-report';
@@ -143,6 +145,12 @@ export class Agent<
   onTaskStartTip?: OnTaskStartTip;
 
   taskCache?: TaskCache;
+
+  private readonly metricsCollector = new MetricsCollector();
+
+  // Usage values already folded into `metricsCollector`, keyed by
+  // `${taskId}:${field}` so re-emitted snapshots never double-count.
+  private readonly countedUsageKeys = new Set<string>();
 
   private dumpUpdateListeners: Array<
     (dump: string, executionDump?: ExecutionDump) => void
@@ -305,6 +313,7 @@ export class Agent<
         onSnapshotChange: async (runner) => {
           const executionDump = runner.dump();
           this.appendExecutionDump(executionDump, runner);
+          this.collectUsageMetrics(executionDump);
 
           // Persist report updates before notifying listeners so screenshot
           // payloads can be released from memory and serialized as references.
@@ -442,6 +451,40 @@ export class Agent<
       return;
     }
     currentDump.executions.push(execution);
+  }
+
+  /**
+   * Fold any not-yet-counted task usage from an execution dump into the
+   * instance metrics. Snapshots are re-emitted as tasks progress, so each
+   * usage value is keyed by `${taskId}:${field}` and counted at most once.
+   */
+  private collectUsageMetrics(execution: ExecutionDump) {
+    for (const task of execution.tasks) {
+      this.consumeUsage(task.usage, `${task.taskId}:usage`);
+      this.consumeUsage(task.searchAreaUsage, `${task.taskId}:searchAreaUsage`);
+    }
+  }
+
+  private consumeUsage(usage: AIUsageInfo | undefined, key: string) {
+    if (!usage || this.countedUsageKeys.has(key)) {
+      return;
+    }
+    this.countedUsageKeys.add(key);
+    this.metricsCollector.add(usage);
+    if (this.opts.onLLMUsage) {
+      try {
+        this.opts.onLLMUsage(usage);
+      } catch (error) {
+        warn(`onLLMUsage listener threw, ignoring: ${error}`);
+      }
+    }
+  }
+
+  /**
+   * Aggregated LLM usage accumulated by this agent since it was created.
+   */
+  get metrics(): MidsceneUsageMetrics {
+    return this.metricsCollector.snapshot();
   }
 
   dumpDataString(opt?: { inlineScreenshots?: boolean }) {

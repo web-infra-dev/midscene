@@ -461,7 +461,12 @@ export class TaskBuilder {
           task.usage = withUsageIntent(dump.taskInfo?.usage, 'default');
           task.searchArea = dump.taskInfo?.searchArea;
           if (dump.taskInfo?.searchAreaUsage) {
-            task.searchAreaUsage = dump.taskInfo.searchAreaUsage;
+            // The deepLocate search-area call belongs to the same locate task,
+            // so it shares the companion usage intent.
+            task.searchAreaUsage = withUsageIntent(
+              dump.taskInfo.searchAreaUsage,
+              'default',
+            );
           }
           if (dump.taskInfo?.reasoning_content) {
             task.reasoning_content = dump.taskInfo.reasoning_content;
