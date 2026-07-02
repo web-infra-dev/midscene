@@ -34,6 +34,7 @@ import {
   pruneAntdUmdBundles,
   pruneGifwrapTestFixtures,
   pruneSourceMapFiles,
+  quoteWindowsShellArg,
   readMacMachOArchitectures,
   releaseWorkspaceDir,
   resolveDefaultPackageArch,
@@ -436,6 +437,16 @@ describe('package-electron helpers', () => {
   it('uses a shell for Windows .cmd package manager shims', () => {
     expect(shouldUseShellForCommand('pnpm.cmd', 'win32')).toBe(true);
     expect(shouldUseShellForCommand('pnpm', 'linux')).toBe(false);
+  });
+
+  it('quotes Windows shell args with spaces', () => {
+    expect(quoteWindowsShellArg('--x64')).toBe('--x64');
+    expect(quoteWindowsShellArg('')).toBe('""');
+    expect(
+      quoteWindowsShellArg(
+        '--prepackaged=D:\\a\\midscene\\Midscene Studio Beta-win32-x64',
+      ),
+    ).toBe('"--prepackaged=D:\\a\\midscene\\Midscene Studio Beta-win32-x64"');
   });
 
   it('parses boolean-like configuration values used by mac packaging flags', () => {
