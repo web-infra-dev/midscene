@@ -119,6 +119,7 @@ export interface LocateValidatorResult {
 export interface AgentDescribeElementAtPointResult {
   prompt: string;
   deepLocate: boolean;
+  deepDescribe: boolean;
   verifyResult?: LocateValidatorResult;
   success: boolean;
   error?: string;

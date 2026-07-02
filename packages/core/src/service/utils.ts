@@ -2,9 +2,118 @@ import {
   AIResponseParseError,
   extractJSONFromCodeBlock,
 } from '@/ai-model/service-caller';
-import type { AIDescribeElementResponse } from '@/types';
-import type { DumpMeta, PartialServiceDumpFromSDK, ServiceDump } from '@/types';
+import { expandSearchArea } from '@/common';
+import type {
+  AIDescribeElementResponse,
+  DumpMeta,
+  PartialServiceDumpFromSDK,
+  Rect,
+  ServiceDump,
+  Size,
+} from '@/types';
 import { uuid } from '@midscene/shared/utils';
+
+export const DESCRIBE_POINT_MARKER_MAX_SIZE = 40;
+export const DESCRIBE_RECT_MARKER_BORDER_THICKNESS = 1;
+export const DESCRIBE_LARGE_RECT_MARKER_BORDER_THICKNESS = 2;
+export const DESCRIBE_WIDE_MARKER_INSET_MIN_WIDTH = 100;
+const DESCRIBE_WIDE_MARKER_HORIZONTAL_INSET_RATIO = 0.15;
+const DESCRIBE_WIDE_MARKER_VERTICAL_INSET_RATIO = 0.1;
+
+// Deep describe uses two images: an overview for page-level ownership and a
+// focused crop for local detail. The overview keeps the original screenshot
+// size; only focused crops may be upscaled for small local details.
+export const DESCRIBE_DEEP_CONTEXT_CONFIG = {
+  resize: {
+    cropMaxLongEdge: 1000,
+    cropUpscaleMaxRatio: 2,
+  },
+} as const;
+
+export type DescribeDeepContextArea = {
+  kind: 'focused';
+  rect: Rect;
+};
+
+export function clampRect(rect: Rect, size: Size): Rect {
+  const width = Math.min(rect.width, size.width);
+  const height = Math.min(rect.height, size.height);
+  return {
+    left: Math.max(0, Math.min(rect.left, size.width - width)),
+    top: Math.max(0, Math.min(rect.top, size.height - height)),
+    width,
+    height,
+  };
+}
+
+export function getDescribeDeepContextAreas(
+  rect: Rect,
+  screenSize: Size,
+): DescribeDeepContextArea[] {
+  return [{ kind: 'focused', rect: expandSearchArea(rect, screenSize) }];
+}
+
+export function getRectInCrop(
+  rect: Rect,
+  cropRect: Rect,
+  cropSize: Size,
+): Rect {
+  return clampRect(
+    {
+      left: rect.left - cropRect.left,
+      top: rect.top - cropRect.top,
+      width: rect.width,
+      height: rect.height,
+    },
+    cropSize,
+  );
+}
+
+export function getDescribeMarkerRect(rect: Rect): Rect {
+  if (rect.width < DESCRIBE_WIDE_MARKER_INSET_MIN_WIDTH) {
+    return rect;
+  }
+
+  const horizontalInset = Math.round(
+    rect.width * DESCRIBE_WIDE_MARKER_HORIZONTAL_INSET_RATIO,
+  );
+  const verticalInset = Math.round(
+    rect.height * DESCRIBE_WIDE_MARKER_VERTICAL_INSET_RATIO,
+  );
+
+  return {
+    left: rect.left + horizontalInset,
+    top: rect.top + verticalInset,
+    width: Math.max(rect.width - horizontalInset * 2, 1),
+    height: Math.max(rect.height - verticalInset * 2, 1),
+  };
+}
+
+export function getDescribeMarkerBorderThickness(rect: Rect): number {
+  return rect.width <= DESCRIBE_POINT_MARKER_MAX_SIZE &&
+    rect.height <= DESCRIBE_POINT_MARKER_MAX_SIZE
+    ? DESCRIBE_RECT_MARKER_BORDER_THICKNESS
+    : DESCRIBE_LARGE_RECT_MARKER_BORDER_THICKNESS;
+}
+
+export function getDescribeDeepLocateResizeSize(size: Size): Size | undefined {
+  const maxEdge = Math.max(size.width, size.height);
+  if (!maxEdge) {
+    return undefined;
+  }
+  const { resize } = DESCRIBE_DEEP_CONTEXT_CONFIG;
+  const scale = Math.min(
+    resize.cropUpscaleMaxRatio,
+    resize.cropMaxLongEdge / maxEdge,
+  );
+  if (scale <= 1.05) {
+    return undefined;
+  }
+  return {
+    width: Math.round(size.width * scale),
+    height: Math.round(size.height * scale),
+  };
+}
 
 export function createServiceDump(
   data: PartialServiceDumpFromSDK,
