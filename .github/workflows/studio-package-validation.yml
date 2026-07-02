@@ -127,4 +127,7 @@ jobs:
         with:
           if-no-files-found: error
           name: studio_validation_${{ matrix.platform }}_${{ matrix.arch }}
-          path: ${{ github.workspace }}/.release/studio/artifacts/*.zip
+          path: |
+            ${{ github.workspace }}/.release/studio/artifacts/*.zip
+            ${{ github.workspace }}/.release/studio/artifacts/*.exe
+            ${{ github.workspace }}/.release/studio/artifacts/*.blockmap
