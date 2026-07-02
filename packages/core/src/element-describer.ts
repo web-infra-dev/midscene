@@ -28,7 +28,6 @@ export type DescribeElementAtPointOptions = {
   retryLimit?: number;
   deepDescribe?: boolean;
   deepLocate?: boolean;
-  targetRect?: Rect;
   locatorVerifyFn?: LocatorVerifyFn;
   screenshotBase64?: string;
   screenshotSize?: Size;
@@ -131,36 +130,13 @@ const mapPointToScreenshotSpace = (
   ];
 };
 
-const mapRectToScreenshotSpace = (
-  rect: Rect,
-  screenshotSize: Size,
-  opt: ScreenshotBoundContextOptions,
-): Rect => {
-  const coordinateSpace = opt.coordinateSpace || 'screenshot';
-  if (coordinateSpace === 'screenshot') {
-    return rect;
-  }
-
-  assertPositiveSize(
-    opt.logicalSize,
-    'logicalSize is required when coordinateSpace is logical',
-  );
-  return {
-    left: (rect.left * screenshotSize.width) / opt.logicalSize.width,
-    top: (rect.top * screenshotSize.height) / opt.logicalSize.height,
-    width: (rect.width * screenshotSize.width) / opt.logicalSize.width,
-    height: (rect.height * screenshotSize.height) / opt.logicalSize.height,
-  };
-};
-
 const createScreenshotBoundLocatorContext = async (
   center: [number, number],
-  opt?: ScreenshotBoundContextOptions & { targetRect?: Rect },
+  opt?: ScreenshotBoundContextOptions,
 ): Promise<{
   screenshotContext?: UIContext;
   locateOpt?: LocateOption;
   targetCenter: [number, number];
-  targetRect?: Rect;
 }> => {
   const screenshotContext = opt?.screenshotBase64
     ? await createScreenshotBoundUIContext(opt.screenshotBase64, opt)
@@ -168,19 +144,10 @@ const createScreenshotBoundLocatorContext = async (
   const targetCenter = screenshotContext
     ? mapPointToScreenshotSpace(center, screenshotContext.shotSize, opt || {})
     : center;
-  const targetRect =
-    screenshotContext && opt?.targetRect
-      ? mapRectToScreenshotSpace(
-          opt.targetRect,
-          screenshotContext.shotSize,
-          opt,
-        )
-      : opt?.targetRect;
   return {
     screenshotContext,
     locateOpt: screenshotContext ? { uiContext: screenshotContext } : undefined,
     targetCenter,
-    targetRect,
   };
 };
 
@@ -226,9 +193,8 @@ export async function describeElementAtPoint(
   opt?: DescribeElementAtPointOptions,
 ): Promise<AgentDescribeElementAtPointResult> {
   const { verifyPrompt = true, retryLimit = 3 } = opt || {};
-  const { screenshotContext, locateOpt, targetCenter, targetRect } =
+  const { screenshotContext, locateOpt, targetCenter } =
     await createScreenshotBoundLocatorContext(center, opt);
-  const describeTarget = targetRect ?? targetCenter;
 
   let success = false;
   let retryCount = 0;
@@ -268,7 +234,7 @@ export async function describeElementAtPoint(
     >;
     try {
       text = await retryRuntime.service.describe(
-        describeTarget,
+        targetCenter,
         retryRuntime.describeModelRuntime,
         describeOpt,
       );

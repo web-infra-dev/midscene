@@ -45,7 +45,6 @@ import {
   getDescribeDeepLocateResizeSize,
   getDescribeMarkerBorderThickness,
   getDescribeMarkerRect,
-  getDescribeOverviewResizeSize,
   getRectInCrop,
   recoverDescribeResponseFromParseError,
 } from './utils';
@@ -460,13 +459,7 @@ export default class Service {
     const shouldDeepDescribe = opt?.deepDescribe;
     let imageContent: ChatCompletionContentPart[];
     if (shouldDeepDescribe) {
-      const overviewResizeSize = getDescribeOverviewResizeSize(shotSize);
-      const overviewPayload = overviewResizeSize
-        ? await resizeImgBase64(imagePayload, overviewResizeSize)
-        : imagePayload;
-      const contextAreas = getDescribeDeepContextAreas(targetRect, shotSize, {
-        targetFromPoint,
-      });
+      const contextAreas = getDescribeDeepContextAreas(targetRect, shotSize);
       const contextImages = await Promise.all(
         contextAreas.map(async (area) => {
           debug('describe: cropping deep context area', area);
@@ -499,7 +492,6 @@ export default class Service {
           const resizeSize = getDescribeDeepLocateResizeSize(croppedResult);
           return {
             kind: area.kind,
-            axisMode: area.axisMode,
             imageBase64: resizeSize
               ? await resizeImgBase64(markedCropPayload, resizeSize)
               : markedCropPayload,
@@ -510,10 +502,7 @@ export default class Service {
         contextImages.flatMap<ChatCompletionContentPart>((item, index) => [
           {
             type: 'text',
-            text:
-              item.kind === 'focused'
-                ? `Image ${index + 2}: focused detail crop around the target, for reading text, icon shape, and exact local boundaries.`
-                : `Image ${index + 2}: ${item.axisMode} structural context crop near the target, for disambiguating nearby rows, columns, panels, or repeated controls.`,
+            text: `Image ${index + 2}: focused detail crop around the target, for reading text, icon shape, and exact local boundaries.`,
           },
           {
             type: 'image_url',
@@ -531,12 +520,12 @@ export default class Service {
         },
         {
           type: 'text' as const,
-          text: 'Image 1: low-resolution full screenshot overview with the target marker, for page position and ownership context.',
+          text: 'Image 1: full screenshot overview with the target marker, for page position and ownership context.',
         },
         {
           type: 'image_url' as const,
           image_url: {
-            url: overviewPayload,
+            url: imagePayload,
             detail: 'high',
           },
         },

@@ -20,49 +20,18 @@ export const DESCRIBE_WIDE_MARKER_INSET_MIN_WIDTH = 100;
 const DESCRIBE_WIDE_MARKER_HORIZONTAL_INSET_RATIO = 0.15;
 const DESCRIBE_WIDE_MARKER_VERTICAL_INSET_RATIO = 0.1;
 
-// Deep describe uses a small image set: an overview, a focused crop, and one
-// structural crop. Keep the pixel budget centralized so future A/B tuning does
-// not scatter model/context-size heuristics across the crop code.
-//
-// The aspect thresholds are conservative heuristics, not fitted constants. For
-// point targets we do not know the real target shape, so the screen-aspect
-// thresholds keep a dead zone around square-ish screenshots and fall back to
-// balanced context unless the page is clearly wide or tall.
+// Deep describe uses two images: an overview for page-level ownership and a
+// focused crop for local detail. The overview keeps the original screenshot
+// size; only focused crops may be upscaled for small local details.
 export const DESCRIBE_DEEP_CONTEXT_CONFIG = {
   resize: {
     cropMaxLongEdge: 1000,
     cropUpscaleMaxRatio: 2,
-    overviewMaxLongEdge: 1200,
-  },
-  axisSelection: {
-    targetHorizontalAspectThreshold: 1.35,
-    targetVerticalAspectThreshold: 0.75,
-    pointScreenHorizontalAspectThreshold: 1.15,
-    pointScreenVerticalAspectThreshold: 0.85,
-    screenHorizontalAspectThreshold: 1.35,
-    screenVerticalAspectThreshold: 0.85,
-  },
-  horizontalContext: {
-    minWidth: 900,
-    widthRatio: 0.6,
-    targetAnchorRatio: 0.75,
-    minHeight: 400,
-  },
-  verticalContext: {
-    minHeight: 900,
-    heightRatio: 0.6,
-    minWidth: 400,
-  },
-  balancedContext: {
-    minEdge: 600,
   },
 } as const;
 
-export type DescribeAxisContextMode = 'horizontal' | 'vertical' | 'balanced';
-
 export type DescribeDeepContextArea = {
-  kind: 'focused' | 'axis';
-  axisMode?: DescribeAxisContextMode;
+  kind: 'focused';
   rect: Rect;
 };
 
@@ -77,175 +46,11 @@ export function clampRect(rect: Rect, size: Size): Rect {
   };
 }
 
-function unionRects(a: Rect, b: Rect, size: Size): Rect {
-  const left = Math.max(0, Math.min(a.left, b.left));
-  const top = Math.max(0, Math.min(a.top, b.top));
-  const right = Math.min(
-    size.width,
-    Math.max(a.left + a.width, b.left + b.width),
-  );
-  const bottom = Math.min(
-    size.height,
-    Math.max(a.top + a.height, b.top + b.height),
-  );
-  return {
-    left,
-    top,
-    width: right - left,
-    height: bottom - top,
-  };
-}
-
-function sameRect(a: Rect, b: Rect): boolean {
-  return (
-    a.left === b.left &&
-    a.top === b.top &&
-    a.width === b.width &&
-    a.height === b.height
-  );
-}
-
-function chooseDescribeAxisContextMode(
-  rect: Rect,
-  screenSize: Size,
-  opt?: { targetFromPoint?: boolean },
-): DescribeAxisContextMode {
-  const rectAspect = rect.width / Math.max(rect.height, 1);
-  const screenAspect = screenSize.width / Math.max(screenSize.height, 1);
-  const { axisSelection } = DESCRIBE_DEEP_CONTEXT_CONFIG;
-
-  if (
-    rect.width >= DESCRIBE_POINT_MARKER_MAX_SIZE &&
-    rectAspect >= axisSelection.targetHorizontalAspectThreshold
-  ) {
-    return 'horizontal';
-  }
-  if (
-    rect.height >= DESCRIBE_POINT_MARKER_MAX_SIZE &&
-    rectAspect <= axisSelection.targetVerticalAspectThreshold
-  ) {
-    return 'vertical';
-  }
-  if (opt?.targetFromPoint) {
-    if (screenAspect >= axisSelection.pointScreenHorizontalAspectThreshold) {
-      return 'horizontal';
-    }
-    if (screenAspect <= axisSelection.pointScreenVerticalAspectThreshold) {
-      return 'vertical';
-    }
-  }
-  if (screenAspect >= axisSelection.screenHorizontalAspectThreshold) {
-    return 'horizontal';
-  }
-  if (screenAspect <= axisSelection.screenVerticalAspectThreshold) {
-    return 'vertical';
-  }
-  return 'balanced';
-}
-
-function buildDescribeAxisContextArea(
-  rect: Rect,
-  screenSize: Size,
-  focused: Rect,
-  opt?: { targetFromPoint?: boolean },
-): DescribeDeepContextArea {
-  const axisMode = chooseDescribeAxisContextMode(rect, screenSize, opt);
-  const centerX = rect.left + rect.width / 2;
-  const centerY = rect.top + rect.height / 2;
-  const { horizontalContext, verticalContext, balancedContext } =
-    DESCRIBE_DEEP_CONTEXT_CONFIG;
-
-  if (axisMode === 'horizontal') {
-    const width = Math.min(
-      screenSize.width,
-      Math.max(
-        focused.width,
-        horizontalContext.minWidth,
-        Math.round(screenSize.width * horizontalContext.widthRatio),
-      ),
-    );
-    const height = Math.min(
-      screenSize.height,
-      Math.max(focused.height, horizontalContext.minHeight),
-    );
-    return {
-      kind: 'axis',
-      axisMode,
-      rect: clampRect(
-        {
-          left: Math.round(
-            centerX - width * horizontalContext.targetAnchorRatio,
-          ),
-          top: Math.round(centerY - height / 2),
-          width,
-          height,
-        },
-        screenSize,
-      ),
-    };
-  }
-
-  if (axisMode === 'vertical') {
-    const width = Math.min(
-      screenSize.width,
-      Math.max(focused.width, verticalContext.minWidth),
-    );
-    const height = Math.min(
-      screenSize.height,
-      Math.max(
-        focused.height,
-        verticalContext.minHeight,
-        Math.round(screenSize.height * verticalContext.heightRatio),
-      ),
-    );
-    return {
-      kind: 'axis',
-      axisMode,
-      rect: clampRect(
-        {
-          left: Math.round(centerX - width / 2),
-          top: Math.round(centerY - height / 2),
-          width,
-          height,
-        },
-        screenSize,
-      ),
-    };
-  }
-
-  const width = Math.min(
-    screenSize.width,
-    Math.max(focused.width, balancedContext.minEdge),
-  );
-  const height = Math.min(
-    screenSize.height,
-    Math.max(focused.height, balancedContext.minEdge),
-  );
-  return {
-    kind: 'axis',
-    axisMode,
-    rect: clampRect(
-      {
-        left: Math.round(centerX - width / 2),
-        top: Math.round(centerY - height / 2),
-        width,
-        height,
-      },
-      screenSize,
-    ),
-  };
-}
-
 export function getDescribeDeepContextAreas(
   rect: Rect,
   screenSize: Size,
-  opt?: { targetFromPoint?: boolean },
 ): DescribeDeepContextArea[] {
-  const focused = expandSearchArea(rect, screenSize);
-  const axis = buildDescribeAxisContextArea(rect, screenSize, focused, opt);
-  return sameRect(focused, axis.rect)
-    ? [{ kind: 'focused', rect: focused }]
-    : [{ kind: 'focused', rect: focused }, axis];
+  return [{ kind: 'focused', rect: expandSearchArea(rect, screenSize) }];
 }
 
 export function getRectInCrop(
@@ -262,26 +67,6 @@ export function getRectInCrop(
     },
     cropSize,
   );
-}
-
-export function expandDescribeDeepSearchArea(
-  rect: Rect,
-  screenSize: Size,
-  opt?: { keepWideContext?: boolean },
-): Rect {
-  const base = expandSearchArea(rect, screenSize);
-  const shouldKeepWideRowContext =
-    rect.width >= DESCRIBE_POINT_MARKER_MAX_SIZE || opt?.keepWideContext;
-
-  if (!shouldKeepWideRowContext) {
-    return base;
-  }
-
-  const axisContext = buildDescribeAxisContextArea(rect, screenSize, base, {
-    targetFromPoint: opt?.keepWideContext,
-  });
-
-  return unionRects(base, axisContext.rect, screenSize);
 }
 
 export function getDescribeMarkerRect(rect: Rect): Rect {
@@ -324,19 +109,6 @@ export function getDescribeDeepLocateResizeSize(size: Size): Size | undefined {
   if (scale <= 1.05) {
     return undefined;
   }
-  return {
-    width: Math.round(size.width * scale),
-    height: Math.round(size.height * scale),
-  };
-}
-
-export function getDescribeOverviewResizeSize(size: Size): Size | undefined {
-  const maxEdge = Math.max(size.width, size.height);
-  const { resize } = DESCRIBE_DEEP_CONTEXT_CONFIG;
-  if (!maxEdge || maxEdge <= resize.overviewMaxLongEdge) {
-    return undefined;
-  }
-  const scale = resize.overviewMaxLongEdge / maxEdge;
   return {
     width: Math.round(size.width * scale),
     height: Math.round(size.height * scale),

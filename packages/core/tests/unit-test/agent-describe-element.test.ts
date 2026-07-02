@@ -396,48 +396,6 @@ describe('element describer utils', () => {
     await agent.destroy();
   });
 
-  it('passes mapped targetRect into describe when screenshot context uses logical coordinates', async () => {
-    const agent = new Agent(createMockInterface(), {
-      generateReport: false,
-      modelConfig,
-    });
-    const describe = vi.spyOn(agent.service, 'describe').mockResolvedValue({
-      description: 'Mapped rect target',
-    });
-    mockServiceLocate(agent, {
-      rect: { left: 0, top: 0, width: 1, height: 1 },
-      center: [0.5, 0.5] as [number, number],
-    });
-
-    await describeElementAtPoint(
-      createElementDescriberRuntime(agent),
-      [50, 25],
-      {
-        screenshotBase64: fixtureScreenshot,
-        coordinateSpace: 'logical',
-        logicalSize: { width: 100, height: 50 },
-        targetRect: { left: 40, top: 10, width: 20, height: 30 },
-      },
-    );
-
-    expect(describe).toHaveBeenCalledWith(
-      {
-        left: (40 * fixtureScreenshotSize.width) / 100,
-        top: (10 * fixtureScreenshotSize.height) / 50,
-        width: (20 * fixtureScreenshotSize.width) / 100,
-        height: (30 * fixtureScreenshotSize.height) / 50,
-      },
-      expect.any(Object),
-      expect.objectContaining({
-        context: expect.objectContaining({
-          shotSize: fixtureScreenshotSize,
-        }),
-      }),
-    );
-
-    await agent.destroy();
-  });
-
   it('normalizes raw screenshot base64 into a data URL context', async () => {
     const agent = new Agent(createMockInterface(), {
       generateReport: false,

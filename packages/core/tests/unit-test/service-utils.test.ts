@@ -1,31 +1,11 @@
-import {
-  expandDescribeDeepSearchArea,
-  getDescribeDeepContextAreas,
-  getRectInCrop,
-} from '@/service/utils';
+import { getDescribeDeepContextAreas, getRectInCrop } from '@/service/utils';
 import { describe, expect, it } from 'vitest';
 
 describe('service describe utils', () => {
-  it('keeps wide row context for point targets on 800px screenshots', () => {
-    const searchArea = expandDescribeDeepSearchArea(
-      { left: 148, top: 310, width: 30, height: 30 },
-      { width: 800, height: 417 },
-      { keepWideContext: true },
-    );
-
-    expect(searchArea).toEqual({
-      left: 0,
-      top: 17,
-      width: 800,
-      height: 400,
-    });
-  });
-
-  it('keeps vertical column context for point targets on tall screenshots', () => {
+  it('uses focused context for point targets on tall screenshots', () => {
     const searchAreas = getDescribeDeepContextAreas(
       { left: 185, top: 700, width: 30, height: 30 },
       { width: 400, height: 1200 },
-      { targetFromPoint: true },
     );
 
     expect(searchAreas).toEqual([
@@ -38,36 +18,26 @@ describe('service describe utils', () => {
           height: 400,
         },
       },
-      {
-        kind: 'axis',
-        axisMode: 'vertical',
-        rect: {
-          left: 0,
-          top: 265,
-          width: 400,
-          height: 900,
-        },
-      },
     ]);
   });
 
-  it('uses balanced context for point targets on square-ish screenshots', () => {
+  it('uses focused context for point targets on square-ish screenshots', () => {
     const searchAreas = getDescribeDeepContextAreas(
       { left: 435, top: 435, width: 30, height: 30 },
       { width: 960, height: 900 },
-      { targetFromPoint: true },
     );
 
-    expect(searchAreas[1]).toEqual({
-      kind: 'axis',
-      axisMode: 'balanced',
-      rect: {
-        left: 150,
-        top: 150,
-        width: 600,
-        height: 600,
+    expect(searchAreas).toEqual([
+      {
+        kind: 'focused',
+        rect: {
+          left: 250,
+          top: 250,
+          width: 400,
+          height: 400,
+        },
       },
-    });
+    ]);
   });
 
   it('maps target rectangles into cropped image coordinates', () => {
