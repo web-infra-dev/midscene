@@ -18,6 +18,7 @@ import type {
   AiActProgressData,
   AiActProgressPhase,
   DeviceAction,
+  ExecutionRecorderItem,
   ExecutionTask,
   ExecutionTaskApply,
   ExecutionTaskInsightQueryApply,
@@ -928,6 +929,10 @@ export class TaskExecutor {
             applyDump(error.dump);
           }
           throw error;
+        } finally {
+          // Surface the captured frame sequence in the report, then release it
+          // from the UIContext so its base64 is not retained twice.
+          recordAndReleaseFrameSequence(task, uiContext);
         }
 
         const { data, thought, dump } = extractResult;
@@ -981,6 +986,7 @@ export class TaskExecutor {
     multimodalPrompt?: TMultimodalPrompt,
     executionOptions?: {
       abortSignal?: AbortSignal;
+      uiContext?: UIContext;
     },
   ): Promise<ExecutionResult<T>> {
     const session = this.createExecutionSession(
@@ -988,6 +994,9 @@ export class TaskExecutor {
         type,
         typeof demand === 'string' ? demand : JSON.stringify(demand),
       ),
+      executionOptions?.uiContext
+        ? { uiContext: executionOptions.uiContext }
+        : undefined,
     );
 
     const queryTask = await this.createTypeQueryTask(
@@ -1034,8 +1043,17 @@ export class TaskExecutor {
       checkIntervalMs,
       domIncluded,
       screenshotIncluded,
+      frameSequence,
       ...restOpt
     } = opt;
+    if (frameSequence) {
+      // waitFor is itself a polling loop, so it already re-samples the screen
+      // over time. The single-shot frameSequence capture does not apply here;
+      // ignore it explicitly instead of letting it silently no-op.
+      warnLog(
+        'frameSequence is ignored by aiWaitFor (it already polls over time). Use aiAssert with { frameSequence } for a one-shot multi-frame check.',
+      );
+    }
     const serviceExtractOpt: ServiceExtractOption = {
       domIncluded,
       screenshotIncluded,
@@ -1101,6 +1119,46 @@ export class TaskExecutor {
     }
 
     return session.appendErrorPlan(`waitFor timeout: ${errorThought}`);
+  }
+}
+
+/**
+ * Surface a captured frame sequence in the report timeline, then release it
+ * from the UIContext.
+ *
+ * When `frameSequence` is enabled, the extra frames live on
+ * `uiContext.screenshotSequence` only as a transient model input. This attaches
+ * them to the task recorder so the report renders the full sequence the model
+ * saw (the report timeline builds one screenshot per recorder item), then drops
+ * the field from the UIContext so its base64 is not retained twice for the
+ * lifetime of the dump.
+ *
+ * The last frame is the representative `uiContext.screenshot`, already shown in
+ * the report, so only the earlier frames are recorded to avoid duplication.
+ */
+export function recordAndReleaseFrameSequence(
+  task: ExecutionTask,
+  uiContext: UIContext | undefined,
+): void {
+  const frames = uiContext?.screenshotSequence;
+  if (frames && frames.length > 1) {
+    const recorderItems: ExecutionRecorderItem[] = [];
+    for (let i = 0; i < frames.length - 1; i++) {
+      const frame = frames[i];
+      recorderItems.push({
+        type: 'screenshot',
+        ts: frame.capturedAt,
+        screenshot: frame,
+        description: `Frame sequence ${i + 1}/${frames.length}`,
+        timing: 'frame-sequence',
+      });
+    }
+    task.recorder = task.recorder
+      ? [...task.recorder, ...recorderItems]
+      : recorderItems;
+  }
+  if (uiContext?.screenshotSequence) {
+    uiContext.screenshotSequence = undefined;
   }
 }
 

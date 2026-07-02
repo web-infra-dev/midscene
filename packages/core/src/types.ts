@@ -136,6 +136,15 @@ export abstract class UIContext {
   abstract screenshot: ScreenshotItem;
 
   /**
+   * Optional sequence of screenshots captured over a short time window, in
+   * temporal order (earliest first, latest last). When present with more than
+   * one frame, extract/assert flows submit all frames to the model so it can
+   * observe transient UI (toasts, carousels, auto-hiding controls). The last
+   * frame is the same state as {@link screenshot}.
+   */
+  abstract screenshotSequence?: ScreenshotItem[];
+
+  /**
    * screenshot size after shrinking
    */
   abstract shotSize: Size;
