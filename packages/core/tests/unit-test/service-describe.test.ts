@@ -341,6 +341,40 @@ describe('service.describe', () => {
     expect(mockCallAIWithObjectResponse).toHaveBeenCalledTimes(1);
   });
 
+  it.each([
+    ['top-left corner', [4, 6]],
+    ['top-right corner', [1916, 6]],
+    ['bottom-left corner', [4, 1074]],
+    ['bottom-right corner', [1916, 1074]],
+    ['left edge', [4, 540]],
+    ['right edge', [1916, 540]],
+    ['top edge', [960, 6]],
+    ['bottom edge', [960, 1074]],
+  ] as const)(
+    'keeps crop-local point markers anchored to the original click point near the %s',
+    async (_name, point) => {
+      mockCallAIWithObjectResponse.mockResolvedValueOnce({
+        content: { description: 'edge point target' },
+      });
+
+      const service = new Service(createFakeContext());
+      await service.describe(point, modelRuntime, {
+        deepDescribe: true,
+      });
+
+      const cropRect = mockCropByRect.mock.calls[0][1];
+      expect(mockCompositePointMarkerImg).toHaveBeenCalledWith(
+        expect.objectContaining({
+          inputImgBase64: 'data:image/png;base64,cropped',
+          point: {
+            x: point[0] - cropRect.left,
+            y: point[1] - cropRect.top,
+          },
+        }),
+      );
+    },
+  );
+
   it('recovers from structured AI response parse errors when rawResponse is available', async () => {
     const rawResponse =
       '{"description": "搜索输入框，placeholder 为"搜索你感兴趣的内容""}';

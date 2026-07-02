@@ -433,16 +433,19 @@ export default class Service {
           height: defaultRectSize,
         }
       : target;
+    const targetPoint = targetFromPoint
+      ? {
+          x: target[0],
+          y: target[1],
+        }
+      : undefined;
 
     const usePointMarker = targetFromPoint;
     const imagePayload = usePointMarker
       ? await compositePointMarkerImg({
           inputImgBase64: screenshotBase64,
           size: shotSize,
-          point: {
-            x: targetRect.left + targetRect.width / 2,
-            y: targetRect.top + targetRect.height / 2,
-          },
+          point: targetPoint!,
         })
       : await compositeElementInfoImg({
           inputImgBase64: screenshotBase64,
@@ -474,8 +477,8 @@ export default class Service {
                 inputImgBase64: croppedResult.imageBase64,
                 size: cropSize,
                 point: {
-                  x: targetInCrop.left + targetInCrop.width / 2,
-                  y: targetInCrop.top + targetInCrop.height / 2,
+                  x: targetPoint!.x - area.rect.left,
+                  y: targetPoint!.y - area.rect.top,
                 },
               })
             : await compositeElementInfoImg({
