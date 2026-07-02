@@ -477,12 +477,9 @@ export const buildWindowsNsisInstallerArgs = ({
   '--win',
   'nsis',
   `--${arch}`,
-  '--prepackaged',
-  packagedAppPath,
-  '--config',
-  configPath,
-  '--publish',
-  'never',
+  `--prepackaged=${packagedAppPath}`,
+  `--config=${configPath}`,
+  '--publish=never',
 ];
 
 let cachedStudioElectronVersion;
