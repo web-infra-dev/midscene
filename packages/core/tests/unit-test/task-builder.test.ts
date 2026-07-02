@@ -84,6 +84,7 @@ describe('TaskBuilder', () => {
     const insightService = {
       contextRetrieverFn: vi.fn(),
       locate: vi.fn(),
+      locateAll: vi.fn(),
     } as unknown as Service;
 
     const taskBuilder = new TaskBuilder({
@@ -97,6 +98,11 @@ describe('TaskBuilder', () => {
         type: 'Locate',
         thought: 'find element',
         param: { prompt: 'first' },
+      },
+      {
+        type: 'LocateAll',
+        thought: 'find all elements',
+        param: { prompt: 'all buttons' },
       },
       {
         type: 'Finished',
@@ -123,6 +129,7 @@ describe('TaskBuilder', () => {
 
     expect(tasks.map((task) => [task.type, task.subType])).toEqual([
       ['Planning', 'Locate'],
+      ['Planning', 'LocateAll'],
       ['Action Space', 'Finished'],
       ['Action Space', 'Sleep'],
       ['Planning', 'Locate'],
@@ -136,6 +143,7 @@ describe('TaskBuilder', () => {
       contextRetrieverFn: vi.fn(),
       locate: vi.fn(),
     } as unknown as Service;
+
     const taskBuilder = new TaskBuilder({
       interfaceInstance: mockInterface,
       service: insightService,
@@ -151,6 +159,75 @@ describe('TaskBuilder', () => {
     ).rejects.toThrow(
       /Action type 'Tap' is not in the current action space. Available actions: Sleep/,
     );
+  });
+
+  it('runs LocateAll plans through service.locateAll', async () => {
+    const element = {
+      center: [20, 30],
+      rect: { left: 10, top: 20, width: 30, height: 40 },
+      description: 'target',
+      xpaths: [],
+      attributes: {},
+    };
+    const serviceDump = {
+      taskInfo: {
+        rawResponse: '{}',
+      },
+    } as any;
+    const insightService = {
+      contextRetrieverFn: vi.fn(),
+      locate: vi.fn(),
+      locateAll: vi.fn().mockResolvedValue({
+        elements: [element],
+        dump: serviceDump,
+      }),
+    } as unknown as Service;
+    const mockInterface = new MockInterface([]);
+    const taskBuilder = new TaskBuilder({
+      interfaceInstance: mockInterface,
+      service: insightService,
+      actionSpace: mockInterface.actionSpace(),
+    });
+
+    const { tasks } = await taskBuilder.build(
+      [
+        {
+          type: 'LocateAll',
+          thought: 'find all elements',
+          param: { prompt: 'all buttons' },
+        },
+      ],
+      mockModelRuntime,
+      mockModelRuntime,
+    );
+    const uiContext = {
+      shrunkShotToLogicalRatio: 1,
+      deprecatedDpr: 2,
+    };
+    const taskContext = {
+      task: { timing: {} },
+      uiContext,
+    } as any;
+
+    const result = await tasks[0].executor(tasks[0].param, taskContext);
+
+    expect(insightService.locateAll).toHaveBeenCalledWith(
+      { prompt: 'all buttons' },
+      { context: uiContext },
+      mockModelRuntime,
+      undefined,
+    );
+    expect(result).toEqual({
+      output: {
+        elements: [
+          {
+            ...element,
+            dpr: 2,
+          },
+        ],
+      },
+    });
+    expect(taskContext.task.log.dump).toBe(serviceDump);
   });
 
   it('supports fast-path action delays for system actions', async () => {

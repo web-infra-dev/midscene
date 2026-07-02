@@ -150,6 +150,7 @@ export type TaskTitleType =
   | 'Assert'
   | 'WaitFor'
   | 'Locate'
+  | 'LocateAll'
   | 'Markdown'
   | 'Boolean'
   | 'Number'
@@ -165,7 +166,7 @@ export function taskTitleStr(type: TaskTitleType, prompt: string) {
 export function paramStr(task: ExecutionTask) {
   let value: string | undefined | object;
   if (task.type === 'Planning') {
-    if (task.subType === 'Locate') {
+    if (task.subType === 'Locate' || task.subType === 'LocateAll') {
       value = locateParamStr((task as ExecutionTaskPlanningLocate)?.param);
     } else {
       // Prefer AI-generated output.log over user input

@@ -1,8 +1,10 @@
 import type {
   AIDataExtractionResponse,
+  AIElementLocateAllResponse,
   AIElementLocateResponse,
   AISectionLocatorResponse,
   AIUsageInfo,
+  LocateResultElement,
   Rect,
   ServiceExtractOption,
   UIContext,
@@ -33,6 +35,10 @@ import {
   systemPromptToLocateElement,
 } from './prompt/llm-locator';
 import {
+  findAllElementsPrompt,
+  systemPromptToLocateAllElements,
+} from './prompt/llm-locator-batch';
+import {
   sectionLocatorInstruction,
   systemPromptToLocateSection,
 } from './prompt/llm-section-locator';
@@ -52,6 +58,7 @@ import {
 } from './workflows/inspect/locate-result-rect';
 import { mapSearchAreaPixelBboxToOriginalPixelBbox } from './workflows/inspect/search-area-mapping';
 import type {
+  LocateAllResult,
   LocateModelResponse,
   LocateOptions,
   LocateRequestContext,
@@ -82,6 +89,60 @@ function hasLocateResult(input: unknown, resultKey: string) {
   return Array.isArray(locateResult)
     ? locateResult.length > 0
     : locateResult !== undefined;
+}
+
+function rectBottom(rect: Rect) {
+  return rect.top + rect.height;
+}
+
+function rectRight(rect: Rect) {
+  return rect.left + rect.width;
+}
+
+function rectIntersectionArea(a: Rect, b: Rect) {
+  const left = Math.max(a.left, b.left);
+  const top = Math.max(a.top, b.top);
+  const right = Math.min(rectRight(a), rectRight(b));
+  const bottom = Math.min(rectBottom(a), rectBottom(b));
+  const width = Math.max(0, right - left);
+  const height = Math.max(0, bottom - top);
+  return width * height;
+}
+
+function rectArea(rect: Rect) {
+  return rect.width * rect.height;
+}
+
+function rectIou(a: Rect, b: Rect) {
+  const intersection = rectIntersectionArea(a, b);
+  if (intersection <= 0) {
+    return 0;
+  }
+  const union = rectArea(a) + rectArea(b) - intersection;
+  return union > 0 ? intersection / union : 0;
+}
+
+function sortAndDedupeLocateElements(
+  elements: LocateResultElement[],
+): LocateResultElement[] {
+  const sortedElements = [...elements].sort((a, b) => {
+    const topDelta = a.rect.top - b.rect.top;
+    if (topDelta !== 0) {
+      return topDelta;
+    }
+    return a.rect.left - b.rect.left;
+  });
+
+  const deduped: LocateResultElement[] = [];
+  for (const element of sortedElements) {
+    const duplicated = deduped.some(
+      (existing) => rectIou(existing.rect, element.rect) >= 0.9,
+    );
+    if (!duplicated) {
+      deduped.push(element);
+    }
+  }
+  return deduped;
 }
 
 export async function buildSearchAreaConfig(options: {
@@ -340,6 +401,178 @@ export async function genericLocate(
     usage: res.usage,
     reasoningContent: res.reasoning_content,
     errors: errors as string[],
+  };
+}
+
+export async function AiLocateAllElements(
+  options: LocateOptions & { targetElementDescription: TUserPrompt },
+): Promise<LocateAllResult> {
+  const { targetElementDescription, ...locateOptions } = options;
+  assert(
+    targetElementDescription,
+    'cannot find the target element description',
+  );
+
+  const modelRuntime = options.modelRuntime;
+  const { adapter } = modelRuntime;
+  assert(
+    adapter.locate.kind === 'standard',
+    'locate all requires a standard locate adapter',
+  );
+
+  const { context } = locateOptions;
+  const locateImage = locateOptions.searchConfig?.image ?? {
+    imageBase64: context.screenshot.base64,
+    width: context.shotSize.width,
+    height: context.shotSize.height,
+  };
+  const referenceImageMessages =
+    typeof targetElementDescription === 'string'
+      ? undefined
+      : await multimodalPromptToChatMessages(
+          userPromptToMultimodalPrompt(targetElementDescription),
+        );
+  const targetElementDescriptionText = userPromptToString(
+    targetElementDescription,
+  );
+  const userInstructionPrompt = findAllElementsPrompt(
+    targetElementDescriptionText,
+  );
+  const resultAdapter = adapter.locate.resultAdapter;
+  const systemPrompt = systemPromptToLocateAllElements(
+    resultAdapter.promptSpec,
+  );
+
+  const preparedImage = await prepareModelImage({
+    imageBase64: locateImage.imageBase64,
+    width: locateImage.width,
+    height: locateImage.height,
+    policy: adapter.imagePreprocess,
+  });
+
+  const msgs: InspectAIArgs = [
+    { role: 'system', content: systemPrompt },
+    {
+      role: 'user',
+      content: [
+        {
+          type: 'image_url',
+          image_url: {
+            url: preparedImage.imageBase64,
+            detail: 'high',
+          },
+        },
+        {
+          type: 'text',
+          text: userInstructionPrompt,
+        },
+      ],
+    },
+  ];
+
+  if (referenceImageMessages) {
+    msgs.push(...referenceImageMessages);
+  }
+
+  let res: Awaited<
+    ReturnType<typeof callAIWithObjectResponse<AIElementLocateAllResponse>>
+  >;
+  try {
+    res = await callAIWithObjectResponse<AIElementLocateAllResponse>(
+      msgs,
+      modelRuntime,
+      {
+        abortSignal: options.abortSignal,
+        jsonParserSource: 'locate',
+      },
+    );
+  } catch (callError) {
+    const errorMessage =
+      callError instanceof Error ? callError.message : String(callError);
+    const rawResponse =
+      callError instanceof AIResponseParseError
+        ? callError.rawResponse
+        : errorMessage;
+    const usage =
+      callError instanceof AIResponseParseError ? callError.usage : undefined;
+    const rawChoiceMessage =
+      callError instanceof AIResponseParseError
+        ? callError.rawChoiceMessage
+        : undefined;
+    return {
+      rawResponse,
+      rawChoiceMessage,
+      usage,
+      parseResult: {
+        elements: [],
+        errors: [`AI call error: ${errorMessage}`],
+        fatalError: true,
+      },
+    };
+  }
+
+  const rawResponse = JSON.stringify(res.content);
+  const errors: string[] = Array.isArray(res.content.errors)
+    ? [...res.content.errors]
+    : [];
+  if (!Array.isArray(res.content.elements)) {
+    return {
+      rawResponse,
+      rawChoiceMessage: res.rawChoiceMessage,
+      usage: res.usage,
+      reasoning_content: res.reasoning_content,
+      parseResult: {
+        elements: [],
+        errors: [
+          ...errors,
+          'AI response error: locate all response must contain an elements array',
+        ],
+        fatalError: true,
+      },
+    };
+  }
+
+  const rawElements = res.content.elements;
+  const elements: LocateResultElement[] = [];
+
+  rawElements.forEach((rawElement, index) => {
+    try {
+      const locatedPixelBbox =
+        resultAdapter.adaptElementLocateResultToPixelBbox(rawElement, {
+          preparedSize: preparedImage.preparedSize,
+          contentSize: preparedImage.contentSize,
+        });
+      const rect = pixelBboxToRect(
+        mapSearchAreaPixelBboxToOriginalPixelBbox(
+          locatedPixelBbox,
+          locateOptions.searchConfig?.mapping,
+        ),
+      );
+      elements.push(generateElementByRect(rect, targetElementDescriptionText));
+    } catch (error) {
+      const msg =
+        error instanceof Error
+          ? `Failed to parse locate result #${index + 1}: ${error.message}`
+          : `unknown error in locate result #${index + 1}`;
+      errors.push(msg);
+    }
+  });
+
+  const fatalError = rawElements.length > 0 && elements.length === 0;
+  if (fatalError) {
+    errors.push('AI response error: failed to parse every locate all element');
+  }
+
+  return {
+    rawResponse,
+    rawChoiceMessage: res.rawChoiceMessage,
+    usage: res.usage,
+    reasoning_content: res.reasoning_content,
+    parseResult: {
+      elements: sortAndDedupeLocateElements(elements),
+      errors,
+      fatalError,
+    },
   };
 }
 
