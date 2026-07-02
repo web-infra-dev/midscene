@@ -5,9 +5,8 @@ export const STUDIO_EXTERNAL_LINKS = {
     'https://midscenejs.com/integrate-with-android.html#faq',
   harmonyGettingStarted:
     'https://midscenejs.com/harmony-getting-started.html#install-hdc',
-  // Used by the Windows portable build's "Open download page" action — the
-  // portable .exe can't replace itself, so we send the user to the GitHub
-  // Release to grab the next zip manually.
+  // Used by external-only update targets to send the user to the GitHub
+  // Releases page for a manual download.
   studioReleases: 'https://github.com/web-infra-dev/midscene/releases',
 } as const;
 
