@@ -1324,13 +1324,13 @@ console.log(logContent);
 ## LLM usage metrics
 
 Midscene records the token usage of every LLM call. You can read the aggregated
-totals from the agent at runtime, which is useful for cost observability and
-per-spec tracking with tools like Langfuse.
+totals from the agent at runtime, which is useful for cost observability with
+tools like Langfuse.
 
 ### `agent.metrics`
 
 A getter that returns a snapshot of the LLM usage accumulated by the agent since
-it was created or since the last `resetMetrics()` call.
+it was created.
 
 - Type
 
@@ -1362,32 +1362,6 @@ interface MidsceneUsageMetrics {
 await agent.aiAct('search for headphones');
 const usage = agent.metrics;
 console.log(usage.totalTokens, usage.byIntent, usage.byModel);
-```
-
-### `agent.resetMetrics()`
-
-Clears the accumulated metrics. Call it at the start of a logical unit (such as
-a test spec) to measure only the usage that follows. Call it between actions,
-not while one is in flight, so an in-progress action is not counted twice.
-
-- Type
-
-```typescript
-function resetMetrics(): void;
-```
-
-- Example: per-spec cost tracking
-
-```typescript
-beforeEach(() => agent.resetMetrics());
-
-afterEach(() => {
-  const usage = agent.metrics;
-  langfuse.track('MidsceneUsage', {
-    value: usage.totalTokens,
-    metadata: usage,
-  });
-});
 ```
 
 ### `onLLMUsage` option

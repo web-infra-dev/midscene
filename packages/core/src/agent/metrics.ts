@@ -13,10 +13,9 @@ export interface UsageBucket {
 /**
  * Instance-level snapshot of LLM usage accumulated by an Agent.
  *
- * Designed for cost observability: reset at the start of a logical unit
- * (e.g. a test spec) and read back at the end, then push to tools like
- * Langfuse. `byIntent` / `byModel` provide free breakdowns derived from the
- * usage data Midscene already records per call.
+ * Designed for cost observability: read it back after a logical unit of work
+ * and push to tools like Langfuse. `byIntent` / `byModel` provide free
+ * breakdowns derived from the usage data Midscene already records per call.
  */
 export interface MidsceneUsageMetrics {
   totalPromptTokens: number;
@@ -118,6 +117,10 @@ export class MetricsCollector {
     };
   }
 
+  /**
+   * Clear all accumulated state. Not wired to a public Agent API yet; kept for
+   * a future per-unit reset (e.g. resetting metrics at the start of a spec).
+   */
   reset(): void {
     this.totalPromptTokens = 0;
     this.totalCompletionTokens = 0;

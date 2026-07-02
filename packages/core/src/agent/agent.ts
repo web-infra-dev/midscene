@@ -481,20 +481,10 @@ export class Agent<
   }
 
   /**
-   * Aggregated LLM usage accumulated by this agent since creation or the last
-   * {@link resetMetrics}. Use with `resetMetrics()` for per-spec cost tracking.
+   * Aggregated LLM usage accumulated by this agent since it was created.
    */
   get metrics(): MidsceneUsageMetrics {
     return this.metricsCollector.snapshot();
-  }
-
-  /**
-   * Clear accumulated usage metrics. Call at the start of a logical unit (e.g.
-   * a test spec) to measure only the usage that follows.
-   */
-  resetMetrics() {
-    this.metricsCollector.reset();
-    this.countedUsageKeys.clear();
   }
 
   dumpDataString(opt?: { inlineScreenshots?: boolean }) {

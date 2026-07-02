@@ -115,17 +115,6 @@ describe('MetricsCollector', () => {
     expect(first.totalTokens).toBe(10);
     expect(first.byIntent.planning.calls).toBe(1);
   });
-
-  it('clears all accumulated state on reset', () => {
-    const collector = new MetricsCollector();
-    collector.add(usage({ total_tokens: 10 }));
-    collector.reset();
-    const snapshot = collector.snapshot();
-    expect(snapshot.totalTokens).toBe(0);
-    expect(snapshot.calls).toBe(0);
-    expect(snapshot.byIntent).toEqual({});
-    expect(snapshot.byModel).toEqual({});
-  });
 });
 
 describe('Agent usage metrics', () => {
@@ -192,30 +181,6 @@ describe('Agent usage metrics', () => {
     );
     expect(agent.metrics.calls).toBe(1);
     expect(agent.metrics.totalTokens).toBe(30);
-
-    await agent.destroy();
-  });
-
-  it('resetMetrics clears totals and re-allows previously counted tasks', async () => {
-    const agent = new Agent(createMockInterface(), {
-      modelConfig,
-      generateReport: false,
-    });
-
-    const task = {
-      taskId: 't1',
-      usage: usage({ total_tokens: 50, intent: 'planning' }),
-    };
-    (agent as any).collectUsageMetrics(dumpWithTasks([task]));
-    expect(agent.metrics.totalTokens).toBe(50);
-
-    agent.resetMetrics();
-    expect(agent.metrics.totalTokens).toBe(0);
-    expect(agent.metrics.calls).toBe(0);
-
-    // After reset, the dedup memory is cleared so a fresh run is counted again.
-    (agent as any).collectUsageMetrics(dumpWithTasks([task]));
-    expect(agent.metrics.totalTokens).toBe(50);
 
     await agent.destroy();
   });
