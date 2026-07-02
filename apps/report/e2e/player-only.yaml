@@ -1,0 +1,12 @@
+target:
+  serve: ./dist
+  url: demo.html?player-only=1&play-control=1&auto-play=1
+tasks:
+  - name: player-only mode shows only the replay player
+    flow:
+      - sleep: 5000
+      - aiAssert: The page shows a video/replay player area filling the view, with a playback progress bar and a time display at the bottom.
+
+  - name: player-only mode hides all report chrome
+    flow:
+      - aiAssert: There is no top navigation header bar with the Midscene logo, no left-hand task list sidebar, and no "Record" timeline section — only the player is visible.
