@@ -402,12 +402,9 @@ describe('package-electron helpers', () => {
       '--win',
       'nsis',
       '--x64',
-      '--prepackaged',
-      '/tmp/Midscene Studio Beta-win32-x64',
-      '--config',
-      '/tmp/nsis.config.json',
-      '--publish',
-      'never',
+      '--prepackaged=/tmp/Midscene Studio Beta-win32-x64',
+      '--config=/tmp/nsis.config.json',
+      '--publish=never',
     ]);
   });
 
