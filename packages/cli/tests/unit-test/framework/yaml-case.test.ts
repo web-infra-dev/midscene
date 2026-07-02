@@ -231,6 +231,8 @@ describe('runYamlCase', () => {
       taskStatusList: [
         {
           name: 'check result',
+          flow: [],
+          totalSteps: 1,
           status: 'error',
           error: new Error('assertion failed'),
         },
@@ -262,6 +264,8 @@ describe('runYamlCase', () => {
       taskStatusList: [
         {
           name: 'soft assertion',
+          flow: [],
+          totalSteps: 1,
           status: 'error',
           error: new Error('soft assertion failed'),
         },

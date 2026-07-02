@@ -24,7 +24,7 @@ describe('rstest runner config', () => {
         constructor(public modules: Record<string, string>) {}
       },
     },
-  } satisfies RstestRspackDeps['rspack'];
+  } as RstestRspackDeps['rspack'];
 
   test('suppresses Rstest reporter output by default', async () => {
     const root = mkdtempSync(join(tmpdir(), 'midscene-rstest-config-'));
@@ -168,7 +168,12 @@ describe('rstest runner config', () => {
       if (typeof configureRspack !== 'function') {
         throw new Error('Expected rspack config hook');
       }
-      configureRspack(config, { appendPlugins });
+      configureRspack(
+        config as Parameters<typeof configureRspack>[0],
+        {
+          appendPlugins,
+        } as unknown as Parameters<typeof configureRspack>[1],
+      );
       expect(config.module?.rules).toEqual([
         expect.objectContaining({
           test: /\.feature$/,

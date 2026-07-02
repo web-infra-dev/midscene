@@ -24,24 +24,10 @@ export const resolveDefaultFeatureLoaderPath = (
     ? join(moduleDir, 'feature-loader.js')
     : join(moduleDir, 'framework', 'feature-loader.js');
 
-type RspackPluginInput = Parameters<
-  Parameters<
-    Extract<
-      NonNullable<NonNullable<RstestUserConfig['tools']>['rspack']>,
-      (
-        config: unknown,
-        utils: { appendPlugins: (plugin: never) => void },
-      ) => unknown
-    >
-  >[1]['appendPlugins']
->[0];
-
 export interface RstestRspackDeps {
   rspack: {
     experiments: {
-      VirtualModulesPlugin: new (
-        modules: Record<string, string>,
-      ) => RspackPluginInput;
+      VirtualModulesPlugin: new (modules: Record<string, string>) => unknown;
     };
   };
   featureLoaderPath?: string;
@@ -256,10 +242,12 @@ export function createRstestInlineConfig(
     reporters: [],
     tools: {
       rspack: (config, { appendPlugins }) => {
-        appendPlugins(
+        const virtualModulesPlugin =
           new deps.rspack.experiments.VirtualModulesPlugin(
             project.virtualModules,
-          ),
+          );
+        appendPlugins(
+          virtualModulesPlugin as Parameters<typeof appendPlugins>[0],
         );
 
         if (!project.featureLoaderOptions) return;
