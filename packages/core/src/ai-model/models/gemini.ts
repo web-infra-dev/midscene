@@ -29,7 +29,7 @@ type GeminiContentSource =
 const buildGeminiChatCompletionParams = (
   input: ChatCompletionCallContext,
 ): ChatCompletionParamsResult => {
-  const { midsceneDefaults, userConfig, intent } = input;
+  const { midsceneDefaults, userConfig } = input;
   const { reasoningEnabled, reasoningEffort } = userConfig;
   const commonOverrideConfig: Record<string, unknown> = {};
 
@@ -40,39 +40,30 @@ const buildGeminiChatCompletionParams = (
   const modelSpecificConfig: {
     extra_body?: {
       google?: {
-        thinking_config: Record<string, unknown>;
+        thinking_config: {
+          include_thoughts: true;
+          thinking_level: string;
+        };
       };
     };
-    reasoning_effort?: unknown;
   } = {};
 
   if (reasoningEnabled !== 'default') {
-    if (reasoningEffort) {
-      modelSpecificConfig.extra_body = {
-        google: {
-          thinking_config: {
-            thinking_level: reasoningEffort,
-            include_thoughts: true,
-          },
+    // Gemini cannot fully disable native thinking, so "disabled" maps to the
+    // lowest thinking level. `include_thoughts` only controls whether Gemini
+    // returns thought summaries; it does not enable thinking, and thought token
+    // usage is based on the full thoughts Gemini generates regardless of
+    // whether summaries are included.
+    modelSpecificConfig.extra_body = {
+      google: {
+        thinking_config: {
+          include_thoughts: true,
+          thinking_level: reasoningEnabled
+            ? (reasoningEffort ?? 'medium')
+            : 'minimal',
         },
-      };
-    } else {
-      if (intent === 'insight') {
-        modelSpecificConfig.extra_body = {
-          google: {
-            thinking_config: {
-              // In real Gemini tests, insight calls need `include_thoughts` to get
-              // the model's thinking, and Gemini puts that thinking into `content`.
-              include_thoughts: true,
-            },
-          },
-        };
-      }
-
-      // Gemini 3.x cannot fully disable native thinking, so use the lowest
-      // supported effort unless the user explicitly requests another level.
-      modelSpecificConfig.reasoning_effort = 'minimal';
-    }
+      },
+    };
   }
 
   return {
@@ -196,7 +187,7 @@ export const extractGeminiContentAndReasoning = (
 export const geminiAdapters = {
   gemini: {
     chatCompletion: {
-      unsupportedUserConfig: ['reasoningEnabled', 'reasoningBudget'],
+      unsupportedUserConfig: ['reasoningBudget'],
       buildChatCompletionParams: buildGeminiChatCompletionParams,
       messageExtraction: {
         kind: 'custom',

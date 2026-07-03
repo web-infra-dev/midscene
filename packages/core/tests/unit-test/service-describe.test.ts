@@ -341,7 +341,7 @@ describe('service.describe', () => {
     expect(mockCallAIWithObjectResponse).toHaveBeenCalledTimes(1);
   });
 
-  it.each([
+  const edgePointCases: Array<[string, [number, number]]> = [
     ['top-left corner', [4, 6]],
     ['top-right corner', [1916, 6]],
     ['bottom-left corner', [4, 1074]],
@@ -350,7 +350,9 @@ describe('service.describe', () => {
     ['right edge', [1916, 540]],
     ['top edge', [960, 6]],
     ['bottom edge', [960, 1074]],
-  ] as const)(
+  ];
+
+  it.each(edgePointCases)(
     'keeps crop-local point markers anchored to the original click point near the %s',
     async (_name, point) => {
       mockCallAIWithObjectResponse.mockResolvedValueOnce({

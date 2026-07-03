@@ -45,7 +45,7 @@ describe('AiExtractElementInfo prompt assembly', () => {
     vi.clearAllMocks();
     vi.mocked(callAI).mockResolvedValue({
       content:
-        '<thought>Looks correct.</thought><data-json>{"result":true}</data-json>',
+        '<observation>Looks correct.</observation><data-json>{"result":true}</data-json>',
       usage: undefined,
       reasoning_content: undefined,
     } as any);
