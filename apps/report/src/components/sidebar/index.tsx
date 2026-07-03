@@ -54,6 +54,7 @@ interface SidebarProps {
   reportMarkdownActionsDisabled?: boolean;
   onCopyReportMarkdown?: () => void;
   onDownloadReportMarkdownZip?: () => void;
+  onReportCaseChange?: () => void;
 }
 
 const Sidebar = (props: SidebarProps = {}): JSX.Element => {
@@ -68,6 +69,7 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
     reportMarkdownActionsDisabled = true,
     onCopyReportMarkdown,
     onDownloadReportMarkdownZip,
+    onReportCaseChange,
   } = props;
   const groupedDump = useExecutionDump((store) => store.dump);
   const playwrightAttributes = useExecutionDump(
@@ -586,7 +588,11 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
     [groupedDump].map((group, groupIndex) => {
       return (
         <div key={groupIndex}>
-          <ReportOverview title={group.groupName} dumps={dumps} />
+          <ReportOverview
+            title={group.groupName}
+            dumps={dumps}
+            onCaseChange={onReportCaseChange}
+          />
         </div>
       );
     })
@@ -984,14 +990,8 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
           </div>
         </div>
       </div>
-      {reportViewMode === 'markdown' ? (
-        agentMarkdownContent
-      ) : (
-        <>
-          {sideList}
-          {executionContent}
-        </>
-      )}
+      {sideList}
+      {reportViewMode === 'markdown' ? agentMarkdownContent : executionContent}
     </div>
   );
 };

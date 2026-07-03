@@ -203,13 +203,16 @@ function Visualizer(props: VisualizerProps): JSX.Element {
   );
   const reportViewModeLabel =
     reportViewMode === 'markdown' ? 'Markdown View' : 'Human View';
+  const resetMarkdownImageSelection = () => {
+    setSelectedMarkdownImagePath(null);
+    setSelectedMarkdownImageRequestId(0);
+  };
   const handleReportViewModeChange = (mode: ReportViewMode) => {
     if (mode === reportViewMode) {
       return;
     }
     setReportViewMode(mode);
-    setSelectedMarkdownImagePath(null);
-    setSelectedMarkdownImageRequestId(0);
+    resetMarkdownImageSelection();
   };
 
   const handleCopyReportMarkdown = async () => {
@@ -348,6 +351,7 @@ function Visualizer(props: VisualizerProps): JSX.Element {
             onDownloadReportMarkdownZip={() =>
               void handleDownloadReportMarkdownZip()
             }
+            onReportCaseChange={resetMarkdownImageSelection}
           />
         </div>
         <div
