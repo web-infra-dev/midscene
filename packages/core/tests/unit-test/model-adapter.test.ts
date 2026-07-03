@@ -31,6 +31,7 @@ describe('model adapter registry', () => {
       'reasoningEffort',
       'reasoningBudget',
     ]);
+    expect(adapter.chatCompletion.useReasoningAsContentFallback).toBe(true);
   });
 
   it('resolves every supported model family', () => {
@@ -63,7 +64,7 @@ describe('model adapter registry', () => {
     }
   });
 
-  it('enables reasoning-as-content fallback only for supported model families', () => {
+  it('enables reasoning-as-content fallback for default and supported model families', () => {
     const enabledFamilies: TModelFamily[] = [
       'doubao-vision',
       'doubao-seed',
@@ -85,7 +86,7 @@ describe('model adapter registry', () => {
     }
 
     expect(getModelAdapter().chatCompletion.useReasoningAsContentFallback).toBe(
-      false,
+      true,
     );
   });
 
