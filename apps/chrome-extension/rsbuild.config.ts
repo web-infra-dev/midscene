@@ -8,6 +8,7 @@ import { pluginWorkspaceDev } from 'rsbuild-plugin-workspace-dev';
 import { version } from '../../packages/visualizer/package.json';
 import {
   commonIgnoreWarnings,
+  createCoreReportTemplateReplacementPlugin,
   createTypeCheckPlugin,
 } from '../../scripts/rsbuild-utils.ts';
 
@@ -123,6 +124,9 @@ export default defineConfig({
     pluginLess(),
     pluginSvgr(),
     createTypeCheckPlugin(),
+    createCoreReportTemplateReplacementPlugin({
+      appDir: __dirname,
+    }),
     pluginWorkspaceDev({
       projects: {
         '@midscene/report': {

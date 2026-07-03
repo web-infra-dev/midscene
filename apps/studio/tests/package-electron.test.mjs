@@ -27,7 +27,7 @@ import {
   normalizeReleaseVersion,
   packagedAsarOptions,
   parseBooleanLike,
-  pathContainsReportTemplatePlaceholder,
+  pathContainsReportTemplateInjection,
   pruneAntdUmdBundles,
   pruneGifwrapTestFixtures,
   pruneSourceMapFiles,
@@ -1315,28 +1315,28 @@ describe('package-electron helpers', () => {
     }
   });
 
-  it('detects unresolved report template placeholders in runtime output only', async () => {
+  it('detects report template injections in runtime output only', async () => {
     const root = await fs.mkdtemp(path.join(os.tmpdir(), 'midscene-report-'));
     try {
       await fs.writeFile(
         path.join(root, 'guard.js'),
-        "if (html.includes('REPLACE_ME_WITH_REPORT_HTML')) reportHTML = null;",
+        "const marker = '__MIDSCENE_INTERNAL_REPORT_TEMPLATE_CONTENT__';",
       );
       await fs.writeFile(
         path.join(root, 'bundle.js.map'),
-        '{"sourcesContent":["const reportTpl = \'REPLACE_ME_WITH_REPORT_HTML\';"]}',
+        '{"sourcesContent":["globalThis.__MIDSCENE_INTERNAL_REPORT_TEMPLATE_CONTENT__ = \\"<html></html>\\";"]}',
       );
 
-      await expect(pathContainsReportTemplatePlaceholder(root)).resolves.toBe(
+      await expect(pathContainsReportTemplateInjection(root)).resolves.toBe(
         false,
       );
 
       await fs.writeFile(
         path.join(root, 'utils.js'),
-        "const reportTpl = 'REPLACE_ME_WITH_REPORT_HTML';",
+        'globalThis.__MIDSCENE_INTERNAL_REPORT_TEMPLATE_CONTENT__ = "<html></html>";',
       );
 
-      await expect(pathContainsReportTemplatePlaceholder(root)).resolves.toBe(
+      await expect(pathContainsReportTemplateInjection(root)).resolves.toBe(
         true,
       );
     } finally {

@@ -84,6 +84,7 @@ export function StandardPlayground({
   const [replayCounter, setReplayCounter] = useState(0);
   const [actionSpace, setActionSpace] = useState<DeviceAction<any>[]>([]);
   const [actionSpaceLoading, setActionSpaceLoading] = useState(true);
+  const collectReportHTML = canDownloadReport !== false;
 
   // Form and environment configuration
   const [form] = Form.useForm();
@@ -329,14 +330,14 @@ export function StandardPlayground({
           const response = serverResponse as ServerResponse;
           result.result = response.result;
           result.dump = response.dump;
-          result.reportHTML = response.reportHTML;
+          result.reportHTML = collectReportHTML ? response.reportHTML : null;
           if (response.error) {
             result.error = response.error;
           }
           console.log('Server response:', {
             hasResult: !!response.result,
             hasDump: !!response.dump,
-            hasReportHTML: !!response.reportHTML,
+            hasReportHTML: collectReportHTML && !!response.reportHTML,
             hasError: !!response.error,
             actionType,
             requestId: thisRunningId,
@@ -358,7 +359,9 @@ export function StandardPlayground({
           const serverResponse = response as ServerResponse;
           result.result = serverResponse.result;
           result.dump = serverResponse.dump;
-          result.reportHTML = serverResponse.reportHTML;
+          result.reportHTML = collectReportHTML
+            ? serverResponse.reportHTML
+            : null;
         } else {
           result.result = response;
         }
@@ -394,7 +397,7 @@ export function StandardPlayground({
               : null
           ) as PlaygroundResult['dump'];
         }
-        if (!result.reportHTML) {
+        if (collectReportHTML && !result.reportHTML) {
           result.reportHTML = activeAgent?.reportHTMLString() || null;
         }
       }
@@ -449,6 +452,7 @@ export function StandardPlayground({
     deepThink,
     actionSpace,
     actionSpaceLoading,
+    collectReportHTML,
   ]);
 
   // Dummy handleStop for Standard mode (no real stopping functionality)
