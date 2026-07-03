@@ -68,6 +68,8 @@ describe('service-caller reasoning fallback', () => {
         [{ role: 'user', content: 'next action' }],
         getModelRuntime({
           ...baseModelConfig,
+          modelName: 'gpt-5',
+          modelFamily: 'gpt-5',
           retryCount: 0,
         }),
       ),
