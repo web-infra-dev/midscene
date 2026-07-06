@@ -1,5 +1,4 @@
 import type { TModelFamily } from '@midscene/shared/env';
-import { assert } from '@midscene/shared/utils';
 import type {
   ChatCompletionCallContext,
   ChatCompletionParamsResult,
@@ -23,27 +22,28 @@ const doubaoPointCoordinatesMeta = {
   normalizedBy: 1000,
 } as const;
 
+function parseNumbersFromBboxString(input: string): number[] {
+  return (input.match(/\d+/g) ?? []).map(Number).filter(Number.isFinite);
+}
+
 export function parseDoubaoRawLocateValue(input: unknown): LocateResultValue {
   const bbox = unwrapCoordinateListLikeInput(input as any);
-  if (typeof bbox === 'string') {
-    assert(
-      /^(\d+)\s(\d+)\s(\d+)\s(\d+)$/.test(bbox.trim()),
-      `invalid bbox data string for doubao-vision mode: ${bbox}`,
-    );
-    const splitted = bbox.split(' ');
-    if (splitted.length === 4) {
-      return createLocateResultValue(doubaoBboxCoordinatesMeta, [
-        Number(splitted[0]),
-        Number(splitted[1]),
-        Number(splitted[2]),
-        Number(splitted[3]),
-      ]);
-    }
-    throw new Error(`invalid bbox data string for doubao-vision mode: ${bbox}`);
-  }
-
   let bboxList: number[] = [];
-  if (Array.isArray(bbox) && typeof bbox[0] === 'string') {
+
+  if (typeof bbox === 'string') {
+    /**
+     * Some models return bbox as a string, e.g.
+     * - { "bbox": "[336, 163, 717, 200]" }.
+     * - { "bbox": "336, 163, 717, 200" }.
+     * - { "bbox": "336 163 717 200" }.
+     */
+    bboxList = parseNumbersFromBboxString(bbox);
+    if (bboxList.length !== 4) {
+      throw new Error(
+        `invalid bbox data string for doubao-vision mode: ${bbox}`,
+      );
+    }
+  } else if (Array.isArray(bbox) && typeof bbox[0] === 'string') {
     bbox.forEach((item) => {
       if (typeof item === 'string' && item.includes(',')) {
         const [x, y] = item.split(',');
@@ -80,7 +80,7 @@ export function parseDoubaoRawLocateValue(input: unknown): LocateResultValue {
     ]);
   }
 
-  if (bbox.length === 8) {
+  if (bboxList.length === 8) {
     return createLocateResultValue(doubaoBboxCoordinatesMeta, [
       bboxList[0],
       bboxList[1],
