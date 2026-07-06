@@ -5,6 +5,7 @@ import { ScreenshotItem } from '../screenshot-item';
 import type { AgentAssertOpt, ServiceExtractOption, UIContext } from '../types';
 
 const debug = getDebug('ui-observer');
+const warnObserver = getDebug('ui-observer', { console: true });
 
 // Guardrails from the performance research: cap sampling at 5fps and bound the
 // frame buffer. All buffered frames (up to maxBufferedFrames) are sent to the
@@ -14,15 +15,27 @@ const MIN_INTERVAL_MS = 200;
 const DEFAULT_MAX_BUFFERED_FRAMES = 30;
 // How long start() waits for a cold stream's first frame before proceeding.
 const FIRST_FRAME_TIMEOUT_MS = 3000;
+// Default watchdog: auto-stop an observer that was never explicitly stopped.
+const DEFAULT_WATCHDOG_MS = 5 * 60 * 1000;
+// Soft cap on frames sent to the model per assertion. We still send all frames
+// (no silent dropping), but warn the user when this is exceeded.
+const MAX_FRAMES_TO_MODEL = 50;
 
 export interface UIObserverOption {
   /** Sampling interval between frames in ms. Default 1000, min 200 (5fps). */
   intervalMs?: number;
   /**
-   * Frame-buffer cap. When full the buffer is thinned (every other frame is
-   * dropped) so the whole window keeps temporal coverage. Default 30.
+   * Frame-buffer cap. When full the buffer is thinned (change-point frames
+   * preserved, static intervals halved) so the whole window keeps temporal
+   * coverage. Default 30.
    */
   maxBufferedFrames?: number;
+  /**
+   * Auto-stop the observer after this many ms if stop() was never called.
+   * Prevents resource leaks from forgotten observers. Default 5min. Set 0 to
+   * disable.
+   */
+  watchdogMs?: number;
 }
 
 interface UIObserverDeps {
@@ -48,6 +61,8 @@ interface UIObserverDeps {
     uiContext: UIContext,
     opt?: ServiceExtractOption,
   ) => Promise<boolean>;
+  /** Called when stop() completes, so the agent can clear its active-observer reference. */
+  onStopped?: () => void;
 }
 
 /**
@@ -77,8 +92,14 @@ export class UIObserver {
   private stopped = false;
   private loopPromise: Promise<void> | null = null;
   private representative: UIContext | null = null;
+  private watchdogTimer: ReturnType<typeof setTimeout> | null = null;
+  /** Cross-assertion decode cache: keyed by frame.ref, avoids re-decoding on Android. */
+  private decodedCache = new Map<unknown, string>();
+  /** Background pre-decode started in stop(), awaited by buildObservedUIContext(). */
+  private preDecodePromise: Promise<void> | null = null;
   private readonly intervalMs: number;
   private readonly maxBufferedFrames: number;
+  private readonly watchdogMs: number;
 
   constructor(
     private readonly deps: UIObserverDeps,
@@ -92,6 +113,7 @@ export class UIObserver {
       2,
       opt?.maxBufferedFrames ?? DEFAULT_MAX_BUFFERED_FRAMES,
     );
+    this.watchdogMs = opt?.watchdogMs ?? DEFAULT_WATCHDOG_MS;
   }
 
   /** Number of frames currently buffered. */
@@ -135,14 +157,86 @@ export class UIObserver {
     }
     await this.captureOnce();
     this.loopPromise = this.runLoop();
+
+    // Watchdog: auto-stop if the user forgets to call stop().
+    if (this.watchdogMs > 0) {
+      this.watchdogTimer = setTimeout(() => {
+        warnObserver(
+          `UIObserver auto-stopped after ${this.watchdogMs}ms. Call observer.stop() explicitly to avoid this.`,
+        );
+        debug(`watchdog fired after ${this.watchdogMs}ms, auto-stopping`);
+        this.stop().catch(() => {});
+      }, this.watchdogMs);
+      if (
+        typeof (this.watchdogTimer as { unref?: () => void }).unref ===
+        'function'
+      ) {
+        (this.watchdogTimer as { unref: () => void }).unref();
+      }
+    }
   }
 
-  /** Stop sampling, release the frame source, capture the representative. */
+  /**
+   * Stop sampling, kick off background pre-decode, capture the representative,
+   * and release the frame source.
+   */
   async stop(): Promise<void> {
     if (this.stopped) return;
     this.stopped = true;
+
+    // Clear the watchdog.
+    if (this.watchdogTimer) {
+      clearTimeout(this.watchdogTimer);
+      this.watchdogTimer = null;
+    }
+
     await this.loopPromise;
-    this.representative = await this.deps.captureRepresentative();
+
+    // Kick off pre-decode in the background so aiAssert() doesn't have to
+    // wait for decode at call time. This runs concurrently with
+    // captureRepresentative().
+    if (this.source && this.frames.length > 0) {
+      const uniqueRefs = this.dedupeRefs(this.frames);
+      this.preDecodePromise = this.source
+        .decode(uniqueRefs)
+        .then((results) => {
+          uniqueRefs.forEach((ref, i) => {
+            this.decodedCache.set(ref.ref, results[i]);
+          });
+          debug(`pre-decoded ${uniqueRefs.length} frames`);
+        })
+        .catch((error) => {
+          debug(`pre-decode failed, will retry at assert time: ${error}`);
+        });
+    }
+
+    // Capture representative (DOM, viewport, etc.) — runs in parallel with
+    // pre-decode when possible.
+    const representativePromise = this.deps.captureRepresentative();
+
+    const [, representative] = await Promise.all([
+      this.preDecodePromise,
+      representativePromise,
+    ]);
+
+    // Temporal alignment: if the last sampled frame is already decoded, use
+    // its image as the representative screenshot so the sequence tail is
+    // consistent with what was actually on screen during sampling.
+    if (this.source && this.frames.length > 0) {
+      const lastFrame = this.frames[this.frames.length - 1];
+      const lastDecoded = this.decodedCache.get(lastFrame.ref);
+      if (lastDecoded) {
+        representative.screenshot = ScreenshotItem.create(
+          lastDecoded,
+          lastFrame.capturedAt,
+        );
+        debug('representative screenshot aligned with last sampled frame');
+      }
+    }
+
+    this.representative = representative;
+
+    // Release the frame source after the representative is captured.
     if (this.source) {
       try {
         await this.source.stop();
@@ -150,9 +244,13 @@ export class UIObserver {
         debug(`error stopping frame source: ${error}`);
       }
     }
+
     debug(
       `observation stopped with ${this.frames.length} buffered frames (+1 representative)`,
     );
+
+    // Notify the agent that this observer is no longer active.
+    this.deps.onStopped?.();
   }
 
   /**
@@ -187,34 +285,63 @@ export class UIObserver {
     );
     const representative = this.representative!;
 
+    // If pre-decode is still running (e.g. user called aiAssert very quickly
+    // after stop), wait for it to complete.
+    if (this.preDecodePromise) {
+      await this.preDecodePromise;
+      this.preDecodePromise = null;
+    }
+
     // Send ALL buffered frames to the model so transient UI in long windows
     // is not missed by down-sampling. Cost is controlled by intervalMs and
-    // maxBufferedFrames instead. Decode each UNIQUE frame once.
+    // maxBufferedFrames instead. Decode each UNIQUE frame once, using the
+    // cross-assertion cache.
     const sampled = this.frames;
-    const uniqueRefs: DeviceFrameRef[] = [];
-    const indexByRef = new Map<unknown, number>();
-    for (const frame of sampled) {
-      if (!indexByRef.has(frame.ref)) {
-        indexByRef.set(frame.ref, uniqueRefs.length);
-        uniqueRefs.push(frame);
-      }
-    }
-    const decoded = this.source
-      ? await this.source.decode(uniqueRefs)
-      : uniqueRefs.map((f) => f.ref as string);
-    assert(
-      decoded.length === uniqueRefs.length,
-      'frame source decode() must return one image per frame handle',
-    );
+    const uniqueRefs = this.dedupeRefs(sampled);
 
+    // Find which unique refs are not yet in the decode cache.
+    const uncachedRefs = uniqueRefs.filter(
+      (r) => !this.decodedCache.has(r.ref),
+    );
+    if (uncachedRefs.length > 0) {
+      const results = this.source
+        ? await this.source.decode(uncachedRefs)
+        : uncachedRefs.map((f) => f.ref as string);
+      assert(
+        results.length === uncachedRefs.length,
+        'frame source decode() must return one image per frame handle',
+      );
+      uncachedRefs.forEach((ref, i) => {
+        this.decodedCache.set(ref.ref, results[i]);
+      });
+      debug(
+        `decoded ${uncachedRefs.length} new frames (${uniqueRefs.length - uncachedRefs.length} from cache)`,
+      );
+    }
+
+    // Build the index map for ordered reconstruction.
+    const indexByRef = new Map<unknown, number>();
+    uniqueRefs.forEach((ref, i) => indexByRef.set(ref.ref, i));
+
+    // Reconstruct the full ordered sequence from the cache.
     const sequence = sampled.map((frame) =>
       ScreenshotItem.create(
-        decoded[indexByRef.get(frame.ref)!],
+        this.decodedCache.get(frame.ref)!,
         frame.capturedAt,
       ),
     );
+
+    const totalFrames = sequence.length + 1; // +1 for representative
+    if (totalFrames > MAX_FRAMES_TO_MODEL) {
+      warnObserver(
+        `WARNING: sending ${totalFrames} frames to the model (soft limit ${MAX_FRAMES_TO_MODEL}). Consider increasing intervalMs or decreasing maxBufferedFrames to reduce token cost.`,
+      );
+    }
+
     debug(
-      `observed context: ${sequence.length}+1 frames (buffered: ${this.frames.length}, decoded: ${uniqueRefs.length})`,
+      `observed context: ${sequence.length}+1 frames ` +
+        `(buffered: ${this.frames.length}, unique: ${uniqueRefs.length}, ` +
+        `newly decoded: ${uncachedRefs.length})`,
     );
     return {
       ...representative,
@@ -250,11 +377,60 @@ export class UIObserver {
 
   private pushFrame(frame: DeviceFrameRef): void {
     if (this.frames.length >= this.maxBufferedFrames) {
-      // Thin instead of dropping the oldest: halving keeps frames spread
-      // across the WHOLE window, so early transient UI is not pushed out.
-      this.frames = this.frames.filter((_, i) => i % 2 === 0);
+      this.frames = this.thinBuffer(this.frames);
       debug(`frame buffer thinned to ${this.frames.length} frames`);
     }
     this.frames.push(frame);
+  }
+
+  /**
+   * Smart thinning: preserve all "change point" frames — frames where the
+   * screen content differs from the previous frame (detected by ref identity).
+   * Between change points, keep every other static frame so temporal coverage
+   * is maintained without bloating the buffer. This ensures a brief toast
+   * that produces a new keyframe is never thinned out.
+   */
+  private thinBuffer(frames: DeviceFrameRef[]): DeviceFrameRef[] {
+    if (frames.length <= 1) return frames;
+
+    // Step 1: identify change points.
+    const isChangePoint = new Array(frames.length).fill(false);
+    isChangePoint[0] = true; // always keep the first frame
+    for (let i = 1; i < frames.length; i++) {
+      if (frames[i].ref !== frames[i - 1].ref) {
+        isChangePoint[i] = true;
+      }
+    }
+    // Always keep the last frame too (closest to when stop() fires).
+    isChangePoint[frames.length - 1] = true;
+
+    // Step 2: keep change points plus every other static frame.
+    const result: DeviceFrameRef[] = [];
+    let staticCounter = 0;
+    for (let i = 0; i < frames.length; i++) {
+      if (isChangePoint[i]) {
+        result.push(frames[i]);
+        staticCounter = 0;
+      } else if (staticCounter % 2 === 0) {
+        result.push(frames[i]);
+        staticCounter++;
+      } else {
+        staticCounter++;
+      }
+    }
+    return result;
+  }
+
+  /** Deduplicate frame refs by identity, preserving first-seen order. */
+  private dedupeRefs(frames: DeviceFrameRef[]): DeviceFrameRef[] {
+    const seen = new Set<unknown>();
+    const result: DeviceFrameRef[] = [];
+    for (const frame of frames) {
+      if (!seen.has(frame.ref)) {
+        seen.add(frame.ref);
+        result.push(frame);
+      }
+    }
+    return result;
   }
 }

@@ -173,6 +173,12 @@ export class Agent<
    */
   private frozenUIContext?: UIContext;
 
+  /**
+   * Currently active UIObserver (from startObserving). Only one observer may
+   * be active at a time since frame sources are device-level singletons.
+   */
+  private activeObserver: UIObserver | null = null;
+
   private get aiActContext(): string | undefined {
     return this.opts.aiActContext ?? this.opts.aiActionContext;
   }
@@ -419,6 +425,13 @@ export class Agent<
       !this.frozenUIContext,
       'startObserving() cannot be used while the UI context is frozen (call unfreezePageContext() first)',
     );
+    // Frame sources are device-level singletons — two concurrent observers
+    // would conflict (scrcpy stream, WDA MJPEG port, CDP screencast).
+    assert(
+      !this.activeObserver,
+      'An observation window is already active on this agent. ' +
+        'Stop the existing observer first (await observer.stop()) before starting a new one.',
+    );
     const observer = new UIObserver(
       {
         openFrameSource: async () =>
@@ -432,10 +445,14 @@ export class Agent<
         },
         runBoolean: (prompt, uiContext, boolOpt) =>
           this.aiBoolean(prompt, boolOpt, uiContext),
+        onStopped: () => {
+          this.activeObserver = null;
+        },
       },
       opt,
     );
     await observer.start();
+    this.activeObserver = observer;
     return observer;
   }
 

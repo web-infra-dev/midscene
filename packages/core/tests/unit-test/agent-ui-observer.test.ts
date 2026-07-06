@@ -71,6 +71,30 @@ describe('Agent.startObserving', () => {
     expect(sequence[0].base64.startsWith('dec:')).toBe(true);
   });
 
+  it('rejects starting a second observer while one is active', async () => {
+    const decode = vi.fn(async (refs: any[]) =>
+      refs.map((r) => `dec:${r.ref}`),
+    );
+    const stop = vi.fn();
+    const openFrameSource = vi.fn(async () => ({
+      latest: () => ({ ref: 'f0', capturedAt: 0 }),
+      decode,
+      stop,
+    }));
+    const { agent } = createAgentStub({ openFrameSource });
+
+    const observer1 = await agent.startObserving({ intervalMs: 200 });
+    await expect(agent.startObserving({ intervalMs: 200 })).rejects.toThrow(
+      /already active/,
+    );
+
+    // After stopping, a new observer can start.
+    await observer1.stop();
+    const observer2 = await agent.startObserving({ intervalMs: 200 });
+    await observer2.stop();
+    expect(stop).toHaveBeenCalledTimes(2);
+  });
+
   it('falls back to plain screenshots when the device has no frame source', async () => {
     const { agent, createTypeQueryExecution, screenshotBase64 } =
       createAgentStub();
