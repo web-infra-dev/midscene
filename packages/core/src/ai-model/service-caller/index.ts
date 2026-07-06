@@ -656,7 +656,7 @@ export async function callAI(
             }
             throw new AIResponseParseError(
               'empty content from AI model',
-              JSON.stringify(result),
+              content || '',
               errorUsage,
               rawChoiceMessage,
             );
