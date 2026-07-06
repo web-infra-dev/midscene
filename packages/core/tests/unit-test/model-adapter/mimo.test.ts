@@ -15,7 +15,6 @@ describe('mimo model adapter', () => {
 
     expect(result.config).toEqual({
       temperature: 0,
-      response_format: { type: 'text' },
       thinking: { type: 'disabled' },
     });
   });
@@ -48,7 +47,6 @@ describe('mimo model adapter', () => {
     expect(result.config).toEqual({
       temperature: 0.7,
       seed: 123,
-      response_format: { type: 'text' },
       thinking: { type: 'disabled' },
     });
   });
@@ -69,12 +67,10 @@ describe('mimo model adapter', () => {
 
     expect(disabledResult.config).toEqual({
       temperature: 0,
-      response_format: { type: 'text' },
       thinking: { type: 'disabled' },
     });
     expect(enabledResult.config).toEqual({
       temperature: 0,
-      response_format: { type: 'text' },
       thinking: { type: 'enabled' },
     });
   });
@@ -93,7 +89,6 @@ describe('mimo model adapter', () => {
     ]);
     expect(result.config).toEqual({
       temperature: 0,
-      response_format: { type: 'text' },
       thinking: { type: 'disabled' },
     });
   });
@@ -107,12 +102,11 @@ describe('mimo model adapter', () => {
 
     expect(result.config).toEqual({
       temperature: 0.7,
-      response_format: { type: 'text' },
       thinking: { type: 'disabled' },
     });
   });
 
-  it('uses text response format for planning intent', () => {
+  it('does not set response format for planning intent', () => {
     const result = mimoAdapter.chatCompletion.buildChatCompletionParams({
       intent: 'planning',
       userConfig: {},
@@ -120,7 +114,6 @@ describe('mimo model adapter', () => {
 
     expect(result.config).toEqual({
       temperature: 0,
-      response_format: { type: 'text' },
       thinking: { type: 'disabled' },
     });
   });
@@ -138,8 +131,6 @@ describe('mimo model adapter', () => {
     expect(defaultResult.config.response_format).toEqual({
       type: 'json_object',
     });
-    expect(insightResult.config.response_format).toEqual({
-      type: 'text',
-    });
+    expect(insightResult.config.response_format).toBeUndefined();
   });
 });

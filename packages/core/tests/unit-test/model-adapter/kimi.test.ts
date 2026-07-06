@@ -149,4 +149,13 @@ describe('kimi model adapter', () => {
       thinking: { type: 'disabled' },
     });
   });
+
+  it('uses json_object response format for kimi locate intent', () => {
+    const result = kimiAdapter.chatCompletion.buildChatCompletionParams({
+      intent: 'default',
+      userConfig: {},
+    });
+
+    expect(result.config.response_format).toEqual({ type: 'json_object' });
+  });
 });
