@@ -310,12 +310,16 @@ export async function callAI(
   const { config: modelConfig, adapter } = modelRuntime;
 
   if (isCodexAppServerProvider(modelConfig.openaiBaseURL)) {
-    return callAIWithCodexAppServer(messages, modelConfig, {
+    const codexResult = await callAIWithCodexAppServer(messages, modelConfig, {
       stream: options?.stream,
       onChunk: options?.onChunk,
       reasoningEnabled: modelConfig.reasoningEnabled,
       abortSignal: options?.abortSignal,
     });
+    if (codexResult.usage && modelRuntime.onUsage) {
+      modelRuntime.onUsage(codexResult.usage);
+    }
+    return codexResult;
   }
 
   const { completion, modelName, modelDescription, modelFamily } =
@@ -359,6 +363,9 @@ export async function callAI(
   let timeCost: number | undefined;
   let requestId: string | null | undefined;
   let responseModelName: string | undefined;
+  // Tracks whether onUsage has already been fired for this call (e.g. from
+  // the streaming final-chunk handler), so the final return does not double-fire.
+  let usageReported = false;
 
   const hasUsableText = (value: string | null | undefined): value is string =>
     typeof value === 'string' && value.trim().length > 0;
@@ -384,7 +391,10 @@ export async function callAI(
       model_description: modelDescription,
       response_model_name: responseModelName,
       slot: modelConfig.slot,
-      // Agent task layers fill semantic intent after the raw model call.
+      // Left undefined at the raw call layer. The agent's onUsage callback
+      // fills it from modelConfig.slot for metrics collection, and task
+      // layers use withUsageIntent() to stamp a more specific semantic
+      // intent (e.g. 'planning', 'insight') when attaching usage to tasks.
       intent: undefined,
       request_id: requestId ?? undefined,
     } satisfies AIUsageInfo;
@@ -504,12 +514,17 @@ export async function callAI(
             }
 
             // Send final chunk
+            const finalUsage = buildUsageInfo(usage, requestId);
+            if (finalUsage && modelRuntime.onUsage) {
+              modelRuntime.onUsage(finalUsage);
+              usageReported = true;
+            }
             const finalChunk: CodeGenerationChunk = {
               content: '',
               accumulated,
               reasoning_content: '',
               isComplete: true,
-              usage: buildUsageInfo(usage, requestId),
+              usage: finalUsage,
             };
             options.onChunk!(finalChunk);
             break;
@@ -578,10 +593,14 @@ export async function callAI(
           }
 
           if (!hasUsableText(content)) {
+            const errorUsage = buildUsageInfo(usage, requestId);
+            if (errorUsage && modelRuntime.onUsage) {
+              modelRuntime.onUsage(errorUsage);
+            }
             throw new AIResponseParseError(
               'empty content from AI model',
               JSON.stringify(result),
-              buildUsageInfo(usage, requestId),
+              errorUsage,
               rawChoiceMessage,
             );
           }
@@ -641,11 +660,18 @@ export async function callAI(
       } as OpenAI.CompletionUsage;
     }
 
+    const finalUsage = buildUsageInfo(usage, requestId);
+    // Report usage to the runtime-level collector if not already reported
+    // (e.g. from the streaming final-chunk handler).
+    if (!usageReported && finalUsage && modelRuntime.onUsage) {
+      modelRuntime.onUsage(finalUsage);
+    }
+
     return {
       content: content || '',
       reasoning_content: accumulatedReasoning || undefined,
       rawChoiceMessage,
-      usage: buildUsageInfo(usage, requestId),
+      usage: finalUsage,
       isStreamed: !!isStreaming,
     };
   } catch (e: any) {

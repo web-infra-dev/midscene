@@ -1,4 +1,5 @@
 import type { PixelBbox, PlanningAction } from '@/types';
+import type { AIUsageInfo } from '@/types';
 import type {
   IModelConfig,
   TIntent,
@@ -210,6 +211,13 @@ export interface ModelAdapter {
 export interface ModelRuntime {
   config: IModelConfig;
   adapter: ModelAdapter;
+  /**
+   * Optional callback fired after every underlying model call with the shaped
+   * usage info. Provides a single collection point for callers that want to
+   * aggregate usage across all model invocations (including auxiliary calls
+   * such as order-sensitive judging and deep-locate search-area calls).
+   */
+  onUsage?: (usage: AIUsageInfo) => void;
 }
 
 export interface ModelAdapterDefinition {

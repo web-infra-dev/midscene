@@ -148,6 +148,10 @@ export class Agent<
 
   private readonly metricsCollector = new MetricsCollector();
 
+  // Monotonic counter for generating unique dedup keys when a usage has no
+  // request_id (e.g. estimated streaming usage).
+  private usageCallCounter = 0;
+
   // Usage values already folded into `metricsCollector`, keyed by
   // `${taskId}:${field}` so re-emitted snapshots never double-count.
   private readonly countedUsageKeys = new Set<string>();
@@ -238,7 +242,24 @@ export class Agent<
   }
 
   private resolveModelRuntime(intent: TIntent): ModelRuntime {
-    return getModelRuntime(this.modelConfigManager.getModelConfig(intent));
+    const runtime = getModelRuntime(
+      this.modelConfigManager.getModelConfig(intent),
+    );
+    return {
+      ...runtime,
+      onUsage: (usage) => {
+        this.usageCallCounter += 1;
+        // buildUsageInfo leaves intent undefined; fill it from the model
+        // config slot so metrics.byIntent has a meaningful category.
+        const enriched = usage.intent
+          ? usage
+          : { ...usage, intent: usage.slot };
+        this.consumeUsage(
+          enriched,
+          `callai:${usage.request_id ?? this.usageCallCounter}`,
+        );
+      },
+    };
   }
 
   constructor(interfaceInstance: InterfaceType, opts?: AgentOpt) {
@@ -466,10 +487,17 @@ export class Agent<
   }
 
   private consumeUsage(usage: AIUsageInfo | undefined, key: string) {
-    if (!usage || this.countedUsageKeys.has(key)) {
+    if (!usage) {
       return;
     }
-    this.countedUsageKeys.add(key);
+    // Prefer request_id for dedup because it is stable across collection paths
+    // (onUsage callback and task-dump-based collectUsageMetrics both see the
+    // same request_id from the underlying model call).
+    const dedupKey = usage.request_id ? `req:${usage.request_id}` : key;
+    if (this.countedUsageKeys.has(dedupKey)) {
+      return;
+    }
+    this.countedUsageKeys.add(dedupKey);
     this.metricsCollector.add(usage);
     if (this.opts.onLLMUsage) {
       try {
