@@ -997,6 +997,16 @@ export interface AgentOpt {
    * ```
    */
   createOpenAIClient?: CreateOpenAIClientFn;
+
+  /**
+   * Called once per LLM call as soon as its usage is available, with the raw
+   * {@link AIUsageInfo} (token counts, model name, intent, request id, etc.).
+   *
+   * Use this for real-time, per-spec cost observability — e.g. push each call
+   * to Langfuse without waiting for the run to finish. For aggregated totals,
+   * read `agent.metrics` instead.
+   */
+  onLLMUsage?: (usage: AIUsageInfo) => void;
 }
 
 export type TestStatus =
