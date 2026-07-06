@@ -71,7 +71,7 @@ interface LatestFrame {
 
 /**
  * Subscribes to a WDA MJPEG server and keeps the most recently decoded JPEG
- * frame. Pulling the latest frame is near-instant, which lets `frameSequence`
+ * frame. Pulling the latest frame is near-instant, which lets UI observers
  * sample at the requested cadence instead of paying WDA's slow per-screenshot
  * cost. Lazily connected; auto-reconnects on stream errors until stopped.
  */

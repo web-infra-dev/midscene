@@ -715,7 +715,6 @@ function aiAsk(prompt: string | Object, options?: Object): Promise<string>;
   - `options?: Object` - 可选，一个配置对象，包含：
     - `domIncluded?: boolean | 'visible-only'` - 是否向模型发送精简后的 DOM 信息，一般用于提取 UI 中不可见的属性，比如图片的链接。如果设置为 `'visible-only'`，则只发送可见的元素。默认值为 false。
     - `screenshotIncluded?: boolean` - 是否向模型发送截图。默认值为 true。
-    - `frameSequence?: boolean | { count?: number; intervalMs?: number }` - 在一小段时间窗口内连续采集多帧,并一起发送给模型(而不是单张截图),让模型能观察到瞬时 UI,例如 toast 提示、轮播 banner、自动隐藏的控件。默认关闭。传 `true` 使用默认值(间隔 1 秒采集 4 帧,`count` 会被限制在 2~8),或传对象自定义 `count` / `intervalMs`。会增加 token 消耗;当 `screenshotIncluded` 为 `false` 时该选项不生效。采集到的连续帧会显示在报告的时间线中。
 
 - 返回值：
 
@@ -746,7 +745,6 @@ function aiQuery<T>(dataDemand: string | Object, options?: Object): Promise<T>;
   - `options?: Object` - 可选，一个配置对象，包含：
     - `domIncluded?: boolean | 'visible-only'` - 是否向模型发送精简后的 DOM 信息，一般用于提取 UI 中不可见的属性，比如图片的链接。如果设置为 `'visible-only'`，则只发送可见的元素。默认值为 false。
     - `screenshotIncluded?: boolean` - 是否向模型发送截图。默认值为 true。
-    - `frameSequence?: boolean | { count?: number; intervalMs?: number }` - 在一小段时间窗口内连续采集多帧,并一起发送给模型(而不是单张截图),让模型能观察到瞬时 UI,例如 toast 提示、轮播 banner、自动隐藏的控件。默认关闭。传 `true` 使用默认值(间隔 1 秒采集 4 帧,`count` 会被限制在 2~8),或传对象自定义 `count` / `intervalMs`。会增加 token 消耗;当 `screenshotIncluded` 为 `false` 时该选项不生效。采集到的连续帧会显示在报告的时间线中。
 
 - 返回值：
 
@@ -798,7 +796,6 @@ function aiBoolean(prompt: string | Object, options?: Object): Promise<boolean>;
   - `options?: Object` - 可选，一个配置对象，包含：
     - `domIncluded?: boolean | 'visible-only'` - 是否向模型发送精简后的 DOM 信息，一般用于提取 UI 中不可见的属性，比如图片的链接。如果设置为 `'visible-only'`，则只发送可见的元素。默认值为 false。
     - `screenshotIncluded?: boolean` - 是否向模型发送截图。默认值为 true。
-    - `frameSequence?: boolean | { count?: number; intervalMs?: number }` - 在一小段时间窗口内连续采集多帧,并一起发送给模型(而不是单张截图),让模型能观察到瞬时 UI,例如 toast 提示、轮播 banner、自动隐藏的控件。默认关闭。传 `true` 使用默认值(间隔 1 秒采集 4 帧,`count` 会被限制在 2~8),或传对象自定义 `count` / `intervalMs`。会增加 token 消耗;当 `screenshotIncluded` 为 `false` 时该选项不生效。采集到的连续帧会显示在报告的时间线中。
 
 - 返回值：
 
@@ -831,7 +828,6 @@ function aiNumber(prompt: string | Object, options?: Object): Promise<number>;
   - `options?: Object` - 可选，一个配置对象，包含：
     - `domIncluded?: boolean | 'visible-only'` - 是否向模型发送精简后的 DOM 信息，一般用于提取 UI 中不可见的属性，比如图片的链接。如果设置为 `'visible-only'`，则只发送可见的元素。默认值为 false。
     - `screenshotIncluded?: boolean` - 是否向模型发送截图。默认值为 true。
-    - `frameSequence?: boolean | { count?: number; intervalMs?: number }` - 在一小段时间窗口内连续采集多帧,并一起发送给模型(而不是单张截图),让模型能观察到瞬时 UI,例如 toast 提示、轮播 banner、自动隐藏的控件。默认关闭。传 `true` 使用默认值(间隔 1 秒采集 4 帧,`count` 会被限制在 2~8),或传对象自定义 `count` / `intervalMs`。会增加 token 消耗;当 `screenshotIncluded` 为 `false` 时该选项不生效。采集到的连续帧会显示在报告的时间线中。
 
 - 返回值：
 
@@ -866,7 +862,6 @@ function aiString(prompt: string | Object, options?: Object): Promise<string>;
   - `options?: Object` - 可选，一个配置对象，包含：
     - `domIncluded?: boolean | 'visible-only'` - 是否向模型发送精简后的 DOM 信息，一般用于提取 UI 中不可见的属性，比如图片的链接。如果设置为 `'visible-only'`，则只发送可见的元素。默认值为 false。
     - `screenshotIncluded?: boolean` - 是否向模型发送截图。默认值为 true。
-    - `frameSequence?: boolean | { count?: number; intervalMs?: number }` - 在一小段时间窗口内连续采集多帧,并一起发送给模型(而不是单张截图),让模型能观察到瞬时 UI,例如 toast 提示、轮播 banner、自动隐藏的控件。默认关闭。传 `true` 使用默认值(间隔 1 秒采集 4 帧,`count` 会被限制在 2~8),或传对象自定义 `count` / `intervalMs`。会增加 token 消耗;当 `screenshotIncluded` 为 `false` 时该选项不生效。采集到的连续帧会显示在报告的时间线中。
 
 - 返回值：
 
@@ -906,7 +901,6 @@ function aiAssert(
   - options?: Object - 可选，一个配置对象，包含：
     - `domIncluded?: boolean | 'visible-only'` - 是否向模型发送精简后的 DOM 信息，一般用于提取 UI 中不可见的属性，比如图片的链接。如果设置为 `'visible-only'`，则只发送可见的元素。默认值为 false。
     - `screenshotIncluded?: boolean` - 是否向模型发送截图。默认值为 true。
-    - `frameSequence?: boolean | { count?: number; intervalMs?: number }` - 在一小段时间窗口内连续采集多帧,并一起发送给模型(而不是单张截图),让模型能观察到瞬时 UI,例如 toast 提示、轮播 banner、自动隐藏的控件。默认关闭。传 `true` 使用默认值(间隔 1 秒采集 4 帧,`count` 会被限制在 2~8),或传对象自定义 `count` / `intervalMs`。会增加 token 消耗;当 `screenshotIncluded` 为 `false` 时该选项不生效。采集到的连续帧会显示在报告的时间线中。
 
 - 返回值：
 
@@ -934,6 +928,38 @@ expect(onesieItem.price).toBe(7.99);
 ```
 
 :::
+
+### `agent.startObserving()`
+
+在一段显式的时间窗口内观察屏幕,让之后的断言可以评判窗口内发生的一切——包括单张截图会错过的瞬时 UI(toast 提示、横幅、屏幕切换等)。
+
+```typescript
+function startObserving(options?: {
+  intervalMs?: number;        // 采样间隔,默认 1000ms,最小 200ms(5fps)
+  maxBufferedFrames?: number; // 帧缓冲上限,默认 30(缓冲满时自动抽稀)
+}): Promise<UIObserver>;
+```
+
+返回的 `UIObserver` 提供:
+
+- `observer.stop(): Promise<void>` - 停止采样并拍摄最终代表帧。断言前必须先调用。
+- `observer.aiAssert(assertion: string, msg?: string, opt?: Object): Promise<void>` - 对观察窗口做断言。判断采用「任一帧」语义:只要断言在任一观察帧中成立即通过,即使该 UI 在窗口结束时已消失。
+- `observer.aiBoolean(prompt: string, opt?: Object): Promise<boolean>` - 对观察窗口做布尔查询,帧语义同上。
+- `observer.frameCount: number` - 当前已缓冲的帧数。
+
+```typescript
+const observer = await agent.startObserving();
+await agent.aiAct('提交表单');
+await observer.stop();
+await observer.aiAssert('过程中弹出了成功提示 toast');
+```
+
+工作方式与成本:
+
+- 帧优先来自设备的连续帧源——Android 的 scrcpy(`scrcpyConfig.enabled`)、iOS 的 WDA MJPEG(`wdaMjpegFrameSource.enabled`)、Web 的 CDP screencast(始终可用);没有帧源时回退为逐张截图(移动端有效帧率会明显降低)。
+- 采样只抓取轻量帧句柄;解码成本在断言时一次性支付,且只解码真正发给模型的帧。
+- 缓冲内的所有帧(最多 `maxBufferedFrames` 帧,外加最终代表帧)都会发给模型,确保长窗口中的瞬态 UI 不会因抽样而遗漏。如需控制 token 成本,可增大 `intervalMs`(降低采样密度)或减小 `maxBufferedFrames`(缩小缓冲区)。观察到的帧会显示在报告时间线中。
+- iOS 上观察帧来自 MJPEG 流(缩放、较低质量),最终代表帧为全质量截图。
 
 ### `agent.aiLocate()`
 

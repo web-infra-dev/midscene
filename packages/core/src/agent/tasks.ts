@@ -889,17 +889,8 @@ export class TaskExecutor {
       checkIntervalMs,
       domIncluded,
       screenshotIncluded,
-      frameSequence,
       ...restOpt
     } = opt;
-    if (frameSequence) {
-      // waitFor is itself a polling loop, so it already re-samples the screen
-      // over time. The single-shot frameSequence capture does not apply here;
-      // ignore it explicitly instead of letting it silently no-op.
-      warnLog(
-        'frameSequence is ignored by aiWaitFor (it already polls over time). Use aiAssert with { frameSequence } for a one-shot multi-frame check.',
-      );
-    }
     const serviceExtractOpt: ServiceExtractOption = {
       domIncluded,
       screenshotIncluded,
@@ -972,7 +963,7 @@ export class TaskExecutor {
  * Surface a captured frame sequence in the report timeline, then release it
  * from the UIContext.
  *
- * When `frameSequence` is enabled, the extra frames live on
+ * When a UIObserver assertion runs, the observed frames live on
  * `uiContext.screenshotSequence` only as a transient model input. This attaches
  * them to the task recorder so the report renders the full sequence the model
  * saw (the report timeline builds one screenshot per recorder item), then drops

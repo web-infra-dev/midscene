@@ -9,6 +9,7 @@ import {
 } from '@midscene/core';
 import {
   type AbstractInterface,
+  type DeviceFrameSource,
   type IOSDeviceInputOpt,
   type IOSDeviceOpt,
   type MobileInputPrimitives,
@@ -50,14 +51,14 @@ export class IOSDevice implements AbstractInterface {
   private wdaManager: WDAManager;
   /** URL of WDA's native MJPEG server for real-time streaming */
   mjpegStreamUrl: string;
-  /** Lazily-started consumer of the WDA MJPEG stream, used by frameSequence. */
+  /** Lazily-started consumer of the WDA MJPEG stream, used by UI observation. */
   private mjpegFrameSource: MjpegFrameSource | null = null;
   /**
-   * Fast frame-sequence capability. Only wired up when the MJPEG frame source
-   * is opt-in enabled; otherwise left undefined so frameSequence falls back to
-   * sequential screenshots.
+   * Continuous frame-source capability for UI observation. Only wired up when
+   * the MJPEG frame source is opt-in enabled; otherwise left undefined so
+   * observers fall back to sequential screenshots.
    */
-  captureFrameSequence?: AbstractInterface['captureFrameSequence'];
+  openFrameSource?: AbstractInterface['openFrameSource'];
   private appNameMapping: Record<string, string> = {};
   interfaceType: InterfaceType = 'ios';
   uri: string | undefined;
@@ -242,12 +243,11 @@ export class IOSDevice implements AbstractInterface {
     this.wdaManager = WDAManager.getInstance(wdaPort, wdaHost);
     this.mjpegStreamUrl = `http://${wdaHost}:${mjpegPort}`;
 
-    // Opt-in (default off), mirroring Android scrcpy: only expose the fast
-    // MJPEG frame-source capability when explicitly enabled. When off,
-    // frameSequence falls back to sequential screenshotBase64() capture.
+    // Opt-in (default off), mirroring Android scrcpy: only expose the MJPEG
+    // frame-source capability when explicitly enabled. When off, UI observers
+    // fall back to sequential screenshotBase64() capture.
     if (options?.wdaMjpegFrameSource?.enabled) {
-      this.captureFrameSequence = (frameOpt) =>
-        this.captureFrameSequenceImpl(frameOpt);
+      this.openFrameSource = () => this.openMjpegFrameSource();
     }
   }
 
@@ -443,39 +443,35 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
   }
 
   /**
-   * Fast multi-frame capture sourced from WDA's MJPEG stream. WDA's
-   * `takeScreenshot` is too slow to sample a short time window densely, so for
-   * `frameSequence` we pull the most recent frame from the continuously-running
-   * MJPEG stream instead — pulling is near-instant, so frames land at the
-   * requested cadence. Throws if the stream is unavailable; the caller falls
-   * back to sequential `screenshotBase64()` capture.
+   * Continuous frame source backed by WDA's MJPEG server. WDA's
+   * `takeScreenshot` is too slow (~250ms) to sample the screen densely, so
+   * observers pull the most recent frame from the continuously-running MJPEG
+   * stream instead — near-instant per grab. Frames are already JPEG data
+   * URLs, so `decode()` is a pass-through.
    *
-   * Opt-in: only wired up as the `captureFrameSequence` capability (in the
+   * Opt-in: only wired up as the `openFrameSource` capability (in the
    * constructor) when `wdaMjpegFrameSource.enabled` is set, mirroring scrcpy.
+   * `stop()` tears the stream down so device-side encoding only runs while an
+   * observation window is open.
    */
-  private async captureFrameSequenceImpl(opt: {
-    count: number;
-    intervalMs: number;
-    abortSignal?: AbortSignal;
-  }): Promise<Array<{ base64: string; capturedAt: number }>> {
-    const { count, intervalMs, abortSignal } = opt;
+  private async openMjpegFrameSource(): Promise<DeviceFrameSource> {
     const source = await this.ensureMjpegFrameSource();
-
-    const frames: Array<{ base64: string; capturedAt: number }> = [];
-    for (let i = 0; i < count; i++) {
-      abortSignal?.throwIfAborted();
-      if (i > 0 && intervalMs > 0) {
-        await this.interruptibleSleep(intervalMs, abortSignal);
-      }
-      const frame = source.getLatest();
-      if (frame) {
-        frames.push(frame);
-      }
-    }
-    debugDevice(
-      `captureFrameSequence collected ${frames.length}/${count} frames`,
-    );
-    return frames;
+    return {
+      latest: () => {
+        const frame = source.getLatest();
+        return frame
+          ? { ref: frame.base64, capturedAt: frame.capturedAt }
+          : null;
+      },
+      // MJPEG frames are already data URLs — no deferred decode cost on iOS.
+      decode: async (refs) => refs.map((frameRef) => frameRef.ref as string),
+      stop: () => {
+        source.stop();
+        if (this.mjpegFrameSource === source) {
+          this.mjpegFrameSource = null;
+        }
+      },
+    };
   }
 
   private async ensureMjpegFrameSource(): Promise<MjpegFrameSource> {
@@ -495,27 +491,6 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
       throw error;
     }
     return this.mjpegFrameSource;
-  }
-
-  private interruptibleSleep(
-    ms: number,
-    abortSignal?: AbortSignal,
-  ): Promise<void> {
-    return new Promise<void>((resolve, reject) => {
-      if (abortSignal?.aborted) {
-        reject(abortSignal.reason);
-        return;
-      }
-      const onAbort = () => {
-        clearTimeout(timer);
-        reject(abortSignal?.reason);
-      };
-      const timer = setTimeout(() => {
-        abortSignal?.removeEventListener('abort', onAbort);
-        resolve();
-      }, ms);
-      abortSignal?.addEventListener('abort', onAbort, { once: true });
-    });
   }
 
   async clearInput(element?: ElementInfo): Promise<void> {

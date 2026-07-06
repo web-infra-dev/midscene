@@ -42,7 +42,7 @@ const iosInitArgShape = {
     .object({ enabled: z.boolean().optional() })
     .optional()
     .describe(
-      'Opt-in: use the WDA MJPEG stream as a fast frameSequence frame source (default off)',
+      'Opt-in: use the WDA MJPEG stream as a continuous frame source for UI observation (default off)',
     ),
   ...agentBehaviorInitArgShape,
 };

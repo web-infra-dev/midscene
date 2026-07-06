@@ -142,9 +142,10 @@ export type IOSDeviceOpt = {
   /** WDA MJPEG server port for real-time screen streaming (default: 9100) */
   wdaMjpegPort?: number;
   /**
-   * Use WDA's MJPEG stream as a fast frame source for `frameSequence` capture.
-   * Disabled by default (opt-in), mirroring Android scrcpy. When disabled,
-   * `frameSequence` falls back to sequential `screenshotBase64()` capture.
+   * Use WDA's MJPEG stream as a continuous frame source for UI observation
+   * (`agent.startObserving()`). Disabled by default (opt-in), mirroring
+   * Android scrcpy. When disabled, observers fall back to sequential
+   * `screenshotBase64()` capture.
    *
    * For multi-device concurrency, set a distinct `wdaMjpegPort` per device
    * (just like `wdaPort`) so each device streams from its own port.

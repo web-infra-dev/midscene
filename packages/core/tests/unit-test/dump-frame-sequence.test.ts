@@ -8,7 +8,7 @@ import {
 } from '../../src/types';
 
 /**
- * The `frameSequence` feature attaches a `screenshotSequence` (a transient
+ * A UIObserver assertion attaches a `screenshotSequence` (a transient
  * multi-frame model input) to `task.uiContext`. Those frames are NOT persisted
  * by collectScreenshots, so dump serialization must drop the field to avoid
  * dangling screenshot refs and base64 bloat. The representative `screenshot`

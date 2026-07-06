@@ -1,4 +1,5 @@
 export { Agent, createAgent } from './agent';
+export { UIObserver, type UIObserverOption } from './ui-observer';
 export { commonContextParser } from './utils';
 export { getReportFileName, printReportMsg } from './utils';
 export {

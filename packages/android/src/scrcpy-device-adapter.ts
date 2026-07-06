@@ -1,7 +1,7 @@
 import type { Size } from '@midscene/core';
 import { createImgBase64ByFormat } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
-import type { ScrcpyScreenshotManager } from './scrcpy-manager';
+import type { RawKeyframe, ScrcpyScreenshotManager } from './scrcpy-manager';
 import { DEFAULT_SCRCPY_CONFIG } from './scrcpy-manager';
 
 const debugAdapter = getDebug('android:scrcpy-adapter');
@@ -148,6 +148,38 @@ export class ScrcpyDeviceAdapter {
     const screenshotBuffer = await manager.getScreenshotJpeg();
 
     return createImgBase64ByFormat('jpeg', screenshotBuffer.toString('base64'));
+  }
+
+  /**
+   * Subscribe to raw keyframes from the scrcpy stream (ensures the stream is
+   * connected first). Frames are raw H.264 — no decoding cost. While
+   * subscribed, incoming frames keep the connection alive. Returns an
+   * unsubscribe function.
+   */
+  async subscribeKeyframes(
+    deviceInfo: DevicePhysicalInfo,
+    listener: (frame: RawKeyframe) => void,
+  ): Promise<() => void> {
+    const manager = await this.ensureManager(deviceInfo);
+    await manager.ensureConnected();
+    return manager.subscribeKeyframes(listener);
+  }
+
+  /** Latest raw keyframe seen on the stream, or null if none yet. */
+  getLatestRawKeyframe(): RawKeyframe | null {
+    return this.manager?.getLatestRawKeyframe() ?? null;
+  }
+
+  /**
+   * Decode a raw keyframe to a JPEG data URL. Deferred, per-frame-expensive
+   * step (one ffmpeg process per call) — only call on sampled frames.
+   */
+  async decodeRawKeyframeToJpegBase64(frame: RawKeyframe): Promise<string> {
+    if (!this.manager) {
+      throw new Error('scrcpy manager is not initialized');
+    }
+    const jpegBuffer = await this.manager.decodeRawKeyframeToJpeg(frame);
+    return createImgBase64ByFormat('jpeg', jpegBuffer.toString('base64'));
   }
 
   /**

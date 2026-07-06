@@ -9,6 +9,8 @@ import type {
 } from '@midscene/core';
 import type {
   AbstractInterface,
+  DeviceFrameRef,
+  DeviceFrameSource,
   MjpegStreamHandle,
   MjpegStreamOptions,
 } from '@midscene/core/device';
@@ -693,6 +695,34 @@ export class Page<
       await stop();
       throw error;
     }
+  }
+
+  /**
+   * Continuous frame source for UI observation, backed by the same CDP
+   * screencast used for MJPEG previews. Frames arrive as JPEG base64 already,
+   * so `decode()` is a pass-through. Measured cost of an active screencast is
+   * ~1% host CPU with no impact on action/screenshot latency, so this is
+   * always available on web (no opt-in needed).
+   */
+  async openFrameSource(): Promise<DeviceFrameSource> {
+    let latest: DeviceFrameRef | null = null;
+    const handle = await this.startMjpegStream({
+      onFrame: (frame) => {
+        latest = {
+          ref: `data:${frame.contentType ?? 'image/jpeg'};base64,${frame.data}`,
+          capturedAt: Date.now(),
+        };
+      },
+      onError: (error) => {
+        debugPage('frame source screencast error: %s', error);
+      },
+    });
+    return {
+      latest: () => latest,
+      // Screencast frames are already data URLs — no deferred decode cost.
+      decode: async (refs) => refs.map((frameRef) => frameRef.ref as string),
+      stop: () => handle.stop(),
+    };
   }
 
   async url(): Promise<string> {

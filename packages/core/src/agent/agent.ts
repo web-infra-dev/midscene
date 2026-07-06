@@ -18,7 +18,6 @@ import {
   type ExecutionRecorderItem,
   type ExecutionTask,
   type ExecutionTaskLog,
-  type FrameSequenceOption,
   type LocateOption,
   type LocateResultElement,
   type OnTaskStartTip,
@@ -78,6 +77,7 @@ import {
   locatePlanForLocate,
   withFileChooser,
 } from './tasks';
+import { UIObserver, type UIObserverOption } from './ui-observer';
 import {
   type TaskTitleType,
   locateParamStr,
@@ -389,158 +389,54 @@ export class Agent<
     return await this.getUIContext('locate');
   }
 
-  private static readonly FRAME_SEQUENCE_DEFAULT_COUNT = 4;
-  private static readonly FRAME_SEQUENCE_MIN_COUNT = 2;
-  private static readonly FRAME_SEQUENCE_MAX_COUNT = 8;
-  private static readonly FRAME_SEQUENCE_DEFAULT_INTERVAL_MS = 1000;
-  private static readonly FRAME_SEQUENCE_MAX_INTERVAL_MS = 10000;
-
-  private normalizeFrameSequenceOption(
-    frameSequence: boolean | FrameSequenceOption,
-  ): { count: number; intervalMs: number } {
-    const raw = typeof frameSequence === 'object' ? frameSequence : {};
-    const count = Math.min(
-      Agent.FRAME_SEQUENCE_MAX_COUNT,
-      Math.max(
-        Agent.FRAME_SEQUENCE_MIN_COUNT,
-        Math.round(raw.count ?? Agent.FRAME_SEQUENCE_DEFAULT_COUNT),
-      ),
-    );
-    const intervalMs = Math.min(
-      Agent.FRAME_SEQUENCE_MAX_INTERVAL_MS,
-      Math.max(0, raw.intervalMs ?? Agent.FRAME_SEQUENCE_DEFAULT_INTERVAL_MS),
-    );
-    return { count, intervalMs };
-  }
-
   /**
-   * Sleep for `ms`, but reject early if `abortSignal` fires so a cancelled
-   * frame-sequence capture does not keep waiting out the interval.
-   */
-  private interruptibleSleep(
-    ms: number,
-    abortSignal?: AbortSignal,
-  ): Promise<void> {
-    return new Promise<void>((resolve, reject) => {
-      if (abortSignal?.aborted) {
-        reject(abortSignal.reason);
-        return;
-      }
-      const onAbort = () => {
-        clearTimeout(timer);
-        reject(abortSignal?.reason);
-      };
-      const timer = setTimeout(() => {
-        abortSignal?.removeEventListener('abort', onAbort);
-        resolve();
-      }, ms);
-      abortSignal?.addEventListener('abort', onAbort, { once: true });
-    });
-  }
-
-  /**
-   * Capture a sequence of screenshots over a short time window and return a
-   * UIContext whose `screenshot` is the latest frame and whose
-   * `screenshotSequence` holds every captured frame in temporal order. Used by
-   * extract/assert flows to let the model observe transient UI.
+   * Start observing the screen in the background so a later assertion can
+   * judge everything that happened while other agent calls ran — including
+   * transient UI (toasts, banners, transitions) that appears mid-action:
    *
-   * Honors `abortSignal` between frames so a cancelled assertion stops
-   * capturing promptly instead of waiting out the whole window.
+   * ```ts
+   * const observer = await agent.startObserving();
+   * await agent.aiAct('submit the form');
+   * await observer.stop();
+   * await observer.aiAssert('a success toast appeared during the process');
+   * ```
+   *
+   * Frames come from the device's continuous frame source when available
+   * (scrcpy on Android, WDA MJPEG on iOS — both opt-in; CDP screencast on
+   * web) and fall back to plain screenshots otherwise. Sampling is capped at
+   * 5fps, the buffer is bounded and self-thinning, decoding is deferred to
+   * the end, and all buffered frames (up to `maxBufferedFrames`) are sent to
+   * the model at assert time. To control token cost for long windows,
+   * increase `intervalMs` or decrease `maxBufferedFrames`.
+   * Awaiting `startObserving()` guarantees one baseline frame is captured
+   * before your next action.
    */
-  private async captureUIContextSequence(
-    frameSequence: boolean | FrameSequenceOption,
-    abortSignal?: AbortSignal,
-  ): Promise<UIContext> {
-    // A frozen context never changes between frames, so a sequence is pointless.
-    if (this.frozenUIContext) {
-      return this.frozenUIContext;
-    }
-
-    const { count, intervalMs } =
-      this.normalizeFrameSequenceOption(frameSequence);
-
-    // Fast path: devices with a continuous frame stream (e.g. iOS WDA MJPEG)
-    // sample recent frames far faster than repeated screenshotBase64() calls.
-    // We pull the earlier frames from the stream and capture the representative
-    // (last) frame with a normal full-quality screenshot.
-    const fastCapture = this.interface.captureFrameSequence?.bind(
-      this.interface,
+  async startObserving(opt?: UIObserverOption): Promise<UIObserver> {
+    // A frozen context pins perception to a single snapshot; observing a
+    // window of frames contradicts that. Fail fast instead of silently
+    // producing an all-identical sequence.
+    assert(
+      !this.frozenUIContext,
+      'startObserving() cannot be used while the UI context is frozen (call unfreezePageContext() first)',
     );
-    if (fastCapture) {
-      try {
-        const earlier = await fastCapture({
-          count: count - 1,
-          intervalMs,
-          abortSignal,
-        });
-        abortSignal?.throwIfAborted();
-        const representative = await this.getUIContext('assert');
-        const frames = [
-          ...earlier.map((frame) =>
-            ScreenshotItem.create(frame.base64, frame.capturedAt),
-          ),
-          representative.screenshot,
-        ];
-        if (frames.length > 1) {
-          return {
-            ...representative,
-            screenshotSequence: frames,
-          };
-        }
-        // Stream yielded no earlier frames; fall through to sequential capture.
-      } catch (error) {
-        if (abortSignal?.aborted) {
-          throw error;
-        }
-        debug(
-          'frame sequence fast path failed, falling back to sequential capture: %s',
-          error,
-        );
-      }
-    }
-
-    const frames: ScreenshotItem[] = [];
-    let lastContext: UIContext | undefined;
-    for (let i = 0; i < count; i++) {
-      abortSignal?.throwIfAborted();
-      if (i > 0 && intervalMs > 0) {
-        await this.interruptibleSleep(intervalMs, abortSignal);
-      }
-      abortSignal?.throwIfAborted();
-      lastContext = await this.getUIContext('assert');
-      frames.push(lastContext.screenshot);
-    }
-
-    assert(lastContext, 'failed to capture any frame for frame sequence');
-    return {
-      ...lastContext,
-      screenshotSequence: frames,
-    };
-  }
-
-  /**
-   * Build the execution options for extract/assert flows. When the caller
-   * enables `frameSequence` (and screenshots are not disabled), capture a frame
-   * sequence up front and pass it down as the UIContext so the model observes
-   * transient UI.
-   */
-  private async buildExtractExecutionOptions(
-    opt?: ServiceExtractOption,
-    abortSignal?: AbortSignal,
-  ): Promise<{ abortSignal?: AbortSignal; uiContext?: UIContext }> {
-    const executionOptions: {
-      abortSignal?: AbortSignal;
-      uiContext?: UIContext;
-    } = { abortSignal };
-
-    if (opt?.frameSequence && opt?.screenshotIncluded !== false) {
-      executionOptions.uiContext = await this.captureUIContextSequence(
-        opt.frameSequence,
-        abortSignal,
-      );
-    }
-
-    return executionOptions;
+    const observer = new UIObserver(
+      {
+        openFrameSource: async () =>
+          (await this.interface.openFrameSource?.()) ?? undefined,
+        // Fallback single-frame capture. Deliberately bypasses getUIContext so
+        // the observation loop never pollutes the TaskRunner context cache.
+        screenshot: () => this.interface.screenshotBase64(),
+        captureRepresentative: () => this.getUIContext('assert'),
+        runAssert: async (assertion, uiContext, msg, assertOpt) => {
+          await this.aiAssert(assertion, msg, assertOpt, uiContext);
+        },
+        runBoolean: (prompt, uiContext, boolOpt) =>
+          this.aiBoolean(prompt, boolOpt, uiContext),
+      },
+      opt,
+    );
+    await observer.start();
+    return observer;
   }
 
   /**
@@ -1192,14 +1088,11 @@ export class Agent<
     opt: ServiceExtractOption = defaultServiceExtractOption,
   ): Promise<ReturnType> {
     const modelRuntime = this.resolveModelRuntime('insight');
-    const executionOptions = await this.buildExtractExecutionOptions(opt);
     const { output } = await this.taskExecutor.createTypeQueryExecution(
       'Query',
       demand,
       modelRuntime,
       opt,
-      undefined,
-      executionOptions,
     );
     return output as ReturnType;
   }
@@ -1207,18 +1100,22 @@ export class Agent<
   async aiBoolean(
     prompt: TUserPrompt,
     opt: ServiceExtractOption = defaultServiceExtractOption,
+    /**
+     * Internal: a pre-built UIContext (e.g. the multi-frame context assembled
+     * by a UIObserver) to judge against instead of capturing one now.
+     */
+    _prebuiltUiContext?: UIContext,
   ): Promise<boolean> {
     const modelRuntime = this.resolveModelRuntime('insight');
 
     const { textPrompt, multimodalPrompt } = parsePrompt(prompt);
-    const executionOptions = await this.buildExtractExecutionOptions(opt);
     const { output } = await this.taskExecutor.createTypeQueryExecution(
       'Boolean',
       textPrompt,
       modelRuntime,
       opt,
       multimodalPrompt,
-      executionOptions,
+      _prebuiltUiContext ? { uiContext: _prebuiltUiContext } : undefined,
     );
     return output as boolean;
   }
@@ -1230,14 +1127,12 @@ export class Agent<
     const modelRuntime = this.resolveModelRuntime('insight');
 
     const { textPrompt, multimodalPrompt } = parsePrompt(prompt);
-    const executionOptions = await this.buildExtractExecutionOptions(opt);
     const { output } = await this.taskExecutor.createTypeQueryExecution(
       'Number',
       textPrompt,
       modelRuntime,
       opt,
       multimodalPrompt,
-      executionOptions,
     );
     return output as number;
   }
@@ -1249,14 +1144,12 @@ export class Agent<
     const modelRuntime = this.resolveModelRuntime('insight');
 
     const { textPrompt, multimodalPrompt } = parsePrompt(prompt);
-    const executionOptions = await this.buildExtractExecutionOptions(opt);
     const { output } = await this.taskExecutor.createTypeQueryExecution(
       'String',
       textPrompt,
       modelRuntime,
       opt,
       multimodalPrompt,
-      executionOptions,
     );
     return output as string;
   }
@@ -1309,6 +1202,11 @@ export class Agent<
     assertion: TUserPrompt,
     msg?: string,
     opt?: AgentAssertOpt & ServiceExtractOption,
+    /**
+     * Internal: a pre-built UIContext (e.g. the multi-frame context assembled
+     * by a UIObserver) to assert against instead of capturing one now.
+     */
+    _prebuiltUiContext?: UIContext,
   ) {
     const modelRuntime = this.resolveModelRuntime('insight');
 
@@ -1327,10 +1225,10 @@ export class Agent<
     const assertionText =
       typeof assertion === 'string' ? assertion : assertion.prompt;
 
-    const executionOptions = await this.buildExtractExecutionOptions(
-      opt,
-      opt?.abortSignal,
-    );
+    const executionOptions = {
+      abortSignal: opt?.abortSignal,
+      ...(_prebuiltUiContext ? { uiContext: _prebuiltUiContext } : {}),
+    };
 
     try {
       const { output, thought } =

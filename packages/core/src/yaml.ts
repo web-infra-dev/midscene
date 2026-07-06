@@ -18,25 +18,9 @@ export interface LocateOption extends Partial<TMultimodalPrompt> {
   fileChooserAccept?: string | string[]; // file path(s) to upload when tapping triggers a file chooser
 }
 
-export interface FrameSequenceOption {
-  /** Number of frames to capture. Default 4, clamped to [2, 8]. */
-  count?: number;
-  /** Interval between consecutive frames in ms. Default 1000. */
-  intervalMs?: number;
-}
-
 export interface ServiceExtractOption {
   domIncluded?: boolean | 'visible-only';
   screenshotIncluded?: boolean;
-  /**
-   * Capture a short sequence of frames over a time window and submit them all
-   * to the model, instead of a single screenshot. Lets the model observe
-   * transient UI (toasts, carousels, auto-hiding controls) that appears in only
-   * some frames. Default: off. Trade-off: more tokens.
-   *
-   * Pass `true` for defaults, or an object to tune count/interval.
-   */
-  frameSequence?: boolean | FrameSequenceOption;
   [key: string]: unknown;
 }
 

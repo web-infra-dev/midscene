@@ -77,6 +77,14 @@ describe('AiExtractElementInfo frame sequence', () => {
     );
     expect(sequenceNote).toBeDefined();
 
+    // The note must establish "any frame" event semantics so a transient toast
+    // that is gone by the last frame is still judged true (not anchored to the
+    // most recent frame).
+    expect((sequenceNote as any).text).toContain('ANY of the frames');
+    expect((sequenceNote as any).text).not.toContain(
+      'the last image is the most recent state',
+    );
+
     // single-frame note must not be present in sequence mode
     const singleNote = userContent.find(
       (p) =>

@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { IOSDevice } from '../../src/device';
 import {
   MjpegFrameSource,
@@ -68,17 +68,17 @@ describe('extractJpegFrames', () => {
 });
 
 describe('IOSDevice MJPEG frame source opt-in', () => {
-  it('does not expose captureFrameSequence by default', () => {
+  it('does not expose openFrameSource by default', () => {
     const device = new IOSDevice({ wdaMjpegPort: 9123 });
-    expect(device.captureFrameSequence).toBeUndefined();
+    expect(device.openFrameSource).toBeUndefined();
   });
 
-  it('exposes captureFrameSequence when explicitly enabled', () => {
+  it('exposes openFrameSource when explicitly enabled', () => {
     const device = new IOSDevice({
       wdaMjpegPort: 9123,
       wdaMjpegFrameSource: { enabled: true },
     });
-    expect(typeof device.captureFrameSequence).toBe('function');
+    expect(typeof device.openFrameSource).toBe('function');
   });
 
   it('builds the stream URL from the per-device wdaMjpegPort (multi-device)', () => {
@@ -86,6 +86,41 @@ describe('IOSDevice MJPEG frame source opt-in', () => {
     const b = new IOSDevice({ wdaHost: '127.0.0.1', wdaMjpegPort: 9102 });
     expect(a.mjpegStreamUrl).toBe('http://127.0.0.1:9101');
     expect(b.mjpegStreamUrl).toBe('http://127.0.0.1:9102');
+  });
+
+  it('wraps the MJPEG stream as a frame source (identity decode, stop tears down)', async () => {
+    const device = new IOSDevice({
+      wdaMjpegPort: 9123,
+      wdaMjpegFrameSource: { enabled: true },
+    });
+    const stop = vi.fn();
+    const fakeMjpeg = {
+      getLatest: () => ({
+        base64: 'data:image/jpeg;base64,FRAME',
+        capturedAt: 42,
+      }),
+      stop,
+    };
+    (device as any).ensureMjpegFrameSource = vi
+      .fn()
+      .mockImplementation(async () => {
+        (device as any).mjpegFrameSource = fakeMjpeg;
+        return fakeMjpeg;
+      });
+
+    const source = await device.openFrameSource!();
+    const latest = source!.latest();
+    expect(latest?.ref).toBe('data:image/jpeg;base64,FRAME');
+    expect(latest?.capturedAt).toBe(42);
+
+    // frames are already data URLs — decode is a pass-through
+    const images = await source!.decode([latest!]);
+    expect(images).toEqual(['data:image/jpeg;base64,FRAME']);
+
+    // stop() tears down the stream so device-side encoding stops
+    await source!.stop();
+    expect(stop).toHaveBeenCalledTimes(1);
+    expect((device as any).mjpegFrameSource).toBeNull();
   });
 });
 
