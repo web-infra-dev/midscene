@@ -8,7 +8,7 @@ Use this doc when you need to customize iOS device behavior, wire Midscene into 
 
 - `Tap` &mdash; Tap an element.
 - `DoubleClick` &mdash; Double-tap an element.
-- `Input` &mdash; Enter text with `replace`/`typeOnly`/`clear` modes (`append` is a deprecated alias for `typeOnly`). Supports optional `autoDismissKeyboard` parameter.
+- `Input` &mdash; Enter text with `replace`/`typeOnly`/`clear` modes (`append` is a deprecated alias for `typeOnly`). Supports optional `autoDismissKeyboard` and `keyboardTypeDelay` parameters.
 - `Scroll` &mdash; Scroll from an element or screen center in any direction, including scroll-to-top/bottom/left/right helpers.
 - `DragAndDrop` &mdash; Drag from one element to another.
 - `KeyboardPress` &mdash; Press a specified key.
@@ -45,6 +45,7 @@ const device = new IOSDevice({
 - `wdaHost?: string` &mdash; WebDriverAgent host. Default `'localhost'`.
 - `iOSDeviceClassOverride?: string` &mdash; Optional npm module path that replaces the default `IOSDevice` when using `agentFromWebDriverAgent()` or iOS Playground. The module must export an `IOSDevice` class or a default class.
 - `autoDismissKeyboard?: boolean` &mdash; Hide the keyboard after text input. Default `true`.
+- `keyboardTypeDelay?: number` &mdash; Per-character delay (ms) when typing text. When set, text is typed one character at a time with this delay between each character via WDA's `/wda/keys` endpoint. Useful when input fields drop characters under fast typing.
 - `customActions?: DeviceAction<any>[]` &mdash; Additional device actions exposed to the agent.
 
 ### Usage notes
