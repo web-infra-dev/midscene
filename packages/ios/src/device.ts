@@ -535,13 +535,26 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
 
     const shouldAutoDismissKeyboard =
       options?.autoDismissKeyboard ?? this.options?.autoDismissKeyboard ?? true;
+    const typeDelay =
+      options?.keyboardTypeDelay ?? this.options?.keyboardTypeDelay;
 
     debugDevice(`Typing text: "${text}"`);
 
     try {
       // Wait a bit to ensure keyboard is ready
       await sleep(200);
-      await this.wdaBackend.typeText(text);
+
+      if (typeDelay && typeDelay > 0) {
+        // Type one character at a time with a delay between keystrokes.
+        // WDA's /keys endpoint accepts an array, so we send one char per call.
+        for (const ch of text) {
+          await this.wdaBackend.typeText(ch);
+          await sleep(typeDelay);
+        }
+      } else {
+        await this.wdaBackend.typeText(text);
+      }
+
       await sleep(300); // Give more time for text to appear
     } catch (error) {
       debugDevice(`Failed to type text with WDA: ${error}`);

@@ -177,6 +177,7 @@ export class HarmonyDevice implements AbstractInterface {
               {
                 autoDismissKeyboard: harmonyOpts?.autoDismissKeyboard,
                 keyboardDismissStrategy: harmonyOpts?.keyboardDismissStrategy,
+                keyboardTypeDelay: harmonyOpts?.keyboardTypeDelay,
               },
             );
       },
@@ -516,6 +517,8 @@ export class HarmonyDevice implements AbstractInterface {
     if (!text) return;
 
     const hdc = await this.getHdc();
+    const typeDelay =
+      options?.keyboardTypeDelay ?? this.options?.keyboardTypeDelay;
     let x: number;
     let y: number;
 
@@ -543,7 +546,17 @@ export class HarmonyDevice implements AbstractInterface {
       await sleep(100);
     }
 
-    await hdc.inputText(x, y, text);
+    if (typeDelay && typeDelay > 0) {
+      // Type one character at a time with a delay between keystrokes.
+      // inputText taps at x,y then types; repeated taps at the same spot
+      // are harmless since the field is already focused.
+      for (const ch of text) {
+        await hdc.inputText(x, y, ch);
+        await sleep(typeDelay);
+      }
+    } else {
+      await hdc.inputText(x, y, text);
+    }
 
     const shouldAutoDismissKeyboard =
       options?.autoDismissKeyboard ?? this.options?.autoDismissKeyboard ?? true;

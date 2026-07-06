@@ -1264,21 +1264,34 @@ ${Object.keys(size)
       await this.tapPoint({ x: element.center[0], y: element.center[1] });
     }
 
-    await this.ensureYadb();
     const adb = await this.getAdb();
+    const displayArg = this.getDisplayArg();
+    const isNonDefaultDisplay =
+      typeof this.options?.displayId === 'number' &&
+      this.options.displayId !== 0;
 
     const IME_STRATEGY =
       (this.options?.imeStrategy ||
         globalConfigManager.getEnvConfigValue(MIDSCENE_ANDROID_IME_STRATEGY)) ??
       IME_STRATEGY_YADB_FOR_NON_ASCII;
 
-    if (IME_STRATEGY === IME_STRATEGY_YADB_FOR_NON_ASCII) {
+    if (isNonDefaultDisplay) {
+      // Neither yadb nor appium-adb's clearTextField pass -d <displayId>.
+      // On a non-default display we must issue keyevents with the display
+      // argument so deletions land on the correct screen.
+      const keys: string[] = [];
+      for (let i = 0; i < 100; i++) {
+        keys.push('67', '112'); // KEYCODE_DEL, KEYCODE_FORWARD_DEL
+      }
+      await adb.shell(`input${displayArg} keyevent ${keys.join(' ')}`);
+    } else if (IME_STRATEGY === IME_STRATEGY_YADB_FOR_NON_ASCII) {
       // For yadb-for-non-ascii mode, use batch deletion of up to 100 characters
       // clearTextField() batches all key events into a single shell command for better performance
+      await this.ensureYadb();
       await adb.clearTextField(100);
     } else {
       // Use the yadb tool to clear the input box
-      this.warnYadbOnNonDefaultDisplay('keyboard clear');
+      await this.ensureYadb();
       await adb.shell(
         // `app_process` (ART launcher) does not accept the `-d <displayId>` flag.
         'app_process -Djava.class.path=/data/local/tmp/yadb /data/local/tmp com.ysbing.yadb.Main -keyboardClear',
@@ -1600,12 +1613,22 @@ ${Object.keys(size)
       IME_STRATEGY_YADB_FOR_NON_ASCII;
     const shouldAutoDismissKeyboard =
       options?.autoDismissKeyboard ?? this.options?.autoDismissKeyboard ?? true;
+    const typeDelay =
+      options?.keyboardTypeDelay ?? this.options?.keyboardTypeDelay;
+
+    // yadb (app_process) cannot target a non-default display. If a displayId
+    // other than 0 is configured, force the `input text` path so text lands
+    // on the correct screen instead of silently appearing on the main display.
+    const isNonDefaultDisplay =
+      typeof this.options?.displayId === 'number' &&
+      this.options.displayId !== 0;
 
     // Decide input path for the entire text, not per-segment.
     const useYadb =
-      IME_STRATEGY === IME_STRATEGY_ALWAYS_YADB ||
-      (IME_STRATEGY === IME_STRATEGY_YADB_FOR_NON_ASCII &&
-        this.shouldUseYadbForText(text));
+      !isNonDefaultDisplay &&
+      (IME_STRATEGY === IME_STRATEGY_ALWAYS_YADB ||
+        (IME_STRATEGY === IME_STRATEGY_YADB_FOR_NON_ASCII &&
+          this.shouldUseYadbForText(text)));
 
     if (useYadb) {
       // yadb handles newlines natively: escapeForShell converts \n (0x0A)
@@ -1613,14 +1636,30 @@ ${Object.keys(size)
       // Single adb call for the entire text.
       await this.execYadb(escapeForShell(text));
     } else {
+      // Use `input -d <id> text` via adb.shell so we can target the correct
+      // display. appium-adb's inputText does not pass -d.
+      const displayArg = this.getDisplayArg();
       // inputText cannot handle newlines, so split by \n and press Enter between segments.
       const segments = text.split('\n');
       for (let i = 0; i < segments.length; i++) {
         if (segments[i].length > 0) {
-          await adb.inputText(segments[i]);
+          if (typeDelay && typeDelay > 0) {
+            // Type one character at a time with a delay between keystrokes.
+            // This prevents character loss on devices/input fields that can't
+            // keep up with the full-string burst from `input text`.
+            for (const ch of segments[i]) {
+              const escaped = ch === ' ' ? '%s' : ch;
+              await adb.shell(`input${displayArg} text ${escaped}`);
+              await sleep(typeDelay);
+            }
+          } else {
+            // Burst the whole segment. Shell-escape spaces as %s for `input text`.
+            const escaped = segments[i].replace(/ /g, '%s');
+            await adb.shell(`input${displayArg} text ${escaped}`);
+          }
         }
         if (i < segments.length - 1) {
-          await adb.keyevent(66);
+          await adb.shell(`input${displayArg} keyevent 66`);
         }
       }
     }
@@ -1672,19 +1711,20 @@ ${Object.keys(size)
     };
 
     const adb = await this.getAdb();
+    const displayArg = this.getDisplayArg();
 
     // Normalize key to handle case-insensitive matching
     const normalizedKey = this.normalizeKeyName(key);
     const keyCode = keyCodeMap[normalizedKey];
     if (keyCode !== undefined) {
-      await adb.keyevent(keyCode);
+      await adb.shell(`input${displayArg} keyevent ${keyCode}`);
     } else {
       // for keys not in the mapping table, try to get its ASCII code (if it's a single character)
       if (key.length === 1) {
         const asciiCode = key.toUpperCase().charCodeAt(0);
         // Android key codes, A-Z is 29-54
         if (asciiCode >= 65 && asciiCode <= 90) {
-          await adb.keyevent(asciiCode - 36); // 65-36=29 (A's key code)
+          await adb.shell(`input${displayArg} keyevent ${asciiCode - 36}`); // 65-36=29 (A's key code)
         }
       }
     }
@@ -2067,7 +2107,7 @@ ${Object.keys(size)
 
     // Try each key code with waiting
     for (const keyCode of keyCodes) {
-      await adb.keyevent(keyCode);
+      await adb.shell(`input${this.getDisplayArg()} keyevent ${keyCode}`);
 
       // Wait for keyboard to be hidden with timeout
       const startTime = Date.now();

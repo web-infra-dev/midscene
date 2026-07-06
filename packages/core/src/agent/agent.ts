@@ -753,6 +753,7 @@ export class Agent<
     locatePrompt: TUserPrompt,
     opt: LocateOption & { value: string | number } & {
       autoDismissKeyboard?: boolean;
+      keyboardTypeDelay?: number;
     } & { mode?: 'replace' | 'clear' | 'typeOnly' | 'append' },
   ): Promise<void>;
 
@@ -763,7 +764,10 @@ export class Agent<
   async aiInput(
     value: string | number,
     locatePrompt: TUserPrompt,
-    opt?: LocateOption & { autoDismissKeyboard?: boolean } & {
+    opt?: LocateOption & {
+      autoDismissKeyboard?: boolean;
+      keyboardTypeDelay?: number;
+    } & {
       mode?: 'replace' | 'clear' | 'typeOnly' | 'append';
     }, // AndroidDeviceInputOpt &
   ): Promise<void>;
@@ -775,15 +779,17 @@ export class Agent<
       | TUserPrompt
       | (LocateOption & { value: string | number } & {
           autoDismissKeyboard?: boolean;
+          keyboardTypeDelay?: number;
         } & { mode?: 'replace' | 'clear' | 'typeOnly' | 'append' }) // AndroidDeviceInputOpt &
       | undefined,
-    optOrUndefined?: LocateOption, // AndroidDeviceInputOpt &
+    optOrUndefined?: LocateOption & { keyboardTypeDelay?: number }, // AndroidDeviceInputOpt &
   ) {
     let value: string | number;
     let locatePrompt: TUserPrompt;
     let opt:
       | (LocateOption & { value: string | number } & {
           autoDismissKeyboard?: boolean;
+          keyboardTypeDelay?: number;
         } & { mode?: 'replace' | 'clear' | 'typeOnly' | 'append' }) // AndroidDeviceInputOpt &
       | undefined;
 
