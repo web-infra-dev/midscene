@@ -298,6 +298,14 @@ describe('doubao model adapter', () => {
       coordinates: [653, 277, 664, 291],
       coordinatesMeta: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
     });
+    expect(parseDoubaoRawLocateValue(['bbox', [782, 541, 815, 559]])).toEqual({
+      coordinates: [782, 541, 815, 559],
+      coordinatesMeta: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
+    });
+    expect(parseDoubaoRawLocateValue(['bbox', '782, 541, 815, 559'])).toEqual({
+      coordinates: [782, 541, 815, 559],
+      coordinatesMeta: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
+    });
     /**
      * Some models mix an XML-style bbox closing tag into JSON arrays, e.g.
      * { "bbox": [410, 295, 885, 345</bbox>, "errors": [] }

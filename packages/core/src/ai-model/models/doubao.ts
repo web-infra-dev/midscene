@@ -73,6 +73,28 @@ function parseNumbersFromBboxArray(input: unknown[]): number[] {
   return numbers.filter(Number.isFinite);
 }
 
+/**
+ * Some models return a tagged bbox tuple, e.g.
+ * - ["bbox", [782, 541, 815, 559]]
+ * - ["bbox", "782, 541, 815, 559"]
+ */
+function parseNumbersFromTaggedBboxArray(input: unknown[]): number[] | null {
+  if (input.length < 2) {
+    return null;
+  }
+
+  const taggedBbox = input[1];
+  if (typeof taggedBbox === 'string') {
+    return parseNumbersFromBboxString(taggedBbox);
+  }
+
+  if (Array.isArray(taggedBbox)) {
+    return parseNumbersFromBboxArray(taggedBbox);
+  }
+
+  return null;
+}
+
 export function parseDoubaoRawLocateValue(input: unknown): LocateResultValue {
   const bbox = unwrapCoordinateListLikeInput(input as any);
   let bboxList: number[] = [];
@@ -91,7 +113,11 @@ export function parseDoubaoRawLocateValue(input: unknown): LocateResultValue {
       );
     }
   } else if (Array.isArray(bbox)) {
-    bboxList = parseNumbersFromBboxArray(bbox);
+    if (typeof bbox[0] === 'string' && bbox[0].trim() === 'bbox') {
+      bboxList = parseNumbersFromTaggedBboxArray(bbox) ?? [];
+    } else {
+      bboxList = parseNumbersFromBboxArray(bbox);
+    }
   } else {
     bboxList = bbox as number[];
   }
