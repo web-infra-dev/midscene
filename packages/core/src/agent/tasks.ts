@@ -776,9 +776,9 @@ export class TaskExecutor {
           }
           throw error;
         } finally {
-          // Surface the captured frame sequence in the report, then release it
-          // from the UIContext so its base64 is not retained twice.
-          recordAndReleaseFrameSequence(task, uiContext);
+          // Surface the captured screenshot sequence in the report, then release
+          // it from the UIContext so its base64 is not retained twice.
+          recordAndReleaseScreenshotSequence(task, uiContext);
         }
 
         const { data, thought, dump } = extractResult;
@@ -960,8 +960,8 @@ export class TaskExecutor {
 }
 
 /**
- * Surface a captured frame sequence in the report timeline, then release it
- * from the UIContext.
+ * Surface a captured screenshot sequence in the report timeline, then release
+ * it from the UIContext.
  *
  * When a UIObserver assertion runs, the observed frames live on
  * `uiContext.screenshotSequence` only as a transient model input. This attaches
@@ -973,7 +973,7 @@ export class TaskExecutor {
  * The last frame is the representative `uiContext.screenshot`, already shown in
  * the report, so only the earlier frames are recorded to avoid duplication.
  */
-export function recordAndReleaseFrameSequence(
+export function recordAndReleaseScreenshotSequence(
   task: ExecutionTask,
   uiContext: UIContext | undefined,
 ): void {
@@ -986,8 +986,8 @@ export function recordAndReleaseFrameSequence(
         type: 'screenshot',
         ts: frame.capturedAt,
         screenshot: frame,
-        description: `Frame sequence ${i + 1}/${frames.length}`,
-        timing: 'frame-sequence',
+        description: `Observed frame ${i + 1}/${frames.length}`,
+        timing: 'observed-frame',
       });
     }
     task.recorder = task.recorder

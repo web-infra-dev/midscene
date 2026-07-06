@@ -379,7 +379,7 @@ export class ScrcpyScreenshotManager {
             debugScrcpy(`keyframe listener error: ${error}`);
           }
         }
-        // An active subscriber is consuming the stream (e.g. a frame-sequence
+        // An active subscriber is consuming the stream (e.g. a UIObserver
         // capture) — keep the connection alive for the whole window.
         this.resetIdleTimer();
       }

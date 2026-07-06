@@ -21,7 +21,7 @@ vi.mock('@/ai-model/service-caller/index', async () => {
 import { callAI } from '@/ai-model/service-caller/index';
 import { AiExtractElementInfo } from '@/ai-model/workflows/inspect';
 
-describe('AiExtractElementInfo frame sequence', () => {
+describe('AiExtractElementInfo multi-frame context', () => {
   const modelConfig: IModelConfig = {
     modelFamily: 'qwen2.5-vl',
     modelName: 'test-model',

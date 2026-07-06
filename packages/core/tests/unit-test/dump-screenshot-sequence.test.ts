@@ -23,7 +23,7 @@ describe('dump serialization drops screenshotSequence', () => {
     const representative = ScreenshotItem.create(FRAME_C, 3);
     return {
       logTime: 1,
-      name: 'frame-sequence-dump',
+      name: 'screenshot-sequence-dump',
       tasks: [
         {
           type: 'Insight',
@@ -61,7 +61,7 @@ describe('dump serialization drops screenshotSequence', () => {
   it('omits screenshotSequence from serializeWithInlineScreenshots() (inline mode)', () => {
     const reportData: IReportActionDump = {
       sdkVersion: '1.0.0',
-      groupName: 'frame-sequence',
+      groupName: 'screenshot-sequence',
       modelBriefs: [],
       executions: [buildExecutionDumpData()],
     };

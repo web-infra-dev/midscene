@@ -1,4 +1,4 @@
-import { recordAndReleaseFrameSequence } from '@/agent/tasks';
+import { recordAndReleaseScreenshotSequence } from '@/agent/tasks';
 import { ScreenshotItem } from '@/screenshot-item';
 import type { ExecutionTask, UIContext } from '@/types';
 import { describe, expect, it } from 'vitest';
@@ -18,20 +18,20 @@ const makeUiContext = (frameCount: number): UIContext => {
 const makeTask = (recorder?: ExecutionTask['recorder']): ExecutionTask =>
   ({ recorder }) as ExecutionTask;
 
-describe('recordAndReleaseFrameSequence', () => {
+describe('recordAndReleaseScreenshotSequence', () => {
   it('records the earlier frames and releases the sequence from the uiContext', () => {
     const task = makeTask();
     const uiContext = makeUiContext(4);
     const representative = uiContext.screenshot;
 
-    recordAndReleaseFrameSequence(task, uiContext);
+    recordAndReleaseScreenshotSequence(task, uiContext);
 
     // 4 frames -> 3 recorder items (the last is the representative screenshot)
     expect(task.recorder).toHaveLength(3);
     task.recorder?.forEach((item, i) => {
       expect(item.type).toBe('screenshot');
-      expect(item.timing).toBe('frame-sequence');
-      expect(item.description).toBe(`Frame sequence ${i + 1}/4`);
+      expect(item.timing).toBe('observed-frame');
+      expect(item.description).toBe(`Observed frame ${i + 1}/4`);
       expect(item.ts).toBe(1000 + i);
     });
 
@@ -56,13 +56,13 @@ describe('recordAndReleaseFrameSequence', () => {
     };
     const task = makeTask([existing]);
 
-    recordAndReleaseFrameSequence(task, makeUiContext(3));
+    recordAndReleaseScreenshotSequence(task, makeUiContext(3));
 
     expect(task.recorder?.[0]).toBe(existing);
     expect(task.recorder).toHaveLength(1 + 2);
   });
 
-  it('is a no-op when there is no frame sequence', () => {
+  it('is a no-op when there is no screenshot sequence', () => {
     const task = makeTask();
     const uiContext = {
       screenshot: ScreenshotItem.create('data:image/png;base64,iVBORw0KGgo', 1),
@@ -70,7 +70,7 @@ describe('recordAndReleaseFrameSequence', () => {
       shrunkShotToLogicalRatio: 1,
     } as UIContext;
 
-    recordAndReleaseFrameSequence(task, uiContext);
+    recordAndReleaseScreenshotSequence(task, uiContext);
 
     expect(task.recorder).toBeUndefined();
   });
