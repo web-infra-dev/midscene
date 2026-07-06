@@ -1,4 +1,5 @@
 import { type ModelRuntime, getModelRuntime } from '@/ai-model/models';
+import { INTERNAL_CALL_ID_FIELD } from '@/ai-model/service-caller';
 import yaml from 'js-yaml';
 import type { TUserPrompt } from '../ai-model/index';
 import { ScreenshotItem } from '../screenshot-item';
@@ -490,10 +491,19 @@ export class Agent<
     if (!usage) {
       return;
     }
-    // Prefer request_id for dedup because it is stable across collection paths
-    // (onUsage callback and task-dump-based collectUsageMetrics both see the
-    // same request_id from the underlying model call).
-    const dedupKey = usage.request_id ? `req:${usage.request_id}` : key;
+    // Dedup key priority:
+    // 1. request_id — provider-issued, stable across onUsage and task dump paths
+    // 2. INTERNAL_CALL_ID_FIELD — callAI-generated internal id, covers
+    //    providers that don't return a request_id
+    // 3. caller-provided key (taskId:field or callai:counter)
+    let dedupKey: string;
+    if (usage.request_id) {
+      dedupKey = `req:${usage.request_id}`;
+    } else if ((usage as any)[INTERNAL_CALL_ID_FIELD]) {
+      dedupKey = `int:${(usage as any)[INTERNAL_CALL_ID_FIELD]}`;
+    } else {
+      dedupKey = key;
+    }
     if (this.countedUsageKeys.has(dedupKey)) {
       return;
     }

@@ -56,6 +56,18 @@ export {
 } from './json';
 export type { JsonParser } from './json';
 
+/**
+ * Internal field name stamped onto every AIUsageInfo shaped by callAI().
+ * Used for cross-path dedup when the provider does not return a request_id.
+ */
+export const INTERNAL_CALL_ID_FIELD = '_midscene_call_id';
+
+let internalCallIdCounter = 0;
+function nextInternalCallId(): string {
+  internalCallIdCounter += 1;
+  return `call_${internalCallIdCounter}`;
+}
+
 function stringifyForDebug(value: unknown): string {
   try {
     return JSON.stringify(value);
@@ -309,6 +321,11 @@ export async function callAI(
 }> {
   const { config: modelConfig, adapter } = modelRuntime;
 
+  // Stable internal ID for this call, used by the agent to deduplicate usage
+  // across the onUsage callback and the task-dump-based collectUsageMetrics()
+  // path when the provider does not return a request_id.
+  const internalCallId = nextInternalCallId();
+
   if (isCodexAppServerProvider(modelConfig.openaiBaseURL)) {
     const codexResult = await callAIWithCodexAppServer(messages, modelConfig, {
       stream: options?.stream,
@@ -316,8 +333,11 @@ export async function callAI(
       reasoningEnabled: modelConfig.reasoningEnabled,
       abortSignal: options?.abortSignal,
     });
-    if (codexResult.usage && modelRuntime.onUsage) {
-      modelRuntime.onUsage(codexResult.usage);
+    if (codexResult.usage) {
+      (codexResult.usage as any)[INTERNAL_CALL_ID_FIELD] = internalCallId;
+      if (modelRuntime.onUsage) {
+        modelRuntime.onUsage(codexResult.usage);
+      }
     }
     return codexResult;
   }
@@ -397,6 +417,8 @@ export async function callAI(
       // intent (e.g. 'planning', 'insight') when attaching usage to tasks.
       intent: undefined,
       request_id: requestId ?? undefined,
+      // Internal stable ID for cross-path dedup when request_id is absent.
+      [INTERNAL_CALL_ID_FIELD]: internalCallId,
     } satisfies AIUsageInfo;
   };
 

@@ -1,5 +1,6 @@
 import { Agent } from '@/agent';
 import { MetricsCollector } from '@/agent/metrics';
+import { INTERNAL_CALL_ID_FIELD } from '@/ai-model/service-caller';
 import type { AIUsageInfo, ExecutionDump } from '@/types';
 import {
   MIDSCENE_MODEL_API_KEY,
@@ -294,6 +295,46 @@ describe('Agent usage via ModelRuntime.onUsage (real lifecycle)', () => {
 
     // 2. Later, the task dump is emitted with the same usage (same request_id).
     //    collectUsageMetrics must NOT double-count.
+    (agent as any).collectUsageMetrics(
+      dumpWithTasks([
+        {
+          taskId: 'task-1',
+          usage: { ...sharedUsage },
+        },
+      ]),
+    );
+
+    expect(agent.metrics.totalTokens).toBe(55);
+    expect(agent.metrics.calls).toBe(1);
+    expect(onLLMUsage).toHaveBeenCalledTimes(1);
+
+    await agent.destroy();
+  });
+
+  it('deduplicates across paths by internal call id when request_id is absent', async () => {
+    const onLLMUsage = vi.fn();
+    const agent = new Agent(createMockInterface(), {
+      modelConfig,
+      generateReport: false,
+      onLLMUsage,
+    });
+
+    // Simulate a provider that doesn't return request_id. callAI() stamps
+    // INTERNAL_CALL_ID_FIELD onto every usage it shapes.
+    const sharedUsage = usage({
+      total_tokens: 55,
+      intent: 'locate',
+      model_name: 'test-model',
+      request_id: undefined,
+    });
+    (sharedUsage as any)[INTERNAL_CALL_ID_FIELD] = 'call_42';
+
+    // 1. onUsage fires first (from callAI return path).
+    const runtime = (agent as any).resolveModelRuntime('default');
+    runtime.onUsage(sharedUsage);
+
+    // 2. Later, task dump emits with the same usage (same internal call id).
+    //    Without INTERNAL_CALL_ID_FIELD dedup, this would double-count.
     (agent as any).collectUsageMetrics(
       dumpWithTasks([
         {
