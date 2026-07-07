@@ -1801,9 +1801,12 @@ class PlaygroundServer {
       const verifyPrompt = shouldVerifyRecorderAiDescribeEvent(event);
       modelCallStartedAt = Date.now();
       const elementDescriber = createElementDescriberRuntime(agent);
+      /**
+       * TODOs: verifyPrompt is set to false here because it took too long to verify the prompt and it was causing timeouts.
+       */
       const describeResult = await withTimeout(
         describeElementAtPoint(elementDescriber, [x, y], {
-          verifyPrompt,
+          verifyPrompt: false,
           screenshotBase64: eventScreenshot,
           coordinateSpace: 'logical',
           logicalSize: event.pageInfo,
