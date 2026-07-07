@@ -264,15 +264,9 @@ npx playwright test ./e2e/ebay-search.spec.ts
 
 ### 关于在新标签页打开
 
-每个 Agent 实例都与对应的页面唯一绑定，为了方便开发者调试，Midscene 默认拦截了新 tab 的页面（如点击一个带有 `target="_blank"` 属性的链接），将其改为在当前页面打开。
+每个 Agent 实例与页面唯一绑定。Midscene 默认拦截新 tab(如 `target="_blank"` 链接)并改为当前页面打开。如需允许新标签页,设置 `forceSameTabNavigation` 构造选项为 `false`,并为每个新标签页创建新的 Agent。
 
-如果你想恢复在新标签页打开的行为，你可以设置 `forceSameTabNavigation` 选项为 `false`，但相应的，你需要为新标签页创建一个 Agent 实例。
-
-```typescript
-const mid = new PlaywrightAgent(page, {
-  forceSameTabNavigation: false,
-});
-```
+完整构造函数签名请参阅 [API 参考](./api#playwrightagent-web)。
 
 ### 浏览器支持说明
 
@@ -451,5 +445,5 @@ PW_TEST_SCREENSHOT_NO_FONTS_READY=1 <你的命令>
 ## 更多
 
 - 更多 Agent 的 API 文档请参考 [API 参考](./api#interaction-methods)。
-- Playwright 的 API 文档请参考 [Playwright Agent API](./web-api-reference#playwright-agent)。
+- Playwright 的 API 文档请参考 [API 参考](./api#playwrightagent-web)。
 - 样例项目：[直接集成 Playwright](https://github.com/web-infra-dev/midscene-example/blob/main/playwright-demo)，[Playwright 测试集成](https://github.com/web-infra-dev/midscene-example/blob/main/playwright-testing-demo)，[远程 Playwright 集成](https://github.com/web-infra-dev/midscene-example/tree/main/remote-playwright-demo)

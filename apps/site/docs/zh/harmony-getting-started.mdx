@@ -143,7 +143,7 @@ npx tsx demo.ts
 
 ## 进阶
 
-当你需要自定义设备行为、把 Midscene 接入独立框架，或排查 HDC 问题时，可参考本节内容。更多构造函数参数可前往 [API 参考（HarmonyOS）](./harmony-api-reference)。
+当你需要自定义设备行为、把 Midscene 接入独立框架，或排查 HDC 问题时，可参考本节内容。更多构造函数参数可前往 [API 参考](./api#harmonyagent)。
 
 ### 扩展 HarmonyOS 上的 Midscene
 
@@ -184,7 +184,7 @@ await agent.aiAct('click the red button five times');
 ## 更多
 
 - 查看所有 Agent 方法：[API 参考（通用）](./api#interaction-methods)
-- HarmonyOS 专属参数与接口：[HarmonyOS Agent API](./harmony-api-reference)
+- HarmonyOS 专属参数与接口：[API 参考](./api#harmonyagent)
 - 示例项目
   - HarmonyOS JavaScript SDK 示例：[https://github.com/web-infra-dev/midscene-example/blob/main/harmony/javascript-sdk-demo](https://github.com/web-infra-dev/midscene-example/blob/main/harmony/javascript-sdk-demo)
   - HarmonyOS + Vitest 示例：[https://github.com/web-infra-dev/midscene-example/tree/main/harmony/vitest-demo](https://github.com/web-infra-dev/midscene-example/tree/main/harmony/vitest-demo)
@@ -285,38 +285,12 @@ describe('HarmonyOS Settings Test', () => {
 
 ## 常见问题
 
-### 输入后键盘没有隐藏，或页面发生返回
+### 输入后键盘没有隐藏,或页面发生返回
 
-Midscene 在输入文本后会自动隐藏键盘。HarmonyOS 默认发送 ESC，以减少触发页面返回的概率。如果你的应用里 ESC 无法关闭键盘，可以切换为优先使用 Back：
+Midscene 在输入文本后会自动隐藏键盘。HarmonyOS 默认发送 ESC 以避免触发页面返回。如果 ESC 无法关闭键盘,可设置 `keyboardDismissStrategy: 'back-first'`。如果输入框监听了 Back 并执行清空操作,可设置 `autoDismissKeyboard: false` 关闭自动隐藏,改用 `aiAct` 手动收起键盘。
 
-```typescript
-const device = new HarmonyDevice('device-id', {
-  keyboardDismissStrategy: 'back-first',
-});
-```
-
-如果你的输入框监听了 Back 并执行清空或关闭操作，可以关闭自动隐藏键盘：
-
-```typescript
-const device = new HarmonyDevice('device-id', {
-  autoDismissKeyboard: false,
-});
-```
-
-关闭后键盘不会自动隐藏，你可以使用 `aiAct` 指令手动隐藏键盘，例如 `await agent.aiAct('隐藏键盘')`。
+完整构造函数签名请参阅 [API 参考](./api#harmonydevice)。
 
 ### 如何使用自定义的 HDC 路径？
 
-通过 `HDC_HOME` 环境变量指定 HDC 所在目录：
-
-```bash
-export HDC_HOME=/path/to/hdc/directory
-```
-
-也可以通过构造函数传入：
-
-```typescript
-const device = new HarmonyDevice('0123456789ABCDEF', {
-  hdcPath: '/path/to/hdc',
-});
-```
+通过 `HDC_HOME` 环境变量指定 HDC 所在目录,或通过 `HarmonyDevice` 构造函数传入 `hdcPath`。详见 [API 参考](./api#harmonydevice)。

@@ -53,7 +53,7 @@ Midscene now includes an AndroidWorld benchmark report. With v1.9.5, Midscene ac
 
 - `1.9.8` is the final Midscene version that includes MCP support. Later versions retire MCP server packages in favor of Skills and the platform CLIs.
 - Platform CLIs now accept agent behavior init args.
-- YAML scripts now support the HarmonyOS target in the CLI, so HarmonyOS automation can be driven through the same script runner workflow as Web, Android, iOS, and Computer. See: [Automate with Scripts in YAML](./automate-with-scripts-in-yaml), [HarmonyOS API](./harmony-api-reference)
+- YAML scripts now support the HarmonyOS target in the CLI, so HarmonyOS automation can be driven through the same script runner workflow as Web, Android, iOS, and Computer. See: [Automate with Scripts in YAML](./automate-with-scripts-in-yaml), [HarmonyOS API](./api#harmonyagent)
 - YAML Web config supports custom HTTP headers for browser automation.
 - YAML Web config supports `downloadPath` for browser downloads.
 - YAML runs now surface real execution errors instead of ending as a silent "not executed" case.
@@ -117,7 +117,7 @@ We're building a full record → script → replay loop into Studio: drive a rea
 
 ### YAML Workflow Enhancements
 
-- **Android `runAdbShell` timeout**: A `timeout` option is now accepted in both the JavaScript API and YAML scripts. See: [Android API](./android-api-reference), [Automate with Scripts in YAML](./automate-with-scripts-in-yaml)
+- **Android `runAdbShell` timeout**: A `timeout` option is now accepted in both the JavaScript API and YAML scripts. See: [Android API](./api#androidagent), [Automate with Scripts in YAML](./automate-with-scripts-in-yaml)
 
 ### New Interaction APIs
 
@@ -220,7 +220,7 @@ A new YAML output language option is available in the Chrome extension's recordi
 
 ### Android / HarmonyOS Improvements
 
-- Added `terminate` action on Android and HarmonyOS to force-stop apps, useful for resetting app state during testing. See: [Android API](./android-api-reference), [HarmonyOS API](./harmony-api-reference)
+- Added `terminate` action on Android and HarmonyOS to force-stop apps, useful for resetting app state during testing. See: [Android API](./api#androidagent), [HarmonyOS API](./api#harmonyagent)
 - Fixed placeholder text unexpectedly retained when typing on X/Twitter on Android
 - Fixed Android Playground LAN access issues
 
@@ -272,7 +272,7 @@ The `deepThink` parameter in element-locating APIs has been renamed to `deepLoca
 
 - **Skill CLI Custom Interfaces**: Skill CLI now supports custom interfaces for more flexible Skill extensibility. See: [Skills](./skills)
 - **Unified MCP Tool Export**: All platform packages (Web, Android, iOS, etc.) now export MidsceneTools uniformly, making MCP integration simpler. See: [MCP](./mcp)
-- **iOS App Termination by bundleId**: You can now terminate iOS apps by bundleId, making it easier to reset app state during testing. See: [iOS API Reference](./ios-api-reference)
+- **iOS App Termination by bundleId**: You can now terminate iOS apps by bundleId, making it easier to reset app state during testing. See: [iOS API Reference](./api#iosagent)
 - **CLI Version Display**: CLI now shows version info in health checks, helping you troubleshoot environment issues
 
 ### Task Cancellation Support
@@ -446,7 +446,7 @@ See documentation: [PC Desktop Automation](./computer-introduction)
 
 With Scrcpy screenshot mode enabled, screenshot time drops from 500–2000ms to **100–200ms**, significantly improving Android automation response speed. This is particularly useful for remote device debugging and high frame rate scenarios.
 
-See documentation: [Scrcpy Screenshot Mode](./android-api-reference#scrcpy)
+See documentation: [Scrcpy Screenshot Mode](./api#androiddevice)
 
 ### Deep Thinking Mode Enhancement
 
@@ -801,7 +801,7 @@ Based on the introduction of [Rslib](https://github.com/web-infra-dev/rslib) in 
 - Add all agent APIs to Playwright fixture, simplify test script writing, and solve the problem of not generating reports when using agentForPage
 
 ### Android automation enhancement
-- New keyboard hiding strategy([keyboardDismissStrategy](./android-getting-started#androiddevice-constructor)), allowing you to specify the way to automatically hide the keyboard
+- New keyboard hiding strategy([keyboardDismissStrategy](./api#androiddevice)), allowing you to specify the way to automatically hide the keyboard
 
 ### Report function optimization
 - Report content lazy parsing, solving the problem of report crash when the report is large
@@ -1078,9 +1078,9 @@ const agent = await agentFromAdbDevice('s4ey59', {
 
 Upgrade now to experience these powerful new features!
 
-* [Custom Report Node API documentation](/en/api.mdx#log-screenshot)
+* [Custom Report Node API documentation](./api#log-screenshot)
 
-* [API documentation for more Android configuration items](/en/android-getting-started.mdx#androiddevice-constructor)
+* [API documentation for more Android configuration items](./api#androiddevice)
 
 
 ## v0.17 - Let AI see the DOM of the page

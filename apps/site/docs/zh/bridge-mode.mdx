@@ -95,22 +95,13 @@ midscene ./bing.yaml
 
 ### 不支持的选项
 
-桥接模式会复用桌面浏览器配置，以下选项将被忽略：
-- `userAgent`
-- `viewportWidth`
-- `viewportHeight`
-- `deviceScaleFactor`
-- `waitForNetworkIdle`
-- `cookie`
-- `extraHTTPHeaders`
-- `downloadPath`
-- `chromeArgs`
+桥接模式复用桌面浏览器配置,以下构造选项将被忽略:`userAgent`、`viewportWidth`、`viewportHeight`、`deviceScaleFactor`、`waitForNetworkIdle`、`cookie`、`extraHTTPHeaders`、`downloadPath`、`chromeArgs`。
+
+完整说明请参阅 [API 参考](./api#agentoverchromebridge-web)。
 
 ## 远程访问配置
 
-默认情况下，Bridge Server 只监听 `127.0.0.1`，仅允许本机 Chrome 扩展连接。如需跨机器通信（例如脚本运行在机器 A，浏览器在机器 B），可启用远程访问。
-
-**Server 端（Node.js 脚本）**
+默认情况下,Bridge Server 只监听 `127.0.0.1`。如需跨机器通信,可通过 `allowRemoteAccess`、`host`、`port` 构造选项配置：
 
 ```typescript
 // 启用远程访问（推荐）
@@ -124,6 +115,8 @@ const agent = new AgentOverChromeBridge({
   port: 3766,
 });
 ```
+
+完整构造函数签名请参阅 [API 参考](./api#agentoverchromebridge-web)。
 
 **Client 端（Chrome 插件）**
 
@@ -155,6 +148,6 @@ const agent = new AgentOverChromeBridge({
 ## 更多
 
 - 更多 Agent 的 API 请参考 [API 参考](./api#interaction-methods)。
-- 完整的 Chrome 桥接 API 可参阅 [API 参考（Web）](./web-api-reference#chrome-bridge-agent)。
+- 完整的 Chrome 桥接 API 可参阅 [API 参考](./api#agentoverchromebridge-web)。
 - 样例项目
   - 桥接模式示例：[https://github.com/web-infra-dev/midscene-example/blob/main/bridge-mode-demo](https://github.com/web-infra-dev/midscene-example/blob/main/bridge-mode-demo)

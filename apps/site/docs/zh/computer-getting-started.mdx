@@ -50,7 +50,7 @@ const agent = await agentForComputer({ headless: true });
 // MIDSCENE_COMPUTER_HEADLESS_LINUX=true npx tsx example.ts
 ```
 
-Xvfb 会创建一个虚拟显示器，使鼠标、键盘和截图操作在没有物理显示器的情况下正常工作。详见 [API 参考](./computer-api-reference)。
+Xvfb 会创建一个虚拟显示器，使鼠标、键盘和截图操作在没有物理显示器的情况下正常工作。详见 [API 参考](./api#agentforcomputer-pc-desktop)。
 
 ## 试用 Playground（零代码）
 
@@ -143,21 +143,15 @@ await agent.aiAct('Open Settings');
 await agent.aiAssert('The Windows Settings window is visible');
 ```
 
-### 常用 RDP 选项
+### RDP 选项
 
-- `host`：远程 Windows 主机名或 IP。
-- `port`：RDP 端口，默认是 `3389`。
-- `username` / `password`：远程会话使用的账号凭据。
-- `domain`：可选的 Windows 域。
-- `ignoreCertificate`：用于跳过自签名证书校验。
-- `desktopWidth` / `desktopHeight`：请求指定远程桌面分辨率。
-- `adminSession`：当服务端允许时，请求远程管理员会话。
+对于 Midscene 来说,一个 RDP 会话会被视为单个远程显示器。你仍然可以像本机桌面自动化一样,使用 `aiAct`、`aiQuery`、`aiAssert` 和报告能力。
 
-对于 Midscene 来说，一个 RDP 会话会被视为单个远程显示器。你仍然可以像本机桌面自动化一样，使用 `aiAct`、`aiQuery`、`aiAssert` 和报告能力。
+完整的构造函数选项列表(`host`、`port`、`username`、`password`、`domain`、`ignoreCertificate`、`desktopWidth`、`desktopHeight`、`adminSession`)请参阅 [API 参考](./api#agentforrdpcomputer-pc-desktop)。
 
 ## 多显示器支持
 
-如果您有多个显示器，可以控制特定的显示器：
+如果您有多个显示器,可以使用 `ComputerDevice.listDisplays()` 和 `displayId` 选项来控制特定的显示器：
 
 ```typescript
 import { ComputerDevice, agentForComputer } from '@midscene/computer';
@@ -171,6 +165,8 @@ const agent = await agentForComputer({
   displayId: displays[0].id,
 });
 ```
+
+`listDisplays()` 和其他工具方法详见 [API 参考](./api#computerdevice-utilities)。
 
 ## 使用示例
 
@@ -240,7 +236,7 @@ await agent.aiAssert('存在名为 "我的项目" 的文件夹');
 
 ## 环境检查
 
-您可以检查系统是否正确配置：
+使用 `checkComputerEnvironment()` 检查系统是否正确配置：
 
 ```typescript
 import { checkComputerEnvironment } from '@midscene/computer';
@@ -254,6 +250,8 @@ if (!env.available) {
   console.error('环境不可用:', env.error);
 }
 ```
+
+完整返回类型详见 [API 参考](./api#computerdevice-utilities)。
 
 ## 常见问题
 
@@ -291,7 +289,7 @@ MIDSCENE_COMPUTER_HEADLESS_LINUX=true npx tsx example.ts
 
 ## 下一步
 
-- [API 参考](./computer-api-reference)
+- [API 参考](./api#agentforcomputer-pc-desktop)
 - [使用 YAML 格式自动化脚本](./automate-with-scripts-in-yaml)
 - [YAML 脚本运行器](./yaml-script-runner)
 - [缓存提高效率](./caching)

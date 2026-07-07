@@ -50,7 +50,7 @@ const agent = await agentForComputer({ headless: true });
 // MIDSCENE_COMPUTER_HEADLESS_LINUX=true npx tsx example.ts
 ```
 
-Xvfb creates a virtual display so that mouse, keyboard, and screenshot operations work without a physical monitor. See [API Reference](./computer-api-reference) for details.
+Xvfb creates a virtual display so that mouse, keyboard, and screenshot operations work without a physical monitor. See [API reference](./api#agentforcomputer-pc-desktop) for details.
 
 ## Try Playground (no code)
 
@@ -143,21 +143,15 @@ await agent.aiAct('Open Settings');
 await agent.aiAssert('The Windows Settings window is visible');
 ```
 
-### Common RDP Options
-
-- `host`: Remote Windows host or IP.
-- `port`: RDP port. Defaults to `3389`.
-- `username` / `password`: Account credentials for the remote session.
-- `domain`: Optional Windows domain.
-- `ignoreCertificate`: Skip certificate validation for self-signed setups.
-- `desktopWidth` / `desktopHeight`: Request a specific remote desktop resolution.
-- `adminSession`: Request the remote admin session when the server allows it.
+### RDP Options
 
 RDP sessions are exposed to Midscene as a single remote display. You can still use the same `aiAct`, `aiQuery`, `aiAssert`, and report features as local desktop automation.
 
+For the full list of constructor options (`host`, `port`, `username`, `password`, `domain`, `ignoreCertificate`, `desktopWidth`, `desktopHeight`, `adminSession`), see the [API reference](./api#agentforrdpcomputer-pc-desktop).
+
 ## Multi-Display Support
 
-If you have multiple displays, you can control a specific one:
+Use `ComputerDevice.listDisplays()` and the `displayId` option to control a specific display:
 
 ```typescript
 import { ComputerDevice, agentForComputer } from '@midscene/computer';
@@ -171,6 +165,8 @@ const agent = await agentForComputer({
   displayId: displays[0].id,
 });
 ```
+
+See the [API reference](./api#computerdevice-utilities) for `listDisplays()` and other utility methods.
 
 ## Example Usage
 
@@ -240,7 +236,7 @@ await agent.aiAssert('A folder named "My Project" exists');
 
 ## Environment Check
 
-You can check if your system is properly configured:
+Use `checkComputerEnvironment()` to verify your system configuration:
 
 ```typescript
 import { checkComputerEnvironment } from '@midscene/computer';
@@ -254,6 +250,8 @@ if (!env.available) {
   console.error('Environment not available:', env.error);
 }
 ```
+
+See the [API reference](./api#computerdevice-utilities) for the full return type.
 
 ## FAQ
 
@@ -291,7 +289,7 @@ MIDSCENE_COMPUTER_HEADLESS_LINUX=true npx tsx example.ts
 
 ## Next Steps
 
-- [API Reference](./computer-api-reference)
+- [API reference](./api#agentforcomputer-pc-desktop)
 - [Use YAML format automation scripts](./automate-with-scripts-in-yaml)
 - [YAML script runner](./yaml-script-runner)
 - [Caching for efficiency](./caching)

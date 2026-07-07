@@ -151,7 +151,7 @@ Successful runs print `Midscene - report file updated: /path/to/report/some_id.h
 
 ## Advanced
 
-Use this section when you need to customize device behavior, wire Midscene into your framework, or troubleshoot adb issues. For detailed constructor parameters, jump to the [API reference(Android)](./android-api-reference).
+Use this section when you need to customize device behavior, wire Midscene into your framework, or troubleshoot adb issues. For detailed constructor parameters, jump to the [API reference](./api#androidagent).
 
 ### Extend Midscene on Android
 
@@ -192,7 +192,7 @@ See [Integrate with any interface](./integrate-with-any-interface#define-a-custo
 ## More
 
 - For every Agent method, check the [API reference (Common)](./api#interaction-methods).
-- For the Android API reference, see [Android Agent API](./android-api-reference).
+- For the Android API reference, see [API reference](./api#androidagent).
 - Demo projects
   - Android JavaScript SDK demo: [https://github.com/web-infra-dev/midscene-example/blob/main/android/javascript-sdk-demo](https://github.com/web-infra-dev/midscene-example/blob/main/android/javascript-sdk-demo)
   - Android + Vitest demo: [https://github.com/web-infra-dev/midscene-example/tree/main/android/vitest-demo](https://github.com/web-infra-dev/midscene-example/tree/main/android/vitest-demo)
@@ -315,69 +315,26 @@ Make sure USB debugging is enabled and the device is unlocked in developer optio
 
 ### Text input is cleared or lost after typing
 
-After entering text, Midscene automatically dismisses the keyboard. The default behavior sends an **ESC key event**. However, some input fields (especially those inside WebView) listen for the ESC key event, which can cause side effects such as:
+After entering text, Midscene automatically dismisses the keyboard by sending an **ESC key event**. Some input fields (especially inside WebView) listen for ESC, which can clear text, close popups, or navigate away.
 
-- Clearing the text just entered
-- Closing the popup/modal containing the input field
-- Navigating away from the current page
+Try these solutions in order of priority:
 
-You can try the following solutions in order of priority:
+1. Set `keyboardDismissStrategy: 'back-first'` to use the Android BACK key instead of ESC.
+2. Set `autoDismissKeyboard: false` to disable auto-dismiss and let the AI Agent manage the keyboard.
 
-**Option 1: Use the BACK key (Android back button) to dismiss the keyboard**
-
-Set `keyboardDismissStrategy` to `'back-first'` to use the Android BACK key instead of ESC to dismiss the keyboard:
-
-```typescript
-const device = new AndroidDevice('device-id', {
-  keyboardDismissStrategy: 'back-first',
-});
-```
-
-**Option 2: Disable auto keyboard dismiss**
-
-If your input field also listens for the BACK key, you can disable auto keyboard dismiss entirely and let the AI Agent or subsequent actions manage the keyboard state:
-
-```typescript
-const device = new AndroidDevice('device-id', {
-  autoDismissKeyboard: false,
-});
-```
-
-With auto dismiss disabled, the keyboard will remain visible and may cover a large portion of the screen. You can work around this by:
-
-- Using `aiAct` to manually dismiss the keyboard, e.g. `await agent.aiAct('tap the collapse button on the keyboard')`
-- Installing and switching to [ADBKeyBoard](https://github.com/senzhk/ADBKeyBoard) — a minimal virtual keyboard that takes up very little screen space, so it barely affects screen interactions even when visible
+For full constructor signatures, see the [API reference](./api#androiddevice). With auto dismiss disabled, you can use `aiAct` to manually dismiss the keyboard, or install [ADBKeyBoard](https://github.com/senzhk/ADBKeyBoard) — a minimal virtual keyboard that barely affects screen interactions.
 
 ### English text is rewritten by the Android keyboard
 
-If the report shows the correct input parameter, but the app receives different text, missing text, or Chinese/pinyin candidates, the active Android input method may be rewriting the text. This can happen when pure ASCII text goes through the native `adb input text` path while a Chinese keyboard or autocorrect keyboard is active.
+If the report shows correct input parameters but the app receives different text, the active Android input method may be rewriting it (common with Chinese or autocorrect keyboards).
 
-Use the existing `imeStrategy` option and force all text input through yadb:
+Set `imeStrategy: 'always-yadb'` to force all text input through yadb. Configurable via constructor, YAML (`android.imeStrategy`), or the `MIDSCENE_ANDROID_IME_STRATEGY` environment variable. See the [API reference](./api#androiddevice) for details.
 
-```typescript
-const device = new AndroidDevice('device-id', {
-  imeStrategy: 'always-yadb',
-});
-```
-
-For YAML scripts:
-
-```yaml
-android:
-  imeStrategy: always-yadb
-```
-
-Or set the environment variable:
-
-```bash
-export MIDSCENE_ANDROID_IME_STRATEGY=always-yadb
-```
-
-This is different from text being cleared after typing. If the text is entered correctly and then disappears, check `keyboardDismissStrategy` or `autoDismissKeyboard` instead.
+This differs from "text cleared after typing" — if text disappears after being entered correctly, check `keyboardDismissStrategy` or `autoDismissKeyboard` instead.
 
 ### How do I use a custom adb path or remote adb server?
 
-Set the environment variables first:
+Set the environment variables:
 
 ```bash
 export MIDSCENE_ADB_PATH=/path/to/adb
@@ -385,12 +342,4 @@ export MIDSCENE_ADB_REMOTE_HOST=192.168.1.100
 export MIDSCENE_ADB_REMOTE_PORT=5037
 ```
 
-You can also provide the same information via the constructor:
-
-```typescript
-const device = new AndroidDevice('s4ey59', {
-  androidAdbPath: '/path/to/adb',
-  remoteAdbHost: '192.168.1.100',
-  remoteAdbPort: 5037,
-});
-```
+You can also pass `androidAdbPath`, `remoteAdbHost`, and `remoteAdbPort` via the `AndroidDevice` constructor. See the [API reference](./api#androiddevice) for the full signature.
