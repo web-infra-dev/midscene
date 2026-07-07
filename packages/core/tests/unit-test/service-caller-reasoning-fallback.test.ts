@@ -158,10 +158,13 @@ describe('service-caller reasoning fallback', () => {
     const response = await callAIWithObjectResponse<{
       type: string;
       param: { locate: { prompt: string } };
-    }>([{ role: 'user', content: 'next action' }], {
-      ...baseModelConfig,
-      modelFamily: 'qwen3',
-    });
+    }>(
+      [{ role: 'user', content: 'next action' }],
+      getModelRuntime({
+        ...baseModelConfig,
+        modelFamily: 'qwen3',
+      }),
+    );
 
     expect(response.content).toEqual({
       type: 'Tap',
@@ -201,7 +204,7 @@ describe('service-caller reasoning fallback', () => {
 
     const promise = callAIWithObjectResponse(
       [{ role: 'user', content: 'locate element' }],
-      baseModelConfig,
+      getModelRuntime(baseModelConfig),
       { jsonParserSource: 'locate' },
     );
 
