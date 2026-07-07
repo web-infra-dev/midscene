@@ -1,7 +1,7 @@
-import type { AgentOpt } from '@midscene/core';
 import { Agent as CoreAgent } from '@midscene/core/agent';
 import type { AbstractInterface } from '@midscene/core/device';
 import type { DebugFunction } from '@midscene/shared/logger';
+import { isRetryableBrowserNavigationError } from './web-agent';
 
 export type BrowserAgentPageScope = 'page' | 'browser';
 
@@ -16,7 +16,7 @@ export type BrowserAgentAdapter<Page, NewPageEvent> = {
   isNewPageEvent?: (event: NewPageEvent) => boolean;
 };
 
-export type BrowserAgentPageControllerOptions<Page, NewPageEvent> = {
+export type BrowserPageManagerOptions<Page, NewPageEvent> = {
   agentName: string;
   adapter: BrowserAgentAdapter<Page, NewPageEvent>;
   getActivePage(): Page;
@@ -40,6 +40,14 @@ export type ResolvedBrowserAgentRuntimeOptions = {
   autoFollowNewPage: boolean;
   newPageTimeout: number;
 };
+
+export abstract class WebAgentCore<
+  InterfaceType extends AbstractInterface,
+> extends CoreAgent<InterfaceType> {
+  protected isRetryableContextError(error: unknown): boolean {
+    return isRetryableBrowserNavigationError(error);
+  }
+}
 
 const DEFAULT_NEW_PAGE_TIMEOUT = 5000;
 
@@ -79,41 +87,7 @@ export function resolveBrowserAgentRuntimeOptions({
   };
 }
 
-export abstract class BrowserAwareAgent<
-  InterfaceType extends AbstractInterface,
-  Page,
-  NewPageEvent,
-> extends CoreAgent<InterfaceType> {
-  private readonly browserPageController?: BrowserAgentPageController<
-    Page,
-    NewPageEvent
-  >;
-
-  protected constructor(
-    interfaceInstance: InterfaceType,
-    opts?: AgentOpt,
-    pageController?: BrowserAgentPageController<Page, NewPageEvent>,
-  ) {
-    super(interfaceInstance, opts);
-    this.browserPageController = pageController;
-  }
-
-  protected getPageController() {
-    if (!this.browserPageController) {
-      throw new Error(
-        `[midscene] ${this.constructor.name} is running in page mode and cannot control browser pages.`,
-      );
-    }
-    return this.browserPageController;
-  }
-
-  async destroy() {
-    this.browserPageController?.destroy();
-    await super.destroy();
-  }
-}
-
-export class BrowserAgentPageController<Page, NewPageEvent> {
+export class BrowserPageManager<Page, NewPageEvent> {
   private readonly agentName: string;
   private readonly adapter: BrowserAgentAdapter<Page, NewPageEvent>;
   private readonly getActivePageValue: () => Page;
@@ -125,7 +99,7 @@ export class BrowserAgentPageController<Page, NewPageEvent> {
     void this.followNewPage(event);
   };
 
-  constructor(options: BrowserAgentPageControllerOptions<Page, NewPageEvent>) {
+  constructor(options: BrowserPageManagerOptions<Page, NewPageEvent>) {
     this.agentName = options.agentName;
     this.adapter = options.adapter;
     this.getActivePageValue = options.getActivePage;

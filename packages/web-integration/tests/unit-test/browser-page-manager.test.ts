@@ -1,5 +1,5 @@
 import {
-  BrowserAgentPageController,
+  BrowserPageManager,
   resolveBrowserAgentRuntimeOptions,
 } from '@/common/browser-agent';
 import { describe, expect, it, vi } from 'vitest';
@@ -20,7 +20,7 @@ const createPage = (id: string): PageMock => ({
   bringToFront: vi.fn(),
 });
 
-function createController(options?: {
+function createManager(options?: {
   autoFollowNewPage?: boolean;
   newPage?: PageMock;
 }) {
@@ -29,7 +29,7 @@ function createController(options?: {
   const debug = vi.fn();
   const newPage = options?.newPage ?? createPage('created');
 
-  const controller = new BrowserAgentPageController<PageMock, NewPageEvent>({
+  const manager = new BrowserPageManager<PageMock, NewPageEvent>({
     agentName: 'TestBrowserAgent',
     autoFollowNewPage: options?.autoFollowNewPage ?? false,
     newPageTimeout: 50,
@@ -55,7 +55,7 @@ function createController(options?: {
   });
 
   return {
-    controller,
+    manager,
     get activePage() {
       return activePage;
     },
@@ -70,11 +70,11 @@ function createController(options?: {
   };
 }
 
-describe('BrowserAgentPageController', () => {
+describe('BrowserPageManager', () => {
   it('sets the created page as active page', async () => {
-    const ctx = createController();
+    const ctx = createManager();
 
-    const page = await ctx.controller.newPage();
+    const page = await ctx.manager.newPage();
 
     expect(page.id).toBe('created');
     expect(ctx.activePage).toBe(page);
@@ -82,7 +82,7 @@ describe('BrowserAgentPageController', () => {
   });
 
   it('auto-follows matching new page events', async () => {
-    const ctx = createController({ autoFollowNewPage: true });
+    const ctx = createManager({ autoFollowNewPage: true });
     const nextPage = createPage('next');
 
     ctx.emit({ kind: 'worker' });
@@ -94,10 +94,10 @@ describe('BrowserAgentPageController', () => {
   });
 
   it('waits for the next page without switching active page', async () => {
-    const ctx = createController();
+    const ctx = createManager();
     const nextPage = createPage('next');
 
-    const waiting = ctx.controller.waitForNewPage();
+    const waiting = ctx.manager.waitForNewPage();
     ctx.emit({ kind: 'worker' });
     ctx.emit({ kind: 'page', page: nextPage });
 
@@ -106,19 +106,19 @@ describe('BrowserAgentPageController', () => {
   });
 
   it('removes the auto-follow listener on destroy', () => {
-    const ctx = createController({ autoFollowNewPage: true });
+    const ctx = createManager({ autoFollowNewPage: true });
 
     expect(ctx.handlers.size).toBe(1);
-    ctx.controller.destroy();
+    ctx.manager.destroy();
     expect(ctx.handlers.size).toBe(0);
   });
 
   it('rejects closed pages', async () => {
-    const ctx = createController();
+    const ctx = createManager();
     const closedPage = createPage('closed');
     closedPage.closed = true;
 
-    await expect(ctx.controller.setActivePage(closedPage)).rejects.toThrow(
+    await expect(ctx.manager.setActivePage(closedPage)).rejects.toThrow(
       '[midscene] Cannot set TestBrowserAgent active page to a closed or invalid page.',
     );
   });

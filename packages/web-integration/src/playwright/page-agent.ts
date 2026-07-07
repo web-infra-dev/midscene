@@ -1,11 +1,8 @@
 import {
-  BrowserAwareAgent,
+  WebAgentCore,
   resolveBrowserAgentRuntimeOptions,
 } from '@/common/browser-agent';
-import {
-  applyForceChromeSelectRendering,
-  isRetryableBrowserNavigationError,
-} from '@/common/web-agent';
+import { applyForceChromeSelectRendering } from '@/common/web-agent';
 import type { WebPageAgentOpt } from '@/web-element';
 import { getDebug } from '@midscene/shared/logger';
 import type { Page as PlaywrightPage } from 'playwright';
@@ -14,15 +11,7 @@ import { WebPage as PlaywrightWebPage } from './page';
 
 const debug = getDebug('playwright:agent');
 
-export class PlaywrightPageAgent extends BrowserAwareAgent<
-  PlaywrightWebPage,
-  PlaywrightPage,
-  PlaywrightPage
-> {
-  protected isRetryableContextError(error: unknown): boolean {
-    return isRetryableBrowserNavigationError(error);
-  }
-
+export class PlaywrightPageAgent extends WebAgentCore<PlaywrightWebPage> {
   constructor(page: PlaywrightPage, opts?: WebPageAgentOpt) {
     if (!page) {
       throw new Error(

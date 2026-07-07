@@ -1,13 +1,10 @@
 import {
   type BrowserAgentAdapter,
-  BrowserAgentPageController,
-  BrowserAwareAgent,
+  BrowserPageManager,
+  WebAgentCore,
   resolveBrowserAgentRuntimeOptions,
 } from '@/common/browser-agent';
-import {
-  applyForceChromeSelectRendering,
-  isRetryableBrowserNavigationError,
-} from '@/common/web-agent';
+import { applyForceChromeSelectRendering } from '@/common/web-agent';
 import type { WebPageAgentOpt } from '@/web-element';
 import { getDebug } from '@midscene/shared/logger';
 import type {
@@ -42,21 +39,11 @@ export type PlaywrightBrowserAgentCreateOpt = PlaywrightBrowserAgentOpt & {
   initialPage?: PlaywrightPage;
 };
 
-export class PlaywrightBrowserAgent extends BrowserAwareAgent<
-  PlaywrightWebPage,
-  PlaywrightPage,
-  PlaywrightPage
-> {
-  private get pageController(): BrowserAgentPageController<
+export class PlaywrightBrowserAgent extends WebAgentCore<PlaywrightWebPage> {
+  private readonly pageManager: BrowserPageManager<
     PlaywrightPage,
     PlaywrightPage
-  > {
-    return this.getPageController();
-  }
-
-  protected isRetryableContextError(error: unknown): boolean {
-    return isRetryableBrowserNavigationError(error);
-  }
+  >;
 
   constructor(
     context: PlaywrightBrowserContext,
@@ -88,7 +75,7 @@ export class PlaywrightBrowserAgent extends BrowserAwareAgent<
       ...agentOpts,
       forceSameTabNavigation: runtimeOptions.forceSameTabNavigation,
     });
-    const pageController = new BrowserAgentPageController({
+    const pageManager = new BrowserPageManager({
       agentName: 'PlaywrightBrowserAgent',
       adapter: createPlaywrightBrowserAdapter(context),
       getActivePage: () => webPage.underlyingPage as PlaywrightPage,
@@ -99,7 +86,8 @@ export class PlaywrightBrowserAgent extends BrowserAwareAgent<
       newPageTimeout: runtimeOptions.newPageTimeout,
       debug,
     });
-    super(webPage, agentOpts, pageController);
+    super(webPage, agentOpts);
+    this.pageManager = pageManager;
 
     applyForceChromeSelectRendering(
       initialPage,
@@ -119,29 +107,30 @@ export class PlaywrightBrowserAgent extends BrowserAwareAgent<
   }
 
   get activePage() {
-    return this.pageController.activePage;
+    return this.pageManager.activePage;
   }
 
   pages() {
-    return this.pageController.pages();
+    return this.pageManager.pages();
   }
 
   async newPage() {
-    return this.pageController.newPage();
+    return this.pageManager.newPage();
   }
 
   async setActivePage(page: PlaywrightPage) {
-    await this.pageController.setActivePage(page);
+    await this.pageManager.setActivePage(page);
   }
 
   async waitForNewPage(
     action?: () => Promise<unknown> | unknown,
     opts?: { timeout?: number },
   ) {
-    return this.pageController.waitForNewPage(action, opts);
+    return this.pageManager.waitForNewPage(action, opts);
   }
 
   async destroy() {
+    this.pageManager.destroy();
     await super.destroy();
   }
 }

@@ -1,31 +1,17 @@
 import {
-  BrowserAwareAgent,
+  WebAgentCore,
   resolveBrowserAgentRuntimeOptions,
 } from '@/common/browser-agent';
-import {
-  applyForceChromeSelectRendering,
-  isRetryableBrowserNavigationError,
-} from '@/common/web-agent';
+import { applyForceChromeSelectRendering } from '@/common/web-agent';
 import type { WebPageAgentOpt } from '@/web-element';
 import { getDebug } from '@midscene/shared/logger';
-import type {
-  Page as PuppeteerPage,
-  Target as PuppeteerTarget,
-} from 'puppeteer';
+import type { Page as PuppeteerPage } from 'puppeteer';
 import { forceClosePopup } from './base-page';
 import { PuppeteerWebPage } from './page';
 
 const debug = getDebug('puppeteer:agent');
 
-export class PuppeteerPageAgent extends BrowserAwareAgent<
-  PuppeteerWebPage,
-  PuppeteerPage,
-  PuppeteerTarget
-> {
-  protected isRetryableContextError(error: unknown): boolean {
-    return isRetryableBrowserNavigationError(error);
-  }
-
+export class PuppeteerPageAgent extends WebAgentCore<PuppeteerWebPage> {
   constructor(page: PuppeteerPage, opts?: WebPageAgentOpt) {
     if (!page) {
       throw new Error(

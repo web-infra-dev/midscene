@@ -1,13 +1,10 @@
 import {
   type BrowserAgentAdapter,
-  BrowserAgentPageController,
-  BrowserAwareAgent,
+  BrowserPageManager,
+  WebAgentCore,
   resolveBrowserAgentRuntimeOptions,
 } from '@/common/browser-agent';
-import {
-  applyForceChromeSelectRendering,
-  isRetryableBrowserNavigationError,
-} from '@/common/web-agent';
+import { applyForceChromeSelectRendering } from '@/common/web-agent';
 import type { WebPageAgentOpt } from '@/web-element';
 import { getDebug } from '@midscene/shared/logger';
 import type {
@@ -44,21 +41,11 @@ export type PuppeteerBrowserAgentCreateOpt = PuppeteerBrowserAgentOpt & {
   initialPage?: PuppeteerPage;
 };
 
-export class PuppeteerBrowserAgent extends BrowserAwareAgent<
-  PuppeteerWebPage,
-  PuppeteerPage,
-  PuppeteerTarget
-> {
-  private get pageController(): BrowserAgentPageController<
+export class PuppeteerBrowserAgent extends WebAgentCore<PuppeteerWebPage> {
+  private readonly pageManager: BrowserPageManager<
     PuppeteerPage,
     PuppeteerTarget
-  > {
-    return this.getPageController();
-  }
-
-  protected isRetryableContextError(error: unknown): boolean {
-    return isRetryableBrowserNavigationError(error);
-  }
+  >;
 
   constructor(
     browser: PuppeteerBrowser,
@@ -90,7 +77,7 @@ export class PuppeteerBrowserAgent extends BrowserAwareAgent<
       ...agentOpts,
       forceSameTabNavigation: runtimeOptions.forceSameTabNavigation,
     });
-    const pageController = new BrowserAgentPageController({
+    const pageManager = new BrowserPageManager({
       agentName: 'PuppeteerBrowserAgent',
       adapter: createPuppeteerBrowserAdapter(browser),
       getActivePage: () => webPage.underlyingPage as PuppeteerPage,
@@ -101,7 +88,8 @@ export class PuppeteerBrowserAgent extends BrowserAwareAgent<
       newPageTimeout: runtimeOptions.newPageTimeout,
       debug,
     });
-    super(webPage, agentOpts, pageController);
+    super(webPage, agentOpts);
+    this.pageManager = pageManager;
 
     applyForceChromeSelectRendering(
       initialPage,
@@ -122,29 +110,30 @@ export class PuppeteerBrowserAgent extends BrowserAwareAgent<
   }
 
   get activePage() {
-    return this.pageController.activePage;
+    return this.pageManager.activePage;
   }
 
   pages() {
-    return this.pageController.pages();
+    return this.pageManager.pages();
   }
 
   async newPage() {
-    return this.pageController.newPage();
+    return this.pageManager.newPage();
   }
 
   async setActivePage(page: PuppeteerPage) {
-    await this.pageController.setActivePage(page);
+    await this.pageManager.setActivePage(page);
   }
 
   async waitForNewPage(
     action?: () => Promise<unknown> | unknown,
     opts?: { timeout?: number },
   ) {
-    return this.pageController.waitForNewPage(action, opts);
+    return this.pageManager.waitForNewPage(action, opts);
   }
 
   async destroy() {
+    this.pageManager.destroy();
     await super.destroy();
   }
 }
