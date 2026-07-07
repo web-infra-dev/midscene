@@ -1,11 +1,27 @@
 import StartExperience from './common/start-experience.mdx';
 import SetupEnv from './common/setup-env.mdx';
+import ShowcaseHarmony from './showcases-harmony.mdx';
 
 import { PackageManagerTabs } from '@theme';
 
-# HarmonyOS Getting Started
+# HarmonyOS Automation Support
 
-This guide walks you through everything needed to automate HarmonyOS devices with Midscene: connecting a real device via HDC, configuring model API keys, trying the zero-code Playground, and running your first JavaScript script.
+Midscene can drive the HDC (HarmonyOS Device Connector) tool to automate HarmonyOS NEXT devices.
+
+Thanks to its visual model approach, the entire automation process works with any HarmonyOS app technology stack — whether ArkTS native or other frameworks. Developers only need to debug UI automation scripts against the final rendered interface.
+
+The HarmonyOS UI automation solution includes all Midscene features:
+
+- Zero-code trial via Playground.
+- JavaScript SDK support.
+- YAML-based automation scripts and CLI tools.
+- HTML report generation for replaying all action paths.
+
+## Showcases
+
+<ShowcaseHarmony />
+
+See more showcases: [showcases](./showcases.mdx)
 
 :::info Demo Projects
 
@@ -181,6 +197,18 @@ await agent.aiAct('click the red button five times');
 
 For more details on custom actions and action schemas, see [Integrate with Any Interface](./integrate-with-any-interface#define-a-custom-action).
 
+## FAQ
+
+### Keyboard is not dismissed or the page goes back after typing
+
+Midscene automatically dismisses the keyboard after entering text. HarmonyOS defaults to the ESC key to avoid triggering page-back. If ESC doesn't close the keyboard in your app, set `keyboardDismissStrategy: 'back-first'`. If your input field listens for Back and clears, set `autoDismissKeyboard: false` and use `aiAct` to manually dismiss the keyboard.
+
+For full constructor signatures, see the [API reference](./api#harmonydevice).
+
+### How to use a custom HDC path?
+
+Set the `HDC_HOME` environment variable, or pass `hdcPath` via the `HarmonyDevice` constructor. See the [API reference](./api#harmonydevice) for details.
+
 ## More
 
 - View all Agent methods: [API Reference (Common)](./api#interaction-methods)
@@ -282,15 +310,3 @@ describe('HarmonyOS Settings Test', () => {
 Merged reports are stored inside `midscene_run/report` by default. Override the directory with `MIDSCENE_RUN_DIR` when running in CI.
 
 :::
-
-## FAQ
-
-### Keyboard is not dismissed or the page goes back after typing
-
-Midscene automatically dismisses the keyboard after entering text. HarmonyOS defaults to the ESC key to avoid triggering page-back. If ESC doesn't close the keyboard in your app, set `keyboardDismissStrategy: 'back-first'`. If your input field listens for Back and clears, set `autoDismissKeyboard: false` and use `aiAct` to manually dismiss the keyboard.
-
-For full constructor signatures, see the [API reference](./api#harmonydevice).
-
-### How to use a custom HDC path?
-
-Set the `HDC_HOME` environment variable, or pass `hdcPath` via the `HarmonyDevice` constructor. See the [API reference](./api#harmonydevice) for details.

@@ -1,11 +1,27 @@
 import StartExperience from './common/start-experience.mdx';
 import SetupEnv from './common/setup-env.mdx';
+import ShowcaseHarmony from './showcases-harmony.mdx';
 
 import { PackageManagerTabs } from '@theme';
 
-# HarmonyOS 开始使用
+# HarmonyOS 自动化支持
 
-本指南将带你完成使用 Midscene 自动化 HarmonyOS 设备所需的一切：通过 HDC 连接真机、配置模型 API Key、体验零代码 Playground，并运行你的首个 JavaScript 脚本。
+Midscene 可以驱动 HDC（HarmonyOS Device Connector）工具来实现 HarmonyOS NEXT 设备自动化。
+
+由于适配了视觉模型方案，整个自动化过程可以适配任意的 HarmonyOS App 技术栈，无论是 ArkTS 原生还是其他框架构建的 App 都能使用。开发者只需面向最终效果调试 UI 自动化脚本即可。
+
+HarmonyOS UI 自动化解决方案具备 Midscene 的全部特性：
+
+- 支持使用 Playground 进行零代码试用。
+- 支持 JavaScript SDK。
+- 支持使用 YAML 格式的自动化脚本和命令行工具。
+- 支持生成 HTML 报告来回放所有操作路径。
+
+## 案例展示
+
+<ShowcaseHarmony />
+
+查看更多案例：[showcases](./showcases.mdx)
 
 :::info 示例项目
 
@@ -181,6 +197,18 @@ await agent.aiAct('click the red button five times');
 
 关于自定义动作和动作 Schema 的更多解释，请参阅 [与任意界面集成](./integrate-with-any-interface#define-a-custom-action)。
 
+## 常见问题
+
+### 输入后键盘没有隐藏，或页面发生返回
+
+Midscene 在输入文本后会自动隐藏键盘。HarmonyOS 默认发送 ESC 以避免触发页面返回。如果 ESC 无法关闭键盘，可设置 `keyboardDismissStrategy: 'back-first'`。如果输入框监听了 Back 并执行清空操作，可设置 `autoDismissKeyboard: false` 关闭自动隐藏，改用 `aiAct` 手动收起键盘。
+
+完整构造函数签名请参阅 [API 参考](./api#harmonydevice)。
+
+### 如何使用自定义的 HDC 路径？
+
+通过 `HDC_HOME` 环境变量指定 HDC 所在目录，或通过 `HarmonyDevice` 构造函数传入 `hdcPath`。详见 [API 参考](./api#harmonydevice)。
+
 ## 更多
 
 - 查看所有 Agent 方法：[API 参考（通用）](./api#interaction-methods)
@@ -282,15 +310,3 @@ describe('HarmonyOS Settings Test', () => {
 合并报告默认存放在 `midscene_run/report` 目录。在 CI 中运行时可通过 `MIDSCENE_RUN_DIR` 覆盖。
 
 :::
-
-## 常见问题
-
-### 输入后键盘没有隐藏,或页面发生返回
-
-Midscene 在输入文本后会自动隐藏键盘。HarmonyOS 默认发送 ESC 以避免触发页面返回。如果 ESC 无法关闭键盘,可设置 `keyboardDismissStrategy: 'back-first'`。如果输入框监听了 Back 并执行清空操作,可设置 `autoDismissKeyboard: false` 关闭自动隐藏,改用 `aiAct` 手动收起键盘。
-
-完整构造函数签名请参阅 [API 参考](./api#harmonydevice)。
-
-### 如何使用自定义的 HDC 路径？
-
-通过 `HDC_HOME` 环境变量指定 HDC 所在目录,或通过 `HarmonyDevice` 构造函数传入 `hdcPath`。详见 [API 参考](./api#harmonydevice)。

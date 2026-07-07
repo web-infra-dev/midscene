@@ -1,12 +1,28 @@
 import StartExperience from './common/start-experience.mdx';
 import SetupEnv from './common/setup-env.mdx';
 import PrepareIOS from './common/prepare-ios.mdx';
+import ShowcaseIOS from './showcases-ios.mdx';
 
 import { PackageManagerTabs } from '@theme';
 
-# iOS 开始使用
+# iOS 自动化支持
 
-本指南会带你完成使用 Midscene 控制 iOS 设备的全部步骤：通过 WebDriverAgent 连接真机、配置模型 API Key、体验零代码 Playground，并运行你的首个 JavaScript 脚本。
+Midscene 可以驱动 WebDriver 工具来支持 iOS 自动化。
+
+由于适配了视觉模型方案，整个自动化过程可以适配任意的 App 技术栈，无论是 Native、Flutter 还是 React Native 构建的 App 或小程序都能使用。开发者只需面向最终效果调试 UI 自动化脚本即可。
+
+iOS UI 自动化方案具备 Midscene 的全部特性：
+
+- 支持使用 Playground 进行零代码试用。
+- 支持 JavaScript SDK。
+- 支持使用 YAML 格式的自动化脚本与命令行工具。
+- 支持生成 HTML 报告回放所有操作路径。
+
+## 案例展示
+
+<ShowcaseIOS />
+
+查看更多案例：[showcases](./showcases.mdx)
 
 :::info 示例项目
 
@@ -15,6 +31,26 @@ import { PackageManagerTabs } from '@theme';
 集成 Vitest 进行测试：[https://github.com/web-infra-dev/midscene-example/tree/main/ios/vitest-demo](https://github.com/web-infra-dev/midscene-example/tree/main/ios/vitest-demo)
 
 :::
+
+## 关于 WebDriverAgent
+
+WebDriver 是 W3C 制定的浏览器自动化标准协议，提供统一的 API 来控制不同的浏览器和应用。该协议定义了客户端与服务端之间的通信方式，使自动化工具能跨平台地操纵各种界面。
+
+得益于 Appium 团队以及其他开源社区的努力，业界已经出现了多个优秀的库，将桌面端和移动端的操作转化为 WebDriver 协议，例如：
+
+- **Appium** —— 跨平台移动自动化框架
+- **WebDriverAgent** —— 专注于 iOS 设备自动化的服务
+- **Selenium** —— Web 浏览器自动化工具
+- **WinAppDriver** —— Windows 应用自动化工具
+
+**Midscene 适配 WebDriver 协议**，这意味着开发者可以在任何支持 WebDriver 的设备上使用 AI 模型执行智能自动化操作。通过该设计，Midscene 不仅能完成点击、输入等传统操作，还可以：
+
+- 理解界面内容与上下文
+- 执行复杂的多步骤操作
+- 进行智能断言与验证
+- 提取并分析界面数据
+
+在 iOS 平台上，Midscene 通过 WebDriverAgent 连接 iOS 设备，让你可以用自然语言描述来控制 iOS App 和系统。
 
 <SetupEnv />
 
@@ -37,8 +73,6 @@ npx --yes @midscene/ios-playground
 ```
 
 2. 点击窗口中的齿轮按钮进入配置页，粘贴你的 API Key 配置。如果还没有 API Key，请回到 [模型配置](./model-config) 获取。
-
-![](/ios-set-env.png)
 
 ## 开始体验
 
@@ -133,8 +167,8 @@ npx tsx demo.ts
 
 请检查以下事项：
 
-1. **开发者模式**：在“设置 > 隐私与安全性 > 开发者模式”中确认已开启。
-2. **UI Automation**：在“设置 > 开发者 > UI Automation”中确认已开启。
+1. **开发者模式**：在"设置 > 隐私与安全性 > 开发者模式"中确认已开启。
+2. **UI Automation**：在"设置 > 开发者 > UI Automation"中确认已开启。
 3. **设备信任**：确保设备信任当前 Mac。
 
 ### 模拟器与真机有哪些区别？

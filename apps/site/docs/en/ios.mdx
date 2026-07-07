@@ -1,12 +1,28 @@
 import StartExperience from './common/start-experience.mdx';
 import SetupEnv from './common/setup-env.mdx';
 import PrepareIOS from './common/prepare-ios.mdx';
+import ShowcaseIOS from './showcases-ios.mdx';
 
 import { PackageManagerTabs } from '@theme';
 
-# iOS getting started
+# iOS Automation Support
 
-This guide walks you through everything required to automate an iOS device with Midscene: connect a real phone through WebDriverAgent, configure model credentials, try the no-code Playground, and run your first JavaScript script.
+Midscene can drive WebDriver tools to support iOS automation.
+
+By adapting a visual model solution, the automation process works with any app tech stack—whether built with Native, Flutter, React Native, or Lynx. Developers only need to focus on the final experience when debugging UI automation scripts.
+
+The iOS UI automation solution comes with all the features of Midscene:
+
+- Supports zero-code trial using Playground.
+- Supports JavaScript SDK.
+- Supports automation scripts in YAML format and command-line tools.
+- Supports HTML reports to replay all operation paths.
+
+## Showcases
+
+<ShowcaseIOS />
+
+See more showcases: [showcases](./showcases.mdx)
 
 :::info Demo Projects
 
@@ -15,6 +31,24 @@ Control iOS devices with JavaScript: [https://github.com/web-infra-dev/midscene-
 Integrate Vitest for testing: [https://github.com/web-infra-dev/midscene-example/tree/main/ios/vitest-demo](https://github.com/web-infra-dev/midscene-example/tree/main/ios/vitest-demo)
 
 :::
+
+## Understand WebDriverAgent
+
+WebDriver is a standard protocol established by W3C for browser automation, providing a unified API to control different browsers and applications. The WebDriver protocol defines the communication method between client and server, enabling automation tools to control various user interfaces across platforms.
+
+Through the efforts of the Appium team and other open source communities, the industry now has many excellent libraries that convert desktop and mobile device automation operations into WebDriver protocol. These tools include:
+- **Appium** - Cross-platform mobile automation framework
+- **WebDriverAgent** - Service dedicated to iOS device automation
+- **Selenium** - Web browser automation tool
+- **WinAppDriver** - Windows application automation tool
+
+**Midscene adapts to the WebDriver protocol**, which means developers can use AI models to perform intelligent automated operations on any device that supports WebDriver. Through this design, Midscene can not only control traditional operations like clicking and typing, but also:
+- Understand interface content and context
+- Execute complex multi-step operations
+- Perform intelligent assertions and validations
+- Extract and analyze interface data
+
+On iOS platform, Midscene connects to iOS devices through WebDriverAgent, allowing you to control iOS apps and system using natural language descriptions.
 
 <SetupEnv />
 
@@ -33,8 +67,6 @@ npx --yes @midscene/ios-playground
 ```
 
 2. Click the gear button to enter the configuration page and paste your API key config. Refer back to [Model configuration](./model-config) if you still need credentials.
-
-![](/ios-set-env.png)
 
 ## Start experiencing
 

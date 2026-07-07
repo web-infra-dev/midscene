@@ -1,11 +1,27 @@
 import StartExperience from './common/start-experience.mdx';
 import SetupEnv from './common/setup-env.mdx';
+import ShowcaseAndroid from './showcases-android.mdx';
 
 import { PackageManagerTabs } from '@theme';
 
-# Android Getting Started
+# Android Automation Support
 
-This guide walks you through everything required to automate an Android device with Midscene: connect a real phone over adb, configure model credentials, try the no-code Playground, and run your first JavaScript script.
+Midscene can drive adb tools to support Android automation.
+
+By adapting a visual model solution, the automation process works with any app tech stack—whether built with Native, Flutter, React Native, or Lynx. Developers only need to focus on the final experience when debugging UI automation scripts.
+
+The Android UI automation solution comes with all the features of Midscene:
+
+- Supports zero-code trial using Playground.
+- Supports JavaScript SDK.
+- Supports automation scripts in YAML format and command-line tools.
+- Supports HTML reports to replay all operation paths.
+
+## Showcases
+
+<ShowcaseAndroid />
+
+See more showcases: [showcases](./showcases.mdx)
 
 :::info Demo Projects
 
@@ -17,7 +33,7 @@ Integrate Vitest for testing: [https://github.com/web-infra-dev/midscene-example
 
 <SetupEnv />
 
-## Prepare your Android device
+## Prerequisites
 
 Before scripting, confirm adb can talk to your device and the device trusts your machine.
 
@@ -189,6 +205,55 @@ await agent.aiAct('click the red button five times');
 
 See [Integrate with any interface](./integrate-with-any-interface#define-a-custom-action) for a deeper explanation of custom actions and action schemas.
 
+## FAQ
+
+### Why can't I control the device even though I've connected it?
+
+A common error is:
+
+```
+Error:
+Exception occurred while executing 'tap':
+java.lang.SecurityException: Injecting input events requires the caller (or the source of the instrumentation, if any) to have the INJECT_EVENTS permission.
+```
+
+Make sure USB debugging is enabled and the device is unlocked in developer options.
+
+<p align="center">
+  <img src="/android-usb-debug-en.png" alt="android usb debug" width="400" />
+</p>
+
+### Text input is cleared or lost after typing
+
+After entering text, Midscene automatically dismisses the keyboard by sending an **ESC key event**. Some input fields (especially inside WebView) listen for ESC, which can clear text, close popups, or navigate away.
+
+Try these solutions in order of priority:
+
+1. Set `keyboardDismissStrategy: 'back-first'` to use the Android BACK key instead of ESC.
+2. Set `autoDismissKeyboard: false` to disable auto-dismiss and let the AI Agent manage the keyboard.
+
+For full constructor signatures, see the [API reference](./api#androiddevice). With auto dismiss disabled, you can use `aiAct` to manually dismiss the keyboard, or install [ADBKeyBoard](https://github.com/senzhk/ADBKeyBoard) — a minimal virtual keyboard that barely affects screen interactions.
+
+### English text is rewritten by the Android keyboard
+
+If the report shows correct input parameters but the app receives different text, the active Android input method may be rewriting it (common with Chinese or autocorrect keyboards).
+
+Set `imeStrategy: 'always-yadb'` to force all text input through yadb. Configurable via constructor, YAML (`android.imeStrategy`), or the `MIDSCENE_ANDROID_IME_STRATEGY` environment variable. See the [API reference](./api#androiddevice) for details.
+
+This differs from "text cleared after typing" — if text disappears after being entered correctly, check `keyboardDismissStrategy` or `autoDismissKeyboard` instead.
+
+### How do I use a custom adb path or remote adb server?
+
+Set the environment variables:
+
+```bash
+export MIDSCENE_ADB_PATH=/path/to/adb
+export MIDSCENE_ADB_REMOTE_HOST=192.168.1.100
+export MIDSCENE_ADB_REMOTE_PORT=5037
+```
+
+You can also pass `androidAdbPath`, `remoteAdbHost`, and `remoteAdbPort` via the `AndroidDevice` constructor. See the [API reference](./api#androiddevice) for the full signature.
+
 ## More
 
 - For every Agent method, check the [API reference (Common)](./api#interaction-methods).
@@ -294,52 +359,3 @@ describe('Android Settings Test', () => {
 Merged reports are stored inside `midscene_run/report` by default. Override the directory with `MIDSCENE_RUN_DIR` when running in CI.
 
 :::
-
-## FAQ
-
-### Why can't I control the device even though I've connected it?
-
-A common error is:
-
-```
-Error:
-Exception occurred while executing 'tap':
-java.lang.SecurityException: Injecting input events requires the caller (or the source of the instrumentation, if any) to have the INJECT_EVENTS permission.
-```
-
-Make sure USB debugging is enabled and the device is unlocked in developer options.
-
-<p align="center">
-  <img src="/android-usb-debug-en.png" alt="android usb debug" width="400" />
-</p>
-
-### Text input is cleared or lost after typing
-
-After entering text, Midscene automatically dismisses the keyboard by sending an **ESC key event**. Some input fields (especially inside WebView) listen for ESC, which can clear text, close popups, or navigate away.
-
-Try these solutions in order of priority:
-
-1. Set `keyboardDismissStrategy: 'back-first'` to use the Android BACK key instead of ESC.
-2. Set `autoDismissKeyboard: false` to disable auto-dismiss and let the AI Agent manage the keyboard.
-
-For full constructor signatures, see the [API reference](./api#androiddevice). With auto dismiss disabled, you can use `aiAct` to manually dismiss the keyboard, or install [ADBKeyBoard](https://github.com/senzhk/ADBKeyBoard) — a minimal virtual keyboard that barely affects screen interactions.
-
-### English text is rewritten by the Android keyboard
-
-If the report shows correct input parameters but the app receives different text, the active Android input method may be rewriting it (common with Chinese or autocorrect keyboards).
-
-Set `imeStrategy: 'always-yadb'` to force all text input through yadb. Configurable via constructor, YAML (`android.imeStrategy`), or the `MIDSCENE_ANDROID_IME_STRATEGY` environment variable. See the [API reference](./api#androiddevice) for details.
-
-This differs from "text cleared after typing" — if text disappears after being entered correctly, check `keyboardDismissStrategy` or `autoDismissKeyboard` instead.
-
-### How do I use a custom adb path or remote adb server?
-
-Set the environment variables:
-
-```bash
-export MIDSCENE_ADB_PATH=/path/to/adb
-export MIDSCENE_ADB_REMOTE_HOST=192.168.1.100
-export MIDSCENE_ADB_REMOTE_PORT=5037
-```
-
-You can also pass `androidAdbPath`, `remoteAdbHost`, and `remoteAdbPort` via the `AndroidDevice` constructor. See the [API reference](./api#androiddevice) for the full signature.
