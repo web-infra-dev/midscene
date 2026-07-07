@@ -179,12 +179,12 @@ export type DeepThinkOption = 'unset' | true | false;
 
 export interface ServiceTaskInfo {
   durationMs: number;
-  formatResponse?: string;
+  formatResponse?: unknown;
   /**
    * Adapter-extracted content used by Midscene for parsing. This is not the
    * full provider response or choices[0].message.
    */
-  rawResponse?: string;
+  rawResponse?: unknown;
   rawChoiceMessage?: unknown;
   usage?: AIUsageInfo;
   searchArea?: Rect;
@@ -997,6 +997,16 @@ export interface AgentOpt {
    * ```
    */
   createOpenAIClient?: CreateOpenAIClientFn;
+
+  /**
+   * Called once per LLM call as soon as its usage is available, with the raw
+   * {@link AIUsageInfo} (token counts, model name, intent, request id, etc.).
+   *
+   * Use this for real-time, per-spec cost observability — e.g. push each call
+   * to Langfuse without waiting for the run to finish. For aggregated totals,
+   * read `agent.metrics` instead.
+   */
+  onLLMUsage?: (usage: AIUsageInfo) => void;
 }
 
 export type TestStatus =

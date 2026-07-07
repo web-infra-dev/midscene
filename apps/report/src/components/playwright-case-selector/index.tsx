@@ -26,6 +26,7 @@ interface PlaywrightCaseSelectorProps {
   dumps?: PlaywrightTasks[];
   selected?: GroupedActionDump | null;
   onSelect?: (dump: GroupedActionDump) => void;
+  onCaseChange?: () => void;
 }
 
 const STATUS_DISPLAY_LABEL: Partial<
@@ -130,6 +131,7 @@ function PlaywrightCaseTitle(props: {
 
 export function PlaywrightCaseSelector({
   dumps,
+  onCaseChange,
 }: PlaywrightCaseSelectorProps): JSX.Element | null {
   if (!dumps || dumps.length === 0) return null;
   if (dumps.length === 1 && !dumps[0].attributes?.is_merged) return null;
@@ -249,6 +251,7 @@ export function PlaywrightCaseSelector({
 
   const handlePlaywrightTaskSelect = async (dump: PlaywrightTasks) => {
     await setGroupedDump(dump.get(), dump.attributes);
+    onCaseChange?.();
     setIsExpanded(false);
   };
 

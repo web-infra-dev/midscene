@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 describe('parseXMLExtractionResponse', () => {
   it('should parse complete XML response with all fields', () => {
     const xml = `
-<thought>According to the screenshot, I can see a user profile with name, age, and admin status</thought>
+<observation>According to the screenshot, I can see a user profile with name, age, and admin status</observation>
 <data-json>
 {
   "name": "John",
@@ -52,7 +52,7 @@ describe('parseXMLExtractionResponse', () => {
 
   it('should parse XML response with array data', () => {
     const xml = `
-<thought>I found three todo items in the list</thought>
+<observation>I found three todo items in the list</observation>
 <data-json>
 ["todo 1", "todo 2", "todo 3"]
 </data-json>
@@ -68,7 +68,7 @@ describe('parseXMLExtractionResponse', () => {
 
   it('should parse XML response with string data', () => {
     const xml = `
-<thought>The page title is "todo list"</thought>
+<observation>The page title is "todo list"</observation>
 <data-json>
 "todo list"
 </data-json>
@@ -84,7 +84,7 @@ describe('parseXMLExtractionResponse', () => {
 
   it('should parse XML response with boolean data', () => {
     const xml = `
-<thought>This is the SMS page</thought>
+<observation>This is the SMS page</observation>
 <data-json>
 { "result": true }
 </data-json>
@@ -100,7 +100,7 @@ describe('parseXMLExtractionResponse', () => {
 
   it('should parse XML response with errors', () => {
     const xml = `
-<thought>Failed to extract some data</thought>
+<observation>Failed to extract some data</observation>
 <data-json>
 {
   "name": "John"
@@ -138,10 +138,10 @@ describe('parseXMLExtractionResponse', () => {
 
   it('should handle multiline JSON in data-json', () => {
     const xml = `
-<thought>
+<observation>
   Extracting complex data structure
   from the screenshot
-</thought>
+</observation>
 <data-json>
 {
   "users": [
@@ -172,7 +172,7 @@ describe('parseXMLExtractionResponse', () => {
 
   it('should throw error when data-json is missing', () => {
     const xml = `
-<thought>Some thought</thought>
+<observation>Some thought</observation>
 <errors>[]</errors>
     `.trim();
 
@@ -183,7 +183,7 @@ describe('parseXMLExtractionResponse', () => {
 
   it('should throw error when data-json is invalid JSON', () => {
     const xml = `
-<thought>Some thought</thought>
+<observation>Some thought</observation>
 <data-json>
 {invalid json}
 </data-json>
@@ -196,7 +196,7 @@ describe('parseXMLExtractionResponse', () => {
 
   it('should throw error when data-json is markdown text instead of JSON', () => {
     const xml = `
-<thought>根据蓝色框选中的模块，提取到两个子页面：工具入口对比页、协商工具展示页，按照要求整理每个页面的信息如下。</thought>
+<observation>根据蓝色框选中的模块，提取到两个子页面：工具入口对比页、协商工具展示页，按照要求整理每个页面的信息如下。</observation>
 <data-json>
 # 页面名：工具入口（BEFORE/AFTER对比）
 # 页面描述：展示订单协商工具入口改造前后的界面对比，呈现不同阶段的订单列表页面样式，体现设计优化方向
@@ -239,7 +239,7 @@ invalid json array
 
   it('should handle case-insensitive tag matching', () => {
     const xml = `
-<THOUGHT>Case insensitive thought</THOUGHT>
+<OBSERVATION>Case insensitive thought</OBSERVATION>
 <DATA-JSON>
 {"result": "success"}
 </DATA-JSON>
@@ -253,7 +253,7 @@ invalid json array
 
   it('should parse nested objects correctly', () => {
     const xml = `
-<thought>Extracting nested data</thought>
+<observation>Extracting nested data</observation>
 <data-json>
 {
   "user": {

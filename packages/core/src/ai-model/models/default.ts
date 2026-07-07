@@ -7,5 +7,9 @@ export const defaultOpenAICompatibleAdapterConfig: ModelAdapterDefinition = {
       'reasoningEffort',
       'reasoningBudget',
     ],
+    // Users may omit modelFamily when using an OpenAI-compatible endpoint.
+    // Many models expose useful assistant output through reasoning_content, so
+    // the default adapter should still recover when content is empty.
+    useReasoningAsContentFallback: true,
   },
 };

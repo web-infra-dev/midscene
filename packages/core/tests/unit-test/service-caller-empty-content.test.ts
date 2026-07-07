@@ -73,7 +73,8 @@ describe('service-caller empty content handling', () => {
         request_id: 'req_test_123',
       });
       expect(typedError.usage?.intent).toBeUndefined();
-      expect(typedError.rawResponse).toContain('"choices"');
+      expect(typedError.rawResponse).toBe('');
+      expect(typedError.rawChoiceMessage).toEqual({ content: '' });
     }
   });
 });

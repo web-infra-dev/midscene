@@ -19,15 +19,21 @@ describe('gemini model adapter', () => {
     ).toContain('[ymin, xmin, ymax, xmax]');
   });
 
-  it('uses minimal reasoning effort for gemini when reasoning is unset', () => {
+  it('uses minimal thinking level for gemini when reasoning is unset', () => {
     const result = geminiAdapter.chatCompletion.buildChatCompletionParams({});
     expect(geminiAdapter.chatCompletion.unsupportedUserConfig).toEqual([
-      'reasoningEnabled',
       'reasoningBudget',
     ]);
     expect(result.config).toEqual({
       temperature: 0,
-      reasoning_effort: 'minimal',
+      extra_body: {
+        google: {
+          thinking_config: {
+            include_thoughts: true,
+            thinking_level: 'minimal',
+          },
+        },
+      },
     });
   });
 
@@ -46,11 +52,18 @@ describe('gemini model adapter', () => {
     expect(result?.config).toEqual({
       temperature: 0.7,
       seed: 123,
-      reasoning_effort: 'minimal',
+      extra_body: {
+        google: {
+          thinking_config: {
+            include_thoughts: true,
+            thinking_level: 'minimal',
+          },
+        },
+      },
     });
   });
 
-  it('enables thought summaries for insight intent', () => {
+  it('uses minimal thinking level for insight intent by default', () => {
     const result = geminiAdapter.chatCompletion.buildChatCompletionParams({
       intent: 'insight',
     });
@@ -60,16 +73,36 @@ describe('gemini model adapter', () => {
         google: {
           thinking_config: {
             include_thoughts: true,
+            thinking_level: 'minimal',
           },
         },
       },
-      reasoning_effort: 'minimal',
     });
   });
 
-  it('uses thinking config for gemini when reasoning effort is set', () => {
+  it('uses medium thinking level when reasoning is enabled without effort', () => {
     const result = geminiAdapter.chatCompletion.buildChatCompletionParams({
       userConfig: {
+        reasoningEnabled: true,
+      },
+    });
+    expect(result.config).toEqual({
+      temperature: 0,
+      extra_body: {
+        google: {
+          thinking_config: {
+            include_thoughts: true,
+            thinking_level: 'medium',
+          },
+        },
+      },
+    });
+  });
+
+  it('maps reasoning effort to Gemini thinking level when reasoning is enabled', () => {
+    const result = geminiAdapter.chatCompletion.buildChatCompletionParams({
+      userConfig: {
+        reasoningEnabled: true,
         reasoningEffort: 'high',
       },
     });
@@ -78,8 +111,28 @@ describe('gemini model adapter', () => {
       extra_body: {
         google: {
           thinking_config: {
-            thinking_level: 'high',
             include_thoughts: true,
+            thinking_level: 'high',
+          },
+        },
+      },
+    });
+  });
+
+  it('uses minimal thinking level and ignores effort when reasoning is disabled', () => {
+    const result = geminiAdapter.chatCompletion.buildChatCompletionParams({
+      userConfig: {
+        reasoningEnabled: false,
+        reasoningEffort: 'high',
+      },
+    });
+    expect(result.config).toEqual({
+      temperature: 0,
+      extra_body: {
+        google: {
+          thinking_config: {
+            include_thoughts: true,
+            thinking_level: 'minimal',
           },
         },
       },
@@ -98,7 +151,7 @@ describe('gemini model adapter', () => {
     });
   });
 
-  it('ignores unsupported reasoning fields for gemini', () => {
+  it('ignores reasoning budget for gemini when reasoning is enabled', () => {
     const result = geminiAdapter.chatCompletion.buildChatCompletionParams({
       userConfig: {
         reasoningEnabled: true,
@@ -107,7 +160,55 @@ describe('gemini model adapter', () => {
     });
     expect(result.config).toEqual({
       temperature: 0,
-      reasoning_effort: 'minimal',
+      extra_body: {
+        google: {
+          thinking_config: {
+            include_thoughts: true,
+            thinking_level: 'medium',
+          },
+        },
+      },
+    });
+  });
+
+  it('maps reasoning effort and ignores budget for gemini when reasoning is enabled', () => {
+    const result = geminiAdapter.chatCompletion.buildChatCompletionParams({
+      userConfig: {
+        reasoningEnabled: true,
+        reasoningEffort: 'medium',
+        reasoningBudget: 1024,
+      },
+    });
+    expect(result.config).toEqual({
+      temperature: 0,
+      extra_body: {
+        google: {
+          thinking_config: {
+            include_thoughts: true,
+            thinking_level: 'medium',
+          },
+        },
+      },
+    });
+  });
+
+  it('ignores zero reasoning budget for gemini when reasoning is enabled', () => {
+    const result = geminiAdapter.chatCompletion.buildChatCompletionParams({
+      userConfig: {
+        reasoningEnabled: true,
+        reasoningBudget: 0,
+      },
+    });
+    expect(result.config).toEqual({
+      temperature: 0,
+      extra_body: {
+        google: {
+          thinking_config: {
+            include_thoughts: true,
+            thinking_level: 'medium',
+          },
+        },
+      },
     });
   });
 

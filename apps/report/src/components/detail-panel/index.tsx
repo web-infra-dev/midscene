@@ -15,17 +15,20 @@ import type {
   ExecutionTaskPlanningLocate,
   IExecutionDump,
 } from '@midscene/core';
-import type { MarkdownAttachment } from '@midscene/core';
 import { executionToMarkdown, getTaskSearchArea } from '@midscene/core';
 import {
   Blackboard,
   Player,
   fullTimeStrWithMilliseconds,
 } from '@midscene/visualizer';
-import { Segmented, message } from 'antd';
+import { Segmented, Tooltip, message } from 'antd';
 import { useEffect, useMemo, useState } from 'react';
 import { JsonView, allExpanded } from 'react-json-view-lite';
 import 'react-json-view-lite/dist/index.css';
+import {
+  downloadMarkdownZip,
+  markdownZipDownloadTooltip,
+} from '../../utils/markdown-export';
 import OpenInPlayground from '../open-in-playground';
 import { sanitizeJsonViewData } from './json-view-data';
 import { getExecutionMarkdownView } from './markdown-view';
@@ -72,39 +75,6 @@ const jsonViewStyles = {
   quotesForFieldNames: true,
   stringifyStringValues: true,
 };
-
-async function downloadMarkdownZip(
-  markdown: string,
-  attachments: MarkdownAttachment[],
-  fileName: string,
-): Promise<void> {
-  const { zipSync, strToU8 } = await import('fflate');
-
-  const files: Record<string, Uint8Array> = {};
-  files['report.md'] = strToU8(markdown);
-
-  for (const att of attachments) {
-    if (!att.base64Data) continue;
-    const raw = att.base64Data.replace(/^data:image\/[a-zA-Z+]+;base64,/, '');
-    const binary = atob(raw);
-    const bytes = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i++) {
-      bytes[i] = binary.charCodeAt(i);
-    }
-    files[`screenshots/${att.suggestedFileName}`] = bytes;
-  }
-
-  const zipped = zipSync(files);
-  const blob = new Blob([zipped], { type: 'application/zip' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `${fileName}.zip`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-}
 
 // Helper function to recursively extract all elements from param
 const extractElementsFromParam = (param: any): any[] => {
@@ -412,18 +382,20 @@ const DetailPanel = ({
         <div className="view-switcher-actions">
           {viewType === VIEW_TYPE_MARKDOWN &&
             markdownResult?.status === 'ready' && (
-              <a
-                className="download-zip-link"
-                onClick={() =>
-                  downloadMarkdownZip(
-                    markdownResult.markdown,
-                    markdownResult.attachments,
-                    safeName || 'report',
-                  )
-                }
-              >
-                <DownloadOutlined /> Download ZIP
-              </a>
+              <Tooltip title={markdownZipDownloadTooltip}>
+                <a
+                  className="download-zip-link"
+                  onClick={() =>
+                    void downloadMarkdownZip(
+                      markdownResult.markdown,
+                      markdownResult.attachments,
+                      safeName || 'report',
+                    )
+                  }
+                >
+                  <DownloadOutlined /> Download ZIP
+                </a>
+              </Tooltip>
             )}
           {viewType === VIEW_TYPE_JSON && activeTaskJsonText && (
             <a

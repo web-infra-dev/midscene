@@ -321,7 +321,7 @@ export const generateRecordTitle = async (
       const response = await callAIWithObjectResponse<{
         title: string;
         description: string;
-      }>([prompt[0], prompt[1]], modelConfig);
+      }>([prompt[0], prompt[1]], getModelRuntime(modelConfig));
       if (response?.content) {
         return {
           title: response.content.title as string,
