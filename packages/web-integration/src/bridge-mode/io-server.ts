@@ -1,5 +1,10 @@
-import { createServer } from 'node:http';
+import {
+  type IncomingMessage,
+  type ServerResponse,
+  createServer,
+} from 'node:http';
 import { sleep } from '@midscene/core/utils';
+import { getDebug } from '@midscene/shared/logger';
 import { logMsg } from '@midscene/shared/utils';
 import { Server, type Socket as ServerSocket } from 'socket.io';
 import { io as ClientIO } from 'socket.io-client';
@@ -15,7 +20,24 @@ import {
   DefaultBridgeServerPort,
 } from './common';
 
+const debug = getDebug('web:bridge:io-server');
+
 declare const __VERSION__: string;
+
+/**
+ * Returns true if the given Origin header value is allowed to connect
+ * to the bridge server. Trusted origins are:
+ * - No Origin header (local Node.js processes like killRunningServer)
+ * - chrome-extension:// origins (the Midscene Chrome extension)
+ *
+ * Browser pages (https://evil.com, etc.) are rejected to prevent
+ * Cross-Site WebSocket Hijacking (CSWSH) attacks.
+ */
+function isTrustedOrigin(origin: string | undefined): boolean {
+  if (!origin) return true;
+  if (origin.startsWith('chrome-extension://')) return true;
+  return false;
+}
 
 export const killRunningServer = async (port?: number, host = 'localhost') => {
   try {
@@ -27,7 +49,7 @@ export const killRunningServer = async (port?: number, host = 'localhost') => {
     await sleep(300);
     await client.close();
   } catch (e) {
-    // console.error('failed to kill port', e);
+    debug('failed to kill port: %O', e);
   }
 };
 
@@ -86,8 +108,14 @@ export class BridgeServer {
             }, 2000)
           : null;
 
-      // Create HTTP server and start listening on the specified host and port
-      const httpServer = createServer();
+      // Create HTTP server — no /bridge-auth endpoint needed since we use
+      // pure Origin checking in the Socket.IO middleware below.
+      const httpServer = createServer(
+        (_req: IncomingMessage, res: ServerResponse) => {
+          res.writeHead(404);
+          res.end();
+        },
+      );
 
       // Set up HTTP server event listeners FIRST
       httpServer.once('listening', () => {
@@ -117,14 +145,23 @@ export class BridgeServer {
       });
 
       this.io.use((socket, next) => {
-        // Always allow kill signal connections through
-        if (socket.handshake.url.includes(BridgeSignalKill)) {
-          return next();
+        // Reject connections from untrusted browser origins to prevent
+        // Cross-Site WebSocket Hijacking (CSWSH) and unauthorized kill signals.
+        // The browser automatically sets the Origin header on WebSocket
+        // handshakes, and JavaScript cannot override it.
+        const origin = socket.handshake.headers.origin;
+        if (!isTrustedOrigin(origin)) {
+          debug('connection rejected: untrusted origin=%s', origin);
+          return next(new Error('origin not allowed'));
         }
+
         // Allow new connections to replace old ones (reconnection after
         // extension Stop→Start). If the old socket is already disconnected
         // or unresponsive, accept the new connection immediately.
-        if (this.socket?.connected) {
+        if (
+          socket.handshake.url.includes(BridgeSignalKill) === false &&
+          this.socket?.connected
+        ) {
           return next(new Error('server already connected by another client'));
         }
         next();
