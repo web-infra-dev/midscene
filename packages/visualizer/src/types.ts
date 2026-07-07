@@ -425,9 +425,21 @@ export interface UniversalPlaygroundConfig {
   enableScrollToBottom?: boolean;
   serverMode?: boolean;
   showEnvConfigReminder?: boolean;
+  /**
+   * Whether automatic SDK config sync failures should show a toast.
+   * Defaults to `true`. Embedded hosts that already handle config application
+   * can set this to `false` to avoid duplicate background warnings.
+   */
+  suppressConfigErrorToast?: boolean;
   deviceType?: DeviceType;
   executionUx?: ExecutionUxConfig;
   promptInputChrome?: PromptInputChromeConfig;
+  /**
+   * When true, render only the execution/conversation area and omit the
+   * prompt composer. Hosts can use this for replay views that execute an
+   * externally supplied request instead of accepting free-form input.
+   */
+  hidePromptInput?: boolean;
   externalRunRequest?: ExternalRunRequest | null;
   /**
    * Whether to render the "clear conversation" button that appears above the
@@ -448,6 +460,27 @@ export interface UniversalPlaygroundConfig {
    * state, but compact hosts can replace its default text block visually.
    */
   emptyState?: ReactNode;
+  /**
+   * Optional host-provided header rendered above the execution message list.
+   * Compact hosts can use this to align the execution timeline chrome with
+   * surrounding panels without changing the execution flow itself.
+   */
+  timelineHeader?: ReactNode;
+  /**
+   * Optional host-provided wrapper around the execution message area.
+   * This lets embedded hosts reuse their own timeline panel chrome while
+   * keeping the playground execution flow unchanged.
+   */
+  timelineWrapper?: (
+    content: ReactNode,
+    state: { empty: boolean },
+  ) => ReactNode;
+  /**
+   * Whether to render the separator inserted after each execution session.
+   * Defaults to `true`. Compact replay embeddings can set this to `false`
+   * when the host panel already provides enough session context.
+   */
+  showSessionSeparator?: boolean;
   /**
    * Opt-in controls for how consecutive progress items render in the
    * conversation log. Defaults flatten every progress step inline (no
@@ -506,6 +539,11 @@ export interface PromptInputChromeConfig {
     history?: string;
     settings?: string;
   };
+  /**
+   * Controls where the run configuration trigger is rendered.
+   * Defaults to `toolbar` for the classic prompt chrome.
+   */
+  settingsPlacement?: 'toolbar' | 'input' | 'hidden';
   inputActions?: ReactNode;
 }
 

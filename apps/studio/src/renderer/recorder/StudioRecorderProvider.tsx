@@ -1827,6 +1827,39 @@ export function StudioRecorderProvider({ children }: PropsWithChildren) {
     [generateSessionCode],
   );
 
+  const deleteSessionCode = useCallback(
+    async (sessionId: string, type: StudioRecorderCodeType) => {
+      await flushPendingRecorderInput(sessionId);
+      const snapshot = stateRef.current;
+      const session = snapshot.sessions.find((item) => item.id === sessionId);
+      if (!session?.generatedCode?.[type]) {
+        return;
+      }
+
+      const generatedCode = { ...session.generatedCode };
+      delete generatedCode[type];
+      const hasRemainingCode = Boolean(
+        generatedCode.markdown ||
+          generatedCode.yaml ||
+          generatedCode.playwright,
+      );
+      const updatedSession: StudioRecordingSession = {
+        ...session,
+        generatedCode: hasRemainingCode
+          ? {
+              ...generatedCode,
+              updatedAt: Date.now(),
+            }
+          : undefined,
+        updatedAt: Date.now(),
+      };
+      stateRef.current = upsertSessionInState(snapshot, updatedSession);
+      dispatch({ type: 'upsert-session', session: updatedSession });
+      await upsertStudioRecorderSession(updatedSession);
+    },
+    [flushPendingRecorderInput],
+  );
+
   const recordPageEvent = useCallback(
     async (event: PlaygroundPageRecordedEvent) => {
       const snapshot = stateRef.current;
@@ -2213,6 +2246,7 @@ export function StudioRecorderProvider({ children }: PropsWithChildren) {
       selectSession,
       generateSessionYaml,
       generateSessionCode,
+      deleteSessionCode,
       exportSessionJson,
       exportSessionYaml,
       exportSessionCode,
@@ -2223,6 +2257,7 @@ export function StudioRecorderProvider({ children }: PropsWithChildren) {
       currentSession,
       currentTarget,
       deleteSession,
+      deleteSessionCode,
       exportAllZip,
       exportSessionJson,
       exportSessionYaml,

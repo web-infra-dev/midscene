@@ -184,6 +184,24 @@ describe('Sidebar device list', () => {
     });
   });
 
+  it('matches the Figma platform row structure for sidebar headers', () => {
+    const html = renderToStaticMarkup(
+      createElement(
+        StudioPlaygroundContext.Provider,
+        { value: createReadyContextValue() },
+        createElement(Sidebar, {
+          activeView: 'overview',
+          onSelectDevice: () => undefined,
+          onSelectOverview: () => undefined,
+        }),
+      ),
+    );
+
+    expect(html.match(/justify-between rounded-\[8px\]/g)).toHaveLength(5);
+    expect(html.match(/size-\[22px\]/g)).toHaveLength(5);
+    expect(html.match(/text-\[#474848\]/g)).toHaveLength(10);
+  });
+
   it('does not disconnect when clicking the active Web session in the sidebar', async () => {
     const { context, createSession, destroySession, setFieldsValue } =
       createConnectedWebContextValue();

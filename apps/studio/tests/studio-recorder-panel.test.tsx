@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { act, cloneElement, createElement, isValidElement } from 'react';
-import type { ReactElement, ReactNode } from 'react';
+import type { ComponentProps, ReactElement, ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -73,7 +73,9 @@ vi.mock('../src/renderer/recorder/useStudioRecorder', () => ({
 const { StudioRecorderPanel } = await import(
   '../src/renderer/components/Recorder/StudioRecorderPanel'
 );
-type StudioRecorderPanelProps = Parameters<typeof StudioRecorderPanel>[0];
+const { StudioReplayPanel } = await import(
+  '../src/renderer/components/Recorder/StudioReplayPanel'
+);
 
 function createRecorderMock({
   currentSession,
@@ -128,18 +130,50 @@ function createRecorderMock({
   };
 }
 
-async function renderRecorderPanel(props?: StudioRecorderPanelProps) {
+async function renderRecorderPanel(
+  props: ComponentProps<typeof StudioRecorderPanel> = {},
+) {
+  const container = document.createElement('div');
+  document.body.appendChild(container);
+  const root = createRoot(container);
+
+  await act(async () => {
+    root.render(<StudioRecorderPanel {...props} />);
+  });
+
+  return { container, root };
+}
+
+async function renderReplayPanel({
+  activeSessionId = null,
+  onDeleteSession,
+  onDownloadSession,
+  onReplaySession = vi.fn(),
+  sessions = createRecorderMock().state.sessions,
+}: {
+  activeSessionId?: string | null;
+  onDeleteSession?: ReturnType<typeof vi.fn>;
+  onDownloadSession?: ReturnType<typeof vi.fn>;
+  onReplaySession?: ReturnType<typeof vi.fn>;
+  sessions?: any[];
+} = {}) {
   const container = document.createElement('div');
   document.body.appendChild(container);
   const root = createRoot(container);
 
   await act(async () => {
     root.render(
-      props ? <StudioRecorderPanel {...props} /> : <StudioRecorderPanel />,
+      <StudioReplayPanel
+        activeSessionId={activeSessionId}
+        onDeleteSession={onDeleteSession}
+        onDownloadSession={onDownloadSession}
+        onReplaySession={onReplaySession}
+        sessions={sessions}
+      />,
     );
   });
 
-  return { container, root };
+  return { container, onReplaySession, root };
 }
 
 async function unmount(root: ReturnType<typeof createRoot>) {
@@ -154,7 +188,7 @@ describe('StudioRecorderPanel', () => {
     vi.restoreAllMocks();
   });
 
-  it('starts on an empty timeline until history is opened', async () => {
+  it('starts on an empty timeline without recorder history controls', async () => {
     mocks.recorder = createRecorderMock();
     mocks.playground = {
       controller: {
@@ -168,174 +202,157 @@ describe('StudioRecorderPanel', () => {
 
     const { container, root } = await renderRecorderPanel();
 
+    expect(container.textContent).toContain('No tasks available');
     expect(container.textContent).toContain(
-      'The recording task has not yet begun.',
+      'The recording progress will be displayed here.',
     );
     expect(container.textContent).not.toContain('Existing recording');
-
-    const historyButton = container.querySelector(
-      'button[aria-label="Recording history"]',
-    );
-    await act(async () => {
-      historyButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
-
-    expect(document.body.textContent).toContain('Existing recording');
-
-    const actionsButton = document.body.querySelector(
-      'button[aria-label="More actions for Existing recording"]',
-    );
-    await act(async () => {
-      actionsButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
-
-    const actionsMenu = document.body.querySelector(
-      '.studio-recorder-history-actions-menu',
-    );
-    expect(actionsMenu?.textContent).toContain('download');
-    expect(actionsMenu?.textContent).toContain('edit');
-    expect(actionsMenu?.textContent).toContain('delete');
-    expect(actionsMenu?.textContent).not.toContain('replay');
-    const downloadButton = Array.from(
-      actionsMenu?.querySelectorAll('button') ?? [],
-    ).find((button) => button.textContent?.includes('download'));
-    expect((downloadButton as HTMLButtonElement | undefined)?.disabled).toBe(
-      true,
-    );
-
-    await act(async () => {
-      historyButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
-
-    expect(document.body.textContent).not.toContain('Existing recording');
-
-    await unmount(root);
-  });
-
-  it('edits the recording name from history item actions', async () => {
-    mocks.recorder = createRecorderMock();
-    mocks.playground = {
-      controller: {
-        state: {
-          serverOnline: true,
-          sessionViewState: { connected: true },
-        },
-      },
-      phase: 'ready',
-    };
-
-    const { container, root } = await renderRecorderPanel();
-
-    const historyButton = container.querySelector(
-      'button[aria-label="Recording history"]',
-    );
-    await act(async () => {
-      historyButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
-
-    expect(document.body.textContent).toContain('Existing recording');
-
-    const actionsButton = document.body.querySelector(
-      'button[aria-label="More actions for Existing recording"]',
-    );
-    await act(async () => {
-      actionsButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
-
-    const editButton = Array.from(
-      document.body.querySelectorAll(
-        '.studio-recorder-history-actions-menu button',
-      ),
-    ).find((button) => button.textContent?.includes('edit'));
-
-    expect(editButton).toBeTruthy();
-
-    await act(async () => {
-      editButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
-
-    const input = document.body.querySelector<HTMLInputElement>(
-      'input[aria-label="Recording name"]',
-    );
-    expect(input).toBeTruthy();
-    expect(input?.value).toBe('Existing recording');
-
-    await act(async () => {
-      const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
-        window.HTMLInputElement.prototype,
-        'value',
-      )?.set;
-      nativeInputValueSetter?.call(input, 'Renamed recording');
-      input?.dispatchEvent(
-        new InputEvent('input', { bubbles: true, inputType: 'insertText' }),
-      );
-    });
-
-    await act(async () => {
-      input?.dispatchEvent(
-        new KeyboardEvent('keydown', { bubbles: true, key: 'Enter' }),
-      );
-    });
-
-    expect(mocks.recorder.renameSession).toHaveBeenCalledWith(
-      'session-1',
-      'Renamed recording',
-    );
-
-    await unmount(root);
-  });
-
-  it('closes recording history item actions when the history list scrolls', async () => {
-    mocks.recorder = createRecorderMock({
-      sessionOverrides: {
-        generatedCode: {
-          markdown: '# Existing recording\n\naiAction(...)',
-        },
-      },
-    });
-    mocks.playground = {
-      controller: {
-        state: {
-          serverOnline: true,
-          sessionViewState: { connected: true },
-        },
-      },
-      phase: 'ready',
-    };
-
-    const { container, root } = await renderRecorderPanel();
-
-    const historyButton = container.querySelector(
-      'button[aria-label="Recording history"]',
-    );
-    await act(async () => {
-      historyButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
-
-    const actionsButton = document.body.querySelector(
-      'button[aria-label="More actions for Existing recording"]',
-    );
-    await act(async () => {
-      actionsButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
-
     expect(
-      document.body.querySelector('.studio-recorder-history-actions-menu'),
-    ).not.toBeNull();
-
-    const historyContent = document.body.querySelector('.history-content');
-    await act(async () => {
-      historyContent?.dispatchEvent(new Event('scroll', { bubbles: true }));
-    });
-
-    expect(
-      document.body.querySelector('.studio-recorder-history-actions-menu'),
+      container.querySelector('button[aria-label="Recording history"]'),
     ).toBeNull();
 
     await unmount(root);
   });
 
-  it('shows all recording events and can expand the timeline height', async () => {
+  it('renders saved recordings in the replay panel', async () => {
+    const session = createRecorderMock().state.sessions[0];
+    const onReplaySession = vi.fn();
+    const { container, root } = await renderReplayPanel({
+      onReplaySession,
+      sessions: [session],
+    });
+
+    expect(container.textContent).toContain('Replay');
+    expect(container.textContent).toContain('Existing recording');
+    expect(container.textContent).not.toContain('No recordings yet');
+
+    const replayButton = container.querySelector(
+      '[role="button"][title="Existing recording"]',
+    );
+    await act(async () => {
+      replayButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+
+    expect(onReplaySession).toHaveBeenCalledWith(session);
+
+    await unmount(root);
+  });
+
+  it('renders the replay empty state from the interaction spec', async () => {
+    const { container, root } = await renderReplayPanel({
+      sessions: [],
+    });
+
+    expect(container.textContent).toContain(
+      'No recording history available yet',
+    );
+    expect(container.textContent).toContain(
+      'After the recording task is completed, a playback will be generated here.',
+    );
+    expect(container.textContent).not.toContain('No recordings yet');
+
+    await unmount(root);
+  });
+
+  it('marks the running replay session in the replay panel', async () => {
+    const session = createRecorderMock().state.sessions[0];
+    const { container, root } = await renderReplayPanel({
+      activeSessionId: session.id,
+      sessions: [session],
+    });
+
+    expect(
+      container.querySelector('.studio-replay-panel-item-active'),
+    ).not.toBeNull();
+    expect(
+      container.querySelector('.studio-replay-panel-loading'),
+    ).not.toBeNull();
+
+    await unmount(root);
+  });
+
+  it('renders fixed replay history item actions for download and delete', async () => {
+    const session = createRecorderMock().state.sessions[0];
+    const onDeleteSession = vi.fn();
+    const onDownloadSession = vi.fn();
+    const { container, root } = await renderReplayPanel({
+      onDeleteSession,
+      onDownloadSession,
+      sessions: [session],
+    });
+
+    const moreButton = container.querySelector(
+      `button[aria-label="More actions for ${session.name}"]`,
+    );
+    expect(moreButton).not.toBeNull();
+
+    await act(async () => {
+      moreButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+
+    const downloadButton = Array.from(
+      document.body.querySelectorAll('button'),
+    ).find((button) => button.textContent?.includes('Download'));
+    expect(downloadButton).not.toBeNull();
+    const deleteButton = Array.from(
+      document.body.querySelectorAll('button'),
+    ).find((button) => button.textContent?.includes('Delete'));
+    expect(deleteButton).not.toBeNull();
+
+    await act(async () => {
+      downloadButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+
+    expect(onDownloadSession).toHaveBeenCalledWith(session);
+
+    await act(async () => {
+      moreButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    const reopenedDeleteButton = Array.from(
+      document.body.querySelectorAll('button'),
+    ).find((button) => button.textContent?.includes('Delete'));
+    await act(async () => {
+      reopenedDeleteButton?.dispatchEvent(
+        new MouseEvent('click', { bubbles: true }),
+      );
+    });
+
+    expect(onDeleteSession).toHaveBeenCalledWith(session);
+
+    await unmount(root);
+  });
+
+  it('closes replay history actions when clicking outside', async () => {
+    const session = createRecorderMock().state.sessions[0];
+    const { container, root } = await renderReplayPanel({
+      onDeleteSession: vi.fn(),
+      onDownloadSession: vi.fn(),
+      sessions: [session],
+    });
+
+    const moreButton = container.querySelector(
+      `button[aria-label="More actions for ${session.name}"]`,
+    );
+
+    await act(async () => {
+      moreButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+
+    expect(document.body.textContent).toContain('Download');
+
+    await act(async () => {
+      document.body.dispatchEvent(
+        new MouseEvent('mousedown', { bubbles: true }),
+      );
+    });
+
+    expect(document.body.textContent).not.toContain('Download');
+    expect(document.body.textContent).not.toContain('Delete');
+
+    await unmount(root);
+  });
+
+  it('shows all recording events without a show more gate', async () => {
     const currentSession = {
       createdAt: Date.now(),
       description: '',
@@ -387,31 +404,20 @@ describe('StudioRecorderPanel', () => {
 
     const { container, root } = await renderRecorderPanel();
 
-    expect(container.textContent).toContain('Record Timeline');
+    expect(container.textContent).toContain('Timeline');
     expect(container.textContent).toContain('Booking.com app icon');
     expect(container.textContent).toContain(
       'destination input field containing Beijing',
     );
     expect(container.textContent).toContain('Click - Hangzhou');
-    expect(container.textContent).toContain('Show more');
-
-    const showMoreButton = container.querySelector(
-      '.studio-recorder-floating-show-more',
-    );
-    await act(async () => {
-      showMoreButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
-
-    expect(container.textContent).toContain('Hide more');
-    expect(container.textContent).toContain('Outputs');
-    expect(
-      container.querySelector('.studio-recorder-floating-card-expanded'),
-    ).not.toBeNull();
+    expect(container.textContent).not.toContain('Show more');
+    expect(container.textContent).not.toContain('Hide more');
+    expect(container.textContent).not.toContain('Outputs');
 
     await unmount(root);
   });
 
-  it('shows the timeline toggle even when there is only one event', async () => {
+  it('collapses and expands the timeline from the title arrow', async () => {
     const currentSession = {
       createdAt: Date.now(),
       description: '',
@@ -451,32 +457,41 @@ describe('StudioRecorderPanel', () => {
 
     const { container, root } = await renderRecorderPanel();
 
-    const showMoreButton = container.querySelector(
-      'button[aria-label="Expand record timeline"]',
+    const timelineToggle = container.querySelector<HTMLButtonElement>(
+      'button[aria-label="Collapse timeline panel"]',
     );
-    expect(showMoreButton).not.toBeNull();
-    expect(container.textContent).toContain('Show more');
+    expect(timelineToggle).not.toBeNull();
+    expect(timelineToggle?.getAttribute('aria-expanded')).toBe('true');
+    expect(container.textContent).toContain('New chat button');
 
     await act(async () => {
-      showMoreButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      timelineToggle?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
 
-    expect(container.textContent).toContain('Hide more');
+    const expandedToggle = container.querySelector<HTMLButtonElement>(
+      'button[aria-label="Expand timeline panel"]',
+    );
+    expect(expandedToggle).not.toBeNull();
+    expect(expandedToggle?.getAttribute('aria-expanded')).toBe('false');
     expect(
-      container.querySelector('.studio-recorder-floating-card-expanded'),
+      container.querySelector('.studio-timeline-panel-collapsed'),
+    ).not.toBeNull();
+    expect(
+      container.querySelector('.studio-recorder-floating-main-collapsed'),
     ).not.toBeNull();
 
-    const hideMoreButton = container.querySelector(
-      'button[aria-label="Collapse record timeline"]',
-    );
     await act(async () => {
-      hideMoreButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      expandedToggle?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
 
-    expect(container.textContent).toContain('Show more');
     expect(
-      container.querySelector('.studio-recorder-floating-card-expanded'),
-    ).toBeNull();
+      container
+        .querySelector<HTMLButtonElement>(
+          'button[aria-label="Collapse timeline panel"]',
+        )
+        ?.getAttribute('aria-expanded'),
+    ).toBe('true');
+    expect(container.textContent).toContain('New chat button');
 
     await unmount(root);
   });
@@ -514,10 +529,8 @@ describe('StudioRecorderPanel', () => {
 
     const { container, root } = await renderRecorderPanel();
 
-    expect(container.textContent).toContain('Record Timeline');
-    expect(container.textContent).not.toContain(
-      'The recording task has not yet begun.',
-    );
+    expect(container.textContent).toContain('Timeline');
+    expect(container.textContent).not.toContain('No tasks available');
 
     await unmount(root);
   });
@@ -562,29 +575,28 @@ describe('StudioRecorderPanel', () => {
     const { container, root } = await renderRecorderPanel();
 
     const collapseButton = container.querySelector(
-      'button[aria-label="Collapse recorder panel"]',
+      'button[aria-label="Collapse timeline panel"]',
     );
     await act(async () => {
       collapseButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
 
     expect(
-      container.querySelector('.studio-recorder-floating-card-collapsed'),
+      container.querySelector('.studio-timeline-panel-collapsed'),
     ).not.toBeNull();
-    expect(container.textContent).toContain('Record and replay');
+    expect(container.textContent).toContain('Record');
     expect(
       container.querySelector(
         '.studio-recorder-floating-main-collapsed[aria-hidden="true"]',
       ),
     ).not.toBeNull();
+    expect(container.textContent).not.toContain('Outputs');
     expect(
-      container.querySelector(
-        '.studio-recorder-floating-outputs-hidden[aria-hidden="true"]',
-      ),
-    ).not.toBeNull();
+      container.querySelector('.studio-timeline-panel-action-icon'),
+    ).toBeNull();
     expect(
       container.querySelector('.studio-recorder-floating-status-running'),
-    ).not.toBeNull();
+    ).toBeNull();
 
     await unmount(root);
   });
@@ -604,39 +616,53 @@ describe('StudioRecorderPanel', () => {
     const { container, root } = await renderRecorderPanel();
 
     const collapseButton = container.querySelector(
-      'button[aria-label="Collapse recorder panel"]',
+      'button[aria-label="Collapse timeline panel"]',
     );
     await act(async () => {
       collapseButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
 
     expect(
-      container.querySelector('.studio-recorder-floating-card-collapsed'),
+      container.querySelector('.studio-timeline-panel-collapsed'),
     ).not.toBeNull();
     expect(
       container.querySelector('.studio-recorder-floating-status-running'),
     ).toBeNull();
-
-    const historyButton = container.querySelector(
-      'button[aria-label="Recording history"]',
-    );
-    await act(async () => {
-      historyButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
-
-    expect(document.body.textContent).toContain('Existing recording');
+    expect(
+      container.querySelector('button[aria-label="Recording history"]'),
+    ).toBeNull();
 
     await unmount(root);
   });
 
-  it('uses the current recording name for the generated Markdown output label', async () => {
-    mocks.recorder = createRecorderMock({
-      sessionOverrides: {
-        generatedCode: {
-          markdown: '# Search for Hotels in Hangzhou\n\naiAction(...)',
+  it('keeps generated Markdown out of the recorder footer', async () => {
+    const currentSession = {
+      createdAt: Date.now(),
+      description: '',
+      events: [
+        {
+          actionSummary: 'Click - destination input field containing Beijing',
+          hashId: 'event-1',
+          type: 'click',
         },
-        name: 'Renamed recording',
+      ],
+      generatedCode: {
+        markdown: '# Search for Hotels in Hangzhou\n\naiAction(...)',
       },
+      id: 'session-1',
+      name: 'Renamed recording',
+      status: 'recording',
+      target: {
+        label: 'Android Device',
+        platformId: 'android',
+        values: {},
+      },
+      updatedAt: Date.now(),
+    };
+    mocks.recorder = createRecorderMock({
+      currentSession,
+      isRecording: true,
+      sessionOverrides: currentSession,
     });
     mocks.playground = {
       controller: {
@@ -650,54 +676,21 @@ describe('StudioRecorderPanel', () => {
 
     const { container, root } = await renderRecorderPanel();
 
-    const historyButton = container.querySelector(
-      'button[aria-label="Recording history"]',
-    );
-    await act(async () => {
-      historyButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
-    const actionsButton = document.body.querySelector(
-      'button[aria-label="More actions for Renamed recording"]',
-    );
-    await act(async () => {
-      actionsButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
-    const downloadButton = Array.from(
-      document.body.querySelectorAll(
-        '.studio-recorder-history-actions-menu button',
-      ),
-    ).find((button) => button.textContent?.includes('download'));
-    expect((downloadButton as HTMLButtonElement | undefined)?.disabled).toBe(
-      false,
-    );
-
-    const sessionCard = document.body.querySelector('.history-item');
-    await act(async () => {
-      sessionCard?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
-
-    expect(container.textContent).toContain('Renamed recording');
+    expect(container.textContent).not.toContain('Renamed recording');
     expect(container.textContent).not.toContain(
       'Search for Hotels in Hangzhou',
     );
+    expect(container.textContent).not.toContain('Outputs');
     const downloadOutputButton = container.querySelector(
       'button[aria-label="Download Markdown output"]',
     );
-    expect(downloadOutputButton).not.toBeNull();
-    await act(async () => {
-      downloadOutputButton?.dispatchEvent(
-        new MouseEvent('click', { bubbles: true }),
-      );
-    });
-    expect(mocks.recorder.exportSessionCode).toHaveBeenCalledWith(
-      'session-1',
-      'markdown',
-    );
+    expect(downloadOutputButton).toBeNull();
+    expect(mocks.recorder.exportSessionCode).not.toHaveBeenCalled();
 
     await unmount(root);
   });
 
-  it('shows Markdown generation immediately after stopping recording', async () => {
+  it('waits for an explicit action before generating Markdown after stopping recording', async () => {
     let resolveStopRecording: (() => void) | undefined;
     const stopRecordingPromise = new Promise<void>((resolve) => {
       resolveStopRecording = resolve;
@@ -740,7 +733,8 @@ describe('StudioRecorderPanel', () => {
       phase: 'ready',
     };
 
-    const { container, root } = await renderRecorderPanel();
+    const onShowMarkdown = vi.fn();
+    const { container, root } = await renderRecorderPanel({ onShowMarkdown });
 
     const stopButton = container.querySelector(
       'button[aria-label="Stop recording"]',
@@ -751,8 +745,8 @@ describe('StudioRecorderPanel', () => {
 
     expect(mocks.recorder.stopRecording).toHaveBeenCalled();
     expect(mocks.recorder.generateSessionCode).not.toHaveBeenCalled();
-    expect(container.textContent).toContain('Generating markdown...');
-    expect(container.textContent).not.toContain('No outputs yet');
+    expect(container.textContent).not.toContain('Generating markdown...');
+    expect(container.textContent).not.toContain('Generate natural language');
     const stoppingButton = container.querySelector(
       'button[aria-label="Stopping recording"]',
     );
@@ -760,7 +754,7 @@ describe('StudioRecorderPanel', () => {
     expect((stoppingButton as HTMLButtonElement | null)?.disabled).toBe(true);
     expect(
       stoppingButton?.classList.contains(
-        'studio-recorder-floating-record-button-active',
+        'studio-recorder-floating-start-button-active',
       ),
     ).toBe(false);
 
@@ -769,17 +763,77 @@ describe('StudioRecorderPanel', () => {
       await stopRecordingPromise;
     });
 
+    mocks.recorder.state.isRecording = false;
+    mocks.recorder.currentSession = null;
+    mocks.recorder.state.sessions = [
+      {
+        ...currentSession,
+        status: 'completed',
+      },
+    ];
+
+    await act(async () => {
+      root.render(<StudioRecorderPanel onShowMarkdown={onShowMarkdown} />);
+    });
+
+    const generateButton = container.querySelector(
+      'button[aria-label="Generate natural language"]',
+    );
+    expect(generateButton).not.toBeNull();
+    expect(mocks.recorder.generateSessionCode).not.toHaveBeenCalled();
+
+    await act(async () => {
+      generateButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      await Promise.resolve();
+    });
+
+    expect(mocks.recorder.generateSessionCode).toHaveBeenCalledWith(
+      'session-recording',
+      expect.objectContaining({ type: 'markdown' }),
+    );
+    expect(onShowMarkdown).toHaveBeenCalledWith(
+      expect.objectContaining({
+        markdown: '# Generated',
+        onDelete: expect.any(Function),
+        onDownload: expect.any(Function),
+        title: 'Recording now',
+      }),
+    );
+    expect(
+      container.querySelector('button[aria-label="Generate natural language"]'),
+    ).not.toBeNull();
+
     await unmount(root);
   });
 
-  it('replays generated Markdown output through the recorder panel action', async () => {
-    const onReplayMarkdown = vi.fn(async () => undefined);
-    mocks.recorder = createRecorderMock({
-      sessionOverrides: {
-        generatedCode: {
-          markdown: '# Search for Hotels in Hangzhou\n\naiAction(...)',
+  it('keeps replay actions out of the recorder output controls', async () => {
+    const currentSession = {
+      createdAt: Date.now(),
+      description: '',
+      events: [
+        {
+          actionSummary: 'Click - destination input field containing Beijing',
+          hashId: 'event-1',
+          type: 'click',
         },
+      ],
+      generatedCode: {
+        markdown: '# Search for Hotels in Hangzhou\n\naiAction(...)',
       },
+      id: 'session-1',
+      name: 'Existing recording',
+      status: 'recording',
+      target: {
+        label: 'Android Device',
+        platformId: 'android',
+        values: {},
+      },
+      updatedAt: Date.now(),
+    };
+    mocks.recorder = createRecorderMock({
+      currentSession,
+      isRecording: true,
+      sessionOverrides: currentSession,
     });
     mocks.playground = {
       controller: {
@@ -791,31 +845,16 @@ describe('StudioRecorderPanel', () => {
       phase: 'ready',
     };
 
-    const { container, root } = await renderRecorderPanel({
-      onReplayMarkdown,
-    });
-
-    const historyButton = container.querySelector(
-      'button[aria-label="Recording history"]',
-    );
-    await act(async () => {
-      historyButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
-    const sessionCard = document.body.querySelector('.history-item');
-    await act(async () => {
-      sessionCard?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
+    const { container, root } = await renderRecorderPanel();
 
     const replayButton = container.querySelector(
       'button[aria-label="Replay Markdown output"]',
     );
-    await act(async () => {
-      replayButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
-
-    expect(onReplayMarkdown).toHaveBeenCalledWith(
-      expect.objectContaining({ id: 'session-1' }),
+    const downloadButton = container.querySelector(
+      'button[aria-label="Download Markdown output"]',
     );
+    expect(replayButton).toBeNull();
+    expect(downloadButton).toBeNull();
 
     await unmount(root);
   });

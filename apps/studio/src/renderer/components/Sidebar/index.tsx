@@ -47,18 +47,20 @@ function SectionHeader({
   label: string;
 }) {
   return (
-    <div className="mb-[2px] flex h-8 w-full items-center gap-[6px] px-[12px] text-left">
-      {iconSrc ? (
-        <MaskedIcon
-          className="h-4 w-4 shrink-0 text-text-secondary"
-          src={iconSrc}
-        />
-      ) : (
-        <div className="h-4 w-4 shrink-0" />
-      )}
-      <span className="flex-1 overflow-hidden whitespace-nowrap font-sans text-[13px] font-medium leading-[22px] text-text-secondary">
-        {label}
-      </span>
+    <div className="mb-[2px] flex h-8 w-full items-center justify-between rounded-[8px] px-[12px] py-[5px] text-left">
+      <div className="flex min-w-0 items-center gap-[6px]">
+        <span className="flex size-[22px] shrink-0 items-center justify-center rounded-full bg-[#ECEEEE] text-[#474848] dark:bg-white/[0.12] dark:text-text-secondary">
+          {iconSrc ? (
+            <MaskedIcon className="size-4" src={iconSrc} />
+          ) : (
+            <span className="size-4" />
+          )}
+        </span>
+        <span className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap font-sans text-[13px] font-medium leading-[22px] text-[#474848] dark:text-text-secondary">
+          {label}
+        </span>
+      </div>
+      <span className="size-4 shrink-0" aria-hidden="true" />
     </div>
   );
 }

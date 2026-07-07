@@ -991,6 +991,7 @@ class PlaygroundServer {
 
   // Track current running task
   private currentTaskId: string | null = null;
+  private taskAbortControllers: Record<string, AbortController> = {};
 
   // Flag to pause MJPEG polling during agent recreation or task execution
   private _agentReady = true;
@@ -2762,9 +2763,12 @@ class PlaygroundServer {
       }
 
       // Lock this task
+      let abortController: AbortController | null = null;
       if (requestId) {
         this.currentTaskId = requestId;
         this.taskExecutionDumps[requestId] = null;
+        abortController = new AbortController();
+        this.taskAbortControllers[requestId] = abortController;
 
         // Use onDumpUpdate to receive and store executionDump directly
         agent.onDumpUpdate = (_dump: string, executionDump?: ExecutionDump) => {
@@ -2805,10 +2809,12 @@ class PlaygroundServer {
         };
 
         response.result = await executeAction(agent, type, actionSpace, value, {
+          requestId,
           deepLocate,
           deepThink,
           screenshotIncluded,
           domIncluded,
+          abortSignal: abortController?.signal,
           deviceOptions,
           reportDisplay,
         });
@@ -2862,6 +2868,7 @@ class PlaygroundServer {
       // Clean up task execution dumps and unlock after execution completes
       if (requestId) {
         delete this.taskExecutionDumps[requestId];
+        delete this.taskAbortControllers[requestId];
         // Release the lock
         if (this.currentTaskId === requestId) {
           this.currentTaskId = null;
@@ -2914,6 +2921,11 @@ class PlaygroundServer {
             console.warn('Failed to get execution data before cancel:', error);
           }
 
+          const abortController = this.taskAbortControllers[requestId];
+          abortController?.abort(
+            new Error(`Task cancelled by user: ${requestId}`),
+          );
+
           // Destroy and recreate agent to cancel the current task,
           // while keeping the live preview stream alive so the user
           // doesn't see a 3–5s blackout / page reload when they hit
@@ -2927,6 +2939,7 @@ class PlaygroundServer {
 
           // Clean up
           delete this.taskExecutionDumps[requestId];
+          delete this.taskAbortControllers[requestId];
           this.currentTaskId = null;
 
           res.json({

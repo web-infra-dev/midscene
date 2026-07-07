@@ -13,6 +13,7 @@ import {
   type ChooseReplayFileResult,
   type DiscoverDevicesRequest,
   IPC_CHANNELS,
+  type OpenImagePreviewRequest,
   type PrepareRecorderMarkdownReplayRequest,
   type WriteFileRequest,
   type WriteReportFileRequest,
@@ -195,6 +196,24 @@ const ensureFileExtensionFromFilters = (
     return filePath;
   }
   return `${filePath}.${firstExtension.replace(/^\./, '')}`;
+};
+
+const sanitizeImagePreviewFileName = (fileName?: string) => {
+  const baseName = path.basename(fileName?.trim() || 'screenshot.png');
+  const withoutUnsafeChars = baseName.replace(/[^a-zA-Z0-9._-]/g, '_');
+  const withFallback = withoutUnsafeChars || 'screenshot.png';
+  return path.extname(withFallback) ? withFallback : `${withFallback}.png`;
+};
+
+const decodeImagePreviewData = (data: string) => {
+  if (typeof data !== 'string' || !data.trim()) {
+    throw new Error('openImagePreview: image data is required');
+  }
+  const trimmed = data.trim();
+  const dataUrlMatch = /^data:image\/(?:png|jpeg|jpg|webp);base64,(.+)$/i.exec(
+    trimmed,
+  );
+  return Buffer.from(dataUrlMatch?.[1] ?? trimmed, 'base64');
 };
 
 const MARKDOWN_REPLAY_EXTENSIONS = new Set(['.md', '.markdown']);
@@ -441,6 +460,23 @@ const registerIpcHandlers = () => {
   ipcMain.handle(IPC_CHANNELS.openExternalUrl, async (_event, url: string) => {
     await shell.openExternal(resolveExternalUrl(url));
   });
+  ipcMain.handle(
+    IPC_CHANNELS.openImagePreview,
+    async (_event, request: OpenImagePreviewRequest) => {
+      const imageBuffer = decodeImagePreviewData(request?.data);
+      const previewDir = path.join(app.getPath('temp'), 'midscene-studio');
+      await mkdir(previewDir, { recursive: true });
+      const filePath = path.join(
+        previewDir,
+        `${Date.now()}-${sanitizeImagePreviewFileName(request?.fileName)}`,
+      );
+      await writeFileToDisk(filePath, imageBuffer);
+      const errorMessage = await shell.openPath(filePath);
+      if (errorMessage) {
+        throw new Error(errorMessage);
+      }
+    },
+  );
   ipcMain.handle(
     IPC_CHANNELS.chooseReportSavePath,
     async (_event, defaultFileName?: string) => {

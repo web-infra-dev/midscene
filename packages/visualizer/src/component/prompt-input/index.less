@@ -323,6 +323,14 @@
       pointer-events: auto;
     }
 
+    .input-actions-wrapper {
+      display: inline-flex;
+      margin-right: auto;
+      align-items: center;
+      gap: 8px;
+      line-height: normal;
+    }
+
     // Send/Run action button — align with the design's brand blue
     // (#2b83ff) instead of antd's default primary.
     .ant-btn-primary {
@@ -478,6 +486,15 @@
       }
     }
   }
+}
+
+.prompt-stop-square-icon {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  flex: 0 0 10px;
+  border-radius: 2px;
+  background: currentColor;
 }
 
 .selector-trigger {

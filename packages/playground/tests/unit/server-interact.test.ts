@@ -206,6 +206,93 @@ describe('PlaygroundServer manual interaction APIs', () => {
     ]);
   });
 
+  test('POST /cancel aborts the running execute action', async () => {
+    const dump = {
+      sdkVersion: 'test',
+      groupName: 'Midscene Report',
+      modelBriefs: [],
+      executions: [],
+    };
+    let capturedSignal: AbortSignal | undefined;
+    let resolveExecuteStarted: (() => void) | undefined;
+    const executeStarted = new Promise<void>((resolve) => {
+      resolveExecuteStarted = resolve;
+    });
+    const agent = {
+      interface: {
+        actionSpace: () => [],
+      },
+      resetDump: vi.fn(),
+      aiAct: vi.fn(async (_prompt: string, options: any) => {
+        capturedSignal = options.abortSignal;
+        resolveExecuteStarted?.();
+
+        return await new Promise((resolve) => {
+          capturedSignal?.addEventListener(
+            'abort',
+            () => {
+              resolve('aborted');
+            },
+            { once: true },
+          );
+        });
+      }),
+      dumpDataString: vi.fn(() => JSON.stringify(dump)),
+      reportHTMLString: vi.fn(() => '<html></html>'),
+      writeOutActionDumps: vi.fn(),
+    };
+    const server = new PlaygroundServer(agent as any);
+
+    try {
+      await server.launch(6140);
+      vi.spyOn(server as any, 'recreateAgent').mockResolvedValue(undefined);
+      const executeHandler = getRouteHandler(server, 'post', '/execute');
+      const cancelHandler = getRouteHandler(
+        server,
+        'post',
+        '/cancel/:requestId',
+      );
+      expect(executeHandler).toBeTypeOf('function');
+      expect(cancelHandler).toBeTypeOf('function');
+
+      const executeResponse = createMockResponse();
+      const executePromise = executeHandler(
+        {
+          body: {
+            type: 'aiAct',
+            prompt: 'keep running until cancelled',
+            requestId: 'abort-request-1',
+          },
+        },
+        executeResponse,
+      );
+
+      await executeStarted;
+      expect(capturedSignal).toBeDefined();
+      expect(capturedSignal?.aborted).toBe(false);
+
+      const cancelResponse = createMockResponse();
+      await cancelHandler(
+        { params: { requestId: 'abort-request-1' } },
+        cancelResponse,
+      );
+
+      expect(cancelResponse.statusCode).toBe(200);
+      expect((cancelResponse.body as { status: string }).status).toBe(
+        'cancelled',
+      );
+      expect(capturedSignal?.aborted).toBe(true);
+
+      await executePromise;
+      expect(executeResponse.statusCode).toBe(200);
+      expect((executeResponse.body as { result: unknown }).result).toBe(
+        'aborted',
+      );
+    } finally {
+      await server.close();
+    }
+  });
+
   test('POST /interact routes pointer events to input primitives', async () => {
     const inputPrimitives = makeInputPrimitiveStub();
     const actionCall = vi.fn();

@@ -1,356 +1,97 @@
-import { PlaygroundConversationPanel } from '@midscene/playground-app';
-import type {
-  ExternalRunRequest,
-  FormValue,
-  UniversalPlaygroundConfig,
-} from '@midscene/visualizer';
-import { App as AntdApp, Tooltip } from 'antd';
+import type { ExternalRunRequest } from '@midscene/visualizer';
 import type { ReactNode } from 'react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { downloadStudioReport } from '../../playground/report-download';
+import { useEffect, useMemo, useState } from 'react';
 import { useStudioPlayground } from '../../playground/useStudioPlayground';
-import { isStudioRecorderEntryEnabled } from '../../recorder/feature-flag';
-import {
-  createImportedMarkdownAiActReplayPrompt,
-  createRecorderAiActReplayPrompt,
-} from '../../recorder/replay';
 import { createStudioRecorderTargetSignature } from '../../recorder/selectors';
-import type {
-  StudioRecorderPanelMode,
-  StudioRecordingSession,
-} from '../../recorder/types';
+import { StudioModeTab } from '../../recorder/types';
 import { useStudioRecorder } from '../../recorder/useStudioRecorder';
 import { PlaygroundShell } from '../PlaygroundShell';
 import {
-  ApiPlaygroundModeIcon,
-  RecorderModeIcon,
-} from '../PlaygroundShell/mode-icons';
-import { StudioRecorderPanel } from '../Recorder';
-import { StudioPlaygroundEmptyState } from './StudioPlaygroundEmptyState';
+  StudioTimelineEmptyState,
+  StudioTimelinePanel,
+} from '../StudioTimelinePanel';
+import {
+  StudioPlaygroundExecution,
+  createStudioPlaygroundConfig,
+  createStudioPlaygroundStorageNamespace,
+} from './StudioPlaygroundExecution';
+import './studio-playground-panel.css';
 
-// Studio drives device selection from the Overview page (middle area), so the
-// right column never hosts the SessionSetupPanel. This fallback replaces it
-// with a calm "go to Overview" hint when no session is connected.
-function NotConnectedFallback() {
-  return (
-    <div className="flex h-full flex-col items-center justify-center gap-[8px] px-[24px] text-center">
-      <div className="text-[14px] font-medium text-text-primary">
-        No agent connected
-      </div>
-      <div className="text-[12px] leading-[20px] text-text-secondary">
-        Create or pick a device from the Overview page to start a session.
-      </div>
-    </div>
-  );
-}
-
-declare const __APP_VERSION__: string;
-type ReportDisplay = {
-  type?: string;
-  prompt?: string;
-};
-type StudioExternalRunRequest = ExternalRunRequest & {
-  reportDisplay?: ReportDisplay;
-  targetSignature: string | null;
-};
+export {
+  createStudioPlaygroundConfig,
+  createStudioPlaygroundStorageNamespace,
+} from './StudioPlaygroundExecution';
 
 interface PlaygroundProps {
-  rightPanelMode: StudioRecorderPanelMode;
-  onRightPanelModeChange: (mode: StudioRecorderPanelMode) => void;
-}
-
-function ImportReplayIcon() {
-  return (
-    <svg
-      aria-hidden="true"
-      className="h-[16px] w-[16px]"
-      fill="none"
-      viewBox="0 0 24 24"
-      strokeWidth="1.6"
-    >
-      <path d="M12 4v10" stroke="currentColor" strokeLinecap="round" />
-      <path
-        d="m8 8 4-4 4 4"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M5 14v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4"
-        stroke="currentColor"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
-function createExternalRunRequest(
-  value: FormValue,
-  displayContent: string,
-  targetSignature: string | null,
-  reportDisplay?: ReportDisplay,
-): StudioExternalRunRequest {
-  const request: StudioExternalRunRequest = {
-    id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
-    value,
-    displayContent,
-    targetSignature,
-  };
-  if (reportDisplay) {
-    request.reportDisplay = reportDisplay;
-  }
-  return request;
-}
-
-export function createStudioPlaygroundStorageNamespace(
-  targetSignature: string | null,
-): string {
-  return targetSignature
-    ? `studio-playground-${encodeURIComponent(targetSignature)}`
-    : 'studio-playground-unresolved-target';
-}
-
-export function createStudioPlaygroundConfig(
-  options: {
-    externalRunRequest?: ExternalRunRequest | null;
-    importReplayAction?: ReactNode;
-    storageNamespace?: string;
-  } = {},
-): Partial<UniversalPlaygroundConfig> {
-  return {
-    emptyState: <StudioPlaygroundEmptyState />,
-    externalRunRequest: options.externalRunRequest ?? null,
-    onDownloadReport: downloadStudioReport,
-    persistMessages: false,
-    showClearButton: true,
-    storageNamespace: options.storageNamespace,
-    promptInputChrome: {
-      variant: 'default',
-      inputActions: options.importReplayAction,
-    },
-  };
+  externalRunRequest?: ExternalRunRequest | null;
+  inputActions?: ReactNode;
+  onHeaderChange?: (header: {
+    title: ReactNode;
+    actions?: ReactNode;
+  }) => void;
+  playground?: ReturnType<typeof useStudioPlayground>;
 }
 
 export default function Playground({
-  onRightPanelModeChange,
-  rightPanelMode,
+  externalRunRequest,
+  inputActions,
+  onHeaderChange,
+  playground,
 }: PlaygroundProps) {
-  const { message } = AntdApp.useApp();
-  const studioPlayground = useStudioPlayground();
+  const hookPlayground = useStudioPlayground();
+  const studioPlayground = playground ?? hookPlayground;
   const recorder = useStudioRecorder();
-  const recorderEntryEnabled = isStudioRecorderEntryEnabled();
-  const stopRecording = recorder.stopRecording;
-  const [externalRunRequest, setExternalRunRequest] =
-    useState<StudioExternalRunRequest | null>(null);
+  const [timelineCollapsed, setTimelineCollapsed] = useState(false);
   const currentTargetSignature = useMemo(
     () => createStudioRecorderTargetSignature(recorder.currentTarget),
     [recorder.currentTarget],
   );
-  const showPlaygroundPanel = useCallback(() => {
-    onRightPanelModeChange('playground');
-  }, [onRightPanelModeChange]);
-  const triggerExternalRun = useCallback(
-    (
-      value: FormValue,
-      displayContent: string,
-      reportDisplay?: ReportDisplay,
-    ) => {
-      showPlaygroundPanel();
-      setExternalRunRequest(
-        createExternalRunRequest(
-          value,
-          displayContent,
-          currentTargetSignature,
-          reportDisplay,
-        ),
-      );
-    },
-    [currentTargetSignature, showPlaygroundPanel],
-  );
-  useEffect(() => {
-    setExternalRunRequest(null);
-  }, [currentTargetSignature]);
-  const activeExternalRunRequest = useMemo(
-    () =>
-      currentTargetSignature &&
-      externalRunRequest?.targetSignature === currentTargetSignature
-        ? externalRunRequest
-        : null,
-    [currentTargetSignature, externalRunRequest],
-  );
-  const playgroundStorageNamespace = useMemo(
+  const storageNamespace = useMemo(
     () => createStudioPlaygroundStorageNamespace(currentTargetSignature),
     [currentTargetSignature],
-  );
-  const importReplayDisabledReason =
-    studioPlayground.phase !== 'ready' ||
-    !studioPlayground.controller.state.serverOnline ||
-    !studioPlayground.controller.state.sessionViewState.connected
-      ? 'Connect a target before replaying a file.'
-      : null;
-  const handleImportReplay = useCallback(async () => {
-    try {
-      if (importReplayDisabledReason) {
-        message.info(importReplayDisabledReason);
-        return;
-      }
-      if (!window.studioRuntime?.chooseReplayFile) {
-        message.error('Studio replay file picker is unavailable.');
-        return;
-      }
-      const replayFile = await window.studioRuntime.chooseReplayFile();
-      if (!replayFile) {
-        return;
-      }
-      if (replayFile.type === 'markdown') {
-        triggerExternalRun(
-          {
-            type: 'aiAct',
-            prompt: createImportedMarkdownAiActReplayPrompt({
-              markdown: replayFile.content,
-              displayName: replayFile.displayName,
-            }),
-          },
-          `Imported Markdown Replay: ${replayFile.displayName}`,
-          { prompt: `Imported Markdown Replay: ${replayFile.displayName}` },
-        );
-        return;
-      }
-      triggerExternalRun(
-        { type: 'runYaml', prompt: replayFile.content },
-        `Imported YAML Replay: ${replayFile.displayName}`,
-      );
-    } catch (error) {
-      message.error(error instanceof Error ? error.message : String(error));
-    }
-  }, [importReplayDisabledReason, message, triggerExternalRun]);
-  const handleReplayRecorderMarkdown = useCallback(
-    async (session: StudioRecordingSession) => {
-      try {
-        if (importReplayDisabledReason) {
-          message.info(importReplayDisabledReason);
-          return;
-        }
-        if (recorder.state.isRecording) {
-          throw new Error('Stop recording before replay.');
-        }
-        if (!currentTargetSignature) {
-          throw new Error('Connect a target before replay.');
-        }
-        if (
-          createStudioRecorderTargetSignature(session.target) !==
-          currentTargetSignature
-        ) {
-          throw new Error('Connect the recorded target before replay.');
-        }
-        triggerExternalRun(
-          {
-            type: 'aiAct',
-            prompt: createRecorderAiActReplayPrompt(session),
-          },
-          `Recorder Markdown Replay: ${session.name}`,
-          { prompt: `Recorder Markdown Replay: ${session.name}` },
-        );
-      } catch (error) {
-        message.error(error instanceof Error ? error.message : String(error));
-      }
-    },
-    [
-      currentTargetSignature,
-      importReplayDisabledReason,
-      message,
-      recorder.state.isRecording,
-      triggerExternalRun,
-    ],
-  );
-  const importReplayAction = useMemo(
-    () =>
-      recorderEntryEnabled ? (
-        <Tooltip
-          placement="top"
-          title={importReplayDisabledReason || 'Import Markdown or YAML replay'}
-        >
-          <span className="inline-flex h-[32px] w-[32px] shrink-0 items-center justify-center leading-none">
-            <button
-              aria-label="Import Markdown or YAML replay"
-              className="inline-flex h-[32px] w-[32px] min-w-[32px] items-center justify-center rounded-full border border-border-subtle bg-surface p-[7px] leading-none text-text-secondary hover:bg-surface-hover hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-45"
-              disabled={Boolean(importReplayDisabledReason)}
-              onClick={handleImportReplay}
-              type="button"
-            >
-              <ImportReplayIcon />
-            </button>
-          </span>
-        </Tooltip>
-      ) : null,
-    [handleImportReplay, importReplayDisabledReason, recorderEntryEnabled],
   );
   const playgroundConfig = useMemo(
     () =>
       createStudioPlaygroundConfig({
-        externalRunRequest: activeExternalRunRequest,
-        importReplayAction,
-        storageNamespace: playgroundStorageNamespace,
+        emptyState: (
+          <StudioTimelineEmptyState
+            description="The mission progress will be displayed here."
+            title="No execution yet"
+            variant={StudioModeTab.Playground}
+          />
+        ),
+        externalRunRequest,
+        inputActions,
+        showClearButton: true,
+        storageNamespace,
+        timelineWrapper: (content, state) => (
+          <StudioTimelinePanel
+            ariaHidden={timelineCollapsed}
+            className="studio-playground-timeline-panel"
+            collapsed={timelineCollapsed}
+            contentClassName="studio-playground-timeline-panel-body"
+            empty={state.empty}
+            expanded={!state.empty}
+            onToggleCollapsed={() => {
+              setTimelineCollapsed((collapsed) => !collapsed);
+            }}
+            scrollBody={!state.empty}
+            variant={StudioModeTab.Playground}
+          >
+            {content}
+          </StudioTimelinePanel>
+        ),
       }),
-    [activeExternalRunRequest, importReplayAction, playgroundStorageNamespace],
+    [externalRunRequest, inputActions, storageNamespace, timelineCollapsed],
   );
-  const modeMenuItems = useMemo(
-    () =>
-      recorderEntryEnabled
-        ? [
-            {
-              key: 'playground',
-              label: 'API Playground',
-              icon: <ApiPlaygroundModeIcon />,
-            },
-            { key: 'recorder', label: 'Recorder', icon: <RecorderModeIcon /> },
-          ]
-        : [],
-    [recorderEntryEnabled],
-  );
-  useEffect(() => {
-    if (!recorderEntryEnabled && rightPanelMode === 'recorder') {
-      onRightPanelModeChange('playground');
-      void stopRecording();
-    }
-  }, [
-    onRightPanelModeChange,
-    recorderEntryEnabled,
-    rightPanelMode,
-    stopRecording,
-  ]);
+  const renderOwnHeader = !onHeaderChange;
 
   useEffect(() => {
-    if (rightPanelMode !== 'recorder') {
-      void stopRecording();
-    }
-  }, [rightPanelMode, stopRecording]);
-
-  useEffect(() => {
-    return () => {
-      void stopRecording();
-    };
-  }, [stopRecording]);
-
-  if (recorderEntryEnabled && rightPanelMode === 'recorder') {
-    return (
-      <div className="min-h-0 h-full flex-1 overflow-visible bg-transparent">
-        <StudioRecorderPanel onReplayMarkdown={handleReplayRecorderMarkdown} />
-      </div>
-    );
-  }
+    onHeaderChange?.({ title: 'API Playground' });
+  }, [onHeaderChange]);
 
   return (
-    <PlaygroundShell
-      modeMenu={
-        recorderEntryEnabled
-          ? {
-              items: modeMenuItems,
-              selectedKey: rightPanelMode,
-            }
-          : undefined
-      }
-    >
+    <PlaygroundShell showHeader={renderOwnHeader} title="API Playground">
       <div className="min-h-0 h-full flex-1 overflow-hidden">
         {studioPlayground.phase === 'booting' ? (
           <div className="flex h-full items-center justify-center px-6 text-center text-[14px] leading-[22px] text-text-tertiary">
@@ -372,11 +113,17 @@ export default function Playground({
             </button>
           </div>
         ) : (
-          <PlaygroundConversationPanel
-            appVersion={__APP_VERSION__}
+          <StudioPlaygroundExecution
             className="h-full"
             controller={studioPlayground.controller}
-            notConnectedFallback={<NotConnectedFallback />}
+            playgroundClassName={[
+              'studio-playground-execution',
+              'studio-playground-input-first',
+              'studio-playground-timeline-wrapped',
+              timelineCollapsed ? 'studio-playground-timeline-collapsed' : '',
+            ]
+              .filter(Boolean)
+              .join(' ')}
             playgroundConfig={playgroundConfig}
             title="Playground"
           />

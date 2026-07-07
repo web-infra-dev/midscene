@@ -12,11 +12,15 @@ import type { UpdateStatus } from '../../../shared/updater-contract';
 import { assetUrls } from '../../assets';
 import { useStudioUpdater } from '../../hooks/useStudioUpdater';
 import { useStudioPlayground } from '../../playground/useStudioPlayground';
-import type { StudioRecorderPanelMode } from '../../recorder/types';
+import { type StudioMode, StudioModeTab } from '../../recorder/types';
 import MainContent from '../MainContent';
-import Playground from '../Playground';
 import SettingsPanel from '../SettingsPanel';
 import Sidebar, { SidebarFooter } from '../Sidebar';
+import {
+  StudioRightPanel,
+  type StudioRightPanelView,
+  getStudioRightPanelWidth,
+} from '../StudioRightPanel';
 import { ModelEnvConfigModal } from './ModelEnvConfigModal';
 import { hasCompleteModelEnvConfig } from './connectivity-env';
 import { loadModelEnvText, saveModelEnvText } from './model-env-storage';
@@ -25,19 +29,11 @@ import type { ShellActiveView } from './types';
 export type { ShellActiveView };
 
 const SIDEBAR_WIDTH_STORAGE_KEY = 'studio.sidebarWidth';
-const PLAYGROUND_WIDTH_STORAGE_KEY = 'studio.playgroundWidth';
 
 const SIDEBAR_DEFAULT_WIDTH = 240;
 const SIDEBAR_MIN_WIDTH = 200;
 const SIDEBAR_MAX_WIDTH = 400;
 
-const PLAYGROUND_DEFAULT_WIDTH = 400;
-const PLAYGROUND_MIN_WIDTH = 320;
-const PLAYGROUND_MAX_WIDTH = 720;
-const RECORDER_PANEL_CONTENT_WIDTH = 320;
-const RECORDER_PANEL_RIGHT_OFFSET = 12;
-const RECORDER_OVERLAY_WIDTH =
-  RECORDER_PANEL_CONTENT_WIDTH + RECORDER_PANEL_RIGHT_OFFSET;
 const SIDEBAR_COLLAPSED_WIDTH = 0;
 const COLLAPSED_TITLEBAR_INSET = 280;
 const TITLEBAR_CONTROL_TOP = 11;
@@ -163,8 +159,11 @@ function UpdatePill({
 
 export default function ShellLayout() {
   const [activeView, setActiveView] = useState<ShellActiveView>('overview');
-  const [rightPanelMode, setRightPanelMode] =
-    useState<StudioRecorderPanelMode>('playground');
+  const [studioMode, setStudioMode] = useState<StudioMode>(
+    StudioModeTab.Record,
+  );
+  const [studioRightPanelView, setStudioRightPanelView] =
+    useState<StudioRightPanelView | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [modelModalOpen, setModelModalOpen] = useState(false);
   // Bridges the gap between any device-click path (Sidebar row, Overview
@@ -187,14 +186,6 @@ export default function ShellLayout() {
       SIDEBAR_DEFAULT_WIDTH,
       SIDEBAR_MIN_WIDTH,
       SIDEBAR_MAX_WIDTH,
-    ),
-  );
-  const [playgroundWidth, setPlaygroundWidth] = useState<number>(() =>
-    readPersistedWidth(
-      PLAYGROUND_WIDTH_STORAGE_KEY,
-      PLAYGROUND_DEFAULT_WIDTH,
-      PLAYGROUND_MIN_WIDTH,
-      PLAYGROUND_MAX_WIDTH,
     ),
   );
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -223,14 +214,6 @@ export default function ShellLayout() {
       window.removeEventListener('blur', handleBlur);
     };
   }, []);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    window.localStorage.setItem(
-      PLAYGROUND_WIDTH_STORAGE_KEY,
-      String(playgroundWidth),
-    );
-  }, [playgroundWidth]);
 
   const studioPlayground = useStudioPlayground();
   const closeSettings = useCallback(() => setSettingsOpen(false), []);
@@ -292,24 +275,20 @@ export default function ShellLayout() {
   }, [settingsOpen, closeSettings]);
 
   const startResize = useCallback(
-    (kind: 'sidebar' | 'playground', event: React.MouseEvent) => {
+    (event: React.MouseEvent) => {
       event.preventDefault();
       event.stopPropagation();
 
       const startX = event.clientX;
-      const startWidth = kind === 'sidebar' ? sidebarWidth : playgroundWidth;
-      const min = kind === 'sidebar' ? SIDEBAR_MIN_WIDTH : PLAYGROUND_MIN_WIDTH;
-      const max = kind === 'sidebar' ? SIDEBAR_MAX_WIDTH : PLAYGROUND_MAX_WIDTH;
+      const startWidth = sidebarWidth;
 
       const handleMove = (e: MouseEvent) => {
-        const delta =
-          kind === 'sidebar' ? e.clientX - startX : startX - e.clientX;
-        const next = Math.min(max, Math.max(min, startWidth + delta));
-        if (kind === 'sidebar') {
-          setSidebarWidth(next);
-        } else {
-          setPlaygroundWidth(next);
-        }
+        const delta = e.clientX - startX;
+        const next = Math.min(
+          SIDEBAR_MAX_WIDTH,
+          Math.max(SIDEBAR_MIN_WIDTH, startWidth + delta),
+        );
+        setSidebarWidth(next);
       };
       const handleUp = () => {
         document.removeEventListener('mousemove', handleMove);
@@ -323,16 +302,23 @@ export default function ShellLayout() {
       document.body.style.userSelect = 'none';
       document.body.style.cursor = 'col-resize';
     },
-    [sidebarWidth, playgroundWidth],
+    [sidebarWidth],
   );
 
+  const shouldShowRightPanel = activeView !== 'overview';
+  const shouldShowStudioRightPanel =
+    shouldShowRightPanel && Boolean(studioRightPanelView);
+  const studioRightPanelWidth =
+    shouldShowStudioRightPanel && studioRightPanelView
+      ? getStudioRightPanelWidth(studioRightPanelView)
+      : 0;
   const mainAreaStyle: CSSProperties = {
     left: sidebarCollapsed ? SIDEBAR_COLLAPSED_WIDTH : sidebarWidth,
-    ['--studio-playground-width' as string]: `${playgroundWidth}px`,
   };
-  const shouldShowRightPanel = activeView !== 'overview';
-  const recorderPanelActive =
-    shouldShowRightPanel && rightPanelMode === 'recorder';
+
+  useEffect(() => {
+    setStudioRightPanelView(null);
+  }, [activeView, studioMode]);
 
   // When the OS window loses focus, replace the translucent vibrancy
   // background with a flat solid panel — matching macOS's own inactive
@@ -409,14 +395,14 @@ export default function ShellLayout() {
           <div
             aria-hidden
             className="app-no-drag absolute right-0 top-0 z-30 h-full w-[4px] cursor-col-resize hover:bg-border-subtle"
-            onMouseDown={(event) => startResize('sidebar', event)}
+            onMouseDown={startResize}
             style={{ touchAction: 'none' }}
           />
         )}
       </div>
 
       <div
-        className={`absolute bottom-[4px] right-[4px] top-[4px] z-20 flex rounded-[12px] bg-surface transition-[left] ${SIDEBAR_TRANSITION_CLASS}`}
+        className={`absolute bottom-[4px] right-[4px] top-[4px] z-20 flex gap-[4px] rounded-[12px] bg-transparent transition-[left] ${SIDEBAR_TRANSITION_CLASS}`}
         style={mainAreaStyle}
       >
         <MainContent
@@ -424,45 +410,28 @@ export default function ShellLayout() {
           modelConfigComplete={modelConfigComplete}
           modelEnvText={modelEnvText}
           onOpenEnvModal={openEnvModal}
+          onOpenStudioRightPanel={setStudioRightPanelView}
           onPendingCreatePlatformChange={setPendingCreatePlatform}
-          onRightPanelModeChange={setRightPanelMode}
+          onStudioModeChange={setStudioMode}
           onSelectDeviceView={() => setActiveView('device')}
           onSelectOverview={selectOverview}
           pendingCreatePlatform={pendingCreatePlatform}
-          rightPanelMode={rightPanelMode}
+          studioMode={studioMode}
           titlebarInsetLeft={
             sidebarCollapsed ? COLLAPSED_TITLEBAR_INSET : undefined
           }
         />
-        {shouldShowRightPanel && (
-          <>
-            {recorderPanelActive ? null : (
-              <div
-                aria-hidden
-                className="app-no-drag absolute top-0 z-30 h-full w-[4px] cursor-col-resize hover:bg-border-subtle"
-                onMouseDown={(event) => startResize('playground', event)}
-                style={{ right: playgroundWidth - 2, touchAction: 'none' }}
-              />
-            )}
-            <div
-              className={
-                recorderPanelActive
-                  ? 'pointer-events-none absolute bottom-0 right-0 top-[52px] z-20 overflow-visible bg-transparent'
-                  : 'relative z-0 flex h-full min-h-0'
-              }
-              style={
-                recorderPanelActive
-                  ? { width: RECORDER_OVERLAY_WIDTH }
-                  : undefined
-              }
-            >
-              <Playground
-                onRightPanelModeChange={setRightPanelMode}
-                rightPanelMode={rightPanelMode}
-              />
-            </div>
-          </>
-        )}
+        {shouldShowStudioRightPanel && studioRightPanelView ? (
+          <div
+            className="box-border flex h-full min-h-0 shrink-0 flex-col overflow-hidden rounded-[12px] border border-border-subtle bg-surface"
+            style={{ width: studioRightPanelWidth }}
+          >
+            <StudioRightPanel
+              onClose={() => setStudioRightPanelView(null)}
+              view={studioRightPanelView}
+            />
+          </div>
+        ) : null}
       </div>
 
       <div

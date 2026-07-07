@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act, createElement } from 'react';
+import { act, createElement, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -46,15 +46,21 @@ vi.mock('../src/renderer/hooks/useStudioUpdater', () => ({
 
 vi.mock('../src/renderer/components/MainContent', () => ({
   default: ({
-    onRightPanelModeChange,
+    activeView,
+    onStudioModeChange,
     onSelectDeviceView,
+    studioMode,
   }: {
-    onRightPanelModeChange: (mode: 'playground' | 'recorder') => void;
+    activeView: 'overview' | 'device';
+    onStudioModeChange: (mode: 'playground' | 'record' | 'replay') => void;
     onSelectDeviceView: () => void;
+    studioMode: 'playground' | 'record' | 'replay';
   }) =>
     createElement(
       'div',
-      { 'data-testid': 'main-content' },
+      {
+        'data-testid': 'main-content',
+      },
       createElement(
         'button',
         {
@@ -67,20 +73,60 @@ vi.mock('../src/renderer/components/MainContent', () => ({
       createElement(
         'button',
         {
-          'data-testid': 'switch-recorder',
-          onClick: () => onRightPanelModeChange('recorder'),
+          'data-testid': 'switch-record',
+          onClick: () => onStudioModeChange('record'),
           type: 'button',
         },
-        'recorder',
+        'record',
       ),
+      createElement(
+        'button',
+        {
+          'data-testid': 'switch-replay',
+          onClick: () => onStudioModeChange('replay'),
+          type: 'button',
+        },
+        'replay',
+      ),
+      createElement(
+        'button',
+        {
+          'data-testid': 'switch-playground',
+          onClick: () => onStudioModeChange('playground'),
+          type: 'button',
+        },
+        'playground',
+      ),
+      activeView !== 'overview'
+        ? createElement('div', {
+            'data-testid': `playground-${studioMode}`,
+          })
+        : null,
     ),
 }));
 
-vi.mock('../src/renderer/components/Playground', () => ({
-  default: ({ rightPanelMode }: { rightPanelMode: string }) =>
-    createElement('div', {
-      'data-testid': `playground-${rightPanelMode}`,
-    }),
+vi.mock('../src/renderer/components/StudioModePanel', () => ({
+  default: ({
+    onHeaderChange,
+    studioMode,
+  }: {
+    onHeaderChange?: (header: { title: string }) => void;
+    studioMode: string;
+  }) => {
+    useEffect(() => {
+      onHeaderChange?.({
+        title:
+          studioMode === 'record'
+            ? 'Record'
+            : studioMode === 'replay'
+              ? 'Replay'
+              : 'API Playground',
+      });
+    }, [onHeaderChange, studioMode]);
+    return createElement('div', {
+      'data-testid': `playground-${studioMode}`,
+    });
+  },
 }));
 
 vi.mock('../src/renderer/components/Sidebar', () => ({
@@ -126,13 +172,13 @@ async function renderShellLayout() {
   return { container, root };
 }
 
-describe('ShellLayout recorder overlay', () => {
+describe('ShellLayout right panel tabs', () => {
   afterEach(() => {
     document.body.replaceChildren();
     vi.clearAllMocks();
   });
 
-  it('renders recorder as an overlay without a flex right panel', async () => {
+  it('keeps right tab content inside MainContent', async () => {
     const { container, root } = await renderShellLayout();
 
     await act(async () => {
@@ -140,29 +186,67 @@ describe('ShellLayout recorder overlay', () => {
         .querySelector<HTMLButtonElement>('[data-testid="select-device-view"]')
         ?.click();
     });
+
+    const defaultRecord = container.querySelector<HTMLElement>(
+      '[data-testid="playground-record"]',
+    );
+    expect(defaultRecord).toBeTruthy();
+
+    const mainContent = container.querySelector<HTMLElement>(
+      '[data-testid="main-content"]',
+    );
+    expect(mainContent).toBeTruthy();
+    expect(mainContent?.contains(defaultRecord)).toBe(true);
+    expect(mainContent?.nextElementSibling).toBeNull();
+
+    const mainArea = mainContent?.parentElement as HTMLElement;
+    expect(mainArea.className).toContain('flex');
+    expect(mainArea.className).toContain('gap-[8px]');
+    expect(
+      container.querySelector('.pointer-events-none.absolute.left-0.right-0'),
+    ).toBeNull();
+
     await act(async () => {
       container
-        .querySelector<HTMLButtonElement>('[data-testid="switch-recorder"]')
+        .querySelector<HTMLButtonElement>('[data-testid="switch-record"]')
         ?.click();
     });
 
-    expect(
-      container.querySelector('[data-testid="main-content"]'),
-    ).toBeTruthy();
+    expect(container.querySelector('[data-testid="main-content"]')).toBe(
+      mainContent,
+    );
     expect(
       container.querySelector('[data-testid="playground-playground"]'),
     ).toBeNull();
 
-    const recorder = container.querySelector<HTMLElement>(
-      '[data-testid="playground-recorder"]',
+    const record = container.querySelector<HTMLElement>(
+      '[data-testid="playground-record"]',
     );
-    expect(recorder).toBeTruthy();
+    expect(record).toBeTruthy();
 
-    const overlay = recorder?.parentElement as HTMLElement;
-    expect(overlay.className).toContain('absolute');
-    expect(overlay.className).toContain('pointer-events-none');
-    expect(overlay.className).toContain('top-[52px]');
-    expect(overlay.style.width).toBe('332px');
+    expect(mainContent?.contains(record)).toBe(true);
+
+    await act(async () => {
+      container
+        .querySelector<HTMLButtonElement>('[data-testid="switch-replay"]')
+        ?.click();
+    });
+
+    const replay = container.querySelector<HTMLElement>(
+      '[data-testid="playground-replay"]',
+    );
+    expect(replay).toBeTruthy();
+    expect(mainContent?.contains(replay)).toBe(true);
+
+    await act(async () => {
+      container
+        .querySelector<HTMLButtonElement>('[data-testid="switch-playground"]')
+        ?.click();
+    });
+
+    expect(
+      container.querySelector('[data-testid="playground-playground"]'),
+    ).toBeTruthy();
 
     await act(async () => {
       root.unmount();

@@ -44,6 +44,7 @@ export interface ExecutionOptions {
   planningStrategy?: 'fast' | 'standard';
   context?: any;
   requestId?: string;
+  abortSignal?: AbortSignal;
   deviceOptions?: DeviceOptions;
   reportDisplay?: ExecutionReportDisplay;
 }
