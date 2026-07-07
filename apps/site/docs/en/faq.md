@@ -8,10 +8,10 @@ The following platform-specific FAQs are maintained in their respective document
 - [Web Browser - Puppeteer](./integrate-with-puppeteer#faq)
 - [Web Browser - Chrome Extension](./quick-experience#faq)
 - [Web Browser - Bridge Mode](./bridge-mode#faq)
-- [Android](./android#faq)
-- [iOS](./ios#faq)
-- [HarmonyOS](./harmony#faq)
-- [PC Desktop](./computer#faq)
+- [Android](./android-getting-started#faq)
+- [iOS](./ios-getting-started#faq)
+- [HarmonyOS](./harmony-getting-started#faq)
+- [PC Desktop](./computer-getting-started#faq)
 
 ## What data is sent to AI model?
 

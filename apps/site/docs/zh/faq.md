@@ -8,10 +8,10 @@
 - [Web 浏览器 - Puppeteer](./integrate-with-puppeteer#faq)
 - [Web 浏览器 - Chrome 插件](./quick-experience#faq)
 - [Web 浏览器 - 桥接模式](./bridge-mode#faq)
-- [Android](./android#常见问题)
-- [iOS](./ios#常见问题)
-- [HarmonyOS](./harmony#常见问题)
-- [PC 桌面](./computer#常见问题)
+- [Android](./android-getting-started#常见问题)
+- [iOS](./ios-getting-started#常见问题)
+- [HarmonyOS](./harmony-getting-started#常见问题)
+- [PC 桌面](./computer-getting-started#常见问题)
 
 ## 会有哪些信息发送到 AI 模型？
 

@@ -111,6 +111,6 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   multiModelStrategyLink: '/model-strategy#高阶特性多模型配合',
   platformWebLink: '/quick-experience.html',
   platformPCLink: '/quick-experience.html',
-  platformMobileLink: '/android.html',
+  platformMobileLink: '/android-introduction.html',
   platformAnyInterfaceLink: '/integrate-with-any-interface.html',
 };

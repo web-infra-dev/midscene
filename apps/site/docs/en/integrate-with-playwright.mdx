@@ -265,15 +265,9 @@ After the command executes successfully, it will output: `Midscene - report file
 
 ### About opening in a new tab
 
-Each Agent instance is bound to a single page. To make debugging easier, Midscene intercepts new tabs by default (for example, links with `target="_blank"`) and opens them in the current page.
+Each Agent instance is bound to a single page. Midscene intercepts new tabs by default (e.g. `target="_blank"` links) and opens them in the current page. To allow new tabs, set the `forceSameTabNavigation` constructor option to `false` and create a new Agent for each tab.
 
-If you want to restore opening in a new tab, set `forceSameTabNavigation` to `false`—but you’ll need to create a new Agent instance for each new tab.
-
-```typescript
-const mid = new PlaywrightAgent(page, {
-  forceSameTabNavigation: false,
-});
-```
+For the full constructor signature, see the [API reference](./api#playwrightagent-web).
 
 ### Browser support
 
@@ -453,7 +447,7 @@ For more background, see the Playwright issue: [[BUG] Page.screenshot method han
 ## More
 
 - For all the methods on the Agent, please refer to [API Reference](./api#interaction-methods).
-- For the Playwright API reference, see [Playwright Agent API](./web-api-reference#playwright-agent).
+- For the Playwright API reference, see [API reference](./api#playwrightagent-web).
 - Demo projects
   - Direct integration: [https://github.com/web-infra-dev/midscene-example/blob/main/playwright-demo](https://github.com/web-infra-dev/midscene-example/blob/main/playwright-demo)
   - Playwright test integration: [https://github.com/web-infra-dev/midscene-example/blob/main/playwright-testing-demo](https://github.com/web-infra-dev/midscene-example/blob/main/playwright-testing-demo)

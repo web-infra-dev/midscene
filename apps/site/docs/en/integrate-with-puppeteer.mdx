@@ -98,21 +98,13 @@ For the complete catalog of agent methods, see the [API reference](./api#interac
 
 After the above command executes successfully, the console will output: `Midscene - report file updated: /path/to/report/some_id.html`. You can open this file in a browser to view the report.
 
-<a id="puppeteeragent"></a>
-
 ## Advanced
 
 ### About opening in a new tab
 
-Each Agent instance is bound to a single page. For easier debugging, Midscene intercepts new tabs by default (for example, links with `target="_blank"`) and opens them in the current page.
+Each Agent instance is bound to a single page. Midscene intercepts new tabs by default (e.g. `target="_blank"` links) and opens them in the current page. To allow new tabs, set the `forceSameTabNavigation` constructor option to `false` and create a new Agent for each tab.
 
-If you want to allow new tabs again, set `forceSameTabNavigation` to `false`—but you must create a new Agent instance for each new tab.
-
-```typescript
-const mid = new PuppeteerAgent(page, {
-  forceSameTabNavigation: false,
-});
-```
+For the full constructor signature, see the [API reference](./api#puppeteeragent-web).
 
 ### Browser support
 
@@ -249,7 +241,7 @@ Midscene automatically waits for the network to be idle after interactions. You 
 ## More
 
 - For every Agent method, check the [API Reference](./api#interaction-methods).
-- For the Puppeteer API reference, see [Puppeteer Agent API](./web-api-reference#puppeteer-agent).
+- For the Puppeteer API reference, see [API reference](./api#puppeteeragent-web).
 - Demo projects
   - Puppeteer demo: [https://github.com/web-infra-dev/midscene-example/blob/main/puppeteer-demo](https://github.com/web-infra-dev/midscene-example/blob/main/puppeteer-demo)
   - Playwright + Vitest demo: [https://github.com/web-infra-dev/midscene-example/tree/main/playwright-with-vitest-demo](https://github.com/web-infra-dev/midscene-example/tree/main/playwright-with-vitest-demo)

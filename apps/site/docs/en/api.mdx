@@ -1,17 +1,479 @@
-# API reference (Common)
+# API reference
 
 ## Constructors
 
-Midscene ships multiple agents tuned for specific automation environments. Every constructor takes the target page/device plus a shared options bag (reporting, caching, AI configuration, hooks), and then layers on platform-only switches such as navigation guards in browsers or ADB wiring on Android. Use the sections below to review the import path and platform-specific parameters for each agent:
+Midscene ships multiple agents tuned for specific automation environments. Every constructor takes the target page/device plus a shared options bag (reporting, caching, AI configuration, hooks), and then layers on platform-only switches such as navigation guards in browsers or ADB wiring on Android. Use the sections below to review the import path and platform-specific parameters for each agent.
 
-- In Puppeteer, use [PuppeteerAgent](./web-api-reference#puppeteer-agent)
-- In Playwright, use [PlaywrightAgent](./web-api-reference#playwright-agent)
-- In Bridge Mode, use [AgentOverChromeBridge](./web-api-reference#chrome-bridge-agent)
-- On Android, use [Android API reference](./android#api-reference)
-- On iOS, use [iOS API reference](./ios#api-reference)
-- For GUI agents integrating with your own interface, refer to [Custom Interface Agent](./integrate-with-any-interface)
+### PuppeteerAgent (Web) {#puppeteeragent-web}
 
-### Parameters
+Use Midscene against a Puppeteer-controlled browser when you need AI actions in your own Puppeteer workflows.
+
+**Import:**
+
+```ts
+import { PuppeteerAgent } from '@midscene/web/puppeteer';
+```
+
+**Constructor:**
+
+```ts
+const agent = new PuppeteerAgent(page, {
+  // browser-specific options...
+});
+```
+
+**Browser-specific options:**
+
+In addition to the [base agent options](#common-constructor-options), Puppeteer exposes:
+
+- `forceSameTabNavigation: boolean` — Restrict navigation to the current tab. Default `true`.
+- `waitForNavigationTimeout: number` — Maximum wait when a step causes navigation. Default `5000` (set `0` to skip waiting).
+- `waitForNetworkIdleTimeout: number` — Wait for network idle between actions to reduce flakiness. Default `2000` (set `0` to skip waiting).
+- `enableTouchEventsInActionSpace: boolean` — Add touch gestures (like swipe) to the action space so the agent can handle touch-only interactions. Default `false`.
+- `keyboardTypeDelay: number` — Per-character delay (ms) forwarded to Puppeteer's `page.keyboard.type`. Default `undefined`, which leaves the option unset and uses Puppeteer's own default. You usually do not need to configure it; raise it (e.g. `80`) only when a controlled input drops characters under fast typing.
+- `forceChromeSelectRendering: boolean` — Force `select` elements to render with Chrome's base-select styling so they're visible in screenshots/element extraction; requires Puppeteer > `24.6.0`. Defaults to `true`; set to `false` to opt out (e.g. on older Chrome/Puppeteer versions).
+- `customActions: DeviceAction[]` — Register bespoke actions defined via `defineAction` so planning can call domain-specific steps.
+
+**Usage notes:**
+
+:::info
+- One agent per page: by default (`forceSameTabNavigation: true`), Midscene opens new links in the current tab for easier debugging. Set it to `false` if you want new tabs, and create a new agent per tab.
+- For the full list of interaction methods, see [Interaction methods](#interaction-methods).
+:::
+
+**Example — Quick start:**
+
+```ts
+import puppeteer from 'puppeteer';
+import { PuppeteerAgent } from '@midscene/web/puppeteer';
+
+const browser = await puppeteer.launch({ headless: false });
+const page = await browser.newPage();
+await page.goto('https://www.ebay.com');
+
+const agent = new PuppeteerAgent(page, {
+  actionContext: 'When a cookie dialog appears, accept it.',
+});
+
+await agent.aiAct('search "Noise cancelling headphones" and open first result');
+const items = await agent.aiQuery(
+  '{itemTitle: string, price: number}[], list two products with price',
+);
+console.log(items);
+
+await agent.aiAssert('there is a category filter on the left sidebar');
+await browser.close();
+```
+
+**Example — Connect to a remote Puppeteer browser:**
+
+```ts
+import puppeteer from 'puppeteer';
+import { PuppeteerAgent } from '@midscene/web/puppeteer';
+
+const browser = await puppeteer.connect({
+  browserWSEndpoint: process.env.REMOTE_CDP_URL!,
+});
+
+const [page = await browser.newPage()] = await browser.pages();
+const agent = new PuppeteerAgent(page, {
+  waitForNetworkIdleTimeout: 0,
+});
+
+await agent.aiAct('open https://example.com and click the login button');
+await agent.destroy();
+await browser.disconnect();
+```
+
+See also: [Integrate with Puppeteer](./integrate-with-puppeteer) for installation, fixtures, and remote-CDP guidance.
+
+### PlaywrightAgent (Web) {#playwrightagent-web}
+
+Use Midscene inside a Playwright browser for AI-driven testing or automation alongside your Playwright flows.
+
+**Import:**
+
+```ts
+import { PlaywrightAgent } from '@midscene/web/playwright';
+```
+
+**Constructor:**
+
+```ts
+const agent = new PlaywrightAgent(page, {
+  // browser-specific options...
+});
+```
+
+**Browser-specific options:**
+
+- `forceSameTabNavigation: boolean` — Keep automation inside the active tab. Default `true`.
+- `waitForNavigationTimeout: number` — Wait time for navigation completion. Default `5000` (set `0` to disable).
+- `waitForNetworkIdleTimeout: number` — Wait between actions for network idle. Default `2000` (set `0` to disable).
+- `enableTouchEventsInActionSpace: boolean` — Add touch gestures (like swipe) to the action space so the agent can handle touch-only interactions. Default `false`.
+- `keyboardTypeDelay: number` — Per-character delay (ms) forwarded to Playwright's `page.keyboard.type`. Default `undefined`, which leaves the option unset and uses Playwright's own default. You usually do not need to configure it; raise it (e.g. `80`) only when a controlled input drops characters under fast typing.
+- `forceChromeSelectRendering: boolean` — Force `select` elements to render with Chrome's base-select styling so they're visible in screenshots/element extraction; requires Playwright ≥ `1.52.0`. Defaults to `true`; set to `false` to opt out (e.g. on older Chrome/Playwright versions).
+- `customActions: DeviceAction[]` — Extend planning with project-specific actions.
+
+**Usage notes:**
+
+:::info
+- One agent per page: with `forceSameTabNavigation` (default `true`), Midscene intercepts new tabs for stability. Set it to `false` to allow new tabs and create a separate agent for each.
+- For the full list of interaction methods, see [Interaction methods](#interaction-methods).
+:::
+
+**Example — Quick start:**
+
+```ts
+import { chromium } from 'playwright';
+import { PlaywrightAgent } from '@midscene/web/playwright';
+
+const browser = await chromium.launch({ headless: true });
+const page = await browser.newPage();
+await page.goto('https://www.ebay.com');
+
+const agent = new PlaywrightAgent(page);
+await agent.aiAct('search "Noise cancelling headphones" and wait for results');
+await agent.aiWaitFor('the results grid becomes visible');
+
+const price = await agent.aiNumber('price of the first headphone');
+console.log('first price', price);
+
+await agent.aiTap('click the first result card');
+await browser.close();
+```
+
+**Example — Extend Playwright tests with Midscene fixtures:**
+
+```ts
+// playwright.config.ts
+export default defineConfig({
+  reporter: [['list'], ['@midscene/web/playwright-reporter']],
+});
+
+// e2e/fixture.ts
+import { test as base } from '@playwright/test';
+import { PlaywrightAiFixture } from '@midscene/web/playwright';
+
+export const test = base.extend(
+  PlaywrightAiFixture({ waitForNetworkIdleTimeout: 1000 }),
+);
+
+// e2e/examples.spec.ts
+test('search flow', async ({ agentForPage, page }) => {
+  await page.goto('https://www.ebay.com');
+  const agent = await agentForPage(page);
+  await agent.aiAct('search "keyboard" and open first listing');
+  await agent.aiAssert('a product detail page is opened');
+});
+```
+
+The fixture accepts all `PlaywrightAgent` options, so you can configure shared agent behavior once at fixture creation time. Per-test metadata such as `testId`, `reportFileName`, `groupName`, and `groupDescription` remain fixture-managed.
+
+See also: [Integrate with Playwright](./integrate-with-playwright) for setup, fixtures, and advanced configuration.
+
+### AgentOverChromeBridge (Web) {#agentoverchromebridge-web}
+
+Bridge Mode lets Midscene operate your currently active desktop Chrome tab through the extension instead of launching a dedicated automation browser.
+
+**Import:**
+
+```ts
+import { AgentOverChromeBridge } from '@midscene/web/bridge-mode';
+```
+
+**Constructor:**
+
+```ts
+const agent = new AgentOverChromeBridge({
+  allowRemoteAccess: false,
+  // other bridge options...
+});
+```
+
+**Bridge options:**
+
+- `closeNewTabsAfterDisconnect?: boolean` — Close any bridge-created tabs when the agent is destroyed. Default `false`.
+- `allowRemoteAccess?: boolean` — Allow remote machines to attach. Defaults to `false` (binds to `127.0.0.1`).
+- `host?: string` — Override the interface for the bridge server. Takes precedence over `allowRemoteAccess`.
+- `port?: number` — TCP port for the bridge server. Default `3766`.
+
+See [Bridge to the desktop Chrome](./bridge-mode) for full installation and capability details.
+
+**Usage notes:**
+
+:::info
+Call `connectCurrentTab` or `connectNewTabWithUrl` before issuing other actions. Each `AgentOverChromeBridge` instance can only attach to one tab; create a new instance after `destroy`.
+:::
+
+**Example — Open a new desktop tab:**
+
+```ts
+import { AgentOverChromeBridge } from '@midscene/web/bridge-mode';
+
+const agent = new AgentOverChromeBridge();
+await agent.connectNewTabWithUrl('https://www.bing.com');
+
+await agent.ai('search "AI automation" and summarise first result');
+await agent.aiAssert('some search results show up');
+await agent.destroy();
+```
+
+**Example — Attach to current tab:**
+
+```ts
+import { AgentOverChromeBridge } from '@midscene/web/bridge-mode';
+
+const agent = new AgentOverChromeBridge({
+  allowRemoteAccess: false,
+  closeNewTabsAfterDisconnect: true,
+});
+
+await agent.connectCurrentTab({ forceSameTabNavigation: true });
+await agent.aiAct('open Gmail and report how many unread emails are visible');
+await agent.destroy();
+```
+
+### agentForComputer (PC Desktop) {#agentforcomputer-pc-desktop}
+
+Create an agent for local desktop automation.
+
+> Backward compatibility: `agentFromComputer` is still available as an alias.
+
+**Import:**
+
+```ts
+import { agentForComputer } from '@midscene/computer';
+```
+
+**Type:**
+
+```ts
+function agentForComputer(opts?: LocalComputerAgentOpt): Promise<ComputerAgent>;
+```
+
+**Local Desktop Options:**
+
+```typescript
+interface BaseComputerAgentOpt {
+  // Agent options (inherited from AgentOpt)
+  aiActionContext?: string;
+  cache?: boolean;
+  // ... other AgentOpt properties
+
+  customActions?: DeviceAction<any>[];
+}
+
+interface LocalComputerAgentOpt extends BaseComputerAgentOpt {
+  displayId?: string;
+  headless?: boolean;
+  xvfbResolution?: string;
+}
+```
+
+- `displayId` (optional): Specify which display to control. Get available displays with `ComputerDevice.listDisplays()`.
+- `customActions` (optional): Add custom actions to the device.
+- `headless` (optional, Linux only): Set to `true` to start a virtual display via [Xvfb](https://www.x.org/releases/X11R7.6/doc/man/man1/Xvfb.1.xhtml), enabling desktop automation on headless Linux servers and CI environments without a physical display. Can also be set via the `MIDSCENE_COMPUTER_HEADLESS_LINUX=true` environment variable.
+- `xvfbResolution` (optional): Resolution for the Xvfb virtual display. Defaults to `'1920x1080x24'`.
+
+**Example:**
+
+```typescript
+import { agentForComputer } from '@midscene/computer';
+
+// Connect to primary display
+const agent = await agentForComputer({
+  aiActionContext: 'You are automating a desktop application.',
+});
+
+// Connect to specific display
+const displays = await ComputerDevice.listDisplays();
+const agent2 = await agentForComputer({
+  displayId: displays[1].id,
+});
+```
+
+:::tip Example: Testing Electron Apps on Headless Linux CI
+A complete demo of testing [Obsidian](https://obsidian.md/) (an Electron app) on headless Linux CI with `@midscene/computer`: [https://github.com/web-infra-dev/midscene-example/tree/main/computer/electron-demo](https://github.com/web-infra-dev/midscene-example/tree/main/computer/electron-demo)
+:::
+
+### agentForRDPComputer (PC Desktop) {#agentforrdpcomputer-pc-desktop}
+
+Create an agent for remote Windows desktop automation over RDP.
+
+**Import:**
+
+```ts
+import { agentForRDPComputer } from '@midscene/computer';
+```
+
+**Type:**
+
+```ts
+function agentForRDPComputer(opts: RDPComputerAgentOpt): Promise<ComputerAgent<RDPDevice>>;
+```
+
+**RDP Options:**
+
+```typescript
+interface RDPComputerAgentOpt extends BaseComputerAgentOpt {
+  host: string;
+  port?: number;
+  username?: string;
+  password?: string;
+  domain?: string;
+  adminSession?: boolean;
+  ignoreCertificate?: boolean;
+  securityProtocol?: 'auto' | 'tls' | 'nla' | 'rdp';
+  desktopWidth?: number;
+  desktopHeight?: number;
+}
+```
+
+- `host`: Remote Windows host or IP.
+- `port`: RDP port. Defaults to `3389`.
+- `username` / `password`: Credentials for the remote session.
+- `domain`: Optional Windows domain.
+- `adminSession`: Request the remote admin session when the server allows it.
+- `ignoreCertificate`: Skip certificate validation for self-signed setups.
+- `securityProtocol`: Choose `'auto'`, `'tls'`, `'nla'`, or `'rdp'`.
+- `desktopWidth` / `desktopHeight`: Request a specific remote desktop resolution.
+
+**Example — connect to a remote Windows desktop over RDP:**
+
+```typescript
+import { agentForRDPComputer } from '@midscene/computer';
+
+const agent = await agentForRDPComputer({
+  aiActionContext:
+    'You are controlling a remote Windows desktop over the RDP protocol.',
+  host: '10.75.166.249',
+  port: 3389,
+  username: 'Admin',
+  password: 'replace-with-your-password',
+  // Optional: bind the TCP connection to this local source IP.
+  localAddress: '10.75.166.10',
+  ignoreCertificate: true,
+});
+
+await agent.aiWaitFor('The remote Windows desktop is visible');
+await agent.aiAct('Click the Windows Start button');
+await agent.aiAct('Open Settings');
+```
+
+Use `localAddress` only when the machine running Midscene has multiple outbound routes and the RDP server must be reached from a specific local source IP. Pass an IP address, not a network interface name.
+
+:::tip Example: Remote Windows desktop over RDP
+A runnable demo that connects to a remote Windows machine over RDP, opens Settings, navigates into Windows Update, and emits a structured report: [https://github.com/web-infra-dev/midscene-example/tree/main/computer/rdp-demo](https://github.com/web-infra-dev/midscene-example/tree/main/computer/rdp-demo)
+:::
+
+### AndroidAgent {#androidagent}
+
+Wire Midscene's AI planner to an AndroidDevice for UI automation.
+
+**Import:**
+
+```ts
+import { AndroidAgent } from '@midscene/android';
+```
+
+**Constructor:**
+
+```ts
+const agent = new AndroidAgent(device, {
+  // common agent options...
+});
+```
+
+**Android-specific options:**
+
+- `customActions?: DeviceAction[]` — Extend planning with actions defined via `defineAction`.
+- `appNameMapping?: Record<string, string>` — Map friendly app names to package names. When you pass an app name to `launch(target)`, the agent will look up the package name in this mapping. If no mapping is found, it will attempt to launch `target` as-is. User-provided mappings take precedence over default mappings.
+- All other fields match [Common constructor options](#common-constructor-options): `generateReport`, `reportFileName`, `aiActionContext`, `modelConfig`, `cacheId`, `createOpenAIClient`, `onTaskStartTip`, and more.
+
+**Usage notes:**
+
+:::info
+- Use one agent per device connection.
+- Android-only helpers such as `launch`, `terminate`, and `runAdbShell` are also exposed in YAML scripts. See [Android platform-specific actions](./automate-with-scripts-in-yaml#the-android-part).
+- For shared interaction methods, see [Interaction methods](#interaction-methods).
+:::
+
+See [AndroidDevice](#androiddevice) below for device connection and configuration.
+
+### IOSAgent {#iosagent}
+
+Wire Midscene's AI planner to an IOSDevice for UI automation over WebDriverAgent.
+
+**Import:**
+
+```ts
+import { IOSAgent } from '@midscene/ios';
+```
+
+**Constructor:**
+
+```ts
+const agent = new IOSAgent(device, {
+  // common agent options...
+});
+```
+
+**iOS-specific options:**
+
+- `customActions?: DeviceAction<any>[]` — Extend planning with actions defined via `defineAction`.
+- `appNameMapping?: Record<string, string>` — Map friendly app names to bundle identifiers. When you pass an app name to `launch(target)` or `terminate(bundleId)`, the agent will look up the bundle ID in this mapping. If no mapping is found, it will attempt to use `target` as-is. User-provided mappings take precedence over default mappings.
+- All other fields match [Common constructor options](#common-constructor-options): `generateReport`, `reportFileName`, `aiActionContext`, `modelConfig`, `cacheId`, `createOpenAIClient`, `onTaskStartTip`, and more.
+
+**Usage notes:**
+
+:::info
+- Use one agent per device connection.
+- iOS-only helpers such as `launch`, `terminate`, and `runWdaRequest` are also exposed in YAML scripts. See [iOS platform-specific actions](./automate-with-scripts-in-yaml#the-ios-part).
+- For shared interaction methods, see [Interaction methods](#interaction-methods).
+:::
+
+See [IOSDevice](#iosdevice) below for device connection and configuration.
+
+### HarmonyAgent {#harmonyagent}
+
+Binds Midscene's AI planning capabilities to a HarmonyDevice for UI automation.
+
+**Import:**
+
+```ts
+import { HarmonyAgent } from '@midscene/harmony';
+```
+
+**Constructor:**
+
+```ts
+const agent = new HarmonyAgent(device, {
+  // common Agent options...
+});
+```
+
+**HarmonyOS-specific options:**
+
+- `customActions?: DeviceAction[]` — Extend the planner's available actions via `defineAction`.
+- `appNameMapping?: Record<string, string>` — Map friendly app names to bundle names. When you pass an app name to `launch(target)`, the Agent looks up the corresponding bundle name in this mapping; if no mapping is found, it tries to launch `target` as-is.
+- Other fields are the same as [Common constructor options](#common-constructor-options): `generateReport`, `reportFileName`, `aiActionContext`, `modelConfig`, `cacheId`, `createOpenAIClient`, `onTaskStartTip`, etc.
+
+**Usage notes:**
+
+:::info
+- One device connection corresponds to one Agent.
+- HarmonyOS-specific helpers like `launch`, `terminate`, and `runHdcShell` can also be used in YAML scripts. See [HarmonyOS platform-specific actions](./automate-with-scripts-in-yaml#the-harmony-part).
+- For shared interaction methods, see [Interaction methods](#interaction-methods).
+:::
+
+See [HarmonyDevice](#harmonydevice) below for device connection and configuration.
+
+### Custom Interface Agent
+
+For GUI agents integrating with your own interface, refer to [Integrate Midscene with any interface](./integrate-with-any-interface).
+
+## Common constructor options {#common-constructor-options}
 
 All agents share these base options:
 
@@ -119,6 +581,274 @@ const agent = new PuppeteerAgent(page, {
 ```
 
 **Note:** For LangSmith and Langfuse integration, we recommend using the environment-variable approach documented in [Model configuration](./model-config#using-langsmith), which requires no `createOpenAIClient` code. If you provide a custom client wrapper function, it will override the auto-integration behavior from environment variables.
+
+## Device classes
+
+Each platform has a device class that handles the low-level connection to the target environment. You usually don't need to interact with the device directly — the Agent classes handle that. However, device classes are useful when you need custom device configuration or lifecycle management.
+
+### AndroidDevice {#androiddevice}
+
+Create a connection to an adb-managed device that an AndroidAgent can drive.
+
+**Import:**
+
+```ts
+import { AndroidDevice, getConnectedDevices } from '@midscene/android';
+```
+
+**Constructor:**
+
+```ts
+const device = new AndroidDevice(deviceId, {
+  // device options...
+});
+```
+
+**Device options:**
+
+- `deviceId: string` — Value returned by `adb devices` or `getConnectedDevices()`.
+- `autoDismissKeyboard?: boolean` — Automatically hide the keyboard after input. Default `true`.
+- `keyboardDismissStrategy?: 'esc-first' | 'back-first'` — Order for dismissing keyboards. Default `'esc-first'`.
+- `androidAdbPath?: string` — Custom path to the adb executable.
+- `remoteAdbHost?: string` / `remoteAdbPort?: number` — Point to a remote adb server.
+- `imeStrategy?: 'always-yadb' | 'yadb-for-non-ascii'` — Choose when to invoke [yadb](https://github.com/ysbing/YADB) for text input. Default `'yadb-for-non-ascii'`.
+  - `'yadb-for-non-ascii'` (default) — Uses yadb for Unicode characters (including Latin Unicode like ö, é, ñ), Chinese, Japanese, and format specifiers (like %s, %d). Pure ASCII text uses the faster native `adb input text`.
+  - `'always-yadb'` — Always uses yadb for all text input, providing maximum compatibility but slightly slower for pure ASCII text.
+- `displayId?: number` — Target a specific virtual display if the device mirrors multiple displays.
+- `screenshotResizeScale?: number` — **Deprecated.** This option has been removed and no longer has any effect. Use `screenshotShrinkFactor` in `AgentOpt` instead to control screenshot size sent to the AI model.
+- `minScreenshotBufferSize?: number` — Screenshot buffer size validation threshold in bytes. Buffers below this value are treated as failed or corrupted captures. Default `1024` (1KB). Set to `0` to skip only this size check; Midscene still rejects empty buffers and invalid image formats.
+- `alwaysRefreshScreenInfo?: boolean` — Re-query rotation and screen size every step. Default `false`.
+- `scrcpyConfig?: object` — Scrcpy high-performance screenshot configuration, disabled by default. See [Scrcpy Screenshot Mode](#scrcpy) below.
+
+#### Scrcpy Screenshot Mode {#scrcpy}
+
+By default, Midscene captures screenshots via `adb shell screencap`, which takes ~500–2000ms per call. Enabling Scrcpy mode streams H.264 video from the device and captures frames in real time, reducing screenshot latency to approximately **100–200ms**.
+
+**How to enable:**
+
+```ts
+const device = new AndroidDevice(deviceId, {
+  scrcpyConfig: {
+    enabled: true,
+  },
+});
+```
+
+**Optional parameters:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `enabled` | `boolean` | `false` | Enable Scrcpy screenshots |
+| `maxSize` | `number` | `0` | Max video dimension (width or height). `0` = no scaling |
+| `videoBitRate` | `number` | `2000000` | H.264 encoding bitrate (bps) |
+| `idleTimeoutMs` | `number` | `30000` | Auto-disconnect after idle (ms). Set to `0` to disable |
+
+:::tip
+Scrcpy mode automatically falls back to ADB screenshots if the connection fails. No extra error handling is needed.
+:::
+
+**Usage notes:**
+
+- Discover devices with `getConnectedDevices()`; the `udid` matches `adb devices`.
+- Supports remote adb via `remoteAdbHost/remoteAdbPort`; set `androidAdbPath` if adb is not on PATH.
+- Use `screenshotShrinkFactor` in `AgentOpt` to cut latency on high-DPI devices.
+
+**Example:**
+
+```ts
+import { AndroidAgent, AndroidDevice, getConnectedDevices } from '@midscene/android';
+
+const [first] = await getConnectedDevices();
+const device = new AndroidDevice(first.udid);
+await device.connect();
+
+const agent = new AndroidAgent(device, {
+  aiActionContext: 'If a permissions dialog appears, accept it.',
+});
+
+await agent.launch('https://www.ebay.com');
+await agent.aiAct('search "Headphones" and wait for results');
+const items = await agent.aiQuery(
+  '{itemTitle: string, price: number}[], find item in list and corresponding price',
+);
+console.log(items);
+```
+
+### IOSDevice {#iosdevice}
+
+Create a WebDriverAgent-backed instance that an IOSAgent can drive.
+
+**Import:**
+
+```ts
+import { IOSDevice } from '@midscene/ios';
+```
+
+**Constructor:**
+
+```ts
+const device = new IOSDevice({
+  // device options...
+});
+```
+
+**Device options:**
+
+- `wdaPort?: number` — WebDriverAgent port. Default `8100`.
+- `wdaHost?: string` — WebDriverAgent host. Default `'localhost'`.
+- `iOSDeviceClassOverride?: string` — Optional npm module path that replaces the default `IOSDevice` when using `agentFromWebDriverAgent()` or iOS Playground. The module must export an `IOSDevice` class or a default class.
+- `autoDismissKeyboard?: boolean` — Hide the keyboard after text input. Default `true`.
+- `customActions?: DeviceAction<any>[]` — Additional device actions exposed to the agent.
+
+**Usage notes:**
+
+- Ensure Developer Mode is enabled and WDA can reach the device; use `iproxy` when forwarding ports from a real device.
+- Use `wdaHost`/`wdaPort` to target remote devices or custom WDA deployments.
+- For shared interaction methods, see [Interaction methods](#interaction-methods).
+
+**Example:**
+
+```ts
+import { IOSAgent, IOSDevice } from '@midscene/ios';
+
+const device = new IOSDevice({ wdaHost: 'localhost', wdaPort: 8100 });
+await device.connect();
+
+const agent = new IOSAgent(device, {
+  aiActionContext: 'If any permission dialog appears, accept it.',
+});
+
+await agent.launch('https://ebay.com');
+await agent.aiAct('Search for "Headphones"');
+const items = await agent.aiQuery(
+  '{itemTitle: string, price: Number}[], list headphone products',
+);
+console.log(items);
+```
+
+### HarmonyDevice {#harmonydevice}
+
+Creates an HDC device instance that can be driven by HarmonyAgent.
+
+**Import:**
+
+```ts
+import { HarmonyDevice, getConnectedDevices } from '@midscene/harmony';
+```
+
+**Constructor:**
+
+```ts
+const device = new HarmonyDevice(deviceId, {
+  // device options...
+});
+```
+
+**Device options:**
+
+- `deviceId: string` — Value from `hdc list targets` or `getConnectedDevices()`.
+- `hdcPath?: string` — Custom path to the HDC executable. If not set, it searches `HDC_HOME` environment variable and common installation paths.
+- `autoDismissKeyboard?: boolean` — Automatically hide keyboard after input, default `true`.
+- `keyboardDismissStrategy?: 'esc-first' | 'back-first'` — Key preference for automatically hiding the keyboard, default `'esc-first'`. HarmonyOS sends the first key from the strategy only: `'esc-first'` sends ESC, while `'back-first'` sends Back.
+- `screenshotResizeScale?: number` — **Deprecated.** This option has been removed and no longer has any effect. Use `screenshotShrinkFactor` in `AgentOpt` instead to control screenshot size sent to the AI model.
+- `customActions?: DeviceAction[]` — Extend the planner's available actions via `defineAction`.
+
+**Usage notes:**
+
+- Use `getConnectedDevices()` to discover devices. The returned `deviceId` matches `hdc list targets` output.
+- If HDC is not in your system PATH, specify it via the `HDC_HOME` environment variable or the `hdcPath` option.
+
+**Example:**
+
+```ts
+import { HarmonyAgent, HarmonyDevice, getConnectedDevices } from '@midscene/harmony';
+
+const [first] = await getConnectedDevices();
+const device = new HarmonyDevice(first.deviceId, {});
+await device.connect();
+
+const agent = new HarmonyAgent(device, {
+  aiActionContext: 'This is a HarmonyOS device. If any popup appears, agree to it.',
+});
+
+await agent.launch('com.huawei.hmos.settings');
+await agent.aiAct('scroll down one screen');
+const items = await agent.aiQuery(
+  'string[], list all visible setting item names',
+);
+console.log(items);
+```
+
+### ComputerDevice utilities {#computerdevice-utilities}
+
+#### `ComputerDevice.listDisplays()`
+
+List all available displays.
+
+**Type:**
+
+```ts
+static listDisplays(): Promise<DisplayInfo[]>
+```
+
+**Returns:**
+
+```typescript
+interface DisplayInfo {
+  id: string;
+  name: string;
+  primary?: boolean;
+}
+```
+
+**Example:**
+
+```typescript
+import { ComputerDevice } from '@midscene/computer';
+
+const displays = await ComputerDevice.listDisplays();
+console.log('Available displays:', displays);
+// [
+//   { id: '0', name: 'Built-in Display', primary: true },
+//   { id: '1', name: 'External Display', primary: false }
+// ]
+```
+
+When you use RDP, `listDisplays` returns the current remote session as a single display.
+
+#### `checkComputerEnvironment()`
+
+Check if the computer environment is properly configured.
+
+**Type:**
+
+```ts
+function checkComputerEnvironment(): Promise<EnvironmentCheck>
+```
+
+**Returns:**
+
+```typescript
+interface EnvironmentCheck {
+  available: boolean;
+  error?: string;
+  platform: string;
+  displays: number;
+}
+```
+
+**Example:**
+
+```typescript
+import { checkComputerEnvironment } from '@midscene/computer';
+
+const env = await checkComputerEnvironment();
+console.log('Environment check:', env);
+
+if (!env.available) {
+  console.error('Environment error:', env.error);
+}
+```
 
 ## Interaction methods
 
@@ -883,6 +1613,245 @@ const stringB = await agent.aiString('The link of the first item in the list', {
 });
 ```
 
+## App lifecycle methods
+
+These methods are available on Android, iOS, and HarmonyOS agents for managing app lifecycle.
+
+### `agent.launch()`
+
+Launch a web URL, native application, or custom scheme.
+
+**Type:**
+
+```ts
+// Android
+function launch(target: string): Promise<void>;
+// iOS
+function launch(target: string): Promise<void>;
+// HarmonyOS
+function launch(uri: string): Promise<void>;
+```
+
+**Parameters:**
+
+- **Android**: `target: string` — Can be a web URL, a string in `package/.Activity` format (e.g., `com.android.settings/.Settings`), an app package name, or an app name. If you pass an app name and it exists in `appNameMapping`, it will be automatically resolved to the mapped package name; otherwise, `target` will be launched as-is.
+- **iOS**: `target: string` — Target address (web URL, Bundle Identifier, URL scheme, tel/mailto, etc.) or app name. If you pass an app name and it exists in `appNameMapping`, it will be automatically resolved to the mapped Bundle ID; otherwise, `target` will be launched as-is.
+- **HarmonyOS**: `uri: string` — Can be an app bundle name (e.g., `com.huawei.hmos.settings`), or an app name registered in `appNameMapping`. If a URL starting with `http://` or `https://` is passed, it opens via the browser.
+
+**Examples:**
+
+```ts
+// Android
+await agent.launch('https://www.ebay.com');
+await agent.launch('com.android.settings/.Settings');
+
+// iOS
+await agent.launch('https://www.apple.com');
+await agent.launch('com.apple.Preferences');
+await agent.launch('myapp://profile/user/123');
+await agent.launch('tel:+1234567890');
+
+// HarmonyOS
+await agent.launch('com.huawei.hmos.settings');
+await agent.launch('com.huawei.hmos.camera');
+```
+
+### `agent.terminate()`
+
+Terminate (force-stop) a running app.
+
+**Type:**
+
+```ts
+// Android
+function terminate(uri: string): Promise<void>;
+// iOS
+function terminate(bundleId: string): Promise<void>;
+// HarmonyOS
+function terminate(uri: string): Promise<void>;
+```
+
+**Parameters:**
+
+- **Android**: `uri: string` — Package name, app name in `appNameMapping`, or `package/.Activity` (only the package part is used).
+- **iOS**: `bundleId: string` — The bundle identifier of the app to terminate (e.g. `com.apple.Preferences`). If you pass an app name and it exists in `appNameMapping`, it will be automatically resolved to the mapped Bundle ID.
+- **HarmonyOS**: `uri: string` — Bundle name, app name in `appNameMapping`, or `bundle/Ability` (only the bundle part is used).
+
+**Examples:**
+
+```ts
+// Android
+await agent.terminate('com.android.settings');
+
+// iOS
+await agent.terminate('com.apple.Preferences');
+await agent.terminate('com.apple.mobilesafari');
+
+// HarmonyOS
+await agent.terminate('com.huawei.hmos.settings');
+```
+
+## Platform escape methods
+
+These methods provide low-level access to the underlying platform or execution environment.
+
+### `agent.runAdbShell()`
+
+Run a raw `adb shell` command through the connected device. Pass only the shell command itself, without the `adb shell` prefix.
+
+**Type:**
+
+```ts
+function runAdbShell(command: string, opt?: { timeout?: number }): Promise<string>;
+```
+
+**Parameters:**
+
+- `command: string` — Command passed verbatim to `adb shell`. For example, use `input tap 100 200`, not `adb shell input tap 100 200`.
+- `opt.timeout?: number` — Optional command execution timeout in milliseconds.
+
+**Example:**
+
+```ts
+const result = await agent.runAdbShell('dumpsys battery', { timeout: 60 * 1000 });
+console.log(result);
+
+await agent.runAdbShell('input tap 100 200');
+```
+
+### `agent.runWdaRequest()`
+
+Execute raw WebDriverAgent REST calls when you need low-level control.
+
+**Type:**
+
+```ts
+function runWdaRequest(
+  method: string,
+  endpoint: string,
+  data?: Record<string, any>,
+): Promise<any>;
+```
+
+**Parameters:**
+
+- `method: string` — HTTP verb (`GET`, `POST`, `DELETE`, etc.).
+- `endpoint: string` — WebDriverAgent endpoint path.
+- `data?: Record<string, any>` — Optional JSON body.
+
+**Example:**
+
+```ts
+const screen = await agent.runWdaRequest('GET', '/wda/screen');
+await agent.runWdaRequest('POST', '/session/test/wda/pressButton', { name: 'home' });
+```
+
+### `agent.runHdcShell()`
+
+Run a raw `hdc shell` command on the connected device.
+
+**Type:**
+
+```ts
+function runHdcShell(command: string): Promise<string>;
+```
+
+**Parameters:**
+
+- `command: string` — The command passed directly to `hdc shell`.
+
+**Example:**
+
+```ts
+const result = await agent.runHdcShell('hidumper -s RenderService -a screen');
+console.log(result);
+```
+
+### `agent.evaluateJavaScript()`
+
+> Only available in web pages, not available in Android.
+
+Evaluate a JavaScript expression in the web page context.
+
+- Type
+
+```typescript
+function evaluateJavaScript(script: string): Promise<any>;
+```
+
+- Parameters:
+
+  - `script: string` - The JavaScript expression to evaluate.
+
+- Return Value:
+
+  - Returns the result of the JavaScript expression.
+
+- Example:
+
+```typescript
+const result = await agent.evaluateJavaScript('document.title');
+console.log(result);
+```
+
+## Navigation helpers
+
+These methods provide quick access to system-level navigation actions.
+
+### Android navigation helpers
+
+- `agent.back(): Promise<void>` — Trigger the Android system Back action.
+- `agent.home(): Promise<void>` — Return to the launcher.
+- `agent.recentApps(): Promise<void>` — Open the Recents/Overview screen.
+
+### iOS navigation helpers
+
+- `agent.home(): Promise<void>` — Return to the Home screen.
+- `agent.appSwitcher(): Promise<void>` — Reveal the multitasking view.
+
+### HarmonyOS navigation helpers
+
+- `agent.back(): Promise<void>` — Trigger HarmonyOS system back.
+- `agent.home(): Promise<void>` — Return to home screen.
+- `agent.recentApps(): Promise<void>` — Open recent apps / multitasking.
+
+## Chrome Bridge methods
+
+These methods are available on `AgentOverChromeBridge` for connecting to and disconnecting from desktop Chrome.
+
+### `connectCurrentTab()`
+
+```ts
+function connectCurrentTab(options?: {
+  forceSameTabNavigation?: boolean;
+}): Promise<void>;
+```
+
+- `options.forceSameTabNavigation` (default `true`) intercepts new tabs and opens them in the current tab to simplify debugging; set to `false` if you want normal new-tab behavior (create a separate agent per tab).
+- Resolves on a successful handshake with the active tab; rejects if the extension is not allowed to connect.
+
+### `connectNewTabWithUrl()`
+
+```ts
+function connectNewTabWithUrl(
+  url: string,
+  options?: { forceSameTabNavigation?: boolean },
+): Promise<void>;
+```
+
+- `url` — Address to open in a new desktop tab before attaching.
+- `options` — Same as `connectCurrentTab`.
+- Resolves when the new tab is opened and the bridge is connected.
+
+### `destroy()`
+
+```ts
+function destroy(closeNewTabsAfterDisconnect?: boolean): Promise<void>;
+```
+
+- `closeNewTabsAfterDisconnect` — Optional runtime override for the constructor setting; `true` closes bridge-created tabs on teardown.
+- Resolves after the bridge connection and local server are fully cleaned up.
+
 ## More APIs
 
 ### `agent.aiAssert()`
@@ -1147,33 +2116,6 @@ await agent.setAIActContext('Close the cookie consent dialog first if it exists'
 `agent.setAIActionContext()` is deprecated. Please use `agent.setAIActContext()` instead. The deprecated method remains as an alias for compatibility.
 
 :::
-
-### `agent.evaluateJavaScript()`
-
-> Only available in web pages, not available in Android.
-
-Evaluate a JavaScript expression in the web page context.
-
-- Type
-
-```typescript
-function evaluateJavaScript(script: string): Promise<any>;
-```
-
-- Parameters:
-
-  - `script: string` - The JavaScript expression to evaluate.
-
-- Return Value:
-
-  - Returns the result of the JavaScript expression.
-
-- Example:
-
-```typescript
-const result = await agent.evaluateJavaScript('document.title');
-console.log(result);
-```
 
 ### `agent.recordToReport()`
 
@@ -1686,3 +2628,99 @@ describe('Android settings automation', () => {
 The merged report is saved under the `midscene_run/report` directory. Open the generated HTML file in your browser to review the workflows.
 
 :::
+
+## Helper utilities
+
+### `agentFromAdbDevice()`
+
+Create an `AndroidAgent` from any connected adb device.
+
+```ts
+function agentFromAdbDevice(
+  deviceId?: string,
+  opts?: PageAgentOpt & AndroidDeviceOpt,
+): Promise<AndroidAgent>;
+```
+
+- `deviceId?: string` — Connect to a specific device; omitted means "first available".
+- `opts?: PageAgentOpt & AndroidDeviceOpt` — Combine agent options with [AndroidDevice](#androiddevice) settings.
+
+### `agentFromWebDriverAgent()` {#agentfromwebdriveragent}
+
+Connect to WebDriverAgent and return a ready-to-use IOSAgent.
+
+```ts
+function agentFromWebDriverAgent(
+  opts?: PageAgentOpt & IOSDeviceOpt,
+): Promise<IOSAgent>;
+```
+
+- `opts?: PageAgentOpt & IOSDeviceOpt` — Combine common agent options with [IOSDevice](#iosdevice) settings.
+- Set `MIDSCENE_IOS_DEVICE_CLASS_OVERRIDE` to apply the same device class override through the environment. An explicit option takes precedence over the environment variable.
+
+**Example:**
+
+```ts
+import { agentFromWebDriverAgent } from '@midscene/ios';
+
+const agent = await agentFromWebDriverAgent({
+  wdaHost: 'localhost',
+  wdaPort: 8100,
+  iOSDeviceClassOverride: '@your-scope/ios-device',
+  aiActionContext: 'Accept permission dialogs automatically.',
+});
+```
+
+### `agentFromHdcDevice()`
+
+Create a `HarmonyAgent` from any connected HDC device.
+
+```ts
+function agentFromHdcDevice(
+  deviceId?: string,
+  opts?: HarmonyAgentOpt & HarmonyDeviceOpt,
+): Promise<HarmonyAgent>;
+```
+
+- `deviceId?: string` — Connect to a specific device; leave empty for "first available device".
+- `opts?: HarmonyAgentOpt & HarmonyDeviceOpt` — Merge Agent options and [HarmonyDevice](#harmonydevice) settings in a single object.
+
+**Example:**
+
+```ts
+import { agentFromHdcDevice } from '@midscene/harmony';
+
+const agent = await agentFromHdcDevice('0123456789ABCDEF'); // specific device
+const agent = await agentFromHdcDevice(); // first available device
+```
+
+### `getConnectedDevices()` (Android)
+
+Enumerate adb devices Midscene can drive.
+
+```ts
+function getConnectedDevices(): Promise<Array<{
+  udid: string;
+  state: string;
+  port?: number;
+}>>;
+```
+
+### `getConnectedDevices()` (HarmonyOS)
+
+List HDC devices that Midscene can drive.
+
+```ts
+function getConnectedDevices(
+  hdcPath?: string,
+): Promise<Array<{ deviceId: string }>>;
+```
+
+**Example:**
+
+```ts
+import { getConnectedDevices } from '@midscene/harmony';
+
+const devices = await getConnectedDevices();
+console.log(devices); // [{ deviceId: '0123456789ABCDEF' }]
+```

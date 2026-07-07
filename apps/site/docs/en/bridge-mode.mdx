@@ -103,22 +103,13 @@ After the script starts, click "Allow" in the confirmation dialog to proceed.
 
 ### Unsupported options
 
-In bridge mode, these options will be ignored (they will follow your desktop browser's settings):
-- userAgent
-- viewportWidth
-- viewportHeight
-- deviceScaleFactor
-- waitForNetworkIdle
-- cookie
-- extraHTTPHeaders
-- downloadPath
-- chromeArgs
+In bridge mode, these constructor options are ignored (desktop browser settings apply instead): `userAgent`, `viewportWidth`, `viewportHeight`, `deviceScaleFactor`, `waitForNetworkIdle`, `cookie`, `extraHTTPHeaders`, `downloadPath`, `chromeArgs`.
+
+See the [API reference](./api#agentoverchromebridge-web) for details.
 
 ## Remote Access Configuration
 
-By default, the Bridge Server only listens on `127.0.0.1`, allowing only local Chrome extension connections. If you need cross-machine communication (e.g., server on machine A, browser on machine B), you can enable remote access:
-
-**Server Side (Node.js Script):**
+By default, the Bridge Server only listens on `127.0.0.1`. For cross-machine communication, configure via the `allowRemoteAccess`, `host`, and `port` constructor options:
 
 ```typescript
 // Enable remote access (recommended)
@@ -132,6 +123,8 @@ const agent = new AgentOverChromeBridge({
   port: 3766
 });
 ```
+
+For the full constructor signature, see the [API reference](./api#agentoverchromebridge-web).
 
 **Client Side (Chrome Extension):**
 
@@ -163,6 +156,6 @@ When using bridge mode, you should config the model parameters in the terminal. 
 ## More
 
 - For every Agent method, check the [API reference](./api#interaction-methods).
-- For the full Chrome Bridge API surface, see [API reference (Web)](./web-api-reference#chrome-bridge-agent).
+- For the full Chrome Bridge API surface, see [API reference](./api#agentoverchromebridge-web).
 - Demo project
   - Bridge mode demo: [https://github.com/web-infra-dev/midscene-example/blob/main/bridge-mode-demo](https://github.com/web-infra-dev/midscene-example/blob/main/bridge-mode-demo)
