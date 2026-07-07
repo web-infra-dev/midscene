@@ -297,7 +297,7 @@ export async function genericLocate(
     };
   }
 
-  const rawResponse = JSON.stringify(res.content);
+  const rawResponse = res.contentString;
 
   let errors: string[] | undefined =
     'errors' in res.content ? res.content.errors : [];
@@ -446,7 +446,7 @@ export async function AiLocateSection(options: {
     return {
       searchAreaConfig: undefined,
       error: sectionError,
-      rawResponse: JSON.stringify(result.content),
+      rawResponse: result.contentString,
       rawChoiceMessage: result.rawChoiceMessage,
       usage: result.usage,
     };
@@ -495,7 +495,7 @@ export async function AiLocateSection(options: {
   return {
     searchAreaConfig,
     error: sectionError,
-    rawResponse: JSON.stringify(result.content),
+    rawResponse: result.contentString,
     rawChoiceMessage: result.rawChoiceMessage,
     usage: result.usage,
   };

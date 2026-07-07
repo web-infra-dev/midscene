@@ -142,9 +142,9 @@ export default class Service {
     const taskInfo: ServiceTaskInfo = {
       ...(this.taskInfo ? this.taskInfo : {}),
       durationMs: timeCost,
-      rawResponse: JSON.stringify(rawResponse),
+      rawResponse,
       rawChoiceMessage,
-      formatResponse: JSON.stringify(parseResult),
+      formatResponse: parseResult,
       usage,
       searchArea: searchArea.trace.sourceRect,
       searchAreaRawResponse: searchArea.trace.rawResponse,
@@ -367,7 +367,7 @@ export default class Service {
       durationMs: timeCost,
       rawResponse,
       rawChoiceMessage,
-      formatResponse: JSON.stringify(parseResult),
+      formatResponse: parseResult,
       usage,
       reasoning_content,
     };

@@ -179,12 +179,12 @@ export type DeepThinkOption = 'unset' | true | false;
 
 export interface ServiceTaskInfo {
   durationMs: number;
-  formatResponse?: string;
+  formatResponse?: unknown;
   /**
    * Adapter-extracted content used by Midscene for parsing. This is not the
    * full provider response or choices[0].message.
    */
-  rawResponse?: string;
+  rawResponse?: unknown;
   rawChoiceMessage?: unknown;
   usage?: AIUsageInfo;
   searchArea?: Rect;
