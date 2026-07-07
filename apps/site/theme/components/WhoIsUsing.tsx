@@ -91,6 +91,14 @@ export function WhoIsUsing() {
       text: t('userAlibaba'),
     },
     {
+      kind: 'iconText',
+      name: t('userCtrip'),
+      url: 'https://www.ctrip.com',
+      icon: '/images/users/ctrip-color.svg',
+      iconSize: 40,
+      text: t('userCtrip'),
+    },
+    {
       kind: 'logo',
       name: 'AVATR',
       url: 'https://www.avatr.com',

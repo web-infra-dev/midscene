@@ -134,11 +134,17 @@ tasks:
       await execa(cliBin, params);
       const result = JSON.parse(readFileSync(output!, 'utf-8'));
       expect(result.items.length).toBeGreaterThanOrEqual(2);
-      expect(result.items[0].imageUrl).toContain('/static/media/');
-      // Normalize imageUrl to avoid hash changes breaking snapshots
+      expect(result.items[0].imageUrl).toContain('/assets/');
+      // This test still uses SauceDemo as an online fixture. If it fails again
+      // because that site changes, move it to a local fixture instead of
+      // depending on external deployment details.
+      // Normalize imageUrl to avoid hash changes breaking snapshots.
       const normalizedItems = result.items.map((item: any) => ({
         ...item,
-        imageUrl: item.imageUrl?.replace(/\.[a-f0-9]+\.jpg$/, '.jpg'),
+        imageUrl: item.imageUrl?.replace(
+          /\/assets\/(.+)-[A-Za-z0-9_-]{8}\.jpg$/,
+          '/assets/$1.jpg',
+        ),
       }));
       expect(normalizedItems).toMatchSnapshot();
       expect(result['page-title']).toMatchSnapshot();
