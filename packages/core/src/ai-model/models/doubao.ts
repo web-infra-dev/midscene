@@ -1,5 +1,4 @@
 import type { TModelFamily } from '@midscene/shared/env';
-import { assert } from '@midscene/shared/utils';
 import type {
   ChatCompletionCallContext,
   ChatCompletionParamsResult,
@@ -23,38 +22,102 @@ const doubaoPointCoordinatesMeta = {
   normalizedBy: 1000,
 } as const;
 
-export function parseDoubaoRawLocateValue(input: unknown): LocateResultValue {
-  const bbox = unwrapCoordinateListLikeInput(input as any);
-  if (typeof bbox === 'string') {
-    assert(
-      /^(\d+)\s(\d+)\s(\d+)\s(\d+)$/.test(bbox.trim()),
-      `invalid bbox data string for doubao-vision mode: ${bbox}`,
-    );
-    const splitted = bbox.split(' ');
-    if (splitted.length === 4) {
-      return createLocateResultValue(doubaoBboxCoordinatesMeta, [
-        Number(splitted[0]),
-        Number(splitted[1]),
-        Number(splitted[2]),
-        Number(splitted[3]),
-      ]);
+function parseNumbersFromBboxString(input: string): number[] {
+  return (input.match(/\d+/g) ?? []).map(Number).filter(Number.isFinite);
+}
+
+function parseLeadingNumberFromString(input: string): number | undefined {
+  const match = input.match(/^\s*(\d+)/);
+  return match ? Number(match[1]) : undefined;
+}
+
+/**
+ * Clean coordinate strings can contain multiple positive integers, e.g.
+ * - "123 100"
+ * - "123,100"
+ * - "277; 664 291;"
+ * Dirty strings like "345<" are handled by taking the leading number and
+ * dropping the remaining array items.
+ */
+function isCleanCoordinateString(input: string): boolean {
+  return /^\s*\d+(?:[\s,;]+\d+)*\s*[,;]?\s*$/.test(input);
+}
+
+function parseNumbersFromBboxArray(input: unknown[]): number[] {
+  const numbers: number[] = [];
+
+  for (const item of input) {
+    if (typeof item === 'number') {
+      numbers.push(item);
+      continue;
     }
-    throw new Error(`invalid bbox data string for doubao-vision mode: ${bbox}`);
+
+    if (typeof item === 'string') {
+      if (isCleanCoordinateString(item)) {
+        numbers.push(...parseNumbersFromBboxString(item));
+        continue;
+      } else {
+        const leadingNumber = parseLeadingNumberFromString(item);
+        if (leadingNumber !== undefined) {
+          numbers.push(leadingNumber);
+        }
+        // Once a dirty string appears, the remaining array items usually belong
+        // to broken JSON repair output, e.g. [410, 295, 885, "345<", "/bbox>..."].
+        break;
+      }
+    }
+
+    break;
   }
 
+  return numbers.filter(Number.isFinite);
+}
+
+/**
+ * Some models return a tagged bbox tuple, e.g.
+ * - ["bbox", [782, 541, 815, 559]]
+ * - ["bbox", "782, 541, 815, 559"]
+ */
+function parseNumbersFromTaggedBboxArray(input: unknown[]): number[] | null {
+  if (input.length < 2) {
+    return null;
+  }
+
+  const taggedBbox = input[1];
+  if (typeof taggedBbox === 'string') {
+    return parseNumbersFromBboxString(taggedBbox);
+  }
+
+  if (Array.isArray(taggedBbox)) {
+    return parseNumbersFromBboxArray(taggedBbox);
+  }
+
+  return null;
+}
+
+export function parseDoubaoRawLocateValue(input: unknown): LocateResultValue {
+  const bbox = unwrapCoordinateListLikeInput(input as any);
   let bboxList: number[] = [];
-  if (Array.isArray(bbox) && typeof bbox[0] === 'string') {
-    bbox.forEach((item) => {
-      if (typeof item === 'string' && item.includes(',')) {
-        const [x, y] = item.split(',');
-        bboxList.push(Number(x.trim()), Number(y.trim()));
-      } else if (typeof item === 'string' && item.includes(' ')) {
-        const [x, y] = item.split(' ');
-        bboxList.push(Number(x.trim()), Number(y.trim()));
-      } else {
-        bboxList.push(Number(item));
-      }
-    });
+
+  if (typeof bbox === 'string') {
+    /**
+     * Some models return bbox as a string, e.g.
+     * - { "bbox": "[336, 163, 717, 200]" }.
+     * - { "bbox": "336, 163, 717, 200" }.
+     * - { "bbox": "336 163 717 200" }.
+     */
+    bboxList = parseNumbersFromBboxString(bbox);
+    if (bboxList.length !== 4) {
+      throw new Error(
+        `invalid bbox data string for doubao-vision mode: ${bbox}`,
+      );
+    }
+  } else if (Array.isArray(bbox)) {
+    if (typeof bbox[0] === 'string' && bbox[0].trim() === 'bbox') {
+      bboxList = parseNumbersFromTaggedBboxArray(bbox) ?? [];
+    } else {
+      bboxList = parseNumbersFromBboxArray(bbox);
+    }
   } else {
     bboxList = bbox as number[];
   }
@@ -80,7 +143,7 @@ export function parseDoubaoRawLocateValue(input: unknown): LocateResultValue {
     ]);
   }
 
-  if (bbox.length === 8) {
+  if (bboxList.length === 8) {
     return createLocateResultValue(doubaoBboxCoordinatesMeta, [
       bboxList[0],
       bboxList[1],
