@@ -8,18 +8,6 @@ import { PackageManagerTabs } from '@theme';
 
 Midscene can drive native keyboard and mouse controls to support PC desktop automation on Windows, macOS, and Linux.
 
-By leveraging a visual model solution, the automation process works with any desktop application—whether built with Electron, Qt, WPF, or native technologies. Developers only need to focus on the final user experience when debugging UI automation scripts.
-
-The PC desktop automation solution comes with all the features of Midscene:
-
-- Supports zero-code trial using Playground
-- Supports JavaScript SDK for scripting
-- Supports automation scripts in YAML format and command-line tools
-- Supports HTML reports to replay all operation paths
-- Works across Windows, macOS, and Linux platforms
-- Headless mode for Linux CI via Xvfb (no physical display required)
-- Multi-display support for complex setups
-
 ## Showcases
 
 <ShowcaseComputer />
@@ -38,46 +26,17 @@ Test [Obsidian](https://obsidian.md/) (an Electron app) on headless Linux CI wit
 
 :::
 
-## Key Features
-
-### Cross-platform Desktop Control
-
-- **Mouse Operations**: Click, double-click, right-click, mouse move, drag-and-drop
-- **Keyboard Input**: Type text, press keys with modifiers (Cmd/Ctrl/Alt/Shift)
-- **Screen Capture**: Take screenshots of any display
-- **Multi-display**: Work with multiple monitors simultaneously
-
-### AI-Powered Automation
-
-Using Midscene's AI capabilities, you can automate desktop applications with natural language:
-
-```typescript
-await agent.aiAct('open the File menu');
-await agent.aiAct('click on Save As');
-await agent.aiAct('type "my-document" in the filename field');
-await agent.aiAct('press Enter');
-```
-
-## Use Cases
-
-- **Desktop Application Testing**: Automate testing for Electron, Qt, or native apps
-- **Workflow Automation**: Automate repetitive tasks across desktop applications
-- **Cross-app Integration**: Control multiple applications in sequence
-- **UI Testing**: Test desktop applications with natural language descriptions
+## Model Configuration
 
 <SetupEnv />
 
-## System Requirements
+## Platform-Specific Configuration
 
-### Node.js
-
-Node.js 18.19.0 or higher is required.
-
-### Platform-Specific Dependencies
+Configure the desktop environment permissions and display dependencies before running desktop automation.
 
 **macOS**: Accessibility permissions are required for keyboard and mouse control. When you run the script for the first time, macOS will prompt you to grant access. Go to **System Settings > Privacy & Security > Accessibility** and enable permissions for the application running your script (e.g., Terminal, iTerm2, VS Code, WebStorm, or other IDEs). For more details, see [nut.js macOS setup](https://github.com/nut-tree/nut.js#macos).
 
-**Windows**: No extra setup is needed for ordinary apps. However, Windows isolates input across privilege levels (UIPI): a non-elevated process **cannot** send mouse or keyboard input to a window that runs **as Administrator** (elevated). The input is silently dropped — the cursor still moves to the right spot, but clicks and keystrokes have no effect. Prefer running the target application without Administrator privileges. If the target application must stay elevated, run the terminal or Node.js that launches Midscene **as Administrator** too, so both processes share the same privilege level. See [Windows: clicks have no effect on some apps](#windows-clicks-have-no-effect-on-some-apps).
+**Windows**: No extra setup is needed for ordinary apps. However, Windows isolates input across privilege levels (UIPI): a non-elevated process **cannot** send mouse or keyboard input to a window that runs **as Administrator** (elevated). The input is silently dropped — the cursor still moves to the right spot, but clicks and keystrokes have no effect. Prefer running the target application without Administrator privileges. If the target application must stay elevated, run the process that launches Midscene **as Administrator** too, so both processes share the same privilege level. See [Windows: clicks have no effect on some apps](#windows-clicks-have-no-effect-on-some-apps).
 
 **Linux**: [ImageMagick](https://imagemagick.org/script/download.php) is required for screenshot functionality.
 
@@ -311,7 +270,7 @@ If you have already granted permission but it still doesn't work, try removing t
 
 If the cursor moves to the correct position but clicks or key presses do nothing on a particular application — while other apps work fine — check whether the target app is running **as Administrator** (elevated). Windows UIPI blocks input injected from a lower-privilege process into an elevated window and drops it silently, with no error.
 
-Prefer lowering the target application's privilege level first, for example by launching it without "Run as Administrator" or disabling any setting that always starts it elevated. If the target app must stay elevated, run the terminal or Node.js that launches Midscene **as Administrator** so it matches the target app's privilege level, then try again. System-level shortcuts such as `Win+Tab` are handled by the shell and keep working even when this happens, which is why keyboard shortcuts may appear to work while in-app clicks do not.
+Prefer lowering the target application's privilege level first, for example by launching it without "Run as Administrator" or disabling any setting that always starts it elevated. If the target app must stay elevated, run the process that launches Midscene **as Administrator** so it matches the target app's privilege level, then try again. System-level shortcuts such as `Win+Tab` are handled by the shell and keep working even when this happens, which is why keyboard shortcuts may appear to work while in-app clicks do not.
 
 > The health check logged at connection time prints this troubleshooting link when Midscene is not running as Administrator on Windows.
 
