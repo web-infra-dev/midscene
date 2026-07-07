@@ -2,7 +2,7 @@ import type { CustomPlanningDefinition } from '@/ai-model/model-adapter/custom-p
 import { ResolvedModelAdapter } from '@/ai-model/model-adapter/resolve';
 import { getModelAdapter } from '@/ai-model/models';
 import { MODEL_ADAPTER_CONFIGS } from '@/ai-model/models/registry';
-import { MODEL_FAMILY_VALUES } from '@midscene/shared/env';
+import { MODEL_FAMILY_VALUES, type TModelFamily } from '@midscene/shared/env';
 import { describe, expect, it, vi } from 'vitest';
 
 function createTestPlannerDefinition(): CustomPlanningDefinition<null> {
@@ -31,6 +31,7 @@ describe('model adapter registry', () => {
       'reasoningEffort',
       'reasoningBudget',
     ]);
+    expect(adapter.chatCompletion.useReasoningAsContentFallback).toBe(true);
   });
 
   it('resolves every supported model family', () => {
@@ -61,6 +62,32 @@ describe('model adapter registry', () => {
         expect(adapter.locate.locateFn).toBeTruthy();
       }
     }
+  });
+
+  it('enables reasoning-as-content fallback for default and supported model families', () => {
+    const enabledFamilies: TModelFamily[] = [
+      'doubao-vision',
+      'doubao-seed',
+      'qwen3-vl',
+      'qwen3',
+      'qwen3.5',
+      'qwen3.6',
+      'glm-v',
+      'kimi',
+      'xiaomi-mimo',
+    ];
+    const enabledSet = new Set<TModelFamily>(enabledFamilies);
+
+    for (const modelFamily of MODEL_FAMILY_VALUES) {
+      expect(
+        getModelAdapter(modelFamily).chatCompletion
+          .useReasoningAsContentFallback,
+      ).toBe(enabledSet.has(modelFamily));
+    }
+
+    expect(getModelAdapter().chatCompletion.useReasoningAsContentFallback).toBe(
+      true,
+    );
   });
 
   it('throws for unknown model families', () => {

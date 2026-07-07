@@ -3,7 +3,7 @@ import { type ScreenshotRef, normalizeScreenshotRef } from './screenshot-store';
 /**
  * Recursively restore image references in parsed data.
  * Replaces ScreenshotRef with lazy
- * { get base64() {...}, capturedAt } objects.
+ * { get base64() {...}, capturedAt, sourceRef } objects.
  * The resolver is only called when .base64 is first accessed.
  */
 export function restoreImageReferences<T>(
@@ -22,8 +22,17 @@ export function restoreImageReferences<T>(
     const refLike = normalizeScreenshotRef(data);
     if (refLike) {
       let resolved: string | null = null;
-      const lazy: { base64: string; capturedAt?: number } =
-        Object.defineProperties({} as { base64: string; capturedAt?: number }, {
+      const lazy: {
+        base64: string;
+        capturedAt?: number;
+        sourceRef: ScreenshotRef;
+      } = Object.defineProperties(
+        {} as {
+          base64: string;
+          capturedAt?: number;
+          sourceRef: ScreenshotRef;
+        },
+        {
           base64: {
             get() {
               if (resolved === null) {
@@ -34,7 +43,9 @@ export function restoreImageReferences<T>(
             enumerable: true,
           },
           capturedAt: { value: refLike.capturedAt, enumerable: true },
-        });
+          sourceRef: { value: { ...refLike }, enumerable: true },
+        },
+      );
       return lazy as T;
     }
 

@@ -3,8 +3,16 @@ export {
   resolveLocateResultCoordinates,
 } from './factory';
 export { createCoordinateDistanceToPixels } from './coordinate-distance';
+export {
+  isBboxLocateResultValue,
+  isPointLocateResultValue,
+} from './types';
 export type { CoordinateDistanceAxis } from './coordinate-distance';
-export { unwrapCoordinateListLikeInput } from './parse';
+export {
+  createLocateResultValue,
+  parseCoordinateList,
+  unwrapCoordinateListLikeInput,
+} from './parse';
 export type {
   LocateResultBbox,
   PixelBbox,

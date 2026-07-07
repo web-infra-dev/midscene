@@ -696,6 +696,118 @@ export function defineYamlCaseTest(test: any, options: any) {
     }
   });
 
+  test('routes keepWindow through the in-process runner instead of Rstest', async () => {
+    const root = createTempDir();
+    const runDir = join(root, 'midscene-run');
+    const outputDir = join(root, 'generated-runner');
+    const yaml = join(root, 'case.yaml');
+    const previousRunDir = process.env.MIDSCENE_RUN_DIR;
+    let rstestCalled = false;
+    let inProcessConfig: { keepWindow: boolean } | undefined;
+
+    process.env.MIDSCENE_RUN_DIR = runDir;
+    writeFileSync(yaml, 'web:\n  url: about:blank\ntasks: []\n');
+
+    try {
+      const exitCode = await runFrameworkTestConfig(
+        {
+          files: [yaml],
+          concurrent: 1,
+          continueOnError: false,
+          summary: 'summary.json',
+          shareBrowserContext: false,
+          globalConfig: {},
+          headed: true,
+          keepWindow: true,
+          dotenvOverride: false,
+          dotenvDebug: false,
+        },
+        {
+          outputDir,
+          frameworkImport: '@test/framework',
+          stdio: 'pipe',
+          rstestRunner: async () => {
+            rstestCalled = true;
+            return 0;
+          },
+          inProcessRunner: async (config) => {
+            inProcessConfig = config;
+            return [
+              {
+                file: yaml,
+                success: true,
+                executed: true,
+                duration: 1,
+                resultType: 'success',
+              },
+            ];
+          },
+        },
+      );
+
+      expect(exitCode).toBe(0);
+      expect(rstestCalled).toBe(false);
+      expect(inProcessConfig?.keepWindow).toBe(true);
+    } finally {
+      if (previousRunDir === undefined) {
+        Reflect.deleteProperty(process.env, 'MIDSCENE_RUN_DIR');
+      } else {
+        process.env.MIDSCENE_RUN_DIR = previousRunDir;
+      }
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  test('returns a non-zero exit code when a keepWindow run fails', async () => {
+    const root = createTempDir();
+    const runDir = join(root, 'midscene-run');
+    const yaml = join(root, 'case.yaml');
+    const previousRunDir = process.env.MIDSCENE_RUN_DIR;
+
+    process.env.MIDSCENE_RUN_DIR = runDir;
+    writeFileSync(yaml, 'web:\n  url: about:blank\ntasks: []\n');
+
+    try {
+      const exitCode = await runFrameworkTestConfig(
+        {
+          files: [yaml],
+          concurrent: 1,
+          continueOnError: false,
+          summary: 'summary.json',
+          shareBrowserContext: false,
+          globalConfig: {},
+          headed: true,
+          keepWindow: true,
+          dotenvOverride: false,
+          dotenvDebug: false,
+        },
+        {
+          stdio: 'pipe',
+          rstestRunner: async () => 0,
+          inProcessRunner: async () => [
+            {
+              file: yaml,
+              success: false,
+              executed: true,
+              duration: 1,
+              resultType: 'failed',
+              error: 'boom',
+            },
+          ],
+        },
+      );
+
+      expect(exitCode).toBe(1);
+    } finally {
+      if (previousRunDir === undefined) {
+        Reflect.deleteProperty(process.env, 'MIDSCENE_RUN_DIR');
+      } else {
+        process.env.MIDSCENE_RUN_DIR = previousRunDir;
+      }
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
   test('records shared browser batch setup failures for every YAML case', async () => {
     const root = createTempDir();
     const runDir = join(root, 'midscene-run');

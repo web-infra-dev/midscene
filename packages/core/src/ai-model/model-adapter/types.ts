@@ -1,4 +1,5 @@
 import type { PixelBbox, PlanningAction } from '@/types';
+import type { AIUsageInfo } from '@/types';
 import type {
   IModelConfig,
   TIntent,
@@ -89,9 +90,24 @@ export interface ChatCompletionAdapter {
   ): ChatCompletionParamsResult;
   resolveImageDetail(input: ChatCompletionCallInput): ImageDetail | undefined;
   extractContentAndReasoning: ExtractContentAndReasoning;
+  useReasoningAsContentFallback: boolean;
 }
 
-export interface ChatCompletionDefinition {
+type ChatCompletionMessageExtraction =
+  | {
+      messageExtraction?: {
+        kind: 'default';
+        reasoningContentKeys?: string[];
+      };
+    }
+  | {
+      messageExtraction: {
+        kind: 'custom';
+        extractContentAndReasoning: ExtractContentAndReasoning;
+      };
+    };
+
+export type ChatCompletionDefinition = ChatCompletionMessageExtraction & {
   unsupportedUserConfig?: ChatCompletionUnsupportedUserConfig[];
   buildChatCompletionParams?: (
     input: ChatCompletionCallContext,
@@ -99,8 +115,8 @@ export interface ChatCompletionDefinition {
   resolveImageDetail?: (
     input: ChatCompletionCallContext,
   ) => ImageDetail | undefined;
-  extractContentAndReasoning?: ExtractContentAndReasoning;
-}
+  useReasoningAsContentFallback?: boolean;
+};
 
 export type ImagePreprocessDefinition = Partial<ImagePreprocessPolicy>;
 
@@ -210,6 +226,13 @@ export interface ModelAdapter {
 export interface ModelRuntime {
   config: IModelConfig;
   adapter: ModelAdapter;
+  /**
+   * Optional callback fired after every underlying model call with the shaped
+   * usage info. Provides a single collection point for callers that want to
+   * aggregate usage across all model invocations (including auxiliary calls
+   * such as order-sensitive judging and deep-locate search-area calls).
+   */
+  onUsage?: (usage: AIUsageInfo) => void;
 }
 
 export interface ModelAdapterDefinition {

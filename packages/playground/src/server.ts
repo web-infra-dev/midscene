@@ -22,6 +22,7 @@ import { getTmpDir, sleep } from '@midscene/core/utils';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import { PLAYGROUND_SERVER_PORT } from '@midscene/shared/constants';
 import {
+  ModelConfigManager,
   globalModelConfigManager,
   overrideAIConfig,
 } from '@midscene/shared/env';
@@ -1821,17 +1822,50 @@ class PlaygroundServer {
       if (!elementDescription) {
         throw new Error('aiDescribe returned an empty element description.');
       }
+      const semanticAction = buildRecorderSemanticAction(
+        event.actionType || event.type,
+        event.rawPayload || {},
+        event.url,
+      );
+      if (describeResult.success === false && verifyResult?.pass === false) {
+        const trace = await finishTrace('ready', {
+          modelCallDurationMs,
+          elementDescription,
+          verifyPassed: false,
+          centerDistance: verifyResult.centerDistance,
+          verifyResult,
+        });
+        debugInteract('recorder aiDescribe trace:', trace);
+        return {
+          event: {
+            ...event,
+            semantic: buildReadyRecorderSemantic(
+              'aiDescribe',
+              semanticAction,
+              elementDescription,
+              'low',
+              {
+                aiDescribe: {
+                  verifyPrompt,
+                  verifyPassed: false,
+                  deepLocate,
+                  centerDistance: verifyResult.centerDistance,
+                  expectedCenter: [x, y],
+                  actualCenter: verifyResult.center,
+                  annotatedScreenshotPath: trace.annotatedScreenshotRef?.path,
+                },
+              },
+            ),
+          },
+          trace,
+        };
+      }
       if (describeResult.success === false) {
         throw new Error(
           describeResult.error ||
             `aiDescribe ${describeResult.failureStage || 'unknown'} failed.`,
         );
       }
-      const semanticAction = buildRecorderSemanticAction(
-        event.actionType || event.type,
-        event.rawPayload || {},
-        event.url,
-      );
       const trace = await finishTrace('ready', {
         modelCallDurationMs,
         elementDescription,
@@ -3311,29 +3345,29 @@ class PlaygroundServer {
       });
     });
 
-    this.app.post(
-      '/connectivity-test',
-      async (_req: Request, res: Response) => {
-        try {
-          const result = await runConnectivityTest({
-            defaultModelConfig:
-              globalModelConfigManager.getModelConfig('default'),
-            planningModelConfig:
-              globalModelConfigManager.getModelConfig('planning'),
-            insightModelConfig:
-              globalModelConfigManager.getModelConfig('insight'),
-          });
-          return res.json(result);
-        } catch (error: unknown) {
-          const errorMessage =
-            error instanceof Error ? error.message : 'Unknown error';
-          console.error(`Connectivity test failed: ${errorMessage}`);
-          return res.status(500).json({
-            error: errorMessage,
+    this.app.post('/connectivity-test', async (req: Request, res: Response) => {
+      try {
+        if (!req.body?.config) {
+          return res.status(400).json({
+            error: 'Model config is required for connectivity test.',
           });
         }
-      },
-    );
+        const modelConfigManager = new ModelConfigManager(req.body.config);
+        const result = await runConnectivityTest({
+          defaultModelConfig: modelConfigManager.getModelConfig('default'),
+          planningModelConfig: modelConfigManager.getModelConfig('planning'),
+          insightModelConfig: modelConfigManager.getModelConfig('insight'),
+        });
+        return res.json(result);
+      } catch (error: unknown) {
+        const errorMessage =
+          error instanceof Error ? error.message : 'Unknown error';
+        console.error(`Connectivity test failed: ${errorMessage}`);
+        return res.status(500).json({
+          error: errorMessage,
+        });
+      }
+    });
   }
 
   /**

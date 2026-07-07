@@ -360,32 +360,35 @@ describe('RemoteExecutionAdapter', () => {
     it('should call the connectivity test endpoint', async () => {
       const mockResult = {
         passed: true,
-        checks: [],
       };
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: () => Promise.resolve(mockResult),
       });
 
-      const result = await adapter.runConnectivityTest();
+      const aiConfig = { MIDSCENE_MODEL_NAME: 'test-model' };
+      const result = await adapter.runConnectivityTest(aiConfig);
 
       expect(result).toEqual(mockResult);
       expect(mockFetch).toHaveBeenCalledWith(
         `${mockServerUrl}/connectivity-test`,
         {
           method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ config: aiConfig }),
         },
       );
     });
 
     it('should surface endpoint errors', async () => {
+      const aiConfig = { MIDSCENE_MODEL_NAME: 'test-model' };
       mockFetch.mockResolvedValueOnce({
         ok: false,
         statusText: 'Bad Request',
         json: () => Promise.resolve({ error: 'invalid config' }),
       });
 
-      await expect(adapter.runConnectivityTest()).rejects.toThrow(
+      await expect(adapter.runConnectivityTest(aiConfig)).rejects.toThrow(
         'invalid config',
       );
     });

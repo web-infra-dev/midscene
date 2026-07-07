@@ -1,6 +1,7 @@
 {
   "name": "@midscene/playground-app",
-  "version": "1.10.0",
+  "private": true,
+  "version": "1.10.2",
   "description": "Reusable React shell for Midscene playground applications",
   "repository": "https://github.com/web-infra-dev/midscene",
   "homepage": "https://midscenejs.com/",
@@ -52,8 +53,5 @@
     "vitest": "3.0.5"
   },
   "sideEffects": ["**/*.css", "**/*.less", "**/*.sass", "**/*.scss"],
-  "publishConfig": {
-    "access": "public"
-  },
   "license": "MIT"
 }

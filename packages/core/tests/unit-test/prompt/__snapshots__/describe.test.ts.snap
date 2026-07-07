@@ -2,40 +2,36 @@
 
 exports[`elementDescriberInstruction > should return the correct instruction 1`] = `
 "
-Describe the element in the red rectangle for precise identification.
+Describe the real page element indicated by the temporary callout.
+The callout is an annotation overlay. It is not part of the page or target.
+The description will be used later to locate the same element on the original screenshot without annotations, so write a locator-style description instead of a visual caption.
 
 IMPORTANT: You MUST write the description in English.
 
-CRITICAL REQUIREMENTS:
-1. UNIQUENESS: The description must uniquely identify this element on the current page
-2. UNIVERSALITY: Use generic, reusable selectors that work across different contexts
-3. PRECISION: Be specific enough to distinguish from similar elements
+OBSERVE IN THIS ORDER:
+1. Target first: identify the smallest real UI part at the callout endpoint/center: text, glyph, icon, arrow, input, dropdown/select, option, button, link, status, checkbox, radio, switch, tab, menu item, slider, image, control, or empty region.
+2. Primitive: name what that smallest part is before adding surrounding context.
+3. Owner/context: add the nearest stable owner only when it helps disambiguate, such as a label, row/card title, column header, field name, or adjacent visible text.
+4. Similar candidates: if multiple candidates look similar, add stable local anchors from the same row, card, field, header, or group. Prefer visible text and values over inferred row counting or temporary visual state.
 
-DESCRIPTION STRUCTURE:
-1. Element type (button, input, link, div, etc.)
-2. Primary identifier (in order of preference):
-   - Unique text content: "with text 'Login'"
-   - Unique attribute: "with aria-label 'Search'"
-   - Unique class/ID: "with class 'primary-button'"
-   - Unique position: "in header navigation"
-3. Secondary identifiers (if needed for uniqueness):
-   - Visual features: "blue background", "with icon"
-   - Relative position: "below search bar", "in sidebar"
-   - Parent context: "in login form", "in main menu"
-   - Neighboring stable text: "to the right of the 'Settings' section title"
-
-GUIDELINES:
-- Keep description under 25 words
-- Prioritize semantic identifiers over visual ones
-- Use consistent terminology across similar elements
-- Avoid page-specific or temporary content
-- Don't mention the red rectangle or selection box
-- Focus on stable, reusable characteristics
-- If the selected point/box is inside a text input, textarea, search box, or form field, describe the whole field/control, not the individual placeholder character, typed character, caret, or inner text fragment.
-- For icon-only buttons or unlabeled controls, include the nearest stable label, section title, menu item text, row text, or parent region that owns the control.
-- When multiple similar icons or controls appear in a list/sidebar/menu, the description MUST distinguish the selected one by its owning stable text or section, not by generic position such as "bottom", "nearby", or "sidebar button".
-- For expand/collapse, disclosure, chevron, close, menu, and settings icons, describe both the icon purpose and the stable text/section it controls.
-- Use the actual visible neighboring text from the current screenshot when available; do not copy labels from the examples.
+RULES:
+- Keep description under 35 words.
+- Describe the smallest indicated UI part itself, not the larger container, row, card, sentence, or group that merely contains it.
+- Ignore every annotation overlay, including callout number, line, color, marker, border, dot, ring, crosshair, or selection box. Never describe the annotation as the target.
+- Do not borrow the text, glyph, direction, purpose, or state from a nearby element outside the callout endpoint/center.
+- For tiny or icon-only controls, name the visible glyph/control and add its owner/context; adjacent text is context, not the target. If similar tiny controls are adjacent in the same group, add local order or relative position inside that group.
+- If the endpoint/center is on a field value, label, or input body, describe that value/field/control. Do not retarget to a trailing icon, dropdown arrow, clear button, or search affordance unless the endpoint/center is on that icon itself.
+- If the endpoint/center is inside the bordered body, current value, trigger, or blank area of a select/dropdown/combobox/filter field, use primitive "dropdown" and describe that dropdown/select control. Do not call it an input unless it is clearly a free-text field.
+- If the endpoint/center is inside the bordered body or blank area of an input or filter field, describe the field body/current value/control even when the visible text is not exactly under the endpoint. Use the field label or visible value as context; do not snap to trailing icons or nearby table headers.
+- If the endpoint/center is on an expanded dropdown/select/menu list item, use primitive "option" for selectable list options or "menuitem" for command menu entries.
+- Only use primitive "icon" or "arrow" when the endpoint/center directly overlaps the real glyph strokes. A nearby search icon, dropdown arrow, clear button, or wrong locator result must not become the target primitive.
+- For compound controls or stacked glyphs, describe only the sub-part containing the callout endpoint/center, using upper/lower or left/right only when visible.
+- For inline text, links, or substrings, describe only the exact substring/link at the endpoint/center, not the whole line.
+- For repeated rows, cards, or options, use same-local anchors that are visible in the screenshot, such as neighboring cell text, field value, title, date, time, ID, or column/header label.
+- For tables or grids, describe the target as the intersection of the target column/header and same-row anchors. Do not use row ordinals or column ordinals unless the index/header is clearly visible.
+- Use selected, highlighted, hovered, focused, or active state only if the callout endpoint/center is inside that state.
+- If the endpoint/center is on blank space, describe the empty region/gap between stable surrounding anchors. Do not invent a nearby control.
+- Use actual visible text from the current screenshot when available; do not copy labels from the examples.
 - **Write the description in English**
 
 EXAMPLES:

@@ -20,6 +20,51 @@ describe('kimi model adapter', () => {
     expect(result).toEqual([693, 142, 731, 171]);
   });
 
+  it('accepts pixel xy point coordinates for kimi locate results', () => {
+    const locateAdapter = kimiAdapter.locate;
+    expect(locateAdapter.kind).toBe('standard');
+    if (locateAdapter.kind !== 'standard') {
+      throw new Error('kimi should use standard locate adapter');
+    }
+
+    const result =
+      locateAdapter.resultAdapter.adaptElementLocateResultToPixelBbox(
+        [960, 540],
+        { preparedSize: { width: 1920, height: 1080 } },
+      );
+    expect(result).toEqual([950, 530, 970, 550]);
+  });
+
+  it('accepts pixel xy point strings for kimi locate results', () => {
+    const locateAdapter = kimiAdapter.locate;
+    expect(locateAdapter.kind).toBe('standard');
+    if (locateAdapter.kind !== 'standard') {
+      throw new Error('kimi should use standard locate adapter');
+    }
+
+    const result =
+      locateAdapter.resultAdapter.adaptElementLocateResultToPixelBbox(
+        '960 540',
+        { preparedSize: { width: 1920, height: 1080 } },
+      );
+    expect(result).toEqual([950, 530, 970, 550]);
+  });
+
+  it('rejects out-of-range kimi pixel point coordinates', () => {
+    const locateAdapter = kimiAdapter.locate;
+    expect(locateAdapter.kind).toBe('standard');
+    if (locateAdapter.kind !== 'standard') {
+      throw new Error('kimi should use standard locate adapter');
+    }
+
+    expect(() =>
+      locateAdapter.resultAdapter.adaptElementLocateResultToPixelBbox(
+        [2000, 540],
+        { preparedSize: { width: 1920, height: 1080 } },
+      ),
+    ).toThrow(/exceed image size/);
+  });
+
   it('defaults kimi thinking to disabled when reasoning config is unset', () => {
     const result = kimiAdapter.chatCompletion.buildChatCompletionParams({
       userConfig: {},
@@ -103,5 +148,14 @@ describe('kimi model adapter', () => {
       temperature: undefined,
       thinking: { type: 'disabled' },
     });
+  });
+
+  it('uses json_object response format for kimi locate intent', () => {
+    const result = kimiAdapter.chatCompletion.buildChatCompletionParams({
+      intent: 'default',
+      userConfig: {},
+    });
+
+    expect(result.config.response_format).toEqual({ type: 'json_object' });
   });
 });

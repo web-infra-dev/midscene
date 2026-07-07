@@ -13,7 +13,6 @@ import {
 } from '@/ai-model/service-caller';
 import type { AIArgs } from '@/ai-model/types';
 import type { SearchAreaConfig } from '@/ai-model/workflows/inspect/types';
-import { expandSearchArea } from '@/common';
 import type {
   AIDescribeElementResponse,
   AIUsageInfo,
@@ -30,12 +29,23 @@ import type {
   UIContext,
 } from '@/types';
 import { ServiceError } from '@/types';
-import { compositeElementInfoImg, cropByRect } from '@midscene/shared/img';
+import {
+  compositeElementInfoImg,
+  compositePointMarkerImg,
+  cropByRect,
+  resizeImgBase64,
+} from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
+import type { ChatCompletionContentPart } from 'openai/resources/index';
 import type { TMultimodalPrompt, TUserPrompt } from '../common';
 import {
   createServiceDump,
+  getDescribeDeepContextAreas,
+  getDescribeDeepLocateResizeSize,
+  getDescribeMarkerBorderThickness,
+  getDescribeMarkerRect,
+  getRectInCrop,
   recoverDescribeResponseFromParseError,
 } from './utils';
 
@@ -63,6 +73,7 @@ interface LocateSearchAreaResult {
 }
 
 const debug = getDebug('ai:service');
+
 export default class Service {
   contextRetrieverFn: () => Promise<UIContext> | UIContext;
 
@@ -400,7 +411,7 @@ export default class Service {
     target: Rect | [number, number],
     modelRuntime: ModelRuntime,
     opt?: {
-      deepLocate?: boolean;
+      deepDescribe?: boolean;
       context?: UIContext;
     },
   ): Promise<Pick<AIDescribeElementResponse, 'description'>> {
@@ -413,7 +424,8 @@ export default class Service {
 
     // Convert [x,y] center point to Rect if needed
     const defaultRectSize = 30;
-    const targetRect: Rect = Array.isArray(target)
+    const targetFromPoint = Array.isArray(target);
+    const targetRect: Rect = targetFromPoint
       ? {
           left: Math.floor(target[0] - defaultRectSize / 2),
           top: Math.floor(target[1] - defaultRectSize / 2),
@@ -421,45 +433,128 @@ export default class Service {
           height: defaultRectSize,
         }
       : target;
+    const targetPoint = targetFromPoint
+      ? {
+          x: target[0],
+          y: target[1],
+        }
+      : undefined;
 
-    let imagePayload = await compositeElementInfoImg({
-      inputImgBase64: screenshotBase64,
-      size: shotSize,
-      elementsPositionInfo: [
+    const usePointMarker = targetFromPoint;
+    const imagePayload = usePointMarker
+      ? await compositePointMarkerImg({
+          inputImgBase64: screenshotBase64,
+          size: shotSize,
+          point: targetPoint!,
+        })
+      : await compositeElementInfoImg({
+          inputImgBase64: screenshotBase64,
+          size: shotSize,
+          elementsPositionInfo: [
+            {
+              rect: getDescribeMarkerRect(targetRect),
+            },
+          ],
+          borderThickness: getDescribeMarkerBorderThickness(targetRect),
+          centerPoint: true,
+        });
+
+    const shouldDeepDescribe = opt?.deepDescribe;
+    let imageContent: ChatCompletionContentPart[];
+    if (shouldDeepDescribe) {
+      const contextAreas = getDescribeDeepContextAreas(targetRect, shotSize);
+      const contextImages = await Promise.all(
+        contextAreas.map(async (area) => {
+          debug('describe: cropping deep context area', area);
+          const croppedResult = await cropByRect(screenshotBase64, area.rect);
+          const cropSize = {
+            width: croppedResult.width,
+            height: croppedResult.height,
+          };
+          const targetInCrop = getRectInCrop(targetRect, area.rect, cropSize);
+          const markedCropPayload = targetFromPoint
+            ? await compositePointMarkerImg({
+                inputImgBase64: croppedResult.imageBase64,
+                size: cropSize,
+                point: {
+                  x: targetPoint!.x - area.rect.left,
+                  y: targetPoint!.y - area.rect.top,
+                },
+              })
+            : await compositeElementInfoImg({
+                inputImgBase64: croppedResult.imageBase64,
+                size: cropSize,
+                elementsPositionInfo: [
+                  {
+                    rect: getDescribeMarkerRect(targetInCrop),
+                  },
+                ],
+                borderThickness: getDescribeMarkerBorderThickness(targetInCrop),
+                centerPoint: true,
+              });
+          const resizeSize = getDescribeDeepLocateResizeSize(croppedResult);
+          return {
+            kind: area.kind,
+            imageBase64: resizeSize
+              ? await resizeImgBase64(markedCropPayload, resizeSize)
+              : markedCropPayload,
+          };
+        }),
+      );
+      const contextImageContent =
+        contextImages.flatMap<ChatCompletionContentPart>((item, index) => [
+          {
+            type: 'text',
+            text: `Image ${index + 2}: focused detail crop around the target, for reading text, icon shape, and exact local boundaries.`,
+          },
+          {
+            type: 'image_url',
+            image_url: {
+              url: item.imageBase64,
+              detail: 'high',
+            },
+          },
+        ]);
+
+      imageContent = [
         {
-          rect: targetRect,
+          type: 'text' as const,
+          text: 'Use these images together to describe the real UI target marked by the temporary callout. Do not describe the marker itself.',
         },
-      ],
-      borderThickness: 3,
-    });
-
-    if (opt?.deepLocate) {
-      const searchArea = expandSearchArea(targetRect, shotSize);
-      // Always crop in describe mode. Unlike locate's deepLocate (where
-      // cropping too small loses context for finding elements), describe's
-      // deepLocate intentionally zooms in so the model produces a more
-      // precise description from a focused view. expandSearchArea already
-      // guarantees a minimum 400x400 area with surrounding context.
-      // Describe is not a coordinate-parsing flow, so it does not need image
-      // padding for bbox normalization.
-      debug('describe: cropping to searchArea', searchArea);
-      const croppedResult = await cropByRect(imagePayload, searchArea);
-      imagePayload = croppedResult.imageBase64;
+        {
+          type: 'text' as const,
+          text: 'Image 1: full screenshot overview with the target marker, for page position and ownership context.',
+        },
+        {
+          type: 'image_url' as const,
+          image_url: {
+            url: imagePayload,
+            detail: 'high',
+          },
+        },
+        ...contextImageContent,
+      ];
+    } else {
+      imageContent = [
+        {
+          type: 'text' as const,
+          text: 'Full screenshot with a temporary callout marking the target:',
+        },
+        {
+          type: 'image_url' as const,
+          image_url: {
+            url: imagePayload,
+            detail: 'high',
+          },
+        },
+      ];
     }
 
     const msgs: AIArgs = [
       { role: 'system', content: systemPrompt },
       {
         role: 'user',
-        content: [
-          {
-            type: 'image_url',
-            image_url: {
-              url: imagePayload,
-              detail: 'high',
-            },
-          },
-        ],
+        content: imageContent,
       },
     ];
 

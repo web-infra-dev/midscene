@@ -13,7 +13,7 @@ type TestStatus =
   | { kind: 'idle' }
   | { kind: 'running' }
   | { kind: 'success' }
-  | { kind: 'error' };
+  | { kind: 'error'; message?: string };
 
 export interface ModelEnvConfigModalProps {
   open: boolean;
@@ -30,6 +30,7 @@ const connectivityIconSrc = new URL(
   './model-env-connectivity.svg',
   import.meta.url,
 ).href;
+const SAVE_AFTER_SUCCESS_DELAY_MS = 1800;
 
 function ConnectivityPlayIcon() {
   return (
@@ -114,25 +115,23 @@ function EnvModalTabs({
 }
 
 function EnvModalFooter({
-  onCancel,
   onConnectivityTest,
   onSave,
   canRunConnectivityTest,
   testStatus,
 }: {
-  onCancel: () => void;
   onConnectivityTest: () => void;
   onSave: () => void;
   canRunConnectivityTest: boolean;
   testStatus: TestStatus;
 }) {
   const isTesting = testStatus.kind === 'running';
-  const connectivityLabel = isTesting ? 'Testing...' : 'Connectivity test';
+  const connectivityLabel = isTesting ? 'Testing...' : 'Verify and Save Model';
 
   return (
-    <div className="relative z-10 mt-auto box-border flex w-full items-center justify-between px-[20px] pb-[24px]">
+    <div className="relative z-10 mt-auto box-border flex w-full items-center justify-end gap-[16px] px-[20px] pb-[24px]">
       <button
-        className={`flex h-[32px] w-[159px] items-center gap-[4px] rounded-[8px] border border-border-control bg-surface-elevated px-[12px] py-0 ${
+        className={`flex h-[32px] w-auto min-w-[190px] items-center justify-center gap-[6px] rounded-[8px] border border-border-control bg-surface-elevated px-[16px] py-0 ${
           isTesting
             ? 'cursor-not-allowed opacity-60'
             : canRunConnectivityTest
@@ -152,31 +151,20 @@ function EnvModalFooter({
         ) : (
           <ConnectivityPlayIcon />
         )}
-        <span className="w-[115px] overflow-hidden whitespace-nowrap text-left font-sans text-[14px] font-medium text-text-primary leading-[16px]">
+        <span className="whitespace-nowrap font-sans text-[14px] font-medium text-text-primary leading-[16px]">
           {connectivityLabel}
         </span>
       </button>
 
-      <div className="flex items-center gap-[8px]">
-        <button
-          className="flex h-[32px] w-[76px] cursor-pointer items-center justify-center rounded-[8px] border-0 bg-surface-muted p-0 hover:bg-surface-hover-strong"
-          onClick={onCancel}
-          type="button"
-        >
-          <span className="w-[47px] overflow-hidden whitespace-nowrap text-center font-sans text-[14px] font-medium leading-[16px] text-text-secondary">
-            Cancel
-          </span>
-        </button>
-        <button
-          className="flex h-[32px] w-[76px] cursor-pointer items-center justify-center rounded-[8px] border border-brand bg-brand p-0 hover:opacity-90"
-          onClick={onSave}
-          type="button"
-        >
-          <span className="w-[33px] overflow-hidden whitespace-nowrap text-center font-sans text-[14px] font-medium leading-[16px] text-white">
-            Save
-          </span>
-        </button>
-      </div>
+      <button
+        className="flex h-[32px] w-[76px] cursor-pointer items-center justify-center rounded-[8px] border border-brand bg-brand p-0 hover:opacity-90"
+        onClick={onSave}
+        type="button"
+      >
+        <span className="w-[33px] overflow-hidden whitespace-nowrap text-center font-sans text-[14px] font-medium leading-[16px] text-white">
+          Save
+        </span>
+      </button>
     </div>
   );
 }
@@ -192,17 +180,30 @@ export function ModelEnvConfigModal({
   const [text, setText] = useState(initialTextValue ?? '');
   const [testStatus, setTestStatus] = useState<TestStatus>({ kind: 'idle' });
   const testRunIdRef = useRef(0);
+  const pendingSaveTimerRef = useRef<number | null>(null);
+
+  const clearPendingSaveTimer = () => {
+    if (pendingSaveTimerRef.current === null) {
+      return;
+    }
+    window.clearTimeout(pendingSaveTimerRef.current);
+    pendingSaveTimerRef.current = null;
+  };
 
   useEffect(() => {
     if (!open) {
+      clearPendingSaveTimer();
       return;
     }
 
+    clearPendingSaveTimer();
     testRunIdRef.current += 1;
     setTab(initialTab);
     setText(initialTextValue ?? '');
     setTestStatus({ kind: 'idle' });
   }, [initialTab, initialTextValue, open]);
+
+  useEffect(() => () => clearPendingSaveTimer(), []);
 
   useEffect(() => {
     if (!open) {
@@ -239,6 +240,9 @@ export function ModelEnvConfigModal({
     : hasTestStatus
       ? testStatus.kind
       : null;
+  const statusMessage =
+    validationError ??
+    (testStatus.kind === 'error' ? testStatus.message : undefined);
   const hasStatusRow = statusKind !== null;
   const hasValidationStatus = validationError !== null;
   const modalHeightClass = (() => {
@@ -264,6 +268,7 @@ export function ModelEnvConfigModal({
   }
 
   const handleTextChange = (nextText: string) => {
+    clearPendingSaveTimer();
     testRunIdRef.current += 1;
     setText(nextText);
     setTestStatus((currentStatus) =>
@@ -281,7 +286,10 @@ export function ModelEnvConfigModal({
     }
 
     if (!window.studioRuntime) {
-      setTestStatus({ kind: 'error' });
+      setTestStatus({
+        kind: 'error',
+        message: 'Studio runtime is not available.',
+      });
       return;
     }
 
@@ -289,18 +297,40 @@ export function ModelEnvConfigModal({
     testRunIdRef.current = testRunId;
     setTestStatus({ kind: 'running' });
     try {
-      const result =
-        await window.studioRuntime.runConnectivityTest(resolvedConnection);
+      const result = await window.studioRuntime.runConnectivityTest(envValues);
       if (testRunIdRef.current !== testRunId) {
         return;
       }
-      setTestStatus({ kind: result.ok ? 'success' : 'error' });
-    } catch {
+      if (result.passed) {
+        setTestStatus({ kind: 'success' });
+        clearPendingSaveTimer();
+        pendingSaveTimerRef.current = window.setTimeout(() => {
+          if (testRunIdRef.current === testRunId) {
+            onSave?.({ text });
+          }
+          pendingSaveTimerRef.current = null;
+        }, SAVE_AFTER_SUCCESS_DELAY_MS);
+        return;
+      }
+      setTestStatus({
+        kind: 'error',
+        message: result.message || 'Connectivity test failed without details.',
+      });
+    } catch (error) {
       if (testRunIdRef.current !== testRunId) {
         return;
       }
-      setTestStatus({ kind: 'error' });
+      setTestStatus({
+        kind: 'error',
+        message: error instanceof Error ? error.message : String(error),
+      });
     }
+  };
+
+  const handleSave = () => {
+    clearPendingSaveTimer();
+    testRunIdRef.current += 1;
+    onSave?.({ text });
   };
 
   return (
@@ -351,17 +381,13 @@ export function ModelEnvConfigModal({
         ) : null}
 
         {statusKind ? (
-          <ModelEnvConfigStatus
-            kind={statusKind}
-            message={validationError ?? undefined}
-          />
+          <ModelEnvConfigStatus kind={statusKind} message={statusMessage} />
         ) : null}
 
         <EnvModalFooter
           canRunConnectivityTest={canRunConnectivityTest}
-          onCancel={onClose}
           onConnectivityTest={handleConnectivityTest}
-          onSave={() => onSave?.({ text })}
+          onSave={handleSave}
           testStatus={testStatus}
         />
       </div>

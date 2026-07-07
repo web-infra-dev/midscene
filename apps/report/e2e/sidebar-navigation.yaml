@@ -86,6 +86,80 @@ tasks:
           })()
         name: assertSecondTaskSelected
 
+  - name: selected task row maps to a url hash anchor
+    flow:
+      - javascript: |
+          (function () {
+            const rows = Array.from(
+              document.querySelectorAll('.tasks-table .task-row'),
+            );
+            const firstRow = rows[0];
+            if (!(firstRow instanceof HTMLElement)) {
+              throw new Error('First sidebar task row not found');
+            }
+            if (!firstRow.id) {
+              throw new Error('Task row is missing an anchor id');
+            }
+            firstRow.click();
+            return { anchorId: firstRow.id };
+          })()
+        name: clickRowForHash
+      - sleep: 500
+      - javascript: |
+          (function () {
+            const selectedRow = document.querySelector(
+              '.tasks-table .task-row.selected',
+            );
+            if (!(selectedRow instanceof HTMLElement)) {
+              throw new Error('No selected task row after click');
+            }
+            const expectedHash = '#' + selectedRow.id;
+            if (window.location.hash !== expectedHash) {
+              throw new Error(
+                'Expected url hash ' +
+                  expectedHash +
+                  ', found ' +
+                  window.location.hash,
+              );
+            }
+            return { hash: window.location.hash };
+          })()
+        name: assertHashMatchesSelectedRow
+      - javascript: |
+          (function () {
+            const rows = Array.from(
+              document.querySelectorAll('.tasks-table .task-row'),
+            );
+            const targetRow = rows[1];
+            if (!(targetRow instanceof HTMLElement) || !targetRow.id) {
+              throw new Error('Second sidebar task row with id not found');
+            }
+            // Drive selection purely through the url hash.
+            window.location.hash = targetRow.id;
+            return { navigatedTo: targetRow.id };
+          })()
+        name: navigateViaHash
+      - sleep: 1000
+      - javascript: |
+          (function () {
+            const selectedRow = document.querySelector(
+              '.tasks-table .task-row.selected',
+            );
+            if (!(selectedRow instanceof HTMLElement)) {
+              throw new Error('No selected task row after hash navigation');
+            }
+            if ('#' + selectedRow.id !== window.location.hash) {
+              throw new Error(
+                'Hash navigation did not select the matching row; selected ' +
+                  selectedRow.id +
+                  ', hash ' +
+                  window.location.hash,
+              );
+            }
+            return { selectedTaskId: selectedRow.getAttribute('data-task-id') };
+          })()
+        name: assertHashSelectsRow
+
   - name: toggle model call details
     flow:
       - javascript: |

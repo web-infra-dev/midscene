@@ -1,4 +1,5 @@
 import { type ModelRuntime, getModelRuntime } from '@/ai-model/models';
+import { INTERNAL_CALL_ID_FIELD } from '@/ai-model/service-caller';
 import yaml from 'js-yaml';
 import type { TUserPrompt } from '../ai-model/index';
 import { ScreenshotItem } from '../screenshot-item';
@@ -7,10 +8,12 @@ import Service from '../service/index';
 // DO NOT import from '../index' as it creates a circular dependency:
 // index.ts -> agent/index.ts -> agent/agent.ts -> index.ts
 import {
+  type AIUsageInfo,
   type ActionParam,
   type ActionReturn,
   type AgentAssertOpt,
   type AgentOpt,
+  type AgentProgressListener,
   type AgentWaitForOpt,
   type DeepThinkOption,
   type DeviceAction,
@@ -63,6 +66,8 @@ import { getDebug } from '@midscene/shared/logger';
 import { assert, ifInBrowser, uuid } from '@midscene/shared/utils';
 import { defineActionSleep } from '../device';
 import { validateAgentCacheInput } from './cache-config';
+import { MetricsCollector, type MidsceneUsageMetrics } from './metrics';
+import { AgentProgressBus } from './progress';
 import { buildPromptWithContext } from './prompt-context';
 import { normalizeRecordToReportScreenshot } from './record-to-report';
 import {
@@ -142,9 +147,23 @@ export class Agent<
 
   taskCache?: TaskCache;
 
+  private readonly metricsCollector = new MetricsCollector();
+
+  // Monotonic counter for generating unique dedup keys when a usage has no
+  // request_id (e.g. estimated streaming usage).
+  private usageCallCounter = 0;
+
+  // Usage values already folded into `metricsCollector`, keyed by
+  // `${taskId}:${field}` so re-emitted snapshots never double-count.
+  private readonly countedUsageKeys = new Set<string>();
+
   private dumpUpdateListeners: Array<
     (dump: string, executionDump?: ExecutionDump) => void
   > = [];
+
+  // Generic progress bus: every producer (aiAct today, more later) broadcasts
+  // through here. Consumers narrow by `event.scope`.
+  private readonly progressBus = new AgentProgressBus();
 
   get onDumpUpdate():
     | ((dump: string, executionDump?: ExecutionDump) => void)
@@ -224,7 +243,24 @@ export class Agent<
   }
 
   private resolveModelRuntime(intent: TIntent): ModelRuntime {
-    return getModelRuntime(this.modelConfigManager.getModelConfig(intent));
+    const runtime = getModelRuntime(
+      this.modelConfigManager.getModelConfig(intent),
+    );
+    return {
+      ...runtime,
+      onUsage: (usage) => {
+        this.usageCallCounter += 1;
+        // buildUsageInfo leaves intent undefined; fill it from the model
+        // config slot so metrics.byIntent has a meaningful category.
+        const enriched = usage.intent
+          ? usage
+          : { ...usage, intent: usage.slot };
+        this.consumeUsage(
+          enriched,
+          `callai:${usage.request_id ?? this.usageCallCounter}`,
+        );
+      },
+    };
   }
 
   constructor(interfaceInstance: InterfaceType, opts?: AgentOpt) {
@@ -296,9 +332,10 @@ export class Agent<
       useDeviceTime: this.opts.useDeviceTime,
       actionSpace: this.fullActionSpace,
       hooks: {
-        onTaskUpdate: async (runner) => {
+        onSnapshotChange: async (runner) => {
           const executionDump = runner.dump();
           this.appendExecutionDump(executionDump, runner);
+          this.collectUsageMetrics(executionDump);
 
           // Persist report updates before notifying listeners so screenshot
           // payloads can be released from memory and serialized as references.
@@ -315,6 +352,7 @@ export class Agent<
             }
           }
         },
+        onProgress: this.progressBus.publish,
       },
     });
     this.dump = this.resetDump();
@@ -435,6 +473,56 @@ export class Agent<
       return;
     }
     currentDump.executions.push(execution);
+  }
+
+  /**
+   * Fold any not-yet-counted task usage from an execution dump into the
+   * instance metrics. Snapshots are re-emitted as tasks progress, so each
+   * usage value is keyed by `${taskId}:${field}` and counted at most once.
+   */
+  private collectUsageMetrics(execution: ExecutionDump) {
+    for (const task of execution.tasks) {
+      this.consumeUsage(task.usage, `${task.taskId}:usage`);
+      this.consumeUsage(task.searchAreaUsage, `${task.taskId}:searchAreaUsage`);
+    }
+  }
+
+  private consumeUsage(usage: AIUsageInfo | undefined, key: string) {
+    if (!usage) {
+      return;
+    }
+    // Dedup key priority:
+    // 1. request_id — provider-issued, stable across onUsage and task dump paths
+    // 2. INTERNAL_CALL_ID_FIELD — callAI-generated internal id, covers
+    //    providers that don't return a request_id
+    // 3. caller-provided key (taskId:field or callai:counter)
+    let dedupKey: string;
+    if (usage.request_id) {
+      dedupKey = `req:${usage.request_id}`;
+    } else if ((usage as any)[INTERNAL_CALL_ID_FIELD]) {
+      dedupKey = `int:${(usage as any)[INTERNAL_CALL_ID_FIELD]}`;
+    } else {
+      dedupKey = key;
+    }
+    if (this.countedUsageKeys.has(dedupKey)) {
+      return;
+    }
+    this.countedUsageKeys.add(dedupKey);
+    this.metricsCollector.add(usage);
+    if (this.opts.onLLMUsage) {
+      try {
+        this.opts.onLLMUsage(usage);
+      } catch (error) {
+        warn(`onLLMUsage listener threw, ignoring: ${error}`);
+      }
+    }
+  }
+
+  /**
+   * Aggregated LLM usage accumulated by this agent since it was created.
+   */
+  get metrics(): MidsceneUsageMetrics {
+    return this.metricsCollector.snapshot();
   }
 
   dumpDataString(opt?: { inlineScreenshots?: boolean }) {
@@ -1307,6 +1395,31 @@ export class Agent<
    */
   clearDumpUpdateListeners(): void {
     this.dumpUpdateListeners = [];
+  }
+
+  /**
+   * Subscribe to the generic agent progress bus. The listener receives every
+   * progress event regardless of producer; narrow by `event.scope` to handle a
+   * specific producer (e.g. `'aiAct'`).
+   * @param listener Listener function
+   * @returns A remove function that can be called to remove this listener
+   */
+  addProgressListener(listener: AgentProgressListener): () => void {
+    return this.progressBus.subscribe(listener);
+  }
+
+  /**
+   * Remove a progress listener added via {@link addProgressListener}.
+   */
+  removeProgressListener(listener: AgentProgressListener): void {
+    this.progressBus.unsubscribe(listener);
+  }
+
+  /**
+   * Clear all generic progress listeners.
+   */
+  clearProgressListeners(): void {
+    this.progressBus.clear();
   }
 
   private notifyDumpUpdateListeners(executionDump?: ExecutionDump) {

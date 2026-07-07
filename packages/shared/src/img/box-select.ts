@@ -260,6 +260,48 @@ function drawCircle(
   }
 }
 
+function drawEllipse(
+  pixels: Uint8Array,
+  width: number,
+  height: number,
+  center: { x: number; y: number },
+  radiusX: number,
+  radiusY: number,
+  color: { r: number; g: number; b: number; a: number },
+  thickness = 2,
+) {
+  const cx = Math.round(center.x);
+  const cy = Math.round(center.y);
+  const outerRadiusX = Math.max(Math.round(radiusX), 1);
+  const outerRadiusY = Math.max(Math.round(radiusY), 1);
+  const innerRadiusX = Math.max(outerRadiusX - Math.round(thickness), 0);
+  const innerRadiusY = Math.max(outerRadiusY - Math.round(thickness), 0);
+
+  for (let py = cy - outerRadiusY; py <= cy + outerRadiusY; py++) {
+    for (let px = cx - outerRadiusX; px <= cx + outerRadiusX; px++) {
+      if (px < 0 || py < 0 || px >= width || py >= height) continue;
+
+      const dx = px - cx;
+      const dy = py - cy;
+      const outer =
+        (dx * dx) / (outerRadiusX * outerRadiusX) +
+        (dy * dy) / (outerRadiusY * outerRadiusY);
+      const inner =
+        innerRadiusX === 0 || innerRadiusY === 0
+          ? 0
+          : (dx * dx) / (innerRadiusX * innerRadiusX) +
+            (dy * dy) / (innerRadiusY * innerRadiusY);
+      if (outer > 1 || inner < 1) continue;
+
+      const idx = (py * width + px) * 4;
+      pixels[idx + 0] = color.r;
+      pixels[idx + 1] = color.g;
+      pixels[idx + 2] = color.b;
+      pixels[idx + 3] = color.a;
+    }
+  }
+}
+
 function drawLine(
   pixels: Uint8Array,
   width: number,
@@ -294,62 +336,130 @@ function drawLine(
   }
 }
 
+function drawCallout(
+  pixels: Uint8Array,
+  width: number,
+  height: number,
+  targetPoint: { x: number; y: number },
+  markerRadius: number,
+  style: {
+    callout: { r: number; g: number; b: number; a: number };
+    calloutBorder: { r: number; g: number; b: number; a: number };
+    calloutText: { r: number; g: number; b: number; a: number };
+    indexId: number;
+  },
+) {
+  const cx = Math.round(targetPoint.x);
+  const cy = Math.round(targetPoint.y);
+  const gap = Math.max(markerRadius + 18, 30);
+  const candidates = [
+    { x: cx + gap, y: cy - gap },
+    { x: cx + gap, y: cy + gap },
+    { x: cx - gap, y: cy - gap },
+    { x: cx - gap, y: cy + gap },
+    { x: cx, y: cy - gap },
+    { x: cx, y: cy + gap },
+    { x: cx + gap, y: cy },
+    { x: cx - gap, y: cy },
+  ];
+  const calloutCenter = candidates.find(
+    (candidate) =>
+      candidate.x - markerRadius >= 0 &&
+      candidate.x + markerRadius < width &&
+      candidate.y - markerRadius >= 0 &&
+      candidate.y + markerRadius < height,
+  ) || {
+    x: Math.min(Math.max(cx + gap, markerRadius), width - markerRadius - 1),
+    y: Math.min(Math.max(cy - gap, markerRadius), height - markerRadius - 1),
+  };
+
+  const lineAngle = Math.atan2(cy - calloutCenter.y, cx - calloutCenter.x);
+  const lineStart = {
+    x: calloutCenter.x + Math.cos(lineAngle) * (markerRadius + 1),
+    y: calloutCenter.y + Math.sin(lineAngle) * (markerRadius + 1),
+  };
+
+  const targetRadiusX = 30;
+  const targetRadiusY = 15;
+  const ellipseBoundaryDistance =
+    1 /
+    Math.sqrt(
+      Math.cos(lineAngle) ** 2 / targetRadiusX ** 2 +
+        Math.sin(lineAngle) ** 2 / targetRadiusY ** 2,
+    );
+  const lineEnd = {
+    x: cx - Math.cos(lineAngle) * ellipseBoundaryDistance,
+    y: cy - Math.sin(lineAngle) * ellipseBoundaryDistance,
+  };
+
+  drawLine(pixels, width, height, lineStart, lineEnd, style.callout, 2);
+  drawCircle(
+    pixels,
+    width,
+    height,
+    calloutCenter,
+    markerRadius + 2,
+    style.calloutBorder,
+    {
+      thickness: 3,
+    },
+  );
+  drawCircle(
+    pixels,
+    width,
+    height,
+    calloutCenter,
+    markerRadius,
+    style.callout,
+    {
+      fill: true,
+    },
+  );
+  drawEllipse(
+    pixels,
+    width,
+    height,
+    targetPoint,
+    targetRadiusX,
+    targetRadiusY,
+    style.callout,
+    2,
+  );
+  const textWidth = getNumberWidth(style.indexId);
+  const textHeight = FONT_HEIGHT * FONT_SCALE;
+  drawNumber(
+    pixels,
+    width,
+    height,
+    style.indexId,
+    Math.round(calloutCenter.x - textWidth / 2),
+    Math.round(calloutCenter.y - textHeight / 2),
+    style.calloutText,
+  );
+}
+
 function drawPointMarker(
   pixels: Uint8Array,
   width: number,
   height: number,
   point: { x: number; y: number },
   radius: number,
+  indexId = 1,
 ) {
-  const red = { r: 0xff, g: 0x3b, b: 0x30, a: 0xff };
-  const white = { r: 0xff, g: 0xff, b: 0xff, a: 0xff };
-  const cx = Math.round(point.x);
-  const cy = Math.round(point.y);
-  const markerRadius = Math.max(Math.round(radius), 8);
-
-  drawCircle(pixels, width, height, point, markerRadius + 2, white, {
-    thickness: 3,
+  const markerColors = [
+    { r: 0xc6, g: 0x23, b: 0x00, a: 0xee },
+    { r: 0x00, g: 0x00, b: 0xff, a: 0xee },
+  ];
+  const callout = markerColors[(indexId - 1) % markerColors.length];
+  const calloutBorder = { r: 0xff, g: 0xff, b: 0xff, a: 0xff };
+  const calloutText = { r: 0xff, g: 0xff, b: 0xff, a: 0xff };
+  const markerRadius = Math.max(Math.round(radius), 10);
+  drawCallout(pixels, width, height, point, markerRadius, {
+    callout,
+    calloutBorder,
+    calloutText,
+    indexId,
   });
-  drawCircle(pixels, width, height, point, markerRadius, red, {
-    thickness: 3,
-  });
-  drawCircle(pixels, width, height, point, 3, red, { fill: true });
-  drawLine(
-    pixels,
-    width,
-    height,
-    { x: cx - markerRadius - 4, y: cy },
-    { x: cx - markerRadius + 2, y: cy },
-    red,
-    2,
-  );
-  drawLine(
-    pixels,
-    width,
-    height,
-    { x: cx + markerRadius - 2, y: cy },
-    { x: cx + markerRadius + 4, y: cy },
-    red,
-    2,
-  );
-  drawLine(
-    pixels,
-    width,
-    height,
-    { x: cx, y: cy - markerRadius - 4 },
-    { x: cx, y: cy - markerRadius + 2 },
-    red,
-    2,
-  );
-  drawLine(
-    pixels,
-    width,
-    height,
-    { x: cx, y: cy + markerRadius - 2 },
-    { x: cx, y: cy + markerRadius + 4 },
-    red,
-    2,
-  );
 }
 
 function blendPixels(
@@ -406,6 +516,7 @@ const createSvgOverlay = async (
   boxPadding = 5,
   borderThickness = 2,
   prompt?: string,
+  centerPoint = false,
 ): Promise<Uint8Array> => {
   // Create transparent overlay
   const overlayPixels = new Uint8Array(imageWidth * imageHeight * 4);
@@ -489,6 +600,21 @@ const createSvgOverlay = async (
       color.rect,
       borderThickness,
     );
+
+    if (centerPoint) {
+      drawCircle(
+        overlayPixels,
+        imageWidth,
+        imageHeight,
+        {
+          x: element.rect.left + element.rect.width / 2,
+          y: element.rect.top + element.rect.height / 2,
+        },
+        4,
+        color.rect,
+        { fill: true },
+      );
+    }
 
     // Calculate text position
     const indexId = element.indexId;
@@ -595,6 +721,7 @@ export const compositeElementInfoImg = async (options: {
   size?: { width: number; height: number };
   annotationPadding?: number;
   borderThickness?: number;
+  centerPoint?: boolean;
   prompt?: string;
 }) => {
   assert(options.inputImgBase64, 'inputImgBase64 is required');
@@ -648,6 +775,7 @@ export const compositeElementInfoImg = async (options: {
       options.annotationPadding,
       options.borderThickness,
       prompt,
+      options.centerPoint,
     );
 
     // Blend overlay onto base image
@@ -669,6 +797,7 @@ export const compositePointMarkerImg = async (options: {
   point: { x: number; y: number };
   size?: { width: number; height: number };
   radius?: number;
+  indexId?: number;
 }) => {
   assert(options.inputImgBase64, 'inputImgBase64 is required');
   const { PhotonImage, SamplingFilter, resize } = await getPhoton();
@@ -715,6 +844,7 @@ export const compositePointMarkerImg = async (options: {
       height,
       options.point,
       options.radius ?? 14,
+      options.indexId ?? 1,
     );
     const blendedPixels = blendPixels(basePixels, overlayPixels, width, height);
     const resultImage = new PhotonImage(blendedPixels, width, height);

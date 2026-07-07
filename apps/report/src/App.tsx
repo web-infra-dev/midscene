@@ -1,12 +1,22 @@
 import './App.less';
 
-import { Alert, App as AntdApp, ConfigProvider, Empty, theme } from 'antd';
+import { DownOutlined } from '@ant-design/icons';
+import {
+  Alert,
+  App as AntdApp,
+  ConfigProvider,
+  Dropdown,
+  Empty,
+  message,
+  theme,
+} from 'antd';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 
 import {
   GroupedActionDump,
   dedupeExecutionsKeepLatest,
+  reportToMarkdown,
   restoreImageReferences,
 } from '@midscene/core';
 import { antiEscapeScriptTag } from '@midscene/shared/utils';
@@ -16,20 +26,29 @@ import {
   globalThemeConfig,
   useGlobalPreference,
 } from '@midscene/visualizer';
+import AgentScreenshotView from './components/agent-screenshot-view';
 import DetailPanel from './components/detail-panel';
 import DetailSide from './components/detail-side';
 import GlobalHoverPreview from './components/global-hover-preview';
 import Sidebar from './components/sidebar';
 import { type DumpStoreType, useExecutionDump } from './components/store';
+import { useTaskHashAnchor } from './components/store/use-task-hash-anchor';
 import Timeline from './components/timeline';
 import ThemeDarkIcon from './icons/theme-dark.svg?react';
 import ThemeLightIcon from './icons/theme-light.svg?react';
 import type {
   PlaywrightTaskAttributes,
   PlaywrightTasks,
+  ReportViewMode,
   VisualizerProps,
 } from './types';
+import {
+  downloadMarkdownZip,
+  getReportMarkdownView,
+  markdownArchiveBaseName,
+} from './utils/markdown-export';
 import { formatModelBriefText } from './utils/model-brief';
+import { getPlayerViewOptions } from './utils/player-only';
 import {
   getEmptyDumpDescription,
   parseDumpAttributes,
@@ -78,6 +97,9 @@ function Visualizer(props: VisualizerProps): JSX.Element {
   const replayAllScripts = useExecutionDump(
     (store) => store.allExecutionAnimation,
   );
+  const activeExecutionAnimation = useExecutionDump(
+    (store) => store.activeExecutionAnimation,
+  );
   const insightWidth = useExecutionDump((store) => store.insightWidth);
   const insightHeight = useExecutionDump((store) => store.insightHeight);
   const replayAllMode = useExecutionDump((store) => store.replayAllMode);
@@ -97,12 +119,32 @@ function Visualizer(props: VisualizerProps): JSX.Element {
   });
   const dump = useExecutionDump((store) => store.dump);
   const [timelineCollapsed, setTimelineCollapsed] = useState(false);
+  const [reportViewMode, setReportViewMode] = useState<ReportViewMode>('human');
+  const [reportViewModeDropdownOpen, setReportViewModeDropdownOpen] =
+    useState(false);
+  const [selectedMarkdownImagePath, setSelectedMarkdownImagePath] = useState<
+    string | null
+  >(null);
+  const [selectedMarkdownImageRequestId, setSelectedMarkdownImageRequestId] =
+    useState(0);
   const {
     modelCallDetailsEnabled: proModeEnabled,
     setModelCallDetailsEnabled: setProModeEnabled,
     darkModeEnabled: isDarkMode,
     setDarkModeEnabled: setIsDarkMode,
   } = useGlobalPreference();
+
+  // Player view flags from the URL. `player-only=1` strips all report chrome
+  // (nav, sidebar, timeline, detail side) and keeps just the Player; in that
+  // mode `play-control=1` shows the control bar. `auto-play` is independent of
+  // player-only and applies to every report player (on by default, `=0` off).
+  const { playerOnly, playControl, autoPlay } = useMemo(
+    () => getPlayerViewOptions(),
+    [],
+  );
+
+  // Keep the URL hash in sync with the selected sidebar task (deep-linking).
+  useTaskHashAnchor();
 
   useEffect(() => {
     document.documentElement.setAttribute(
@@ -147,6 +189,75 @@ function Visualizer(props: VisualizerProps): JSX.Element {
       dumps.every((d) => d.attributes?.playwright_test_status === 'skipped'),
     [dumps],
   );
+  const reportMarkdownView = useMemo(() => {
+    if (reportViewMode !== 'markdown') {
+      return null;
+    }
+    return getReportMarkdownView(dump, reportToMarkdown);
+  }, [dump, reportViewMode]);
+  const readyReportMarkdown =
+    reportMarkdownView?.status === 'ready' ? reportMarkdownView : null;
+  const reportArchiveBaseName = useMemo(
+    () => markdownArchiveBaseName(dump),
+    [dump],
+  );
+  const reportViewModeLabel =
+    reportViewMode === 'markdown' ? 'Markdown View' : 'Human View';
+  const resetMarkdownImageSelection = () => {
+    setSelectedMarkdownImagePath(null);
+    setSelectedMarkdownImageRequestId(0);
+  };
+  const handleReportViewModeChange = (mode: ReportViewMode) => {
+    if (mode === reportViewMode) {
+      return;
+    }
+    setReportViewMode(mode);
+    resetMarkdownImageSelection();
+  };
+
+  const handleCopyReportMarkdown = async () => {
+    if (!readyReportMarkdown) {
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(readyReportMarkdown.markdown);
+      message.success('Markdown copied');
+    } catch {
+      message.error('Copy failed');
+    }
+  };
+
+  const handleDownloadReportMarkdownZip = async () => {
+    if (!readyReportMarkdown) {
+      return;
+    }
+
+    try {
+      const result = await downloadMarkdownZip(
+        readyReportMarkdown.markdown,
+        readyReportMarkdown.attachments,
+        reportArchiveBaseName,
+      );
+      if (result.missingAttachmentCount > 0) {
+        message.warning(
+          `${result.missingAttachmentCount} screenshot link${
+            result.missingAttachmentCount === 1 ? '' : 's'
+          } kept as markdown reference${
+            result.missingAttachmentCount === 1 ? '' : 's'
+          } but not packaged.`,
+        );
+      } else {
+        message.success('Markdown and images downloaded');
+      }
+    } catch {
+      message.error('Download failed');
+    }
+  };
+  const handleMarkdownImageClick = (markdownPath: string) => {
+    setSelectedMarkdownImagePath(markdownPath);
+    setSelectedMarkdownImageRequestId((current) => current + 1);
+  };
 
   const renderContent = () => {
     if (dump && dump.executions.length === 0) {
@@ -168,6 +279,7 @@ function Visualizer(props: VisualizerProps): JSX.Element {
             imageWidth={insightWidth!}
             imageHeight={insightHeight!}
             onTaskChange={setPlayingTaskId}
+            autoPlay={autoPlay}
           />
         </div>
       );
@@ -176,7 +288,7 @@ function Visualizer(props: VisualizerProps): JSX.Element {
       <PanelGroup autoSaveId="page-detail-layout-v2" direction="horizontal">
         <Panel defaultSize={75} maxSize={95}>
           <div className="main-content-container">
-            <DetailPanel />
+            <DetailPanel autoPlay={autoPlay} />
           </div>
         </Panel>
         <PanelResizeHandle className="resize-handle" />
@@ -189,8 +301,11 @@ function Visualizer(props: VisualizerProps): JSX.Element {
     );
   };
 
-  let mainContent: JSX.Element;
-  if (allSkipped && (!dump || dump.executions.length === 0)) {
+  // Skip building the report chrome entirely when only the Player is requested.
+  let mainContent: JSX.Element | null = null;
+  if (playerOnly) {
+    // Player-only mode renders `playerOnlyContent`; leave `mainContent` unused.
+  } else if (allSkipped && (!dump || dump.executions.length === 0)) {
     mainContent = (
       <div className="main-right">
         <Empty
@@ -228,6 +343,15 @@ function Visualizer(props: VisualizerProps): JSX.Element {
             onProModeChange={setProModeEnabled}
             replayAllScripts={replayAllScripts}
             setReplayAllMode={setReplayAllMode}
+            reportViewMode={reportViewMode}
+            reportMarkdownView={reportMarkdownView}
+            onMarkdownImageClick={handleMarkdownImageClick}
+            reportMarkdownActionsDisabled={!readyReportMarkdown}
+            onCopyReportMarkdown={() => void handleCopyReportMarkdown()}
+            onDownloadReportMarkdownZip={() =>
+              void handleDownloadReportMarkdownZip()
+            }
+            onReportCaseChange={resetMarkdownImageSelection}
           />
         </div>
         <div
@@ -252,28 +376,38 @@ function Visualizer(props: VisualizerProps): JSX.Element {
           }}
         />
         <div className="main-right">
-          <div
-            className="main-right-header"
-            onClick={() => setTimelineCollapsed(!timelineCollapsed)}
-            style={{ cursor: 'pointer', userSelect: 'none' }}
-          >
-            <span
-              className="timeline-collapse-icon"
-              style={{
-                display: 'inline-block',
-                marginRight: 8,
-                transition: 'transform 0.2s',
-                transform: timelineCollapsed
-                  ? 'rotate(-90deg)'
-                  : 'rotate(0deg)',
-              }}
-            >
-              ▼
-            </span>
-            Record
-          </div>
-          {!timelineCollapsed && <Timeline key={mainLayoutChangeFlag} />}
-          <div className="main-content">{content}</div>
+          {reportViewMode === 'markdown' ? (
+            <AgentScreenshotView
+              markdownView={reportMarkdownView}
+              selectedMarkdownImagePath={selectedMarkdownImagePath}
+              selectedMarkdownImageRequestId={selectedMarkdownImageRequestId}
+            />
+          ) : (
+            <>
+              <div
+                className="main-right-header"
+                onClick={() => setTimelineCollapsed(!timelineCollapsed)}
+                style={{ cursor: 'pointer', userSelect: 'none' }}
+              >
+                <span
+                  className="timeline-collapse-icon"
+                  style={{
+                    display: 'inline-block',
+                    marginRight: 8,
+                    transition: 'transform 0.2s',
+                    transform: timelineCollapsed
+                      ? 'rotate(-90deg)'
+                      : 'rotate(0deg)',
+                  }}
+                >
+                  ▼
+                </span>
+                Record
+              </div>
+              {!timelineCollapsed && <Timeline key={mainLayoutChangeFlag} />}
+              <div className="main-content">{content}</div>
+            </>
+          )}
         </div>
       </div>
     );
@@ -310,6 +444,35 @@ function Visualizer(props: VisualizerProps): JSX.Element {
     };
   }, []);
 
+  // In player-only mode, skip every piece of chrome and render just the Player.
+  // Mirror the main view's script source: the report opens in "replay all" mode
+  // by default (whole-flow animation); deep-linking to a `#task-<id>` anchor
+  // switches to that single task's replay.
+  const playerOnlyScripts =
+    (replayAllMode ? replayAllScripts : activeExecutionAnimation) || [];
+  let playerOnlyContent: JSX.Element;
+  if (!executionDump) {
+    playerOnlyContent = <Empty description="Loading report content..." />;
+  } else if (playerOnlyScripts.length === 0) {
+    // Player renders nothing for empty scripts; show feedback instead of a blank
+    // page (e.g. the active task is not a Planning step with a replay animation).
+    playerOnlyContent = (
+      <Empty description="No replay available for this step." />
+    );
+  } else {
+    playerOnlyContent = (
+      <Player
+        key={`${executionDumpLoadId}`}
+        replayScripts={playerOnlyScripts}
+        imageWidth={insightWidth || 0}
+        imageHeight={insightHeight || 0}
+        onTaskChange={replayAllMode ? setPlayingTaskId : undefined}
+        hideControls={!playControl}
+        autoPlay={autoPlay}
+      />
+    );
+  }
+
   return (
     <ConfigProvider
       theme={{
@@ -319,32 +482,65 @@ function Visualizer(props: VisualizerProps): JSX.Element {
     >
       <AntdApp component={false}>
         <div
-          className="page-container"
+          className={`page-container${playerOnly ? ' player-only' : ''}`}
           key={`render-${globalRenderCount}`}
           style={{ height: containerHeight }}
           data-theme={isDarkMode ? 'dark' : 'light'}
         >
-          <div className="page-nav">
-            <div className="page-nav-left">
-              <Logo />
-            </div>
-            <div className="page-nav-right">
-              <div className="page-nav-version">
-                {sdkVersion ? `v${sdkVersion}` : 'unknown version'}
-                {modelBriefText ? ` | ${modelBriefText}` : ''}
+          {playerOnly ? (
+            <div className="player-only-content">{playerOnlyContent}</div>
+          ) : (
+            <>
+              <div className="page-nav">
+                <div className="page-nav-left">
+                  <Logo />
+                  {executionDump && (
+                    <Dropdown
+                      trigger={['click']}
+                      placement="bottomLeft"
+                      open={reportViewModeDropdownOpen}
+                      onOpenChange={setReportViewModeDropdownOpen}
+                      menu={{
+                        items: [
+                          { key: 'human', label: 'Human View' },
+                          { key: 'markdown', label: 'Markdown View' },
+                        ],
+                        onClick: ({ key }) => {
+                          handleReportViewModeChange(key as ReportViewMode);
+                          setReportViewModeDropdownOpen(false);
+                        },
+                      }}
+                    >
+                      <button
+                        type="button"
+                        className="report-view-mode-dropdown"
+                        aria-expanded={reportViewModeDropdownOpen}
+                      >
+                        <span>{reportViewModeLabel}</span>
+                        <DownOutlined />
+                      </button>
+                    </Dropdown>
+                  )}
+                </div>
+                <div className="page-nav-right">
+                  <div className="page-nav-version">
+                    {sdkVersion ? `v${sdkVersion}` : 'unknown version'}
+                    {modelBriefText ? ` | ${modelBriefText}` : ''}
+                  </div>
+                  <div className="theme-divider" />
+                  <button
+                    type="button"
+                    className="theme-toggle-button"
+                    onClick={() => setIsDarkMode(!isDarkMode)}
+                    aria-label="Toggle theme"
+                  >
+                    {isDarkMode ? <ThemeDarkIcon /> : <ThemeLightIcon />}
+                  </button>
+                </div>
               </div>
-              <div className="theme-divider" />
-              <button
-                type="button"
-                className="theme-toggle-button"
-                onClick={() => setIsDarkMode(!isDarkMode)}
-                aria-label="Toggle theme"
-              >
-                {isDarkMode ? <ThemeDarkIcon /> : <ThemeLightIcon />}
-              </button>
-            </div>
-          </div>
-          {mainContent}
+              {mainContent}
+            </>
+          )}
         </div>
         <GlobalHoverPreview />
       </AntdApp>
