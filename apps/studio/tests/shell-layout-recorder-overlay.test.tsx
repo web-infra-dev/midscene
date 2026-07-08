@@ -201,7 +201,7 @@ describe('ShellLayout right panel tabs', () => {
 
     const mainArea = mainContent?.parentElement as HTMLElement;
     expect(mainArea.className).toContain('flex');
-    expect(mainArea.className).toContain('gap-[8px]');
+    expect(mainArea.className).toContain('gap-[4px]');
     expect(
       container.querySelector('.pointer-events-none.absolute.left-0.right-0'),
     ).toBeNull();

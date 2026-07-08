@@ -13,8 +13,11 @@ type ReadyStudioPlaygroundContextValue = Extract<
   { phase: 'ready' }
 >;
 
+(globalThis as { __APP_VERSION__?: string }).__APP_VERSION__ = 'test-version';
+
 vi.mock('@midscene/playground-app', () => ({
   PlaygroundPreview: () => null,
+  PlaygroundConversationPanel: () => null,
 }));
 
 beforeAll(() => {
@@ -39,6 +42,35 @@ function createDeferred<T>() {
     reject = promiseReject;
   });
   return { promise, reject, resolve };
+}
+
+function createRecorderContextValue(overrides: Record<string, unknown> = {}) {
+  return {
+    state: {
+      initialized: true,
+      initializing: false,
+      sessions: [],
+      currentSessionId: null,
+      isRecording: false,
+      error: null,
+    },
+    currentSession: null,
+    currentTarget: null,
+    canStartRecording: false,
+    startRecording: vi.fn(async () => null),
+    stopRecording: vi.fn(async () => undefined),
+    deleteSession: vi.fn(async () => undefined),
+    renameSession: vi.fn(async () => undefined),
+    selectSession: vi.fn(),
+    generateSessionYaml: vi.fn(async () => ''),
+    generateSessionCode: vi.fn(async () => ''),
+    deleteSessionCode: vi.fn(async () => undefined),
+    exportSessionJson: vi.fn(async () => undefined),
+    exportSessionYaml: vi.fn(async () => undefined),
+    exportSessionCode: vi.fn(async () => undefined),
+    exportAllZip: vi.fn(async () => undefined),
+    ...overrides,
+  };
 }
 
 function createConnectedWebContextValue(): ReadyStudioPlaygroundContextValue {
@@ -123,9 +155,13 @@ describe('MainContent web navigation', () => {
           createElement(
             StudioPlaygroundContext.Provider,
             { value: context },
-            createElement(MainContent, {
-              activeView: 'device',
-            }),
+            createElement(
+              StudioRecorderContext.Provider,
+              { value: createRecorderContextValue() as any },
+              createElement(MainContent, {
+                activeView: 'device',
+              }),
+            ),
           ),
         );
       } catch (error) {
@@ -163,7 +199,7 @@ describe('MainContent web navigation', () => {
           createElement(
             StudioRecorderContext.Provider,
             {
-              value: {
+              value: createRecorderContextValue({
                 state: {
                   initialized: true,
                   initializing: false,
@@ -172,20 +208,9 @@ describe('MainContent web navigation', () => {
                   isRecording: true,
                   error: null,
                 },
-                currentSession: null,
-                currentTarget: null,
                 canStartRecording: true,
-                startRecording: vi.fn(),
                 stopRecording,
-                deleteSession: vi.fn(),
-                renameSession: vi.fn(),
-                selectSession: vi.fn(),
-                generateSessionYaml: vi.fn(),
-                generateSessionCode: vi.fn(),
-                exportAllZip: vi.fn(),
-                exportSessionCode: vi.fn(),
-                exportSessionJson: vi.fn(),
-              } as any,
+              }) as any,
             },
             createElement(MainContent, {
               activeView: 'device',

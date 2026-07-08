@@ -1,15 +1,20 @@
 import type { PlaygroundControllerResult } from '@midscene/playground-app';
 import type { StudioPlaygroundContextValue } from '@renderer/playground/types';
+import type { ReactElement } from 'react';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 import MainContent from '../src/renderer/components/MainContent';
 import { StudioPlaygroundContext } from '../src/renderer/playground/useStudioPlayground';
+import type { StudioRecorderContextValue } from '../src/renderer/recorder/types';
+import { StudioRecorderContext } from '../src/renderer/recorder/useStudioRecorder';
 
 type ReadyStudioPlaygroundContextValue = Extract<
   StudioPlaygroundContextValue,
   { phase: 'ready' }
 >;
+
+(globalThis as { __APP_VERSION__?: string }).__APP_VERSION__ = 'test-version';
 
 vi.mock('@midscene/playground-app', () => ({
   // Real PlaygroundPreview pulls in a WASM helper through visualizer; the
@@ -17,7 +22,53 @@ vi.mock('@midscene/playground-app', () => ({
   // through, so stub it down to that overlay.
   PlaygroundPreview: ({ connectingOverlay }: { connectingOverlay?: unknown }) =>
     connectingOverlay ?? null,
+  PlaygroundConversationPanel: () => null,
 }));
+
+function createRecorderContextValue(): StudioRecorderContextValue {
+  return {
+    state: {
+      initialized: true,
+      initializing: false,
+      sessions: [],
+      currentSessionId: null,
+      isRecording: false,
+      error: null,
+    },
+    currentSession: null,
+    currentTarget: null,
+    canStartRecording: false,
+    startRecording: vi.fn(async () => null),
+    stopRecording: vi.fn(async () => undefined),
+    deleteSession: vi.fn(async () => undefined),
+    renameSession: vi.fn(async () => undefined),
+    selectSession: vi.fn(),
+    generateSessionYaml: vi.fn(async () => ''),
+    generateSessionCode: vi.fn(async () => ''),
+    deleteSessionCode: vi.fn(async () => undefined),
+    exportSessionJson: vi.fn(async () => undefined),
+    exportSessionYaml: vi.fn(async () => undefined),
+    exportSessionCode: vi.fn(async () => undefined),
+    exportAllZip: vi.fn(async () => undefined),
+  };
+}
+
+function renderMainContent(
+  context: StudioPlaygroundContextValue,
+  element: ReactElement,
+) {
+  return renderToStaticMarkup(
+    createElement(
+      StudioPlaygroundContext.Provider,
+      { value: context },
+      createElement(
+        StudioRecorderContext.Provider,
+        { value: createRecorderContextValue() },
+        element,
+      ),
+    ),
+  );
+}
 
 function createReadyContextValue(): ReadyStudioPlaygroundContextValue {
   return {
@@ -179,14 +230,11 @@ function createConnectedComputerContextValue(): ReadyStudioPlaygroundContextValu
 
 describe('MainContent overview', () => {
   it('renders discovered devices without requiring model env configuration', () => {
-    const html = renderToStaticMarkup(
-      createElement(
-        StudioPlaygroundContext.Provider,
-        { value: createReadyContextValue() },
-        createElement(MainContent, {
-          activeView: 'overview',
-        }),
-      ),
+    const html = renderMainContent(
+      createReadyContextValue(),
+      createElement(MainContent, {
+        activeView: 'overview',
+      }),
     );
 
     expect(html).toContain('DELL U2720Q');
@@ -197,14 +245,11 @@ describe('MainContent overview', () => {
   });
 
   it('keeps overview content on one column rail and renders device rows without card borders', () => {
-    const html = renderToStaticMarkup(
-      createElement(
-        StudioPlaygroundContext.Provider,
-        { value: createReadyContextValue() },
-        createElement(MainContent, {
-          activeView: 'overview',
-        }),
-      ),
+    const html = renderMainContent(
+      createReadyContextValue(),
+      createElement(MainContent, {
+        activeView: 'overview',
+      }),
     );
 
     expect(html).toContain('flex w-[704px] flex-col gap-[32px]');
@@ -217,14 +262,11 @@ describe('MainContent overview', () => {
   });
 
   it('renders iOS and Web create cards collapsed by default', () => {
-    const html = renderToStaticMarkup(
-      createElement(
-        StudioPlaygroundContext.Provider,
-        { value: createReadyContextValue() },
-        createElement(MainContent, {
-          activeView: 'overview',
-        }),
-      ),
+    const html = renderMainContent(
+      createReadyContextValue(),
+      createElement(MainContent, {
+        activeView: 'overview',
+      }),
     );
 
     expect(html).toContain('Connect WebDriverAgent');
@@ -245,14 +287,11 @@ describe('MainContent overview', () => {
       },
     };
 
-    const html = renderToStaticMarkup(
-      createElement(
-        StudioPlaygroundContext.Provider,
-        { value: context },
-        createElement(MainContent, {
-          activeView: 'overview',
-        }),
-      ),
+    const html = renderMainContent(
+      context,
+      createElement(MainContent, {
+        activeView: 'overview',
+      }),
     );
 
     expect(html).toContain('ADB not detected');
@@ -270,28 +309,22 @@ describe('MainContent overview', () => {
       },
     };
 
-    const html = renderToStaticMarkup(
-      createElement(
-        StudioPlaygroundContext.Provider,
-        { value: context },
-        createElement(MainContent, {
-          activeView: 'overview',
-        }),
-      ),
+    const html = renderMainContent(
+      context,
+      createElement(MainContent, {
+        activeView: 'overview',
+      }),
     );
 
     expect(html).toContain('HDC not detected');
   });
 
   it('keeps the disconnect control out of the window drag region', () => {
-    const html = renderToStaticMarkup(
-      createElement(
-        StudioPlaygroundContext.Provider,
-        { value: createReadyContextValue() },
-        createElement(MainContent, {
-          activeView: 'device',
-        }),
-      ),
+    const html = renderMainContent(
+      createReadyContextValue(),
+      createElement(MainContent, {
+        activeView: 'device',
+      }),
     );
 
     expect(html).toContain(
@@ -302,14 +335,11 @@ describe('MainContent overview', () => {
   });
 
   it('renders browser navigation controls for connected Web sessions', () => {
-    const html = renderToStaticMarkup(
-      createElement(
-        StudioPlaygroundContext.Provider,
-        { value: createConnectedWebContextValue() },
-        createElement(MainContent, {
-          activeView: 'device',
-        }),
-      ),
+    const html = renderMainContent(
+      createConnectedWebContextValue(),
+      createElement(MainContent, {
+        activeView: 'device',
+      }),
     );
 
     expect(html).toContain('aria-label="Web navigation"');
@@ -325,14 +355,11 @@ describe('MainContent overview', () => {
   });
 
   it('shows Web-specific empty state copy before opening a Web page', () => {
-    const html = renderToStaticMarkup(
-      createElement(
-        StudioPlaygroundContext.Provider,
-        { value: createDisconnectedWebContextValue() },
-        createElement(MainContent, {
-          activeView: 'device',
-        }),
-      ),
+    const html = renderMainContent(
+      createDisconnectedWebContextValue(),
+      createElement(MainContent, {
+        activeView: 'device',
+      }),
     );
 
     expect(html).toContain('Open Web Page');
@@ -340,14 +367,11 @@ describe('MainContent overview', () => {
   });
 
   it('shows a loading state while opening a Web page', () => {
-    const html = renderToStaticMarkup(
-      createElement(
-        StudioPlaygroundContext.Provider,
-        { value: createOpeningWebContextValue() },
-        createElement(MainContent, {
-          activeView: 'device',
-        }),
-      ),
+    const html = renderMainContent(
+      createOpeningWebContextValue(),
+      createElement(MainContent, {
+        activeView: 'device',
+      }),
     );
 
     expect(html).toContain('Opening Web page…');
@@ -356,15 +380,12 @@ describe('MainContent overview', () => {
   });
 
   it('uses the pending platform while a new Computer session is opening', () => {
-    const html = renderToStaticMarkup(
-      createElement(
-        StudioPlaygroundContext.Provider,
-        { value: createOpeningComputerWithStaleAndroidContextValue() },
-        createElement(MainContent, {
-          activeView: 'device',
-          pendingCreatePlatform: 'computer',
-        }),
-      ),
+    const html = renderMainContent(
+      createOpeningComputerWithStaleAndroidContextValue(),
+      createElement(MainContent, {
+        activeView: 'device',
+        pendingCreatePlatform: 'computer',
+      }),
     );
 
     expect(html).toContain('Preparing computer connection…');
@@ -374,14 +395,11 @@ describe('MainContent overview', () => {
   });
 
   it('adds horizontal gutter around connected computer previews', () => {
-    const html = renderToStaticMarkup(
-      createElement(
-        StudioPlaygroundContext.Provider,
-        { value: createConnectedComputerContextValue() },
-        createElement(MainContent, {
-          activeView: 'device',
-        }),
-      ),
+    const html = renderMainContent(
+      createConnectedComputerContextValue(),
+      createElement(MainContent, {
+        activeView: 'device',
+      }),
     );
 
     expect(html).toContain('box-border h-full w-full px-6');
