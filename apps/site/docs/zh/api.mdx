@@ -931,7 +931,7 @@ expect(onesieItem.price).toBe(7.99);
 
 ### `agent.startObserving()`
 
-在一段显式的时间窗口内观察屏幕,让之后的断言可以评判窗口内发生的一切——包括单张截图会错过的瞬时 UI(toast 提示、横幅、屏幕切换等)。
+在一段显式的时间窗口内观察屏幕，让之后的断言可以评判窗口内发生的一切——包括单张截图会错过的瞬时 UI（toast 提示、横幅、屏幕切换等）。
 
 ```typescript
 function startObserving(options?: {
@@ -941,10 +941,10 @@ function startObserving(options?: {
 }): Promise<UIObserver>;
 ```
 
-返回的 `UIObserver` 提供:
+返回的 `UIObserver` 提供：
 
 - `observer.stop(): Promise<void>` - 停止采样并拍摄最终代表帧。断言前必须先调用。
-- `observer.aiAssert(assertion: string, msg?: string, opt?: Object): Promise<void>` - 对观察窗口做断言。所有缓冲帧(加上代表帧)都会发给模型;模型会根据窗口的完整记录来判断断言。当 `opt.keepRawResponse` 为 true 时,返回 `{ pass, thought, message }` 而不是在失败时抛异常。
+- `observer.aiAssert(assertion: string, msg?: string, opt?: Object): Promise<void>` - 对观察窗口做断言。所有缓冲帧（加上代表帧）都会发给模型；模型会根据窗口的完整记录来判断断言。当 `opt.keepRawResponse` 为 true 时，返回 `{ pass, thought, message }` 而不是在失败时抛异常。
 - `observer.aiBoolean(prompt: string, opt?: Object): Promise<boolean>` - 对观察窗口做布尔查询。
 - `observer.frameCount: number` - 当前已缓冲的帧数。
 
@@ -955,12 +955,12 @@ await observer.stop();
 await observer.aiAssert('过程中弹出了成功提示 toast');
 ```
 
-工作方式与成本:
+工作方式与成本：
 
-- 帧优先来自设备的连续帧源——Android 的 scrcpy(`scrcpyConfig.enabled`)、iOS 的 WDA MJPEG(`wdaMjpegFrameSource.enabled`)、Web 的 CDP screencast(始终可用);没有帧源时回退为逐张截图(移动端有效帧率会明显降低)。
-- 采样只抓取轻量帧句柄;解码成本在断言时一次性支付,且只解码真正发给模型的帧。
-- 缓冲内的所有帧(最多 `maxFrames` 帧,外加最终代表帧)都会发给模型,确保长窗口中的瞬态 UI 不会因抽样而遗漏。如需控制 token 成本,可增大 `intervalMs`(降低采样密度)或减小 `maxFrames`(缩小缓冲区)。观察帧会显示在报告时间线中,并带有 `Observed` 标签。
-- iOS 上观察帧来自 MJPEG 流(缩放、较低质量),最终代表帧为全质量截图。
+- 帧优先来自设备的连续帧源——Android 的 scrcpy（`scrcpyConfig.enabled`）、iOS 的 WDA MJPEG（`wdaMjpegFrameSource.enabled`）、Web 的 CDP screencast（始终可用）；没有帧源时回退为逐张截图（移动端有效帧率会明显降低）。
+- 采样只抓取轻量帧句柄；解码成本在断言时一次性支付，且只解码真正发给模型的帧。
+- 缓冲内的所有帧（最多 `maxFrames` 帧，外加最终代表帧）都会发给模型，确保长窗口中的瞬态 UI 不会因抽样而遗漏。如需控制 token 成本，可增大 `intervalMs`（降低采样密度）或减小 `maxFrames`（缩小缓冲区）。观察帧会显示在报告时间线中，并带有 `Observed` 标签。
+- iOS 上观察帧来自 MJPEG 流（缩放、较低质量），最终代表帧为全质量截图。
 
 ### `agent.aiLocate()`
 
