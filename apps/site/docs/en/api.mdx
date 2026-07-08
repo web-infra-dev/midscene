@@ -940,16 +940,17 @@ Observe the screen over an explicit time window so a later assertion can judge e
 
 ```typescript
 function startObserving(options?: {
-  intervalMs?: number;        // sampling interval, default 1000ms, min 200ms (5fps)
-  maxBufferedFrames?: number; // frame-buffer cap, default 30 (self-thinning when full)
+  intervalMs?: number;  // sampling interval, default 1000ms, min 200ms (5fps)
+  maxFrames?: number;   // frame-buffer cap, default 30 (self-thinning when full)
+  watchdogMs?: number;  // auto-stop after this many ms if stop() is never called. Default 300000 (5 min). Set 0 to disable.
 }): Promise<UIObserver>;
 ```
 
 The returned `UIObserver` provides:
 
 - `observer.stop(): Promise<void>` - Stop sampling and capture the final representative screenshot. Must be called before asserting.
-- `observer.aiAssert(assertion: string, msg?: string, opt?: Object): Promise<void>` - Assert against the observed window. The statement is judged with "any frame" semantics: it passes if it holds in ANY observed frame, even if the UI has already disappeared by the end.
-- `observer.aiBoolean(prompt: string, opt?: Object): Promise<boolean>` - Boolean query over the observed window, with the same frame semantics.
+- `observer.aiAssert(assertion: string, msg?: string, opt?: Object): Promise<void>` - Assert against the observed window. All buffered frames (plus the representative) are sent to the model; the model judges the statement against the full record of the window. When `opt.keepRawResponse` is true, returns `{ pass, thought, message }` instead of throwing on failure.
+- `observer.aiBoolean(prompt: string, opt?: Object): Promise<boolean>` - Boolean query over the observed window.
 - `observer.frameCount: number` - Number of frames currently buffered.
 
 ```typescript
@@ -963,7 +964,7 @@ How it works and what it costs:
 
 - Frames come from the device's continuous frame source when available — scrcpy on Android (`scrcpyConfig.enabled`), WDA MJPEG on iOS (`wdaMjpegFrameSource.enabled`), CDP screencast on web (always available) — and fall back to plain screenshots per tick otherwise (much lower effective frame rate on mobile).
 - Sampling grabs cheap frame handles; any decode cost is paid once at assert time, only for the frames actually sent to the model.
-- All buffered frames (up to `maxBufferedFrames`, plus the final representative screenshot) are sent to the model so transient UI in long windows is not missed. To bound token cost, increase `intervalMs` (lower frame density) or decrease `maxBufferedFrames` (smaller buffer). The observed frames are shown in the report timeline.
+- All buffered frames (up to `maxFrames`, plus the final representative screenshot) are sent to the model so transient UI in long windows is not missed. To bound token cost, increase `intervalMs` (lower frame density) or decrease `maxFrames` (smaller buffer). The observed frames are shown in the report timeline with an `Observed` tag.
 - On iOS the observed frames come from the MJPEG stream (scaled, lower quality) while the final representative frame is a full-quality screenshot.
 
 ### `agent.aiLocate()`
