@@ -921,6 +921,9 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
         x: from.x,
         y: from.y,
         button: 'left',
+        // CDP uses `buttons` to represent the currently pressed mouse buttons.
+        // HTML5 drag/drop needs this state to treat following moves as dragging.
+        buttons: 1,
         clickCount: 1,
       });
 
@@ -930,6 +933,8 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
         type: 'mouseMoved',
         x: to.x,
         y: to.y,
+        button: 'left',
+        buttons: 1,
       });
 
       await sleep(500);
@@ -939,6 +944,7 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
         x: to.x,
         y: to.y,
         button: 'left',
+        buttons: 0,
         clickCount: 1,
       });
 
