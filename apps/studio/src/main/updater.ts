@@ -1,6 +1,9 @@
 import { getDebug } from '@midscene/shared/logger';
 import { IPC_CHANNELS } from '@shared/electron-contract';
-import type { UpdateStatus } from '@shared/updater-contract';
+import {
+  type UpdateStatus,
+  isExternalDownloadOnlyPlatform,
+} from '@shared/updater-contract';
 import type { BrowserWindow } from 'electron';
 import { app } from 'electron';
 import { autoUpdater } from 'electron-updater';
@@ -11,7 +14,7 @@ const debugUpdater = getDebug('studio:updater', { console: true });
 // only knows how to relaunch Linux AppImage/DEB/RPM-style targets. Windows
 // release packaging now publishes an NSIS setup.exe, so NsisUpdater can keep
 // the normal download + quitAndInstall path there.
-const EXTERNAL_DOWNLOAD_ONLY = process.platform === 'linux';
+const EXTERNAL_DOWNLOAD_ONLY = isExternalDownloadOnlyPlatform(process.platform);
 
 const BACKGROUND_POLL_FIRST_DELAY_MS = 10_000;
 const BACKGROUND_POLL_INTERVAL_MS = 30 * 60 * 1000;

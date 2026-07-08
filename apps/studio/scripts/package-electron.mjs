@@ -2322,6 +2322,11 @@ export const buildWindowsNsisInstaller = async ({
   baseName,
   packagedAppPath,
 }) => {
+  // electron-builder's NSIS target only ships x64-compatible installers on
+  // Windows; arm64 NSIS support is not yet stable upstream. The Studio
+  // package-validation and release workflows also only exercise x64 for the
+  // Windows matrix, so we guard here rather than let electron-builder fail
+  // with a less clear error downstream.
   if (arch !== 'x64') {
     throw new Error(
       `Windows NSIS packaging only supports x64 for now, received "${arch}".`,

@@ -449,6 +449,21 @@ describe('package-electron helpers', () => {
     ).toBe('"--prepackaged=D:\\a\\midscene\\Midscene Studio Beta-win32-x64"');
   });
 
+  it('escapes Windows shell metacharacters inside quoted args', () => {
+    // Parentheses are common in paths like "Program Files (x86)".
+    expect(quoteWindowsShellArg('C:\\Program Files (x86)\\Midscene')).toBe(
+      '"C:\\Program Files ^(x86^)\\Midscene"',
+    );
+    // Ampersand is the cmd command separator.
+    expect(quoteWindowsShellArg('a&b')).toBe('"a^&b"');
+    // Pipe redirects stdout.
+    expect(quoteWindowsShellArg('a|b')).toBe('"a^|b"');
+    // Caret itself must be escaped.
+    expect(quoteWindowsShellArg('a^b')).toBe('"a^^b"');
+    // Double quote inside the value.
+    expect(quoteWindowsShellArg('a"b')).toBe('"a^"b"');
+  });
+
   it('parses boolean-like configuration values used by mac packaging flags', () => {
     expect(parseBooleanLike('true')).toBe(true);
     expect(parseBooleanLike('1')).toBe(true);
