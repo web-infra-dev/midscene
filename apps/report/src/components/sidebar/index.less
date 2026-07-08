@@ -325,7 +325,8 @@
         .cache-tag,
         .deeplocate-tag,
         .xpath-tag,
-        .deepthink-tag {
+        .deepthink-tag,
+        .observed-tag {
           flex-shrink: 0;
           white-space: nowrap;
         }
@@ -435,7 +436,8 @@
 }
 
 // Light mode Tag styles
-.cache-tag, .xpath-tag {
+.cache-tag,
+.xpath-tag {
   color: #1890ff;
   background-color: #e0f5ff;
 }
@@ -453,6 +455,11 @@
 .deepthink-tag {
   color: #531dab;
   background-color: #efdbff;
+}
+
+.observed-tag {
+  color: #0958d9;
+  background-color: #e6f4ff;
 }
 
 .total-time-tooltip-content {
@@ -650,7 +657,8 @@
     }
 
     // Tag styles for dark mode
-    .cache-tag, .xpath-tag {
+    .cache-tag,
+    .xpath-tag {
       color: #1890ff !important;
       background-color: rgba(24, 144, 255, 0.15) !important;
     }
@@ -668,6 +676,11 @@
     .deepthink-tag {
       color: #b37feb !important;
       background-color: rgba(179, 127, 235, 0.15) !important;
+    }
+
+    .observed-tag {
+      color: #4096ff !important;
+      background-color: rgba(64, 150, 255, 0.15) !important;
     }
   }
 }
