@@ -17,7 +17,7 @@ const modelRuntime = getModelRuntime(modelConfig);
 // model-family runs, planning may choose a valid intermediate Tap before Input
 // or include a whole-page locate for page-level scroll, so keep this suite out
 // of AI CI until that prompt contract is tightened.
-describe.skipIf(modelConfig.modelFamily)('automation - llm planning', () => {
+describe.skipIf(!!modelConfig.modelFamily)('automation - llm planning', () => {
   it('basic run', async () => {
     const { context } = await getContextFromFixture('todo');
 
