@@ -122,6 +122,16 @@ type AiActInternalOptions = AiActOptions & {
   };
 };
 
+/**
+ * Shared input option type for aiInput(), used consistently across
+ * overload signatures and the implementation so fields don't drift.
+ */
+type AgentInputOption = LocateOption & {
+  autoDismissKeyboard?: boolean;
+  keyboardTypeDelay?: number;
+  mode?: 'replace' | 'clear' | 'typeOnly' | 'append';
+};
+
 export class Agent<
   InterfaceType extends AbstractInterface = AbstractInterface,
 > {
@@ -751,10 +761,7 @@ export class Agent<
   // New signature, always use locatePrompt as the first param
   async aiInput(
     locatePrompt: TUserPrompt,
-    opt: LocateOption & { value: string | number } & {
-      autoDismissKeyboard?: boolean;
-      keyboardTypeDelay?: number;
-    } & { mode?: 'replace' | 'clear' | 'typeOnly' | 'append' },
+    opt: AgentInputOption & { value: string | number },
   ): Promise<void>;
 
   // Legacy signature - deprecated
@@ -764,12 +771,7 @@ export class Agent<
   async aiInput(
     value: string | number,
     locatePrompt: TUserPrompt,
-    opt?: LocateOption & {
-      autoDismissKeyboard?: boolean;
-      keyboardTypeDelay?: number;
-    } & {
-      mode?: 'replace' | 'clear' | 'typeOnly' | 'append';
-    }, // AndroidDeviceInputOpt &
+    opt?: AgentInputOption,
   ): Promise<void>;
 
   // Implementation
@@ -777,21 +779,13 @@ export class Agent<
     locatePromptOrValue: TUserPrompt | string | number,
     locatePromptOrOpt:
       | TUserPrompt
-      | (LocateOption & { value: string | number } & {
-          autoDismissKeyboard?: boolean;
-          keyboardTypeDelay?: number;
-        } & { mode?: 'replace' | 'clear' | 'typeOnly' | 'append' }) // AndroidDeviceInputOpt &
+      | (AgentInputOption & { value: string | number })
       | undefined,
-    optOrUndefined?: LocateOption & { keyboardTypeDelay?: number }, // AndroidDeviceInputOpt &
+    optOrUndefined?: AgentInputOption,
   ) {
     let value: string | number;
     let locatePrompt: TUserPrompt;
-    let opt:
-      | (LocateOption & { value: string | number } & {
-          autoDismissKeyboard?: boolean;
-          keyboardTypeDelay?: number;
-        } & { mode?: 'replace' | 'clear' | 'typeOnly' | 'append' }) // AndroidDeviceInputOpt &
-      | undefined;
+    let opt: (AgentInputOption & { value: string | number }) | undefined;
 
     // Check if using new signature (first param is locatePrompt, second has value)
     if (
@@ -801,10 +795,8 @@ export class Agent<
     ) {
       // New signature: aiInput(locatePrompt, opt)
       locatePrompt = locatePromptOrValue as TUserPrompt;
-      const optWithValue = locatePromptOrOpt as LocateOption & {
-        // AndroidDeviceInputOpt &
+      const optWithValue = locatePromptOrOpt as AgentInputOption & {
         value: string | number;
-        autoDismissKeyboard?: boolean;
       };
       value = optWithValue.value;
       opt = optWithValue;
