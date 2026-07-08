@@ -4,7 +4,7 @@ import {
   WebAgentCore,
   resolveBrowserAgentRuntimeOptions,
 } from '@/common/browser-agent';
-import { applyForceChromeSelectRendering } from '@/common/web-agent';
+import { applyForceChromeSelectRendering } from '@/common/browser-agent-utils';
 import type { WebPageAgentOpt } from '@/web-element';
 import { getDebug } from '@midscene/shared/logger';
 import type {

@@ -1,7 +1,7 @@
 import { Agent as CoreAgent } from '@midscene/core/agent';
 import type { AbstractInterface } from '@midscene/core/device';
 import type { DebugFunction } from '@midscene/shared/logger';
-import { isRetryableBrowserNavigationError } from './web-agent';
+import { isRetryableBrowserNavigationError } from './browser-agent-utils';
 
 export type BrowserAgentPageScope = 'page' | 'browser';
 
