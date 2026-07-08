@@ -396,9 +396,13 @@ export class ScrcpyScreenshotManager {
    */
   subscribeKeyframes(listener: (frame: RawKeyframe) => void): () => void {
     this.keyframeListeners.add(listener);
+    // listeners > 0 → resetIdleTimer skips arming the idle timer
     this.resetIdleTimer();
     return () => {
       this.keyframeListeners.delete(listener);
+      // If this was the last subscriber, re-arm the idle timer so the
+      // connection can be cleaned up now that nobody is consuming it.
+      this.resetIdleTimer();
     };
   }
 
@@ -648,14 +652,23 @@ export class ScrcpyScreenshotManager {
   }
 
   /**
-   * Reset idle timeout timer
+   * Reset idle timeout timer. While keyframe subscribers are active
+   * (e.g. a UIObserver sampling loop), the idle timer is not armed —
+   * subscribers are actively consuming the stream. On a static screen
+   * with i-frame-interval=0, no new keyframes arrive so processFrame
+   * never resets the timer; this guard prevents silent disconnect.
    */
   private resetIdleTimer(): void {
     if (this.idleTimer) {
       clearTimeout(this.idleTimer);
+      this.idleTimer = null;
     }
 
     if (!this.options.idleTimeoutMs) return;
+
+    // Active keyframe subscribers (UIObserver etc.) keep the connection alive
+    // even on a static screen where no new keyframes are produced.
+    if (this.keyframeListeners.size > 0) return;
 
     this.idleTimer = setTimeout(() => {
       debugScrcpy('Idle timeout reached, disconnecting scrcpy');
