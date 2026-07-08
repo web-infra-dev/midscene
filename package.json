@@ -71,5 +71,10 @@
     "semver": "7.5.2",
     "simple-git-hooks": "^2.13.1",
     "typescript": "^5.8.3"
+  },
+  "pnpm": {
+    "overrides": {
+      "@rstest/core": "https://pkg.pr.new/web-infra-dev/rstest/@rstest/core@b704252"
+    }
   }
 }
