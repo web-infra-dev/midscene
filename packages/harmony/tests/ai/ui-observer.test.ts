@@ -20,7 +20,7 @@ describe(
     it('observes a screen transition that no single screenshot can contain', async () => {
       const devices = await getConnectedDevices();
       expect(devices.length).toBeGreaterThan(0);
-      const agent = await agentFromHdcDevice(devices[0].udid, {
+      const agent = await agentFromHdcDevice(devices[0].deviceId, {
         aiActionContext:
           'This is a HarmonyOS device. The system language is Chinese. If any popup appears, dismiss or agree to it.',
       });
