@@ -548,8 +548,11 @@ export class HarmonyDevice implements AbstractInterface {
 
     if (typeDelay && typeDelay > 0) {
       // Type one character at a time with a delay between keystrokes.
-      // inputText taps at x,y then types; repeated taps at the same spot
-      // are harmless since the field is already focused.
+      // `uitest uiInput inputText x y text` uses (x, y) to identify the target
+      // component, not to position the text cursor. Once the field is focused,
+      // repeated calls at the same coordinates append to the existing content
+      // rather than repositioning the cursor. Verified on real device:
+      // character order is preserved and no characters are lost.
       for (const ch of text) {
         await hdc.inputText(x, y, ch);
         await sleep(typeDelay);
