@@ -546,9 +546,10 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
 
       if (typeDelay && typeDelay > 0) {
         // Type one character at a time with a delay between keystrokes.
-        // WDA's /keys endpoint accepts an array, so we send one char per call.
+        // Use typeRawKeys instead of typeText — the latter trims whitespace,
+        // which would silently drop spaces and newlines when sent one at a time.
         for (const ch of text) {
-          await this.wdaBackend.typeText(ch);
+          await this.wdaBackend.typeRawKeys([ch]);
           await sleep(typeDelay);
         }
       } else {
