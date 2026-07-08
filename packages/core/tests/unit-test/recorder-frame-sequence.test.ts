@@ -44,7 +44,7 @@ describe('recordAndReleaseScreenshotSequence', () => {
     expect(uiContext.screenshotSequence).toBeUndefined();
   });
 
-  it('appends to an existing recorder without dropping prior items', () => {
+  it('prepends observed frames to an existing recorder without dropping prior items', () => {
     const existing = {
       type: 'screenshot' as const,
       ts: 5,
@@ -58,8 +58,11 @@ describe('recordAndReleaseScreenshotSequence', () => {
 
     recordAndReleaseScreenshotSequence(task, makeUiContext(3));
 
-    expect(task.recorder?.[0]).toBe(existing);
-    expect(task.recorder).toHaveLength(1 + 2);
+    // Observed frames (2) are prepended, existing stays at the end
+    expect(task.recorder).toHaveLength(2 + 1);
+    expect(task.recorder?.[0]?.timing).toBe('observed-frame');
+    expect(task.recorder?.[1]?.timing).toBe('observed-frame');
+    expect(task.recorder?.[2]).toBe(existing);
   });
 
   it('is a no-op when there is no screenshot sequence', () => {

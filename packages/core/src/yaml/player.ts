@@ -34,6 +34,7 @@ type RuntimeYamlFlowItem =
   | MidsceneYamlFlowItemAIScroll;
 
 import type { Agent } from '@/agent/agent';
+import type { UIObserver } from '@/agent/ui-observer';
 import type { TUserPrompt } from '@/common';
 import type {
   DeviceAction,
@@ -47,6 +48,8 @@ import type {
   MidsceneYamlFlowItemLogScreenshot,
   MidsceneYamlFlowItemRunGherkinScenario,
   MidsceneYamlFlowItemSleep,
+  MidsceneYamlFlowItemStartObserving,
+  MidsceneYamlFlowItemStopObserving,
   MidsceneYamlScript,
   MidsceneYamlScriptEnv,
   ScriptPlayerStatusValue,
@@ -149,6 +152,7 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
   private actionSpace: DeviceAction[] = [];
   private scriptPath?: string;
   private failedReportExecutionInCurrentStep = false;
+  private namedObservers = new Map<string, UIObserver>();
   constructor(
     private script: MidsceneYamlScript,
     private setupAgent: (platform: T) => Promise<{
@@ -398,37 +402,94 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
         aiAssert: prompt,
         errorMessage: msg,
         name,
+        observe,
         ...restOpts
       } = assertTask;
       assert(prompt, 'missing prompt for aiAssert');
-      const { pass, thought, message } =
-        (await agent.aiAssert(prompt, msg, {
+
+      let pass: boolean | undefined;
+      let thought: string | undefined;
+      let message: string | undefined;
+
+      if (observe) {
+        const observer = this.namedObservers.get(observe);
+        assert(
+          observer,
+          `observer "${observe}" not found — did you call stopObserving first?`,
+        );
+        const result = await observer.aiAssert(prompt, msg, {
           ...restOpts,
           keepRawResponse: true,
-        })) || {};
+        });
+        pass = result?.pass;
+        thought = result?.thought;
+        message = result?.message;
+      } else {
+        const result = await agent.aiAssert(prompt, msg, {
+          ...restOpts,
+          keepRawResponse: true,
+        });
+        pass = result?.pass;
+        thought = result?.thought;
+        message = result?.message;
+      }
 
-      this.setResult(name, {
-        pass,
-        thought,
-        message,
-      });
+      this.setResult(name, { pass, thought, message });
 
       if (!pass) {
         throw new Error(message);
       }
+    } else if (
+      'startObserving' in (flowItem as MidsceneYamlFlowItemStartObserving)
+    ) {
+      const observeTask = flowItem as MidsceneYamlFlowItemStartObserving;
+      const observerName = observeTask.startObserving;
+      assert(observerName, 'missing name for startObserving');
+      assert(
+        !this.namedObservers.has(observerName),
+        `observer "${observerName}" is already active`,
+      );
+      const observer = await agent.startObserving({
+        intervalMs: observeTask.intervalMs,
+        maxFrames: observeTask.maxFrames,
+        watchdogMs: observeTask.watchdogMs,
+      });
+      this.namedObservers.set(observerName, observer);
+    } else if (
+      'stopObserving' in (flowItem as MidsceneYamlFlowItemStopObserving)
+    ) {
+      const stopTask = flowItem as MidsceneYamlFlowItemStopObserving;
+      const observerName = stopTask.stopObserving;
+      assert(observerName, 'missing name for stopObserving');
+      const observer = this.namedObservers.get(observerName);
+      assert(observer, `observer "${observerName}" not found`);
+      await observer.stop();
+      // Keep the observer in the map so aiAssert(observe:) can use it
     } else if (simpleAIKey) {
       const {
         [simpleAIKey]: prompt,
         name,
+        observe,
         ...options
       } = flowItem as Record<string, any>;
       assert(prompt, `missing prompt for ${simpleAIKey}`);
-      const agentMethod = (agent as any)[aiTaskHandlerMap[simpleAIKey]];
-      assert(
-        typeof agentMethod === 'function',
-        `missing agent method for ${simpleAIKey}`,
-      );
-      const aiResult = await agentMethod.call(agent, prompt, options);
+
+      let aiResult: any;
+      if (observe && simpleAIKey === 'aiBoolean') {
+        const observer = this.namedObservers.get(observe);
+        assert(
+          observer,
+          `observer "${observe}" not found — did you call stopObserving first?`,
+        );
+        aiResult = await observer.aiBoolean(prompt, options);
+      } else {
+        const agentMethod = (agent as any)[aiTaskHandlerMap[simpleAIKey]];
+        assert(
+          typeof agentMethod === 'function',
+          `missing agent method for ${simpleAIKey}`,
+        );
+        aiResult = await agentMethod.call(agent, prompt, options);
+      }
       this.setResult(name, aiResult);
     } else if ('aiWaitFor' in (flowItem as MidsceneYamlFlowItemAIWaitFor)) {
       const waitForTask = flowItem as MidsceneYamlFlowItemAIWaitFor;
@@ -858,6 +919,16 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
       this.setPlayerStatus('done');
     }
     this.agentStatusTip = '';
+
+    // Stop any remaining named observers that were never explicitly stopped.
+    for (const [name, observer] of this.namedObservers) {
+      try {
+        await observer.stop();
+      } catch (e) {
+        debug(`error stopping observer "${name}" during cleanup: ${e}`);
+      }
+    }
+    this.namedObservers.clear();
 
     // free the resources
     for (const fn of freeFn) {

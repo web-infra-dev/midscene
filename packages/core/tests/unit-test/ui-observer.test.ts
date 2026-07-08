@@ -39,7 +39,7 @@ const makeFakeSource = () => {
 };
 
 const makeDeps = (fake: ReturnType<typeof makeFakeSource> | null) => {
-  const runAssert = vi.fn(async () => {});
+  const runAssert = vi.fn(async () => undefined);
   const runBoolean = vi.fn(async () => true);
   const screenshot = vi.fn(
     async () => 'data:image/png;base64,iVBORw0KGgo-shot',
@@ -144,7 +144,7 @@ describe('UIObserver', () => {
     const { deps, runAssert } = makeDeps(fake);
     const observer = new UIObserver(deps, {
       intervalMs: 200,
-      maxBufferedFrames: 30,
+      maxFrames: 30,
     });
     // inject 25 distinct frames directly (under the 30-frame buffer cap)
     for (let i = 0; i < 25; i++) {
@@ -169,7 +169,7 @@ describe('UIObserver', () => {
     const { deps } = makeDeps(fake);
     const observer = new UIObserver(deps, {
       intervalMs: 200,
-      maxBufferedFrames: 10,
+      maxFrames: 10,
     });
 
     // Simulate: static screen (same ref) for 5 ticks, then a change (new ref),
@@ -197,7 +197,7 @@ describe('UIObserver', () => {
     }
 
     const result = (observer as any).frames as DeviceFrameRef[];
-    // After thinning, buffer should be ≤ maxBufferedFrames (10)
+    // After thinning, buffer should be ≤ maxFrames (10)
     expect(result.length).toBeLessThanOrEqual(11); // 10 after thin + 1 pending push? No, pushFrame pushes after thinning
 
     // All three change-point refs must be present
@@ -216,7 +216,7 @@ describe('UIObserver', () => {
     const { deps } = makeDeps(fake);
     const observer = new UIObserver(deps, {
       intervalMs: 200,
-      maxBufferedFrames: 10,
+      maxFrames: 10,
     });
     // 16 frames, each with a unique ref → every frame is a change point
     for (let i = 0; i < 16; i++) {
@@ -224,7 +224,7 @@ describe('UIObserver', () => {
     }
     const frames = (observer as any).frames as DeviceFrameRef[];
     // All change points are preserved; static thinning doesn't apply.
-    // Buffer may exceed maxBufferedFrames when all frames are change points
+    // Buffer may exceed maxFrames when all frames are change points
     // (better to keep them than to drop transient UI).
     expect(frames.length).toBeGreaterThanOrEqual(10);
     expect(frames[0].ref).toBe('f0');
@@ -280,7 +280,7 @@ describe('UIObserver', () => {
     const { deps, runAssert } = makeDeps(fake);
     const observer = new UIObserver(deps, {
       intervalMs: 200,
-      maxBufferedFrames: 60,
+      maxFrames: 60,
     });
     // Inject 55 frames — over the 50-frame soft limit
     for (let i = 0; i < 55; i++) {
@@ -318,7 +318,7 @@ describe('UIObserver', () => {
   });
 
   it('falls back to screenshots when openFrameSource throws', async () => {
-    const runAssert = vi.fn(async () => {});
+    const runAssert = vi.fn(async () => undefined);
     const screenshot = vi.fn(async () => 'data:image/png;base64,iVBORw0KGgo-x');
     const observer = new UIObserver(
       {

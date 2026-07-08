@@ -972,6 +972,9 @@ export class TaskExecutor {
  *
  * The last frame is the representative `uiContext.screenshot`, already shown in
  * the report, so only the earlier frames are recorded to avoid duplication.
+ * Observed frames are PREPENDED to `task.recorder` (rather than appended) so
+ * array order matches chronological order — they were captured before the
+ * assertion's before/after screenshots.
  */
 export function recordAndReleaseScreenshotSequence(
   task: ExecutionTask,
@@ -990,8 +993,12 @@ export function recordAndReleaseScreenshotSequence(
         timing: 'observed-frame',
       });
     }
+    // Prepend observed frames so they appear before the task's own
+    // before/after screenshots in array order. Observed frames have earlier
+    // timestamps than the assertion task itself, so this keeps array order
+    // aligned with chronological order for consumers that iterate in-place.
     task.recorder = task.recorder
-      ? [...task.recorder, ...recorderItems]
+      ? [...recorderItems, ...task.recorder]
       : recorderItems;
   }
   if (uiContext?.screenshotSequence) {

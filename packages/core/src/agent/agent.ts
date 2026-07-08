@@ -411,9 +411,9 @@ export class Agent<
    * (scrcpy on Android, WDA MJPEG on iOS — both opt-in; CDP screencast on
    * web) and fall back to plain screenshots otherwise. Sampling is capped at
    * 5fps, the buffer is bounded and self-thinning, decoding is deferred to
-   * the end, and all buffered frames (up to `maxBufferedFrames`) are sent to
+   * the end, and all buffered frames (up to `maxFrames`) are sent to
    * the model at assert time. To control token cost for long windows,
-   * increase `intervalMs` or decrease `maxBufferedFrames`.
+   * increase `intervalMs` or decrease `maxFrames`.
    * Awaiting `startObserving()` guarantees one baseline frame is captured
    * before your next action.
    */
@@ -440,19 +440,26 @@ export class Agent<
         // the observation loop never pollutes the TaskRunner context cache.
         screenshot: () => this.interface.screenshotBase64(),
         captureRepresentative: () => this.getUIContext('assert'),
-        runAssert: async (assertion, uiContext, msg, assertOpt) => {
-          await this.aiAssert(assertion, msg, assertOpt, uiContext);
-        },
+        runAssert: (assertion, uiContext, msg, assertOpt) =>
+          this.aiAssert(assertion, msg, assertOpt, uiContext),
         runBoolean: (prompt, uiContext, boolOpt) =>
           this.aiBoolean(prompt, boolOpt, uiContext),
         onStopped: () => {
           this.activeObserver = null;
         },
+        screenshotShrinkFactor: this.opts.screenshotShrinkFactor,
       },
       opt,
     );
-    await observer.start();
+    // Mark as active BEFORE the async start() so concurrent calls hit the
+    // assert guard above. If start() throws, clear the reference below.
     this.activeObserver = observer;
+    try {
+      await observer.start();
+    } catch (error) {
+      this.activeObserver = null;
+      throw error;
+    }
     return observer;
   }
 
@@ -1409,6 +1416,19 @@ export class Agent<
     }
 
     this.destroyed = true;
+
+    // Stop any active observer before tearing down the interface. The observer
+    // may hold a frame source subscription that needs explicit cleanup.
+    if (this.activeObserver) {
+      try {
+        await this.activeObserver.stop();
+      } catch (error) {
+        debug(`error stopping active observer during destroy: ${error}`);
+      }
+      // onStopped callback should have cleared this, but ensure it's null
+      this.activeObserver = null;
+    }
+
     let interfaceDestroyError: unknown;
     try {
       await this.interface.destroy?.();
