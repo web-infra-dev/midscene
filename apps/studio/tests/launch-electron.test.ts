@@ -97,8 +97,10 @@ async function loadLaunchScript(
   // `await import(relativeModulePath)` once rstest mocks variable dynamic
   // imports.
   if (relativeModulePath === '../scripts/launch-electron-dev.mjs') {
+    // @ts-expect-error dev-only .mjs launch script ships no type declaration
     await import('../scripts/launch-electron-dev.mjs');
   } else {
+    // @ts-expect-error prod-only .mjs launch script ships no type declaration
     await import('../scripts/launch-electron-prod.mjs');
   }
 

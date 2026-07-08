@@ -35,13 +35,13 @@ describe('ReportMergingTool integration', () => {
   afterEach(async (ctx) => {
     // Determine workflow status
     let workflowStatus: TestStatus = 'passed';
-    if (ctx.task.result?.state === 'pass') {
+    if (ctx.task.result?.status === 'pass') {
       workflowStatus = 'passed';
-    } else if (ctx.task.result?.state === 'skip') {
+    } else if (ctx.task.result?.status === 'skip') {
       workflowStatus = 'skipped';
     } else if (ctx.task.result?.errors?.[0]?.message.includes('timed out')) {
       workflowStatus = 'timedOut';
-    } else if (ctx.task.result?.state === 'fail') {
+    } else if (ctx.task.result?.status === 'fail') {
       workflowStatus = 'failed';
     }
 

@@ -51,7 +51,7 @@ describe(
       });
     });
 
-    it.skipIf(process.env.CI)('find widgets in antd', async () => {
+    it.skipIf(!!process.env.CI)('find widgets in antd', async () => {
       const { originPage, reset } = await launchPage(
         'https://ant.design/components/form/', // will be banned by the website on CI
       );

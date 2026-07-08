@@ -23,6 +23,10 @@ const GITHUB_LOGO_FIXTURE = path.resolve(
  */
 describe(
   'CLI assert tool with image prompts',
+  {
+    // AI calls are slow; keep these inside the project's standard AI budget.
+    timeout: 3 * 60 * 1000,
+  },
   () => {
     const ctx = createTestContext();
 
@@ -98,9 +102,5 @@ describe(
 
       expect(result.isError).toBe(true);
     });
-  },
-  {
-    // AI calls are slow; keep these inside the project's standard AI budget.
-    timeout: 3 * 60 * 1000,
   },
 );

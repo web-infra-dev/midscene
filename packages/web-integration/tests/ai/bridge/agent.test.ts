@@ -9,7 +9,7 @@ rs.setConfig({
 });
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-describe.skipIf(process.env.CI)(
+describe.skipIf(!!process.env.CI)(
   'fully functional agent in server(cli) side',
   () => {
     it('basic', async () => {

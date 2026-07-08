@@ -39,9 +39,9 @@ describe('Test Setting', () => {
   });
 
   afterEach((ctx) => {
-    if (ctx.task.result?.state === 'pass') {
+    if (ctx.task.result?.status === 'pass') {
       itTestStatus = 'passed';
-    } else if (ctx.task.result?.state === 'skip') {
+    } else if (ctx.task.result?.status === 'skip') {
       itTestStatus = 'skipped';
     } else if (ctx.task.result?.errors?.[0].message.includes('timed out')) {
       itTestStatus = 'timedOut';
@@ -54,7 +54,7 @@ describe('Test Setting', () => {
         testId: `${ctx.task.name}`,
         testTitle: `${ctx.task.name}`,
         testDescription: 'description',
-        testDuration: (Date.now() - ctx.task.result?.startTime!) | 0,
+        testDuration: (Date.now() - startTime) | 0,
         testStatus: itTestStatus,
       },
     });

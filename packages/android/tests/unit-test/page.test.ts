@@ -98,7 +98,7 @@ rs.mock('node:fs', () => ({
     readFile: rs.fn(),
   },
   default: {
-    ...fsActual.default,
+    ...fsActual,
     promises: {
       readFile: rs.fn(),
     },
