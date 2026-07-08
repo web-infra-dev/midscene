@@ -6,9 +6,11 @@ import './studio-recorder-panel.css';
 
 interface StudioReplayPanelProps {
   activeSessionId?: string | null;
+  activeSessionStoppable?: boolean;
   onDeleteSession?: (session: StudioRecordingSession) => void;
   onDownloadSession?: (session: StudioRecordingSession) => void;
   onReplaySession: (session: StudioRecordingSession) => void;
+  onStopActiveSession?: () => void;
   sessions: StudioRecordingSession[];
 }
 
@@ -71,6 +73,10 @@ function ReplayPanelLoadingIcon() {
       />
     </svg>
   );
+}
+
+function ReplayPanelStopIcon() {
+  return <span aria-hidden="true" className="studio-replay-panel-stop-icon" />;
 }
 
 function ReplayPanelMoreIcon() {
@@ -244,9 +250,11 @@ function ReplayPanelMoreActions({
 
 export function StudioReplayPanel({
   activeSessionId,
+  activeSessionStoppable = false,
   onDeleteSession,
   onDownloadSession,
   onReplaySession,
+  onStopActiveSession,
   sessions,
 }: StudioReplayPanelProps) {
   return (
@@ -268,10 +276,15 @@ export function StudioReplayPanel({
                   }
                   key={session.id}
                   onClick={() => {
-                    onReplaySession(session);
+                    if (!isActive) {
+                      onReplaySession(session);
+                    }
                   }}
                   onKeyDown={(event) => {
-                    if (event.key === 'Enter' || event.key === ' ') {
+                    if (
+                      !isActive &&
+                      (event.key === 'Enter' || event.key === ' ')
+                    ) {
                       event.preventDefault();
                       onReplaySession(session);
                     }
@@ -283,14 +296,25 @@ export function StudioReplayPanel({
                 >
                   <ReplayPanelFileIcon />
                   <span>{session.name}</span>
-                  {isActive ? null : (
-                    <ReplayPanelMoreActions
-                      onDeleteSession={onDeleteSession}
-                      onDownloadSession={onDownloadSession}
-                      session={session}
-                    />
-                  )}
-                  {isActive ? (
+                  <ReplayPanelMoreActions
+                    onDeleteSession={onDeleteSession}
+                    onDownloadSession={onDownloadSession}
+                    session={session}
+                  />
+                  {isActive && activeSessionStoppable ? (
+                    <button
+                      aria-label={`Stop replay for ${session.name}`}
+                      className="studio-replay-panel-stop-button"
+                      onClick={(event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        onStopActiveSession?.();
+                      }}
+                      type="button"
+                    >
+                      <ReplayPanelStopIcon />
+                    </button>
+                  ) : isActive ? (
                     <span className="studio-replay-panel-loading">
                       <ReplayPanelLoadingIcon />
                     </span>

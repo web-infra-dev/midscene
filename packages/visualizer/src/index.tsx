@@ -76,6 +76,7 @@ export type {
   ExecutionUxHint,
   ExecutionUxConfig,
   PromptInputChromeConfig,
+  PlaygroundExecutionStatus,
   ReportDownloadHandler,
   ReportDownloadRequest,
 } from './types';

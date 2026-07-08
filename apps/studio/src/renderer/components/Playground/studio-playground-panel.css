@@ -1,99 +1,9 @@
-.playground-shell .studio-playground-execution,
-.playground-shell .studio-replay-execution {
-  height: 100%;
-  background: transparent;
-}
-
-.playground-shell .studio-playground-execution .command-form,
-.playground-shell .studio-replay-execution .command-form {
-  height: 100%;
-  gap: 8px;
-  overflow: hidden;
-  padding: 0;
-}
-
-.playground-shell .studio-playground-execution .command-form::-webkit-scrollbar,
-.playground-shell .studio-replay-execution .command-form::-webkit-scrollbar {
-  display: none;
-}
-
-.playground-shell .studio-playground-execution .command-form,
-.playground-shell .studio-replay-execution .command-form {
-  scrollbar-width: none;
-}
-
-.playground-shell
-  .studio-replay-execution.studio-playground-timeline-content-only
-  .command-form {
-  height: 100%;
-  gap: 0;
-  overflow: hidden;
-}
-
-.playground-shell
-  .studio-replay-execution.studio-playground-timeline-content-only
-  .middle-dialog-area {
-  height: 100%;
-  min-height: 0;
-  flex: 1 1 auto;
-  overflow: hidden;
-  box-sizing: border-box;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-}
-
-.playground-shell
-  .studio-replay-execution.studio-playground-timeline-content-only
-  .clear-button-container {
-  display: none;
-}
-
-.playground-shell
-  .studio-replay-execution.studio-playground-timeline-content-only
-  .info-list-container {
-  min-height: 0;
-  height: 100%;
-  padding: 0;
-  overflow-x: hidden;
-  overflow-y: auto;
-}
-
-.playground-shell
-  .studio-replay-execution.studio-playground-timeline-content-only
-  .playground-empty-state-wrapper {
-  min-height: 100%;
-}
-
-.playground-shell
-  .studio-replay-execution.studio-playground-timeline-content-only
-  .playground-empty-state-wrapper,
-.playground-shell
-  .studio-playground-timeline-wrapped
-  .studio-playground-timeline-panel
-  .playground-empty-state-wrapper {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.playground-shell
-  .studio-replay-execution.studio-playground-timeline-content-only
-  .playground-empty-state-wrapper
-  .studio-timeline-empty-state,
-.playground-shell
-  .studio-playground-timeline-wrapped
-  .studio-playground-timeline-panel
-  .playground-empty-state-wrapper
-  .studio-timeline-empty-state {
-  margin: 0;
-}
-
 .playground-shell .studio-playground-input-first .bottom-input-section {
   position: relative;
   order: 0;
-  height: 204.077px;
-  flex: 0 0 204.077px;
+  min-height: 204.077px;
+  height: auto;
+  flex: 0 0 auto;
   box-sizing: border-box;
   border: 1px solid #e5e5e5;
   border-radius: 20px;
@@ -135,7 +45,8 @@
   position: relative;
   display: flex;
   width: 100%;
-  height: calc(100% - 44.077px);
+  min-height: 160px;
+  height: auto;
   flex: 1 1 auto;
   flex-direction: column;
   gap: 12px;
@@ -262,13 +173,17 @@
   .prompt-input-wrapper
   .main-side-console-input {
   position: relative;
+  display: flex;
   margin-top: 0;
-  height: 94px;
-  flex: 0 0 94px;
+  min-height: 94px;
+  height: auto;
+  flex: 0 0 auto;
+  flex-direction: column;
   border: 0;
   border-radius: 0;
   background: transparent;
   padding-bottom: 0;
+  overflow: hidden;
   z-index: 1;
 }
 
@@ -302,8 +217,10 @@
   .studio-playground-input-first
   .prompt-input-wrapper
   .main-side-console-input
-  .ant-form-item {
+  > .ant-form-item {
+  min-height: 0;
   height: 56px;
+  flex: 0 0 56px;
   margin-bottom: 0;
 }
 
@@ -311,18 +228,22 @@
   .studio-playground-input-first
   .prompt-input-wrapper
   .main-side-console-input
+  > .ant-form-item
   .ant-form-item-control,
 .playground-shell
   .studio-playground-input-first
   .prompt-input-wrapper
   .main-side-console-input
+  > .ant-form-item
   .ant-form-item-control-input,
 .playground-shell
   .studio-playground-input-first
   .prompt-input-wrapper
   .main-side-console-input
+  > .ant-form-item
   .ant-form-item-control-input-content {
-  height: 56px;
+  min-height: 0;
+  height: 100%;
 }
 
 .playground-shell
@@ -330,7 +251,7 @@
   .prompt-input-wrapper
   .main-side-console-input
   .main-side-console-input-textarea {
-  height: 56px;
+  height: 100%;
   min-height: 56px;
   max-height: 56px;
   padding: 0 4px;
@@ -339,7 +260,39 @@
   font-size: 13px;
   font-weight: 400;
   line-height: 22px;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper
+  .main-side-console-input
+  .main-side-console-input-textarea::-webkit-scrollbar {
+  width: 6px;
+}
+
+.playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper
+  .main-side-console-input
+  .main-side-console-input-textarea::-webkit-scrollbar-thumb {
+  border-radius: 3px;
+  background-color: rgba(0, 0, 0, 0.2);
+}
+
+.playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper
+  .main-side-console-input
+  .structured-params-container {
+  min-height: 0;
+  height: auto;
+  max-height: none;
+  flex: 0 0 auto;
+  padding: 0 4px;
+  overflow: visible;
 }
 
 .playground-shell
@@ -354,12 +307,15 @@
   .studio-playground-input-first
   .prompt-input-wrapper
   .form-controller-wrapper {
+  position: static;
   left: 0;
   bottom: 0;
   width: 100%;
   height: 28px;
+  flex: 0 0 28px;
   align-items: center;
   justify-content: flex-end;
+  margin-top: 10px;
   padding: 0;
   line-height: 28px;
   z-index: 2;
@@ -588,139 +544,4 @@
   .studio-playground-input-first
   .playground-empty-state-wrapper-offset-for-prompt {
   padding-bottom: 0;
-}
-
-.playground-shell .studio-playground-timeline-collapsed .middle-dialog-area {
-  height: 44.077px;
-  min-height: 44.077px;
-  flex-basis: 44.077px;
-}
-
-.playground-shell
-  .studio-playground-timeline-collapsed
-  .middle-dialog-area
-  .clear-button-container,
-.playground-shell
-  .studio-playground-timeline-collapsed
-  .middle-dialog-area
-  .info-list-container,
-.playground-shell
-  .studio-playground-timeline-collapsed
-  .middle-dialog-area
-  .scroll-to-bottom-button {
-  display: none;
-}
-
-.playground-shell .studio-playground-timeline-panel {
-  order: 1;
-}
-
-.playground-shell
-  .studio-playground-timeline-wrapped
-  .studio-playground-timeline-panel
-  .middle-dialog-area {
-  min-height: 0;
-  height: auto;
-  flex: 0 1 auto;
-  overflow: hidden;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-}
-
-.playground-shell
-  .studio-playground-timeline-wrapped
-  .studio-playground-timeline-panel
-  .middle-dialog-area-empty {
-  height: 100%;
-  flex: 1 1 auto;
-}
-
-.playground-shell
-  .studio-playground-timeline-wrapped
-  .studio-playground-timeline-panel
-  .clear-button-container {
-  top: -5px;
-  right: 8px;
-}
-
-.playground-shell
-  .studio-playground-timeline-wrapped
-  .studio-playground-timeline-panel
-  .info-list-container {
-  min-height: 0;
-  height: auto;
-  max-height: calc(100% - 44.077px);
-  flex: 0 1 auto;
-  padding: 20px 16px 20px 20px;
-  overflow-x: hidden;
-  overflow-y: auto;
-}
-
-.playground-shell
-  .studio-playground-timeline-wrapped
-  .studio-playground-timeline-panel
-  .info-list-container-empty {
-  height: 100%;
-  min-height: 0;
-  flex: 1 1 auto;
-  padding: 0;
-  overflow: hidden;
-}
-
-.playground-shell
-  .studio-playground-timeline-wrapped
-  .studio-playground-timeline-panel
-  .result-wrapper {
-  width: 100%;
-  align-items: stretch;
-  justify-content: stretch;
-  margin: 0;
-}
-
-.playground-shell
-  .studio-playground-timeline-wrapped
-  .studio-playground-timeline-panel
-  .result-wrapper
-  .player-container {
-  width: 100%;
-  max-width: 100%;
-  height: 260px;
-  min-height: 0;
-  padding: 0;
-  border: 0;
-  background: transparent;
-}
-
-.playground-shell
-  .studio-playground-timeline-wrapped
-  .studio-playground-timeline-panel
-  .result-wrapper
-  .player-container
-  .canvas-container {
-  height: 260px;
-  min-height: 0;
-  max-height: 260px;
-  border-radius: 8px;
-}
-
-.playground-shell
-  .studio-playground-timeline-wrapped
-  .studio-playground-timeline-panel
-  .playground-empty-state-wrapper {
-  height: 100%;
-  min-height: 0;
-  width: 100%;
-}
-
-.playground-shell
-  .studio-playground-timeline-wrapped
-  .studio-playground-timeline-panel
-  .playground-empty-state-wrapper
-  .studio-timeline-empty-state {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  margin: 0;
-  transform: translate(-50%, -50%);
 }

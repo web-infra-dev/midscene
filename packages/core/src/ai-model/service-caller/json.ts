@@ -109,12 +109,79 @@ function trimParsedJsonStrings(
   return obj;
 }
 
+function findNextNonWhitespaceChar(text: string, startIndex: number) {
+  for (let index = startIndex; index < text.length; index++) {
+    const char = text[index];
+    if (!/\s/.test(char)) {
+      return char;
+    }
+  }
+  return undefined;
+}
+
+function escapeBareQuotesInsideJsonStrings(jsonBlock: string) {
+  let repaired = '';
+  let inString = false;
+  let escaped = false;
+  let changed = false;
+
+  for (let index = 0; index < jsonBlock.length; index++) {
+    const char = jsonBlock[index];
+
+    if (!inString) {
+      if (char === '"') {
+        inString = true;
+      }
+      repaired += char;
+      continue;
+    }
+
+    if (escaped) {
+      repaired += char;
+      escaped = false;
+      continue;
+    }
+
+    if (char === '\\') {
+      repaired += char;
+      escaped = true;
+      continue;
+    }
+
+    if (char === '"') {
+      const nextNonWhitespaceChar = findNextNonWhitespaceChar(
+        jsonBlock,
+        index + 1,
+      );
+      const isStringTerminator =
+        nextNonWhitespaceChar === undefined ||
+        nextNonWhitespaceChar === ':' ||
+        nextNonWhitespaceChar === ',' ||
+        nextNonWhitespaceChar === '}' ||
+        nextNonWhitespaceChar === ']';
+
+      if (isStringTerminator) {
+        inString = false;
+        repaired += char;
+      } else {
+        repaired += '\\"';
+        changed = true;
+      }
+      continue;
+    }
+
+    repaired += char;
+  }
+
+  return changed ? repaired : jsonBlock;
+}
+
 function repairKnownJsonIssues(
   jsonBlock: string,
   _rawResponse: string,
+  _context?: JsonParserContext,
 ): string {
-  // TODO: Add project-specific repairs that jsonrepair cannot handle.
-  return jsonBlock;
+  return escapeBareQuotesInsideJsonStrings(jsonBlock);
 }
 
 function assertJsonObject(
@@ -152,7 +219,7 @@ export function parseModelResponseJson(
       assertJsonObject(parsedObj);
     }
   } catch (e1) {
-    const code = repairKnownJsonIssues(cleanJsonString, raw);
+    const code = repairKnownJsonIssues(cleanJsonString, raw, context);
     if (code === cleanJsonString) {
       throw new Error(
         `failed to parse LLM response into JSON. Error - ${String(

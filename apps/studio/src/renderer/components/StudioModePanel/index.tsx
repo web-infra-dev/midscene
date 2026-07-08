@@ -1,4 +1,8 @@
-import type { ExternalRunRequest, FormValue } from '@midscene/visualizer';
+import type {
+  ExternalRunRequest,
+  FormValue,
+  PlaygroundExecutionStatus,
+} from '@midscene/visualizer';
 import { App as AntdApp, Tooltip } from 'antd';
 import type { ReactNode } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -20,10 +24,10 @@ import { StudioModeTab } from '../../recorder/types';
 import { useStudioRecorder } from '../../recorder/useStudioRecorder';
 import Playground from '../Playground';
 import {
-  StudioPlaygroundExecution,
-  createStudioPlaygroundConfig,
-  createStudioPlaygroundStorageNamespace,
-} from '../Playground/StudioPlaygroundExecution';
+  StudioTimelineExecution,
+  createStudioTimelineConfig,
+  createStudioTimelineStorageNamespace,
+} from '../Playground/StudioTimelineExecution';
 import { PlaygroundShell } from '../PlaygroundShell';
 import {
   RecorderScreenshotDetailView,
@@ -131,28 +135,37 @@ function createExternalRunRequest(
 
 function ReplayExecutionPanel({
   actions,
+  executionScopeKey,
   externalRunRequest,
+  onExecutionStatusChange,
   playground,
   replayTitle,
   showHeader,
   storageNamespace,
 }: {
   actions?: ReactNode;
+  executionScopeKey: string | null;
   externalRunRequest: StudioExternalRunRequest | null;
+  onExecutionStatusChange?: (status: PlaygroundExecutionStatus) => void;
   playground: ReturnType<typeof useStudioPlayground>;
   replayTitle: string;
   showHeader: boolean;
   storageNamespace: string;
 }) {
   const [timelineCollapsed, setTimelineCollapsed] = useState(false);
-  const isTimelineEmpty =
-    !externalRunRequest ||
-    playground.phase !== 'ready' ||
-    !playground.controller.state.serverOnline ||
-    !playground.controller.state.sessionViewState.connected;
+  const canRenderReplayExecution =
+    Boolean(externalRunRequest) &&
+    playground.phase === 'ready' &&
+    playground.controller.state.serverOnline &&
+    playground.controller.state.sessionViewState.connected;
+  const shouldRenderDisconnectedFallback =
+    Boolean(externalRunRequest) &&
+    (playground.phase !== 'ready' ||
+      !playground.controller.state.serverOnline ||
+      !playground.controller.state.sessionViewState.connected);
   const replayConfig = useMemo(
     () =>
-      createStudioPlaygroundConfig({
+      createStudioTimelineConfig({
         emptyState: (
           <StudioTimelineEmptyState
             description="The mission progress will be displayed here."
@@ -160,52 +173,82 @@ function ReplayExecutionPanel({
             variant={StudioModeTab.Replay}
           />
         ),
+        executionScopeKey,
         externalRunRequest,
         hidePromptInput: true,
-        showSessionSeparator: false,
+        onExecutionStatusChange,
+        showClearButton: true,
         storageNamespace,
         suppressConfigErrorToast: true,
+        timelineWrapper: (content, state) =>
+          state.empty ? null : (
+            <StudioTimelinePanel
+              ariaHidden={timelineCollapsed}
+              className="studio-replay-timeline-panel"
+              collapsed={timelineCollapsed}
+              contentClassName="studio-replay-timeline-panel-body"
+              empty={state.empty}
+              expanded={!state.empty}
+              headerAction={timelineCollapsed ? null : state.headerAction}
+              onToggleCollapsed={() => {
+                setTimelineCollapsed((collapsed) => !collapsed);
+              }}
+              scrollBody={!state.empty}
+              variant={StudioModeTab.Replay}
+            >
+              {content}
+            </StudioTimelinePanel>
+          ),
       }),
-    [externalRunRequest, storageNamespace],
+    [
+      externalRunRequest,
+      executionScopeKey,
+      onExecutionStatusChange,
+      storageNamespace,
+      timelineCollapsed,
+    ],
   );
 
-  const timelinePanel = (
-    <StudioTimelinePanel
-      ariaHidden={timelineCollapsed}
-      className="studio-replay-timeline-panel"
-      collapsed={timelineCollapsed}
-      contentClassName="studio-replay-timeline-panel-body"
-      empty={isTimelineEmpty}
-      expanded={!isTimelineEmpty}
-      onToggleCollapsed={() => {
-        setTimelineCollapsed((collapsed) => !collapsed);
-      }}
-      scrollBody={!isTimelineEmpty}
-      variant={StudioModeTab.Replay}
-    >
-      {isTimelineEmpty ? (
+  let timelinePanel: ReactNode = null;
+  if (externalRunRequest && shouldRenderDisconnectedFallback) {
+    timelinePanel = (
+      <StudioTimelinePanel
+        ariaHidden={timelineCollapsed}
+        className="studio-replay-timeline-panel"
+        collapsed={timelineCollapsed}
+        contentClassName="studio-replay-timeline-panel-body"
+        empty={shouldRenderDisconnectedFallback}
+        expanded={!shouldRenderDisconnectedFallback}
+        onToggleCollapsed={() => {
+          setTimelineCollapsed((collapsed) => !collapsed);
+        }}
+        scrollBody={!shouldRenderDisconnectedFallback}
+        variant={StudioModeTab.Replay}
+      >
         <StudioTimelineEmptyState
           description="The mission progress will be displayed here."
           title="No execution yet"
           variant={StudioModeTab.Replay}
         />
-      ) : (
-        <StudioPlaygroundExecution
-          className="studio-replay-execution-panel"
-          controller={playground.controller}
-          playgroundClassName={[
-            'studio-replay-execution',
-            'studio-playground-timeline-content-only',
-            timelineCollapsed ? 'studio-playground-timeline-collapsed' : '',
-          ]
-            .filter(Boolean)
-            .join(' ')}
-          playgroundConfig={replayConfig}
-          title="Replay"
-        />
-      )}
-    </StudioTimelinePanel>
-  );
+      </StudioTimelinePanel>
+    );
+  } else if (externalRunRequest && canRenderReplayExecution) {
+    timelinePanel = (
+      <StudioTimelineExecution
+        className="studio-replay-execution-panel"
+        controller={playground.controller}
+        playgroundClassName={[
+          'studio-replay-execution',
+          'studio-playground-timeline-content-only',
+          timelineCollapsed ? 'studio-playground-timeline-collapsed' : '',
+        ]
+          .filter(Boolean)
+          .join(' ')}
+        playgroundConfig={replayConfig}
+        title="Replay"
+      />
+    );
+  }
 
   if (showHeader) {
     return (
@@ -239,6 +282,13 @@ export default function StudioModePanel({
   const [replayingSessionId, setReplayingSessionId] = useState<string | null>(
     null,
   );
+  const [replayExecutionStatus, setReplayExecutionStatus] =
+    useState<PlaygroundExecutionStatus>({
+      running: false,
+      stoppable: false,
+      stop: () => undefined,
+    });
+  const replayExecutionWasRunningRef = useRef(false);
   const lastKnownTargetRef = useRef<StudioRecorderTarget | null>(null);
   if (recorder.currentTarget) {
     lastKnownTargetRef.current = recorder.currentTarget;
@@ -283,7 +333,7 @@ export default function StudioModePanel({
     [currentTargetSignature, playgroundExternalRunRequest],
   );
   const playgroundStorageNamespace = useMemo(
-    () => createStudioPlaygroundStorageNamespace(currentTargetSignature),
+    () => createStudioTimelineStorageNamespace(currentTargetSignature),
     [currentTargetSignature],
   );
   const replaySessions = useMemo(
@@ -392,6 +442,7 @@ export default function StudioModePanel({
           return;
         }
         setReplayingSessionId(session.id);
+        replayExecutionWasRunningRef.current = false;
         let replaySession = session;
         if (!replaySession.generatedCode?.markdown) {
           const markdown = await recorder.generateSessionCode(session.id, {
@@ -414,12 +465,26 @@ export default function StudioModePanel({
           { prompt: session.name },
         );
       } catch (error) {
-        message.error(error instanceof Error ? error.message : String(error));
-      } finally {
         setReplayingSessionId(null);
+        replayExecutionWasRunningRef.current = false;
+        message.error(error instanceof Error ? error.message : String(error));
       }
     },
     [importReplayDisabledReason, message, recorder, triggerExternalRun],
+  );
+  const handleReplayExecutionStatusChange = useCallback(
+    (status: PlaygroundExecutionStatus) => {
+      setReplayExecutionStatus(status);
+      if (status.running) {
+        replayExecutionWasRunningRef.current = true;
+        return;
+      }
+      if (replayExecutionWasRunningRef.current) {
+        replayExecutionWasRunningRef.current = false;
+        setReplayingSessionId(null);
+      }
+    },
+    [],
   );
   const handleDownloadReplaySession = useCallback(
     async (session: StudioRecordingSession) => {
@@ -464,6 +529,13 @@ export default function StudioModePanel({
   useEffect(() => {
     setExternalRunRequest(null);
     setPlaygroundExternalRunRequest(null);
+    setReplayingSessionId(null);
+    replayExecutionWasRunningRef.current = false;
+    setReplayExecutionStatus({
+      running: false,
+      stoppable: false,
+      stop: () => undefined,
+    });
   }, [currentTargetSignature]);
 
   useEffect(() => {
@@ -529,10 +601,11 @@ export default function StudioModePanel({
       </div>
       <div
         aria-hidden={!replayActive}
-        className={`${modePaneClassName(replayActive)} studio-replay-column flex h-full min-h-0 flex-col gap-[8px] overflow-hidden bg-transparent pb-px`}
+        className={`${modePaneClassName(replayActive)} studio-replay-column flex h-full min-h-0 flex-col gap-[8px] overflow-x-hidden overflow-y-auto bg-transparent pb-px`}
       >
         <StudioReplayPanel
           activeSessionId={replayingSessionId}
+          activeSessionStoppable={replayExecutionStatus.stoppable}
           onDeleteSession={(session) => {
             void handleDeleteReplaySession(session);
           }}
@@ -542,10 +615,15 @@ export default function StudioModePanel({
           onReplaySession={(session) => {
             void handleReplaySession(session);
           }}
+          onStopActiveSession={() => {
+            void replayExecutionStatus.stop();
+          }}
           sessions={replaySessions}
         />
         <ReplayExecutionPanel
+          executionScopeKey={currentTargetSignature}
           externalRunRequest={activeExternalRunRequest}
+          onExecutionStatusChange={handleReplayExecutionStatusChange}
           playground={playground}
           replayTitle={replayTitle}
           showHeader={renderOwnHeader}

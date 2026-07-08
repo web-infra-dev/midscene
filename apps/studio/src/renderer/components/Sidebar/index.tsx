@@ -49,7 +49,7 @@ function SectionHeader({
   return (
     <div className="mb-[2px] flex h-8 w-full items-center justify-between rounded-[8px] px-[12px] py-[5px] text-left">
       <div className="flex min-w-0 items-center gap-[6px]">
-        <span className="flex size-[22px] shrink-0 items-center justify-center rounded-full bg-[#ECEEEE] text-[#474848] dark:bg-white/[0.12] dark:text-text-secondary">
+        <span className="flex size-[22px] shrink-0 items-center justify-center text-[#474848] dark:text-text-secondary">
           {iconSrc ? (
             <MaskedIcon className="size-4" src={iconSrc} />
           ) : (

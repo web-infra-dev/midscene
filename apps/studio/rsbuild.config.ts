@@ -4,10 +4,8 @@ import { pluginLess } from '@rsbuild/plugin-less';
 import { pluginNodePolyfill } from '@rsbuild/plugin-node-polyfill';
 import { pluginReact } from '@rsbuild/plugin-react';
 import { pluginSvgr } from '@rsbuild/plugin-svgr';
-import {
-  commonIgnoreWarnings,
-  createTypeCheckPlugin,
-} from '../../scripts/rsbuild-utils.ts';
+import { pluginTypeCheck } from '@rsbuild/plugin-type-check';
+import { commonIgnoreWarnings } from '../../scripts/rsbuild-utils.ts';
 import { version as appVersion } from './package.json';
 import {
   rendererDevHost,
@@ -49,7 +47,17 @@ export default defineConfig({
     }),
     pluginLess(),
     pluginNodePolyfill(),
-    createTypeCheckPlugin(),
+    pluginTypeCheck({
+      tsCheckerOptions: {
+        typescript: {
+          // Studio aliases workspace renderer packages to source entries above;
+          // type checking must follow project references so package imports keep
+          // their generated declaration boundaries instead of falling through to
+          // dist/*.mjs during dev watch rebuilds.
+          build: true,
+        },
+      },
+    }),
   ],
   resolve: {
     alias: {

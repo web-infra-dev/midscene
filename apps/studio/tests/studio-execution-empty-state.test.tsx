@@ -15,14 +15,14 @@ vi.mock('../src/renderer/components/StudioTimelinePanel', () => ({
   StudioTimelineHeader: () => null,
 }));
 
-const { createStudioPlaygroundConfig } = await import(
+const { createStudioTimelineConfig } = await import(
   '../src/renderer/components/Playground'
 );
 
 describe('StudioExecutionEmptyState', () => {
   it('renders the compact timeline empty state without playground welcome copy', () => {
     const html = renderToStaticMarkup(
-      createElement('div', null, createStudioPlaygroundConfig().emptyState),
+      createElement('div', null, createStudioTimelineConfig().emptyState),
     );
 
     expect(html).toContain('studio-execution-empty-state');

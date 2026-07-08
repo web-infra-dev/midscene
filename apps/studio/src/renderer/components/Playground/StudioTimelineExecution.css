@@ -1,0 +1,454 @@
+.playground-shell .studio-playground-execution,
+.playground-shell .studio-replay-execution {
+  height: 100%;
+  background: transparent;
+}
+
+.playground-shell .studio-playground-execution .command-form,
+.playground-shell .studio-replay-execution .command-form {
+  height: 100%;
+  gap: 8px;
+  overflow: hidden;
+  padding: 0;
+}
+
+.playground-shell .studio-playground-execution .command-form::-webkit-scrollbar,
+.playground-shell .studio-replay-execution .command-form::-webkit-scrollbar {
+  display: none;
+}
+
+.playground-shell .studio-playground-execution .command-form,
+.playground-shell .studio-replay-execution .command-form {
+  scrollbar-width: none;
+}
+
+.playground-shell
+  .studio-replay-execution.studio-playground-timeline-content-only
+  .command-form {
+  height: 100%;
+  gap: 0;
+  overflow: hidden;
+}
+
+.playground-shell
+  .studio-replay-execution.studio-playground-timeline-content-only
+  .middle-dialog-area {
+  height: 100%;
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+  box-sizing: border-box;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.playground-shell
+  .studio-replay-execution.studio-playground-timeline-content-only
+  .info-list-container {
+  min-height: 0;
+  height: 100%;
+  padding: 5.846px 14px 20px 16px;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.playground-shell
+  .studio-replay-execution.studio-playground-timeline-content-only
+  .playground-empty-state-wrapper {
+  min-height: 100%;
+}
+
+.playground-shell
+  .studio-replay-execution.studio-playground-timeline-content-only
+  .playground-empty-state-wrapper,
+.playground-shell
+  .studio-playground-timeline-wrapped
+  .studio-playground-timeline-panel
+  .playground-empty-state-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.playground-shell
+  .studio-replay-execution.studio-playground-timeline-content-only
+  .playground-empty-state-wrapper
+  .studio-timeline-empty-state,
+.playground-shell
+  .studio-playground-timeline-wrapped
+  .studio-playground-timeline-panel
+  .playground-empty-state-wrapper
+  .studio-timeline-empty-state {
+  margin: 0;
+}
+
+.playground-shell .studio-playground-timeline-collapsed .middle-dialog-area {
+  height: 44.077px;
+  min-height: 44.077px;
+  flex-basis: 44.077px;
+}
+
+.playground-shell
+  .studio-playground-timeline-collapsed
+  .middle-dialog-area
+  .clear-button-container,
+.playground-shell
+  .studio-playground-timeline-collapsed
+  .middle-dialog-area
+  .info-list-container,
+.playground-shell
+  .studio-playground-timeline-collapsed
+  .middle-dialog-area
+  .scroll-to-bottom-button {
+  display: none;
+}
+
+.playground-shell .studio-playground-timeline-panel {
+  order: 1;
+}
+
+.playground-shell
+  .studio-playground-timeline-wrapped
+  .studio-playground-timeline-panel
+  .middle-dialog-area {
+  min-height: 0;
+  height: auto;
+  flex: 0 1 auto;
+  overflow: hidden;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.playground-shell
+  .studio-playground-timeline-wrapped
+  .studio-playground-timeline-panel
+  .middle-dialog-area-empty {
+  height: 100%;
+  flex: 1 1 auto;
+}
+
+.playground-shell
+  .studio-playground-timeline-wrapped
+  .studio-playground-timeline-panel
+  .info-list-container {
+  min-height: 0;
+  height: auto;
+  max-height: calc(100% - 44.077px);
+  flex: 0 1 auto;
+  padding: 5.846px 14px 20px 16px;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.playground-shell
+  .studio-playground-timeline-wrapped
+  .studio-playground-timeline-panel
+  .info-list-container-empty {
+  height: 100%;
+  min-height: 0;
+  flex: 1 1 auto;
+  padding: 0;
+  overflow: hidden;
+}
+
+.playground-shell
+  .studio-replay-execution.studio-playground-timeline-content-only
+  .info-list-container
+  .ant-list-items,
+.playground-shell
+  .studio-playground-timeline-wrapped
+  .studio-playground-timeline-panel
+  .info-list-container
+  .ant-list-items {
+  gap: 20px;
+}
+
+.playground-shell
+  .studio-replay-execution.studio-playground-timeline-content-only
+  .info-list-container
+  .list-item:has(.progress-row),
+.playground-shell
+  .studio-playground-timeline-wrapped
+  .studio-playground-timeline-panel
+  .info-list-container
+  .list-item:has(.progress-row) {
+  min-height: 38px;
+}
+
+.playground-shell
+  .studio-replay-execution.studio-playground-timeline-content-only
+  .info-list-container
+  .list-item
+  > div:has(> .progress-row),
+.playground-shell
+  .studio-playground-timeline-wrapped
+  .studio-playground-timeline-panel
+  .info-list-container
+  .list-item
+  > div:has(> .progress-row) {
+  position: relative;
+  grid-template-columns: 16px minmax(0, 1fr);
+  column-gap: 8px;
+  min-height: 38px;
+  padding: 0;
+}
+
+.playground-shell
+  .studio-replay-execution.studio-playground-timeline-content-only
+  .info-list-container
+  .list-item
+  > div:has(> .progress-row)::before,
+.playground-shell
+  .studio-playground-timeline-wrapped
+  .studio-playground-timeline-panel
+  .info-list-container
+  .list-item
+  > div:has(> .progress-row)::before,
+.playground-shell
+  .studio-replay-execution.studio-playground-timeline-content-only
+  .info-list-container
+  .list-item
+  > div:has(> .progress-row)::after,
+.playground-shell
+  .studio-playground-timeline-wrapped
+  .studio-playground-timeline-panel
+  .info-list-container
+  .list-item
+  > div:has(> .progress-row)::after {
+  position: absolute;
+  left: 8px;
+  width: 1px;
+  content: "";
+  background: #d7e5ff;
+}
+
+.playground-shell
+  .studio-replay-execution.studio-playground-timeline-content-only
+  .info-list-container
+  .list-item
+  > div:has(> .progress-row)::before,
+.playground-shell
+  .studio-playground-timeline-wrapped
+  .studio-playground-timeline-panel
+  .info-list-container
+  .list-item
+  > div:has(> .progress-row)::before {
+  top: 0;
+  height: 8px;
+}
+
+.playground-shell
+  .studio-replay-execution.studio-playground-timeline-content-only
+  .info-list-container
+  .list-item
+  > div:has(> .progress-row)::after,
+.playground-shell
+  .studio-playground-timeline-wrapped
+  .studio-playground-timeline-panel
+  .info-list-container
+  .list-item
+  > div:has(> .progress-row)::after {
+  top: 30px;
+  bottom: 0;
+}
+
+.playground-shell
+  .studio-replay-execution.studio-playground-timeline-content-only
+  .info-list-container
+  .progress-row-content,
+.playground-shell
+  .studio-playground-timeline-wrapped
+  .studio-playground-timeline-panel
+  .info-list-container
+  .progress-row-content {
+  padding: 8px 0 8px 8px;
+  line-height: 22px;
+}
+
+.playground-shell
+  .studio-replay-execution.studio-playground-timeline-content-only
+  .info-list-container
+  .progress-status-icon,
+.playground-shell
+  .studio-playground-timeline-wrapped
+  .studio-playground-timeline-panel
+  .info-list-container
+  .progress-status-icon {
+  position: relative;
+  z-index: 1;
+  margin-top: 11px;
+}
+
+.playground-shell
+  .studio-replay-execution.studio-playground-timeline-content-only
+  .info-list-container
+  .progress-action-item,
+.playground-shell
+  .studio-playground-timeline-wrapped
+  .studio-playground-timeline-panel
+  .info-list-container
+  .progress-action-item {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 22px;
+}
+
+.playground-shell
+  .studio-replay-execution.studio-playground-timeline-content-only
+  .info-list-container
+  .progress-action-item
+  + .progress-description-wrap::before,
+.playground-shell
+  .studio-playground-timeline-wrapped
+  .studio-playground-timeline-panel
+  .info-list-container
+  .progress-action-item
+  + .progress-description-wrap::before {
+  font-weight: 400;
+}
+
+.playground-shell
+  .studio-replay-execution.studio-playground-timeline-content-only
+  .info-list-container
+  .progress-description,
+.playground-shell
+  .studio-playground-timeline-wrapped
+  .studio-playground-timeline-panel
+  .info-list-container
+  .progress-description {
+  font-size: 14px;
+  line-height: 22px;
+}
+
+.playground-shell
+  .studio-replay-execution.studio-playground-timeline-content-only
+  .info-list-container
+  .list-item:has(.progress-row)
+  + .list-item:has(.progress-row),
+.playground-shell
+  .studio-playground-timeline-wrapped
+  .studio-playground-timeline-panel
+  .info-list-container
+  .list-item:has(.progress-row)
+  + .list-item:has(.progress-row) {
+  margin-top: -20px;
+}
+
+.studio-replay-timeline-panel.studio-timeline-panel-expanded
+  .studio-replay-execution-panel,
+.studio-replay-timeline-panel.studio-timeline-panel-expanded
+  .playground-conversation-panel,
+.studio-replay-timeline-panel.studio-timeline-panel-expanded
+  .playground-conversation-body,
+.studio-replay-timeline-panel.studio-timeline-panel-expanded
+  .playground-container,
+.studio-replay-timeline-panel.studio-timeline-panel-expanded .command-form {
+  height: auto;
+  min-height: 0;
+  flex: 0 1 auto;
+}
+
+.studio-replay-timeline-panel.studio-timeline-panel-expanded {
+  max-height: none;
+  flex: 0 0 auto;
+}
+
+.studio-replay-timeline-panel.studio-timeline-panel-expanded
+  .studio-replay-timeline-panel-body,
+.studio-replay-timeline-panel.studio-timeline-panel-expanded
+  .studio-timeline-panel-scroll-body {
+  max-height: none;
+  flex: 0 0 auto;
+  overflow: visible;
+}
+
+.playground-shell
+  .studio-replay-timeline-panel.studio-timeline-panel-expanded
+  .studio-replay-execution.studio-playground-timeline-content-only,
+.playground-shell
+  .studio-replay-timeline-panel.studio-timeline-panel-expanded
+  .studio-replay-execution.studio-playground-timeline-content-only
+  .command-form,
+.playground-shell
+  .studio-replay-timeline-panel.studio-timeline-panel-expanded
+  .studio-replay-execution.studio-playground-timeline-content-only
+  .middle-dialog-area {
+  height: auto;
+  min-height: 0;
+  flex: 0 1 auto;
+}
+
+.playground-shell
+  .studio-replay-timeline-panel.studio-timeline-panel-expanded
+  .studio-replay-execution.studio-playground-timeline-content-only
+  .info-list-container {
+  height: auto;
+  flex: 0 1 auto;
+  max-height: none;
+  overflow: visible;
+}
+
+.studio-replay-timeline-panel .result-wrapper,
+.playground-shell
+  .studio-playground-timeline-wrapped
+  .studio-playground-timeline-panel
+  .result-wrapper {
+  width: 100%;
+  align-items: stretch;
+  justify-content: stretch;
+  margin: 0;
+}
+
+.studio-replay-timeline-panel .result-wrapper .player-container,
+.playground-shell
+  .studio-playground-timeline-wrapped
+  .studio-playground-timeline-panel
+  .result-wrapper
+  .player-container {
+  width: 100%;
+  max-width: 100%;
+  height: 260px;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.studio-replay-timeline-panel
+  .result-wrapper
+  .player-container
+  .canvas-container,
+.playground-shell
+  .studio-playground-timeline-wrapped
+  .studio-playground-timeline-panel
+  .result-wrapper
+  .player-container
+  .canvas-container {
+  height: 260px;
+  min-height: 0;
+  max-height: 260px;
+  border-radius: 8px;
+}
+
+.playground-shell
+  .studio-playground-timeline-wrapped
+  .studio-playground-timeline-panel
+  .playground-empty-state-wrapper {
+  height: 100%;
+  min-height: 0;
+  width: 100%;
+}
+
+.playground-shell
+  .studio-playground-timeline-wrapped
+  .studio-playground-timeline-panel
+  .playground-empty-state-wrapper
+  .studio-timeline-empty-state {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  margin: 0;
+  transform: translate(-50%, -50%);
+}

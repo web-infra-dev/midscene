@@ -6,8 +6,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({
   latestExternalRunRequest: null as any,
   latestPlaygroundConfig: null as any,
+  latestReplayExecutionConfig: null as any,
+  latestReplayPanelProps: null as any,
   playground: null as any,
   recorder: null as any,
+  timelineWrapperState: { empty: true } as { empty: boolean },
 }));
 
 vi.mock('antd', () => ({
@@ -25,20 +28,30 @@ vi.mock('antd', () => ({
 vi.mock('@midscene/playground-app', () => ({
   PlaygroundConversationPanel: ({ playgroundConfig }: any) => {
     mocks.latestPlaygroundConfig = playgroundConfig;
+    if (playgroundConfig.onExecutionStatusChange) {
+      mocks.latestReplayExecutionConfig = playgroundConfig;
+    }
     if (playgroundConfig.externalRunRequest) {
       mocks.latestExternalRunRequest = playgroundConfig.externalRunRequest;
     }
+    const timelineContent = playgroundConfig.timelineWrapper?.(
+      createElement('div', { 'data-testid': 'timeline-content' }),
+      mocks.timelineWrapperState,
+    );
     return createElement(
       'div',
       { 'data-testid': 'playground-panel' },
+      timelineContent,
       playgroundConfig.promptInputChrome?.inputActions,
     );
   },
 }));
 
 vi.mock('../src/renderer/components/Recorder', () => ({
-  StudioReplayPanel: () =>
-    createElement('div', { 'data-testid': 'studio-replay-panel' }),
+  StudioReplayPanel: (props: any) => {
+    mocks.latestReplayPanelProps = props;
+    return createElement('div', { 'data-testid': 'studio-replay-panel' });
+  },
   StudioRecorderPanel: () =>
     createElement('div', { 'data-testid': 'studio-recorder-panel' }),
 }));
@@ -117,6 +130,7 @@ function createReadyPlayground() {
 function createRecorder() {
   return {
     currentTarget: target,
+    generateSessionCode: vi.fn(async () => '# Replay'),
     state: {
       isRecording: false,
       sessions: [],
@@ -200,8 +214,11 @@ describe('Studio Playground imported replay', () => {
   beforeEach(() => {
     mocks.latestExternalRunRequest = null;
     mocks.latestPlaygroundConfig = null;
+    mocks.latestReplayExecutionConfig = null;
+    mocks.latestReplayPanelProps = null;
     mocks.playground = createReadyPlayground();
     mocks.recorder = createRecorder();
+    mocks.timelineWrapperState = { empty: true };
     window.studioRuntime = {
       chooseReplayFile: vi.fn(async () => ({
         content: '# Replay\n\n## Steps\n1. Tap login',
@@ -283,6 +300,120 @@ describe('Studio Playground imported replay', () => {
     expect(onHeaderChange).toHaveBeenCalledWith({
       title: 'Replay',
     });
+
+    await act(async () => {
+      root.unmount();
+    });
+  });
+
+  it('does not render the initial empty timeline panel for Replay or API Playground', async () => {
+    const { container: replayContainer, root: replayRoot } =
+      await renderPlayground();
+
+    expect(
+      replayContainer.querySelector('[data-testid="studio-timeline-panel"]'),
+    ).toBeNull();
+    expect(
+      replayContainer.querySelector(
+        '[data-testid="studio-timeline-empty-state"]',
+      ),
+    ).toBeNull();
+
+    await act(async () => {
+      replayRoot.unmount();
+    });
+
+    const { container: playgroundContainer, root: playgroundRoot } =
+      await renderApiPlayground();
+
+    expect(
+      playgroundContainer.querySelector(
+        '[data-testid="studio-timeline-panel"]',
+      ),
+    ).toBeNull();
+    expect(
+      playgroundContainer.querySelector(
+        '[data-testid="studio-timeline-empty-state"]',
+      ),
+    ).toBeNull();
+
+    await act(async () => {
+      playgroundRoot.unmount();
+    });
+  });
+
+  it('renders the API Playground timeline panel after execution exists', async () => {
+    mocks.timelineWrapperState = { empty: false };
+
+    const { container, root } = await renderApiPlayground();
+
+    expect(
+      container.querySelector('[data-testid="studio-timeline-panel"]'),
+    ).not.toBeNull();
+
+    await act(async () => {
+      root.unmount();
+    });
+  });
+
+  it('keeps the replay history item active while execution is running', async () => {
+    const session = {
+      createdAt: Date.now(),
+      events: [],
+      generatedCode: {
+        markdown: '# Recorded Replay',
+      },
+      id: 'session-running',
+      name: 'Search for Hotels in Hangzhou on Booking.com',
+      status: 'completed',
+      target,
+      updatedAt: Date.now(),
+    };
+    mocks.recorder = {
+      ...createRecorder(),
+      state: {
+        isRecording: false,
+        sessions: [session],
+      },
+    };
+    const stop = vi.fn();
+    const { root } = await renderPlayground();
+
+    await act(async () => {
+      await mocks.latestReplayPanelProps.onReplaySession(session);
+    });
+
+    expect(mocks.latestReplayPanelProps.activeSessionId).toBe(session.id);
+    expect(mocks.latestExternalRunRequest).toMatchObject({
+      displayContent: `Replay: ${session.name}`,
+    });
+
+    await act(async () => {
+      mocks.latestReplayExecutionConfig.onExecutionStatusChange({
+        running: true,
+        stop,
+        stoppable: true,
+      });
+    });
+
+    expect(mocks.latestReplayPanelProps.activeSessionId).toBe(session.id);
+    expect(mocks.latestReplayPanelProps.activeSessionStoppable).toBe(true);
+
+    await act(async () => {
+      mocks.latestReplayPanelProps.onStopActiveSession();
+    });
+
+    expect(stop).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      mocks.latestReplayExecutionConfig.onExecutionStatusChange({
+        running: false,
+        stop,
+        stoppable: false,
+      });
+    });
+
+    expect(mocks.latestReplayPanelProps.activeSessionId).toBeNull();
 
     await act(async () => {
       root.unmount();

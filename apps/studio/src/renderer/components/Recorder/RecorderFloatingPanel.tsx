@@ -468,6 +468,8 @@ export function RecorderFloatingPanel({
     isMarkdownGenerating ||
     canGenerateMarkdown ||
     (hasStudioRecorderEventScreenshots(recorderPanelEvents) && !isRecording);
+  const shouldRenderTimelinePanel =
+    !isTimelineEmpty || showExpandedDetail || shouldShowOutputs;
 
   return (
     <div className="studio-recorder-panel">
@@ -527,48 +529,50 @@ export function RecorderFloatingPanel({
         </div>
       </div>
 
-      <StudioTimelinePanel
-        ariaHidden={timelineCollapsed}
-        className={taskCardClassName}
-        collapsed={timelineCollapsed}
-        contentClassName={mainClassName}
-        empty={isTimelineEmpty}
-        expanded={showExpandedDetail}
-        footer={
-          shouldShowOutputs ? (
-            <footer
-              aria-hidden={timelineCollapsed || showExpandedDetail}
-              className={outputsClassName}
-            >
-              <RecorderFloatingOutputs
-                canGenerateMarkdown={canGenerateMarkdown}
-                canShowScreenshots={
-                  hasStudioRecorderEventScreenshots(recorderPanelEvents) &&
-                  !isRecording
-                }
-                isMarkdownGenerating={isMarkdownGenerating}
-                onGenerateMarkdown={onGenerateMarkdown}
-                onShowScreenshots={onShowScreenshots}
-                recorderPanelSession={recorderPanelSession}
+      {shouldRenderTimelinePanel ? (
+        <StudioTimelinePanel
+          ariaHidden={timelineCollapsed}
+          className={taskCardClassName}
+          collapsed={timelineCollapsed}
+          contentClassName={mainClassName}
+          empty={isTimelineEmpty}
+          expanded={showExpandedDetail}
+          footer={
+            shouldShowOutputs ? (
+              <footer
+                aria-hidden={timelineCollapsed || showExpandedDetail}
+                className={outputsClassName}
+              >
+                <RecorderFloatingOutputs
+                  canGenerateMarkdown={canGenerateMarkdown}
+                  canShowScreenshots={
+                    hasStudioRecorderEventScreenshots(recorderPanelEvents) &&
+                    !isRecording
+                  }
+                  isMarkdownGenerating={isMarkdownGenerating}
+                  onGenerateMarkdown={onGenerateMarkdown}
+                  onShowScreenshots={onShowScreenshots}
+                  recorderPanelSession={recorderPanelSession}
+                />
+              </footer>
+            ) : null
+          }
+          onToggleCollapsed={onToggleCollapsed}
+          scrollBody={!isTimelineEmpty || showExpandedDetail}
+          variant={StudioModeTab.Record}
+        >
+          <div className="studio-recorder-floating-main-content">
+            {showExpandedDetail ? (
+              detailView
+            ) : (
+              <RecorderFloatingTimeline
+                events={recorderPanelEvents}
+                isRecording={showRecordingVisual}
               />
-            </footer>
-          ) : null
-        }
-        onToggleCollapsed={onToggleCollapsed}
-        scrollBody={!isTimelineEmpty || showExpandedDetail}
-        variant={StudioModeTab.Record}
-      >
-        <div className="studio-recorder-floating-main-content">
-          {showExpandedDetail ? (
-            detailView
-          ) : (
-            <RecorderFloatingTimeline
-              events={recorderPanelEvents}
-              isRecording={showRecordingVisual}
-            />
-          )}
-        </div>
-      </StudioTimelinePanel>
+            )}
+          </div>
+        </StudioTimelinePanel>
+      ) : null}
     </div>
   );
 }

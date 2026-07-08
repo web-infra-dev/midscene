@@ -1,29 +1,31 @@
 import { PlaygroundConversationPanel } from '@midscene/playground-app';
 import type {
   ExternalRunRequest,
+  PlaygroundExecutionStatus,
   UniversalPlaygroundConfig,
 } from '@midscene/visualizer';
 import type { ReactNode } from 'react';
 import { downloadStudioReport } from '../../playground/report-download';
 import type { useStudioPlayground } from '../../playground/useStudioPlayground';
+import './StudioTimelineExecution.css';
 import './StudioExecutionEmptyState.css';
 
 declare const __APP_VERSION__: string;
 
-type StudioPlaygroundController = Extract<
+type StudioTimelineExecutionController = Extract<
   ReturnType<typeof useStudioPlayground>,
   { phase: 'ready' }
 >['controller'];
 
-type StudioPlaygroundConfig = Partial<UniversalPlaygroundConfig> & {
+type StudioTimelineExecutionConfig = Partial<UniversalPlaygroundConfig> & {
   hidePromptInput?: boolean;
+  onExecutionStatusChange?: (status: PlaygroundExecutionStatus) => void;
   showClearButton?: boolean;
-  showSessionSeparator?: boolean;
   suppressConfigErrorToast?: boolean;
   timelineHeader?: ReactNode;
   timelineWrapper?: (
     content: ReactNode,
-    state: { empty: boolean },
+    state: { empty: boolean; headerAction?: ReactNode },
   ) => ReactNode;
 };
 
@@ -92,7 +94,7 @@ function StudioExecutionEmptyState() {
   );
 }
 
-export function createStudioPlaygroundStorageNamespace(
+export function createStudioTimelineStorageNamespace(
   targetSignature: string | null,
 ): string {
   return targetSignature
@@ -100,27 +102,30 @@ export function createStudioPlaygroundStorageNamespace(
     : 'studio-playground-unresolved-target';
 }
 
-export function createStudioPlaygroundConfig(
+export function createStudioTimelineConfig(
   options: {
     emptyState?: ReactNode;
     externalRunRequest?: ExternalRunRequest | null;
+    executionScopeKey?: string | null;
     hidePromptInput?: boolean;
     inputActions?: ReactNode;
+    onExecutionStatusChange?: (status: PlaygroundExecutionStatus) => void;
     showClearButton?: boolean;
-    showSessionSeparator?: boolean;
     storageNamespace?: string;
     suppressConfigErrorToast?: boolean;
     timelineHeader?: ReactNode;
     timelineWrapper?: (
       content: ReactNode,
-      state: { empty: boolean },
+      state: { empty: boolean; headerAction?: ReactNode },
     ) => ReactNode;
   } = {},
-): StudioPlaygroundConfig {
+): StudioTimelineExecutionConfig {
   return {
     emptyState: options.emptyState ?? <StudioExecutionEmptyState />,
     externalRunRequest: options.externalRunRequest ?? null,
+    executionScopeKey: options.executionScopeKey ?? null,
     hidePromptInput: options.hidePromptInput,
+    onExecutionStatusChange: options.onExecutionStatusChange,
     onDownloadReport: downloadStudioReport,
     persistMessages: false,
     executionFlow: {
@@ -132,7 +137,6 @@ export function createStudioPlaygroundConfig(
       inputActions: options.inputActions,
     } as StudioPromptInputChromeConfig,
     showClearButton: options.showClearButton ?? false,
-    showSessionSeparator: options.showSessionSeparator,
     storageNamespace: options.storageNamespace,
     suppressConfigErrorToast: options.suppressConfigErrorToast,
     timelineHeader: options.timelineHeader,
@@ -140,7 +144,7 @@ export function createStudioPlaygroundConfig(
   };
 }
 
-export function StudioPlaygroundExecution({
+export function StudioTimelineExecution({
   className = '',
   controller,
   playgroundClassName,
@@ -148,9 +152,9 @@ export function StudioPlaygroundExecution({
   title,
 }: {
   className?: string;
-  controller: StudioPlaygroundController;
+  controller: StudioTimelineExecutionController;
   playgroundClassName: string;
-  playgroundConfig: StudioPlaygroundConfig;
+  playgroundConfig: StudioTimelineExecutionConfig;
   title: string;
 }) {
   return (

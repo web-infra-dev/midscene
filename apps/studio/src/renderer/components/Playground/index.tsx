@@ -11,16 +11,16 @@ import {
   StudioTimelinePanel,
 } from '../StudioTimelinePanel';
 import {
-  StudioPlaygroundExecution,
-  createStudioPlaygroundConfig,
-  createStudioPlaygroundStorageNamespace,
-} from './StudioPlaygroundExecution';
+  StudioTimelineExecution,
+  createStudioTimelineConfig,
+  createStudioTimelineStorageNamespace,
+} from './StudioTimelineExecution';
 import './studio-playground-panel.css';
 
 export {
-  createStudioPlaygroundConfig,
-  createStudioPlaygroundStorageNamespace,
-} from './StudioPlaygroundExecution';
+  createStudioTimelineConfig,
+  createStudioTimelineStorageNamespace,
+} from './StudioTimelineExecution';
 
 interface PlaygroundProps {
   externalRunRequest?: ExternalRunRequest | null;
@@ -47,12 +47,12 @@ export default function Playground({
     [recorder.currentTarget],
   );
   const storageNamespace = useMemo(
-    () => createStudioPlaygroundStorageNamespace(currentTargetSignature),
+    () => createStudioTimelineStorageNamespace(currentTargetSignature),
     [currentTargetSignature],
   );
   const playgroundConfig = useMemo(
     () =>
-      createStudioPlaygroundConfig({
+      createStudioTimelineConfig({
         emptyState: (
           <StudioTimelineEmptyState
             description="The mission progress will be displayed here."
@@ -60,29 +60,38 @@ export default function Playground({
             variant={StudioModeTab.Playground}
           />
         ),
+        executionScopeKey: currentTargetSignature,
         externalRunRequest,
         inputActions,
         showClearButton: true,
         storageNamespace,
-        timelineWrapper: (content, state) => (
-          <StudioTimelinePanel
-            ariaHidden={timelineCollapsed}
-            className="studio-playground-timeline-panel"
-            collapsed={timelineCollapsed}
-            contentClassName="studio-playground-timeline-panel-body"
-            empty={state.empty}
-            expanded={!state.empty}
-            onToggleCollapsed={() => {
-              setTimelineCollapsed((collapsed) => !collapsed);
-            }}
-            scrollBody={!state.empty}
-            variant={StudioModeTab.Playground}
-          >
-            {content}
-          </StudioTimelinePanel>
-        ),
+        timelineWrapper: (content, state) =>
+          state.empty ? null : (
+            <StudioTimelinePanel
+              ariaHidden={timelineCollapsed}
+              className="studio-playground-timeline-panel"
+              collapsed={timelineCollapsed}
+              contentClassName="studio-playground-timeline-panel-body"
+              empty={state.empty}
+              expanded={!state.empty}
+              headerAction={timelineCollapsed ? null : state.headerAction}
+              onToggleCollapsed={() => {
+                setTimelineCollapsed((collapsed) => !collapsed);
+              }}
+              scrollBody={!state.empty}
+              variant={StudioModeTab.Playground}
+            >
+              {content}
+            </StudioTimelinePanel>
+          ),
       }),
-    [externalRunRequest, inputActions, storageNamespace, timelineCollapsed],
+    [
+      currentTargetSignature,
+      externalRunRequest,
+      inputActions,
+      storageNamespace,
+      timelineCollapsed,
+    ],
   );
   const renderOwnHeader = !onHeaderChange;
 
@@ -113,7 +122,7 @@ export default function Playground({
             </button>
           </div>
         ) : (
-          <StudioPlaygroundExecution
+          <StudioTimelineExecution
             className="h-full"
             controller={studioPlayground.controller}
             playgroundClassName={[

@@ -60,4 +60,41 @@ describe('commonWebActionsForWebPage visual refresh', () => {
     expect(page.schedulePendingVisualUpdate).toHaveBeenCalledTimes(1);
     expect(page.flushPendingVisualUpdate).not.toHaveBeenCalled();
   });
+
+  it('schedules the preview refresh after scroll actions', async () => {
+    const page = {
+      scrollDown: vi.fn(async () => undefined),
+      schedulePendingVisualUpdate: vi.fn(),
+      flushPendingVisualUpdate: vi.fn(async () => undefined),
+    };
+    const actions = commonWebActionsForWebPage(page as any);
+
+    await actions
+      .find((action) => action.name === 'Scroll')
+      ?.call(
+        { direction: 'down', scrollType: 'singleAction' },
+        mockExecutorContext,
+      );
+
+    expect(page.scrollDown).toHaveBeenCalledTimes(1);
+    expect(page.schedulePendingVisualUpdate).toHaveBeenCalledTimes(1);
+    expect(page.flushPendingVisualUpdate).not.toHaveBeenCalled();
+  });
+
+  it('schedules the preview refresh after navigation actions', async () => {
+    const page = {
+      navigate: vi.fn(async () => undefined),
+      schedulePendingVisualUpdate: vi.fn(),
+      flushPendingVisualUpdate: vi.fn(async () => undefined),
+    };
+    const actions = commonWebActionsForWebPage(page as any);
+
+    await actions
+      .find((action) => action.name === 'Navigate')
+      ?.call({ url: 'https://example.com' }, mockExecutorContext);
+
+    expect(page.navigate).toHaveBeenCalledWith('https://example.com');
+    expect(page.schedulePendingVisualUpdate).toHaveBeenCalledTimes(1);
+    expect(page.flushPendingVisualUpdate).not.toHaveBeenCalled();
+  });
 });

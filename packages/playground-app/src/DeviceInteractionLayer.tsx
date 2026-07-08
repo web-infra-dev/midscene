@@ -389,7 +389,7 @@ export function DeviceInteractionLayer({
   }, [onWheelScroll]);
 
   const handleWheel = useCallback(
-    (event: React.WheelEvent<HTMLDivElement>) => {
+    (event: WheelEvent) => {
       if (!enabled || !scrollEnabled || !deviceSize || !overlayRef.current) {
         return;
       }
@@ -588,6 +588,18 @@ export function DeviceInteractionLayer({
     };
   }, []);
 
+  useEffect(() => {
+    const overlay = overlayRef.current;
+    if (!overlay || !enabled || !scrollEnabled) {
+      return;
+    }
+
+    overlay.addEventListener('wheel', handleWheel, { passive: false });
+    return () => {
+      overlay.removeEventListener('wheel', handleWheel);
+    };
+  }, [enabled, handleWheel, scrollEnabled]);
+
   if (!enabled || !deviceSize) {
     return null;
   }
@@ -598,7 +610,6 @@ export function DeviceInteractionLayer({
       onPointerDown={handlePointerDown}
       onPointerUp={handlePointerUp}
       onPointerCancel={handlePointerCancel}
-      onWheel={handleWheel}
       onContextMenu={(e) => e.preventDefault()}
       data-midscene-device-interaction-layer="true"
       style={{

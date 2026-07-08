@@ -21,6 +21,7 @@ export interface StudioTimelinePanelProps {
   empty?: boolean;
   expanded?: boolean;
   footer?: ReactNode;
+  headerAction?: ReactNode;
   onToggleCollapsed?: () => void;
   scrollBody?: boolean;
   variant: StudioTimelinePanelVariant;
@@ -85,10 +86,12 @@ export function StudioTimelineEmptyState({
 
 function StudioTimelinePanelHeader({
   collapsed,
+  headerAction,
   onToggleCollapsed,
   variant,
 }: {
   collapsed?: boolean;
+  headerAction?: ReactNode;
   onToggleCollapsed?: () => void;
   variant: StudioTimelinePanelVariant;
 }) {
@@ -119,22 +122,30 @@ function StudioTimelinePanelHeader({
       ) : (
         <div className="studio-timeline-panel-title">{titleContent}</div>
       )}
+      {headerAction ? (
+        <div className="studio-timeline-panel-header-action">
+          {headerAction}
+        </div>
+      ) : null}
     </header>
   );
 }
 
 export function StudioTimelineHeader({
   collapsed,
+  headerAction,
   onToggleCollapsed,
   variant,
 }: {
   collapsed?: boolean;
+  headerAction?: ReactNode;
   onToggleCollapsed?: () => void;
   variant: StudioTimelinePanelVariant;
 }) {
   return (
     <StudioTimelinePanelHeader
       collapsed={collapsed}
+      headerAction={headerAction}
       onToggleCollapsed={onToggleCollapsed}
       variant={variant}
     />
@@ -150,6 +161,7 @@ export function StudioTimelinePanel({
   empty,
   expanded,
   footer,
+  headerAction,
   onToggleCollapsed,
   scrollBody,
   variant,
@@ -175,6 +187,7 @@ export function StudioTimelinePanel({
     <section className={panelClassName}>
       <StudioTimelinePanelHeader
         collapsed={collapsed}
+        headerAction={headerAction}
         onToggleCollapsed={onToggleCollapsed}
         variant={variant}
       />

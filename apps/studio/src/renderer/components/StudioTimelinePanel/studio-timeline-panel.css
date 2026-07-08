@@ -130,6 +130,46 @@
   transform: rotate(180deg);
 }
 
+.studio-timeline-panel-header-action {
+  display: inline-flex;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
+  align-items: center;
+  justify-content: center;
+}
+
+.studio-timeline-panel-header-action .clear-button-container {
+  position: static;
+  display: flex;
+  width: 28px;
+  height: 28px;
+  align-items: center;
+  justify-content: center;
+}
+
+.studio-timeline-panel-header-action .clear-button {
+  display: inline-flex;
+  width: 28px;
+  height: 28px;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  color: #666;
+}
+
+.studio-timeline-panel-header-action .clear-button:hover,
+.studio-timeline-panel-header-action .clear-button:focus-visible,
+.studio-timeline-panel-header-action .clear-button:active {
+  background: transparent;
+  color: #666;
+}
+
+.studio-timeline-panel-header-action .clear-button .anticon {
+  font-size: 16px;
+  color: currentColor;
+}
+
 .studio-timeline-empty-state {
   display: flex;
   width: 187px;

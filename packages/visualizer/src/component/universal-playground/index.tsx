@@ -4,7 +4,7 @@ import Icon, {
   ArrowDownOutlined,
   UpOutlined,
 } from '@ant-design/icons';
-import { Alert, Button, Form, List, Typography } from 'antd';
+import { Alert, Button, Form, List } from 'antd';
 import type { ReactNode } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { usePlaygroundExecution } from '../../hooks/usePlaygroundExecution';
@@ -30,7 +30,6 @@ import {
   detectBestStorageType,
 } from './providers/storage-provider';
 
-const { Text } = Typography;
 const handledExternalRunRequestIds = new Set<string>();
 const MAX_HANDLED_EXTERNAL_RUN_REQUEST_IDS = 100;
 
@@ -165,6 +164,7 @@ export function UniversalPlayground({
   const {
     handleRun: executeAction,
     handleStop,
+    cancelCurrentExecution,
     canStop,
   } = usePlaygroundExecution({
     playgroundSDK,
@@ -180,6 +180,48 @@ export function UniversalPlayground({
     interruptedFlagRef,
     deviceType: componentConfig.deviceType,
   });
+  const cancelCurrentExecutionRef = useRef(cancelCurrentExecution);
+  const onExecutionStatusChangeRef = useRef(
+    componentConfig.onExecutionStatusChange,
+  );
+  const executionScopeKey = componentConfig.executionScopeKey ?? null;
+  const previousExecutionScopeKeyRef = useRef(executionScopeKey);
+
+  useEffect(() => {
+    cancelCurrentExecutionRef.current = cancelCurrentExecution;
+  }, [cancelCurrentExecution]);
+
+  useEffect(() => {
+    onExecutionStatusChangeRef.current =
+      componentConfig.onExecutionStatusChange;
+  }, [componentConfig.onExecutionStatusChange]);
+
+  useEffect(() => {
+    componentConfig.onExecutionStatusChange?.({
+      running: loading,
+      stoppable: canStop,
+      stop: handleStop,
+    });
+  }, [canStop, componentConfig.onExecutionStatusChange, handleStop, loading]);
+
+  useEffect(() => {
+    return () => {
+      void cancelCurrentExecutionRef.current();
+      onExecutionStatusChangeRef.current?.({
+        running: false,
+        stoppable: false,
+        stop: () => undefined,
+      });
+    };
+  }, []);
+
+  useEffect(() => {
+    if (previousExecutionScopeKeyRef.current === executionScopeKey) {
+      return;
+    }
+    previousExecutionScopeKeyRef.current = executionScopeKey;
+    void cancelCurrentExecution();
+  }, [cancelCurrentExecution, executionScopeKey]);
 
   // Override SDK config when environment config changes
   useEffect(() => {
@@ -277,7 +319,6 @@ export function UniversalPlayground({
   const executionFlowConfig = componentConfig.executionFlow ?? {};
   const collapsibleProgressGroup = executionFlowConfig.collapsible === true;
   const progressGroupLabel = executionFlowConfig.label ?? 'Execution Flow';
-  const showSessionSeparator = componentConfig.showSessionSeparator !== false;
 
   // Collapse state for progress groups, keyed by the id of the first progress
   // item of each run. A run is a maximal sequence of consecutive `progress`
@@ -309,7 +350,6 @@ export function UniversalPlayground({
     const hideWelcome = infoList.length > 1;
     for (const item of infoList) {
       if (hideWelcome && item.id === 'welcome') continue;
-      if (!showSessionSeparator && item.type === 'separator') continue;
       if (item.type === 'progress') {
         if (currentGroupFirstId === null) {
           currentGroupFirstId = item.id;
@@ -329,12 +369,7 @@ export function UniversalPlayground({
       }
     }
     return { firstInProgressGroup: firstIds, visibleInfoList: visible };
-  }, [
-    collapsedProgressGroups,
-    collapsibleProgressGroup,
-    infoList,
-    showSessionSeparator,
-  ]);
+  }, [collapsedProgressGroups, collapsibleProgressGroup, infoList]);
 
   // Precompute the id of the latest progress item once so each renderItem
   // can do a single string compare instead of re-scanning `infoList` with
@@ -423,9 +458,29 @@ export function UniversalPlayground({
   ]
     .filter(Boolean)
     .join(' ');
+  const showClearButton = componentConfig.showClearButton !== false;
+  const handleClearInfoList = useCallback(() => {
+    void cancelCurrentExecution().finally(() => {
+      void clearInfoList();
+    });
+  }, [cancelCurrentExecution, clearInfoList]);
+  const timelineHeaderAction = showClearButton ? (
+    <div className="clear-button-container">
+      <Button
+        size="small"
+        icon={<ClearOutlined />}
+        onClick={handleClearInfoList}
+        type="text"
+        className="clear-button"
+      />
+    </div>
+  ) : null;
   const wrapTimeline =
     componentConfig.timelineWrapper ??
-    ((content: ReactNode, _state: { empty: boolean }) => content);
+    ((
+      content: ReactNode,
+      _state: { empty: boolean; headerAction?: ReactNode },
+    ) => content);
 
   return (
     <div className={`playground-container ${layout}-mode ${className}`.trim()}>
@@ -457,20 +512,6 @@ export function UniversalPlayground({
               .join(' ')}
           >
             {componentConfig.timelineHeader}
-
-            {/* Clear Button */}
-            {componentConfig.showClearButton !== false &&
-              infoList.length > 1 && (
-                <div className="clear-button-container">
-                  <Button
-                    size="small"
-                    icon={<ClearOutlined />}
-                    onClick={clearInfoList}
-                    type="text"
-                    className="clear-button"
-                  />
-                </div>
-              )}
 
             {/* Info List */}
             <div
@@ -594,16 +635,6 @@ export function UniversalPlayground({
                               );
                             })()}
                           </div>
-                        ) : item.type === 'separator' ? (
-                          /* Separator Message */
-                          <div className="new-conversation-separator">
-                            <div className="separator-line" />
-                            <div className="separator-text-container">
-                              <Text type="secondary" className="separator-text">
-                                {item.content}
-                              </Text>
-                            </div>
-                          </div>
                         ) : (
                           /* System Message */
                           <div className="system-message-container">
@@ -680,7 +711,10 @@ export function UniversalPlayground({
                 />
               )}
           </div>,
-          { empty: renderCustomEmptyState },
+          {
+            empty: renderCustomEmptyState,
+            headerAction: timelineHeaderAction,
+          },
         )}
 
         {/* Bottom Input Section */}

@@ -191,6 +191,25 @@ describe('parseModelResponseJson', () => {
     });
   });
 
+  it('should repair bare quotes inside planning action prompt strings', () => {
+    const input = `{
+  "locate": {
+    "prompt": "搜索输入框，当前显示文本为"世界杯 7 队仍保持不败战绩"",
+    "bbox": [120, 200, 780, 260]
+  }
+}`;
+    const result = parseModelResponseJson(input, {
+      source: 'planning-action-param',
+    });
+
+    expect(result).toEqual({
+      locate: {
+        prompt: '搜索输入框，当前显示文本为"世界杯 7 队仍保持不败战绩"',
+        bbox: [120, 200, 780, 260],
+      },
+    });
+  });
+
   it('should handle nested objects and arrays', () => {
     const input = JSON.stringify({
       ' type ': '  Tap  ',

@@ -381,7 +381,7 @@ export interface ContextProvider {
 // info list item type (based on Chrome Extension design)
 export interface InfoListItem {
   id: string;
-  type: 'user' | 'system' | 'result' | 'progress' | 'separator';
+  type: 'user' | 'system' | 'result' | 'progress';
   content: string;
   timestamp: Date;
   result?: PlaygroundResult | null;
@@ -409,6 +409,12 @@ export interface ReportDownloadRequest {
 export type ReportDownloadHandler = (
   request: ReportDownloadRequest,
 ) => void | Promise<void>;
+
+export interface PlaygroundExecutionStatus {
+  running: boolean;
+  stoppable: boolean;
+  stop: () => void | Promise<void>;
+}
 
 // main component config interface
 export interface UniversalPlaygroundConfig {
@@ -461,6 +467,13 @@ export interface UniversalPlaygroundConfig {
    */
   emptyState?: ReactNode;
   /**
+   * Marks the current execution scope. When this value changes, any in-flight
+   * execution is cancelled so work from a previous target does not keep
+   * calling the backend after the host switches platform/device/session.
+   */
+  executionScopeKey?: string | null;
+  onExecutionStatusChange?: (status: PlaygroundExecutionStatus) => void;
+  /**
    * Optional host-provided header rendered above the execution message list.
    * Compact hosts can use this to align the execution timeline chrome with
    * surrounding panels without changing the execution flow itself.
@@ -473,14 +486,8 @@ export interface UniversalPlaygroundConfig {
    */
   timelineWrapper?: (
     content: ReactNode,
-    state: { empty: boolean },
+    state: { empty: boolean; headerAction?: ReactNode },
   ) => ReactNode;
-  /**
-   * Whether to render the separator inserted after each execution session.
-   * Defaults to `true`. Compact replay embeddings can set this to `false`
-   * when the host panel already provides enough session context.
-   */
-  showSessionSeparator?: boolean;
   /**
    * Opt-in controls for how consecutive progress items render in the
    * conversation log. Defaults flatten every progress step inline (no

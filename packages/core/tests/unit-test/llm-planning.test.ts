@@ -1289,6 +1289,36 @@ Extracted data:
     expect(result.action?.param).toEqual({ keyName: 'Enter' });
   });
 
+  it('should parse action params with bare quotes inside prompt strings', () => {
+    const modelFamily = 'doubao-vision';
+    const xml = `
+<planning>Need to locate the search input</planning>
+<log>Locating search input</log>
+<action-type>Tap</action-type>
+<action-param-json>
+{
+  "locate": {
+    "prompt": "搜索输入框，当前显示文本为"世界杯 7 队仍保持不败战绩"",
+    "bbox": [120, 200, 780, 260]
+  }
+}
+</action-param-json>
+    `.trim();
+
+    const result = parseXMLPlanningResponse(
+      xml,
+      getModelAdapter(modelFamily).jsonParser,
+    );
+
+    expect(result.action?.type).toBe('Tap');
+    expect(result.action?.param).toEqual({
+      locate: {
+        prompt: '搜索输入框，当前显示文本为"世界杯 7 队仍保持不败战绩"',
+        bbox: [120, 200, 780, 260],
+      },
+    });
+  });
+
   it('should parse both update-plan-content and mark-sub-goal-done', () => {
     const modelFamily = 'doubao-vision';
     const xml = `

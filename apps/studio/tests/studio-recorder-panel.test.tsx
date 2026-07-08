@@ -146,15 +146,19 @@ async function renderRecorderPanel(
 
 async function renderReplayPanel({
   activeSessionId = null,
+  activeSessionStoppable = false,
   onDeleteSession,
   onDownloadSession,
   onReplaySession = vi.fn(),
+  onStopActiveSession,
   sessions = createRecorderMock().state.sessions,
 }: {
   activeSessionId?: string | null;
+  activeSessionStoppable?: boolean;
   onDeleteSession?: ReturnType<typeof vi.fn>;
   onDownloadSession?: ReturnType<typeof vi.fn>;
   onReplaySession?: ReturnType<typeof vi.fn>;
+  onStopActiveSession?: ReturnType<typeof vi.fn>;
   sessions?: any[];
 } = {}) {
   const container = document.createElement('div');
@@ -165,9 +169,11 @@ async function renderReplayPanel({
     root.render(
       <StudioReplayPanel
         activeSessionId={activeSessionId}
+        activeSessionStoppable={activeSessionStoppable}
         onDeleteSession={onDeleteSession}
         onDownloadSession={onDownloadSession}
         onReplaySession={onReplaySession}
+        onStopActiveSession={onStopActiveSession}
         sessions={sessions}
       />,
     );
@@ -188,7 +194,7 @@ describe('StudioRecorderPanel', () => {
     vi.restoreAllMocks();
   });
 
-  it('starts on an empty timeline without recorder history controls', async () => {
+  it('starts without the initial empty timeline panel or recorder history controls', async () => {
     mocks.recorder = createRecorderMock();
     mocks.playground = {
       controller: {
@@ -202,8 +208,9 @@ describe('StudioRecorderPanel', () => {
 
     const { container, root } = await renderRecorderPanel();
 
-    expect(container.textContent).toContain('No tasks available');
-    expect(container.textContent).toContain(
+    expect(container.textContent).not.toContain('Timeline');
+    expect(container.textContent).not.toContain('No tasks available');
+    expect(container.textContent).not.toContain(
       'The recording progress will be displayed here.',
     );
     expect(container.textContent).not.toContain('Existing recording');
@@ -267,6 +274,38 @@ describe('StudioRecorderPanel', () => {
     expect(
       container.querySelector('.studio-replay-panel-loading'),
     ).not.toBeNull();
+
+    await unmount(root);
+  });
+
+  it('renders a stop control for the active stoppable replay session', async () => {
+    const session = createRecorderMock().state.sessions[0];
+    const onReplaySession = vi.fn();
+    const onStopActiveSession = vi.fn();
+    const { container, root } = await renderReplayPanel({
+      activeSessionId: session.id,
+      activeSessionStoppable: true,
+      onReplaySession,
+      onStopActiveSession,
+      sessions: [session],
+    });
+
+    expect(
+      container.querySelector('.studio-replay-panel-item-active'),
+    ).not.toBeNull();
+    expect(container.querySelector('.studio-replay-panel-loading')).toBeNull();
+
+    const stopButton = container.querySelector(
+      `button[aria-label="Stop replay for ${session.name}"]`,
+    );
+    expect(stopButton).not.toBeNull();
+
+    await act(async () => {
+      stopButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+
+    expect(onStopActiveSession).toHaveBeenCalledTimes(1);
+    expect(onReplaySession).not.toHaveBeenCalled();
 
     await unmount(root);
   });
@@ -618,13 +657,11 @@ describe('StudioRecorderPanel', () => {
     const collapseButton = container.querySelector(
       'button[aria-label="Collapse timeline panel"]',
     );
-    await act(async () => {
-      collapseButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
 
+    expect(collapseButton).toBeNull();
     expect(
       container.querySelector('.studio-timeline-panel-collapsed'),
-    ).not.toBeNull();
+    ).toBeNull();
     expect(
       container.querySelector('.studio-recorder-floating-status-running'),
     ).toBeNull();

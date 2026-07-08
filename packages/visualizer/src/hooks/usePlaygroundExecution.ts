@@ -107,6 +107,10 @@ export interface RunActionOptions {
   reportDisplay?: ExecutionReportDisplay;
 }
 
+interface CancelExecutionOptions {
+  appendStopMessage?: boolean;
+}
+
 function shouldForwardDeepThink(actionType: string) {
   return actionType === 'aiAct' || actionType === 'runMarkdown';
 }
@@ -296,6 +300,9 @@ export function usePlaygroundExecution(options: UsePlaygroundExecutionOptions) {
           }
         }
       } catch (e: any) {
+        if (interruptedFlagRef.current[thisRunningId]) {
+          return;
+        }
         result.error = formatError(e);
         console.error('Playground execution error:', e);
 
@@ -367,15 +374,6 @@ export function usePlaygroundExecution(options: UsePlaygroundExecutionOptions) {
           console.error('Failed to save result:', error);
         }
       }
-
-      // Add separator item to mark the end of this session
-      const separatorItem: InfoListItem = {
-        id: `separator-${thisRunningId}`,
-        type: 'separator',
-        content: 'New Session',
-        timestamp: new Date(),
-      };
-      setInfoList((prev) => [...prev, separatorItem]);
     },
     [
       playgroundSDK,
@@ -400,17 +398,110 @@ export function usePlaygroundExecution(options: UsePlaygroundExecutionOptions) {
     ],
   );
 
-  // Handle stop execution
-  const handleStop = useCallback(async () => {
-    const thisRunningId = currentRunningIdRef.current;
-    if (thisRunningId && playgroundSDK && playgroundSDK.cancelExecution) {
+  const cancelCurrentExecution = useCallback(
+    async ({ appendStopMessage = false }: CancelExecutionOptions = {}) => {
+      const thisRunningId = currentRunningIdRef.current;
+      if (!(thisRunningId && playgroundSDK && playgroundSDK.cancelExecution)) {
+        return;
+      }
+
+      interruptedFlagRef.current[thisRunningId] = true;
+      currentRunningIdRef.current = null;
+      setLoading(false);
+
+      // Clear progress callback before the abort propagates back to handleRun,
+      // otherwise the aborted request can be rendered as a normal error.
+      if (playgroundSDK.onProgressUpdate) {
+        playgroundSDK.onProgressUpdate(() => {});
+      }
+
+      if (playgroundSDK.onDumpUpdate) {
+        playgroundSDK.onDumpUpdate(() => {});
+      }
+
+      const markStopped = (
+        executionData?: {
+          dump: ExecutionDump | IExecutionDump | IReportActionDump | null;
+          reportHTML: string | null;
+        } | null,
+      ) => {
+        setInfoList((prev) => {
+          const next = prev.map((item) =>
+            item.id === `system-${thisRunningId}`
+              ? {
+                  ...item,
+                  content: '',
+                  loading: false,
+                  loadingProgressText: '',
+                }
+              : item,
+          );
+
+          if (!appendStopMessage) {
+            return next;
+          }
+
+          const hasStopItem = next.some(
+            (item) =>
+              item.id === `stop-${thisRunningId}` ||
+              item.id === `stop-result-${thisRunningId}`,
+          );
+          if (hasStopItem) {
+            return next;
+          }
+
+          if (
+            executionData &&
+            (executionData.dump || executionData.reportHTML)
+          ) {
+            let replayInfo = null;
+            let counter = replayCounter;
+
+            replayInfo = replayInfoFromDump(executionData.dump, deviceType);
+            if (replayInfo) {
+              setReplayCounter((c) => c + 1);
+              counter = replayCounter + 1;
+            }
+
+            return [
+              ...next,
+              {
+                id: `stop-result-${thisRunningId}`,
+                type: 'result',
+                content: 'Execution stopped by user',
+                timestamp: new Date(),
+                result: {
+                  result: null,
+                  dump: executionData.dump,
+                  reportHTML: executionData.reportHTML,
+                  error: null,
+                },
+                loading: false,
+                verticalMode,
+                replayScriptsInfo: replayInfo,
+                replayCounter: counter,
+              },
+            ];
+          }
+
+          return [
+            ...next,
+            {
+              id: `stop-${thisRunningId}`,
+              type: 'system',
+              content: 'Operation stopped',
+              timestamp: new Date(),
+              loading: false,
+            },
+          ];
+        });
+      };
+
       try {
-        // Cancel execution - may return execution data directly
         const cancelResult = await playgroundSDK.cancelExecution(
           thisRunningId.toString(),
         );
 
-        // If cancelExecution didn't return data, try getCurrentExecutionData as fallback
         let executionData: {
           dump: ExecutionDump | IExecutionDump | IReportActionDump | null;
           reportHTML: string | null;
@@ -426,96 +517,32 @@ export function usePlaygroundExecution(options: UsePlaygroundExecutionOptions) {
           }
         }
 
-        interruptedFlagRef.current[thisRunningId] = true;
-        setLoading(false);
-
-        // Clear progress callback on stop to prevent stray tips
-        if (playgroundSDK.onProgressUpdate) {
-          playgroundSDK.onProgressUpdate(() => {});
-        }
-
-        // Clear dump update callback
-        if (playgroundSDK.onDumpUpdate) {
-          playgroundSDK.onDumpUpdate(() => {});
-        }
-
-        // Update system message to mark as stopped
-        setInfoList((prev) =>
-          prev.map((item) =>
-            item.id === `system-${thisRunningId}`
-              ? {
-                  ...item,
-                  content: '',
-                  loading: false,
-                  loadingProgressText: '',
-                }
-              : item,
-          ),
-        );
-
-        // Add result item if we have execution data
-        if (executionData && (executionData.dump || executionData.reportHTML)) {
-          // Generate replayScriptsInfo from dump, just like in handleRun
-          let replayInfo = null;
-          let counter = replayCounter;
-
-          replayInfo = replayInfoFromDump(executionData.dump, deviceType);
-          if (replayInfo) {
-            setReplayCounter((c) => c + 1);
-            counter = replayCounter + 1;
-          }
-
-          const resultItem: InfoListItem = {
-            id: `stop-result-${thisRunningId}`,
-            type: 'result',
-            content: 'Execution stopped by user',
-            timestamp: new Date(),
-            result: {
-              result: null,
-              dump: executionData.dump,
-              reportHTML: executionData.reportHTML,
-              error: null,
-            },
-            loading: false,
-            verticalMode,
-            replayScriptsInfo: replayInfo,
-            replayCounter: counter,
-          };
-          setInfoList((prev) => [...prev, resultItem]);
-        } else {
-          // If no execution data, show simple stop message
-          const stopItem: InfoListItem = {
-            id: `stop-${thisRunningId}`,
-            type: 'system',
-            content: 'Operation stopped',
-            timestamp: new Date(),
-            loading: false,
-          };
-          setInfoList((prev) => [...prev, stopItem]);
-        }
-
-        // Add separator item
-        const separatorItem: InfoListItem = {
-          id: `separator-${thisRunningId}`,
-          type: 'separator',
-          content: 'New Session',
-          timestamp: new Date(),
-        };
-        setInfoList((prev) => [...prev, separatorItem]);
+        markStopped(executionData);
       } catch (error) {
         console.error('Failed to stop execution:', error);
+        markStopped();
       }
+    },
+    [
+      playgroundSDK,
+      currentRunningIdRef,
+      interruptedFlagRef,
+      setLoading,
+      setInfoList,
+      verticalMode,
+      replayCounter,
+      setReplayCounter,
+      deviceType,
+    ],
+  );
+
+  // Handle stop execution
+  const handleStop = useCallback(async () => {
+    const thisRunningId = currentRunningIdRef.current;
+    if (thisRunningId) {
+      await cancelCurrentExecution({ appendStopMessage: true });
     }
-  }, [
-    playgroundSDK,
-    currentRunningIdRef,
-    interruptedFlagRef,
-    setLoading,
-    setInfoList,
-    verticalMode,
-    replayCounter,
-    deviceType,
-  ]);
+  }, [cancelCurrentExecution, currentRunningIdRef]);
 
   // Check if execution can be stopped
   const canStop =
@@ -525,6 +552,7 @@ export function usePlaygroundExecution(options: UsePlaygroundExecutionOptions) {
     !!playgroundSDK.cancelExecution;
 
   return {
+    cancelCurrentExecution,
     handleRun,
     handleStop,
     canStop,
