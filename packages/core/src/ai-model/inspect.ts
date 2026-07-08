@@ -530,7 +530,7 @@ export async function AiExtractElementInfo<T>(options: {
     if (screenshotSequence && screenshotSequence.length > 1) {
       userContent.push({
         type: 'text',
-        text: `The following ${screenshotSequence.length} images are screenshots captured sequentially over a time window, ordered from earliest to latest (Frame 1 is first, Frame ${screenshotSequence.length} is last). They record what appeared on screen during that window. Some UI elements such as toasts, banners, or transitions may appear only in certain frames and be gone by later ones. Judge the statement or question against the full record of this window — the appropriate frame scope depends on what is being asserted (e.g. an event claim vs. a final-state claim). Unless <DATA_DEMAND> explicitly asks for comparison or matching against reference images, base your answer on these screenshots and their contents.`,
+        text: `The following ${screenshotSequence.length} images are consecutive screenshots captured over a time window, ordered from earliest to latest (Frame 1 is first, Frame ${screenshotSequence.length} is last). They record what appeared on screen during that window. Some UI elements such as toasts, banners, or transitions may appear only in certain frames and be gone by later ones. Judge the statement or question against the full record of this window: for event-style claims, treat the statement as true if it appears in ANY of the frames; for final-state claims, use the relevant later frame. Unless <DATA_DEMAND> explicitly asks for comparison or matching against reference images, base your answer on these screenshots and their contents.`,
       });
 
       screenshotSequence.forEach((frame, index) => {

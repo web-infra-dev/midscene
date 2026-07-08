@@ -628,21 +628,21 @@ tasks:
       - aiAssert: <prompt>
         errorMessage: <error-message> # 可选，当断言失败时打印的错误信息。
         name: <name> # 可选，给断言一个名称，会在 JSON 输出中作为 key 使用
-        observe: <observer-name> # 可选，对之前启动并停止的观察窗口做断言，而非当前屏幕
+        observe: <observer-name> # 可选，基于已停止的观察器做断言，而不是当前屏幕
 
       # 屏幕观察
       # ----------------
 
-      # 启动一个命名的屏幕观察器。观察器在后续流项执行时在后台采样帧。
+      # 启动一个命名的屏幕观察器。执行后续步骤时，观察器会在后台采样。
       - startObserving: <name>
         intervalMs: <ms>    # 可选，采样间隔，默认 1000
         maxFrames: <n>      # 可选，帧缓冲上限，默认 30
         watchdogMs: <ms>    # 可选，自动停止超时，默认 300000（5 分钟）
 
-      # 停止一个命名的观察器。在 aiAssert 使用 `observe` 之前必须先调用。
+      # 停止指定观察器。后续 aiAssert 如需使用 `observe`，必须先停止它。
       - stopObserving: <name>
 
-      # 示例：观察表单提交并断言出现了成功提示
+      # 示例：观察表单提交过程，并断言成功提示出现过
       # - startObserving: form-submit
       # - aiAct: 提交表单
       # - stopObserving: form-submit

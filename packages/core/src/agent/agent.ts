@@ -441,9 +441,9 @@ export class Agent<
         screenshot: () => this.interface.screenshotBase64(),
         captureRepresentative: () => this.getUIContext('assert'),
         runAssert: (assertion, uiContext, msg, assertOpt) =>
-          this.aiAssert(assertion, msg, assertOpt, uiContext),
+          this.aiAssertWithContext(assertion, uiContext, msg, assertOpt),
         runBoolean: (prompt, uiContext, boolOpt) =>
-          this.aiBoolean(prompt, boolOpt, uiContext),
+          this.aiBooleanWithContext(prompt, uiContext, boolOpt),
         onStopped: () => {
           this.activeObserver = null;
         },
@@ -1124,11 +1124,14 @@ export class Agent<
   async aiBoolean(
     prompt: TUserPrompt,
     opt: ServiceExtractOption = defaultServiceExtractOption,
-    /**
-     * Internal: a pre-built UIContext (e.g. the multi-frame context assembled
-     * by a UIObserver) to judge against instead of capturing one now.
-     */
-    _prebuiltUiContext?: UIContext,
+  ): Promise<boolean> {
+    return this.aiBooleanWithContext(prompt, undefined, opt);
+  }
+
+  private async aiBooleanWithContext(
+    prompt: TUserPrompt,
+    uiContext?: UIContext,
+    opt: ServiceExtractOption = defaultServiceExtractOption,
   ): Promise<boolean> {
     const modelRuntime = this.resolveModelRuntime('insight');
 
@@ -1139,7 +1142,7 @@ export class Agent<
       modelRuntime,
       opt,
       multimodalPrompt,
-      _prebuiltUiContext ? { uiContext: _prebuiltUiContext } : undefined,
+      uiContext ? { uiContext } : undefined,
     );
     return output as boolean;
   }
@@ -1226,11 +1229,15 @@ export class Agent<
     assertion: TUserPrompt,
     msg?: string,
     opt?: AgentAssertOpt & ServiceExtractOption,
-    /**
-     * Internal: a pre-built UIContext (e.g. the multi-frame context assembled
-     * by a UIObserver) to assert against instead of capturing one now.
-     */
-    _prebuiltUiContext?: UIContext,
+  ) {
+    return this.aiAssertWithContext(assertion, undefined, msg, opt);
+  }
+
+  private async aiAssertWithContext(
+    assertion: TUserPrompt,
+    uiContext?: UIContext,
+    msg?: string,
+    opt?: AgentAssertOpt & ServiceExtractOption,
   ) {
     const modelRuntime = this.resolveModelRuntime('insight');
 
@@ -1251,7 +1258,7 @@ export class Agent<
 
     const executionOptions = {
       abortSignal: opt?.abortSignal,
-      ...(_prebuiltUiContext ? { uiContext: _prebuiltUiContext } : {}),
+      ...(uiContext ? { uiContext } : {}),
     };
 
     try {

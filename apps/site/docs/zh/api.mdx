@@ -931,21 +931,21 @@ expect(onesieItem.price).toBe(7.99);
 
 ### `agent.startObserving()`
 
-在一段显式的时间窗口内观察屏幕，让之后的断言可以评判窗口内发生的一切——包括单张截图会错过的瞬时 UI（toast 提示、横幅、屏幕切换等）。
+在一段时间内持续采样屏幕，后续断言会基于这段记录判断目标状态是否出现过。它适合捕捉单张截图容易错过的短暂 UI，比如 toast、横幅或页面切换。
 
 ```typescript
 function startObserving(options?: {
   intervalMs?: number;  // 采样间隔,默认 1000ms,最小 200ms(5fps)
   maxFrames?: number;   // 帧缓冲上限,默认 30(缓冲满时自动抽稀)
-  watchdogMs?: number;  // 如果从未调用 stop(),在此毫秒数后自动停止。默认 300000(5 分钟)。设为 0 可禁用。
+  watchdogMs?: number;  // 如果一直没有调用 stop(),会在指定毫秒数后自动停止。默认 300000(5 分钟)。设为 0 可禁用。
 }): Promise<UIObserver>;
 ```
 
 返回的 `UIObserver` 提供：
 
-- `observer.stop(): Promise<void>` - 停止采样并拍摄最终代表帧。断言前必须先调用。
-- `observer.aiAssert(assertion: string, msg?: string, opt?: Object): Promise<void>` - 对观察窗口做断言。所有缓冲帧（加上代表帧）都会发给模型；模型会根据窗口的完整记录来判断断言。当 `opt.keepRawResponse` 为 true 时，返回 `{ pass, thought, message }` 而不是在失败时抛异常。
-- `observer.aiBoolean(prompt: string, opt?: Object): Promise<boolean>` - 对观察窗口做布尔查询。
+- `observer.stop(): Promise<void>` - 停止采样，并截取最后一张用于断言的截图。断言前必须先调用。
+- `observer.aiAssert(assertion: string, msg?: string, opt?: Object): Promise<void>` - 基于已观察到的时间段执行断言。模型会收到所有缓冲帧和最后一张截图，并根据这段记录判断断言是否成立。当 `opt.keepRawResponse` 为 true 时，返回 `{ pass, thought, message }` 而不是在失败时抛异常。
+- `observer.aiBoolean(prompt: string, opt?: Object): Promise<boolean>` - 基于已观察到的时间段做布尔查询。
 - `observer.frameCount: number` - 当前已缓冲的帧数。
 
 ```typescript
@@ -957,10 +957,10 @@ await observer.aiAssert('过程中弹出了成功提示 toast');
 
 工作方式与成本：
 
-- 帧优先来自设备的连续帧源——Android 的 scrcpy（`scrcpyConfig.enabled`）、iOS 的 WDA MJPEG（`wdaMjpegFrameSource.enabled`）、Web 的 CDP screencast（始终可用）；没有帧源时回退为逐张截图（移动端有效帧率会明显降低）。
-- 采样只抓取轻量帧句柄；解码成本在断言时一次性支付，且只解码真正发给模型的帧。
-- 缓冲内的所有帧（最多 `maxFrames` 帧，外加最终代表帧）都会发给模型，确保长窗口中的瞬态 UI 不会因抽样而遗漏。如需控制 token 成本，可增大 `intervalMs`（降低采样密度）或减小 `maxFrames`（缩小缓冲区）。观察帧会显示在报告时间线中，并带有 `Observed` 标签。
-- iOS 上观察帧来自 MJPEG 流（缩放、较低质量），最终代表帧为全质量截图。
+- Midscene 会优先从设备的连续帧源采集画面：Android 使用 scrcpy（`scrcpyConfig.enabled`）、iOS 使用 WDA MJPEG（`wdaMjpegFrameSource.enabled`）、Web 使用 CDP screencast（始终可用）。没有帧源时，会退回到定时截图；移动端实际帧率会明显降低。
+- 采样阶段只保存帧句柄。断言时再解码需要发送给模型的帧，避免在后台采样时持续解码。
+- 模型会收到缓冲区内的所有帧（最多 `maxFrames` 帧）和最后一张截图，避免漏掉长时间观察中的短暂 UI。如需控制 token 成本，可增大 `intervalMs`（降低采样密度）或减小 `maxFrames`（缩小缓冲区）。观察帧会显示在报告时间线中，并带有 `Observed` 标签。
+- iOS 的观察帧来自 MJPEG 流，分辨率和质量较低；最后一张截图仍是全质量截图。
 
 ### `agent.aiLocate()`
 
