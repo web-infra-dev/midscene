@@ -3,7 +3,6 @@ import { App as AntdApp, Tooltip } from 'antd';
 import type { ReactNode } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useStudioPlayground } from '../../playground/useStudioPlayground';
-import { isStudioRecorderEntryEnabled } from '../../recorder/feature-flag';
 import {
   createImportedMarkdownAiActReplayPrompt,
   createRecorderAiActReplayPrompt,
@@ -232,7 +231,6 @@ export default function StudioModePanel({
   const { message } = AntdApp.useApp();
   const playground = useStudioPlayground();
   const recorder = useStudioRecorder();
-  const recorderEntryEnabled = isStudioRecorderEntryEnabled();
   const stopRecording = recorder.stopRecording;
   const [externalRunRequest, setExternalRunRequest] =
     useState<StudioExternalRunRequest | null>(null);
@@ -469,13 +467,6 @@ export default function StudioModePanel({
   }, [currentTargetSignature]);
 
   useEffect(() => {
-    if (!recorderEntryEnabled && studioMode !== StudioModeTab.Playground) {
-      onStudioModeChange(StudioModeTab.Playground);
-      void stopRecording();
-    }
-  }, [onStudioModeChange, recorderEntryEnabled, studioMode, stopRecording]);
-
-  useEffect(() => {
     if (studioMode !== StudioModeTab.Record) {
       void stopRecording();
     }
@@ -492,97 +483,86 @@ export default function StudioModePanel({
       return;
     }
 
-    if (recorderEntryEnabled && studioMode === StudioModeTab.Record) {
+    if (studioMode === StudioModeTab.Record) {
       onHeaderChange({ title: 'Record' });
       return;
     }
 
-    if (recorderEntryEnabled && studioMode === StudioModeTab.Replay) {
+    if (studioMode === StudioModeTab.Replay) {
       onHeaderChange({
         title: replayTitle,
       });
     }
-  }, [onHeaderChange, recorderEntryEnabled, replayTitle, studioMode]);
+  }, [onHeaderChange, replayTitle, studioMode]);
 
-  if (recorderEntryEnabled) {
-    const recordActive = studioMode === StudioModeTab.Record;
-    const replayActive = studioMode === StudioModeTab.Replay;
-    const playgroundActive = studioMode === StudioModeTab.Playground;
-    const modePaneClassName = (active: boolean) =>
-      ['studio-mode-panel-pane', active ? 'studio-mode-panel-pane-active' : '']
-        .filter(Boolean)
-        .join(' ');
-
-    return (
-      <div className="studio-mode-panel-stack">
-        <div
-          aria-hidden={!recordActive}
-          className={`${modePaneClassName(recordActive)} studio-recorder-column min-h-0 h-full flex-1 overflow-hidden bg-transparent`}
-        >
-          <StudioRecorderPanel
-            onShowMarkdown={({ markdown, onDelete, onDownload, title }) => {
-              onOpenStudioRightPanel?.({
-                markdown,
-                onDelete,
-                onDownload,
-                title,
-                type: StudioRightPanelViewType.Markdown,
-              });
-            }}
-            onShowScreenshots={(events) => {
-              onOpenStudioRightPanel?.({
-                content: <RecorderScreenshotDetailView events={events} />,
-                type: StudioRightPanelViewType.Screenshots,
-              });
-            }}
-          />
-        </div>
-        <div
-          aria-hidden={!replayActive}
-          className={`${modePaneClassName(replayActive)} studio-replay-column flex h-full min-h-0 flex-col gap-[8px] overflow-hidden bg-transparent pb-px`}
-        >
-          <StudioReplayPanel
-            activeSessionId={replayingSessionId}
-            onDeleteSession={(session) => {
-              void handleDeleteReplaySession(session);
-            }}
-            onDownloadSession={(session) => {
-              void handleDownloadReplaySession(session);
-            }}
-            onReplaySession={(session) => {
-              void handleReplaySession(session);
-            }}
-            sessions={replaySessions}
-          />
-          <ReplayExecutionPanel
-            externalRunRequest={activeExternalRunRequest}
-            playground={playground}
-            replayTitle={replayTitle}
-            showHeader={renderOwnHeader}
-            storageNamespace={`${playgroundStorageNamespace}-replay`}
-          />
-        </div>
-        <div
-          aria-hidden={!playgroundActive}
-          className={`${modePaneClassName(playgroundActive)} studio-playground-column h-full min-h-0 flex-1`}
-        >
-          <Playground
-            externalRunRequest={activePlaygroundExternalRunRequest}
-            inputActions={playgroundInputActions}
-            onHeaderChange={playgroundActive ? onHeaderChange : undefined}
-            playground={playground}
-          />
-        </div>
-      </div>
-    );
-  }
+  const recordActive = studioMode === StudioModeTab.Record;
+  const replayActive = studioMode === StudioModeTab.Replay;
+  const playgroundActive = studioMode === StudioModeTab.Playground;
+  const modePaneClassName = (active: boolean) =>
+    ['studio-mode-panel-pane', active ? 'studio-mode-panel-pane-active' : '']
+      .filter(Boolean)
+      .join(' ');
 
   return (
-    <Playground
-      externalRunRequest={activePlaygroundExternalRunRequest}
-      inputActions={recorderEntryEnabled ? playgroundInputActions : undefined}
-      onHeaderChange={onHeaderChange}
-      playground={playground}
-    />
+    <div className="studio-mode-panel-stack">
+      <div
+        aria-hidden={!recordActive}
+        className={`${modePaneClassName(recordActive)} studio-recorder-column min-h-0 h-full flex-1 overflow-hidden bg-transparent`}
+      >
+        <StudioRecorderPanel
+          onShowMarkdown={({ markdown, onDelete, onDownload, title }) => {
+            onOpenStudioRightPanel?.({
+              markdown,
+              onDelete,
+              onDownload,
+              title,
+              type: StudioRightPanelViewType.Markdown,
+            });
+          }}
+          onShowScreenshots={(events) => {
+            onOpenStudioRightPanel?.({
+              content: <RecorderScreenshotDetailView events={events} />,
+              type: StudioRightPanelViewType.Screenshots,
+            });
+          }}
+        />
+      </div>
+      <div
+        aria-hidden={!replayActive}
+        className={`${modePaneClassName(replayActive)} studio-replay-column flex h-full min-h-0 flex-col gap-[8px] overflow-hidden bg-transparent pb-px`}
+      >
+        <StudioReplayPanel
+          activeSessionId={replayingSessionId}
+          onDeleteSession={(session) => {
+            void handleDeleteReplaySession(session);
+          }}
+          onDownloadSession={(session) => {
+            void handleDownloadReplaySession(session);
+          }}
+          onReplaySession={(session) => {
+            void handleReplaySession(session);
+          }}
+          sessions={replaySessions}
+        />
+        <ReplayExecutionPanel
+          externalRunRequest={activeExternalRunRequest}
+          playground={playground}
+          replayTitle={replayTitle}
+          showHeader={renderOwnHeader}
+          storageNamespace={`${playgroundStorageNamespace}-replay`}
+        />
+      </div>
+      <div
+        aria-hidden={!playgroundActive}
+        className={`${modePaneClassName(playgroundActive)} studio-playground-column h-full min-h-0 flex-1`}
+      >
+        <Playground
+          externalRunRequest={activePlaygroundExternalRunRequest}
+          inputActions={playgroundInputActions}
+          onHeaderChange={playgroundActive ? onHeaderChange : undefined}
+          playground={playground}
+        />
+      </div>
+    </div>
   );
 }

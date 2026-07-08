@@ -22,7 +22,6 @@ import {
   resolveSelectedDeviceId,
 } from '../../playground/selectors';
 import { useStudioPlayground } from '../../playground/useStudioPlayground';
-import { isStudioRecorderEntryEnabled } from '../../recorder/feature-flag';
 import { type StudioMode, StudioModeTab } from '../../recorder/types';
 import { useOptionalStudioRecorder } from '../../recorder/useStudioRecorder';
 import ConnectingPreview from '../ConnectingPreview';
@@ -493,28 +492,26 @@ export default function MainContent({
   };
   const pillColors = pillPalette[connectionStatus];
   const selectedPreviewToolbarKey = activeStudioMode;
-  const previewToolbarIcons = isStudioRecorderEntryEnabled()
-    ? [
-        {
-          icon: <RecorderModeIcon />,
-          key: StudioModeTab.Record,
-          label: 'Record',
-          mode: StudioModeTab.Record,
-        },
-        {
-          icon: <ReplayModeIcon />,
-          key: StudioModeTab.Replay,
-          label: 'Replay',
-          mode: StudioModeTab.Replay,
-        },
-        {
-          icon: <ApiPlaygroundModeIcon />,
-          key: StudioModeTab.Playground,
-          label: 'API Playground',
-          mode: StudioModeTab.Playground,
-        },
-      ]
-    : [];
+  const previewToolbarIcons = [
+    {
+      icon: <RecorderModeIcon />,
+      key: StudioModeTab.Record,
+      label: 'Record',
+      mode: StudioModeTab.Record,
+    },
+    {
+      icon: <ReplayModeIcon />,
+      key: StudioModeTab.Replay,
+      label: 'Replay',
+      mode: StudioModeTab.Replay,
+    },
+    {
+      icon: <ApiPlaygroundModeIcon />,
+      key: StudioModeTab.Playground,
+      label: 'API Playground',
+      mode: StudioModeTab.Playground,
+    },
+  ];
   const stopRecordingBeforeSessionDestroy = async () => {
     if (recorder?.state.isRecording) {
       await recorder.stopRecording();

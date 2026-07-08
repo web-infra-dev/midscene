@@ -208,7 +208,6 @@ describe('Studio Playground imported replay', () => {
         displayName: 'recording.md',
         type: 'markdown',
       })),
-      recorderEntryEnabled: true,
     } as any;
   });
 
