@@ -56,6 +56,29 @@ export default defineConfig(async () => {
       light: '/midscene_with_text_light.png',
       dark: '/midscene_with_text_dark.png',
     },
+    head: [
+      // Open Graph
+      [
+        'meta',
+        {
+          property: 'og:image',
+          content: 'https://midscenejs.com/og-image.png',
+        },
+      ],
+      ['meta', { property: 'og:image:width', content: '1200' }],
+      ['meta', { property: 'og:image:height', content: '630' }],
+      ['meta', { property: 'og:image:alt', content: 'Midscene.js logo' }],
+      // Twitter Card
+      ['meta', { name: 'twitter:card', content: 'summary_large_image' }],
+      [
+        'meta',
+        {
+          name: 'twitter:image',
+          content: 'https://midscenejs.com/og-image.png',
+        },
+      ],
+      ['meta', { name: 'twitter:image:alt', content: 'Midscene.js logo' }],
+    ],
     markdown: {
       link: {
         checkDeadLinks: true,
