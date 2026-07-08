@@ -782,23 +782,27 @@ Stdout:
 
       it('should return early for empty string', async () => {
         await device.inputPrimitives.keyboard.typeText('');
-        expect(mockAdb.inputText).not.toHaveBeenCalled();
+        expect(mockAdb.shell).not.toHaveBeenCalledWith(
+          expect.stringContaining('input text'),
+        );
         expect((device as any).execYadb).not.toHaveBeenCalled();
       });
 
       // ---------------------------------------------------------------
-      // 3a. inputText path — characters handled by appium-adb (no escapeForShell)
+      // 3a. input text path — pure ASCII goes through `input text` shell command
       // ---------------------------------------------------------------
-      describe('inputText path — appium-adb compatible characters', () => {
+      describe('input text path — appium-adb compatible characters', () => {
         it('pure ASCII: hello', async () => {
           await device.inputPrimitives.keyboard.typeText('hello');
-          expect(mockAdb.inputText).toHaveBeenCalledWith('hello');
+          expect(mockAdb.shell).toHaveBeenCalledWith("input text 'hello'");
           expect((device as any).execYadb).not.toHaveBeenCalled();
         });
 
         it('space: hello world', async () => {
           await device.inputPrimitives.keyboard.typeText('hello world');
-          expect(mockAdb.inputText).toHaveBeenCalledWith('hello world');
+          expect(mockAdb.shell).toHaveBeenCalledWith(
+            "input text 'hello world'",
+          );
           expect((device as any).execYadb).not.toHaveBeenCalled();
         });
 
@@ -815,20 +819,21 @@ Stdout:
             'a:b',
           ];
           for (const text of texts) {
-            mockAdb.inputText.mockClear();
+            mockAdb.shell.mockClear();
             (device as any).execYadb.mockClear();
             await device.inputPrimitives.keyboard.typeText(text);
-            expect(mockAdb.inputText).toHaveBeenCalledWith(text);
+            // shellEscapeArg wraps in single quotes
+            expect(mockAdb.shell).toHaveBeenCalledWith(`input text '${text}'`);
             expect((device as any).execYadb).not.toHaveBeenCalled();
           }
         });
 
         it('brackets: {b} [b]', async () => {
           for (const text of ['a{b}c', 'a[b]c']) {
-            mockAdb.inputText.mockClear();
+            mockAdb.shell.mockClear();
             (device as any).execYadb.mockClear();
             await device.inputPrimitives.keyboard.typeText(text);
-            expect(mockAdb.inputText).toHaveBeenCalledWith(text);
+            expect(mockAdb.shell).toHaveBeenCalledWith(`input text '${text}'`);
             expect((device as any).execYadb).not.toHaveBeenCalled();
           }
         });
@@ -845,29 +850,31 @@ Stdout:
             'a*b',
           ];
           for (const text of texts) {
-            mockAdb.inputText.mockClear();
+            mockAdb.shell.mockClear();
             (device as any).execYadb.mockClear();
             await device.inputPrimitives.keyboard.typeText(text);
-            expect(mockAdb.inputText).toHaveBeenCalledWith(text);
+            // These are now properly protected by single-quote wrapping
+            expect(mockAdb.shell).toHaveBeenCalledWith(`input text '${text}'`);
             expect((device as any).execYadb).not.toHaveBeenCalled();
           }
         });
 
         it("single quote only: it's", async () => {
           await device.inputPrimitives.keyboard.typeText("it's");
-          expect(mockAdb.inputText).toHaveBeenCalledWith("it's");
+          // shellEscapeArg: 'it'\''s' — end quote, escaped quote, start quote
+          expect(mockAdb.shell).toHaveBeenCalledWith("input text 'it'\\''s'");
           expect((device as any).execYadb).not.toHaveBeenCalled();
         });
 
         it('double quote only: say"hi"', async () => {
           await device.inputPrimitives.keyboard.typeText('say"hi"');
-          expect(mockAdb.inputText).toHaveBeenCalledWith('say"hi"');
+          expect(mockAdb.shell).toHaveBeenCalledWith(`input text 'say"hi"'`);
           expect((device as any).execYadb).not.toHaveBeenCalled();
         });
 
         it('percent not followed by letter: 100% done', async () => {
           await device.inputPrimitives.keyboard.typeText('100% done');
-          expect(mockAdb.inputText).toHaveBeenCalledWith('100% done');
+          expect(mockAdb.shell).toHaveBeenCalledWith("input text '100% done'");
           expect((device as any).execYadb).not.toHaveBeenCalled();
         });
       });
@@ -882,19 +889,25 @@ Stdout:
           it('\\ → execYadb unchanged (no escaping needed in single quotes)', async () => {
             await device.inputPrimitives.keyboard.typeText('a\\b');
             expect((device as any).execYadb).toHaveBeenCalledWith('a\\b');
-            expect(mockAdb.inputText).not.toHaveBeenCalled();
+            expect(mockAdb.shell).not.toHaveBeenCalledWith(
+              expect.stringContaining('input text'),
+            );
           });
 
           it('` → execYadb unchanged', async () => {
             await device.inputPrimitives.keyboard.typeText('a`b');
             expect((device as any).execYadb).toHaveBeenCalledWith('a`b');
-            expect(mockAdb.inputText).not.toHaveBeenCalled();
+            expect(mockAdb.shell).not.toHaveBeenCalledWith(
+              expect.stringContaining('input text'),
+            );
           });
 
           it('$ → execYadb unchanged', async () => {
             await device.inputPrimitives.keyboard.typeText('$HOME');
             expect((device as any).execYadb).toHaveBeenCalledWith('$HOME');
-            expect(mockAdb.inputText).not.toHaveBeenCalled();
+            expect(mockAdb.shell).not.toHaveBeenCalledWith(
+              expect.stringContaining('input text'),
+            );
           });
 
           it("both quotes → execYadb with ' escaped", async () => {
@@ -902,7 +915,9 @@ Stdout:
             expect((device as any).execYadb).toHaveBeenCalledWith(
               "it'\\''s a \"test\"",
             );
-            expect(mockAdb.inputText).not.toHaveBeenCalled();
+            expect(mockAdb.shell).not.toHaveBeenCalledWith(
+              expect.stringContaining('input text'),
+            );
           });
 
           it('combined: $100\\each → unchanged (no escaping needed)', async () => {
@@ -962,61 +977,72 @@ Stdout:
       // 3c. Newline handling
       // ---------------------------------------------------------------
       describe('newline handling', () => {
-        // inputText path: split('\n') + keyevent 66
-        describe('inputText path — split + keyevent 66', () => {
+        // input text path: split('\n') + keyevent 66 via shell
+        describe('input text path — split + keyevent 66', () => {
           it('middle newline: line1\\nline2', async () => {
             await device.inputPrimitives.keyboard.typeText('line1\nline2');
-            expect(mockAdb.inputText).toHaveBeenCalledTimes(2);
-            expect(mockAdb.inputText).toHaveBeenNthCalledWith(1, 'line1');
-            expect(mockAdb.inputText).toHaveBeenNthCalledWith(2, 'line2');
-            expect(mockAdb.keyevent).toHaveBeenCalledTimes(1);
-            expect(mockAdb.keyevent).toHaveBeenCalledWith(66);
+            expect(mockAdb.shell).toHaveBeenCalledWith("input text 'line1'");
+            expect(mockAdb.shell).toHaveBeenCalledWith("input text 'line2'");
+            expect(mockAdb.shell).toHaveBeenCalledWith('input keyevent 66');
           });
 
           it('multiple newlines: a\\nb\\nc', async () => {
             await device.inputPrimitives.keyboard.typeText('a\nb\nc');
-            expect(mockAdb.inputText).toHaveBeenCalledTimes(3);
-            expect(mockAdb.inputText).toHaveBeenNthCalledWith(1, 'a');
-            expect(mockAdb.inputText).toHaveBeenNthCalledWith(2, 'b');
-            expect(mockAdb.inputText).toHaveBeenNthCalledWith(3, 'c');
-            expect(mockAdb.keyevent).toHaveBeenCalledTimes(2);
+            expect(mockAdb.shell).toHaveBeenCalledWith("input text 'a'");
+            expect(mockAdb.shell).toHaveBeenCalledWith("input text 'b'");
+            expect(mockAdb.shell).toHaveBeenCalledWith("input text 'c'");
+            // Two keyevents for two newlines
+            const keyeventCalls = mockAdb.shell.mock.calls.filter(
+              (call: any[]) => call[0] === 'input keyevent 66',
+            );
+            expect(keyeventCalls).toHaveLength(2);
           });
 
           it('trailing newline: hello\\n', async () => {
             await device.inputPrimitives.keyboard.typeText('hello\n');
-            expect(mockAdb.inputText).toHaveBeenCalledTimes(1);
-            expect(mockAdb.inputText).toHaveBeenCalledWith('hello');
-            expect(mockAdb.keyevent).toHaveBeenCalledTimes(1);
-            expect(mockAdb.keyevent).toHaveBeenCalledWith(66);
+            expect(mockAdb.shell).toHaveBeenCalledWith("input text 'hello'");
+            expect(mockAdb.shell).toHaveBeenCalledWith('input keyevent 66');
           });
 
           it('leading newline: \\nhello', async () => {
             await device.inputPrimitives.keyboard.typeText('\nhello');
-            expect(mockAdb.inputText).toHaveBeenCalledTimes(1);
-            expect(mockAdb.inputText).toHaveBeenCalledWith('hello');
-            expect(mockAdb.keyevent).toHaveBeenCalledTimes(1);
-            expect(mockAdb.keyevent).toHaveBeenCalledWith(66);
+            expect(mockAdb.shell).toHaveBeenCalledWith("input text 'hello'");
+            expect(mockAdb.shell).toHaveBeenCalledWith('input keyevent 66');
           });
 
           it('consecutive newlines: a\\n\\nb', async () => {
             await device.inputPrimitives.keyboard.typeText('a\n\nb');
-            expect(mockAdb.inputText).toHaveBeenCalledTimes(2);
-            expect(mockAdb.inputText).toHaveBeenNthCalledWith(1, 'a');
-            expect(mockAdb.inputText).toHaveBeenNthCalledWith(2, 'b');
-            expect(mockAdb.keyevent).toHaveBeenCalledTimes(2);
+            expect(mockAdb.shell).toHaveBeenCalledWith("input text 'a'");
+            expect(mockAdb.shell).toHaveBeenCalledWith("input text 'b'");
+            // Two keyevents for two consecutive newlines
+            const keyeventCalls = mockAdb.shell.mock.calls.filter(
+              (call: any[]) => call[0] === 'input keyevent 66',
+            );
+            expect(keyeventCalls).toHaveLength(2);
           });
 
           it('just a newline: \\n', async () => {
+            mockAdb.shell.mockClear();
             await device.inputPrimitives.keyboard.typeText('\n');
-            expect(mockAdb.inputText).not.toHaveBeenCalled();
-            expect(mockAdb.keyevent).toHaveBeenCalledTimes(1);
-            expect(mockAdb.keyevent).toHaveBeenCalledWith(66);
+            // No `input text` call, just one keyevent
+            const textCalls = mockAdb.shell.mock.calls.filter(
+              (call: any[]) =>
+                typeof call[0] === 'string' && call[0].startsWith('input text'),
+            );
+            expect(textCalls).toHaveLength(0);
+            expect(mockAdb.shell).toHaveBeenCalledWith('input keyevent 66');
           });
 
           it('no newline → no keyevent', async () => {
+            mockAdb.shell.mockClear();
             await device.inputPrimitives.keyboard.typeText('no-newline');
-            expect(mockAdb.inputText).toHaveBeenCalledWith('no-newline');
-            expect(mockAdb.keyevent).not.toHaveBeenCalled();
+            expect(mockAdb.shell).toHaveBeenCalledWith(
+              "input text 'no-newline'",
+            );
+            const keyeventCalls = mockAdb.shell.mock.calls.filter(
+              (call: any[]) => call[0] === 'input keyevent 66',
+            );
+            expect(keyeventCalls).toHaveLength(0);
           });
         });
 
@@ -1028,8 +1054,10 @@ Stdout:
             expect((device as any).execYadb).toHaveBeenCalledWith(
               '你好\\nworld',
             );
-            expect(mockAdb.inputText).not.toHaveBeenCalled();
-            expect(mockAdb.keyevent).not.toHaveBeenCalled();
+            expect(mockAdb.shell).not.toHaveBeenCalledWith(
+              expect.stringContaining('input text'),
+            );
+            expect(mockAdb.shell).not.toHaveBeenCalledWith('input keyevent 66');
           });
 
           it('shell-special with middle newline: $10\\ntext', async () => {
@@ -1040,15 +1068,17 @@ Stdout:
             expect((device as any).execYadb).toHaveBeenCalledWith(
               'price: $10\\nplain text',
             );
-            expect(mockAdb.inputText).not.toHaveBeenCalled();
-            expect(mockAdb.keyevent).not.toHaveBeenCalled();
+            expect(mockAdb.shell).not.toHaveBeenCalledWith(
+              expect.stringContaining('input text'),
+            );
+            expect(mockAdb.shell).not.toHaveBeenCalledWith('input keyevent 66');
           });
 
           it('non-ASCII trailing newline: 你好\\n', async () => {
             await device.inputPrimitives.keyboard.typeText('你好\n');
             expect((device as any).execYadb).toHaveBeenCalledTimes(1);
             expect((device as any).execYadb).toHaveBeenCalledWith('你好\\n');
-            expect(mockAdb.keyevent).not.toHaveBeenCalled();
+            expect(mockAdb.shell).not.toHaveBeenCalledWith('input keyevent 66');
           });
 
           it('always-yadb trailing newline: hello\\n', async () => {
@@ -1058,7 +1088,7 @@ Stdout:
             };
             await device.inputPrimitives.keyboard.typeText('hello\n');
             expect((device as any).execYadb).toHaveBeenCalledWith('hello\\n');
-            expect(mockAdb.keyevent).not.toHaveBeenCalled();
+            expect(mockAdb.shell).not.toHaveBeenCalledWith('input keyevent 66');
           });
 
           it('always-yadb leading newline: \\nhello', async () => {
@@ -1086,7 +1116,7 @@ Stdout:
             };
             await device.inputPrimitives.keyboard.typeText('\n');
             expect((device as any).execYadb).toHaveBeenCalledWith('\\n');
-            expect(mockAdb.keyevent).not.toHaveBeenCalled();
+            expect(mockAdb.shell).not.toHaveBeenCalledWith('input keyevent 66');
           });
         });
       });
@@ -1102,7 +1132,9 @@ Stdout:
           };
           await device.inputPrimitives.keyboard.typeText('hello world');
           expect((device as any).execYadb).toHaveBeenCalledWith('hello world');
-          expect(mockAdb.inputText).not.toHaveBeenCalled();
+          expect(mockAdb.shell).not.toHaveBeenCalledWith(
+            expect.stringContaining('input text'),
+          );
         });
 
         it('always-yadb: shell-special chars get escaped', async () => {
@@ -1118,9 +1150,9 @@ Stdout:
           );
         });
 
-        it('yadb-for-non-ascii: pure ASCII uses inputText', async () => {
+        it('yadb-for-non-ascii: pure ASCII uses input text', async () => {
           await device.inputPrimitives.keyboard.typeText('hello');
-          expect(mockAdb.inputText).toHaveBeenCalledWith('hello');
+          expect(mockAdb.shell).toHaveBeenCalledWith("input text 'hello'");
           expect((device as any).execYadb).not.toHaveBeenCalled();
         });
 
@@ -1129,7 +1161,9 @@ Stdout:
           expect((device as any).execYadb).toHaveBeenCalledWith(
             '你好,Schönberg',
           );
-          expect(mockAdb.inputText).not.toHaveBeenCalled();
+          expect(mockAdb.shell).not.toHaveBeenCalledWith(
+            expect.stringContaining('input text'),
+          );
         });
       });
     });
@@ -1148,63 +1182,63 @@ Stdout:
           canCloseKeyboard: true,
         });
       await device.inputPrimitives.keyboard.typeText('hello');
-      expect(mockAdb.inputText).toHaveBeenCalledWith('hello');
-      expect(mockAdb.keyevent).toHaveBeenCalledWith(111); // ESC key
+      expect(mockAdb.shell).toHaveBeenCalledWith("input text 'hello'");
+      expect(mockAdb.shell).toHaveBeenCalledWith('input keyevent 111'); // ESC key
     });
 
     it('press should call keyevent for mapped keys', async () => {
       await device.inputPrimitives.keyboard.keyboardPress('Enter');
-      expect(mockAdb.keyevent).toHaveBeenCalledWith(66);
+      expect(mockAdb.shell).toHaveBeenCalledWith('input keyevent 66');
     });
 
     it('press should handle case-insensitive key names', async () => {
       // Test lowercase keys
       await device.inputPrimitives.keyboard.keyboardPress('enter');
-      expect(mockAdb.keyevent).toHaveBeenCalledWith(66);
+      expect(mockAdb.shell).toHaveBeenCalledWith('input keyevent 66');
 
       await device.inputPrimitives.keyboard.keyboardPress('escape');
-      expect(mockAdb.keyevent).toHaveBeenCalledWith(111);
+      expect(mockAdb.shell).toHaveBeenCalledWith('input keyevent 111');
 
       await device.inputPrimitives.keyboard.keyboardPress('tab');
-      expect(mockAdb.keyevent).toHaveBeenCalledWith(61);
+      expect(mockAdb.shell).toHaveBeenCalledWith('input keyevent 61');
 
       // Test uppercase keys (should still work)
       await device.inputPrimitives.keyboard.keyboardPress('ENTER');
-      expect(mockAdb.keyevent).toHaveBeenCalledWith(66);
+      expect(mockAdb.shell).toHaveBeenCalledWith('input keyevent 66');
 
       await device.inputPrimitives.keyboard.keyboardPress('ESCAPE');
-      expect(mockAdb.keyevent).toHaveBeenCalledWith(111);
+      expect(mockAdb.shell).toHaveBeenCalledWith('input keyevent 111');
     });
 
     it('press should handle arrow key variations', async () => {
       // Test full arrow key names (lowercase)
       await device.inputPrimitives.keyboard.keyboardPress('arrowup');
-      expect(mockAdb.keyevent).toHaveBeenCalledWith(19);
+      expect(mockAdb.shell).toHaveBeenCalledWith('input keyevent 19');
 
       await device.inputPrimitives.keyboard.keyboardPress('arrowdown');
-      expect(mockAdb.keyevent).toHaveBeenCalledWith(20);
+      expect(mockAdb.shell).toHaveBeenCalledWith('input keyevent 20');
 
       // Test short arrow key names
       await device.inputPrimitives.keyboard.keyboardPress('up');
-      expect(mockAdb.keyevent).toHaveBeenCalledWith(19);
+      expect(mockAdb.shell).toHaveBeenCalledWith('input keyevent 19');
 
       await device.inputPrimitives.keyboard.keyboardPress('down');
-      expect(mockAdb.keyevent).toHaveBeenCalledWith(20);
+      expect(mockAdb.shell).toHaveBeenCalledWith('input keyevent 20');
 
       await device.inputPrimitives.keyboard.keyboardPress('left');
-      expect(mockAdb.keyevent).toHaveBeenCalledWith(21);
+      expect(mockAdb.shell).toHaveBeenCalledWith('input keyevent 21');
 
       await device.inputPrimitives.keyboard.keyboardPress('right');
-      expect(mockAdb.keyevent).toHaveBeenCalledWith(22);
+      expect(mockAdb.shell).toHaveBeenCalledWith('input keyevent 22');
     });
 
     it('press should handle common key abbreviations', async () => {
       // Test 'esc' as abbreviation for 'Escape'
       await device.inputPrimitives.keyboard.keyboardPress('esc');
-      expect(mockAdb.keyevent).toHaveBeenCalledWith(111);
+      expect(mockAdb.shell).toHaveBeenCalledWith('input keyevent 111');
 
       await device.inputPrimitives.keyboard.keyboardPress('ESC');
-      expect(mockAdb.keyevent).toHaveBeenCalledWith(111);
+      expect(mockAdb.shell).toHaveBeenCalledWith('input keyevent 111');
     });
 
     describe('autoDismissKeyboard option', () => {
@@ -1226,9 +1260,13 @@ Stdout:
 
         await device.inputPrimitives.keyboard.typeText('hello');
 
-        expect(mockAdb.inputText).toHaveBeenCalledWith('hello');
+        expect(mockAdb.shell).toHaveBeenCalledWith(
+          expect.stringContaining("input text 'hello'"),
+        );
         expect(mockAdb.isSoftKeyboardPresent).toHaveBeenCalled();
-        expect(mockAdb.keyevent).toHaveBeenCalledWith(111); // ESC key
+        expect(mockAdb.shell).toHaveBeenCalledWith(
+          expect.stringContaining('input keyevent 111'),
+        ); // ESC key
       });
 
       it('should hide keyboard when autoDismissKeyboard is explicitly true', async () => {
@@ -1248,9 +1286,13 @@ Stdout:
 
         await device.inputPrimitives.keyboard.typeText('hello');
 
-        expect(mockAdb.inputText).toHaveBeenCalledWith('hello');
+        expect(mockAdb.shell).toHaveBeenCalledWith(
+          expect.stringContaining("input text 'hello'"),
+        );
         expect(mockAdb.isSoftKeyboardPresent).toHaveBeenCalled();
-        expect(mockAdb.keyevent).toHaveBeenCalledWith(111); // ESC key
+        expect(mockAdb.shell).toHaveBeenCalledWith(
+          expect.stringContaining('input keyevent 111'),
+        ); // ESC key
       });
 
       it('should not hide keyboard when autoDismissKeyboard is false', async () => {
@@ -1259,13 +1301,18 @@ Stdout:
           autoDismissKeyboard: false,
         };
         mockAdb.isSoftKeyboardPresent.mockClear();
-        mockAdb.keyevent.mockClear();
 
         await device.inputPrimitives.keyboard.typeText('hello');
 
-        expect(mockAdb.inputText).toHaveBeenCalledWith('hello');
+        expect(mockAdb.shell).toHaveBeenCalledWith(
+          expect.stringContaining("input text 'hello'"),
+        );
         expect(mockAdb.isSoftKeyboardPresent).not.toHaveBeenCalled();
-        expect(mockAdb.keyevent).not.toHaveBeenCalled();
+        // No keyevent calls for keyboard dismissal
+        const keyeventCalls = mockAdb.shell.mock.calls.filter(
+          (c) => typeof c[0] === 'string' && c[0].includes('keyevent'),
+        );
+        expect(keyeventCalls.length).toBe(0);
       });
 
       it('should respect autoDismissKeyboard option passed to type method', async () => {
@@ -1274,25 +1321,34 @@ Stdout:
           autoDismissKeyboard: true,
         };
         mockAdb.isSoftKeyboardPresent.mockClear();
-        mockAdb.keyevent.mockClear();
 
         // Override with false in method call
         await device.inputPrimitives.keyboard.typeText('hello', {
           autoDismissKeyboard: false,
         });
 
-        expect(mockAdb.inputText).toHaveBeenCalledWith('hello');
+        expect(mockAdb.shell).toHaveBeenCalledWith(
+          expect.stringContaining("input text 'hello'"),
+        );
         expect(mockAdb.isSoftKeyboardPresent).not.toHaveBeenCalled();
-        expect(mockAdb.keyevent).not.toHaveBeenCalled();
+        const keyeventCalls = mockAdb.shell.mock.calls.filter(
+          (c) => typeof c[0] === 'string' && c[0].includes('keyevent'),
+        );
+        expect(keyeventCalls.length).toBe(0);
       });
     });
 
     describe('keyboardDismissStrategy option', () => {
       beforeEach(() => {
         vi.spyOn(device as any, 'ensureYadb').mockResolvedValue(undefined);
-        mockAdb.keyevent.mockClear();
         mockAdb.isSoftKeyboardPresent.mockClear();
       });
+
+      // Helper: extract shell calls that contain 'keyevent'
+      const getKeyeventShellCalls = () =>
+        mockAdb.shell.mock.calls.filter(
+          (c) => typeof c[0] === 'string' && c[0].includes('keyevent'),
+        );
 
       it('should use esc-first strategy by default', async () => {
         device.options = { imeStrategy: 'yadb-for-non-ascii' };
@@ -1308,8 +1364,9 @@ Stdout:
 
         await device.inputPrimitives.keyboard.typeText('hello');
 
-        expect(mockAdb.keyevent).toHaveBeenCalledWith(111); // ESC key first
-        expect(mockAdb.keyevent).toHaveBeenCalledTimes(1);
+        const keyeventCalls = getKeyeventShellCalls();
+        expect(keyeventCalls[0][0]).toContain('111'); // ESC key first
+        expect(keyeventCalls.length).toBe(1);
       });
 
       it('should use back-first strategy when specified', async () => {
@@ -1329,8 +1386,9 @@ Stdout:
 
         await device.inputPrimitives.keyboard.typeText('hello');
 
-        expect(mockAdb.keyevent).toHaveBeenCalledWith(4); // BACK key first
-        expect(mockAdb.keyevent).toHaveBeenCalledTimes(1);
+        const keyeventCalls = getKeyeventShellCalls();
+        expect(keyeventCalls[0][0]).toContain('4'); // BACK key first
+        expect(keyeventCalls.length).toBe(1);
       });
 
       it('should try second key if first fails with esc-first strategy', async () => {
@@ -1353,10 +1411,12 @@ Stdout:
         let callCount = 0;
         let currentKeyEvent = 0;
 
-        // Track keyevent calls
-        mockAdb.keyevent.mockImplementation(() => {
-          currentKeyEvent++;
-          return Promise.resolve();
+        // Track keyevent shell calls
+        mockAdb.shell.mockImplementation(async (cmd: unknown) => {
+          if (typeof cmd === 'string' && cmd.includes('keyevent')) {
+            currentKeyEvent++;
+          }
+          return '';
         });
 
         mockAdb.isSoftKeyboardPresent.mockImplementation(() => {
@@ -1394,9 +1454,10 @@ Stdout:
 
         await device.inputPrimitives.keyboard.typeText('hello');
 
-        expect(mockAdb.keyevent).toHaveBeenNthCalledWith(1, 111); // ESC first
-        expect(mockAdb.keyevent).toHaveBeenNthCalledWith(2, 4); // BACK second
-        expect(mockAdb.keyevent).toHaveBeenCalledTimes(2);
+        const keyeventCalls = getKeyeventShellCalls();
+        expect(keyeventCalls[0][0]).toContain('111'); // ESC first
+        expect(keyeventCalls[1][0]).toContain('4'); // BACK second
+        expect(keyeventCalls.length).toBe(2);
       });
 
       it('should try second key if first fails with back-first strategy', async () => {
@@ -1419,10 +1480,12 @@ Stdout:
         let callCount = 0;
         let currentKeyEvent = 0;
 
-        // Track keyevent calls
-        mockAdb.keyevent.mockImplementation(() => {
-          currentKeyEvent++;
-          return Promise.resolve();
+        // Track keyevent shell calls
+        mockAdb.shell.mockImplementation(async (cmd: unknown) => {
+          if (typeof cmd === 'string' && cmd.includes('keyevent')) {
+            currentKeyEvent++;
+          }
+          return '';
         });
 
         mockAdb.isSoftKeyboardPresent.mockImplementation(() => {
@@ -1460,9 +1523,10 @@ Stdout:
 
         await device.inputPrimitives.keyboard.typeText('hello');
 
-        expect(mockAdb.keyevent).toHaveBeenNthCalledWith(1, 4); // BACK first
-        expect(mockAdb.keyevent).toHaveBeenNthCalledWith(2, 111); // ESC second
-        expect(mockAdb.keyevent).toHaveBeenCalledTimes(2);
+        const keyeventCalls = getKeyeventShellCalls();
+        expect(keyeventCalls[0][0]).toContain('4'); // BACK first
+        expect(keyeventCalls[1][0]).toContain('111'); // ESC second
+        expect(keyeventCalls.length).toBe(2);
       });
 
       it('should respect keyboardDismissStrategy option passed to type method', async () => {
@@ -1486,8 +1550,9 @@ Stdout:
           keyboardDismissStrategy: 'back-first',
         });
 
-        expect(mockAdb.keyevent).toHaveBeenCalledWith(4); // BACK key first (overridden)
-        expect(mockAdb.keyevent).toHaveBeenCalledTimes(1);
+        const keyeventCalls = getKeyeventShellCalls();
+        expect(keyeventCalls[0][0]).toContain('4'); // BACK key first (overridden)
+        expect(keyeventCalls.length).toBe(1);
       });
 
       it('should log warning if both keys fail to hide keyboard', async () => {
@@ -1531,13 +1596,15 @@ Stdout:
           isKeyboardShown: false,
           canCloseKeyboard: true,
         }); // keyboard already hidden
-        mockAdb.keyevent.mockClear();
 
         await device.inputPrimitives.keyboard.typeText('hello');
 
-        expect(mockAdb.inputText).toHaveBeenCalledWith('hello');
+        expect(mockAdb.shell).toHaveBeenCalledWith(
+          expect.stringContaining("input text 'hello'"),
+        );
         expect(mockAdb.isSoftKeyboardPresent).toHaveBeenCalled();
-        expect(mockAdb.keyevent).not.toHaveBeenCalled(); // No key events needed
+        const keyeventCalls = getKeyeventShellCalls();
+        expect(keyeventCalls.length).toBe(0); // No key events needed
       });
     });
   });
@@ -2503,7 +2570,7 @@ Stdout:
         undefined,
       );
 
-      // Mock keyboard state management
+      // Mock keyboard state management — track keyevents through shell calls
       let keyboardHidden = false;
       mockAdbInstance.isSoftKeyboardPresent.mockImplementation(() => {
         return Promise.resolve({
@@ -2512,15 +2579,23 @@ Stdout:
         });
       });
 
-      mockAdbInstance.keyevent.mockImplementation(() => {
-        keyboardHidden = true;
-        return Promise.resolve();
+      // Override shell mock to track keyevents for keyboard state
+      const originalShellImpl = mockAdbInstance.shell.getMockImplementation();
+      mockAdbInstance.shell.mockImplementation((cmd: string) => {
+        if (typeof cmd === 'string' && cmd.includes('keyevent 111')) {
+          keyboardHidden = true;
+        }
+        return originalShellImpl ? originalShellImpl(cmd) : Promise.resolve('');
       });
 
       await deviceWithDisplay.inputPrimitives.keyboard.typeText('test');
 
-      expect(mockAdbInstance.inputText).toHaveBeenCalledWith('test');
-      expect(mockAdbInstance.keyevent).toHaveBeenCalledWith(111); // ESC key for hiding keyboard
+      expect(mockAdbInstance.shell).toHaveBeenCalledWith(
+        "input -d 2 text 'test'",
+      );
+      expect(mockAdbInstance.shell).toHaveBeenCalledWith(
+        'input -d 2 keyevent 111',
+      ); // ESC key for hiding keyboard
     });
 
     it('should handle back, home, and recentApps operations with display argument', async () => {
