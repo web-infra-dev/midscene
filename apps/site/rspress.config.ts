@@ -56,6 +56,53 @@ export default defineConfig(async () => {
       light: '/midscene_with_text_light.png',
       dark: '/midscene_with_text_dark.png',
     },
+    head: [
+      // Open Graph - language-aware image (absolute URL for maximum crawler compatibility)
+      (route) => [
+        'meta',
+        {
+          property: 'og:image',
+          content:
+            route.lang === 'zh'
+              ? 'https://midscenejs.com/og-image-zh.png'
+              : 'https://midscenejs.com/og-image.png',
+        },
+      ],
+      ['meta', { property: 'og:image:width', content: '1200' }],
+      ['meta', { property: 'og:image:height', content: '630' }],
+      (route) => [
+        'meta',
+        {
+          property: 'og:image:alt',
+          content:
+            route.lang === 'zh'
+              ? 'Midscene.js - 视觉模型驱动，支持全平台的 UI 自动化 SDK'
+              : 'Midscene.js - Vision-Driven UI Automation',
+        },
+      ],
+      // Twitter Card
+      ['meta', { name: 'twitter:card', content: 'summary_large_image' }],
+      (route) => [
+        'meta',
+        {
+          name: 'twitter:image',
+          content:
+            route.lang === 'zh'
+              ? 'https://midscenejs.com/og-image-zh.png'
+              : 'https://midscenejs.com/og-image.png',
+        },
+      ],
+      (route) => [
+        'meta',
+        {
+          name: 'twitter:image:alt',
+          content:
+            route.lang === 'zh'
+              ? 'Midscene.js - 视觉模型驱动，支持全平台的 UI 自动化 SDK'
+              : 'Midscene.js - Vision-Driven UI Automation',
+        },
+      ],
+    ],
     markdown: {
       link: {
         checkDeadLinks: true,
