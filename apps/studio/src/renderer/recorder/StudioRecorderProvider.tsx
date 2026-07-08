@@ -971,7 +971,7 @@ export function StudioRecorderProvider({ children }: PropsWithChildren) {
         const aiDescribe =
           result.trace?.verifyResult || result.trace?.annotatedScreenshotRef
             ? {
-                verifyPrompt: true,
+                verifyPrompt: result.trace.verifyPrompt ?? false,
                 verifyPassed: result.trace.verifyPassed,
                 centerDistance: result.trace.centerDistance,
                 expectedCenter: result.trace.point,

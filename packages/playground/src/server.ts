@@ -71,6 +71,7 @@ import 'dotenv/config';
 const defaultPort = PLAYGROUND_SERVER_PORT;
 const RECORDER_CAPTURE_AFTER_INTERACT_DELAY_MS = 250;
 const RECORDER_AI_DESCRIBE_AFTER_INTERACT_TIMEOUT_MS = 30_000;
+const RECORDER_AI_DESCRIBE_VERIFY_PROMPT = false;
 const RECORDER_AI_DESCRIBE_SCREENSHOT_DUMP_DIR =
   'recorder-ai-describe-screenshots';
 
@@ -165,10 +166,6 @@ function buildRecorderEventSummary(event: PlaygroundRecorderEvent) {
     elementRect: event.elementRect,
     pageInfo: event.pageInfo,
   };
-}
-
-function shouldVerifyRecorderAiDescribeEvent(event: PlaygroundRecorderEvent) {
-  return event.type !== 'scroll';
 }
 
 type RecorderAiDescribeScreenshotRef = NonNullable<
@@ -1782,6 +1779,7 @@ class PlaygroundServer {
       | AgentDescribeElementAtPointResult['verifyResult']
       | PlaygroundDescribeElementVerifyResult
       | undefined;
+    const verifyPrompt = RECORDER_AI_DESCRIBE_VERIFY_PROMPT;
     try {
       if (typeof x !== 'number' || typeof y !== 'number') {
         throw new Error(
@@ -1798,15 +1796,14 @@ class PlaygroundServer {
           'Skipped aiDescribe because the recorder event has no pageInfo for coordinate mapping.',
         );
       }
-      const verifyPrompt = shouldVerifyRecorderAiDescribeEvent(event);
       modelCallStartedAt = Date.now();
       const elementDescriber = createElementDescriberRuntime(agent);
       /**
-       * TODOs: verifyPrompt is set to false here because it took too long to verify the prompt and it was causing timeouts.
+       * Verification is disabled for recorder aiDescribe because it took too long and caused timeouts.
        */
       const describeResult = await withTimeout(
         describeElementAtPoint(elementDescriber, [x, y], {
-          verifyPrompt: false,
+          verifyPrompt,
           screenshotBase64: eventScreenshot,
           coordinateSpace: 'logical',
           logicalSize: event.pageInfo,
@@ -1835,6 +1832,7 @@ class PlaygroundServer {
         const trace = await finishTrace('ready', {
           modelCallDurationMs,
           elementDescription,
+          verifyPrompt,
           verifyPassed: false,
           centerDistance: verifyResult.centerDistance,
           verifyResult,
@@ -1873,6 +1871,7 @@ class PlaygroundServer {
       const trace = await finishTrace('ready', {
         modelCallDurationMs,
         elementDescription,
+        verifyPrompt,
         verifyPassed: verifyResult?.pass,
         centerDistance: verifyResult?.centerDistance,
         verifyResult,
@@ -1917,6 +1916,7 @@ class PlaygroundServer {
             : String(reportedError),
         modelCallDurationMs,
         elementDescription,
+        verifyPrompt,
         verifyPassed: verifyResult?.pass,
         centerDistance: verifyResult?.centerDistance,
         verifyResult,
@@ -1926,7 +1926,7 @@ class PlaygroundServer {
         verifyResult || trace.annotatedScreenshotRef
           ? {
               aiDescribe: {
-                verifyPrompt: true,
+                verifyPrompt,
                 verifyPassed: verifyResult?.pass,
                 deepLocate,
                 centerDistance: verifyResult?.centerDistance,

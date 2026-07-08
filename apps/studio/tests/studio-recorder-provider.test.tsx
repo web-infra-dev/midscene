@@ -428,7 +428,7 @@ describe('StudioRecorderProvider preview recording', () => {
     await mounted.cleanup();
   });
 
-  it('keeps aiDescribe when only verification fails and does not fallback to recorderAI', async () => {
+  it('keeps aiDescribe details from a failed describe trace without falling back to recorderAI', async () => {
     const event = {
       type: 'click',
       source: 'studio-preview',
@@ -444,6 +444,7 @@ describe('StudioRecorderProvider preview recording', () => {
       error: 'aiDescribe verification failed.',
       trace: {
         elementDescription: 'Submit button in the form footer',
+        verifyPrompt: false,
         verifyPassed: false,
         centerDistance: 24,
         point: [10, 20],
@@ -477,7 +478,7 @@ describe('StudioRecorderProvider preview recording', () => {
         status: 'ready',
         elementDescription: 'Submit button in the form footer',
         aiDescribe: {
-          verifyPrompt: true,
+          verifyPrompt: false,
           verifyPassed: false,
           centerDistance: 24,
           expectedCenter: [10, 20],

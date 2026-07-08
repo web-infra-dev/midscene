@@ -96,7 +96,7 @@ describe('studio recorder export', () => {
               status: 'failed',
               error: 'aiDescribe verification failed.',
               aiDescribe: {
-                verifyPrompt: true,
+                verifyPrompt: false,
                 verifyPassed: false,
                 centerDistance: 1.41,
                 annotatedScreenshotPath:

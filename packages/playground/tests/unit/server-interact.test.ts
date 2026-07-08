@@ -667,14 +667,7 @@ describe('PlaygroundServer manual interaction APIs', () => {
         durationMs: expect.any(Number),
         modelCallDurationMs: expect.any(Number),
         elementDescription: 'login button',
-        verifyPassed: true,
-        centerDistance: 0,
-        verifyResult: {
-          pass: true,
-          rect: { left: 0, top: 0, width: 20, height: 20 },
-          center: [10, 20],
-          centerDistance: 0,
-        },
+        verifyPrompt: false,
       },
       event: {
         type: 'click',
@@ -688,14 +681,11 @@ describe('PlaygroundServer manual interaction APIs', () => {
           elementDescription: 'login button',
           replayInstruction: 'Tap on the element described as "login button".',
           actionSummary: 'Tap login button',
-          confidence: 'high',
+          confidence: 'medium',
           aiDescribe: {
-            verifyPrompt: true,
-            verifyPassed: true,
+            verifyPrompt: false,
             deepLocate: false,
-            centerDistance: 0,
             expectedCenter: [10, 20],
-            actualCenter: [10, 20],
           },
         },
       },
@@ -703,7 +693,7 @@ describe('PlaygroundServer manual interaction APIs', () => {
     expect(describeElementAtPoint).toHaveBeenCalledWith(
       [10, 20],
       expect.objectContaining({
-        verifyPrompt: true,
+        verifyPrompt: false,
         screenshotBase64: 'base64-image',
         coordinateSpace: 'logical',
         logicalSize: { width: 390, height: 844 },
@@ -865,14 +855,12 @@ describe('PlaygroundServer manual interaction APIs', () => {
     expect(failedTrace.eventSummary.rawPayloadSummary.value).toBeUndefined();
   });
 
-  test('recorder keeps aiDescribe ready and writes annotated screenshots when verification fails', async () => {
+  test('recorder does not report verification metadata when verifyPrompt is disabled', async () => {
     const inputPrimitives = makeInputPrimitiveStub();
     const describeElementAtPoint = mockDescribeElementAtPoint(async () => ({
       prompt: 'login button',
       deepLocate: false,
-      success: false,
-      error: 'describeElementAtPoint verify failed',
-      failureStage: 'verify',
+      success: true,
       verifyResult: {
         pass: false,
         rect: { left: 10, top: 10, width: 5, height: 5 },
@@ -917,35 +905,26 @@ describe('PlaygroundServer manual interaction APIs', () => {
       trace: {
         status: 'ready',
         elementDescription: 'login button',
-        verifyPassed: false,
-        centerDistance: 14.14,
-        screenshotRef: {
-          path: expect.stringMatching(
-            /recorder-ai-describe-screenshots\/\d{4}-\d{2}-\d{2}\/\d{2}\/.+_raw\.png$/,
-          ),
-          sha256: expect.any(String),
-          bytes: expect.any(Number),
-        },
-        annotatedScreenshotPersistError: expect.any(String),
+        verifyPrompt: false,
       },
       event: {
         semantic: {
           source: 'aiDescribe',
           status: 'ready',
           elementDescription: 'login button',
-          confidence: 'low',
+          confidence: 'medium',
           aiDescribe: {
-            verifyPrompt: true,
-            verifyPassed: false,
-            centerDistance: 14.14,
+            verifyPrompt: false,
             expectedCenter: [2.5, 2.5],
-            actualCenter: [12.5, 12.5],
           },
         },
       },
     });
     const trace = (describeResponse.body as any).trace;
-    expect(trace.annotatedScreenshotPersistError).toEqual(expect.any(String));
+    expect(trace.verifyPassed).toBeUndefined();
+    expect(trace.verifyResult).toBeUndefined();
+    expect(trace.screenshotRef).toBeUndefined();
+    expect(trace.annotatedScreenshotRef).toBeUndefined();
   });
 
   test('recorder sanitizes screenshot dump paths from event metadata', async () => {
@@ -990,7 +969,7 @@ describe('PlaygroundServer manual interaction APIs', () => {
     expect(screenshotPath).toMatch(/_raw\.png$/);
   });
 
-  test('recorder reports verification failure when aiDescribe times out after failed progress', async () => {
+  test('recorder reports timeout instead of verification failure when verifyPrompt is disabled', async () => {
     const inputPrimitives = makeInputPrimitiveStub();
     const describeElementAtPoint = mockDescribeElementAtPoint(
       (
@@ -1052,28 +1031,24 @@ describe('PlaygroundServer manual interaction APIs', () => {
         ok: true,
         trace: {
           status: 'failed',
-          error: 'aiDescribe verification failed.',
+          error: 'Timed out while analyzing recorder event with aiDescribe.',
           modelCallDurationMs: expect.any(Number),
           elementDescription: 'sidebar Icon menu item',
-          verifyPassed: false,
-          centerDistance: 140,
+          verifyPrompt: false,
         },
         event: {
           semantic: {
             source: 'aiDescribe',
             status: 'failed',
-            error: 'aiDescribe verification failed.',
-            aiDescribe: {
-              verifyPrompt: true,
-              verifyPassed: false,
-              deepLocate: true,
-              centerDistance: 140,
-              expectedCenter: [155, 709],
-              actualCenter: [170, 718],
-            },
+            error: 'Timed out while analyzing recorder event with aiDescribe.',
           },
         },
       });
+      expect((describeResponse.body as any).trace.verifyPassed).toBeUndefined();
+      expect((describeResponse.body as any).trace.verifyResult).toBeUndefined();
+      expect(
+        (describeResponse.body as any).event.semantic.aiDescribe,
+      ).toBeUndefined();
     } finally {
       vi.useRealTimers();
     }
@@ -1260,7 +1235,7 @@ describe('PlaygroundServer manual interaction APIs', () => {
     expect(describeElementAtPoint).toHaveBeenCalledWith(
       [10, 20],
       expect.objectContaining({
-        verifyPrompt: true,
+        verifyPrompt: false,
         screenshotBase64: 'base64-image',
         coordinateSpace: 'logical',
         logicalSize: { width: 390, height: 844 },
@@ -1495,7 +1470,7 @@ describe('PlaygroundServer manual interaction APIs', () => {
     expect(describeElementAtPoint).toHaveBeenCalledWith(
       [10, 20],
       expect.objectContaining({
-        verifyPrompt: true,
+        verifyPrompt: false,
         screenshotBase64: 'base64-image',
         coordinateSpace: 'logical',
         logicalSize: { width: 390, height: 844 },
@@ -1569,7 +1544,7 @@ describe('PlaygroundServer manual interaction APIs', () => {
     expect(describeElementAtPoint).toHaveBeenCalledWith(
       [10, 20],
       expect.objectContaining({
-        verifyPrompt: true,
+        verifyPrompt: false,
         screenshotBase64: 'initial-screenshot',
         coordinateSpace: 'logical',
         logicalSize: { width: 390, height: 844 },
