@@ -389,6 +389,11 @@ export class UIObserver {
    * Between change points, keep every other static frame so temporal coverage
    * is maintained without bloating the buffer. This ensures a brief toast
    * that produces a new keyframe is never thinned out.
+   *
+   * If smart thinning alone cannot reduce below maxBufferedFrames (e.g. the
+   * screen is constantly changing and every frame is a change point), a
+   * second pass of uniform sampling enforces the hard cap while keeping
+   * temporal coverage.
    */
   private thinBuffer(frames: DeviceFrameRef[]): DeviceFrameRef[] {
     if (frames.length <= 1) return frames;
@@ -405,7 +410,7 @@ export class UIObserver {
     isChangePoint[frames.length - 1] = true;
 
     // Step 2: keep change points plus every other static frame.
-    const result: DeviceFrameRef[] = [];
+    let result: DeviceFrameRef[] = [];
     let staticCounter = 0;
     for (let i = 0; i < frames.length; i++) {
       if (isChangePoint[i]) {
@@ -418,6 +423,24 @@ export class UIObserver {
         staticCounter++;
       }
     }
+
+    // Step 3: hard cap — if still over maxBufferedFrames, uniformly sample
+    // down to the limit. This handles the all-change-points case (animation,
+    // video, scrolling) where Step 2 is effectively a no-op.
+    if (result.length > this.maxBufferedFrames) {
+      const step = result.length / this.maxBufferedFrames;
+      const sampled: DeviceFrameRef[] = [];
+      for (let i = 0; i < this.maxBufferedFrames; i++) {
+        sampled.push(result[Math.floor(i * step)]);
+      }
+      // Always keep the last frame — it's the closest to stop().
+      sampled[this.maxBufferedFrames - 1] = result[result.length - 1];
+      debug(
+        `hard cap: uniformly sampled ${this.maxBufferedFrames} frames from ${result.length} change-point frames`,
+      );
+      result = sampled;
+    }
+
     return result;
   }
 
