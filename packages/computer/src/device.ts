@@ -1300,6 +1300,7 @@ $g.Dispose(); $bmp.Dispose(); $ms.Dispose()
         {
           stableAttrs: ['AXIdentifier'],
           textAttrs: [
+            'AXName',
             'AXTitle',
             'AXDescription',
             'AXValue',
