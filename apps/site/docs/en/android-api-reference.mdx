@@ -46,7 +46,7 @@ const device = new AndroidDevice(deviceId, {
 - `deviceId: string` &mdash; Value returned by `adb devices` or `getConnectedDevices()`.
 - `autoDismissKeyboard?: boolean` &mdash; Automatically hide the keyboard after input. Default `true`.
 - `keyboardDismissStrategy?: 'esc-first' | 'back-first'` &mdash; Order for dismissing keyboards. Default `'esc-first'`.
-- `keyboardTypeDelay?: number` &mdash; Delay in milliseconds between keystrokes when typing text. When set, text is typed one character at a time with this delay between each character, instead of sending the whole string at once. Useful on devices or input fields that drop characters when input arrives too fast (e.g. WiFi password fields on automotive displays). Only applies to the `input text` path; ignored when yadb is used.
+- `keyboardTypeDelay?: number` &mdash; Delay in milliseconds between keystrokes when typing text. When set, text is typed one character at a time with this delay between each character, instead of sending the whole string at once. Useful on devices or input fields that drop characters when input arrives too fast. Only applies to the `input text` path; ignored when yadb is used.
 - `androidAdbPath?: string` &mdash; Custom path to the adb executable.
 - `remoteAdbHost?: string` / `remoteAdbPort?: number` &mdash; Point to a remote adb server.
 - `imeStrategy?: 'always-yadb' | 'yadb-for-non-ascii'` &mdash; Choose when to invoke [yadb](https://github.com/ysbing/YADB) for text input. Default `'yadb-for-non-ascii'`.
