@@ -9,6 +9,8 @@ import type {
 } from '@midscene/core';
 import type {
   AbstractInterface,
+  DeviceFrameRef,
+  DeviceFrameSource,
   MjpegStreamHandle,
   MjpegStreamOptions,
 } from '@midscene/core/device';
@@ -732,6 +734,34 @@ export class Page<
     }
   }
 
+  /**
+   * Continuous frame source for UI observation, backed by the same CDP
+   * screencast used for MJPEG previews. Frames arrive as JPEG base64 already,
+   * so `decode()` is a pass-through. Measured cost of an active screencast is
+   * ~1% host CPU with no impact on action/screenshot latency, so this is
+   * always available on web (no opt-in needed).
+   */
+  async openFrameSource(): Promise<DeviceFrameSource> {
+    let latest: DeviceFrameRef | null = null;
+    const handle = await this.startMjpegStream({
+      onFrame: (frame) => {
+        latest = {
+          ref: `data:${frame.contentType ?? 'image/jpeg'};base64,${frame.data}`,
+          capturedAt: Date.now(),
+        };
+      },
+      onError: (error) => {
+        debugPage('frame source screencast error: %s', error);
+      },
+    });
+    return {
+      latest: () => latest,
+      // Screencast frames are already data URLs — no deferred decode cost.
+      decode: async (refs) => refs.map((frameRef) => frameRef.ref as string),
+      stop: () => handle.stop(),
+    };
+  }
+
   async url(): Promise<string> {
     return this.underlyingPage.url();
   }
@@ -818,12 +848,14 @@ export class Page<
 
   get keyboard() {
     return {
-      type: async (text: string) => {
-        const delay = this.keyboardTypeDelay;
+      type: async (text: string, options?: { delay?: number }) => {
+        const effectiveDelay = options?.delay ?? this.keyboardTypeDelay;
         debugPage(
-          `keyboard type ${text}${delay !== undefined ? ` (delay: ${delay}ms)` : ''}`,
+          `keyboard type ${text}${effectiveDelay !== undefined ? ` (delay: ${effectiveDelay}ms)` : ''}`,
         );
-        return this.underlyingPage.keyboard.type(text, { delay });
+        return this.underlyingPage.keyboard.type(text, {
+          delay: effectiveDelay,
+        });
       },
       press: async (
         action:

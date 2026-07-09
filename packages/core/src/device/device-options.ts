@@ -8,6 +8,18 @@ export type AndroidDeviceInputOpt = {
   autoDismissKeyboard?: boolean;
   /** Strategy for dismissing the keyboard: 'esc-first' tries ESC before BACK, 'back-first' tries BACK before ESC */
   keyboardDismissStrategy?: 'esc-first' | 'back-first';
+  /**
+   * Delay in milliseconds between keystrokes when typing text.
+   *
+   * When set, text is typed one character at a time with this delay between
+   * each character, instead of sending the whole string at once. This helps
+   * on devices or input fields that drop characters when input arrives too
+   * fast (e.g. WiFi password fields on automotive displays).
+   *
+   * Only applies to the `input text` path (non-yadb). When yadb is used, the
+   * entire string is committed atomically and this option is ignored.
+   */
+  keyboardTypeDelay?: number;
 };
 
 /**
@@ -112,6 +124,14 @@ export type AndroidDeviceOpt = {
 export type IOSDeviceInputOpt = {
   /** Automatically dismiss the keyboard after input is completed */
   autoDismissKeyboard?: boolean;
+  /**
+   * Delay in milliseconds between keystrokes when typing text.
+   *
+   * When set, text is typed one character at a time with this delay between
+   * each character, instead of sending the whole string at once. This helps
+   * on devices or input fields that drop characters when input arrives too fast.
+   */
+  keyboardTypeDelay?: number;
 };
 
 /**
@@ -141,6 +161,18 @@ export type IOSDeviceOpt = {
   useWDA?: boolean;
   /** WDA MJPEG server port for real-time screen streaming (default: 9100) */
   wdaMjpegPort?: number;
+  /**
+   * Use WDA's MJPEG stream as a continuous frame source for UI observation
+   * (`agent.startObserving()`). Disabled by default (opt-in), mirroring
+   * Android scrcpy. When disabled, observers fall back to sequential
+   * `screenshotBase64()` capture.
+   *
+   * For multi-device concurrency, set a distinct `wdaMjpegPort` per device
+   * (just like `wdaPort`) so each device streams from its own port.
+   */
+  wdaMjpegFrameSource?: {
+    enabled?: boolean;
+  };
 } & IOSDeviceInputOpt;
 
 /**
@@ -151,6 +183,14 @@ export type HarmonyDeviceInputOpt = {
   autoDismissKeyboard?: boolean;
   /** Strategy for dismissing the keyboard. Defaults to 'esc-first'. */
   keyboardDismissStrategy?: 'esc-first' | 'back-first';
+  /**
+   * Delay in milliseconds between keystrokes when typing text.
+   *
+   * When set, text is typed one character at a time with this delay between
+   * each character, instead of sending the whole string at once. This helps
+   * on devices or input fields that drop characters when input arrives too fast.
+   */
+  keyboardTypeDelay?: number;
 };
 
 /**

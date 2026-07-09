@@ -1,6 +1,11 @@
 import { getMidsceneLocationSchema, parseActionParam } from '@/ai-model';
-import { actionKeyboardPressParamSchema, defineAction } from '@/device';
-import { describe, expect, it } from 'vitest';
+import {
+  actionInputParamSchema,
+  actionKeyboardPressParamSchema,
+  defineAction,
+  defineActionInput,
+} from '@/device';
+import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 
 describe('Action Parameter Validation', () => {
@@ -506,6 +511,152 @@ describe('Action Parameter Validation', () => {
       expect(() =>
         parseActionParam(rawParam, actionKeyboardPressParamSchema),
       ).toThrow();
+    });
+  });
+
+  describe('actionInputParamSchema', () => {
+    it('should accept keyboardTypeDelay as a number', () => {
+      const rawParam = {
+        value: 'hello',
+        keyboardTypeDelay: 100,
+      };
+
+      const parsed = parseActionParam(rawParam, actionInputParamSchema);
+      expect(parsed!.value).toBe('hello');
+      expect(parsed!.keyboardTypeDelay).toBe(100);
+    });
+
+    it('should apply default mode when not specified', () => {
+      const rawParam = {
+        value: 'test',
+      };
+
+      const parsed = parseActionParam(rawParam, actionInputParamSchema);
+      expect(parsed!.mode).toBe('replace');
+    });
+
+    it('should accept autoDismissKeyboard', () => {
+      const rawParam = {
+        value: 'test',
+        autoDismissKeyboard: false,
+      };
+
+      const parsed = parseActionParam(rawParam, actionInputParamSchema);
+      expect(parsed!.autoDismissKeyboard).toBe(false);
+    });
+
+    it('should reject keyboardTypeDelay as non-number', () => {
+      const rawParam = {
+        value: 'test',
+        keyboardTypeDelay: 'fast',
+      };
+
+      expect(() =>
+        parseActionParam(rawParam, actionInputParamSchema),
+      ).toThrow();
+    });
+
+    it('should convert numeric value to string', () => {
+      const rawParam = {
+        value: 42,
+      };
+
+      const parsed = parseActionParam(rawParam, actionInputParamSchema);
+      expect(parsed!.value).toBe('42');
+    });
+  });
+
+  describe('defineActionInput', () => {
+    it('should pass keyboardTypeDelay to typeText', async () => {
+      const typeTextMock = vi.fn().mockResolvedValue(undefined);
+      const clearInputMock = vi.fn().mockResolvedValue(undefined);
+
+      const action = defineActionInput({
+        typeText: typeTextMock,
+        clearInput: clearInputMock,
+        keyboardPress: vi.fn(),
+        cursorMove: vi.fn(),
+      });
+
+      await action.call({
+        value: 'hello',
+        mode: 'replace',
+        keyboardTypeDelay: 80,
+      });
+
+      expect(typeTextMock).toHaveBeenCalledWith('hello', {
+        target: undefined,
+        replace: true,
+        autoDismissKeyboard: undefined,
+        keyboardTypeDelay: 80,
+      });
+    });
+
+    it('should pass autoDismissKeyboard to typeText', async () => {
+      const typeTextMock = vi.fn().mockResolvedValue(undefined);
+
+      const action = defineActionInput({
+        typeText: typeTextMock,
+        clearInput: vi.fn(),
+        keyboardPress: vi.fn(),
+        cursorMove: vi.fn(),
+      });
+
+      await action.call({
+        value: 'world',
+        mode: 'typeOnly',
+        autoDismissKeyboard: false,
+      });
+
+      expect(typeTextMock).toHaveBeenCalledWith('world', {
+        target: undefined,
+        replace: false,
+        autoDismissKeyboard: false,
+        keyboardTypeDelay: undefined,
+      });
+    });
+
+    it('should call clearInput when mode is clear', async () => {
+      const typeTextMock = vi.fn();
+      const clearInputMock = vi.fn().mockResolvedValue(undefined);
+
+      const action = defineActionInput({
+        typeText: typeTextMock,
+        clearInput: clearInputMock,
+        keyboardPress: vi.fn(),
+        cursorMove: vi.fn(),
+      });
+
+      await action.call({
+        value: '',
+        mode: 'clear',
+      });
+
+      expect(clearInputMock).toHaveBeenCalledWith(undefined);
+      expect(typeTextMock).not.toHaveBeenCalled();
+    });
+
+    it('should convert append mode to typeOnly', async () => {
+      const typeTextMock = vi.fn().mockResolvedValue(undefined);
+
+      const action = defineActionInput({
+        typeText: typeTextMock,
+        clearInput: vi.fn(),
+        keyboardPress: vi.fn(),
+        cursorMove: vi.fn(),
+      });
+
+      await action.call({
+        value: 'extra',
+        mode: 'append' as any,
+      });
+
+      expect(typeTextMock).toHaveBeenCalledWith('extra', {
+        target: undefined,
+        replace: false,
+        autoDismissKeyboard: undefined,
+        keyboardTypeDelay: undefined,
+      });
     });
   });
 

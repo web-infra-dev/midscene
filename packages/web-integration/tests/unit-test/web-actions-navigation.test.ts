@@ -75,7 +75,7 @@ describe('commonWebActionsForWebPage visual refresh', () => {
       .find((action) => action.name === 'Input')
       ?.call({ value: 'hello', mode: 'typeOnly' }, mockExecutorContext);
 
-    expect(page.keyboard.type).toHaveBeenCalledWith('hello');
+    expect(page.keyboard.type).toHaveBeenCalledWith('hello', undefined);
     expect(page.schedulePendingVisualUpdate).toHaveBeenCalledTimes(1);
     expect(page.flushPendingVisualUpdate).not.toHaveBeenCalled();
   });
@@ -115,5 +115,24 @@ describe('commonWebActionsForWebPage visual refresh', () => {
     expect(page.navigate).toHaveBeenCalledWith('https://example.com');
     expect(page.schedulePendingVisualUpdate).toHaveBeenCalledTimes(1);
     expect(page.flushPendingVisualUpdate).not.toHaveBeenCalled();
+  });
+
+  it('passes action-level keyboardTypeDelay to text input actions', async () => {
+    const page = {
+      keyboard: {
+        type: vi.fn(async () => undefined),
+      },
+      schedulePendingVisualUpdate: vi.fn(),
+    };
+    const actions = commonWebActionsForWebPage(page as any);
+
+    await actions
+      .find((action) => action.name === 'Input')
+      ?.call(
+        { value: 'hello', mode: 'typeOnly', keyboardTypeDelay: 25 },
+        mockExecutorContext,
+      );
+
+    expect(page.keyboard.type).toHaveBeenCalledWith('hello', { delay: 25 });
   });
 });

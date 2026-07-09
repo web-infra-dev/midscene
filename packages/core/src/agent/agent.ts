@@ -82,6 +82,7 @@ import {
   locatePlanForLocate,
   withFileChooser,
 } from './tasks';
+import { UIObserver, type UIObserverOption } from './ui-observer';
 import {
   type TaskTitleType,
   locateParamStr,
@@ -119,6 +120,16 @@ type AiActInternalOptions = AiActOptions & {
     type?: TaskTitleType;
     prompt?: string;
   };
+};
+
+/**
+ * Shared input option type for aiInput(), used consistently across
+ * overload signatures and the implementation so fields don't drift.
+ */
+type AgentInputOption = LocateOption & {
+  autoDismissKeyboard?: boolean;
+  keyboardTypeDelay?: number;
+  mode?: 'replace' | 'clear' | 'typeOnly' | 'append';
 };
 
 export class Agent<
@@ -190,6 +201,12 @@ export class Agent<
    * Frozen page context for consistent AI operations
    */
   private frozenUIContext?: UIContext;
+
+  /**
+   * Currently active UIObserver (from startObserving). Only one observer may
+   * be active at a time since frame sources are device-level singletons.
+   */
+  private activeObserver: UIObserver | null = null;
 
   private get aiActContext(): string | undefined {
     return this.opts.aiActContext ?? this.opts.aiActionContext;
@@ -424,6 +441,74 @@ export class Agent<
 
   async _snapshotContext(): Promise<UIContext> {
     return await this.getUIContext('locate');
+  }
+
+  /**
+   * Start observing the screen in the background so a later assertion can
+   * judge everything that happened while other agent calls ran — including
+   * transient UI (toasts, banners, transitions) that appears mid-action:
+   *
+   * ```ts
+   * const observer = await agent.startObserving();
+   * await agent.aiAct('submit the form');
+   * await observer.stop();
+   * await observer.aiAssert('a success toast appeared during the process');
+   * ```
+   *
+   * Frames come from the device's continuous frame source when available
+   * (scrcpy on Android, WDA MJPEG on iOS — both opt-in; CDP screencast on
+   * web) and fall back to plain screenshots otherwise. Sampling is capped at
+   * 5fps, the buffer is bounded and self-thinning, decoding is deferred to
+   * the end, and all buffered frames (up to `maxFrames`) are sent to
+   * the model at assert time. To control token cost for long windows,
+   * increase `intervalMs` or decrease `maxFrames`.
+   * Awaiting `startObserving()` guarantees one baseline frame is captured
+   * before your next action.
+   */
+  async startObserving(opt?: UIObserverOption): Promise<UIObserver> {
+    // A frozen context pins perception to a single snapshot; observing a
+    // window of frames contradicts that. Fail fast instead of silently
+    // producing an all-identical sequence.
+    assert(
+      !this.frozenUIContext,
+      'startObserving() cannot be used while the UI context is frozen (call unfreezePageContext() first)',
+    );
+    // Frame sources are device-level singletons — two concurrent observers
+    // would conflict (scrcpy stream, WDA MJPEG port, CDP screencast).
+    assert(
+      !this.activeObserver,
+      'An observation window is already active on this agent. ' +
+        'Stop the existing observer first (await observer.stop()) before starting a new one.',
+    );
+    const observer = new UIObserver(
+      {
+        openFrameSource: async () =>
+          (await this.interface.openFrameSource?.()) ?? undefined,
+        // Fallback single-frame capture. Deliberately bypasses getUIContext so
+        // the observation loop never pollutes the TaskRunner context cache.
+        screenshot: () => this.interface.screenshotBase64(),
+        captureRepresentative: () => this.getUIContext('assert'),
+        runAssert: (assertion, uiContext, msg, assertOpt) =>
+          this.aiAssertWithContext(assertion, uiContext, msg, assertOpt),
+        runBoolean: (prompt, uiContext, boolOpt) =>
+          this.aiBooleanWithContext(prompt, uiContext, boolOpt),
+        onStopped: () => {
+          this.activeObserver = null;
+        },
+        screenshotShrinkFactor: this.opts.screenshotShrinkFactor,
+      },
+      opt,
+    );
+    // Mark as active BEFORE the async start() so concurrent calls hit the
+    // assert guard above. If start() throws, clear the reference below.
+    this.activeObserver = observer;
+    try {
+      await observer.start();
+    } catch (error) {
+      this.activeObserver = null;
+      throw error;
+    }
+    return observer;
   }
 
   /**
@@ -676,9 +761,7 @@ export class Agent<
   // New signature, always use locatePrompt as the first param
   async aiInput(
     locatePrompt: TUserPrompt,
-    opt: LocateOption & { value: string | number } & {
-      autoDismissKeyboard?: boolean;
-    } & { mode?: 'replace' | 'clear' | 'typeOnly' | 'append' },
+    opt: AgentInputOption & { value: string | number },
   ): Promise<void>;
 
   // Legacy signature - deprecated
@@ -688,9 +771,7 @@ export class Agent<
   async aiInput(
     value: string | number,
     locatePrompt: TUserPrompt,
-    opt?: LocateOption & { autoDismissKeyboard?: boolean } & {
-      mode?: 'replace' | 'clear' | 'typeOnly' | 'append';
-    }, // AndroidDeviceInputOpt &
+    opt?: AgentInputOption,
   ): Promise<void>;
 
   // Implementation
@@ -698,19 +779,13 @@ export class Agent<
     locatePromptOrValue: TUserPrompt | string | number,
     locatePromptOrOpt:
       | TUserPrompt
-      | (LocateOption & { value: string | number } & {
-          autoDismissKeyboard?: boolean;
-        } & { mode?: 'replace' | 'clear' | 'typeOnly' | 'append' }) // AndroidDeviceInputOpt &
+      | (AgentInputOption & { value: string | number })
       | undefined,
-    optOrUndefined?: LocateOption, // AndroidDeviceInputOpt &
+    optOrUndefined?: AgentInputOption,
   ) {
     let value: string | number;
     let locatePrompt: TUserPrompt;
-    let opt:
-      | (LocateOption & { value: string | number } & {
-          autoDismissKeyboard?: boolean;
-        } & { mode?: 'replace' | 'clear' | 'typeOnly' | 'append' }) // AndroidDeviceInputOpt &
-      | undefined;
+    let opt: (AgentInputOption & { value: string | number }) | undefined;
 
     // Check if using new signature (first param is locatePrompt, second has value)
     if (
@@ -720,10 +795,8 @@ export class Agent<
     ) {
       // New signature: aiInput(locatePrompt, opt)
       locatePrompt = locatePromptOrValue as TUserPrompt;
-      const optWithValue = locatePromptOrOpt as LocateOption & {
-        // AndroidDeviceInputOpt &
+      const optWithValue = locatePromptOrOpt as AgentInputOption & {
         value: string | number;
-        autoDismissKeyboard?: boolean;
       };
       value = optWithValue.value;
       opt = optWithValue;
@@ -1138,6 +1211,14 @@ export class Agent<
     prompt: TUserPrompt,
     opt: ServiceExtractOption = defaultServiceExtractOption,
   ): Promise<boolean> {
+    return this.aiBooleanWithContext(prompt, undefined, opt);
+  }
+
+  private async aiBooleanWithContext(
+    prompt: TUserPrompt,
+    uiContext?: UIContext,
+    opt: ServiceExtractOption = defaultServiceExtractOption,
+  ): Promise<boolean> {
     const modelRuntime = this.resolveModelRuntime('insight');
 
     const { textPrompt, multimodalPrompt } = parsePrompt(prompt);
@@ -1147,6 +1228,7 @@ export class Agent<
       modelRuntime,
       opt,
       multimodalPrompt,
+      uiContext ? { uiContext } : undefined,
     );
     return output as boolean;
   }
@@ -1234,6 +1316,15 @@ export class Agent<
     msg?: string,
     opt?: AgentAssertOpt & ServiceExtractOption,
   ) {
+    return this.aiAssertWithContext(assertion, undefined, msg, opt);
+  }
+
+  private async aiAssertWithContext(
+    assertion: TUserPrompt,
+    uiContext?: UIContext,
+    msg?: string,
+    opt?: AgentAssertOpt & ServiceExtractOption,
+  ) {
     const modelRuntime = this.resolveModelRuntime('insight');
 
     const serviceOpt: ServiceExtractOption = {
@@ -1251,6 +1342,11 @@ export class Agent<
     const assertionText =
       typeof assertion === 'string' ? assertion : assertion.prompt;
 
+    const executionOptions = {
+      abortSignal: opt?.abortSignal,
+      ...(uiContext ? { uiContext } : {}),
+    };
+
     try {
       const { output, thought } =
         await this.taskExecutor.createTypeQueryExecution<boolean>(
@@ -1259,9 +1355,7 @@ export class Agent<
           modelRuntime,
           serviceOpt,
           multimodalPrompt,
-          {
-            abortSignal: opt?.abortSignal,
-          },
+          executionOptions,
         );
 
       const pass = Boolean(output);
@@ -1440,6 +1534,19 @@ export class Agent<
     }
 
     this.destroyed = true;
+
+    // Stop any active observer before tearing down the interface. The observer
+    // may hold a frame source subscription that needs explicit cleanup.
+    if (this.activeObserver) {
+      try {
+        await this.activeObserver.stop();
+      } catch (error) {
+        debug(`error stopping active observer during destroy: ${error}`);
+      }
+      // onStopped callback should have cleared this, but ensure it's null
+      this.activeObserver = null;
+    }
+
     let interfaceDestroyError: unknown;
     try {
       await this.interface.destroy?.();
