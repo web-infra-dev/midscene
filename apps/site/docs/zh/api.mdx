@@ -931,7 +931,7 @@ expect(onesieItem.price).toBe(7.99);
 
 ### `agent.startObserving()`
 
-在一段时间内持续采样屏幕，后续断言会基于这段记录判断目标状态是否出现过。它适合捕捉单张截图容易错过的短暂 UI，比如 toast、横幅或页面切换。
+在一段时间内持续采样屏幕，后续断言会基于这段有序记录判断状态或变化。它适合捕捉单张截图容易错过的短暂 UI，比如 toast、横幅或页面切换。
 
 ```typescript
 function startObserving(options?: {
@@ -944,7 +944,7 @@ function startObserving(options?: {
 返回的 `UIObserver` 提供：
 
 - `observer.stop(): Promise<void>` - 停止采样，并截取最后一张用于断言的截图。断言前必须先调用。
-- `observer.aiAssert(assertion: string, msg?: string, opt?: Object): Promise<void>` - 基于已观察到的时间段执行断言。模型会收到所有缓冲帧和最后一张截图，并根据这段记录判断断言是否成立。当 `opt.keepRawResponse` 为 true 时，返回 `{ pass, thought, message }` 而不是在失败时抛异常。
+- `observer.aiAssert(assertion: string, msg?: string, opt?: Object): Promise<void>` - 基于已观察到的时间段执行断言。模型会收到所有缓冲帧和最后一张截图；断言文本决定它应该判断“是否曾经出现”、最终状态，还是按顺序发生的变化。
 - `observer.aiBoolean(prompt: string, opt?: Object): Promise<boolean>` - 基于已观察到的时间段做布尔查询。
 - `observer.frameCount: number` - 当前已缓冲的帧数。
 

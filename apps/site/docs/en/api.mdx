@@ -949,7 +949,7 @@ function startObserving(options?: {
 The returned `UIObserver` provides:
 
 - `observer.stop(): Promise<void>` - Stop sampling and capture the final representative screenshot. Must be called before asserting.
-- `observer.aiAssert(assertion: string, msg?: string, opt?: Object): Promise<void>` - Assert against the observed window. All buffered frames (plus the representative) are sent to the model; the model judges the statement against the full record of the window. When `opt.keepRawResponse` is true, returns `{ pass, thought, message }` instead of throwing on failure.
+- `observer.aiAssert(assertion: string, msg?: string, opt?: Object): Promise<void>` - Assert against the observed window. All buffered frames (plus the representative) are sent to the model, and the assertion text determines whether the model should look for something that appeared at any point, the final state, or an ordered change.
 - `observer.aiBoolean(prompt: string, opt?: Object): Promise<boolean>` - Boolean query over the observed window.
 - `observer.frameCount: number` - Number of frames currently buffered.
 

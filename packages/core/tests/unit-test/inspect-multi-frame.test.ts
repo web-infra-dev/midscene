@@ -77,10 +77,14 @@ describe('AiExtractElementInfo multi-frame context', () => {
     );
     expect(sequenceNote).toBeDefined();
 
-    // The note must establish "any frame" event semantics so a transient toast
-    // that is gone by the last frame is still judged true (not anchored to the
-    // most recent frame).
-    expect((sequenceNote as any).text).toContain('ANY of the frames');
+    // The note must describe the ordered screenshot record without defining
+    // one fixed truth rule for all assertions. The user's wording decides
+    // whether to inspect the whole sequence, a later frame, or frame order.
+    expect((sequenceNote as any).text).toContain(
+      'Interpret the temporal scope from the statement or question itself',
+    );
+    expect((sequenceNote as any).text).toContain('compare frames in order');
+    expect((sequenceNote as any).text).not.toContain('ANY of the frames');
     expect((sequenceNote as any).text).not.toContain(
       'the last image is the most recent state',
     );

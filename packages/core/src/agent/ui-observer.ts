@@ -270,9 +270,6 @@ export class UIObserver {
    * representative) are decoded and sent to the model. To control cost for
    * long windows, increase `intervalMs` or decrease `maxFrames`.
    * Throws when the assertion fails, mirroring `agent.aiAssert`.
-   *
-   * When `opt.keepRawResponse` is true, returns `{ pass, thought, message }`
-   * instead of throwing on failure.
    */
   async aiAssert(
     assertion: string,
