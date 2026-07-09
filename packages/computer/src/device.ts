@@ -5,8 +5,10 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type {
   DeviceAction,
+  ElementCacheFeature,
   InterfaceType,
   LocateResultElement,
+  Rect,
   Size,
 } from '@midscene/core';
 import {
@@ -15,10 +17,15 @@ import {
   defineAction,
   defineActionsFromInputPrimitives,
 } from '@midscene/core/device';
+import {
+  findRectByXpath,
+  generateXpathCandidates,
+} from '@midscene/core/device-cache';
 import { sleep } from '@midscene/core/utils';
 import { createImgBase64ByFormat } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import screenshot from 'screenshot-desktop';
+import { readDarwinAccessibilityTree } from './darwin-accessibility-tree';
 import {
   ComputerInputDriver,
   type LibNut,
@@ -1255,6 +1262,104 @@ $g.Dispose(); $bmp.Dispose(); $ms.Dispose()
 
   private toGlobalPoint(point: Point): Point {
     return mapDisplayLocalPointToGlobal(point, this.displayGeometry);
+  }
+
+  private getDarwinAccessibilityDisplayOffset(): Point | undefined {
+    if (process.platform !== 'darwin') return undefined;
+    if (!this.displayGeometry) {
+      this.displayGeometry = resolveDisplayGeometry(this.displayId);
+    }
+    if (!this.displayGeometry) return undefined;
+    return {
+      x: this.displayGeometry.bounds.x,
+      y: this.displayGeometry.bounds.y,
+    };
+  }
+
+  private readDarwinAccessibilityTreeForCache() {
+    return readDarwinAccessibilityTree({
+      displayOffset: this.getDarwinAccessibilityDisplayOffset(),
+    });
+  }
+
+  async cacheFeatureForPoint(
+    center: [number, number],
+  ): Promise<ElementCacheFeature> {
+    if (process.platform !== 'darwin') {
+      debugDevice(
+        'cacheFeatureForPoint: xpath cache is currently only supported on macOS for ComputerDevice',
+      );
+      return { xpaths: [] };
+    }
+
+    try {
+      const root = this.readDarwinAccessibilityTreeForCache();
+      const xpaths = generateXpathCandidates(
+        root,
+        { x: center[0], y: center[1] },
+        {
+          stableAttrs: ['AXIdentifier'],
+          textAttrs: [
+            'AXTitle',
+            'AXDescription',
+            'AXValue',
+            'AXHelp',
+            'AXRoleDescription',
+          ],
+        },
+      );
+      if (xpaths.length === 0) {
+        debugDevice(
+          'cacheFeatureForPoint: no xpath candidate at point %o',
+          center,
+        );
+      }
+      return { xpaths };
+    } catch (error) {
+      debugDevice(`cacheFeatureForPoint failed: ${error}`);
+      return { xpaths: [] };
+    }
+  }
+
+  async rectMatchesCacheFeature(feature: ElementCacheFeature): Promise<Rect> {
+    if (process.platform !== 'darwin') {
+      throw new Error(
+        'rectMatchesCacheFeature: xpath cache is currently only supported on macOS for ComputerDevice',
+      );
+    }
+
+    const xpaths = Array.isArray((feature as { xpaths?: unknown }).xpaths)
+      ? ((feature as { xpaths: unknown[] }).xpaths.filter(
+          (x): x is string => typeof x === 'string' && x.length > 0,
+        ) as string[])
+      : [];
+    if (xpaths.length === 0) {
+      throw new Error('rectMatchesCacheFeature: no xpath in cache feature');
+    }
+
+    const root = this.readDarwinAccessibilityTreeForCache();
+    for (const xpath of xpaths) {
+      try {
+        const rect = findRectByXpath(root, xpath);
+        if (rect && rect.width > 0 && rect.height > 0) {
+          debugDevice(
+            'rectMatchesCacheFeature: hit xpath %s -> %o',
+            xpath,
+            rect,
+          );
+          return rect;
+        }
+      } catch (error) {
+        debugDevice(
+          'rectMatchesCacheFeature: xpath %s failed: %s',
+          xpath,
+          error,
+        );
+      }
+    }
+    throw new Error(
+      `rectMatchesCacheFeature: no xpath matched (tried ${xpaths.length})`,
+    );
   }
 
   /**
