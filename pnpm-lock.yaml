@@ -4,10 +4,6 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
-overrides:
-  '@rstest/core': https://pkg.pr.new/web-infra-dev/rstest/@rstest/core@b704252
-  '@rstest/coverage-istanbul': https://pkg.pr.new/web-infra-dev/rstest/@rstest/coverage-istanbul@b704252
-
 importers:
 
   .:
@@ -34,8 +30,8 @@ importers:
         specifier: ^1.3.2
         version: 1.3.2(@rsbuild/core@1.6.15)(@rspack/core@1.6.8)(typescript@5.8.3)
       '@rstest/coverage-istanbul':
-        specifier: https://pkg.pr.new/web-infra-dev/rstest/@rstest/coverage-istanbul@b704252
-        version: https://pkg.pr.new/web-infra-dev/rstest/@rstest/coverage-istanbul@b704252
+        specifier: 0.11.0
+        version: 0.11.0
       '@types/node':
         specifier: ^18.0.0
         version: 18.19.130
@@ -198,8 +194,8 @@ importers:
         specifier: ^1.3.1
         version: 1.3.1(@rsbuild/core@1.6.15)(typescript@5.8.3)
       '@rstest/core':
-        specifier: https://pkg.pr.new/web-infra-dev/rstest/@rstest/core@b704252
-        version: https://pkg.pr.new/web-infra-dev/rstest/@rstest/core@b704252(core-js@3.47.0)(jsdom@29.0.2)
+        specifier: 0.11.0
+        version: 0.11.0(core-js@3.47.0)(jsdom@29.0.2)
       '@tailwindcss/postcss':
         specifier: 4.1.11
         version: 4.1.11
@@ -457,8 +453,8 @@ importers:
         specifier: 1.0.2
         version: 1.0.2(@rsbuild/core@1.6.15)(@rspack/core@2.1.3(@swc/helpers@0.5.23))(bufferutil@4.0.9)(webpack@5.99.5)
       '@rstest/core':
-        specifier: https://pkg.pr.new/web-infra-dev/rstest/@rstest/core@b704252
-        version: https://pkg.pr.new/web-infra-dev/rstest/@rstest/core@b704252(core-js@3.47.0)(jsdom@29.0.2)
+        specifier: 0.11.0
+        version: 0.11.0(core-js@3.47.0)(jsdom@29.0.2)
       '@types/react':
         specifier: ^18.3.1
         version: 18.3.23
@@ -610,8 +606,8 @@ importers:
         specifier: ^1.3.1
         version: 1.3.1(@rsbuild/core@1.6.15)(typescript@5.8.3)
       '@rstest/core':
-        specifier: https://pkg.pr.new/web-infra-dev/rstest/@rstest/core@b704252
-        version: https://pkg.pr.new/web-infra-dev/rstest/@rstest/core@b704252(core-js@3.47.0)(jsdom@29.0.2)
+        specifier: 0.11.0
+        version: 0.11.0(core-js@3.47.0)(jsdom@29.0.2)
       '@tailwindcss/postcss':
         specifier: 4.1.11
         version: 4.1.11
@@ -687,8 +683,8 @@ importers:
         specifier: ^0.18.3
         version: 0.18.3(@microsoft/api-extractor@7.52.10(@types/node@18.19.62))(typescript@5.8.3)
       '@rstest/core':
-        specifier: https://pkg.pr.new/web-infra-dev/rstest/@rstest/core@b704252
-        version: https://pkg.pr.new/web-infra-dev/rstest/@rstest/core@b704252(core-js@3.47.0)(jsdom@29.0.2)
+        specifier: 0.11.0
+        version: 0.11.0(core-js@3.47.0)(jsdom@29.0.2)
       '@types/node':
         specifier: ^18.0.0
         version: 18.19.62
@@ -757,8 +753,8 @@ importers:
         specifier: ^0.18.3
         version: 0.18.3(@microsoft/api-extractor@7.52.10(@types/node@18.19.62))(typescript@5.8.3)
       '@rstest/core':
-        specifier: https://pkg.pr.new/web-infra-dev/rstest/@rstest/core@b704252
-        version: https://pkg.pr.new/web-infra-dev/rstest/@rstest/core@b704252(core-js@3.47.0)(jsdom@29.0.2)
+        specifier: 0.11.0
+        version: 0.11.0(core-js@3.47.0)(jsdom@29.0.2)
       '@types/cors':
         specifier: ^2.8.17
         version: 2.8.19
@@ -796,8 +792,8 @@ importers:
         specifier: workspace:*
         version: link:../web-integration
       '@rstest/core':
-        specifier: https://pkg.pr.new/web-infra-dev/rstest/@rstest/core@b704252
-        version: https://pkg.pr.new/web-infra-dev/rstest/@rstest/core@b704252(core-js@3.47.0)(jsdom@29.0.2)
+        specifier: 0.11.0
+        version: 0.11.0(core-js@3.47.0)(jsdom@29.0.2)
       http-server:
         specifier: 14.1.1
         version: 14.1.1
@@ -883,8 +879,8 @@ importers:
         specifier: ^0.18.3
         version: 0.18.3(@microsoft/api-extractor@7.52.10(@types/node@18.19.118))(typescript@5.8.3)
       '@rstest/core':
-        specifier: https://pkg.pr.new/web-infra-dev/rstest/@rstest/core@b704252
-        version: https://pkg.pr.new/web-infra-dev/rstest/@rstest/core@b704252(core-js@3.47.0)(jsdom@29.0.2)
+        specifier: 0.11.0
+        version: 0.11.0(core-js@3.47.0)(jsdom@29.0.2)
       '@types/node':
         specifier: ^18.0.0
         version: 18.19.118
@@ -961,8 +957,8 @@ importers:
         specifier: ^0.18.3
         version: 0.18.3(@microsoft/api-extractor@7.52.10(@types/node@18.19.118))(typescript@5.8.3)
       '@rstest/core':
-        specifier: https://pkg.pr.new/web-infra-dev/rstest/@rstest/core@b704252
-        version: https://pkg.pr.new/web-infra-dev/rstest/@rstest/core@b704252(core-js@3.47.0)(jsdom@29.0.2)
+        specifier: 0.11.0
+        version: 0.11.0(core-js@3.47.0)(jsdom@29.0.2)
       '@types/cors':
         specifier: ^2.8.17
         version: 2.8.19
@@ -1038,8 +1034,8 @@ importers:
         specifier: ^0.18.3
         version: 0.18.3(@microsoft/api-extractor@7.52.10(@types/node@18.19.62))(typescript@5.8.3)
       '@rstest/core':
-        specifier: https://pkg.pr.new/web-infra-dev/rstest/@rstest/core@b704252
-        version: https://pkg.pr.new/web-infra-dev/rstest/@rstest/core@b704252(core-js@3.47.0)(jsdom@29.0.2)
+        specifier: 0.11.0
+        version: 0.11.0(core-js@3.47.0)(jsdom@29.0.2)
       '@types/js-yaml':
         specifier: 4.0.9
         version: 4.0.9
@@ -1084,8 +1080,8 @@ importers:
         specifier: ^0.18.3
         version: 0.18.3(@microsoft/api-extractor@7.52.10(@types/node@18.19.118))(typescript@5.8.3)
       '@rstest/core':
-        specifier: https://pkg.pr.new/web-infra-dev/rstest/@rstest/core@b704252
-        version: https://pkg.pr.new/web-infra-dev/rstest/@rstest/core@b704252(core-js@3.47.0)(jsdom@29.0.2)
+        specifier: 0.11.0
+        version: 0.11.0(core-js@3.47.0)(jsdom@29.0.2)
       '@types/node':
         specifier: ^18.0.0
         version: 18.19.118
@@ -1140,8 +1136,8 @@ importers:
         specifier: ^0.18.3
         version: 0.18.3(@microsoft/api-extractor@7.52.10(@types/node@18.19.118))(typescript@5.8.3)
       '@rstest/core':
-        specifier: https://pkg.pr.new/web-infra-dev/rstest/@rstest/core@b704252
-        version: https://pkg.pr.new/web-infra-dev/rstest/@rstest/core@b704252(core-js@3.47.0)(jsdom@29.0.2)
+        specifier: 0.11.0
+        version: 0.11.0(core-js@3.47.0)(jsdom@29.0.2)
       '@types/node':
         specifier: ^18.0.0
         version: 18.19.118
@@ -1202,8 +1198,8 @@ importers:
         specifier: ^0.18.3
         version: 0.18.3(@microsoft/api-extractor@7.52.10(@types/node@18.19.118))(typescript@5.8.3)
       '@rstest/core':
-        specifier: https://pkg.pr.new/web-infra-dev/rstest/@rstest/core@b704252
-        version: https://pkg.pr.new/web-infra-dev/rstest/@rstest/core@b704252(core-js@3.47.0)(jsdom@29.0.2)
+        specifier: 0.11.0
+        version: 0.11.0(core-js@3.47.0)(jsdom@29.0.2)
       '@types/cors':
         specifier: ^2.8.17
         version: 2.8.19
@@ -1263,8 +1259,8 @@ importers:
         specifier: ^0.18.3
         version: 0.18.3(@microsoft/api-extractor@7.52.10(@types/node@18.19.118))(typescript@5.8.3)
       '@rstest/core':
-        specifier: https://pkg.pr.new/web-infra-dev/rstest/@rstest/core@b704252
-        version: https://pkg.pr.new/web-infra-dev/rstest/@rstest/core@b704252(core-js@3.47.0)(jsdom@29.0.2)
+        specifier: 0.11.0
+        version: 0.11.0(core-js@3.47.0)(jsdom@29.0.2)
       '@types/node':
         specifier: ^18.0.0
         version: 18.19.118
@@ -1355,8 +1351,8 @@ importers:
         specifier: ^0.18.3
         version: 0.18.3(@microsoft/api-extractor@7.52.10(@types/node@18.19.62))(typescript@5.8.3)
       '@rstest/core':
-        specifier: https://pkg.pr.new/web-infra-dev/rstest/@rstest/core@b704252
-        version: https://pkg.pr.new/web-infra-dev/rstest/@rstest/core@b704252(core-js@3.47.0)(jsdom@29.0.2)
+        specifier: 0.11.0
+        version: 0.11.0(core-js@3.47.0)(jsdom@29.0.2)
       '@types/debug':
         specifier: 4.1.12
         version: 4.1.12
@@ -1422,8 +1418,8 @@ importers:
         specifier: ^0.18.3
         version: 0.18.3(@microsoft/api-extractor@7.52.10(@types/node@18.19.62))(typescript@5.8.3)
       '@rstest/core':
-        specifier: https://pkg.pr.new/web-infra-dev/rstest/@rstest/core@b704252
-        version: https://pkg.pr.new/web-infra-dev/rstest/@rstest/core@b704252(core-js@3.47.0)(jsdom@29.0.2)
+        specifier: 0.11.0
+        version: 0.11.0(core-js@3.47.0)(jsdom@29.0.2)
       '@types/chrome':
         specifier: 0.0.279
         version: 0.0.279
@@ -1516,8 +1512,8 @@ importers:
         specifier: ^0.18.3
         version: 0.18.3(@microsoft/api-extractor@7.52.10(@types/node@18.19.62))(typescript@5.8.3)
       '@rstest/core':
-        specifier: https://pkg.pr.new/web-infra-dev/rstest/@rstest/core@b704252
-        version: https://pkg.pr.new/web-infra-dev/rstest/@rstest/core@b704252(core-js@3.47.0)(jsdom@29.0.2)
+        specifier: 0.11.0
+        version: 0.11.0(core-js@3.47.0)(jsdom@29.0.2)
       '@types/chrome':
         specifier: 0.0.279
         version: 0.0.279
@@ -1571,8 +1567,8 @@ importers:
         specifier: ^0.18.3
         version: 0.18.3(@microsoft/api-extractor@7.52.10(@types/node@18.19.118))(typescript@5.8.3)
       '@rstest/core':
-        specifier: https://pkg.pr.new/web-infra-dev/rstest/@rstest/core@b704252
-        version: https://pkg.pr.new/web-infra-dev/rstest/@rstest/core@b704252(core-js@3.47.0)(jsdom@29.0.2)
+        specifier: 0.11.0
+        version: 0.11.0(core-js@3.47.0)(jsdom@29.0.2)
       '@types/node':
         specifier: ^18.0.0
         version: 18.19.118
@@ -3782,9 +3778,8 @@ packages:
   '@rspress/shared@2.0.8':
     resolution: {integrity: sha512-kvfBUvMvWcn/7PJHqZxPeu1yblzvAuB1/gk/1orp5KsYu3wbZ7X3Hsm9smDJVs5Plw1iPt67t9fOYNSM0+VjUA==}
 
-  '@rstest/core@https://pkg.pr.new/web-infra-dev/rstest/@rstest/core@b704252':
-    resolution: {tarball: https://pkg.pr.new/web-infra-dev/rstest/@rstest/core@b704252}
-    version: 0.11.0
+  '@rstest/core@0.11.0':
+    resolution: {integrity: sha512-buy6EV9R6d0O9WMOSG0C91jwMcNYDw4Q0uFQNuwPpQLH85rTlVyuUM7EnEnvVGv5lG6dpgGwNTdRWx6mvWybag==}
     engines: {node: ^20.19.0 || >=22.12.0}
     hasBin: true
     peerDependencies:
@@ -3796,9 +3791,8 @@ packages:
       jsdom:
         optional: true
 
-  '@rstest/coverage-istanbul@https://pkg.pr.new/web-infra-dev/rstest/@rstest/coverage-istanbul@b704252':
-    resolution: {tarball: https://pkg.pr.new/web-infra-dev/rstest/@rstest/coverage-istanbul@b704252}
-    version: 0.11.0
+  '@rstest/coverage-istanbul@0.11.0':
+    resolution: {integrity: sha512-WeQ8NPDNWFdv5THtncsii7vk+8cKECLfn15yuk6KT+OXNGn5Pz1raLX/tdQPz0qsB/rI2Zo65wiOvk5ktD7PYg==}
     peerDependencies:
       '@rstest/core': https://pkg.pr.new/web-infra-dev/rstest/@rstest/core@b704252
 
@@ -14175,7 +14169,7 @@ snapshots:
       - '@module-federation/runtime-tools'
       - core-js
 
-  '@rstest/core@https://pkg.pr.new/web-infra-dev/rstest/@rstest/core@b704252(core-js@3.47.0)(jsdom@29.0.2)':
+  '@rstest/core@0.11.0(core-js@3.47.0)(jsdom@29.0.2)':
     dependencies:
       '@rsbuild/core': 2.1.5(core-js@3.47.0)
       '@types/chai': 5.2.3
@@ -14185,7 +14179,7 @@ snapshots:
       - '@module-federation/runtime-tools'
       - core-js
 
-  '@rstest/coverage-istanbul@https://pkg.pr.new/web-infra-dev/rstest/@rstest/coverage-istanbul@b704252':
+  '@rstest/coverage-istanbul@0.11.0':
     dependencies:
       istanbul-lib-coverage: 3.2.2
       istanbul-lib-report: 3.0.1
