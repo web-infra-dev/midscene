@@ -61,6 +61,37 @@ describe('uitestJsonToUiNode', () => {
     expect(root.children[0].children[1].type).toBe('Button');
   });
 
+  it('falls back when dumpLayout emits an empty type', () => {
+    const dump = JSON.stringify({
+      attributes: { type: '', bounds: '[0,0][1000,1000]' },
+      children: [
+        {
+          attributes: {
+            type: 'WindowScene',
+            bounds: '[0,0][1000,1000]',
+          },
+          children: [
+            {
+              attributes: {
+                type: '',
+                componentType: 'Stack',
+                bounds: '[100,100][300,300]',
+              },
+              children: [],
+            },
+          ],
+        },
+      ],
+    });
+    const root = uitestJsonToUiNode(dump);
+    expect(root.type).toBe('unknown');
+    expect(root.children[0].children[0].type).toBe('Stack');
+
+    const xpaths = generateXpathCandidates(root, { x: 150, y: 150 });
+    expect(xpaths).toEqual(['/unknown[1]/WindowScene[1]/Stack[1]']);
+    expect(evaluateXpath(root, xpaths[0])).toHaveLength(1);
+  });
+
   it('emits inspectorKey selector for the deepest hit', () => {
     const root = uitestJsonToUiNode(SAMPLE_DUMP_LAYOUT);
     const xpaths = generateXpathCandidates(
