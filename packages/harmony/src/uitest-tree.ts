@@ -16,6 +16,11 @@ function asString(value: unknown): string | undefined {
   return typeof value === 'string' ? value : undefined;
 }
 
+function asNonEmptyString(value: unknown): string | undefined {
+  const str = asString(value)?.trim();
+  return str ? str : undefined;
+}
+
 function parseBounds(raw: unknown, scale: number): UiNode['bounds'] {
   const safeScale = scale > 0 ? scale : 1;
   if (typeof raw === 'string') {
@@ -62,9 +67,9 @@ function toUiNode(node: UiTestNode, scale: number): UiNode {
       attrs[k] = String(v);
   }
   const type =
-    asString(attributes.type) ??
-    asString(attributes.componentType) ??
-    asString(attributes.tag) ??
+    asNonEmptyString(attributes.type) ??
+    asNonEmptyString(attributes.componentType) ??
+    asNonEmptyString(attributes.tag) ??
     'unknown';
   const bounds = parseBounds(attributes.bounds ?? attributes.rect, scale);
   const children = Array.isArray(node.children)
