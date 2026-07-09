@@ -56,7 +56,7 @@ describe('commonWebActionsForWebPage visual refresh', () => {
       .find((action) => action.name === 'Input')
       ?.call({ value: 'hello', mode: 'typeOnly' }, mockExecutorContext);
 
-    expect(page.keyboard.type).toHaveBeenCalledWith('hello');
+    expect(page.keyboard.type).toHaveBeenCalledWith('hello', undefined);
     expect(page.schedulePendingVisualUpdate).toHaveBeenCalledTimes(1);
     expect(page.flushPendingVisualUpdate).not.toHaveBeenCalled();
   });

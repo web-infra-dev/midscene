@@ -491,7 +491,7 @@ export function createWebInputPrimitives(
           return;
         }
 
-        await page.keyboard.type(value);
+        await page.keyboard.type(value, opts?.keyboardTypeDelay);
         scheduleVisualUpdate();
       },
       keyboardPress: async (keyName, opts) => {
