@@ -81,6 +81,14 @@ const maxErrorCountAllowedInOnePlanningLoop = 5;
 // single place that truncates feedback before it is sent to the model; action
 // implementations should hand over the untruncated value.
 const maxPlanningFeedbackLength = 500;
+const minRepeatedActionHistoryLength = 6;
+const maxActionSignatureLength = 160;
+const repeatedActionSignatureTypes = new Set([
+  'tap',
+  'click',
+  'doubleclick',
+  'longpress',
+]);
 
 function truncatePlanningFeedback(feedback: string): string {
   if (feedback.length <= maxPlanningFeedbackLength) {
@@ -89,6 +97,100 @@ function truncatePlanningFeedback(feedback: string): string {
 
   return `${feedback.slice(0, maxPlanningFeedbackLength)}
 ...[truncated, ${feedback.length - maxPlanningFeedbackLength} more characters]`;
+}
+
+function normalizeActionSignaturePart(value: unknown): string {
+  if (value === undefined || value === null) {
+    return '';
+  }
+
+  if (typeof value === 'string') {
+    return value.replace(/\s+/g, ' ').trim();
+  }
+
+  if (typeof value === 'number' || typeof value === 'boolean') {
+    return String(value);
+  }
+
+  if (Array.isArray(value)) {
+    return value.map(normalizeActionSignaturePart).filter(Boolean).join(',');
+  }
+
+  if (typeof value === 'object') {
+    const record = value as Record<string, unknown>;
+    if (typeof record.prompt === 'string') {
+      return normalizeActionSignaturePart(record.prompt);
+    }
+    if (typeof record.description === 'string') {
+      return normalizeActionSignaturePart(record.description);
+    }
+    if (record.locate) {
+      return normalizeActionSignaturePart(record.locate);
+    }
+
+    return Object.keys(record).sort().join(',');
+  }
+
+  return String(value);
+}
+
+function actionSignature(action: PlanningAction): string | undefined {
+  const type = action.type || 'unknown';
+  const normalizedType = type.toLowerCase();
+  if (!repeatedActionSignatureTypes.has(normalizedType)) {
+    return undefined;
+  }
+
+  const param = (action.param || {}) as Record<string, unknown>;
+  const locateText = normalizeActionSignaturePart(param.locate);
+  if (!locateText) {
+    return undefined;
+  }
+
+  const signature = `${type}:${locateText}`;
+  return signature.slice(0, maxActionSignatureLength);
+}
+
+function findRepeatedActionPattern(history: string[]): string[] | undefined {
+  if (history.length < minRepeatedActionHistoryLength) {
+    return undefined;
+  }
+
+  const maxWindowSize = Math.floor(history.length / 2);
+  for (let windowSize = 1; windowSize <= maxWindowSize; windowSize++) {
+    const repeatCount = Math.max(
+      2,
+      Math.ceil(minRepeatedActionHistoryLength / windowSize),
+    );
+    const repeatedLength = windowSize * repeatCount;
+    if (history.length < repeatedLength) {
+      continue;
+    }
+
+    const pattern = history.slice(history.length - windowSize);
+    let matched = true;
+    for (let repeatIndex = 2; repeatIndex <= repeatCount; repeatIndex++) {
+      const start = history.length - windowSize * repeatIndex;
+      const previous = history.slice(start, start + windowSize);
+      if (previous.some((item, index) => item !== pattern[index])) {
+        matched = false;
+        break;
+      }
+    }
+
+    if (matched) {
+      return pattern;
+    }
+  }
+
+  return undefined;
+}
+
+function repeatedActionPatternKey(pattern: string[]): string {
+  const rotations = pattern.map((_, index) =>
+    [...pattern.slice(index), ...pattern.slice(0, index)].join('\n'),
+  );
+  return rotations.sort()[0];
 }
 
 export { TaskExecutionError };
@@ -506,6 +608,9 @@ export class TaskExecutor {
     let outputString: string | undefined;
     let latestPlanResult: PlanningAIResponse | undefined;
     let latestPlanIndex = 0;
+    const successfulActionHistory: string[] = [];
+    let warnedRepeatedActionPatternKey: string | undefined;
+    let warnedRepeatedActionPatternFailAfterLength = Number.POSITIVE_INFINITY;
 
     if (abortSignal?.aborted) {
       return appendFailedPlan(
@@ -747,8 +852,10 @@ export class TaskExecutor {
         replanningCycleLimit,
         (phase, data) => this.emitAiActProgress(phase, data),
       );
+      let actionBatchCompleted = false;
       try {
         await session.appendAndRun(executables.tasks);
+        actionBatchCompleted = true;
         this.setPendingFeedbackMessage(
           conversationHistory,
           initialTimeString,
@@ -791,6 +898,49 @@ export class TaskExecutor {
       // // Check if task is complete
       if (!planResult?.shouldContinuePlanning) {
         break;
+      }
+
+      if (actionBatchCompleted) {
+        successfulActionHistory.push(
+          ...plans
+            .map(actionSignature)
+            .filter((item): item is string => !!item),
+        );
+        const repeatedPattern = findRepeatedActionPattern(
+          successfulActionHistory,
+        );
+        if (repeatedPattern) {
+          const repeatedPatternKey = repeatedActionPatternKey(repeatedPattern);
+          const repeatedActionMessage = `The same action pattern has repeated without completing the task. Repeated actions: ${repeatedPattern.join(
+            ' -> ',
+          )}. Verify whether the UI has progressed, choose a different visible path, or fail with a clear reason if the target is not reachable.`;
+
+          if (
+            warnedRepeatedActionPatternKey === repeatedPatternKey &&
+            successfulActionHistory.length >=
+              warnedRepeatedActionPatternFailAfterLength
+          ) {
+            return appendFailedPlan(
+              `Task appears stuck because the same action pattern repeated without completing. Repeated actions: ${repeatedPattern.join(
+                ' -> ',
+              )}`,
+              planIndex,
+            );
+          }
+
+          if (warnedRepeatedActionPatternKey !== repeatedPatternKey) {
+            warnedRepeatedActionPatternKey = repeatedPatternKey;
+            warnedRepeatedActionPatternFailAfterLength =
+              successfulActionHistory.length + repeatedPattern.length;
+          }
+
+          const timeString = await this.getTimeString();
+          this.setPendingFeedbackMessage(
+            conversationHistory,
+            timeString,
+            repeatedActionMessage,
+          );
+        }
       }
 
       // We are about to replan, which means the batch we just ran did not finish

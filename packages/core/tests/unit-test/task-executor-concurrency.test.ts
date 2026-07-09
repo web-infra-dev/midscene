@@ -818,4 +818,213 @@ ${thirdPlanningFeedback}`);
       'Current time: 2023-10-15 08:30:00 (YYYY-MM-DD HH:mm:ss)',
     ]);
   });
+
+  it('warns once before failing when the same action pattern repeats without completion', async () => {
+    const repeatedActions = [
+      'target A',
+      'intermediate B',
+      'navigation C',
+      'target A',
+      'intermediate B',
+      'navigation C',
+      'target A',
+      'intermediate B',
+      'navigation C',
+    ];
+    let planCallCount = 0;
+    const seenPendingFeedback: string[] = [];
+
+    vi.mocked(genericXmlPlan).mockImplementation(
+      async (_instruction, opts: any) => {
+        seenPendingFeedback.push(
+          opts.conversationHistory.pendingFeedbackMessage,
+        );
+        const locatePrompt = repeatedActions[planCallCount++] || 'target A';
+        return {
+          actions: [
+            { type: 'Tap', param: { locate: { prompt: locatePrompt } } },
+          ],
+          yamlFlow: [],
+          shouldContinuePlanning: true,
+          log: '',
+          rawResponse: '',
+        } as any;
+      },
+    );
+
+    await expect(
+      taskExecutor.action(
+        'repeat without completion',
+        planningModel(),
+        defaultModel(),
+        true,
+        undefined,
+        undefined,
+        10,
+      ),
+    ).rejects.toThrow('same action pattern repeated without completing');
+    expect(planCallCount).toBe(9);
+    expect(
+      seenPendingFeedback.some((feedback) =>
+        feedback.includes(
+          'The same action pattern has repeated without completing the task',
+        ),
+      ),
+    ).toBe(true);
+  });
+
+  it('continues when the planner changes path after repeated-pattern feedback', async () => {
+    const plannedActions = [
+      'target A',
+      'intermediate B',
+      'navigation C',
+      'target A',
+      'intermediate B',
+      'navigation C',
+      'different path D',
+    ];
+    let planCallCount = 0;
+    const seenPendingFeedback: string[] = [];
+
+    vi.mocked(genericXmlPlan).mockImplementation(
+      async (_instruction, opts: any) => {
+        seenPendingFeedback.push(
+          opts.conversationHistory.pendingFeedbackMessage,
+        );
+        const locatePrompt = plannedActions[planCallCount++];
+        if (!locatePrompt) {
+          return {
+            actions: [],
+            yamlFlow: [],
+            shouldContinuePlanning: false,
+            log: '',
+            rawResponse: '',
+            finalizeSuccess: true,
+            finalizeMessage: 'done',
+          } as any;
+        }
+
+        return {
+          actions: [
+            { type: 'Tap', param: { locate: { prompt: locatePrompt } } },
+          ],
+          yamlFlow: [],
+          shouldContinuePlanning: true,
+          log: '',
+          rawResponse: '',
+        } as any;
+      },
+    );
+
+    const result = await taskExecutor.action(
+      'change path after repeat warning',
+      planningModel(),
+      defaultModel(),
+      true,
+      undefined,
+      undefined,
+      10,
+    );
+
+    expect(result.output?.output).toBe('done');
+    expect(result.runner.latestErrorTask()).toBeNull();
+    expect(planCallCount).toBe(8);
+    expect(
+      seenPendingFeedback.some((feedback) =>
+        feedback.includes(
+          'The same action pattern has repeated without completing the task',
+        ),
+      ),
+    ).toBe(true);
+  });
+
+  it('does not fail non-repeating replanning actions', async () => {
+    const plannedActions = [
+      'target A',
+      'target B',
+      'target C',
+      'target D',
+      'target E',
+      'target F',
+    ];
+    let planCallCount = 0;
+
+    vi.mocked(genericXmlPlan).mockImplementation(async () => {
+      const locatePrompt = plannedActions[planCallCount++];
+      if (!locatePrompt) {
+        return {
+          actions: [],
+          yamlFlow: [],
+          shouldContinuePlanning: false,
+          log: '',
+          rawResponse: '',
+          finalizeSuccess: true,
+          finalizeMessage: 'done',
+        } as any;
+      }
+
+      return {
+        actions: [{ type: 'Tap', param: { locate: { prompt: locatePrompt } } }],
+        yamlFlow: [],
+        shouldContinuePlanning: true,
+        log: '',
+        rawResponse: '',
+      } as any;
+    });
+
+    const result = await taskExecutor.action(
+      'non-repeat replanning',
+      planningModel(),
+      defaultModel(),
+      true,
+      undefined,
+      undefined,
+      10,
+    );
+
+    expect(result.output?.output).toBe('done');
+    expect(result.runner.latestErrorTask()).toBeNull();
+    expect(planCallCount).toBe(7);
+  });
+
+  it('does not treat repeated scrolling as a stuck action pattern', async () => {
+    let planCallCount = 0;
+
+    vi.mocked(genericXmlPlan).mockImplementation(async () => {
+      planCallCount++;
+      if (planCallCount > 6) {
+        return {
+          actions: [],
+          yamlFlow: [],
+          shouldContinuePlanning: false,
+          log: '',
+          rawResponse: '',
+          finalizeSuccess: true,
+          finalizeMessage: 'done',
+        } as any;
+      }
+
+      return {
+        actions: [{ type: 'Scroll', param: { direction: 'down' } }],
+        yamlFlow: [],
+        shouldContinuePlanning: true,
+        log: '',
+        rawResponse: '',
+      } as any;
+    });
+
+    const result = await taskExecutor.action(
+      'scroll through a long page',
+      planningModel(),
+      defaultModel(),
+      true,
+      undefined,
+      undefined,
+      10,
+    );
+
+    expect(result.output?.output).toBe('done');
+    expect(result.runner.latestErrorTask()).toBeNull();
+    expect(planCallCount).toBe(7);
+  });
 });
