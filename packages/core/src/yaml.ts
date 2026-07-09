@@ -275,19 +275,6 @@ export interface MidsceneYamlFlowItemAIAssert extends ServiceExtractOption {
   aiAssert: string;
   errorMessage?: string;
   name?: string;
-  /** Name of a stopped observer (from startObserving) to assert against. */
-  observe?: string;
-}
-
-export interface MidsceneYamlFlowItemStartObserving {
-  startObserving: string;
-  intervalMs?: number;
-  maxFrames?: number;
-  watchdogMs?: number;
-}
-
-export interface MidsceneYamlFlowItemStopObserving {
-  stopObserving: string;
 }
 
 export interface MidsceneYamlFlowItemAIWaitFor extends ServiceExtractOption {
@@ -321,9 +308,7 @@ export type MidsceneYamlFlowItem =
   | MidsceneYamlFlowItemRunGherkinScenario
   | MidsceneYamlFlowItemEvaluateJavaScript
   | MidsceneYamlFlowItemSleep
-  | MidsceneYamlFlowItemLogScreenshot
-  | MidsceneYamlFlowItemStartObserving
-  | MidsceneYamlFlowItemStopObserving;
+  | MidsceneYamlFlowItemLogScreenshot;
 
 export interface FreeFn {
   name: string;

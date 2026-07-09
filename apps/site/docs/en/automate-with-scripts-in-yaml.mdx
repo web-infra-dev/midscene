@@ -621,35 +621,9 @@ tasks:
       - aiAssert: <prompt>
         errorMessage: <error-message> # Optional, the error message to print if the assertion fails.
         name: <name> # Optional, give the assertion a name, which will be used as a key in the JSON output.
-        observe: <observer-name> # Optional, assert against a previously started-and-stopped observer window instead of the current screen.
 
-      # `aiBoolean` can also use an observed window.
       - aiBoolean: <prompt>
         name: <name> # Optional, give the boolean result a name for JSON output.
-        observe: <observer-name> # Optional, query against a previously started-and-stopped observer window instead of the current screen.
-
-      # Screen Observation
-      # ----------------
-
-      # Start observing the screen with a named observer. The observer samples
-      # frames in the background while subsequent flow items run.
-      - startObserving: <name>
-        intervalMs: <ms>    # Optional, sampling interval, default 1000.
-        maxFrames: <n>      # Optional, frame buffer cap, default 30.
-        watchdogMs: <ms>    # Optional, auto-stop timeout, default 300000 (5 min).
-
-      # Stop a named observer. Must be called before using `observe` on aiAssert or aiBoolean.
-      - stopObserving: <name>
-
-      # Example: observe a form submission and assert/query that a toast appeared.
-      # - startObserving: form-submit
-      # - aiAct: submit the form
-      # - stopObserving: form-submit
-      # - aiAssert: a success toast appeared
-      #   observe: form-submit
-      # - aiBoolean: did a success toast appear?
-      #   name: saw_success_toast
-      #   observe: form-submit
 
       # Run one Gherkin Scenario. This is a Beta feature available starting in Midscene 1.10.
       - runGherkinScenario: |
