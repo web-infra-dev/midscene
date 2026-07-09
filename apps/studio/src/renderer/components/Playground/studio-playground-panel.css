@@ -20,6 +20,7 @@
   right: 0;
   bottom: 0;
   left: 0;
+  box-sizing: border-box;
   border: 1px solid #2b83ff;
   border-radius: 16px 16px 20px 20px;
   content: "";
@@ -544,4 +545,253 @@
   .studio-playground-input-first
   .playground-empty-state-wrapper-offset-for-prompt {
   padding-bottom: 0;
+}
+
+[data-theme="dark"]
+  .playground-shell
+  .studio-playground-input-first
+  .bottom-input-section {
+  border-color: #323131;
+  background: #242424;
+}
+
+[data-theme="dark"]
+  .playground-shell
+  .studio-playground-input-first
+  .bottom-input-section::before {
+  color: #eee;
+}
+
+[data-theme="dark"]
+  .playground-shell
+  .studio-playground-input-first
+  .bottom-input-section:focus-within::after {
+  display: block;
+  border-color: #538cff;
+  box-shadow: inset 0 0 0 2px rgba(26, 121, 255, 0.25);
+}
+
+[data-theme="dark"]
+  .playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper {
+  border: 0;
+  border-top: 1px solid #323131;
+  background: #181818;
+}
+
+[data-theme="dark"]
+  .playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper:focus-within {
+  border-top-color: transparent;
+  box-shadow: none;
+}
+
+[data-theme="dark"]
+  .playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper
+  .mode-radio-group
+  .ant-radio-button-wrapper,
+[data-theme="dark"]
+  .playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper
+  .mode-radio-group
+  .more-apis-button {
+  border-color: rgba(255, 255, 255, 0.1);
+  background: #242424;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+[data-theme="dark"]
+  .playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper
+  .mode-radio-group
+  .ant-radio-button-wrapper-checked,
+[data-theme="dark"]
+  .playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper
+  .mode-radio-group
+  .ant-radio-button-wrapper-checked:hover {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+[data-theme="dark"]
+  .playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper
+  .main-side-console-input {
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+[data-theme="dark"]
+  .playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper
+  .main-side-console-input
+  .main-side-console-input-textarea {
+  border: 0;
+  background: transparent !important;
+  color: rgba(255, 255, 255, 0.9);
+  box-shadow: none;
+}
+
+[data-theme="dark"]
+  .playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper
+  .main-side-console-input
+  .main-side-console-input-textarea:hover,
+[data-theme="dark"]
+  .playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper
+  .main-side-console-input
+  .main-side-console-input-textarea:focus {
+  border: 0;
+  background: transparent !important;
+  box-shadow: none;
+}
+
+[data-theme="dark"]
+  .playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper
+  .main-side-console-input
+  .ant-form-item-control-input-content
+  textarea.ant-input {
+  border-color: transparent !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+[data-theme="dark"]
+  .playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper
+  .main-side-console-input:focus-within {
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+[data-theme="dark"]
+  .playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper
+  .main-side-console-input
+  .main-side-console-input-textarea::placeholder {
+  color: rgba(255, 255, 255, 0.45);
+}
+
+[data-theme="dark"]
+  .playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper
+  .main-side-console-input
+  .main-side-console-input-textarea::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+[data-theme="dark"]
+  .playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper
+  .form-controller-wrapper
+  .input-icon-trigger,
+[data-theme="dark"]
+  .playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper
+  .form-controller-wrapper
+  button[aria-label="Import Markdown or YAML replay"] {
+  color: rgba(255, 255, 255, 0.65);
+}
+
+[data-theme="dark"]
+  .playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper
+  .form-controller-wrapper
+  .input-icon-trigger:hover,
+[data-theme="dark"]
+  .playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper
+  .form-controller-wrapper
+  button[aria-label="Import Markdown or YAML replay"]:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+[data-theme="dark"]
+  .playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper
+  .form-controller-wrapper
+  .ant-btn,
+[data-theme="dark"]
+  .playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper
+  .form-controller-wrapper
+  .prompt-stop-button {
+  border-color: rgba(255, 255, 255, 0.14);
+  background: #242424;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+[data-theme="dark"]
+  .playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper
+  .form-controller-wrapper
+  .prompt-stop-button
+  .prompt-stop-square-icon {
+  color: #fff;
+}
+
+[data-theme="dark"]
+  .playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper
+  .form-controller-wrapper
+  .ant-btn-primary {
+  border-color: transparent;
+  background: #2b83ff;
+  color: #fff;
+}
+
+[data-theme="dark"]
+  .playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper
+  .main-side-console-input.prompt-input-empty
+  .form-controller-wrapper
+  .ant-btn-primary,
+[data-theme="dark"]
+  .playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper
+  .main-side-console-input.disabled
+  .form-controller-wrapper
+  .ant-btn-primary {
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.45);
+}
+
+[data-theme="dark"]
+  .playground-shell
+  .studio-playground-input-first
+  .middle-dialog-area {
+  border-color: #323131;
+  background: #181818;
 }

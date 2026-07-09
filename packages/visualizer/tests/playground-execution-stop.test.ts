@@ -245,4 +245,72 @@ describe('usePlaygroundExecution stop handling', () => {
       root.unmount();
     });
   });
+
+  it('does not clear shared progress subscriptions while cancelling', async () => {
+    let resolveRun: (value: null) => void = () => undefined;
+    let resolveCancel: (value: null) => void = () => undefined;
+    let snapshot: HarnessSnapshot | null = null;
+    const getSnapshot = () => {
+      if (!snapshot) {
+        throw new Error('Harness snapshot is not ready');
+      }
+      return snapshot;
+    };
+    const playgroundSDK = {
+      cancelExecution: vi.fn(
+        () =>
+          new Promise<null>((resolve) => {
+            resolveCancel = resolve;
+          }),
+      ),
+      executeAction: vi.fn(
+        () =>
+          new Promise<null>((resolve) => {
+            resolveRun = resolve;
+          }),
+      ),
+      onDumpUpdate: vi.fn(),
+      onProgressUpdate: vi.fn(),
+    } as unknown as PlaygroundSDKLike;
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+
+    await act(async () => {
+      root.render(
+        createElement(Harness, {
+          onSnapshot: (nextSnapshot) => {
+            snapshot = nextSnapshot;
+          },
+          playgroundSDK,
+        }),
+      );
+    });
+
+    await act(async () => {
+      void getSnapshot().handleRun({ prompt: 'Replay', type: 'aiAct' });
+    });
+
+    expect(playgroundSDK.onDumpUpdate).toHaveBeenCalledTimes(1);
+    expect(playgroundSDK.onProgressUpdate).not.toHaveBeenCalled();
+
+    let stopPromise: Promise<void> | undefined;
+    await act(async () => {
+      stopPromise = getSnapshot().handleStop();
+    });
+
+    expect(playgroundSDK.onDumpUpdate).toHaveBeenCalledTimes(1);
+    expect(playgroundSDK.onProgressUpdate).not.toHaveBeenCalled();
+
+    await act(async () => {
+      resolveCancel(null);
+      resolveRun(null);
+      await stopPromise;
+    });
+
+    await act(async () => {
+      root.unmount();
+    });
+    container.remove();
+  });
 });

@@ -15,6 +15,11 @@ import { App as AntdApp } from 'antd';
 import type { PropsWithChildren } from 'react';
 import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
 import { useStudioPlayground } from '../playground/useStudioPlayground';
+import {
+  describeStudioRecorderEventsWithAI,
+  generateStudioRecorderCodeWithAI,
+  generateStudioRecorderMetadataWithAI,
+} from './codegen';
 import { mapPreviewRecorderEventToStudioRecordedEvent } from './event-mapper';
 import {
   createStudioRecorderMarkdownZipBase64,
@@ -1089,9 +1094,6 @@ export function StudioRecorderProvider({ children }: PropsWithChildren) {
       });
 
       if (fallbackEvents.length > 0) {
-        const { describeStudioRecorderEventsWithAI } = await import(
-          './codegen'
-        );
         let describedEvents: StudioRecordedEvent[];
         try {
           describedEvents = (await withTimeout(
@@ -1377,9 +1379,6 @@ export function StudioRecorderProvider({ children }: PropsWithChildren) {
       }
 
       try {
-        const { generateStudioRecorderMetadataWithAI } = await import(
-          './codegen'
-        );
         const metadata =
           await generateStudioRecorderMetadataWithAI(localSummarySession);
         if (!metadata.title && !metadata.description) {
@@ -1696,10 +1695,6 @@ export function StudioRecorderProvider({ children }: PropsWithChildren) {
         details: `Prepared ${sessionForCodegen.events.length} recorded events`,
       });
 
-      const {
-        generateStudioRecorderCodeWithAI,
-        generateStudioRecorderMetadataWithAI,
-      } = await import('./codegen');
       if (!sessionForCodegen.metadataGeneratedAt) {
         try {
           options.onProgress?.({

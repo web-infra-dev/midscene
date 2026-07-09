@@ -1,9 +1,10 @@
 // @vitest-environment jsdom
 import type { PlaygroundControllerResult } from '@midscene/playground-app';
+import type { PlaygroundExecutionStatus } from '@midscene/visualizer';
 import type { StudioPlaygroundContextValue } from '@renderer/playground/types';
 import { act, createElement } from 'react';
 import { createRoot } from 'react-dom/client';
-import { beforeAll, describe, expect, it, vi } from 'vitest';
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import MainContent from '../src/renderer/components/MainContent';
 import { StudioPlaygroundContext } from '../src/renderer/playground/useStudioPlayground';
 import { StudioRecorderContext } from '../src/renderer/recorder/useStudioRecorder';
@@ -15,10 +16,35 @@ type ReadyStudioPlaygroundContextValue = Extract<
 
 (globalThis as { __APP_VERSION__?: string }).__APP_VERSION__ = 'test-version';
 
+const studioModePanelMockState = vi.hoisted(() => ({
+  executionStatus: null as PlaygroundExecutionStatus | null,
+}));
+
 vi.mock('@midscene/playground-app', () => ({
   PlaygroundPreview: () => null,
   PlaygroundConversationPanel: () => null,
 }));
+
+vi.mock('../src/renderer/components/StudioModePanel', async () => {
+  const React = await import('react');
+
+  return {
+    default: (props: {
+      onTimelineExecutionStatusChange?: (
+        status: PlaygroundExecutionStatus,
+      ) => void;
+    }) => {
+      React.useEffect(() => {
+        if (studioModePanelMockState.executionStatus) {
+          props.onTimelineExecutionStatusChange?.(
+            studioModePanelMockState.executionStatus,
+          );
+        }
+      }, [props]);
+      return null;
+    },
+  };
+});
 
 beforeAll(() => {
   (
@@ -26,6 +52,10 @@ beforeAll(() => {
       IS_REACT_ACT_ENVIRONMENT?: boolean;
     }
   ).IS_REACT_ACT_ENVIRONMENT = true;
+});
+
+beforeEach(() => {
+  studioModePanelMockState.executionStatus = null;
 });
 
 async function flushPromises() {
@@ -174,6 +204,63 @@ describe('MainContent web navigation', () => {
     expect(
       context.controller.state.playgroundSDK.getInterfaceInfo,
     ).toHaveBeenCalled();
+
+    await act(async () => {
+      root.unmount();
+    });
+    container.remove();
+  });
+
+  it('stops active timeline execution before reloading the web page', async () => {
+    const context = createConnectedWebContextValue();
+    const calls: string[] = [];
+    const stopTimelineExecution = vi.fn(async () => {
+      calls.push('stop');
+    });
+    const interact = vi.fn(async ({ actionType }: { actionType: string }) => {
+      calls.push(`interact:${actionType}`);
+      return { ok: true };
+    });
+    context.controller.state.playgroundSDK.interact = interact;
+    studioModePanelMockState.executionStatus = {
+      running: true,
+      stoppable: true,
+      stop: stopTimelineExecution,
+    };
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+
+    await act(async () => {
+      root.render(
+        createElement(
+          StudioPlaygroundContext.Provider,
+          { value: context },
+          createElement(
+            StudioRecorderContext.Provider,
+            { value: createRecorderContextValue() as any },
+            createElement(MainContent, {
+              activeView: 'device',
+            }),
+          ),
+        ),
+      );
+    });
+    await flushPromises();
+
+    const reloadButton = container.querySelector<HTMLButtonElement>(
+      'button[aria-label="Reload page"]',
+    );
+    expect(reloadButton).not.toBeNull();
+
+    await act(async () => {
+      reloadButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      await Promise.resolve();
+    });
+
+    expect(stopTimelineExecution).toHaveBeenCalledTimes(1);
+    expect(interact).toHaveBeenCalledWith({ actionType: 'Reload' });
+    expect(calls).toEqual(['stop', 'interact:Reload']);
 
     await act(async () => {
       root.unmount();

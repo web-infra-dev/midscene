@@ -1,4 +1,7 @@
-import type { ExternalRunRequest } from '@midscene/visualizer';
+import type {
+  ExternalRunRequest,
+  PlaygroundExecutionStatus,
+} from '@midscene/visualizer';
 import type { ReactNode } from 'react';
 import { useEffect, useMemo, useState } from 'react';
 import { useStudioPlayground } from '../../playground/useStudioPlayground';
@@ -7,8 +10,8 @@ import { StudioModeTab } from '../../recorder/types';
 import { useStudioRecorder } from '../../recorder/useStudioRecorder';
 import { PlaygroundShell } from '../PlaygroundShell';
 import {
+  StudioExecutionTimelinePanel,
   StudioTimelineEmptyState,
-  StudioTimelinePanel,
 } from '../StudioTimelinePanel';
 import {
   StudioTimelineExecution,
@@ -29,12 +32,16 @@ interface PlaygroundProps {
     title: ReactNode;
     actions?: ReactNode;
   }) => void;
+  onBeforeExecutionStart?: () => Promise<void> | void;
+  onExecutionStatusChange?: (status: PlaygroundExecutionStatus) => void;
   playground?: ReturnType<typeof useStudioPlayground>;
 }
 
 export default function Playground({
   externalRunRequest,
   inputActions,
+  onBeforeExecutionStart,
+  onExecutionStatusChange,
   onHeaderChange,
   playground,
 }: PlaygroundProps) {
@@ -63,32 +70,32 @@ export default function Playground({
         executionScopeKey: currentTargetSignature,
         externalRunRequest,
         inputActions,
+        onBeforeExecutionStart,
+        onExecutionStatusChange,
         showClearButton: true,
         storageNamespace,
         timelineWrapper: (content, state) =>
           state.empty ? null : (
-            <StudioTimelinePanel
+            <StudioExecutionTimelinePanel
               ariaHidden={timelineCollapsed}
-              className="studio-playground-timeline-panel"
               collapsed={timelineCollapsed}
-              contentClassName="studio-playground-timeline-panel-body"
               empty={state.empty}
-              expanded={!state.empty}
               headerAction={timelineCollapsed ? null : state.headerAction}
               onToggleCollapsed={() => {
                 setTimelineCollapsed((collapsed) => !collapsed);
               }}
-              scrollBody={!state.empty}
               variant={StudioModeTab.Playground}
             >
               {content}
-            </StudioTimelinePanel>
+            </StudioExecutionTimelinePanel>
           ),
       }),
     [
       currentTargetSignature,
       externalRunRequest,
       inputActions,
+      onBeforeExecutionStart,
+      onExecutionStatusChange,
       storageNamespace,
       timelineCollapsed,
     ],

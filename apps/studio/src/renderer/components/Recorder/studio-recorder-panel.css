@@ -2251,3 +2251,300 @@
     transform: rotate(360deg);
   }
 }
+
+[data-theme="dark"] .studio-recorder-control-card,
+[data-theme="dark"] .studio-replay-panel {
+  border-color: #323131;
+  background: #242424;
+}
+
+[data-theme="dark"] .studio-recorder-floating-header {
+  background: #242424;
+}
+
+[data-theme="dark"] .studio-recorder-floating-title,
+[data-theme="dark"] .studio-replay-panel-title {
+  color: #eee;
+}
+
+[data-theme="dark"] .studio-recorder-floating-tool-button {
+  color: rgba(255, 255, 255, 0.65);
+}
+
+[data-theme="dark"] .studio-recorder-floating-tool-button:hover,
+[data-theme="dark"] .studio-recorder-floating-tool-button-active {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+[data-theme="dark"]
+  .history-modal-overlay.studio-recorder-history-modal-overlay {
+  border-color: #323131;
+  background: #242424;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.38);
+}
+
+[data-theme="dark"]
+  .history-modal-overlay.studio-recorder-history-modal-overlay
+  .history-modal-container {
+  background: #242424;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+[data-theme="dark"]
+  .history-modal-overlay.studio-recorder-history-modal-overlay
+  .history-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] .studio-recorder-history-name-input {
+  border-color: rgba(255, 255, 255, 0.14);
+  background: #181818;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+[data-theme="dark"] .studio-recorder-history-action-trigger {
+  color: rgba(255, 255, 255, 0.58);
+}
+
+[data-theme="dark"] .studio-recorder-history-action-trigger:hover,
+[data-theme="dark"]
+  .studio-recorder-history-actions-menu
+  button:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+[data-theme="dark"]
+  .studio-recorder-history-actions-popover
+  .ant-popover-inner {
+  background: #242424;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.38);
+}
+
+[data-theme="dark"] .studio-recorder-history-actions-menu button {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+[data-theme="dark"] .studio-recorder-floating-primer {
+  border: 0;
+  border-top: 1px solid #323131;
+  background: #181818;
+}
+
+[data-theme="dark"]
+  .studio-recorder-control-card-recording
+  .studio-recorder-floating-primer {
+  border: 1px solid transparent;
+  background: #181818;
+}
+
+[data-theme="dark"]
+  .studio-recorder-control-card-recording
+  .studio-recorder-floating-start-button-shell,
+[data-theme="dark"] .studio-recorder-floating-start-button-shell {
+  background: #181818;
+}
+
+[data-theme="dark"] .studio-recorder-floating-primer-copy,
+[data-theme="dark"] .studio-recorder-floating-primer-copy svg {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+[data-theme="dark"] .studio-recorder-floating-start-button-active {
+  border-color: rgba(255, 255, 255, 0.14);
+  background: #242424;
+  color: #fff;
+}
+
+[data-theme="dark"]
+  .studio-recorder-floating-start-button-active:hover:not(:disabled) {
+  background: #242424;
+}
+
+[data-theme="dark"] .studio-recorder-floating-stop-button-icon {
+  background: #fff;
+}
+
+[data-theme="dark"] .studio-recorder-timeline-rail-line {
+  background: #333;
+}
+
+[data-theme="dark"] .studio-recorder-timeline-copy,
+[data-theme="dark"]
+  .studio-recorder-floating-timeline
+  .ant-timeline-item-content,
+[data-theme="dark"]
+  .studio-recorder-floating-timeline
+  .ant-card-body
+  > .ant-space,
+[data-theme="dark"] .studio-recorder-floating-timeline .ant-typography {
+  color: rgba(255, 255, 255, 0.9) !important;
+}
+
+[data-theme="dark"] .studio-recorder-floating-output {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+[data-theme="dark"] .studio-recorder-floating-output:hover,
+[data-theme="dark"] .studio-recorder-floating-output:focus-within {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] .studio-recorder-floating-output-generate {
+  border-color: rgba(221, 221, 221, 0.01);
+  background: #292929;
+}
+
+[data-theme="dark"]
+  .studio-recorder-floating-output-generate:not(
+    .studio-recorder-floating-output-generating
+  )
+  svg {
+  color: #fff;
+}
+
+[data-theme="dark"] .studio-recorder-floating-output-generate:hover,
+[data-theme="dark"] .studio-recorder-floating-output-generate:focus-within,
+[data-theme="dark"] .studio-recorder-floating-output-generating:hover {
+  background: #333;
+}
+
+[data-theme="dark"] .studio-recorder-floating-output-info,
+[data-theme="dark"] .studio-recorder-floating-output-info svg {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+[data-theme="dark"] .studio-recorder-floating-output-action {
+  color: rgba(255, 255, 255, 0.58);
+}
+
+[data-theme="dark"] .studio-recorder-floating-output-action:hover {
+  color: #fff;
+}
+
+[data-theme="dark"] .studio-right-panel-close,
+[data-theme="dark"] .studio-right-panel-markdown-more,
+[data-theme="dark"] .studio-recorder-screenshot-detail-close {
+  color: rgba(255, 255, 255, 0.65);
+}
+
+[data-theme="dark"] .studio-right-panel-close:hover,
+[data-theme="dark"] .studio-right-panel-close:focus-visible,
+[data-theme="dark"] .studio-right-panel-close:active,
+[data-theme="dark"] .studio-right-panel-markdown-more:hover,
+[data-theme="dark"] .studio-right-panel-markdown-more:focus-visible,
+[data-theme="dark"] .studio-right-panel-markdown-more:active,
+[data-theme="dark"] .studio-recorder-screenshot-detail-close:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+[data-theme="dark"] .studio-recorder-screenshot-detail,
+[data-theme="dark"] .studio-right-panel-markdown {
+  background: #181818;
+}
+
+[data-theme="dark"] .studio-recorder-screenshot-detail-header,
+[data-theme="dark"] .studio-right-panel-markdown-header {
+  border-bottom-color: #323131;
+}
+
+[data-theme="dark"] .studio-recorder-screenshot-detail-title,
+[data-theme="dark"] .studio-recorder-screenshot-detail-title svg,
+[data-theme="dark"] .studio-right-panel-markdown-title,
+[data-theme="dark"] .studio-right-panel-markdown-body pre {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+[data-theme="dark"] .studio-recorder-screenshot-card {
+  border-color: #323131;
+  background: #242424;
+}
+
+[data-theme="dark"] .studio-recorder-screenshot-card-header {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+[data-theme="dark"] .studio-recorder-screenshot-card-header span:first-child {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+[data-theme="dark"] .studio-recorder-screenshot-card-body {
+  background: #111;
+}
+
+[data-theme="dark"] .studio-right-panel-markdown-dropdown,
+[data-theme="dark"] .studio-replay-panel-actions-menu {
+  border: 1px solid #323131;
+  background: #242424;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.38);
+}
+
+[data-theme="dark"] .studio-right-panel-markdown-dropdown-item,
+[data-theme="dark"] .studio-replay-panel-actions-menu button {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+[data-theme="dark"] .studio-right-panel-markdown-dropdown-item:hover,
+[data-theme="dark"] .studio-right-panel-markdown-dropdown-item:focus-visible,
+[data-theme="dark"] .studio-replay-panel-actions-menu button:hover,
+[data-theme="dark"] .studio-replay-panel-actions-menu button:focus-visible {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] .studio-right-panel-markdown-dropdown-item-danger {
+  color: #ff8a80;
+}
+
+[data-theme="dark"] .studio-right-panel-markdown-dropdown-item-danger:hover,
+[data-theme="dark"]
+  .studio-right-panel-markdown-dropdown-item-danger:focus-visible {
+  background: rgba(225, 62, 55, 0.15);
+}
+
+[data-theme="dark"] .studio-replay-panel-body,
+[data-theme="dark"] .studio-replay-panel-list,
+[data-theme="dark"] .studio-replay-panel-empty {
+  border-top-color: #323131;
+  background: #181818;
+}
+
+[data-theme="dark"] .studio-replay-panel-item {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+[data-theme="dark"] .studio-replay-panel-item:hover,
+[data-theme="dark"] .studio-replay-panel-item-active {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] .studio-replay-panel-item > span {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+[data-theme="dark"] .studio-replay-panel-item > svg:last-child,
+[data-theme="dark"] .studio-replay-panel-more-button {
+  color: rgba(255, 255, 255, 0.65);
+}
+
+[data-theme="dark"] .studio-replay-panel-more-button:hover,
+[data-theme="dark"] .studio-replay-panel-more-button:focus-visible,
+[data-theme="dark"] .studio-replay-panel-more-button[aria-expanded="true"],
+[data-theme="dark"] .studio-replay-panel-stop-button:hover,
+[data-theme="dark"] .studio-replay-panel-stop-button:focus-visible {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+[data-theme="dark"] .studio-replay-panel-stop-button {
+  color: #fff;
+}
+
+[data-theme="dark"] .studio-replay-panel-empty-title {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+[data-theme="dark"] .studio-replay-panel-empty-description {
+  color: rgba(255, 255, 255, 0.5);
+}

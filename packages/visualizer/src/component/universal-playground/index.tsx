@@ -184,6 +184,9 @@ export function UniversalPlayground({
   const onExecutionStatusChangeRef = useRef(
     componentConfig.onExecutionStatusChange,
   );
+  const onBeforeExecutionStartRef = useRef(
+    componentConfig.onBeforeExecutionStart,
+  );
   const executionScopeKey = componentConfig.executionScopeKey ?? null;
   const previousExecutionScopeKeyRef = useRef(executionScopeKey);
 
@@ -195,6 +198,10 @@ export function UniversalPlayground({
     onExecutionStatusChangeRef.current =
       componentConfig.onExecutionStatusChange;
   }, [componentConfig.onExecutionStatusChange]);
+
+  useEffect(() => {
+    onBeforeExecutionStartRef.current = componentConfig.onBeforeExecutionStart;
+  }, [componentConfig.onBeforeExecutionStart]);
 
   useEffect(() => {
     componentConfig.onExecutionStatusChange?.({
@@ -241,6 +248,7 @@ export function UniversalPlayground({
   const handleFormRun = useCallback(async () => {
     try {
       const value = form.getFieldsValue() as FormValue;
+      await onBeforeExecutionStartRef.current?.();
       await executeAction(value);
     } catch (error) {
       notifyError(error, { title: 'Execution failed' });
@@ -273,12 +281,15 @@ export function UniversalPlayground({
         handledExternalRunRequestIds.delete(oldestRequestId);
       }
     }
-    executeAction(request.value, {
-      displayContent: request.displayContent,
-      ...(request.reportDisplay
-        ? { reportDisplay: request.reportDisplay }
-        : {}),
-    }).catch((error) => {
+    (async () => {
+      await onBeforeExecutionStartRef.current?.();
+      await executeAction(request.value, {
+        displayContent: request.displayContent,
+        ...(request.reportDisplay
+          ? { reportDisplay: request.reportDisplay }
+          : {}),
+      });
+    })().catch((error) => {
       notifyError(error, { title: 'Execution failed' });
     });
   }, [
@@ -612,21 +623,26 @@ export function UniversalPlayground({
                                       )}
                                     </span>
                                   ) : null}
-                                  <div className="progress-row-content">
-                                    {action ? (
-                                      <span className="progress-action-item">
-                                        {action}
-                                      </span>
-                                    ) : null}
-                                    {description ? (
-                                      <div className="progress-description-wrap">
-                                        <ShinyText
-                                          text={description}
-                                          className="progress-description"
-                                          disabled={!shouldShowLoading}
-                                        />
-                                      </div>
-                                    ) : null}
+                                  <div
+                                    className="progress-row-content"
+                                    title={item.content}
+                                  >
+                                    <div className="progress-row-copy">
+                                      {action ? (
+                                        <span className="progress-action-item">
+                                          {action}
+                                        </span>
+                                      ) : null}
+                                      {description ? (
+                                        <div className="progress-description-wrap">
+                                          <ShinyText
+                                            text={description}
+                                            className="progress-description"
+                                            disabled={!shouldShowLoading}
+                                          />
+                                        </div>
+                                      ) : null}
+                                    </div>
                                     {item.result?.error && (
                                       <ErrorMessage error={item.result.error} />
                                     )}

@@ -33,6 +33,12 @@ import {
 } from 'electron';
 import type { TitleBarOverlay } from 'electron';
 import { requestPlaygroundBootstrap } from './playground/bootstrap-request';
+import { runConnectivityTest } from './playground/connectivity-test';
+import {
+  type DeviceDiscoveryService,
+  createDeviceDiscoveryService,
+} from './playground/device-discovery';
+import { createMultiPlatformRuntimeService } from './playground/multi-platform-runtime';
 import type { PlaygroundRuntimeService } from './playground/types';
 import {
   describeRecorderUIEventsInMain,
@@ -62,9 +68,8 @@ configureStudioShellEnvHydration({
 let mainWindow: BrowserWindow | null = null;
 let cachedAppIcon: NativeImage | null = null;
 let playgroundRuntimePromise: Promise<PlaygroundRuntimeService> | null = null;
-let deviceDiscoveryServicePromise: Promise<
-  import('./playground/device-discovery').DeviceDiscoveryService
-> | null = null;
+let deviceDiscoveryServicePromise: Promise<DeviceDiscoveryService> | null =
+  null;
 const isStudioSmokeTest = process.env.MIDSCENE_STUDIO_SMOKE_TEST === '1';
 const isStudioE2ETest = process.env.MIDSCENE_STUDIO_E2E_TEST === '1';
 const STUDIO_SMOKE_READY_MARKER = 'MIDSCENE_STUDIO_SMOKE_READY';
@@ -306,8 +311,8 @@ async function prepareRecorderMarkdownReplayBundle(
 
 const getPlaygroundRuntime = async (): Promise<PlaygroundRuntimeService> => {
   if (!playgroundRuntimePromise) {
-    playgroundRuntimePromise = import('./playground/multi-platform-runtime')
-      .then(({ createMultiPlatformRuntimeService }) =>
+    playgroundRuntimePromise = Promise.resolve()
+      .then(() =>
         createMultiPlatformRuntimeService({
           deviceDiscoveryService: getDeviceDiscoveryService(),
         }),
@@ -332,10 +337,8 @@ const closePlaygroundRuntime = async (): Promise<void> => {
 
 const getDeviceDiscoveryService = async () => {
   if (!deviceDiscoveryServicePromise) {
-    deviceDiscoveryServicePromise = import('./playground/device-discovery')
-      .then(({ createDeviceDiscoveryService }) =>
-        createDeviceDiscoveryService(),
-      )
+    deviceDiscoveryServicePromise = Promise.resolve()
+      .then(() => createDeviceDiscoveryService())
       .catch((error) => {
         deviceDiscoveryServicePromise = null;
         throw error;
@@ -696,12 +699,9 @@ const registerIpcHandlers = () => {
       (await getDeviceDiscoveryService()).setPollingPaused(Boolean(paused));
     },
   );
-  ipcMain.handle(IPC_CHANNELS.runConnectivityTest, async (_event, request) => {
-    const { runConnectivityTest } = await import(
-      './playground/connectivity-test'
-    );
-    return runConnectivityTest(request);
-  });
+  ipcMain.handle(IPC_CHANNELS.runConnectivityTest, async (_event, request) =>
+    runConnectivityTest(request),
+  );
   ipcMain.handle(IPC_CHANNELS.generateRecorderCode, async (_event, request) => {
     return generateRecorderCodeInMain(request);
   });

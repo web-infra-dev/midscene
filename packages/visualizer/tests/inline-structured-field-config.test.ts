@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'vitest';
+import { isLocateField } from '../src/types';
 import {
   getAvailablePromptActionTypes,
   getInlineStructuredFieldConfig,
@@ -30,6 +31,38 @@ function makeLocateField() {
     },
   };
 }
+
+function makeMidsceneLocationField(description?: string) {
+  return {
+    _def: {
+      typeName: 'ZodObject',
+      ...(description ? { description } : {}),
+      shape: {
+        prompt: makeStringField(),
+        deepLocate: {
+          _def: {
+            typeName: 'ZodOptional',
+            innerType: { _def: { typeName: 'ZodBoolean' } },
+          },
+        },
+        cacheable: {
+          _def: {
+            typeName: 'ZodOptional',
+            innerType: { _def: { typeName: 'ZodBoolean' } },
+          },
+        },
+      },
+    },
+  };
+}
+
+describe('isLocateField', () => {
+  test('recognizes Midscene location object fields without legacy flags', () => {
+    expect(
+      isLocateField(makeMidsceneLocationField('The position to be dragged')),
+    ).toBe(true);
+  });
+});
 
 describe('getInlineStructuredFieldConfig', () => {
   test('returns inline config for a single string field', () => {

@@ -23,46 +23,6 @@
 }
 
 .playground-shell
-  .studio-replay-execution.studio-playground-timeline-content-only
-  .command-form {
-  height: 100%;
-  gap: 0;
-  overflow: hidden;
-}
-
-.playground-shell
-  .studio-replay-execution.studio-playground-timeline-content-only
-  .middle-dialog-area {
-  height: 100%;
-  min-height: 0;
-  flex: 1 1 auto;
-  overflow: hidden;
-  box-sizing: border-box;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-}
-
-.playground-shell
-  .studio-replay-execution.studio-playground-timeline-content-only
-  .info-list-container {
-  min-height: 0;
-  height: 100%;
-  padding: 5.846px 14px 20px 16px;
-  overflow-x: hidden;
-  overflow-y: auto;
-}
-
-.playground-shell
-  .studio-replay-execution.studio-playground-timeline-content-only
-  .playground-empty-state-wrapper {
-  min-height: 100%;
-}
-
-.playground-shell
-  .studio-replay-execution.studio-playground-timeline-content-only
-  .playground-empty-state-wrapper,
-.playground-shell
   .studio-playground-timeline-wrapped
   .studio-playground-timeline-panel
   .playground-empty-state-wrapper {
@@ -71,10 +31,6 @@
   justify-content: center;
 }
 
-.playground-shell
-  .studio-replay-execution.studio-playground-timeline-content-only
-  .playground-empty-state-wrapper
-  .studio-timeline-empty-state,
 .playground-shell
   .studio-playground-timeline-wrapped
   .studio-playground-timeline-panel
@@ -132,10 +88,17 @@
 .playground-shell
   .studio-playground-timeline-wrapped
   .studio-playground-timeline-panel
+  .studio-timeline-panel-scroll-body {
+  max-height: none;
+}
+
+.playground-shell
+  .studio-playground-timeline-wrapped
+  .studio-playground-timeline-panel
   .info-list-container {
   min-height: 0;
   height: auto;
-  max-height: calc(100% - 44.077px);
+  max-height: none;
   flex: 0 1 auto;
   padding: 5.846px 14px 20px 16px;
   overflow-x: hidden;
@@ -153,38 +116,26 @@
   overflow: hidden;
 }
 
-.playground-shell
-  .studio-replay-execution.studio-playground-timeline-content-only
-  .info-list-container
-  .ant-list-items,
-.playground-shell
-  .studio-playground-timeline-wrapped
-  .studio-playground-timeline-panel
+.studio-playground-timeline-panel.studio-execution-timeline-skin
   .info-list-container
   .ant-list-items {
   gap: 20px;
 }
 
-.playground-shell
-  .studio-replay-execution.studio-playground-timeline-content-only
+.studio-playground-timeline-panel.studio-execution-timeline-skin
   .info-list-container
-  .list-item:has(.progress-row),
-.playground-shell
-  .studio-playground-timeline-wrapped
-  .studio-playground-timeline-panel
+  .list-item {
+  position: relative;
+  z-index: 1;
+}
+
+.studio-playground-timeline-panel.studio-execution-timeline-skin
   .info-list-container
   .list-item:has(.progress-row) {
   min-height: 38px;
 }
 
-.playground-shell
-  .studio-replay-execution.studio-playground-timeline-content-only
-  .info-list-container
-  .list-item
-  > div:has(> .progress-row),
-.playground-shell
-  .studio-playground-timeline-wrapped
-  .studio-playground-timeline-panel
+.studio-playground-timeline-panel.studio-execution-timeline-skin
   .info-list-container
   .list-item
   > div:has(> .progress-row) {
@@ -195,198 +146,164 @@
   padding: 0;
 }
 
-.playground-shell
-  .studio-replay-execution.studio-playground-timeline-content-only
+.studio-playground-timeline-panel.studio-execution-timeline-skin
   .info-list-container
-  .list-item
-  > div:has(> .progress-row)::before,
-.playground-shell
-  .studio-playground-timeline-wrapped
-  .studio-playground-timeline-panel
-  .info-list-container
-  .list-item
-  > div:has(> .progress-row)::before,
-.playground-shell
-  .studio-replay-execution.studio-playground-timeline-content-only
-  .info-list-container
-  .list-item
+  .list-item:has(.progress-row)
   > div:has(> .progress-row)::after,
-.playground-shell
-  .studio-playground-timeline-wrapped
-  .studio-playground-timeline-panel
+.studio-playground-timeline-panel.studio-execution-timeline-skin
   .info-list-container
-  .list-item
-  > div:has(> .progress-row)::after {
+  .list-item:has(.progress-row)
+  + .list-item:has(.progress-row)
+  > div:has(> .progress-row)::before {
   position: absolute;
   left: 8px;
   width: 1px;
   content: "";
-  background: #d7e5ff;
+  background: #d9d9d9;
 }
 
-.playground-shell
-  .studio-replay-execution.studio-playground-timeline-content-only
+.studio-playground-timeline-panel.studio-execution-timeline-skin
   .info-list-container
-  .list-item
-  > div:has(> .progress-row)::before,
-.playground-shell
-  .studio-playground-timeline-wrapped
-  .studio-playground-timeline-panel
+  .list-item:has(.progress-row)
+  > div:has(> .progress-row)::after {
+  top: 30px;
+  bottom: -20px;
+}
+
+.studio-playground-timeline-panel.studio-execution-timeline-skin
   .info-list-container
-  .list-item
+  .list-item:has(.progress-row)
+  + .list-item:has(.progress-row)
   > div:has(> .progress-row)::before {
   top: 0;
   height: 8px;
 }
 
-.playground-shell
-  .studio-replay-execution.studio-playground-timeline-content-only
+.studio-playground-timeline-panel.studio-execution-timeline-skin
   .info-list-container
-  .list-item
-  > div:has(> .progress-row)::after,
-.playground-shell
-  .studio-playground-timeline-wrapped
-  .studio-playground-timeline-panel
-  .info-list-container
-  .list-item
+  .list-item:has(.progress-row):not(:has(+ .list-item:has(.progress-row)))
   > div:has(> .progress-row)::after {
-  top: 30px;
-  bottom: 0;
+  display: none;
 }
 
-.playground-shell
-  .studio-replay-execution.studio-playground-timeline-content-only
-  .info-list-container
-  .progress-row-content,
-.playground-shell
-  .studio-playground-timeline-wrapped
-  .studio-playground-timeline-panel
+.studio-playground-timeline-panel.studio-execution-timeline-skin
   .info-list-container
   .progress-row-content {
+  min-width: 0;
   padding: 8px 0 8px 8px;
   line-height: 22px;
 }
 
-.playground-shell
-  .studio-replay-execution.studio-playground-timeline-content-only
+.studio-playground-timeline-panel.studio-execution-timeline-skin
   .info-list-container
-  .progress-status-icon,
-.playground-shell
-  .studio-playground-timeline-wrapped
-  .studio-playground-timeline-panel
+  .progress-row-copy {
+  min-width: 0;
+  font-weight: 400;
+  overflow-wrap: anywhere;
+}
+
+.studio-replay-timeline-panel.studio-execution-timeline-skin
+  .info-list-container
+  .progress-row-copy {
+  display: -webkit-box;
+  max-height: 44px;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  word-break: break-word;
+}
+
+.studio-playground-timeline-panel.studio-execution-timeline-skin
   .info-list-container
   .progress-status-icon {
   position: relative;
   z-index: 1;
   margin-top: 11px;
+  background: #fff;
+  box-shadow: 0 0 0 3px #fff;
 }
 
-.playground-shell
-  .studio-replay-execution.studio-playground-timeline-content-only
+[data-theme="dark"]
+  .studio-playground-timeline-panel.studio-execution-timeline-skin
   .info-list-container
-  .progress-action-item,
-.playground-shell
-  .studio-playground-timeline-wrapped
-  .studio-playground-timeline-panel
+  .progress-status-icon {
+  background: #181818;
+  box-shadow: 0 0 0 3px #181818;
+}
+
+.studio-playground-timeline-panel.studio-execution-timeline-skin
   .info-list-container
   .progress-action-item {
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 13px;
+  font-weight: 600 !important;
   line-height: 22px;
 }
 
-.playground-shell
-  .studio-replay-execution.studio-playground-timeline-content-only
-  .info-list-container
-  .progress-action-item
-  + .progress-description-wrap::before,
-.playground-shell
-  .studio-playground-timeline-wrapped
-  .studio-playground-timeline-panel
+.studio-playground-timeline-panel.studio-execution-timeline-skin
   .info-list-container
   .progress-action-item
   + .progress-description-wrap::before {
   font-weight: 400;
 }
 
-.playground-shell
-  .studio-replay-execution.studio-playground-timeline-content-only
-  .info-list-container
-  .progress-description,
-.playground-shell
-  .studio-playground-timeline-wrapped
-  .studio-playground-timeline-panel
+.studio-playground-timeline-panel.studio-execution-timeline-skin
   .info-list-container
   .progress-description {
-  font-size: 14px;
+  font-size: 13px;
+  font-weight: 400 !important;
   line-height: 22px;
+  letter-spacing: 0;
 }
 
-.playground-shell
-  .studio-replay-execution.studio-playground-timeline-content-only
+.studio-playground-timeline-panel.studio-execution-timeline-skin
   .info-list-container
-  .list-item:has(.progress-row)
-  + .list-item:has(.progress-row),
-.playground-shell
-  .studio-playground-timeline-wrapped
-  .studio-playground-timeline-panel
+  .progress-description.shiny-text,
+.studio-playground-timeline-panel.studio-execution-timeline-skin
+  .info-list-container
+  .progress-description.shiny-text.disabled {
+  font-weight: 400 !important;
+  letter-spacing: 0;
+}
+
+.studio-playground-timeline-panel.studio-execution-timeline-skin
   .info-list-container
   .list-item:has(.progress-row)
   + .list-item:has(.progress-row) {
-  margin-top: -20px;
+  margin-top: 0;
 }
 
-.studio-replay-timeline-panel.studio-timeline-panel-expanded
-  .studio-replay-execution-panel,
-.studio-replay-timeline-panel.studio-timeline-panel-expanded
-  .playground-conversation-panel,
-.studio-replay-timeline-panel.studio-timeline-panel-expanded
-  .playground-conversation-body,
-.studio-replay-timeline-panel.studio-timeline-panel-expanded
-  .playground-container,
-.studio-replay-timeline-panel.studio-timeline-panel-expanded .command-form {
+.playground-shell .studio-replay-execution-panel,
+.studio-replay-execution-panel {
+  min-height: 0;
+  max-height: 100%;
+  flex: 0 1 auto;
+  overflow: hidden;
+  background: transparent;
+}
+
+.playground-shell .studio-replay-execution-panel .playground-conversation-body,
+.studio-replay-execution-panel .playground-conversation-body,
+.playground-shell .studio-replay-execution-panel .playground-container,
+.studio-replay-execution-panel .playground-container,
+.playground-shell .studio-replay-execution-panel .command-form,
+.studio-replay-execution-panel .command-form {
   height: auto;
   min-height: 0;
+  max-height: 100%;
   flex: 0 1 auto;
+  overflow: hidden;
+  background: transparent;
 }
 
-.studio-replay-timeline-panel.studio-timeline-panel-expanded {
-  max-height: none;
-  flex: 0 0 auto;
-}
-
+.studio-replay-timeline-panel.studio-timeline-panel-expanded .ant-list,
 .studio-replay-timeline-panel.studio-timeline-panel-expanded
-  .studio-replay-timeline-panel-body,
+  .ant-spin-nested-loading,
 .studio-replay-timeline-panel.studio-timeline-panel-expanded
-  .studio-timeline-panel-scroll-body {
-  max-height: none;
-  flex: 0 0 auto;
-  overflow: visible;
-}
-
-.playground-shell
-  .studio-replay-timeline-panel.studio-timeline-panel-expanded
-  .studio-replay-execution.studio-playground-timeline-content-only,
-.playground-shell
-  .studio-replay-timeline-panel.studio-timeline-panel-expanded
-  .studio-replay-execution.studio-playground-timeline-content-only
-  .command-form,
-.playground-shell
-  .studio-replay-timeline-panel.studio-timeline-panel-expanded
-  .studio-replay-execution.studio-playground-timeline-content-only
-  .middle-dialog-area {
+  .ant-spin-container,
+.studio-replay-timeline-panel.studio-timeline-panel-expanded .ant-list-items,
+.studio-replay-timeline-panel.studio-timeline-panel-expanded .list-item {
   height: auto;
   min-height: 0;
-  flex: 0 1 auto;
-}
-
-.playground-shell
-  .studio-replay-timeline-panel.studio-timeline-panel-expanded
-  .studio-replay-execution.studio-playground-timeline-content-only
-  .info-list-container {
-  height: auto;
-  flex: 0 1 auto;
-  max-height: none;
   overflow: visible;
 }
 
@@ -401,6 +318,26 @@
   margin: 0;
 }
 
+.studio-replay-timeline-panel.studio-timeline-panel-expanded
+  .info-list-container
+  .list-item:has(.result-wrapper),
+.studio-replay-timeline-panel.studio-timeline-panel-expanded
+  .system-message-container,
+.studio-replay-timeline-panel.studio-timeline-panel-expanded
+  .system-message-content {
+  height: auto;
+  min-height: 0;
+  overflow: visible;
+}
+
+.studio-replay-timeline-panel.studio-timeline-panel-expanded .result-wrapper {
+  height: auto !important;
+  min-height: 0;
+  flex: 0 0 auto !important;
+  justify-content: flex-start !important;
+  overflow: visible;
+}
+
 .studio-replay-timeline-panel .result-wrapper .player-container,
 .playground-shell
   .studio-playground-timeline-wrapped
@@ -409,11 +346,19 @@
   .player-container {
   width: 100%;
   max-width: 100%;
-  height: 260px;
+  height: auto;
   min-height: 0;
   padding: 0;
   border: 0;
   background: transparent;
+}
+
+.studio-replay-timeline-panel.studio-timeline-panel-expanded
+  .result-wrapper
+  .player-container {
+  min-height: 260px;
+  max-height: none;
+  overflow: visible;
 }
 
 .studio-replay-timeline-panel
@@ -428,7 +373,8 @@
   .canvas-container {
   height: 260px;
   min-height: 0;
-  max-height: 260px;
+  max-height: none;
+  flex: 0 0 260px;
   border-radius: 8px;
 }
 
@@ -451,4 +397,71 @@
   left: 50%;
   margin: 0;
   transform: translate(-50%, -50%);
+}
+
+.studio-replay-column .studio-replay-execution-panel {
+  height: auto;
+  min-height: 0;
+  max-height: 100%;
+  flex: 0 1 auto;
+  overflow: hidden;
+}
+
+.studio-replay-column
+  .studio-replay-execution-panel
+  .playground-conversation-body,
+.studio-replay-column .studio-replay-execution-panel .playground-container,
+.studio-replay-column .studio-replay-execution-panel .command-form {
+  height: auto;
+  min-height: 0;
+  max-height: 100%;
+  flex: 0 1 auto;
+  overflow: hidden;
+}
+
+.studio-replay-column
+  .studio-replay-timeline-panel.studio-timeline-panel:not(
+    .studio-timeline-panel-empty
+  ):not(.studio-timeline-panel-collapsed),
+.studio-replay-column
+  .studio-replay-timeline-panel.studio-timeline-panel.studio-timeline-panel-expanded {
+  height: auto;
+  min-height: 0;
+  max-height: 100%;
+  flex: 0 1 auto;
+  overflow: hidden;
+}
+
+.studio-replay-column
+  .studio-replay-timeline-panel.studio-timeline-panel-expanded
+  .studio-replay-timeline-panel-body,
+.studio-replay-column
+  .studio-replay-timeline-panel.studio-timeline-panel-expanded
+  .studio-timeline-panel-scroll-body {
+  height: auto;
+  min-height: 0;
+  max-height: calc(100% - 44.077px);
+  flex: 0 1 auto;
+  overflow: hidden;
+}
+
+.studio-replay-column
+  .studio-replay-timeline-panel.studio-timeline-panel-expanded
+  .middle-dialog-area {
+  height: auto;
+  min-height: 0;
+  max-height: 100%;
+  flex: 0 1 auto;
+  overflow: hidden;
+}
+
+.studio-replay-column
+  .studio-replay-timeline-panel.studio-timeline-panel-expanded
+  .info-list-container {
+  height: auto;
+  min-height: 0;
+  max-height: 100%;
+  flex: 0 1 auto;
+  overflow-x: hidden;
+  overflow-y: auto;
 }

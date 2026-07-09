@@ -47,7 +47,7 @@ describe('ScrcpyServer', () => {
   it('prefers the explicit device from the preview handshake', () => {
     expect(
       resolveRequestedDeviceId(
-        { deviceId: 'SERIAL123', maxSize: 1024 },
+        { deviceId: 'SERIAL123', maxSize: 0, videoBitRate: 8_000_000 },
         'OLD_DEVICE',
       ),
     ).toBe('SERIAL123');
@@ -66,16 +66,20 @@ describe('ScrcpyServer', () => {
     const adb = { serial: 'device-1' };
     const onProgress = vi.fn();
 
-    await (server as any).startScrcpy(adb, { maxSize: 720 }, onProgress);
+    await (server as any).startScrcpy(
+      adb,
+      { maxSize: 0, videoBitRate: 8_000_000 },
+      onProgress,
+    );
 
     expect(mockPushServer).toHaveBeenCalledOnce();
     expect(mockOptionsCtor).toHaveBeenCalledWith(
       expect.objectContaining({
         audio: false,
         control: true,
-        maxSize: 720,
+        maxSize: 0,
         sendFrameMeta: true,
-        videoBitRate: 2_000_000,
+        videoBitRate: 8_000_000,
       }),
     );
     expect(mockStart).toHaveBeenCalledWith(

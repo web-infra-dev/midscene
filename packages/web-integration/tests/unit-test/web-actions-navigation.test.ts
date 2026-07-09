@@ -23,6 +23,25 @@ describe('commonWebActionsForWebPage navigation actions', () => {
 });
 
 describe('commonWebActionsForWebPage visual refresh', () => {
+  it('schedules the preview refresh after tap actions', async () => {
+    const page = {
+      mouse: {
+        click: vi.fn(async () => undefined),
+      },
+      schedulePendingVisualUpdate: vi.fn(),
+      flushPendingVisualUpdate: vi.fn(async () => undefined),
+    };
+    const actions = commonWebActionsForWebPage(page as any);
+
+    await actions
+      .find((action) => action.name === 'Tap')
+      ?.call({ locate: { center: [10, 20] } } as any, mockExecutorContext);
+
+    expect(page.mouse.click).toHaveBeenCalledWith(10, 20, { button: 'left' });
+    expect(page.schedulePendingVisualUpdate).toHaveBeenCalledTimes(1);
+    expect(page.flushPendingVisualUpdate).not.toHaveBeenCalled();
+  });
+
   it('schedules the preview refresh after keyboard-only actions', async () => {
     const page = {
       keyboard: {

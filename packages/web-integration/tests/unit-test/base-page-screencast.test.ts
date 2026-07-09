@@ -165,6 +165,33 @@ describe('Page startMjpegStream', () => {
     expect(mockPage.screenshot).not.toHaveBeenCalled();
   });
 
+  it('does not fail the MJPEG stream when visual refresh races with navigation', async () => {
+    const mockPage = {
+      evaluate: vi
+        .fn()
+        .mockRejectedValue(
+          new Error(
+            'Execution context was destroyed, most likely because of a navigation.',
+          ),
+        ),
+      screenshot: vi.fn(),
+      url: () => 'http://example.com',
+    } as any;
+
+    const page = new Page(mockPage, 'puppeteer');
+    const onError = vi.fn();
+    (page as any).activeMjpegStream = {
+      token: Symbol('mjpeg-stream'),
+      onFrame: vi.fn(),
+      onError,
+    };
+
+    await page.flushPendingVisualUpdate();
+
+    expect(mockPage.screenshot).not.toHaveBeenCalled();
+    expect(onError).not.toHaveBeenCalled();
+  });
+
   it('coalesces scheduled visual refreshes while one refresh is in flight', async () => {
     vi.useFakeTimers();
     const mockPage = {
@@ -199,6 +226,40 @@ describe('Page startMjpegStream', () => {
     await Promise.resolve();
     await Promise.resolve();
 
+    expect(flushSpy).toHaveBeenCalledTimes(2);
+  });
+
+  it('runs a delayed follow-up visual refresh after the immediate one', async () => {
+    vi.useFakeTimers();
+    const mockPage = {
+      evaluate: vi.fn(async () => ({ width: 1280, height: 768 })),
+      url: () => 'http://example.com',
+    } as any;
+
+    const page = new Page(mockPage, 'puppeteer');
+    (page as any).activeMjpegStream = {
+      token: Symbol('mjpeg-stream'),
+      onFrame: vi.fn(),
+    };
+
+    const flushSpy = vi
+      .spyOn(page, 'flushPendingVisualUpdate')
+      .mockImplementation(async () => undefined);
+
+    page.schedulePendingVisualUpdate();
+
+    expect(flushSpy).toHaveBeenCalledTimes(1);
+
+    await Promise.resolve();
+    await Promise.resolve();
+
+    vi.advanceTimersByTime(799);
+    await Promise.resolve();
+    expect(flushSpy).toHaveBeenCalledTimes(1);
+
+    vi.advanceTimersByTime(1);
+    await Promise.resolve();
+    await Promise.resolve();
     expect(flushSpy).toHaveBeenCalledTimes(2);
   });
 });

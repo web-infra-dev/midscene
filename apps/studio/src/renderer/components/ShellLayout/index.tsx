@@ -423,7 +423,7 @@ export default function ShellLayout() {
         />
         {shouldShowStudioRightPanel && studioRightPanelView ? (
           <div
-            className="box-border flex h-full min-h-0 shrink-0 flex-col overflow-hidden rounded-[12px] border border-border-subtle bg-surface"
+            className="box-border flex h-full min-h-0 shrink-0 flex-col overflow-hidden rounded-[12px] border border-border-subtle bg-surface dark:border-[#323131] dark:bg-[#181818]"
             style={{ width: studioRightPanelWidth }}
           >
             <StudioRightPanel

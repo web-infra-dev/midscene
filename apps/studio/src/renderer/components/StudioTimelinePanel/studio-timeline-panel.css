@@ -20,6 +20,11 @@
   will-change: height, max-height;
 }
 
+[data-theme="dark"] .studio-timeline-panel {
+  border-color: #323131;
+  background: #181818;
+}
+
 .studio-timeline-panel:not(.studio-timeline-panel-empty):not(
     .studio-timeline-panel-collapsed
   ) {
@@ -100,6 +105,10 @@
     var(--studio-timeline-motion);
 }
 
+[data-theme="dark"] .studio-timeline-panel-title {
+  color: #fff;
+}
+
 .studio-timeline-panel-title:is(button) {
   cursor: pointer;
 }
@@ -109,11 +118,19 @@
   opacity: 1;
 }
 
+[data-theme="dark"] .studio-timeline-panel-title:is(button):hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
 .studio-timeline-panel-title svg {
   width: 16px;
   height: 16px;
   flex: 0 0 16px;
   color: #666;
+}
+
+[data-theme="dark"] .studio-timeline-panel-title svg {
+  color: rgba(255, 255, 255, 0.65);
 }
 
 .studio-timeline-panel-title .studio-timeline-chevron-collapsed {
@@ -158,11 +175,23 @@
   color: #666;
 }
 
+[data-theme="dark"] .studio-timeline-panel-header-action .clear-button {
+  color: rgba(255, 255, 255, 0.65);
+}
+
 .studio-timeline-panel-header-action .clear-button:hover,
 .studio-timeline-panel-header-action .clear-button:focus-visible,
 .studio-timeline-panel-header-action .clear-button:active {
   background: transparent;
   color: #666;
+}
+
+[data-theme="dark"] .studio-timeline-panel-header-action .clear-button:hover,
+[data-theme="dark"]
+  .studio-timeline-panel-header-action
+  .clear-button:focus-visible,
+[data-theme="dark"] .studio-timeline-panel-header-action .clear-button:active {
+  color: #fff;
 }
 
 .studio-timeline-panel-header-action .clear-button .anticon {
@@ -206,6 +235,13 @@
   color: #999;
 }
 
+[data-theme="dark"] .studio-timeline-empty-state-icon {
+  border-color: #323131;
+  background: #242424;
+  box-shadow: none;
+  color: rgba(255, 255, 255, 0.5);
+}
+
 .studio-timeline-empty-state-icon svg {
   width: 16px;
   height: 16px;
@@ -219,10 +255,18 @@
   white-space: nowrap;
 }
 
+[data-theme="dark"] .studio-timeline-empty-state-title {
+  color: rgba(255, 255, 255, 0.9);
+}
+
 .studio-timeline-empty-state-description {
   width: 187px;
   color: #999;
   font-size: 13px;
   font-weight: 400;
   line-height: 22.106px;
+}
+
+[data-theme="dark"] .studio-timeline-empty-state-description {
+  color: rgba(255, 255, 255, 0.5);
 }

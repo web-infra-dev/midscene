@@ -27,6 +27,14 @@ export interface StudioTimelinePanelProps {
   variant: StudioTimelinePanelVariant;
 }
 
+export type StudioExecutionTimelinePanelProps = Omit<
+  StudioTimelinePanelProps,
+  'className' | 'contentClassName' | 'expanded' | 'scrollBody'
+> & {
+  className?: string;
+  contentClassName?: string;
+};
+
 function TimelineHeaderChevronIcon({ collapsed }: { collapsed?: boolean }) {
   return (
     <svg
@@ -196,5 +204,34 @@ export function StudioTimelinePanel({
       </div>
       {footer}
     </section>
+  );
+}
+
+export function StudioExecutionTimelinePanel({
+  className,
+  contentClassName,
+  empty,
+  ...props
+}: StudioExecutionTimelinePanelProps) {
+  return (
+    <StudioTimelinePanel
+      {...props}
+      className={[
+        'studio-playground-timeline-panel',
+        'studio-execution-timeline-skin',
+        className,
+      ]
+        .filter(Boolean)
+        .join(' ')}
+      contentClassName={[
+        'studio-playground-timeline-panel-body',
+        contentClassName,
+      ]
+        .filter(Boolean)
+        .join(' ')}
+      empty={empty}
+      expanded={!empty}
+      scrollBody={!empty}
+    />
   );
 }

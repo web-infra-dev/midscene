@@ -109,6 +109,7 @@ export function createStudioTimelineConfig(
     executionScopeKey?: string | null;
     hidePromptInput?: boolean;
     inputActions?: ReactNode;
+    onBeforeExecutionStart?: () => Promise<void> | void;
     onExecutionStatusChange?: (status: PlaygroundExecutionStatus) => void;
     showClearButton?: boolean;
     storageNamespace?: string;
@@ -125,6 +126,7 @@ export function createStudioTimelineConfig(
     externalRunRequest: options.externalRunRequest ?? null,
     executionScopeKey: options.executionScopeKey ?? null,
     hidePromptInput: options.hidePromptInput,
+    onBeforeExecutionStart: options.onBeforeExecutionStart,
     onExecutionStatusChange: options.onExecutionStatusChange,
     onDownloadReport: downloadStudioReport,
     persistMessages: false,

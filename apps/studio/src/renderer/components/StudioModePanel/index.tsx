@@ -39,8 +39,8 @@ import {
   StudioRightPanelViewType,
 } from '../StudioRightPanel';
 import {
+  StudioExecutionTimelinePanel,
   StudioTimelineEmptyState,
-  StudioTimelinePanel,
 } from '../StudioTimelinePanel';
 
 type ReportDisplay = {
@@ -60,6 +60,7 @@ interface StudioModePanelProps {
     title: ReactNode;
     actions?: ReactNode;
   }) => void;
+  onTimelineExecutionStatusChange?: (status: PlaygroundExecutionStatus) => void;
   onOpenStudioRightPanel?: (view: StudioRightPanelView) => void;
 }
 
@@ -137,6 +138,7 @@ function ReplayExecutionPanel({
   actions,
   executionScopeKey,
   externalRunRequest,
+  onBeforeExecutionStart,
   onExecutionStatusChange,
   playground,
   replayTitle,
@@ -146,6 +148,7 @@ function ReplayExecutionPanel({
   actions?: ReactNode;
   executionScopeKey: string | null;
   externalRunRequest: StudioExternalRunRequest | null;
+  onBeforeExecutionStart?: () => Promise<void> | void;
   onExecutionStatusChange?: (status: PlaygroundExecutionStatus) => void;
   playground: ReturnType<typeof useStudioPlayground>;
   replayTitle: string;
@@ -176,33 +179,33 @@ function ReplayExecutionPanel({
         executionScopeKey,
         externalRunRequest,
         hidePromptInput: true,
+        onBeforeExecutionStart,
         onExecutionStatusChange,
         showClearButton: true,
         storageNamespace,
         suppressConfigErrorToast: true,
         timelineWrapper: (content, state) =>
           state.empty ? null : (
-            <StudioTimelinePanel
+            <StudioExecutionTimelinePanel
               ariaHidden={timelineCollapsed}
               className="studio-replay-timeline-panel"
               collapsed={timelineCollapsed}
               contentClassName="studio-replay-timeline-panel-body"
               empty={state.empty}
-              expanded={!state.empty}
               headerAction={timelineCollapsed ? null : state.headerAction}
               onToggleCollapsed={() => {
                 setTimelineCollapsed((collapsed) => !collapsed);
               }}
-              scrollBody={!state.empty}
               variant={StudioModeTab.Replay}
             >
               {content}
-            </StudioTimelinePanel>
+            </StudioExecutionTimelinePanel>
           ),
       }),
     [
       externalRunRequest,
       executionScopeKey,
+      onBeforeExecutionStart,
       onExecutionStatusChange,
       storageNamespace,
       timelineCollapsed,
@@ -212,17 +215,15 @@ function ReplayExecutionPanel({
   let timelinePanel: ReactNode = null;
   if (externalRunRequest && shouldRenderDisconnectedFallback) {
     timelinePanel = (
-      <StudioTimelinePanel
+      <StudioExecutionTimelinePanel
         ariaHidden={timelineCollapsed}
         className="studio-replay-timeline-panel"
         collapsed={timelineCollapsed}
         contentClassName="studio-replay-timeline-panel-body"
         empty={shouldRenderDisconnectedFallback}
-        expanded={!shouldRenderDisconnectedFallback}
         onToggleCollapsed={() => {
           setTimelineCollapsed((collapsed) => !collapsed);
         }}
-        scrollBody={!shouldRenderDisconnectedFallback}
         variant={StudioModeTab.Replay}
       >
         <StudioTimelineEmptyState
@@ -230,7 +231,7 @@ function ReplayExecutionPanel({
           title="No execution yet"
           variant={StudioModeTab.Replay}
         />
-      </StudioTimelinePanel>
+      </StudioExecutionTimelinePanel>
     );
   } else if (externalRunRequest && canRenderReplayExecution) {
     timelinePanel = (
@@ -239,7 +240,7 @@ function ReplayExecutionPanel({
         controller={playground.controller}
         playgroundClassName={[
           'studio-replay-execution',
-          'studio-playground-timeline-content-only',
+          'studio-playground-timeline-wrapped',
           timelineCollapsed ? 'studio-playground-timeline-collapsed' : '',
         ]
           .filter(Boolean)
@@ -269,6 +270,7 @@ export default function StudioModePanel({
   onHeaderChange,
   onOpenStudioRightPanel,
   onStudioModeChange,
+  onTimelineExecutionStatusChange,
   studioMode,
 }: StudioModePanelProps) {
   const { message } = AntdApp.useApp();
@@ -288,6 +290,16 @@ export default function StudioModePanel({
       stoppable: false,
       stop: () => undefined,
     });
+  const [playgroundExecutionStatus, setPlaygroundExecutionStatus] =
+    useState<PlaygroundExecutionStatus>({
+      running: false,
+      stoppable: false,
+      stop: () => undefined,
+    });
+  const replayExecutionStatusRef = useRef(replayExecutionStatus);
+  const playgroundExecutionStatusRef = useRef(playgroundExecutionStatus);
+  replayExecutionStatusRef.current = replayExecutionStatus;
+  playgroundExecutionStatusRef.current = playgroundExecutionStatus;
   const replayExecutionWasRunningRef = useRef(false);
   const lastKnownTargetRef = useRef<StudioRecorderTarget | null>(null);
   if (recorder.currentTarget) {
@@ -336,6 +348,19 @@ export default function StudioModePanel({
     () => createStudioTimelineStorageNamespace(currentTargetSignature),
     [currentTargetSignature],
   );
+  const stopRunningTimelineExecution = useCallback(async () => {
+    const statuses = [
+      replayExecutionStatusRef.current,
+      playgroundExecutionStatusRef.current,
+    ];
+
+    for (const status of statuses) {
+      if (!status.running || !status.stoppable) {
+        continue;
+      }
+      await status.stop();
+    }
+  }, []);
   const replaySessions = useMemo(
     () =>
       filterStudioRecorderSessionsForTarget(
@@ -486,6 +511,12 @@ export default function StudioModePanel({
     },
     [],
   );
+  const handlePlaygroundExecutionStatusChange = useCallback(
+    (status: PlaygroundExecutionStatus) => {
+      setPlaygroundExecutionStatus(status);
+    },
+    [],
+  );
   const handleDownloadReplaySession = useCallback(
     async (session: StudioRecordingSession) => {
       try {
@@ -527,11 +558,27 @@ export default function StudioModePanel({
   const renderOwnHeader = !onHeaderChange;
 
   useEffect(() => {
+    const activeStatus = replayExecutionStatus.running
+      ? replayExecutionStatus
+      : playgroundExecutionStatus;
+    onTimelineExecutionStatusChange?.(activeStatus);
+  }, [
+    onTimelineExecutionStatusChange,
+    playgroundExecutionStatus,
+    replayExecutionStatus,
+  ]);
+
+  useEffect(() => {
     setExternalRunRequest(null);
     setPlaygroundExternalRunRequest(null);
     setReplayingSessionId(null);
     replayExecutionWasRunningRef.current = false;
     setReplayExecutionStatus({
+      running: false,
+      stoppable: false,
+      stop: () => undefined,
+    });
+    setPlaygroundExecutionStatus({
       running: false,
       stoppable: false,
       stop: () => undefined,
@@ -601,7 +648,7 @@ export default function StudioModePanel({
       </div>
       <div
         aria-hidden={!replayActive}
-        className={`${modePaneClassName(replayActive)} studio-replay-column flex h-full min-h-0 flex-col gap-[8px] overflow-x-hidden overflow-y-auto bg-transparent pb-px`}
+        className={`${modePaneClassName(replayActive)} studio-replay-column flex h-full min-h-0 flex-col gap-[8px] overflow-hidden bg-transparent pb-px`}
       >
         <StudioReplayPanel
           activeSessionId={replayingSessionId}
@@ -623,6 +670,7 @@ export default function StudioModePanel({
         <ReplayExecutionPanel
           executionScopeKey={currentTargetSignature}
           externalRunRequest={activeExternalRunRequest}
+          onBeforeExecutionStart={stopRunningTimelineExecution}
           onExecutionStatusChange={handleReplayExecutionStatusChange}
           playground={playground}
           replayTitle={replayTitle}
@@ -637,6 +685,8 @@ export default function StudioModePanel({
         <Playground
           externalRunRequest={activePlaygroundExternalRunRequest}
           inputActions={playgroundInputActions}
+          onBeforeExecutionStart={stopRunningTimelineExecution}
+          onExecutionStatusChange={handlePlaygroundExecutionStatusChange}
           onHeaderChange={playgroundActive ? onHeaderChange : undefined}
           playground={playground}
         />

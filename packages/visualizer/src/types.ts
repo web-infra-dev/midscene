@@ -108,6 +108,8 @@ export const isZodObjectSchema = (
 export const isLocateField = (field: ZodType): boolean => {
   // Handle both runtime Zod objects and processed schema objects from server
   const fieldWithRuntime = field as ZodRuntimeAccess;
+  const hasMidsceneLocationInputShape = (shape?: Record<string, ZodType>) =>
+    !!shape?.prompt;
 
   // Check if it's a runtime ZodObject
   if (field._def?.typeName === VALIDATION_CONSTANTS.ZOD_TYPES.OBJECT) {
@@ -128,6 +130,10 @@ export const isLocateField = (field: ZodType): boolean => {
 
     // Check for the location flag in shape
     if (shape && VALIDATION_CONSTANTS.FIELD_FLAGS.LOCATION in shape) {
+      return true;
+    }
+
+    if (hasMidsceneLocationInputShape(shape)) {
       return true;
     }
 
@@ -174,6 +180,10 @@ export const isLocateField = (field: ZodType): boolean => {
       (fieldWithRuntime as { typeName?: string }).typeName === 'ZodObject' ||
       (fieldWithRuntime as { type?: string }).type === 'ZodObject'
     ) {
+      if (hasMidsceneLocationInputShape(fieldWithRuntime.shape)) {
+        return true;
+      }
+
       // For processed schemas, location fields are often described as input fields
       return (
         typeof description === 'string' &&
@@ -472,6 +482,12 @@ export interface UniversalPlaygroundConfig {
    * calling the backend after the host switches platform/device/session.
    */
   executionScopeKey?: string | null;
+  /**
+   * Called immediately before a new execution is started. Embedded hosts can
+   * use this to stop an existing execution in a sibling playground instance
+   * before the backend receives the new request.
+   */
+  onBeforeExecutionStart?: () => Promise<void> | void;
   onExecutionStatusChange?: (status: PlaygroundExecutionStatus) => void;
   /**
    * Optional host-provided header rendered above the execution message list.

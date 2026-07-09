@@ -34,6 +34,11 @@ import {
 import { createScrcpyVideoStream } from './scrcpy-stream';
 
 const { Text } = Typography;
+// Studio's live preview is displayed large enough that scrcpy's old 1024px
+// cap made text and edges look soft. Keep this preview stream full resolution;
+// Android screenshot/AI execution paths use their own scrcpy config.
+export const SCRCPY_PREVIEW_MAX_SIZE = 0;
+export const SCRCPY_PREVIEW_VIDEO_BIT_RATE = 8_000_000;
 
 export interface ScrcpyErrorOverlayContext {
   errorMessage: string | null;
@@ -259,7 +264,8 @@ export function ScrcpyPanel({
           ...(typeof deviceId === 'string' && deviceId.trim()
             ? { deviceId: deviceId.trim() }
             : {}),
-          maxSize: 1024,
+          maxSize: SCRCPY_PREVIEW_MAX_SIZE,
+          videoBitRate: SCRCPY_PREVIEW_VIDEO_BIT_RATE,
         });
       });
 
@@ -382,6 +388,12 @@ export function ScrcpyPanel({
         />
       ) : null}
       <div
+        className={[
+          'scrcpy-panel-viewport',
+          status === 'connected' && 'scrcpy-panel-viewport-connected',
+        ]
+          .filter(Boolean)
+          .join(' ')}
         ref={contentRef}
         style={{
           position: 'relative',

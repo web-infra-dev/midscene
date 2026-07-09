@@ -1,7 +1,11 @@
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
-import { ScrcpyPanel } from '../src/ScrcpyPanel';
+import {
+  SCRCPY_PREVIEW_MAX_SIZE,
+  SCRCPY_PREVIEW_VIDEO_BIT_RATE,
+  ScrcpyPanel,
+} from '../src/ScrcpyPanel';
 
 describe('ScrcpyPanel', () => {
   it('renders the custom connecting overlay when provided', () => {
@@ -33,5 +37,10 @@ describe('ScrcpyPanel', () => {
 
     expect(html).toContain('background:transparent');
     expect(html).toContain('border-radius:0');
+  });
+
+  it('uses a higher quality live preview stream profile', () => {
+    expect(SCRCPY_PREVIEW_MAX_SIZE).toBe(0);
+    expect(SCRCPY_PREVIEW_VIDEO_BIT_RATE).toBe(8_000_000);
   });
 });

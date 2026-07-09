@@ -19,6 +19,15 @@
   background: var(--midscene-surface);
 }
 
+[data-theme="dark"] .playground-shell {
+  background: #181818;
+}
+
+[data-theme="dark"] .playground-shell > .app-drag {
+  border-color: #323131;
+  background: #181818;
+}
+
 .playground-shell .playground-conversation-panel,
 .playground-shell .playground-conversation-body,
 .playground-shell .playground-container,
@@ -30,6 +39,10 @@
 
 .playground-shell .playground-container {
   background: var(--midscene-surface);
+}
+
+[data-theme="dark"] .playground-shell .playground-container {
+  background: #181818;
 }
 
 .playground-shell-mode-menu {

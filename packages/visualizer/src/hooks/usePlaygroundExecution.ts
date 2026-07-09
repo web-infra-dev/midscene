@@ -409,16 +409,6 @@ export function usePlaygroundExecution(options: UsePlaygroundExecutionOptions) {
       currentRunningIdRef.current = null;
       setLoading(false);
 
-      // Clear progress callback before the abort propagates back to handleRun,
-      // otherwise the aborted request can be rendered as a normal error.
-      if (playgroundSDK.onProgressUpdate) {
-        playgroundSDK.onProgressUpdate(() => {});
-      }
-
-      if (playgroundSDK.onDumpUpdate) {
-        playgroundSDK.onDumpUpdate(() => {});
-      }
-
       const markStopped = (
         executionData?: {
           dump: ExecutionDump | IExecutionDump | IReportActionDump | null;

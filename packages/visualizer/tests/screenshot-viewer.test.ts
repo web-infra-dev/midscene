@@ -89,6 +89,74 @@ describe('ScreenshotViewer', () => {
     container.remove();
   });
 
+  it('reconnects an MJPEG image that becomes blank after initially loading', async () => {
+    vi.useFakeTimers();
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+
+    await act(async () => {
+      root.render(
+        createElement(ScreenshotViewer, {
+          getScreenshot: async () => null,
+          serverOnline: true,
+          mjpegUrl: 'http://127.0.0.1:9234/mjpeg',
+          mode: 'screen-only',
+        }),
+      );
+    });
+
+    const loadedImage = container.querySelector(
+      'img[alt="Device Live Stream"]',
+    ) as HTMLImageElement;
+    const initialSrc = loadedImage.src;
+
+    Object.defineProperty(loadedImage, 'naturalWidth', {
+      configurable: true,
+      value: 1280,
+    });
+    Object.defineProperty(loadedImage, 'naturalHeight', {
+      configurable: true,
+      value: 720,
+    });
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2500);
+    });
+
+    expect(
+      (
+        container.querySelector(
+          'img[alt="Device Live Stream"]',
+        ) as HTMLImageElement
+      ).src,
+    ).toBe(initialSrc);
+
+    Object.defineProperty(loadedImage, 'naturalWidth', {
+      configurable: true,
+      value: 0,
+    });
+    Object.defineProperty(loadedImage, 'naturalHeight', {
+      configurable: true,
+      value: 0,
+    });
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2500);
+    });
+
+    const retriedImage = container.querySelector(
+      'img[alt="Device Live Stream"]',
+    ) as HTMLImageElement;
+    expect(retriedImage.src).toContain('_mjpegRetry=');
+    expect(retriedImage.src).not.toBe(initialSrc);
+
+    await act(async () => {
+      root.unmount();
+    });
+    container.remove();
+  });
+
   it('does not call the screenshot API while MJPEG preview is active', async () => {
     vi.useFakeTimers();
     const getScreenshot = vi.fn(async () => null);

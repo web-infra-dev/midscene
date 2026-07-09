@@ -63,6 +63,10 @@
   --midscene-status-info: #1979ff;
   --midscene-status-info-bg: #e5f0ff;
   --midscene-status-idle: #b6b6b6;
+  --midscene-status-pill-connected-bg: #eaf7ee;
+  --midscene-status-pill-connecting-bg: #eaf1ff;
+  --midscene-status-pill-disconnected-bg: #ececec;
+  --midscene-status-pill-failed-bg: #fde7e7;
 }
 
 [data-theme="dark"] {
@@ -92,6 +96,10 @@
   --midscene-status-info: #1979ff;
   --midscene-status-info-bg: rgba(25, 121, 255, 0.15);
   --midscene-status-idle: #6f7173;
+  --midscene-status-pill-connected-bg: #20402a;
+  --midscene-status-pill-connecting-bg: rgba(26, 121, 255, 0.2);
+  --midscene-status-pill-disconnected-bg: rgba(255, 255, 255, 0.1);
+  --midscene-status-pill-failed-bg: rgba(225, 62, 55, 0.18);
 }
 
 @layer base {

@@ -50,6 +50,9 @@ export const BROWSER_NAVIGATION_ERROR_PATTERN =
 
 const CDP_SCREENCAST_QUALITY = 70;
 const CDP_SCREENCAST_EVERY_NTH_FRAME = 1;
+// Empirical follow-up window for async UI paints after input actions.
+// The immediate refresh can happen before React/state transitions settle.
+const VISUAL_UPDATE_FOLLOWUP_DELAY_MS = 800;
 // Upper bound for the "wait for browser repaint" promise inside
 // flushPendingVisualUpdate so the call does not hang forever if the page
 // stops scheduling animation frames (e.g. backgrounded tab).
@@ -91,6 +94,16 @@ function isClosedPageError(error: unknown) {
   );
 }
 
+function isTransientNavigationError(error: unknown) {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+
+  return /execution context was destroyed|frame was detached|context was destroyed|net::ERR_ABORTED/i.test(
+    error.message,
+  );
+}
+
 export class Page<
   AgentType extends 'puppeteer' | 'playwright',
   InterfaceType extends PuppeteerPage | PlaywrightPage,
@@ -117,6 +130,7 @@ export class Page<
   };
   private visualUpdateFlushInFlight: Promise<void> | null = null;
   private visualUpdateFlushQueued = false;
+  private visualUpdateFollowupTimer?: ReturnType<typeof setTimeout>;
   interfaceType: AgentType;
 
   actionSpace(): DeviceAction[] {
@@ -547,11 +561,14 @@ export class Page<
       });
     } catch (error) {
       debugPage('screencast visual refresh failed: %s', error);
+      if (isTransientNavigationError(error) && !isClosedPageError(error)) {
+        return;
+      }
       activeStream.onError?.(error);
     }
   }
 
-  schedulePendingVisualUpdate(): void {
+  private queuePendingVisualUpdate(): void {
     if (!this.activeMjpegStream) {
       return;
     }
@@ -578,6 +595,22 @@ export class Page<
       });
 
     this.visualUpdateFlushInFlight = flushTask;
+  }
+
+  schedulePendingVisualUpdate(): void {
+    if (!this.activeMjpegStream) {
+      return;
+    }
+
+    this.queuePendingVisualUpdate();
+
+    if (this.visualUpdateFollowupTimer) {
+      clearTimeout(this.visualUpdateFollowupTimer);
+    }
+    this.visualUpdateFollowupTimer = setTimeout(() => {
+      this.visualUpdateFollowupTimer = undefined;
+      this.queuePendingVisualUpdate();
+    }, VISUAL_UPDATE_FOLLOWUP_DELAY_MS);
   }
 
   async startMjpegStream(
@@ -639,6 +672,10 @@ export class Page<
       if (this.activeMjpegStream?.token === streamToken) {
         this.activeMjpegStream = undefined;
       }
+      if (this.visualUpdateFollowupTimer) {
+        clearTimeout(this.visualUpdateFollowupTimer);
+        this.visualUpdateFollowupTimer = undefined;
+      }
       signal?.removeEventListener('abort', abortHandler);
       removeFrameListener();
       await client.send('Page.stopScreencast').catch((error) => {
@@ -686,7 +723,7 @@ export class Page<
       // attached subscribers staring at a blank canvas. Force-push one
       // manual screenshot so producer.lastFrame is populated before any
       // /mjpeg subscriber connects.
-      void this.flushPendingVisualUpdate();
+      this.schedulePendingVisualUpdate();
 
       return { stop };
     } catch (error) {

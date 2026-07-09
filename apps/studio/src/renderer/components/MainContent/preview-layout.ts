@@ -59,6 +59,9 @@ export function fitMobilePreviewViewport(
   stageWidth: number,
   stageHeight: number,
   aspectRatio: number = MOBILE_PREVIEW_DEFAULT_ASPECT_RATIO,
+  options: {
+    maxHeight?: number;
+  } = {},
 ): {
   width: number;
   height: number;
@@ -71,8 +74,12 @@ export function fitMobilePreviewViewport(
     0,
     stageHeight - MOBILE_PREVIEW_VERTICAL_GUTTER_PX,
   );
+  const cappedAvailableHeight =
+    typeof options.maxHeight === 'number' && Number.isFinite(options.maxHeight)
+      ? Math.min(availableHeight, Math.max(0, options.maxHeight))
+      : availableHeight;
 
-  if (availableWidth === 0 || availableHeight === 0) {
+  if (availableWidth === 0 || cappedAvailableHeight === 0) {
     return {
       width: 0,
       height: 0,
@@ -84,7 +91,7 @@ export function fitMobilePreviewViewport(
       ? aspectRatio
       : MOBILE_PREVIEW_DEFAULT_ASPECT_RATIO;
 
-  const heightLimitedWidth = availableHeight * safeAspectRatio;
+  const heightLimitedWidth = cappedAvailableHeight * safeAspectRatio;
   const width = Math.min(availableWidth, heightLimitedWidth);
 
   return {

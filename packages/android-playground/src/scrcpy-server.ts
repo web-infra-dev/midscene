@@ -56,6 +56,7 @@ function isAllowedOrigin(origin?: string) {
 export interface ScrcpyConnectDeviceRequest {
   deviceId?: string;
   maxSize?: number;
+  videoBitRate?: number;
 }
 
 export interface ScrcpyListedDevice {

@@ -453,21 +453,27 @@ export function createWebInputPrimitives(
     pointer: {
       tap: async ({ x, y }) => {
         await page.mouse.click(x, y, { button: 'left' });
+        scheduleVisualUpdate();
       },
       rightClick: async ({ x, y }) => {
         await page.mouse.click(x, y, { button: 'right' });
+        scheduleVisualUpdate();
       },
       doubleClick: async ({ x, y }) => {
         await page.mouse.click(x, y, { button: 'left', count: 2 });
+        scheduleVisualUpdate();
       },
       hover: async ({ x, y }) => {
         await page.mouse.move(x, y);
+        scheduleVisualUpdate();
       },
       dragAndDrop: async (from, to) => {
         await page.mouse.drag(from, to);
+        scheduleVisualUpdate();
       },
       longPress: async ({ x, y }, opts) => {
         await page.longPress(x, y, opts?.duration);
+        scheduleVisualUpdate();
       },
     },
     keyboard: {

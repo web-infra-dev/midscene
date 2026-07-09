@@ -1,0 +1,108 @@
+.mobile-preview-frame-viewport
+  .screenshot-viewer.screen-only
+  > .screenshot-content
+  > .screenshot-image-shell {
+  position: relative;
+}
+
+.mobile-preview-frame-viewport
+  .screenshot-viewer.screen-only
+  > .screenshot-content
+  > .screenshot-image-shell
+  > .screenshot-image {
+  border-radius: inherit;
+}
+
+.mobile-preview-frame-viewport
+  .screenshot-viewer.screen-only
+  > .screenshot-content {
+  border-radius: 12px;
+  overflow: visible;
+}
+
+.mobile-preview-frame-viewport .scrcpy-panel-viewport {
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.mobile-preview-frame-viewport .scrcpy-panel-viewport-connected,
+.mobile-preview-frame-viewport
+  .screenshot-viewer.screen-only
+  > .screenshot-content
+  > .screenshot-image-shell {
+  box-sizing: border-box;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 12px;
+  box-shadow: 0 2px 8px 1px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+}
+
+[data-theme="dark"]
+  .mobile-preview-frame-viewport
+  .scrcpy-panel-viewport-connected,
+[data-theme="dark"]
+  .mobile-preview-frame-viewport
+  .screenshot-viewer.screen-only
+  > .screenshot-content
+  > .screenshot-image-shell {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.mobile-preview-frame-viewport-active .scrcpy-panel-viewport-connected,
+.mobile-preview-frame-viewport-active
+  .screenshot-viewer.screen-only
+  > .screenshot-content
+  > .screenshot-image-shell {
+  position: relative;
+}
+
+.mobile-preview-frame-viewport-active .scrcpy-panel-viewport-connected::after,
+.mobile-preview-frame-viewport-active
+  .screenshot-viewer.screen-only
+  > .screenshot-content
+  > .screenshot-image-shell::after {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  content: "";
+  background: linear-gradient(
+      to right,
+      rgba(51, 136, 255, 0.42),
+      transparent 54%
+    )
+    left, linear-gradient(to left, rgba(51, 136, 255, 0.42), transparent 54%)
+    right, linear-gradient(to bottom, rgba(51, 136, 255, 0.42), transparent 54%)
+    top, linear-gradient(to top, rgba(51, 136, 255, 0.42), transparent 54%)
+    bottom;
+  background-repeat: no-repeat;
+  background-size: 12% 100%, 12% 100%, 100% 12%, 100% 12%;
+  box-shadow: inset 0 0 32px 1px rgba(51, 136, 255, 0.75), inset 0 0 16px 2px
+    #f3faff;
+  filter: blur(6px);
+  animation: mobile-preview-stream-water-flow 5s cubic-bezier(0.4, 0, 0.6, 1)
+    infinite;
+}
+
+@keyframes mobile-preview-stream-water-flow {
+  0%,
+  100% {
+    opacity: 0.88;
+    background-size: 10% 100%, 10% 100%, 100% 10%, 100% 10%;
+  }
+
+  50% {
+    opacity: 1;
+    background-size: 16% 100%, 16% 100%, 100% 16%, 100% 16%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mobile-preview-frame-viewport-active .scrcpy-panel-viewport-connected::after,
+  .mobile-preview-frame-viewport-active
+    .screenshot-viewer.screen-only
+    > .screenshot-content
+    > .screenshot-image-shell::after {
+    animation: none;
+  }
+}

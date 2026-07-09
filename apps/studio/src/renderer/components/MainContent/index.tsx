@@ -1,5 +1,6 @@
 import { PlaygroundPreview } from '@midscene/playground-app';
 import { getDebug } from '@midscene/shared/logger';
+import type { PlaygroundExecutionStatus } from '@midscene/visualizer';
 import type { StudioPlatformId } from '@shared/electron-contract';
 import {
   type ReactNode,
@@ -47,6 +48,11 @@ import {
 const debugWebNavigation = getDebug('studio:web-navigation', { console: true });
 const STUDIO_MODE_PANEL_WIDTH = 340;
 const noopStudioModeChange = () => {};
+const idleTimelineExecutionStatus: PlaygroundExecutionStatus = {
+  running: false,
+  stoppable: false,
+  stop: () => undefined,
+};
 
 export interface MainContentProps {
   activeView: ShellActiveView;
@@ -345,6 +351,8 @@ export default function MainContent({
   const [webIsLoading, setWebIsLoading] = useState(false);
   const [studioModeHeaderActions, setStudioModeHeaderActions] =
     useState<ReactNode>();
+  const [timelineExecutionStatus, setTimelineExecutionStatus] =
+    useState<PlaygroundExecutionStatus>(idleTimelineExecutionStatus);
   const setPendingCreatePlatform = onPendingCreatePlatformChange;
   const activeStudioMode = studioMode ?? StudioModeTab.Record;
   const syncStudioModeHeaderActions = useCallback(
@@ -418,6 +426,8 @@ export default function MainContent({
     isConnected,
     previewStatus,
   );
+  const previewBoundaryActive =
+    Boolean(recorder?.state.isRecording) || timelineExecutionStatus.running;
   const shouldPadDesktopPreview = shouldUseDesktopPreviewPadding(
     runtimeInfo,
     previewFormValues,
@@ -485,10 +495,26 @@ export default function MainContent({
     ConnectionStatus,
     { bg: string; fg: string; dot: string }
   > = {
-    connected: { bg: '#EAF7EE', fg: '#42B56C', dot: '#42B56C' },
-    connecting: { bg: '#EAF1FF', fg: '#1A79FF', dot: '#1A79FF' },
-    disconnected: { bg: '#ECECEC', fg: '#818283', dot: '#B6B6B6' },
-    failed: { bg: '#FDE7E7', fg: '#C0392B', dot: '#E53935' },
+    connected: {
+      bg: 'var(--midscene-status-pill-connected-bg)',
+      fg: '#42B56C',
+      dot: '#42B56C',
+    },
+    connecting: {
+      bg: 'var(--midscene-status-pill-connecting-bg)',
+      fg: '#1A79FF',
+      dot: '#1A79FF',
+    },
+    disconnected: {
+      bg: 'var(--midscene-status-pill-disconnected-bg)',
+      fg: '#818283',
+      dot: '#B6B6B6',
+    },
+    failed: {
+      bg: 'var(--midscene-status-pill-failed-bg)',
+      fg: '#C0392B',
+      dot: '#E53935',
+    },
   };
   const pillColors = pillPalette[connectionStatus];
   const selectedPreviewToolbarKey = activeStudioMode;
@@ -512,10 +538,26 @@ export default function MainContent({
       mode: StudioModeTab.Playground,
     },
   ];
-  const stopRecordingBeforeSessionDestroy = async () => {
+  const stopActiveTimelineExecution = async () => {
+    if (
+      !timelineExecutionStatus.running ||
+      !timelineExecutionStatus.stoppable
+    ) {
+      return;
+    }
+
+    try {
+      await timelineExecutionStatus.stop();
+    } catch (error) {
+      debugWebNavigation('failed to stop active timeline execution: %s', error);
+    }
+  };
+
+  const stopStudioActivityBeforeSessionDestroy = async () => {
     if (recorder?.state.isRecording) {
       await recorder.stopRecording();
     }
+    await stopActiveTimelineExecution();
   };
   const liveStatusPill = (
     <div className="app-no-drag group/disconnect-pill relative flex shrink-0 items-center">
@@ -529,7 +571,7 @@ export default function MainContent({
           }
 
           void (async () => {
-            await stopRecordingBeforeSessionDestroy();
+            await stopStudioActivityBeforeSessionDestroy();
             await studioPlayground.controller.actions.destroySession();
           })();
           // After tearing down the session, jump back to the Overview page so
@@ -661,6 +703,9 @@ export default function MainContent({
     try {
       if (actionType !== 'Stop') {
         setWebIsLoading(true);
+      }
+      if (actionType === 'Reload') {
+        await stopActiveTimelineExecution();
       }
       const result = await sdk.interact({
         actionType,
@@ -796,7 +841,7 @@ export default function MainContent({
             state.form.setFieldsValue(selectionValues);
             onSelectDeviceView?.();
             if (state.sessionViewState.connected) {
-              await stopRecordingBeforeSessionDestroy();
+              await stopStudioActivityBeforeSessionDestroy();
               await actions.destroySession();
             }
             await actions.createSession({
@@ -839,7 +884,7 @@ export default function MainContent({
             state.form.setFieldsValue(selectionValues);
             onSelectDeviceView?.();
             if (state.sessionViewState.connected) {
-              await stopRecordingBeforeSessionDestroy();
+              await stopStudioActivityBeforeSessionDestroy();
               await actions.destroySession();
             }
             await actions.createSession({
@@ -866,7 +911,7 @@ export default function MainContent({
             }
             state.form.setFieldsValue(selectionValues);
             if (state.sessionViewState.connected) {
-              await stopRecordingBeforeSessionDestroy();
+              await stopStudioActivityBeforeSessionDestroy();
               await actions.destroySession();
             }
             const sessionValues = {
@@ -881,7 +926,7 @@ export default function MainContent({
             }
             const { actions, state } = studioPlayground.controller;
             if (state.sessionViewState.connected) {
-              await stopRecordingBeforeSessionDestroy();
+              await stopStudioActivityBeforeSessionDestroy();
               await actions.destroySession();
             }
           }}
@@ -891,14 +936,14 @@ export default function MainContent({
   }
 
   return (
-    <div className="relative flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-[12px] bg-surface">
+    <div className="relative flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-[12px] bg-surface dark:bg-[#181818]">
       {/*
        * Device-preview top bar: icon + device name with ADB / Viewport meta
        * on the left, and a pill-shaped status/disconnect control on the
        * right that reveals a "Disconnect" tooltip on hover.
        */}
       <div
-        className="app-drag relative flex h-[52px] items-center justify-between border-b border-border-subtle bg-surface pl-[8px] pr-4"
+        className="app-drag relative flex h-[52px] items-center justify-between border-b border-border-subtle bg-surface pl-[8px] pr-4 dark:border-[#323131] dark:bg-[#181818]"
         style={
           titlebarInsetLeft > 0 ? { paddingLeft: titlebarInsetLeft } : undefined
         }
@@ -923,10 +968,7 @@ export default function MainContent({
               {liveStatusPill}
             </div>
             {previewHeaderSubInfo.length > 0 ? (
-              <span
-                className="flex items-center gap-[8px] text-[10px] leading-[12px] font-normal"
-                style={{ color: 'rgba(13, 13, 13, 0.5)' }}
-              >
+              <span className="flex items-center gap-[8px] text-[10px] leading-[12px] font-normal text-black/50 dark:text-white/50">
                 {previewHeaderSubInfo.map((item, index) => (
                   <span
                     key={item.key}
@@ -935,8 +977,7 @@ export default function MainContent({
                     {index > 0 ? (
                       <span
                         aria-hidden="true"
-                        className="h-[12px] w-px shrink-0"
-                        style={{ backgroundColor: 'rgba(0, 0, 0, 0.08)' }}
+                        className="h-[12px] w-px shrink-0 bg-[rgba(0,0,0,0.08)] dark:bg-white/[0.08]"
                       />
                     ) : null}
                     <span className="max-w-[220px] truncate" title={item.text}>
@@ -1016,7 +1057,7 @@ export default function MainContent({
         </div>
       </div>
 
-      <div className="relative min-h-0 flex-1 overflow-hidden bg-surface">
+      <div className="relative min-h-0 flex-1 overflow-hidden bg-surface dark:bg-[#181818]">
         <div
           className="box-border h-full min-w-0 overflow-hidden"
           style={{ paddingRight: STUDIO_MODE_PANEL_WIDTH }}
@@ -1024,6 +1065,7 @@ export default function MainContent({
           <MobilePreviewFrame
             aspectRatio={previewAspectRatio}
             enabled={shouldFrameMobilePreview}
+            highlightActive={previewBoundaryActive}
           >
             {studioPlayground.phase === 'booting' ? (
               <div className="flex h-full items-center justify-center px-6 text-[14px] text-text-tertiary">
@@ -1097,14 +1139,12 @@ export default function MainContent({
                     studioPlayground.controller.state.playgroundSDK
                   }
                   screenshotViewerMode="screen-only"
-                  scrcpyViewportStyle={
-                    shouldFrameMobilePreview
-                      ? {
-                          background: 'transparent',
-                          borderRadius: 0,
-                        }
-                      : undefined
-                  }
+                  scrcpyViewportStyle={{
+                    ...(shouldFrameMobilePreview
+                      ? { background: 'transparent' }
+                      : {}),
+                    borderRadius: 12,
+                  }}
                   runtimeInfo={studioPlayground.controller.state.runtimeInfo}
                   serverOnline={studioPlayground.controller.state.serverOnline}
                   serverUrl={studioPlayground.serverUrl}
@@ -1122,13 +1162,14 @@ export default function MainContent({
           </MobilePreviewFrame>
         </div>
         <div
-          className="absolute bottom-0 right-0 top-0 z-10 box-border flex min-h-0 flex-col overflow-hidden rounded-br-[12px] bg-surface p-[10px]"
+          className="absolute bottom-0 right-0 top-0 z-10 box-border flex min-h-0 flex-col overflow-hidden rounded-br-[12px] bg-transparent p-[10px]"
           style={{ width: STUDIO_MODE_PANEL_WIDTH }}
         >
           <StudioModePanel
             onHeaderChange={syncStudioModeHeaderActions}
             onOpenStudioRightPanel={onOpenStudioRightPanel}
             onStudioModeChange={handleStudioModeChange}
+            onTimelineExecutionStatusChange={setTimelineExecutionStatus}
             studioMode={activeStudioMode}
           />
         </div>

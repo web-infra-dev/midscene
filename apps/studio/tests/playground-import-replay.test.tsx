@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
   latestExternalRunRequest: null as any,
+  latestApiPlaygroundConfig: null as any,
   latestPlaygroundConfig: null as any,
   latestReplayExecutionConfig: null as any,
   latestReplayPanelProps: null as any,
@@ -28,8 +29,10 @@ vi.mock('antd', () => ({
 vi.mock('@midscene/playground-app', () => ({
   PlaygroundConversationPanel: ({ playgroundConfig }: any) => {
     mocks.latestPlaygroundConfig = playgroundConfig;
-    if (playgroundConfig.onExecutionStatusChange) {
+    if (playgroundConfig.hidePromptInput) {
       mocks.latestReplayExecutionConfig = playgroundConfig;
+    } else {
+      mocks.latestApiPlaygroundConfig = playgroundConfig;
     }
     if (playgroundConfig.externalRunRequest) {
       mocks.latestExternalRunRequest = playgroundConfig.externalRunRequest;
@@ -68,6 +71,12 @@ vi.mock('../src/renderer/components/StudioTimelinePanel', () => ({
     createElement('div', {
       'data-testid': 'studio-timeline-header',
     }),
+  StudioExecutionTimelinePanel: ({ children }: any) =>
+    createElement(
+      'section',
+      { 'data-testid': 'studio-execution-timeline-panel' },
+      children,
+    ),
   StudioTimelinePanel: ({ children }: any) =>
     createElement(
       'section',
@@ -213,6 +222,7 @@ async function renderReplayWithHeaderChange() {
 describe('Studio Playground imported replay', () => {
   beforeEach(() => {
     mocks.latestExternalRunRequest = null;
+    mocks.latestApiPlaygroundConfig = null;
     mocks.latestPlaygroundConfig = null;
     mocks.latestReplayExecutionConfig = null;
     mocks.latestReplayPanelProps = null;
@@ -348,7 +358,9 @@ describe('Studio Playground imported replay', () => {
     const { container, root } = await renderApiPlayground();
 
     expect(
-      container.querySelector('[data-testid="studio-timeline-panel"]'),
+      container.querySelector(
+        '[data-testid="studio-execution-timeline-panel"]',
+      ),
     ).not.toBeNull();
 
     await act(async () => {
@@ -414,6 +426,52 @@ describe('Studio Playground imported replay', () => {
     });
 
     expect(mocks.latestReplayPanelProps.activeSessionId).toBeNull();
+
+    await act(async () => {
+      root.unmount();
+    });
+  });
+
+  it('stops the running playground task before a replay task starts', async () => {
+    const session = {
+      createdAt: Date.now(),
+      events: [],
+      generatedCode: {
+        markdown: '# Recorded Replay',
+      },
+      id: 'session-preempt',
+      name: 'Navigate Midscene docs',
+      status: 'completed',
+      target,
+      updatedAt: Date.now(),
+    };
+    mocks.recorder = {
+      ...createRecorder(),
+      state: {
+        isRecording: false,
+        sessions: [session],
+      },
+    };
+    const stopPlayground = vi.fn(async () => undefined);
+    const { root } = await renderPlayground();
+
+    await act(async () => {
+      mocks.latestApiPlaygroundConfig.onExecutionStatusChange({
+        running: true,
+        stop: stopPlayground,
+        stoppable: true,
+      });
+    });
+
+    await act(async () => {
+      await mocks.latestReplayPanelProps.onReplaySession(session);
+    });
+
+    await act(async () => {
+      await mocks.latestReplayExecutionConfig.onBeforeExecutionStart();
+    });
+
+    expect(stopPlayground).toHaveBeenCalledTimes(1);
 
     await act(async () => {
       root.unmount();

@@ -227,7 +227,7 @@ describe('PlaygroundServer MJPEG streaming', () => {
     // Chromium's <img> with multipart/x-mixed-replace keeps the underlying
     // TCP connection alive even after the element is unmounted, never
     // sending FIN. To stop those zombie sockets from eating the per-origin
-    // connection pool, a new /mjpeg request destroys any existing
+    // connection pool, a new /mjpeg request gracefully ends any existing
     // subscriber responses for the same producer.
     const stop = vi.fn();
     let emitFrame:
@@ -270,8 +270,8 @@ describe('PlaygroundServer MJPEG streaming', () => {
 
       // Second mount on the same producer (e.g. user navigates back to the
       // device view, React StrictMode double-mount, retry timer) — the old
-      // subscriber's response is destroyed so its socket releases the
-      // Chromium connection-pool slot.
+      // subscriber's response is ended so its socket releases the Chromium
+      // connection-pool slot without poisoning the next request.
       await mjpegHandler(requestTwo, responseTwo);
       expect(startMjpegStream).toHaveBeenCalledTimes(1);
       expect(responseOne.ended).toBe(true);
@@ -297,6 +297,52 @@ describe('PlaygroundServer MJPEG streaming', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  test('GET /mjpeg gracefully ends subscriber when interface producer errors during streaming', async () => {
+    const stop = vi.fn();
+    let reportProducerError: ((error: unknown) => void) | undefined;
+    const startMjpegStream = vi.fn(async ({ onFrame, onError }) => {
+      reportProducerError = onError;
+      onFrame({
+        data: Buffer.from('frame-before-error').toString('base64'),
+        contentType: 'image/jpeg',
+      });
+      return { stop };
+    });
+
+    const server = new PlaygroundServer({
+      interface: {
+        interfaceType: 'web',
+        actionSpace: () => [],
+        screenshotBase64: async () => {
+          throw new Error('polling should not be used');
+        },
+        size: async () => ({ width: 800, height: 600 }),
+        startMjpegStream,
+      },
+    } as any);
+
+    await server.launch(6126);
+    const mjpegHandler = getRouteHandler(server, 'get', '/mjpeg');
+    const request = createMockRequest();
+    const response = createMockStreamResponse();
+
+    await mjpegHandler(request, response);
+    expect(
+      response.chunks.some(
+        (chunk) => chunk.toString() === 'frame-before-error',
+      ),
+    ).toBe(true);
+
+    reportProducerError?.(
+      new Error(
+        'Execution context was destroyed, most likely because of a navigation.',
+      ),
+    );
+
+    expect(response.ended).toBe(true);
+    expect(response.destroyed).toBe(false);
   });
 
   test('GET /mjpeg falls back to screenshot polling when producer startup fails', async () => {
