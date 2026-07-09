@@ -98,6 +98,12 @@ describe('usePlaygroundExecution stop handling', () => {
     let rejectRun: (error: Error) => void = () => undefined;
     let resolveCancel: (value: null) => void = () => undefined;
     let snapshot: HarnessSnapshot | null = null;
+    const getSnapshot = () => {
+      if (!snapshot) {
+        throw new Error('Harness snapshot is not ready');
+      }
+      return snapshot;
+    };
     const playgroundSDK = {
       cancelExecution: vi.fn(
         () =>
@@ -130,17 +136,17 @@ describe('usePlaygroundExecution stop handling', () => {
     });
 
     await act(async () => {
-      void snapshot?.handleRun({ prompt: 'Replay', type: 'aiAct' });
+      void getSnapshot().handleRun({ prompt: 'Replay', type: 'aiAct' });
     });
 
-    expect(snapshot?.loading).toBe(true);
+    expect(getSnapshot().loading).toBe(true);
 
     let stopPromise: Promise<void> | undefined;
     await act(async () => {
-      stopPromise = snapshot?.handleStop();
+      stopPromise = getSnapshot().handleStop();
     });
 
-    expect(snapshot?.loading).toBe(false);
+    expect(getSnapshot().loading).toBe(false);
 
     await act(async () => {
       rejectRun(new Error('Request was aborted'));
@@ -152,13 +158,13 @@ describe('usePlaygroundExecution stop handling', () => {
       await stopPromise;
     });
 
-    const renderedText = snapshot?.infoList
-      .map((item) => `${item.content} ${item.result?.error?.message ?? ''}`)
+    const renderedText = getSnapshot()
+      .infoList.map((item) => `${item.content} ${item.result?.error ?? ''}`)
       .join('\n');
     expect(renderedText).toContain('Operation stopped');
     expect(renderedText).not.toContain('Request was aborted');
     expect(
-      snapshot?.infoList.some(
+      getSnapshot().infoList.some(
         (item) => item.type === 'result' && item.result?.error,
       ),
     ).toBe(false);
@@ -172,6 +178,12 @@ describe('usePlaygroundExecution stop handling', () => {
     let rejectRun: (error: Error) => void = () => undefined;
     let resolveCancel: (value: null) => void = () => undefined;
     let snapshot: HarnessSnapshot | null = null;
+    const getSnapshot = () => {
+      if (!snapshot) {
+        throw new Error('Harness snapshot is not ready');
+      }
+      return snapshot;
+    };
     const playgroundSDK = {
       cancelExecution: vi.fn(
         () =>
@@ -204,12 +216,12 @@ describe('usePlaygroundExecution stop handling', () => {
     });
 
     await act(async () => {
-      void snapshot?.handleRun({ prompt: 'Replay', type: 'aiAct' });
+      void getSnapshot().handleRun({ prompt: 'Replay', type: 'aiAct' });
     });
 
     let cancelPromise: Promise<void> | undefined;
     await act(async () => {
-      cancelPromise = snapshot?.cancelCurrentExecution();
+      cancelPromise = getSnapshot().cancelCurrentExecution();
     });
 
     await act(async () => {
@@ -218,13 +230,13 @@ describe('usePlaygroundExecution stop handling', () => {
       await cancelPromise;
     });
 
-    const renderedText = snapshot?.infoList
-      .map((item) => `${item.content} ${item.result?.error?.message ?? ''}`)
+    const renderedText = getSnapshot()
+      .infoList.map((item) => `${item.content} ${item.result?.error ?? ''}`)
       .join('\n');
     expect(renderedText).not.toContain('Request was aborted');
     expect(renderedText).not.toContain('Operation stopped');
     expect(
-      snapshot?.infoList.some(
+      getSnapshot().infoList.some(
         (item) => item.type === 'result' && item.result?.error,
       ),
     ).toBe(false);
