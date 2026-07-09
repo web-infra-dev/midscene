@@ -2,7 +2,7 @@ import { execFileSync } from 'node:child_process';
 import type { UiNode } from '@midscene/core/device-cache';
 
 const MAX_OSASCRIPT_BUFFER = 16 * 1024 * 1024;
-const DARWIN_ACCESSIBILITY_TIMEOUT_MS = 5000;
+const DARWIN_ACCESSIBILITY_TIMEOUT_MS = 10000;
 
 const DARWIN_ACCESSIBILITY_TREE_SCRIPT = String.raw`
 function run() {
@@ -12,8 +12,8 @@ function run() {
     throw new Error('No frontmost application process');
   }
 
-  const MAX_DEPTH = 6;
-  const MAX_NODES = 800;
+  const MAX_DEPTH = 5;
+  const MAX_NODES = 300;
   const MAX_CHILDREN = 80;
   let nodeCount = 0;
 
@@ -98,15 +98,14 @@ function run() {
       'AXElement';
 
     pushAttr(attrs, 'AXRole', role);
-    pushAttr(attrs, 'AXSubrole', attr(element, 'AXSubrole'));
+    // Attribute value reads through System Events are expensive. Keep the
+    // payload focused on selector-worthy fields so cache lookup cannot stall
+    // standard AppKit apps such as Calculator.
     pushAttr(attrs, 'AXRoleDescription', attr(element, 'AXRoleDescription'));
     pushAttr(attrs, 'AXIdentifier', attr(element, 'AXIdentifier'));
     pushAttr(attrs, 'AXName', safe(function () { return element.name(); }));
-    pushAttr(attrs, 'AXTitle', attr(element, 'AXTitle'));
     pushAttr(attrs, 'AXDescription', safe(function () { return element.description(); }));
-    pushAttr(attrs, 'AXDescription', attr(element, 'AXDescription'));
-    pushAttr(attrs, 'AXValue', attr(element, 'AXValue'));
-    pushAttr(attrs, 'AXHelp', attr(element, 'AXHelp'));
+    pushAttr(attrs, 'AXValue', safe(function () { return element.value(); }));
 
     const position =
       pair(safe(function () { return element.position(); })) ||
