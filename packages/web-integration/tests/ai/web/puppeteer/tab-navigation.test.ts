@@ -83,19 +83,20 @@ describe(
       const htmlPath = getFixturePath('tab-navigation.html');
       const { originPage, reset } = await launchPage(`file://${htmlPath}`);
       ctx.resetFn = reset;
-      ctx.agent = new PuppeteerBrowserAgent(originPage.browser(), originPage);
+      const agent = new PuppeteerBrowserAgent(originPage.browser(), originPage);
+      ctx.agent = agent;
 
-      const popup = await ctx.agent.waitForNewPage(() =>
+      const popup = await agent.waitForNewPage(() =>
         originPage.click('#newTabLink'),
       );
       await popup.waitForSelector('.weather-container');
 
-      expect(ctx.agent.page.underlyingPage).toBe(originPage);
+      expect(agent.page.underlyingPage).toBe(originPage);
 
-      await ctx.agent.setActivePage(popup);
+      await agent.setActivePage(popup);
 
-      expect(ctx.agent.page.underlyingPage).toBe(popup);
-      await expect(ctx.agent.page.url()).resolves.toContain(
+      expect(agent.page.underlyingPage).toBe(popup);
+      await expect(agent.page.url()).resolves.toContain(
         'tab-navigation-target.html',
       );
     });
