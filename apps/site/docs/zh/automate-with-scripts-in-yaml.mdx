@@ -630,6 +630,11 @@ tasks:
         name: <name> # 可选，给断言一个名称，会在 JSON 输出中作为 key 使用
         observe: <observer-name> # 可选，基于已停止的观察器做断言，而不是当前屏幕
 
+      # `aiBoolean` 也可以基于观察窗口做判断。
+      - aiBoolean: <prompt>
+        name: <name> # 可选，给布尔结果一个名称，会在 JSON 输出中作为 key 使用
+        observe: <observer-name> # 可选，基于已停止的观察器做布尔查询，而不是当前屏幕
+
       # 屏幕观察
       # ----------------
 
@@ -639,14 +644,17 @@ tasks:
         maxFrames: <n>      # 可选，帧缓冲上限，默认 30
         watchdogMs: <ms>    # 可选，自动停止超时，默认 300000（5 分钟）
 
-      # 停止指定观察器。后续 aiAssert 如需使用 `observe`，必须先停止它。
+      # 停止指定观察器。后续 aiAssert 或 aiBoolean 如需使用 `observe`，必须先停止它。
       - stopObserving: <name>
 
-      # 示例：观察表单提交过程，并断言成功提示出现过
+      # 示例：观察表单提交过程，并断言/查询成功提示出现过
       # - startObserving: form-submit
       # - aiAct: 提交表单
       # - stopObserving: form-submit
       # - aiAssert: 出现了成功提示
+      #   observe: form-submit
+      # - aiBoolean: 是否出现了成功提示？
+      #   name: saw_success_toast
       #   observe: form-submit
 
       # 运行一个 Gherkin Scenario。此功能从 Midscene 1.10 开始支持，目前仍处于 Beta 阶段。
