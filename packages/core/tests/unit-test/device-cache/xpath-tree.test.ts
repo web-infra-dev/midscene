@@ -158,6 +158,32 @@ describe('generateXpathCandidates', () => {
     expect(evaluateXpath(root, xpaths[0])).toEqual([target]);
   });
 
+  it('prefers a smaller semantic target over a later fullscreen container', () => {
+    const target = node(
+      'Button',
+      { name: 'login' },
+      { left: 100, top: 100, width: 100, height: 50 },
+    );
+    const overlayContainer = node(
+      'Other',
+      { name: 'fullscreen container' },
+      { left: 0, top: 0, width: 1000, height: 1000 },
+    );
+    const root = win([target, overlayContainer]);
+
+    const xpaths = generateXpathCandidates(
+      root,
+      { x: 150, y: 125 },
+      {
+        stableAttrs: ['name'],
+        textAttrs: ['name'],
+      },
+    );
+
+    expect(xpaths[0]).toBe("//*[@name='login']");
+    expect(evaluateXpath(root, xpaths[0])).toEqual([target]);
+  });
+
   it('drops ambiguous stable-id candidates', () => {
     // two nodes share the same id; the id-based xpath would resolve to both,
     // so it must be dropped in favor of the positional fallback.

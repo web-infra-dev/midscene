@@ -18,8 +18,8 @@ import {
   defineActionsFromInputPrimitives,
 } from '@midscene/core/device';
 import {
-  findRectByXpath,
   generateXpathCandidates,
+  matchRectByXpathCache,
 } from '@midscene/core/device-cache';
 import { sleep } from '@midscene/core/utils';
 import { createImgBase64ByFormat } from '@midscene/shared/img';
@@ -1329,38 +1329,10 @@ $g.Dispose(); $bmp.Dispose(); $ms.Dispose()
       );
     }
 
-    const xpaths = Array.isArray((feature as { xpaths?: unknown }).xpaths)
-      ? ((feature as { xpaths: unknown[] }).xpaths.filter(
-          (x): x is string => typeof x === 'string' && x.length > 0,
-        ) as string[])
-      : [];
-    if (xpaths.length === 0) {
-      throw new Error('rectMatchesCacheFeature: no xpath in cache feature');
-    }
-
     const root = this.readDarwinAccessibilityTreeForCache();
-    for (const xpath of xpaths) {
-      try {
-        const rect = findRectByXpath(root, xpath);
-        if (rect && rect.width > 0 && rect.height > 0) {
-          debugDevice(
-            'rectMatchesCacheFeature: hit xpath %s -> %o',
-            xpath,
-            rect,
-          );
-          return rect;
-        }
-      } catch (error) {
-        debugDevice(
-          'rectMatchesCacheFeature: xpath %s failed: %s',
-          xpath,
-          error,
-        );
-      }
-    }
-    throw new Error(
-      `rectMatchesCacheFeature: no xpath matched (tried ${xpaths.length})`,
-    );
+    const { xpath, rect } = matchRectByXpathCache(root, feature);
+    debugDevice('rectMatchesCacheFeature: hit xpath %s -> %o', xpath, rect);
+    return rect;
   }
 
   /**

@@ -175,3 +175,59 @@ export function findRectByXpath(root: UiNode, xpath: string): Rect | undefined {
   const matches = evaluateXpath(root, xpath);
   return matches[0]?.bounds;
 }
+
+export interface XpathCacheMatch {
+  xpath: string;
+  rect: Rect;
+}
+
+function getCacheFeatureXpaths(feature: unknown): string[] {
+  const maybeXpaths = (feature as { xpaths?: unknown } | undefined)?.xpaths;
+  return Array.isArray(maybeXpaths)
+    ? maybeXpaths.filter(
+        (x): x is string => typeof x === 'string' && x.length > 0,
+      )
+    : [];
+}
+
+/**
+ * Resolve an xpath cache feature to a single, non-ambiguous rect. A cache entry
+ * that currently matches multiple nodes is treated as stale instead of using
+ * the first match, because repeated labels/resource ids in lists can otherwise
+ * send actions to the wrong element while still reporting `hitBy: Cache`.
+ */
+export function matchRectByXpathCache(
+  root: UiNode,
+  feature: unknown,
+): XpathCacheMatch {
+  const xpaths = getCacheFeatureXpaths(feature);
+  if (xpaths.length === 0) {
+    throw new Error('matchRectByXpathCache: no xpath in cache feature');
+  }
+
+  const misses: string[] = [];
+  for (const xpath of xpaths) {
+    let matches: UiNode[];
+    try {
+      matches = evaluateXpath(root, xpath);
+    } catch (error) {
+      misses.push(`${xpath} failed: ${error}`);
+      continue;
+    }
+
+    if (matches.length !== 1) {
+      misses.push(`${xpath} matched ${matches.length} node(s)`);
+      continue;
+    }
+
+    const rect = matches[0].bounds;
+    if (rect.width > 0 && rect.height > 0) {
+      return { xpath, rect };
+    }
+    misses.push(`${xpath} matched a zero-size node`);
+  }
+
+  throw new Error(
+    `matchRectByXpathCache: no unique xpath matched (tried ${xpaths.length}; ${misses.join('; ')})`,
+  );
+}

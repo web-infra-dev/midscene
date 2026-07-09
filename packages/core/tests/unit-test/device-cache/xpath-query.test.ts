@@ -1,4 +1,9 @@
-import { type UiNode, evaluateXpath, findRectByXpath } from '@/device-cache';
+import {
+  type UiNode,
+  evaluateXpath,
+  findRectByXpath,
+  matchRectByXpathCache,
+} from '@/device-cache';
 import { describe, expect, it } from 'vitest';
 
 const node = (
@@ -105,5 +110,69 @@ describe('findRectByXpath', () => {
   it('returns undefined when no node matches', () => {
     const root = node('Window', {});
     expect(findRectByXpath(root, '//Button')).toBeUndefined();
+  });
+});
+
+describe('matchRectByXpathCache', () => {
+  it('treats ambiguous xpath matches as cache misses and tries the next xpath', () => {
+    const first = node('Button', { name: 'same' }, [], {
+      left: 10,
+      top: 20,
+      width: 30,
+      height: 40,
+    });
+    const second = node('Button', { name: 'same' }, [], {
+      left: 60,
+      top: 20,
+      width: 30,
+      height: 40,
+    });
+    const root = node('Window', {}, [first, second]);
+
+    expect(
+      matchRectByXpathCache(root, {
+        xpaths: ["//Button[@name='same']", '/Window/Button[2]'],
+      }),
+    ).toEqual({
+      xpath: '/Window/Button[2]',
+      rect: {
+        left: 60,
+        top: 20,
+        width: 30,
+        height: 40,
+      },
+    });
+  });
+
+  it('throws when every xpath is missing, ambiguous, or zero-sized', () => {
+    const first = node('Button', { name: 'same' }, [], {
+      left: 10,
+      top: 20,
+      width: 30,
+      height: 40,
+    });
+    const second = node('Button', { name: 'same' }, [], {
+      left: 60,
+      top: 20,
+      width: 30,
+      height: 40,
+    });
+    const zeroSized = node('Button', { name: 'zero' }, [], {
+      left: 0,
+      top: 0,
+      width: 0,
+      height: 0,
+    });
+    const root = node('Window', {}, [first, second, zeroSized]);
+
+    expect(() =>
+      matchRectByXpathCache(root, {
+        xpaths: [
+          "//Button[@name='same']",
+          "//Button[@name='zero']",
+          '//Missing',
+        ],
+      }),
+    ).toThrow(/no unique xpath matched/);
   });
 });

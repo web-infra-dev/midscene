@@ -21,8 +21,8 @@ import {
   defineAction,
 } from '@midscene/core/device';
 import {
-  findRectByXpath,
   generateXpathCandidates,
+  matchRectByXpathCache,
 } from '@midscene/core/device-cache';
 import { getTmpFile, sleep } from '@midscene/core/utils';
 import type { ElementInfo } from '@midscene/shared/extractor';
@@ -461,39 +461,12 @@ export class HarmonyDevice implements AbstractInterface {
   }
 
   async rectMatchesCacheFeature(feature: ElementCacheFeature): Promise<Rect> {
-    const xpaths = Array.isArray((feature as { xpaths?: unknown }).xpaths)
-      ? ((feature as { xpaths: unknown[] }).xpaths.filter(
-          (x): x is string => typeof x === 'string' && x.length > 0,
-        ) as string[])
-      : [];
-    if (xpaths.length === 0) {
-      throw new Error('rectMatchesCacheFeature: no xpath in cache feature');
-    }
     const hdc = await this.getHdc();
     const json = await hdc.dumpLayout();
     const root = uitestJsonToUiNode(json);
-    for (const xpath of xpaths) {
-      try {
-        const rect = findRectByXpath(root, xpath);
-        if (rect && rect.width > 0 && rect.height > 0) {
-          debugDevice(
-            'rectMatchesCacheFeature: hit xpath %s -> %o',
-            xpath,
-            rect,
-          );
-          return rect;
-        }
-      } catch (error) {
-        debugDevice(
-          'rectMatchesCacheFeature: xpath %s failed: %s',
-          xpath,
-          error,
-        );
-      }
-    }
-    throw new Error(
-      `rectMatchesCacheFeature: no xpath matched (tried ${xpaths.length})`,
-    );
+    const { xpath, rect } = matchRectByXpathCache(root, feature);
+    debugDevice('rectMatchesCacheFeature: hit xpath %s -> %o', xpath, rect);
+    return rect;
   }
 
   async size(): Promise<Size> {
