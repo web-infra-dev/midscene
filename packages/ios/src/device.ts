@@ -9,6 +9,7 @@ import {
 } from '@midscene/core';
 import {
   type AbstractInterface,
+  type DeviceFrameSource,
   type IOSDeviceInputOpt,
   type IOSDeviceOpt,
   type MobileInputPrimitives,
@@ -24,6 +25,7 @@ import { getDebug } from '@midscene/shared/logger';
 import { normalizeForComparison } from '@midscene/shared/utils';
 import { WDAManager } from '@midscene/webdriver';
 import { IOSWebDriverClient as WebDriverAgentBackend } from './ios-webdriver-client';
+import { MjpegFrameSource } from './mjpeg-frame-source';
 
 // Re-export IOSDeviceOpt and IOSDeviceInputOpt for backward compatibility
 export type { IOSDeviceOpt, IOSDeviceInputOpt } from '@midscene/core/device';
@@ -49,6 +51,14 @@ export class IOSDevice implements AbstractInterface {
   private wdaManager: WDAManager;
   /** URL of WDA's native MJPEG server for real-time streaming */
   mjpegStreamUrl: string;
+  /** Lazily-started consumer of the WDA MJPEG stream, used by UI observation. */
+  private mjpegFrameSource: MjpegFrameSource | null = null;
+  /**
+   * Continuous frame-source capability for UI observation. Only wired up when
+   * the MJPEG frame source is opt-in enabled; otherwise left undefined so
+   * observers fall back to sequential screenshots.
+   */
+  openFrameSource?: AbstractInterface['openFrameSource'];
   private appNameMapping: Record<string, string> = {};
   interfaceType: InterfaceType = 'ios';
   uri: string | undefined;
@@ -232,6 +242,13 @@ export class IOSDevice implements AbstractInterface {
     });
     this.wdaManager = WDAManager.getInstance(wdaPort, wdaHost);
     this.mjpegStreamUrl = `http://${wdaHost}:${mjpegPort}`;
+
+    // Opt-in (default off), mirroring Android scrcpy: only expose the MJPEG
+    // frame-source capability when explicitly enabled. When off, UI observers
+    // fall back to sequential screenshotBase64() capture.
+    if (options?.wdaMjpegFrameSource?.enabled) {
+      this.openFrameSource = () => this.openMjpegFrameSource();
+    }
   }
 
   describe(): string {
@@ -423,6 +440,57 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
       debugDevice(`Screenshot failed: ${error}`);
       throw new Error(`Failed to take screenshot: ${error}`);
     }
+  }
+
+  /**
+   * Continuous frame source backed by WDA's MJPEG server. WDA's
+   * `takeScreenshot` is too slow (~250ms) to sample the screen densely, so
+   * observers pull the most recent frame from the continuously-running MJPEG
+   * stream instead — near-instant per grab. Frames are already JPEG data
+   * URLs, so `decode()` is a pass-through.
+   *
+   * Opt-in: only wired up as the `openFrameSource` capability (in the
+   * constructor) when `wdaMjpegFrameSource.enabled` is set, mirroring scrcpy.
+   * `stop()` tears the stream down so device-side encoding only runs while an
+   * observation window is open.
+   */
+  private async openMjpegFrameSource(): Promise<DeviceFrameSource> {
+    const source = await this.ensureMjpegFrameSource();
+    return {
+      latest: () => {
+        const frame = source.getLatest();
+        return frame
+          ? { ref: frame.base64, capturedAt: frame.capturedAt }
+          : null;
+      },
+      // MJPEG frames are already data URLs — no deferred decode cost on iOS.
+      decode: async (refs) => refs.map((frameRef) => frameRef.ref as string),
+      stop: () => {
+        source.stop();
+        if (this.mjpegFrameSource === source) {
+          this.mjpegFrameSource = null;
+        }
+      },
+    };
+  }
+
+  private async ensureMjpegFrameSource(): Promise<MjpegFrameSource> {
+    assert(
+      !this.destroyed,
+      `IOSDevice ${this.deviceId} has been destroyed and cannot stream frames`,
+    );
+    if (!this.mjpegFrameSource) {
+      this.mjpegFrameSource = new MjpegFrameSource(this.mjpegStreamUrl);
+    }
+    try {
+      await this.mjpegFrameSource.ensureStarted();
+    } catch (error) {
+      // Drop the failed source so a later call can retry from a clean state.
+      this.mjpegFrameSource.stop();
+      this.mjpegFrameSource = null;
+      throw error;
+    }
+    return this.mjpegFrameSource;
   }
 
   async clearInput(element?: ElementInfo): Promise<void> {
@@ -952,6 +1020,10 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
     }
 
     try {
+      // Stop the MJPEG frame source if it was started.
+      this.mjpegFrameSource?.stop();
+      this.mjpegFrameSource = null;
+
       // Delete WDA session
       await this.wdaBackend.deleteSession();
 

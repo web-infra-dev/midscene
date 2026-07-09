@@ -629,6 +629,9 @@ tasks:
         errorMessage: <error-message> # 可选，当断言失败时打印的错误信息。
         name: <name> # 可选，给断言一个名称，会在 JSON 输出中作为 key 使用
 
+      - aiBoolean: <prompt>
+        name: <name> # 可选，给布尔结果一个名称，会在 JSON 输出中作为 key 使用
+
       # 运行一个 Gherkin Scenario。此功能从 Midscene 1.10 开始支持，目前仍处于 Beta 阶段。
       - runGherkinScenario: |
           Scenario: 添加待办事项

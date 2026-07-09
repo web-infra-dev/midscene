@@ -950,6 +950,39 @@ expect(onesieItem.price).toBe(7.99);
 
 :::
 
+### `agent.startObserving()`
+
+Observe the screen over an explicit time window so a later assertion can judge everything that happened while other agent calls ran — including transient UI (toasts, banners, screen transitions) that a single screenshot would miss.
+
+```typescript
+function startObserving(options?: {
+  intervalMs?: number;  // sampling interval, default 1000ms, min 200ms (5fps)
+  maxFrames?: number;   // frame-buffer cap, default 30 (self-thinning when full)
+  watchdogMs?: number;  // auto-stop after this many ms if stop() is never called. Default 300000 (5 min). Set 0 to disable.
+}): Promise<UIObserver>;
+```
+
+The returned `UIObserver` provides:
+
+- `observer.stop(): Promise<void>` - Stop sampling and capture the final representative screenshot. Must be called before asserting.
+- `observer.aiAssert(assertion: string, msg?: string, opt?: Object): Promise<void>` - Assert against the observed window. All buffered frames (plus the representative) are sent to the model, and the assertion text determines whether the model should look for something that appeared at any point, the final state, or an ordered change.
+- `observer.aiBoolean(prompt: string, opt?: Object): Promise<boolean>` - Boolean query over the observed window.
+- `observer.frameCount: number` - Number of frames currently buffered.
+
+```typescript
+const observer = await agent.startObserving();
+await agent.aiAct('submit the form');
+await observer.stop();
+await observer.aiAssert('a success toast appeared during the process');
+```
+
+How it works and what it costs:
+
+- Frames come from the device's continuous frame source when available — scrcpy on Android (`scrcpyConfig.enabled`), WDA MJPEG on iOS (`wdaMjpegFrameSource.enabled`), CDP screencast on web (always available) — and fall back to plain screenshots per tick otherwise (much lower effective frame rate on mobile).
+- Sampling grabs cheap frame handles; any decode cost is paid once at assert time, only for the frames actually sent to the model.
+- All buffered frames (up to `maxFrames`, plus the final representative screenshot) are sent to the model so transient UI in long windows is not missed. To bound token cost, increase `intervalMs` (lower frame density) or decrease `maxFrames` (smaller buffer). The observed frames are shown in the report timeline with an `Observed` tag.
+- On iOS the observed frames come from the MJPEG stream (scaled, lower quality) while the final representative frame is a full-quality screenshot.
+
 ### `agent.aiLocate()`
 
 Locate an element using natural language.

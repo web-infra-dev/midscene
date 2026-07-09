@@ -18,6 +18,7 @@ import {
   type AbstractInterface,
   type AndroidDeviceInputOpt,
   type AndroidDeviceOpt,
+  type DeviceFrameSource,
   type MobileInputPrimitives,
   type PointerPoint,
   createDefaultMobileActions,
@@ -48,6 +49,7 @@ import {
   type DevicePhysicalInfo,
   ScrcpyDeviceAdapter,
 } from './scrcpy-device-adapter';
+import type { RawKeyframe } from './scrcpy-manager';
 
 // Re-export AndroidDeviceOpt and AndroidDeviceInputOpt for backward compatibility
 export type {
@@ -98,6 +100,13 @@ export class AndroidDevice implements AbstractInterface {
   private cachedOrientation: number | null = null;
   private cachedPhysicalDisplayId: string | null | undefined = undefined;
   private scrcpyAdapter: ScrcpyDeviceAdapter | null = null;
+  /**
+   * Continuous frame-source capability for UI observation, sourced from the
+   * scrcpy video stream. Only wired up when scrcpy is opt-in enabled (mirrors
+   * iOS WDA MJPEG); otherwise left undefined so observers fall back to
+   * sequential screenshots.
+   */
+  openFrameSource?: AbstractInterface['openFrameSource'];
   private appNameMapping: Record<string, string> = {};
   private cachedAdjustScale: { x: number; y: number } | null = null;
   private takeScreenshotFailCount = 0;
@@ -317,6 +326,13 @@ export class AndroidDevice implements AbstractInterface {
     this.deviceId = deviceId;
     this.options = options;
     this.customActions = options?.customActions;
+
+    // Opt-in (default off): only expose the scrcpy frame-source capability
+    // when scrcpy screenshots are explicitly enabled. When off, UI observers
+    // fall back to sequential screenshotBase64() capture.
+    if (options?.scrcpyConfig?.enabled) {
+      this.openFrameSource = () => this.openScrcpyFrameSource();
+    }
   }
 
   describe(): string {
@@ -471,6 +487,56 @@ ${Object.keys(size)
       );
     }
     return this.scrcpyAdapter;
+  }
+
+  /**
+   * Continuous frame source backed by the scrcpy video stream.
+   *
+   * Decoding H.264 to JPEG costs an ffmpeg process per frame (~100ms measured
+   * on-device), so `latest()` hands out RAW keyframe handles (near-zero cost —
+   * the stream is already flowing) and `decode()` pays the ffmpeg cost only
+   * for the frames the observer actually sampled, at the end of the window.
+   * Subscribing also keeps the scrcpy connection alive (each incoming frame
+   * resets the idle timer) for the whole observation window.
+   *
+   * Opt-in: only wired up as the `openFrameSource` capability (in the
+   * constructor) when `scrcpyConfig.enabled` is set. Throws if the stream is
+   * unavailable; observers fall back to sequential `screenshotBase64()`.
+   */
+  private async openScrcpyFrameSource(): Promise<DeviceFrameSource> {
+    const adapter = this.getScrcpyAdapter();
+    if (!adapter.isEnabled()) {
+      throw new Error('scrcpy is not available for frame observation');
+    }
+    const deviceInfo = await this.getDevicePhysicalInfo();
+
+    let latest: RawKeyframe | null = adapter.getLatestRawKeyframe();
+    const unsubscribe = await adapter.subscribeKeyframes(
+      deviceInfo,
+      (frame) => {
+        latest = frame;
+      },
+    );
+
+    return {
+      latest: () =>
+        latest ? { ref: latest, capturedAt: latest.capturedAt } : null,
+      decode: async (refs) => {
+        const images: string[] = [];
+        for (const frameRef of refs) {
+          images.push(
+            await adapter.decodeRawKeyframeToJpegBase64(
+              frameRef.ref as RawKeyframe,
+            ),
+          );
+        }
+        debugDevice(`frame source decoded ${images.length} raw keyframes`);
+        return images;
+      },
+      stop: () => {
+        unsubscribe();
+      },
+    };
   }
 
   /**

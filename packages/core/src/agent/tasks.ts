@@ -18,6 +18,7 @@ import type {
   AiActProgressData,
   AiActProgressPhase,
   DeviceAction,
+  ExecutionRecorderItem,
   ExecutionTask,
   ExecutionTaskApply,
   ExecutionTaskInsightQueryApply,
@@ -928,6 +929,10 @@ export class TaskExecutor {
             applyDump(error.dump);
           }
           throw error;
+        } finally {
+          // Surface the captured screenshot sequence in the report, then release
+          // it from the UIContext so its base64 is not retained twice.
+          recordAndReleaseScreenshotSequence(task, uiContext);
         }
 
         const { data, thought, dump } = extractResult;
@@ -981,6 +986,7 @@ export class TaskExecutor {
     multimodalPrompt?: TMultimodalPrompt,
     executionOptions?: {
       abortSignal?: AbortSignal;
+      uiContext?: UIContext;
     },
   ): Promise<ExecutionResult<T>> {
     const session = this.createExecutionSession(
@@ -988,6 +994,9 @@ export class TaskExecutor {
         type,
         typeof demand === 'string' ? demand : JSON.stringify(demand),
       ),
+      executionOptions?.uiContext
+        ? { uiContext: executionOptions.uiContext }
+        : undefined,
     );
 
     const queryTask = await this.createTypeQueryTask(
@@ -1101,6 +1110,53 @@ export class TaskExecutor {
     }
 
     return session.appendErrorPlan(`waitFor timeout: ${errorThought}`);
+  }
+}
+
+/**
+ * Surface a captured screenshot sequence in the report timeline, then release
+ * it from the UIContext.
+ *
+ * When a UIObserver assertion runs, the observed frames live on
+ * `uiContext.screenshotSequence` only as a transient model input. This attaches
+ * them to the task recorder so the report renders the full sequence the model
+ * saw (the report timeline builds one screenshot per recorder item), then drops
+ * the field from the UIContext so its base64 is not retained twice for the
+ * lifetime of the dump.
+ *
+ * The last frame is the representative `uiContext.screenshot`, already shown in
+ * the report, so only the earlier frames are recorded to avoid duplication.
+ * Observed frames are PREPENDED to `task.recorder` (rather than appended) so
+ * array order matches chronological order — they were captured before the
+ * assertion's before/after screenshots.
+ */
+export function recordAndReleaseScreenshotSequence(
+  task: ExecutionTask,
+  uiContext: UIContext | undefined,
+): void {
+  const frames = uiContext?.screenshotSequence;
+  if (frames && frames.length > 1) {
+    const recorderItems: ExecutionRecorderItem[] = [];
+    for (let i = 0; i < frames.length - 1; i++) {
+      const frame = frames[i];
+      recorderItems.push({
+        type: 'screenshot',
+        ts: frame.capturedAt,
+        screenshot: frame,
+        description: `Observed frame ${i + 1}/${frames.length}`,
+        timing: 'observed-frame',
+      });
+    }
+    // Prepend observed frames so they appear before the task's own
+    // before/after screenshots in array order. Observed frames have earlier
+    // timestamps than the assertion task itself, so this keeps array order
+    // aligned with chronological order for consumers that iterate in-place.
+    task.recorder = task.recorder
+      ? [...recorderItems, ...task.recorder]
+      : recorderItems;
+  }
+  if (uiContext?.screenshotSequence) {
+    uiContext.screenshotSequence = undefined;
   }
 }
 

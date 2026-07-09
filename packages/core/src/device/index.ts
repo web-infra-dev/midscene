@@ -37,6 +37,36 @@ export interface MjpegStreamOptions {
   onError?(error: unknown): void;
 }
 
+/**
+ * A cheap, not-yet-decoded handle to one screen frame from a
+ * {@link DeviceFrameSource}. `ref` is platform-specific (a raw H.264 keyframe
+ * buffer on Android, an already-encoded JPEG data URL on iOS/web) and must not
+ * be interpreted by callers — pass it back to `decode()` to materialize.
+ */
+export interface DeviceFrameRef {
+  ref: unknown;
+  capturedAt: number;
+}
+
+/**
+ * A continuous screen-frame source opened via
+ * {@link AbstractInterface.openFrameSource}. Designed for deferred decoding:
+ * grabbing `latest()` is near-zero cost, so observers can sample at a steady
+ * cadence and pay any decode cost only once, for the frames they keep.
+ */
+export interface DeviceFrameSource {
+  /** Latest frame handle, near-zero cost. Null until the first frame arrives. */
+  latest(): DeviceFrameRef | null;
+  /**
+   * Materialize frame handles into `data:image/...;base64,` URLs, preserving
+   * order. Possibly expensive (e.g. one ffmpeg run per unique frame on
+   * Android) — call once with the sampled handles, never per tick.
+   */
+  decode(refs: DeviceFrameRef[]): Promise<string[]>;
+  /** Release the source (stop streams/subscriptions it started). */
+  stop(): Promise<void> | void;
+}
+
 /** A point in device-pixel coordinates on the screen. */
 export interface PointerPoint {
   x: number;
@@ -179,6 +209,20 @@ export abstract class AbstractInterface {
 
   /** URL of native MJPEG stream for real-time screen preview (e.g. WDA MJPEG server) */
   mjpegStreamUrl?: string;
+
+  /**
+   * Optional continuous frame source for UI observation (`startObserving`).
+   * Devices that maintain a continuous frame stream — scrcpy on Android, WDA
+   * MJPEG on iOS, CDP screencast on web — implement this so an observer can
+   * sample the screen far faster than repeated `screenshotBase64()` calls,
+   * catching short-lived UI (toasts, carousels, transitions).
+   *
+   * The contract enables DEFERRED decoding: `latest()` returns a cheap opaque
+   * handle (e.g. a raw H.264 keyframe on Android) with no per-frame decode
+   * cost, and `decode()` materializes only the handles that were actually
+   * sampled — once, at the end of the observation window.
+   */
+  openFrameSource?(): Promise<DeviceFrameSource | undefined>;
 
   /**
    * Optional in-process MJPEG frame producer. Implementations can push raw

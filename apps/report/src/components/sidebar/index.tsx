@@ -23,6 +23,7 @@ import {
 import {
   hasDeepLocateFlag,
   hasDeepThinkFlag,
+  hasObserverAssertionFlag,
 } from '../../utils/report-task-tags';
 import { anchorIdForTask } from '../../utils/task-anchor';
 import ReportOverview from '../report-overview';
@@ -240,6 +241,23 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
         }}
       >
         DeepThink
+      </Tag>
+    ) : null;
+  };
+
+  const getObservedTag = (task: ExecutionTaskWithSearchAreaUsage) => {
+    return hasObserverAssertionFlag(task) ? (
+      <Tag
+        className="observed-tag"
+        bordered={false}
+        style={{
+          padding: '0 4px',
+          marginLeft: '4px',
+          marginRight: 0,
+          lineHeight: '16px',
+        }}
+      >
+        Observed
       </Tag>
     ) : null;
   };
@@ -621,6 +639,7 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
             {getDeepLocateTag(task)}
             {getXPathTag(task)}
             {getDeepThinkTag(task)}
+            {getObservedTag(task)}
           </div>
         );
       }
