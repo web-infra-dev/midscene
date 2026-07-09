@@ -1644,15 +1644,18 @@ ${Object.keys(size)
       IME_STRATEGY === IME_STRATEGY_ALWAYS_YADB ||
       (IME_STRATEGY === IME_STRATEGY_YADB_FOR_NON_ASCII &&
         this.shouldUseYadbForText(text));
-    const useYadb = !isNonDefaultDisplay && needsYadb;
 
     if (isNonDefaultDisplay && needsYadb) {
-      warnDevice(
-        `Text requires yadb (non-ASCII or shell-special characters) but yadb cannot target non-default displays. Falling back to \`input text\` on displayId=${this.options?.displayId}; some characters may be lost or corrupted.`,
+      const reason =
+        IME_STRATEGY === IME_STRATEGY_ALWAYS_YADB
+          ? `imeStrategy 'always-yadb' requires yadb`
+          : 'text contains characters that require yadb (non-ASCII, format specifiers, or mixed quotes)';
+      throw new Error(
+        `${reason}, but yadb (app_process) cannot target non-default displayId=${this.options?.displayId}. Use displayId=0 or a different imeStrategy.`,
       );
     }
 
-    if (useYadb) {
+    if (needsYadb) {
       // yadb handles newlines natively: escapeForShell converts \n (0x0A)
       // to literal \n (two chars), which yadb interprets back as newline.
       // Single adb call for the entire text.

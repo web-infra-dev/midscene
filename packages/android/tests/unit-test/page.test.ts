@@ -2362,6 +2362,58 @@ Stdout:
         );
         expect(pinchCall).toBeUndefined();
       });
+
+      it('should throw when typeText needs yadb on a non-default display', async () => {
+        // yadb (app_process) cannot target non-default displays. When text
+        // requires yadb (always-yadb strategy or auto-detected incompatible
+        // chars), we must throw rather than silently corrupt the input.
+        deviceWithDisplay = new AndroidDevice('test-device', {
+          displayId: 2,
+          imeStrategy: 'always-yadb',
+        });
+
+        setupMockAdb(mockAdbInstance);
+
+        vi.spyOn(deviceWithDisplay, 'getAdb').mockResolvedValue(
+          mockAdbInstance as any,
+        );
+        vi.spyOn(deviceWithDisplay as any, 'ensureYadb').mockResolvedValue(
+          undefined,
+        );
+        (deviceWithDisplay as any).devicePixelRatio = 1;
+
+        await expect(
+          deviceWithDisplay.inputPrimitives.keyboard.typeText('hello'),
+        ).rejects.toThrow(/cannot target non-default display/);
+
+        // No input or yadb command should have been issued.
+        const textCalls = mockAdbInstance.shell.mock.calls.filter(
+          (call: unknown[]) =>
+            typeof call[0] === 'string' &&
+            (call[0].includes('input text') || call[0].includes('yadb')),
+        );
+        expect(textCalls).toHaveLength(0);
+      });
+
+      it('should throw when typeText auto-detects yadb need on non-default display', async () => {
+        // Even without always-yadb, non-ASCII text auto-detects yadb. On a
+        // non-default display this must throw, not silently fall back.
+        deviceWithDisplay = new AndroidDevice('test-device', {
+          displayId: 2,
+          imeStrategy: 'yadb-for-non-ascii',
+        });
+
+        setupMockAdb(mockAdbInstance);
+
+        vi.spyOn(deviceWithDisplay, 'getAdb').mockResolvedValue(
+          mockAdbInstance as any,
+        );
+        (deviceWithDisplay as any).devicePixelRatio = 1;
+
+        await expect(
+          deviceWithDisplay.inputPrimitives.keyboard.typeText('你好'),
+        ).rejects.toThrow(/cannot target non-default display/);
+      });
     });
 
     it('should not include display argument in shell commands when displayId is not set', async () => {
