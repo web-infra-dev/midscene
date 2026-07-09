@@ -1281,7 +1281,6 @@ ${Object.keys(size)
     }
 
     const adb = await this.getAdb();
-    const displayArg = this.getDisplayArg();
     const isNonDefaultDisplay =
       typeof this.options?.displayId === 'number' &&
       this.options.displayId !== 0;
@@ -1622,7 +1621,6 @@ ${Object.keys(size)
     options?: AndroidDeviceInputOpt,
   ): Promise<void> {
     if (!text) return;
-    const adb = await this.getAdb();
     const IME_STRATEGY =
       (this.options?.imeStrategy ||
         globalConfigManager.getEnvConfigValue(MIDSCENE_ANDROID_IME_STRATEGY)) ??
@@ -1633,8 +1631,9 @@ ${Object.keys(size)
       options?.keyboardTypeDelay ?? this.options?.keyboardTypeDelay;
 
     // yadb (app_process) cannot target a non-default display. If a displayId
-    // other than 0 is configured, force the `input text` path so text lands
-    // on the correct screen instead of silently appearing on the main display.
+    // other than 0 is configured and the text requires yadb, we throw rather
+    // than silently falling back to `input text` (which would corrupt the
+    // content or land it on the wrong screen).
     const isNonDefaultDisplay =
       typeof this.options?.displayId === 'number' &&
       this.options.displayId !== 0;
