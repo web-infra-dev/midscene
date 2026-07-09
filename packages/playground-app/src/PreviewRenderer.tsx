@@ -293,6 +293,15 @@ export function PreviewRenderer({
       if (!res.ok) {
         showManualControlError('Tap failed', res.error);
       }
+      // On Windows, a native Computer Target tap can shift OS keyboard focus to
+      // the foreground window on the second monitor, silencing keydown events in
+      // the Studio renderer. Ask the main process to reclaim focus so the
+      // Recorder's keyboard listener stays active. No-op outside Electron.
+      (
+        window as {
+          electronShell?: { focusWindow?: () => Promise<void> };
+        }
+      ).electronShell?.focusWindow?.();
     },
     [
       enqueueManualControl,

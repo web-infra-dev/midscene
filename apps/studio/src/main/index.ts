@@ -435,6 +435,9 @@ const createMainWindow = () => {
 };
 
 const registerIpcHandlers = () => {
+  ipcMain.handle(IPC_CHANNELS.focusWindow, () => {
+    mainWindow?.focus();
+  });
   ipcMain.handle(IPC_CHANNELS.minimizeWindow, () => {
     mainWindow?.minimize();
   });
