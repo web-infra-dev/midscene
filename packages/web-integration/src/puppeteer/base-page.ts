@@ -811,8 +811,8 @@ export class Page<
 
   get keyboard() {
     return {
-      type: async (text: string, delay?: number) => {
-        const effectiveDelay = delay ?? this.keyboardTypeDelay;
+      type: async (text: string, options?: { delay?: number }) => {
+        const effectiveDelay = options?.delay ?? this.keyboardTypeDelay;
         debugPage(
           `keyboard type ${text}${effectiveDelay !== undefined ? ` (delay: ${effectiveDelay}ms)` : ''}`,
         );

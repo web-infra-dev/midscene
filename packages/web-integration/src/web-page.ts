@@ -355,7 +355,7 @@ export interface MouseAction {
 }
 
 export interface KeyboardAction {
-  type: (text: string) => Promise<void>;
+  type: (text: string, options?: { delay?: number }) => Promise<void>;
   press: (
     action:
       | { key: KeyInput; command?: string }
@@ -400,7 +400,7 @@ export abstract class AbstractWebPage extends AbstractInterface {
 
   get keyboard(): KeyboardAction {
     return {
-      type: async (text: string) => {},
+      type: async (text: string, options?: { delay?: number }) => {},
       press: async (
         action:
           | { key: KeyInput; command?: string }
@@ -491,7 +491,11 @@ export function createWebInputPrimitives(
           return;
         }
 
-        await page.keyboard.type(value, opts?.keyboardTypeDelay);
+        const keyboardTypeOptions =
+          opts?.keyboardTypeDelay === undefined
+            ? undefined
+            : { delay: opts.keyboardTypeDelay };
+        await page.keyboard.type(value, keyboardTypeOptions);
         scheduleVisualUpdate();
       },
       keyboardPress: async (keyName, opts) => {
