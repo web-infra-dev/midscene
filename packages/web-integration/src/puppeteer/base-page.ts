@@ -811,12 +811,14 @@ export class Page<
 
   get keyboard() {
     return {
-      type: async (text: string) => {
-        const delay = this.keyboardTypeDelay;
+      type: async (text: string, options?: { delay?: number }) => {
+        const effectiveDelay = options?.delay ?? this.keyboardTypeDelay;
         debugPage(
-          `keyboard type ${text}${delay !== undefined ? ` (delay: ${delay}ms)` : ''}`,
+          `keyboard type ${text}${effectiveDelay !== undefined ? ` (delay: ${effectiveDelay}ms)` : ''}`,
         );
-        return this.underlyingPage.keyboard.type(text, { delay });
+        return this.underlyingPage.keyboard.type(text, {
+          delay: effectiveDelay,
+        });
       },
       press: async (
         action:

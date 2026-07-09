@@ -304,6 +304,26 @@ export class IOSWebDriverClient extends WebDriverClient {
     }
   }
 
+  /**
+   * Send raw key events without trimming whitespace.
+   * Unlike typeText(), this preserves spaces and newlines.
+   * Used by the per-character typing delay path where each character
+   * must be delivered exactly as-is.
+   */
+  async typeRawKeys(chars: string[]): Promise<void> {
+    this.ensureSession();
+
+    try {
+      await this.makeRequest('POST', `/session/${this.sessionId}/wda/keys`, {
+        value: chars,
+      });
+      debugIOS(`Sent raw keys: ${JSON.stringify(chars)}`);
+    } catch (error) {
+      debugIOS(`Failed to send raw keys ${JSON.stringify(chars)}: ${error}`);
+      throw new Error(`Failed to send keys: ${error}`);
+    }
+  }
+
   async typeText(text: string): Promise<void> {
     this.ensureSession();
 

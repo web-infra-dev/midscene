@@ -316,6 +316,7 @@ function aiInput(
     xpath?: string;
     cacheable?: boolean;
     autoDismissKeyboard?: boolean;
+    keyboardTypeDelay?: number;
     mode?: 'replace' | 'clear' | 'typeOnly';
   },
 ): Promise<void>;
@@ -341,6 +342,7 @@ function aiInput(
     - `xpath?: string` - The xpath of the element to operate. If provided, Midscene will first use this xpath to locate the element before using the cache and the AI model. Empty by default.
     - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
     - `autoDismissKeyboard?: boolean` - If true, the keyboard will be dismissed after input text, only available in Android/iOS/HarmonyOS. (Default: true)
+    - `keyboardTypeDelay?: number` - Delay in milliseconds between keystrokes when typing text. When set, text is typed one character at a time with this delay between each character. Useful when input fields drop characters under fast typing.
     - `mode?: 'replace' | 'clear' | 'typeOnly'` - Input mode. (Default: 'replace')
       - `'replace'`: Clear the input field first, then input the text.
       - `'typeOnly'`: Type the value directly without clearing the field first.

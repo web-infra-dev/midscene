@@ -309,6 +309,7 @@ function aiInput(
     xpath?: string;
     cacheable?: boolean;
     autoDismissKeyboard?: boolean;
+    keyboardTypeDelay?: number;
     mode?: 'replace' | 'clear' | 'typeOnly';
   },
 ): Promise<void>;
@@ -334,6 +335,7 @@ function aiInput(
     - `xpath?: string` - 目标元素的 xpath 路径，用于执行当前操作。如果提供了这个 xpath，Midscene 会优先使用该 xpath 来找到元素，然后依次使用缓存和 AI 模型。默认值为空
     - `cacheable?: boolean` - 当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 true
     - `autoDismissKeyboard?: boolean` - 如果为 true，则键盘会在输入文本后自动关闭，仅在 Android/iOS/HarmonyOS 中有效。默认值为 true。
+    - `keyboardTypeDelay?: number` - 输入文本时每个按键之间的延迟（毫秒）。设置后，文本将逐字符输入，每个字符之间等待指定的延迟。适用于输入框在快速输入下丢字的场景。
     - `mode?: 'replace' | 'clear' | 'typeOnly'` - 输入模式。(默认值: 'replace')
       - `'replace'`: 先清空输入框，然后输入文本。
       - `'typeOnly'`: 直接输入文本，不会先清空输入框。

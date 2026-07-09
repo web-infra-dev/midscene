@@ -102,6 +102,7 @@ export interface KeyboardInputPrimitives {
     opts?: {
       autoDismissKeyboard?: boolean;
       keyboardDismissStrategy?: 'esc-first' | 'back-first';
+      keyboardTypeDelay?: number;
       target?: unknown;
       replace?: boolean;
       focusOnly?: boolean;
@@ -468,12 +469,19 @@ export const actionInputParamSchema = z.object({
     .describe(
       'If true, the keyboard will be dismissed after the input is completed. Do not set it unless the user asks you to do so.',
     ),
+  keyboardTypeDelay: z
+    .number()
+    .optional()
+    .describe(
+      'Delay in milliseconds between keystrokes when typing. Passed through from device/user configuration. Do not set it unless the user asks you to do so.',
+    ),
 });
 export type ActionInputParam = {
   value: string;
   locate?: LocateResultElement;
   mode?: 'replace' | 'clear' | 'typeOnly' | 'append';
   autoDismissKeyboard?: boolean;
+  keyboardTypeDelay?: number;
 };
 
 export const defineActionInput = (
@@ -507,6 +515,7 @@ export const defineActionInput = (
         target: param.locate,
         replace: param.mode !== 'typeOnly',
         autoDismissKeyboard: param.autoDismissKeyboard,
+        keyboardTypeDelay: param.keyboardTypeDelay,
       });
     },
   });
