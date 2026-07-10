@@ -6,12 +6,16 @@ import { processCacheConfig } from '@midscene/core/utils';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 // Mock the global config manager to control environment variables
-vi.mock('@midscene/shared/env', () => ({
-  MIDSCENE_CACHE: 'MIDSCENE_CACHE',
-  globalConfigManager: {
-    getEnvConfigInBoolean: vi.fn(),
-  },
-}));
+vi.mock('@midscene/shared/env', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@midscene/shared/env')>();
+  return {
+    ...actual,
+    MIDSCENE_CACHE: 'MIDSCENE_CACHE',
+    globalConfigManager: {
+      getEnvConfigInBoolean: vi.fn(),
+    },
+  };
+});
 
 // Mock dependencies
 vi.mock('node:fs', () => ({
@@ -31,10 +35,14 @@ vi.mock('@midscene/core/yaml', async (importOriginal) => {
   };
 });
 
-vi.mock('@midscene/core/agent', () => ({
-  createAgent: vi.fn(),
-  getReportFileName: vi.fn((tag: string) => `${tag}-mock-report`),
-}));
+vi.mock('@midscene/core/agent', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@midscene/core/agent')>();
+  return {
+    ...actual,
+    createAgent: vi.fn(),
+    getReportFileName: vi.fn((tag: string) => `${tag}-mock-report`),
+  };
+});
 
 vi.mock('@midscene/android', () => ({
   agentFromAdbDevice: vi.fn(),
