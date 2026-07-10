@@ -1,4 +1,9 @@
-import { PlaywrightAgent, type PlaywrightWebPage } from '@/playwright/index';
+import { resolveBrowserAgentRuntimeOptions } from '@/common/browser-agent';
+import {
+  PlaywrightAgent,
+  PlaywrightBrowserAgent,
+  type PlaywrightWebPage,
+} from '@/playwright/index';
 import type { WebPageAgentOpt } from '@/web-element';
 import type { Cache } from '@midscene/core';
 import type { Agent as PageAgent } from '@midscene/core/agent';
@@ -65,12 +70,14 @@ export type PlaywrightAiFixtureOptions = Omit<
   | 'reportFileName'
   | 'cache'
 > & {
+  autoFollowNewPage?: boolean;
   cache?: PlaywrightCache;
 };
 
 export const PlaywrightAiFixture = (options?: PlaywrightAiFixtureOptions) => {
   const {
     forceSameTabNavigation = true,
+    autoFollowNewPage = false,
     waitForNetworkIdleTimeout = DEFAULT_WAIT_FOR_NETWORK_IDLE_TIMEOUT,
     waitForNavigationTimeout = DEFAULT_WAIT_FOR_NAVIGATION_TIMEOUT,
     cache,
@@ -143,17 +150,41 @@ export const PlaywrightAiFixture = (options?: PlaywrightAiFixtureOptions) => {
       // them here for the report tag only.
       const reportTag = `playwright-${title.replace(/[\\/]/g, '-')}-${idForPage}`;
 
-      const agent = new PlaywrightAgent(page, {
+      if (autoFollowNewPage && forceSameTabNavigation === true) {
+        throw new Error(
+          '[midscene] autoFollowNewPage cannot be used with forceSameTabNavigation: true.',
+        );
+      }
+
+      const runtimeOptions = resolveBrowserAgentRuntimeOptions({
+        agentName: 'PlaywrightAiFixture',
+        pageScope: autoFollowNewPage ? 'browser' : 'page',
+        forceSameTabNavigation: autoFollowNewPage
+          ? undefined
+          : forceSameTabNavigation,
+        autoFollowNewPage,
+      });
+
+      const commonAgentOpts = {
         testId: reportTag,
         reportFileName: reportTag,
-        forceSameTabNavigation,
         cache: cacheConfig,
         groupName: title,
         groupDescription: file,
         generateReport: true,
         ...sharedAgentOptions,
         ...opts,
-      });
+      };
+
+      const agent = autoFollowNewPage
+        ? new PlaywrightBrowserAgent(page.context(), page, {
+            ...commonAgentOpts,
+            autoFollowNewPage: runtimeOptions.autoFollowNewPage,
+          })
+        : new PlaywrightAgent(page, {
+            ...commonAgentOpts,
+            forceSameTabNavigation: runtimeOptions.forceSameTabNavigation,
+          });
       pageAgentMap[idForPage] = agent;
       const records = getAgentRecordsForTest(testInfo);
       const record: AgentRecord = { agent };

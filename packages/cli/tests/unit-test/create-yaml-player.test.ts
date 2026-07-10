@@ -6,12 +6,16 @@ import { processCacheConfig } from '@midscene/core/utils';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 // Mock the global config manager to control environment variables
-vi.mock('@midscene/shared/env', () => ({
-  MIDSCENE_CACHE: 'MIDSCENE_CACHE',
-  globalConfigManager: {
-    getEnvConfigInBoolean: vi.fn(),
-  },
-}));
+vi.mock('@midscene/shared/env', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@midscene/shared/env')>();
+  return {
+    ...actual,
+    MIDSCENE_CACHE: 'MIDSCENE_CACHE',
+    globalConfigManager: {
+      getEnvConfigInBoolean: vi.fn(),
+    },
+  };
+});
 
 // Mock dependencies
 vi.mock('node:fs', () => ({
@@ -22,15 +26,23 @@ vi.mock('http-server', () => ({
   createServer: vi.fn(),
 }));
 
-vi.mock('@midscene/core/yaml', () => ({
-  ScriptPlayer: vi.fn(),
-  parseYamlScript: vi.fn(),
-}));
+vi.mock('@midscene/core/yaml', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@midscene/core/yaml')>();
+  return {
+    ...actual,
+    ScriptPlayer: vi.fn(),
+    parseYamlScript: vi.fn(),
+  };
+});
 
-vi.mock('@midscene/core/agent', () => ({
-  createAgent: vi.fn(),
-  getReportFileName: vi.fn((tag: string) => `${tag}-mock-report`),
-}));
+vi.mock('@midscene/core/agent', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@midscene/core/agent')>();
+  return {
+    ...actual,
+    createAgent: vi.fn(),
+    getReportFileName: vi.fn((tag: string) => `${tag}-mock-report`),
+  };
+});
 
 vi.mock('@midscene/android', () => ({
   agentFromAdbDevice: vi.fn(),
@@ -169,6 +181,105 @@ describe('create-yaml-player', () => {
         mockFilePath,
       );
       expect(result).toBe(mockPlayer);
+    });
+
+    test('should pass explicit page target to puppeteer launcher', async () => {
+      const mockScript: MidsceneYamlScript = {
+        page: {
+          url: 'http://example.com',
+        },
+        tasks: [],
+      };
+      const mockAgent = { destroy: vi.fn() };
+      let setupFnCallback: (() => Promise<any>) | undefined;
+
+      vi.mocked(puppeteerAgentForTarget).mockResolvedValue({
+        agent: mockAgent as any,
+        freeFn: [],
+      });
+      vi.mocked(ScriptPlayer).mockImplementation((script, setupFn) => {
+        setupFnCallback = setupFn as () => Promise<any>;
+        return {
+          addCleanup: vi.fn(),
+        } as unknown as ScriptPlayer<MidsceneYamlScriptEnv>;
+      });
+
+      await createYamlPlayer(mockFilePath, mockScript);
+      await setupFnCallback?.();
+
+      expect(puppeteerAgentForTarget).toHaveBeenCalledWith(
+        expect.objectContaining({
+          mode: 'page',
+          url: 'http://example.com',
+        }),
+        expect.any(Object),
+        undefined,
+        undefined,
+      );
+    });
+
+    test('should pass explicit browser target to puppeteer launcher', async () => {
+      const mockScript: MidsceneYamlScript = {
+        browser: {
+          url: 'http://example.com',
+          autoFollowNewPage: true,
+        },
+        tasks: [],
+      };
+      const mockAgent = { destroy: vi.fn() };
+      let setupFnCallback: (() => Promise<any>) | undefined;
+
+      vi.mocked(puppeteerAgentForTarget).mockResolvedValue({
+        agent: mockAgent as any,
+        freeFn: [],
+      });
+      vi.mocked(ScriptPlayer).mockImplementation((script, setupFn) => {
+        setupFnCallback = setupFn as () => Promise<any>;
+        return {
+          addCleanup: vi.fn(),
+        } as unknown as ScriptPlayer<MidsceneYamlScriptEnv>;
+      });
+
+      await createYamlPlayer(mockFilePath, mockScript);
+      await setupFnCallback?.();
+
+      expect(puppeteerAgentForTarget).toHaveBeenCalledWith(
+        expect.objectContaining({
+          mode: 'browser',
+          url: 'http://example.com',
+          autoFollowNewPage: true,
+        }),
+        expect.any(Object),
+        undefined,
+        undefined,
+      );
+    });
+
+    test('should reject conflicting web targets during setup', async () => {
+      const mockScript: MidsceneYamlScript = {
+        page: {
+          url: 'http://example.com/page',
+        },
+        browser: {
+          url: 'http://example.com/browser',
+        },
+        tasks: [],
+      };
+      let setupFnCallback: (() => Promise<any>) | undefined;
+
+      vi.mocked(ScriptPlayer).mockImplementation((script, setupFn) => {
+        setupFnCallback = setupFn as () => Promise<any>;
+        return {
+          addCleanup: vi.fn(),
+        } as unknown as ScriptPlayer<MidsceneYamlScriptEnv>;
+      });
+
+      await createYamlPlayer(mockFilePath, mockScript);
+
+      expect(setupFnCallback).toBeDefined();
+      await expect(setupFnCallback!()).rejects.toThrow(
+        'Only one web target can be specified',
+      );
     });
 
     test('should create player with bridge mode configuration', async () => {
