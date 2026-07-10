@@ -17,7 +17,7 @@ import {
 import {
   type AbstractInterface,
   type AndroidDeviceInputOpt,
-  type AndroidDeviceOpt,
+  type AndroidDeviceOpt as CoreAndroidDeviceOpt,
   type DeviceFrameSource,
   type MobileInputPrimitives,
   type PointerPoint,
@@ -51,11 +51,13 @@ import {
 } from './scrcpy-device-adapter';
 import type { RawKeyframe } from './scrcpy-manager';
 
-// Re-export AndroidDeviceOpt and AndroidDeviceInputOpt for backward compatibility
-export type {
-  AndroidDeviceOpt,
-  AndroidDeviceInputOpt,
-} from '@midscene/core/device';
+export type AndroidDeviceOpt = CoreAndroidDeviceOpt & {
+  /** Expose RunAdbShell in the Android action space. Defaults to true. */
+  useRunAdbShellAction?: boolean;
+};
+
+// Re-export AndroidDeviceInputOpt for backward compatibility
+export type { AndroidDeviceInputOpt } from '@midscene/core/device';
 
 // only for Android, because it's impossible to scroll to the bottom, so we need to set a default scroll times
 const defaultScrollUntilTimes = 10;
@@ -292,9 +294,17 @@ export class AndroidDevice implements AbstractInterface {
     ];
 
     const platformSpecificActions = Object.values(createPlatformActions(this));
-
     const customActions = this.customActions || [];
-    return [...defaultActions, ...platformSpecificActions, ...customActions];
+    return [
+      ...defaultActions,
+      ...platformSpecificActions,
+      ...customActions,
+    ].filter(
+      (action) =>
+        this.options?.useRunAdbShellAction !== false ||
+        (action.name !== 'RunAdbShell' &&
+          action.interfaceAlias !== 'runAdbShell'),
+    );
   }
 
   private async performActionScroll(param: ActionScrollParam): Promise<void> {
