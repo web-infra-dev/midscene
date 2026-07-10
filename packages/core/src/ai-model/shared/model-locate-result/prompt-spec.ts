@@ -2,8 +2,8 @@ import type {
   LocateResultBbox,
   LocateResultPromptSpec,
   NonEmptyArray,
-} from '../shared/model-locate-result';
-import type { ResolvedLocateResultCoordinates } from '../shared/model-locate-result/types';
+  ResolvedLocateResultCoordinates,
+} from './types';
 
 function describeLocateResultCoordinates({
   shape,
