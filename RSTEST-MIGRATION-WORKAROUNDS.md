@@ -122,7 +122,7 @@ Affected files (all use a jsdom docblock + render React):
 
 ---
 
-## 5. Files handed to `page.evaluate` are excluded from istanbul coverage
+## 5. Closures handed to `page.evaluate` break istanbul coverage
 
 - **rstest issue:** https://github.com/web-infra-dev/rstest/issues/1543 (asks
   for an actionable hint on this failure; not a functional fix). The coverage
@@ -131,20 +131,27 @@ Affected files (all use a jsdom docblock + render React):
   worker at `pool.maxWorkers: 1`; see commit that added the istanbul provider
   and web-infra-dev/rstest#1524). **Do not switch the provider back to `v8`.**
 - **Symptom:** under `test:coverage`, `ReferenceError: cov_… is not defined`
-  thrown from `src/puppeteer/base-page.ts:140` (and timing-skew failures in
-  race-sensitive puppeteer tests).
+  thrown from a `src/puppeteer/base-page.ts` `page.evaluate` call site (and
+  timing-skew failures in race-sensitive puppeteer tests).
 - **Root cause:** istanbul instruments source by injecting a module-scoped
   `cov_*()` counter into every function. `base-page.ts` hands closures to
   Puppeteer/Playwright `page.evaluate`, which serializes them via `toString()`
   and runs them in the browser realm — where `cov_*` does not exist.
-- **Workaround:** add the offending file to `coverage.exclude` in
-  `scripts/rstest-coverage.ts` (excluded files are not instrumented). Currently
-  `**/puppeteer/base-page.ts` — the only file in the repo that passes inline
-  closures to `.evaluate(`. Add more entries if new such files appear.
-- **Revert when:** the istanbul provider makes an instrumented function's
-  `toString()` return the original (un-instrumented) source, so serialized
-  closures no longer carry `cov_*`. Then drop the exclude entry to restore
-  coverage measurement of `base-page.ts`.
+- **Workaround:** put a `/* istanbul ignore next -- closure is serialized to the
+  browser realm via page.evaluate … */` comment on each statement that passes an
+  inline closure to `.evaluate(`. istanbul then skips instrumenting only that
+  closure subtree, so the rest of `base-page.ts` (~1360 lines of Node-side
+  logic) stays measured. This is surgical on purpose: an earlier attempt added
+  the whole file to `coverage.exclude`, which dropped ~15% of the package's
+  coverage. Do **not** re-add a whole-file exclude. If a *new* file starts
+  passing inline closures to `.evaluate(`, annotate its closures the same way.
+  There are currently 10 such call sites in `base-page.ts`
+  (`grep -n "istanbul ignore next -- closure is serialized" …`).
+- **Revert when:** the istanbul provider (`swc-plugin-coverage-instrument`)
+  makes an instrumented function's `toString()` return the original
+  (un-instrumented) source, or offers a realm-safe counter reference, so
+  serialized closures no longer carry `cov_*`. Then drop the
+  `/* istanbul ignore next */` comments.
 
 ---
 

@@ -19,12 +19,6 @@ export function createCoverageConfig(projectDir: string) {
       '**/node_modules/**',
       '**/tests/**',
       '**/__tests__/**',
-      // Do not instrument files that hand closures to `page.evaluate`. The
-      // istanbul provider rewrites those closures to reference a module-scoped
-      // `cov_*` counter; Puppeteer/Playwright serialize the closure and run it
-      // in the browser realm where `cov_*` is undefined, throwing
-      // "ReferenceError: cov_… is not defined". See RSTEST-MIGRATION-WORKAROUNDS.md.
-      '**/puppeteer/base-page.ts',
     ],
   };
 }
