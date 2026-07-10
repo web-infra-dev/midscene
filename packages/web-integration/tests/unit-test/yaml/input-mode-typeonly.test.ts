@@ -49,7 +49,7 @@ describe('Input action typeOnly mode', () => {
     expect(keyboardPressMock).not.toHaveBeenCalled();
 
     // Verify: keyboard.type should be called with the value
-    expect(keyboardTypeMock).toHaveBeenCalledWith('new text');
+    expect(keyboardTypeMock).toHaveBeenCalledWith('new text', undefined);
   });
 
   test('replace mode should clear input', async () => {
@@ -91,7 +91,7 @@ describe('Input action typeOnly mode', () => {
     expect(mouseClickMock).not.toHaveBeenCalled();
 
     // Verify: keyboard.type should be called
-    expect(keyboardTypeMock).toHaveBeenCalledWith('replaced text');
+    expect(keyboardTypeMock).toHaveBeenCalledWith('replaced text', undefined);
   });
 
   test('clear mode should only clear without typing', async () => {

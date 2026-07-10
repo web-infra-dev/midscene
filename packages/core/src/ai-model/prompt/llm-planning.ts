@@ -286,13 +286,13 @@ export async function systemPromptToTaskPlanning({
     3,
   );
 
-  const thoughtTag = (content: string) =>
-    shouldIncludeThought ? `<thought>${content}</thought>\n` : '';
+  const planningTag = (content: string) =>
+    shouldIncludeThought ? `<planning>${content}</planning>\n` : '';
 
   // Sub-goals related content - only included when shouldIncludeSubGoals is true
   const step1Title = shouldIncludeSubGoals
-    ? '## Step 1: Observe and Plan (related tags: <thought>, <update-plan-content>, <mark-sub-goal-done>)'
-    : '## Step 1: Observe (related tags: <thought>)';
+    ? '## Step 1: Observe and Plan (related tags: <planning>, <update-plan-content>, <mark-sub-goal-done>)'
+    : '## Step 1: Observe (related tags: <planning>)';
 
   const step1Description = shouldIncludeSubGoals
     ? "First, observe the current screenshot and previous logs, then break down the user's instruction into multiple high-level sub-goals. Update the status of sub-goals based on what you see in the current screenshot."
@@ -300,15 +300,15 @@ export async function systemPromptToTaskPlanning({
 
   const explicitInstructionRule = `CRITICAL - Following Explicit Instructions: When the user gives you specific operation steps (not high-level goals), you MUST execute ONLY those exact steps - nothing more, nothing less. Do NOT add extra actions even if they seem logical. For example: "fill out the form" means only fill fields, do NOT submit; "click the button" means only click, do NOT wait for page load or verify results; "type 'hello'" means only type, do NOT press Enter.`;
 
-  const thoughtTagDescription = shouldIncludeSubGoals
-    ? `REQUIRED: You MUST always output the <thought> tag. Never skip it.
+  const planningTagDescription = shouldIncludeSubGoals
+    ? `REQUIRED: You MUST always output the <planning> tag. Never skip it.
 
-Include your thought process in the <thought> tag. It should answer: What is the user's requirement? What is the current state based on the screenshot? Are all sub-goals completed? If not, what should be the next action? Write your thoughts naturally without numbering or section headers.
+Include your planning details in the <planning> tag. It should answer: What is the user's requirement? What is the current state based on the screenshot? Are all sub-goals completed? If not, what should be the next action? Write it naturally without numbering or section headers.
 
 ${explicitInstructionRule}`
-    : `REQUIRED: You MUST always output the <thought> tag. Never skip it.
+    : `REQUIRED: You MUST always output the <planning> tag. Never skip it.
 
-Include your thought process in the <thought> tag. It should answer: What is the current state based on the screenshot? What should be the next action? Write your thoughts naturally without numbering or section headers.
+Include your planning details in the <planning> tag. It should answer: What is the current state based on the screenshot? What should be the next action? Write it naturally without numbering or section headers.
 
 ${explicitInstructionRule}`;
 
@@ -343,7 +343,7 @@ During execution, you can call <update-plan-content> at any time to update the p
 
 If the user wants to "log in to a system using username and password, complete all to-do items, and submit a registration form", you can break it down into the following sub-goals:
 
-<thought>...</thought>
+<planning>...</planning>
 <update-plan-content>
   <sub-goal index="1" status="pending">Log in to the system</sub-goal>
   <sub-goal index="2" status="pending">Complete all to-do items</sub-goal>
@@ -384,9 +384,9 @@ ${step1Title}
 
 ${step1Description}
 ${shouldIncludeSubGoals ? `\n${OBSERVE_STEP_NOTES}\n` : ''}
-* <thought> tag (REQUIRED)
+* <planning> tag (REQUIRED)
 
-${thoughtTagDescription}
+${planningTagDescription}
 ${subGoalTags}
 ${
   shouldIncludeSubGoals
@@ -541,7 +541,7 @@ Return in XML format following this decision flow:
 
 **Always include (REQUIRED):**
 <!-- Step 1: Observe${shouldIncludeSubGoals ? ' and Plan' : ''} -->
-<thought>Your thought process here. NEVER skip this tag.</thought>
+<planning>Your planning details here. NEVER skip this tag.</planning>
 ${
   shouldIncludeSubGoals
     ? `
@@ -590,7 +590,7 @@ Below is an example of a multi-turn conversation for "fill out the registration 
 **Screenshot:** [Shows a registration form with empty Name and Email fields]
 
 **Your response:**
-<thought>The user wants me to fill out the registration form with specific values and return the email address. I can see the form has two fields: Name and Email. Both are currently empty. I'll break this down into sub-goals and start with the Name field. Note: The instruction is to fill the form only (not submit), and return the email at the end.</thought>
+<planning>The user wants me to fill out the registration form with specific values and return the email address. I can see the form has two fields: Name and Email. Both are currently empty. I'll break this down into sub-goals and start with the Name field. Note: The instruction is to fill the form only (not submit), and return the email at the end.</planning>
 <update-plan-content>
   <sub-goal index="1" status="pending">Fill in the Name field with 'John'</sub-goal>
   <sub-goal index="2" status="pending">Fill in the Email field with 'john@example.com'</sub-goal>
@@ -620,7 +620,7 @@ Actions performed for current sub-goal:
 **Screenshot:** [Shows the form with Name field now focused/active]
 
 **Your response:**
-<thought>The Name field is now focused. I need to type 'John' into this field. Current sub-goal is running, will be completed after input.</thought>
+<planning>The Name field is now focused. I need to type 'John' into this field. Current sub-goal is running, will be completed after input.</planning>
 <log>Typing 'John' into the Name field</log>
 <action-type>Input</action-type>
 <action-param-json>
@@ -646,7 +646,7 @@ Actions performed for current sub-goal:
 **Screenshot:** [Shows the form with Name field containing 'John']
 
 **Your response:**
-<thought>The Name field now shows 'John'. Sub-goal 1 is complete. Next, I need to fill the Email field for sub-goal 2.</thought>
+<planning>The Name field now shows 'John'. Sub-goal 1 is complete. Next, I need to fill the Email field for sub-goal 2.</planning>
 <mark-sub-goal-done>
   <sub-goal index="1" status="finished" />
 </mark-sub-goal-done>
@@ -675,7 +675,7 @@ Actions performed for current sub-goal:
 **Screenshot:** [Shows the form with Name='John' and Email field focused]
 
 **Your response:**
-<thought>The Email field is now focused. I'll enter 'john@example.com'. After this, sub-goal 2 will be complete and my task will be done.</thought>
+<planning>The Email field is now focused. I'll enter 'john@example.com'. After this, sub-goal 2 will be complete and my task will be done.</planning>
 <log>Typing email address into the Email field</log>
 <action-type>Input</action-type>
 <action-param-json>
@@ -701,7 +701,7 @@ Actions performed for current sub-goal:
 **Screenshot:** [Shows the form with Name='John' and Email='john@example.com']
 
 **Your response:**
-<thought>Both fields are now filled: Name shows 'John' and Email shows 'john@example.com'. Sub-goal 2 is complete. The user asked me to return the filled email address, so I need to include 'john@example.com' in my response. All sub-goals are now finished.</thought>
+<planning>Both fields are now filled: Name shows 'John' and Email shows 'john@example.com'. Sub-goal 2 is complete. The user asked me to return the filled email address, so I need to include 'john@example.com' in my response. All sub-goals are now finished.</planning>
 <mark-sub-goal-done>
   <sub-goal index="2" status="finished" />
   <sub-goal index="3" status="finished" />
@@ -721,7 +721,7 @@ Below is an example of a multi-turn conversation for "fill out the registration 
 **Screenshot:** [Shows a registration form with empty Name and Email fields]
 
 **Your response:**
-<thought>The user wants me to fill out the registration form with specific values and return the email address. I can see the form has two fields: Name and Email. Both are currently empty. I should start by clicking on the Name field. Note: The instruction is to fill the form only (not submit), and return the email at the end.</thought>
+<planning>The user wants me to fill out the registration form with specific values and return the email address. I can see the form has two fields: Name and Email. Both are currently empty. I should start by clicking on the Name field. Note: The instruction is to fill the form only (not submit), and return the email at the end.</planning>
 <log>Click on the Name field to start filling the form</log>
 <action-type>Tap</action-type>
 <action-param-json>
@@ -738,7 +738,7 @@ The previous action has been executed, here is the latest screenshot. Please con
 **Screenshot:** [Shows the form with Name field now focused/active]
 
 **Your response:**
-<thought>The Name field is now focused. I need to type 'John' into this field. After this, I'll need to fill the Email field as well.</thought>
+<planning>The Name field is now focused. I need to type 'John' into this field. After this, I'll need to fill the Email field as well.</planning>
 <log>Typing 'John' into the Name field</log>
 <action-type>Input</action-type>
 <action-param-json>
@@ -755,7 +755,7 @@ The previous action has been executed, here is the latest screenshot. Please con
 **Screenshot:** [Shows the form with Name field containing 'John']
 
 **Your response:**
-<thought>The Name field now shows 'John'. Next, I need to fill the Email field with 'john@example.com'. I'll click on the Email field first.</thought>
+<planning>The Name field now shows 'John'. Next, I need to fill the Email field with 'john@example.com'. I'll click on the Email field first.</planning>
 <log>Moving to the Email field</log>
 <action-type>Tap</action-type>
 <action-param-json>
@@ -772,7 +772,7 @@ The previous action has been executed, here is the latest screenshot. Please con
 **Screenshot:** [Shows the form with Name='John' and Email field focused]
 
 **Your response:**
-<thought>The Email field is now focused. I'll enter 'john@example.com'. After this, both required fields will be filled and my task will be complete.</thought>
+<planning>The Email field is now focused. I'll enter 'john@example.com'. After this, both required fields will be filled and my task will be complete.</planning>
 <log>Typing email address into the Email field</log>
 <action-type>Input</action-type>
 <action-param-json>
@@ -789,7 +789,7 @@ The previous action has been executed, here is the latest screenshot. Please con
 **Screenshot:** [Shows the form with Name='John' and Email='john@example.com']
 
 **Your response:**
-<thought>Both fields are now filled: Name shows 'John' and Email shows 'john@example.com'. The user asked me to return the filled email address, so I should include 'john@example.com' in my response. The instruction has been fulfilled.</thought>
+<planning>Both fields are now filled: Name shows 'John' and Email shows 'john@example.com'. The user asked me to return the filled email address, so I should include 'john@example.com' in my response. The instruction has been fulfilled.</planning>
 <complete success="true">john@example.com</complete>
 `
 }`;

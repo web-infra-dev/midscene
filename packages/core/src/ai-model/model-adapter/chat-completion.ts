@@ -1,8 +1,7 @@
 import type {
   ChatCompletionAdapter,
   ChatCompletionCallContext,
-  ChatCompletionContentSource,
-  ContentAndReasoning,
+  ExtractContentAndReasoning,
   MidsceneChatCompletionDefaults,
   ModelAdapterDefinition,
 } from './types';
@@ -22,25 +21,42 @@ const midsceneChatCompletionDefaults: MidsceneChatCompletionDefaults = {
   temperature: 0,
 };
 
-export function defaultExtractContentAndReasoning(
-  message: ChatCompletionContentSource | undefined,
-): ContentAndReasoning {
-  if (!message) {
+function createDefaultExtractContentAndReasoning(
+  reasoningContentKeys: string[],
+): ExtractContentAndReasoning {
+  return (message) => {
+    if (!message) {
+      return {
+        content: '',
+        reasoning_content: '',
+      };
+    }
+
+    const messageRecord = message as Record<string, unknown>;
+    const rawReasoning = reasoningContentKeys
+      .map((key) => messageRecord[key])
+      .find((value) => typeof value === 'string');
+    const messageReasoning =
+      typeof rawReasoning === 'string' ? rawReasoning : '';
+
     return {
-      content: '',
-      reasoning_content: '',
+      content: typeof message.content === 'string' ? message.content : '',
+      reasoning_content: messageReasoning,
     };
+  };
+}
+
+function resolveExtractContentAndReasoning(
+  chatCompletion: ModelAdapterDefinition['chatCompletion'],
+): ExtractContentAndReasoning {
+  const messageExtraction = chatCompletion?.messageExtraction;
+  if (messageExtraction?.kind === 'custom') {
+    return messageExtraction.extractContentAndReasoning;
   }
 
-  const messageReasoning =
-    typeof message.reasoning_content === 'string'
-      ? message.reasoning_content
-      : '';
-
-  return {
-    content: typeof message.content === 'string' ? message.content : '',
-    reasoning_content: messageReasoning,
-  };
+  return createDefaultExtractContentAndReasoning(
+    messageExtraction?.reasoningContentKeys ?? ['reasoning_content'],
+  );
 }
 
 export function resolveChatCompletion(
@@ -52,8 +68,9 @@ export function resolveChatCompletion(
     chatCompletion?.resolveImageDetail ?? defaultImageDetail;
   const unsupportedUserConfig = chatCompletion?.unsupportedUserConfig ?? [];
   const extractContentAndReasoning =
-    chatCompletion?.extractContentAndReasoning ??
-    defaultExtractContentAndReasoning;
+    resolveExtractContentAndReasoning(chatCompletion);
+  const useReasoningAsContentFallback =
+    chatCompletion?.useReasoningAsContentFallback ?? false;
 
   return {
     unsupportedUserConfig,
@@ -72,5 +89,6 @@ export function resolveChatCompletion(
         midsceneDefaults: midsceneChatCompletionDefaults,
       }),
     extractContentAndReasoning,
+    useReasoningAsContentFallback,
   };
 }

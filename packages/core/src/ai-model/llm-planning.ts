@@ -33,7 +33,10 @@ export function parseXMLPlanningResponse(
   xmlString: string,
   jsonParser: JsonParser,
 ): RawResponsePlanningAIResponse {
-  const thought = extractXMLTag(xmlString, 'thought');
+  // Use <planning> instead of <thought> to avoid colliding with Gemini thought
+  // summaries, which may also be emitted as <thought> in OpenAI-compatible
+  // response content.
+  const thought = extractXMLTag(xmlString, 'planning');
   const memory = extractXMLTag(xmlString, 'memory');
   const log = extractXMLTag(xmlString, 'log') || '';
   const error = extractXMLTag(xmlString, 'error');

@@ -1,10 +1,11 @@
 import { notification } from 'antd';
+import type { ReactNode } from 'react';
 
 export interface NotifyErrorOptions {
   /** Short, descriptive label rendered as the toast title. */
   title?: string;
   /** Custom body text; defaults to the normalized error message. */
-  description?: string;
+  description?: ReactNode;
   /** Seconds before auto-dismiss. Mirrors antd's default of 4.5. */
   duration?: number;
 }

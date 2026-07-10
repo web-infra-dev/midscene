@@ -8,7 +8,7 @@
 
 - `Tap` —— 点击元素。
 - `DoubleClick` —— 双击元素。
-- `Input` —— 输入文本，支持 `replace`/`typeOnly`/`clear` 模式（`append` 是 `typeOnly` 的已废弃别名）。支持可选参数 `autoDismissKeyboard`。
+- `Input` —— 输入文本，支持 `replace`/`typeOnly`/`clear` 模式（`append` 是 `typeOnly` 的已废弃别名）。支持可选参数 `autoDismissKeyboard` 和 `keyboardTypeDelay`。
 - `Scroll` —— 以元素为起点或从屏幕中央向上/下/左/右滚动，支持滚动到顶/底/左/右。
 - `DragAndDrop` —— 从一个元素拖拽到另一个元素。
 - `KeyboardPress` —— 按下指定键位。
@@ -46,6 +46,7 @@ const device = new AndroidDevice(deviceId, {
 - `deviceId: string` —— 来自 `adb devices` 或 `getConnectedDevices()` 的值。
 - `autoDismissKeyboard?: boolean` —— 输入完成后自动隐藏键盘，默认 `true`。
 - `keyboardDismissStrategy?: 'esc-first' | 'back-first'` —— 关闭键盘的顺序，默认 `'esc-first'`。
+- `keyboardTypeDelay?: number` —— 输入文本时每个按键之间的延迟（毫秒）。设置后，文本将逐字符输入，每个字符之间等待指定的延迟，而不是一次性发送整串文本。适用于输入过快导致丢字的设备或输入框。仅对 `input text` 路径生效；使用 yadb 时忽略此选项。
 - `androidAdbPath?: string` —— adb 可执行文件的自定义路径。
 - `remoteAdbHost?: string` / `remoteAdbPort?: number` —— 指向远程 adb server。
 - `imeStrategy?: 'always-yadb' | 'yadb-for-non-ascii'` —— 控制何时调用 [yadb](https://github.com/ysbing/YADB) 进行文本输入，默认 `'yadb-for-non-ascii'`。

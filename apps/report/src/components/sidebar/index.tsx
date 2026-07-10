@@ -1,6 +1,8 @@
 import './index.less';
 import { useAllCurrentTasks, useExecutionDump } from '@/components/store';
+import { CopyOutlined, DownloadOutlined } from '@ant-design/icons';
 import type { AIUsageInfo, ExecutionTask } from '@midscene/core';
+import { deriveTaskStatus } from '@midscene/core';
 import { typeStr } from '@midscene/core/agent';
 import {
   type AnimationScript,
@@ -8,17 +10,24 @@ import {
   iconForStatus,
   timeCostStrElement,
 } from '@midscene/visualizer';
-import { Checkbox, Tag, Tooltip } from 'antd';
+import { Alert, Button, Checkbox, Tag, Tooltip } from 'antd';
 import { useEffect, useMemo } from 'react';
 import CameraIcon from '../../icons/camera.svg?react';
 import MessageIcon from '../../icons/message.svg?react';
 import PlayIcon from '../../icons/play.svg?react';
-import type { PlaywrightTasks } from '../../types';
+import type { PlaywrightTasks, ReportViewMode } from '../../types';
+import {
+  type MarkdownView,
+  markdownZipDownloadTooltip,
+} from '../../utils/markdown-export';
 import {
   hasDeepLocateFlag,
   hasDeepThinkFlag,
+  hasObserverAssertionFlag,
 } from '../../utils/report-task-tags';
+import { anchorIdForTask } from '../../utils/task-anchor';
 import ReportOverview from '../report-overview';
+import MarkdownSource from './markdown-source';
 
 // Extended task type with searchAreaUsage
 type ExecutionTaskWithSearchAreaUsage = ExecutionTask & {
@@ -40,6 +49,13 @@ interface SidebarProps {
   replayAllScripts?: AnimationScript[] | null;
   replayAllMode?: boolean;
   setReplayAllMode?: (mode: boolean) => void;
+  reportViewMode?: ReportViewMode;
+  reportMarkdownView?: MarkdownView | null;
+  onMarkdownImageClick?: (markdownPath: string) => void;
+  reportMarkdownActionsDisabled?: boolean;
+  onCopyReportMarkdown?: () => void;
+  onDownloadReportMarkdownZip?: () => void;
+  onReportCaseChange?: () => void;
 }
 
 const Sidebar = (props: SidebarProps = {}): JSX.Element => {
@@ -48,6 +64,13 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
     proModeEnabled = false,
     onProModeChange,
     setReplayAllMode,
+    reportViewMode = 'human',
+    reportMarkdownView,
+    onMarkdownImageClick,
+    reportMarkdownActionsDisabled = true,
+    onCopyReportMarkdown,
+    onDownloadReportMarkdownZip,
+    onReportCaseChange,
   } = props;
   const groupedDump = useExecutionDump((store) => store.dump);
   const playwrightAttributes = useExecutionDump(
@@ -66,7 +89,6 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
   const currentSelectedIndex = allTasks?.findIndex(
     (task) => task === activeTask,
   );
-
   // Prepare table data source
   const tableData = useMemo<TableRowData[]>(() => {
     if (!groupedDump) return [];
@@ -125,28 +147,12 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
 
   // Helper functions for rendering
   const getStatusIcon = (task: ExecutionTaskWithSearchAreaUsage) => {
-    const isFinished = task.status === 'finished';
-    const isError = isFinished && (task.error || task.errorMessage);
-
-    if (isError) {
-      return iconForStatus('failed');
-    }
-
-    const isAssertFinishedWithWarning =
-      isFinished && task.subType === 'WaitFor' && task.output === false;
-
-    if (isAssertFinishedWithWarning) {
-      return iconForStatus('finishedWithWarning');
-    }
-
-    const isAssertFailed =
-      task.subType === 'Assert' && isFinished && task.output === false;
-
-    if (isAssertFailed) {
-      return iconForStatus('failed');
-    }
-
-    return iconForStatus(task.status);
+    // Share the same failure semantics as the merged-report status derivation
+    // (deriveTaskStatus) so step icons and merged Passed/Failed never diverge.
+    const status = deriveTaskStatus(task);
+    // `warning` maps to the dedicated warning icon; every other value is a
+    // status string iconForStatus already understands.
+    return iconForStatus(status === 'warning' ? 'finishedWithWarning' : status);
   };
 
   const getTitleIcon = (task: ExecutionTaskWithSearchAreaUsage) => {
@@ -235,6 +241,23 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
         }}
       >
         DeepThink
+      </Tag>
+    ) : null;
+  };
+
+  const getObservedTag = (task: ExecutionTaskWithSearchAreaUsage) => {
+    return hasObserverAssertionFlag(task) ? (
+      <Tag
+        className="observed-tag"
+        bordered={false}
+        style={{
+          padding: '0 4px',
+          marginLeft: '4px',
+          marginRight: 0,
+          lineHeight: '16px',
+        }}
+      >
+        Observed
       </Tag>
     ) : null;
   };
@@ -583,7 +606,11 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
     [groupedDump].map((group, groupIndex) => {
       return (
         <div key={groupIndex}>
-          <ReportOverview title={group.groupName} dumps={dumps} />
+          <ReportOverview
+            title={group.groupName}
+            dumps={dumps}
+            onCaseChange={onReportCaseChange}
+          />
         </div>
       );
     })
@@ -612,6 +639,7 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
             {getDeepLocateTag(task)}
             {getXPathTag(task)}
             {getDeepThinkTag(task)}
+            {getObservedTag(task)}
           </div>
         );
       }
@@ -680,8 +708,14 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
           <div className="table-body">
             {tableData.map((record) => {
               if (record.isGroupHeader) {
+                // Group headers are not selectable; the id only makes them a
+                // plain `#group-<index>` scroll target, with no hash sync.
                 return (
-                  <div key={record.key} className="group-header-row">
+                  <div
+                    key={record.key}
+                    id={record.key}
+                    className="group-header-row"
+                  >
                     <div className="side-sub-title">{record.groupName}</div>
                   </div>
                 );
@@ -691,10 +725,14 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
               const isSelected = task === activeTask;
               const isPlaying = task === playingTask;
               const taskId = task.taskId;
+              // Single source of truth for the anchor format so the row id,
+              // the hash we write, and the hash we resolve never drift apart.
+              const anchorId = anchorIdForTask(task);
 
               return (
                 <div
                   key={record.key}
+                  id={anchorId}
                   data-task-id={taskId}
                   className={`task-row ${isSelected ? 'selected' : ''} ${isPlaying ? 'playing' : ''}`}
                   onClick={() => {
@@ -897,30 +935,82 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
     </div>
   ) : null;
 
+  let agentMarkdownContent: JSX.Element;
+  if (reportMarkdownView?.status === 'ready') {
+    agentMarkdownContent = (
+      <div className="agent-markdown-sidebar">
+        <MarkdownSource
+          markdown={reportMarkdownView.markdown}
+          onImageClick={onMarkdownImageClick}
+        />
+      </div>
+    );
+  } else if (reportMarkdownView?.status === 'error') {
+    agentMarkdownContent = (
+      <div className="agent-markdown-sidebar">
+        <Alert
+          type="error"
+          showIcon
+          message="Failed to render markdown"
+          description={reportMarkdownView.errorMessage}
+        />
+      </div>
+    );
+  } else {
+    agentMarkdownContent = (
+      <div className="agent-markdown-sidebar empty">No report markdown</div>
+    );
+  }
+
+  const pageNavToolbar =
+    reportViewMode === 'markdown' ? (
+      <div className="page-nav-toolbar report-markdown-sidebar-actions">
+        <Tooltip title="Copy report.md markdown">
+          <Button
+            type="text"
+            size="small"
+            icon={<CopyOutlined />}
+            disabled={reportMarkdownActionsDisabled}
+            onClick={onCopyReportMarkdown}
+            aria-label="Copy report markdown"
+          />
+        </Tooltip>
+        <Tooltip title={markdownZipDownloadTooltip}>
+          <Button
+            type="text"
+            size="small"
+            icon={<DownloadOutlined />}
+            disabled={reportMarkdownActionsDisabled}
+            onClick={onDownloadReportMarkdownZip}
+            aria-label="Download markdown and images ZIP"
+          />
+        </Tooltip>
+      </div>
+    ) : (
+      <div className="page-nav-toolbar">
+        <div
+          className="icon-button"
+          onClick={() => {
+            setReplayAllMode?.(true);
+          }}
+        >
+          <PlayIcon />
+        </div>
+      </div>
+    );
+
   return (
     <div className="side-bar">
       <div className="page-nav">
         <div className="page-nav-left">
-          <div className="page-nav-title">
-            Report
-            <span className="page-nav-title-hint">
-              Switch: Command + Up / Down
-            </span>
-          </div>
-          <div className="page-nav-toolbar">
-            <div
-              className="icon-button"
-              onClick={() => {
-                setReplayAllMode?.(true);
-              }}
-            >
-              <PlayIcon />
-            </div>
+          <div className="page-nav-top">
+            <div className="page-nav-title">Report</div>
+            {pageNavToolbar}
           </div>
         </div>
       </div>
       {sideList}
-      {executionContent}
+      {reportViewMode === 'markdown' ? agentMarkdownContent : executionContent}
     </div>
   );
 };

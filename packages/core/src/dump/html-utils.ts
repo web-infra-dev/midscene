@@ -1,8 +1,98 @@
 import { closeSync, openSync, readSync, statSync } from 'node:fs';
 import { antiEscapeScriptTag, escapeScriptTag } from '@midscene/shared/utils';
+import type { AIUsageInfo, IReportActionDump, ModelBrief } from '../types';
 
 export const escapeContent = escapeScriptTag;
 export const unescapeContent = antiEscapeScriptTag;
+
+function cleanHtmlCommentValue(value: unknown): string {
+  return String(value ?? 'N/A')
+    .replace(/\0/g, '')
+    .replace(/--/g, '- -');
+}
+
+function formatModelBriefForAgent(brief: ModelBrief): string {
+  const intent = brief.intent || 'default';
+  const model = brief.name || 'unknown';
+  const description = brief.modelDescription
+    ? ` (${brief.modelDescription})`
+    : '';
+  return `${intent}: ${model}${description}`;
+}
+
+function hasUsageModelInfo(usage?: AIUsageInfo): usage is AIUsageInfo {
+  return Boolean(
+    usage &&
+      (usage.model_name ||
+        usage.response_model_name ||
+        usage.model_description ||
+        usage.intent),
+  );
+}
+
+function formatUsageModelForAgent(source: string, usage: AIUsageInfo): string {
+  const intent = usage.intent || source;
+  const model = usage.model_name || usage.response_model_name || 'unknown';
+  const description = usage.model_description
+    ? ` (${usage.model_description})`
+    : '';
+  return `${intent}: ${model}${description}`;
+}
+
+function collectUsageModelsForAgent(report: IReportActionDump): string {
+  const models = new Map<string, string>();
+  const executions = Array.isArray(report.executions) ? report.executions : [];
+  for (const execution of executions) {
+    const tasks = Array.isArray(execution.tasks) ? execution.tasks : [];
+    for (const task of tasks) {
+      const taskWithUsage = task as {
+        usage?: AIUsageInfo;
+        searchAreaUsage?: AIUsageInfo;
+      };
+      const usages: Array<[string, AIUsageInfo | undefined]> = [
+        ['main', taskWithUsage.usage],
+        ['searchArea', taskWithUsage.searchAreaUsage],
+      ];
+
+      for (const [source, usage] of usages) {
+        if (!hasUsageModelInfo(usage)) {
+          continue;
+        }
+        const formatted = formatUsageModelForAgent(source, usage);
+        models.set(formatted, formatted);
+      }
+    }
+  }
+
+  return Array.from(models.values()).join('; ');
+}
+
+export function generateAgentReportComment(report: IReportActionDump): string {
+  const executions = Array.isArray(report.executions) ? report.executions : [];
+  const taskCount = executions.reduce(
+    (sum, execution) =>
+      sum + (Array.isArray(execution.tasks) ? execution.tasks.length : 0),
+    0,
+  );
+  const modelBriefs = report.modelBriefs?.length
+    ? report.modelBriefs.map(formatModelBriefForAgent).join('; ')
+    : collectUsageModelsForAgent(report) || 'No model metadata recorded';
+
+  const lines = [
+    'For Agent Analysis:',
+    `Report: ${cleanHtmlCommentValue(report.groupName)}`,
+    `SDK: ${cleanHtmlCommentValue(report.sdkVersion)}`,
+    `Device: ${cleanHtmlCommentValue(report.deviceType)}`,
+    `Executions: ${executions.length}; Tasks: ${taskCount}`,
+    `Models: ${cleanHtmlCommentValue(modelBriefs)}`,
+    'Structured report JSON is stored in script[type="midscene_web_dump"] tags near this comment.',
+    'Screenshots are stored as script[type="midscene-image"] tags or files referenced by screenshot refs.',
+    'For AI analysis, inspect each execution task for type, status, timing, param, output, usage, searchAreaUsage, recorder, and screenshot refs.',
+    'Use the Markdown export when available; it contains the same report context plus image links for agent review.',
+  ];
+
+  return `\n<!--\n${lines.join('\n')}\n-->\n`;
+}
 
 function htmlScriptCloseTag(): string {
   // biome-ignore lint/style/useTemplate: keep this token runtime-built for inline report bundles
@@ -450,6 +540,14 @@ export function getBaseUrlFixScript(): string {
   }
   return _baseUrlFixScript;
 }
+
+/**
+ * Dump-script attribute that records how the report file stores screenshots.
+ * Written by the report generator and the merger, read back when deciding
+ * whether a report is in directory mode. Kept here, next to dump-tag
+ * generation, so the writer and reader share one source of truth.
+ */
+export const DATA_SCREENSHOT_MODE_ATTR = 'data-screenshot-mode';
 
 export function generateDumpScriptTag(
   json: string,

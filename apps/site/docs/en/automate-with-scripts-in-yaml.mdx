@@ -268,7 +268,7 @@ android:
   # All other options supported by the AndroidDevice constructor
   # For example: androidAdbPath, remoteAdbHost, remoteAdbPort,
   # imeStrategy, displayId, autoDismissKeyboard, keyboardDismissStrategy,
-  # minScreenshotBufferSize, alwaysRefreshScreenInfo, etc.
+  # keyboardTypeDelay, minScreenshotBufferSize, alwaysRefreshScreenInfo, etc.
   # See the AndroidDevice constructor documentation for the complete list
 ```
 
@@ -653,6 +653,9 @@ tasks:
       - aiAssert: <prompt>
         errorMessage: <error-message> # Optional, the error message to print if the assertion fails.
         name: <name> # Optional, give the assertion a name, which will be used as a key in the JSON output.
+
+      - aiBoolean: <prompt>
+        name: <name> # Optional, give the boolean result a name for JSON output.
 
       # Run one Gherkin Scenario. This is a Beta feature available starting in Midscene 1.10.
       - runGherkinScenario: |

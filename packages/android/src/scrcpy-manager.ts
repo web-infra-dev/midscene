@@ -47,6 +47,20 @@ export interface ScrcpyScreenshotOptions {
 }
 
 /**
+ * A raw (not yet decoded) H.264 keyframe emitted by the scrcpy stream.
+ * Holding these is cheap — decoding to JPEG costs an ffmpeg run per frame, so
+ * consumers (e.g. UI observers) buffer raw keyframes and decode only
+ * the frames they actually need, after sampling.
+ */
+export interface RawKeyframe {
+  /** Raw H.264 keyframe data WITHOUT the SPS/PPS header. */
+  data: Buffer;
+  /** SPS/PPS header active when this frame was produced (needed to decode). */
+  header: Buffer;
+  capturedAt: number;
+}
+
+/**
  * Check if NAL unit type indicates a keyframe (IDR, SPS, or PPS)
  */
 function isKeyFrameNalType(nalUnitType: number): boolean {
@@ -113,7 +127,9 @@ export class ScrcpyScreenshotManager {
   private options: ResolvedScrcpyOptions;
   private ffmpegAvailable: boolean | null = null;
   private keyframeResolvers: Array<(buf: Buffer) => void> = [];
+  private keyframeListeners = new Set<(frame: RawKeyframe) => void>();
   private lastRawKeyframe: Buffer | null = null;
+  private lastRawKeyframeAt = 0;
   private videoResolution: { width: number; height: number } | null = null;
   private streamReader: any = null;
 
@@ -345,11 +361,69 @@ export class ScrcpyScreenshotManager {
 
     if (isKeyFrame && this.spsHeader) {
       this.lastRawKeyframe = frameBuffer;
+      this.lastRawKeyframeAt = Date.now();
       if (this.keyframeResolvers.length > 0) {
         const combined = Buffer.concat([this.spsHeader, frameBuffer]);
         this.notifyKeyframeWaiters(combined);
       }
+      if (this.keyframeListeners.size > 0) {
+        const frame: RawKeyframe = {
+          data: frameBuffer,
+          header: this.spsHeader,
+          capturedAt: this.lastRawKeyframeAt,
+        };
+        for (const listener of this.keyframeListeners) {
+          try {
+            listener(frame);
+          } catch (error) {
+            debugScrcpy(`keyframe listener error: ${error}`);
+          }
+        }
+        // An active subscriber is consuming the stream (e.g. a UIObserver
+        // capture) — keep the connection alive for the whole window.
+        this.resetIdleTimer();
+      }
     }
+  }
+
+  /**
+   * Subscribe to raw keyframes as they arrive from the stream. While at least
+   * one subscriber is active, incoming keyframes keep resetting the idle timer
+   * so the connection is not torn down mid-capture. Returns an unsubscribe fn.
+   *
+   * Frames are emitted RAW (no decoding). Use {@link decodeRawKeyframeToJpeg}
+   * on the frames you actually need — one ffmpeg run per unique frame.
+   */
+  subscribeKeyframes(listener: (frame: RawKeyframe) => void): () => void {
+    this.keyframeListeners.add(listener);
+    // listeners > 0 → resetIdleTimer skips arming the idle timer
+    this.resetIdleTimer();
+    return () => {
+      this.keyframeListeners.delete(listener);
+      // If this was the last subscriber, re-arm the idle timer so the
+      // connection can be cleaned up now that nobody is consuming it.
+      this.resetIdleTimer();
+    };
+  }
+
+  /** Latest raw keyframe seen on the stream, or null if none yet. */
+  getLatestRawKeyframe(): RawKeyframe | null {
+    if (!this.lastRawKeyframe || !this.spsHeader) return null;
+    return {
+      data: this.lastRawKeyframe,
+      header: this.spsHeader,
+      capturedAt: this.lastRawKeyframeAt,
+    };
+  }
+
+  /**
+   * Decode a raw keyframe (from {@link subscribeKeyframes} or
+   * {@link getLatestRawKeyframe}) to a JPEG buffer. This is the deferred,
+   * per-frame-expensive step (one ffmpeg process per call) — call it only on
+   * sampled frames, never inside a capture loop.
+   */
+  async decodeRawKeyframeToJpeg(frame: RawKeyframe): Promise<Buffer> {
+    return this.decodeH264ToJpeg(Buffer.concat([frame.header, frame.data]));
   }
 
   /**
@@ -578,14 +652,23 @@ export class ScrcpyScreenshotManager {
   }
 
   /**
-   * Reset idle timeout timer
+   * Reset idle timeout timer. While keyframe subscribers are active
+   * (e.g. a UIObserver sampling loop), the idle timer is not armed —
+   * subscribers are actively consuming the stream. On a static screen
+   * with i-frame-interval=0, no new keyframes arrive so processFrame
+   * never resets the timer; this guard prevents silent disconnect.
    */
   private resetIdleTimer(): void {
     if (this.idleTimer) {
       clearTimeout(this.idleTimer);
+      this.idleTimer = null;
     }
 
     if (!this.options.idleTimeoutMs) return;
+
+    // Active keyframe subscribers (UIObserver etc.) keep the connection alive
+    // even on a static screen where no new keyframes are produced.
+    if (this.keyframeListeners.size > 0) return;
 
     this.idleTimer = setTimeout(() => {
       debugScrcpy('Idle timeout reached, disconnecting scrcpy');
@@ -613,8 +696,10 @@ export class ScrcpyScreenshotManager {
     this.streamReader = null;
     this.spsHeader = null;
     this.lastRawKeyframe = null;
+    this.lastRawKeyframeAt = 0;
     this.isInitialized = false;
     this.keyframeResolvers = [];
+    this.keyframeListeners.clear();
 
     // Cancel reader first to stop consumeFramesLoop
     if (reader) {

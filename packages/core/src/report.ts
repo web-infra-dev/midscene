@@ -13,8 +13,10 @@ import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import { antiEscapeScriptTag, logMsg } from '@midscene/shared/utils';
 import { getReportFileName } from './agent';
 import {
+  DATA_SCREENSHOT_MODE_ATTR,
   extractAllDumpScriptsSync,
   extractLastDumpScriptSync,
+  generateAgentReportComment,
   getBaseUrlFixScript,
   streamDumpScriptsSync,
   streamImageScriptsToFile,
@@ -27,20 +29,79 @@ import {
   type ExecutionDump,
   type IExecutionDump,
   ReportActionDump,
+  type ScreenshotMode,
 } from './types';
 import type { ReportFileWithAttributes } from './types';
 import { getReportTpl, getVersion, reportHTMLContent } from './utils';
 
 /**
+ * Read the screenshot storage mode a report declared at generation time.
+ *
+ * Reports written by current versions stamp `data-screenshot-mode` onto every
+ * dump script tag, so we only need to peek at the first real dump script (the
+ * template's bundled JS also references the dump type string, hence the
+ * `data-group-id` filter) and can stop streaming immediately.
+ *
+ * Returns undefined for legacy reports that predate the attribute or for
+ * unreadable files, letting the caller fall back to a filesystem heuristic.
+ */
+const screenshotModeAttrRegExp = new RegExp(
+  `${DATA_SCREENSHOT_MODE_ATTR}="(inline|directory)"`,
+);
+
+function readDeclaredScreenshotMode(
+  reportFilePath: string,
+): ScreenshotMode | undefined {
+  let mode: ScreenshotMode | undefined;
+  try {
+    streamDumpScriptsSync(reportFilePath, ({ openTag }) => {
+      // Skip false matches from the template's bundled JS code.
+      if (!openTag.includes('data-group-id')) return false;
+      const match = openTag.match(screenshotModeAttrRegExp);
+      mode = match?.[1] as ScreenshotMode | undefined;
+      return true; // the first real dump script decides the mode
+    });
+  } catch {
+    // Unreadable / non-existent file — let the caller fall back.
+  }
+  return mode;
+}
+
+/**
  * Check if a report is in directory mode (html-and-external-assets).
  * Directory mode reports: {name}/index.html + {name}/screenshots/
+ *
+ * The mode is read from the report's own `data-screenshot-mode` metadata, which
+ * is authoritative regardless of whether the run happened to capture any
+ * screenshots. For legacy reports without the attribute we fall back to the old
+ * filesystem heuristic (an `index.html` that has a sibling `screenshots/` dir).
  */
 export function isDirectoryModeReport(reportFilePath: string): boolean {
-  const reportDir = path.dirname(reportFilePath);
-  return (
-    path.basename(reportFilePath) === 'index.html' &&
-    existsSync(path.join(reportDir, 'screenshots'))
-  );
+  // Directory-mode reports are always written as `{name}/index.html`, so any
+  // other filename is inline. Short-circuit before touching the file so the
+  // common inline case (`{name}.html`) costs nothing.
+  if (path.basename(reportFilePath) !== 'index.html') return false;
+
+  const declared = readDeclaredScreenshotMode(reportFilePath);
+  if (declared) return declared === 'directory';
+
+  // Legacy fallback for reports generated before screenshotMode was embedded.
+  return existsSync(path.join(path.dirname(reportFilePath), 'screenshots'));
+}
+
+/**
+ * Whether a report lives in its own dedicated directory (`{name}/index.html`)
+ * rather than being a single standalone file (`{name}.html`).
+ *
+ * This is a structural fact about *where the report file sits*, independent of
+ * how it stores screenshots: a directory report can keep screenshots external
+ * (a `screenshots/` sibling) OR inline them into `index.html`. Deletion needs
+ * this — not the screenshot mode — to decide whether to remove the whole
+ * directory or just unlink a file, so that an inline-screenshot report nested in
+ * its own folder still has the folder removed instead of being orphaned.
+ */
+function isDirectoryBasedReport(reportFilePath: string): boolean {
+  return path.basename(reportFilePath) === 'index.html';
 }
 
 /**
@@ -75,6 +136,41 @@ function peekReportSdkVersion(reportFilePath: string): string | undefined {
 }
 
 const warnedMismatchedVersions = new Set<string>();
+
+function tryParseAgentReportDump(dumpString: string): ReportActionDump | null {
+  const trimmed = dumpString.trimStart();
+  if (!trimmed.startsWith('{') || !trimmed.includes('"executions"')) {
+    return null;
+  }
+
+  try {
+    return ReportActionDump.fromSerializedString(trimmed);
+  } catch {
+    return null;
+  }
+}
+
+function mergedAgentReportComment(reports: ReportActionDump[]): string {
+  if (reports.length === 0) {
+    return '';
+  }
+  if (reports.length === 1) {
+    return generateAgentReportComment(reports[0]);
+  }
+
+  const deviceTypes = Array.from(
+    new Set(reports.map((report) => report.deviceType).filter(Boolean)),
+  );
+  const mergedReport = new ReportActionDump({
+    sdkVersion: reports[0].sdkVersion || getVersion(),
+    groupName: 'Merged Midscene Report',
+    groupDescription: 'Agent-readable summary for merged report HTML',
+    modelBriefs: reports.flatMap((report) => report.modelBriefs ?? []),
+    deviceType: deviceTypes.length === 1 ? deviceTypes[0] : 'mixed',
+    executions: reports.flatMap((report) => report.executions ?? []),
+  });
+  return generateAgentReportComment(mergedReport);
+}
 
 export class ReportMergingTool {
   private reportInfos: ReportFileWithAttributes[] = [];
@@ -163,11 +259,16 @@ export class ReportMergingTool {
       mkdirSync(targetDir, { recursive: true });
     }
 
-    // Check if any source report is directory mode
-    const hasDirectoryModeReport = this.reportInfos.some((info) => {
-      const reportFilePath = info.reportFilePath;
-      return Boolean(reportFilePath && isDirectoryModeReport(reportFilePath));
-    });
+    // Resolve each report's screenshot mode exactly once. isDirectoryModeReport
+    // reads the file to find the authoritative metadata, so recomputing it for
+    // both the output-path decision and the per-report merge loop would re-scan
+    // every report twice.
+    const isDirModeByIndex = this.reportInfos.map((info) =>
+      Boolean(
+        info.reportFilePath && isDirectoryModeReport(info.reportFilePath),
+      ),
+    );
+    const hasDirectoryModeReport = isDirModeByIndex.some(Boolean);
 
     const resolvedName =
       reportFileName === 'AUTO'
@@ -216,6 +317,8 @@ export class ReportMergingTool {
         appendFileSync(outputFilePath, getBaseUrlFixScript());
       }
 
+      const agentReports: ReportActionDump[] = [];
+
       // Process all reports one by one
       for (let i = 0; i < this.reportInfos.length; i++) {
         const reportInfo = this.reportInfos[i];
@@ -229,19 +332,23 @@ export class ReportMergingTool {
         let mergedGroupId = `merged-group-${i}`;
 
         if (reportInfo.reportFilePath) {
-          if (isDirectoryModeReport(reportInfo.reportFilePath)) {
-            // Directory mode: copy external screenshot files
+          if (isDirModeByIndex[i]) {
+            // Directory mode: copy external screenshot files. A directory-mode
+            // report can legitimately have no screenshots/ dir (a run that
+            // captured nothing), so only copy when the source dir exists.
             const reportDir = path.dirname(reportInfo.reportFilePath);
             const screenshotsDir = path.join(reportDir, 'screenshots');
-            const mergedScreenshotsDir = path.join(
-              path.dirname(outputFilePath),
-              'screenshots',
-            );
-            mkdirSync(mergedScreenshotsDir, { recursive: true });
-            for (const file of readdirSync(screenshotsDir)) {
-              const src = path.join(screenshotsDir, file);
-              const dest = path.join(mergedScreenshotsDir, file);
-              copyFileSync(src, dest);
+            if (existsSync(screenshotsDir)) {
+              const mergedScreenshotsDir = path.join(
+                path.dirname(outputFilePath),
+                'screenshots',
+              );
+              mkdirSync(mergedScreenshotsDir, { recursive: true });
+              for (const file of readdirSync(screenshotsDir)) {
+                const src = path.join(screenshotsDir, file);
+                const dest = path.join(mergedScreenshotsDir, file);
+                copyFileSync(src, dest);
+              }
             }
           } else {
             // Inline mode: stream image scripts to output file
@@ -272,11 +379,19 @@ export class ReportMergingTool {
           }
         }
 
+        const agentReport = tryParseAgentReportDump(dumpString);
+        if (agentReport) {
+          agentReports.push(agentReport);
+        }
+
         const reportHtmlStr = `${reportHTMLContent(
           {
             dumpString,
             attributes: {
               'data-group-id': mergedGroupId,
+              [DATA_SCREENSHOT_MODE_ATTR]: hasDirectoryModeReport
+                ? 'directory'
+                : 'inline',
               playwright_test_duration: reportAttributes.testDuration,
               playwright_test_status: reportAttributes.testStatus,
               playwright_test_title: reportAttributes.testTitle,
@@ -293,6 +408,11 @@ export class ReportMergingTool {
         appendFileSync(outputFilePath, reportHtmlStr);
       }
 
+      const agentComment = mergedAgentReportComment(agentReports);
+      if (agentComment) {
+        appendFileSync(outputFilePath, agentComment);
+      }
+
       // Close the HTML document
       appendFileSync(outputFilePath, `${htmlEndTag}\n`);
 
@@ -303,8 +423,9 @@ export class ReportMergingTool {
         for (const info of this.reportInfos) {
           if (!info.reportFilePath) continue;
           try {
-            if (isDirectoryModeReport(info.reportFilePath)) {
-              // Directory mode: remove the entire report directory
+            if (isDirectoryBasedReport(info.reportFilePath)) {
+              // The report owns its directory (`{name}/index.html`) — remove the
+              // whole folder, whether screenshots are external or inlined.
               const reportDir = path.dirname(info.reportFilePath);
               rmSync(reportDir, { recursive: true, force: true });
             } else {

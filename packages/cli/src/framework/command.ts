@@ -1,9 +1,10 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import type { MidsceneYamlConfigResult } from '@midscene/core';
-import type { BatchRunnerConfig } from '../batch-runner';
+import { BatchRunner, type BatchRunnerConfig } from '../batch-runner';
 import {
   createNotExecutedYamlResult,
+  getSummaryAbsolutePath,
   printExecutionFinished,
   printExecutionPlan,
   printExecutionSummary,
@@ -30,6 +31,38 @@ export interface FrameworkTestCommandOptions extends WebRuntimeOptions {
   frameworkImport?: string;
   stdio?: 'inherit' | 'pipe';
   rstestRunner?: typeof runRstestYamlProject;
+  /**
+   * In-process executor used for the `keepWindow` path. Injectable so tests can
+   * exercise the routing without launching a real browser. Defaults to the
+   * legacy {@link BatchRunner}.
+   */
+  inProcessRunner?: (
+    config: BatchRunnerConfig,
+  ) => Promise<MidsceneYamlConfigResult[]>;
+}
+
+const defaultInProcessRunner = (
+  config: BatchRunnerConfig,
+): Promise<MidsceneYamlConfigResult[]> => new BatchRunner(config).run();
+
+// `keepWindow` keeps the browser open after the run finishes, which is only
+// possible when the browser is owned by this long-lived CLI process. The Rstest
+// framework runs each case in a disposable worker whose teardown kills the
+// browser, so route keepWindow (a debug-only flow) through the in-process batch
+// executor instead. It owns the browser in this process and renders the live
+// per-step progress that the Rstest path does not surface — the two reasons to
+// pass --keep-window in the first place.
+async function runConfigInMainProcess(
+  config: BatchRunnerConfig,
+  commandOptions: FrameworkTestCommandOptions,
+): Promise<number> {
+  const runner = commandOptions.inProcessRunner ?? defaultInProcessRunner;
+  const results = await runner(config);
+  const success = printExecutionSummary(
+    results,
+    getSummaryAbsolutePath(config.summary),
+  );
+  return success ? 0 : 1;
 }
 
 const createCaseOptions = (
@@ -75,6 +108,10 @@ export async function runFrameworkTestConfig(
   config: BatchRunnerConfig,
   commandOptions: FrameworkTestCommandOptions = {},
 ): Promise<number> {
+  if (config.keepWindow) {
+    return runConfigInMainProcess(config, commandOptions);
+  }
+
   printExecutionPlan(config);
 
   const projectDir = resolve(commandOptions.projectDir || process.cwd());

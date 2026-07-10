@@ -1,9 +1,5 @@
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import * as fs from 'node:fs';
-import {
-  extractJSONFromCodeBlock,
-  safeParseJson,
-} from '@/ai-model/service-caller/json';
 import { dumpActionParam, findAllMidsceneLocatorField } from '@/common';
 import { getMidsceneLocationSchema } from '@/index';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
@@ -267,106 +263,6 @@ describe('utils', () => {
       `__midscene_lt__script__midscene_gt__alert("xss")__midscene_lt__/script__midscene_gt__`,
     );
     expect(reportContent).not.toContain('<script>alert("xss")</script>');
-  });
-});
-
-describe('extractJSONFromCodeBlock', () => {
-  it('should extract JSON from a direct JSON object', () => {
-    const input = '{ "key": "value" }';
-    const result = extractJSONFromCodeBlock(input);
-    expect(result).toBe('{ "key": "value" }');
-  });
-
-  it('should extract JSON from a code block with json language specifier', () => {
-    const input = '```json\n{ "key": "value" }\n```';
-    const result = extractJSONFromCodeBlock(input);
-    expect(result).toBe('{ "key": "value" }');
-
-    const input2 = '  ```JSON\n{ "key": "value" }\n```';
-    const result2 = extractJSONFromCodeBlock(input2);
-    expect(result2).toBe('{ "key": "value" }');
-  });
-
-  it('should extract JSON from a code block without language specifier', () => {
-    const input = '```\n{ "key": "value" }\n```';
-    const result = extractJSONFromCodeBlock(input);
-    expect(result).toBe('{ "key": "value" }');
-  });
-
-  it('should extract JSON-like structure from text', () => {
-    const input = 'Some text { "key": "value" } more text';
-    const result = extractJSONFromCodeBlock(input);
-    expect(result).toBe('{ "key": "value" }');
-  });
-
-  it('should return the original response if no JSON structure is found', () => {
-    const input = 'This is just plain text';
-    const result = extractJSONFromCodeBlock(input);
-    expect(result).toBe('This is just plain text');
-  });
-
-  it('should handle multi-line JSON objects', () => {
-    const input = `{
-      "key1": "value1",
-      "key2": {
-        "nestedKey": "nestedValue"
-      }
-    }`;
-    const result = extractJSONFromCodeBlock(input);
-    expect(result).toBe(input);
-  });
-
-  it('should handle JSON with point coordinates', () => {
-    const input = '(123,456)';
-    const result = safeParseJson(input);
-    expect(result).toEqual([123, 456]);
-  });
-
-  it('should parse valid JSON string using JSON.parse', () => {
-    const input = '{"key": "value"}';
-    const result = safeParseJson(input);
-    expect(result).toEqual({ key: 'value' });
-  });
-
-  it('should parse dirty JSON using dirty-json parser', () => {
-    const input = "{key: 'value'}"; // Invalid JSON but valid dirty-json
-    const result = safeParseJson(input);
-    expect(result).toEqual({ key: 'value' });
-  });
-
-  it('should throw error for unparseable content', () => {
-    const input = '{foo: true false}';
-    expect(() => safeParseJson(input)).toThrow(
-      /failed to parse LLM response into JSON/,
-    );
-  });
-
-  it('should parse JSON from code block', () => {
-    const input = '```json\n{"key": "value"}\n```';
-    const result = safeParseJson(input);
-    expect(result).toEqual({ key: 'value' });
-  });
-
-  it('should parse complex nested JSON', () => {
-    const input = `{
-      "string": "value",
-      "number": 123,
-      "boolean": true,
-      "array": [1, 2, 3],
-      "object": {
-        "nested": "value"
-      }
-    }`;
-    const result = safeParseJson(input);
-    expect(result).toEqual({
-      string: 'value',
-      number: 123,
-      boolean: true,
-      array: [1, 2, 3],
-      object: {
-        nested: 'value',
-      },
-    });
   });
 });
 

@@ -143,6 +143,210 @@ describe('TaskExecutor concurrency isolation', () => {
     await Promise.all([actionPromiseA, actionPromiseB]);
   });
 
+  it('isolates aiAct progress between concurrent action calls on one executor', async () => {
+    // Two concurrent action() calls share one executor. Call A is held mid-
+    // action while call B runs to completion (and tears down its own batch
+    // state). The per-call reporter must stay isolated so A still reports its
+    // own action_done with its own plan limit after B finishes.
+    const aInBatch = createDeferred();
+    const releaseA = createDeferred();
+
+    const progress: Array<{
+      phase: string;
+      name?: string;
+      planLimit?: number;
+    }> = [];
+
+    const taskExecutorLocal = new TaskExecutor(mockInterface, mockService, {
+      replanningCycleLimit: 1,
+      actionSpace: emptyParamActionSpace,
+      hooks: {
+        onProgress: async (_scope, phase, data) => {
+          const payload = (data ?? {}) as Record<string, any>;
+          progress.push({
+            phase,
+            name: payload.action?.name,
+            planLimit: payload.planLimit,
+          });
+        },
+      },
+    });
+
+    vi.mocked(genericXmlPlan).mockImplementation(async (instruction: any) => {
+      // Gate B's plan until A is executing inside its action batch, so the
+      // two batches are guaranteed to overlap.
+      if (instruction === 'B') {
+        await aInBatch.promise;
+      }
+      return {
+        actions: [{ type: instruction === 'A' ? 'TapA' : 'TapB', param: {} }],
+        yamlFlow: [],
+        shouldContinuePlanning: false,
+        log: '',
+        rawResponse: '',
+        finalizeSuccess: true,
+        finalizeMessage: 'done',
+      } as any;
+    });
+
+    vi.spyOn(taskExecutorLocal, 'convertPlanToExecutable').mockImplementation(
+      (async (plans: any[]) => {
+        const type = plans[0]?.type;
+        if (type === 'TapA') {
+          return {
+            tasks: [
+              {
+                type: 'Action Space',
+                subType: 'TapA',
+                param: {},
+                executor: async () => {
+                  aInBatch.resolve();
+                  await releaseA.promise;
+                  return undefined;
+                },
+              },
+            ],
+            yamlFlow: [],
+          };
+        }
+        return {
+          tasks: [
+            {
+              type: 'Action Space',
+              subType: 'TapB',
+              param: {},
+              executor: async () => undefined,
+            },
+          ],
+          yamlFlow: [],
+        };
+      }) as any,
+    );
+
+    const promiseA = taskExecutorLocal.action(
+      'A',
+      planningModel(),
+      defaultModel(),
+      true,
+      undefined,
+      undefined,
+      5,
+    );
+    const promiseB = taskExecutorLocal.action(
+      'B',
+      planningModel(),
+      defaultModel(),
+      true,
+      undefined,
+      undefined,
+      9,
+    );
+
+    // B completes (and tears down its batch) while A is still blocked.
+    await promiseB;
+    releaseA.resolve();
+    await promiseA;
+
+    const tapA = progress.filter((event) => event.name === 'TapA');
+    const tapB = progress.filter((event) => event.name === 'TapB');
+
+    // A's action_done survives B's teardown, and each call keeps its own limit.
+    expect(tapA.map((event) => event.phase)).toEqual([
+      'plan_action',
+      'action_running',
+      'action_done',
+    ]);
+    expect(tapA.every((event) => event.planLimit === 5)).toBe(true);
+    expect(tapB.map((event) => event.phase)).toEqual([
+      'plan_action',
+      'action_running',
+      'action_done',
+    ]);
+    expect(tapB.every((event) => event.planLimit === 9)).toBe(true);
+  });
+
+  it('emits semantic aiAct progress events from planning and action execution', async () => {
+    const progressEvents: string[] = [];
+    const progressScopes = new Set<string>();
+    taskExecutor = new TaskExecutor(mockInterface, mockService, {
+      replanningCycleLimit: 3,
+      actionSpace: emptyParamActionSpace,
+      hooks: {
+        // The executor is a pure producer: it publishes (scope, phase, data)
+        // and the bus stamps the sequence. aiAct is just a scope; the
+        // structured payload lives in `data`.
+        onProgress: async (scope, phase, data) => {
+          progressScopes.add(scope);
+          const payload = (data ?? {}) as Record<string, any>;
+          const semantic =
+            payload.output ??
+            payload.log ??
+            payload.thought ??
+            payload.error ??
+            payload.prompt;
+          progressEvents.push(
+            [
+              phase,
+              payload.planIndex,
+              payload.planLimit,
+              semantic,
+              payload.action?.name,
+              payload.durationMs === undefined
+                ? undefined
+                : Math.round(payload.durationMs),
+            ]
+              .filter((item) => item !== undefined)
+              .join('|'),
+          );
+        },
+      },
+    });
+
+    vi.mocked(genericXmlPlan).mockResolvedValue({
+      actions: [
+        {
+          type: 'Noop',
+          param: {},
+        },
+      ],
+      yamlFlow: [],
+      shouldContinuePlanning: false,
+      log: 'Need to run the noop action.',
+      rawResponse: '',
+      finalizeSuccess: true,
+      finalizeMessage: 'Noop done.',
+    });
+    vi.spyOn(taskExecutor, 'convertPlanToExecutable').mockResolvedValue({
+      tasks: [
+        {
+          type: 'Action Space',
+          subType: 'Noop',
+          executor: async () => undefined,
+        },
+      ],
+      yamlFlow: [],
+    } as any);
+
+    await taskExecutor.action(
+      'run noop',
+      planningModel(),
+      defaultModel(),
+      true,
+    );
+
+    expect(progressEvents).toEqual([
+      'start|3|run noop',
+      'plan_thinking|1|3',
+      'plan_planned|1|3|Need to run the noop action.',
+      'plan_action|1|3|Noop',
+      'action_running|1|3|Noop',
+      expect.stringMatching(/^action_done\|1\|3\|Noop\|\d+$/),
+      'complete|1|3|Noop done.',
+    ]);
+    // Every event flows through the generic bus tagged with the aiAct scope.
+    expect([...progressScopes]).toEqual(['aiAct']);
+  });
+
   it('should use device-local formatted time for replanning feedback', async () => {
     const seenPendingFeedback: string[] = [];
     mockInterface.getDeviceLocalTimeString = vi

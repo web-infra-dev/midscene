@@ -19,7 +19,6 @@ export type DescribeElementCoordinateSpace = 'screenshot' | 'logical';
 export type LocatorVerifyFn = (input: {
   prompt: string;
   expectCenter: [number, number];
-  deepLocate: boolean;
   retryCount: number;
   verifyResult: LocateValidatorResult;
 }) => LocateValidatorResult | boolean;
@@ -27,6 +26,7 @@ export type LocatorVerifyFn = (input: {
 export type DescribeElementAtPointOptions = {
   verifyPrompt?: boolean;
   retryLimit?: number;
+  deepDescribe?: boolean;
   deepLocate?: boolean;
   locatorVerifyFn?: LocatorVerifyFn;
   screenshotBase64?: string;
@@ -35,6 +35,7 @@ export type DescribeElementAtPointOptions = {
   logicalSize?: Size;
   onProgress?: (progress: {
     prompt?: string;
+    deepDescribe?: boolean;
     deepLocate?: boolean;
     verifyResult?: LocateValidatorResult;
   }) => void;
@@ -50,17 +51,20 @@ type ScreenshotBoundContextOptions = {
 export type VerifyElementDescriptionAtPointOptions =
   ScreenshotBoundContextOptions & LocatorValidatorOption;
 
-export type VerifyElementByServiceLocateOptions =
-  VerifyElementDescriptionAtPointOptions &
-    Pick<LocateOption, 'cacheable' | 'deepLocate' | 'xpath'> & {
-      abortSignal?: AbortSignal;
-    };
+type LocateAndVerifyOptions = VerifyElementDescriptionAtPointOptions &
+  Pick<LocateOption, 'cacheable' | 'deepLocate' | 'xpath'> & {
+    abortSignal?: AbortSignal;
+  };
 
 export type ElementDescriberRuntime = {
   service: Pick<Service, 'describe' | 'locate'>;
   describeModelRuntime: ModelRuntime;
   locateModelRuntime: ModelRuntime;
 };
+
+type ServiceDescribeOptions = NonNullable<
+  Parameters<ElementDescriberRuntime['service']['describe']>[2]
+>;
 
 const distanceOfTwoPoints = (p1: [number, number], p2: [number, number]) => {
   const [x1, y1] = p1;
@@ -152,10 +156,12 @@ export async function verifyLocator(
   prompt: string,
   locateOpt: LocateOption | undefined,
   expectCenter: [number, number],
-  verifyLocateOption?: LocatorValidatorOption,
+  verifyLocateOption?: LocatorValidatorOption &
+    Pick<LocateOption, 'deepLocate'>,
 ): Promise<LocateValidatorResult> {
   return locateAndVerify(runtime, prompt, expectCenter, {
     centerDistanceThreshold: verifyLocateOption?.centerDistanceThreshold,
+    deepLocate: verifyLocateOption?.deepLocate,
     uiContext: locateOpt?.uiContext,
   });
 }
@@ -193,32 +199,50 @@ export async function describeElementAtPoint(
   let success = false;
   let retryCount = 0;
   let resultPrompt = '';
+  const autoRetryDeepDescribe = opt?.deepDescribe === undefined;
+  const autoRetryDeepLocate = opt?.deepLocate === undefined;
+  let deepDescribe = opt?.deepDescribe || false;
   let deepLocate = opt?.deepLocate || false;
   let verifyResult: LocateValidatorResult | undefined;
   let lastError: string | undefined;
   let failureStage: AgentDescribeElementAtPointResult['failureStage'];
 
   while (!success && retryCount < retryLimit) {
-    if (retryCount >= 2) {
+    if (retryCount >= 1 && autoRetryDeepDescribe) {
+      deepDescribe = true;
+    }
+    if (retryCount >= 1 && autoRetryDeepLocate) {
       deepLocate = true;
     }
-    const describeOpt = screenshotContext
-      ? { deepLocate, context: screenshotContext }
-      : { deepLocate };
-
+    const describeModelRuntime = runtime.describeModelRuntime;
+    const locateModelRuntime = runtime.locateModelRuntime;
+    const retryRuntime: ElementDescriberRuntime = {
+      ...runtime,
+      describeModelRuntime,
+      locateModelRuntime,
+    };
+    const describeOpt: ServiceDescribeOptions = screenshotContext
+      ? {
+          deepDescribe,
+          context: screenshotContext,
+        }
+      : {
+          deepDescribe,
+        };
     let text: Awaited<
       ReturnType<ElementDescriberRuntime['service']['describe']>
     >;
     try {
-      text = await runtime.service.describe(
+      text = await retryRuntime.service.describe(
         targetCenter,
-        runtime.describeModelRuntime,
+        retryRuntime.describeModelRuntime,
         describeOpt,
       );
     } catch (error) {
       return {
         prompt: resultPrompt,
         deepLocate,
+        deepDescribe,
         verifyResult,
         success: false,
         error: errorMessage(error),
@@ -229,6 +253,7 @@ export async function describeElementAtPoint(
       return {
         prompt: resultPrompt,
         deepLocate,
+        deepDescribe,
         verifyResult,
         success: false,
         error: `failed to describe element at [${targetCenter}]`,
@@ -236,47 +261,61 @@ export async function describeElementAtPoint(
       };
     }
     resultPrompt = text.description;
-
     if (!verifyPrompt) {
-      opt?.onProgress?.({ prompt: resultPrompt, deepLocate });
+      opt?.onProgress?.({
+        prompt: resultPrompt,
+        deepDescribe,
+        deepLocate,
+      });
       success = true;
       break;
     }
 
     try {
-      verifyResult = await verifyLocator(
-        runtime,
+      const candidateVerifyResult = await verifyLocator(
+        retryRuntime,
         resultPrompt,
         locateOpt,
         targetCenter,
-        opt,
+        {
+          ...opt,
+          deepLocate,
+        },
       );
       verifyResult = applyLocatorVerifyFn(opt?.locatorVerifyFn, {
         prompt: resultPrompt,
         expectCenter: targetCenter,
-        deepLocate,
         retryCount,
+        verifyResult: candidateVerifyResult,
+      });
+      opt?.onProgress?.({
+        prompt: resultPrompt,
+        deepDescribe,
+        deepLocate,
         verifyResult,
       });
-      opt?.onProgress?.({ prompt: resultPrompt, deepLocate, verifyResult });
       if (verifyResult.pass) {
         success = true;
-      } else {
-        lastError = undefined;
-        failureStage = 'verify';
-        retryCount++;
+        break;
       }
+      lastError = undefined;
+      failureStage = 'verify';
     } catch (error) {
       lastError = errorMessage(error);
       failureStage = 'verify';
-      opt?.onProgress?.({ prompt: resultPrompt, deepLocate });
-      retryCount++;
+      opt?.onProgress?.({
+        prompt: resultPrompt,
+        deepDescribe,
+        deepLocate,
+      });
     }
+    retryCount++;
   }
 
   return {
     prompt: resultPrompt,
     deepLocate,
+    deepDescribe,
     verifyResult,
     success,
     error:
@@ -302,20 +341,13 @@ export async function verifyElementDescriptionAtPoint(
   return verifyLocator(runtime, description, locateOpt, targetCenter, opt);
 }
 
-export async function verifyElementByServiceLocate(
-  runtime: Pick<ElementDescriberRuntime, 'service' | 'locateModelRuntime'>,
-  description: string,
-  center: [number, number],
-  opt?: VerifyElementByServiceLocateOptions,
-): Promise<LocateValidatorResult> {
-  return locateAndVerify(runtime, description, center, opt);
-}
-
 async function locateAndVerify(
   runtime: Pick<ElementDescriberRuntime, 'service' | 'locateModelRuntime'>,
   description: string,
   center: [number, number],
-  opt?: VerifyElementByServiceLocateOptions & { uiContext?: UIContext },
+  opt?: LocateAndVerifyOptions & {
+    uiContext?: UIContext;
+  },
 ): Promise<LocateValidatorResult> {
   assert(description?.trim(), 'description must not be empty');
   const { screenshotContext, targetCenter } =
@@ -335,5 +367,10 @@ async function locateAndVerify(
     opt?.abortSignal,
   );
   assert(locateResult.element, `Element not found: ${description}`);
-  return buildLocateValidatorResult(targetCenter, locateResult.element, opt);
+  const verifyResult = buildLocateValidatorResult(
+    targetCenter,
+    locateResult.element,
+    opt,
+  );
+  return verifyResult;
 }

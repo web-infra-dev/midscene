@@ -30,6 +30,7 @@ import {
   serializeAutoCreateInput,
   shouldResetAutoCreateBlock,
 } from './auto-create';
+import { getCreateAgentErrorNotification } from './create-agent-error';
 import { runSingleFlight } from './single-flight';
 import type { PlaygroundControllerResult, PlaygroundFormValues } from './types';
 
@@ -308,6 +309,7 @@ export function usePlaygroundController({
       options?: { silent?: boolean },
     ): Promise<boolean> =>
       runSingleFlight(pendingCreateSessionRef, async () => {
+        let attemptedValues: Record<string, unknown> | undefined;
         try {
           sessionMutatingRef.current = true;
           setSessionMutating(true);
@@ -316,6 +318,7 @@ export function usePlaygroundController({
           }
 
           const values = input ?? (await form.validateFields());
+          attemptedValues = values;
           await playgroundSDK.createSession(values);
           if (shouldResetAutoCreateBlock(options)) {
             autoCreateBlockedSignatureRef.current = null;
@@ -329,7 +332,17 @@ export function usePlaygroundController({
           if ((error as { errorFields?: unknown }).errorFields) {
             return false;
           }
-          notifyError(error, { title: 'Failed to create Agent' });
+          if (options?.silent) {
+            autoCreateBlockedSignatureRef.current =
+              serializeAutoCreateInput(attemptedValues);
+            return false;
+          }
+          notifyError(
+            error,
+            getCreateAgentErrorNotification(error) ?? {
+              title: 'Failed to create Agent',
+            },
+          );
           return false;
         } finally {
           sessionMutatingRef.current = false;

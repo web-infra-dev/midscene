@@ -684,7 +684,7 @@ describe('parseXMLPlanningResponse', () => {
   it('should parse complete XML response with all fields', () => {
     const modelFamily = 'doubao-vision';
     const xml = `
-<thought>I need to click the login button</thought>
+<planning>I need to click the login button</planning>
 <memory>User credentials are already filled</memory>
 <log>Click the login button</log>
 <error></error>
@@ -840,10 +840,10 @@ describe('parseXMLPlanningResponse', () => {
   it('should handle multiline content in tags', () => {
     const modelFamily = 'doubao-vision';
     const xml = `
-<thought>
+<planning>
   This is a complex thought
   spanning multiple lines
-</thought>
+</planning>
 <log>Executing complex action</log>
 <action-type>Input</action-type>
 <action-param-json>
@@ -961,7 +961,7 @@ describe('parseXMLPlanningResponse', () => {
   it('should not throw error when log field is missing and no action', () => {
     const modelFamily = 'doubao-vision';
     const xml = `
-<thought>Some thought</thought>
+<planning>Some thought</planning>
 <complete success="true">Task completed</complete>
     `.trim();
 
@@ -1012,7 +1012,7 @@ describe('parseXMLPlanningResponse', () => {
   it('should parse half-open action-type tag without closing tag', () => {
     const modelFamily = 'doubao-vision';
     const xml = `
-<thought>The Priority input field is active now.</thought>
+<planning>The Priority input field is active now.</planning>
 <log>Type "1000" into the Priority input field</log>
 <action-type>Input
 <action-param-json>
@@ -1067,7 +1067,7 @@ describe('parseXMLPlanningResponse', () => {
   it('should parse complete tag with success=true and message', () => {
     const modelFamily = 'doubao-vision';
     const xml = `
-<thought>Task completed successfully</thought>
+<planning>Task completed successfully</planning>
 <complete success="true">The product names are: 'Product A', 'Product B', 'Product C'</complete>
     `.trim();
 
@@ -1089,7 +1089,7 @@ describe('parseXMLPlanningResponse', () => {
   it('should parse complete tag with success=false and error message', () => {
     const modelFamily = 'doubao-vision';
     const xml = `
-<thought>Task failed</thought>
+<planning>Task failed</planning>
 <complete success="false">Unable to find the required element on the page</complete>
     `.trim();
 
@@ -1110,7 +1110,7 @@ describe('parseXMLPlanningResponse', () => {
   it('should parse complete tag with empty message', () => {
     const modelFamily = 'doubao-vision';
     const xml = `
-<thought>Task completed</thought>
+<planning>Task completed</planning>
 <complete success="true"></complete>
     `.trim();
 
@@ -1130,7 +1130,7 @@ describe('parseXMLPlanningResponse', () => {
   it('should parse complete tag with multiline message', () => {
     const modelFamily = 'doubao-vision';
     const xml = `
-<thought>Data extraction completed</thought>
+<planning>Data extraction completed</planning>
 <complete success="true">
 Extracted data:
 - Item 1: Value A
@@ -1157,7 +1157,7 @@ Extracted data:
   it('should parse complete tag along with other optional fields', () => {
     const modelFamily = 'doubao-vision';
     const xml = `
-<thought>All tasks completed successfully</thought>
+<planning>All tasks completed successfully</planning>
 <memory>Total items processed: 10</memory>
 <complete success="true">All 10 items have been processed</complete>
     `.trim();
@@ -1180,7 +1180,7 @@ Extracted data:
   it('should handle complete tag case insensitively', () => {
     const modelFamily = 'doubao-vision';
     const xml = `
-<thought>Task done</thought>
+<planning>Task done</planning>
 <COMPLETE success="true">Success message</COMPLETE>
     `.trim();
 
@@ -1201,7 +1201,7 @@ Extracted data:
   it('should parse update-plan-content with sub-goals', () => {
     const modelFamily = 'doubao-vision';
     const xml = `
-<thought>Breaking down the task</thought>
+<planning>Breaking down the task</planning>
 <log>Planning the steps</log>
 <update-plan-content>
   <sub-goal index="1" status="pending">Log in to the system</sub-goal>
@@ -1229,7 +1229,7 @@ Extracted data:
   it('should parse mark-sub-goal-done with finished indexes', () => {
     const modelFamily = 'doubao-vision';
     const xml = `
-<thought>First step completed</thought>
+<planning>First step completed</planning>
 <log>Moving to next step</log>
 <mark-sub-goal-done>
   <sub-goal index="1" status="finished" />
@@ -1247,7 +1247,7 @@ Extracted data:
   it('should parse multiple finished indexes in mark-sub-goal-done', () => {
     const modelFamily = 'doubao-vision';
     const xml = `
-<thought>Multiple steps completed</thought>
+<planning>Multiple steps completed</planning>
 <log>Great progress</log>
 <mark-sub-goal-done>
   <sub-goal index="1" status="finished" />
@@ -1269,7 +1269,7 @@ Extracted data:
     // causing extractXMLTag to include trailing tags in the action type value.
     // e.g. type becomes "KeyboardPress</action-type>\n<action-param-json>..."
     const xml = `
-<thought>Need to press Enter</thought>
+<planning>Need to press Enter</planning>
 <log>Press Enter key</log>
 <action-type>KeyboardPress</action-type>
 <action-param-json>
@@ -1292,7 +1292,7 @@ Extracted data:
   it('should parse both update-plan-content and mark-sub-goal-done', () => {
     const modelFamily = 'doubao-vision';
     const xml = `
-<thought>Updating plan after progress</thought>
+<planning>Updating plan after progress</planning>
 <log>Continuing work</log>
 <update-plan-content>
   <sub-goal index="1" status="finished">Log in to the system</sub-goal>

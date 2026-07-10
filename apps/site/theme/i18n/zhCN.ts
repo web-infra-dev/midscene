@@ -97,6 +97,7 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   userVolcengine: '火山引擎',
   userDouyin: '抖音',
   userAlibaba: '阿里巴巴',
+  userCtrip: '携程',
   userXiaomi: '小米',
   userIqiyi: '爱奇艺',
   userLark: '飞书',

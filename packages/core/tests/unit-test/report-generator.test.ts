@@ -113,6 +113,34 @@ describe('ReportGenerator — append-only model', () => {
     }
   });
 
+  // Writer contract for the self-describing screenshot mode. The merger reads
+  // this attribute back to decide directory vs inline, so the generated value
+  // must match for both modes (see report.ts readDeclaredScreenshotMode).
+  describe('data-screenshot-mode attribute', () => {
+    it.each(['inline', 'directory'] as const)(
+      'stamps data-screenshot-mode="%s" on the dump script tag',
+      async (mode) => {
+        const reportPath =
+          mode === 'directory'
+            ? join(tmpDir, 'dir-mode', 'index.html')
+            : join(tmpDir, 'inline-mode.html');
+        const generator = new ReportGenerator({
+          reportPath,
+          screenshotMode: mode,
+          autoPrint: false,
+        });
+        generator.onExecutionUpdate(
+          createExecution([ScreenshotItem.create(fakeBase64(100), Date.now())]),
+          defaultReportMeta,
+        );
+        await generator.finalize();
+
+        const html = readFileSync(reportPath, 'utf-8');
+        expect(html).toContain(`data-screenshot-mode="${mode}"`);
+      },
+    );
+  });
+
   describe('inline mode — append-only strategy', () => {
     it('should write each screenshot image tag exactly once across multiple updates', async () => {
       const reportPath = join(tmpDir, 'inline-test.html');
@@ -1215,6 +1243,51 @@ describe('ReportGenerator — append-only model', () => {
       await generator.finalize();
       expect(() => s1.base64).not.toThrow();
       expect(() => s2.base64).not.toThrow();
+
+      const html = readFileSync(reportPath, 'utf-8');
+      const agentCommentCount = (html.match(/<!--\nFor Agent Analysis:/g) ?? [])
+        .length;
+      expect(agentCommentCount).toBe(1);
+      expect(html).toContain('Executions: 2; Tasks: 2');
+    });
+
+    it('keeps same-name executions without id in the agent comment', async () => {
+      const reportPath = join(tmpDir, 'no-id-same-name.html');
+      const generator = new ReportGenerator({
+        reportPath,
+        screenshotMode: 'inline',
+        autoPrint: false,
+      });
+      const createNoIdExecution = (taskId: string) =>
+        new ExecutionDump({
+          logTime: Date.now(),
+          name: 'same execution name',
+          tasks: [
+            {
+              taskId,
+              type: 'Insight',
+              subType: 'Locate',
+              param: { prompt: taskId },
+              executor: async () => undefined,
+              recorder: [],
+              status: 'finished',
+            } as any,
+          ],
+        });
+
+      generator.onExecutionUpdate(
+        createNoIdExecution('task-a'),
+        defaultReportMeta,
+      );
+      generator.onExecutionUpdate(
+        createNoIdExecution('task-b'),
+        defaultReportMeta,
+      );
+
+      await generator.finalize();
+
+      const html = readFileSync(reportPath, 'utf-8');
+      expect(html).toContain('Executions: 2; Tasks: 2');
     });
 
     it('should work correctly in directory mode with lazy loading', async () => {

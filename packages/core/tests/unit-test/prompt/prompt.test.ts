@@ -324,16 +324,16 @@ describe('system prompts', () => {
     expect(prompt).not.toContain('<mark-sub-goal-done>');
     expect(prompt).not.toContain('<sub-goal');
 
-    // Should still contain thought tag
-    expect(prompt).toContain('<thought>');
+    // Should still contain planning tag
+    expect(prompt).toContain('<planning>');
 
     // Observation Guidelines are only available in deepThink (sub-goals) mode
     expect(prompt).not.toContain('### Observation Guidelines');
 
     // Should have simplified Step 1 title
-    expect(prompt).toContain('## Step 1: Observe (related tags: <thought>)');
+    expect(prompt).toContain('## Step 1: Observe (related tags: <planning>)');
     expect(prompt).not.toContain(
-      '## Step 1: Observe and Plan (related tags: <thought>, <update-plan-content>, <mark-sub-goal-done>)',
+      '## Step 1: Observe and Plan (related tags: <planning>, <update-plan-content>, <mark-sub-goal-done>)',
     );
   });
 
@@ -349,15 +349,15 @@ describe('system prompts', () => {
     expect(prompt).toContain('<mark-sub-goal-done>');
     expect(prompt).toContain('<sub-goal');
 
-    // Should still contain thought tag
-    expect(prompt).toContain('<thought>');
+    // Should still contain planning tag
+    expect(prompt).toContain('<planning>');
 
     // Observation Guidelines are only available in deepThink (sub-goals) mode
     expect(prompt).toContain('### Observation Guidelines');
 
     // Should have full Step 1 title with sub-goal tags
     expect(prompt).toContain(
-      '## Step 1: Observe and Plan (related tags: <thought>, <update-plan-content>, <mark-sub-goal-done>)',
+      '## Step 1: Observe and Plan (related tags: <planning>, <update-plan-content>, <mark-sub-goal-done>)',
     );
   });
 

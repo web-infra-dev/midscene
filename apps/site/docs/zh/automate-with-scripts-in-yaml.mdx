@@ -269,7 +269,7 @@ android:
   # 其他 AndroidDevice 构造函数支持的所有选项
   # 例如：androidAdbPath, remoteAdbHost, remoteAdbPort,
   # imeStrategy, displayId, autoDismissKeyboard, keyboardDismissStrategy,
-  # minScreenshotBufferSize, alwaysRefreshScreenInfo 等
+  # keyboardTypeDelay, minScreenshotBufferSize, alwaysRefreshScreenInfo 等
   # 完整配置项请参考 AndroidDevice 的构造函数文档
 ```
 
@@ -661,6 +661,9 @@ tasks:
       - aiAssert: <prompt>
         errorMessage: <error-message> # 可选，当断言失败时打印的错误信息。
         name: <name> # 可选，给断言一个名称，会在 JSON 输出中作为 key 使用
+
+      - aiBoolean: <prompt>
+        name: <name> # 可选，给布尔结果一个名称，会在 JSON 输出中作为 key 使用
 
       # 运行一个 Gherkin Scenario。此功能从 Midscene 1.10 开始支持，目前仍处于 Beta 阶段。
       - runGherkinScenario: |

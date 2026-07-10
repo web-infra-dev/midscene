@@ -41,6 +41,7 @@ export interface ConfigFactoryOptions {
   android?: Partial<MidsceneYamlScriptAndroidEnv>;
   ios?: Partial<MidsceneYamlScriptIOSEnv>;
   files?: string[];
+  setup?: string;
 }
 
 export interface ParsedConfig {
@@ -56,6 +57,7 @@ export interface ParsedConfig {
   ios?: MidsceneYamlScriptIOSEnv;
   target?: MidsceneYamlScriptWebEnv;
   files: string[];
+  setup?: string;
   patterns: string[]; // Keep patterns for reference
   headed: boolean;
   keepWindow: boolean;
@@ -88,6 +90,46 @@ async function expandFilePatterns(
   return allFiles;
 }
 
+/**
+ * A setup file only makes sense when the batch shares one browser context: the
+ * prerequisite state it establishes (typically a login) is carried to the main
+ * files through the shared page. Without sharing, that state cannot reach the
+ * main files, so reject the combination loudly instead of silently dropping it.
+ */
+function assertSetupUsage(
+  setup: string | undefined,
+  shareBrowserContext: boolean,
+): void {
+  if (setup && !shareBrowserContext) {
+    throw new Error(
+      'setup requires shareBrowserContext: true, otherwise the setup state cannot be shared with the main files',
+    );
+  }
+}
+
+/**
+ * Resolve the optional single setup file. It supports glob/relative paths like
+ * the main files, but must reference exactly one file.
+ */
+async function resolveSetupFile(
+  setup: string | undefined,
+  basePath: string,
+): Promise<string | undefined> {
+  if (!setup) {
+    return undefined;
+  }
+  const matched = await expandFilePatterns([setup], basePath);
+  if (matched.length === 0) {
+    throw new Error(`No YAML file found matching "setup": ${setup}`);
+  }
+  if (matched.length > 1) {
+    throw new Error(
+      `"setup" must reference a single YAML file, but "${setup}" matched ${matched.length} files`,
+    );
+  }
+  return matched[0];
+}
+
 export async function parseConfigYaml(
   configYamlPath: string,
 ): Promise<ParsedConfig> {
@@ -115,6 +157,9 @@ export async function parseConfigYaml(
     throw new Error('No YAML files found matching the patterns in "files"');
   }
 
+  // Resolve the optional setup file (runs before the main files)
+  const setup = await resolveSetupFile(configYaml.setup, basePath);
+
   // Generate default summary filename
   const configFileName = basename(configYamlPath, extname(configYamlPath));
   const timestamp = Date.now();
@@ -137,6 +182,7 @@ export async function parseConfigYaml(
     ios: configYaml.ios,
     patterns: configYaml.files,
     files,
+    setup,
     headed: configYaml.headed ?? defaultConfig.headed,
     keepWindow: configYaml.keepWindow ?? defaultConfig.keepWindow,
     dotenvOverride: configYaml.dotenvOverride ?? defaultConfig.dotenvOverride,
@@ -184,14 +230,25 @@ export async function createConfig(
     files = await expandFilePatterns(options.files, basePath);
   }
 
+  // Command-line setup, when provided, overrides the config file one.
+  let setup = parsedConfig.setup;
+  if (options?.setup) {
+    const basePath = dirname(resolve(configYamlPath));
+    setup = await resolveSetupFile(options.setup, basePath);
+  }
+
+  const shareBrowserContext =
+    options?.shareBrowserContext ?? parsedConfig.shareBrowserContext;
+  assertSetupUsage(setup, shareBrowserContext);
+
   return {
     files,
+    setup,
     concurrent: options?.concurrent ?? parsedConfig.concurrent,
     continueOnError: options?.continueOnError ?? parsedConfig.continueOnError,
     retry: options?.retry ?? parsedConfig.retry,
     summary: options?.summary ?? parsedConfig.summary,
-    shareBrowserContext:
-      options?.shareBrowserContext ?? parsedConfig.shareBrowserContext,
+    shareBrowserContext,
     headed: finalHeaded,
     keepWindow: keepWindow,
     dotenvOverride: options?.dotenvOverride ?? parsedConfig.dotenvOverride,
@@ -205,6 +262,7 @@ export async function createFilesConfig(
   options: ConfigFactoryOptions = {},
 ): Promise<BatchRunnerConfig> {
   const files = await expandFilePatterns(patterns, cwd());
+  const setup = await resolveSetupFile(options.setup, cwd());
   // Generate default summary filename if not provided
   const timestamp = Date.now();
   const defaultSummary = `summary-${timestamp}.json`;
@@ -215,14 +273,18 @@ export async function createFilesConfig(
   // If keepWindow is true, automatically enable headed mode
   const finalHeaded = keepWindow || headed;
 
+  const shareBrowserContext =
+    options.shareBrowserContext ?? defaultConfig.shareBrowserContext;
+  assertSetupUsage(setup, shareBrowserContext);
+
   return {
     files,
+    setup,
     concurrent: options.concurrent ?? defaultConfig.concurrent,
     continueOnError: options.continueOnError ?? defaultConfig.continueOnError,
     retry: options.retry ?? defaultConfig.retry,
     summary: options.summary ?? defaultSummary,
-    shareBrowserContext:
-      options.shareBrowserContext ?? defaultConfig.shareBrowserContext,
+    shareBrowserContext,
     headed: finalHeaded,
     keepWindow: keepWindow,
     dotenvOverride: options.dotenvOverride ?? defaultConfig.dotenvOverride,

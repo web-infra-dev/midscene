@@ -1,4 +1,5 @@
 import type { IModelConfig } from '@midscene/shared/env';
+import sharp from 'sharp';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@/ai-model/service-caller/index', () => ({
@@ -11,20 +12,25 @@ vi.mock('@/service', () => ({
   })),
 }));
 
-vi.mock('@midscene/shared/img', async () => {
-  const actual = await vi.importActual<typeof import('@midscene/shared/img')>(
-    '@midscene/shared/img',
-  );
-  return {
-    ...actual,
-    imageInfoOfBase64: vi.fn().mockResolvedValue({ width: 800, height: 450 }),
-  };
-});
-
 import { runConnectivityTest } from '@/ai-model/connectivity';
+import {
+  CONNECTIVITY_FIXTURE_IMAGE,
+  CONNECTIVITY_FIXTURE_SHOT_SIZE,
+} from '@/ai-model/connectivity/fixture';
 import { callAI } from '@/ai-model/service-caller/index';
 import Service from '@/service';
-import { imageInfoOfBase64 } from '@midscene/shared/img';
+
+async function readImageSizeFromDataUrl(dataUrl: string): Promise<{
+  width: number;
+  height: number;
+}> {
+  const base64 = dataUrl.replace(/^data:image\/png;base64,/, '');
+  const metadata = await sharp(Buffer.from(base64, 'base64')).metadata();
+  return {
+    width: metadata.width ?? 0,
+    height: metadata.height ?? 0,
+  };
+}
 
 describe('runConnectivityTest', () => {
   const defaultModelConfig: IModelConfig = {
@@ -33,6 +39,7 @@ describe('runConnectivityTest', () => {
     modelFamily: 'qwen2.5-vl',
     intent: 'default',
     slot: 'default',
+    retryCount: 3,
   };
   const planningModelConfig: IModelConfig = {
     modelName: 'test-planning-model',
@@ -40,6 +47,7 @@ describe('runConnectivityTest', () => {
     modelFamily: 'qwen2.5-vl',
     intent: 'planning',
     slot: 'planning',
+    retryCount: 3,
   };
   const insightModelConfig: IModelConfig = {
     modelName: 'test-insight-model',
@@ -47,10 +55,17 @@ describe('runConnectivityTest', () => {
     modelFamily: 'gpt-5',
     intent: 'insight',
     slot: 'insight',
+    retryCount: 3,
   };
 
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  it('keeps the fixture shot size aligned with the embedded PNG', async () => {
+    await expect(
+      readImageSizeFromDataUrl(CONNECTIVITY_FIXTURE_IMAGE),
+    ).resolves.toEqual(CONNECTIVITY_FIXTURE_SHOT_SIZE);
   });
 
   it('returns passed when all checks succeed', async () => {
@@ -80,42 +95,36 @@ describe('runConnectivityTest', () => {
     });
 
     expect(result.passed).toBe(true);
-    expect(result.checks.map((item) => item.intent)).toEqual([
-      'planning',
-      'insight',
-      'default',
-    ]);
-    expect(result.checks.map((item) => item.modelName)).toEqual([
-      'test-planning-model',
-      'test-insight-model',
-      'test-model',
-    ]);
-    expect(result.checks.map((item) => item.passed)).toEqual([
-      true,
-      true,
-      true,
-    ]);
+    expect(result.message).toBeUndefined();
     expect(locate).toHaveBeenCalledWith(
       { prompt: 'the main todo input box' },
       {},
       expect.objectContaining({
-        config: defaultModelConfig,
+        config: expect.objectContaining({
+          ...defaultModelConfig,
+          retryCount: 0,
+        }),
       }),
     );
     expect(vi.mocked(callAI).mock.calls[0]?.[1]).toEqual(
       expect.objectContaining({
-        config: planningModelConfig,
+        config: expect.objectContaining({
+          ...planningModelConfig,
+          retryCount: 0,
+        }),
       }),
     );
     expect(vi.mocked(callAI).mock.calls[1]?.[1]).toEqual(
       expect.objectContaining({
-        config: insightModelConfig,
+        config: expect.objectContaining({
+          ...insightModelConfig,
+          retryCount: 0,
+        }),
       }),
     );
-    expect(vi.mocked(imageInfoOfBase64)).toHaveBeenCalledWith(
-      expect.stringMatching(/^data:image\/png;base64,/),
-    );
-
+    expect(defaultModelConfig.retryCount).toBe(3);
+    expect(planningModelConfig.retryCount).toBe(3);
+    expect(insightModelConfig.retryCount).toBe(3);
     const visionCall = vi.mocked(callAI).mock.calls[1]?.[0]?.[0];
     expect(visionCall).toMatchObject({
       role: 'user',
@@ -157,9 +166,14 @@ describe('runConnectivityTest', () => {
     });
 
     expect(result.passed).toBe(false);
-    expect(result.checks).toHaveLength(3);
-    expect(result.checks[0]?.passed).toBe(false);
-    expect(result.checks[1]?.message).toContain('vision failed');
-    expect(result.checks[2]?.passed).toBe(false);
+    expect(result.message).toContain(
+      '[Text check - test-planning-model (planning)]: Unexpected response: wrong-token',
+    );
+    expect(result.message).toContain(
+      '[Vision check - test-insight-model (insight)]: vision failed',
+    );
+    expect(result.message).toContain(
+      '[AI locate check - test-model (default)]: Invalid locate result:',
+    );
   });
 });

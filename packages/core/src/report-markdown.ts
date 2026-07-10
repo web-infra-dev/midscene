@@ -1,16 +1,35 @@
-import { basename } from 'node:path';
 import { extractInsightParam, paramStr, typeStr } from '@/agent/ui-utils';
 import { ScreenshotItem } from '@/screenshot-item';
 import type {
+  AIUsageInfo,
   ExecutionDump,
-  ExecutionRecorderItem,
   ExecutionTask,
   IExecutionDump,
   IReportActionDump,
+  ModelBrief,
   ReportActionDump,
 } from '@/types';
 import type { ScreenshotRef } from './dump/screenshot-store';
 import { normalizeScreenshotRef } from './dump/screenshot-store';
+
+const screenshotDataUrlPattern =
+  /^data:image\/(png|jpeg|jpg);base64,([\s\S]*)$/i;
+const rawBase64BodyPattern = /^[a-zA-Z0-9+/=\s]+$/;
+const jsonContextMaxStringLength = 12_000;
+
+type ExecutionTaskWithExtraUsage = ExecutionTask & {
+  searchAreaUsage?: AIUsageInfo;
+  reasoning_content?: string;
+};
+
+interface UsageTotals {
+  calls: number;
+  prompt: number;
+  cachedInput: number;
+  completion: number;
+  total: number;
+  timeCost: number;
+}
 
 export interface MarkdownAttachment {
   id: string;
@@ -84,6 +103,255 @@ function formatTime(ts?: number): string {
     return 'N/A';
   }
   return new Date(ts).toISOString();
+}
+
+function formatValue(value: unknown): string {
+  if (value === undefined || value === null || value === '') {
+    return 'N/A';
+  }
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? String(value) : 'N/A';
+  }
+  return String(value);
+}
+
+function escapeTableCell(value: unknown): string {
+  return formatValue(value).replace(/\|/g, '\\|').replace(/\n/g, '<br>');
+}
+
+function markdownTable(headers: string[], rows: unknown[][]): string[] {
+  return [
+    `| ${headers.map(escapeTableCell).join(' | ')} |`,
+    `| ${headers.map(() => '---').join(' | ')} |`,
+    ...rows.map((row) => `| ${row.map(escapeTableCell).join(' | ')} |`),
+  ];
+}
+
+function modelBriefRows(modelBriefs: ModelBrief[]): unknown[][] {
+  return modelBriefs.map((brief) => [
+    brief.intent || 'default',
+    brief.name || 'N/A',
+    brief.modelDescription || 'N/A',
+  ]);
+}
+
+function modelRowsFromUsage(report: IReportActionDump): unknown[][] {
+  const rows = new Map<string, unknown[]>();
+  const addUsage = (source: string, usage?: AIUsageInfo) => {
+    if (!hasUsage(usage)) return;
+    const intent = usage.intent || source;
+    const model = usage.model_name || usage.response_model_name;
+    const description = usage.model_description;
+    const key = `${intent}\0${model || ''}\0${description || ''}`;
+    if (rows.has(key)) {
+      return;
+    }
+    rows.set(key, [intent, model || 'N/A', description || 'N/A']);
+  };
+
+  for (const execution of report.executions) {
+    for (const task of execution.tasks) {
+      const taskWithUsage = task as ExecutionTaskWithExtraUsage;
+      addUsage('main', taskWithUsage.usage);
+      addUsage('searchArea', taskWithUsage.searchAreaUsage);
+    }
+  }
+
+  return Array.from(rows.values());
+}
+
+function usageValue(usage: AIUsageInfo | undefined, key: string): number {
+  const value = usage?.[key];
+  return typeof value === 'number' && Number.isFinite(value) ? value : 0;
+}
+
+function hasUsage(usage: AIUsageInfo | undefined): usage is AIUsageInfo {
+  if (!usage) return false;
+  return [
+    'intent',
+    'model_name',
+    'model_description',
+    'prompt_tokens',
+    'cached_input',
+    'completion_tokens',
+    'total_tokens',
+    'time_cost',
+    'request_id',
+  ].some((key) => usage[key] !== undefined && usage[key] !== null);
+}
+
+function usageTotalTokens(usage: AIUsageInfo): number {
+  const explicitTotal = usageValue(usage, 'total_tokens');
+  if (explicitTotal > 0) {
+    return explicitTotal;
+  }
+  return (
+    usageValue(usage, 'prompt_tokens') + usageValue(usage, 'completion_tokens')
+  );
+}
+
+function usageModelName(usage: AIUsageInfo): string {
+  return (
+    usage.model_name ||
+    usage.response_model_name ||
+    usage.model_description ||
+    usage.intent ||
+    'Unknown'
+  );
+}
+
+function usageRowsForTask(task: ExecutionTask): unknown[][] {
+  const taskWithUsage = task as ExecutionTaskWithExtraUsage;
+  const rows: unknown[][] = [];
+  const appendUsage = (source: string, usage?: AIUsageInfo) => {
+    if (!hasUsage(usage)) return;
+    rows.push([
+      source,
+      usage.intent,
+      usage.model_name || usage.response_model_name,
+      usage.model_description,
+      usageValue(usage, 'prompt_tokens'),
+      usageValue(usage, 'cached_input'),
+      usageValue(usage, 'completion_tokens'),
+      usageTotalTokens(usage),
+      usageValue(usage, 'time_cost'),
+      usage.request_id,
+    ]);
+  };
+
+  appendUsage('main', taskWithUsage.usage);
+  appendUsage('searchArea', taskWithUsage.searchAreaUsage);
+  return rows;
+}
+
+function collectUsageTotals(
+  report: IReportActionDump,
+): Map<string, UsageTotals> {
+  const totalsByModel = new Map<string, UsageTotals>();
+  const addUsage = (usage?: AIUsageInfo) => {
+    if (!hasUsage(usage)) return;
+    const modelName = usageModelName(usage);
+    const current = totalsByModel.get(modelName) ?? {
+      calls: 0,
+      prompt: 0,
+      cachedInput: 0,
+      completion: 0,
+      total: 0,
+      timeCost: 0,
+    };
+
+    totalsByModel.set(modelName, {
+      calls: current.calls + 1,
+      prompt: current.prompt + usageValue(usage, 'prompt_tokens'),
+      cachedInput: current.cachedInput + usageValue(usage, 'cached_input'),
+      completion: current.completion + usageValue(usage, 'completion_tokens'),
+      total: current.total + usageTotalTokens(usage),
+      timeCost: current.timeCost + usageValue(usage, 'time_cost'),
+    });
+  };
+
+  for (const execution of report.executions) {
+    for (const task of execution.tasks) {
+      const taskWithUsage = task as ExecutionTaskWithExtraUsage;
+      addUsage(taskWithUsage.usage);
+      addUsage(taskWithUsage.searchAreaUsage);
+    }
+  }
+
+  return totalsByModel;
+}
+
+function sanitizeJsonForMarkdown(
+  value: unknown,
+  seen = new WeakSet<object>(),
+): unknown {
+  if (typeof value === 'string') {
+    if (
+      screenshotDataUrlPattern.test(value) ||
+      value.length > 1_000_000 ||
+      /^[a-zA-Z0-9+/=\s]{100000,}$/.test(value)
+    ) {
+      return `[omitted image/base64 string, length=${value.length}]`;
+    }
+    if (value.length > jsonContextMaxStringLength) {
+      return `${value.slice(0, jsonContextMaxStringLength)}\n[truncated, original length=${value.length}]`;
+    }
+    return value;
+  }
+
+  if (
+    value === null ||
+    typeof value === 'number' ||
+    typeof value === 'boolean'
+  ) {
+    return value;
+  }
+
+  if (typeof value === 'function') {
+    return '[omitted function]';
+  }
+
+  if (typeof value !== 'object' || value === undefined) {
+    return undefined;
+  }
+
+  if (seen.has(value)) {
+    return '[omitted circular reference]';
+  }
+  seen.add(value);
+
+  if (Array.isArray(value)) {
+    return value.map((item) => sanitizeJsonForMarkdown(item, seen));
+  }
+
+  const input = value as Record<string, unknown>;
+  const output: Record<string, unknown> = {};
+  for (const [key, entry] of Object.entries(input)) {
+    if (entry === undefined || typeof entry === 'function') {
+      continue;
+    }
+    if (
+      typeof entry === 'string' &&
+      /(^|_|-)(base64|screenshotBase64|imageBase64)$/i.test(key)
+    ) {
+      output[key] = `[omitted base64 string, length=${entry.length}]`;
+      continue;
+    }
+    output[key] = sanitizeJsonForMarkdown(entry, seen);
+  }
+  seen.delete(value);
+  return output;
+}
+
+function appendJsonSection(
+  lines: string[],
+  title: string,
+  value: unknown,
+): void {
+  if (value === undefined || value === null || value === '') {
+    return;
+  }
+  const sanitized = sanitizeJsonForMarkdown(value);
+  if (sanitized === undefined) {
+    return;
+  }
+
+  lines.push('', `### ${title}`, '', '```json');
+  lines.push(JSON.stringify(sanitized, null, 2));
+  lines.push('```');
+}
+
+function appendTextSection(
+  lines: string[],
+  title: string,
+  value: unknown,
+): void {
+  if (typeof value !== 'string' || !value.trim()) {
+    return;
+  }
+  lines.push('', `### ${title}`, '', '```text');
+  lines.push(value.replace(/```/g, '` ` `'));
+  lines.push('```');
 }
 
 function resolveTaskTiming(task: ExecutionTask): {
@@ -179,6 +447,29 @@ function extractLocateCenter(
 }
 
 function tryExtractBase64(screenshot: unknown): string | undefined {
+  if (typeof screenshot === 'string') {
+    const trimmedScreenshot = screenshot.trim();
+    const dataUrlMatch = trimmedScreenshot.match(screenshotDataUrlPattern);
+    if (dataUrlMatch) {
+      const format = dataUrlMatch[1].toLowerCase() === 'jpg' ? 'jpeg' : 'png';
+      const base64Body = dataUrlMatch[2].replace(/\s/g, '');
+      if (!base64Body) {
+        return undefined;
+      }
+      return `data:image/${format};base64,${base64Body}`;
+    }
+
+    if (
+      trimmedScreenshot.startsWith('data:') ||
+      !rawBase64BodyPattern.test(trimmedScreenshot)
+    ) {
+      return undefined;
+    }
+
+    const base64Body = trimmedScreenshot.replace(/\s/g, '');
+    return base64Body ? `data:image/png;base64,${base64Body}` : undefined;
+  }
+
   if (!screenshot || typeof screenshot !== 'object') return undefined;
   const s = screenshot as Record<string, unknown>;
   if (typeof s.base64 === 'string' && s.base64.length > 0) {
@@ -187,17 +478,32 @@ function tryExtractBase64(screenshot: unknown): string | undefined {
   return undefined;
 }
 
+function restoredSourceRef(screenshot: unknown): ScreenshotRef | undefined {
+  if (!screenshot || typeof screenshot !== 'object') {
+    return undefined;
+  }
+
+  const sourceRef = (screenshot as Record<string, unknown>).sourceRef;
+  return normalizeScreenshotRef(sourceRef) ?? undefined;
+}
+
 function screenshotAttachment(
   screenshot: unknown,
   screenshotBaseDir: string,
   executionIndex: number,
   taskIndex: number,
+  options?: {
+    fallbackIdSuffix?: string;
+    label?: string;
+  },
 ): { markdown: string; attachment: MarkdownAttachment } {
+  const markdownLabel = options?.label || `task-${taskIndex + 1}`;
+
   if (screenshot instanceof ScreenshotItem) {
     const ext = screenshot.extension;
     const suggestedFileName = `execution-${executionIndex + 1}-task-${taskIndex + 1}-${screenshot.id}.${ext}`;
     return {
-      markdown: `\n![task-${taskIndex + 1}](${screenshotBaseDir}/${suggestedFileName})`,
+      markdown: `\n![${markdownLabel}](${screenshotBaseDir}/${suggestedFileName})`,
       attachment: {
         id: screenshot.id,
         suggestedFileName,
@@ -214,7 +520,7 @@ function screenshotAttachment(
     const ext = ref.mimeType === 'image/jpeg' ? 'jpeg' : 'png';
     const suggestedFileName = `execution-${executionIndex + 1}-task-${taskIndex + 1}-${ref.id}.${ext}`;
     return {
-      markdown: `\n![task-${taskIndex + 1}](${screenshotBaseDir}/${suggestedFileName})`,
+      markdown: `\n![${markdownLabel}](${screenshotBaseDir}/${suggestedFileName})`,
       attachment: {
         id: ref.id,
         suggestedFileName,
@@ -227,13 +533,34 @@ function screenshotAttachment(
     };
   }
 
+  const sourceRef = restoredSourceRef(screenshot);
+  if (sourceRef) {
+    const ext = sourceRef.mimeType === 'image/jpeg' ? 'jpeg' : 'png';
+    const suggestedFileName = `execution-${executionIndex + 1}-task-${taskIndex + 1}-${sourceRef.id}.${ext}`;
+    return {
+      markdown: `\n![${markdownLabel}](${screenshotBaseDir}/${suggestedFileName})`,
+      attachment: {
+        id: sourceRef.id,
+        suggestedFileName,
+        sourceRef,
+        mimeType: sourceRef.mimeType,
+        executionIndex,
+        taskIndex,
+        base64Data: tryExtractBase64(screenshot),
+      },
+    };
+  }
+
   const base64 = tryExtractBase64(screenshot);
   if (base64) {
     const ext = base64.startsWith('data:image/jpeg') ? 'jpeg' : 'png';
-    const id = `restored-${executionIndex + 1}-${taskIndex + 1}`;
+    const idSuffix = options?.fallbackIdSuffix
+      ? `-${options.fallbackIdSuffix}`
+      : '';
+    const id = `restored-${executionIndex + 1}-${taskIndex + 1}${idSuffix}`;
     const suggestedFileName = `execution-${executionIndex + 1}-task-${taskIndex + 1}-${id}.${ext}`;
     return {
-      markdown: `\n![task-${taskIndex + 1}](${screenshotBaseDir}/${suggestedFileName})`,
+      markdown: `\n![${markdownLabel}](${screenshotBaseDir}/${suggestedFileName})`,
       attachment: {
         id,
         suggestedFileName,
@@ -250,43 +577,78 @@ function screenshotAttachment(
   );
 }
 
-function recorderMarkdownSection(
-  recorder: ExecutionRecorderItem[] | undefined,
+function imageLabelSuffix(value: string): string {
+  return (
+    value
+      .toLowerCase()
+      .replace(/[^a-z0-9._-]+/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '') || 'screenshot'
+  );
+}
+
+function screenshotsMarkdownSection(
+  task: ExecutionTask,
   screenshotBaseDir: string,
   executionIndex: number,
   taskIndex: number,
 ): { lines: string[]; attachments: MarkdownAttachment[] } {
-  if (!recorder?.length) {
-    return { lines: [], attachments: [] };
+  const lines: string[] = ['', '### Screenshots'];
+  const attachments: MarkdownAttachment[] = [];
+  let screenshotIndex = 0;
+
+  if (task.uiContext?.screenshot) {
+    const imageResult = screenshotAttachment(
+      task.uiContext.screenshot,
+      screenshotBaseDir,
+      executionIndex,
+      taskIndex,
+      {
+        fallbackIdSuffix: 'ui-context',
+        label: `task-${taskIndex + 1}-ui-context`,
+      },
+    );
+    const time = resolveTaskTiming(task);
+    screenshotIndex += 1;
+    lines.push(
+      `- #${screenshotIndex} type=ui-context, ts=${formatTime(time.start)}, timing=ui-context`,
+    );
+    lines.push(imageResult.markdown);
+    attachments.push(imageResult.attachment);
   }
 
-  const lines: string[] = ['', '### Recorder'];
-  const attachments: MarkdownAttachment[] = [];
-
-  recorder.forEach((item, recorderIndex) => {
-    const descriptionText = item.description
-      ? `, description=${item.description}`
-      : '';
-    lines.push(
-      `- #${recorderIndex + 1} type=${item.type}, ts=${formatTime(item.ts)}, timing=${item.timing || 'N/A'}${descriptionText}`,
-    );
-
+  task.recorder?.forEach((item, recorderIndex) => {
     if (!item.screenshot) {
       return;
     }
+
+    const descriptionText = item.description
+      ? `, description=${item.description}`
+      : '';
+    const timing = item.timing || 'N/A';
+    screenshotIndex += 1;
+    lines.push(
+      `- #${screenshotIndex} type=${item.type}, ts=${formatTime(item.ts)}, timing=${timing}${descriptionText}`,
+    );
 
     const imageResult = screenshotAttachment(
       item.screenshot,
       screenshotBaseDir,
       executionIndex,
       taskIndex,
+      {
+        fallbackIdSuffix: `recorder-${recorderIndex + 1}`,
+        label: `task-${taskIndex + 1}-${imageLabelSuffix(timing)}`,
+      },
     );
 
     lines.push(imageResult.markdown);
     attachments.push(imageResult.attachment);
   });
 
-  return { lines, attachments };
+  return screenshotIndex > 0
+    ? { lines, attachments }
+    : { lines: [], attachments };
 }
 
 function renderExecution(
@@ -307,6 +669,9 @@ function renderExecution(
 
   lines.push('', `- Execution start: ${formatTime(execution.logTime)}`);
   lines.push(`- Task count: ${execution.tasks.length}`);
+  if (execution.aiActContext) {
+    appendTextSection(lines, 'AI Action Context', execution.aiActContext);
+  }
 
   execution.tasks.forEach((task, taskIndex) => {
     const title = typeStr(task);
@@ -317,6 +682,9 @@ function renderExecution(
       '',
       `## ${taskIndex + 1}. ${title}${detail ? ` - ${detail}` : ''}`,
     );
+    lines.push(`- Task ID: ${task.taskId || 'N/A'}`);
+    lines.push(`- Type: ${task.type || 'N/A'}`);
+    lines.push(`- SubType: ${task.subType || 'N/A'}`);
     lines.push(`- Status: ${task.status || 'unknown'}`);
     lines.push(`- Start: ${formatTime(time.start)}`);
     lines.push(`- End: ${formatTime(time.end)}`);
@@ -338,27 +706,47 @@ function renderExecution(
       lines.push(`- Error: ${task.errorMessage}`);
     }
 
-    if (task.uiContext?.screenshot) {
-      const imageResult = screenshotAttachment(
-        task.uiContext.screenshot,
-        screenshotBaseDir,
-        executionIndex,
-        taskIndex,
+    const usageRows = usageRowsForTask(task);
+    if (usageRows.length) {
+      lines.push('', '### Model Usage');
+      lines.push(
+        ...markdownTable(
+          [
+            'Source',
+            'Intent',
+            'Model',
+            'Description',
+            'Prompt Tokens',
+            'Cached Input',
+            'Completion Tokens',
+            'Total Tokens',
+            'Time Cost(ms)',
+            'Request ID',
+          ],
+          usageRows,
+        ),
       );
-
-      lines.push(imageResult.markdown);
-      attachments.push(imageResult.attachment);
     }
 
-    const recorderSection = recorderMarkdownSection(
-      task.recorder,
+    appendJsonSection(lines, 'Param', task.param);
+    appendJsonSection(lines, 'Output', task.output);
+    appendJsonSection(lines, 'Log', task.log);
+    appendTextSection(lines, 'Thought', task.thought);
+    appendTextSection(
+      lines,
+      'Reasoning Content',
+      (task as ExecutionTaskWithExtraUsage).reasoning_content,
+    );
+
+    const screenshotsSection = screenshotsMarkdownSection(
+      task,
       screenshotBaseDir,
       executionIndex,
       taskIndex,
     );
-    if (recorderSection.lines.length) {
-      lines.push(...recorderSection.lines);
-      attachments.push(...recorderSection.attachments);
+    if (screenshotsSection.lines.length) {
+      lines.push(...screenshotsSection.lines);
+      attachments.push(...screenshotsSection.attachments);
     }
   });
 
@@ -366,18 +754,6 @@ function renderExecution(
     markdown: lines.join('\n'),
     attachments,
   };
-}
-
-function reportFileName(
-  execution: IExecutionDump,
-  executionIndex: number,
-): string {
-  const safeName =
-    execution.name
-      .trim()
-      .replace(/\s+/g, '-')
-      .replace(/[^a-zA-Z0-9-_]/g, '') || `execution-${executionIndex + 1}`;
-  return `${executionIndex + 1}-${basename(safeName)}.md`;
 }
 
 export function executionToMarkdown(
@@ -395,25 +771,58 @@ export function reportToMarkdown(
   const executionResults = reportDump.executions.map((execution, index) => {
     const rendered = renderExecution(execution, index);
     return {
-      executionIndex: index,
-      executionName: execution.name,
       markdown: rendered.markdown,
       attachments: rendered.attachments,
-      suggestedFileName: reportFileName(execution, index),
     };
   });
 
   const attachments = executionResults.flatMap((item) => item.attachments);
+  const usageTotals = collectUsageTotals(reportDump);
+  const modelRows = reportDump.modelBriefs?.length
+    ? modelBriefRows(reportDump.modelBriefs)
+    : modelRowsFromUsage(reportDump);
+
+  const modelInfoLines = [
+    '\n## Model Info',
+    ...(modelRows.length
+      ? markdownTable(['Intent', 'Model', 'Description'], modelRows)
+      : ['- No model metadata recorded.']),
+  ];
+
+  const tokenSummaryLines = [
+    '\n## Token Usage Summary',
+    ...(usageTotals.size
+      ? markdownTable(
+          [
+            'Model',
+            'Calls',
+            'Prompt Tokens',
+            'Cached Input',
+            'Completion Tokens',
+            'Total Tokens',
+            'Time Cost(ms)',
+          ],
+          Array.from(usageTotals.entries()).map(([modelName, totals]) => [
+            modelName,
+            totals.calls,
+            totals.prompt,
+            totals.cachedInput,
+            totals.completion,
+            totals.total,
+            totals.timeCost,
+          ]),
+        )
+      : ['- No token usage recorded.']),
+  ];
 
   const header = [
     `# ${reportDump.groupName}`,
     reportDump.groupDescription ? `\n${reportDump.groupDescription}` : '',
     `\n- SDK Version: ${reportDump.sdkVersion}`,
+    reportDump.deviceType ? `- Device Type: ${reportDump.deviceType}` : '',
     `- Execution count: ${reportDump.executions.length}`,
-    '\n## Suggested execution markdown files',
-    ...executionResults.map(
-      (item) => `- ${item.suggestedFileName} (${item.executionName})`,
-    ),
+    ...modelInfoLines,
+    ...tokenSummaryLines,
   ]
     .filter(Boolean)
     .join('\n');

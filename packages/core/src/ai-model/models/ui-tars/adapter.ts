@@ -1,98 +1,25 @@
 import { type TModelFamily, UITarsModelVersion } from '@midscene/shared/env';
 import { assert } from '@midscene/shared/utils';
-import { jsonrepair } from 'jsonrepair';
-import type {
-  JsonParserContext,
-  JsonParserSource,
-  ModelAdapterDefinition,
-} from '../../model-adapter/types';
-import {
-  extractJSONFromCodeBlock,
-  safeParseJson,
-} from '../../service-caller/json';
+import type { ModelAdapterDefinition } from '../../model-adapter/types';
+import { parseModelResponseJson } from '../../service-caller/json';
 import {
   type LocateResultValue,
+  createLocateResultValue,
   unwrapCoordinateListLikeInput,
 } from '../../shared/model-locate-result';
 import { createUiTarsPlanner } from './planning';
 
 const defaultVlmUiTarsReplanningCycleLimit = 40;
-
-function normalizeJsonObject(
-  obj: any,
-  context: Pick<JsonParserContext, 'preserveStringValueKeys'> = {},
-): any {
-  if (obj === null || obj === undefined) {
-    return obj;
-  }
-
-  if (Array.isArray(obj)) {
-    return obj.map((item) => normalizeJsonObject(item, context));
-  }
-
-  if (typeof obj === 'object') {
-    const normalized: any = {};
-    for (const [key, value] of Object.entries(obj)) {
-      const trimmedKey = key.trim();
-      const preserveStringValue =
-        context.preserveStringValueKeys?.includes(trimmedKey) ?? false;
-      const normalizedValue =
-        typeof value === 'string'
-          ? preserveStringValue
-            ? value
-            : value.trim()
-          : normalizeJsonObject(value, context);
-      normalized[trimmedKey] = normalizedValue;
-    }
-    return normalized;
-  }
-
-  return typeof obj === 'string' ? obj.trim() : obj;
-}
-
-function shouldRepairUiTarsLocateJson(source: JsonParserSource) {
-  return (
-    source === 'locate' ||
-    source === 'section-locator' ||
-    source === 'planning-action-param'
-  );
-}
-
-function preprocessUiTarsLocateJson(input: string) {
-  if (input.includes('bbox')) {
-    while (/\d+\s+\d+/.test(input)) {
-      input = input.replace(/(\d+)\s+(\d+)/g, '$1,$2');
-    }
-  }
-  return input;
-}
-
-const uiTarsJsonParser: ModelAdapterDefinition['jsonParser'] = (
-  raw,
-  context = { source: 'generic-object' },
-) => {
-  const { source } = context;
-  try {
-    return safeParseJson(raw, context);
-  } catch (firstError) {
-    if (!shouldRepairUiTarsLocateJson(source)) {
-      throw firstError;
-    }
-
-    const jsonString = preprocessUiTarsLocateJson(
-      extractJSONFromCodeBlock(raw),
-    );
-    try {
-      return normalizeJsonObject(JSON.parse(jsonrepair(jsonString)), context);
-    } catch (error) {
-      throw Error(
-        `failed to parse LLM response into JSON. Error - ${String(
-          error ?? firstError ?? 'unknown error',
-        )}. Response - \n ${raw}`,
-      );
-    }
-  }
-};
+const uiTarsBboxCoordinatesMeta = {
+  shape: 'bbox',
+  order: 'xy',
+  normalizedBy: 1000,
+} as const;
+const uiTarsPointCoordinatesMeta = {
+  shape: 'point',
+  order: 'xy',
+  normalizedBy: 1000,
+} as const;
 
 // UI-TARS has not received active updates for a long time, so this parser is
 // intentionally kept separate from Doubao even though the current logic is the
@@ -106,15 +33,12 @@ function parseUiTarsRawLocateValue(input: unknown): LocateResultValue {
     );
     const splitted = bbox.split(' ');
     if (splitted.length === 4) {
-      return {
-        type: 'bbox',
-        coordinates: [
-          Number(splitted[0]),
-          Number(splitted[1]),
-          Number(splitted[2]),
-          Number(splitted[3]),
-        ],
-      };
+      return createLocateResultValue(uiTarsBboxCoordinatesMeta, [
+        Number(splitted[0]),
+        Number(splitted[1]),
+        Number(splitted[2]),
+        Number(splitted[3]),
+      ]);
     }
     throw new Error(`invalid bbox data string for ui-tars mode: ${bbox}`);
   }
@@ -137,10 +61,12 @@ function parseUiTarsRawLocateValue(input: unknown): LocateResultValue {
   }
 
   if (bboxList.length === 4 || bboxList.length === 5) {
-    return {
-      type: 'bbox',
-      coordinates: [bboxList[0], bboxList[1], bboxList[2], bboxList[3]],
-    };
+    return createLocateResultValue(uiTarsBboxCoordinatesMeta, [
+      bboxList[0],
+      bboxList[1],
+      bboxList[2],
+      bboxList[3],
+    ]);
   }
 
   if (
@@ -149,14 +75,19 @@ function parseUiTarsRawLocateValue(input: unknown): LocateResultValue {
     bboxList.length === 3 ||
     bboxList.length === 7
   ) {
-    return { type: 'point', coordinates: [bboxList[0], bboxList[1]] };
+    return createLocateResultValue(uiTarsPointCoordinatesMeta, [
+      bboxList[0],
+      bboxList[1],
+    ]);
   }
 
   if (bbox.length === 8) {
-    return {
-      type: 'bbox',
-      coordinates: [bboxList[0], bboxList[1], bboxList[4], bboxList[5]],
-    };
+    return createLocateResultValue(uiTarsBboxCoordinatesMeta, [
+      bboxList[0],
+      bboxList[1],
+      bboxList[4],
+      bboxList[5],
+    ]);
   }
 
   const msg = `invalid bbox data for ui-tars mode: ${JSON.stringify(bbox)} `;
@@ -167,7 +98,7 @@ function createUiTarsAdapter(
   uiTarsModelVersion: UITarsModelVersion,
 ): ModelAdapterDefinition {
   return {
-    jsonParser: uiTarsJsonParser,
+    jsonParser: parseModelResponseJson,
     chatCompletion: {
       unsupportedUserConfig: [
         'reasoningEnabled',
@@ -197,7 +128,7 @@ function createUiTarsAdapter(
     },
     locate: {
       resultAdapter: {
-        coordinates: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
+        coordinates: uiTarsBboxCoordinatesMeta,
         parseRawLocateValue: parseUiTarsRawLocateValue,
       },
     },

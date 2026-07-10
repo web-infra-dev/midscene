@@ -119,6 +119,7 @@ export interface LocateValidatorResult {
 export interface AgentDescribeElementAtPointResult {
   prompt: string;
   deepLocate: boolean;
+  deepDescribe: boolean;
   verifyResult?: LocateValidatorResult;
   success: boolean;
   error?: string;
@@ -134,6 +135,15 @@ export abstract class UIContext {
    * screenshot of the current UI state. which size is shotSize(be shrunk by screenshotShrinkFactor),
    */
   abstract screenshot: ScreenshotItem;
+
+  /**
+   * Optional sequence of screenshots captured over a short time window, in
+   * temporal order (earliest first, latest last). When present with more than
+   * one frame, extract/assert flows submit all frames to the model so it can
+   * observe transient UI (toasts, carousels, auto-hiding controls). The last
+   * frame is the same state as {@link screenshot}.
+   */
+  abstract screenshotSequence?: ScreenshotItem[];
 
   /**
    * screenshot size after shrinking
@@ -178,12 +188,12 @@ export type DeepThinkOption = 'unset' | true | false;
 
 export interface ServiceTaskInfo {
   durationMs: number;
-  formatResponse?: string;
+  formatResponse?: unknown;
   /**
    * Adapter-extracted content used by Midscene for parsing. This is not the
    * full provider response or choices[0].message.
    */
-  rawResponse?: string;
+  rawResponse?: unknown;
   rawChoiceMessage?: unknown;
   usage?: AIUsageInfo;
   searchArea?: Rect;
@@ -383,6 +393,91 @@ action
 export interface ExecutionTaskProgressOptions {
   onTaskStart?: (task: ExecutionTask) => Promise<void> | void;
 }
+
+/**
+ * Generic agent progress bus.
+ *
+ * Progress notifications are a single, generic stream the agent broadcasts as
+ * it works. Each event is a thin envelope: a `scope` naming the producer, a
+ * `phase` within that producer's lifecycle, a monotonic `sequence`, and a
+ * structured, presentation-free `data` payload. The bus knows nothing about any
+ * particular producer's payload - consumers narrow by `scope`. `aiAct` is the
+ * first producer ("pilot") on this bus; others (queries, waits, ...) can be
+ * added without touching the bus, the listener API, or the renderer core.
+ */
+export interface AgentProgressEvent<
+  TScope extends string = string,
+  TData = unknown,
+  TPhase extends string = string,
+> {
+  scope: TScope;
+  phase: TPhase;
+  sequence: number;
+  data: TData;
+}
+
+export type AgentProgressListener<
+  TScope extends string = string,
+  TData = unknown,
+  TPhase extends string = string,
+> = (event: AgentProgressEvent<TScope, TData, TPhase>) => Promise<void> | void;
+
+// --- aiAct: the first producer on the generic progress bus ---
+
+export type AiActProgressPhase =
+  | 'start'
+  | 'plan_thinking'
+  | 'plan_planned'
+  | 'plan_action'
+  | 'plan_failed'
+  | 'action_running'
+  | 'action_done'
+  | 'action_failed'
+  | 'complete'
+  | 'failed';
+
+export interface AiActProgressAction {
+  name: string;
+  target?: string;
+  point?: [number, number];
+  bbox?: [number, number, number, number];
+  /**
+   * Structured, compacted summary of the action params for actions that are
+   * not described by a point/bbox (e.g. `Sleep` -> `{ timeMs }`). This is data,
+   * never a pre-formatted display string; consumers decide how to render it.
+   */
+  param?: unknown;
+}
+
+/**
+ * Structured payload carried by aiAct progress events. The producer only
+ * reports *what happened* as data: the action involved, the raw text the model
+ * produced, timings and errors. It never assembles human-readable log lines or
+ * truncates strings for display - that belongs to whichever layer consumes the
+ * stream (e.g. the CLI verbose renderer).
+ */
+export interface AiActProgressData {
+  /** Original user instruction, present on the `start` phase. */
+  prompt?: string;
+  planIndex?: number;
+  planLimit?: number;
+  /** Latest screenshot, present on `plan_thinking`. */
+  screenshot?: ScreenshotItem;
+  /** Structured action descriptor, present on the `*action*` phases. */
+  action?: AiActProgressAction;
+  /**
+   * Raw, untruncated semantic text produced by the model. Consumers choose
+   * which field to surface and how to format/truncate it.
+   */
+  thought?: string;
+  log?: string;
+  output?: string;
+  /** Wall-clock cost of an action, present on `action_done`/`action_failed`. */
+  durationMs?: number;
+  error?: string;
+}
+
+export const aiActProgressScope = 'aiAct';
 
 export interface ExecutionRecorderItem {
   type: 'screenshot';
@@ -605,6 +700,7 @@ task - planning
 export interface ExecutionTaskPlanningParam {
   userInstruction: TUserPrompt;
   userInstructionDisplay?: string;
+  replanningCycleLimit?: number;
   aiActContext?: string;
   imagesIncludeCount?: number;
   deepThink?: DeepThinkOption;
@@ -640,6 +736,13 @@ export type ExecutionTaskPlanningLocateApply = ExecutionTaskApply<
 
 export type ExecutionTaskPlanningLocate =
   ExecutionTask<ExecutionTaskPlanningLocateApply>;
+
+/*
+How a report file stores screenshots:
+- `inline`: base64 image script tags embedded in the single HTML file
+- `directory`: external PNG files under a sibling `screenshots/` dir
+*/
+export type ScreenshotMode = 'inline' | 'directory';
 
 /*
 Report metadata - extracted from ReportActionDump for per-execution writes
@@ -903,6 +1006,16 @@ export interface AgentOpt {
    * ```
    */
   createOpenAIClient?: CreateOpenAIClientFn;
+
+  /**
+   * Called once per LLM call as soon as its usage is available, with the raw
+   * {@link AIUsageInfo} (token counts, model name, intent, request id, etc.).
+   *
+   * Use this for real-time, per-spec cost observability — e.g. push each call
+   * to Langfuse without waiting for the run to finish. For aggregated totals,
+   * read `agent.metrics` instead.
+   */
+  onLLMUsage?: (usage: AIUsageInfo) => void;
 }
 
 export type TestStatus =

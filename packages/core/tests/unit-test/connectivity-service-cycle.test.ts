@@ -32,16 +32,6 @@ vi.mock('@/ai-model/inspect', () => ({
   buildSearchAreaConfig: mocks.buildSearchAreaConfig,
 }));
 
-vi.mock('@midscene/shared/img', async () => {
-  const actual = await vi.importActual<typeof import('@midscene/shared/img')>(
-    '@midscene/shared/img',
-  );
-  return {
-    ...actual,
-    imageInfoOfBase64: vi.fn().mockResolvedValue({ width: 800, height: 450 }),
-  };
-});
-
 import { runConnectivityTest } from '@/ai-model/connectivity';
 
 function readImports(filePath: string): string[] {
@@ -74,6 +64,7 @@ describe('runConnectivityTest service load order', () => {
     modelFamily: 'qwen2.5-vl',
     intent: 'default',
     slot: 'default',
+    retryCount: 3,
   };
   const planningModelConfig: IModelConfig = {
     modelName: 'test-planning-model',
@@ -81,6 +72,7 @@ describe('runConnectivityTest service load order', () => {
     modelFamily: 'qwen2.5-vl',
     intent: 'planning',
     slot: 'planning',
+    retryCount: 3,
   };
   const insightModelConfig: IModelConfig = {
     modelName: 'test-insight-model',
@@ -88,6 +80,7 @@ describe('runConnectivityTest service load order', () => {
     modelFamily: 'gpt-5',
     intent: 'insight',
     slot: 'insight',
+    retryCount: 3,
   };
 
   beforeEach(() => {
@@ -122,19 +115,19 @@ describe('runConnectivityTest service load order', () => {
     });
 
     expect(result.passed).toBe(true);
-    expect(result.checks.map((item) => item.intent)).toEqual([
-      'planning',
-      'insight',
-      'default',
-    ]);
+    expect(result.message).toBeUndefined();
     expect(mocks.AiLocateElement).toHaveBeenCalledWith(
       expect.objectContaining({
         targetElementDescription: 'the main todo input box',
         modelRuntime: expect.objectContaining({
-          config: defaultModelConfig,
+          config: expect.objectContaining({
+            ...defaultModelConfig,
+            retryCount: 0,
+          }),
         }),
       }),
     );
+    expect(defaultModelConfig.retryCount).toBe(3);
   });
 
   it('keeps service independent from the ai-model barrel', () => {
