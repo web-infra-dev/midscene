@@ -16,6 +16,10 @@ import { cropByRect, imageInfoOfBase64 } from '@midscene/shared/img';
 import { afterAll, describe, expect, it, vi } from 'vitest';
 import { ComputerAgent } from '../../src/agent';
 import { ComputerDevice } from '../../src/device';
+import {
+  escapePowershellSingleQuoted,
+  runPowershell,
+} from '../../src/powershell';
 import { readWindowsAccessibilityTree } from '../../src/windows-accessibility-tree';
 
 const RUN_SMOKE =
@@ -37,6 +41,7 @@ interface FixtureMetadata {
   processId: number;
   sessionId: number;
   userInteractive: boolean;
+  visible: boolean;
   windowHandle: number;
   buttonHandle: number;
   accessibilityObjectType: string;
@@ -85,6 +90,7 @@ function assertFixtureMetadata(value: FixtureMetadata): void {
     !Number.isSafeInteger(value.processId) ||
     !Number.isSafeInteger(value.sessionId) ||
     typeof value.userInteractive !== 'boolean' ||
+    typeof value.visible !== 'boolean' ||
     !Number.isSafeInteger(value.windowHandle) ||
     value.windowHandle <= 0 ||
     !Number.isSafeInteger(value.buttonHandle) ||
@@ -124,7 +130,7 @@ function startFixture(readyFile: string): void {
     ],
     {
       stdio: ['ignore', 'pipe', 'pipe'],
-      windowsHide: true,
+      windowsHide: false,
     },
   );
   fixtureProcess.stdout?.on('data', (chunk: Buffer) => {
@@ -256,6 +262,32 @@ function saveScreenshot(base64: string): string {
   return screenshotFile;
 }
 
+function readScreenshotPixel(
+  screenshotFile: string,
+  point: { x: number; y: number },
+): { red: number; green: number; blue: number } {
+  const script = String.raw`
+$ErrorActionPreference = 'Stop'
+Add-Type -AssemblyName System.Drawing
+$bitmap = New-Object System.Drawing.Bitmap('${escapePowershellSingleQuoted(screenshotFile)}')
+try {
+  $color = $bitmap.GetPixel(${point.x}, ${point.y})
+  [Console]::Out.Write(([PSCustomObject]@{
+    red = $color.R
+    green = $color.G
+    blue = $color.B
+  } | ConvertTo-Json -Compress))
+} finally {
+  $bitmap.Dispose()
+}
+`.trim();
+  return JSON.parse(runPowershell(script)) as {
+    red: number;
+    green: number;
+    blue: number;
+  };
+}
+
 afterAll(() => {
   stopFixture();
 });
@@ -279,6 +311,7 @@ describe.runIf(RUN_SMOKE)('Windows UIA xpath cache smoke', () => {
         JSON.stringify(fixture, null, 2),
       );
       expect(fixture.userInteractive).toBe(true);
+      expect(fixture.visible).toBe(true);
       expect(fixture.dpiX).toBeCloseTo(96, 0);
       expect(fixture.dpiY).toBeCloseTo(96, 0);
 
@@ -318,6 +351,19 @@ describe.runIf(RUN_SMOKE)('Windows UIA xpath cache smoke', () => {
       expect(target.bounds.top + target.bounds.height).toBeLessThanOrEqual(
         screenshotSize.height,
       );
+      const targetPixel = readScreenshotPixel(screenshotFile, {
+        x: Math.round(target.bounds.left + 20),
+        y: Math.round(target.bounds.top + 20),
+      });
+      writeFileSync(
+        join(DIAGNOSTICS_DIR, 'target-pixel.json'),
+        JSON.stringify(targetPixel, null, 2),
+      );
+      expect(
+        Math.abs(targetPixel.red - 17) +
+          Math.abs(targetPixel.green - 197) +
+          Math.abs(targetPixel.blue - 94),
+      ).toBeLessThanOrEqual(30);
       const cropSize = {
         width: Math.max(1, Math.round(target.bounds.width)),
         height: Math.max(1, Math.round(target.bounds.height)),
@@ -397,6 +443,7 @@ describe.runIf(RUN_SMOKE)('Windows UIA xpath cache smoke', () => {
           target: feature.target,
           bounds: target.bounds,
           screenshotSize,
+          targetPixel,
           screenshotFile,
           fixture,
           reportFile,

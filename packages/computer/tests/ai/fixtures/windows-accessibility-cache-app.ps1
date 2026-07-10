@@ -30,6 +30,7 @@ $form.StartPosition = [System.Windows.Forms.FormStartPosition]::Manual
 $form.ClientSize = New-Object System.Drawing.Size(640, 360)
 $form.ShowInTaskbar = $true
 $form.TopMost = $true
+$form.BackColor = [System.Drawing.Color]::FromArgb(245, 245, 245)
 
 $screenBounds = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
 $form.Location = New-Object System.Drawing.Point(
@@ -43,6 +44,11 @@ $button.Text = 'Midscene Cache Target'
 $button.AccessibleName = 'Midscene Cache Target'
 $button.AccessibleDescription = 'Midscene Windows accessibility cache target'
 $button.AccessibleRole = [System.Windows.Forms.AccessibleRole]::PushButton
+$button.UseVisualStyleBackColor = $false
+$button.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
+$button.FlatAppearance.BorderSize = 0
+$button.BackColor = [System.Drawing.Color]::FromArgb(17, 197, 94)
+$button.ForeColor = [System.Drawing.Color]::Black
 $button.Location = New-Object System.Drawing.Point(190, 130)
 $button.Size = New-Object System.Drawing.Size(260, 72)
 $button.TabIndex = 0
@@ -72,6 +78,7 @@ $form.Add_Shown({
       processId = $PID
       sessionId = (Get-Process -Id $PID).SessionId
       userInteractive = [Environment]::UserInteractive
+      visible = $form.Visible
       windowHandle = [Int64]$form.Handle
       buttonHandle = $buttonHandle
       accessibilityObjectType = $buttonAccessibilityObject.GetType().FullName
