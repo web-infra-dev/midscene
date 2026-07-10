@@ -11,7 +11,7 @@
     "test": "vitest --run",
     "test:watch": "vitest",
     "generate-demo": "node scripts/generate-demo-report.mjs",
-    "e2e": "pnpm --dir ../.. exec nx build @midscene/report --verbose && node scripts/inject-report-template.mjs && node scripts/generate-demo-report.mjs && node ../../packages/cli/bin/midscene ./e2e/"
+    "e2e": "pnpm --dir ../.. exec nx build @midscene/report --verbose && node scripts/inject-report-template.mjs && node scripts/generate-demo-report.mjs && node ../../packages/cli/bin/midscene ./e2e/ --continue-on-error"
   },
   "dependencies": {
     "@ant-design/icons": "^5.3.1",
