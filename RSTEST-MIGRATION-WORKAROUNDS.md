@@ -124,7 +124,9 @@ Affected files (all use a jsdom docblock + render React):
 
 ## 5. Files handed to `page.evaluate` are excluded from istanbul coverage
 
-- **rstest issue:** none — the coverage provider is `istanbul` on purpose
+- **rstest issue:** https://github.com/web-infra-dev/rstest/issues/1543 (asks
+  for an actionable hint on this failure; not a functional fix). The coverage
+  provider is `istanbul` on purpose
   (`@rstest/coverage-v8` OOMs `@midscene/computer`, which runs 13 files in one
   worker at `pool.maxWorkers: 1`; see commit that added the istanbul provider
   and web-infra-dev/rstest#1524). **Do not switch the provider back to `v8`.**
