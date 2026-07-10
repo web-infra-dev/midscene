@@ -123,7 +123,7 @@
   "devDependencies": {
     "@playwright/test": "^1.45.0",
     "@rslib/core": "^0.18.3",
-    "@rstest/core": "0.11.0",
+    "@rstest/core": "0.11.1",
     "@types/chrome": "0.0.279",
     "@types/cors": "^2.8.17",
     "@types/http-server": "^0.12.4",
