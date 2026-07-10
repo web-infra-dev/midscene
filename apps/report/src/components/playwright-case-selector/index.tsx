@@ -85,7 +85,9 @@ function PlaywrightCaseTitle(props: {
 }): JSX.Element {
   const { attributes, timingRange } = props;
   const status = iconForStatus(attributes.playwright_test_status);
-  const description = getCaseDescription(attributes);
+  const fullDescription = attributes.playwright_test_description;
+  const description = getCaseDescription(fullDescription);
+  const isDescriptionTruncated = description !== fullDescription;
   const duration = timingRange?.duration ?? attributes.playwright_test_duration;
   const extraStatusLabel =
     STATUS_DISPLAY_LABEL[attributes.playwright_test_status];
@@ -123,7 +125,18 @@ function PlaywrightCaseTitle(props: {
       {status}
       {'  '}
       {attributes.playwright_test_title || 'unnamed'}
-      {description ? ` - ${description}` : ''}
+      {description ? (
+        <>
+          {' - '}
+          {isDescriptionTruncated ? (
+            <Tooltip title={fullDescription}>
+              <span className="case-description">{description}</span>
+            </Tooltip>
+          ) : (
+            description
+          )}
+        </>
+      ) : null}
       {cost}
     </span>
   );
