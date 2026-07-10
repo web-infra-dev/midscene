@@ -6,7 +6,9 @@ import {
   shouldOffsetEmptyStateForPromptInput,
 } from '../src/utils/prompt-input-utils';
 
-function makeStringField(description?: string) {
+function makeStringField(
+  description?: string,
+): Parameters<typeof isLocateField>[0] {
   return {
     _def: {
       typeName: 'ZodString',
@@ -15,7 +17,7 @@ function makeStringField(description?: string) {
   };
 }
 
-function makeNumberField() {
+function makeNumberField(): Parameters<typeof isLocateField>[0] {
   return {
     _def: {
       typeName: 'ZodNumber',
@@ -23,7 +25,7 @@ function makeNumberField() {
   };
 }
 
-function makeLocateField() {
+function makeLocateField(): Parameters<typeof isLocateField>[0] {
   return {
     _def: {
       typeName: 'ZodObject',
@@ -32,7 +34,9 @@ function makeLocateField() {
   };
 }
 
-function makeMidsceneLocationField(description?: string) {
+function makeMidsceneLocationField(
+  description?: string,
+): Parameters<typeof isLocateField>[0] {
   return {
     _def: {
       typeName: 'ZodObject',
