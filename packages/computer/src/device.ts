@@ -18,6 +18,8 @@ import {
   defineActionsFromInputPrimitives,
 } from '@midscene/core/device';
 import {
+  type UiNode,
+  type XpathCandidateOptions,
   generateXpathCacheFeature,
   matchRectByXpathCache,
 } from '@midscene/core/device-cache';
@@ -31,6 +33,9 @@ import {
   type LibNut,
   type ScrollDirection,
 } from './input-driver';
+import { readLinuxAccessibilityTree } from './linux-accessibility-tree';
+import { escapePowershellSingleQuoted, runPowershell } from './powershell';
+import { readWindowsAccessibilityTree } from './windows-accessibility-tree';
 import type { XvfbInstance } from './xvfb';
 import { checkXvfbInstalled, needsXvfb, startXvfb } from './xvfb';
 
@@ -45,6 +50,10 @@ interface ScreenshotDisplay {
   id: string | number;
   name?: string;
   primary?: boolean;
+  width?: number;
+  height?: number;
+  offsetX?: number;
+  offsetY?: number;
 }
 
 interface NativeDisplayInfoResponse {
@@ -72,6 +81,30 @@ export interface Point {
   x: number;
   y: number;
 }
+
+const DESKTOP_CACHE_ATTRIBUTES: Partial<
+  Record<NodeJS.Platform, XpathCandidateOptions>
+> = {
+  darwin: {
+    stableAttrs: ['AXIdentifier'],
+    textAttrs: [
+      'AXName',
+      'AXTitle',
+      'AXDescription',
+      'AXValue',
+      'AXHelp',
+      'AXRoleDescription',
+    ],
+  },
+  win32: {
+    stableAttrs: ['AutomationId'],
+    textAttrs: ['Name', 'HelpText', 'AccessKey', 'LocalizedControlType'],
+  },
+  linux: {
+    stableAttrs: ['AccessibleId', 'id', 'automation-id'],
+    textAttrs: ['Name', 'Description', 'HelpText', 'placeholder-text'],
+  },
+};
 
 // Constants
 const SMOOTH_MOVE_STEPS_TAP = 8;
@@ -236,44 +269,6 @@ function sendKeyViaAppleScript(key: string, modifiers: string[] = []): void {
 
   debugDevice('sendKeyViaAppleScript', { key, modifiers, script });
   execFileSync('osascript', ['-e', script]);
-}
-
-// Lazy load libnut with fallback
-const POWERSHELL_TIMEOUT_MS = 15_000;
-// CopyFromScreen output can be several MB once base64-encoded.
-const POWERSHELL_MAX_BUFFER = 64 * 1024 * 1024;
-
-function escapePowershellSingleQuoted(value: string): string {
-  return value.replace(/'/g, "''");
-}
-
-/**
- * Run a PowerShell script and return its stdout. The script is passed via
- * `-EncodedCommand` (UTF-16LE base64) to avoid any shell quoting/escaping and
- * the Git Bash argument mangling that breaks screenshot-desktop (#2150).
- * `powershell.exe` (Windows PowerShell 5.x) is used because it ships with
- * System.Windows.Forms / System.Drawing out of the box.
- *
- * No `-ExecutionPolicy Bypass`: execution policy only gates `.ps1` script
- * files, not inline `-EncodedCommand`/`-Command` input, so it would be a
- * no-op here while making the invocation look more privileged to auditing.
- */
-function runPowershell(script: string): string {
-  // Suppress PowerShell progress output (CLIXML) that non-interactive
-  // child processes emit to stdout — it shows up as `#< CLIXML` XML noise
-  // in Midscene logs and wastes tokens in agent flows (#2751).
-  const prefixed = `$ProgressPreference = 'SilentlyContinue'\n${script}`;
-  const encoded = Buffer.from(prefixed, 'utf16le').toString('base64');
-  return execFileSync(
-    'powershell.exe',
-    ['-NoProfile', '-NonInteractive', '-EncodedCommand', encoded],
-    {
-      encoding: 'utf8',
-      timeout: POWERSHELL_TIMEOUT_MS,
-      maxBuffer: POWERSHELL_MAX_BUFFER,
-      windowsHide: true,
-    },
-  );
 }
 
 /** Enumerate Windows monitors via PowerShell (screenshot-desktop's .bat-based
@@ -1282,31 +1277,85 @@ $g.Dispose(); $bmp.Dispose(); $ms.Dispose()
     });
   }
 
+  private async getLinuxAccessibilityDisplayOffset(): Promise<Point> {
+    let displays: ScreenshotDisplay[];
+    try {
+      displays = await screenshot.listDisplays();
+    } catch (error) {
+      throw new Error(
+        `Unable to list Linux displays for AT-SPI coordinate mapping: ${error}`,
+      );
+    }
+    if (displays.length === 0) {
+      throw new Error(
+        'Unable to map Linux AT-SPI coordinates: no XRandR displays were found',
+      );
+    }
+
+    const requestedDisplayId = this.displayId?.trim();
+    const display = requestedDisplayId
+      ? displays.find(
+          (candidate) => String(candidate.id) === requestedDisplayId,
+        )
+      : (displays.find(
+          (candidate) => candidate.primary || candidate.id === 'default',
+        ) ?? displays[0]);
+    if (!display) {
+      throw new Error(
+        `Unable to map Linux AT-SPI coordinates: requested display not found: ${requestedDisplayId}`,
+      );
+    }
+
+    return {
+      x: Number.isFinite(display.offsetX) ? display.offsetX! : 0,
+      y: Number.isFinite(display.offsetY) ? display.offsetY! : 0,
+    };
+  }
+
+  private async readAccessibilityTreeForCache(): Promise<UiNode> {
+    switch (process.platform) {
+      case 'darwin':
+        return this.readDarwinAccessibilityTreeForCache();
+      case 'win32': {
+        const windowHandle = this.inputDriver.getActiveWindowHandle();
+        if (windowHandle === null) {
+          throw new Error(
+            'Unable to read Windows UI Automation tree: no active window handle is available',
+          );
+        }
+        return readWindowsAccessibilityTree({
+          windowHandle,
+          displayId: this.displayId,
+        });
+      }
+      case 'linux':
+        return readLinuxAccessibilityTree({
+          displayOffset: await this.getLinuxAccessibilityDisplayOffset(),
+        });
+      default:
+        throw new Error(
+          `Native xpath cache is not supported on ${process.platform} for ComputerDevice`,
+        );
+    }
+  }
+
   async cacheFeatureForPoint(
     center: [number, number],
   ): Promise<ElementCacheFeature> {
-    if (process.platform !== 'darwin') {
+    const attributes = DESKTOP_CACHE_ATTRIBUTES[process.platform];
+    if (!attributes) {
       debugDevice(
-        'cacheFeatureForPoint: xpath cache is currently only supported on macOS for ComputerDevice',
+        'cacheFeatureForPoint: native xpath cache is not supported on %s for ComputerDevice',
+        process.platform,
       );
       return {};
     }
 
-    const root = await this.readDarwinAccessibilityTreeForCache();
+    const root = await this.readAccessibilityTreeForCache();
     const feature = generateXpathCacheFeature(
       root,
       { x: center[0], y: center[1] },
-      {
-        stableAttrs: ['AXIdentifier'],
-        textAttrs: [
-          'AXName',
-          'AXTitle',
-          'AXDescription',
-          'AXValue',
-          'AXHelp',
-          'AXRoleDescription',
-        ],
-      },
+      attributes,
     );
     if (!feature) {
       debugDevice(
@@ -1319,13 +1368,13 @@ $g.Dispose(); $bmp.Dispose(); $ms.Dispose()
   }
 
   async rectMatchesCacheFeature(feature: ElementCacheFeature): Promise<Rect> {
-    if (process.platform !== 'darwin') {
+    if (!DESKTOP_CACHE_ATTRIBUTES[process.platform]) {
       throw new Error(
-        'rectMatchesCacheFeature: xpath cache is currently only supported on macOS for ComputerDevice',
+        `rectMatchesCacheFeature: native xpath cache is not supported on ${process.platform} for ComputerDevice`,
       );
     }
 
-    const root = await this.readDarwinAccessibilityTreeForCache();
+    const root = await this.readAccessibilityTreeForCache();
     const { xpath, rect } = matchRectByXpathCache(root, feature);
     debugDevice('rectMatchesCacheFeature: hit xpath %s -> %o', xpath, rect);
     return rect;

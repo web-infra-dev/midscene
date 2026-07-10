@@ -66,6 +66,22 @@ export class ComputerInputDriver {
     this.getLibnutOrThrow('moveMouse').moveMouse(x, y);
   }
 
+  getActiveWindowHandle(): number | null {
+    const lib = this.getLibnutOrThrow('getActiveWindowHandle');
+    if (typeof lib.getActiveWindow !== 'function') {
+      return null;
+    }
+
+    try {
+      const handle = lib.getActiveWindow();
+      if (!Number.isSafeInteger(handle) || handle <= 0) return null;
+      return handle;
+    } catch (error) {
+      this.options.debug(`getActiveWindowHandle failed: ${error}`);
+      return null;
+    }
+  }
+
   focusActiveWindow(): boolean {
     const lib = this.getLibnutOrThrow('focusActiveWindow');
     if (
