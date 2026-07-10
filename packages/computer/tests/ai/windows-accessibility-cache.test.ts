@@ -287,7 +287,8 @@ describe.runIf(RUN_SMOKE)('Windows UIA xpath cache smoke', () => {
         join(DIAGNOSTICS_DIR, 'uia-tree.json'),
         JSON.stringify(root, null, 2),
       );
-      expect(target.type).toBe('UIAButton');
+      expect(target.attrs.Name).toBe(TARGET_NAME);
+      expect(target.attrs.AutomationId).toBeUndefined();
       expect(target.bounds.width).toBeGreaterThan(0);
       expect(target.bounds.height).toBeGreaterThan(0);
       expect(
@@ -342,11 +343,11 @@ describe.runIf(RUN_SMOKE)('Windows UIA xpath cache smoke', () => {
       const feature = await device.cacheFeatureForPoint(center);
       const xpath = firstXpath(feature);
       expect(feature.target).toMatchObject({
-        type: 'UIAButton',
-        value: expect.stringMatching(
-          /cache_target_button|Midscene Cache Target/,
-        ),
+        type: target.type,
+        attr: 'Name',
+        value: TARGET_NAME,
       });
+      expect(xpath).toBe(`//${target.type}[@Name='${TARGET_NAME}']`);
 
       const cache = new TaskCache(cacheId, false, undefined, {
         writeOnly: true,

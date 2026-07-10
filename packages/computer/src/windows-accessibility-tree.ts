@@ -38,7 +38,7 @@ $windowHandle = [Int64]${options.windowHandle}
 $root = [System.Windows.Automation.AutomationElement]::FromHandle([IntPtr]$windowHandle)
 if (-not $root) { throw "No UI Automation root for active window handle $windowHandle" }
 
-$walker = [System.Windows.Automation.TreeWalker]::ControlViewWalker
+$walker = [System.Windows.Automation.TreeWalker]::RawViewWalker
 $displayBounds = $screen.Bounds
 $maxDepth = 5
 $maxNodes = 300
@@ -75,7 +75,19 @@ function Convert-Node($element, [int]$depth) {
   if (-not $typeName) { $typeName = 'Element' }
 
   $attrs = @{}
-  Add-Attribute $attrs 'AutomationId' (Read-Property $element ([System.Windows.Automation.AutomationElement]::AutomationIdProperty))
+  $nativeWindowHandle = Read-Property $element ([System.Windows.Automation.AutomationElement]::NativeWindowHandleProperty)
+  $automationId = Read-Property $element ([System.Windows.Automation.AutomationElement]::AutomationIdProperty)
+  $generatedAutomationId = (
+    $null -ne $nativeWindowHandle -and
+    [string]$nativeWindowHandle -ne '0' -and
+    [string]$automationId -eq [string]$nativeWindowHandle
+  )
+  if (-not $generatedAutomationId) {
+    Add-Attribute $attrs 'AutomationId' $automationId
+  }
+  if ($null -ne $nativeWindowHandle -and [string]$nativeWindowHandle -ne '0') {
+    Add-Attribute $attrs 'NativeWindowHandle' $nativeWindowHandle
+  }
   Add-Attribute $attrs 'Name' (Read-Property $element ([System.Windows.Automation.AutomationElement]::NameProperty))
   Add-Attribute $attrs 'HelpText' (Read-Property $element ([System.Windows.Automation.AutomationElement]::HelpTextProperty))
   Add-Attribute $attrs 'AccessKey' (Read-Property $element ([System.Windows.Automation.AutomationElement]::AccessKeyProperty))

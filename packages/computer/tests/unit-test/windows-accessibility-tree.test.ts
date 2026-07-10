@@ -55,12 +55,14 @@ describe('Windows UI Automation accessibility tree', () => {
     });
 
     expect(script).toContain('AutomationElement]::FromHandle');
-    expect(script).toContain('TreeWalker]::ControlViewWalker');
+    expect(script).toContain('TreeWalker]::RawViewWalker');
     expect(script).toContain('$maxDepth = 5');
     expect(script).toContain('$maxNodes = 300');
     expect(script).toContain("$displayId = '\\\\.\\DISPLAY''2'");
     expect(script).toContain('BoundingRectangleProperty');
     expect(script).toContain('AutomationIdProperty');
+    expect(script).toContain('NativeWindowHandleProperty');
+    expect(script).toContain('$generatedAutomationId');
   });
 
   it('rejects an invalid active window handle before spawning PowerShell', () => {
