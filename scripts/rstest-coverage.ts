@@ -8,7 +8,7 @@ export function createCoverageConfig(projectDir: string) {
     path.relative(workspaceRoot, projectDir).replace(/[\\/]/g, '__') || 'root';
 
   return {
-    provider: 'istanbul' as const,
+    provider: 'v8' as const,
     reporters: ['text', 'json', 'json-summary', 'html'],
     reportsDirectory: path.join(workspaceRoot, coverageDir, projectName),
     include: ['src/**/*.{ts,tsx,js,jsx,mjs,cjs}'],

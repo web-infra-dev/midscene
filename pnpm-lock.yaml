@@ -32,6 +32,9 @@ importers:
       '@rstest/coverage-istanbul':
         specifier: 0.11.0
         version: 0.11.0(@rstest/core@0.11.1(core-js@3.47.0)(jsdom@29.0.2))
+      '@rstest/coverage-v8':
+        specifier: 0.11.1
+        version: 0.11.1(@rstest/core@0.11.1(core-js@3.47.0)(jsdom@29.0.2))
       '@types/node':
         specifier: ^18.0.0
         version: 18.19.130
@@ -183,7 +186,7 @@ importers:
         version: 1.6.15
       '@rsbuild/plugin-less':
         specifier: ^1.6.4
-        version: 1.6.4(@rsbuild/core@1.6.15)(@rspack/core@2.1.3)(webpack@5.99.5)
+        version: 1.6.4(@rsbuild/core@1.6.15)(@rspack/core@2.1.3(@swc/helpers@0.5.23))(webpack@5.99.5)
       '@rsbuild/plugin-node-polyfill':
         specifier: 1.4.6
         version: 1.4.6(@rsbuild/core@1.6.15)
@@ -259,7 +262,7 @@ importers:
         version: 1.6.15
       '@rsbuild/plugin-less':
         specifier: ^1.6.4
-        version: 1.6.4(@rsbuild/core@1.6.15)(@rspack/core@2.1.3)(webpack@5.99.5)
+        version: 1.6.4(@rsbuild/core@1.6.15)(@rspack/core@2.1.3(@swc/helpers@0.5.21))(webpack@5.99.5)
       '@rsbuild/plugin-node-polyfill':
         specifier: 1.4.6
         version: 1.4.6(@rsbuild/core@1.6.15)
@@ -308,7 +311,7 @@ importers:
         version: 1.6.15
       '@rsbuild/plugin-less':
         specifier: ^1.6.4
-        version: 1.6.4(@rsbuild/core@1.6.15)(@rspack/core@2.1.3)(webpack@5.99.5)
+        version: 1.6.4(@rsbuild/core@1.6.15)(@rspack/core@2.1.3(@swc/helpers@0.5.21))(webpack@5.99.5)
       '@rsbuild/plugin-node-polyfill':
         specifier: 1.4.6
         version: 1.4.6(@rsbuild/core@1.6.15)
@@ -414,7 +417,7 @@ importers:
         version: 1.6.15
       '@rsbuild/plugin-less':
         specifier: ^1.6.4
-        version: 1.6.4(@rsbuild/core@1.6.15)(@rspack/core@2.1.3)(webpack@5.99.5)
+        version: 1.6.4(@rsbuild/core@1.6.15)(@rspack/core@2.1.3(@swc/helpers@0.5.23))(webpack@5.99.5)
       '@rsbuild/plugin-react':
         specifier: ^1.4.6
         version: 1.4.6(@rsbuild/core@1.6.15)
@@ -595,7 +598,7 @@ importers:
         version: 1.6.15
       '@rsbuild/plugin-less':
         specifier: ^1.6.4
-        version: 1.6.4(@rsbuild/core@1.6.15)(@rspack/core@2.1.3)(webpack@5.99.5)
+        version: 1.6.4(@rsbuild/core@1.6.15)(@rspack/core@2.1.3(@swc/helpers@0.5.21))(webpack@5.99.5)
       '@rsbuild/plugin-node-polyfill':
         specifier: 1.4.6
         version: 1.4.6(@rsbuild/core@1.6.15)
@@ -3796,6 +3799,11 @@ packages:
     peerDependencies:
       '@rstest/core': ^0.11.0
 
+  '@rstest/coverage-v8@0.11.1':
+    resolution: {integrity: sha512-HCIi9eSPNT7wZK+Sh2N7C9zJbYskgKnj427rKpu9ImUnJt3j7XzGvPKBISvj3IsHi/CzmTgMxwavfzHpICry8Q==}
+    peerDependencies:
+      '@rstest/core': ~0.11.1
+
   '@rushstack/node-core-library@5.14.0':
     resolution: {integrity: sha512-eRong84/rwQUlATGFW3TMTYVyqL1vfW9Lf10PH+mVGfIb9HzU3h5AASNIw+axnBLjnD0n3rT5uQBwu9fvzATrg==}
     peerDependencies:
@@ -4164,6 +4172,9 @@ packages:
 
   '@types/is-ci@3.0.4':
     resolution: {integrity: sha512-AkCYCmwlXeuH89DagDCzvCAyltI2v9lh3U3DqSg/GrBYoReAaWwxfXCqMx9UV5MajLZ4ZFwZzV4cABGIxk2XRw==}
+
+  '@types/istanbul-lib-coverage@2.0.6':
+    resolution: {integrity: sha512-2QF/t/auWm0lsy8XtKVPG19v3sSOQlJe/YHZgfjb/KBBHOGSV+J2q/S671rcq9uTBrLAXmZpqJiaQbMT+zNU1w==}
 
   '@types/js-yaml@4.0.9':
     resolution: {integrity: sha512-k4MGaQl5TGo/iipqb2UDG2UwjXziSWkh0uysQelTlJpX1qGlpUZYm8PnO4DxG1qBomtJUdYJ6qR6xdIah10JLg==}
@@ -7453,6 +7464,9 @@ packages:
   js-sha256@0.11.0:
     resolution: {integrity: sha512-6xNlKayMZvds9h1Y1VWc0fQHQ82BxTXizWPEtEeGvmOUYpBRy4gbWroHLpzowe6xiQhHpelCQiE7HEdznyBL9Q==}
 
+  js-tokens@10.0.0:
+    resolution: {integrity: sha512-lM/UBzQmfJRo9ABXbPWemivdCW8V2G8FHaHdypQaIy523snUjog0W71ayWXTjiR+ixeMyVHN2XcpnTd/liPg/Q==}
+
   js-tokens@4.0.0:
     resolution: {integrity: sha512-RdJUflcE3cUzKiMqQgsCu06FPu9UdIJO0beYbPhHN4k6apgJtifcoCtT9bcxOpYBtpD2kCM6Sbzg4CausW/PKQ==}
 
@@ -8887,6 +8901,10 @@ packages:
 
   picomatch@4.0.3:
     resolution: {integrity: sha512-5gTmgEY/sqK6gFXLIsQNH19lWb4ebPDLA4SdLP7dsWkIXHWlG66oPuVvXSGFPppYZz8ZDZq0dYYrbHfBCVUb1Q==}
+    engines: {node: '>=12'}
+
+  picomatch@4.0.5:
+    resolution: {integrity: sha512-RvwwcruNjI1ncT5xRakeyS9Lf8lcItv34KD+aif+VH9kduAyfYBipGh12274xtenIPZ119/R9BdTBa8gAwSh0A==}
     engines: {node: '>=12'}
 
   pify@2.3.0:
@@ -10784,6 +10802,10 @@ packages:
     resolution: {integrity: sha512-+NYs2QeMWy+GWFOEm9xnn6HCDp0l7QBD7ml8zLUmJ+93Q5NF0NocErnwkTkXVFNiX3/fpC6afS8Dhb/gz7R7eg==}
     deprecated: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
     hasBin: true
+
+  v8-to-istanbul@9.3.0:
+    resolution: {integrity: sha512-kiGUalWN+rgBJ/1OHZsBtU4rXZOfj/7rKQxULKlIzwzQSvMJUUNgPwJEEh7gU6xEVxC0ahoOBvN2YI8GH6FNgA==}
+    engines: {node: '>=10.12.0'}
 
   validate-npm-package-license@3.0.4:
     resolution: {integrity: sha512-DpKm2Ui/xN7/HQKCtpZxoRWBhZ9Z0kqtygG8XCgNQ8ZlDnxuQmWhj566j8fN4Cu3/JmbhsDo7fcAJq4s9h27Ew==}
@@ -13587,7 +13609,7 @@ snapshots:
 
   '@rsbuild/plugin-check-syntax@1.3.0(@rsbuild/core@1.6.15)':
     dependencies:
-      acorn: 8.16.0
+      acorn: 8.17.0
       browserslist-to-es-version: 1.0.0
       htmlparser2: 10.0.0
       picocolors: 1.1.1
@@ -13599,7 +13621,7 @@ snapshots:
     dependencies:
       deepmerge: 4.3.1
       less: 4.6.7
-      less-loader: 12.3.3(@rspack/core@2.1.3(@swc/helpers@0.5.21))(less@4.6.7)(webpack@5.99.5)
+      less-loader: 12.3.3(@rspack/core@2.1.3)(less@4.6.7)(webpack@5.99.5)
       reduce-configs: 1.1.2
     optionalDependencies:
       '@rsbuild/core': 1.6.15
@@ -13607,11 +13629,11 @@ snapshots:
       - '@rspack/core'
       - webpack
 
-  '@rsbuild/plugin-less@1.6.4(@rsbuild/core@1.6.15)(@rspack/core@2.1.3)(webpack@5.99.5)':
+  '@rsbuild/plugin-less@1.6.4(@rsbuild/core@1.6.15)(@rspack/core@2.1.3(@swc/helpers@0.5.23))(webpack@5.99.5)':
     dependencies:
       deepmerge: 4.3.1
       less: 4.6.7
-      less-loader: 12.3.3(@rspack/core@2.1.3)(less@4.6.7)(webpack@5.99.5)
+      less-loader: 12.3.3(@rspack/core@2.1.3(@swc/helpers@0.5.23))(less@4.6.7)(webpack@5.99.5)
       reduce-configs: 1.1.2
     optionalDependencies:
       '@rsbuild/core': 1.6.15
@@ -14190,6 +14212,19 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
+  '@rstest/coverage-v8@0.11.1(@rstest/core@0.11.1(core-js@3.47.0)(jsdom@29.0.2))':
+    dependencies:
+      '@jridgewell/trace-mapping': 0.3.31
+      '@rstest/core': 0.11.1(core-js@3.47.0)(jsdom@29.0.2)
+      acorn: 8.17.0
+      estree-walker: 3.0.3
+      istanbul-lib-coverage: 3.2.2
+      istanbul-lib-report: 3.0.1
+      istanbul-reports: 3.2.0
+      js-tokens: 10.0.0
+      picomatch: 4.0.5
+      v8-to-istanbul: 9.3.0
+
   '@rushstack/node-core-library@5.14.0(@types/node@18.19.118)':
     dependencies:
       ajv: 8.13.0
@@ -14656,6 +14691,8 @@ snapshots:
     dependencies:
       ci-info: 3.9.0
 
+  '@types/istanbul-lib-coverage@2.0.6': {}
+
   '@types/js-yaml@4.0.9': {}
 
   '@types/json-schema@7.0.15': {}
@@ -14997,7 +15034,7 @@ snapshots:
 
   acorn-walk@8.3.4:
     dependencies:
-      acorn: 8.16.0
+      acorn: 8.17.0
 
   acorn@8.15.0: {}
 
@@ -17127,8 +17164,8 @@ snapshots:
 
   espree@10.4.0:
     dependencies:
-      acorn: 8.16.0
-      acorn-jsx: 5.3.2(acorn@8.16.0)
+      acorn: 8.17.0
+      acorn-jsx: 5.3.2(acorn@8.17.0)
       eslint-visitor-keys: 4.2.1
 
   espree@9.6.1:
@@ -18698,6 +18735,8 @@ snapshots:
 
   js-sha256@0.11.0: {}
 
+  js-tokens@10.0.0: {}
+
   js-tokens@4.0.0: {}
 
   js-yaml@3.14.2:
@@ -18850,18 +18889,18 @@ snapshots:
     dependencies:
       readable-stream: 2.3.8
 
-  less-loader@12.3.3(@rspack/core@2.1.3(@swc/helpers@0.5.21))(less@4.6.7)(webpack@5.99.5):
+  less-loader@12.3.3(@rspack/core@2.1.3(@swc/helpers@0.5.23))(less@4.6.7)(webpack@5.99.5):
     dependencies:
       less: 4.6.7
     optionalDependencies:
-      '@rspack/core': 2.1.3(@swc/helpers@0.5.21)
+      '@rspack/core': 2.1.3(@swc/helpers@0.5.23)
       webpack: 5.99.5
 
   less-loader@12.3.3(@rspack/core@2.1.3)(less@4.6.7)(webpack@5.99.5):
     dependencies:
       less: 4.6.7
     optionalDependencies:
-      '@rspack/core': 2.1.3(@swc/helpers@0.5.23)
+      '@rspack/core': 2.1.3(@swc/helpers@0.5.21)
       webpack: 5.99.5
 
   less@4.2.2:
@@ -19536,8 +19575,8 @@ snapshots:
 
   micromark-extension-mdxjs@3.0.0:
     dependencies:
-      acorn: 8.16.0
-      acorn-jsx: 5.3.2(acorn@8.16.0)
+      acorn: 8.17.0
+      acorn-jsx: 5.3.2(acorn@8.17.0)
       micromark-extension-mdx-expression: 3.0.1
       micromark-extension-mdx-jsx: 3.0.2
       micromark-extension-mdx-md: 2.0.0
@@ -20419,6 +20458,8 @@ snapshots:
   picomatch@2.3.1: {}
 
   picomatch@4.0.3: {}
+
+  picomatch@4.0.5: {}
 
   pify@2.3.0: {}
 
@@ -22651,6 +22692,12 @@ snapshots:
 
   uuid@8.3.2: {}
 
+  v8-to-istanbul@9.3.0:
+    dependencies:
+      '@jridgewell/trace-mapping': 0.3.31
+      '@types/istanbul-lib-coverage': 2.0.6
+      convert-source-map: 2.0.0
+
   validate-npm-package-license@3.0.4:
     dependencies:
       spdx-correct: 3.2.0
@@ -22751,7 +22798,7 @@ snapshots:
   webpack-bundle-analyzer@4.10.2(bufferutil@4.0.9):
     dependencies:
       '@discoveryjs/json-ext': 0.5.7
-      acorn: 8.16.0
+      acorn: 8.17.0
       acorn-walk: 8.3.4
       commander: 7.2.0
       debounce: 1.2.1
