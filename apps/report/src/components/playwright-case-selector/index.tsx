@@ -129,9 +129,9 @@ function PlaywrightCaseTitle(props: {
         <>
           {' - '}
           {isDescriptionTruncated ? (
-            <Tooltip title={fullDescription}>
-              <span className="case-description">{description}</span>
-            </Tooltip>
+            <span className="case-description" title={fullDescription}>
+              {description}
+            </span>
           ) : (
             description
           )}
