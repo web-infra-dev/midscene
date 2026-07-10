@@ -38,6 +38,8 @@ interface FixtureMetadata {
   sessionId: number;
   userInteractive: boolean;
   windowHandle: number;
+  buttonHandle: number;
+  accessibilityObjectType: string;
   dpiX: number;
   dpiY: number;
   screenBounds: {
@@ -85,6 +87,10 @@ function assertFixtureMetadata(value: FixtureMetadata): void {
     typeof value.userInteractive !== 'boolean' ||
     !Number.isSafeInteger(value.windowHandle) ||
     value.windowHandle <= 0 ||
+    !Number.isSafeInteger(value.buttonHandle) ||
+    value.buttonHandle <= 0 ||
+    typeof value.accessibilityObjectType !== 'string' ||
+    value.accessibilityObjectType.length === 0 ||
     !Number.isFinite(value.dpiX) ||
     !Number.isFinite(value.dpiY) ||
     !Number.isFinite(value.screenBounds?.width) ||
@@ -165,12 +171,39 @@ async function waitForFixture(readyFile: string): Promise<FixtureMetadata> {
   );
 }
 
-async function waitForTargetNode(windowHandle: number): Promise<{
+function treeSummary(root: UiNode): Array<{
+  depth: number;
+  type: string;
+  attrs: UiNode['attrs'];
+  childCount: number;
+}> {
+  const summary: Array<{
+    depth: number;
+    type: string;
+    attrs: UiNode['attrs'];
+    childCount: number;
+  }> = [];
+  const visit = (node: UiNode, depth: number): void => {
+    summary.push({
+      depth,
+      type: node.type,
+      attrs: node.attrs,
+      childCount: node.children.length,
+    });
+    for (const child of node.children) visit(child, depth + 1);
+  };
+  visit(root, 0);
+  return summary;
+}
+
+async function waitForTargetNode(fixture: FixtureMetadata): Promise<{
   root: UiNode;
   target: UiNode;
 }> {
   const deadline = Date.now() + 30_000;
   let lastError: unknown;
+  let lastWindowRoot: UiNode | undefined;
+  let lastButtonRoot: UiNode | undefined;
   while (Date.now() < deadline) {
     if (fixtureExited()) {
       throw new Error(
@@ -178,7 +211,10 @@ async function waitForTargetNode(windowHandle: number): Promise<{
       );
     }
     try {
-      const root = await readWindowsAccessibilityTree({ windowHandle });
+      const root = await readWindowsAccessibilityTree({
+        windowHandle: fixture.windowHandle,
+      });
+      lastWindowRoot = root;
       const target = findNode(
         root,
         (node) =>
@@ -186,13 +222,30 @@ async function waitForTargetNode(windowHandle: number): Promise<{
           node.attrs.Name === TARGET_NAME,
       );
       if (target) return { root, target };
+      if (!lastButtonRoot) {
+        lastButtonRoot = await readWindowsAccessibilityTree({
+          windowHandle: fixture.buttonHandle,
+        });
+      }
     } catch (error) {
       lastError = error;
     }
     await new Promise((resolveDelay) => setTimeout(resolveDelay, 500));
   }
+  if (lastWindowRoot) {
+    writeFileSync(
+      join(DIAGNOSTICS_DIR, 'uia-window-tree-last.json'),
+      JSON.stringify(lastWindowRoot, null, 2),
+    );
+  }
+  if (lastButtonRoot) {
+    writeFileSync(
+      join(DIAGNOSTICS_DIR, 'uia-button-tree-last.json'),
+      JSON.stringify(lastButtonRoot, null, 2),
+    );
+  }
   throw new Error(
-    `Timed out waiting for WinForms target in UIA tree. Last error: ${lastError}. Output:\n${fixtureOutput}`,
+    `Timed out waiting for WinForms target in UIA tree. Last error: ${lastError}. Window tree: ${JSON.stringify(lastWindowRoot ? treeSummary(lastWindowRoot) : null)}. Button tree: ${JSON.stringify(lastButtonRoot ? treeSummary(lastButtonRoot) : null)}. Output:\n${fixtureOutput}`,
   );
 }
 
@@ -229,7 +282,7 @@ describe.runIf(RUN_SMOKE)('Windows UIA xpath cache smoke', () => {
       expect(fixture.dpiX).toBeCloseTo(96, 0);
       expect(fixture.dpiY).toBeCloseTo(96, 0);
 
-      const { root, target } = await waitForTargetNode(fixture.windowHandle);
+      const { root, target } = await waitForTargetNode(fixture);
       writeFileSync(
         join(DIAGNOSTICS_DIR, 'uia-tree.json'),
         JSON.stringify(root, null, 2),

@@ -65,12 +65,16 @@ $form.Add_Shown({
 
   $graphics = $form.CreateGraphics()
   try {
+    $buttonHandle = [Int64]$button.Handle
+    $buttonAccessibilityObject = $button.AccessibilityObject
     $buttonBounds = $button.RectangleToScreen($button.ClientRectangle)
     $metadata = [PSCustomObject]@{
       processId = $PID
       sessionId = (Get-Process -Id $PID).SessionId
       userInteractive = [Environment]::UserInteractive
       windowHandle = [Int64]$form.Handle
+      buttonHandle = $buttonHandle
+      accessibilityObjectType = $buttonAccessibilityObject.GetType().FullName
       dpiX = [double]$graphics.DpiX
       dpiY = [double]$graphics.DpiY
       screenBounds = [PSCustomObject]@{
