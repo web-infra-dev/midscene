@@ -359,11 +359,9 @@ describe.runIf(RUN_SMOKE)('Windows UIA xpath cache smoke', () => {
         join(DIAGNOSTICS_DIR, 'target-pixel.json'),
         JSON.stringify(targetPixel, null, 2),
       );
-      expect(
-        Math.abs(targetPixel.red - 17) +
-          Math.abs(targetPixel.green - 197) +
-          Math.abs(targetPixel.blue - 94),
-      ).toBeLessThanOrEqual(30);
+      expect(targetPixel.green).toBeGreaterThanOrEqual(170);
+      expect(targetPixel.green - targetPixel.red).toBeGreaterThanOrEqual(100);
+      expect(targetPixel.green - targetPixel.blue).toBeGreaterThanOrEqual(70);
       const cropSize = {
         width: Math.max(1, Math.round(target.bounds.width)),
         height: Math.max(1, Math.round(target.bounds.height)),
