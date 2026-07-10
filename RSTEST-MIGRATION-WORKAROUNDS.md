@@ -122,17 +122,27 @@ Affected files (all use a jsdom docblock + render React):
 
 ---
 
-## Note — coverage provider is `v8`, not `istanbul`
+## 5. Files handed to `page.evaluate` are excluded from istanbul coverage
 
-`scripts/rstest-coverage.ts` sets `provider: 'v8'` on purpose. **Do not switch
-it back to `istanbul`.** Istanbul rewrites source to inject `cov_*()` counters;
-when a function defined in an instrumented source file (e.g.
-`src/puppeteer/base-page.ts`) is handed to Puppeteer's `page.evaluate`, it is
-serialized and run in the browser context where `cov_*` does not exist, throwing
-`ReferenceError: cov_… is not defined` (and skewing timing enough to break
-race-sensitive tests). `v8` uses the runtime profiler and does not rewrite
-source, matching the behavior these suites relied on under vitest. Requires the
-`@rstest/coverage-v8` dev dependency.
+- **rstest issue:** none — the coverage provider is `istanbul` on purpose
+  (`@rstest/coverage-v8` OOMs `@midscene/computer`, which runs 13 files in one
+  worker at `pool.maxWorkers: 1`; see commit that added the istanbul provider
+  and web-infra-dev/rstest#1524). **Do not switch the provider back to `v8`.**
+- **Symptom:** under `test:coverage`, `ReferenceError: cov_… is not defined`
+  thrown from `src/puppeteer/base-page.ts:140` (and timing-skew failures in
+  race-sensitive puppeteer tests).
+- **Root cause:** istanbul instruments source by injecting a module-scoped
+  `cov_*()` counter into every function. `base-page.ts` hands closures to
+  Puppeteer/Playwright `page.evaluate`, which serializes them via `toString()`
+  and runs them in the browser realm — where `cov_*` does not exist.
+- **Workaround:** add the offending file to `coverage.exclude` in
+  `scripts/rstest-coverage.ts` (excluded files are not instrumented). Currently
+  `**/puppeteer/base-page.ts` — the only file in the repo that passes inline
+  closures to `.evaluate(`. Add more entries if new such files appear.
+- **Revert when:** the istanbul provider makes an instrumented function's
+  `toString()` return the original (un-instrumented) source, so serialized
+  closures no longer carry `cov_*`. Then drop the exclude entry to restore
+  coverage measurement of `base-page.ts`.
 
 ---
 
