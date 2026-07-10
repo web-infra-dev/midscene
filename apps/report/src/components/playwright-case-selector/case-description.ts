@@ -1,6 +1,6 @@
 import type { PlaywrightTaskAttributes } from '../../types';
 
-const MAX_FAILED_CASE_DESCRIPTION_LENGTH = 30;
+const MAX_FAILED_CASE_DESCRIPTION_LENGTH = 300;
 
 export function getCaseDescription(
   attributes: Pick<

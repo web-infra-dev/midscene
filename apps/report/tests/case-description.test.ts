@@ -10,8 +10,8 @@ describe('getCaseDescription', () => {
       playwright_test_status: 'failed',
     });
 
-    expect(result).toHaveLength(30);
-    expect(result).toBe(`${description.slice(0, 27)}...`);
+    expect(result).toHaveLength(300);
+    expect(result).toBe(`${description.slice(0, 297)}...`);
   });
 
   it('keeps a short description for failed cases', () => {
