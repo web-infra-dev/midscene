@@ -26,14 +26,14 @@
     "@midscene/ios": "workspace:*",
     "@midscene/shared": "workspace:*",
     "@midscene/web": "workspace:*",
-    "@rstest/core": "0.11.0",
+    "@rstest/core": "0.11.1",
     "http-server": "14.1.1",
     "lodash.merge": "4.6.2",
     "puppeteer": "24.6.0"
   },
   "devDependencies": {
     "@rslib/core": "^0.18.3",
-    "@rstest/core": "0.11.0",
+    "@rstest/core": "0.11.1",
     "@types/js-yaml": "4.0.9",
     "@types/lodash.merge": "4.6.9",
     "@types/minimist": "1.2.5",
