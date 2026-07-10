@@ -1,5 +1,5 @@
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
+import { basename, dirname, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import type { MidsceneYamlConfigResult } from '@midscene/core';
 import type { RstestUserConfig, TestRunResult } from '@rstest/core/api';
@@ -15,6 +15,22 @@ export interface RunRstestYamlProjectOptions {
   project: GeneratedRstestYamlProject;
   cwd?: string;
   stdio?: 'inherit' | 'pipe';
+}
+
+export const resolveDefaultFeatureLoaderPath = (
+  moduleDir = __dirname,
+): string =>
+  basename(moduleDir) === 'framework'
+    ? join(moduleDir, 'feature-loader.js')
+    : join(moduleDir, 'framework', 'feature-loader.js');
+
+export interface RstestRspackDeps {
+  rspack: {
+    experiments: {
+      VirtualModulesPlugin: new (modules: Record<string, string>) => unknown;
+    };
+  };
+  featureLoaderPath?: string;
 }
 
 const formatRunError = (
@@ -58,7 +74,7 @@ const errorMessage = (
 ): string => error.message || error.name || 'YAML case failed';
 
 // Attribute each rstest failure back to the YAML case it came from, keyed by the
-// resolved YAML file path. A test-level failure matches on the test name (which
+// per-case result file. A test-level failure matches on the test name (which
 // equals the case's `testName`); a file-level failure (e.g. the test module
 // could not be loaded) matches on the generated virtual module id.
 const mapRunErrorsToCases = (
@@ -68,10 +84,19 @@ const mapRunErrorsToCases = (
   const byTestName = new Map(
     project.cases.map((item) => [item.testName, item]),
   );
+  const byTestModule = new Map<string, GeneratedYamlTestCase[]>();
+  for (const item of project.cases) {
+    const items = byTestModule.get(item.testModule);
+    if (items) {
+      items.push(item);
+    } else {
+      byTestModule.set(item.testModule, [item]);
+    }
+  }
   const errors = new Map<string, string>();
   const add = (item: GeneratedYamlTestCase | undefined, message: string) => {
-    if (item && message && !errors.has(item.yamlFile)) {
-      errors.set(item.yamlFile, message);
+    if (item && message && !errors.has(item.resultFile)) {
+      errors.set(item.resultFile, message);
     }
   };
   const addAll = (message: string) => {
@@ -79,17 +104,24 @@ const mapRunErrorsToCases = (
       add(item, message);
     }
   };
-  const matchFileCase = (
+  const matchFileCases = (
     file: TestRunResult['files'][number],
-  ): GeneratedYamlTestCase | undefined => {
-    for (const key of [file.name, file.testPath]) {
-      if (!key) continue;
-      const matched = project.cases.find(
-        (item) => key === item.testModule || key.includes(item.testModule),
-      );
+  ): GeneratedYamlTestCase[] => {
+    const fileKeys = [file.name, file.testPath].filter((key): key is string =>
+      Boolean(key),
+    );
+    for (const key of fileKeys) {
+      const matched = byTestModule.get(key);
       if (matched) return matched;
     }
-    return undefined;
+
+    for (const key of fileKeys) {
+      for (const [testModule, matched] of byTestModule) {
+        if (key.includes(testModule)) return matched;
+      }
+    }
+
+    return [];
   };
   const isBatchFile = (file: TestRunResult['files'][number]): boolean => {
     if (!project.batchTest) return false;
@@ -108,20 +140,23 @@ const mapRunErrorsToCases = (
     testName === project.batchTest?.testName;
 
   for (const file of result.files ?? []) {
-    const fileCase = matchFileCase(file);
+    const fileCases = matchFileCases(file);
+    const batchFile = isBatchFile(file);
     for (const error of file.errors ?? []) {
       const message = errorMessage(error);
-      if (isBatchFile(file)) {
+      if (batchFile) {
         addAll(message);
+      } else if (fileCases.length > 1) {
+        for (const item of fileCases) add(item, message);
       } else {
-        add(fileCase, message);
+        add(fileCases[0], message);
       }
     }
     for (const testResult of file.results ?? []) {
-      const item = byTestName.get(testResult.name) ?? fileCase;
+      const item = byTestName.get(testResult.name) ?? fileCases[0];
       for (const error of testResult.errors ?? []) {
         const message = errorMessage(error);
-        if (isBatchTest(testResult.name) || isBatchFile(file)) {
+        if (isBatchTest(testResult.name) || batchFile) {
           addAll(message);
         } else {
           add(item, message);
@@ -162,12 +197,15 @@ const recordUnreportedCaseFailures = (
 ): void => {
   if (!project.cases.length) return;
   const caseErrors = mapRunErrorsToCases(project, result);
-  for (const item of project.cases) {
-    if (existsSync(item.resultFile)) continue;
-    const error = caseErrors.get(item.yamlFile);
-    if (!error) continue;
+  const casesByResultFile = new Map(
+    project.cases.map((item) => [item.resultFile, item]),
+  );
+  for (const [resultFile, error] of caseErrors) {
+    const item = casesByResultFile.get(resultFile);
+    if (!item || existsSync(resultFile)) continue;
     const failure: MidsceneYamlConfigResult = {
       file: item.yamlFile,
+      testName: item.testName,
       success: false,
       executed: true,
       output: undefined,
@@ -176,24 +214,21 @@ const recordUnreportedCaseFailures = (
       resultType: 'failed',
       error,
     };
-    mkdirSync(dirname(item.resultFile), { recursive: true });
-    writeFileSync(item.resultFile, JSON.stringify(failure, null, 2));
+    mkdirSync(dirname(resultFile), { recursive: true });
+    writeFileSync(resultFile, JSON.stringify(failure, null, 2));
   }
 };
 
-export async function runRstestYamlProject(
-  options: RunRstestYamlProjectOptions,
-): Promise<number> {
-  const [{ runRstest }, { rspack }] = await Promise.all([
-    import('@rstest/core/api'),
-    import(pathToFileURL(resolvePackageFromRstestCore('@rsbuild/core')).href),
-  ]);
-  const { project } = options;
+export function createRstestInlineConfig(
+  project: GeneratedRstestYamlProject,
+  deps: RstestRspackDeps,
+): RstestUserConfig {
   const maxConcurrency =
     project.maxConcurrency !== undefined
       ? Math.max(1, project.maxConcurrency)
       : undefined;
-  const inlineConfig: RstestUserConfig = {
+
+  return {
     root: project.projectDir,
     include: project.include,
     testEnvironment: 'node',
@@ -208,13 +243,39 @@ export async function runRstestYamlProject(
       : {}),
     reporters: [],
     tools: {
-      rspack: (_config, { appendPlugins }) => {
+      rspack: (config, { appendPlugins }) => {
+        const virtualModulesPlugin =
+          new deps.rspack.experiments.VirtualModulesPlugin(
+            project.virtualModules,
+          );
         appendPlugins(
-          new rspack.experiments.VirtualModulesPlugin(project.virtualModules),
+          virtualModulesPlugin as Parameters<typeof appendPlugins>[0],
         );
+
+        if (!project.featureLoaderOptions) return;
+
+        config.module ??= {};
+        config.module.rules ??= [];
+        config.module.rules.push({
+          test: /\.feature$/,
+          type: 'javascript/auto',
+          loader: deps.featureLoaderPath ?? resolveDefaultFeatureLoaderPath(),
+          options: project.featureLoaderOptions,
+        });
       },
     },
   };
+}
+
+export async function runRstestYamlProject(
+  options: RunRstestYamlProjectOptions,
+): Promise<number> {
+  const [{ runRstest }, { rspack }] = await Promise.all([
+    import('@rstest/core/api'),
+    import(pathToFileURL(resolvePackageFromRstestCore('@rsbuild/core')).href),
+  ]);
+  const { project } = options;
+  const inlineConfig = createRstestInlineConfig(project, { rspack });
 
   const result = await runRstest({
     cwd: options.cwd || project.projectDir,

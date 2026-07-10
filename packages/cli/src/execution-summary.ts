@@ -158,10 +158,16 @@ const toTestStatus = (
 const safeReportNamePart = (value: string): string =>
   value.replace(/[:*?"<>|# ]/g, '-');
 
-const createRetryReportName = (file: string): string => {
-  const fileName = basename(file, extname(file)) || 'yaml';
+const resultDisplayName = (result: MidsceneYamlConfigResult): string =>
+  result.testName ?? result.file;
+
+const createRetryReportName = (result: MidsceneYamlConfigResult): string => {
+  const label = resultDisplayName(result);
+  const fileName = result.testName
+    ? basename(label)
+    : basename(result.file, extname(result.file)) || 'yaml';
   const fileHash = createHash('sha1')
-    .update(resolve(file))
+    .update(`${resolve(result.file)}\0${result.testName ?? ''}`)
     .digest('hex')
     .slice(0, 8);
   return `${safeReportNamePart(fileName)}-${fileHash}-retry-attempts`;
@@ -178,6 +184,7 @@ const createRetryAttemptReport = (
   }
 
   const tool = new ReportMergingTool();
+  const displayName = result.testName ?? basename(result.file);
   for (const attempt of attemptsWithReports) {
     const status = toTestStatus(attempt);
     tool.append({
@@ -185,8 +192,8 @@ const createRetryAttemptReport = (
       reportAttributes: {
         testDuration: attempt.duration ?? 0,
         testStatus: status,
-        testTitle: `Attempt ${attempt.attempt}: ${status} - ${basename(result.file)}`,
-        testId: `${safeReportNamePart(basename(result.file))}-attempt-${attempt.attempt}`,
+        testTitle: `Attempt ${attempt.attempt}: ${status} - ${displayName}`,
+        testId: `${safeReportNamePart(displayName)}-attempt-${attempt.attempt}`,
         testDescription:
           attempt.error ??
           (attempt.success ? 'YAML attempt passed' : 'YAML attempt failed'),
@@ -195,7 +202,7 @@ const createRetryAttemptReport = (
   }
 
   return (
-    tool.mergeReports(createRetryReportName(result.file), {
+    tool.mergeReports(createRetryReportName(result), {
       outputDir: getMidsceneRunSubDir('report'),
       overwrite: true,
     }) || undefined
@@ -250,7 +257,7 @@ export function writeExecutionSummaryFile(
       const retryReport = createRetryAttemptReportSafely(result);
 
       return {
-        script: relative(outputDir, result.file),
+        script: result.testName ?? relative(outputDir, result.file),
         success: result.success,
         resultType: result.resultType,
         output: result.output
@@ -345,7 +352,7 @@ export function printExecutionSummary(
   if (successfulFiles.length > 0) {
     console.log('\n✅ Successful files:');
     successfulFiles.forEach((result) => {
-      console.log(`   ${result.file}`);
+      console.log(`   ${resultDisplayName(result)}`);
       printResultArtifacts(result);
     });
   }
@@ -353,7 +360,7 @@ export function printExecutionSummary(
   if (failedFiles.length > 0) {
     console.log('\n❌ Failed files');
     failedFiles.forEach((result) => {
-      console.log(`   ${result.file}`);
+      console.log(`   ${resultDisplayName(result)}`);
       if (result.error) {
         console.log(`     Error: ${result.error}`);
       }
@@ -365,7 +372,7 @@ export function printExecutionSummary(
       '\n⚠️  Partial failed files (some tasks failed with continueOnError)',
     );
     partialFailedFiles.forEach((result) => {
-      console.log(`   ${result.file}`);
+      console.log(`   ${resultDisplayName(result)}`);
       if (result.error) {
         console.log(`     Error: ${result.error}`);
       }
@@ -375,7 +382,7 @@ export function printExecutionSummary(
   if (notExecutedFiles.length > 0) {
     console.log('\n⏸️ Not executed files');
     notExecutedFiles.forEach((result) => {
-      console.log(`   ${result.file}`);
+      console.log(`   ${resultDisplayName(result)}`);
     });
   }
 

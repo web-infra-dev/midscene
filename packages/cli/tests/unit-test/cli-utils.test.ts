@@ -1,4 +1,6 @@
-import { join } from 'node:path';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { basename, join } from 'node:path';
 import { matchYamlFiles, parseProcessArgs } from '@/cli-utils';
 import { launchServer } from '@/create-yaml-player';
 import { afterEach, describe, expect, test } from 'vitest';
@@ -39,6 +41,25 @@ describe('matchYamlFiles', () => {
     expect(
       files3.every((file) => file.endsWith('.yml') || file.endsWith('.yaml')),
     ).toBe(true);
+  });
+
+  test('matches yaml and feature files from a directory', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'midscene-cli-utils-'));
+    const casesDir = join(root, 'cases');
+    mkdirSync(casesDir, { recursive: true });
+    writeFileSync(join(casesDir, 'login.yaml'), 'tasks: []');
+    writeFileSync(join(casesDir, 'checkout.feature'), 'Feature: Checkout');
+    writeFileSync(join(casesDir, 'notes.txt'), 'ignore');
+
+    try {
+      const matchedFiles = await matchYamlFiles(casesDir);
+      expect(matchedFiles.map((file) => basename(file)).sort()).toEqual([
+        'checkout.feature',
+        'login.yaml',
+      ]);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 });
 

@@ -10,6 +10,7 @@ import {
   printExecutionSummary,
   writeExecutionSummaryFile,
 } from '../execution-summary';
+import { isFeatureFile } from './feature-file';
 import {
   type GeneratedRstestYamlProject,
   type RstestYamlCaseOptions,
@@ -101,13 +102,31 @@ const readProjectResults = (
       ) as MidsceneYamlConfigResult;
     }
 
-    return createNotExecutedYamlResult(item.yamlFile);
+    return {
+      ...createNotExecutedYamlResult(item.yamlFile),
+      testName: item.testName,
+    };
   });
+
+const assertFeatureFilesUseRstest = (config: BatchRunnerConfig): void => {
+  if (config.setup && isFeatureFile(config.setup)) {
+    throw new Error('.feature files are not supported as setup files');
+  }
+  if (!config.files.some(isFeatureFile)) return;
+  if (config.keepWindow) {
+    throw new Error('.feature files are not supported in keepWindow mode');
+  }
+  if (config.shareBrowserContext) {
+    throw new Error('shareBrowserContext is not supported for .feature files');
+  }
+};
 
 export async function runFrameworkTestConfig(
   config: BatchRunnerConfig,
   commandOptions: FrameworkTestCommandOptions = {},
 ): Promise<number> {
+  assertFeatureFilesUseRstest(config);
+
   if (config.keepWindow) {
     return runConfigInMainProcess(config, commandOptions);
   }
