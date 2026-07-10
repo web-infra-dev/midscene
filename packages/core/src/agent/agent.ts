@@ -1,4 +1,5 @@
 import { type ModelRuntime, getModelRuntime } from '@/ai-model/models';
+import { INTERNAL_CALL_ID_FIELD } from '@/ai-model/service-caller';
 import yaml from 'js-yaml';
 import type { TUserPrompt } from '../ai-model/index';
 import { ScreenshotItem } from '../screenshot-item';
@@ -7,6 +8,7 @@ import Service from '../service/index';
 // DO NOT import from '../index' as it creates a circular dependency:
 // index.ts -> agent/index.ts -> agent/agent.ts -> index.ts
 import {
+  type AIUsageInfo,
   type ActionParam,
   type ActionReturn,
   type AgentAssertOpt,
@@ -64,6 +66,7 @@ import { getDebug } from '@midscene/shared/logger';
 import { assert, ifInBrowser, uuid } from '@midscene/shared/utils';
 import { defineActionSleep } from '../device';
 import { validateAgentCacheInput } from './cache-config';
+import { MetricsCollector, type MidsceneUsageMetrics } from './metrics';
 import { AgentProgressBus } from './progress';
 import { buildPromptWithContext } from './prompt-context';
 import { normalizeRecordToReportScreenshot } from './record-to-report';
@@ -79,6 +82,7 @@ import {
   locatePlanForLocate,
   withFileChooser,
 } from './tasks';
+import { UIObserver, type UIObserverOption } from './ui-observer';
 import {
   type TaskTitleType,
   locateParamStr,
@@ -118,6 +122,16 @@ type AiActInternalOptions = AiActOptions & {
   };
 };
 
+/**
+ * Shared input option type for aiInput(), used consistently across
+ * overload signatures and the implementation so fields don't drift.
+ */
+type AgentInputOption = LocateOption & {
+  autoDismissKeyboard?: boolean;
+  keyboardTypeDelay?: number;
+  mode?: 'replace' | 'clear' | 'typeOnly' | 'append';
+};
+
 export class Agent<
   InterfaceType extends AbstractInterface = AbstractInterface,
 > {
@@ -143,6 +157,16 @@ export class Agent<
   onTaskStartTip?: OnTaskStartTip;
 
   taskCache?: TaskCache;
+
+  private readonly metricsCollector = new MetricsCollector();
+
+  // Monotonic counter for generating unique dedup keys when a usage has no
+  // request_id (e.g. estimated streaming usage).
+  private usageCallCounter = 0;
+
+  // Usage values already folded into `metricsCollector`, keyed by
+  // `${taskId}:${field}` so re-emitted snapshots never double-count.
+  private readonly countedUsageKeys = new Set<string>();
 
   private dumpUpdateListeners: Array<
     (dump: string, executionDump?: ExecutionDump) => void
@@ -177,6 +201,12 @@ export class Agent<
    * Frozen page context for consistent AI operations
    */
   private frozenUIContext?: UIContext;
+
+  /**
+   * Currently active UIObserver (from startObserving). Only one observer may
+   * be active at a time since frame sources are device-level singletons.
+   */
+  private activeObserver: UIObserver | null = null;
 
   private get aiActContext(): string | undefined {
     return this.opts.aiActContext ?? this.opts.aiActionContext;
@@ -230,7 +260,24 @@ export class Agent<
   }
 
   private resolveModelRuntime(intent: TIntent): ModelRuntime {
-    return getModelRuntime(this.modelConfigManager.getModelConfig(intent));
+    const runtime = getModelRuntime(
+      this.modelConfigManager.getModelConfig(intent),
+    );
+    return {
+      ...runtime,
+      onUsage: (usage) => {
+        this.usageCallCounter += 1;
+        // buildUsageInfo leaves intent undefined; fill it from the model
+        // config slot so metrics.byIntent has a meaningful category.
+        const enriched = usage.intent
+          ? usage
+          : { ...usage, intent: usage.slot };
+        this.consumeUsage(
+          enriched,
+          `callai:${usage.request_id ?? this.usageCallCounter}`,
+        );
+      },
+    };
   }
 
   constructor(interfaceInstance: InterfaceType, opts?: AgentOpt) {
@@ -305,6 +352,7 @@ export class Agent<
         onSnapshotChange: async (runner) => {
           const executionDump = runner.dump();
           this.appendExecutionDump(executionDump, runner);
+          this.collectUsageMetrics(executionDump);
 
           // Persist report updates before notifying listeners so screenshot
           // payloads can be released from memory and serialized as references.
@@ -396,6 +444,74 @@ export class Agent<
   }
 
   /**
+   * Start observing the screen in the background so a later assertion can
+   * judge everything that happened while other agent calls ran — including
+   * transient UI (toasts, banners, transitions) that appears mid-action:
+   *
+   * ```ts
+   * const observer = await agent.startObserving();
+   * await agent.aiAct('submit the form');
+   * await observer.stop();
+   * await observer.aiAssert('a success toast appeared during the process');
+   * ```
+   *
+   * Frames come from the device's continuous frame source when available
+   * (scrcpy on Android, WDA MJPEG on iOS — both opt-in; CDP screencast on
+   * web) and fall back to plain screenshots otherwise. Sampling is capped at
+   * 5fps, the buffer is bounded and self-thinning, decoding is deferred to
+   * the end, and all buffered frames (up to `maxFrames`) are sent to
+   * the model at assert time. To control token cost for long windows,
+   * increase `intervalMs` or decrease `maxFrames`.
+   * Awaiting `startObserving()` guarantees one baseline frame is captured
+   * before your next action.
+   */
+  async startObserving(opt?: UIObserverOption): Promise<UIObserver> {
+    // A frozen context pins perception to a single snapshot; observing a
+    // window of frames contradicts that. Fail fast instead of silently
+    // producing an all-identical sequence.
+    assert(
+      !this.frozenUIContext,
+      'startObserving() cannot be used while the UI context is frozen (call unfreezePageContext() first)',
+    );
+    // Frame sources are device-level singletons — two concurrent observers
+    // would conflict (scrcpy stream, WDA MJPEG port, CDP screencast).
+    assert(
+      !this.activeObserver,
+      'An observation window is already active on this agent. ' +
+        'Stop the existing observer first (await observer.stop()) before starting a new one.',
+    );
+    const observer = new UIObserver(
+      {
+        openFrameSource: async () =>
+          (await this.interface.openFrameSource?.()) ?? undefined,
+        // Fallback single-frame capture. Deliberately bypasses getUIContext so
+        // the observation loop never pollutes the TaskRunner context cache.
+        screenshot: () => this.interface.screenshotBase64(),
+        captureRepresentative: () => this.getUIContext('assert'),
+        runAssert: (assertion, uiContext, msg, assertOpt) =>
+          this.aiAssertWithContext(assertion, uiContext, msg, assertOpt),
+        runBoolean: (prompt, uiContext, boolOpt) =>
+          this.aiBooleanWithContext(prompt, uiContext, boolOpt),
+        onStopped: () => {
+          this.activeObserver = null;
+        },
+        screenshotShrinkFactor: this.opts.screenshotShrinkFactor,
+      },
+      opt,
+    );
+    // Mark as active BEFORE the async start() so concurrent calls hit the
+    // assert guard above. If start() throws, clear the reference below.
+    this.activeObserver = observer;
+    try {
+      await observer.start();
+    } catch (error) {
+      this.activeObserver = null;
+      throw error;
+    }
+    return observer;
+  }
+
+  /**
    * @deprecated Use {@link setAIActContext} instead.
    */
   async setAIActionContext(prompt: string) {
@@ -442,6 +558,56 @@ export class Agent<
       return;
     }
     currentDump.executions.push(execution);
+  }
+
+  /**
+   * Fold any not-yet-counted task usage from an execution dump into the
+   * instance metrics. Snapshots are re-emitted as tasks progress, so each
+   * usage value is keyed by `${taskId}:${field}` and counted at most once.
+   */
+  private collectUsageMetrics(execution: ExecutionDump) {
+    for (const task of execution.tasks) {
+      this.consumeUsage(task.usage, `${task.taskId}:usage`);
+      this.consumeUsage(task.searchAreaUsage, `${task.taskId}:searchAreaUsage`);
+    }
+  }
+
+  private consumeUsage(usage: AIUsageInfo | undefined, key: string) {
+    if (!usage) {
+      return;
+    }
+    // Dedup key priority:
+    // 1. request_id — provider-issued, stable across onUsage and task dump paths
+    // 2. INTERNAL_CALL_ID_FIELD — callAI-generated internal id, covers
+    //    providers that don't return a request_id
+    // 3. caller-provided key (taskId:field or callai:counter)
+    let dedupKey: string;
+    if (usage.request_id) {
+      dedupKey = `req:${usage.request_id}`;
+    } else if ((usage as any)[INTERNAL_CALL_ID_FIELD]) {
+      dedupKey = `int:${(usage as any)[INTERNAL_CALL_ID_FIELD]}`;
+    } else {
+      dedupKey = key;
+    }
+    if (this.countedUsageKeys.has(dedupKey)) {
+      return;
+    }
+    this.countedUsageKeys.add(dedupKey);
+    this.metricsCollector.add(usage);
+    if (this.opts.onLLMUsage) {
+      try {
+        this.opts.onLLMUsage(usage);
+      } catch (error) {
+        warn(`onLLMUsage listener threw, ignoring: ${error}`);
+      }
+    }
+  }
+
+  /**
+   * Aggregated LLM usage accumulated by this agent since it was created.
+   */
+  get metrics(): MidsceneUsageMetrics {
+    return this.metricsCollector.snapshot();
   }
 
   dumpDataString(opt?: { inlineScreenshots?: boolean }) {
@@ -595,9 +761,7 @@ export class Agent<
   // New signature, always use locatePrompt as the first param
   async aiInput(
     locatePrompt: TUserPrompt,
-    opt: LocateOption & { value: string | number } & {
-      autoDismissKeyboard?: boolean;
-    } & { mode?: 'replace' | 'clear' | 'typeOnly' | 'append' },
+    opt: AgentInputOption & { value: string | number },
   ): Promise<void>;
 
   // Legacy signature - deprecated
@@ -607,9 +771,7 @@ export class Agent<
   async aiInput(
     value: string | number,
     locatePrompt: TUserPrompt,
-    opt?: LocateOption & { autoDismissKeyboard?: boolean } & {
-      mode?: 'replace' | 'clear' | 'typeOnly' | 'append';
-    }, // AndroidDeviceInputOpt &
+    opt?: AgentInputOption,
   ): Promise<void>;
 
   // Implementation
@@ -617,19 +779,13 @@ export class Agent<
     locatePromptOrValue: TUserPrompt | string | number,
     locatePromptOrOpt:
       | TUserPrompt
-      | (LocateOption & { value: string | number } & {
-          autoDismissKeyboard?: boolean;
-        } & { mode?: 'replace' | 'clear' | 'typeOnly' | 'append' }) // AndroidDeviceInputOpt &
+      | (AgentInputOption & { value: string | number })
       | undefined,
-    optOrUndefined?: LocateOption, // AndroidDeviceInputOpt &
+    optOrUndefined?: AgentInputOption,
   ) {
     let value: string | number;
     let locatePrompt: TUserPrompt;
-    let opt:
-      | (LocateOption & { value: string | number } & {
-          autoDismissKeyboard?: boolean;
-        } & { mode?: 'replace' | 'clear' | 'typeOnly' | 'append' }) // AndroidDeviceInputOpt &
-      | undefined;
+    let opt: (AgentInputOption & { value: string | number }) | undefined;
 
     // Check if using new signature (first param is locatePrompt, second has value)
     if (
@@ -639,10 +795,8 @@ export class Agent<
     ) {
       // New signature: aiInput(locatePrompt, opt)
       locatePrompt = locatePromptOrValue as TUserPrompt;
-      const optWithValue = locatePromptOrOpt as LocateOption & {
-        // AndroidDeviceInputOpt &
+      const optWithValue = locatePromptOrOpt as AgentInputOption & {
         value: string | number;
-        autoDismissKeyboard?: boolean;
       };
       value = optWithValue.value;
       opt = optWithValue;
@@ -1057,6 +1211,14 @@ export class Agent<
     prompt: TUserPrompt,
     opt: ServiceExtractOption = defaultServiceExtractOption,
   ): Promise<boolean> {
+    return this.aiBooleanWithContext(prompt, undefined, opt);
+  }
+
+  private async aiBooleanWithContext(
+    prompt: TUserPrompt,
+    uiContext?: UIContext,
+    opt: ServiceExtractOption = defaultServiceExtractOption,
+  ): Promise<boolean> {
     const modelRuntime = this.resolveModelRuntime('insight');
 
     const { textPrompt, multimodalPrompt } = parsePrompt(prompt);
@@ -1066,6 +1228,7 @@ export class Agent<
       modelRuntime,
       opt,
       multimodalPrompt,
+      uiContext ? { uiContext } : undefined,
     );
     return output as boolean;
   }
@@ -1153,6 +1316,15 @@ export class Agent<
     msg?: string,
     opt?: AgentAssertOpt & ServiceExtractOption,
   ) {
+    return this.aiAssertWithContext(assertion, undefined, msg, opt);
+  }
+
+  private async aiAssertWithContext(
+    assertion: TUserPrompt,
+    uiContext?: UIContext,
+    msg?: string,
+    opt?: AgentAssertOpt & ServiceExtractOption,
+  ) {
     const modelRuntime = this.resolveModelRuntime('insight');
 
     const serviceOpt: ServiceExtractOption = {
@@ -1170,6 +1342,11 @@ export class Agent<
     const assertionText =
       typeof assertion === 'string' ? assertion : assertion.prompt;
 
+    const executionOptions = {
+      abortSignal: opt?.abortSignal,
+      ...(uiContext ? { uiContext } : {}),
+    };
+
     try {
       const { output, thought } =
         await this.taskExecutor.createTypeQueryExecution<boolean>(
@@ -1178,9 +1355,7 @@ export class Agent<
           modelRuntime,
           serviceOpt,
           multimodalPrompt,
-          {
-            abortSignal: opt?.abortSignal,
-          },
+          executionOptions,
         );
 
       const pass = Boolean(output);
@@ -1359,6 +1534,19 @@ export class Agent<
     }
 
     this.destroyed = true;
+
+    // Stop any active observer before tearing down the interface. The observer
+    // may hold a frame source subscription that needs explicit cleanup.
+    if (this.activeObserver) {
+      try {
+        await this.activeObserver.stop();
+      } catch (error) {
+        debug(`error stopping active observer during destroy: ${error}`);
+      }
+      // onStopped callback should have cleared this, but ensure it's null
+      this.activeObserver = null;
+    }
+
     let interfaceDestroyError: unknown;
     try {
       await this.interface.destroy?.();

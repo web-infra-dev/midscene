@@ -26,7 +26,9 @@ import {
   generateRecorderSessionMetadata,
   generateRecorderYamlTest,
 } from '@midscene/core/ai-model';
+import { describeRecorderUIEvents } from '@midscene/playground/recorder-ui-describer';
 import {
+  describeRecorderUIEventsInMain,
   generateRecorderCodeInMain,
   generateRecorderMetadataInMain,
 } from '../src/main/recorder/codegen';
@@ -194,6 +196,48 @@ describe('Studio recorder codegen in main', () => {
         fallbackName: 'web recording',
       },
       yamlRequest.modelConfig,
+    );
+  });
+
+  it('passes resolved recorder UI describer model config through unchanged', async () => {
+    const event = {
+      type: 'click',
+      actionType: 'Tap',
+      source: 'studio-preview',
+      timestamp: 2,
+      hashId: 'event-click',
+      pageInfo: { width: 1280, height: 720 },
+      elementRect: { x: 120, y: 240 },
+    } as const;
+    vi.mocked(describeRecorderUIEvents).mockResolvedValueOnce([
+      {
+        event,
+        usedFallback: false,
+      },
+    ]);
+
+    await expect(
+      describeRecorderUIEventsInMain({
+        input: {
+          target: yamlRequest.input.target,
+          events: [event],
+        },
+        modelConfig: yamlRequest.modelConfig,
+      }),
+    ).resolves.toEqual({
+      events: [event],
+      results: [{ hashId: 'event-click', usedFallback: false }],
+    });
+
+    expect(describeRecorderUIEvents).toHaveBeenCalledWith(
+      [
+        {
+          event,
+          target: yamlRequest.input.target,
+        },
+      ],
+      yamlRequest.modelConfig,
+      { concurrency: 2 },
     );
   });
 });

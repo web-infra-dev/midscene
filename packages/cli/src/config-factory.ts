@@ -7,7 +7,7 @@ import type {
   MidsceneYamlScriptIOSEnv,
   MidsceneYamlScriptWebEnv,
 } from '@midscene/core';
-import { interpolateEnvVars } from '@midscene/core/yaml';
+import { interpolateEnvVars, resolveWebTarget } from '@midscene/core/yaml';
 import { load as yamlLoad } from 'js-yaml';
 import merge from 'lodash.merge';
 import type { BatchRunnerConfig } from './batch-runner';
@@ -34,6 +34,9 @@ export interface ConfigFactoryOptions {
   keepWindow?: boolean;
   dotenvOverride?: boolean;
   dotenvDebug?: boolean;
+  target?: Partial<MidsceneYamlScriptWebEnv>;
+  page?: Partial<MidsceneYamlScriptWebEnv>;
+  browser?: Partial<MidsceneYamlScriptWebEnv>;
   web?: Partial<MidsceneYamlScriptWebEnv>;
   android?: Partial<MidsceneYamlScriptAndroidEnv>;
   ios?: Partial<MidsceneYamlScriptIOSEnv>;
@@ -47,6 +50,8 @@ export interface ParsedConfig {
   retry: number;
   summary: string;
   shareBrowserContext: boolean;
+  page?: MidsceneYamlScriptWebEnv;
+  browser?: MidsceneYamlScriptWebEnv;
   web?: MidsceneYamlScriptWebEnv;
   android?: MidsceneYamlScriptAndroidEnv;
   ios?: MidsceneYamlScriptIOSEnv;
@@ -142,6 +147,8 @@ export async function parseConfigYaml(
     throw new Error('Config YAML must contain a "files" array');
   }
 
+  resolveWebTarget(configYaml);
+
   // Expand file patterns using glob
   const files = await expandFilePatterns(configYaml?.files, basePath);
 
@@ -169,7 +176,10 @@ export async function parseConfigYaml(
     summary: configYaml.summary ?? defaultSummary,
     shareBrowserContext:
       configYaml.shareBrowserContext ?? defaultConfig.shareBrowserContext,
+    page: configYaml.page,
+    browser: configYaml.browser,
     web: configYaml.web,
+    target: configYaml.target,
     android: configYaml.android,
     ios: configYaml.ios,
     patterns: configYaml.files,
@@ -191,15 +201,20 @@ export async function createConfig(
   const parsedConfig = await parseConfigYaml(configYamlPath);
   const globalConfig = merge(
     {
+      page: parsedConfig.page,
+      browser: parsedConfig.browser,
       web: parsedConfig.web,
       android: parsedConfig.android,
       ios: parsedConfig.ios,
       target: parsedConfig.target,
     },
     {
+      page: options?.page,
+      browser: options?.browser,
       web: options?.web,
       android: options?.android,
       ios: options?.ios,
+      target: options?.target,
     },
   );
 
@@ -277,7 +292,10 @@ export async function createFilesConfig(
     dotenvOverride: options.dotenvOverride ?? defaultConfig.dotenvOverride,
     dotenvDebug: options.dotenvDebug ?? defaultConfig.dotenvDebug,
     globalConfig: {
+      page: options.page as MidsceneYamlScriptWebEnv | undefined,
+      browser: options.browser as MidsceneYamlScriptWebEnv | undefined,
       web: options.web as MidsceneYamlScriptWebEnv | undefined,
+      target: options.target as MidsceneYamlScriptWebEnv | undefined,
       android: options.android as MidsceneYamlScriptAndroidEnv | undefined,
       ios: options.ios as MidsceneYamlScriptIOSEnv | undefined,
     },

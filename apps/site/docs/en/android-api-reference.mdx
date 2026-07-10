@@ -8,7 +8,7 @@ Use this doc when you need to customize Midscene's Android automation or review 
 
 - `Tap` &mdash; Tap an element.
 - `DoubleClick` &mdash; Double-tap an element.
-- `Input` &mdash; Enter text with `replace`/`typeOnly`/`clear` modes (`append` is a deprecated alias for `typeOnly`). Supports optional `autoDismissKeyboard` parameter.
+- `Input` &mdash; Enter text with `replace`/`typeOnly`/`clear` modes (`append` is a deprecated alias for `typeOnly`). Supports optional `autoDismissKeyboard` and `keyboardTypeDelay` parameters.
 - `Scroll` &mdash; Scroll from an element or screen center in any direction, with helpers to reach the top, bottom, left, or right.
 - `DragAndDrop` &mdash; Drag from one element to another.
 - `KeyboardPress` &mdash; Press a specified key.
@@ -46,6 +46,7 @@ const device = new AndroidDevice(deviceId, {
 - `deviceId: string` &mdash; Value returned by `adb devices` or `getConnectedDevices()`.
 - `autoDismissKeyboard?: boolean` &mdash; Automatically hide the keyboard after input. Default `true`.
 - `keyboardDismissStrategy?: 'esc-first' | 'back-first'` &mdash; Order for dismissing keyboards. Default `'esc-first'`.
+- `keyboardTypeDelay?: number` &mdash; Delay in milliseconds between keystrokes when typing text. When set, text is typed one character at a time with this delay between each character, instead of sending the whole string at once. Useful on devices or input fields that drop characters when input arrives too fast. Only applies to the `input text` path; ignored when yadb is used.
 - `androidAdbPath?: string` &mdash; Custom path to the adb executable.
 - `remoteAdbHost?: string` / `remoteAdbPort?: number` &mdash; Point to a remote adb server.
 - `imeStrategy?: 'always-yadb' | 'yadb-for-non-ascii'` &mdash; Choose when to invoke [yadb](https://github.com/ysbing/YADB) for text input. Default `'yadb-for-non-ascii'`.

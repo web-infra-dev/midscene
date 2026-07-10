@@ -298,7 +298,7 @@ export abstract class BaseMidsceneTools<
       this.toolDefaults,
     );
 
-    // 4. Add common tools (screenshot, waitFor)
+    // 4. Add common tools (screenshot, act, assert)
     const commonTools = generateCommonTools(
       (args = {}) => this.ensureAgent(this.extractAgentInitParam(args)),
       this.getAgentInitArgSchema(),

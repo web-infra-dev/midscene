@@ -18,6 +18,7 @@ import {
   type AbstractInterface,
   type AndroidDeviceInputOpt,
   type AndroidDeviceOpt,
+  type DeviceFrameSource,
   type MobileInputPrimitives,
   type PointerPoint,
   createDefaultMobileActions,
@@ -48,6 +49,7 @@ import {
   type DevicePhysicalInfo,
   ScrcpyDeviceAdapter,
 } from './scrcpy-device-adapter';
+import type { RawKeyframe } from './scrcpy-manager';
 
 // Re-export AndroidDeviceOpt and AndroidDeviceInputOpt for backward compatibility
 export type {
@@ -79,6 +81,22 @@ export function escapeForShell(text: string): string {
     .replace(/\n/g, '\\n'); // 0x0A → literal \n (yadb interprets back to newline)
 }
 
+/**
+ * Escape a string for safe use as a single argument in `adb shell input text`.
+ * Wraps the value in single quotes so the device shell (/system/bin/sh) does
+ * not interpret spaces, &, ;, |, $, `, etc. as shell metacharacters. Internal
+ * single quotes are escaped via the '\'' sequence (end quote, literal quote,
+ * start quote).
+ *
+ * Unlike the old `%s` convention, this properly protects ALL shell-special
+ * characters, not just spaces. Critical for WiFi passwords and similar inputs
+ * that may contain `&`, `;`, `'`, etc.
+ */
+function shellEscapeArg(text: string): string {
+  const escaped = text.replace(/'/g, "'\\''");
+  return `'${escaped}'`;
+}
+
 export class AndroidDevice implements AbstractInterface {
   private deviceId: string;
   private yadbPushed = false;
@@ -98,6 +116,13 @@ export class AndroidDevice implements AbstractInterface {
   private cachedOrientation: number | null = null;
   private cachedPhysicalDisplayId: string | null | undefined = undefined;
   private scrcpyAdapter: ScrcpyDeviceAdapter | null = null;
+  /**
+   * Continuous frame-source capability for UI observation, sourced from the
+   * scrcpy video stream. Only wired up when scrcpy is opt-in enabled (mirrors
+   * iOS WDA MJPEG); otherwise left undefined so observers fall back to
+   * sequential screenshots.
+   */
+  openFrameSource?: AbstractInterface['openFrameSource'];
   private appNameMapping: Record<string, string> = {};
   private cachedAdjustScale: { x: number; y: number } | null = null;
   private takeScreenshotFailCount = 0;
@@ -317,6 +342,13 @@ export class AndroidDevice implements AbstractInterface {
     this.deviceId = deviceId;
     this.options = options;
     this.customActions = options?.customActions;
+
+    // Opt-in (default off): only expose the scrcpy frame-source capability
+    // when scrcpy screenshots are explicitly enabled. When off, UI observers
+    // fall back to sequential screenshotBase64() capture.
+    if (options?.scrcpyConfig?.enabled) {
+      this.openFrameSource = () => this.openScrcpyFrameSource();
+    }
   }
 
   describe(): string {
@@ -471,6 +503,56 @@ ${Object.keys(size)
       );
     }
     return this.scrcpyAdapter;
+  }
+
+  /**
+   * Continuous frame source backed by the scrcpy video stream.
+   *
+   * Decoding H.264 to JPEG costs an ffmpeg process per frame (~100ms measured
+   * on-device), so `latest()` hands out RAW keyframe handles (near-zero cost —
+   * the stream is already flowing) and `decode()` pays the ffmpeg cost only
+   * for the frames the observer actually sampled, at the end of the window.
+   * Subscribing also keeps the scrcpy connection alive (each incoming frame
+   * resets the idle timer) for the whole observation window.
+   *
+   * Opt-in: only wired up as the `openFrameSource` capability (in the
+   * constructor) when `scrcpyConfig.enabled` is set. Throws if the stream is
+   * unavailable; observers fall back to sequential `screenshotBase64()`.
+   */
+  private async openScrcpyFrameSource(): Promise<DeviceFrameSource> {
+    const adapter = this.getScrcpyAdapter();
+    if (!adapter.isEnabled()) {
+      throw new Error('scrcpy is not available for frame observation');
+    }
+    const deviceInfo = await this.getDevicePhysicalInfo();
+
+    let latest: RawKeyframe | null = adapter.getLatestRawKeyframe();
+    const unsubscribe = await adapter.subscribeKeyframes(
+      deviceInfo,
+      (frame) => {
+        latest = frame;
+      },
+    );
+
+    return {
+      latest: () =>
+        latest ? { ref: latest, capturedAt: latest.capturedAt } : null,
+      decode: async (refs) => {
+        const images: string[] = [];
+        for (const frameRef of refs) {
+          images.push(
+            await adapter.decodeRawKeyframeToJpegBase64(
+              frameRef.ref as RawKeyframe,
+            ),
+          );
+        }
+        debugDevice(`frame source decoded ${images.length} raw keyframes`);
+        return images;
+      },
+      stop: () => {
+        unsubscribe();
+      },
+    };
   }
 
   /**
@@ -1198,21 +1280,33 @@ ${Object.keys(size)
       await this.tapPoint({ x: element.center[0], y: element.center[1] });
     }
 
-    await this.ensureYadb();
     const adb = await this.getAdb();
+    const isNonDefaultDisplay =
+      typeof this.options?.displayId === 'number' &&
+      this.options.displayId !== 0;
 
     const IME_STRATEGY =
       (this.options?.imeStrategy ||
         globalConfigManager.getEnvConfigValue(MIDSCENE_ANDROID_IME_STRATEGY)) ??
       IME_STRATEGY_YADB_FOR_NON_ASCII;
 
-    if (IME_STRATEGY === IME_STRATEGY_YADB_FOR_NON_ASCII) {
+    if (isNonDefaultDisplay) {
+      // Neither yadb nor appium-adb's clearTextField pass -d <displayId>.
+      // On a non-default display we must issue keyevents with the display
+      // argument so deletions land on the correct screen.
+      const keys: number[] = [];
+      for (let i = 0; i < 100; i++) {
+        keys.push(67, 112); // KEYCODE_DEL, KEYCODE_FORWARD_DEL
+      }
+      await this.shellInputKeyevent(...keys);
+    } else if (IME_STRATEGY === IME_STRATEGY_YADB_FOR_NON_ASCII) {
       // For yadb-for-non-ascii mode, use batch deletion of up to 100 characters
       // clearTextField() batches all key events into a single shell command for better performance
+      await this.ensureYadb();
       await adb.clearTextField(100);
     } else {
       // Use the yadb tool to clear the input box
-      this.warnYadbOnNonDefaultDisplay('keyboard clear');
+      await this.ensureYadb();
       await adb.shell(
         // `app_process` (ART launcher) does not accept the `-d <displayId>` flag.
         'app_process -Djava.class.path=/data/local/tmp/yadb /data/local/tmp com.ysbing.yadb.Main -keyboardClear',
@@ -1527,36 +1621,48 @@ ${Object.keys(size)
     options?: AndroidDeviceInputOpt,
   ): Promise<void> {
     if (!text) return;
-    const adb = await this.getAdb();
     const IME_STRATEGY =
       (this.options?.imeStrategy ||
         globalConfigManager.getEnvConfigValue(MIDSCENE_ANDROID_IME_STRATEGY)) ??
       IME_STRATEGY_YADB_FOR_NON_ASCII;
     const shouldAutoDismissKeyboard =
       options?.autoDismissKeyboard ?? this.options?.autoDismissKeyboard ?? true;
+    const typeDelay =
+      options?.keyboardTypeDelay ?? this.options?.keyboardTypeDelay;
+
+    // yadb (app_process) cannot target a non-default display. If a displayId
+    // other than 0 is configured and the text requires yadb, we throw rather
+    // than silently falling back to `input text` (which would corrupt the
+    // content or land it on the wrong screen).
+    const isNonDefaultDisplay =
+      typeof this.options?.displayId === 'number' &&
+      this.options.displayId !== 0;
 
     // Decide input path for the entire text, not per-segment.
-    const useYadb =
+    const needsYadb =
       IME_STRATEGY === IME_STRATEGY_ALWAYS_YADB ||
       (IME_STRATEGY === IME_STRATEGY_YADB_FOR_NON_ASCII &&
         this.shouldUseYadbForText(text));
 
-    if (useYadb) {
+    if (isNonDefaultDisplay && needsYadb) {
+      const reason =
+        IME_STRATEGY === IME_STRATEGY_ALWAYS_YADB
+          ? `imeStrategy 'always-yadb' requires yadb`
+          : 'text contains characters that require yadb (non-ASCII, format specifiers, or mixed quotes)';
+      throw new Error(
+        `${reason}, but yadb (app_process) cannot target non-default displayId=${this.options?.displayId}. Use displayId=0 or a different imeStrategy.`,
+      );
+    }
+
+    if (needsYadb) {
       // yadb handles newlines natively: escapeForShell converts \n (0x0A)
       // to literal \n (two chars), which yadb interprets back as newline.
       // Single adb call for the entire text.
       await this.execYadb(escapeForShell(text));
     } else {
-      // inputText cannot handle newlines, so split by \n and press Enter between segments.
-      const segments = text.split('\n');
-      for (let i = 0; i < segments.length; i++) {
-        if (segments[i].length > 0) {
-          await adb.inputText(segments[i]);
-        }
-        if (i < segments.length - 1) {
-          await adb.keyevent(66);
-        }
-      }
+      // Use the display-aware `input text` primitive. Handles shell escaping,
+      // newline splitting, and per-character typing delay internally.
+      await this.shellInputText(text, { keyboardTypeDelay: typeDelay });
     }
 
     if (shouldAutoDismissKeyboard === true) {
@@ -1605,20 +1711,18 @@ ${Object.keys(size)
       End: 123,
     };
 
-    const adb = await this.getAdb();
-
     // Normalize key to handle case-insensitive matching
     const normalizedKey = this.normalizeKeyName(key);
     const keyCode = keyCodeMap[normalizedKey];
     if (keyCode !== undefined) {
-      await adb.keyevent(keyCode);
+      await this.shellInputKeyevent(keyCode);
     } else {
       // for keys not in the mapping table, try to get its ASCII code (if it's a single character)
       if (key.length === 1) {
         const asciiCode = key.toUpperCase().charCodeAt(0);
         // Android key codes, A-Z is 29-54
         if (asciiCode >= 65 && asciiCode <= 90) {
-          await adb.keyevent(asciiCode - 36); // 65-36=29 (A's key code)
+          await this.shellInputKeyevent(asciiCode - 36); // 65-36=29 (A's key code)
         }
       }
     }
@@ -1824,18 +1928,15 @@ ${Object.keys(size)
   }
 
   async back(): Promise<void> {
-    const adb = await this.getAdb();
-    await adb.shell(`input${this.getDisplayArg()} keyevent 4`);
+    await this.shellInputKeyevent(4); // KEYCODE_BACK
   }
 
   async home(): Promise<void> {
-    const adb = await this.getAdb();
-    await adb.shell(`input${this.getDisplayArg()} keyevent 3`);
+    await this.shellInputKeyevent(3); // KEYCODE_HOME
   }
 
   async recentApps(): Promise<void> {
-    const adb = await this.getAdb();
-    await adb.shell(`input${this.getDisplayArg()} keyevent 187`);
+    await this.shellInputKeyevent(187); // KEYCODE_APP_SWITCH
   }
 
   private async longPressPoint(
@@ -1908,6 +2009,60 @@ ${Object.keys(size)
     return typeof this.options?.displayId === 'number'
       ? ` -d ${this.options.displayId}`
       : '';
+  }
+
+  /**
+   * Send one or more Android keyevent codes via `input -d <id> keyevent`.
+   * Centralizes the display-aware keyevent primitive so callers don't have
+   * to hand-write `input${displayArg} keyevent` everywhere.
+   */
+  private async shellInputKeyevent(...keyCodes: number[]): Promise<void> {
+    const adb = await this.getAdb();
+    await adb.shell(
+      `input${this.getDisplayArg()} keyevent ${keyCodes.join(' ')}`,
+    );
+  }
+
+  /**
+   * Send text via `input -d <id> text` with proper shell escaping and
+   * optional per-character typing delay.
+   *
+   * Handles:
+   * - Display targeting via getDisplayArg()
+   * - Shell-special character protection (single-quote wrapping)
+   * - Newline splitting (input text can't handle \n; Enter keyevent is sent)
+   * - Per-character typing delay when keyboardTypeDelay > 0
+   */
+  private async shellInputText(
+    text: string,
+    opts?: { keyboardTypeDelay?: number },
+  ): Promise<void> {
+    const adb = await this.getAdb();
+    const displayArg = this.getDisplayArg();
+    const typeDelay = opts?.keyboardTypeDelay;
+
+    // input text cannot handle newlines; split and press Enter between segments.
+    const segments = text.split('\n');
+    for (let i = 0; i < segments.length; i++) {
+      if (segments[i].length > 0) {
+        if (typeDelay && typeDelay > 0) {
+          // Per-character typing with delay. Each char is shell-escaped.
+          for (const ch of segments[i]) {
+            await adb.shell(`input${displayArg} text ${shellEscapeArg(ch)}`);
+            await sleep(typeDelay);
+          }
+        } else {
+          // Burst the whole segment. shellEscapeArg protects against
+          // shell metacharacters (&, ;, ', $, etc.).
+          await adb.shell(
+            `input${displayArg} text ${shellEscapeArg(segments[i])}`,
+          );
+        }
+      }
+      if (i < segments.length - 1) {
+        await this.shellInputKeyevent(66); // KEYCODE_ENTER
+      }
+    }
   }
 
   /**
@@ -2001,7 +2156,7 @@ ${Object.keys(size)
 
     // Try each key code with waiting
     for (const keyCode of keyCodes) {
-      await adb.keyevent(keyCode);
+      await this.shellInputKeyevent(keyCode);
 
       // Wait for keyboard to be hidden with timeout
       const startTime = Date.now();

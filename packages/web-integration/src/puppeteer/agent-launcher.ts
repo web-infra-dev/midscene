@@ -3,12 +3,13 @@ import path from 'node:path';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 
+import { resolveBrowserAgentRuntimeOptions } from '@/common/browser-agent';
 import {
   defaultViewportHeight,
   defaultViewportWidth,
   resolveWebViewportSize,
 } from '@/common/viewport';
-import { PuppeteerAgent } from '@/puppeteer/index';
+import { PuppeteerAgent, PuppeteerBrowserAgent } from '@/puppeteer/index';
 import type { AgentOpt, Cache, MidsceneYamlScriptWebEnv } from '@midscene/core';
 import { DEFAULT_WAIT_FOR_NETWORK_IDLE_TIMEOUT } from '@midscene/shared/constants';
 import puppeteer, {
@@ -385,19 +386,42 @@ export async function puppeteerAgentForTarget(
 
   const { aiActionContext, ...preferenceToUse } = preference ?? {};
 
-  // prepare Midscene agent
-  const agent = new PuppeteerAgent(page, {
+  const mode = target.mode ?? 'page';
+
+  if (mode !== 'page' && mode !== 'browser') {
+    throw new Error(
+      `[midscene] web target mode must be either "page" or "browser", but got "${mode}".`,
+    );
+  }
+
+  const runtimeOptions = resolveBrowserAgentRuntimeOptions({
+    agentName: 'YAML web target',
+    pageScope: mode,
+    forceSameTabNavigation: target.forceSameTabNavigation,
+    autoFollowNewPage: target.autoFollowNewPage,
+  });
+
+  const commonAgentOpts = {
     ...preferenceToUse,
     aiActContext,
     waitForNetworkIdleTimeout:
       typeof target.waitForNetworkIdle?.timeout === 'number'
         ? target.waitForNetworkIdle.timeout
         : undefined,
-    forceSameTabNavigation:
-      typeof target.forceSameTabNavigation !== 'undefined'
-        ? target.forceSameTabNavigation
-        : true, // true for default in yaml script
-  });
+  };
+
+  // prepare Midscene agent
+  const agent =
+    mode === 'browser'
+      ? await PuppeteerBrowserAgent.create(page.browser(), {
+          ...commonAgentOpts,
+          initialPage: page,
+          autoFollowNewPage: runtimeOptions.autoFollowNewPage,
+        })
+      : new PuppeteerAgent(page, {
+          ...commonAgentOpts,
+          forceSameTabNavigation: runtimeOptions.forceSameTabNavigation,
+        });
 
   freeFn.push({
     name: 'midscene_puppeteer_agent',

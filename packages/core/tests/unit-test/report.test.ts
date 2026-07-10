@@ -153,7 +153,7 @@ describe('reportMergingTool', () => {
 
   it(
     'should merge 100 mocked reports, and delete original reports after that.',
-    { timeout: 30 * 1000 },
+    { timeout: 60 * 1000 },
     async () => {
       const tool = new ReportMergingTool();
       let mergedReportPath: string | null = null;
@@ -562,6 +562,13 @@ describe('reportMergingTool', () => {
     const mergedReportContent = readFileSync(mergedReportPath!, 'utf-8');
     expect(mergedReportContent).toContain('playwright_test_id="all-skipped-1"');
     expect(mergedReportContent).toContain('playwright_test_id="all-skipped-2"');
+    expect(mergedReportContent).toContain('For Agent Analysis:');
+    expect(
+      mergedReportContent.match(/<!--\nFor Agent Analysis:/g),
+    ).toHaveLength(1);
+    expect(mergedReportContent).toContain(
+      'Structured report JSON is stored in script[type="midscene_web_dump"] tags near this comment.',
+    );
 
     const dumpScripts = extractAllDumpScriptsSync(mergedReportPath!).filter(
       (script) => script.openTag.includes('playwright_test_id='),

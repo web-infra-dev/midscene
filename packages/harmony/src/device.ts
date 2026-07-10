@@ -177,6 +177,7 @@ export class HarmonyDevice implements AbstractInterface {
               {
                 autoDismissKeyboard: harmonyOpts?.autoDismissKeyboard,
                 keyboardDismissStrategy: harmonyOpts?.keyboardDismissStrategy,
+                keyboardTypeDelay: harmonyOpts?.keyboardTypeDelay,
               },
             );
       },
@@ -516,6 +517,8 @@ export class HarmonyDevice implements AbstractInterface {
     if (!text) return;
 
     const hdc = await this.getHdc();
+    const typeDelay =
+      options?.keyboardTypeDelay ?? this.options?.keyboardTypeDelay;
     let x: number;
     let y: number;
 
@@ -543,7 +546,20 @@ export class HarmonyDevice implements AbstractInterface {
       await sleep(100);
     }
 
-    await hdc.inputText(x, y, text);
+    if (typeDelay && typeDelay > 0) {
+      // Type one character at a time with a delay between keystrokes.
+      // `uitest uiInput inputText x y text` uses (x, y) to identify the target
+      // component, not to position the text cursor. Once the field is focused,
+      // repeated calls at the same coordinates append to the existing content
+      // rather than repositioning the cursor. Verified on real device:
+      // character order is preserved and no characters are lost.
+      for (const ch of text) {
+        await hdc.inputText(x, y, ch);
+        await sleep(typeDelay);
+      }
+    } else {
+      await hdc.inputText(x, y, text);
+    }
 
     const shouldAutoDismissKeyboard =
       options?.autoDismissKeyboard ?? this.options?.autoDismissKeyboard ?? true;

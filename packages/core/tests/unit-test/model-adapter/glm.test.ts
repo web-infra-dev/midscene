@@ -87,4 +87,17 @@ describe('glm model adapter', () => {
       thinking: { type: 'disabled' },
     });
   });
+
+  it('uses json_object response format for glm-v locate intent', () => {
+    const result = glmAdapter.chatCompletion.buildChatCompletionParams({
+      intent: 'default',
+      userConfig: {},
+    });
+
+    expect(result.config).toEqual({
+      temperature: 0,
+      response_format: { type: 'json_object' },
+      thinking: { type: 'disabled' },
+    });
+  });
 });

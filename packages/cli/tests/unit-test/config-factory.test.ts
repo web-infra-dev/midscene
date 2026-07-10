@@ -18,6 +18,37 @@ vi.mock('@/cli-utils', () => ({
 
 vi.mock('@midscene/core/yaml', () => ({
   interpolateEnvVars: vi.fn((content) => content),
+  resolveWebTarget: vi.fn((config) => {
+    const sources = ['page', 'browser', 'web', 'target'] as const;
+    const entries = sources
+      .map((source) => [source, config[source]] as const)
+      .filter(([, value]) => typeof value !== 'undefined');
+
+    if (entries.length === 0) {
+      return undefined;
+    }
+
+    if (entries.length > 1) {
+      throw new Error('Only one web target can be specified');
+    }
+
+    const [source, target] = entries[0];
+    const mode =
+      source === 'page'
+        ? 'page'
+        : source === 'browser'
+          ? 'browser'
+          : (target.mode ?? 'page');
+
+    return {
+      source,
+      mode,
+      target: {
+        ...target,
+        mode,
+      },
+    };
+  }),
 }));
 
 vi.mock('js-yaml', () => ({
@@ -62,7 +93,10 @@ summary: "yaml-summary.json"
         keepWindow: true,
         dotenvOverride: true,
         dotenvDebug: false,
+        page: undefined,
+        browser: undefined,
         web: { url: 'http://example.com', userAgent: 'yaml-ua' },
+        target: undefined,
         android: { deviceId: 'yaml-device' },
         summary: 'yaml-summary.json',
       };
@@ -340,8 +374,12 @@ concurrent: 2
         dotenvDebug: true,
         summary: 'parsed.json',
         shareBrowserContext: false,
+        page: undefined,
+        browser: undefined,
         web: { userAgent: 'from-file', viewportWidth: 800 },
+        target: undefined,
         android: { deviceId: 'from-file' },
+        ios: undefined,
       };
       vi.mocked(readFileSync).mockReturnValue(mockYamlContent);
       vi.mocked(yamlLoad).mockReturnValue(mockParsedYaml);
@@ -359,12 +397,20 @@ concurrent: 2
 
       const expectedGlobalConfig = merge(
         {
+          page: mockParsedYaml.page,
+          browser: mockParsedYaml.browser,
           web: mockParsedYaml.web,
           android: mockParsedYaml.android,
+          ios: mockParsedYaml.ios,
+          target: mockParsedYaml.target,
         },
         {
+          page: cmdLineOptions.page,
+          browser: cmdLineOptions.browser,
           web: cmdLineOptions.web,
           android: cmdLineOptions.android,
+          ios: cmdLineOptions.ios,
+          target: cmdLineOptions.target,
         },
       );
 
@@ -522,7 +568,10 @@ concurrent: 2
         dotenvOverride: false,
         dotenvDebug: false,
         globalConfig: {
+          page: undefined,
+          browser: undefined,
           web: undefined,
+          target: undefined,
           android: undefined,
           ios: undefined,
         },
@@ -602,8 +651,12 @@ concurrent: 2
         dotenvOverride: true,
         dotenvDebug: false,
         globalConfig: {
+          page: undefined,
+          browser: undefined,
           web: { userAgent: 'custom-ua' },
+          target: undefined,
           android: { deviceId: 'custom-device' },
+          ios: undefined,
         },
       });
       expect(matchYamlFiles).toHaveBeenCalledWith(patterns[0], {
@@ -656,11 +709,14 @@ concurrent: 2
         dotenvOverride: false,
         dotenvDebug: false,
         globalConfig: {
+          page: undefined,
+          browser: undefined,
           web: {
             userAgent: 'Doc Agent',
             viewportWidth: 1440,
             viewportHeight: 900,
           },
+          target: undefined,
           android: {
             deviceId: 'android-doc-device',
           },

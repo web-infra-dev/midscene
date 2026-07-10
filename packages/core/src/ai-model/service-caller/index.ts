@@ -37,7 +37,7 @@ import { assert, ifInBrowser } from '@midscene/shared/utils';
 import OpenAI from 'openai';
 import type { ChatCompletionMessageParam } from 'openai/resources/index';
 import type { Stream } from 'openai/streaming';
-import { type ModelRuntime, getModelRuntime } from '../models';
+import type { ModelRuntime } from '../models';
 import type { AIArgs } from '../types';
 import {
   callAIWithCodexAppServer,
@@ -56,10 +56,21 @@ import {
 } from './request-timeout';
 export {
   extractJSONFromCodeBlock,
-  normalJsonParser,
-  safeParseJson,
+  parseModelResponseJson,
 } from './json';
 export type { JsonParser } from './json';
+
+/**
+ * Internal field name stamped onto every AIUsageInfo shaped by callAI().
+ * Used for cross-path dedup when the provider does not return a request_id.
+ */
+export const INTERNAL_CALL_ID_FIELD = '_midscene_call_id';
+
+let internalCallIdCounter = 0;
+function nextInternalCallId(): string {
+  internalCallIdCounter += 1;
+  return `call_${internalCallIdCounter}`;
+}
 
 function stringifyForDebug(value: unknown): string {
   try {
@@ -318,13 +329,25 @@ export async function callAI(
 }> {
   const { config: modelConfig, adapter } = modelRuntime;
 
+  // Stable internal ID for this call, used by the agent to deduplicate usage
+  // across the onUsage callback and the task-dump-based collectUsageMetrics()
+  // path when the provider does not return a request_id.
+  const internalCallId = nextInternalCallId();
+
   if (isCodexAppServerProvider(modelConfig.openaiBaseURL)) {
-    return callAIWithCodexAppServer(messages, modelConfig, {
+    const codexResult = await callAIWithCodexAppServer(messages, modelConfig, {
       stream: options?.stream,
       onChunk: options?.onChunk,
       reasoningEnabled: modelConfig.reasoningEnabled,
       abortSignal: options?.abortSignal,
     });
+    if (codexResult.usage) {
+      (codexResult.usage as any)[INTERNAL_CALL_ID_FIELD] = internalCallId;
+      if (modelRuntime.onUsage) {
+        modelRuntime.onUsage(codexResult.usage);
+      }
+    }
+    return codexResult;
   }
 
   const {
@@ -373,6 +396,9 @@ export async function callAI(
   let timeCost: number | undefined;
   let requestId: string | null | undefined;
   let responseModelName: string | undefined;
+  // Tracks whether onUsage has already been fired for this call (e.g. from
+  // the streaming final-chunk handler), so the final return does not double-fire.
+  let usageReported = false;
 
   const hasUsableText = (value: string | null | undefined): value is string =>
     typeof value === 'string' && value.trim().length > 0;
@@ -414,9 +440,14 @@ export async function callAI(
       model_description: modelDescription,
       response_model_name: responseModelName,
       slot: modelConfig.slot,
-      // Agent task layers fill semantic intent after the raw model call.
+      // Left undefined at the raw call layer. The agent's onUsage callback
+      // fills it from modelConfig.slot for metrics collection, and task
+      // layers use withUsageIntent() to stamp a more specific semantic
+      // intent (e.g. 'planning', 'insight') when attaching usage to tasks.
       intent: undefined,
       request_id: requestId ?? undefined,
+      // Internal stable ID for cross-path dedup when request_id is absent.
+      [INTERNAL_CALL_ID_FIELD]: internalCallId,
     } satisfies AIUsageInfo;
   };
 
@@ -540,12 +571,17 @@ export async function callAI(
             accumulated = finalAccumulated || '';
 
             // Send final chunk
+            const finalUsage = buildUsageInfo(usage, requestId);
+            if (finalUsage && modelRuntime.onUsage) {
+              modelRuntime.onUsage(finalUsage);
+              usageReported = true;
+            }
             const finalChunk: CodeGenerationChunk = {
               content: '',
               accumulated,
               reasoning_content: '',
               isComplete: true,
-              usage: buildUsageInfo(usage, requestId),
+              usage: finalUsage,
             };
             options.onChunk!(finalChunk);
             break;
@@ -614,10 +650,14 @@ export async function callAI(
           );
 
           if (!hasUsableText(content)) {
+            const errorUsage = buildUsageInfo(usage, requestId);
+            if (errorUsage && modelRuntime.onUsage) {
+              modelRuntime.onUsage(errorUsage);
+            }
             throw new AIResponseParseError(
               'empty content from AI model',
-              JSON.stringify(result),
-              buildUsageInfo(usage, requestId),
+              content || '',
+              errorUsage,
               rawChoiceMessage,
             );
           }
@@ -677,11 +717,18 @@ export async function callAI(
       } as OpenAI.CompletionUsage;
     }
 
+    const finalUsage = buildUsageInfo(usage, requestId);
+    // Report usage to the runtime-level collector if not already reported
+    // (e.g. from the streaming final-chunk handler).
+    if (!usageReported && finalUsage && modelRuntime.onUsage) {
+      modelRuntime.onUsage(finalUsage);
+    }
+
     return {
       content: content || '',
       reasoning_content: accumulatedReasoning || undefined,
       rawChoiceMessage,
-      usage: buildUsageInfo(usage, requestId),
+      usage: finalUsage,
       isStreamed: !!isStreaming,
     };
   } catch (e: any) {
@@ -703,8 +750,7 @@ export async function callAI(
 
 export async function callAIWithObjectResponse<T>(
   messages: ChatCompletionMessageParam[],
-  // Keep IModelConfig compatibility for midscene-example/connectivity-test/tests/connectivity.test.ts; internal workflow callers should pass ModelRuntime instead.
-  model: IModelConfig | ModelRuntime,
+  modelRuntime: ModelRuntime,
   options?: {
     abortSignal?: AbortSignal;
     jsonParserSource?: JsonParserSource;
@@ -717,7 +763,6 @@ export async function callAIWithObjectResponse<T>(
   reasoning_content?: string;
   rawChoiceMessage?: unknown;
 }> {
-  const modelRuntime = resolveCompatibleModelRuntime(model);
   const { config: modelConfig, adapter } = modelRuntime;
   const response = await callAI(messages, modelRuntime, {
     abortSignal: options?.abortSignal,
@@ -751,16 +796,6 @@ export async function callAIWithObjectResponse<T>(
     reasoning_content: response.reasoning_content,
     rawChoiceMessage: response.rawChoiceMessage,
   };
-}
-
-function resolveCompatibleModelRuntime(
-  model: IModelConfig | ModelRuntime,
-): ModelRuntime {
-  if ('config' in model && 'adapter' in model) {
-    return model;
-  }
-
-  return getModelRuntime(model);
 }
 
 export async function callAIWithStringResponse(

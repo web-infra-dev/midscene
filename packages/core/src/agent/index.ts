@@ -1,4 +1,5 @@
 export { Agent, createAgent } from './agent';
+export { UIObserver, type UIObserverOption } from './ui-observer';
 export { commonContextParser } from './utils';
 export { getReportFileName, printReportMsg } from './utils';
 export {
@@ -13,6 +14,7 @@ export { type LocateCache, type PlanningCache, TaskCache } from './task-cache';
 export { cacheFileExt } from './task-cache';
 
 export { TaskExecutor } from './tasks';
+export type { MidsceneUsageMetrics, UsageBucket } from './metrics';
 export type {
   GherkinStepKeyword,
   RunGherkinScenarioOptions,

@@ -1,6 +1,6 @@
 import type { AIDataExtractionResponse, ServiceExtractParam } from '@/types';
 import { getPreferredLanguage } from '@midscene/shared/env';
-import { safeParseJson } from '../service-caller/json';
+import { parseModelResponseJson } from '../service-caller/json';
 import { extractXMLTag } from './util';
 
 export function buildTypeQueryDemandValue(
@@ -27,7 +27,10 @@ export function buildTypeQueryDemandValue(
 export function parseXMLExtractionResponse<T>(
   xmlString: string,
 ): AIDataExtractionResponse<T> {
-  const thought = extractXMLTag(xmlString, 'thought');
+  // Keep the internal field named `thought`, but ask models to emit
+  // <observation>. Gemini may only return <thought>-named content when
+  // thinking summaries are enabled.
+  const thought = extractXMLTag(xmlString, 'observation');
   const dataJsonStr = extractXMLTag(xmlString, 'data-json');
   const errorsStr = extractXMLTag(xmlString, 'errors');
 
@@ -38,7 +41,10 @@ export function parseXMLExtractionResponse<T>(
 
   let data: T;
   try {
-    data = safeParseJson(dataJsonStr) as T;
+    data = parseModelResponseJson(dataJsonStr, {
+      source: 'generic-object',
+      requireObject: false,
+    }) as T;
   } catch (e) {
     throw new Error(`Failed to parse data-json: ${e}`);
   }
@@ -47,7 +53,10 @@ export function parseXMLExtractionResponse<T>(
   let errors: string[] | undefined;
   if (errorsStr) {
     try {
-      const parsedErrors = safeParseJson(errorsStr);
+      const parsedErrors = parseModelResponseJson(errorsStr, {
+        source: 'generic-object',
+        requireObject: false,
+      });
       if (Array.isArray(parsedErrors)) {
         errors = parsedErrors;
       }
@@ -107,7 +116,7 @@ When DATA_DEMAND is a JSON object, the keys in your response must exactly match 
 
 
 Return in the following XML format:
-<thought>the thinking process of the extraction, less than 300 words. Use ${preferredLanguage} in this field.</thought>
+<observation>brief evidence observed for the extraction, less than 300 words. Use ${preferredLanguage} in this field.</observation>
 <data-json>the extracted data as JSON. Make sure both the value and scheme meet the DATA_DEMAND. If you want to write some description in this field, use the same language as the DATA_DEMAND.</data-json>
 <errors>optional error messages as JSON array, e.g., ["error1", "error2"]</errors>
 
@@ -124,7 +133,7 @@ For example, if the DATA_DEMAND is:
 
 By viewing the screenshot and page contents, you can extract the following data:
 
-<thought>According to the screenshot, i can see ...</thought>
+<observation>According to the screenshot, i can see ...</observation>
 <data-json>
 {
   "name": "John",
@@ -142,7 +151,7 @@ the todo items list, string[]
 
 By viewing the screenshot and page contents, you can extract the following data:
 
-<thought>According to the screenshot, i can see ...</thought>
+<observation>According to the screenshot, i can see ...</observation>
 <data-json>
 ["todo 1", "todo 2", "todo 3"]
 </data-json>
@@ -156,7 +165,7 @@ the page title, string
 
 By viewing the screenshot and page contents, you can extract the following data:
 
-<thought>According to the screenshot, i can see ...</thought>
+<observation>According to the screenshot, i can see ...</observation>
 <data-json>
 "todo list"
 </data-json>
@@ -172,7 +181,7 @@ If the DATA_DEMAND is:
 
 By viewing the screenshot and page contents, you can extract the following data:
 
-<thought>According to the screenshot, i can see ...</thought>
+<observation>According to the screenshot, i can see ...</observation>
 <data-json>
 { "StatementIsTruthy": true }
 </data-json>

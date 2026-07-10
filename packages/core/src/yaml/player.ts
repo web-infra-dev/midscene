@@ -401,17 +401,20 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
         ...restOpts
       } = assertTask;
       assert(prompt, 'missing prompt for aiAssert');
-      const { pass, thought, message } =
-        (await agent.aiAssert(prompt, msg, {
-          ...restOpts,
-          keepRawResponse: true,
-        })) || {};
+      assert(
+        !Object.prototype.hasOwnProperty.call(assertTask, 'observe'),
+        '`observe` is not supported in YAML aiAssert. Use agent.startObserving() from code instead.',
+      );
 
-      this.setResult(name, {
-        pass,
-        thought,
-        message,
+      const result = await agent.aiAssert(prompt, msg, {
+        ...restOpts,
+        keepRawResponse: true,
       });
+      const pass = result?.pass;
+      const thought = result?.thought;
+      const message = result?.message;
+
+      this.setResult(name, { pass, thought, message });
 
       if (!pass) {
         throw new Error(message);
@@ -423,6 +426,11 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
         ...options
       } = flowItem as Record<string, any>;
       assert(prompt, `missing prompt for ${simpleAIKey}`);
+      assert(
+        !Object.prototype.hasOwnProperty.call(flowItem, 'observe'),
+        '`observe` is not supported in YAML flow items. Use agent.startObserving() from code instead.',
+      );
+
       const agentMethod = (agent as any)[aiTaskHandlerMap[simpleAIKey]];
       assert(
         typeof agentMethod === 'function',

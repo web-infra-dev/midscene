@@ -252,7 +252,11 @@ function escapePowershellSingleQuoted(value: string): string {
  * no-op here while making the invocation look more privileged to auditing.
  */
 function runPowershell(script: string): string {
-  const encoded = Buffer.from(script, 'utf16le').toString('base64');
+  // Suppress PowerShell progress output (CLIXML) that non-interactive
+  // child processes emit to stdout — it shows up as `#< CLIXML` XML noise
+  // in Midscene logs and wastes tokens in agent flows (#2751).
+  const prefixed = `$ProgressPreference = 'SilentlyContinue'\n${script}`;
+  const encoded = Buffer.from(prefixed, 'utf16le').toString('base64');
   return execFileSync(
     'powershell.exe',
     ['-NoProfile', '-NonInteractive', '-EncodedCommand', encoded],

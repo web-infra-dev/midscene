@@ -20,6 +20,8 @@ export interface PlaywrightTasks {
   attributes: PlaywrightTaskAttributes;
 }
 
+export type ReportViewMode = 'human' | 'markdown';
+
 export interface VisualizerProps {
   logoAction?: () => void;
   dumps?: PlaywrightTasks[];

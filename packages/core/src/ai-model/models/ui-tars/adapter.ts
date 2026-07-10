@@ -1,15 +1,7 @@
 import { type TModelFamily, UITarsModelVersion } from '@midscene/shared/env';
 import { assert } from '@midscene/shared/utils';
-import { jsonrepair } from 'jsonrepair';
-import type {
-  JsonParserContext,
-  JsonParserSource,
-  ModelAdapterDefinition,
-} from '../../model-adapter/types';
-import {
-  extractJSONFromCodeBlock,
-  safeParseJson,
-} from '../../service-caller/json';
+import type { ModelAdapterDefinition } from '../../model-adapter/types';
+import { parseModelResponseJson } from '../../service-caller/json';
 import {
   type LocateResultValue,
   createLocateResultValue,
@@ -28,82 +20,6 @@ const uiTarsPointCoordinatesMeta = {
   order: 'xy',
   normalizedBy: 1000,
 } as const;
-
-function normalizeJsonObject(
-  obj: any,
-  context: Pick<JsonParserContext, 'preserveStringValueKeys'> = {},
-): any {
-  if (obj === null || obj === undefined) {
-    return obj;
-  }
-
-  if (Array.isArray(obj)) {
-    return obj.map((item) => normalizeJsonObject(item, context));
-  }
-
-  if (typeof obj === 'object') {
-    const normalized: any = {};
-    for (const [key, value] of Object.entries(obj)) {
-      const trimmedKey = key.trim();
-      const preserveStringValue =
-        context.preserveStringValueKeys?.includes(trimmedKey) ?? false;
-      const normalizedValue =
-        typeof value === 'string'
-          ? preserveStringValue
-            ? value
-            : value.trim()
-          : normalizeJsonObject(value, context);
-      normalized[trimmedKey] = normalizedValue;
-    }
-    return normalized;
-  }
-
-  return typeof obj === 'string' ? obj.trim() : obj;
-}
-
-function shouldRepairUiTarsLocateJson(source: JsonParserSource) {
-  return (
-    source === 'locate' ||
-    source === 'section-locator' ||
-    source === 'planning-action-param'
-  );
-}
-
-function preprocessUiTarsLocateJson(input: string) {
-  if (input.includes('bbox')) {
-    while (/\d+\s+\d+/.test(input)) {
-      input = input.replace(/(\d+)\s+(\d+)/g, '$1,$2');
-    }
-  }
-  return input;
-}
-
-const uiTarsJsonParser: ModelAdapterDefinition['jsonParser'] = (
-  raw,
-  context = { source: 'generic-object' },
-) => {
-  const { source } = context;
-  try {
-    return safeParseJson(raw, context);
-  } catch (firstError) {
-    if (!shouldRepairUiTarsLocateJson(source)) {
-      throw firstError;
-    }
-
-    const jsonString = preprocessUiTarsLocateJson(
-      extractJSONFromCodeBlock(raw),
-    );
-    try {
-      return normalizeJsonObject(JSON.parse(jsonrepair(jsonString)), context);
-    } catch (error) {
-      throw Error(
-        `failed to parse LLM response into JSON. Error - ${String(
-          error ?? firstError ?? 'unknown error',
-        )}. Response - \n ${raw}`,
-      );
-    }
-  }
-};
 
 // UI-TARS has not received active updates for a long time, so this parser is
 // intentionally kept separate from Doubao even though the current logic is the
@@ -182,7 +98,7 @@ function createUiTarsAdapter(
   uiTarsModelVersion: UITarsModelVersion,
 ): ModelAdapterDefinition {
   return {
-    jsonParser: uiTarsJsonParser,
+    jsonParser: parseModelResponseJson,
     chatCompletion: {
       unsupportedUserConfig: [
         'reasoningEnabled',

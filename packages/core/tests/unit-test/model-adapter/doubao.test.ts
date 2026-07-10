@@ -1,10 +1,7 @@
 import { ResolvedModelAdapter } from '@/ai-model/model-adapter/resolve';
 import {
   doubaoAdapters,
-  normalizeDoubaoJsonObject,
   parseDoubaoRawLocateValue,
-  preprocessDoubaoLocateJson,
-  shouldRepairDoubaoLocateJson,
 } from '@/ai-model/models/doubao';
 import { describe, expect, it } from 'vitest';
 
@@ -159,7 +156,7 @@ describe('doubao model adapter', () => {
     });
   });
 
-  it('repairs bbox coordinate strings for locate-like json parser sources', () => {
+  it('parses locate-like JSON through the shared parser', () => {
     const parser = doubaoVisionAdapter.jsonParser;
     const context = { source: 'locate' as const };
     expect(parser('{"bbox": [123 456]}', context)).toEqual({
@@ -191,54 +188,13 @@ describe('doubao model adapter', () => {
     });
   });
 
-  it('normalizes Doubao repaired json objects recursively', () => {
-    expect(
-      normalizeDoubaoJsonObject(
-        {
-          ' value ': '  keep spaces  ',
-          ' nested ': {
-            ' prompt ': '  submit  ',
-          },
-          ' list ': [{ ' item ': '  first  ' }],
-          nil: null,
-        },
-        { preserveStringValueKeys: ['value'] },
-      ),
-    ).toEqual({
-      value: '  keep spaces  ',
-      nested: {
-        prompt: 'submit',
-      },
-      list: [{ item: 'first' }],
-      nil: null,
-    });
-    expect(normalizeDoubaoJsonObject('  text  ')).toBe('text');
-    expect(normalizeDoubaoJsonObject(undefined)).toBeUndefined();
-  });
-
-  it('detects Doubao json parser sources that need locate repair', () => {
-    expect(shouldRepairDoubaoLocateJson('locate')).toBe(true);
-    expect(shouldRepairDoubaoLocateJson('section-locator')).toBe(true);
-    expect(shouldRepairDoubaoLocateJson('planning-action-param')).toBe(true);
-    expect(shouldRepairDoubaoLocateJson('generic-object')).toBe(false);
-  });
-
-  it('preprocesses Doubao locate json only when bbox text is present', () => {
-    expect(preprocessDoubaoLocateJson('{"bbox": [940 445 969 490]}')).toBe(
-      '{"bbox": [940,445,969,490]}',
-    );
-    expect(preprocessDoubaoLocateJson('{"point": [940 445]}')).toBe(
-      '{"point": [940 445]}',
-    );
-  });
-
   it('does not repair malformed json for generic parser sources', () => {
     const parser = doubaoVisionAdapter.jsonParser;
 
     expect(() => parser('```', { source: 'generic-object' })).toThrow();
   });
 
-  it('normalizes repaired doubao json while preserving configured string values', () => {
+  it('normalizes parsed doubao json while preserving configured string values', () => {
     const parser = doubaoVisionAdapter.jsonParser;
 
     expect(
@@ -298,9 +254,22 @@ describe('doubao model adapter', () => {
         { preparedSize: { width: 1000, height: 2000 } },
       ),
     ).toEqual([100, 400, 300, 800]);
+    expect(
+      locateAdapter.resultAdapter.adaptElementLocateResultToPixelBbox(
+        '[336, 163, 717, 200]',
+        { preparedSize: { width: 1000, height: 2000 } },
+      ),
+    ).toEqual([336, 326, 716, 400]);
   });
 
-  it('parses raw Doubao locate values directly', () => {
+  it('parses valid raw Doubao locate values directly', () => {
+    expect(parseDoubaoRawLocateValue([100, 200, 300, 400])).toEqual({
+      coordinates: [100, 200, 300, 400],
+      coordinatesMeta: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
+    });
+  });
+
+  it('parses tolerated malformed raw Doubao locate values', () => {
     expect(parseDoubaoRawLocateValue('100 200 300 400')).toEqual({
       coordinates: [100, 200, 300, 400],
       coordinatesMeta: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
@@ -309,10 +278,61 @@ describe('doubao model adapter', () => {
       coordinates: [100, 200, 300, 400],
       coordinatesMeta: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
     });
-    expect(() => parseDoubaoRawLocateValue('100 200 300 400 ')).toThrow(
+    expect(parseDoubaoRawLocateValue('100 200 300 400 ')).toEqual({
+      coordinates: [100, 200, 300, 400],
+      coordinatesMeta: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
+    });
+    expect(parseDoubaoRawLocateValue('[336, 163, 717, 200]')).toEqual({
+      coordinates: [336, 163, 717, 200],
+      coordinatesMeta: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
+    });
+    expect(parseDoubaoRawLocateValue('336,163,717,200')).toEqual({
+      coordinates: [336, 163, 717, 200],
+      coordinatesMeta: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
+    });
+    expect(parseDoubaoRawLocateValue([653, '277; 664 291;'])).toEqual({
+      coordinates: [653, 277, 664, 291],
+      coordinatesMeta: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
+    });
+    expect(parseDoubaoRawLocateValue([653, '277, 664, 291,'])).toEqual({
+      coordinates: [653, 277, 664, 291],
+      coordinatesMeta: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
+    });
+    expect(parseDoubaoRawLocateValue(['bbox', [782, 541, 815, 559]])).toEqual({
+      coordinates: [782, 541, 815, 559],
+      coordinatesMeta: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
+    });
+    expect(parseDoubaoRawLocateValue(['bbox', '782, 541, 815, 559'])).toEqual({
+      coordinates: [782, 541, 815, 559],
+      coordinatesMeta: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
+    });
+    /**
+     * Some models mix an XML-style bbox closing tag into JSON arrays, e.g.
+     * { "bbox": [410, 295, 885, 345</bbox>, "errors": [] }
+     * jsonrepair may parse it into the array shape below.
+     */
+    expect(
+      parseDoubaoRawLocateValue([
+        410,
+        295,
+        885,
+        '345<',
+        '/bbox>,\n  "errors": []\n}',
+      ]),
+    ).toEqual({
+      coordinates: [410, 295, 885, 345],
+      coordinatesMeta: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
+    });
+  });
+
+  it('throws on invalid raw Doubao locate string values', () => {
+    expect(() => parseDoubaoRawLocateValue('100')).toThrow(
       /invalid bbox data string/,
     );
     expect(() => parseDoubaoRawLocateValue('100 200 300')).toThrow(
+      /invalid bbox data string/,
+    );
+    expect(() => parseDoubaoRawLocateValue('1 2 3 4 5 6 7 8')).toThrow(
       /invalid bbox data string/,
     );
   });

@@ -1,13 +1,12 @@
-import { existsSync } from 'node:fs';
-import { join } from 'node:path';
 import { createReportCliCommands } from '@midscene/core';
 import type { BaseMidsceneTools } from '@midscene/shared/agent-tools/base-tools';
 import { runToolsCLI } from '@midscene/shared/cli';
-import dotenv from 'dotenv';
 import { version } from '../package.json';
 import { matchYamlFiles, parseProcessArgs } from './cli-utils';
 import { createConfig, createFilesConfig } from './config-factory';
+import { loadDotenvConfig } from './dotenv-loader';
 import { runFrameworkTestConfig } from './framework';
+import { runModelCommand } from './model-command';
 
 Promise.resolve(
   (async () => {
@@ -27,6 +26,12 @@ Promise.resolve(
           extraCommands: createReportCliCommands(),
         },
       );
+      return;
+    }
+
+    if (firstArg === 'model') {
+      const exitCode = await runModelCommand(rawArgs);
+      process.exit(exitCode);
       return;
     }
 
@@ -90,15 +95,11 @@ Promise.resolve(
       process.exit(1);
     }
 
-    const dotEnvConfigFile = join(process.cwd(), '.env');
-    if (existsSync(dotEnvConfigFile)) {
-      console.log(`   Env file: ${dotEnvConfigFile}`);
-      dotenv.config({
-        path: dotEnvConfigFile,
-        debug: config.dotenvDebug,
-        override: config.dotenvOverride,
-      });
-    }
+    loadDotenvConfig({
+      dotenvDebug: config.dotenvDebug,
+      dotenvOverride: config.dotenvOverride,
+      log: console.log,
+    });
 
     const exitCode = await runFrameworkTestConfig(config);
 

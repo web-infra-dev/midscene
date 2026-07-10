@@ -119,6 +119,7 @@ export interface LocateValidatorResult {
 export interface AgentDescribeElementAtPointResult {
   prompt: string;
   deepLocate: boolean;
+  deepDescribe: boolean;
   verifyResult?: LocateValidatorResult;
   success: boolean;
   error?: string;
@@ -134,6 +135,15 @@ export abstract class UIContext {
    * screenshot of the current UI state. which size is shotSize(be shrunk by screenshotShrinkFactor),
    */
   abstract screenshot: ScreenshotItem;
+
+  /**
+   * Optional sequence of screenshots captured over a short time window, in
+   * temporal order (earliest first, latest last). When present with more than
+   * one frame, extract/assert flows submit all frames to the model so it can
+   * observe transient UI (toasts, carousels, auto-hiding controls). The last
+   * frame is the same state as {@link screenshot}.
+   */
+  abstract screenshotSequence?: ScreenshotItem[];
 
   /**
    * screenshot size after shrinking
@@ -178,12 +188,12 @@ export type DeepThinkOption = 'unset' | true | false;
 
 export interface ServiceTaskInfo {
   durationMs: number;
-  formatResponse?: string;
+  formatResponse?: unknown;
   /**
    * Adapter-extracted content used by Midscene for parsing. This is not the
    * full provider response or choices[0].message.
    */
-  rawResponse?: string;
+  rawResponse?: unknown;
   rawChoiceMessage?: unknown;
   usage?: AIUsageInfo;
   searchArea?: Rect;
@@ -996,6 +1006,16 @@ export interface AgentOpt {
    * ```
    */
   createOpenAIClient?: CreateOpenAIClientFn;
+
+  /**
+   * Called once per LLM call as soon as its usage is available, with the raw
+   * {@link AIUsageInfo} (token counts, model name, intent, request id, etc.).
+   *
+   * Use this for real-time, per-spec cost observability — e.g. push each call
+   * to Langfuse without waiting for the run to finish. For aggregated totals,
+   * read `agent.metrics` instead.
+   */
+  onLLMUsage?: (usage: AIUsageInfo) => void;
 }
 
 export type TestStatus =

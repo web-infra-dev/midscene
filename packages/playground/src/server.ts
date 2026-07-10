@@ -1822,17 +1822,50 @@ class PlaygroundServer {
       if (!elementDescription) {
         throw new Error('aiDescribe returned an empty element description.');
       }
+      const semanticAction = buildRecorderSemanticAction(
+        event.actionType || event.type,
+        event.rawPayload || {},
+        event.url,
+      );
+      if (describeResult.success === false && verifyResult?.pass === false) {
+        const trace = await finishTrace('ready', {
+          modelCallDurationMs,
+          elementDescription,
+          verifyPassed: false,
+          centerDistance: verifyResult.centerDistance,
+          verifyResult,
+        });
+        debugInteract('recorder aiDescribe trace:', trace);
+        return {
+          event: {
+            ...event,
+            semantic: buildReadyRecorderSemantic(
+              'aiDescribe',
+              semanticAction,
+              elementDescription,
+              'low',
+              {
+                aiDescribe: {
+                  verifyPrompt,
+                  verifyPassed: false,
+                  deepLocate,
+                  centerDistance: verifyResult.centerDistance,
+                  expectedCenter: [x, y],
+                  actualCenter: verifyResult.center,
+                  annotatedScreenshotPath: trace.annotatedScreenshotRef?.path,
+                },
+              },
+            ),
+          },
+          trace,
+        };
+      }
       if (describeResult.success === false) {
         throw new Error(
           describeResult.error ||
             `aiDescribe ${describeResult.failureStage || 'unknown'} failed.`,
         );
       }
-      const semanticAction = buildRecorderSemanticAction(
-        event.actionType || event.type,
-        event.rawPayload || {},
-        event.url,
-      );
       const trace = await finishTrace('ready', {
         modelCallDurationMs,
         elementDescription,

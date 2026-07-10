@@ -16,6 +16,7 @@ const ReportOverview = (props: {
   proModeEnabled?: boolean;
   onProModeChange?: (enabled: boolean) => void;
   dumps?: PlaywrightTasks[];
+  onCaseChange?: () => void;
 }): JSX.Element => {
   const testStats = useMemo(() => {
     const stats = {
@@ -124,7 +125,10 @@ const ReportOverview = (props: {
   return (
     <div className="report-overview">
       {testStatsEl}
-      <PlaywrightCaseSelector dumps={props.dumps} />
+      <PlaywrightCaseSelector
+        dumps={props.dumps}
+        onCaseChange={props.onCaseChange}
+      />
     </div>
   );
 };

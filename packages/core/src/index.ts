@@ -61,19 +61,19 @@ export {
   type AgentOpt,
   type AiActOptions,
   type GherkinStepKeyword,
+  type MidsceneUsageMetrics,
   type RunGherkinScenarioOptions,
+  type UsageBucket,
   createAgent,
 } from './agent';
 export {
   describeElementAtPoint,
   verifyElementDescriptionAtPoint,
-  verifyElementByServiceLocate,
   verifyLocator,
   type DescribeElementAtPointOptions,
   type DescribeElementCoordinateSpace,
   type ElementDescriberRuntime,
   type VerifyElementDescriptionAtPointOptions,
-  type VerifyElementByServiceLocateOptions,
 } from './element-describer';
 
 // Dump utilities

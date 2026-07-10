@@ -350,6 +350,31 @@ tasks:
     );
   });
 
+  it('rejects observer-only YAML options', async () => {
+    const script = parseYamlScript(`
+web:
+  url: about:blank
+tasks:
+  - name: Unsupported observer syntax
+    flow:
+      - aiAssert: a success toast appeared during submit
+        observe: submit-flow
+`);
+    const agent = createDocAgent();
+    const player = new ScriptPlayer(script, async () => ({
+      agent,
+      freeFn: [],
+    }));
+
+    await player.run();
+
+    expect(player.status).toBe('error');
+    expect(player.taskStatusList[0].error?.message).toContain(
+      '`observe` is not supported in YAML aiAssert',
+    );
+    expect(agent.aiAssert).not.toHaveBeenCalled();
+  });
+
   it('keeps named step results in output', async () => {
     const script = parseYamlScript(`
 web:

@@ -16,6 +16,7 @@ import {
   DATA_SCREENSHOT_MODE_ATTR,
   extractAllDumpScriptsSync,
   extractLastDumpScriptSync,
+  generateAgentReportComment,
   getBaseUrlFixScript,
   streamDumpScriptsSync,
   streamImageScriptsToFile,
@@ -135,6 +136,41 @@ function peekReportSdkVersion(reportFilePath: string): string | undefined {
 }
 
 const warnedMismatchedVersions = new Set<string>();
+
+function tryParseAgentReportDump(dumpString: string): ReportActionDump | null {
+  const trimmed = dumpString.trimStart();
+  if (!trimmed.startsWith('{') || !trimmed.includes('"executions"')) {
+    return null;
+  }
+
+  try {
+    return ReportActionDump.fromSerializedString(trimmed);
+  } catch {
+    return null;
+  }
+}
+
+function mergedAgentReportComment(reports: ReportActionDump[]): string {
+  if (reports.length === 0) {
+    return '';
+  }
+  if (reports.length === 1) {
+    return generateAgentReportComment(reports[0]);
+  }
+
+  const deviceTypes = Array.from(
+    new Set(reports.map((report) => report.deviceType).filter(Boolean)),
+  );
+  const mergedReport = new ReportActionDump({
+    sdkVersion: reports[0].sdkVersion || getVersion(),
+    groupName: 'Merged Midscene Report',
+    groupDescription: 'Agent-readable summary for merged report HTML',
+    modelBriefs: reports.flatMap((report) => report.modelBriefs ?? []),
+    deviceType: deviceTypes.length === 1 ? deviceTypes[0] : 'mixed',
+    executions: reports.flatMap((report) => report.executions ?? []),
+  });
+  return generateAgentReportComment(mergedReport);
+}
 
 export class ReportMergingTool {
   private reportInfos: ReportFileWithAttributes[] = [];
@@ -281,6 +317,8 @@ export class ReportMergingTool {
         appendFileSync(outputFilePath, getBaseUrlFixScript());
       }
 
+      const agentReports: ReportActionDump[] = [];
+
       // Process all reports one by one
       for (let i = 0; i < this.reportInfos.length; i++) {
         const reportInfo = this.reportInfos[i];
@@ -341,6 +379,11 @@ export class ReportMergingTool {
           }
         }
 
+        const agentReport = tryParseAgentReportDump(dumpString);
+        if (agentReport) {
+          agentReports.push(agentReport);
+        }
+
         const reportHtmlStr = `${reportHTMLContent(
           {
             dumpString,
@@ -363,6 +406,11 @@ export class ReportMergingTool {
         )}\n`;
 
         appendFileSync(outputFilePath, reportHtmlStr);
+      }
+
+      const agentComment = mergedAgentReportComment(agentReports);
+      if (agentComment) {
+        appendFileSync(outputFilePath, agentComment);
       }
 
       // Close the HTML document
