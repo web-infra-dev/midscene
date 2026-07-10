@@ -636,6 +636,7 @@ task - service-query
 export interface ExecutionTaskInsightQueryParam {
   dataDemand: ServiceExtractParam;
   domIncluded?: boolean | 'visible-only';
+  context?: string;
 }
 
 export interface ExecutionTaskInsightQueryOutput {

@@ -856,6 +856,7 @@ export class TaskExecutor {
       subType: type,
       param: {
         domIncluded: opt?.domIncluded,
+        ...(opt?.context !== undefined ? { context: opt.context } : {}),
         dataDemand: multimodalPrompt
           ? ({
               demand,
