@@ -245,7 +245,6 @@ describe('rstest yaml project generation', () => {
       expect(project.featureLoaderOptions?.featureCasesByFile[feature]).toEqual(
         [
           expect.objectContaining({
-            caseId: '3',
             testName: 'features/checkout.feature > Checkout > Add item',
             resultFile: join(
               outputDir,
@@ -254,7 +253,6 @@ describe('rstest yaml project generation', () => {
             ),
           }),
           expect.objectContaining({
-            caseId: '7',
             testName: 'features/checkout.feature > Checkout > Remove item',
             resultFile: join(
               outputDir,
@@ -354,12 +352,10 @@ describe('rstest yaml project generation', () => {
       expect(project.featureLoaderOptions?.featureCasesByFile[feature]).toEqual(
         [
           expect.objectContaining({
-            caseId: '6:3',
             testName:
               'features/checkout.feature > Checkout > Cart quantities > Add quantities #1',
           }),
           expect.objectContaining({
-            caseId: '6:4',
             testName:
               'features/checkout.feature > Checkout > Cart quantities > Add quantities #2',
           }),

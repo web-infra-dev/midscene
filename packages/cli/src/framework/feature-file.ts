@@ -18,7 +18,6 @@ type ConcreteStepKeyword = 'Given' | 'When' | 'Then';
 type StepKeyword = ConcreteStepKeyword | 'And' | 'But';
 
 export interface CompiledFeatureScenario {
-  caseId: string;
   scenarioName: string;
   testName: string;
   executionConfig: MidsceneYamlScript;
@@ -153,7 +152,6 @@ const validateSteps = (file: string, steps: readonly Step[] | undefined) => {
 
 interface ScenarioInfo {
   id: string;
-  name: string;
   ruleName?: string;
 }
 
@@ -182,7 +180,7 @@ const collectScenarioInfo = (
 
   assertSupportedScenario(file, scenario);
   validateSteps(file, scenario.steps);
-  return [{ id: scenario.id, name: scenario.name, ruleName }];
+  return [{ id: scenario.id, ruleName }];
 };
 
 const pickleStepToFlowItem = (step: PickleStep) => {
@@ -206,21 +204,34 @@ const buildScenarioInfos = (
   return feature.children.flatMap((child) => collectScenarioInfo(file, child));
 };
 
-const caseIdOf = (pickle: Pickle): string => pickle.astNodeIds.join(':');
-
 const logicalNameKey = (
   ruleName: string | undefined,
   scenarioName: string,
 ): string => `${ruleName ?? ''}\0${scenarioName}`;
 
+const scenarioInfoFor = (
+  pickle: Pickle,
+  scenarioInfoById: Map<string, ScenarioInfo>,
+  file: string,
+): ScenarioInfo => {
+  const scenarioInfo = scenarioInfoById.get(pickle.astNodeIds[0]);
+  if (!scenarioInfo) {
+    throw new Error(
+      `${file}: Could not map compiled scenario "${pickle.name}" to its Gherkin source`,
+    );
+  }
+  return scenarioInfo;
+};
+
 const pickleNameCounts = (
   pickles: readonly Pickle[],
   scenarioInfoById: Map<string, ScenarioInfo>,
+  file: string,
 ): Map<string, number> => {
   const counts = new Map<string, number>();
   for (const pickle of pickles) {
-    const scenarioInfo = scenarioInfoById.get(pickle.astNodeIds[0]);
-    const key = logicalNameKey(scenarioInfo?.ruleName, pickle.name);
+    const scenarioInfo = scenarioInfoFor(pickle, scenarioInfoById, file);
+    const key = logicalNameKey(scenarioInfo.ruleName, pickle.name);
     counts.set(key, (counts.get(key) ?? 0) + 1);
   }
   return counts;
@@ -249,12 +260,11 @@ export function compileFeatureFile(
 
   const newId = IdGenerator.incrementing();
   const pickles = compile(document, file, newId);
-  const nameCounts = pickleNameCounts(pickles, scenarioInfoById);
+  const nameCounts = pickleNameCounts(pickles, scenarioInfoById, file);
   const seenByName = new Map<string, number>();
 
-  return pickles.map((pickle, index) => {
-    const scenarioInfo = scenarioInfoById.get(pickle.astNodeIds[0]) ??
-      scenarioInfos[index] ?? { id: pickle.id, name: pickle.name };
+  return pickles.map((pickle) => {
+    const scenarioInfo = scenarioInfoFor(pickle, scenarioInfoById, file);
     const nameKey = logicalNameKey(scenarioInfo.ruleName, pickle.name);
     const occurrence = (seenByName.get(nameKey) ?? 0) + 1;
     seenByName.set(nameKey, occurrence);
@@ -269,7 +279,6 @@ export function compileFeatureFile(
     ].filter(Boolean);
     const flow = pickle.steps.map(pickleStepToFlowItem);
     return {
-      caseId: caseIdOf(pickle),
       scenarioName,
       testName: nameParts.join(' > '),
       executionConfig: {

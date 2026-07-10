@@ -197,10 +197,12 @@ const recordUnreportedCaseFailures = (
 ): void => {
   if (!project.cases.length) return;
   const caseErrors = mapRunErrorsToCases(project, result);
-  for (const item of project.cases) {
-    if (existsSync(item.resultFile)) continue;
-    const error = caseErrors.get(item.resultFile);
-    if (!error) continue;
+  const casesByResultFile = new Map(
+    project.cases.map((item) => [item.resultFile, item]),
+  );
+  for (const [resultFile, error] of caseErrors) {
+    const item = casesByResultFile.get(resultFile);
+    if (!item || existsSync(resultFile)) continue;
     const failure: MidsceneYamlConfigResult = {
       file: item.yamlFile,
       testName: item.testName,
@@ -212,8 +214,8 @@ const recordUnreportedCaseFailures = (
       resultType: 'failed',
       error,
     };
-    mkdirSync(dirname(item.resultFile), { recursive: true });
-    writeFileSync(item.resultFile, JSON.stringify(failure, null, 2));
+    mkdirSync(dirname(resultFile), { recursive: true });
+    writeFileSync(resultFile, JSON.stringify(failure, null, 2));
   }
 };
 

@@ -53,7 +53,6 @@ export interface GeneratedYamlTestCase {
 }
 
 export interface GeneratedFeatureLoaderCase {
-  caseId: string;
   testName: string;
   resultFile: string;
   caseOptions?: RstestYamlCaseOptions;
@@ -258,7 +257,6 @@ const createGeneratedProjectEntries = (options: {
         testName,
       });
       return {
-        caseId: scenario.caseId,
         testName,
         resultFile,
         caseOptions: {

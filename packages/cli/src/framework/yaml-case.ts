@@ -83,13 +83,11 @@ const createExecutionConfig = (
   globalConfig?: RunYamlCaseGlobalConfig,
   executionConfig?: MidsceneYamlScript,
 ): MidsceneYamlScript | undefined => {
-  if (executionConfig) {
-    return mergeGlobalConfig(executionConfig, globalConfig);
-  }
-  if (!globalConfig) return undefined;
+  if (!executionConfig && !globalConfig) return undefined;
 
-  const content = readFileSync(file, 'utf8');
-  return mergeGlobalConfig(parseYamlScript(content, file), globalConfig);
+  const fileConfig =
+    executionConfig ?? parseYamlScript(readFileSync(file, 'utf8'), file);
+  return mergeGlobalConfig(fileConfig, globalConfig);
 };
 
 export const getYamlPlayerFailure = (

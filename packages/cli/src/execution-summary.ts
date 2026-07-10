@@ -161,9 +161,6 @@ const safeReportNamePart = (value: string): string =>
 const resultDisplayName = (result: MidsceneYamlConfigResult): string =>
   result.testName ?? result.file;
 
-const retryAttemptDisplayName = (result: MidsceneYamlConfigResult): string =>
-  result.testName ?? basename(result.file);
-
 const createRetryReportName = (result: MidsceneYamlConfigResult): string => {
   const label = resultDisplayName(result);
   const fileName = result.testName
@@ -187,9 +184,9 @@ const createRetryAttemptReport = (
   }
 
   const tool = new ReportMergingTool();
+  const displayName = result.testName ?? basename(result.file);
   for (const attempt of attemptsWithReports) {
     const status = toTestStatus(attempt);
-    const displayName = retryAttemptDisplayName(result);
     tool.append({
       reportFilePath: attempt.report!,
       reportAttributes: {

@@ -18,7 +18,6 @@ describe('feature-file parser', () => {
 
     expect(compiled).toEqual([
       {
-        caseId: '4',
         scenarioName: 'Failed login',
         testName: 'Login > Failed login',
         executionConfig: {
@@ -59,7 +58,6 @@ describe('feature-file parser', () => {
 
     expect(compiled).toEqual([
       {
-        caseId: '6',
         scenarioName: 'Add item',
         testName: 'Checkout > Cart management > Add item',
         executionConfig: {
@@ -100,7 +98,6 @@ describe('feature-file parser', () => {
       'Checkout > Add quantities #1',
       'Checkout > Add quantities #2',
     ]);
-    expect(compiled.map((item) => item.caseId)).toEqual(['6:3', '6:4']);
     expect(compiled.map((item) => item.executionConfig.tasks[0].flow)).toEqual([
       [{ aiAct: 'I add 2 hats' }, { aiAssert: 'the cart has 2 item' }],
       [{ aiAct: 'I add 3 shoes' }, { aiAssert: 'the cart has 3 item' }],

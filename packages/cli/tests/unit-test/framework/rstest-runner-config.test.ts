@@ -142,7 +142,6 @@ describe('rstest runner config', () => {
           featureCasesByFile: {
             [feature]: [
               {
-                caseId: '1',
                 testName: 'checkout.feature > Checkout > Add item',
                 resultFile: join(root, 'results', '001-checkout.json'),
               },

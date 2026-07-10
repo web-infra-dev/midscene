@@ -1,4 +1,7 @@
-import type { GeneratedFeatureLoaderCase } from './rstest-project';
+import type {
+  GeneratedFeatureLoaderCase,
+  GeneratedFeatureLoaderOptions,
+} from './rstest-project';
 
 export interface FeatureLoaderOptions {
   frameworkImport: string;
@@ -8,9 +11,7 @@ export interface FeatureLoaderOptions {
 
 interface FeatureLoaderContext {
   resourcePath: string;
-  getOptions(): Omit<FeatureLoaderOptions, 'cases'> & {
-    featureCasesByFile: Record<string, GeneratedFeatureLoaderCase[]>;
-  };
+  getOptions(): GeneratedFeatureLoaderOptions;
 }
 
 const toImportLiteral = (value: string): string => JSON.stringify(value);

@@ -10,7 +10,6 @@ describe('feature file loader', () => {
       rstestCoreImport: '/repo/node_modules/@rstest/core/dist/index.js',
       cases: [
         {
-          caseId: '2',
           testName: 'features/checkout.feature > Checkout > Add item',
           resultFile: '/tmp/results/001-add-item.json',
           caseOptions: {
@@ -36,7 +35,6 @@ describe('feature file loader', () => {
           },
         },
         {
-          caseId: '5',
           testName: 'features/checkout.feature > Checkout > Remove item',
           resultFile: '/tmp/results/002-remove-item.json',
           caseOptions: {
@@ -86,7 +84,6 @@ describe('feature file loader', () => {
       rstestCoreImport: '/repo/node_modules/@rstest/core/dist/index.js',
       cases: [
         {
-          caseId: '2',
           testName: 'features/checkout.feature > Checkout > Retry checkout #1',
           resultFile: '/tmp/results/001-retry-checkout.json',
           caseOptions: {
@@ -101,7 +98,6 @@ describe('feature file loader', () => {
           },
         },
         {
-          caseId: '5',
           testName: 'features/checkout.feature > Checkout > Retry checkout #2',
           resultFile: '/tmp/results/002-retry-checkout.json',
           caseOptions: {
