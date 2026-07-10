@@ -15,6 +15,7 @@ import {
 } from '@midscene/shared/agent-tools/base-tools';
 import { resolveChromePath } from '@midscene/shared/agent-tools/chrome-path';
 import type { ToolDefinition } from '@midscene/shared/agent-tools/types';
+import { getDebug } from '@midscene/shared/logger';
 import type { Page as PuppeteerPage } from 'puppeteer';
 import puppeteer from 'puppeteer-core';
 import type { Browser, Page } from 'puppeteer-core';
@@ -33,13 +34,16 @@ import { StaticPage } from './static';
 
 const ENDPOINT_FILE = join(tmpdir(), 'midscene-puppeteer-endpoint');
 const USER_DATA_DIR = join(tmpdir(), 'midscene-puppeteer-profile');
+const TARGET_ID_FILE = join(tmpdir(), 'midscene-puppeteer-target-id');
 const DETACHED_CHROME_LAUNCH_TIMEOUT_MS = 30_000;
+const debug = getDebug('agent-tools:puppeteer');
 
 export const PUPPETEER_ENDPOINT_FILE = ENDPOINT_FILE;
 
 export interface PuppeteerPersistenceOptions {
   endpointFile?: string;
   userDataDir?: string;
+  targetIdFile?: string;
 }
 
 export interface WebPuppeteerMidsceneToolsOptions {
@@ -86,6 +90,73 @@ function terminateDetachedChrome(proc: ChildProcess): void {
   } catch {}
 }
 
+function getTargetId(page: Page): string | undefined {
+  return (page.target() as unknown as { _targetId?: string })._targetId;
+}
+
+export function waitForDetachedChromeEndpoint(
+  proc: ChildProcess,
+  timeoutMs = DETACHED_CHROME_LAUNCH_TIMEOUT_MS,
+): Promise<string> {
+  const stderr = proc.stderr;
+  if (!stderr) {
+    return Promise.reject(new Error('Chrome stderr pipe is unavailable.'));
+  }
+
+  return new Promise<string>((resolve, reject) => {
+    let output = '';
+    let settled = false;
+    const cleanup = () => {
+      clearTimeout(timeout);
+      stderr.removeListener('data', onData);
+      proc.removeListener('exit', onExit);
+      stderr.destroy();
+    };
+    const resolveOnce = (value: string) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      resolve(value);
+    };
+    const rejectOnce = (error: Error, terminate = false) => {
+      if (settled) return;
+      settled = true;
+      if (terminate) {
+        terminateDetachedChrome(proc);
+      }
+      cleanup();
+      reject(error);
+    };
+    const onData = (data: Buffer) => {
+      output += data.toString();
+      const match = output.match(/DevTools listening on (ws:\/\/[^\s]+)/);
+      if (match) {
+        resolveOnce(match[1]);
+      }
+    };
+    const onExit = (code: number | null, signal: NodeJS.Signals | null) => {
+      rejectOnce(
+        new Error(
+          `Chrome exited with code ${code ?? signal} before DevTools was ready.\nChrome stderr: ${output}\nTip: if running in a container, launch Chrome with sandbox-compatible arguments.`,
+        ),
+      );
+    };
+    const timeout = setTimeout(
+      () =>
+        rejectOnce(
+          new Error(
+            `Chrome launch timeout.\nChrome stderr: ${output}\nTip: if running in a container, launch Chrome with sandbox-compatible arguments.`,
+          ),
+          true,
+        ),
+      timeoutMs,
+    );
+
+    stderr.on('data', onData);
+    proc.on('exit', onExit);
+  });
+}
+
 /**
  * Persistent Puppeteer browser manager.
  * Launches a detached Chrome and persists the WS endpoint across CLI calls.
@@ -103,6 +174,38 @@ class PuppeteerBrowserManager {
     return this.persistence.userDataDir || USER_DATA_DIR;
   }
 
+  private get targetIdFile() {
+    return this.persistence.targetIdFile || TARGET_ID_FILE;
+  }
+
+  async readSavedTargetId(): Promise<string | null> {
+    if (!existsSync(this.targetIdFile)) return null;
+    try {
+      return (await readFile(this.targetIdFile, 'utf-8')).trim() || null;
+    } catch (error) {
+      debug('Failed to read saved Puppeteer targetId: %s', error);
+      return null;
+    }
+  }
+
+  async saveTargetId(targetId: string): Promise<void> {
+    try {
+      await writeFile(this.targetIdFile, targetId, 'utf-8');
+      debug('Saved Puppeteer targetId: %s', targetId);
+    } catch (error) {
+      debug('Failed to save Puppeteer targetId: %s', error);
+    }
+  }
+
+  async cleanupTargetIdFile(): Promise<void> {
+    if (!existsSync(this.targetIdFile)) return;
+    try {
+      await unlink(this.targetIdFile);
+    } catch (error) {
+      debug('Failed to clean Puppeteer targetId file: %s', error);
+    }
+  }
+
   async getOrLaunch(
     viewport?: ViewportSize,
   ): Promise<{ browser: Browser; reused: boolean }> {
@@ -115,13 +218,16 @@ class PuppeteerBrowserManager {
           defaultViewport: null,
         });
         return { browser, reused: true };
-      } catch {
+      } catch (error) {
+        debug('Failed to reuse persisted Puppeteer endpoint: %s', error);
         try {
           await unlink(endpointFile);
         } catch {}
+        await this.cleanupTargetIdFile();
       }
     }
 
+    await this.cleanupTargetIdFile();
     const wsEndpoint = await this.launchDetachedChrome(viewport);
     await writeFile(endpointFile, wsEndpoint);
 
@@ -134,17 +240,23 @@ class PuppeteerBrowserManager {
 
   async closeBrowser(): Promise<void> {
     const endpointFile = this.endpointFile;
-    if (!existsSync(endpointFile)) return;
+    if (existsSync(endpointFile)) {
+      try {
+        const endpoint = (await readFile(endpointFile, 'utf-8')).trim();
+        const browser = await puppeteer.connect({
+          browserWSEndpoint: endpoint,
+        });
+        await browser.close();
+      } catch (error) {
+        debug('Failed to close persisted Puppeteer browser: %s', error);
+      }
+    }
     try {
-      const endpoint = (await readFile(endpointFile, 'utf-8')).trim();
-      const browser = await puppeteer.connect({
-        browserWSEndpoint: endpoint,
-      });
-      await browser.close();
+      if (existsSync(endpointFile)) {
+        await unlink(endpointFile);
+      }
     } catch {}
-    try {
-      await unlink(endpointFile);
-    } catch {}
+    await this.cleanupTargetIdFile();
   }
 
   disconnect(): void {
@@ -171,58 +283,7 @@ class PuppeteerBrowserManager {
     });
     proc.unref();
 
-    return new Promise<string>((resolve, reject) => {
-      let output = '';
-      let settled = false;
-      const cleanup = () => {
-        clearTimeout(timeout);
-        proc.stderr!.removeListener('data', onData);
-        proc.removeListener('exit', onExit);
-      };
-      const resolveOnce = (value: string) => {
-        if (settled) return;
-        settled = true;
-        cleanup();
-        resolve(value);
-      };
-      const rejectOnce = (error: Error, terminate = false) => {
-        if (settled) return;
-        settled = true;
-        if (terminate) {
-          terminateDetachedChrome(proc);
-        }
-        cleanup();
-        reject(error);
-      };
-      const onData = (data: Buffer) => {
-        output += data.toString();
-        const match = output.match(/DevTools listening on (ws:\/\/[^\s]+)/);
-        if (match) {
-          resolveOnce(match[1]);
-        }
-      };
-      proc.stderr!.on('data', onData);
-
-      const onExit = (code: number | null, signal: NodeJS.Signals | null) => {
-        rejectOnce(
-          new Error(
-            `Chrome exited with code ${code ?? signal} before DevTools was ready.\nChrome stderr: ${output}\nTip: if running in a container, launch Chrome with sandbox-compatible arguments.`,
-          ),
-        );
-      };
-      proc.on('exit', onExit);
-
-      const timeout = setTimeout(
-        () =>
-          rejectOnce(
-            new Error(
-              `Chrome launch timeout.\nChrome stderr: ${output}\nTip: if running in a container, launch Chrome with sandbox-compatible arguments.`,
-            ),
-            true,
-          ),
-        DETACHED_CHROME_LAUNCH_TIMEOUT_MS,
-      );
-    });
+    return waitForDetachedChromeEndpoint(proc);
   }
 }
 
@@ -313,12 +374,16 @@ export class WebPuppeteerMidsceneTools extends BaseMidsceneTools<
         waitUntil: 'domcontentloaded',
       });
     } else {
-      // Reuse the last web page
+      const savedTargetId = await this.browserManager.readSavedTargetId();
+      const matchedPage = savedTargetId
+        ? pages.find((candidate) => getTargetId(candidate) === savedTargetId)
+        : undefined;
       const webPages = pages.filter((p) => /^https?:\/\//.test(p.url()));
       page =
-        webPages.length > 0
+        matchedPage ??
+        (webPages.length > 0
           ? webPages[webPages.length - 1]
-          : pages[pages.length - 1] || (await browser.newPage());
+          : pages[pages.length - 1] || (await browser.newPage()));
 
       if (reused) {
         await page.bringToFront();
@@ -326,6 +391,15 @@ export class WebPuppeteerMidsceneTools extends BaseMidsceneTools<
       if (this.viewport) {
         await page.setViewport(this.viewport);
       }
+    }
+
+    const targetId = getTargetId(page);
+    if (targetId) {
+      await this.browserManager.saveTargetId(targetId);
+    } else {
+      debug(
+        'No targetId on Puppeteer page target; falling back to page ordering on the next CLI command.',
+      );
     }
 
     const reportOptions = this.readCliReportAgentOptions();
@@ -394,6 +468,7 @@ export class WebPuppeteerMidsceneTools extends BaseMidsceneTools<
             this.lastInitArgsSignature = undefined;
           }
           this.browserManager.disconnect();
+          await this.browserManager.cleanupTargetIdFile();
           return this.buildTextResult(
             'Disconnected from web page (browser still running)',
           );

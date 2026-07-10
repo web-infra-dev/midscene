@@ -1,4 +1,10 @@
-import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { WebMidsceneTools } from '@/agent-tools';
@@ -67,7 +73,7 @@ vi.mock('@/cdp-target-store', () => ({
 
 function createPersistenceRoot(): {
   root: string;
-  persistence: Required<PuppeteerPersistenceOptions>;
+  persistence: PuppeteerPersistenceOptions & { targetIdFile: string };
 } {
   const root = join(
     tmpdir(),
@@ -77,6 +83,7 @@ function createPersistenceRoot(): {
   const persistence = {
     endpointFile: join(root, 'endpoint'),
     userDataDir: join(root, 'profile'),
+    targetIdFile: join(root, 'target-id'),
   };
   writeFileSync(persistence.endpointFile, 'ws://127.0.0.1:9222/devtools/1');
   return { root, persistence };
@@ -213,6 +220,70 @@ describe('web agent tool init args', () => {
           screenshotShrinkFactor: 2,
         }),
       );
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('reuses the saved Puppeteer target when browser.pages returns newer tabs first', async () => {
+    const { root, persistence } = createPersistenceRoot();
+    const newerPage = {
+      ...mockPage,
+      url: vi.fn(() => 'https://bbb.example.com/'),
+      target: vi.fn(() => ({ _targetId: 'target-bbb' })),
+    };
+    const olderPage = {
+      ...mockPage,
+      url: vi.fn(() => 'https://aaa.example.com/'),
+      target: vi.fn(() => ({ _targetId: 'target-aaa' })),
+    };
+
+    try {
+      writeFileSync(persistence.targetIdFile, 'target-bbb');
+      mockBrowser.pages.mockResolvedValueOnce([newerPage, olderPage]);
+
+      const tools = new WebPuppeteerMidsceneTools(undefined, { persistence });
+      await tools.initTools();
+
+      const takeScreenshotTool = tools
+        .getToolDefinitions()
+        .find((tool) => tool.name === 'take_screenshot');
+      await takeScreenshotTool?.handler({});
+
+      expect(PuppeteerAgent).toHaveBeenLastCalledWith(
+        newerPage,
+        expect.any(Object),
+      );
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('persists the connected Puppeteer target and clears it on disconnect and close', async () => {
+    const { root, persistence } = createPersistenceRoot();
+
+    try {
+      const tools = new WebPuppeteerMidsceneTools(undefined, { persistence });
+      await tools.initTools();
+      const connectTool = tools
+        .getToolDefinitions()
+        .find((tool) => tool.name === 'web_connect');
+      const disconnectTool = tools
+        .getToolDefinitions()
+        .find((tool) => tool.name === 'web_disconnect');
+      const closeTool = tools
+        .getToolDefinitions()
+        .find((tool) => tool.name === 'web_close');
+
+      await connectTool?.handler({ web: { url: 'https://bbb.example.com' } });
+      expect(readFileSync(persistence.targetIdFile, 'utf-8')).toBe('target-1');
+
+      await disconnectTool?.handler({});
+      expect(existsSync(persistence.targetIdFile)).toBe(false);
+
+      writeFileSync(persistence.targetIdFile, 'target-1');
+      await closeTool?.handler({});
+      expect(existsSync(persistence.targetIdFile)).toBe(false);
     } finally {
       rmSync(root, { recursive: true, force: true });
     }

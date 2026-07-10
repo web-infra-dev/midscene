@@ -1,6 +1,10 @@
+import type { ChildProcess } from 'node:child_process';
+import { EventEmitter } from 'node:events';
+import { PassThrough } from 'node:stream';
 import {
   WebPuppeteerMidsceneTools,
   buildDetachedChromeArgs,
+  waitForDetachedChromeEndpoint,
 } from '@/agent-tools-puppeteer';
 import {
   defaultPuppeteerWindowViewportSize,
@@ -9,6 +13,26 @@ import {
 import { describe, expect, it } from 'vitest';
 
 describe('WebPuppeteerMidsceneTools', () => {
+  it('releases the Chrome stderr pipe after reading the DevTools endpoint', async () => {
+    const stderr = new PassThrough();
+    const proc = Object.assign(new EventEmitter(), {
+      stderr,
+      killed: false,
+      exitCode: null,
+      signalCode: null,
+    }) as unknown as ChildProcess;
+    const endpointPromise = waitForDetachedChromeEndpoint(proc, 1_000);
+
+    stderr.write(
+      'Chrome startup log\nDevTools listening on ws://127.0.0.1:9222/devtools/browser/test\n',
+    );
+
+    await expect(endpointPromise).resolves.toBe(
+      'ws://127.0.0.1:9222/devtools/browser/test',
+    );
+    expect(stderr.destroyed).toBe(true);
+  });
+
   it('builds detached Chrome args from the configured viewport', () => {
     const args = buildDetachedChromeArgs({
       userDataDir: '/tmp/midscene-profile',
