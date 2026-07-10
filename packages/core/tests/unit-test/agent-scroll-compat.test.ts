@@ -99,7 +99,6 @@ describe('Agent aiScroll legacy scrollType compatibility', () => {
 
     expect(callActionSpy).toHaveBeenCalledTimes(1);
     expect(callActionSpy).toHaveBeenCalledWith('Scroll', {
-      deepThink: true,
       locate: undefined,
       scrollType: 'scrollToBottom',
     });

@@ -83,6 +83,31 @@ describe('LongPress Action', () => {
       );
     });
 
+    it('separates locate options from action params', async () => {
+      const agent = createAgentStub();
+      const callActionSpy = (agent as any)
+        .callActionInActionSpace as ReturnType<typeof vi.fn>;
+
+      await agent.aiLongPress('首页任意一篇文章', {
+        context: '文章位于首页的信息流中',
+        deepLocate: true,
+        duration: 2000,
+      });
+
+      expect(callActionSpy).toHaveBeenCalledWith('LongPress', {
+        duration: 2000,
+        locate: {
+          cacheable: true,
+          context: '文章位于首页的信息流中',
+          deepLocate: true,
+          prompt:
+            '<CONTEXT>\n文章位于首页的信息流中\n</CONTEXT>\n\n<LOCATE_TARGET>\n首页任意一篇文章\n</LOCATE_TARGET>',
+          promptDisplay: '首页任意一篇文章',
+          xpath: undefined,
+        },
+      });
+    });
+
     it('throws when locate prompt is missing', async () => {
       const agent = createAgentStub();
       await expect(agent.aiLongPress('' as any)).rejects.toThrow(

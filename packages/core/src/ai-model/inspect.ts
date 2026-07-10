@@ -521,6 +521,7 @@ export async function AiExtractElementInfo<T>(options: {
   const extractDataPromptText = extractDataQueryPrompt(
     options.pageDescription || '',
     dataQuery,
+    extractOption?.context,
   );
 
   const userContent: ChatCompletionUserMessageParam['content'] = [];
