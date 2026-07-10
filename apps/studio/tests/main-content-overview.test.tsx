@@ -229,6 +229,91 @@ function createConnectedComputerContextValue(): ReadyStudioPlaygroundContextValu
 }
 
 describe('MainContent overview', () => {
+  it('uses the surface color behind a connected mobile preview', () => {
+    const context = createConnectedWebContextValue();
+    context.controller.state = {
+      ...context.controller.state,
+      formValues: { platformId: 'android' },
+      runtimeInfo: {
+        ...context.controller.state.runtimeInfo,
+        platformId: 'android',
+        interface: {
+          type: 'android',
+          description: 'Android device',
+        },
+        preview: {
+          kind: 'scrcpy',
+          capabilities: [{ kind: 'scrcpy' }],
+        },
+      },
+    } as typeof context.controller.state;
+
+    const html = renderMainContent(
+      context,
+      createElement(MainContent, {
+        activeView: 'device',
+      }),
+    );
+
+    expect(html).toContain(
+      'relative min-h-0 flex-1 overflow-hidden bg-surface',
+    );
+    expect(html).not.toContain(
+      'relative min-h-0 flex-1 overflow-hidden bg-surface dark:bg-[#181818]',
+    );
+  });
+
+  it('uses the surface token for the device-preview header background', () => {
+    const html = renderMainContent(
+      createConnectedWebContextValue(),
+      createElement(MainContent, {
+        activeView: 'device',
+      }),
+    );
+
+    expect(html).toContain(
+      'border-b border-border-subtle bg-surface pl-[8px] pr-4',
+    );
+  });
+
+  it('lets the Record context panel float over the preview for generated Markdown', () => {
+    const context = createConnectedWebContextValue();
+    const reservedHtml = renderMainContent(
+      context,
+      createElement(MainContent, {
+        activeView: 'device',
+      }),
+    );
+    const floatingHtml = renderMainContent(
+      context,
+      createElement(MainContent, {
+        activeView: 'device',
+        floatingStudioModePanel: true,
+      }),
+    );
+
+    expect(reservedHtml).toContain('padding-right:340px');
+    expect(floatingHtml).not.toContain('padding-right:340px');
+  });
+
+  it('uses a fixed 16:9 canvas for Web previews only', () => {
+    const webHtml = renderMainContent(
+      createConnectedWebContextValue(),
+      createElement(MainContent, {
+        activeView: 'device',
+      }),
+    );
+    const computerHtml = renderMainContent(
+      createConnectedComputerContextValue(),
+      createElement(MainContent, {
+        activeView: 'device',
+      }),
+    );
+
+    expect(webHtml).toContain('studio-web-preview-fixed-aspect');
+    expect(computerHtml).not.toContain('studio-web-preview-fixed-aspect');
+  });
+
   it('renders discovered devices without requiring model env configuration', () => {
     const html = renderMainContent(
       createReadyContextValue(),

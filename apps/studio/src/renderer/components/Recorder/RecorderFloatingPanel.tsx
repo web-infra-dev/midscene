@@ -2,6 +2,8 @@ import {
   getMidsceneRecorderEventDescription,
   getMidsceneRecorderSemantic,
 } from '@midscene/shared/recorder';
+import { useTextTruncation } from '@midscene/visualizer';
+import { Tooltip } from 'antd';
 import type { ReactNode } from 'react';
 import type {
   StudioRecordedEvent,
@@ -67,13 +69,28 @@ function RecorderFloatingTimeline({
             <StudioTimelineEventIcon event={event} />
             <span className="studio-recorder-timeline-rail-line studio-recorder-timeline-rail-line-bottom" />
           </span>
-          <span className="studio-recorder-timeline-copy">
-            <StudioTimelineEventText event={event} />
-          </span>
+          <StudioTimelineEventCopy event={event} />
         </li>
       ))}
     </ol>
   );
+}
+
+function StudioTimelineEventCopy({ event }: { event: StudioRecordedEvent }) {
+  const tooltip = getStudioTimelineEventTooltip(event);
+  const { ref, truncated } = useTextTruncation<HTMLSpanElement>(
+    tooltip,
+    'multi-line',
+  );
+  const copy = (
+    <span className="studio-recorder-timeline-copy">
+      <span className="studio-recorder-timeline-copy-text" ref={ref}>
+        <StudioTimelineEventText event={event} />
+      </span>
+    </span>
+  );
+
+  return truncated ? <Tooltip title={tooltip}>{copy}</Tooltip> : copy;
 }
 
 function StudioTimelineTargetIcon() {
@@ -214,6 +231,17 @@ function trimStudioTimelineEventTitlePrefix(
     : description;
 }
 
+function getStudioTimelineEventTooltip(event: StudioRecordedEvent) {
+  const title = getStudioTimelineEventTitle(event);
+  const description = getStudioTimelineEventDescription(event);
+  const semantic = getMidsceneRecorderSemantic(event);
+  const text =
+    description ||
+    (semantic?.status === 'pending' ? 'analyzing target...' : '');
+
+  return text ? `${title} - ${text}` : title;
+}
+
 function StudioTimelineEventText({ event }: { event: StudioRecordedEvent }) {
   const title = getStudioTimelineEventTitle(event);
   const description = getStudioTimelineEventDescription(event);
@@ -284,19 +312,19 @@ function RecorderFloatingOutputs({
         type="button"
       >
         <RecorderGenerateNaturalLanguageIcon />
-        <span>Generating markdown...</span>
+        <span data-text="Generating markdown...">Generating markdown...</span>
       </button>
     );
   } else if (canGenerateMarkdown && recorderPanelSession) {
     markdownOutput = (
       <button
-        aria-label="Generate natural language"
+        aria-label="Generate markdown"
         className="studio-recorder-floating-output studio-recorder-floating-output-generate"
         onClick={onGenerateMarkdown}
         type="button"
       >
         <RecorderGenerateNaturalLanguageIcon />
-        <span>Generate natural language</span>
+        <span>Generate markdown</span>
       </button>
     );
   }
@@ -312,7 +340,7 @@ function RecorderFloatingOutputs({
           type="button"
         >
           <RecorderScreenshotIcon />
-          <span>Screen shot</span>
+          <span>Screenshot</span>
         </button>
       </div>
     );
@@ -347,7 +375,7 @@ export function RecorderScreenshotDetailView({
       <header className="studio-recorder-screenshot-detail-header">
         <div className="studio-recorder-screenshot-detail-title">
           <RecorderScreenshotIcon />
-          <span>Screen shot</span>
+          <span>Screenshot</span>
         </div>
       </header>
 
@@ -522,7 +550,7 @@ export function RecorderFloatingPanel({
                 <RecorderButtonIcon />
               )}
               <span>
-                {showRecordingVisual ? 'Stop record' : 'Start record'}
+                {showRecordingVisual ? 'Stop recording' : 'Start recording'}
               </span>
             </button>
           </div>

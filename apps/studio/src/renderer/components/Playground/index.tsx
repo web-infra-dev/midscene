@@ -9,10 +9,7 @@ import { createStudioRecorderTargetSignature } from '../../recorder/selectors';
 import { StudioModeTab } from '../../recorder/types';
 import { useStudioRecorder } from '../../recorder/useStudioRecorder';
 import { PlaygroundShell } from '../PlaygroundShell';
-import {
-  StudioExecutionTimelinePanel,
-  StudioTimelineEmptyState,
-} from '../StudioTimelinePanel';
+import { StudioTimelineEmptyState } from '../StudioTimelinePanel';
 import {
   StudioTimelineExecution,
   createStudioTimelineConfig,
@@ -74,21 +71,13 @@ export default function Playground({
         onExecutionStatusChange,
         showClearButton: true,
         storageNamespace,
-        timelineWrapper: (content, state) =>
-          state.empty ? null : (
-            <StudioExecutionTimelinePanel
-              ariaHidden={timelineCollapsed}
-              collapsed={timelineCollapsed}
-              empty={state.empty}
-              headerAction={timelineCollapsed ? null : state.headerAction}
-              onToggleCollapsed={() => {
-                setTimelineCollapsed((collapsed) => !collapsed);
-              }}
-              variant={StudioModeTab.Playground}
-            >
-              {content}
-            </StudioExecutionTimelinePanel>
-          ),
+        timeline: {
+          collapsed: timelineCollapsed,
+          onToggleCollapsed: () => {
+            setTimelineCollapsed((collapsed) => !collapsed);
+          },
+          variant: StudioModeTab.Playground,
+        },
       }),
     [
       currentTargetSignature,

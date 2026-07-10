@@ -148,7 +148,7 @@ function createRecorder() {
   };
 }
 
-async function renderPlayground() {
+async function renderPlayground(onOpenStudioRightPanel?: (view: any) => void) {
   const container = document.createElement('div');
   document.body.appendChild(container);
   const root = createRoot(container);
@@ -156,6 +156,7 @@ async function renderPlayground() {
   await act(async () => {
     root.render(
       <StudioModePanel
+        onOpenStudioRightPanel={onOpenStudioRightPanel}
         onStudioModeChange={() => undefined}
         studioMode={StudioModeTab.Replay}
       />,
@@ -426,6 +427,82 @@ describe('Studio Playground imported replay', () => {
     });
 
     expect(mocks.latestReplayPanelProps.activeSessionId).toBeNull();
+
+    await act(async () => {
+      root.unmount();
+    });
+  });
+
+  it('lists only recordings with generated Markdown in Replay history', async () => {
+    const replayableSession = {
+      createdAt: Date.now(),
+      events: [],
+      generatedCode: { markdown: '# Recorded Replay' },
+      id: 'session-replayable',
+      name: 'Replayable recording',
+      status: 'completed',
+      target,
+      updatedAt: Date.now(),
+    };
+    const recordedOnlySession = {
+      ...replayableSession,
+      generatedCode: {},
+      id: 'session-recorded-only',
+      name: 'Recorded only',
+    };
+    mocks.recorder = {
+      ...createRecorder(),
+      state: {
+        isRecording: false,
+        sessions: [replayableSession, recordedOnlySession],
+      },
+    };
+    const { root } = await renderPlayground();
+
+    expect(mocks.latestReplayPanelProps.sessions).toEqual([replayableSession]);
+
+    await act(async () => {
+      root.unmount();
+    });
+  });
+
+  it('opens a replay history item as Markdown without starting playback', async () => {
+    const session = {
+      createdAt: Date.now(),
+      events: [],
+      generatedCode: {
+        markdown: '# Recorded Replay',
+      },
+      id: 'session-markdown',
+      name: 'Search for Hotels in Hangzhou on Booking.com',
+      status: 'completed',
+      target,
+      updatedAt: Date.now(),
+    };
+    mocks.recorder = {
+      ...createRecorder(),
+      state: {
+        isRecording: false,
+        sessions: [session],
+      },
+    };
+    const onOpenStudioRightPanel = vi.fn();
+    const { root } = await renderPlayground(onOpenStudioRightPanel);
+
+    await act(async () => {
+      await mocks.latestReplayPanelProps.onSelectSession(session);
+    });
+
+    expect(onOpenStudioRightPanel).toHaveBeenCalledWith({
+      markdown: '# Recorded Replay',
+      onDelete: expect.any(Function),
+      onDownload: expect.any(Function),
+      title: session.name,
+      type: 'markdown',
+    });
+    expect(mocks.latestExternalRunRequest).toBeNull();
+    expect(mocks.latestReplayPanelProps.activeSessionId).toBeNull();
+    expect(mocks.latestReplayPanelProps.selectedSessionId).toBe(session.id);
 
     await act(async () => {
       root.unmount();

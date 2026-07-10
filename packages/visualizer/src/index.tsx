@@ -23,6 +23,7 @@ export { Logo } from './component/logo';
 export { iconForStatus, timeCostStrElement } from './component/misc';
 export { useTheme } from './hooks/useTheme';
 export { useServerValid } from './hooks/useServerValid';
+export { useTextTruncation } from './hooks/useTextTruncation';
 export {
   useSafeOverrideAIConfig,
   safeOverrideAIConfig,

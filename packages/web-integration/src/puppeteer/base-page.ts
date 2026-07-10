@@ -126,6 +126,7 @@ export class Page<
   ) => Promise<void>;
   private playwrightNetworkIdleWarningShown = false;
   private activeMjpegStream?: {
+    hasReceivedScreencastFrame: boolean;
     token: symbol;
     onFrame: MjpegStreamOptions['onFrame'];
     onError?: MjpegStreamOptions['onError'];
@@ -536,7 +537,11 @@ export class Page<
 
   async flushPendingVisualUpdate(): Promise<void> {
     const activeStream = this.activeMjpegStream;
-    if (!activeStream) return;
+    // A direct screenshot is only the fallback for an idle page that has not
+    // emitted its first CDP screencast frame. Mixing it with screencast frames
+    // can alternate between two viewport sizes in headed browsers, making the
+    // preview visibly resize from one MJPEG frame to the next.
+    if (!activeStream || activeStream.hasReceivedScreencastFrame) return;
 
     try {
       await this.evaluate(
@@ -553,8 +558,19 @@ export class Page<
           }),
         FLUSH_VISUAL_UPDATE_TIMEOUT_MS,
       );
+      if (
+        this.activeMjpegStream?.token !== activeStream.token ||
+        activeStream.hasReceivedScreencastFrame
+      ) {
+        return;
+      }
       const dataUrl = await this.screenshotBase64();
-      if (this.activeMjpegStream?.token !== activeStream.token) return;
+      if (
+        this.activeMjpegStream?.token !== activeStream.token ||
+        activeStream.hasReceivedScreencastFrame
+      ) {
+        return;
+      }
       // MjpegStreamFrame.data is contractually bare base64; screenshotBase64()
       // returns a `data:image/...;base64,...` URL, so strip the prefix here.
       activeStream.onFrame({
@@ -639,6 +655,9 @@ export class Page<
     const handleFrame = (event: ScreencastFrameEvent) => {
       void (async () => {
         if (stopped) return;
+        if (this.activeMjpegStream?.token === streamToken) {
+          this.activeMjpegStream.hasReceivedScreencastFrame = true;
+        }
         try {
           onFrame({
             data: event.data,
@@ -695,6 +714,7 @@ export class Page<
     try {
       client.on('Page.screencastFrame', handleFrame);
       this.activeMjpegStream = {
+        hasReceivedScreencastFrame: false,
         token: streamToken,
         onFrame,
         onError,
@@ -1332,7 +1352,15 @@ export function forceClosePopup(
 
     if (!page.isClosed()) {
       try {
-        await page.goto(url);
+        // A target=_blank navigation (for example Baidu's Map link) is
+        // redirected back into the preview tab. Waiting for the target page's
+        // full `load` event keeps the interaction pending for up to Puppeteer's
+        // default 30 seconds on pages with long-lived resources. DOM content is
+        // enough for the preview to switch to the new page.
+        await page.goto(url, {
+          waitUntil: 'domcontentloaded',
+          timeout: 10_000,
+        });
       } catch (error) {
         debugProfile(`failed to goto ${url}, error: ${error}`);
       }

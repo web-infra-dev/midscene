@@ -83,7 +83,7 @@ function DeviceRow({
       onClick={onClick}
       type="button"
     >
-      <div className="h-4 w-4 shrink-0" />
+      <div className="h-8 w-[22px] shrink-0" />
       <span
         className={`flex-1 overflow-hidden whitespace-nowrap font-sans text-[13px] ${
           selected
@@ -110,7 +110,7 @@ function DeviceRow({
 function EmptyDeviceRow() {
   return (
     <div className="flex h-8 w-full items-center gap-[6px] rounded-lg px-[12px]">
-      <div className="h-4 w-4 shrink-0" />
+      <div className="h-8 w-[22px] shrink-0" />
       <span className="flex-1 overflow-hidden whitespace-nowrap font-sans text-[13px] font-normal leading-[13px] text-text-tertiary">
         No devices
       </span>
@@ -313,10 +313,12 @@ export default function Sidebar({
         onClick={onSelectOverview}
         type="button"
       >
-        <MaskedIcon
-          className="h-4 w-4 shrink-0 text-text-secondary"
-          src={assetUrls.sidebar.overview}
-        />
+        <span className="flex size-[22px] shrink-0 items-center justify-center text-text-secondary">
+          <MaskedIcon
+            className="h-4 w-4 shrink-0"
+            src={assetUrls.sidebar.overview}
+          />
+        </span>
         <span className="flex-1 overflow-hidden whitespace-nowrap font-sans text-[13px] font-medium leading-[22px] text-text-secondary">
           Overview
         </span>

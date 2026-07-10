@@ -20,6 +20,55 @@
   overflow: visible;
 }
 
+/*
+ * A Web page can briefly report a different viewport size while its CDP
+ * screencast reconnects. Keep the Studio Web Preview canvas stable instead
+ * of allowing the current MJPEG frame's intrinsic ratio to change its height.
+ */
+.studio-web-preview-fixed-aspect .screenshot-viewer.screen-only {
+  align-items: center;
+  container-type: size;
+  justify-content: center;
+}
+
+.studio-web-preview-fixed-aspect
+  .screenshot-viewer.screen-only
+  > .screenshot-content {
+  display: flex;
+  flex: 0 1 auto;
+  width: 100%;
+  max-height: 100%;
+  aspect-ratio: 16 / 9;
+}
+
+@supports (width: 1cqw) {
+  .studio-web-preview-fixed-aspect
+    .screenshot-viewer.screen-only
+    > .screenshot-content {
+    width: min(100cqw, 177.7778cqh);
+    height: min(100cqh, 56.25cqw);
+  }
+}
+
+.studio-web-preview-fixed-aspect
+  .screenshot-viewer.screen-only
+  > .screenshot-content
+  > .screenshot-image-shell {
+  display: flex;
+  width: 100%;
+  height: 100%;
+}
+
+.studio-web-preview-fixed-aspect
+  .screenshot-viewer.screen-only
+  > .screenshot-content
+  > .screenshot-image-shell
+  > .screenshot-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
 .mobile-preview-frame-viewport .scrcpy-panel-viewport {
   border-radius: 12px;
   overflow: hidden;
@@ -31,7 +80,7 @@
   > .screenshot-content
   > .screenshot-image-shell {
   box-sizing: border-box;
-  border: 1px solid rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(0, 0, 0, 0.11);
   border-radius: 12px;
   box-shadow: 0 2px 8px 1px rgba(0, 0, 0, 0.08);
   overflow: hidden;
@@ -45,15 +94,37 @@
   .screenshot-viewer.screen-only
   > .screenshot-content
   > .screenshot-image-shell {
-  border-color: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.11);
 }
 
+@property --mobile-preview-recording-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+/*
+ * Render the recording indicator around the actual screen mirror, rather
+ * than the enclosing Studio canvas. Match the recorder card's 1px
+ * blue/purple/pink/orange treatment while keeping the device image untouched.
+ * The animated conic-gradient moves, while the rectangular mask stays fixed
+ * to the preview border.
+ */
 .mobile-preview-frame-viewport-active .scrcpy-panel-viewport-connected,
 .mobile-preview-frame-viewport-active
   .screenshot-viewer.screen-only
   > .screenshot-content
   > .screenshot-image-shell {
   position: relative;
+  overflow: visible;
+}
+
+/* The stream canvas still needs the preview's rounded clipping. */
+.mobile-preview-frame-viewport-active
+  .scrcpy-panel-viewport-connected
+  > div:first-child {
+  border-radius: inherit;
+  overflow: hidden;
 }
 
 .mobile-preview-frame-viewport-active .scrcpy-panel-viewport-connected::after,
@@ -62,38 +133,31 @@
   > .screenshot-content
   > .screenshot-image-shell::after {
   position: absolute;
-  inset: 0;
-  border-radius: inherit;
+  inset: -1px;
+  z-index: 1;
+  box-sizing: border-box;
+  border-radius: 13px;
+  padding: 1px;
   pointer-events: none;
   content: "";
-  background: linear-gradient(
-      to right,
-      rgba(51, 136, 255, 0.42),
-      transparent 54%
-    )
-    left, linear-gradient(to left, rgba(51, 136, 255, 0.42), transparent 54%)
-    right, linear-gradient(to bottom, rgba(51, 136, 255, 0.42), transparent 54%)
-    top, linear-gradient(to top, rgba(51, 136, 255, 0.42), transparent 54%)
-    bottom;
-  background-repeat: no-repeat;
-  background-size: 12% 100%, 12% 100%, 100% 12%, 100% 12%;
-  box-shadow: inset 0 0 32px 1px rgba(51, 136, 255, 0.75), inset 0 0 16px 2px
-    #f3faff;
-  filter: blur(6px);
-  animation: mobile-preview-stream-water-flow 5s cubic-bezier(0.4, 0, 0.6, 1)
-    infinite;
+  background: conic-gradient(
+    from var(--mobile-preview-recording-angle),
+    #1a79ff,
+    #7b61ff,
+    #ff4f8b,
+    #ff9f1a,
+    #1a79ff
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: mobile-preview-marquee 3s linear infinite;
+  will-change: --mobile-preview-recording-angle;
 }
 
-@keyframes mobile-preview-stream-water-flow {
-  0%,
-  100% {
-    opacity: 0.88;
-    background-size: 10% 100%, 10% 100%, 100% 10%, 100% 10%;
-  }
-
-  50% {
-    opacity: 1;
-    background-size: 16% 100%, 16% 100%, 100% 16%, 100% 16%;
+@keyframes mobile-preview-marquee {
+  to {
+    --mobile-preview-recording-angle: 1turn;
   }
 }
 

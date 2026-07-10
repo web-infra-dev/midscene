@@ -19,6 +19,7 @@ import Sidebar, { SidebarFooter } from '../Sidebar';
 import {
   StudioRightPanel,
   type StudioRightPanelView,
+  StudioRightPanelViewType,
   getStudioRightPanelWidth,
 } from '../StudioRightPanel';
 import { ModelEnvConfigModal } from './ModelEnvConfigModal';
@@ -40,6 +41,7 @@ const TITLEBAR_CONTROL_TOP = 11;
 const UPDATE_PILL_LEFT = 128;
 const SIDEBAR_TOGGLE_LEFT = 98;
 const SIDEBAR_TRANSITION_CLASS = 'duration-200 ease-[cubic-bezier(0.2,0,0,1)]';
+const STUDIO_RIGHT_PANEL_ANIMATION_MS = 160;
 
 const requireElectronShell = () => {
   if (!window.electronShell) {
@@ -164,6 +166,7 @@ export default function ShellLayout() {
   );
   const [studioRightPanelView, setStudioRightPanelView] =
     useState<StudioRightPanelView | null>(null);
+  const [studioRightPanelClosing, setStudioRightPanelClosing] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [modelModalOpen, setModelModalOpen] = useState(false);
   // Bridges the gap between any device-click path (Sidebar row, Overview
@@ -190,11 +193,62 @@ export default function ShellLayout() {
   );
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const settingsAnchorRef = useRef<HTMLDivElement | null>(null);
+  const studioRightPanelCloseTimerRef = useRef<number | null>(null);
+  const previousStudioPanelContextRef = useRef({ activeView, studioMode });
   const updater = useStudioUpdater();
   const modelConfigComplete = useMemo(
     () => hasCompleteModelEnvConfig(modelEnvText),
     [modelEnvText],
   );
+  const clearStudioRightPanelCloseTimer = useCallback(() => {
+    if (studioRightPanelCloseTimerRef.current !== null) {
+      window.clearTimeout(studioRightPanelCloseTimerRef.current);
+      studioRightPanelCloseTimerRef.current = null;
+    }
+  }, []);
+  const openStudioRightPanel = useCallback(
+    (view: StudioRightPanelView) => {
+      clearStudioRightPanelCloseTimer();
+      setStudioRightPanelClosing(false);
+      setStudioRightPanelView(view);
+    },
+    [clearStudioRightPanelCloseTimer],
+  );
+  const closeStudioRightPanel = useCallback(() => {
+    if (!studioRightPanelView) {
+      return;
+    }
+    if (studioRightPanelClosing) {
+      clearStudioRightPanelCloseTimer();
+      setStudioRightPanelView(null);
+      setStudioRightPanelClosing(false);
+      return;
+    }
+    setStudioRightPanelClosing(true);
+    const reducedMotion = window.matchMedia?.(
+      '(prefers-reduced-motion: reduce)',
+    ).matches;
+    const finishClosing = () => {
+      studioRightPanelCloseTimerRef.current = null;
+      setStudioRightPanelView(null);
+      setStudioRightPanelClosing(false);
+    };
+    if (
+      reducedMotion ||
+      studioRightPanelView.type !== StudioRightPanelViewType.Markdown
+    ) {
+      finishClosing();
+      return;
+    }
+    studioRightPanelCloseTimerRef.current = window.setTimeout(
+      finishClosing,
+      STUDIO_RIGHT_PANEL_ANIMATION_MS,
+    );
+  }, [
+    clearStudioRightPanelCloseTimer,
+    studioRightPanelClosing,
+    studioRightPanelView,
+  ]);
   useEffect(() => {
     if (typeof window === 'undefined') return;
     window.localStorage.setItem(
@@ -202,6 +256,11 @@ export default function ShellLayout() {
       String(sidebarWidth),
     );
   }, [sidebarWidth]);
+
+  useEffect(
+    () => clearStudioRightPanelCloseTimer,
+    [clearStudioRightPanelCloseTimer],
+  );
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -312,13 +371,26 @@ export default function ShellLayout() {
     shouldShowStudioRightPanel && studioRightPanelView
       ? getStudioRightPanelWidth(studioRightPanelView)
       : 0;
+  const shouldFloatStudioContextPanel =
+    shouldShowStudioRightPanel &&
+    (studioMode === StudioModeTab.Record ||
+      studioMode === StudioModeTab.Replay) &&
+    studioRightPanelView?.type === StudioRightPanelViewType.Markdown;
   const mainAreaStyle: CSSProperties = {
     left: sidebarCollapsed ? SIDEBAR_COLLAPSED_WIDTH : sidebarWidth,
   };
 
   useEffect(() => {
-    setStudioRightPanelView(null);
-  }, [activeView, studioMode]);
+    const previousContext = previousStudioPanelContextRef.current;
+    const panelContextChanged =
+      previousContext.activeView !== activeView ||
+      previousContext.studioMode !== studioMode;
+    previousStudioPanelContextRef.current = { activeView, studioMode };
+    if (!panelContextChanged) {
+      return;
+    }
+    closeStudioRightPanel();
+  }, [activeView, closeStudioRightPanel, studioMode]);
 
   // When the OS window loses focus, replace the translucent vibrancy
   // background with a flat solid panel — matching macOS's own inactive
@@ -409,8 +481,9 @@ export default function ShellLayout() {
           activeView={activeView}
           modelConfigComplete={modelConfigComplete}
           modelEnvText={modelEnvText}
+          floatingStudioModePanel={shouldFloatStudioContextPanel}
           onOpenEnvModal={openEnvModal}
-          onOpenStudioRightPanel={setStudioRightPanelView}
+          onOpenStudioRightPanel={openStudioRightPanel}
           onPendingCreatePlatformChange={setPendingCreatePlatform}
           onStudioModeChange={setStudioMode}
           onSelectDeviceView={() => setActiveView('device')}
@@ -423,11 +496,17 @@ export default function ShellLayout() {
         />
         {shouldShowStudioRightPanel && studioRightPanelView ? (
           <div
-            className="box-border flex h-full min-h-0 shrink-0 flex-col overflow-hidden rounded-[12px] border border-border-subtle bg-surface dark:border-[#323131] dark:bg-[#181818]"
+            className={`box-border flex h-full min-h-0 shrink-0 flex-col overflow-hidden rounded-[12px] border border-border-subtle bg-surface dark:border-[#323131] dark:bg-[#181818]${
+              studioRightPanelView.type === StudioRightPanelViewType.Markdown
+                ? ` studio-right-panel-markdown-drawer studio-right-panel-markdown-drawer-${
+                    studioRightPanelClosing ? 'exit' : 'enter'
+                  }`
+                : ''
+            }`}
             style={{ width: studioRightPanelWidth }}
           >
             <StudioRightPanel
-              onClose={() => setStudioRightPanelView(null)}
+              onClose={closeStudioRightPanel}
               view={studioRightPanelView}
             />
           </div>

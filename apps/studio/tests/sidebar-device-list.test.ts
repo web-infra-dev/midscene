@@ -132,6 +132,7 @@ describe('Sidebar device list', () => {
 
     expect(html).not.toContain('Set up iOS via the playground form');
     expect(html.match(/No devices/g)).toHaveLength(5);
+    expect(html.match(/h-8 w-\[22px\] shrink-0/g)).toHaveLength(5);
   });
 
   it('keeps visual separation between adjacent platform hover and selected states', () => {
@@ -198,7 +199,7 @@ describe('Sidebar device list', () => {
     );
 
     expect(html.match(/justify-between rounded-\[8px\]/g)).toHaveLength(5);
-    expect(html.match(/size-\[22px\]/g)).toHaveLength(5);
+    expect(html.match(/size-\[22px\]/g)).toHaveLength(6);
     expect(html.match(/text-\[#474848\]/g)).toHaveLength(10);
   });
 

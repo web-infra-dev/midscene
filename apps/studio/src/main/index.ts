@@ -620,7 +620,7 @@ const registerIpcHandlers = () => {
       // on OS material (macOS vibrancy / Windows acrylic); only Linux needs
       // a solid theme-tinted fallback.
       if (process.platform === 'linux') {
-        mainWindow.setBackgroundColor(isDark ? '#171717' : '#eef1f5');
+        mainWindow.setBackgroundColor(isDark ? '#282828' : '#eef1f5');
       } else {
         mainWindow.setBackgroundColor('#00000000');
       }

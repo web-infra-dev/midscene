@@ -9,6 +9,7 @@ import {
   describeStudioRecorderEventsWithAI,
   generateStudioRecorderCodeWithAI,
 } from '../src/renderer/recorder/codegen';
+import { getStudioRecorderSessions } from '../src/renderer/recorder/storage';
 import type { StudioRecorderContextValue } from '../src/renderer/recorder/types';
 import { useStudioRecorder } from '../src/renderer/recorder/useStudioRecorder';
 
@@ -303,6 +304,33 @@ describe('StudioRecorderProvider preview recording', () => {
     expect(stopRecorderSession).toHaveBeenCalled();
     expect(mounted.recorder?.state.isRecording).toBe(false);
     expect(mounted.recorder?.currentSession?.status).toBe('completed');
+
+    await mounted.cleanup();
+  });
+
+  it('keeps a stopped recording in memory until Markdown is generated', async () => {
+    const { context } = createConnectedStudioContext();
+    const mounted = await mountRecorder(context);
+
+    await act(async () => {
+      await mounted.recorder?.startRecording();
+    });
+    const sessionId = mounted.recorder?.currentSession?.id;
+
+    await act(async () => {
+      await mounted.recorder?.stopRecording();
+    });
+    await flushPromises();
+
+    expect(mounted.recorder?.currentSession).toMatchObject({
+      id: sessionId,
+      status: 'completed',
+    });
+    expect(
+      (await getStudioRecorderSessions()).some(
+        (session) => session.id === sessionId,
+      ),
+    ).toBe(false);
 
     await mounted.cleanup();
   });
@@ -1899,6 +1927,11 @@ describe('StudioRecorderProvider preview recording', () => {
     await flushPromises();
 
     const sessionId = mounted.recorder?.currentSession?.id;
+    expect(
+      (await getStudioRecorderSessions()).some(
+        (session) => session.id === sessionId,
+      ),
+    ).toBe(false);
     let markdown = '';
     await act(async () => {
       markdown = await mounted.recorder!.generateSessionCode(sessionId!);
@@ -1915,6 +1948,11 @@ describe('StudioRecorderProvider preview recording', () => {
     expect(mounted.recorder?.currentSession?.generatedCode?.markdown).toBe(
       'ai markdown\n',
     );
+    expect(
+      (await getStudioRecorderSessions()).some(
+        (session) => session.id === sessionId,
+      ),
+    ).toBe(true);
 
     await mounted.cleanup();
   });

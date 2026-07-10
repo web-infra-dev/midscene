@@ -7,6 +7,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({
   playground: null as any,
   recorder: null as any,
+  truncated: false,
 }));
 
 vi.mock('antd', () => {
@@ -38,7 +39,11 @@ vi.mock('antd', () => {
         : children;
       return createElement('span', null, trigger, open ? content : null);
     },
-    Tooltip: ({ children }: { children: ReactNode }) => children,
+    Tooltip: ({
+      children,
+      title,
+    }: { children: ReactNode; title?: ReactNode }) =>
+      createElement('span', { 'data-tooltip-title': title }, children),
     Typography: {
       Text: ({ children }: { children: ReactNode }) =>
         createElement('span', null, children),
@@ -56,6 +61,18 @@ vi.mock('@midscene/recorder', () => ({
         createElement('div', { key: index }, event.actionSummary),
       ),
     ),
+}));
+
+vi.mock('@midscene/shared/recorder', () => ({
+  getMidsceneRecorderEventDescription: () => '',
+  getMidsceneRecorderSemantic: () => null,
+}));
+
+vi.mock('@midscene/visualizer', () => ({
+  useTextTruncation: () => ({
+    ref: { current: null },
+    truncated: mocks.truncated,
+  }),
 }));
 
 vi.mock('../src/renderer/playground/useStudioPlayground', () => ({
@@ -150,7 +167,9 @@ async function renderReplayPanel({
   onDeleteSession,
   onDownloadSession,
   onReplaySession = vi.fn(),
+  onSelectSession = vi.fn(),
   onStopActiveSession,
+  selectedSessionId = null,
   sessions = createRecorderMock().state.sessions,
 }: {
   activeSessionId?: string | null;
@@ -158,7 +177,9 @@ async function renderReplayPanel({
   onDeleteSession?: ReturnType<typeof vi.fn>;
   onDownloadSession?: ReturnType<typeof vi.fn>;
   onReplaySession?: ReturnType<typeof vi.fn>;
+  onSelectSession?: ReturnType<typeof vi.fn>;
   onStopActiveSession?: ReturnType<typeof vi.fn>;
+  selectedSessionId?: string | null;
   sessions?: any[];
 } = {}) {
   const container = document.createElement('div');
@@ -173,13 +194,15 @@ async function renderReplayPanel({
         onDeleteSession={onDeleteSession}
         onDownloadSession={onDownloadSession}
         onReplaySession={onReplaySession}
+        onSelectSession={onSelectSession}
         onStopActiveSession={onStopActiveSession}
+        selectedSessionId={selectedSessionId}
         sessions={sessions}
       />,
     );
   });
 
-  return { container, onReplaySession, root };
+  return { container, onReplaySession, onSelectSession, root };
 }
 
 async function unmount(root: ReturnType<typeof createRoot>) {
@@ -191,6 +214,7 @@ async function unmount(root: ReturnType<typeof createRoot>) {
 describe('StudioRecorderPanel', () => {
   afterEach(() => {
     document.body.replaceChildren();
+    mocks.truncated = false;
     vi.restoreAllMocks();
   });
 
@@ -224,8 +248,10 @@ describe('StudioRecorderPanel', () => {
   it('renders saved recordings in the replay panel', async () => {
     const session = createRecorderMock().state.sessions[0];
     const onReplaySession = vi.fn();
+    const onSelectSession = vi.fn();
     const { container, root } = await renderReplayPanel({
       onReplaySession,
+      onSelectSession,
       sessions: [session],
     });
 
@@ -233,16 +259,52 @@ describe('StudioRecorderPanel', () => {
     expect(container.textContent).toContain('Existing recording');
     expect(container.textContent).not.toContain('No recordings yet');
 
-    const replayButton = container.querySelector(
-      '[role="button"][title="Existing recording"]',
-    );
+    const replayButton = container.querySelector('[role="button"]');
     await act(async () => {
       replayButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
 
+    expect(onSelectSession).toHaveBeenCalledWith(session);
+    expect(onSelectSession).toHaveBeenCalledTimes(1);
+    expect(onReplaySession).not.toHaveBeenCalled();
+
+    const replayActionButton = container.querySelector(
+      `button[aria-label="Replay ${session.name}"]`,
+    );
+    await act(async () => {
+      replayActionButton?.dispatchEvent(
+        new MouseEvent('click', { bubbles: true }),
+      );
+    });
+
     expect(onReplaySession).toHaveBeenCalledWith(session);
+    expect(onSelectSession).toHaveBeenCalledTimes(1);
 
     await unmount(root);
+  });
+
+  it('only adds a replay-name tooltip when the name is truncated', async () => {
+    const session = createRecorderMock().state.sessions[0];
+    mocks.truncated = false;
+    const { container, root } = await renderReplayPanel({
+      sessions: [session],
+    });
+
+    expect(
+      container.querySelector('[role="button"]')?.getAttribute('title'),
+    ).toBeNull();
+
+    await unmount(root);
+
+    mocks.truncated = true;
+    const truncatedReplay = await renderReplayPanel({ sessions: [session] });
+    expect(
+      truncatedReplay.container
+        .querySelector('[role="button"]')
+        ?.getAttribute('title'),
+    ).toBe(session.name);
+
+    await unmount(truncatedReplay.root);
   });
 
   it('renders the replay empty state from the interaction spec', async () => {
@@ -254,7 +316,7 @@ describe('StudioRecorderPanel', () => {
       'No recording history available yet',
     );
     expect(container.textContent).toContain(
-      'After the recording task is completed, a playback will be generated here.',
+      'Generate Markdown from a completed recording to add it here.',
     );
     expect(container.textContent).not.toContain('No recordings yet');
 
@@ -337,6 +399,11 @@ describe('StudioRecorderPanel', () => {
       document.body.querySelectorAll('button'),
     ).find((button) => button.textContent?.includes('Delete'));
     expect(deleteButton).not.toBeNull();
+    expect(
+      deleteButton?.classList.contains('studio-action-menu-item-danger'),
+    ).toBe(true);
+    expect(downloadButton?.querySelector('svg')).not.toBeNull();
+    expect(deleteButton?.querySelector('svg')).not.toBeNull();
 
     await act(async () => {
       downloadButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
@@ -452,6 +519,17 @@ describe('StudioRecorderPanel', () => {
     expect(container.textContent).not.toContain('Show more');
     expect(container.textContent).not.toContain('Hide more');
     expect(container.textContent).not.toContain('Outputs');
+    const timelineCopies = container.querySelectorAll<HTMLElement>(
+      '.studio-recorder-timeline-copy',
+    );
+    expect(timelineCopies).toHaveLength(3);
+    expect(timelineCopies[0]?.getAttribute('title')).toBeNull();
+    expect(timelineCopies[1]?.getAttribute('title')).toBeNull();
+    expect(
+      container.querySelector(
+        '[data-tooltip-title="Click - Booking.com app icon"]',
+      ),
+    ).toBeNull();
 
     await unmount(root);
   });
@@ -783,7 +861,7 @@ describe('StudioRecorderPanel', () => {
     expect(mocks.recorder.stopRecording).toHaveBeenCalled();
     expect(mocks.recorder.generateSessionCode).not.toHaveBeenCalled();
     expect(container.textContent).not.toContain('Generating markdown...');
-    expect(container.textContent).not.toContain('Generate natural language');
+    expect(container.textContent).not.toContain('Generate markdown');
     const stoppingButton = container.querySelector(
       'button[aria-label="Stopping recording"]',
     );
@@ -814,7 +892,7 @@ describe('StudioRecorderPanel', () => {
     });
 
     const generateButton = container.querySelector(
-      'button[aria-label="Generate natural language"]',
+      'button[aria-label="Generate markdown"]',
     );
     expect(generateButton).not.toBeNull();
     expect(mocks.recorder.generateSessionCode).not.toHaveBeenCalled();
@@ -837,7 +915,7 @@ describe('StudioRecorderPanel', () => {
       }),
     );
     expect(
-      container.querySelector('button[aria-label="Generate natural language"]'),
+      container.querySelector('button[aria-label="Generate markdown"]'),
     ).not.toBeNull();
 
     await unmount(root);

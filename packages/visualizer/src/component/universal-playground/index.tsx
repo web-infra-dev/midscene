@@ -9,6 +9,7 @@ import type { ReactNode } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { usePlaygroundExecution } from '../../hooks/usePlaygroundExecution';
 import { usePlaygroundState } from '../../hooks/usePlaygroundState';
+import { useTextTruncation } from '../../hooks/useTextTruncation';
 import { useEnvConfig } from '../../store/store';
 import type { FormValue, UniversalPlaygroundProps } from '../../types';
 import { notifyError } from '../../utils';
@@ -19,7 +20,10 @@ import './index.less';
 import PlaygroundIcon from '../../icons/avatar.svg';
 import { defaultMainButtons } from '../../utils/constants';
 import { calculateEmptyStatePromptScrollTop } from '../../utils/empty-state-scroll';
-import { resolveProgressActionIcon } from '../../utils/progress-action-icon';
+import {
+  defaultProgressErrorIcon,
+  resolveProgressActionIcon,
+} from '../../utils/progress-action-icon';
 import { shouldOffsetEmptyStateForPromptInput } from '../../utils/prompt-input-utils';
 import { PromptInput } from '../prompt-input';
 import ShinyText from '../shiny-text';
@@ -57,6 +61,46 @@ function ErrorMessage({ error }: { error: string }) {
       type="error"
       showIcon
     />
+  );
+}
+
+function ProgressRowContent({
+  action,
+  content,
+  description,
+  error,
+  shouldShowLoading,
+}: {
+  action: string;
+  content: string;
+  description: string;
+  error?: string | null;
+  shouldShowLoading: boolean;
+}) {
+  const { ref, truncated } = useTextTruncation<HTMLDivElement>(
+    content,
+    'multi-line',
+  );
+
+  return (
+    <div
+      className="progress-row-content"
+      title={truncated ? content : undefined}
+    >
+      <div className="progress-row-copy" ref={ref}>
+        {action ? <span className="progress-action-item">{action}</span> : null}
+        {description ? (
+          <div className="progress-description-wrap">
+            {shouldShowLoading ? (
+              <ShinyText text={description} className="progress-description" />
+            ) : (
+              <span className="progress-description">{description}</span>
+            )}
+          </div>
+        ) : null}
+      </div>
+      {error && <ErrorMessage error={error} />}
+    </div>
   );
 }
 
@@ -393,6 +437,14 @@ export function UniversalPlayground({
     }
     return null;
   }, [infoList]);
+  const lastVisibleProgressId = useMemo(() => {
+    for (let i = visibleInfoList.length - 1; i >= 0; i--) {
+      if (visibleInfoList[i].type === 'progress') {
+        return visibleInfoList[i].id;
+      }
+    }
+    return null;
+  }, [visibleInfoList]);
   const renderCustomEmptyState = shouldRenderCustomEmptyState(
     visibleInfoList,
     componentConfig.emptyState,
@@ -590,6 +642,8 @@ export function UniversalPlayground({
 
                               const isLatestProgress =
                                 item.id === latestProgressId;
+                              const isLastVisibleProgress =
+                                item.id === lastVisibleProgressId;
                               const shouldShowLoading =
                                 loading && isLatestProgress;
 
@@ -607,7 +661,13 @@ export function UniversalPlayground({
                                     )
                                   : null;
                               return (
-                                <div className="progress-row">
+                                <div
+                                  className={`progress-row ${
+                                    isLastVisibleProgress
+                                      ? 'progress-row-last'
+                                      : ''
+                                  }`}
+                                >
                                   {action ? (
                                     <span
                                       className={`progress-status-icon ${state}`}
@@ -615,7 +675,7 @@ export function UniversalPlayground({
                                       {state === 'loading' ? (
                                         <LoadingOutlined spin />
                                       ) : state === 'error' ? (
-                                        '✗'
+                                        defaultProgressErrorIcon()
                                       ) : domainIcon !== null ? (
                                         domainIcon
                                       ) : (
@@ -623,30 +683,13 @@ export function UniversalPlayground({
                                       )}
                                     </span>
                                   ) : null}
-                                  <div
-                                    className="progress-row-content"
-                                    title={item.content}
-                                  >
-                                    <div className="progress-row-copy">
-                                      {action ? (
-                                        <span className="progress-action-item">
-                                          {action}
-                                        </span>
-                                      ) : null}
-                                      {description ? (
-                                        <div className="progress-description-wrap">
-                                          <ShinyText
-                                            text={description}
-                                            className="progress-description"
-                                            disabled={!shouldShowLoading}
-                                          />
-                                        </div>
-                                      ) : null}
-                                    </div>
-                                    {item.result?.error && (
-                                      <ErrorMessage error={item.result.error} />
-                                    )}
-                                  </div>
+                                  <ProgressRowContent
+                                    action={action}
+                                    content={item.content}
+                                    description={description}
+                                    error={item.result?.error}
+                                    shouldShowLoading={shouldShowLoading}
+                                  />
                                 </div>
                               );
                             })()}

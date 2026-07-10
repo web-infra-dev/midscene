@@ -184,23 +184,13 @@ function ReplayExecutionPanel({
         showClearButton: true,
         storageNamespace,
         suppressConfigErrorToast: true,
-        timelineWrapper: (content, state) =>
-          state.empty ? null : (
-            <StudioExecutionTimelinePanel
-              ariaHidden={timelineCollapsed}
-              className="studio-replay-timeline-panel"
-              collapsed={timelineCollapsed}
-              contentClassName="studio-replay-timeline-panel-body"
-              empty={state.empty}
-              headerAction={timelineCollapsed ? null : state.headerAction}
-              onToggleCollapsed={() => {
-                setTimelineCollapsed((collapsed) => !collapsed);
-              }}
-              variant={StudioModeTab.Replay}
-            >
-              {content}
-            </StudioExecutionTimelinePanel>
-          ),
+        timeline: {
+          collapsed: timelineCollapsed,
+          onToggleCollapsed: () => {
+            setTimelineCollapsed((collapsed) => !collapsed);
+          },
+          variant: StudioModeTab.Replay,
+        },
       }),
     [
       externalRunRequest,
@@ -217,9 +207,7 @@ function ReplayExecutionPanel({
     timelinePanel = (
       <StudioExecutionTimelinePanel
         ariaHidden={timelineCollapsed}
-        className="studio-replay-timeline-panel"
         collapsed={timelineCollapsed}
-        contentClassName="studio-replay-timeline-panel-body"
         empty={shouldRenderDisconnectedFallback}
         onToggleCollapsed={() => {
           setTimelineCollapsed((collapsed) => !collapsed);
@@ -284,6 +272,10 @@ export default function StudioModePanel({
   const [replayingSessionId, setReplayingSessionId] = useState<string | null>(
     null,
   );
+  const [selectedReplaySessionId, setSelectedReplaySessionId] = useState<
+    string | null
+  >(null);
+  const selectedReplaySessionIdRef = useRef<string | null>(null);
   const [replayExecutionStatus, setReplayExecutionStatus] =
     useState<PlaygroundExecutionStatus>({
       running: false,
@@ -366,7 +358,7 @@ export default function StudioModePanel({
       filterStudioRecorderSessionsForTarget(
         recorder.state.sessions ?? [],
         sharedDeviceTarget,
-      ),
+      ).filter((session) => Boolean(session.generatedCode?.markdown)),
     [sharedDeviceTarget, recorder.state.sessions],
   );
   const importReplayDisabledReason =
@@ -468,22 +460,12 @@ export default function StudioModePanel({
         }
         setReplayingSessionId(session.id);
         replayExecutionWasRunningRef.current = false;
-        let replaySession = session;
-        if (!replaySession.generatedCode?.markdown) {
-          const markdown = await recorder.generateSessionCode(session.id, {
-            type: 'markdown',
-          });
-          replaySession = {
-            ...session,
-            generatedCode: {
-              ...session.generatedCode,
-              markdown,
-            },
-          };
+        if (!session.generatedCode?.markdown) {
+          throw new Error('Generate Markdown before replaying this recording.');
         }
         triggerExternalRun(
           {
-            prompt: createRecorderAiActReplayPrompt(replaySession),
+            prompt: createRecorderAiActReplayPrompt(session),
             type: 'aiAct',
           },
           `Replay: ${session.name}`,
@@ -495,7 +477,7 @@ export default function StudioModePanel({
         message.error(error instanceof Error ? error.message : String(error));
       }
     },
-    [importReplayDisabledReason, message, recorder, triggerExternalRun],
+    [importReplayDisabledReason, message, triggerExternalRun],
   );
   const handleReplayExecutionStatusChange = useCallback(
     (status: PlaygroundExecutionStatus) => {
@@ -521,9 +503,9 @@ export default function StudioModePanel({
     async (session: StudioRecordingSession) => {
       try {
         if (!session.generatedCode?.markdown) {
-          await recorder.generateSessionCode(session.id, {
-            type: 'markdown',
-          });
+          throw new Error(
+            'Generate Markdown before downloading this recording.',
+          );
         }
         await recorder.exportSessionCode(session.id, 'markdown');
       } catch (error) {
@@ -541,6 +523,36 @@ export default function StudioModePanel({
       }
     },
     [message, recorder],
+  );
+  const handleSelectReplaySession = useCallback(
+    async (session: StudioRecordingSession) => {
+      selectedReplaySessionIdRef.current = session.id;
+      setSelectedReplaySessionId(session.id);
+      try {
+        const markdown = session.generatedCode?.markdown;
+        if (!markdown) {
+          throw new Error('Generate Markdown before opening this recording.');
+        }
+        if (selectedReplaySessionIdRef.current !== session.id) {
+          return;
+        }
+        onOpenStudioRightPanel?.({
+          markdown,
+          onDelete: () => handleDeleteReplaySession(session),
+          onDownload: () => handleDownloadReplaySession(session),
+          title: session.name,
+          type: StudioRightPanelViewType.Markdown,
+        });
+      } catch (error) {
+        message.error(error instanceof Error ? error.message : String(error));
+      }
+    },
+    [
+      handleDeleteReplaySession,
+      handleDownloadReplaySession,
+      message,
+      onOpenStudioRightPanel,
+    ],
   );
   const replayTitle =
     activeExternalRunRequest?.reportDisplay?.prompt ||
@@ -572,6 +584,8 @@ export default function StudioModePanel({
     setExternalRunRequest(null);
     setPlaygroundExternalRunRequest(null);
     setReplayingSessionId(null);
+    selectedReplaySessionIdRef.current = null;
+    setSelectedReplaySessionId(null);
     replayExecutionWasRunningRef.current = false;
     setReplayExecutionStatus({
       running: false,
@@ -662,9 +676,13 @@ export default function StudioModePanel({
           onReplaySession={(session) => {
             void handleReplaySession(session);
           }}
+          onSelectSession={(session) => {
+            void handleSelectReplaySession(session);
+          }}
           onStopActiveSession={() => {
             void replayExecutionStatus.stop();
           }}
+          selectedSessionId={selectedReplaySessionId}
           sessions={replaySessions}
         />
         <ReplayExecutionPanel

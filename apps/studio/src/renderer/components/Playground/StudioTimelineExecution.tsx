@@ -7,6 +7,10 @@ import type {
 import type { ReactNode } from 'react';
 import { downloadStudioReport } from '../../playground/report-download';
 import type { useStudioPlayground } from '../../playground/useStudioPlayground';
+import {
+  StudioExecutionTimelinePanel,
+  type StudioTimelinePanelVariant,
+} from '../StudioTimelinePanel';
 import './StudioTimelineExecution.css';
 import './StudioExecutionEmptyState.css';
 
@@ -33,6 +37,12 @@ type StudioPromptInputChromeConfig = NonNullable<
   UniversalPlaygroundConfig['promptInputChrome']
 > & {
   settingsPlacement?: 'toolbar' | 'input' | 'hidden';
+};
+
+type StudioExecutionTimelineOptions = {
+  collapsed: boolean;
+  onToggleCollapsed: () => void;
+  variant: StudioTimelinePanelVariant;
 };
 
 function NotConnectedFallback() {
@@ -102,6 +112,29 @@ export function createStudioTimelineStorageNamespace(
     : 'studio-playground-unresolved-target';
 }
 
+function createStudioExecutionTimelineWrapper({
+  collapsed,
+  onToggleCollapsed,
+  variant,
+}: StudioExecutionTimelineOptions) {
+  return (
+    content: ReactNode,
+    state: { empty: boolean; headerAction?: ReactNode },
+  ) =>
+    state.empty ? null : (
+      <StudioExecutionTimelinePanel
+        ariaHidden={collapsed}
+        collapsed={collapsed}
+        empty={state.empty}
+        headerAction={collapsed ? null : state.headerAction}
+        onToggleCollapsed={onToggleCollapsed}
+        variant={variant}
+      >
+        {content}
+      </StudioExecutionTimelinePanel>
+    );
+}
+
 export function createStudioTimelineConfig(
   options: {
     emptyState?: ReactNode;
@@ -114,6 +147,7 @@ export function createStudioTimelineConfig(
     showClearButton?: boolean;
     storageNamespace?: string;
     suppressConfigErrorToast?: boolean;
+    timeline?: StudioExecutionTimelineOptions;
     timelineHeader?: ReactNode;
     timelineWrapper?: (
       content: ReactNode,
@@ -142,7 +176,9 @@ export function createStudioTimelineConfig(
     storageNamespace: options.storageNamespace,
     suppressConfigErrorToast: options.suppressConfigErrorToast,
     timelineHeader: options.timelineHeader,
-    timelineWrapper: options.timelineWrapper,
+    timelineWrapper: options.timeline
+      ? createStudioExecutionTimelineWrapper(options.timeline)
+      : options.timelineWrapper,
   };
 }
 

@@ -70,8 +70,8 @@
 }
 
 [data-theme="dark"] {
-  --midscene-app-bg: #171717;
-  --midscene-surface: #1e1e1e;
+  --midscene-app-bg: #282828;
+  --midscene-surface: #181818;
   --midscene-surface-elevated: #2b2b2b;
   --midscene-surface-muted: #2b2b2b;
   --midscene-surface-hover: rgba(255, 255, 255, 0.05);

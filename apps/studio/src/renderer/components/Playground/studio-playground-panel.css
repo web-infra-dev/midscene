@@ -666,11 +666,52 @@
   .studio-playground-input-first
   .prompt-input-wrapper
   .main-side-console-input
+  > .ant-form-item
   .ant-form-item-control-input-content
   textarea.ant-input {
   border-color: transparent !important;
   background: transparent !important;
   box-shadow: none !important;
+}
+
+[data-theme="dark"]
+  .playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper
+  .main-side-console-input
+  .structured-params
+  .ant-form-item:not(:last-child) {
+  margin-bottom: 12px !important;
+}
+
+[data-theme="dark"]
+  .playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper
+  .main-side-console-input
+  .structured-params
+  textarea.ant-input {
+  padding: 4px 11px;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.04) !important;
+}
+
+[data-theme="dark"]
+  .playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper
+  .main-side-console-input
+  .structured-params
+  textarea.ant-input:hover,
+[data-theme="dark"]
+  .playground-shell
+  .studio-playground-input-first
+  .prompt-input-wrapper
+  .main-side-console-input
+  .structured-params
+  textarea.ant-input:focus {
+  border-color: #40a9ff !important;
 }
 
 [data-theme="dark"]

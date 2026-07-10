@@ -165,6 +165,48 @@ describe('Page startMjpegStream', () => {
     expect(mockPage.screenshot).not.toHaveBeenCalled();
   });
 
+  it('does not mix fallback screenshots into an active CDP screencast', async () => {
+    const handlers = new Map<string, (event: any) => unknown>();
+    const send = vi.fn().mockResolvedValue(undefined);
+    const detach = vi.fn().mockResolvedValue(undefined);
+    const client = {
+      send,
+      detach,
+      on: vi.fn((event: string, handler: (event: any) => unknown) => {
+        handlers.set(event, handler);
+      }),
+      off: vi.fn(),
+    };
+    const mockPage = {
+      evaluate: vi.fn().mockResolvedValue({ width: 1280, height: 768 }),
+      screenshot: vi.fn().mockResolvedValue('ZmFsbGJhY2s='),
+      url: () => 'http://example.com',
+      target: () => ({
+        createCDPSession: vi.fn().mockResolvedValue(client),
+      }),
+    } as any;
+    const onFrame = vi.fn();
+    const page = new Page(mockPage, 'puppeteer');
+
+    const handle = await page.startMjpegStream({ onFrame });
+    await handlers.get('Page.screencastFrame')?.({
+      data: 'bmF0aXZlLWZyYW1l',
+      sessionId: 42,
+    });
+    await Promise.resolve();
+    mockPage.screenshot.mockClear();
+
+    await page.flushPendingVisualUpdate();
+
+    expect(mockPage.screenshot).not.toHaveBeenCalled();
+    expect(onFrame).toHaveBeenLastCalledWith({
+      data: 'bmF0aXZlLWZyYW1l',
+      contentType: 'image/jpeg',
+    });
+
+    await handle.stop();
+  });
+
   it('does not fail the MJPEG stream when visual refresh races with navigation', async () => {
     const mockPage = {
       evaluate: vi

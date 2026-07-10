@@ -80,6 +80,8 @@ export interface MainContentProps {
   studioMode?: StudioMode;
   onStudioModeChange?: (mode: StudioMode) => void;
   onOpenStudioRightPanel?: (view: StudioRightPanelView) => void;
+  /** A generated Markdown detail panel is open beside Record or Replay mode. */
+  floatingStudioModePanel?: boolean;
   /** Left inset reserved by the collapsed shell titlebar controls. */
   titlebarInsetLeft?: number;
 }
@@ -319,6 +321,7 @@ export default function MainContent({
   modelEnvText,
   onOpenEnvModal,
   onOpenStudioRightPanel,
+  floatingStudioModePanel = false,
   onStudioModeChange,
   studioMode,
   titlebarInsetLeft = 0,
@@ -936,14 +939,14 @@ export default function MainContent({
   }
 
   return (
-    <div className="relative flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-[12px] bg-surface dark:bg-[#181818]">
+    <div className="relative flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-[12px] bg-surface">
       {/*
        * Device-preview top bar: icon + device name with ADB / Viewport meta
        * on the left, and a pill-shaped status/disconnect control on the
        * right that reveals a "Disconnect" tooltip on hover.
        */}
       <div
-        className="app-drag relative flex h-[52px] items-center justify-between border-b border-border-subtle bg-surface pl-[8px] pr-4 dark:border-[#323131] dark:bg-[#181818]"
+        className="app-drag relative flex h-[52px] items-center justify-between border-b border-border-subtle bg-surface pl-[8px] pr-4 dark:border-[#323131]"
         style={
           titlebarInsetLeft > 0 ? { paddingLeft: titlebarInsetLeft } : undefined
         }
@@ -1057,10 +1060,14 @@ export default function MainContent({
         </div>
       </div>
 
-      <div className="relative min-h-0 flex-1 overflow-hidden bg-surface dark:bg-[#181818]">
+      <div className="relative min-h-0 flex-1 overflow-hidden bg-surface">
         <div
           className="box-border h-full min-w-0 overflow-hidden"
-          style={{ paddingRight: STUDIO_MODE_PANEL_WIDTH }}
+          style={
+            floatingStudioModePanel
+              ? undefined
+              : { paddingRight: STUDIO_MODE_PANEL_WIDTH }
+          }
         >
           <MobilePreviewFrame
             aspectRatio={previewAspectRatio}
@@ -1105,9 +1112,15 @@ export default function MainContent({
               />
             ) : studioPlayground.controller.state.sessionViewState.connected ? (
               <div
-                className={`box-border h-full w-full ${
-                  shouldPadDesktopPreview ? 'px-6' : ''
-                }`}
+                className={[
+                  'box-border h-full w-full',
+                  shouldPadDesktopPreview ? 'px-6' : '',
+                  previewPlatform === 'web'
+                    ? 'studio-web-preview-fixed-aspect'
+                    : '',
+                ]
+                  .filter(Boolean)
+                  .join(' ')}
               >
                 <PlaygroundPreview
                   connectingOverlay={
@@ -1162,7 +1175,7 @@ export default function MainContent({
           </MobilePreviewFrame>
         </div>
         <div
-          className="absolute bottom-0 right-0 top-0 z-10 box-border flex min-h-0 flex-col overflow-hidden rounded-br-[12px] bg-transparent p-[10px]"
+          className="absolute bottom-0 right-0 top-0 z-10 box-border flex min-h-0 flex-col overflow-hidden rounded-br-[12px] p-[10px]"
           style={{ width: STUDIO_MODE_PANEL_WIDTH }}
         >
           <StudioModePanel

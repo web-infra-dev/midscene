@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
-import { useEffect, useRef, useState } from 'react';
 import { saveStudioRecorderFile } from '../../recorder/export';
+import { DownloadIcon, TrashIcon } from '../Recorder/assets/recorder-icons';
+import { StudioActionMenu } from '../StudioActionMenu';
 
 export enum StudioRightPanelViewType {
   Markdown = 'markdown',
@@ -40,28 +41,9 @@ function MarkdownDetailView({
   onDownload?: () => void | Promise<void>;
   title?: string;
 }) {
-  const [menuOpen, setMenuOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    if (!menuOpen) {
-      return;
-    }
-
-    const handlePointerDown = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setMenuOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handlePointerDown);
-    return () => document.removeEventListener('mousedown', handlePointerDown);
-  }, [menuOpen]);
-
   const downloadMarkdown = async () => {
     if (onDownload) {
       await onDownload();
-      setMenuOpen(false);
       return;
     }
 
@@ -77,7 +59,6 @@ function MarkdownDetailView({
       filters: [{ name: 'Markdown', extensions: ['md', 'markdown'] }],
       title: 'Download Markdown',
     });
-    setMenuOpen(false);
   };
 
   return (
@@ -86,59 +67,24 @@ function MarkdownDetailView({
         <div className="studio-right-panel-markdown-title">
           <span>{title || 'Markdown'}</span>
         </div>
-        <div
-          className="app-no-drag studio-right-panel-markdown-menu"
-          ref={menuRef}
-        >
-          <button
-            aria-expanded={menuOpen}
-            aria-haspopup="menu"
-            aria-label="More markdown actions"
-            className="studio-right-panel-markdown-more"
-            onClick={() => setMenuOpen((open) => !open)}
-            title="More"
-            type="button"
-          >
-            <svg
-              aria-hidden="true"
-              fill="none"
-              height="16"
-              viewBox="0 0 16 16"
-              width="16"
-            >
-              <circle cx="4" cy="8" fill="currentColor" r="1.2" />
-              <circle cx="8" cy="8" fill="currentColor" r="1.2" />
-              <circle cx="12" cy="8" fill="currentColor" r="1.2" />
-            </svg>
-          </button>
-          {menuOpen ? (
-            <div
-              className="app-no-drag studio-right-panel-markdown-dropdown"
-              role="menu"
-            >
-              <button
-                className="studio-right-panel-markdown-dropdown-item"
-                onClick={() => {
-                  void downloadMarkdown();
-                }}
-                role="menuitem"
-                type="button"
-              >
-                Download
-              </button>
-              <button
-                className="studio-right-panel-markdown-dropdown-item studio-right-panel-markdown-dropdown-item-danger"
-                onClick={() => {
-                  setMenuOpen(false);
-                  void onDelete();
-                }}
-                role="menuitem"
-                type="button"
-              >
-                Delete
-              </button>
-            </div>
-          ) : null}
+        <div className="app-no-drag studio-right-panel-markdown-menu">
+          <StudioActionMenu
+            ariaLabel="More markdown actions"
+            items={[
+              {
+                icon: <DownloadIcon />,
+                label: 'Download',
+                onClick: downloadMarkdown,
+              },
+              {
+                danger: true,
+                icon: <TrashIcon />,
+                label: 'Delete',
+                onClick: onDelete,
+              },
+            ]}
+            triggerClassName="studio-right-panel-markdown-more"
+          />
         </div>
       </header>
       <div className="studio-right-panel-markdown-body">
@@ -171,11 +117,17 @@ export function StudioRightPanel({
     );
 
   return (
-    <div className="studio-right-panel">
+    <div className="app-no-drag studio-right-panel">
       <button
         aria-label="Close studio right panel"
         className="app-no-drag studio-right-panel-close"
         onClick={onClose}
+        onPointerDown={(event) => {
+          event.stopPropagation();
+        }}
+        onMouseDown={(event) => {
+          event.stopPropagation();
+        }}
         type="button"
       >
         <span aria-hidden="true">×</span>

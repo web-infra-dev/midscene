@@ -47,11 +47,15 @@ vi.mock('../src/renderer/hooks/useStudioUpdater', () => ({
 vi.mock('../src/renderer/components/MainContent', () => ({
   default: ({
     activeView,
+    floatingStudioModePanel,
+    onOpenStudioRightPanel,
     onStudioModeChange,
     onSelectDeviceView,
     studioMode,
   }: {
     activeView: 'overview' | 'device';
+    floatingStudioModePanel?: boolean;
+    onOpenStudioRightPanel?: (view: unknown) => void;
     onStudioModeChange: (mode: 'playground' | 'record' | 'replay') => void;
     onSelectDeviceView: () => void;
     studioMode: 'playground' | 'record' | 'replay';
@@ -60,6 +64,7 @@ vi.mock('../src/renderer/components/MainContent', () => ({
       'div',
       {
         'data-testid': 'main-content',
+        'data-floating-studio-mode-panel': String(floatingStudioModePanel),
       },
       createElement(
         'button',
@@ -96,6 +101,19 @@ vi.mock('../src/renderer/components/MainContent', () => ({
           type: 'button',
         },
         'playground',
+      ),
+      createElement(
+        'button',
+        {
+          'data-testid': 'open-markdown',
+          onClick: () =>
+            onOpenStudioRightPanel?.({
+              markdown: '# Generated Markdown',
+              type: 'markdown',
+            }),
+          type: 'button',
+        },
+        'markdown',
       ),
       activeView !== 'overview'
         ? createElement('div', {
@@ -247,6 +265,73 @@ describe('ShellLayout right panel tabs', () => {
     expect(
       container.querySelector('[data-testid="playground-playground"]'),
     ).toBeTruthy();
+
+    await act(async () => {
+      root.unmount();
+    });
+  });
+
+  it('animates the Record and Replay Markdown context panels', async () => {
+    const { container, root } = await renderShellLayout();
+
+    await act(async () => {
+      container
+        .querySelector<HTMLButtonElement>('[data-testid="select-device-view"]')
+        ?.click();
+    });
+
+    const mainContent = container.querySelector<HTMLElement>(
+      '[data-testid="main-content"]',
+    );
+    expect(mainContent?.getAttribute('data-floating-studio-mode-panel')).toBe(
+      'false',
+    );
+
+    await act(async () => {
+      container
+        .querySelector<HTMLButtonElement>('[data-testid="open-markdown"]')
+        ?.click();
+    });
+
+    expect(mainContent?.getAttribute('data-floating-studio-mode-panel')).toBe(
+      'true',
+    );
+    expect(
+      container.querySelector('.studio-right-panel-markdown-drawer-enter'),
+    ).not.toBeNull();
+
+    const closeButton = container.querySelector<HTMLButtonElement>(
+      'button[aria-label="Close studio right panel"]',
+    );
+    expect(closeButton).not.toBeNull();
+    expect(closeButton?.classList.contains('app-no-drag')).toBe(true);
+
+    await act(async () => {
+      closeButton?.click();
+    });
+
+    expect(
+      container.querySelector('.studio-right-panel-markdown-drawer-exit'),
+    ).not.toBeNull();
+
+    await act(async () => {
+      container
+        .querySelector<HTMLButtonElement>('[data-testid="switch-replay"]')
+        ?.click();
+    });
+
+    await act(async () => {
+      container
+        .querySelector<HTMLButtonElement>('[data-testid="open-markdown"]')
+        ?.click();
+    });
+
+    expect(mainContent?.getAttribute('data-floating-studio-mode-panel')).toBe(
+      'true',
+    );
+    expect(
+      container.querySelector('.studio-right-panel-markdown-drawer-enter'),
+    ).not.toBeNull();
 
     await act(async () => {
       root.unmount();

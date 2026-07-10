@@ -70,6 +70,8 @@ import 'dotenv/config';
 
 const defaultPort = PLAYGROUND_SERVER_PORT;
 const RECORDER_CAPTURE_AFTER_INTERACT_DELAY_MS = 250;
+const RECORDER_NAVIGATION_OBSERVATION_INTERVAL_MS = 250;
+const RECORDER_NAVIGATION_OBSERVATION_TIMEOUT_MS = 35_000;
 const RECORDER_AI_DESCRIBE_AFTER_INTERACT_TIMEOUT_MS = 30_000;
 const RECORDER_AI_DESCRIBE_VERIFY_PROMPT = false;
 const RECORDER_AI_DESCRIBE_SCREENSHOT_DUMP_DIR =
@@ -1473,6 +1475,7 @@ class PlaygroundServer {
     if (!this._recorderSessionId) {
       return;
     }
+    const sessionId = this._recorderSessionId;
     const before =
       snapshotBefore || (await this.captureRecorderSnapshotBeforeInteract());
     const screenshotBefore = before?.screenshot;
@@ -1514,6 +1517,110 @@ class PlaygroundServer {
     this._studioPreviewRecorderLastScreenshot = screenshotAfter;
     this._studioPreviewRecorderLastPageState = pageStateAfter;
     this.queueStudioPreviewRecorderEventAppend(event, navigationEvent);
+    if (!navigationEvent) {
+      this.observeStudioPreviewNavigationChange(
+        payload,
+        before?.pageState,
+        event.hashId,
+        sessionId,
+      );
+    }
+  }
+
+  /**
+   * A browser popup redirected into the preview tab can take much longer than
+   * the initial recorder capture. Keep the click responsive, then observe the
+   * URL separately so the eventual navigation is still represented in the
+   * recording without blocking later manual interactions.
+   */
+  private observeStudioPreviewNavigationChange(
+    payload: Record<string, unknown>,
+    pageStateBefore: PlaygroundRecorderPageState | undefined,
+    triggerEventHashId: string,
+    sessionId: string,
+  ): void {
+    const actionType =
+      typeof payload.actionType === 'string' ? payload.actionType : undefined;
+    const beforeUrl = pageStateBefore?.url;
+    if (
+      !actionType ||
+      !beforeUrl ||
+      BROWSER_CHROME_NAVIGATION_ACTIONS.has(actionType)
+    ) {
+      return;
+    }
+
+    void (async () => {
+      const deadline = Date.now() + RECORDER_NAVIGATION_OBSERVATION_TIMEOUT_MS;
+      while (this._recorderSessionId === sessionId && Date.now() < deadline) {
+        await sleep(RECORDER_NAVIGATION_OBSERVATION_INTERVAL_MS);
+        if (this._recorderSessionId !== sessionId) {
+          return;
+        }
+
+        const currentUrl = await this.getActivePageUrl();
+        if (!currentUrl || currentUrl === beforeUrl) {
+          continue;
+        }
+
+        const screenshot = await this.takeRecorderScreenshot();
+        const pageStateAfter = await this.getActiveRecorderPageState();
+        const navigationEvent = this.buildStudioPreviewNavigationChangeEvent(
+          payload,
+          pageStateBefore,
+          pageStateAfter,
+          screenshot,
+        );
+        if (!navigationEvent) {
+          return;
+        }
+
+        navigationEvent.rawPayload = {
+          ...navigationEvent.rawPayload,
+          triggerEventHashId,
+        };
+        if (
+          this.appendStudioPreviewNavigationEventAfterTrigger(
+            triggerEventHashId,
+            navigationEvent,
+          )
+        ) {
+          this._studioPreviewRecorderLastScreenshot = screenshot;
+          this._studioPreviewRecorderLastPageState = pageStateAfter;
+        }
+        return;
+      }
+    })().catch((error) => {
+      debugInteract('delayed recorder navigation observation failed:', error);
+    });
+  }
+
+  private appendStudioPreviewNavigationEventAfterTrigger(
+    triggerEventHashId: string,
+    navigationEvent: PlaygroundRecorderEvent,
+  ): boolean {
+    const triggerIndex = this._recorderEvents.findIndex(
+      (event) => event.hashId === triggerEventHashId,
+    );
+    if (triggerIndex < 0) {
+      return false;
+    }
+
+    const alreadyRecorded = this._recorderEvents.some((event) => {
+      if (event.actionType !== 'NavigationChanged') {
+        return false;
+      }
+      const rawPayload = event.rawPayload as
+        | { triggerEventHashId?: unknown }
+        | undefined;
+      return rawPayload?.triggerEventHashId === triggerEventHashId;
+    });
+    if (alreadyRecorded) {
+      return false;
+    }
+
+    this._recorderEvents.splice(triggerIndex + 1, 0, navigationEvent);
+    return true;
   }
 
   private async buildStudioPreviewRecorderEvent(
