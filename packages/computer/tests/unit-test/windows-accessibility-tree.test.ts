@@ -63,6 +63,12 @@ describe('Windows UI Automation accessibility tree', () => {
     expect(script).toContain('AutomationIdProperty');
     expect(script).toContain('NativeWindowHandleProperty');
     expect(script).toContain('$generatedAutomationId');
+    expect(script).toContain('EnumChildWindows');
+    expect(script).toContain('$seenNativeWindowHandles');
+    expect(script).toContain('$detachedNativeChildren');
+    expect(
+      Buffer.from(script, 'utf16le').toString('base64').length,
+    ).toBeLessThan(30_000);
   });
 
   it('rejects an invalid active window handle before spawning PowerShell', () => {

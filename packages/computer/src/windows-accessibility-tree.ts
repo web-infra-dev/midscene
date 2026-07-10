@@ -32,6 +32,35 @@ if (-not $screen) { throw "Requested display not found: $displayId" }`
   return String.raw`
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName UIAutomationClient, UIAutomationTypes, System.Windows.Forms
+Add-Type -TypeDefinition @'
+using System;
+using System.Collections.Generic;
+using System.Runtime.InteropServices;
+
+public static class MidsceneNativeWindowEnumerator {
+  private delegate bool EnumWindowProc(IntPtr windowHandle, IntPtr parameter);
+
+  [DllImport("user32.dll")]
+  private static extern bool EnumChildWindows(
+    IntPtr parentWindowHandle,
+    EnumWindowProc callback,
+    IntPtr parameter
+  );
+
+  public static IntPtr[] GetDescendantWindows(IntPtr parentWindowHandle) {
+    var handles = new List<IntPtr>();
+    EnumChildWindows(
+      parentWindowHandle,
+      (windowHandle, _) => {
+        handles.Add(windowHandle);
+        return true;
+      },
+      IntPtr.Zero
+    );
+    return handles.ToArray();
+  }
+}
+'@
 ${selectScreen}
 
 $windowHandle = [Int64]${options.windowHandle}
@@ -44,6 +73,7 @@ $maxDepth = 5
 $maxNodes = 300
 $maxChildren = 80
 $nodeCount = 0
+$seenNativeWindowHandles = @{}
 
 function Read-Property($element, $property) {
   try {
@@ -87,6 +117,7 @@ function Convert-Node($element, [int]$depth) {
   }
   if ($null -ne $nativeWindowHandle -and [string]$nativeWindowHandle -ne '0') {
     Add-Attribute $attrs 'NativeWindowHandle' $nativeWindowHandle
+    $script:seenNativeWindowHandles[[string]$nativeWindowHandle] = $true
   }
   Add-Attribute $attrs 'Name' (Read-Property $element ([System.Windows.Automation.AutomationElement]::NameProperty))
   Add-Attribute $attrs 'HelpText' (Read-Property $element ([System.Windows.Automation.AutomationElement]::HelpTextProperty))
@@ -132,6 +163,22 @@ function Convert-Node($element, [int]$depth) {
 }
 
 $tree = Convert-Node $root 0
+$detachedNativeChildren = @()
+foreach ($descendantHandle in [MidsceneNativeWindowEnumerator]::GetDescendantWindows([IntPtr]$windowHandle)) {
+  if ($script:nodeCount -ge $maxNodes) { break }
+  $handleKey = [string][Int64]$descendantHandle
+  if ($script:seenNativeWindowHandles.ContainsKey($handleKey)) { continue }
+  try {
+    $descendant = [System.Windows.Automation.AutomationElement]::FromHandle($descendantHandle)
+  } catch {
+    $descendant = $null
+  }
+  if ($null -eq $descendant) { continue }
+  $detachedNativeChildren += ,(Convert-Node $descendant 1)
+}
+if ($detachedNativeChildren.Count -gt 0) {
+  $tree.children = @($tree.children) + @($detachedNativeChildren)
+}
 [Console]::Out.Write((ConvertTo-Json -InputObject $tree -Depth 50 -Compress))
 `.trim();
 }

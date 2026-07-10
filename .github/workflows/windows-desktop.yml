@@ -396,7 +396,7 @@ jobs:
       run: pnpm run build:skip-cache
 
     - name: Run Windows accessibility cache smoke
-      run: pnpm --filter @midscene/computer exec vitest run tests/ai/windows-accessibility-cache.test.ts
+      run: pnpm --filter @midscene/computer exec vitest run tests/ai/windows-accessibility-cache.test.ts --retry=0
 
     - name: Upload Windows accessibility cache-hit report
       if: always()
