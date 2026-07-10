@@ -196,7 +196,6 @@ describe('PlaygroundServer manual interaction APIs', () => {
     expect(response.statusCode).toBe(200);
     const body = response.body as { dump: ReportActionDump };
     expect(agent.resetDump).toHaveBeenCalledBefore(
-      // @ts-expect-error TODO(rstest): call-order matcher rejects the Mock arg type on @rstest/core 0.11.0 (pinned off main to dodge the JSX classic-runtime regression) — https://github.com/web-infra-dev/rstest/issues/1530
       agent.callActionInActionSpace,
     );
     expect(body.dump).toBeInstanceOf(ReportActionDump);

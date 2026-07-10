@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, rs } from '@rstest/core';
 import { AndroidDevice } from '../../src/device';
 import {
   type RawKeyframe,
@@ -19,7 +19,7 @@ const dataPacket = (tag: number): { type: string; data: Buffer } => ({
 
 describe('ScrcpyScreenshotManager keyframe subscription', () => {
   afterEach(() => {
-    vi.restoreAllMocks();
+    rs.restoreAllMocks();
   });
 
   it('fans out raw keyframes (with header + ts) to subscribers', () => {
@@ -54,7 +54,7 @@ describe('ScrcpyScreenshotManager keyframe subscription', () => {
 
   it('keeps the connection alive while subscribed (resets idle timer per frame)', () => {
     const manager = new ScrcpyScreenshotManager({} as any);
-    const resetSpy = vi.spyOn(manager as any, 'resetIdleTimer');
+    const resetSpy = rs.spyOn(manager as any, 'resetIdleTimer');
     manager.subscribeKeyframes(() => {});
     resetSpy.mockClear();
 
@@ -106,20 +106,20 @@ describe('AndroidDevice frame-source capability', () => {
       header: Buffer.from([0x67]),
       capturedAt: 2000,
     };
-    const decode = vi
+    const decode = rs
       .fn()
       .mockImplementation(async (f: RawKeyframe) => `decoded-${f.data[5]}`);
-    const unsubscribe = vi.fn();
+    const unsubscribe = rs.fn();
     (device as any).scrcpyAdapter = {
       isEnabled: () => true,
       getLatestRawKeyframe: () => frameA,
-      subscribeKeyframes: vi.fn().mockImplementation(async (_info, cb) => {
+      subscribeKeyframes: rs.fn().mockImplementation(async (_info, cb) => {
         listener = cb;
         return unsubscribe;
       }),
       decodeRawKeyframeToJpegBase64: decode,
     };
-    (device as any).getDevicePhysicalInfo = vi.fn().mockResolvedValue({});
+    (device as any).getDevicePhysicalInfo = rs.fn().mockResolvedValue({});
 
     const source = await device.openFrameSource!();
     expect(source).toBeDefined();
