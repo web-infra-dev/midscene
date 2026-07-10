@@ -25,7 +25,7 @@ const mockPage = {
   bringToFront: vi.fn(),
   goto: vi.fn(),
   setViewport: vi.fn(),
-  target: vi.fn(() => ({ _targetId: 'target-1' })),
+  target: vi.fn((): { _targetId?: string } => ({ _targetId: 'target-1' })),
 };
 
 const mockBrowser = {
@@ -87,6 +87,15 @@ function createPersistenceRoot(): {
   };
   writeFileSync(persistence.endpointFile, 'ws://127.0.0.1:9222/devtools/1');
   return { root, persistence };
+}
+
+async function rejectedError(promise: Promise<unknown>): Promise<Error> {
+  const error = await promise.then(
+    () => null,
+    (reason: unknown) => reason,
+  );
+  expect(error).toBeInstanceOf(Error);
+  return error as Error;
 }
 
 type WebInitArgTestFactory = () => {
@@ -254,6 +263,117 @@ describe('web agent tool init args', () => {
         newerPage,
         expect.any(Object),
       );
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('fails instead of guessing a Puppeteer tab when the saved target cannot be read', async () => {
+    const { root, persistence } = createPersistenceRoot();
+
+    try {
+      mkdirSync(persistence.targetIdFile);
+      const tools = new WebPuppeteerMidsceneTools(undefined, { persistence });
+      await tools.initTools();
+      const connectTool = tools
+        .getToolDefinitions()
+        .find((tool) => tool.name === 'web_connect');
+
+      const error = await rejectedError(connectTool!.handler({}));
+
+      expect(error.message).toContain(
+        `Failed to read Puppeteer targetId from "${persistence.targetIdFile}"`,
+      );
+      expect(error.cause).toBeInstanceOf(Error);
+      expect(PuppeteerAgent).not.toHaveBeenCalled();
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('fails the current command when the Puppeteer target cannot be saved', async () => {
+    const { root, persistence } = createPersistenceRoot();
+
+    try {
+      mkdirSync(persistence.targetIdFile);
+      const tools = new WebPuppeteerMidsceneTools(undefined, { persistence });
+      await tools.initTools();
+      const connectTool = tools
+        .getToolDefinitions()
+        .find((tool) => tool.name === 'web_connect');
+
+      const error = await rejectedError(
+        connectTool!.handler({ web: { url: 'https://bbb.example.com' } }),
+      );
+
+      expect(error.message).toContain(
+        `Failed to save Puppeteer targetId to "${persistence.targetIdFile}"`,
+      );
+      expect(error.cause).toBeInstanceOf(Error);
+      expect(PuppeteerAgent).not.toHaveBeenCalled();
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('rejects an empty Puppeteer target file as corrupt state', async () => {
+    const { root, persistence } = createPersistenceRoot();
+
+    try {
+      writeFileSync(persistence.targetIdFile, ' \n');
+      const tools = new WebPuppeteerMidsceneTools(undefined, { persistence });
+      await tools.initTools();
+      const connectTool = tools
+        .getToolDefinitions()
+        .find((tool) => tool.name === 'web_connect');
+
+      await expect(connectTool!.handler({})).rejects.toThrow(
+        `Puppeteer targetId file "${persistence.targetIdFile}" is empty`,
+      );
+      expect(PuppeteerAgent).not.toHaveBeenCalled();
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('uses the existing page when no Puppeteer target has been saved yet', async () => {
+    const { root, persistence } = createPersistenceRoot();
+
+    try {
+      const tools = new WebPuppeteerMidsceneTools(undefined, { persistence });
+      await tools.initTools();
+      const takeScreenshotTool = tools
+        .getToolDefinitions()
+        .find((tool) => tool.name === 'take_screenshot');
+
+      await takeScreenshotTool!.handler({});
+
+      expect(PuppeteerAgent).toHaveBeenCalledWith(mockPage, expect.any(Object));
+      expect(readFileSync(persistence.targetIdFile, 'utf-8')).toBe('target-1');
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('fails when Puppeteer does not expose a target ID for the selected page', async () => {
+    const { root, persistence } = createPersistenceRoot();
+    const pageWithoutTargetId = {
+      ...mockPage,
+      target: vi.fn(() => ({})),
+    };
+
+    try {
+      mockBrowser.pages.mockResolvedValueOnce([pageWithoutTargetId]);
+      const tools = new WebPuppeteerMidsceneTools(undefined, { persistence });
+      await tools.initTools();
+      const connectTool = tools
+        .getToolDefinitions()
+        .find((tool) => tool.name === 'web_connect');
+
+      await expect(connectTool!.handler({})).rejects.toThrow(
+        'Puppeteer did not expose a Chrome targetId',
+      );
+      expect(PuppeteerAgent).not.toHaveBeenCalled();
     } finally {
       rmSync(root, { recursive: true, force: true });
     }

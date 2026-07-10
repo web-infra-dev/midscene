@@ -1,6 +1,6 @@
 import { type ChildProcess, spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { mkdir, readFile, unlink, writeFile } from 'node:fs/promises';
+import { mkdir, open, readFile, unlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { ScreenshotItem } from '@midscene/core';
@@ -36,6 +36,7 @@ const ENDPOINT_FILE = join(tmpdir(), 'midscene-puppeteer-endpoint');
 const USER_DATA_DIR = join(tmpdir(), 'midscene-puppeteer-profile');
 const TARGET_ID_FILE = join(tmpdir(), 'midscene-puppeteer-target-id');
 const DETACHED_CHROME_LAUNCH_TIMEOUT_MS = 30_000;
+const DETACHED_CHROME_ENDPOINT_POLL_INTERVAL_MS = 25;
 const debug = getDebug('agent-tools:puppeteer');
 
 export const PUPPETEER_ENDPOINT_FILE = ENDPOINT_FILE;
@@ -96,21 +97,21 @@ function getTargetId(page: Page): string | undefined {
 
 export function waitForDetachedChromeEndpoint(
   proc: ChildProcess,
+  stderrFile: string,
   timeoutMs = DETACHED_CHROME_LAUNCH_TIMEOUT_MS,
 ): Promise<string> {
-  const stderr = proc.stderr;
-  if (!stderr) {
-    return Promise.reject(new Error('Chrome stderr pipe is unavailable.'));
-  }
-
   return new Promise<string>((resolve, reject) => {
     let output = '';
     let settled = false;
+    let exited = false;
+    let pollTimer: NodeJS.Timeout | undefined;
     const cleanup = () => {
       clearTimeout(timeout);
-      stderr.removeListener('data', onData);
+      if (pollTimer) {
+        clearTimeout(pollTimer);
+      }
       proc.removeListener('exit', onExit);
-      stderr.destroy();
+      proc.removeListener('error', onError);
     };
     const resolveOnce = (value: string) => {
       if (settled) return;
@@ -127,18 +128,50 @@ export function waitForDetachedChromeEndpoint(
       cleanup();
       reject(error);
     };
-    const onData = (data: Buffer) => {
-      output += data.toString();
+    const onExit = (code: number | null, signal: NodeJS.Signals | null) => {
+      exited = true;
+      void readFile(stderrFile, 'utf-8')
+        .catch(() => output)
+        .then((latestOutput) => {
+          output = latestOutput;
+          rejectOnce(
+            new Error(
+              `Chrome exited with code ${code ?? signal} before DevTools was ready.\nChrome stderr: ${output}\nTip: if running in a container, launch Chrome with sandbox-compatible arguments.`,
+            ),
+          );
+        });
+    };
+    const onError = (error: Error) => {
+      rejectOnce(
+        new Error(`Failed to launch Chrome. Stderr log: "${stderrFile}".`, {
+          cause: error,
+        }),
+        true,
+      );
+    };
+    const pollForEndpoint = async (): Promise<void> => {
+      if (settled || exited) return;
+      try {
+        output = await readFile(stderrFile, 'utf-8');
+      } catch (error) {
+        rejectOnce(
+          new Error(`Failed to read Chrome stderr log "${stderrFile}".`, {
+            cause: error,
+          }),
+          true,
+        );
+        return;
+      }
+
+      if (settled || exited) return;
       const match = output.match(/DevTools listening on (ws:\/\/[^\s]+)/);
       if (match) {
         resolveOnce(match[1]);
+        return;
       }
-    };
-    const onExit = (code: number | null, signal: NodeJS.Signals | null) => {
-      rejectOnce(
-        new Error(
-          `Chrome exited with code ${code ?? signal} before DevTools was ready.\nChrome stderr: ${output}\nTip: if running in a container, launch Chrome with sandbox-compatible arguments.`,
-        ),
+      pollTimer = setTimeout(
+        () => void pollForEndpoint(),
+        DETACHED_CHROME_ENDPOINT_POLL_INTERVAL_MS,
       );
     };
     const timeout = setTimeout(
@@ -152,8 +185,9 @@ export function waitForDetachedChromeEndpoint(
       timeoutMs,
     );
 
-    stderr.on('data', onData);
     proc.on('exit', onExit);
+    proc.on('error', onError);
+    void pollForEndpoint();
   });
 }
 
@@ -178,14 +212,29 @@ class PuppeteerBrowserManager {
     return this.persistence.targetIdFile || TARGET_ID_FILE;
   }
 
+  private get chromeStderrFile() {
+    return join(this.userDataDir, 'chrome-stderr.log');
+  }
+
   async readSavedTargetId(): Promise<string | null> {
-    if (!existsSync(this.targetIdFile)) return null;
+    let content: string;
     try {
-      return (await readFile(this.targetIdFile, 'utf-8')).trim() || null;
+      content = await readFile(this.targetIdFile, 'utf-8');
     } catch (error) {
-      debug('Failed to read saved Puppeteer targetId: %s', error);
-      return null;
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null;
+      throw new Error(
+        `Failed to read Puppeteer targetId from "${this.targetIdFile}".`,
+        { cause: error },
+      );
     }
+
+    const targetId = content.trim();
+    if (!targetId) {
+      throw new Error(
+        `Puppeteer targetId file "${this.targetIdFile}" is empty.`,
+      );
+    }
+    return targetId;
   }
 
   async saveTargetId(targetId: string): Promise<void> {
@@ -193,16 +242,32 @@ class PuppeteerBrowserManager {
       await writeFile(this.targetIdFile, targetId, 'utf-8');
       debug('Saved Puppeteer targetId: %s', targetId);
     } catch (error) {
-      debug('Failed to save Puppeteer targetId: %s', error);
+      throw new Error(
+        `Failed to save Puppeteer targetId to "${this.targetIdFile}".`,
+        { cause: error },
+      );
     }
   }
 
   async cleanupTargetIdFile(): Promise<void> {
-    if (!existsSync(this.targetIdFile)) return;
     try {
       await unlink(this.targetIdFile);
     } catch (error) {
-      debug('Failed to clean Puppeteer targetId file: %s', error);
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') return;
+      throw new Error(
+        `Failed to remove Puppeteer targetId file "${this.targetIdFile}".`,
+        { cause: error },
+      );
+    }
+  }
+
+  async cleanupChromeStderrFile(): Promise<void> {
+    try {
+      await unlink(this.chromeStderrFile);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+        debug('Failed to clean Chrome stderr log: %s', error);
+      }
     }
   }
 
@@ -257,6 +322,7 @@ class PuppeteerBrowserManager {
       }
     } catch {}
     await this.cleanupTargetIdFile();
+    await this.cleanupChromeStderrFile();
   }
 
   disconnect(): void {
@@ -277,13 +343,31 @@ class PuppeteerBrowserManager {
       viewport,
     });
 
-    const proc = spawn(chromePath, args, {
-      detached: true,
-      stdio: ['ignore', 'ignore', 'pipe'],
-    });
+    const stderrFile = this.chromeStderrFile;
+    const stderrHandle = await open(stderrFile, 'w');
+    let proc: ChildProcess;
+    try {
+      proc = spawn(chromePath, args, {
+        detached: true,
+        stdio: ['ignore', 'ignore', stderrHandle.fd],
+      });
+    } catch (error) {
+      await stderrHandle.close();
+      throw error;
+    }
+    const endpointPromise = waitForDetachedChromeEndpoint(proc, stderrFile);
     proc.unref();
+    try {
+      await stderrHandle.close();
+    } catch (error) {
+      terminateDetachedChrome(proc);
+      await endpointPromise.catch(() => undefined);
+      throw new Error(`Failed to close Chrome stderr log "${stderrFile}".`, {
+        cause: error,
+      });
+    }
 
-    return waitForDetachedChromeEndpoint(proc);
+    return endpointPromise;
   }
 }
 
@@ -394,13 +478,12 @@ export class WebPuppeteerMidsceneTools extends BaseMidsceneTools<
     }
 
     const targetId = getTargetId(page);
-    if (targetId) {
-      await this.browserManager.saveTargetId(targetId);
-    } else {
-      debug(
-        'No targetId on Puppeteer page target; falling back to page ordering on the next CLI command.',
+    if (!targetId) {
+      throw new Error(
+        'Failed to persist Puppeteer page session because Puppeteer did not expose a Chrome targetId.',
       );
     }
+    await this.browserManager.saveTargetId(targetId);
 
     const reportOptions = this.readCliReportAgentOptions();
     this.agent = new PuppeteerAgent(page as unknown as PuppeteerPage, {
