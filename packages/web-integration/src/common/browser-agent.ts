@@ -98,6 +98,11 @@ export type BrowserAgentPageSummary = {
   url: string;
 };
 
+const buildBrowserPagePlanningFeedback = (
+  summaries: BrowserAgentPageSummary[],
+) =>
+  `ListBrowserPages returned the following open pages. Use a 0-based index with SetActivePage when selecting a page:\n${JSON.stringify(summaries, null, 2)}`;
+
 const setActivePageParamSchema = z.object({
   index: z
     .number()
@@ -390,7 +395,14 @@ export const createBrowserAgentPageActions = <Page, NewPageEvent>(options: {
     name: 'ListBrowserPages',
     description:
       'List all open browser pages/tabs and show which one is currently active. Use this before switching pages when a task refers to another tab or window.',
-    call: async () => options.getPageManager().pageSummaries(),
+    call: async (_param, context) => {
+      const summaries = await options.getPageManager().pageSummaries();
+      if (context?.task) {
+        context.task.planningFeedback =
+          buildBrowserPagePlanningFeedback(summaries);
+      }
+      return summaries;
+    },
   },
   {
     name: 'SetActivePage',
