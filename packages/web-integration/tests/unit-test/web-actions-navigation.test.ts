@@ -64,9 +64,9 @@ describe('commonWebActionsForWebPage visual refresh', () => {
   it('passes action-level keyboardTypeDelay to text input actions', async () => {
     const page = {
       keyboard: {
-        type: vi.fn(async () => undefined),
+        type: rs.fn(async () => undefined),
       },
-      schedulePendingVisualUpdate: vi.fn(),
+      schedulePendingVisualUpdate: rs.fn(),
     };
     const actions = commonWebActionsForWebPage(page as any);
 

@@ -1,8 +1,8 @@
 import { sleep } from '@midscene/core/utils';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 import { agentFromAdbDevice, getConnectedDevices } from '../../src';
 
-vi.setConfig({
+rs.setConfig({
   testTimeout: 240 * 1000,
 });
 

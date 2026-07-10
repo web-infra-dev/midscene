@@ -124,7 +124,6 @@ describe('AndroidDevice', () => {
       scrcpyConfig: { enabled: false },
     });
     // Manually assign the mocked adb instance
-    // @ts-expect-error TODO(rstest): Mocked<T> lost T-assignability on @rstest/core 0.11.0 (pinned off main to dodge the JSX classic-runtime regression) — https://github.com/web-infra-dev/rstest/issues/1530
     rs.spyOn(device, 'getAdb').mockResolvedValue(mockAdb);
   });
 
@@ -541,7 +540,6 @@ Stdout:
       const defaultDevice = new AndroidDevice('test-device', {
         scrcpyConfig: { enabled: false },
       });
-      // @ts-expect-error TODO(rstest): Mocked<T> lost T-assignability on @rstest/core 0.11.0 (pinned off main to dodge the JSX classic-runtime regression) — https://github.com/web-infra-dev/rstest/issues/1530
       rs.spyOn(defaultDevice, 'getAdb').mockResolvedValue(mockAdb);
       mockAdb.takeScreenshot.mockRejectedValue(new Error('fail'));
       const smallValidPng = createValidPngBuffer(7 * 1024);
@@ -562,7 +560,6 @@ Stdout:
       const defaultDevice = new AndroidDevice('test-device', {
         scrcpyConfig: { enabled: false },
       });
-      // @ts-expect-error TODO(rstest): Mocked<T> lost T-assignability on @rstest/core 0.11.0 (pinned off main to dodge the JSX classic-runtime regression) — https://github.com/web-infra-dev/rstest/issues/1530
       rs.spyOn(defaultDevice, 'getAdb').mockResolvedValue(mockAdb);
       mockAdb.takeScreenshot.mockRejectedValue(new Error('fail'));
       const tinyValidPng = createValidPngBuffer(512);
@@ -589,7 +586,6 @@ Stdout:
         minScreenshotBufferSize: 10 * 1024,
         scrcpyConfig: { enabled: false },
       });
-      // @ts-expect-error TODO(rstest): Mocked<T> lost T-assignability on @rstest/core 0.11.0 (pinned off main to dodge the JSX classic-runtime regression) — https://github.com/web-infra-dev/rstest/issues/1530
       rs.spyOn(minSizeDevice, 'getAdb').mockResolvedValue(mockAdb);
       mockAdb.takeScreenshot.mockRejectedValue(new Error('fail'));
       const smallValidPng = createValidPngBuffer(7 * 1024);
