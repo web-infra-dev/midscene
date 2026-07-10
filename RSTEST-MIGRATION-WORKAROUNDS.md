@@ -98,6 +98,44 @@ Affected files (all use a jsdom docblock + render React):
 
 ---
 
+## 4. Native display dependency crashes the worker in headless CI
+
+- **rstest issue:** none — this is an environment limitation, but it is listed
+  here because the migration is what exposed it. Under vitest the worker crash
+  was swallowed by `dangerouslyIgnoreUnhandledErrors: !!process.env.CI`; rstest
+  has no such switch, so an uncatchable native crash fails the file (and, on
+  `@rstest/core@0.11.1`, is now correctly reported as a failed test).
+- **Symptom:** `Could not open main display` then
+  `Worker exited unexpectedly (code=null, signal=SIGSEGV)`.
+- **Root cause:** `@computer-use/libnut` calls X11 `XOpenDisplay` for
+  screen/display queries; on a headless Linux runner there is no `DISPLAY`, and
+  the native call segfaults — uncatchable from JS.
+- **Workaround:** `it.skipIf(process.platform === 'linux' && !process.env.DISPLAY)`
+  on the display-dependent cases. They still run locally and on any runner with
+  a real display.
+- **Revert when:** the CI runner provides a virtual display (e.g. `xvfb`) for
+  the computer package, or libnut degrades gracefully without a display.
+
+| File | Guarded cases |
+| --- | --- |
+| `packages/computer/tests/unit-test/device.test.ts` | 2 — `should list displays`, `should check computer environment`. |
+
+---
+
+## Note — coverage provider is `v8`, not `istanbul`
+
+`scripts/rstest-coverage.ts` sets `provider: 'v8'` on purpose. **Do not switch
+it back to `istanbul`.** Istanbul rewrites source to inject `cov_*()` counters;
+when a function defined in an instrumented source file (e.g.
+`src/puppeteer/base-page.ts`) is handed to Puppeteer's `page.evaluate`, it is
+serialized and run in the browser context where `cov_*` does not exist, throwing
+`ReferenceError: cov_… is not defined` (and skewing timing enough to break
+race-sensitive tests). `v8` uses the runtime profiler and does not rewrite
+source, matching the behavior these suites relied on under vitest. Requires the
+`@rstest/coverage-v8` dev dependency.
+
+---
+
 ## How to revert an entry
 
 1. Confirm the referenced rstest fix is in the pinned `@rstest/core` version.
