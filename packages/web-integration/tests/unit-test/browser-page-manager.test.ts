@@ -194,7 +194,9 @@ describe('BrowserPageManager', () => {
       'ListBrowserPages',
       'SetActivePage',
     ]);
-    await expect(actions[0].call(undefined, {} as any)).resolves.toEqual([
+    const taskContext = { task: {} } as any;
+    const summaries = await actions[0].call(undefined, taskContext);
+    expect(summaries).toEqual([
       {
         index: 0,
         active: true,
@@ -208,6 +210,9 @@ describe('BrowserPageManager', () => {
         url: 'https://example.com/docs',
       },
     ]);
+    expect(taskContext.task.planningFeedback).toBe(
+      `ListBrowserPages returned the following open pages. Use a 0-based index with SetActivePage when selecting a page:\n${JSON.stringify(summaries, null, 2)}`,
+    );
 
     await actions[1].call({ index: 1 }, {} as any);
     expect(ctx.activePage).toBe(docs);
