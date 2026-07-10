@@ -1,8 +1,10 @@
-import { execFileSync } from 'node:child_process';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 import type { UiNode } from '@midscene/core/device-cache';
 
 const MAX_OSASCRIPT_BUFFER = 16 * 1024 * 1024;
 const DARWIN_ACCESSIBILITY_TIMEOUT_MS = 10000;
+const execFileAsync = promisify(execFile);
 
 const DARWIN_ACCESSIBILITY_TREE_SCRIPT = String.raw`
 function run() {
@@ -328,14 +330,14 @@ export function darwinAccessibilityJsonToUiNode(
   );
 }
 
-export function readDarwinAccessibilityTree(
+export async function readDarwinAccessibilityTree(
   options: DarwinAccessibilityTreeOptions = {},
-): UiNode {
+): Promise<UiNode> {
   if (process.platform !== 'darwin') {
     throw new Error('readDarwinAccessibilityTree is only supported on macOS');
   }
 
-  const json = execFileSync(
+  const { stdout } = await execFileAsync(
     'osascript',
     ['-l', 'JavaScript', '-e', DARWIN_ACCESSIBILITY_TREE_SCRIPT],
     {
@@ -344,5 +346,5 @@ export function readDarwinAccessibilityTree(
       timeout: DARWIN_ACCESSIBILITY_TIMEOUT_MS,
     },
   );
-  return darwinAccessibilityJsonToUiNode(json, options);
+  return darwinAccessibilityJsonToUiNode(stdout, options);
 }

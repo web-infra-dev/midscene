@@ -175,4 +175,63 @@ describe('matchRectByXpathCache', () => {
       }),
     ).toThrow(/no unique xpath matched/);
   });
+
+  it('rejects a positional fallback that now points to another target', () => {
+    const replacement = node('Button', { id: 'archive', text: 'Archive' }, [], {
+      left: 100,
+      top: 100,
+      width: 80,
+      height: 40,
+    });
+    const root = node('Window', {}, [
+      node('Button', { id: 'keep', text: 'Keep' }),
+      replacement,
+    ]);
+
+    expect(() =>
+      matchRectByXpathCache(root, {
+        xpaths: [
+          "//*[@id='delete']",
+          "//Button[@text='Delete']",
+          '/Window[1]/Button[2]',
+        ],
+        target: { type: 'Button', attr: 'id', value: 'delete' },
+      }),
+    ).toThrow(/no unique xpath matched/);
+  });
+
+  it('accepts an identity-checked positional fallback', () => {
+    const target = node('Button', { id: 'login' }, [], {
+      left: 60,
+      top: 20,
+      width: 30,
+      height: 40,
+    });
+    const root = node('Window', {}, [
+      node('Button', { id: 'other' }),
+      target,
+      node('Image', { id: 'login' }),
+    ]);
+
+    expect(
+      matchRectByXpathCache(root, {
+        xpaths: ["//*[@id='login']", '/Window[1]/Button[2]'],
+        target: { type: 'Button', attr: 'id', value: 'login' },
+      }),
+    ).toEqual({
+      xpath: '/Window[1]/Button[2]',
+      rect: { left: 60, top: 20, width: 30, height: 40 },
+    });
+  });
+
+  it('rejects malformed target metadata instead of skipping validation', () => {
+    const root = node('Window', {}, [node('Button', { id: 'login' })]);
+
+    expect(() =>
+      matchRectByXpathCache(root, {
+        xpaths: ['/Window/Button[1]'],
+        target: { type: 'Button' },
+      }),
+    ).toThrow(/invalid cache target/);
+  });
 });

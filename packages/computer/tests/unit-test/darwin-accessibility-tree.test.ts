@@ -128,9 +128,7 @@ describe('darwinAccessibilityJsonToUiNode', () => {
     );
 
     expect(root.type).toBe('AXElement');
-    expect(generateXpathCandidates(root, { x: 1, y: 1 })).toEqual([
-      '/AXElement[1]',
-    ]);
+    expect(generateXpathCandidates(root, { x: 1, y: 1 })).toEqual([]);
   });
 
   it('throws on invalid JSON', () => {

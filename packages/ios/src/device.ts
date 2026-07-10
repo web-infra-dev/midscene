@@ -20,7 +20,7 @@ import {
   defineAction,
 } from '@midscene/core/device';
 import {
-  generateXpathCandidates,
+  generateXpathCacheFeature,
   matchRectByXpathCache,
 } from '@midscene/core/device-cache';
 import { sleep } from '@midscene/core/utils';
@@ -395,31 +395,27 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
   async cacheFeatureForPoint(
     center: [number, number],
   ): Promise<ElementCacheFeature> {
-    try {
-      const xml = await this.wdaBackend.getSource();
-      const root = wdaSourceToUiNode(xml);
-      const xpaths = generateXpathCandidates(
-        root,
-        { x: center[0], y: center[1] },
-        {
-          // WDA exposes the element's accessibilityIdentifier as `name` in
-          // /source. When unset, `name` falls back to the visible label, but
-          // it is still the most stable identifier available.
-          stableAttrs: ['name'],
-          textAttrs: ['label', 'value'],
-        },
+    const xml = await this.wdaBackend.getSource();
+    const root = wdaSourceToUiNode(xml);
+    const feature = generateXpathCacheFeature(
+      root,
+      { x: center[0], y: center[1] },
+      {
+        // WDA exposes the element's accessibilityIdentifier as `name` in
+        // /source. When unset, `name` falls back to the visible label, but
+        // it is still the most stable identifier available.
+        stableAttrs: ['name'],
+        textAttrs: ['label', 'value'],
+      },
+    );
+    if (!feature) {
+      debugDevice(
+        'cacheFeatureForPoint: no verifiable xpath candidate at point %o',
+        center,
       );
-      if (xpaths.length === 0) {
-        debugDevice(
-          'cacheFeatureForPoint: no xpath candidate at point %o',
-          center,
-        );
-      }
-      return { xpaths };
-    } catch (error) {
-      debugDevice(`cacheFeatureForPoint failed: ${error}`);
-      return { xpaths: [] };
+      return {};
     }
+    return feature;
   }
 
   async rectMatchesCacheFeature(feature: ElementCacheFeature): Promise<Rect> {

@@ -88,8 +88,7 @@ describe('uitestJsonToUiNode', () => {
     expect(root.children[0].children[0].type).toBe('Stack');
 
     const xpaths = generateXpathCandidates(root, { x: 150, y: 150 });
-    expect(xpaths).toEqual(['/unknown[1]/WindowScene[1]/Stack[1]']);
-    expect(evaluateXpath(root, xpaths[0])).toHaveLength(1);
+    expect(xpaths).toEqual([]);
   });
 
   it('emits inspectorKey selector for the deepest hit', () => {

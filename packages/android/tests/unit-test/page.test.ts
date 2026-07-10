@@ -177,6 +177,16 @@ describe('AndroidDevice', () => {
     });
   });
 
+  describe('xpath cache', () => {
+    it('propagates uiautomator dump failures', async () => {
+      mockAdb.shell.mockRejectedValueOnce(new Error('dump failed'));
+
+      await expect(device.cacheFeatureForPoint([10, 20])).rejects.toThrow(
+        'dump failed',
+      );
+    });
+  });
+
   describe('launch', () => {
     it('should start URI for http/https links', async () => {
       const uri = 'https://example.com';

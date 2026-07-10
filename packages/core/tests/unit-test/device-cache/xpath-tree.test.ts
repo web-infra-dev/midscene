@@ -2,6 +2,7 @@ import {
   type UiNode,
   evaluateXpath,
   findNodeAtPoint,
+  generateXpathCacheFeature,
   generateXpathCandidates,
 } from '@/device-cache';
 import { describe, expect, it } from 'vitest';
@@ -141,7 +142,7 @@ describe('generateXpathCandidates', () => {
     expect(xpaths[0]).toBe("//Button[@name='登录']");
   });
 
-  it('always emits a positional path as the last candidate', () => {
+  it('does not cache a positional path without verifiable identity', () => {
     const target = node(
       'Button',
       {}, // no usable attrs
@@ -154,8 +155,7 @@ describe('generateXpathCandidates', () => {
     );
     const root = win([sibling, target]);
     const xpaths = generateXpathCandidates(root, { x: 150, y: 125 }, {});
-    expect(xpaths).toEqual(['/Window[1]/Button[2]']);
-    expect(evaluateXpath(root, xpaths[0])).toEqual([target]);
+    expect(xpaths).toEqual([]);
   });
 
   it('prefers a smaller semantic target over a later fullscreen container', () => {
@@ -184,9 +184,7 @@ describe('generateXpathCandidates', () => {
     expect(evaluateXpath(root, xpaths[0])).toEqual([target]);
   });
 
-  it('drops ambiguous stable-id candidates', () => {
-    // two nodes share the same id; the id-based xpath would resolve to both,
-    // so it must be dropped in favor of the positional fallback.
+  it('does not cache when every identity selector is ambiguous', () => {
     const dupA = node(
       'Button',
       { id: 'shared' },
@@ -203,8 +201,7 @@ describe('generateXpathCandidates', () => {
       { x: 350, y: 125 },
       { stableAttrs: ['id'] },
     );
-    expect(xpaths.every((xp) => !xp.startsWith('//*[@id='))).toBe(true);
-    expect(xpaths.at(-1)).toBe('/Window[1]/Button[2]');
+    expect(xpaths).toEqual([]);
   });
 
   it('rejects attribute values containing both quote styles', () => {
@@ -219,7 +216,7 @@ describe('generateXpathCandidates', () => {
       { x: 150, y: 125 },
       { stableAttrs: ['label'] },
     );
-    expect(xpaths[0]).toBe('/Window[1]/Button[1]');
+    expect(xpaths).toEqual([]);
   });
 
   it('rejects attribute values with control characters', () => {
@@ -260,6 +257,81 @@ describe('generateXpathCandidates', () => {
       },
     );
     expect(xpaths).toHaveLength(1);
+  });
+
+  it('does not promote a cacheable ancestor over the smaller target', () => {
+    const target = node(
+      'Button',
+      {},
+      { left: 100, top: 100, width: 100, height: 40 },
+    );
+    const parent = node(
+      'Panel',
+      { id: 'form' },
+      { left: 0, top: 0, width: 500, height: 500 },
+      [target],
+    );
+    const root = win([parent]);
+
+    expect(
+      generateXpathCacheFeature(
+        root,
+        { x: 150, y: 120 },
+        { stableAttrs: ['id'] },
+      ),
+    ).toBeUndefined();
+  });
+
+  it('traverses a zero-sized structural root', () => {
+    const target = node(
+      'Button',
+      { id: 'login' },
+      { left: 100, top: 0, width: 100, height: 100 },
+    );
+    const root = node(
+      'hierarchy',
+      {},
+      { left: 0, top: 0, width: 0, height: 0 },
+      [target],
+    );
+
+    const feature = generateXpathCacheFeature(
+      root,
+      { x: 150, y: 50 },
+      { stableAttrs: ['id'] },
+    );
+    expect(feature?.xpaths).toContain("//*[@id='login']");
+    expect(feature?.target).toEqual({
+      type: 'Button',
+      attr: 'id',
+      value: 'login',
+    });
+  });
+
+  it('uses wildcard steps for native types outside the xpath tag subset', () => {
+    const target = node(
+      'com.example.Custom$View',
+      { 'resource-id': 'login', text: 'Login' },
+      { left: 0, top: 0, width: 100, height: 50 },
+    );
+    const root = win([target]);
+    const feature = generateXpathCacheFeature(
+      root,
+      { x: 10, y: 10 },
+      {
+        stableAttrs: ['resource-id'],
+        textAttrs: ['text'],
+      },
+    );
+
+    expect(feature?.xpaths).toEqual([
+      "//*[@resource-id='login']",
+      "//*[@text='Login']",
+      '/Window[1]/*[1]',
+    ]);
+    for (const xpath of feature?.xpaths ?? []) {
+      expect(evaluateXpath(root, xpath)).toEqual([target]);
+    }
   });
 
   it('handles realistic iOS WDA-shaped trees end-to-end', () => {

@@ -42,7 +42,7 @@ Element location cache uses the same `cache` option as planning cache. The diffe
 | macOS desktop | Accessibility tree | Supported for apps that expose a usable macOS accessibility window tree. |
 | Other desktop environments | Platform-specific desktop tree | Not supported by the built-in xpath cache replay yet. |
 
-Internally, platform adapters convert their native tree shape into a shared `UiNode` representation with `type`, `attrs`, `bounds`, and `children`. Cache generation ranks stable attributes first, then semantic text attributes, and finally a positional XPath fallback. Cache replay only hits when one XPath resolves to exactly one non-zero-size rect; missing, zero-size, or ambiguous matches are treated as stale cache and fall back to AI locating.
+Internally, native platform adapters convert their tree shape into a shared `UiNode` representation with `type`, `attrs`, `bounds`, and `children`. Cache generation selects the smallest, deepest node at the located point and records a unique stable or semantic attribute as its target identity. A positional XPath may be stored as a fallback, but replay must still match that identity. If the node has no unique stable or semantic identity, Midscene skips native element caching for that locate. Missing, zero-size, ambiguous, or identity-mismatched results fall back to AI locating.
 
 ## Cache strategies
 
@@ -344,9 +344,10 @@ Please refer to the documentation of the corresponding [API](./api.mdx) for deta
 
 Midscene uses [XPath](https://developer.mozilla.org/en-US/docs/Web/XML/XPath) to cache element location against the current DOM or platform UI tree. We are using a relatively strict strategy to prevent false matches. In these situations, the cache will not be accessed:
 
-1. The element at the same XPath no longer matches the cached element.
-2. The DOM or native UI tree structure changed from the cached one.
-3. The XPath resolves to more than one element, because ambiguous matches are treated as stale cache.
+1. The XPath no longer resolves to an element.
+2. For native platforms, the resolved node no longer has the stable or semantic identity recorded with the cache entry.
+3. The DOM or native UI tree structure changed so the cached selectors no longer identify the target.
+4. The XPath resolves to more than one element, because ambiguous matches are treated as stale cache.
 
 For web automation, element location caching relies on DOM structure, so caching is not available in the following scenarios:
 
@@ -355,7 +356,7 @@ For web automation, element location caching relies on DOM structure, so caching
 3. **Shadow DOM (closed mode)**: Closed Shadow DOM cannot be accessed from outside.
 4. **WebGL / Dynamic SVG content**: Dynamically generated graphics may not have a stable DOM structure.
 
-For Android, iOS, HarmonyOS, and macOS desktop automation, element location caching relies on the platform accessibility or UI inspector tree. It will not work for pure screenshot pixels, views hidden from that tree, or desktop apps that do not expose a usable macOS accessibility window tree.
+For Android, iOS, HarmonyOS, and macOS desktop automation, element location caching relies on the platform accessibility or UI inspector tree. It will not work for pure screenshot pixels, views hidden from that tree, nodes without a unique stable or semantic identity, or desktop apps that do not expose a usable macOS accessibility window tree. A positional XPath alone is not considered sufficient proof of a native cache hit.
 
 When the cache is not hit or not available, the process will fall back to using AI services to find the element.
 

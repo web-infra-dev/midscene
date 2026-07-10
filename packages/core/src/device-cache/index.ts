@@ -1,6 +1,12 @@
-export type { UiNode, XpathCandidateOptions } from './types';
+export type {
+  UiNode,
+  XpathCacheFeature,
+  XpathCacheTarget,
+  XpathCandidateOptions,
+} from './types';
 export {
   findNodeAtPoint,
+  generateXpathCacheFeature,
   generateXpathCandidates,
 } from './xpath-tree';
 export {

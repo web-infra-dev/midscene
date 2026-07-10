@@ -18,7 +18,7 @@ import {
   defineActionsFromInputPrimitives,
 } from '@midscene/core/device';
 import {
-  generateXpathCandidates,
+  generateXpathCacheFeature,
   matchRectByXpathCache,
 } from '@midscene/core/device-cache';
 import { sleep } from '@midscene/core/utils';
@@ -1276,7 +1276,7 @@ $g.Dispose(); $bmp.Dispose(); $ms.Dispose()
     };
   }
 
-  private readDarwinAccessibilityTreeForCache() {
+  private async readDarwinAccessibilityTreeForCache() {
     return readDarwinAccessibilityTree({
       displayOffset: this.getDarwinAccessibilityDisplayOffset(),
     });
@@ -1289,37 +1289,33 @@ $g.Dispose(); $bmp.Dispose(); $ms.Dispose()
       debugDevice(
         'cacheFeatureForPoint: xpath cache is currently only supported on macOS for ComputerDevice',
       );
-      return { xpaths: [] };
+      return {};
     }
 
-    try {
-      const root = this.readDarwinAccessibilityTreeForCache();
-      const xpaths = generateXpathCandidates(
-        root,
-        { x: center[0], y: center[1] },
-        {
-          stableAttrs: ['AXIdentifier'],
-          textAttrs: [
-            'AXName',
-            'AXTitle',
-            'AXDescription',
-            'AXValue',
-            'AXHelp',
-            'AXRoleDescription',
-          ],
-        },
+    const root = await this.readDarwinAccessibilityTreeForCache();
+    const feature = generateXpathCacheFeature(
+      root,
+      { x: center[0], y: center[1] },
+      {
+        stableAttrs: ['AXIdentifier'],
+        textAttrs: [
+          'AXName',
+          'AXTitle',
+          'AXDescription',
+          'AXValue',
+          'AXHelp',
+          'AXRoleDescription',
+        ],
+      },
+    );
+    if (!feature) {
+      debugDevice(
+        'cacheFeatureForPoint: no verifiable xpath candidate at point %o',
+        center,
       );
-      if (xpaths.length === 0) {
-        debugDevice(
-          'cacheFeatureForPoint: no xpath candidate at point %o',
-          center,
-        );
-      }
-      return { xpaths };
-    } catch (error) {
-      debugDevice(`cacheFeatureForPoint failed: ${error}`);
-      return { xpaths: [] };
+      return {};
     }
+    return feature;
   }
 
   async rectMatchesCacheFeature(feature: ElementCacheFeature): Promise<Rect> {
@@ -1329,7 +1325,7 @@ $g.Dispose(); $bmp.Dispose(); $ms.Dispose()
       );
     }
 
-    const root = this.readDarwinAccessibilityTreeForCache();
+    const root = await this.readDarwinAccessibilityTreeForCache();
     const { xpath, rect } = matchRectByXpathCache(root, feature);
     debugDevice('rectMatchesCacheFeature: hit xpath %s -> %o', xpath, rect);
     return rect;

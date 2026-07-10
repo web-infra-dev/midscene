@@ -23,6 +23,7 @@ const mockHdc = {
   queryMainAbility: vi.fn().mockResolvedValue(undefined),
   forceStop: vi.fn().mockResolvedValue(undefined),
   clearTextField: vi.fn().mockResolvedValue(undefined),
+  dumpLayout: vi.fn().mockResolvedValue('{}'),
 };
 
 vi.mock('../../src/hdc', () => ({
@@ -146,6 +147,16 @@ describe('HarmonyDevice', () => {
       ]);
       expect(hdc1).toBe(hdc2);
       expect(mockHdc.getScreenInfo).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('xpath cache', () => {
+    it('propagates dumpLayout failures', async () => {
+      mockHdc.dumpLayout.mockRejectedValueOnce(new Error('dump failed'));
+
+      await expect(device.cacheFeatureForPoint([10, 20])).rejects.toThrow(
+        'dump failed',
+      );
     });
   });
 

@@ -1,5 +1,5 @@
 import type { Rect } from '@midscene/shared/types';
-import type { UiNode } from './types';
+import type { UiNode, XpathCacheTarget } from './types';
 
 type Axis = 'child' | 'descendant';
 
@@ -190,6 +190,35 @@ function getCacheFeatureXpaths(feature: unknown): string[] {
     : [];
 }
 
+function getCacheFeatureTarget(feature: unknown): XpathCacheTarget | undefined {
+  if (!feature || typeof feature !== 'object' || !('target' in feature)) {
+    return undefined;
+  }
+
+  const target = (feature as { target: unknown }).target;
+  if (!target || typeof target !== 'object') {
+    throw new Error('matchRectByXpathCache: invalid cache target');
+  }
+
+  const { type, attr, value } = target as Record<string, unknown>;
+  if (
+    typeof type !== 'string' ||
+    type.length === 0 ||
+    typeof attr !== 'string' ||
+    attr.length === 0 ||
+    typeof value !== 'string' ||
+    value.length === 0
+  ) {
+    throw new Error('matchRectByXpathCache: invalid cache target');
+  }
+
+  return { type, attr, value };
+}
+
+function matchesCacheTarget(node: UiNode, target: XpathCacheTarget): boolean {
+  return node.type === target.type && node.attrs[target.attr] === target.value;
+}
+
 /**
  * Resolve an xpath cache feature to a single, non-ambiguous rect. A cache entry
  * that currently matches multiple nodes is treated as stale instead of using
@@ -201,6 +230,7 @@ export function matchRectByXpathCache(
   feature: unknown,
 ): XpathCacheMatch {
   const xpaths = getCacheFeatureXpaths(feature);
+  const target = getCacheFeatureTarget(feature);
   if (xpaths.length === 0) {
     throw new Error('matchRectByXpathCache: no xpath in cache feature');
   }
@@ -220,7 +250,13 @@ export function matchRectByXpathCache(
       continue;
     }
 
-    const rect = matches[0].bounds;
+    const match = matches[0];
+    if (target && !matchesCacheTarget(match, target)) {
+      misses.push(`${xpath} matched a different target`);
+      continue;
+    }
+
+    const rect = match.bounds;
     if (rect.width > 0 && rect.height > 0) {
       return { xpath, rect };
     }

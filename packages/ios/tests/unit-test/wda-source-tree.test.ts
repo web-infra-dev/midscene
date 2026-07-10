@@ -58,9 +58,7 @@ describe('wdaSourceToUiNode', () => {
     }
   });
 
-  it('drops ambiguous candidates and falls back to positional path', () => {
-    // build a tree with two siblings sharing identical name; positional
-    // fallback must still succeed.
+  it('does not cache when the only identity is ambiguous', () => {
     const ambiguous = `<?xml version="1.0"?>
 <XCUIElementTypeApplication x="0" y="0" width="100" height="100">
   <XCUIElementTypeButton name="dup" x="0" y="0" width="50" height="50"/>
@@ -72,10 +70,7 @@ describe('wdaSourceToUiNode', () => {
       { x: 75, y: 25 },
       { stableAttrs: ['name'] },
     );
-    expect(xpaths.every((xp) => xp !== "//*[@name='dup']")).toBe(true);
-    expect(xpaths.at(-1)).toBe(
-      '/XCUIElementTypeApplication[1]/XCUIElementTypeButton[2]',
-    );
+    expect(xpaths).toEqual([]);
   });
 
   it('throws on malformed XML', () => {

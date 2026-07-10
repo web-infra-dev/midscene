@@ -21,7 +21,7 @@ import {
   defineAction,
 } from '@midscene/core/device';
 import {
-  generateXpathCandidates,
+  generateXpathCacheFeature,
   matchRectByXpathCache,
 } from '@midscene/core/device-cache';
 import { getTmpFile, sleep } from '@midscene/core/utils';
@@ -432,32 +432,28 @@ export class HarmonyDevice implements AbstractInterface {
   async cacheFeatureForPoint(
     center: [number, number],
   ): Promise<ElementCacheFeature> {
-    try {
-      const hdc = await this.getHdc();
-      const json = await hdc.dumpLayout();
-      const root = uitestJsonToUiNode(json);
-      const xpaths = generateXpathCandidates(
-        root,
-        { x: center[0], y: center[1] },
-        {
-          // ArkUI exposes inspectorKey via the `key` attribute in dumpLayout;
-          // some component libraries also surface `id`. Prefer key when both
-          // exist.
-          stableAttrs: ['key', 'id', 'inspectorKey'],
-          textAttrs: ['text', 'description', 'accessibilityText'],
-        },
+    const hdc = await this.getHdc();
+    const json = await hdc.dumpLayout();
+    const root = uitestJsonToUiNode(json);
+    const feature = generateXpathCacheFeature(
+      root,
+      { x: center[0], y: center[1] },
+      {
+        // ArkUI exposes inspectorKey via the `key` attribute in dumpLayout;
+        // some component libraries also surface `id`. Prefer key when both
+        // exist.
+        stableAttrs: ['key', 'id', 'inspectorKey'],
+        textAttrs: ['text', 'description', 'accessibilityText'],
+      },
+    );
+    if (!feature) {
+      debugDevice(
+        'cacheFeatureForPoint: no verifiable xpath candidate at point %o',
+        center,
       );
-      if (xpaths.length === 0) {
-        debugDevice(
-          'cacheFeatureForPoint: no xpath candidate at point %o',
-          center,
-        );
-      }
-      return { xpaths };
-    } catch (error) {
-      debugDevice(`cacheFeatureForPoint failed: ${error}`);
-      return { xpaths: [] };
+      return {};
     }
+    return feature;
   }
 
   async rectMatchesCacheFeature(feature: ElementCacheFeature): Promise<Rect> {

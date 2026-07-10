@@ -17,6 +17,19 @@ export interface UiNode {
   children: UiNode[];
 }
 
+/** Identity that a replayed native xpath must still satisfy. */
+export interface XpathCacheTarget {
+  type: string;
+  attr: string;
+  value: string;
+}
+
+/** Native element cache payload written by the shared xpath cache pipeline. */
+export type XpathCacheFeature = Record<string, unknown> & {
+  xpaths: string[];
+  target: XpathCacheTarget;
+};
+
 export interface XpathCandidateOptions {
   /**
    * Attribute names that count as "stable identifiers" when present. Searched

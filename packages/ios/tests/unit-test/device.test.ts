@@ -47,6 +47,11 @@ describe('IOSDevice', () => {
       terminateApp: vi.fn().mockResolvedValue(undefined),
       openUrl: vi.fn().mockResolvedValue(undefined),
       dismissKeyboard: vi.fn().mockResolvedValue(true),
+      getSource: vi
+        .fn()
+        .mockResolvedValue(
+          '<XCUIElementTypeApplication x="0" y="0" width="100" height="100"/>',
+        ),
       makeRequest: vi.fn().mockResolvedValue(null),
       sessionInfo: {
         sessionId: 'test-session-id',
@@ -157,6 +162,16 @@ describe('IOSDevice', () => {
       expect(description).toContain('UDID: test-device-udid');
       expect(description).toContain('Name: Test Device');
       expect(description).toContain('Model: iPhone 15');
+    });
+  });
+
+  describe('xpath cache', () => {
+    it('propagates WDA source failures', async () => {
+      mockWdaClient.getSource.mockRejectedValueOnce(new Error('source failed'));
+
+      await expect(device.cacheFeatureForPoint([10, 20])).rejects.toThrow(
+        'source failed',
+      );
     });
   });
 

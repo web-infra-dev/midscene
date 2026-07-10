@@ -109,11 +109,18 @@ describe('uiautomatorXmlToUiNode', () => {
   it('preserves the hierarchy root when there are multiple top-level nodes', () => {
     const multi = `<?xml version='1.0'?>
 <hierarchy>
-  <node class="A" bounds="[0,0][100,100]"/>
-  <node class="B" bounds="[100,0][200,100]"/>
+  <node class="A" resource-id="a" bounds="[0,0][100,100]"/>
+  <node class="B" resource-id="b" bounds="[100,0][200,100]"/>
 </hierarchy>`;
     const root = uiautomatorXmlToUiNode(multi, 1);
     expect(root.type).toBe('hierarchy');
     expect(root.children).toHaveLength(2);
+
+    const xpaths = generateXpathCandidates(
+      root,
+      { x: 150, y: 50 },
+      { stableAttrs: ['resource-id'] },
+    );
+    expect(xpaths).toContain("//*[@resource-id='b']");
   });
 });

@@ -97,7 +97,8 @@ const mockState = vi.hoisted(() => {
   };
 });
 
-vi.mock('node:child_process', () => ({
+vi.mock('node:child_process', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('node:child_process')>()),
   execSync: mockState.execSync,
   execFileSync: mockState.execFileSync,
 }));

@@ -27,7 +27,7 @@ import {
   defineAction,
 } from '@midscene/core/device';
 import {
-  generateXpathCandidates,
+  generateXpathCacheFeature,
   matchRectByXpathCache,
 } from '@midscene/core/device-cache';
 import { getTmpFile, sleep } from '@midscene/core/utils';
@@ -714,28 +714,24 @@ ${Object.keys(size)
   async cacheFeatureForPoint(
     center: [number, number],
   ): Promise<ElementCacheFeature> {
-    try {
-      const xml = await this.dumpUiautomatorXml();
-      const root = uiautomatorXmlToUiNode(xml, this.devicePixelRatio || 1);
-      const xpaths = generateXpathCandidates(
-        root,
-        { x: center[0], y: center[1] },
-        {
-          stableAttrs: ['resource-id'],
-          textAttrs: ['text', 'content-desc'],
-        },
+    const xml = await this.dumpUiautomatorXml();
+    const root = uiautomatorXmlToUiNode(xml, this.devicePixelRatio || 1);
+    const feature = generateXpathCacheFeature(
+      root,
+      { x: center[0], y: center[1] },
+      {
+        stableAttrs: ['resource-id'],
+        textAttrs: ['text', 'content-desc'],
+      },
+    );
+    if (!feature) {
+      debugDevice(
+        'cacheFeatureForPoint: no verifiable xpath candidate at point %o',
+        center,
       );
-      if (xpaths.length === 0) {
-        debugDevice(
-          'cacheFeatureForPoint: no xpath candidate at point %o',
-          center,
-        );
-      }
-      return { xpaths };
-    } catch (error) {
-      debugDevice(`cacheFeatureForPoint failed: ${error}`);
-      return { xpaths: [] };
+      return {};
     }
+    return feature;
   }
 
   async rectMatchesCacheFeature(feature: ElementCacheFeature): Promise<Rect> {

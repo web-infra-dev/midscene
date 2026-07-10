@@ -13,7 +13,8 @@ const execFileSync = vi.fn(
     FAKE_PNG_BASE64,
 );
 
-vi.mock('node:child_process', () => ({
+vi.mock('node:child_process', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('node:child_process')>()),
   execFileSync: (file: string, args: string[], options?: unknown) =>
     execFileSync(file, args, options),
   execSync: vi.fn(),

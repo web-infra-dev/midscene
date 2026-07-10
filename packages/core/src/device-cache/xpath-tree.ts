@@ -1,4 +1,9 @@
-import type { UiNode, XpathCandidateOptions } from './types';
+import type {
+  UiNode,
+  XpathCacheFeature,
+  XpathCacheTarget,
+  XpathCandidateOptions,
+} from './types';
 import { evaluateXpath } from './xpath-query';
 
 const DEFAULT_MAX_CANDIDATES = 3;
@@ -17,8 +22,10 @@ interface PointHit {
 
 interface XpathBuildResult {
   xpaths: string[];
-  hasAttributeSelector: boolean;
+  target: XpathCacheTarget;
 }
+
+const XPATH_TAG_RE = /^[A-Za-z_*][A-Za-z0-9_.\-:*]*$/;
 
 function pointInBounds(node: UiNode, point: PointXY): boolean {
   const { left, top, width, height } = node.bounds;
@@ -32,36 +39,29 @@ function pointInBounds(node: UiNode, point: PointXY): boolean {
 }
 
 /**
- * Walk the tree to find the deepest node whose bounds contain `point`. If
- * multiple sibling subtrees contain the point (overlapping layouts) the last
- * one in document order wins, mirroring the typical "topmost element" semantic.
+ * Find the smallest node whose bounds contain `point`. Depth and document order
+ * break ties, mirroring the typical deepest/topmost element semantic.
  */
 export function findNodeAtPoint(
   root: UiNode,
   point: PointXY,
 ): { node: UiNode; path: UiNode[] } | undefined {
-  if (!pointInBounds(root, point)) return undefined;
-  let best: { node: UiNode; path: UiNode[] } = { node: root, path: [root] };
-  const visit = (node: UiNode, path: UiNode[]) => {
-    for (const child of node.children) {
-      if (!pointInBounds(child, point)) continue;
-      const childPath = [...path, child];
-      best = { node: child, path: childPath };
-      visit(child, childPath);
-    }
-  };
-  visit(root, [root]);
-  return best;
+  const best = pickBestPointHit(collectNodesAtPoint(root, point));
+  return best ? { node: best.node, path: best.path } : undefined;
 }
 
 function collectNodesAtPoint(root: UiNode, point: PointXY): PointHit[] {
   const hits: PointHit[] = [];
-  if (!pointInBounds(root, point)) return hits;
 
   const visit = (node: UiNode, path: UiNode[]) => {
-    hits.push({ node, path, order: hits.length });
+    const containsPoint = pointInBounds(node, point);
+    const hasBounds = node.bounds.width > 0 && node.bounds.height > 0;
+    if (!containsPoint && hasBounds) return;
+
+    if (containsPoint) {
+      hits.push({ node, path, order: hits.length });
+    }
     for (const child of node.children) {
-      if (!pointInBounds(child, point)) continue;
       visit(child, [...path, child]);
     }
   };
@@ -70,13 +70,18 @@ function collectNodesAtPoint(root: UiNode, point: PointXY): PointHit[] {
 }
 
 /**
- * 1-based positional index of `target` among siblings sharing the same `type`.
- * Mirrors W3C XPath `Tag[N]` semantics.
+ * Return a parser-safe tag, falling back to wildcard for native class names
+ * such as Android inner classes that contain `$`.
  */
-function siblingIndex(parent: UiNode, target: UiNode): number {
+function xpathTag(type: string): string {
+  return XPATH_TAG_RE.test(type) ? type : '*';
+}
+
+/** 1-based positional index among siblings matched by `tag`. */
+function siblingIndex(parent: UiNode, target: UiNode, tag: string): number {
   let idx = 0;
   for (const sibling of parent.children) {
-    if (sibling.type === target.type) {
+    if (tag === '*' || sibling.type === tag) {
       idx++;
       if (sibling === target) return idx;
     }
@@ -90,11 +95,12 @@ function buildPositionalXpath(path: UiNode[]): string {
   let xpath = '';
   for (let i = 0; i < path.length; i++) {
     const node = path[i];
+    const tag = xpathTag(node.type);
     if (i === 0) {
-      xpath += `/${node.type}[1]`;
+      xpath += `/${tag}[1]`;
     } else {
       const parent = path[i - 1];
-      xpath += `/${node.type}[${siblingIndex(parent, node)}]`;
+      xpath += `/${tag}[${siblingIndex(parent, node, tag)}]`;
     }
   }
   return xpath;
@@ -143,14 +149,25 @@ function matchesUniquely(root: UiNode, xpath: string, target: UiNode): boolean {
   return matches.length === 1 && matches[0] === target;
 }
 
+function toCacheTarget(
+  node: UiNode,
+  identity: { attr: string; value: string },
+): XpathCacheTarget {
+  return {
+    type: node.type,
+    attr: identity.attr,
+    value: identity.value,
+  };
+}
+
 function buildXpathCandidatesForHit(
   root: UiNode,
   hit: Pick<PointHit, 'node' | 'path'>,
   options: XpathCandidateOptions | undefined,
-): XpathBuildResult {
+): XpathBuildResult | undefined {
   const max = options?.max ?? DEFAULT_MAX_CANDIDATES;
   const candidates: string[] = [];
-  let hasAttributeSelector = false;
+  let target: XpathCacheTarget | undefined;
   const { node, path } = hit;
 
   const stable = pickFirstSafeAttr(node, options?.stableAttrs);
@@ -158,19 +175,23 @@ function buildXpathCandidatesForHit(
     const xpath = `//*[@${stable.attr}=${quoteAttr(stable.value)}]`;
     if (matchesUniquely(root, xpath, node)) {
       candidates.push(xpath);
-      hasAttributeSelector = true;
+      target = toCacheTarget(node, stable);
     }
   }
 
   if (candidates.length < max) {
     const semantic = pickFirstSafeAttr(node, options?.textAttrs);
     if (semantic && node.type) {
-      const xpath = `//${node.type}[@${semantic.attr}=${quoteAttr(semantic.value)}]`;
+      const xpath = `//${xpathTag(node.type)}[@${semantic.attr}=${quoteAttr(semantic.value)}]`;
       if (!candidates.includes(xpath) && matchesUniquely(root, xpath, node)) {
         candidates.push(xpath);
-        hasAttributeSelector = true;
+        target ??= toCacheTarget(node, semantic);
       }
     }
+  }
+
+  if (!target) {
+    return undefined;
   }
 
   if (candidates.length < max) {
@@ -180,7 +201,7 @@ function buildXpathCandidatesForHit(
 
   return {
     xpaths: candidates.slice(0, max),
-    hasAttributeSelector,
+    target,
   };
 }
 
@@ -188,40 +209,18 @@ function nodeArea(node: UiNode): number {
   return Math.max(0, node.bounds.width) * Math.max(0, node.bounds.height);
 }
 
-function pickBestHitForCache(
-  root: UiNode,
-  hits: PointHit[],
-  options: XpathCandidateOptions | undefined,
-): XpathBuildResult | undefined {
+function pickBestPointHit(hits: PointHit[]): PointHit | undefined {
   if (hits.length === 0) return undefined;
 
-  const rootArea = Math.max(1, nodeArea(root));
-  const evaluated = hits
-    .map((hit) => ({
-      hit,
-      result: buildXpathCandidatesForHit(root, hit, options),
-      area: nodeArea(hit.node),
-    }))
-    .filter(({ result }) => result.xpaths.length > 0);
+  return [...hits].sort((a, b) => {
+    const areaDelta = nodeArea(a.node) - nodeArea(b.node);
+    if (areaDelta !== 0) return areaDelta;
 
-  evaluated.sort((a, b) => {
-    const aIsLarge = a.area / rootArea > 0.75;
-    const bIsLarge = b.area / rootArea > 0.75;
-    if (aIsLarge !== bIsLarge) return aIsLarge ? 1 : -1;
-
-    if (a.result.hasAttributeSelector !== b.result.hasAttributeSelector) {
-      return a.result.hasAttributeSelector ? -1 : 1;
-    }
-
-    if (a.area !== b.area) return a.area - b.area;
-
-    const depthDelta = b.hit.path.length - a.hit.path.length;
+    const depthDelta = b.path.length - a.path.length;
     if (depthDelta !== 0) return depthDelta;
 
-    return b.hit.order - a.hit.order;
-  });
-
-  return evaluated[0]?.result;
+    return b.order - a.order;
+  })[0];
 }
 
 /**
@@ -232,17 +231,34 @@ function pickBestHitForCache(
  *
  *   1) `//*[@<stableAttr>='value']`  — when the hit carries a stable id
  *   2) `//<Type>[@<textAttr>='value']` — when the hit carries a semantic label
- *   3) `/Root[1]/Child[i]/.../Target[k]` — always emitted as a last-resort
+ *   3) `/Root[1]/Child[i]/.../Target[k]` — identity-checked fallback
  *
  * Candidates that match more than one node in the current tree are dropped so
- * we never persist an ambiguous selector. The positional path is unique by
- * construction and never dropped.
+ * we never persist an ambiguous selector. Targets without a unique stable or
+ * semantic identity are not cached because a positional path alone cannot
+ * prove that it still points to the same element on replay.
  */
+export function generateXpathCacheFeature(
+  root: UiNode,
+  point: PointXY,
+  options?: XpathCandidateOptions,
+): XpathCacheFeature | undefined {
+  const hit = pickBestPointHit(collectNodesAtPoint(root, point));
+  if (!hit) return undefined;
+
+  const result = buildXpathCandidatesForHit(root, hit, options);
+  if (!result || result.xpaths.length === 0) return undefined;
+
+  return {
+    xpaths: result.xpaths,
+    target: result.target,
+  };
+}
+
 export function generateXpathCandidates(
   root: UiNode,
   point: PointXY,
   options?: XpathCandidateOptions,
 ): string[] {
-  const hits = collectNodesAtPoint(root, point);
-  return pickBestHitForCache(root, hits, options)?.xpaths ?? [];
+  return generateXpathCacheFeature(root, point, options)?.xpaths ?? [];
 }
