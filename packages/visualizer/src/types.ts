@@ -84,9 +84,6 @@ export const VALIDATION_CONSTANTS = {
     STRING: 'ZodString',
     BOOLEAN: 'ZodBoolean',
   },
-  FIELD_FLAGS: {
-    LOCATION: 'midscene_location_field_flag',
-  },
   DEFAULT_VALUES: {
     ACTION_TYPE: 'aiAct',
     TIMEOUT_MS: 15000,
@@ -126,8 +123,7 @@ export const isLocateField = (field: ZodType): boolean => {
       shape = fieldWithRuntime.shape;
     }
 
-    // Check for the location flag in shape
-    if (shape && VALIDATION_CONSTANTS.FIELD_FLAGS.LOCATION in shape) {
+    if (shape && 'prompt' in shape && shape.prompt) {
       return true;
     }
 

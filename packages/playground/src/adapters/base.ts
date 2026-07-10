@@ -140,7 +140,6 @@ export abstract class BasePlaygroundAdapter {
       locatorFieldKeys.forEach((key: string) => {
         if (typeof paramsForValidation[key] === 'string') {
           paramsForValidation[key] = {
-            midscene_location_field_flag: true,
             prompt: paramsForValidation[key],
             center: [0, 0], // dummy values for validation
             rect: { left: 0, top: 0, width: 0, height: 0 },
@@ -162,11 +161,7 @@ export abstract class BasePlaygroundAdapter {
       const errorMessages = zodError.errors
         .filter((err) => {
           const path = err.path.join('.');
-          return (
-            !path.includes('center') &&
-            !path.includes('rect') &&
-            !path.includes('midscene_location_field_flag')
-          );
+          return !path.includes('center') && !path.includes('rect');
         })
         .map((err) => {
           const field = err.path.join('.');
