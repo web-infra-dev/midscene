@@ -50,12 +50,7 @@ function Write-JsonAtomically {
 
   try {
     [System.IO.File]::WriteAllText($temporaryPath, $json, $encoding)
-    if ([System.IO.File]::Exists($Path)) {
-      [System.IO.File]::Replace($temporaryPath, $Path, $null)
-    }
-    else {
-      [System.IO.File]::Move($temporaryPath, $Path)
-    }
+    Move-Item -LiteralPath $temporaryPath -Destination $Path -Force
   }
   finally {
     if ([System.IO.File]::Exists($temporaryPath)) {

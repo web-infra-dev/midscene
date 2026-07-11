@@ -331,7 +331,7 @@ function Get-AverageColor([int] $left, [int] $top, [int] $width, [int] $height) 
   }
 }
 $target = Get-AverageColor ${Math.round(target.left + 7)} ${Math.round(target.top + 7)} ${Math.max(1, Math.round(target.width - 14))} ${Math.max(1, Math.round(target.height - 14))}
-$background = Get-AverageColor ${Math.round(backgroundLeft)} ${Math.round(backgroundTop)} $backgroundSize $backgroundSize
+$background = Get-AverageColor ${Math.round(backgroundLeft)} ${Math.round(backgroundTop)} ${backgroundSize} ${backgroundSize}
 $difference = [Math]::Abs($target.r - $background.r) + [Math]::Abs($target.g - $background.g) + [Math]::Abs($target.b - $background.b)
 [PSCustomObject]@{ target = $target; background = $background; channelDifference = $difference } | ConvertTo-Json -Compress
 $bitmap.Dispose()
