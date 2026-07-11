@@ -34,6 +34,23 @@ describe('native language switcher', () => {
     );
   });
 
+  it('opens native and Rspress navigation menus on hover or keyboard focus before hydration', () => {
+    const css = readFileSync(
+      new URL('./native-language-switcher.css', import.meta.url),
+      'utf8',
+    );
+
+    expect(css).toMatch(
+      /\.site-language-menu:is\(\[open\], :hover, :focus-within\)/,
+    );
+    expect(css).toMatch(/\.rp-nav-menu__item:is\(:hover, :focus-within\)/);
+    expect(css).toMatch(/\.rp-nav-hamburger__md:is\(:hover, :focus-within\)/);
+    expect(css).toMatch(
+      /\.rp-nav-hamburger__sm\s*\{[\s\S]*?display:\s*none\s*!important/,
+    );
+    expect(css).toMatch(/\.site-mobile-nav\s*\{[\s\S]*?display:\s*block/);
+  });
+
   it('builds equivalent language paths for home, docs, query strings, and 404 pages', () => {
     const version = { current: '', default: '' };
 

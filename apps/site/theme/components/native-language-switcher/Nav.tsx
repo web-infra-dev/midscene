@@ -3,6 +3,7 @@ import {
   Nav as OriginalNav,
 } from '@rspress/core/theme-original';
 import { NativeLanguageSwitcher } from './NativeLanguageSwitcher';
+import { NativeMobileNav } from './NativeMobileNav';
 
 export function Nav({ afterNavMenu, ...props }: NavProps) {
   return (
@@ -12,6 +13,7 @@ export function Nav({ afterNavMenu, ...props }: NavProps) {
         <>
           {afterNavMenu}
           <NativeLanguageSwitcher />
+          <NativeMobileNav />
         </>
       }
     />
