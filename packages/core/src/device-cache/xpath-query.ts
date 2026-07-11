@@ -219,11 +219,22 @@ function matchesCacheTarget(node: UiNode, target: XpathCacheTarget): boolean {
   return node.type === target.type && node.attrs[target.attr] === target.value;
 }
 
+function collectCacheTargetMatches(
+  node: UiNode,
+  target: XpathCacheTarget,
+  matches: UiNode[],
+): void {
+  if (matchesCacheTarget(node, target)) matches.push(node);
+  for (const child of node.children) {
+    collectCacheTargetMatches(child, target, matches);
+  }
+}
+
 /**
- * Resolve an xpath cache feature to a single, non-ambiguous rect. A cache entry
- * that currently matches multiple nodes is treated as stale instead of using
- * the first match, because repeated labels/resource ids in lists can otherwise
- * send actions to the wrong element while still reporting `hitBy: Cache`.
+ * Resolve xpath candidates to a single, non-ambiguous rect. Native cache
+ * entries include target metadata, which must still identify exactly one node
+ * and agree with the resolved xpath. A target-less feature is accepted for the
+ * existing explicit-xpath path, but its xpath must still resolve uniquely.
  */
 export function matchRectByXpathCache(
   root: UiNode,
@@ -233,6 +244,18 @@ export function matchRectByXpathCache(
   const target = getCacheFeatureTarget(feature);
   if (xpaths.length === 0) {
     throw new Error('matchRectByXpathCache: no xpath in cache feature');
+  }
+
+  let expectedTarget: UiNode | undefined;
+  if (target) {
+    const targetMatches: UiNode[] = [];
+    collectCacheTargetMatches(root, target, targetMatches);
+    if (targetMatches.length !== 1) {
+      throw new Error(
+        `matchRectByXpathCache: cache target matched ${targetMatches.length} node(s)`,
+      );
+    }
+    expectedTarget = targetMatches[0];
   }
 
   const misses: string[] = [];
@@ -251,7 +274,7 @@ export function matchRectByXpathCache(
     }
 
     const match = matches[0];
-    if (target && !matchesCacheTarget(match, target)) {
+    if (expectedTarget && match !== expectedTarget) {
       misses.push(`${xpath} matched a different target`);
       continue;
     }

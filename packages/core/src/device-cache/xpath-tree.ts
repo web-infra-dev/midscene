@@ -125,15 +125,21 @@ function quoteAttr(value: string): string {
   return value.includes("'") ? `"${value}"` : `'${value}'`;
 }
 
-function pickFirstSafeAttr(
+function pickFirstUniqueAttr(
+  root: UiNode,
   node: UiNode,
   attrNames: string[] | undefined,
-): { attr: string; value: string } | undefined {
+  buildXpath: (identity: { attr: string; value: string }) => string,
+): { identity: { attr: string; value: string }; xpath: string } | undefined {
   if (!attrNames) return undefined;
   for (const attr of attrNames) {
     const value = node.attrs?.[attr];
     if (isAttrValueSafe(value)) {
-      return { attr, value };
+      const identity = { attr, value };
+      const xpath = buildXpath(identity);
+      if (matchesUniquely(root, xpath, node)) {
+        return { identity, xpath };
+      }
     }
   }
   return undefined;
@@ -170,23 +176,28 @@ function buildXpathCandidatesForHit(
   let target: XpathCacheTarget | undefined;
   const { node, path } = hit;
 
-  const stable = pickFirstSafeAttr(node, options?.stableAttrs);
+  const stable = pickFirstUniqueAttr(
+    root,
+    node,
+    options?.stableAttrs,
+    ({ attr, value }) => `//*[@${attr}=${quoteAttr(value)}]`,
+  );
   if (stable) {
-    const xpath = `//*[@${stable.attr}=${quoteAttr(stable.value)}]`;
-    if (matchesUniquely(root, xpath, node)) {
-      candidates.push(xpath);
-      target = toCacheTarget(node, stable);
-    }
+    candidates.push(stable.xpath);
+    target = toCacheTarget(node, stable.identity);
   }
 
   if (candidates.length < max) {
-    const semantic = pickFirstSafeAttr(node, options?.textAttrs);
-    if (semantic && node.type) {
-      const xpath = `//${xpathTag(node.type)}[@${semantic.attr}=${quoteAttr(semantic.value)}]`;
-      if (!candidates.includes(xpath) && matchesUniquely(root, xpath, node)) {
-        candidates.push(xpath);
-        target ??= toCacheTarget(node, semantic);
-      }
+    const semantic = pickFirstUniqueAttr(
+      root,
+      node,
+      options?.textAttrs,
+      ({ attr, value }) =>
+        `//${xpathTag(node.type)}[@${attr}=${quoteAttr(value)}]`,
+    );
+    if (semantic && !candidates.includes(semantic.xpath)) {
+      candidates.push(semantic.xpath);
+      target ??= toCacheTarget(node, semantic.identity);
     }
   }
 

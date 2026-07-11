@@ -115,7 +115,7 @@ describe('findRectByXpath', () => {
 
 describe('matchRectByXpathCache', () => {
   it('treats ambiguous xpath matches as cache misses and tries the next xpath', () => {
-    const first = node('Button', { name: 'same' }, [], {
+    const first = node('Label', { name: 'same' }, [], {
       left: 10,
       top: 20,
       width: 30,
@@ -131,10 +131,11 @@ describe('matchRectByXpathCache', () => {
 
     expect(
       matchRectByXpathCache(root, {
-        xpaths: ["//Button[@name='same']", '/Window/Button[2]'],
+        xpaths: ["//*[@name='same']", '/Window/Button[1]'],
+        target: { type: 'Button', attr: 'name', value: 'same' },
       }),
     ).toEqual({
-      xpath: '/Window/Button[2]',
+      xpath: '/Window/Button[1]',
       rect: {
         left: 60,
         top: 20,
@@ -172,6 +173,7 @@ describe('matchRectByXpathCache', () => {
           "//Button[@name='zero']",
           '//Missing',
         ],
+        target: { type: 'Button', attr: 'name', value: 'zero' },
       }),
     ).toThrow(/no unique xpath matched/);
   });
@@ -197,7 +199,7 @@ describe('matchRectByXpathCache', () => {
         ],
         target: { type: 'Button', attr: 'id', value: 'delete' },
       }),
-    ).toThrow(/no unique xpath matched/);
+    ).toThrow(/cache target matched 0 node/);
   });
 
   it('accepts an identity-checked positional fallback', () => {
@@ -233,5 +235,38 @@ describe('matchRectByXpathCache', () => {
         target: { type: 'Button' },
       }),
     ).toThrow(/invalid cache target/);
+  });
+
+  it('accepts a unique explicit xpath without cache target metadata', () => {
+    const target = node('Button', { id: 'login' }, [], {
+      left: 20,
+      top: 30,
+      width: 80,
+      height: 40,
+    });
+    const root = node('Window', {}, [target]);
+
+    expect(
+      matchRectByXpathCache(root, {
+        xpaths: ["//*[@id='login']"],
+      }),
+    ).toEqual({
+      xpath: "//*[@id='login']",
+      rect: { left: 20, top: 30, width: 80, height: 40 },
+    });
+  });
+
+  it('rejects a target identity that is no longer unique', () => {
+    const root = node('Window', {}, [
+      node('Button', { id: 'delete' }),
+      node('Button', { id: 'delete' }),
+    ]);
+
+    expect(() =>
+      matchRectByXpathCache(root, {
+        xpaths: ['/Window[1]/Button[2]'],
+        target: { type: 'Button', attr: 'id', value: 'delete' },
+      }),
+    ).toThrow(/cache target matched 2 node/);
   });
 });

@@ -142,6 +142,60 @@ describe('generateXpathCandidates', () => {
     expect(xpaths[0]).toBe("//Button[@name='登录']");
   });
 
+  it('tries later stable attributes when an earlier value is ambiguous', () => {
+    const target = node(
+      'Button',
+      { AccessibleId: 'shared', id: 'cache-target' },
+      { left: 100, top: 100, width: 100, height: 50 },
+    );
+    const noise = node(
+      'Button',
+      { AccessibleId: 'shared', id: 'other' },
+      { left: 300, top: 100, width: 100, height: 50 },
+    );
+    const root = win([target, noise]);
+
+    const feature = generateXpathCacheFeature(
+      root,
+      { x: 150, y: 125 },
+      { stableAttrs: ['AccessibleId', 'id'] },
+    );
+
+    expect(feature?.xpaths[0]).toBe("//*[@id='cache-target']");
+    expect(feature?.target).toEqual({
+      type: 'Button',
+      attr: 'id',
+      value: 'cache-target',
+    });
+  });
+
+  it('tries later semantic attributes when an earlier value is ambiguous', () => {
+    const target = node(
+      'Button',
+      { Name: 'Action', Description: 'Save changes' },
+      { left: 100, top: 100, width: 100, height: 50 },
+    );
+    const noise = node(
+      'Button',
+      { Name: 'Action', Description: 'Discard changes' },
+      { left: 300, top: 100, width: 100, height: 50 },
+    );
+    const root = win([target, noise]);
+
+    const feature = generateXpathCacheFeature(
+      root,
+      { x: 150, y: 125 },
+      { textAttrs: ['Name', 'Description'] },
+    );
+
+    expect(feature?.xpaths[0]).toBe("//Button[@Description='Save changes']");
+    expect(feature?.target).toEqual({
+      type: 'Button',
+      attr: 'Description',
+      value: 'Save changes',
+    });
+  });
+
   it('does not cache a positional path without verifiable identity', () => {
     const target = node(
       'Button',

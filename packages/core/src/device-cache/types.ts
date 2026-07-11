@@ -33,18 +33,21 @@ export type XpathCacheFeature = Record<string, unknown> & {
 export interface XpathCandidateOptions {
   /**
    * Attribute names that count as "stable identifiers" when present. Searched
-   * in priority order; the first non-empty value is used to emit a top-priority
-   * `//*[@attr='value']` candidate. Examples per platform:
+   * in priority order; the first safe value that uniquely identifies the node
+   * is used to emit a top-priority `//*[@attr='value']` candidate. Examples per
+   * platform:
    *   iOS    : ['accessibility-id', 'name']
    *   Android: ['resource-id']
    *   Harmony: ['inspectorKey']
    *   macOS  : ['AXIdentifier']
+   *   Windows: ['AutomationId']
+   *   Linux  : ['AccessibleId', 'id', 'automation-id']
    */
   stableAttrs?: string[];
   /**
    * Attribute names whose values describe the element semantically (label,
    * text, content). When no stable id is available, the generator emits a
-   * `//Type[@attr='value']` candidate from the first non-empty match.
+   * `//Type[@attr='value']` candidate from the first safe, unique match.
    */
   textAttrs?: string[];
   /** Maximum number of candidates to return. Defaults to 3. */
