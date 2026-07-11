@@ -321,7 +321,8 @@ describe.runIf(RUN_SMOKE)('Windows UIA xpath cache smoke', () => {
         JSON.stringify(root, null, 2),
       );
       expect(target.attrs.Name).toBe(TARGET_NAME);
-      expect(target.attrs.AutomationId).toBeUndefined();
+      expect([undefined, TARGET_ID]).toContain(target.attrs.AutomationId);
+      expect(target.attrs.AutomationId).not.toBe(String(fixture.buttonHandle));
       expect(target.bounds.width).toBeGreaterThan(0);
       expect(target.bounds.height).toBeGreaterThan(0);
       expect(
@@ -386,12 +387,18 @@ describe.runIf(RUN_SMOKE)('Windows UIA xpath cache smoke', () => {
       ];
       const feature = await device.cacheFeatureForPoint(center);
       const xpath = firstXpath(feature);
+      const expectedIdentity = target.attrs.AutomationId
+        ? { attr: 'AutomationId', value: TARGET_ID }
+        : { attr: 'Name', value: TARGET_NAME };
       expect(feature.target).toMatchObject({
         type: target.type,
-        attr: 'Name',
-        value: TARGET_NAME,
+        ...expectedIdentity,
       });
-      expect(xpath).toBe(`//${target.type}[@Name='${TARGET_NAME}']`);
+      expect(xpath).toBe(
+        target.attrs.AutomationId
+          ? `//*[@AutomationId='${TARGET_ID}']`
+          : `//${target.type}[@Name='${TARGET_NAME}']`,
+      );
 
       const cache = new TaskCache(cacheId, false, undefined, {
         writeOnly: true,

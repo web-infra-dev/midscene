@@ -143,7 +143,8 @@ describe.runIf(RUN_SMOKE)('Linux AT-SPI xpath cache smoke', () => {
         },
       });
 
-      await agent.aiLocate(CACHE_PROMPT);
+      const located = await agent.aiLocate(CACHE_PROMPT);
+      expect(located.center).toEqual(center);
       const dump = JSON.parse(agent.dumpDataString()) as {
         executions: Array<{
           tasks: Array<{ hitBy?: { from?: string } }>;
