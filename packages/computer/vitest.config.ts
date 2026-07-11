@@ -40,7 +40,6 @@ export default defineConfig({
     testTimeout: 3 * 60 * 1000, // Global timeout set to 3 minutes
     hookTimeout: 3 * 60 * 1000,
     retry: process.env.CI ? 1 : 0,
-    dangerouslyIgnoreUnhandledErrors: !!process.env.CI,
     fileParallelism: false, // disable parallel file test for desktop automation
     environment: 'node',
   },
