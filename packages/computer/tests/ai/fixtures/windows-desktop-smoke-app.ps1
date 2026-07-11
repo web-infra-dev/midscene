@@ -42,10 +42,9 @@ function Write-JsonAtomically {
     [System.IO.Directory]::CreateDirectory($directory) | Out-Null
   }
 
-  $temporaryPath = [System.IO.Path]::Combine(
-    $directory,
-    ".{0}.{1}.tmp" -f [System.IO.Path]::GetFileName($Path), [System.Guid]::NewGuid().ToString('N')
-  )
+  $fileName = [System.IO.Path]::GetFileName($Path)
+  $suffix = [System.Guid]::NewGuid().ToString('N')
+  $temporaryPath = [System.IO.Path]::Combine($directory, ".$fileName.$suffix.tmp")
   $encoding = New-Object System.Text.UTF8Encoding($false)
   $json = $Value | ConvertTo-Json -Depth 8 -Compress
 
