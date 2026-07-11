@@ -383,3 +383,274 @@ jobs:
           ${{ github.workspace }}/.release/studio/artifacts/*.yml
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  notify_discord:
+    needs:
+    - release
+    - package_studio
+    if: ${{ needs.release.result == 'success' && needs.package_studio.result == 'success' && needs.release.outputs.is_prerelease != 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+    - name: Publish release notification to Discord
+      id: notify
+      continue-on-error: true
+      env:
+        DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        GH_TOKEN: ${{ github.token }}
+        RELEASE_IMAGE_URL: https://midscenejs.com/og-image.png
+        RELEASE_VERSION: ${{ needs.release.outputs.version }}
+      run: |
+        set -euo pipefail
+
+        if [[ -z "$DISCORD_WEBHOOK_URL" ]]; then
+          echo "::warning::DISCORD_WEBHOOK_URL is not configured; skipping the Discord release notification."
+          echo "## Discord notification" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Skipped because the repository secret \`DISCORD_WEBHOOK_URL\` is not configured." >> "$GITHUB_STEP_SUMMARY"
+          exit 0
+        fi
+
+        RELEASE_JSON="$(
+          gh release view "$RELEASE_VERSION" \
+            --repo "$GITHUB_REPOSITORY" \
+            --json body,name,publishedAt,url
+        )"
+        RELEASE_NAME="$(jq -r '.name // empty' <<< "$RELEASE_JSON")"
+        RELEASE_BODY="$(jq -r '.body // empty' <<< "$RELEASE_JSON")"
+        RELEASE_URL="$(jq -r '.url' <<< "$RELEASE_JSON")"
+        RELEASE_PUBLISHED_AT="$(jq -r '.publishedAt' <<< "$RELEASE_JSON")"
+        PACKAGE_VERSION="${RELEASE_VERSION#v}"
+
+        PAYLOAD="$(
+          jq -n \
+            --arg body "$RELEASE_BODY" \
+            --arg image_url "$RELEASE_IMAGE_URL" \
+            --arg package_version "$PACKAGE_VERSION" \
+            --arg published_at "$RELEASE_PUBLISHED_AT" \
+            --arg release_name "$RELEASE_NAME" \
+            --arg release_url "$RELEASE_URL" \
+            --arg version "$RELEASE_VERSION" \
+            '
+              ($release_name
+                | if length > 0 then . else "Midscene.js \($version)" end
+                | .[0:256]
+              ) as $title
+              | ($body
+                  | if length == 0 then
+                      "Midscene.js \($version) is now available."
+                    elif length > 3500 then
+                      .[0:3500] + "\n\n…"
+                    else
+                      .
+                    end
+                ) as $description
+              | {
+                  username: "Midscene Release",
+                  avatar_url: "https://midscenejs.com/midscene-icon.png",
+                  allowed_mentions: {
+                    parse: []
+                  },
+                  embeds: [{
+                    title: $title,
+                    url: $release_url,
+                    description: $description,
+                    color: 43248,
+                    fields: [
+                      {
+                        name: "GitHub Release",
+                        value: "[View release](\($release_url))",
+                        inline: true
+                      },
+                      {
+                        name: "npm",
+                        value: "[@midscene/core](https://www.npmjs.com/package/@midscene/core/v/\($package_version))",
+                        inline: true
+                      }
+                    ],
+                    image: {
+                      url: $image_url
+                    },
+                    footer: {
+                      text: "Midscene.js Release"
+                    },
+                    timestamp: $published_at
+                  }]
+                }
+            '
+        )"
+
+        WEBHOOK_METADATA="$(
+          printf 'url = "%s"\n' "$DISCORD_WEBHOOK_URL" \
+            | curl \
+                --config - \
+                --fail-with-body \
+                --silent \
+                --show-error
+        )"
+        GUILD_ID="$(jq -er '.guild_id' <<< "$WEBHOOK_METADATA")"
+
+        DISCORD_RESPONSE="$(
+          printf 'url = "%s?wait=true"\n' "$DISCORD_WEBHOOK_URL" \
+            | curl \
+                --config - \
+                --fail-with-body \
+                --silent \
+                --show-error \
+                --request POST \
+                --header 'Content-Type: application/json' \
+                --data "$PAYLOAD"
+        )"
+
+        MESSAGE_ID="$(jq -er '.id' <<< "$DISCORD_RESPONSE")"
+        CHANNEL_ID="$(jq -er '.channel_id' <<< "$DISCORD_RESPONSE")"
+        MESSAGE_URL="https://discord.com/channels/${GUILD_ID}/${CHANNEL_ID}/${MESSAGE_ID}"
+
+        echo "## Discord notification" >> "$GITHUB_STEP_SUMMARY"
+        echo "" >> "$GITHUB_STEP_SUMMARY"
+        echo "Published [the ${RELEASE_VERSION} notification](${MESSAGE_URL})." >> "$GITHUB_STEP_SUMMARY"
+
+    - name: Summarize Discord notification failure
+      if: ${{ steps.notify.outcome == 'failure' }}
+      run: |
+        echo "::warning::The GitHub Release succeeded, but its Discord notification failed."
+        echo "## Discord notification fallback" >> "$GITHUB_STEP_SUMMARY"
+        echo "" >> "$GITHUB_STEP_SUMMARY"
+        echo "The GitHub Release succeeded, but its Discord notification failed. Review the previous step and resend the announcement manually." >> "$GITHUB_STEP_SUMMARY"
+
+  notify_feishu:
+    needs:
+    - release
+    - package_studio
+    if: ${{ needs.release.result == 'success' && needs.package_studio.result == 'success' && needs.release.outputs.is_prerelease != 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+    - name: Publish release notification to Feishu
+      id: notify
+      continue-on-error: true
+      env:
+        FEISHU_APP_ID: ${{ secrets.FEISHU_APP_ID }}
+        FEISHU_APP_SECRET: ${{ secrets.FEISHU_APP_SECRET }}
+        FEISHU_CHAT_ID: ${{ secrets.FEISHU_CHAT_ID }}
+        GH_TOKEN: ${{ github.token }}
+        RELEASE_VERSION: ${{ needs.release.outputs.version }}
+      run: |
+        set -euo pipefail
+
+        if [[ -z "$FEISHU_APP_ID" || -z "$FEISHU_APP_SECRET" || -z "$FEISHU_CHAT_ID" ]]; then
+          echo "::warning::The Feishu application credentials or chat ID are not configured; skipping the Feishu release notification."
+          echo "## Feishu notification" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Skipped because one or more required repository secrets are not configured: \
+          \`FEISHU_APP_ID\`, \`FEISHU_APP_SECRET\`, \`FEISHU_CHAT_ID\`." >> "$GITHUB_STEP_SUMMARY"
+          exit 0
+        fi
+
+        RELEASE_JSON="$(
+          gh release view "$RELEASE_VERSION" \
+            --repo "$GITHUB_REPOSITORY" \
+            --json body,name,url
+        )"
+        RELEASE_NAME="$(jq -r '.name // empty' <<< "$RELEASE_JSON")"
+        RELEASE_BODY="$(jq -r '.body // empty' <<< "$RELEASE_JSON")"
+        RELEASE_URL="$(jq -r '.url' <<< "$RELEASE_JSON")"
+        PACKAGE_VERSION="${RELEASE_VERSION#v}"
+        NPM_URL="https://www.npmjs.com/package/@midscene/core/v/${PACKAGE_VERSION}"
+
+        TOKEN_RESPONSE="$(
+          jq -cn \
+            '{app_id: env.FEISHU_APP_ID, app_secret: env.FEISHU_APP_SECRET}' \
+            | curl \
+                --fail-with-body \
+                --silent \
+                --show-error \
+                --request POST \
+                --header 'Content-Type: application/json; charset=utf-8' \
+                --data-binary @- \
+                'https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal'
+        )"
+
+        if [[ "$(jq -r '.code // -1' <<< "$TOKEN_RESPONSE")" != "0" ]]; then
+          echo "Feishu tenant access token request failed: $(jq -c '{code, msg}' <<< "$TOKEN_RESPONSE")" >&2
+          exit 1
+        fi
+        TENANT_ACCESS_TOKEN="$(jq -er '.tenant_access_token' <<< "$TOKEN_RESPONSE")"
+
+        POST_CONTENT="$(
+          jq -cn \
+            --arg body "$RELEASE_BODY" \
+            --arg release_name "$RELEASE_NAME" \
+            --arg release_url "$RELEASE_URL" \
+            --arg npm_url "$NPM_URL" \
+            --arg version "$RELEASE_VERSION" \
+            '
+              ($release_name
+                | if length > 0 then . else "Midscene.js \($version)" end
+                | .[0:100]
+              ) as $title
+              | ($body
+                  | if length == 0 then
+                      "Midscene.js \($version) is now available."
+                    elif length > 8000 then
+                      .[0:8000] + "\n\n…"
+                    else
+                      .
+                    end
+                ) as $description
+              | {
+                  zh_cn: {
+                    title: $title,
+                    content: [
+                      [{tag: "text", text: $description}],
+                      [
+                        {tag: "a", text: "View GitHub Release", href: $release_url},
+                        {tag: "text", text: " · "},
+                        {tag: "a", text: "View @midscene/core on npm", href: $npm_url}
+                      ]
+                    ]
+                  }
+                }
+            '
+        )"
+        IDEMPOTENCY_KEY="$(printf '%s-%s-feishu' "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" | cut -c1-50)"
+        PAYLOAD="$(
+          jq -cn \
+            --arg content "$POST_CONTENT" \
+            --arg receive_id "$FEISHU_CHAT_ID" \
+            --arg uuid "$IDEMPOTENCY_KEY" \
+            '{receive_id: $receive_id, msg_type: "post", content: $content, uuid: $uuid}'
+        )"
+
+        FEISHU_RESPONSE="$(
+          printf 'header = "Authorization: Bearer %s"\n' "$TENANT_ACCESS_TOKEN" \
+            | curl \
+                --config - \
+                --fail-with-body \
+                --silent \
+                --show-error \
+                --request POST \
+                --header 'Content-Type: application/json; charset=utf-8' \
+                --data "$PAYLOAD" \
+                'https://open.feishu.cn/open-apis/im/v1/messages?receive_id_type=chat_id'
+        )"
+
+        if [[ "$(jq -r '.code // -1' <<< "$FEISHU_RESPONSE")" != "0" ]]; then
+          echo "Feishu message request failed: $(jq -c '{code, msg}' <<< "$FEISHU_RESPONSE")" >&2
+          exit 1
+        fi
+        MESSAGE_ID="$(jq -er '.data.message_id' <<< "$FEISHU_RESPONSE")"
+
+        echo "## Feishu notification" >> "$GITHUB_STEP_SUMMARY"
+        echo "" >> "$GITHUB_STEP_SUMMARY"
+        echo "Published the ${RELEASE_VERSION} notification as message \`${MESSAGE_ID}\`." >> "$GITHUB_STEP_SUMMARY"
+
+    - name: Summarize Feishu notification failure
+      if: ${{ steps.notify.outcome == 'failure' }}
+      run: |
+        echo "::warning::The GitHub Release succeeded, but its Feishu notification failed."
+        echo "## Feishu notification fallback" >> "$GITHUB_STEP_SUMMARY"
+        echo "" >> "$GITHUB_STEP_SUMMARY"
+        echo "The GitHub Release succeeded, but its Feishu notification failed. Review the previous step and resend the announcement manually." >> "$GITHUB_STEP_SUMMARY"
