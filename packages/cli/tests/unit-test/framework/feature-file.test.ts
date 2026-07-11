@@ -1,8 +1,39 @@
 import { compileFeatureFile } from '@/framework/feature-file';
 import { describe, expect, test } from 'vitest';
 
+const runScenarioFlow = (name: string, steps: string[]) => [
+  {
+    runGherkinScenario: [
+      `Scenario: ${name}`,
+      ...steps.map((step) => `  ${step}`),
+    ].join('\n'),
+  },
+];
+
 describe('feature-file parser', () => {
-  test('compiles scenarios into Midscene aiAct and aiAssert tasks', () => {
+  test('delegates concrete scenarios to core runGherkinScenario execution', () => {
+    const [compiled] = compileFeatureFile(
+      [
+        'Feature: Login',
+        'Scenario: Failed login',
+        '  Given I open the login page',
+        '  When I enter a bad password',
+        '  Then an error is shown',
+        '',
+      ].join('\n'),
+      '/repo/features/login.feature',
+    );
+
+    expect(compiled.executionConfig.tasks[0].flow).toEqual(
+      runScenarioFlow('Failed login', [
+        'Given I open the login page',
+        'When I enter a bad password',
+        'Then an error is shown',
+      ]),
+    );
+  });
+
+  test('canonicalizes inherited And and But keywords for core execution', () => {
     const compiled = compileFeatureFile(
       [
         'Feature: Login',
@@ -24,12 +55,12 @@ describe('feature-file parser', () => {
           tasks: [
             {
               name: 'Failed login',
-              flow: [
-                { aiAct: 'I open the login page' },
-                { aiAct: 'I type a bad password' },
-                { aiAssert: 'an error is shown' },
-                { aiAssert: 'the user stays signed out' },
-              ],
+              flow: runScenarioFlow('Failed login', [
+                'Given I open the login page',
+                'Given I type a bad password',
+                'Then an error is shown',
+                'Then the user stays signed out',
+              ]),
             },
           ],
         },
@@ -64,12 +95,12 @@ describe('feature-file parser', () => {
           tasks: [
             {
               name: 'Add item',
-              flow: [
-                { aiAct: 'I am signed in' },
-                { aiAct: 'the cart is empty' },
-                { aiAct: 'I add a hat' },
-                { aiAssert: 'the cart has 1 item' },
-              ],
+              flow: runScenarioFlow('Add item', [
+                'Given I am signed in',
+                'Given the cart is empty',
+                'When I add a hat',
+                'Then the cart has 1 item',
+              ]),
             },
           ],
         },
@@ -99,8 +130,14 @@ describe('feature-file parser', () => {
       'Checkout > Add quantities #2',
     ]);
     expect(compiled.map((item) => item.executionConfig.tasks[0].flow)).toEqual([
-      [{ aiAct: 'I add 2 hats' }, { aiAssert: 'the cart has 2 item' }],
-      [{ aiAct: 'I add 3 shoes' }, { aiAssert: 'the cart has 3 item' }],
+      runScenarioFlow('Add quantities #1', [
+        'When I add 2 hats',
+        'Then the cart has 2 item',
+      ]),
+      runScenarioFlow('Add quantities #2', [
+        'When I add 3 shoes',
+        'Then the cart has 3 item',
+      ]),
     ]);
   });
 
@@ -128,8 +165,8 @@ describe('feature-file parser', () => {
       'Checkout > Add 3 shoes',
     ]);
     expect(compiled.map((item) => item.executionConfig.tasks[0].flow)).toEqual([
-      [{ aiAssert: 'the cart has 2 hats' }],
-      [{ aiAssert: 'the cart has 3 shoes' }],
+      runScenarioFlow('Add 2 hats', ['Then the cart has 2 hats']),
+      runScenarioFlow('Add 3 shoes', ['Then the cart has 3 shoes']),
     ]);
   });
 
@@ -147,11 +184,13 @@ describe('feature-file parser', () => {
       '/repo/features/checkout.feature',
     );
 
-    expect(compiled[0].executionConfig.tasks[0].flow).toEqual([
-      { aiAct: 'I am signed in' },
-      { aiAct: 'I open the cart' },
-      { aiAssert: 'the cart is visible' },
-    ]);
+    expect(compiled[0].executionConfig.tasks[0].flow).toEqual(
+      runScenarioFlow('Continue from background', [
+        'Given I am signed in',
+        'Given I open the cart',
+        'Then the cart is visible',
+      ]),
+    );
 
     expect(() =>
       compileFeatureFile(
@@ -204,6 +243,36 @@ describe('feature-file parser', () => {
       ),
     ).toThrow(
       '/repo/features/checkout.feature:2: Scenario Outline requires at least one Examples row',
+    );
+  });
+
+  test('rejects expanded scenario content containing newlines', () => {
+    expect(() =>
+      compileFeatureFile(
+        [
+          'Feature: Checkout',
+          'Scenario Outline: Add <item>',
+          '  When I add <item>',
+          '  Examples:',
+          '    | item                  |',
+          '    | first\\nThen injected |',
+          '',
+        ].join('\n'),
+        '/repo/features/checkout.feature',
+      ),
+    ).toThrow(
+      '/repo/features/checkout.feature: Expanded scenario names and steps must not contain newlines',
+    );
+  });
+
+  test('rejects scenarios without executable steps', () => {
+    expect(() =>
+      compileFeatureFile(
+        ['Feature: Checkout', 'Scenario: Empty cart', ''].join('\n'),
+        '/repo/features/checkout.feature',
+      ),
+    ).toThrow(
+      '/repo/features/checkout.feature: Scenario "Empty cart" must contain at least one step',
     );
   });
 
