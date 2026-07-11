@@ -10,6 +10,10 @@
   min-width: 0;
 }
 
+.site-language-menu__details {
+  display: contents;
+}
+
 .site-language-menu__summary {
   list-style: none;
   user-select: none;
@@ -20,6 +24,7 @@
 }
 
 .site-language-menu__list {
+  display: none;
   top: 80%;
   right: 0;
   left: auto;
@@ -28,19 +33,13 @@
   transform: none;
 }
 
-.site-language-menu:not([open]):not(:hover):not(:focus-within)
-  > .site-language-menu__list {
-  display: none;
-}
-
-.site-language-menu:is([open], :hover, :focus-within)
-  > .site-language-menu__list {
+.site-language-menu:is(:hover, :focus-within) > .site-language-menu__list,
+.site-language-menu__details[open] + .site-language-menu__list {
   display: flex;
 }
 
-.site-language-menu:is([open], :hover, :focus-within)
-  > .site-language-menu__summary
-  .rp-nav-menu__item__icon {
+.site-language-menu:is(:hover, :focus-within) .rp-nav-menu__item__icon,
+.site-language-menu__details[open] .rp-nav-menu__item__icon {
   transform: rotate(180deg);
 }
 

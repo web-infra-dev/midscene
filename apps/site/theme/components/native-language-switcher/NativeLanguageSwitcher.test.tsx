@@ -16,8 +16,9 @@ describe('native language switcher', () => {
       />,
     );
 
-    expect(html).toMatch(/^<details/);
+    expect(html).toMatch(/^<div[^>]+site-language-menu/);
     expect(html).toMatch(/<summary[^>]+>.*English/s);
+    expect(html).toMatch(/<\/details><ul class="site-language-menu__list/);
     expect(html).toContain('<a href="/zh/index.html"');
     expect(html).not.toContain('aria-label="Language"');
     expect(html).not.toContain('rp-link');
@@ -40,8 +41,9 @@ describe('native language switcher', () => {
       'utf8',
     );
 
+    expect(css).toMatch(/\.site-language-menu:is\(:hover, :focus-within\)/);
     expect(css).toMatch(
-      /\.site-language-menu:is\(\[open\], :hover, :focus-within\)/,
+      /\.site-language-menu__details\[open\] \+ \.site-language-menu__list/,
     );
     expect(css).toMatch(/\.rp-nav-menu__item:is\(:hover, :focus-within\)/);
     expect(css).toMatch(/\.rp-nav-hamburger__md:is\(:hover, :focus-within\)/);

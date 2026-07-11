@@ -14,31 +14,30 @@ export function NativeLanguageMenu({
   items,
 }: NativeLanguageMenuProps) {
   return (
-    <details
-      className="site-language-menu rp-nav-menu__item"
-      suppressHydrationWarning
-    >
-      <summary
-        className="site-language-menu__summary rp-nav-menu__item__container"
-        onKeyDown={(event) => {
-          if (event.key === 'Enter' || event.key === ' ')
-            event.stopPropagation();
-        }}
-      >
-        <span>{activeLabel}</span>
-        <svg
-          aria-hidden="true"
-          className="rp-nav-menu__item__icon"
-          width="1em"
-          height="1em"
-          viewBox="0 0 32 32"
+    <div className="site-language-menu rp-nav-menu__item">
+      <details className="site-language-menu__details" suppressHydrationWarning>
+        <summary
+          className="site-language-menu__summary rp-nav-menu__item__container"
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' || event.key === ' ')
+              event.stopPropagation();
+          }}
         >
-          <path
-            fill="currentColor"
-            d="M16 22 6 12l1.4-1.4 8.6 8.6 8.6-8.6L26 12z"
-          />
-        </svg>
-      </summary>
+          <span>{activeLabel}</span>
+          <svg
+            aria-hidden="true"
+            className="rp-nav-menu__item__icon"
+            width="1em"
+            height="1em"
+            viewBox="0 0 32 32"
+          >
+            <path
+              fill="currentColor"
+              d="M16 22 6 12l1.4-1.4 8.6 8.6 8.6-8.6L26 12z"
+            />
+          </svg>
+        </summary>
+      </details>
       <ul className="site-language-menu__list rp-hover-group rp-hover-group--right">
         {items.map((item) => (
           <li
@@ -69,6 +68,6 @@ export function NativeLanguageMenu({
           </li>
         ))}
       </ul>
-    </details>
+    </div>
   );
 }
