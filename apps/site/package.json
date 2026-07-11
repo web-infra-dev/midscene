@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "rspress dev",
     "build": "rspress build && ./config_deploy.sh",
-    "preview": "rspress preview"
+    "preview": "rspress preview",
+    "test": "vitest --run"
   },
   "engines": {
     "pnpm": ">=9.3.0",
@@ -24,10 +25,12 @@
     "@rspress/plugin-client-redirects": "2.0.8",
     "@rspress/plugin-llms": "2.0.8",
     "@rspress/plugin-sitemap": "2.0.8",
+    "@rspress/shared": "2.0.8",
     "@tailwindcss/postcss": "4.1.11",
     "@types/node": "^18.0.0",
     "autoprefixer": "10.4.22",
     "postcss": "8.5.6",
-    "tailwindcss": "4.1.11"
+    "tailwindcss": "4.1.11",
+    "vitest": "3.0.5"
   }
 }

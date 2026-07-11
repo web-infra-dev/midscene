@@ -5,6 +5,7 @@ import {
   LlmsViewOptions,
 } from '@rspress/plugin-llms/runtime';
 import { BenchmarkReportPreview } from './components/BenchmarkReportPreview';
+import { Nav } from './components/native-language-switcher/Nav';
 import { HomeLayout } from './pages';
 
 function getCustomMDXComponent() {
@@ -27,5 +28,5 @@ function getCustomMDXComponent() {
   };
 }
 
-export { BenchmarkReportPreview, getCustomMDXComponent, HomeLayout };
+export { BenchmarkReportPreview, getCustomMDXComponent, HomeLayout, Nav };
 export * from '@rspress/core/theme-original';

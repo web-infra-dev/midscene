@@ -1,0 +1,50 @@
+/* The native menu replaces Rspress' hydration-dependent desktop and mobile language controls. */
+.rp-nav__others > .rp-nav-menu__divider + .rp-nav-menu__item,
+.rp-nav-screen-langs,
+.rp-nav-screen-langs-group {
+  display: none !important;
+}
+
+.site-language-menu {
+  flex: none;
+  min-width: 0;
+}
+
+.site-language-menu__summary {
+  list-style: none;
+  user-select: none;
+}
+
+.site-language-menu__summary::-webkit-details-marker {
+  display: none;
+}
+
+.site-language-menu__list {
+  top: 80%;
+  right: 0;
+  left: auto;
+  max-height: min(70vh, 30rem);
+  overflow-y: auto;
+  transform: none;
+}
+
+.site-language-menu:not([open]) > .site-language-menu__list {
+  display: none;
+}
+
+.site-language-menu[open] > .site-language-menu__list {
+  display: flex;
+}
+
+.site-language-menu[open]
+  > .site-language-menu__summary
+  .rp-nav-menu__item__icon {
+  transform: rotate(180deg);
+}
+
+@media (width <= 767px) {
+  .site-language-menu__summary {
+    gap: 2px;
+    font-size: 13px;
+  }
+}
