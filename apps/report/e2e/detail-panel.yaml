@@ -4,38 +4,22 @@ target:
 tasks:
   - name: view screenshots tab
     flow:
-      - sleep: 3000
-      # Click an aiAssert/Insight task so Screenshots is the default tab
-      # (Planning tasks default to Replay; Insight tasks default to Screenshots)
-      - aiTap:
-          locate:
-            prompt: A task row in the left sidebar table whose type column shows "Insight" or that is an assertion/aiAssert task. Click on it to select the task and show its details in the center panel.
-            deepLocate: true
-      - sleep: 3000
-      # If the selected task happens to be Planning type (shows Replay),
-      # explicitly switch to the Screenshots segmented button.
-      - aiTap:
-          locate:
-            prompt: The pill-shaped "Screenshots" button in the segmented tab switcher at the very top of the center detail panel. It has a small camera icon to the left of the text "Screenshots". It is in the same row as "Replay" and "JSON View" buttons. If only "Screenshots" and "JSON View" are visible, it is the leftmost pill button.
-            deepLocate: true
       - sleep: 2000
-      - aiAssert: The center detail panel shows the Screenshots tab content. It displays at least one screenshot image. The top of the panel shows "Screenshots" as the active pill button (highlighted/selected).
+      - ai: Click on the first task row in the left sidebar that has type "Planning" or "Insight" or "Locate"
+      - sleep: 2000
+      - ai: In the center task detail area, click the "Screenshots" option in the Replay/Screenshots/JSON View switcher if it is not already selected
+      - sleep: 1000
+      - aiAssert: The center task detail area has the Screenshots option selected and shows UI screenshot images for the selected task
 
   - name: view JSON data tab
     flow:
-      - aiTap:
-          locate:
-            prompt: The pill-shaped "JSON View" button in the segmented tab switcher at the top of the center detail panel. It has a document/text file icon to the left of the text "JSON View". It is the rightmost pill button in the tab switcher.
-            deepLocate: true
-      - sleep: 2000
-      - aiAssert: The center detail panel shows the JSON View tab content. The "JSON View" pill button at the top is highlighted/selected. The content area shows structured JSON data or key-value text, not screenshot images.
+      - ai: In the center task detail area, click the "JSON View" option in the Replay/Screenshots/JSON View switcher and wait until the content changes to the text data view
+      - sleep: 1000
+      - aiAssert: The center task detail area has the JSON View option selected and shows structured task details as text instead of screenshot images
 
   - name: inspect detail side sections
     flow:
-      - aiTap:
-          locate:
-            prompt: A task row in the left sidebar table that shows "Planning" type. Click on it to select and view its details.
-            deepLocate: true
+      - ai: Click on the first Planning task row in the left sidebar
       - sleep: 1000
       - aiAssert: The right detail side panel shows collapsible section headers named Param and Output, and the Param section is expanded with task input data
       # Collapse both Param and the Output/Element section so the Meta section
@@ -52,9 +36,6 @@ tasks:
 
   - name: open in playground button
     flow:
-      - aiTap:
-          locate:
-            prompt: A task row in the left sidebar that shows "Planning" type. Click to select it.
-            deepLocate: true
+      - ai: Click on a task row in the sidebar that shows "Planning" type
       - sleep: 2000
       - aiAssert: There is a "Open in Playground" button visible on the page
