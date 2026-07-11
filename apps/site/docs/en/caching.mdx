@@ -40,9 +40,27 @@ Element location cache uses the same `cache` option as planning cache. The diffe
 | iOS | WebDriverAgent source XML | Supported when the target appears in the WDA element source. |
 | HarmonyOS | `uitest dumpLayout` JSON | Supported when the target appears in the HarmonyOS UI test tree. |
 | macOS desktop | Accessibility tree | Supported for apps that expose a usable macOS accessibility window tree. |
+| Windows desktop | UI Automation (UIA) tree | Supported for the active local app when it exposes the target through UIA. |
+| Linux desktop | AT-SPI tree | Supported when the active app and desktop session expose the target through AT-SPI. |
+| Remote Windows over RDP | Screenshot and remote input | Native XPath cache replay is not supported by the RDP device. |
 | Other desktop environments | Platform-specific desktop tree | Not supported by the built-in xpath cache replay yet. |
 
 Internally, native platform adapters convert their tree shape into a shared `UiNode` representation with `type`, `attrs`, `bounds`, and `children`. Cache generation selects the smallest, deepest node at the located point and records a unique stable or semantic attribute as its target identity. A positional XPath may be stored as a fallback, but replay must still match that identity. If the node has no unique stable or semantic identity, Midscene skips native element caching for that locate. Missing, zero-size, ambiguous, or identity-mismatched results fall back to AI locating.
+
+### Native XPath examples
+
+Each adapter normalizes its platform tree before generating XPath candidates. Stable attributes are preferred. A semantic attribute is used only when it uniquely identifies one node in the current tree.
+
+| Platform | Example generated XPath |
+| --- | --- |
+| Android | `//*[@resource-id='com.example.app:id/login_btn']` or `//android.widget.Button[@text='Login']` |
+| iOS | `//*[@name='login_btn']` |
+| HarmonyOS | `//*[@key='login_btn']` or `//Button[@text='Register']` |
+| macOS desktop | `//*[@AXIdentifier='loginButton']` |
+| Windows desktop | `//*[@AutomationId='save-button']` or `//UIAPane[@Name='Midscene Cache Target']` |
+| Linux desktop | `//*[@AccessibleId='cache-target']` or `//ATSPIPushButton[@Name='Midscene Cache Target']` |
+
+The cache entry may also contain a positional XPath such as `/UIAWindow[1]/UIAPane[1]`. This is only a fallback candidate: replay still checks the recorded target type and stable or semantic identity before accepting the match.
 
 ## Cache strategies
 
@@ -356,7 +374,13 @@ For web automation, element location caching relies on DOM structure, so caching
 3. **Shadow DOM (closed mode)**: Closed Shadow DOM cannot be accessed from outside.
 4. **WebGL / Dynamic SVG content**: Dynamically generated graphics may not have a stable DOM structure.
 
-For Android, iOS, HarmonyOS, and macOS desktop automation, element location caching relies on the platform accessibility or UI inspector tree. It will not work for pure screenshot pixels, views hidden from that tree, nodes without a unique stable or semantic identity, or desktop apps that do not expose a usable macOS accessibility window tree. A positional XPath alone is not considered sufficient proof of a native cache hit.
+For Android, iOS, HarmonyOS, macOS, Windows, and Linux desktop automation, element location caching relies on the platform accessibility or UI inspector tree. It will not work for pure screenshot pixels, views hidden from that tree, or nodes without a unique stable or semantic identity. A positional XPath alone is not considered sufficient proof of a native cache hit.
+
+Desktop platforms have these additional constraints:
+
+- **Windows**: Midscene reads the active local window through UIA. Current cache-coordinate validation covers 100% display scaling; mixed-DPI and mixed-scaling setups are not covered. Apps that do not expose useful UIA nodes fall back to AI locating.
+- **Linux**: Midscene requires Python GI, the AT-SPI 2.0 typelib, a session D-Bus and accessibility bus, and one identifiable active or focused application. Xvfb alone does not provide an accessibility tree.
+- **RDP**: The RDP device provides screenshots and remote input, but it does not expose the remote Windows UIA tree, so native XPath cache replay is unavailable.
 
 When the cache is not hit or not available, the process will fall back to using AI services to find the element.
 

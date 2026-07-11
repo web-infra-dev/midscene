@@ -31,15 +31,33 @@ Node.js 18.19.0 or higher is required.
 
 **macOS**: Accessibility permissions are required for keyboard and mouse control. When you run the script for the first time, macOS will prompt you to grant access. Go to **System Settings > Privacy & Security > Accessibility** and enable permissions for the application running your script (e.g., Terminal, iTerm2, VS Code, WebStorm, or other IDEs). For more details, see [nut.js macOS setup](https://github.com/nut-tree/nut.js#macos).
 
-**Windows**: No extra setup is needed for ordinary apps. However, Windows isolates input across privilege levels (UIPI): a non-elevated process **cannot** send mouse or keyboard input to a window that runs **as Administrator** (elevated). The input is silently dropped — the cursor still moves to the right spot, but clicks and keystrokes have no effect. Prefer running the target application without Administrator privileges. If the target application must stay elevated, run the terminal or Node.js that launches Midscene **as Administrator** too, so both processes share the same privilege level. See [Windows: clicks have no effect on some apps](#windows-clicks-have-no-effect-on-some-apps).
+**Windows**: No extra setup is needed for ordinary apps. Element location cache reads the active local application's UI Automation (UIA) tree. The current cache-coordinate validation covers 100% display scaling; mixed-DPI and mixed-scaling environments are not covered. RDP automation does not expose the remote UIA tree and therefore cannot use native XPath cache replay.
 
-**Linux**: [ImageMagick](https://imagemagick.org/script/download.php) is required for screenshot functionality.
+Windows isolates input across privilege levels (UIPI): a non-elevated process **cannot** send mouse or keyboard input to a window that runs **as Administrator** (elevated). The input is silently dropped — the cursor still moves to the right spot, but clicks and keystrokes have no effect. Prefer running the target application without Administrator privileges. If the target application must stay elevated, run the terminal or Node.js that launches Midscene **as Administrator** too, so both processes share the same privilege level. See [Windows: clicks have no effect on some apps](#windows-clicks-have-no-effect-on-some-apps).
 
-**Headless Linux (CI)**: To run desktop automation on a headless Linux server (e.g. GitHub Actions), install Xvfb and its dependencies, then enable headless mode:
+**Linux**: [ImageMagick](https://imagemagick.org/script/download.php) is required for screenshot functionality. Native element location cache also requires Python GI, the AT-SPI 2.0 typelib, and a running accessibility bus:
+
+```bash
+# Debian / Ubuntu
+sudo apt-get install -y at-spi2-core gir1.2-atspi-2.0 python3-gi
+
+# Fedora
+sudo dnf install -y at-spi2-core python3-gobject
+```
+
+Verify that Python can load AT-SPI:
+
+```bash
+python3 -c "import gi; gi.require_version('Atspi', '2.0'); from gi.repository import Atspi; Atspi.init(); print(Atspi.get_desktop_count())"
+```
+
+**Headless Linux (CI)**: To run desktop automation on a headless Linux server (e.g. GitHub Actions), install Xvfb and its dependencies, then enable headless mode. Native XPath cache additionally needs a session D-Bus, an AT-SPI accessibility bus, a window manager, and one focused target application; Xvfb alone only provides the display.
 
 ```bash
 # Install dependencies
-sudo apt-get install -y xvfb x11-xserver-utils imagemagick
+sudo apt-get install -y \
+  at-spi2-core dbus-x11 gir1.2-atspi-2.0 gsettings-desktop-schemas \
+  imagemagick openbox python3-gi x11-xserver-utils xvfb
 ```
 
 ```typescript
@@ -50,7 +68,7 @@ const agent = await agentForComputer({ headless: true });
 // MIDSCENE_COMPUTER_HEADLESS_LINUX=true npx tsx example.ts
 ```
 
-Xvfb creates a virtual display so that mouse, keyboard, and screenshot operations work without a physical monitor. See [API Reference](./computer-api-reference) for details.
+Xvfb creates a virtual display so that mouse, keyboard, and screenshot operations work without a physical monitor. Start the test inside `dbus-run-session`, enable toolkit accessibility, set `NO_AT_BRIDGE=0`, and focus the target application before generating or replaying an element location cache. See the repository's `linux-accessibility-cache` workflow for a complete CI example and [API Reference](./computer-api-reference) for headless options.
 
 ## Try Playground (no code)
 
