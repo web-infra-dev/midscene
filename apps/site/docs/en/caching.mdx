@@ -363,9 +363,9 @@ Please refer to the documentation of the corresponding [API](./api.mdx) for deta
 Midscene uses [XPath](https://developer.mozilla.org/en-US/docs/Web/XML/XPath) to cache element location against the current DOM or platform UI tree. We are using a relatively strict strategy to prevent false matches. In these situations, the cache will not be accessed:
 
 1. The XPath no longer resolves to an element.
-2. For native platforms, the resolved node no longer has the stable or semantic identity recorded with the cache entry.
+2. For native platforms, the recorded stable or semantic target identity is missing or no longer unique in the current tree.
 3. The DOM or native UI tree structure changed so the cached selectors no longer identify the target.
-4. The XPath resolves to more than one element, because ambiguous matches are treated as stale cache.
+4. For native platforms, an XPath resolves to more than one node or to a node different from the recorded target.
 
 For web automation, element location caching relies on DOM structure, so caching is not available in the following scenarios:
 

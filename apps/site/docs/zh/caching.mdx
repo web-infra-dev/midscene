@@ -367,9 +367,9 @@ test.afterEach(async ({ page, agentForPage }) => {
 Midscene 使用 [XPath](https://developer.mozilla.org/en-US/docs/Web/XML/XPath) 基于当前 DOM 或平台 UI 树来缓存元素定位信息。我们使用相对严格的策略来防止误匹配。在以下情况下，缓存不会命中：
 
 1. XPath 已经无法命中元素。
-2. 对于原生平台，命中的节点不再具有缓存记录的稳定属性或语义身份。
+2. 对于原生平台，缓存记录的稳定属性或语义目标身份已经不存在，或在当前树中不再唯一。
 3. 页面 DOM 或原生 UI 树结构变化后，缓存的 selector 已经无法识别目标。
-4. XPath 命中多个元素，因为有歧义的匹配会被视为过期缓存。
+4. 对于原生平台，XPath 命中多个节点，或命中的节点与缓存记录的目标不一致。
 
 对于 Web 自动化，元素定位缓存依赖 DOM 结构，以下场景无法使用缓存功能：
 
