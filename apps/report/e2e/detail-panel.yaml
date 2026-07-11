@@ -5,9 +5,14 @@ tasks:
   - name: view screenshots tab
     flow:
       - sleep: 2000
-      - ai: Click on the first task row in the left sidebar that has type "Planning" or "Insight" or "Locate"
+      - aiTap: the first task row in the left sidebar that has type "Planning" or "Insight" or "Locate"
       - sleep: 2000
-      - ai: In the center task detail Replay/Screenshots/JSON View switcher, select "Screenshots" (not Replay or JSON View) and wait until screenshot thumbnails are displayed
+      # Replay also contains screenshot imagery, so always click the tab instead
+      # of asking the model to infer the current selected state from content.
+      - aiTap:
+          locate:
+            prompt: the exact "Screenshots" text label, which is the middle option between Replay and JSON View in the switcher at the top of the center task detail area
+            deepLocate: true
       - sleep: 1500
       - aiAssert: The center task detail area has the Screenshots option selected and shows UI screenshot images for the selected task
 
