@@ -3,6 +3,15 @@ import featureLoader, {
 } from '@/framework/feature-loader';
 import { describe, expect, test } from 'vitest';
 
+const runScenarioFlow = (name: string, steps: string[]) => [
+  {
+    runGherkinScenario: [
+      `Scenario: ${name}`,
+      ...steps.map((step) => `  ${step}`),
+    ].join('\n'),
+  },
+];
+
 describe('feature file loader', () => {
   test('emits one Rstest case per scenario using precomputed result files', () => {
     const output = transformFeatureFileToRstestModule({
@@ -22,10 +31,10 @@ describe('feature file loader', () => {
               tasks: [
                 {
                   name: 'Add item',
-                  flow: [
-                    { aiAct: 'I open the product page' },
-                    { aiAssert: 'the cart shows one item' },
-                  ],
+                  flow: runScenarioFlow('Add item', [
+                    'Given I open the product page',
+                    'Then the cart shows one item',
+                  ]),
                 },
               ],
             },
@@ -47,10 +56,10 @@ describe('feature file loader', () => {
               tasks: [
                 {
                   name: 'Remove item',
-                  flow: [
-                    { aiAct: 'the cart has one item' },
-                    { aiAssert: 'the cart is empty' },
-                  ],
+                  flow: runScenarioFlow('Remove item', [
+                    'Given the cart has one item',
+                    'Then the cart is empty',
+                  ]),
                 },
               ],
             },
@@ -68,8 +77,9 @@ describe('feature file loader', () => {
       '"testName": "features/checkout.feature > Checkout > Add item"',
     );
     expect(output).toContain('"resultFile": "/tmp/results/001-add-item.json"');
-    expect(output).toContain('"aiAct": "I open the product page"');
-    expect(output).toContain('"aiAssert": "the cart shows one item"');
+    expect(output).toContain(
+      '"runGherkinScenario": "Scenario: Add item\\n  Given I open the product page\\n  Then the cart shows one item"',
+    );
     expect(output).toContain(
       '"testName": "features/checkout.feature > Checkout > Remove item"',
     );
@@ -91,7 +101,9 @@ describe('feature file loader', () => {
               tasks: [
                 {
                   name: 'Retry checkout #1',
-                  flow: [{ aiAct: 'I open checkout' }],
+                  flow: runScenarioFlow('Retry checkout #1', [
+                    'Given I open checkout',
+                  ]),
                 },
               ],
             },
@@ -105,7 +117,9 @@ describe('feature file loader', () => {
               tasks: [
                 {
                   name: 'Retry checkout #2',
-                  flow: [{ aiAct: 'I refresh checkout' }],
+                  flow: runScenarioFlow('Retry checkout #2', [
+                    'Given I refresh checkout',
+                  ]),
                 },
               ],
             },
@@ -117,11 +131,15 @@ describe('feature file loader', () => {
     expect(output).toContain(
       '"resultFile": "/tmp/results/001-retry-checkout.json"',
     );
-    expect(output).toContain('"aiAct": "I open checkout"');
+    expect(output).toContain(
+      '"runGherkinScenario": "Scenario: Retry checkout #1\\n  Given I open checkout"',
+    );
     expect(output).toContain(
       '"resultFile": "/tmp/results/002-retry-checkout.json"',
     );
-    expect(output).toContain('"aiAct": "I refresh checkout"');
+    expect(output).toContain(
+      '"runGherkinScenario": "Scenario: Retry checkout #2\\n  Given I refresh checkout"',
+    );
   });
 
   test('throws when Rspack loader metadata is missing for the feature file', () => {

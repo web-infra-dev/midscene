@@ -183,13 +183,14 @@ const collectScenarioInfo = (
   return [{ id: scenario.id, ruleName }];
 };
 
-const pickleStepToFlowItem = (step: PickleStep) => {
+const pickleStepToScenarioLine = (step: PickleStep): string => {
   switch (step.type) {
     case 'Outcome':
-      return { aiAssert: step.text };
+      return `  Then ${step.text}`;
     case 'Context':
+      return `  Given ${step.text}`;
     case 'Action':
-      return { aiAct: step.text };
+      return `  When ${step.text}`;
     default:
       throw new Error(`Unsupported Gherkin step type: ${String(step.type)}`);
   }
@@ -277,7 +278,24 @@ export function compileFeatureFile(
       scenarioInfo.ruleName,
       scenarioName,
     ].filter(Boolean);
-    const flow = pickle.steps.map(pickleStepToFlowItem);
+    if (pickle.steps.length === 0) {
+      throw new Error(
+        `${file}: Scenario "${scenarioName}" must contain at least one step`,
+      );
+    }
+    if (
+      [scenarioName, ...pickle.steps.map((step) => step.text)].some((value) =>
+        /[\r\n]/.test(value),
+      )
+    ) {
+      throw new Error(
+        `${file}: Expanded scenario names and steps must not contain newlines`,
+      );
+    }
+    const scenarioText = [
+      `Scenario: ${scenarioName}`,
+      ...pickle.steps.map(pickleStepToScenarioLine),
+    ].join('\n');
     return {
       scenarioName,
       testName: nameParts.join(' > '),
@@ -285,7 +303,7 @@ export function compileFeatureFile(
         tasks: [
           {
             name: scenarioName,
-            flow,
+            flow: [{ runGherkinScenario: scenarioText }],
           },
         ],
       },
