@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { NativeMobileMenu } from './NativeMobileMenu';
@@ -37,5 +38,23 @@ describe('native mobile navigation', () => {
 
   it('does not render an empty mobile navigation control', () => {
     expect(renderToStaticMarkup(<NativeMobileMenu items={[]} />)).toBe('');
+  });
+
+  it('sizes the panel from below the filtered nav to the dynamic viewport', () => {
+    const css = readFileSync(
+      new URL('./native-language-switcher.css', import.meta.url),
+      'utf8',
+    );
+
+    expect(css).toMatch(
+      /\.site-mobile-nav__panel\s*\{[\s\S]*?position:\s*absolute/,
+    );
+    expect(css).toMatch(/\.site-mobile-nav__panel\s*\{[\s\S]*?top:\s*100%/);
+    expect(css).toMatch(
+      /height:\s*calc\(100dvh - var\(--rp-nav-height\) - var\(--rp-banner-height, 0px\)\)/,
+    );
+    expect(css).not.toMatch(
+      /\.site-mobile-nav__panel\s*\{[\s\S]*?position:\s*fixed/,
+    );
   });
 });

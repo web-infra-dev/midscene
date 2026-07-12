@@ -79,17 +79,21 @@
 }
 
 .site-mobile-nav__panel {
-  position: fixed;
-  top: calc(var(--rp-nav-height) + var(--rp-banner-height, 0px));
+  position: absolute;
+  top: 100%;
   right: 0;
-  bottom: 0;
+  bottom: auto;
   left: 0;
   z-index: var(--rp-z-index-nav-screen);
+  box-sizing: border-box;
   display: flex;
+  height: calc(100vh - var(--rp-nav-height) - var(--rp-banner-height, 0px));
+  height: calc(100dvh - var(--rp-nav-height) - var(--rp-banner-height, 0px));
   flex-direction: column;
   gap: 2px;
   overflow-y: auto;
-  padding: 24px 48px;
+  overscroll-behavior: contain;
+  padding: 24px 48px calc(24px + env(safe-area-inset-bottom));
   background: var(--rp-c-bg);
 }
 
