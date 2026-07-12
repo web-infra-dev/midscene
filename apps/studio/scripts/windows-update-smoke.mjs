@@ -23,8 +23,8 @@ const defaultDiagnosticsDir = path.join(
   'studio',
   'windows-update-smoke',
 );
-const executableName = 'midscene-studio-beta.exe';
-const processName = 'midscene-studio-beta';
+const executableName = 'Midscene Studio Beta.exe';
+const processName = 'Midscene Studio Beta';
 
 const sleep = (milliseconds) =>
   new Promise((resolve) => setTimeout(resolve, milliseconds));

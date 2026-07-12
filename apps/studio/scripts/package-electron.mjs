@@ -457,7 +457,11 @@ export const buildWindowsNsisConfig = ({ artifactName, iconPath }) => ({
     output: artifactDir,
   },
   win: {
-    executableName: packagedAppId,
+    // `@electron/packager` names the prepackaged executable from its `name`
+    // option. electron-builder does not rename that executable when using
+    // `--prepackaged`, so NSIS must target the exact same product filename for
+    // shortcuts, process shutdown, and updater relaunch.
+    executableName: packagedProductName,
     target: [
       {
         target: 'nsis',

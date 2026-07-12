@@ -367,7 +367,7 @@ describe('package-electron helpers', () => {
         ),
       },
       win: {
-        executableName: 'midscene-studio-beta',
+        executableName: 'Midscene Studio Beta',
         icon: '/tmp/midscene-icon.ico',
         target: [
           {
@@ -388,6 +388,21 @@ describe('package-electron helpers', () => {
       npmRebuild: false,
       publish: null,
     });
+  });
+
+  it('targets the executable name emitted by the Windows packager', () => {
+    const packagerOptions = buildPackagerOptions({
+      arch: 'x64',
+      outDir: '/tmp/out',
+      platform: 'win32',
+      stageDir: '/tmp/stage',
+    });
+    const nsisConfig = buildWindowsNsisConfig({
+      artifactName: 'midscene-studio-beta-v1.8.1-win32-x64-setup.exe',
+      iconPath: '/tmp/midscene-icon.ico',
+    });
+
+    expect(nsisConfig.win.executableName).toBe(packagerOptions.name);
   });
 
   it('builds electron-builder CLI args for a prepackaged Windows NSIS installer', () => {
