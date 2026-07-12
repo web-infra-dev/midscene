@@ -409,7 +409,9 @@ async function main() {
     );
   }
 
+  const cliArgs = process.argv.slice(2).filter((arg) => arg !== '--');
   const { values } = parseArgs({
+    args: cliArgs,
     allowPositionals: false,
     options: {
       'artifact-dir': { default: defaultArtifactDir, type: 'string' },

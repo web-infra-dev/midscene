@@ -1582,6 +1582,9 @@ describe('package-electron helpers', () => {
     expect(smoke).toMatch(/window\.studioUpdater\.check\(\)/);
     expect(smoke).toMatch(/window\.studioUpdater\.download\(\)/);
     expect(smoke).toMatch(/window\.studioUpdater\.install\(\)/);
+    expect(smoke).toMatch(
+      /process\.argv\.slice\(2\)\.filter\(\(arg\) => arg !== '--'\)/,
+    );
     expect(smoke).toMatch(/old Studio processes to exit/);
     expect(smoke).toMatch(/updated Studio process to restart/);
     expect(smoke).toMatch(/WINDOWS_UPDATE_SMOKE_SUCCESS/);
