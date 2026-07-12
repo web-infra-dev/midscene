@@ -1,0 +1,144 @@
+name: Studio Windows Update
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/studio-windows-update.yml'
+      - 'apps/report/**'
+      - 'apps/studio/**'
+      - 'packages/computer/**'
+      - 'packages/core/**'
+      - 'packages/shared/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to checkout'
+        required: false
+        default: 'main'
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: studio-windows-update-${{ github.event.pull_request.number || inputs.branch || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  windows-update:
+    runs-on: windows-2022
+    timeout-minutes: 35
+    env:
+      CI: '1'
+      FORCE_COLOR: '0'
+      NO_COLOR: '1'
+      STUDIO_UPDATE_FROM_VERSION: 0.0.${{ github.run_number }}
+      STUDIO_UPDATE_TO_VERSION: 0.1.${{ github.run_number }}
+      STUDIO_UPDATE_DIAGNOSTICS_DIR: ${{ github.workspace }}/.release/studio/windows-update-smoke
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          ref: ${{ inputs.branch || github.ref }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@eae0cfeb286e66ffb5155f1a79b90583a127a68b # v2.4.1
+        with:
+          version: 9.3.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '24.13.0'
+          cache: 'pnpm'
+
+      - name: Prepare diagnostics
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path $env:STUDIO_UPDATE_DIAGNOSTICS_DIR | Out-Null
+          $context = [ordered]@{
+            capturedAt = [DateTimeOffset]::UtcNow.ToString('o')
+            fromVersion = $env:STUDIO_UPDATE_FROM_VERSION
+            toVersion = $env:STUDIO_UPDATE_TO_VERSION
+            runnerName = $env:RUNNER_NAME
+            runnerOS = $env:RUNNER_OS
+            runnerArch = $env:RUNNER_ARCH
+            imageOS = $env:ImageOS
+            imageVersion = $env:ImageVersion
+          }
+          $context | ConvertTo-Json | Set-Content -LiteralPath (
+            Join-Path $env:STUDIO_UPDATE_DIAGNOSTICS_DIR 'run-context.json'
+          ) -Encoding utf8
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Build Studio and Nx dependencies
+        id: build
+        continue-on-error: true
+        run: npx nx build studio
+
+      - name: Package old Studio version
+        id: package-old
+        if: steps.build.outcome == 'success'
+        continue-on-error: true
+        shell: pwsh
+        run: pnpm --dir apps/studio run package:release -- --platform=win32 --arch=x64 --version=$env:STUDIO_UPDATE_FROM_VERSION
+
+      - name: Package new Studio version
+        id: package-new
+        if: steps.package-old.outcome == 'success'
+        continue-on-error: true
+        shell: pwsh
+        run: pnpm --dir apps/studio run package:release -- --platform=win32 --arch=x64 --version=$env:STUDIO_UPDATE_TO_VERSION
+
+      - name: Run installed Windows update smoke
+        id: update-smoke
+        if: steps.package-new.outcome == 'success'
+        continue-on-error: true
+        timeout-minutes: 8
+        shell: pwsh
+        env:
+          MIDSCENE_STUDIO_RUN_WINDOWS_UPDATE_SMOKE: '1'
+        run: pnpm --dir apps/studio run test:smoke:windows-update -- --from-version=$env:STUDIO_UPDATE_FROM_VERSION --to-version=$env:STUDIO_UPDATE_TO_VERSION --diagnostics-dir=$env:STUDIO_UPDATE_DIAGNOSTICS_DIR
+
+      - name: Record step outcomes
+        if: always()
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path $env:STUDIO_UPDATE_DIAGNOSTICS_DIR | Out-Null
+          $outcomes = [ordered]@{
+            build = '${{ steps.build.outcome }}'
+            packageOld = '${{ steps.package-old.outcome }}'
+            packageNew = '${{ steps.package-new.outcome }}'
+            updateSmoke = '${{ steps.update-smoke.outcome }}'
+          }
+          $outcomes | ConvertTo-Json | Set-Content -LiteralPath (
+            Join-Path $env:STUDIO_UPDATE_DIAGNOSTICS_DIR 'step-outcomes.json'
+          ) -Encoding utf8
+
+      - name: Upload Windows update diagnostics
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: studio-windows-update-diagnostics
+          path: ${{ env.STUDIO_UPDATE_DIAGNOSTICS_DIR }}
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Check Windows update validation results
+        if: always()
+        shell: pwsh
+        run: |
+          $failed = @()
+          if ('${{ steps.build.outcome }}' -ne 'success') { $failed += 'build' }
+          if ('${{ steps.package-old.outcome }}' -ne 'success') { $failed += 'old package' }
+          if ('${{ steps.package-new.outcome }}' -ne 'success') { $failed += 'new package' }
+          if ('${{ steps.update-smoke.outcome }}' -ne 'success') { $failed += 'installed update smoke' }
+          if ($failed.Count -gt 0) {
+            throw "Studio Windows update validation failed: $($failed -join ', ')"
+          }
