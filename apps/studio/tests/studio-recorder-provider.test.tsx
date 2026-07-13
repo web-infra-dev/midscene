@@ -103,6 +103,8 @@ function createConnectedStudioContext({
   const interact = vi.fn(async (_payload?: unknown) => ({ ok: true }));
   const startRecorderSession = vi.fn(async () => startResult);
   const stopRecorderSession = vi.fn(async () => ({ ok: true }));
+  const clearRecorderScreenshotAssets = vi.fn(async () => undefined);
+  const getRecorderScreenshotAsset = vi.fn(async () => null);
   const getRecorderEvents = vi.fn(async (since = 0) => ({
     events: since === 0 ? events : [],
     nextIndex: since === 0 ? events.length : since,
@@ -111,6 +113,8 @@ function createConnectedStudioContext({
     interact,
     startRecorderSession,
     stopRecorderSession,
+    clearRecorderScreenshotAssets,
+    getRecorderScreenshotAsset,
     getRecorderEvents,
     ...(describeRecorderEventAtPoint ? { describeRecorderEventAtPoint } : {}),
   };
@@ -394,7 +398,11 @@ describe('StudioRecorderProvider preview recording', () => {
       },
       elementRect: { x: 10, y: 20 },
       pageInfo: { width: 1200, height: 800 },
-      screenshotAfter: 'data:image/png;base64,shot',
+      screenshotAsset: {
+        id: 'click-described-screenshot',
+        mimeType: 'image/png',
+        bytes: 4,
+      },
       timestamp: 123,
       hashId: 'click-ai-describe-failed',
     };

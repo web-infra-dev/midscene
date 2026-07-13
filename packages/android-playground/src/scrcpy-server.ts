@@ -578,7 +578,10 @@ export default class ScrcpyServer {
                       // byte to a boxed JS Number, blowing the V8 old space on
                       // low-memory hosts (e.g. 8GB Windows) after a few seconds
                       // of a 2 Mbps stream.
-                      socket.emit('video-data', {
+                      // Frames are disposable. `volatile` prevents Socket.IO
+                      // from retaining an unbounded write buffer when the
+                      // renderer is busy decoding or has stopped responding.
+                      socket.volatile.emit('video-data', {
                         data: value.data,
                         type: frameType,
                         timestamp: Date.now(),

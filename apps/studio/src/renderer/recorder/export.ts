@@ -1,4 +1,5 @@
 import {
+  DEFAULT_MIDSCENE_RECORDER_MARKDOWN_MAX_SCREENSHOTS,
   createMidsceneRecorderMarkdownScreenshotAssets,
   getMidsceneRecorderEventDescription,
   getMidsceneRecorderSemantic,
@@ -10,6 +11,35 @@ import type {
 } from '@shared/electron-contract';
 import JSZip from 'jszip';
 import type { StudioRecordedEvent, StudioRecordingSession } from './types';
+
+export async function materializeStudioRecorderSessionScreenshots(
+  session: StudioRecordingSession,
+  loadScreenshot: (assetId: string) => Promise<string | null>,
+  maxScreenshots = DEFAULT_MIDSCENE_RECORDER_MARKDOWN_MAX_SCREENSHOTS,
+): Promise<StudioRecordingSession> {
+  const events: StudioRecordedEvent[] = [];
+  let remainingScreenshots = Math.max(0, maxScreenshots);
+  for (const event of session.events) {
+    if (!event.screenshotAsset || remainingScreenshots === 0) {
+      events.push(event);
+      continue;
+    }
+    const screenshot = await loadScreenshot(event.screenshotAsset.id);
+    if (screenshot) {
+      remainingScreenshots -= 1;
+    }
+    events.push(
+      screenshot
+        ? {
+            ...event,
+            screenshotAsset: undefined,
+            screenshotWithBox: screenshot,
+          }
+        : event,
+    );
+  }
+  return { ...session, events };
+}
 
 function getElectronShell(): Pick<
   ElectronShellApi,

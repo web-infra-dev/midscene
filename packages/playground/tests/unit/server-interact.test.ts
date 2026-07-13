@@ -33,6 +33,9 @@ function createMockResponse() {
       this.body = payload;
       return this;
     },
+    type() {
+      return this;
+    },
   };
 }
 
@@ -411,7 +414,7 @@ describe('PlaygroundServer manual interaction APIs', () => {
         interfaceType: 'android',
         describe: () => 'Android device',
         actionSpace: () => [{ name: 'Tap', description: 'tap', call: tapCall }],
-        screenshotBase64: async () => 'base64-image',
+        screenshotBase64: async () => VALID_PNG_BASE64,
         size: async () => ({ width: 1080, height: 1920 }),
       },
     } as any);
@@ -506,7 +509,7 @@ describe('PlaygroundServer manual interaction APIs', () => {
         interfaceType: 'ios',
         actionSpace: () => [],
         inputPrimitives,
-        screenshotBase64: async () => 'base64-image',
+        screenshotBase64: async () => VALID_PNG_BASE64,
         size: async () => ({ width: 390, height: 844 }),
       },
     } as any);
@@ -552,6 +555,28 @@ describe('PlaygroundServer manual interaction APIs', () => {
     });
     const rawEvents = (eventsResponse.body as any).events;
     expect(rawEvents).toHaveLength(1);
+    expect(rawEvents[0]).toMatchObject({
+      screenshotAsset: {
+        id: expect.stringMatching(/^session-preview-/),
+        mimeType: 'image/png',
+        bytes: expect.any(Number),
+      },
+    });
+    expect(rawEvents[0].screenshotBefore).toBeUndefined();
+    expect(rawEvents[0].screenshotAfter).toBeUndefined();
+    expect(rawEvents[0].screenshotWithBox).toBeUndefined();
+
+    const assetHandler = getRouteHandler(
+      server,
+      'get',
+      '/recorder/assets/:assetId',
+    );
+    const assetResponse = createMockResponse();
+    await assetHandler(
+      { params: { assetId: rawEvents[0].screenshotAsset.id } },
+      assetResponse,
+    );
+    expect(assetResponse.statusCode).toBe(200);
 
     const describeResponse = await describeRecorderEvent(server, rawEvents[0]);
     expect(describeResponse.body).toMatchObject({
@@ -617,12 +642,56 @@ describe('PlaygroundServer manual interaction APIs', () => {
       [10, 20],
       expect.objectContaining({
         verifyPrompt: true,
-        screenshotBase64: 'base64-image',
+        screenshotBase64: expect.stringMatching(/^data:image\/png;base64,/),
         coordinateSpace: 'logical',
         logicalSize: { width: 390, height: 844 },
         onProgress: expect.any(Function),
       }),
     );
+  });
+
+  test('recorder marks events failed when a screenshot cannot be retained', async () => {
+    const inputPrimitives = makeInputPrimitiveStub();
+    const server = new PlaygroundServer({
+      interface: {
+        interfaceType: 'ios',
+        actionSpace: () => [],
+        inputPrimitives,
+        screenshotBase64: async () => undefined,
+        size: async () => ({ width: 390, height: 844 }),
+      },
+    } as any);
+
+    await server.launch(6119);
+    const startRecorderHandler = getRouteHandler(
+      server,
+      'post',
+      '/recorder/start',
+    );
+    await startRecorderHandler(
+      { body: { sessionId: 'session-without-screenshot' } },
+      createMockResponse(),
+    );
+    const interactHandler = getRouteHandler(server, 'post', '/interact');
+    await interactHandler(
+      { body: { actionType: 'Tap', x: 10, y: 20 } },
+      createMockResponse(),
+    );
+    await server.waitForRecorderIdle();
+
+    const eventsHandler = getRouteHandler(server, 'get', '/recorder/events');
+    const eventsResponse = createMockResponse();
+    await eventsHandler({ query: { since: '0' } }, eventsResponse);
+    expect((eventsResponse.body as any).events).toMatchObject([
+      {
+        type: 'click',
+        semantic: {
+          source: 'aiDescribe',
+          status: 'failed',
+          error: expect.stringContaining('screenshot was not retained'),
+        },
+      },
+    ]);
   });
 
   test('recorder dispatches preview interactions before taking the after screenshot', async () => {

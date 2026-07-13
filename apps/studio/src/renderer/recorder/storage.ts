@@ -1,7 +1,7 @@
 import type { StudioRecordingSession } from './types';
 
 const DB_NAME = 'midscene-studio-recorder';
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 const SESSION_STORE = 'sessions';
 const CONFIG_STORE = 'config';
 const CURRENT_SESSION_KEY = 'currentSessionId';
@@ -32,7 +32,11 @@ function openDatabase(): Promise<IDBDatabase | null> {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
     request.onupgradeneeded = (event) => {
       const db = request.result;
-      if (event.oldVersion > 0 && event.oldVersion < 2) {
+      // Recorder sessions before v3 embed every full-size screenshot as a
+      // data URL. They are intentionally disposable while Studio is in beta:
+      // loading them all at startup can exhaust the renderer heap before the
+      // new asset-backed format has a chance to run.
+      if (event.oldVersion > 0 && event.oldVersion < 3) {
         if (db.objectStoreNames.contains(SESSION_STORE)) {
           db.deleteObjectStore(SESSION_STORE);
         }
@@ -95,15 +99,16 @@ function withStore<T>(
   });
 }
 
-async function trimSessions(): Promise<void> {
+async function trimSessions(): Promise<string[]> {
   const sessions = await getStudioRecorderSessions();
   if (sessions.length <= MAX_SESSIONS) {
-    return;
+    return [];
   }
   const expired = sessions.slice(MAX_SESSIONS);
   await Promise.all(
     expired.map((session) => deleteStudioRecorderSession(session.id)),
   );
+  return expired.map((session) => session.id);
 }
 
 export async function getStudioRecorderSessions(): Promise<
@@ -123,20 +128,22 @@ export async function getStudioRecorderSessions(): Promise<
 
 export async function upsertStudioRecorderSession(
   session: StudioRecordingSession,
-): Promise<void> {
+): Promise<string[]> {
   const safeSession = sanitizeSession(session);
   if (typeof indexedDB === 'undefined') {
-    memoryStore.sessions = [
+    const sessions = [
       safeSession,
       ...memoryStore.sessions.filter((item) => item.id !== safeSession.id),
-    ].slice(0, MAX_SESSIONS);
-    return;
+    ].sort((a, b) => b.updatedAt - a.updatedAt);
+    const expired = sessions.slice(MAX_SESSIONS);
+    memoryStore.sessions = sessions.slice(0, MAX_SESSIONS);
+    return expired.map((item) => item.id);
   }
 
   await withStore(SESSION_STORE, 'readwrite', (store) =>
     store.put(safeSession),
   );
-  await trimSessions();
+  return trimSessions();
 }
 
 export async function deleteStudioRecorderSession(

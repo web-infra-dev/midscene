@@ -5,6 +5,7 @@ import {
   createStudioRecorderMarkdownZipBase64,
   createStudioRecorderZipBase64,
   generateStudioRecorderMarkdown,
+  materializeStudioRecorderSessionScreenshots,
   saveStudioRecorderFile,
 } from '../src/renderer/recorder/export';
 import type { StudioRecordingSession } from '../src/renderer/recorder/types';
@@ -15,6 +16,55 @@ describe('studio recorder export', () => {
     vi.restoreAllMocks();
     document.body.innerHTML = '';
     (window as Window & { electronShell?: unknown }).electronShell = undefined;
+  });
+
+  it('materializes screenshot assets only in the export copy', async () => {
+    const session = {
+      id: 'session-assets',
+      name: 'Asset-backed recording',
+      status: 'completed',
+      target: {
+        platformId: 'web',
+        label: 'Web',
+        values: { url: 'https://example.com' },
+      },
+      events: [
+        {
+          type: 'click',
+          platformId: 'web',
+          actionType: 'Click',
+          rawPayload: {},
+          target: {
+            platformId: 'web',
+            label: 'Web',
+            values: { url: 'https://example.com' },
+          },
+          pageInfo: { width: 1280, height: 720 },
+          screenshotAsset: {
+            id: 'screenshot-1',
+            mimeType: 'image/png',
+            bytes: 42,
+          },
+          timestamp: 1,
+          hashId: 'click-asset-1',
+        },
+      ],
+      createdAt: 1,
+      updatedAt: 2,
+    } satisfies StudioRecordingSession;
+    const loadScreenshot = vi.fn(async () => 'data:image/png;base64,asset');
+
+    const exportSession = await materializeStudioRecorderSessionScreenshots(
+      session,
+      loadScreenshot,
+    );
+
+    expect(loadScreenshot).toHaveBeenCalledWith('screenshot-1');
+    expect(session.events[0].screenshotWithBox).toBeUndefined();
+    expect(exportSession.events[0]).toMatchObject({
+      screenshotWithBox: 'data:image/png;base64,asset',
+    });
+    expect(exportSession.events[0].screenshotAsset).toBeUndefined();
   });
 
   it('falls back to browser download when generic file IPC is unavailable', async () => {

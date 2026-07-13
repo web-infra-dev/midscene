@@ -122,6 +122,33 @@ describe('createScrcpyVideoStream', () => {
     ]);
   });
 
+  test('bounds the pre-configuration buffer while the decoder initializes', async () => {
+    const socket = new MockScrcpySocket();
+    const stream = createScrcpyVideoStream(socket);
+    const collected = collectStream(stream);
+
+    for (let index = 0; index < 10; index += 1) {
+      socket.dispatchVideoData({
+        type: 'data',
+        data: new Uint8Array([index]),
+      });
+    }
+    socket.dispatchVideoData({
+      type: 'configuration',
+      data: new Uint8Array([9]),
+    });
+    socket.dispatchDisconnect();
+
+    const packets = await collected;
+    expect(packets).toHaveLength(3);
+    expect(packets[0].type).toBe('configuration');
+    expect(
+      packets
+        .filter((packet) => packet.type === 'data')
+        .map((packet) => packet.data[0]),
+    ).toEqual([0, 1]);
+  });
+
   test('propagates keyFrame flag from raw packet as keyframe', async () => {
     const socket = new MockScrcpySocket();
     const stream = createScrcpyVideoStream(socket);
