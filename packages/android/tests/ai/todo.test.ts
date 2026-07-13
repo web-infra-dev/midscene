@@ -20,6 +20,7 @@ const expectedActiveTasks = [
   'Learning AI the day after tomorrow',
 ] as const;
 const completedTask = 'Learning AI the day after tomorrow';
+const tasksAfterDelete = ['Learn JS today', completedTask] as const;
 const visibleTodoListQuery =
   'string[], extract the exact text of every visible todo item label from the todo list, one string per row from top to bottom. Ignore the input box, any draft text inside it, the item counter, and the filter buttons.';
 
@@ -294,18 +295,26 @@ describe('Test todo list', () => {
       );
       expect(allTasks).toHaveLength(expectedActiveTasks.length);
 
-      await agent.aiAct(
-        'Tap the "Learn Rust tomorrow" task row once to reveal its delete control. Do not tap its checkbox.',
+      await agent.aiTap(
+        'the text label "Learn Rust tomorrow" in the task row, away from its checkbox',
       );
-      await agent.aiAct(
-        'Tap the delete button (×) to the right of "Learn Rust tomorrow"',
+      await agent.aiTap(
+        'the delete button (×) at the right edge of the "Learn Rust tomorrow" task row',
       );
-      await agent.aiAct(
-        'Tap the checkbox next to "Learning AI the day after tomorrow"',
+      const remainingTasks = await queryVisibleTodoListWithRetry(
+        agent,
+        tasksAfterDelete,
+        'remainingTaskList',
       );
-      await agent.aiAct(
-        'Tap the "Completed" status filter below the task list',
+      expect(remainingTasks).toEqual(
+        expect.arrayContaining([...tasksAfterDelete]),
       );
+      expect(remainingTasks).toHaveLength(tasksAfterDelete.length);
+
+      await agent.aiTap(
+        'the checkbox immediately to the left of "Learning AI the day after tomorrow"',
+      );
+      await agent.aiTap('the "Completed" status filter below the todo list');
 
       const completedTasks = await queryVisibleTodoListWithRetry(
         agent,
