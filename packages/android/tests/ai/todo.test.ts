@@ -86,27 +86,52 @@ function centerForExactText(
   };
 }
 
-async function dismissChromeFirstRunIfPresent(
-  adb: ADB,
-): Promise<{ beforeXml: string; afterXml?: string; dismissed: boolean }> {
+async function dismissChromeFirstRunIfPresent(adb: ADB): Promise<{
+  beforeXml: string;
+  afterXml?: string;
+  detected: boolean;
+  dismissed: boolean;
+  tapAttempts: number;
+}> {
   const beforeXml = await dumpUiautomatorXml(adb);
   const useWithoutAccount = centerForExactText(
     beforeXml,
     'Use without an account',
   );
   if (!useWithoutAccount) {
-    return { beforeXml, dismissed: false };
+    return {
+      beforeXml,
+      detected: false,
+      dismissed: false,
+      tapAttempts: 0,
+    };
   }
 
-  await adb.shell(`input tap ${useWithoutAccount.x} ${useWithoutAccount.y}`);
-  await sleep(2000);
-  const afterXml = await dumpUiautomatorXml(adb);
-  if (centerForExactText(afterXml, 'Use without an account')) {
-    throw new Error(
-      'Chrome first-run screen remained after deterministic setup',
+  let afterXml = beforeXml;
+  for (let tapAttempts = 1; tapAttempts <= 2; tapAttempts += 1) {
+    await adb.shell(
+      `input swipe ${useWithoutAccount.x} ${useWithoutAccount.y} ${useWithoutAccount.x} ${useWithoutAccount.y} 150`,
     );
+    await sleep(1000);
+    afterXml = await dumpUiautomatorXml(adb);
+    if (!centerForExactText(afterXml, 'Use without an account')) {
+      return {
+        beforeXml,
+        afterXml,
+        detected: true,
+        dismissed: true,
+        tapAttempts,
+      };
+    }
   }
-  return { beforeXml, afterXml, dismissed: true };
+
+  return {
+    beforeXml,
+    afterXml,
+    detected: true,
+    dismissed: false,
+    tapAttempts: 2,
+  };
 }
 
 describe('Test todo list', () => {
@@ -145,6 +170,24 @@ describe('Test todo list', () => {
           'utf8',
         );
       }
+      await writeFile(
+        path.join(resolvedDiagnosticsDir, 'chrome-first-run-metadata.json'),
+        `${JSON.stringify(
+          {
+            detected: chromeFirstRun.detected,
+            dismissed: chromeFirstRun.dismissed,
+            tapAttempts: chromeFirstRun.tapAttempts,
+          },
+          null,
+          2,
+        )}\n`,
+        'utf8',
+      );
+    }
+    if (chromeFirstRun.detected && !chromeFirstRun.dismissed) {
+      throw new Error(
+        'Chrome first-run screen remained after deterministic setup',
+      );
     }
     if (chromeFirstRun.dismissed) {
       await page.launch(pageUrl);
