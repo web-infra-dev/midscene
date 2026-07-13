@@ -1,10 +1,12 @@
 import type { StudioRecordingSession } from './types';
 
 const DB_NAME = 'midscene-studio-recorder';
-const DB_VERSION = 3;
+const DB_VERSION = 2;
 const SESSION_STORE = 'sessions';
 const CONFIG_STORE = 'config';
 const CURRENT_SESSION_KEY = 'currentSessionId';
+const RECORDER_STORAGE_FORMAT_KEY = 'recorderStorageFormat';
+const RECORDER_STORAGE_FORMAT_VERSION = 'asset-backed-v1';
 const MAX_SESSIONS = 20;
 
 interface StudioRecorderConfigRecord {
@@ -23,6 +25,39 @@ function sanitizeSession(
   return JSON.parse(JSON.stringify(session)) as StudioRecordingSession;
 }
 
+function migrateLegacyRecorderSessions(db: IDBDatabase): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(
+      [SESSION_STORE, CONFIG_STORE],
+      'readwrite',
+    );
+    const sessions = transaction.objectStore(SESSION_STORE);
+    const config = transaction.objectStore(CONFIG_STORE);
+    const migration = config.get(
+      RECORDER_STORAGE_FORMAT_KEY,
+    ) as IDBRequest<StudioRecorderConfigRecord>;
+    let shouldClearSessions = false;
+
+    migration.onsuccess = () => {
+      shouldClearSessions =
+        migration.result?.value !== RECORDER_STORAGE_FORMAT_VERSION;
+      if (shouldClearSessions) {
+        sessions.clear();
+        config.put({
+          key: RECORDER_STORAGE_FORMAT_KEY,
+          value: RECORDER_STORAGE_FORMAT_VERSION,
+        } satisfies StudioRecorderConfigRecord);
+      }
+    };
+    migration.onerror = () => {
+      reject(migration.error || new Error('Failed to read recorder migration'));
+    };
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () =>
+      reject(transaction.error || new Error('Failed to migrate recorder data'));
+  });
+}
+
 function openDatabase(): Promise<IDBDatabase | null> {
   if (typeof indexedDB === 'undefined') {
     return Promise.resolve(null);
@@ -32,11 +67,7 @@ function openDatabase(): Promise<IDBDatabase | null> {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
     request.onupgradeneeded = (event) => {
       const db = request.result;
-      // Recorder sessions before v3 embed every full-size screenshot as a
-      // data URL. They are intentionally disposable while Studio is in beta:
-      // loading them all at startup can exhaust the renderer heap before the
-      // new asset-backed format has a chance to run.
-      if (event.oldVersion > 0 && event.oldVersion < 3) {
+      if (event.oldVersion > 0 && event.oldVersion < 2) {
         if (db.objectStoreNames.contains(SESSION_STORE)) {
           db.deleteObjectStore(SESSION_STORE);
         }
@@ -52,7 +83,13 @@ function openDatabase(): Promise<IDBDatabase | null> {
       }
     };
     request.onsuccess = () => {
-      resolve(request.result);
+      const db = request.result;
+      void migrateLegacyRecorderSessions(db)
+        .then(() => resolve(db))
+        .catch((error) => {
+          db.close();
+          reject(error);
+        });
     };
     request.onerror = () => {
       reject(request.error || new Error('Failed to open recorder database'));
