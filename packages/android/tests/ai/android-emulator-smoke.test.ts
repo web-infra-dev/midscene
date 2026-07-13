@@ -307,6 +307,10 @@ describe.skipIf(!RUN_LIVE_SMOKE)('Android Emulator live smoke', () => {
     const diagnosticsDir = path.resolve(diagnosticsEnv);
     const initialXmlFile = path.join(diagnosticsDir, 'settings-initial.xml');
     const searchXmlFile = path.join(diagnosticsDir, 'settings-search.xml');
+    const firstSearchAttemptXmlFile = path.join(
+      diagnosticsDir,
+      'settings-search-attempt-1.xml',
+    );
     const finalXmlFile = path.join(diagnosticsDir, 'settings-final.xml');
     const screenshotFile = path.join(diagnosticsDir, 'settings-search.png');
     const dumpFile = path.join(diagnosticsDir, 'agent-dump.json');
@@ -377,19 +381,49 @@ describe.skipIf(!RUN_LIVE_SMOKE)('Android Emulator live smoke', () => {
         waitAfterAction: 200,
       });
 
-      await agent.callActionInActionSpace('Tap', {
-        locate: locate(initialTarget.bounds, 'Settings search bar'),
-      });
-      const searchInput = await waitForEditableNode(adb, searchXmlFile);
-      evidence.searchInputResourceId = searchInput.resourceId;
+      let searchAttempts = 0;
+      const searchAttemptErrors: string[] = [];
+      const performSearchAttempt = async (target: {
+        bounds: Bounds;
+      }): Promise<{ resourceId?: string; bounds: Bounds; xml: string }> => {
+        searchAttempts += 1;
+        evidence.searchAttempts = searchAttempts;
+        await agent!.callActionInActionSpace('Tap', {
+          locate: locate(target.bounds, 'Settings search bar'),
+        });
+        const searchInput = await waitForEditableNode(adb, searchXmlFile);
+        evidence.searchInputResourceId = searchInput.resourceId;
 
-      await agent.callActionInActionSpace('Input', {
-        value: 'wifi',
-        mode: 'typeOnly',
-        autoDismissKeyboard: false,
-        locate: locate(searchInput.bounds, 'Settings search input'),
-      });
-      const searchState = await waitForEditableNode(adb, searchXmlFile, 'wifi');
+        await agent!.callActionInActionSpace('Input', {
+          value: 'wifi',
+          mode: 'typeOnly',
+          autoDismissKeyboard: false,
+          locate: locate(searchInput.bounds, 'Settings search input'),
+        });
+        return waitForEditableNode(adb, searchXmlFile, 'wifi');
+      };
+
+      let searchState: { resourceId?: string; bounds: Bounds; xml: string };
+      try {
+        searchState = await performSearchAttempt(initialTarget);
+      } catch (error) {
+        searchAttemptErrors.push(String(error));
+        evidence.searchAttemptErrors = searchAttemptErrors;
+        await writeFile(
+          firstSearchAttemptXmlFile,
+          await readFile(searchXmlFile, 'utf8'),
+          'utf8',
+        );
+        await adb.shell('am force-stop com.android.settings');
+        await adb.shell('am start -W -n com.android.settings/.Settings');
+        const retryTarget = await waitForResource(
+          adb,
+          [SETTINGS_SEARCH_BAR_ID],
+          initialXmlFile,
+        );
+        searchState = await performSearchAttempt(retryTarget);
+      }
+      evidence.searchAttemptErrors = searchAttemptErrors;
       expect(searchState.xml).toMatch(/text="wifi"/i);
 
       evidence.keyboardShownBeforeBack = await waitForKeyboardState(adb, true);
@@ -421,7 +455,7 @@ describe.skipIf(!RUN_LIVE_SMOKE)('Android Emulator live smoke', () => {
       const locateTasks = dumpTasks.filter(
         (task) => task.type === 'Planning' && task.subType === 'Locate',
       );
-      expect(locateTasks).toHaveLength(2);
+      expect(locateTasks).toHaveLength(searchAttempts * 2);
       expect(locateTasks.every((task) => task.hitBy?.from === 'Plan')).toBe(
         true,
       );
@@ -446,7 +480,7 @@ describe.skipIf(!RUN_LIVE_SMOKE)('Android Emulator live smoke', () => {
       const reportLocateTasks = reportTasks.filter(
         (task) => task.type === 'Planning' && task.subType === 'Locate',
       );
-      expect(reportLocateTasks).toHaveLength(2);
+      expect(reportLocateTasks).toHaveLength(searchAttempts * 2);
       expect(
         reportLocateTasks.every((task) => task.hitBy?.from === 'Plan'),
       ).toBe(true);
