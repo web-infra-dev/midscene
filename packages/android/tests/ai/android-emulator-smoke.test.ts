@@ -21,6 +21,10 @@ const REPORT_FILE_NAME = 'android-emulator-smoke';
 const REPORT_HTML_FILE_NAME = `${REPORT_FILE_NAME}.html`;
 const UI_DUMP_PATH = '/sdcard/midscene_emulator_smoke_window_dump.xml';
 const SETTINGS_SEARCH_BAR_ID = 'com.android.settings:id/search_action_bar';
+const SYSTEM_ERROR_DIALOG_ACTION_IDS = [
+  'android:id/aerr_close',
+  'android:id/aerr_wait',
+] as const;
 const POLL_INTERVAL_MS = 500;
 const TARGET_TIMEOUT_MS = 30_000;
 
@@ -204,6 +208,36 @@ async function waitForResource(
   );
 }
 
+async function dismissSystemErrorDialogIfPresent(
+  adb: ADB,
+  diagnosticsFile: string,
+): Promise<{
+  detected: boolean;
+  actionResourceId?: string;
+  checks: number;
+}> {
+  for (let checks = 1; checks <= 4; checks += 1) {
+    const xml = await dumpUiautomatorXml(adb);
+    await writeFile(diagnosticsFile, xml, 'utf8');
+    for (const resourceId of SYSTEM_ERROR_DIALOG_ACTION_IDS) {
+      const [bounds] = boundsForResourceId(xml, resourceId);
+      if (!bounds) {
+        continue;
+      }
+      const x = Math.round(bounds.left + bounds.width / 2);
+      const y = Math.round(bounds.top + bounds.height / 2);
+      await adb.shell(`input swipe ${x} ${y} ${x} ${y} 150`);
+      await sleep(1_000);
+      return { detected: true, actionResourceId: resourceId, checks };
+    }
+    if (xml.includes(`resource-id="${SETTINGS_SEARCH_BAR_ID}"`)) {
+      return { detected: false, checks };
+    }
+    await sleep(POLL_INTERVAL_MS);
+  }
+  return { detected: false, checks: 4 };
+}
+
 async function keyboardIsShown(adb: ADB): Promise<boolean> {
   const status = await adb.isSoftKeyboardPresent();
   return typeof status === 'boolean'
@@ -306,6 +340,10 @@ describe.skipIf(!RUN_LIVE_SMOKE)('Android Emulator live smoke', () => {
 
     const diagnosticsDir = path.resolve(diagnosticsEnv);
     const initialXmlFile = path.join(diagnosticsDir, 'settings-initial.xml');
+    const systemDialogXmlFile = path.join(
+      diagnosticsDir,
+      'settings-system-dialog.xml',
+    );
     const searchXmlFile = path.join(diagnosticsDir, 'settings-search.xml');
     const firstSearchAttemptXmlFile = path.join(
       diagnosticsDir,
@@ -337,8 +375,25 @@ describe.skipIf(!RUN_LIVE_SMOKE)('Android Emulator live smoke', () => {
       device = new AndroidDevice(devices[0].udid);
       const adb = await device.connect();
       await adb.shell('settings put system font_scale 1.0');
-      await adb.shell('am force-stop com.android.settings');
-      await adb.shell('am start -W -n com.android.settings/.Settings');
+      const settingsLaunches: Array<{
+        attempt: number;
+        systemDialog: Awaited<
+          ReturnType<typeof dismissSystemErrorDialogIfPresent>
+        >;
+      }> = [];
+      for (let attempt = 1; attempt <= 3; attempt += 1) {
+        await adb.shell('am force-stop com.android.settings');
+        await adb.shell('am start -W -n com.android.settings/.Settings');
+        const systemDialog = await dismissSystemErrorDialogIfPresent(
+          adb,
+          systemDialogXmlFile,
+        );
+        settingsLaunches.push({ attempt, systemDialog });
+        if (!systemDialog.detected) {
+          break;
+        }
+      }
+      evidence.settingsLaunches = settingsLaunches;
 
       const logicalSize = await device.size();
       const screenshot = await device.screenshotBase64();
