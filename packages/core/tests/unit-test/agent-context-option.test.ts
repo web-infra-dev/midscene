@@ -34,6 +34,7 @@ const createAgentStub = () => {
   (agent as any).opts = {
     aiActContext: 'Global action context.',
   };
+  (agent as any).interface = {};
   (agent as any).taskExecutor = taskExecutor;
   (agent as any).taskCache = taskCache;
   (agent as any).resolveModelRuntime = vi.fn((slot: string) =>
