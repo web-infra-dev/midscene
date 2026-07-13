@@ -708,18 +708,7 @@ jobs:
                   {key: "other", label: "Other"}
                 ];
               def safe_title:
-                gsub("&"; "&#38;")
-                | gsub("<"; "&#60;")
-                | gsub(">"; "&#62;")
-                | gsub("\\*"; "&#42;")
-                | gsub("~"; "&#126;")
-                | gsub("\\["; "&#91;")
-                | gsub("\\]"; "&#93;")
-                | gsub("\\("; "&#40;")
-                | gsub("\\)"; "&#41;")
-                | gsub("#"; "&#35;")
-                | gsub("_"; "&#95;")
-                | gsub(":"; "&#58;");
+                gsub("(?<char>[\\\\`*_~\\[\\]<>])"; "\\\\\(.char)");
               def item_line:
                 if .pr != "" then
                   "- \(.title | safe_title) · [PR #\(.pr)](\(.url))"
