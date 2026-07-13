@@ -194,6 +194,6 @@ describe('computer todo app automation', () => {
       );
       expect(placeholder).toBe('What needs to be done?');
     },
-    600 * 1000,
+    1200 * 1000,
   );
 });

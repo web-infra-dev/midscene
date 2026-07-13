@@ -194,6 +194,6 @@ describe('Test todo list', () => {
       );
       expect(placeholder).toBe('What needs to be done?');
     },
-    720 * 1000,
+    1200 * 1000,
   );
 });

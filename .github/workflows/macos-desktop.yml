@@ -165,7 +165,7 @@ jobs:
           AI_TEST_TYPE: computer
         run: |
           set -o pipefail
-          pnpm exec nx test @midscene/computer --skip-nx-cache -- tests/ai/ai-auto-todo.test.ts --retry=1 2>&1 |
+          pnpm exec nx test @midscene/computer --skip-nx-cache -- tests/ai/ai-auto-todo.test.ts --retry=0 2>&1 |
             tee "$MIDSCENE_MACOS_DIAGNOSTICS_DIR/todo-mvc.log"
 
       - name: Collect step outcomes

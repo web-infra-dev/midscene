@@ -290,7 +290,7 @@ jobs:
           AI_TEST_TYPE: computer
         run: |
           $logPath = Join-Path $env:MIDSCENE_WINDOWS_DIAGNOSTICS_DIR 'todo-mvc.log'
-          pnpm exec nx test @midscene/computer --skip-nx-cache -- tests/ai/ai-auto-todo.test.ts --retry=1 2>&1 |
+          pnpm exec nx test @midscene/computer --skip-nx-cache -- tests/ai/ai-auto-todo.test.ts --retry=0 2>&1 |
             Tee-Object -FilePath $logPath
           $testExitCode = $LASTEXITCODE
           if ($testExitCode -ne 0) {

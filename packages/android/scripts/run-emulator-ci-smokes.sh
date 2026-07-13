@@ -43,7 +43,7 @@ smoke_exit=${PIPESTATUS[0]}
 
 AI_TEST_TYPE=android \
 pnpm exec nx test @midscene/android --skip-nx-cache -- \
-  tests/ai/todo.test.ts --retry=1 2>&1 |
+  tests/ai/todo.test.ts --retry=0 2>&1 |
   tee "$diagnostics_dir/todo-mvc.log"
 todo_exit=${PIPESTATUS[0]}
 set -e
