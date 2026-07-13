@@ -1,8 +1,18 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
+  STUDIO_PUPPETEER_VERSION,
   getCreateAgentErrorNotification,
+  getPuppeteerChromeInstallCommand,
   isPuppeteerChromeMissingError,
 } from '../src/controller/create-agent-error';
+
+const studioPackageJson = JSON.parse(
+  readFileSync(
+    new URL('../../../apps/studio/package.json', import.meta.url),
+    'utf8',
+  ),
+) as { dependencies: { puppeteer: string } };
 
 describe('create agent error formatting', () => {
   it('detects Puppeteer Chrome missing errors without depending on the version', () => {
@@ -48,5 +58,14 @@ describe('create agent error formatting', () => {
       }),
     );
     expect(notification?.description).toBeTruthy();
+  });
+
+  it("matches Studio's pinned Puppeteer version", () => {
+    expect(STUDIO_PUPPETEER_VERSION).toBe(
+      studioPackageJson.dependencies.puppeteer,
+    );
+    expect(getPuppeteerChromeInstallCommand()).toBe(
+      `npx puppeteer@${studioPackageJson.dependencies.puppeteer} browsers install chrome`,
+    );
   });
 });
