@@ -1,0 +1,46 @@
+{
+  "name": "@midscene/workflow",
+  "description": "Core workflow engine and node definition SDK for Midscene.",
+  "version": "1.10.3",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/web-infra-dev/midscene.git",
+    "directory": "packages/workflow"
+  },
+  "homepage": "https://midscenejs.com/",
+  "main": "./dist/lib/index.js",
+  "module": "./dist/es/index.mjs",
+  "types": "./dist/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/es/index.mjs",
+      "require": "./dist/lib/index.js"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "rslib build",
+    "build:watch": "rslib build --watch --no-clean",
+    "test": "vitest --run"
+  },
+  "dependencies": {
+    "js-yaml": "4.1.0"
+  },
+  "devDependencies": {
+    "@rslib/core": "^0.18.3",
+    "@types/js-yaml": "4.0.9",
+    "@types/node": "^18.0.0",
+    "typescript": "^5.8.3",
+    "vitest": "3.0.5"
+  },
+  "engines": {
+    "node": ">=18.19.0"
+  },
+  "sideEffects": false,
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
+  },
+  "license": "MIT"
+}

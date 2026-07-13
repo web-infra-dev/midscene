@@ -17,7 +17,7 @@ workflow:
   - some.node:
       prompt: Do something.
       $:
-        timeout: 60s
+        timeout: 60000
         continue-on-error: true
       foo: bar
 ```
@@ -28,7 +28,21 @@ workflow:
 - 首期 `$` 只支持 `timeout` 和 `continue-on-error`。
 - `$` 外所有字段都是当前节点的业务 input。
 - `prompt` 是通用业务 input，不是 engine meta。
-- 字符串 step value 是 `{ prompt: value }` 的简写。
+- 节点值为字符串时，engine 将它展开为 `{ prompt: value }`。这是只传入
+  `prompt` 时的简写模式。
+
+例如，下面两种写法完全等价：
+
+```yaml
+workflow:
+  - some.node: 'string-content'
+```
+
+```yaml
+workflow:
+  - some.node:
+      prompt: 'string-content'
+```
 
 本 RFC 从这个 YAML 形态反推开发者侧节点定义 API。
 
@@ -36,12 +50,15 @@ workflow:
 
 ## 2. 设计目标
 
-1. **节点作者只声明业务参数**：节点 schema 不需要包含 `$`。
-2. **`prompt` 是 common input**：所有节点默认可以接收 `prompt`，节点可声明它是 required / optional / ignored。
+1. **节点作者只处理业务参数**：节点收到的 input 不包含 `$`。
+2. **`prompt` 是 common input**：所有节点都可以接收 `prompt`。需要 `prompt`
+   的节点自行校验。
 3. **engine 统一处理 `$`**：`timeout` 和 `continue-on-error` 由 engine 包装执行，不由节点重复实现。
-4. **输出形态统一**：节点返回 `summary + data + artifacts`，engine 再包装成 step run result。
+4. **输出形态统一**：节点可以不返回结果；返回 `NodeResult` 时，`summary` 和
+   `data` 均为可选字段。engine 负责包装 step run result。
 5. **错误模型简单**：节点失败时 throw；engine 根据 `continue-on-error` 决定是否继续。
-6. **类型推导友好**：节点开发者写 schema 后，`ctx.input` 和 `return data` 尽量有静态类型。
+6. **类型定义简单**：节点开发者可以通过 TypeScript 泛型定义 `ctx.input` 和
+   `return data` 的类型。
 7. **为后续工具、报告、registry 留扩展点**：首期 API 小，但不堵住未来能力。
 
 ---
@@ -57,7 +74,7 @@ workflow:
   - http.request:
       prompt: Create a paid order through internal test API.
       $:
-        timeout: 20s
+        timeout: 20000
         continue-on-error: false
       method: POST
       url: /internal/test/orders
@@ -85,11 +102,53 @@ normalize 后：
 
 开发者定义 `http.request` 时，只声明 `method`、`url`、`body` 等业务字段；不声明 `$`。
 
-### 3.2 节点不负责实现 timeout / continue-on-error
+### 3.2 字符串节点值的简写模式
+
+当节点值是 YAML 字符串时，engine 必须先将它展开为只包含 `prompt` 的
+input，再执行节点查找和 common input 校验。
+
+```yaml
+workflow:
+  - agent.verify: The order detail page shows payment success.
+```
+
+等价于：
+
+```yaml
+workflow:
+  - agent.verify:
+      prompt: The order detail page shows payment success.
+```
+
+normalize 后：
+
+```ts
+{
+  node: 'agent.verify',
+  meta: {
+    continueOnError: false,
+  },
+  input: {
+    prompt: 'The order detail page shows payment success.',
+  },
+}
+```
+
+简写模式遵循以下规则：
+
+- 单行字符串和 YAML block scalar 都可以作为 `prompt`。
+- 简写模式只能传入 `prompt`。需要传入 `$` 或其他业务字段时，必须使用
+  mapping 形式。
+- `null`、number、boolean、sequence 等非字符串值不能作为简写，engine
+  应报告 step 解析错误。
+- 简写模式和 mapping 形式使用相同的节点校验逻辑。节点需要 `prompt` 时，
+  必须自行校验。
+
+### 3.3 节点不负责实现 timeout / continue-on-error
 
 节点执行函数只做业务逻辑：
 
-- 成功：return `NodeResult`。
+- 成功：正常完成执行，可以返回 `NodeResult`，也可以不返回结果。
 - 失败：throw error。
 - 取消或超时：尊重 `ctx.signal`。
 
@@ -108,7 +167,7 @@ engine 负责：
 ### 4.1 Duration
 
 ```ts
-export type DurationInput = string | number;
+export type DurationInput = number;
 
 export interface NormalizedStepMeta {
   timeoutMs?: number;
@@ -118,9 +177,9 @@ export interface NormalizedStepMeta {
 
 建议：
 
-- YAML string 支持 `500ms`、`20s`、`2m` 等 duration。
-- YAML number 如果允许，必须明确单位；建议内部统一为毫秒。
-- 内部执行阶段只使用 `timeoutMs`。
+- YAML `timeout` 只接受 number，单位固定为毫秒。
+- `500ms`、`20s`、`2m` 等字符串不是合法的 duration input。
+- YAML 解析和内部执行阶段都使用毫秒，不进行单位换算。
 
 ### 4.2 Common node input
 
@@ -130,32 +189,30 @@ export interface CommonNodeInput {
 }
 ```
 
-`prompt` 是 `$` 外字段，因此属于 node input。engine 可以把它作为 common input 自动合并到每个节点 schema。
+`prompt` 是 `$` 外字段，因此属于 node input。engine 自动把它合并到每个节点
+的 input 类型。
+
+简写模式只影响 YAML 的解析和 normalize，不改变 `CommonNodeInput`。节点执行
+时，`ctx.input.prompt` 始终使用展开后的字符串值。
 
 ### 4.3 Node result
 
 ```ts
 export interface NodeResult<TData = unknown> {
   /** Human-readable summary for reports and later agent context. */
-  summary: string;
+  summary?: string;
 
   /** Structured data for later steps. */
   data?: TData;
-
-  /** Screenshots, logs, traces, files, or report fragments. */
-  artifacts?: ArtifactRef[];
-}
-
-export interface ArtifactRef {
-  id: string;
-  kind: string;
-  uri: string;
-  title?: string;
-  metadata?: Record<string, unknown>;
 }
 ```
 
-节点不直接返回 step status。step status 由 engine 根据 return / throw / timeout 计算。
+`NodeResult` 整体也是可选的。节点可以返回完整结果、只返回 `summary`、只返回
+`data`，或不返回任何结果。
+
+节点不直接返回 step status。执行函数正常完成时，engine 将 step 标记为
+success，无论节点是否返回 `NodeResult`。执行函数 throw 或超时时，engine 将
+step 标记为 failed。
 
 ### 4.4 Node execution context
 
@@ -164,55 +221,33 @@ export interface NodeExecutionContext<TInput = unknown> {
   /** `$` 外的 node input，包含 common prompt。 */
   input: TInput & CommonNodeInput;
 
-  /** 当前 step 的 normalized engine meta。 */
-  meta: NormalizedStepMeta;
-
-  /** 已完成步骤的输出。 */
-  outputs: OutputStore;
-
-  /** 节点之间共享的工程状态；默认不进入 agent 上下文。 */
-  state: Record<string, unknown>;
-
-  /** Engine logger. */
-  logger: WorkflowLogger;
+  /** 当前 step 的 `$` 配置，使用 normalized value。 */
+  $: Readonly<NormalizedStepMeta>;
 
   /** Timeout / cancellation signal. */
   signal: AbortSignal;
-
-  /** Environment access. */
-  env: NodeJS.ProcessEnv;
-
-  /** Runtime capabilities exposed by host application. */
-  runtime: WorkflowRuntime;
 }
 ```
 
-首期 `runtime` 可以很薄，只承载宿主注入的能力；工具权限模型后续再单独 RFC。
+`ctx.$` 是节点开发者可以正常使用的执行配置，不属于需要隐藏的 engine 内部
+状态。节点读取的是规范化后的 `timeoutMs` 和 `continueOnError`。
 
-### 4.5 Output store
+节点实现直接导入业务依赖，或通过工厂函数注入依赖。engine 不通过执行上下文
+注入通用运行时依赖。
 
-```ts
-export interface OutputStore {
-  get<T = unknown>(stepIdOrName: string): StepRunResult<T> | undefined;
-  all(): Record<string, StepRunResult>;
-}
-```
-
-如果首期还没有 step id / output name，可先使用顺序索引或内部 step key；但 API 应预留命名输出能力。
-
-### 4.6 Step run result
+### 4.5 Step run result
 
 ```ts
-export interface StepRunResult<TData = unknown> {
+export interface StepRunResult<TOutputData = unknown> {
   node: string;
   input: unknown;
   meta: NormalizedStepMeta;
-  status: 'success' | 'failed' | 'skipped';
+  status: 'success' | 'failed';
   continuedAfterError: boolean;
   startedAt: string;
   endedAt: string;
   durationMs: number;
-  output?: NodeResult<TData>;
+  output?: NodeResult<TOutputData>;
   error?: WorkflowError;
 }
 ```
@@ -236,22 +271,14 @@ export interface StepRunResult<TData = unknown> {
 ### 5.1 推荐调用方式
 
 ```ts
-export const slackNotifyNode = defineNode({
+export const slackNotifyNode = defineNode<
+  SlackNotifyInput,
+  SlackNotifyData
+>({
   name: 'slack.notify',
 
-  input: z.object({
-    channel: z.string(),
-    template: z.string(),
-    variables: z.record(z.unknown()).optional(),
-  }),
-
-  output: z.object({
-    messageId: z.string(),
-    channel: z.string(),
-  }),
-
   async execute(ctx) {
-    const messageId = await ctx.runtime.slack.sendTemplate({
+    const messageId = await sendSlackTemplate({
       channel: ctx.input.channel,
       template: ctx.input.template,
       variables: ctx.input.variables,
@@ -276,7 +303,7 @@ workflow:
   - slack.notify:
       prompt: Send workflow summary to the QA smoke channel.
       $:
-        timeout: 10s
+        timeout: 10000
         continue-on-error: true
       channel: "#qa-smoke"
       template: workflow-summary
@@ -287,144 +314,76 @@ workflow:
 ### 5.2 TypeScript 签名草案
 
 ```ts
-export interface DefineNodeOptions<TInput, TData = unknown> {
+export interface DefineNodeOptions<TInput = unknown, TData = unknown> {
   name: string;
   title?: string;
   description?: string;
 
-  /** Node-specific business input schema. `$` is never included here. */
-  input?: Schema<TInput>;
-
-  /** Schema for NodeResult.data. */
-  output?: Schema<TData>;
-
-  capabilities?: NodeCapabilities;
-
   execute(
-    ctx: NodeExecutionContext<TInput & CommonNodeInput>,
-  ): Promise<NodeResult<TData>> | NodeResult<TData>;
+    ctx: NodeExecutionContext<TInput>,
+  ): Promise<NodeResult<TData> | void> | NodeResult<TData> | void;
 }
 
 export interface NodeDefinition<TInput = unknown, TData = unknown> {
   name: string;
   title?: string;
   description?: string;
-  input?: Schema<TInput>;
-  output?: Schema<TData>;
-  capabilities: Required<NodeCapabilities>;
   execute(
-    ctx: NodeExecutionContext<TInput & CommonNodeInput>,
-  ): Promise<NodeResult<TData>> | NodeResult<TData>;
+    ctx: NodeExecutionContext<TInput>,
+  ): Promise<NodeResult<TData> | void> | NodeResult<TData> | void;
 }
 
-export function defineNode<TInput, TData = unknown>(
+export function defineNode<TInput = unknown, TData = unknown>(
   options: DefineNodeOptions<TInput, TData>,
-): NodeDefinition<TInput & CommonNodeInput, TData>;
+): NodeDefinition<TInput, TData>;
 ```
 
-### 5.3 Node capabilities
+`defineNode` 没有 `input` 或 `output` 配置项。节点需要静态类型时，通过
+`defineNode<TInput, TData>` 传入 TypeScript 类型。engine 把 `$` 外字段作为
+`ctx.input` 传给节点；节点负责校验专属业务字段。校验失败时，节点应 throw
+`NodeInputValidationError`。
+
+### 5.3 资源生命周期
+
+首期 node definition 只提供 `execute`，不提供 `setup` 或 `teardown` hook。
+节点需要创建和释放资源时，应在 `execute` 内使用 `try/finally`：
 
 ```ts
-export interface NodeCapabilities {
-  /** Whether prompt is required, optional, or ignored by this node. */
-  prompt?: 'required' | 'optional' | 'ignored';
+export const databaseNode = defineNode<QueryInput, QueryOutput>({
+  name: 'database.query',
 
-  /** Side-effect classification for docs, auditing, and future scheduling. */
-  sideEffect?: 'none' | 'read' | 'write' | 'external';
+  async execute(ctx) {
+    const connection = await database.connect();
 
-  /** Future-facing metadata; YAML `$` does not support retry in phase 1. */
-  retryable?: boolean;
-}
-```
-
-Default capabilities:
-
-```ts
-{
-  prompt: 'optional',
-  sideEffect: 'external',
-  retryable: false,
-}
-```
-
-If `capabilities.prompt === 'required'`, engine should validate `ctx.input.prompt` before calling `execute`.
-
----
-
-## 6. Schema abstraction
-
-首期可以选择 Zod、TypeBox、JSON Schema，或定义一个窄接口以避免绑定：
-
-```ts
-export interface Schema<T = unknown> {
-  parse(value: unknown): T;
-  jsonSchema?: unknown;
-}
-```
-
-推荐要求：
-
-- schema 能在 runtime 校验 YAML input。
-- schema 能为 TypeScript 推导 `ctx.input`。
-- schema 最好能导出 JSON Schema，便于后续生成文档和 IDE autocomplete。
-
-如果选择 Zod-first：
-
-```ts
-import { z } from '@midscene/workflow';
-
-input: z.object({
-  channel: z.string(),
+    try {
+      const rows = await connection.query(ctx.input.sql);
+      return { data: { rows } };
+    } finally {
+      await connection.close();
+    }
+  },
 });
 ```
 
-如果选择 TypeBox-first：
-
-```ts
-import { Type } from '@sinclair/typebox';
-
-input: Type.Object({
-  channel: Type.String(),
-});
-```
-
-本 RFC 不强制具体 schema 库，只要求 `defineNode` 能从 schema 得到 runtime validation 与 TypeScript 类型。
+如果后续需要在多个 step 之间共享资源，再单独设计 workflow 级生命周期。
 
 ---
 
-## 7. 示例节点
+## 6. 示例节点
 
-### 7.1 HTTP request
+### 6.1 HTTP request
 
 ```ts
-export const httpRequestNode = defineNode({
+export const httpRequestNode = defineNode<
+  HttpRequestInput,
+  HttpRequestData
+>({
   name: 'http.request',
   title: 'HTTP Request',
   description: 'Sends an HTTP request and returns status, headers, and body.',
 
-  capabilities: {
-    prompt: 'optional',
-    sideEffect: 'external',
-    retryable: false,
-  },
-
-  input: z.object({
-    method: z.enum(['GET', 'POST', 'PUT', 'PATCH', 'DELETE']),
-    url: z.string(),
-    headers: z.record(z.string()).optional(),
-    query: z.record(z.union([z.string(), z.number(), z.boolean()])).optional(),
-    body: z.unknown().optional(),
-    responseType: z.enum(['json', 'text']).default('json'),
-  }),
-
-  output: z.object({
-    status: z.number(),
-    headers: z.record(z.string()),
-    body: z.unknown(),
-  }),
-
   async execute(ctx) {
-    const response = await ctx.runtime.fetch(ctx.input.url, {
+    const response = await fetch(ctx.input.url, {
       method: ctx.input.method,
       headers: ctx.input.headers,
       body:
@@ -458,7 +417,7 @@ workflow:
   - http.request:
       prompt: Create a paid order through internal test API.
       $:
-        timeout: 20s
+        timeout: 20000
       method: POST
       url: "{{ env.API_BASE_URL }}/internal/test/orders"
       headers:
@@ -467,41 +426,31 @@ workflow:
         scenario: paid-order
 ```
 
-### 7.2 Agent verify
+### 6.2 Agent verify
 
 ```ts
-export const agentVerifyNode = defineNode({
+export const agentVerifyNode = defineNode<
+  AgentVerifyInput,
+  AgentVerifyData
+>({
   name: 'agent.verify',
   title: 'Agent Verify',
   description: 'Runs an agentic verification and fails if the verdict is false.',
 
-  capabilities: {
-    prompt: 'required',
-    sideEffect: 'read',
-    retryable: false,
-  },
-
-  input: z.object({
-    expectedStatus: z.string().optional(),
-    evidence: z.record(z.unknown()).optional(),
-  }),
-
-  output: z.object({
-    pass: z.boolean(),
-    reason: z.string(),
-    evidence: z.unknown().optional(),
-  }),
-
   async execute(ctx) {
-    const verdict = await ctx.runtime.agent.verify({
-      prompt: ctx.input.prompt!,
+    const prompt = ctx.input.prompt;
+    if (!prompt) {
+      throw new NodeInputValidationError('prompt is required');
+    }
+
+    const verdict = await verifyWithAgent({
+      prompt,
       input: ctx.input,
-      outputs: ctx.outputs,
       signal: ctx.signal,
     });
 
     if (!verdict.pass) {
-      throw new WorkflowAssertionError(verdict.reason, {
+      throw new AgentVerificationError(verdict.reason, {
         evidence: verdict.evidence,
       });
     }
@@ -521,48 +470,29 @@ workflow:
   - agent.verify:
       prompt: The order detail page shows payment success.
       $:
-        timeout: 60s
+        timeout: 60000
         continue-on-error: false
       expectedStatus: paid
 ```
 
-### 7.3 Midscene UI
+### 6.3 Midscene UI
 
 ```ts
-export const midsceneUiNode = defineNode({
+export const midsceneUiNode = defineNode<
+  MidsceneUiInput,
+  MidsceneUiData
+>({
   name: 'midscene.ui',
   title: 'Midscene UI Action',
   description: 'Runs a natural-language UI task with a Midscene UI Agent.',
 
-  capabilities: {
-    prompt: 'required',
-    sideEffect: 'write',
-    retryable: false,
-  },
-
-  input: z.object({
-    startUrl: z.string().url().optional(),
-    account: z
-      .object({
-        email: z.string(),
-        password: z.string(),
-      })
-      .optional(),
-    viewport: z
-      .object({
-        width: z.number(),
-        height: z.number(),
-      })
-      .optional(),
-  }),
-
-  output: z.object({
-    text: z.string().optional(),
-    fields: z.record(z.unknown()).optional(),
-  }),
-
   async execute(ctx) {
-    const agent = await ctx.runtime.get('midscene.uiAgent');
+    const prompt = ctx.input.prompt;
+    if (!prompt) {
+      throw new NodeInputValidationError('prompt is required');
+    }
+
+    const agent = await createMidsceneUiAgent();
 
     if (ctx.input.startUrl) {
       await agent.goto(ctx.input.startUrl, { signal: ctx.signal });
@@ -572,7 +502,7 @@ export const midsceneUiNode = defineNode({
       await agent.setViewport(ctx.input.viewport);
     }
 
-    const result = await agent.aiAct(ctx.input.prompt!, {
+    const result = await agent.aiAct(prompt, {
       account: ctx.input.account,
       signal: ctx.signal,
     });
@@ -583,7 +513,6 @@ export const midsceneUiNode = defineNode({
         text: result.text,
         fields: result.fields,
       },
-      artifacts: result.artifacts,
     };
   },
 });
@@ -598,7 +527,7 @@ workflow:
         Open the storefront, sign in as the smoke-test user,
         create a paid order, and record the order id and page state.
       $:
-        timeout: 180s
+        timeout: 180000
       startUrl: https://shop.example.com
       viewport:
         width: 1440
@@ -607,7 +536,7 @@ workflow:
 
 ---
 
-## 8. Engine execution wrapper
+## 7. Engine execution wrapper
 
 Pseudo implementation:
 
@@ -619,18 +548,12 @@ async function runStep(step: NormalizedStep, node: NodeDefinition) {
     : undefined;
 
   try {
-    const input = validateNodeInput(node, step.input);
-    validatePromptCapability(node, input);
+    const input = step.input;
 
     const output = await node.execute({
       input,
-      meta: step.meta,
-      outputs,
-      state,
-      logger,
+      $: step.meta,
       signal: abort.signal,
-      env,
-      runtime,
     });
 
     return markStepSuccess(output);
@@ -656,7 +579,7 @@ Notes:
 
 ---
 
-## 9. Error classes
+## 8. Error classes
 
 ```ts
 export class WorkflowError extends Error {
@@ -674,33 +597,22 @@ export class NodeExecutionError extends WorkflowError {
   node: string;
 }
 
-export class WorkflowAssertionError extends WorkflowError {
-  evidence?: unknown;
-}
 ```
+
+节点的业务错误由节点开发者自行定义。例如，`AgentVerificationError` 属于
+`agent.verify` 节点，不由 workflow engine 提供。
 
 Guidance:
 
-- Invalid YAML or invalid `$` -> parser / meta validation error.
-- Invalid node business input -> `NodeInputValidationError`.
-- Verification failed -> `WorkflowAssertionError`.
+- Invalid YAML, invalid step shorthand, or invalid `$` -> parser / meta validation error.
+- Invalid node business input -> node throws `NodeInputValidationError`.
+- Node-specific business failure -> error defined and thrown by the node.
 - Unexpected node failure -> `NodeExecutionError` wrapping original error.
 - Timeout -> `StepTimeoutError`.
 
 ---
 
-## 10. Open Questions
-
-1. Which schema library should be first-class: Zod, TypeBox, JSON Schema, or a small `Schema<T>` abstraction?
-2. Should every node automatically accept `prompt`, or should nodes opt into it through `capabilities.prompt`?
-3. Should `ctx.meta` be exposed to nodes at all, or kept internal to discourage node-specific timeout / error behavior?
-4. How should outputs be referenced before step ids / output names exist in the YAML contract?
-5. Should `NodeResult.summary` be required for all nodes, or can engine synthesize a default summary from node name and status?
-6. Should node definitions be pure data + execute function, or can they include setup / teardown hooks?
-
----
-
-## 11. Initial Recommendation
+## 9. Initial Recommendation
 
 首期推荐实现最小 API：
 
@@ -708,21 +620,13 @@ Guidance:
 export const node = defineNode({
   name: 'some.node',
 
-  input: z.object({
-    foo: z.string(),
-  }),
-
-  output: z.object({
-    result: z.string(),
-  }),
-
   async execute(ctx) {
-    return {
-      summary: `Processed ${ctx.input.foo}.`,
-      data: {
-        result: 'ok',
-      },
-    };
+    const prompt = ctx.input.prompt;
+    if (!prompt) {
+      throw new NodeInputValidationError('prompt is required');
+    }
+
+    await runTask(prompt, { signal: ctx.signal });
   },
 });
 ```
@@ -734,15 +638,15 @@ workflow:
   - some.node:
       prompt: Process foo.
       $:
-        timeout: 30s
+        timeout: 30000
         continue-on-error: false
-      foo: hello
 ```
 
 核心边界保持不变：
 
 - `$` 由 engine 解析和执行。
-- `$` 外字段由节点 schema 校验。
+- 节点可以通过 `ctx.$` 读取规范化后的 `$` 配置。
+- `$` 外的节点专属业务字段由节点自行校验。
 - `prompt` 是 common business input。
-- 节点 return 表示成功，throw 表示失败。
+- 节点正常完成表示成功，无论是否返回 `NodeResult`；throw 表示失败。
 - engine 根据 `continue-on-error` 处理失败后的 workflow 走向。
