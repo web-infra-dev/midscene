@@ -1,4 +1,10 @@
-import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { WebMidsceneTools } from '@/agent-tools';
@@ -19,7 +25,7 @@ const mockPage = {
   bringToFront: rs.fn(),
   goto: rs.fn(),
   setViewport: rs.fn(),
-  target: rs.fn(() => ({ _targetId: 'target-1' })),
+  target: rs.fn((): { _targetId?: string } => ({ _targetId: 'target-1' })),
 };
 
 const mockBrowser = {
@@ -67,7 +73,7 @@ rs.mock('@/cdp-target-store', () => ({
 
 function createPersistenceRoot(): {
   root: string;
-  persistence: Required<PuppeteerPersistenceOptions>;
+  persistence: PuppeteerPersistenceOptions & { targetIdFile: string };
 } {
   const root = join(
     tmpdir(),
@@ -77,9 +83,19 @@ function createPersistenceRoot(): {
   const persistence = {
     endpointFile: join(root, 'endpoint'),
     userDataDir: join(root, 'profile'),
+    targetIdFile: join(root, 'target-id'),
   };
   writeFileSync(persistence.endpointFile, 'ws://127.0.0.1:9222/devtools/1');
   return { root, persistence };
+}
+
+async function rejectedError(promise: Promise<unknown>): Promise<Error> {
+  const error = await promise.then(
+    () => null,
+    (reason: unknown) => reason,
+  );
+  expect(error).toBeInstanceOf(Error);
+  return error as Error;
 }
 
 type WebInitArgTestFactory = () => {
@@ -213,6 +229,181 @@ describe('web agent tool init args', () => {
           screenshotShrinkFactor: 2,
         }),
       );
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('reuses the saved Puppeteer target when browser.pages returns newer tabs first', async () => {
+    const { root, persistence } = createPersistenceRoot();
+    const newerPage = {
+      ...mockPage,
+      url: rs.fn(() => 'https://bbb.example.com/'),
+      target: rs.fn(() => ({ _targetId: 'target-bbb' })),
+    };
+    const olderPage = {
+      ...mockPage,
+      url: rs.fn(() => 'https://aaa.example.com/'),
+      target: rs.fn(() => ({ _targetId: 'target-aaa' })),
+    };
+
+    try {
+      writeFileSync(persistence.targetIdFile, 'target-bbb');
+      mockBrowser.pages.mockResolvedValueOnce([newerPage, olderPage]);
+
+      const tools = new WebPuppeteerMidsceneTools(undefined, { persistence });
+      await tools.initTools();
+
+      const takeScreenshotTool = tools
+        .getToolDefinitions()
+        .find((tool) => tool.name === 'take_screenshot');
+      await takeScreenshotTool?.handler({});
+
+      expect(PuppeteerAgent).toHaveBeenLastCalledWith(
+        newerPage,
+        expect.any(Object),
+      );
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('fails instead of guessing a Puppeteer tab when the saved target cannot be read', async () => {
+    const { root, persistence } = createPersistenceRoot();
+
+    try {
+      mkdirSync(persistence.targetIdFile);
+      const tools = new WebPuppeteerMidsceneTools(undefined, { persistence });
+      await tools.initTools();
+      const connectTool = tools
+        .getToolDefinitions()
+        .find((tool) => tool.name === 'web_connect');
+
+      const error = await rejectedError(connectTool!.handler({}));
+
+      expect(error.message).toContain(
+        `Failed to read Puppeteer targetId from "${persistence.targetIdFile}"`,
+      );
+      expect(error.cause).toBeInstanceOf(Error);
+      expect(PuppeteerAgent).not.toHaveBeenCalled();
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('fails the current command when the Puppeteer target cannot be saved', async () => {
+    const { root, persistence } = createPersistenceRoot();
+
+    try {
+      mkdirSync(persistence.targetIdFile);
+      const tools = new WebPuppeteerMidsceneTools(undefined, { persistence });
+      await tools.initTools();
+      const connectTool = tools
+        .getToolDefinitions()
+        .find((tool) => tool.name === 'web_connect');
+
+      const error = await rejectedError(
+        connectTool!.handler({ web: { url: 'https://bbb.example.com' } }),
+      );
+
+      expect(error.message).toContain(
+        `Failed to save Puppeteer targetId to "${persistence.targetIdFile}"`,
+      );
+      expect(error.cause).toBeInstanceOf(Error);
+      expect(PuppeteerAgent).not.toHaveBeenCalled();
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('rejects an empty Puppeteer target file as corrupt state', async () => {
+    const { root, persistence } = createPersistenceRoot();
+
+    try {
+      writeFileSync(persistence.targetIdFile, ' \n');
+      const tools = new WebPuppeteerMidsceneTools(undefined, { persistence });
+      await tools.initTools();
+      const connectTool = tools
+        .getToolDefinitions()
+        .find((tool) => tool.name === 'web_connect');
+
+      await expect(connectTool!.handler({})).rejects.toThrow(
+        `Puppeteer targetId file "${persistence.targetIdFile}" is empty`,
+      );
+      expect(PuppeteerAgent).not.toHaveBeenCalled();
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('uses the existing page when no Puppeteer target has been saved yet', async () => {
+    const { root, persistence } = createPersistenceRoot();
+
+    try {
+      const tools = new WebPuppeteerMidsceneTools(undefined, { persistence });
+      await tools.initTools();
+      const takeScreenshotTool = tools
+        .getToolDefinitions()
+        .find((tool) => tool.name === 'take_screenshot');
+
+      await takeScreenshotTool!.handler({});
+
+      expect(PuppeteerAgent).toHaveBeenCalledWith(mockPage, expect.any(Object));
+      expect(readFileSync(persistence.targetIdFile, 'utf-8')).toBe('target-1');
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('fails when Puppeteer does not expose a target ID for the selected page', async () => {
+    const { root, persistence } = createPersistenceRoot();
+    const pageWithoutTargetId = {
+      ...mockPage,
+      target: rs.fn(() => ({})),
+    };
+
+    try {
+      mockBrowser.pages.mockResolvedValueOnce([pageWithoutTargetId]);
+      const tools = new WebPuppeteerMidsceneTools(undefined, { persistence });
+      await tools.initTools();
+      const connectTool = tools
+        .getToolDefinitions()
+        .find((tool) => tool.name === 'web_connect');
+
+      await expect(connectTool!.handler({})).rejects.toThrow(
+        'Puppeteer did not expose a Chrome targetId',
+      );
+      expect(PuppeteerAgent).not.toHaveBeenCalled();
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('persists the connected Puppeteer target and clears it on disconnect and close', async () => {
+    const { root, persistence } = createPersistenceRoot();
+
+    try {
+      const tools = new WebPuppeteerMidsceneTools(undefined, { persistence });
+      await tools.initTools();
+      const connectTool = tools
+        .getToolDefinitions()
+        .find((tool) => tool.name === 'web_connect');
+      const disconnectTool = tools
+        .getToolDefinitions()
+        .find((tool) => tool.name === 'web_disconnect');
+      const closeTool = tools
+        .getToolDefinitions()
+        .find((tool) => tool.name === 'web_close');
+
+      await connectTool?.handler({ web: { url: 'https://bbb.example.com' } });
+      expect(readFileSync(persistence.targetIdFile, 'utf-8')).toBe('target-1');
+
+      await disconnectTool?.handler({});
+      expect(existsSync(persistence.targetIdFile)).toBe(false);
+
+      writeFileSync(persistence.targetIdFile, 'target-1');
+      await closeTool?.handler({});
+      expect(existsSync(persistence.targetIdFile)).toBe(false);
     } finally {
       rmSync(root, { recursive: true, force: true });
     }

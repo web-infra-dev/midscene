@@ -54,6 +54,7 @@ describe('midscene-web CLI viewport e2e', () => {
     persistence = {
       endpointFile: join(persistentRoot, 'endpoint'),
       userDataDir: join(persistentRoot, 'profile'),
+      targetIdFile: join(persistentRoot, 'target-id'),
     };
 
     server = createServer((_req, res) => {

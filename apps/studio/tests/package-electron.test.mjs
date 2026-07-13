@@ -15,6 +15,9 @@ import {
   buildStudioDmgSpecification,
   buildVendoredWorkspaceDirName,
   buildVendoredWorkspaceManifest,
+  buildWindowsNsisArtifactName,
+  buildWindowsNsisConfig,
+  buildWindowsNsisInstallerArgs,
   collectMacNativeArchitectureIssues,
   collectNestedMacCodeSignTargets,
   collectPackagedNodeModuleSymlinkIssues,
@@ -31,6 +34,7 @@ import {
   pruneAntdUmdBundles,
   pruneGifwrapTestFixtures,
   pruneSourceMapFiles,
+  quoteWindowsShellArg,
   readMacMachOArchitectures,
   releaseWorkspaceDir,
   resolveDefaultPackageArch,
@@ -342,6 +346,84 @@ describe('package-electron helpers', () => {
     expect(opts.icon).toMatch(/midscene-icon\.ico$/);
   });
 
+  it('builds a Windows NSIS installer name from the Studio archive basename', () => {
+    expect(
+      buildWindowsNsisArtifactName('midscene-studio-beta-v1.8.1-win32-x64'),
+    ).toBe('midscene-studio-beta-v1.8.1-win32-x64-setup.exe');
+  });
+
+  it('builds a Windows NSIS config for the Studio updater installer', () => {
+    expect(
+      buildWindowsNsisConfig({
+        artifactName: 'midscene-studio-beta-v1.8.1-win32-x64-setup.exe',
+        iconPath: '/tmp/midscene-icon.ico',
+      }),
+    ).toMatchObject({
+      appId: 'ai.midscene.studio.beta',
+      productName: 'Midscene Studio Beta',
+      directories: {
+        output: expect.stringContaining(
+          path.join('.release', 'studio', 'artifacts'),
+        ),
+      },
+      win: {
+        executableName: 'Midscene Studio Beta',
+        icon: '/tmp/midscene-icon.ico',
+        target: [
+          {
+            target: 'nsis',
+            arch: ['x64'],
+          },
+        ],
+      },
+      nsis: {
+        oneClick: true,
+        perMachine: false,
+        allowElevation: false,
+        artifactName: 'midscene-studio-beta-v1.8.1-win32-x64-setup.exe',
+        shortcutName: 'Midscene Studio Beta',
+        uninstallDisplayName: 'Midscene Studio Beta',
+        createDesktopShortcut: 'always',
+      },
+      npmRebuild: false,
+      publish: null,
+    });
+  });
+
+  it('targets the executable name emitted by the Windows packager', () => {
+    const packagerOptions = buildPackagerOptions({
+      arch: 'x64',
+      outDir: '/tmp/out',
+      platform: 'win32',
+      stageDir: '/tmp/stage',
+    });
+    const nsisConfig = buildWindowsNsisConfig({
+      artifactName: 'midscene-studio-beta-v1.8.1-win32-x64-setup.exe',
+      iconPath: '/tmp/midscene-icon.ico',
+    });
+
+    expect(nsisConfig.win.executableName).toBe(packagerOptions.name);
+  });
+
+  it('builds electron-builder CLI args for a prepackaged Windows NSIS installer', () => {
+    expect(
+      buildWindowsNsisInstallerArgs({
+        arch: 'x64',
+        configPath: '/tmp/nsis.config.json',
+        packagedAppPath: '/tmp/Midscene Studio Beta-win32-x64',
+      }),
+    ).toEqual([
+      'exec',
+      'electron-builder',
+      '--win',
+      'nsis',
+      '--x64',
+      '--prepackaged=/tmp/Midscene Studio Beta-win32-x64',
+      '--config=/tmp/nsis.config.json',
+      '--publish=never',
+    ]);
+  });
+
   it('resolves the resources directory when the app payload is packed as asar', async () => {
     const root = await fs.mkdtemp(path.join(os.tmpdir(), 'midscene-app-'));
     try {
@@ -370,6 +452,31 @@ describe('package-electron helpers', () => {
   it('uses a shell for Windows .cmd package manager shims', () => {
     expect(shouldUseShellForCommand('pnpm.cmd', 'win32')).toBe(true);
     expect(shouldUseShellForCommand('pnpm', 'linux')).toBe(false);
+  });
+
+  it('quotes Windows shell args with spaces', () => {
+    expect(quoteWindowsShellArg('--x64')).toBe('--x64');
+    expect(quoteWindowsShellArg('')).toBe('""');
+    expect(
+      quoteWindowsShellArg(
+        '--prepackaged=D:\\a\\midscene\\Midscene Studio Beta-win32-x64',
+      ),
+    ).toBe('"--prepackaged=D:\\a\\midscene\\Midscene Studio Beta-win32-x64"');
+  });
+
+  it('escapes Windows shell metacharacters inside quoted args', () => {
+    // Parentheses are common in paths like "Program Files (x86)".
+    expect(quoteWindowsShellArg('C:\\Program Files (x86)\\Midscene')).toBe(
+      '"C:\\Program Files ^(x86^)\\Midscene"',
+    );
+    // Ampersand is the cmd command separator.
+    expect(quoteWindowsShellArg('a&b')).toBe('"a^&b"');
+    // Pipe redirects stdout.
+    expect(quoteWindowsShellArg('a|b')).toBe('"a^|b"');
+    // Caret itself must be escaped.
+    expect(quoteWindowsShellArg('a^b')).toBe('"a^^b"');
+    // Double quote inside the value.
+    expect(quoteWindowsShellArg('a"b')).toBe('"a^"b"');
   });
 
   it('parses boolean-like configuration values used by mac packaging flags', () => {
@@ -1438,6 +1545,23 @@ describe('package-electron helpers', () => {
     expect(workflow).not.toMatch(/--skip-archive/);
     expect(workflow).toMatch(/Package Midscene Studio Beta/);
     expect(workflow).toMatch(/\.release\/studio\/artifacts\/\*\.zip/);
+    expect(workflow).toMatch(/\.release\/studio\/artifacts\/\*\.exe/);
+    expect(workflow).toMatch(/\.release\/studio\/artifacts\/\*\.blockmap/);
+  });
+
+  it('package validation workflow uploads Windows installer artifacts', async () => {
+    const workflowPath = path.join(
+      releaseWorkspaceDir,
+      '..',
+      '..',
+      '.github',
+      'workflows',
+      'studio-package-validation.yml',
+    );
+    const workflow = await fs.readFile(workflowPath, 'utf8');
+    expect(workflow).toMatch(/\.release\/studio\/artifacts\/\*\.zip/);
+    expect(workflow).toMatch(/\.release\/studio\/artifacts\/\*\.exe/);
+    expect(workflow).toMatch(/\.release\/studio\/artifacts\/\*\.blockmap/);
   });
 
   it('packages macOS x64 Studio on an Intel GitHub runner', async () => {
