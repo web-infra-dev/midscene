@@ -15,8 +15,10 @@ final class FixtureController: NSObject, NSApplicationDelegate, NSTextFieldDeleg
   private var textField: NSTextField!
   private var scrollView: NSScrollView!
   private var activationTimer: Timer?
+  private var mouseMonitor: Any?
 
   private var clickCount = 0
+  private var buttonActionCount = 0
   private var lastKey = ""
   private var wheelEventCount = 0
 
@@ -56,6 +58,20 @@ final class FixtureController: NSObject, NSApplicationDelegate, NSTextFieldDeleg
     button.layer?.cornerRadius = 6
     button.contentTintColor = .black
     window.contentView?.addSubview(button)
+
+    mouseMonitor = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseUp]) {
+      [weak self] event in
+      guard let self, event.window === self.window else {
+        return event
+      }
+      let point = self.button.convert(event.locationInWindow, from: nil)
+      guard self.button.bounds.contains(point) else {
+        return event
+      }
+      self.clickCount += 1
+      self.writeState()
+      return event
+    }
 
     textField = NSTextField(frame: NSRect(x: 120, y: 275, width: 400, height: 44))
     textField.placeholderString = "Type smoke text"
@@ -100,12 +116,18 @@ final class FixtureController: NSObject, NSApplicationDelegate, NSTextFieldDeleg
     true
   }
 
+  func applicationWillTerminate(_ notification: Notification) {
+    if let mouseMonitor {
+      NSEvent.removeMonitor(mouseMonitor)
+    }
+  }
+
   func controlTextDidChange(_ obj: Notification) {
     writeState()
   }
 
   @objc private func buttonClicked() {
-    clickCount += 1
+    buttonActionCount += 1
     writeState()
   }
 
@@ -210,6 +232,7 @@ final class FixtureController: NSObject, NSApplicationDelegate, NSTextFieldDeleg
       [
         "visible": window.isVisible,
         "clickCount": clickCount,
+        "buttonActionCount": buttonActionCount,
         "text": textField.stringValue,
         "lastKey": lastKey,
         "wheelEventCount": wheelEventCount,

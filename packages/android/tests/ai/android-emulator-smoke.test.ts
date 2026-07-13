@@ -204,6 +204,38 @@ async function waitForResource(
   );
 }
 
+async function keyboardIsShown(adb: ADB): Promise<boolean> {
+  const status = await adb.isSoftKeyboardPresent();
+  return typeof status === 'boolean'
+    ? status
+    : status?.isKeyboardShown === true;
+}
+
+async function waitForKeyboardState(
+  adb: ADB,
+  expected: boolean,
+): Promise<boolean> {
+  const deadline = Date.now() + TARGET_TIMEOUT_MS;
+  let lastError: unknown;
+  while (Date.now() < deadline) {
+    try {
+      const shown = await keyboardIsShown(adb);
+      if (shown === expected) {
+        return shown;
+      }
+      lastError = new Error(
+        `Expected keyboard shown=${expected}, received ${shown}`,
+      );
+    } catch (error) {
+      lastError = error;
+    }
+    await sleep(POLL_INTERVAL_MS);
+  }
+  throw new Error(
+    `Timed out waiting for Android keyboard shown=${expected}. Last error: ${String(lastError)}`,
+  );
+}
+
 function locate(bounds: Bounds, prompt: string) {
   return {
     prompt,
@@ -360,23 +392,26 @@ describe.skipIf(!RUN_LIVE_SMOKE)('Android Emulator live smoke', () => {
       const searchState = await waitForEditableNode(adb, searchXmlFile, 'wifi');
       expect(searchState.xml).toMatch(/text="wifi"/i);
 
+      evidence.keyboardShownBeforeBack = await waitForKeyboardState(adb, true);
+
       const searchScreenshot = await device.screenshotBase64();
       await writeFile(screenshotFile, screenshotBuffer(searchScreenshot));
 
       await agent.back();
       evidence.backNavigationCount = 1;
-      await sleep(POLL_INTERVAL_MS);
+      evidence.keyboardShownAfterBack = await waitForKeyboardState(adb, false);
       const postBackXml = await dumpUiautomatorXml(adb);
       await writeFile(finalXmlFile, postBackXml, 'utf8');
-      const returnedHomeAfterBack =
-        boundsForResourceId(postBackXml, SETTINGS_SEARCH_BAR_ID).length === 1;
-      evidence.returnedHomeAfterBack = returnedHomeAfterBack;
-      if (!returnedHomeAfterBack) {
-        await adb.shell('am force-stop com.android.settings');
-        await adb.shell('am start -W -n com.android.settings/.Settings');
-        evidence.settingsRelaunchedAfterBack = true;
-        await waitForResource(adb, [SETTINGS_SEARCH_BAR_ID], finalXmlFile);
-      }
+      evidence.postBackSurface = boundsForResourceId(
+        postBackXml,
+        SETTINGS_SEARCH_BAR_ID,
+      ).length
+        ? 'settings-home'
+        : postBackXml.includes('com.google.android.apps.nexuslauncher')
+          ? 'launcher'
+          : postBackXml.includes('open_search_view_edit_text')
+            ? 'settings-search'
+            : 'other';
 
       const dump = JSON.parse(agent.dumpDataString()) as ReportDump;
       await writeFile(dumpFile, `${JSON.stringify(dump, null, 2)}\n`, 'utf8');

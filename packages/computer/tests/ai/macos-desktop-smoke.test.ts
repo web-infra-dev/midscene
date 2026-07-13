@@ -67,6 +67,7 @@ interface FixtureMetadata {
 interface FixtureState {
   visible: boolean;
   clickCount: number;
+  buttonActionCount: number;
   text: string;
   lastKey: string;
   wheelEventCount: number;
@@ -151,6 +152,10 @@ function normalizeState(value: unknown): FixtureState {
   return {
     visible: raw.visible === true,
     clickCount: asFiniteNumber(raw.clickCount, 'state.clickCount'),
+    buttonActionCount: asFiniteNumber(
+      raw.buttonActionCount,
+      'state.buttonActionCount',
+    ),
     text: String(raw.text ?? ''),
     lastKey: String(raw.lastKey ?? ''),
     wheelEventCount: asFiniteNumber(
