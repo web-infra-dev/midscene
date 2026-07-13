@@ -197,6 +197,79 @@ function activateFixture(processId: number): void {
   ]);
 }
 
+function dismissScreenCapturePrivacyPrompt(): string {
+  return execFileSync(
+    'osascript',
+    [
+      '-l',
+      'JavaScript',
+      '-e',
+      String.raw`
+function run() {
+  const systemEvents = Application('System Events');
+  const processes = systemEvents.applicationProcesses.whose({ frontmost: true })();
+  if (!processes.length) return 'Screen capture privacy prompt was not present';
+
+  const process = processes[0];
+  let visited = 0;
+
+  function safe(fn) {
+    try {
+      return fn();
+    } catch (error) {
+      return undefined;
+    }
+  }
+
+  function text(value) {
+    return value === undefined || value === null ? '' : String(value);
+  }
+
+  function attr(element, name) {
+    return safe(function () {
+      return element.attributes.byName(name).value();
+    });
+  }
+
+  function findButton(element, depth) {
+    visited += 1;
+    const labels = [
+      safe(function () { return element.name(); }),
+      safe(function () { return element.description(); }),
+      attr(element, 'AXTitle'),
+      attr(element, 'AXDescription'),
+      attr(element, 'AXValue'),
+    ].map(text);
+    const role = text(safe(function () { return element.role(); }));
+    if (role === 'AXButton' && labels.includes('Allow For One Month')) {
+      return element;
+    }
+    if (depth >= 8 || visited >= 500) return undefined;
+
+    const children = safe(function () { return element.uiElements(); }) || [];
+    for (let index = 0; index < children.length; index += 1) {
+      const match = findButton(children[index], depth + 1);
+      if (match) return match;
+    }
+    return undefined;
+  }
+
+  const windows = safe(function () { return process.windows(); }) || [];
+  for (let index = 0; index < windows.length; index += 1) {
+    const button = findButton(windows[index], 0);
+    if (button) {
+      button.click();
+      return 'Accepted screen capture privacy prompt in ' + process.name();
+    }
+  }
+  return 'Screen capture privacy prompt was not present in ' + process.name();
+}
+`,
+    ],
+    { encoding: 'utf8' },
+  ).trim();
+}
+
 async function activateFixtureAndSettle(processId: number): Promise<void> {
   activateFixture(processId);
   await new Promise((resolveDelay) => setTimeout(resolveDelay, 300));
@@ -284,6 +357,17 @@ describe.runIf(RUN_SMOKE)('macOS AX xpath cache smoke', () => {
       expect(target.bounds.height).toBeGreaterThan(0);
 
       await device.connect();
+      let screenCapturePromptResult = '';
+      for (let attempt = 0; attempt < 3; attempt += 1) {
+        await device.screenshotBase64();
+        await new Promise((resolveDelay) => setTimeout(resolveDelay, 500));
+        screenCapturePromptResult = dismissScreenCapturePrivacyPrompt();
+        if (screenCapturePromptResult.startsWith('Accepted ')) break;
+      }
+      writeFileSync(
+        join(DIAGNOSTICS_DIR, 'screen-capture-prompt.log'),
+        `${screenCapturePromptResult}\n`,
+      );
       await activateFixtureAndSettle(fixture.processId);
       const logicalSize = await device.size();
       const screenshot = await device.screenshotBase64();
