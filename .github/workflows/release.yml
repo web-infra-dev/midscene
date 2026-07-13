@@ -481,7 +481,7 @@ jobs:
                   {key: "other", label: "Other"}
                 ];
               def safe_title:
-                gsub("(?<char>[\\\\`*_~\\[\\]()<>#])"; "\\\\\(.char)");
+                gsub("(?<char>[\\\\`*_~\\[\\]<>])"; "\\\\\(.char)");
               def item_line:
                 if .pr != "" then
                   "- \(.title | safe_title) · [PR #\(.pr)](\(.url))"
