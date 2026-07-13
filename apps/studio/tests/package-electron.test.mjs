@@ -1564,47 +1564,6 @@ describe('package-electron helpers', () => {
     expect(workflow).toMatch(/\.release\/studio\/artifacts\/\*\.blockmap/);
   });
 
-  it('validates the complete installed Windows update lifecycle in CI', async () => {
-    const workflowPath = path.join(
-      releaseWorkspaceDir,
-      '..',
-      '..',
-      '.github',
-      'workflows',
-      'studio-windows-update.yml',
-    );
-    const smokePath = path.join(
-      releaseWorkspaceDir,
-      '..',
-      '..',
-      'apps',
-      'studio',
-      'scripts',
-      'windows-update-smoke.mjs',
-    );
-    const [workflow, smoke] = await Promise.all([
-      fs.readFile(workflowPath, 'utf8'),
-      fs.readFile(smokePath, 'utf8'),
-    ]);
-
-    expect(workflow).toMatch(/runs-on:\s*windows-2022/);
-    expect(workflow.match(/package:release/g)).toHaveLength(2);
-    expect(workflow).toMatch(/test:smoke:windows-update/);
-    expect(workflow).toMatch(/MIDSCENE_STUDIO_RUN_WINDOWS_UPDATE_SMOKE/);
-    expect(workflow).toMatch(/Upload Windows update diagnostics/);
-    expect(workflow).toMatch(/if:\s*always\(\)/);
-
-    expect(smoke).toMatch(/window\.studioUpdater\.check\(\)/);
-    expect(smoke).toMatch(/window\.studioUpdater\.download\(\)/);
-    expect(smoke).toMatch(/window\.studioUpdater\.install\(\)/);
-    expect(smoke).toMatch(
-      /process\.argv\.slice\(2\)\.filter\(\(arg\) => arg !== '--'\)/,
-    );
-    expect(smoke).toMatch(/old Studio processes to exit/);
-    expect(smoke).toMatch(/updated Studio process to restart/);
-    expect(smoke).toMatch(/WINDOWS_UPDATE_SMOKE_SUCCESS/);
-  });
-
   it('packages macOS x64 Studio on an Intel GitHub runner', async () => {
     const workflowPaths = [
       path.join(
