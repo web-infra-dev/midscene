@@ -1,15 +1,19 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { sleep } from '@midscene/core/utils';
+import type ADB from 'appium-adb';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { AndroidAgent, AndroidDevice, getConnectedDevices } from '../../src';
 
 vi.setConfig({
   testTimeout: 240 * 1000,
+  hookTimeout: 60 * 1000,
 });
 
 const pageUrl = 'https://todomvc.com/examples/react/dist/';
 const diagnosticsDir = process.env.MIDSCENE_ANDROID_DIAGNOSTICS_DIR;
+const CHROME_FIRST_RUN_DUMP_PATH =
+  '/sdcard/midscene_chrome_first_run_window_dump.xml';
 const expectedActiveTasks = [
   'Learn JS today',
   'Learn Rust tomorrow',
@@ -48,6 +52,63 @@ function screenshotBuffer(base64: string): Buffer {
   return Buffer.from(match[1], 'base64');
 }
 
+async function dumpUiautomatorXml(adb: ADB): Promise<string> {
+  await adb.shell(
+    `uiautomator dump --compressed ${CHROME_FIRST_RUN_DUMP_PATH}`,
+  );
+  const xml = await adb.shell(`cat ${CHROME_FIRST_RUN_DUMP_PATH}`);
+  if (typeof xml !== 'string' || xml.trim().length === 0) {
+    throw new Error('Android emulator returned an empty Chrome UI dump');
+  }
+  return xml;
+}
+
+function centerForExactText(
+  xml: string,
+  text: string,
+): { x: number; y: number } | undefined {
+  const textAttribute = `text="${text}"`;
+  const contentDescriptionAttribute = `content-desc="${text}"`;
+  const nodeTag = (xml.match(/<node\b[^>]*>/g) ?? []).find(
+    (tag) =>
+      tag.includes(textAttribute) || tag.includes(contentDescriptionAttribute),
+  );
+  if (!nodeTag) {
+    return undefined;
+  }
+  const bounds = /bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"/.exec(nodeTag);
+  if (!bounds) {
+    throw new Error(`Chrome first-run control has no bounds: ${text}`);
+  }
+  return {
+    x: Math.round((Number(bounds[1]) + Number(bounds[3])) / 2),
+    y: Math.round((Number(bounds[2]) + Number(bounds[4])) / 2),
+  };
+}
+
+async function dismissChromeFirstRunIfPresent(
+  adb: ADB,
+): Promise<{ beforeXml: string; afterXml?: string; dismissed: boolean }> {
+  const beforeXml = await dumpUiautomatorXml(adb);
+  const useWithoutAccount = centerForExactText(
+    beforeXml,
+    'Use without an account',
+  );
+  if (!useWithoutAccount) {
+    return { beforeXml, dismissed: false };
+  }
+
+  await adb.shell(`input tap ${useWithoutAccount.x} ${useWithoutAccount.y}`);
+  await sleep(2000);
+  const afterXml = await dumpUiautomatorXml(adb);
+  if (centerForExactText(afterXml, 'Use without an account')) {
+    throw new Error(
+      'Chrome first-run screen remained after deterministic setup',
+    );
+  }
+  return { beforeXml, afterXml, dismissed: true };
+}
+
 describe('Test todo list', () => {
   let agent: AndroidAgent | undefined;
 
@@ -65,9 +126,30 @@ describe('Test todo list', () => {
       aiActionContext:
         'If any browser, permission, or user agreement popup appears, close or accept it. Operate only the visible TodoMVC page.',
     });
-    await page.connect();
+    const adb = await page.connect();
     await page.launch(pageUrl);
     await sleep(3000);
+    const chromeFirstRun = await dismissChromeFirstRunIfPresent(adb);
+    if (diagnosticsDir) {
+      const resolvedDiagnosticsDir = path.resolve(diagnosticsDir);
+      await mkdir(resolvedDiagnosticsDir, { recursive: true });
+      await writeFile(
+        path.join(resolvedDiagnosticsDir, 'chrome-first-run-before.xml'),
+        chromeFirstRun.beforeXml,
+        'utf8',
+      );
+      if (chromeFirstRun.afterXml) {
+        await writeFile(
+          path.join(resolvedDiagnosticsDir, 'chrome-first-run-after.xml'),
+          chromeFirstRun.afterXml,
+          'utf8',
+        );
+      }
+    }
+    if (chromeFirstRun.dismissed) {
+      await page.launch(pageUrl);
+      await sleep(3000);
+    }
   });
 
   afterAll(async () => {

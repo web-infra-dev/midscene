@@ -348,7 +348,7 @@ describe.skipIf(!RUN_LIVE_SMOKE)('Android Emulator live smoke', () => {
 
       await agent.callActionInActionSpace('Input', {
         value: 'wifi',
-        mode: 'replace',
+        mode: 'typeOnly',
         autoDismissKeyboard: false,
         locate: locate(searchInput.bounds, 'Settings search input'),
       });

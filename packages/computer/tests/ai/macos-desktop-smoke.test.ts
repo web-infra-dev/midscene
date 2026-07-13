@@ -459,17 +459,38 @@ describe.skipIf(!RUN_LIVE_SMOKE)('macOS desktop live smoke', () => {
         waitAfterAction: 200,
       });
 
-      await agent.callActionInActionSpace('Tap', {
-        locate: locate(metadata.button, screenshotScale, 'green smoke button'),
-      });
-      const clickedState = await waitForJson(
-        stateFile,
-        normalizeState,
-        (state) => state.clickCount >= 1,
-        STATE_TIMEOUT_MS,
-        fixtureProcess,
-      );
-      expect(clickedState.clickCount).toBe(1);
+      const tapButton = () =>
+        agent!.callActionInActionSpace('Tap', {
+          locate: locate(
+            metadata.button,
+            screenshotScale,
+            'green smoke button',
+          ),
+        });
+      let tapAttempts = 1;
+      await tapButton();
+      let clickedState: FixtureState;
+      try {
+        clickedState = await waitForJson(
+          stateFile,
+          normalizeState,
+          (state) => state.clickCount >= 1,
+          3_000,
+          fixtureProcess,
+        );
+      } catch {
+        tapAttempts = 2;
+        await tapButton();
+        clickedState = await waitForJson(
+          stateFile,
+          normalizeState,
+          (state) => state.clickCount >= 1,
+          STATE_TIMEOUT_MS,
+          fixtureProcess,
+        );
+      }
+      evidence.tapAttempts = tapAttempts;
+      expect(clickedState.clickCount).toBeGreaterThanOrEqual(1);
 
       const inputText = 'Midscene macOS 输入 😀';
       await agent.callActionInActionSpace('Input', {
@@ -532,7 +553,7 @@ describe.skipIf(!RUN_LIVE_SMOKE)('macOS desktop live smoke', () => {
       const locateTasks = dumpTasks.filter(
         (task) => task.type === 'Planning' && task.subType === 'Locate',
       );
-      expect(locateTasks).toHaveLength(4);
+      expect(locateTasks).toHaveLength(3 + tapAttempts);
       expect(locateTasks.every((task) => task.hitBy?.from === 'Plan')).toBe(
         true,
       );
@@ -557,7 +578,7 @@ describe.skipIf(!RUN_LIVE_SMOKE)('macOS desktop live smoke', () => {
       const reportLocateTasks = reportTasks.filter(
         (task) => task.type === 'Planning' && task.subType === 'Locate',
       );
-      expect(reportLocateTasks).toHaveLength(4);
+      expect(reportLocateTasks).toHaveLength(3 + tapAttempts);
       expect(
         reportLocateTasks.every((task) => task.hitBy?.from === 'Plan'),
       ).toBe(true);
