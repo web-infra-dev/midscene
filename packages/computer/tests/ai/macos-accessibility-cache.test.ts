@@ -207,11 +207,8 @@ function dismissScreenCapturePrivacyPrompt(): string {
       String.raw`
 function run() {
   const systemEvents = Application('System Events');
-  const processes = systemEvents.applicationProcesses.whose({ frontmost: true })();
+  const processes = systemEvents.applicationProcesses();
   if (!processes.length) return 'Screen capture privacy prompt was not present';
-
-  const process = processes[0];
-  let visited = 0;
 
   function safe(fn) {
     try {
@@ -231,8 +228,8 @@ function run() {
     });
   }
 
-  function findButton(element, depth) {
-    visited += 1;
+  function findButton(element, depth, state) {
+    state.visited += 1;
     const labels = [
       safe(function () { return element.name(); }),
       safe(function () { return element.description(); }),
@@ -242,31 +239,74 @@ function run() {
     ].map(text);
     const role = text(safe(function () { return element.role(); }));
     const promptButtonLabels = ['Allow', 'Allow For One Month'];
+    if (role === 'AXButton') {
+      state.buttons.push(
+        state.processName + ': ' + labels.filter(Boolean).join(' | '),
+      );
+    }
     if (
       role === 'AXButton' &&
       labels.some(function (label) { return promptButtonLabels.includes(label); })
     ) {
       return element;
     }
-    if (depth >= 8 || visited >= 500) return undefined;
+    if (depth >= 8 || state.visited >= 500) return undefined;
 
     const children = safe(function () { return element.uiElements(); }) || [];
     for (let index = 0; index < children.length; index += 1) {
-      const match = findButton(children[index], depth + 1);
+      const match = findButton(children[index], depth + 1, state);
       if (match) return match;
     }
     return undefined;
   }
 
-  const windows = safe(function () { return process.windows(); }) || [];
-  for (let index = 0; index < windows.length; index += 1) {
-    const button = findButton(windows[index], 0);
-    if (button) {
-      button.click();
-      return 'Accepted screen capture privacy prompt in ' + process.name();
+  function isSystemUiProcess(process) {
+    const name = text(safe(function () { return process.name(); }));
+    return (
+      name.includes('UIAgent') ||
+      name === 'WindowManager' ||
+      name === 'SystemUIServer' ||
+      name === 'ControlCenter' ||
+      name === 'NotificationCenter'
+    );
+  }
+
+  const systemUiProcesses = processes.filter(function (process) {
+    return isSystemUiProcess(process);
+  });
+
+  const scanned = [];
+  const observedButtons = [];
+  for (
+    let processIndex = 0;
+    processIndex < systemUiProcesses.length;
+    processIndex += 1
+  ) {
+    const process = systemUiProcesses[processIndex];
+    const windows = safe(function () { return process.windows(); }) || [];
+    if (!windows.length) continue;
+
+    const processName = text(safe(function () { return process.name(); }));
+    scanned.push(processName);
+    const state = {
+      buttons: observedButtons,
+      processName: processName,
+      visited: 0,
+    };
+    for (let windowIndex = 0; windowIndex < windows.length; windowIndex += 1) {
+      const button = findButton(windows[windowIndex], 0, state);
+      if (button) {
+        button.click();
+        return 'Accepted screen capture privacy prompt in ' + processName;
+      }
     }
   }
-  return 'Screen capture privacy prompt was not present in ' + process.name();
+  return (
+    'Screen capture privacy prompt was not present in system UI processes: ' +
+    scanned.join(', ') +
+    '. Observed buttons: ' +
+    observedButtons.slice(0, 50).join('; ')
+  );
 }
 `,
     ],
