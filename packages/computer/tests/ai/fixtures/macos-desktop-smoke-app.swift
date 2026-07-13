@@ -24,7 +24,6 @@ final class FixtureController: NSObject, NSApplicationDelegate, NSTextFieldDeleg
   private var button: SmokeButton!
   private var textField: NSTextField!
   private var scrollView: NSScrollView!
-  private var activationTimer: Timer?
 
   private var clickCount = 0
   private var buttonActionCount = 0
@@ -105,10 +104,6 @@ final class FixtureController: NSObject, NSApplicationDelegate, NSTextFieldDeleg
 
     DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
       self?.writeReadyMetadata()
-    }
-    activationTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) {
-      [weak self] _ in
-      Task { @MainActor in self?.activateFixture() }
     }
   }
 

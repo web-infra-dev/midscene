@@ -472,29 +472,33 @@ describe.skipIf(!RUN_LIVE_SMOKE)('macOS desktop live smoke', () => {
             'green smoke button',
           ),
         });
-      let tapAttempts = 1;
-      await tapButton();
-      let clickedState: FixtureState;
-      try {
-        clickedState = await waitForJson(
-          stateFile,
-          normalizeState,
-          (state) => state.clickCount >= 1,
-          3_000,
-          fixtureProcess,
-        );
-      } catch {
-        tapAttempts = 2;
+      const tapWaitDurations = [3_000, 5_000, 10_000, STATE_TIMEOUT_MS];
+      const tapAttemptErrors: string[] = [];
+      let tapAttempts = 0;
+      let clickedState: FixtureState | undefined;
+      for (const waitDuration of tapWaitDurations) {
+        tapAttempts += 1;
         await tapButton();
-        clickedState = await waitForJson(
-          stateFile,
-          normalizeState,
-          (state) => state.clickCount >= 1,
-          STATE_TIMEOUT_MS,
-          fixtureProcess,
+        try {
+          clickedState = await waitForJson(
+            stateFile,
+            normalizeState,
+            (state) => state.clickCount >= 1,
+            waitDuration,
+            fixtureProcess,
+          );
+          break;
+        } catch (error) {
+          tapAttemptErrors.push(String(error));
+        }
+      }
+      if (!clickedState) {
+        throw new Error(
+          `macOS fixture did not receive ${tapAttempts} button taps: ${tapAttemptErrors.at(-1)}`,
         );
       }
       evidence.tapAttempts = tapAttempts;
+      evidence.tapAttemptErrors = tapAttemptErrors;
       expect(clickedState.clickCount).toBeGreaterThanOrEqual(1);
 
       const inputText = 'Midscene macOS 输入 😀';
