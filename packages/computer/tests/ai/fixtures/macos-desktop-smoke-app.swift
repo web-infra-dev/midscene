@@ -6,16 +6,25 @@ final class FlippedDocumentView: NSView {
 }
 
 @MainActor
+final class SmokeButton: NSButton {
+  var onMouseDown: (() -> Void)?
+
+  override func mouseDown(with event: NSEvent) {
+    onMouseDown?()
+    super.mouseDown(with: event)
+  }
+}
+
+@MainActor
 final class FixtureController: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
   private let readyURL: URL
   private let stateURL: URL
 
   private var window: NSWindow!
-  private var button: NSButton!
+  private var button: SmokeButton!
   private var textField: NSTextField!
   private var scrollView: NSScrollView!
   private var activationTimer: Timer?
-  private var mouseMonitor: Any?
 
   private var clickCount = 0
   private var buttonActionCount = 0
@@ -50,7 +59,7 @@ final class FixtureController: NSObject, NSApplicationDelegate, NSTextFieldDeleg
     window.title = "Midscene macOS Desktop Smoke"
     window.isReleasedWhenClosed = false
 
-    button = NSButton(title: "Midscene Smoke Button", target: self, action: #selector(buttonClicked))
+    button = SmokeButton(title: "Midscene Smoke Button", target: self, action: #selector(buttonClicked))
     button.frame = NSRect(x: 190, y: 370, width: 260, height: 72)
     button.isBordered = false
     button.wantsLayer = true
@@ -58,19 +67,10 @@ final class FixtureController: NSObject, NSApplicationDelegate, NSTextFieldDeleg
     button.layer?.cornerRadius = 6
     button.contentTintColor = .black
     window.contentView?.addSubview(button)
-
-    mouseMonitor = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseUp]) {
-      [weak self] event in
-      guard let self, event.window === self.window else {
-        return event
-      }
-      let point = self.button.convert(event.locationInWindow, from: nil)
-      guard self.button.bounds.contains(point) else {
-        return event
-      }
+    button.onMouseDown = { [weak self] in
+      guard let self else { return }
       self.clickCount += 1
       self.writeState()
-      return event
     }
 
     textField = NSTextField(frame: NSRect(x: 120, y: 275, width: 400, height: 44))
@@ -114,12 +114,6 @@ final class FixtureController: NSObject, NSApplicationDelegate, NSTextFieldDeleg
 
   func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
     true
-  }
-
-  func applicationWillTerminate(_ notification: Notification) {
-    if let mouseMonitor {
-      NSEvent.removeMonitor(mouseMonitor)
-    }
   }
 
   func controlTextDidChange(_ obj: Notification) {
