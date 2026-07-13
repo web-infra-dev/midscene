@@ -349,7 +349,7 @@ describe.skipIf(!RUN_LIVE_SMOKE)('Android Emulator live smoke', () => {
       await agent.callActionInActionSpace('Input', {
         value: 'wifi',
         mode: 'replace',
-        autoDismissKeyboard: true,
+        autoDismissKeyboard: false,
         locate: locate(searchInput.bounds, 'Settings search input'),
       });
       const searchState = await waitForEditableNode(adb, searchXmlFile, 'wifi');
@@ -359,6 +359,19 @@ describe.skipIf(!RUN_LIVE_SMOKE)('Android Emulator live smoke', () => {
       await writeFile(screenshotFile, screenshotBuffer(searchScreenshot));
 
       await agent.back();
+      let returnedHomeAfterFirstBack = false;
+      for (let attempt = 0; attempt < 10; attempt += 1) {
+        const xml = await dumpUiautomatorXml(adb);
+        if (boundsForResourceId(xml, SETTINGS_SEARCH_BAR_ID).length === 1) {
+          returnedHomeAfterFirstBack = true;
+          break;
+        }
+        await sleep(POLL_INTERVAL_MS);
+      }
+      if (!returnedHomeAfterFirstBack) {
+        await agent.back();
+      }
+      evidence.backNavigationCount = returnedHomeAfterFirstBack ? 1 : 2;
       const finalTarget = await waitForResource(adb, [SETTINGS_SEARCH_BAR_ID]);
       await writeFile(finalXmlFile, finalTarget.xml, 'utf8');
 
