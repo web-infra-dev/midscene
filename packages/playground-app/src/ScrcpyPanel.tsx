@@ -94,6 +94,7 @@ export function ScrcpyPanel({
   const metadataTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const ignoreDisconnectRef = useRef(false);
+  const connectionAttemptRef = useRef(0);
   const [status, setStatus] = useState<ScrcpyPreviewStatus>('connecting');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [waitingStatusMessage, setWaitingStatusMessage] = useState<string>(() =>
@@ -223,6 +224,11 @@ export function ScrcpyPanel({
         return;
       }
 
+      const attemptId = connectionAttemptRef.current + 1;
+      connectionAttemptRef.current = attemptId;
+      const isCurrentAttempt = () =>
+        !disposed && connectionAttemptRef.current === attemptId;
+
       ignoreDisconnectRef.current = false;
       setStatus('connecting');
       setErrorMessage(null);
@@ -238,11 +244,14 @@ export function ScrcpyPanel({
       const videoStream = createScrcpyVideoStream(socket);
 
       socket.on('connect', () => {
+        if (!isCurrentAttempt()) {
+          return;
+        }
         setStatus('waiting-for-stream');
         setWaitingStatusMessage(getDefaultScrcpyWaitingStatusText());
         clearMetadataTimeout();
         metadataTimeoutRef.current = setTimeout(() => {
-          if (disposed) {
+          if (!isCurrentAttempt()) {
             return;
           }
 
@@ -264,7 +273,7 @@ export function ScrcpyPanel({
       });
 
       socket.on('preview-status', (event: unknown) => {
-        if (disposed || !isScrcpyPreviewStatusEvent(event)) {
+        if (!isCurrentAttempt() || !isScrcpyPreviewStatusEvent(event)) {
           return;
         }
 
@@ -274,6 +283,9 @@ export function ScrcpyPanel({
 
       socket.on('video-metadata', async (metadata: VideoMetadata) => {
         try {
+          if (!isCurrentAttempt()) {
+            return;
+          }
           clearMetadataTimeout();
           disposeDecoder();
           setWaitingStatusMessage(getScrcpyDecoderStatusText());
@@ -295,7 +307,7 @@ export function ScrcpyPanel({
           decoderRef.current = decoder;
 
           videoStream.pipeTo(decoder.writable).catch((error: Error) => {
-            if (disposed) {
+            if (!isCurrentAttempt()) {
               return;
             }
             setStatus('error');
@@ -306,7 +318,7 @@ export function ScrcpyPanel({
           setWaitingStatusMessage(getDefaultScrcpyWaitingStatusText());
           setStatus('connected');
         } catch (error) {
-          if (disposed) {
+          if (!isCurrentAttempt()) {
             return;
           }
           setStatus('error');
@@ -319,10 +331,10 @@ export function ScrcpyPanel({
       });
 
       socket.on('disconnect', () => {
-        clearMetadataTimeout();
-        if (disposed) {
+        if (!isCurrentAttempt()) {
           return;
         }
+        clearMetadataTimeout();
         if (ignoreDisconnectRef.current) {
           ignoreDisconnectRef.current = false;
           return;
@@ -334,10 +346,10 @@ export function ScrcpyPanel({
       });
 
       socket.on('connect_error', (error: Error) => {
-        clearMetadataTimeout();
-        if (disposed) {
+        if (!isCurrentAttempt()) {
           return;
         }
+        clearMetadataTimeout();
         setStatus('error');
         setErrorMessage(error.message);
         setWaitingStatusMessage(getDefaultScrcpyWaitingStatusText());
@@ -345,10 +357,10 @@ export function ScrcpyPanel({
       });
 
       socket.on('error', (error: Error) => {
-        clearMetadataTimeout();
-        if (disposed) {
+        if (!isCurrentAttempt()) {
           return;
         }
+        clearMetadataTimeout();
         setStatus('error');
         setErrorMessage(error.message);
         setWaitingStatusMessage(getDefaultScrcpyWaitingStatusText());

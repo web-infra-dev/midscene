@@ -387,6 +387,26 @@ export default class ScrcpyServer {
       let scrcpyClient: any = null;
       let adb = null;
 
+      const closeScrcpyClient = async (
+        reason: string,
+        clientToClose = scrcpyClient,
+      ) => {
+        if (!clientToClose) {
+          return;
+        }
+
+        if (scrcpyClient === clientToClose) {
+          scrcpyClient = null;
+        }
+
+        try {
+          debugPage('closing scrcpy client, reason: %s', reason);
+          await clientToClose.close();
+        } catch (error) {
+          console.error(`failed to close scrcpy client (${reason}):`, error);
+        }
+      };
+
       const emitPreviewStatus = (phase: ScrcpyPreviewPhase) => {
         socket.emit('preview-status', buildScrcpyPreviewStatusEvent(phase));
       };
@@ -417,11 +437,7 @@ export default class ScrcpyServer {
       socket.on('switch-device', async (deviceId) => {
         debugPage('received client request to switch device:', deviceId);
         try {
-          // if there is a connection, close it first
-          if (scrcpyClient) {
-            await scrcpyClient.close();
-            scrcpyClient = null;
-          }
+          await closeScrcpyClient('switch device');
 
           this.currentDeviceId = deviceId;
           debugPage('device switched to:', deviceId);
@@ -451,6 +467,8 @@ export default class ScrcpyServer {
               options,
               socket.id,
             );
+
+            await closeScrcpyClient('new connect-device request');
 
             emitPreviewStatus('connecting-device');
 
@@ -561,6 +579,7 @@ export default class ScrcpyServer {
                 );
 
                 const { stream } = videoStream;
+                const streamScrcpyClient = scrcpyClient;
 
                 // convert video stream
                 const reader = stream.getReader();
@@ -593,9 +612,14 @@ export default class ScrcpyServer {
                     console.error('error processing video stream:', error);
                     if (socket.connected) {
                       socket.emit('error', {
-                        message: 'video stream processing error',
+                        message:
+                          'Scrcpy video stream failed. Reconnecting preview.',
                       });
                     }
+                    void closeScrcpyClient(
+                      'video stream error',
+                      streamScrcpyClient,
+                    );
                     return;
                   }
 
@@ -607,20 +631,14 @@ export default class ScrcpyServer {
                   // frame until the user manually disconnects.
                   if (socket.connected) {
                     socket.emit('error', {
-                      message: 'video stream ended',
+                      message:
+                        'Scrcpy video stream ended. Reconnecting preview.',
                     });
                   }
-                  if (scrcpyClient) {
-                    try {
-                      await scrcpyClient.close();
-                    } catch (closeError) {
-                      console.error(
-                        'failed to close scrcpy client after stream ended:',
-                        closeError,
-                      );
-                    }
-                    scrcpyClient = null;
-                  }
+                  void closeScrcpyClient(
+                    'video stream ended',
+                    streamScrcpyClient,
+                  );
                 };
 
                 processStream();
@@ -634,6 +652,7 @@ export default class ScrcpyServer {
               }
             } catch (error: any) {
               console.error('error processing video stream:', error);
+              await closeScrcpyClient('video stream setup error');
               socket.emit('error', {
                 message: `Video stream processing error: ${error.message}`,
               });
@@ -646,17 +665,7 @@ export default class ScrcpyServer {
             }
           } catch (error: any) {
             console.error('failed to connect device:', error);
-            if (scrcpyClient) {
-              try {
-                await scrcpyClient.close();
-              } catch (closeError) {
-                console.error(
-                  'failed to close scrcpy client after error:',
-                  closeError,
-                );
-              }
-              scrcpyClient = null;
-            }
+            await closeScrcpyClient('connect-device error');
             socket.emit('error', {
               message: `Failed to connect device: ${error?.message || 'Unknown error'}`,
             });
@@ -667,17 +676,7 @@ export default class ScrcpyServer {
       // handle disconnection
       socket.on('disconnect', async (reason) => {
         debugPage('client disconnected, id: %s, reason: %s', socket.id, reason);
-
-        if (scrcpyClient) {
-          try {
-            // close scrcpy
-            debugPage('closing scrcpy client');
-            await scrcpyClient.close();
-          } catch (error) {
-            console.error('failed to close scrcpy client:', error);
-          }
-          scrcpyClient = null;
-        }
+        await closeScrcpyClient(`socket disconnect: ${reason}`);
       });
 
       // Don't block listener registration on the initial device scan. On a
