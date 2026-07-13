@@ -15,6 +15,11 @@ export default defineConfig({
       ),
     },
   },
+  ssr: {
+    // Shared image helpers contain a browser-only dynamic Photon import. Keep
+    // it external for Node-based Studio tests, where that branch is never run.
+    external: ['@silvia-odwyer/photon'],
+  },
   test: {
     coverage: createCoverageConfig(__dirname),
     environment: 'node',
