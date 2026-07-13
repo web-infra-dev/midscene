@@ -8,6 +8,37 @@ import { pluginLlms } from '@rspress/plugin-llms';
 import { pluginSitemap } from '@rspress/plugin-sitemap';
 
 const GITHUB_STARS_FALLBACK = '13k+';
+const SITE_URL = 'https://midscenejs.com';
+const FAVICON_URL = `${SITE_URL}/favicon.png`;
+const OG_IMAGE_URL = `${SITE_URL}/og-image.png`;
+
+const SEARCH_IDENTITY_JSON_LD = JSON.stringify({
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'Organization',
+      '@id': `${SITE_URL}/#organization`,
+      name: 'Midscene.js',
+      url: `${SITE_URL}/`,
+      logo: {
+        '@type': 'ImageObject',
+        url: FAVICON_URL,
+        width: 600,
+        height: 600,
+      },
+      image: OG_IMAGE_URL,
+    },
+    {
+      '@type': 'WebSite',
+      '@id': `${SITE_URL}/#website`,
+      name: 'Midscene.js',
+      url: `${SITE_URL}/`,
+      publisher: {
+        '@id': `${SITE_URL}/#organization`,
+      },
+    },
+  ],
+});
 
 async function fetchGithubStars(): Promise<string> {
   const repo = 'web-infra-dev/midscene';
@@ -51,18 +82,34 @@ export default defineConfig(async () => {
     root: path.join(__dirname, 'docs'),
     title: 'Midscene - Vision-Driven UI Automation',
     description: 'AI-powered, vision-driven UI automation for every platform.',
-    icon: '/midscene-icon.png',
+    icon: '/favicon.png',
     logo: {
       light: '/midscene_with_text_light.png',
       dark: '/midscene_with_text_dark.png',
     },
     head: [
+      [
+        'link',
+        {
+          rel: 'icon',
+          type: 'image/png',
+          sizes: '600x600',
+          href: FAVICON_URL,
+        },
+      ],
+      [
+        'link',
+        {
+          rel: 'apple-touch-icon',
+          href: FAVICON_URL,
+        },
+      ],
       // Open Graph
       [
         'meta',
         {
           property: 'og:image',
-          content: 'https://midscenejs.com/og-image.png',
+          content: OG_IMAGE_URL,
         },
       ],
       ['meta', { property: 'og:image:width', content: '1200' }],
@@ -74,10 +121,11 @@ export default defineConfig(async () => {
         'meta',
         {
           name: 'twitter:image',
-          content: 'https://midscenejs.com/og-image.png',
+          content: OG_IMAGE_URL,
         },
       ],
       ['meta', { name: 'twitter:image:alt', content: 'Midscene.js logo' }],
+      `<script type="application/ld+json">${SEARCH_IDENTITY_JSON_LD}</script>`,
     ],
     markdown: {
       link: {
