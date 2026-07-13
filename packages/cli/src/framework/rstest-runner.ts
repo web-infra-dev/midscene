@@ -200,7 +200,7 @@ export async function runRstestYamlProject(
     testTimeout: project.testTimeout,
     ...(maxConcurrency !== undefined ? { maxConcurrency } : {}),
     ...(maxConcurrency !== undefined
-      ? { pool: { maxWorkers: maxConcurrency, minWorkers: maxConcurrency } }
+      ? { pool: { maxWorkers: maxConcurrency } }
       : {}),
     ...(project.bail !== undefined ? { bail: project.bail } : {}),
     ...(project.retry !== undefined && project.retry > 0

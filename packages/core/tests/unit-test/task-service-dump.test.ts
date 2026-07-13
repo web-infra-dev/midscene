@@ -1,6 +1,6 @@
 import { getTaskSearchArea, getTaskServiceDump } from '@/dump';
 import type { ExecutionTask, ServiceDump } from '@/types';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 
 const serviceDump = {
   type: 'locate',

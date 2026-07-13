@@ -1,7 +1,13 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 import { ComputerDevice, checkComputerEnvironment } from '../../src';
 
-const needsDisplay = process.platform === 'linux' && !process.env.DISPLAY;
+// `@computer-use/libnut` calls X11 `XOpenDisplay` for screen/display queries.
+// On a headless Linux runner (no `DISPLAY`) that native call prints
+// "Could not open main display" and hard-crashes the worker with SIGSEGV,
+// which is uncatchable from JS. Skip the display-dependent cases there; they
+// still run locally and on any runner with a real display. See
+// RSTEST-MIGRATION-WORKAROUNDS.md.
+const noDisplay = process.platform === 'linux' && !process.env.DISPLAY;
 
 describe('ComputerDevice', () => {
   it('should create device instance', () => {
@@ -15,7 +21,7 @@ describe('ComputerDevice', () => {
     expect(device).toBeDefined();
   });
 
-  it.skipIf(needsDisplay)('should list displays', async () => {
+  it.skipIf(noDisplay)('should list displays', async () => {
     const displays = await ComputerDevice.listDisplays();
     expect(Array.isArray(displays)).toBe(true);
 
@@ -26,7 +32,7 @@ describe('ComputerDevice', () => {
     }
   });
 
-  it.skipIf(needsDisplay)('should check computer environment', async () => {
+  it.skipIf(noDisplay)('should check computer environment', async () => {
     const envCheck = await checkComputerEnvironment();
     expect(envCheck).toBeDefined();
     expect(envCheck).toHaveProperty('available');

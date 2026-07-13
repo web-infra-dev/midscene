@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 import { ComputerAgent, RDPDevice } from '../../../src';
 
 const realRdpEnv = {
@@ -92,11 +92,10 @@ async function runScenario(
   throw lastError;
 }
 
+rs.setConfig({ testTimeout: 8 * 60 * 1000 });
+
 describe.skipIf(!shouldRunRealRdpTest)(
   '@midscene/computer real RDP parity actions',
-  {
-    timeout: 8 * 60 * 1000,
-  },
   () => {
     it('scrolls the Start menu all-apps list through segmented wheel events', async () => {
       await runScenario(

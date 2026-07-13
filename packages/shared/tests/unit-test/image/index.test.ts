@@ -1,8 +1,8 @@
 import { readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { afterAll, beforeAll, describe, expect, it, rs } from '@rstest/core';
 import sharp from 'sharp';
-import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import {
   compositePointMarkerImg,
   httpImg2Base64,
@@ -337,7 +337,7 @@ describe('image utils', () => {
 
   it('httpImg2Base64', async () => {
     const mockResponse = Buffer.from('image-data');
-    const fetchSpy = vi.spyOn(global, 'fetch').mockResolvedValue(
+    const fetchSpy = rs.spyOn(global, 'fetch').mockResolvedValue(
       new Response(mockResponse, {
         status: 200,
         headers: { 'content-type': 'image/svg+xml' },
@@ -451,12 +451,12 @@ describe('resizeAndConvertImgBuffer', () => {
   });
 
   describe('fallback photon', () => {
-    const metadataFn = vi.fn(() => {
+    const metadataFn = rs.fn(() => {
       throw new Error('sharp is not available');
     });
 
     beforeAll(() => {
-      vi.doMock('sharp', () => ({
+      rs.doMock('sharp', () => ({
         default: () => ({
           metadata: metadataFn,
         }),
@@ -464,7 +464,7 @@ describe('resizeAndConvertImgBuffer', () => {
     });
 
     afterAll(() => {
-      vi.resetAllMocks();
+      rs.resetAllMocks();
     });
 
     it('fallback photon no-resize will get original format', async () => {

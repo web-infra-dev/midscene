@@ -1,6 +1,6 @@
 import { ScreenshotItem } from '@midscene/core';
 import { PlaygroundServer } from '@midscene/playground';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from '@rstest/core';
 import { StaticPage, StaticPageAgent } from '../../src/static';
 
 describe('Playground Server', () => {

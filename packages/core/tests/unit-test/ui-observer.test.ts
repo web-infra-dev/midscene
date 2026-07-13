@@ -2,7 +2,7 @@ import { UIObserver } from '@/agent/ui-observer';
 import type { DeviceFrameRef, DeviceFrameSource } from '@/device';
 import { ScreenshotItem } from '@/screenshot-item';
 import type { UIContext } from '@/types';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, rs } from '@rstest/core';
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -19,10 +19,10 @@ const fakeRepresentative = (): UIContext =>
 /** A fake frame source whose latest frame can be swapped from the test. */
 const makeFakeSource = () => {
   let current: DeviceFrameRef | null = null;
-  const decode = vi.fn(async (refs: DeviceFrameRef[]) =>
+  const decode = rs.fn(async (refs: DeviceFrameRef[]) =>
     refs.map((r) => `decoded:${String(r.ref)}`),
   );
-  const stop = vi.fn();
+  const stop = rs.fn();
   const source: DeviceFrameSource = {
     latest: () => current,
     decode,
@@ -39,12 +39,12 @@ const makeFakeSource = () => {
 };
 
 const makeDeps = (fake: ReturnType<typeof makeFakeSource> | null) => {
-  const runAssert = vi.fn(async () => undefined);
-  const runBoolean = vi.fn(async () => true);
-  const screenshot = vi.fn(
+  const runAssert = rs.fn(async () => undefined);
+  const runBoolean = rs.fn(async () => true);
+  const screenshot = rs.fn(
     async () => 'data:image/png;base64,iVBORw0KGgo-shot',
   );
-  const onStopped = vi.fn();
+  const onStopped = rs.fn();
   return {
     deps: {
       openFrameSource: async () => fake?.source ?? undefined,
@@ -63,7 +63,7 @@ const makeDeps = (fake: ReturnType<typeof makeFakeSource> | null) => {
 
 describe('UIObserver', () => {
   afterEach(() => {
-    vi.useRealTimers();
+    rs.useRealTimers();
   });
 
   it('rejects asserting before stop()', async () => {
@@ -232,7 +232,7 @@ describe('UIObserver', () => {
   });
 
   it('watchdog auto-stops the observer after timeout', async () => {
-    vi.useFakeTimers();
+    rs.useFakeTimers();
     const fake = makeFakeSource();
     fake.setLatest('f0', 0);
     const { deps, onStopped } = makeDeps(fake);
@@ -245,9 +245,9 @@ describe('UIObserver', () => {
     expect(onStopped).not.toHaveBeenCalled();
 
     // Advance past the watchdog timeout
-    vi.advanceTimersByTime(5000);
+    rs.advanceTimersByTime(5000);
     await Promise.resolve(); // let microtasks run
-    await vi.runAllTimersAsync();
+    await rs.runAllTimersAsync();
 
     // Watchdog should have called stop(), which calls onStopped
     expect(onStopped).toHaveBeenCalledTimes(1);
@@ -255,7 +255,7 @@ describe('UIObserver', () => {
   });
 
   it('watchdog can be disabled with watchdogMs: 0', async () => {
-    vi.useFakeTimers();
+    rs.useFakeTimers();
     const fake = makeFakeSource();
     fake.setLatest('f0', 0);
     const { deps, onStopped } = makeDeps(fake);
@@ -266,7 +266,7 @@ describe('UIObserver', () => {
 
     await observer.start();
     // Advance way past any reasonable timeout
-    vi.advanceTimersByTime(60000);
+    rs.advanceTimersByTime(60000);
     await Promise.resolve();
 
     // No auto-stop — watchdog is disabled
@@ -290,7 +290,7 @@ describe('UIObserver', () => {
     (observer as any).stopped = true;
     (observer as any).representative = fakeRepresentative();
 
-    const warnSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    const warnSpy = rs.spyOn(console, 'log').mockImplementation(() => {});
     await observer.aiAssert('anything');
     warnSpy.mockRestore();
 
@@ -318,8 +318,8 @@ describe('UIObserver', () => {
   });
 
   it('falls back to screenshots when openFrameSource throws', async () => {
-    const runAssert = vi.fn(async () => undefined);
-    const screenshot = vi.fn(async () => 'data:image/png;base64,iVBORw0KGgo-x');
+    const runAssert = rs.fn(async () => undefined);
+    const screenshot = rs.fn(async () => 'data:image/png;base64,iVBORw0KGgo-x');
     const observer = new UIObserver(
       {
         openFrameSource: async () => {

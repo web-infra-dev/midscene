@@ -1,0 +1,18 @@
+import path from 'node:path';
+import { defineConfig } from '@rstest/core';
+import { createCoverageConfig } from '../../scripts/rstest-coverage';
+import { stubStyleRules } from '../../scripts/rstest-style-stub';
+
+const sharedAlias = {
+  '@': path.resolve(__dirname, 'src'),
+};
+
+export default defineConfig({
+  resolve: { alias: sharedAlias },
+  coverage: createCoverageConfig(__dirname),
+  // Default to node; jsdom is selected per file via the `@vitest-environment
+  // jsdom` docblock.
+  testEnvironment: 'node',
+  include: ['tests/**/*.test.ts'],
+  ...stubStyleRules,
+});

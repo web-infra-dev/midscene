@@ -1,7 +1,7 @@
 import { createLocateResultAdapter } from '@/ai-model/shared/model-locate-result';
 import { pixelBboxToRect } from '@/ai-model/workflows/inspect/locate-result-rect';
 import { mapSearchAreaPixelBboxToOriginalPixelBbox } from '@/ai-model/workflows/inspect/search-area-mapping';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 
 const actualPixelBboxAdapter = createLocateResultAdapter({
   coordinates: { shape: 'bbox', order: 'xy' },

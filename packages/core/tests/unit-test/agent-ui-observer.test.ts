@@ -1,7 +1,7 @@
 import { Agent } from '@/agent';
 import { ScreenshotItem } from '@/screenshot-item';
 import type { UIContext } from '@/types';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 
 const defaultModel = { config: { slot: 'default' } };
 
@@ -17,21 +17,21 @@ const fakeContext = (tag: string): UIContext =>
 
 const createAgentStub = (opts: { openFrameSource?: () => any } = {}) => {
   const agent = Object.create(Agent.prototype) as Agent<any>;
-  const createTypeQueryExecution = vi.fn(async () => ({
+  const createTypeQueryExecution = rs.fn(async () => ({
     output: true,
     thought: 'ok',
   }));
-  const screenshotBase64 = vi.fn(
+  const screenshotBase64 = rs.fn(
     async () => 'data:image/png;base64,iVBORw0KGgo-fallback',
   );
   (agent as any).opts = {};
   (agent as any).taskExecutor = { createTypeQueryExecution };
-  (agent as any).resolveModelRuntime = vi.fn(() => defaultModel);
+  (agent as any).resolveModelRuntime = rs.fn(() => defaultModel);
   (agent as any).interface = {
     screenshotBase64,
     ...(opts.openFrameSource ? { openFrameSource: opts.openFrameSource } : {}),
   };
-  (agent as any).getUIContext = vi.fn(async () =>
+  (agent as any).getUIContext = rs.fn(async () =>
     fakeContext('representative'),
   );
   return { agent, createTypeQueryExecution, screenshotBase64 };
@@ -39,12 +39,12 @@ const createAgentStub = (opts: { openFrameSource?: () => any } = {}) => {
 
 describe('Agent.startObserving', () => {
   it('prefers the device frame source and passes an observed multi-frame context to aiAssert', async () => {
-    const decode = vi.fn(async (refs: any[]) =>
+    const decode = rs.fn(async (refs: any[]) =>
       refs.map((r) => `dec:${r.ref}`),
     );
-    const stop = vi.fn();
+    const stop = rs.fn();
     let tick = 0;
-    const openFrameSource = vi.fn(async () => ({
+    const openFrameSource = rs.fn(async () => ({
       latest: () => ({ ref: `frame-${tick++}`, capturedAt: tick }),
       decode,
       stop,
@@ -72,11 +72,11 @@ describe('Agent.startObserving', () => {
   });
 
   it('rejects starting a second observer while one is active', async () => {
-    const decode = vi.fn(async (refs: any[]) =>
+    const decode = rs.fn(async (refs: any[]) =>
       refs.map((r) => `dec:${r.ref}`),
     );
-    const stop = vi.fn();
-    const openFrameSource = vi.fn(async () => ({
+    const stop = rs.fn();
+    const openFrameSource = rs.fn(async () => ({
       latest: () => ({ ref: 'f0', capturedAt: 0 }),
       decode,
       stop,

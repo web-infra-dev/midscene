@@ -1,6 +1,6 @@
 import { fileURLToPath } from 'node:url';
 import { localImg2Base64 } from '@midscene/shared/img';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, rs } from '@rstest/core';
 import { callAIWithObjectResponse } from '../../src/recorder-ai-service';
 import {
   describeRecorderUIEvent,
@@ -8,13 +8,21 @@ import {
   getRecorderUIEventTargetRect,
 } from '../../src/recorder-ui-describer';
 
-vi.mock('../../src/recorder-ai-service', () => ({
-  callAIWithObjectResponse: vi.fn(),
+// Top-level `importActual` attribute import keeps the real exports of
+// `@midscene/shared/img`. rstest resolves an async mock factory to an empty
+// module, so a partial mock must use a sync factory sourcing actuals from an
+// import attribute binding.
+import * as sharedImgActual from '@midscene/shared/img' with {
+  rstest: 'importActual',
+};
+
+rs.mock('../../src/recorder-ai-service', () => ({
+  callAIWithObjectResponse: rs.fn(),
 }));
 
-vi.mock('@midscene/shared/img', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@midscene/shared/img')>()),
-  compositeElementInfoImg: vi.fn(() => 'data:image/png;base64,boxed'),
+rs.mock('@midscene/shared/img', () => ({
+  ...sharedImgActual,
+  compositeElementInfoImg: rs.fn(() => 'data:image/png;base64,boxed'),
 }));
 
 const modelConfig = {
@@ -34,7 +42,7 @@ const fixtureScreenshot = localImg2Base64(
 
 describe('recorder-ui-describer', () => {
   beforeEach(() => {
-    vi.mocked(callAIWithObjectResponse).mockReset();
+    rs.mocked(callAIWithObjectResponse).mockReset();
   });
 
   it('converts point-only recorder events into bounded target rectangles', () => {
@@ -88,7 +96,7 @@ describe('recorder-ui-describer', () => {
   });
 
   it('creates and uses screenshotWithBox from screenshotBefore and elementRect', async () => {
-    vi.mocked(callAIWithObjectResponse).mockResolvedValueOnce({
+    rs.mocked(callAIWithObjectResponse).mockResolvedValueOnce({
       content: {
         elementDescription: 'highlighted target control',
         replayInstruction:
@@ -117,7 +125,7 @@ describe('recorder-ui-describer', () => {
     expect(result.error).toBeUndefined();
     expect(result.usedFallback).toBe(false);
 
-    const call = vi.mocked(callAIWithObjectResponse).mock.calls[0];
+    const call = rs.mocked(callAIWithObjectResponse).mock.calls[0];
     const userContent = call[0][1].content as any[];
     const highlightedScreenshot = userContent.find(
       (item) => item.type === 'image_url',
@@ -167,7 +175,7 @@ describe('recorder-ui-describer', () => {
   });
 
   it('rejects coordinate-based AI descriptions for click events', async () => {
-    vi.mocked(callAIWithObjectResponse).mockResolvedValueOnce({
+    rs.mocked(callAIWithObjectResponse).mockResolvedValueOnce({
       content: {
         elementDescription: 'element near coordinates (537, 450)',
         replayInstruction: 'Click on the element near coordinates (537, 450).',
@@ -225,7 +233,7 @@ describe('recorder-ui-describer', () => {
   ])(
     'preserves %s semantics in generated fallback replay text',
     async (actionType, replayInstruction, actionSummary) => {
-      vi.mocked(callAIWithObjectResponse).mockResolvedValueOnce({
+      rs.mocked(callAIWithObjectResponse).mockResolvedValueOnce({
         content: {
           elementDescription: 'Settings menu item',
           confidence: 'high',
@@ -279,7 +287,7 @@ describe('recorder-ui-describer', () => {
   ])(
     'rewrites AI click replay text to preserve %s semantics',
     async (actionType, replayInstruction, actionSummary) => {
-      vi.mocked(callAIWithObjectResponse).mockResolvedValueOnce({
+      rs.mocked(callAIWithObjectResponse).mockResolvedValueOnce({
         content: {
           elementDescription: 'Settings menu item',
           replayInstruction:
@@ -313,7 +321,7 @@ describe('recorder-ui-describer', () => {
   );
 
   it('rewrites AI drag replay text to preserve Swipe semantics', async () => {
-    vi.mocked(callAIWithObjectResponse).mockResolvedValueOnce({
+    rs.mocked(callAIWithObjectResponse).mockResolvedValueOnce({
       content: {
         elementDescription: 'Notifications list',
         replayInstruction:
@@ -351,7 +359,7 @@ describe('recorder-ui-describer', () => {
   });
 
   it('accepts semantic scroll descriptions with page context', async () => {
-    vi.mocked(callAIWithObjectResponse).mockResolvedValueOnce({
+    rs.mocked(callAIWithObjectResponse).mockResolvedValueOnce({
       content: {
         elementDescription:
           '集成到 Playwright - Midscene - Vision-Driven UI Automation page',
@@ -395,7 +403,7 @@ describe('recorder-ui-describer', () => {
   });
 
   it('asks AI to preserve the specific scroll region when multiple regions are visible', async () => {
-    vi.mocked(callAIWithObjectResponse).mockResolvedValueOnce({
+    rs.mocked(callAIWithObjectResponse).mockResolvedValueOnce({
       content: {
         elementDescription: 'left navigation panel',
         scrollDestinationDescription: 'component links in the navigation list',
@@ -431,7 +439,7 @@ describe('recorder-ui-describer', () => {
       { maxRetries: 1 },
     );
 
-    const calls = vi.mocked(callAIWithObjectResponse).mock.calls;
+    const calls = rs.mocked(callAIWithObjectResponse).mock.calls;
     const prompt = JSON.stringify(calls[calls.length - 1]?.[0]);
     expect(result.usedFallback).toBe(false);
     expect(prompt).toContain('highlighted scroll point');
@@ -443,7 +451,7 @@ describe('recorder-ui-describer', () => {
   });
 
   it('rejects scroll descriptions without a replay destination', async () => {
-    vi.mocked(callAIWithObjectResponse).mockResolvedValueOnce({
+    rs.mocked(callAIWithObjectResponse).mockResolvedValueOnce({
       content: {
         elementDescription: 'Android - 开始使用 documentation page',
         replayInstruction:
@@ -479,7 +487,7 @@ describe('recorder-ui-describer', () => {
   });
 
   it('rejects scroll descriptions with a generic destination', async () => {
-    vi.mocked(callAIWithObjectResponse).mockResolvedValueOnce({
+    rs.mocked(callAIWithObjectResponse).mockResolvedValueOnce({
       content: {
         elementDescription: 'Android settings page',
         scrollDestinationDescription: 'more content',
@@ -519,7 +527,7 @@ describe('recorder-ui-describer', () => {
   });
 
   it('accepts semantic input field descriptions and preserves the typed value', async () => {
-    vi.mocked(callAIWithObjectResponse).mockResolvedValueOnce({
+    rs.mocked(callAIWithObjectResponse).mockResolvedValueOnce({
       content: {
         elementDescription: '数量 input in the basic form',
         replayInstruction:
@@ -558,7 +566,7 @@ describe('recorder-ui-describer', () => {
   });
 
   it('rejects input field descriptions that use the typed value as the field name', async () => {
-    vi.mocked(callAIWithObjectResponse).mockResolvedValueOnce({
+    rs.mocked(callAIWithObjectResponse).mockResolvedValueOnce({
       content: {
         elementDescription: '"hello" input',
         replayInstruction:
@@ -597,7 +605,7 @@ describe('recorder-ui-describer', () => {
   });
 
   it('rejects weak replay instructions that reference highlighted markers', async () => {
-    vi.mocked(callAIWithObjectResponse).mockResolvedValueOnce({
+    rs.mocked(callAIWithObjectResponse).mockResolvedValueOnce({
       content: {
         elementDescription: 'Save button',
         replayInstruction: 'Click the highlighted element in the red marker.',
@@ -640,7 +648,7 @@ describe('recorder-ui-describer', () => {
   ])(
     'includes platform-aware guidance for %s targets',
     async (platformId, expectedGuidance) => {
-      vi.mocked(callAIWithObjectResponse).mockResolvedValueOnce({
+      rs.mocked(callAIWithObjectResponse).mockResolvedValueOnce({
         content: {
           elementDescription: 'Save button',
           replayInstruction: 'Tap on the element described as "Save button".',
@@ -671,7 +679,7 @@ describe('recorder-ui-describer', () => {
         { maxRetries: 1 },
       );
 
-      const calls = vi.mocked(callAIWithObjectResponse).mock.calls;
+      const calls = rs.mocked(callAIWithObjectResponse).mock.calls;
       const prompt = calls[calls.length - 1]?.[0];
       expect(result.usedFallback).toBe(false);
       expect(JSON.stringify(prompt)).toContain(expectedGuidance);
@@ -679,7 +687,7 @@ describe('recorder-ui-describer', () => {
   );
 
   it('uses generic dynamic UI guidance without business-specific examples', async () => {
-    vi.mocked(callAIWithObjectResponse).mockResolvedValueOnce({
+    rs.mocked(callAIWithObjectResponse).mockResolvedValueOnce({
       content: {
         elementDescription: 'field in the active form section',
         replayInstruction:
@@ -706,7 +714,7 @@ describe('recorder-ui-describer', () => {
       { maxRetries: 1 },
     );
 
-    const calls = vi.mocked(callAIWithObjectResponse).mock.calls;
+    const calls = rs.mocked(callAIWithObjectResponse).mock.calls;
     const prompt = JSON.stringify(calls[calls.length - 1]?.[0]);
     expect(result.usedFallback).toBe(false);
     expect(prompt).toContain('placeholder or hint text that can change');
@@ -718,7 +726,7 @@ describe('recorder-ui-describer', () => {
   });
 
   it('rejects pending placeholder descriptions returned by AI', async () => {
-    vi.mocked(callAIWithObjectResponse).mockResolvedValueOnce({
+    rs.mocked(callAIWithObjectResponse).mockResolvedValueOnce({
       content: {
         elementDescription: 'AI is analyzing element...',
         replayInstruction:

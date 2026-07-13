@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { StaticPageAgent, StaticPage } from '@midscene/web/static';
 import { PlaygroundServer } from '@midscene/playground';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, rs } from '@rstest/core';
 import { ScreenshotItem } from '@midscene/core';
 
 const dumpFilePath = join(__dirname, '../../fixtures/ui-context.json');
@@ -11,12 +11,9 @@ const contextJson = JSON.parse(context);
 
 contextJson.screenshot = { base64: contextJson.screenshotBase64 };
 
-describe(
-  'static page agent',
-  {
-    timeout: 30 * 1000,
-  },
-  () => {
+rs.setConfig({ testTimeout: 30 * 1000 });
+
+describe('static page agent', () => {
     let server: PlaygroundServer | null = null;
     
     afterEach(() => {

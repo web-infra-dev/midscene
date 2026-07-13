@@ -342,6 +342,7 @@ export class Page<
 
   async size(): Promise<Size> {
     if (this.viewportSize) return this.viewportSize;
+    /* istanbul ignore next -- closure is serialized to the browser realm via page.evaluate, where istanbul's cov_* counter does not exist */
     const sizeInfo: Size = await this.evaluate(() => {
       return {
         width: window.innerWidth,
@@ -485,6 +486,7 @@ export class Page<
     const timeoutMs = opts?.timeoutMs ?? 500;
     const targetCenter = opts?.target?.center;
     try {
+      /* istanbul ignore next -- closure is serialized to the browser realm via page.evaluate, where istanbul's cov_* counter does not exist */
       await this.evaluate(
         ([q, total, center]: [number, number, [number, number] | undefined]) =>
           new Promise<void>((resolve) => {
@@ -525,6 +527,7 @@ export class Page<
     if (!activeStream) return;
 
     try {
+      /* istanbul ignore next -- closure is serialized to the browser realm via page.evaluate, where istanbul's cov_* counter does not exist */
       await this.evaluate(
         (timeoutMs: number) =>
           new Promise<void>((resolve) => {
@@ -922,6 +925,7 @@ export class Page<
   }
 
   async scrollUp(distance?: number, startingPoint?: Point): Promise<void> {
+    /* istanbul ignore next -- closure is serialized to the browser realm via page.evaluate, where istanbul's cov_* counter does not exist */
     const innerHeight = await this.evaluate(() => window.innerHeight);
     const scrollDistance = distance || innerHeight * 0.7;
     await this.moveToPointBeforeScroll(startingPoint);
@@ -929,6 +933,7 @@ export class Page<
   }
 
   async scrollDown(distance?: number, startingPoint?: Point): Promise<void> {
+    /* istanbul ignore next -- closure is serialized to the browser realm via page.evaluate, where istanbul's cov_* counter does not exist */
     const innerHeight = await this.evaluate(() => window.innerHeight);
     const scrollDistance = distance || innerHeight * 0.7;
     await this.moveToPointBeforeScroll(startingPoint);
@@ -936,6 +941,7 @@ export class Page<
   }
 
   async scrollLeft(distance?: number, startingPoint?: Point): Promise<void> {
+    /* istanbul ignore next -- closure is serialized to the browser realm via page.evaluate, where istanbul's cov_* counter does not exist */
     const innerWidth = await this.evaluate(() => window.innerWidth);
     const scrollDistance = distance || innerWidth * 0.7;
     await this.moveToPointBeforeScroll(startingPoint);
@@ -943,6 +949,7 @@ export class Page<
   }
 
   async scrollRight(distance?: number, startingPoint?: Point): Promise<void> {
+    /* istanbul ignore next -- closure is serialized to the browser realm via page.evaluate, where istanbul's cov_* counter does not exist */
     const innerWidth = await this.evaluate(() => window.innerWidth);
     const scrollDistance = distance || innerWidth * 0.7;
     await this.moveToPointBeforeScroll(startingPoint);
@@ -1003,6 +1010,7 @@ export class Page<
         await client.detach();
       }
     } else if (this.interfaceType === 'playwright') {
+      /* istanbul ignore next -- closure is serialized to the browser realm via page.evaluate, where istanbul's cov_* counter does not exist */
       await (this.underlyingPage as PlaywrightPage).evaluate(() =>
         window.stop(),
       );
@@ -1013,6 +1021,7 @@ export class Page<
 
   async navigationState(): Promise<{ isLoading: boolean }> {
     try {
+      /* istanbul ignore next -- closure is serialized to the browser realm via page.evaluate, where istanbul's cov_* counter does not exist */
       const readyState = await this.evaluate(() => document.readyState);
       return { isLoading: readyState !== 'complete' };
     } catch (error) {
@@ -1340,6 +1349,7 @@ select {
 
   const injectStyle = async () => {
     try {
+      /* istanbul ignore next -- closure is serialized to the browser realm via page.evaluate, where istanbul's cov_* counter does not exist */
       await (page as PuppeteerPage & PlaywrightPage).evaluate(
         ({ id, content }: { id: string; content: string }) => {
           if (document.getElementById(id)) return;

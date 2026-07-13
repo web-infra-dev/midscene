@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 import { ComputerAgent, RDPDevice } from '../../../src';
 
 const realRdpEnv = {
@@ -50,11 +50,10 @@ async function delay(ms: number) {
   await new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+rs.setConfig({ testTimeout: 8 * 60 * 1000 });
+
 describe.skipIf(!shouldRunRealRdpTest)(
   '@midscene/computer real RDP protocol session',
-  {
-    timeout: 8 * 60 * 1000,
-  },
   () => {
     it('opens the Windows Start menu and enters Settings through the protocol backend', async () => {
       let lastError: unknown;

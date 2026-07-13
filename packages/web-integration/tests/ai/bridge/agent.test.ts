@@ -2,18 +2,15 @@ import {
   AgentOverChromeBridge,
   getBridgePageInCliSide,
 } from '@/bridge-mode/agent-cli-side';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 
-vi.setConfig({
-  testTimeout: 60 * 1000,
+rs.setConfig({
+  testTimeout: 3 * 60 * 1000,
 });
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-describe.skipIf(process.env.CI)(
+describe.skipIf(!!process.env.CI)(
   'fully functional agent in server(cli) side',
-  {
-    timeout: 3 * 60 * 1000,
-  },
   () => {
     it('basic', async () => {
       const page = getBridgePageInCliSide();

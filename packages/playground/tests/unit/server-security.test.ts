@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 
 // Test the uuid validation regex directly since it's the core security check
 describe('PlaygroundServer Security - UUID Validation', () => {

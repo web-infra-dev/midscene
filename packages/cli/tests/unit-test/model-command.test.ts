@@ -3,25 +3,29 @@ import {
   type TIntent,
   globalModelConfigManager,
 } from '@midscene/shared/env';
-import { describe, expect, it, vi } from 'vitest';
+// Top-level `importActual` attribute import keeps the real exports of
+// `@midscene/shared/env`. rstest resolves an async mock factory to an empty
+// module, so a partial mock must use a sync factory sourcing actuals from an
+// import attribute binding.
+import * as sharedEnvActual from '@midscene/shared/env' with {
+  rstest: 'importActual',
+};
+import { describe, expect, it, rs } from '@rstest/core';
 import { loadDotenvConfig } from '../../src/dotenv-loader';
 import {
   buildModelVerifyCurlCommands,
   runModelCommand,
 } from '../../src/model-command';
 
-vi.mock('@midscene/shared/env', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@midscene/shared/env')>();
-  return {
-    ...actual,
-    globalModelConfigManager: {
-      getModelConfig: vi.fn(),
-    },
-  };
-});
+rs.mock('@midscene/shared/env', () => ({
+  ...sharedEnvActual,
+  globalModelConfigManager: {
+    getModelConfig: rs.fn(),
+  },
+}));
 
-vi.mock('../../src/dotenv-loader', () => ({
-  loadDotenvConfig: vi.fn(),
+rs.mock('../../src/dotenv-loader', () => ({
+  loadDotenvConfig: rs.fn(),
 }));
 
 function createModelConfig(
@@ -40,8 +44,8 @@ function createModelConfig(
 
 function createIO() {
   return {
-    stdout: vi.fn(),
-    stderr: vi.fn(),
+    stdout: rs.fn(),
+    stderr: rs.fn(),
   };
 }
 
@@ -97,14 +101,14 @@ describe('model command', () => {
 
   it('runs model verify with model configs', async () => {
     const io = createIO();
-    const loadDotenv = vi.fn();
+    const loadDotenv = rs.fn();
     const configs: Record<TIntent, IModelConfig> = {
       default: createModelConfig({ intent: 'default', slot: 'default' }),
       planning: createModelConfig({ intent: 'planning', slot: 'planning' }),
       insight: createModelConfig({ intent: 'insight', slot: 'insight' }),
     };
-    const getModelConfig = vi.fn((intent: TIntent) => configs[intent]);
-    const verifyModel = vi.fn().mockResolvedValue({ passed: true });
+    const getModelConfig = rs.fn((intent: TIntent) => configs[intent]);
+    const verifyModel = rs.fn().mockResolvedValue({ passed: true });
 
     const exitCode = await runModelCommand(
       ['model', 'verify'],
@@ -128,7 +132,7 @@ describe('model command', () => {
     );
     expect(io.stdout).toHaveBeenCalledWith('');
     expect(io.stdout).toHaveBeenCalledWith('✅ Model verify passed.');
-    expect(vi.mocked(io.stdout).mock.invocationCallOrder[0]).toBeLessThan(
+    expect(rs.mocked(io.stdout).mock.invocationCallOrder[0]).toBeLessThan(
       loadDotenv.mock.invocationCallOrder[0],
     );
   });
@@ -147,7 +151,7 @@ describe('model command', () => {
       intent: 'insight',
       slot: 'insight',
     });
-    const getModelConfig = vi.mocked(globalModelConfigManager.getModelConfig);
+    const getModelConfig = rs.mocked(globalModelConfigManager.getModelConfig);
     getModelConfig.mockImplementation((intent: TIntent) => {
       const configs: Record<TIntent, IModelConfig> = {
         default: defaultConfig,
@@ -160,7 +164,7 @@ describe('model command', () => {
     const exitCode = await runModelCommand(
       ['model', 'verify'],
       {
-        verifyModel: vi.fn().mockResolvedValue({ passed: true }),
+        verifyModel: rs.fn().mockResolvedValue({ passed: true }),
       },
       io,
     );
@@ -202,9 +206,9 @@ describe('model command', () => {
     const exitCode = await runModelCommand(
       ['model', 'verify'],
       {
-        loadDotenv: vi.fn(),
-        getModelConfig: vi.fn((intent: TIntent) => configs[intent]),
-        verifyModel: vi.fn().mockResolvedValue({
+        loadDotenv: rs.fn(),
+        getModelConfig: rs.fn((intent: TIntent) => configs[intent]),
+        verifyModel: rs.fn().mockResolvedValue({
           passed: false,
           message: '[Vision check - ep-vision (insight)]: 404 Not Found',
         }),
@@ -213,7 +217,7 @@ describe('model command', () => {
     );
 
     expect(exitCode).toBe(1);
-    const output = vi.mocked(io.stderr).mock.calls[0][0];
+    const output = rs.mocked(io.stderr).mock.calls[0][0];
     expect(output).toContain('────────────────────────────────────────');
     expect(output).toContain('❌ Model verify failed with messages:');
     expect(output).toContain(
@@ -256,9 +260,9 @@ describe('model command', () => {
     await runModelCommand(
       ['model', 'verify'],
       {
-        loadDotenv: vi.fn(),
-        getModelConfig: vi.fn((intent: TIntent) => configs[intent]),
-        verifyModel: vi.fn().mockResolvedValue({
+        loadDotenv: rs.fn(),
+        getModelConfig: rs.fn((intent: TIntent) => configs[intent]),
+        verifyModel: rs.fn().mockResolvedValue({
           passed: false,
           message: 'failed',
         }),
@@ -266,7 +270,7 @@ describe('model command', () => {
       io,
     );
 
-    const output = vi.mocked(io.stderr).mock.calls[0][0];
+    const output = rs.mocked(io.stderr).mock.calls[0][0];
     expect(output).toContain(
       '# default (base URL not configured; using OpenAI SDK default)',
     );

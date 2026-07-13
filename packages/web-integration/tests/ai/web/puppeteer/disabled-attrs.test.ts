@@ -1,12 +1,12 @@
 import path from 'node:path';
 import { PuppeteerAgent } from '@/puppeteer';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, rs } from '@rstest/core';
 import { launchPage } from './utils';
 
 const FIXTURES_DIR = path.join(__dirname, '../../fixtures');
 const getFixturePath = (filename: string) => path.join(FIXTURES_DIR, filename);
 
-vi.setConfig({
+rs.setConfig({
   testTimeout: 600 * 1000,
 });
 

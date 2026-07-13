@@ -1,5 +1,5 @@
 import { buildPromptWithContext } from '@/agent/prompt-context';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 
 describe('buildPromptWithContext', () => {
   it('returns the original string prompt when context is undefined or blank', () => {

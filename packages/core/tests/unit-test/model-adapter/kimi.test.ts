@@ -1,6 +1,6 @@
 import { ResolvedModelAdapter } from '@/ai-model/model-adapter/resolve';
 import { kimiAdapters } from '@/ai-model/models/kimi';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 
 const kimiAdapter = new ResolvedModelAdapter(kimiAdapters.kimi, 'kimi');
 

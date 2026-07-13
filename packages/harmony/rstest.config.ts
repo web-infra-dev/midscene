@@ -1,7 +1,8 @@
 import path from 'node:path';
+import { defineConfig } from '@rstest/core';
 import dotenv from 'dotenv';
-import { defineConfig } from 'vitest/config';
-import { createCoverageConfig } from '../../scripts/vitest-coverage';
+import { createCoverageConfig } from '../../scripts/rstest-coverage';
+import { defineVersion, photonExternal } from '../../scripts/rstest-shared';
 import { version } from './package.json';
 
 dotenv.config({
@@ -27,17 +28,18 @@ export default defineConfig({
       '@': path.resolve(__dirname, 'src'),
     },
   },
-  test: {
-    coverage: createCoverageConfig(__dirname),
-    include: testFiles,
-    testTimeout: 3 * 60 * 1000,
-    dangerouslyIgnoreUnhandledErrors: !!process.env.CI,
-    fileParallelism: false,
+  coverage: createCoverageConfig(__dirname),
+  globalSetup: [
+    path.resolve(__dirname, '../../scripts/rstest-dotenv-setup.ts'),
+  ],
+  include: testFiles,
+  testTimeout: 3 * 60 * 1000,
+  errors: process.env.CI ? { unhandled: false } : undefined,
+  pool: { maxWorkers: 1 },
+  source: {
+    define: defineVersion(version),
   },
-  define: {
-    __VERSION__: `'${version}'`,
-  },
-  ssr: {
-    external: ['@silvia-odwyer/photon'],
+  output: {
+    externals: photonExternal,
   },
 });

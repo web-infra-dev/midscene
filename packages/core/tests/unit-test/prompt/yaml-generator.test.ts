@@ -1,5 +1,5 @@
 import type { IModelConfig } from '@midscene/shared/env';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, rs } from '@rstest/core';
 import { callAI, callAIWithStringResponse } from '../../../src/ai-model';
 import { getModelRuntime } from '../../../src/ai-model/models';
 import {
@@ -10,13 +10,13 @@ import {
   generateYamlTestStream,
 } from '../../../src/ai-model/prompt/yaml-generator';
 
-vi.mock('../../../src/ai-model', () => ({
-  callAI: vi.fn(),
-  callAIWithStringResponse: vi.fn(),
+rs.mock('../../../src/ai-model', () => ({
+  callAI: rs.fn(),
+  callAIWithStringResponse: rs.fn(),
 }));
 
-const mockCallAI = vi.mocked(callAI);
-const mockCallAIWithStringResponse = vi.mocked(callAIWithStringResponse);
+const mockCallAI = rs.mocked(callAI);
+const mockCallAIWithStringResponse = rs.mocked(callAIWithStringResponse);
 
 const mockEvents: ChromeRecordedEvent[] = [
   {
@@ -50,7 +50,7 @@ const mockedModelRuntime = getModelRuntime(mockedModelConfig);
 
 describe('yaml-generator', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    rs.clearAllMocks();
   });
 
   it('adds a language instruction when generating YAML', async () => {
@@ -75,7 +75,7 @@ describe('yaml-generator', () => {
   });
 
   it('uses the same language instruction for streaming YAML generation', async () => {
-    const onChunk = vi.fn();
+    const onChunk = rs.fn();
     mockCallAI.mockResolvedValue({
       content: 'yaml-content',
       usage: undefined,
@@ -205,7 +205,7 @@ describe('yaml-generator', () => {
   });
 
   it('preserves platform-aware prompt for streaming recorder YAML generation', async () => {
-    const onChunk = vi.fn();
+    const onChunk = rs.fn();
     mockCallAI.mockResolvedValue({
       content: 'android:\n  deviceId: "emulator-5554"\n',
       usage: undefined,

@@ -8,7 +8,7 @@ import {
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 import {
   extractAllDumpScriptsSync,
   generateImageScriptTag,

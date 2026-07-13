@@ -20,8 +20,8 @@
     "dev": "npm run build:watch",
     "build": "rslib build",
     "build:watch": "rslib build --watch --no-clean",
-    "test": "vitest --run",
-    "test:watch": "vitest"
+    "test": "rstest",
+    "test:watch": "rstest --watch"
   },
   "peerDependencies": {
     "react": "^18.0.0",
@@ -38,19 +38,20 @@
     "socket.io-client": "4.8.1"
   },
   "devDependencies": {
-    "@rsbuild/plugin-less": "^1.5.0",
-    "@rsbuild/plugin-node-polyfill": "1.4.2",
-    "@rsbuild/plugin-react": "^1.4.1",
-    "@rsbuild/plugin-svgr": "^1.2.2",
+    "@rsbuild/plugin-less": "^1.6.4",
+    "@rsbuild/plugin-node-polyfill": "1.4.6",
+    "@rsbuild/plugin-react": "^1.4.6",
+    "@rsbuild/plugin-svgr": "^1.3.1",
     "@rslib/core": "^0.18.3",
+    "@rstest/core": "0.11.1",
     "@types/node": "^18.0.0",
     "@types/react": "^18.3.1",
     "@types/react-dom": "^18.3.1",
+    "jsdom": "29.0.2",
     "less": "^4.2.0",
     "react": "18.3.1",
     "react-dom": "18.3.1",
-    "typescript": "^5.8.3",
-    "vitest": "3.0.5"
+    "typescript": "^5.8.3"
   },
   "sideEffects": ["**/*.css", "**/*.less", "**/*.sass", "**/*.scss"],
   "license": "MIT"

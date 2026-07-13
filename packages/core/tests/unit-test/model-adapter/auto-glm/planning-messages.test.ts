@@ -7,10 +7,10 @@ import { callAIWithStringResponse } from '@/ai-model/service-caller/index';
 import { runCustomPlanning } from '@/ai-model/workflows/planning/custom-planning';
 import type { PlanOptions } from '@/ai-model/workflows/planning/types';
 import type { UIContext } from '@/types';
+import { beforeEach, describe, expect, it, rs } from '@rstest/core';
 import type { ChatCompletionUserMessageParam } from 'openai/resources/index';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const serviceCallerMock = vi.hoisted(() => {
+const serviceCallerMock = rs.hoisted(() => {
   class AIResponseParseError extends Error {
     rawResponse?: string;
     usage?: unknown;
@@ -32,15 +32,11 @@ const serviceCallerMock = vi.hoisted(() => {
 
   return {
     AIResponseParseError,
-    callAIWithStringResponse: vi.fn(),
+    callAIWithStringResponse: rs.fn(),
   };
 });
 
-vi.mock('@/ai-model/service-caller/index', () => {
-  return serviceCallerMock;
-});
-
-vi.mock('../../../../src/ai-model/service-caller/index', () => {
+rs.mock('@/ai-model/service-caller/index', () => {
   return serviceCallerMock;
 });
 
@@ -90,7 +86,7 @@ function runAutoGlmPlanning(userInstruction: string, options: PlanOptions) {
 
 describe('createAutoGlmPlanner messages', () => {
   beforeEach(() => {
-    vi.mocked(callAIWithStringResponse).mockReset();
+    rs.mocked(callAIWithStringResponse).mockReset();
   });
 
   it('passes Auto-GLM action context, reference images, and abort signal to the model call', async () => {
@@ -107,7 +103,7 @@ describe('createAutoGlmPlanner messages', () => {
       },
     ];
     const conversationHistory = new ConversationHistory();
-    vi.mocked(callAIWithStringResponse).mockResolvedValueOnce({
+    rs.mocked(callAIWithStringResponse).mockResolvedValueOnce({
       content:
         '<think>Need to click submit</think><answer>do(action="Tap", element=[500,500])</answer>',
       usage: { total_tokens: 12 } as any,
@@ -124,7 +120,7 @@ describe('createAutoGlmPlanner messages', () => {
       }),
     );
 
-    const [messages, runtime, callOptions] = vi.mocked(callAIWithStringResponse)
+    const [messages, runtime, callOptions] = rs.mocked(callAIWithStringResponse)
       .mock.calls[0];
     expect(runtime).toMatchObject({
       config: expect.objectContaining({ modelFamily: 'auto-glm' }),

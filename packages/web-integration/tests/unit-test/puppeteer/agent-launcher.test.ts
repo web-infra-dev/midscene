@@ -5,35 +5,35 @@ import {
   launchPuppeteerPage,
   puppeteerAgentForTarget,
 } from '@/puppeteer/agent-launcher';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, rs } from '@rstest/core';
 
-const { mockLaunch } = vi.hoisted(() => ({
-  mockLaunch: vi.fn(),
+const { mockLaunch } = rs.hoisted(() => ({
+  mockLaunch: rs.fn(),
 }));
 
-const mockNewPage = vi.fn();
+const mockNewPage = rs.fn();
 let pageMock: ReturnType<typeof createPageMock>;
 const browserMock = {
   newPage: mockNewPage,
-  on: vi.fn(),
-  off: vi.fn(),
-  setCookie: vi.fn(),
-  close: vi.fn(),
+  on: rs.fn(),
+  off: rs.fn(),
+  setCookie: rs.fn(),
+  close: rs.fn(),
 };
 
 const createPageMock = () => ({
-  setUserAgent: vi.fn().mockResolvedValue(undefined),
-  setExtraHTTPHeaders: vi.fn().mockResolvedValue(undefined),
-  setViewport: vi.fn().mockResolvedValue(undefined),
-  goto: vi.fn().mockResolvedValue(undefined),
-  waitForNetworkIdle: vi.fn().mockResolvedValue(undefined),
-  browser: vi.fn(() => browserMock),
-  bringToFront: vi.fn().mockResolvedValue(undefined),
-  on: vi.fn(),
-  isClosed: vi.fn().mockReturnValue(false),
+  setUserAgent: rs.fn().mockResolvedValue(undefined),
+  setExtraHTTPHeaders: rs.fn().mockResolvedValue(undefined),
+  setViewport: rs.fn().mockResolvedValue(undefined),
+  goto: rs.fn().mockResolvedValue(undefined),
+  waitForNetworkIdle: rs.fn().mockResolvedValue(undefined),
+  browser: rs.fn(() => browserMock),
+  bringToFront: rs.fn().mockResolvedValue(undefined),
+  on: rs.fn(),
+  isClosed: rs.fn().mockReturnValue(false),
 });
 
-vi.mock('puppeteer', () => ({
+rs.mock('puppeteer', () => ({
   __esModule: true,
   default: { launch: mockLaunch },
   launch: mockLaunch,
@@ -41,7 +41,7 @@ vi.mock('puppeteer', () => ({
 
 describe('launchPuppeteerPage', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    rs.clearAllMocks();
     mockLaunch.mockResolvedValue(browserMock);
     pageMock = createPageMock();
     mockNewPage.mockResolvedValue(pageMock as any);

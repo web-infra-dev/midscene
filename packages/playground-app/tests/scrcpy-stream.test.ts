@@ -1,5 +1,5 @@
+import { describe, expect, test } from '@rstest/core';
 import type { ScrcpyMediaStreamPacket } from '@yume-chan/scrcpy';
-import { describe, expect, test } from 'vitest';
 import { createScrcpyVideoStream } from '../src/scrcpy-stream';
 
 interface RawVideoPayload {

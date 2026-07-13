@@ -6,21 +6,22 @@ import {
   MIDSCENE_MODEL_BASE_URL,
   MIDSCENE_MODEL_NAME,
 } from '@midscene/shared/env';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, rs } from '@rstest/core';
 
-vi.mock('openai');
+rs.mock('openai');
+
+import * as agentUtilsActual from '@/agent/utils' with {
+  rstest: 'importActual',
+};
 
 // Mock commonContextParser to avoid real image processing
-vi.mock('@/agent/utils', async (importOriginal) => {
-  const actual = (await importOriginal()) as Record<string, unknown>;
-  return {
-    ...actual,
-    commonContextParser: vi.fn(),
-  };
-});
+rs.mock('@/agent/utils', () => ({
+  ...agentUtilsActual,
+  commonContextParser: rs.fn(),
+}));
 
 import { commonContextParser } from '@/agent/utils';
-const mockedCommonContextParser = vi.mocked(commonContextParser);
+const mockedCommonContextParser = rs.mocked(commonContextParser);
 
 const modelConfig = {
   [MIDSCENE_MODEL_NAME]: 'test-model',
@@ -53,7 +54,7 @@ class RetryableAgent extends Agent {
 
 describe('Agent context retry via isRetryableContextError', () => {
   afterEach(() => {
-    vi.clearAllMocks();
+    rs.clearAllMocks();
   });
 
   it('retries on retryable errors and succeeds', async () => {

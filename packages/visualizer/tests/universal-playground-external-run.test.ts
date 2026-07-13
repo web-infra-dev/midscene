@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 import { shouldExecuteExternalRunRequest } from '../src/component/universal-playground/external-run';
 
 describe('shouldExecuteExternalRunRequest', () => {

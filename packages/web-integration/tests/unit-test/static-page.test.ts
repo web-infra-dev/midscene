@@ -1,5 +1,5 @@
 import { ScreenshotItem } from '@midscene/core';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 import { StaticPage } from '../../src/static';
 
 const screenshotBase64 = 'data:image/png;base64,abc123';

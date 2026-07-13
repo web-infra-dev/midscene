@@ -1,5 +1,5 @@
 import { parseXMLExtractionResponse } from '@/ai-model/prompt/extraction';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 
 describe('parseXMLExtractionResponse', () => {
   it('should parse complete XML response with all fields', () => {

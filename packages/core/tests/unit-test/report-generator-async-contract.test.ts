@@ -16,7 +16,7 @@
  * flaky on shared CI. This structural check is cheap, reliable, and
  * catches the 90% regression path (someone typing `Sync` back in).
  */
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 import { ScreenshotStore } from '../../src/dump/screenshot-store';
 import { ReportGenerator } from '../../src/report-generator';
 

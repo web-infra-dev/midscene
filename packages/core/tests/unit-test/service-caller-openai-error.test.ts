@@ -1,8 +1,8 @@
 import type { IModelConfig } from '@midscene/shared/env';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, rs } from '@rstest/core';
 
-const mockCreate = vi.fn();
-const mockOpenAIConstructor = vi.fn().mockImplementation(() => ({
+const mockCreate = rs.fn();
+const mockOpenAIConstructor = rs.fn().mockImplementation(() => ({
   chat: {
     completions: {
       create: mockCreate,
@@ -10,7 +10,7 @@ const mockOpenAIConstructor = vi.fn().mockImplementation(() => ({
   },
 }));
 
-vi.mock('openai', () => ({
+rs.mock('openai', () => ({
   default: mockOpenAIConstructor,
 }));
 
@@ -30,7 +30,7 @@ describe('service-caller OpenAI error handling', () => {
   const originalFetch = globalThis.fetch;
 
   beforeEach(() => {
-    vi.clearAllMocks();
+    rs.clearAllMocks();
     globalThis.fetch = originalFetch;
   });
 
@@ -51,7 +51,7 @@ describe('service-caller OpenAI error handling', () => {
         'x-request-id': 'req_123',
       },
     });
-    globalThis.fetch = vi.fn().mockResolvedValue(response);
+    globalThis.fetch = rs.fn().mockResolvedValue(response);
 
     const wrappedResponse = await wrapOpenAICompatibleFetch(context)(
       'https://example.com/v1/chat/completions',
@@ -74,7 +74,7 @@ describe('service-caller OpenAI error handling', () => {
       status: 200,
       headers: { 'content-type': 'application/json' },
     });
-    globalThis.fetch = vi.fn().mockResolvedValue(response);
+    globalThis.fetch = rs.fn().mockResolvedValue(response);
 
     await expect(
       wrapOpenAICompatibleFetch(context)('https://example.com'),
@@ -87,7 +87,7 @@ describe('service-caller OpenAI error handling', () => {
       '@/ai-model/service-caller/openai-error'
     );
     const context = {};
-    globalThis.fetch = vi
+    globalThis.fetch = rs
       .fn()
       .mockResolvedValueOnce(new Response('first body', { status: 500 }))
       .mockRejectedValueOnce(new Error('network error'))
@@ -129,7 +129,7 @@ describe('service-caller OpenAI error handling', () => {
     const fetchError = Object.assign(new TypeError('fetch failed'), {
       cause,
     });
-    globalThis.fetch = vi.fn().mockRejectedValue(fetchError);
+    globalThis.fetch = rs.fn().mockRejectedValue(fetchError);
 
     await expect(
       wrapOpenAICompatibleFetch(context)('https://example.com'),
@@ -153,7 +153,7 @@ describe('service-caller OpenAI error handling', () => {
     const { callAI } = await import('@/ai-model/service-caller');
     const { getModelRuntime } = await import('@/ai-model/models');
     const actualOpenAI =
-      await vi.importActual<typeof import('openai')>('openai');
+      await rs.importActual<typeof import('openai')>('openai');
     const rawResponseBody = JSON.stringify({
       detail: 'model does not exist',
       trace_id: 'trace_123',
@@ -170,7 +170,7 @@ describe('service-caller OpenAI error handling', () => {
     expect(bareOpenAIError.message).not.toContain('trace_123');
     expect(bareOpenAIError.error).toBeUndefined();
 
-    globalThis.fetch = vi.fn().mockResolvedValue(
+    globalThis.fetch = rs.fn().mockResolvedValue(
       new Response(rawResponseBody, {
         status: 422,
         headers: { 'content-type': 'application/json' },

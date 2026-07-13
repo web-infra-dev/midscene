@@ -1,6 +1,6 @@
 import path from 'node:path';
 import { sleep } from '@midscene/core/utils';
-import { beforeAll, describe, it, vi } from 'vitest';
+import { beforeAll, describe, it, rs } from '@rstest/core';
 import { type ComputerAgent, agentFromComputer } from '../../src';
 import {
   findExtensionPageTarget,
@@ -10,7 +10,7 @@ import {
   reloadViaWebSocket,
 } from './chrome-extension-helpers';
 
-vi.setConfig({ testTimeout: 360 * 1000 });
+rs.setConfig({ testTimeout: 360 * 1000 });
 
 const SIDE_PANEL =
   'the Midscene side panel on the right side of the browser window';

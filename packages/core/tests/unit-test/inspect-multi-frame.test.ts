@@ -1,22 +1,20 @@
 import { getModelRuntime } from '@/ai-model/models';
+import * as serviceCallerActual from '@/ai-model/service-caller/index' with {
+  rstest: 'importActual',
+};
 import { ScreenshotItem } from '@/screenshot-item';
 import type { UIContext } from '@/types';
 import type { IModelConfig } from '@midscene/shared/env';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, rs } from '@rstest/core';
 import { createFakeContext } from '../utils';
 
-vi.mock('@/ai-model/service-caller/index', async () => {
-  const actual = await vi.importActual<
-    typeof import('@/ai-model/service-caller/index')
-  >('@/ai-model/service-caller/index');
-  return {
-    ...actual,
-    AIResponseParseError: class AIResponseParseError extends Error {},
-    callAI: vi.fn(),
-    callAIWithObjectResponse: vi.fn(),
-    callAIWithStringResponse: vi.fn(),
-  };
-});
+rs.mock('@/ai-model/service-caller/index', () => ({
+  ...serviceCallerActual,
+  AIResponseParseError: class AIResponseParseError extends Error {},
+  callAI: rs.fn(),
+  callAIWithObjectResponse: rs.fn(),
+  callAIWithStringResponse: rs.fn(),
+}));
 
 import { callAI } from '@/ai-model/service-caller/index';
 import { AiExtractElementInfo } from '@/ai-model/workflows/inspect';
@@ -31,8 +29,8 @@ describe('AiExtractElementInfo multi-frame context', () => {
   };
 
   beforeEach(() => {
-    vi.clearAllMocks();
-    vi.mocked(callAI).mockResolvedValue({
+    rs.clearAllMocks();
+    rs.mocked(callAI).mockResolvedValue({
       content:
         '<thought>Saw the toast.</thought><data-json>{"result":true}</data-json>',
       usage: undefined,
@@ -63,7 +61,7 @@ describe('AiExtractElementInfo multi-frame context', () => {
       modelRuntime: getModelRuntime(modelConfig),
     });
 
-    const msgs = vi.mocked(callAI).mock.calls[0]?.[0];
+    const msgs = rs.mocked(callAI).mock.calls[0]?.[0];
     const userContent = msgs?.[1]?.content as Array<Record<string, any>>;
 
     const imageParts = userContent.filter((p) => p.type === 'image_url');
@@ -110,7 +108,7 @@ describe('AiExtractElementInfo multi-frame context', () => {
       modelRuntime: getModelRuntime(modelConfig),
     });
 
-    const msgs = vi.mocked(callAI).mock.calls[0]?.[0];
+    const msgs = rs.mocked(callAI).mock.calls[0]?.[0];
     const userContent = msgs?.[1]?.content as Array<Record<string, any>>;
 
     const imageParts = userContent.filter((p) => p.type === 'image_url');

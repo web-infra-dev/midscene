@@ -10,7 +10,7 @@ import type {
   MidsceneYamlScriptAndroidEnv,
   MidsceneYamlScriptIOSEnv,
 } from '@/yaml';
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from '@rstest/core';
 
 describe('Device Options Type Definitions', () => {
   describe('AndroidDeviceOpt', () => {

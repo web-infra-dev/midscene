@@ -1,5 +1,5 @@
 import type { DeviceAction } from '@midscene/core';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 import {
   dataExtractionAPIs,
   executeAction,
@@ -101,7 +101,7 @@ describe('common utilities', () => {
       const action: DeviceAction<unknown> = {
         name: 'testAction',
         description: 'Test action',
-        call: vi.fn(),
+        call: rs.fn(),
       };
 
       const result = validateStructuredParams(value, action);
@@ -109,7 +109,7 @@ describe('common utilities', () => {
     });
 
     it('should validate parameters with schema', () => {
-      const mockParse = vi.fn();
+      const mockParse = rs.fn();
       const value: FormValue = {
         type: 'test',
         params: { prompt: 'test prompt' },
@@ -118,7 +118,7 @@ describe('common utilities', () => {
         name: 'testAction',
         description: 'Test action',
         paramSchema: { parse: mockParse } as any,
-        call: vi.fn(),
+        call: rs.fn(),
       };
 
       const result = validateStructuredParams(value, action);
@@ -127,7 +127,7 @@ describe('common utilities', () => {
     });
 
     it('should handle validation errors', () => {
-      const mockParse = vi.fn(() => {
+      const mockParse = rs.fn(() => {
         const error = new Error('Validation failed');
         (error as any).errors = [
           { path: ['field'], message: 'Required field' },
@@ -143,7 +143,7 @@ describe('common utilities', () => {
         name: 'testAction',
         description: 'Test action',
         paramSchema: { parse: mockParse } as any,
-        call: vi.fn(),
+        call: rs.fn(),
       };
 
       const result = validateStructuredParams(value, action);
@@ -154,7 +154,7 @@ describe('common utilities', () => {
 
   describe('executeAction', () => {
     it('should execute action through callActionInActionSpace when available', async () => {
-      const mockCallAction = vi.fn().mockResolvedValue('action result');
+      const mockCallAction = rs.fn().mockResolvedValue('action result');
       const activeAgent = createMockPlaygroundAgent({
         callActionInActionSpace: mockCallAction,
       });
@@ -162,7 +162,7 @@ describe('common utilities', () => {
       const action: DeviceAction<unknown> = {
         name: 'testAction',
         description: 'Test action',
-        call: vi.fn(),
+        call: rs.fn(),
       };
 
       const actionSpace = [action];
@@ -198,8 +198,8 @@ describe('common utilities', () => {
       // mutate caller-provided options. The filtering responsibility belongs to
       // upstream callers (playground/report layer) before reaching this point.
       // TODO: Remove this test and the corresponding warning once migration is complete.
-      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-      const mockCallAction = vi.fn().mockResolvedValue('action result');
+      const warnSpy = rs.spyOn(console, 'warn').mockImplementation(() => {});
+      const mockCallAction = rs.fn().mockResolvedValue('action result');
       const activeAgent = createMockPlaygroundAgent({
         callActionInActionSpace: mockCallAction,
       });
@@ -208,7 +208,7 @@ describe('common utilities', () => {
         name: 'Tap',
         interfaceAlias: 'aiTap',
         description: 'Tap action',
-        call: vi.fn(),
+        call: rs.fn(),
       };
 
       const value: FormValue = {
@@ -241,7 +241,7 @@ describe('common utilities', () => {
     });
 
     it('should not pass report display metadata to action-space actions', async () => {
-      const mockCallAction = vi.fn().mockResolvedValue('action result');
+      const mockCallAction = rs.fn().mockResolvedValue('action result');
       const activeAgent = createMockPlaygroundAgent({
         callActionInActionSpace: mockCallAction,
       });
@@ -250,7 +250,7 @@ describe('common utilities', () => {
         name: 'Tap',
         interfaceAlias: 'aiTap',
         description: 'Tap action',
-        call: vi.fn(),
+        call: rs.fn(),
       };
 
       await executeAction(
@@ -275,8 +275,8 @@ describe('common utilities', () => {
     });
 
     it('should keep deepThink for aiAct action without warning', async () => {
-      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-      const mockCallAction = vi.fn().mockResolvedValue('action result');
+      const warnSpy = rs.spyOn(console, 'warn').mockImplementation(() => {});
+      const mockCallAction = rs.fn().mockResolvedValue('action result');
       const activeAgent = createMockPlaygroundAgent({
         callActionInActionSpace: mockCallAction,
       });
@@ -285,7 +285,7 @@ describe('common utilities', () => {
         name: 'aiAction',
         interfaceAlias: 'aiAct',
         description: 'Plan action',
-        call: vi.fn(),
+        call: rs.fn(),
       };
 
       const value: FormValue = {
@@ -310,8 +310,8 @@ describe('common utilities', () => {
     });
 
     it('should keep deepThink for runMarkdown without warning', async () => {
-      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-      const mockRunMarkdown = vi.fn().mockResolvedValue('markdown result');
+      const warnSpy = rs.spyOn(console, 'warn').mockImplementation(() => {});
+      const mockRunMarkdown = rs.fn().mockResolvedValue('markdown result');
       const activeAgent: PlaygroundAgent = {
         runMarkdown: mockRunMarkdown,
       } as unknown as PlaygroundAgent;
@@ -345,7 +345,7 @@ describe('common utilities', () => {
     });
 
     it('should map report display metadata to aiAct internal report options', async () => {
-      const mockAiAct = vi.fn().mockResolvedValue('aiAct result');
+      const mockAiAct = rs.fn().mockResolvedValue('aiAct result');
       const activeAgent = createMockPlaygroundAgent({
         aiAct: mockAiAct,
       });
@@ -381,7 +381,7 @@ describe('common utilities', () => {
     });
 
     it('should handle aiAssert action specially', async () => {
-      const mockAiAssert = vi.fn().mockResolvedValue({
+      const mockAiAssert = rs.fn().mockResolvedValue({
         pass: true,
         thought: 'test thought',
       });
@@ -410,7 +410,7 @@ describe('common utilities', () => {
     });
 
     it('should call allowlisted agent methods when action not found', async () => {
-      const mockCustomAction = vi.fn().mockResolvedValue('custom result');
+      const mockCustomAction = rs.fn().mockResolvedValue('custom result');
       const activeAgent = createMockPlaygroundAgent({
         aiString: mockCustomAction,
       });
@@ -434,7 +434,7 @@ describe('common utilities', () => {
     });
 
     it('should reject non-allowlisted agent methods when action not found', async () => {
-      const mockCustomAction = vi.fn().mockResolvedValue('custom result');
+      const mockCustomAction = rs.fn().mockResolvedValue('custom result');
       const activeAgent = createMockPlaygroundAgent({
         customAction: mockCustomAction,
       });
@@ -468,7 +468,7 @@ describe('common utilities', () => {
     });
 
     it('should find action by interfaceAlias', async () => {
-      const mockCallAction = vi.fn().mockResolvedValue('alias result');
+      const mockCallAction = rs.fn().mockResolvedValue('alias result');
       const activeAgent = createMockPlaygroundAgent({
         callActionInActionSpace: mockCallAction,
       });
@@ -477,7 +477,7 @@ describe('common utilities', () => {
         name: 'realName',
         interfaceAlias: 'aliasName',
         description: 'Test action',
-        call: vi.fn(),
+        call: rs.fn(),
       };
 
       const actionSpace = [action];

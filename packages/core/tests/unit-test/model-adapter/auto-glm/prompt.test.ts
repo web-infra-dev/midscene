@@ -4,17 +4,17 @@ import {
   getAutoGLMMultilingualLocatePrompt,
   getAutoGLMMultilingualPlanPrompt,
 } from '@/ai-model/models/auto-glm/prompt';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
 
 describe('auto-glm prompts', () => {
   beforeEach(() => {
-    // Mock date to 2025-12-31 Wednesday
-    vi.setSystemTime(new Date('2025-12-31T00:00:00.000Z'));
+    // Mock date to 2025-12-31 Wednesday.
+    rs.setSystemTime(new Date('2025-12-31T00:00:00.000Z'));
   });
 
   afterEach(() => {
     // Restore real timers after each test
-    vi.useRealTimers();
+    rs.useRealTimers();
   });
 
   describe('planning prompts', () => {

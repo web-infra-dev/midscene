@@ -181,7 +181,7 @@ MIDSCENE_MODEL_NAME="qwen3-vl-plus"
 
 If you've fixed a bug or added code that should be tested, then add some tests.
 
-You can add unit test cases in the `<PACKAGE_DIR>/tests` folder. The test runner is based on [Vitest](https://vitest.dev/).
+You can add unit test cases in the `<PACKAGE_DIR>/tests` folder. The test runner is based on [Rstest](https://rstest.rs/).
 
 ### Run Unit Tests
 
