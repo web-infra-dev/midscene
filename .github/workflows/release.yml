@@ -383,3 +383,526 @@ jobs:
           ${{ github.workspace }}/.release/studio/artifacts/*.yml
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  notify_discord:
+    needs:
+    - release
+    - package_studio
+    if: ${{ needs.release.result == 'success' && needs.package_studio.result == 'success' && needs.release.outputs.is_prerelease != 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+    - name: Publish release notification to Discord
+      id: notify
+      continue-on-error: true
+      env:
+        DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        GH_TOKEN: ${{ github.token }}
+        RELEASE_VERSION: ${{ needs.release.outputs.version }}
+      run: |
+        set -euo pipefail
+
+        if [[ -z "$DISCORD_WEBHOOK_URL" ]]; then
+          echo "::warning::DISCORD_WEBHOOK_URL is not configured; skipping the Discord release notification."
+          echo "## Discord notification" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Skipped because the repository secret \`DISCORD_WEBHOOK_URL\` is not configured." >> "$GITHUB_STEP_SUMMARY"
+          exit 0
+        fi
+
+        RELEASE_JSON="$(
+          gh release view "$RELEASE_VERSION" \
+            --repo "$GITHUB_REPOSITORY" \
+            --json body,name,publishedAt,url
+        )"
+        RELEASE_NAME="$(jq -r '.name // empty' <<< "$RELEASE_JSON")"
+        RELEASE_BODY="$(jq -r '.body // empty' <<< "$RELEASE_JSON")"
+        RELEASE_URL="$(jq -r '.url' <<< "$RELEASE_JSON")"
+        RELEASE_PUBLISHED_AT="$(jq -r '.publishedAt' <<< "$RELEASE_JSON")"
+        PACKAGE_VERSION="${RELEASE_VERSION#v}"
+
+        PAYLOAD="$(
+          jq -cn \
+            --arg body "$RELEASE_BODY" \
+            --arg package_version "$PACKAGE_VERSION" \
+            --arg published_at "$RELEASE_PUBLISHED_AT" \
+            --arg release_name "$RELEASE_NAME" \
+            --arg release_url "$RELEASE_URL" \
+            --arg version "$RELEASE_VERSION" \
+            '
+              def release_title:
+                ($release_name | gsub("^\\s+|\\s+$"; "")) as $name
+                | if $name == "" or $name == $version or $name == ($version | ltrimstr("v")) then
+                    "Midscene.js \($version)"
+                  else
+                    $name
+                  end;
+              def normalized_type:
+                (try capture("^(?<type>[A-Za-z]+)(?:\\([^)]*\\))?!?:").type catch "other")
+                | ascii_downcase
+                | if . == "feat" then "feat"
+                  elif . == "fix" then "fix"
+                  elif . == "perf" then "perf"
+                  elif . == "refactor" then "refactor"
+                  elif . == "docs" then "docs"
+                  elif . == "test" or . == "tests" then "test"
+                  elif . == "build" then "build"
+                  elif . == "ci" then "ci"
+                  elif . == "chore" then "chore"
+                  else "other"
+                  end;
+              def parse_change:
+                . as $line
+                | if $line | test("^[*-] ") then
+                    (try
+                      ($line
+                        | capture("^[*-] (?<title>.+?) by @[^ ]+ in (?<url>https://github\\.com/[^ ]+/pull/(?<pr>[0-9]+))$")
+                      )
+                    catch
+                      {title: ($line | sub("^[*-] "; "")), url: "", pr: ""}
+                    )
+                    | .title |= gsub("^\\s+|\\s+$"; "")
+                    | .type = (.title | normalized_type)
+                  else
+                    empty
+                  end;
+              def category_definitions:
+                [
+                  {key: "feat", label: "Features"},
+                  {key: "fix", label: "Fixes"},
+                  {key: "perf", label: "Performance"},
+                  {key: "refactor", label: "Refactors"},
+                  {key: "docs", label: "Documentation"},
+                  {key: "test", label: "Tests"},
+                  {key: "build", label: "Build"},
+                  {key: "ci", label: "CI"},
+                  {key: "chore", label: "Chores"},
+                  {key: "other", label: "Other"}
+                ];
+              def safe_title:
+                gsub("(?<char>[\\\\`*_~\\[\\]<>])"; "\\\\\(.char)");
+              def item_line:
+                if .pr != "" then
+                  "- \(.title | safe_title) · [PR #\(.pr)](\(.url))"
+                else
+                  "- \(.title | safe_title)"
+                end;
+
+              ($body | gsub("\\r"; "") | gsub("<!--[^\\n]*-->\\n*"; "")) as $clean_body
+              | [$clean_body | split("\n")[] | parse_change] as $changes
+              | [
+                  category_definitions[] as $category
+                  | [$changes[] | select(.type == $category.key)] as $items
+                  | select($items | length > 0)
+                  | $category + {items: $items}
+                ] as $groups
+              | ($changes | length) as $change_count
+              | ($groups | length) as $category_count
+              | ($groups
+                  | map("**\(.label)**\n" + (.items | map(item_line) | join("\n")))
+                  | join("\n\n")
+                ) as $grouped_notes
+              | ($clean_body | gsub("^\\s+|\\s+$"; "")) as $raw_notes
+              | (if $change_count > 0 then
+                    $grouped_notes
+                  elif $raw_notes != "" then
+                    $raw_notes
+                  else
+                    "Midscene.js \($version) is now available."
+                  end
+                ) as $notes
+              | (if $change_count > 0 then
+                    "\($change_count) \(if $change_count == 1 then "change" else "changes" end)"
+                    + " · \($category_count) \(if $category_count == 1 then "category" else "categories" end)"
+                  else
+                    "Latest stable release"
+                  end
+                ) as $summary
+              | ("Latest stable release\n\n"
+                  + (if $change_count > 0 then "**\($summary)**\n\n" else "" end)
+                  + $notes
+                  | if length > 3500 then .[0:3500] + "\n\n…" else . end
+                ) as $description
+              | (release_title | .[0:256]) as $title
+              | {
+                  username: "Midscene Release",
+                  avatar_url: "https://midscenejs.com/midscene-icon.png",
+                  allowed_mentions: {
+                    parse: []
+                  },
+                  embeds: [{
+                    title: $title,
+                    url: $release_url,
+                    description: $description,
+                    color: 43248,
+                    fields: [
+                      {
+                        name: "GitHub Release",
+                        value: "[View release](\($release_url))",
+                        inline: true
+                      },
+                      {
+                        name: "npm",
+                        value: "[@midscene/core](https://www.npmjs.com/package/@midscene/core/v/\($package_version))",
+                        inline: true
+                      }
+                    ],
+                    footer: {
+                      text: $summary
+                    },
+                    timestamp: $published_at
+                  }]
+                }
+            '
+        )"
+
+        WEBHOOK_METADATA="$(
+          printf 'url = "%s"\n' "$DISCORD_WEBHOOK_URL" \
+            | curl \
+                --config - \
+                --fail-with-body \
+                --silent \
+                --show-error
+        )"
+        GUILD_ID="$(jq -er '.guild_id' <<< "$WEBHOOK_METADATA")"
+
+        DISCORD_RESPONSE="$(
+          printf 'url = "%s?wait=true"\n' "$DISCORD_WEBHOOK_URL" \
+            | curl \
+                --config - \
+                --fail-with-body \
+                --silent \
+                --show-error \
+                --request POST \
+                --header 'Content-Type: application/json' \
+                --data "$PAYLOAD"
+        )"
+
+        MESSAGE_ID="$(jq -er '.id' <<< "$DISCORD_RESPONSE")"
+        CHANNEL_ID="$(jq -er '.channel_id' <<< "$DISCORD_RESPONSE")"
+        MESSAGE_URL="https://discord.com/channels/${GUILD_ID}/${CHANNEL_ID}/${MESSAGE_ID}"
+
+        echo "## Discord notification" >> "$GITHUB_STEP_SUMMARY"
+        echo "" >> "$GITHUB_STEP_SUMMARY"
+        echo "Published [the ${RELEASE_VERSION} notification](${MESSAGE_URL})." >> "$GITHUB_STEP_SUMMARY"
+
+    - name: Summarize Discord notification failure
+      if: ${{ steps.notify.outcome == 'failure' }}
+      run: |
+        echo "::warning::The GitHub Release succeeded, but its Discord notification failed."
+        echo "## Discord notification fallback" >> "$GITHUB_STEP_SUMMARY"
+        echo "" >> "$GITHUB_STEP_SUMMARY"
+        echo "The GitHub Release succeeded, but its Discord notification failed. Review the previous step and resend the announcement manually." >> "$GITHUB_STEP_SUMMARY"
+
+  notify_feishu:
+    needs:
+    - release
+    - package_studio
+    if: ${{ needs.release.result == 'success' && needs.package_studio.result == 'success' && needs.release.outputs.is_prerelease != 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+    - name: Publish release notification to Feishu
+      id: notify
+      continue-on-error: true
+      env:
+        FEISHU_WEBHOOK_SECRET: ${{ secrets.FEISHU_WEBHOOK_SECRET }}
+        FEISHU_WEBHOOK_SECRET_2: ${{ secrets.FEISHU_WEBHOOK_SECRET_2 }}
+        FEISHU_WEBHOOK_URL: ${{ secrets.FEISHU_WEBHOOK_URL }}
+        FEISHU_WEBHOOK_URL_2: ${{ secrets.FEISHU_WEBHOOK_URL_2 }}
+        GH_TOKEN: ${{ github.token }}
+        RELEASE_VERSION: ${{ needs.release.outputs.version }}
+      run: |
+        set -euo pipefail
+
+        WEBHOOK_URLS=("$FEISHU_WEBHOOK_URL" "$FEISHU_WEBHOOK_URL_2")
+        WEBHOOK_SECRETS=("$FEISHU_WEBHOOK_SECRET" "$FEISHU_WEBHOOK_SECRET_2")
+        CONFIGURED_TARGETS=0
+        for TARGET_INDEX in "${!WEBHOOK_URLS[@]}"; do
+          if [[ -z "${WEBHOOK_URLS[$TARGET_INDEX]}" && -z "${WEBHOOK_SECRETS[$TARGET_INDEX]}" ]]; then
+            continue
+          fi
+          if [[ -z "${WEBHOOK_URLS[$TARGET_INDEX]}" || -z "${WEBHOOK_SECRETS[$TARGET_INDEX]}" ]]; then
+            echo "::warning::Feishu webhook target $((TARGET_INDEX + 1)) is only partially configured."
+            exit 1
+          fi
+          ((CONFIGURED_TARGETS += 1))
+        done
+
+        if [[ "$CONFIGURED_TARGETS" -eq 0 ]]; then
+          echo "::warning::No Feishu webhook targets are configured; skipping the Feishu release notification."
+          echo "## Feishu notification" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Skipped because no complete Feishu webhook URL and signing secret pair is configured." >> "$GITHUB_STEP_SUMMARY"
+          exit 0
+        fi
+
+        RELEASE_JSON="$(
+          gh release view "$RELEASE_VERSION" \
+            --repo "$GITHUB_REPOSITORY" \
+            --json body,name,url
+        )"
+        RELEASE_NAME="$(jq -r '.name // empty' <<< "$RELEASE_JSON")"
+        RELEASE_BODY="$(jq -r '.body // empty' <<< "$RELEASE_JSON")"
+        RELEASE_URL="$(jq -r '.url' <<< "$RELEASE_JSON")"
+        PACKAGE_VERSION="${RELEASE_VERSION#v}"
+        NPM_URL="https://www.npmjs.com/package/@midscene/core/v/${PACKAGE_VERSION}"
+
+        CARD_CONTENT="$(
+          jq -cn \
+            --arg body "$RELEASE_BODY" \
+            --arg release_name "$RELEASE_NAME" \
+            --arg release_url "$RELEASE_URL" \
+            --arg npm_url "$NPM_URL" \
+            --arg version "$RELEASE_VERSION" \
+            '
+              def release_title:
+                ($release_name | gsub("^\\s+|\\s+$"; "")) as $name
+                | if $name == "" or $name == $version or $name == ($version | ltrimstr("v")) then
+                    "Midscene.js \($version)"
+                  else
+                    $name
+                  end;
+              def normalized_type:
+                (try capture("^(?<type>[A-Za-z]+)(?:\\([^)]*\\))?!?:").type catch "other")
+                | ascii_downcase
+                | if . == "feat" then "feat"
+                  elif . == "fix" then "fix"
+                  elif . == "perf" then "perf"
+                  elif . == "refactor" then "refactor"
+                  elif . == "docs" then "docs"
+                  elif . == "test" or . == "tests" then "test"
+                  elif . == "build" then "build"
+                  elif . == "ci" then "ci"
+                  elif . == "chore" then "chore"
+                  else "other"
+                  end;
+              def parse_change:
+                . as $line
+                | if $line | test("^[*-] ") then
+                    (try
+                      ($line
+                        | capture("^[*-] (?<title>.+?) by @[^ ]+ in (?<url>https://github\\.com/[^ ]+/pull/(?<pr>[0-9]+))$")
+                      )
+                    catch
+                      {title: ($line | sub("^[*-] "; "")), url: "", pr: ""}
+                    )
+                    | .title |= gsub("^\\s+|\\s+$"; "")
+                    | .type = (.title | normalized_type)
+                  else
+                    empty
+                  end;
+              def category_definitions:
+                [
+                  {key: "feat", label: "Features"},
+                  {key: "fix", label: "Fixes"},
+                  {key: "perf", label: "Performance"},
+                  {key: "refactor", label: "Refactors"},
+                  {key: "docs", label: "Documentation"},
+                  {key: "test", label: "Tests"},
+                  {key: "build", label: "Build"},
+                  {key: "ci", label: "CI"},
+                  {key: "chore", label: "Chores"},
+                  {key: "other", label: "Other"}
+                ];
+              def safe_title:
+                gsub("(?<char>[\\\\`*_~\\[\\]<>])"; "\\\\\(.char)");
+              def item_line:
+                if .pr != "" then
+                  "- \(.title | safe_title) · [PR #\(.pr)](\(.url))"
+                else
+                  "- \(.title | safe_title)"
+                end;
+
+              ($body | gsub("\\r"; "") | gsub("<!--[^\\n]*-->\\n*"; "")) as $clean_body
+              | [$clean_body | split("\n")[] | parse_change] as $changes
+              | [
+                  category_definitions[] as $category
+                  | [$changes[] | select(.type == $category.key)] as $items
+                  | select($items | length > 0)
+                  | $category + {items: $items}
+                ] as $groups
+              | ($changes | length) as $change_count
+              | ($groups | length) as $category_count
+              | ($groups
+                  | map("**\(.label)**\n" + (.items | map(item_line) | join("\n")))
+                  | join("\n\n")
+                ) as $grouped_notes
+              | ($clean_body | gsub("^\\s+|\\s+$"; "")) as $raw_notes
+              | (if $change_count > 0 then
+                    $grouped_notes
+                  elif $raw_notes != "" then
+                    $raw_notes
+                  else
+                    "Midscene.js \($version) is now available."
+                  end
+                ) as $notes
+              | ($notes
+                  | if length > 7500 then
+                      .[0:7400] + "\n\n… [View the full release notes](\($release_url))"
+                    else
+                      .
+                    end
+                ) as $description
+              | (if $change_count > 0 then
+                    "\($change_count) \(if $change_count == 1 then "change" else "changes" end)"
+                    + " · \($category_count) \(if $category_count == 1 then "category" else "categories" end)"
+                  else
+                    "Latest stable release"
+                  end
+                ) as $summary
+              | (release_title | .[0:100]) as $title
+              | {
+                  schema: "2.0",
+                  config: {
+                    update_multi: true,
+                    width_mode: "default",
+                    summary: {
+                      content: "\($title) · \($summary)"
+                    }
+                  },
+                  header: {
+                    title: {tag: "plain_text", content: $title},
+                    subtitle: {tag: "plain_text", content: $summary},
+                    template: "blue",
+                    icon: {tag: "standard_icon", token: "bell_outlined"},
+                    text_tag_list: [{
+                      tag: "text_tag",
+                      text: {tag: "plain_text", content: "Release"},
+                      color: "blue"
+                    }]
+                  },
+                  body: {
+                    direction: "vertical",
+                    padding: "12px 12px 20px 12px",
+                    vertical_spacing: "12px",
+                    elements: [
+                      {
+                        tag: "column_set",
+                        flex_mode: "none",
+                        columns: [{
+                          tag: "column",
+                          width: "weighted",
+                          weight: 1,
+                          background_style: "blue-50",
+                          padding: "12px",
+                          vertical_spacing: "4px",
+                          elements: [{
+                            tag: "markdown",
+                            content: (if $change_count > 0 then
+                                "**Latest stable release**\n\($summary)"
+                              else
+                                "**Latest stable release**"
+                              end)
+                          }]
+                        }]
+                      },
+                      {
+                        tag: "markdown",
+                        content: $description
+                      },
+                      {
+                        tag: "column_set",
+                        flex_mode: "bisect",
+                        horizontal_spacing: "8px",
+                        columns: [
+                          {
+                            tag: "column",
+                            width: "weighted",
+                            weight: 1,
+                            elements: [{
+                              tag: "button",
+                              text: {tag: "plain_text", content: "GitHub Release"},
+                              type: "primary_filled",
+                              width: "fill",
+                              behaviors: [{type: "open_url", default_url: $release_url}]
+                            }]
+                          },
+                          {
+                            tag: "column",
+                            width: "weighted",
+                            weight: 1,
+                            elements: [{
+                              tag: "button",
+                              text: {tag: "plain_text", content: "@midscene/core on npm"},
+                              type: "default",
+                              width: "fill",
+                              behaviors: [{type: "open_url", default_url: $npm_url}]
+                            }]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+            '
+        )"
+        echo "## Feishu notification" >> "$GITHUB_STEP_SUMMARY"
+        echo "" >> "$GITHUB_STEP_SUMMARY"
+        DELIVERY_FAILURES=0
+        DELIVERED_TARGETS=0
+        for TARGET_INDEX in "${!WEBHOOK_URLS[@]}"; do
+          WEBHOOK_URL="${WEBHOOK_URLS[$TARGET_INDEX]}"
+          WEBHOOK_SECRET="${WEBHOOK_SECRETS[$TARGET_INDEX]}"
+          if [[ -z "$WEBHOOK_URL" && -z "$WEBHOOK_SECRET" ]]; then
+            continue
+          fi
+
+          TIMESTAMP="$(date +%s)"
+          SIGNING_KEY="$(printf '%s\n%s' "$TIMESTAMP" "$WEBHOOK_SECRET")"
+          SIGNATURE="$(
+            printf '' \
+              | openssl dgst -sha256 -hmac "$SIGNING_KEY" -binary \
+              | openssl base64 -A
+          )"
+          unset SIGNING_KEY
+
+          PAYLOAD="$(
+            jq -cn \
+              --argjson card "$CARD_CONTENT" \
+              --arg sign "$SIGNATURE" \
+              --arg timestamp "$TIMESTAMP" \
+              '{timestamp: $timestamp, sign: $sign, msg_type: "interactive", card: $card}'
+          )"
+
+          if ! FEISHU_RESPONSE="$(
+            printf 'url = "%s"\n' "$WEBHOOK_URL" \
+              | curl \
+                  --config - \
+                  --fail-with-body \
+                  --silent \
+                  --show-error \
+                  --request POST \
+                  --header 'Content-Type: application/json; charset=utf-8' \
+                  --data "$PAYLOAD"
+          )"; then
+            echo "Feishu webhook target $((TARGET_INDEX + 1)) request failed." >&2
+            ((DELIVERY_FAILURES += 1))
+            continue
+          fi
+
+          if [[ "$(jq -r '.code // .StatusCode // -1' <<< "$FEISHU_RESPONSE")" != "0" ]]; then
+            echo "Feishu webhook target $((TARGET_INDEX + 1)) rejected the request: $(
+              jq -c '{code: (.code // .StatusCode), msg: (.msg // .StatusMessage)}' <<< "$FEISHU_RESPONSE"
+            )" >&2
+            ((DELIVERY_FAILURES += 1))
+            continue
+          fi
+
+          ((DELIVERED_TARGETS += 1))
+        done
+
+        echo "Published the ${RELEASE_VERSION} notification to ${DELIVERED_TARGETS} Feishu group(s) through signed webhooks." >> "$GITHUB_STEP_SUMMARY"
+        if [[ "$DELIVERY_FAILURES" -ne 0 ]]; then
+          exit 1
+        fi
+
+    - name: Summarize Feishu notification failure
+      if: ${{ steps.notify.outcome == 'failure' }}
+      run: |
+        echo "::warning::The GitHub Release succeeded, but its Feishu notification failed."
+        echo "## Feishu notification fallback" >> "$GITHUB_STEP_SUMMARY"
+        echo "" >> "$GITHUB_STEP_SUMMARY"
+        echo "The GitHub Release succeeded, but its Feishu notification failed. Review the previous step and resend the announcement manually." >> "$GITHUB_STEP_SUMMARY"
