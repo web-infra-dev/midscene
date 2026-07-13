@@ -9,13 +9,15 @@ tasks:
       - sleep: 2000
       - ai: In the center task detail area, click the "Screenshots" option in the Replay/Screenshots/JSON View switcher if it is not already selected
       - sleep: 1000
-      - aiAssert: The center task detail area has the Screenshots option selected and shows UI screenshot images for the selected task
+      # Assert the view's unique content instead of the segmented control's
+      # subtle active background, which is unreliable beside embedded images.
+      - aiAssert: The center task detail area shows at least one UI Context or execution screenshot image for the selected task
 
   - name: view JSON data tab
     flow:
       - ai: In the center task detail area, click the "JSON View" option in the Replay/Screenshots/JSON View switcher and wait until the content changes to the text data view
       - sleep: 1000
-      - aiAssert: The center task detail area has the JSON View option selected and shows structured task details as text instead of screenshot images
+      - aiAssert: The center task detail area shows structured task details as text instead of UI screenshot images
 
   - name: inspect detail side sections
     flow:
