@@ -399,7 +399,6 @@ jobs:
       env:
         DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
         GH_TOKEN: ${{ github.token }}
-        RELEASE_IMAGE_URL: https://midscenejs.com/og-image.png
         RELEASE_VERSION: ${{ needs.release.outputs.version }}
       run: |
         set -euo pipefail
@@ -424,28 +423,108 @@ jobs:
         PACKAGE_VERSION="${RELEASE_VERSION#v}"
 
         PAYLOAD="$(
-          jq -n \
+          jq -cn \
             --arg body "$RELEASE_BODY" \
-            --arg image_url "$RELEASE_IMAGE_URL" \
             --arg package_version "$PACKAGE_VERSION" \
             --arg published_at "$RELEASE_PUBLISHED_AT" \
             --arg release_name "$RELEASE_NAME" \
             --arg release_url "$RELEASE_URL" \
             --arg version "$RELEASE_VERSION" \
             '
-              ($release_name
-                | if length > 0 then . else "Midscene.js \($version)" end
-                | .[0:256]
-              ) as $title
-              | ($body
-                  | if length == 0 then
-                      "Midscene.js \($version) is now available."
-                    elif length > 3500 then
-                      .[0:3500] + "\n\n…"
-                    else
-                      .
-                    end
+              def release_title:
+                ($release_name | gsub("^\\s+|\\s+$"; "")) as $name
+                | if $name == "" or $name == $version or $name == ($version | ltrimstr("v")) then
+                    "Midscene.js \($version)"
+                  else
+                    $name
+                  end;
+              def normalized_type:
+                (try capture("^(?<type>[A-Za-z]+)(?:\\([^)]*\\))?!?:").type catch "other")
+                | ascii_downcase
+                | if . == "feat" then "feat"
+                  elif . == "fix" then "fix"
+                  elif . == "perf" then "perf"
+                  elif . == "refactor" then "refactor"
+                  elif . == "docs" then "docs"
+                  elif . == "test" or . == "tests" then "test"
+                  elif . == "build" then "build"
+                  elif . == "ci" then "ci"
+                  elif . == "chore" then "chore"
+                  else "other"
+                  end;
+              def parse_change:
+                . as $line
+                | if $line | test("^[*-] ") then
+                    (try
+                      ($line
+                        | capture("^[*-] (?<title>.+?) by @[^ ]+ in (?<url>https://github\\.com/[^ ]+/pull/(?<pr>[0-9]+))$")
+                      )
+                    catch
+                      {title: ($line | sub("^[*-] "; "")), url: "", pr: ""}
+                    )
+                    | .title |= gsub("^\\s+|\\s+$"; "")
+                    | .type = (.title | normalized_type)
+                  else
+                    empty
+                  end;
+              def category_definitions:
+                [
+                  {key: "feat", label: "Features"},
+                  {key: "fix", label: "Fixes"},
+                  {key: "perf", label: "Performance"},
+                  {key: "refactor", label: "Refactors"},
+                  {key: "docs", label: "Documentation"},
+                  {key: "test", label: "Tests"},
+                  {key: "build", label: "Build"},
+                  {key: "ci", label: "CI"},
+                  {key: "chore", label: "Chores"},
+                  {key: "other", label: "Other"}
+                ];
+              def safe_title:
+                gsub("(?<char>[\\\\`*_~\\[\\]()<>#])"; "\\\\\(.char)");
+              def item_line:
+                if .pr != "" then
+                  "- \(.title | safe_title) · [PR #\(.pr)](\(.url))"
+                else
+                  "- \(.title | safe_title)"
+                end;
+
+              ($body | gsub("\\r"; "") | gsub("<!--[^\\n]*-->\\n*"; "")) as $clean_body
+              | [$clean_body | split("\n")[] | parse_change] as $changes
+              | [
+                  category_definitions[] as $category
+                  | [$changes[] | select(.type == $category.key)] as $items
+                  | select($items | length > 0)
+                  | $category + {items: $items}
+                ] as $groups
+              | ($changes | length) as $change_count
+              | ($groups | length) as $category_count
+              | ($groups
+                  | map("**\(.label)**\n" + (.items | map(item_line) | join("\n")))
+                  | join("\n\n")
+                ) as $grouped_notes
+              | ($clean_body | gsub("^\\s+|\\s+$"; "")) as $raw_notes
+              | (if $change_count > 0 then
+                    $grouped_notes
+                  elif $raw_notes != "" then
+                    $raw_notes
+                  else
+                    "Midscene.js \($version) is now available."
+                  end
+                ) as $notes
+              | (if $change_count > 0 then
+                    "\($change_count) \(if $change_count == 1 then "change" else "changes" end)"
+                    + " · \($category_count) \(if $category_count == 1 then "category" else "categories" end)"
+                  else
+                    "Latest stable release"
+                  end
+                ) as $summary
+              | ("Latest stable release\n\n"
+                  + (if $change_count > 0 then "**\($summary)**\n\n" else "" end)
+                  + $notes
+                  | if length > 3500 then .[0:3500] + "\n\n…" else . end
                 ) as $description
+              | (release_title | .[0:256]) as $title
               | {
                   username: "Midscene Release",
                   avatar_url: "https://midscenejs.com/midscene-icon.png",
@@ -469,11 +548,8 @@ jobs:
                         inline: true
                       }
                     ],
-                    image: {
-                      url: $image_url
-                    },
                     footer: {
-                      text: "Midscene.js Release"
+                      text: $summary
                     },
                     timestamp: $published_at
                   }]
@@ -579,7 +655,7 @@ jobs:
         fi
         TENANT_ACCESS_TOKEN="$(jq -er '.tenant_access_token' <<< "$TOKEN_RESPONSE")"
 
-        POST_CONTENT="$(
+        CARD_CONTENT="$(
           jq -cn \
             --arg body "$RELEASE_BODY" \
             --arg release_name "$RELEASE_NAME" \
@@ -587,29 +663,193 @@ jobs:
             --arg npm_url "$NPM_URL" \
             --arg version "$RELEASE_VERSION" \
             '
-              ($release_name
-                | if length > 0 then . else "Midscene.js \($version)" end
-                | .[0:100]
-              ) as $title
-              | ($body
-                  | if length == 0 then
-                      "Midscene.js \($version) is now available."
-                    elif length > 8000 then
-                      .[0:8000] + "\n\n…"
+              def release_title:
+                ($release_name | gsub("^\\s+|\\s+$"; "")) as $name
+                | if $name == "" or $name == $version or $name == ($version | ltrimstr("v")) then
+                    "Midscene.js \($version)"
+                  else
+                    $name
+                  end;
+              def normalized_type:
+                (try capture("^(?<type>[A-Za-z]+)(?:\\([^)]*\\))?!?:").type catch "other")
+                | ascii_downcase
+                | if . == "feat" then "feat"
+                  elif . == "fix" then "fix"
+                  elif . == "perf" then "perf"
+                  elif . == "refactor" then "refactor"
+                  elif . == "docs" then "docs"
+                  elif . == "test" or . == "tests" then "test"
+                  elif . == "build" then "build"
+                  elif . == "ci" then "ci"
+                  elif . == "chore" then "chore"
+                  else "other"
+                  end;
+              def parse_change:
+                . as $line
+                | if $line | test("^[*-] ") then
+                    (try
+                      ($line
+                        | capture("^[*-] (?<title>.+?) by @[^ ]+ in (?<url>https://github\\.com/[^ ]+/pull/(?<pr>[0-9]+))$")
+                      )
+                    catch
+                      {title: ($line | sub("^[*-] "; "")), url: "", pr: ""}
+                    )
+                    | .title |= gsub("^\\s+|\\s+$"; "")
+                    | .type = (.title | normalized_type)
+                  else
+                    empty
+                  end;
+              def category_definitions:
+                [
+                  {key: "feat", label: "Features"},
+                  {key: "fix", label: "Fixes"},
+                  {key: "perf", label: "Performance"},
+                  {key: "refactor", label: "Refactors"},
+                  {key: "docs", label: "Documentation"},
+                  {key: "test", label: "Tests"},
+                  {key: "build", label: "Build"},
+                  {key: "ci", label: "CI"},
+                  {key: "chore", label: "Chores"},
+                  {key: "other", label: "Other"}
+                ];
+              def safe_title:
+                gsub("&"; "&#38;")
+                | gsub("<"; "&#60;")
+                | gsub(">"; "&#62;")
+                | gsub("\\*"; "&#42;")
+                | gsub("~"; "&#126;")
+                | gsub("\\["; "&#91;")
+                | gsub("\\]"; "&#93;")
+                | gsub("\\("; "&#40;")
+                | gsub("\\)"; "&#41;")
+                | gsub("#"; "&#35;")
+                | gsub("_"; "&#95;")
+                | gsub(":"; "&#58;");
+              def item_line:
+                if .pr != "" then
+                  "- \(.title | safe_title) · [PR #\(.pr)](\(.url))"
+                else
+                  "- \(.title | safe_title)"
+                end;
+
+              ($body | gsub("\\r"; "") | gsub("<!--[^\\n]*-->\\n*"; "")) as $clean_body
+              | [$clean_body | split("\n")[] | parse_change] as $changes
+              | [
+                  category_definitions[] as $category
+                  | [$changes[] | select(.type == $category.key)] as $items
+                  | select($items | length > 0)
+                  | $category + {items: $items}
+                ] as $groups
+              | ($changes | length) as $change_count
+              | ($groups | length) as $category_count
+              | ($groups
+                  | map("**\(.label)**\n" + (.items | map(item_line) | join("\n")))
+                  | join("\n\n")
+                ) as $grouped_notes
+              | ($clean_body | gsub("^\\s+|\\s+$"; "")) as $raw_notes
+              | (if $change_count > 0 then
+                    $grouped_notes
+                  elif $raw_notes != "" then
+                    $raw_notes
+                  else
+                    "Midscene.js \($version) is now available."
+                  end
+                ) as $notes
+              | ($notes
+                  | if length > 7500 then
+                      .[0:7400] + "\n\n… [View the full release notes](\($release_url))"
                     else
                       .
                     end
                 ) as $description
+              | (if $change_count > 0 then
+                    "\($change_count) \(if $change_count == 1 then "change" else "changes" end)"
+                    + " · \($category_count) \(if $category_count == 1 then "category" else "categories" end)"
+                  else
+                    "Latest stable release"
+                  end
+                ) as $summary
+              | (release_title | .[0:100]) as $title
               | {
-                  zh_cn: {
-                    title: $title,
-                    content: [
-                      [{tag: "text", text: $description}],
-                      [
-                        {tag: "a", text: "View GitHub Release", href: $release_url},
-                        {tag: "text", text: " · "},
-                        {tag: "a", text: "View @midscene/core on npm", href: $npm_url}
-                      ]
+                  schema: "2.0",
+                  config: {
+                    update_multi: true,
+                    width_mode: "default",
+                    summary: {
+                      content: "\($title) · \($summary)"
+                    }
+                  },
+                  header: {
+                    title: {tag: "plain_text", content: $title},
+                    subtitle: {tag: "plain_text", content: $summary},
+                    template: "blue",
+                    icon: {tag: "standard_icon", token: "bell_outlined"},
+                    text_tag_list: [{
+                      tag: "text_tag",
+                      text: {tag: "plain_text", content: "Release"},
+                      color: "blue"
+                    }]
+                  },
+                  body: {
+                    direction: "vertical",
+                    padding: "12px 12px 20px 12px",
+                    vertical_spacing: "12px",
+                    elements: [
+                      {
+                        tag: "column_set",
+                        flex_mode: "none",
+                        columns: [{
+                          tag: "column",
+                          width: "weighted",
+                          weight: 1,
+                          background_style: "blue-50",
+                          padding: "12px",
+                          vertical_spacing: "4px",
+                          elements: [{
+                            tag: "markdown",
+                            content: (if $change_count > 0 then
+                                "**Latest stable release**\n\($summary)"
+                              else
+                                "**Latest stable release**"
+                              end)
+                          }]
+                        }]
+                      },
+                      {
+                        tag: "markdown",
+                        content: $description
+                      },
+                      {
+                        tag: "column_set",
+                        flex_mode: "bisect",
+                        horizontal_spacing: "8px",
+                        columns: [
+                          {
+                            tag: "column",
+                            width: "weighted",
+                            weight: 1,
+                            elements: [{
+                              tag: "button",
+                              text: {tag: "plain_text", content: "GitHub Release"},
+                              type: "primary_filled",
+                              width: "fill",
+                              behaviors: [{type: "open_url", default_url: $release_url}]
+                            }]
+                          },
+                          {
+                            tag: "column",
+                            width: "weighted",
+                            weight: 1,
+                            elements: [{
+                              tag: "button",
+                              text: {tag: "plain_text", content: "@midscene/core on npm"},
+                              type: "default",
+                              width: "fill",
+                              behaviors: [{type: "open_url", default_url: $npm_url}]
+                            }]
+                          }
+                        ]
+                      }
                     ]
                   }
                 }
@@ -618,10 +858,10 @@ jobs:
         IDEMPOTENCY_KEY="$(printf '%s-%s-feishu' "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" | cut -c1-50)"
         PAYLOAD="$(
           jq -cn \
-            --arg content "$POST_CONTENT" \
+            --arg content "$CARD_CONTENT" \
             --arg receive_id "$FEISHU_CHAT_ID" \
             --arg uuid "$IDEMPOTENCY_KEY" \
-            '{receive_id: $receive_id, msg_type: "post", content: $content, uuid: $uuid}'
+            '{receive_id: $receive_id, msg_type: "interactive", content: $content, uuid: $uuid}'
         )"
 
         FEISHU_RESPONSE="$(
