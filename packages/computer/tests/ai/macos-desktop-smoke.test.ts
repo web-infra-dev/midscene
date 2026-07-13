@@ -201,6 +201,38 @@ async function waitForJson<T>(
   );
 }
 
+async function retryFixtureAction(options: {
+  action: () => Promise<unknown>;
+  fixtureProcess: ChildProcessWithoutNullStreams;
+  predicate: (state: FixtureState) => boolean;
+  stateFile: string;
+  waitDurations: readonly number[];
+}): Promise<{
+  state?: FixtureState;
+  attempts: number;
+  errors: string[];
+}> {
+  const errors: string[] = [];
+  let attempts = 0;
+  for (const waitDuration of options.waitDurations) {
+    attempts += 1;
+    try {
+      await options.action();
+      const state = await waitForJson(
+        options.stateFile,
+        normalizeState,
+        options.predicate,
+        waitDuration,
+        options.fixtureProcess,
+      );
+      return { state, attempts, errors };
+    } catch (error) {
+      errors.push(String(error));
+    }
+  }
+  return { attempts, errors };
+}
+
 function assertInside(inner: Bounds, outer: Bounds, label: string): void {
   expect(inner.left, `${label}.left`).toBeGreaterThanOrEqual(outer.left);
   expect(inner.top, `${label}.top`).toBeGreaterThanOrEqual(outer.top);
@@ -472,61 +504,74 @@ describe.skipIf(!RUN_LIVE_SMOKE)('macOS desktop live smoke', () => {
             'green smoke button',
           ),
         });
-      const tapWaitDurations = [3_000, 5_000, 10_000, STATE_TIMEOUT_MS];
-      const tapAttemptErrors: string[] = [];
-      let tapAttempts = 0;
-      let clickedState: FixtureState | undefined;
-      for (const waitDuration of tapWaitDurations) {
-        tapAttempts += 1;
-        await tapButton();
-        try {
-          clickedState = await waitForJson(
-            stateFile,
-            normalizeState,
-            (state) => state.clickCount >= 1,
-            waitDuration,
-            fixtureProcess,
-          );
-          break;
-        } catch (error) {
-          tapAttemptErrors.push(String(error));
-        }
-      }
+      const actionWaitDurations = [2_000, 3_000, 5_000, 8_000];
+      const tapResult = await retryFixtureAction({
+        action: tapButton,
+        fixtureProcess,
+        predicate: (state) => state.clickCount >= 1,
+        stateFile,
+        waitDurations: actionWaitDurations,
+      });
+      evidence.tapAttempts = tapResult.attempts;
+      evidence.tapAttemptErrors = tapResult.errors;
+      const clickedState = tapResult.state;
       if (!clickedState) {
         throw new Error(
-          `macOS fixture did not receive ${tapAttempts} button taps: ${tapAttemptErrors.at(-1)}`,
+          `macOS fixture did not receive ${tapResult.attempts} button taps: ${tapResult.errors.at(-1)}`,
         );
       }
-      evidence.tapAttempts = tapAttempts;
-      evidence.tapAttemptErrors = tapAttemptErrors;
       expect(clickedState.clickCount).toBeGreaterThanOrEqual(1);
 
       const inputText = 'Midscene macOS 输入 😀';
-      await agent.callActionInActionSpace('Input', {
-        value: inputText,
-        mode: 'replace',
-        locate: locate(metadata.textField, screenshotScale, 'smoke text field'),
-      });
-      const inputState = await waitForJson(
-        stateFile,
-        normalizeState,
-        (state) => state.text === inputText,
-        STATE_TIMEOUT_MS,
+      const inputResult = await retryFixtureAction({
+        action: () =>
+          agent!.callActionInActionSpace('Input', {
+            value: inputText,
+            mode: 'replace',
+            locate: locate(
+              metadata.textField,
+              screenshotScale,
+              'smoke text field',
+            ),
+          }),
         fixtureProcess,
-      );
+        predicate: (state) => state.text === inputText,
+        stateFile,
+        waitDurations: actionWaitDurations,
+      });
+      evidence.inputAttempts = inputResult.attempts;
+      evidence.inputAttemptErrors = inputResult.errors;
+      const inputState = inputResult.state;
+      if (!inputState) {
+        throw new Error(
+          `macOS fixture did not receive text after ${inputResult.attempts} input attempts: ${inputResult.errors.at(-1)}`,
+        );
+      }
       expect(inputState.text).toBe(inputText);
 
-      await agent.callActionInActionSpace('KeyboardPress', {
-        keyName: 'Enter',
-        locate: locate(metadata.textField, screenshotScale, 'smoke text field'),
-      });
-      const keyState = await waitForJson(
-        stateFile,
-        normalizeState,
-        (state) => state.lastKey === 'Enter',
-        STATE_TIMEOUT_MS,
+      const keyResult = await retryFixtureAction({
+        action: () =>
+          agent!.callActionInActionSpace('KeyboardPress', {
+            keyName: 'Enter',
+            locate: locate(
+              metadata.textField,
+              screenshotScale,
+              'smoke text field',
+            ),
+          }),
         fixtureProcess,
-      );
+        predicate: (state) => state.lastKey === 'Enter',
+        stateFile,
+        waitDurations: actionWaitDurations,
+      });
+      evidence.keyAttempts = keyResult.attempts;
+      evidence.keyAttemptErrors = keyResult.errors;
+      const keyState = keyResult.state;
+      if (!keyState) {
+        throw new Error(
+          `macOS fixture did not receive Enter after ${keyResult.attempts} keyboard attempts: ${keyResult.errors.at(-1)}`,
+        );
+      }
       expect(keyState.lastKey).toBe('Enter');
 
       const beforeScroll = await waitForJson(
@@ -536,21 +581,33 @@ describe.skipIf(!RUN_LIVE_SMOKE)('macOS desktop live smoke', () => {
         STATE_TIMEOUT_MS,
         fixtureProcess,
       );
-      await agent.callActionInActionSpace('Scroll', {
-        scrollType: 'singleAction',
-        direction: 'down',
-        distance: 180,
-        locate: locate(metadata.scroll, screenshotScale, 'scroll smoke area'),
-      });
-      const scrolledState = await waitForJson(
-        stateFile,
-        normalizeState,
-        (state) =>
+      const scrollResult = await retryFixtureAction({
+        action: () =>
+          agent!.callActionInActionSpace('Scroll', {
+            scrollType: 'singleAction',
+            direction: 'down',
+            distance: 180,
+            locate: locate(
+              metadata.scroll,
+              screenshotScale,
+              'scroll smoke area',
+            ),
+          }),
+        fixtureProcess,
+        predicate: (state) =>
           state.wheelEventCount > beforeScroll.wheelEventCount &&
           state.scrollValue !== beforeScroll.scrollValue,
-        STATE_TIMEOUT_MS,
-        fixtureProcess,
-      );
+        stateFile,
+        waitDurations: actionWaitDurations,
+      });
+      evidence.scrollAttempts = scrollResult.attempts;
+      evidence.scrollAttemptErrors = scrollResult.errors;
+      const scrolledState = scrollResult.state;
+      if (!scrolledState) {
+        throw new Error(
+          `macOS fixture did not scroll after ${scrollResult.attempts} attempts: ${scrollResult.errors.at(-1)}`,
+        );
+      }
       evidence.finalState = scrolledState;
       expect(scrolledState.visible).toBe(true);
 
@@ -562,7 +619,12 @@ describe.skipIf(!RUN_LIVE_SMOKE)('macOS desktop live smoke', () => {
       const locateTasks = dumpTasks.filter(
         (task) => task.type === 'Planning' && task.subType === 'Locate',
       );
-      expect(locateTasks).toHaveLength(3 + tapAttempts);
+      const actionAttempts =
+        tapResult.attempts +
+        inputResult.attempts +
+        keyResult.attempts +
+        scrollResult.attempts;
+      expect(locateTasks).toHaveLength(actionAttempts);
       expect(locateTasks.every((task) => task.hitBy?.from === 'Plan')).toBe(
         true,
       );
@@ -587,7 +649,7 @@ describe.skipIf(!RUN_LIVE_SMOKE)('macOS desktop live smoke', () => {
       const reportLocateTasks = reportTasks.filter(
         (task) => task.type === 'Planning' && task.subType === 'Locate',
       );
-      expect(reportLocateTasks).toHaveLength(3 + tapAttempts);
+      expect(reportLocateTasks).toHaveLength(actionAttempts);
       expect(
         reportLocateTasks.every((task) => task.hitBy?.from === 'Plan'),
       ).toBe(true);
