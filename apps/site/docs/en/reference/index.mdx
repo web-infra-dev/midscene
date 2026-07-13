@@ -136,6 +136,7 @@ function aiAct(
     deepThink?: 'unset' | true | false;
     deepLocate?: boolean;
     fileChooserAccept?: string | string[];
+    fileChooserAllowedDir?: string;
     abortSignal?: AbortSignal;
   },
 ): Promise<string | undefined>;
@@ -153,6 +154,7 @@ function ai(prompt: string): Promise<string | undefined>; // shorthand form
       - **Note**: If the file input does not support multiple files (no `multiple` attribute) but multiple files are provided, an error will be thrown.
       - **Note**: If a file chooser is triggered but no `fileChooserAccept` parameter is provided, the file chooser will be ignored and the page can continue to operate normally.
       - **Note**: Chrome extension Bridge mode does not support directory upload inputs (`webkitdirectory` / `directory`). Use Playwright for directory uploads.
+    - `fileChooserAllowedDir?: string` — Trusted directory from which this `aiAct` call may select files mentioned in its prompt. The model must provide relative paths inside this directory; absolute paths and paths that escape it are rejected. Symlinks within the directory are allowed. Without this option, model-driven file uploads are rejected.
     - `abortSignal?: AbortSignal` — Signal used to cancel the `aiAct` call. When aborted, Midscene stops the planning loop and throws an error. Use it to implement timeouts or user-initiated cancellation.
 
 - Return value:
@@ -183,6 +185,23 @@ await agent.aiAct('Fill in the form and submit', {
 // For complex tasks, you can enable the deepThink parameter
 await agent.aiAct('Complete the GitHub account registration form. The region must be set to "Canada". Make sure no fields on the form are missed and all form fields pass validation. Just fill in the form fields without actually submitting the registration. Finally, return the actual content filled in the form fields', { deepThink: true });
 ```
+
+##### Upload files from an `aiAct` prompt
+
+To let `aiAct` upload files mentioned in its prompt, pass a trusted `fileChooserAllowedDir` to that call. Midscene plans the file chooser setup before the action that opens the dialog. The model can only use relative paths inside this directory.
+
+```typescript
+const agent = new PlaywrightAgent(page);
+
+await agent.aiAct(
+  'First click the "Upload avatar" button and upload avatar.png. Then click the "Upload cover" button and upload cover.png. After uploading, confirm that the avatar displays a cat and the cover displays a beach.',
+  { fileChooserAllowedDir: process.env.UPLOAD_ASSETS_DIR },
+);
+```
+
+For multiple uploads in one `aiAct`, name each relative path together with the action that should upload it. A later path replaces the previously configured file chooser path(s). Do not combine prompt-specified paths with `options.fileChooserAccept`: a later file chooser configuration generated during planning can override the option value.
+
+This capability is available for web pages (Playwright, Puppeteer, and Chrome extension Bridge mode). Without `fileChooserAllowedDir`, prompt-specified file paths are rejected; use `options.fileChooserAccept` when your application explicitly selects the files. The configured directory also makes the prompt portable across local and CI environments.
 
 :::tip
 

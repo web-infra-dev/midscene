@@ -10,7 +10,7 @@ import {
   userPromptToMultimodalPrompt,
   userPromptToString,
 } from '@/common';
-import type { AbstractInterface, FileChooserHandler } from '@/device';
+import type { AbstractInterface } from '@/device';
 import type Service from '@/service';
 import type { TaskRunner, TaskRunnerEvent } from '@/task-runner';
 import { TaskExecutionError } from '@/task-runner';
@@ -38,6 +38,7 @@ import { ServiceError, aiActProgressScope } from '@/types';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import { ExecutionSession } from './execution-session';
+import { withFileChooser } from './file-chooser';
 import {
   type AgentProgressPublisher,
   createAiActActionReporter,
@@ -93,6 +94,7 @@ function truncatePlanningFeedback(feedback: string): string {
 }
 
 export { TaskExecutionError };
+export { withFileChooser } from './file-chooser';
 
 export class TaskExecutor {
   interface: AbstractInterface;
@@ -1112,7 +1114,6 @@ export class TaskExecutor {
     return session.appendErrorPlan(`waitFor timeout: ${errorThought}`);
   }
 }
-
 /**
  * Surface a captured screenshot sequence in the report timeline, then release
  * it from the UIContext.
@@ -1157,39 +1158,5 @@ export function recordAndReleaseScreenshotSequence(
   }
   if (uiContext?.screenshotSequence) {
     uiContext.screenshotSequence = undefined;
-  }
-}
-
-export async function withFileChooser<T>(
-  interfaceInstance: AbstractInterface,
-  fileChooserAccept: string[] | undefined,
-  action: () => Promise<T>,
-): Promise<T> {
-  if (!fileChooserAccept?.length) {
-    return action();
-  }
-
-  if (!interfaceInstance.registerFileChooserListener) {
-    throw new Error(
-      `File upload is not supported on ${interfaceInstance.interfaceType}`,
-    );
-  }
-
-  const handler = async (chooser: FileChooserHandler) => {
-    await chooser.accept(fileChooserAccept);
-  };
-
-  const { dispose, getError } =
-    await interfaceInstance.registerFileChooserListener(handler);
-  try {
-    const result = await action();
-    // Check for errors that occurred during file chooser handling
-    const error = await getError();
-    if (error) {
-      throw error;
-    }
-    return result;
-  } finally {
-    dispose();
   }
 }
