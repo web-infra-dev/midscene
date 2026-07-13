@@ -241,7 +241,11 @@ function run() {
       attr(element, 'AXValue'),
     ].map(text);
     const role = text(safe(function () { return element.role(); }));
-    if (role === 'AXButton' && labels.includes('Allow For One Month')) {
+    const promptButtonLabels = ['Allow', 'Allow For One Month'];
+    if (
+      role === 'AXButton' &&
+      labels.some(function (label) { return promptButtonLabels.includes(label); })
+    ) {
       return element;
     }
     if (depth >= 8 || visited >= 500) return undefined;
