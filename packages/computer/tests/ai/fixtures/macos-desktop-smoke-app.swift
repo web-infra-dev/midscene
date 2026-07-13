@@ -1,4 +1,5 @@
 import AppKit
+import Darwin
 import Foundation
 
 final class FlippedDocumentView: NSView {
@@ -24,7 +25,9 @@ final class FixtureController: NSObject, NSApplicationDelegate, NSTextFieldDeleg
   private var button: SmokeButton!
   private var textField: NSTextField!
   private var scrollView: NSScrollView!
+  private var activationSource: DispatchSourceSignal?
 
+  private var activationCount = 0
   private var clickCount = 0
   private var buttonActionCount = 0
   private var lastKey = ""
@@ -98,6 +101,7 @@ final class FixtureController: NSObject, NSApplicationDelegate, NSTextFieldDeleg
     )
     window.contentView?.addSubview(scrollView)
 
+    installActivationSignal()
     activateFixture()
     window.makeFirstResponder(textField)
     writeState()
@@ -131,9 +135,31 @@ final class FixtureController: NSObject, NSApplicationDelegate, NSTextFieldDeleg
   }
 
   private func activateFixture() {
+    focusFixture()
+    activationCount += 1
+    writeState()
+    DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in
+      self?.focusFixture()
+      self?.writeState()
+    }
+  }
+
+  private func focusFixture() {
+    NSApplication.shared.unhide(nil)
+    window.orderFrontRegardless()
     window.makeKeyAndOrderFront(nil)
     NSApplication.shared.activate(ignoringOtherApps: true)
     NSRunningApplication.current.activate(options: [.activateAllWindows])
+  }
+
+  private func installActivationSignal() {
+    signal(SIGUSR1, SIG_IGN)
+    let source = DispatchSource.makeSignalSource(signal: SIGUSR1, queue: .main)
+    source.setEventHandler { [weak self] in
+      self?.activateFixture()
+    }
+    source.resume()
+    activationSource = source
   }
 
   private func installMainMenu() {
@@ -220,6 +246,9 @@ final class FixtureController: NSObject, NSApplicationDelegate, NSTextFieldDeleg
     writeJSON(
       [
         "visible": window.isVisible,
+        "active": NSApplication.shared.isActive,
+        "keyWindow": window.isKeyWindow,
+        "activationCount": activationCount,
         "clickCount": clickCount,
         "buttonActionCount": buttonActionCount,
         "text": textField.stringValue,

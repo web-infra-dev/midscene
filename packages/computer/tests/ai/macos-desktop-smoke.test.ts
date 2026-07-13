@@ -43,6 +43,7 @@ const FIXTURE_INFO_PLIST = path.join(
 const REPORT_FILE_NAME = 'macos-desktop-smoke';
 const REPORT_HTML_FILE_NAME = `${REPORT_FILE_NAME}.html`;
 const FIXTURE_READY_TIMEOUT_MS = 30_000;
+const ACTIVATION_TIMEOUT_MS = 3_000;
 const STATE_TIMEOUT_MS = 15_000;
 const POLL_INTERVAL_MS = 100;
 
@@ -66,6 +67,9 @@ interface FixtureMetadata {
 
 interface FixtureState {
   visible: boolean;
+  active: boolean;
+  keyWindow: boolean;
+  activationCount: number;
   clickCount: number;
   buttonActionCount: number;
   text: string;
@@ -151,6 +155,12 @@ function normalizeState(value: unknown): FixtureState {
   const raw = asRecord(value, 'fixture state');
   return {
     visible: raw.visible === true,
+    active: raw.active === true,
+    keyWindow: raw.keyWindow === true,
+    activationCount: asFiniteNumber(
+      raw.activationCount,
+      'state.activationCount',
+    ),
     clickCount: asFiniteNumber(raw.clickCount, 'state.clickCount'),
     buttonActionCount: asFiniteNumber(
       raw.buttonActionCount,
@@ -206,6 +216,7 @@ async function retryFixtureAction(options: {
   fixtureProcess: ChildProcessWithoutNullStreams;
   predicate: (state: FixtureState) => boolean;
   stateFile: string;
+  fixturePid: number;
   waitDurations: readonly number[];
 }): Promise<{
   state?: FixtureState;
@@ -217,6 +228,25 @@ async function retryFixtureAction(options: {
   for (const waitDuration of options.waitDurations) {
     attempts += 1;
     try {
+      const beforeActivation = await waitForJson(
+        options.stateFile,
+        normalizeState,
+        () => true,
+        ACTIVATION_TIMEOUT_MS,
+        options.fixtureProcess,
+      );
+      process.kill(options.fixturePid, 'SIGUSR1');
+      await waitForJson(
+        options.stateFile,
+        normalizeState,
+        (state) =>
+          state.activationCount > beforeActivation.activationCount &&
+          state.active &&
+          state.keyWindow,
+        ACTIVATION_TIMEOUT_MS,
+        options.fixtureProcess,
+      );
+      await sleep(250);
       await options.action();
       const state = await waitForJson(
         options.stateFile,
@@ -315,6 +345,7 @@ function latestExecutions(dumps: ReportDump[]): ReportExecution[] {
 
 async function stopFixture(
   fixtureProcess: ChildProcessWithoutNullStreams | undefined,
+  fixturePid: number | undefined,
 ): Promise<void> {
   if (!fixtureProcess || fixtureProcess.exitCode !== null) {
     return;
@@ -322,8 +353,21 @@ async function stopFixture(
   const exited = new Promise<void>((resolve) =>
     fixtureProcess.once('exit', () => resolve()),
   );
-  fixtureProcess.kill('SIGTERM');
+  if (fixturePid && fixturePid !== fixtureProcess.pid) {
+    try {
+      process.kill(fixturePid, 'SIGTERM');
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'ESRCH') {
+        throw error;
+      }
+    }
+  } else {
+    fixtureProcess.kill('SIGTERM');
+  }
   await Promise.race([exited, sleep(5_000)]);
+  if (fixtureProcess.exitCode === null) {
+    fixtureProcess.kill('SIGTERM');
+  }
 }
 
 describe.skipIf(!RUN_LIVE_SMOKE)('macOS desktop live smoke', () => {
@@ -347,11 +391,10 @@ describe.skipIf(!RUN_LIVE_SMOKE)('macOS desktop live smoke', () => {
     const reportFile = path.join(runDir, 'report', REPORT_HTML_FILE_NAME);
 
     let fixtureProcess: ChildProcessWithoutNullStreams | undefined;
+    let fixturePid: number | undefined;
     let fixtureTempDir: string | undefined;
     let device: ComputerDevice | undefined;
     let agent: ComputerAgent<ComputerDevice> | undefined;
-    let fixtureStdout = '';
-    let fixtureStderr = '';
     const evidence: Record<string, unknown> = {
       platform: process.platform,
       diagnosticsDir,
@@ -387,18 +430,28 @@ describe.skipIf(!RUN_LIVE_SMOKE)('macOS desktop live smoke', () => {
         { stdio: 'pipe' },
       );
 
-      fixtureProcess = spawn(executable, [readyFile, stateFile], {
-        stdio: 'pipe',
-      });
+      await Promise.all([
+        writeFile(fixtureStdoutFile, '', 'utf8'),
+        writeFile(fixtureStderrFile, '', 'utf8'),
+      ]);
+      fixtureProcess = spawn(
+        '/usr/bin/open',
+        [
+          '-W',
+          '-n',
+          '-F',
+          '-o',
+          fixtureStdoutFile,
+          '--stderr',
+          fixtureStderrFile,
+          appDir,
+          '--args',
+          readyFile,
+          stateFile,
+        ],
+        { stdio: 'pipe' },
+      );
       fixtureProcess.stdin.end();
-      fixtureProcess.stdout.setEncoding('utf8');
-      fixtureProcess.stderr.setEncoding('utf8');
-      fixtureProcess.stdout.on('data', (chunk: string) => {
-        fixtureStdout += chunk;
-      });
-      fixtureProcess.stderr.on('data', (chunk: string) => {
-        fixtureStderr += chunk;
-      });
 
       const metadata = await waitForJson(
         readyFile,
@@ -407,8 +460,11 @@ describe.skipIf(!RUN_LIVE_SMOKE)('macOS desktop live smoke', () => {
         FIXTURE_READY_TIMEOUT_MS,
         fixtureProcess,
       );
+      fixturePid = metadata.processId;
       evidence.fixture = metadata;
-      expect(metadata.processId).toBe(fixtureProcess.pid);
+      evidence.launcherProcessId = fixtureProcess.pid;
+      expect(metadata.processId).toBeGreaterThan(0);
+      expect(metadata.processId).not.toBe(fixtureProcess.pid);
       expect(metadata.backingScaleFactor).toBeGreaterThanOrEqual(1);
       for (const [label, bounds] of Object.entries({
         window: metadata.window,
@@ -508,6 +564,7 @@ describe.skipIf(!RUN_LIVE_SMOKE)('macOS desktop live smoke', () => {
       const tapResult = await retryFixtureAction({
         action: tapButton,
         fixtureProcess,
+        fixturePid,
         predicate: (state) => state.clickCount >= 1,
         stateFile,
         waitDurations: actionWaitDurations,
@@ -535,6 +592,7 @@ describe.skipIf(!RUN_LIVE_SMOKE)('macOS desktop live smoke', () => {
             ),
           }),
         fixtureProcess,
+        fixturePid,
         predicate: (state) => state.text === inputText,
         stateFile,
         waitDurations: actionWaitDurations,
@@ -560,6 +618,7 @@ describe.skipIf(!RUN_LIVE_SMOKE)('macOS desktop live smoke', () => {
             ),
           }),
         fixtureProcess,
+        fixturePid,
         predicate: (state) => state.lastKey === 'Enter',
         stateFile,
         waitDurations: actionWaitDurations,
@@ -594,6 +653,7 @@ describe.skipIf(!RUN_LIVE_SMOKE)('macOS desktop live smoke', () => {
             ),
           }),
         fixtureProcess,
+        fixturePid,
         predicate: (state) =>
           state.wheelEventCount > beforeScroll.wheelEventCount &&
           state.scrollValue !== beforeScroll.scrollValue,
@@ -681,18 +741,14 @@ describe.skipIf(!RUN_LIVE_SMOKE)('macOS desktop live smoke', () => {
           evidence.deviceDestroyError = String(error);
         });
       }
-      await stopFixture(fixtureProcess).catch((error) => {
+      await stopFixture(fixtureProcess, fixturePid).catch((error) => {
         evidence.fixtureStopError = String(error);
       });
-      await Promise.all([
-        writeFile(fixtureStdoutFile, fixtureStdout, 'utf8'),
-        writeFile(fixtureStderrFile, fixtureStderr, 'utf8'),
-        writeFile(
-          evidenceFile,
-          `${JSON.stringify(evidence, null, 2)}\n`,
-          'utf8',
-        ),
-      ]);
+      await writeFile(
+        evidenceFile,
+        `${JSON.stringify(evidence, null, 2)}\n`,
+        'utf8',
+      );
       if (fixtureTempDir) {
         await rm(fixtureTempDir, { recursive: true, force: true });
       }
