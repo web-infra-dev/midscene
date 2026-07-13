@@ -30,6 +30,20 @@ describe('isTextTruncated', () => {
     ).toBe(false);
   });
 
+  it('ignores a one-pixel multi-line layout rounding difference', () => {
+    expect(
+      isTextTruncated(
+        {
+          clientHeight: 48,
+          clientWidth: 200,
+          scrollHeight: 49,
+          scrollWidth: 200,
+        },
+        'multi-line',
+      ),
+    ).toBe(false);
+  });
+
   it('detects horizontal overflow for single-line ellipsis', () => {
     expect(
       isTextTruncated(

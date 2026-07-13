@@ -9,7 +9,7 @@ import type {
 } from '../../types';
 import type { ReplayScriptsInfo } from '../../utils/replay-scripts';
 import { emptyResultTip, serverLaunchTip } from '../misc';
-import { Player } from '../player';
+import { Player, type PlayerPresentation } from '../player';
 import ShinyText from '../shiny-text';
 import './index.less';
 
@@ -28,6 +28,7 @@ interface PlaygroundResultProps {
   actionType?: string; // The action type that was executed
   canDownloadReport?: boolean;
   onDownloadReport?: ReportDownloadHandler;
+  playerPresentation?: PlayerPresentation;
 }
 
 export const PlaygroundResultView: React.FC<PlaygroundResultProps> = ({
@@ -45,6 +46,7 @@ export const PlaygroundResultView: React.FC<PlaygroundResultProps> = ({
   actionType,
   canDownloadReport,
   onDownloadReport,
+  playerPresentation,
 }) => {
   let resultWrapperClassName = 'result-wrapper';
   if (verticalMode) {
@@ -105,6 +107,7 @@ export const PlaygroundResultView: React.FC<PlaygroundResultProps> = ({
                   canDownloadReport ?? serviceMode !== 'In-Browser'
                 }
                 onDownloadReport={onDownloadReport}
+                presentation={playerPresentation}
               />
             </div>
           </div>
@@ -149,6 +152,7 @@ export const PlaygroundResultView: React.FC<PlaygroundResultProps> = ({
                 canDownloadReport ?? serviceMode !== 'In-Browser'
               }
               onDownloadReport={onDownloadReport}
+              presentation={playerPresentation}
             />
           </div>
         </div>
@@ -169,6 +173,7 @@ export const PlaygroundResultView: React.FC<PlaygroundResultProps> = ({
         autoZoom={autoZoom}
         canDownloadReport={canDownloadReport ?? serviceMode !== 'In-Browser'}
         onDownloadReport={onDownloadReport}
+        presentation={playerPresentation}
       />
     );
   } else if (
@@ -202,6 +207,7 @@ export const PlaygroundResultView: React.FC<PlaygroundResultProps> = ({
                 canDownloadReport ?? serviceMode !== 'In-Browser'
               }
               onDownloadReport={onDownloadReport}
+              presentation={playerPresentation}
             />
           </div>
         </div>
@@ -225,6 +231,7 @@ export const PlaygroundResultView: React.FC<PlaygroundResultProps> = ({
         autoZoom={autoZoom}
         canDownloadReport={canDownloadReport ?? serviceMode !== 'In-Browser'}
         onDownloadReport={onDownloadReport}
+        presentation={playerPresentation}
       />
     );
   } else if (result?.result !== undefined) {

@@ -340,7 +340,7 @@ function RecorderFloatingOutputs({
           type="button"
         >
           <RecorderScreenshotIcon />
-          <span>Screenshot</span>
+          <span>Screenshots</span>
         </button>
       </div>
     );
@@ -375,7 +375,7 @@ export function RecorderScreenshotDetailView({
       <header className="studio-recorder-screenshot-detail-header">
         <div className="studio-recorder-screenshot-detail-title">
           <RecorderScreenshotIcon />
-          <span>Screenshot</span>
+          <span>Screenshots</span>
         </div>
       </header>
 

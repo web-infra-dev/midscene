@@ -239,19 +239,19 @@ function ReplayExecutionPanel({
     );
   }
 
-  if (showHeader) {
-    return (
-      <PlaygroundShell
-        actions={actions}
-        showHeader={showHeader}
-        title={replayTitle}
-      >
-        {timelinePanel}
-      </PlaygroundShell>
-    );
+  if (!timelinePanel) {
+    return null;
   }
 
-  return timelinePanel;
+  return (
+    <PlaygroundShell
+      actions={actions}
+      showHeader={showHeader}
+      title={replayTitle}
+    >
+      {timelinePanel}
+    </PlaygroundShell>
+  );
 }
 
 export default function StudioModePanel({

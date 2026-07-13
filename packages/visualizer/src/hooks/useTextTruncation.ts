@@ -13,9 +13,14 @@ export function isTextTruncated(
 ): boolean {
   if (!element) return false;
 
-  return mode === 'multi-line'
-    ? element.scrollHeight > element.clientHeight
-    : element.scrollWidth > element.clientWidth;
+  if (mode === 'multi-line') {
+    // Browsers can round the computed height of an exactly full line-clamp up
+    // by 1px. Treat that as fitting so a two-line entry does not get a
+    // tooltip unless text is actually hidden.
+    return element.scrollHeight - element.clientHeight > 1;
+  }
+
+  return element.scrollWidth > element.clientWidth;
 }
 
 /**

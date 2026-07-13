@@ -172,6 +172,7 @@ export function createStudioTimelineConfig(
       settingsPlacement: 'input',
       inputActions: options.inputActions,
     } as StudioPromptInputChromeConfig,
+    promptInputPlacement: 'before-timeline',
     showClearButton: options.showClearButton ?? false,
     storageNamespace: options.storageNamespace,
     suppressConfigErrorToast: options.suppressConfigErrorToast,

@@ -1175,7 +1175,14 @@ export default function MainContent({
           </MobilePreviewFrame>
         </div>
         <div
-          className="absolute bottom-0 right-0 top-0 z-10 box-border flex min-h-0 flex-col overflow-hidden rounded-br-[12px] p-[10px]"
+          className={[
+            'absolute bottom-0 right-0 top-0 z-10 box-border flex min-h-0 flex-col overflow-hidden rounded-br-[12px] p-[10px]',
+            floatingStudioModePanel
+              ? 'pointer-events-none studio-mode-panel-overlay-floating'
+              : '',
+          ]
+            .filter(Boolean)
+            .join(' ')}
           style={{ width: STUDIO_MODE_PANEL_WIDTH }}
         >
           <StudioModePanel

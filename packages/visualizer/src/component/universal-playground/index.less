@@ -14,7 +14,17 @@
     display: flex;
     flex-direction: column;
     height: 100%;
+    min-height: 0;
     width: 100%;
+  }
+
+  // Hosts compose this region with their own prompt/history panels. It owns
+  // the available execution space; the timeline itself remains content-sized.
+  .playground-timeline-region {
+    display: flex;
+    min-height: 0;
+    flex: 1 1 auto;
+    flex-direction: column;
   }
 
   // Context Preview Section
@@ -410,7 +420,7 @@
     max-width: min(80%, 280px);
     border-radius: 12px;
     padding: 8px 16px;
-    font-size: 14px;
+    font-size: 13px;
     line-height: 22px;
   }
 
@@ -450,7 +460,23 @@
 
     .progress-row-content {
       min-width: 0;
-      line-height: 20px;
+      line-height: 24px;
+    }
+
+    // Keep long progress entries consistent with the recorder timeline: clamp
+    // them to two lines so the truncation hook can reveal the full text.
+    .progress-row-copy {
+      display: -webkit-box;
+      max-height: 48px;
+      overflow: hidden;
+      overflow-wrap: anywhere;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
+      word-break: break-word;
+    }
+
+    .progress-row-content .ant-alert-message {
+      font-size: 13px;
     }
 
     // Drop the pill chrome — render the action label as plain inline text.
@@ -459,13 +485,15 @@
       padding: 0;
       margin: 0;
       height: auto;
-      line-height: 20px;
+      line-height: 24px;
       border-radius: 0;
       background: transparent;
       color: var(--midscene-text-primary, rgba(0, 0, 0, 0.85));
-      font-family: Roboto, Inter, system-ui, sans-serif;
-      font-weight: 400;
-      font-size: 12px;
+      font-family: Inter, system-ui, sans-serif;
+      // Keep the event name visually distinct from its description, matching
+      // the recorder timeline.
+      font-weight: 700;
+      font-size: 13px;
       letter-spacing: 0;
     }
 
@@ -516,9 +544,10 @@
       display: inline;
       padding: 0;
       margin: 0;
-      font-family: Roboto, Inter, system-ui, sans-serif;
-      font-size: 12px;
-      line-height: 20px;
+      font-family: Inter, system-ui, sans-serif;
+      font-size: 13px;
+      font-weight: 400;
+      line-height: 24px;
       color: var(--midscene-text-primary, rgba(0, 0, 0, 0.85));
     }
 
@@ -539,15 +568,22 @@
       padding: 0 4px 0 0;
       font-family: Inter, system-ui, sans-serif;
       font-weight: 500;
-      font-size: 12px;
+      font-size: 13px;
       line-height: 14.5px;
       color: var(--midscene-text-tertiary, rgba(0, 0, 0, 0.5));
     }
   }
 
+  .system-message-header .system-message-title,
+  .system-message-content,
+  .system-message-content .system-message-text,
+  .system-message-content .error-message,
+  .system-message-content .loading-progress-text {
+    font-size: 13px;
+  }
+
   .system-message-content,
   .system-message-content .system-message-text {
-    font-size: 14px;
     line-height: 22px;
     color: rgba(0, 0, 0, 0.85);
   }

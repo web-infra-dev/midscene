@@ -1,6 +1,5 @@
 .playground-shell .studio-playground-input-first .bottom-input-section {
   position: relative;
-  order: 0;
   min-height: 204.077px;
   height: auto;
   flex: 0 0 auto;
@@ -36,7 +35,7 @@
   padding: 8px 12px 8px 16px;
   color: #0d0d0d;
   content: "API Playground";
-  font-family: Inter, Roboto, system-ui, sans-serif;
+  font-family: Inter, system-ui, sans-serif;
   font-size: 14px;
   font-weight: 500;
   line-height: 22.106px;
@@ -119,7 +118,7 @@
   background: #fff;
   padding: 0 8px;
   color: #000;
-  font-family: Inter, Roboto, system-ui, sans-serif;
+  font-family: Inter, system-ui, sans-serif;
   font-size: 12px;
   font-weight: 400;
   line-height: 16px;
@@ -257,7 +256,7 @@
   max-height: 56px;
   padding: 0 4px;
   color: rgba(0, 0, 0, 0.9);
-  font-family: Inter, Roboto, system-ui, sans-serif;
+  font-family: Inter, system-ui, sans-serif;
   font-size: 13px;
   font-weight: 400;
   line-height: 22px;
@@ -422,7 +421,7 @@
   background: #fff;
   padding: 6px 12px;
   color: #000;
-  font-family: Inter, Roboto, system-ui, sans-serif;
+  font-family: Inter, system-ui, sans-serif;
   font-size: 13px;
   font-weight: 400;
   line-height: normal;

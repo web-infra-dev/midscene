@@ -8,6 +8,7 @@ import {
 } from 'react';
 import type { StudioPlatformId } from '../../../shared/electron-contract';
 import { STUDIO_EXTERNAL_LINKS } from '../../../shared/external-links';
+import { TITLEBAR_CONTROL_TOP } from '../../../shared/titlebar-layout';
 import type { UpdateStatus } from '../../../shared/updater-contract';
 import { assetUrls } from '../../assets';
 import { useStudioUpdater } from '../../hooks/useStudioUpdater';
@@ -37,7 +38,6 @@ const SIDEBAR_MAX_WIDTH = 400;
 
 const SIDEBAR_COLLAPSED_WIDTH = 0;
 const COLLAPSED_TITLEBAR_INSET = 280;
-const TITLEBAR_CONTROL_TOP = 11;
 const UPDATE_PILL_LEFT = 128;
 const SIDEBAR_TOGGLE_LEFT = 98;
 const SIDEBAR_TRANSITION_CLASS = 'duration-200 ease-[cubic-bezier(0.2,0,0,1)]';
@@ -371,11 +371,10 @@ export default function ShellLayout() {
     shouldShowStudioRightPanel && studioRightPanelView
       ? getStudioRightPanelWidth(studioRightPanelView)
       : 0;
-  const shouldFloatStudioContextPanel =
+  const shouldFloatStudioModePanel =
     shouldShowStudioRightPanel &&
     (studioMode === StudioModeTab.Record ||
-      studioMode === StudioModeTab.Replay) &&
-    studioRightPanelView?.type === StudioRightPanelViewType.Markdown;
+      studioMode === StudioModeTab.Replay);
   const mainAreaStyle: CSSProperties = {
     left: sidebarCollapsed ? SIDEBAR_COLLAPSED_WIDTH : sidebarWidth,
   };
@@ -481,7 +480,7 @@ export default function ShellLayout() {
           activeView={activeView}
           modelConfigComplete={modelConfigComplete}
           modelEnvText={modelEnvText}
-          floatingStudioModePanel={shouldFloatStudioContextPanel}
+          floatingStudioModePanel={shouldFloatStudioModePanel}
           onOpenEnvModal={openEnvModal}
           onOpenStudioRightPanel={openStudioRightPanel}
           onPendingCreatePlatformChange={setPendingCreatePlatform}

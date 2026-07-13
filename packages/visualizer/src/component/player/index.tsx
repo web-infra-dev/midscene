@@ -34,6 +34,8 @@ import type { FrameMap, ScriptFrame } from './scenes/frame-calculator';
 import { getPlaybackFrameState } from './scenes/playback-frame';
 import { useFramePlayer } from './use-frame-player';
 
+export type PlayerPresentation = 'default' | 'timeline';
+
 function deriveTaskId(
   scriptFrames: ScriptFrame[],
   stepsFrame: number,
@@ -74,6 +76,7 @@ export function Player(props?: {
   autoPlay?: boolean;
   /** Hide the bottom playback control bar entirely. Defaults to false. */
   hideControls?: boolean;
+  presentation?: PlayerPresentation;
 }) {
   const { message } = AntdApp.useApp();
   const {
@@ -378,6 +381,7 @@ export function Player(props?: {
 
   const reportFileContent = props?.reportFileContent ?? null;
   const canDownloadReport = props?.canDownloadReport !== false;
+  const presentation = props?.presentation ?? 'default';
 
   // If no scripts, fall back to a Download-report empty state when a report is
   // available (e.g. Stop was pressed before any task finished). Otherwise hide
@@ -385,7 +389,10 @@ export function Player(props?: {
   if (!scripts || scripts.length === 0 || !frameMap) {
     if (reportFileContent && canDownloadReport) {
       return (
-        <div className="player-container player-container-empty">
+        <div
+          className="player-container player-container-empty"
+          data-presentation={presentation}
+        >
           <div className="player-empty-state">
             <span className="player-empty-text">No replay available</span>
             <Button
@@ -414,7 +421,11 @@ export function Player(props?: {
       : 0;
 
   return (
-    <div className="player-container" data-fit-mode={props?.fitMode}>
+    <div
+      className="player-container"
+      data-fit-mode={props?.fitMode}
+      data-presentation={presentation}
+    >
       <div
         className="canvas-container"
         ref={containerRef}

@@ -115,6 +115,19 @@ vi.mock('../src/renderer/components/MainContent', () => ({
         },
         'markdown',
       ),
+      createElement(
+        'button',
+        {
+          'data-testid': 'open-screenshots',
+          onClick: () =>
+            onOpenStudioRightPanel?.({
+              content: createElement('div', null, 'Screenshots'),
+              type: 'screenshots',
+            }),
+          type: 'button',
+        },
+        'screenshots',
+      ),
       activeView !== 'overview'
         ? createElement('div', {
             'data-testid': `playground-${studioMode}`,
@@ -271,7 +284,7 @@ describe('ShellLayout right panel tabs', () => {
     });
   });
 
-  it('animates the Record and Replay Markdown context panels', async () => {
+  it('floats Record and Replay context panels over the preview', async () => {
     const { container, root } = await renderShellLayout();
 
     await act(async () => {
@@ -313,6 +326,16 @@ describe('ShellLayout right panel tabs', () => {
     expect(
       container.querySelector('.studio-right-panel-markdown-drawer-exit'),
     ).not.toBeNull();
+
+    await act(async () => {
+      container
+        .querySelector<HTMLButtonElement>('[data-testid="open-screenshots"]')
+        ?.click();
+    });
+
+    expect(mainContent?.getAttribute('data-floating-studio-mode-panel')).toBe(
+      'true',
+    );
 
     await act(async () => {
       container

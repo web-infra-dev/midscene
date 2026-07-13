@@ -3,7 +3,7 @@
 @import "tailwindcss/utilities.css" layer(utilities);
 
 /*
- * Do not fall back to a same-named local Inter/Roboto font. Some machines
+ * Do not fall back to a same-named local Inter font. Some machines
  * only expose a Black face, which Chromium then uses even for weight 400.
  */
 @font-face {
@@ -18,8 +18,7 @@
 
 @theme {
   --font-sans: "Inter", "PingFang SC", system-ui, -apple-system, "Segoe UI",
-    Roboto, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji",
-    "Segoe UI Emoji";
+    "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
   --color-app-bg: var(--midscene-app-bg);
   --color-surface: var(--midscene-surface);
   --color-surface-elevated: var(--midscene-surface-elevated);

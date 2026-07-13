@@ -8,6 +8,27 @@ const timelineStyles = readFileSync(
   ),
   'utf8',
 );
+const timelinePanelStyles = readFileSync(
+  new URL(
+    '../src/renderer/components/StudioTimelinePanel/studio-timeline-panel.css',
+    import.meta.url,
+  ),
+  'utf8',
+);
+const studioModePanel = readFileSync(
+  new URL(
+    '../src/renderer/components/StudioModePanel/index.tsx',
+    import.meta.url,
+  ),
+  'utf8',
+);
+const studioTimelineExecution = readFileSync(
+  new URL(
+    '../src/renderer/components/Playground/StudioTimelineExecution.tsx',
+    import.meta.url,
+  ),
+  'utf8',
+);
 
 describe('Studio execution timeline styles', () => {
   it('matches the Figma 16px rail and compact step geometry', () => {
@@ -47,10 +68,48 @@ describe('Studio execution timeline styles', () => {
   it('uses the same two-line clamp for Replay and Playground timelines', () => {
     expect(timelineStyles).toContain('-webkit-line-clamp: 2;');
     expect(timelineStyles).toContain('text-overflow: ellipsis;');
+    expect(timelineStyles).toContain('line-height: 24px;');
+    expect(timelineStyles).toContain('max-height: 48px;');
   });
 
-  it('keeps Figma event names medium and descriptions regular', () => {
-    expect(timelineStyles).toContain('font-weight: 500 !important;');
+  it('lets the shared timeline consume only its layout region', () => {
+    expect(timelineStyles).toContain(
+      '.studio-replay-column > .playground-shell {',
+    );
+    expect(timelineStyles).toContain('flex: 0 1 auto;');
+    expect(timelineStyles).toContain(
+      '.playground-shell\n  .studio-playground-timeline-wrapped\n  .studio-playground-timeline-panel\n  .middle-dialog-area {',
+    );
+    expect(timelineStyles).toContain('flex: 0 0 auto;');
+    expect(timelineStyles).toContain('overflow: visible;');
+    expect(timelineStyles).toContain('.studio-timeline-panel-scroll-body {');
+    expect(timelineStyles).toContain('overflow-y: auto;');
+    expect(timelineStyles).not.toMatch(
+      /\.playground-container\.playground-conversation-skin\s+\.studio-execution-timeline-skin\s*\{[^}]*flex:\s*1\s+1\s+auto;/s,
+    );
+    expect(timelinePanelStyles).not.toContain('212.077px');
+    expect(timelinePanelStyles).toMatch(
+      /\.studio-timeline-panel-expanded\s*\{[^}]*flex:\s*0\s+1\s+auto;/s,
+    );
+  });
+
+  it('renders Replay through PlaygroundShell in embedded mode too', () => {
+    expect(studioModePanel).toContain('return (\n    <PlaygroundShell');
+    expect(studioModePanel).not.toContain('if (showHeader) {\n    return (');
+  });
+
+  it('composes the Playground prompt above the timeline in code', () => {
+    expect(studioTimelineExecution).toContain(
+      "promptInputPlacement: 'before-timeline'",
+    );
+    expect(timelineStyles).not.toContain(
+      '.studio-playground-input-first .playground-timeline-region',
+    );
+    expect(timelineStyles).not.toContain('order: 1;');
+  });
+
+  it('keeps event names bold and descriptions regular', () => {
+    expect(timelineStyles).toContain('font-weight: 700 !important;');
     expect(timelineStyles).toContain('font-weight: 400 !important;');
   });
 

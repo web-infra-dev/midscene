@@ -451,6 +451,11 @@ export interface UniversalPlaygroundConfig {
   executionUx?: ExecutionUxConfig;
   promptInputChrome?: PromptInputChromeConfig;
   /**
+   * Where the prompt composer is composed relative to the timeline. Hosts
+   * with a dedicated prompt panel can render it before the execution area.
+   */
+  promptInputPlacement?: 'before-timeline' | 'after-timeline';
+  /**
    * When true, render only the execution/conversation area and omit the
    * prompt composer. Hosts can use this for replay views that execute an
    * externally supplied request instead of accepting free-form input.

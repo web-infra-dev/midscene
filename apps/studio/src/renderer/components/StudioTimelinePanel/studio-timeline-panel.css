@@ -29,7 +29,7 @@
     .studio-timeline-panel-collapsed
   ) {
   min-height: 250px;
-  max-height: calc(100% - 212.077px);
+  max-height: 100%;
   flex: 0 1 auto;
 }
 
@@ -42,7 +42,7 @@
 
 .studio-timeline-panel-expanded {
   min-height: 250px;
-  max-height: calc(100% - 212.077px);
+  max-height: 100%;
   flex: 0 1 auto;
 }
 

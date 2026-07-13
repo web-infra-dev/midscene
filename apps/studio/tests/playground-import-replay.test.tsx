@@ -581,6 +581,7 @@ describe('Studio Playground imported replay', () => {
       replayPane?.classList.contains('studio-mode-panel-pane-active'),
     ).toBe(false);
     expect(replayPane?.getAttribute('aria-hidden')).toBe('true');
+    expect(replayPane?.querySelector('.playground-shell')).toBeNull();
     expect(
       playgroundPane?.classList.contains('studio-mode-panel-pane-active'),
     ).toBe(false);

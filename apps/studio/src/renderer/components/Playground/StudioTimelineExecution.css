@@ -60,18 +60,14 @@
   display: none;
 }
 
-.playground-shell .studio-playground-timeline-panel {
-  order: 1;
-}
-
 .playground-shell
   .studio-playground-timeline-wrapped
   .studio-playground-timeline-panel
   .middle-dialog-area {
   min-height: 0;
   height: auto;
-  flex: 0 1 auto;
-  overflow: hidden;
+  flex: 0 0 auto;
+  overflow: visible;
   border: 0;
   border-radius: 0;
   background: transparent;
@@ -90,6 +86,16 @@
   .studio-playground-timeline-panel
   .studio-timeline-panel-scroll-body {
   max-height: none;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+
+.playground-shell
+  .studio-playground-timeline-wrapped
+  .studio-playground-timeline-panel
+  .studio-timeline-panel-scroll-body::-webkit-scrollbar {
+  display: none;
 }
 
 .playground-shell
@@ -99,10 +105,9 @@
   min-height: 0;
   height: auto;
   max-height: none;
-  flex: 0 1 auto;
+  flex: 0 0 auto;
   padding: 5.846px 16px 20px;
-  overflow-x: hidden;
-  overflow-y: auto;
+  overflow: visible;
 }
 
 .playground-shell
@@ -235,7 +240,7 @@
   .progress-row-content {
   min-width: 0;
   padding: 8px;
-  line-height: 22px;
+  line-height: 24px;
 }
 
 .studio-execution-timeline-skin
@@ -282,8 +287,8 @@
   font-size: 13px;
   font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
     sans-serif;
-  font-weight: 500 !important;
-  line-height: 22px;
+  font-weight: 700 !important;
+  line-height: 24px;
 }
 
 .studio-execution-timeline-skin
@@ -322,7 +327,7 @@
   .progress-description.shiny-text.disabled {
   font-size: 13px;
   font-weight: 400 !important;
-  line-height: 22px;
+  line-height: 24px;
   letter-spacing: 0;
 }
 
@@ -344,7 +349,7 @@
   .info-list-container
   .progress-row-copy {
   display: -webkit-box;
-  max-height: 44px;
+  max-height: 48px;
   overflow: hidden;
   text-overflow: ellipsis;
   -webkit-box-orient: vertical;
@@ -450,7 +455,7 @@
   .progress-row-content {
   min-width: 0;
   padding: 8px;
-  line-height: 22px;
+  line-height: 24px;
 }
 
 .playground-container.playground-conversation-skin
@@ -480,110 +485,11 @@
   -webkit-text-fill-color: currentColor !important;
 }
 
-.playground-shell .studio-replay-execution-panel,
-.studio-replay-execution-panel {
-  min-height: 0;
-  max-height: 100%;
-  flex: 0 1 auto;
-  overflow: hidden;
-  background: transparent;
-}
-
-.playground-shell .studio-replay-execution-panel .playground-conversation-body,
-.studio-replay-execution-panel .playground-conversation-body,
-.playground-shell .studio-replay-execution-panel .playground-container,
-.studio-replay-execution-panel .playground-container,
-.playground-shell .studio-replay-execution-panel .command-form,
-.studio-replay-execution-panel .command-form {
-  height: auto;
-  min-height: 0;
-  max-height: 100%;
-  flex: 0 1 auto;
-  overflow: hidden;
-  background: transparent;
-}
-
-.studio-replay-timeline-panel.studio-timeline-panel-expanded .ant-list,
-.studio-replay-timeline-panel.studio-timeline-panel-expanded
-  .ant-spin-nested-loading,
-.studio-replay-timeline-panel.studio-timeline-panel-expanded
-  .ant-spin-container,
-.studio-replay-timeline-panel.studio-timeline-panel-expanded .ant-list-items,
-.studio-replay-timeline-panel.studio-timeline-panel-expanded .list-item {
-  height: auto;
-  min-height: 0;
-  overflow: visible;
-}
-
-.studio-replay-timeline-panel .result-wrapper,
-.playground-shell
-  .studio-playground-timeline-wrapped
-  .studio-playground-timeline-panel
-  .result-wrapper {
+.playground-container.playground-conversation-skin .result-wrapper {
   width: 100%;
   align-items: stretch;
   justify-content: stretch;
   margin: 0;
-}
-
-.studio-replay-timeline-panel.studio-timeline-panel-expanded
-  .info-list-container
-  .list-item:has(.result-wrapper),
-.studio-replay-timeline-panel.studio-timeline-panel-expanded
-  .system-message-container,
-.studio-replay-timeline-panel.studio-timeline-panel-expanded
-  .system-message-content {
-  height: auto;
-  min-height: 0;
-  overflow: visible;
-}
-
-.studio-replay-timeline-panel.studio-timeline-panel-expanded .result-wrapper {
-  height: auto !important;
-  min-height: 0;
-  flex: 0 0 auto !important;
-  justify-content: flex-start !important;
-  overflow: visible;
-}
-
-.studio-replay-timeline-panel .result-wrapper .player-container,
-.playground-shell
-  .studio-playground-timeline-wrapped
-  .studio-playground-timeline-panel
-  .result-wrapper
-  .player-container {
-  width: 100%;
-  max-width: 100%;
-  height: auto;
-  min-height: 0;
-  padding: 0;
-  border: 0;
-  background: transparent;
-}
-
-.studio-replay-timeline-panel.studio-timeline-panel-expanded
-  .result-wrapper
-  .player-container {
-  min-height: 260px;
-  max-height: none;
-  overflow: visible;
-}
-
-.studio-replay-timeline-panel
-  .result-wrapper
-  .player-container
-  .canvas-container,
-.playground-shell
-  .studio-playground-timeline-wrapped
-  .studio-playground-timeline-panel
-  .result-wrapper
-  .player-container
-  .canvas-container {
-  height: 260px;
-  min-height: 0;
-  max-height: none;
-  flex: 0 0 260px;
-  border-radius: 8px;
 }
 
 .playground-shell
@@ -607,69 +513,11 @@
   transform: translate(-50%, -50%);
 }
 
-.studio-replay-column .studio-replay-execution-panel {
-  height: auto;
+/* Replay is rendered inside the same shell as Playground. The shell takes
+ * the remaining column space but lets the shared timeline stay content-sized
+ * until it reaches that bound. */
+.studio-replay-column > .playground-shell {
   min-height: 0;
   max-height: 100%;
   flex: 0 1 auto;
-  overflow: hidden;
-}
-
-.studio-replay-column
-  .studio-replay-execution-panel
-  .playground-conversation-body,
-.studio-replay-column .studio-replay-execution-panel .playground-container,
-.studio-replay-column .studio-replay-execution-panel .command-form {
-  height: auto;
-  min-height: 0;
-  max-height: 100%;
-  flex: 0 1 auto;
-  overflow: hidden;
-}
-
-.studio-replay-column
-  .studio-replay-timeline-panel.studio-timeline-panel:not(
-    .studio-timeline-panel-empty
-  ):not(.studio-timeline-panel-collapsed),
-.studio-replay-column
-  .studio-replay-timeline-panel.studio-timeline-panel.studio-timeline-panel-expanded {
-  height: auto;
-  min-height: 0;
-  max-height: 100%;
-  flex: 0 1 auto;
-  overflow: hidden;
-}
-
-.studio-replay-column
-  .studio-replay-timeline-panel.studio-timeline-panel-expanded
-  .studio-replay-timeline-panel-body,
-.studio-replay-column
-  .studio-replay-timeline-panel.studio-timeline-panel-expanded
-  .studio-timeline-panel-scroll-body {
-  height: auto;
-  min-height: 0;
-  max-height: calc(100% - 44.077px);
-  flex: 0 1 auto;
-  overflow: hidden;
-}
-
-.studio-replay-column
-  .studio-replay-timeline-panel.studio-timeline-panel-expanded
-  .middle-dialog-area {
-  height: auto;
-  min-height: 0;
-  max-height: 100%;
-  flex: 0 1 auto;
-  overflow: hidden;
-}
-
-.studio-replay-column
-  .studio-replay-timeline-panel.studio-timeline-panel-expanded
-  .info-list-container {
-  height: auto;
-  min-height: 0;
-  max-height: 100%;
-  flex: 0 1 auto;
-  overflow-x: hidden;
-  overflow-y: auto;
 }

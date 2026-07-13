@@ -636,6 +636,33 @@
   position: absolute;
 }
 
+/* When a Markdown detail panel is open, Replay is an overlay. Before a replay
+ * starts it contains only the session picker, so collapse its otherwise
+ * full-height absolute wrapper instead of covering the preview below it. */
+.studio-mode-panel-overlay-floating:has(
+    .studio-replay-column > .studio-replay-panel:only-child
+  ) {
+  bottom: auto;
+}
+
+.studio-mode-panel-overlay-floating:has(
+    .studio-replay-column > .studio-replay-panel:only-child
+  )
+  .studio-mode-panel-stack {
+  height: auto;
+  overflow: visible;
+}
+
+.studio-mode-panel-overlay-floating:has(
+    .studio-replay-column > .studio-replay-panel:only-child
+  )
+  .studio-mode-panel-pane-active {
+  position: relative;
+  inset: auto;
+  height: auto;
+  overflow: visible;
+}
+
 .studio-recorder-panel {
   position: relative;
   top: auto;
@@ -1349,7 +1376,16 @@
   width: 1px;
   flex: 1 1 auto;
   min-height: 8px;
-  background: #dbe8ff;
+  background: #e5e5e5;
+}
+
+.studio-recorder-timeline-rail-line-top {
+  flex: 0 0 8px;
+}
+
+.studio-recorder-timeline-item:last-child
+  .studio-recorder-timeline-rail-line-bottom {
+  display: none;
 }
 
 .studio-recorder-timeline-icon {
@@ -1357,6 +1393,7 @@
   width: 16px;
   height: 16px;
   flex: 0 0 16px;
+  margin: 3px 0;
   align-items: center;
   justify-content: center;
 }

@@ -32,6 +32,7 @@ import {
   shell,
 } from 'electron';
 import type { TitleBarOverlay } from 'electron';
+import { MACOS_TRAFFIC_LIGHT_POSITION } from '../shared/titlebar-layout';
 import { requestPlaygroundBootstrap } from './playground/bootstrap-request';
 import { runConnectivityTest } from './playground/connectivity-test';
 import {
@@ -364,11 +365,10 @@ const createMainWindow = () => {
     titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'hidden',
     titleBarOverlay:
       process.platform === 'darwin' ? undefined : getTitleBarOverlay(),
-    // Vertical centers of the 12px traffic lights line up with the sidebar
-    // collapse toggle (24px) at window y=20: (8 + 24/2 = 20 = 14 + 12/2).
-    // y=14 hugs the inset titlebar like native macOS apps.
+    // Keep the native 12px traffic lights vertically centered with the
+    // ShellLayout titlebar controls.
     trafficLightPosition:
-      process.platform === 'darwin' ? { x: 18, y: 14 } : undefined,
+      process.platform === 'darwin' ? MACOS_TRAFFIC_LIGHT_POSITION : undefined,
     vibrancy: process.platform === 'darwin' ? 'sidebar' : undefined,
     visualEffectState: process.platform === 'darwin' ? 'active' : undefined,
     backgroundMaterial: process.platform === 'win32' ? 'acrylic' : undefined,
