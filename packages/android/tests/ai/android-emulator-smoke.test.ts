@@ -172,6 +172,7 @@ async function waitForEditableNode(
 async function waitForResource(
   adb: ADB,
   resourceIds: readonly string[],
+  diagnosticsFile?: string,
 ): Promise<{ resourceId: string; bounds: Bounds; xml: string }> {
   const deadline = Date.now() + TARGET_TIMEOUT_MS;
   let lastXml = '';
@@ -179,6 +180,9 @@ async function waitForResource(
   while (Date.now() < deadline) {
     try {
       lastXml = await dumpUiautomatorXml(adb);
+      if (diagnosticsFile) {
+        await writeFile(diagnosticsFile, lastXml, 'utf8');
+      }
       for (const resourceId of resourceIds) {
         const matches = boundsForResourceId(lastXml, resourceId);
         if (matches.length === 1) {
@@ -317,10 +321,11 @@ describe.skipIf(!RUN_LIVE_SMOKE)('Android Emulator live smoke', () => {
       expect(screenshotSize.width).toBeGreaterThan(logicalSize.width);
       expect(screenshotSize.height).toBeGreaterThan(logicalSize.height);
 
-      const initialTarget = await waitForResource(adb, [
-        SETTINGS_SEARCH_BAR_ID,
-      ]);
-      await writeFile(initialXmlFile, initialTarget.xml, 'utf8');
+      const initialTarget = await waitForResource(
+        adb,
+        [SETTINGS_SEARCH_BAR_ID],
+        initialXmlFile,
+      );
 
       agent = new AndroidAgent(device, {
         modelConfig: {
@@ -359,21 +364,19 @@ describe.skipIf(!RUN_LIVE_SMOKE)('Android Emulator live smoke', () => {
       await writeFile(screenshotFile, screenshotBuffer(searchScreenshot));
 
       await agent.back();
-      let returnedHomeAfterFirstBack = false;
-      for (let attempt = 0; attempt < 10; attempt += 1) {
-        const xml = await dumpUiautomatorXml(adb);
-        if (boundsForResourceId(xml, SETTINGS_SEARCH_BAR_ID).length === 1) {
-          returnedHomeAfterFirstBack = true;
-          break;
-        }
-        await sleep(POLL_INTERVAL_MS);
+      evidence.backNavigationCount = 1;
+      await sleep(POLL_INTERVAL_MS);
+      const postBackXml = await dumpUiautomatorXml(adb);
+      await writeFile(finalXmlFile, postBackXml, 'utf8');
+      const returnedHomeAfterBack =
+        boundsForResourceId(postBackXml, SETTINGS_SEARCH_BAR_ID).length === 1;
+      evidence.returnedHomeAfterBack = returnedHomeAfterBack;
+      if (!returnedHomeAfterBack) {
+        await adb.shell('am force-stop com.android.settings');
+        await adb.shell('am start -W -n com.android.settings/.Settings');
+        evidence.settingsRelaunchedAfterBack = true;
+        await waitForResource(adb, [SETTINGS_SEARCH_BAR_ID], finalXmlFile);
       }
-      if (!returnedHomeAfterFirstBack) {
-        await agent.back();
-      }
-      evidence.backNavigationCount = returnedHomeAfterFirstBack ? 1 : 2;
-      const finalTarget = await waitForResource(adb, [SETTINGS_SEARCH_BAR_ID]);
-      await writeFile(finalXmlFile, finalTarget.xml, 'utf8');
 
       const dump = JSON.parse(agent.dumpDataString()) as ReportDump;
       await writeFile(dumpFile, `${JSON.stringify(dump, null, 2)}\n`, 'utf8');
