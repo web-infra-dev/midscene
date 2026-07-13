@@ -21,10 +21,6 @@ const REPORT_FILE_NAME = 'android-emulator-smoke';
 const REPORT_HTML_FILE_NAME = `${REPORT_FILE_NAME}.html`;
 const UI_DUMP_PATH = '/sdcard/midscene_emulator_smoke_window_dump.xml';
 const SETTINGS_SEARCH_BAR_ID = 'com.android.settings:id/search_action_bar';
-const SETTINGS_SEARCH_INPUT_IDS = [
-  'android:id/search_src_text',
-  'com.android.settings:id/search_src_text',
-] as const;
 const POLL_INTERVAL_MS = 500;
 const TARGET_TIMEOUT_MS = 30_000;
 
@@ -95,6 +91,82 @@ function boundsForResourceId(xml: string, resourceId: string): Bounds[] {
         height: bottom - top,
       };
     });
+}
+
+function attributeValue(
+  nodeTag: string,
+  attribute: string,
+): string | undefined {
+  return new RegExp(`${attribute}="([^"]*)"`).exec(nodeTag)?.[1];
+}
+
+function boundsForNodeTag(nodeTag: string, description: string): Bounds {
+  const boundsMatch = /bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"/.exec(nodeTag);
+  if (!boundsMatch) {
+    throw new Error(`Missing bounds for Android ${description}`);
+  }
+  const left = Number(boundsMatch[1]);
+  const top = Number(boundsMatch[2]);
+  const right = Number(boundsMatch[3]);
+  const bottom = Number(boundsMatch[4]);
+  if (right <= left || bottom <= top) {
+    throw new Error(
+      `Invalid bounds for Android ${description}: ${boundsMatch[0]}`,
+    );
+  }
+  return {
+    left,
+    top,
+    width: right - left,
+    height: bottom - top,
+  };
+}
+
+async function waitForEditableNode(
+  adb: ADB,
+  diagnosticsFile: string,
+  expectedText?: string,
+): Promise<{ resourceId?: string; bounds: Bounds; xml: string }> {
+  const deadline = Date.now() + TARGET_TIMEOUT_MS;
+  let lastXml = '';
+  let lastError: unknown;
+  while (Date.now() < deadline) {
+    try {
+      lastXml = await dumpUiautomatorXml(adb);
+      await writeFile(diagnosticsFile, lastXml, 'utf8');
+      const candidates = (lastXml.match(/<node\b[^>]*>/g) ?? []).filter(
+        (tag) => {
+          const className = attributeValue(tag, 'class');
+          const text = attributeValue(tag, 'text');
+          return (
+            className?.endsWith('EditText') &&
+            (expectedText === undefined || text === expectedText)
+          );
+        },
+      );
+      const focusedCandidates = candidates.filter(
+        (tag) => attributeValue(tag, 'focused') === 'true',
+      );
+      const matches =
+        focusedCandidates.length === 1 ? focusedCandidates : candidates;
+      if (matches.length === 1) {
+        return {
+          resourceId: attributeValue(matches[0], 'resource-id'),
+          bounds: boundsForNodeTag(matches[0], 'editable node'),
+          xml: lastXml,
+        };
+      }
+      lastError = new Error(
+        `Expected one editable node, found ${candidates.length} (${focusedCandidates.length} focused)`,
+      );
+    } catch (error) {
+      lastError = error;
+    }
+    await sleep(POLL_INTERVAL_MS);
+  }
+  throw new Error(
+    `Timed out waiting for Android editable node${expectedText ? ` with text ${expectedText}` : ''}. Last error: ${String(lastError)}. Last XML saved to ${diagnosticsFile} (${lastXml.length} bytes)`,
+  );
 }
 
 async function waitForResource(
@@ -271,7 +343,8 @@ describe.skipIf(!RUN_LIVE_SMOKE)('Android Emulator live smoke', () => {
       await agent.callActionInActionSpace('Tap', {
         locate: locate(initialTarget.bounds, 'Settings search bar'),
       });
-      const searchInput = await waitForResource(adb, SETTINGS_SEARCH_INPUT_IDS);
+      const searchInput = await waitForEditableNode(adb, searchXmlFile);
+      evidence.searchInputResourceId = searchInput.resourceId;
 
       await agent.callActionInActionSpace('Input', {
         value: 'wifi',
@@ -279,9 +352,8 @@ describe.skipIf(!RUN_LIVE_SMOKE)('Android Emulator live smoke', () => {
         autoDismissKeyboard: true,
         locate: locate(searchInput.bounds, 'Settings search input'),
       });
-      const searchState = await waitForResource(adb, SETTINGS_SEARCH_INPUT_IDS);
+      const searchState = await waitForEditableNode(adb, searchXmlFile, 'wifi');
       expect(searchState.xml).toMatch(/text="wifi"/i);
-      await writeFile(searchXmlFile, searchState.xml, 'utf8');
 
       const searchScreenshot = await device.screenshotBase64();
       await writeFile(screenshotFile, screenshotBuffer(searchScreenshot));
