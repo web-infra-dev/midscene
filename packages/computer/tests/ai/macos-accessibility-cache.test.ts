@@ -22,6 +22,8 @@ import { ComputerDevice } from '../../src/device';
 const RUN_SMOKE =
   process.platform === 'darwin' &&
   process.env.MIDSCENE_MACOS_ACCESSIBILITY_CACHE_SMOKE === '1';
+const USE_SCREEN_CAPTURE_PROMPT_KEYBOARD_FALLBACK =
+  process.env.MIDSCENE_MACOS_SCREEN_CAPTURE_PROMPT_KEYBOARD_FALLBACK === '1';
 const TARGET_NAME = 'Midscene Cache Target';
 const TARGET_ID = 'midscene-cache-target';
 const CACHE_PROMPT = `the button labeled "${TARGET_NAME}"`;
@@ -377,7 +379,10 @@ describe.runIf(RUN_SMOKE)('macOS AX xpath cache smoke', () => {
     const readyFile = join(fixtureDir, 'ready.json');
     const clickedFile = join(fixtureDir, 'clicked.json');
     const cacheId = `macos-accessibility-${process.pid}`;
-    const device = new ComputerDevice({ headless: false });
+    const device = new ComputerDevice({
+      headless: false,
+      keyboardDriver: 'libnut',
+    });
     let agent: ComputerAgent<ComputerDevice> | undefined;
 
     mkdirSync(DIAGNOSTICS_DIR, { recursive: true });
@@ -402,16 +407,28 @@ describe.runIf(RUN_SMOKE)('macOS AX xpath cache smoke', () => {
 
       await device.connect();
       let screenCapturePromptResult = '';
+      let sentKeyboardFallback = false;
       for (let attempt = 0; attempt < 3; attempt += 1) {
         await device.screenshotBase64();
         await new Promise((resolveDelay) => setTimeout(resolveDelay, 500));
         screenCapturePromptResult = dismissScreenCapturePrivacyPrompt();
         if (screenCapturePromptResult.startsWith('Accepted ')) break;
+        if (
+          USE_SCREEN_CAPTURE_PROMPT_KEYBOARD_FALLBACK &&
+          !sentKeyboardFallback
+        ) {
+          await device.inputPrimitives.keyboard.keyboardPress('Enter');
+          sentKeyboardFallback = true;
+          screenCapturePromptResult +=
+            '\nSent Enter through libnut to accept the default prompt action.';
+          await new Promise((resolveDelay) => setTimeout(resolveDelay, 500));
+        }
       }
       writeFileSync(
         join(DIAGNOSTICS_DIR, 'screen-capture-prompt.log'),
         `${screenCapturePromptResult}\n`,
       );
+      expect(existsSync(clickedFile)).toBe(false);
       await activateFixtureAndSettle(fixture.processId);
       const logicalSize = await device.size();
       const screenshot = await device.screenshotBase64();

@@ -45,6 +45,7 @@ jobs:
       MIDSCENE_RUN_DIR: ${{ github.workspace }}/midscene_run
       MIDSCENE_MACOS_DIAGNOSTICS_DIR: ${{ github.workspace }}/midscene_run/macos-desktop-diagnostics
       MIDSCENE_TODO_DIAGNOSTICS_DIR: ${{ github.workspace }}/midscene_run/macos-desktop-diagnostics
+      MIDSCENE_MACOS_SCREEN_CAPTURE_PROMPT_KEYBOARD_FALLBACK: '1'
 
     steps:
       - name: Checkout source
