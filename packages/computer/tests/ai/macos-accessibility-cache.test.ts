@@ -46,6 +46,12 @@ interface FixtureMetadata {
   targetLabel: string;
 }
 
+interface FixtureClickMetadata {
+  clicked: boolean;
+  buttonTitle: string;
+  clickedAt: string;
+}
+
 vi.setConfig({ testTimeout: 180_000, hookTimeout: 30_000 });
 
 let fixtureProcess: ChildProcess | undefined;
@@ -80,7 +86,11 @@ function stopFixture(): void {
   }
 }
 
-function compileAndStartFixture(fixtureDir: string, readyFile: string): void {
+function compileAndStartFixture(
+  fixtureDir: string,
+  readyFile: string,
+  clickedFile: string,
+): void {
   const appDir = join(fixtureDir, 'Midscene Cache Fixture.app');
   const contentsDir = join(appDir, 'Contents');
   const executableDir = join(contentsDir, 'MacOS');
@@ -92,7 +102,7 @@ function compileAndStartFixture(fixtureDir: string, readyFile: string): void {
     ['swiftc', '-parse-as-library', FIXTURE_PATH, '-o', executable],
     { stdio: 'pipe' },
   );
-  fixtureProcess = spawn(executable, [readyFile], {
+  fixtureProcess = spawn(executable, [readyFile, clickedFile], {
     stdio: ['ignore', 'pipe', 'pipe'],
   });
   fixtureProcess.stdout?.on('data', (chunk: Buffer) => {
@@ -104,6 +114,43 @@ function compileAndStartFixture(fixtureDir: string, readyFile: string): void {
   fixtureProcess.on('error', (error) => {
     fixtureOutput += `Fixture process error: ${error}\n`;
   });
+}
+
+async function waitForFixtureClick(
+  clickedFile: string,
+): Promise<FixtureClickMetadata> {
+  const deadline = Date.now() + 15_000;
+  let lastError: unknown;
+  while (Date.now() < deadline) {
+    if (fixtureExited()) {
+      throw new Error(
+        `macOS accessibility fixture exited before receiving the click (${fixtureProcess?.exitCode}). Output:\n${fixtureOutput}`,
+      );
+    }
+    if (existsSync(clickedFile)) {
+      try {
+        const metadata = JSON.parse(
+          readFileSync(clickedFile, 'utf8'),
+        ) as FixtureClickMetadata;
+        if (
+          metadata.clicked === true &&
+          metadata.buttonTitle === 'Cache Clicked' &&
+          metadata.clickedAt.length > 0
+        ) {
+          return metadata;
+        }
+        lastError = new Error(
+          `Invalid fixture click metadata: ${JSON.stringify(metadata)}`,
+        );
+      } catch (error) {
+        lastError = error;
+      }
+    }
+    await new Promise((resolveDelay) => setTimeout(resolveDelay, 100));
+  }
+  throw new Error(
+    `Cached coordinates did not click the macOS fixture button. Last error: ${lastError}. Output:\n${fixtureOutput}`,
+  );
 }
 
 async function waitForFixture(readyFile: string): Promise<FixtureMetadata> {
@@ -150,6 +197,11 @@ function activateFixture(processId: number): void {
   ]);
 }
 
+async function activateFixtureAndSettle(processId: number): Promise<void> {
+  activateFixture(processId);
+  await new Promise((resolveDelay) => setTimeout(resolveDelay, 300));
+}
+
 async function waitForTargetNode(
   processId: number,
 ): Promise<{ root: UiNode; target: UiNode }> {
@@ -187,8 +239,11 @@ async function waitForTargetNode(
   );
 }
 
-function saveScreenshot(base64: string): string {
-  const screenshotFile = join(DIAGNOSTICS_DIR, 'macos-desktop.png');
+function saveScreenshot(
+  base64: string,
+  fileName = 'macos-desktop.png',
+): string {
+  const screenshotFile = join(DIAGNOSTICS_DIR, fileName);
   const body = base64.replace(/^data:image\/\w+;base64,/, '');
   writeFileSync(screenshotFile, Buffer.from(body, 'base64'));
   return screenshotFile;
@@ -199,10 +254,11 @@ afterAll(() => {
 });
 
 describe.runIf(RUN_SMOKE)('macOS AX xpath cache smoke', () => {
-  it('generates a Midscene report containing a real cache-hit locate', async () => {
+  it('generates a Midscene report whose cache-hit coordinates click the target', async () => {
     const cacheDir = mkdtempSync(join(tmpdir(), 'midscene-macos-cache-'));
     const fixtureDir = mkdtempSync(join(tmpdir(), 'midscene-appkit-'));
     const readyFile = join(fixtureDir, 'ready.json');
+    const clickedFile = join(fixtureDir, 'clicked.json');
     const cacheId = `macos-accessibility-${process.pid}`;
     const device = new ComputerDevice({ headless: false });
     let agent: ComputerAgent<ComputerDevice> | undefined;
@@ -210,7 +266,7 @@ describe.runIf(RUN_SMOKE)('macOS AX xpath cache smoke', () => {
     mkdirSync(DIAGNOSTICS_DIR, { recursive: true });
 
     try {
-      compileAndStartFixture(fixtureDir, readyFile);
+      compileAndStartFixture(fixtureDir, readyFile, clickedFile);
       const fixture = await waitForFixture(readyFile);
       writeFileSync(
         join(DIAGNOSTICS_DIR, 'fixture-metadata.json'),
@@ -228,6 +284,7 @@ describe.runIf(RUN_SMOKE)('macOS AX xpath cache smoke', () => {
       expect(target.bounds.height).toBeGreaterThan(0);
 
       await device.connect();
+      await activateFixtureAndSettle(fixture.processId);
       const logicalSize = await device.size();
       const screenshot = await device.screenshotBase64();
       const screenshotSize = await imageInfoOfBase64(screenshot);
@@ -250,20 +307,7 @@ describe.runIf(RUN_SMOKE)('macOS AX xpath cache smoke', () => {
       expect(
         screenshotBounds.top + screenshotBounds.height,
       ).toBeLessThanOrEqual(screenshotSize.height);
-      const cropSize = {
-        width: screenshotBounds.width,
-        height: screenshotBounds.height,
-      };
-      const [targetCrop, backgroundCrop] = await Promise.all([
-        cropByRect(screenshot, {
-          left: screenshotBounds.left,
-          top: screenshotBounds.top,
-          ...cropSize,
-        }),
-        cropByRect(screenshot, { left: 20, top: 20, ...cropSize }),
-      ]);
-      expect(targetCrop.imageBase64).not.toBe(backgroundCrop.imageBase64);
-
+      const targetCrop = await cropByRect(screenshot, screenshotBounds);
       const center: [number, number] = [
         Math.round(target.bounds.left + target.bounds.width / 2),
         Math.round(target.bounds.top + target.bounds.height / 2),
@@ -272,6 +316,7 @@ describe.runIf(RUN_SMOKE)('macOS AX xpath cache smoke', () => {
         Math.round(center[0] * screenshotScale),
         Math.round(center[1] * screenshotScale),
       ];
+      await activateFixtureAndSettle(fixture.processId);
       const feature = await device.cacheFeatureForPoint(center);
       const xpath = firstXpath(feature);
       expect(feature.target).toEqual({
@@ -280,6 +325,7 @@ describe.runIf(RUN_SMOKE)('macOS AX xpath cache smoke', () => {
         value: TARGET_ID,
       });
       expect(xpath).toBe(`//*[@AXIdentifier='${TARGET_ID}']`);
+      await activateFixtureAndSettle(fixture.processId);
       expect(await device.rectMatchesCacheFeature(feature)).toEqual(
         target.bounds,
       );
@@ -306,18 +352,48 @@ describe.runIf(RUN_SMOKE)('macOS AX xpath cache smoke', () => {
         },
       });
 
-      activateFixture(fixture.processId);
-      const located = await agent.aiLocate(CACHE_PROMPT);
-      expect(located.center).toEqual(screenshotCenter);
-      const dump = JSON.parse(agent.dumpDataString()) as {
+      await activateFixtureAndSettle(fixture.processId);
+      await agent.aiTap(CACHE_PROMPT);
+      const clickMetadata = await waitForFixtureClick(clickedFile);
+      writeFileSync(
+        join(DIAGNOSTICS_DIR, 'click-metadata.json'),
+        JSON.stringify(clickMetadata, null, 2),
+      );
+      const dump = JSON.parse(
+        agent.dumpDataString({ inlineScreenshots: true }),
+      ) as {
         executions: Array<{
-          tasks: Array<{ hitBy?: { from?: string } }>;
+          tasks: Array<{
+            hitBy?: { from?: string };
+            uiContext?: { screenshot?: { base64?: string } };
+            output?: {
+              element?: {
+                center?: [number, number];
+                rect?: {
+                  left: number;
+                  top: number;
+                  width: number;
+                  height: number;
+                };
+              };
+            };
+          }>;
         }>;
       };
       const cacheHits = dump.executions.flatMap((execution) =>
         execution.tasks.filter((task) => task.hitBy?.from === 'Cache'),
       );
       expect(cacheHits).toHaveLength(1);
+      expect(cacheHits[0].output?.element?.center).toEqual(screenshotCenter);
+      expect(cacheHits[0].output?.element?.rect).toEqual(screenshotBounds);
+      const reportScreenshot = cacheHits[0].uiContext?.screenshot?.base64;
+      expect(reportScreenshot).toBeTruthy();
+      saveScreenshot(reportScreenshot!, 'macos-report-cache-hit.png');
+      const reportTargetCrop = await cropByRect(
+        reportScreenshot!,
+        screenshotBounds,
+      );
+      expect(reportTargetCrop.imageBase64).toBe(targetCrop.imageBase64);
 
       await agent.destroy();
       const reportFile = agent.reportFile;
