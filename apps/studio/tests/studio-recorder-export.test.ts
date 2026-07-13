@@ -19,7 +19,7 @@ describe('studio recorder export', () => {
   });
 
   it('materializes screenshot assets only in the export copy', async () => {
-    const session = {
+    const session: StudioRecordingSession = {
       id: 'session-assets',
       name: 'Asset-backed recording',
       status: 'completed',
@@ -51,7 +51,7 @@ describe('studio recorder export', () => {
       ],
       createdAt: 1,
       updatedAt: 2,
-    } satisfies StudioRecordingSession;
+    };
     const loadScreenshot = vi.fn(async () => 'data:image/png;base64,asset');
 
     const exportSession = await materializeStudioRecorderSessionScreenshots(
