@@ -608,20 +608,34 @@ jobs:
       id: notify
       continue-on-error: true
       env:
-        FEISHU_APP_ID: ${{ secrets.FEISHU_APP_ID }}
-        FEISHU_APP_SECRET: ${{ secrets.FEISHU_APP_SECRET }}
-        FEISHU_CHAT_ID: ${{ secrets.FEISHU_CHAT_ID }}
+        FEISHU_WEBHOOK_SECRET: ${{ secrets.FEISHU_WEBHOOK_SECRET }}
+        FEISHU_WEBHOOK_SECRET_2: ${{ secrets.FEISHU_WEBHOOK_SECRET_2 }}
+        FEISHU_WEBHOOK_URL: ${{ secrets.FEISHU_WEBHOOK_URL }}
+        FEISHU_WEBHOOK_URL_2: ${{ secrets.FEISHU_WEBHOOK_URL_2 }}
         GH_TOKEN: ${{ github.token }}
         RELEASE_VERSION: ${{ needs.release.outputs.version }}
       run: |
         set -euo pipefail
 
-        if [[ -z "$FEISHU_APP_ID" || -z "$FEISHU_APP_SECRET" || -z "$FEISHU_CHAT_ID" ]]; then
-          echo "::warning::The Feishu application credentials or chat ID are not configured; skipping the Feishu release notification."
+        WEBHOOK_URLS=("$FEISHU_WEBHOOK_URL" "$FEISHU_WEBHOOK_URL_2")
+        WEBHOOK_SECRETS=("$FEISHU_WEBHOOK_SECRET" "$FEISHU_WEBHOOK_SECRET_2")
+        CONFIGURED_TARGETS=0
+        for TARGET_INDEX in "${!WEBHOOK_URLS[@]}"; do
+          if [[ -z "${WEBHOOK_URLS[$TARGET_INDEX]}" && -z "${WEBHOOK_SECRETS[$TARGET_INDEX]}" ]]; then
+            continue
+          fi
+          if [[ -z "${WEBHOOK_URLS[$TARGET_INDEX]}" || -z "${WEBHOOK_SECRETS[$TARGET_INDEX]}" ]]; then
+            echo "::warning::Feishu webhook target $((TARGET_INDEX + 1)) is only partially configured."
+            exit 1
+          fi
+          ((CONFIGURED_TARGETS += 1))
+        done
+
+        if [[ "$CONFIGURED_TARGETS" -eq 0 ]]; then
+          echo "::warning::No Feishu webhook targets are configured; skipping the Feishu release notification."
           echo "## Feishu notification" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "Skipped because one or more required repository secrets are not configured: \
-          \`FEISHU_APP_ID\`, \`FEISHU_APP_SECRET\`, \`FEISHU_CHAT_ID\`." >> "$GITHUB_STEP_SUMMARY"
+          echo "Skipped because no complete Feishu webhook URL and signing secret pair is configured." >> "$GITHUB_STEP_SUMMARY"
           exit 0
         fi
 
@@ -635,25 +649,6 @@ jobs:
         RELEASE_URL="$(jq -r '.url' <<< "$RELEASE_JSON")"
         PACKAGE_VERSION="${RELEASE_VERSION#v}"
         NPM_URL="https://www.npmjs.com/package/@midscene/core/v/${PACKAGE_VERSION}"
-
-        TOKEN_RESPONSE="$(
-          jq -cn \
-            '{app_id: env.FEISHU_APP_ID, app_secret: env.FEISHU_APP_SECRET}' \
-            | curl \
-                --fail-with-body \
-                --silent \
-                --show-error \
-                --request POST \
-                --header 'Content-Type: application/json; charset=utf-8' \
-                --data-binary @- \
-                'https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal'
-        )"
-
-        if [[ "$(jq -r '.code // -1' <<< "$TOKEN_RESPONSE")" != "0" ]]; then
-          echo "Feishu tenant access token request failed: $(jq -c '{code, msg}' <<< "$TOKEN_RESPONSE")" >&2
-          exit 1
-        fi
-        TENANT_ACCESS_TOKEN="$(jq -er '.tenant_access_token' <<< "$TOKEN_RESPONSE")"
 
         CARD_CONTENT="$(
           jq -cn \
@@ -855,37 +850,65 @@ jobs:
                 }
             '
         )"
-        IDEMPOTENCY_KEY="$(printf '%s-%s-feishu' "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" | cut -c1-50)"
-        PAYLOAD="$(
-          jq -cn \
-            --arg content "$CARD_CONTENT" \
-            --arg receive_id "$FEISHU_CHAT_ID" \
-            --arg uuid "$IDEMPOTENCY_KEY" \
-            '{receive_id: $receive_id, msg_type: "interactive", content: $content, uuid: $uuid}'
-        )"
-
-        FEISHU_RESPONSE="$(
-          printf 'header = "Authorization: Bearer %s"\n' "$TENANT_ACCESS_TOKEN" \
-            | curl \
-                --config - \
-                --fail-with-body \
-                --silent \
-                --show-error \
-                --request POST \
-                --header 'Content-Type: application/json; charset=utf-8' \
-                --data "$PAYLOAD" \
-                'https://open.feishu.cn/open-apis/im/v1/messages?receive_id_type=chat_id'
-        )"
-
-        if [[ "$(jq -r '.code // -1' <<< "$FEISHU_RESPONSE")" != "0" ]]; then
-          echo "Feishu message request failed: $(jq -c '{code, msg}' <<< "$FEISHU_RESPONSE")" >&2
-          exit 1
-        fi
-        MESSAGE_ID="$(jq -er '.data.message_id' <<< "$FEISHU_RESPONSE")"
-
         echo "## Feishu notification" >> "$GITHUB_STEP_SUMMARY"
         echo "" >> "$GITHUB_STEP_SUMMARY"
-        echo "Published the ${RELEASE_VERSION} notification as message \`${MESSAGE_ID}\`." >> "$GITHUB_STEP_SUMMARY"
+        DELIVERY_FAILURES=0
+        DELIVERED_TARGETS=0
+        for TARGET_INDEX in "${!WEBHOOK_URLS[@]}"; do
+          WEBHOOK_URL="${WEBHOOK_URLS[$TARGET_INDEX]}"
+          WEBHOOK_SECRET="${WEBHOOK_SECRETS[$TARGET_INDEX]}"
+          if [[ -z "$WEBHOOK_URL" && -z "$WEBHOOK_SECRET" ]]; then
+            continue
+          fi
+
+          TIMESTAMP="$(date +%s)"
+          SIGNING_KEY="$(printf '%s\n%s' "$TIMESTAMP" "$WEBHOOK_SECRET")"
+          SIGNATURE="$(
+            printf '' \
+              | openssl dgst -sha256 -hmac "$SIGNING_KEY" -binary \
+              | openssl base64 -A
+          )"
+          unset SIGNING_KEY
+
+          PAYLOAD="$(
+            jq -cn \
+              --argjson card "$CARD_CONTENT" \
+              --arg sign "$SIGNATURE" \
+              --arg timestamp "$TIMESTAMP" \
+              '{timestamp: $timestamp, sign: $sign, msg_type: "interactive", card: $card}'
+          )"
+
+          if ! FEISHU_RESPONSE="$(
+            printf 'url = "%s"\n' "$WEBHOOK_URL" \
+              | curl \
+                  --config - \
+                  --fail-with-body \
+                  --silent \
+                  --show-error \
+                  --request POST \
+                  --header 'Content-Type: application/json; charset=utf-8' \
+                  --data "$PAYLOAD"
+          )"; then
+            echo "Feishu webhook target $((TARGET_INDEX + 1)) request failed." >&2
+            ((DELIVERY_FAILURES += 1))
+            continue
+          fi
+
+          if [[ "$(jq -r '.code // .StatusCode // -1' <<< "$FEISHU_RESPONSE")" != "0" ]]; then
+            echo "Feishu webhook target $((TARGET_INDEX + 1)) rejected the request: $(
+              jq -c '{code: (.code // .StatusCode), msg: (.msg // .StatusMessage)}' <<< "$FEISHU_RESPONSE"
+            )" >&2
+            ((DELIVERY_FAILURES += 1))
+            continue
+          fi
+
+          ((DELIVERED_TARGETS += 1))
+        done
+
+        echo "Published the ${RELEASE_VERSION} notification to ${DELIVERED_TARGETS} Feishu group(s) through signed webhooks." >> "$GITHUB_STEP_SUMMARY"
+        if [[ "$DELIVERY_FAILURES" -ne 0 ]]; then
+          exit 1
+        fi
 
     - name: Summarize Feishu notification failure
       if: ${{ steps.notify.outcome == 'failure' }}
