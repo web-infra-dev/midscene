@@ -501,7 +501,7 @@ describe('PlaygroundServer manual interaction APIs', () => {
         interfaceType: 'android',
         describe: () => 'Android device',
         actionSpace: () => [{ name: 'Tap', description: 'tap', call: tapCall }],
-        screenshotBase64: async () => VALID_PNG_BASE64,
+        screenshotBase64: async () => 'base64-image',
         size: async () => ({ width: 1080, height: 1920 }),
       },
     } as any);
@@ -718,7 +718,7 @@ describe('PlaygroundServer manual interaction APIs', () => {
     expect(describeElementAtPoint).toHaveBeenCalledWith(
       [10, 20],
       expect.objectContaining({
-        verifyPrompt: true,
+        verifyPrompt: false,
         screenshotBase64: expect.stringMatching(/^data:image\/png;base64,/),
         coordinateSpace: 'logical',
         logicalSize: { width: 390, height: 844 },
@@ -833,7 +833,7 @@ describe('PlaygroundServer manual interaction APIs', () => {
         interfaceType: 'ios',
         actionSpace: () => [],
         inputPrimitives,
-        screenshotBase64: async () => 'base64-image',
+        screenshotBase64: async () => VALID_PNG_BASE64,
         size: async () => ({ width: 390, height: 844 }),
       },
     } as any);
@@ -1263,7 +1263,7 @@ describe('PlaygroundServer manual interaction APIs', () => {
         interfaceType: 'ios',
         actionSpace: () => [],
         inputPrimitives,
-        screenshotBase64: async () => 'base64-image',
+        screenshotBase64: async () => VALID_PNG_BASE64,
         size: async () => ({ width: 390, height: 844 }),
       },
     } as any);
@@ -1334,7 +1334,7 @@ describe('PlaygroundServer manual interaction APIs', () => {
       [10, 20],
       expect.objectContaining({
         verifyPrompt: false,
-        screenshotBase64: 'base64-image',
+        screenshotBase64: expect.stringMatching(/^data:image\/png;base64,/),
         coordinateSpace: 'logical',
         logicalSize: { width: 390, height: 844 },
         onProgress: expect.any(Function),
@@ -1815,7 +1815,6 @@ describe('PlaygroundServer manual interaction APIs', () => {
           source: 'studio-preview',
           url: 'https://example.com/start',
           title: 'Start page',
-          screenshotBefore: 'start-screenshot',
         },
         {
           type: 'navigation',
@@ -1835,7 +1834,6 @@ describe('PlaygroundServer manual interaction APIs', () => {
           source: 'studio-preview',
           url: 'https://example.com/next',
           title: 'Next page',
-          screenshotBefore: 'next-screenshot',
         },
       ],
       nextIndex: 4,

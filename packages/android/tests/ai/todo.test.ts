@@ -14,6 +14,7 @@ const pageUrl = 'https://todomvc.com/examples/react/dist/';
 const diagnosticsDir = process.env.MIDSCENE_ANDROID_DIAGNOSTICS_DIR;
 const CHROME_FIRST_RUN_DUMP_PATH =
   '/sdcard/midscene_chrome_first_run_window_dump.xml';
+const CHROME_FIRST_RUN_DUMP_ATTEMPTS = 3;
 const expectedActiveTasks = [
   'Learn JS today',
   'Learn Rust tomorrow',
@@ -54,14 +55,37 @@ function screenshotBuffer(base64: string): Buffer {
 }
 
 async function dumpUiautomatorXml(adb: ADB): Promise<string> {
-  await adb.shell(
-    `uiautomator dump --compressed ${CHROME_FIRST_RUN_DUMP_PATH}`,
-  );
-  const xml = await adb.shell(`cat ${CHROME_FIRST_RUN_DUMP_PATH}`);
-  if (typeof xml !== 'string' || xml.trim().length === 0) {
-    throw new Error('Android emulator returned an empty Chrome UI dump');
+  let lastError: unknown;
+  for (
+    let attempt = 1;
+    attempt <= CHROME_FIRST_RUN_DUMP_ATTEMPTS;
+    attempt += 1
+  ) {
+    try {
+      await adb.shell(
+        `uiautomator dump --compressed ${CHROME_FIRST_RUN_DUMP_PATH}`,
+      );
+    } catch (error) {
+      lastError = error;
+    }
+
+    try {
+      const xml = await adb.shell(`cat ${CHROME_FIRST_RUN_DUMP_PATH}`);
+      if (typeof xml === 'string' && xml.trim().length > 0) {
+        return xml;
+      }
+    } catch (error) {
+      lastError = error;
+    }
+
+    if (attempt < CHROME_FIRST_RUN_DUMP_ATTEMPTS) {
+      await sleep(500);
+    }
   }
-  return xml;
+
+  throw new Error(
+    `Android emulator returned an empty Chrome UI dump after ${CHROME_FIRST_RUN_DUMP_ATTEMPTS} attempts: ${String(lastError)}`,
+  );
 }
 
 function centerForExactText(

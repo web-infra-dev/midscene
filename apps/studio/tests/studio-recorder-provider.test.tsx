@@ -345,7 +345,7 @@ describe('StudioRecorderProvider preview recording', () => {
     await mounted.cleanup();
   });
 
-  it('keeps a stopped recording in memory until Markdown is generated', async () => {
+  it('persists a stopped recording before Markdown is generated', async () => {
     const { context } = createConnectedStudioContext();
     const mounted = await mountRecorder(context);
 
@@ -367,7 +367,7 @@ describe('StudioRecorderProvider preview recording', () => {
       (await getStudioRecorderSessions()).some(
         (session) => session.id === sessionId,
       ),
-    ).toBe(false);
+    ).toBe(true);
 
     await mounted.cleanup();
   });
@@ -866,6 +866,9 @@ describe('StudioRecorderProvider preview recording', () => {
 
     await act(async () => {
       await mounted.recorder?.startRecording();
+    });
+    await act(async () => {
+      await mounted.recorder?.stopRecording();
     });
     await flushPromises();
     await flushPromises();
@@ -2078,7 +2081,7 @@ describe('StudioRecorderProvider preview recording', () => {
       (await getStudioRecorderSessions()).some(
         (session) => session.id === sessionId,
       ),
-    ).toBe(false);
+    ).toBe(true);
     let markdown = '';
     await act(async () => {
       markdown = await mounted.recorder!.generateSessionCode(sessionId!);
