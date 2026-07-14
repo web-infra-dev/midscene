@@ -62,9 +62,9 @@ describe('workflow main-process runner', () => {
     const root = createProject();
     mkdirSync(join(root, 'nested'));
     mkdirSync(join(root, 'node_modules'));
-    writeFileSync(join(root, 'z.yml'), 'workflows: []');
-    writeFileSync(join(root, 'nested', 'a.yaml'), 'workflows: []');
-    writeFileSync(join(root, 'node_modules', 'ignored.yaml'), 'workflows: []');
+    writeFileSync(join(root, 'z.yml'), 'cases: []');
+    writeFileSync(join(root, 'nested', 'a.yaml'), 'cases: []');
+    writeFileSync(join(root, 'node_modules', 'ignored.yaml'), 'cases: []');
     writeFileSync(join(root, 'notes.txt'), 'not yaml');
 
     expect(
@@ -72,7 +72,7 @@ describe('workflow main-process runner', () => {
     ).toEqual(['nested/a.yaml', 'z.yml']);
   });
 
-  it('collects first, loads config once, and runs workflows serially in one process', async () => {
+  it('collects first, loads config once, and runs cases serially in one process', async () => {
     const root = createProject();
     const resultDir = join(root, 'results');
     const state = setRunnerState(resultDir);
@@ -87,7 +87,7 @@ describe('workflow main-process runner', () => {
           name: 'test.record',
           async execute({ input, context }) {
             if (context !== state.contexts[input.source]) {
-              throw new Error('workflow did not receive its document context');
+              throw new Error('case did not receive its document context');
             }
             state.active += 1;
             state.maxActive = Math.max(state.maxActive, state.active);
@@ -118,7 +118,7 @@ describe('workflow main-process runner', () => {
       root,
       'a.yaml',
       `
-workflows:
+cases:
   - name: first fails
     steps:
       - test.record:
@@ -136,7 +136,7 @@ workflows:
       root,
       'nested/b.yml',
       `
-workflows:
+cases:
   - name: third document runs
     steps:
       - test.record:
@@ -144,7 +144,7 @@ workflows:
           value: third
 `,
     );
-    writeWorkflow(root, 'z-invalid.yaml', 'workflows: invalid');
+    writeWorkflow(root, 'z-invalid.yaml', 'cases: invalid');
 
     const beforeSigint = process.listenerCount('SIGINT');
     const beforeSigterm = process.listenerCount('SIGTERM');
@@ -174,7 +174,7 @@ workflows:
         documentFailures: 0,
       },
     });
-    expect(result.workflows.map((workflow) => workflow.status)).toEqual([
+    expect(result.cases.map((caseResult) => caseResult.status)).toEqual([
       'failed',
       'success',
       'success',
@@ -189,10 +189,10 @@ workflows:
       readFileSync(join(resultDir, 'project.json'), 'utf8'),
     );
     expect(projectResult).toMatchObject({
-      version: 1,
+      version: 2,
       status: 'failed',
       summary: result.summary,
-      workflows: [
+      cases: [
         { status: 'failed', resultFile: expect.stringMatching(/^runs\//) },
         { status: 'success', resultFile: expect.stringMatching(/^runs\//) },
         { status: 'success', resultFile: expect.stringMatching(/^runs\//) },
@@ -203,7 +203,7 @@ workflows:
     });
   });
 
-  it('marks every workflow not run when beforeAll fails and still cleans up', async () => {
+  it('marks every case not run when beforeAll fails and still cleans up', async () => {
     const root = createProject();
     const resultDir = join(root, 'results');
     const state = setRunnerState(resultDir);
@@ -239,7 +239,7 @@ workflows:
       `
 beforeAll:
   - before.fail: prepare
-workflows:
+cases:
   - name: one
     steps:
       - body: first
@@ -266,7 +266,7 @@ afterAll:
       notRun: 2,
       documentFailures: 1,
     });
-    expect(result.workflows).toEqual([
+    expect(result.cases).toEqual([
       expect.objectContaining({
         name: 'one',
         status: 'not-run',

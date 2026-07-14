@@ -1,5 +1,5 @@
-workflows:
-  - name: skipped document workflow
+cases:
+  - name: skipped document case
     steps:
       - test.record:
           value: must-not-run-in-b

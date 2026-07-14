@@ -5,17 +5,19 @@ import type {
   NodeResult,
 } from '../node/types';
 import type {
-  CollectedWorkflowLifecycle,
+  CollectedCase,
+  CollectedDocumentLifecycle,
+  CollectedWorkflowDocument,
+  NormalizedCaseDefinition,
   NormalizedStep,
   NormalizedStepMeta,
-  NormalizedWorkflowDefinition,
 } from '../parser/types';
 
 export type Awaitable<T> = T | Promise<T>;
 
-export type WorkflowNodePhase = 'beforeEach' | 'steps' | 'afterEach';
+export type CaseNodePhase = 'beforeEach' | 'steps' | 'afterEach';
 export type DocumentNodePhase = 'beforeAll' | 'afterAll';
-export type NodeExecutionPhase = WorkflowNodePhase | DocumentNodePhase;
+export type NodeExecutionPhase = CaseNodePhase | DocumentNodePhase;
 
 export interface StepRunResult<TOutputData = unknown> {
   phase: NodeExecutionPhase;
@@ -32,12 +34,12 @@ export interface StepRunResult<TOutputData = unknown> {
   error?: WorkflowError;
 }
 
-export interface WorkflowRunResult {
-  testId: string;
+export interface CaseRunResult {
+  caseId: string;
   runId: string;
   name: string;
   sourcePath: string;
-  workflowIndex: number;
+  caseIndex: number;
   status: 'success' | 'failed';
   beforeEach: StepRunResult[];
   steps: StepRunResult[];
@@ -62,17 +64,17 @@ export interface WorkflowDocumentRunResult {
   teardownErrors?: WorkflowError[];
 }
 
-export interface WorkflowExecutionContext {
-  readonly testId: string;
+export interface CaseExecutionContext {
+  readonly caseId: string;
   readonly runId: string;
   readonly name: string;
   readonly sourcePath: string;
-  readonly workflowIndex: number;
+  readonly caseIndex: number;
   readonly completedSteps: readonly StepRunResult[];
 }
 
-export interface NodeWorkflowContext extends WorkflowExecutionContext {
-  readonly phase: WorkflowNodePhase;
+export interface NodeCaseContext extends CaseExecutionContext {
+  readonly phase: CaseNodePhase;
   readonly stepIndex: number;
   readonly completedNodes: readonly StepRunResult[];
 }
@@ -87,13 +89,41 @@ export interface NodeDocumentContext {
   readonly completedNodes: readonly StepRunResult[];
 }
 
-export interface RunWorkflowOptions<TContext = undefined> {
+export interface RunCaseOptions<TContext = undefined> {
   resolveNode(name: string): NodeDefinition<any, any, TContext>;
   beforeEach?: readonly NormalizedStep[];
   afterEach?: readonly NormalizedStep[];
   context?: TContext;
-  onResult?(result: WorkflowRunResult): Promise<void> | void;
+  onResult?(result: CaseRunResult): Promise<void> | void;
   createRunId?(): string;
+}
+
+export type CaseRunStatus = 'success' | 'failed' | 'not-run';
+
+export interface CaseRunOutcome {
+  caseId: string;
+  name: string;
+  sourcePath: string;
+  caseIndex: number;
+  status: CaseRunStatus;
+  run?: CaseRunResult;
+  notRunReason?: 'document-start-failed' | 'interrupted';
+}
+
+export interface WorkflowDocumentExecutionResult {
+  document: WorkflowDocumentRunResult;
+  cases: readonly CaseRunOutcome[];
+}
+
+export interface RunWorkflowDocumentOptions<TContext = undefined> {
+  resolveNode(name: string): NodeDefinition<any, any, TContext>;
+  resolveDocumentNode(name: string): DocumentNodeDefinition<any, any, TContext>;
+  setupDocument?: WorkflowDocumentSetup<TContext>;
+  shouldStop?(): boolean;
+  onCaseResult?(result: CaseRunResult): Promise<void> | void;
+  onDocumentResult?(result: WorkflowDocumentRunResult): Promise<void> | void;
+  createCaseRunId?(collectedCase: CollectedCase): string;
+  createDocumentRunId?(document: CollectedWorkflowDocument): string;
 }
 
 export interface WorkflowDocumentInfo {
@@ -101,8 +131,8 @@ export interface WorkflowDocumentInfo {
   readonly documentRunId: string;
   readonly projectId: string;
   readonly sourcePath: string;
-  readonly workflows: readonly NormalizedWorkflowDefinition[];
-  readonly lifecycle: CollectedWorkflowLifecycle;
+  readonly cases: readonly NormalizedCaseDefinition[];
+  readonly lifecycle: CollectedDocumentLifecycle;
   readonly env: Readonly<NodeJS.ProcessEnv>;
 }
 
@@ -134,7 +164,7 @@ export interface CreateDocumentRuntimeOptions<TContext = undefined> {
 
 export interface WorkflowDocumentRuntime<TContext = undefined> {
   readonly context: TContext;
-  readonly canRunWorkflows: boolean;
+  readonly canRunCases: boolean;
   start(): Promise<WorkflowDocumentRunResult>;
   finish(): Promise<WorkflowDocumentRunResult>;
 }

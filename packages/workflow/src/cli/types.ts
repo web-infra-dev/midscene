@@ -1,20 +1,10 @@
 import type {
+  CaseRunOutcome,
   WorkflowDocumentRunResult,
-  WorkflowRunResult,
 } from '../engine/types';
 import type { WorkflowError } from '../errors';
 
-export type WorkflowCaseStatus = 'success' | 'failed' | 'not-run';
-
-export interface WorkflowCaseRunResult {
-  testId: string;
-  name: string;
-  sourcePath: string;
-  workflowIndex: number;
-  status: WorkflowCaseStatus;
-  run?: WorkflowRunResult;
-  notRunReason?: 'document-start-failed' | 'interrupted';
-}
+export type ProjectCaseRunResult = CaseRunOutcome;
 
 export interface WorkflowCollectionError {
   sourcePath: string;
@@ -35,7 +25,7 @@ export interface WorkflowProjectRunResult {
   exitCode: 0 | 1;
   resultDir: string;
   summary: WorkflowProjectRunSummary;
-  workflows: readonly WorkflowCaseRunResult[];
+  cases: readonly ProjectCaseRunResult[];
   documents: readonly WorkflowDocumentRunResult[];
   collectionErrors: readonly WorkflowCollectionError[];
 }

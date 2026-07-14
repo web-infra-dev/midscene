@@ -2,13 +2,13 @@ beforeAll:
   - document.lifecycle: Document started
 
 beforeEach:
-  - attempt.start: Start workflow attempt
+  - attempt.start: Start case attempt
   - recordToReport:
       title: Attempt started
       content: Shared document Agent
 
-workflows:
-  - name: report-only workflow
+cases:
+  - name: report-only case
     steps:
       - recordToReport:
           title: Ready

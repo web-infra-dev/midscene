@@ -12,7 +12,7 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-describe('workflow runner', () => {
+describe('standalone case runner', () => {
   it('runs nodes sequentially with normalized input and metadata', async () => {
     const calls: string[] = [];
     const first = defineNode<{ value: number }, { doubled: number }>({
@@ -34,13 +34,15 @@ describe('workflow runner', () => {
     const engine = new WorkflowEngine({ nodes: [first, second] });
 
     const result = await engine.run({
-      cases: [
+      name: 'sequential case',
+      steps: [
         { 'first.node': { prompt: 'run first', value: 2 } },
         { 'second.node': {} },
       ],
     });
 
     expect(calls).toEqual(['run first', 'second']);
+    expect(result.name).toBe('sequential case');
     expect(result.status).toBe('success');
     expect(result.steps).toHaveLength(2);
     expect(result.steps[0]).toMatchObject({
@@ -50,27 +52,6 @@ describe('workflow runner', () => {
       output: { summary: 'done', data: { doubled: 4 } },
     });
     expect(result.steps[1].output).toBeUndefined();
-  });
-
-  it('runs a standalone cases YAML source', async () => {
-    const execute = vi.fn();
-    const engine = new WorkflowEngine({
-      nodes: [defineNode({ name: 'yaml.node', execute })],
-    });
-
-    const result = await engine.run(`
-cases:
-  - yaml.node: run from YAML
-`);
-
-    expect(execute).toHaveBeenCalledOnce();
-    expect(execute.mock.calls[0][0].input).toEqual({
-      prompt: 'run from YAML',
-    });
-    expect(result).toMatchObject({
-      status: 'success',
-      steps: [{ node: 'yaml.node', status: 'success' }],
-    });
   });
 
   it('records a failed step and continues when configured', async () => {
@@ -88,7 +69,7 @@ cases:
     });
 
     const result = await engine.run({
-      cases: [
+      steps: [
         { 'failing.node': { $: { 'continue-on-error': true } } },
         { 'next.node': 'keep going' },
       ],
@@ -119,13 +100,13 @@ cases:
 
     await expect(
       engine.run({
-        cases: [{ 'failing.node': {} }, { 'next.node': {} }],
+        steps: [{ 'failing.node': {} }, { 'next.node': {} }],
       }),
     ).rejects.toBeInstanceOf(NodeExecutionError);
     expect(next).not.toHaveBeenCalled();
   });
 
-  it('resolves every node before starting workflow side effects', async () => {
+  it('resolves every node before starting case side effects', async () => {
     const first = vi.fn();
     const engine = new WorkflowEngine({
       nodes: [defineNode({ name: 'first.node', execute: first })],
@@ -133,13 +114,13 @@ cases:
 
     await expect(
       engine.run({
-        cases: [{ 'first.node': {} }, { 'missing.node': {} }],
+        steps: [{ 'first.node': {} }, { 'missing.node': {} }],
       }),
     ).rejects.toMatchObject({ code: 'NODE_NOT_FOUND' });
     expect(first).not.toHaveBeenCalled();
   });
 
-  it('preserves workflow errors thrown by a node', async () => {
+  it('preserves structured errors thrown by a node', async () => {
     const validationError = new NodeInputValidationError('prompt is required');
     const node = defineNode({
       name: 'validating.node',
@@ -221,7 +202,7 @@ cases:
       context: { value: 'ready' },
     });
 
-    await engine.run({ cases: [{ 'context.node': {} }] });
+    await engine.run({ steps: [{ 'context.node': {} }] });
     expect(calls).toEqual(['node:ready']);
   });
 });

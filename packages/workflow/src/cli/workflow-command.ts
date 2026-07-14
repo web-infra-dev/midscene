@@ -54,7 +54,7 @@ export async function runWorkflowCli(
     const options = parseWorkflowCliArgs(args);
     const result = await runWorkflowProject(options);
     io.log(
-      `midscene-workflow: ${result.summary.passed}/${result.summary.total} workflows passed, ${result.summary.failed} failed, ${result.summary.notRun} not run`,
+      `midscene-workflow: ${result.summary.passed}/${result.summary.total} cases passed, ${result.summary.failed} failed, ${result.summary.notRun} not run`,
     );
     io.log(`Results: ${result.resultDir}`);
     return result.exitCode;

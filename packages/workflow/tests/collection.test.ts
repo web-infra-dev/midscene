@@ -4,8 +4,8 @@ import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
   collectWorkflowDocument,
+  createCaseId,
   createWorkflowDocumentId,
-  createWorkflowTestId,
   defineDocumentNode,
   defineNode,
 } from '../src';
@@ -37,9 +37,9 @@ describe('workflow document collection', () => {
     execute() {},
   });
 
-  it('collects and normalizes every workflow with stable positional ids', () => {
+  it('collects and normalizes every case with stable positional ids', () => {
     const source = createDocument(`
-workflows:
+cases:
   - name: Create order
     steps:
       - test.record: first
@@ -65,16 +65,16 @@ workflows:
       afterEach: [],
       afterAll: [],
     });
-    expect(document.workflows).toHaveLength(2);
-    expect(document.workflows[0]).toMatchObject({
-      testId: createWorkflowTestId('orders-project', 'cases/orders.yaml', 0),
-      workflowIndex: 0,
+    expect(document.cases).toHaveLength(2);
+    expect(document.cases[0]).toMatchObject({
+      caseId: createCaseId('orders-project', 'cases/orders.yaml', 0),
+      caseIndex: 0,
       definition: {
         name: 'Create order',
         steps: [{ node: 'test.record', input: { prompt: 'first' } }],
       },
     });
-    expect(document.workflows[1].testId).not.toBe(document.workflows[0].testId);
+    expect(document.cases[1].caseId).not.toBe(document.cases[0].caseId);
   });
 
   it('normalizes all lifecycle fields and allows explicit empty arrays', () => {
@@ -82,7 +82,7 @@ workflows:
 afterAll:
   - test.document: last
 afterEach: []
-workflows:
+cases:
   - name: lifecycle
     steps:
       - test.record: body
@@ -110,7 +110,7 @@ beforeAll:
     const documentScopeMismatch = createDocument(`
 beforeAll:
   - test.record: wrong registry
-workflows:
+cases:
   - name: invalid
     steps:
       - test.record: body
@@ -123,16 +123,16 @@ workflows:
       }),
     ).toThrow('beforeAll step 1 references unknown node "test.record"');
 
-    const workflowScopeMismatch = createDocument(`
+    const caseScopeMismatch = createDocument(`
 beforeEach:
   - test.document: wrong registry
-workflows:
+cases:
   - name: invalid
     steps:
       - test.record: body
 `);
     expect(() =>
-      collectWorkflowDocument(workflowScopeMismatch, {
+      collectWorkflowDocument(caseScopeMismatch, {
         resolveNode: (name) => (name === node.name ? node : undefined),
         resolveDocumentNode: (name) =>
           name === documentNode.name ? documentNode : undefined,
@@ -142,22 +142,22 @@ workflows:
 
   it.each([
     ['other: true', 'unsupported field'],
-    ['cases: []', 'unsupported field "cases"'],
-    ['workflows: []', 'non-empty workflows'],
+    ['workflows: []', 'unsupported field "workflows"'],
+    ['cases: []', 'non-empty cases'],
     [
-      'beforeAll: true\nworkflows:\n  - name: valid\n    steps:\n      - test.record: ok',
+      'beforeAll: true\ncases:\n  - name: valid\n    steps:\n      - test.record: ok',
       'beforeAll must be an array',
     ],
     [
-      'workflows:\n  - name: valid\n    extra: true\n    steps:\n      - test.record: ok',
+      'cases:\n  - name: valid\n    extra: true\n    steps:\n      - test.record: ok',
       'unsupported field',
     ],
     [
-      'workflows:\n  - name: ""\n    steps:\n      - test.record: ok',
+      'cases:\n  - name: ""\n    steps:\n      - test.record: ok',
       'non-empty string',
     ],
     [
-      'workflows:\n  - name: unknown\n    steps:\n      - missing.node: fail',
+      'cases:\n  - name: unknown\n    steps:\n      - missing.node: fail',
       'unknown node',
     ],
   ])('rejects an invalid document: %s', (yaml, message) => {

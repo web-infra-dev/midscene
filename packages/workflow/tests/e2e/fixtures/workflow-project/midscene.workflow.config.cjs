@@ -20,9 +20,9 @@ module.exports = defineWorkflowProject({
     defineNode({
       name: 'test.expect-history',
       execute(ctx) {
-        if (ctx.workflow.completedSteps.length !== ctx.input.count) {
+        if (ctx.case.completedSteps.length !== ctx.input.count) {
           throw new Error(
-            `Expected ${ctx.input.count} completed steps, received ${ctx.workflow.completedSteps.length}`,
+            `Expected ${ctx.input.count} completed steps, received ${ctx.case.completedSteps.length}`,
           );
         }
       },

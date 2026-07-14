@@ -1,4 +1,4 @@
-import type { NodeDocumentContext, NodeWorkflowContext } from '../engine/types';
+import type { NodeCaseContext, NodeDocumentContext } from '../engine/types';
 import type { CommonNodeInput, NormalizedStepMeta } from '../parser/types';
 
 export interface NodeResult<TData = unknown> {
@@ -19,8 +19,8 @@ export interface NodeExecutionContext<TInput = unknown, TContext = unknown> {
   /** The timeout and cancellation signal for this step. */
   signal: AbortSignal;
 
-  /** Identity and completed-step history for the workflow being executed. */
-  workflow: NodeWorkflowContext;
+  /** Identity and completed-step history for the case being executed. */
+  case: NodeCaseContext;
 
   /** Resources shared by the current workflow document. */
   context: TContext;

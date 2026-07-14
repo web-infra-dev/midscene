@@ -1,12 +1,8 @@
-import { JSON_SCHEMA, load as loadYaml } from 'js-yaml';
 import { WorkflowParseError } from '../errors';
 import type {
   CommonNodeInput,
   NormalizedStep,
   NormalizedStepMeta,
-  NormalizedWorkflow,
-  WorkflowCasesDefinition,
-  WorkflowSource,
 } from './types';
 
 const supportedMetaKeys = new Set(['timeout', 'continue-on-error']);
@@ -22,7 +18,7 @@ function isMapping(value: unknown): value is Record<string, unknown> {
 }
 
 function formatStep(index: number): string {
-  return `workflow step ${index + 1}`;
+  return `step ${index + 1}`;
 }
 
 function normalizeMeta(value: unknown, index: number): NormalizedStepMeta {
@@ -83,24 +79,6 @@ export function validateCommonNodeInput(
   }
 }
 
-export function parseWorkflow(source: string): WorkflowCasesDefinition {
-  if (typeof source !== 'string') {
-    throw new WorkflowParseError('Workflow YAML source must be a string.');
-  }
-
-  try {
-    return loadYaml(source, {
-      schema: JSON_SCHEMA,
-    }) as WorkflowCasesDefinition;
-  } catch (error) {
-    throw new WorkflowParseError(
-      'Failed to parse workflow YAML.',
-      undefined,
-      error,
-    );
-  }
-}
-
 export function normalizeStep(value: unknown, index = 0): NormalizedStep {
   if (!isMapping(value)) {
     throw new WorkflowParseError(`${formatStep(index)} must be a mapping.`, {
@@ -149,36 +127,9 @@ export function normalizeStep(value: unknown, index = 0): NormalizedStep {
   };
 }
 
-export function normalizeWorkflow(source: WorkflowSource): NormalizedWorkflow {
-  const definition =
-    typeof source === 'string' ? parseWorkflow(source) : source;
-
-  if (!isMapping(definition)) {
-    throw new WorkflowParseError('Workflow definition must be a mapping.');
+export function normalizeSteps(steps: unknown): NormalizedStep[] {
+  if (!Array.isArray(steps)) {
+    throw new WorkflowParseError('Steps must be an array.');
   }
-
-  if ('workflow' in definition) {
-    throw new WorkflowParseError(
-      'Workflow definition no longer supports "workflow". Use "cases" instead.',
-      { field: 'workflow' },
-    );
-  }
-
-  const unknownField = Object.keys(definition).find((key) => key !== 'cases');
-  if (unknownField !== undefined) {
-    throw new WorkflowParseError(
-      `Workflow definition has unsupported field "${unknownField}".`,
-      { field: unknownField },
-    );
-  }
-
-  if (!Array.isArray(definition.cases)) {
-    throw new WorkflowParseError(
-      'Workflow definition must contain a cases array.',
-    );
-  }
-
-  return {
-    cases: definition.cases.map((step, index) => normalizeStep(step, index)),
-  };
+  return steps.map((step, index) => normalizeStep(step, index));
 }

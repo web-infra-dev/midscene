@@ -1,9 +1,9 @@
 import type { NodeDefinition } from '../node/types';
-import { normalizeWorkflow } from '../parser/normalize';
-import type { CollectedWorkflow, WorkflowSource } from '../parser/types';
+import { normalizeSteps } from '../parser/normalize';
+import type { CaseInput, CollectedCase } from '../parser/types';
 import { NodeRegistry } from './registry';
-import { runWorkflow } from './run-workflow';
-import type { WorkflowEngineOptions, WorkflowRunResult } from './types';
+import { runCase } from './run-case';
+import type { CaseRunResult, WorkflowEngineOptions } from './types';
 
 export class WorkflowEngine<TContext = undefined> {
   readonly registry: NodeRegistry;
@@ -19,20 +19,22 @@ export class WorkflowEngine<TContext = undefined> {
     return this;
   }
 
-  async run(source: WorkflowSource): Promise<WorkflowRunResult> {
-    const normalized = normalizeWorkflow(source);
-    const workflow: CollectedWorkflow = {
-      testId: 'legacy-workflow',
-      projectId: 'legacy-project',
+  async run(input: CaseInput): Promise<CaseRunResult> {
+    const collectedCase: CollectedCase = {
+      caseId: 'standalone-case',
+      projectId: 'standalone-project',
       sourcePath: '',
-      workflowIndex: 0,
-      definition: { name: 'workflow', steps: normalized.cases },
+      caseIndex: 0,
+      definition: {
+        name: input.name ?? 'case',
+        steps: normalizeSteps(input.steps),
+      },
     };
-    const result = await runWorkflow(workflow, {
+    const result = await runCase(collectedCase, {
       resolveNode: (name) =>
         this.registry.require(name) as NodeDefinition<any, any, TContext>,
       context: this.context,
-      createRunId: () => 'legacy-workflow',
+      createRunId: () => 'standalone-case',
     });
 
     const fatalStepError = result.steps.find(

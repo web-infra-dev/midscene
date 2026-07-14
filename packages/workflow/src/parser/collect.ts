@@ -4,9 +4,9 @@ import { sep } from 'node:path';
 import { JSON_SCHEMA, load as loadYaml } from 'js-yaml';
 import { WorkflowParseError } from '../errors';
 import type { DocumentNodeDefinition, NodeDefinition } from '../node/types';
-import { normalizeStep } from './normalize';
+import { normalizeSteps } from './normalize';
 import type {
-  CollectedWorkflow,
+  CollectedCase,
   CollectedWorkflowDocument,
   WorkflowDocumentSource,
 } from './types';
@@ -36,13 +36,13 @@ const rejectUnknownKeys = (
   }
 };
 
-export const createWorkflowTestId = (
+export const createCaseId = (
   projectId: string,
   sourcePath: string,
-  workflowIndex: number,
+  caseIndex: number,
 ): string =>
   createHash('sha256')
-    .update(JSON.stringify([projectId, sourcePath, workflowIndex]))
+    .update(JSON.stringify([projectId, sourcePath, caseIndex]))
     .digest('hex');
 
 export const createWorkflowDocumentId = (
@@ -75,12 +75,12 @@ export function collectWorkflowDocument(
   }
   rejectUnknownKeys(
     parsed,
-    ['beforeAll', 'beforeEach', 'workflows', 'afterEach', 'afterAll'],
+    ['beforeAll', 'beforeEach', 'cases', 'afterEach', 'afterAll'],
     'Workflow document',
   );
-  if (!Array.isArray(parsed.workflows) || parsed.workflows.length === 0) {
+  if (!Array.isArray(parsed.cases) || parsed.cases.length === 0) {
     throw new WorkflowParseError(
-      'Workflow document must contain a non-empty workflows array.',
+      'Workflow document must contain a non-empty cases array.',
     );
   }
 
@@ -96,8 +96,7 @@ export function collectWorkflowDocument(
         { phase },
       );
     }
-    return value.map((step, stepIndex) => {
-      const normalized = normalizeStep(step, stepIndex);
+    return normalizeSteps(value).map((normalized, stepIndex) => {
       const resolved =
         phase === 'beforeAll' || phase === 'afterAll'
           ? options.resolveDocumentNode?.(normalized.node)
@@ -118,72 +117,62 @@ export function collectWorkflowDocument(
     afterAll: normalizeLifecycle('afterAll'),
   };
   const ids = new Set<string>();
-  const workflows: CollectedWorkflow[] = parsed.workflows.map(
-    (definition, workflowIndex) => {
-      if (!isMapping(definition)) {
-        throw new WorkflowParseError(
-          `Workflow ${workflowIndex + 1} must be a mapping.`,
-          { workflowIndex },
-        );
-      }
-      rejectUnknownKeys(
-        definition,
-        ['name', 'steps'],
-        `Workflow ${workflowIndex + 1}`,
+  const cases: CollectedCase[] = parsed.cases.map((definition, caseIndex) => {
+    if (!isMapping(definition)) {
+      throw new WorkflowParseError(`Case ${caseIndex + 1} must be a mapping.`, {
+        caseIndex,
+      });
+    }
+    rejectUnknownKeys(definition, ['name', 'steps'], `Case ${caseIndex + 1}`);
+    if (
+      typeof definition.name !== 'string' ||
+      definition.name.trim().length === 0
+    ) {
+      throw new WorkflowParseError(
+        `Case ${caseIndex + 1} name must be a non-empty string.`,
+        { caseIndex },
       );
-      if (
-        typeof definition.name !== 'string' ||
-        definition.name.trim().length === 0
-      ) {
-        throw new WorkflowParseError(
-          `Workflow ${workflowIndex + 1} name must be a non-empty string.`,
-          { workflowIndex },
-        );
-      }
-      if (!Array.isArray(definition.steps) || definition.steps.length === 0) {
-        throw new WorkflowParseError(
-          `Workflow ${workflowIndex + 1} steps must be a non-empty array.`,
-          { workflowIndex },
-        );
-      }
+    }
+    if (!Array.isArray(definition.steps) || definition.steps.length === 0) {
+      throw new WorkflowParseError(
+        `Case ${caseIndex + 1} steps must be a non-empty array.`,
+        { caseIndex },
+      );
+    }
 
-      const steps = definition.steps.map((step, stepIndex) => {
-        const normalized = normalizeStep(step, stepIndex);
+    const steps = normalizeSteps(definition.steps).map(
+      (normalized, stepIndex) => {
         if (!options.resolveNode(normalized.node)) {
           throw new WorkflowParseError(
-            `Workflow ${workflowIndex + 1} step ${stepIndex + 1} references unknown node "${normalized.node}".`,
-            { workflowIndex, stepIndex, node: normalized.node },
+            `Case ${caseIndex + 1} step ${stepIndex + 1} references unknown node "${normalized.node}".`,
+            { caseIndex, stepIndex, node: normalized.node },
           );
         }
         return normalized;
+      },
+    );
+    const caseId = createCaseId(source.projectId, sourcePath, caseIndex);
+    if (ids.has(caseId)) {
+      throw new WorkflowParseError(`Case id collision: ${caseId}.`, {
+        caseId,
       });
-      const testId = createWorkflowTestId(
-        source.projectId,
-        sourcePath,
-        workflowIndex,
-      );
-      if (ids.has(testId)) {
-        throw new WorkflowParseError(`Workflow testId collision: ${testId}.`, {
-          testId,
-        });
-      }
-      ids.add(testId);
+    }
+    ids.add(caseId);
 
-      return {
-        testId,
-        projectId: source.projectId,
-        sourcePath,
-        workflowIndex,
-        definition: { name: definition.name, steps },
-      };
-    },
-  );
+    return {
+      caseId,
+      projectId: source.projectId,
+      sourcePath,
+      caseIndex,
+      definition: { name: definition.name, steps },
+    };
+  });
 
   return {
     documentId: createWorkflowDocumentId(source.projectId, sourcePath),
     projectId: source.projectId,
     sourcePath,
     lifecycle,
-    workflows,
+    cases,
   } satisfies CollectedWorkflowDocument;
 }

@@ -141,13 +141,13 @@ export class WorkflowLifecycleError extends WorkflowError {
   }
 }
 
-export class WorkflowExecutionError extends WorkflowError {
-  readonly result: import('./engine/types').WorkflowRunResult;
+export class CaseExecutionError extends WorkflowError {
+  readonly result: import('./engine/types').CaseRunResult;
 
-  constructor(result: import('./engine/types').WorkflowRunResult) {
-    super(`Workflow "${result.name}" failed.`, {
-      code: 'WORKFLOW_EXECUTION_FAILED',
-      details: { testId: result.testId, runId: result.runId },
+  constructor(result: import('./engine/types').CaseRunResult) {
+    super(`Case "${result.name}" failed.`, {
+      code: 'CASE_EXECUTION_FAILED',
+      details: { caseId: result.caseId, runId: result.runId },
     });
     this.result = result;
   }
@@ -168,7 +168,7 @@ export class WorkflowDocumentExecutionError extends WorkflowError {
   }
 }
 
-export function normalizeWorkflowError(
+export function normalizeNodeExecutionError(
   error: unknown,
   node: string,
 ): WorkflowError {

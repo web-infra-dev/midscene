@@ -20,10 +20,10 @@ const documentLifecycle = defineDocumentNode({
 
 const startAttempt = defineNode({
   name: 'attempt.start',
-  execute({ context, workflow }) {
+  execute({ context, case: caseContext }) {
     context.attempt += 1;
     log(
-      `beforeEach:${context.id}:${context.attempt}:${workflow.runId}:${process.pid}`,
+      `beforeEach:${context.id}:${context.attempt}:${caseContext.runId}:${process.pid}`,
     );
   },
 });

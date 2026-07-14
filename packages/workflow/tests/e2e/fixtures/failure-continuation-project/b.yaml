@@ -1,4 +1,4 @@
-workflows:
+cases:
   - name: later document
     steps:
       - test.record:

@@ -14,26 +14,24 @@ export interface CommonNodeInput {
   prompt?: string;
 }
 
-export type WorkflowStepValue = string | Record<string, unknown>;
+export type StepValue = string | Record<string, unknown>;
 
-export type WorkflowStepInput = Record<string, unknown>;
+export type StepInput = Record<string, unknown>;
 
-/** Standalone workflow input accepted by WorkflowEngine. */
-export interface WorkflowCasesDefinition {
-  cases: WorkflowStepInput[];
+export interface CaseInput {
+  name?: string;
+  steps: readonly StepInput[];
 }
-
-export type WorkflowSource = string | WorkflowCasesDefinition;
 
 export interface WorkflowDocumentDefinition {
-  beforeAll?: readonly WorkflowStepInput[];
-  beforeEach?: readonly WorkflowStepInput[];
-  workflows: readonly WorkflowDefinition[];
-  afterEach?: readonly WorkflowStepInput[];
-  afterAll?: readonly WorkflowStepInput[];
+  beforeAll?: readonly StepInput[];
+  beforeEach?: readonly StepInput[];
+  cases: readonly CaseDefinition[];
+  afterEach?: readonly StepInput[];
+  afterAll?: readonly StepInput[];
 }
 
-export interface WorkflowDefinition<TStep = WorkflowStepInput> {
+export interface CaseDefinition<TStep = StepInput> {
   name: string;
   steps: readonly TStep[];
 }
@@ -44,11 +42,7 @@ export interface NormalizedStep {
   meta: NormalizedStepMeta;
 }
 
-export interface NormalizedWorkflow {
-  cases: NormalizedStep[];
-}
-
-export type NormalizedWorkflowDefinition = WorkflowDefinition<NormalizedStep>;
+export type NormalizedCaseDefinition = CaseDefinition<NormalizedStep>;
 
 export interface WorkflowDocumentSource {
   projectId: string;
@@ -56,23 +50,23 @@ export interface WorkflowDocumentSource {
   absolutePath: string;
 }
 
-export interface CollectedWorkflow {
-  testId: string;
+export interface CollectedCase {
+  caseId: string;
   projectId: string;
   sourcePath: string;
-  workflowIndex: number;
-  definition: NormalizedWorkflowDefinition;
+  caseIndex: number;
+  definition: NormalizedCaseDefinition;
 }
 
 export interface CollectedWorkflowDocument {
   documentId: string;
   projectId: string;
   sourcePath: string;
-  lifecycle: CollectedWorkflowLifecycle;
-  workflows: readonly CollectedWorkflow[];
+  lifecycle: CollectedDocumentLifecycle;
+  cases: readonly CollectedCase[];
 }
 
-export interface CollectedWorkflowLifecycle {
+export interface CollectedDocumentLifecycle {
   beforeAll: readonly NormalizedStep[];
   beforeEach: readonly NormalizedStep[];
   afterEach: readonly NormalizedStep[];

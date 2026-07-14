@@ -1,8 +1,8 @@
 beforeAll:
   - before.fail: Fail document preparation
 
-workflows:
-  - name: skipped workflow
+cases:
+  - name: skipped case
     steps:
       - body.record: Must not run
 

@@ -80,9 +80,7 @@ describe('midscene-workflow CLI', () => {
       },
     );
 
-    expect(execution.stdout).toContain(
-      '3/3 workflows passed, 0 failed, 0 not run',
-    );
+    expect(execution.stdout).toContain('3/3 cases passed, 0 failed, 0 not run');
     expect(readFileSync(executionLog, 'utf8').trim().split('\n')).toEqual([
       'first:one',
       'first:two',
@@ -126,7 +124,7 @@ describe('midscene-workflow CLI', () => {
       },
     );
 
-    expect(execution.stdout).toContain('1/1 workflows passed');
+    expect(execution.stdout).toContain('1/1 cases passed');
     const lines = readFileSync(executionLog, 'utf8').trim().split('\n');
     expect(lines).toHaveLength(9);
     const pid = lines[0].split(':')[1];
@@ -161,7 +159,7 @@ describe('midscene-workflow CLI', () => {
     });
   });
 
-  it('continues later workflows and documents after a workflow fails', async () => {
+  it('continues later cases and documents after a case fails', async () => {
     const projectRoot = join(
       __dirname,
       'fixtures',
@@ -175,9 +173,7 @@ describe('midscene-workflow CLI', () => {
     });
 
     expect(failure.code).toBe(1);
-    expect(failure.stdout).toContain(
-      '2/3 workflows passed, 1 failed, 0 not run',
-    );
+    expect(failure.stdout).toContain('2/3 cases passed, 1 failed, 0 not run');
     expect(readFileSync(executionLog, 'utf8').trim().split('\n')).toEqual([
       'first:failed',
       'second:passed',
@@ -187,8 +183,8 @@ describe('midscene-workflow CLI', () => {
       readFileSync(join(resultDir, 'project.json'), 'utf8'),
     );
     expect(
-      projectResult.workflows.map(
-        (workflow: { status: string }) => workflow.status,
+      projectResult.cases.map(
+        (caseResult: { status: string }) => caseResult.status,
       ),
     ).toEqual(['failed', 'success', 'success']);
   });
@@ -209,9 +205,7 @@ describe('midscene-workflow CLI', () => {
     });
 
     expect(failure.code).toBe(1);
-    expect(failure.stdout).toContain(
-      '0/1 workflows passed, 0 failed, 1 not run',
-    );
+    expect(failure.stdout).toContain('0/1 cases passed, 0 failed, 1 not run');
     expect(readFileSync(executionLog, 'utf8').trim().split('\n')).toEqual([
       'setupDocument',
       'beforeAll',
@@ -229,7 +223,7 @@ describe('midscene-workflow CLI', () => {
     const projectResult = JSON.parse(
       readFileSync(join(resultDir, 'project.json'), 'utf8'),
     );
-    expect(projectResult.workflows).toEqual([
+    expect(projectResult.cases).toEqual([
       expect.objectContaining({
         status: 'not-run',
         notRunReason: 'document-start-failed',
@@ -251,7 +245,7 @@ describe('midscene-workflow CLI', () => {
     }
   });
 
-  it('finishes the active document and marks remaining workflows interrupted', async () => {
+  it('finishes the active document and marks remaining cases interrupted', async () => {
     const projectRoot = join(__dirname, 'fixtures', 'interrupt-project');
     const { resultDir, executionLog } = temporaryRun('midscene-interrupt-e2e-');
 
@@ -269,15 +263,15 @@ describe('midscene-workflow CLI', () => {
     const projectResult = JSON.parse(
       readFileSync(join(resultDir, 'project.json'), 'utf8'),
     );
-    expect(projectResult.workflows).toEqual([
-      expect.objectContaining({ name: 'active workflow', status: 'success' }),
+    expect(projectResult.cases).toEqual([
+      expect.objectContaining({ name: 'active case', status: 'success' }),
       expect.objectContaining({
-        name: 'skipped workflow',
+        name: 'skipped case',
         status: 'not-run',
         notRunReason: 'interrupted',
       }),
       expect.objectContaining({
-        name: 'skipped document workflow',
+        name: 'skipped document case',
         status: 'not-run',
         notRunReason: 'interrupted',
       }),

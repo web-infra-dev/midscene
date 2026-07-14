@@ -1,7 +1,7 @@
 import {
   NodeExecutionError,
   StepTimeoutError,
-  normalizeWorkflowError,
+  normalizeNodeExecutionError,
 } from '../errors';
 import type {
   DocumentNodeDefinition,
@@ -11,9 +11,9 @@ import type {
 import { validateCommonNodeInput } from '../parser/normalize';
 import type { CommonNodeInput, NormalizedStep } from '../parser/types';
 import type {
+  NodeCaseContext,
   NodeDocumentContext,
   NodeExecutionPhase,
-  NodeWorkflowContext,
   StepRunResult,
 } from './types';
 
@@ -65,12 +65,12 @@ function createStepResultBase(
   };
 }
 
-const standaloneWorkflowContext = (): NodeWorkflowContext => ({
-  testId: 'standalone-step',
+const standaloneCaseContext = (): NodeCaseContext => ({
+  caseId: 'standalone-step',
   runId: 'standalone-step',
   name: 'standalone step',
   sourcePath: '',
-  workflowIndex: 0,
+  caseIndex: 0,
   phase: 'steps',
   stepIndex: 0,
   completedSteps: Object.freeze([]),
@@ -123,21 +123,21 @@ async function executeNode<TOutputData>(
       ...createStepResultBase(step, startedAt, phase, stepIndex),
       status: 'failed',
       continuedAfterError: step.meta.continueOnError,
-      error: normalizeWorkflowError(timeoutError ?? error, step.node),
+      error: normalizeNodeExecutionError(timeoutError ?? error, step.node),
     };
   } finally {
     if (timeout !== undefined) clearTimeout(timeout);
   }
 }
 
-export async function runStepForWorkflow<
+export async function runStepForCase<
   TInput = unknown,
   TOutputData = unknown,
   TContext = unknown,
 >(
   step: NormalizedStep,
   node: NodeDefinition<TInput, TOutputData, TContext>,
-  workflow: NodeWorkflowContext,
+  caseContext: NodeCaseContext,
   context: TContext,
 ): Promise<StepRunResult<TOutputData>> {
   return executeNode<TOutputData>(
@@ -147,11 +147,11 @@ export async function runStepForWorkflow<
         input: step.input as TInput & CommonNodeInput,
         $: step.meta,
         signal,
-        workflow,
+        case: caseContext,
         context,
       }),
-    workflow.phase,
-    workflow.stepIndex,
+    caseContext.phase,
+    caseContext.stepIndex,
   );
 }
 
@@ -180,13 +180,13 @@ export async function runStepForDocument<
   );
 }
 
-/** RFC 0001 compatibility API: a non-continuable step still rejects. */
+/** Runs one normalized step outside a case. */
 export async function runStep<TInput = unknown, TOutputData = unknown>(
   step: NormalizedStep,
   node: NodeDefinition<TInput, TOutputData, undefined>,
-  workflow: NodeWorkflowContext = standaloneWorkflowContext(),
+  caseContext: NodeCaseContext = standaloneCaseContext(),
 ): Promise<StepRunResult<TOutputData>> {
-  const result = await runStepForWorkflow(step, node, workflow, undefined);
+  const result = await runStepForCase(step, node, caseContext, undefined);
   if (result.status === 'failed' && !result.continuedAfterError) {
     throw result.error;
   }
