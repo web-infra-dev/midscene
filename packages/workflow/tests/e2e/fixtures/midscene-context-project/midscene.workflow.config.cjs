@@ -9,10 +9,12 @@ const log = (value) => {
   appendFileSync(path, `${value}\n`);
 };
 
+log(`config:${process.pid}`);
+
 const documentLifecycle = defineDocumentNode({
   name: 'document.lifecycle',
   execute({ document, context }) {
-    log(`${document.phase}:${context.id}`);
+    log(`${document.phase}:${context.id}:${process.pid}`);
   },
 });
 
@@ -20,7 +22,9 @@ const startAttempt = defineNode({
   name: 'attempt.start',
   execute({ context, workflow }) {
     context.attempt += 1;
-    log(`beforeEach:${context.id}:${context.attempt}:${workflow.runId}`);
+    log(
+      `beforeEach:${context.id}:${context.attempt}:${workflow.runId}:${process.pid}`,
+    );
   },
 });
 
@@ -36,12 +40,12 @@ module.exports = defineWorkflowProject({
   async setupDocument({ sourcePath, onTeardown }) {
     documentCount += 1;
     const context = { id: documentCount, attempt: 0 };
-    log(`setupDocument:${context.id}:${sourcePath}`);
+    log(`setupDocument:${context.id}:${sourcePath}:${process.pid}`);
 
     context.uiAgent = {
       async recordToReport(title, options) {
         log(
-          `record:${context.id}:${context.attempt}:${title}:${options.content}`,
+          `record:${context.id}:${context.attempt}:${title}:${options.content}:${process.pid}`,
         );
         if (
           process.env.WORKFLOW_E2E_FAIL_FIRST === '1' &&
@@ -54,7 +58,7 @@ module.exports = defineWorkflowProject({
     };
 
     onTeardown(() => {
-      log(`documentTeardown:${context.id}:${context.attempt}`);
+      log(`documentTeardown:${context.id}:${context.attempt}:${process.pid}`);
     });
     return context;
   },

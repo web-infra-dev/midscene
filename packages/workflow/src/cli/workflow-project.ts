@@ -43,7 +43,7 @@ export function loadWorkflowProjectSync<TContext = undefined>(
       );
     } catch (error) {
       throw new Error(
-        `Failed to load workflow config "${absolutePath}". Use a CommonJS config (.cjs) for synchronous Rstest collection.`,
+        `Failed to load workflow config "${absolutePath}". Use a CommonJS config (.cjs).`,
         { cause: error },
       );
     }

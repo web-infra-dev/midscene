@@ -1,0 +1,11 @@
+workflows:
+  - name: failing workflow
+    steps:
+      - test.record:
+          value: first:failed
+          fail: true
+
+  - name: later workflow
+    steps:
+      - test.record:
+          value: second:passed
