@@ -245,6 +245,10 @@ export default defineConfig(async () => {
             sectionHeaderText: 'More features',
           },
           {
+            text: 'GitHub Actions integration',
+            link: '/github-actions-integration',
+          },
+          {
             text: 'Caching AI planning & locate',
             link: '/caching',
           },
@@ -392,6 +396,10 @@ export default defineConfig(async () => {
           },
           {
             sectionHeaderText: '更多特性',
+          },
+          {
+            text: '集成到 GitHub Actions',
+            link: '/zh/github-actions-integration',
           },
           {
             text: '缓存 AI 规划和定位',

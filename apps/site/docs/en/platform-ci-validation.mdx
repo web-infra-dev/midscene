@@ -1,0 +1,108 @@
+# Validate Midscene across platforms in CI
+
+This reference explains how Midscene uses continuous integration (CI) to validate Web, Linux, Windows, macOS, Android, and iOS. Use it to find a platform workflow, inspect a successful run, and download its Midscene HyperText Markup Language (HTML) report.
+
+## Compare platform coverage
+
+Each workflow exercises its platform adapter against a runner desktop, simulator, emulator, or browser. The workflows combine deterministic checks with model-backed TodoMVC tests.
+
+| Platform | Workflow and runner | Interface target | Validation |
+| --- | --- | --- | --- |
+| Web | [AI - Playwright e2e](https://github.com/web-infra-dev/midscene/blob/main/.github/workflows/ai.yml), `ubuntu-22.04` | Desktop Chrome through Playwright | TodoMVC actions, queries, cache replay, and report generation |
+| Headless Linux | [Headless Linux](https://github.com/web-infra-dev/midscene/blob/main/.github/workflows/headless-linux.yml), `ubuntu-22.04` | Google Chrome on an X virtual framebuffer (Xvfb) | Computer TodoMVC and Chrome extension flows without a physical display |
+| Windows | [Windows Desktop](https://github.com/web-infra-dev/midscene/blob/main/.github/workflows/windows-desktop.yml), `windows-2022` | Visible WinForms fixture and Chrome TodoMVC | Package outputs, unit tests, native input, screenshots, and TodoMVC |
+| macOS | [macOS Desktop](https://github.com/web-infra-dev/midscene/blob/main/.github/workflows/macos-desktop.yml), `macos-15-intel` | Visible AppKit fixture and Safari TodoMVC | Package outputs, unit tests, native input, screenshots, and TodoMVC |
+| Android | [Android Emulator](https://github.com/web-infra-dev/midscene/blob/main/.github/workflows/android-emulator.yml), `ubuntu-22.04` | Pixel 6 emulator with Android API 35 | Package outputs, unit tests, Android Debug Bridge input, screenshots, and TodoMVC |
+| iOS | [iOS Simulator](https://github.com/web-infra-dev/midscene/blob/main/.github/workflows/ios-simulator.yml), `macos-15` | Latest available iPhone Simulator, Mobile Safari, and WebDriverAgent | Package outputs, unit tests, simulator input, screenshots, and TodoMVC |
+| HarmonyOS | No repository workflow | Not covered | Validate on a HarmonyOS device or device farm |
+
+The desktop and mobile workflows fail if any required phase fails. Each workflow checks build output, package entry points, unit tests, its deterministic smoke, and TodoMVC where applicable.
+
+## Inspect successful runs and reports
+
+These successful runs show the expected evidence for each platform. Download the report artifact, extract it, and open the listed HTML file in a browser.
+
+| Platform | Successful CI run | HTML report artifact | Report file |
+| --- | --- | --- | --- |
+| Web | [Run 29302040780](https://github.com/web-infra-dev/midscene/actions/runs/29302040780) | [`e2e-report`](https://github.com/web-infra-dev/midscene/actions/runs/29302040780/artifacts/8298987616) | Generated reports under the artifact root |
+| Headless Linux | [Run 29252028039](https://github.com/web-infra-dev/midscene/actions/runs/29252028039) | [`headless-linux-ai-report`](https://github.com/web-infra-dev/midscene/actions/runs/29252028039/artifacts/8280608101) | TodoMVC report under the artifact root |
+| Windows | [Run 29252027901](https://github.com/web-infra-dev/midscene/actions/runs/29252027901) | [`windows-todo-mvc-report`](https://github.com/web-infra-dev/midscene/actions/runs/29252027901/artifacts/8280120027) | `todo-mvc-win32.html` |
+| macOS | [Run 29252027999](https://github.com/web-infra-dev/midscene/actions/runs/29252027999) | [`macos-todo-mvc-report`](https://github.com/web-infra-dev/midscene/actions/runs/29252027999/artifacts/8280311446) | `todo-mvc-darwin.html` |
+| Android | [Run 29252028076](https://github.com/web-infra-dev/midscene/actions/runs/29252028076) | [`android-todo-mvc-report`](https://github.com/web-infra-dev/midscene/actions/runs/29252028076/artifacts/8280402662) | `todo-mvc-android.html` |
+| iOS | [Run 29311631217](https://github.com/web-infra-dev/midscene/actions/runs/29311631217) | [`ios-todo-mvc-report`](https://github.com/web-infra-dev/midscene/actions/runs/29311631217/artifacts/8302602686) | `todo-mvc-ios.html` |
+
+GitHub may require you to sign in before downloading an artifact. Desktop and mobile workflows retain artifacts for seven days, so an example artifact can expire while its run remains visible.
+
+Download an artifact with the GitHub CLI while it remains available:
+
+```bash
+run_id=29252027901
+artifact_name=windows-todo-mvc-report
+
+gh run download "$run_id" \
+  --repo web-infra-dev/midscene \
+  --name "$artifact_name"
+```
+
+If an example expires, open the workflow from the coverage table and select its latest successful run. The **Artifacts** section contains the current reports and diagnostics.
+
+## Use reports and diagnostics as evidence
+
+The platform workflows upload evidence even when a test fails. Use the HTML reports to replay Midscene actions, then use diagnostics to inspect the platform state.
+
+| Platform | Smoke report | TodoMVC report | Diagnostics |
+| --- | --- | --- | --- |
+| Windows | `windows-desktop-smoke-report` | `windows-todo-mvc-report` | `windows-desktop-diagnostics` |
+| macOS | `macos-desktop-smoke-report` | `macos-todo-mvc-report` | `macos-desktop-diagnostics` |
+| Android | `android-emulator-smoke-report` | `android-todo-mvc-report` | `android-emulator-diagnostics` |
+| iOS | `ios-simulator-smoke-report` | `ios-todo-mvc-report` | `ios-simulator-diagnostics` |
+| Headless Linux | `headless-linux-ai-report` | Included in the AI report | Workflow logs |
+| Web | `e2e-report` | Included in the e2e report | `e2e-cache-report` and `e2e-report-output` |
+
+Diagnostics can contain runner metadata, screenshots, platform logs, package manifests, and step outcomes. The exact files depend on the platform.
+
+## Know when pull requests trigger workflows
+
+The Web workflow runs for every pull request and every push to `main`. Other platform workflows use path filters to limit runner usage.
+
+- **Windows and macOS**: Watch `packages/computer/**`, `packages/core/**`, `packages/shared/**`, report inputs, and workspace configuration
+- **Android**: Watches `packages/android/**`, `packages/core/**`, `packages/shared/**`, report inputs, and workspace configuration
+- **iOS**: Watches `packages/ios/**`, `packages/core/**`, `packages/shared/**`, report inputs, and workspace configuration
+- **Headless Linux**: Watches Computer, Core, Shared, Chrome extension, report inputs, and workspace configuration
+
+Each workflow also watches its own YAML file. Open the workflow source from the coverage table for the exact current paths.
+
+## Run a platform workflow manually
+
+Every platform workflow supports `workflow_dispatch`. Push the branch to `web-infra-dev/midscene` before dispatching it.
+
+```bash
+branch_name=your_branch_name
+
+gh workflow run windows-desktop.yml \
+  --repo web-infra-dev/midscene \
+  --ref "$branch_name" \
+  -f branch="$branch_name"
+
+gh run list \
+  --repo web-infra-dev/midscene \
+  --workflow windows-desktop.yml \
+  --branch "$branch_name" \
+  --limit 1
+```
+
+Replace `windows-desktop.yml` with `macos-desktop.yml`, `android-emulator.yml`, `ios-simulator.yml`, `headless-linux.yml`, or `ai.yml`.
+
+Model-backed tests read `MIDSCENE_MODEL_API_KEY` from repository secrets. They also read model configuration from repository variables. GitHub does not pass Actions secrets to workflows from untrusted forks.
+
+## Understand the validation boundary
+
+The workflows prove that Midscene can execute each tested path on its hosted runner. They do not certify every device, display, permission, or remote-session configuration.
+
+- **Windows**: Uses an interactive session at 96 dots per inch (DPI), which is 100% scaling. It does not cover elevated windows, mixed DPI, or Remote Desktop Protocol (RDP) sessions
+- **macOS**: Uses the hosted interactive desktop with Accessibility enabled. It does not cover every macOS version or permission policy
+- **Android**: Uses an x86_64 Pixel 6 emulator with Android API 35. It does not replace physical-device testing
+- **iOS**: Uses an iPhone Simulator and Mobile Safari through WebDriverAgent. It does not replace physical-device testing
+- **Headless Linux**: Uses Xvfb instead of a physical display. Window manager and graphics-driver behavior can differ from a workstation
+- **Web**: Uses Desktop Chrome through Playwright. Other browsers require separate validation
+- **HarmonyOS**: Has no repository CI smoke. Validate the target device before shipping
