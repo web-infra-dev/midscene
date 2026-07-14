@@ -4,12 +4,12 @@
 
 目前包含以下示例：
 
-- `web-baidu`：使用 Midscene Web 打开百度首页，并确认页面正常加载。
+- `web-midscene`：使用 Playwright 和 Midscene Web 检查 Midscene 文档页是否跟随 UA 语言显示英文或中文。这个示例包含自定义节点、生命周期和 AI 断言。
 
 在仓库根目录安装依赖并完成构建后，可以运行指定的子项目：
 
 ```bash
-packages/workflow/bin/midscene-workflow packages/workflow/example/web-baidu
+packages/test/bin/midscene-workflow packages/test/example/web-midscene
 ```
 
 运行结果保存在子项目的 `.midscene` 目录中。

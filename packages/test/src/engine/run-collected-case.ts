@@ -46,12 +46,20 @@ export async function runCollectedCase<TContext = undefined>(
         completedSteps: Object.freeze([...steps]),
         completedNodes: Object.freeze([...completedNodes]),
       };
+      const stepInfo = {
+        scope: 'case' as const,
+        node: step.node,
+        stepCount: phases[phase].length,
+        case: caseContext,
+      };
+      await options.onStepStart?.(stepInfo);
       const result = await executeStep(
         step,
         nodes[phase][stepIndex],
         { scope: 'case', case: caseContext },
         options.context as TContext,
       );
+      await options.onStepResult?.(stepInfo, result);
       results.push(result);
       completedNodes.push(result);
       if (result.status === 'failed' && !result.continuedAfterError) break;

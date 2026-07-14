@@ -92,12 +92,20 @@ export function createDocumentRuntime<TContext = undefined>(
         stepIndex,
         completedNodes: Object.freeze([...completedNodes]),
       };
+      const stepInfo = {
+        scope: 'document' as const,
+        node: step.node,
+        stepCount: document.lifecycle[phase].length,
+        document: documentContext,
+      };
+      await options.onStepStart?.(stepInfo);
       const result = await executeStep(
         step,
         nodes[phase][stepIndex],
         { scope: 'document', document: documentContext },
         context,
       );
+      await options.onStepResult?.(stepInfo, result);
       results.push(result);
       completedNodes.push(result);
       if (result.status === 'failed' && !result.continuedAfterError) break;

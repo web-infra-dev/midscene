@@ -24,7 +24,7 @@
 
 ## 快速开始
 
-以下示例项目会启动 Chromium、打开百度首页，再通过 Midscene 检查页面是否正常加载。
+以下示例项目会打开 Midscene 官网，并根据 YAML 配置切换 UA 语言。用例进入文档页后，会分别检查英文页面和中文页面。
 
 ### 安装依赖
 
@@ -43,7 +43,7 @@ pnpm add -D @midscene/test @midscene/web playwright
 ```text
 team-test-runner/
 ├── cases/
-│   └── baidu.yaml
+│   └── midscene.yaml
 └── midscene.workflow.config.cjs
 ```
 
@@ -51,47 +51,124 @@ team-test-runner/
 
 ```js filename=midscene.workflow.config.cjs
 const { PlaywrightAgent } = require('@midscene/web/playwright');
+const { defineNode } = require('@midscene/test');
 const { defineWorkflowProject } = require('@midscene/test/config');
 const { createMidsceneNodes } = require('@midscene/test/midscene');
 const { chromium } = require('playwright');
 
+const VIEWPORT = { width: 1280, height: 768 };
+const LANGUAGE_LOCALES = {
+  en: 'en-US',
+  zh: 'zh-CN',
+};
+
+const openPage = async (page, url) => {
+  const response = await page.goto(url, {
+    waitUntil: 'domcontentloaded',
+    timeout: 30_000,
+  });
+
+  if (!response?.ok()) {
+    throw new Error(
+      `Page returned an unsuccessful HTTP status: ${response?.status() ?? 'no response'}`,
+    );
+  }
+};
+
+const setUserAgentLanguage = defineNode({
+  name: 'browser.setLanguage',
+  title: '设置 UA 语言',
+  async execute({ input, context }) {
+    const language = input.language;
+    if (language !== 'en' && language !== 'zh') {
+      throw new TypeError(
+        'browser.setLanguage language must be either "en" or "zh".',
+      );
+    }
+    const locale = LANGUAGE_LOCALES[language];
+
+    const previousPage = context.page;
+    const previousBrowserContext = previousPage.context();
+    const browserContext = await context.browser.newContext({
+      locale,
+      viewport: VIEWPORT,
+    });
+    const page = await browserContext.newPage();
+
+    try {
+      await openPage(page, previousPage.url());
+      await page.waitForFunction(
+        (expectedLanguage) =>
+          document.documentElement.lang === expectedLanguage,
+        language,
+        { timeout: 10_000 },
+      );
+    } catch (error) {
+      await browserContext.close();
+      throw error;
+    }
+
+    context.page = page;
+    context.agent = undefined;
+    await previousBrowserContext.close();
+
+    return {
+      summary: `Set UA language to ${language}`,
+      data: { language, locale, url: page.url() },
+    };
+  },
+});
+
 const midsceneNodes = createMidsceneNodes({
-  getAgent: ({ context }) => context.agent,
+  getAgent: ({ context }) => {
+    context.agent ??= new PlaywrightAgent(context.page);
+    return context.agent;
+  },
 });
 
 module.exports = defineWorkflowProject({
   files: {
     include: ['cases/**/*.{yaml,yml}'],
   },
-  nodes: [...midsceneNodes],
+  nodes: [setUserAgentLanguage, ...midsceneNodes],
 
   async setupDocument({ onTeardown }) {
     const browser = await chromium.launch({ headless: true });
     onTeardown(() => browser.close());
 
-    const page = await browser.newPage();
-    await page.goto('https://www.baidu.com', {
-      waitUntil: 'domcontentloaded',
-    });
+    const browserContext = await browser.newContext({ viewport: VIEWPORT });
+    const page = await browserContext.newPage();
+    await openPage(page, 'https://midscenejs.com');
 
     return {
-      agent: new PlaywrightAgent(page),
+      browser,
+      page,
     };
   },
 });
 ```
 
+`browser.setLanguage` 接受 `language: en` 或 `language: zh`。它会创建使用相应语言的新 Playwright Context，重新打开当前页面，并让后续 Agent 使用新页面。
+
 `createMidsceneNodes()` 注册 `aiAct`、`aiAssert` 和 `recordToReport`。`setupDocument()` 返回的 `context` 会传给当前 YAML 文件中的所有 Node。
 
-在 `cases/baidu.yaml` 中编写测试用例。
+在 `cases/midscene.yaml` 中编写测试用例。
 
-```yaml filename=cases/baidu.yaml
+```yaml filename=cases/midscene.yaml
 cases:
-  - name: 百度首页正常加载
+  - name: Midscene 文档语言跟随 UA 切换
     steps:
+      - browser.setLanguage:
+          language: en
+      - aiAct: 点击页面中的 Documentation 按钮，进入 Midscene 文档页
       - aiAssert:
-          prompt: 页面中可见百度标志、搜索输入框和“百度一下”按钮
-          message: 百度首页加载异常
+          prompt: 当前页面是 Midscene 的英文文档页，页面主体和导航使用英文
+          message: Midscene 文档页没有显示为英文
+      - browser.setLanguage:
+          language: zh
+      - aiAssert:
+          prompt: 当前页面是 Midscene 的中文文档页，页面主体和导航使用中文
+          message: Midscene 文档页没有显示为中文
 ```
 
 ### 运行测试
