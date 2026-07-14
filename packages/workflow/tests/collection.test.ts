@@ -6,7 +6,6 @@ import {
   collectWorkflowDocument,
   createCaseId,
   createWorkflowDocumentId,
-  defineDocumentNode,
   defineNode,
 } from '../src';
 
@@ -32,7 +31,7 @@ const createDocument = (content: string) => {
 
 describe('workflow document collection', () => {
   const node = defineNode({ name: 'test.record', execute() {} });
-  const documentNode = defineDocumentNode({
+  const documentNode = defineNode({
     name: 'test.document',
     execute() {},
   });
@@ -51,9 +50,8 @@ cases:
             continue-on-error: true
 `);
     const document = collectWorkflowDocument(source, {
-      resolveNode: (name) => (name === node.name ? node : undefined),
-      resolveDocumentNode: (name) =>
-        name === documentNode.name ? documentNode : undefined,
+      resolveNode: (name) =>
+        [node, documentNode].find((candidate) => candidate.name === name),
     });
 
     expect(document.documentId).toBe(
@@ -92,9 +90,8 @@ beforeAll:
   - test.document: first
 `);
     const document = collectWorkflowDocument(source, {
-      resolveNode: (name) => (name === node.name ? node : undefined),
-      resolveDocumentNode: (name) =>
-        name === documentNode.name ? documentNode : undefined,
+      resolveNode: (name) =>
+        [node, documentNode].find((candidate) => candidate.name === name),
     });
 
     expect(document.lifecycle.beforeAll[0]).toMatchObject({
@@ -106,38 +103,24 @@ beforeAll:
     expect(document.lifecycle.afterAll[0].input).toEqual({ prompt: 'last' });
   });
 
-  it('resolves lifecycle nodes only from their matching scope', () => {
-    const documentScopeMismatch = createDocument(`
+  it('resolves the same node registry in every lifecycle phase', () => {
+    const source = createDocument(`
 beforeAll:
-  - test.record: wrong registry
-cases:
-  - name: invalid
-    steps:
-      - test.record: body
-`);
-    expect(() =>
-      collectWorkflowDocument(documentScopeMismatch, {
-        resolveNode: (name) => (name === node.name ? node : undefined),
-        resolveDocumentNode: (name) =>
-          name === documentNode.name ? documentNode : undefined,
-      }),
-    ).toThrow('beforeAll step 1 references unknown node "test.record"');
-
-    const caseScopeMismatch = createDocument(`
+  - test.record: document phase
 beforeEach:
-  - test.document: wrong registry
+  - test.document: case phase
 cases:
-  - name: invalid
+  - name: valid
     steps:
       - test.record: body
 `);
-    expect(() =>
-      collectWorkflowDocument(caseScopeMismatch, {
-        resolveNode: (name) => (name === node.name ? node : undefined),
-        resolveDocumentNode: (name) =>
-          name === documentNode.name ? documentNode : undefined,
-      }),
-    ).toThrow('beforeEach step 1 references unknown node "test.document"');
+    const document = collectWorkflowDocument(source, {
+      resolveNode: (name) =>
+        [node, documentNode].find((candidate) => candidate.name === name),
+    });
+
+    expect(document.lifecycle.beforeAll[0].node).toBe('test.record');
+    expect(document.lifecycle.beforeEach[0].node).toBe('test.document');
   });
 
   it.each([
@@ -164,9 +147,8 @@ cases:
     const source = createDocument(yaml);
     expect(() =>
       collectWorkflowDocument(source, {
-        resolveNode: (name) => (name === node.name ? node : undefined),
-        resolveDocumentNode: (name) =>
-          name === documentNode.name ? documentNode : undefined,
+        resolveNode: (name) =>
+          [node, documentNode].find((candidate) => candidate.name === name),
       }),
     ).toThrow(message);
   });

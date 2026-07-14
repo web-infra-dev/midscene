@@ -365,8 +365,8 @@ cases:
       `
         const state = globalThis.__workflowRunnerState;
         module.exports = {
-          nodes: [{ name: 'body', execute() { state.events.push('body'); } }],
-          documentNodes: [
+          nodes: [
+            { name: 'body', execute() { state.events.push('body'); } },
             {
               name: 'before.fail',
               execute() {

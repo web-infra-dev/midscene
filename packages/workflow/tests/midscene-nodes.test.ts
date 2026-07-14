@@ -1,15 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import {
-  DocumentNodeRegistry,
-  NodeRegistry,
-  createDocumentRuntime,
-  runCase,
-} from '../src';
-import {
-  type MidsceneUIAgent,
-  createMidsceneDocumentNodes,
-  createMidsceneNodes,
-} from '../src/midscene';
+import { NodeRegistry, createDocumentRuntime, runCase } from '../src';
+import { type MidsceneUIAgent, createMidsceneNodes } from '../src/midscene';
 import type {
   CollectedCase,
   CollectedWorkflowDocument,
@@ -160,19 +151,21 @@ describe('createMidsceneNodes', () => {
     );
   });
 
-  it('creates document-scope Midscene nodes without case identity', async () => {
+  it('runs the same Midscene nodes in document scope', async () => {
     const recordToReport = vi.fn(async () => undefined);
     const agent = { recordToReport } as unknown as MidsceneUIAgent;
-    const nodes = createMidsceneDocumentNodes<{
+    const nodes = createMidsceneNodes<{
       agent: MidsceneUIAgent;
     }>({
       getAgent(ctx) {
+        if (ctx.scope !== 'document')
+          throw new Error('document scope required');
         expect(ctx.document.phase).toBe('beforeAll');
         expect('case' in ctx).toBe(false);
         return ctx.context.agent;
       },
     });
-    const registry = new DocumentNodeRegistry(nodes);
+    const registry = new NodeRegistry(nodes);
     const document: CollectedWorkflowDocument = {
       documentId: 'document',
       projectId: 'project',

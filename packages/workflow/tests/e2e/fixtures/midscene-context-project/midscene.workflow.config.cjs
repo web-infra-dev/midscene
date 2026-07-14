@@ -1,5 +1,5 @@
 const { appendFileSync } = require('node:fs');
-const { defineDocumentNode, defineNode } = require('@midscene/workflow');
+const { defineNode } = require('@midscene/workflow');
 const { defineWorkflowProject } = require('@midscene/workflow/config');
 const { createMidsceneNodes } = require('@midscene/workflow/midscene');
 
@@ -11,7 +11,7 @@ const log = (value) => {
 
 log(`config:${process.pid}`);
 
-const documentLifecycle = defineDocumentNode({
+const documentLifecycle = defineNode({
   name: 'document.lifecycle',
   execute({ document, context }) {
     log(`${document.phase}:${context.id}:${process.pid}`);
@@ -34,8 +34,7 @@ const midsceneNodes = createMidsceneNodes({
 let documentCount = 0;
 
 module.exports = defineWorkflowProject({
-  documentNodes: [documentLifecycle],
-  nodes: [startAttempt, ...midsceneNodes],
+  nodes: [documentLifecycle, startAttempt, ...midsceneNodes],
 
   async setupDocument({ sourcePath, onTeardown }) {
     documentCount += 1;
