@@ -474,14 +474,7 @@ jobs:
               def category_definitions:
                 [
                   {key: "feat", label: "Features"},
-                  {key: "fix", label: "Fixes"},
-                  {key: "perf", label: "Performance"},
-                  {key: "refactor", label: "Refactors"},
-                  {key: "test", label: "Tests"},
-                  {key: "build", label: "Build"},
-                  {key: "ci", label: "CI"},
-                  {key: "chore", label: "Chores"},
-                  {key: "other", label: "Other"}
+                  {key: "fix", label: "Fixes"}
                 ];
               def safe_title:
                 gsub("(?<char>[\\\\`*_~\\[\\]<>])"; "\\\\\(.char)");
@@ -496,7 +489,7 @@ jobs:
               | [$clean_body | split("\n")[] | parse_change] as $parsed_changes
               | [
                   $parsed_changes[]
-                  | select(.type != "docs" and .scope != "site")
+                  | select((.type == "feat" or .type == "fix") and .scope != "site")
                 ] as $changes
               | [
                   category_definitions[] as $category
@@ -710,14 +703,7 @@ jobs:
               def category_definitions:
                 [
                   {key: "feat", label: "Features"},
-                  {key: "fix", label: "Fixes"},
-                  {key: "perf", label: "Performance"},
-                  {key: "refactor", label: "Refactors"},
-                  {key: "test", label: "Tests"},
-                  {key: "build", label: "Build"},
-                  {key: "ci", label: "CI"},
-                  {key: "chore", label: "Chores"},
-                  {key: "other", label: "Other"}
+                  {key: "fix", label: "Fixes"}
                 ];
               def safe_title:
                 gsub("(?<char>[\\\\`*_~\\[\\]<>])"; "\\\\\(.char)");
@@ -732,7 +718,7 @@ jobs:
               | [$clean_body | split("\n")[] | parse_change] as $parsed_changes
               | [
                   $parsed_changes[]
-                  | select(.type != "docs" and .scope != "site")
+                  | select((.type == "feat" or .type == "fix") and .scope != "site")
                 ] as $changes
               | [
                   category_definitions[] as $category
