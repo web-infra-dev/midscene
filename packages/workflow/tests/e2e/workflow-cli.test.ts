@@ -61,4 +61,95 @@ describe('midscene-workflow CLI', () => {
     expect(jsonFilesBelow(join(resultDir, 'runs'))).toHaveLength(3);
     expect(jsonFilesBelow(join(resultDir, 'rstest-tests'))).toHaveLength(3);
   });
+
+  it('injects an Agent through setupWorkflow and calls a model-free Midscene node', async () => {
+    const packageRoot = resolve(__dirname, '../..');
+    const projectRoot = join(__dirname, 'fixtures', 'midscene-context-project');
+    const temporary = mkdtempSync(join(tmpdir(), 'midscene-context-e2e-'));
+    temporaryDirectories.push(temporary);
+    const resultDir = join(temporary, 'results');
+    const executionLog = join(temporary, 'executed.log');
+
+    const execution = await execFileAsync(
+      process.execPath,
+      [
+        join(packageRoot, 'bin', 'midscene-workflow'),
+        projectRoot,
+        '--result-dir',
+        resultDir,
+      ],
+      {
+        cwd: packageRoot,
+        env: { ...process.env, WORKFLOW_E2E_LOG: executionLog },
+      },
+    );
+
+    expect(execution.stdout).toContain('1/1 workflows passed');
+    expect(readFileSync(executionLog, 'utf8').trim().split('\n')).toEqual([
+      'setup:1:report-only workflow',
+      'record:1:Ready:Agent came from setupWorkflow',
+      'teardown:1:report-only workflow',
+    ]);
+
+    const [runResultPath] = jsonFilesBelow(join(resultDir, 'runs'));
+    const runResult = JSON.parse(readFileSync(runResultPath, 'utf8'));
+    expect(runResult).toMatchObject({
+      status: 'success',
+      steps: [
+        {
+          node: 'recordToReport',
+          output: { summary: 'Recorded to report: Ready' },
+        },
+      ],
+    });
+  });
+
+  it('creates a new setup context and tears down every retry attempt', async () => {
+    const packageRoot = resolve(__dirname, '../..');
+    const projectRoot = join(__dirname, 'fixtures', 'midscene-context-project');
+    const temporary = mkdtempSync(join(tmpdir(), 'midscene-retry-e2e-'));
+    temporaryDirectories.push(temporary);
+    const resultDir = join(temporary, 'results');
+    const executionLog = join(temporary, 'executed.log');
+
+    const execution = await execFileAsync(
+      process.execPath,
+      [
+        join(packageRoot, 'bin', 'midscene-workflow'),
+        projectRoot,
+        '--retry',
+        '1',
+        '--result-dir',
+        resultDir,
+      ],
+      {
+        cwd: packageRoot,
+        env: {
+          ...process.env,
+          WORKFLOW_E2E_LOG: executionLog,
+          WORKFLOW_E2E_FAIL_FIRST: '1',
+        },
+      },
+    );
+
+    expect(execution.stdout).toContain('1/1 workflows passed');
+    expect(readFileSync(executionLog, 'utf8').trim().split('\n')).toEqual([
+      'setup:1:report-only workflow',
+      'record:1:Ready:Agent came from setupWorkflow',
+      'teardown:1:report-only workflow',
+      'setup:2:report-only workflow',
+      'record:2:Ready:Agent came from setupWorkflow',
+      'teardown:2:report-only workflow',
+    ]);
+
+    const runResults = jsonFilesBelow(join(resultDir, 'runs')).map((path) =>
+      JSON.parse(readFileSync(path, 'utf8')),
+    );
+    expect(runResults).toHaveLength(2);
+    expect(runResults.map((result) => result.status).sort()).toEqual([
+      'failed',
+      'success',
+    ]);
+    expect(new Set(runResults.map((result) => result.runId)).size).toBe(2);
+  });
 });

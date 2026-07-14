@@ -1,69 +1,58 @@
 import type { NodeDefinition } from '../node/types';
 import { normalizeWorkflow } from '../parser/normalize';
-import type { WorkflowSource } from '../parser/types';
+import type { CollectedWorkflow, WorkflowSource } from '../parser/types';
 import { NodeRegistry } from './registry';
-import { runStep } from './run-step';
+import { runWorkflow } from './run-workflow';
 import type {
-  NodeWorkflowContext,
-  StepRunResult,
   WorkflowEngineOptions,
   WorkflowRunResult,
+  WorkflowSetup,
 } from './types';
 
-export class WorkflowEngine {
+export class WorkflowEngine<TContext = undefined> {
   readonly registry: NodeRegistry;
+  readonly setupWorkflow?: WorkflowSetup<TContext>;
 
-  constructor(options: WorkflowEngineOptions = {}) {
+  constructor(options: WorkflowEngineOptions<TContext> = {}) {
     this.registry = new NodeRegistry(options.nodes);
+    this.setupWorkflow = options.setupWorkflow;
   }
 
-  register<TInput, TData>(node: NodeDefinition<TInput, TData>): this {
+  register<TInput, TData>(node: NodeDefinition<TInput, TData, TContext>): this {
     this.registry.register(node);
     return this;
   }
 
   async run(source: WorkflowSource): Promise<WorkflowRunResult> {
     const normalized = normalizeWorkflow(source);
-    const executableSteps = normalized.workflow.map((step) => ({
-      step,
-      node: this.registry.require(step.node),
-    }));
-    const startedAt = new Date();
-    const steps: StepRunResult[] = [];
-
-    for (const [stepIndex, { step, node }] of executableSteps.entries()) {
-      const workflow: NodeWorkflowContext = {
-        testId: 'legacy-workflow',
-        runId: 'legacy-workflow',
-        name: 'workflow',
-        sourcePath: '',
-        workflowIndex: 0,
-        stepIndex,
-        completedSteps: Object.freeze([...steps]),
-      };
-      steps.push(await runStep(step, node, workflow));
-    }
-
-    const endedAt = new Date();
-    return {
+    const workflow: CollectedWorkflow = {
       testId: 'legacy-workflow',
-      runId: 'legacy-workflow',
-      name: 'workflow',
+      projectId: 'legacy-project',
       sourcePath: '',
       workflowIndex: 0,
-      status: steps.some((step) => step.status === 'failed')
-        ? 'failed'
-        : 'success',
-      steps,
-      startedAt: startedAt.toISOString(),
-      endedAt: endedAt.toISOString(),
-      durationMs: Math.max(0, endedAt.getTime() - startedAt.getTime()),
+      definition: { name: 'workflow', steps: normalized.workflow },
     };
+    const result = await runWorkflow(workflow, {
+      resolveNode: (name) =>
+        this.registry.require(name) as NodeDefinition<any, any, TContext>,
+      setupWorkflow: this.setupWorkflow,
+      createRunId: () => 'legacy-workflow',
+    });
+
+    const fatalStepError = result.steps.find(
+      (step) => step.status === 'failed' && !step.continuedAfterError,
+    )?.error;
+    const fatalError =
+      result.setupError ?? fatalStepError ?? result.teardownErrors?.[0];
+    if (fatalError) {
+      throw fatalError;
+    }
+    return result;
   }
 }
 
-export function createWorkflowEngine(
-  options: WorkflowEngineOptions = {},
-): WorkflowEngine {
+export function createWorkflowEngine<TContext = undefined>(
+  options: WorkflowEngineOptions<TContext> = {},
+): WorkflowEngine<TContext> {
   return new WorkflowEngine(options);
 }
