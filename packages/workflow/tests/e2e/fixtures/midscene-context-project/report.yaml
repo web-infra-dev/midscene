@@ -1,6 +1,23 @@
+beforeAll:
+  - document.lifecycle: Document started
+
+beforeEach:
+  - attempt.start: Start workflow attempt
+  - recordToReport:
+      title: Attempt started
+      content: Shared document Agent
+
 workflows:
   - name: report-only workflow
     steps:
       - recordToReport:
           title: Ready
-          content: Agent came from setupWorkflow
+          content: Agent came from setupDocument
+
+afterEach:
+  - recordToReport:
+      title: Attempt finished
+      content: Shared document Agent
+
+afterAll:
+  - document.lifecycle: Document finished

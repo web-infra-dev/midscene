@@ -1,7 +1,12 @@
 import type { Awaitable } from '../engine/types';
 import { NodeDefinitionError, NodeExecutionError } from '../errors';
-import { defineNode } from '../node/define-node';
-import type { NodeDefinition, NodeExecutionContext } from '../node/types';
+import { defineDocumentNode, defineNode } from '../node/define-node';
+import type {
+  DocumentNodeDefinition,
+  DocumentNodeExecutionContext,
+  NodeDefinition,
+  NodeExecutionContext,
+} from '../node/types';
 
 export interface MidsceneAiActOptions {
   cacheable?: boolean;
@@ -70,6 +75,12 @@ export interface RecordToReportNodeInput {
 export interface CreateMidsceneNodesOptions<TContext> {
   getAgent(
     ctx: NodeExecutionContext<unknown, TContext>,
+  ): Awaitable<MidsceneUIAgent>;
+}
+
+export interface CreateMidsceneDocumentNodesOptions<TContext> {
+  getAgent(
+    ctx: DocumentNodeExecutionContext<unknown, TContext>,
   ): Awaitable<MidsceneUIAgent>;
 }
 
@@ -309,6 +320,69 @@ export function createMidsceneNodes<TContext>(
       },
     }),
     defineNode<RecordToReportNodeInput, unknown, TContext>({
+      name: 'recordToReport',
+      async execute(ctx) {
+        const { title, options: reportOptions } = validateReportInput(
+          ctx.input,
+        );
+        const agent = await options.getAgent(ctx);
+        const recordToReport = requireAgentMethod(
+          agent,
+          'recordToReport',
+          'recordToReport',
+        );
+        await recordToReport.call(agent, title, reportOptions);
+        return { summary: `Recorded to report: ${title ?? 'untitled'}` };
+      },
+    }),
+  ];
+}
+
+export function createMidsceneDocumentNodes<TContext>(
+  options: CreateMidsceneDocumentNodesOptions<TContext>,
+): readonly DocumentNodeDefinition<any, any, TContext>[] {
+  if (!options || typeof options !== 'object') {
+    throw new NodeDefinitionError(
+      'createMidsceneDocumentNodes() options must be an object.',
+    );
+  }
+  if (typeof options.getAgent !== 'function') {
+    throw new NodeDefinitionError(
+      'createMidsceneDocumentNodes() requires a getAgent function.',
+    );
+  }
+
+  return [
+    defineDocumentNode<AiActNodeInput, unknown, TContext>({
+      name: 'aiAct',
+      async execute(ctx) {
+        const prompt = requirePrompt(ctx.input, 'aiAct');
+        const nodeOptions = validateAiActOptions(ctx.input.options);
+        const agent = await options.getAgent(ctx);
+        const aiAct = requireAgentMethod(agent, 'aiAct', 'aiAct');
+        const output = await aiAct.call(agent, prompt, {
+          ...nodeOptions,
+          abortSignal: ctx.signal,
+        });
+        return output === undefined ? undefined : { summary: output };
+      },
+    }),
+    defineDocumentNode<AiAssertNodeInput, unknown, TContext>({
+      name: 'aiAssert',
+      async execute(ctx) {
+        const prompt = requirePrompt(ctx.input, 'aiAssert');
+        validateOptionalString(ctx.input.message, 'aiAssert message');
+        const nodeOptions = validateAiAssertOptions(ctx.input.options);
+        const agent = await options.getAgent(ctx);
+        const aiAssert = requireAgentMethod(agent, 'aiAssert', 'aiAssert');
+        await aiAssert.call(agent, prompt, ctx.input.message, {
+          ...nodeOptions,
+          abortSignal: ctx.signal,
+        });
+        return { summary: `Assertion passed: ${prompt}` };
+      },
+    }),
+    defineDocumentNode<RecordToReportNodeInput, unknown, TContext>({
       name: 'recordToReport',
       async execute(ctx) {
         const { title, options: reportOptions } = validateReportInput(

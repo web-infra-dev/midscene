@@ -1,13 +1,15 @@
 import { NodeDefinitionError } from '../errors';
-import type { DefineNodeOptions, NodeDefinition } from './types';
+import type {
+  DefineDocumentNodeOptions,
+  DefineNodeOptions,
+  DocumentNodeDefinition,
+  NodeDefinition,
+} from './types';
 
-export function defineNode<
-  TInput = unknown,
-  TData = unknown,
-  TContext = unknown,
->(
-  options: DefineNodeOptions<TInput, TData, TContext>,
-): NodeDefinition<TInput, TData, TContext> {
+const validateDefinition = (options: {
+  name: string;
+  execute: unknown;
+}): void => {
   if (!options || typeof options !== 'object') {
     throw new NodeDefinitionError('Node definition must be an object.');
   }
@@ -22,6 +24,26 @@ export function defineNode<
       { node: options.name },
     );
   }
+};
 
+export function defineNode<
+  TInput = unknown,
+  TData = unknown,
+  TContext = unknown,
+>(
+  options: DefineNodeOptions<TInput, TData, TContext>,
+): NodeDefinition<TInput, TData, TContext> {
+  validateDefinition(options);
+  return options;
+}
+
+export function defineDocumentNode<
+  TInput = unknown,
+  TData = unknown,
+  TContext = unknown,
+>(
+  options: DefineDocumentNodeOptions<TInput, TData, TContext>,
+): DocumentNodeDefinition<TInput, TData, TContext> {
+  validateDefinition(options);
   return options;
 }

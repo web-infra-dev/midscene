@@ -26,7 +26,11 @@ export interface LegacyWorkflowDefinition {
 export type WorkflowSource = string | LegacyWorkflowDefinition;
 
 export interface WorkflowDocumentDefinition {
+  beforeAll?: readonly WorkflowStepInput[];
+  beforeEach?: readonly WorkflowStepInput[];
   workflows: readonly WorkflowDefinition[];
+  afterEach?: readonly WorkflowStepInput[];
+  afterAll?: readonly WorkflowStepInput[];
 }
 
 export interface WorkflowDefinition<TStep = WorkflowStepInput> {
@@ -61,7 +65,16 @@ export interface CollectedWorkflow {
 }
 
 export interface CollectedWorkflowDocument {
+  documentId: string;
   projectId: string;
   sourcePath: string;
+  lifecycle: CollectedWorkflowLifecycle;
   workflows: readonly CollectedWorkflow[];
+}
+
+export interface CollectedWorkflowLifecycle {
+  beforeAll: readonly NormalizedStep[];
+  beforeEach: readonly NormalizedStep[];
+  afterEach: readonly NormalizedStep[];
+  afterAll: readonly NormalizedStep[];
 }
