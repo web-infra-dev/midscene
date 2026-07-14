@@ -79,6 +79,7 @@ export interface MainContentProps {
   onOpenEnvModal?: () => void;
   studioMode?: StudioMode;
   onStudioModeChange?: (mode: StudioMode) => void;
+  onCloseStudioRightPanel?: () => void;
   onOpenStudioRightPanel?: (view: StudioRightPanelView) => void;
   /** A generated Markdown detail panel is open beside Record or Replay mode. */
   floatingStudioModePanel?: boolean;
@@ -320,6 +321,7 @@ export default function MainContent({
   modelConfigComplete = true,
   modelEnvText,
   onOpenEnvModal,
+  onCloseStudioRightPanel,
   onOpenStudioRightPanel,
   floatingStudioModePanel = false,
   onStudioModeChange,
@@ -1192,6 +1194,7 @@ export default function MainContent({
         >
           <StudioModePanel
             onHeaderChange={syncStudioModeHeaderActions}
+            onCloseStudioRightPanel={onCloseStudioRightPanel}
             onOpenStudioRightPanel={onOpenStudioRightPanel}
             onStudioModeChange={handleStudioModeChange}
             onTimelineExecutionStatusChange={setTimelineExecutionStatus}

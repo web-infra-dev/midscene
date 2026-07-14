@@ -61,6 +61,7 @@ interface StudioModePanelProps {
     actions?: ReactNode;
   }) => void;
   onTimelineExecutionStatusChange?: (status: PlaygroundExecutionStatus) => void;
+  onCloseStudioRightPanel?: () => void;
   onOpenStudioRightPanel?: (view: StudioRightPanelView) => void;
 }
 
@@ -256,6 +257,7 @@ function ReplayExecutionPanel({
 
 export default function StudioModePanel({
   onHeaderChange,
+  onCloseStudioRightPanel,
   onOpenStudioRightPanel,
   onStudioModeChange,
   onTimelineExecutionStatusChange,
@@ -522,11 +524,35 @@ export default function StudioModePanel({
     async (session: StudioRecordingSession) => {
       try {
         await recorder.deleteSession(session.id);
+        return true;
       } catch (error) {
         message.error(error instanceof Error ? error.message : String(error));
+        return false;
       }
     },
     [message, recorder],
+  );
+  const clearSelectedReplaySession = useCallback((sessionId: string) => {
+    if (selectedReplaySessionIdRef.current !== sessionId) {
+      return false;
+    }
+
+    selectedReplaySessionIdRef.current = null;
+    setSelectedReplaySessionId(null);
+    return true;
+  }, []);
+  const handleDeleteReplaySessionFromList = useCallback(
+    async (session: StudioRecordingSession) => {
+      const deleted = await handleDeleteReplaySession(session);
+      if (deleted && clearSelectedReplaySession(session.id)) {
+        onCloseStudioRightPanel?.();
+      }
+    },
+    [
+      clearSelectedReplaySession,
+      handleDeleteReplaySession,
+      onCloseStudioRightPanel,
+    ],
   );
   const handleSelectReplaySession = useCallback(
     async (session: StudioRecordingSession) => {
@@ -542,7 +568,12 @@ export default function StudioModePanel({
         }
         onOpenStudioRightPanel?.({
           markdown,
-          onDelete: () => handleDeleteReplaySession(session),
+          onDelete: async () => {
+            const deleted = await handleDeleteReplaySession(session);
+            if (deleted) {
+              clearSelectedReplaySession(session.id);
+            }
+          },
           onDownload: () => handleDownloadReplaySession(session),
           title: session.name,
           type: StudioRightPanelViewType.Markdown,
@@ -552,6 +583,7 @@ export default function StudioModePanel({
       }
     },
     [
+      clearSelectedReplaySession,
       handleDeleteReplaySession,
       handleDownloadReplaySession,
       message,
@@ -671,9 +703,7 @@ export default function StudioModePanel({
         <StudioReplayPanel
           activeSessionId={replayingSessionId}
           activeSessionStoppable={replayExecutionStatus.stoppable}
-          onDeleteSession={(session) => {
-            void handleDeleteReplaySession(session);
-          }}
+          onDeleteSession={handleDeleteReplaySessionFromList}
           onDownloadSession={(session) => {
             void handleDownloadReplaySession(session);
           }}

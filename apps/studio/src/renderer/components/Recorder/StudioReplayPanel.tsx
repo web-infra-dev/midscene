@@ -7,7 +7,7 @@ import './studio-recorder-panel.css';
 interface StudioReplayPanelProps {
   activeSessionId?: string | null;
   activeSessionStoppable?: boolean;
-  onDeleteSession?: (session: StudioRecordingSession) => void;
+  onDeleteSession?: (session: StudioRecordingSession) => void | Promise<void>;
   onDownloadSession?: (session: StudioRecordingSession) => void;
   onReplaySession: (session: StudioRecordingSession) => void;
   onSelectSession: (session: StudioRecordingSession) => void;
@@ -86,7 +86,7 @@ function ReplayPanelMoreActions({
   onDownloadSession,
   session,
 }: {
-  onDeleteSession?: (session: StudioRecordingSession) => void;
+  onDeleteSession?: (session: StudioRecordingSession) => void | Promise<void>;
   onDownloadSession?: (session: StudioRecordingSession) => void;
   session: StudioRecordingSession;
 }) {

@@ -482,6 +482,7 @@ export default function ShellLayout() {
           modelEnvText={modelEnvText}
           floatingStudioModePanel={shouldFloatStudioModePanel}
           onOpenEnvModal={openEnvModal}
+          onCloseStudioRightPanel={closeStudioRightPanel}
           onOpenStudioRightPanel={openStudioRightPanel}
           onPendingCreatePlatformChange={setPendingCreatePlatform}
           onStudioModeChange={setStudioMode}

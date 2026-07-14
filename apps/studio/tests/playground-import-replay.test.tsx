@@ -139,6 +139,7 @@ function createReadyPlayground() {
 function createRecorder() {
   return {
     currentTarget: target,
+    deleteSession: vi.fn(async () => undefined),
     generateSessionCode: vi.fn(async () => '# Replay'),
     state: {
       isRecording: false,
@@ -148,7 +149,10 @@ function createRecorder() {
   };
 }
 
-async function renderPlayground(onOpenStudioRightPanel?: (view: any) => void) {
+async function renderPlayground(
+  onOpenStudioRightPanel?: (view: any) => void,
+  onCloseStudioRightPanel?: () => void,
+) {
   const container = document.createElement('div');
   document.body.appendChild(container);
   const root = createRoot(container);
@@ -156,6 +160,7 @@ async function renderPlayground(onOpenStudioRightPanel?: (view: any) => void) {
   await act(async () => {
     root.render(
       <StudioModePanel
+        onCloseStudioRightPanel={onCloseStudioRightPanel}
         onOpenStudioRightPanel={onOpenStudioRightPanel}
         onStudioModeChange={() => undefined}
         studioMode={StudioModeTab.Replay}
@@ -509,6 +514,41 @@ describe('Studio Playground imported replay', () => {
     expect(mocks.latestExternalRunRequest).toBeNull();
     expect(mocks.latestReplayPanelProps.activeSessionId).toBeNull();
     expect(mocks.latestReplayPanelProps.selectedSessionId).toBe(session.id);
+
+    await act(async () => {
+      root.unmount();
+    });
+  });
+
+  it('closes the Markdown panel when its selected Replay is deleted from history', async () => {
+    const session = {
+      createdAt: Date.now(),
+      events: [],
+      generatedCode: { markdown: '# Recorded Replay' },
+      id: 'session-delete',
+      name: 'Replay to delete',
+      status: 'completed',
+      target,
+      updatedAt: Date.now(),
+    };
+    mocks.recorder = {
+      ...createRecorder(),
+      state: {
+        isRecording: false,
+        sessions: [session],
+      },
+    };
+    const onCloseStudioRightPanel = vi.fn();
+    const { root } = await renderPlayground(vi.fn(), onCloseStudioRightPanel);
+
+    await act(async () => {
+      await mocks.latestReplayPanelProps.onSelectSession(session);
+      await mocks.latestReplayPanelProps.onDeleteSession(session);
+    });
+
+    expect(mocks.recorder.deleteSession).toHaveBeenCalledWith(session.id);
+    expect(onCloseStudioRightPanel).toHaveBeenCalledTimes(1);
+    expect(mocks.latestReplayPanelProps.selectedSessionId).toBeNull();
 
     await act(async () => {
       root.unmount();
