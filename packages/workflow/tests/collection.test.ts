@@ -142,6 +142,7 @@ workflows:
 
   it.each([
     ['other: true', 'unsupported field'],
+    ['cases: []', 'unsupported field "cases"'],
     ['workflows: []', 'non-empty workflows'],
     [
       'beforeAll: true\nworkflows:\n  - name: valid\n    steps:\n      - test.record: ok',

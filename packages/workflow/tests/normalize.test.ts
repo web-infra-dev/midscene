@@ -4,7 +4,7 @@ import { WorkflowParseError, normalizeStep, normalizeWorkflow } from '../src';
 describe('workflow normalization', () => {
   it('expands string and block scalar shorthand to prompt input', () => {
     const result = normalizeWorkflow(`
-workflow:
+cases:
   - agent.verify: verify the order
   - agent.explain: |
       explain line one
@@ -12,7 +12,7 @@ workflow:
 `);
 
     expect(result).toEqual({
-      workflow: [
+      cases: [
         {
           node: 'agent.verify',
           input: { prompt: 'verify the order' },
@@ -60,18 +60,38 @@ workflow:
   });
 
   it('rejects malformed workflow and common prompt input', () => {
-    expect(() => normalizeWorkflow('workflow: {}')).toThrow('workflow array');
+    expect(normalizeWorkflow('cases: []')).toEqual({ cases: [] });
+    expect(() => normalizeWorkflow('{}')).toThrow('cases array');
+    expect(() => normalizeWorkflow('cases: {}')).toThrow('cases array');
     expect(() => normalizeStep({ first: {}, second: {} })).toThrow(
       'exactly one node',
     );
     expect(() => normalizeStep({ node: { prompt: 42 } })).toThrow('prompt');
-    expect(() => normalizeWorkflow('workflow: [')).toThrow(
+    expect(() => normalizeWorkflow('cases: [')).toThrow(
       'Failed to parse workflow YAML',
     );
     expect(() =>
       normalizeWorkflow(
-        'workflow:\n  - node: first\n  - node: second\n    node: duplicate',
+        'cases:\n  - node: first\n  - node: second\n    node: duplicate',
       ),
     ).toThrow('Failed to parse workflow YAML');
+  });
+
+  it('rejects the old workflow field with a migration error', () => {
+    expect(() => normalizeWorkflow('workflow: []')).toThrow(
+      'no longer supports "workflow". Use "cases" instead',
+    );
+    expect(() =>
+      normalizeWorkflow({
+        cases: [],
+        workflow: [],
+      } as never),
+    ).toThrow('no longer supports "workflow". Use "cases" instead');
+  });
+
+  it('rejects unknown standalone workflow fields', () => {
+    expect(() => normalizeWorkflow('cases: []\ncase: []')).toThrow(
+      'unsupported field "case"',
+    );
   });
 });

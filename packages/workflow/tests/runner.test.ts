@@ -34,7 +34,7 @@ describe('workflow runner', () => {
     const engine = new WorkflowEngine({ nodes: [first, second] });
 
     const result = await engine.run({
-      workflow: [
+      cases: [
         { 'first.node': { prompt: 'run first', value: 2 } },
         { 'second.node': {} },
       ],
@@ -52,6 +52,27 @@ describe('workflow runner', () => {
     expect(result.steps[1].output).toBeUndefined();
   });
 
+  it('runs a standalone cases YAML source', async () => {
+    const execute = vi.fn();
+    const engine = new WorkflowEngine({
+      nodes: [defineNode({ name: 'yaml.node', execute })],
+    });
+
+    const result = await engine.run(`
+cases:
+  - yaml.node: run from YAML
+`);
+
+    expect(execute).toHaveBeenCalledOnce();
+    expect(execute.mock.calls[0][0].input).toEqual({
+      prompt: 'run from YAML',
+    });
+    expect(result).toMatchObject({
+      status: 'success',
+      steps: [{ node: 'yaml.node', status: 'success' }],
+    });
+  });
+
   it('records a failed step and continues when configured', async () => {
     const next = vi.fn();
     const engine = new WorkflowEngine({
@@ -67,7 +88,7 @@ describe('workflow runner', () => {
     });
 
     const result = await engine.run({
-      workflow: [
+      cases: [
         { 'failing.node': { $: { 'continue-on-error': true } } },
         { 'next.node': 'keep going' },
       ],
@@ -98,7 +119,7 @@ describe('workflow runner', () => {
 
     await expect(
       engine.run({
-        workflow: [{ 'failing.node': {} }, { 'next.node': {} }],
+        cases: [{ 'failing.node': {} }, { 'next.node': {} }],
       }),
     ).rejects.toBeInstanceOf(NodeExecutionError);
     expect(next).not.toHaveBeenCalled();
@@ -112,7 +133,7 @@ describe('workflow runner', () => {
 
     await expect(
       engine.run({
-        workflow: [{ 'first.node': {} }, { 'missing.node': {} }],
+        cases: [{ 'first.node': {} }, { 'missing.node': {} }],
       }),
     ).rejects.toMatchObject({ code: 'NODE_NOT_FOUND' });
     expect(first).not.toHaveBeenCalled();
@@ -186,7 +207,7 @@ describe('workflow runner', () => {
     ).rejects.toBeInstanceOf(NodeExecutionError);
   });
 
-  it('passes an explicit context to legacy WorkflowEngine nodes', async () => {
+  it('passes an explicit context to standalone WorkflowEngine nodes', async () => {
     const calls: string[] = [];
     const engine = new WorkflowEngine<{ value: string }>({
       nodes: [
@@ -200,7 +221,7 @@ describe('workflow runner', () => {
       context: { value: 'ready' },
     });
 
-    await engine.run({ workflow: [{ 'context.node': {} }] });
+    await engine.run({ cases: [{ 'context.node': {} }] });
     expect(calls).toEqual(['node:ready']);
   });
 });
