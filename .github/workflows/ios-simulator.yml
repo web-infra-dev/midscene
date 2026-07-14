@@ -1,0 +1,217 @@
+name: iOS Simulator
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/ios-simulator.yml'
+      - 'apps/report/**'
+      - 'packages/ios/**'
+      - 'packages/webdriver/**'
+      - 'packages/core/package.json'
+      - 'packages/core/rslib.config.ts'
+      - 'packages/core/src/**'
+      - 'packages/shared/package.json'
+      - 'packages/shared/src/**'
+      - 'scripts/report-template-utils.mjs'
+      - 'nx.json'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to checkout'
+        required: false
+        default: 'main'
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-simulator-${{ github.event.pull_request.number || inputs.branch || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  ios-simulator:
+    runs-on: macos-15
+    timeout-minutes: 70
+    env:
+      CI: '1'
+      FORCE_COLOR: '0'
+      MIDSCENE_MODEL_API_KEY: ${{ secrets.MIDSCENE_MODEL_API_KEY }}
+      MIDSCENE_MODEL_BASE_URL: ${{ vars.MIDSCENE_MODEL_BASE_URL }}
+      MIDSCENE_MODEL_NAME: ${{ vars.MIDSCENE_MODEL_NAME }}
+      MIDSCENE_MODEL_FAMILY: ${{ vars.MIDSCENE_MODEL_FAMILY }}
+      MIDSCENE_MODEL_RETRY_COUNT: '2'
+      MIDSCENE_MODEL_RETRY_INTERVAL: '60000'
+      MIDSCENE_REPORT_QUIET: 'true'
+      MIDSCENE_RUN_DIR: ${{ github.workspace }}/midscene_run
+      MIDSCENE_IOS_DIAGNOSTICS_DIR: ${{ github.workspace }}/midscene_run/ios-simulator-diagnostics
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          ref: ${{ inputs.branch || github.ref }}
+
+      - name: Checkout WebDriverAgent 15.1.6
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          repository: appium/WebDriverAgent
+          ref: 5f8280e761dc0b5b9b28368e63a8f0cc8d868346
+          path: .ci/WebDriverAgent
+          persist-credentials: false
+
+      - name: Inspect iOS runner
+        shell: bash
+        run: |
+          mkdir -p "$MIDSCENE_IOS_DIAGNOSTICS_DIR"
+          {
+            sw_vers
+            uname -a
+            xcodebuild -version
+            xcode-select -p
+            xcrun simctl list runtimes
+            xcrun simctl list devices available
+          } 2>&1 | tee "$MIDSCENE_IOS_DIAGNOSTICS_DIR/runner-preflight.log"
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@eae0cfeb286e66ffb5155f1a79b90583a127a68b # v2.4.1
+        with:
+          version: 9.3.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '24.13.0'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Build report and iOS packages
+        id: build
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm exec nx run-many --target=build --projects="@midscene/report,@midscene/ios" --skip-nx-cache 2>&1 |
+            tee "$MIDSCENE_IOS_DIAGNOSTICS_DIR/build.log"
+          node apps/report/scripts/inject-report-template.mjs
+
+      - name: Validate iOS package outputs
+        id: package-smoke
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          node -e "const mod=require('./packages/ios/dist/lib/index.js'); if(typeof mod.IOSDevice!=='function'||typeof mod.IOSAgent!=='function') throw new Error('invalid CJS exports')"
+          node --input-type=module -e "const mod=await import('./packages/ios/dist/es/index.mjs'); if(typeof mod.IOSDevice!=='function'||typeof mod.IOSAgent!=='function') throw new Error('invalid ESM exports')"
+          test -f packages/ios/dist/types/index.d.ts
+
+          actual_cli_version=$(node packages/ios/bin/midscene-ios --version)
+          package_version=$(node -p "require('./packages/ios/package.json').version")
+          expected_cli_version="midscene-ios v${package_version}"
+          if [[ "$actual_cli_version" != "$expected_cli_version" ]]; then
+            echo "Unexpected CLI version '$actual_cli_version'; expected '$expected_cli_version'." >&2
+            exit 1
+          fi
+
+          pack_dir="$RUNNER_TEMP/midscene-ios-pack"
+          mkdir -p "$pack_dir"
+          pnpm --dir packages/ios pack --pack-destination "$pack_dir"
+          archive=$(find "$pack_dir" -name '*.tgz' -type f | head -n 1)
+          test -n "$archive"
+          tar -tf "$archive" > "$MIDSCENE_IOS_DIAGNOSTICS_DIR/package-files.txt"
+          for required in \
+            package/package.json \
+            package/bin/midscene-ios \
+            package/dist/lib/cli.js \
+            package/dist/lib/index.js \
+            package/dist/es/index.mjs \
+            package/dist/types/index.d.ts; do
+            grep -Fxq "$required" "$MIDSCENE_IOS_DIAGNOSTICS_DIR/package-files.txt"
+          done
+
+      - name: Run iOS unit tests
+        id: unit-tests
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          pnpm exec nx test @midscene/ios --skip-nx-cache 2>&1 |
+            tee "$MIDSCENE_IOS_DIAGNOSTICS_DIR/unit-tests.log"
+
+      - name: Run iOS Simulator smoke and TodoMVC tests
+        id: simulator-tests
+        continue-on-error: true
+        timeout-minutes: 50
+        shell: bash
+        run: bash packages/ios/scripts/run-simulator-ci-smokes.sh
+
+      - name: Collect step outcomes
+        if: always()
+        shell: bash
+        env:
+          BUILD_OUTCOME: ${{ steps.build.outcome }}
+          PACKAGE_OUTCOME: ${{ steps.package-smoke.outcome }}
+          UNIT_OUTCOME: ${{ steps.unit-tests.outcome }}
+          SIMULATOR_OUTCOME: ${{ steps.simulator-tests.outcome }}
+        run: |
+          mkdir -p "$MIDSCENE_IOS_DIAGNOSTICS_DIR"
+          node -e '
+            const fs = require("node:fs");
+            const path = require("node:path");
+            const outcomes = {
+              build: process.env.BUILD_OUTCOME,
+              packageSmoke: process.env.PACKAGE_OUTCOME,
+              unitTests: process.env.UNIT_OUTCOME,
+              simulatorTests: process.env.SIMULATOR_OUTCOME,
+            };
+            fs.writeFileSync(
+              path.join(process.env.MIDSCENE_IOS_DIAGNOSTICS_DIR, "host-step-outcomes.json"),
+              `${JSON.stringify(outcomes, null, 2)}\n`,
+            );
+          '
+
+      - name: Upload iOS Simulator smoke report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: ios-simulator-smoke-report
+          path: midscene_run/report/ios-simulator-smoke.html
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Upload iOS TodoMVC report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: ios-todo-mvc-report
+          path: midscene_run/report/todo-mvc-ios.html
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Upload iOS Simulator diagnostics
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: ios-simulator-diagnostics
+          path: midscene_run/ios-simulator-diagnostics
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Check iOS validation results
+        if: always()
+        shell: bash
+        run: |
+          failed=()
+          [[ '${{ steps.build.outcome }}' == success ]] || failed+=(build)
+          [[ '${{ steps.package-smoke.outcome }}' == success ]] || failed+=("package smoke")
+          [[ '${{ steps.unit-tests.outcome }}' == success ]] || failed+=("unit tests")
+          [[ '${{ steps.simulator-tests.outcome }}' == success ]] || failed+=("simulator tests")
+          if ((${#failed[@]} > 0)); then
+            printf 'iOS validation failed: %s\n' "${failed[*]}" >&2
+            exit 1
+          fi
