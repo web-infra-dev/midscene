@@ -1,8 +1,28 @@
-import { existsSync, mkdirSync, readdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync } from 'node:fs';
 import { basename, join, relative, resolve, sep } from 'node:path';
-import type { RstestUserConfig, TestRunResult } from '@rstest/core/api';
-import type { WorkflowRunManifest } from '../manifest';
-import type { WorkflowDocumentSource } from '../parser/types';
+import { createDocumentRuntime } from '../engine/document-runtime';
+import { runWorkflow } from '../engine/run-workflow';
+import type { WorkflowDocumentRunResult } from '../engine/types';
+import { WorkflowError, WorkflowParseError } from '../errors';
+import { collectWorkflowDocument } from '../parser/collect';
+import type {
+  CollectedWorkflow,
+  CollectedWorkflowDocument,
+  WorkflowDocumentSource,
+} from '../parser/types';
+import {
+  writeCollectionError,
+  writeWorkflowDocumentRunResult,
+  writeWorkflowProjectRunResult,
+  writeWorkflowRunResult,
+} from './result-store';
+import type {
+  WorkflowCaseRunResult,
+  WorkflowCollectionError,
+  WorkflowProjectRunResult,
+  WorkflowProjectRunSummary,
+} from './types';
+import { loadWorkflowProjectSync } from './workflow-project';
 
 const CONFIG_NAMES = [
   'midscene.workflow.config.cjs',
@@ -16,23 +36,10 @@ export interface WorkflowProjectRunOptions {
   projectRoot: string;
   configPath?: string;
   resultDir?: string;
-  mode?: 'serial' | 'parallel';
-  maxConcurrency?: number;
-  retry?: number;
-  bail?: number;
-  bridgePath?: string;
-  runRstest?: (options: {
-    cwd: string;
-    files: string[];
-    inlineConfig: RstestUserConfig;
-  }) => Promise<TestRunResult>;
 }
 
-export interface WorkflowProjectRunResult {
-  exitCode: number;
-  manifestPath: string;
-  manifest: WorkflowRunManifest;
-  rstest: TestRunResult;
+interface CollectedProjectDocument {
+  document: CollectedWorkflowDocument;
 }
 
 export const discoverWorkflowFiles = (projectRoot: string): string[] => {
@@ -62,23 +69,6 @@ export const discoverWorkflowConfig = (
 ): string | undefined =>
   CONFIG_NAMES.map((name) => join(resolve(projectRoot), name)).find(existsSync);
 
-export const resolveWorkflowBridgePath = (moduleDir?: string): string => {
-  const directory = moduleDir ?? __dirname;
-  const candidates = [
-    join(directory, 'workflow-rstest-bridge.test.js'),
-    join(directory, 'cli', 'workflow-rstest-bridge.test.js'),
-    join(directory, 'workflow-rstest-bridge.test.ts'),
-    join(directory, 'cli', 'workflow-rstest-bridge.test.ts'),
-  ];
-  const found = candidates.find(existsSync);
-  if (!found) {
-    throw new Error(
-      'Could not locate the fixed workflow Rstest bridge module.',
-    );
-  }
-  return found;
-};
-
 const defaultResultDir = (projectRoot: string): string =>
   join(
     projectRoot,
@@ -87,12 +77,48 @@ const defaultResultDir = (projectRoot: string): string =>
     `${Date.now()}-${process.pid}`,
   );
 
-const defaultRunRstest: NonNullable<
-  WorkflowProjectRunOptions['runRstest']
-> = async (options) => {
-  const { runRstest } = await import('@rstest/core/api');
-  return runRstest(options);
-};
+const asCollectionError = (
+  sourcePath: string,
+  error: unknown,
+): WorkflowCollectionError => ({
+  sourcePath,
+  error:
+    error instanceof WorkflowError
+      ? error
+      : new WorkflowParseError(
+          `Failed to collect workflow document "${sourcePath}": ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+          { sourcePath },
+          error,
+        ),
+});
+
+const asNotRun = (
+  workflow: CollectedWorkflow,
+  reason: NonNullable<WorkflowCaseRunResult['notRunReason']>,
+): WorkflowCaseRunResult => ({
+  testId: workflow.testId,
+  name: workflow.definition.name,
+  sourcePath: workflow.sourcePath,
+  workflowIndex: workflow.workflowIndex,
+  status: 'not-run',
+  notRunReason: reason,
+});
+
+const summarize = (
+  workflows: readonly WorkflowCaseRunResult[],
+  documents: readonly WorkflowDocumentRunResult[],
+  collectionErrors: readonly WorkflowCollectionError[],
+): WorkflowProjectRunSummary => ({
+  total: workflows.length,
+  passed: workflows.filter((workflow) => workflow.status === 'success').length,
+  failed: workflows.filter((workflow) => workflow.status === 'failed').length,
+  notRun: workflows.filter((workflow) => workflow.status === 'not-run').length,
+  collectionErrors: collectionErrors.length,
+  documentFailures: documents.filter((document) => document.status === 'failed')
+    .length,
+});
 
 export async function runWorkflowProject(
   options: WorkflowProjectRunOptions,
@@ -122,49 +148,138 @@ export async function runWorkflowProject(
     sourcePath: toPosix(relative(projectRoot, absolutePath)),
     absolutePath,
   }));
-  const manifest: WorkflowRunManifest = {
-    version: 1,
+  const project = loadWorkflowProjectSync(configPath);
+  const collectedDocuments: CollectedProjectDocument[] = [];
+  const collectionErrors: WorkflowCollectionError[] = [];
+  const collectedTestIds = new Set<string>();
+
+  for (const source of sources) {
+    try {
+      const document = collectWorkflowDocument(source, {
+        resolveNode: project.resolveNode,
+        resolveDocumentNode: project.resolveDocumentNode,
+      });
+      const collided = document.workflows.find((workflow) =>
+        collectedTestIds.has(workflow.testId),
+      );
+      if (collided) {
+        throw new WorkflowParseError(
+          `Workflow testId collision: ${collided.testId}.`,
+          { testId: collided.testId, sourcePath: source.sourcePath },
+        );
+      }
+      for (const workflow of document.workflows) {
+        collectedTestIds.add(workflow.testId);
+      }
+      collectedDocuments.push({ document });
+    } catch (error) {
+      const collectionError = asCollectionError(source.sourcePath, error);
+      collectionErrors.push(collectionError);
+      writeCollectionError(resultDir, collectionError);
+    }
+  }
+
+  const workflows: WorkflowCaseRunResult[] = [];
+  const documents: WorkflowDocumentRunResult[] = [];
+  let interrupted = false;
+  const handleSignal = () => {
+    interrupted = true;
+  };
+  process.on('SIGINT', handleSignal);
+  process.on('SIGTERM', handleSignal);
+
+  try {
+    for (const { document } of collectedDocuments) {
+      if (interrupted) {
+        workflows.push(
+          ...document.workflows.map((workflow) =>
+            asNotRun(workflow, 'interrupted'),
+          ),
+        );
+        continue;
+      }
+
+      const runtime = createDocumentRuntime(document, {
+        resolveNode: project.documentNodes.require.bind(project.documentNodes),
+        setupDocument: project.setupDocument,
+      });
+      let runtimeStarted = false;
+      let executionError: unknown;
+      try {
+        runtimeStarted = true;
+        await runtime.start();
+
+        if (!runtime.canRunWorkflows) {
+          workflows.push(
+            ...document.workflows.map((workflow) =>
+              asNotRun(workflow, 'document-start-failed'),
+            ),
+          );
+        } else {
+          for (const workflow of document.workflows) {
+            if (interrupted) {
+              workflows.push(asNotRun(workflow, 'interrupted'));
+              continue;
+            }
+            const run = await runWorkflow(workflow, {
+              resolveNode: project.nodes.require.bind(project.nodes),
+              beforeEach: document.lifecycle.beforeEach,
+              afterEach: document.lifecycle.afterEach,
+              context: runtime.context,
+            });
+            writeWorkflowRunResult(resultDir, run);
+            workflows.push({
+              testId: workflow.testId,
+              name: workflow.definition.name,
+              sourcePath: workflow.sourcePath,
+              workflowIndex: workflow.workflowIndex,
+              status: run.status,
+              run,
+            });
+          }
+        }
+      } catch (error) {
+        executionError = error;
+      } finally {
+        if (runtimeStarted) {
+          try {
+            const documentResult = await runtime.finish();
+            documents.push(documentResult);
+            writeWorkflowDocumentRunResult(resultDir, documentResult);
+          } catch (error) {
+            executionError ??= error;
+          }
+        }
+      }
+      if (executionError) throw executionError;
+    }
+  } finally {
+    process.off('SIGINT', handleSignal);
+    process.off('SIGTERM', handleSignal);
+  }
+
+  const summary = summarize(workflows, documents, collectionErrors);
+  const failed =
+    interrupted ||
+    summary.failed > 0 ||
+    summary.notRun > 0 ||
+    summary.collectionErrors > 0 ||
+    summary.documentFailures > 0;
+  const result: WorkflowProjectRunResult = {
+    status: failed ? 'failed' : 'success',
+    exitCode: failed ? 1 : 0,
+    resultDir,
+    summary,
+    workflows,
+    documents,
+    collectionErrors,
+  };
+  writeWorkflowProjectRunResult(resultDir, {
     projectId,
     projectRoot,
     ...(configPath ? { configPath } : {}),
     sources,
-    mode: options.mode ?? 'serial',
-    ...(options.maxConcurrency === undefined
-      ? {}
-      : { maxConcurrency: options.maxConcurrency }),
-    ...(options.retry === undefined ? {} : { retry: options.retry }),
-    ...(options.bail === undefined ? {} : { bail: options.bail }),
-    resultDir,
-  };
-  const manifestPath = join(resultDir, 'manifest.json');
-  writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
-
-  const bridgePath = options.bridgePath ?? resolveWorkflowBridgePath();
-  const inlineConfig: RstestUserConfig = {
-    root: projectRoot,
-    include: [bridgePath],
-    exclude: [],
-    testEnvironment: 'node',
-    reporters: [],
-    testTimeout: 0,
-    env: { MIDSCENE_WORKFLOW_MANIFEST: manifestPath },
-    pool: { maxWorkers: 1, minWorkers: 1 },
-    ...(options.maxConcurrency === undefined
-      ? {}
-      : { maxConcurrency: options.maxConcurrency }),
-    ...(options.retry === undefined ? {} : { retry: options.retry }),
-    ...(options.bail === undefined ? {} : { bail: options.bail }),
-  };
-  const rstest = await (options.runRstest ?? defaultRunRstest)({
-    cwd: projectRoot,
-    files: [bridgePath],
-    inlineConfig,
+    result,
   });
-
-  return {
-    exitCode: rstest.ok ? 0 : 1,
-    manifestPath,
-    manifest,
-    rstest,
-  };
+  return result;
 }

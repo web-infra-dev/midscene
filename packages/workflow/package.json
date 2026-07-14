@@ -39,7 +39,6 @@
     "e2e": "pnpm run build && vitest --run --config vitest.e2e.config.ts"
   },
   "dependencies": {
-    "@rstest/core": "0.10.3",
     "js-yaml": "4.1.0"
   },
   "devDependencies": {
