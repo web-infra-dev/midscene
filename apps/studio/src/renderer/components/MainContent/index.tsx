@@ -459,13 +459,16 @@ export default function MainContent({
     !isReady || !studioPlayground.controller.state.sessionViewState.connected;
   const previewConnectionFailed =
     previewStatus === 'error' || previewStatus === 'disconnected';
-  const connectionStatus: ConnectionStatus = previewConnectionFailed
-    ? 'failed'
-    : isConnected
-      ? 'connected'
-      : isPreviewConnecting
-        ? 'connecting'
-        : 'disconnected';
+  const connectionStatus: ConnectionStatus =
+    previewStatus === 'recovering'
+      ? 'recovering'
+      : previewConnectionFailed
+        ? 'failed'
+        : isConnected
+          ? 'connected'
+          : isPreviewConnecting
+            ? 'connecting'
+            : 'disconnected';
 
   const previewHeaderSubInfo: { key: string; text: string }[] = [];
   if (isConnected && previewDeviceId) {
@@ -489,6 +492,7 @@ export default function MainContent({
     connected: 'Live',
     connecting: 'Loading',
     disconnected: 'Idle',
+    recovering: 'Recovering',
     failed: 'Failed',
   };
   // Pill chrome — adopts the imported "Live" tag visual (rounded background,
@@ -513,6 +517,7 @@ export default function MainContent({
       fg: '#818283',
       dot: '#B6B6B6',
     },
+    recovering: { bg: '#FFF4D6', fg: '#B7791F', dot: '#F59E0B' },
     failed: {
       bg: 'var(--midscene-status-pill-failed-bg)',
       fg: '#C0392B',

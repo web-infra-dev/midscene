@@ -34,6 +34,19 @@ export interface MidsceneRecorderPageInfo {
   height: number;
 }
 
+/**
+ * A screenshot stored outside the recording event payload.
+ *
+ * Recorder events are persisted in the Studio renderer. Keeping full data
+ * URLs there makes long recordings retain every screenshot in the renderer
+ * heap, so screenshot bytes live in the Playground run directory instead.
+ */
+export interface MidsceneRecorderScreenshotAssetRef {
+  id: string;
+  mimeType: string;
+  bytes: number;
+}
+
 export interface MidsceneRecorderEvent {
   type: MidsceneRecorderEventType;
   source?: MidsceneRecorderSourceKind;
@@ -46,6 +59,8 @@ export interface MidsceneRecorderEvent {
   pageInfo: MidsceneRecorderPageInfo;
   screenshotBefore?: string;
   screenshotAfter?: string;
+  /** The single screenshot retained for AI description and Markdown export. */
+  screenshotAsset?: MidsceneRecorderScreenshotAssetRef;
   semantic?: MidsceneRecorderSemantic;
   elementDescription?: string;
   descriptionLoading?: boolean;

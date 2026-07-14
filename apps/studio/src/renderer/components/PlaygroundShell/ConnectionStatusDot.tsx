@@ -2,6 +2,7 @@ export type ConnectionStatus =
   | 'connected'
   | 'connecting'
   | 'disconnected'
+  | 'recovering'
   | 'failed';
 
 // Outer translucent halo + solid inner disc of the same hue. Default
@@ -20,6 +21,10 @@ const PALETTE: Record<ConnectionStatus, { inner: string; border: string }> = {
     inner: 'rgba(182, 182, 182, 1)',
     border: 'rgba(182, 182, 182, 0.25)',
   },
+  recovering: {
+    inner: 'rgba(245, 158, 11, 1)',
+    border: 'rgba(245, 158, 11, 0.25)',
+  },
   failed: {
     inner: 'rgba(229, 57, 53, 1)',
     border: 'rgba(229, 57, 53, 0.25)',
@@ -30,6 +35,7 @@ const LABEL: Record<ConnectionStatus, string> = {
   connected: 'Device connected',
   connecting: 'Device connecting',
   disconnected: 'Device not connected',
+  recovering: 'Device connection recovering',
   failed: 'Device connection failed',
 };
 

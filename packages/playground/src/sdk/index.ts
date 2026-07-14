@@ -318,6 +318,19 @@ export class PlaygroundSDK {
     };
   }
 
+  async getRecorderScreenshotAsset(assetId: string): Promise<string | null> {
+    if (this.adapter instanceof RemoteExecutionAdapter) {
+      return this.adapter.getRecorderScreenshotAsset(assetId);
+    }
+    return null;
+  }
+
+  async clearRecorderScreenshotAssets(sessionId: string): Promise<void> {
+    if (this.adapter instanceof RemoteExecutionAdapter) {
+      await this.adapter.clearRecorderScreenshotAssets(sessionId);
+    }
+  }
+
   // Get interface information (type and description)
   async getInterfaceInfo(): Promise<{
     type: string;

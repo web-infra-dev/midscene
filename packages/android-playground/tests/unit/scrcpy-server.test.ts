@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import ScrcpyServer, {
+  appendBoundedScrcpyOutput,
   resolveRequestedDeviceId,
 } from '../../src/scrcpy-server';
 
@@ -44,6 +45,14 @@ vi.mock('node:fs', async (importOriginal) => {
 });
 
 describe('ScrcpyServer', () => {
+  it('keeps only the most recent scrcpy output lines', () => {
+    const lines: string[] = [];
+    for (let index = 0; index < 5; index += 1) {
+      appendBoundedScrcpyOutput(lines, `line-${index}`, 3);
+    }
+    expect(lines).toEqual(['line-2', 'line-3', 'line-4']);
+  });
+
   it('prefers the explicit device from the preview handshake', () => {
     expect(
       resolveRequestedDeviceId(

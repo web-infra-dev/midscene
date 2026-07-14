@@ -274,6 +274,12 @@ describe('Studio Playground imported replay', () => {
     expect(request.value.prompt).toContain(
       '# Replay\n\n## Steps\n1. Tap login',
     );
+    expect(request.value.prompt).toContain(
+      'do not keep repeating the same navigation or action pattern',
+    );
+    expect(request.value.prompt).toContain(
+      'current UI likely does not match the recording state',
+    );
 
     await act(async () => {
       root.unmount();

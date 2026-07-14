@@ -23,6 +23,8 @@ Execution rules:
 - If the current UI is already ahead of an earlier required recorded action, use visible safe affordances and the recorded context to return to the earliest unsatisfied prerequisite state and perform the missing recorded action sequence.
 - Before failing because the recorded target is absent, compare the current UI with the recorded goal, previous steps, and following steps. If the intended outcome of the missing step is already satisfied, mark that step as done and continue with the next unsatisfied recorded intent.
 - Do not undo visible progress or change durable application state only to recreate an earlier intermediate UI. Doing so is allowed only when it is visibly safe and necessary to execute an explicit recorded workflow action that has not run in this replay.
+- If a recorded target or prerequisite remains missing after visible, explainable attempts to reach it, do not keep repeating the same navigation or action pattern for that same missing target. A bounded retry is acceptable when the UI visibly changes or new evidence appears.
+- After each prerequisite-recovery action, verify that the current UI is closer to the recorded intent. If repeated attempts do not make the next recorded intent more reachable, stop and report that the current UI likely does not match the recording state.
 - Stop only when the recorded intent cannot be inferred or no safe visible path exists.
 
 Recorded Markdown:

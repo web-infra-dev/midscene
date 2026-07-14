@@ -690,6 +690,46 @@ export class RemoteExecutionAdapter extends BasePlaygroundAdapter {
     }
   }
 
+  async getRecorderScreenshotAsset(assetId: string): Promise<string | null> {
+    if (!this.serverUrl || !assetId) {
+      return null;
+    }
+    try {
+      const response = await fetch(
+        `${this.serverUrl}/recorder/assets/${encodeURIComponent(assetId)}`,
+      );
+      if (!response.ok) {
+        return null;
+      }
+      const blob = await response.blob();
+      return await new Promise<string | null>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () =>
+          resolve(typeof reader.result === 'string' ? reader.result : null);
+        reader.onerror = () => reject(reader.error);
+        reader.readAsDataURL(blob);
+      });
+    } catch (error) {
+      console.error('Failed to fetch recorder screenshot asset:', error);
+      return null;
+    }
+  }
+
+  async clearRecorderScreenshotAssets(sessionId: string): Promise<void> {
+    if (!this.serverUrl || !sessionId) {
+      return;
+    }
+    const response = await fetch(
+      `${this.serverUrl}/recorder/assets/session/${encodeURIComponent(sessionId)}`,
+      { method: 'DELETE' },
+    );
+    if (!response.ok) {
+      throw new Error(
+        `Recorder screenshot cleanup request failed (${response.status})`,
+      );
+    }
+  }
+
   // Get interface information from server
   async getInterfaceInfo(): Promise<{
     type: string;

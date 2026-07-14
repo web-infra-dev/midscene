@@ -24,11 +24,15 @@ import type { Socket } from 'socket.io-client';
 import { io } from 'socket.io-client';
 import {
   SCRCPY_METADATA_TIMEOUT_MS,
+  SCRCPY_STABLE_CONNECTION_MS,
   type ScrcpyPreviewStatus,
+  canRecoverScrcpyPreview,
   getDefaultScrcpyWaitingStatusText,
   getScrcpyDecoderStatusText,
   getScrcpyMetadataTimeoutMessage,
   getScrcpyPreviewStatusText,
+  getScrcpyRecoveryDelayMs,
+  isScrcpyPreviewErrorEvent,
   isScrcpyPreviewStatusEvent,
 } from './scrcpy-preview';
 import { createScrcpyVideoStream } from './scrcpy-stream';
@@ -67,6 +71,7 @@ interface ScrcpyPanelProps {
   renderErrorOverlay?: ScrcpyErrorOverlayRenderer;
   serverUrl?: string;
   metadataTimeoutMs?: number;
+  /** @deprecated Recovery now uses a bounded progressive backoff. */
   reconnectInterval?: number;
   viewportStyle?: CSSProperties;
   // Receives the canvas-area wrapper so the device-interaction layer can
@@ -89,7 +94,6 @@ export function ScrcpyPanel({
   renderErrorOverlay,
   serverUrl,
   metadataTimeoutMs = SCRCPY_METADATA_TIMEOUT_MS,
-  reconnectInterval = 3000,
   viewportStyle,
   contentRef,
 }: ScrcpyPanelProps) {
@@ -98,7 +102,11 @@ export function ScrcpyPanel({
   const decoderRef = useRef<WebCodecsVideoDecoder | null>(null);
   const metadataTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const stableConnectionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
   const ignoreDisconnectRef = useRef(false);
+  const connectionAttemptRef = useRef(0);
   const [status, setStatus] = useState<ScrcpyPreviewStatus>('connecting');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [waitingStatusMessage, setWaitingStatusMessage] = useState<string>(() =>
@@ -170,6 +178,8 @@ export function ScrcpyPanel({
 
     let disposed = false;
     let connectTimer: ReturnType<typeof setTimeout> | null = null;
+    let recoveryEpisodeStartedAt = Date.now();
+    let attempt = 1;
 
     const cleanup = () => {
       if (connectTimer) {
@@ -177,6 +187,10 @@ export function ScrcpyPanel({
         connectTimer = null;
       }
       clearMetadataTimeout();
+      if (stableConnectionTimerRef.current) {
+        clearTimeout(stableConnectionTimerRef.current);
+        stableConnectionTimerRef.current = null;
+      }
       if (reconnectTimerRef.current) {
         clearTimeout(reconnectTimerRef.current);
         reconnectTimerRef.current = null;
@@ -192,16 +206,53 @@ export function ScrcpyPanel({
       onIntrinsicSize?.(null);
     };
 
-    const scheduleReconnect = () => {
+    const scheduleReconnect = (message: string, recoverable = true) => {
+      const nextAttempt = attempt + 1;
+      const elapsedMs = Date.now() - recoveryEpisodeStartedAt;
       if (disposed || reconnectTimerRef.current) {
         return;
       }
+      if (!canRecoverScrcpyPreview(recoverable, nextAttempt, elapsedMs)) {
+        setStatus('error');
+        setErrorMessage(message);
+        setWaitingStatusMessage(getDefaultScrcpyWaitingStatusText());
+        clearMetadataTimeout();
+        if (stableConnectionTimerRef.current) {
+          clearTimeout(stableConnectionTimerRef.current);
+          stableConnectionTimerRef.current = null;
+        }
+        ignoreDisconnectRef.current = true;
+        socketRef.current?.disconnect();
+        socketRef.current = null;
+        disposeDecoder();
+        clearCanvas();
+        onIntrinsicSize?.(null);
+        return;
+      }
 
+      const delayMs = getScrcpyRecoveryDelayMs(attempt);
+      setStatus('recovering');
+      setErrorMessage(null);
+      setWaitingStatusMessage(
+        `Preview interrupted. Recovering (${nextAttempt}/5)…`,
+      );
+      clearMetadataTimeout();
+      if (stableConnectionTimerRef.current) {
+        clearTimeout(stableConnectionTimerRef.current);
+        stableConnectionTimerRef.current = null;
+      }
+      ignoreDisconnectRef.current = true;
+      socketRef.current?.disconnect();
+      socketRef.current = null;
+      disposeDecoder();
+      clearCanvas();
+      onIntrinsicSize?.(null);
       reconnectTimerRef.current = setTimeout(() => {
         reconnectTimerRef.current = null;
         cleanup();
+        attempt = nextAttempt;
         connect();
-      }, reconnectInterval);
+      }, delayMs);
     };
 
     const createDecoder = async (codecId: ScrcpyVideoCodecId) => {
@@ -228,6 +279,11 @@ export function ScrcpyPanel({
         return;
       }
 
+      const attemptId = connectionAttemptRef.current + 1;
+      connectionAttemptRef.current = attemptId;
+      const isCurrentAttempt = () =>
+        !disposed && connectionAttemptRef.current === attemptId;
+
       ignoreDisconnectRef.current = false;
       setStatus('connecting');
       setErrorMessage(null);
@@ -240,24 +296,41 @@ export function ScrcpyPanel({
         transports: ['websocket'],
       });
       socketRef.current = socket;
-      const videoStream = createScrcpyVideoStream(socket);
+      const videoStream = createScrcpyVideoStream(socket, {
+        onFirstDataPacket: () => {
+          if (!isCurrentAttempt() || stableConnectionTimerRef.current) {
+            return;
+          }
+          clearMetadataTimeout();
+          setWaitingStatusMessage('Verifying video stream stability…');
+          stableConnectionTimerRef.current = setTimeout(() => {
+            stableConnectionTimerRef.current = null;
+            if (!isCurrentAttempt()) {
+              return;
+            }
+            recoveryEpisodeStartedAt = Date.now();
+            attempt = 1;
+            setErrorMessage(null);
+            setWaitingStatusMessage(getDefaultScrcpyWaitingStatusText());
+            setStatus('connected');
+          }, SCRCPY_STABLE_CONNECTION_MS);
+        },
+      });
 
       socket.on('connect', () => {
+        if (!isCurrentAttempt()) {
+          return;
+        }
         setStatus('waiting-for-stream');
         setWaitingStatusMessage(getDefaultScrcpyWaitingStatusText());
         clearMetadataTimeout();
         metadataTimeoutRef.current = setTimeout(() => {
-          if (disposed) {
+          if (!isCurrentAttempt()) {
             return;
           }
 
           ignoreDisconnectRef.current = true;
-          setStatus('error');
-          setErrorMessage(getScrcpyMetadataTimeoutMessage(metadataTimeoutMs));
-          setWaitingStatusMessage(getDefaultScrcpyWaitingStatusText());
-          socket.disconnect();
-          socketRef.current = null;
-          scheduleReconnect();
+          scheduleReconnect(getScrcpyMetadataTimeoutMessage(metadataTimeoutMs));
         }, metadataTimeoutMs);
 
         socket.emit('connect-device', {
@@ -270,7 +343,7 @@ export function ScrcpyPanel({
       });
 
       socket.on('preview-status', (event: unknown) => {
-        if (disposed || !isScrcpyPreviewStatusEvent(event)) {
+        if (!isCurrentAttempt() || !isScrcpyPreviewStatusEvent(event)) {
           return;
         }
 
@@ -280,7 +353,9 @@ export function ScrcpyPanel({
 
       socket.on('video-metadata', async (metadata: VideoMetadata) => {
         try {
-          clearMetadataTimeout();
+          if (!isCurrentAttempt()) {
+            return;
+          }
           disposeDecoder();
           setWaitingStatusMessage(getScrcpyDecoderStatusText());
           if (
@@ -301,64 +376,56 @@ export function ScrcpyPanel({
           decoderRef.current = decoder;
 
           videoStream.pipeTo(decoder.writable).catch((error: Error) => {
-            if (disposed) {
+            if (!isCurrentAttempt()) {
               return;
             }
-            setStatus('error');
-            setErrorMessage(error.message);
-            scheduleReconnect();
+            scheduleReconnect(error.message);
           });
 
-          setWaitingStatusMessage(getDefaultScrcpyWaitingStatusText());
-          setStatus('connected');
+          setStatus('waiting-for-stream');
         } catch (error) {
-          if (disposed) {
+          if (!isCurrentAttempt()) {
             return;
           }
-          setStatus('error');
-          setErrorMessage(
+          scheduleReconnect(
             error instanceof Error ? error.message : 'Failed to start decoder.',
           );
-          setWaitingStatusMessage(getDefaultScrcpyWaitingStatusText());
-          scheduleReconnect();
         }
       });
 
       socket.on('disconnect', () => {
-        clearMetadataTimeout();
-        if (disposed) {
+        if (!isCurrentAttempt()) {
           return;
         }
+        clearMetadataTimeout();
         if (ignoreDisconnectRef.current) {
           ignoreDisconnectRef.current = false;
           return;
         }
-        setStatus('disconnected');
-        setErrorMessage(null);
-        setWaitingStatusMessage(getDefaultScrcpyWaitingStatusText());
-        scheduleReconnect();
+        scheduleReconnect('scrcpy preview disconnected.');
       });
 
       socket.on('connect_error', (error: Error) => {
-        clearMetadataTimeout();
-        if (disposed) {
+        if (!isCurrentAttempt()) {
           return;
         }
-        setStatus('error');
-        setErrorMessage(error.message);
-        setWaitingStatusMessage(getDefaultScrcpyWaitingStatusText());
-        scheduleReconnect();
+        clearMetadataTimeout();
+        scheduleReconnect(error.message);
+      });
+
+      socket.on('preview-error', (event: unknown) => {
+        if (!isCurrentAttempt() || !isScrcpyPreviewErrorEvent(event)) {
+          return;
+        }
+        scheduleReconnect(event.message, event.recoverable);
       });
 
       socket.on('error', (error: Error) => {
-        clearMetadataTimeout();
-        if (disposed) {
+        if (!isCurrentAttempt()) {
           return;
         }
-        setStatus('error');
-        setErrorMessage(error.message);
-        setWaitingStatusMessage(getDefaultScrcpyWaitingStatusText());
-        scheduleReconnect();
+        clearMetadataTimeout();
+        scheduleReconnect(error.message);
       });
     };
 
@@ -374,7 +441,7 @@ export function ScrcpyPanel({
       disposed = true;
       cleanup();
     };
-  }, [deviceId, metadataTimeoutMs, reconnectInterval, retryNonce, serverUrl]);
+  }, [deviceId, metadataTimeoutMs, retryNonce, serverUrl]);
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -467,7 +534,7 @@ export function ScrcpyPanel({
               <Text style={{ color: '#fff' }}>{statusText}</Text>
               {status === 'error' ? (
                 <Text style={{ color: '#d1d5db' }}>
-                  Scrcpy preview will retry automatically.
+                  Reconnect the preview to try again.
                 </Text>
               ) : null}
               {!webCodecsSupported && (
