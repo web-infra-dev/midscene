@@ -7,6 +7,7 @@ import type {
   WorkflowCollectionError,
   WorkflowProjectRunResult,
 } from './types';
+import type { WorkflowFileSelection } from './workflow-project';
 
 const writeJson = (path: string, value: unknown) => {
   mkdirSync(dirname(path), { recursive: true });
@@ -56,6 +57,7 @@ export interface WorkflowProjectResultFileOptions {
   projectId: string;
   projectRoot: string;
   configPath?: string;
+  fileSelection: WorkflowFileSelection;
   sources: readonly WorkflowDocumentSource[];
   result: WorkflowProjectRunResult;
 }
@@ -66,10 +68,16 @@ export const writeWorkflowProjectRunResult = (
 ) => {
   const { result } = options;
   writeJson(join(resultDir, 'project.json'), {
-    version: 2,
+    version: 3,
     projectId: options.projectId,
     projectRoot: options.projectRoot,
     ...(options.configPath ? { configPath: options.configPath } : {}),
+    fileSelection: {
+      include: [...options.fileSelection.include],
+      ...(options.fileSelection.exclude
+        ? { exclude: [...options.fileSelection.exclude] }
+        : {}),
+    },
     sources: options.sources,
     status: result.status,
     exitCode: result.exitCode,
