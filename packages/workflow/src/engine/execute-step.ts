@@ -61,18 +61,6 @@ function createStepResultBase(
   };
 }
 
-const standaloneCaseContext = (): NodeCaseContext => ({
-  caseId: 'standalone-step',
-  runId: 'standalone-step',
-  name: 'standalone step',
-  sourcePath: '',
-  caseIndex: 0,
-  phase: 'steps',
-  stepIndex: 0,
-  completedSteps: Object.freeze([]),
-  completedNodes: Object.freeze([]),
-});
-
 async function executeNode<TOutputData>(
   step: NormalizedStep,
   execute: (signal: AbortSignal) => unknown,
@@ -126,67 +114,43 @@ async function executeNode<TOutputData>(
   }
 }
 
-export async function runStepForCase<
+type StepExecutionTarget =
+  | { scope: 'case'; case: NodeCaseContext }
+  | { scope: 'document'; document: NodeDocumentContext };
+
+export async function executeStep<
   TInput = unknown,
   TOutputData = unknown,
   TContext = unknown,
 >(
   step: NormalizedStep,
   node: NodeDefinition<TInput, TOutputData, TContext>,
-  caseContext: NodeCaseContext,
+  target: StepExecutionTarget,
   context: TContext,
 ): Promise<StepRunResult<TOutputData>> {
+  const phase =
+    target.scope === 'case' ? target.case.phase : target.document.phase;
+  const stepIndex =
+    target.scope === 'case' ? target.case.stepIndex : target.document.stepIndex;
+
   return executeNode<TOutputData>(
     step,
-    (signal) =>
-      node.execute({
+    (signal) => {
+      const common = {
         input: step.input as TInput & CommonNodeInput,
         $: step.meta,
         signal,
-        scope: 'case',
-        case: caseContext,
         context,
-      }),
-    caseContext.phase,
-    caseContext.stepIndex,
+      };
+      return target.scope === 'case'
+        ? node.execute({ ...common, scope: 'case', case: target.case })
+        : node.execute({
+            ...common,
+            scope: 'document',
+            document: target.document,
+          });
+    },
+    phase,
+    stepIndex,
   );
-}
-
-export async function runStepForDocument<
-  TInput = unknown,
-  TOutputData = unknown,
-  TContext = unknown,
->(
-  step: NormalizedStep,
-  node: NodeDefinition<TInput, TOutputData, TContext>,
-  document: NodeDocumentContext,
-  context: TContext,
-): Promise<StepRunResult<TOutputData>> {
-  return executeNode<TOutputData>(
-    step,
-    (signal) =>
-      node.execute({
-        input: step.input as TInput & CommonNodeInput,
-        $: step.meta,
-        signal,
-        scope: 'document',
-        document,
-        context,
-      }),
-    document.phase,
-    document.stepIndex,
-  );
-}
-
-/** Runs one normalized step outside a case. */
-export async function runStep<TInput = unknown, TOutputData = unknown>(
-  step: NormalizedStep,
-  node: NodeDefinition<TInput, TOutputData, undefined>,
-  caseContext: NodeCaseContext = standaloneCaseContext(),
-): Promise<StepRunResult<TOutputData>> {
-  const result = await runStepForCase(step, node, caseContext, undefined);
-  if (result.status === 'failed' && !result.continuedAfterError) {
-    throw result.error;
-  }
-  return result;
 }

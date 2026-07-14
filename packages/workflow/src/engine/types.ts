@@ -85,7 +85,7 @@ export interface NodeDocumentContext {
   readonly completedNodes: readonly StepRunResult[];
 }
 
-export interface RunCaseOptions<TContext = undefined> {
+export interface RunCollectedCaseOptions<TContext = undefined> {
   resolveNode(name: string): NodeDefinition<any, any, TContext>;
   beforeEach?: readonly NormalizedStep[];
   afterEach?: readonly NormalizedStep[];
@@ -164,7 +164,7 @@ export interface WorkflowDocumentRuntime<TContext = undefined> {
   finish(): Promise<WorkflowDocumentRunResult>;
 }
 
-export interface WorkflowEngineOptions<TContext = undefined> {
+export interface CaseRunnerOptions<TContext = undefined> {
   nodes?: readonly NodeDefinition<any, any, TContext>[];
   context?: TContext;
 }

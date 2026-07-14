@@ -1,6 +1,6 @@
 import type { CollectedCase, CollectedWorkflowDocument } from '../parser/types';
 import { createDocumentRuntime } from './document-runtime';
-import { runCase } from './run-case';
+import { runCollectedCase } from './run-collected-case';
 import type {
   CaseRunOutcome,
   RunWorkflowDocumentOptions,
@@ -55,7 +55,7 @@ export async function runWorkflowDocument<TContext = undefined>(
           cases.push(asNotRun(collectedCase, 'interrupted'));
           continue;
         }
-        const run = await runCase(collectedCase, {
+        const run = await runCollectedCase(collectedCase, {
           resolveNode: options.resolveNode,
           beforeEach: document.lifecycle.beforeEach,
           afterEach: document.lifecycle.afterEach,

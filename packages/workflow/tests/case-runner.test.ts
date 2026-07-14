@@ -1,18 +1,18 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
+  CaseRunner,
   NodeExecutionError,
   NodeInputValidationError,
   StepTimeoutError,
-  WorkflowEngine,
+  createCaseRunner,
   defineNode,
-  runStep,
 } from '../src';
 
 afterEach(() => {
   vi.useRealTimers();
 });
 
-describe('standalone case runner', () => {
+describe('CaseRunner', () => {
   it('runs nodes sequentially with normalized input and metadata', async () => {
     const calls: string[] = [];
     const first = defineNode<{ value: number }, { doubled: number }>({
@@ -31,9 +31,9 @@ describe('standalone case runner', () => {
         calls.push('second');
       },
     });
-    const engine = new WorkflowEngine({ nodes: [first, second] });
+    const runner = new CaseRunner({ nodes: [first, second] });
 
-    const result = await engine.run({
+    const result = await runner.run({
       name: 'sequential case',
       steps: [
         { 'first.node': { prompt: 'run first', value: 2 } },
@@ -56,7 +56,7 @@ describe('standalone case runner', () => {
 
   it('records a failed step and continues when configured', async () => {
     const next = vi.fn();
-    const engine = new WorkflowEngine({
+    const runner = new CaseRunner({
       nodes: [
         defineNode({
           name: 'failing.node',
@@ -68,7 +68,7 @@ describe('standalone case runner', () => {
       ],
     });
 
-    const result = await engine.run({
+    const result = await runner.run({
       steps: [
         { 'failing.node': { $: { 'continue-on-error': true } } },
         { 'next.node': 'keep going' },
@@ -86,7 +86,7 @@ describe('standalone case runner', () => {
 
   it('throws normalized errors and stops by default', async () => {
     const next = vi.fn();
-    const engine = new WorkflowEngine({
+    const runner = new CaseRunner({
       nodes: [
         defineNode({
           name: 'failing.node',
@@ -99,7 +99,7 @@ describe('standalone case runner', () => {
     });
 
     await expect(
-      engine.run({
+      runner.run({
         steps: [{ 'failing.node': {} }, { 'next.node': {} }],
       }),
     ).rejects.toBeInstanceOf(NodeExecutionError);
@@ -108,12 +108,12 @@ describe('standalone case runner', () => {
 
   it('resolves every node before starting case side effects', async () => {
     const first = vi.fn();
-    const engine = new WorkflowEngine({
+    const runner = new CaseRunner({
       nodes: [defineNode({ name: 'first.node', execute: first })],
     });
 
     await expect(
-      engine.run({
+      runner.run({
         steps: [{ 'first.node': {} }, { 'missing.node': {} }],
       }),
     ).rejects.toMatchObject({ code: 'NODE_NOT_FOUND' });
@@ -128,17 +128,11 @@ describe('standalone case runner', () => {
         throw validationError;
       },
     });
+    const runner = new CaseRunner({ nodes: [node] });
 
-    await expect(
-      runStep(
-        {
-          node: node.name,
-          input: {},
-          meta: { continueOnError: false },
-        },
-        node,
-      ),
-    ).rejects.toBe(validationError);
+    await expect(runner.run({ steps: [{ [node.name]: {} }] })).rejects.toBe(
+      validationError,
+    );
   });
 
   it('aborts and fails a timed out node even if it never settles', async () => {
@@ -151,14 +145,16 @@ describe('standalone case runner', () => {
         return new Promise<void>(() => {});
       },
     });
-    const execution = runStep(
-      {
-        node: node.name,
-        input: {},
-        meta: { timeoutMs: 50, continueOnError: true },
-      },
-      node,
-    );
+    const runner = new CaseRunner({ nodes: [node] });
+    const execution = runner.run({
+      steps: [
+        {
+          [node.name]: {
+            $: { timeout: 50, 'continue-on-error': true },
+          },
+        },
+      ],
+    });
 
     await vi.advanceTimersByTimeAsync(50);
     const result = await execution;
@@ -166,8 +162,8 @@ describe('standalone case runner', () => {
     expect(signal?.aborted).toBe(true);
     expect(signal?.reason).toBeInstanceOf(StepTimeoutError);
     expect(result.status).toBe('failed');
-    expect(result.error).toBeInstanceOf(StepTimeoutError);
-    expect((result.error as StepTimeoutError).timeoutMs).toBe(50);
+    expect(result.steps[0].error).toBeInstanceOf(StepTimeoutError);
+    expect((result.steps[0].error as StepTimeoutError).timeoutMs).toBe(50);
   });
 
   it('treats invalid runtime node output as execution failure', async () => {
@@ -175,22 +171,16 @@ describe('standalone case runner', () => {
       name: 'invalid-output.node',
       execute: () => 'not a node result' as never,
     });
+    const runner = new CaseRunner({ nodes: [node] });
 
     await expect(
-      runStep(
-        {
-          node: node.name,
-          input: {},
-          meta: { continueOnError: false },
-        },
-        node,
-      ),
+      runner.run({ steps: [{ [node.name]: {} }] }),
     ).rejects.toBeInstanceOf(NodeExecutionError);
   });
 
-  it('passes an explicit context to standalone WorkflowEngine nodes', async () => {
+  it('passes an explicit context to standalone CaseRunner nodes', async () => {
     const calls: string[] = [];
-    const engine = new WorkflowEngine<{ value: string }>({
+    const runner = createCaseRunner<{ value: string }>({
       nodes: [
         defineNode<unknown, unknown, { value: string }>({
           name: 'context.node',
@@ -202,7 +192,7 @@ describe('standalone case runner', () => {
       context: { value: 'ready' },
     });
 
-    await engine.run({ steps: [{ 'context.node': {} }] });
+    await runner.run({ steps: [{ 'context.node': {} }] });
     expect(calls).toEqual(['node:ready']);
   });
 });

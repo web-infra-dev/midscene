@@ -5,7 +5,7 @@ import {
   WorkflowLifecycleError,
 } from '../errors';
 import type { CollectedWorkflowDocument } from '../parser/types';
-import { runStepForDocument } from './run-step';
+import { executeStep } from './execute-step';
 import type {
   CreateDocumentRuntimeOptions,
   DocumentNodePhase,
@@ -92,10 +92,10 @@ export function createDocumentRuntime<TContext = undefined>(
         stepIndex,
         completedNodes: Object.freeze([...completedNodes]),
       };
-      const result = await runStepForDocument(
+      const result = await executeStep(
         step,
         nodes[phase][stepIndex],
-        documentContext,
+        { scope: 'document', document: documentContext },
         context,
       );
       results.push(result);
