@@ -3,9 +3,17 @@ name: Headless Linux
 on:
   pull_request:
     paths:
-      - 'packages/computer/**'
-      - 'apps/chrome-extension/**'
       - '.github/workflows/headless-linux.yml'
+      - 'apps/chrome-extension/**'
+      - 'apps/report/**'
+      - 'packages/computer/**'
+      - 'packages/core/**'
+      - 'packages/shared/**'
+      - 'scripts/report-template-utils.mjs'
+      - 'nx.json'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
   workflow_dispatch:
     inputs:
       branch:

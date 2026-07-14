@@ -1,11 +1,12 @@
-name: Android Emulator
+name: iOS Simulator
 
 on:
   pull_request:
     paths:
-      - '.github/workflows/android-emulator.yml'
+      - '.github/workflows/ios-simulator.yml'
       - 'apps/report/**'
-      - 'packages/android/**'
+      - 'packages/ios/**'
+      - 'packages/webdriver/**'
       - 'packages/core/**'
       - 'packages/shared/**'
       - 'scripts/report-template-utils.mjs'
@@ -25,13 +26,13 @@ permissions:
   contents: read
 
 concurrency:
-  group: android-emulator-${{ github.event.pull_request.number || inputs.branch || github.ref }}
+  group: ios-simulator-${{ github.event.pull_request.number || inputs.branch || github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  android-emulator:
-    runs-on: ubuntu-22.04
-    timeout-minutes: 55
+  ios-simulator:
+    runs-on: macos-15
+    timeout-minutes: 70
     env:
       CI: '1'
       FORCE_COLOR: '0'
@@ -43,7 +44,7 @@ jobs:
       MIDSCENE_MODEL_RETRY_INTERVAL: '60000'
       MIDSCENE_REPORT_QUIET: 'true'
       MIDSCENE_RUN_DIR: ${{ github.workspace }}/midscene_run
-      MIDSCENE_ANDROID_DIAGNOSTICS_DIR: ${{ github.workspace }}/midscene_run/android-emulator-diagnostics
+      MIDSCENE_IOS_DIAGNOSTICS_DIR: ${{ github.workspace }}/midscene_run/ios-simulator-diagnostics
 
     steps:
       - name: Checkout source
@@ -51,18 +52,26 @@ jobs:
         with:
           ref: ${{ inputs.branch || github.ref }}
 
-      - name: Prepare Android diagnostics and KVM
+      - name: Checkout WebDriverAgent 15.1.6
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          repository: appium/WebDriverAgent
+          ref: 5f8280e761dc0b5b9b28368e63a8f0cc8d868346
+          path: .ci/WebDriverAgent
+          persist-credentials: false
+
+      - name: Inspect iOS runner
         shell: bash
         run: |
-          mkdir -p "$MIDSCENE_ANDROID_DIAGNOSTICS_DIR"
+          mkdir -p "$MIDSCENE_IOS_DIAGNOSTICS_DIR"
           {
+            sw_vers
             uname -a
-            ls -l /dev/kvm || true
-          } 2>&1 | tee "$MIDSCENE_ANDROID_DIAGNOSTICS_DIR/runner-environment.log"
-          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' |
-            sudo tee /etc/udev/rules.d/99-kvm4all.rules
-          sudo udevadm control --reload-rules
-          sudo udevadm trigger --name-match=kvm
+            xcodebuild -version
+            xcode-select -p
+            xcrun simctl list runtimes
+            xcrun simctl list devices available
+          } 2>&1 | tee "$MIDSCENE_IOS_DIAGNOSTICS_DIR/runner-preflight.log"
 
       - name: Setup pnpm
         uses: pnpm/action-setup@eae0cfeb286e66ffb5155f1a79b90583a127a68b # v2.4.1
@@ -78,87 +87,76 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile --ignore-scripts
 
-      - name: Build report and Android packages
+      - name: Build report and iOS packages
         id: build
         continue-on-error: true
         shell: bash
         run: |
           set -euo pipefail
-          pnpm exec nx run-many --target=build --projects="@midscene/report,@midscene/android" --skip-nx-cache 2>&1 |
-            tee "$MIDSCENE_ANDROID_DIAGNOSTICS_DIR/build.log"
+          pnpm exec nx run-many --target=build --projects="@midscene/report,@midscene/ios" --skip-nx-cache 2>&1 |
+            tee "$MIDSCENE_IOS_DIAGNOSTICS_DIR/build.log"
           node apps/report/scripts/inject-report-template.mjs
 
-      - name: Validate Android package outputs
+      - name: Validate iOS package outputs
         id: package-smoke
         continue-on-error: true
         shell: bash
         run: |
           set -euo pipefail
-          node -e "const mod=require('./packages/android/dist/lib/index.js'); if(typeof mod.AndroidDevice!=='function'||typeof mod.AndroidAgent!=='function') throw new Error('invalid CJS exports')"
-          node --input-type=module -e "const mod=await import('./packages/android/dist/es/index.mjs'); if(typeof mod.AndroidDevice!=='function'||typeof mod.AndroidAgent!=='function') throw new Error('invalid ESM exports')"
-          test -f packages/android/dist/types/index.d.ts
+          node -e "const mod=require('./packages/ios/dist/lib/index.js'); if(typeof mod.IOSDevice!=='function'||typeof mod.IOSAgent!=='function') throw new Error('invalid CJS exports')"
+          node --input-type=module -e "const mod=await import('./packages/ios/dist/es/index.mjs'); if(typeof mod.IOSDevice!=='function'||typeof mod.IOSAgent!=='function') throw new Error('invalid ESM exports')"
+          test -f packages/ios/dist/types/index.d.ts
 
-          actual_cli_version=$(node packages/android/bin/midscene-android --version)
-          package_version=$(node -p "require('./packages/android/package.json').version")
-          expected_cli_version="midscene-android v${package_version}"
+          actual_cli_version=$(node packages/ios/bin/midscene-ios --version)
+          package_version=$(node -p "require('./packages/ios/package.json').version")
+          expected_cli_version="midscene-ios v${package_version}"
           if [[ "$actual_cli_version" != "$expected_cli_version" ]]; then
             echo "Unexpected CLI version '$actual_cli_version'; expected '$expected_cli_version'." >&2
             exit 1
           fi
 
-          pack_dir="$RUNNER_TEMP/midscene-android-pack"
+          pack_dir="$RUNNER_TEMP/midscene-ios-pack"
           mkdir -p "$pack_dir"
-          pnpm --dir packages/android pack --pack-destination "$pack_dir"
+          pnpm --dir packages/ios pack --pack-destination "$pack_dir"
           archive=$(find "$pack_dir" -name '*.tgz' -type f | head -n 1)
           test -n "$archive"
-          tar -tf "$archive" > "$MIDSCENE_ANDROID_DIAGNOSTICS_DIR/package-files.txt"
+          tar -tf "$archive" > "$MIDSCENE_IOS_DIAGNOSTICS_DIR/package-files.txt"
           for required in \
             package/package.json \
-            package/bin/midscene-android \
+            package/bin/midscene-ios \
             package/dist/lib/cli.js \
             package/dist/lib/index.js \
             package/dist/es/index.mjs \
             package/dist/types/index.d.ts; do
-            grep -Fxq "$required" "$MIDSCENE_ANDROID_DIAGNOSTICS_DIR/package-files.txt"
+            grep -Fxq "$required" "$MIDSCENE_IOS_DIAGNOSTICS_DIR/package-files.txt"
           done
 
-      - name: Run Android unit tests
+      - name: Run iOS unit tests
         id: unit-tests
         continue-on-error: true
         shell: bash
         run: |
           set -o pipefail
-          pnpm exec nx test @midscene/android --skip-nx-cache 2>&1 |
-            tee "$MIDSCENE_ANDROID_DIAGNOSTICS_DIR/unit-tests.log"
+          pnpm exec nx test @midscene/ios --skip-nx-cache 2>&1 |
+            tee "$MIDSCENE_IOS_DIAGNOSTICS_DIR/unit-tests.log"
 
-      - name: Run Android Emulator smoke and TodoMVC tests
-        id: emulator-tests
+      - name: Run iOS Simulator smoke and TodoMVC tests
+        id: simulator-tests
         continue-on-error: true
-        timeout-minutes: 35
-        uses: ReactiveCircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
-        with:
-          api-level: 35
-          target: google_apis
-          arch: x86_64
-          profile: pixel_6
-          cores: 2
-          ram-size: 4096M
-          heap-size: 512M
-          emulator-boot-timeout: 600
-          disable-animations: true
-          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot-save -noaudio -no-boot-anim -camera-back none
-          script: bash packages/android/scripts/run-emulator-ci-smokes.sh
+        timeout-minutes: 50
+        shell: bash
+        run: bash packages/ios/scripts/run-simulator-ci-smokes.sh
 
-      - name: Collect host step outcomes
+      - name: Collect step outcomes
         if: always()
         shell: bash
         env:
           BUILD_OUTCOME: ${{ steps.build.outcome }}
           PACKAGE_OUTCOME: ${{ steps.package-smoke.outcome }}
           UNIT_OUTCOME: ${{ steps.unit-tests.outcome }}
-          EMULATOR_OUTCOME: ${{ steps.emulator-tests.outcome }}
+          SIMULATOR_OUTCOME: ${{ steps.simulator-tests.outcome }}
         run: |
-          mkdir -p "$MIDSCENE_ANDROID_DIAGNOSTICS_DIR"
+          mkdir -p "$MIDSCENE_IOS_DIAGNOSTICS_DIR"
           node -e '
             const fs = require("node:fs");
             const path = require("node:path");
@@ -166,42 +164,42 @@ jobs:
               build: process.env.BUILD_OUTCOME,
               packageSmoke: process.env.PACKAGE_OUTCOME,
               unitTests: process.env.UNIT_OUTCOME,
-              emulatorTests: process.env.EMULATOR_OUTCOME,
+              simulatorTests: process.env.SIMULATOR_OUTCOME,
             };
             fs.writeFileSync(
-              path.join(process.env.MIDSCENE_ANDROID_DIAGNOSTICS_DIR, "host-step-outcomes.json"),
+              path.join(process.env.MIDSCENE_IOS_DIAGNOSTICS_DIR, "host-step-outcomes.json"),
               `${JSON.stringify(outcomes, null, 2)}\n`,
             );
           '
 
-      - name: Upload Android Emulator smoke report
+      - name: Upload iOS Simulator smoke report
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: android-emulator-smoke-report
-          path: midscene_run/report/android-emulator-smoke.html
+          name: ios-simulator-smoke-report
+          path: midscene_run/report/ios-simulator-smoke.html
           if-no-files-found: error
           retention-days: 7
 
-      - name: Upload Android TodoMVC report
+      - name: Upload iOS TodoMVC report
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: android-todo-mvc-report
-          path: midscene_run/report/todo-mvc-android.html
+          name: ios-todo-mvc-report
+          path: midscene_run/report/todo-mvc-ios.html
           if-no-files-found: warn
           retention-days: 7
 
-      - name: Upload Android Emulator diagnostics
+      - name: Upload iOS Simulator diagnostics
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: android-emulator-diagnostics
-          path: midscene_run/android-emulator-diagnostics
+          name: ios-simulator-diagnostics
+          path: midscene_run/ios-simulator-diagnostics
           if-no-files-found: error
           retention-days: 7
 
-      - name: Check Android validation results
+      - name: Check iOS validation results
         if: always()
         shell: bash
         run: |
@@ -209,8 +207,8 @@ jobs:
           [[ '${{ steps.build.outcome }}' == success ]] || failed+=(build)
           [[ '${{ steps.package-smoke.outcome }}' == success ]] || failed+=("package smoke")
           [[ '${{ steps.unit-tests.outcome }}' == success ]] || failed+=("unit tests")
-          [[ '${{ steps.emulator-tests.outcome }}' == success ]] || failed+=("emulator tests")
+          [[ '${{ steps.simulator-tests.outcome }}' == success ]] || failed+=("simulator tests")
           if ((${#failed[@]} > 0)); then
-            printf 'Android validation failed: %s\n' "${failed[*]}" >&2
+            printf 'iOS validation failed: %s\n' "${failed[*]}" >&2
             exit 1
           fi
