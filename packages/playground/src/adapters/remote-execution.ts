@@ -629,7 +629,7 @@ export class RemoteExecutionAdapter extends BasePlaygroundAdapter {
 
     try {
       const response = await fetch(
-        `${this.serverUrl}/recorder/events?since=${encodeURIComponent(String(since))}`,
+        `${this.serverUrl}/recorder/events?since=${encodeURIComponent(String(since))}&flushPending=false`,
       );
       if (!response.ok) {
         return { events: [], nextIndex: since };
@@ -726,6 +726,28 @@ export class RemoteExecutionAdapter extends BasePlaygroundAdapter {
     if (!response.ok) {
       throw new Error(
         `Recorder screenshot cleanup request failed (${response.status})`,
+      );
+    }
+  }
+
+  async pruneRecorderScreenshotAssets(
+    sessionId: string,
+    assetIds: string[],
+  ): Promise<void> {
+    if (!this.serverUrl || !sessionId) {
+      return;
+    }
+    const response = await fetch(
+      `${this.serverUrl}/recorder/assets/session/${encodeURIComponent(sessionId)}/prune`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ assetIds }),
+      },
+    );
+    if (!response.ok) {
+      throw new Error(
+        `Recorder screenshot prune request failed (${response.status})`,
       );
     }
   }

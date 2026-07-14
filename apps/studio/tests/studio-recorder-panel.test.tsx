@@ -93,6 +93,9 @@ const { StudioRecorderPanel } = await import(
 const { StudioReplayPanel } = await import(
   '../src/renderer/components/Recorder/StudioReplayPanel'
 );
+const { RecorderScreenshotDetailView } = await import(
+  '../src/renderer/components/Recorder/RecorderFloatingPanel'
+);
 
 function createRecorderMock({
   currentSession,
@@ -134,6 +137,12 @@ function createRecorderMock({
     exportAllZip: vi.fn(),
     exportSessionCode: vi.fn(),
     generateSessionCode: vi.fn(),
+    loadSessionScreenshots: vi.fn(async (sessionId: string) => {
+      const matchingSession = [currentSession, session].find(
+        (item) => item?.id === sessionId,
+      );
+      return matchingSession?.events ?? [];
+    }),
     renameSession: vi.fn(async () => undefined),
     selectSession: vi.fn(),
     startRecording: vi.fn(),
@@ -241,6 +250,34 @@ describe('StudioRecorderPanel', () => {
     expect(
       container.querySelector('button[aria-label="Recording history"]'),
     ).toBeNull();
+
+    await unmount(root);
+  });
+
+  it('numbers screenshots independently from timeline events without images', async () => {
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+
+    await act(async () => {
+      root.render(
+        <RecorderScreenshotDetailView
+          events={
+            [
+              { hashId: 'initial-navigation', type: 'navigation' },
+              {
+                hashId: 'click-search',
+                screenshotBefore: 'data:image/png;base64,c2hvdA==',
+                type: 'click',
+              },
+            ] as any
+          }
+        />,
+      );
+    });
+
+    expect(container.textContent).toContain('screenshot-001-click');
+    expect(container.textContent).not.toContain('event-002-click');
 
     await unmount(root);
   });
@@ -530,6 +567,92 @@ describe('StudioRecorderPanel', () => {
         '[data-tooltip-title="Click - Booking.com app icon"]',
       ),
     ).toBeNull();
+
+    await unmount(root);
+  });
+
+  it('shows asset-backed screenshots and loads them only after the button is clicked', async () => {
+    const currentSession = {
+      createdAt: Date.now(),
+      description: '',
+      events: [
+        {
+          actionSummary: 'Click - Search',
+          hashId: 'event-asset-backed',
+          screenshotAsset: { id: 'click-search.jpg' },
+          type: 'click',
+        },
+      ],
+      generatedCode: {},
+      id: 'session-asset-backed',
+      name: 'Asset-backed recording',
+      status: 'recording',
+      target: {
+        label: 'Android Device',
+        platformId: 'android',
+        values: {},
+      },
+      updatedAt: Date.now(),
+    };
+    mocks.recorder = createRecorderMock({
+      currentSession,
+      isRecording: true,
+      sessionOverrides: currentSession,
+    });
+    mocks.playground = {
+      controller: {
+        state: {
+          serverOnline: true,
+          sessionViewState: { connected: true },
+        },
+      },
+      phase: 'ready',
+    };
+    const onShowScreenshots = vi.fn();
+    const { container, root } = await renderRecorderPanel({
+      onShowScreenshots,
+    });
+
+    mocks.recorder.state.isRecording = false;
+    mocks.recorder.currentSession = null;
+    mocks.recorder.state.sessions = [
+      { ...currentSession, status: 'completed' },
+    ];
+    mocks.recorder.loadSessionScreenshots.mockResolvedValue([
+      {
+        ...currentSession.events[0],
+        screenshotAsset: undefined,
+        screenshotWithBox: 'data:image/jpeg;base64,c2hvdA==',
+      },
+    ]);
+
+    await act(async () => {
+      root.render(
+        <StudioRecorderPanel onShowScreenshots={onShowScreenshots} />,
+      );
+    });
+
+    const screenshotsButton = container.querySelector(
+      'button[aria-label="Show event screenshots"]',
+    );
+    expect(screenshotsButton).not.toBeNull();
+    expect(mocks.recorder.loadSessionScreenshots).not.toHaveBeenCalled();
+
+    await act(async () => {
+      screenshotsButton?.dispatchEvent(
+        new MouseEvent('click', { bubbles: true }),
+      );
+      await Promise.resolve();
+    });
+
+    expect(mocks.recorder.loadSessionScreenshots).toHaveBeenCalledWith(
+      'session-asset-backed',
+    );
+    expect(onShowScreenshots).toHaveBeenCalledWith([
+      expect.objectContaining({
+        screenshotWithBox: 'data:image/jpeg;base64,c2hvdA==',
+      }),
+    ]);
 
     await unmount(root);
   });

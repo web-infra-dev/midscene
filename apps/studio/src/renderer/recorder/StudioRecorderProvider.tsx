@@ -665,6 +665,8 @@ function canMergeAdjacentRecorderInputEvents(
     isStudioPreviewInputEvent(next) &&
     isTypeOnlyRecorderInput(current) &&
     isTypeOnlyRecorderInput(next) &&
+    !current.screenshotAsset &&
+    !next.screenshotAsset &&
     createStudioRecorderTargetSignature(current.target) ===
       createStudioRecorderTargetSignature(next.target) &&
     current.url === next.url &&
@@ -1405,6 +1407,10 @@ export function StudioRecorderProvider({ children }: PropsWithChildren) {
         );
       }
       const { playgroundSDK } = studioPlayground.controller.state;
+      const assetIds = session.events.flatMap((event) =>
+        event.screenshotAsset ? [event.screenshotAsset.id] : [],
+      );
+      await playgroundSDK.pruneRecorderScreenshotAssets(session.id, assetIds);
       return materializeStudioRecorderSessionScreenshots(
         session,
         (assetId) => playgroundSDK.getRecorderScreenshotAsset(assetId),
@@ -2262,6 +2268,20 @@ export function StudioRecorderProvider({ children }: PropsWithChildren) {
     ],
   );
 
+  const loadSessionScreenshots = useCallback(
+    async (sessionId: string) => {
+      await flushPendingRecorderInput(sessionId);
+      const session = stateRef.current.sessions.find(
+        (item) => item.id === sessionId,
+      );
+      if (!session) {
+        throw new Error(`Recorder session is unavailable: ${sessionId}`);
+      }
+      return (await materializeSessionForScreenshotExport(session)).events;
+    },
+    [flushPendingRecorderInput, materializeSessionForScreenshotExport],
+  );
+
   const exportAllZip = useCallback(async () => {
     await flushPendingRecorderInput();
     const sessions = stateRef.current.sessions;
@@ -2309,6 +2329,7 @@ export function StudioRecorderProvider({ children }: PropsWithChildren) {
       exportSessionJson,
       exportSessionYaml,
       exportSessionCode,
+      loadSessionScreenshots,
       exportAllZip,
     }),
     [
@@ -2321,6 +2342,7 @@ export function StudioRecorderProvider({ children }: PropsWithChildren) {
       exportSessionJson,
       exportSessionYaml,
       exportSessionCode,
+      loadSessionScreenshots,
       generateSessionCode,
       generateSessionYaml,
       renameSession,

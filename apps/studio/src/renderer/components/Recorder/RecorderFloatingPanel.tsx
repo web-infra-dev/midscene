@@ -269,7 +269,10 @@ function StudioTimelineEventText({ event }: { event: StudioRecordedEvent }) {
 
 function getStudioRecorderEventScreenshot(event: StudioRecordedEvent) {
   return (
-    event.screenshotWithBox || event.screenshotAfter || event.screenshotBefore
+    event.screenshotWithBox ||
+    event.screenshotAfter ||
+    event.screenshotBefore ||
+    event.screenshotAsset?.id
   );
 }
 
@@ -281,9 +284,9 @@ function hasStudioRecorderEventScreenshots(events: StudioRecordedEvent[]) {
 
 function formatStudioRecorderScreenshotEventName(
   event: StudioRecordedEvent,
-  index: number,
+  screenshotIndex: number,
 ) {
-  return `event-${String(index + 1).padStart(3, '0')}-${event.type}`;
+  return `screenshot-${String(screenshotIndex + 1).padStart(3, '0')}-${event.type}`;
 }
 
 function RecorderFloatingOutputs({
@@ -389,7 +392,7 @@ export function RecorderScreenshotDetailView({
               : `data:image/png;base64,${screenshot}`;
             const screenshotFileName = formatStudioRecorderScreenshotEventName(
               event,
-              index,
+              itemIndex,
             );
 
             return (

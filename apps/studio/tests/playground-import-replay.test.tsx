@@ -597,4 +597,48 @@ describe('Studio Playground imported replay', () => {
       root.unmount();
     });
   });
+
+  it('does not stop an active recorder when its callback changes', async () => {
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    const firstStopRecording = vi.fn(async () => undefined);
+    mocks.recorder = {
+      ...createRecorder(),
+      state: { isRecording: true, sessions: [] },
+      stopRecording: firstStopRecording,
+    };
+
+    await act(async () => {
+      root.render(
+        <StudioModePanel
+          onStudioModeChange={() => undefined}
+          studioMode={StudioModeTab.Record}
+        />,
+      );
+    });
+
+    const secondStopRecording = vi.fn(async () => undefined);
+    mocks.recorder = {
+      ...mocks.recorder,
+      stopRecording: secondStopRecording,
+    };
+    await act(async () => {
+      root.render(
+        <StudioModePanel
+          onStudioModeChange={() => undefined}
+          studioMode={StudioModeTab.Record}
+        />,
+      );
+    });
+
+    expect(firstStopRecording).not.toHaveBeenCalled();
+    expect(secondStopRecording).not.toHaveBeenCalled();
+
+    await act(async () => {
+      root.unmount();
+    });
+
+    expect(secondStopRecording).toHaveBeenCalledTimes(1);
+  });
 });

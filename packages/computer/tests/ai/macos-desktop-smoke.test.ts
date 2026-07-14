@@ -239,10 +239,11 @@ async function retryFixtureAction(options: {
       await waitForJson(
         options.stateFile,
         normalizeState,
-        (state) =>
-          state.activationCount > beforeActivation.activationCount &&
-          state.active &&
-          state.keyWindow,
+        // GitHub's hosted macOS session reports the fixture as frontmost to
+        // System Events while AppKit still reports inactive/non-key. The
+        // fixture's activation signal is the reliable synchronization point;
+        // each caller subsequently verifies that the real input was received.
+        (state) => state.activationCount > beforeActivation.activationCount,
         ACTIVATION_TIMEOUT_MS,
         options.fixtureProcess,
       );

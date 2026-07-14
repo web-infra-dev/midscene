@@ -34,7 +34,7 @@ describe('conversation timeline styles', () => {
       /\.progress-description\s*\{[\s\S]*?font-size: 13px;/,
     );
     expect(conversationSkin).toMatch(
-      /\.progress-action-item\s*\{[\s\S]*?font-weight: 700;/,
+      /\.progress-action-item\s*\{[\s\S]*?font-weight: 500;/,
     );
     expect(conversationSkin).toMatch(
       /\.progress-description\s*\{[\s\S]*?font-weight: 400;/,

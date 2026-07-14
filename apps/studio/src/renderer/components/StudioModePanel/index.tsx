@@ -265,6 +265,10 @@ export default function StudioModePanel({
   const playground = useStudioPlayground();
   const recorder = useStudioRecorder();
   const stopRecording = recorder.stopRecording;
+  const stopRecordingRef = useRef(stopRecording);
+  useEffect(() => {
+    stopRecordingRef.current = stopRecording;
+  }, [stopRecording]);
   const [externalRunRequest, setExternalRunRequest] =
     useState<StudioExternalRunRequest | null>(null);
   const [playgroundExternalRunRequest, setPlaygroundExternalRunRequest] =
@@ -601,15 +605,15 @@ export default function StudioModePanel({
 
   useEffect(() => {
     if (studioMode !== StudioModeTab.Record) {
-      void stopRecording();
+      void stopRecordingRef.current();
     }
-  }, [studioMode, stopRecording]);
+  }, [studioMode]);
 
   useEffect(() => {
     return () => {
-      void stopRecording();
+      void stopRecordingRef.current();
     };
-  }, [stopRecording]);
+  }, []);
 
   useEffect(() => {
     if (!onHeaderChange) {

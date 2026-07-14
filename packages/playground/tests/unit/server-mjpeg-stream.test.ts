@@ -152,6 +152,9 @@ describe('PlaygroundServer MJPEG streaming', () => {
 
       expect(agentFactory).toHaveBeenCalledTimes(2);
       expect(firstDestroy).toHaveBeenCalledTimes(1);
+      expect((server as any)._mjpegHandler.getLastFrameBase64()).toBe(
+        `data:image/jpeg;base64,${Buffer.from('recovered-frame').toString('base64')}`,
+      );
       expect(
         response.chunks.some((chunk) => chunk.toString() === 'recovered-frame'),
       ).toBe(true);

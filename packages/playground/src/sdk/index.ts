@@ -331,6 +331,15 @@ export class PlaygroundSDK {
     }
   }
 
+  async pruneRecorderScreenshotAssets(
+    sessionId: string,
+    assetIds: string[],
+  ): Promise<void> {
+    if (this.adapter instanceof RemoteExecutionAdapter) {
+      await this.adapter.pruneRecorderScreenshotAssets(sessionId, assetIds);
+    }
+  }
+
   // Get interface information (type and description)
   async getInterfaceInfo(): Promise<{
     type: string;

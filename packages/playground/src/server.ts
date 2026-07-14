@@ -35,11 +35,7 @@ import {
   overrideAIConfig,
 } from '@midscene/shared/env';
 import { generateElementByPoint } from '@midscene/shared/extractor';
-import {
-  annotateRects,
-  compositePointMarkerImg,
-  imageInfoOfBase64,
-} from '@midscene/shared/img';
+import { annotateRects, imageInfoOfBase64 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import type {
   MidsceneRecorderScreenshotAssetRef,
@@ -79,6 +75,7 @@ import 'dotenv/config';
 
 const defaultPort = PLAYGROUND_SERVER_PORT;
 const RECORDER_CAPTURE_AFTER_INTERACT_DELAY_MS = 250;
+const RECORDER_TYPE_ONLY_INPUT_SETTLE_DELAY_MS = 750;
 const RECORDER_NAVIGATION_OBSERVATION_INTERVAL_MS = 250;
 const RECORDER_NAVIGATION_OBSERVATION_TIMEOUT_MS = 35_000;
 const RECORDER_AI_DESCRIBE_AFTER_INTERACT_TIMEOUT_MS = 30_000;
@@ -91,6 +88,17 @@ const RECORDER_SCREENSHOT_ASSET_MAX_TOTAL_BYTES = 512 * 1024 * 1024;
 const recorderScreenshotAssetQuotaExceededSessions = new Set<string>();
 const recorderScreenshotAssetBytesBySession = new Map<string, number>();
 let recorderScreenshotAssetUsageInitialized = false;
+
+function shouldPersistStudioPreviewRecorderScreenshot(actionType: string) {
+  return [
+    'Tap',
+    'DoubleClick',
+    'LongPress',
+    'RightClick',
+    'DragAndDrop',
+    'Input',
+  ].includes(actionType);
+}
 
 function createElementDescriberRuntime(
   agent: PageAgent,
@@ -430,6 +438,38 @@ function removeRecorderScreenshotAssetsForSession(sessionId: string) {
   }
   recorderScreenshotAssetQuotaExceededSessions.delete(safeSessionId);
   recorderScreenshotAssetBytesBySession.delete(safeSessionId);
+}
+
+function pruneRecorderScreenshotAssetsForSession(
+  sessionId: string,
+  retainedAssetIds: string[],
+) {
+  const safeSessionId = sanitizeRecorderPathSegment(sessionId, 'session');
+  const prefix = `${safeSessionId}-`;
+  const retained = new Set(
+    retainedAssetIds.map((assetId) => {
+      const safeAssetId = assertRecorderScreenshotAssetId(assetId);
+      if (!safeAssetId.startsWith(prefix)) {
+        throw new Error('Recorder screenshot asset does not belong to session');
+      }
+      return safeAssetId;
+    }),
+  );
+  const root = getRecorderScreenshotAssetRoot();
+  let sessionBytes = 0;
+  for (const entry of readdirSync(root, { withFileTypes: true })) {
+    if (!entry.isFile() || !entry.name.startsWith(prefix)) {
+      continue;
+    }
+    const assetId = entry.name.replace(/\.(?:png|jpg)$/i, '');
+    const filePath = join(root, entry.name);
+    if (!retained.has(assetId)) {
+      rmSync(filePath, { force: true });
+      continue;
+    }
+    sessionBytes += statSync(filePath).size;
+  }
+  recorderScreenshotAssetBytesBySession.set(safeSessionId, sessionBytes);
 }
 
 function calculateRecorderScreenshotAnnotation(
@@ -1179,6 +1219,10 @@ class PlaygroundServer {
   private _baseSidecars?: PlaygroundSidecar[];
   private _recorderSessionId: string | null = null;
   private _recorderEvents: PlaygroundRecorderEvent[] = [];
+  private _recorderPendingTypeOnlyInput: PlaygroundRecorderEvent | null = null;
+  private _recorderPendingTypeOnlyInputFlushTimer:
+    | ReturnType<typeof setTimeout>
+    | undefined;
   private _recorderEventQueue: Promise<void> = Promise.resolve();
   private _recorderPendingCaptures = 0;
   private _studioPreviewRecorderLastTargetPoint:
@@ -1492,8 +1536,10 @@ class PlaygroundServer {
   }
 
   private resetRecorderState(): void {
+    this.clearPendingTypeOnlyRecorderInputFlushTimer();
     this._recorderSessionId = null;
     this._recorderEvents = [];
+    this._recorderPendingTypeOnlyInput = null;
     this._recorderEventQueue = Promise.resolve();
     this._studioPreviewRecorderLastTargetPoint = undefined;
     this._studioPreviewRecorderLastScreenshot = undefined;
@@ -1845,26 +1891,23 @@ class PlaygroundServer {
       endY !== undefined
         ? `${Math.round(x)},${Math.round(y)} -> ${Math.round(endX)},${Math.round(endY)}`
         : undefined;
-    const screenshotWithMarker =
-      x !== undefined && y !== undefined
-        ? await this.createRecorderScreenshotWithMarker(
-            screenshotBefore || screenshotAfter,
-            pageInfo,
-            { x, y },
-          )
-        : undefined;
-    const screenshotAsset = this.persistStudioPreviewRecorderScreenshot(
-      screenshotWithMarker || screenshotBefore || screenshotAfter,
-    );
+    const shouldPersistScreenshot =
+      shouldPersistStudioPreviewRecorderScreenshot(actionType);
+    const retainedScreenshot = shouldPersistScreenshot
+      ? screenshotBefore || screenshotAfter
+      : undefined;
+    const deferScreenshotPersistence =
+      actionType === 'Input' && payload.mode === 'typeOnly';
+    const screenshotAsset = deferScreenshotPersistence
+      ? undefined
+      : this.persistStudioPreviewRecorderScreenshot(retainedScreenshot);
     const shouldDiscardDataUrlScreenshot = Boolean(
-      (screenshotWithMarker || screenshotBefore || screenshotAfter)?.startsWith(
-        'data:',
-      ),
+      retainedScreenshot?.startsWith('data:'),
     );
     const hasRetainedScreenshot = Boolean(
       screenshotAsset ||
-        (!shouldDiscardDataUrlScreenshot &&
-          (screenshotWithMarker || screenshotBefore || screenshotAfter)),
+        (deferScreenshotPersistence && retainedScreenshot) ||
+        (!shouldDiscardDataUrlScreenshot && retainedScreenshot),
     );
 
     const base = {
@@ -1876,13 +1919,16 @@ class PlaygroundServer {
       title,
       ...(screenshotAsset
         ? { screenshotAsset }
-        : shouldDiscardDataUrlScreenshot
-          ? {}
-          : {
-              screenshotBefore,
-              screenshotAfter,
-              screenshotWithBox: screenshotWithMarker,
-            }),
+        : deferScreenshotPersistence
+          ? retainedScreenshot
+            ? { screenshotWithBox: retainedScreenshot }
+            : {}
+          : shouldDiscardDataUrlScreenshot
+            ? {}
+            : {
+                screenshotBefore,
+                screenshotAfter,
+              }),
       semantic: hasRetainedScreenshot
         ? {
             source: 'aiDescribe' as const,
@@ -2297,10 +2343,130 @@ class PlaygroundServer {
       return;
     }
 
+    if (this.isDeferredTypeOnlyRecorderInput(event) && !navigationEvent) {
+      const pending = this._recorderPendingTypeOnlyInput;
+      if (
+        pending &&
+        this.canCoalesceDeferredTypeOnlyRecorderInput(pending, event)
+      ) {
+        this._recorderPendingTypeOnlyInput =
+          this.mergeDeferredTypeOnlyRecorderInput(pending, event);
+      } else {
+        this.flushPendingTypeOnlyRecorderInput();
+        this._recorderPendingTypeOnlyInput = event;
+      }
+      this.schedulePendingTypeOnlyRecorderInputFlush();
+      return;
+    }
+
+    this.flushPendingTypeOnlyRecorderInput();
     this._recorderEvents.push(event);
     if (navigationEvent) {
       this._recorderEvents.push(navigationEvent);
     }
+  }
+
+  private isDeferredTypeOnlyRecorderInput(event: PlaygroundRecorderEvent) {
+    return (
+      event.source === 'studio-preview' &&
+      event.type === 'input' &&
+      event.actionType === 'Input' &&
+      event.rawPayload?.mode === 'typeOnly'
+    );
+  }
+
+  private canCoalesceDeferredTypeOnlyRecorderInput(
+    current: PlaygroundRecorderEvent,
+    next: PlaygroundRecorderEvent,
+  ) {
+    return (
+      current.url === next.url &&
+      current.title === next.title &&
+      current.rawPayload?.x === next.rawPayload?.x &&
+      current.rawPayload?.y === next.rawPayload?.y
+    );
+  }
+
+  private mergeDeferredTypeOnlyRecorderInput(
+    current: PlaygroundRecorderEvent,
+    next: PlaygroundRecorderEvent,
+  ): PlaygroundRecorderEvent {
+    const value = `${current.value || ''}${next.value || ''}`;
+    return {
+      ...current,
+      value,
+      rawPayload: {
+        ...current.rawPayload,
+        ...next.rawPayload,
+        value,
+      },
+      pageInfo: next.pageInfo || current.pageInfo,
+      screenshotWithBox:
+        next.screenshotWithBox ||
+        next.screenshotAfter ||
+        next.screenshotBefore ||
+        current.screenshotWithBox,
+      timestamp: next.timestamp,
+      mergedHashIds: Array.from(
+        new Set([
+          current.hashId,
+          ...(current.mergedHashIds || []),
+          next.hashId,
+          ...(next.mergedHashIds || []),
+        ]),
+      ),
+    };
+  }
+
+  private flushPendingTypeOnlyRecorderInput(): void {
+    this.clearPendingTypeOnlyRecorderInputFlushTimer();
+    const pending = this._recorderPendingTypeOnlyInput;
+    if (!pending) {
+      return;
+    }
+    this._recorderPendingTypeOnlyInput = null;
+    const screenshot =
+      pending.screenshotWithBox ||
+      pending.screenshotAfter ||
+      pending.screenshotBefore;
+    const screenshotAsset =
+      this.persistStudioPreviewRecorderScreenshot(screenshot);
+    if (screenshotAsset) {
+      this._recorderEvents.push({
+        ...pending,
+        screenshotAsset,
+        screenshotBefore: undefined,
+        screenshotAfter: undefined,
+        screenshotWithBox: undefined,
+      });
+      return;
+    }
+
+    this._recorderEvents.push({
+      ...pending,
+      screenshotBefore: undefined,
+      screenshotAfter: undefined,
+      screenshotWithBox: undefined,
+      semantic: buildFailedAiDescribeRecorderSemantic(
+        'Recorder screenshot was not retained because asset storage is unavailable or its quota was reached.',
+      ),
+    });
+  }
+
+  private schedulePendingTypeOnlyRecorderInputFlush(): void {
+    this.clearPendingTypeOnlyRecorderInputFlushTimer();
+    this._recorderPendingTypeOnlyInputFlushTimer = setTimeout(() => {
+      this._recorderPendingTypeOnlyInputFlushTimer = undefined;
+      this.flushPendingTypeOnlyRecorderInput();
+    }, RECORDER_TYPE_ONLY_INPUT_SETTLE_DELAY_MS);
+  }
+
+  private clearPendingTypeOnlyRecorderInputFlushTimer(): void {
+    if (!this._recorderPendingTypeOnlyInputFlushTimer) {
+      return;
+    }
+    clearTimeout(this._recorderPendingTypeOnlyInputFlushTimer);
+    this._recorderPendingTypeOnlyInputFlushTimer = undefined;
   }
 
   private queueStudioPreviewRecorderEvent(
@@ -2365,11 +2531,6 @@ class PlaygroundServer {
       { value: afterUrl },
       afterUrl,
     );
-    const screenshotAsset =
-      this.persistStudioPreviewRecorderScreenshot(screenshotAfter);
-    const shouldDiscardDataUrlScreenshot = Boolean(
-      screenshotAfter?.startsWith('data:'),
-    );
     return {
       source: 'studio-preview',
       type: 'navigation',
@@ -2383,11 +2544,6 @@ class PlaygroundServer {
       url: afterUrl,
       title: pageStateAfter.title,
       value: afterUrl,
-      ...(screenshotAsset
-        ? { screenshotAsset }
-        : shouldDiscardDataUrlScreenshot
-          ? {}
-          : { screenshotBefore: screenshotAfter, screenshotAfter }),
       semantic: buildReadyRecorderSemantic(
         'heuristic',
         semanticEvent,
@@ -2415,11 +2571,6 @@ class PlaygroundServer {
       { value: pageState.url },
       pageState.url,
     );
-    const screenshotAsset =
-      this.persistStudioPreviewRecorderScreenshot(screenshot);
-    const shouldDiscardDataUrlScreenshot = Boolean(
-      screenshot?.startsWith('data:'),
-    );
     return {
       source: 'studio-preview',
       type: 'navigation',
@@ -2432,11 +2583,6 @@ class PlaygroundServer {
       url: pageState.url,
       title: pageState.title,
       value: pageState.url,
-      ...(screenshotAsset
-        ? { screenshotAsset }
-        : shouldDiscardDataUrlScreenshot
-          ? {}
-          : { screenshotBefore: screenshot, screenshotAfter: screenshot }),
       semantic: buildReadyRecorderSemantic(
         'heuristic',
         semanticEvent,
@@ -2448,26 +2594,6 @@ class PlaygroundServer {
         .toString(36)
         .slice(2, 8)}`,
     };
-  }
-
-  private async createRecorderScreenshotWithMarker(
-    screenshot: string | undefined,
-    pageInfo: { width: number; height: number },
-    point: { x: number; y: number },
-  ): Promise<string | undefined> {
-    if (!screenshot || !pageInfo.width || !pageInfo.height) {
-      return undefined;
-    }
-    try {
-      return await compositePointMarkerImg({
-        inputImgBase64: screenshot,
-        size: pageInfo,
-        point,
-      });
-    } catch (error) {
-      debugScreenshot('recorder screenshot marker failed:', error);
-      return undefined;
-    }
   }
 
   private async destroyCurrentAgent({
@@ -3351,6 +3477,7 @@ class PlaygroundServer {
 
     this._app.post('/recorder/stop', async (_req: Request, res: Response) => {
       await this.waitForRecorderIdle();
+      this.flushPendingTypeOnlyRecorderInput();
       this._recorderSessionId = null;
       this._studioPreviewRecorderLastScreenshot = undefined;
       this._studioPreviewRecorderLastPageState = undefined;
@@ -3358,6 +3485,9 @@ class PlaygroundServer {
     });
 
     this._app.get('/recorder/events', async (req: Request, res: Response) => {
+      if (req.query.flushPending !== 'false') {
+        this.flushPendingTypeOnlyRecorderInput();
+      }
       const since =
         typeof req.query.since === 'string'
           ? Number.parseInt(req.query.since, 10)
@@ -3408,6 +3538,33 @@ class PlaygroundServer {
               error instanceof Error
                 ? error.message
                 : 'Invalid recorder session id',
+          });
+        }
+      },
+    );
+
+    this._app.post(
+      '/recorder/assets/session/:sessionId/prune',
+      async (req: Request, res: Response) => {
+        try {
+          const assetIds = Array.isArray(req.body?.assetIds)
+            ? req.body.assetIds.filter(
+                (assetId: unknown): assetId is string =>
+                  typeof assetId === 'string',
+              )
+            : [];
+          pruneRecorderScreenshotAssetsForSession(
+            String(req.params.sessionId || ''),
+            assetIds,
+          );
+          return res.json({ ok: true });
+        } catch (error) {
+          return res.status(400).json({
+            ok: false,
+            error:
+              error instanceof Error
+                ? error.message
+                : 'Invalid recorder screenshot cleanup request',
           });
         }
       },

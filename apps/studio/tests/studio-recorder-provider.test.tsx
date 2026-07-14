@@ -105,7 +105,10 @@ function createConnectedStudioContext({
   const startRecorderSession = vi.fn(async () => startResult);
   const stopRecorderSession = vi.fn(async () => ({ ok: true }));
   const clearRecorderScreenshotAssets = vi.fn(async () => undefined);
-  const getRecorderScreenshotAsset = vi.fn(async () => null);
+  const pruneRecorderScreenshotAssets = vi.fn(async () => undefined);
+  const getRecorderScreenshotAsset = vi.fn(
+    async (): Promise<string | null> => null,
+  );
   const getRecorderEvents = vi.fn(async (since = 0) => ({
     events: since === 0 ? events : [],
     nextIndex: since === 0 ? events.length : since,
@@ -115,6 +118,7 @@ function createConnectedStudioContext({
     startRecorderSession,
     stopRecorderSession,
     clearRecorderScreenshotAssets,
+    pruneRecorderScreenshotAssets,
     getRecorderScreenshotAsset,
     getRecorderEvents,
     ...(describeRecorderEventAtPoint ? { describeRecorderEventAtPoint } : {}),
@@ -189,6 +193,7 @@ function createConnectedStudioContext({
     interact,
     startRecorderSession,
     stopRecorderSession,
+    pruneRecorderScreenshotAssets,
     getRecorderScreenshotAsset,
     getRecorderEvents,
     describeRecorderEventAtPoint,
@@ -827,6 +832,48 @@ describe('StudioRecorderProvider preview recording', () => {
       [expect.objectContaining({ hashId: 'input-h', value: 'he' })],
       expect.any(Object),
     );
+
+    await mounted.cleanup();
+  });
+
+  it('keeps separately persisted type-only input screenshots as separate events', async () => {
+    const createInput = (hashId: string, value: string, timestamp: number) => ({
+      type: 'input',
+      source: 'studio-preview',
+      actionType: 'Input',
+      rawPayload: { actionType: 'Input', mode: 'typeOnly', value },
+      value,
+      url: 'https://example.com',
+      title: 'Example',
+      pageInfo: { width: 1200, height: 800 },
+      elementRect: { x: 100, y: 200 },
+      screenshotAsset: { id: `session-asset-${hashId}` },
+      timestamp,
+      hashId,
+      semantic: {
+        source: 'aiDescribe',
+        status: 'ready',
+        elementDescription: 'search input',
+      },
+    });
+    const { context } = createConnectedStudioContext({
+      events: [
+        createInput('input-a', 'a', 123),
+        createInput('input-b', 'b', 124),
+      ],
+    });
+    const mounted = await mountRecorder(context);
+
+    await act(async () => {
+      await mounted.recorder?.startRecording();
+    });
+    await flushPromises();
+    await flushPromises();
+
+    expect(mounted.recorder?.currentSession?.events).toMatchObject([
+      { hashId: 'input-a', screenshotAsset: { id: 'session-asset-input-a' } },
+      { hashId: 'input-b', screenshotAsset: { id: 'session-asset-input-b' } },
+    ]);
 
     await mounted.cleanup();
   });

@@ -54,6 +54,7 @@ export function StudioRecorderPanel({
     selectSession,
     generateSessionCode,
     exportSessionCode,
+    loadSessionScreenshots,
   } = recorder;
   const sessions = state.sessions;
   const visibleSessions = useMemo(
@@ -477,7 +478,10 @@ export function StudioRecorderPanel({
         if (!recorderPanelSession) {
           return;
         }
-        onShowScreenshots?.(recorderPanelEvents);
+        void runPanelAction(async () => {
+          const events = await loadSessionScreenshots(recorderPanelSession.id);
+          onShowScreenshots?.(events);
+        });
       }}
       onToggleCollapsed={() => {
         setTimelineCollapsed((current) => !current);

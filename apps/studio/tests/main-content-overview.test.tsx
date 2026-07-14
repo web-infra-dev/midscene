@@ -49,6 +49,7 @@ function createRecorderContextValue(): StudioRecorderContextValue {
     exportSessionJson: vi.fn(async () => undefined),
     exportSessionYaml: vi.fn(async () => undefined),
     exportSessionCode: vi.fn(async () => undefined),
+    loadSessionScreenshots: vi.fn(async () => []),
     exportAllZip: vi.fn(async () => undefined),
   };
 }

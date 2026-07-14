@@ -1251,7 +1251,7 @@ describe('PlaygroundServer manual interaction APIs', () => {
     });
   });
 
-  test('recorder describes typeOnly input when the merged event has a stable point', async () => {
+  test('coalesces typeOnly input before persisting its final screenshot', async () => {
     const inputPrimitives = makeInputPrimitiveStub();
     const describeElementAtPoint = mockDescribeElementAtPoint(async () => ({
       prompt: 'phone number input',
@@ -1292,12 +1292,41 @@ describe('PlaygroundServer manual interaction APIs', () => {
       },
       createMockResponse(),
     );
+    await interactHandler(
+      {
+        body: {
+          actionType: 'Input',
+          x: 10,
+          y: 20,
+          value: 'e',
+          mode: 'typeOnly',
+        },
+      },
+      createMockResponse(),
+    );
     await server.waitForRecorderIdle();
 
     const eventsHandler = getRouteHandler(server, 'get', '/recorder/events');
+    const pendingEventsResponse = createMockResponse();
+    await eventsHandler(
+      { query: { since: '0', flushPending: 'false' } },
+      pendingEventsResponse,
+    );
+    expect(pendingEventsResponse.body).toMatchObject({
+      events: [],
+      nextIndex: 0,
+    });
+
     const eventsResponse = createMockResponse();
     await eventsHandler({ query: { since: '0' } }, eventsResponse);
-    const [event] = latestRecorderEventsBody(eventsResponse.body).events;
+    const events = latestRecorderEventsBody(eventsResponse.body).events;
+    expect(events).toHaveLength(1);
+    const [event] = events;
+    expect(event).toMatchObject({
+      value: 'he',
+      mergedHashIds: expect.any(Array),
+      screenshotAsset: expect.any(Object),
+    });
 
     const describeResponse = await describeRecorderEvent(server, event);
 
@@ -1322,14 +1351,14 @@ describe('PlaygroundServer manual interaction APIs', () => {
         eventSummary: {
           rawPayloadSummary: {
             mode: 'typeOnly',
-            valueLength: 1,
+            valueLength: 2,
           },
         },
       },
       event: {
         type: 'input',
         actionType: 'Input',
-        value: 'h',
+        value: 'he',
         semantic: {
           source: 'aiDescribe',
           status: 'ready',
@@ -1714,13 +1743,13 @@ describe('PlaygroundServer manual interaction APIs', () => {
 
   test('recorder appends navigation event when preview interact changes web url', async () => {
     let currentUrl = 'https://example.com/start';
-    let currentScreenshot = 'start-screenshot';
+    let currentScreenshot = VALID_PNG_BASE64;
     const inputPrimitives = makeInputPrimitiveStub({
       pointer: {
         tap: vi.fn(async () => {
           if (currentUrl.endsWith('/start')) {
             currentUrl = 'https://example.com/next';
-            currentScreenshot = 'next-screenshot';
+            currentScreenshot = VALID_PNG_BASE64;
           }
         }),
         doubleClick: vi.fn(async () => {}),
@@ -1766,7 +1795,8 @@ describe('PlaygroundServer manual interaction APIs', () => {
     const eventsHandler = getRouteHandler(server, 'get', '/recorder/events');
     const eventsResponse = createMockResponse();
     await eventsHandler({ query: { since: '0' } }, eventsResponse);
-    expect(latestRecorderEventsBody(eventsResponse.body)).toMatchObject({
+    const recorderEvents = latestRecorderEventsBody(eventsResponse.body);
+    expect(recorderEvents).toMatchObject({
       events: [
         {
           type: 'navigation',
@@ -1810,6 +1840,12 @@ describe('PlaygroundServer manual interaction APIs', () => {
       ],
       nextIndex: 4,
     });
+    const [initialNavigation, firstClick, navigationChange, secondClick] =
+      recorderEvents.events as any[];
+    expect(initialNavigation).not.toHaveProperty('screenshotAsset');
+    expect(navigationChange).not.toHaveProperty('screenshotAsset');
+    expect(firstClick).toMatchObject({ screenshotAsset: expect.any(Object) });
+    expect(secondClick).toMatchObject({ screenshotAsset: expect.any(Object) });
   });
 
   test('POST /interact returns 400 for invalid manual params', async () => {
