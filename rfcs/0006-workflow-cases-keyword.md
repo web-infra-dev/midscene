@@ -2,7 +2,7 @@
 
 状态：**已实现**
 
-范围：统一 `packages/workflow` 的 Step、Case、Workflow Document 和 Workflow Project
+范围：统一 `packages/test` 的 Step、Case、Workflow Document 和 Workflow Project
 术语，并把多任务 YAML 的顶层字段改为 `cases`。
 
 本 RFC 建立在 RFC 0001～0005 之上。它取代这些 RFC 中与单个任务有关的 workflow

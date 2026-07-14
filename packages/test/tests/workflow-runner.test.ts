@@ -224,6 +224,60 @@ describe('workflow main-process runner', () => {
     });
   });
 
+  it('reports live document, case, and step progress', async () => {
+    const root = createProject();
+    const resultDir = join(root, 'results');
+    const progress: string[] = [];
+    writeFileSync(
+      join(root, 'midscene.workflow.config.cjs'),
+      `module.exports = {
+        nodes: [{ name: 'noop', execute() {} }],
+      };`,
+    );
+    writeWorkflow(
+      root,
+      'progress.yaml',
+      `
+beforeAll:
+  - noop: prepare
+beforeEach:
+  - noop: reset
+cases:
+  - name: progress case
+    steps:
+      - noop: run
+afterEach:
+  - noop: capture
+afterAll:
+  - noop: cleanup
+`,
+    );
+
+    await runWorkflowProject({
+      projectRoot: root,
+      resultDir,
+      onProgress: (message) => progress.push(message),
+    });
+
+    expect(progress).toEqual([
+      'midscene-workflow: collected 1 documents, 1 cases, 0 collection errors',
+      '[document 1/1] progress.yaml',
+      '  → beforeAll 1/1: noop',
+      expect.stringMatching(/^ {2}✓ beforeAll 1\/1: noop \(\d+ ms\)$/),
+      '  [case 1/1] progress case',
+      '    → beforeEach 1/1: noop',
+      expect.stringMatching(/^ {4}✓ beforeEach 1\/1: noop \(\d+ ms\)$/),
+      '    → step 1/1: noop',
+      expect.stringMatching(/^ {4}✓ step 1\/1: noop \(\d+ ms\)$/),
+      '    → afterEach 1/1: noop',
+      expect.stringMatching(/^ {4}✓ afterEach 1\/1: noop \(\d+ ms\)$/),
+      expect.stringMatching(/^ {2}✓ case 1\/1: progress case \(\d+ ms\)$/),
+      '  → afterAll 1/1: noop',
+      expect.stringMatching(/^ {2}✓ afterAll 1\/1: noop \(\d+ ms\)$/),
+      expect.stringMatching(/^✓ document 1\/1: progress\.yaml \(\d+ ms\)$/),
+    ]);
+  });
+
   it('collects first, loads config once, and runs cases serially in one process', async () => {
     const root = createProject();
     const resultDir = join(root, 'results');
