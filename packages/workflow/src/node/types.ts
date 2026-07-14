@@ -1,3 +1,4 @@
+import type { NodeWorkflowContext } from '../engine/types';
 import type { CommonNodeInput, NormalizedStepMeta } from '../parser/types';
 
 export interface NodeResult<TData = unknown> {
@@ -17,6 +18,9 @@ export interface NodeExecutionContext<TInput = unknown> {
 
   /** The timeout and cancellation signal for this step. */
   signal: AbortSignal;
+
+  /** Identity and completed-step history for the workflow being executed. */
+  workflow: NodeWorkflowContext;
 }
 
 export type NodeExecutionReturn<TData = unknown> =
