@@ -179,10 +179,33 @@ describe('AndroidDevice', () => {
 
   describe('xpath cache', () => {
     it('propagates uiautomator dump failures', async () => {
-      mockAdb.shell.mockRejectedValueOnce(new Error('dump failed'));
+      mockAdb.shell
+        .mockResolvedValueOnce('')
+        .mockRejectedValueOnce(new Error('dump failed'));
 
       await expect(device.cacheFeatureForPoint([10, 20])).rejects.toThrow(
         'dump failed',
+      );
+    });
+
+    it('removes stale dumps and rejects invalid hierarchy output', async () => {
+      mockAdb.shell
+        .mockResolvedValueOnce('')
+        .mockResolvedValueOnce('ERROR: could not get idle state.')
+        .mockResolvedValueOnce(
+          'cat: /sdcard/midscene_window_dump.xml: No such file or directory',
+        );
+
+      await expect(device.cacheFeatureForPoint([10, 20])).rejects.toThrow(
+        'uiautomator dump did not produce valid hierarchy XML',
+      );
+      expect(mockAdb.shell).toHaveBeenNthCalledWith(
+        1,
+        'rm -f /sdcard/midscene_window_dump.xml',
+      );
+      expect(mockAdb.shell).toHaveBeenNthCalledWith(
+        2,
+        'uiautomator dump --compressed /sdcard/midscene_window_dump.xml',
       );
     });
   });

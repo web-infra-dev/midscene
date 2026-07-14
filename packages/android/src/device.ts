@@ -703,10 +703,18 @@ ${Object.keys(size)
   private async dumpUiautomatorXml(): Promise<string> {
     const adb = await this.getAdb();
     const tmpPath = '/sdcard/midscene_window_dump.xml';
+    // uiautomator may fail before replacing the output file (for example when
+    // an animated Flutter screen never becomes idle). Remove the previous dump
+    // so a failed command cannot replay another app's stale accessibility tree.
+    await adb.shell(`rm -f ${tmpPath}`);
     await adb.shell(`uiautomator dump --compressed ${tmpPath}`);
     const xml = await adb.shell(`cat ${tmpPath}`);
-    if (typeof xml !== 'string' || xml.length === 0) {
-      throw new Error('uiautomator dump returned empty output');
+    if (
+      typeof xml !== 'string' ||
+      !/<hierarchy(?:\s|>)/.test(xml) ||
+      !xml.includes('</hierarchy>')
+    ) {
+      throw new Error('uiautomator dump did not produce valid hierarchy XML');
     }
     return xml;
   }
