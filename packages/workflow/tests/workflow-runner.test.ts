@@ -60,16 +60,168 @@ afterEach(() => {
 describe('workflow main-process runner', () => {
   it('discovers YAML recursively in deterministic order', () => {
     const root = createProject();
+    mkdirSync(join(root, '.hidden'));
     mkdirSync(join(root, 'nested'));
     mkdirSync(join(root, 'node_modules'));
     writeFileSync(join(root, 'z.yml'), 'cases: []');
     writeFileSync(join(root, 'nested', 'a.yaml'), 'cases: []');
+    writeFileSync(join(root, '.hidden', 'b.YAML'), 'cases: []');
     writeFileSync(join(root, 'node_modules', 'ignored.yaml'), 'cases: []');
     writeFileSync(join(root, 'notes.txt'), 'not yaml');
 
     expect(
       discoverWorkflowFiles(root).map((file) => file.slice(root.length + 1)),
-    ).toEqual(['nested/a.yaml', 'z.yml']);
+    ).toEqual(['.hidden/b.YAML', 'nested/a.yaml', 'z.yml']);
+  });
+
+  it('applies include and exclude patterns with stable deduplication', () => {
+    const root = createProject();
+    writeWorkflow(root, 'flows/a.yaml', 'cases: []');
+    writeWorkflow(root, 'flows/nested/b.yml', 'cases: []');
+    writeWorkflow(root, 'flows/nested/b.draft.yml', 'cases: []');
+    writeWorkflow(root, 'other/c.yaml', 'cases: []');
+    writeWorkflow(root, '.midscene/ignored.yaml', 'cases: []');
+
+    expect(
+      discoverWorkflowFiles(root, {
+        include: ['flows/**/*.yaml', 'flows/**/*.{yaml,yml}'],
+        exclude: ['**/*.draft.yml'],
+      }).map((file) => file.slice(root.length + 1)),
+    ).toEqual(['flows/a.yaml', 'flows/nested/b.yml']);
+  });
+
+  it('fails when the final file selection matches no workflow YAML', async () => {
+    const cwd = createProject();
+    writeFileSync(
+      join(cwd, 'midscene.workflow.config.cjs'),
+      `module.exports = {
+        files: { include: ['missing/**/*.yaml'] },
+        nodes: [],
+      };`,
+    );
+
+    await expect(runWorkflowProject({ cwd })).rejects.toThrow(
+      `No workflow YAML files found in ${cwd}.`,
+    );
+  });
+
+  it('fails when config root does not point to a directory', async () => {
+    const cwd = createProject();
+    writeFileSync(
+      join(cwd, 'midscene.workflow.config.cjs'),
+      `module.exports = { root: './missing', nodes: [] };`,
+    );
+
+    await expect(runWorkflowProject({ cwd })).rejects.toThrow(
+      `Workflow project root does not exist or is not a directory: ${join(
+        cwd,
+        'missing',
+      )}`,
+    );
+  });
+
+  it('resolves config root and file selection before discovery', async () => {
+    const cwd = createProject();
+    const configuredRoot = join(cwd, 'e2e');
+    const configDirectory = join(cwd, 'config');
+    const resultDir = join(cwd, 'results');
+    mkdirSync(configuredRoot);
+    mkdirSync(configDirectory);
+    writeFileSync(
+      join(configDirectory, 'midscene.workflow.config.cjs'),
+      `
+        module.exports = {
+          root: '../e2e',
+          files: {
+            include: ['selected/**/*.yaml'],
+            exclude: ['**/*.draft.yaml'],
+          },
+          nodes: [{ name: 'noop', execute() {} }],
+        };
+      `,
+    );
+    writeWorkflow(
+      configuredRoot,
+      'selected/run.yaml',
+      'cases: [{ name: selected, steps: [{ noop: run }] }]',
+    );
+    writeWorkflow(
+      configuredRoot,
+      'selected/ignored.draft.yaml',
+      'cases: invalid',
+    );
+    writeWorkflow(cwd, 'outside.yaml', 'cases: invalid');
+
+    const result = await runWorkflowProject({
+      cwd,
+      configPath: 'config/midscene.workflow.config.cjs',
+      resultDir,
+    });
+
+    expect(result.summary).toMatchObject({
+      total: 1,
+      passed: 1,
+      collectionErrors: 0,
+    });
+    expect(result.cases[0].sourcePath).toBe('selected/run.yaml');
+    const projectResult = JSON.parse(
+      readFileSync(join(resultDir, 'project.json'), 'utf8'),
+    );
+    expect(projectResult).toMatchObject({
+      version: 3,
+      projectRoot: configuredRoot,
+      fileSelection: {
+        include: ['selected/**/*.yaml'],
+        exclude: ['**/*.draft.yaml'],
+      },
+      sources: [{ sourcePath: 'selected/run.yaml' }],
+    });
+  });
+
+  it('lets an explicit CLI project directory override config root', async () => {
+    const cwd = createProject();
+    const configuredRoot = join(cwd, 'configured');
+    const overrideRoot = join(cwd, 'override');
+    const resultDir = join(cwd, 'results');
+    mkdirSync(configuredRoot);
+    mkdirSync(overrideRoot);
+    writeFileSync(
+      join(cwd, 'midscene.workflow.config.cjs'),
+      `
+        module.exports = {
+          root: './configured',
+          nodes: [{ name: 'noop', execute() {} }],
+        };
+      `,
+    );
+    writeWorkflow(
+      configuredRoot,
+      'configured.yaml',
+      'cases: [{ name: configured, steps: [{ noop: run }] }]',
+    );
+    writeWorkflow(
+      overrideRoot,
+      'override.yaml',
+      'cases: [{ name: override, steps: [{ noop: run }] }]',
+    );
+
+    const result = await runWorkflowProject({
+      cwd,
+      projectRoot: './override',
+      configPath: '../midscene.workflow.config.cjs',
+      resultDir,
+    });
+
+    expect(result.cases).toEqual([
+      expect.objectContaining({ name: 'override', status: 'success' }),
+    ]);
+    const projectResult = JSON.parse(
+      readFileSync(join(resultDir, 'project.json'), 'utf8'),
+    );
+    expect(projectResult.projectRoot).toBe(overrideRoot);
+    expect(projectResult.fileSelection).toEqual({
+      include: ['**/*.{yaml,yml}'],
+    });
   });
 
   it('collects first, loads config once, and runs cases serially in one process', async () => {
@@ -189,7 +341,8 @@ cases:
       readFileSync(join(resultDir, 'project.json'), 'utf8'),
     );
     expect(projectResult).toMatchObject({
-      version: 2,
+      version: 3,
+      fileSelection: { include: ['**/*.{yaml,yml}'] },
       status: 'failed',
       summary: result.summary,
       cases: [
@@ -297,7 +450,14 @@ afterAll:
       );
     }
     expect(parseWorkflowCliArgs(['project'], '/workspace')).toEqual({
+      cwd: '/workspace',
       projectRoot: '/workspace/project',
+      configPath: undefined,
+      resultDir: undefined,
+    });
+    expect(parseWorkflowCliArgs([], '/workspace')).toEqual({
+      cwd: '/workspace',
+      projectRoot: undefined,
       configPath: undefined,
       resultDir: undefined,
     });

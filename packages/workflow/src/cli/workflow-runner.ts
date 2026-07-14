@@ -1,5 +1,6 @@
-import { existsSync, mkdirSync, readdirSync } from 'node:fs';
-import { basename, join, relative, resolve, sep } from 'node:path';
+import { existsSync, mkdirSync, statSync } from 'node:fs';
+import { basename, dirname, join, relative, resolve, sep } from 'node:path';
+import { globSync } from 'tinyglobby';
 import { runWorkflowDocument } from '../engine/run-workflow-document';
 import type { WorkflowDocumentRunResult } from '../engine/types';
 import { WorkflowError, WorkflowParseError } from '../errors';
@@ -21,18 +22,34 @@ import type {
   WorkflowProjectRunResult,
   WorkflowProjectRunSummary,
 } from './types';
-import { loadWorkflowProjectSync } from './workflow-project';
+import {
+  type WorkflowFileSelection,
+  loadWorkflowProjectSync,
+  validateWorkflowFileSelection,
+} from './workflow-project';
 
 const CONFIG_NAMES = [
   'midscene.workflow.config.cjs',
   'midscene.workflow.config.js',
 ];
-const SKIPPED_DIRECTORIES = new Set(['.git', '.midscene', 'node_modules']);
+const ALWAYS_IGNORED_PATTERNS = [
+  '.git/**',
+  '.midscene/**',
+  'node_modules/**',
+  '**/.git/**',
+  '**/.midscene/**',
+  '**/node_modules/**',
+];
+
+export const DEFAULT_WORKFLOW_FILE_SELECTION: WorkflowFileSelection = {
+  include: ['**/*.{yaml,yml}'],
+};
 
 const toPosix = (value: string): string => value.split(sep).join('/');
 
 export interface WorkflowProjectRunOptions {
-  projectRoot: string;
+  cwd?: string;
+  projectRoot?: string;
   configPath?: string;
   resultDir?: string;
 }
@@ -41,26 +58,32 @@ interface CollectedProjectDocument {
   document: CollectedWorkflowDocument;
 }
 
-export const discoverWorkflowFiles = (projectRoot: string): string[] => {
+export const discoverWorkflowFiles = (
+  projectRoot: string,
+  selection: WorkflowFileSelection = DEFAULT_WORKFLOW_FILE_SELECTION,
+): string[] => {
   const root = resolve(projectRoot);
-  const files: string[] = [];
-  const visit = (directory: string) => {
-    for (const entry of readdirSync(directory, { withFileTypes: true })) {
-      if (entry.isDirectory()) {
-        if (!SKIPPED_DIRECTORIES.has(entry.name)) {
-          visit(join(directory, entry.name));
-        }
-        continue;
-      }
-      if (entry.isFile() && /\.ya?ml$/i.test(entry.name)) {
-        files.push(join(directory, entry.name));
-      }
-    }
-  };
-  visit(root);
-  return files.sort((a, b) =>
-    toPosix(relative(root, a)).localeCompare(toPosix(relative(root, b))),
-  );
+  const normalized = validateWorkflowFileSelection(selection);
+  if (!normalized) {
+    throw new TypeError('Workflow file selection is required.');
+  }
+
+  const files = globSync(normalized.include, {
+    absolute: true,
+    caseSensitiveMatch: false,
+    cwd: root,
+    dot: true,
+    expandDirectories: false,
+    followSymbolicLinks: false,
+    ignore: [...ALWAYS_IGNORED_PATTERNS, ...(normalized.exclude ?? [])],
+    onlyFiles: true,
+  }).filter((file) => /\.ya?ml$/i.test(file));
+
+  return [...new Set(files.map((file) => resolve(file)))].sort((a, b) => {
+    const relativeA = toPosix(relative(root, a));
+    const relativeB = toPosix(relative(root, b));
+    return relativeA < relativeB ? -1 : relativeA > relativeB ? 1 : 0;
+  });
 };
 
 export const discoverWorkflowConfig = (
@@ -75,6 +98,12 @@ const defaultResultDir = (projectRoot: string): string =>
     'workflow-results',
     `${Date.now()}-${process.pid}`,
   );
+
+const assertDirectory = (path: string, label: string): void => {
+  if (!existsSync(path) || !statSync(path).isDirectory()) {
+    throw new Error(`${label} does not exist or is not a directory: ${path}`);
+  }
+};
 
 const asCollectionError = (
   sourcePath: string,
@@ -120,25 +149,42 @@ const summarize = (
 });
 
 export async function runWorkflowProject(
-  options: WorkflowProjectRunOptions,
+  options: WorkflowProjectRunOptions = {},
 ): Promise<WorkflowProjectRunResult> {
-  const projectRoot = resolve(options.projectRoot);
-  if (!existsSync(projectRoot)) {
-    throw new Error(
-      `Workflow project directory does not exist: ${projectRoot}`,
-    );
+  const cwd = resolve(options.cwd ?? process.cwd());
+  assertDirectory(cwd, 'Workflow working directory');
+  const cliProjectRoot = options.projectRoot
+    ? resolve(cwd, options.projectRoot)
+    : undefined;
+  if (cliProjectRoot) {
+    assertDirectory(cliProjectRoot, 'Workflow project directory');
   }
-  const files = discoverWorkflowFiles(projectRoot);
-  if (files.length === 0) {
-    throw new Error(`No workflow YAML files found in ${projectRoot}.`);
-  }
-  const resultDir = resolve(options.resultDir ?? defaultResultDir(projectRoot));
+  const configSearchRoot = cliProjectRoot ?? cwd;
   const configPath = options.configPath
-    ? resolve(projectRoot, options.configPath)
-    : discoverWorkflowConfig(projectRoot);
+    ? resolve(configSearchRoot, options.configPath)
+    : discoverWorkflowConfig(configSearchRoot);
   if (options.configPath && (!configPath || !existsSync(configPath))) {
     throw new Error(`Workflow config does not exist: ${configPath}`);
   }
+  const project = loadWorkflowProjectSync(configPath);
+  const projectRoot = cliProjectRoot
+    ? cliProjectRoot
+    : project.root
+      ? resolve(
+          configPath ? dirname(configPath) : configSearchRoot,
+          project.root,
+        )
+      : cwd;
+  assertDirectory(projectRoot, 'Workflow project root');
+
+  const fileSelection = project.files ?? DEFAULT_WORKFLOW_FILE_SELECTION;
+  const files = discoverWorkflowFiles(projectRoot, fileSelection);
+  if (files.length === 0) {
+    throw new Error(`No workflow YAML files found in ${projectRoot}.`);
+  }
+  const resultDir = options.resultDir
+    ? resolve(cwd, options.resultDir)
+    : defaultResultDir(projectRoot);
   mkdirSync(resultDir, { recursive: true });
 
   const projectId = basename(projectRoot);
@@ -147,7 +193,6 @@ export async function runWorkflowProject(
     sourcePath: toPosix(relative(projectRoot, absolutePath)),
     absolutePath,
   }));
-  const project = loadWorkflowProjectSync(configPath);
   const collectedDocuments: CollectedProjectDocument[] = [];
   const collectionErrors: WorkflowCollectionError[] = [];
   const collectedCaseIds = new Set<string>();
@@ -237,6 +282,7 @@ export async function runWorkflowProject(
     projectId,
     projectRoot,
     ...(configPath ? { configPath } : {}),
+    fileSelection,
     sources,
     result,
   });

@@ -7,7 +7,8 @@ export interface WorkflowCliIO {
 }
 
 interface ParsedWorkflowArgs {
-  projectRoot: string;
+  cwd: string;
+  projectRoot?: string;
   configPath?: string;
   resultDir?: string;
 }
@@ -40,7 +41,8 @@ export const parseWorkflowCliArgs = (
   }
 
   return {
-    projectRoot: projectRoot ?? cwd,
+    cwd,
+    projectRoot,
     configPath,
     resultDir,
   };
