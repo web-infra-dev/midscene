@@ -30,10 +30,8 @@ export default defineConfig({
     entry: {
       index: './src/index.ts',
       'workflow-cli': './src/workflow-cli.ts',
-      'cli/index': './src/cli/workflow-project.ts',
+      'cli/index': './src/cli/index.ts',
       'midscene/index': './src/midscene/index.ts',
-      'cli/workflow-rstest-bridge.test':
-        './src/cli/workflow-rstest-bridge.test.ts',
     },
     tsconfigPath: 'tsconfig.build.json',
   },

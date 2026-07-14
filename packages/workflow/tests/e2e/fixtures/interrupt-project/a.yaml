@@ -1,0 +1,9 @@
+workflows:
+  - name: active workflow
+    steps:
+      - test.interrupt: stop after this workflow
+
+  - name: skipped workflow
+    steps:
+      - test.record:
+          value: must-not-run-in-a

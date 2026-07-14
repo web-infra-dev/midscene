@@ -1,0 +1,5 @@
+workflows:
+  - name: skipped document workflow
+    steps:
+      - test.record:
+          value: must-not-run-in-b
