@@ -1,6 +1,7 @@
 import { type TUserPrompt, userPromptToString } from '@/common';
 import type {
   PlanningAIResponse,
+  PlanningAction,
   RawResponsePlanningAIResponse,
 } from '@/types';
 import { getDebug } from '@midscene/shared/logger';
@@ -16,6 +17,10 @@ import {
 } from './prompt/util';
 import { AIResponseParseError, callAI } from './service-caller/index';
 import type { JsonParser, JsonParserSource } from './service-caller/json';
+import type {
+  LocateResultAdapter,
+  LocateResultContext,
+} from './shared/model-locate-result';
 import { prepareModelImage } from './workflows/image-preprocess';
 import { normalizePlanningActionLocateFields } from './workflows/planning/locate-normalization';
 import type { PlanOptions } from './workflows/planning/types';
@@ -104,6 +109,84 @@ export function parseXMLPlanningResponse(
     ...(updateSubGoals?.length ? { updateSubGoals } : {}),
     ...(markFinishedIndexes?.length ? { markFinishedIndexes } : {}),
   };
+}
+
+type PlanningCallResponse = Awaited<ReturnType<typeof callAI>>;
+
+type CallAndParsePlanningResponseOptions = {
+  messages: ChatCompletionMessageParam[];
+  modelRuntime: PlanOptions['modelRuntime'];
+  abortSignal?: AbortSignal;
+  includeLocateInPlanning: boolean;
+  actionSpace: PlanOptions['actionSpace'];
+  locateResultAdapter?: LocateResultAdapter;
+  locateResultContext: LocateResultContext;
+};
+
+async function callAndParsePlanningResponse(
+  options: CallAndParsePlanningResponseOptions,
+  retryOnParseFailure = true,
+): Promise<{
+  response: PlanningCallResponse;
+  planFromAI: RawResponsePlanningAIResponse;
+  actions: PlanningAction[];
+  yamlFlow: ReturnType<typeof buildYamlFlowFromPlans>;
+}> {
+  const {
+    messages,
+    modelRuntime,
+    abortSignal,
+    includeLocateInPlanning,
+    actionSpace,
+    locateResultAdapter,
+    locateResultContext,
+  } = options;
+  const response = await callAI(messages, modelRuntime, {
+    abortSignal,
+    requiresOriginalImageDetail: includeLocateInPlanning,
+  });
+  try {
+    const planFromAI = parseXMLPlanningResponse(
+      response.content,
+      modelRuntime.adapter.jsonParser,
+    );
+    if (planFromAI.action && planFromAI.finalizeSuccess !== undefined) {
+      warnLog(
+        'Planning response included both an action and <complete>; ignoring <complete> output.',
+      );
+      planFromAI.finalizeMessage = undefined;
+      planFromAI.finalizeSuccess = undefined;
+    }
+
+    const actions = planFromAI.action ? [planFromAI.action] : [];
+    // Keep yamlFlow based on the model's original action params. Coordinate
+    // normalization adds runtime-only locatedPixelBbox fields afterwards.
+    const yamlFlow = buildYamlFlowFromPlans(actions, actionSpace);
+    normalizePlanningActionLocateFields(actions, {
+      actionSpace,
+      includeLocateInPlanning,
+      locateResultAdapter,
+      locateResultContext,
+    });
+    return { response, planFromAI, actions, yamlFlow };
+  } catch (parseError) {
+    if (retryOnParseFailure && !abortSignal?.aborted) {
+      debug(
+        'retrying plan after response parsing failed: %s',
+        parseError instanceof Error ? parseError.message : String(parseError),
+      );
+      return callAndParsePlanningResponse(options, false);
+    }
+
+    const errorMessage =
+      parseError instanceof Error ? parseError.message : String(parseError);
+    throw new AIResponseParseError(
+      `XML parse error: ${errorMessage}`,
+      response.content,
+      response.usage,
+      response.rawChoiceMessage,
+    );
+  }
 }
 
 export async function plan(
@@ -233,126 +316,89 @@ export async function plan(
     ...historyLog,
   ];
 
-  let {
-    content: rawResponse,
-    usage,
-    reasoning_content,
-    rawChoiceMessage,
-  } = await callAI(msgs, modelRuntime, {
-    abortSignal: opts.abortSignal,
-    // Planning with locate results is localization-sensitive. Adapters decide
-    // whether this should request original image detail.
-    requiresOriginalImageDetail: opts.includeLocateInPlanning,
-  });
-
-  // Parse XML response to JSON object, retry once on parse failure
-  let planFromAI: RawResponsePlanningAIResponse;
-  try {
-    try {
-      planFromAI = parseXMLPlanningResponse(rawResponse, adapter.jsonParser);
-    } catch {
-      const retry = await callAI(msgs, modelRuntime, {
-        abortSignal: opts.abortSignal,
-        // Keep retry requests consistent with the initial planning call.
-        requiresOriginalImageDetail: opts.includeLocateInPlanning,
-      });
-      rawResponse = retry.content;
-      usage = retry.usage;
-      reasoning_content = retry.reasoning_content;
-      rawChoiceMessage = retry.rawChoiceMessage;
-      planFromAI = parseXMLPlanningResponse(rawResponse, adapter.jsonParser);
-    }
-
-    if (planFromAI.action && planFromAI.finalizeSuccess !== undefined) {
-      warnLog(
-        'Planning response included both an action and <complete>; ignoring <complete> output.',
-      );
-      planFromAI.finalizeMessage = undefined;
-      planFromAI.finalizeSuccess = undefined;
-    }
-
-    const actions = planFromAI.action ? [planFromAI.action] : [];
-    let shouldContinuePlanning = true;
-
-    // Check if task is completed via <complete> tag
-    if (planFromAI.finalizeSuccess !== undefined) {
-      debug('task completed via <complete> tag, stop planning');
-      shouldContinuePlanning = false;
-      // Mark all sub-goals as finished when goal is completed in planning deep-think mode.
-      if (includeSubGoals) {
-        conversationHistory.markAllSubGoalsFinished();
-      }
-    }
-
-    const returnValue: PlanningAIResponse = {
-      ...planFromAI,
-      actions,
-      rawResponse,
-      rawChoiceMessage,
+  const {
+    response: {
+      content: rawResponse,
       usage,
       reasoning_content,
-      yamlFlow: buildYamlFlowFromPlans(actions, opts.actionSpace),
-      shouldContinuePlanning,
-    };
-
-    assert(planFromAI, "can't get plans from AI");
-
-    normalizePlanningActionLocateFields(actions, {
-      actionSpace: opts.actionSpace,
-      includeLocateInPlanning: opts.includeLocateInPlanning,
-      locateResultAdapter,
-      locateResultContext: {
-        preparedSize: preparedImage.preparedSize,
-        contentSize: preparedImage.contentSize,
-      },
-    });
-
-    // Update sub-goals in conversation history only in planning deep-think mode.
-    if (includeSubGoals) {
-      if (planFromAI.updateSubGoals?.length) {
-        conversationHistory.mergeSubGoals(planFromAI.updateSubGoals);
-      }
-      if (planFromAI.markFinishedIndexes?.length) {
-        for (const index of planFromAI.markFinishedIndexes) {
-          conversationHistory.markSubGoalFinished(index);
-        }
-      }
-      // Append the planning log to the currently running sub-goal
-      if (planFromAI.log) {
-        conversationHistory.appendSubGoalLog(planFromAI.log);
-      }
-    } else {
-      // Without planning deep-think mode, accumulate logs as historical execution steps.
-      if (planFromAI.log) {
-        conversationHistory.appendHistoricalLog(planFromAI.log);
-      }
-    }
-
-    // Append memory to conversation history if present
-    if (planFromAI.memory) {
-      conversationHistory.appendMemory(planFromAI.memory);
-    }
-
-    conversationHistory.append({
-      role: 'assistant',
-      content: [
-        {
-          type: 'text',
-          text: rawResponse,
-        },
-      ],
-    });
-
-    return returnValue;
-  } catch (parseError) {
-    // Throw AIResponseParseError with usage and rawResponse preserved
-    const errorMessage =
-      parseError instanceof Error ? parseError.message : String(parseError);
-    throw new AIResponseParseError(
-      `XML parse error: ${errorMessage}`,
-      rawResponse,
-      usage,
       rawChoiceMessage,
-    );
+    },
+    planFromAI,
+    actions,
+    yamlFlow,
+  } = await callAndParsePlanningResponse({
+    messages: msgs,
+    modelRuntime,
+    abortSignal: opts.abortSignal,
+    includeLocateInPlanning: opts.includeLocateInPlanning,
+    actionSpace: opts.actionSpace,
+    locateResultAdapter,
+    locateResultContext: {
+      preparedSize: preparedImage.preparedSize,
+      contentSize: preparedImage.contentSize,
+    },
+  });
+
+  let shouldContinuePlanning = true;
+
+  // Check if task is completed via <complete> tag
+  if (planFromAI.finalizeSuccess !== undefined) {
+    debug('task completed via <complete> tag, stop planning');
+    shouldContinuePlanning = false;
+    // Mark all sub-goals as finished when goal is completed in planning deep-think mode.
+    if (includeSubGoals) {
+      conversationHistory.markAllSubGoalsFinished();
+    }
   }
+
+  const returnValue: PlanningAIResponse = {
+    ...planFromAI,
+    actions,
+    rawResponse,
+    rawChoiceMessage,
+    usage,
+    reasoning_content,
+    yamlFlow,
+    shouldContinuePlanning,
+  };
+
+  assert(planFromAI, "can't get plans from AI");
+
+  // Update sub-goals in conversation history only in planning deep-think mode.
+  if (includeSubGoals) {
+    if (planFromAI.updateSubGoals?.length) {
+      conversationHistory.mergeSubGoals(planFromAI.updateSubGoals);
+    }
+    if (planFromAI.markFinishedIndexes?.length) {
+      for (const index of planFromAI.markFinishedIndexes) {
+        conversationHistory.markSubGoalFinished(index);
+      }
+    }
+    // Append the planning log to the currently running sub-goal
+    if (planFromAI.log) {
+      conversationHistory.appendSubGoalLog(planFromAI.log);
+    }
+  } else {
+    // Without planning deep-think mode, accumulate logs as historical execution steps.
+    if (planFromAI.log) {
+      conversationHistory.appendHistoricalLog(planFromAI.log);
+    }
+  }
+
+  // Append memory to conversation history if present
+  if (planFromAI.memory) {
+    conversationHistory.appendMemory(planFromAI.memory);
+  }
+
+  conversationHistory.append({
+    role: 'assistant',
+    content: [
+      {
+        type: 'text',
+        text: rawResponse,
+      },
+    ],
+  });
+
+  return returnValue;
 }

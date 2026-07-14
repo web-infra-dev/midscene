@@ -768,6 +768,7 @@ export async function callAIWithObjectResponse<T>(
   options?: {
     abortSignal?: AbortSignal;
     jsonParserSource?: JsonParserSource;
+    retryTimes?: number;
   },
 ): Promise<{
   // TODO: `content` is a misleading name here because this is already the parsed object response. Consider renaming it to `object` or `data`.
@@ -778,38 +779,54 @@ export async function callAIWithObjectResponse<T>(
   rawChoiceMessage?: unknown;
 }> {
   const { config: modelConfig, adapter } = modelRuntime;
-  const response = await callAI(messages, modelRuntime, {
-    abortSignal: options?.abortSignal,
-  });
-  assert(response, 'empty response');
-  let jsonContent: unknown;
-  try {
-    jsonContent = adapter.jsonParser(response.content, {
-      source: options?.jsonParserSource ?? 'generic-object',
+  const retryTimes = Math.max(0, Math.floor(options?.retryTimes ?? 0));
+  const callAndParseObjectResponse = async (
+    remainingRetries: number,
+  ): Promise<{
+    content: T;
+    contentString: string;
+    usage?: AIUsageInfo;
+    reasoning_content?: string;
+    rawChoiceMessage?: unknown;
+  }> => {
+    const response = await callAI(messages, modelRuntime, {
+      abortSignal: options?.abortSignal,
     });
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    throw new AIResponseParseError(
-      errorMessage,
-      response.content,
-      response.usage,
-    );
-  }
-  if (typeof jsonContent !== 'object') {
-    throw new AIResponseParseError(
-      `failed to parse json response from model (${modelConfig.modelName}): ${response.content}`,
-      response.content,
-      response.usage,
-      response.rawChoiceMessage,
-    );
-  }
-  return {
-    content: jsonContent as T,
-    contentString: response.content,
-    usage: response.usage,
-    reasoning_content: response.reasoning_content,
-    rawChoiceMessage: response.rawChoiceMessage,
+    assert(response, 'empty response');
+    try {
+      const jsonContent = adapter.jsonParser(response.content, {
+        source: options?.jsonParserSource ?? 'generic-object',
+      });
+      // This API expects a JSON object. Bare JSON primitives are valid JSON,
+      // but do not satisfy object-response callers.
+      if (!jsonContent || typeof jsonContent !== 'object') {
+        throw new Error(
+          `failed to parse json response from model (${modelConfig.modelName}): ${response.content}`,
+        );
+      }
+      return {
+        content: jsonContent as T,
+        contentString: response.content,
+        usage: response.usage,
+        reasoning_content: response.reasoning_content,
+        rawChoiceMessage: response.rawChoiceMessage,
+      };
+    } catch (error) {
+      if (remainingRetries > 0 && !options?.abortSignal?.aborted) {
+        return callAndParseObjectResponse(remainingRetries - 1);
+      }
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      throw new AIResponseParseError(
+        errorMessage,
+        response.content,
+        response.usage,
+        response.rawChoiceMessage,
+      );
+    }
   };
+
+  return callAndParseObjectResponse(retryTimes);
 }
 
 export async function callAIWithStringResponse(
