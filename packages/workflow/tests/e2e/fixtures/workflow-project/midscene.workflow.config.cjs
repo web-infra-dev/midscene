@@ -1,6 +1,6 @@
 const { appendFileSync } = require('node:fs');
-const { defineNode } = require('@midscene/workflow');
-const { defineWorkflowProject } = require('@midscene/workflow/config');
+const { defineNode } = require('@midscene/test');
+const { defineWorkflowProject } = require('@midscene/test/config');
 
 const log = (value) => {
   const path = process.env.WORKFLOW_E2E_LOG;

@@ -488,7 +488,7 @@ import {
   collectWorkflowDocument,
   loadWorkflowRunManifest,
   runWorkflow,
-} from '@midscene/workflow';
+} from '@midscene/test';
 
 const manifest = loadWorkflowRunManifest(
   process.env.MIDSCENE_WORKFLOW_MANIFEST!,

@@ -453,6 +453,10 @@ export default defineConfig(async () => {
             link: '/zh/automate-with-scripts-in-yaml',
           },
           {
+            text: '定制 YAML 测试运行器',
+            link: '/zh/custom-yaml-test-runner',
+          },
+          {
             sectionHeaderText: '更多特性',
           },
           {

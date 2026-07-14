@@ -1,6 +1,6 @@
 {
-  "name": "@midscene/workflow",
-  "description": "Core workflow engine and node definition SDK for Midscene.",
+  "name": "@midscene/test",
+  "description": "Extensible YAML test runner and node SDK for Midscene.",
   "version": "1.10.3",
   "repository": {
     "type": "git",
