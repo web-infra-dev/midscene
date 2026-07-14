@@ -26,7 +26,7 @@ export class WorkflowEngine<TContext = undefined> {
       projectId: 'legacy-project',
       sourcePath: '',
       workflowIndex: 0,
-      definition: { name: 'workflow', steps: normalized.workflow },
+      definition: { name: 'workflow', steps: normalized.cases },
     };
     const result = await runWorkflow(workflow, {
       resolveNode: (name) =>
