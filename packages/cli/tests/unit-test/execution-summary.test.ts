@@ -344,7 +344,11 @@ describe('execution summary', () => {
         expect.stringContaining('Failed to merge retry attempt report'),
       );
       expect(mergeReports).toHaveBeenCalled();
-      await new Promise((resolve) => setTimeout(resolve, 10));
+      await vi.waitFor(() => {
+        expect(existsSync(join(runDir, 'log', 'execution-summary.log'))).toBe(
+          true,
+        );
+      });
     } finally {
       mergeReports.mockRestore();
       if (previousRunDir === undefined) {

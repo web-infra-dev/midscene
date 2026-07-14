@@ -8,17 +8,7 @@ on:
       - 'packages/computer/**'
       - 'packages/core/package.json'
       - 'packages/core/rslib.config.ts'
-      - 'packages/core/src/agent/**'
-      - 'packages/core/src/device/**'
-      - 'packages/core/src/dump/**'
-      - 'packages/core/src/index.ts'
-      - 'packages/core/src/report-generator.ts'
-      - 'packages/core/src/report.ts'
-      - 'packages/core/src/screenshot-item.ts'
-      - 'packages/core/src/task-runner.ts'
-      - 'packages/core/src/task-timing.ts'
-      - 'packages/core/src/types.ts'
-      - 'packages/core/src/utils.ts'
+      - 'packages/core/src/**'
       - 'packages/shared/package.json'
       - 'packages/shared/src/**'
       - 'scripts/report-template-utils.mjs'
@@ -44,12 +34,20 @@ concurrency:
 jobs:
   windows-desktop:
     runs-on: windows-2022
-    timeout-minutes: 35
+    timeout-minutes: 50
     env:
       CI: '1'
       FORCE_COLOR: '0'
+      MIDSCENE_MODEL_API_KEY: ${{ secrets.MIDSCENE_MODEL_API_KEY }}
+      MIDSCENE_MODEL_BASE_URL: ${{ vars.MIDSCENE_MODEL_BASE_URL }}
+      MIDSCENE_MODEL_NAME: ${{ vars.MIDSCENE_MODEL_NAME }}
+      MIDSCENE_MODEL_FAMILY: ${{ vars.MIDSCENE_MODEL_FAMILY }}
+      MIDSCENE_MODEL_RETRY_COUNT: '2'
+      MIDSCENE_MODEL_RETRY_INTERVAL: '60000'
+      MIDSCENE_REPORT_QUIET: 'true'
       MIDSCENE_RUN_DIR: ${{ github.workspace }}/midscene_run
       MIDSCENE_WINDOWS_DIAGNOSTICS_DIR: ${{ github.workspace }}/midscene_run/windows-desktop-diagnostics
+      MIDSCENE_TODO_DIAGNOSTICS_DIR: ${{ github.workspace }}/midscene_run/windows-desktop-diagnostics
 
     steps:
       - name: Checkout source
@@ -283,6 +281,22 @@ jobs:
             throw "Windows desktop smoke failed with exit code $testExitCode."
           }
 
+      - name: Run Windows TodoMVC AI test
+        id: todo-mvc
+        continue-on-error: true
+        timeout-minutes: 25
+        shell: pwsh
+        env:
+          AI_TEST_TYPE: computer
+        run: |
+          $logPath = Join-Path $env:MIDSCENE_WINDOWS_DIAGNOSTICS_DIR 'todo-mvc.log'
+          pnpm exec nx test @midscene/computer --skip-nx-cache -- tests/ai/ai-auto-todo.test.ts --retry=0 2>&1 |
+            Tee-Object -FilePath $logPath
+          $testExitCode = $LASTEXITCODE
+          if ($testExitCode -ne 0) {
+            throw "Windows TodoMVC test failed with exit code $testExitCode."
+          }
+
       - name: Collect step outcomes
         if: always()
         shell: pwsh
@@ -293,6 +307,7 @@ jobs:
             packageSmoke = '${{ steps.package-smoke.outcome }}'
             unitTests = '${{ steps.unit-tests.outcome }}'
             liveSmoke = '${{ steps.live-smoke.outcome }}'
+            todoMvc = '${{ steps.todo-mvc.outcome }}'
           }
           $outcomes | ConvertTo-Json |
             Set-Content -LiteralPath (
@@ -317,6 +332,15 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+      - name: Upload Windows TodoMVC report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: windows-todo-mvc-report
+          path: midscene_run/report/todo-mvc-win32.html
+          if-no-files-found: warn
+          retention-days: 7
+
       - name: Check Windows validation results
         if: always()
         shell: pwsh
@@ -326,6 +350,7 @@ jobs:
           if ('${{ steps.package-smoke.outcome }}' -ne 'success') { $failed += 'package smoke' }
           if ('${{ steps.unit-tests.outcome }}' -ne 'success') { $failed += 'unit tests' }
           if ('${{ steps.live-smoke.outcome }}' -ne 'success') { $failed += 'live desktop smoke' }
+          if ('${{ steps.todo-mvc.outcome }}' -ne 'success') { $failed += 'TodoMVC' }
           if ($failed.Count -gt 0) {
             throw "Windows validation failed: $($failed -join ', ')"
           }
