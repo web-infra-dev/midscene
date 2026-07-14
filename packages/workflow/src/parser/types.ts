@@ -18,12 +18,12 @@ export type WorkflowStepValue = string | Record<string, unknown>;
 
 export type WorkflowStepInput = Record<string, unknown>;
 
-/** RFC 0001 single-workflow input retained by WorkflowEngine. */
-export interface LegacyWorkflowDefinition {
-  workflow: WorkflowStepInput[];
+/** Standalone workflow input accepted by WorkflowEngine. */
+export interface WorkflowCasesDefinition {
+  cases: WorkflowStepInput[];
 }
 
-export type WorkflowSource = string | LegacyWorkflowDefinition;
+export type WorkflowSource = string | WorkflowCasesDefinition;
 
 export interface WorkflowDocumentDefinition {
   beforeAll?: readonly WorkflowStepInput[];
@@ -45,7 +45,7 @@ export interface NormalizedStep {
 }
 
 export interface NormalizedWorkflow {
-  workflow: NormalizedStep[];
+  cases: NormalizedStep[];
 }
 
 export type NormalizedWorkflowDefinition = WorkflowDefinition<NormalizedStep>;

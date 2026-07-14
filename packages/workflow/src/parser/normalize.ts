@@ -2,10 +2,10 @@ import { JSON_SCHEMA, load as loadYaml } from 'js-yaml';
 import { WorkflowParseError } from '../errors';
 import type {
   CommonNodeInput,
-  LegacyWorkflowDefinition,
   NormalizedStep,
   NormalizedStepMeta,
   NormalizedWorkflow,
+  WorkflowCasesDefinition,
   WorkflowSource,
 } from './types';
 
@@ -83,7 +83,7 @@ export function validateCommonNodeInput(
   }
 }
 
-export function parseWorkflow(source: string): LegacyWorkflowDefinition {
+export function parseWorkflow(source: string): WorkflowCasesDefinition {
   if (typeof source !== 'string') {
     throw new WorkflowParseError('Workflow YAML source must be a string.');
   }
@@ -91,7 +91,7 @@ export function parseWorkflow(source: string): LegacyWorkflowDefinition {
   try {
     return loadYaml(source, {
       schema: JSON_SCHEMA,
-    }) as LegacyWorkflowDefinition;
+    }) as WorkflowCasesDefinition;
   } catch (error) {
     throw new WorkflowParseError(
       'Failed to parse workflow YAML.',
@@ -157,15 +157,28 @@ export function normalizeWorkflow(source: WorkflowSource): NormalizedWorkflow {
     throw new WorkflowParseError('Workflow definition must be a mapping.');
   }
 
-  if (!Array.isArray(definition.workflow)) {
+  if ('workflow' in definition) {
     throw new WorkflowParseError(
-      'Workflow definition must contain a workflow array.',
+      'Workflow definition no longer supports "workflow". Use "cases" instead.',
+      { field: 'workflow' },
+    );
+  }
+
+  const unknownField = Object.keys(definition).find((key) => key !== 'cases');
+  if (unknownField !== undefined) {
+    throw new WorkflowParseError(
+      `Workflow definition has unsupported field "${unknownField}".`,
+      { field: unknownField },
+    );
+  }
+
+  if (!Array.isArray(definition.cases)) {
+    throw new WorkflowParseError(
+      'Workflow definition must contain a cases array.',
     );
   }
 
   return {
-    workflow: definition.workflow.map((step, index) =>
-      normalizeStep(step, index),
-    ),
+    cases: definition.cases.map((step, index) => normalizeStep(step, index)),
   };
 }
