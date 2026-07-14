@@ -699,6 +699,8 @@ export const isMac =
 const keyMap: Record<string, KeyInput> = {
   return: _keyDefinitions.Enter.key as KeyInput,
   enter: _keyDefinitions.Enter.key as KeyInput,
+  command: _keyDefinitions.Meta.key as KeyInput,
+  cmd: _keyDefinitions.Meta.key as KeyInput,
   ctrl: isMac
     ? (_keyDefinitions.Meta.key as KeyInput)
     : (_keyDefinitions.Control.key as KeyInput),
