@@ -439,7 +439,7 @@ jobs:
                     $name
                   end;
               def normalized_type:
-                (try capture("^(?<type>[A-Za-z]+)(?:\\([^)]*\\))?!?:").type catch "other")
+                ((try capture("^(?<type>[A-Za-z]+)(?:\\([^)]*\\))?!?:").type catch "other") // "other")
                 | ascii_downcase
                 | if . == "feat" then "feat"
                   elif . == "fix" then "fix"
@@ -452,6 +452,9 @@ jobs:
                   elif . == "chore" then "chore"
                   else "other"
                   end;
+              def normalized_scope:
+                ((try capture("^[A-Za-z]+\\((?<scope>[^)]*)\\)!?:").scope catch "") // "")
+                | ascii_downcase;
               def parse_change:
                 . as $line
                 | if $line | test("^[*-] ") then
@@ -464,6 +467,7 @@ jobs:
                     )
                     | .title |= gsub("^\\s+|\\s+$"; "")
                     | .type = (.title | normalized_type)
+                    | .scope = (.title | normalized_scope)
                   else
                     empty
                   end;
@@ -473,7 +477,6 @@ jobs:
                   {key: "fix", label: "Fixes"},
                   {key: "perf", label: "Performance"},
                   {key: "refactor", label: "Refactors"},
-                  {key: "docs", label: "Documentation"},
                   {key: "test", label: "Tests"},
                   {key: "build", label: "Build"},
                   {key: "ci", label: "CI"},
@@ -490,7 +493,11 @@ jobs:
                 end;
 
               ($body | gsub("\\r"; "") | gsub("<!--[^\\n]*-->\\n*"; "")) as $clean_body
-              | [$clean_body | split("\n")[] | parse_change] as $changes
+              | [$clean_body | split("\n")[] | parse_change] as $parsed_changes
+              | [
+                  $parsed_changes[]
+                  | select(.type != "docs" and .scope != "site")
+                ] as $changes
               | [
                   category_definitions[] as $category
                   | [$changes[] | select(.type == $category.key)] as $items
@@ -506,6 +513,8 @@ jobs:
               | ($clean_body | gsub("^\\s+|\\s+$"; "")) as $raw_notes
               | (if $change_count > 0 then
                     $grouped_notes
+                  elif ($parsed_changes | length) > 0 then
+                    "Midscene.js \($version) is now available."
                   elif $raw_notes != "" then
                     $raw_notes
                   else
@@ -666,7 +675,7 @@ jobs:
                     $name
                   end;
               def normalized_type:
-                (try capture("^(?<type>[A-Za-z]+)(?:\\([^)]*\\))?!?:").type catch "other")
+                ((try capture("^(?<type>[A-Za-z]+)(?:\\([^)]*\\))?!?:").type catch "other") // "other")
                 | ascii_downcase
                 | if . == "feat" then "feat"
                   elif . == "fix" then "fix"
@@ -679,6 +688,9 @@ jobs:
                   elif . == "chore" then "chore"
                   else "other"
                   end;
+              def normalized_scope:
+                ((try capture("^[A-Za-z]+\\((?<scope>[^)]*)\\)!?:").scope catch "") // "")
+                | ascii_downcase;
               def parse_change:
                 . as $line
                 | if $line | test("^[*-] ") then
@@ -691,6 +703,7 @@ jobs:
                     )
                     | .title |= gsub("^\\s+|\\s+$"; "")
                     | .type = (.title | normalized_type)
+                    | .scope = (.title | normalized_scope)
                   else
                     empty
                   end;
@@ -700,7 +713,6 @@ jobs:
                   {key: "fix", label: "Fixes"},
                   {key: "perf", label: "Performance"},
                   {key: "refactor", label: "Refactors"},
-                  {key: "docs", label: "Documentation"},
                   {key: "test", label: "Tests"},
                   {key: "build", label: "Build"},
                   {key: "ci", label: "CI"},
@@ -717,7 +729,11 @@ jobs:
                 end;
 
               ($body | gsub("\\r"; "") | gsub("<!--[^\\n]*-->\\n*"; "")) as $clean_body
-              | [$clean_body | split("\n")[] | parse_change] as $changes
+              | [$clean_body | split("\n")[] | parse_change] as $parsed_changes
+              | [
+                  $parsed_changes[]
+                  | select(.type != "docs" and .scope != "site")
+                ] as $changes
               | [
                   category_definitions[] as $category
                   | [$changes[] | select(.type == $category.key)] as $items
@@ -733,6 +749,8 @@ jobs:
               | ($clean_body | gsub("^\\s+|\\s+$"; "")) as $raw_notes
               | (if $change_count > 0 then
                     $grouped_notes
+                  elif ($parsed_changes | length) > 0 then
+                    "Midscene.js \($version) is now available."
                   elif $raw_notes != "" then
                     $raw_notes
                   else
