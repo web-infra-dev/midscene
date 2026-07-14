@@ -316,6 +316,10 @@ export default defineConfig(async () => {
             sectionHeaderText: 'More features',
           },
           {
+            text: 'Cross-platform CI validation',
+            link: '/platform-ci-validation',
+          },
+          {
             text: 'Caching AI planning & locate',
             link: '/caching',
           },
@@ -504,6 +508,10 @@ export default defineConfig(async () => {
           },
           {
             sectionHeaderText: '更多特性',
+          },
+          {
+            text: '跨平台 CI 验证',
+            link: '/zh/platform-ci-validation',
           },
           {
             text: '缓存 AI 规划和定位',
