@@ -6,6 +6,12 @@ const MAX_FETCH_ERROR_LENGTH = 4000;
 const debugOpenAIFetch = getDebug('ai:call');
 
 export interface OpenAIErrorResponseContext {
+  responseRequestIds?: Array<{
+    attempt: number;
+    requestId: string;
+    status: number;
+    ok: boolean;
+  }>;
   rawResponseBodies?: Array<{
     attempt: number;
     body: string;
@@ -96,6 +102,20 @@ export function wrapOpenAICompatibleFetch(
       throw error;
     }
 
+    const requestId =
+      response.headers.get('x-request-id') ??
+      response.headers.get('x-model-request-id');
+
+    if (requestId) {
+      context.responseRequestIds ??= [];
+      context.responseRequestIds.push({
+        attempt,
+        requestId,
+        status: response.status,
+        ok: response.ok,
+      });
+    }
+
     if (!response.ok) {
       // OpenAI SDK only exposes the `error` field for JSON error responses.
       // Non-standard provider bodies like `{ err: 'xxx' }` would otherwise be
@@ -141,6 +161,24 @@ export function formatOpenAIAPIErrorDetails(
     details.push(
       `OpenAI raw error response bodies:\n${rawResponseBodyDetails}`,
     );
+  }
+
+  const errorResponseRequestIds = context.responseRequestIds?.filter(
+    ({ ok }) => !ok,
+  );
+  if (errorResponseRequestIds?.length === 1) {
+    const { attempt, requestId, status } = errorResponseRequestIds[0];
+    details.push(
+      `OpenAI error response request ID (attempt ${attempt}, status ${status}): ${requestId}`,
+    );
+  } else if (errorResponseRequestIds?.length) {
+    const requestIdDetails = errorResponseRequestIds
+      .map(
+        ({ attempt, requestId, status }) =>
+          `Attempt ${attempt} (status ${status}): ${requestId}`,
+      )
+      .join('\n');
+    details.push(`OpenAI error response request IDs:\n${requestIdDetails}`);
   }
 
   if (context.fetchErrors?.length === 1) {

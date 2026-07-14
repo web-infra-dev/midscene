@@ -1,7 +1,7 @@
-import { createLocateResultPromptSpec } from '../../prompts/locate-result-coordinates';
 import { finalizePixelBbox, finalizeSectionLocatePixelBboxGroup } from './bbox';
 import { parseNumericLocateResult } from './parse';
 import { mapLocateResultToPixelBboxByCoordinates } from './pixel-bbox-mapper';
+import { createLocateResultPromptSpec } from './prompt-spec';
 import type {
   LocateResultAdapter,
   LocateResultAdapterDefinition,

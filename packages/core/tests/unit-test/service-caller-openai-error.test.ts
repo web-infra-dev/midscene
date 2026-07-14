@@ -61,6 +61,9 @@ describe('service-caller OpenAI error handling', () => {
     expect(wrappedResponse).toBe(response);
     await expect(wrappedResponse.text()).resolves.toBe(responseBody);
     expect(context).toEqual({
+      responseRequestIds: [
+        { attempt: 1, requestId: 'req_123', status: 422, ok: false },
+      ],
       rawResponseBodies: [{ attempt: 1, body: responseBody }],
     });
   });
@@ -80,6 +83,71 @@ describe('service-caller OpenAI error handling', () => {
       wrapOpenAICompatibleFetch(context)('https://example.com'),
     ).resolves.toBe(response);
     expect(context).toEqual({});
+  });
+
+  it('uses x-model-request-id as usage request_id when x-request-id is absent', async () => {
+    const { callAI } = await import('@/ai-model/service-caller');
+    const { getModelRuntime } = await import('@/ai-model/models');
+    globalThis.fetch = vi.fn().mockResolvedValue(
+      new Response(null, {
+        headers: { 'x-model-request-id': 'model_req_123' },
+      }),
+    );
+    mockCreate.mockImplementation(async () => {
+      await mockOpenAIConstructor.mock.calls
+        .at(-1)?.[0]
+        .fetch('https://example.com/v1/chat/completions');
+      return {
+        choices: [{ message: { content: 'hello' } }],
+        usage: {
+          prompt_tokens: 1,
+          completion_tokens: 1,
+          total_tokens: 2,
+        },
+        _request_id: null,
+      };
+    });
+
+    const response = await callAI(
+      [{ role: 'user', content: 'hello' }],
+      getModelRuntime(baseConfig()),
+    );
+
+    expect(response.usage?.request_id).toBe('model_req_123');
+  });
+
+  it('prefers x-request-id over x-model-request-id', async () => {
+    const { callAI } = await import('@/ai-model/service-caller');
+    const { getModelRuntime } = await import('@/ai-model/models');
+    globalThis.fetch = vi.fn().mockResolvedValue(
+      new Response(null, {
+        headers: {
+          'x-request-id': 'req_123',
+          'x-model-request-id': 'model_req_123',
+        },
+      }),
+    );
+    mockCreate.mockImplementation(async () => {
+      await mockOpenAIConstructor.mock.calls
+        .at(-1)?.[0]
+        .fetch('https://example.com/v1/chat/completions');
+      return {
+        choices: [{ message: { content: 'hello' } }],
+        usage: {
+          prompt_tokens: 1,
+          completion_tokens: 1,
+          total_tokens: 2,
+        },
+        _request_id: null,
+      };
+    });
+
+    const response = await callAI(
+      [{ role: 'user', content: 'hello' }],
+      getModelRuntime(baseConfig()),
+    );
+
+    expect(response.usage?.request_id).toBe('req_123');
   });
 
   it('keeps raw response bodies from multiple failed requests', async () => {
@@ -173,7 +241,10 @@ describe('service-caller OpenAI error handling', () => {
     globalThis.fetch = vi.fn().mockResolvedValue(
       new Response(rawResponseBody, {
         status: 422,
-        headers: { 'content-type': 'application/json' },
+        headers: {
+          'content-type': 'application/json',
+          'x-model-request-id': 'model_req_123',
+        },
       }),
     );
     mockCreate.mockImplementation(async () => {
@@ -192,6 +263,9 @@ describe('service-caller OpenAI error handling', () => {
 
     await expect(promise).rejects.toThrow(
       /OpenAI raw error response body: \{"detail":"model does not exist","trace_id":"trace_123"\}/,
+    );
+    await expect(promise).rejects.toThrow(
+      /OpenAI error response request ID \(attempt 1, status 422\): model_req_123/,
     );
   });
 });

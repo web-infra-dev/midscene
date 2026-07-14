@@ -9,6 +9,7 @@ import { Input, Tooltip } from 'antd';
 import type React from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { PlaywrightTaskAttributes, PlaywrightTasks } from '../../types';
+import { getCaseDescription } from './case-description';
 import './index.less';
 import { type DumpStoreType, useExecutionDump } from '../store';
 
@@ -84,6 +85,9 @@ function PlaywrightCaseTitle(props: {
 }): JSX.Element {
   const { attributes, timingRange } = props;
   const status = iconForStatus(attributes.playwright_test_status);
+  const fullDescription = attributes.playwright_test_description;
+  const description = getCaseDescription(fullDescription);
+  const isDescriptionTruncated = description !== fullDescription;
   const duration = timingRange?.duration ?? attributes.playwright_test_duration;
   const extraStatusLabel =
     STATUS_DISPLAY_LABEL[attributes.playwright_test_status];
@@ -121,9 +125,18 @@ function PlaywrightCaseTitle(props: {
       {status}
       {'  '}
       {attributes.playwright_test_title || 'unnamed'}
-      {attributes.playwright_test_description
-        ? ` - ${attributes.playwright_test_description}`
-        : ''}
+      {description ? (
+        <>
+          {' - '}
+          {isDescriptionTruncated ? (
+            <span className="case-description" title={fullDescription}>
+              {description}
+            </span>
+          ) : (
+            description
+          )}
+        </>
+      ) : null}
       {cost}
     </span>
   );

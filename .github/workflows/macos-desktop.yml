@@ -1,0 +1,235 @@
+name: macOS Desktop
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/macos-desktop.yml'
+      - 'apps/report/**'
+      - 'packages/computer/**'
+      - 'packages/core/**'
+      - 'packages/shared/**'
+      - 'scripts/report-template-utils.mjs'
+      - 'nx.json'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to checkout'
+        required: false
+        default: 'main'
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: macos-desktop-${{ github.event.pull_request.number || inputs.branch || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  macos-desktop:
+    runs-on: macos-15-intel
+    timeout-minutes: 50
+    env:
+      CI: '1'
+      FORCE_COLOR: '0'
+      MIDSCENE_MODEL_API_KEY: ${{ secrets.MIDSCENE_MODEL_API_KEY }}
+      MIDSCENE_MODEL_BASE_URL: ${{ vars.MIDSCENE_MODEL_BASE_URL }}
+      MIDSCENE_MODEL_NAME: ${{ vars.MIDSCENE_MODEL_NAME }}
+      MIDSCENE_MODEL_FAMILY: ${{ vars.MIDSCENE_MODEL_FAMILY }}
+      MIDSCENE_MODEL_RETRY_COUNT: '2'
+      MIDSCENE_MODEL_RETRY_INTERVAL: '60000'
+      MIDSCENE_REPORT_QUIET: 'true'
+      MIDSCENE_RUN_DIR: ${{ github.workspace }}/midscene_run
+      MIDSCENE_MACOS_DIAGNOSTICS_DIR: ${{ github.workspace }}/midscene_run/macos-desktop-diagnostics
+      MIDSCENE_TODO_DIAGNOSTICS_DIR: ${{ github.workspace }}/midscene_run/macos-desktop-diagnostics
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          ref: ${{ inputs.branch || github.ref }}
+
+      - name: Inspect macOS desktop session
+        shell: bash
+        run: |
+          mkdir -p "$MIDSCENE_MACOS_DIAGNOSTICS_DIR"
+          {
+            sw_vers
+            uname -a
+            xcrun swiftc --version
+            if [[ -x "/Library/Application Support/VMware Tools/vmware-resolutionSet" ]]; then
+              sudo "/Library/Application Support/VMware Tools/vmware-resolutionSet" 1920 1080
+              sleep 2
+            fi
+            system_profiler SPDisplaysDataType
+            ui_enabled=$(osascript -e 'tell application "System Events" to return UI elements enabled')
+            echo "UI elements enabled: $ui_enabled"
+            if [[ "$ui_enabled" != "true" ]]; then
+              echo "macOS Accessibility UI elements are not enabled" >&2
+              exit 1
+            fi
+          } 2>&1 | tee "$MIDSCENE_MACOS_DIAGNOSTICS_DIR/runner-environment.log"
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@eae0cfeb286e66ffb5155f1a79b90583a127a68b # v2.4.1
+        with:
+          version: 9.3.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '24.13.0'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Build report and computer packages
+        id: build
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm exec nx run-many --target=build --projects="@midscene/report,@midscene/computer" --skip-nx-cache 2>&1 |
+            tee "$MIDSCENE_MACOS_DIAGNOSTICS_DIR/build.log"
+          node apps/report/scripts/inject-report-template.mjs
+
+      - name: Validate computer package outputs
+        id: package-smoke
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          node -e "const mod=require('./packages/computer/dist/lib/index.js'); if(typeof mod.ComputerDevice!=='function'||typeof mod.ComputerAgent!=='function') throw new Error('invalid CJS exports')"
+          node --input-type=module -e "const mod=await import('./packages/computer/dist/es/index.mjs'); if(typeof mod.ComputerDevice!=='function'||typeof mod.ComputerAgent!=='function') throw new Error('invalid ESM exports')"
+          test -f packages/computer/dist/types/index.d.ts
+
+          actual_cli_version=$(node packages/computer/bin/midscene-computer --version)
+          package_version=$(node -p "require('./packages/computer/package.json').version")
+          expected_cli_version="midscene-computer v${package_version}"
+          if [[ "$actual_cli_version" != "$expected_cli_version" ]]; then
+            echo "Unexpected CLI version '$actual_cli_version'; expected '$expected_cli_version'." >&2
+            exit 1
+          fi
+
+          pack_dir="$RUNNER_TEMP/midscene-computer-pack"
+          mkdir -p "$pack_dir"
+          pnpm --dir packages/computer pack --pack-destination "$pack_dir"
+          archive=$(find "$pack_dir" -name '*.tgz' -type f | head -n 1)
+          test -n "$archive"
+          tar -tf "$archive" > "$MIDSCENE_MACOS_DIAGNOSTICS_DIR/package-files.txt"
+          for required in \
+            package/package.json \
+            package/bin/midscene-computer \
+            package/dist/lib/cli.js \
+            package/dist/lib/index.js \
+            package/dist/es/index.mjs \
+            package/dist/types/index.d.ts; do
+            grep -Fxq "$required" "$MIDSCENE_MACOS_DIAGNOSTICS_DIR/package-files.txt"
+          done
+
+      - name: Run computer unit tests
+        id: unit-tests
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          pnpm exec nx test @midscene/computer --skip-nx-cache 2>&1 |
+            tee "$MIDSCENE_MACOS_DIAGNOSTICS_DIR/unit-tests.log"
+
+      - name: Run live macOS desktop smoke test
+        id: live-smoke
+        continue-on-error: true
+        timeout-minutes: 10
+        shell: bash
+        env:
+          AI_TEST_TYPE: computer
+          MIDSCENE_MACOS_DESKTOP_SMOKE: '1'
+        run: |
+          set -o pipefail
+          pnpm exec nx test @midscene/computer --skip-nx-cache -- tests/ai/macos-desktop-smoke.test.ts --retry=0 2>&1 |
+            tee "$MIDSCENE_MACOS_DIAGNOSTICS_DIR/live-smoke.log"
+
+      - name: Run macOS TodoMVC AI test
+        id: todo-mvc
+        continue-on-error: true
+        timeout-minutes: 25
+        shell: bash
+        env:
+          AI_TEST_TYPE: computer
+        run: |
+          set -o pipefail
+          pnpm exec nx test @midscene/computer --skip-nx-cache -- tests/ai/ai-auto-todo.test.ts --retry=0 2>&1 |
+            tee "$MIDSCENE_MACOS_DIAGNOSTICS_DIR/todo-mvc.log"
+
+      - name: Collect step outcomes
+        if: always()
+        shell: bash
+        env:
+          BUILD_OUTCOME: ${{ steps.build.outcome }}
+          PACKAGE_OUTCOME: ${{ steps.package-smoke.outcome }}
+          UNIT_OUTCOME: ${{ steps.unit-tests.outcome }}
+          LIVE_OUTCOME: ${{ steps.live-smoke.outcome }}
+          TODO_OUTCOME: ${{ steps.todo-mvc.outcome }}
+        run: |
+          mkdir -p "$MIDSCENE_MACOS_DIAGNOSTICS_DIR"
+          node -e '
+            const fs = require("node:fs");
+            const path = require("node:path");
+            const outcomes = {
+              build: process.env.BUILD_OUTCOME,
+              packageSmoke: process.env.PACKAGE_OUTCOME,
+              unitTests: process.env.UNIT_OUTCOME,
+              liveSmoke: process.env.LIVE_OUTCOME,
+              todoMvc: process.env.TODO_OUTCOME,
+            };
+            fs.writeFileSync(
+              path.join(process.env.MIDSCENE_MACOS_DIAGNOSTICS_DIR, "step-outcomes.json"),
+              `${JSON.stringify(outcomes, null, 2)}\n`,
+            );
+          '
+
+      - name: Upload macOS desktop smoke report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: macos-desktop-smoke-report
+          path: midscene_run/report/macos-desktop-smoke.html
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Upload macOS TodoMVC report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: macos-todo-mvc-report
+          path: midscene_run/report/todo-mvc-darwin.html
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Upload macOS desktop diagnostics
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: macos-desktop-diagnostics
+          path: midscene_run/macos-desktop-diagnostics
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Check macOS validation results
+        if: always()
+        shell: bash
+        run: |
+          failed=()
+          [[ '${{ steps.build.outcome }}' == success ]] || failed+=(build)
+          [[ '${{ steps.package-smoke.outcome }}' == success ]] || failed+=("package smoke")
+          [[ '${{ steps.unit-tests.outcome }}' == success ]] || failed+=("unit tests")
+          [[ '${{ steps.live-smoke.outcome }}' == success ]] || failed+=("live desktop smoke")
+          [[ '${{ steps.todo-mvc.outcome }}' == success ]] || failed+=("TodoMVC")
+          if ((${#failed[@]} > 0)); then
+            printf 'macOS validation failed: %s\n' "${failed[*]}" >&2
+            exit 1
+          fi

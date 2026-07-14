@@ -4,7 +4,10 @@ import path from 'node:path';
 import { getDebug } from '@midscene/shared/logger';
 import { IPC_CHANNELS } from '@shared/electron-contract';
 import { app, ipcMain } from 'electron';
-import type { UpdateStatus } from '../shared/updater-contract';
+import {
+  type UpdateStatus,
+  isExternalDownloadOnlyPlatform,
+} from '../shared/updater-contract';
 import { type StudioUpdater, autoUpdater } from './updater';
 
 const debugUpdaterHandlers = getDebug('studio:updater-handlers', {
@@ -236,7 +239,7 @@ export function resolveUpdaterCheckStatus(
         releaseNotes: normalizeReleaseNotes(
           (updateInfo as { releaseNotes?: unknown }).releaseNotes,
         ),
-        externalDownloadOnly: platform === 'win32' || platform === 'linux',
+        externalDownloadOnly: isExternalDownloadOnlyPlatform(platform),
       };
     }
   }

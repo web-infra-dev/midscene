@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { ComputerDevice, checkComputerEnvironment } from '../../src';
 
+const needsDisplay = process.platform === 'linux' && !process.env.DISPLAY;
+
 describe('ComputerDevice', () => {
   it('should create device instance', () => {
     const device = new ComputerDevice({});
@@ -13,7 +15,7 @@ describe('ComputerDevice', () => {
     expect(device).toBeDefined();
   });
 
-  it('should list displays', async () => {
+  it.skipIf(needsDisplay)('should list displays', async () => {
     const displays = await ComputerDevice.listDisplays();
     expect(Array.isArray(displays)).toBe(true);
 
@@ -24,7 +26,7 @@ describe('ComputerDevice', () => {
     }
   });
 
-  it('should check computer environment', async () => {
+  it.skipIf(needsDisplay)('should check computer environment', async () => {
     const envCheck = await checkComputerEnvironment();
     expect(envCheck).toBeDefined();
     expect(envCheck).toHaveProperty('available');

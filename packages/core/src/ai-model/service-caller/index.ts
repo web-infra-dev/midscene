@@ -80,6 +80,16 @@ function stringifyForDebug(value: unknown): string {
   }
 }
 
+function getLatestSuccessfulResponseRequestId(
+  context: OpenAIErrorResponseContext,
+): string | undefined {
+  return context.responseRequestIds?.reduce<string | undefined>(
+    (latestRequestId, response) =>
+      response.ok ? response.requestId : latestRequestId,
+    undefined,
+  );
+}
+
 function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
@@ -516,7 +526,9 @@ export async function callAI(
           _request_id?: string | null;
         };
 
-        requestId = stream._request_id;
+        requestId =
+          getLatestSuccessfulResponseRequestId(openAIErrorResponseContext) ??
+          stream._request_id;
 
         for await (const chunk of stream) {
           const parsedChunk = adapter.chatCompletion.extractContentAndReasoning(
@@ -618,9 +630,12 @@ export async function callAI(
           );
 
           timeCost = Date.now() - startTime;
+          requestId =
+            getLatestSuccessfulResponseRequestId(openAIErrorResponseContext) ??
+            result._request_id;
 
           debugProfileStats(
-            `model, ${modelName}, mode, ${modelFamily || 'default'}, prompt-tokens, ${result.usage?.prompt_tokens || ''}, completion-tokens, ${result.usage?.completion_tokens || ''}, total-tokens, ${result.usage?.total_tokens || ''}, cost-ms, ${timeCost}, requestId, ${result._request_id || ''}, temperature, ${temperature ?? ''}`,
+            `model, ${modelName}, mode, ${modelFamily || 'default'}, prompt-tokens, ${result.usage?.prompt_tokens || ''}, completion-tokens, ${result.usage?.completion_tokens || ''}, total-tokens, ${result.usage?.total_tokens || ''}, cost-ms, ${timeCost}, requestId, ${requestId || ''}, temperature, ${temperature ?? ''}`,
           );
 
           debugProfileDetail(
@@ -641,7 +656,6 @@ export async function callAI(
           content = parsedMessage.content;
           accumulatedReasoning = parsedMessage.reasoning_content;
           usage = result.usage;
-          requestId = result._request_id;
           responseModelName = result.model;
 
           content = resolveContentWithReasoningFallback(

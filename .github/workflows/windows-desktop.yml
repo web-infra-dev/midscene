@@ -1,0 +1,353 @@
+name: Windows Desktop
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/windows-desktop.yml'
+      - 'apps/report/**'
+      - 'packages/computer/**'
+      - 'packages/core/**'
+      - 'packages/shared/**'
+      - 'scripts/report-template-utils.mjs'
+      - 'nx.json'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to checkout'
+        required: false
+        default: 'main'
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-desktop-${{ github.event.pull_request.number || inputs.branch || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  windows-desktop:
+    runs-on: windows-2022
+    timeout-minutes: 50
+    env:
+      CI: '1'
+      FORCE_COLOR: '0'
+      MIDSCENE_MODEL_API_KEY: ${{ secrets.MIDSCENE_MODEL_API_KEY }}
+      MIDSCENE_MODEL_BASE_URL: ${{ vars.MIDSCENE_MODEL_BASE_URL }}
+      MIDSCENE_MODEL_NAME: ${{ vars.MIDSCENE_MODEL_NAME }}
+      MIDSCENE_MODEL_FAMILY: ${{ vars.MIDSCENE_MODEL_FAMILY }}
+      MIDSCENE_MODEL_RETRY_COUNT: '2'
+      MIDSCENE_MODEL_RETRY_INTERVAL: '60000'
+      MIDSCENE_REPORT_QUIET: 'true'
+      MIDSCENE_RUN_DIR: ${{ github.workspace }}/midscene_run
+      MIDSCENE_WINDOWS_DIAGNOSTICS_DIR: ${{ github.workspace }}/midscene_run/windows-desktop-diagnostics
+      MIDSCENE_TODO_DIAGNOSTICS_DIR: ${{ github.workspace }}/midscene_run/windows-desktop-diagnostics
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          ref: ${{ inputs.branch || github.ref }}
+
+      - name: Verify interactive Windows desktop
+        shell: pwsh
+        run: |
+          $diagnosticsDir = $env:MIDSCENE_WINDOWS_DIAGNOSTICS_DIR
+          New-Item -ItemType Directory -Force -Path $diagnosticsDir | Out-Null
+          $manifestPath = Join-Path $diagnosticsDir 'runner-environment.json'
+          $probe = [ordered]@{
+            capturedAt = [DateTimeOffset]::UtcNow.ToString('o')
+            runnerName = $env:RUNNER_NAME
+            runnerOS = $env:RUNNER_OS
+            runnerArch = $env:RUNNER_ARCH
+            imageOS = $env:ImageOS
+            imageVersion = $env:ImageVersion
+            valid = $false
+          }
+
+          function Write-ProbeManifest {
+            $probe | ConvertTo-Json -Depth 8 |
+              Set-Content -LiteralPath $manifestPath -Encoding utf8
+          }
+
+          # Leave an artifact even if loading desktop assemblies fails.
+          Write-ProbeManifest
+
+          try {
+            Add-Type -TypeDefinition @'
+          using System.Runtime.InteropServices;
+          public static class MidsceneNativeDpi {
+            [DllImport("user32.dll", SetLastError = true)]
+            [return: MarshalAs(UnmanagedType.Bool)]
+            public static extern bool SetProcessDPIAware();
+
+            [DllImport("user32.dll")]
+            public static extern uint GetDpiForSystem();
+          }
+          '@
+
+            $dpiAware = [MidsceneNativeDpi]::SetProcessDPIAware()
+            if (-not $dpiAware) {
+              $lastError = [Runtime.InteropServices.Marshal]::GetLastWin32Error()
+              if ($lastError -ne 5) {
+                throw "SetProcessDPIAware failed with Win32 error $lastError."
+              }
+            }
+
+            Add-Type -AssemblyName System.Windows.Forms
+            $process = [System.Diagnostics.Process]::GetCurrentProcess()
+            $primaryScreen = [System.Windows.Forms.Screen]::PrimaryScreen
+            if ($null -eq $primaryScreen) {
+              throw 'Windows did not expose a primary screen.'
+            }
+
+            $bounds = $primaryScreen.Bounds
+            $workingArea = $primaryScreen.WorkingArea
+            $dpi = [int][MidsceneNativeDpi]::GetDpiForSystem()
+            $windowsPowerShellVersion = (
+              & powershell.exe -NoProfile -NonInteractive -Command '$PSVersionTable.PSVersion.ToString()' |
+                Out-String
+            ).Trim()
+            if ($LASTEXITCODE -ne 0) {
+              throw 'Unable to query Windows PowerShell version.'
+            }
+
+            $probe.userInteractive = [Environment]::UserInteractive
+            $probe.sessionId = $process.SessionId
+            $probe.sessionName = $env:SESSIONNAME
+            $probe.powerShellVersion = $PSVersionTable.PSVersion.ToString()
+            $probe.windowsPowerShellVersion = $windowsPowerShellVersion
+            $probe.dpi = $dpi
+            $probe.primaryScreen = [ordered]@{
+              deviceName = $primaryScreen.DeviceName
+              primary = $primaryScreen.Primary
+              width = $bounds.Width
+              height = $bounds.Height
+              workingAreaWidth = $workingArea.Width
+              workingAreaHeight = $workingArea.Height
+              bitsPerPixel = $primaryScreen.BitsPerPixel
+            }
+
+            $violations = @()
+            if (-not $probe.userInteractive) {
+              $violations += 'Environment.UserInteractive is false'
+            }
+            if ($probe.sessionId -le 0) {
+              $violations += "PowerShell is running in non-interactive session $($probe.sessionId)"
+            }
+            if ($bounds.Width -le 0 -or $bounds.Height -le 0) {
+              $violations += "Primary screen has invalid bounds $($bounds.Width)x$($bounds.Height)"
+            }
+            if ($dpi -ne 96) {
+              $violations += "Expected 96 DPI (100% scaling), received $dpi DPI"
+            }
+
+            $probe.violations = $violations
+            $probe.valid = $violations.Count -eq 0
+            Write-ProbeManifest
+            $probe | ConvertTo-Json -Depth 8
+
+            if (-not $probe.valid) {
+              throw "Windows desktop preflight failed: $($violations -join '; ')"
+            }
+          } catch {
+            $probe.error = $_.Exception.ToString()
+            Write-ProbeManifest
+            throw
+          }
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@eae0cfeb286e66ffb5155f1a79b90583a127a68b # v2.4.1
+        with:
+          version: 9.3.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '24.13.0'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        shell: pwsh
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Build report and computer packages
+        id: build
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          pnpm exec nx run-many --target=build --projects="@midscene/report,@midscene/computer" --skip-nx-cache
+          if ($LASTEXITCODE -ne 0) {
+            throw '@midscene/report or @midscene/computer failed to build.'
+          }
+
+          node apps/report/scripts/inject-report-template.mjs
+          if ($LASTEXITCODE -ne 0) {
+            throw 'Failed to inject the report template into @midscene/core.'
+          }
+
+      - name: Validate computer package outputs
+        id: package-smoke
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          node -e "const mod=require('./packages/computer/dist/lib/index.js'); if(typeof mod.ComputerDevice!=='function'||typeof mod.ComputerAgent!=='function') throw new Error('invalid CJS exports')"
+          if ($LASTEXITCODE -ne 0) { throw 'CJS entrypoint validation failed.' }
+
+          node --input-type=module -e "const mod=await import('./packages/computer/dist/es/index.mjs'); if(typeof mod.ComputerDevice!=='function'||typeof mod.ComputerAgent!=='function') throw new Error('invalid ESM exports')"
+          if ($LASTEXITCODE -ne 0) { throw 'ESM entrypoint validation failed.' }
+
+          $typesPath = 'packages/computer/dist/types/index.d.ts'
+          if (-not (Test-Path -LiteralPath $typesPath -PathType Leaf)) {
+            throw "Missing declaration entrypoint: $typesPath"
+          }
+
+          $packageJson = Get-Content -Raw packages/computer/package.json |
+            ConvertFrom-Json
+          $cliVersion = (& node packages/computer/bin/midscene-computer --version |
+            Out-String).Trim()
+          if ($LASTEXITCODE -ne 0) { throw 'Computer CLI failed to start.' }
+          $expectedCliVersion = "midscene-computer v$($packageJson.version)"
+          if ($cliVersion -ne $expectedCliVersion) {
+            throw "Unexpected CLI version '$cliVersion'; expected '$expectedCliVersion'."
+          }
+
+          $packDir = Join-Path $env:RUNNER_TEMP 'midscene-computer-pack'
+          New-Item -ItemType Directory -Force -Path $packDir | Out-Null
+          pnpm --dir packages/computer pack --pack-destination $packDir
+          if ($LASTEXITCODE -ne 0) { throw 'pnpm pack failed.' }
+
+          $archive = Get-ChildItem -LiteralPath $packDir -Filter '*.tgz' |
+            Sort-Object LastWriteTime -Descending |
+            Select-Object -First 1
+          if ($null -eq $archive) { throw 'pnpm pack did not create a tarball.' }
+
+          $packageEntries = @(& tar -tf $archive.FullName)
+          if ($LASTEXITCODE -ne 0) { throw 'Unable to inspect the package tarball.' }
+          $packageEntries | Set-Content -LiteralPath (
+            Join-Path $env:MIDSCENE_WINDOWS_DIAGNOSTICS_DIR 'package-files.txt'
+          ) -Encoding utf8
+
+          $requiredEntries = @(
+            'package/package.json',
+            'package/bin/midscene-computer',
+            'package/dist/lib/cli.js',
+            'package/dist/lib/index.js',
+            'package/dist/es/index.mjs',
+            'package/dist/types/index.d.ts'
+          )
+          $missingEntries = @(
+            $requiredEntries | Where-Object { $_ -notin $packageEntries }
+          )
+          if ($missingEntries.Count -gt 0) {
+            throw "Package tarball is missing: $($missingEntries -join ', ')"
+          }
+
+      - name: Run computer unit tests
+        id: unit-tests
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          $logPath = Join-Path $env:MIDSCENE_WINDOWS_DIAGNOSTICS_DIR 'unit-tests.log'
+          pnpm exec nx test @midscene/computer --skip-nx-cache 2>&1 |
+            Tee-Object -FilePath $logPath
+          $testExitCode = $LASTEXITCODE
+          if ($testExitCode -ne 0) {
+            throw "Computer unit tests failed with exit code $testExitCode."
+          }
+
+      - name: Run live Windows desktop smoke test
+        id: live-smoke
+        continue-on-error: true
+        timeout-minutes: 10
+        shell: pwsh
+        env:
+          AI_TEST_TYPE: computer
+          MIDSCENE_WINDOWS_DESKTOP_SMOKE: '1'
+          MIDSCENE_WINDOWS_DIAGNOSTICS_DIR: ${{ github.workspace }}/midscene_run/windows-desktop-diagnostics
+          MIDSCENE_RUN_DIR: ${{ github.workspace }}/midscene_run
+        run: |
+          $logPath = Join-Path $env:MIDSCENE_WINDOWS_DIAGNOSTICS_DIR 'live-smoke.log'
+          pnpm exec nx test @midscene/computer --skip-nx-cache -- tests/ai/windows-desktop-smoke.test.ts --retry=0 2>&1 |
+            Tee-Object -FilePath $logPath
+          $testExitCode = $LASTEXITCODE
+          if ($testExitCode -ne 0) {
+            throw "Windows desktop smoke failed with exit code $testExitCode."
+          }
+
+      - name: Run Windows TodoMVC AI test
+        id: todo-mvc
+        continue-on-error: true
+        timeout-minutes: 25
+        shell: pwsh
+        env:
+          AI_TEST_TYPE: computer
+        run: |
+          $logPath = Join-Path $env:MIDSCENE_WINDOWS_DIAGNOSTICS_DIR 'todo-mvc.log'
+          pnpm exec nx test @midscene/computer --skip-nx-cache -- tests/ai/ai-auto-todo.test.ts --retry=0 2>&1 |
+            Tee-Object -FilePath $logPath
+          $testExitCode = $LASTEXITCODE
+          if ($testExitCode -ne 0) {
+            throw "Windows TodoMVC test failed with exit code $testExitCode."
+          }
+
+      - name: Collect step outcomes
+        if: always()
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path $env:MIDSCENE_WINDOWS_DIAGNOSTICS_DIR | Out-Null
+          $outcomes = [ordered]@{
+            build = '${{ steps.build.outcome }}'
+            packageSmoke = '${{ steps.package-smoke.outcome }}'
+            unitTests = '${{ steps.unit-tests.outcome }}'
+            liveSmoke = '${{ steps.live-smoke.outcome }}'
+            todoMvc = '${{ steps.todo-mvc.outcome }}'
+          }
+          $outcomes | ConvertTo-Json |
+            Set-Content -LiteralPath (
+              Join-Path $env:MIDSCENE_WINDOWS_DIAGNOSTICS_DIR 'step-outcomes.json'
+            ) -Encoding utf8
+
+      - name: Upload Windows desktop report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: windows-desktop-smoke-report
+          path: midscene_run/report/windows-desktop-smoke.html
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Upload Windows desktop diagnostics
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: windows-desktop-diagnostics
+          path: midscene_run/windows-desktop-diagnostics
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Upload Windows TodoMVC report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: windows-todo-mvc-report
+          path: midscene_run/report/todo-mvc-win32.html
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Check Windows validation results
+        if: always()
+        shell: pwsh
+        run: |
+          $failed = @()
+          if ('${{ steps.build.outcome }}' -ne 'success') { $failed += 'build' }
+          if ('${{ steps.package-smoke.outcome }}' -ne 'success') { $failed += 'package smoke' }
+          if ('${{ steps.unit-tests.outcome }}' -ne 'success') { $failed += 'unit tests' }
+          if ('${{ steps.live-smoke.outcome }}' -ne 'success') { $failed += 'live desktop smoke' }
+          if ('${{ steps.todo-mvc.outcome }}' -ne 'success') { $failed += 'TodoMVC' }
+          if ($failed.Count -gt 0) {
+            throw "Windows validation failed: $($failed -join ', ')"
+          }

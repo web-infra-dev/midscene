@@ -1,0 +1,216 @@
+name: Android Emulator
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/android-emulator.yml'
+      - 'apps/report/**'
+      - 'packages/android/**'
+      - 'packages/core/**'
+      - 'packages/shared/**'
+      - 'scripts/report-template-utils.mjs'
+      - 'nx.json'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to checkout'
+        required: false
+        default: 'main'
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-emulator-${{ github.event.pull_request.number || inputs.branch || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  android-emulator:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 55
+    env:
+      CI: '1'
+      FORCE_COLOR: '0'
+      MIDSCENE_MODEL_API_KEY: ${{ secrets.MIDSCENE_MODEL_API_KEY }}
+      MIDSCENE_MODEL_BASE_URL: ${{ vars.MIDSCENE_MODEL_BASE_URL }}
+      MIDSCENE_MODEL_NAME: ${{ vars.MIDSCENE_MODEL_NAME }}
+      MIDSCENE_MODEL_FAMILY: ${{ vars.MIDSCENE_MODEL_FAMILY }}
+      MIDSCENE_MODEL_RETRY_COUNT: '2'
+      MIDSCENE_MODEL_RETRY_INTERVAL: '60000'
+      MIDSCENE_REPORT_QUIET: 'true'
+      MIDSCENE_RUN_DIR: ${{ github.workspace }}/midscene_run
+      MIDSCENE_ANDROID_DIAGNOSTICS_DIR: ${{ github.workspace }}/midscene_run/android-emulator-diagnostics
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          ref: ${{ inputs.branch || github.ref }}
+
+      - name: Prepare Android diagnostics and KVM
+        shell: bash
+        run: |
+          mkdir -p "$MIDSCENE_ANDROID_DIAGNOSTICS_DIR"
+          {
+            uname -a
+            ls -l /dev/kvm || true
+          } 2>&1 | tee "$MIDSCENE_ANDROID_DIAGNOSTICS_DIR/runner-environment.log"
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' |
+            sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@eae0cfeb286e66ffb5155f1a79b90583a127a68b # v2.4.1
+        with:
+          version: 9.3.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '24.13.0'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Build report and Android packages
+        id: build
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm exec nx run-many --target=build --projects="@midscene/report,@midscene/android" --skip-nx-cache 2>&1 |
+            tee "$MIDSCENE_ANDROID_DIAGNOSTICS_DIR/build.log"
+          node apps/report/scripts/inject-report-template.mjs
+
+      - name: Validate Android package outputs
+        id: package-smoke
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          node -e "const mod=require('./packages/android/dist/lib/index.js'); if(typeof mod.AndroidDevice!=='function'||typeof mod.AndroidAgent!=='function') throw new Error('invalid CJS exports')"
+          node --input-type=module -e "const mod=await import('./packages/android/dist/es/index.mjs'); if(typeof mod.AndroidDevice!=='function'||typeof mod.AndroidAgent!=='function') throw new Error('invalid ESM exports')"
+          test -f packages/android/dist/types/index.d.ts
+
+          actual_cli_version=$(node packages/android/bin/midscene-android --version)
+          package_version=$(node -p "require('./packages/android/package.json').version")
+          expected_cli_version="midscene-android v${package_version}"
+          if [[ "$actual_cli_version" != "$expected_cli_version" ]]; then
+            echo "Unexpected CLI version '$actual_cli_version'; expected '$expected_cli_version'." >&2
+            exit 1
+          fi
+
+          pack_dir="$RUNNER_TEMP/midscene-android-pack"
+          mkdir -p "$pack_dir"
+          pnpm --dir packages/android pack --pack-destination "$pack_dir"
+          archive=$(find "$pack_dir" -name '*.tgz' -type f | head -n 1)
+          test -n "$archive"
+          tar -tf "$archive" > "$MIDSCENE_ANDROID_DIAGNOSTICS_DIR/package-files.txt"
+          for required in \
+            package/package.json \
+            package/bin/midscene-android \
+            package/dist/lib/cli.js \
+            package/dist/lib/index.js \
+            package/dist/es/index.mjs \
+            package/dist/types/index.d.ts; do
+            grep -Fxq "$required" "$MIDSCENE_ANDROID_DIAGNOSTICS_DIR/package-files.txt"
+          done
+
+      - name: Run Android unit tests
+        id: unit-tests
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          pnpm exec nx test @midscene/android --skip-nx-cache 2>&1 |
+            tee "$MIDSCENE_ANDROID_DIAGNOSTICS_DIR/unit-tests.log"
+
+      - name: Run Android Emulator smoke and TodoMVC tests
+        id: emulator-tests
+        continue-on-error: true
+        timeout-minutes: 35
+        uses: ReactiveCircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          cores: 2
+          ram-size: 4096M
+          heap-size: 512M
+          emulator-boot-timeout: 600
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot-save -noaudio -no-boot-anim -camera-back none
+          script: bash packages/android/scripts/run-emulator-ci-smokes.sh
+
+      - name: Collect host step outcomes
+        if: always()
+        shell: bash
+        env:
+          BUILD_OUTCOME: ${{ steps.build.outcome }}
+          PACKAGE_OUTCOME: ${{ steps.package-smoke.outcome }}
+          UNIT_OUTCOME: ${{ steps.unit-tests.outcome }}
+          EMULATOR_OUTCOME: ${{ steps.emulator-tests.outcome }}
+        run: |
+          mkdir -p "$MIDSCENE_ANDROID_DIAGNOSTICS_DIR"
+          node -e '
+            const fs = require("node:fs");
+            const path = require("node:path");
+            const outcomes = {
+              build: process.env.BUILD_OUTCOME,
+              packageSmoke: process.env.PACKAGE_OUTCOME,
+              unitTests: process.env.UNIT_OUTCOME,
+              emulatorTests: process.env.EMULATOR_OUTCOME,
+            };
+            fs.writeFileSync(
+              path.join(process.env.MIDSCENE_ANDROID_DIAGNOSTICS_DIR, "host-step-outcomes.json"),
+              `${JSON.stringify(outcomes, null, 2)}\n`,
+            );
+          '
+
+      - name: Upload Android Emulator smoke report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: android-emulator-smoke-report
+          path: midscene_run/report/android-emulator-smoke.html
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Upload Android TodoMVC report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: android-todo-mvc-report
+          path: midscene_run/report/todo-mvc-android.html
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Upload Android Emulator diagnostics
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: android-emulator-diagnostics
+          path: midscene_run/android-emulator-diagnostics
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Check Android validation results
+        if: always()
+        shell: bash
+        run: |
+          failed=()
+          [[ '${{ steps.build.outcome }}' == success ]] || failed+=(build)
+          [[ '${{ steps.package-smoke.outcome }}' == success ]] || failed+=("package smoke")
+          [[ '${{ steps.unit-tests.outcome }}' == success ]] || failed+=("unit tests")
+          [[ '${{ steps.emulator-tests.outcome }}' == success ]] || failed+=("emulator tests")
+          if ((${#failed[@]} > 0)); then
+            printf 'Android validation failed: %s\n' "${failed[*]}" >&2
+            exit 1
+          fi
