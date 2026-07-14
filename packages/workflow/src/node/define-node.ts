@@ -1,10 +1,5 @@
 import { NodeDefinitionError } from '../errors';
-import type {
-  DefineDocumentNodeOptions,
-  DefineNodeOptions,
-  DocumentNodeDefinition,
-  NodeDefinition,
-} from './types';
+import type { DefineNodeOptions, NodeDefinition } from './types';
 
 const validateDefinition = (options: {
   name: string;
@@ -33,17 +28,6 @@ export function defineNode<
 >(
   options: DefineNodeOptions<TInput, TData, TContext>,
 ): NodeDefinition<TInput, TData, TContext> {
-  validateDefinition(options);
-  return options;
-}
-
-export function defineDocumentNode<
-  TInput = unknown,
-  TData = unknown,
-  TContext = unknown,
->(
-  options: DefineDocumentNodeOptions<TInput, TData, TContext>,
-): DocumentNodeDefinition<TInput, TData, TContext> {
   validateDefinition(options);
   return options;
 }

@@ -1,10 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
   type CollectedWorkflowDocument,
-  DocumentNodeRegistry,
+  NodeRegistry,
   WorkflowLifecycleError,
   createDocumentRuntime,
-  defineDocumentNode,
   defineNode,
   runCase,
   runWorkflowDocument,
@@ -41,18 +40,57 @@ const collectedDocument = (
 });
 
 describe('workflow document runtime', () => {
+  it('runs one node definition in document and case scopes', async () => {
+    const calls: string[] = [];
+    const sharedNode = defineNode({
+      name: 'shared.record',
+      execute(ctx) {
+        calls.push(ctx.scope);
+        if (ctx.scope === 'document') {
+          expect('case' in ctx).toBe(false);
+          calls.push(ctx.document.phase);
+        } else {
+          expect('document' in ctx).toBe(false);
+          calls.push(ctx.case.phase);
+        }
+      },
+    });
+    const document = collectedDocument({
+      beforeAll: [step(sharedNode.name)],
+      afterAll: [step(sharedNode.name)],
+    });
+    document.cases[0].definition.steps = [step(sharedNode.name)];
+    const registry = new NodeRegistry([sharedNode]);
+
+    await runWorkflowDocument(document, {
+      resolveNode: registry.require.bind(registry),
+    });
+
+    expect(calls).toEqual([
+      'document',
+      'beforeAll',
+      'case',
+      'steps',
+      'document',
+      'afterAll',
+    ]);
+  });
+
   it('runs one document lifecycle and its cases as a unit', async () => {
     const calls: string[] = [];
     let stopped = false;
-    const documentNode = defineDocumentNode({
+    const documentNode = defineNode({
       name: 'document.record',
       execute(ctx) {
+        if (ctx.scope !== 'document')
+          throw new Error('document scope required');
         calls.push(ctx.document.phase);
       },
     });
     const caseNode = defineNode({
       name: 'case.record',
       execute(ctx) {
+        if (ctx.scope !== 'case') throw new Error('case scope required');
         calls.push(`${ctx.case.name}:${ctx.case.phase}`);
         stopped = true;
       },
@@ -72,10 +110,10 @@ describe('workflow document runtime', () => {
         definition: { name: 'second', steps: [step(caseNode.name)] },
       },
     ];
+    const registry = new NodeRegistry([documentNode, caseNode]);
 
     const result = await runWorkflowDocument(document, {
-      resolveNode: () => caseNode,
-      resolveDocumentNode: () => documentNode,
+      resolveNode: registry.require.bind(registry),
       setupDocument({ onTeardown }) {
         calls.push('setupDocument');
         onTeardown(() => calls.push('documentTeardown'));
@@ -113,9 +151,11 @@ describe('workflow document runtime', () => {
   it('shares one setup context with document hooks and case runs', async () => {
     const calls: string[] = [];
     const context = { marker: 'shared' };
-    const documentNode = defineDocumentNode<unknown, unknown, typeof context>({
+    const documentNode = defineNode<unknown, unknown, typeof context>({
       name: 'document.record',
       execute(ctx) {
+        if (ctx.scope !== 'document')
+          throw new Error('document scope required');
         expect(ctx.context).toBe(context);
         expect(ctx.document.documentRunId).toBe('document-run');
         expect(Object.isFrozen(ctx.document.completedNodes)).toBe(true);
@@ -125,6 +165,7 @@ describe('workflow document runtime', () => {
     const caseNode = defineNode<unknown, unknown, typeof context>({
       name: 'case.record',
       execute(ctx) {
+        if (ctx.scope !== 'case') throw new Error('case scope required');
         expect(ctx.context).toBe(context);
         calls.push(ctx.case.phase);
       },
@@ -136,7 +177,7 @@ describe('workflow document runtime', () => {
       afterAll: [step(documentNode.name)],
     });
     document.cases[0].definition.steps = [step(caseNode.name)];
-    const registry = new DocumentNodeRegistry([documentNode]);
+    const registry = new NodeRegistry([documentNode]);
     const runtime = createDocumentRuntime(document, {
       resolveNode: registry.require.bind(registry),
       setupDocument(setup) {
@@ -214,8 +255,8 @@ describe('workflow document runtime', () => {
   it('tears down partial setup and skips all YAML hooks after setup fails', async () => {
     const hook = vi.fn();
     const teardown = vi.fn();
-    const node = defineDocumentNode({ name: 'hook', execute: hook });
-    const registry = new DocumentNodeRegistry([node]);
+    const node = defineNode({ name: 'hook', execute: hook });
+    const registry = new NodeRegistry([node]);
     const runtime = createDocumentRuntime(
       collectedDocument({
         beforeAll: [step('hook')],
@@ -243,15 +284,15 @@ describe('workflow document runtime', () => {
 
   it('runs afterAll and teardown after beforeAll fails', async () => {
     const calls: string[] = [];
-    const registry = new DocumentNodeRegistry([
-      defineDocumentNode({
+    const registry = new NodeRegistry([
+      defineNode({
         name: 'before.fail',
         execute() {
           calls.push('beforeAll');
           throw new Error('prepare failed');
         },
       }),
-      defineDocumentNode({
+      defineNode({
         name: 'after',
         execute() {
           calls.push('afterAll');
@@ -281,14 +322,14 @@ describe('workflow document runtime', () => {
 
   it('continues reverse teardown after afterAll and teardown failures', async () => {
     const calls: string[] = [];
-    const node = defineDocumentNode({
+    const node = defineNode({
       name: 'after.fail',
       execute() {
         calls.push('afterAll');
         throw new Error('after failed');
       },
     });
-    const registry = new DocumentNodeRegistry([node]);
+    const registry = new NodeRegistry([node]);
     const onResult = vi.fn(() => calls.push('result'));
     const runtime = createDocumentRuntime(
       collectedDocument({ afterAll: [step(node.name)] }),

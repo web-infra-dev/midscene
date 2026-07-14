@@ -24,6 +24,7 @@ describe('runCase', () => {
     const node = defineNode<unknown, unknown, typeof context>({
       name: 'record',
       execute(ctx) {
+        if (ctx.scope !== 'case') throw new Error('case scope required');
         calls.push(`${ctx.case.phase}:${ctx.case.stepIndex}`);
         expect(ctx.context).toBe(context);
         expect(Object.isFrozen(ctx.case.completedSteps)).toBe(true);

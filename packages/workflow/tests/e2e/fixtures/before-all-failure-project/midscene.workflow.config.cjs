@@ -1,5 +1,5 @@
 const { appendFileSync } = require('node:fs');
-const { defineDocumentNode, defineNode } = require('@midscene/workflow');
+const { defineNode } = require('@midscene/workflow');
 const { defineWorkflowProject } = require('@midscene/workflow/config');
 
 const log = (value) => {
@@ -9,22 +9,20 @@ const log = (value) => {
 };
 
 module.exports = defineWorkflowProject({
-  documentNodes: [
-    defineDocumentNode({
+  nodes: [
+    defineNode({
       name: 'before.fail',
       execute() {
         log('beforeAll');
         throw new Error('controlled beforeAll failure');
       },
     }),
-    defineDocumentNode({
+    defineNode({
       name: 'after.record',
       execute() {
         log('afterAll');
       },
     }),
-  ],
-  nodes: [
     defineNode({
       name: 'body.record',
       execute() {

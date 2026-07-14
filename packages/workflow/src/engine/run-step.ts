@@ -3,11 +3,7 @@ import {
   StepTimeoutError,
   normalizeNodeExecutionError,
 } from '../errors';
-import type {
-  DocumentNodeDefinition,
-  NodeDefinition,
-  NodeResult,
-} from '../node/types';
+import type { NodeDefinition, NodeResult } from '../node/types';
 import { validateCommonNodeInput } from '../parser/normalize';
 import type { CommonNodeInput, NormalizedStep } from '../parser/types';
 import type {
@@ -147,6 +143,7 @@ export async function runStepForCase<
         input: step.input as TInput & CommonNodeInput,
         $: step.meta,
         signal,
+        scope: 'case',
         case: caseContext,
         context,
       }),
@@ -161,7 +158,7 @@ export async function runStepForDocument<
   TContext = unknown,
 >(
   step: NormalizedStep,
-  node: DocumentNodeDefinition<TInput, TOutputData, TContext>,
+  node: NodeDefinition<TInput, TOutputData, TContext>,
   document: NodeDocumentContext,
   context: TContext,
 ): Promise<StepRunResult<TOutputData>> {
@@ -172,6 +169,7 @@ export async function runStepForDocument<
         input: step.input as TInput & CommonNodeInput,
         $: step.meta,
         signal,
+        scope: 'document',
         document,
         context,
       }),

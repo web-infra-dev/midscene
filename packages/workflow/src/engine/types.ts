@@ -1,9 +1,5 @@
 import type { WorkflowError } from '../errors';
-import type {
-  DocumentNodeDefinition,
-  NodeDefinition,
-  NodeResult,
-} from '../node/types';
+import type { NodeDefinition, NodeResult } from '../node/types';
 import type {
   CollectedCase,
   CollectedDocumentLifecycle,
@@ -117,7 +113,6 @@ export interface WorkflowDocumentExecutionResult {
 
 export interface RunWorkflowDocumentOptions<TContext = undefined> {
   resolveNode(name: string): NodeDefinition<any, any, TContext>;
-  resolveDocumentNode(name: string): DocumentNodeDefinition<any, any, TContext>;
   setupDocument?: WorkflowDocumentSetup<TContext>;
   shouldStop?(): boolean;
   onCaseResult?(result: CaseRunResult): Promise<void> | void;
@@ -156,7 +151,7 @@ export type WorkflowDocumentSetup<TContext> = (
 ) => Awaitable<TContext>;
 
 export interface CreateDocumentRuntimeOptions<TContext = undefined> {
-  resolveNode(name: string): DocumentNodeDefinition<any, any, TContext>;
+  resolveNode(name: string): NodeDefinition<any, any, TContext>;
   setupDocument?: WorkflowDocumentSetup<TContext>;
   onResult?(result: WorkflowDocumentRunResult): Promise<void> | void;
   createDocumentRunId?(): string;
