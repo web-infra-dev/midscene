@@ -185,4 +185,31 @@ describe('workflow runner', () => {
       ),
     ).rejects.toBeInstanceOf(NodeExecutionError);
   });
+
+  it('uses setupWorkflow context and tears down before rejecting', async () => {
+    const lifecycle: string[] = [];
+    const engine = new WorkflowEngine<{ value: string }>({
+      nodes: [
+        defineNode<unknown, unknown, { value: string }>({
+          name: 'context.node',
+          execute(ctx) {
+            lifecycle.push(`node:${ctx.context.value}`);
+            throw new Error('node failed');
+          },
+        }),
+      ],
+      setupWorkflow({ onTeardown }) {
+        lifecycle.push('setup');
+        onTeardown(() => {
+          lifecycle.push('teardown');
+        });
+        return { value: 'ready' };
+      },
+    });
+
+    await expect(
+      engine.run({ workflow: [{ 'context.node': {} }] }),
+    ).rejects.toBeInstanceOf(NodeExecutionError);
+    expect(lifecycle).toEqual(['setup', 'node:ready', 'teardown']);
+  });
 });

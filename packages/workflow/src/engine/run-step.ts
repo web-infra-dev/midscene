@@ -62,10 +62,12 @@ const standaloneWorkflowContext = (): NodeWorkflowContext => ({
 export async function runStepForWorkflow<
   TInput = unknown,
   TOutputData = unknown,
+  TContext = unknown,
 >(
   step: NormalizedStep,
-  node: NodeDefinition<TInput, TOutputData>,
+  node: NodeDefinition<TInput, TOutputData, TContext>,
   workflow: NodeWorkflowContext,
+  context: TContext,
 ): Promise<StepRunResult<TOutputData>> {
   validateCommonNodeInput(step.input, 0);
 
@@ -81,6 +83,7 @@ export async function runStepForWorkflow<
       $: step.meta,
       signal: abortController.signal,
       workflow,
+      context,
     }),
   );
 
@@ -132,10 +135,10 @@ export async function runStepForWorkflow<
 /** RFC 0001 compatibility API: a non-continuable step still rejects. */
 export async function runStep<TInput = unknown, TOutputData = unknown>(
   step: NormalizedStep,
-  node: NodeDefinition<TInput, TOutputData>,
+  node: NodeDefinition<TInput, TOutputData, undefined>,
   workflow: NodeWorkflowContext = standaloneWorkflowContext(),
 ): Promise<StepRunResult<TOutputData>> {
-  const result = await runStepForWorkflow(step, node, workflow);
+  const result = await runStepForWorkflow(step, node, workflow, undefined);
   if (result.status === 'failed' && !result.continuedAfterError) {
     throw result.error;
   }
