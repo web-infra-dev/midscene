@@ -1573,6 +1573,9 @@ importers:
         specifier: 0.2.15
         version: 0.2.15
     devDependencies:
+      '@midscene/web':
+        specifier: workspace:*
+        version: link:../web-integration
       '@rslib/core':
         specifier: ^0.18.3
         version: 0.18.3(@microsoft/api-extractor@7.52.10(@types/node@18.19.130))(typescript@5.8.3)
@@ -1582,6 +1585,9 @@ importers:
       '@types/node':
         specifier: ^18.0.0
         version: 18.19.130
+      playwright:
+        specifier: ^1.45.0
+        version: 1.58.1
       typescript:
         specifier: ^5.8.3
         version: 5.8.3

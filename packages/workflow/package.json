@@ -43,9 +43,11 @@
     "tinyglobby": "0.2.15"
   },
   "devDependencies": {
+    "@midscene/web": "workspace:*",
     "@rslib/core": "^0.18.3",
     "@types/js-yaml": "4.0.9",
     "@types/node": "^18.0.0",
+    "playwright": "^1.45.0",
     "typescript": "^5.8.3",
     "vitest": "3.0.5"
   },
