@@ -80,6 +80,18 @@ describe('midscene-workflow CLI', () => {
       },
     );
 
+    expect(execution.stdout).toContain(
+      'midscene-workflow: collected 2 documents, 3 cases, 0 collection errors',
+    );
+    expect(execution.stdout).toContain('[document 1/2] flows/first.yaml');
+    expect(execution.stdout).toContain('  [case 1/2] first case');
+    expect(execution.stdout).toContain('    → step 1/3: test.record');
+    expect(execution.stdout).toMatch(
+      / {4}✓ step 1\/3: test\.record \(\d+ ms\)/,
+    );
+    expect(execution.stdout).toMatch(
+      /✓ document 2\/2: flows\/nested\/second\.yml \(\d+ ms\)/,
+    );
     expect(execution.stdout).toContain('3/3 cases passed, 0 failed, 0 not run');
     expect(readFileSync(executionLog, 'utf8').trim().split('\n')).toEqual([
       'first:one',
@@ -173,6 +185,10 @@ describe('midscene-workflow CLI', () => {
     });
 
     expect(failure.code).toBe(1);
+    expect(failure.stdout).toContain('    → step 1/1: test.record');
+    expect(failure.stdout).toMatch(
+      / {4}✗ step 1\/1: test\.record \(\d+ ms\) — Node "test\.record" failed: controlled case failure/,
+    );
     expect(failure.stdout).toContain('2/3 cases passed, 1 failed, 0 not run');
     expect(readFileSync(executionLog, 'utf8').trim().split('\n')).toEqual([
       'first:failed',

@@ -86,6 +86,7 @@ git config user.email "SOME_EMAIL@example.com"
 - `packages/web-integration`: source for npm package `@midscene/web`;
   Playwright/Puppeteer integration and main web e2e coverage. The package name is `@midscene/web`.
 - `packages/shared`: shared utilities used across the monorepo. The package name is `@midscene/shared`.
+- `packages/test`: extensible YAML test runner and Node SDK. The package name is `@midscene/test`.
 - `packages/{android,ios,computer,harmony}`: platform runtimes. Matching
   `*-playground` packages live alongside them. The package names are `@midscene/android`, `@midscene/ios`, `@midscene/computer`, `@midscene/harmony`.
 - `packages/visualizer` and `apps/report`: report rendering and viewer UI.

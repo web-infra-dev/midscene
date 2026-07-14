@@ -29,6 +29,8 @@ export async function runWorkflowDocument<TContext = undefined>(
   const runtime = createDocumentRuntime(document, {
     resolveNode: options.resolveNode,
     setupDocument: options.setupDocument,
+    onStepStart: options.onStepStart,
+    onStepResult: options.onStepResult,
     onResult: options.onDocumentResult,
     createDocumentRunId: createDocumentRunId
       ? () => createDocumentRunId(document)
@@ -55,11 +57,14 @@ export async function runWorkflowDocument<TContext = undefined>(
           cases.push(asNotRun(collectedCase, 'interrupted'));
           continue;
         }
+        await options.onCaseStart?.(collectedCase);
         const run = await runCollectedCase(collectedCase, {
           resolveNode: options.resolveNode,
           beforeEach: document.lifecycle.beforeEach,
           afterEach: document.lifecycle.afterEach,
           context: runtime.context,
+          onStepStart: options.onStepStart,
+          onStepResult: options.onStepResult,
           onResult: options.onCaseResult,
           createRunId: createCaseRunId
             ? () => createCaseRunId(collectedCase)

@@ -85,11 +85,36 @@ export interface NodeDocumentContext {
   readonly completedNodes: readonly StepRunResult[];
 }
 
+export type StepExecutionInfo =
+  | {
+      scope: 'case';
+      node: string;
+      stepCount: number;
+      case: NodeCaseContext;
+      document?: never;
+    }
+  | {
+      scope: 'document';
+      node: string;
+      stepCount: number;
+      document: NodeDocumentContext;
+      case?: never;
+    };
+
+export type StepStartHandler = (info: StepExecutionInfo) => Awaitable<void>;
+
+export type StepResultHandler = (
+  info: StepExecutionInfo,
+  result: StepRunResult,
+) => Awaitable<void>;
+
 export interface RunCollectedCaseOptions<TContext = undefined> {
   resolveNode(name: string): NodeDefinition<any, any, TContext>;
   beforeEach?: readonly NormalizedStep[];
   afterEach?: readonly NormalizedStep[];
   context?: TContext;
+  onStepStart?: StepStartHandler;
+  onStepResult?: StepResultHandler;
   onResult?(result: CaseRunResult): Promise<void> | void;
   createRunId?(): string;
 }
@@ -115,6 +140,9 @@ export interface RunWorkflowDocumentOptions<TContext = undefined> {
   resolveNode(name: string): NodeDefinition<any, any, TContext>;
   setupDocument?: WorkflowDocumentSetup<TContext>;
   shouldStop?(): boolean;
+  onCaseStart?(collectedCase: CollectedCase): Awaitable<void>;
+  onStepStart?: StepStartHandler;
+  onStepResult?: StepResultHandler;
   onCaseResult?(result: CaseRunResult): Promise<void> | void;
   onDocumentResult?(result: WorkflowDocumentRunResult): Promise<void> | void;
   createCaseRunId?(collectedCase: CollectedCase): string;
@@ -153,6 +181,8 @@ export type WorkflowDocumentSetup<TContext> = (
 export interface CreateDocumentRuntimeOptions<TContext = undefined> {
   resolveNode(name: string): NodeDefinition<any, any, TContext>;
   setupDocument?: WorkflowDocumentSetup<TContext>;
+  onStepStart?: StepStartHandler;
+  onStepResult?: StepResultHandler;
   onResult?(result: WorkflowDocumentRunResult): Promise<void> | void;
   createDocumentRunId?(): string;
 }

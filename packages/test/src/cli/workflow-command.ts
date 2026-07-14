@@ -54,7 +54,10 @@ export async function runWorkflowCli(
 ): Promise<number> {
   try {
     const options = parseWorkflowCliArgs(args);
-    const result = await runWorkflowProject(options);
+    const result = await runWorkflowProject({
+      ...options,
+      onProgress: (message) => io.log(message),
+    });
     io.log(
       `midscene-workflow: ${result.summary.passed}/${result.summary.total} cases passed, ${result.summary.failed} failed, ${result.summary.notRun} not run`,
     );

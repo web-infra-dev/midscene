@@ -108,7 +108,7 @@ interface WorkflowProjectDefinition {
 这些字段的生命周期完全相同：每次 attempt 创建、节点间共享、结束后释放。workflow
 engine 应提供统一机制，不应逐个了解业务资源。
 
-当前 `packages/workflow` 已经具备以下能力：
+当前 `packages/test` 已经具备以下能力：
 
 - 通过 `defineNode()` 定义节点；
 - 通过 `WorkflowProjectDefinition.nodes` 注册静态节点；
