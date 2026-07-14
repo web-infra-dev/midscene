@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import { type CollectedCase, NodeRegistry, defineNode, runCase } from '../src';
+import { type CollectedCase, NodeRegistry, defineNode } from '../src';
+import { runCollectedCase } from '../src/engine/run-collected-case';
 
 const step = (node: string, continueOnError = false) => ({
   node,
@@ -17,7 +18,7 @@ const collected = (
   definition: { name: 'example case', steps },
 });
 
-describe('runCase', () => {
+describe('runCollectedCase', () => {
   it('runs all attempt phases in order with one context and complete history', async () => {
     const context = { marker: 'document-context' };
     const calls: string[] = [];
@@ -45,7 +46,7 @@ describe('runCase', () => {
     });
     const registry = new NodeRegistry([node]);
 
-    const result = await runCase(collected([step(node.name)]), {
+    const result = await runCollectedCase(collected([step(node.name)]), {
       beforeEach: [step(node.name)],
       afterEach: [step(node.name)],
       resolveNode: registry.require.bind(registry),
@@ -93,7 +94,7 @@ describe('runCase', () => {
       }),
     ]);
 
-    const result = await runCase(collected([step('body')]), {
+    const result = await runCollectedCase(collected([step('body')]), {
       beforeEach: [step('before.fail', true), step('before.next')],
       afterEach: [step('after')],
       resolveNode: registry.require.bind(registry),
@@ -122,7 +123,7 @@ describe('runCase', () => {
       }),
     ]);
 
-    const result = await runCase(collected([step('body.fail')]), {
+    const result = await runCollectedCase(collected([step('body.fail')]), {
       afterEach: [step('after.fail')],
       resolveNode: registry.require.bind(registry),
     });
@@ -144,7 +145,7 @@ describe('runCase', () => {
       defineNode({ name: 'next', execute: next }),
     ]);
 
-    const result = await runCase(
+    const result = await runCollectedCase(
       collected([step('fails', true), step('next')]),
       { resolveNode: registry.require.bind(registry) },
     );
@@ -160,7 +161,7 @@ describe('runCase', () => {
     const registry = new NodeRegistry([defineNode({ name: 'known', execute })]);
 
     await expect(
-      runCase(collected([step('known')]), {
+      runCollectedCase(collected([step('known')]), {
         beforeEach: [step('known')],
         afterEach: [step('missing')],
         resolveNode: registry.require.bind(registry),
@@ -170,7 +171,7 @@ describe('runCase', () => {
     expect(execute).not.toHaveBeenCalled();
     expect(onResult).not.toHaveBeenCalled();
 
-    const result = await runCase(collected([step('known')]), {
+    const result = await runCollectedCase(collected([step('known')]), {
       resolveNode: registry.require.bind(registry),
       onResult,
     });

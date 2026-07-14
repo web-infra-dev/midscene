@@ -5,9 +5,9 @@ import {
   WorkflowLifecycleError,
   createDocumentRuntime,
   defineNode,
-  runCase,
   runWorkflowDocument,
 } from '../src';
+import { runCollectedCase } from '../src/engine/run-collected-case';
 
 const step = (node: string, continueOnError = false) => ({
   node,
@@ -197,7 +197,7 @@ describe('workflow document runtime', () => {
     });
 
     expect((await runtime.start()).status).toBe('success');
-    const attempt = await runCase(document.cases[0], {
+    const attempt = await runCollectedCase(document.cases[0], {
       beforeEach: document.lifecycle.beforeEach,
       afterEach: document.lifecycle.afterEach,
       context: runtime.context,
@@ -239,7 +239,7 @@ describe('workflow document runtime', () => {
     await runtime.start();
     await Promise.all(
       ['attempt-a', 'attempt-b'].map((runId) =>
-        runCase(document.cases[0], {
+        runCollectedCase(document.cases[0], {
           context: runtime.context,
           resolveNode: () => node,
           createRunId: () => runId,
