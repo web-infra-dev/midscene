@@ -1566,6 +1566,9 @@ importers:
 
   packages/workflow:
     dependencies:
+      '@rstest/core':
+        specifier: 0.10.3
+        version: 0.10.3(core-js@3.47.0)(jsdom@29.0.2)
       js-yaml:
         specifier: 4.1.0
         version: 4.1.0

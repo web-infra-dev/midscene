@@ -2,10 +2,10 @@ import { JSON_SCHEMA, load as loadYaml } from 'js-yaml';
 import { WorkflowParseError } from '../errors';
 import type {
   CommonNodeInput,
+  LegacyWorkflowDefinition,
   NormalizedStep,
   NormalizedStepMeta,
   NormalizedWorkflow,
-  WorkflowDefinition,
   WorkflowSource,
 } from './types';
 
@@ -83,13 +83,15 @@ export function validateCommonNodeInput(
   }
 }
 
-export function parseWorkflow(source: string): WorkflowDefinition {
+export function parseWorkflow(source: string): LegacyWorkflowDefinition {
   if (typeof source !== 'string') {
     throw new WorkflowParseError('Workflow YAML source must be a string.');
   }
 
   try {
-    return loadYaml(source, { schema: JSON_SCHEMA }) as WorkflowDefinition;
+    return loadYaml(source, {
+      schema: JSON_SCHEMA,
+    }) as LegacyWorkflowDefinition;
   } catch (error) {
     throw new WorkflowParseError(
       'Failed to parse workflow YAML.',

@@ -1,0 +1,14 @@
+workflows:
+  - name: first workflow
+    steps:
+      - test.record:
+          value: first:one
+      - test.record:
+          value: first:two
+      - test.expect-history:
+          count: 2
+
+  - name: second workflow
+    steps:
+      - test.record:
+          value: second:one

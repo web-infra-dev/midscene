@@ -16,13 +16,23 @@ export interface CommonNodeInput {
 
 export type WorkflowStepValue = string | Record<string, unknown>;
 
-export type WorkflowStepInput = Record<string, WorkflowStepValue>;
+export type WorkflowStepInput = Record<string, unknown>;
 
-export interface WorkflowDefinition {
+/** RFC 0001 single-workflow input retained by WorkflowEngine. */
+export interface LegacyWorkflowDefinition {
   workflow: WorkflowStepInput[];
 }
 
-export type WorkflowSource = string | WorkflowDefinition;
+export type WorkflowSource = string | LegacyWorkflowDefinition;
+
+export interface WorkflowDocumentDefinition {
+  workflows: readonly WorkflowDefinition[];
+}
+
+export interface WorkflowDefinition<TStep = WorkflowStepInput> {
+  name: string;
+  steps: readonly TStep[];
+}
 
 export interface NormalizedStep {
   node: string;
@@ -32,4 +42,26 @@ export interface NormalizedStep {
 
 export interface NormalizedWorkflow {
   workflow: NormalizedStep[];
+}
+
+export type NormalizedWorkflowDefinition = WorkflowDefinition<NormalizedStep>;
+
+export interface WorkflowDocumentSource {
+  projectId: string;
+  sourcePath: string;
+  absolutePath: string;
+}
+
+export interface CollectedWorkflow {
+  testId: string;
+  projectId: string;
+  sourcePath: string;
+  workflowIndex: number;
+  definition: NormalizedWorkflowDefinition;
+}
+
+export interface CollectedWorkflowDocument {
+  projectId: string;
+  sourcePath: string;
+  workflows: readonly CollectedWorkflow[];
 }

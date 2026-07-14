@@ -6,7 +6,7 @@ import {
 import type { NodeDefinition, NodeResult } from '../node/types';
 import { validateCommonNodeInput } from '../parser/normalize';
 import type { CommonNodeInput, NormalizedStep } from '../parser/types';
-import type { StepRunResult } from './types';
+import type { NodeWorkflowContext, StepRunResult } from './types';
 
 function validateNodeOutput<TData>(
   output: unknown,
@@ -49,9 +49,23 @@ function createStepResultBase(step: NormalizedStep, startedAt: Date) {
   };
 }
 
-export async function runStep<TInput = unknown, TOutputData = unknown>(
+const standaloneWorkflowContext = (): NodeWorkflowContext => ({
+  testId: 'standalone-step',
+  runId: 'standalone-step',
+  name: 'standalone step',
+  sourcePath: '',
+  workflowIndex: 0,
+  stepIndex: 0,
+  completedSteps: Object.freeze([]),
+});
+
+export async function runStepForWorkflow<
+  TInput = unknown,
+  TOutputData = unknown,
+>(
   step: NormalizedStep,
   node: NodeDefinition<TInput, TOutputData>,
+  workflow: NodeWorkflowContext,
 ): Promise<StepRunResult<TOutputData>> {
   validateCommonNodeInput(step.input, 0);
 
@@ -66,6 +80,7 @@ export async function runStep<TInput = unknown, TOutputData = unknown>(
       input: step.input as TInput & CommonNodeInput,
       $: step.meta,
       signal: abortController.signal,
+      workflow,
     }),
   );
 
@@ -101,14 +116,10 @@ export async function runStep<TInput = unknown, TOutputData = unknown>(
       step.node,
     );
 
-    if (!step.meta.continueOnError) {
-      throw normalizedError;
-    }
-
     return {
       ...createStepResultBase(step, startedAt),
       status: 'failed',
-      continuedAfterError: true,
+      continuedAfterError: step.meta.continueOnError,
       error: normalizedError,
     };
   } finally {
@@ -116,4 +127,17 @@ export async function runStep<TInput = unknown, TOutputData = unknown>(
       clearTimeout(timeout);
     }
   }
+}
+
+/** RFC 0001 compatibility API: a non-continuable step still rejects. */
+export async function runStep<TInput = unknown, TOutputData = unknown>(
+  step: NormalizedStep,
+  node: NodeDefinition<TInput, TOutputData>,
+  workflow: NodeWorkflowContext = standaloneWorkflowContext(),
+): Promise<StepRunResult<TOutputData>> {
+  const result = await runStepForWorkflow(step, node, workflow);
+  if (result.status === 'failed' && !result.continuedAfterError) {
+    throw result.error;
+  }
+  return result;
 }

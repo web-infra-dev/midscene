@@ -1,0 +1,9 @@
+workflows:
+  - name: nested workflow
+    steps:
+      - test.record:
+          value: nested:one
+      - test.record:
+          value: nested:two
+      - test.expect-history:
+          count: 2

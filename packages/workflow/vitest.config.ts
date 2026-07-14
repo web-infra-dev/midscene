@@ -6,5 +6,6 @@ export default defineConfig({
     coverage: createCoverageConfig(__dirname),
     environment: 'node',
     include: ['tests/**/*.test.ts'],
+    exclude: ['tests/e2e/**'],
   },
 });

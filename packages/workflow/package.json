@@ -11,20 +11,30 @@
   "main": "./dist/lib/index.js",
   "module": "./dist/es/index.mjs",
   "types": "./dist/types/index.d.ts",
+  "bin": {
+    "midscene-workflow": "./bin/midscene-workflow"
+  },
   "exports": {
     ".": {
       "types": "./dist/types/index.d.ts",
       "import": "./dist/es/index.mjs",
       "require": "./dist/lib/index.js"
+    },
+    "./config": {
+      "types": "./dist/types/cli/index.d.ts",
+      "import": "./dist/es/cli/index.mjs",
+      "require": "./dist/lib/cli/index.js"
     }
   },
-  "files": ["dist"],
+  "files": ["dist", "bin"],
   "scripts": {
     "build": "rslib build",
     "build:watch": "rslib build --watch --no-clean",
-    "test": "vitest --run"
+    "test": "vitest --run",
+    "e2e": "pnpm run build && vitest --run --config vitest.e2e.config.ts"
   },
   "dependencies": {
+    "@rstest/core": "0.10.3",
     "js-yaml": "4.1.0"
   },
   "devDependencies": {
@@ -35,7 +45,7 @@
     "vitest": "3.0.5"
   },
   "engines": {
-    "node": ">=18.19.0"
+    "node": "^20.19.0 || ^22.12.0 || >=24.0.0"
   },
   "sideEffects": false,
   "publishConfig": {

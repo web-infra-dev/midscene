@@ -101,6 +101,18 @@ export class NodeExecutionError extends WorkflowError {
   }
 }
 
+export class WorkflowExecutionError extends WorkflowError {
+  readonly result: import('./engine/types').WorkflowRunResult;
+
+  constructor(result: import('./engine/types').WorkflowRunResult) {
+    super(`Workflow "${result.name}" failed.`, {
+      code: 'WORKFLOW_EXECUTION_FAILED',
+      details: { testId: result.testId, runId: result.runId },
+    });
+    this.result = result;
+  }
+}
+
 export function normalizeWorkflowError(
   error: unknown,
   node: string,
