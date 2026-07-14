@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import { NodeRegistry, createDocumentRuntime, runCase } from '../src';
+import { NodeRegistry, createDocumentRuntime } from '../src';
+import { runCollectedCase } from '../src/engine/run-collected-case';
 import { type MidsceneUIAgent, createMidsceneNodes } from '../src/midscene';
 import type {
   CollectedCase,
@@ -29,7 +30,7 @@ describe('createMidsceneNodes', () => {
     const nodes = createMidsceneNodes({ getAgent });
     const registry = new NodeRegistry(nodes);
 
-    const result = await runCase(
+    const result = await runCollectedCase(
       collected([
         {
           node: 'aiAct',
@@ -86,7 +87,7 @@ describe('createMidsceneNodes', () => {
     });
     const registry = new NodeRegistry(nodes);
 
-    const result = await runCase(
+    const result = await runCollectedCase(
       collected([
         {
           node: 'recordToReport',
@@ -114,10 +115,13 @@ describe('createMidsceneNodes', () => {
       input: Record<string, unknown>,
       agent: MidsceneUIAgent,
     ) =>
-      runCase(collected([{ node, input, meta: { continueOnError: false } }]), {
-        resolveNode: registry.require.bind(registry),
-        context: { agent },
-      });
+      runCollectedCase(
+        collected([{ node, input, meta: { continueOnError: false } }]),
+        {
+          resolveNode: registry.require.bind(registry),
+          context: { agent },
+        },
+      );
 
     const invalidOptions = await run(
       'aiAssert',

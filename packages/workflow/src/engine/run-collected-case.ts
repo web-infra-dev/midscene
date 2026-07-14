@@ -1,17 +1,17 @@
 import { randomUUID } from 'node:crypto';
 import type { CollectedCase, NormalizedStep } from '../parser/types';
-import { runStepForCase } from './run-step';
+import { executeStep } from './execute-step';
 import type {
   CaseNodePhase,
   CaseRunResult,
   NodeCaseContext,
-  RunCaseOptions,
+  RunCollectedCaseOptions,
   StepRunResult,
 } from './types';
 
-export async function runCase<TContext = undefined>(
+export async function runCollectedCase<TContext = undefined>(
   collectedCase: CollectedCase,
-  options: RunCaseOptions<TContext>,
+  options: RunCollectedCaseOptions<TContext>,
 ): Promise<CaseRunResult> {
   const phases: Record<CaseNodePhase, readonly NormalizedStep[]> = {
     beforeEach: options.beforeEach ?? [],
@@ -46,10 +46,10 @@ export async function runCase<TContext = undefined>(
         completedSteps: Object.freeze([...steps]),
         completedNodes: Object.freeze([...completedNodes]),
       };
-      const result = await runStepForCase(
+      const result = await executeStep(
         step,
         nodes[phase][stepIndex],
-        caseContext,
+        { scope: 'case', case: caseContext },
         options.context as TContext,
       );
       results.push(result);

@@ -2,14 +2,14 @@ import type { NodeDefinition } from '../node/types';
 import { normalizeSteps } from '../parser/normalize';
 import type { CaseInput, CollectedCase } from '../parser/types';
 import { NodeRegistry } from './registry';
-import { runCase } from './run-case';
-import type { CaseRunResult, WorkflowEngineOptions } from './types';
+import { runCollectedCase } from './run-collected-case';
+import type { CaseRunResult, CaseRunnerOptions } from './types';
 
-export class WorkflowEngine<TContext = undefined> {
+export class CaseRunner<TContext = undefined> {
   readonly registry: NodeRegistry;
   readonly context: TContext;
 
-  constructor(options: WorkflowEngineOptions<TContext> = {}) {
+  constructor(options: CaseRunnerOptions<TContext> = {}) {
     this.registry = new NodeRegistry(options.nodes);
     this.context = options.context as TContext;
   }
@@ -30,7 +30,7 @@ export class WorkflowEngine<TContext = undefined> {
         steps: normalizeSteps(input.steps),
       },
     };
-    const result = await runCase(collectedCase, {
+    const result = await runCollectedCase(collectedCase, {
       resolveNode: (name) =>
         this.registry.require(name) as NodeDefinition<any, any, TContext>,
       context: this.context,
@@ -45,8 +45,8 @@ export class WorkflowEngine<TContext = undefined> {
   }
 }
 
-export function createWorkflowEngine<TContext = undefined>(
-  options: WorkflowEngineOptions<TContext> = {},
-): WorkflowEngine<TContext> {
-  return new WorkflowEngine(options);
+export function createCaseRunner<TContext = undefined>(
+  options: CaseRunnerOptions<TContext> = {},
+): CaseRunner<TContext> {
+  return new CaseRunner(options);
 }
