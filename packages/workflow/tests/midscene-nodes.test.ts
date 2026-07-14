@@ -3,7 +3,7 @@ import {
   DocumentNodeRegistry,
   NodeRegistry,
   createDocumentRuntime,
-  runWorkflow,
+  runCase,
 } from '../src';
 import {
   type MidsceneUIAgent,
@@ -11,22 +11,22 @@ import {
   createMidsceneNodes,
 } from '../src/midscene';
 import type {
-  CollectedWorkflow,
+  CollectedCase,
   CollectedWorkflowDocument,
 } from '../src/parser/types';
 
 const collected = (
-  steps: CollectedWorkflow['definition']['steps'],
-): CollectedWorkflow => ({
-  testId: 'midscene-test',
+  steps: CollectedCase['definition']['steps'],
+): CollectedCase => ({
+  caseId: 'midscene-test',
   projectId: 'project',
   sourcePath: 'flows/midscene.yaml',
-  workflowIndex: 0,
-  definition: { name: 'midscene workflow', steps },
+  caseIndex: 0,
+  definition: { name: 'midscene case', steps },
 });
 
 describe('createMidsceneNodes', () => {
-  it('maps workflow inputs to one Agent from setup context', async () => {
+  it('maps case inputs to one Agent from setup context', async () => {
     const aiAct = vi.fn(async () => 'action completed');
     const aiAssert = vi.fn(async () => undefined);
     const recordToReport = vi.fn(async () => undefined);
@@ -38,7 +38,7 @@ describe('createMidsceneNodes', () => {
     const nodes = createMidsceneNodes({ getAgent });
     const registry = new NodeRegistry(nodes);
 
-    const result = await runWorkflow(
+    const result = await runCase(
       collected([
         {
           node: 'aiAct',
@@ -95,7 +95,7 @@ describe('createMidsceneNodes', () => {
     });
     const registry = new NodeRegistry(nodes);
 
-    const result = await runWorkflow(
+    const result = await runCase(
       collected([
         {
           node: 'recordToReport',
@@ -123,13 +123,10 @@ describe('createMidsceneNodes', () => {
       input: Record<string, unknown>,
       agent: MidsceneUIAgent,
     ) =>
-      runWorkflow(
-        collected([{ node, input, meta: { continueOnError: false } }]),
-        {
-          resolveNode: registry.require.bind(registry),
-          context: { agent },
-        },
-      );
+      runCase(collected([{ node, input, meta: { continueOnError: false } }]), {
+        resolveNode: registry.require.bind(registry),
+        context: { agent },
+      });
 
     const invalidOptions = await run(
       'aiAssert',
@@ -163,7 +160,7 @@ describe('createMidsceneNodes', () => {
     );
   });
 
-  it('creates document-scope Midscene nodes without workflow identity', async () => {
+  it('creates document-scope Midscene nodes without case identity', async () => {
     const recordToReport = vi.fn(async () => undefined);
     const agent = { recordToReport } as unknown as MidsceneUIAgent;
     const nodes = createMidsceneDocumentNodes<{
@@ -171,7 +168,7 @@ describe('createMidsceneNodes', () => {
     }>({
       getAgent(ctx) {
         expect(ctx.document.phase).toBe('beforeAll');
-        expect('workflow' in ctx).toBe(false);
+        expect('case' in ctx).toBe(false);
         return ctx.context.agent;
       },
     });
@@ -192,7 +189,7 @@ describe('createMidsceneNodes', () => {
         afterEach: [],
         afterAll: [],
       },
-      workflows: [collected([])],
+      cases: [collected([])],
     };
     const runtime = createDocumentRuntime(document, {
       resolveNode: registry.require.bind(registry),

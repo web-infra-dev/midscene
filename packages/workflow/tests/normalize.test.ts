@@ -1,30 +1,25 @@
 import { describe, expect, it } from 'vitest';
-import { WorkflowParseError, normalizeStep, normalizeWorkflow } from '../src';
+import { WorkflowParseError, normalizeStep, normalizeSteps } from '../src';
 
-describe('workflow normalization', () => {
-  it('expands string and block scalar shorthand to prompt input', () => {
-    const result = normalizeWorkflow(`
-cases:
-  - agent.verify: verify the order
-  - agent.explain: |
-      explain line one
-      and line two
-`);
+describe('step normalization', () => {
+  it('expands string shorthand to prompt input', () => {
+    const result = normalizeSteps([
+      { 'agent.verify': 'verify the order' },
+      { 'agent.explain': 'explain line one\nand line two\n' },
+    ]);
 
-    expect(result).toEqual({
-      cases: [
-        {
-          node: 'agent.verify',
-          input: { prompt: 'verify the order' },
-          meta: { continueOnError: false },
-        },
-        {
-          node: 'agent.explain',
-          input: { prompt: 'explain line one\nand line two\n' },
-          meta: { continueOnError: false },
-        },
-      ],
-    });
+    expect(result).toEqual([
+      {
+        node: 'agent.verify',
+        input: { prompt: 'verify the order' },
+        meta: { continueOnError: false },
+      },
+      {
+        node: 'agent.explain',
+        input: { prompt: 'explain line one\nand line two\n' },
+        meta: { continueOnError: false },
+      },
+    ]);
   });
 
   it('separates and normalizes engine metadata from node input', () => {
@@ -59,39 +54,12 @@ cases:
     expect(() => normalizeStep({ node: { $: meta } })).toThrow(message);
   });
 
-  it('rejects malformed workflow and common prompt input', () => {
-    expect(normalizeWorkflow('cases: []')).toEqual({ cases: [] });
-    expect(() => normalizeWorkflow('{}')).toThrow('cases array');
-    expect(() => normalizeWorkflow('cases: {}')).toThrow('cases array');
+  it('rejects malformed step lists and common prompt input', () => {
+    expect(normalizeSteps([])).toEqual([]);
+    expect(() => normalizeSteps({})).toThrow('Steps must be an array');
     expect(() => normalizeStep({ first: {}, second: {} })).toThrow(
       'exactly one node',
     );
     expect(() => normalizeStep({ node: { prompt: 42 } })).toThrow('prompt');
-    expect(() => normalizeWorkflow('cases: [')).toThrow(
-      'Failed to parse workflow YAML',
-    );
-    expect(() =>
-      normalizeWorkflow(
-        'cases:\n  - node: first\n  - node: second\n    node: duplicate',
-      ),
-    ).toThrow('Failed to parse workflow YAML');
-  });
-
-  it('rejects the old workflow field with a migration error', () => {
-    expect(() => normalizeWorkflow('workflow: []')).toThrow(
-      'no longer supports "workflow". Use "cases" instead',
-    );
-    expect(() =>
-      normalizeWorkflow({
-        cases: [],
-        workflow: [],
-      } as never),
-    ).toThrow('no longer supports "workflow". Use "cases" instead');
-  });
-
-  it('rejects unknown standalone workflow fields', () => {
-    expect(() => normalizeWorkflow('cases: []\ncase: []')).toThrow(
-      'unsupported field "case"',
-    );
   });
 });

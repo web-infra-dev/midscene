@@ -1,5 +1,5 @@
-workflows:
-  - name: nested workflow
+cases:
+  - name: nested case
     steps:
       - test.record:
           value: nested:one

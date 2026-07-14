@@ -1,10 +1,7 @@
 import { createHash } from 'node:crypto';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join, sep } from 'node:path';
-import type {
-  WorkflowDocumentRunResult,
-  WorkflowRunResult,
-} from '../engine/types';
+import type { CaseRunResult, WorkflowDocumentRunResult } from '../engine/types';
 import type { WorkflowDocumentSource } from '../parser/types';
 import type {
   WorkflowCollectionError,
@@ -18,8 +15,8 @@ const writeJson = (path: string, value: unknown) => {
 
 const toPosix = (value: string): string => value.split(sep).join('/');
 
-export const workflowRunResultPath = (result: WorkflowRunResult): string =>
-  toPosix(join('runs', result.testId, `${result.runId}.json`));
+export const caseRunResultPath = (result: CaseRunResult): string =>
+  toPosix(join('runs', result.caseId, `${result.runId}.json`));
 
 export const workflowDocumentRunResultPath = (
   result: WorkflowDocumentRunResult,
@@ -38,11 +35,11 @@ export const writeWorkflowDocumentRunResult = (
   writeJson(join(resultDir, workflowDocumentRunResultPath(result)), result);
 };
 
-export const writeWorkflowRunResult = (
+export const writeCaseRunResult = (
   resultDir: string,
-  result: WorkflowRunResult,
+  result: CaseRunResult,
 ) => {
-  writeJson(join(resultDir, workflowRunResultPath(result)), result);
+  writeJson(join(resultDir, caseRunResultPath(result)), result);
 };
 
 export const writeCollectionError = (
@@ -69,7 +66,7 @@ export const writeWorkflowProjectRunResult = (
 ) => {
   const { result } = options;
   writeJson(join(resultDir, 'project.json'), {
-    version: 1,
+    version: 2,
     projectId: options.projectId,
     projectRoot: options.projectRoot,
     ...(options.configPath ? { configPath: options.configPath } : {}),
@@ -78,16 +75,18 @@ export const writeWorkflowProjectRunResult = (
     exitCode: result.exitCode,
     resultDir: result.resultDir,
     summary: result.summary,
-    workflows: result.workflows.map((workflow) => ({
-      testId: workflow.testId,
-      name: workflow.name,
-      sourcePath: workflow.sourcePath,
-      workflowIndex: workflow.workflowIndex,
-      status: workflow.status,
-      ...(workflow.run
-        ? { resultFile: workflowRunResultPath(workflow.run) }
+    cases: result.cases.map((caseResult) => ({
+      caseId: caseResult.caseId,
+      name: caseResult.name,
+      sourcePath: caseResult.sourcePath,
+      caseIndex: caseResult.caseIndex,
+      status: caseResult.status,
+      ...(caseResult.run
+        ? { resultFile: caseRunResultPath(caseResult.run) }
         : {}),
-      ...(workflow.notRunReason ? { notRunReason: workflow.notRunReason } : {}),
+      ...(caseResult.notRunReason
+        ? { notRunReason: caseResult.notRunReason }
+        : {}),
     })),
     documents: result.documents.map((document) => ({
       documentId: document.documentId,
