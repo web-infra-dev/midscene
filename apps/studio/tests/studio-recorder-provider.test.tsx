@@ -188,6 +188,7 @@ function createConnectedStudioContext({
     interact,
     startRecorderSession,
     stopRecorderSession,
+    getRecorderScreenshotAsset,
     getRecorderEvents,
     describeRecorderEventAtPoint,
   };
@@ -283,7 +284,27 @@ describe('StudioRecorderProvider preview recording', () => {
     await mounted.cleanup();
   });
 
-  it('stops recording when the current target disappears from discovery', async () => {
+  it('keeps recording when the live Playground context rerenders', async () => {
+    const { context, stopRecorderSession, startRecorderSession } =
+      createConnectedStudioContext();
+    const mounted = await mountRecorder(context);
+
+    await act(async () => {
+      await mounted.recorder?.startRecording();
+    });
+    await flushPromises();
+
+    await mounted.rerender({ ...context });
+    await flushPromises();
+
+    expect(mounted.recorder?.state.isRecording).toBe(true);
+    expect(stopRecorderSession).not.toHaveBeenCalled();
+    expect(startRecorderSession).toHaveBeenCalledTimes(1);
+
+    await mounted.cleanup();
+  });
+
+  it('keeps recording through transient discovery and server-status refreshes', async () => {
     const { context, stopRecorderSession } = createConnectedStudioContext();
     const mounted = await mountRecorder(context);
 
@@ -296,6 +317,13 @@ describe('StudioRecorderProvider preview recording', () => {
 
     await mounted.rerender({
       ...context,
+      controller: {
+        ...context.controller,
+        state: {
+          ...context.controller.state,
+          serverOnline: false,
+        },
+      },
       discoveredDevices: {
         ...context.discoveredDevices!,
         computer: [],
@@ -304,9 +332,9 @@ describe('StudioRecorderProvider preview recording', () => {
     await flushPromises();
     await flushPromises();
 
-    expect(stopRecorderSession).toHaveBeenCalled();
-    expect(mounted.recorder?.state.isRecording).toBe(false);
-    expect(mounted.recorder?.currentSession?.status).toBe('completed');
+    expect(stopRecorderSession).not.toHaveBeenCalled();
+    expect(mounted.recorder?.state.isRecording).toBe(true);
+    expect(mounted.recorder?.currentSession?.status).toBe('recording');
 
     await mounted.cleanup();
   });
@@ -1631,6 +1659,70 @@ describe('StudioRecorderProvider preview recording', () => {
     await mounted.cleanup();
   });
 
+  it('shares an in-flight stop and drains final events before completing', async () => {
+    const finalEvent = {
+      type: 'click',
+      source: 'studio-preview',
+      actionType: 'Click',
+      semantic: {
+        source: 'heuristic',
+        status: 'ready',
+        elementDescription: 'Final click',
+      },
+      elementRect: { x: 30, y: 40 },
+      pageInfo: { width: 1200, height: 800 },
+      timestamp: 456,
+      hashId: 'click-final-shared-stop',
+    };
+    const stopDeferred = createDeferred<{ ok: boolean }>();
+    let serverStopped = false;
+    const { context, stopRecorderSession, getRecorderEvents } =
+      createConnectedStudioContext();
+    stopRecorderSession.mockImplementation(async () => {
+      const result = await stopDeferred.promise;
+      serverStopped = true;
+      return result;
+    });
+    getRecorderEvents.mockImplementation(async (since = 0) => ({
+      events: serverStopped && since === 0 ? [finalEvent] : [],
+      nextIndex: serverStopped ? 1 : since,
+    }));
+    const mounted = await mountRecorder(context);
+
+    await act(async () => {
+      await mounted.recorder?.startRecording();
+    });
+    await flushPromises();
+
+    let firstStop!: Promise<void>;
+    let secondStop!: Promise<void>;
+    let secondSettled = false;
+    await act(async () => {
+      firstStop = mounted.recorder!.stopRecording();
+      secondStop = mounted.recorder!.stopRecording();
+      secondStop.then(() => {
+        secondSettled = true;
+      });
+      await Promise.resolve();
+    });
+
+    expect(stopRecorderSession).toHaveBeenCalledTimes(1);
+    expect(secondSettled).toBe(false);
+
+    await act(async () => {
+      stopDeferred.resolve({ ok: true });
+      await Promise.all([firstStop, secondStop]);
+    });
+    await flushPromises();
+
+    expect(mounted.recorder?.state.isRecording).toBe(false);
+    expect(mounted.recorder?.currentSession?.events).toEqual([
+      expect.objectContaining({ hashId: 'click-final-shared-stop' }),
+    ]);
+
+    await mounted.cleanup();
+  });
+
   it('keeps the recorder runtime available while queued descriptions drain after stop', async () => {
     const events = [1, 2, 3].map((index) => ({
       type: 'click',
@@ -1921,6 +2013,67 @@ describe('StudioRecorderProvider preview recording', () => {
     expect(markdown).toBe('ai markdown\n');
     expect(mounted.recorder?.currentSession?.generatedCode?.markdown).toBe(
       'ai markdown\n',
+    );
+
+    await mounted.cleanup();
+  });
+
+  it('materializes asset-backed screenshots for generation without persisting inline data', async () => {
+    const event = {
+      type: 'click',
+      source: 'studio-preview',
+      actionType: 'Click',
+      semantic: {
+        source: 'heuristic',
+        status: 'ready',
+        elementDescription: 'Asset-backed click',
+      },
+      elementRect: { x: 10, y: 20 },
+      pageInfo: { width: 1200, height: 800 },
+      screenshotAsset: {
+        id: 'asset-backed-click.jpg',
+        mimeType: 'image/jpeg',
+        bytes: 4,
+      },
+      timestamp: 123,
+      hashId: 'click-asset-backed',
+    };
+    const { context, getRecorderScreenshotAsset } =
+      createConnectedStudioContext({ events: [event] });
+    getRecorderScreenshotAsset.mockResolvedValue(
+      'data:image/jpeg;base64,c2hvdA==',
+    );
+    const mounted = await mountRecorder(context);
+
+    await act(async () => {
+      await mounted.recorder?.startRecording();
+    });
+    await flushPromises();
+
+    const sessionId = mounted.recorder?.currentSession?.id;
+    await act(async () => {
+      await mounted.recorder!.generateSessionCode(sessionId!);
+    });
+    await flushPromises();
+
+    expect(generateStudioRecorderCodeWithAI).toHaveBeenCalledWith(
+      expect.objectContaining({
+        events: [
+          expect.objectContaining({
+            hashId: 'click-asset-backed',
+            screenshotAsset: undefined,
+            screenshotWithBox: 'data:image/jpeg;base64,c2hvdA==',
+          }),
+        ],
+      }),
+      expect.objectContaining({ type: 'markdown' }),
+    );
+    expect(mounted.recorder?.currentSession?.events[0]).toMatchObject({
+      hashId: 'click-asset-backed',
+      screenshotAsset: { id: 'asset-backed-click.jpg' },
+    });
+    expect(mounted.recorder?.currentSession?.events[0].screenshotWithBox).toBe(
+      undefined,
     );
 
     await mounted.cleanup();

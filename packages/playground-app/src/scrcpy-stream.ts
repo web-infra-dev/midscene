@@ -27,10 +27,16 @@ interface ScrcpyVideoSocketLike {
   off(event: 'error', handler: (error: Error) => void): void;
 }
 
+interface ScrcpyVideoStreamOptions {
+  onFirstDataPacket?: () => void;
+}
+
 export function createScrcpyVideoStream(
   socket: ScrcpyVideoSocketLike,
+  options: ScrcpyVideoStreamOptions = {},
 ): ReadableStream<ScrcpyMediaStreamPacket> {
   let configurationPacketSent = false;
+  let firstDataPacketReported = false;
   let pendingDataPackets: ScrcpyMediaStreamPacket[] = [];
   let cleanupListeners: (() => void) | undefined;
   let pendingKeyframe: ScrcpyMediaStreamPacket | undefined;
@@ -39,6 +45,12 @@ export function createScrcpyVideoStream(
       start(controller) {
         const canEnqueue = () =>
           controller.desiredSize === null || controller.desiredSize > 0;
+        const reportFirstDataPacket = () => {
+          if (!firstDataPacketReported) {
+            firstDataPacketReported = true;
+            options.onFirstDataPacket?.();
+          }
+        };
         const handleVideoData = (data: RawScrcpyVideoPacket) => {
           try {
             const payload = toUint8Array(data.data);
@@ -58,6 +70,9 @@ export function createScrcpyVideoStream(
               // This small, bounded initial burst is required by WebCodecs:
               // it must receive configuration before any retained frame.
               controller.enqueue(packet);
+              if (pendingDataPackets.length > 0) {
+                reportFirstDataPacket();
+              }
               pendingDataPackets.forEach((queuedPacket) =>
                 controller.enqueue(queuedPacket),
               );
@@ -78,6 +93,7 @@ export function createScrcpyVideoStream(
             }
 
             if (canEnqueue()) {
+              reportFirstDataPacket();
               controller.enqueue(packet);
             } else if (packet.keyframe) {
               // Discard delta frames while the decoder is behind. The newest

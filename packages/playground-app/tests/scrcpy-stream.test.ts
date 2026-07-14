@@ -1,5 +1,5 @@
 import type { ScrcpyMediaStreamPacket } from '@yume-chan/scrcpy';
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test, vi } from 'vitest';
 import { createScrcpyVideoStream } from '../src/scrcpy-stream';
 
 interface RawVideoPayload {
@@ -120,6 +120,25 @@ describe('createScrcpyVideoStream', () => {
       { type: 'data', data: [1, 2, 3] },
       { type: 'data', data: [4, 5, 6] },
     ]);
+  });
+
+  test('reports first usable data only after configuration is available', async () => {
+    const socket = new MockScrcpySocket();
+    const onFirstDataPacket = vi.fn();
+    const stream = createScrcpyVideoStream(socket, { onFirstDataPacket });
+    const collected = collectStream(stream);
+
+    socket.dispatchVideoData({ type: 'data', data: new Uint8Array([1]) });
+    expect(onFirstDataPacket).not.toHaveBeenCalled();
+    socket.dispatchVideoData({
+      type: 'configuration',
+      data: new Uint8Array([9]),
+    });
+    socket.dispatchVideoData({ type: 'data', data: new Uint8Array([2]) });
+    socket.dispatchDisconnect();
+    await collected;
+
+    expect(onFirstDataPacket).toHaveBeenCalledTimes(1);
   });
 
   test('bounds the pre-configuration buffer while the decoder initializes', async () => {

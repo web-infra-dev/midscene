@@ -9,6 +9,38 @@ export interface ScrcpyPreviewStatusEvent {
   message: string;
 }
 
+export type ScrcpyPreviewErrorReason =
+  | 'adb-unavailable'
+  | 'process-exited'
+  | 'startup-timeout'
+  | 'stream-ended'
+  | 'stream-read-failed'
+  | 'unknown';
+
+export interface ScrcpyPreviewErrorEvent {
+  message: string;
+  reason: ScrcpyPreviewErrorReason;
+  recoverable: boolean;
+  sessionId: string;
+}
+
+export function buildScrcpyPreviewErrorEvent(
+  reason: ScrcpyPreviewErrorReason,
+  sessionId: string,
+  message: string,
+): ScrcpyPreviewErrorEvent {
+  return {
+    reason,
+    sessionId,
+    message,
+    recoverable:
+      reason === 'process-exited' ||
+      reason === 'startup-timeout' ||
+      reason === 'stream-ended' ||
+      reason === 'stream-read-failed',
+  };
+}
+
 export function getScrcpyPreviewStatusMessage(
   phase: ScrcpyPreviewPhase,
 ): string {

@@ -25,18 +25,17 @@ export async function materializeStudioRecorderSessionScreenshots(
       continue;
     }
     const screenshot = await loadScreenshot(event.screenshotAsset.id);
-    if (screenshot) {
-      remainingScreenshots -= 1;
+    if (!screenshot) {
+      throw new Error(
+        `Recorder screenshot asset is unavailable: ${event.screenshotAsset.id}`,
+      );
     }
-    events.push(
-      screenshot
-        ? {
-            ...event,
-            screenshotAsset: undefined,
-            screenshotWithBox: screenshot,
-          }
-        : event,
-    );
+    remainingScreenshots -= 1;
+    events.push({
+      ...event,
+      screenshotAsset: undefined,
+      screenshotWithBox: screenshot,
+    });
   }
   return { ...session, events };
 }

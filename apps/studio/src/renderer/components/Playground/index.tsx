@@ -6,7 +6,7 @@ import type {
 } from '@midscene/visualizer';
 import { App as AntdApp, Tooltip } from 'antd';
 import type { ReactNode } from 'react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { downloadStudioReport } from '../../playground/report-download';
 import { useStudioPlayground } from '../../playground/useStudioPlayground';
 import { isStudioRecorderEntryEnabled } from '../../recorder/feature-flag';
@@ -140,6 +140,10 @@ export default function Playground({
   const recorder = useStudioRecorder();
   const recorderEntryEnabled = isStudioRecorderEntryEnabled();
   const stopRecording = recorder.stopRecording;
+  const stopRecordingRef = useRef(stopRecording);
+  useEffect(() => {
+    stopRecordingRef.current = stopRecording;
+  }, [stopRecording]);
   const [externalRunRequest, setExternalRunRequest] =
     useState<StudioExternalRunRequest | null>(null);
   const currentTargetSignature = useMemo(
@@ -311,26 +315,21 @@ export default function Playground({
   useEffect(() => {
     if (!recorderEntryEnabled && rightPanelMode === 'recorder') {
       onRightPanelModeChange('playground');
-      void stopRecording();
+      void stopRecordingRef.current();
     }
-  }, [
-    onRightPanelModeChange,
-    recorderEntryEnabled,
-    rightPanelMode,
-    stopRecording,
-  ]);
+  }, [onRightPanelModeChange, recorderEntryEnabled, rightPanelMode]);
 
   useEffect(() => {
     if (rightPanelMode !== 'recorder') {
-      void stopRecording();
+      void stopRecordingRef.current();
     }
-  }, [rightPanelMode, stopRecording]);
+  }, [rightPanelMode]);
 
   useEffect(() => {
     return () => {
-      void stopRecording();
+      void stopRecordingRef.current();
     };
-  }, [stopRecording]);
+  }, []);
 
   if (recorderEntryEnabled && rightPanelMode === 'recorder') {
     return (

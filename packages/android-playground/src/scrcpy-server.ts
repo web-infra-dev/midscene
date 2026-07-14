@@ -19,7 +19,9 @@ import cors from 'cors';
 import express from 'express';
 import { Server } from 'socket.io';
 import {
+  type ScrcpyPreviewErrorReason,
   type ScrcpyPreviewPhase,
+  buildScrcpyPreviewErrorEvent,
   buildScrcpyPreviewStatusEvent,
 } from './scrcpy-preview-status';
 import { withTimeout } from './timeout';
@@ -28,6 +30,26 @@ export const debugPage = getDebug('android:playground');
 const promiseExec = promisify(exec);
 
 const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1', '::1', '[::1]']);
+const MAX_SCRCPY_OUTPUT_LINES = 100;
+
+interface ActiveScrcpySession {
+  client: any;
+  closeReason?: string;
+  failureReported: boolean;
+  id: string;
+  outputLines: string[];
+}
+
+export function appendBoundedScrcpyOutput(
+  outputLines: string[],
+  line: string,
+  maxLines = MAX_SCRCPY_OUTPUT_LINES,
+) {
+  outputLines.push(line);
+  if (outputLines.length > maxLines) {
+    outputLines.splice(0, outputLines.length - maxLines);
+  }
+}
 
 function isPrivateIP(hostname: string): boolean {
   // 10.x.x.x, 172.16-31.x.x, 192.168.x.x
@@ -384,27 +406,97 @@ export default class ScrcpyServer {
         socket.handshake.address,
       );
 
-      let scrcpyClient: any = null;
+      let activeSession: ActiveScrcpySession | null = null;
+      let sessionGeneration = 0;
       let adb = null;
 
-      const closeScrcpyClient = async (
+      const closeScrcpySession = async (
         reason: string,
-        clientToClose = scrcpyClient,
+        sessionToClose = activeSession,
       ) => {
-        if (!clientToClose) {
+        if (!sessionToClose) {
           return;
         }
 
-        if (scrcpyClient === clientToClose) {
-          scrcpyClient = null;
+        sessionToClose.closeReason ??= reason;
+        if (activeSession === sessionToClose) {
+          activeSession = null;
         }
 
         try {
-          debugPage('closing scrcpy client, reason: %s', reason);
-          await clientToClose.close();
+          debugPage(
+            'closing scrcpy session %s, reason: %s',
+            sessionToClose.id,
+            reason,
+          );
+          await sessionToClose.client.close();
         } catch (error) {
           console.error(`failed to close scrcpy client (${reason}):`, error);
         }
+      };
+
+      const emitPreviewError = (
+        session: ActiveScrcpySession,
+        reason: ScrcpyPreviewErrorReason,
+        message: string,
+      ) => {
+        if (session.failureReported || session.closeReason) {
+          return;
+        }
+        session.failureReported = true;
+        debugPage(
+          'scrcpy session %s failed (%s), recent output:\n%s',
+          session.id,
+          reason,
+          session.outputLines.join('\n'),
+        );
+        if (socket.connected) {
+          socket.emit(
+            'preview-error',
+            buildScrcpyPreviewErrorEvent(reason, session.id, message),
+          );
+        }
+      };
+
+      const monitorScrcpySession = (session: ActiveScrcpySession) => {
+        void (async () => {
+          try {
+            const reader = session.client.output.getReader();
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              for (const line of String(value).split(/\r?\n/)) {
+                if (!line) continue;
+                appendBoundedScrcpyOutput(session.outputLines, line);
+                debugPage('scrcpy[%s]: %s', session.id, line);
+              }
+            }
+          } catch (error) {
+            if (!session.closeReason) {
+              debugPage(
+                'failed reading scrcpy output for %s: %s',
+                session.id,
+                error,
+              );
+            }
+          }
+        })();
+
+        void Promise.resolve(session.client.exited)
+          .then(() => {
+            emitPreviewError(
+              session,
+              'process-exited',
+              'Scrcpy service exited. Recovering preview.',
+            );
+          })
+          .catch((error) => {
+            emitPreviewError(
+              session,
+              'process-exited',
+              `Scrcpy service exited unexpectedly: ${error instanceof Error ? error.message : String(error)}`,
+            );
+          });
       };
 
       const emitPreviewStatus = (phase: ScrcpyPreviewPhase) => {
@@ -437,7 +529,8 @@ export default class ScrcpyServer {
       socket.on('switch-device', async (deviceId) => {
         debugPage('received client request to switch device:', deviceId);
         try {
-          await closeScrcpyClient('switch device');
+          sessionGeneration += 1;
+          await closeScrcpySession('switch device');
 
           this.currentDeviceId = deviceId;
           debugPage('device switched to:', deviceId);
@@ -461,6 +554,11 @@ export default class ScrcpyServer {
         'connect-device',
         async (options: ScrcpyConnectDeviceRequest = {}) => {
           const { ScrcpyVideoCodecId } = await import('@yume-chan/scrcpy');
+          const generation = sessionGeneration + 1;
+          sessionGeneration = generation;
+          const sessionId = `${socket.id}:${generation}`;
+          const isCurrentGeneration = () =>
+            socket.connected && sessionGeneration === generation;
           try {
             debugPage(
               'received device connection request, options: %s, client id: %s',
@@ -468,7 +566,7 @@ export default class ScrcpyServer {
               socket.id,
             );
 
-            await closeScrcpyClient('new connect-device request');
+            await closeScrcpySession('new connect-device request');
 
             emitPreviewStatus('connecting-device');
 
@@ -484,7 +582,18 @@ export default class ScrcpyServer {
             adb = await this.getAdb(requestedDeviceId);
             if (!adb) {
               console.error('no available device found');
-              socket.emit('error', { message: 'No device found' });
+              socket.emit(
+                'preview-error',
+                buildScrcpyPreviewErrorEvent(
+                  'adb-unavailable',
+                  sessionId,
+                  'No Android device is available.',
+                ),
+              );
+              return;
+            }
+
+            if (!isCurrentGeneration()) {
               return;
             }
 
@@ -492,11 +601,23 @@ export default class ScrcpyServer {
               'starting scrcpy service, device id: %s',
               this.currentDeviceId,
             );
-            scrcpyClient = await this.startScrcpy(
+            const scrcpyClient: any = await this.startScrcpy(
               adb,
               options,
               emitPreviewStatus,
             );
+            if (!isCurrentGeneration()) {
+              await scrcpyClient.close();
+              return;
+            }
+            const session: ActiveScrcpySession = {
+              client: scrcpyClient,
+              failureReported: false,
+              id: sessionId,
+              outputLines: [],
+            };
+            activeSession = session;
+            monitorScrcpySession(session);
             debugPage('scrcpy service started successfully');
 
             // check scrcpyClient object structure
@@ -541,6 +662,11 @@ export default class ScrcpyServer {
                   videoStream = scrcpyClient.videoStream;
                 }
 
+                if (!isCurrentGeneration() || activeSession !== session) {
+                  await closeScrcpySession('stale video stream', session);
+                  return;
+                }
+
                 debugPage(
                   'video stream fetched successfully, metadata: %s',
                   videoStream.metadata,
@@ -579,7 +705,7 @@ export default class ScrcpyServer {
                 );
 
                 const { stream } = videoStream;
-                const streamScrcpyClient = scrcpyClient;
+                const streamSession = session;
 
                 // convert video stream
                 const reader = stream.getReader();
@@ -588,6 +714,12 @@ export default class ScrcpyServer {
                     while (true) {
                       const { done, value } = await reader.read();
                       if (done) break;
+                      if (
+                        !isCurrentGeneration() ||
+                        activeSession !== streamSession
+                      ) {
+                        return;
+                      }
 
                       // ensure type field is correctly set to 'configuration' or 'data'
                       const frameType = value.type || 'data'; // default to 'data'
@@ -610,15 +742,14 @@ export default class ScrcpyServer {
                     }
                   } catch (error) {
                     console.error('error processing video stream:', error);
-                    if (socket.connected) {
-                      socket.emit('error', {
-                        message:
-                          'Scrcpy video stream failed. Reconnecting preview.',
-                      });
-                    }
-                    void closeScrcpyClient(
+                    emitPreviewError(
+                      streamSession,
+                      'stream-read-failed',
+                      `Scrcpy video stream failed: ${error instanceof Error ? error.message : String(error)}`,
+                    );
+                    void closeScrcpySession(
                       'video stream error',
-                      streamScrcpyClient,
+                      streamSession,
                     );
                     return;
                   }
@@ -629,16 +760,12 @@ export default class ScrcpyServer {
                   // "connected" but no frames flow, so the renderer's decoder
                   // never tears down and the preview freezes on the last
                   // frame until the user manually disconnects.
-                  if (socket.connected) {
-                    socket.emit('error', {
-                      message:
-                        'Scrcpy video stream ended. Reconnecting preview.',
-                    });
-                  }
-                  void closeScrcpyClient(
-                    'video stream ended',
-                    streamScrcpyClient,
+                  emitPreviewError(
+                    streamSession,
+                    'stream-ended',
+                    'Scrcpy video stream ended. Recovering preview.',
                   );
+                  void closeScrcpySession('video stream ended', streamSession);
                 };
 
                 processStream();
@@ -646,16 +773,24 @@ export default class ScrcpyServer {
                 console.error(
                   'scrcpyClient object does not have videoStream property',
                 );
-                socket.emit('error', {
-                  message: 'Video stream not available in scrcpy client',
-                });
+                emitPreviewError(
+                  session,
+                  'unknown',
+                  'Video stream is not available in the scrcpy client.',
+                );
+                await closeScrcpySession('video stream unavailable', session);
+                return;
               }
             } catch (error: any) {
               console.error('error processing video stream:', error);
-              await closeScrcpyClient('video stream setup error');
-              socket.emit('error', {
-                message: `Video stream processing error: ${error.message}`,
-              });
+              emitPreviewError(
+                session,
+                error?.message?.includes('Timed out')
+                  ? 'startup-timeout'
+                  : 'unknown',
+                `Video stream processing error: ${error.message}`,
+              );
+              await closeScrcpySession('video stream setup error', session);
             }
 
             // set control ready
@@ -665,10 +800,28 @@ export default class ScrcpyServer {
             }
           } catch (error: any) {
             console.error('failed to connect device:', error);
-            await closeScrcpyClient('connect-device error');
-            socket.emit('error', {
-              message: `Failed to connect device: ${error?.message || 'Unknown error'}`,
-            });
+            const session = activeSession;
+            if (session?.id === sessionId) {
+              emitPreviewError(
+                session,
+                error?.message?.includes('Timed out')
+                  ? 'startup-timeout'
+                  : 'unknown',
+                `Failed to connect device: ${error?.message || 'Unknown error'}`,
+              );
+              await closeScrcpySession('connect-device error', session);
+            } else if (isCurrentGeneration()) {
+              socket.emit(
+                'preview-error',
+                buildScrcpyPreviewErrorEvent(
+                  error?.message?.includes('Timed out')
+                    ? 'startup-timeout'
+                    : 'unknown',
+                  sessionId,
+                  `Failed to connect device: ${error?.message || 'Unknown error'}`,
+                ),
+              );
+            }
           }
         },
       );
@@ -676,7 +829,8 @@ export default class ScrcpyServer {
       // handle disconnection
       socket.on('disconnect', async (reason) => {
         debugPage('client disconnected, id: %s, reason: %s', socket.id, reason);
-        await closeScrcpyClient(`socket disconnect: ${reason}`);
+        sessionGeneration += 1;
+        await closeScrcpySession(`socket disconnect: ${reason}`);
       });
 
       // Don't block listener registration on the initial device scan. On a

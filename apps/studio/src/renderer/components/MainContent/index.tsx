@@ -390,11 +390,14 @@ export default function MainContent({
     !isReady || !studioPlayground.controller.state.sessionViewState.connected;
   const previewConnectionFailed =
     previewStatus === 'error' || previewStatus === 'disconnected';
-  const connectionStatus: ConnectionStatus = previewConnectionFailed
-    ? 'failed'
-    : isConnected
-      ? 'connected'
-      : 'disconnected';
+  const connectionStatus: ConnectionStatus =
+    previewStatus === 'recovering'
+      ? 'recovering'
+      : previewConnectionFailed
+        ? 'failed'
+        : isConnected
+          ? 'connected'
+          : 'disconnected';
 
   const previewHeaderSubInfo: { key: string; text: string }[] = [];
   if (isConnected && previewDeviceId) {
@@ -417,6 +420,7 @@ export default function MainContent({
   const pillStatusLabel: Record<ConnectionStatus, string> = {
     connected: 'Live',
     disconnected: 'Idle',
+    recovering: 'Recovering',
     failed: 'Failed',
   };
   // Pill chrome — adopts the imported "Live" tag visual (rounded background,
@@ -428,6 +432,7 @@ export default function MainContent({
   > = {
     connected: { bg: '#DEEBEC', fg: '#42B56C', dot: '#42B56C' },
     disconnected: { bg: '#ECECEC', fg: '#818283', dot: '#B6B6B6' },
+    recovering: { bg: '#FFF4D6', fg: '#B7791F', dot: '#F59E0B' },
     failed: { bg: '#FDE7E7', fg: '#C0392B', dot: '#E53935' },
   };
   const pillColors = pillPalette[connectionStatus];
