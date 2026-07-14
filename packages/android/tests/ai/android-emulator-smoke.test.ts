@@ -510,7 +510,11 @@ describe.skipIf(!RUN_LIVE_SMOKE)('Android Emulator live smoke', () => {
       const locateTasks = dumpTasks.filter(
         (task) => task.type === 'Planning' && task.subType === 'Locate',
       );
-      expect(locateTasks).toHaveLength(searchAttempts * 2);
+      // A retry can fail after locating the search bar but before locating the
+      // editable input. The final successful attempt always has both locates,
+      // while each earlier attempt has at least the search-bar locate.
+      expect(locateTasks.length).toBeGreaterThanOrEqual(searchAttempts + 1);
+      expect(locateTasks.length).toBeLessThanOrEqual(searchAttempts * 2);
       expect(locateTasks.every((task) => task.hitBy?.from === 'Plan')).toBe(
         true,
       );
@@ -535,7 +539,7 @@ describe.skipIf(!RUN_LIVE_SMOKE)('Android Emulator live smoke', () => {
       const reportLocateTasks = reportTasks.filter(
         (task) => task.type === 'Planning' && task.subType === 'Locate',
       );
-      expect(reportLocateTasks).toHaveLength(searchAttempts * 2);
+      expect(reportLocateTasks).toHaveLength(locateTasks.length);
       expect(
         reportLocateTasks.every((task) => task.hitBy?.from === 'Plan'),
       ).toBe(true);

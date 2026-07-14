@@ -13,6 +13,10 @@ export default defineConfig({
         __dirname,
         '../../packages/playground/src/recorder-ui-describer.ts',
       ),
+      '@silvia-odwyer/photon': path.resolve(
+        __dirname,
+        'tests/fixtures/photon.ts',
+      ),
     },
   },
   ssr: {
@@ -23,7 +27,10 @@ export default defineConfig({
   test: {
     coverage: createCoverageConfig(__dirname),
     environment: 'node',
-    environmentMatchGlobs: [['tests/theme-provider.test.ts', 'jsdom']],
+    environmentMatchGlobs: [
+      ['tests/theme-provider.test.ts', 'jsdom'],
+      ['tests/main-content-overview.test.tsx', 'jsdom'],
+    ],
     include: ['tests/**/*.test.{mjs,ts,tsx}'],
   },
 });

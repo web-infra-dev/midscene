@@ -150,6 +150,7 @@ final class FixtureController: NSObject, NSApplicationDelegate, NSTextFieldDeleg
     window.makeKeyAndOrderFront(nil)
     NSApplication.shared.activate(ignoringOtherApps: true)
     NSRunningApplication.current.activate(options: [.activateAllWindows])
+    window.makeFirstResponder(textField)
   }
 
   private func installActivationSignal() {
