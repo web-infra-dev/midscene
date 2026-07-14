@@ -14,7 +14,7 @@ module.exports = defineWorkflowProject({
       name: 'test.record',
       execute({ input }) {
         log(input.value);
-        if (input.fail) throw new Error('controlled workflow failure');
+        if (input.fail) throw new Error('controlled case failure');
       },
     }),
   ],

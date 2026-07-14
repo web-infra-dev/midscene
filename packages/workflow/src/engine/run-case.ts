@@ -1,21 +1,21 @@
 import { randomUUID } from 'node:crypto';
-import type { CollectedWorkflow, NormalizedStep } from '../parser/types';
-import { runStepForWorkflow } from './run-step';
+import type { CollectedCase, NormalizedStep } from '../parser/types';
+import { runStepForCase } from './run-step';
 import type {
-  NodeWorkflowContext,
-  RunWorkflowOptions,
+  CaseNodePhase,
+  CaseRunResult,
+  NodeCaseContext,
+  RunCaseOptions,
   StepRunResult,
-  WorkflowNodePhase,
-  WorkflowRunResult,
 } from './types';
 
-export async function runWorkflow<TContext = undefined>(
-  workflow: CollectedWorkflow,
-  options: RunWorkflowOptions<TContext>,
-): Promise<WorkflowRunResult> {
-  const phases: Record<WorkflowNodePhase, readonly NormalizedStep[]> = {
+export async function runCase<TContext = undefined>(
+  collectedCase: CollectedCase,
+  options: RunCaseOptions<TContext>,
+): Promise<CaseRunResult> {
+  const phases: Record<CaseNodePhase, readonly NormalizedStep[]> = {
     beforeEach: options.beforeEach ?? [],
-    steps: workflow.definition.steps,
+    steps: collectedCase.definition.steps,
     afterEach: options.afterEach ?? [],
   };
   const nodes = {
@@ -31,25 +31,25 @@ export async function runWorkflow<TContext = undefined>(
   const completedNodes: StepRunResult[] = [];
 
   const runPhase = async (
-    phase: WorkflowNodePhase,
+    phase: CaseNodePhase,
     results: StepRunResult[],
   ): Promise<void> => {
     for (const [stepIndex, step] of phases[phase].entries()) {
-      const workflowContext: NodeWorkflowContext = {
-        testId: workflow.testId,
+      const caseContext: NodeCaseContext = {
+        caseId: collectedCase.caseId,
         runId,
-        name: workflow.definition.name,
-        sourcePath: workflow.sourcePath,
-        workflowIndex: workflow.workflowIndex,
+        name: collectedCase.definition.name,
+        sourcePath: collectedCase.sourcePath,
+        caseIndex: collectedCase.caseIndex,
         phase,
         stepIndex,
         completedSteps: Object.freeze([...steps]),
         completedNodes: Object.freeze([...completedNodes]),
       };
-      const result = await runStepForWorkflow(
+      const result = await runStepForCase(
         step,
         nodes[phase][stepIndex],
-        workflowContext,
+        caseContext,
         options.context as TContext,
       );
       results.push(result);
@@ -65,12 +65,12 @@ export async function runWorkflow<TContext = undefined>(
   await runPhase('afterEach', afterEach);
 
   const endedAt = new Date();
-  const result: WorkflowRunResult = {
-    testId: workflow.testId,
+  const result: CaseRunResult = {
+    caseId: collectedCase.caseId,
     runId,
-    name: workflow.definition.name,
-    sourcePath: workflow.sourcePath,
-    workflowIndex: workflow.workflowIndex,
+    name: collectedCase.definition.name,
+    sourcePath: collectedCase.sourcePath,
+    caseIndex: collectedCase.caseIndex,
     status: completedNodes.some((step) => step.status === 'failed')
       ? 'failed'
       : 'success',

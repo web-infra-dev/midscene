@@ -1,23 +1,22 @@
 import { existsSync, mkdirSync, readdirSync } from 'node:fs';
 import { basename, join, relative, resolve, sep } from 'node:path';
-import { createDocumentRuntime } from '../engine/document-runtime';
-import { runWorkflow } from '../engine/run-workflow';
+import { runWorkflowDocument } from '../engine/run-workflow-document';
 import type { WorkflowDocumentRunResult } from '../engine/types';
 import { WorkflowError, WorkflowParseError } from '../errors';
 import { collectWorkflowDocument } from '../parser/collect';
 import type {
-  CollectedWorkflow,
+  CollectedCase,
   CollectedWorkflowDocument,
   WorkflowDocumentSource,
 } from '../parser/types';
 import {
+  writeCaseRunResult,
   writeCollectionError,
   writeWorkflowDocumentRunResult,
   writeWorkflowProjectRunResult,
-  writeWorkflowRunResult,
 } from './result-store';
 import type {
-  WorkflowCaseRunResult,
+  ProjectCaseRunResult,
   WorkflowCollectionError,
   WorkflowProjectRunResult,
   WorkflowProjectRunSummary,
@@ -95,26 +94,26 @@ const asCollectionError = (
 });
 
 const asNotRun = (
-  workflow: CollectedWorkflow,
-  reason: NonNullable<WorkflowCaseRunResult['notRunReason']>,
-): WorkflowCaseRunResult => ({
-  testId: workflow.testId,
-  name: workflow.definition.name,
-  sourcePath: workflow.sourcePath,
-  workflowIndex: workflow.workflowIndex,
+  collectedCase: CollectedCase,
+  reason: NonNullable<ProjectCaseRunResult['notRunReason']>,
+): ProjectCaseRunResult => ({
+  caseId: collectedCase.caseId,
+  name: collectedCase.definition.name,
+  sourcePath: collectedCase.sourcePath,
+  caseIndex: collectedCase.caseIndex,
   status: 'not-run',
   notRunReason: reason,
 });
 
 const summarize = (
-  workflows: readonly WorkflowCaseRunResult[],
+  cases: readonly ProjectCaseRunResult[],
   documents: readonly WorkflowDocumentRunResult[],
   collectionErrors: readonly WorkflowCollectionError[],
 ): WorkflowProjectRunSummary => ({
-  total: workflows.length,
-  passed: workflows.filter((workflow) => workflow.status === 'success').length,
-  failed: workflows.filter((workflow) => workflow.status === 'failed').length,
-  notRun: workflows.filter((workflow) => workflow.status === 'not-run').length,
+  total: cases.length,
+  passed: cases.filter((caseResult) => caseResult.status === 'success').length,
+  failed: cases.filter((caseResult) => caseResult.status === 'failed').length,
+  notRun: cases.filter((caseResult) => caseResult.status === 'not-run').length,
   collectionErrors: collectionErrors.length,
   documentFailures: documents.filter((document) => document.status === 'failed')
     .length,
@@ -151,7 +150,7 @@ export async function runWorkflowProject(
   const project = loadWorkflowProjectSync(configPath);
   const collectedDocuments: CollectedProjectDocument[] = [];
   const collectionErrors: WorkflowCollectionError[] = [];
-  const collectedTestIds = new Set<string>();
+  const collectedCaseIds = new Set<string>();
 
   for (const source of sources) {
     try {
@@ -159,17 +158,17 @@ export async function runWorkflowProject(
         resolveNode: project.resolveNode,
         resolveDocumentNode: project.resolveDocumentNode,
       });
-      const collided = document.workflows.find((workflow) =>
-        collectedTestIds.has(workflow.testId),
+      const collided = document.cases.find((collectedCase) =>
+        collectedCaseIds.has(collectedCase.caseId),
       );
       if (collided) {
-        throw new WorkflowParseError(
-          `Workflow testId collision: ${collided.testId}.`,
-          { testId: collided.testId, sourcePath: source.sourcePath },
-        );
+        throw new WorkflowParseError(`Case id collision: ${collided.caseId}.`, {
+          caseId: collided.caseId,
+          sourcePath: source.sourcePath,
+        });
       }
-      for (const workflow of document.workflows) {
-        collectedTestIds.add(workflow.testId);
+      for (const collectedCase of document.cases) {
+        collectedCaseIds.add(collectedCase.caseId);
       }
       collectedDocuments.push({ document });
     } catch (error) {
@@ -179,7 +178,7 @@ export async function runWorkflowProject(
     }
   }
 
-  const workflows: WorkflowCaseRunResult[] = [];
+  const cases: ProjectCaseRunResult[] = [];
   const documents: WorkflowDocumentRunResult[] = [];
   let interrupted = false;
   const handleSignal = () => {
@@ -191,74 +190,34 @@ export async function runWorkflowProject(
   try {
     for (const { document } of collectedDocuments) {
       if (interrupted) {
-        workflows.push(
-          ...document.workflows.map((workflow) =>
-            asNotRun(workflow, 'interrupted'),
+        cases.push(
+          ...document.cases.map((collectedCase) =>
+            asNotRun(collectedCase, 'interrupted'),
           ),
         );
         continue;
       }
 
-      const runtime = createDocumentRuntime(document, {
-        resolveNode: project.documentNodes.require.bind(project.documentNodes),
+      const execution = await runWorkflowDocument(document, {
+        resolveNode: project.nodes.require.bind(project.nodes),
+        resolveDocumentNode: project.documentNodes.require.bind(
+          project.documentNodes,
+        ),
         setupDocument: project.setupDocument,
+        shouldStop: () => interrupted,
+        onCaseResult: (run) => writeCaseRunResult(resultDir, run),
+        onDocumentResult: (documentResult) =>
+          writeWorkflowDocumentRunResult(resultDir, documentResult),
       });
-      let runtimeStarted = false;
-      let executionError: unknown;
-      try {
-        runtimeStarted = true;
-        await runtime.start();
-
-        if (!runtime.canRunWorkflows) {
-          workflows.push(
-            ...document.workflows.map((workflow) =>
-              asNotRun(workflow, 'document-start-failed'),
-            ),
-          );
-        } else {
-          for (const workflow of document.workflows) {
-            if (interrupted) {
-              workflows.push(asNotRun(workflow, 'interrupted'));
-              continue;
-            }
-            const run = await runWorkflow(workflow, {
-              resolveNode: project.nodes.require.bind(project.nodes),
-              beforeEach: document.lifecycle.beforeEach,
-              afterEach: document.lifecycle.afterEach,
-              context: runtime.context,
-            });
-            writeWorkflowRunResult(resultDir, run);
-            workflows.push({
-              testId: workflow.testId,
-              name: workflow.definition.name,
-              sourcePath: workflow.sourcePath,
-              workflowIndex: workflow.workflowIndex,
-              status: run.status,
-              run,
-            });
-          }
-        }
-      } catch (error) {
-        executionError = error;
-      } finally {
-        if (runtimeStarted) {
-          try {
-            const documentResult = await runtime.finish();
-            documents.push(documentResult);
-            writeWorkflowDocumentRunResult(resultDir, documentResult);
-          } catch (error) {
-            executionError ??= error;
-          }
-        }
-      }
-      if (executionError) throw executionError;
+      cases.push(...execution.cases);
+      documents.push(execution.document);
     }
   } finally {
     process.off('SIGINT', handleSignal);
     process.off('SIGTERM', handleSignal);
   }
 
-  const summary = summarize(workflows, documents, collectionErrors);
+  const summary = summarize(cases, documents, collectionErrors);
   const failed =
     interrupted ||
     summary.failed > 0 ||
@@ -270,7 +229,7 @@ export async function runWorkflowProject(
     exitCode: failed ? 1 : 0,
     resultDir,
     summary,
-    workflows,
+    cases,
     documents,
     collectionErrors,
   };

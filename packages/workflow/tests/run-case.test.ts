@@ -1,10 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import {
-  type CollectedWorkflow,
-  NodeRegistry,
-  defineNode,
-  runWorkflow,
-} from '../src';
+import { type CollectedCase, NodeRegistry, defineNode, runCase } from '../src';
 
 const step = (node: string, continueOnError = false) => ({
   node,
@@ -13,43 +8,43 @@ const step = (node: string, continueOnError = false) => ({
 });
 
 const collected = (
-  steps: CollectedWorkflow['definition']['steps'],
-): CollectedWorkflow => ({
-  testId: 'test-id',
+  steps: CollectedCase['definition']['steps'],
+): CollectedCase => ({
+  caseId: 'test-id',
   projectId: 'project',
   sourcePath: 'flows/example.yaml',
-  workflowIndex: 2,
-  definition: { name: 'example workflow', steps },
+  caseIndex: 2,
+  definition: { name: 'example case', steps },
 });
 
-describe('runWorkflow', () => {
+describe('runCase', () => {
   it('runs all attempt phases in order with one context and complete history', async () => {
     const context = { marker: 'document-context' };
     const calls: string[] = [];
     const node = defineNode<unknown, unknown, typeof context>({
       name: 'record',
       execute(ctx) {
-        calls.push(`${ctx.workflow.phase}:${ctx.workflow.stepIndex}`);
+        calls.push(`${ctx.case.phase}:${ctx.case.stepIndex}`);
         expect(ctx.context).toBe(context);
-        expect(Object.isFrozen(ctx.workflow.completedSteps)).toBe(true);
-        expect(Object.isFrozen(ctx.workflow.completedNodes)).toBe(true);
-        if (ctx.workflow.phase === 'beforeEach') {
-          expect(ctx.workflow.completedSteps).toEqual([]);
-          expect(ctx.workflow.completedNodes).toEqual([]);
+        expect(Object.isFrozen(ctx.case.completedSteps)).toBe(true);
+        expect(Object.isFrozen(ctx.case.completedNodes)).toBe(true);
+        if (ctx.case.phase === 'beforeEach') {
+          expect(ctx.case.completedSteps).toEqual([]);
+          expect(ctx.case.completedNodes).toEqual([]);
         }
-        if (ctx.workflow.phase === 'steps') {
-          expect(ctx.workflow.completedSteps).toEqual([]);
-          expect(ctx.workflow.completedNodes).toHaveLength(1);
+        if (ctx.case.phase === 'steps') {
+          expect(ctx.case.completedSteps).toEqual([]);
+          expect(ctx.case.completedNodes).toHaveLength(1);
         }
-        if (ctx.workflow.phase === 'afterEach') {
-          expect(ctx.workflow.completedSteps).toHaveLength(1);
-          expect(ctx.workflow.completedNodes).toHaveLength(2);
+        if (ctx.case.phase === 'afterEach') {
+          expect(ctx.case.completedSteps).toHaveLength(1);
+          expect(ctx.case.completedNodes).toHaveLength(2);
         }
       },
     });
     const registry = new NodeRegistry([node]);
 
-    const result = await runWorkflow(collected([step(node.name)]), {
+    const result = await runCase(collected([step(node.name)]), {
       beforeEach: [step(node.name)],
       afterEach: [step(node.name)],
       resolveNode: registry.require.bind(registry),
@@ -97,7 +92,7 @@ describe('runWorkflow', () => {
       }),
     ]);
 
-    const result = await runWorkflow(collected([step('body')]), {
+    const result = await runCase(collected([step('body')]), {
       beforeEach: [step('before.fail', true), step('before.next')],
       afterEach: [step('after')],
       resolveNode: registry.require.bind(registry),
@@ -110,7 +105,7 @@ describe('runWorkflow', () => {
     expect(result.afterEach).toHaveLength(1);
   });
 
-  it('runs afterEach after a workflow step fails and preserves both errors', async () => {
+  it('runs afterEach after a case step fails and preserves both errors', async () => {
     const registry = new NodeRegistry([
       defineNode({
         name: 'body.fail',
@@ -126,7 +121,7 @@ describe('runWorkflow', () => {
       }),
     ]);
 
-    const result = await runWorkflow(collected([step('body.fail')]), {
+    const result = await runCase(collected([step('body.fail')]), {
       afterEach: [step('after.fail')],
       resolveNode: registry.require.bind(registry),
     });
@@ -148,7 +143,7 @@ describe('runWorkflow', () => {
       defineNode({ name: 'next', execute: next }),
     ]);
 
-    const result = await runWorkflow(
+    const result = await runCase(
       collected([step('fails', true), step('next')]),
       { resolveNode: registry.require.bind(registry) },
     );
@@ -164,7 +159,7 @@ describe('runWorkflow', () => {
     const registry = new NodeRegistry([defineNode({ name: 'known', execute })]);
 
     await expect(
-      runWorkflow(collected([step('known')]), {
+      runCase(collected([step('known')]), {
         beforeEach: [step('known')],
         afterEach: [step('missing')],
         resolveNode: registry.require.bind(registry),
@@ -174,7 +169,7 @@ describe('runWorkflow', () => {
     expect(execute).not.toHaveBeenCalled();
     expect(onResult).not.toHaveBeenCalled();
 
-    const result = await runWorkflow(collected([step('known')]), {
+    const result = await runCase(collected([step('known')]), {
       resolveNode: registry.require.bind(registry),
       onResult,
     });

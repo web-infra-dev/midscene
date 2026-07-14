@@ -15,16 +15,14 @@ describe('node definitions and registry', () => {
     execute() {},
   });
 
-  it('keeps document and workflow registries independent', () => {
-    const workflowNode = defineNode({ name: 'shared.name', execute() {} });
+  it('keeps case and document registries independent', () => {
+    const caseNode = defineNode({ name: 'shared.name', execute() {} });
     const documentNode = defineDocumentNode({
       name: 'shared.name',
       execute() {},
     });
 
-    expect(new NodeRegistry([workflowNode]).require('shared.name')).toBe(
-      workflowNode,
-    );
+    expect(new NodeRegistry([caseNode]).require('shared.name')).toBe(caseNode);
     expect(
       new DocumentNodeRegistry([documentNode]).require('shared.name'),
     ).toBe(documentNode);

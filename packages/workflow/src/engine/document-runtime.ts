@@ -39,7 +39,7 @@ export function createDocumentRuntime<TContext = undefined>(
     documentRunId,
     projectId: document.projectId,
     sourcePath: document.sourcePath,
-    workflows: document.workflows.map((workflow) => workflow.definition),
+    cases: document.cases.map((caseDefinition) => caseDefinition.definition),
     lifecycle: document.lifecycle,
     env: Object.freeze({ ...process.env }),
   };
@@ -127,7 +127,7 @@ export function createDocumentRuntime<TContext = undefined>(
     get context() {
       return context;
     },
-    get canRunWorkflows() {
+    get canRunCases() {
       return (
         started &&
         !setupError &&
