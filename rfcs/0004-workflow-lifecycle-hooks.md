@@ -861,10 +861,10 @@ registry。
 const {
   defineDocumentNode,
   defineNode,
-} = require('@midscene/workflow');
+} = require('@midscene/test');
 const {
   defineWorkflowProject,
-} = require('@midscene/workflow/config');
+} = require('@midscene/test/config');
 
 const seedDatabase = defineDocumentNode({
   name: 'database.seed',

@@ -51,10 +51,10 @@ Midscene 只提供节点适配器。项目通过 `createMidsceneNodes()` 注册 
 const { agentFromAdbDevice } = require('@midscene/android');
 const {
   defineWorkflowProject,
-} = require('@midscene/workflow/config');
+} = require('@midscene/test/config');
 const {
   createMidsceneNodes,
-} = require('@midscene/workflow/midscene');
+} = require('@midscene/test/midscene');
 
 const midsceneNodes = createMidsceneNodes({
   getAgent: ({ context }) => context.uiAgent,
@@ -615,7 +615,7 @@ Midscene 集成从独立入口导出：
 import {
   createMidsceneNodes,
   type MidsceneUIAgent,
-} from '@midscene/workflow/midscene';
+} from '@midscene/test/midscene';
 ```
 
 通用 engine、project config 和 setup API 不依赖该入口。这样可以保持核心类型中没有
@@ -1074,7 +1074,7 @@ export {
   createMidsceneNodes,
   type CreateMidsceneNodesOptions,
   type MidsceneUIAgent,
-} from '@midscene/workflow/midscene';
+} from '@midscene/test/midscene';
 ```
 
 现有节点不读取 `ctx.context` 时，无需修改执行逻辑。现有项目不配置 `setupWorkflow`
@@ -1096,7 +1096,7 @@ export {
 
 ### 15.2 Midscene 适配器
 
-1. 增加 `@midscene/workflow/midscene` 构建入口。
+1. 增加 `@midscene/test/midscene` 构建入口。
 2. 增加最小 `MidsceneUIAgent` 结构类型。
 3. 实现 `createMidsceneNodes()`。
 4. 实现 `aiAct`、`aiAssert` 和 `recordToReport` 输入校验。

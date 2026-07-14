@@ -353,7 +353,7 @@ runner 必须在 run 结束后移除自己安装的 signal handler，避免 prog
 
 实现本 RFC 时需要删除以下 Rstest adapter：
 
-1. 从 `@midscene/workflow` runtime dependencies 删除 `@rstest/core`；
+1. 从 `@midscene/test` runtime dependencies 删除 `@rstest/core`；
 2. 删除固定的 `workflow-rstest-bridge.test.ts`；
 3. 删除 `runRstest()` 调用和 Rstest inline config；
 4. 删除 Rstest reporter、pool 和 structured result 类型；
@@ -453,7 +453,7 @@ Rstest adapter，避免两套执行链路的行为继续分叉。
 
 ## 14. 验收标准
 
-- `@midscene/workflow` runtime 不再依赖 `@rstest/core`；
+- `@midscene/test` runtime 不再依赖 `@rstest/core`；
 - workflow 执行链路中不存在 Rstest bridge 和 worker；
 - project config、node definitions 和 registries 每次 run 只初始化一次；
 - `setupDocument()` 和 node handler 可以直接共享不可序列化 context；

@@ -17,7 +17,7 @@ RFC 0006 定义 Workflow Document 和 Case 术语。
 
 ```js
 // midscene.workflow.config.cjs
-const { defineWorkflowProject } = require('@midscene/workflow/config');
+const { defineWorkflowProject } = require('@midscene/test/config');
 const { nodes } = require('./nodes');
 
 module.exports = defineWorkflowProject({
