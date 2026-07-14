@@ -101,6 +101,39 @@ export class NodeExecutionError extends WorkflowError {
   }
 }
 
+export class WorkflowSetupError extends WorkflowError {
+  constructor(cause: unknown, details: { testId: string; runId: string }) {
+    const causeMessage =
+      cause instanceof Error ? cause.message : String(cause ?? 'Unknown error');
+    super(`Workflow setup failed: ${causeMessage}`, {
+      code: 'WORKFLOW_SETUP_ERROR',
+      details,
+      cause,
+    });
+  }
+}
+
+export class WorkflowTeardownError extends WorkflowError {
+  constructor(
+    cause: unknown,
+    details: { testId: string; runId: string; registrationIndex: number },
+  ) {
+    const causeMessage =
+      cause instanceof Error ? cause.message : String(cause ?? 'Unknown error');
+    super(`Workflow teardown failed: ${causeMessage}`, {
+      code: 'WORKFLOW_TEARDOWN_ERROR',
+      details,
+      cause,
+    });
+  }
+}
+
+export class WorkflowLifecycleError extends WorkflowError {
+  constructor(message: string, details?: unknown) {
+    super(message, { code: 'WORKFLOW_LIFECYCLE_ERROR', details });
+  }
+}
+
 export class WorkflowExecutionError extends WorkflowError {
   readonly result: import('./engine/types').WorkflowRunResult;
 

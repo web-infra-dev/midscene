@@ -1,0 +1,6 @@
+workflows:
+  - name: report-only workflow
+    steps:
+      - recordToReport:
+          title: Ready
+          content: Agent came from setupWorkflow

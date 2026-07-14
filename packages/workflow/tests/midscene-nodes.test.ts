@@ -1,0 +1,153 @@
+import { describe, expect, it, vi } from 'vitest';
+import { NodeRegistry, runWorkflow } from '../src';
+import { type MidsceneUIAgent, createMidsceneNodes } from '../src/midscene';
+import type { CollectedWorkflow } from '../src/parser/types';
+
+const collected = (
+  steps: CollectedWorkflow['definition']['steps'],
+): CollectedWorkflow => ({
+  testId: 'midscene-test',
+  projectId: 'project',
+  sourcePath: 'flows/midscene.yaml',
+  workflowIndex: 0,
+  definition: { name: 'midscene workflow', steps },
+});
+
+describe('createMidsceneNodes', () => {
+  it('maps workflow inputs to one Agent from setup context', async () => {
+    const aiAct = vi.fn(async () => 'action completed');
+    const aiAssert = vi.fn(async () => undefined);
+    const recordToReport = vi.fn(async () => undefined);
+    const agent: MidsceneUIAgent = { aiAct, aiAssert, recordToReport };
+    const getAgent = vi.fn(
+      ({ context }: { context: { uiAgent: MidsceneUIAgent } }) =>
+        context.uiAgent,
+    );
+    const nodes = createMidsceneNodes({ getAgent });
+    const registry = new NodeRegistry(nodes);
+
+    const result = await runWorkflow(
+      collected([
+        {
+          node: 'aiAct',
+          input: { prompt: 'Create an order', options: { deepThink: true } },
+          meta: { continueOnError: false },
+        },
+        {
+          node: 'aiAssert',
+          input: {
+            prompt: 'The order is paid',
+            message: 'Paid state is missing',
+            options: { domIncluded: false },
+          },
+          meta: { continueOnError: false },
+        },
+        {
+          node: 'recordToReport',
+          input: { title: 'Order created', content: 'order-1' },
+          meta: { continueOnError: false },
+        },
+      ]),
+      {
+        resolveNode: registry.require.bind(registry),
+        setupWorkflow: () => ({ uiAgent: agent }),
+      },
+    );
+
+    expect(registry.names()).toEqual(['aiAct', 'aiAssert', 'recordToReport']);
+    expect(getAgent).toHaveBeenCalledTimes(3);
+    expect(aiAct).toHaveBeenCalledWith('Create an order', {
+      deepThink: true,
+      abortSignal: expect.any(AbortSignal),
+    });
+    expect(aiAssert).toHaveBeenCalledWith(
+      'The order is paid',
+      'Paid state is missing',
+      { domIncluded: false, abortSignal: expect.any(AbortSignal) },
+    );
+    expect(recordToReport).toHaveBeenCalledWith('Order created', {
+      content: 'order-1',
+    });
+    expect(result.steps.map((step) => step.output?.summary)).toEqual([
+      'action completed',
+      'Assertion passed: The order is paid',
+      'Recorded to report: Order created',
+    ]);
+  });
+
+  it('supports recordToReport string shorthand without an AI call', async () => {
+    const recordToReport = vi.fn(async () => undefined);
+    const agent = { recordToReport } as unknown as MidsceneUIAgent;
+    const nodes = createMidsceneNodes<{ agent: MidsceneUIAgent }>({
+      getAgent: ({ context }) => context.agent,
+    });
+    const registry = new NodeRegistry(nodes);
+
+    const result = await runWorkflow(
+      collected([
+        {
+          node: 'recordToReport',
+          input: { prompt: 'Checkpoint' },
+          meta: { continueOnError: false },
+        },
+      ]),
+      {
+        resolveNode: registry.require.bind(registry),
+        setupWorkflow: () => ({ agent }),
+      },
+    );
+
+    expect(result.status).toBe('success');
+    expect(recordToReport).toHaveBeenCalledWith('Checkpoint', {});
+  });
+
+  it('rejects invalid node input and missing Agent methods clearly', async () => {
+    const nodes = createMidsceneNodes<{ agent: MidsceneUIAgent }>({
+      getAgent: ({ context }) => context.agent,
+    });
+    const registry = new NodeRegistry(nodes);
+    const run = (
+      node: string,
+      input: Record<string, unknown>,
+      agent: MidsceneUIAgent,
+    ) =>
+      runWorkflow(
+        collected([{ node, input, meta: { continueOnError: false } }]),
+        {
+          resolveNode: registry.require.bind(registry),
+          setupWorkflow: () => ({ agent }),
+        },
+      );
+
+    const invalidOptions = await run(
+      'aiAssert',
+      {
+        prompt: 'Visible',
+        options: { keepRawResponse: true },
+      },
+      {
+        aiAssert: vi.fn(async () => undefined),
+      } as unknown as MidsceneUIAgent,
+    );
+    expect(invalidOptions.steps[0].error).toMatchObject({
+      code: 'NODE_EXECUTION_ERROR',
+      message: expect.stringContaining('unsupported option "keepRawResponse"'),
+    });
+
+    const missingMethod = await run(
+      'aiAct',
+      { prompt: 'Click submit' },
+      {} as MidsceneUIAgent,
+    );
+    expect(missingMethod.steps[0].error).toMatchObject({
+      code: 'NODE_EXECUTION_ERROR',
+      message: expect.stringContaining('Agent with aiAct()'),
+    });
+  });
+
+  it('validates factory options during static node registration', () => {
+    expect(() => createMidsceneNodes({} as never)).toThrow(
+      'createMidsceneNodes() requires a getAgent function.',
+    );
+  });
+});

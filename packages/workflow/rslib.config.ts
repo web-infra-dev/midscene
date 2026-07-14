@@ -31,6 +31,7 @@ export default defineConfig({
       index: './src/index.ts',
       'workflow-cli': './src/workflow-cli.ts',
       'cli/index': './src/cli/workflow-project.ts',
+      'midscene/index': './src/midscene/index.ts',
       'cli/workflow-rstest-bridge.test':
         './src/cli/workflow-rstest-bridge.test.ts',
     },

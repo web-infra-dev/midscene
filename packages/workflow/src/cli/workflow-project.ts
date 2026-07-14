@@ -1,20 +1,23 @@
 import { createRequire } from 'node:module';
 import { resolve } from 'node:path';
 import { NodeRegistry } from '../engine/registry';
+import type { WorkflowSetup } from '../engine/types';
 import type { NodeDefinition } from '../node/types';
 
-export interface WorkflowProjectDefinition {
-  nodes: readonly NodeDefinition<any, any>[];
+export interface WorkflowProjectDefinition<TContext = undefined> {
+  nodes: readonly NodeDefinition<any, any, TContext>[];
+  setupWorkflow?: WorkflowSetup<TContext>;
 }
 
-export interface LoadedWorkflowProject {
+export interface LoadedWorkflowProject<TContext = undefined> {
   nodes: NodeRegistry;
-  resolveNode(name: string): NodeDefinition<any, any> | undefined;
+  setupWorkflow?: WorkflowSetup<TContext>;
+  resolveNode(name: string): NodeDefinition<any, any, TContext> | undefined;
 }
 
-export const defineWorkflowProject = (
-  definition: WorkflowProjectDefinition,
-): WorkflowProjectDefinition => definition;
+export const defineWorkflowProject = <TContext = undefined>(
+  definition: WorkflowProjectDefinition<TContext>,
+): WorkflowProjectDefinition<TContext> => definition;
 
 const unwrapProjectDefinition = (loaded: unknown): unknown => {
   if (typeof loaded === 'object' && loaded !== null && 'default' in loaded) {
@@ -23,9 +26,9 @@ const unwrapProjectDefinition = (loaded: unknown): unknown => {
   return loaded;
 };
 
-export function loadWorkflowProjectSync(
+export function loadWorkflowProjectSync<TContext = undefined>(
   configPath?: string,
-): LoadedWorkflowProject {
+): LoadedWorkflowProject<TContext> {
   let definition: unknown = { nodes: [] };
   if (configPath) {
     const absolutePath = resolve(configPath);
@@ -52,11 +55,21 @@ export function loadWorkflowProjectSync(
     );
   }
 
-  const nodes = new NodeRegistry(
-    (definition as WorkflowProjectDefinition).nodes,
-  );
+  const projectDefinition = definition as WorkflowProjectDefinition<TContext>;
+  if (
+    projectDefinition.setupWorkflow !== undefined &&
+    typeof projectDefinition.setupWorkflow !== 'function'
+  ) {
+    throw new TypeError('Workflow config setupWorkflow must be a function.');
+  }
+
+  const nodes = new NodeRegistry(projectDefinition.nodes);
   return {
     nodes,
-    resolveNode: (name) => nodes.get(name),
+    ...(projectDefinition.setupWorkflow
+      ? { setupWorkflow: projectDefinition.setupWorkflow }
+      : {}),
+    resolveNode: (name) =>
+      nodes.get(name) as NodeDefinition<any, any, TContext> | undefined,
   };
 }

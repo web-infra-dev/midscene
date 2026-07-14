@@ -1,9 +1,13 @@
 import { NodeDefinitionError } from '../errors';
 import type { DefineNodeOptions, NodeDefinition } from './types';
 
-export function defineNode<TInput = unknown, TData = unknown>(
-  options: DefineNodeOptions<TInput, TData>,
-): NodeDefinition<TInput, TData> {
+export function defineNode<
+  TInput = unknown,
+  TData = unknown,
+  TContext = unknown,
+>(
+  options: DefineNodeOptions<TInput, TData, TContext>,
+): NodeDefinition<TInput, TData, TContext> {
   if (!options || typeof options !== 'object') {
     throw new NodeDefinitionError('Node definition must be an object.');
   }

@@ -24,6 +24,11 @@
       "types": "./dist/types/cli/index.d.ts",
       "import": "./dist/es/cli/index.mjs",
       "require": "./dist/lib/cli/index.js"
+    },
+    "./midscene": {
+      "types": "./dist/types/midscene/index.d.ts",
+      "import": "./dist/es/midscene/index.mjs",
+      "require": "./dist/lib/midscene/index.js"
     }
   },
   "files": ["dist", "bin"],

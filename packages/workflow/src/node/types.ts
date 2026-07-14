@@ -9,7 +9,7 @@ export interface NodeResult<TData = unknown> {
   data?: TData;
 }
 
-export interface NodeExecutionContext<TInput = unknown> {
+export interface NodeExecutionContext<TInput = unknown, TContext = unknown> {
   /** The node input without `$`, including the common `prompt` input. */
   input: TInput & CommonNodeInput;
 
@@ -21,18 +21,30 @@ export interface NodeExecutionContext<TInput = unknown> {
 
   /** Identity and completed-step history for the workflow being executed. */
   workflow: NodeWorkflowContext;
+
+  /** Resources shared by every node in the current workflow attempt. */
+  context: TContext;
 }
 
 export type NodeExecutionReturn<TData = unknown> =
   // biome-ignore lint/suspicious/noConfusingVoidType: RFC 0001 allows async nodes to resolve without a result.
   Promise<NodeResult<TData> | void> | NodeResult<TData> | void;
 
-export interface DefineNodeOptions<TInput = unknown, TData = unknown> {
+export interface DefineNodeOptions<
+  TInput = unknown,
+  TData = unknown,
+  TContext = unknown,
+> {
   name: string;
   title?: string;
   description?: string;
-  execute(ctx: NodeExecutionContext<TInput>): NodeExecutionReturn<TData>;
+  execute(
+    ctx: NodeExecutionContext<TInput, TContext>,
+  ): NodeExecutionReturn<TData>;
 }
 
-export interface NodeDefinition<TInput = unknown, TData = unknown>
-  extends DefineNodeOptions<TInput, TData> {}
+export interface NodeDefinition<
+  TInput = unknown,
+  TData = unknown,
+  TContext = unknown,
+> extends DefineNodeOptions<TInput, TData, TContext> {}

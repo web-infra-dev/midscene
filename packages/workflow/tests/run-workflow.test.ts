@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   type CollectedWorkflow,
   NodeRegistry,
+  WorkflowLifecycleError,
   defineNode,
   runWorkflow,
 } from '../src';
@@ -150,5 +151,190 @@ describe('runWorkflow', () => {
     expect(result.status).toBe('failed');
     expect(result.steps).toHaveLength(2);
     expect(next).toHaveBeenCalledOnce();
+  });
+
+  it('shares setup context and runs teardown callbacks in reverse order', async () => {
+    const context = { value: 1 };
+    const receivedContexts: unknown[] = [];
+    const lifecycle: string[] = [];
+    const node = defineNode<unknown, unknown, typeof context>({
+      name: 'context.node',
+      execute(ctx) {
+        receivedContexts.push(ctx.context);
+        ctx.context.value += 1;
+      },
+    });
+    const registry = new NodeRegistry([node]);
+
+    const result = await runWorkflow(
+      collected([
+        { node: node.name, input: {}, meta: { continueOnError: false } },
+        { node: node.name, input: {}, meta: { continueOnError: false } },
+      ]),
+      {
+        resolveNode: registry.require.bind(registry),
+        createRunId: () => 'context-run',
+        setupWorkflow(setup) {
+          expect(setup).toMatchObject({
+            testId: 'test-id',
+            runId: 'context-run',
+            sourcePath: 'flows/example.yaml',
+            workflowIndex: 2,
+          });
+          expect(setup.steps).toHaveLength(2);
+          expect(setup.env).not.toBe(process.env);
+          expect(Object.isFrozen(setup.env)).toBe(true);
+          setup.onTeardown((teardown) => {
+            lifecycle.push(`first:${teardown.status}:${context.value}`);
+          });
+          setup.onTeardown(() => {
+            lifecycle.push('second');
+          });
+          return context;
+        },
+      },
+    );
+
+    expect(result.status).toBe('success');
+    expect(receivedContexts).toEqual([context, context]);
+    expect(context.value).toBe(3);
+    expect(lifecycle).toEqual(['second', 'first:success:3']);
+  });
+
+  it('tears down partial setup and skips steps when setup fails', async () => {
+    const execute = vi.fn();
+    const lifecycle: string[] = [];
+    const node = defineNode({ name: 'never.runs', execute });
+    const registry = new NodeRegistry([node]);
+
+    const result = await runWorkflow(
+      collected([
+        { node: node.name, input: {}, meta: { continueOnError: false } },
+      ]),
+      {
+        resolveNode: registry.require.bind(registry),
+        createRunId: () => 'setup-failure',
+        setupWorkflow({ onTeardown }) {
+          onTeardown((ctx) => {
+            lifecycle.push(`${ctx.status}:${ctx.setupError?.code}`);
+          });
+          throw new Error('database unavailable');
+        },
+      },
+    );
+
+    expect(execute).not.toHaveBeenCalled();
+    expect(lifecycle).toEqual(['failed:WORKFLOW_SETUP_ERROR']);
+    expect(result).toMatchObject({
+      status: 'failed',
+      steps: [],
+      setupError: {
+        code: 'WORKFLOW_SETUP_ERROR',
+        message: 'Workflow setup failed: database unavailable',
+      },
+    });
+  });
+
+  it('keeps step and all teardown errors and calls onResult last', async () => {
+    const lifecycle: string[] = [];
+    const node = defineNode({
+      name: 'fails',
+      execute() {
+        lifecycle.push('step');
+        throw new Error('step failed');
+      },
+    });
+    const registry = new NodeRegistry([node]);
+    const onResult = vi.fn(() => {
+      lifecycle.push('result');
+    });
+
+    const result = await runWorkflow(
+      collected([
+        { node: node.name, input: {}, meta: { continueOnError: false } },
+      ]),
+      {
+        resolveNode: registry.require.bind(registry),
+        createRunId: () => 'teardown-failure',
+        setupWorkflow({ onTeardown }) {
+          onTeardown(() => {
+            lifecycle.push('teardown:first');
+            throw new Error('first failed');
+          });
+          onTeardown(() => {
+            lifecycle.push('teardown:second');
+            throw new Error('second failed');
+          });
+          return undefined;
+        },
+        onResult,
+      },
+    );
+
+    expect(lifecycle).toEqual([
+      'step',
+      'teardown:second',
+      'teardown:first',
+      'result',
+    ]);
+    expect(result.steps[0].error?.code).toBe('NODE_EXECUTION_ERROR');
+    expect(result.teardownErrors).toHaveLength(2);
+    expect(result.teardownErrors?.map((error) => error.code)).toEqual([
+      'WORKFLOW_TEARDOWN_ERROR',
+      'WORKFLOW_TEARDOWN_ERROR',
+    ]);
+    expect(result.teardownErrors?.map((error) => error.details)).toEqual([
+      { testId: 'test-id', runId: 'teardown-failure', registrationIndex: 1 },
+      { testId: 'test-id', runId: 'teardown-failure', registrationIndex: 0 },
+    ]);
+    expect(onResult).toHaveBeenCalledWith(result);
+  });
+
+  it('creates isolated contexts for concurrent attempts', async () => {
+    const contexts: Array<{ runId: string }> = [];
+    const seen: Array<{ runId: string }> = [];
+    const node = defineNode<unknown, unknown, { runId: string }>({
+      name: 'read.context',
+      execute(ctx) {
+        seen.push(ctx.context);
+      },
+    });
+    const registry = new NodeRegistry([node]);
+    const workflow = collected([
+      { node: node.name, input: {}, meta: { continueOnError: false } },
+    ]);
+    const run = (runId: string) =>
+      runWorkflow(workflow, {
+        resolveNode: registry.require.bind(registry),
+        createRunId: () => runId,
+        setupWorkflow() {
+          const context = { runId };
+          contexts.push(context);
+          return context;
+        },
+      });
+
+    await Promise.all([run('attempt-a'), run('attempt-b')]);
+
+    expect(contexts).toHaveLength(2);
+    expect(contexts[0]).not.toBe(contexts[1]);
+    expect(new Set(seen)).toEqual(new Set(contexts));
+  });
+
+  it('rejects teardown registration after setup has finished', async () => {
+    let lateRegistration: (() => void) | undefined;
+    const result = await runWorkflow(collected([]), {
+      resolveNode: () => {
+        throw new Error('no nodes');
+      },
+      setupWorkflow({ onTeardown }) {
+        lateRegistration = () => onTeardown(() => {});
+        return undefined;
+      },
+    });
+
+    expect(result.status).toBe('success');
+    expect(lateRegistration).toBeDefined();
+    expect(lateRegistration).toThrow(WorkflowLifecycleError);
   });
 });

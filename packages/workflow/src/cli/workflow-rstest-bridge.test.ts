@@ -61,6 +61,7 @@ for (const source of manifest.sources) {
           writeRstestTestMapping(manifest.resultDir, task.id, workflow.testId);
           const result = await runWorkflow(workflow, {
             resolveNode: project.nodes.require.bind(project.nodes),
+            setupWorkflow: project.setupWorkflow,
             onResult: (value) =>
               writeWorkflowRunResult(manifest.resultDir, value),
           });
