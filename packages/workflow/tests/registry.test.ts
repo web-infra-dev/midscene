@@ -1,11 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
-  DocumentNodeRegistry,
   DuplicateNodeError,
   NodeDefinitionError,
   NodeNotFoundError,
   NodeRegistry,
-  defineDocumentNode,
   defineNode,
 } from '../src';
 
@@ -13,22 +11,6 @@ describe('node definitions and registry', () => {
   const node = defineNode({
     name: 'test.node',
     execute() {},
-  });
-
-  it('keeps case and document registries independent', () => {
-    const caseNode = defineNode({ name: 'shared.name', execute() {} });
-    const documentNode = defineDocumentNode({
-      name: 'shared.name',
-      execute() {},
-    });
-
-    expect(new NodeRegistry([caseNode]).require('shared.name')).toBe(caseNode);
-    expect(
-      new DocumentNodeRegistry([documentNode]).require('shared.name'),
-    ).toBe(documentNode);
-    expect(
-      () => new DocumentNodeRegistry([documentNode, documentNode]),
-    ).toThrow(DuplicateNodeError);
   });
 
   it('defines and registers a node', () => {

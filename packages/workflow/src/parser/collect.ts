@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { sep } from 'node:path';
 import { JSON_SCHEMA, load as loadYaml } from 'js-yaml';
 import { WorkflowParseError } from '../errors';
-import type { DocumentNodeDefinition, NodeDefinition } from '../node/types';
+import type { NodeDefinition } from '../node/types';
 import { normalizeSteps } from './normalize';
 import type {
   CollectedCase,
@@ -13,9 +13,6 @@ import type {
 
 export interface CollectWorkflowDocumentOptions {
   resolveNode(name: string): NodeDefinition<any, any> | undefined;
-  resolveDocumentNode?(
-    name: string,
-  ): DocumentNodeDefinition<any, any> | undefined;
 }
 
 const isMapping = (value: unknown): value is Record<string, unknown> =>
@@ -97,10 +94,7 @@ export function collectWorkflowDocument(
       );
     }
     return normalizeSteps(value).map((normalized, stepIndex) => {
-      const resolved =
-        phase === 'beforeAll' || phase === 'afterAll'
-          ? options.resolveDocumentNode?.(normalized.node)
-          : options.resolveNode(normalized.node);
+      const resolved = options.resolveNode(normalized.node);
       if (!resolved) {
         throw new WorkflowParseError(
           `Workflow document ${phase} step ${stepIndex + 1} references unknown node "${normalized.node}".`,

@@ -201,7 +201,6 @@ export async function runWorkflowProject(
     try {
       const document = collectWorkflowDocument(source, {
         resolveNode: project.resolveNode,
-        resolveDocumentNode: project.resolveDocumentNode,
       });
       const collided = document.cases.find((collectedCase) =>
         collectedCaseIds.has(collectedCase.caseId),
@@ -245,9 +244,6 @@ export async function runWorkflowProject(
 
       const execution = await runWorkflowDocument(document, {
         resolveNode: project.nodes.require.bind(project.nodes),
-        resolveDocumentNode: project.documentNodes.require.bind(
-          project.documentNodes,
-        ),
         setupDocument: project.setupDocument,
         shouldStop: () => interrupted,
         onCaseResult: (run) => writeCaseRunResult(resultDir, run),

@@ -27,7 +27,7 @@ export async function runWorkflowDocument<TContext = undefined>(
   const createDocumentRunId = options.createDocumentRunId;
   const createCaseRunId = options.createCaseRunId;
   const runtime = createDocumentRuntime(document, {
-    resolveNode: options.resolveDocumentNode,
+    resolveNode: options.resolveNode,
     setupDocument: options.setupDocument,
     onResult: options.onDocumentResult,
     createDocumentRunId: createDocumentRunId

@@ -9,7 +9,7 @@ export interface NodeResult<TData = unknown> {
   data?: TData;
 }
 
-export interface NodeExecutionContext<TInput = unknown, TContext = unknown> {
+interface NodeExecutionContextBase<TInput = unknown, TContext = unknown> {
   /** The node input without `$`, including the common `prompt` input. */
   input: TInput & CommonNodeInput;
 
@@ -19,12 +19,34 @@ export interface NodeExecutionContext<TInput = unknown, TContext = unknown> {
   /** The timeout and cancellation signal for this step. */
   signal: AbortSignal;
 
-  /** Identity and completed-step history for the case being executed. */
-  case: NodeCaseContext;
-
   /** Resources shared by the current workflow document. */
   context: TContext;
 }
+
+export type NodeExecutionContext<
+  TInput = unknown,
+  TContext = unknown,
+> = NodeExecutionContextBase<TInput, TContext> &
+  (
+    | {
+        /** The node is running for one case. */
+        scope: 'case';
+
+        /** Identity and completed-step history for the case being executed. */
+        case: NodeCaseContext;
+
+        document?: never;
+      }
+    | {
+        /** The node is running for the workflow document. */
+        scope: 'document';
+
+        /** Identity and completed-node history for the document being executed. */
+        document: NodeDocumentContext;
+
+        case?: never;
+      }
+  );
 
 export type NodeExecutionReturn<TData = unknown> =
   // biome-ignore lint/suspicious/noConfusingVoidType: RFC 0001 allows async nodes to resolve without a result.
@@ -48,33 +70,3 @@ export interface NodeDefinition<
   TData = unknown,
   TContext = unknown,
 > extends DefineNodeOptions<TInput, TData, TContext> {}
-
-export interface DocumentNodeExecutionContext<
-  TInput = unknown,
-  TContext = unknown,
-> {
-  input: TInput & CommonNodeInput;
-  $: Readonly<NormalizedStepMeta>;
-  signal: AbortSignal;
-  document: NodeDocumentContext;
-  context: TContext;
-}
-
-export interface DefineDocumentNodeOptions<
-  TInput = unknown,
-  TData = unknown,
-  TContext = unknown,
-> {
-  name: string;
-  title?: string;
-  description?: string;
-  execute(
-    ctx: DocumentNodeExecutionContext<TInput, TContext>,
-  ): NodeExecutionReturn<TData>;
-}
-
-export interface DocumentNodeDefinition<
-  TInput = unknown,
-  TData = unknown,
-  TContext = unknown,
-> extends DefineDocumentNodeOptions<TInput, TData, TContext> {}
