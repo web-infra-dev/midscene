@@ -439,6 +439,7 @@ export class HarmonyDevice implements AbstractInterface {
       root,
       { x: center[0], y: center[1] },
       {
+        excludedTargetTypes: ['RootDecor', 'WindowScene', 'Dialog'],
         // ArkUI exposes inspectorKey via the `key` attribute in dumpLayout;
         // some component libraries also surface `id`. Prefer key when both
         // exist.

@@ -86,6 +86,7 @@ const DESKTOP_CACHE_ATTRIBUTES: Partial<
   Record<NodeJS.Platform, XpathCandidateOptions>
 > = {
   darwin: {
+    excludedTargetTypes: ['AXApplication', 'AXWindow'],
     stableAttrs: ['AXIdentifier'],
     textAttrs: [
       'AXName',
@@ -97,10 +98,17 @@ const DESKTOP_CACHE_ATTRIBUTES: Partial<
     ],
   },
   win32: {
+    excludedTargetTypes: ['UIAWindow'],
     stableAttrs: ['AutomationId'],
     textAttrs: ['Name', 'HelpText', 'AccessKey', 'LocalizedControlType'],
   },
   linux: {
+    excludedTargetTypes: [
+      'ATSPIApplication',
+      'ATSPIFrame',
+      'ATSPIWindow',
+      'ATSPIDialog',
+    ],
     stableAttrs: ['AccessibleId', 'id', 'automation-id'],
     textAttrs: ['Name', 'Description', 'HelpText', 'placeholder-text'],
   },

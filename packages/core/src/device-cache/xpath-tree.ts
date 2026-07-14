@@ -176,6 +176,13 @@ function buildXpathCandidatesForHit(
   let target: XpathCacheTarget | undefined;
   const { node, path } = hit;
 
+  // A native tree root represents an application/window hierarchy, not the
+  // control located by the model. Platform-declared structural nodes have the
+  // same problem when the actual inner control is absent from accessibility.
+  if (path.length === 1 || options?.excludedTargetTypes?.includes(node.type)) {
+    return undefined;
+  }
+
   const stable = pickFirstUniqueAttr(
     root,
     node,

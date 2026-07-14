@@ -32,6 +32,13 @@ export type XpathCacheFeature = Record<string, unknown> & {
 
 export interface XpathCandidateOptions {
   /**
+   * Platform structural node types that must never become element cache
+   * targets. These nodes may cover the located point and carry a unique name,
+   * but their bounds describe an application/window container rather than the
+   * unexposed control the model located.
+   */
+  excludedTargetTypes?: readonly string[];
+  /**
    * Attribute names that count as "stable identifiers" when present. Searched
    * in priority order; the first safe value that uniquely identifies the node
    * is used to emit a top-priority `//*[@attr='value']` candidate. Examples per

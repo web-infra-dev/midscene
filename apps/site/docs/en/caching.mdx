@@ -45,7 +45,7 @@ Element location cache uses the same `cache` option as planning cache. The diffe
 | Remote Windows over RDP | Screenshot and remote input | Native XPath cache replay is not supported by the RDP device. |
 | Other desktop environments | Platform-specific desktop tree | Not supported by the built-in xpath cache replay yet. |
 
-Internally, native platform adapters convert their tree shape into a shared `UiNode` representation with `type`, `attrs`, `bounds`, and `children`. Cache generation selects the smallest, deepest node at the located point and records a unique stable or semantic attribute as its target identity. A positional XPath may be stored as a fallback, but replay must still match that identity. If the node has no unique stable or semantic identity, Midscene skips native element caching for that locate. Missing, zero-size, ambiguous, or identity-mismatched results fall back to AI locating.
+Internally, native platform adapters convert their tree shape into a shared `UiNode` representation with `type`, `attrs`, `bounds`, and `children`. Cache generation selects the smallest, deepest node at the located point and records a unique stable or semantic attribute as its target identity. Application roots and structural window nodes are never accepted as element targets: if an app exposes its outer window but not the control inside it, Midscene skips the XPath cache instead of replaying a click at the window center. A positional XPath may be stored as a fallback, but replay must still match that identity. If the node has no unique stable or semantic identity, Midscene skips native element caching for that locate. Missing, zero-size, ambiguous, structural-only, or identity-mismatched results fall back to AI locating.
 
 ### Native XPath examples
 

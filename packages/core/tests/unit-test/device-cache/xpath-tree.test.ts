@@ -336,6 +336,83 @@ describe('generateXpathCandidates', () => {
     ).toBeUndefined();
   });
 
+  it('does not cache a uniquely identifiable structural root', () => {
+    const root = node(
+      'AXWindow',
+      { AXName: 'cmux' },
+      { left: 0, top: 0, width: 1000, height: 800 },
+    );
+
+    expect(
+      generateXpathCacheFeature(
+        root,
+        { x: 400, y: 300 },
+        { textAttrs: ['AXName'] },
+      ),
+    ).toBeUndefined();
+  });
+
+  it('does not cache an excluded window when its inner target is absent', () => {
+    const window = node(
+      'AXWindow',
+      { AXName: 'cmux' },
+      { left: 0, top: 0, width: 1000, height: 800 },
+    );
+    const root = node(
+      'AXApplication',
+      { AXName: 'cmux' },
+      { left: 0, top: 0, width: 0, height: 0 },
+      [window],
+    );
+
+    expect(
+      generateXpathCacheFeature(
+        root,
+        { x: 400, y: 300 },
+        {
+          excludedTargetTypes: ['AXApplication', 'AXWindow'],
+          textAttrs: ['AXName'],
+        },
+      ),
+    ).toBeUndefined();
+  });
+
+  it('caches an exposed child inside an excluded window', () => {
+    const target = node(
+      'AXButton',
+      { AXIdentifier: 'cache-target' },
+      { left: 100, top: 100, width: 120, height: 40 },
+    );
+    const window = node(
+      'AXWindow',
+      { AXName: 'Demo' },
+      { left: 0, top: 0, width: 1000, height: 800 },
+      [target],
+    );
+    const root = node(
+      'AXApplication',
+      {},
+      { left: 0, top: 0, width: 0, height: 0 },
+      [window],
+    );
+
+    expect(
+      generateXpathCacheFeature(
+        root,
+        { x: 150, y: 120 },
+        {
+          excludedTargetTypes: ['AXApplication', 'AXWindow'],
+          stableAttrs: ['AXIdentifier'],
+          textAttrs: ['AXName'],
+        },
+      )?.target,
+    ).toEqual({
+      type: 'AXButton',
+      attr: 'AXIdentifier',
+      value: 'cache-target',
+    });
+  });
+
   it('traverses a zero-sized structural root', () => {
     const target = node(
       'Button',

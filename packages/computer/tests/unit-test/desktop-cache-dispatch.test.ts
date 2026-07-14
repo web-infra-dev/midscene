@@ -192,6 +192,61 @@ describe('ComputerDevice desktop xpath cache dispatch', () => {
     await device.destroy();
   });
 
+  it('does not cache a macOS window when its inner target is not exposed', async () => {
+    const device = await createConnectedDevice();
+    setPlatform('darwin');
+    mockState.readDarwinAccessibilityTree.mockResolvedValueOnce({
+      type: 'AXApplication',
+      attrs: { AXName: 'cmux' },
+      bounds: { left: 0, top: 0, width: 0, height: 0 },
+      children: [
+        {
+          type: 'AXWindow',
+          attrs: { AXName: 'cmux' },
+          bounds: { left: 0, top: 0, width: 800, height: 600 },
+          children: [],
+        },
+      ],
+    });
+
+    await expect(device.cacheFeatureForPoint([150, 100])).resolves.toEqual({});
+    await device.destroy();
+  });
+
+  it('does not cache a Windows window when its inner target is not exposed', async () => {
+    const device = await createConnectedDevice();
+    setPlatform('win32');
+    mockState.readWindowsAccessibilityTree.mockResolvedValueOnce({
+      type: 'UIAWindow',
+      attrs: { Name: 'Settings' },
+      bounds: { left: 0, top: 0, width: 800, height: 600 },
+      children: [],
+    });
+
+    await expect(device.cacheFeatureForPoint([150, 100])).resolves.toEqual({});
+    await device.destroy();
+  });
+
+  it('does not cache a Linux window when its inner target is not exposed', async () => {
+    const device = await createConnectedDevice();
+    mockState.readLinuxAccessibilityTree.mockResolvedValueOnce({
+      type: 'ATSPIApplication',
+      attrs: { Name: 'Demo' },
+      bounds: { left: 0, top: 0, width: 0, height: 0 },
+      children: [
+        {
+          type: 'ATSPIFrame',
+          attrs: { Name: 'Demo window' },
+          bounds: { left: 0, top: 0, width: 800, height: 600 },
+          children: [],
+        },
+      ],
+    });
+
+    await expect(device.cacheFeatureForPoint([150, 100])).resolves.toEqual({});
+    await device.destroy();
+  });
+
   it('throws when Windows has no active window handle', async () => {
     const device = await createConnectedDevice();
     mockState.libnut.getActiveWindow.mockReturnValue(0);

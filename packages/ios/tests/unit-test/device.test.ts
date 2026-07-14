@@ -166,6 +166,16 @@ describe('IOSDevice', () => {
   });
 
   describe('xpath cache', () => {
+    it('does not cache a window when its inner target is not exposed', async () => {
+      mockWdaClient.getSource.mockResolvedValueOnce(`
+        <XCUIElementTypeApplication name="Demo" x="0" y="0" width="375" height="812">
+          <XCUIElementTypeWindow name="Demo" x="0" y="0" width="375" height="812" />
+        </XCUIElementTypeApplication>
+      `);
+
+      await expect(device.cacheFeatureForPoint([10, 20])).resolves.toEqual({});
+    });
+
     it('propagates WDA source failures', async () => {
       mockWdaClient.getSource.mockRejectedValueOnce(new Error('source failed'));
 

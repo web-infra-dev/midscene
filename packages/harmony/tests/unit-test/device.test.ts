@@ -151,6 +151,29 @@ describe('HarmonyDevice', () => {
   });
 
   describe('xpath cache', () => {
+    it('does not cache a window when its inner target is not exposed', async () => {
+      mockHdc.dumpLayout.mockResolvedValueOnce(
+        JSON.stringify({
+          attributes: {
+            type: 'RootDecor',
+            bounds: '[0,0][1216,2688]',
+          },
+          children: [
+            {
+              attributes: {
+                type: 'WindowScene',
+                key: 'main-window',
+                bounds: '[0,0][1216,2688]',
+              },
+              children: [],
+            },
+          ],
+        }),
+      );
+
+      await expect(device.cacheFeatureForPoint([10, 20])).resolves.toEqual({});
+    });
+
     it('propagates dumpLayout failures', async () => {
       mockHdc.dumpLayout.mockRejectedValueOnce(new Error('dump failed'));
 

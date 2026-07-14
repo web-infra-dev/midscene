@@ -401,6 +401,12 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
       root,
       { x: center[0], y: center[1] },
       {
+        excludedTargetTypes: [
+          'XCUIElementTypeApplication',
+          'XCUIElementTypeWindow',
+          'XCUIElementTypeAlert',
+          'XCUIElementTypeSheet',
+        ],
         // WDA exposes the element's accessibilityIdentifier as `name` in
         // /source. When unset, `name` falls back to the visible label, but
         // it is still the most stable identifier available.
