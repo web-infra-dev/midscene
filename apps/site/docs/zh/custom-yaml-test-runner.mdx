@@ -1,0 +1,533 @@
+# 使用 @midscene/test 构建团队专属的 YAML 测试用例运行器
+
+`@midscene/test` 允许开发者注册业务 Node、管理运行资源和定义执行生命周期，并向业务团队提供一套基于 YAML 的测试用例运行器。用例作者无需编写 JavaScript，只需维护声明式 YAML。
+
+这套方案分为两层：
+
+- 平台开发者使用 JavaScript 或 TypeScript 封装浏览器、Agent、接口和其他业务能力。
+- 业务团队使用这些能力编写 YAML 测试用例。
+
+```text
+平台开发者：定义 Node、资源和生命周期
+                         ↓
+业务团队：编写和维护 YAML 测试用例
+```
+
+## 适用场景
+
+`@midscene/test` 适合由开发者维护运行能力、多人共同维护测试用例的项目。例如：
+
+- 为业务测试团队提供 `创建订单`、`支付订单`、`检查退款状态`等领域 Node。
+- 统一创建和释放浏览器、Midscene Agent、数据库连接或测试账号。
+- 在多个 YAML 文件中管理冒烟测试和回归测试。
+- 让不熟悉 JavaScript 的成员通过 YAML 编写和评审用例。
+
+如果只需要快速运行一段固定的 Midscene 自动化脚本，可以继续使用 [YAML 脚本运行器](./yaml-script-runner)。两种方案的区别如下。
+
+| YAML 脚本运行器 | `@midscene/test` |
+|---|---|
+| 运行单个或一批 Midscene 脚本 | 构建团队专属的测试用例运行器 |
+| 使用预定义的 YAML 动作 | 可以注册业务 Node |
+| 设备和 Agent 配置主要写在 YAML 中 | 资源和生命周期由项目配置统一管理 |
+| 适合直接编写自动化脚本 | 适合长期维护测试项目 |
+
+## 快速开始
+
+下面的项目启动 Chromium，打开百度首页，再通过 Midscene 检查页面是否加载正常。
+
+### 安装依赖
+
+创建一个项目并安装依赖。
+
+```bash
+pnpm add -D @midscene/test @midscene/web playwright
+```
+
+使用 Midscene Agent 前，请先参考[模型配置](./model-config)设置模型环境变量。
+
+### 创建项目文件
+
+创建以下目录结构。
+
+```text
+team-test-runner/
+├── cases/
+│   └── baidu.yaml
+└── midscene.workflow.config.cjs
+```
+
+在项目根目录创建 `midscene.workflow.config.cjs`。项目配置负责注册 Node，并为每个 YAML 文件创建运行资源。
+
+```js filename=midscene.workflow.config.cjs
+const { PlaywrightAgent } = require('@midscene/web/playwright');
+const { defineWorkflowProject } = require('@midscene/test/config');
+const { createMidsceneNodes } = require('@midscene/test/midscene');
+const { chromium } = require('playwright');
+
+const midsceneNodes = createMidsceneNodes({
+  getAgent: ({ context }) => context.agent,
+});
+
+module.exports = defineWorkflowProject({
+  files: {
+    include: ['cases/**/*.{yaml,yml}'],
+  },
+  nodes: [...midsceneNodes],
+
+  async setupDocument({ onTeardown }) {
+    const browser = await chromium.launch({ headless: true });
+    onTeardown(() => browser.close());
+
+    const page = await browser.newPage();
+    await page.goto('https://www.baidu.com', {
+      waitUntil: 'domcontentloaded',
+    });
+
+    return {
+      agent: new PlaywrightAgent(page),
+    };
+  },
+});
+```
+
+`createMidsceneNodes()` 注册 `aiAct`、`aiAssert` 和 `recordToReport`。`setupDocument()` 返回的 `context` 会传给当前 YAML 文件中的所有 Node。
+
+在 `cases/baidu.yaml` 中编写测试用例。
+
+```yaml filename=cases/baidu.yaml
+cases:
+  - name: 百度首页正常加载
+    steps:
+      - aiAssert:
+          prompt: 页面中可见百度标志、搜索输入框和“百度一下”按钮
+          message: 百度首页加载异常
+```
+
+### 运行测试
+
+在项目根目录运行：
+
+```bash
+pnpm exec midscene-workflow
+```
+
+CLI 会自动加载 `midscene.workflow.config.cjs`，发现 `cases` 目录中的 YAML，并按顺序执行其中的 Case。默认结果保存在下面的目录中：
+
+```text
+.midscene/workflow-results/<timestamp>-<process-id>/
+```
+
+## 核心概念
+
+`@midscene/test` 使用 5 个概念描述一个测试项目。
+
+```text
+Workflow Project
+└── Workflow Document
+    ├── Lifecycle Step
+    └── Case
+        └── Step
+            └── Node
+```
+
+- **Node**：平台开发者注册的执行能力，例如 `aiAssert` 或 `order.create`。
+- **Step**：YAML 对一个 Node 的一次调用。
+- **Case**：由多个 Step 组成的具名测试用例。
+- **Workflow Document**：一个包含生命周期和多个 Case 的 YAML 文件。
+- **Workflow Project**：项目配置及其管理的一组 Workflow Document。
+
+Node 决定团队可以做什么，YAML 决定每个测试用例如何组合这些能力。
+
+## 编写 YAML 测试用例
+
+每个 Workflow Document 必须包含非空的 `cases` 数组。每个 Case 必须包含 `name` 和非空的 `steps`。
+
+```yaml
+cases:
+  - name: 创建订单
+    steps:
+      - order.create:
+          sku: midscene-mug
+          quantity: 1
+      - aiAssert: 页面显示“下单成功”
+
+  - name: 取消订单
+    steps:
+      - order.cancel:
+          orderId: example-order-id
+      - aiAssert: 页面显示“订单已取消”
+```
+
+Case 按 YAML 中的声明顺序执行。一个 Case 失败后，Runner 会记录失败，并继续执行后续 Case。
+
+### 编写 Step
+
+每个 Step 只能调用一个 Node。只有 `prompt` 参数时，可以使用字符串简写。
+
+```yaml
+steps:
+  - aiAct: 点击提交订单按钮
+```
+
+上面的写法等价于：
+
+```yaml
+steps:
+  - aiAct:
+      prompt: 点击提交订单按钮
+```
+
+业务 Node 可以接收自己的参数。
+
+```yaml
+steps:
+  - order.create:
+      sku: midscene-mug
+      quantity: 2
+```
+
+### 设置超时和错误处理
+
+`$` 用于设置 Runner 控制的 Step 参数。它不会传入 Node 的 `input`。
+
+```yaml
+steps:
+  - order.create:
+      sku: midscene-mug
+      $:
+        timeout: 30000
+        continue-on-error: true
+```
+
+目前支持两个字段：
+
+- `timeout`：Step 的超时时间，单位为毫秒。
+- `continue-on-error`：Step 失败后是否继续当前阶段中的后续 Step，默认为 `false`。
+
+`continue-on-error` 只控制是否继续执行。只要有 Step 失败，Case 的最终状态仍然是 `failed`。
+
+## 定义执行生命周期
+
+Workflow Document 可以在 `cases` 前后声明生命周期 Step。
+
+```yaml
+beforeAll:
+  - data.prepare: 创建本文件需要的测试数据
+
+beforeEach:
+  - browser.reset: 将页面恢复到初始状态
+
+cases:
+  - name: 创建订单
+    steps:
+      - aiAct: 创建一个订单
+      - aiAssert: 页面显示“下单成功”
+
+  - name: 取消订单
+    steps:
+      - aiAct: 取消最新订单
+      - aiAssert: 页面显示“订单已取消”
+
+afterEach:
+  - report.save: 保存当前用例的执行信息
+
+afterAll:
+  - data.cleanup: 删除本文件创建的测试数据
+```
+
+完整执行顺序如下。
+
+```text
+setupDocument
+beforeAll
+  Case 1：beforeEach → steps → afterEach
+  Case 2：beforeEach → steps → afterEach
+afterAll
+document teardown
+```
+
+各阶段的职责不同：
+
+- `setupDocument()` 和 document teardown 用于创建、释放代码资源。
+- `beforeAll` 和 `afterAll` 是每个 YAML 文件执行一次的业务 Step。
+- `beforeEach` 和 `afterEach` 是每个 Case 执行一次的业务 Step。
+
+`afterEach` 在 Case 主体失败后仍然执行。`beforeAll` 失败时，当前文件中的 Case 会标记为 `not-run`，但 Runner 仍会执行 `afterAll` 和 teardown。`setupDocument()` 失败时，Runner 会跳过 YAML 生命周期和 Case，但仍会运行已经注册的 teardown。
+
+## 注册业务 Node
+
+使用 `defineNode()` 可以把接口、数据库、消息系统或其他业务能力开放给 YAML 用例。
+
+下面的 Node 调用测试接口创建订单。
+
+```js filename=midscene.workflow.config.cjs
+const { defineNode } = require('@midscene/test');
+
+const createOrder = defineNode({
+  name: 'order.create',
+  title: '创建订单',
+
+  async execute({ input, context, signal }) {
+    const response = await fetch(`${context.apiBaseUrl}/test/orders`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        sku: input.sku,
+        quantity: input.quantity,
+      }),
+      signal,
+    });
+
+    if (!response.ok) {
+      throw new Error(`创建订单失败：HTTP ${response.status}`);
+    }
+
+    const order = await response.json();
+    return {
+      summary: `已创建订单 ${order.id}`,
+      data: order,
+    };
+  },
+});
+```
+
+将 Node 加入项目配置的 `nodes` 数组。
+
+```js filename=midscene.workflow.config.cjs
+module.exports = defineWorkflowProject({
+  nodes: [createOrder, ...midsceneNodes],
+
+  async setupDocument({ onTeardown }) {
+    const browser = await chromium.launch();
+    onTeardown(() => browser.close());
+
+    const page = await browser.newPage();
+    return {
+      apiBaseUrl: 'https://test-api.example.com',
+      agent: new PlaywrightAgent(page),
+    };
+  },
+});
+```
+
+业务团队随后可以直接在 YAML 中使用 `order.create`。
+
+```yaml
+cases:
+  - name: 创建一个商品订单
+    steps:
+      - order.create:
+          sku: midscene-mug
+          quantity: 1
+```
+
+### Node 执行上下文
+
+`execute()` 接收以下常用字段：
+
+- `input`：YAML 传入的业务参数，不包含 `$`。
+- `$`：规范化后的 `timeout` 和 `continue-on-error`。
+- `signal`：Step 超时或取消时触发的 `AbortSignal`。
+- `context`：`setupDocument()` 返回的文件级共享资源。
+- `scope`：当前 Node 在 `case` 或 `document` 作用域中执行。
+- `case` 或 `document`：当前执行位置、身份和已完成 Step 的信息。
+
+同一个 Node 可以用于 Case 和 Document 生命周期，无需重复注册。Node 可以根据 `scope` 读取对应的执行信息。
+
+```js
+const saveReport = defineNode({
+  name: 'report.save',
+  async execute(ctx) {
+    if (ctx.scope === 'case') {
+      console.log(`保存 Case 报告：${ctx.case.name}`);
+    } else {
+      console.log(`保存 Document 报告：${ctx.document.sourcePath}`);
+    }
+  },
+});
+```
+
+Node 执行失败时应该抛出错误。Runner 会记录错误，并根据 `$` 中的配置决定是否继续执行。
+
+## 集成 Midscene Agent
+
+`@midscene/test/midscene` 提供 3 个 Node：
+
+| Node | 用途 |
+|---|---|
+| `aiAct` | 使用自然语言执行界面操作 |
+| `aiAssert` | 使用自然语言检查界面状态 |
+| `recordToReport` | 向 Midscene 报告中写入补充信息 |
+
+使用 `createMidsceneNodes()` 创建这些 Node。`getAgent()` 可以从 Document Context 中取得当前 Agent。
+
+```js
+const { createMidsceneNodes } = require('@midscene/test/midscene');
+
+const midsceneNodes = createMidsceneNodes({
+  getAgent: ({ context }) => context.agent,
+});
+```
+
+YAML 用例不需要知道 Agent 是由 Playwright、Puppeteer 还是其他界面实现创建的。项目配置负责建立连接，并把 Agent 放入 `context`。
+
+```yaml
+cases:
+  - name: 搜索 Midscene
+    steps:
+      - aiAct: 在搜索框中输入“Midscene”，然后提交搜索
+      - aiAssert:
+          prompt: 搜索结果中包含 Midscene 的相关内容
+          message: 没有找到 Midscene 搜索结果
+      - recordToReport:
+          title: 搜索流程完成
+          content: 已完成搜索结果检查
+```
+
+## 配置 Workflow Project
+
+`defineWorkflowProject()` 支持以下项目级配置。
+
+```js
+module.exports = defineWorkflowProject({
+  root: './e2e',
+  files: {
+    include: ['cases/**/*.{yaml,yml}'],
+    exclude: ['cases/**/*.draft.yaml'],
+  },
+  nodes: [createOrder, ...midsceneNodes],
+  async setupDocument({ onTeardown }) {
+    // 创建当前 YAML 文件共享的资源。
+  },
+});
+```
+
+### 选择项目根目录
+
+`root` 声明 Workflow Project 的根目录。相对路径以配置文件所在目录为基准。
+
+项目根目录按下面的优先级确定：
+
+1. CLI 传入的 `project-directory`。
+2. 项目配置中的 `root`。
+3. 当前工作目录。
+
+项目根目录用于发现 YAML、计算结果中的 `sourcePath`，以及保存默认运行结果。
+
+### 选择 YAML 文件
+
+`files.include` 和 `files.exclude` 使用相对于项目根目录的 glob。`exclude` 的优先级高于 `include`。
+
+```js
+files: {
+  include: [
+    'cases/smoke.yaml',
+    'cases/regression/**/*.yml',
+  ],
+  exclude: ['cases/**/*.draft.yaml'],
+}
+```
+
+没有配置 `files` 时，Runner 会递归发现项目根目录中的全部 `.yaml` 和 `.yml` 文件。`.git`、`.midscene` 和 `node_modules` 目录始终会被忽略。
+
+匹配结果会按项目相对路径排序。Runner 不使用 glob 的声明顺序控制执行顺序。
+
+### 管理文件级资源
+
+`setupDocument()` 在每个 YAML 文件开始时调用一次。它返回的值会作为 `context` 传入当前文件的全部 Node。
+
+使用 `onTeardown()` 注册清理函数。多个清理函数按照注册顺序的逆序执行。
+
+```js
+async setupDocument({ sourcePath, env, onTeardown }) {
+  const database = await connectTestDatabase(env.TEST_DATABASE_URL);
+  onTeardown(() => database.close());
+
+  const browser = await chromium.launch();
+  onTeardown(() => browser.close());
+
+  return {
+    sourcePath,
+    database,
+    browser,
+  };
+}
+```
+
+项目配置当前使用 CommonJS。建议将文件命名为 `midscene.workflow.config.cjs`。
+
+## 运行项目
+
+运行当前目录中的 Workflow Project：
+
+```bash
+pnpm exec midscene-workflow
+```
+
+运行指定目录中的项目：
+
+```bash
+pnpm exec midscene-workflow ./e2e
+```
+
+指定配置文件或结果目录：
+
+```bash
+pnpm exec midscene-workflow \
+  --config ./config/midscene.workflow.config.cjs \
+  --result-dir ./test-results
+```
+
+Runner 会依次执行 Workflow Document 和 Case。当前不会并发执行，也不会自动重试失败的 Case。
+
+### 查看运行结果
+
+每次运行都会生成 `project.json`，并按类型保存详细结果。
+
+```text
+workflow-results/
+├── project.json
+├── runs/
+│   └── <case-id>/<run-id>.json
+├── documents/
+│   └── <document-id>/<document-run-id>.json
+└── collection-errors/
+    └── <error-id>.json
+```
+
+`project.json` 包含以下信息：
+
+- 文件选择规则和本次发现的 YAML。
+- Case 的 `success`、`failed` 或 `not-run` 状态。
+- Workflow Document 的生命周期状态。
+- YAML 收集错误及对应的错误文件。
+- 本次运行的汇总和 CLI 退出码。
+
+存在失败、未运行的 Case、Document 失败或收集错误时，CLI 使用退出码 `1`。
+
+## 编程式 API
+
+大多数团队只需要项目配置、YAML 和 CLI。需要嵌入其他工具时，可以使用下面的 API：
+
+- `CaseRunner` 或 `createCaseRunner()`：直接执行对象形式的单个 Case，不包含 Document 生命周期。
+- `normalizeSteps()`：规范化 Step 数组。
+- `collectWorkflowDocument()`：解析并静态校验一个 YAML 文件。
+- `runWorkflowDocument()`：执行一个 Document 的生命周期和全部 Case。
+- `runWorkflowProject()`：发现、运行并汇总整个项目，从 `@midscene/test/config` 导出。
+
+这些 API 对应不同层级。只需要执行一组 Step 时使用 `CaseRunner`；需要共享资源、生命周期和多个 YAML 文件时使用 Workflow Project。
+
+## 当前限制
+
+当前版本暂不提供以下能力：
+
+- Case 或 Workflow Document 并发执行。
+- 失败 Case 自动重试。
+- DAG、分支、循环或 Step 并行。
+- Workflow Document 之间的数据依赖。
+- 从远程 URL、npm 包或 Git 仓库加载 YAML。
+- TypeScript 或 ESM 格式的项目配置。
+
+Runner 会在执行前收集和校验全部 YAML。未知顶层字段、未知 Node、空 `cases` 或无效 Step 会产生 collection error，不会推迟到对应 Case 执行时再报错。

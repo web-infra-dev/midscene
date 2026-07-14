@@ -1,6 +1,6 @@
 const { PlaywrightAgent } = require('@midscene/web/playwright');
-const { defineWorkflowProject } = require('@midscene/workflow/config');
-const { createMidsceneNodes } = require('@midscene/workflow/midscene');
+const { defineWorkflowProject } = require('@midscene/test/config');
+const { createMidsceneNodes } = require('@midscene/test/midscene');
 const { chromium } = require('playwright');
 
 const midsceneNodes = createMidsceneNodes({
