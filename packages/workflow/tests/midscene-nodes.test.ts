@@ -1,7 +1,19 @@
 import { describe, expect, it, vi } from 'vitest';
-import { NodeRegistry, runWorkflow } from '../src';
-import { type MidsceneUIAgent, createMidsceneNodes } from '../src/midscene';
-import type { CollectedWorkflow } from '../src/parser/types';
+import {
+  DocumentNodeRegistry,
+  NodeRegistry,
+  createDocumentRuntime,
+  runWorkflow,
+} from '../src';
+import {
+  type MidsceneUIAgent,
+  createMidsceneDocumentNodes,
+  createMidsceneNodes,
+} from '../src/midscene';
+import type {
+  CollectedWorkflow,
+  CollectedWorkflowDocument,
+} from '../src/parser/types';
 
 const collected = (
   steps: CollectedWorkflow['definition']['steps'],
@@ -50,7 +62,7 @@ describe('createMidsceneNodes', () => {
       ]),
       {
         resolveNode: registry.require.bind(registry),
-        setupWorkflow: () => ({ uiAgent: agent }),
+        context: { uiAgent: agent },
       },
     );
 
@@ -93,7 +105,7 @@ describe('createMidsceneNodes', () => {
       ]),
       {
         resolveNode: registry.require.bind(registry),
-        setupWorkflow: () => ({ agent }),
+        context: { agent },
       },
     );
 
@@ -115,7 +127,7 @@ describe('createMidsceneNodes', () => {
         collected([{ node, input, meta: { continueOnError: false } }]),
         {
           resolveNode: registry.require.bind(registry),
-          setupWorkflow: () => ({ agent }),
+          context: { agent },
         },
       );
 
@@ -149,5 +161,50 @@ describe('createMidsceneNodes', () => {
     expect(() => createMidsceneNodes({} as never)).toThrow(
       'createMidsceneNodes() requires a getAgent function.',
     );
+  });
+
+  it('creates document-scope Midscene nodes without workflow identity', async () => {
+    const recordToReport = vi.fn(async () => undefined);
+    const agent = { recordToReport } as unknown as MidsceneUIAgent;
+    const nodes = createMidsceneDocumentNodes<{
+      agent: MidsceneUIAgent;
+    }>({
+      getAgent(ctx) {
+        expect(ctx.document.phase).toBe('beforeAll');
+        expect('workflow' in ctx).toBe(false);
+        return ctx.context.agent;
+      },
+    });
+    const registry = new DocumentNodeRegistry(nodes);
+    const document: CollectedWorkflowDocument = {
+      documentId: 'document',
+      projectId: 'project',
+      sourcePath: 'report.yaml',
+      lifecycle: {
+        beforeAll: [
+          {
+            node: 'recordToReport',
+            input: { prompt: 'Document started' },
+            meta: { continueOnError: false },
+          },
+        ],
+        beforeEach: [],
+        afterEach: [],
+        afterAll: [],
+      },
+      workflows: [collected([])],
+    };
+    const runtime = createDocumentRuntime(document, {
+      resolveNode: registry.require.bind(registry),
+      setupDocument: () => ({ agent }),
+    });
+
+    const result = await runtime.start();
+    expect(result.beforeAll[0]).toMatchObject({
+      phase: 'beforeAll',
+      output: { summary: 'Recorded to report: Document started' },
+    });
+    expect(recordToReport).toHaveBeenCalledWith('Document started', {});
+    await runtime.finish();
   });
 });

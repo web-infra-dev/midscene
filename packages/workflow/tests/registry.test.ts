@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
+  DocumentNodeRegistry,
   DuplicateNodeError,
   NodeDefinitionError,
   NodeNotFoundError,
   NodeRegistry,
+  defineDocumentNode,
   defineNode,
 } from '../src';
 
@@ -11,6 +13,24 @@ describe('node definitions and registry', () => {
   const node = defineNode({
     name: 'test.node',
     execute() {},
+  });
+
+  it('keeps document and workflow registries independent', () => {
+    const workflowNode = defineNode({ name: 'shared.name', execute() {} });
+    const documentNode = defineDocumentNode({
+      name: 'shared.name',
+      execute() {},
+    });
+
+    expect(new NodeRegistry([workflowNode]).require('shared.name')).toBe(
+      workflowNode,
+    );
+    expect(
+      new DocumentNodeRegistry([documentNode]).require('shared.name'),
+    ).toBe(documentNode);
+    expect(
+      () => new DocumentNodeRegistry([documentNode, documentNode]),
+    ).toThrow(DuplicateNodeError);
   });
 
   it('defines and registers a node', () => {

@@ -3,10 +3,19 @@ import {
   StepTimeoutError,
   normalizeWorkflowError,
 } from '../errors';
-import type { NodeDefinition, NodeResult } from '../node/types';
+import type {
+  DocumentNodeDefinition,
+  NodeDefinition,
+  NodeResult,
+} from '../node/types';
 import { validateCommonNodeInput } from '../parser/normalize';
 import type { CommonNodeInput, NormalizedStep } from '../parser/types';
-import type { NodeWorkflowContext, StepRunResult } from './types';
+import type {
+  NodeDocumentContext,
+  NodeExecutionPhase,
+  NodeWorkflowContext,
+  StepRunResult,
+} from './types';
 
 function validateNodeOutput<TData>(
   output: unknown,
@@ -37,10 +46,17 @@ function validateNodeOutput<TData>(
   return output as NodeResult<TData>;
 }
 
-function createStepResultBase(step: NormalizedStep, startedAt: Date) {
+function createStepResultBase(
+  step: NormalizedStep,
+  startedAt: Date,
+  phase: NodeExecutionPhase,
+  stepIndex: number,
+) {
   const endedAt = new Date();
   return {
     node: step.node,
+    phase,
+    stepIndex,
     input: step.input,
     meta: step.meta,
     startedAt: startedAt.toISOString(),
@@ -55,38 +71,28 @@ const standaloneWorkflowContext = (): NodeWorkflowContext => ({
   name: 'standalone step',
   sourcePath: '',
   workflowIndex: 0,
+  phase: 'steps',
   stepIndex: 0,
   completedSteps: Object.freeze([]),
+  completedNodes: Object.freeze([]),
 });
 
-export async function runStepForWorkflow<
-  TInput = unknown,
-  TOutputData = unknown,
-  TContext = unknown,
->(
+async function executeNode<TOutputData>(
   step: NormalizedStep,
-  node: NodeDefinition<TInput, TOutputData, TContext>,
-  workflow: NodeWorkflowContext,
-  context: TContext,
+  execute: (signal: AbortSignal) => unknown,
+  phase: NodeExecutionPhase,
+  stepIndex: number,
 ): Promise<StepRunResult<TOutputData>> {
-  validateCommonNodeInput(step.input, 0);
+  validateCommonNodeInput(step.input, stepIndex);
 
   const startedAt = new Date();
   const abortController = new AbortController();
   const timeoutMs = step.meta.timeoutMs;
   let timeout: ReturnType<typeof setTimeout> | undefined;
   let timeoutError: StepTimeoutError | undefined;
-
   const execution = Promise.resolve().then(() =>
-    node.execute({
-      input: step.input as TInput & CommonNodeInput,
-      $: step.meta,
-      signal: abortController.signal,
-      workflow,
-      context,
-    }),
+    execute(abortController.signal),
   );
-
   const timedExecution =
     timeoutMs === undefined
       ? execution
@@ -106,30 +112,72 @@ export async function runStepForWorkflow<
       await timedExecution,
       step.node,
     );
-
     return {
-      ...createStepResultBase(step, startedAt),
+      ...createStepResultBase(step, startedAt, phase, stepIndex),
       status: 'success',
       continuedAfterError: false,
       ...(output === undefined ? {} : { output }),
     };
   } catch (error) {
-    const normalizedError = normalizeWorkflowError(
-      timeoutError ?? error,
-      step.node,
-    );
-
     return {
-      ...createStepResultBase(step, startedAt),
+      ...createStepResultBase(step, startedAt, phase, stepIndex),
       status: 'failed',
       continuedAfterError: step.meta.continueOnError,
-      error: normalizedError,
+      error: normalizeWorkflowError(timeoutError ?? error, step.node),
     };
   } finally {
-    if (timeout !== undefined) {
-      clearTimeout(timeout);
-    }
+    if (timeout !== undefined) clearTimeout(timeout);
   }
+}
+
+export async function runStepForWorkflow<
+  TInput = unknown,
+  TOutputData = unknown,
+  TContext = unknown,
+>(
+  step: NormalizedStep,
+  node: NodeDefinition<TInput, TOutputData, TContext>,
+  workflow: NodeWorkflowContext,
+  context: TContext,
+): Promise<StepRunResult<TOutputData>> {
+  return executeNode<TOutputData>(
+    step,
+    (signal) =>
+      node.execute({
+        input: step.input as TInput & CommonNodeInput,
+        $: step.meta,
+        signal,
+        workflow,
+        context,
+      }),
+    workflow.phase,
+    workflow.stepIndex,
+  );
+}
+
+export async function runStepForDocument<
+  TInput = unknown,
+  TOutputData = unknown,
+  TContext = unknown,
+>(
+  step: NormalizedStep,
+  node: DocumentNodeDefinition<TInput, TOutputData, TContext>,
+  document: NodeDocumentContext,
+  context: TContext,
+): Promise<StepRunResult<TOutputData>> {
+  return executeNode<TOutputData>(
+    step,
+    (signal) =>
+      node.execute({
+        input: step.input as TInput & CommonNodeInput,
+        $: step.meta,
+        signal,
+        document,
+        context,
+      }),
+    document.phase,
+    document.stepIndex,
+  );
 }
 
 /** RFC 0001 compatibility API: a non-continuable step still rejects. */

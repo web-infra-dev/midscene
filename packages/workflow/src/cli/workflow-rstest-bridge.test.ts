@@ -1,11 +1,16 @@
-import { describe, test } from '@rstest/core';
+import { afterAll, beforeAll, describe, test } from '@rstest/core';
+import { createDocumentRuntime } from '../engine/document-runtime';
 import { runWorkflow } from '../engine/run-workflow';
-import { WorkflowExecutionError } from '../errors';
+import {
+  WorkflowDocumentExecutionError,
+  WorkflowExecutionError,
+} from '../errors';
 import { loadWorkflowRunManifest } from '../manifest';
 import { collectWorkflowDocument } from '../parser/collect';
 import {
   writeCollectionError,
   writeRstestTestMapping,
+  writeWorkflowDocumentRunResult,
   writeWorkflowRunResult,
 } from './result-store';
 import { loadWorkflowProjectSync } from './workflow-project';
@@ -25,6 +30,7 @@ for (const source of manifest.sources) {
     try {
       document = collectWorkflowDocument(source, {
         resolveNode: project.resolveNode,
+        resolveDocumentNode: project.resolveDocumentNode,
       });
     } catch (error) {
       writeCollectionError(manifest.resultDir, source.sourcePath, error);
@@ -52,6 +58,18 @@ for (const source of manifest.sources) {
       collectedTestIds.add(workflow.testId);
     }
 
+    const runtime = createDocumentRuntime(document, {
+      resolveNode: project.documentNodes.require.bind(project.documentNodes),
+      setupDocument: project.setupDocument,
+    });
+
+    beforeAll(async () => {
+      const result = await runtime.start();
+      if (result.status === 'failed') {
+        throw new WorkflowDocumentExecutionError(result);
+      }
+    });
+
     for (const workflow of document.workflows) {
       const defineTest =
         manifest.mode === 'parallel' ? test.concurrent : test.sequential;
@@ -61,7 +79,9 @@ for (const source of manifest.sources) {
           writeRstestTestMapping(manifest.resultDir, task.id, workflow.testId);
           const result = await runWorkflow(workflow, {
             resolveNode: project.nodes.require.bind(project.nodes),
-            setupWorkflow: project.setupWorkflow,
+            beforeEach: document.lifecycle.beforeEach,
+            afterEach: document.lifecycle.afterEach,
+            context: runtime.context,
             onResult: (value) =>
               writeWorkflowRunResult(manifest.resultDir, value),
           });
@@ -72,5 +92,13 @@ for (const source of manifest.sources) {
         manifest.retry === undefined ? undefined : { retry: manifest.retry },
       );
     }
+
+    afterAll(async () => {
+      const result = await runtime.finish();
+      writeWorkflowDocumentRunResult(manifest.resultDir, result);
+      if (result.status === 'failed') {
+        throw new WorkflowDocumentExecutionError(result);
+      }
+    });
   });
 }

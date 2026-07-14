@@ -1,4 +1,4 @@
-import type { NodeWorkflowContext } from '../engine/types';
+import type { NodeDocumentContext, NodeWorkflowContext } from '../engine/types';
 import type { CommonNodeInput, NormalizedStepMeta } from '../parser/types';
 
 export interface NodeResult<TData = unknown> {
@@ -22,7 +22,7 @@ export interface NodeExecutionContext<TInput = unknown, TContext = unknown> {
   /** Identity and completed-step history for the workflow being executed. */
   workflow: NodeWorkflowContext;
 
-  /** Resources shared by every node in the current workflow attempt. */
+  /** Resources shared by the current workflow document. */
   context: TContext;
 }
 
@@ -48,3 +48,33 @@ export interface NodeDefinition<
   TData = unknown,
   TContext = unknown,
 > extends DefineNodeOptions<TInput, TData, TContext> {}
+
+export interface DocumentNodeExecutionContext<
+  TInput = unknown,
+  TContext = unknown,
+> {
+  input: TInput & CommonNodeInput;
+  $: Readonly<NormalizedStepMeta>;
+  signal: AbortSignal;
+  document: NodeDocumentContext;
+  context: TContext;
+}
+
+export interface DefineDocumentNodeOptions<
+  TInput = unknown,
+  TData = unknown,
+  TContext = unknown,
+> {
+  name: string;
+  title?: string;
+  description?: string;
+  execute(
+    ctx: DocumentNodeExecutionContext<TInput, TContext>,
+  ): NodeExecutionReturn<TData>;
+}
+
+export interface DocumentNodeDefinition<
+  TInput = unknown,
+  TData = unknown,
+  TContext = unknown,
+> extends DefineDocumentNodeOptions<TInput, TData, TContext> {}

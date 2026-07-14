@@ -1,11 +1,29 @@
 import { createHash } from 'node:crypto';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import type { WorkflowRunResult } from '../engine/types';
+import type {
+  WorkflowDocumentRunResult,
+  WorkflowRunResult,
+} from '../engine/types';
 
 const writeJson = (path: string, value: unknown) => {
   mkdirSync(dirname(path), { recursive: true });
   writeFileSync(path, JSON.stringify(value, null, 2));
+};
+
+export const writeWorkflowDocumentRunResult = (
+  resultDir: string,
+  result: WorkflowDocumentRunResult,
+) => {
+  writeJson(
+    join(
+      resultDir,
+      'documents',
+      result.documentId,
+      `${result.documentRunId}.json`,
+    ),
+    result,
+  );
 };
 
 export const writeWorkflowRunResult = (

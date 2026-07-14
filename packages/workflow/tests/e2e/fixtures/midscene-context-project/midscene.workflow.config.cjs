@@ -1,4 +1,5 @@
 const { appendFileSync } = require('node:fs');
+const { defineDocumentNode, defineNode } = require('@midscene/workflow');
 const { defineWorkflowProject } = require('@midscene/workflow/config');
 const { createMidsceneNodes } = require('@midscene/workflow/midscene');
 
@@ -8,35 +9,53 @@ const log = (value) => {
   appendFileSync(path, `${value}\n`);
 };
 
+const documentLifecycle = defineDocumentNode({
+  name: 'document.lifecycle',
+  execute({ document, context }) {
+    log(`${document.phase}:${context.id}`);
+  },
+});
+
+const startAttempt = defineNode({
+  name: 'attempt.start',
+  execute({ context, workflow }) {
+    context.attempt += 1;
+    log(`beforeEach:${context.id}:${context.attempt}:${workflow.runId}`);
+  },
+});
+
 const midsceneNodes = createMidsceneNodes({
   getAgent: ({ context }) => context.uiAgent,
 });
-let setupCount = 0;
+let documentCount = 0;
 
 module.exports = defineWorkflowProject({
-  nodes: midsceneNodes,
+  documentNodes: [documentLifecycle],
+  nodes: [startAttempt, ...midsceneNodes],
 
-  async setupWorkflow({ name, onTeardown }) {
-    setupCount += 1;
-    const attempt = setupCount;
-    log(`setup:${attempt}:${name}`);
+  async setupDocument({ sourcePath, onTeardown }) {
+    documentCount += 1;
+    const context = { id: documentCount, attempt: 0 };
+    log(`setupDocument:${context.id}:${sourcePath}`);
 
-    // A real project would create a Playwright, Puppeteer, or device Agent here.
-    // recordToReport does not need a model, so this report-only Agent keeps the
-    // e2e test deterministic while exercising the public integration contract.
-    const uiAgent = {
+    context.uiAgent = {
       async recordToReport(title, options) {
-        log(`record:${attempt}:${title}:${options.content}`);
-        if (process.env.WORKFLOW_E2E_FAIL_FIRST === '1' && attempt === 1) {
+        log(
+          `record:${context.id}:${context.attempt}:${title}:${options.content}`,
+        );
+        if (
+          process.env.WORKFLOW_E2E_FAIL_FIRST === '1' &&
+          context.attempt === 1 &&
+          title === 'Ready'
+        ) {
           throw new Error('controlled first-attempt failure');
         }
       },
     };
 
     onTeardown(() => {
-      log(`teardown:${attempt}:${name}`);
+      log(`documentTeardown:${context.id}:${context.attempt}`);
     });
-
-    return { uiAgent };
+    return context;
   },
 });

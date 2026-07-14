@@ -101,27 +101,34 @@ export class NodeExecutionError extends WorkflowError {
   }
 }
 
-export class WorkflowSetupError extends WorkflowError {
-  constructor(cause: unknown, details: { testId: string; runId: string }) {
+export class WorkflowDocumentSetupError extends WorkflowError {
+  constructor(
+    cause: unknown,
+    details: { documentId: string; documentRunId: string },
+  ) {
     const causeMessage =
       cause instanceof Error ? cause.message : String(cause ?? 'Unknown error');
-    super(`Workflow setup failed: ${causeMessage}`, {
-      code: 'WORKFLOW_SETUP_ERROR',
+    super(`Workflow document setup failed: ${causeMessage}`, {
+      code: 'WORKFLOW_DOCUMENT_SETUP_ERROR',
       details,
       cause,
     });
   }
 }
 
-export class WorkflowTeardownError extends WorkflowError {
+export class WorkflowDocumentTeardownError extends WorkflowError {
   constructor(
     cause: unknown,
-    details: { testId: string; runId: string; registrationIndex: number },
+    details: {
+      documentId: string;
+      documentRunId: string;
+      registrationIndex: number;
+    },
   ) {
     const causeMessage =
       cause instanceof Error ? cause.message : String(cause ?? 'Unknown error');
-    super(`Workflow teardown failed: ${causeMessage}`, {
-      code: 'WORKFLOW_TEARDOWN_ERROR',
+    super(`Workflow document teardown failed: ${causeMessage}`, {
+      code: 'WORKFLOW_DOCUMENT_TEARDOWN_ERROR',
       details,
       cause,
     });
@@ -141,6 +148,21 @@ export class WorkflowExecutionError extends WorkflowError {
     super(`Workflow "${result.name}" failed.`, {
       code: 'WORKFLOW_EXECUTION_FAILED',
       details: { testId: result.testId, runId: result.runId },
+    });
+    this.result = result;
+  }
+}
+
+export class WorkflowDocumentExecutionError extends WorkflowError {
+  readonly result: import('./engine/types').WorkflowDocumentRunResult;
+
+  constructor(result: import('./engine/types').WorkflowDocumentRunResult) {
+    super(`Workflow document "${result.sourcePath}" failed.`, {
+      code: 'WORKFLOW_DOCUMENT_EXECUTION_FAILED',
+      details: {
+        documentId: result.documentId,
+        documentRunId: result.documentRunId,
+      },
     });
     this.result = result;
   }

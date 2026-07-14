@@ -1,0 +1,10 @@
+beforeAll:
+  - before.fail: Fail document preparation
+
+workflows:
+  - name: skipped workflow
+    steps:
+      - body.record: Must not run
+
+afterAll:
+  - after.record: Finish document

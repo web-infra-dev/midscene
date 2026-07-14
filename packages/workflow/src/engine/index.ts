@@ -1,3 +1,4 @@
+export * from './document-runtime';
 export * from './registry';
 export * from './run-step';
 export * from './run-workflow';
