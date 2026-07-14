@@ -4,6 +4,7 @@ import type { WorkflowSource } from '../parser/types';
 import { NodeRegistry } from './registry';
 import { runStep } from './run-step';
 import type {
+  NodeWorkflowContext,
   StepRunResult,
   WorkflowEngineOptions,
   WorkflowRunResult,
@@ -30,12 +31,26 @@ export class WorkflowEngine {
     const startedAt = new Date();
     const steps: StepRunResult[] = [];
 
-    for (const { step, node } of executableSteps) {
-      steps.push(await runStep(step, node));
+    for (const [stepIndex, { step, node }] of executableSteps.entries()) {
+      const workflow: NodeWorkflowContext = {
+        testId: 'legacy-workflow',
+        runId: 'legacy-workflow',
+        name: 'workflow',
+        sourcePath: '',
+        workflowIndex: 0,
+        stepIndex,
+        completedSteps: Object.freeze([...steps]),
+      };
+      steps.push(await runStep(step, node, workflow));
     }
 
     const endedAt = new Date();
     return {
+      testId: 'legacy-workflow',
+      runId: 'legacy-workflow',
+      name: 'workflow',
+      sourcePath: '',
+      workflowIndex: 0,
       status: steps.some((step) => step.status === 'failed')
         ? 'failed'
         : 'success',
