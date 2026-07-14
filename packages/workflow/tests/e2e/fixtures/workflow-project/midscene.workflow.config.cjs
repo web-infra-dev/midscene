@@ -9,6 +9,9 @@ const log = (value) => {
 };
 
 module.exports = defineWorkflowProject({
+  files: {
+    include: ['flows/**/*.{yaml,yml}'],
+  },
   nodes: [
     defineNode({
       name: 'test.record',

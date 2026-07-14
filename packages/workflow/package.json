@@ -39,7 +39,8 @@
     "e2e": "pnpm run build && vitest --run --config vitest.e2e.config.ts"
   },
   "dependencies": {
-    "js-yaml": "4.1.0"
+    "js-yaml": "4.1.0",
+    "tinyglobby": "0.2.15"
   },
   "devDependencies": {
     "@rslib/core": "^0.18.3",
