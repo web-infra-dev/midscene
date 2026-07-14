@@ -121,6 +121,29 @@ describe('locate not-found parsing', () => {
     expect(result.parseResult.errors).toEqual([]);
   });
 
+  it('retries once when section result adapter cannot map coordinates', async () => {
+    vi.mocked(callAIWithObjectResponse)
+      .mockResolvedValueOnce({
+        content: { bbox: [100, Number.NaN, 300, 400] },
+        usage: undefined,
+        contentString: '{"bbox":[100,null,300,400]}',
+      })
+      .mockResolvedValueOnce({
+        content: { bbox: [100, 200, 300, 400] },
+        usage: undefined,
+        contentString: '{"bbox":[100,200,300,400]}',
+      });
+
+    const result = await AiLocateSection({
+      context: createFakeContext(),
+      sectionDescription: 'invalid coordinate section',
+      modelRuntime: getModelRuntime(modelConfig),
+    });
+
+    expect(callAIWithObjectResponse).toHaveBeenCalledTimes(2);
+    expect(result.searchAreaConfig).toBeDefined();
+  });
+
   it('passes locate request context to custom locate and maps its bbox result', async () => {
     const locateFn = vi.fn<LocateFn>().mockResolvedValue({
       locatedPixelBbox: [100, 50, 130, 70],

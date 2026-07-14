@@ -1,5 +1,4 @@
 import type {
-  AIDataExtractionResponse,
   AIElementLocateResponse,
   AISectionLocatorResponse,
   AIUsageInfo,
@@ -45,6 +44,7 @@ import {
   callAI,
   callAIWithObjectResponse,
 } from './service-caller/index';
+import { callAiAndParseWithRetry } from './service-caller/semantic-retry';
 import { prepareModelImage } from './workflows/image-preprocess';
 import {
   mergePixelBboxesToRect,
@@ -83,6 +83,10 @@ function hasLocateResult(input: unknown, resultKey: string) {
     ? locateResult.length > 0
     : locateResult !== undefined;
 }
+
+type SectionLocateObjectResponse = Awaited<
+  ReturnType<typeof callAIWithObjectResponse<AISectionLocatorResponse>>
+>;
 
 export async function buildSearchAreaConfig(options: {
   context: UIContext;
@@ -265,99 +269,90 @@ export async function genericLocate(
     msgs.push(...locateRequest.referenceImageMessages);
   }
 
-  const locateOnce = async (
-    retryOnCoordinateParseFailure: boolean,
-  ): Promise<LocateModelResponse> => {
-    let res: Awaited<
-      ReturnType<typeof callAIWithObjectResponse<AIElementLocateResponse>>
-    >;
-    try {
-      res = await callAIWithObjectResponse<AIElementLocateResponse>(
-        msgs,
-        modelRuntime,
-        {
+  try {
+    return await callAiAndParseWithRetry({
+      callAi: () =>
+        callAIWithObjectResponse<AIElementLocateResponse>(msgs, modelRuntime, {
           abortSignal: options.abortSignal,
           jsonParserSource: 'locate',
           retryTimes: 1,
-        },
-      );
-    } catch (callError) {
-      const errorMessage =
-        callError instanceof Error ? callError.message : String(callError);
-      const rawResponse =
-        callError instanceof AIResponseParseError
-          ? callError.rawResponse
-          : errorMessage;
-      const usage =
-        callError instanceof AIResponseParseError ? callError.usage : undefined;
-      const rawChoiceMessage =
-        callError instanceof AIResponseParseError
-          ? callError.rawChoiceMessage
-          : undefined;
-      return {
-        rawResponse,
-        rawChoiceMessage,
-        usage,
-        errors: [`AI call error: ${errorMessage}`],
-      };
-    }
+        }),
+      parseResponse: (response): LocateModelResponse => {
+        const rawResponse = response.contentString;
+        const errors: string[] | undefined =
+          'errors' in response.content ? response.content.errors : [];
+        if (
+          !hasLocateResult(response.content, resultAdapter.promptSpec.resultKey)
+        ) {
+          return {
+            rawResponse,
+            rawChoiceMessage: response.rawChoiceMessage,
+            usage: response.usage,
+            reasoningContent: response.reasoning_content,
+            errors: errors as string[],
+          };
+        }
 
-    const rawResponse = res.contentString;
-    let errors: string[] | undefined =
-      'errors' in res.content ? res.content.errors : [];
-    if (!hasLocateResult(res.content, resultAdapter.promptSpec.resultKey)) {
-      return {
-        rawResponse,
-        rawChoiceMessage: res.rawChoiceMessage,
-        usage: res.usage,
-        reasoningContent: res.reasoning_content,
-        errors: errors as string[],
-      };
-    }
-
-    try {
-      const locatedPixelBbox =
-        resultAdapter.adaptElementLocateResultToPixelBbox(res.content, {
-          preparedSize: preparedImage.preparedSize,
-          contentSize: preparedImage.contentSize,
-        });
-      return {
-        locatedPixelBbox,
-        rawResponse,
-        rawChoiceMessage: res.rawChoiceMessage,
-        usage: res.usage,
-        reasoningContent: res.reasoning_content,
-        errors: errors as string[],
-      };
-    } catch (e) {
-      if (retryOnCoordinateParseFailure && !options.abortSignal?.aborted) {
+        const locatedPixelBbox =
+          resultAdapter.adaptElementLocateResultToPixelBbox(response.content, {
+            preparedSize: preparedImage.preparedSize,
+            contentSize: preparedImage.contentSize,
+          });
+        return {
+          locatedPixelBbox,
+          rawResponse,
+          rawChoiceMessage: response.rawChoiceMessage,
+          usage: response.usage,
+          reasoningContent: response.reasoning_content,
+          errors: errors as string[],
+        };
+      },
+      toParseError: (error, response) => {
+        const parseErrorMessage =
+          error instanceof Error
+            ? `Failed to parse locate result: ${error.message}`
+            : 'unknown error in locate result';
+        const modelErrors =
+          'errors' in response.content ? response.content.errors : undefined;
+        const message =
+          modelErrors && modelErrors.length > 0
+            ? `${modelErrors.join('\n')} (${parseErrorMessage})`
+            : parseErrorMessage;
+        return new AIResponseParseError(
+          message,
+          response.contentString,
+          response.usage,
+          response.rawChoiceMessage,
+          response.reasoning_content,
+        );
+      },
+      parseRetryTimes: 1,
+      abortSignal: options.abortSignal,
+      onParseRetry: (error) => {
         debugInspect(
           'retrying locate after coordinate parsing failed: %s',
-          e instanceof Error ? e.message : String(e),
+          error instanceof Error ? error.message : String(error),
         );
-        return locateOnce(false);
-      }
-
-      const msg =
-        e instanceof Error
-          ? `Failed to parse locate result: ${e.message}`
-          : 'unknown error in locate';
-      if (!errors || errors.length === 0) {
-        errors = [msg];
-      } else {
-        errors.push(`(${msg})`);
-      }
+      },
+    });
+  } catch (callError) {
+    if (callError instanceof AIResponseParseError) {
       return {
-        rawResponse,
-        rawChoiceMessage: res.rawChoiceMessage,
-        usage: res.usage,
-        reasoningContent: res.reasoning_content,
-        errors,
+        rawResponse: callError.rawResponse,
+        rawChoiceMessage: callError.rawChoiceMessage,
+        usage: callError.usage,
+        reasoningContent: callError.reasoningContent,
+        errors: [callError.message],
       };
     }
-  };
 
-  return locateOnce(true);
+    const errorMessage =
+      callError instanceof Error ? callError.message : String(callError);
+    return {
+      rawResponse: errorMessage,
+      errors: [`AI call error: ${errorMessage}`],
+    };
+  }
 }
 
 export async function AiLocateSection(options: {
@@ -421,140 +416,147 @@ export async function AiLocateSection(options: {
     msgs.push(...addOns);
   }
 
-  const locateSectionOnce = async (
-    retryOnCoordinateParseFailure: boolean,
-  ): Promise<{
-    searchAreaConfig?: SearchAreaConfig;
-    error?: string;
-    rawResponse: string;
-    rawChoiceMessage?: unknown;
-    usage?: AIUsageInfo;
-  }> => {
-    let result: Awaited<
-      ReturnType<typeof callAIWithObjectResponse<AISectionLocatorResponse>>
-    >;
-    try {
-      result = await callAIWithObjectResponse<AISectionLocatorResponse>(
-        msgs,
-        modelRuntime,
-        {
+  let parsedResult:
+    | {
+        result: SectionLocateObjectResponse;
+        sectionError?: string;
+        mergedRect?: undefined;
+      }
+    | {
+        result: SectionLocateObjectResponse;
+        sectionError?: string;
+        mergedRect: Rect;
+      };
+
+  try {
+    parsedResult = await callAiAndParseWithRetry({
+      callAi: () =>
+        callAIWithObjectResponse<AISectionLocatorResponse>(msgs, modelRuntime, {
           abortSignal: options.abortSignal,
           jsonParserSource: 'section-locator',
           retryTimes: 1,
-        },
-      );
-    } catch (callError) {
-      const errorMessage =
-        callError instanceof Error ? callError.message : String(callError);
-      const rawResponse =
-        callError instanceof AIResponseParseError
-          ? callError.rawResponse
-          : errorMessage;
-      const usage =
-        callError instanceof AIResponseParseError ? callError.usage : undefined;
-      const rawChoiceMessage =
-        callError instanceof AIResponseParseError
-          ? callError.rawChoiceMessage
-          : undefined;
+        }),
+      parseResponse: (result) => {
+        const sectionError = result.content.error;
+        if (
+          !hasLocateResult(result.content, resultAdapter.promptSpec.resultKey)
+        ) {
+          return { result, sectionError };
+        }
+
+        const adaptedResult =
+          resultAdapter.adaptSectionLocateResultToPixelBboxGroup(
+            result.content,
+            {
+              preparedSize: preparedImage.preparedSize,
+              contentSize: preparedImage.contentSize,
+            },
+          );
+        const mergedRect = mergePixelBboxesToRect([
+          adaptedResult.target,
+          ...(adaptedResult.references ?? []),
+        ]);
+        debugSection('mergedRect %j', mergedRect);
+        return { result, sectionError, mergedRect };
+      },
+      toParseError: (error, result) => {
+        const parseErrorMessage =
+          error instanceof Error
+            ? `Failed to parse section locate result: ${error.message}`
+            : 'unknown error in section locate';
+        const message = result.content.error
+          ? `${result.content.error} (${parseErrorMessage})`
+          : parseErrorMessage;
+        return new AIResponseParseError(
+          message,
+          result.contentString,
+          result.usage,
+          result.rawChoiceMessage,
+          result.reasoning_content,
+        );
+      },
+      parseRetryTimes: 1,
+      abortSignal: options.abortSignal,
+      onParseRetry: (error) => {
+        debugSection(
+          'retrying section locate after coordinate parsing failed: %s',
+          error instanceof Error ? error.message : String(error),
+        );
+      },
+    });
+  } catch (callError) {
+    if (callError instanceof AIResponseParseError) {
       return {
         searchAreaConfig: undefined,
-        error: `AI call error: ${errorMessage}`,
-        rawResponse,
-        rawChoiceMessage,
-        usage,
+        error: callError.message,
+        rawResponse: callError.rawResponse,
+        rawChoiceMessage: callError.rawChoiceMessage,
+        usage: callError.usage,
       };
     }
 
-    let sectionError = result.content.error;
-    if (!hasLocateResult(result.content, resultAdapter.promptSpec.resultKey)) {
-      return {
-        searchAreaConfig: undefined,
-        error: sectionError,
-        rawResponse: result.contentString,
-        rawChoiceMessage: result.rawChoiceMessage,
-        usage: result.usage,
-      };
-    }
+    const errorMessage =
+      callError instanceof Error ? callError.message : String(callError);
+    return {
+      searchAreaConfig: undefined,
+      error: `AI call error: ${errorMessage}`,
+      rawResponse: errorMessage,
+    };
+  }
 
-    let mergedRect: Rect;
-    try {
-      const adaptedResult =
-        resultAdapter.adaptSectionLocateResultToPixelBboxGroup(result.content, {
-          preparedSize: preparedImage.preparedSize,
-          contentSize: preparedImage.contentSize,
-        });
-      mergedRect = mergePixelBboxesToRect([
-        adaptedResult.target,
-        ...(adaptedResult.references ?? []),
-      ]);
-      debugSection('mergedRect %j', mergedRect);
-    } catch (error) {
-      if (retryOnCoordinateParseFailure && !options.abortSignal?.aborted) {
-        debugSection('retrying section locate after coordinate parsing failed');
-        return locateSectionOnce(false);
-      }
+  const { result, sectionError, mergedRect } = parsedResult;
+  if (!mergedRect) {
+    return {
+      searchAreaConfig: undefined,
+      error: sectionError,
+      rawResponse: result.contentString,
+      rawChoiceMessage: result.rawChoiceMessage,
+      usage: result.usage,
+    };
+  }
 
-      const parseErrorMessage =
-        error instanceof Error
-          ? `Failed to parse section locate result: ${error.message}`
-          : 'unknown error in section locate';
-      sectionError = sectionError
-        ? `${sectionError} (${parseErrorMessage})`
-        : parseErrorMessage;
-      return {
-        searchAreaConfig: undefined,
-        error: sectionError,
-        rawResponse: result.contentString,
-        rawChoiceMessage: result.rawChoiceMessage,
-        usage: result.usage,
-      };
-    }
+  try {
+    const expandedRect = expandSearchArea(mergedRect, context.shotSize);
+    const originalWidth = expandedRect.width;
+    const originalHeight = expandedRect.height;
+    debugSection('expanded sectionRect %j', expandedRect);
 
-    try {
-      const expandedRect = expandSearchArea(mergedRect, context.shotSize);
-      const originalWidth = expandedRect.width;
-      const originalHeight = expandedRect.height;
-      debugSection('expanded sectionRect %j', expandedRect);
+    const searchAreaConfig = await buildSearchAreaConfig({
+      context,
+      baseRect: mergedRect,
+    });
 
-      const searchAreaConfig = await buildSearchAreaConfig({
-        context,
-        baseRect: mergedRect,
-      });
-
-      debugSection(
-        'scaled section image from %dx%d to %dx%d (scale=%d)',
-        originalWidth,
-        originalHeight,
-        searchAreaConfig.image.width,
-        searchAreaConfig.image.height,
-        searchAreaConfig.mapping.scale,
-      );
-      return {
-        searchAreaConfig,
-        error: sectionError,
-        rawResponse: result.contentString,
-        rawChoiceMessage: result.rawChoiceMessage,
-        usage: result.usage,
-      };
-    } catch (error) {
-      const parseErrorMessage =
-        error instanceof Error
-          ? `Failed to parse section locate result: ${error.message}`
-          : 'unknown error in section locate';
-      sectionError = sectionError
-        ? `${sectionError} (${parseErrorMessage})`
-        : parseErrorMessage;
-      return {
-        searchAreaConfig: undefined,
-        error: sectionError,
-        rawResponse: result.contentString,
-        rawChoiceMessage: result.rawChoiceMessage,
-        usage: result.usage,
-      };
-    }
-  };
-
-  return locateSectionOnce(true);
+    debugSection(
+      'scaled section image from %dx%d to %dx%d (scale=%d)',
+      originalWidth,
+      originalHeight,
+      searchAreaConfig.image.width,
+      searchAreaConfig.image.height,
+      searchAreaConfig.mapping.scale,
+    );
+    return {
+      searchAreaConfig,
+      error: sectionError,
+      rawResponse: result.contentString,
+      rawChoiceMessage: result.rawChoiceMessage,
+      usage: result.usage,
+    };
+  } catch (error) {
+    const parseErrorMessage =
+      error instanceof Error
+        ? `Failed to parse section locate result: ${error.message}`
+        : 'unknown error in section locate';
+    const errorMessage = sectionError
+      ? `${sectionError} (${parseErrorMessage})`
+      : parseErrorMessage;
+    return {
+      searchAreaConfig: undefined,
+      error: errorMessage,
+      rawResponse: result.contentString,
+      rawChoiceMessage: result.rawChoiceMessage,
+      usage: result.usage,
+    };
+  }
 }
 
 export async function AiExtractElementInfo<T>(options: {
@@ -636,25 +638,18 @@ export async function AiExtractElementInfo<T>(options: {
     msgs.push(...addOns);
   }
 
-  const extractOnce = async (
-    allowSemanticRetry: boolean,
-  ): Promise<{
-    parseResult: AIDataExtractionResponse<T>;
-    rawResponse: string;
-    rawChoiceMessage?: unknown;
-    usage?: AIUsageInfo;
-    reasoning_content?: string;
-  }> => {
-    const {
-      content: rawResponse,
-      usage,
-      reasoning_content,
-      rawChoiceMessage,
-    } = await callAI(msgs, modelRuntime, {
-      abortSignal: options.abortSignal,
-    });
-
-    try {
+  return callAiAndParseWithRetry({
+    callAi: () =>
+      callAI(msgs, modelRuntime, {
+        abortSignal: options.abortSignal,
+      }),
+    parseResponse: (response) => {
+      const {
+        content: rawResponse,
+        usage,
+        reasoning_content,
+        rawChoiceMessage,
+      } = response;
       const parseResult = parseXMLExtractionResponse<T>(rawResponse);
       return {
         parseResult,
@@ -663,24 +658,26 @@ export async function AiExtractElementInfo<T>(options: {
         usage,
         reasoning_content,
       };
-    } catch (parseError) {
-      if (allowSemanticRetry && !options.abortSignal?.aborted) {
-        debugInspect('retrying insight after XML parsing failed');
-        return extractOnce(false);
-      }
-
+    },
+    toParseError: (parseError, response) => {
       const errorMessage =
         parseError instanceof Error ? parseError.message : String(parseError);
-      throw new AIResponseParseError(
+      return new AIResponseParseError(
         `XML parse error: ${errorMessage}`,
-        rawResponse,
-        usage,
-        rawChoiceMessage,
+        response.content,
+        response.usage,
+        response.rawChoiceMessage,
       );
-    }
-  };
-
-  return extractOnce(true);
+    },
+    parseRetryTimes: 1,
+    abortSignal: options.abortSignal,
+    onParseRetry: (error) => {
+      debugInspect(
+        'retrying insight after XML parsing failed: %s',
+        error instanceof Error ? error.message : String(error),
+      );
+    },
+  });
 }
 
 export async function AiJudgeOrderSensitive(

@@ -10,18 +10,21 @@ export class AIResponseParseError extends Error {
    */
   rawResponse: string;
   rawChoiceMessage?: unknown;
+  reasoningContent?: string;
 
   constructor(
     message: string,
     rawResponse: string,
     usage?: AIUsageInfo,
     rawChoiceMessage?: unknown,
+    reasoningContent?: string,
   ) {
     super(message);
     this.name = 'AIResponseParseError';
     this.rawResponse = rawResponse;
     this.usage = usage;
     this.rawChoiceMessage = rawChoiceMessage;
+    this.reasoningContent = reasoningContent;
   }
 }
 import {
@@ -54,6 +57,7 @@ import {
   isHardTimeoutError,
   resolveEffectiveTimeoutMs,
 } from './request-timeout';
+import { callAiAndParseWithRetry } from './semantic-retry';
 export {
   extractJSONFromCodeBlock,
   parseModelResponseJson,
@@ -779,21 +783,13 @@ export async function callAIWithObjectResponse<T>(
   rawChoiceMessage?: unknown;
 }> {
   const { config: modelConfig, adapter } = modelRuntime;
-  const retryTimes = Math.max(0, Math.floor(options?.retryTimes ?? 0));
-  const callAndParseObjectResponse = async (
-    remainingRetries: number,
-  ): Promise<{
-    content: T;
-    contentString: string;
-    usage?: AIUsageInfo;
-    reasoning_content?: string;
-    rawChoiceMessage?: unknown;
-  }> => {
-    const response = await callAI(messages, modelRuntime, {
-      abortSignal: options?.abortSignal,
-    });
-    assert(response, 'empty response');
-    try {
+  return callAiAndParseWithRetry({
+    callAi: () =>
+      callAI(messages, modelRuntime, {
+        abortSignal: options?.abortSignal,
+      }),
+    parseResponse: (response) => {
+      assert(response, 'empty response');
       const jsonContent = adapter.jsonParser(response.content, {
         source: options?.jsonParserSource ?? 'generic-object',
       });
@@ -811,22 +807,21 @@ export async function callAIWithObjectResponse<T>(
         reasoning_content: response.reasoning_content,
         rawChoiceMessage: response.rawChoiceMessage,
       };
-    } catch (error) {
-      if (remainingRetries > 0 && !options?.abortSignal?.aborted) {
-        return callAndParseObjectResponse(remainingRetries - 1);
-      }
+    },
+    toParseError: (error, response) => {
       const errorMessage =
         error instanceof Error ? error.message : String(error);
-      throw new AIResponseParseError(
+      return new AIResponseParseError(
         errorMessage,
         response.content,
         response.usage,
         response.rawChoiceMessage,
+        response.reasoning_content,
       );
-    }
-  };
-
-  return callAndParseObjectResponse(retryTimes);
+    },
+    parseRetryTimes: options?.retryTimes,
+    abortSignal: options?.abortSignal,
+  });
 }
 
 export async function callAIWithStringResponse(
