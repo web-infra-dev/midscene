@@ -437,18 +437,23 @@ describe.skipIf(!RUN_LIVE_SMOKE)('Android Emulator live smoke', () => {
       });
 
       let searchAttempts = 0;
+      let locateActionCalls = 0;
       const searchAttemptErrors: string[] = [];
       const performSearchAttempt = async (target: {
         bounds: Bounds;
       }): Promise<{ resourceId?: string; bounds: Bounds; xml: string }> => {
         searchAttempts += 1;
         evidence.searchAttempts = searchAttempts;
+        locateActionCalls += 1;
+        evidence.locateActionCalls = locateActionCalls;
         await agent!.callActionInActionSpace('Tap', {
           locate: locate(target.bounds, 'Settings search bar'),
         });
         const searchInput = await waitForEditableNode(adb, searchXmlFile);
         evidence.searchInputResourceId = searchInput.resourceId;
 
+        locateActionCalls += 1;
+        evidence.locateActionCalls = locateActionCalls;
         await agent!.callActionInActionSpace('Input', {
           value: 'wifi',
           mode: 'typeOnly',
@@ -510,7 +515,7 @@ describe.skipIf(!RUN_LIVE_SMOKE)('Android Emulator live smoke', () => {
       const locateTasks = dumpTasks.filter(
         (task) => task.type === 'Planning' && task.subType === 'Locate',
       );
-      expect(locateTasks).toHaveLength(searchAttempts * 2);
+      expect(locateTasks).toHaveLength(locateActionCalls);
       expect(locateTasks.every((task) => task.hitBy?.from === 'Plan')).toBe(
         true,
       );
@@ -535,7 +540,7 @@ describe.skipIf(!RUN_LIVE_SMOKE)('Android Emulator live smoke', () => {
       const reportLocateTasks = reportTasks.filter(
         (task) => task.type === 'Planning' && task.subType === 'Locate',
       );
-      expect(reportLocateTasks).toHaveLength(searchAttempts * 2);
+      expect(reportLocateTasks).toHaveLength(locateActionCalls);
       expect(
         reportLocateTasks.every((task) => task.hitBy?.from === 'Plan'),
       ).toBe(true);
