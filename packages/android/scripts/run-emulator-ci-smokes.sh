@@ -68,6 +68,13 @@ fi
 
 set +e
 AI_TEST_TYPE=android \
+MIDSCENE_ANDROID_CACHE_FIXTURE_SMOKE=1 \
+pnpm exec nx test @midscene/android --skip-nx-cache -- \
+  tests/ai/android-cache-fixture-matrix.test.ts --retry=0 2>&1 |
+  tee "$diagnostics_dir/cache-fixture-matrix.log"
+fixture_exit=${PIPESTATUS[0]}
+
+AI_TEST_TYPE=android \
 MIDSCENE_ANDROID_EMULATOR_CACHE_SMOKE=1 \
 pnpm exec nx test @midscene/android --skip-nx-cache -- \
   tests/ai/android-emulator-cache.test.ts --retry=0 2>&1 |
@@ -95,6 +102,7 @@ adb exec-out screencap -p > "$diagnostics_dir/emulator-final.png" 2>/dev/null ||
 BROWSER_PREFLIGHT_EXIT="$browser_preflight_exit" \
 SMOKE_EXIT="$smoke_exit" \
 CACHE_EXIT="$cache_exit" \
+FIXTURE_EXIT="$fixture_exit" \
 TODO_EXIT="$todo_exit" \
 node -e '
   const fs = require("node:fs");
@@ -103,6 +111,7 @@ node -e '
     browserPreflight: Number(process.env.BROWSER_PREFLIGHT_EXIT),
     deterministicSmoke: Number(process.env.SMOKE_EXIT),
     xpathCache: Number(process.env.CACHE_EXIT),
+    cacheFixtureMatrix: Number(process.env.FIXTURE_EXIT),
     todoMvc: Number(process.env.TODO_EXIT),
   };
   fs.writeFileSync(
@@ -111,7 +120,7 @@ node -e '
   );
 '
 
-if ((browser_preflight_exit != 0 || smoke_exit != 0 || cache_exit != 0 || todo_exit != 0)); then
-  echo "Android emulator validation failed: browser=$browser_preflight_exit smoke=$smoke_exit cache=$cache_exit todo=$todo_exit" >&2
+if ((browser_preflight_exit != 0 || smoke_exit != 0 || cache_exit != 0 || fixture_exit != 0 || todo_exit != 0)); then
+  echo "Android emulator validation failed: browser=$browser_preflight_exit smoke=$smoke_exit cache=$cache_exit fixture=$fixture_exit todo=$todo_exit" >&2
   exit 1
 fi

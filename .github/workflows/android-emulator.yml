@@ -35,6 +35,7 @@ jobs:
     env:
       CI: '1'
       FORCE_COLOR: '0'
+      DEBUG: 'midscene:cache:*'
       MIDSCENE_MODEL_API_KEY: ${{ secrets.MIDSCENE_MODEL_API_KEY }}
       MIDSCENE_MODEL_BASE_URL: ${{ vars.MIDSCENE_MODEL_BASE_URL }}
       MIDSCENE_MODEL_NAME: ${{ vars.MIDSCENE_MODEL_NAME }}
@@ -189,6 +190,26 @@ jobs:
         with:
           name: android-emulator-cache-hit-report
           path: midscene_run/report/android-emulator-cache-hit-report.html
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Upload Android cache compatibility report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: android-cache-fixture-matrix-report
+          path: midscene_run/report/android-cache-fixture-matrix-report.html
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Upload Android cache compatibility diagnostics
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: android-cache-fixture-matrix-diagnostics
+          path: |
+            midscene_run/diagnostics/android-cache-fixture-matrix
+            midscene_run/log/cache-xpath*.log
           if-no-files-found: error
           retention-days: 7
 
