@@ -134,8 +134,9 @@ describe('createMidsceneNodes', () => {
       } as unknown as MidsceneUIAgent,
     );
     expect(invalidOptions.steps[0].error).toMatchObject({
-      code: 'NODE_EXECUTION_ERROR',
-      message: expect.stringContaining('unsupported option "keepRawResponse"'),
+      code: 'NODE_INPUT_VALIDATION_ERROR',
+      message: expect.stringContaining('input validation failed'),
+      details: { node: 'aiAssert' },
     });
 
     const missingMethod = await run(

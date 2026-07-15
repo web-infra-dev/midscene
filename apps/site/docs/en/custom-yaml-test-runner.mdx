@@ -31,7 +31,7 @@ team-test-runner/
 The project configuration must be named `midscene.config.ts`. It directly default-exports a Test Project definition.
 
 ```ts filename=midscene.config.ts
-import { defineNode } from '@midscene/test';
+import { defineNode, z } from '@midscene/test';
 import { defineTestProject } from '@midscene/test/config';
 import { createMidsceneNodes } from '@midscene/test/midscene';
 import { PlaywrightAgent } from '@midscene/web/playwright';
@@ -43,12 +43,20 @@ interface ProjectContext {
   agent?: PlaywrightAgent;
 }
 
-interface SetLanguageInput {
-  language: 'en' | 'zh';
-}
+const setLanguageInputSchema = z.strictObject({
+  language: z
+    .enum(['en', 'zh'])
+    .describe('The browser language used by the new Playwright Context.'),
+});
 
-const setLanguage = defineNode<SetLanguageInput, unknown, ProjectContext>({
+const setLanguage = defineNode<
+  typeof setLanguageInputSchema,
+  unknown,
+  ProjectContext
+>({
   name: 'browser.setLanguage',
+  description: 'Switch the browser language and reopen the current page.',
+  inputSchema: setLanguageInputSchema,
   async execute({ input, context }) {
     const previousContext = context.page.context();
     const browserContext = await context.browser.newContext({
@@ -132,6 +140,46 @@ Test Project
 - **Workflow Document**: one YAML file containing lifecycle Steps and Cases.
 - **Test Project**: the project configuration and its Workflow Documents.
 
+## Define Node inputs with Zod
+
+`inputSchema` is optional. When a Node declares it, the runner validates the YAML input with Zod before calling `execute()`. TypeScript infers `ctx.input` from the Schema, so you do not need to maintain a separate Input interface.
+
+Import the compatible Zod instance from `@midscene/test` and prefer `z.strictObject()`. Strict objects reject unknown YAML fields. Field descriptions are also included in the generated Node Reference.
+
+```ts
+import { defineNode, z } from '@midscene/test';
+
+const createOrderInputSchema = z.strictObject({
+  sku: z.string().min(1).describe('The product SKU.'),
+  quantity: z.number().int().positive().describe('The quantity to order.'),
+});
+
+const createOrder = defineNode({
+  name: 'order.create',
+  description: 'Create an order in the test environment.',
+  inputSchema: createOrderInputSchema,
+  async execute({ input }) {
+    // input is inferred as { sku: string; quantity: number }.
+    await createTestOrder(input);
+  },
+});
+```
+
+When a Node needs a typed Document Context, provide the Schema type, output type, and Context type:
+
+```ts
+defineNode<typeof createOrderInputSchema, { id: string }, ProjectContext>({
+  name: 'order.create',
+  description: 'Create an order in the test environment.',
+  inputSchema: createOrderInputSchema,
+  async execute({ input, context }) {
+    return { data: await context.orders.create(input) };
+  },
+});
+```
+
+Without `inputSchema`, the runner preserves the existing behavior and passes the YAML input directly to the Handler. The Handler must validate it, and the generated reference cannot describe its fields.
+
 ## Document lifecycle
 
 A Workflow Document can define lifecycle Steps around its Cases.
@@ -187,6 +235,27 @@ The project root is selected in this order:
 `files.include` and `files.exclude` are glob patterns relative to the project root. The runner always ignores `.git`, `.midscene`, and `node_modules`.
 
 Configuration files support only the `.ts` extension. `.js`, `.cjs`, `.mts`, `.cts`, and `.tsx` are rejected. Runtime loading does not resolve `tsconfig.json` `paths`; use relative imports with an explicit `.ts` extension or package specifiers.
+
+## Generate a Node Reference
+
+Generate a Markdown reference for every Node registered by the current Test Project:
+
+```bash
+pnpm exec midscene-test describe-nodes > midscene-nodes.md
+```
+
+You can also select a project directory or configuration file:
+
+```bash
+pnpm exec midscene-test describe-nodes ./e2e
+pnpm exec midscene-test describe-nodes --config ./config/midscene.config.ts
+```
+
+The reference contains the common Step contract plus each Node name, description, and JSON Schema. The JSON Schema is generated from the Zod `inputSchema`. The built-in `aiAct`, `aiAssert`, and `recordToReport` Nodes include their own schemas.
+
+Nodes without `description` or `inputSchema` are still listed. The document marks the missing fields, and the CLI writes warnings to stderr instead of guessing their behavior.
+
+`describe-nodes` only loads `midscene.config.ts`. It does not read Workflow YAML, call `setupDocument()`, execute Node Handlers, or create a result directory. Add the generated `midscene-nodes.md` to an AI Agent's context so it can write YAML Cases using the capabilities that the project actually exposes.
 
 ## Run a project
 

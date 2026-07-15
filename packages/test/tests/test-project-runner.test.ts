@@ -559,5 +559,20 @@ afterAll:
       configPath: undefined,
       resultDir: undefined,
     });
+    expect(
+      parseTestCliArgs(
+        ['describe-nodes', 'project', '--config', 'midscene.config.ts'],
+        '/workspace',
+      ),
+    ).toEqual({
+      command: 'describe-nodes',
+      cwd: '/workspace',
+      projectRoot: '/workspace/project',
+      configPath: 'midscene.config.ts',
+      resultDir: undefined,
+    });
+    expect(() =>
+      parseTestCliArgs(['describe-nodes', '--result-dir', 'results']),
+    ).toThrow('--result-dir is not supported by describe-nodes');
   });
 });
