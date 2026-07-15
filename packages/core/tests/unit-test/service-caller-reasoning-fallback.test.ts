@@ -256,6 +256,27 @@ describe('service-caller reasoning fallback', () => {
     );
   });
 
+  it('retries JSON parsing when retryTimes is configured', async () => {
+    mockCreate
+      .mockResolvedValueOnce({
+        choices: [{ message: { content: 'not JSON' } }],
+        usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 },
+      })
+      .mockResolvedValueOnce({
+        choices: [{ message: { content: '{"bbox":[100,200,300,400]}' } }],
+        usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 },
+      });
+
+    const response = await callAIWithObjectResponse(
+      [{ role: 'user', content: 'locate element' }],
+      getModelRuntime(baseModelConfig),
+      { jsonParserSource: 'locate', retryTimes: 1 },
+    );
+
+    expect(mockCreate).toHaveBeenCalledTimes(2);
+    expect(response.content).toEqual({ bbox: [100, 200, 300, 400] });
+  });
+
   it('disables reasoning by default for supported model families', async () => {
     mockCreate.mockResolvedValue({
       choices: [
