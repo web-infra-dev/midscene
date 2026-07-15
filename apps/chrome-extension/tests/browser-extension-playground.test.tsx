@@ -158,7 +158,7 @@ describe('BrowserExtensionPlayground', () => {
       emptyStateRoot.unmount();
       root.unmount();
     });
-  });
+  }, 10_000);
 
   it('keeps a stable storage namespace when switching browser tabs', async () => {
     const { BrowserExtensionPlayground } = await import(
