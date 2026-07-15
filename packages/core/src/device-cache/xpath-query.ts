@@ -1,5 +1,12 @@
+import { getDebug } from '@midscene/shared/logger';
 import type { Rect } from '@midscene/shared/types';
-import type { UiNode, XpathCacheTarget } from './types';
+import type {
+  UiNode,
+  XpathCacheIdentity,
+  XpathCacheTarget,
+  XpathCacheTargetContext,
+  XpathCandidateSource,
+} from './types';
 
 type Axis = 'child' | 'descendant';
 
@@ -14,8 +21,61 @@ interface Step {
 }
 
 const TAG_RE = /^([A-Za-z_*][A-Za-z0-9_.\-:*]*)/;
-const ATTR_PRED_RE = /^@([A-Za-z_][A-Za-z0-9_\-:]*)=(['"])([\s\S]*?)\2$/;
+const ATTR_PRED_RE = /^@([A-Za-z_][A-Za-z0-9_\-:]*)=([\s\S]+)$/;
 const INDEX_PRED_RE = /^(\d+)$/;
+const debugXpath = getDebug('cache:xpath');
+
+function parseQuotedXpathLiteral(
+  input: string,
+  start: number,
+): { value: string; next: number } {
+  const quote = input[start];
+  if (quote !== "'" && quote !== '"') {
+    throw new Error(`Expected quoted XPath literal at position ${start}`);
+  }
+  const end = input.indexOf(quote, start + 1);
+  if (end === -1) {
+    throw new Error(`Unclosed XPath literal at position ${start}`);
+  }
+  return { value: input.slice(start + 1, end), next: end + 1 };
+}
+
+function parseConcatXpathLiteral(expression: string): string {
+  if (!expression.startsWith('concat(') || !expression.endsWith(')')) {
+    throw new Error(`Unsupported XPath literal expression "${expression}"`);
+  }
+  const input = expression.slice('concat('.length, -1);
+  const values: string[] = [];
+  let index = 0;
+  while (index < input.length) {
+    while (/\s/.test(input[index] ?? '')) index++;
+    const parsed = parseQuotedXpathLiteral(input, index);
+    values.push(parsed.value);
+    index = parsed.next;
+    while (/\s/.test(input[index] ?? '')) index++;
+    if (index === input.length) break;
+    if (input[index] !== ',') {
+      throw new Error(`Expected ',' at position ${index} in "${expression}"`);
+    }
+    index++;
+  }
+  if (values.length < 2) {
+    throw new Error('XPath concat() requires at least two literal arguments');
+  }
+  return values.join('');
+}
+
+function parseXpathLiteral(expression: string): string {
+  const input = expression.trim();
+  if (input.startsWith("'") || input.startsWith('"')) {
+    const parsed = parseQuotedXpathLiteral(input, 0);
+    if (parsed.next !== input.length) {
+      throw new Error(`Unexpected text after XPath literal in "${expression}"`);
+    }
+    return parsed.value;
+  }
+  return parseConcatXpathLiteral(input);
+}
 
 function parseXpath(xpath: string): Step[] {
   const steps: Step[] = [];
@@ -49,7 +109,7 @@ function parseXpath(xpath: string): Step[] {
         predicates.push({
           kind: 'attr',
           attr: attrMatch[1],
-          value: attrMatch[3],
+          value: parseXpathLiteral(attrMatch[2]),
         });
       } else if (indexMatch) {
         predicates.push({
@@ -179,6 +239,7 @@ export function findRectByXpath(root: UiNode, xpath: string): Rect | undefined {
 export interface XpathCacheMatch {
   xpath: string;
   rect: Rect;
+  source?: XpathCandidateSource;
 }
 
 function getCacheFeatureXpaths(feature: unknown): string[] {
@@ -190,44 +251,145 @@ function getCacheFeatureXpaths(feature: unknown): string[] {
     : [];
 }
 
+const XPATH_CANDIDATE_SOURCES = new Set<XpathCandidateSource>([
+  'stable-attribute',
+  'semantic-attribute',
+  'compound-attributes',
+  'ancestor-scoped',
+  'positional-fallback',
+]);
+
+function getCacheFeatureXpathSources(feature: unknown): XpathCandidateSource[] {
+  const value = (feature as { xpathSources?: unknown } | undefined)
+    ?.xpathSources;
+  if (!Array.isArray(value)) return [];
+  return value.filter(
+    (source): source is XpathCandidateSource =>
+      typeof source === 'string' &&
+      XPATH_CANDIDATE_SOURCES.has(source as XpathCandidateSource),
+  );
+}
+
+function parseCacheIdentity(value: unknown): XpathCacheIdentity | undefined {
+  if (!value || typeof value !== 'object') return undefined;
+  const { attr, value: identityValue } = value as Record<string, unknown>;
+  if (
+    typeof attr !== 'string' ||
+    attr.length === 0 ||
+    typeof identityValue !== 'string' ||
+    identityValue.length === 0
+  ) {
+    return undefined;
+  }
+  return { attr, value: identityValue };
+}
+
+function parseTargetContext(
+  value: unknown,
+): XpathCacheTargetContext | undefined {
+  if (!value || typeof value !== 'object') return undefined;
+  const record = value as Record<string, unknown>;
+  const identity = parseCacheIdentity(record);
+  if (
+    !identity ||
+    typeof record.type !== 'string' ||
+    record.type.length === 0
+  ) {
+    return undefined;
+  }
+
+  let additionalAttrs: XpathCacheIdentity[] | undefined;
+  if (record.additionalAttrs !== undefined) {
+    if (!Array.isArray(record.additionalAttrs)) return undefined;
+    additionalAttrs = record.additionalAttrs
+      .map(parseCacheIdentity)
+      .filter((item): item is XpathCacheIdentity => item !== undefined);
+    if (additionalAttrs.length !== record.additionalAttrs.length) {
+      return undefined;
+    }
+    const attrs = new Set([identity.attr]);
+    for (const additional of additionalAttrs) {
+      if (attrs.has(additional.attr)) return undefined;
+      attrs.add(additional.attr);
+    }
+  }
+
+  return {
+    type: record.type,
+    ...identity,
+    ...(additionalAttrs?.length ? { additionalAttrs } : {}),
+  };
+}
+
 function getCacheFeatureTarget(feature: unknown): XpathCacheTarget | undefined {
   if (!feature || typeof feature !== 'object' || !('target' in feature)) {
     return undefined;
   }
 
-  const target = (feature as { target: unknown }).target;
-  if (!target || typeof target !== 'object') {
+  const rawTarget = (feature as { target: unknown }).target;
+  const target = parseTargetContext(rawTarget);
+  if (!target) {
     throw new Error('matchRectByXpathCache: invalid cache target');
   }
 
-  const { type, attr, value } = target as Record<string, unknown>;
-  if (
-    typeof type !== 'string' ||
-    type.length === 0 ||
-    typeof attr !== 'string' ||
-    attr.length === 0 ||
-    typeof value !== 'string' ||
-    value.length === 0
-  ) {
-    throw new Error('matchRectByXpathCache: invalid cache target');
+  const rawAncestor = (rawTarget as Record<string, unknown>).ancestor;
+  if (rawAncestor === undefined) return target;
+  const ancestor = parseTargetContext(rawAncestor);
+  if (!ancestor) {
+    throw new Error('matchRectByXpathCache: invalid cache target ancestor');
   }
-
-  return { type, attr, value };
+  return { ...target, ancestor };
 }
 
-function matchesCacheTarget(node: UiNode, target: XpathCacheTarget): boolean {
-  return node.type === target.type && node.attrs[target.attr] === target.value;
-}
-
-function collectCacheTargetMatches(
+function matchesTargetContext(
   node: UiNode,
-  target: XpathCacheTarget,
+  target: XpathCacheTargetContext,
+): boolean {
+  if (node.type !== target.type || node.attrs[target.attr] !== target.value) {
+    return false;
+  }
+  return (target.additionalAttrs ?? []).every(
+    ({ attr, value }) => node.attrs[attr] === value,
+  );
+}
+
+function collectTargetContextMatches(
+  node: UiNode,
+  target: XpathCacheTargetContext,
   matches: UiNode[],
 ): void {
-  if (matchesCacheTarget(node, target)) matches.push(node);
+  if (matchesTargetContext(node, target)) matches.push(node);
   for (const child of node.children) {
-    collectCacheTargetMatches(child, target, matches);
+    collectTargetContextMatches(child, target, matches);
   }
+}
+
+function resolveExpectedTarget(root: UiNode, target: XpathCacheTarget): UiNode {
+  let searchRoot = root;
+  if (target.ancestor) {
+    const ancestors: UiNode[] = [];
+    collectTargetContextMatches(root, target.ancestor, ancestors);
+    if (ancestors.length !== 1) {
+      throw new Error(
+        `matchRectByXpathCache: cache ancestor matched ${ancestors.length} node(s)`,
+      );
+    }
+    searchRoot = ancestors[0];
+  }
+
+  const targetMatches: UiNode[] = [];
+  if (!target.ancestor && matchesTargetContext(searchRoot, target)) {
+    targetMatches.push(searchRoot);
+  }
+  for (const child of searchRoot.children) {
+    collectTargetContextMatches(child, target, targetMatches);
+  }
+  if (targetMatches.length !== 1) {
+    throw new Error(
+      `matchRectByXpathCache: cache target matched ${targetMatches.length} node(s)`,
+    );
+  }
+  return targetMatches[0];
 }
 
 /**
@@ -241,25 +403,20 @@ export function matchRectByXpathCache(
   feature: unknown,
 ): XpathCacheMatch {
   const xpaths = getCacheFeatureXpaths(feature);
+  const xpathSources = getCacheFeatureXpathSources(feature);
   const target = getCacheFeatureTarget(feature);
   if (xpaths.length === 0) {
+    debugXpath('replay miss reason=no-xpath');
     throw new Error('matchRectByXpathCache: no xpath in cache feature');
   }
 
-  let expectedTarget: UiNode | undefined;
-  if (target) {
-    const targetMatches: UiNode[] = [];
-    collectCacheTargetMatches(root, target, targetMatches);
-    if (targetMatches.length !== 1) {
-      throw new Error(
-        `matchRectByXpathCache: cache target matched ${targetMatches.length} node(s)`,
-      );
-    }
-    expectedTarget = targetMatches[0];
-  }
+  const expectedTarget = target
+    ? resolveExpectedTarget(root, target)
+    : undefined;
 
   const misses: string[] = [];
-  for (const xpath of xpaths) {
+  for (let index = 0; index < xpaths.length; index++) {
+    const xpath = xpaths[index];
     let matches: UiNode[];
     try {
       matches = evaluateXpath(root, xpath);
@@ -281,12 +438,19 @@ export function matchRectByXpathCache(
 
     const rect = match.bounds;
     if (rect.width > 0 && rect.height > 0) {
-      return { xpath, rect };
+      const source = xpathSources[index];
+      debugXpath(
+        'replay hit source=%s xpath=%s rect=%o',
+        source ?? 'legacy-or-explicit',
+        xpath,
+        rect,
+      );
+      return source ? { xpath, rect, source } : { xpath, rect };
     }
     misses.push(`${xpath} matched a zero-size node`);
   }
 
-  throw new Error(
-    `matchRectByXpathCache: no unique xpath matched (tried ${xpaths.length}; ${misses.join('; ')})`,
-  );
+  const message = `matchRectByXpathCache: no unique xpath matched (tried ${xpaths.length}; ${misses.join('; ')})`;
+  debugXpath('replay miss reason=no-unique-xpath details=%s', message);
+  throw new Error(message);
 }

@@ -1,7 +1,10 @@
 export type {
   UiNode,
   XpathCacheFeature,
+  XpathCacheIdentity,
   XpathCacheTarget,
+  XpathCacheTargetContext,
+  XpathCandidateSource,
   XpathCandidateOptions,
 } from './types';
 export {

@@ -50,6 +50,25 @@ describe('evaluateXpath', () => {
     expect(evaluateXpath(root, '//Button[@name="it\'s me"]')).toEqual([a]);
   });
 
+  it('parses concat literals and quoted brackets exactly', () => {
+    const value = `line [one] with 'single' and "double"`;
+    const target = node('Button', { name: value });
+    const root = node('Window', {}, [target]);
+    expect(
+      evaluateXpath(
+        root,
+        `//Button[@name=concat('line [one] with ',"'",'single',"'",' and "double"')]`,
+      ),
+    ).toEqual([target]);
+  });
+
+  it('rejects non-literal concat arguments', () => {
+    const root = node('Window', {}, [node('Button', { name: 'login' })]);
+    expect(() =>
+      evaluateXpath(root, "//Button[@name=concat('log',@other)]"),
+    ).toThrow(/Expected quoted XPath literal/);
+  });
+
   it('respects 1-based positional predicates', () => {
     const a = node('Button', { idx: 'first' });
     const b = node('Button', { idx: 'second' });
@@ -114,6 +133,86 @@ describe('findRectByXpath', () => {
 });
 
 describe('matchRectByXpathCache', () => {
+  it('replays a compound target identity when each attribute is ambiguous', () => {
+    const target = node('Button', { id: 'action', text: 'Save' }, [], {
+      left: 40,
+      top: 50,
+      width: 80,
+      height: 30,
+    });
+    const root = node('Window', {}, [
+      target,
+      node('Button', { id: 'action', text: 'Delete' }),
+      node('Button', { id: 'secondary', text: 'Save' }),
+    ]);
+
+    expect(
+      matchRectByXpathCache(root, {
+        xpaths: ["//Button[@id='action'][@text='Save']"],
+        xpathSources: ['compound-attributes'],
+        target: {
+          type: 'Button',
+          attr: 'id',
+          value: 'action',
+          additionalAttrs: [{ attr: 'text', value: 'Save' }],
+        },
+      }),
+    ).toEqual({
+      xpath: "//Button[@id='action'][@text='Save']",
+      source: 'compound-attributes',
+      rect: { left: 40, top: 50, width: 80, height: 30 },
+    });
+  });
+
+  it('replays a repeated child only inside its unique stable ancestor', () => {
+    const target = node('Button', { text: 'More' }, [], {
+      left: 220,
+      top: 30,
+      width: 60,
+      height: 30,
+    });
+    const root = node('Window', {}, [
+      node('Panel', { id: 'card-a' }, [node('Button', { text: 'More' })]),
+      node('Panel', { id: 'card-b' }, [target]),
+    ]);
+
+    expect(
+      matchRectByXpathCache(root, {
+        xpaths: ["//*[@id='card-b']//Button[@text='More']"],
+        xpathSources: ['ancestor-scoped'],
+        target: {
+          type: 'Button',
+          attr: 'text',
+          value: 'More',
+          ancestor: { type: 'Panel', attr: 'id', value: 'card-b' },
+        },
+      }),
+    ).toEqual({
+      xpath: "//*[@id='card-b']//Button[@text='More']",
+      source: 'ancestor-scoped',
+      rect: { left: 220, top: 30, width: 60, height: 30 },
+    });
+  });
+
+  it('rejects ancestor-scoped identity when the ancestor is no longer unique', () => {
+    const root = node('Window', {}, [
+      node('Panel', { id: 'card' }, [node('Button', { text: 'More' })]),
+      node('Panel', { id: 'card' }, [node('Button', { text: 'Other' })]),
+    ]);
+
+    expect(() =>
+      matchRectByXpathCache(root, {
+        xpaths: ["//*[@id='card']//Button[@text='More']"],
+        target: {
+          type: 'Button',
+          attr: 'text',
+          value: 'More',
+          ancestor: { type: 'Panel', attr: 'id', value: 'card' },
+        },
+      }),
+    ).toThrow(/cache ancestor matched 2 node/);
+  });
+
   it('treats ambiguous xpath matches as cache misses and tries the next xpath', () => {
     const first = node('Label', { name: 'same' }, [], {
       left: 10,

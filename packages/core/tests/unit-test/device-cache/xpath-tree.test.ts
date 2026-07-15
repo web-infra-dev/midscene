@@ -258,7 +258,7 @@ describe('generateXpathCandidates', () => {
     expect(xpaths).toEqual([]);
   });
 
-  it('rejects attribute values containing both quote styles', () => {
+  it('serializes attribute values containing both quote styles with concat', () => {
     const target = node(
       'Button',
       { label: `weird "value" with 'both'` },
@@ -270,13 +270,14 @@ describe('generateXpathCandidates', () => {
       { x: 150, y: 125 },
       { stableAttrs: ['label'] },
     );
-    expect(xpaths).toEqual([]);
+    expect(xpaths[0]).toContain('concat(');
+    expect(evaluateXpath(root, xpaths[0])).toEqual([target]);
   });
 
-  it('rejects attribute values with control characters', () => {
+  it('preserves legal whitespace and brackets in attribute values', () => {
     const target = node(
       'Button',
-      { label: 'line1\nline2' },
+      { label: 'line1\n[Downloads]\tline2' },
       { left: 100, top: 100, width: 100, height: 50 },
     );
     const root = win([target]);
@@ -285,7 +286,129 @@ describe('generateXpathCandidates', () => {
       { x: 150, y: 125 },
       { stableAttrs: ['label'] },
     );
-    expect(xpaths.every((xp) => !xp.includes('\n'))).toBe(true);
+    expect(xpaths[0]).toContain('[Downloads]');
+    expect(evaluateXpath(root, xpaths[0])).toEqual([target]);
+  });
+
+  it('rejects XML-illegal control characters', () => {
+    const target = node(
+      'Button',
+      { label: 'before\u0000after' },
+      { left: 100, top: 100, width: 100, height: 50 },
+    );
+    const root = win([target]);
+    expect(
+      generateXpathCandidates(
+        root,
+        { x: 150, y: 125 },
+        { stableAttrs: ['label'] },
+      ),
+    ).toEqual([]);
+  });
+
+  it('round-trips a corpus of legal XPath attribute values', () => {
+    const values = [
+      'plain',
+      'with [brackets]',
+      'line1\nline2',
+      'tab\tvalue',
+      `single ' quote`,
+      'double " quote',
+      `both 'single' and "double"`,
+      '中文 semantics',
+    ];
+
+    for (const value of values) {
+      const target = node(
+        'Button',
+        { label: value },
+        { left: 100, top: 100, width: 100, height: 50 },
+      );
+      const root = win([target]);
+      const xpath = generateXpathCandidates(
+        root,
+        { x: 150, y: 125 },
+        { stableAttrs: ['label'] },
+      )[0];
+      expect(evaluateXpath(root, xpath), value).toEqual([target]);
+    }
+  });
+
+  it('uses a compound identity when individual attributes are ambiguous', () => {
+    const target = node(
+      'Button',
+      { id: 'action', text: 'Save' },
+      { left: 100, top: 100, width: 100, height: 50 },
+    );
+    const sameId = node(
+      'Button',
+      { id: 'action', text: 'Delete' },
+      { left: 300, top: 100, width: 100, height: 50 },
+    );
+    const sameText = node(
+      'Button',
+      { id: 'secondary', text: 'Save' },
+      { left: 500, top: 100, width: 100, height: 50 },
+    );
+    const root = win([target, sameId, sameText]);
+
+    const feature = generateXpathCacheFeature(
+      root,
+      { x: 150, y: 125 },
+      { stableAttrs: ['id'], textAttrs: ['text'] },
+    );
+
+    expect(feature?.xpaths[0]).toBe("//Button[@id='action'][@text='Save']");
+    expect(feature?.xpathSources?.[0]).toBe('compound-attributes');
+    expect(feature?.target).toEqual({
+      type: 'Button',
+      attr: 'id',
+      value: 'action',
+      additionalAttrs: [{ attr: 'text', value: 'Save' }],
+    });
+  });
+
+  it('uses a stable ancestor to scope a repeated child label', () => {
+    const first = node(
+      'Panel',
+      { id: 'card-a' },
+      { left: 0, top: 0, width: 300, height: 300 },
+      [
+        node(
+          'Button',
+          { text: 'More' },
+          { left: 20, top: 20, width: 80, height: 40 },
+        ),
+      ],
+    );
+    const target = node(
+      'Button',
+      { text: 'More' },
+      { left: 320, top: 20, width: 80, height: 40 },
+    );
+    const second = node(
+      'Panel',
+      { id: 'card-b' },
+      { left: 300, top: 0, width: 300, height: 300 },
+      [target],
+    );
+    const root = win([first, second]);
+
+    const feature = generateXpathCacheFeature(
+      root,
+      { x: 350, y: 40 },
+      { stableAttrs: ['id'], textAttrs: ['text'] },
+    );
+
+    expect(feature?.xpaths[0]).toBe("//*[@id='card-b']//Button[@text='More']");
+    expect(feature?.xpathSources?.[0]).toBe('ancestor-scoped');
+    expect(feature?.target).toEqual({
+      type: 'Button',
+      attr: 'text',
+      value: 'More',
+      ancestor: { type: 'Panel', attr: 'id', value: 'card-b' },
+    });
+    expect(evaluateXpath(root, feature!.xpaths[0])).toEqual([target]);
   });
 
   it('returns empty when point hits nothing', () => {

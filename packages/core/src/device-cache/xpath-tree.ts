@@ -1,8 +1,12 @@
+import { getDebug } from '@midscene/shared/logger';
 import type {
   UiNode,
   XpathCacheFeature,
+  XpathCacheIdentity,
   XpathCacheTarget,
+  XpathCacheTargetContext,
   XpathCandidateOptions,
+  XpathCandidateSource,
 } from './types';
 import { evaluateXpath } from './xpath-query';
 
@@ -21,11 +25,21 @@ interface PointHit {
 }
 
 interface XpathBuildResult {
-  xpaths: string[];
+  candidates: XpathCandidate[];
   target: XpathCacheTarget;
 }
 
+interface XpathCandidate {
+  xpath: string;
+  source: XpathCandidateSource;
+}
+
+interface RankedIdentity extends XpathCacheIdentity {
+  kind: 'stable' | 'semantic';
+}
+
 const XPATH_TAG_RE = /^[A-Za-z_*][A-Za-z0-9_.\-:*]*$/;
+const debugXpath = getDebug('cache:xpath');
 
 function pointInBounds(node: UiNode, point: PointXY): boolean {
   const { left, top, width, height } = node.bounds;
@@ -111,24 +125,32 @@ function isAttrValueSafe(value: string | undefined): value is string {
   if (value.length === 0 || value.length > MAX_ATTR_VALUE_LENGTH) return false;
   for (let i = 0; i < value.length; i++) {
     const code = value.charCodeAt(i);
-    // Reject C0 control chars (incl. CR/LF/TAB) and DEL.
-    if (code < 0x20 || code === 0x7f) return false;
-    // Reject brackets — they would corrupt our predicate parser.
-    if (code === 0x5b /* [ */ || code === 0x5d /* ] */) return false;
+    // XML 1.0 permits tab, LF, and CR but not the other C0 controls.
+    if (code < 0x20 && code !== 0x09 && code !== 0x0a && code !== 0x0d) {
+      return false;
+    }
   }
-  // Need at least one quote style available for safe wrapping.
-  if (value.includes("'") && value.includes('"')) return false;
   return true;
 }
 
-function quoteAttr(value: string): string {
-  return value.includes("'") ? `"${value}"` : `'${value}'`;
+/** Serialize a string as an exact XPath 1.0 literal. */
+function xpathLiteral(value: string): string {
+  if (!value.includes("'")) return `'${value}'`;
+  if (!value.includes('"')) return `"${value}"`;
+
+  const args: string[] = [];
+  const parts = value.split("'");
+  for (let index = 0; index < parts.length; index++) {
+    args.push(`'${parts[index]}'`);
+    if (index < parts.length - 1) args.push(`"'"`);
+  }
+  return `concat(${args.join(',')})`;
 }
 
 function pickFirstUniqueAttr(
   root: UiNode,
   node: UiNode,
-  attrNames: string[] | undefined,
+  attrNames: readonly string[] | undefined,
   buildXpath: (identity: { attr: string; value: string }) => string,
 ): { identity: { attr: string; value: string }; xpath: string } | undefined {
   if (!attrNames) return undefined;
@@ -157,13 +179,129 @@ function matchesUniquely(root: UiNode, xpath: string, target: UiNode): boolean {
 
 function toCacheTarget(
   node: UiNode,
-  identity: { attr: string; value: string },
+  identities: XpathCacheIdentity[],
+  ancestor?: XpathCacheTargetContext,
 ): XpathCacheTarget {
+  const [identity, ...additionalAttrs] = identities;
   return {
     type: node.type,
     attr: identity.attr,
     value: identity.value,
+    ...(additionalAttrs.length > 0 ? { additionalAttrs } : {}),
+    ...(ancestor ? { ancestor } : {}),
   };
+}
+
+function rankedIdentities(
+  node: UiNode,
+  options: XpathCandidateOptions | undefined,
+): RankedIdentity[] {
+  const identities: RankedIdentity[] = [];
+  const seen = new Set<string>();
+  const append = (
+    names: readonly string[] | undefined,
+    kind: RankedIdentity['kind'],
+  ) => {
+    for (const attr of names ?? []) {
+      if (seen.has(attr)) continue;
+      const value = node.attrs[attr];
+      if (!isAttrValueSafe(value)) continue;
+      identities.push({ attr, value, kind });
+      seen.add(attr);
+    }
+  };
+  append(options?.stableAttrs, 'stable');
+  append(options?.textAttrs, 'semantic');
+  return identities;
+}
+
+function exactNodeXpath(
+  node: UiNode,
+  identities: XpathCacheIdentity[],
+): string {
+  const predicates = identities
+    .map(({ attr, value }) => `[@${attr}=${xpathLiteral(value)}]`)
+    .join('');
+  return `//${xpathTag(node.type)}${predicates}`;
+}
+
+function findCompoundIdentity(
+  root: UiNode,
+  node: UiNode,
+  options: XpathCandidateOptions | undefined,
+): { identities: XpathCacheIdentity[]; xpath: string } | undefined {
+  const identities = rankedIdentities(node, options);
+  for (let first = 0; first < identities.length; first++) {
+    for (let second = first + 1; second < identities.length; second++) {
+      const pair = [identities[first], identities[second]].map(
+        ({ attr, value }) => ({ attr, value }),
+      );
+      const xpath = exactNodeXpath(node, pair);
+      if (matchesUniquely(root, xpath, node)) {
+        return { identities: pair, xpath };
+      }
+    }
+  }
+  return undefined;
+}
+
+function uniqueStableAncestorIdentity(
+  root: UiNode,
+  node: UiNode,
+  options: XpathCandidateOptions | undefined,
+): { identity: XpathCacheIdentity; xpath: string } | undefined {
+  for (const attr of options?.stableAttrs ?? []) {
+    const value = node.attrs[attr];
+    if (!isAttrValueSafe(value)) continue;
+    const xpath = `//*[@${attr}=${xpathLiteral(value)}]`;
+    if (matchesUniquely(root, xpath, node)) {
+      return { identity: { attr, value }, xpath };
+    }
+  }
+  return undefined;
+}
+
+function findAncestorScopedIdentity(
+  root: UiNode,
+  hit: Pick<PointHit, 'node' | 'path'>,
+  options: XpathCandidateOptions | undefined,
+):
+  | {
+      childIdentity: XpathCacheIdentity;
+      ancestor: XpathCacheTargetContext;
+      xpath: string;
+    }
+  | undefined {
+  const childIdentities = rankedIdentities(hit.node, options);
+  if (childIdentities.length === 0) return undefined;
+
+  // Skip path[0], the normalized application/window root. Nearest-first keeps
+  // the contextual identity as small as possible without promoting the click.
+  for (let index = hit.path.length - 2; index >= 1; index--) {
+    const ancestorNode = hit.path[index];
+    const stableAncestor = uniqueStableAncestorIdentity(
+      root,
+      ancestorNode,
+      options,
+    );
+    if (!stableAncestor) continue;
+
+    for (const childIdentity of childIdentities) {
+      const childXpath = exactNodeXpath(hit.node, [childIdentity]).slice(2);
+      const xpath = `${stableAncestor.xpath}//${childXpath}`;
+      if (!matchesUniquely(root, xpath, hit.node)) continue;
+      return {
+        childIdentity,
+        ancestor: {
+          type: ancestorNode.type,
+          attr: stableAncestor.identity.attr,
+          value: stableAncestor.identity.value,
+        },
+        xpath,
+      };
+    }
+  }
+  return undefined;
 }
 
 function buildXpathCandidatesForHit(
@@ -172,7 +310,7 @@ function buildXpathCandidatesForHit(
   options: XpathCandidateOptions | undefined,
 ): XpathBuildResult | undefined {
   const max = options?.max ?? DEFAULT_MAX_CANDIDATES;
-  const candidates: string[] = [];
+  const candidates: XpathCandidate[] = [];
   let target: XpathCacheTarget | undefined;
   const { node, path } = hit;
 
@@ -187,11 +325,11 @@ function buildXpathCandidatesForHit(
     root,
     node,
     options?.stableAttrs,
-    ({ attr, value }) => `//*[@${attr}=${quoteAttr(value)}]`,
+    ({ attr, value }) => `//*[@${attr}=${xpathLiteral(value)}]`,
   );
   if (stable) {
-    candidates.push(stable.xpath);
-    target = toCacheTarget(node, stable.identity);
+    candidates.push({ xpath: stable.xpath, source: 'stable-attribute' });
+    target = toCacheTarget(node, [stable.identity]);
   }
 
   if (candidates.length < max) {
@@ -200,25 +338,57 @@ function buildXpathCandidatesForHit(
       node,
       options?.textAttrs,
       ({ attr, value }) =>
-        `//${xpathTag(node.type)}[@${attr}=${quoteAttr(value)}]`,
+        `//${xpathTag(node.type)}[@${attr}=${xpathLiteral(value)}]`,
     );
-    if (semantic && !candidates.includes(semantic.xpath)) {
-      candidates.push(semantic.xpath);
-      target ??= toCacheTarget(node, semantic.identity);
+    if (
+      semantic &&
+      !candidates.some((candidate) => candidate.xpath === semantic.xpath)
+    ) {
+      candidates.push({
+        xpath: semantic.xpath,
+        source: 'semantic-attribute',
+      });
+      target ??= toCacheTarget(node, [semantic.identity]);
     }
   }
 
   if (!target) {
-    return undefined;
+    const compound = findCompoundIdentity(root, node, options);
+    if (compound) {
+      candidates.push({
+        xpath: compound.xpath,
+        source: 'compound-attributes',
+      });
+      target = toCacheTarget(node, compound.identities);
+    }
   }
+
+  if (!target) {
+    const contextual = findAncestorScopedIdentity(root, hit, options);
+    if (contextual) {
+      candidates.push({
+        xpath: contextual.xpath,
+        source: 'ancestor-scoped',
+      });
+      target = toCacheTarget(
+        node,
+        [contextual.childIdentity],
+        contextual.ancestor,
+      );
+    }
+  }
+
+  if (!target) return undefined;
 
   if (candidates.length < max) {
     const positional = buildPositionalXpath(path);
-    if (!candidates.includes(positional)) candidates.push(positional);
+    if (!candidates.some((candidate) => candidate.xpath === positional)) {
+      candidates.push({ xpath: positional, source: 'positional-fallback' });
+    }
   }
 
   return {
-    xpaths: candidates.slice(0, max),
+    candidates: candidates.slice(0, max),
     target,
   };
 }
@@ -249,7 +419,9 @@ function pickBestPointHit(hits: PointHit[]): PointHit | undefined {
  *
  *   1) `//*[@<stableAttr>='value']`  — when the hit carries a stable id
  *   2) `//<Type>[@<textAttr>='value']` — when the hit carries a semantic label
- *   3) `/Root[1]/Child[i]/.../Target[k]` — identity-checked fallback
+ *   3) `//<Type>[@a='x'][@b='y']` — exact compound identity
+ *   4) `//*[@parentId='p']//<Type>[@label='x']` — stable ancestor scope
+ *   5) `/Root[1]/Child[i]/.../Target[k]` — identity-checked fallback
  *
  * Candidates that match more than one node in the current tree are dropped so
  * we never persist an ambiguous selector. Targets without a unique stable or
@@ -262,13 +434,40 @@ export function generateXpathCacheFeature(
   options?: XpathCandidateOptions,
 ): XpathCacheFeature | undefined {
   const hit = pickBestPointHit(collectNodesAtPoint(root, point));
-  if (!hit) return undefined;
+  if (!hit) {
+    debugXpath('generate miss reason=no-point-hit point=%o', point);
+    return undefined;
+  }
 
   const result = buildXpathCandidatesForHit(root, hit, options);
-  if (!result || result.xpaths.length === 0) return undefined;
+  if (!result || result.candidates.length === 0) {
+    const reason =
+      hit.path.length === 1 ||
+      options?.excludedTargetTypes?.includes(hit.node.type)
+        ? 'structural-target'
+        : 'no-verifiable-identity';
+    debugXpath(
+      'generate miss reason=%s targetType=%s point=%o',
+      reason,
+      hit.node.type,
+      point,
+    );
+    return undefined;
+  }
+
+  const xpaths = result.candidates.map((candidate) => candidate.xpath);
+  const xpathSources = result.candidates.map((candidate) => candidate.source);
+  debugXpath(
+    'generate hit targetType=%s targetAttr=%s sources=%o candidates=%d',
+    result.target.type,
+    result.target.attr,
+    xpathSources,
+    xpaths.length,
+  );
 
   return {
-    xpaths: result.xpaths,
+    xpaths,
+    xpathSources,
     target: result.target,
   };
 }

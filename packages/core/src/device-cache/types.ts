@@ -17,16 +17,38 @@ export interface UiNode {
   children: UiNode[];
 }
 
-/** Identity that a replayed native xpath must still satisfy. */
-export interface XpathCacheTarget {
-  type: string;
+export interface XpathCacheIdentity {
   attr: string;
   value: string;
 }
 
+export interface XpathCacheTargetContext extends XpathCacheIdentity {
+  type: string;
+  additionalAttrs?: XpathCacheIdentity[];
+}
+
+/** Exact identity that a replayed native xpath must still satisfy. */
+export interface XpathCacheTarget extends XpathCacheTargetContext {
+  /**
+   * Optional stable ancestor used to scope an otherwise repeated child label.
+   * Replay still requires the complete child + ancestor fingerprint to resolve
+   * to exactly one node.
+   */
+  ancestor?: XpathCacheTargetContext;
+}
+
+export type XpathCandidateSource =
+  | 'stable-attribute'
+  | 'semantic-attribute'
+  | 'compound-attributes'
+  | 'ancestor-scoped'
+  | 'positional-fallback';
+
 /** Native element cache payload written by the shared xpath cache pipeline. */
 export type XpathCacheFeature = Record<string, unknown> & {
   xpaths: string[];
+  /** Parallel to `xpaths`; absent on cache entries written by older versions. */
+  xpathSources?: XpathCandidateSource[];
   target: XpathCacheTarget;
 };
 
