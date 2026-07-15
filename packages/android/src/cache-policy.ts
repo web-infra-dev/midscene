@@ -1,4 +1,4 @@
-import type { XpathCandidateOptions } from '@midscene/core/device-cache';
+import type { XpathCandidateOptions } from '@midscene/core/internal/device-cache';
 
 export const ANDROID_CACHE_EXCLUDED_TARGET_TYPES = [
   'android.widget.GridView',

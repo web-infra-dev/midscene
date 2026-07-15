@@ -512,6 +512,45 @@ describe('bbox locate cache fix', () => {
   });
 
   describe('edge cases', () => {
+    it('marks a user-provided xpath separately from cached xpath features', async () => {
+      vi.mocked(mockInterface.rectMatchesCacheFeature!).mockResolvedValue({
+        left: 100,
+        top: 120,
+        width: 80,
+        height: 40,
+      });
+
+      const { tasks } = await taskBuilder.build(
+        [
+          {
+            type: 'Tap',
+            param: {
+              locate: {
+                prompt: 'submit button',
+                xpath: "//*[@id='submit']",
+              },
+            },
+            thought: 'tap submit',
+          },
+        ],
+        mockModelRuntime,
+        mockModelRuntime,
+      );
+      const locateTask = tasks.find((task) => task.subType === 'Locate');
+
+      const result = await locateTask!.executor(locateTask!.param, {
+        task: createRuntimeTask(locateTask!),
+        uiContext: await createMockUIContext(validBase64Image),
+      });
+
+      expect(mockInterface.rectMatchesCacheFeature).toHaveBeenCalledWith({
+        kind: 'explicit-xpath',
+        xpaths: ["//*[@id='submit']"],
+      });
+      expect(result?.hitBy?.from).toBe('User expected path');
+      expect(mockService.locate).not.toHaveBeenCalled();
+    });
+
     it('should handle empty prompt gracefully', async () => {
       const plansWithBbox = [
         {

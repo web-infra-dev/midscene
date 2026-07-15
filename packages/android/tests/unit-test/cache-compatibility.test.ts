@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import {
   generateXpathCacheFeature,
   matchRectByXpathCache,
-} from '@midscene/core/device-cache';
+} from '@midscene/core/internal/device-cache';
 import { describe, expect, it } from 'vitest';
 import { ANDROID_CACHE_CANDIDATE_OPTIONS } from '../../src/cache-policy';
 import { uiautomatorXmlToUiNode } from '../../src/uiautomator-tree';
@@ -27,13 +27,14 @@ describe('Android cache compatibility fixture matrix', () => {
       const feature = generateXpathCacheFeature(
         source,
         fixture.sourcePoint,
+        'android',
         ANDROID_CACHE_CANDIDATE_OPTIONS,
       );
 
       expect(feature).toBeDefined();
       expect(feature?.xpaths).toHaveLength(feature?.xpathSources?.length ?? 0);
       expect(feature?.xpaths.length).toBeLessThanOrEqual(3);
-      expect(matchRectByXpathCache(replay, feature!)).toMatchObject({
+      expect(matchRectByXpathCache(replay, feature!, 'android')).toMatchObject({
         rect: fixture.replayRect,
       });
     },
@@ -47,6 +48,7 @@ describe('Android cache compatibility fixture matrix', () => {
         generateXpathCacheFeature(
           source,
           fixture.safeMissPoint,
+          'android',
           ANDROID_CACHE_CANDIDATE_OPTIONS,
         ),
       ).toBeUndefined();
@@ -59,6 +61,7 @@ describe('Android cache compatibility fixture matrix', () => {
       generateXpathCacheFeature(
         source,
         { x: 10, y: 300 },
+        'android',
         ANDROID_CACHE_CANDIDATE_OPTIONS,
       ),
     ).toBeUndefined();

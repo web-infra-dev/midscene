@@ -1,7 +1,7 @@
 import {
   evaluateXpath,
   generateXpathCandidates,
-} from '@midscene/core/device-cache';
+} from '@midscene/core/internal/device-cache';
 import { describe, expect, it } from 'vitest';
 import { uitestJsonToUiNode } from '../../src/uitest-tree';
 

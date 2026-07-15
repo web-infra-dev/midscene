@@ -53,6 +53,34 @@ describe('ChromeExtensionProxyPage cache methods', () => {
     ).resolves.toEqual({ left: 10, top: 20, width: 100, height: 50 });
   });
 
+  it('rejects native xpath entries before evaluating them in the DOM', async () => {
+    const getElementInfo = vi.spyOn(page, 'getElementInfoByXpath');
+
+    await expect(
+      page.rectMatchesCacheFeature({
+        kind: 'native-xpath',
+        schemaVersion: 1,
+        platform: 'harmony',
+        xpaths: ["//*[@id='submit']"],
+        target: { type: 'Button', attr: 'id', value: 'submit' },
+      }),
+    ).rejects.toThrow('Unsupported Web cache feature kind: native-xpath');
+    expect(getElementInfo).not.toHaveBeenCalled();
+  });
+
+  it('still evaluates explicitly provided xpath features', async () => {
+    vi.spyOn(page, 'getElementInfoByXpath').mockResolvedValue({
+      rect: { left: 5, top: 6, width: 70, height: 30 },
+    } as any);
+
+    await expect(
+      page.rectMatchesCacheFeature({
+        kind: 'explicit-xpath',
+        xpaths: ['/html/body/button'],
+      }),
+    ).resolves.toEqual({ left: 5, top: 6, width: 70, height: 30 });
+  });
+
   describe('cacheFeatureForPoint', () => {
     it('should return xpaths for a valid point', async () => {
       const mockXpaths = ['/html/body/div[1]', '/html/body/div[1]/button[1]'];

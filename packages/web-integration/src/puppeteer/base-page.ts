@@ -37,8 +37,8 @@ import type { Page as PlaywrightPage } from 'playwright';
 import type { CDPSession, Protocol, Page as PuppeteerPage } from 'puppeteer';
 import {
   type CacheFeatureOptions,
-  type WebElementCacheFeature,
   buildRectFromElementInfo,
+  getWebCacheXpaths,
   judgeOrderSensitive,
   sanitizeXpaths,
 } from '../common/cache-helper';
@@ -397,7 +397,7 @@ export class Page<
   }
 
   async rectMatchesCacheFeature(feature: ElementCacheFeature): Promise<Rect> {
-    const xpaths = sanitizeXpaths((feature as WebElementCacheFeature).xpaths);
+    const xpaths = getWebCacheXpaths(feature);
     debugPage('rectMatchesCacheFeature: trying %d xpath(s)', xpaths.length);
 
     for (const xpath of xpaths) {

@@ -1,4 +1,4 @@
-import type { UiNode } from '@midscene/core/device-cache';
+import type { UiNode } from '@midscene/core/internal/device-cache';
 
 export interface AccessibilityPointOffset {
   x: number;

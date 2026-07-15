@@ -154,6 +154,34 @@ describe('HarmonyDevice', () => {
   });
 
   describe('xpath cache', () => {
+    it('scopes generated entries to HarmonyOS', async () => {
+      mockHdc.dumpLayout.mockResolvedValueOnce(
+        JSON.stringify({
+          attributes: { type: 'RootDecor', bounds: '[0,0][1216,2688]' },
+          children: [
+            {
+              attributes: {
+                type: 'Button',
+                key: 'login_btn',
+                text: 'Login',
+                bounds: '[20,40][220,140]',
+              },
+              children: [],
+            },
+          ],
+        }),
+      );
+
+      await expect(
+        device.cacheFeatureForPoint([120, 90]),
+      ).resolves.toMatchObject({
+        kind: 'native-xpath',
+        schemaVersion: 1,
+        platform: 'harmony',
+        target: { type: 'Button', value: 'login_btn' },
+      });
+    });
+
     it('does not read the hierarchy when native xpath cache is disabled', async () => {
       vi.stubEnv(MIDSCENE_EXPERIMENTAL_NATIVE_XPATH_CACHE, '0');
 

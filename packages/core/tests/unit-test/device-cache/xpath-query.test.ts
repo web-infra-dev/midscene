@@ -13,6 +13,18 @@ const node = (
   bounds = { left: 0, top: 0, width: 100, height: 100 },
 ): UiNode => ({ type, attrs, bounds, children });
 
+const matchNative = (root: UiNode, feature: Record<string, unknown>) =>
+  matchRectByXpathCache(
+    root,
+    {
+      kind: 'native-xpath',
+      schemaVersion: 1,
+      platform: 'android',
+      ...feature,
+    },
+    'android',
+  );
+
 describe('evaluateXpath', () => {
   it('matches root by child axis when name matches', () => {
     const root = node('Window', {});
@@ -147,7 +159,7 @@ describe('matchRectByXpathCache', () => {
     ]);
 
     expect(
-      matchRectByXpathCache(root, {
+      matchNative(root, {
         xpaths: ["//Button[@id='action'][@text='Save']"],
         xpathSources: ['compound-attributes'],
         target: {
@@ -177,7 +189,7 @@ describe('matchRectByXpathCache', () => {
     ]);
 
     expect(
-      matchRectByXpathCache(root, {
+      matchNative(root, {
         xpaths: ["//*[@id='card-b']//Button[@text='More']"],
         xpathSources: ['ancestor-scoped'],
         target: {
@@ -201,7 +213,7 @@ describe('matchRectByXpathCache', () => {
     ]);
 
     expect(() =>
-      matchRectByXpathCache(root, {
+      matchNative(root, {
         xpaths: ["//*[@id='card']//Button[@text='More']"],
         target: {
           type: 'Button',
@@ -229,7 +241,7 @@ describe('matchRectByXpathCache', () => {
     const root = node('Window', {}, [first, second]);
 
     expect(
-      matchRectByXpathCache(root, {
+      matchNative(root, {
         xpaths: ["//*[@name='same']", '/Window/Button[1]'],
         target: { type: 'Button', attr: 'name', value: 'same' },
       }),
@@ -266,7 +278,7 @@ describe('matchRectByXpathCache', () => {
     const root = node('Window', {}, [first, second, zeroSized]);
 
     expect(() =>
-      matchRectByXpathCache(root, {
+      matchNative(root, {
         xpaths: [
           "//Button[@name='same']",
           "//Button[@name='zero']",
@@ -290,7 +302,7 @@ describe('matchRectByXpathCache', () => {
     ]);
 
     expect(() =>
-      matchRectByXpathCache(root, {
+      matchNative(root, {
         xpaths: [
           "//*[@id='delete']",
           "//Button[@text='Delete']",
@@ -315,7 +327,7 @@ describe('matchRectByXpathCache', () => {
     ]);
 
     expect(
-      matchRectByXpathCache(root, {
+      matchNative(root, {
         xpaths: ["//*[@id='login']", '/Window[1]/Button[2]'],
         target: { type: 'Button', attr: 'id', value: 'login' },
       }),
@@ -329,7 +341,7 @@ describe('matchRectByXpathCache', () => {
     const root = node('Window', {}, [node('Button', { id: 'login' })]);
 
     expect(() =>
-      matchRectByXpathCache(root, {
+      matchNative(root, {
         xpaths: ['/Window/Button[1]'],
         target: { type: 'Button' },
       }),
@@ -346,13 +358,44 @@ describe('matchRectByXpathCache', () => {
     const root = node('Window', {}, [target]);
 
     expect(
-      matchRectByXpathCache(root, {
-        xpaths: ["//*[@id='login']"],
-      }),
+      matchRectByXpathCache(
+        root,
+        {
+          kind: 'explicit-xpath',
+          xpaths: ["//*[@id='login']"],
+        },
+        'android',
+      ),
     ).toEqual({
       xpath: "//*[@id='login']",
       rect: { left: 20, top: 30, width: 80, height: 40 },
     });
+  });
+
+  it('rejects an unscoped Web cache entry on a native platform', () => {
+    const root = node('Window', {}, [node('Button', { id: 'login' })]);
+
+    expect(() =>
+      matchRectByXpathCache(root, { xpaths: ["//*[@id='login']"] }, 'android'),
+    ).toThrow(/cache feature is not native xpath/);
+  });
+
+  it('rejects a native cache entry from another platform', () => {
+    const root = node('Window', {}, [node('Button', { id: 'login' })]);
+
+    expect(() =>
+      matchRectByXpathCache(
+        root,
+        {
+          kind: 'native-xpath',
+          schemaVersion: 1,
+          platform: 'ios',
+          xpaths: ["//*[@id='login']"],
+          target: { type: 'Button', attr: 'id', value: 'login' },
+        },
+        'android',
+      ),
+    ).toThrow(/cache platform ios does not match android/);
   });
 
   it('rejects a target identity that is no longer unique', () => {
@@ -362,7 +405,7 @@ describe('matchRectByXpathCache', () => {
     ]);
 
     expect(() =>
-      matchRectByXpathCache(root, {
+      matchNative(root, {
         xpaths: ['/Window[1]/Button[2]'],
         target: { type: 'Button', attr: 'id', value: 'delete' },
       }),

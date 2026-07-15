@@ -10,7 +10,7 @@ import { tmpdir } from 'node:os';
 import { basename, join, resolve } from 'node:path';
 import type { ElementCacheFeature } from '@midscene/core';
 import { TaskCache } from '@midscene/core/agent';
-import type { UiNode } from '@midscene/core/device-cache';
+import type { UiNode } from '@midscene/core/internal/device-cache';
 import { imageInfoOfBase64 } from '@midscene/shared/img';
 import type ADB from 'appium-adb';
 import { describe, expect, it, vi } from 'vitest';
@@ -142,6 +142,11 @@ describe.runIf(RUN_SMOKE)('Android Emulator xpath cache smoke', () => {
       ];
       const feature = await device.cacheFeatureForPoint(center);
       const xpath = firstXpath(feature);
+      expect(feature).toMatchObject({
+        kind: 'native-xpath',
+        schemaVersion: 1,
+        platform: 'android',
+      });
       expect(feature.target).toEqual({
         type: 'android.widget.TextView',
         attr: 'resource-id',
@@ -178,20 +183,34 @@ describe.runIf(RUN_SMOKE)('Android Emulator xpath cache smoke', () => {
       expect(located.center).toEqual(screenshotCenter);
       const dump = JSON.parse(agent.dumpDataString()) as {
         executions: Array<{
-          tasks: Array<{ hitBy?: { from?: string } }>;
+          tasks: Array<{
+            hitBy?: {
+              from?: string;
+              context?: { cacheEntry?: Record<string, unknown> };
+            };
+          }>;
         }>;
       };
       const cacheHits = dump.executions.flatMap((execution) =>
         execution.tasks.filter((task) => task.hitBy?.from === 'Cache'),
       );
       expect(cacheHits).toHaveLength(1);
+      expect(cacheHits[0].hitBy?.context?.cacheEntry).toMatchObject({
+        kind: 'native-xpath',
+        schemaVersion: 1,
+        platform: 'android',
+      });
 
       await agent.destroy();
       const reportFile = agent.reportFile;
       expect(reportFile).toBeTruthy();
       expect(basename(reportFile!)).toBe(`${REPORT_FILE_NAME}.html`);
       expect(existsSync(reportFile!)).toBe(true);
-      expect(readFileSync(reportFile!, 'utf8')).toContain('"from":"Cache"');
+      const reportHtml = readFileSync(reportFile!, 'utf8');
+      expect(reportHtml).toContain('"from":"Cache"');
+      expect(reportHtml).toContain('"kind":"native-xpath"');
+      expect(reportHtml).toContain('"schemaVersion":1');
+      expect(reportHtml).toContain('"platform":"android"');
 
       const metadata = {
         deviceId: devices[0].udid,

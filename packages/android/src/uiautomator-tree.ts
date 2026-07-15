@@ -2,7 +2,7 @@ import {
   type UiNode,
   type XmlElement,
   parseXml,
-} from '@midscene/core/device-cache';
+} from '@midscene/core/internal/device-cache';
 
 const BOUNDS_RE = /^\[(-?\d+),(-?\d+)\]\[(-?\d+),(-?\d+)\]$/;
 

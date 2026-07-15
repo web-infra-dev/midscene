@@ -158,6 +158,7 @@ describe('generateXpathCandidates', () => {
     const feature = generateXpathCacheFeature(
       root,
       { x: 150, y: 125 },
+      'android',
       { stableAttrs: ['AccessibleId', 'id'] },
     );
 
@@ -185,6 +186,7 @@ describe('generateXpathCandidates', () => {
     const feature = generateXpathCacheFeature(
       root,
       { x: 150, y: 125 },
+      'android',
       { textAttrs: ['Name', 'Description'] },
     );
 
@@ -355,6 +357,7 @@ describe('generateXpathCandidates', () => {
     const feature = generateXpathCacheFeature(
       root,
       { x: 150, y: 125 },
+      'android',
       { stableAttrs: ['id'], textAttrs: ['text'] },
     );
 
@@ -397,6 +400,7 @@ describe('generateXpathCandidates', () => {
     const feature = generateXpathCacheFeature(
       root,
       { x: 350, y: 40 },
+      'android',
       { stableAttrs: ['id'], textAttrs: ['text'] },
     );
 
@@ -451,11 +455,9 @@ describe('generateXpathCandidates', () => {
     const root = win([parent]);
 
     expect(
-      generateXpathCacheFeature(
-        root,
-        { x: 150, y: 120 },
-        { stableAttrs: ['id'] },
-      ),
+      generateXpathCacheFeature(root, { x: 150, y: 120 }, 'android', {
+        stableAttrs: ['id'],
+      }),
     ).toBeUndefined();
   });
 
@@ -467,11 +469,9 @@ describe('generateXpathCandidates', () => {
     );
 
     expect(
-      generateXpathCacheFeature(
-        root,
-        { x: 400, y: 300 },
-        { textAttrs: ['AXName'] },
-      ),
+      generateXpathCacheFeature(root, { x: 400, y: 300 }, 'android', {
+        textAttrs: ['AXName'],
+      }),
     ).toBeUndefined();
   });
 
@@ -489,14 +489,10 @@ describe('generateXpathCandidates', () => {
     );
 
     expect(
-      generateXpathCacheFeature(
-        root,
-        { x: 400, y: 300 },
-        {
-          excludedTargetTypes: ['AXApplication', 'AXWindow'],
-          textAttrs: ['AXName'],
-        },
-      ),
+      generateXpathCacheFeature(root, { x: 400, y: 300 }, 'android', {
+        excludedTargetTypes: ['AXApplication', 'AXWindow'],
+        textAttrs: ['AXName'],
+      }),
     ).toBeUndefined();
   });
 
@@ -520,15 +516,11 @@ describe('generateXpathCandidates', () => {
     );
 
     expect(
-      generateXpathCacheFeature(
-        root,
-        { x: 150, y: 120 },
-        {
-          excludedTargetTypes: ['AXApplication', 'AXWindow'],
-          stableAttrs: ['AXIdentifier'],
-          textAttrs: ['AXName'],
-        },
-      )?.target,
+      generateXpathCacheFeature(root, { x: 150, y: 120 }, 'android', {
+        excludedTargetTypes: ['AXApplication', 'AXWindow'],
+        stableAttrs: ['AXIdentifier'],
+        textAttrs: ['AXName'],
+      })?.target,
     ).toEqual({
       type: 'AXButton',
       attr: 'AXIdentifier',
@@ -552,6 +544,7 @@ describe('generateXpathCandidates', () => {
     const feature = generateXpathCacheFeature(
       root,
       { x: 150, y: 50 },
+      'android',
       { stableAttrs: ['id'] },
     );
     expect(feature?.xpaths).toContain("//*[@id='login']");
@@ -572,6 +565,7 @@ describe('generateXpathCandidates', () => {
     const feature = generateXpathCacheFeature(
       root,
       { x: 10, y: 10 },
+      'android',
       {
         stableAttrs: ['resource-id'],
         textAttrs: ['text'],

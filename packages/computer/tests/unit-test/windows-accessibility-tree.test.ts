@@ -1,7 +1,7 @@
 import {
   evaluateXpath,
   generateXpathCacheFeature,
-} from '@midscene/core/device-cache';
+} from '@midscene/core/internal/device-cache';
 import { describe, expect, it } from 'vitest';
 import {
   buildWindowsAccessibilityTreeScript,
@@ -33,6 +33,7 @@ describe('Windows UI Automation accessibility tree', () => {
     const feature = generateXpathCacheFeature(
       root,
       { x: 150, y: 100 },
+      'win32',
       {
         stableAttrs: ['AutomationId'],
         textAttrs: ['Name', 'HelpText'],

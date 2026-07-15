@@ -30,7 +30,7 @@ import {
   generateXpathCacheFeature,
   isNativeXpathCacheEnabled,
   matchRectByXpathCache,
-} from '@midscene/core/device-cache';
+} from '@midscene/core/internal/device-cache';
 import { getTmpFile, sleep } from '@midscene/core/utils';
 import {
   MIDSCENE_ANDROID_IME_STRATEGY,
@@ -811,6 +811,7 @@ ${Object.keys(size)
     const feature = generateXpathCacheFeature(
       root,
       { x: center[0], y: center[1] },
+      'android',
       ANDROID_CACHE_CANDIDATE_OPTIONS,
     );
     if (!feature) {
@@ -829,7 +830,7 @@ ${Object.keys(size)
     }
     const xml = await this.dumpAccessibilityXml();
     const root = uiautomatorXmlToUiNode(xml, this.devicePixelRatio || 1);
-    const { xpath, rect } = matchRectByXpathCache(root, feature);
+    const { xpath, rect } = matchRectByXpathCache(root, feature, 'android');
     debugDevice('rectMatchesCacheFeature: hit xpath %s -> %o', xpath, rect);
     return rect;
   }

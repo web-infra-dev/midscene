@@ -1,5 +1,5 @@
 import type { ElementCacheFeature } from '@midscene/core';
-import type { UiNode } from '@midscene/core/device-cache';
+import type { UiNode } from '@midscene/core/internal/device-cache';
 import { MIDSCENE_EXPERIMENTAL_NATIVE_XPATH_CACHE } from '@midscene/shared/env';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 

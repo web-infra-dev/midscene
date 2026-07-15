@@ -1,5 +1,6 @@
 import { getDebug } from '@midscene/shared/logger';
 import type {
+  NativeXpathCachePlatform,
   UiNode,
   XpathCacheFeature,
   XpathCacheIdentity,
@@ -7,6 +8,10 @@ import type {
   XpathCacheTargetContext,
   XpathCandidateOptions,
   XpathCandidateSource,
+} from './types';
+import {
+  NATIVE_XPATH_CACHE_KIND,
+  NATIVE_XPATH_CACHE_SCHEMA_VERSION,
 } from './types';
 import { evaluateXpath } from './xpath-query';
 
@@ -431,6 +436,7 @@ function pickBestPointHit(hits: PointHit[]): PointHit | undefined {
 export function generateXpathCacheFeature(
   root: UiNode,
   point: PointXY,
+  platform: NativeXpathCachePlatform,
   options?: XpathCandidateOptions,
 ): XpathCacheFeature | undefined {
   const hit = pickBestPointHit(collectNodesAtPoint(root, point));
@@ -466,6 +472,9 @@ export function generateXpathCacheFeature(
   );
 
   return {
+    kind: NATIVE_XPATH_CACHE_KIND,
+    schemaVersion: NATIVE_XPATH_CACHE_SCHEMA_VERSION,
+    platform,
     xpaths,
     xpathSources,
     target: result.target,
@@ -477,5 +486,11 @@ export function generateXpathCandidates(
   point: PointXY,
   options?: XpathCandidateOptions,
 ): string[] {
-  return generateXpathCacheFeature(root, point, options)?.xpaths ?? [];
+  const hit = pickBestPointHit(collectNodesAtPoint(root, point));
+  if (!hit) return [];
+  return (
+    buildXpathCandidatesForHit(root, hit, options)?.candidates.map(
+      (candidate) => candidate.xpath,
+    ) ?? []
+  );
 }

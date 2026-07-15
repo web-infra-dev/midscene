@@ -1,4 +1,4 @@
-import type { UiNode } from '@midscene/core/device-cache';
+import type { UiNode } from '@midscene/core/internal/device-cache';
 import { accessibilityJsonToUiNode } from './accessibility-tree';
 import { escapePowershellSingleQuoted, runPowershellAsync } from './powershell';
 

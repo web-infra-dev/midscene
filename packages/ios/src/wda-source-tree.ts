@@ -2,7 +2,7 @@ import {
   type UiNode,
   type XmlElement,
   parseXml,
-} from '@midscene/core/device-cache';
+} from '@midscene/core/internal/device-cache';
 
 /**
  * Attribute names on a WDA `/source` XML element that hold its on-screen
@@ -44,7 +44,7 @@ function toUiNode(element: XmlElement): UiNode {
 
 /**
  * Convert a WebDriverAgent `/source` XML payload into the platform-neutral
- * `UiNode` tree consumed by `@midscene/core/device-cache`. The root is the
+ * `UiNode` tree consumed by `@midscene/core/internal/device-cache`. The root is the
  * WDA application element.
  */
 export function wdaSourceToUiNode(xml: string): UiNode {

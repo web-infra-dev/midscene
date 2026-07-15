@@ -1,4 +1,4 @@
-import type { UiNode } from '@midscene/core/device-cache';
+import type { UiNode } from '@midscene/core/internal/device-cache';
 
 /**
  * Shape of a single node in `uitest dumpLayout` output. The exact attribute
@@ -80,7 +80,7 @@ function toUiNode(node: UiTestNode, scale: number): UiNode {
 
 /**
  * Convert a `uitest dumpLayout` JSON payload into the platform-neutral UiNode
- * tree consumed by `@midscene/core/device-cache`.
+ * tree consumed by `@midscene/core/internal/device-cache`.
  *
  * `scale` defaults to 1: HarmonyDevice currently treats screenshots and
  * coordinates in the same physical-pixel space, so no scale conversion is

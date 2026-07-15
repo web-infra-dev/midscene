@@ -2,7 +2,7 @@ import {
   evaluateXpath,
   findRectByXpath,
   generateXpathCandidates,
-} from '@midscene/core/device-cache';
+} from '@midscene/core/internal/device-cache';
 import { describe, expect, it } from 'vitest';
 import { darwinAccessibilityJsonToUiNode } from '../../src/darwin-accessibility-tree';
 

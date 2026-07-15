@@ -23,7 +23,7 @@ import {
   generateXpathCacheFeature,
   isNativeXpathCacheEnabled,
   matchRectByXpathCache,
-} from '@midscene/core/device-cache';
+} from '@midscene/core/internal/device-cache';
 import { sleep } from '@midscene/core/utils';
 import { createImgBase64ByFormat } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
@@ -113,6 +113,14 @@ const DESKTOP_CACHE_ATTRIBUTES: Partial<
     stableAttrs: ['AccessibleId', 'id', 'automation-id'],
     textAttrs: ['Name', 'Description', 'HelpText', 'placeholder-text'],
   },
+};
+
+const DESKTOP_CACHE_PLATFORM: Partial<
+  Record<NodeJS.Platform, 'darwin' | 'win32' | 'linux'>
+> = {
+  darwin: 'darwin',
+  win32: 'win32',
+  linux: 'linux',
 };
 
 // Constants
@@ -1356,7 +1364,8 @@ $g.Dispose(); $bmp.Dispose(); $ms.Dispose()
       return {};
     }
     const attributes = DESKTOP_CACHE_ATTRIBUTES[process.platform];
-    if (!attributes) {
+    const platform = DESKTOP_CACHE_PLATFORM[process.platform];
+    if (!attributes || !platform) {
       debugDevice(
         'cacheFeatureForPoint: native xpath cache is not supported on %s for ComputerDevice',
         process.platform,
@@ -1368,6 +1377,7 @@ $g.Dispose(); $bmp.Dispose(); $ms.Dispose()
     const feature = generateXpathCacheFeature(
       root,
       { x: center[0], y: center[1] },
+      platform,
       attributes,
     );
     if (!feature) {
@@ -1384,14 +1394,15 @@ $g.Dispose(); $bmp.Dispose(); $ms.Dispose()
     if (!isNativeXpathCacheEnabled()) {
       throw new Error('Native XPath cache is disabled');
     }
-    if (!DESKTOP_CACHE_ATTRIBUTES[process.platform]) {
+    const platform = DESKTOP_CACHE_PLATFORM[process.platform];
+    if (!DESKTOP_CACHE_ATTRIBUTES[process.platform] || !platform) {
       throw new Error(
         `rectMatchesCacheFeature: native xpath cache is not supported on ${process.platform} for ComputerDevice`,
       );
     }
 
     const root = await this.readAccessibilityTreeForCache();
-    const { xpath, rect } = matchRectByXpathCache(root, feature);
+    const { xpath, rect } = matchRectByXpathCache(root, feature, platform);
     debugDevice('rectMatchesCacheFeature: hit xpath %s -> %o', xpath, rect);
     return rect;
   }

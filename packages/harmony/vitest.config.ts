@@ -25,7 +25,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, 'src'),
-      '@midscene/core/device-cache': path.resolve(
+      '@midscene/core/internal/device-cache': path.resolve(
         __dirname,
         '../core/src/device-cache',
       ),

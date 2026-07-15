@@ -169,6 +169,25 @@ describe('IOSDevice', () => {
   });
 
   describe('xpath cache', () => {
+    it('scopes generated entries to iOS', async () => {
+      mockWdaClient.getSource.mockResolvedValueOnce(`
+        <XCUIElementTypeApplication x="0" y="0" width="375" height="812">
+          <XCUIElementTypeWindow x="0" y="0" width="375" height="812">
+            <XCUIElementTypeButton name="login_btn" label="Login" x="20" y="40" width="100" height="44" />
+          </XCUIElementTypeWindow>
+        </XCUIElementTypeApplication>
+      `);
+
+      await expect(
+        device.cacheFeatureForPoint([70, 62]),
+      ).resolves.toMatchObject({
+        kind: 'native-xpath',
+        schemaVersion: 1,
+        platform: 'ios',
+        target: { type: 'XCUIElementTypeButton', value: 'login_btn' },
+      });
+    });
+
     it('does not read the hierarchy when native xpath cache is disabled', async () => {
       vi.stubEnv(MIDSCENE_EXPERIMENTAL_NATIVE_XPATH_CACHE, '0');
 

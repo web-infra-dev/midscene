@@ -26,7 +26,7 @@ function featureFor(
   point: { x: number; y: number },
   options: { stableAttrs?: string[]; textAttrs?: string[] },
 ) {
-  const feature = generateXpathCacheFeature(tree, point, options);
+  const feature = generateXpathCacheFeature(tree, point, 'android', options);
   if (!feature) throw new Error('Expected source tree to generate a feature');
   return feature;
 }
@@ -45,7 +45,7 @@ describe('native xpath cache cross-state replay', () => {
       node('Button', { id: 'login' }, bounds(40, 520, 180, 54)),
     ]);
 
-    expect(matchRectByXpathCache(replay, feature).rect).toEqual(
+    expect(matchRectByXpathCache(replay, feature, 'android').rect).toEqual(
       bounds(40, 520, 180, 54),
     );
   });
@@ -65,7 +65,7 @@ describe('native xpath cache cross-state replay', () => {
       node('Button', { id: 'cancel' }, bounds(140, 160)),
     ]);
 
-    expect(matchRectByXpathCache(replay, feature).rect).toEqual(
+    expect(matchRectByXpathCache(replay, feature, 'android').rect).toEqual(
       bounds(20, 160),
     );
   });
@@ -83,7 +83,7 @@ describe('native xpath cache cross-state replay', () => {
       node('Text', { label: 'Parametres' }, bounds(20, 80, 180, 40)),
     ]);
 
-    expect(() => matchRectByXpathCache(replay, feature)).toThrow(
+    expect(() => matchRectByXpathCache(replay, feature, 'android')).toThrow(
       /cache target matched 0 node/,
     );
   });
@@ -100,7 +100,7 @@ describe('native xpath cache cross-state replay', () => {
       node('Button', { label: 'More' }, bounds(20, 180)),
     ]);
 
-    expect(() => matchRectByXpathCache(replay, feature)).toThrow(
+    expect(() => matchRectByXpathCache(replay, feature, 'android')).toThrow(
       /cache target matched 2 node/,
     );
   });
@@ -118,7 +118,7 @@ describe('native xpath cache cross-state replay', () => {
       node('Button', { id: 'download' }, bounds(20, 220, 180, 50)),
     ]);
 
-    expect(matchRectByXpathCache(replay, feature).rect).toEqual(
+    expect(matchRectByXpathCache(replay, feature, 'android').rect).toEqual(
       bounds(20, 220, 180, 50),
     );
   });
@@ -139,7 +139,7 @@ describe('native xpath cache cross-state replay', () => {
       ]),
     ]);
 
-    expect(() => matchRectByXpathCache(replay, feature)).toThrow(
+    expect(() => matchRectByXpathCache(replay, feature, 'android')).toThrow(
       /cache target matched 2 node/,
     );
   });

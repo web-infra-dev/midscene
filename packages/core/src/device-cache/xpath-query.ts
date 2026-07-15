@@ -1,11 +1,17 @@
 import { getDebug } from '@midscene/shared/logger';
 import type { Rect } from '@midscene/shared/types';
 import type {
+  NativeXpathCachePlatform,
   UiNode,
   XpathCacheIdentity,
   XpathCacheTarget,
   XpathCacheTargetContext,
   XpathCandidateSource,
+} from './types';
+import {
+  EXPLICIT_XPATH_FEATURE_KIND,
+  NATIVE_XPATH_CACHE_KIND,
+  NATIVE_XPATH_CACHE_SCHEMA_VERSION,
 } from './types';
 
 type Axis = 'child' | 'descendant';
@@ -242,6 +248,31 @@ export interface XpathCacheMatch {
   source?: XpathCandidateSource;
 }
 
+function validateCacheFeatureScope(
+  feature: unknown,
+  expectedPlatform: NativeXpathCachePlatform,
+): 'native' | 'explicit' {
+  if (!feature || typeof feature !== 'object') {
+    throw new Error('matchRectByXpathCache: invalid cache feature');
+  }
+  const record = feature as Record<string, unknown>;
+  if (record.kind === EXPLICIT_XPATH_FEATURE_KIND) return 'explicit';
+  if (record.kind !== NATIVE_XPATH_CACHE_KIND) {
+    throw new Error('matchRectByXpathCache: cache feature is not native xpath');
+  }
+  if (record.schemaVersion !== NATIVE_XPATH_CACHE_SCHEMA_VERSION) {
+    throw new Error(
+      `matchRectByXpathCache: unsupported native xpath schema version ${String(record.schemaVersion)}`,
+    );
+  }
+  if (record.platform !== expectedPlatform) {
+    throw new Error(
+      `matchRectByXpathCache: cache platform ${String(record.platform)} does not match ${expectedPlatform}`,
+    );
+  }
+  return 'native';
+}
+
 function getCacheFeatureXpaths(feature: unknown): string[] {
   const maybeXpaths = (feature as { xpaths?: unknown } | undefined)?.xpaths;
   return Array.isArray(maybeXpaths)
@@ -395,13 +426,15 @@ function resolveExpectedTarget(root: UiNode, target: XpathCacheTarget): UiNode {
 /**
  * Resolve xpath candidates to a single, non-ambiguous rect. Native cache
  * entries include target metadata, which must still identify exactly one node
- * and agree with the resolved xpath. A target-less feature is accepted for the
- * existing explicit-xpath path, but its xpath must still resolve uniquely.
+ * and agree with the resolved xpath. A feature marked as explicit xpath may
+ * omit target metadata, but its xpath must still resolve uniquely.
  */
 export function matchRectByXpathCache(
   root: UiNode,
   feature: unknown,
+  expectedPlatform: NativeXpathCachePlatform,
 ): XpathCacheMatch {
+  const scope = validateCacheFeatureScope(feature, expectedPlatform);
   const xpaths = getCacheFeatureXpaths(feature);
   const xpathSources = getCacheFeatureXpathSources(feature);
   const target = getCacheFeatureTarget(feature);
@@ -410,6 +443,16 @@ export function matchRectByXpathCache(
     throw new Error('matchRectByXpathCache: no xpath in cache feature');
   }
 
+  if (scope === 'native' && !target) {
+    throw new Error(
+      'matchRectByXpathCache: native xpath cache target is missing',
+    );
+  }
+  if (scope === 'explicit' && target) {
+    throw new Error(
+      'matchRectByXpathCache: explicit xpath must not carry a target',
+    );
+  }
   const expectedTarget = target
     ? resolveExpectedTarget(root, target)
     : undefined;

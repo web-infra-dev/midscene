@@ -37,6 +37,23 @@ export interface XpathCacheTarget extends XpathCacheTargetContext {
   ancestor?: XpathCacheTargetContext;
 }
 
+export const NATIVE_XPATH_CACHE_KIND = 'native-xpath' as const;
+export const NATIVE_XPATH_CACHE_SCHEMA_VERSION = 1 as const;
+export const EXPLICIT_XPATH_FEATURE_KIND = 'explicit-xpath' as const;
+
+export type NativeXpathCachePlatform =
+  | 'android'
+  | 'ios'
+  | 'harmony'
+  | 'darwin'
+  | 'win32'
+  | 'linux';
+
+export type ExplicitXpathFeature = Record<string, unknown> & {
+  kind: typeof EXPLICIT_XPATH_FEATURE_KIND;
+  xpaths: string[];
+};
+
 export type XpathCandidateSource =
   | 'stable-attribute'
   | 'semantic-attribute'
@@ -46,6 +63,9 @@ export type XpathCandidateSource =
 
 /** Native element cache payload written by the shared xpath cache pipeline. */
 export type XpathCacheFeature = Record<string, unknown> & {
+  kind: typeof NATIVE_XPATH_CACHE_KIND;
+  schemaVersion: typeof NATIVE_XPATH_CACHE_SCHEMA_VERSION;
+  platform: NativeXpathCachePlatform;
   xpaths: string[];
   /** Parallel to `xpaths`; absent on cache entries written by older versions. */
   xpathSources?: XpathCandidateSource[];

@@ -23,7 +23,7 @@ import {
   generateXpathCacheFeature,
   isNativeXpathCacheEnabled,
   matchRectByXpathCache,
-} from '@midscene/core/device-cache';
+} from '@midscene/core/internal/device-cache';
 import { sleep } from '@midscene/core/utils';
 import { DEFAULT_WDA_PORT } from '@midscene/shared/constants';
 import type { ElementInfo } from '@midscene/shared/extractor';
@@ -405,6 +405,7 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
     const feature = generateXpathCacheFeature(
       root,
       { x: center[0], y: center[1] },
+      'ios',
       {
         excludedTargetTypes: [
           'XCUIElementTypeApplication',
@@ -435,7 +436,7 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
     }
     const xml = await this.wdaBackend.getSource();
     const root = wdaSourceToUiNode(xml);
-    const { xpath, rect } = matchRectByXpathCache(root, feature);
+    const { xpath, rect } = matchRectByXpathCache(root, feature, 'ios');
     debugDevice('rectMatchesCacheFeature: hit xpath %s -> %o', xpath, rect);
     return rect;
   }

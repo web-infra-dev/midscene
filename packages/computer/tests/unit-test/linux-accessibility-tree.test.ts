@@ -1,7 +1,7 @@
 import {
   evaluateXpath,
   generateXpathCacheFeature,
-} from '@midscene/core/device-cache';
+} from '@midscene/core/internal/device-cache';
 import { describe, expect, it } from 'vitest';
 import {
   LINUX_ACCESSIBILITY_TREE_SCRIPT,
@@ -40,6 +40,7 @@ describe('Linux AT-SPI accessibility tree', () => {
     const feature = generateXpathCacheFeature(
       root,
       { x: 280, y: 184 },
+      'linux',
       {
         stableAttrs: ['AccessibleId', 'id', 'automation-id'],
         textAttrs: ['Name', 'Description', 'HelpText'],

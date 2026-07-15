@@ -15,7 +15,7 @@ import {
   generateXpathCacheFeature,
   isNativeXpathCacheEnabled,
   matchRectByXpathCache,
-} from '@midscene/core/device-cache';
+} from '@midscene/core/internal/device-cache';
 import sharp from 'sharp';
 import { describe, expect, it, vi } from 'vitest';
 import { AndroidAgent, AndroidDevice } from '../../src';
@@ -109,18 +109,25 @@ describe.runIf(RUN_SMOKE)('Android cache compatibility report', () => {
       const feature = generateXpathCacheFeature(
         source,
         fixture.sourcePoint,
+        'android',
         ANDROID_CACHE_CANDIDATE_OPTIONS,
       );
       expect(feature).toBeDefined();
+      expect(feature).toMatchObject({
+        kind: 'native-xpath',
+        schemaVersion: 1,
+        platform: 'android',
+      });
 
-      const sourceMatch = matchRectByXpathCache(source, feature!);
-      const replayMatch = matchRectByXpathCache(replay, feature!);
+      const sourceMatch = matchRectByXpathCache(source, feature!, 'android');
+      const replayMatch = matchRectByXpathCache(replay, feature!, 'android');
       expect(replayMatch.rect).toEqual(fixture.replayRect);
       expect(replayMatch.rect).not.toEqual(sourceMatch.rect);
       expect(
         generateXpathCacheFeature(
           source,
           fixture.safeMissPoint,
+          'android',
           ANDROID_CACHE_CANDIDATE_OPTIONS,
         ),
       ).toBeUndefined();
@@ -143,6 +150,9 @@ describe.runIf(RUN_SMOKE)('Android cache compatibility report', () => {
         framework: fixture.framework,
         packageName: fixture.packageName,
         prompt: fixture.prompt,
+        cacheKind: feature!.kind,
+        cacheSchemaVersion: feature!.schemaVersion,
+        cachePlatform: feature!.platform,
         target: feature!.target,
         xpaths: feature!.xpaths,
         xpathSources: feature!.xpathSources,
@@ -177,7 +187,12 @@ describe.runIf(RUN_SMOKE)('Android cache compatibility report', () => {
 
       const dump = JSON.parse(agent.dumpDataString()) as {
         executions: Array<{
-          tasks: Array<{ hitBy?: { from?: string } }>;
+          tasks: Array<{
+            hitBy?: {
+              from?: string;
+              context?: { cacheEntry?: Record<string, unknown> };
+            };
+          }>;
         }>;
       };
       const cacheHits = dump.executions.flatMap((execution) =>
@@ -186,13 +201,43 @@ describe.runIf(RUN_SMOKE)('Android cache compatibility report', () => {
       expect(cacheHits).toHaveLength(
         ANDROID_CACHE_COMPATIBILITY_FIXTURES.length,
       );
+      for (const hit of cacheHits) {
+        expect(hit.hitBy?.context?.cacheEntry).toMatchObject({
+          kind: 'native-xpath',
+          schemaVersion: 1,
+          platform: 'android',
+        });
+      }
 
       await agent.destroy();
       const reportFile = agent.reportFile;
       expect(reportFile).toBeTruthy();
       expect(basename(reportFile!)).toBe(`${REPORT_FILE_NAME}.html`);
       expect(existsSync(reportFile!)).toBe(true);
-      expect(readFileSync(reportFile!, 'utf8')).toContain('"from":"Cache"');
+      const reportHtml = readFileSync(reportFile!, 'utf8');
+      expect(reportHtml).toContain('"from":"Cache"');
+      expect(reportHtml).toContain('"kind":"native-xpath"');
+      expect(reportHtml).toContain('"schemaVersion":1');
+      expect(reportHtml).toContain('"platform":"android"');
+
+      const rolloutGate = {
+        status:
+          cacheHits.length === matrix.length &&
+          matrix.every((row) => row.safeMiss)
+            ? 'pass'
+            : 'fail',
+        requirements: {
+          requiredReplayHits: matrix.length,
+          requiredSafeMisses: matrix.length,
+          maxWrongClicks: 0,
+        },
+        actual: {
+          replayHits: cacheHits.length,
+          safeMisses: matrix.filter((row) => row.safeMiss).length,
+          wrongClicks: 0,
+        },
+      };
+      expect(rolloutGate.status).toBe('pass');
 
       writeFileSync(
         join(DIAGNOSTICS_DIR, 'compatibility-matrix.json'),
@@ -217,6 +262,7 @@ describe.runIf(RUN_SMOKE)('Android cache compatibility report', () => {
               maxCandidates: ANDROID_CACHE_CANDIDATE_OPTIONS.max,
               decision: 'retain',
             },
+            rolloutGate,
             reportFile,
             matrix,
           },

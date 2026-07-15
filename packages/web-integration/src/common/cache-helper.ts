@@ -19,6 +19,14 @@ export const sanitizeXpaths = (xpaths: unknown): string[] => {
   );
 };
 
+export const getWebCacheXpaths = (feature: ElementCacheFeature): string[] => {
+  const kind = (feature as { kind?: unknown }).kind;
+  if (kind !== undefined && kind !== 'explicit-xpath') {
+    throw new Error(`Unsupported Web cache feature kind: ${String(kind)}`);
+  }
+  return sanitizeXpaths((feature as WebElementCacheFeature).xpaths);
+};
+
 // Cache feature extraction options interface
 export interface CacheFeatureOptions {
   targetDescription?: string;

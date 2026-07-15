@@ -11,7 +11,7 @@ import { tmpdir } from 'node:os';
 import { basename, join, resolve } from 'node:path';
 import type { ElementCacheFeature } from '@midscene/core';
 import { TaskCache } from '@midscene/core/agent';
-import type { UiNode } from '@midscene/core/device-cache';
+import type { UiNode } from '@midscene/core/internal/device-cache';
 import { cropByRect, imageInfoOfBase64 } from '@midscene/shared/img';
 import { afterAll, describe, expect, it, vi } from 'vitest';
 import { ComputerAgent } from '../../src/agent';
@@ -435,6 +435,11 @@ describe.runIf(RUN_SMOKE)('Windows UIA xpath cache smoke', () => {
       ];
       const feature = await device.cacheFeatureForPoint(center);
       const xpath = firstXpath(feature);
+      expect(feature).toMatchObject({
+        kind: 'native-xpath',
+        schemaVersion: 1,
+        platform: 'win32',
+      });
       const expectedIdentity = target.attrs.AutomationId
         ? { attr: 'AutomationId', value: TARGET_ID }
         : { attr: 'Name', value: TARGET_NAME };
@@ -485,7 +490,10 @@ describe.runIf(RUN_SMOKE)('Windows UIA xpath cache smoke', () => {
       ) as {
         executions: Array<{
           tasks: Array<{
-            hitBy?: { from?: string };
+            hitBy?: {
+              from?: string;
+              context?: { cacheEntry?: Record<string, unknown> };
+            };
             uiContext?: { screenshot?: { base64?: string } };
             output?: {
               element?: {
@@ -505,6 +513,11 @@ describe.runIf(RUN_SMOKE)('Windows UIA xpath cache smoke', () => {
         execution.tasks.filter((task) => task.hitBy?.from === 'Cache'),
       );
       expect(cacheHits).toHaveLength(1);
+      expect(cacheHits[0].hitBy?.context?.cacheEntry).toMatchObject({
+        kind: 'native-xpath',
+        schemaVersion: 1,
+        platform: 'win32',
+      });
       expect(cacheHits[0].output?.element?.center).toEqual(center);
       expect(cacheHits[0].output?.element?.rect).toEqual(screenshotBounds);
       const reportScreenshot = cacheHits[0].uiContext?.screenshot?.base64;
@@ -521,7 +534,11 @@ describe.runIf(RUN_SMOKE)('Windows UIA xpath cache smoke', () => {
       expect(reportFile).toBeTruthy();
       expect(basename(reportFile!)).toBe(`${REPORT_FILE_NAME}.html`);
       expect(existsSync(reportFile!)).toBe(true);
-      expect(readFileSync(reportFile!, 'utf8')).toContain('"from":"Cache"');
+      const reportHtml = readFileSync(reportFile!, 'utf8');
+      expect(reportHtml).toContain('"from":"Cache"');
+      expect(reportHtml).toContain('"kind":"native-xpath"');
+      expect(reportHtml).toContain('"schemaVersion":1');
+      expect(reportHtml).toContain('"platform":"win32"');
 
       console.log(
         '[WindowsCacheSmoke] hit',

@@ -2,6 +2,7 @@ import { findAllMidsceneLocatorField, parseActionParam } from '@/ai-model';
 import type { ModelRuntime } from '@/ai-model/models';
 import { findActionInActionSpaceOrThrow } from '@/common';
 import type { AbstractInterface } from '@/device';
+import { EXPLICIT_XPATH_FEATURE_KIND } from '@/device-cache/types';
 import type Service from '@/service';
 import { setTimingFieldOnce } from '@/task-timing';
 import type {
@@ -494,6 +495,7 @@ export class TaskBuilder {
         ) {
           try {
             rectFromXpath = await this.interface.rectMatchesCacheFeature({
+              kind: EXPLICIT_XPATH_FEATURE_KIND,
               xpaths: [param.xpath],
             });
           } catch {

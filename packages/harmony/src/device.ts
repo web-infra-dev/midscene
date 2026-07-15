@@ -24,7 +24,7 @@ import {
   generateXpathCacheFeature,
   isNativeXpathCacheEnabled,
   matchRectByXpathCache,
-} from '@midscene/core/device-cache';
+} from '@midscene/core/internal/device-cache';
 import { getTmpFile, sleep } from '@midscene/core/utils';
 import type { ElementInfo } from '@midscene/shared/extractor';
 import { createImgBase64ByFormat } from '@midscene/shared/img';
@@ -443,6 +443,7 @@ export class HarmonyDevice implements AbstractInterface {
     const feature = generateXpathCacheFeature(
       root,
       { x: center[0], y: center[1] },
+      'harmony',
       {
         excludedTargetTypes: ['RootDecor', 'WindowScene', 'Dialog'],
         // ArkUI exposes inspectorKey via the `key` attribute in dumpLayout;
@@ -469,7 +470,7 @@ export class HarmonyDevice implements AbstractInterface {
     const hdc = await this.getHdc();
     const json = await hdc.dumpLayout();
     const root = uitestJsonToUiNode(json);
-    const { xpath, rect } = matchRectByXpathCache(root, feature);
+    const { xpath, rect } = matchRectByXpathCache(root, feature, 'harmony');
     debugDevice('rectMatchesCacheFeature: hit xpath %s -> %o', xpath, rect);
     return rect;
   }
