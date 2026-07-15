@@ -3,13 +3,25 @@ import type { AbstractInterface } from '@/device';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@midscene/shared/img', () => ({
+  convertImgBufferToJpeg: vi.fn(),
+  createImgBase64ByFormat: vi.fn(),
   imageInfoOfBase64: vi.fn(),
+  parseBase64: vi.fn(),
   resizeImgBase64: vi.fn().mockResolvedValue('mock-resized-base64-data'),
 }));
 
-import { imageInfoOfBase64, resizeImgBase64 } from '@midscene/shared/img';
+import {
+  convertImgBufferToJpeg,
+  createImgBase64ByFormat,
+  imageInfoOfBase64,
+  parseBase64,
+  resizeImgBase64,
+} from '@midscene/shared/img';
 
+const mockedConvertToJpeg = vi.mocked(convertImgBufferToJpeg);
+const mockedCreateBase64 = vi.mocked(createImgBase64ByFormat);
 const mockedImageInfo = vi.mocked(imageInfoOfBase64);
+const mockedParseBase64 = vi.mocked(parseBase64);
 const mockedResizeImg = vi.mocked(resizeImgBase64);
 
 function createMockInterface(
@@ -29,6 +41,35 @@ function createMockInterface(
 describe('commonContextParser screenshotShrinkFactor', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockedParseBase64.mockReturnValue({
+      mimeType: 'image/jpeg',
+      body: 'mock-base64-data',
+    });
+  });
+
+  it('converts PNG screenshots to JPEG quality 90 when not shrinking', async () => {
+    const mockInterface = createMockInterface(800, 400);
+    const pngBody = Buffer.from('png-image').toString('base64');
+    const jpegBuffer = Buffer.from('jpeg-image');
+    mockedImageInfo.mockResolvedValue({ width: 2400, height: 1200 });
+    mockedParseBase64.mockReturnValue({
+      mimeType: 'image/png',
+      body: pngBody,
+    });
+    mockedConvertToJpeg.mockResolvedValue(jpegBuffer);
+    mockedCreateBase64.mockReturnValue('data:image/jpeg;base64,jpeg-image');
+
+    const result = await commonContextParser(mockInterface, {});
+
+    expect(mockedConvertToJpeg).toHaveBeenCalledWith(
+      Buffer.from(pngBody, 'base64'),
+      90,
+    );
+    expect(mockedCreateBase64).toHaveBeenCalledWith(
+      'jpeg',
+      jpegBuffer.toString('base64'),
+    );
+    expect(result.screenshot.base64).toBe('data:image/jpeg;base64,jpeg-image');
   });
 
   it('does not shrink when screenshotShrinkFactor is not provided', async () => {

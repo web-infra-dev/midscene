@@ -156,6 +156,31 @@ export async function resizeAndConvertImgBuffer(
 
 export const normalizeBase64Body = (body: string) => body.replace(/\s/g, '');
 
+/** Convert an image buffer to JPEG without changing its dimensions. */
+export async function convertImgBufferToJpeg(
+  inputData: Buffer,
+  quality = 90,
+): Promise<Buffer> {
+  if (ifInNode) {
+    try {
+      const Sharp = await getSharp();
+      return await Sharp(inputData).jpeg({ quality }).toBuffer();
+    } catch (error) {
+      imgDebug('Sharp failed, falling back to Photon:', error);
+    }
+  }
+
+  const mimeType = detectImageMimeTypeFromBuffer(inputData) ?? 'image/png';
+  const photonImage = await photonFromBase64(
+    `data:${mimeType};base64,${inputData.toString('base64')}`,
+  );
+  try {
+    return Buffer.from(photonImage.get_bytes_jpeg(quality));
+  } finally {
+    photonImage.free();
+  }
+}
+
 const base64ImageDataUrlPattern = /^data:image\/[a-zA-Z0-9.+-]+;base64,/i;
 const supportedScreenshotDataUriPattern =
   /^data:image\/(png|jpe?g);base64,([\s\S]*)$/i;

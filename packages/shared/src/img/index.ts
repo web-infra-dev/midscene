@@ -8,6 +8,7 @@ export {
 } from './info';
 export {
   resizeAndConvertImgBuffer,
+  convertImgBufferToJpeg,
   resizeImgBase64,
   zoomForGPT4o,
   saveBase64Image,
