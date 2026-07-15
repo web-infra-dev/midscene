@@ -436,9 +436,7 @@ describe('doubao model adapter', () => {
       'first: 100 200 300 400; second: 500 600 700 800',
     ],
   ])('throws on raw Doubao locate values %s', (_, input) => {
-    expect(() => parseDoubaoRawLocateValue(input)).toThrow(
-      /invalid bbox data/,
-    );
+    expect(() => parseDoubaoRawLocateValue(input)).toThrow(/invalid bbox data/);
   });
 
   it('normalizes doubao five-number bbox by using the first four values', () => {
