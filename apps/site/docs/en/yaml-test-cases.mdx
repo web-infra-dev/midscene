@@ -1,0 +1,185 @@
+# Write and run YAML test cases
+
+After a framework maintainer configures the Test Project, people and Agents can use its registered Nodes to write YAML test cases. Before writing cases, generate a Node Reference with `describe-nodes` to see the available capabilities and their input fields.
+
+For the overall design, start with the [YAML test runner overview](./yaml-test-runner-overview). If the project is not configured yet, read [Extend and maintain a YAML test runner](./extend-yaml-test-runner).
+
+## Core concepts
+
+```text
+Test Project
+└── Workflow Document
+    ├── Lifecycle Step
+    └── Case
+        └── Step
+            └── Node
+```
+
+- **Node**: an executable capability registered by a developer.
+- **Step**: one YAML invocation of a Node.
+- **Case**: a named test made of multiple Steps.
+- **Workflow Document**: one YAML file containing lifecycle Steps and Cases.
+- **Test Project**: the project configuration and its Workflow Documents.
+
+Nodes define the capabilities available to the team. YAML defines how each test case combines those capabilities.
+
+## Write YAML test cases
+
+Every Workflow Document must contain a non-empty `cases` array. Each Case must have a `name` and a non-empty `steps` array.
+
+```yaml
+cases:
+  - name: Create an order
+    steps:
+      - order.create:
+          sku: midscene-mug
+          quantity: 1
+      - aiAssert: The page shows "Order created"
+
+  - name: Cancel an order
+    steps:
+      - order.cancel:
+          orderId: example-order-id
+      - aiAssert: The page shows "Order canceled"
+```
+
+The runner executes Cases in declaration order. When a Case fails, the runner records the failure and continues with the remaining Cases.
+
+### Write Steps
+
+Each Step invokes exactly one Node. When the only input is `prompt`, you can use the string shorthand.
+
+```yaml
+steps:
+  - aiAct: Click the submit order button
+```
+
+This is equivalent to:
+
+```yaml
+steps:
+  - aiAct:
+      prompt: Click the submit order button
+```
+
+Domain Nodes can define their own inputs.
+
+```yaml
+steps:
+  - order.create:
+      sku: midscene-mug
+      quantity: 2
+```
+
+### Configure timeouts and error handling
+
+Use `$` for Step options controlled by the runner. These options are not passed to the Node's `input`.
+
+```yaml
+steps:
+  - order.create:
+      sku: midscene-mug
+      $:
+        timeout: 30000
+        continue-on-error: true
+```
+
+The runner supports these options:
+
+- `timeout`: the Step timeout in milliseconds.
+- `continue-on-error`: when `true`, the runner continues with later Steps in the current phase after a failure. The default is `false`.
+
+`continue-on-error` only controls whether execution continues. A Case is `failed` when any of its Steps fail.
+
+## Define the document lifecycle
+
+A Workflow Document can define lifecycle Steps around its Cases.
+
+```yaml
+beforeAll:
+  - data.prepare: Prepare document data
+
+beforeEach:
+  - browser.reset: Reset the page
+
+cases:
+  - name: Create an order
+    steps:
+      - aiAct: Create an order
+      - aiAssert: The page shows "Order created"
+
+  - name: Cancel an order
+    steps:
+      - aiAct: Cancel the latest order
+      - aiAssert: The page shows "Order canceled"
+
+afterEach:
+  - report.save: Save case details
+
+afterAll:
+  - data.cleanup: Delete document data
+```
+
+The complete execution order is:
+
+```text
+setupDocument
+beforeAll
+  Case 1: beforeEach → steps → afterEach
+  Case 2: beforeEach → steps → afterEach
+afterAll
+document teardown
+```
+
+`setupDocument()` and document teardown create and release runtime resources. `beforeAll` and `afterAll` run once per YAML file. `beforeEach` and `afterEach` run once per Case.
+
+`afterEach` still runs when the Case body fails. If `beforeAll` fails, the runner marks the file's Cases as `not-run`, then runs `afterAll` and teardown functions. If `setupDocument()` fails, the runner skips the YAML lifecycle and Cases but still runs registered teardown functions.
+
+## Run the project
+
+Run the Test Project in the current directory:
+
+```bash
+pnpm exec midscene-test
+```
+
+Run a project in another directory:
+
+```bash
+pnpm exec midscene-test ./e2e
+```
+
+Select a configuration file or result directory:
+
+```bash
+pnpm exec midscene-test \
+  --config ./config/midscene.config.ts \
+  --result-dir ./test-results
+```
+
+The runner executes Workflow Documents and Cases serially. It does not automatically retry failed Cases.
+
+### Inspect results
+
+Each run writes `project.json` and detailed results grouped by type:
+
+```text
+test-results/
+├── project.json
+├── runs/
+│   └── <case-id>/<run-id>.json
+├── documents/
+│   └── <document-id>/<document-run-id>.json
+└── collection-errors/
+    └── <error-id>.json
+```
+
+`project.json` contains the file selection rules, discovered YAML files, Case and Workflow Document statuses, collection errors, summary, and CLI exit code.
+
+The CLI exits with code `1` when a Case fails or does not run, a Workflow Document fails, or collection reports an error.
+
+## Current limitations
+
+The runner does not currently support concurrent Cases or Workflow Documents, automatic retries, DAGs, branches, loops, Step parallelism, dependencies between Workflow Documents, or remote YAML sources.
+
+The runner collects and validates every YAML file before execution. Unknown top-level fields, unknown Nodes, empty `cases`, and invalid Steps produce collection errors immediately.
