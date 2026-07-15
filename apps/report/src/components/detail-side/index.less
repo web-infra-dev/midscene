@@ -254,6 +254,40 @@
       margin-bottom: 4px;
     }
 
+    .ai-verify-input-images {
+      padding: 0 20px;
+      margin: 8px 0 12px;
+
+      > .title {
+        padding-left: 0;
+        margin-bottom: 6px;
+      }
+    }
+
+    .ai-verify-input-image {
+      margin: 0 0 10px;
+
+      figcaption {
+        color: @lightTextColor;
+        font-size: 12px;
+        margin-bottom: 4px;
+      }
+
+      a {
+        display: block;
+      }
+
+      img {
+        display: block;
+        width: 100%;
+        max-height: 320px;
+        object-fit: contain;
+        border: 1px solid rgba(0, 0, 0, 0.12);
+        border-radius: 4px;
+        background: #f5f5f5;
+      }
+    }
+
     .subtitle {
       padding-left: 20px;
       font-weight: normal;
@@ -383,6 +417,11 @@
           }
         }
       }
+    }
+
+    .ai-verify-input-image img {
+      border-color: rgba(255, 255, 255, 0.18);
+      background: #141414;
     }
 
     .meta-kv .element-detail-box {

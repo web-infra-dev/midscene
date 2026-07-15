@@ -123,7 +123,7 @@ export class ExecutionDump implements IExecutionDump {
 
   /**
    * Collect all ScreenshotItem instances from tasks.
-   * Scans through uiContext and recorder items to find screenshots.
+   * Scans uiContext, AI Verify model inputs, and recorder items.
    *
    * @returns Array of ScreenshotItem instances
    */
@@ -134,6 +134,12 @@ export class ExecutionDump implements IExecutionDump {
       // Collect uiContext.screenshot if present
       if (task.uiContext?.screenshot instanceof ScreenshotItem) {
         screenshots.push(task.uiContext.screenshot);
+      }
+
+      for (const image of task.cacheActionVerificationImages ?? []) {
+        if (image.screenshot instanceof ScreenshotItem) {
+          screenshots.push(image.screenshot);
+        }
       }
 
       // Collect recorder screenshots

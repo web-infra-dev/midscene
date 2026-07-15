@@ -48,6 +48,10 @@ import type { TaskCache } from './task-cache';
 export { locatePlanForLocate } from './task-builder';
 import { setTimingFieldOnce } from '@/task-timing';
 import { descriptionOfTree } from '@midscene/shared/extractor';
+import {
+  findCacheActionVerificationError,
+  verifyCacheActionEffect,
+} from './cache-action-verifier';
 import { type TaskTitleType, taskTitleStr } from './ui-utils';
 import { withUsageIntent } from './usage-intent';
 import { parsePrompt } from './utils';
@@ -129,6 +133,9 @@ export class TaskExecutor {
       replanningCycleLimit?: number;
       waitAfterAction?: number;
       useDeviceTime?: boolean;
+      cacheActionVerification?: {
+        resolveModelRuntime: () => ModelRuntime;
+      };
       hooks?: TaskExecutorHooks;
       actionSpace: DeviceAction[];
     },
@@ -142,12 +149,21 @@ export class TaskExecutor {
     this.useDeviceTime = opts.useDeviceTime;
     this.hooks = opts.hooks;
     this.providedActionSpace = opts.actionSpace;
+    const cacheActionVerification = opts.cacheActionVerification;
     this.taskBuilder = new TaskBuilder({
       interfaceInstance,
       service,
       taskCache: opts.taskCache,
       actionSpace: this.getActionSpace(),
       waitAfterAction: opts.waitAfterAction,
+      cacheActionVerifier: cacheActionVerification
+        ? (input) =>
+            verifyCacheActionEffect(
+              this.service,
+              cacheActionVerification.resolveModelRuntime(),
+              input,
+            )
+        : undefined,
     });
   }
 
@@ -276,6 +292,8 @@ export class TaskExecutor {
       cacheable?: boolean;
       deepLocate?: boolean;
       abortSignal?: AbortSignal;
+      verifyCachedActions?: boolean;
+      bypassLocateCache?: boolean;
     },
   ) {
     return this.taskBuilder.build(plans, planningModel, defaultModel, options);
@@ -337,14 +355,30 @@ export class TaskExecutor {
     plans: PlanningAction[],
     planningModel: ModelRuntime,
     defaultModel: ModelRuntime,
-    options?: { uiContext?: UIContext },
+    options?: {
+      uiContext?: UIContext;
+      verifyCachedActions?: boolean;
+      bypassLocateCache?: boolean;
+    },
   ): Promise<ExecutionResult> {
     const session = this.createExecutionSession(title, options);
-    const { tasks } = await this.convertPlanToExecutable(
-      plans,
-      planningModel,
-      defaultModel,
-    );
+    const hasBuildOptions =
+      options?.verifyCachedActions || options?.bypassLocateCache;
+    const buildOptions = hasBuildOptions
+      ? {
+          verifyCachedActions: options?.verifyCachedActions,
+          bypassLocateCache: options?.bypassLocateCache,
+        }
+      : undefined;
+    const buildResult = buildOptions
+      ? this.convertPlanToExecutable(
+          plans,
+          planningModel,
+          defaultModel,
+          buildOptions,
+        )
+      : this.convertPlanToExecutable(plans, planningModel, defaultModel);
+    const { tasks } = await buildResult;
     const runner = session.getRunner();
     const result = await session.appendAndRun(tasks);
     const { output } = result ?? {};
@@ -740,6 +774,7 @@ export class TaskExecutor {
       const initialTimeString = await this.getTimeString();
 
       const taskCountBeforeRun = runner.tasks.length;
+      let cacheVerificationFailed = false;
       // Scope a reporter to this replanning round so native task events from the
       // runner are mapped to aiAct progress with the right plan context; cleared
       // in `finally` so events fired between batches are ignored.
@@ -758,6 +793,9 @@ export class TaskExecutor {
       } catch (error: any) {
         // errorFlag = true;
         errorCountInOnePlanningLoop++;
+        cacheVerificationFailed = Boolean(
+          findCacheActionVerificationError(error),
+        );
         const timeString = await this.getTimeString();
         this.setPendingFeedbackMessage(
           conversationHistory,
@@ -790,7 +828,7 @@ export class TaskExecutor {
       }
 
       // // Check if task is complete
-      if (!planResult?.shouldContinuePlanning) {
+      if (!planResult?.shouldContinuePlanning && !cacheVerificationFailed) {
         break;
       }
 
@@ -801,7 +839,9 @@ export class TaskExecutor {
       // cache entries stale so the re-locate of the same prompt replaces them in
       // place instead of appending a poisoning duplicate that would be matched
       // first on the next run (#2529).
-      this.invalidateFailedCacheHitLocates(runner, taskCountBeforeRun);
+      if (!cacheVerificationFailed) {
+        this.invalidateFailedCacheHitLocates(runner, taskCountBeforeRun);
+      }
 
       // Increment replan count for next iteration
       ++replanCount;

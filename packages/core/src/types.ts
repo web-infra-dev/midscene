@@ -547,6 +547,49 @@ export interface ExecutionTaskReturn<TaskOutput = unknown, TaskLog = unknown> {
   hitBy?: ExecutionTaskHitBy;
 }
 
+export type CacheActionVerificationStatus = 'passed' | 'failed' | 'uncertain';
+
+export interface CacheActionVerificationDataDemand
+  extends Record<string, string> {
+  status: string;
+  reason: string;
+}
+
+/**
+ * Metadata for the logical model requests persisted with a cached action
+ * verification result. Provider-level retries are not counted here.
+ */
+export interface CacheActionVerificationRequest {
+  actionName: string;
+  targetDescription: string;
+  logicalModelRequestCount: number;
+  screenshotCount: number;
+  modelInputImageCount: number;
+  verificationMode:
+    | 'focused-comparison'
+    | 'full-frame'
+    | 'focused-comparison-with-full-frame-fallback';
+  fallbackReason?:
+    | 'uncertain'
+    | 'target-rect-unavailable'
+    | 'focused-image-error';
+  cropRect?: Rect;
+  comparisonImageSize?: Size;
+  dataDemand: CacheActionVerificationDataDemand;
+}
+
+export interface CacheActionVerificationResult {
+  status: CacheActionVerificationStatus;
+  reason: string;
+  request: CacheActionVerificationRequest;
+}
+
+export interface CacheActionVerificationModelInputImage {
+  requestIndex: number;
+  role: 'focused-comparison' | 'full-frame-before' | 'full-frame-after';
+  screenshot: ScreenshotItem;
+}
+
 export type ExecutionTask<
   E extends ExecutionTaskApply<any, any, any> = ExecutionTaskApply<
     any,
@@ -569,6 +612,8 @@ export type ExecutionTask<
      * This is execution metadata, not part of the action return value.
      */
     planningFeedback?: string;
+    cacheActionVerification?: CacheActionVerificationResult;
+    cacheActionVerificationImages?: CacheActionVerificationModelInputImage[];
     error?: Error;
     errorMessage?: string;
     errorStack?: string;
@@ -884,6 +929,13 @@ export interface WebElementInfo extends BaseElement {
 
 export type CacheConfig = {
   strategy?: 'read-only' | 'read-write' | 'write-only';
+  /**
+   * Verify cached action effects with AI before continuing to trust the cache.
+   * Currently only immediate Tap verification is supported.
+   * Set to false to disable verification.
+   * @default 'action'
+   */
+  verify?: 'action' | false;
   id: string;
   /**
    * Optional cache directory path.

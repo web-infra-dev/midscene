@@ -18,6 +18,10 @@ With caching hit, time cost is significantly reduced. For example, in the follow
 
 Midscene's caching mechanism is based on input stability and output reusability. When the same task instructions are repeatedly executed in similar page environments, Midscene will prioritize using cached results to avoid repeated AI model calls, significantly improving execution efficiency.
 
+More precisely, plan caching **mechanically replays the flow that actually ran last time**. It does not reinterpret the prompt or make fresh conditional decisions on a cache hit. The cache is useful only when the current initial state can still execute the steps recorded from the previous run.
+
+For this reason, use plan caching for stable and repeatable operation paths. Conditional prompts such as "if a popup appears, close it before submitting the form" are not a good fit for a single cached prompt: the previous run only took one branch, and the other branch was never recorded in the cache. If the next run enters the other branch, Midscene has no cached steps to replay for that path and must fall back to AI planning. Prefer moving the condition into test code: use an uncached query API such as `aiBoolean` to check the current state, then execute separate, more deterministic cacheable steps for each branch.
+
 The core caching mechanisms include:
 - **Task instruction caching**: For planning operations (such as `ai`, `aiAct`), Midscene uses the prompt instruction as the cache key to store the execution plan returned by AI
 - **Element location caching (web only)**: For location operations (such as `aiLocate`, `aiTap`), the system uses the location prompt as the cache key to store element XPath information, and verifies whether the XPath is still valid on the next execution
@@ -129,6 +133,23 @@ agent:
     id: "my-cache-test"
     strategy: "write-only"
 ```
+
+### Cached action verification
+
+When cache is enabled, Midscene verifies cached Tap effects with AI by default. A cache hit still reuses the cached location or plan, while the verifier checks the visible before-and-after result before the cache is trusted. The current implementation sends one focused comparison image to the model and falls back to two full screenshots only when the focused result is uncertain.
+
+Set `verify: false` to disable this verification and avoid the additional AI call:
+
+```javascript
+const agent = new PuppeteerAgent(page, {
+  cache: {
+    id: "my-cache-id",
+    verify: false,
+  },
+});
+```
+
+Currently, immediate Tap effect verification is supported. Other action types keep their existing cache behavior.
 
 ### Compatibility mode (not recommended)
 
@@ -310,6 +331,12 @@ You can view the report file. If the cache is hit, you will see the `cache` tip 
 ### Why the cache is missed on CI?
 
 You need to commit the cache files to the repository in CI and recheck the cache hit conditions.
+
+### Can conditional flows like "if xx, then yy" be cached?
+
+Not as a single prompt that depends on cache. Plan caching records the flow that actually executed last time, not a decision tree for every possible branch. If the previous run took the "popup appeared and was closed" branch, the cache does not contain the "no popup, continue directly" branch, and vice versa.
+
+If your workflow needs conditional branching, put the condition in test code or use an uncached query API such as `aiBoolean` to inspect the current state first. Then call cacheable APIs such as `aiAct` or `aiTap` for the stable steps inside each branch. In that setup, the cache hits concrete operation paths that have actually happened and been recorded.
 
 ### Does it mean that AI services are no longer needed after using cache?
 

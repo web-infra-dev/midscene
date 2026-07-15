@@ -438,6 +438,56 @@ export async function photonToBase64(
   return `data:image/jpeg;base64,${base64Body}`;
 }
 
+export async function combineImagesHorizontally(
+  leftImageBase64: string,
+  rightImageBase64: string,
+  gap = 8,
+): Promise<{
+  width: number;
+  height: number;
+  imageBase64: string;
+}> {
+  assert(
+    Number.isInteger(gap) && gap >= 0,
+    'gap must be a non-negative integer',
+  );
+
+  let leftImage: PhotonImageType | undefined;
+  let rightImage: PhotonImageType | undefined;
+  let paddedImage: PhotonImageType | undefined;
+
+  try {
+    leftImage = await photonFromBase64(leftImageBase64);
+    rightImage = await photonFromBase64(rightImageBase64);
+    const leftWidth = leftImage.get_width();
+    const leftHeight = leftImage.get_height();
+    const rightWidth = rightImage.get_width();
+    const rightHeight = rightImage.get_height();
+    assert(
+      leftHeight === rightHeight,
+      `images must have the same height, got ${leftHeight} and ${rightHeight}`,
+    );
+
+    const { padding_right, watermark, Rgba } = await getPhoton();
+    paddedImage = padding_right(
+      leftImage,
+      gap + rightWidth,
+      new Rgba(255, 255, 255, 255),
+    );
+    watermark(paddedImage, rightImage, leftWidth + gap, 0);
+
+    return {
+      width: leftWidth + gap + rightWidth,
+      height: leftHeight,
+      imageBase64: await photonToBase64(paddedImage),
+    };
+  } finally {
+    paddedImage?.free();
+    rightImage?.free();
+    leftImage?.free();
+  }
+}
+
 export const httpImg2Base64 = async (url: string): Promise<string> => {
   const response = await fetch(url);
   if (!response.ok) {

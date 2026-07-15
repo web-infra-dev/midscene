@@ -1,6 +1,10 @@
 import { findAllMidsceneLocatorField, parseActionParam } from '@/ai-model';
 import type { ModelRuntime } from '@/ai-model/models';
-import { findActionInActionSpaceOrThrow } from '@/common';
+import {
+  type TUserPrompt,
+  findActionInActionSpaceOrThrow,
+  userPromptToString,
+} from '@/common';
 import type { AbstractInterface } from '@/device';
 import type Service from '@/service';
 import { setTimingFieldOnce } from '@/task-timing';
@@ -25,6 +29,11 @@ import { sleep } from '@/utils';
 import { generateElementByRect } from '@midscene/shared/extractor';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
+import {
+  CacheActionVerificationError,
+  type CacheActionVerificationInput,
+  type CacheActionVerificationOutput,
+} from './cache-action-verifier';
 import type { TaskCache } from './task-cache';
 import { withUsageIntent } from './usage-intent';
 import {
@@ -104,12 +113,17 @@ interface TaskBuilderDeps {
   taskCache?: TaskCache;
   actionSpace: DeviceAction[];
   waitAfterAction?: number;
+  cacheActionVerifier?: (
+    input: CacheActionVerificationInput,
+  ) => Promise<CacheActionVerificationOutput>;
 }
 
 interface BuildOptions {
   cacheable?: boolean;
   deepLocate?: boolean;
   abortSignal?: AbortSignal;
+  verifyCachedActions?: boolean;
+  bypassLocateCache?: boolean;
 }
 
 interface PlanBuildContext {
@@ -119,6 +133,8 @@ interface PlanBuildContext {
   cacheable?: boolean;
   deepLocate?: boolean;
   abortSignal?: AbortSignal;
+  verifyCachedActions?: boolean;
+  bypassLocateCache?: boolean;
 }
 
 export class TaskBuilder {
@@ -132,18 +148,22 @@ export class TaskBuilder {
 
   private readonly waitAfterAction?: number;
 
+  private readonly cacheActionVerifier?: TaskBuilderDeps['cacheActionVerifier'];
+
   constructor({
     interfaceInstance,
     service,
     taskCache,
     actionSpace,
     waitAfterAction,
+    cacheActionVerifier,
   }: TaskBuilderDeps) {
     this.interface = interfaceInstance;
     this.service = service;
     this.taskCache = taskCache;
     this.actionSpace = actionSpace;
     this.waitAfterAction = waitAfterAction;
+    this.cacheActionVerifier = cacheActionVerifier;
   }
 
   public async build(
@@ -162,6 +182,8 @@ export class TaskBuilder {
       cacheable,
       deepLocate: options?.deepLocate,
       abortSignal: options?.abortSignal,
+      verifyCachedActions: options?.verifyCachedActions,
+      bypassLocateCache: options?.bypassLocateCache,
     };
 
     type PlanHandler = (plan: PlanningAction) => Promise<void> | void;
@@ -228,12 +250,15 @@ export class TaskBuilder {
       action.paramSchema,
       true,
     );
+    const targetPrompts: TUserPrompt[] = [];
+    const cachedTargetPrompts: TUserPrompt[] = [];
 
     locateFields.forEach((field) => {
       if (param[field]) {
         // Always use createLocateTask for all locate params.
         // This ensures cache writing happens even when locatedPixelBbox is available
         const locatePlan = locatePlanForLocate(param[field]);
+        targetPrompts.push(locatePlan.param.prompt);
         debug(
           'will prepend locate param for field',
           `action.type=${planType}`,
@@ -245,8 +270,11 @@ export class TaskBuilder {
           locatePlan,
           param[field],
           context,
-          (result) => {
+          (result, hitBy) => {
             param[field] = result;
+            if (hitBy?.from === 'Cache') {
+              cachedTargetPrompts.push(locatePlan.param.prompt);
+            }
           },
         );
         context.tasks.push(locateTask);
@@ -325,6 +353,20 @@ export class TaskBuilder {
           );
         }
 
+        const screenshotTargetRect =
+          planType === 'Tap' &&
+          param.locate?.rect &&
+          [
+            param.locate.rect.left,
+            param.locate.rect.top,
+            param.locate.rect.width,
+            param.locate.rect.height,
+          ].every(
+            (value) => typeof value === 'number' && Number.isFinite(value),
+          )
+            ? { ...param.locate.rect }
+            : undefined;
+
         if (action.paramSchema) {
           try {
             param = parseActionParam(param, action.paramSchema, {
@@ -375,6 +417,62 @@ export class TaskBuilder {
 
         setTimingFieldOnce(timing, 'afterInvokeActionHookEnd');
 
+        const promptsToVerify = context.verifyCachedActions
+          ? targetPrompts
+          : cachedTargetPrompts;
+        if (
+          planType === 'Tap' &&
+          this.cacheActionVerifier &&
+          promptsToVerify.length > 0
+        ) {
+          const afterContext = await this.service.contextRetrieverFn();
+          const targetDescription = promptsToVerify
+            .map((prompt) => userPromptToString(prompt))
+            .join('; ');
+          setTimingFieldOnce(timing, 'callAiStart');
+          let verificationOutput: CacheActionVerificationOutput;
+          try {
+            verificationOutput = await this.cacheActionVerifier({
+              actionName: planType,
+              targetDescription,
+              beforeScreenshot: uiContext.screenshot,
+              afterContext,
+              targetRect: screenshotTargetRect,
+              abortSignal: context.abortSignal,
+            });
+          } finally {
+            setTimingFieldOnce(timing, 'callAiEnd');
+          }
+
+          const {
+            result: verification,
+            dump,
+            modelInputImages,
+          } = verificationOutput;
+          taskContext.task.cacheActionVerification = verification;
+          taskContext.task.cacheActionVerificationImages = modelInputImages;
+          taskContext.task.log = {
+            dump,
+            rawResponse: dump.taskInfo?.rawResponse,
+            rawChoiceMessage: dump.taskInfo?.rawChoiceMessage,
+          };
+          taskContext.task.usage = withUsageIntent(
+            dump.taskInfo?.usage,
+            'insight',
+          );
+
+          if (verification.status !== 'passed') {
+            for (const prompt of cachedTargetPrompts) {
+              this.taskCache?.markLocateCacheStale(prompt);
+            }
+            taskContext.task.planningFeedback = `Cached ${planType} action was not verified (${verification.status}): ${verification.reason}`;
+            throw new CacheActionVerificationError(
+              verification,
+              promptsToVerify,
+            );
+          }
+        }
+
         return {
           output: actionResult,
         };
@@ -388,9 +486,18 @@ export class TaskBuilder {
     plan: PlanningAction<PlanningLocateParam>,
     detailedLocateParam: DetailedLocateParam | string,
     context: PlanBuildContext,
-    onResult?: (result: LocateResultElement) => void,
+    onResult?: (
+      result: LocateResultElement,
+      hitBy?: ExecutionTaskHitBy,
+    ) => void,
   ): ExecutionTaskPlanningLocateApply {
-    const { cacheable, defaultModel, deepLocate, abortSignal } = context;
+    const {
+      cacheable,
+      defaultModel,
+      deepLocate,
+      abortSignal,
+      bypassLocateCache,
+    } = context;
 
     let locateParam = normalizeLocateParam(detailedLocateParam);
 
@@ -517,7 +624,9 @@ export class TaskBuilder {
         const isXpathHit = !!elementFromXpath;
 
         const cachePrompt = param.prompt;
-        const locateCacheRecord = this.taskCache?.matchLocateCache(cachePrompt);
+        const locateCacheRecord = bypassLocateCache
+          ? undefined
+          : this.taskCache?.matchLocateCache(cachePrompt);
         const cacheEntry = locateCacheRecord?.cacheContent?.cache;
 
         const elementFromCacheResult =
@@ -696,7 +805,7 @@ export class TaskBuilder {
           };
         }
 
-        onResult?.(element);
+        onResult?.(element, hitBy);
 
         return {
           output: {

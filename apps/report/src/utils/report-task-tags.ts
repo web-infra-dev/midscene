@@ -1,4 +1,6 @@
 import type {
+  CacheActionVerificationRequest,
+  CacheActionVerificationStatus,
   ExecutionTask,
   ExecutionTaskPlanningLocate,
   ExecutionTaskPlanningParam,
@@ -44,4 +46,46 @@ export function hasDeepLocateFlag(task: ExecutionTask): boolean {
  */
 export function hasObserverAssertionFlag(task: ExecutionTask): boolean {
   return task.recorder?.some((r) => r.timing === 'observed-frame') ?? false;
+}
+
+type CacheActionVerificationDisplay = {
+  status: CacheActionVerificationStatus;
+  statusLabel: string;
+  label: string;
+  color: 'success' | 'error' | 'warning';
+  reason: string;
+  request: Omit<CacheActionVerificationRequest, 'dataDemand'> & {
+    dataDemand: string;
+  };
+};
+
+const cacheActionVerificationStatusDisplay = {
+  passed: { statusLabel: 'Passed', color: 'success' },
+  failed: { statusLabel: 'Failed', color: 'error' },
+  uncertain: { statusLabel: 'Uncertain', color: 'warning' },
+} as const satisfies Record<
+  CacheActionVerificationStatus,
+  Pick<CacheActionVerificationDisplay, 'statusLabel' | 'color'>
+>;
+
+export function getCacheActionVerificationDisplay(
+  task: ExecutionTask,
+): CacheActionVerificationDisplay | undefined {
+  const verification = task.cacheActionVerification;
+  if (!verification) {
+    return undefined;
+  }
+
+  const display = cacheActionVerificationStatusDisplay[verification.status];
+  return {
+    status: verification.status,
+    statusLabel: display.statusLabel,
+    label: `AI Verify: ${display.statusLabel}`,
+    color: display.color,
+    reason: verification.reason,
+    request: {
+      ...verification.request,
+      dataDemand: JSON.stringify(verification.request.dataDemand, null, 2),
+    },
+  };
 }

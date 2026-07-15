@@ -49,6 +49,7 @@ import {
   buildDetailedLocateParam,
   parseYamlScript,
 } from '../yaml/index';
+import { setScriptPlayerInternalOptions } from '../yaml/player-internal';
 
 import { readFile } from 'node:fs/promises';
 import { basename } from 'node:path';
@@ -65,6 +66,7 @@ import {
 import { getDebug } from '@midscene/shared/logger';
 import { assert, ifInBrowser, uuid } from '@midscene/shared/utils';
 import { defineActionSleep } from '../device';
+import { findCacheActionVerificationError } from './cache-action-verifier';
 import { validateAgentCacheInput } from './cache-config';
 import { MetricsCollector, type MidsceneUsageMetrics } from './metrics';
 import { AgentProgressBus } from './progress';
@@ -122,6 +124,26 @@ type AiActInternalOptions = AiActOptions & {
   };
 };
 
+type InternalActionExecutionOptions = {
+  verifyCachedActions?: boolean;
+  bypassLocateCache?: boolean;
+};
+
+type InternalActionCaller = <T = any>(
+  type: string,
+  opt: T | undefined,
+  internalOptions: InternalActionExecutionOptions,
+) => Promise<any>;
+
+type RunYamlResult = {
+  result: Record<string, any>;
+};
+
+type InternalRunYaml = (
+  yamlScriptContent: string,
+  internalOptions: InternalActionExecutionOptions,
+) => Promise<RunYamlResult>;
+
 /**
  * Shared input option type for aiInput(), used consistently across
  * overload signatures and the implementation so fields don't drift.
@@ -157,6 +179,8 @@ export class Agent<
   onTaskStartTip?: OnTaskStartTip;
 
   taskCache?: TaskCache;
+
+  private cacheActionVerificationEnabled = false;
 
   private readonly metricsCollector = new MetricsCollector();
 
@@ -326,6 +350,7 @@ export class Agent<
     // Process cache configuration
     const cacheConfigObj = this.processCacheConfig(opts || {});
     if (cacheConfigObj) {
+      this.cacheActionVerificationEnabled = cacheConfigObj.verify === 'action';
       this.taskCache = new TaskCache(
         cacheConfigObj.id,
         cacheConfigObj.enabled,
@@ -348,6 +373,11 @@ export class Agent<
       waitAfterAction: this.opts.waitAfterAction,
       useDeviceTime: this.opts.useDeviceTime,
       actionSpace: this.fullActionSpace,
+      cacheActionVerification: this.cacheActionVerificationEnabled
+        ? {
+            resolveModelRuntime: () => this.resolveModelRuntime('insight'),
+          }
+        : undefined,
       hooks: {
         onSnapshotChange: async (runner) => {
           const executionDump = runner.dump();
@@ -668,10 +698,12 @@ export class Agent<
     };
   }
 
+  async callActionInActionSpace<T = any>(type: string, opt?: T): Promise<any>;
   async callActionInActionSpace<T = any>(
     type: string,
     opt?: T, // and all other action params
-  ) {
+    internalOptions?: InternalActionExecutionOptions,
+  ): Promise<any> {
     debug('callActionInActionSpace', type, ',', opt);
 
     const actionPlan: PlanningAction<T> = {
@@ -694,18 +726,37 @@ export class Agent<
     const defaultModel = this.resolveModelRuntime('default');
     const planningModel = this.resolveModelRuntime('planning');
 
-    const { output } = await this.taskExecutor.runPlans(
-      title,
-      plans,
-      planningModel,
-      defaultModel,
-    );
+    const execution = internalOptions
+      ? this.taskExecutor.runPlans(
+          title,
+          plans,
+          planningModel,
+          defaultModel,
+          internalOptions,
+        )
+      : this.taskExecutor.runPlans(title, plans, planningModel, defaultModel);
+    const { output } = await execution;
     return output;
+  }
+
+  private callActionInActionSpaceWithOptions<T>(
+    type: string,
+    opt: T,
+    internalOptions: InternalActionExecutionOptions,
+  ): Promise<any> {
+    const internalCall = this
+      .callActionInActionSpace as unknown as InternalActionCaller;
+    return internalCall.call(this, type, opt, internalOptions);
   }
 
   async aiTap(
     locatePrompt: TUserPrompt,
     opt?: LocateOption & { fileChooserAccept?: string | string[] },
+  ): Promise<void>;
+  async aiTap(
+    locatePrompt: TUserPrompt,
+    opt?: LocateOption & { fileChooserAccept?: string | string[] },
+    internalOptions?: InternalActionExecutionOptions,
   ): Promise<void> {
     assert(locatePrompt, 'missing locate prompt for tap');
 
@@ -716,9 +767,28 @@ export class Agent<
       : undefined;
 
     await withFileChooser(this.interface, fileChooserAccept, async () => {
-      await this.callActionInActionSpace('Tap', {
-        locate: detailedLocateParam,
-      });
+      try {
+        const actionParam = { locate: detailedLocateParam };
+        if (internalOptions) {
+          await this.callActionInActionSpaceWithOptions(
+            'Tap',
+            actionParam,
+            internalOptions,
+          );
+        } else {
+          await this.callActionInActionSpace('Tap', actionParam);
+        }
+      } catch (error) {
+        const verificationError = findCacheActionVerificationError(error);
+        if (!verificationError || internalOptions?.verifyCachedActions) {
+          throw error;
+        }
+        await this.callActionInActionSpaceWithOptions(
+          'Tap',
+          { locate: detailedLocateParam },
+          { bypassLocateCache: true },
+        );
+      }
     });
   }
 
@@ -1100,7 +1170,15 @@ export class Agent<
           );
 
           debug('matched cache, will call .runYaml to run the action');
-          await this.runYaml(yaml);
+          if (this.cacheActionVerificationEnabled) {
+            const runYamlWithInternalOptions = this
+              .runYaml as unknown as InternalRunYaml;
+            await runYamlWithInternalOptions.call(this, yaml, {
+              verifyCachedActions: true,
+            });
+          } else {
+            await this.runYaml(yaml);
+          }
           return;
         } catch (error) {
           cachedYamlFailed = true;
@@ -1423,13 +1501,16 @@ export class Agent<
     return this.aiAct(...args);
   }
 
-  async runYaml(yamlScriptContent: string): Promise<{
-    result: Record<string, any>;
-  }> {
+  async runYaml(yamlScriptContent: string): Promise<RunYamlResult>;
+  async runYaml(
+    yamlScriptContent: string,
+    internalOptions?: InternalActionExecutionOptions,
+  ): Promise<RunYamlResult> {
     const script = parseYamlScript(yamlScriptContent, 'yaml');
     const player = new ScriptPlayer(script, async () => {
       return { agent: this, freeFn: [] };
     });
+    setScriptPlayerInternalOptions(player, internalOptions);
     await player.run();
 
     if (player.status === 'error') {
@@ -1756,6 +1837,7 @@ export class Agent<
     enabled: boolean;
     readOnly: boolean;
     writeOnly: boolean;
+    verify: 'action' | false;
     cacheDir?: string;
   } | null {
     validateAgentCacheInput(opts.cache);
@@ -1782,6 +1864,7 @@ export class Agent<
         enabled: !isWriteOnly,
         readOnly: isReadOnly,
         writeOnly: isWriteOnly,
+        verify: cacheConfig.verify ?? 'action',
         cacheDir: cacheConfig.cacheDir?.trim(),
       };
     }

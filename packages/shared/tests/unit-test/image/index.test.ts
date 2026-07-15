@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import sharp from 'sharp';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import {
+  combineImagesHorizontally,
   compositePointMarkerImg,
   httpImg2Base64,
   imageInfoOfBase64,
@@ -111,6 +112,18 @@ describe('image utils', () => {
       height: 100,
     });
     expect(resizedBase64).toContain(';base64,');
+  });
+
+  it('combineImagesHorizontally places equally sized images side by side', async () => {
+    const base64 = localImg2Base64(image);
+    const combined = await combineImagesHorizontally(base64, base64, 8);
+
+    expect(combined.width).toBe(144);
+    expect(combined.height).toBe(56);
+    await expect(imageInfoOfBase64(combined.imageBase64)).resolves.toEqual({
+      width: 144,
+      height: 56,
+    });
   });
 
   it('compositePointMarkerImg keeps image dimensions and marks a point', async () => {

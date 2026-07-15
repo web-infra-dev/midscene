@@ -347,21 +347,14 @@ export function canvasWatermark(
   overlay: CanvasImage,
   x: number,
   y: number,
-): CanvasImage {
-  const canvas = document.createElement('canvas');
-  canvas.width = base.get_width();
-  canvas.height = base.get_height();
+): void {
+  const canvas = base._getCanvas();
   const ctx = canvas.getContext('2d');
   if (!ctx) {
     throw new Error('Failed to get 2d context');
   }
 
-  // Draw base image
-  ctx.drawImage(base._getCanvas(), 0, 0);
-
-  // Draw overlay at position
   ctx.drawImage(overlay._getCanvas(), x, y);
-  return new CanvasImage(canvas);
 }
 
 /**

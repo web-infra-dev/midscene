@@ -5,6 +5,7 @@ import type {
 } from '@midscene/core';
 import { describe, expect, it } from 'vitest';
 import {
+  getCacheActionVerificationDisplay,
   hasDeepLocateFlag,
   hasDeepThinkFlag,
   hasObserverAssertionFlag,
@@ -119,5 +120,72 @@ describe('report task tag flags', () => {
     } as unknown as ExecutionTask;
 
     expect(hasObserverAssertionFlag(task)).toBe(false);
+  });
+
+  it.each([
+    ['passed', 'Passed', 'success'],
+    ['failed', 'Failed', 'error'],
+    ['uncertain', 'Uncertain', 'warning'],
+  ] as const)(
+    'maps cache action verification %s to report display metadata',
+    (status, statusLabel, color) => {
+      const task = {
+        type: 'Action Space',
+        subType: 'Tap',
+        taskId: `tap-${status}`,
+        status: status === 'passed' ? 'finished' : 'failed',
+        cacheActionVerification: {
+          status,
+          reason: `${status} reason`,
+          request: {
+            actionName: 'Tap',
+            targetDescription: 'search input',
+            logicalModelRequestCount: 1,
+            screenshotCount: 2,
+            modelInputImageCount: 1,
+            verificationMode: 'focused-comparison',
+            dataDemand: {
+              status: 'status demand',
+              reason: 'reason demand',
+            },
+          },
+        },
+      } as ExecutionTask;
+
+      expect(getCacheActionVerificationDisplay(task)).toEqual({
+        status,
+        statusLabel,
+        label: `AI Verify: ${statusLabel}`,
+        color,
+        reason: `${status} reason`,
+        request: {
+          actionName: 'Tap',
+          targetDescription: 'search input',
+          logicalModelRequestCount: 1,
+          screenshotCount: 2,
+          modelInputImageCount: 1,
+          verificationMode: 'focused-comparison',
+          dataDemand: JSON.stringify(
+            {
+              status: 'status demand',
+              reason: 'reason demand',
+            },
+            null,
+            2,
+          ),
+        },
+      });
+    },
+  );
+
+  it('does not create AI Verify display metadata for old tasks', () => {
+    const task = {
+      type: 'Action Space',
+      subType: 'Tap',
+      taskId: 'tap-without-verification',
+      status: 'finished',
+    } as ExecutionTask;
+
+    expect(getCacheActionVerificationDisplay(task)).toBeUndefined();
   });
 });

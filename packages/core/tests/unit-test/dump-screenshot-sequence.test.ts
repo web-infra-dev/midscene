@@ -76,4 +76,29 @@ describe('dump serialization drops screenshotSequence', () => {
     expect(serialized).not.toContain('FRAME-B');
     expect(serialized).toContain('FRAME-C');
   });
+
+  it('persists AI Verify model input images', () => {
+    const execution = new ExecutionDump(buildExecutionDumpData());
+    const modelInput = ScreenshotItem.create(FRAME_A, 4);
+    execution.tasks[0].cacheActionVerificationImages = [
+      {
+        requestIndex: 1,
+        role: 'focused-comparison',
+        screenshot: modelInput,
+      },
+    ];
+
+    expect(execution.collectScreenshots()).toContain(modelInput);
+    expect(execution.serialize()).toContain('cacheActionVerificationImages');
+
+    const reportData: IReportActionDump = {
+      sdkVersion: '1.0.0',
+      groupName: 'ai-verify-input',
+      modelBriefs: [],
+      executions: [execution],
+    };
+    expect(
+      new ReportActionDump(reportData).serializeWithInlineScreenshots(),
+    ).toContain('FRAME-A');
+  });
 });

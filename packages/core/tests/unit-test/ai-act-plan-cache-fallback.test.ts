@@ -31,6 +31,7 @@ function getTaskCacheInternal(taskCache: TaskCache) {
 function createAgentWithPlanCache(
   yamlWorkflow = stalePlanYaml,
   prompt = 'dismiss optional popup',
+  verify?: 'action' | false,
 ) {
   const agent = new Agent(
     {
@@ -38,7 +39,7 @@ function createAgentWithPlanCache(
       actionSpace: () => [],
     } as any,
     {
-      cache: { id: uuid() },
+      cache: { id: uuid(), verify },
       generateReport: false,
       autoPrintReportMsg: false,
       modelConfig,
@@ -129,7 +130,7 @@ describe('aiAct plan cache fallback', () => {
     expect(internal.cache.caches[0].yamlWorkflow).toContain('flow: []');
   });
 
-  it('keeps using the cached YAML when it succeeds', async () => {
+  it('AI verifies cached YAML actions by default when playback succeeds', async () => {
     const { agent } = createAgentWithPlanCache();
     const taskExecutor = {
       loadYamlFlowAsPlanning: vi.fn().mockResolvedValue(undefined),
@@ -144,6 +145,56 @@ describe('aiAct plan cache fallback', () => {
     const runYaml = vi.spyOn(agent, 'runYaml').mockResolvedValue({
       result: {},
     });
+
+    await expect(
+      agent.aiAct('dismiss optional popup'),
+    ).resolves.toBeUndefined();
+
+    expect(runYaml).toHaveBeenCalledWith(stalePlanYaml, {
+      verifyCachedActions: true,
+    });
+    expect(taskExecutor.action).not.toHaveBeenCalled();
+  });
+
+  it('marks cached YAML playback so each Tap is AI verified when explicitly enabled', async () => {
+    const { agent } = createAgentWithPlanCache(
+      stalePlanYaml,
+      'dismiss optional popup',
+      'action',
+    );
+    const taskExecutor = {
+      loadYamlFlowAsPlanning: vi.fn().mockResolvedValue(undefined),
+      action: vi.fn(),
+    };
+    agent.taskExecutor = taskExecutor as any;
+    const runYaml = vi
+      .spyOn(agent, 'runYaml')
+      .mockResolvedValue({ result: {} });
+
+    await expect(
+      agent.aiAct('dismiss optional popup'),
+    ).resolves.toBeUndefined();
+
+    expect(runYaml).toHaveBeenCalledWith(stalePlanYaml, {
+      verifyCachedActions: true,
+    });
+    expect(taskExecutor.action).not.toHaveBeenCalled();
+  });
+
+  it('does not AI verify cached YAML actions when verification is explicitly disabled', async () => {
+    const { agent } = createAgentWithPlanCache(
+      stalePlanYaml,
+      'dismiss optional popup',
+      false,
+    );
+    const taskExecutor = {
+      loadYamlFlowAsPlanning: vi.fn().mockResolvedValue(undefined),
+      action: vi.fn(),
+    };
+    agent.taskExecutor = taskExecutor as any;
+    const runYaml = vi
+      .spyOn(agent, 'runYaml')
+      .mockResolvedValue({ result: {} });
 
     await expect(
       agent.aiAct('dismiss optional popup'),

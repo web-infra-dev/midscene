@@ -55,6 +55,7 @@ import type {
 } from '@/types';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import { getDebug } from '@midscene/shared/logger';
+import { getScriptPlayerInternalOptions } from './player-internal';
 import {
   buildDetailedLocateParam,
   buildDetailedLocateParamAndRestParams,
@@ -582,7 +583,18 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
       }
 
       assert(locatePrompt, 'missing prompt for aiTap');
-      await agent.aiTap(locatePrompt, opts);
+      if (getScriptPlayerInternalOptions(this)?.verifyCachedActions) {
+        const aiTapWithInternalOptions = agent.aiTap as (
+          prompt: TUserPrompt,
+          options: LocateOption | undefined,
+          internalOptions: { verifyCachedActions: true },
+        ) => Promise<void>;
+        await aiTapWithInternalOptions.call(agent, locatePrompt, opts, {
+          verifyCachedActions: true,
+        });
+      } else {
+        await agent.aiTap(locatePrompt, opts);
+      }
     } else {
       // generic action, find the action in actionSpace
 

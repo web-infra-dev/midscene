@@ -1,5 +1,6 @@
 import { buildYamlFlowFromPlans } from '@/common';
 import { ScriptPlayer } from '@/yaml/player';
+import { setScriptPlayerInternalOptions } from '@/yaml/player-internal';
 import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 
@@ -19,13 +20,16 @@ const terminateParamSchema = z.object({
  * Creates a minimal ScriptPlayer instance with given actionSpace injected,
  * then calls playTask to exercise the action dispatch logic in player.ts.
  */
-function createPlayerWithActionSpace(actionSpace: any[]) {
+function createPlayerWithActionSpace(
+  actionSpace: any[],
+  internalOptions?: { verifyCachedActions?: boolean },
+) {
   const script = { tasks: [{ name: 'test', flow: [] }] };
-  const player = new ScriptPlayer(
-    script as any,
-    async () => ({ agent: {} as any, freeFn: [] }),
-    undefined,
-  );
+  const player = new ScriptPlayer(script as any, async () => ({
+    agent: {} as any,
+    freeFn: [],
+  }));
+  setScriptPlayerInternalOptions(player, internalOptions);
   // Inject actionSpace directly (normally set during run())
   (player as any).actionSpace = actionSpace;
   return player;
@@ -499,6 +503,33 @@ describe('player action dispatch ordering', () => {
       3,
       'RunAdbShell',
       { command: 'input keyevent 3' },
+    );
+  });
+
+  it('marks aiTap calls during verified cached-plan playback', async () => {
+    const player = createPlayerWithActionSpace([], {
+      verifyCachedActions: true,
+    });
+    const agent = createMockAgent({
+      aiTap: vi.fn().mockResolvedValue(undefined),
+    });
+
+    await player.playTask(
+      {
+        name: 'test',
+        flow: [{ aiTap: 'search input' }],
+        status: 'running' as const,
+        totalSteps: 1,
+      },
+      agent,
+    );
+
+    expect(agent.aiTap).toHaveBeenCalledWith(
+      'search input',
+      {},
+      {
+        verifyCachedActions: true,
+      },
     );
   });
 });

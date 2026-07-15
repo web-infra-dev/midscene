@@ -13,6 +13,7 @@ export {
   saveBase64Image,
   paddingToMatchBlockByBase64,
   cropByRect,
+  combineImagesHorizontally,
   scaleImage,
   localImg2Base64,
   httpImg2Base64,

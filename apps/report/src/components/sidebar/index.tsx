@@ -21,6 +21,7 @@ import {
   markdownZipDownloadTooltip,
 } from '../../utils/markdown-export';
 import {
+  getCacheActionVerificationDisplay,
   hasDeepLocateFlag,
   hasDeepThinkFlag,
   hasObserverAssertionFlag,
@@ -184,6 +185,31 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
         Cache
       </Tag>
     ) : null;
+  };
+
+  const getAiVerifyTag = (task: ExecutionTaskWithSearchAreaUsage) => {
+    const verification = getCacheActionVerificationDisplay(task);
+    if (!verification) {
+      return null;
+    }
+
+    return (
+      <Tooltip title={verification.reason}>
+        <Tag
+          className="ai-verify-tag"
+          color={verification.color}
+          style={{
+            padding: '0 4px',
+            marginLeft: '4px',
+            marginRight: 0,
+            lineHeight: '16px',
+          }}
+          bordered={false}
+        >
+          {verification.label}
+        </Tag>
+      </Tooltip>
+    );
   };
 
   const getDomIncludedTag = (task: ExecutionTaskWithSearchAreaUsage) => {
@@ -635,6 +661,7 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
             <span>{taskName}</span>
             {getTitleIcon(task)}
             {getCacheTag(task)}
+            {getAiVerifyTag(task)}
             {getDomIncludedTag(task)}
             {getDeepLocateTag(task)}
             {getXPathTag(task)}

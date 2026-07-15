@@ -9,6 +9,7 @@ vi.mock('@/ai-model/workflows/planning', async (importOriginal) => {
   };
 });
 
+import { CacheActionVerificationError } from '@/agent/cache-action-verifier';
 import { TaskExecutor } from '@/agent/tasks';
 import { getModelRuntime } from '@/ai-model/models';
 import { genericXmlPlan } from '@/ai-model/workflows/planning';
@@ -401,6 +402,82 @@ describe('TaskExecutor concurrency isolation', () => {
       '',
       'Current time: 2023-10-15 15:37:00 (YYYY-MM-DD HH:mm:ss)',
     ]);
+  });
+
+  it('replans when cached action verification fails even if the plan was final', async () => {
+    let replanningFeedback = '';
+    vi.mocked(genericXmlPlan)
+      .mockResolvedValueOnce({
+        actions: [{ type: 'Noop', param: {} }],
+        yamlFlow: [],
+        shouldContinuePlanning: false,
+        log: 'use the cached target',
+        rawResponse: '',
+        finalizeSuccess: true,
+        finalizeMessage: 'done',
+      })
+      .mockImplementationOnce(async (_instruction, opts: any) => {
+        replanningFeedback = opts.conversationHistory.pendingFeedbackMessage;
+        opts.conversationHistory.resetPendingFeedbackMessageIfExists();
+        return {
+          actions: [],
+          yamlFlow: [],
+          shouldContinuePlanning: false,
+          log: 'replanned after cache verification failed',
+          rawResponse: '',
+          finalizeSuccess: true,
+          finalizeMessage: 'done after retry',
+        };
+      });
+    vi.spyOn(taskExecutor, 'convertPlanToExecutable')
+      .mockResolvedValueOnce({
+        tasks: [
+          {
+            type: 'Action Space',
+            subType: 'Noop',
+            param: {},
+            executor: async () => {
+              throw new CacheActionVerificationError(
+                {
+                  status: 'failed',
+                  reason: 'the cached target did not react',
+                  request: {
+                    actionName: 'Tap',
+                    targetDescription: 'cached target',
+                    logicalModelRequestCount: 1,
+                    screenshotCount: 2,
+                    modelInputImageCount: 1,
+                    verificationMode: 'focused-comparison',
+                    dataDemand: {
+                      status: 'status demand',
+                      reason: 'reason demand',
+                    },
+                  },
+                },
+                ['cached target'],
+              );
+            },
+          },
+        ],
+      } as any)
+      .mockResolvedValueOnce({ tasks: [] } as any);
+
+    await expect(
+      taskExecutor.action(
+        'tap cached target',
+        planningModel(),
+        defaultModel(),
+        true,
+      ),
+    ).resolves.toMatchObject({
+      output: { output: 'done after retry' },
+    });
+
+    expect(genericXmlPlan).toHaveBeenCalledTimes(2);
+    expect(taskExecutor.convertPlanToExecutable).toHaveBeenCalledTimes(2);
+    expect(replanningFeedback).toContain(
+      'Cached action verification failed: the cached target did not react',
+    );
   });
 
   it('should pass RunAdbShell planning feedback into the next planning request', async () => {

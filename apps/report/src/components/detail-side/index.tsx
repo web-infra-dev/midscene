@@ -23,6 +23,7 @@ import {
 } from '@midscene/visualizer';
 import { Tag, Tooltip } from 'antd';
 import { useState } from 'react';
+import { getCacheActionVerificationDisplay } from '../../utils/report-task-tags';
 import { isElementField, useExecutionDump } from '../store';
 
 function isPlainObject(value: unknown): value is Record<string, any> {
@@ -271,6 +272,9 @@ const DetailSide = (): JSX.Element => {
   const dump = useExecutionDump((store) => store.insightDump);
   const { matchedElement: elements } = dump || {};
   const reasoningContent = task?.reasoning_content;
+  const cacheActionVerification = task
+    ? getCacheActionVerificationDisplay(task)
+    : undefined;
 
   const aiActContextValue = (task as ExecutionTaskPlanningApply)?.param
     ?.aiActContext;
@@ -1114,6 +1118,123 @@ const DetailSide = (): JSX.Element => {
               </span>
             </summary>
             <div className="item-list">{outputDataContent}</div>
+          </details>
+        )}
+        {cacheActionVerification && (
+          <details open>
+            <summary>
+              <span className="summary-text">AI Verify</span>
+            </summary>
+            <div className="item-list">
+              <Card
+                liteMode={true}
+                title="status"
+                content={
+                  <Tag color={cacheActionVerification.color} bordered={false}>
+                    {cacheActionVerification.statusLabel}
+                  </Tag>
+                }
+              />
+              <Card
+                liteMode={true}
+                title="reason"
+                content={
+                  <pre className="description-content">
+                    {cacheActionVerification.reason}
+                  </pre>
+                }
+              />
+              <Card
+                liteMode={true}
+                title="logical model requests"
+                content={String(
+                  cacheActionVerification.request.logicalModelRequestCount,
+                )}
+              />
+              <Card
+                liteMode={true}
+                title="screenshots"
+                content={`${cacheActionVerification.request.screenshotCount} (before / after)`}
+              />
+              <Card
+                liteMode={true}
+                title="verification mode"
+                content={cacheActionVerification.request.verificationMode}
+              />
+              <Card
+                liteMode={true}
+                title="model input images"
+                content={String(
+                  cacheActionVerification.request.modelInputImageCount,
+                )}
+              />
+              {cacheActionVerification.request.fallbackReason && (
+                <Card
+                  liteMode={true}
+                  title="fallback reason"
+                  content={cacheActionVerification.request.fallbackReason}
+                />
+              )}
+              {cacheActionVerification.request.cropRect && (
+                <Card
+                  liteMode={true}
+                  title="focused crop"
+                  content={JSON.stringify(
+                    cacheActionVerification.request.cropRect,
+                  )}
+                />
+              )}
+              {cacheActionVerification.request.comparisonImageSize && (
+                <Card
+                  liteMode={true}
+                  title="comparison image"
+                  content={`${cacheActionVerification.request.comparisonImageSize.width} x ${cacheActionVerification.request.comparisonImageSize.height}`}
+                />
+              )}
+              {task?.cacheActionVerificationImages?.length ? (
+                <div className="ai-verify-input-images">
+                  <div className="title">model input images</div>
+                  {task.cacheActionVerificationImages.map((item) => (
+                    <figure
+                      className="ai-verify-input-image"
+                      key={`${item.requestIndex}-${item.role}`}
+                    >
+                      <figcaption>
+                        Request {item.requestIndex}: {item.role}
+                      </figcaption>
+                      <a
+                        href={item.screenshot.base64}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <img
+                          src={item.screenshot.base64}
+                          alt={`AI Verify request ${item.requestIndex} ${item.role}`}
+                        />
+                      </a>
+                    </figure>
+                  ))}
+                </div>
+              ) : null}
+              <Card
+                liteMode={true}
+                title="action"
+                content={cacheActionVerification.request.actionName}
+              />
+              <Card
+                liteMode={true}
+                title="target"
+                content={
+                  <pre className="description-content">
+                    {cacheActionVerification.request.targetDescription}
+                  </pre>
+                }
+              />
+              <CollapsibleCard
+                title="prompt (DATA_DEMAND)"
+                content={cacheActionVerification.request.dataDemand}
+              />
+            </div>
           </details>
         )}
         <details open>

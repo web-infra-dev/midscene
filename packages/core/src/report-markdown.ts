@@ -336,9 +336,22 @@ function appendJsonSection(
     return;
   }
 
-  lines.push('', `### ${title}`, '', '```json');
-  lines.push(JSON.stringify(sanitized, null, 2));
-  lines.push('```');
+  lines.push('', `### ${title}`, '');
+  appendJsonCodeBlock(lines, sanitized);
+}
+
+function appendJsonCodeBlock(lines: string[], value: unknown): void {
+  const json = JSON.stringify(value, null, 2);
+  if (json === undefined) {
+    return;
+  }
+
+  let longestBacktickRun = 0;
+  for (const match of json.matchAll(/`+/g)) {
+    longestBacktickRun = Math.max(longestBacktickRun, match[0].length);
+  }
+  const fence = '`'.repeat(Math.max(3, longestBacktickRun + 1));
+  lines.push(`${fence}json`, json, fence);
 }
 
 function appendTextSection(
@@ -406,6 +419,15 @@ function formatSize(
   }
 
   return `${size.width} x ${size.height}`;
+}
+
+function formatRect(rect: {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+}): string {
+  return `(${rect.left}, ${rect.top}), ${rect.width} x ${rect.height}`;
 }
 
 function extractLocateCenter(
@@ -617,6 +639,25 @@ function screenshotsMarkdownSection(
     attachments.push(imageResult.attachment);
   }
 
+  task.cacheActionVerificationImages?.forEach((item, imageIndex) => {
+    screenshotIndex += 1;
+    lines.push(
+      `- #${screenshotIndex} type=ai-verify-input, request=${item.requestIndex}, role=${item.role}`,
+    );
+    const imageResult = screenshotAttachment(
+      item.screenshot,
+      screenshotBaseDir,
+      executionIndex,
+      taskIndex,
+      {
+        fallbackIdSuffix: `ai-verify-${imageIndex + 1}`,
+        label: `task-${taskIndex + 1}-ai-verify-request-${item.requestIndex}-${item.role}`,
+      },
+    );
+    lines.push(imageResult.markdown);
+    attachments.push(imageResult.attachment);
+  });
+
   task.recorder?.forEach((item, recorderIndex) => {
     if (!item.screenshot) {
       return;
@@ -704,6 +745,38 @@ function renderExecution(
 
     if (task.errorMessage) {
       lines.push(`- Error: ${task.errorMessage}`);
+    }
+
+    if (task.cacheActionVerification) {
+      const { request } = task.cacheActionVerification;
+      lines.push('', '### AI Verify', '');
+      lines.push(`- Status: ${task.cacheActionVerification.status}`);
+      lines.push(
+        `- Reason: ${task.cacheActionVerification.reason.replace(/[\r\n]+/g, ' ')}`,
+      );
+      lines.push(
+        `- Logical model requests: ${request.logicalModelRequestCount}`,
+      );
+      lines.push(`- Screenshots: ${request.screenshotCount} (before / after)`);
+      lines.push(`- Verification mode: ${request.verificationMode}`);
+      lines.push(`- Model input images: ${request.modelInputImageCount}`);
+      if (request.fallbackReason) {
+        lines.push(`- Fallback reason: ${request.fallbackReason}`);
+      }
+      if (request.cropRect) {
+        lines.push(`- Focused crop: ${formatRect(request.cropRect)}`);
+      }
+      if (request.comparisonImageSize) {
+        lines.push(
+          `- Comparison image: ${formatSize(request.comparisonImageSize)}`,
+        );
+      }
+      lines.push(`- Action: ${request.actionName}`);
+      lines.push(
+        `- Target: ${request.targetDescription.replace(/[\r\n]+/g, ' ')}`,
+      );
+      lines.push('', '#### Prompt (DATA_DEMAND)', '');
+      appendJsonCodeBlock(lines, request.dataDemand);
     }
 
     const usageRows = usageRowsForTask(task);

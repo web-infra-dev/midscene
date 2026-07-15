@@ -9,7 +9,14 @@ describe('validateAgentCacheInput', () => {
       validateAgentCacheInput({
         id: 'custom-cache-id',
         strategy: 'read-write',
+        verify: 'action',
         cacheDir: './cache',
+      }),
+    ).not.toThrow();
+    expect(() =>
+      validateAgentCacheInput({
+        id: 'custom-cache-id',
+        verify: false,
       }),
     ).not.toThrow();
   });
@@ -55,5 +62,23 @@ describe('validateAgentCacheInput', () => {
     ).toThrow(
       'cache.strategy must be one of "read-only", "read-write", "write-only"',
     );
+  });
+
+  it('rejects unsupported cache verification mode', () => {
+    expect(() =>
+      validateAgentCacheInput({
+        id: 'custom-cache-id',
+        verify: 'workflow',
+      } as any),
+    ).toThrow('cache.verify must be false or one of "action"');
+  });
+
+  it('rejects non-string cache verification mode', () => {
+    expect(() =>
+      validateAgentCacheInput({
+        id: 'custom-cache-id',
+        verify: true,
+      } as any),
+    ).toThrow('cache.verify must be false or a string when provided');
   });
 });

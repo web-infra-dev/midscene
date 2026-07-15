@@ -85,6 +85,88 @@ describe('report-markdown', () => {
     );
   });
 
+  it('renders cached action AI verification status and reason', () => {
+    const execution: IExecutionDump = {
+      logTime: 1710000000000,
+      name: 'cache verification execution',
+      tasks: [
+        createTask({
+          cacheActionVerificationImages: [
+            {
+              requestIndex: 1,
+              role: 'focused-comparison',
+              screenshot: ScreenshotItem.create(
+                'data:image/png;base64,Zm9v',
+                1710000000050,
+              ),
+            },
+          ],
+          cacheActionVerification: {
+            status: 'passed',
+            reason:
+              'The input gained a focus ring.\rThe active state is visible.',
+            request: {
+              actionName: 'Tap',
+              targetDescription: 'search input',
+              logicalModelRequestCount: 1,
+              screenshotCount: 2,
+              modelInputImageCount: 1,
+              verificationMode: 'focused-comparison',
+              cropRect: { left: 10, top: 20, width: 700, height: 400 },
+              comparisonImageSize: { width: 1416, height: 400 },
+              dataDemand: {
+                status: 'status demand with ``` inside',
+                reason: 'reason demand',
+              },
+            },
+          },
+        }),
+      ],
+    };
+
+    const result = executionToMarkdown(execution);
+
+    expect(result.markdown).toContain('### AI Verify');
+    expect(result.markdown).toContain('- Status: passed');
+    expect(result.markdown).toContain(
+      '- Reason: The input gained a focus ring. The active state is visible.',
+    );
+    expect(result.markdown).toContain('- Logical model requests: 1');
+    expect(result.markdown).toContain('- Screenshots: 2 (before / after)');
+    expect(result.markdown).toContain(
+      '- Verification mode: focused-comparison',
+    );
+    expect(result.markdown).toContain('- Model input images: 1');
+    expect(result.markdown).toContain('- Focused crop: (10, 20), 700 x 400');
+    expect(result.markdown).toContain('- Comparison image: 1416 x 400');
+    expect(result.markdown).toContain(
+      'type=ai-verify-input, request=1, role=focused-comparison',
+    );
+    expect(result.markdown).toContain(
+      '![task-1-ai-verify-request-1-focused-comparison]',
+    );
+    expect(result.attachments).toHaveLength(1);
+    expect(result.markdown).toContain('- Action: Tap');
+    expect(result.markdown).toContain('- Target: search input');
+    expect(result.markdown).toContain('#### Prompt (DATA_DEMAND)');
+    expect(result.markdown).toContain('````json');
+    expect(result.markdown).toContain(
+      '"status": "status demand with ``` inside"',
+    );
+  });
+
+  it('does not render an empty AI Verify section for old tasks', () => {
+    const execution: IExecutionDump = {
+      logTime: 1710000000000,
+      name: 'old execution',
+      tasks: [createTask()],
+    };
+
+    expect(executionToMarkdown(execution).markdown).not.toContain(
+      '### AI Verify',
+    );
+  });
+
   it('merges all executions into one markdown and keeps file snapshot', async () => {
     const report: IReportActionDump = {
       sdkVersion: '1.0.0',
