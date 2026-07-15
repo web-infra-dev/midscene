@@ -22,105 +22,47 @@ const doubaoPointCoordinatesMeta = {
   normalizedBy: 1000,
 } as const;
 
-function parseNumbersFromBboxString(input: string): number[] {
-  return (input.match(/\d+/g) ?? []).map(Number).filter(Number.isFinite);
+const coordinateSequencePattern =
+  /(?:^|[^a-zA-Z0-9])(\d+(?:[^a-zA-Z0-9]+\d+)+)(?=$|[^a-zA-Z0-9])/g;
+
+function isFourFiniteNumberArray(input: unknown): input is number[] {
+  return (
+    Array.isArray(input) &&
+    input.length === 4 &&
+    input.every((value) => typeof value === 'number' && Number.isFinite(value))
+  );
 }
 
-function parseLeadingNumberFromString(input: string): number | undefined {
-  const match = input.match(/^\s*(\d+)/);
-  return match ? Number(match[1]) : undefined;
-}
-
-/**
- * Clean coordinate strings can contain multiple positive integers, e.g.
- * - "123 100"
- * - "123,100"
- * - "277; 664 291;"
- * Dirty strings like "345<" are handled by taking the leading number and
- * dropping the remaining array items.
- */
-function isCleanCoordinateString(input: string): boolean {
-  return /^\s*\d+(?:[\s,;]+\d+)*\s*[,;]?\s*$/.test(input);
-}
-
-function parseNumbersFromBboxArray(input: unknown[]): number[] {
-  const numbers: number[] = [];
-
-  for (const item of input) {
-    if (typeof item === 'number') {
-      numbers.push(item);
-      continue;
-    }
-
-    if (typeof item === 'string') {
-      if (isCleanCoordinateString(item)) {
-        numbers.push(...parseNumbersFromBboxString(item));
-        continue;
-      } else {
-        const leadingNumber = parseLeadingNumberFromString(item);
-        if (leadingNumber !== undefined) {
-          numbers.push(leadingNumber);
-        }
-        // Once a dirty string appears, the remaining array items usually belong
-        // to broken JSON repair output, e.g. [410, 295, 885, "345<", "/bbox>..."].
-        break;
-      }
-    }
-
-    break;
+function parseNumbersFromUnexpectedBboxStructure(input: unknown): number[] {
+  const serialized = JSON.stringify(input);
+  if (!serialized) {
+    return [];
   }
 
-  return numbers.filter(Number.isFinite);
-}
+  const sequences = Array.from(
+    serialized.matchAll(coordinateSequencePattern),
+    (match) => match[1].match(/\d+/g)?.map(Number) ?? [],
+  );
+  const longestLength = Math.max(
+    0,
+    ...sequences.map((sequence) => sequence.length),
+  );
+  const longestSequences = sequences.filter(
+    (sequence) => sequence.length === longestLength,
+  );
 
-/**
- * Some models return a tagged bbox tuple, e.g.
- * - ["bbox", [782, 541, 815, 559]]
- * - ["bbox", "782, 541, 815, 559"]
- */
-function parseNumbersFromTaggedBboxArray(input: unknown[]): number[] | null {
-  if (input.length < 2) {
-    return null;
+  if (longestSequences.length !== 1) {
+    return [];
   }
 
-  const taggedBbox = input[1];
-  if (typeof taggedBbox === 'string') {
-    return parseNumbersFromBboxString(taggedBbox);
-  }
-
-  if (Array.isArray(taggedBbox)) {
-    return parseNumbersFromBboxArray(taggedBbox);
-  }
-
-  return null;
+  return longestSequences[0];
 }
 
 export function parseDoubaoRawLocateValue(input: unknown): LocateResultValue {
   const bbox = unwrapCoordinateListLikeInput(input as any);
-  let bboxList: number[] = [];
-
-  if (typeof bbox === 'string') {
-    /**
-     * Some models return bbox as a string, e.g.
-     * - { "bbox": "[336, 163, 717, 200]" }.
-     * - { "bbox": "336, 163, 717, 200" }.
-     * - { "bbox": "336 163 717 200" }.
-     */
-    bboxList = parseNumbersFromBboxString(bbox);
-    if (bboxList.length !== 4) {
-      throw new Error(
-        `invalid bbox data string for doubao-vision mode: ${bbox}`,
-      );
-    }
-  } else if (Array.isArray(bbox)) {
-    if (typeof bbox[0] === 'string' && bbox[0].trim() === 'bbox') {
-      bboxList = parseNumbersFromTaggedBboxArray(bbox) ?? [];
-    } else {
-      bboxList = parseNumbersFromBboxArray(bbox);
-    }
-  } else {
-    bboxList = bbox as number[];
-  }
+  const bboxList = isFourFiniteNumberArray(bbox)
+    ? bbox
+    : parseNumbersFromUnexpectedBboxStructure(bbox);
 
   if (bboxList.length === 4 || bboxList.length === 5) {
     return createLocateResultValue(doubaoBboxCoordinatesMeta, [

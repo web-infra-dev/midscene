@@ -269,71 +269,175 @@ describe('doubao model adapter', () => {
     });
   });
 
-  it('parses tolerated malformed raw Doubao locate values', () => {
-    expect(parseDoubaoRawLocateValue('100 200 300 400')).toEqual({
-      coordinates: [100, 200, 300, 400],
-      coordinatesMeta: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
-    });
-    expect(parseDoubaoRawLocateValue(['100', '200', '300', '400'])).toEqual({
-      coordinates: [100, 200, 300, 400],
-      coordinatesMeta: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
-    });
-    expect(parseDoubaoRawLocateValue('100 200 300 400 ')).toEqual({
-      coordinates: [100, 200, 300, 400],
-      coordinatesMeta: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
-    });
-    expect(parseDoubaoRawLocateValue('[336, 163, 717, 200]')).toEqual({
-      coordinates: [336, 163, 717, 200],
-      coordinatesMeta: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
-    });
-    expect(parseDoubaoRawLocateValue('336,163,717,200')).toEqual({
-      coordinates: [336, 163, 717, 200],
-      coordinatesMeta: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
-    });
-    expect(parseDoubaoRawLocateValue([653, '277; 664 291;'])).toEqual({
-      coordinates: [653, 277, 664, 291],
-      coordinatesMeta: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
-    });
-    expect(parseDoubaoRawLocateValue([653, '277, 664, 291,'])).toEqual({
-      coordinates: [653, 277, 664, 291],
-      coordinatesMeta: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
-    });
-    expect(parseDoubaoRawLocateValue(['bbox', [782, 541, 815, 559]])).toEqual({
-      coordinates: [782, 541, 815, 559],
-      coordinatesMeta: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
-    });
-    expect(parseDoubaoRawLocateValue(['bbox', '782, 541, 815, 559'])).toEqual({
-      coordinates: [782, 541, 815, 559],
-      coordinatesMeta: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
-    });
-    /**
-     * Some models mix an XML-style bbox closing tag into JSON arrays, e.g.
-     * { "bbox": [410, 295, 885, 345</bbox>, "errors": [] }
-     * jsonrepair may parse it into the array shape below.
-     */
-    expect(
-      parseDoubaoRawLocateValue([
-        410,
-        295,
-        885,
-        '345<',
-        '/bbox>,\n  "errors": []\n}',
-      ]),
-    ).toEqual({
-      coordinates: [410, 295, 885, 345],
-      coordinatesMeta: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
-    });
+  it.each([
+    {
+      name: 'space-separated string',
+      input: '100 200 300 400',
+      result: {
+        coordinates: [100, 200, 300, 400],
+        coordinatesMeta: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
+      },
+    },
+    {
+      name: 'separate numeric strings',
+      input: ['100', '200', '300', '400'],
+      result: {
+        coordinates: [100, 200, 300, 400],
+        coordinatesMeta: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
+      },
+    },
+    {
+      name: 'trailing whitespace',
+      input: '100 200 300 400 ',
+      result: {
+        coordinates: [100, 200, 300, 400],
+        coordinatesMeta: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
+      },
+    },
+    {
+      name: 'bracketed coordinate string',
+      input: '[336, 163, 717, 200]',
+      result: {
+        coordinates: [336, 163, 717, 200],
+        coordinatesMeta: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
+      },
+    },
+    {
+      name: 'comma-separated string',
+      input: '336,163,717,200',
+      result: {
+        coordinates: [336, 163, 717, 200],
+        coordinatesMeta: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
+      },
+    },
+    {
+      name: 'mixed numbers and semicolon-delimited string',
+      input: [653, '277; 664 291;'],
+      result: {
+        coordinates: [653, 277, 664, 291],
+        coordinatesMeta: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
+      },
+    },
+    {
+      name: 'mixed numbers and trailing comma-delimited string',
+      input: [653, '277, 664, 291,'],
+      result: {
+        coordinates: [653, 277, 664, 291],
+        coordinatesMeta: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
+      },
+    },
+    {
+      name: 'bbox tag wrapping coordinates',
+      input: ['bbox', [782, 541, 815, 559]],
+      result: {
+        coordinates: [782, 541, 815, 559],
+        coordinatesMeta: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
+      },
+    },
+    {
+      name: 'bbox tag wrapping a coordinate string',
+      input: ['bbox', '782, 541, 815, 559'],
+      result: {
+        coordinates: [782, 541, 815, 559],
+        coordinatesMeta: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
+      },
+    },
+    {
+      name: 'JSON repair output with an XML-style closing tag',
+      input: [410, 295, 885, '345<', '/bbox>,\n  "errors": []\n}'],
+      result: {
+        coordinates: [410, 295, 885, 345],
+        coordinatesMeta: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
+      },
+    },
+    {
+      name: 'underscore-delimited bbox token from JSON repair',
+      input: ['bbox_859_773_923_808'],
+      result: {
+        coordinates: [859, 773, 923, 808],
+        coordinatesMeta: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
+      },
+    },
+    {
+      name: 'underscore-delimited bbox string',
+      input: 'bbox_859_773_923_808',
+      result: {
+        coordinates: [859, 773, 923, 808],
+        coordinatesMeta: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
+      },
+    },
+    {
+      name: 'coordinates following bbox_2d metadata',
+      input: ['bbox_2d', [650, 700, 710, 730]],
+      result: {
+        coordinates: [650, 700, 710, 730],
+        coordinatesMeta: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
+      },
+    },
+    {
+      name: 'negative sign ignored in malformed coordinate structure',
+      input: ['-100', 200, 300, 400],
+      result: {
+        coordinates: [100, 200, 300, 400],
+        coordinatesMeta: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
+      },
+    },
+    {
+      name: 'decimal coordinate split into integer tokens',
+      input: ['100.5', 200, 300, 400],
+      result: {
+        coordinates: [100, 5, 200, 300],
+        coordinatesMeta: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
+      },
+    },
+    {
+      name: 'longer coordinate sequence over shorter error-code sequence',
+      input: 'error: 500, 503; bbox_100_200_300_400',
+      result: {
+        coordinates: [100, 200, 300, 400],
+        coordinatesMeta: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
+      },
+    },
+    {
+      name: 'first bbox from a nested bbox list',
+      input: [
+        [100, 200, 300, 400],
+        [500, 600, 700, 800],
+      ],
+      result: {
+        coordinates: [100, 200, 300, 400],
+        coordinatesMeta: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
+      },
+    },
+    {
+      name: 'three-number string point fallback',
+      input: '100 200 300',
+      result: {
+        coordinates: [100, 200],
+        coordinatesMeta: { shape: 'point', order: 'xy', normalizedBy: 1000 },
+      },
+    },
+    {
+      name: 'eight-number polygon string',
+      input: '1 2 3 4 5 6 7 8',
+      result: {
+        coordinates: [1, 2, 5, 6],
+        coordinatesMeta: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
+      },
+    },
+  ])('parses malformed raw Doubao locate value: $name', ({ input, result }) => {
+    expect(parseDoubaoRawLocateValue(input)).toEqual(result);
   });
 
-  it('throws on invalid raw Doubao locate string values', () => {
-    expect(() => parseDoubaoRawLocateValue('100')).toThrow(
-      /invalid bbox data string/,
-    );
-    expect(() => parseDoubaoRawLocateValue('100 200 300')).toThrow(
-      /invalid bbox data string/,
-    );
-    expect(() => parseDoubaoRawLocateValue('1 2 3 4 5 6 7 8')).toThrow(
-      /invalid bbox data string/,
+  it.each([
+    ['without a coordinate sequence', '100'],
+    [
+      'with two equal-length coordinate sequences',
+      'first: 100 200 300 400; second: 500 600 700 800',
+    ],
+  ])('throws on raw Doubao locate values %s', (_, input) => {
+    expect(() => parseDoubaoRawLocateValue(input)).toThrow(
+      /invalid bbox data/,
     );
   });
 
