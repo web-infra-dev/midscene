@@ -61,6 +61,12 @@ interface FixtureMetadata {
   };
 }
 
+interface FixtureClickMetadata {
+  clicked: boolean;
+  buttonText: string;
+  clickedAt: string;
+}
+
 vi.setConfig({ testTimeout: 180_000, hookTimeout: 30_000 });
 
 let fixtureProcess: ChildProcess | undefined;
@@ -114,7 +120,7 @@ function fixtureExited(): boolean {
   return fixtureProcess !== undefined && fixtureProcess.exitCode !== null;
 }
 
-function startFixture(readyFile: string): void {
+function startFixture(readyFile: string, clickedFile: string): void {
   fixtureProcess = spawn(
     'powershell.exe',
     [
@@ -127,6 +133,8 @@ function startFixture(readyFile: string): void {
       FIXTURE_PATH,
       '-ReadyFile',
       readyFile,
+      '-ClickedFile',
+      clickedFile,
     ],
     {
       stdio: ['ignore', 'pipe', 'pipe'],
@@ -174,6 +182,43 @@ async function waitForFixture(readyFile: string): Promise<FixtureMetadata> {
   }
   throw new Error(
     `Timed out waiting for Windows fixture metadata. Last error: ${lastError}. Output:\n${fixtureOutput}`,
+  );
+}
+
+async function waitForFixtureClick(
+  clickedFile: string,
+): Promise<FixtureClickMetadata> {
+  const deadline = Date.now() + 15_000;
+  let lastError: unknown;
+  while (Date.now() < deadline) {
+    if (fixtureExited()) {
+      throw new Error(
+        `Windows accessibility fixture exited before receiving the click (${fixtureProcess?.exitCode}). Output:\n${fixtureOutput}`,
+      );
+    }
+    if (existsSync(clickedFile)) {
+      try {
+        const metadata = JSON.parse(
+          readFileSync(clickedFile, 'utf8').replace(/^\uFEFF/, ''),
+        ) as FixtureClickMetadata;
+        if (
+          metadata.clicked === true &&
+          metadata.buttonText === 'Cache Clicked' &&
+          metadata.clickedAt.length > 0
+        ) {
+          return metadata;
+        }
+        lastError = new Error(
+          `Invalid fixture click metadata: ${JSON.stringify(metadata)}`,
+        );
+      } catch (error) {
+        lastError = error;
+      }
+    }
+    await new Promise((resolveDelay) => setTimeout(resolveDelay, 100));
+  }
+  throw new Error(
+    `Timed out waiting for Windows fixture click metadata. Last error: ${lastError}. Output:\n${fixtureOutput}`,
   );
 }
 
@@ -255,8 +300,11 @@ async function waitForTargetNode(fixture: FixtureMetadata): Promise<{
   );
 }
 
-function saveScreenshot(base64: string): string {
-  const screenshotFile = join(DIAGNOSTICS_DIR, 'windows-desktop.png');
+function saveScreenshot(
+  base64: string,
+  fileName = 'windows-desktop.png',
+): string {
+  const screenshotFile = join(DIAGNOSTICS_DIR, fileName);
   const body = base64.replace(/^data:image\/\w+;base64,/, '');
   writeFileSync(screenshotFile, Buffer.from(body, 'base64'));
   return screenshotFile;
@@ -293,10 +341,11 @@ afterAll(() => {
 });
 
 describe.runIf(RUN_SMOKE)('Windows UIA xpath cache smoke', () => {
-  it('generates a Midscene report containing a real cache-hit locate', async () => {
+  it('generates a Midscene report whose cache-hit coordinates click the target', async () => {
     const cacheDir = mkdtempSync(join(tmpdir(), 'midscene-windows-cache-'));
     const fixtureDir = mkdtempSync(join(tmpdir(), 'midscene-winforms-'));
     const readyFile = join(fixtureDir, 'ready.json');
+    const clickedFile = join(fixtureDir, 'clicked.json');
     const cacheId = `windows-accessibility-${process.pid}`;
     const device = new ComputerDevice({ headless: false });
     let agent: ComputerAgent<ComputerDevice> | undefined;
@@ -304,7 +353,7 @@ describe.runIf(RUN_SMOKE)('Windows UIA xpath cache smoke', () => {
     mkdirSync(DIAGNOSTICS_DIR, { recursive: true });
 
     try {
-      startFixture(readyFile);
+      startFixture(readyFile, clickedFile);
       const fixture = await waitForFixture(readyFile);
       writeFileSync(
         join(DIAGNOSTICS_DIR, 'fixture-metadata.json'),
@@ -363,20 +412,19 @@ describe.runIf(RUN_SMOKE)('Windows UIA xpath cache smoke', () => {
       expect(targetPixel.green).toBeGreaterThanOrEqual(170);
       expect(targetPixel.green - targetPixel.red).toBeGreaterThanOrEqual(100);
       expect(targetPixel.green - targetPixel.blue).toBeGreaterThanOrEqual(70);
-      const cropSize = {
+      const screenshotBounds = {
+        left: Math.round(target.bounds.left),
+        top: Math.round(target.bounds.top),
         width: Math.max(1, Math.round(target.bounds.width)),
         height: Math.max(1, Math.round(target.bounds.height)),
       };
       const [targetCrop, backgroundCrop] = await Promise.all([
-        cropByRect(screenshot, {
-          left: Math.round(target.bounds.left),
-          top: Math.round(target.bounds.top),
-          ...cropSize,
-        }),
+        cropByRect(screenshot, screenshotBounds),
         cropByRect(screenshot, {
           left: 20,
           top: 20,
-          ...cropSize,
+          width: screenshotBounds.width,
+          height: screenshotBounds.height,
         }),
       ]);
       expect(targetCrop.imageBase64).not.toBe(backgroundCrop.imageBase64);
@@ -398,6 +446,9 @@ describe.runIf(RUN_SMOKE)('Windows UIA xpath cache smoke', () => {
         target.attrs.AutomationId
           ? `//*[@AutomationId='${TARGET_ID}']`
           : `//${target.type}[@Name='${TARGET_NAME}']`,
+      );
+      expect(await device.rectMatchesCacheFeature(feature)).toEqual(
+        target.bounds,
       );
 
       const cache = new TaskCache(cacheId, false, undefined, {
@@ -422,17 +473,48 @@ describe.runIf(RUN_SMOKE)('Windows UIA xpath cache smoke', () => {
         },
       });
 
-      const located = await agent.aiLocate(CACHE_PROMPT);
-      expect(located.center).toEqual(center);
-      const dump = JSON.parse(agent.dumpDataString()) as {
+      expect(existsSync(clickedFile)).toBe(false);
+      await agent.aiTap(CACHE_PROMPT);
+      const clickMetadata = await waitForFixtureClick(clickedFile);
+      writeFileSync(
+        join(DIAGNOSTICS_DIR, 'click-metadata.json'),
+        JSON.stringify(clickMetadata, null, 2),
+      );
+      const dump = JSON.parse(
+        agent.dumpDataString({ inlineScreenshots: true }),
+      ) as {
         executions: Array<{
-          tasks: Array<{ hitBy?: { from?: string } }>;
+          tasks: Array<{
+            hitBy?: { from?: string };
+            uiContext?: { screenshot?: { base64?: string } };
+            output?: {
+              element?: {
+                center?: [number, number];
+                rect?: {
+                  left: number;
+                  top: number;
+                  width: number;
+                  height: number;
+                };
+              };
+            };
+          }>;
         }>;
       };
       const cacheHits = dump.executions.flatMap((execution) =>
         execution.tasks.filter((task) => task.hitBy?.from === 'Cache'),
       );
       expect(cacheHits).toHaveLength(1);
+      expect(cacheHits[0].output?.element?.center).toEqual(center);
+      expect(cacheHits[0].output?.element?.rect).toEqual(screenshotBounds);
+      const reportScreenshot = cacheHits[0].uiContext?.screenshot?.base64;
+      expect(reportScreenshot).toBeTruthy();
+      saveScreenshot(reportScreenshot!, 'windows-report-cache-hit.png');
+      const reportTargetCrop = await cropByRect(
+        reportScreenshot!,
+        screenshotBounds,
+      );
+      expect(reportTargetCrop.imageBase64).toBe(targetCrop.imageBase64);
 
       await agent.destroy();
       const reportFile = agent.reportFile;
@@ -447,9 +529,11 @@ describe.runIf(RUN_SMOKE)('Windows UIA xpath cache smoke', () => {
           xpath,
           target: feature.target,
           bounds: target.bounds,
+          screenshotBounds,
           screenshotSize,
           targetPixel,
           screenshotFile,
+          clickMetadata,
           fixture,
           reportFile,
         }),

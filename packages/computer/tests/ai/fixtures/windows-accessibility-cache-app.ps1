@@ -1,6 +1,9 @@
 param(
   [Parameter(Mandatory = $true)]
-  [string]$ReadyFile
+  [string]$ReadyFile,
+
+  [Parameter(Mandatory = $true)]
+  [string]$ClickedFile
 )
 
 $ErrorActionPreference = 'Stop'
@@ -52,6 +55,20 @@ $button.ForeColor = [System.Drawing.Color]::Black
 $button.Location = New-Object System.Drawing.Point(190, 130)
 $button.Size = New-Object System.Drawing.Size(260, 72)
 $button.TabIndex = 0
+$button.Add_Click({
+  $button.Text = 'Cache Clicked'
+  $button.BackColor = [System.Drawing.Color]::FromArgb(59, 130, 246)
+  $metadata = [PSCustomObject]@{
+    clicked = $true
+    buttonText = $button.Text
+    clickedAt = [DateTimeOffset]::UtcNow.ToString('o')
+  }
+  [System.IO.File]::WriteAllText(
+    $ClickedFile,
+    ($metadata | ConvertTo-Json -Compress)
+  )
+  [Console]::Out.WriteLine("[WindowsCacheFixture] clicked $($metadata | ConvertTo-Json -Compress)")
+})
 $form.Controls.Add($button)
 
 $focusTimer = New-Object System.Windows.Forms.Timer
