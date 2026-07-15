@@ -17,6 +17,7 @@ import {
 } from './prompt/util';
 import { AIResponseParseError, callAI } from './service-caller/index';
 import type { JsonParser, JsonParserSource } from './service-caller/json';
+import { callAiAndParseWithRetry } from './service-caller/semantic-retry';
 import type {
   LocateResultAdapter,
   LocateResultContext,
@@ -125,7 +126,6 @@ type CallAndParsePlanningResponseOptions = {
 
 async function callAndParsePlanningResponse(
   options: CallAndParsePlanningResponseOptions,
-  retryOnParseFailure = true,
 ): Promise<{
   response: PlanningCallResponse;
   planFromAI: RawResponsePlanningAIResponse;
@@ -141,52 +141,57 @@ async function callAndParsePlanningResponse(
     locateResultAdapter,
     locateResultContext,
   } = options;
-  const response = await callAI(messages, modelRuntime, {
-    abortSignal,
-    requiresOriginalImageDetail: includeLocateInPlanning,
-  });
-  try {
-    const planFromAI = parseXMLPlanningResponse(
-      response.content,
-      modelRuntime.adapter.jsonParser,
-    );
-    if (planFromAI.action && planFromAI.finalizeSuccess !== undefined) {
-      warnLog(
-        'Planning response included both an action and <complete>; ignoring <complete> output.',
+  return callAiAndParseWithRetry({
+    callAi: () =>
+      callAI(messages, modelRuntime, {
+        abortSignal,
+        requiresOriginalImageDetail: includeLocateInPlanning,
+      }),
+    parseResponse: (response) => {
+      const planFromAI = parseXMLPlanningResponse(
+        response.content,
+        modelRuntime.adapter.jsonParser,
       );
-      planFromAI.finalizeMessage = undefined;
-      planFromAI.finalizeSuccess = undefined;
-    }
+      if (planFromAI.action && planFromAI.finalizeSuccess !== undefined) {
+        warnLog(
+          'Planning response included both an action and <complete>; ignoring <complete> output.',
+        );
+        planFromAI.finalizeMessage = undefined;
+        planFromAI.finalizeSuccess = undefined;
+      }
 
-    const actions = planFromAI.action ? [planFromAI.action] : [];
-    // Keep yamlFlow based on the model's original action params. Coordinate
-    // normalization adds runtime-only locatedPixelBbox fields afterwards.
-    const yamlFlow = buildYamlFlowFromPlans(actions, actionSpace);
-    normalizePlanningActionLocateFields(actions, {
-      actionSpace,
-      includeLocateInPlanning,
-      locateResultAdapter,
-      locateResultContext,
-    });
-    return { response, planFromAI, actions, yamlFlow };
-  } catch (parseError) {
-    if (retryOnParseFailure && !abortSignal?.aborted) {
+      const actions = planFromAI.action ? [planFromAI.action] : [];
+      // Keep yamlFlow based on the model's original action params. Coordinate
+      // normalization adds runtime-only locatedPixelBbox fields afterwards.
+      const yamlFlow = buildYamlFlowFromPlans(actions, actionSpace);
+      normalizePlanningActionLocateFields(actions, {
+        actionSpace,
+        includeLocateInPlanning,
+        locateResultAdapter,
+        locateResultContext,
+      });
+      return { response, planFromAI, actions, yamlFlow };
+    },
+    toParseError: (parseError, response) => {
+      const errorMessage =
+        parseError instanceof Error ? parseError.message : String(parseError);
+      return new AIResponseParseError(
+        `XML parse error: ${errorMessage}`,
+        response.content,
+        response.usage,
+        response.rawChoiceMessage,
+        response.reasoning_content,
+      );
+    },
+    parseRetryTimes: 1,
+    abortSignal,
+    onParseRetry: (parseError) => {
       debug(
         'retrying plan after response parsing failed: %s',
         parseError instanceof Error ? parseError.message : String(parseError),
       );
-      return callAndParsePlanningResponse(options, false);
-    }
-
-    const errorMessage =
-      parseError instanceof Error ? parseError.message : String(parseError);
-    throw new AIResponseParseError(
-      `XML parse error: ${errorMessage}`,
-      response.content,
-      response.usage,
-      response.rawChoiceMessage,
-    );
-  }
+    },
+  });
 }
 
 export async function plan(
