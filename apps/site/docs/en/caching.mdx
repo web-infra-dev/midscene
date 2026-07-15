@@ -36,7 +36,7 @@ Element location cache uses the same `cache` option as planning cache. The diffe
 | Platform | UI tree source | Element location cache support |
 | --- | --- | --- |
 | Web | Browser DOM | Supported for normal DOM nodes. |
-| Android | `uiautomator` XML | Supported when the target appears in the accessibility/UIAutomator tree. |
+| Android | YADB layout XML, with `uiautomator` XML fallback | Supported when the target appears in the Android accessibility tree. |
 | iOS | WebDriverAgent source XML | Supported when the target appears in the WDA element source. |
 | HarmonyOS | `uitest dumpLayout` JSON | Supported when the target appears in the HarmonyOS UI test tree. |
 | macOS desktop | Accessibility tree | Supported for apps that expose a usable macOS accessibility window tree. |
@@ -45,7 +45,7 @@ Element location cache uses the same `cache` option as planning cache. The diffe
 | Remote Windows over RDP | Screenshot and remote input | Native XPath cache replay is not supported by the RDP device. |
 | Other desktop environments | Platform-specific desktop tree | Not supported by the built-in xpath cache replay yet. |
 
-Internally, native platform adapters convert their tree shape into a shared `UiNode` representation with `type`, `attrs`, `bounds`, and `children`. Cache generation selects the smallest, deepest node at the located point and records a unique stable or semantic attribute as its target identity. Application roots and structural window nodes are never accepted as element targets: if an app exposes its outer window but not the control inside it, Midscene skips the XPath cache instead of replaying a click at the window center. A positional XPath may be stored as a fallback, but replay must still match that identity. If the node has no unique stable or semantic identity, Midscene skips native element caching for that locate. Missing, zero-size, ambiguous, structural-only, or identity-mismatched results fall back to AI locating.
+Internally, native platform adapters convert their tree shape into a shared `UiNode` representation with `type`, `attrs`, `bounds`, and `children`. Cache generation selects the smallest, deepest node at the located point and records a unique stable or semantic target identity. When one attribute is not unique, Midscene may use an exact pair of attributes or scope the target under a uniquely identified ancestor. Application roots and structural window nodes are never accepted as element targets: if an app exposes its outer window but not the control inside it, Midscene skips the XPath cache instead of replaying a click at the window center. A positional XPath may be stored as a fallback, but replay must still match the recorded identity. Missing, zero-size, ambiguous, structural-only, or identity-mismatched results fall back to AI locating.
 
 ### Native XPath examples
 
@@ -61,6 +61,24 @@ Each adapter normalizes its platform tree before generating XPath candidates. St
 | Linux desktop | `//*[@AccessibleId='cache-target']` or `//ATSPIPushButton[@Name='Midscene Cache Target']` |
 
 The cache entry may also contain a positional XPath such as `/UIAWindow[1]/UIAPane[1]`. This is only a fallback candidate: replay still checks the recorded target type and stable or semantic identity before accepting the match.
+
+Compound and ancestor-scoped candidates are also exact. For example, two repeated buttons may be distinguished by `//android.widget.Button[@text='Save'][@content-desc='Profile']`, or by `//*[@resource-id='profile-panel']//android.widget.Button[@text='Save']`. Values containing brackets, line breaks, or both quote types are serialized as XPath 1.0 literals, including `concat(...)` when required; they are not simplified into partial text matches.
+
+### Android accessibility compatibility
+
+Android cache generation does not branch on the UI framework. React Native, Flutter, Jetpack Compose, Lynx, classic Android Views, and hybrid WebView apps all go through the same accessibility XML to `UiNode` to XPath pipeline.
+
+| UI stack | What Midscene can cache |
+| --- | --- |
+| React Native | Controls exposed with a unique `resource-id`, `content-desc`, or `text` value. |
+| Flutter | Semantics nodes exposed as Android accessibility views, commonly with `content-desc`. |
+| Jetpack Compose | Merged or unmerged semantics that Android exposes with a stable ID or unique label. |
+| Lynx | Accessibility views and view groups with a unique semantic label or ID. |
+| WebView | DOM accessibility descendants exposed inside the WebView. The `android.webkit.WebView` shell itself is treated as structural and is not cached. |
+
+For the default display, Midscene first requests a fresh hierarchy with [YADB's `-layout` command](https://github.com/ysbing/YADB). If that fails, times out, or returns malformed XML, Midscene retries with a bounded policy and then falls back to `uiautomator dump`. Non-default displays use `uiautomator` directly because YADB layout capture currently targets display 0. Old dump files are removed before every attempt, so a failed capture cannot replay a stale application tree.
+
+Android ranks candidates as `resource-id`, then `content-desc`, then `text`, followed by exact compound identity, stable ancestor scope, and an identity-checked positional fallback. At most three candidates are retained. If the point resolves only to a scrolling container, RecyclerView/ViewPager, WebView shell, app root, duplicate label, or an unexposed inner control, Midscene does not generate an XPath cache entry.
 
 ## Cache strategies
 
@@ -386,4 +404,6 @@ When the cache is not hit or not available, the process will fall back to using 
 
 ### Get more debug logs for caching
 
-You can set the `DEBUG=midscene:cache:*` environment variable to get more debug logs for caching.
+Set `DEBUG=midscene:cache:*` to print cache diagnostics. The same messages are written under `midscene_run/log` even when console debug output is disabled.
+
+Native XPath logs include candidate generation sources such as `stable-attribute`, `compound-attributes`, and `ancestor-scoped`; replay hit or miss reasons; and target identity mismatches. Android also reports the hierarchy source (`yadb` or `uiautomator`), attempt number, duration, byte count, timeout, and malformed-tree failures. These fields distinguish “the app did not expose the control” from “tree capture failed” and “the cached identity became ambiguous.”
