@@ -1,0 +1,48 @@
+# YAML test runner overview
+
+In practice, YAML is a natural format for composing test workflows. Its declarative structure is easy for people to read, write, and review, while Agents can understand, generate, and maintain it.
+
+Real projects also need external tools and scripts for tasks such as calling business APIs, preparing data, or managing browser resources. `@midscene/test` provides extension points for registering domain Nodes, managing runtime resources, and defining execution lifecycles.
+
+These capabilities divide the work into two complementary areas:
+
+- **Test framework maintenance**: platform developers use TypeScript to connect browsers, Agents, external tools, and business APIs while managing runtime resources and lifecycles.
+- **Test case maintenance**: people or Agents compose those capabilities in YAML without writing JavaScript or depending on implementation details.
+
+## Example: validate an order refund flow
+
+Suppose an e-commerce team needs to test refunds for paid orders. Before each Case, the runner calls an order API or data script to create an order. An Agent then submits a refund in the UI and verifies the result. After each Case, the runner deletes the test order.
+
+The framework maintainer registers these capabilities as `order.prepare`, `browser.openRefundPage`, and `order.cleanup`. Test authors only need to compose them in YAML:
+
+```yaml
+beforeEach:
+  - order.prepare:
+      status: paid
+  - browser.openRefundPage: {}
+
+cases:
+  - name: A paid order supports a full refund
+    steps:
+      - aiAct: Request a refund, select the full amount, and submit
+      - aiAssert:
+          prompt: The page shows a submitted refund for the full order amount
+          message: Failed to submit the full refund request
+
+  - name: A paid order supports a partial refund
+    steps:
+      - aiAct: Request a refund, enter 10 as the amount, and submit
+      - aiAssert:
+          prompt: The page shows a submitted refund for 10
+          message: Failed to submit the partial refund request
+
+afterEach:
+  - order.cleanup: {}
+```
+
+Custom Nodes prepare data, initialize the page, and clean up resources. Midscene Nodes perform UI actions and verify results. The framework and test intent remain separate, so both areas can evolve independently.
+
+## Next steps
+
+- Read [Write and run YAML test cases](./yaml-test-cases) for Cases, Steps, lifecycles, and results.
+- Read [Extend and maintain a YAML test runner](./extend-yaml-test-runner) to register Nodes, manage runtime resources, and configure a Test Project.
