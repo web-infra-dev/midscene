@@ -1,0 +1,239 @@
+# Build a custom YAML test runner with @midscene/test
+
+`@midscene/test` lets platform developers register domain-specific Nodes, manage runtime resources, and define document lifecycles. Test authors can then maintain declarative YAML without writing TypeScript.
+
+## When to use it
+
+Use `@midscene/test` when developers own the test runtime and a larger team owns the test cases. Common uses include:
+
+- Exposing domain Nodes such as `order.create` or `refund.check`.
+- Creating and releasing browsers, Midscene Agents, database connections, or test accounts in one place.
+- Organizing smoke and regression tests across multiple YAML files.
+- Letting non-developers write and review test cases in YAML.
+
+## Quick start
+
+Install the runner and the integrations used by your project.
+
+```bash
+pnpm add -D @midscene/test @midscene/web playwright
+```
+
+Create this structure:
+
+```text
+team-test-runner/
+├── cases/
+│   └── midscene.yaml
+└── midscene.config.ts
+```
+
+The project configuration must be named `midscene.config.ts`. It directly default-exports a Test Project definition.
+
+```ts filename=midscene.config.ts
+import { defineNode } from '@midscene/test';
+import { defineTestProject } from '@midscene/test/config';
+import { createMidsceneNodes } from '@midscene/test/midscene';
+import { PlaywrightAgent } from '@midscene/web/playwright';
+import { chromium, type Browser, type Page } from 'playwright';
+
+interface ProjectContext {
+  browser: Browser;
+  page: Page;
+  agent?: PlaywrightAgent;
+}
+
+interface SetLanguageInput {
+  language: 'en' | 'zh';
+}
+
+const setLanguage = defineNode<SetLanguageInput, unknown, ProjectContext>({
+  name: 'browser.setLanguage',
+  async execute({ input, context }) {
+    const previousContext = context.page.context();
+    const browserContext = await context.browser.newContext({
+      locale: input.language === 'zh' ? 'zh-CN' : 'en-US',
+    });
+    context.page = await browserContext.newPage();
+    await previousContext.close();
+  },
+});
+
+const midsceneNodes = createMidsceneNodes<ProjectContext>({
+  getAgent: ({ context }) => {
+    context.agent ??= new PlaywrightAgent(context.page);
+    return context.agent;
+  },
+});
+
+export default defineTestProject<ProjectContext>({
+  files: {
+    include: ['cases/**/*.{yaml,yml}'],
+  },
+  nodes: [setLanguage, ...midsceneNodes],
+
+  async setupDocument({ onTeardown }) {
+    const browser = await chromium.launch({ headless: true });
+    onTeardown(() => browser.close());
+
+    const browserContext = await browser.newContext();
+    const page = await browserContext.newPage();
+    await page.goto('https://midscenejs.com');
+    return { browser, page };
+  },
+});
+```
+
+Add a YAML test document:
+
+```yaml filename=cases/midscene.yaml
+cases:
+  - name: Midscene docs follow the browser language
+    steps:
+      - browser.setLanguage:
+          language: en
+      - aiAct: Click Documentation to open the Midscene docs
+      - aiAssert:
+          prompt: The page is the English Midscene documentation
+          message: The documentation is not displayed in English
+      - browser.setLanguage:
+          language: zh
+      - aiAssert:
+          prompt: The page is the Chinese Midscene documentation
+          message: The documentation is not displayed in Chinese
+```
+
+Run the project:
+
+```bash
+pnpm exec midscene-test
+```
+
+The CLI automatically loads `midscene.config.ts`, discovers matching YAML files, and runs their Cases serially. The default result directory is:
+
+```text
+.midscene/test-results/<timestamp>-<process-id>/
+```
+
+## Core concepts
+
+```text
+Test Project
+└── Workflow Document
+    ├── Lifecycle Step
+    └── Case
+        └── Step
+            └── Node
+```
+
+- **Node**: an executable capability registered by a developer.
+- **Step**: one YAML invocation of a Node.
+- **Case**: a named test made of multiple Steps.
+- **Workflow Document**: one YAML file containing lifecycle Steps and Cases.
+- **Test Project**: the project configuration and its Workflow Documents.
+
+## Document lifecycle
+
+A Workflow Document can define lifecycle Steps around its Cases.
+
+```yaml
+beforeAll:
+  - data.prepare: Prepare document data
+
+beforeEach:
+  - browser.reset: Reset the page
+
+cases:
+  - name: Create an order
+    steps:
+      - order.create:
+          sku: midscene-mug
+
+afterEach:
+  - report.save: Save case details
+
+afterAll:
+  - data.cleanup: Delete document data
+```
+
+`setupDocument()` runs before the YAML lifecycle for each document. Register cleanup functions with `onTeardown()`; they run in reverse registration order after the document finishes.
+
+## Configure a Test Project
+
+`defineTestProject()` provides contextual types for the project fields and Document Context.
+
+```ts filename=midscene.config.ts
+export default defineTestProject<ProjectContext>({
+  root: './e2e',
+  files: {
+    include: ['cases/**/*.{yaml,yml}'],
+    exclude: ['cases/**/*.draft.yaml'],
+  },
+  nodes: [createOrder, ...midsceneNodes],
+  async setupDocument({ env, onTeardown }) {
+    const database = await connectTestDatabase(env.TEST_DATABASE_URL);
+    onTeardown(() => database.close());
+    return { database };
+  },
+});
+```
+
+The project root is selected in this order:
+
+1. The `project-directory` CLI argument.
+2. The `root` field in `midscene.config.ts`.
+3. The current working directory.
+
+`files.include` and `files.exclude` are glob patterns relative to the project root. The runner always ignores `.git`, `.midscene`, and `node_modules`.
+
+Configuration files support only the `.ts` extension. `.js`, `.cjs`, `.mts`, `.cts`, and `.tsx` are rejected. Runtime loading does not resolve `tsconfig.json` `paths`; use relative imports with an explicit `.ts` extension or package specifiers.
+
+## Run a project
+
+Run the current directory:
+
+```bash
+pnpm exec midscene-test
+```
+
+Run a specific project directory:
+
+```bash
+pnpm exec midscene-test ./e2e
+```
+
+Select a configuration path or result directory:
+
+```bash
+pnpm exec midscene-test \
+  --config ./config/midscene.config.ts \
+  --result-dir ./test-results
+```
+
+Each run writes `project.json` plus Case, Workflow Document, and collection-error details:
+
+```text
+test-results/
+├── project.json
+├── runs/
+├── documents/
+└── collection-errors/
+```
+
+The CLI exits with code `1` when a Case fails or does not run, a Workflow Document fails, or collection reports an error.
+
+## Programmatic API
+
+Use these APIs when embedding the runner in another tool:
+
+- `CaseRunner` or `createCaseRunner()` runs one object-form Case.
+- `collectWorkflowDocument()` parses and statically validates one YAML file.
+- `runWorkflowDocument()` runs one document lifecycle and its Cases.
+- `loadTestProject()` asynchronously loads a TypeScript project configuration.
+- `runTestProject()` discovers, runs, and summarizes a Test Project.
+
+The project-level APIs are exported from `@midscene/test/config`. Configuration loading is asynchronous; there is no synchronous loader.
+
+## Current limitations
+
+The runner does not currently support concurrent Cases or Workflow Documents, automatic retries, DAGs, branches, loops, Step parallelism, or remote YAML sources.

@@ -9,8 +9,12 @@ import {
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { discoverWorkflowFiles, runWorkflowProject } from '../src/cli';
-import { parseWorkflowCliArgs } from '../src/cli/workflow-command';
+import {
+  discoverTestConfig,
+  discoverTestFiles,
+  runTestProject,
+} from '../src/cli';
+import { parseTestCliArgs } from '../src/cli/test-command';
 
 interface RunnerState {
   configLoads: number;
@@ -25,7 +29,7 @@ interface RunnerState {
 const directories: string[] = [];
 
 const createProject = (): string => {
-  const root = mkdtempSync(join(tmpdir(), 'midscene-workflow-runner-'));
+  const root = mkdtempSync(join(tmpdir(), 'midscene-test-runner-'));
   directories.push(root);
   return root;
 };
@@ -46,18 +50,49 @@ const setRunnerState = (resultDir: string): RunnerState => {
     collectionCompletedBeforeSetup: [],
     resultDir,
   };
-  (globalThis as Record<string, unknown>).__workflowRunnerState = state;
+  (globalThis as Record<string, unknown>).__testProjectRunnerState = state;
   return state;
 };
 
 afterEach(() => {
-  (globalThis as Record<string, unknown>).__workflowRunnerState = undefined;
+  (globalThis as Record<string, unknown>).__testProjectRunnerState = undefined;
   for (const directory of directories.splice(0)) {
     rmSync(directory, { recursive: true, force: true });
   }
 });
 
-describe('workflow main-process runner', () => {
+describe('test project main-process runner', () => {
+  it('discovers only midscene.config.ts', () => {
+    const root = createProject();
+    const configPath = join(root, 'midscene.config.ts');
+    writeFileSync(configPath, 'export default { nodes: [] };');
+
+    expect(discoverTestConfig(root)).toBe(configPath);
+  });
+
+  it.each(['js', 'cjs', 'mts', 'cts', 'tsx'])(
+    'rejects a midscene.config.%s discovery candidate',
+    (extension) => {
+      const root = createProject();
+      writeFileSync(
+        join(root, 'midscene.config.ts'),
+        'export default { nodes: [] };',
+      );
+      writeFileSync(join(root, `midscene.config.${extension}`), 'unsupported');
+
+      expect(() => discoverTestConfig(root)).toThrow(
+        'Only midscene.config.ts is supported.',
+      );
+    },
+  );
+
+  it('does not discover the removed config name', () => {
+    const root = createProject();
+    writeFileSync(join(root, 'midscene.workflow.config.cjs'), 'unsupported');
+
+    expect(discoverTestConfig(root)).toBeUndefined();
+  });
+
   it('discovers YAML recursively in deterministic order', () => {
     const root = createProject();
     mkdirSync(join(root, '.hidden'));
@@ -70,7 +105,7 @@ describe('workflow main-process runner', () => {
     writeFileSync(join(root, 'notes.txt'), 'not yaml');
 
     expect(
-      discoverWorkflowFiles(root).map((file) => file.slice(root.length + 1)),
+      discoverTestFiles(root).map((file) => file.slice(root.length + 1)),
     ).toEqual(['.hidden/b.YAML', 'nested/a.yaml', 'z.yml']);
   });
 
@@ -83,7 +118,7 @@ describe('workflow main-process runner', () => {
     writeWorkflow(root, '.midscene/ignored.yaml', 'cases: []');
 
     expect(
-      discoverWorkflowFiles(root, {
+      discoverTestFiles(root, {
         include: ['flows/**/*.yaml', 'flows/**/*.{yaml,yml}'],
         exclude: ['**/*.draft.yml'],
       }).map((file) => file.slice(root.length + 1)),
@@ -93,27 +128,36 @@ describe('workflow main-process runner', () => {
   it('fails when the final file selection matches no workflow YAML', async () => {
     const cwd = createProject();
     writeFileSync(
-      join(cwd, 'midscene.workflow.config.cjs'),
-      `module.exports = {
+      join(cwd, 'midscene.config.ts'),
+      `export default {
         files: { include: ['missing/**/*.yaml'] },
         nodes: [],
       };`,
     );
 
-    await expect(runWorkflowProject({ cwd })).rejects.toThrow(
+    await expect(runTestProject({ cwd })).rejects.toThrow(
       `No workflow YAML files found in ${cwd}.`,
     );
+  });
+
+  it('uses the test results directory by default', async () => {
+    const root = createProject();
+    writeWorkflow(root, 'empty.yaml', 'cases: []');
+
+    const result = await runTestProject({ projectRoot: root });
+
+    expect(result.resultDir).toContain(join(root, '.midscene', 'test-results'));
   });
 
   it('fails when config root does not point to a directory', async () => {
     const cwd = createProject();
     writeFileSync(
-      join(cwd, 'midscene.workflow.config.cjs'),
-      `module.exports = { root: './missing', nodes: [] };`,
+      join(cwd, 'midscene.config.ts'),
+      `export default { root: './missing', nodes: [] };`,
     );
 
-    await expect(runWorkflowProject({ cwd })).rejects.toThrow(
-      `Workflow project root does not exist or is not a directory: ${join(
+    await expect(runTestProject({ cwd })).rejects.toThrow(
+      `Test project root does not exist or is not a directory: ${join(
         cwd,
         'missing',
       )}`,
@@ -128,9 +172,9 @@ describe('workflow main-process runner', () => {
     mkdirSync(configuredRoot);
     mkdirSync(configDirectory);
     writeFileSync(
-      join(configDirectory, 'midscene.workflow.config.cjs'),
+      join(configDirectory, 'midscene.config.ts'),
       `
-        module.exports = {
+        export default {
           root: '../e2e',
           files: {
             include: ['selected/**/*.yaml'],
@@ -152,9 +196,9 @@ describe('workflow main-process runner', () => {
     );
     writeWorkflow(cwd, 'outside.yaml', 'cases: invalid');
 
-    const result = await runWorkflowProject({
+    const result = await runTestProject({
       cwd,
-      configPath: 'config/midscene.workflow.config.cjs',
+      configPath: 'config/midscene.config.ts',
       resultDir,
     });
 
@@ -186,9 +230,9 @@ describe('workflow main-process runner', () => {
     mkdirSync(configuredRoot);
     mkdirSync(overrideRoot);
     writeFileSync(
-      join(cwd, 'midscene.workflow.config.cjs'),
+      join(cwd, 'midscene.config.ts'),
       `
-        module.exports = {
+        export default {
           root: './configured',
           nodes: [{ name: 'noop', execute() {} }],
         };
@@ -205,10 +249,10 @@ describe('workflow main-process runner', () => {
       'cases: [{ name: override, steps: [{ noop: run }] }]',
     );
 
-    const result = await runWorkflowProject({
+    const result = await runTestProject({
       cwd,
       projectRoot: './override',
-      configPath: '../midscene.workflow.config.cjs',
+      configPath: '../midscene.config.ts',
       resultDir,
     });
 
@@ -229,8 +273,8 @@ describe('workflow main-process runner', () => {
     const resultDir = join(root, 'results');
     const progress: string[] = [];
     writeFileSync(
-      join(root, 'midscene.workflow.config.cjs'),
-      `module.exports = {
+      join(root, 'midscene.config.ts'),
+      `export default {
         nodes: [{ name: 'noop', execute() {} }],
       };`,
     );
@@ -253,14 +297,14 @@ afterAll:
 `,
     );
 
-    await runWorkflowProject({
+    await runTestProject({
       projectRoot: root,
       resultDir,
       onProgress: (message) => progress.push(message),
     });
 
     expect(progress).toEqual([
-      'midscene-workflow: collected 1 documents, 1 cases, 0 collection errors',
+      'midscene-test: collected 1 documents, 1 cases, 0 collection errors',
       '[document 1/1] progress.yaml',
       '  → beforeAll 1/1: noop',
       expect.stringMatching(/^ {2}✓ beforeAll 1\/1: noop \(\d+ ms\)$/),
@@ -283,11 +327,11 @@ afterAll:
     const resultDir = join(root, 'results');
     const state = setRunnerState(resultDir);
     writeFileSync(
-      join(root, 'midscene.workflow.config.cjs'),
+      join(root, 'midscene.config.ts'),
       `
-        const { existsSync } = require('node:fs');
-        const { join } = require('node:path');
-        const state = globalThis.__workflowRunnerState;
+        import { existsSync } from 'node:fs';
+        import { join } from 'node:path';
+        const state = globalThis.__testProjectRunnerState;
         state.configLoads += 1;
         const node = {
           name: 'test.record',
@@ -303,7 +347,7 @@ afterAll:
             if (input.fail) throw new Error('controlled failure');
           },
         };
-        module.exports = {
+        export default {
           nodes: [node],
           setupDocument({ sourcePath, onTeardown }) {
             state.collectionCompletedBeforeSetup.push(
@@ -354,7 +398,7 @@ cases:
 
     const beforeSigint = process.listenerCount('SIGINT');
     const beforeSigterm = process.listenerCount('SIGTERM');
-    const result = await runWorkflowProject({ projectRoot: root, resultDir });
+    const result = await runTestProject({ projectRoot: root, resultDir });
 
     expect(state.configLoads).toBe(1);
     expect(state.maxActive).toBe(1);
@@ -415,10 +459,10 @@ cases:
     const resultDir = join(root, 'results');
     const state = setRunnerState(resultDir);
     writeFileSync(
-      join(root, 'midscene.workflow.config.cjs'),
+      join(root, 'midscene.config.ts'),
       `
-        const state = globalThis.__workflowRunnerState;
-        module.exports = {
+        const state = globalThis.__testProjectRunnerState;
+        export default {
           nodes: [
             { name: 'body', execute() { state.events.push('body'); } },
             {
@@ -458,7 +502,7 @@ afterAll:
 `,
     );
 
-    const result = await runWorkflowProject({ projectRoot: root, resultDir });
+    const result = await runTestProject({ projectRoot: root, resultDir });
 
     expect(state.events).toEqual([
       'setupDocument',
@@ -499,17 +543,17 @@ afterAll:
       '--retry',
       '--bail',
     ]) {
-      expect(() => parseWorkflowCliArgs([option], '/workspace')).toThrow(
+      expect(() => parseTestCliArgs([option], '/workspace')).toThrow(
         `Unknown option: ${option}`,
       );
     }
-    expect(parseWorkflowCliArgs(['project'], '/workspace')).toEqual({
+    expect(parseTestCliArgs(['project'], '/workspace')).toEqual({
       cwd: '/workspace',
       projectRoot: '/workspace/project',
       configPath: undefined,
       resultDir: undefined,
     });
-    expect(parseWorkflowCliArgs([], '/workspace')).toEqual({
+    expect(parseTestCliArgs([], '/workspace')).toEqual({
       cwd: '/workspace',
       projectRoot: undefined,
       configPath: undefined,

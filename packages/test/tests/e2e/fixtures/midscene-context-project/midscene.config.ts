@@ -1,7 +1,7 @@
-const { appendFileSync } = require('node:fs');
-const { defineNode } = require('@midscene/test');
-const { defineWorkflowProject } = require('@midscene/test/config');
-const { createMidsceneNodes } = require('@midscene/test/midscene');
+import { appendFileSync } from 'node:fs';
+import { defineNode } from '@midscene/test';
+import { defineTestProject } from '@midscene/test/config';
+import { createMidsceneNodes } from '@midscene/test/midscene';
 
 const log = (value) => {
   const path = process.env.WORKFLOW_E2E_LOG;
@@ -33,7 +33,7 @@ const midsceneNodes = createMidsceneNodes({
 });
 let documentCount = 0;
 
-module.exports = defineWorkflowProject({
+export default defineTestProject({
   nodes: [documentLifecycle, startAttempt, ...midsceneNodes],
 
   async setupDocument({ sourcePath, onTeardown }) {

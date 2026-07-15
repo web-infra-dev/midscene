@@ -15,7 +15,7 @@
 在仓库根目录运行：
 
 ```bash
-packages/test/bin/midscene-workflow packages/test/example/web-midscene
+packages/test/bin/midscene-test packages/test/example/web-midscene
 ```
 
 命令行会实时输出文档、用例、生命周期和步骤的执行进度。运行结果保存在当前项目的 `.midscene` 目录中。

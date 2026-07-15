@@ -1374,6 +1374,9 @@ importers:
       tinyglobby:
         specifier: 0.2.15
         version: 0.2.15
+      tsx:
+        specifier: ^4.19.2
+        version: 4.19.2
     devDependencies:
       '@midscene/web':
         specifier: workspace:*

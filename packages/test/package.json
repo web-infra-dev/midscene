@@ -12,7 +12,7 @@
   "module": "./dist/es/index.mjs",
   "types": "./dist/types/index.d.ts",
   "bin": {
-    "midscene-workflow": "./bin/midscene-workflow"
+    "midscene-test": "./bin/midscene-test"
   },
   "exports": {
     ".": {
@@ -36,11 +36,13 @@
     "build": "rslib build",
     "build:watch": "rslib build --watch --no-clean",
     "test": "vitest --run",
+    "test:types": "tsc -p tests/types/tsconfig.json",
     "e2e": "pnpm run build && vitest --run --config vitest.e2e.config.ts"
   },
   "dependencies": {
     "js-yaml": "4.1.0",
-    "tinyglobby": "0.2.15"
+    "tinyglobby": "0.2.15",
+    "tsx": "^4.19.2"
   },
   "devDependencies": {
     "@midscene/web": "workspace:*",

@@ -4,14 +4,14 @@ import type {
 } from '../engine/types';
 import type { WorkflowError } from '../errors';
 
-export type ProjectCaseRunResult = CaseRunOutcome;
+export type TestProjectCaseRunResult = CaseRunOutcome;
 
-export interface WorkflowCollectionError {
+export interface TestProjectCollectionError {
   sourcePath: string;
   error: WorkflowError;
 }
 
-export interface WorkflowProjectRunSummary {
+export interface TestProjectRunSummary {
   total: number;
   passed: number;
   failed: number;
@@ -20,12 +20,12 @@ export interface WorkflowProjectRunSummary {
   documentFailures: number;
 }
 
-export interface WorkflowProjectRunResult {
+export interface TestProjectRunResult {
   status: 'success' | 'failed';
   exitCode: 0 | 1;
   resultDir: string;
-  summary: WorkflowProjectRunSummary;
-  cases: readonly ProjectCaseRunResult[];
+  summary: TestProjectRunSummary;
+  cases: readonly TestProjectCaseRunResult[];
   documents: readonly WorkflowDocumentRunResult[];
-  collectionErrors: readonly WorkflowCollectionError[];
+  collectionErrors: readonly TestProjectCollectionError[];
 }

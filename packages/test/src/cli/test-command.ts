@@ -1,22 +1,22 @@
 import { resolve } from 'node:path';
-import { runWorkflowProject } from './workflow-runner';
+import { runTestProject } from './test-project-runner';
 
-export interface WorkflowCliIO {
+export interface TestCliIO {
   log(message: string): void;
   error(message: string): void;
 }
 
-interface ParsedWorkflowArgs {
+interface ParsedTestArgs {
   cwd: string;
   projectRoot?: string;
   configPath?: string;
   resultDir?: string;
 }
 
-export const parseWorkflowCliArgs = (
+export const parseTestCliArgs = (
   args: string[],
   cwd = process.cwd(),
-): ParsedWorkflowArgs => {
+): ParsedTestArgs => {
   let projectRoot: string | undefined;
   let configPath: string | undefined;
   let resultDir: string | undefined;
@@ -25,7 +25,7 @@ export const parseWorkflowCliArgs = (
     const arg = args[index];
     if (!arg.startsWith('-')) {
       if (projectRoot)
-        throw new Error('Only one workflow project directory is allowed.');
+        throw new Error('Only one test project directory is allowed.');
       projectRoot = resolve(cwd, arg);
       continue;
     }
@@ -48,18 +48,18 @@ export const parseWorkflowCliArgs = (
   };
 };
 
-export async function runWorkflowCli(
+export async function runTestCli(
   args: string[],
-  io: WorkflowCliIO = console,
+  io: TestCliIO = console,
 ): Promise<number> {
   try {
-    const options = parseWorkflowCliArgs(args);
-    const result = await runWorkflowProject({
+    const options = parseTestCliArgs(args);
+    const result = await runTestProject({
       ...options,
       onProgress: (message) => io.log(message),
     });
     io.log(
-      `midscene-workflow: ${result.summary.passed}/${result.summary.total} cases passed, ${result.summary.failed} failed, ${result.summary.notRun} not run`,
+      `midscene-test: ${result.summary.passed}/${result.summary.total} cases passed, ${result.summary.failed} failed, ${result.summary.notRun} not run`,
     );
     io.log(`Results: ${result.resultDir}`);
     return result.exitCode;
