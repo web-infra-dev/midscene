@@ -167,6 +167,7 @@ export async function prepareMacosScreenCapture(
 ): Promise<string> {
   const diagnostics: string[] = [];
   let acceptedPrompt = false;
+  let consecutiveAbsentChecks = 0;
 
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
     await device.screenshotBase64();
@@ -178,10 +179,16 @@ export async function prepareMacosScreenCapture(
       throw new Error(diagnostics.join('\n'));
     }
     if (result.status === 'absent') {
-      return diagnostics.join('\n');
+      consecutiveAbsentChecks += 1;
+      if (acceptedPrompt || consecutiveAbsentChecks >= 2) {
+        return diagnostics.join('\n');
+      }
+      await new Promise((resolve) => setTimeout(resolve, PROMPT_SETTLE_MS));
+      continue;
     }
 
     acceptedPrompt = true;
+    consecutiveAbsentChecks = 0;
     await new Promise((resolve) => setTimeout(resolve, PROMPT_SETTLE_MS));
   }
 
