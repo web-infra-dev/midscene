@@ -6,6 +6,7 @@ import {
   StepTimeoutError,
   createCaseRunner,
   defineNode,
+  z,
 } from '../src';
 
 afterEach(() => {
@@ -133,6 +134,81 @@ describe('CaseRunner', () => {
     await expect(runner.run({ steps: [{ [node.name]: {} }] })).rejects.toBe(
       validationError,
     );
+  });
+
+  it('parses schema input before execution and passes the inferred output', async () => {
+    const execute = vi.fn();
+    const inputSchema = z.strictObject({
+      count: z.coerce.number().int().default(1),
+      label: z.string().transform((value) => value.toUpperCase()),
+    });
+    const node = defineNode({
+      name: 'schema.node',
+      inputSchema,
+      execute(ctx) {
+        execute(ctx.input);
+      },
+    });
+    const runner = new CaseRunner({ nodes: [node] });
+
+    await runner.run({
+      steps: [{ [node.name]: { count: '2', label: 'ready' } }],
+    });
+
+    expect(execute).toHaveBeenCalledWith({ count: 2, label: 'READY' });
+  });
+
+  it('normalizes Zod issues without exposing the complete input', async () => {
+    const execute = vi.fn();
+    const node = defineNode({
+      name: 'validated.node',
+      inputSchema: z.strictObject({ count: z.number().positive() }),
+      execute,
+    });
+    const runner = new CaseRunner({ nodes: [node] });
+
+    let received: unknown;
+    try {
+      await runner.run({
+        steps: [
+          {
+            [node.name]: {
+              count: -1,
+              secret: 'must-not-appear-in-the-error',
+            },
+          },
+        ],
+      });
+    } catch (error) {
+      received = error;
+    }
+
+    expect(received).toBeInstanceOf(NodeInputValidationError);
+    expect(received).toMatchObject({
+      code: 'NODE_INPUT_VALIDATION_ERROR',
+      details: { node: 'validated.node', issues: expect.any(Array) },
+    });
+    expect(JSON.stringify(received)).not.toContain(
+      'must-not-appear-in-the-error',
+    );
+    expect(execute).not.toHaveBeenCalled();
+  });
+
+  it('supports asynchronous schema refinements', async () => {
+    const execute = vi.fn();
+    const node = defineNode({
+      name: 'async-schema.node',
+      inputSchema: z.strictObject({
+        value: z.string().refine(async (value) => value === 'accepted'),
+      }),
+      execute,
+    });
+    const runner = new CaseRunner({ nodes: [node] });
+
+    await expect(
+      runner.run({ steps: [{ [node.name]: { value: 'rejected' } }] }),
+    ).rejects.toBeInstanceOf(NodeInputValidationError);
+    expect(execute).not.toHaveBeenCalled();
   });
 
   it('aborts and fails a timed out node even if it never settles', async () => {

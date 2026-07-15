@@ -1,5 +1,6 @@
 import {
   NodeExecutionError,
+  NodeInputValidationError,
   StepTimeoutError,
   normalizeNodeExecutionError,
 } from '../errors';
@@ -118,6 +119,21 @@ type StepExecutionTarget =
   | { scope: 'case'; case: NodeCaseContext }
   | { scope: 'document'; document: NodeDocumentContext };
 
+async function parseNodeInput<TInput, TData, TContext>(
+  node: NodeDefinition<TInput, TData, TContext>,
+  input: Record<string, unknown>,
+): Promise<TInput & CommonNodeInput> {
+  if (!node.inputSchema) {
+    return input as TInput & CommonNodeInput;
+  }
+
+  const parsed = await node.inputSchema.safeParseAsync(input);
+  if (!parsed.success) {
+    throw NodeInputValidationError.fromZod(node.name, parsed.error);
+  }
+  return parsed.data as TInput & CommonNodeInput;
+}
+
 export async function executeStep<
   TInput = unknown,
   TOutputData = unknown,
@@ -135,9 +151,10 @@ export async function executeStep<
 
   return executeNode<TOutputData>(
     step,
-    (signal) => {
+    async (signal) => {
+      const input = await parseNodeInput(node, step.input);
       const common = {
-        input: step.input as TInput & CommonNodeInput,
+        input,
         $: step.meta,
         signal,
         context,
