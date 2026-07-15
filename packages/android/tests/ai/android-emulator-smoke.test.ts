@@ -27,6 +27,7 @@ const SYSTEM_ERROR_DIALOG_ACTION_IDS = [
 ] as const;
 const POLL_INTERVAL_MS = 500;
 const TARGET_TIMEOUT_MS = 30_000;
+const UI_DUMP_MAX_ATTEMPTS = 3;
 
 interface Bounds {
   left: number;
@@ -60,13 +61,48 @@ function sleep(timeMs: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, timeMs));
 }
 
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+function isTransientAdbTransportError(error: unknown): boolean {
+  return /device offline|device unauthorized|no devices\/emulators found/i.test(
+    errorMessage(error),
+  );
+}
+
+function isRetryableUiDumpError(error: unknown): boolean {
+  return (
+    isTransientAdbTransportError(error) ||
+    /No such file or directory|empty uiautomator dump/i.test(
+      errorMessage(error),
+    )
+  );
+}
+
 async function dumpUiautomatorXml(adb: ADB): Promise<string> {
-  await adb.shell(`uiautomator dump --compressed ${UI_DUMP_PATH}`);
-  const xml = await adb.shell(`cat ${UI_DUMP_PATH}`);
-  if (typeof xml !== 'string' || xml.trim().length === 0) {
-    throw new Error('Android emulator returned an empty uiautomator dump');
+  for (let attempt = 1; attempt <= UI_DUMP_MAX_ATTEMPTS; attempt += 1) {
+    try {
+      await adb.shell(`rm -f ${UI_DUMP_PATH}`);
+      await adb.shell(`uiautomator dump --compressed ${UI_DUMP_PATH}`);
+      const xml = await adb.shell(`cat ${UI_DUMP_PATH}`);
+      if (typeof xml !== 'string' || xml.trim().length === 0) {
+        throw new Error('Android emulator returned an empty uiautomator dump');
+      }
+      return xml;
+    } catch (error) {
+      if (attempt === UI_DUMP_MAX_ATTEMPTS || !isRetryableUiDumpError(error)) {
+        throw error;
+      }
+      if (isTransientAdbTransportError(error)) {
+        await adb.waitForDevice(15);
+      } else {
+        await sleep(POLL_INTERVAL_MS);
+      }
+    }
   }
-  return xml;
+
+  throw new Error('UI dump retry loop completed without a result');
 }
 
 function boundsForResourceId(xml: string, resourceId: string): Bounds[] {
