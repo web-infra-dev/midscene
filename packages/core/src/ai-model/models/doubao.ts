@@ -22,6 +22,11 @@ const doubaoPointCoordinatesMeta = {
   normalizedBy: 1000,
 } as const;
 
+/**
+ * Finds a sequence of numbers separated by punctuation or whitespace in a
+ * string. Separators cannot be letters, which prevents extracting the `2` in
+ * a mixed alphanumeric token such as `bbox_2d` as a coordinate.
+ */
 const coordinateSequencePattern =
   /(?:^|[^a-zA-Z0-9])(\d+(?:[^a-zA-Z0-9]+\d+)+)(?=$|[^a-zA-Z0-9])/g;
 
