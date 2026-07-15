@@ -19,3 +19,4 @@ export {
 } from './xpath-query';
 export type { XmlElement } from './parse-xml';
 export { parseXml } from './parse-xml';
+export { isNativeXpathCacheEnabled } from './feature-flag';

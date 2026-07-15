@@ -1,3 +1,4 @@
+import { MIDSCENE_EXPERIMENTAL_NATIVE_XPATH_CACHE } from '@midscene/shared/env';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { HarmonyDeviceInputOpt } from '../../src/device';
 
@@ -62,6 +63,7 @@ describe('HarmonyDevice', () => {
   let device: InstanceType<typeof HarmonyDevice>;
 
   beforeEach(() => {
+    vi.stubEnv(MIDSCENE_EXPERIMENTAL_NATIVE_XPATH_CACHE, '1');
     vi.clearAllMocks();
     mockHdc.getScreenInfo.mockResolvedValue({ width: 1216, height: 2688 });
     device = new HarmonyDevice('test-device-id');
@@ -71,6 +73,7 @@ describe('HarmonyDevice', () => {
     if (device) {
       await device.destroy();
     }
+    vi.unstubAllEnvs();
   });
 
   describe('constructor', () => {
@@ -151,6 +154,16 @@ describe('HarmonyDevice', () => {
   });
 
   describe('xpath cache', () => {
+    it('does not read the hierarchy when native xpath cache is disabled', async () => {
+      vi.stubEnv(MIDSCENE_EXPERIMENTAL_NATIVE_XPATH_CACHE, '0');
+
+      await expect(device.cacheFeatureForPoint([10, 20])).resolves.toEqual({});
+      await expect(device.rectMatchesCacheFeature({})).rejects.toThrow(
+        'Native XPath cache is disabled',
+      );
+      expect(mockHdc.dumpLayout).not.toHaveBeenCalled();
+    });
+
     it('does not cache a window when its inner target is not exposed', async () => {
       mockHdc.dumpLayout.mockResolvedValueOnce(
         JSON.stringify({

@@ -21,6 +21,7 @@ import {
   type UiNode,
   type XpathCandidateOptions,
   generateXpathCacheFeature,
+  isNativeXpathCacheEnabled,
   matchRectByXpathCache,
 } from '@midscene/core/device-cache';
 import { sleep } from '@midscene/core/utils';
@@ -1350,6 +1351,10 @@ $g.Dispose(); $bmp.Dispose(); $ms.Dispose()
   async cacheFeatureForPoint(
     center: [number, number],
   ): Promise<ElementCacheFeature> {
+    if (!isNativeXpathCacheEnabled()) {
+      debugDevice('cacheFeatureForPoint: native xpath cache is disabled');
+      return {};
+    }
     const attributes = DESKTOP_CACHE_ATTRIBUTES[process.platform];
     if (!attributes) {
       debugDevice(
@@ -1376,6 +1381,9 @@ $g.Dispose(); $bmp.Dispose(); $ms.Dispose()
   }
 
   async rectMatchesCacheFeature(feature: ElementCacheFeature): Promise<Rect> {
+    if (!isNativeXpathCacheEnabled()) {
+      throw new Error('Native XPath cache is disabled');
+    }
     if (!DESKTOP_CACHE_ATTRIBUTES[process.platform]) {
       throw new Error(
         `rectMatchesCacheFeature: native xpath cache is not supported on ${process.platform} for ComputerDevice`,

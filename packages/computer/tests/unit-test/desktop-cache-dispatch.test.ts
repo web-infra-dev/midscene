@@ -1,5 +1,6 @@
 import type { ElementCacheFeature } from '@midscene/core';
 import type { UiNode } from '@midscene/core/device-cache';
+import { MIDSCENE_EXPERIMENTAL_NATIVE_XPATH_CACHE } from '@midscene/shared/env';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockState = vi.hoisted(() => {
@@ -135,15 +136,31 @@ async function createConnectedDevice(displayId?: string) {
 }
 
 beforeEach(() => {
+  vi.stubEnv(MIDSCENE_EXPERIMENTAL_NATIVE_XPATH_CACHE, '1');
   mockState.reset();
 });
 
 afterEach(() => {
   setPlatform(originalPlatform);
   vi.resetModules();
+  vi.unstubAllEnvs();
 });
 
 describe('ComputerDevice desktop xpath cache dispatch', () => {
+  it('does not read accessibility trees when native xpath cache is disabled', async () => {
+    const device = await createConnectedDevice();
+    vi.stubEnv(MIDSCENE_EXPERIMENTAL_NATIVE_XPATH_CACHE, '0');
+
+    await expect(device.cacheFeatureForPoint([150, 100])).resolves.toEqual({});
+    await expect(device.rectMatchesCacheFeature({})).rejects.toThrow(
+      'Native XPath cache is disabled',
+    );
+    expect(mockState.readDarwinAccessibilityTree).not.toHaveBeenCalled();
+    expect(mockState.readWindowsAccessibilityTree).not.toHaveBeenCalled();
+    expect(mockState.readLinuxAccessibilityTree).not.toHaveBeenCalled();
+    await device.destroy();
+  });
+
   it('uses the Windows active HWND and UIA attributes', async () => {
     const device = await createConnectedDevice();
     setPlatform('win32');

@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import type { ExecutorContext } from '@midscene/core';
 import * as CoreUtils from '@midscene/core/utils';
+import { MIDSCENE_EXPERIMENTAL_NATIVE_XPATH_CACHE } from '@midscene/shared/env';
 import * as ImgUtils from '@midscene/shared/img';
 import { ADB } from 'appium-adb';
 import {
@@ -129,6 +130,7 @@ describe('AndroidDevice', () => {
   let mockAdb: Mocked<ADB>;
 
   beforeEach(() => {
+    vi.stubEnv(MIDSCENE_EXPERIMENTAL_NATIVE_XPATH_CACHE, '1');
     // Ensure mockAdbInstance is available
     if (!mockAdbInstance) {
       mockAdbInstance = createMockAdb();
@@ -147,6 +149,7 @@ describe('AndroidDevice', () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.unstubAllEnvs();
   });
 
   it('should throw error if deviceId is not provided', () => {
@@ -196,6 +199,16 @@ describe('AndroidDevice', () => {
         return '';
       });
     };
+
+    it('does not read the hierarchy when native xpath cache is disabled', async () => {
+      vi.stubEnv(MIDSCENE_EXPERIMENTAL_NATIVE_XPATH_CACHE, '0');
+
+      await expect(device.cacheFeatureForPoint([100, 70])).resolves.toEqual({});
+      await expect(device.rectMatchesCacheFeature({})).rejects.toThrow(
+        'Native XPath cache is disabled',
+      );
+      expect(mockAdb.shell).not.toHaveBeenCalled();
+    });
 
     it('does not cache excluded Android structural containers', async () => {
       mockYadbHierarchy(

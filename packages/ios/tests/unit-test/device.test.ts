@@ -1,5 +1,6 @@
 import type { DeviceAction, ExecutorContext } from '@midscene/core';
 import { DEFAULT_WDA_PORT } from '@midscene/shared/constants';
+import { MIDSCENE_EXPERIMENTAL_NATIVE_XPATH_CACHE } from '@midscene/shared/env';
 import { WDAManager } from '@midscene/webdriver';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { IOSDevice } from '../../src/device';
@@ -24,6 +25,7 @@ describe('IOSDevice', () => {
   const MockedWdaManager = vi.mocked(WDAManager);
 
   beforeEach(async () => {
+    vi.stubEnv(MIDSCENE_EXPERIMENTAL_NATIVE_XPATH_CACHE, '1');
     // Setup mock WDA client
     mockWdaClient = {
       createSession: vi
@@ -92,6 +94,7 @@ describe('IOSDevice', () => {
     if (device) {
       await device.destroy();
     }
+    vi.unstubAllEnvs();
   });
 
   describe('Constructor', () => {
@@ -166,6 +169,16 @@ describe('IOSDevice', () => {
   });
 
   describe('xpath cache', () => {
+    it('does not read the hierarchy when native xpath cache is disabled', async () => {
+      vi.stubEnv(MIDSCENE_EXPERIMENTAL_NATIVE_XPATH_CACHE, '0');
+
+      await expect(device.cacheFeatureForPoint([10, 20])).resolves.toEqual({});
+      await expect(device.rectMatchesCacheFeature({})).rejects.toThrow(
+        'Native XPath cache is disabled',
+      );
+      expect(mockWdaClient.getSource).not.toHaveBeenCalled();
+    });
+
     it('does not cache a window when its inner target is not exposed', async () => {
       mockWdaClient.getSource.mockResolvedValueOnce(`
         <XCUIElementTypeApplication name="Demo" x="0" y="0" width="375" height="812">

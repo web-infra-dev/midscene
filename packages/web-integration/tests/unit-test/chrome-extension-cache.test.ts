@@ -1,3 +1,4 @@
+import { MIDSCENE_EXPERIMENTAL_NATIVE_XPATH_CACHE } from '@midscene/shared/env';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock chrome API
@@ -34,6 +35,22 @@ describe('ChromeExtensionProxyPage cache methods', () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.unstubAllEnvs();
+  });
+
+  it('keeps web xpath generation and replay enabled when native cache is off', async () => {
+    vi.stubEnv(MIDSCENE_EXPERIMENTAL_NATIVE_XPATH_CACHE, '0');
+    vi.spyOn(page, 'getXpathsByPoint').mockResolvedValue(['/html/body/button']);
+    vi.spyOn(page, 'getElementInfoByXpath').mockResolvedValue({
+      rect: { left: 10, top: 20, width: 100, height: 50 },
+    } as any);
+
+    await expect(page.cacheFeatureForPoint([100, 200])).resolves.toEqual({
+      xpaths: ['/html/body/button'],
+    });
+    await expect(
+      page.rectMatchesCacheFeature({ xpaths: ['/html/body/button'] }),
+    ).resolves.toEqual({ left: 10, top: 20, width: 100, height: 50 });
   });
 
   describe('cacheFeatureForPoint', () => {

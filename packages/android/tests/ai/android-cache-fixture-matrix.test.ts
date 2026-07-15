@@ -13,6 +13,7 @@ import type { ElementCacheFeature, Rect, Size } from '@midscene/core';
 import { TaskCache } from '@midscene/core/agent';
 import {
   generateXpathCacheFeature,
+  isNativeXpathCacheEnabled,
   matchRectByXpathCache,
 } from '@midscene/core/device-cache';
 import sharp from 'sharp';
@@ -83,6 +84,7 @@ class FixtureAndroidDevice extends AndroidDevice {
 
 describe.runIf(RUN_SMOKE)('Android cache compatibility report', () => {
   it('writes a Midscene report with one cache hit per framework fixture', async () => {
+    expect(isNativeXpathCacheEnabled()).toBe(true);
     mkdirSync(DIAGNOSTICS_DIR, { recursive: true });
     const cacheDir = mkdtempSync(join(tmpdir(), 'midscene-android-fixture-'));
     const cacheId = `android-fixture-${process.pid}`;

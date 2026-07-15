@@ -22,6 +22,7 @@ import {
 } from '@midscene/core/device';
 import {
   generateXpathCacheFeature,
+  isNativeXpathCacheEnabled,
   matchRectByXpathCache,
 } from '@midscene/core/device-cache';
 import { getTmpFile, sleep } from '@midscene/core/utils';
@@ -432,6 +433,10 @@ export class HarmonyDevice implements AbstractInterface {
   async cacheFeatureForPoint(
     center: [number, number],
   ): Promise<ElementCacheFeature> {
+    if (!isNativeXpathCacheEnabled()) {
+      debugDevice('cacheFeatureForPoint: native xpath cache is disabled');
+      return {};
+    }
     const hdc = await this.getHdc();
     const json = await hdc.dumpLayout();
     const root = uitestJsonToUiNode(json);
@@ -458,6 +463,9 @@ export class HarmonyDevice implements AbstractInterface {
   }
 
   async rectMatchesCacheFeature(feature: ElementCacheFeature): Promise<Rect> {
+    if (!isNativeXpathCacheEnabled()) {
+      throw new Error('Native XPath cache is disabled');
+    }
     const hdc = await this.getHdc();
     const json = await hdc.dumpLayout();
     const root = uitestJsonToUiNode(json);

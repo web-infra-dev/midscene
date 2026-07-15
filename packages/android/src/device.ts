@@ -28,6 +28,7 @@ import {
 } from '@midscene/core/device';
 import {
   generateXpathCacheFeature,
+  isNativeXpathCacheEnabled,
   matchRectByXpathCache,
 } from '@midscene/core/device-cache';
 import { getTmpFile, sleep } from '@midscene/core/utils';
@@ -801,6 +802,10 @@ ${Object.keys(size)
   async cacheFeatureForPoint(
     center: [number, number],
   ): Promise<ElementCacheFeature> {
+    if (!isNativeXpathCacheEnabled()) {
+      debugCache('generate skipped reason=feature-disabled');
+      return {};
+    }
     const xml = await this.dumpAccessibilityXml();
     const root = uiautomatorXmlToUiNode(xml, this.devicePixelRatio || 1);
     const feature = generateXpathCacheFeature(
@@ -819,6 +824,9 @@ ${Object.keys(size)
   }
 
   async rectMatchesCacheFeature(feature: ElementCacheFeature): Promise<Rect> {
+    if (!isNativeXpathCacheEnabled()) {
+      throw new Error('Native XPath cache is disabled');
+    }
     const xml = await this.dumpAccessibilityXml();
     const root = uiautomatorXmlToUiNode(xml, this.devicePixelRatio || 1);
     const { xpath, rect } = matchRectByXpathCache(root, feature);

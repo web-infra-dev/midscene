@@ -21,6 +21,7 @@ import {
 } from '@midscene/core/device';
 import {
   generateXpathCacheFeature,
+  isNativeXpathCacheEnabled,
   matchRectByXpathCache,
 } from '@midscene/core/device-cache';
 import { sleep } from '@midscene/core/utils';
@@ -395,6 +396,10 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
   async cacheFeatureForPoint(
     center: [number, number],
   ): Promise<ElementCacheFeature> {
+    if (!isNativeXpathCacheEnabled()) {
+      debugDevice('cacheFeatureForPoint: native xpath cache is disabled');
+      return {};
+    }
     const xml = await this.wdaBackend.getSource();
     const root = wdaSourceToUiNode(xml);
     const feature = generateXpathCacheFeature(
@@ -425,6 +430,9 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
   }
 
   async rectMatchesCacheFeature(feature: ElementCacheFeature): Promise<Rect> {
+    if (!isNativeXpathCacheEnabled()) {
+      throw new Error('Native XPath cache is disabled');
+    }
     const xml = await this.wdaBackend.getSource();
     const root = wdaSourceToUiNode(xml);
     const { xpath, rect } = matchRectByXpathCache(root, feature);
