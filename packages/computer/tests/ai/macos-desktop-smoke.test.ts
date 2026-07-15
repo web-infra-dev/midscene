@@ -176,6 +176,27 @@ function normalizeState(value: unknown): FixtureState {
   };
 }
 
+function foregroundFixtureProcess(processId: number): void {
+  if (!Number.isSafeInteger(processId) || processId <= 0) {
+    throw new Error(
+      `fixture process id must be a positive integer, got ${processId}`,
+    );
+  }
+
+  const script = [
+    'on run argv',
+    'set targetPid to item 1 of argv as integer',
+    'tell application "System Events"',
+    'set targetProcess to first application process whose unix id is targetPid',
+    'set frontmost of targetProcess to true',
+    'end tell',
+    'end run',
+  ].join('\n');
+  execFileSync('/usr/bin/osascript', ['-e', script, String(processId)], {
+    stdio: 'pipe',
+  });
+}
+
 async function waitForJson<T>(
   filePath: string,
   normalize: (value: unknown) => T,
@@ -235,6 +256,7 @@ async function retryFixtureAction(options: {
         ACTIVATION_TIMEOUT_MS,
         options.fixtureProcess,
       );
+      foregroundFixtureProcess(options.fixturePid);
       process.kill(options.fixturePid, 'SIGUSR1');
       await waitForJson(
         options.stateFile,

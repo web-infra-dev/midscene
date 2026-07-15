@@ -90,16 +90,22 @@ describe('locate not-found parsing', () => {
     });
   });
 
-  it('returns locate parsing errors when result adapter cannot map coordinates', async () => {
-    vi.mocked(callAIWithObjectResponse).mockResolvedValue({
-      content: {
-        bbox: [100, Number.NaN, 300, 400],
-        errors: ['model returned invalid coordinates'],
-      },
-      usage: undefined,
-      contentString:
-        '{"bbox":[100,null,300,400],"errors":["model returned invalid coordinates"]}',
-    });
+  it('retries once when result adapter cannot map coordinates', async () => {
+    vi.mocked(callAIWithObjectResponse)
+      .mockResolvedValueOnce({
+        content: {
+          bbox: [100, Number.NaN, 300, 400],
+          errors: ['model returned invalid coordinates'],
+        },
+        usage: undefined,
+        contentString:
+          '{"bbox":[100,null,300,400],"errors":["model returned invalid coordinates"]}',
+      })
+      .mockResolvedValueOnce({
+        content: { bbox: [100, 200, 300, 400] },
+        usage: undefined,
+        contentString: '{"bbox":[100,200,300,400]}',
+      });
 
     const result = await AiLocateElement({
       context: createFakeContext(),
@@ -107,14 +113,35 @@ describe('locate not-found parsing', () => {
       modelRuntime: getModelRuntime(modelConfig),
     });
 
-    expect(result.rect).toBeUndefined();
-    expect(result.parseResult.element).toBeUndefined();
-    expect(result.parseResult.errors).toEqual([
-      'model returned invalid coordinates',
-      expect.stringMatching(
-        /Failed to parse locate result: invalid parsed locate result/,
-      ),
-    ]);
+    expect(callAIWithObjectResponse).toHaveBeenCalledTimes(2);
+    expect(vi.mocked(callAIWithObjectResponse).mock.calls[0]?.[2]).toEqual(
+      expect.objectContaining({ retryTimes: 1 }),
+    );
+    expect(result.rect).toBeDefined();
+    expect(result.parseResult.errors).toEqual([]);
+  });
+
+  it('retries once when section result adapter cannot map coordinates', async () => {
+    vi.mocked(callAIWithObjectResponse)
+      .mockResolvedValueOnce({
+        content: { bbox: [100, Number.NaN, 300, 400] },
+        usage: undefined,
+        contentString: '{"bbox":[100,null,300,400]}',
+      })
+      .mockResolvedValueOnce({
+        content: { bbox: [100, 200, 300, 400] },
+        usage: undefined,
+        contentString: '{"bbox":[100,200,300,400]}',
+      });
+
+    const result = await AiLocateSection({
+      context: createFakeContext(),
+      sectionDescription: 'invalid coordinate section',
+      modelRuntime: getModelRuntime(modelConfig),
+    });
+
+    expect(callAIWithObjectResponse).toHaveBeenCalledTimes(2);
+    expect(result.searchAreaConfig).toBeDefined();
   });
 
   it('passes locate request context to custom locate and maps its bbox result', async () => {

@@ -162,4 +162,30 @@ describe('AiExtractElementInfo prompt assembly', () => {
       abortSignal: abortController.signal,
     });
   });
+
+  it('retries once when the insight XML response cannot be parsed', async () => {
+    vi.mocked(callAI)
+      .mockResolvedValueOnce({
+        content: '<observation>Looks correct.</observation>',
+        usage: undefined,
+        reasoning_content: undefined,
+      } as any)
+      .mockResolvedValueOnce({
+        content:
+          '<observation>Looks correct.</observation><data-json>{"result":true}</data-json>',
+        usage: undefined,
+        reasoning_content: undefined,
+      } as any);
+
+    const result = await AiExtractElementInfo<{ result: boolean }>({
+      context: createFakeContext(),
+      dataQuery: {
+        StatementIsTruthy: 'Boolean, whether the success toast is visible',
+      },
+      modelRuntime: getModelRuntime(modelConfig),
+    });
+
+    expect(callAI).toHaveBeenCalledTimes(2);
+    expect(result.parseResult.data).toEqual({ result: true });
+  });
 });
