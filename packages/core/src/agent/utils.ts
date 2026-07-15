@@ -23,8 +23,10 @@ import {
 } from '@midscene/shared/env';
 import { generateElementByRect } from '@midscene/shared/extractor';
 import {
+  convertImgBufferToJpeg,
   createImgBase64ByFormat,
   imageInfoOfBase64,
+  parseBase64,
   resizeImgBase64,
 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
@@ -200,17 +202,38 @@ export async function commonContextParser(
       screenshot: ScreenshotItem.create(resizedBase64, screenshotCapturedAt),
       shrunkShotToLogicalRatio,
     };
-  }
+  } else {
+    // For screenshots that do not need shrinking, convert PNG to JPEG to reduce the image payload in model requests and reports. (Shrunk images are already JPEG.)
+    // This mainly covers Android's default screenshot path, which produces PNG screenshots.
+    // Compared with conversion on Android, centralizing it here means each platform does not need to handle screenshot formats itself, and allows future output formats such as WebP.
+    // Built-in paths that already output JPEG are unaffected, and custom devices that output JPEG will not be compressed again.
+    // The Web platform already outputs JPEG, so it does not enter this branch. Other built-in device platforms run in Node, where Sharp conversion is fast enough that its extra cost is negligible.
+    let outputScreenshotBase64 = screenshotBase64;
+    const { mimeType, body } = parseBase64(screenshotBase64);
+    if (mimeType.toLowerCase() === 'image/png') {
+      const jpegBuffer = await convertImgBufferToJpeg(
+        Buffer.from(body, 'base64'),
+        90,
+      );
+      outputScreenshotBase64 = createImgBase64ByFormat(
+        'jpeg',
+        jpegBuffer.toString('base64'),
+      );
+    }
 
-  return {
-    shotSize: {
-      width: imgWidth,
-      height: imgHeight,
-    },
-    deprecatedDpr: dpr,
-    screenshot: ScreenshotItem.create(screenshotBase64, screenshotCapturedAt),
-    shrunkShotToLogicalRatio,
-  };
+    return {
+      shotSize: {
+        width: imgWidth,
+        height: imgHeight,
+      },
+      deprecatedDpr: dpr,
+      screenshot: ScreenshotItem.create(
+        outputScreenshotBase64,
+        screenshotCapturedAt,
+      ),
+      shrunkShotToLogicalRatio,
+    };
+  }
 }
 
 export async function createScreenshotBoundUIContext(
