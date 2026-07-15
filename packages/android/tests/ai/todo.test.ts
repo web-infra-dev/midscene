@@ -14,6 +14,7 @@ const pageUrl = 'https://todomvc.com/examples/react/dist/';
 const diagnosticsDir = process.env.MIDSCENE_ANDROID_DIAGNOSTICS_DIR;
 const CHROME_FIRST_RUN_DUMP_PATH =
   '/sdcard/midscene_chrome_first_run_window_dump.xml';
+const CHROME_UI_DUMP_MAX_ATTEMPTS = 3;
 const expectedActiveTasks = [
   'Learn JS today',
   'Learn Rust tomorrow',
@@ -53,15 +54,39 @@ function screenshotBuffer(base64: string): Buffer {
   return Buffer.from(match[1], 'base64');
 }
 
-async function dumpUiautomatorXml(adb: ADB): Promise<string> {
-  await adb.shell(
-    `uiautomator dump --compressed ${CHROME_FIRST_RUN_DUMP_PATH}`,
+function isTransientAdbTransportError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return /device offline|device unauthorized|no devices\/emulators found/i.test(
+    message,
   );
-  const xml = await adb.shell(`cat ${CHROME_FIRST_RUN_DUMP_PATH}`);
-  if (typeof xml !== 'string' || xml.trim().length === 0) {
-    throw new Error('Android emulator returned an empty Chrome UI dump');
+}
+
+async function dumpUiautomatorXml(adb: ADB): Promise<string> {
+  for (let attempt = 1; attempt <= CHROME_UI_DUMP_MAX_ATTEMPTS; attempt += 1) {
+    try {
+      await adb.shell(
+        `uiautomator dump --compressed ${CHROME_FIRST_RUN_DUMP_PATH}`,
+      );
+      const xml = await adb.shell(`cat ${CHROME_FIRST_RUN_DUMP_PATH}`);
+      if (typeof xml !== 'string' || xml.trim().length === 0) {
+        throw new Error('Android emulator returned an empty Chrome UI dump');
+      }
+      return xml;
+    } catch (error) {
+      if (
+        attempt === CHROME_UI_DUMP_MAX_ATTEMPTS ||
+        !isTransientAdbTransportError(error)
+      ) {
+        throw error;
+      }
+      console.log(
+        `Chrome UI dump hit a transient ADB transport error; recovering device before attempt ${attempt + 1}`,
+      );
+      await adb.waitForDevice(15);
+    }
   }
-  return xml;
+
+  throw new Error('Chrome UI dump retry loop completed without a result');
 }
 
 function centerForExactText(
