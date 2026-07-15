@@ -53,6 +53,19 @@ function run() {
     ].map(text).filter(Boolean);
   }
 
+  function isPromptHostProcessName(name) {
+    const normalized = name.toLowerCase();
+    return (
+      normalized.includes('notificationcenter') ||
+      normalized.includes('screencapture') ||
+      normalized.includes('uiagent') ||
+      normalized.includes('securityagent') ||
+      normalized === 'windowmanager' ||
+      normalized === 'systemuiserver' ||
+      normalized === 'controlcenter'
+    );
+  }
+
   function inspect(element, depth, state) {
     state.visited += 1;
     const labels = labelsOf(element);
@@ -81,7 +94,7 @@ function run() {
       }
     }
 
-    if (depth >= 10 || state.visited >= 1000) return;
+    if (depth >= 8 || state.visited >= 500) return;
     const children = safe(function () { return element.uiElements(); }) || [];
     for (let index = 0; index < children.length; index += 1) {
       inspect(children[index], depth + 1, state);
@@ -92,10 +105,11 @@ function run() {
   const blocked = [];
   for (let processIndex = 0; processIndex < processes.length; processIndex += 1) {
     const process = processes[processIndex];
+    const processName = text(safe(function () { return process.name(); })) || '<unnamed>';
+    if (!isPromptHostProcessName(processName)) continue;
     const windows = safe(function () { return process.windows(); }) || [];
     if (!windows.length) continue;
 
-    const processName = text(safe(function () { return process.name(); })) || '<unnamed>';
     scanned.push(processName);
     for (let windowIndex = 0; windowIndex < windows.length; windowIndex += 1) {
       const state = {
@@ -136,7 +150,7 @@ function run() {
   return JSON.stringify({
     status: 'absent',
     message:
-      'Screen capture privacy prompt was not present. Scanned window processes: ' +
+      'Screen capture privacy prompt was not present. Scanned prompt host processes: ' +
       scanned.join(', '),
   });
 }
