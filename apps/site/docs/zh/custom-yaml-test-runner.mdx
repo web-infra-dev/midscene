@@ -4,7 +4,7 @@
 
 这套方案分为两层：
 
-- 平台开发者使用 JavaScript 或 TypeScript 封装浏览器、Agent、接口和其他业务能力。
+- 平台开发者使用 TypeScript 封装浏览器、Agent、接口和其他业务能力。
 - 业务团队使用这些能力编写 YAML 测试用例。
 
 ```text
@@ -44,17 +44,17 @@ pnpm add -D @midscene/test @midscene/web playwright
 team-test-runner/
 ├── cases/
 │   └── midscene.yaml
-└── midscene.workflow.config.cjs
+└── midscene.config.ts
 ```
 
-在项目根目录创建 `midscene.workflow.config.cjs`。项目配置负责注册 Node，并为每个 YAML 文件创建运行资源。
+在项目根目录创建 `midscene.config.ts`。项目配置负责注册 Node，并为每个 YAML 文件创建运行资源。
 
-```js filename=midscene.workflow.config.cjs
-const { PlaywrightAgent } = require('@midscene/web/playwright');
-const { defineNode } = require('@midscene/test');
-const { defineWorkflowProject } = require('@midscene/test/config');
-const { createMidsceneNodes } = require('@midscene/test/midscene');
-const { chromium } = require('playwright');
+```ts filename=midscene.config.ts
+import { defineNode } from '@midscene/test';
+import { defineTestProject } from '@midscene/test/config';
+import { createMidsceneNodes } from '@midscene/test/midscene';
+import { PlaywrightAgent } from '@midscene/web/playwright';
+import { chromium, type Browser, type Page } from 'playwright';
 
 const VIEWPORT = { width: 1280, height: 768 };
 const LANGUAGE_LOCALES = {
@@ -62,7 +62,17 @@ const LANGUAGE_LOCALES = {
   zh: 'zh-CN',
 };
 
-const openPage = async (page, url) => {
+interface ProjectContext {
+  browser: Browser;
+  page: Page;
+  agent?: PlaywrightAgent;
+}
+
+interface SetLanguageInput {
+  language: keyof typeof LANGUAGE_LOCALES;
+}
+
+const openPage = async (page: Page, url: string) => {
   const response = await page.goto(url, {
     waitUntil: 'domcontentloaded',
     timeout: 30_000,
@@ -75,7 +85,11 @@ const openPage = async (page, url) => {
   }
 };
 
-const setUserAgentLanguage = defineNode({
+const setUserAgentLanguage = defineNode<
+  SetLanguageInput,
+  { language: string; locale: string; url: string },
+  ProjectContext
+>({
   name: 'browser.setLanguage',
   title: '设置 UA 语言',
   async execute({ input, context }) {
@@ -119,14 +133,14 @@ const setUserAgentLanguage = defineNode({
   },
 });
 
-const midsceneNodes = createMidsceneNodes({
+const midsceneNodes = createMidsceneNodes<ProjectContext>({
   getAgent: ({ context }) => {
     context.agent ??= new PlaywrightAgent(context.page);
     return context.agent;
   },
 });
 
-module.exports = defineWorkflowProject({
+export default defineTestProject<ProjectContext>({
   files: {
     include: ['cases/**/*.{yaml,yml}'],
   },
@@ -176,13 +190,13 @@ cases:
 在项目根目录运行：
 
 ```bash
-pnpm exec midscene-workflow
+pnpm exec midscene-test
 ```
 
-CLI 会自动加载 `midscene.workflow.config.cjs`，查找 `cases` 目录中的 YAML 文件，并按顺序执行其中的 Case。默认结果保存在以下目录：
+CLI 会自动加载 `midscene.config.ts`，查找 `cases` 目录中的 YAML 文件，并按顺序执行其中的 Case。默认结果保存在以下目录：
 
 ```text
-.midscene/workflow-results/<timestamp>-<process-id>/
+.midscene/test-results/<timestamp>-<process-id>/
 ```
 
 ## 核心概念
@@ -190,7 +204,7 @@ CLI 会自动加载 `midscene.workflow.config.cjs`，查找 `cases` 目录中的
 `@midscene/test` 使用以下 5 个核心概念描述测试项目。
 
 ```text
-Workflow Project
+Test Project
 └── Workflow Document
     ├── Lifecycle Step
     └── Case
@@ -202,7 +216,7 @@ Workflow Project
 - **Step（步骤）**：YAML 对一个 Node 的一次调用。
 - **Case（用例）**：由多个 Step 组成的具名测试用例。
 - **Workflow Document（工作流文档）**：包含生命周期和多个 Case 的 YAML 文件。
-- **Workflow Project（工作流项目）**：项目配置及其管理的一组 Workflow Document。
+- **Test Project（测试项目）**：项目配置及其管理的一组 Workflow Document。
 
 Node 决定团队可以做什么，YAML 决定每个测试用例如何组合这些能力。
 
@@ -332,10 +346,23 @@ afterAll
 
 以下 Node 会调用测试接口创建订单。
 
-```js filename=midscene.workflow.config.cjs
-const { defineNode } = require('@midscene/test');
+```ts filename=midscene.config.ts
+import { defineNode } from '@midscene/test';
 
-const createOrder = defineNode({
+interface OrderInput {
+  sku: string;
+  quantity: number;
+}
+
+interface ProjectContext {
+  apiBaseUrl: string;
+}
+
+const createOrder = defineNode<
+  OrderInput,
+  { id: string },
+  ProjectContext
+>({
   name: 'order.create',
   title: '创建订单',
 
@@ -356,7 +383,7 @@ const createOrder = defineNode({
       throw new Error(`创建订单失败：HTTP ${response.status}`);
     }
 
-    const order = await response.json();
+    const order = (await response.json()) as { id: string };
     return {
       summary: `已创建订单 ${order.id}`,
       data: order,
@@ -367,8 +394,8 @@ const createOrder = defineNode({
 
 将 Node 加入项目配置的 `nodes` 数组。
 
-```js filename=midscene.workflow.config.cjs
-module.exports = defineWorkflowProject({
+```ts filename=midscene.config.ts
+export default defineTestProject<ProjectContext>({
   nodes: [createOrder, ...midsceneNodes],
 
   async setupDocument({ onTeardown }) {
@@ -408,7 +435,7 @@ cases:
 
 同一个 Node 可以用于 Case 和 Document 生命周期，无需重复注册。Node 可以根据 `scope` 读取相应的执行信息。
 
-```js
+```ts
 const saveReport = defineNode({
   name: 'report.save',
   async execute(ctx) {
@@ -435,10 +462,10 @@ Node 执行失败时必须抛出错误。运行器会记录错误，并根据 `$
 
 使用 `createMidsceneNodes()` 创建这些 Node。`getAgent()` 可以从文档上下文（Document Context）中取得当前 Agent。
 
-```js
-const { createMidsceneNodes } = require('@midscene/test/midscene');
+```ts
+import { createMidsceneNodes } from '@midscene/test/midscene';
 
-const midsceneNodes = createMidsceneNodes({
+const midsceneNodes = createMidsceneNodes<ProjectContext>({
   getAgent: ({ context }) => context.agent,
 });
 ```
@@ -458,12 +485,12 @@ cases:
           content: 已完成搜索结果检查
 ```
 
-## 配置 Workflow Project
+## 配置 Test Project
 
-`defineWorkflowProject()` 支持以下项目级配置：
+`defineTestProject()` 支持以下项目级配置：
 
-```js
-module.exports = defineWorkflowProject({
+```ts filename=midscene.config.ts
+export default defineTestProject<ProjectContext>({
   root: './e2e',
   files: {
     include: ['cases/**/*.{yaml,yml}'],
@@ -478,7 +505,7 @@ module.exports = defineWorkflowProject({
 
 ### 选择项目根目录
 
-`root` 声明 Workflow Project 的根目录。相对路径以配置文件所在目录为基准。
+`root` 声明 Test Project 的根目录。相对路径以配置文件所在目录为基准。
 
 项目根目录按下面的优先级确定：
 
@@ -492,7 +519,7 @@ module.exports = defineWorkflowProject({
 
 `files.include` 和 `files.exclude` 使用相对于项目根目录的 glob 模式。`exclude` 的优先级高于 `include`。
 
-```js
+```ts
 files: {
   include: [
     'cases/smoke.yaml',
@@ -512,7 +539,7 @@ files: {
 
 使用 `onTeardown()` 注册清理函数。多个清理函数按照注册顺序的逆序执行。
 
-```js
+```ts
 async setupDocument({ sourcePath, env, onTeardown }) {
   const database = await connectTestDatabase(env.TEST_DATABASE_URL);
   onTeardown(() => database.close());
@@ -528,27 +555,29 @@ async setupDocument({ sourcePath, env, onTeardown }) {
 }
 ```
 
-项目配置当前使用 CommonJS。建议将文件命名为 `midscene.workflow.config.cjs`。
+项目配置只支持 TypeScript。文件名必须为 `midscene.config.ts`，并使用默认导出。CLI 会拒绝
+`.js`、`.cjs`、`.mts`、`.cts` 和 `.tsx`。运行时不解析 `tsconfig.json` 的 `paths`。请使用
+带 `.ts` 扩展名的相对导入或 package specifier。
 
 ## 运行项目
 
-运行当前目录中的 Workflow Project：
+运行当前目录中的 Test Project：
 
 ```bash
-pnpm exec midscene-workflow
+pnpm exec midscene-test
 ```
 
 运行指定目录中的项目：
 
 ```bash
-pnpm exec midscene-workflow ./e2e
+pnpm exec midscene-test ./e2e
 ```
 
 指定配置文件或结果目录：
 
 ```bash
-pnpm exec midscene-workflow \
-  --config ./config/midscene.workflow.config.cjs \
+pnpm exec midscene-test \
+  --config ./config/midscene.config.ts \
   --result-dir ./test-results
 ```
 
@@ -559,7 +588,7 @@ pnpm exec midscene-workflow \
 每次运行都会生成 `project.json`。详细结果按类型保存在以下目录：
 
 ```text
-workflow-results/
+test-results/
 ├── project.json
 ├── runs/
 │   └── <case-id>/<run-id>.json
@@ -587,9 +616,11 @@ workflow-results/
 - `normalizeSteps()`：规范化 Step 数组。
 - `collectWorkflowDocument()`：解析并静态校验一个 YAML 文件。
 - `runWorkflowDocument()`：执行一个 Document 的生命周期和全部 Case。
-- `runWorkflowProject()`：发现、运行并汇总整个项目，从 `@midscene/test/config` 导出。
+- `loadTestProject()`：异步加载 TypeScript 项目配置。
+- `runTestProject()`：发现、运行并汇总整个项目，从 `@midscene/test/config` 导出。
 
-这些 API 对应不同的执行层级。只需执行一组 Step 时，使用 `CaseRunner`；需要管理共享资源、生命周期和多个 YAML 文件时，使用 Workflow Project。
+这些 API 对应不同的执行层级。只需执行一组 Step 时，使用 `CaseRunner`；需要管理共享资源、生命周期和多个 YAML 文件时，使用 Test Project。
+项目配置只提供异步加载 API，不提供同步 loader。
 
 ## 当前限制
 
@@ -600,6 +631,5 @@ workflow-results/
 - DAG、分支、循环或 Step 并行。
 - Workflow Document 之间的数据依赖。
 - 从远程 URL、npm 包或 Git 仓库加载 YAML。
-- TypeScript 或 ESM 格式的项目配置。
 
 运行器会在执行前收集并校验所有 YAML 文件。未知的顶层字段、未知 Node、空 `cases` 或无效 Step 会产生收集错误（collection error）。运行器会立即报告这些错误，不会等到执行相应 Case 时再报告。

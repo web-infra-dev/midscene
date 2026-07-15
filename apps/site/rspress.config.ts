@@ -242,6 +242,10 @@ export default defineConfig(async () => {
             link: '/automate-with-scripts-in-yaml',
           },
           {
+            text: 'Custom YAML test runner',
+            link: '/custom-yaml-test-runner',
+          },
+          {
             sectionHeaderText: 'More features',
           },
           {

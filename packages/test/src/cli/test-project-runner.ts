@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, statSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, statSync } from 'node:fs';
 import { basename, dirname, join, relative, resolve, sep } from 'node:path';
 import { globSync } from 'tinyglobby';
 import { runWorkflowDocument } from '../engine/run-workflow-document';
@@ -17,25 +17,23 @@ import type {
 import {
   writeCaseRunResult,
   writeCollectionError,
+  writeTestProjectRunResult,
   writeWorkflowDocumentRunResult,
-  writeWorkflowProjectRunResult,
 } from './result-store';
-import type {
-  ProjectCaseRunResult,
-  WorkflowCollectionError,
-  WorkflowProjectRunResult,
-  WorkflowProjectRunSummary,
-} from './types';
 import {
-  type WorkflowFileSelection,
-  loadWorkflowProjectSync,
-  validateWorkflowFileSelection,
-} from './workflow-project';
+  type TestFileSelection,
+  loadTestProject,
+  validateTestFileSelection,
+} from './test-project';
+import type {
+  TestProjectCaseRunResult,
+  TestProjectCollectionError,
+  TestProjectRunResult,
+  TestProjectRunSummary,
+} from './types';
 
-const CONFIG_NAMES = [
-  'midscene.workflow.config.cjs',
-  'midscene.workflow.config.js',
-];
+const CONFIG_NAME = 'midscene.config.ts';
+const CONFIG_PREFIX = 'midscene.config.';
 const ALWAYS_IGNORED_PATTERNS = [
   '.git/**',
   '.midscene/**',
@@ -45,13 +43,13 @@ const ALWAYS_IGNORED_PATTERNS = [
   '**/node_modules/**',
 ];
 
-export const DEFAULT_WORKFLOW_FILE_SELECTION: WorkflowFileSelection = {
+export const DEFAULT_TEST_FILE_SELECTION: TestFileSelection = {
   include: ['**/*.{yaml,yml}'],
 };
 
 const toPosix = (value: string): string => value.split(sep).join('/');
 
-export interface WorkflowProjectRunOptions {
+export interface TestProjectRunOptions {
   cwd?: string;
   projectRoot?: string;
   configPath?: string;
@@ -63,14 +61,14 @@ interface CollectedProjectDocument {
   document: CollectedWorkflowDocument;
 }
 
-export const discoverWorkflowFiles = (
+export const discoverTestFiles = (
   projectRoot: string,
-  selection: WorkflowFileSelection = DEFAULT_WORKFLOW_FILE_SELECTION,
+  selection: TestFileSelection = DEFAULT_TEST_FILE_SELECTION,
 ): string[] => {
   const root = resolve(projectRoot);
-  const normalized = validateWorkflowFileSelection(selection);
+  const normalized = validateTestFileSelection(selection);
   if (!normalized) {
-    throw new TypeError('Workflow file selection is required.');
+    throw new TypeError('Test file selection is required.');
   }
 
   const files = globSync(normalized.include, {
@@ -91,16 +89,29 @@ export const discoverWorkflowFiles = (
   });
 };
 
-export const discoverWorkflowConfig = (
-  projectRoot: string,
-): string | undefined =>
-  CONFIG_NAMES.map((name) => join(resolve(projectRoot), name)).find(existsSync);
+export const discoverTestConfig = (projectRoot: string): string | undefined => {
+  const root = resolve(projectRoot);
+  const candidates = readdirSync(root)
+    .filter((name) => name.startsWith(CONFIG_PREFIX))
+    .sort();
+  const unsupported = candidates.filter((name) => name !== CONFIG_NAME);
+  if (unsupported.length > 0) {
+    throw new Error(
+      [
+        `Unsupported or conflicting Midscene configs found in ${root}:`,
+        ...candidates.map((name) => `- ${name}`),
+        `Only ${CONFIG_NAME} is supported.`,
+      ].join('\n'),
+    );
+  }
+  return candidates.includes(CONFIG_NAME) ? join(root, CONFIG_NAME) : undefined;
+};
 
 const defaultResultDir = (projectRoot: string): string =>
   join(
     projectRoot,
     '.midscene',
-    'workflow-results',
+    'test-results',
     `${Date.now()}-${process.pid}`,
   );
 
@@ -113,7 +124,7 @@ const assertDirectory = (path: string, label: string): void => {
 const asCollectionError = (
   sourcePath: string,
   error: unknown,
-): WorkflowCollectionError => ({
+): TestProjectCollectionError => ({
   sourcePath,
   error:
     error instanceof WorkflowError
@@ -129,8 +140,8 @@ const asCollectionError = (
 
 const asNotRun = (
   collectedCase: CollectedCase,
-  reason: NonNullable<ProjectCaseRunResult['notRunReason']>,
-): ProjectCaseRunResult => ({
+  reason: NonNullable<TestProjectCaseRunResult['notRunReason']>,
+): TestProjectCaseRunResult => ({
   caseId: collectedCase.caseId,
   name: collectedCase.definition.name,
   sourcePath: collectedCase.sourcePath,
@@ -140,10 +151,10 @@ const asNotRun = (
 });
 
 const summarize = (
-  cases: readonly ProjectCaseRunResult[],
+  cases: readonly TestProjectCaseRunResult[],
   documents: readonly WorkflowDocumentRunResult[],
-  collectionErrors: readonly WorkflowCollectionError[],
-): WorkflowProjectRunSummary => ({
+  collectionErrors: readonly TestProjectCollectionError[],
+): TestProjectRunSummary => ({
   total: cases.length,
   passed: cases.filter((caseResult) => caseResult.status === 'success').length,
   failed: cases.filter((caseResult) => caseResult.status === 'failed').length,
@@ -174,31 +185,31 @@ const formatStepResult = (
 };
 
 const formatNotRunReason = (
-  reason: NonNullable<ProjectCaseRunResult['notRunReason']>,
+  reason: NonNullable<TestProjectCaseRunResult['notRunReason']>,
 ): string =>
   reason === 'document-start-failed'
     ? 'document start failed'
     : 'run interrupted';
 
-export async function runWorkflowProject(
-  options: WorkflowProjectRunOptions = {},
-): Promise<WorkflowProjectRunResult> {
+export async function runTestProject(
+  options: TestProjectRunOptions = {},
+): Promise<TestProjectRunResult> {
   const cwd = resolve(options.cwd ?? process.cwd());
-  assertDirectory(cwd, 'Workflow working directory');
+  assertDirectory(cwd, 'Test working directory');
   const cliProjectRoot = options.projectRoot
     ? resolve(cwd, options.projectRoot)
     : undefined;
   if (cliProjectRoot) {
-    assertDirectory(cliProjectRoot, 'Workflow project directory');
+    assertDirectory(cliProjectRoot, 'Test project directory');
   }
   const configSearchRoot = cliProjectRoot ?? cwd;
   const configPath = options.configPath
     ? resolve(configSearchRoot, options.configPath)
-    : discoverWorkflowConfig(configSearchRoot);
+    : discoverTestConfig(configSearchRoot);
   if (options.configPath && (!configPath || !existsSync(configPath))) {
-    throw new Error(`Workflow config does not exist: ${configPath}`);
+    throw new Error(`Midscene config does not exist: ${configPath}`);
   }
-  const project = loadWorkflowProjectSync(configPath);
+  const project = await loadTestProject(configPath);
   const projectRoot = cliProjectRoot
     ? cliProjectRoot
     : project.root
@@ -207,10 +218,10 @@ export async function runWorkflowProject(
           project.root,
         )
       : cwd;
-  assertDirectory(projectRoot, 'Workflow project root');
+  assertDirectory(projectRoot, 'Test project root');
 
-  const fileSelection = project.files ?? DEFAULT_WORKFLOW_FILE_SELECTION;
-  const files = discoverWorkflowFiles(projectRoot, fileSelection);
+  const fileSelection = project.files ?? DEFAULT_TEST_FILE_SELECTION;
+  const files = discoverTestFiles(projectRoot, fileSelection);
   if (files.length === 0) {
     throw new Error(`No workflow YAML files found in ${projectRoot}.`);
   }
@@ -226,7 +237,7 @@ export async function runWorkflowProject(
     absolutePath,
   }));
   const collectedDocuments: CollectedProjectDocument[] = [];
-  const collectionErrors: WorkflowCollectionError[] = [];
+  const collectionErrors: TestProjectCollectionError[] = [];
   const collectedCaseIds = new Set<string>();
   const progress = options.onProgress ?? (() => {});
 
@@ -260,7 +271,7 @@ export async function runWorkflowProject(
     0,
   );
   progress(
-    `midscene-workflow: collected ${collectedDocuments.length} documents, ${collectedCaseCount} cases, ${collectionErrors.length} collection errors`,
+    `midscene-test: collected ${collectedDocuments.length} documents, ${collectedCaseCount} cases, ${collectionErrors.length} collection errors`,
   );
   for (const collectionError of collectionErrors) {
     progress(
@@ -268,7 +279,7 @@ export async function runWorkflowProject(
     );
   }
 
-  const cases: ProjectCaseRunResult[] = [];
+  const cases: TestProjectCaseRunResult[] = [];
   const documents: WorkflowDocumentRunResult[] = [];
   let interrupted = false;
   const handleSignal = () => {
@@ -357,7 +368,7 @@ export async function runWorkflowProject(
     summary.notRun > 0 ||
     summary.collectionErrors > 0 ||
     summary.documentFailures > 0;
-  const result: WorkflowProjectRunResult = {
+  const result: TestProjectRunResult = {
     status: failed ? 'failed' : 'success',
     exitCode: failed ? 1 : 0,
     resultDir,
@@ -366,7 +377,7 @@ export async function runWorkflowProject(
     documents,
     collectionErrors,
   };
-  writeWorkflowProjectRunResult(resultDir, {
+  writeTestProjectRunResult(resultDir, {
     projectId,
     projectRoot,
     ...(configPath ? { configPath } : {}),
