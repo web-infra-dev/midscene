@@ -358,6 +358,7 @@ jobs:
     env:
       AI_TEST_TYPE: computer
       CI: '1'
+      MIDSCENE_EXPERIMENTAL_NATIVE_XPATH_CACHE: '1'
       MIDSCENE_REPORT_QUIET: 'true'
       MIDSCENE_RUN_DIR: ${{ github.workspace }}/packages/computer/midscene_run
       MIDSCENE_WINDOWS_ACCESSIBILITY_CACHE_SMOKE: '1'

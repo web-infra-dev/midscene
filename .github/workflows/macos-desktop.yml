@@ -159,6 +159,7 @@ jobs:
         shell: bash
         env:
           AI_TEST_TYPE: computer
+          MIDSCENE_EXPERIMENTAL_NATIVE_XPATH_CACHE: '1'
           MIDSCENE_MACOS_ACCESSIBILITY_CACHE_SMOKE: '1'
         run: |
           set -o pipefail

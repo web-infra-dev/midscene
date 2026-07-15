@@ -34,6 +34,7 @@ jobs:
     env:
       CI: "1"
       ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
+      MIDSCENE_EXPERIMENTAL_NATIVE_XPATH_CACHE: "1"
       MIDSCENE_REPORT_QUIET: "true"
       MIDSCENE_RUN_DIR: ${{ github.workspace }}/packages/computer/midscene_run
 

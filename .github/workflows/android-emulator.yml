@@ -42,6 +42,7 @@ jobs:
       MIDSCENE_MODEL_FAMILY: ${{ vars.MIDSCENE_MODEL_FAMILY }}
       MIDSCENE_MODEL_RETRY_COUNT: '2'
       MIDSCENE_MODEL_RETRY_INTERVAL: '60000'
+      MIDSCENE_EXPERIMENTAL_NATIVE_XPATH_CACHE: '1'
       MIDSCENE_REPORT_QUIET: 'true'
       MIDSCENE_RUN_DIR: ${{ github.workspace }}/midscene_run
       MIDSCENE_ANDROID_DIAGNOSTICS_DIR: ${{ github.workspace }}/midscene_run/android-emulator-diagnostics
