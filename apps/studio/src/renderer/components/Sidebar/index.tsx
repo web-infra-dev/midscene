@@ -85,10 +85,10 @@ function DeviceRow({
     >
       <div className="h-8 w-[22px] shrink-0" />
       <span
-        className={`flex-1 overflow-hidden whitespace-nowrap font-sans text-[13px] ${
+        className={`flex-1 overflow-hidden whitespace-nowrap font-sans text-[13px] leading-[22.11px] ${
           selected
-            ? 'font-medium leading-[22.11px] text-text-primary'
-            : 'font-normal leading-[13px] text-text-secondary'
+            ? 'font-medium text-text-primary'
+            : 'font-normal text-text-secondary'
         }`}
       >
         {label}

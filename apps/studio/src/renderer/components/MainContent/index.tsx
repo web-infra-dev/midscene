@@ -3,6 +3,7 @@ import { getDebug } from '@midscene/shared/logger';
 import type { PlaygroundExecutionStatus } from '@midscene/visualizer';
 import type { StudioPlatformId } from '@shared/electron-contract';
 import {
+  type CSSProperties,
   type ReactNode,
   useCallback,
   useEffect,
@@ -41,6 +42,7 @@ import { DeviceList } from './DeviceList';
 import { MobilePreviewFrame } from './MobilePreviewFrame';
 import {
   resolveStudioPreviewPlatform,
+  resolveStudioWebPreviewAspectRatio,
   shouldEnableMobilePreviewFrame,
   shouldUseDesktopPreviewPadding,
 } from './preview-layout';
@@ -85,6 +87,8 @@ export interface MainContentProps {
   floatingStudioModePanel?: boolean;
   /** Left inset reserved by the collapsed shell titlebar controls. */
   titlebarInsetLeft?: number;
+  /** Right inset reserved by Windows native window controls. */
+  titlebarInsetRight?: number;
 }
 
 function RefreshIcon({ spinning }: { spinning?: boolean }) {
@@ -327,6 +331,7 @@ export default function MainContent({
   onStudioModeChange,
   studioMode,
   titlebarInsetLeft = 0,
+  titlebarInsetRight = 0,
 }: MainContentProps) {
   const studioPlayground = useStudioPlayground();
   const recorder = useOptionalStudioRecorder();
@@ -452,6 +457,16 @@ export default function MainContent({
     pendingCreatePlatform && (!isConnected || isSessionMutating)
       ? pendingCreatePlatform
       : (resolvedPreviewPlatform ?? pendingCreatePlatform);
+  const webPreviewAspectRatio =
+    resolveStudioWebPreviewAspectRatio(previewFormValues);
+  const webPreviewCanvasStyle: CSSProperties | undefined =
+    previewPlatform === 'web'
+      ? ({
+          '--studio-web-preview-aspect-ratio': String(webPreviewAspectRatio),
+          '--studio-web-preview-height-limited-width': `${webPreviewAspectRatio * 100}cqh`,
+          '--studio-web-preview-width-limited-height': `${100 / webPreviewAspectRatio}cqw`,
+        } as CSSProperties)
+      : undefined;
   const showWebNavigation = isConnected && previewPlatform === 'web';
   const previewConnectingLabel = getPreviewConnectingLabel(previewPlatform);
   const disconnectedPreviewTitle = getDisconnectedPreviewTitle(previewPlatform);
@@ -955,7 +970,16 @@ export default function MainContent({
       <div
         className="app-drag relative flex h-[52px] items-center justify-between border-b border-border-subtle bg-surface pl-[8px] pr-4 dark:border-[#323131]"
         style={
-          titlebarInsetLeft > 0 ? { paddingLeft: titlebarInsetLeft } : undefined
+          titlebarInsetLeft > 0 || titlebarInsetRight > 0
+            ? {
+                ...(titlebarInsetLeft > 0
+                  ? { paddingLeft: titlebarInsetLeft }
+                  : {}),
+                ...(titlebarInsetRight > 0
+                  ? { paddingRight: titlebarInsetRight }
+                  : {}),
+              }
+            : undefined
         }
       >
         <div className="flex min-w-0 flex-1 items-center gap-[8px]">
@@ -1128,6 +1152,7 @@ export default function MainContent({
                 ]
                   .filter(Boolean)
                   .join(' ')}
+                style={webPreviewCanvasStyle}
               >
                 <PlaygroundPreview
                   connectingOverlay={

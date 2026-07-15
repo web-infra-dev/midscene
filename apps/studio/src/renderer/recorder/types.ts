@@ -120,6 +120,7 @@ export interface StudioRecorderContextValue {
     sessionId: string,
     type: StudioRecorderCodeType,
   ) => Promise<void>;
+  getRecorderScreenshotAssetUrl: (assetId: string) => string | null;
   loadSessionScreenshots: (sessionId: string) => Promise<StudioRecordedEvent[]>;
   exportAllZip: () => Promise<void>;
 }

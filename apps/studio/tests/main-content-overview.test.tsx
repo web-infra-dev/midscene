@@ -49,6 +49,7 @@ function createRecorderContextValue(): StudioRecorderContextValue {
     exportSessionJson: vi.fn(async () => undefined),
     exportSessionYaml: vi.fn(async () => undefined),
     exportSessionCode: vi.fn(async () => undefined),
+    getRecorderScreenshotAssetUrl: vi.fn(() => null),
     loadSessionScreenshots: vi.fn(async () => []),
     exportAllZip: vi.fn(async () => undefined),
   };
@@ -297,7 +298,7 @@ describe('MainContent overview', () => {
     expect(floatingHtml).not.toContain('padding-right:340px');
   });
 
-  it('uses a fixed 16:9 canvas for Web previews only', () => {
+  it('uses a session-derived stable canvas for Web previews only', () => {
     const webHtml = renderMainContent(
       createConnectedWebContextValue(),
       createElement(MainContent, {
@@ -312,6 +313,7 @@ describe('MainContent overview', () => {
     );
 
     expect(webHtml).toContain('studio-web-preview-fixed-aspect');
+    expect(webHtml).toContain('--studio-web-preview-aspect-ratio:1.777');
     expect(computerHtml).not.toContain('studio-web-preview-fixed-aspect');
   });
 
@@ -418,6 +420,18 @@ describe('MainContent overview', () => {
     );
     expect(html).toContain('aria-label="Disconnect"');
     expect(html).toContain('Disconnect');
+  });
+
+  it('reserves the native Windows window-control region in the device header', () => {
+    const html = renderMainContent(
+      createReadyContextValue(),
+      createElement(MainContent, {
+        activeView: 'device',
+        titlebarInsetRight: 176,
+      }),
+    );
+
+    expect(html).toContain('padding-right:176px');
   });
 
   it('renders browser navigation controls for connected Web sessions', () => {

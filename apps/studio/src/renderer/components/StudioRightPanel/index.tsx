@@ -30,6 +30,19 @@ export function getStudioRightPanelWidth(view: StudioRightPanelView): number {
   }
 }
 
+function CloseIcon() {
+  return (
+    <svg aria-hidden="true" fill="none" viewBox="0 0 24 24">
+      <path
+        d="m6 6 12 12M18 6 6 18"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeWidth="2"
+      />
+    </svg>
+  );
+}
+
 function MarkdownDetailView({
   markdown,
   onDelete,
@@ -130,7 +143,7 @@ export function StudioRightPanel({
         }}
         type="button"
       >
-        <span aria-hidden="true">×</span>
+        <CloseIcon />
       </button>
       {content}
     </div>

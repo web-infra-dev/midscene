@@ -1,11 +1,42 @@
 import type { PlaygroundRuntimeInfo } from '@midscene/playground';
 import type { StudioPlatformId } from '@shared/electron-contract';
+import { DEFAULT_STUDIO_WEB_VIEWPORT } from '@shared/web-viewport';
 import type { StudioPreviewConnectionState } from '../../playground/preview-discovery';
 import { normalizeStudioPlatformId } from '../../playground/selectors';
 
 const MOBILE_PREVIEW_DEFAULT_ASPECT_RATIO = 9 / 19.5;
 const MOBILE_PREVIEW_HORIZONTAL_GUTTER_PX = 24;
 const MOBILE_PREVIEW_VERTICAL_GUTTER_PX = 56;
+
+function resolvePositiveViewportDimension(value: unknown): number | undefined {
+  const parsed =
+    typeof value === 'number'
+      ? value
+      : typeof value === 'string'
+        ? Number(value)
+        : Number.NaN;
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
+}
+
+/**
+ * Keep the Web preview canvas tied to the session viewport, rather than the
+ * currently decoded MJPEG frame. Form values use namespaced keys after a
+ * Studio-created session starts, while setup callers may still use bare keys.
+ */
+export function resolveStudioWebPreviewAspectRatio(
+  formValues: Record<string, unknown>,
+): number {
+  const width =
+    resolvePositiveViewportDimension(formValues['web.viewportWidth']) ??
+    resolvePositiveViewportDimension(formValues.viewportWidth) ??
+    DEFAULT_STUDIO_WEB_VIEWPORT.width;
+  const height =
+    resolvePositiveViewportDimension(formValues['web.viewportHeight']) ??
+    resolvePositiveViewportDimension(formValues.viewportHeight) ??
+    DEFAULT_STUDIO_WEB_VIEWPORT.height;
+
+  return width / height;
+}
 
 export function resolveStudioPreviewPlatform(
   runtimeInfo: PlaygroundRuntimeInfo | null,

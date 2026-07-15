@@ -126,6 +126,34 @@ function mockDescribeElementAtPoint(
 }
 
 describe('PlaygroundServer manual interaction APIs', () => {
+  test('does not reject recorder idle waiting when navigation observation fails', async () => {
+    vi.useFakeTimers();
+    const server = new PlaygroundServer({ interface: {} } as any);
+    (server as any)._recorderSessionId = 'session-navigation-error';
+    vi.spyOn(server as any, 'getActiveRecorderPageState').mockRejectedValue(
+      new Error('Debugger is detached'),
+    );
+
+    try {
+      (server as any).observeStudioPreviewNavigationCompletion(
+        {
+          actionType: 'NavigationChanged',
+          hashId: 'navigation-error',
+          type: 'navigation',
+          url: 'https://example.com',
+        },
+        'session-navigation-error',
+      );
+
+      const idle = server.waitForRecorderIdle();
+      await vi.advanceTimersByTimeAsync(250);
+
+      await expect(idle).resolves.toBeUndefined();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   beforeEach(() => {
     vi.mocked(coreDescribeElementAtPoint).mockReset();
     vi.mocked(coreDescribeElementAtPoint).mockRejectedValue(
@@ -1795,6 +1823,19 @@ describe('PlaygroundServer manual interaction APIs', () => {
     const eventsHandler = getRouteHandler(server, 'get', '/recorder/events');
     const eventsResponse = createMockResponse();
     await eventsHandler({ query: { since: '0' } }, eventsResponse);
+    const rawNavigationEvents = (
+      eventsResponse.body as { events: Array<Record<string, unknown>> }
+    ).events.filter(
+      (event) =>
+        event.type === 'navigation' && event.url === 'https://example.com/next',
+    );
+    expect(rawNavigationEvents).toEqual([
+      expect.objectContaining({ actionType: 'NavigationChanged' }),
+      expect.objectContaining({
+        actionType: 'Navigate',
+        hashId: rawNavigationEvents[0]?.hashId,
+      }),
+    ]);
     const recorderEvents = latestRecorderEventsBody(eventsResponse.body);
     expect(recorderEvents).toMatchObject({
       events: [
@@ -1819,14 +1860,13 @@ describe('PlaygroundServer manual interaction APIs', () => {
         {
           type: 'navigation',
           source: 'studio-preview',
-          actionType: 'NavigationChanged',
+          actionType: 'Navigate',
           url: 'https://example.com/next',
           title: 'Next page',
           semantic: {
             source: 'heuristic',
             status: 'ready',
-            replayInstruction:
-              'Wait for navigation to complete at `https://example.com/next`.',
+            replayInstruction: 'Navigate to `https://example.com/next`.',
           },
         },
         {

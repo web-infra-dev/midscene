@@ -39,6 +39,21 @@ describe('RemoteExecutionAdapter', () => {
     });
   });
 
+  describe('getRecorderScreenshotAssetUrl', () => {
+    it('returns the direct asset endpoint for a persisted screenshot', () => {
+      expect(adapter.getRecorderScreenshotAssetUrl('session-asset_1')).toBe(
+        'http://localhost:3000/recorder/assets/session-asset_1',
+      );
+    });
+
+    it('rejects malformed asset identifiers before creating a URL', () => {
+      expect(adapter.getRecorderScreenshotAssetUrl('../asset')).toBeNull();
+      expect(
+        new RemoteExecutionAdapter('').getRecorderScreenshotAssetUrl('asset'),
+      ).toBeNull();
+    });
+  });
+
   describe('parseStructuredParams', () => {
     it('should return prompt and options when no valid schema', async () => {
       const action: DeviceAction<unknown> = {

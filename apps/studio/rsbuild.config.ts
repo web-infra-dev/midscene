@@ -154,6 +154,10 @@ export default defineConfig({
         externals: [
           'electron',
           'electron-updater',
+          // photon-node reads photon_rs_bg.wasm from __dirname at runtime.
+          // Keep it external so electron-packager can retain the module and
+          // its sibling WASM file under app.asar.unpacked.
+          '@silvia-odwyer/photon-node',
           '@midscene/android',
           '@midscene/android-playground',
           '@midscene/computer',

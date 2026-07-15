@@ -65,6 +65,15 @@
 .studio-timeline-panel-scroll-body {
   max-height: calc(100% - 44.077px);
   flex: 0 1 auto;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* The shared Timeline body remains scrollable without exposing a native bar. */
+.studio-timeline-panel-scroll-body::-webkit-scrollbar {
+  width: 0;
+  height: 0;
 }
 
 .studio-timeline-panel-empty .studio-timeline-panel-body {

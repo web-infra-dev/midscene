@@ -4,7 +4,13 @@ import {
 } from '@midscene/shared/recorder';
 import { useTextTruncation } from '@midscene/visualizer';
 import { Tooltip } from 'antd';
-import type { ReactNode } from 'react';
+import {
+  type ReactNode,
+  type RefObject,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 import type {
   StudioRecordedEvent,
   StudioRecordingSession,
@@ -17,7 +23,6 @@ import {
 import {
   RecorderButtonIcon,
   RecorderGenerateNaturalLanguageIcon,
-  RecorderOperatingIcon,
   RecorderScreenshotIcon,
 } from './assets/recorder-icons';
 
@@ -267,18 +272,17 @@ function StudioTimelineEventText({ event }: { event: StudioRecordedEvent }) {
   );
 }
 
-function getStudioRecorderEventScreenshot(event: StudioRecordedEvent) {
+function getStudioRecorderEventInlineScreenshot(event: StudioRecordedEvent) {
   return (
-    event.screenshotWithBox ||
-    event.screenshotAfter ||
-    event.screenshotBefore ||
-    event.screenshotAsset?.id
+    event.screenshotWithBox || event.screenshotAfter || event.screenshotBefore
   );
 }
 
 function hasStudioRecorderEventScreenshots(events: StudioRecordedEvent[]) {
   return events.some((event) =>
-    Boolean(getStudioRecorderEventScreenshot(event)),
+    Boolean(
+      getStudioRecorderEventInlineScreenshot(event) || event.screenshotAsset,
+    ),
   );
 }
 
@@ -309,25 +313,27 @@ function RecorderFloatingOutputs({
   if (isMarkdownGenerating) {
     markdownOutput = (
       <button
-        aria-label="Generating markdown"
+        aria-label="Generating Description"
         className="studio-recorder-floating-output studio-recorder-floating-output-generate studio-recorder-floating-output-generating"
         disabled
         type="button"
       >
         <RecorderGenerateNaturalLanguageIcon />
-        <span data-text="Generating markdown...">Generating markdown...</span>
+        <span data-text="Generating Description...">
+          Generating Description...
+        </span>
       </button>
     );
   } else if (canGenerateMarkdown && recorderPanelSession) {
     markdownOutput = (
       <button
-        aria-label="Generate markdown"
+        aria-label="Generate Description"
         className="studio-recorder-floating-output studio-recorder-floating-output-generate"
         onClick={onGenerateMarkdown}
         type="button"
       >
         <RecorderGenerateNaturalLanguageIcon />
-        <span>Generate markdown</span>
+        <span>Generate Description</span>
       </button>
     );
   }
@@ -352,25 +358,171 @@ function RecorderFloatingOutputs({
   return markdownOutput;
 }
 
+function toImagePreviewDataUrl(source: string): Promise<string> {
+  if (source.startsWith('data:')) {
+    return Promise.resolve(source);
+  }
+  return fetch(source)
+    .then(async (response) => {
+      if (!response.ok) {
+        throw new Error(`Screenshot request failed (${response.status})`);
+      }
+      return await response.blob();
+    })
+    .then(
+      (blob) =>
+        new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => {
+            if (typeof reader.result === 'string') {
+              resolve(reader.result);
+              return;
+            }
+            reject(new Error('Screenshot preview data is unavailable.'));
+          };
+          reader.onerror = () =>
+            reject(
+              reader.error || new Error('Failed to read screenshot data.'),
+            );
+          reader.readAsDataURL(blob);
+        }),
+    );
+}
+
+function RecorderScreenshotCard({
+  event,
+  index,
+  listRef,
+  getScreenshotAssetUrl,
+}: {
+  event: StudioRecordedEvent;
+  index: number;
+  listRef: RefObject<HTMLDivElement | null>;
+  getScreenshotAssetUrl: (assetId: string) => string | null;
+}) {
+  const cardRef = useRef<HTMLElement | null>(null);
+  const inlineScreenshot = getStudioRecorderEventInlineScreenshot(event);
+  const assetUrl = event.screenshotAsset
+    ? getScreenshotAssetUrl(event.screenshotAsset.id)
+    : null;
+  const [shouldLoadAsset, setShouldLoadAsset] = useState(
+    Boolean(inlineScreenshot),
+  );
+  const [loadError, setLoadError] = useState(false);
+  const [loadAttempt, setLoadAttempt] = useState(0);
+  const title = getStudioTimelineEventTitle(event);
+  const description = getStudioTimelineEventDescription(event);
+  const screenshotFileName = formatStudioRecorderScreenshotEventName(
+    event,
+    index,
+  );
+  const imageSource = inlineScreenshot || (shouldLoadAsset ? assetUrl : null);
+
+  useEffect(() => {
+    if (inlineScreenshot || shouldLoadAsset) {
+      return;
+    }
+    const card = cardRef.current;
+    if (!card) {
+      return;
+    }
+    if (typeof IntersectionObserver === 'undefined') {
+      setShouldLoadAsset(true);
+      return;
+    }
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          setShouldLoadAsset(true);
+          observer.disconnect();
+        }
+      },
+      { root: listRef.current, rootMargin: '600px 0px' },
+    );
+    observer.observe(card);
+    return () => observer.disconnect();
+  }, [inlineScreenshot, listRef, shouldLoadAsset]);
+
+  useEffect(() => {
+    setLoadError(false);
+  }, [imageSource, loadAttempt]);
+
+  return (
+    <article className="studio-recorder-screenshot-card" ref={cardRef}>
+      <div className="studio-recorder-screenshot-card-header">
+        <span>#{index + 1}</span>
+        <span>{screenshotFileName}</span>
+      </div>
+      <div className="studio-recorder-screenshot-card-body">
+        {imageSource && !loadError ? (
+          <button
+            aria-label={`Open ${screenshotFileName} in system image viewer`}
+            className="studio-recorder-screenshot-image-button"
+            onClick={() => {
+              void toImagePreviewDataUrl(imageSource)
+                .then((data) =>
+                  window.electronShell?.openImagePreview({
+                    data,
+                    fileName: `${screenshotFileName}.${event.screenshotAsset?.mimeType.includes('jpeg') ? 'jpg' : 'png'}`,
+                  }),
+                )
+                .catch(() => setLoadError(true));
+            }}
+            title="Open with system image viewer"
+            type="button"
+          >
+            <img
+              alt={`${title}${description ? ` - ${description}` : ''}`}
+              key={`${imageSource}:${loadAttempt}`}
+              onError={() => setLoadError(true)}
+              src={imageSource}
+            />
+          </button>
+        ) : loadError || (shouldLoadAsset && !assetUrl) ? (
+          <div className="studio-recorder-screenshot-state">
+            <span>Screenshot unavailable</span>
+            <button
+              onClick={() => {
+                setLoadError(false);
+                setShouldLoadAsset(true);
+                setLoadAttempt((attempt) => attempt + 1);
+              }}
+              type="button"
+            >
+              Retry
+            </button>
+          </div>
+        ) : (
+          <output className="studio-recorder-screenshot-state">
+            Loading screenshot…
+          </output>
+        )}
+      </div>
+    </article>
+  );
+}
+
 export function RecorderScreenshotDetailView({
   events,
+  getScreenshotAssetUrl = () => null,
 }: {
   events: StudioRecordedEvent[];
+  getScreenshotAssetUrl?: (assetId: string) => string | null;
 }) {
+  const listRef = useRef<HTMLDivElement | null>(null);
   const screenshotEvents = events
-    .map((event, index) => ({
-      event,
-      index,
-      screenshot: getStudioRecorderEventScreenshot(event),
-    }))
+    .map((event, index) => ({ event, index }))
     .filter(
       (
         item,
       ): item is {
         event: StudioRecordedEvent;
         index: number;
-        screenshot: string;
-      } => Boolean(item.screenshot),
+      } =>
+        Boolean(
+          getStudioRecorderEventInlineScreenshot(item.event) ||
+            item.event.screenshotAsset,
+        ),
     );
 
   return (
@@ -383,49 +535,16 @@ export function RecorderScreenshotDetailView({
       </header>
 
       {screenshotEvents.length > 0 ? (
-        <div className="studio-recorder-screenshot-list">
-          {screenshotEvents.map(({ event, index, screenshot }, itemIndex) => {
-            const title = getStudioTimelineEventTitle(event);
-            const description = getStudioTimelineEventDescription(event);
-            const imageSource = screenshot.startsWith('data:')
-              ? screenshot
-              : `data:image/png;base64,${screenshot}`;
-            const screenshotFileName = formatStudioRecorderScreenshotEventName(
-              event,
-              itemIndex,
-            );
-
-            return (
-              <article
-                className="studio-recorder-screenshot-card"
-                key={event.hashId ?? index}
-              >
-                <div className="studio-recorder-screenshot-card-header">
-                  <span>#{itemIndex + 1}</span>
-                  <span>{screenshotFileName}</span>
-                </div>
-                <div className="studio-recorder-screenshot-card-body">
-                  <button
-                    aria-label={`Open ${screenshotFileName} in system image viewer`}
-                    className="studio-recorder-screenshot-image-button"
-                    onClick={() => {
-                      void window.electronShell?.openImagePreview({
-                        data: imageSource,
-                        fileName: `${screenshotFileName}.png`,
-                      });
-                    }}
-                    title="Open with system image viewer"
-                    type="button"
-                  >
-                    <img
-                      alt={`${title}${description ? ` - ${description}` : ''}`}
-                      src={imageSource}
-                    />
-                  </button>
-                </div>
-              </article>
-            );
-          })}
+        <div className="studio-recorder-screenshot-list" ref={listRef}>
+          {screenshotEvents.map(({ event, index }, itemIndex) => (
+            <RecorderScreenshotCard
+              event={event}
+              getScreenshotAssetUrl={getScreenshotAssetUrl}
+              index={itemIndex}
+              key={event.hashId ?? index}
+              listRef={listRef}
+            />
+          ))}
         </div>
       ) : (
         <div className="studio-recorder-empty">
@@ -454,6 +573,7 @@ export function RecorderFloatingPanel({
   timelineCollapsed,
   statusText,
 }: RecorderFloatingPanelProps) {
+  const timelineScrollRef = useRef<HTMLDivElement>(null);
   const showRecordingVisual = isRecording && !isStoppingRecording;
   const recordingButtonLabel = isStoppingRecording
     ? 'Stopping recording'
@@ -502,6 +622,29 @@ export function RecorderFloatingPanel({
   const shouldRenderTimelinePanel =
     !isTimelineEmpty || showExpandedDetail || shouldShowOutputs;
 
+  useEffect(() => {
+    if (timelineCollapsed || recorderPanelEvents.length === 0) {
+      return;
+    }
+
+    const scrollToLatestEvent = () => {
+      const timeline = timelineScrollRef.current;
+      if (timeline) {
+        timeline.scrollTop = timeline.scrollHeight;
+      }
+    };
+    // The output footer animates in after recording stops. Scroll once after
+    // the commit and again after the height transition so its buttons are not
+    // left below the visible timeline area.
+    const initialTimeoutId = window.setTimeout(scrollToLatestEvent);
+    const settledTimeoutId = window.setTimeout(scrollToLatestEvent, 220);
+
+    return () => {
+      window.clearTimeout(initialTimeoutId);
+      window.clearTimeout(settledTimeoutId);
+    };
+  }, [outputsClassName, recorderPanelEvents.length, timelineCollapsed]);
+
   return (
     <div className="studio-recorder-panel">
       {error ? <div className="studio-recorder-notice">{error}</div> : null}
@@ -515,19 +658,26 @@ export function RecorderFloatingPanel({
 
         <div className="studio-recorder-floating-primer">
           <div className="studio-recorder-floating-primer-copy">
-            {showRecordingVisual ? (
+            <div className="studio-recorder-floating-primer-status">
               <span
                 aria-hidden="true"
-                className="studio-recorder-floating-recording-dot"
+                className={
+                  showRecordingVisual
+                    ? 'studio-recorder-floating-recording-dot'
+                    : 'studio-recorder-floating-ready-dot'
+                }
               />
-            ) : (
-              <RecorderOperatingIcon />
-            )}
-            <span>
-              {showRecordingVisual
-                ? 'Recording your actions'
-                : 'After recording, start operating'}
-            </span>
+              <span className="studio-recorder-floating-primer-status-copy">
+                {showRecordingVisual
+                  ? 'Recording your actions'
+                  : 'Record interactions,'}
+              </span>
+            </div>
+            {!showRecordingVisual ? (
+              <span className="studio-recorder-floating-primer-description">
+                {' then generate a natural language description.'}
+              </span>
+            ) : null}
           </div>
           <div className="studio-recorder-floating-start-button-shell">
             <button
@@ -553,7 +703,7 @@ export function RecorderFloatingPanel({
                 <RecorderButtonIcon />
               )}
               <span>
-                {showRecordingVisual ? 'Stop recording' : 'Start recording'}
+                {showRecordingVisual ? 'Stop Recording' : 'Start Recording'}
               </span>
             </button>
           </div>
@@ -563,6 +713,7 @@ export function RecorderFloatingPanel({
       {shouldRenderTimelinePanel ? (
         <StudioTimelinePanel
           ariaHidden={timelineCollapsed}
+          bodyRef={timelineScrollRef}
           className={taskCardClassName}
           collapsed={timelineCollapsed}
           contentClassName={mainClassName}

@@ -157,6 +157,7 @@ export function createStudioTimelineConfig(
 ): StudioTimelineExecutionConfig {
   return {
     emptyState: options.emptyState ?? <StudioExecutionEmptyState />,
+    clearTimelineBeforeRun: true,
     externalRunRequest: options.externalRunRequest ?? null,
     executionScopeKey: options.executionScopeKey ?? null,
     hidePromptInput: options.hidePromptInput,

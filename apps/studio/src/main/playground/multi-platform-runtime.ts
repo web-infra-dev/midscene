@@ -10,6 +10,7 @@ import type {
 import { getDebug } from '@midscene/shared/logger';
 import type { DiscoveredDevice } from '@shared/electron-contract';
 import type { PlaygroundBootstrap } from '@shared/electron-contract';
+import { DEFAULT_STUDIO_WEB_VIEWPORT } from '@shared/web-viewport';
 import { ensureStudioShellEnvHydrated } from '../shell-env';
 import { createStudioCorsOptions } from './cors';
 import type { DeviceDiscoveryService } from './device-discovery';
@@ -340,13 +341,13 @@ async function prepareStudioWebPlatform({
               key: 'viewportWidth',
               label: 'Viewport width',
               type: 'number',
-              defaultValue: 1280,
+              defaultValue: DEFAULT_STUDIO_WEB_VIEWPORT.width,
             },
             {
               key: 'viewportHeight',
               label: 'Viewport height',
               type: 'number',
-              defaultValue: 768,
+              defaultValue: DEFAULT_STUDIO_WEB_VIEWPORT.height,
             },
             {
               key: 'headed',
@@ -377,11 +378,11 @@ async function prepareStudioWebPlatform({
         const url = normalizeWebUrl(input?.url);
         const viewportWidth = normalizeViewportDimension(
           input?.viewportWidth,
-          1280,
+          DEFAULT_STUDIO_WEB_VIEWPORT.width,
         );
         const viewportHeight = normalizeViewportDimension(
           input?.viewportHeight,
-          768,
+          DEFAULT_STUDIO_WEB_VIEWPORT.height,
         );
         const headed = input?.headed === true;
 

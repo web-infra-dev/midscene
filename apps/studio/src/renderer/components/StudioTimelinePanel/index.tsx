@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import type { ReactNode, Ref } from 'react';
 import { StudioModeTab } from '../../recorder/types';
 import {
   ApiPlaygroundModeIcon,
@@ -14,6 +14,7 @@ export type StudioTimelinePanelVariant =
 
 export interface StudioTimelinePanelProps {
   ariaHidden?: boolean;
+  bodyRef?: Ref<HTMLDivElement>;
   children: ReactNode;
   className?: string;
   collapsed?: boolean;
@@ -162,6 +163,7 @@ export function StudioTimelineHeader({
 
 export function StudioTimelinePanel({
   ariaHidden,
+  bodyRef,
   children,
   className,
   collapsed,
@@ -199,7 +201,7 @@ export function StudioTimelinePanel({
         onToggleCollapsed={onToggleCollapsed}
         variant={variant}
       />
-      <div aria-hidden={ariaHidden} className={bodyClassName}>
+      <div aria-hidden={ariaHidden} className={bodyClassName} ref={bodyRef}>
         {children}
       </div>
       {footer}

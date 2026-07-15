@@ -715,6 +715,13 @@ export class RemoteExecutionAdapter extends BasePlaygroundAdapter {
     }
   }
 
+  getRecorderScreenshotAssetUrl(assetId: string): string | null {
+    if (!this.serverUrl || !/^[a-zA-Z0-9_-]+$/.test(assetId)) {
+      return null;
+    }
+    return `${this.serverUrl}/recorder/assets/${encodeURIComponent(assetId)}`;
+  }
+
   async clearRecorderScreenshotAssets(sessionId: string): Promise<void> {
     if (!this.serverUrl || !sessionId) {
       return;

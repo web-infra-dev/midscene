@@ -21,16 +21,34 @@ import { allScriptsFromDump } from '../utils/replay-scripts';
 /**
  * Format error object to string
  */
-function formatError(error: any): string {
-  if (!error) return '';
+export function formatPlaygroundError(error: unknown): string {
+  if (!error) return 'Unknown error';
   if (typeof error === 'string') return error;
-  if (error?.dump?.error) return error.dump.error;
-  if (error.message) return String(error.message);
-  try {
-    return JSON.stringify(error);
-  } catch {
-    return String(error);
+  if (typeof error === 'object') {
+    const errorWithDetails = error as {
+      cause?: { message?: unknown };
+      dump?: { error?: unknown };
+      message?: unknown;
+    };
+    if (errorWithDetails.dump?.error) {
+      return formatPlaygroundError(errorWithDetails.dump.error);
+    }
+    if (errorWithDetails.message) return String(errorWithDetails.message);
+    if (errorWithDetails.cause?.message) {
+      return String(errorWithDetails.cause.message);
+    }
   }
+  try {
+    const serialized = JSON.stringify(error);
+    if (serialized && serialized !== '{}') return serialized;
+  } catch {
+    // Fall through to the string representation below.
+  }
+
+  const stringified = String(error);
+  return stringified === '[object Object]'
+    ? 'Unknown error (an empty error object was received)'
+    : stringified;
 }
 
 /**
@@ -209,7 +227,10 @@ export function usePlaygroundExecution(options: UsePlaygroundExecutionOptions) {
                   actionKind: typeStr(task),
                   timestamp: new Date(task.timing?.start || Date.now()),
                   result: task.error
-                    ? { error: formatError(task.error), result: null }
+                    ? {
+                        error: formatPlaygroundError(task.error),
+                        result: null,
+                      }
                     : undefined,
                 }),
               );
@@ -291,7 +312,9 @@ export function usePlaygroundExecution(options: UsePlaygroundExecutionOptions) {
             result.dump = resultObj.dump;
           }
           if (resultObj.reportHTML) result.reportHTML = resultObj.reportHTML;
-          if (resultObj.error) result.error = formatError(resultObj.error);
+          if (resultObj.error) {
+            result.error = formatPlaygroundError(resultObj.error);
+          }
 
           // If result was wrapped, extract the actual result
           // Handle both defined values and undefined (e.g., from aiWaitFor)
@@ -303,7 +326,7 @@ export function usePlaygroundExecution(options: UsePlaygroundExecutionOptions) {
         if (interruptedFlagRef.current[thisRunningId]) {
           return;
         }
-        result.error = formatError(e);
+        result.error = formatPlaygroundError(e);
         console.error('Playground execution error:', e);
 
         // Try to extract dump and reportHTML from error object

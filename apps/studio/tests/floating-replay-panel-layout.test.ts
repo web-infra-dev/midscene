@@ -19,10 +19,10 @@ describe('floating Replay panel layout', () => {
       "'pointer-events-none studio-mode-panel-overlay-floating'",
     );
     expect(recorderStyles).toContain(
-      '.studio-replay-column > .studio-replay-panel:only-child',
+      '.studio-mode-panel-pane-active.studio-replay-column',
     );
     expect(recorderStyles).toMatch(
-      /\.studio-mode-panel-overlay-floating:has\([\s\S]*?\.studio-replay-column\s*>\s*\.studio-replay-panel:only-child[\s\S]*?\)\s*\{\s*bottom:\s*auto;/,
+      /\.studio-mode-panel-overlay-floating:has\([\s\S]*?\.studio-mode-panel-pane-active\.studio-replay-column\s*>\s*\.studio-replay-panel:only-child[\s\S]*?\)\s*\{\s*bottom:\s*auto;/,
     );
     expect(recorderStyles).toMatch(
       /\.studio-mode-panel-pane-active\s*\{\s*position:\s*relative;[\s\S]*?height:\s*auto;/,

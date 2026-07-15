@@ -58,6 +58,8 @@ const packagedAsarUnpackDirs = [
   'node_modules/@midscene/android/bin',
   'node_modules/@midscene/computer/bin',
   'node_modules/@midscene/computer/native',
+  // photon-node loads photon_rs_bg.wasm from its own directory at runtime.
+  'node_modules/@silvia-odwyer/photon-node',
   'node_modules/sharp',
 ].map((relativePath) => relativePath.split('/').join(path.sep));
 export const packagedAsarOptions = {

@@ -50,6 +50,87 @@ function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+const NAVIGATION_COMPLETE_TIMEOUT_MS = 30_000;
+
+function isBlankUrl(url: string | undefined): boolean {
+  if (!url) return true;
+  return url === 'about:blank' || url.startsWith('chrome://newtab');
+}
+
+/**
+ * Wait for the browser target to settle before sending CDP commands to it.
+ *
+ * A cross-origin redirect can replace the target after `tabs.update()`
+ * resolves. Sending `Runtime.evaluate` during that hand-off intermittently
+ * fails because Chrome has detached the debugger from the old target.
+ */
+function waitForTabNavigationComplete(
+  tabId: number,
+  targetUrl: string,
+  updatedTab?: chrome.tabs.Tab,
+  timeoutMs = NAVIGATION_COMPLETE_TIMEOUT_MS,
+): Promise<void> {
+  return new Promise((resolve) => {
+    let settled = false;
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      chrome.tabs.onUpdated.removeListener(onUpdated);
+      clearTimeout(timer);
+      resolve();
+    };
+
+    const isTargetTab = (tab: chrome.tabs.Tab | undefined): boolean => {
+      if (!tab) return false;
+      return tab.url === targetUrl || tab.pendingUrl === targetUrl;
+    };
+
+    const isReady = (
+      tab: chrome.tabs.Tab | undefined,
+      navigationUpdateObserved: boolean,
+    ): boolean => {
+      if (!tab || tab.status !== 'complete') return false;
+      const currentUrl = tab.url || tab.pendingUrl || '';
+      const isExpectedUrlKind = isBlankUrl(targetUrl)
+        ? isBlankUrl(currentUrl)
+        : !isBlankUrl(currentUrl);
+      return (
+        isExpectedUrlKind && (navigationUpdateObserved || isTargetTab(tab))
+      );
+    };
+
+    const onUpdated = (
+      id: number,
+      info: chrome.tabs.TabChangeInfo,
+      tab: chrome.tabs.Tab,
+    ) => {
+      // This listener is registered after tabs.update(), so a completion
+      // event received here belongs to the navigation we initiated.
+      if (id === tabId && isReady(tab, info.status === 'complete')) finish();
+    };
+
+    chrome.tabs.onUpdated.addListener(onUpdated);
+    const timer = setTimeout(finish, timeoutMs);
+
+    // tabs.update() returns the updated target. A completed returned tab is
+    // already a settled result of this navigation, including a fast redirect.
+    if (isReady(updatedTab, true)) {
+      finish();
+      return;
+    }
+
+    // The tab may have completed before the listener was added. Only accept
+    // the requested target here: a previous complete HTTPS page is not proof
+    // that this navigation has settled.
+    chrome.tabs
+      .get(tabId)
+      .then((tab) => {
+        if (isReady(tab, false)) finish();
+      })
+      .catch(() => {});
+  });
+}
+
 function hasFlatNodeAttribute(
   attributes: string[] | undefined,
   name: string,
@@ -552,9 +633,29 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
     const startTime = Date.now();
     let lastReadyState = '';
     while (Date.now() - startTime < timeout) {
-      const result = await this.sendCommandToDebugger('Runtime.evaluate', {
-        expression: 'document.readyState',
-      });
+      let result: any;
+      try {
+        result = await this.sendCommandToDebugger('Runtime.evaluate', {
+          expression: 'document.readyState',
+        });
+      } catch (error) {
+        // Navigation can replace the target between tabs.update() and this
+        // probe. Chrome occasionally reports that race as an empty object,
+        // which cannot be recognised by sendCommandToDebugger's message-based
+        // detach detection. Reattach and keep waiting for the settled page.
+        debug('Failed to probe document readyState; retrying after attach', {
+          error,
+        });
+        try {
+          await this.ensureDebuggerAttached();
+        } catch (attachError) {
+          debug('Failed to reattach debugger while waiting for navigation', {
+            error: attachError,
+          });
+        }
+        await sleep(300);
+        continue;
+      }
       lastReadyState = result.result.value;
       if (lastReadyState === 'complete') {
         await new Promise((resolve) => setTimeout(resolve, 300));
@@ -686,9 +787,10 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
 
   async navigate(url: string): Promise<void> {
     const tabId = await this.getTabIdOrConnectToCurrentTab();
-    await chrome.tabs.update(tabId, { url });
-    // Wait for navigation to complete
-    // Note: debugger will auto-reattach on next command if detached during navigation
+    const updatedTab = await chrome.tabs.update(tabId, { url });
+    await waitForTabNavigationComplete(tabId, url, updatedTab);
+    // Wait for navigation to complete. The tab-level wait above avoids sending
+    // CDP commands during cross-origin target replacement.
     await this.waitUntilNetworkIdle();
   }
 

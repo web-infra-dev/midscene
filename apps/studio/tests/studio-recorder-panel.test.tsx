@@ -137,6 +137,7 @@ function createRecorderMock({
     exportAllZip: vi.fn(),
     exportSessionCode: vi.fn(),
     generateSessionCode: vi.fn(),
+    getRecorderScreenshotAssetUrl: vi.fn(() => null),
     loadSessionScreenshots: vi.fn(async (sessionId: string) => {
       const matchingSession = [currentSession, session].find(
         (item) => item?.id === sessionId,
@@ -246,12 +247,109 @@ describe('StudioRecorderPanel', () => {
     expect(container.textContent).not.toContain(
       'The recording progress will be displayed here.',
     );
+    expect(container.textContent).toContain(
+      'Record interactions, then generate a natural language description.',
+    );
+    const startButton = container.querySelector(
+      'button[aria-label="Start recording"]',
+    );
+    expect(startButton?.textContent).toContain('Start Recording');
+    expect(
+      container.querySelector('.studio-recorder-floating-ready-dot'),
+    ).not.toBeNull();
+    expect(startButton?.querySelector('svg')).not.toBeNull();
     expect(container.textContent).not.toContain('Existing recording');
     expect(
       container.querySelector('button[aria-label="Recording history"]'),
     ).toBeNull();
 
     await unmount(root);
+  });
+
+  it('scrolls the record timeline to the newest event', async () => {
+    vi.useFakeTimers();
+    const session = createRecorderMock().state.sessions[0];
+    mocks.recorder = createRecorderMock({
+      currentSession: session,
+      isRecording: true,
+    });
+    mocks.playground = {
+      controller: {
+        state: {
+          serverOnline: true,
+          sessionViewState: { connected: true },
+        },
+      },
+      phase: 'ready',
+    };
+
+    const { container, root } = await renderRecorderPanel();
+    const timeline = container.querySelector<HTMLElement>(
+      '.studio-recorder-floating-main',
+    );
+    expect(timeline).not.toBeNull();
+    Object.defineProperty(timeline, 'scrollHeight', {
+      configurable: true,
+      value: 480,
+    });
+
+    await act(async () => {
+      vi.runAllTimers();
+    });
+
+    expect(timeline?.scrollTop).toBe(480);
+
+    await unmount(root);
+    vi.useRealTimers();
+  });
+
+  it('scrolls again after stop actions expand the timeline footer', async () => {
+    vi.useFakeTimers();
+    const session = createRecorderMock().state.sessions[0];
+    mocks.recorder = createRecorderMock({
+      currentSession: session,
+      isRecording: true,
+    });
+    mocks.playground = {
+      controller: {
+        state: {
+          serverOnline: true,
+          sessionViewState: { connected: true },
+        },
+      },
+      phase: 'ready',
+    };
+
+    const { container, root } = await renderRecorderPanel();
+    const timeline = container.querySelector<HTMLElement>(
+      '.studio-recorder-floating-main',
+    );
+    expect(timeline).not.toBeNull();
+
+    mocks.recorder.state.isRecording = false;
+    mocks.recorder.currentSession = null;
+    mocks.recorder.state.sessions = [{ ...session, status: 'completed' }];
+    await act(async () => {
+      root.render(<StudioRecorderPanel />);
+    });
+
+    expect(
+      container.querySelector('button[aria-label="Generate Description"]'),
+    ).not.toBeNull();
+    Object.defineProperty(timeline, 'scrollHeight', {
+      configurable: true,
+      value: 560,
+    });
+    timeline!.scrollTop = 0;
+
+    await act(async () => {
+      vi.runAllTimers();
+    });
+
+    expect(timeline?.scrollTop).toBe(560);
+
+    await unmount(root);
+    vi.useRealTimers();
   });
 
   it('numbers screenshots independently from timeline events without images', async () => {
@@ -280,6 +378,82 @@ describe('StudioRecorderPanel', () => {
     expect(container.textContent).not.toContain('event-002-click');
 
     await unmount(root);
+  });
+
+  it('loads an asset-backed screenshot only after its card enters the drawer viewport', async () => {
+    let observe:
+      | ((entries: Array<{ isIntersecting: boolean }>) => void)
+      | null = null;
+    const previousIntersectionObserver = globalThis.IntersectionObserver;
+
+    class TestIntersectionObserver {
+      constructor(
+        callback: (entries: Array<{ isIntersecting: boolean }>) => void,
+      ) {
+        observe = callback;
+      }
+
+      disconnect() {}
+
+      observe() {}
+    }
+
+    Object.defineProperty(globalThis, 'IntersectionObserver', {
+      configurable: true,
+      value: TestIntersectionObserver,
+    });
+
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+
+    try {
+      await act(async () => {
+        root.render(
+          <RecorderScreenshotDetailView
+            events={
+              [
+                {
+                  hashId: 'asset-backed-click',
+                  screenshotAsset: {
+                    bytes: 32,
+                    id: 'session-click-asset',
+                    mimeType: 'image/png',
+                  },
+                  type: 'click',
+                },
+              ] as any
+            }
+            getScreenshotAssetUrl={(assetId) =>
+              `http://127.0.0.1:5800/recorder/assets/${assetId}`
+            }
+          />,
+        );
+      });
+
+      expect(container.querySelector('img')).toBeNull();
+      expect(observe).not.toBeNull();
+
+      await act(async () => {
+        observe?.([{ isIntersecting: true }]);
+      });
+
+      const image = container.querySelector('img');
+      expect(image?.getAttribute('src')).toBe(
+        'http://127.0.0.1:5800/recorder/assets/session-click-asset',
+      );
+      expect(image?.getAttribute('src')).not.toContain('data:image/png;base64');
+    } finally {
+      await unmount(root);
+      if (previousIntersectionObserver) {
+        Object.defineProperty(globalThis, 'IntersectionObserver', {
+          configurable: true,
+          value: previousIntersectionObserver,
+        });
+      } else {
+        Reflect.deleteProperty(globalThis, 'IntersectionObserver');
+      }
+    }
   });
 
   it('renders saved recordings in the replay panel', async () => {
@@ -556,6 +730,11 @@ describe('StudioRecorderPanel', () => {
     expect(container.textContent).not.toContain('Show more');
     expect(container.textContent).not.toContain('Hide more');
     expect(container.textContent).not.toContain('Outputs');
+    expect(container.textContent).toContain('Recording your actions');
+    expect(
+      container.querySelector('button[aria-label="Stop recording"]')
+        ?.textContent,
+    ).toContain('Stop Recording');
     const timelineCopies = container.querySelectorAll<HTMLElement>(
       '.studio-recorder-timeline-copy',
     );
@@ -571,7 +750,7 @@ describe('StudioRecorderPanel', () => {
     await unmount(root);
   });
 
-  it('shows asset-backed screenshots and loads them only after the button is clicked', async () => {
+  it('opens asset-backed screenshots without materializing the whole session', async () => {
     const currentSession = {
       createdAt: Date.now(),
       description: '',
@@ -618,14 +797,6 @@ describe('StudioRecorderPanel', () => {
     mocks.recorder.state.sessions = [
       { ...currentSession, status: 'completed' },
     ];
-    mocks.recorder.loadSessionScreenshots.mockResolvedValue([
-      {
-        ...currentSession.events[0],
-        screenshotAsset: undefined,
-        screenshotWithBox: 'data:image/jpeg;base64,c2hvdA==',
-      },
-    ]);
-
     await act(async () => {
       root.render(
         <StudioRecorderPanel onShowScreenshots={onShowScreenshots} />,
@@ -645,14 +816,8 @@ describe('StudioRecorderPanel', () => {
       await Promise.resolve();
     });
 
-    expect(mocks.recorder.loadSessionScreenshots).toHaveBeenCalledWith(
-      'session-asset-backed',
-    );
-    expect(onShowScreenshots).toHaveBeenCalledWith([
-      expect.objectContaining({
-        screenshotWithBox: 'data:image/jpeg;base64,c2hvdA==',
-      }),
-    ]);
+    expect(mocks.recorder.loadSessionScreenshots).not.toHaveBeenCalled();
+    expect(onShowScreenshots).toHaveBeenCalledWith(currentSession.events);
 
     await unmount(root);
   });
@@ -983,8 +1148,8 @@ describe('StudioRecorderPanel', () => {
 
     expect(mocks.recorder.stopRecording).toHaveBeenCalled();
     expect(mocks.recorder.generateSessionCode).not.toHaveBeenCalled();
-    expect(container.textContent).not.toContain('Generating markdown...');
-    expect(container.textContent).not.toContain('Generate markdown');
+    expect(container.textContent).not.toContain('Generating Description...');
+    expect(container.textContent).not.toContain('Generate Description');
     const stoppingButton = container.querySelector(
       'button[aria-label="Stopping recording"]',
     );
@@ -1015,9 +1180,10 @@ describe('StudioRecorderPanel', () => {
     });
 
     const generateButton = container.querySelector(
-      'button[aria-label="Generate markdown"]',
+      'button[aria-label="Generate Description"]',
     );
     expect(generateButton).not.toBeNull();
+    expect(generateButton?.textContent).toContain('Generate Description');
     expect(mocks.recorder.generateSessionCode).not.toHaveBeenCalled();
 
     await act(async () => {
@@ -1038,7 +1204,7 @@ describe('StudioRecorderPanel', () => {
       }),
     );
     expect(
-      container.querySelector('button[aria-label="Generate markdown"]'),
+      container.querySelector('button[aria-label="Generate Description"]'),
     ).not.toBeNull();
 
     await unmount(root);

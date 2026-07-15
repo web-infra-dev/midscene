@@ -325,6 +325,10 @@ export class PlaygroundSDK {
     return null;
   }
 
+  getRecorderScreenshotAssetUrl(assetId: string): string | null {
+    return this.adapter.getRecorderScreenshotAssetUrl(assetId);
+  }
+
   async clearRecorderScreenshotAssets(sessionId: string): Promise<void> {
     if (this.adapter instanceof RemoteExecutionAdapter) {
       await this.adapter.clearRecorderScreenshotAssets(sessionId);

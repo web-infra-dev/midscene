@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   fitMobilePreviewViewport,
   resolveStudioPreviewPlatform,
+  resolveStudioWebPreviewAspectRatio,
   shouldEnableMobilePreviewFrame,
   shouldUseDesktopPreviewPadding,
   shouldUseMobilePreviewFrame,
@@ -166,5 +167,29 @@ describe('fitMobilePreviewViewport', () => {
 
     expect(viewport.width).toBeLessThan(280);
     expect(viewport.height).toBeLessThan(820);
+  });
+});
+
+describe('resolveStudioWebPreviewAspectRatio', () => {
+  it('uses the 1280 by 720 default until a Web session supplies dimensions', () => {
+    expect(resolveStudioWebPreviewAspectRatio({})).toBe(16 / 9);
+  });
+
+  it('uses the active session dimensions instead of forcing 16:9', () => {
+    expect(
+      resolveStudioWebPreviewAspectRatio({
+        'web.viewportWidth': 1280,
+        'web.viewportHeight': 768,
+      }),
+    ).toBe(5 / 3);
+  });
+
+  it('accepts bare setup values before Studio namespaces the form fields', () => {
+    expect(
+      resolveStudioWebPreviewAspectRatio({
+        viewportWidth: '900',
+        viewportHeight: '600',
+      }),
+    ).toBe(1.5);
   });
 });

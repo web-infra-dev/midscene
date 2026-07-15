@@ -78,6 +78,7 @@ const RECORDER_CAPTURE_AFTER_INTERACT_DELAY_MS = 250;
 const RECORDER_TYPE_ONLY_INPUT_SETTLE_DELAY_MS = 750;
 const RECORDER_NAVIGATION_OBSERVATION_INTERVAL_MS = 250;
 const RECORDER_NAVIGATION_OBSERVATION_TIMEOUT_MS = 35_000;
+const RECORDER_NAVIGATION_STABLE_OBSERVATIONS = 2;
 const RECORDER_AI_DESCRIBE_AFTER_INTERACT_TIMEOUT_MS = 30_000;
 const RECORDER_AI_DESCRIBE_VERIFY_PROMPT = false;
 const RECORDER_AI_DESCRIBE_SCREENSHOT_DUMP_DIR =
@@ -990,6 +991,7 @@ function getRecorderSemanticActionType(
     case 'GoForward':
     case 'Reload':
     case 'Stop':
+    case 'Navigate':
     case 'InitialNavigation':
     case 'NavigationChanged':
       return 'navigation';
@@ -1225,6 +1227,7 @@ class PlaygroundServer {
     | undefined;
   private _recorderEventQueue: Promise<void> = Promise.resolve();
   private _recorderPendingCaptures = 0;
+  private _recorderNavigationCompletionTasks = new Set<Promise<void>>();
   private _studioPreviewRecorderLastTargetPoint:
     | PlaygroundRecorderTargetPoint
     | undefined;
@@ -1541,6 +1544,7 @@ class PlaygroundServer {
     this._recorderEvents = [];
     this._recorderPendingTypeOnlyInput = null;
     this._recorderEventQueue = Promise.resolve();
+    this._recorderNavigationCompletionTasks.clear();
     this._studioPreviewRecorderLastTargetPoint = undefined;
     this._studioPreviewRecorderLastScreenshot = undefined;
     this._studioPreviewRecorderLastPageState = undefined;
@@ -1548,6 +1552,10 @@ class PlaygroundServer {
 
   async waitForRecorderIdle(): Promise<void> {
     await this._recorderEventQueue;
+    while (this._recorderNavigationCompletionTasks.size > 0) {
+      await Promise.all(this._recorderNavigationCompletionTasks);
+      await this._recorderEventQueue;
+    }
   }
 
   private canRecordStudioPreviewInteractions(): boolean {
@@ -1747,7 +1755,9 @@ class PlaygroundServer {
     this._studioPreviewRecorderLastScreenshot = screenshotAfter;
     this._studioPreviewRecorderLastPageState = pageStateAfter;
     this.queueStudioPreviewRecorderEventAppend(event, navigationEvent);
-    if (!navigationEvent) {
+    if (navigationEvent) {
+      this.observeStudioPreviewNavigationCompletion(navigationEvent, sessionId);
+    } else {
       this.observeStudioPreviewNavigationChange(
         payload,
         before?.pageState,
@@ -1817,11 +1827,106 @@ class PlaygroundServer {
         ) {
           this._studioPreviewRecorderLastScreenshot = screenshot;
           this._studioPreviewRecorderLastPageState = pageStateAfter;
+          this.observeStudioPreviewNavigationCompletion(
+            navigationEvent,
+            sessionId,
+          );
         }
         return;
       }
     })().catch((error) => {
       debugInteract('delayed recorder navigation observation failed:', error);
+    });
+  }
+
+  private observeStudioPreviewNavigationCompletion(
+    navigationEvent: PlaygroundRecorderEvent,
+    sessionId: string,
+  ): void {
+    const task = (async () => {
+      let latestUrl = navigationEvent.url;
+      let stableObservations = 0;
+      const deadline = Date.now() + RECORDER_NAVIGATION_OBSERVATION_TIMEOUT_MS;
+
+      while (this._recorderSessionId === sessionId && Date.now() < deadline) {
+        await sleep(RECORDER_NAVIGATION_OBSERVATION_INTERVAL_MS);
+        if (this._recorderSessionId !== sessionId) {
+          return;
+        }
+
+        const pageState = await this.getActiveRecorderPageState();
+        const currentUrl = pageState.url;
+        if (!currentUrl) {
+          continue;
+        }
+        if (currentUrl !== latestUrl) {
+          latestUrl = currentUrl;
+          stableObservations = 0;
+          continue;
+        }
+
+        const agent = this._activeConnection.agent;
+        let isLoading = false;
+        if (typeof agent?.interface.navigationState === 'function') {
+          try {
+            isLoading = (await agent.interface.navigationState()).isLoading;
+          } catch (error) {
+            debugInteract(
+              'recorder navigationState() failed while observing completion:',
+              error,
+            );
+          }
+        }
+        if (isLoading) {
+          stableObservations = 0;
+          continue;
+        }
+
+        stableObservations++;
+        if (stableObservations < RECORDER_NAVIGATION_STABLE_OBSERVATIONS) {
+          continue;
+        }
+
+        const semanticAction = buildRecorderSemanticAction(
+          'Navigate',
+          { value: currentUrl },
+          currentUrl,
+        );
+        this._recorderEvents.push({
+          ...navigationEvent,
+          actionType: 'Navigate',
+          rawPayload: {
+            ...navigationEvent.rawPayload,
+            afterUrl: currentUrl,
+            navigationCompleted: true,
+          },
+          pageInfo: pageState.pageInfo,
+          url: currentUrl,
+          title: pageState.title,
+          value: currentUrl,
+          semantic: buildReadyRecorderSemantic(
+            'heuristic',
+            semanticAction,
+            currentUrl,
+            'high',
+          ),
+          timestamp: Date.now(),
+          // The client uses the unchanged id to update the existing timeline
+          // item instead of rendering a redirect as a new Navigate step.
+          hashId: navigationEvent.hashId,
+        });
+        return;
+      }
+    })().catch((error) => {
+      debugInteract(
+        'recorder navigation completion observation failed:',
+        error,
+      );
+    });
+
+    this._recorderNavigationCompletionTasks.add(task);
+    void task.finally(() => {
+      this._recorderNavigationCompletionTasks.delete(task);
     });
   }
 

@@ -209,6 +209,47 @@ describe('ShellLayout right panel tabs', () => {
     vi.clearAllMocks();
   });
 
+  it('passes the Windows titlebar safety inset to a right-side Markdown drawer', async () => {
+    const previousUserAgent = Object.getOwnPropertyDescriptor(
+      window.navigator,
+      'userAgent',
+    );
+    Object.defineProperty(window.navigator, 'userAgent', {
+      configurable: true,
+      value: 'Windows NT 10.0',
+    });
+    try {
+      const { container, root } = await renderShellLayout();
+
+      await act(async () => {
+        container
+          .querySelector<HTMLButtonElement>(
+            '[data-testid="select-device-view"]',
+          )
+          ?.click();
+      });
+      await act(async () => {
+        container
+          .querySelector<HTMLButtonElement>('[data-testid="open-markdown"]')
+          ?.click();
+      });
+
+      expect(
+        container
+          .querySelector<HTMLElement>('.studio-right-panel-markdown-drawer')
+          ?.style.getPropertyValue('--studio-titlebar-right-inset'),
+      ).toBe('176px');
+
+      await act(async () => root.unmount());
+    } finally {
+      if (previousUserAgent) {
+        Object.defineProperty(window.navigator, 'userAgent', previousUserAgent);
+      } else {
+        Reflect.deleteProperty(window.navigator, 'userAgent');
+      }
+    }
+  });
+
   it('keeps right tab content inside MainContent', async () => {
     const { container, root } = await renderShellLayout();
 
@@ -233,9 +274,17 @@ describe('ShellLayout right panel tabs', () => {
     const mainArea = mainContent?.parentElement as HTMLElement;
     expect(mainArea.className).toContain('flex');
     expect(mainArea.className).toContain('gap-[4px]');
+    expect(mainArea.style.left).toBe('244px');
     expect(
       container.querySelector('.pointer-events-none.absolute.left-0.right-0'),
     ).toBeNull();
+
+    await act(async () => {
+      container
+        .querySelector<HTMLButtonElement>('[aria-label="Collapse sidebar"]')
+        ?.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true }));
+    });
+    expect(mainArea.style.left).toBe('4px');
 
     await act(async () => {
       container
@@ -318,6 +367,14 @@ describe('ShellLayout right panel tabs', () => {
     );
     expect(closeButton).not.toBeNull();
     expect(closeButton?.classList.contains('app-no-drag')).toBe(true);
+    expect(closeButton?.querySelector('svg')).not.toBeNull();
+    expect(
+      container
+        .querySelector<HTMLButtonElement>(
+          'button[aria-label="More markdown actions"]',
+        )
+        ?.querySelector('svg'),
+    ).not.toBeNull();
 
     await act(async () => {
       closeButton?.click();

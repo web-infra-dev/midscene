@@ -28,7 +28,10 @@ import { shouldOffsetEmptyStateForPromptInput } from '../../utils/prompt-input-u
 import { PromptInput } from '../prompt-input';
 import ShinyText from '../shiny-text';
 import { shouldRenderCustomEmptyState } from './empty-state';
-import { shouldExecuteExternalRunRequest } from './external-run';
+import {
+  preparePlaygroundExecution,
+  shouldExecuteExternalRunRequest,
+} from './external-run';
 import { getLastProgressItemIdsByGroup } from './progress-groups';
 import {
   createStorageProvider,
@@ -247,6 +250,16 @@ export function UniversalPlayground({
     onBeforeExecutionStartRef.current = componentConfig.onBeforeExecutionStart;
   }, [componentConfig.onBeforeExecutionStart]);
 
+  const prepareExecution = useCallback(
+    () =>
+      preparePlaygroundExecution({
+        clearTimeline: clearInfoList,
+        clearTimelineBeforeRun: componentConfig.clearTimelineBeforeRun,
+        onBeforeExecutionStart: onBeforeExecutionStartRef.current,
+      }),
+    [clearInfoList, componentConfig.clearTimelineBeforeRun],
+  );
+
   useEffect(() => {
     componentConfig.onExecutionStatusChange?.({
       running: loading,
@@ -292,12 +305,12 @@ export function UniversalPlayground({
   const handleFormRun = useCallback(async () => {
     try {
       const value = form.getFieldsValue() as FormValue;
-      await onBeforeExecutionStartRef.current?.();
+      await prepareExecution();
       await executeAction(value);
     } catch (error) {
       notifyError(error, { title: 'Execution failed' });
     }
-  }, [form, executeAction]);
+  }, [form, executeAction, prepareExecution]);
 
   useEffect(() => {
     const request = componentConfig.externalRunRequest;
@@ -326,7 +339,7 @@ export function UniversalPlayground({
       }
     }
     (async () => {
-      await onBeforeExecutionStartRef.current?.();
+      await prepareExecution();
       await executeAction(request.value, {
         displayContent: request.displayContent,
         ...(request.reportDisplay
@@ -340,6 +353,7 @@ export function UniversalPlayground({
     componentConfig.externalRunRequest,
     executeAction,
     messagesInitialized,
+    prepareExecution,
     sdkReady,
   ]);
 

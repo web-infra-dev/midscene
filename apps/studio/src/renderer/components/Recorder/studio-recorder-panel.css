@@ -623,6 +623,24 @@
   pointer-events: auto;
 }
 
+/* The active mode pane is absolutely positioned, so make it a flex parent.
+ * That gives Record's control card and Timeline a definite shared height. */
+.studio-mode-panel-pane-active.studio-recorder-column {
+  display: flex;
+  min-height: 0;
+}
+
+.studio-mode-panel-pane-active.studio-recorder-column > .studio-recorder-panel {
+  height: 100%;
+  flex: 1 1 auto;
+}
+
+/* Markdown makes the mode pane an overlay. Keep the Record column's height
+ * explicit in that mode so the Timeline retains its bounded scroll range. */
+.studio-mode-panel-overlay-floating .studio-recorder-panel {
+  height: 100%;
+}
+
 .studio-recorder-column {
   position: relative;
   width: 100%;
@@ -640,13 +658,15 @@
  * starts it contains only the session picker, so collapse its otherwise
  * full-height absolute wrapper instead of covering the preview below it. */
 .studio-mode-panel-overlay-floating:has(
-    .studio-replay-column > .studio-replay-panel:only-child
+    .studio-mode-panel-pane-active.studio-replay-column
+      > .studio-replay-panel:only-child
   ) {
   bottom: auto;
 }
 
 .studio-mode-panel-overlay-floating:has(
-    .studio-replay-column > .studio-replay-panel:only-child
+    .studio-mode-panel-pane-active.studio-replay-column
+      > .studio-replay-panel:only-child
   )
   .studio-mode-panel-stack {
   height: auto;
@@ -654,7 +674,8 @@
 }
 
 .studio-mode-panel-overlay-floating:has(
-    .studio-replay-column > .studio-replay-panel:only-child
+    .studio-mode-panel-pane-active.studio-replay-column
+      > .studio-replay-panel:only-child
   )
   .studio-mode-panel-pane-active {
   position: relative;
@@ -753,7 +774,7 @@
   padding: 0 4px;
   color: #0d0d0d;
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 500;
   line-height: 22.106px;
 }
 
@@ -1152,30 +1173,44 @@
   min-width: 0;
   min-height: 0;
   flex: 1 0 0;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  padding: 4px 8px;
+  font-family: var(--font-sans);
+  text-align: center;
+}
+
+.studio-recorder-floating-primer-status {
+  display: flex;
+  min-width: 0;
+  min-height: 22px;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  box-sizing: border-box;
-  padding: 4px 8px;
-  color: #1a1a1a;
+  color: #404040;
   font-size: 13px;
-  line-height: 21px;
+  font-weight: 500;
+  line-height: 22px;
 }
 
-.studio-recorder-floating-primer-copy svg {
-  width: 16px;
-  height: 16px;
-  flex: 0 0 16px;
-  color: #1a1a1a;
-}
-
-.studio-recorder-floating-primer-copy span {
+.studio-recorder-floating-primer-status-copy {
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: normal;
 }
 
+.studio-recorder-floating-primer-description {
+  max-width: 264px;
+  color: #999;
+  font-family: "PingFang SC", var(--font-sans);
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 20px;
+  text-align: center;
+}
+
+.studio-recorder-floating-ready-dot,
 .studio-recorder-floating-recording-dot {
   position: relative;
   width: 8px;
@@ -1184,6 +1219,18 @@
   overflow: visible;
   border-radius: 50%;
   background: #fe5f57;
+}
+
+.studio-recorder-floating-ready-dot {
+  background: #b6b6b6;
+}
+
+.studio-recorder-floating-ready-dot::before {
+  position: absolute;
+  inset: -2px;
+  border: 1px solid rgba(182, 182, 182, 0.25);
+  border-radius: 50%;
+  content: "";
 }
 
 .studio-recorder-floating-recording-dot::before {
@@ -1224,6 +1271,7 @@
   background: #1a79ff;
   padding: 0 6px;
   color: #fff;
+  font-family: var(--font-sans);
   font-size: 13px;
   font-weight: 400;
   line-height: 12px;
@@ -1313,6 +1361,43 @@
   .studio-recorder-floating-main {
   max-height: calc(100% - 44.077px);
   flex: 0 1 auto;
+}
+
+/*
+ * The Timeline shares a column with the record controls. When a generated
+ * Markdown panel is open that column becomes a floating overlay, so content
+ * height is no longer a reliable scroll bound. Let the Timeline body occupy
+ * the remaining card height, then make its main area the dedicated scroller.
+ */
+.studio-recorder-task-card:not(.studio-timeline-panel-empty):not(
+    .studio-timeline-panel-collapsed
+  )
+  .studio-timeline-panel-scroll-body {
+  max-height: none;
+  flex: 1 1 auto;
+}
+
+.studio-recorder-panel
+  > .studio-recorder-task-card:not(.studio-timeline-panel-empty):not(
+    .studio-timeline-panel-collapsed
+  ) {
+  height: auto;
+  max-height: calc(100% - 212.077px);
+  flex: 0 1 auto;
+}
+
+.studio-recorder-task-card:not(.studio-timeline-panel-empty):not(
+    .studio-timeline-panel-collapsed
+  )
+  .studio-recorder-floating-main {
+  min-height: 0;
+  max-height: none;
+  flex: 1 1 auto;
+  overscroll-behavior: contain;
+}
+
+.studio-mode-panel-overlay-floating .studio-recorder-floating-main {
+  pointer-events: auto;
 }
 
 .studio-recorder-floating-main-collapsed {
@@ -1849,7 +1934,7 @@
 .studio-right-panel-close {
   position: absolute;
   top: 10px;
-  right: 10px;
+  right: calc(10px + var(--studio-titlebar-right-inset, 0px));
   z-index: 30;
   display: inline-flex;
   width: 32px;
@@ -1863,12 +1948,16 @@
   padding: 0;
   color: #6d6d6d;
   cursor: pointer !important;
-  font-size: 18px;
-  line-height: 1;
   touch-action: manipulation;
   -webkit-app-region: no-drag;
   transition: background var(--studio-recorder-motion), color
     var(--studio-recorder-motion);
+}
+
+.studio-right-panel-close svg {
+  display: block;
+  width: 16px;
+  height: 16px;
 }
 
 .studio-right-panel-close:hover,
@@ -2003,6 +2092,31 @@
   object-fit: contain;
 }
 
+.studio-recorder-screenshot-state {
+  display: flex;
+  width: 100%;
+  min-height: 204px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #6d6d6d;
+  font-size: 12px;
+}
+
+.studio-recorder-screenshot-state button {
+  cursor: pointer;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  padding: 4px 6px;
+  color: #1a79ff;
+}
+
+.studio-recorder-screenshot-state button:hover,
+.studio-recorder-screenshot-state button:focus-visible {
+  background: #eaf2ff;
+}
+
 .studio-right-panel-markdown {
   display: flex;
   min-width: 0;
@@ -2020,7 +2134,7 @@
   align-items: center;
   justify-content: space-between;
   border-bottom: 1px solid #ebebeb;
-  padding: 0 48px 0 16px;
+  padding: 0 calc(48px + var(--studio-titlebar-right-inset, 0px)) 0 16px;
 }
 
 .studio-right-panel-markdown-title {

@@ -229,6 +229,9 @@ describe('Sidebar device list', () => {
     );
     expect(webButton).toBeTruthy();
     expect(webButton?.className).toContain('outline-none');
+    expect(webButton?.querySelector('span.flex-1')?.className).toContain(
+      'leading-[22.11px]',
+    );
 
     await act(async () => {
       webButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));

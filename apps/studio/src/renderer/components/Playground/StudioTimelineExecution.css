@@ -66,8 +66,8 @@
   .middle-dialog-area {
   min-height: 0;
   height: auto;
-  flex: 0 0 auto;
-  overflow: visible;
+  flex: 0 1 auto;
+  overflow: hidden;
   border: 0;
   border-radius: 0;
   background: transparent;
@@ -85,17 +85,9 @@
   .studio-playground-timeline-wrapped
   .studio-playground-timeline-panel
   .studio-timeline-panel-scroll-body {
-  max-height: none;
+  max-height: calc(100% - 44.077px);
   overflow-x: hidden;
-  overflow-y: auto;
-  scrollbar-width: none;
-}
-
-.playground-shell
-  .studio-playground-timeline-wrapped
-  .studio-playground-timeline-panel
-  .studio-timeline-panel-scroll-body::-webkit-scrollbar {
-  display: none;
+  overflow-y: hidden;
 }
 
 .playground-shell
@@ -105,9 +97,19 @@
   min-height: 0;
   height: auto;
   max-height: none;
-  flex: 0 0 auto;
+  flex: 1 1 auto;
   padding: 5.846px 16px 20px;
-  overflow: visible;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.playground-shell
+  .studio-playground-timeline-wrapped
+  .studio-playground-timeline-panel
+  .info-list-container::-webkit-scrollbar {
+  width: 0;
+  height: 0;
 }
 
 .playground-shell
@@ -517,7 +519,8 @@
  * the remaining column space but lets the shared timeline stay content-sized
  * until it reaches that bound. */
 .studio-replay-column > .playground-shell {
+  height: auto;
   min-height: 0;
-  max-height: 100%;
+  max-height: calc(100% - 212.077px);
   flex: 0 1 auto;
 }

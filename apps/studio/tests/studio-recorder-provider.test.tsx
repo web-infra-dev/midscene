@@ -91,6 +91,7 @@ function createConnectedStudioContext({
   },
   events = [],
   describeRecorderEventAtPoint,
+  getInterfaceInfo,
 }: {
   startResult?: {
     ok: boolean;
@@ -100,6 +101,7 @@ function createConnectedStudioContext({
   };
   events?: unknown[];
   describeRecorderEventAtPoint?: ReturnType<typeof vi.fn>;
+  getInterfaceInfo?: ReturnType<typeof vi.fn>;
 } = {}) {
   const interact = vi.fn(async (_payload?: unknown) => ({ ok: true }));
   const startRecorderSession = vi.fn(async () => startResult);
@@ -113,6 +115,9 @@ function createConnectedStudioContext({
     events: since === 0 ? events : [],
     nextIndex: since === 0 ? events.length : since,
   }));
+  const resolvedGetInterfaceInfo =
+    getInterfaceInfo ??
+    vi.fn(async () => ({ navigationState: { isLoading: false } }));
   const playgroundSDK = {
     interact,
     startRecorderSession,
@@ -121,6 +126,7 @@ function createConnectedStudioContext({
     pruneRecorderScreenshotAssets,
     getRecorderScreenshotAsset,
     getRecorderEvents,
+    getInterfaceInfo: resolvedGetInterfaceInfo,
     ...(describeRecorderEventAtPoint ? { describeRecorderEventAtPoint } : {}),
   };
 
@@ -196,6 +202,7 @@ function createConnectedStudioContext({
     pruneRecorderScreenshotAssets,
     getRecorderScreenshotAsset,
     getRecorderEvents,
+    getInterfaceInfo: resolvedGetInterfaceInfo,
     describeRecorderEventAtPoint,
   };
 }
@@ -970,6 +977,79 @@ describe('StudioRecorderProvider preview recording', () => {
       type: 'click',
     });
     expect(describeStudioRecorderEventsWithAI).not.toHaveBeenCalled();
+
+    await mounted.cleanup();
+  });
+
+  it('updates a pending navigation in place when its final URL arrives', async () => {
+    const navigationStarted = {
+      type: 'navigation',
+      source: 'studio-preview',
+      actionType: 'NavigationChanged',
+      rawPayload: {
+        actionType: 'NavigationChanged',
+        afterUrl: 'https://example.com/search?redirect=1',
+      },
+      value: 'https://example.com/search?redirect=1',
+      url: 'https://example.com/search?redirect=1',
+      title: 'Redirecting',
+      pageInfo: { width: 1200, height: 800 },
+      timestamp: 123,
+      hashId: 'navigation-after-search',
+      semantic: {
+        source: 'heuristic',
+        status: 'ready',
+        elementDescription:
+          'Wait for navigation to complete at https://example.com/search?redirect=1',
+        actionSummary:
+          'Wait for navigation to complete at https://example.com/search?redirect=1',
+      },
+    };
+    const navigationCompleted = {
+      ...navigationStarted,
+      actionType: 'Navigate',
+      rawPayload: {
+        actionType: 'Navigate',
+        afterUrl: 'https://example.com/results?q=midscene',
+        navigationCompleted: true,
+      },
+      value: 'https://example.com/results?q=midscene',
+      url: 'https://example.com/results?q=midscene',
+      title: 'Search results',
+      timestamp: 124,
+      semantic: {
+        source: 'heuristic',
+        status: 'ready',
+        elementDescription:
+          'Navigate to https://example.com/results?q=midscene',
+        actionSummary: 'Navigate to https://example.com/results?q=midscene',
+        replayInstruction:
+          'Navigate to `https://example.com/results?q=midscene`.',
+      },
+    };
+    const { context } = createConnectedStudioContext({
+      events: [navigationStarted, navigationCompleted],
+    });
+    const mounted = await mountRecorder(context);
+
+    await act(async () => {
+      await mounted.recorder?.startRecording();
+    });
+    await flushPromises();
+    await flushPromises();
+
+    expect(mounted.recorder?.currentSession?.events).toHaveLength(1);
+    expect(mounted.recorder?.currentSession?.events[0]).toMatchObject({
+      hashId: 'navigation-after-search',
+      actionType: 'Navigate',
+      url: 'https://example.com/results?q=midscene',
+      semantic: expect.objectContaining({
+        elementDescription:
+          'Navigate to https://example.com/results?q=midscene',
+        replayInstruction:
+          'Navigate to `https://example.com/results?q=midscene`.',
+      }),
+    });
 
     await mounted.cleanup();
   });
@@ -2103,6 +2183,121 @@ describe('StudioRecorderProvider preview recording', () => {
         (session) => session.id === sessionId,
       ),
     ).toBe(true);
+
+    await mounted.cleanup();
+  });
+
+  it('settles unresolved descriptions before generating Markdown', async () => {
+    const event = {
+      type: 'click',
+      source: 'studio-preview',
+      actionType: 'Click',
+      semantic: {
+        source: 'aiDescribe',
+        status: 'pending',
+        elementDescription: 'AI is analyzing element...',
+        actionSummary: 'Click AI is analyzing element...',
+      },
+      elementRect: { x: 10, y: 20 },
+      pageInfo: { width: 1200, height: 800 },
+      timestamp: 123,
+      hashId: 'click-unresolved-description',
+    };
+    const { context } = createConnectedStudioContext({ events: [event] });
+    const mounted = await mountRecorder(context);
+
+    await act(async () => {
+      await mounted.recorder?.startRecording();
+    });
+    await flushPromises();
+
+    const sessionId = mounted.recorder?.currentSession?.id;
+    await act(async () => {
+      await mounted.recorder!.generateSessionCode(sessionId!);
+    });
+    await flushPromises();
+
+    expect(generateStudioRecorderCodeWithAI).toHaveBeenCalledWith(
+      expect.objectContaining({
+        events: [
+          expect.objectContaining({
+            hashId: 'click-unresolved-description',
+            semantic: expect.objectContaining({
+              source: 'heuristic',
+              status: 'ready',
+              elementDescription: expect.not.stringContaining('analyzing'),
+              actionSummary: expect.not.stringContaining('analyzing'),
+            }),
+          }),
+        ],
+      }),
+      expect.objectContaining({ type: 'markdown' }),
+    );
+
+    await mounted.cleanup();
+  });
+
+  it('waits for recorded navigation to finish before generating Markdown', async () => {
+    const events = [
+      {
+        type: 'navigation',
+        source: 'studio-preview',
+        actionType: 'NavigationChanged',
+        url: 'https://example.com/search?q=midscene',
+        pageInfo: { width: 1200, height: 800 },
+        timestamp: 122,
+        hashId: 'navigation-wait-for-complete',
+      },
+      {
+        type: 'click',
+        source: 'studio-preview',
+        actionType: 'Click',
+        semantic: {
+          source: 'heuristic',
+          status: 'ready',
+          elementDescription: 'Search button',
+        },
+        elementRect: { x: 10, y: 20 },
+        pageInfo: { width: 1200, height: 800 },
+        timestamp: 123,
+        hashId: 'click-after-navigation',
+      },
+    ];
+    const order: string[] = [];
+    const getInterfaceInfo = vi
+      .fn()
+      .mockImplementationOnce(async () => {
+        order.push('loading');
+        return { navigationState: { isLoading: true } };
+      })
+      .mockImplementationOnce(async () => {
+        order.push('idle');
+        return { navigationState: { isLoading: false } };
+      });
+    vi.mocked(generateStudioRecorderCodeWithAI).mockImplementationOnce(
+      async () => {
+        order.push('generated');
+        return 'ai markdown\n';
+      },
+    );
+    const { context } = createConnectedStudioContext({
+      events,
+      getInterfaceInfo,
+    });
+    const mounted = await mountRecorder(context);
+
+    await act(async () => {
+      await mounted.recorder?.startRecording();
+    });
+    await flushPromises();
+
+    const sessionId = mounted.recorder?.currentSession?.id;
+    await act(async () => {
+      await mounted.recorder!.generateSessionCode(sessionId!);
+    });
+
+    expect(getInterfaceInfo).toHaveBeenCalledTimes(2);
+    expect(order).toEqual(['loading', 'idle', 'generated']);
 
     await mounted.cleanup();
   });

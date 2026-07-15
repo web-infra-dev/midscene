@@ -65,6 +65,8 @@ const RECORDER_DESCRIPTION_TASK_TIMEOUT_MS =
   RECORDER_AI_FALLBACK_TASK_TIMEOUT_MS +
   RECORDER_DESCRIPTION_STAGE_BUFFER_MS;
 const RECORDER_DESCRIPTION_IDLE_SETTLE_BUFFER_MS = 1000;
+const RECORDER_NAVIGATION_IDLE_TIMEOUT_MS = 15_000;
+const RECORDER_NAVIGATION_IDLE_POLL_MS = 250;
 
 type StudioRecorderAction =
   | {
@@ -251,6 +253,17 @@ function isCoordinateDescription(value?: string) {
 
 function isPendingRecorderDescription(value?: string) {
   return value?.trim() === 'AI is analyzing element...';
+}
+
+function hasUnresolvedRecorderSemantic(
+  semantic: ReturnType<typeof getMidsceneRecorderSemantic>,
+) {
+  return Boolean(
+    semantic?.status === 'pending' ||
+      isPendingRecorderDescription(semantic?.elementDescription) ||
+      isPendingRecorderDescription(semantic?.actionSummary) ||
+      isPendingRecorderDescription(semantic?.replayInstruction),
+  );
 }
 
 function buildRecorderSemanticAction(
@@ -453,7 +466,10 @@ function shouldDescribeRecorderEvent(event: StudioRecordedEvent) {
     return false;
   }
   const semantic = getMidsceneRecorderSemantic(event);
-  if (semantic?.status === 'ready') {
+  if (
+    semantic?.status === 'ready' &&
+    !hasUnresolvedRecorderSemantic(semantic)
+  ) {
     return false;
   }
   return Boolean(
@@ -1253,7 +1269,7 @@ export function StudioRecorderProvider({ children }: PropsWithChildren) {
 
       let updatedSession = session;
       for (const event of session.events) {
-        if (getMidsceneRecorderSemantic(event)?.status === 'pending') {
+        if (hasUnresolvedRecorderSemantic(getMidsceneRecorderSemantic(event))) {
           updatedSession = updateEvent(
             updatedSession,
             createFallbackRecorderEvent(event, new Error(reason)),
@@ -1270,13 +1286,18 @@ export function StudioRecorderProvider({ children }: PropsWithChildren) {
   );
 
   const waitForRecorderEventDescriptions = useCallback(
-    async (timeoutMs?: number) => {
-      await flushPendingRecorderInput();
+    async (sessionId: string, timeoutMs?: number) => {
+      await flushPendingRecorderInput(sessionId);
       if (
         descriptionQueueRef.current.length === 0 &&
         descriptionInFlightRef.current === 0
       ) {
-        return true;
+        const session = stateRef.current.sessions.find(
+          (item) => item.id === sessionId,
+        );
+        return !session?.events.some((event) =>
+          hasUnresolvedRecorderSemantic(getMidsceneRecorderSemantic(event)),
+        );
       }
       const pendingDescriptionCount =
         descriptionQueueRef.current.length + descriptionInFlightRef.current;
@@ -1304,9 +1325,51 @@ export function StudioRecorderProvider({ children }: PropsWithChildren) {
       if (idleResolver) {
         descriptionIdleResolversRef.current.delete(idleResolver);
       }
-      return settled;
+      if (!settled) {
+        return false;
+      }
+      const session = stateRef.current.sessions.find(
+        (item) => item.id === sessionId,
+      );
+      return !session?.events.some((event) =>
+        hasUnresolvedRecorderSemantic(getMidsceneRecorderSemantic(event)),
+      );
     },
-    [flushPendingRecorderInput, message],
+    [flushPendingRecorderInput],
+  );
+
+  const waitForRecorderNavigationIdle = useCallback(
+    async (session: StudioRecordingSession) => {
+      const hasNavigationChange = session.events.some(
+        (event) =>
+          event.type === 'navigation' &&
+          event.actionType === 'NavigationChanged',
+      );
+      if (!hasNavigationChange || studioPlayground.phase !== 'ready') {
+        return;
+      }
+
+      const { playgroundSDK } = studioPlayground.controller.state;
+      if (typeof playgroundSDK.getInterfaceInfo !== 'function') {
+        return;
+      }
+
+      const deadline = Date.now() + RECORDER_NAVIGATION_IDLE_TIMEOUT_MS;
+      do {
+        const interfaceInfo = await playgroundSDK.getInterfaceInfo();
+        if (!interfaceInfo?.navigationState?.isLoading) {
+          return;
+        }
+        await new Promise<void>((resolve) => {
+          window.setTimeout(resolve, RECORDER_NAVIGATION_IDLE_POLL_MS);
+        });
+      } while (Date.now() < deadline);
+
+      throw new Error(
+        'Timed out waiting for recorded navigation to complete before generating code.',
+      );
+    },
+    [studioPlayground],
   );
 
   const drainRecorderRuntime = useCallback(async (sessionId: string) => {
@@ -1551,7 +1614,9 @@ export function StudioRecorderProvider({ children }: PropsWithChildren) {
 
     try {
       await stopRecorderRuntime(session.id, { preserveRuntime: true });
-      const descriptionsSettled = await waitForRecorderEventDescriptions();
+      const descriptionsSettled = await waitForRecorderEventDescriptions(
+        session.id,
+      );
       if (!descriptionsSettled) {
         await markPendingDescriptionsAsFallback(
           session.id,
@@ -1760,20 +1825,30 @@ export function StudioRecorderProvider({ children }: PropsWithChildren) {
         );
       }
 
-      const descriptionsSettled = await waitForRecorderEventDescriptions();
-      if (!descriptionsSettled) {
-        await markPendingDescriptionsAsFallback(
-          session.id,
-          'Timed out while draining recorder description queue.',
-        );
-      }
+      let descriptionsSettled = await waitForRecorderEventDescriptions(
+        session.id,
+      );
       const latestSessionForCodegen =
         stateRef.current.sessions.find((item) => item.id === session.id) ??
         session;
       let sessionForCodegen = normalizeSessionEventOrder(
         await describeUndescribedSessionEvents(latestSessionForCodegen),
       );
-
+      if (!descriptionsSettled) {
+        descriptionsSettled = await waitForRecorderEventDescriptions(
+          session.id,
+        );
+      }
+      if (!descriptionsSettled) {
+        await markPendingDescriptionsAsFallback(
+          session.id,
+          'Timed out while draining recorder description queue.',
+        );
+        sessionForCodegen =
+          stateRef.current.sessions.find((item) => item.id === session.id) ??
+          sessionForCodegen;
+      }
+      await waitForRecorderNavigationIdle(sessionForCodegen);
       options.onProgress?.({
         step: 'prepare',
         status: 'completed',
@@ -1893,6 +1968,7 @@ export function StudioRecorderProvider({ children }: PropsWithChildren) {
       materializeSessionForScreenshotExport,
       persistStudioRecorderSession,
       waitForRecorderEventDescriptions,
+      waitForRecorderNavigationIdle,
     ],
   );
 
@@ -2282,6 +2358,18 @@ export function StudioRecorderProvider({ children }: PropsWithChildren) {
     [flushPendingRecorderInput, materializeSessionForScreenshotExport],
   );
 
+  const getRecorderScreenshotAssetUrl = useCallback(
+    (assetId: string) => {
+      if (studioPlayground.phase !== 'ready') {
+        return null;
+      }
+      return studioPlayground.controller.state.playgroundSDK.getRecorderScreenshotAssetUrl(
+        assetId,
+      );
+    },
+    [studioPlayground],
+  );
+
   const exportAllZip = useCallback(async () => {
     await flushPendingRecorderInput();
     const sessions = stateRef.current.sessions;
@@ -2329,6 +2417,7 @@ export function StudioRecorderProvider({ children }: PropsWithChildren) {
       exportSessionJson,
       exportSessionYaml,
       exportSessionCode,
+      getRecorderScreenshotAssetUrl,
       loadSessionScreenshots,
       exportAllZip,
     }),
@@ -2342,6 +2431,7 @@ export function StudioRecorderProvider({ children }: PropsWithChildren) {
       exportSessionJson,
       exportSessionYaml,
       exportSessionCode,
+      getRecorderScreenshotAssetUrl,
       loadSessionScreenshots,
       generateSessionCode,
       generateSessionYaml,

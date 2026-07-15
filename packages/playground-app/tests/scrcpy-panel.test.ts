@@ -41,6 +41,6 @@ describe('ScrcpyPanel', () => {
 
   it('uses a higher quality live preview stream profile', () => {
     expect(SCRCPY_PREVIEW_MAX_SIZE).toBe(0);
-    expect(SCRCPY_PREVIEW_VIDEO_BIT_RATE).toBe(8_000_000);
+    expect(SCRCPY_PREVIEW_VIDEO_BIT_RATE).toBe(32_000_000);
   });
 });

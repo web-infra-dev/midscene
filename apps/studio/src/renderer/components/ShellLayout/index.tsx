@@ -8,7 +8,11 @@ import {
 } from 'react';
 import type { StudioPlatformId } from '../../../shared/electron-contract';
 import { STUDIO_EXTERNAL_LINKS } from '../../../shared/external-links';
-import { TITLEBAR_CONTROL_TOP } from '../../../shared/titlebar-layout';
+import {
+  SIDEBAR_TOGGLE_TOP,
+  TITLEBAR_CONTROL_TOP,
+  getRendererTitlebarRightInset,
+} from '../../../shared/titlebar-layout';
 import type { UpdateStatus } from '../../../shared/updater-contract';
 import { assetUrls } from '../../assets';
 import { useStudioUpdater } from '../../hooks/useStudioUpdater';
@@ -160,6 +164,7 @@ function UpdatePill({
 }
 
 export default function ShellLayout() {
+  const titlebarInsetRight = getRendererTitlebarRightInset();
   const [activeView, setActiveView] = useState<ShellActiveView>('overview');
   const [studioMode, setStudioMode] = useState<StudioMode>(
     StudioModeTab.Record,
@@ -371,12 +376,16 @@ export default function ShellLayout() {
     shouldShowStudioRightPanel && studioRightPanelView
       ? getStudioRightPanelWidth(studioRightPanelView)
       : 0;
+  const studioRightPanelStyle: CSSProperties = {
+    width: studioRightPanelWidth,
+    '--studio-titlebar-right-inset': `${titlebarInsetRight}px`,
+  } as CSSProperties;
   const shouldFloatStudioModePanel =
     shouldShowStudioRightPanel &&
     (studioMode === StudioModeTab.Record ||
       studioMode === StudioModeTab.Replay);
   const mainAreaStyle: CSSProperties = {
-    left: sidebarCollapsed ? SIDEBAR_COLLAPSED_WIDTH : sidebarWidth,
+    left: (sidebarCollapsed ? SIDEBAR_COLLAPSED_WIDTH : sidebarWidth) + 4,
   };
 
   useEffect(() => {
@@ -493,6 +502,7 @@ export default function ShellLayout() {
           titlebarInsetLeft={
             sidebarCollapsed ? COLLAPSED_TITLEBAR_INSET : undefined
           }
+          titlebarInsetRight={titlebarInsetRight || undefined}
         />
         {shouldShowStudioRightPanel && studioRightPanelView ? (
           <div
@@ -503,7 +513,7 @@ export default function ShellLayout() {
                   }`
                 : ''
             }`}
-            style={{ width: studioRightPanelWidth }}
+            style={studioRightPanelStyle}
           >
             <StudioRightPanel
               onClose={closeStudioRightPanel}
@@ -536,7 +546,7 @@ export default function ShellLayout() {
 
       <div
         className={`app-no-drag absolute z-[80] flex items-center gap-[8px] transition-[opacity,transform] ${SIDEBAR_TRANSITION_CLASS}`}
-        style={{ left: SIDEBAR_TOGGLE_LEFT, top: TITLEBAR_CONTROL_TOP }}
+        style={{ left: SIDEBAR_TOGGLE_LEFT, top: SIDEBAR_TOGGLE_TOP }}
       >
         <button
           aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}

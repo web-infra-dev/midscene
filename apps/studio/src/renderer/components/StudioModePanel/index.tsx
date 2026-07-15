@@ -690,7 +690,12 @@ export default function StudioModePanel({
           }}
           onShowScreenshots={(events) => {
             onOpenStudioRightPanel?.({
-              content: <RecorderScreenshotDetailView events={events} />,
+              content: (
+                <RecorderScreenshotDetailView
+                  events={events}
+                  getScreenshotAssetUrl={recorder.getRecorderScreenshotAssetUrl}
+                />
+              ),
               type: StudioRightPanelViewType.Screenshots,
             });
           }}

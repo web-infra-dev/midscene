@@ -39,10 +39,11 @@ import { createScrcpyVideoStream } from './scrcpy-stream';
 
 const { Text } = Typography;
 // Studio's live preview is displayed large enough that scrcpy's old 1024px
-// cap made text and edges look soft. Keep this preview stream full resolution;
-// Android screenshot/AI execution paths use their own scrcpy config.
+// cap made text and edges look soft. Keep this preview stream full resolution.
+// Fast 1080p game scenes also need substantially more than the server's 2 Mbps
+// fallback to avoid visible H.264 artifacts in the preview.
 export const SCRCPY_PREVIEW_MAX_SIZE = 0;
-export const SCRCPY_PREVIEW_VIDEO_BIT_RATE = 8_000_000;
+export const SCRCPY_PREVIEW_VIDEO_BIT_RATE = 32_000_000;
 
 export interface ScrcpyErrorOverlayContext {
   errorMessage: string | null;

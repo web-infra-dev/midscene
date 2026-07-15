@@ -463,6 +463,12 @@ export interface UniversalPlaygroundConfig {
   hidePromptInput?: boolean;
   externalRunRequest?: ExternalRunRequest | null;
   /**
+   * Whether to clear all previous execution messages before starting a new
+   * run. Defaults to `false` so conversation-style playgrounds retain their
+   * existing history behaviour.
+   */
+  clearTimelineBeforeRun?: boolean;
+  /**
    * Whether to render the "clear conversation" button that appears above the
    * message list once there is more than one item. Defaults to `true`.
    * Embedding hosts whose own shell exposes a clear affordance can set this

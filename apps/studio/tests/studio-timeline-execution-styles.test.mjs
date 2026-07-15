@@ -72,7 +72,7 @@ describe('Studio execution timeline styles', () => {
     expect(timelineStyles).toContain('max-height: 48px;');
   });
 
-  it('lets the shared timeline consume only its layout region', () => {
+  it('keeps the visualizer list scrollable while hiding all Timeline bars', () => {
     expect(timelineStyles).toContain(
       '.studio-replay-column > .playground-shell {',
     );
@@ -80,17 +80,30 @@ describe('Studio execution timeline styles', () => {
     expect(timelineStyles).toContain(
       '.playground-shell\n  .studio-playground-timeline-wrapped\n  .studio-playground-timeline-panel\n  .middle-dialog-area {',
     );
-    expect(timelineStyles).toContain('flex: 0 0 auto;');
-    expect(timelineStyles).toContain('overflow: visible;');
+    expect(timelineStyles).toContain('flex: 0 1 auto;');
+    expect(timelineStyles).toContain('overflow: hidden;');
     expect(timelineStyles).toContain('.studio-timeline-panel-scroll-body {');
+    expect(timelineStyles).toContain('max-height: calc(100% - 44.077px);');
+    expect(timelineStyles).toContain('overflow-y: hidden;');
+    expect(timelineStyles).toContain('.info-list-container {');
     expect(timelineStyles).toContain('overflow-y: auto;');
+    expect(timelineStyles).toContain('overscroll-behavior: contain;');
+    expect(timelineStyles).toContain(
+      '.info-list-container::-webkit-scrollbar {',
+    );
+    expect(timelinePanelStyles).toContain(
+      '.studio-timeline-panel-scroll-body {',
+    );
+    expect(timelinePanelStyles).toContain(
+      '.studio-timeline-panel-scroll-body::-webkit-scrollbar {',
+    );
+    expect(timelinePanelStyles).toContain('width: 0;');
+    expect(timelinePanelStyles).toContain('height: 0;');
     expect(timelineStyles).not.toMatch(
       /\.playground-container\.playground-conversation-skin\s+\.studio-execution-timeline-skin\s*\{[^}]*flex:\s*1\s+1\s+auto;/s,
     );
     expect(timelinePanelStyles).not.toContain('212.077px');
-    expect(timelinePanelStyles).toMatch(
-      /\.studio-timeline-panel-expanded\s*\{[^}]*flex:\s*0\s+1\s+auto;/s,
-    );
+    expect(timelineStyles).toContain('max-height: calc(100% - 212.077px);');
   });
 
   it('renders Replay through PlaygroundShell in embedded mode too', () => {

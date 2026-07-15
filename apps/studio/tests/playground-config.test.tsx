@@ -19,6 +19,7 @@ describe('Studio playground config', () => {
       promptInputChrome: {
         variant: 'default',
       },
+      clearTimelineBeforeRun: true,
       showClearButton: false,
     });
   });

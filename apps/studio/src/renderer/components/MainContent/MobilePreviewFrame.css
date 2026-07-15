@@ -21,9 +21,9 @@
 }
 
 /*
- * A Web page can briefly report a different viewport size while its CDP
- * screencast reconnects. Keep the Studio Web Preview canvas stable instead
- * of allowing the current MJPEG frame's intrinsic ratio to change its height.
+ * Reserve a stable canvas for Web previews. Its aspect ratio is supplied by
+ * the active Studio session's viewport, so decoded MJPEG frame dimensions
+ * never trigger a layout shift.
  */
 .studio-web-preview-fixed-aspect .screenshot-viewer.screen-only {
   align-items: center;
@@ -38,15 +38,15 @@
   flex: 0 1 auto;
   width: 100%;
   max-height: 100%;
-  aspect-ratio: 16 / 9;
+  aspect-ratio: var(--studio-web-preview-aspect-ratio);
 }
 
 @supports (width: 1cqw) {
   .studio-web-preview-fixed-aspect
     .screenshot-viewer.screen-only
     > .screenshot-content {
-    width: min(100cqw, 177.7778cqh);
-    height: min(100cqh, 56.25cqw);
+    width: min(100cqw, var(--studio-web-preview-height-limited-width));
+    height: min(100cqh, var(--studio-web-preview-width-limited-height));
   }
 }
 

@@ -1,5 +1,36 @@
 import { describe, expect, it } from 'vitest';
-import { shouldExecuteExternalRunRequest } from '../src/component/universal-playground/external-run';
+import {
+  preparePlaygroundExecution,
+  shouldExecuteExternalRunRequest,
+} from '../src/component/universal-playground/external-run';
+
+describe('preparePlaygroundExecution', () => {
+  it('clears the previous timeline after sibling execution cleanup', async () => {
+    const events: string[] = [];
+
+    await preparePlaygroundExecution({
+      clearTimeline: async () => {
+        events.push('clear');
+      },
+      clearTimelineBeforeRun: true,
+      onBeforeExecutionStart: async () => {
+        events.push('before');
+      },
+    });
+
+    expect(events).toEqual(['before', 'clear']);
+  });
+
+  it('preserves the timeline unless clearing is enabled', async () => {
+    const clearTimeline = async () => {
+      throw new Error('timeline should not be cleared');
+    };
+
+    await expect(
+      preparePlaygroundExecution({ clearTimeline }),
+    ).resolves.toBeUndefined();
+  });
+});
 
 describe('shouldExecuteExternalRunRequest', () => {
   const request = {
