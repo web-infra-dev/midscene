@@ -219,7 +219,7 @@ describe('plan XML parse retry', () => {
     });
 
     expect(callAI).toHaveBeenCalledTimes(2);
-    expect(result.actions[0]?.param?.locate?.locatedPixelBbox).toEqual([
+    expect(result.actions?.[0]?.param?.locate?.locatedPixelBbox).toEqual([
       10, 20, 30, 40,
     ]);
     expect(yamlFlowInputs[1]).toEqual([
