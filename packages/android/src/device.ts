@@ -50,6 +50,7 @@ import {
   buildRunAdbShellPlanningFeedback,
   runAdbShellStdoutOrThrow,
 } from './adb-shell';
+import { ANDROID_CACHE_CANDIDATE_OPTIONS } from './cache-policy';
 import {
   type DevicePhysicalInfo,
   ScrcpyDeviceAdapter,
@@ -68,12 +69,38 @@ const defaultScrollUntilTimes = 10;
 const defaultFastScrollDuration = 100;
 const defaultNormalScrollDuration = 1000;
 
+const ACCESSIBILITY_DUMP_ATTEMPTS = 3;
+const ACCESSIBILITY_DUMP_TIMEOUT_MS = 5_000;
+const ACCESSIBILITY_DUMP_RETRY_DELAY_MS = 250;
+const YADB_LAYOUT_PATH = '/data/local/tmp/midscene_yadb_layout_dump.xml';
+const UIAUTOMATOR_LAYOUT_PATH = '/sdcard/midscene_window_dump.xml';
+
 const IME_STRATEGY_ALWAYS_YADB = 'always-yadb' as const;
 const IME_STRATEGY_YADB_FOR_NON_ASCII = 'yadb-for-non-ascii' as const;
 type ScrollDirection = 'up' | 'down' | 'left' | 'right';
 
 const debugDevice = getDebug('android:device');
 const warnDevice = getDebug('android:device', { console: true });
+const debugCache = getDebug('cache:xpath:android');
+
+type AndroidAccessibilityTreeSource = 'yadb' | 'uiautomator';
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+function validateHierarchyXml(
+  xml: unknown,
+  source: AndroidAccessibilityTreeSource,
+): asserts xml is string {
+  if (
+    typeof xml !== 'string' ||
+    !/<hierarchy(?:\s|>)/.test(xml) ||
+    !xml.includes('</hierarchy>')
+  ) {
+    throw new Error(`${source} did not produce valid hierarchy XML`);
+  }
+}
 
 /**
  * Escape text for safe use in shell single-quoted strings.
@@ -694,43 +721,92 @@ ${Object.keys(size)
     };
   }
 
-  /**
-   * Run `uiautomator dump` and read back the XML. Used by the xpath cache
-   * pipeline. v1 uses the dump-to-file + cat round-trip, which adds ~500ms
-   * to ~1.5s per call depending on the device. Phase 1.4 will migrate this
-   * to a yadb-backed accessibility-service RPC.
-   */
-  private async dumpUiautomatorXml(): Promise<string> {
+  private async dumpAccessibilityXmlAttempt(
+    source: AndroidAccessibilityTreeSource,
+  ): Promise<string> {
     const adb = await this.getAdb();
-    const tmpPath = '/sdcard/midscene_window_dump.xml';
-    // uiautomator may fail before replacing the output file (for example when
-    // an animated Flutter screen never becomes idle). Remove the previous dump
-    // so a failed command cannot replay another app's stale accessibility tree.
-    await adb.shell(`rm -f ${tmpPath}`);
-    await adb.shell(`uiautomator dump --compressed ${tmpPath}`);
-    const xml = await adb.shell(`cat ${tmpPath}`);
-    if (
-      typeof xml !== 'string' ||
-      !/<hierarchy(?:\s|>)/.test(xml) ||
-      !xml.includes('</hierarchy>')
-    ) {
-      throw new Error('uiautomator dump did not produce valid hierarchy XML');
+    const path = source === 'yadb' ? YADB_LAYOUT_PATH : UIAUTOMATOR_LAYOUT_PATH;
+
+    if (source === 'yadb') {
+      await this.ensureYadb();
     }
+
+    // Both tools can fail before replacing their destination. Removing it on
+    // every attempt prevents a previous application tree from being replayed.
+    await runAdbShellStdoutOrThrow(adb, `rm -f ${path}`, {
+      timeout: ACCESSIBILITY_DUMP_TIMEOUT_MS,
+    });
+    const command =
+      source === 'yadb'
+        ? `app_process -Djava.class.path=/data/local/tmp/yadb /data/local/tmp com.ysbing.yadb.Main -layout ${path}`
+        : `uiautomator dump --compressed ${path}`;
+    await runAdbShellStdoutOrThrow(adb, command, {
+      timeout: ACCESSIBILITY_DUMP_TIMEOUT_MS,
+    });
+    const xml = await runAdbShellStdoutOrThrow(adb, `cat ${path}`, {
+      timeout: ACCESSIBILITY_DUMP_TIMEOUT_MS,
+    });
+    validateHierarchyXml(xml, source);
     return xml;
+  }
+
+  /**
+   * Read a fresh Android accessibility tree for native xpath cache generation
+   * and replay. YADB's UiAutomation layout path avoids UIAutomator's
+   * wait-for-idle gate. UIAutomator remains a bounded fallback and the only
+   * source for non-default displays because YADB currently targets display 0.
+   */
+  private async dumpAccessibilityXml(): Promise<string> {
+    const sources: AndroidAccessibilityTreeSource[] =
+      (this.options?.displayId ?? 0) === 0
+        ? ['yadb', 'uiautomator']
+        : ['uiautomator'];
+    const failures: string[] = [];
+
+    for (const source of sources) {
+      for (let attempt = 1; attempt <= ACCESSIBILITY_DUMP_ATTEMPTS; attempt++) {
+        const startedAt = Date.now();
+        try {
+          const xml = await this.dumpAccessibilityXmlAttempt(source);
+          debugCache(
+            'tree source=%s attempt=%d durationMs=%d bytes=%d',
+            source,
+            attempt,
+            Date.now() - startedAt,
+            xml.length,
+          );
+          return xml;
+        } catch (error) {
+          const failure = `${source} attempt ${attempt}/${ACCESSIBILITY_DUMP_ATTEMPTS}: ${errorMessage(error)}`;
+          failures.push(failure);
+          debugCache(
+            'tree miss source=%s attempt=%d durationMs=%d error=%s',
+            source,
+            attempt,
+            Date.now() - startedAt,
+            errorMessage(error),
+          );
+          if (attempt < ACCESSIBILITY_DUMP_ATTEMPTS) {
+            await sleep(ACCESSIBILITY_DUMP_RETRY_DELAY_MS);
+          }
+        }
+      }
+    }
+
+    throw new Error(
+      `Unable to read Android accessibility hierarchy after ${failures.length} attempt(s): ${failures.join('; ')}`,
+    );
   }
 
   async cacheFeatureForPoint(
     center: [number, number],
   ): Promise<ElementCacheFeature> {
-    const xml = await this.dumpUiautomatorXml();
+    const xml = await this.dumpAccessibilityXml();
     const root = uiautomatorXmlToUiNode(xml, this.devicePixelRatio || 1);
     const feature = generateXpathCacheFeature(
       root,
       { x: center[0], y: center[1] },
-      {
-        stableAttrs: ['resource-id'],
-        textAttrs: ['text', 'content-desc'],
-      },
+      ANDROID_CACHE_CANDIDATE_OPTIONS,
     );
     if (!feature) {
       debugDevice(
@@ -743,7 +819,7 @@ ${Object.keys(size)
   }
 
   async rectMatchesCacheFeature(feature: ElementCacheFeature): Promise<Rect> {
-    const xml = await this.dumpUiautomatorXml();
+    const xml = await this.dumpAccessibilityXml();
     const root = uiautomatorXmlToUiNode(xml, this.devicePixelRatio || 1);
     const { xpath, rect } = matchRectByXpathCache(root, feature);
     debugDevice('rectMatchesCacheFeature: hit xpath %s -> %o', xpath, rect);

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hierarchy rotation="0">
+  <node index="0" text="" resource-id="" class="android.widget.FrameLayout" package="com.example.hybrid" content-desc="" bounds="[0,0][400,800]">
+    <node index="0" text="" resource-id="" class="android.webkit.WebView" package="com.example.hybrid" content-desc="Account" bounds="[0,40][400,700]">
+      <node index="0" text="Headline" resource-id="" class="android.widget.TextView" package="com.example.hybrid" content-desc="" bounds="[20,80][380,130]"/>
+      <node index="1" text="Continue" resource-id="" class="android.widget.Button" package="com.example.hybrid" content-desc="Continue checkout" clickable="true" bounds="[40,300][360,400]"/>
+    </node>
+  </node>
+</hierarchy>
