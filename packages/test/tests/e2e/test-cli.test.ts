@@ -14,7 +14,7 @@ import { afterAll, describe, expect, it } from 'vitest';
 const temporaryDirectories: string[] = [];
 const execFileAsync = promisify(execFile);
 const packageRoot = resolve(__dirname, '../..');
-const cliPath = join(packageRoot, 'bin', 'midscene-workflow');
+const cliPath = join(packageRoot, 'bin', 'midscene-test');
 
 interface FailedExecution {
   code: number;
@@ -63,13 +63,26 @@ const runFailure = async (
   } catch (error) {
     return error as FailedExecution;
   }
-  throw new Error('Expected workflow CLI to fail.');
+  throw new Error('Expected test CLI to fail.');
 };
 
-describe('midscene-workflow CLI', () => {
+describe('midscene-test CLI', () => {
+  it('publishes only the midscene-test bin', () => {
+    const packageJson = JSON.parse(
+      readFileSync(join(packageRoot, 'package.json'), 'utf8'),
+    );
+
+    expect(packageJson.bin).toEqual({
+      'midscene-test': './bin/midscene-test',
+    });
+    expect(existsSync(join(packageRoot, 'bin', 'midscene-workflow'))).toBe(
+      false,
+    );
+  });
+
   it('runs all workflow documents serially and writes native project results', async () => {
-    const projectRoot = join(__dirname, 'fixtures', 'workflow-project');
-    const { resultDir, executionLog } = temporaryRun('midscene-workflow-e2e-');
+    const projectRoot = join(__dirname, 'fixtures', 'test-project');
+    const { resultDir, executionLog } = temporaryRun('midscene-test-e2e-');
 
     const execution = await execFileAsync(
       process.execPath,
@@ -81,7 +94,7 @@ describe('midscene-workflow CLI', () => {
     );
 
     expect(execution.stdout).toContain(
-      'midscene-workflow: collected 2 documents, 3 cases, 0 collection errors',
+      'midscene-test: collected 2 documents, 3 cases, 0 collection errors',
     );
     expect(execution.stdout).toContain('[document 1/2] flows/first.yaml');
     expect(execution.stdout).toContain('  [case 1/2] first case');
@@ -248,7 +261,7 @@ describe('midscene-workflow CLI', () => {
   });
 
   it('rejects non-serial scheduling flags', async () => {
-    const projectRoot = join(__dirname, 'fixtures', 'workflow-project');
+    const projectRoot = join(__dirname, 'fixtures', 'test-project');
     for (const option of [
       '--parallel',
       '--max-concurrency',

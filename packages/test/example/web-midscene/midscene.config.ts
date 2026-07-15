@@ -1,8 +1,8 @@
-const { PlaywrightAgent } = require('@midscene/web/playwright');
-const { defineNode } = require('@midscene/test');
-const { defineWorkflowProject } = require('@midscene/test/config');
-const { createMidsceneNodes } = require('@midscene/test/midscene');
-const { chromium } = require('playwright');
+import { defineNode } from '@midscene/test';
+import { defineTestProject } from '@midscene/test/config';
+import { createMidsceneNodes } from '@midscene/test/midscene';
+import { PlaywrightAgent } from '@midscene/web/playwright';
+import { type Browser, type Page, chromium } from 'playwright';
 
 const VIEWPORT = { width: 1280, height: 768 };
 const LANGUAGE_LOCALES = {
@@ -10,7 +10,23 @@ const LANGUAGE_LOCALES = {
   zh: 'zh-CN',
 };
 
-const openPage = async (page, url) => {
+interface ProjectContext {
+  browser: Browser;
+  page: Page;
+  agent?: PlaywrightAgent;
+}
+
+interface SetLanguageInput {
+  language: keyof typeof LANGUAGE_LOCALES;
+}
+
+interface PageState {
+  language: string;
+  title: string;
+  url: string;
+}
+
+const openPage = async (page: Page, url: string) => {
   const response = await page.goto(url, {
     waitUntil: 'domcontentloaded',
     timeout: 30_000,
@@ -23,7 +39,11 @@ const openPage = async (page, url) => {
   }
 };
 
-const setUserAgentLanguage = defineNode({
+const setUserAgentLanguage = defineNode<
+  SetLanguageInput,
+  { language: string; locale: string; url: string },
+  ProjectContext
+>({
   name: 'browser.setLanguage',
   title: '设置 UA 语言',
   async execute({ input, context }) {
@@ -71,7 +91,7 @@ const setUserAgentLanguage = defineNode({
   },
 });
 
-const recordPageState = defineNode({
+const recordPageState = defineNode<unknown, PageState, ProjectContext>({
   name: 'page.recordState',
   title: '记录页面状态',
   async execute({ context }) {
@@ -87,14 +107,14 @@ const recordPageState = defineNode({
   },
 });
 
-const midsceneNodes = createMidsceneNodes({
+const midsceneNodes = createMidsceneNodes<ProjectContext>({
   getAgent: ({ context }) => {
     context.agent ??= new PlaywrightAgent(context.page);
     return context.agent;
   },
 });
 
-module.exports = defineWorkflowProject({
+export default defineTestProject<ProjectContext>({
   files: {
     include: ['midscene.yaml'],
   },

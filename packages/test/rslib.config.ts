@@ -29,7 +29,7 @@ export default defineConfig({
   source: {
     entry: {
       index: './src/index.ts',
-      'workflow-cli': './src/workflow-cli.ts',
+      'test-cli': './src/test-cli.ts',
       'cli/index': './src/cli/index.ts',
       'midscene/index': './src/midscene/index.ts',
     },

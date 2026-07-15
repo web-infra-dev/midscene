@@ -3,11 +3,8 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join, sep } from 'node:path';
 import type { CaseRunResult, WorkflowDocumentRunResult } from '../engine/types';
 import type { WorkflowDocumentSource } from '../parser/types';
-import type {
-  WorkflowCollectionError,
-  WorkflowProjectRunResult,
-} from './types';
-import type { WorkflowFileSelection } from './workflow-project';
+import type { TestFileSelection } from './test-project';
+import type { TestProjectCollectionError, TestProjectRunResult } from './types';
 
 const writeJson = (path: string, value: unknown) => {
   mkdirSync(dirname(path), { recursive: true });
@@ -45,7 +42,7 @@ export const writeCaseRunResult = (
 
 export const writeCollectionError = (
   resultDir: string,
-  collectionError: WorkflowCollectionError,
+  collectionError: TestProjectCollectionError,
 ) => {
   writeJson(join(resultDir, collectionErrorPath(collectionError.sourcePath)), {
     kind: 'collection-error',
@@ -53,18 +50,18 @@ export const writeCollectionError = (
   });
 };
 
-export interface WorkflowProjectResultFileOptions {
+export interface TestProjectResultFileOptions {
   projectId: string;
   projectRoot: string;
   configPath?: string;
-  fileSelection: WorkflowFileSelection;
+  fileSelection: TestFileSelection;
   sources: readonly WorkflowDocumentSource[];
-  result: WorkflowProjectRunResult;
+  result: TestProjectRunResult;
 }
 
-export const writeWorkflowProjectRunResult = (
+export const writeTestProjectRunResult = (
   resultDir: string,
-  options: WorkflowProjectResultFileOptions,
+  options: TestProjectResultFileOptions,
 ) => {
   const { result } = options;
   writeJson(join(resultDir, 'project.json'), {

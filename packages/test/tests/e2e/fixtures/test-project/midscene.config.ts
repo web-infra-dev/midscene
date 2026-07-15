@@ -1,6 +1,6 @@
-const { appendFileSync } = require('node:fs');
-const { defineNode } = require('@midscene/test');
-const { defineWorkflowProject } = require('@midscene/test/config');
+import { appendFileSync } from 'node:fs';
+import { defineNode } from '@midscene/test';
+import { defineTestProject } from '@midscene/test/config';
 
 const log = (value) => {
   const path = process.env.WORKFLOW_E2E_LOG;
@@ -8,7 +8,7 @@ const log = (value) => {
   appendFileSync(path, `${value}\n`);
 };
 
-module.exports = defineWorkflowProject({
+export default defineTestProject({
   files: {
     include: ['flows/**/*.{yaml,yml}'],
   },
