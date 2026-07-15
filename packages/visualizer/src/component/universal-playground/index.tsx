@@ -145,6 +145,14 @@ export function UniversalPlayground({
   }, [playgroundSDK]);
 
   // Use custom hooks for state management
+  // Keep an explicitly configured namespace independent from the SDK. Hosts
+  // such as the browser extension can recreate an SDK when its target changes
+  // without replacing the storage provider (and resetting the conversation).
+  const configuredStorageNamespace = componentConfig.storageNamespace;
+  const sdkStorageNamespace = configuredStorageNamespace
+    ? undefined
+    : getSDKId(playgroundSDK);
+
   // Determine the storage provider based on configuration
   const effectiveStorage = useMemo(() => {
     if (componentConfig.persistMessages === false) {
@@ -163,8 +171,7 @@ export function UniversalPlayground({
 
     // Otherwise, create the best available storage provider with unique namespace
     // Priority: explicit storageNamespace > auto-generated SDK ID
-    const namespace =
-      componentConfig.storageNamespace || getSDKId(playgroundSDK);
+    const namespace = configuredStorageNamespace || sdkStorageNamespace;
 
     // Detect and use the best available storage type
     const bestStorageType = detectBestStorageType();
@@ -174,9 +181,9 @@ export function UniversalPlayground({
   }, [
     storage,
     sdkReady,
-    componentConfig.storageNamespace,
+    configuredStorageNamespace,
     componentConfig.persistMessages,
-    playgroundSDK,
+    sdkStorageNamespace,
   ]);
 
   const {

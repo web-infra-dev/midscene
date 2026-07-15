@@ -2,18 +2,156 @@
   position: fixed;
 }
 
-.clear-button-container {
-  width: 28;
-  height: 28;
-  border-radius: 4px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin: 4px 0;
-  position: fixed;
-  top: 60px;
-  right: 12px;
-  background: #fff;
-  z-index: 999;
-  border: 1px solid rgba(240, 240, 240);
+/*
+ * The shared playground root defaults to viewport height. In a Chrome side
+ * panel it is nested below the extension navigation, so every flex ancestor
+ * must be shrinkable for the timeline to own the remaining scrollable space.
+ */
+.chrome-extension-playground {
+  height: 100%;
+  min-height: 0;
+  flex: 1 1 auto;
+
+  .command-form,
+  .playground-timeline-region,
+  .middle-dialog-area {
+    min-height: 0;
+  }
+
+  /* Keep the shared clear action inside the timeline instead of pinning it
+   * to the side-panel viewport while the message list scrolls. */
+  .clear-button-container {
+    top: 16px;
+    right: 0;
+  }
+
+  /* Keep the composer state explicit in the extension. The shared pseudo
+   * element relies on a mask that is clipped by the side-panel layout. */
+  .prompt-input-wrapper .main-side-console-input {
+    border: 1px solid #e5e5e5;
+    background: var(--midscene-surface, #fff);
+  }
+
+  .prompt-input-wrapper .main-side-console-input.loading {
+    border-color: transparent;
+    background:
+      linear-gradient(
+          var(--midscene-surface, #fff),
+          var(--midscene-surface, #fff)
+        )
+        padding-box,
+      linear-gradient(
+          135deg,
+          #4285f4 0%,
+          #0066ff 25%,
+          #7b02c5 50%,
+          #ea4335 75%,
+          #ff7043 100%
+        )
+        border-box;
+
+    &::before {
+      display: none;
+    }
+  }
+
+  .extension-welcome-empty-state {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 24px;
+    text-align: center;
+
+    .ant-empty {
+      margin: 0;
+    }
+
+    .ant-empty-image {
+      width: 56px;
+      height: 56px;
+      margin: 0 auto 16px;
+    }
+
+    .extension-welcome-midscene-icon {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    .ant-empty-description {
+      color: var(--midscene-text-secondary, #777);
+    }
+
+    .extension-welcome-copy {
+      max-width: 320px;
+      font-size: 14px;
+      line-height: 22px;
+    }
+
+    .extension-welcome-title {
+      color: var(--midscene-text-primary, #1f2329);
+      font-size: 16px;
+      font-weight: 600;
+      line-height: 24px;
+    }
+
+    p {
+      margin: 12px 0 0;
+    }
+  }
+
+  .middle-dialog-area .info-list-container.info-list-container-empty {
+    display: flex;
+    min-height: 0;
+
+    .playground-empty-state-wrapper {
+      display: flex;
+      flex: 1;
+      min-height: 0;
+    }
+  }
+
+  /* Studio renders these connectors through its execution timeline wrapper.
+   * The extension uses the same progress markup but owns this wrapper and
+   * palette so Studio's styles remain unchanged. */
+  .chrome-extension-execution-timeline-skin {
+    position: relative;
+    display: flex;
+    flex: 1;
+    min-height: 0;
+    flex-direction: column;
+
+    .clear-button-container {
+      position: absolute;
+      top: 16px;
+      right: -6px;
+      z-index: 20;
+    }
+
+    .middle-dialog-area .info-list-container {
+      .list-item:has(.progress-row) > div:has(> .progress-row) {
+        position: relative;
+      }
+
+      .list-item:has(.progress-row) > div:has(> .progress-row)::after {
+        position: absolute;
+        top: 30px;
+        bottom: 0;
+        left: 8px;
+        width: 1px;
+        background: var(--extension-timeline-connector, #d9d9d9);
+        content: '';
+      }
+
+      .list-item:has(.progress-row-last) > div:has(> .progress-row)::after {
+        display: none;
+      }
+    }
+  }
+}
+
+[data-theme='dark'] .chrome-extension-playground {
+  --extension-timeline-connector: #444;
 }

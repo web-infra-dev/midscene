@@ -5,100 +5,100 @@
   padding: 16px 0;
   box-sizing: border-box;
   width: 100%;
-  
+
   // Smooth scrolling optimization
   scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch; // iOS Safari scrolling optimization
   overscroll-behavior: contain; // Prevent scroll propagation
-  
+
   // Unified scrollbar style
   &::-webkit-scrollbar {
     width: 6px;
   }
-  
+
   &::-webkit-scrollbar-track {
     background: #f1f1f1;
     border-radius: 3px;
   }
-  
+
   &::-webkit-scrollbar-thumb {
     background: #c1c1c1;
     border-radius: 3px;
     transition: background-color 0.2s ease;
-    
+
     &:hover {
       background: #a1a1a1;
     }
   }
-  
+
   // Prevent all child elements from exceeding container width
   * {
     max-width: 100%;
     box-sizing: border-box;
   }
-  
+
   // View-specific styles
   .record-list-view {
     width: 100%;
     max-width: 100%;
     height: 100%;
-    
+
     .session-list {
       width: 100%;
       max-width: 100%;
-      
+
       .ant-list-item {
         padding: 8px 0;
         width: 100%;
         max-width: 100%;
-        
+
         .ant-card {
           transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
           width: 100%;
           max-width: 100%;
           will-change: transform, box-shadow;
-          
+
           &:hover {
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
             transform: translateY(-2px) scale(1.01);
           }
-          
+
           &.selected-session {
             box-shadow: 0 4px 12px rgba(24, 144, 255, 0.15);
-            
+
             .ant-card-head {
               background-color: #f0f7ff;
             }
           }
-          
+
           .ant-card-actions {
             background-color: #fafafa;
-            
+
             .ant-btn {
               border: none;
               box-shadow: none;
-              
+
               &:hover {
                 background-color: #e6f7ff;
               }
-              
+
               &.ant-btn-dangerous:hover {
                 background-color: #fff2f0;
               }
             }
           }
-          
+
           .session-meta {
             width: 100%;
             max-width: 100%;
-            
+
             .session-status {
               display: flex;
               align-items: center;
               gap: 8px;
               margin-bottom: 4px;
             }
-            
+
             .session-details {
               font-size: 12px;
               color: #999;
@@ -110,30 +110,30 @@
         }
       }
     }
-    
+
     .session-empty {
       text-align: center;
       padding: 40px 20px;
       width: 100%;
       max-width: 100%;
-      
+
       .ant-empty-description {
         color: #999;
       }
     }
   }
-  
+
   .record-detail-view {
     width: 100%;
     max-width: 100%;
     scroll-behavior: smooth;
-    
+
     // Header section
     .detail-header {
       width: 100%;
       max-width: 100%;
       margin-bottom: 12px;
-      
+
       .back-button {
         flex-shrink: 0;
       }
@@ -145,7 +145,7 @@
       max-width: 100%;
       margin-bottom: 16px;
       text-align: center;
-      
+
       .session-title-text {
         margin: 0 !important;
         margin-bottom: 4px !important;
@@ -154,13 +154,13 @@
         text-overflow: ellipsis;
         width: 100%;
         cursor: default;
-        
+
         &:hover {
           color: #1890ff;
         }
       }
     }
-    
+
     // Recording status section
     .recording-status {
       width: 100%;
@@ -168,24 +168,24 @@
       margin-bottom: 16px;
       word-wrap: break-word;
     }
-    
+
     // Session info card
     .session-info-card {
       width: 100%;
       max-width: 100%;
       margin-bottom: 16px;
-      
+
       .ant-card-body {
         padding: 16px;
       }
     }
-    
+
     // Controls section
     .controls-section {
       width: 100%;
       max-width: 100%;
       margin-bottom: 16px;
-      
+
       .current-tab-info {
         width: 100%;
         max-width: 100%;
@@ -193,41 +193,41 @@
         word-break: break-all;
         white-space: normal;
       }
-      
+
       .record-controls {
         width: 100%;
         max-width: 100%;
         display: flex;
         gap: 8px;
         flex-wrap: wrap;
-        
+
         .ant-btn {
           flex-shrink: 0;
           max-width: 100%;
         }
       }
     }
-    
+
     // Events section
     .events-section {
       width: 100%;
       max-width: 100%;
-      
+
       .events-header {
         width: 100%;
         max-width: 100%;
         margin-bottom: 12px;
-        
+
         h5 {
           margin: 0;
           font-weight: 600;
         }
       }
-      
+
       .events-container {
         width: 100%;
         max-width: 100%;
-        
+
         &.empty {
           display: flex;
           align-items: center;
@@ -238,18 +238,18 @@
         }
       }
     }
-    
+
     .session-info {
       .ant-space {
         width: 100%;
         max-width: 100%;
-        
+
         > div {
           display: flex;
           align-items: flex-start;
           width: 100%;
           max-width: 100%;
-          
+
           .ant-typography {
             margin: 0;
             word-break: break-all;
@@ -260,7 +260,7 @@
       }
     }
   }
-  
+
   .record-timeline {
     // remove internal scrollbar and fixed height, let content expand naturally
     width: 100%;
@@ -271,28 +271,28 @@
     background-color: #fafafa;
     overflow: visible;
     box-sizing: border-box;
-    
+
     // smooth animation optimization
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     will-change: transform; // optimize GPU acceleration
-    
+
     // ensure internal components do not generate scrollbars and fully utilize width
     .ant-timeline {
       width: 100%;
       max-width: 100%;
       overflow: visible;
-      
+
       .ant-timeline-item {
         width: 100%;
         max-width: 100%;
-        
+
         // smooth entry animation
         animation: slideInUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-        
+
         &:last-child {
           animation: slideInUp 0.6s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        
+
         .ant-timeline-item-content {
           width: 100%;
           max-width: 100%;
@@ -300,13 +300,13 @@
         }
       }
     }
-    
+
     .ant-card {
       width: 100%;
       max-width: 100%;
       overflow: visible;
       box-sizing: border-box;
-      
+
       .ant-card-body {
         width: 100%;
         max-width: 100%;
@@ -315,11 +315,11 @@
         word-wrap: break-word;
       }
     }
-    
+
     .ant-space {
       width: 100%;
       max-width: 100%;
-      
+
       .ant-space-item {
         width: 100%;
         max-width: 100%;
@@ -327,19 +327,19 @@
       }
     }
   }
-  
+
   .record-event {
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     width: 100%;
     max-width: 100%;
     will-change: transform, box-shadow;
-    
+
     &:hover {
       transform: translateX(4px) scale(1.01);
       box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
     }
   }
-  
+
   .record-controls {
     display: flex;
     gap: 8px;
@@ -347,13 +347,13 @@
     align-items: center;
     width: 100%;
     max-width: 100%;
-    
+
     .ant-btn {
       flex-shrink: 0;
       max-width: 100%;
     }
   }
-  
+
   .current-tab-info {
     font-size: 13px;
     color: #666;
@@ -374,12 +374,12 @@
     padding: 8px 12px;
     border-radius: 4px;
     margin-bottom: 12px;
-    
+
     &.recording {
       background-color: #fff2f0;
       border: 1px solid #ffccc7;
       color: #cf1322;
-      
+
       &::before {
         content: '';
         width: 8px;
@@ -389,7 +389,7 @@
         animation: recording-pulse 1.5s infinite;
       }
     }
-    
+
     &.idle {
       background-color: #f6ffed;
       border: 1px solid #d9f7be;
@@ -441,11 +441,11 @@
     .ant-modal-body {
       padding: 24px;
     }
-    
+
     .ant-form-item-label {
       font-weight: 500;
     }
-    
+
     .ant-btn-group {
       display: flex;
       gap: 8px;
@@ -457,76 +457,76 @@
     margin: 24px 0;
     border-color: #e8e8e8;
   }
-  
+
   // disable scrollbar in all Ant Design components
   .ant-list {
     overflow: visible !important;
     max-width: 100% !important;
   }
-  
+
   .ant-list-item {
     overflow: visible !important;
     max-width: 100% !important;
   }
-  
+
   .ant-card {
     overflow: visible !important;
     max-width: 100% !important;
   }
-  
+
   .ant-card-body {
     overflow: visible !important;
     max-width: 100% !important;
   }
-  
+
   .ant-timeline {
     overflow: visible !important;
     max-width: 100% !important;
   }
-  
+
   .ant-timeline-item {
     overflow: visible !important;
     max-width: 100% !important;
   }
-  
+
   .ant-space {
     overflow: visible !important;
     max-width: 100% !important;
   }
-  
+
   .ant-empty {
     overflow: visible !important;
     max-width: 100% !important;
   }
-  
+
   // prevent text and URL from causing horizontal scrolling
   .ant-typography {
     word-break: break-all !important;
     white-space: normal !important;
     max-width: 100% !important;
   }
-  
+
   // ensure input and button do not exceed container
   .ant-input {
     max-width: 100% !important;
   }
-  
+
   .ant-btn {
     max-width: 100% !important;
     word-break: break-all;
   }
-  
+
   // special styles optimization for RecordTimeline
   .record-timeline {
     overflow: visible !important;
     max-width: 100% !important;
-    
+
     * {
       overflow: visible !important;
       box-sizing: border-box;
       max-width: 100% !important;
     }
-    
+
     // if content is long, ensure it can be displayed completely
     .ant-timeline-item-content {
       overflow: visible !important;
@@ -534,38 +534,38 @@
       width: 100% !important;
       max-width: 100% !important;
     }
-    
+
     // ensure timeline items fully utilize width
     .ant-timeline-item {
       width: 100% !important;
       max-width: 100% !important;
     }
-    
+
     // card style optimization
     .ant-card {
       margin-bottom: 8px;
       width: 100% !important;
       max-width: 100% !important;
-      
+
       .ant-card-body {
         padding: 12px 16px;
         word-wrap: break-word;
         overflow-wrap: break-word;
       }
     }
-    
+
     // special handling of long text and URL
     .ant-space-item {
       word-break: break-all;
       white-space: normal;
       max-width: 100%;
     }
-    
+
     // optimize Space component inside Timeline component
     .ant-space {
       width: 100% !important;
       max-width: 100% !important;
-      
+
       .ant-space-item {
         max-width: 100% !important;
         word-break: break-all !important;
@@ -573,7 +573,7 @@
         overflow-wrap: break-word !important;
       }
     }
-    
+
     // handle Typography component inside RecordTimeline
     .ant-typography {
       word-break: break-all !important;
@@ -581,28 +581,28 @@
       max-width: 100% !important;
       overflow-wrap: break-word !important;
     }
-    
+
     // special handling of long URL display
-    .ant-typography[type="secondary"] {
+    .ant-typography[type='secondary'] {
       word-break: break-all !important;
       white-space: normal !important;
       max-width: 100% !important;
       overflow-wrap: anywhere !important;
     }
-    
+
     // handle Tag component
     .ant-tag {
       max-width: 100% !important;
       word-break: break-all !important;
       white-space: normal !important;
     }
-    
+
     // handle Button component
     .ant-btn {
       max-width: 100% !important;
       word-break: break-all !important;
     }
-    
+
     // handle Code text
     code {
       word-break: break-all !important;
@@ -610,20 +610,127 @@
       max-width: 100% !important;
       overflow-wrap: break-word !important;
     }
-    
+
     // handle fixed-width elements
     img {
       max-width: 100% !important;
       height: auto !important;
     }
-    
+
     // ensure all text content can wrap correctly
     * {
       word-wrap: break-word !important;
       overflow-wrap: break-word !important;
     }
   }
-} 
-.ant-btn-variant-outlined:disabled{
+}
+.ant-btn-variant-outlined:disabled {
   background: none !important;
+}
+
+// The shared recorder timeline is also used by Studio. Keep this compact
+// layout opt-in for the Chrome extension instead of changing the default.
+.record-timeline-chrome-extension {
+  // Ant Design positions a custom Timeline dot around the 5px default head.
+  // Our recorder icons are larger, so their left edge otherwise falls outside
+  // the scrollable timeline and is clipped by the side-panel viewport.
+  .ant-timeline-item-tail {
+    inset-block-start: 28px !important;
+    inset-inline-start: 14px !important;
+    height: calc(100% - 28px) !important;
+    z-index: 0;
+  }
+
+  .ant-timeline-item-head-custom {
+    inset-block-start: 18px !important;
+    inset-inline-start: 14px !important;
+    display: flex;
+    width: 20px !important;
+    height: 20px !important;
+    align-items: center;
+    justify-content: center;
+    overflow: visible !important;
+    // Ant Design supplies a surface-colored custom-dot background by default.
+    // The icon must sit on top of the connector, not mask the event card.
+    padding: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    z-index: 1;
+  }
+
+  .ant-timeline-item-head-custom > .anticon {
+    width: 20px !important;
+    height: 20px !important;
+    font-size: 20px !important;
+    line-height: 1;
+  }
+
+  // A 20px icon centered on the 14px connector occupies the first 24px of
+  // the row. Reserve an additional 12px before the card instead of letting
+  // the custom Timeline head overlap it.
+  .ant-timeline-item-content {
+    margin-inline-start: 40px !important;
+    width: calc(100% - 40px) !important;
+    max-width: calc(100% - 40px) !important;
+  }
+
+  .record-timeline-event-row {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    gap: 8px !important;
+    min-width: 0;
+  }
+
+  .record-timeline-event-row > .ant-space-item:first-child {
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+
+  .record-timeline-event-copy {
+    display: block !important;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .record-timeline-event-copy > .ant-space-item {
+    display: block;
+    min-width: 0;
+  }
+
+  .record-timeline-event-description {
+    display: -webkit-box;
+    overflow: hidden !important;
+    max-width: none !important;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  .record-timeline-event-media {
+    display: flex !important;
+    flex: 0 0 auto;
+    overflow: visible !important;
+  }
+
+  .record-timeline-event-media > .ant-space-item {
+    flex: 0 0 auto;
+  }
+
+  .record-timeline-screenshot-thumbnail {
+    flex: 0 0 24px;
+    width: 24px !important;
+    height: 24px !important;
+    max-width: none !important;
+  }
+
+  .record-timeline-screenshot-thumbnail .ant-image,
+  .record-timeline-screenshot-thumbnail .ant-image img {
+    display: block;
+    width: 24px !important;
+    height: 24px !important;
+    max-width: none !important;
+    object-fit: cover;
+  }
 }

@@ -3,8 +3,9 @@
 body {
   margin: 0;
   padding: 0;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans",
-    Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica,
+    Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji';
   font-size: 14px;
   height: 100vh;
   width: 100%;
@@ -15,6 +16,43 @@ html {
   height: 100vh;
   width: 100%;
   overflow: hidden;
+}
+
+html[data-theme='light'] {
+  color-scheme: light;
+  --midscene-surface: #fff;
+  --midscene-surface-elevated: #fff;
+  --midscene-surface-muted: #f1f2f3;
+  --midscene-text-primary: #1f2329;
+  --midscene-text-secondary: #777;
+  --midscene-border-strong: rgba(0, 0, 0, 0.08);
+}
+
+html[data-theme='dark'] {
+  color-scheme: dark;
+  --midscene-surface: #1f1f1f;
+  --midscene-surface-elevated: #262626;
+  --midscene-surface-muted: #2a2a2a;
+  --midscene-text-primary: rgba(255, 255, 255, 0.88);
+  --midscene-text-secondary: rgba(255, 255, 255, 0.65);
+  --midscene-border-strong: rgba(255, 255, 255, 0.14);
+
+  .popup-wrapper,
+  .popup-wrapper .popup-nav,
+  .popup-wrapper .playground-component .playground-container,
+  .popup-wrapper .playground-component .bottom-input-section {
+    background: var(--midscene-surface);
+  }
+
+  .popup-wrapper .popup-nav {
+    border-color: var(--midscene-border-strong);
+  }
+
+  .popup-wrapper .popup-nav .nav-left .nav-icon,
+  .popup-wrapper .popup-nav .nav-left .nav-title,
+  .popup-wrapper .popup-nav .nav-right .nav-icon {
+    color: var(--midscene-text-primary);
+  }
 }
 
 #root {
@@ -41,23 +79,23 @@ html {
     display: flex;
     flex-direction: column;
     min-height: 0;
-    
+
     /* Ensure UniversalPlayground takes full height */
     .playground-container {
       height: 100%;
       min-height: 0;
-      
+
       /* Ensure the middle dialog area can scroll properly */
       .middle-dialog-area {
         min-height: 0;
-        
+
         .info-list-container {
           /* Ensure smooth scrolling and stable scrollbar */
           scroll-behavior: smooth;
           scrollbar-gutter: stable;
         }
       }
-      
+
       /* Ensure bottom input section is fixed and not scrollable */
       .bottom-input-section {
         position: relative;
@@ -128,10 +166,16 @@ html {
   /* main content area */
   .popup-content {
     flex: 1;
+    min-height: 0;
     padding: 0px 16px 0px 16px;
     overflow: hidden;
     display: flex;
     flex-direction: column;
+
+    .playground-component {
+      width: 100%;
+      min-height: 0;
+    }
   }
 }
 
@@ -161,7 +205,10 @@ html {
       }
 
       svg {
-        transition: fill 0.2s, stroke 0.2s, color 0.2s;
+        transition:
+          fill 0.2s,
+          stroke 0.2s,
+          color 0.2s;
         color: #575758;
       }
 
@@ -170,7 +217,7 @@ html {
         color: #1890ff;
 
         svg {
-          color: #2B83FF;
+          color: #2b83ff;
         }
       }
     }

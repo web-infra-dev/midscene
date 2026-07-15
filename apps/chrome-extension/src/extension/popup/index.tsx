@@ -43,6 +43,25 @@ export function PlaygroundPopup() {
     return (savedMode as 'playground' | 'bridge' | 'recorder') || 'playground';
   });
 
+  // The extension has no user-selectable theme yet, so follow the system
+  // preference and expose the shared visualizer's data-theme contract.
+  useEffect(() => {
+    if (typeof window.matchMedia !== 'function') {
+      return;
+    }
+
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const syncTheme = () => {
+      document.documentElement.dataset.theme = mediaQuery.matches
+        ? 'dark'
+        : 'light';
+    };
+
+    syncTheme();
+    mediaQuery.addEventListener('change', syncTheme);
+    return () => mediaQuery.removeEventListener('change', syncTheme);
+  }, []);
+
   const config = useEnvConfig((state) => state.config);
 
   const getAgent = useCallback(
