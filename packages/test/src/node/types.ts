@@ -1,3 +1,4 @@
+import type { z } from 'zod/v4';
 import type { NodeCaseContext, NodeDocumentContext } from '../engine/types';
 import type { CommonNodeInput, NormalizedStepMeta } from '../parser/types';
 
@@ -52,6 +53,8 @@ export type NodeExecutionReturn<TData = unknown> =
   // biome-ignore lint/suspicious/noConfusingVoidType: RFC 0001 allows async nodes to resolve without a result.
   Promise<NodeResult<TData> | void> | NodeResult<TData> | void;
 
+export type NodeInputSchema = z.ZodObject;
+
 export interface DefineNodeOptions<
   TInput = unknown,
   TData = unknown,
@@ -60,13 +63,33 @@ export interface DefineNodeOptions<
   name: string;
   title?: string;
   description?: string;
+  inputSchema?: NodeInputSchema;
   execute(
     ctx: NodeExecutionContext<TInput, TContext>,
   ): NodeExecutionReturn<TData>;
 }
+
+export type DefineNodeWithSchemaOptions<
+  TSchema extends NodeInputSchema,
+  TData = unknown,
+  TContext = unknown,
+> = Omit<
+  DefineNodeOptions<z.output<TSchema>, TData, TContext>,
+  'inputSchema'
+> & {
+  inputSchema: TSchema;
+};
 
 export interface NodeDefinition<
   TInput = unknown,
   TData = unknown,
   TContext = unknown,
 > extends DefineNodeOptions<TInput, TData, TContext> {}
+
+export type NodeDefinitionWithSchema<
+  TSchema extends NodeInputSchema,
+  TData = unknown,
+  TContext = unknown,
+> = NodeDefinition<z.output<TSchema>, TData, TContext> & {
+  inputSchema: TSchema;
+};

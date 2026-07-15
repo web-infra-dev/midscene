@@ -3,7 +3,7 @@ import { defineNode } from '../node/define-node';
 import type { NodeDefinition } from '../node/types';
 
 export class NodeRegistry {
-  readonly #nodes = new Map<string, NodeDefinition<any, any>>();
+  readonly #nodes = new Map<string, NodeDefinition<any, any, any>>();
 
   constructor(nodes: readonly NodeDefinition<any, any>[] = []) {
     for (const node of nodes) {
@@ -40,5 +40,9 @@ export class NodeRegistry {
 
   names(): string[] {
     return [...this.#nodes.keys()];
+  }
+
+  definitions(): readonly NodeDefinition<any, any, any>[] {
+    return [...this.#nodes.values()];
   }
 }

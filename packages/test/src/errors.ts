@@ -1,3 +1,5 @@
+import type { z } from 'zod/v4';
+
 export interface WorkflowErrorOptions {
   code?: string;
   details?: unknown;
@@ -64,6 +66,21 @@ export class NodeNotFoundError extends WorkflowError {
 export class NodeInputValidationError extends WorkflowError {
   constructor(message: string, details?: unknown) {
     super(message, { code: 'NODE_INPUT_VALIDATION_ERROR', details });
+  }
+
+  static fromZod(node: string, error: z.ZodError): NodeInputValidationError {
+    const issues = error.issues.map((issue) => ({
+      code: issue.code,
+      path: issue.path.map(String).join('.'),
+      message: issue.message,
+    }));
+    const firstIssue = issues[0];
+    const path = firstIssue?.path || '<root>';
+    const message = firstIssue?.message ?? 'invalid input';
+    return new NodeInputValidationError(
+      `Node "${node}" input validation failed at "${path}": ${message}`,
+      { node, issues },
+    );
   }
 }
 

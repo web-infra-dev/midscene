@@ -1,4 +1,4 @@
-import { defineNode } from '@midscene/test';
+import { defineNode, z } from '@midscene/test';
 import {
   type TestProjectDefinition,
   defineTestProject,
@@ -36,6 +36,34 @@ const project: TestProjectDefinition<ProjectContext> =
 
 void project;
 void loadTestProject<ProjectContext>();
+
+const schemaInput = z.strictObject({
+  path: z.string(),
+  retries: z.coerce.number().int().default(0),
+});
+
+defineNode({
+  name: 'schema.inferred',
+  inputSchema: schemaInput,
+  execute({ input }) {
+    input.path satisfies string;
+    input.retries satisfies number;
+    // @ts-expect-error Schema inference does not add unknown fields.
+    input.missing;
+  },
+});
+
+defineNode<typeof schemaInput, { status: number }, ProjectContext>({
+  name: 'schema.context',
+  inputSchema: schemaInput,
+  execute({ input, context }) {
+    return {
+      data: {
+        status: new URL(input.path, context.baseURL).port.length,
+      },
+    };
+  },
+});
 
 defineTestProject({
   nodes: [],

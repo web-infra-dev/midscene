@@ -1,3 +1,4 @@
+import { z } from 'zod/v4';
 import type { Awaitable } from '../engine/types';
 import { NodeDefinitionError, NodeExecutionError } from '../errors';
 import { defineNode } from '../node/define-node';
@@ -47,25 +48,108 @@ export interface MidsceneUIAgent {
   ): Promise<unknown>;
 }
 
-export interface AiActNodeInput {
-  prompt?: string;
-  options?: Omit<MidsceneAiActOptions, 'abortSignal'>;
-}
+const nonBlankPrompt = (description: string) =>
+  z
+    .string()
+    .regex(/\S/, 'prompt must contain a non-whitespace character')
+    .describe(description);
 
-export interface AiAssertNodeInput {
-  prompt?: string;
-  message?: string;
-  options?: Omit<MidsceneAiAssertOptions, 'abortSignal' | 'keepRawResponse'>;
-}
+const aiActOptionsInputSchema = z.strictObject({
+  cacheable: z
+    .boolean()
+    .optional()
+    .describe('Whether this action may use the Midscene cache.'),
+  fileChooserAccept: z
+    .union([z.string(), z.array(z.string())])
+    .optional()
+    .describe('Accepted file types for a file chooser.'),
+  deepThink: z
+    .union([z.literal('unset'), z.boolean()])
+    .optional()
+    .describe('Whether to enable deep thinking for this action.'),
+  deepLocate: z
+    .boolean()
+    .optional()
+    .describe('Whether to use deep element location.'),
+  context: z
+    .string()
+    .optional()
+    .describe('Additional context supplied to the UI Agent.'),
+});
 
-export interface RecordToReportNodeInput {
-  /** String shorthand is normalized into prompt and used as the title. */
-  prompt?: string;
-  title?: string;
-  content?: string;
-  screenshotBase64?: string;
-  screenshots?: MidsceneReportScreenshot[];
-}
+export const aiActInputSchema = z.strictObject({
+  prompt: nonBlankPrompt('The natural-language UI task to perform.'),
+  options: aiActOptionsInputSchema.optional(),
+});
+
+const aiAssertOptionsInputSchema = z.strictObject({
+  domIncluded: z
+    .union([z.boolean(), z.literal('visible-only')])
+    .optional()
+    .describe('How DOM information is included in the assertion.'),
+  screenshotIncluded: z
+    .boolean()
+    .optional()
+    .describe('Whether the assertion includes a screenshot.'),
+  context: z
+    .string()
+    .optional()
+    .describe('Additional context supplied to the UI Agent.'),
+});
+
+export const aiAssertInputSchema = z.strictObject({
+  prompt: nonBlankPrompt('The natural-language condition that must be true.'),
+  message: z.string().optional().describe('The assertion failure message.'),
+  options: aiAssertOptionsInputSchema.optional(),
+});
+
+const reportScreenshotInputSchema = z.strictObject({
+  base64: z.string().min(1).describe('A base64-encoded screenshot.'),
+  description: z.string().optional().describe('What the screenshot shows.'),
+});
+
+export const recordToReportInputSchema = z
+  .strictObject({
+    prompt: z
+      .string()
+      .optional()
+      .describe('String shorthand for the report title.'),
+    title: z.string().optional().describe('The report section title.'),
+    content: z.string().optional().describe('The report text content.'),
+    screenshotBase64: z
+      .string()
+      .optional()
+      .describe('One legacy base64-encoded screenshot.'),
+    screenshots: z
+      .array(reportScreenshotInputSchema)
+      .min(1)
+      .optional()
+      .describe('Screenshots attached to the report section.'),
+  })
+  .describe(
+    'prompt and title are mutually exclusive; screenshotBase64 and screenshots are mutually exclusive.',
+  )
+  .superRefine((input, ctx) => {
+    if (input.prompt !== undefined && input.title !== undefined) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'prompt and title are mutually exclusive',
+      });
+    }
+    if (
+      input.screenshotBase64 !== undefined &&
+      input.screenshots !== undefined
+    ) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'screenshotBase64 and screenshots are mutually exclusive',
+      });
+    }
+  });
+
+export type AiActNodeInput = z.infer<typeof aiActInputSchema>;
+export type AiAssertNodeInput = z.infer<typeof aiAssertInputSchema>;
+export type RecordToReportNodeInput = z.infer<typeof recordToReportInputSchema>;
 
 export interface CreateMidsceneNodesOptions<TContext> {
   getAgent(
@@ -75,180 +159,6 @@ export interface CreateMidsceneNodesOptions<TContext> {
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
-
-const validateAllowedKeys = (
-  value: Record<string, unknown>,
-  allowedKeys: readonly string[],
-  label: string,
-) => {
-  const allowed = new Set(allowedKeys);
-  const unsupported = Object.keys(value).find((key) => !allowed.has(key));
-  if (unsupported) {
-    throw new TypeError(`${label} has unsupported option "${unsupported}".`);
-  }
-};
-
-const requirePrompt = (input: { prompt?: string }, node: string): string => {
-  if (typeof input.prompt !== 'string' || input.prompt.trim().length === 0) {
-    throw new TypeError(`Node "${node}" requires a non-empty prompt.`);
-  }
-  return input.prompt;
-};
-
-function validateOptionalString(
-  value: unknown,
-  label: string,
-): asserts value is string | undefined {
-  if (value !== undefined && typeof value !== 'string') {
-    throw new TypeError(`${label} must be a string.`);
-  }
-}
-
-const validateAiActOptions = (
-  value: unknown,
-): Omit<MidsceneAiActOptions, 'abortSignal'> | undefined => {
-  if (value === undefined) return undefined;
-  if (!isRecord(value)) throw new TypeError('aiAct options must be a mapping.');
-  validateAllowedKeys(
-    value,
-    ['cacheable', 'fileChooserAccept', 'deepThink', 'deepLocate', 'context'],
-    'aiAct options',
-  );
-  if (value.cacheable !== undefined && typeof value.cacheable !== 'boolean') {
-    throw new TypeError('aiAct options.cacheable must be a boolean.');
-  }
-  if (
-    value.fileChooserAccept !== undefined &&
-    typeof value.fileChooserAccept !== 'string' &&
-    !(
-      Array.isArray(value.fileChooserAccept) &&
-      value.fileChooserAccept.every((item) => typeof item === 'string')
-    )
-  ) {
-    throw new TypeError(
-      'aiAct options.fileChooserAccept must be a string or string array.',
-    );
-  }
-  if (
-    value.deepThink !== undefined &&
-    value.deepThink !== 'unset' &&
-    typeof value.deepThink !== 'boolean'
-  ) {
-    throw new TypeError(
-      'aiAct options.deepThink must be a boolean or "unset".',
-    );
-  }
-  if (value.deepLocate !== undefined && typeof value.deepLocate !== 'boolean') {
-    throw new TypeError('aiAct options.deepLocate must be a boolean.');
-  }
-  validateOptionalString(value.context, 'aiAct options.context');
-  return value as Omit<MidsceneAiActOptions, 'abortSignal'>;
-};
-
-const validateAiAssertOptions = (
-  value: unknown,
-):
-  | Omit<MidsceneAiAssertOptions, 'abortSignal' | 'keepRawResponse'>
-  | undefined => {
-  if (value === undefined) return undefined;
-  if (!isRecord(value)) {
-    throw new TypeError('aiAssert options must be a mapping.');
-  }
-  validateAllowedKeys(
-    value,
-    ['domIncluded', 'screenshotIncluded', 'context'],
-    'aiAssert options',
-  );
-  if (
-    value.domIncluded !== undefined &&
-    value.domIncluded !== 'visible-only' &&
-    typeof value.domIncluded !== 'boolean'
-  ) {
-    throw new TypeError(
-      'aiAssert options.domIncluded must be a boolean or "visible-only".',
-    );
-  }
-  if (
-    value.screenshotIncluded !== undefined &&
-    typeof value.screenshotIncluded !== 'boolean'
-  ) {
-    throw new TypeError(
-      'aiAssert options.screenshotIncluded must be a boolean.',
-    );
-  }
-  validateOptionalString(value.context, 'aiAssert options.context');
-  return value as Omit<
-    MidsceneAiAssertOptions,
-    'abortSignal' | 'keepRawResponse'
-  >;
-};
-
-const validateReportInput = (
-  input: RecordToReportNodeInput,
-): {
-  title?: string;
-  options: MidsceneRecordToReportOptions;
-} => {
-  validateOptionalString(input.prompt, 'recordToReport prompt');
-  validateOptionalString(input.title, 'recordToReport title');
-  validateOptionalString(input.content, 'recordToReport content');
-  validateOptionalString(
-    input.screenshotBase64,
-    'recordToReport screenshotBase64',
-  );
-  if (input.prompt !== undefined && input.title !== undefined) {
-    throw new TypeError(
-      'recordToReport accepts either string shorthand or title, not both.',
-    );
-  }
-  if (input.screenshots !== undefined) {
-    if (!Array.isArray(input.screenshots) || input.screenshots.length === 0) {
-      throw new TypeError(
-        'recordToReport screenshots must be a non-empty array.',
-      );
-    }
-    for (const [index, screenshot] of input.screenshots.entries()) {
-      if (
-        !isRecord(screenshot) ||
-        typeof screenshot.base64 !== 'string' ||
-        screenshot.base64.length === 0
-      ) {
-        throw new TypeError(
-          `recordToReport screenshot ${index + 1} requires base64.`,
-        );
-      }
-      validateAllowedKeys(
-        screenshot,
-        ['base64', 'description'],
-        `recordToReport screenshot ${index + 1}`,
-      );
-      validateOptionalString(
-        screenshot.description,
-        `recordToReport screenshot ${index + 1} description`,
-      );
-    }
-  }
-  if (input.screenshotBase64 !== undefined && input.screenshots !== undefined) {
-    throw new TypeError(
-      'recordToReport accepts either screenshotBase64 or screenshots, not both.',
-    );
-  }
-
-  return {
-    ...((input.title ?? input.prompt)
-      ? { title: input.title ?? input.prompt }
-      : {}),
-    options: {
-      ...(input.content === undefined ? {} : { content: input.content }),
-      ...(input.screenshotBase64 === undefined
-        ? {}
-        : { screenshotBase64: input.screenshotBase64 }),
-      ...(input.screenshots === undefined
-        ? {}
-        : { screenshots: input.screenshots }),
-    },
-  };
-};
 
 const requireAgentMethod = <TMethod extends keyof MidsceneUIAgent>(
   agent: MidsceneUIAgent,
@@ -279,41 +189,52 @@ export function createMidsceneNodes<TContext>(
   }
 
   return [
-    defineNode<AiActNodeInput, unknown, TContext>({
+    defineNode<typeof aiActInputSchema, unknown, TContext>({
       name: 'aiAct',
+      description: 'Perform a natural-language task with a Midscene UI Agent.',
+      inputSchema: aiActInputSchema,
       async execute(ctx) {
-        const prompt = requirePrompt(ctx.input, 'aiAct');
-        const nodeOptions = validateAiActOptions(ctx.input.options);
         const agent = await options.getAgent(ctx);
         const aiAct = requireAgentMethod(agent, 'aiAct', 'aiAct');
-        const output = await aiAct.call(agent, prompt, {
-          ...nodeOptions,
+        const output = await aiAct.call(agent, ctx.input.prompt, {
+          ...ctx.input.options,
           abortSignal: ctx.signal,
         });
         return output === undefined ? undefined : { summary: output };
       },
     }),
-    defineNode<AiAssertNodeInput, unknown, TContext>({
+    defineNode<typeof aiAssertInputSchema, unknown, TContext>({
       name: 'aiAssert',
+      description:
+        'Assert a natural-language condition with a Midscene UI Agent.',
+      inputSchema: aiAssertInputSchema,
       async execute(ctx) {
-        const prompt = requirePrompt(ctx.input, 'aiAssert');
-        validateOptionalString(ctx.input.message, 'aiAssert message');
-        const nodeOptions = validateAiAssertOptions(ctx.input.options);
         const agent = await options.getAgent(ctx);
         const aiAssert = requireAgentMethod(agent, 'aiAssert', 'aiAssert');
-        await aiAssert.call(agent, prompt, ctx.input.message, {
-          ...nodeOptions,
+        await aiAssert.call(agent, ctx.input.prompt, ctx.input.message, {
+          ...ctx.input.options,
           abortSignal: ctx.signal,
         });
-        return { summary: `Assertion passed: ${prompt}` };
+        return { summary: `Assertion passed: ${ctx.input.prompt}` };
       },
     }),
-    defineNode<RecordToReportNodeInput, unknown, TContext>({
+    defineNode<typeof recordToReportInputSchema, unknown, TContext>({
       name: 'recordToReport',
+      description: 'Add text or screenshots to the current Midscene report.',
+      inputSchema: recordToReportInputSchema,
       async execute(ctx) {
-        const { title, options: reportOptions } = validateReportInput(
-          ctx.input,
-        );
+        const title = ctx.input.title ?? ctx.input.prompt;
+        const reportOptions: MidsceneRecordToReportOptions = {
+          ...(ctx.input.content === undefined
+            ? {}
+            : { content: ctx.input.content }),
+          ...(ctx.input.screenshotBase64 === undefined
+            ? {}
+            : { screenshotBase64: ctx.input.screenshotBase64 }),
+          ...(ctx.input.screenshots === undefined
+            ? {}
+            : { screenshots: ctx.input.screenshots }),
+        };
         const agent = await options.getAgent(ctx);
         const recordToReport = requireAgentMethod(
           agent,

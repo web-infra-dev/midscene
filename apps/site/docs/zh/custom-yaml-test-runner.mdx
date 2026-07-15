@@ -50,7 +50,7 @@ team-test-runner/
 在项目根目录创建 `midscene.config.ts`。项目配置负责注册 Node，并为每个 YAML 文件创建运行资源。
 
 ```ts filename=midscene.config.ts
-import { defineNode } from '@midscene/test';
+import { defineNode, z } from '@midscene/test';
 import { defineTestProject } from '@midscene/test/config';
 import { createMidsceneNodes } from '@midscene/test/midscene';
 import { PlaywrightAgent } from '@midscene/web/playwright';
@@ -68,9 +68,11 @@ interface ProjectContext {
   agent?: PlaywrightAgent;
 }
 
-interface SetLanguageInput {
-  language: keyof typeof LANGUAGE_LOCALES;
-}
+const setLanguageInputSchema = z.strictObject({
+  language: z
+    .enum(['en', 'zh'])
+    .describe('用于创建 Playwright Context 的 UA 语言。'),
+});
 
 const openPage = async (page: Page, url: string) => {
   const response = await page.goto(url, {
@@ -86,19 +88,16 @@ const openPage = async (page: Page, url: string) => {
 };
 
 const setUserAgentLanguage = defineNode<
-  SetLanguageInput,
+  typeof setLanguageInputSchema,
   { language: string; locale: string; url: string },
   ProjectContext
 >({
   name: 'browser.setLanguage',
   title: '设置 UA 语言',
+  description: '切换浏览器 UA 语言，并重新打开当前页面。',
+  inputSchema: setLanguageInputSchema,
   async execute({ input, context }) {
     const language = input.language;
-    if (language !== 'en' && language !== 'zh') {
-      throw new TypeError(
-        'browser.setLanguage language must be either "en" or "zh".',
-      );
-    }
     const locale = LANGUAGE_LOCALES[language];
 
     const previousPage = context.page;
@@ -347,24 +346,26 @@ afterAll
 以下 Node 会调用测试接口创建订单。
 
 ```ts filename=midscene.config.ts
-import { defineNode } from '@midscene/test';
+import { defineNode, z } from '@midscene/test';
 
-interface OrderInput {
-  sku: string;
-  quantity: number;
-}
+const orderInputSchema = z.strictObject({
+  sku: z.string().min(1).describe('要下单的商品 SKU。'),
+  quantity: z.number().int().positive().describe('购买数量。'),
+});
 
 interface ProjectContext {
   apiBaseUrl: string;
 }
 
 const createOrder = defineNode<
-  OrderInput,
+  typeof orderInputSchema,
   { id: string },
   ProjectContext
 >({
   name: 'order.create',
   title: '创建订单',
+  description: '通过测试接口创建一个商品订单。',
+  inputSchema: orderInputSchema,
 
   async execute({ input, context, signal }) {
     const response = await fetch(`${context.apiBaseUrl}/test/orders`, {
@@ -421,6 +422,36 @@ cases:
           sku: midscene-mug
           quantity: 1
 ```
+
+### 使用 Zod 声明输入
+
+`inputSchema` 是可选字段。声明该字段后，运行器会在调用 `execute()` 前使用 Zod 校验输入，
+并将解析结果传给 `ctx.input`。TypeScript 会从 Schema 推导输入类型，无需再维护单独的
+Input Interface。
+
+建议使用 `z.strictObject()`。这样，YAML 中的未知字段会直接产生
+`NodeInputValidationError`。字段的 `.describe()` 内容还会进入 Node Reference，帮助用例作者
+和 AI Agent 理解参数含义。
+
+```ts
+const refundInputSchema = z.strictObject({
+  orderId: z.string().min(1).describe('需要退款的订单 ID。'),
+  reason: z.string().optional().describe('退款原因。'),
+});
+
+const refundOrder = defineNode({
+  name: 'order.refund',
+  description: '为已有订单发起退款。',
+  inputSchema: refundInputSchema,
+  async execute({ input }) {
+    // input 自动推导为 { orderId: string; reason?: string }。
+    await refund(input.orderId, input.reason);
+  },
+});
+```
+
+不声明 `inputSchema` 时，Node 保持原有行为。运行器会把 YAML 输入直接传给 Handler，由
+Handler 自行校验。这种写法适合渐进迁移，但无法生成完整的输入说明。
 
 ### Node 执行上下文
 
@@ -484,6 +515,58 @@ cases:
           title: 搜索流程完成
           content: 已完成搜索结果检查
 ```
+
+## 生成 Node Reference
+
+项目注册的 Node 可以生成一份 Markdown 参考文档。该文档包含 Step 通用结构、Node 名称、
+描述和输入 Schema，适合作为团队文档或 AI Agent 的上下文。
+
+```bash
+pnpm exec midscene-test describe-nodes > midscene-nodes.md
+```
+
+指定 Test Project 目录或配置文件时，可以使用以下命令：
+
+```bash
+pnpm exec midscene-test describe-nodes ./e2e
+pnpm exec midscene-test describe-nodes --config ./config/midscene.config.ts
+```
+
+生成内容来自当前 Test Project 实际注册的全部 Node，包括 `createMidsceneNodes()` 返回的
+`aiAct`、`aiAssert` 和 `recordToReport`。Node 按名称排序。JSON Schema 由 Zod
+`inputSchema` 自动转换。
+
+````markdown
+## `order.create`
+
+通过测试接口创建一个商品订单。
+
+### Input Schema
+
+```json
+{
+  "properties": {
+    "quantity": {
+      "description": "购买数量。",
+      "type": "number"
+    },
+    "sku": {
+      "description": "要下单的商品 SKU。",
+      "type": "string"
+    }
+  },
+  "required": ["sku", "quantity"],
+  "type": "object"
+}
+```
+````
+
+如果 Node 没有 `description` 或 `inputSchema`，它仍会出现在文档中。CLI 会明确标记缺失字段，
+并把警告写入 stderr，不会猜测 Node 行为或输入。
+
+`describe-nodes` 只加载 `midscene.config.ts`。它不会读取 Workflow YAML、调用
+`setupDocument()`、执行 Node Handler 或创建测试结果目录。把生成的 `midscene-nodes.md`
+提供给 AI Agent 后，Agent 可以根据项目实际能力编写 YAML Case。
 
 ## 配置 Test Project
 
