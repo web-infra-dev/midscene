@@ -18,12 +18,11 @@ import { afterAll, describe, expect, it, vi } from 'vitest';
 import { ComputerAgent } from '../../src/agent';
 import { readDarwinAccessibilityTree } from '../../src/darwin-accessibility-tree';
 import { ComputerDevice } from '../../src/device';
+import { prepareMacosScreenCapture } from './macos-screen-capture-prompt';
 
 const RUN_SMOKE =
   process.platform === 'darwin' &&
   process.env.MIDSCENE_MACOS_ACCESSIBILITY_CACHE_SMOKE === '1';
-const USE_SCREEN_CAPTURE_PROMPT_KEYBOARD_FALLBACK =
-  process.env.MIDSCENE_MACOS_SCREEN_CAPTURE_PROMPT_KEYBOARD_FALLBACK === '1';
 const TARGET_NAME = 'Midscene Cache Target';
 const TARGET_ID = 'midscene-cache-target';
 const CACHE_PROMPT = `the button labeled "${TARGET_NAME}"`;
@@ -199,123 +198,6 @@ function activateFixture(processId: number): void {
   ]);
 }
 
-function dismissScreenCapturePrivacyPrompt(): string {
-  return execFileSync(
-    'osascript',
-    [
-      '-l',
-      'JavaScript',
-      '-e',
-      String.raw`
-function run() {
-  const systemEvents = Application('System Events');
-  const processes = systemEvents.applicationProcesses();
-  if (!processes.length) return 'Screen capture privacy prompt was not present';
-
-  function safe(fn) {
-    try {
-      return fn();
-    } catch (error) {
-      return undefined;
-    }
-  }
-
-  function text(value) {
-    return value === undefined || value === null ? '' : String(value);
-  }
-
-  function attr(element, name) {
-    return safe(function () {
-      return element.attributes.byName(name).value();
-    });
-  }
-
-  function findButton(element, depth, state) {
-    state.visited += 1;
-    const labels = [
-      safe(function () { return element.name(); }),
-      safe(function () { return element.description(); }),
-      attr(element, 'AXTitle'),
-      attr(element, 'AXDescription'),
-      attr(element, 'AXValue'),
-    ].map(text);
-    const role = text(safe(function () { return element.role(); }));
-    const promptButtonLabels = ['Allow', 'Allow For One Month'];
-    if (role === 'AXButton') {
-      state.buttons.push(
-        state.processName + ': ' + labels.filter(Boolean).join(' | '),
-      );
-    }
-    if (
-      role === 'AXButton' &&
-      labels.some(function (label) { return promptButtonLabels.includes(label); })
-    ) {
-      return element;
-    }
-    if (depth >= 8 || state.visited >= 500) return undefined;
-
-    const children = safe(function () { return element.uiElements(); }) || [];
-    for (let index = 0; index < children.length; index += 1) {
-      const match = findButton(children[index], depth + 1, state);
-      if (match) return match;
-    }
-    return undefined;
-  }
-
-  function isSystemUiProcess(process) {
-    const name = text(safe(function () { return process.name(); }));
-    return (
-      name.includes('UIAgent') ||
-      name === 'WindowManager' ||
-      name === 'SystemUIServer' ||
-      name === 'ControlCenter' ||
-      name === 'NotificationCenter'
-    );
-  }
-
-  const systemUiProcesses = processes.filter(function (process) {
-    return isSystemUiProcess(process);
-  });
-
-  const scanned = [];
-  const observedButtons = [];
-  for (
-    let processIndex = 0;
-    processIndex < systemUiProcesses.length;
-    processIndex += 1
-  ) {
-    const process = systemUiProcesses[processIndex];
-    const windows = safe(function () { return process.windows(); }) || [];
-    if (!windows.length) continue;
-
-    const processName = text(safe(function () { return process.name(); }));
-    scanned.push(processName);
-    const state = {
-      buttons: observedButtons,
-      processName: processName,
-      visited: 0,
-    };
-    for (let windowIndex = 0; windowIndex < windows.length; windowIndex += 1) {
-      const button = findButton(windows[windowIndex], 0, state);
-      if (button) {
-        button.click();
-        return 'Accepted screen capture privacy prompt in ' + processName;
-      }
-    }
-  }
-  return (
-    'Screen capture privacy prompt was not present in system UI processes: ' +
-    scanned.join(', ') +
-    '. Observed buttons: ' +
-    observedButtons.slice(0, 50).join('; ')
-  );
-}
-`,
-    ],
-    { encoding: 'utf8' },
-  ).trim();
-}
-
 async function activateFixtureAndSettle(processId: number): Promise<void> {
   activateFixture(processId);
   await new Promise((resolveDelay) => setTimeout(resolveDelay, 300));
@@ -406,28 +288,20 @@ describe.runIf(RUN_SMOKE)('macOS AX xpath cache smoke', () => {
       expect(target.bounds.height).toBeGreaterThan(0);
 
       await device.connect();
-      let screenCapturePromptResult = '';
-      let sentKeyboardFallback = false;
-      for (let attempt = 0; attempt < 3; attempt += 1) {
-        await device.screenshotBase64();
-        await new Promise((resolveDelay) => setTimeout(resolveDelay, 500));
-        screenCapturePromptResult = dismissScreenCapturePrivacyPrompt();
-        if (screenCapturePromptResult.startsWith('Accepted ')) break;
-        if (
-          USE_SCREEN_CAPTURE_PROMPT_KEYBOARD_FALLBACK &&
-          !sentKeyboardFallback
-        ) {
-          await device.inputPrimitives.keyboard.keyboardPress('Enter');
-          sentKeyboardFallback = true;
-          screenCapturePromptResult +=
-            '\nSent Enter through libnut to accept the default prompt action.';
-          await new Promise((resolveDelay) => setTimeout(resolveDelay, 500));
-        }
+      try {
+        const screenCapturePromptResult =
+          await prepareMacosScreenCapture(device);
+        writeFileSync(
+          join(DIAGNOSTICS_DIR, 'screen-capture-prompt.log'),
+          `${screenCapturePromptResult}\n`,
+        );
+      } catch (error) {
+        writeFileSync(
+          join(DIAGNOSTICS_DIR, 'screen-capture-prompt.log'),
+          `${String(error)}\n`,
+        );
+        throw error;
       }
-      writeFileSync(
-        join(DIAGNOSTICS_DIR, 'screen-capture-prompt.log'),
-        `${screenCapturePromptResult}\n`,
-      );
       expect(existsSync(clickedFile)).toBe(false);
       await activateFixtureAndSettle(fixture.processId);
       const logicalSize = await device.size();

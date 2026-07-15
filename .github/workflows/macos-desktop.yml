@@ -45,8 +45,6 @@ jobs:
       MIDSCENE_RUN_DIR: ${{ github.workspace }}/midscene_run
       MIDSCENE_MACOS_DIAGNOSTICS_DIR: ${{ github.workspace }}/midscene_run/macos-desktop-diagnostics
       MIDSCENE_TODO_DIAGNOSTICS_DIR: ${{ github.workspace }}/midscene_run/macos-desktop-diagnostics
-      MIDSCENE_MACOS_SCREEN_CAPTURE_PROMPT_KEYBOARD_FALLBACK: '1'
-
     steps:
       - name: Checkout source
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
