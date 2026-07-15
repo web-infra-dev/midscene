@@ -14,6 +14,9 @@ const pageUrl = 'https://todomvc.com/examples/react/dist/';
 const diagnosticsDir = process.env.MIDSCENE_ANDROID_DIAGNOSTICS_DIR;
 const CHROME_FIRST_RUN_DUMP_PATH =
   '/sdcard/midscene_chrome_first_run_window_dump.xml';
+const CHROME_UI_DUMP_MAX_ATTEMPTS = 3;
+const CHROME_FIRST_RUN_DISMISS_TIMEOUT_MS = 10_000;
+const CHROME_FIRST_RUN_POLL_INTERVAL_MS = 500;
 const expectedActiveTasks = [
   'Learn JS today',
   'Learn Rust tomorrow',
@@ -53,15 +56,52 @@ function screenshotBuffer(base64: string): Buffer {
   return Buffer.from(match[1], 'base64');
 }
 
-async function dumpUiautomatorXml(adb: ADB): Promise<string> {
-  await adb.shell(
-    `uiautomator dump --compressed ${CHROME_FIRST_RUN_DUMP_PATH}`,
+function isTransientAdbTransportError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return /device offline|device unauthorized|no devices\/emulators found/i.test(
+    message,
   );
-  const xml = await adb.shell(`cat ${CHROME_FIRST_RUN_DUMP_PATH}`);
-  if (typeof xml !== 'string' || xml.trim().length === 0) {
-    throw new Error('Android emulator returned an empty Chrome UI dump');
+}
+
+function isRetryableChromeUiDumpError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return (
+    isTransientAdbTransportError(error) ||
+    /No such file or directory|empty Chrome UI dump/i.test(message)
+  );
+}
+
+async function dumpUiautomatorXml(adb: ADB): Promise<string> {
+  for (let attempt = 1; attempt <= CHROME_UI_DUMP_MAX_ATTEMPTS; attempt += 1) {
+    try {
+      await adb.shell(`rm -f ${CHROME_FIRST_RUN_DUMP_PATH}`);
+      await adb.shell(
+        `uiautomator dump --compressed ${CHROME_FIRST_RUN_DUMP_PATH}`,
+      );
+      const xml = await adb.shell(`cat ${CHROME_FIRST_RUN_DUMP_PATH}`);
+      if (typeof xml !== 'string' || xml.trim().length === 0) {
+        throw new Error('Android emulator returned an empty Chrome UI dump');
+      }
+      return xml;
+    } catch (error) {
+      if (
+        attempt === CHROME_UI_DUMP_MAX_ATTEMPTS ||
+        !isRetryableChromeUiDumpError(error)
+      ) {
+        throw error;
+      }
+      console.log(
+        `Chrome UI dump was not ready; retrying attempt ${attempt + 1}`,
+      );
+      if (isTransientAdbTransportError(error)) {
+        await adb.waitForDevice(15);
+      } else {
+        await sleep(CHROME_FIRST_RUN_POLL_INTERVAL_MS);
+      }
+    }
   }
-  return xml;
+
+  throw new Error('Chrome UI dump retry loop completed without a result');
 }
 
 function centerForExactText(
@@ -95,7 +135,7 @@ async function dismissChromeFirstRunIfPresent(adb: ADB): Promise<{
   tapAttempts: number;
 }> {
   const beforeXml = await dumpUiautomatorXml(adb);
-  const useWithoutAccount = centerForExactText(
+  let useWithoutAccount = centerForExactText(
     beforeXml,
     'Use without an account',
   );
@@ -113,16 +153,23 @@ async function dismissChromeFirstRunIfPresent(adb: ADB): Promise<{
     await adb.shell(
       `input swipe ${useWithoutAccount.x} ${useWithoutAccount.y} ${useWithoutAccount.x} ${useWithoutAccount.y} 150`,
     );
-    await sleep(1000);
-    afterXml = await dumpUiautomatorXml(adb);
-    if (!centerForExactText(afterXml, 'Use without an account')) {
-      return {
-        beforeXml,
+    const deadline = Date.now() + CHROME_FIRST_RUN_DISMISS_TIMEOUT_MS;
+    while (Date.now() < deadline) {
+      await sleep(CHROME_FIRST_RUN_POLL_INTERVAL_MS);
+      afterXml = await dumpUiautomatorXml(adb);
+      useWithoutAccount = centerForExactText(
         afterXml,
-        detected: true,
-        dismissed: true,
-        tapAttempts,
-      };
+        'Use without an account',
+      );
+      if (!useWithoutAccount) {
+        return {
+          beforeXml,
+          afterXml,
+          detected: true,
+          dismissed: true,
+          tapAttempts,
+        };
+      }
     }
   }
 
