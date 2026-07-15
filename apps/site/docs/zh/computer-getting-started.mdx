@@ -31,33 +31,15 @@ import { PackageManagerTabs } from '@theme';
 
 **macOS**：需要辅助功能权限才能控制键盘和鼠标。首次运行脚本时，macOS 会提示你授予访问权限。前往 **系统设置 > 隐私与安全性 > 辅助功能**，为运行脚本的应用程序（如 Terminal、iTerm2、VS Code、WebStorm 或其他 IDE）启用权限。更多详情请参阅 [nut.js macOS 设置](https://github.com/nut-tree/nut.js#macos)。
 
-**Windows**：操作普通程序无需额外配置。元素定位缓存会读取当前本机应用的 UI Automation（UIA）tree。现有缓存坐标验证覆盖 100% 显示缩放；混合 DPI 和混合缩放环境尚未覆盖。RDP 自动化不会暴露远端 UIA tree，因此无法使用原生 XPath 缓存回放。
+**Windows**：操作普通程序无需额外配置。但 Windows 会按权限级别隔离输入（UIPI）：未提权的进程**无法**向以**管理员身份运行（已提权）**的窗口发送鼠标或键盘输入，输入会被静默丢弃——光标仍会移动到正确位置，但点击和按键不生效。优先尝试让目标程序不要以管理员权限运行；如果目标程序必须保持提权状态，再**同样以管理员身份运行启动 Midscene 的终端或 Node.js**，让两个进程处于相同的权限级别。详见 [Windows：点击对某些程序不生效](#windows点击对某些程序不生效)。
 
-Windows 会按权限级别隔离输入（UIPI）：未提权的进程**无法**向以**管理员身份运行（已提权）**的窗口发送鼠标或键盘输入，输入会被静默丢弃——光标仍会移动到正确位置，但点击和按键不生效。优先尝试让目标程序不要以管理员权限运行；如果目标程序必须保持提权状态，再**同样以管理员身份运行启动 Midscene 的终端或 Node.js**，让两个进程处于相同的权限级别。详见 [Windows：点击对某些程序不生效](#windows点击对某些程序不生效)。
+**Linux**：需要安装 [ImageMagick](https://imagemagick.org/script/download.php) 用于截图功能。
 
-**Linux**：需要安装 [ImageMagick](https://imagemagick.org/script/download.php) 用于截图功能。原生元素定位缓存还需要 Python GI、AT-SPI 2.0 typelib 和正在运行的 accessibility bus：
-
-```bash
-# Debian / Ubuntu
-sudo apt-get install -y at-spi2-core gir1.2-atspi-2.0 python3-gi
-
-# Fedora
-sudo dnf install -y at-spi2-core python3-gobject
-```
-
-可以用以下命令确认 Python 能加载 AT-SPI：
-
-```bash
-python3 -c "import gi; gi.require_version('Atspi', '2.0'); from gi.repository import Atspi; Atspi.init(); print(Atspi.get_desktop_count())"
-```
-
-**无头 Linux（CI 环境）**：要在无头 Linux 服务器（如 GitHub Actions）上运行桌面自动化，需安装 Xvfb 及其依赖，然后启用 headless 模式。原生 XPath 缓存还需要 session D-Bus、AT-SPI accessibility bus、窗口管理器和一个已聚焦的目标应用；Xvfb 本身只提供显示环境。
+**无头 Linux（CI 环境）**：要在无头 Linux 服务器（如 GitHub Actions）上运行桌面自动化，需安装 Xvfb 及其依赖，然后启用 headless 模式：
 
 ```bash
 # 安装依赖
-sudo apt-get install -y \
-  at-spi2-core dbus-x11 gir1.2-atspi-2.0 gsettings-desktop-schemas \
-  imagemagick openbox python3-gi x11-xserver-utils xvfb
+sudo apt-get install -y xvfb x11-xserver-utils imagemagick
 ```
 
 ```typescript
@@ -68,7 +50,7 @@ const agent = await agentForComputer({ headless: true });
 // MIDSCENE_COMPUTER_HEADLESS_LINUX=true npx tsx example.ts
 ```
 
-Xvfb 会创建一个虚拟显示器，使鼠标、键盘和截图操作在没有物理显示器的情况下正常工作。生成或回放元素定位缓存前，需要在 `dbus-run-session` 中启动测试、启用 toolkit accessibility、设置 `NO_AT_BRIDGE=0`，并聚焦目标应用。完整 CI 示例可参考仓库中的 `linux-accessibility-cache` workflow；headless 选项详见 [API 参考](./computer-api-reference)。
+Xvfb 会创建一个虚拟显示器，使鼠标、键盘和截图操作在没有物理显示器的情况下正常工作。详见 [API 参考](./computer-api-reference)。
 
 ## 试用 Playground（零代码）
 
