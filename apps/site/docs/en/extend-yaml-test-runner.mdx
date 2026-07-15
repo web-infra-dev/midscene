@@ -1,15 +1,8 @@
-# Build a custom YAML test runner with @midscene/test
+# Extend and maintain a YAML test runner
 
-`@midscene/test` lets platform developers register domain-specific Nodes, manage runtime resources, and define document lifecycles. Test authors can then maintain declarative YAML without writing TypeScript.
+`@midscene/test` lets framework maintainers register domain-specific Nodes, manage runtime resources, and define document lifecycles. Use these capabilities to connect browsers, Agents, external tools, and business APIs.
 
-## When to use it
-
-Use `@midscene/test` when developers own the test runtime and a larger team owns the test cases. Common uses include:
-
-- Exposing domain Nodes such as `order.create` or `refund.check`.
-- Creating and releasing browsers, Midscene Agents, database connections, or test accounts in one place.
-- Organizing smoke and regression tests across multiple YAML files.
-- Letting non-developers write and review test cases in YAML.
+This guide covers building and maintaining the runner. For the overall design, start with the [YAML test runner overview](./yaml-test-runner-overview).
 
 ## Quick start
 
@@ -123,23 +116,6 @@ The CLI automatically loads `midscene.config.ts`, discovers matching YAML files,
 .midscene/test-results/<timestamp>-<process-id>/
 ```
 
-## Core concepts
-
-```text
-Test Project
-└── Workflow Document
-    ├── Lifecycle Step
-    └── Case
-        └── Step
-            └── Node
-```
-
-- **Node**: an executable capability registered by a developer.
-- **Step**: one YAML invocation of a Node.
-- **Case**: a named test made of multiple Steps.
-- **Workflow Document**: one YAML file containing lifecycle Steps and Cases.
-- **Test Project**: the project configuration and its Workflow Documents.
-
 ## Define Node inputs with Zod
 
 `inputSchema` is optional. When a Node declares it, the runner validates the YAML input with Zod before calling `execute()`. TypeScript infers `ctx.input` from the Schema, so you do not need to maintain a separate Input interface.
@@ -179,32 +155,6 @@ defineNode<typeof createOrderInputSchema, { id: string }, ProjectContext>({
 ```
 
 Without `inputSchema`, the runner preserves the existing behavior and passes the YAML input directly to the Handler. The Handler must validate it, and the generated reference cannot describe its fields.
-
-## Document lifecycle
-
-A Workflow Document can define lifecycle Steps around its Cases.
-
-```yaml
-beforeAll:
-  - data.prepare: Prepare document data
-
-beforeEach:
-  - browser.reset: Reset the page
-
-cases:
-  - name: Create an order
-    steps:
-      - order.create:
-          sku: midscene-mug
-
-afterEach:
-  - report.save: Save case details
-
-afterAll:
-  - data.cleanup: Delete document data
-```
-
-`setupDocument()` runs before the YAML lifecycle for each document. Register cleanup functions with `onTeardown()`; they run in reverse registration order after the document finishes.
 
 ## Configure a Test Project
 
@@ -257,40 +207,6 @@ Nodes without `description` or `inputSchema` are still listed. The document mark
 
 `describe-nodes` only loads `midscene.config.ts`. It does not read Workflow YAML, call `setupDocument()`, execute Node Handlers, or create a result directory. Add the generated `midscene-nodes.md` to an AI Agent's context so it can write YAML Cases using the capabilities that the project actually exposes.
 
-## Run a project
-
-Run the current directory:
-
-```bash
-pnpm exec midscene-test
-```
-
-Run a specific project directory:
-
-```bash
-pnpm exec midscene-test ./e2e
-```
-
-Select a configuration path or result directory:
-
-```bash
-pnpm exec midscene-test \
-  --config ./config/midscene.config.ts \
-  --result-dir ./test-results
-```
-
-Each run writes `project.json` plus Case, Workflow Document, and collection-error details:
-
-```text
-test-results/
-├── project.json
-├── runs/
-├── documents/
-└── collection-errors/
-```
-
-The CLI exits with code `1` when a Case fails or does not run, a Workflow Document fails, or collection reports an error.
-
 ## Programmatic API
 
 Use these APIs when embedding the runner in another tool:
@@ -303,6 +219,4 @@ Use these APIs when embedding the runner in another tool:
 
 The project-level APIs are exported from `@midscene/test/config`. Configuration loading is asynchronous; there is no synchronous loader.
 
-## Current limitations
-
-The runner does not currently support concurrent Cases or Workflow Documents, automatic retries, DAGs, branches, loops, Step parallelism, or remote YAML sources.
+After configuring the runner, continue with [Write and run YAML test cases](./yaml-test-cases) for YAML syntax, lifecycle behavior, and result handling.

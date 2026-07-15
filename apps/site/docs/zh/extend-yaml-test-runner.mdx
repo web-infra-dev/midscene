@@ -1,0 +1,576 @@
+# 扩展和维护 YAML 测试运行器
+
+`@midscene/test` 支持注册业务 Node（节点）、管理运行资源和定义执行生命周期。框架维护者可以使用这些能力，接入浏览器、Agent、外部工具和业务接口。
+
+本文介绍如何构建和维护测试运行器。如果你想先了解整体设计，请阅读 [YAML 测试运行器概览](./yaml-test-runner-overview)。
+
+## 实战：扩展订单退款能力
+
+订单退款测试需要在每个 Case 开始前创建测试订单，并在 Case 结束后清理数据。框架维护者可以将这些操作封装为 `order.prepare`、`browser.openRefundPage` 和 `order.cleanup`。
+
+框架维护者可以在 `midscene.config.ts` 中注册 `order.prepare`、`browser.openRefundPage` 和 `order.cleanup`。以下代码展示了这三个 Node 的核心实现。`setupDocument()` 创建 `page`、`orderService` 和 Agent，并通过 `context` 将它们传给 Node。
+
+```ts filename=midscene.config.ts
+import { defineNode, z } from '@midscene/test';
+import type { PlaywrightAgent } from '@midscene/web/playwright';
+import type { Page } from 'playwright';
+
+interface ProjectContext {
+  agent: PlaywrightAgent;
+  appBaseUrl: string;
+  page: Page;
+  orderId?: string;
+  orderService: {
+    create(input: { status: 'paid' }): Promise<{ id: string }>;
+    remove(orderId: string): Promise<void>;
+  };
+}
+
+const emptyInputSchema = z.strictObject({});
+const prepareOrderInputSchema = z.strictObject({
+  status: z.literal('paid').describe('待创建订单的状态。'),
+});
+
+const getOrderId = (context: ProjectContext) => {
+  if (!context.orderId) {
+    throw new Error('测试订单尚未创建。');
+  }
+  return context.orderId;
+};
+
+const prepareOrder = defineNode<
+  typeof prepareOrderInputSchema,
+  { orderId: string },
+  ProjectContext
+>({
+  name: 'order.prepare',
+  description: '调用订单服务创建测试订单。',
+  inputSchema: prepareOrderInputSchema,
+  async execute({ input, context }) {
+    const order = await context.orderService.create(input);
+    context.orderId = order.id;
+    return {
+      summary: `已创建测试订单 ${order.id}`,
+      data: { orderId: order.id },
+    };
+  },
+});
+
+const openRefundPage = defineNode<
+  typeof emptyInputSchema,
+  unknown,
+  ProjectContext
+>({
+  name: 'browser.openRefundPage',
+  description: '打开当前测试订单的退款页面。',
+  inputSchema: emptyInputSchema,
+  async execute({ context }) {
+    const orderId = getOrderId(context);
+    await context.page.goto(`${context.appBaseUrl}/orders/${orderId}/refund`);
+  },
+});
+
+const cleanupOrder = defineNode<
+  typeof emptyInputSchema,
+  unknown,
+  ProjectContext
+>({
+  name: 'order.cleanup',
+  description: '删除当前测试订单。',
+  inputSchema: emptyInputSchema,
+  async execute({ context }) {
+    const orderId = getOrderId(context);
+    await context.orderService.remove(orderId);
+    delete context.orderId;
+  },
+});
+
+export const refundNodes = [prepareOrder, openRefundPage, cleanupOrder];
+```
+
+项目配置将 `refundNodes` 和 Midscene Node 一起加入 `nodes` 数组。用例作者随后可以在 YAML 中组合这些 Node。具体写法请参考[编写和运行 YAML 测试用例](./yaml-test-cases)。
+
+## 快速开始
+
+以下示例项目会打开 Midscene 官网，并根据 YAML 配置切换 UA 语言。进入文档页后，测试用例会分别检查英文页面和中文页面。
+
+### 安装依赖
+
+创建一个项目并安装依赖。
+
+```bash
+pnpm add -D @midscene/test @midscene/web playwright
+```
+
+使用 Midscene Agent 前，请先参考 [模型配置](./model-config) 设置模型环境变量。
+
+### 创建项目文件
+
+创建以下目录结构。
+
+```text
+team-test-runner/
+├── cases/
+│   └── midscene.yaml
+└── midscene.config.ts
+```
+
+在项目根目录创建 `midscene.config.ts`。这个配置文件负责注册 Node，并为每个 YAML 文件创建运行资源。
+
+```ts filename=midscene.config.ts
+import { defineNode, z } from '@midscene/test';
+import { defineTestProject } from '@midscene/test/config';
+import { createMidsceneNodes } from '@midscene/test/midscene';
+import { PlaywrightAgent } from '@midscene/web/playwright';
+import { chromium, type Browser, type Page } from 'playwright';
+
+const VIEWPORT = { width: 1280, height: 768 };
+const LANGUAGE_LOCALES = {
+  en: 'en-US',
+  zh: 'zh-CN',
+};
+
+interface ProjectContext {
+  browser: Browser;
+  page: Page;
+  agent?: PlaywrightAgent;
+}
+
+const setLanguageInputSchema = z.strictObject({
+  language: z
+    .enum(['en', 'zh'])
+    .describe('用于创建 Playwright Context 的 UA 语言。'),
+});
+
+const openPage = async (page: Page, url: string) => {
+  const response = await page.goto(url, {
+    waitUntil: 'domcontentloaded',
+    timeout: 30_000,
+  });
+
+  if (!response?.ok()) {
+    throw new Error(
+      `Page returned an unsuccessful HTTP status: ${response?.status() ?? 'no response'}`,
+    );
+  }
+};
+
+const setUserAgentLanguage = defineNode<
+  typeof setLanguageInputSchema,
+  { language: string; locale: string; url: string },
+  ProjectContext
+>({
+  name: 'browser.setLanguage',
+  title: '设置 UA 语言',
+  description: '切换浏览器 UA 语言，并重新打开当前页面。',
+  inputSchema: setLanguageInputSchema,
+  async execute({ input, context }) {
+    const language = input.language;
+    const locale = LANGUAGE_LOCALES[language];
+
+    const previousPage = context.page;
+    const previousBrowserContext = previousPage.context();
+    const browserContext = await context.browser.newContext({
+      locale,
+      viewport: VIEWPORT,
+    });
+    const page = await browserContext.newPage();
+
+    try {
+      await openPage(page, previousPage.url());
+      await page.waitForFunction(
+        (expectedLanguage) =>
+          document.documentElement.lang === expectedLanguage,
+        language,
+        { timeout: 10_000 },
+      );
+    } catch (error) {
+      await browserContext.close();
+      throw error;
+    }
+
+    context.page = page;
+    context.agent = undefined;
+    await previousBrowserContext.close();
+
+    return {
+      summary: `Set UA language to ${language}`,
+      data: { language, locale, url: page.url() },
+    };
+  },
+});
+
+const midsceneNodes = createMidsceneNodes<ProjectContext>({
+  getAgent: ({ context }) => {
+    context.agent ??= new PlaywrightAgent(context.page);
+    return context.agent;
+  },
+});
+
+export default defineTestProject<ProjectContext>({
+  files: {
+    include: ['cases/**/*.{yaml,yml}'],
+  },
+  nodes: [setUserAgentLanguage, ...midsceneNodes],
+
+  async setupDocument({ onTeardown }) {
+    const browser = await chromium.launch({ headless: true });
+    onTeardown(() => browser.close());
+
+    const browserContext = await browser.newContext({ viewport: VIEWPORT });
+    const page = await browserContext.newPage();
+    await openPage(page, 'https://midscenejs.com');
+
+    return {
+      browser,
+      page,
+    };
+  },
+});
+```
+
+`browser.setLanguage` 接受 `language: en` 或 `language: zh`。这个 Node 会创建使用相应语言的新 Playwright Context，并重新打开当前页面。后续 Agent 将使用这个新页面。
+
+`createMidsceneNodes()` 注册 `aiAct`、`aiAssert` 和 `recordToReport`。运行器会将 `setupDocument()` 返回的 `context` 传递给当前 YAML 文件中的所有 Node。
+
+在 `cases/midscene.yaml` 中编写测试用例。
+
+```yaml filename=cases/midscene.yaml
+cases:
+  - name: Midscene 文档语言跟随 UA 切换
+    steps:
+      - browser.setLanguage:
+          language: en
+      - aiAct: 点击页面中的 Documentation 按钮，进入 Midscene 文档页
+      - aiAssert:
+          prompt: 当前页面是 Midscene 的英文文档页，页面主体和导航使用英文
+          message: Midscene 文档页没有显示为英文
+      - browser.setLanguage:
+          language: zh
+      - aiAssert:
+          prompt: 当前页面是 Midscene 的中文文档页，页面主体和导航使用中文
+          message: Midscene 文档页没有显示为中文
+```
+
+### 运行测试
+
+在项目根目录运行：
+
+```bash
+pnpm exec midscene-test
+```
+
+CLI 会自动加载 `midscene.config.ts`，查找 `cases` 目录中的 YAML 文件，再按顺序执行其中的 Case。
+
+运行结果默认保存在以下目录：
+
+```text
+.midscene/test-results/<timestamp>-<process-id>/
+```
+
+## 注册业务 Node
+
+使用 `defineNode()` 可以将接口、数据库、消息系统等业务能力封装为 Node，并在 YAML 中调用这些 Node。
+
+以下 Node 通过测试接口创建订单。
+
+```ts filename=midscene.config.ts
+import { defineNode, z } from '@midscene/test';
+
+const orderInputSchema = z.strictObject({
+  sku: z.string().min(1).describe('要下单的商品 SKU。'),
+  quantity: z.number().int().positive().describe('购买数量。'),
+});
+
+interface ProjectContext {
+  apiBaseUrl: string;
+}
+
+const createOrder = defineNode<
+  typeof orderInputSchema,
+  { id: string },
+  ProjectContext
+>({
+  name: 'order.create',
+  title: '创建订单',
+  description: '通过测试接口创建一个商品订单。',
+  inputSchema: orderInputSchema,
+
+  async execute({ input, context, signal }) {
+    const response = await fetch(`${context.apiBaseUrl}/test/orders`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        sku: input.sku,
+        quantity: input.quantity,
+      }),
+      signal,
+    });
+
+    if (!response.ok) {
+      throw new Error(`创建订单失败：HTTP ${response.status}`);
+    }
+
+    const order = (await response.json()) as { id: string };
+    return {
+      summary: `已创建订单 ${order.id}`,
+      data: order,
+    };
+  },
+});
+```
+
+将 Node 加入项目配置的 `nodes` 数组。
+
+```ts filename=midscene.config.ts
+export default defineTestProject<ProjectContext>({
+  nodes: [createOrder, ...midsceneNodes],
+
+  async setupDocument({ onTeardown }) {
+    const browser = await chromium.launch();
+    onTeardown(() => browser.close());
+
+    const page = await browser.newPage();
+    return {
+      apiBaseUrl: 'https://test-api.example.com',
+      agent: new PlaywrightAgent(page),
+    };
+  },
+});
+```
+
+注册完成后，业务团队可以直接在 YAML 中使用 `order.create`。
+
+```yaml
+cases:
+  - name: 创建一个商品订单
+    steps:
+      - order.create:
+          sku: midscene-mug
+          quantity: 1
+```
+
+### 使用 Zod 声明输入
+
+`inputSchema` 是可选字段。声明该字段后，运行器会在调用 `execute()` 前使用 Zod 校验输入。运行器会将解析结果传给 `ctx.input`。TypeScript 会根据 Schema 推导输入类型，无需再维护独立的输入接口。
+
+建议使用 `z.strictObject()`。如果 YAML 包含未知字段，运行器会直接抛出 `NodeInputValidationError`。字段的 `.describe()` 内容也会写入 Node Reference，帮助测试用例作者和 AI Agent 理解参数含义。
+
+```ts
+const refundInputSchema = z.strictObject({
+  orderId: z.string().min(1).describe('需要退款的订单 ID。'),
+  reason: z.string().optional().describe('退款原因。'),
+});
+
+const refundOrder = defineNode({
+  name: 'order.refund',
+  description: '为已有订单发起退款。',
+  inputSchema: refundInputSchema,
+  async execute({ input }) {
+    // input 自动推导为 { orderId: string; reason?: string }。
+    await refund(input.orderId, input.reason);
+  },
+});
+```
+
+如果未声明 `inputSchema`，运行器会保留原有处理方式：将 YAML 输入直接传给 Handler，再由 Handler 校验输入。这种方式适合渐进迁移，但无法生成完整的输入说明。
+
+### Node 执行上下文
+
+`execute()` 接收的常用字段如下：
+
+- `input`：YAML 传入的业务参数，不包含 `$`。
+- `$`：规范化后的 `timeout` 和 `continue-on-error`。
+- `signal`：Step 超时或取消时触发的 `AbortSignal`。
+- `context`：`setupDocument()` 返回的文件级共享资源。
+- `scope`：当前 Node 的执行作用域，值为 `case` 或 `document`。
+- `case` 或 `document`：当前执行位置、身份和已完成 Step 的信息。
+
+同一个 Node 可以用于 Case 和 Document 生命周期，无需重复注册。Node 可以根据 `scope` 读取对应的执行信息。
+
+```ts
+const saveReport = defineNode({
+  name: 'report.save',
+  async execute(ctx) {
+    if (ctx.scope === 'case') {
+      console.log(`保存 Case 报告：${ctx.case.name}`);
+    } else {
+      console.log(`保存 Document 报告：${ctx.document.sourcePath}`);
+    }
+  },
+});
+```
+
+Node 执行失败时必须抛出错误。运行器会记录错误，并根据 `$` 的配置决定是否继续执行。
+
+## 集成 Midscene Agent
+
+`@midscene/test/midscene` 提供以下三个 Node：
+
+| Node | 用途 |
+|---|---|
+| `aiAct` | 使用自然语言执行界面操作 |
+| `aiAssert` | 使用自然语言检查界面状态 |
+| `recordToReport` | 向 Midscene 报告中写入补充信息 |
+
+使用 `createMidsceneNodes()` 创建这些 Node。`getAgent()` 可以从文档上下文（Document Context）中获取当前 Agent。
+
+```ts
+import { createMidsceneNodes } from '@midscene/test/midscene';
+
+const midsceneNodes = createMidsceneNodes<ProjectContext>({
+  getAgent: ({ context }) => context.agent,
+});
+```
+
+YAML 测试用例无需关注 Agent 使用 Playwright、Puppeteer 还是其他界面实现。项目配置负责创建 Agent，并将其存入 `context`。
+
+```yaml
+cases:
+  - name: 搜索 Midscene
+    steps:
+      - aiAct: 在搜索框中输入“Midscene”，然后提交搜索
+      - aiAssert:
+          prompt: 搜索结果中包含 Midscene 的相关内容
+          message: 没有找到 Midscene 搜索结果
+      - recordToReport:
+          title: 搜索流程完成
+          content: 已完成搜索结果检查
+```
+
+## 生成 Node Reference
+
+使用 `describe-nodes` 可以为项目注册的 Node 生成一份 Markdown 参考文档。该文档包含 Step 通用结构、Node 名称、描述和输入 Schema，适合作为团队文档或 AI Agent 的上下文。
+
+```bash
+pnpm exec midscene-test describe-nodes > midscene-nodes.md
+```
+
+使用以下命令，可以指定 Test Project 目录或配置文件：
+
+```bash
+pnpm exec midscene-test describe-nodes ./e2e
+pnpm exec midscene-test describe-nodes --config ./config/midscene.config.ts
+```
+
+生成的文档包含当前 Test Project 实际注册的全部 Node，其中包括 `createMidsceneNodes()` 返回的 `aiAct`、`aiAssert` 和 `recordToReport`。Node 按名称排序。Zod `inputSchema` 会自动转换为 JSON Schema。
+
+````markdown
+## `order.create`
+
+通过测试接口创建一个商品订单。
+
+### Input Schema
+
+```json
+{
+  "properties": {
+    "quantity": {
+      "description": "购买数量。",
+      "type": "number"
+    },
+    "sku": {
+      "description": "要下单的商品 SKU。",
+      "type": "string"
+    }
+  },
+  "required": ["sku", "quantity"],
+  "type": "object"
+}
+```
+````
+
+即使 Node 没有 `description` 或 `inputSchema`，它仍会出现在文档中。CLI 会明确标记缺失字段，并将警告写入 `stderr`，而不会猜测 Node 的行为或输入。
+
+`describe-nodes` 只加载 `midscene.config.ts`。它不会读取 Workflow YAML、调用 `setupDocument()`、执行 Node Handler 或创建测试结果目录。将生成的 `midscene-nodes.md` 提供给 AI Agent 后，Agent 可以根据项目的实际能力编写 YAML Case。
+
+## 配置 Test Project
+
+`defineTestProject()` 支持以下项目级配置：
+
+```ts filename=midscene.config.ts
+export default defineTestProject<ProjectContext>({
+  root: './e2e',
+  files: {
+    include: ['cases/**/*.{yaml,yml}'],
+    exclude: ['cases/**/*.draft.yaml'],
+  },
+  nodes: [createOrder, ...midsceneNodes],
+  async setupDocument({ onTeardown }) {
+    // 创建当前 YAML 文件共享的资源。
+  },
+});
+```
+
+### 选择项目根目录
+
+`root` 用于声明 Test Project 的根目录。相对路径以配置文件所在目录为基准。
+
+运行器按照以下优先级确定项目根目录：
+
+1. CLI 传入的 `project-directory`。
+2. 项目配置中的 `root`。
+3. 当前工作目录。
+
+项目根目录用于查找 YAML 文件、计算运行结果中的 `sourcePath`，以及保存默认运行结果。
+
+### 选择 YAML 文件
+
+`files.include` 和 `files.exclude` 使用相对于项目根目录的 glob 模式。`exclude` 的优先级高于 `include`。
+
+```ts
+files: {
+  include: [
+    'cases/smoke.yaml',
+    'cases/regression/**/*.yml',
+  ],
+  exclude: ['cases/**/*.draft.yaml'],
+}
+```
+
+如果未配置 `files`，运行器会递归查找项目根目录中的所有 `.yaml` 和 `.yml` 文件。运行器始终忽略 `.git`、`.midscene` 和 `node_modules` 目录。
+
+运行器会按照项目相对路径对匹配结果排序，不会使用 glob 的声明顺序控制执行顺序。
+
+### 管理文件级资源
+
+开始执行每个 YAML 文件前，运行器会调用一次 `setupDocument()`。运行器将返回值作为 `context`，传入当前文件的所有 Node。
+
+使用 `onTeardown()` 注册清理函数。多个清理函数按照注册顺序的逆序执行。
+
+```ts
+async setupDocument({ sourcePath, env, onTeardown }) {
+  const database = await connectTestDatabase(env.TEST_DATABASE_URL);
+  onTeardown(() => database.close());
+
+  const browser = await chromium.launch();
+  onTeardown(() => browser.close());
+
+  return {
+    sourcePath,
+    database,
+    browser,
+  };
+}
+```
+
+项目配置仅支持 TypeScript。文件名必须为 `midscene.config.ts`，并使用默认导出。CLI 会拒绝 `.js`、`.cjs`、`.mts`、`.cts` 和 `.tsx` 文件。运行时不会解析 `tsconfig.json` 的 `paths`。请使用带 `.ts` 扩展名的相对导入或包说明符（package specifier）。
+
+## 编程式 API
+
+大多数团队只需使用项目配置、YAML 和 CLI。如果需要将运行器嵌入其他工具，可以使用以下 API：
+
+- `CaseRunner` 或 `createCaseRunner()`：直接执行对象形式的单个 Case，不包含 Document 生命周期。
+- `normalizeSteps()`：规范化 Step 数组。
+- `collectWorkflowDocument()`：解析并静态校验一个 YAML 文件。
+- `runWorkflowDocument()`：执行一个 Document 的生命周期和全部 Case。
+- `loadTestProject()`：异步加载 TypeScript 项目配置。
+- `runTestProject()`：发现、运行并汇总整个项目。该 API 从 `@midscene/test/config` 导出。
+
+这些 API 对应不同的执行层级。如果只需执行一组 Step，请使用 `CaseRunner`。如果需要管理共享资源、生命周期和多个 YAML 文件，请使用 Test Project。
+
+项目配置仅提供异步加载 API，不提供同步加载器。
+
+配置完成后，请继续阅读[编写和运行 YAML 测试用例](./yaml-test-cases)，了解 YAML 语法、生命周期和运行结果。
