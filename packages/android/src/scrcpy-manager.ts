@@ -25,6 +25,8 @@ const FRESH_FRAME_TIMEOUT_MS = 300; // Short timeout to wait for a fresh frame; 
 const KEYFRAME_POLL_INTERVAL_MS = 200;
 const MAX_SCAN_BYTES = 1_000;
 const CONNECTION_WAIT_MS = 1_000;
+const MAX_SERVER_OUTPUT_LINES = 100;
+const SERVER_OUTPUT_DRAIN_TIMEOUT_MS = 500;
 
 // Busy-loop detection thresholds
 const BUSY_LOOP_WINDOW_MS = 1_000; // Sliding window for measuring frame rate
@@ -181,6 +183,9 @@ export class ScrcpyScreenshotManager {
       );
     }
 
+    const serverOutput: string[] = [];
+    let serverOutputTask: Promise<void> | null = null;
+
     try {
       this.isConnecting = true;
       debugScrcpy('Starting scrcpy connection...');
@@ -213,6 +218,10 @@ export class ScrcpyScreenshotManager {
         DefaultServerPath,
         scrcpyOptions,
       );
+      serverOutputTask = this.collectServerOutput(
+        this.scrcpyClient.output,
+        serverOutput,
+      );
 
       const videoStreamPromise = this.scrcpyClient.videoStream;
       if (!videoStreamPromise) {
@@ -233,10 +242,67 @@ export class ScrcpyScreenshotManager {
     } catch (error) {
       debugScrcpy(`Failed to connect scrcpy: ${error}`);
       await this.disconnect();
-      throw error;
+      if (serverOutputTask) {
+        await Promise.race([
+          serverOutputTask,
+          new Promise<void>((resolve) =>
+            setTimeout(resolve, SERVER_OUTPUT_DRAIN_TIMEOUT_MS),
+          ),
+        ]);
+      }
+      throw this.createConnectionError(error, serverOutput);
     } finally {
       this.isConnecting = false;
     }
+  }
+
+  private async collectServerOutput(
+    output: ReadableStream<string>,
+    lines: string[],
+  ): Promise<void> {
+    const reader = output.getReader();
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        lines.push(value);
+        if (lines.length > MAX_SERVER_OUTPUT_LINES) {
+          lines.splice(0, lines.length - MAX_SERVER_OUTPUT_LINES);
+        }
+      }
+    } catch (error) {
+      debugScrcpy(`Failed to read scrcpy server output: ${error}`);
+    } finally {
+      reader.releaseLock();
+    }
+  }
+
+  private createConnectionError(error: unknown, serverOutput: string[]): Error {
+    const errorOutput = this.getErrorOutput(error);
+    const output = [...new Set([...errorOutput, ...serverOutput])].filter(
+      (line) => line.trim().length > 0,
+    );
+    const message = error instanceof Error ? error.message : String(error);
+    const outputDetails =
+      output.length > 0 ? `\nScrcpy server output:\n${output.join('\n')}` : '';
+
+    return new Error(`Failed to connect scrcpy: ${message}${outputDetails}`, {
+      cause: error,
+    });
+  }
+
+  private getErrorOutput(error: unknown): string[] {
+    if (typeof error !== 'object' || error === null || !('output' in error)) {
+      return [];
+    }
+
+    const output = (error as { output?: unknown }).output;
+    if (!Array.isArray(output)) {
+      return [];
+    }
+
+    return output.filter((line): line is string => typeof line === 'string');
   }
 
   /**

@@ -48,6 +48,7 @@ import {
 import {
   type DevicePhysicalInfo,
   ScrcpyDeviceAdapter,
+  type ScrcpyStatus,
 } from './scrcpy-device-adapter';
 import type { RawKeyframe } from './scrcpy-manager';
 
@@ -358,8 +359,8 @@ export class AndroidDevice implements AbstractInterface {
   public async connect(): Promise<ADB> {
     const adb = await this.getAdb();
 
-    // Initialize scrcpy connection (if enabled)
-    // If it fails, scrcpy is permanently disabled and ADB fallback is used
+    // Initialize scrcpy connection (if enabled). A transient failure falls back
+    // to ADB while preserving the ability to retry on the same device instance.
     const adapter = this.getScrcpyAdapter();
     if (adapter.isEnabled()) {
       try {
@@ -371,7 +372,7 @@ export class AndroidDevice implements AbstractInterface {
       } catch (error) {
         const msg = error instanceof Error ? error.message : String(error);
         warnDevice(
-          `[midscene] Scrcpy unavailable, using ADB fallback (device: ${this.deviceId}): ${msg}`,
+          `[midscene] Scrcpy unavailable, using ADB fallback (device: ${this.deviceId}): ${msg}. Call retryScrcpy() to retry immediately.`,
         );
       }
     }
@@ -490,6 +491,23 @@ ${Object.keys(size)
         };
       },
     });
+  }
+
+  /** Current scrcpy configuration, connection, and recovery state. */
+  public getScrcpyStatus(): ScrcpyStatus {
+    return this.getScrcpyAdapter().getStatus();
+  }
+
+  /** Retry scrcpy initialization without recreating the AndroidDevice. */
+  public async retryScrcpy(): Promise<ScrcpyStatus> {
+    const adapter = this.getScrcpyAdapter();
+    if (!adapter.getStatus().enabled) {
+      throw new Error('scrcpy is disabled in AndroidDevice options');
+    }
+
+    const deviceInfo = await this.getDevicePhysicalInfo();
+    await adapter.initialize(deviceInfo);
+    return adapter.getStatus();
   }
 
   /**

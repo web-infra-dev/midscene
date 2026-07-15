@@ -82,8 +82,21 @@ const device = new AndroidDevice(deviceId, {
 | `idleTimeoutMs` | `number` | `30000` | Auto-disconnect after idle (ms). Set to `0` to disable |
 
 :::tip
-Scrcpy mode automatically falls back to ADB screenshots if the connection fails. No extra error handling is needed.
+Scrcpy mode automatically falls back to ADB screenshots if the connection fails. Transient failures enter a five-second cooldown and the next screenshot retries Scrcpy after the cooldown, without recreating the `AndroidDevice`.
 :::
+
+Use `getScrcpyStatus()` when the caller needs to observe degraded capture, and `retryScrcpy()` to retry immediately instead of waiting for the cooldown:
+
+```ts
+const status = device.getScrcpyStatus();
+
+if (status.enabled && !status.connected && status.lastError) {
+  console.warn(status.lastError);
+  await device.retryScrcpy();
+}
+```
+
+`getScrcpyStatus()` returns `enabled`, `connected`, `lastError`, and `retryAfter`. Initialization errors include available output from the device-side Scrcpy server to make codec and media-stack failures diagnosable.
 
 ### Usage notes
 
