@@ -36,13 +36,13 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@midscene/shared": "workspace:*",
-    "@rstest/playwright": "^0.11.2"
+    "@midscene/shared": "workspace:*"
   },
   "peerDependencies": {
     "@midscene/core": "workspace:*",
     "@midscene/web": "workspace:*",
     "@rstest/core": "^0.11.2",
+    "@rstest/playwright": "^0.11.2",
     "playwright": "^1.49.1"
   },
   "devDependencies": {
@@ -50,6 +50,7 @@
     "@midscene/web": "workspace:*",
     "@rslib/core": "^0.18.3",
     "@rstest/core": "0.11.2",
+    "@rstest/playwright": "^0.11.2",
     "@types/node": "^18.0.0",
     "deepmerge": "^4.3.1",
     "dotenv": "^16.4.5",

@@ -1325,9 +1325,6 @@ importers:
       '@midscene/shared':
         specifier: workspace:*
         version: link:../shared
-      '@rstest/playwright':
-        specifier: ^0.11.2
-        version: 0.11.2(@rstest/core@0.11.2(core-js@3.47.0)(jsdom@29.0.2))(playwright@1.58.1)
     devDependencies:
       '@midscene/core':
         specifier: workspace:*
@@ -1341,6 +1338,9 @@ importers:
       '@rstest/core':
         specifier: 0.11.2
         version: 0.11.2(core-js@3.47.0)(jsdom@29.0.2)
+      '@rstest/playwright':
+        specifier: ^0.11.2
+        version: 0.11.2(@rstest/core@0.11.2(core-js@3.47.0)(jsdom@29.0.2))(playwright@1.58.1)
       '@types/node':
         specifier: ^18.0.0
         version: 18.19.130
