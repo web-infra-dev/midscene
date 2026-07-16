@@ -45,6 +45,7 @@ describe('uiautomatorXmlToUiNode', () => {
       {
         stableAttrs: ['resource-id'],
         textAttrs: ['text', 'content-desc'],
+        targetDescription: '登录',
       },
     );
     expect(xpaths[0]).toBe("//*[@resource-id='com.example.app:id/login_btn']");
@@ -71,6 +72,7 @@ describe('uiautomatorXmlToUiNode', () => {
       {
         stableAttrs: ['resource-id'],
         textAttrs: ['text', 'content-desc'],
+        targetDescription: '登录',
       },
     );
     expect(xpaths[0]).toBe("//android.widget.Button[@text='登录']");
@@ -90,6 +92,7 @@ describe('uiautomatorXmlToUiNode', () => {
       {
         stableAttrs: ['resource-id'],
         textAttrs: ['text', 'content-desc'],
+        targetDescription: '返回',
       },
     );
     expect(xpaths[0]).toBe(

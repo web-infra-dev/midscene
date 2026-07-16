@@ -112,6 +112,7 @@ describe('darwinAccessibilityJsonToUiNode', () => {
       {
         stableAttrs: ['AXIdentifier'],
         textAttrs: ['AXTitle', 'AXDescription'],
+        targetDescription: 'Status ready',
       },
     );
 

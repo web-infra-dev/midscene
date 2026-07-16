@@ -130,6 +130,7 @@ describe('uitestJsonToUiNode', () => {
       {
         stableAttrs: ['key', 'id', 'inspectorKey'],
         textAttrs: ['text', 'description'],
+        targetDescription: '注册',
       },
     );
     expect(xpaths[0]).toBe("//Button[@text='注册']");
