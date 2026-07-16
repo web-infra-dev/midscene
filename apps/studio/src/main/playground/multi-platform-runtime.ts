@@ -14,7 +14,6 @@ import { DEFAULT_STUDIO_WEB_VIEWPORT } from '@shared/web-viewport';
 import { ensureStudioShellEnvHydrated } from '../shell-env';
 import { createStudioCorsOptions } from './cors';
 import type { DeviceDiscoveryService } from './device-discovery';
-import { StudioScrcpySidecarProcess } from './scrcpy-sidecar-process';
 import type { PlaygroundRuntimeService } from './types';
 
 const require = createRequire(__filename);
@@ -251,6 +250,9 @@ async function createStudioScrcpyController(
   // Studio uses a utility process so report/main-process stalls cannot starve
   // the preview Socket.IO heartbeat.
   if (process.versions.electron && deviceListSource) {
+    const { StudioScrcpySidecarProcess } = await import(
+      './scrcpy-sidecar-process'
+    );
     return new StudioScrcpySidecarProcess(deviceListSource);
   }
   return new ScrcpyServer(deviceListSource ? { deviceListSource } : undefined);
