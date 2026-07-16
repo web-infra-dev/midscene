@@ -36,6 +36,8 @@
 #include <freerdp/transport_io.h>
 #include <winpr/synch.h>
 
+#include "rdp_helper_connection_policy.hpp"
+
 namespace midscene::rdp {
 
 namespace {
@@ -992,8 +994,26 @@ ConnectionInfo FreeRdpSessionTransport::Connect(const ConnectionConfig& config) 
   }
 
   if (!connected) {
+    const UINT32 last_error_code =
+        freerdp_get_last_error(instance_->context);
+    const bool using_rdp_security_layer =
+        freerdp_settings_get_bool(settings, FreeRDP_UseRdpSecurityLayer) ==
+        TRUE;
+    const bool retry_with_rdp = ShouldRetryAutoWithRdp(
+        config.security_protocol,
+        last_error_code == FREERDP_ERROR_CONNECT_TRANSPORT_FAILED,
+        using_rdp_security_layer);
     const std::string error = LastFreeRdpErrorLocked();
     StopInstance(false);
+    if (retry_with_rdp) {
+      // Some RDP-only servers reject the initial TLS/NLA negotiation. FreeRDP
+      // can then carry stale transport state into its RDP fallback and fail
+      // while parsing the encrypted Demand Active PDU. A fresh instance forced
+      // to the protocol FreeRDP already selected avoids that corrupted state.
+      ConnectionConfig retry_config = config;
+      retry_config.security_protocol = "rdp";
+      return Connect(retry_config);
+    }
     throw std::runtime_error("Failed to connect to RDP server: " + error);
   }
 
