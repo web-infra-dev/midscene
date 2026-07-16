@@ -1012,8 +1012,8 @@ importers:
         specifier: 4.1.0
         version: 4.1.0
       jsonrepair:
-        specifier: 3.14.0
-        version: 3.14.0
+        specifier: 3.15.0
+        version: 3.15.0
       mdast-util-from-markdown:
         specifier: ^2.0.2
         version: 2.0.2
@@ -7864,8 +7864,8 @@ packages:
     resolution: {integrity: sha512-p/nXbhSEcu3pZRdkW1OfJhpsVtW1gd4Wa1fnQc9YLiTfAjn0312eMKimbdIQzuZl9aa9xUGaRlP9T/CJE/ditQ==}
     engines: {node: '>=0.10.0'}
 
-  jsonrepair@3.14.0:
-    resolution: {integrity: sha512-tWPGKMZf/8UPim+fcW2EfcQ/d/7aKUrP6IECz9G3Tu6Q5dX0orSleqJ9z6sSw7qrQkjF8/Edo4DvsWBZ8H+HNg==}
+  jsonrepair@3.15.0:
+    resolution: {integrity: sha512-wy8OTjwsJwQRnQJkKnMJJ9vcytRdBPAgIF/Hy6+s1dAj42BHMKiyL8JzEieIl3JY7idt8eyHwBWTO8mh/+mtwA==}
     hasBin: true
 
   jszip@3.10.1:
@@ -19607,7 +19607,7 @@ snapshots:
   jsonpointer@5.0.1:
     optional: true
 
-  jsonrepair@3.14.0: {}
+  jsonrepair@3.15.0: {}
 
   jszip@3.10.1:
     dependencies:

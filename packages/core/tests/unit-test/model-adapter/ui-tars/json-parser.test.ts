@@ -42,7 +42,7 @@ describe('ui-tars json parser', () => {
   it('does not repair malformed json for generic parser sources', () => {
     const parser = uiTarsAdapter.jsonParser;
 
-    expect(() => parser('{"a": truely}')).toThrow(
+    expect(() => parser('{"a": true false}')).toThrow(
       /failed to parse LLM response into JSON/,
     );
   });
@@ -51,7 +51,7 @@ describe('ui-tars json parser', () => {
     const parser = uiTarsAdapter.jsonParser;
 
     expect(() =>
-      parser('```json\n{"bbox": truely}\n```', {
+      parser('```json\n{"bbox": true false}\n```', {
         source: 'locate',
       }),
     ).toThrow(/Response - \n ```json/);

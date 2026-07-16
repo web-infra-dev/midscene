@@ -109,81 +109,6 @@ function trimParsedJsonStrings(
   return obj;
 }
 
-function findNextNonWhitespaceChar(text: string, startIndex: number) {
-  for (let index = startIndex; index < text.length; index++) {
-    const char = text[index];
-    if (!/\s/.test(char)) {
-      return char;
-    }
-  }
-  return undefined;
-}
-
-function escapeBareQuotesInsideJsonStrings(jsonBlock: string) {
-  let repaired = '';
-  let inString = false;
-  let escaped = false;
-  let changed = false;
-
-  for (let index = 0; index < jsonBlock.length; index++) {
-    const char = jsonBlock[index];
-
-    if (!inString) {
-      if (char === '"') {
-        inString = true;
-      }
-      repaired += char;
-      continue;
-    }
-
-    if (escaped) {
-      repaired += char;
-      escaped = false;
-      continue;
-    }
-
-    if (char === '\\') {
-      repaired += char;
-      escaped = true;
-      continue;
-    }
-
-    if (char === '"') {
-      const nextNonWhitespaceChar = findNextNonWhitespaceChar(
-        jsonBlock,
-        index + 1,
-      );
-      const isStringTerminator =
-        nextNonWhitespaceChar === undefined ||
-        nextNonWhitespaceChar === ':' ||
-        nextNonWhitespaceChar === ',' ||
-        nextNonWhitespaceChar === '}' ||
-        nextNonWhitespaceChar === ']';
-
-      if (isStringTerminator) {
-        inString = false;
-        repaired += char;
-      } else {
-        repaired += '\\"';
-        changed = true;
-      }
-      continue;
-    }
-
-    repaired += char;
-  }
-
-  return changed ? repaired : jsonBlock;
-}
-
-function repairKnownJsonIssues(
-  jsonBlock: string,
-  _rawResponse: string,
-  _context?: JsonParserContext,
-): string {
-  return escapeBareQuotesInsideJsonStrings(jsonBlock);
-}
-
 function assertJsonObject(
   parsed: unknown,
 ): asserts parsed is Record<string, unknown> {
@@ -212,34 +137,17 @@ export function parseModelResponseJson(
   const requireObject = context?.requireObject ?? true;
 
   let parsedObj: unknown;
-
   try {
     parsedObj = parseJsonWithRepair(cleanJsonString);
     if (requireObject) {
       assertJsonObject(parsedObj);
     }
-  } catch (e1) {
-    const code = repairKnownJsonIssues(cleanJsonString, raw, context);
-    if (code === cleanJsonString) {
-      throw new Error(
-        `failed to parse LLM response into JSON. Error - ${String(
-          e1,
-        )}. Response - \n ${raw}`,
-      );
-    }
-
-    try {
-      parsedObj = parseJsonWithRepair(code);
-      if (requireObject) {
-        assertJsonObject(parsedObj);
-      }
-    } catch (e2) {
-      throw new Error(
-        `failed to parse LLM response into JSON. First error - ${String(
-          e1,
-        )}. Second error - ${String(e2)}. Response - \n ${raw}`,
-      );
-    }
+  } catch (error) {
+    throw new Error(
+      `failed to parse LLM response into JSON. Error - ${String(
+        error,
+      )}. Response - \n ${raw}`,
+    );
   }
 
   return trimParsedJsonStrings(parsedObj, context);
