@@ -195,6 +195,22 @@ export const RecordTimeline = ({
   const getDisplayDescription = (event: RecordedEvent) =>
     getMidsceneRecorderEventDescription(event);
 
+  const getViewportDescription = (event: RecordedEvent) => {
+    const width = event.pageInfo?.width;
+    const height = event.pageInfo?.height;
+    if (
+      typeof width !== 'number' ||
+      typeof height !== 'number' ||
+      !Number.isFinite(width) ||
+      !Number.isFinite(height) ||
+      width <= 0 ||
+      height <= 0
+    ) {
+      return undefined;
+    }
+    return `${width}x${height} px`;
+  };
+
   const getEventTitle = (event: RecordedEvent) => {
     switch (event.type) {
       case 'click':
@@ -214,7 +230,7 @@ export const RecordTimeline = ({
       case 'navigation':
         return 'Navigate';
       case 'setViewport':
-        return 'Set viewport';
+        return 'Viewport changed';
       case 'keydown':
         return 'Key down';
       default:
@@ -307,8 +323,15 @@ export const RecordTimeline = ({
         );
       }
 
-      case 'setViewport':
-        return <Text>{eventTitle} - Desktop 964x992 px</Text>;
+      case 'setViewport': {
+        const viewportDescription = getViewportDescription(event);
+        return (
+          <Text>
+            {eventTitle}
+            {viewportDescription ? ` - ${viewportDescription}` : ''}
+          </Text>
+        );
+      }
 
       case 'keydown':
         return (
@@ -344,8 +367,12 @@ export const RecordTimeline = ({
           : `${eventTitle} - ${event.value?.split(' ')[0] || 'recorded scroll'}`;
       case 'navigation':
         return `${eventTitle} - ${description || event.url || ''}`;
-      case 'setViewport':
-        return `${eventTitle} - Desktop 964x992 px`;
+      case 'setViewport': {
+        const viewportDescription = getViewportDescription(event);
+        return viewportDescription
+          ? `${eventTitle} - ${viewportDescription}`
+          : eventTitle;
+      }
       case 'keydown':
         return `${eventTitle} - Key: ${event.value || 'Unknown'}`;
       default:
