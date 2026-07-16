@@ -823,26 +823,6 @@ jobs:
                     padding: "12px 12px 20px 12px",
                     vertical_spacing: "12px",
                     elements: [
-                      (if $change_count > 0 then
-                        {
-                          tag: "column_set",
-                          flex_mode: "none",
-                          columns: [{
-                            tag: "column",
-                            width: "weighted",
-                            weight: 1,
-                            background_style: "blue-50",
-                            padding: "12px",
-                            vertical_spacing: "4px",
-                            elements: [{
-                              tag: "markdown",
-                              content: "**Latest stable release**\n\($summary)"
-                            }]
-                          }]
-                        }
-                      else
-                        empty
-                      end),
                       {
                         tag: "markdown",
                         content: $description
