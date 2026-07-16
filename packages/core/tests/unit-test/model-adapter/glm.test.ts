@@ -100,4 +100,13 @@ describe('glm model adapter', () => {
       thinking: { type: 'disabled' },
     });
   });
+
+  it('does not use json_object response format when disabled', () => {
+    const result = glmAdapter.chatCompletion.buildChatCompletionParams({
+      intent: 'default',
+      userConfig: { responseFormat: 'none' },
+    });
+
+    expect(result.config.response_format).toBeUndefined();
+  });
 });

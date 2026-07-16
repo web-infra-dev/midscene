@@ -19,7 +19,7 @@ const buildGlmChatCompletionParams = (
 
   // Zhipu structured output JSON mode:
   // https://docs.bigmodel.cn/cn/guide/capabilities/struct-output
-  if (isLocateIntent(input.intent)) {
+  if (userConfig.responseFormat !== 'none' && isLocateIntent(input.intent)) {
     commonOverrideConfig.response_format = { type: 'json_object' };
   }
 

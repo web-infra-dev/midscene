@@ -15,7 +15,7 @@ const buildMimoChatCompletionParams = (
 
   // https://platform.xiaomimimo.com/docs/zh-CN/api/chat/openai-api
   // Observed with thinking disabled: Mimo needs json_object to return JSON.
-  if (isLocateIntent(intent)) {
+  if (userConfig.responseFormat !== 'none' && isLocateIntent(intent)) {
     commonOverrideConfig.response_format = { type: 'json_object' };
   }
 

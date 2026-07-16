@@ -4,6 +4,7 @@ import {
   MIDSCENE_MODEL_BASE_URL,
   MIDSCENE_MODEL_EXTRA_BODY_JSON,
   MIDSCENE_MODEL_INIT_CONFIG_JSON,
+  MIDSCENE_MODEL_RESPONSE_FORMAT,
 } from '../../../src/env';
 import { DEFAULT_MODEL_CONFIG_KEYS } from '../../../src/env/constants';
 import { parseOpenaiSdkConfig } from '../../../src/env/parse-model-config';
@@ -59,6 +60,29 @@ describe('decideOpenaiSdkConfig', () => {
       },
     });
     expect(result.extraBody).toBeUndefined();
+  });
+
+  it('defaults response format to auto and accepts none', () => {
+    const autoResult = parseOpenaiSdkConfig({
+      keys: DEFAULT_MODEL_CONFIG_KEYS,
+      provider: {},
+    });
+    const disabledResult = parseOpenaiSdkConfig({
+      keys: DEFAULT_MODEL_CONFIG_KEYS,
+      provider: { [MIDSCENE_MODEL_RESPONSE_FORMAT]: 'none' },
+    });
+
+    expect(autoResult.responseFormat).toBe('auto');
+    expect(disabledResult.responseFormat).toBe('none');
+  });
+
+  it('rejects unsupported response format values', () => {
+    expect(() =>
+      parseOpenaiSdkConfig({
+        keys: DEFAULT_MODEL_CONFIG_KEYS,
+        provider: { [MIDSCENE_MODEL_RESPONSE_FORMAT]: 'json_object' },
+      }),
+    ).toThrow('MIDSCENE_MODEL_RESPONSE_FORMAT must be one of: none, auto');
   });
 
   it('throws on invalid extraBody JSON', () => {

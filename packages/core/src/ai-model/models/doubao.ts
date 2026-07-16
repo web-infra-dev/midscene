@@ -10,6 +10,7 @@ import {
   createLocateResultValue,
   unwrapCoordinateListLikeInput,
 } from '../shared/model-locate-result';
+import { isLocateIntent } from './utils/intent';
 
 const doubaoBboxCoordinatesMeta = {
   shape: 'bbox',
@@ -112,6 +113,12 @@ const buildDoubaoChatCompletionParams = (
 
   if (userConfig.temperature !== undefined) {
     commonOverrideConfig.temperature = userConfig.temperature;
+  }
+
+  // Doubao Chat Completions JSON mode:
+  // https://docs.volcengine.com/docs/82379/1568221?lang=zh
+  if (userConfig.responseFormat !== 'none' && isLocateIntent(input.intent)) {
+    commonOverrideConfig.response_format = { type: 'json_object' };
   }
 
   const modelSpecificConfig: Record<string, unknown> = {};

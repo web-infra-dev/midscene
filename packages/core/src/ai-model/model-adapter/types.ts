@@ -4,6 +4,7 @@ import type {
   IModelConfig,
   TIntent,
   TModelReasoningEnabled,
+  TModelResponseFormat,
 } from '@midscene/shared/env';
 import type OpenAI from 'openai';
 import type {
@@ -46,6 +47,7 @@ export interface MidsceneChatCompletionDefaults {
 
 export interface ChatCompletionCallUserConfig extends ReasoningInput {
   temperature?: number;
+  responseFormat?: TModelResponseFormat;
 }
 
 export type ChatCompletionUnsupportedUserConfig =

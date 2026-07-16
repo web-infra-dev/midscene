@@ -142,4 +142,13 @@ describe('gpt model adapter', () => {
 
     expect(result.config.response_format).toEqual({ type: 'json_object' });
   });
+
+  it('does not use json_object response format when disabled', () => {
+    const result = gpt5Adapter.chatCompletion.buildChatCompletionParams({
+      intent: 'default',
+      userConfig: { responseFormat: 'none' },
+    });
+
+    expect(result.config.response_format).toBeUndefined();
+  });
 });

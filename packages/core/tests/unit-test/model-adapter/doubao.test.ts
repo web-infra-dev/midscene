@@ -32,6 +32,22 @@ describe('doubao model adapter', () => {
     });
   });
 
+  it('uses json_object response format for locate intent unless disabled', () => {
+    const autoResult =
+      doubaoVisionAdapter.chatCompletion.buildChatCompletionParams({
+        intent: 'default',
+        userConfig: {},
+      });
+    const disabledResult =
+      doubaoVisionAdapter.chatCompletion.buildChatCompletionParams({
+        intent: 'default',
+        userConfig: { responseFormat: 'none' },
+      });
+
+    expect(autoResult.config.response_format).toEqual({ type: 'json_object' });
+    expect(disabledResult.config.response_format).toBeUndefined();
+  });
+
   it('preserves midscene defaults and applies explicit doubao temperature override', () => {
     const chatCompletion = doubaoAdapters['doubao-seed'].chatCompletion;
     expect(chatCompletion).toBeDefined();

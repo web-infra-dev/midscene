@@ -392,6 +392,7 @@ export async function callAI(
       reasoningEnabled: modelConfig.reasoningEnabled,
       reasoningEffort: modelConfig.reasoningEffort,
       reasoningBudget: modelConfig.reasoningBudget,
+      responseFormat: modelConfig.responseFormat,
     },
     requiresOriginalImageDetail: options?.requiresOriginalImageDetail,
   };

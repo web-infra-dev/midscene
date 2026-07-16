@@ -46,6 +46,7 @@ export MIDSCENE_MODEL_FAMILY="gpt-5"
 | `MIDSCENE_MODEL_REASONING_ENABLED` | 控制是否启用模型的原生思考能力，Midscene 默认关闭。详见[模型原生的思考模式](./model-strategy#模型原生的思考模式) |
 | `MIDSCENE_MODEL_REASONING_EFFORT` | 控制模型的原生思考力度，部分模型支持。常用值：`low`、`medium`、`high`。详见[模型原生的思考模式](./model-strategy#模型原生的思考模式) |
 | `MIDSCENE_MODEL_REASONING_BUDGET` | 思考 token 预算（数字），部分模型支持。详见[模型原生的思考模式](./model-strategy#模型原生的思考模式) |
+| `MIDSCENE_MODEL_RESPONSE_FORMAT` | 结构化响应策略：`auto`（默认）表示 Midscene 会在合适的场景自动使用 `response_format` 参数指定模型输出的结构化格式（一般是 JSON），来尽可能保证模型返回值能够被结构化解析；`none` 表示不指定 `response_format` 参数，适用于模型不支持结构化输出的情况。 |
 | `MIDSCENE_MODEL_HTTP_PROXY` | HTTP/HTTPS 代理配置，如 `http://127.0.0.1:8080` 或 `https://proxy.example.com:8080`，优先级高于 `MIDSCENE_MODEL_SOCKS_PROXY` |
 | `MIDSCENE_MODEL_SOCKS_PROXY` | SOCKS 代理配置，如 `socks5://127.0.0.1:1080` |
 | `MIDSCENE_MODEL_INIT_CONFIG_JSON` | 覆盖 OpenAI SDK 初始化配置的 JSON。自定义鉴权 header 请使用 `defaultHeaders`；`extra_headers` 和 `extraHeaders` 也会作为别名兼容 |
@@ -74,6 +75,7 @@ export MIDSCENE_MODEL_FAMILY="gpt-5"
 | `MIDSCENE_INSIGHT_MODEL_SOCKS_PROXY` | 可选，效果等同于 `MIDSCENE_MODEL_SOCKS_PROXY`  |
 | `MIDSCENE_INSIGHT_MODEL_INIT_CONFIG_JSON` | 可选，效果等同于 `MIDSCENE_MODEL_INIT_CONFIG_JSON`  |
 | `MIDSCENE_INSIGHT_MODEL_EXTRA_BODY_JSON` | 可选，效果等同于 `MIDSCENE_MODEL_EXTRA_BODY_JSON`  |
+| `MIDSCENE_INSIGHT_MODEL_RESPONSE_FORMAT` | 可选，在合适的 Insight 场景中控制结构化响应策略 |
 
 ### 为 Planning 意图单独配置模型
 
@@ -93,6 +95,7 @@ export MIDSCENE_MODEL_FAMILY="gpt-5"
 | `MIDSCENE_PLANNING_MODEL_SOCKS_PROXY` | 可选，效果等同于 `MIDSCENE_MODEL_SOCKS_PROXY`  |
 | `MIDSCENE_PLANNING_MODEL_INIT_CONFIG_JSON` | 可选，效果等同于 `MIDSCENE_MODEL_INIT_CONFIG_JSON`  |
 | `MIDSCENE_PLANNING_MODEL_EXTRA_BODY_JSON` | 可选，效果等同于 `MIDSCENE_MODEL_EXTRA_BODY_JSON`  |
+| `MIDSCENE_PLANNING_MODEL_RESPONSE_FORMAT` | 可选，在合适的 Planning 场景中控制结构化响应策略 |
 
 ### 调试日志开关
 

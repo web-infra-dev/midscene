@@ -27,7 +27,10 @@ const buildGpt5ChatCompletionParams = (
 
   // OpenAI Chat Completions JSON mode:
   // https://platform.openai.com/docs/guides/structured-outputs?api-mode=chat#json-mode
-  if (isLocateIntent(input.intent)) {
+  if (
+    input.userConfig.responseFormat !== 'none' &&
+    isLocateIntent(input.intent)
+  ) {
     commonOverrideConfig.response_format = { type: 'json_object' };
   }
 

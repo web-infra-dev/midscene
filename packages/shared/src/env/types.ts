@@ -35,8 +35,10 @@ export const MIDSCENE_MODEL_REASONING_ENABLED =
   'MIDSCENE_MODEL_REASONING_ENABLED';
 export const MIDSCENE_MODEL_REASONING_BUDGET =
   'MIDSCENE_MODEL_REASONING_BUDGET';
+export const MIDSCENE_MODEL_RESPONSE_FORMAT = 'MIDSCENE_MODEL_RESPONSE_FORMAT';
 
 export type TModelReasoningEnabled = boolean | 'default';
+export type TModelResponseFormat = 'none' | 'auto';
 
 /**
  * @deprecated Use MIDSCENE_MODEL_API_KEY instead. This is kept for backward compatibility.
@@ -117,6 +119,8 @@ export const MIDSCENE_INSIGHT_MODEL_REASONING_ENABLED =
   'MIDSCENE_INSIGHT_MODEL_REASONING_ENABLED';
 export const MIDSCENE_INSIGHT_MODEL_REASONING_BUDGET =
   'MIDSCENE_INSIGHT_MODEL_REASONING_BUDGET';
+export const MIDSCENE_INSIGHT_MODEL_RESPONSE_FORMAT =
+  'MIDSCENE_INSIGHT_MODEL_RESPONSE_FORMAT';
 
 // PLANNING
 export const MIDSCENE_PLANNING_MODEL_NAME = 'MIDSCENE_PLANNING_MODEL_NAME';
@@ -147,6 +151,8 @@ export const MIDSCENE_PLANNING_MODEL_REASONING_ENABLED =
   'MIDSCENE_PLANNING_MODEL_REASONING_ENABLED';
 export const MIDSCENE_PLANNING_MODEL_REASONING_BUDGET =
   'MIDSCENE_PLANNING_MODEL_REASONING_BUDGET';
+export const MIDSCENE_PLANNING_MODEL_RESPONSE_FORMAT =
+  'MIDSCENE_PLANNING_MODEL_RESPONSE_FORMAT';
 export const MIDSCENE_MODEL_FAMILY = 'MIDSCENE_MODEL_FAMILY';
 
 /**
@@ -224,6 +230,7 @@ export const MODEL_ENV_KEYS = [
   MIDSCENE_MODEL_REASONING_EFFORT,
   MIDSCENE_MODEL_REASONING_ENABLED,
   MIDSCENE_MODEL_REASONING_BUDGET,
+  MIDSCENE_MODEL_RESPONSE_FORMAT,
   MIDSCENE_USE_VLM_UI_TARS,
   MIDSCENE_USE_QWEN_VL,
   MIDSCENE_USE_QWEN3_VL,
@@ -252,6 +259,7 @@ export const MODEL_ENV_KEYS = [
   MIDSCENE_INSIGHT_MODEL_REASONING_EFFORT,
   MIDSCENE_INSIGHT_MODEL_REASONING_ENABLED,
   MIDSCENE_INSIGHT_MODEL_REASONING_BUDGET,
+  MIDSCENE_INSIGHT_MODEL_RESPONSE_FORMAT,
   // PLANNING
   MIDSCENE_PLANNING_MODEL_NAME,
   MIDSCENE_PLANNING_MODEL_SOCKS_PROXY,
@@ -268,6 +276,7 @@ export const MODEL_ENV_KEYS = [
   MIDSCENE_PLANNING_MODEL_REASONING_EFFORT,
   MIDSCENE_PLANNING_MODEL_REASONING_ENABLED,
   MIDSCENE_PLANNING_MODEL_REASONING_BUDGET,
+  MIDSCENE_PLANNING_MODEL_RESPONSE_FORMAT,
   MIDSCENE_MODEL_FAMILY,
 ] as const;
 
@@ -390,6 +399,8 @@ export interface IModelConfigForDefault {
   [MIDSCENE_MODEL_REASONING_ENABLED]?: string;
   // reasoning budget (number as string)
   [MIDSCENE_MODEL_REASONING_BUDGET]?: string;
+  // Response format strategy (none/auto)
+  [MIDSCENE_MODEL_RESPONSE_FORMAT]?: TModelResponseFormat;
 }
 
 export interface IModelConfigForDefaultLegacy {
@@ -513,6 +524,11 @@ export interface IModelConfig {
    * Passed through to model-family-specific parameters (e.g., thinking_budget for qwen).
    */
   reasoningBudget?: number;
+  /**
+   * Response format strategy. "auto" lets the model adapter enable a
+   * provider-supported structured response format for eligible intents.
+   */
+  responseFormat?: TModelResponseFormat;
   /**
    * Model family - unified model configuration
    * Maps directly to model families like 'qwen2.5-vl', 'qwen3-vl', 'doubao-vision', 'doubao-seed', etc.

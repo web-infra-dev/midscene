@@ -133,4 +133,13 @@ describe('mimo model adapter', () => {
     });
     expect(insightResult.config.response_format).toBeUndefined();
   });
+
+  it('does not use json_object response format when disabled', () => {
+    const result = mimoAdapter.chatCompletion.buildChatCompletionParams({
+      intent: 'default',
+      userConfig: { responseFormat: 'none' },
+    });
+
+    expect(result.config.response_format).toBeUndefined();
+  });
 });

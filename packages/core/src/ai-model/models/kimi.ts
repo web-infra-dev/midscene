@@ -49,7 +49,7 @@ const buildKimiChatCompletionParams = (
 
   // Kimi Chat Completions response_format:
   // https://platform.kimi.com/docs/api/chat
-  if (isLocateIntent(input.intent)) {
+  if (userConfig.responseFormat !== 'none' && isLocateIntent(input.intent)) {
     commonOverrideConfig.response_format = { type: 'json_object' };
   }
 
