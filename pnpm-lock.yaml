@@ -552,9 +552,6 @@ importers:
       '@midscene/web':
         specifier: workspace:*
         version: link:../../packages/web-integration
-      '@silvia-odwyer/photon-node':
-        specifier: 0.3.3
-        version: 0.3.3
       antd:
         specifier: ^5.21.6
         version: 5.21.6(date-fns@2.30.0)(moment@2.30.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -573,6 +570,9 @@ importers:
       react-dom:
         specifier: 18.3.1
         version: 18.3.1(react@18.3.1)
+      sharp:
+        specifier: ^0.34.3
+        version: 0.34.3
     optionalDependencies:
       appdmg:
         specifier: 0.6.6
@@ -1323,9 +1323,6 @@ importers:
   packages/shared:
     dependencies:
       '@silvia-odwyer/photon':
-        specifier: 0.3.3
-        version: 0.3.3
-      '@silvia-odwyer/photon-node':
         specifier: 0.3.3
         version: 0.3.3
       debug:
@@ -4106,9 +4103,6 @@ packages:
 
   '@shikijs/vscode-textmate@10.0.2':
     resolution: {integrity: sha512-83yeghZ2xxin3Nj8z1NMd/NCuca+gsYXswywDy5bHvwlWL8tpTQmzGeUuHd9FC3E/SBEMvzJRwWEOz5gGes9Qg==}
-
-  '@silvia-odwyer/photon-node@0.3.3':
-    resolution: {integrity: sha512-30nDWTHQ7/d1xGnO41ol5tnBA1Bmo2N6h9HNPByBbIYU2xCYB9g4o4zB6vxAq15ixrBRTjb1Nnz1K0Jli3Hxnw==}
 
   '@silvia-odwyer/photon@0.3.3':
     resolution: {integrity: sha512-8BhUjEch4slwRe8uXnaA4vcA5uiiOTT90UMsxulOj2gN98X1p0q9Z4Ysk4DkD05uNgbR9XoSqtZ37w+33w4QKQ==}
@@ -15014,8 +15008,6 @@ snapshots:
       '@types/hast': 3.0.4
 
   '@shikijs/vscode-textmate@10.0.2': {}
-
-  '@silvia-odwyer/photon-node@0.3.3': {}
 
   '@silvia-odwyer/photon@0.3.3': {}
 

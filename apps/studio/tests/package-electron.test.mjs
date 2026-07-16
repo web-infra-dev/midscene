@@ -300,9 +300,6 @@ describe('package-electron helpers', () => {
     expect(packagedAsarOptions.unpackDir).toContain('node_modules/sharp');
     expect(packagedAsarOptions.unpackDir).toContain('node_modules/@img');
     expect(packagedAsarOptions.unpackDir).toContain(
-      path.join('node_modules', '@silvia-odwyer', 'photon-node'),
-    );
-    expect(packagedAsarOptions.unpackDir).toContain(
       path.join('node_modules', '@computer-use', 'libnut'),
     );
     expect(packagedAsarOptions.unpackDir).toContain(

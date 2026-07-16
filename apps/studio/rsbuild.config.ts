@@ -104,6 +104,10 @@ export default defineConfig({
         __dirname,
         '../../packages/visualizer/src/utils/index.ts',
       ),
+      // Studio performs image processing in the Electron main process with
+      // Sharp. Photon remains available only to browser-only consumers such
+      // as the extension.
+      '@silvia-odwyer/photon': false,
       undici: false,
       'fetch-socks': false,
     },
@@ -158,10 +162,7 @@ export default defineConfig({
         externals: [
           'electron',
           'electron-updater',
-          // photon-node reads photon_rs_bg.wasm from __dirname at runtime.
-          // Keep it external so electron-packager can retain the module and
-          // its sibling WASM file under app.asar.unpacked.
-          '@silvia-odwyer/photon-node',
+          'sharp',
           '@midscene/android',
           '@midscene/android-playground',
           '@midscene/computer',
