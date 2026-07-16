@@ -453,9 +453,9 @@ function createRecorderAiDescribeTraceBase(
   };
 }
 
-/** Default `0.0.0.0`. Override via `MIDSCENE_PLAYGROUND_HOST` (e.g. `127.0.0.1`). */
+/** Default `127.0.0.1`. Override via `MIDSCENE_PLAYGROUND_HOST` (e.g. `0.0.0.0`). */
 export function resolvePlaygroundListenHost(): string {
-  return process.env.MIDSCENE_PLAYGROUND_HOST?.trim() || '0.0.0.0';
+  return process.env.MIDSCENE_PLAYGROUND_HOST?.trim() || '127.0.0.1';
 }
 
 export function resolvePlaygroundBrowserHost(): string {
