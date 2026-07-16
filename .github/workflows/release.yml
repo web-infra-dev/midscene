@@ -151,6 +151,46 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+    - name: Ensure GitHub release notes are available
+      if: ${{ steps.get_version.outputs.is_prerelease != 'true' }}
+      env:
+        GH_TOKEN: ${{ github.token }}
+        RELEASE_TARGET: ${{ github.event.inputs.branch }}
+        RELEASE_VERSION: ${{ steps.get_version.outputs.version }}
+      run: |
+        set -euo pipefail
+
+        release_json="$(
+          gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${RELEASE_VERSION}"
+        )"
+
+        if jq -e '(.body // "") | test("\\S")' <<< "$release_json" >/dev/null; then
+          echo "Existing GitHub release notes found; preserving them."
+          exit 0
+        fi
+
+        generated_notes="$(
+          gh api --method POST \
+            "repos/${GITHUB_REPOSITORY}/releases/generate-notes" \
+            -f tag_name="$RELEASE_VERSION" \
+            -f target_commitish="$RELEASE_TARGET"
+        )"
+
+        if ! jq -e '.body | strings | test("\\S")' <<< "$generated_notes" >/dev/null; then
+          echo "GitHub generated empty release notes." >&2
+          exit 1
+        fi
+
+        release_id="$(jq -er '.id' <<< "$release_json")"
+        release_body="$(jq -er '.body' <<< "$generated_notes")"
+        jq -cn --arg body "$release_body" '{body: $body}' \
+          | gh api --method PATCH \
+              "repos/${GITHUB_REPOSITORY}/releases/${release_id}" \
+              --input - \
+              >/dev/null
+
+        echo "Generated GitHub release notes before sending notifications."
+
   publish_chrome_web_store:
     needs: release
     if: ${{ needs.release.result == 'success' && !contains(needs.release.outputs.version, 'beta') && !contains(needs.release.outputs.version, 'alpha') && !contains(needs.release.outputs.version, 'rc') }}
@@ -783,26 +823,26 @@ jobs:
                     padding: "12px 12px 20px 12px",
                     vertical_spacing: "12px",
                     elements: [
-                      {
-                        tag: "column_set",
-                        flex_mode: "none",
-                        columns: [{
-                          tag: "column",
-                          width: "weighted",
-                          weight: 1,
-                          background_style: "blue-50",
-                          padding: "12px",
-                          vertical_spacing: "4px",
-                          elements: [{
-                            tag: "markdown",
-                            content: (if $change_count > 0 then
-                                "**Latest stable release**\n\($summary)"
-                              else
-                                "**Latest stable release**"
-                              end)
+                      (if $change_count > 0 then
+                        {
+                          tag: "column_set",
+                          flex_mode: "none",
+                          columns: [{
+                            tag: "column",
+                            width: "weighted",
+                            weight: 1,
+                            background_style: "blue-50",
+                            padding: "12px",
+                            vertical_spacing: "4px",
+                            elements: [{
+                              tag: "markdown",
+                              content: "**Latest stable release**\n\($summary)"
+                            }]
                           }]
-                        }]
-                      },
+                        }
+                      else
+                        empty
+                      end),
                       {
                         tag: "markdown",
                         content: $description
