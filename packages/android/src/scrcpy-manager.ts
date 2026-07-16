@@ -289,6 +289,7 @@ export class ScrcpyScreenshotManager {
     let windowStart = Date.now();
     let lastBusyWarn = 0;
     let totalReads = 0;
+    let endReason = 'stream closed';
 
     try {
       while (true) {
@@ -329,13 +330,20 @@ export class ScrcpyScreenshotManager {
         this.processFrame(value);
       }
     } catch (error) {
+      endReason = 'stream error';
       debugScrcpy(
         `Frame consumer error (total reads: ${totalReads}): ${error}`,
       );
+    }
+
+    // Only tear down the session that owns this reader. An obsolete reader can
+    // finish after disconnect() has already cleared it or a reconnect has
+    // installed a replacement reader.
+    if (this.streamReader === reader) {
       await this.disconnect();
     }
     debugScrcpy(
-      `Frame consumer loop ended normally (total reads: ${totalReads})`,
+      `Frame consumer loop ended (${endReason}, total reads: ${totalReads})`,
     );
   }
 
@@ -704,8 +712,10 @@ export class ScrcpyScreenshotManager {
     // Cancel reader first to stop consumeFramesLoop
     if (reader) {
       try {
-        reader.cancel();
-      } catch {}
+        await reader.cancel();
+      } catch (error) {
+        debugScrcpy(`Error cancelling scrcpy stream reader: ${error}`);
+      }
     }
 
     // Then close the client

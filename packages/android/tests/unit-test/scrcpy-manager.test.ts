@@ -146,6 +146,73 @@ describe('ScrcpyScreenshotManager', () => {
     });
   });
 
+  describe('consumeFramesLoop', () => {
+    it('should absorb a rejected cancellation after a stream read error', async () => {
+      const manager = new ScrcpyScreenshotManager({} as any);
+      const streamError = new Error(
+        'The underlying readable ended before the struct was deserialized',
+      );
+      const reader = {
+        read: vi.fn().mockRejectedValue(streamError),
+        cancel: vi.fn().mockRejectedValue(streamError),
+      };
+      const close = vi.fn().mockResolvedValue(undefined);
+      (manager as any).streamReader = reader;
+      (manager as any).scrcpyClient = { close };
+      (manager as any).videoStream = {};
+      (manager as any).isInitialized = true;
+
+      await expect(
+        (manager as any).consumeFramesLoop(reader),
+      ).resolves.toBeUndefined();
+
+      expect(reader.cancel).toHaveBeenCalledOnce();
+      expect(close).toHaveBeenCalledOnce();
+      expect(manager.isConnected()).toBe(false);
+    });
+
+    it('should disconnect the current session after a clean stream end', async () => {
+      const manager = new ScrcpyScreenshotManager({} as any);
+      const reader = {
+        read: vi.fn().mockResolvedValue({ done: true }),
+        cancel: vi.fn().mockResolvedValue(undefined),
+      };
+      const close = vi.fn().mockResolvedValue(undefined);
+      (manager as any).streamReader = reader;
+      (manager as any).scrcpyClient = { close };
+      (manager as any).videoStream = {};
+      (manager as any).isInitialized = true;
+
+      await (manager as any).consumeFramesLoop(reader);
+
+      expect(reader.cancel).toHaveBeenCalledOnce();
+      expect(close).toHaveBeenCalledOnce();
+      expect(manager.isConnected()).toBe(false);
+    });
+
+    it('should not disconnect a replacement session when an obsolete reader ends', async () => {
+      const manager = new ScrcpyScreenshotManager({} as any);
+      const obsoleteReader = {
+        read: vi.fn().mockResolvedValue({ done: true }),
+        cancel: vi.fn().mockResolvedValue(undefined),
+      };
+      const replacementReader = {
+        cancel: vi.fn().mockResolvedValue(undefined),
+      };
+      const close = vi.fn().mockResolvedValue(undefined);
+      (manager as any).streamReader = replacementReader;
+      (manager as any).scrcpyClient = { close };
+      (manager as any).videoStream = {};
+      (manager as any).isInitialized = true;
+
+      await (manager as any).consumeFramesLoop(obsoleteReader);
+
+      expect(obsoleteReader.cancel).not.toHaveBeenCalled();
+      expect(close).not.toHaveBeenCalled();
+      expect(manager.isConnected()).toBe(true);
+    });
+  });
+
   describe('disconnect', () => {
     it('should reset all state', async () => {
       const manager = new ScrcpyScreenshotManager({} as any);
@@ -191,12 +258,45 @@ describe('ScrcpyScreenshotManager', () => {
 
     it('should cancel streamReader to stop consumeFramesLoop', async () => {
       const manager = new ScrcpyScreenshotManager({} as any);
-      const cancelFn = vi.fn();
+      const cancelFn = vi.fn().mockResolvedValue(undefined);
       (manager as any).streamReader = { cancel: cancelFn };
 
       await manager.disconnect();
 
       expect(cancelFn).toHaveBeenCalled();
+      expect((manager as any).streamReader).toBeNull();
+    });
+
+    it('should wait for asynchronous streamReader cancellation', async () => {
+      const manager = new ScrcpyScreenshotManager({} as any);
+      let resolveCancel: (() => void) | undefined;
+      const cancelPromise = new Promise<void>((resolve) => {
+        resolveCancel = resolve;
+      });
+      (manager as any).streamReader = {
+        cancel: vi.fn().mockReturnValue(cancelPromise),
+      };
+
+      let disconnected = false;
+      const disconnectPromise = manager.disconnect().then(() => {
+        disconnected = true;
+      });
+      await Promise.resolve();
+
+      expect(disconnected).toBe(false);
+
+      resolveCancel?.();
+      await disconnectPromise;
+      expect(disconnected).toBe(true);
+    });
+
+    it('should handle streamReader.cancel() error gracefully', async () => {
+      const manager = new ScrcpyScreenshotManager({} as any);
+      (manager as any).streamReader = {
+        cancel: vi.fn().mockRejectedValue(new Error('stream already errored')),
+      };
+
+      await expect(manager.disconnect()).resolves.toBeUndefined();
       expect((manager as any).streamReader).toBeNull();
     });
 
