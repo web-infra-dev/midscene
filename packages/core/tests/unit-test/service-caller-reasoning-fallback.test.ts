@@ -256,6 +256,42 @@ describe('service-caller reasoning fallback', () => {
     );
   });
 
+  it('only sends json_object response format for object-response calls', async () => {
+    mockCreate.mockResolvedValue({
+      choices: [
+        {
+          message: {
+            content: '{"answer":true}',
+          },
+        },
+      ],
+    });
+
+    const modelRuntime = getModelRuntime({
+      ...baseModelConfig,
+      modelFamily: 'doubao-seed',
+    });
+
+    await callAI([{ role: 'user', content: 'hello' }], modelRuntime);
+    expect(mockCreate).toHaveBeenLastCalledWith(
+      expect.not.objectContaining({
+        response_format: expect.anything(),
+      }),
+      expect.any(Object),
+    );
+
+    await callAIWithObjectResponse(
+      [{ role: 'user', content: 'return a json object' }],
+      modelRuntime,
+    );
+    expect(mockCreate).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        response_format: { type: 'json_object' },
+      }),
+      expect.any(Object),
+    );
+  });
+
   it('retries JSON parsing when retryTimes is configured', async () => {
     mockCreate
       .mockResolvedValueOnce({

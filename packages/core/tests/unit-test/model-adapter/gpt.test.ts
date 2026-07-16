@@ -134,9 +134,9 @@ describe('gpt model adapter', () => {
     });
   });
 
-  it('uses json_object response format for gpt-5 locate intent', () => {
+  it('uses json_object response format when expected for gpt-5', () => {
     const result = gpt5Adapter.chatCompletion.buildChatCompletionParams({
-      intent: 'default',
+      expectedJsonObjectResponse: true,
       userConfig: {},
     });
 
@@ -145,7 +145,7 @@ describe('gpt model adapter', () => {
 
   it('does not use json_object response format when disabled', () => {
     const result = gpt5Adapter.chatCompletion.buildChatCompletionParams({
-      intent: 'default',
+      expectedJsonObjectResponse: true,
       userConfig: { responseFormat: 'none' },
     });
 

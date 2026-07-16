@@ -106,9 +106,9 @@ describe('mimo model adapter', () => {
     });
   });
 
-  it('does not set response format for planning intent', () => {
+  it('does not set response format without an expected JSON object response', () => {
     const result = mimoAdapter.chatCompletion.buildChatCompletionParams({
-      intent: 'planning',
+      intent: 'default',
       userConfig: {},
     });
 
@@ -118,25 +118,23 @@ describe('mimo model adapter', () => {
     });
   });
 
-  it('uses json_object response format for default intent only', () => {
-    const defaultResult = mimoAdapter.chatCompletion.buildChatCompletionParams({
-      intent: 'default',
-      userConfig: {},
-    });
-    const insightResult = mimoAdapter.chatCompletion.buildChatCompletionParams({
-      intent: 'insight',
-      userConfig: {},
-    });
+  it('uses json_object response format when expected', () => {
+    const expectedResult = mimoAdapter.chatCompletion.buildChatCompletionParams(
+      {
+        intent: 'planning',
+        expectedJsonObjectResponse: true,
+        userConfig: {},
+      },
+    );
 
-    expect(defaultResult.config.response_format).toEqual({
+    expect(expectedResult.config.response_format).toEqual({
       type: 'json_object',
     });
-    expect(insightResult.config.response_format).toBeUndefined();
   });
 
   it('does not use json_object response format when disabled', () => {
     const result = mimoAdapter.chatCompletion.buildChatCompletionParams({
-      intent: 'default',
+      expectedJsonObjectResponse: true,
       userConfig: { responseFormat: 'none' },
     });
 

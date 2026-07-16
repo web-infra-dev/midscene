@@ -32,15 +32,15 @@ describe('doubao model adapter', () => {
     });
   });
 
-  it('uses json_object response format for locate intent unless disabled', () => {
+  it('uses json_object response format when expected unless disabled', () => {
     const autoResult =
       doubaoVisionAdapter.chatCompletion.buildChatCompletionParams({
-        intent: 'default',
+        expectedJsonObjectResponse: true,
         userConfig: {},
       });
     const disabledResult =
       doubaoVisionAdapter.chatCompletion.buildChatCompletionParams({
-        intent: 'default',
+        expectedJsonObjectResponse: true,
         userConfig: { responseFormat: 'none' },
       });
 

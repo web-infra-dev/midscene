@@ -88,9 +88,9 @@ describe('glm model adapter', () => {
     });
   });
 
-  it('uses json_object response format for glm-v locate intent', () => {
+  it('uses json_object response format when expected for glm-v', () => {
     const result = glmAdapter.chatCompletion.buildChatCompletionParams({
-      intent: 'default',
+      expectedJsonObjectResponse: true,
       userConfig: {},
     });
 
@@ -103,7 +103,7 @@ describe('glm model adapter', () => {
 
   it('does not use json_object response format when disabled', () => {
     const result = glmAdapter.chatCompletion.buildChatCompletionParams({
-      intent: 'default',
+      expectedJsonObjectResponse: true,
       userConfig: { responseFormat: 'none' },
     });
 

@@ -57,12 +57,22 @@ export interface ChatCompletionCallInput {
   intent?: TIntent;
   userConfig?: ChatCompletionCallUserConfig;
   requiresOriginalImageDetail?: boolean;
+  /**
+   * Whether this call expects a JSON object response.
+   *
+   * This must not be inferred from `intent === 'default'`: intent selects a
+   * model-config slot, while many non-locate calls (for example, browser
+   * extension recording data generation that produces YAML) also use the
+   * default model.
+   */
+  expectedJsonObjectResponse?: boolean;
 }
 
 export interface ChatCompletionCallContext {
   intent?: TIntent;
   userConfig: ChatCompletionCallUserConfig;
   requiresOriginalImageDetail?: boolean;
+  expectedJsonObjectResponse?: boolean;
   midsceneDefaults: MidsceneChatCompletionDefaults;
 }
 

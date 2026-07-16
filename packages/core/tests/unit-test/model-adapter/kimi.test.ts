@@ -150,9 +150,9 @@ describe('kimi model adapter', () => {
     });
   });
 
-  it('uses json_object response format for kimi locate intent', () => {
+  it('uses json_object response format when expected for kimi', () => {
     const result = kimiAdapter.chatCompletion.buildChatCompletionParams({
-      intent: 'default',
+      expectedJsonObjectResponse: true,
       userConfig: {},
     });
 
@@ -161,7 +161,7 @@ describe('kimi model adapter', () => {
 
   it('does not use json_object response format when disabled', () => {
     const result = kimiAdapter.chatCompletion.buildChatCompletionParams({
-      intent: 'default',
+      expectedJsonObjectResponse: true,
       userConfig: { responseFormat: 'none' },
     });
 
