@@ -40,7 +40,7 @@ vi.mock('../src/renderer/hooks/useStudioUpdater', () => ({
     appVersion: '0.0.0-test',
     download: vi.fn(async () => undefined),
     install: vi.fn(async () => undefined),
-    status: { state: 'idle' },
+    status: { state: 'available', version: 'test' },
   }),
 }));
 
@@ -207,6 +207,28 @@ describe('ShellLayout right panel tabs', () => {
   afterEach(() => {
     document.body.replaceChildren();
     vi.clearAllMocks();
+  });
+
+  it('aligns the update pill with the sidebar toggle in one titlebar flex row', async () => {
+    const { container, root } = await renderShellLayout();
+    const updateButton = container.querySelector<HTMLButtonElement>(
+      'button[aria-label="Update available"]',
+    );
+
+    expect(updateButton?.className).toContain('h-[22px]');
+    expect(updateButton?.parentElement?.className).toContain('items-center');
+    expect(updateButton?.parentElement?.style.top).toBe('16px');
+
+    await act(async () => {
+      container
+        .querySelector<HTMLButtonElement>('[aria-label="Collapse sidebar"]')
+        ?.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true }));
+    });
+
+    expect(container.contains(updateButton)).toBe(true);
+    expect(updateButton?.parentElement?.style.left).toBe('98px');
+
+    await act(async () => root.unmount());
   });
 
   it('passes the Windows titlebar safety inset to a right-side Markdown drawer', async () => {

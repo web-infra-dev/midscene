@@ -16,11 +16,7 @@
   overflow: hidden;
   border-top-right-radius: 12px;
   border-bottom-right-radius: 12px;
-  background: var(--midscene-surface);
-}
-
-[data-theme="dark"] .playground-shell {
-  background: #181818;
+  background: transparent;
 }
 
 [data-theme="dark"] .playground-shell > .app-drag {
@@ -38,11 +34,7 @@
 }
 
 .playground-shell .playground-container {
-  background: var(--midscene-surface);
-}
-
-[data-theme="dark"] .playground-shell .playground-container {
-  background: #181818;
+  background: transparent;
 }
 
 .playground-shell-mode-menu {

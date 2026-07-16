@@ -71,4 +71,10 @@ describe('recorder timeline styles', () => {
       /\.studio-timeline-panel-scroll-body::-webkit-scrollbar\s*\{\s*width: 0;\s*height: 0;/,
     );
   });
+
+  it('keeps the recorder primary copy legible in dark mode', () => {
+    expect(styles).toMatch(
+      /\[data-theme="dark"\]\s+\.studio-recorder-floating-primer-status,\s*\[data-theme="dark"\]\s+\.studio-recorder-floating-primer-status-copy\s*\{\s*color: #fff;/,
+    );
+  });
 });

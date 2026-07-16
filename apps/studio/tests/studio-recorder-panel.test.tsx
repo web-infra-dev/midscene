@@ -247,6 +247,7 @@ describe('StudioRecorderPanel', () => {
     expect(container.textContent).not.toContain(
       'The recording progress will be displayed here.',
     );
+    expect(container.textContent).toContain('Record & Generate Markdown');
     expect(container.textContent).toContain(
       'Record interactions, then generate a natural language description.',
     );
@@ -730,7 +731,13 @@ describe('StudioRecorderPanel', () => {
     expect(container.textContent).not.toContain('Show more');
     expect(container.textContent).not.toContain('Hide more');
     expect(container.textContent).not.toContain('Outputs');
-    expect(container.textContent).toContain('Recording your actions');
+    expect(container.textContent).toContain('Record & Generate Markdown');
+    expect(container.textContent).toContain(
+      'Record interactions, then generate a natural language description.',
+    );
+    expect(
+      container.querySelector('.studio-recorder-floating-recording-dot'),
+    ).not.toBeNull();
     expect(
       container.querySelector('button[aria-label="Stop recording"]')
         ?.textContent,

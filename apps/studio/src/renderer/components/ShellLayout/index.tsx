@@ -42,7 +42,6 @@ const SIDEBAR_MAX_WIDTH = 400;
 
 const SIDEBAR_COLLAPSED_WIDTH = 0;
 const COLLAPSED_TITLEBAR_INSET = 280;
-const UPDATE_PILL_LEFT = 128;
 const SIDEBAR_TOGGLE_LEFT = 98;
 const SIDEBAR_TRANSITION_CLASS = 'duration-200 ease-[cubic-bezier(0.2,0,0,1)]';
 const STUDIO_RIGHT_PANEL_ANIMATION_MS = 160;
@@ -121,7 +120,7 @@ function UpdatePill({
   return (
     <button
       aria-label={title}
-      className="app-no-drag box-border inline-flex items-center gap-[4px] rounded-[40px] border-0 bg-[#DEEBEC] p-[5px] font-sans text-[11px] font-medium leading-[12px] text-[#1A79FF]"
+      className="app-no-drag box-border inline-flex h-[22px] items-center gap-[4px] rounded-[40px] border-0 bg-[#DEEBEC] px-[5px] py-[3px] font-sans text-[11px] font-medium leading-[12px] text-[#1A79FF]"
       disabled={isDownloading}
       onClick={() => {
         if (status.state === 'available') {
@@ -524,28 +523,7 @@ export default function ShellLayout() {
       </div>
 
       <div
-        className="app-no-drag absolute z-[80]"
-        style={{
-          left: UPDATE_PILL_LEFT,
-          top: TITLEBAR_CONTROL_TOP,
-        }}
-      >
-        <UpdatePill
-          onDownload={() => {
-            void updater.download();
-          }}
-          onInstall={() => {
-            void updater.install();
-          }}
-          onOpenDownloadPage={() =>
-            openExternalUrl(STUDIO_EXTERNAL_LINKS.studioReleases)
-          }
-          status={updater.status}
-        />
-      </div>
-
-      <div
-        className={`app-no-drag absolute z-[80] flex items-center gap-[8px] transition-[opacity,transform] ${SIDEBAR_TRANSITION_CLASS}`}
+        className={`app-no-drag absolute z-[80] flex h-[22px] items-center gap-[8px] transition-[opacity,transform] ${SIDEBAR_TRANSITION_CLASS}`}
         style={{ left: SIDEBAR_TOGGLE_LEFT, top: SIDEBAR_TOGGLE_TOP }}
       >
         <button
@@ -566,6 +544,18 @@ export default function ShellLayout() {
         >
           <SidebarCollapseIcon collapsed={sidebarCollapsed} />
         </button>
+        <UpdatePill
+          onDownload={() => {
+            void updater.download();
+          }}
+          onInstall={() => {
+            void updater.install();
+          }}
+          onOpenDownloadPage={() =>
+            openExternalUrl(STUDIO_EXTERNAL_LINKS.studioReleases)
+          }
+          status={updater.status}
+        />
       </div>
 
       <ModelEnvConfigModal

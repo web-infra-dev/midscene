@@ -8,6 +8,13 @@ const recorderStyles = readFileSync(
   ),
   'utf8',
 );
+const playgroundShellStyles = readFileSync(
+  new URL(
+    '../src/renderer/components/PlaygroundShell/playground-shell-skin.css',
+    import.meta.url,
+  ),
+  'utf8',
+);
 const mainContent = readFileSync(
   new URL('../src/renderer/components/MainContent/index.tsx', import.meta.url),
   'utf8',
@@ -26,6 +33,15 @@ describe('floating Replay panel layout', () => {
     );
     expect(recorderStyles).toMatch(
       /\.studio-mode-panel-pane-active\s*\{\s*position:\s*relative;[\s\S]*?height:\s*auto;/,
+    );
+  });
+
+  it('keeps the Replay execution shell transparent behind the rounded Timeline', () => {
+    expect(playgroundShellStyles).toMatch(
+      /\.playground-shell\s*\{[\s\S]*?background:\s*transparent;/,
+    );
+    expect(playgroundShellStyles).toMatch(
+      /\.playground-shell\s+\.playground-container\s*\{\s*background:\s*transparent;/,
     );
   });
 });

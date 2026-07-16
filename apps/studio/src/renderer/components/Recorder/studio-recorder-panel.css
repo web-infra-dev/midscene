@@ -2538,6 +2538,11 @@
   color: rgba(255, 255, 255, 0.9);
 }
 
+[data-theme="dark"] .studio-recorder-floating-primer-status,
+[data-theme="dark"] .studio-recorder-floating-primer-status-copy {
+  color: #fff;
+}
+
 [data-theme="dark"] .studio-recorder-floating-start-button-active {
   border-color: rgba(255, 255, 255, 0.14);
   background: #242424;

@@ -668,16 +668,12 @@ export function RecorderFloatingPanel({
                 }
               />
               <span className="studio-recorder-floating-primer-status-copy">
-                {showRecordingVisual
-                  ? 'Recording your actions'
-                  : 'Record interactions,'}
+                Record &amp; Generate Markdown
               </span>
             </div>
-            {!showRecordingVisual ? (
-              <span className="studio-recorder-floating-primer-description">
-                {' then generate a natural language description.'}
-              </span>
-            ) : null}
+            <span className="studio-recorder-floating-primer-description">
+              Record interactions, then generate a natural language description.
+            </span>
           </div>
           <div className="studio-recorder-floating-start-button-shell">
             <button
