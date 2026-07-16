@@ -3,8 +3,6 @@ import { join } from 'node:path';
 import type { Reporter, TestFileResult } from '@rstest/core';
 import { MANIFEST_DIR, manifestKey } from './utils';
 
-// node:util.styleText was added in Node 20; use a raw ANSI escape so the
-// Node 18.19+ floor declared in `engines` keeps working.
 const cyan = (text: string): string => `\x1b[36m${text}\x1b[0m`;
 
 export default class MidsceneReporter implements Reporter {

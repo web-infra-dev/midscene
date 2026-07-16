@@ -6,7 +6,12 @@ import {
   type WebPageAgentOpt,
   overrideAIConfig,
 } from '@midscene/web/puppeteer';
-import { afterAll, test as baseTest, beforeAll } from '@rstest/core';
+import {
+  type TestAPIs,
+  afterAll,
+  test as baseTest,
+  beforeAll,
+} from '@rstest/core';
 import puppeteer, {
   type Browser,
   type GoToOptions,
@@ -25,7 +30,6 @@ import {
   buildReportMeta,
 } from './report-helper';
 import { type Resolver, applyResolver } from './resolve';
-import type { TestApi } from './test-api-types';
 
 /**
  * Cache configuration shape exposed to rstest users. `id` is optional — when
@@ -142,7 +146,7 @@ afterAll(async () => {
 
 function acquireBrowser(opts: MidsceneOptions): Promise<Browser> {
   if (!_browserPromise) {
-    _browserPromise = applyResolver(opts.launchOptions, {
+    _browserPromise = applyResolver<LaunchOptions>(opts.launchOptions, {
       headless: opts.headless ?? isCI,
       args: DEFAULT_BROWSER_ARGS,
       defaultViewport: opts.viewport ?? DEFAULT_VIEWPORT,
@@ -235,4 +239,4 @@ export const test = baseTest.extend<InternalFixtures>({
     }
     void agent;
   },
-}) as unknown as TestApi<MidsceneFixtures>;
+}) as unknown as TestAPIs<MidsceneFixtures>;

@@ -6,15 +6,17 @@ import {
   type WebPageAgentOpt,
   overrideAIConfig,
 } from '@midscene/web/playwright';
-import { afterAll, test as baseTest, beforeAll } from '@rstest/core';
 import {
-  type Browser,
-  type BrowserContext,
-  type BrowserContextOptions,
-  type LaunchOptions,
-  type Page,
-  chromium,
-} from 'playwright';
+  afterAll as rstestAfterAll,
+  beforeAll as rstestBeforeAll,
+} from '@rstest/core';
+import {
+  type PlaywrightFixture,
+  type PlaywrightOptions,
+  type PlaywrightTest,
+  test as playwrightBaseTest,
+} from '@rstest/playwright';
+import type { BrowserContextOptions, LaunchOptions, Page } from 'playwright';
 import { isCI } from 'std-env';
 import {
   DEFAULT_BROWSER_ARGS,
@@ -27,7 +29,6 @@ import {
   buildReportMeta,
 } from './report-helper';
 import { type Resolver, applyResolver } from './resolve';
-import type { TestApi } from './test-api-types';
 
 type GoToOptions = NonNullable<Parameters<Page['goto']>[1]>;
 
@@ -53,6 +54,28 @@ export type { Resolver };
 export { overrideAIConfig };
 export type { WebPageAgentOpt };
 
+// Re-export the upstream surface so users can import everything (Playwright
+// flavored `expect`, hooks, fixture/option types) from a single entry.
+export {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+} from '@rstest/playwright';
+export type {
+  PlaywrightDebugOptions,
+  PlaywrightFixture,
+  PlaywrightOptions,
+  PlaywrightServe,
+  PlaywrightServeOptions,
+  PlaywrightServeResult,
+  PlaywrightTest,
+  PlaywrightTraceMode,
+  PlaywrightTraceOptions,
+} from '@rstest/playwright';
+
 const debug = getDebug('rstest:playwright', { console: true });
 
 export interface MidsceneOptions {
@@ -70,6 +93,17 @@ export interface MidsceneOptions {
   contextOptions?: Resolver<BrowserContextOptions>;
   gotoOptions?: GoToOptions;
   agentOptions?: AgentOptions;
+  /**
+   * Passed through to `@rstest/playwright`'s debug support: headed browser,
+   * slowMo, DevTools, pause-on-failure. Also enabled via the `PWDEBUG` env.
+   */
+  debug?: PlaywrightOptions['debug'];
+  /**
+   * Passed through to `@rstest/playwright`'s trace support: saves a Playwright
+   * trace (`trace.zip` + AI-readable summary). Also enabled via the
+   * `RSTEST_PLAYWRIGHT_TRACE` env.
+   */
+  trace?: PlaywrightOptions['trace'];
 }
 
 export type AgentForPage = (
@@ -85,11 +119,10 @@ export interface MidsceneFixtures {
    */
   url: string;
   /**
-   * File-scoped Playwright `Browser`. Launched lazily — if no test in the file
-   * destructures anything that depends on `browser`, no browser is started.
+   * Per-test page created from `@rstest/playwright`'s `context` fixture, with
+   * `url` auto-navigation on top. `browser` / `context` / `request` / `serve`
+   * come straight from `@rstest/playwright`.
    */
-  browser: Browser;
-  context: BrowserContext;
   page: Page;
   agent: PlaywrightAgent;
   /**
@@ -99,11 +132,13 @@ export interface MidsceneFixtures {
   agentForPage: AgentForPage;
 }
 
-// Private fixture — shared meta + startTime so primary and secondaries get
-// the same timestamp in their reportFileName. Hidden from the public type via
-// the cast at the bottom.
+// Private fixtures — hidden from the public type via the cast at the bottom.
+// `__reportMeta` shares meta + startTime so primary and secondaries get the
+// same timestamp in their reportFileName. `playwright` re-declares the
+// upstream options fixture so the bridge override below typechecks.
 interface InternalFixtures extends MidsceneFixtures {
   __reportMeta: { meta: ReportMeta; startTime: number };
+  playwright: PlaywrightOptions;
 }
 
 const defaultsStore = createDefaultsStore<MidsceneOptions>();
@@ -124,12 +159,13 @@ const defaultsStore = createDefaultsStore<MidsceneOptions>();
 export const defineMidsceneDefaults = defaultsStore.define;
 
 // rstest's default `isolate: true` gives each test file a fresh module graph,
-// so these vars start clean per file.
+// so these vars start clean per file. Browser lifecycle is managed by
+// `@rstest/playwright` (shared per worker, closed when idle) — this module
+// only tracks report state.
 let _filepath = '';
-let _browserPromise: Promise<Browser> | null = null;
 const _reportHelper = new ReportHelper();
 
-beforeAll(async (suite: { filepath: string }) => {
+rstestBeforeAll(async (suite: { filepath: string }) => {
   if (_filepath && _filepath !== suite.filepath) {
     throw new Error(
       `@midscene/rstest requires test isolation but detected module-graph reuse across files (${_filepath} -> ${suite.filepath}). Remove \`isolate: false\` from your rstest config.`,
@@ -138,31 +174,11 @@ beforeAll(async (suite: { filepath: string }) => {
   _filepath = suite.filepath;
 });
 
-afterAll(async () => {
+rstestAfterAll(async () => {
   _reportHelper.mergeReports(_filepath);
-  if (_browserPromise) {
-    try {
-      await (await _browserPromise).close();
-    } catch (err) {
-      debug('browser close failed:', err);
-    }
-    _browserPromise = null;
-  }
 });
 
-function acquireBrowser(opts: MidsceneOptions): Promise<Browser> {
-  if (!_browserPromise) {
-    _browserPromise = applyResolver(opts.launchOptions, {
-      headless: opts.headless ?? isCI,
-      args: DEFAULT_BROWSER_ARGS,
-    }).then((launchOptions) => chromium.launch(launchOptions));
-  }
-  return _browserPromise;
-}
-
-// rstest 0.9.9 doesn't export the type of `extend`'s return value; cast via the
-// hand-rolled `TestApi` (see `test-api-types.ts`).
-export const test = baseTest.extend<InternalFixtures>({
+export const test = playwrightBaseTest.extend<InternalFixtures>({
   midsceneOptions: async (_ctx, use) => {
     await use(defaultsStore.get());
   },
@@ -176,29 +192,46 @@ export const test = baseTest.extend<InternalFixtures>({
     });
   },
 
-  browser: async ({ midsceneOptions }, use) => {
-    await use(await acquireBrowser(midsceneOptions));
-  },
-
-  context: async ({ browser, midsceneOptions }, use) => {
-    const contextOptions = await applyResolver(midsceneOptions.contextOptions, {
-      viewport: midsceneOptions.viewport ?? DEFAULT_VIEWPORT,
+  // Bridge `midsceneOptions` onto `@rstest/playwright`'s `playwright` options
+  // fixture. Browser/context lifecycle (including debug mode and trace
+  // capture) is fully managed upstream from these options.
+  playwright: async ({ midsceneOptions }, use) => {
+    const launchOptions = await applyResolver<LaunchOptions>(
+      midsceneOptions.launchOptions,
+      {
+        headless: midsceneOptions.headless ?? isCI,
+        args: DEFAULT_BROWSER_ARGS,
+      },
+    );
+    const contextOptions = await applyResolver<BrowserContextOptions>(
+      midsceneOptions.contextOptions,
+      {
+        viewport: midsceneOptions.viewport ?? DEFAULT_VIEWPORT,
+      },
+    );
+    await use({
+      launchOptions,
+      contextOptions,
+      debug: midsceneOptions.debug,
+      trace: midsceneOptions.trace,
     });
-    const context = await browser.newContext(contextOptions);
-    await use(context);
-    try {
-      await context.close();
-    } catch (err) {
-      debug('context close failed:', err);
-    }
   },
 
+  // Override upstream `page` to add `url` auto-navigation. rstest fixture
+  // overrides cannot consume the overridden base value (it would be flagged
+  // as a circular dependency), so the page is re-created from the upstream
+  // `context` fixture instead of wrapping the upstream `page`.
   page: async ({ context, url, midsceneOptions }, use) => {
     const page = await context.newPage();
     if (url) {
       await page.goto(url, midsceneOptions.gotoOptions);
     }
     await use(page);
+    try {
+      await page.close();
+    } catch (err) {
+      debug('page close failed:', err);
+    }
   },
 
   agent: async ({ page, midsceneOptions, __reportMeta, task }, use) => {
@@ -255,4 +288,4 @@ export const test = baseTest.extend<InternalFixtures>({
     }
     void agent;
   },
-}) as unknown as TestApi<MidsceneFixtures>;
+}) as unknown as PlaywrightTest<PlaywrightFixture & MidsceneFixtures>;
