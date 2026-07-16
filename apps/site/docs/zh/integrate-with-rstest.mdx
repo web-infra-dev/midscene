@@ -3,7 +3,7 @@ import { PackageManagerTabs } from '@theme';
 
 # 集成到 Rstest
 
-[Rstest](https://github.com/web-infra-dev/rstest) 是基于 Rspack 的高性能测试框架。`@midscene/rstest` 把 midscene 暴露成原生 rstest fixtures —— 浏览器启动、Agent 创建、HTML 报告生成都由 Midscene 自动处理。
+[Rstest](https://github.com/web-infra-dev/rstest) 是基于 Rspack 的高性能测试框架。`@midscene/rstest` 把 Midscene 暴露成原生 Rstest fixtures —— 浏览器启动、Agent 创建、HTML 报告生成都由 Midscene 自动处理。
 
 ```ts
 import { expect, test as base } from '@midscene/rstest';
@@ -79,16 +79,16 @@ test('adds and completes a todo', async ({ agent }) => {
 });
 ```
 
-`@midscene/rstest` 导出的 `test` 是预先挂好了 midscene fixtures 的 rstest test。直接从 test context 解构需要的 fixture，fixture 引擎会按依赖关系拓扑展开 setup 与 teardown。
+`@midscene/rstest` 导出的 `test` 是预先挂好了 Midscene fixtures 的 Rstest test。直接从 test context 解构需要的 fixture，fixture 引擎会按依赖关系拓扑展开 setup 与 teardown。
 
 可用的 fixtures：
 
-- **`agent`** —— 绑定到主 page 上的 midscene `PlaywrightAgent`。AI action 和 assertion 的默认入口。
+- **`agent`** —— 绑定到主 page 上的 Midscene `PlaywrightAgent`。AI action 和 assertion 的默认入口。
 - **`page`** —— 底层的 Playwright `Page`。`agent` 做不到或不该做的事的 escape hatch：`page.route(...)` network mock、`page.evaluate(...)`、`page.context().cookies()` 等。
 - **`browser`** —— 共享的 `Browser`，由 `@rstest/playwright` 管理：惰性启动、worker 内共享、空闲时自动关闭。在测试中开新 context / 新 page（多用户、跨会话场景）用。
 - **`context`** —— 创建主 `page` 的 test-scoped `BrowserContext`。需要自定义 context 时通过 `test.extend` 覆盖。
 - **`request`** / **`serve`** —— 继承自 `@rstest/playwright`：隔离的 `APIRequestContext` 用于 API 调用，以及一行代码起静态文件服务器（自动清理）。
-- **`agentForPage(page, opts?)`** —— 为另一个 page（popup、手动开的 page）构造一个 midscene agent。报告会和主 agent 合并，销毁自动完成。
+- **`agentForPage(page, opts?)`** —— 为另一个 page（popup、手动开的 page）构造一个 Midscene Agent。报告会和主 agent 合并，销毁自动完成。
 - **`url`** / **`midsceneOptions`** —— 配置 fixtures。详见 [项目级默认配置](#项目级默认配置可选) 与 [自定义 page 设置](#自定义-page-设置)。
 
 ```ts
@@ -143,7 +143,7 @@ Midscene report: midscene_run/report/<file>.html
 
 ## 项目级默认配置（可选）
 
-如果希望所有文件共享同一份配置，把 `defineMidsceneDefaults` 写到一个 setup 文件里，通过 rstest 的 `setupFiles` 注册：
+如果希望所有文件共享同一份配置，把 `defineMidsceneDefaults` 写到一个 setup 文件里，通过 Rstest 的 `setupFiles` 注册：
 
 ```ts title="midscene.setup.ts"
 import { defineMidsceneDefaults } from '@midscene/rstest';
@@ -163,7 +163,7 @@ export default defineConfig({
 
 :::warning 必须从 `setupFiles` 里调用
 
-每个 test file 在 rstest 默认的 `isolate: true` 模式下都有自己独立的 module graph，`defineMidsceneDefaults` 写入的是一个 module-scoped store——所以必须从被 rstest 当作每个 test file 启动链路一部分的 setup file 中调用。在某个单一 test file 内部调用只会影响该文件本身。
+每个 test file 在 Rstest 默认的 `isolate: true` 模式下都有自己独立的 module graph，`defineMidsceneDefaults` 写入的是一个 module-scoped store——所以必须从被 Rstest 当作每个 test file 启动链路一部分的 setup file 中调用。在某个单一 test file 内部调用只会影响该文件本身。
 
 :::
 
@@ -180,18 +180,18 @@ const test = base.extend({
 });
 ```
 
-`launchOptions`、`contextOptions` 这类 resolver 字段会在 midscene 默认值之上做**深度合并**，数组自动拼接。需要从默认值里去掉某个字段、或完全接管，用 resolver 的函数形式 `(defaults) => ...`。
+`launchOptions`、`contextOptions` 这类 resolver 字段会在 Midscene 默认值之上做**深度合并**，数组自动拼接。需要从默认值里去掉某个字段、或完全接管，用 resolver 的函数形式 `(defaults) => ...`。
 
-## 配置 midscene
+## 配置 Midscene
 
-midscene 从四个渠道读取配置，按你想影响的作用域选一个。
+Midscene 从四个渠道读取配置，按你想影响的作用域选一个。
 
-1. **环境变量**（模型端点、API Key、vision-family 开关、cache 目录、report 目录、debug 开关）：用你平时设环境变量的方式即可（`.env`、CI secret、shell export）。midscene runtime 会自动读取，不用额外接线。完整列表见 [model 配置参考](./model-and-provider)。示例：
+1. **环境变量**（模型端点、API Key、vision-family 开关、cache 目录、report 目录、debug 开关）：用你平时设环境变量的方式即可（`.env`、CI secret、shell export）。Midscene runtime 会自动读取，不用额外接线。完整列表见 [模型配置](./model-config)。示例：
 
    ```bash
    MIDSCENE_MODEL_BASE_URL=https://api.openai.com/v1
    MIDSCENE_MODEL_API_KEY=sk-...
-   MIDSCENE_MODEL_NAME=gpt-4o
+   MIDSCENE_MODEL_NAME=qwen3.7-plus
    MIDSCENE_DEBUG_MODEL_RESPONSE=1   # 把模型原始响应 dump 到磁盘
    MIDSCENE_RUN_DIR=./midscene_run   # 报告 + 缓存的根目录
    ```
@@ -217,7 +217,7 @@ midscene 从四个渠道读取配置，按你想影响的作用域选一个。
    import { overrideAIConfig } from '@midscene/rstest';
 
    overrideAIConfig({
-     MIDSCENE_MODEL_NAME: process.env.CI ? 'gpt-4o' : 'gpt-4o-mini',
+     MIDSCENE_MODEL_NAME: process.env.CI ? 'gpt-5.5' : 'gpt-5.4',
    });
    ```
 
@@ -242,11 +242,11 @@ midscene 从四个渠道读取配置，按你想影响的作用域选一个。
 | `debug` | `boolean \| PlaywrightDebugOptions` | `false` | 透传给 `@rstest/playwright`：headed 浏览器、slowMo、DevTools、失败时暂停。也可通过 `PWDEBUG` 环境变量开启。 |
 | `trace` | `'off' \| 'on' \| 'retain-on-failure' \| PlaywrightTraceOptions` | `'off'` | 透传给 `@rstest/playwright`：为每个 test 保存 Playwright trace（`trace.zip` + AI 可读的 summary）。也可通过 `RSTEST_PLAYWRIGHT_TRACE` 环境变量开启。 |
 
-`launchOptions`、`contextOptions` 这类 resolver 字段同时接受对象、函数 `(defaults) => options`（同步或异步）、以及它们组成的数组——对象形态会和 midscene 默认值做**深度合并**、数组自动拼接，函数形态则可以完全接管。
+`launchOptions`、`contextOptions` 这类 resolver 字段同时接受对象、函数 `(defaults) => options`（同步或异步）、以及它们组成的数组——对象形态会和 Midscene 默认值做**深度合并**、数组自动拼接，函数形态则可以完全接管。
 
 ### 示例
 
-加一个 launch flag，同时保留 midscene 在 CI 上必需的默认 args：
+加一个 launch flag，同时保留 Midscene 在 CI 上必需的默认 args：
 
 ```ts
 const test = base.extend({
@@ -340,7 +340,7 @@ const test = base.extend({
 
 `page` fixture 的 teardown 在 `agent.destroy()` **之后**触发，此时 page 仍然存活 —— 这正是保存录屏、dump cookies 等操作的窗口期。共享的 `browser` 和默认构造的 `context` 也都还活着；只有你自己开的资源由你自己的 teardown 决定何时关闭。
 
-如果需要更深层定制（比如完全自建一个 persistent context），覆盖 `context` fixture —— 默认的 `page` 会自动复用你产出的 context。注意 rstest 的 fixture 覆写不能引用被覆写的原值：自定义 `page` 从 `context` 构建，自定义 `context` 从 `browser` 构建。
+如果需要更深层定制（比如完全自建一个 persistent context），覆盖 `context` fixture —— 默认的 `page` 会自动复用你产出的 context。注意 Rstest 的 fixture 覆写不能引用被覆写的原值：自定义 `page` 从 `context` 构建，自定义 `context` 从 `browser` 构建。
 
 ## 多 Persona 与组合 fixtures
 
