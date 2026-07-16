@@ -82,6 +82,39 @@ describe('parseModelResponseJson', () => {
     expect(result).toEqual({ key: 'value' });
   });
 
+  it('should remove stray bbox tag fragments from locate responses after jsonrepair fails', () => {
+    const tagFragments = [
+      '<bbox>',
+      '<bbox',
+      'bbox>',
+      '</bbox>',
+      '/bbox>',
+      '</bbox',
+      '/bbox',
+    ];
+
+    for (const tagFragment of tagFragments) {
+      expect(
+        parseModelResponseJson(
+          `{
+          "bbox": [725, 505, 900, 526]${tagFragment}
+        }`,
+          { source: 'locate' },
+        ),
+      ).toEqual({
+        bbox: [725, 505, 900, 526],
+      });
+    }
+  });
+
+  it('should not remove stray bbox tag fragments from non-locate responses', () => {
+    expect(() =>
+      parseModelResponseJson('{"bbox": [725, 505, 900, 526]</bbox>}', {
+        source: 'generic-object',
+      }),
+    ).toThrow(/failed to parse LLM response into JSON/);
+  });
+
   it('should throw error for unparseable content', () => {
     const input = '{foo: true false}';
     expect(() => parseModelResponseJson(input)).toThrow(
