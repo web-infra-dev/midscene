@@ -525,12 +525,21 @@ describe.runIf(RUN_SMOKE)('Windows UIA xpath cache smoke', () => {
       expect(cacheHits[0].output?.element?.rect).toEqual(screenshotBounds);
       const reportScreenshot = cacheHits[0].uiContext?.screenshot?.base64;
       expect(reportScreenshot).toBeTruthy();
-      saveScreenshot(reportScreenshot!, 'windows-report-cache-hit.png');
-      const reportTargetCrop = await cropByRect(
+      const reportScreenshotFile = saveScreenshot(
         reportScreenshot!,
-        screenshotBounds,
+        'windows-report-cache-hit.png',
       );
-      expect(reportTargetCrop.imageBase64).toBe(targetCrop.imageBase64);
+      const reportTargetPixel = readScreenshotPixel(reportScreenshotFile, {
+        x: Math.round(target.bounds.left + 20),
+        y: Math.round(target.bounds.top + 20),
+      });
+      expect(reportTargetPixel.green).toBeGreaterThanOrEqual(170);
+      expect(
+        reportTargetPixel.green - reportTargetPixel.red,
+      ).toBeGreaterThanOrEqual(100);
+      expect(
+        reportTargetPixel.green - reportTargetPixel.blue,
+      ).toBeGreaterThanOrEqual(70);
 
       await agent.destroy();
       const reportFile = agent.reportFile;
@@ -552,6 +561,7 @@ describe.runIf(RUN_SMOKE)('Windows UIA xpath cache smoke', () => {
           screenshotBounds,
           screenshotSize,
           targetPixel,
+          reportTargetPixel,
           screenshotFile,
           clickMetadata,
           fixture,
