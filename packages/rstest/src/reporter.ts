@@ -1,19 +1,19 @@
 import { readFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import type { Reporter, TestFileResult } from '@rstest/core';
-import { MANIFEST_DIR, manifestKey } from './utils';
+import { getManifestDir, manifestKey } from './utils';
 
 const cyan = (text: string): string => `\x1b[36m${text}\x1b[0m`;
 
 export default class MidsceneReporter implements Reporter {
   onTestRunStart(): void {
     // Pre-clean in case a previous run crashed mid-flight.
-    rmSync(MANIFEST_DIR, { recursive: true, force: true });
+    rmSync(getManifestDir(), { recursive: true, force: true });
   }
 
   onTestFileResult(file: TestFileResult): void {
     const manifestFile = join(
-      MANIFEST_DIR,
+      getManifestDir(),
       `${manifestKey(file.testPath)}.txt`,
     );
     let report: string;

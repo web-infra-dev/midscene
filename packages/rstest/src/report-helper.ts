@@ -3,7 +3,7 @@ import { basename, extname, join } from 'node:path';
 import type { TestStatus } from '@midscene/core';
 import { ReportMergingTool } from '@midscene/core/report';
 import { replaceIllegalPathCharsAndSpace } from '@midscene/shared/utils';
-import { MANIFEST_DIR, generateTimestamp, manifestKey } from './utils';
+import { generateTimestamp, getManifestDir, manifestKey } from './utils';
 
 export interface RstestTestContext {
   task: {
@@ -84,8 +84,9 @@ export class ReportHelper {
     const report = merged ?? this.firstReport;
 
     if (report) {
-      mkdirSync(MANIFEST_DIR, { recursive: true });
-      writeFileSync(join(MANIFEST_DIR, `${manifestKey(filepath)}.txt`), report);
+      const manifestDir = getManifestDir();
+      mkdirSync(manifestDir, { recursive: true });
+      writeFileSync(join(manifestDir, `${manifestKey(filepath)}.txt`), report);
     }
 
     this.firstReport = null;
