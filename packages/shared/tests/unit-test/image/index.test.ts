@@ -7,6 +7,7 @@ import {
   compositePointMarkerImg,
   httpImg2Base64,
   imageInfoOfBase64,
+  imagePixelAtPoint,
   isValidPNGImageBuffer,
   localImg2Base64,
   resizeAndConvertImgBuffer,
@@ -285,6 +286,30 @@ describe('image utils', () => {
       width: 101,
       height: 41,
     });
+  });
+
+  it('imagePixelAtPoint', async () => {
+    const imageBuffer = await sharp({
+      create: {
+        width: 2,
+        height: 2,
+        channels: 4,
+        background: { r: 12, g: 34, b: 56, alpha: 0.5 },
+      },
+    })
+      .png()
+      .toBuffer();
+    const base64 = `data:image/png;base64,${imageBuffer.toString('base64')}`;
+
+    await expect(imagePixelAtPoint(base64, { x: 1, y: 0 })).resolves.toEqual({
+      red: 12,
+      green: 34,
+      blue: 56,
+      alpha: 128,
+    });
+    await expect(imagePixelAtPoint(base64, { x: 2, y: 0 })).rejects.toThrow(
+      'outside 2x2',
+    );
   });
 
   it('isValidPNGImageBuffer', () => {

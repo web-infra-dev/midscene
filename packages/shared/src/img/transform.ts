@@ -351,6 +351,47 @@ export async function photonFromBase64(
   return result instanceof Promise ? await result : result;
 }
 
+export interface ImagePixel {
+  red: number;
+  green: number;
+  blue: number;
+  alpha: number;
+}
+
+export async function imagePixelAtPoint(
+  imageBase64: string,
+  point: { x: number; y: number },
+): Promise<ImagePixel> {
+  const image = await photonFromBase64(imageBase64);
+  try {
+    const width = image.get_width();
+    const height = image.get_height();
+    if (
+      !Number.isInteger(point.x) ||
+      !Number.isInteger(point.y) ||
+      point.x < 0 ||
+      point.y < 0 ||
+      point.x >= width ||
+      point.y >= height
+    ) {
+      throw new Error(
+        `Image pixel point (${point.x}, ${point.y}) is outside ${width}x${height}`,
+      );
+    }
+
+    const pixels = image.get_raw_pixels();
+    const offset = (point.y * width + point.x) * 4;
+    return {
+      red: pixels[offset],
+      green: pixels[offset + 1],
+      blue: pixels[offset + 2],
+      alpha: pixels[offset + 3],
+    };
+  } finally {
+    image.free();
+  }
+}
+
 // https://help.aliyun.com/zh/model-studio/user-guide/vision/
 export async function paddingToMatchBlock(
   image: PhotonImageType,

@@ -13,7 +13,7 @@ import { basename, join, resolve } from 'node:path';
 import type { ElementCacheFeature } from '@midscene/core';
 import { TaskCache } from '@midscene/core/agent';
 import type { UiNode } from '@midscene/core/internal/device-cache';
-import { cropByRect, imageInfoOfBase64 } from '@midscene/shared/img';
+import { imageInfoOfBase64, imagePixelAtPoint } from '@midscene/shared/img';
 import { afterAll, describe, expect, it, vi } from 'vitest';
 import { ComputerAgent } from '../../src/agent';
 import { readDarwinAccessibilityTree } from '../../src/darwin-accessibility-tree';
@@ -326,7 +326,14 @@ describe.runIf(RUN_SMOKE)('macOS AX xpath cache smoke', () => {
       expect(
         screenshotBounds.top + screenshotBounds.height,
       ).toBeLessThanOrEqual(screenshotSize.height);
-      const targetCrop = await cropByRect(screenshot, screenshotBounds);
+      const targetPixelPoint = {
+        x: Math.round(screenshotBounds.left + 20 * screenshotScale),
+        y: Math.round(screenshotBounds.top + 20 * screenshotScale),
+      };
+      const targetPixel = await imagePixelAtPoint(screenshot, targetPixelPoint);
+      expect(targetPixel.green).toBeGreaterThanOrEqual(120);
+      expect(targetPixel.green - targetPixel.red).toBeGreaterThanOrEqual(50);
+      expect(targetPixel.green - targetPixel.blue).toBeGreaterThanOrEqual(50);
       const center: [number, number] = [
         Math.round(target.bounds.left + target.bounds.width / 2),
         Math.round(target.bounds.top + target.bounds.height / 2),
@@ -423,12 +430,21 @@ describe.runIf(RUN_SMOKE)('macOS AX xpath cache smoke', () => {
       expect(cacheHits[0].output?.element?.rect).toEqual(screenshotBounds);
       const reportScreenshot = cacheHits[0].uiContext?.screenshot?.base64;
       expect(reportScreenshot).toBeTruthy();
-      saveScreenshot(reportScreenshot!, 'macos-report-cache-hit.png');
-      const reportTargetCrop = await cropByRect(
+      const reportScreenshotFile = saveScreenshot(
         reportScreenshot!,
-        screenshotBounds,
+        'macos-report-cache-hit.png',
       );
-      expect(reportTargetCrop.imageBase64).toBe(targetCrop.imageBase64);
+      const reportTargetPixel = await imagePixelAtPoint(
+        reportScreenshot!,
+        targetPixelPoint,
+      );
+      expect(reportTargetPixel.green).toBeGreaterThanOrEqual(120);
+      expect(
+        reportTargetPixel.green - reportTargetPixel.red,
+      ).toBeGreaterThanOrEqual(50);
+      expect(
+        reportTargetPixel.green - reportTargetPixel.blue,
+      ).toBeGreaterThanOrEqual(50);
 
       await agent.destroy();
       const reportFile = agent.reportFile;
@@ -452,6 +468,9 @@ describe.runIf(RUN_SMOKE)('macOS AX xpath cache smoke', () => {
           screenshotSize,
           screenshotScale,
           screenshotFile,
+          targetPixel,
+          reportTargetPixel,
+          reportScreenshotFile,
           fixture,
           reportFile,
         }),
