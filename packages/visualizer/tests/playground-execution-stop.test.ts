@@ -5,9 +5,12 @@ import { createRoot } from 'react-dom/client';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { usePlaygroundExecution } from '../src/hooks/usePlaygroundExecution';
 import type { InfoListItem, PlaygroundSDKLike } from '../src/types';
+import type { ReplayScriptsInfo } from '../src/utils/replay-scripts';
 
 const { allScriptsFromDumpMock } = vi.hoisted(() => ({
-  allScriptsFromDumpMock: vi.fn(() => null),
+  allScriptsFromDumpMock: vi.fn<(dump: unknown) => ReplayScriptsInfo | null>(
+    () => null,
+  ),
 }));
 
 vi.mock('@midscene/core/agent', () => ({
@@ -278,6 +281,10 @@ describe('usePlaygroundExecution stop handling', () => {
     );
     vi.stubGlobal('fetch', fetchMock);
     let snapshot: HarnessSnapshot | null = null;
+    const getSnapshot = () => {
+      if (!snapshot) throw new Error('Harness snapshot is not ready');
+      return snapshot;
+    };
     const playgroundSDK = {
       cancelExecution: vi.fn(),
       executeAction: vi.fn(async () => ({
@@ -310,10 +317,10 @@ describe('usePlaygroundExecution stop handling', () => {
       );
     });
     await act(async () => {
-      await snapshot?.handleRun({ prompt: 'Replay', type: 'aiAct' });
+      await getSnapshot().handleRun({ prompt: 'Replay', type: 'aiAct' });
     });
 
-    const completedResult = snapshot?.infoList.find(
+    const completedResult = getSnapshot().infoList.find(
       (item) => item.type === 'result',
     );
     expect(completedResult?.result?.reportHTML).toBeNull();
