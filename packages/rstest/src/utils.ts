@@ -1,6 +1,16 @@
 import { createHash } from 'node:crypto';
+import { join } from 'node:path';
+import { getMidsceneRunSubDir } from '@midscene/shared/common';
 
-export const MANIFEST_DIR = 'midscene_run/.rstest-manifest';
+/**
+ * Manifest files bridge the worker processes (which write the merged report
+ * path in `afterAll`) and the reporter in the main process (which prints it).
+ * Kept under the `MIDSCENE_RUN_DIR`-aware tmp dir like every other Midscene
+ * artifact.
+ */
+export function getManifestDir(): string {
+  return join(getMidsceneRunSubDir('tmp'), 'rstest-manifest');
+}
 
 export function generateTimestamp(): string {
   const now = new Date();

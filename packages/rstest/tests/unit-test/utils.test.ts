@@ -1,9 +1,27 @@
-import { describe, expect, it } from '@rstest/core';
-import { MANIFEST_DIR, generateTimestamp, manifestKey } from '../../src/utils';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { afterEach, describe, expect, it } from '@rstest/core';
+import {
+  generateTimestamp,
+  getManifestDir,
+  manifestKey,
+} from '../../src/utils';
 
 describe('utils', () => {
-  it('MANIFEST_DIR points under midscene_run', () => {
-    expect(MANIFEST_DIR).toBe('midscene_run/.rstest-manifest');
+  const originalRunDir = process.env.MIDSCENE_RUN_DIR;
+
+  afterEach(() => {
+    if (originalRunDir === undefined) {
+      Reflect.deleteProperty(process.env, 'MIDSCENE_RUN_DIR');
+    } else {
+      process.env.MIDSCENE_RUN_DIR = originalRunDir;
+    }
+  });
+
+  it('getManifestDir lives under the Midscene run dir and respects MIDSCENE_RUN_DIR', () => {
+    const runDir = join(tmpdir(), `midscene-rstest-utils-${process.pid}`);
+    process.env.MIDSCENE_RUN_DIR = runDir;
+    expect(getManifestDir()).toBe(join(runDir, 'tmp', 'rstest-manifest'));
   });
 
   it('manifestKey is deterministic and 16-char hex', () => {
