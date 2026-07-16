@@ -254,6 +254,35 @@ async function waitForElementRect(
   );
 }
 
+async function dismissSafariCoachmarkIfPresent(
+  agent: IOSAgent,
+): Promise<boolean> {
+  try {
+    const elementResponse = (await agent.runWdaRequest({
+      method: 'POST',
+      endpoint: '/element',
+      data: {
+        using: 'predicate string',
+        value:
+          "type == 'XCUIElementTypeButton' AND name == 'xmark.circle.fill' AND label == 'Close'",
+      },
+    })) as WdaValueResponse<WdaElementValue>;
+    const elementId =
+      elementResponse.value[W3C_ELEMENT_KEY] || elementResponse.value.ELEMENT;
+    if (!elementId) return false;
+
+    await agent.runWdaRequest({
+      method: 'POST',
+      endpoint: `/element/${encodeURIComponent(elementId)}/click`,
+      data: {},
+    });
+    await sleep(POLL_INTERVAL_MS);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 async function waitForSubmittedValue(
   submittedValue: () => string | undefined,
 ): Promise<string | undefined> {
@@ -333,6 +362,8 @@ describe.skipIf(!RUN_LIVE_SMOKE)('iOS Simulator live smoke', () => {
         'XCUIElementTypeTextField',
       );
       evidence.target = target;
+      evidence.safariCoachmarkDismissed =
+        await dismissSafariCoachmarkIfPresent(agent);
 
       const screenSize = await agent.interface.getScreenSize();
       const screenshot = await agent.interface.screenshotBase64();
