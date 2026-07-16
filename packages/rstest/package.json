@@ -39,25 +39,23 @@
     "build": "rslib build",
     "build:watch": "rslib build --watch --no-clean",
     "test": "rstest run",
+    "test:smoke": "rstest run --config rstest.smoke.config.ts",
     "test:demo": "rstest run --config rstest.config.ts --root demo",
     "test:watch": "rstest watch",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@midscene/shared": "workspace:*"
+    "@midscene/shared": "workspace:*",
+    "@rstest/playwright": "^0.11.2"
   },
   "peerDependencies": {
     "@midscene/core": "workspace:*",
     "@midscene/web": "workspace:*",
-    "@playwright/test": "^1.45.0",
-    "@rstest/core": ">=0.9.0",
-    "playwright": "^1.45.0",
+    "@rstest/core": "^0.11.2",
+    "playwright": "^1.49.1",
     "puppeteer": ">=20.0.0"
   },
   "peerDependenciesMeta": {
-    "@playwright/test": {
-      "optional": true
-    },
     "playwright": {
       "optional": true
     },
@@ -68,9 +66,8 @@
   "devDependencies": {
     "@midscene/core": "workspace:*",
     "@midscene/web": "workspace:*",
-    "@playwright/test": "^1.45.0",
     "@rslib/core": "^0.18.3",
-    "@rstest/core": "^0.9.9",
+    "@rstest/core": "0.11.2",
     "@types/node": "^18.0.0",
     "deepmerge": "^4.3.1",
     "dotenv": "^16.4.5",
@@ -81,7 +78,7 @@
     "typescript": "^5.8.3"
   },
   "engines": {
-    "node": ">=18.19.0"
+    "node": "^20.19.0 || >=22.12.0"
   },
   "publishConfig": {
     "access": "public",

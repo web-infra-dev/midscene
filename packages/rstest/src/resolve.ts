@@ -22,13 +22,25 @@ import {
 // shipped as a runtime dep, so consumers must not see it in our type surface.
 // The runtime supports `void`-returning mutate-in-place functions too, but
 // they're an antipattern — we only advertise the return-new-value form.
+// The object form is deep-merged over the defaults, so it accepts a deep
+// partial; only the function form must return a complete value.
+type DeepPartial<T> = T extends (...args: never[]) => unknown
+  ? T
+  : T extends readonly unknown[]
+    ? T
+    : T extends object
+      ? { [K in keyof T]?: DeepPartial<T[K]> }
+      : T;
+
 export type Resolver<T> =
-  | T
+  | DeepPartial<T>
   | ((config: T) => T | Promise<T>)
-  | ReadonlyArray<T | ((config: T) => T | Promise<T>)>;
+  | ReadonlyArray<DeepPartial<T> | ((config: T) => T | Promise<T>)>;
 
 export function applyResolver<T>(
-  input: Resolver<T> | undefined,
+  // `NoInfer` pins `T` to the `base` argument — otherwise TS may infer `T`
+  // from the input's union arms and reject valid calls.
+  input: Resolver<NoInfer<T>> | undefined,
   base: T,
 ): Promise<T> {
   return reduceConfigsAsyncWithContext({

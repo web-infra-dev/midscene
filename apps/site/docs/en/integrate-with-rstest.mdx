@@ -6,8 +6,7 @@ import { PackageManagerTabs } from '@theme';
 [Rstest](https://github.com/web-infra-dev/rstest) is a fast Rspack-based testing framework. With `@midscene/rstest` you can write AI-driven end-to-end tests as plain rstest fixtures — Midscene takes care of launching the browser, creating an Agent per test, and producing an HTML report at the end of every test file.
 
 ```ts
-import { test as base } from '@midscene/rstest/playwright';
-import { expect } from '@rstest/core';
+import { expect, test as base } from '@midscene/rstest/playwright';
 
 const test = base.extend({ url: 'http://localhost:5173/' });
 
@@ -26,7 +25,7 @@ What you get out of the box:
 
 Two browser providers ship in the package, behind separate subpath exports:
 
-- `@midscene/rstest/playwright` — backed by `chromium.launch()`.
+- `@midscene/rstest/playwright` — built on [`@rstest/playwright`](https://github.com/web-infra-dev/rstest/tree/main/packages/playwright), Rstest's official Playwright integration. Midscene layers the `agent` lifecycle and reporting on top, and you inherit the upstream toolbox as-is: Playwright-flavored `expect` (`toBeVisible`, `toHaveText`, …), debug mode (`PWDEBUG`, pause on failure), Playwright trace capture, and the `request` / `serve` fixtures.
 - `@midscene/rstest/puppeteer` — backed by `puppeteer.launch()`.
 
 <SetupEnv />
@@ -39,7 +38,7 @@ A runnable example lives at [https://github.com/web-infra-dev/midscene/tree/main
 
 ## Step 1: Install dependencies
 
-Pick the provider you want to use and install it together with `@midscene/web`, `@rstest/core`, and `@midscene/rstest`.
+Pick the provider you want to use and install it together with `@midscene/web`, `@rstest/core`, and `@midscene/rstest`. The Playwright provider requires `@rstest/core >= 0.11.2`, `playwright >= 1.49.1`, and Node `^20.19.0 || >=22.12.0`.
 
 With Playwright:
 
@@ -72,8 +71,7 @@ export default defineConfig({
 ## Step 3: Write a test
 
 ```ts title="e2e/todo-list.test.ts"
-import { test as base } from '@midscene/rstest/playwright';
-import { expect } from '@rstest/core';
+import { expect, test as base } from '@midscene/rstest/playwright';
 
 const test = base.extend({ url: 'http://localhost:5173/' });
 
@@ -96,8 +94,9 @@ The available fixtures are:
 
 - **`agent`** — the midscene `PlaywrightAgent` (or `PuppeteerAgent`) bound to the primary page. Default tool for AI actions and assertions.
 - **`page`** — raw Playwright / Puppeteer `Page`. Escape hatch for things `agent` can't or shouldn't do: `page.route(...)` network mocking, `page.evaluate(...)`, `page.context().cookies()`, etc.
-- **`browser`** — the file-scoped `Browser`. Use it to spin up extra contexts or pages mid-test (multi-user, cross-session scenarios).
+- **`browser`** — the shared `Browser`. Use it to spin up extra contexts or pages mid-test (multi-user, cross-session scenarios). In the Playwright provider it's managed by `@rstest/playwright`: launched lazily, shared per worker, and closed automatically when idle.
 - **`context`** _(Playwright only)_ — the test-scoped `BrowserContext` the primary `page` is created from. Override via `test.extend` if you need a custom context per test.
+- **`request`** / **`serve`** _(Playwright only)_ — inherited from `@rstest/playwright`: an isolated `APIRequestContext` for API calls, and a one-liner static file server with automatic teardown.
 - **`agentForPage(page, opts?)`** — build a midscene agent for another page (popup, manually-created page). Its report is merged with the primary's; destroy is automatic.
 - **`url`** / **`midsceneOptions`** — configuration fixtures. See [Project-wide defaults](#project-wide-defaults-optional) and [Custom page setup](#custom-page-setup).
 
@@ -259,6 +258,8 @@ Midscene reads configuration from four channels — pick the one that matches th
 | `contextOptions` | `BrowserContextOptions \| (defaults) => BrowserContextOptions` | — | Forwarded to `browser.newContext(...)`. |
 | `gotoOptions` | `Parameters<Page['goto']>[1]` | — | Forwarded to `page.goto(url, ...)`. |
 | `agentOptions` | `WebPageAgentOpt` | — | Forwarded to `PlaywrightAgent` (e.g. `aiActionContext`, `modelConfig`). `groupName` and `reportFileName` are managed by the lifecycle. `cache` accepts `true \| false \| { strategy?, id? }` — when `cache: true` or `id` is omitted, a stable id is auto-derived from the test file name and test name so re-runs hit the same cache namespace. |
+| `debug` | `boolean \| PlaywrightDebugOptions` | `false` | Passed through to `@rstest/playwright`: headed browser, slowMo, DevTools, pause on failure. Also enabled via the `PWDEBUG` env var. |
+| `trace` | `'off' \| 'on' \| 'retain-on-failure' \| PlaywrightTraceOptions` | `'off'` | Passed through to `@rstest/playwright`: saves a Playwright trace (`trace.zip` plus an AI-readable summary) per test. Also enabled via the `RSTEST_PLAYWRIGHT_TRACE` env var. |
 
 ### Puppeteer (`@midscene/rstest/puppeteer`)
 
@@ -327,40 +328,48 @@ const test = base.extend({
 });
 ```
 
+## Debugging and traces
+
+Both come straight from `@rstest/playwright` and are exposed on `midsceneOptions`:
+
+```ts
+const test = base.extend({
+  url: 'http://localhost:5173/',
+  midsceneOptions: {
+    debug: true, // headed + slowMo + DevTools, pause on failure
+    trace: 'retain-on-failure', // save trace.zip for failing tests
+  },
+});
+```
+
+Or via env vars without touching code — `PWDEBUG=1 npx rstest run` for debug mode, `RSTEST_PLAYWRIGHT_TRACE=retain-on-failure npx rstest run` for traces. Saved traces land in `.rstest/playwright-traces/` with an AI-readable `trace-summary.json` and a `npx playwright show-trace ...` command printed to the console.
+
 ## Custom page setup
 
-For lifecycles the defaults don't cover — persistent context, CDP connect, custom trace orchestration, per-test storage state — override the `page` fixture. Code before `await use(page)` is setup; code after is teardown.
+For lifecycles the defaults don't cover — per-test storage state, init scripts, CDP wiring — override the `page` fixture. Code before `await use(page)` is setup; code after is teardown.
 
 ```ts
 import { test as base } from '@midscene/rstest/playwright';
-import { mkdirSync } from 'node:fs';
-import { join } from 'node:path';
 
 const test = base.extend({
   url: 'https://example.com',
-  page: async ({ context, url, task }, use) => {
-    await context.tracing.start({ screenshots: true, snapshots: true });
+  page: async ({ context, url }, use) => {
+    await context.addInitScript(() => {
+      window.localStorage.setItem('feature-flag', 'on');
+    });
     const page = await context.newPage();
     await page.goto(url);
 
     await use(page);
 
-    const passed = task.result?.status === 'pass';
-    if (passed) {
-      await context.tracing.stop();
-    } else {
-      mkdirSync('midscene_run/trace', { recursive: true });
-      await context.tracing.stop({
-        path: join('midscene_run/trace', `${task.name}.zip`),
-      });
-    }
+    await page.close();
   },
 });
 ```
 
-Teardown of the `page` fixture runs **after** `agent.destroy()` — the page is still alive at that point, exactly the window you want for stopping traces, saving videos, or dumping cookies. The shared `browser` and the default-built `context` are still open; only your custom teardown decides when to close anything you opened yourself.
+Teardown of the `page` fixture runs **after** `agent.destroy()` — the page is still alive at that point, exactly the window you want for saving videos or dumping cookies. The shared `browser` and the default-built `context` are still open; only your custom teardown decides when to close anything you opened yourself.
 
-For deeper customization (e.g. a persistent context from scratch), override `context` instead — it depends only on `browser` and `midsceneOptions`, and the default `page` will pick up whatever context you produce.
+For deeper customization (e.g. a persistent context from scratch), override `context` instead — the default `page` will pick up whatever context you produce. Note that an rstest fixture override cannot consume the value it overrides: a custom `page` builds from `context`, a custom `context` builds from `browser`.
 
 ## Personas and composed fixtures
 
