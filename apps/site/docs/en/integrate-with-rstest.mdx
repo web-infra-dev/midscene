@@ -3,7 +3,7 @@ import { PackageManagerTabs } from '@theme';
 
 # Integrate with Rstest
 
-[Rstest](https://github.com/web-infra-dev/rstest) is a fast Rspack-based testing framework. With `@midscene/rstest` you can write AI-driven end-to-end tests as plain rstest fixtures — Midscene takes care of launching the browser, creating an Agent per test, and producing an HTML report at the end of every test file.
+[Rstest](https://github.com/web-infra-dev/rstest) is a fast Rspack-based testing framework. With `@midscene/rstest` you can write AI-driven end-to-end tests as plain Rstest fixtures — Midscene takes care of launching the browser, creating an Agent per test, and producing an HTML report at the end of every test file.
 
 ```ts
 import { expect, test as base } from '@midscene/rstest';
@@ -79,16 +79,16 @@ test('adds and completes a todo', async ({ agent }) => {
 });
 ```
 
-The `test` exported from `@midscene/rstest` is an rstest test pre-wired with midscene fixtures. Destructure what you need from the test context — the fixture engine resolves dependencies and runs setup/teardown around each test.
+The `test` exported from `@midscene/rstest` is an Rstest test pre-wired with Midscene fixtures. Destructure what you need from the test context — the fixture engine resolves dependencies and runs setup/teardown around each test.
 
 The available fixtures are:
 
-- **`agent`** — the midscene `PlaywrightAgent` bound to the primary page. Default tool for AI actions and assertions.
+- **`agent`** — the Midscene `PlaywrightAgent` bound to the primary page. Default tool for AI actions and assertions.
 - **`page`** — the raw Playwright `Page`. Escape hatch for things `agent` can't or shouldn't do: `page.route(...)` network mocking, `page.evaluate(...)`, `page.context().cookies()`, etc.
 - **`browser`** — the shared `Browser`, managed by `@rstest/playwright`: launched lazily, shared per worker, and closed automatically when idle. Use it to spin up extra contexts or pages mid-test (multi-user, cross-session scenarios).
 - **`context`** — the test-scoped `BrowserContext` the primary `page` is created from. Override via `test.extend` if you need a custom context per test.
 - **`request`** / **`serve`** — inherited from `@rstest/playwright`: an isolated `APIRequestContext` for API calls, and a one-liner static file server with automatic teardown.
-- **`agentForPage(page, opts?)`** — build a midscene agent for another page (popup, manually-created page). Its report is merged with the primary's; destroy is automatic.
+- **`agentForPage(page, opts?)`** — build a Midscene agent for another page (popup, manually-created page). Its report is merged with the primary's; destroy is automatic.
 - **`url`** / **`midsceneOptions`** — configuration fixtures. See [Project-wide defaults](#project-wide-defaults-optional) and [Custom page setup](#custom-page-setup).
 
 ```ts
@@ -143,7 +143,7 @@ Reports are written to `midscene_run/report/`. See [Consume report files](./cons
 
 ## Project-wide defaults (optional)
 
-For options that should apply to every file, call `defineMidsceneDefaults` from a setup file and register it via rstest's `setupFiles`:
+For options that should apply to every file, call `defineMidsceneDefaults` from a setup file and register it via Rstest's `setupFiles`:
 
 ```ts title="midscene.setup.ts"
 import { defineMidsceneDefaults } from '@midscene/rstest';
@@ -163,7 +163,7 @@ export default defineConfig({
 
 :::warning Must be called from a `setupFiles` entry
 
-Each test file runs in its own isolated module graph (rstest's default `isolate: true`). `defineMidsceneDefaults` populates a module-scoped store, so it only takes effect when called from a file that rstest loads as part of every test file's setup chain. Calling it inside a single test file only affects that file.
+Each test file runs in its own isolated module graph (Rstest's default `isolate: true`). `defineMidsceneDefaults` populates a module-scoped store, so it only takes effect when called from a file that Rstest loads as part of every test file's setup chain. Calling it inside a single test file only affects that file.
 
 :::
 
@@ -182,16 +182,16 @@ const test = base.extend({
 
 Nested resolver fields like `launchOptions` and `contextOptions` are **deep-merged** over the package defaults, and arrays concatenate. Use the function form of a resolver (`(defaults) => ...`) when you need to remove a default value or take full control.
 
-## Configure midscene
+## Configure Midscene
 
 Midscene reads configuration from four channels — pick the one that matches the scope you want.
 
-1. **Environment variables** (model endpoint, API key, vision-family flags, cache dir, report dir, debug toggles): set them however you usually set env vars (`.env`, CI secrets, shell exports). They flow into the midscene runtime automatically — nothing extra to wire up. The full list lives in the [model configuration reference](./model-and-provider). Quick sample:
+1. **Environment variables** (model endpoint, API key, vision-family flags, cache dir, report dir, debug toggles): set them however you usually set env vars (`.env`, CI secrets, shell exports). They flow into the Midscene runtime automatically — nothing extra to wire up. The full list lives in the [model configuration reference](./model-config). Quick sample:
 
    ```bash
    MIDSCENE_MODEL_BASE_URL=https://api.openai.com/v1
    MIDSCENE_MODEL_API_KEY=sk-...
-   MIDSCENE_MODEL_NAME=gpt-4o
+   MIDSCENE_MODEL_NAME=qwen3.7-plus
    MIDSCENE_DEBUG_MODEL_RESPONSE=1   # dump raw model responses to disk
    MIDSCENE_RUN_DIR=./midscene_run   # where reports + cache live
    ```
@@ -217,7 +217,7 @@ Midscene reads configuration from four channels — pick the one that matches th
    import { overrideAIConfig } from '@midscene/rstest';
 
    overrideAIConfig({
-     MIDSCENE_MODEL_NAME: process.env.CI ? 'gpt-4o' : 'gpt-4o-mini',
+     MIDSCENE_MODEL_NAME: process.env.CI ? 'gpt-5.5' : 'gpt-5.4',
    });
    ```
 
@@ -242,11 +242,11 @@ Midscene reads configuration from four channels — pick the one that matches th
 | `debug` | `boolean \| PlaywrightDebugOptions` | `false` | Passed through to `@rstest/playwright`: headed browser, slowMo, DevTools, pause on failure. Also enabled via the `PWDEBUG` env var. |
 | `trace` | `'off' \| 'on' \| 'retain-on-failure' \| PlaywrightTraceOptions` | `'off'` | Passed through to `@rstest/playwright`: saves a Playwright trace (`trace.zip` plus an AI-readable summary) per test. Also enabled via the `RSTEST_PLAYWRIGHT_TRACE` env var. |
 
-Resolver fields (`launchOptions`, `contextOptions`) accept either an object — deep-merged over midscene's defaults, with arrays concatenated — or a function `(defaults) => options` (sync or async) that takes full control. An array of either is also accepted and applied left-to-right.
+Resolver fields (`launchOptions`, `contextOptions`) accept either an object — deep-merged over Midscene's defaults, with arrays concatenated — or a function `(defaults) => options` (sync or async) that takes full control. An array of either is also accepted and applied left-to-right.
 
 ### Examples
 
-Add a launch arg without losing midscene's CI-critical defaults:
+Add a launch arg without losing Midscene's CI-critical defaults:
 
 ```ts
 const test = base.extend({
@@ -340,7 +340,7 @@ const test = base.extend({
 
 Teardown of the `page` fixture runs **after** `agent.destroy()` — the page is still alive at that point, exactly the window you want for saving videos or dumping cookies. The shared `browser` and the default-built `context` are still open; only your custom teardown decides when to close anything you opened yourself.
 
-For deeper customization (e.g. a persistent context from scratch), override `context` instead — the default `page` will pick up whatever context you produce. Note that an rstest fixture override cannot consume the value it overrides: a custom `page` builds from `context`, a custom `context` builds from `browser`.
+For deeper customization (e.g. a persistent context from scratch), override `context` instead — the default `page` will pick up whatever context you produce. Note that an Rstest fixture override cannot consume the value it overrides: a custom `page` builds from `context`, a custom `context` builds from `browser`.
 
 ## Personas and composed fixtures
 
