@@ -6,7 +6,7 @@ import { PackageManagerTabs } from '@theme';
 [Rstest](https://github.com/web-infra-dev/rstest) is a fast Rspack-based testing framework. With `@midscene/rstest` you can write AI-driven end-to-end tests as plain rstest fixtures — Midscene takes care of launching the browser, creating an Agent per test, and producing an HTML report at the end of every test file.
 
 ```ts
-import { expect, test as base } from '@midscene/rstest/playwright';
+import { expect, test as base } from '@midscene/rstest';
 
 const test = base.extend({ url: 'http://localhost:5173/' });
 
@@ -23,10 +23,7 @@ What you get out of the box:
 - Composable — `test.extend({ ... })` to override the URL, options, or any individual fixture (e.g. a `page` that injects routes, or a second `adminAgent` persona).
 - A merged Midscene HTML report per test file, with the path printed to the console after the file finishes.
 
-Two browser providers ship in the package, behind separate subpath exports:
-
-- `@midscene/rstest/playwright` — built on [`@rstest/playwright`](https://github.com/web-infra-dev/rstest/tree/main/packages/playwright), Rstest's official Playwright integration. Midscene layers the `agent` lifecycle and reporting on top, and you inherit the upstream toolbox as-is: Playwright-flavored `expect` (`toBeVisible`, `toHaveText`, …), debug mode (`PWDEBUG`, pause on failure), Playwright trace capture, and the `request` / `serve` fixtures.
-- `@midscene/rstest/puppeteer` — backed by `puppeteer.launch()`.
+The package is built on [`@rstest/playwright`](https://github.com/web-infra-dev/rstest/tree/main/packages/playwright), Rstest's official Playwright integration. Midscene layers the `agent` lifecycle and reporting on top, and you inherit the upstream toolbox as-is: Playwright-flavored `expect` (`toBeVisible`, `toHaveText`, …), debug mode (`PWDEBUG`, pause on failure), Playwright trace capture, and the `request` / `serve` fixtures.
 
 <SetupEnv />
 
@@ -38,15 +35,9 @@ A runnable example lives at [https://github.com/web-infra-dev/midscene/tree/main
 
 ## Step 1: Install dependencies
 
-Pick the provider you want to use and install it together with `@midscene/web`, `@rstest/core`, and `@midscene/rstest`. The Playwright provider requires `@rstest/core >= 0.11.2`, `playwright >= 1.49.1`, and Node `^20.19.0 || >=22.12.0`.
-
-With Playwright:
+Install `@midscene/rstest` together with `@midscene/web`, `@rstest/core`, and `playwright`. Requires `@rstest/core >= 0.11.2`, `playwright >= 1.49.1`, and Node `^20.19.0 || >=22.12.0`.
 
 <PackageManagerTabs command="install @midscene/web @midscene/rstest @rstest/core playwright --save-dev" />
-
-Or with Puppeteer:
-
-<PackageManagerTabs command="install @midscene/web @midscene/rstest @rstest/core puppeteer --save-dev" />
 
 ## Step 2: Configure Rstest
 
@@ -71,7 +62,7 @@ export default defineConfig({
 ## Step 3: Write a test
 
 ```ts title="e2e/todo-list.test.ts"
-import { expect, test as base } from '@midscene/rstest/playwright';
+import { expect, test as base } from '@midscene/rstest';
 
 const test = base.extend({ url: 'http://localhost:5173/' });
 
@@ -88,15 +79,15 @@ test('adds and completes a todo', async ({ agent }) => {
 });
 ```
 
-The `test` exported from `@midscene/rstest/playwright` is an rstest test pre-wired with midscene fixtures. Destructure what you need from the test context — the fixture engine resolves dependencies and runs setup/teardown around each test.
+The `test` exported from `@midscene/rstest` is an rstest test pre-wired with midscene fixtures. Destructure what you need from the test context — the fixture engine resolves dependencies and runs setup/teardown around each test.
 
 The available fixtures are:
 
-- **`agent`** — the midscene `PlaywrightAgent` (or `PuppeteerAgent`) bound to the primary page. Default tool for AI actions and assertions.
-- **`page`** — raw Playwright / Puppeteer `Page`. Escape hatch for things `agent` can't or shouldn't do: `page.route(...)` network mocking, `page.evaluate(...)`, `page.context().cookies()`, etc.
-- **`browser`** — the shared `Browser`. Use it to spin up extra contexts or pages mid-test (multi-user, cross-session scenarios). In the Playwright provider it's managed by `@rstest/playwright`: launched lazily, shared per worker, and closed automatically when idle.
-- **`context`** _(Playwright only)_ — the test-scoped `BrowserContext` the primary `page` is created from. Override via `test.extend` if you need a custom context per test.
-- **`request`** / **`serve`** _(Playwright only)_ — inherited from `@rstest/playwright`: an isolated `APIRequestContext` for API calls, and a one-liner static file server with automatic teardown.
+- **`agent`** — the midscene `PlaywrightAgent` bound to the primary page. Default tool for AI actions and assertions.
+- **`page`** — the raw Playwright `Page`. Escape hatch for things `agent` can't or shouldn't do: `page.route(...)` network mocking, `page.evaluate(...)`, `page.context().cookies()`, etc.
+- **`browser`** — the shared `Browser`, managed by `@rstest/playwright`: launched lazily, shared per worker, and closed automatically when idle. Use it to spin up extra contexts or pages mid-test (multi-user, cross-session scenarios).
+- **`context`** — the test-scoped `BrowserContext` the primary `page` is created from. Override via `test.extend` if you need a custom context per test.
+- **`request`** / **`serve`** — inherited from `@rstest/playwright`: an isolated `APIRequestContext` for API calls, and a one-liner static file server with automatic teardown.
 - **`agentForPage(page, opts?)`** — build a midscene agent for another page (popup, manually-created page). Its report is merged with the primary's; destroy is automatic.
 - **`url`** / **`midsceneOptions`** — configuration fixtures. See [Project-wide defaults](#project-wide-defaults-optional) and [Custom page setup](#custom-page-setup).
 
@@ -133,14 +124,6 @@ test('runs two isolated user sessions in one test', async ({
 });
 ```
 
-To use Puppeteer instead, change a single import:
-
-```ts
-import { test as base } from '@midscene/rstest/puppeteer';
-```
-
-The `agent` API is identical. The Puppeteer provider exposes the same fixtures except `context` (Puppeteer doesn't use a context-as-class — override the `page` fixture if you need one via `browser.createBrowserContext()`).
-
 ## Step 4: Run the tests
 
 ```bash
@@ -163,7 +146,7 @@ Reports are written to `midscene_run/report/`. See [Consume report files](./cons
 For options that should apply to every file, call `defineMidsceneDefaults` from a setup file and register it via rstest's `setupFiles`:
 
 ```ts title="midscene.setup.ts"
-import { defineMidsceneDefaults } from '@midscene/rstest/playwright';
+import { defineMidsceneDefaults } from '@midscene/rstest';
 
 defineMidsceneDefaults({
   viewport: { width: 1280, height: 720 },
@@ -197,7 +180,7 @@ const test = base.extend({
 });
 ```
 
-Nested resolver fields like `launchOptions` and `contextOptions` are **deep-merged** over the package defaults, and arrays concatenate. Use the function form of a resolver (`(defaults) => ...`) when you need to remove a default value or take full control. The Puppeteer provider exposes the same `defineMidsceneDefaults` from `@midscene/rstest/puppeteer`.
+Nested resolver fields like `launchOptions` and `contextOptions` are **deep-merged** over the package defaults, and arrays concatenate. Use the function form of a resolver (`(defaults) => ...`) when you need to remove a default value or take full control.
 
 ## Configure midscene
 
@@ -228,10 +211,10 @@ Midscene reads configuration from four channels — pick the one that matches th
    });
    ```
 
-3. **`overrideAIConfig(...)`** in a setup file — for programmatic global overrides that env vars can't express, or for swapping config between test runs. Re-exported from both provider entry points.
+3. **`overrideAIConfig(...)`** in a setup file — for programmatic global overrides that env vars can't express, or for swapping config between test runs. Re-exported from `@midscene/rstest`.
 
    ```ts title="midscene.setup.ts"
-   import { overrideAIConfig } from '@midscene/rstest/playwright';
+   import { overrideAIConfig } from '@midscene/rstest';
 
    overrideAIConfig({
      MIDSCENE_MODEL_NAME: process.env.CI ? 'gpt-4o' : 'gpt-4o-mini',
@@ -248,8 +231,6 @@ Midscene reads configuration from four channels — pick the one that matches th
 
 `midsceneOptions` carries every per-file knob. Set it via `defineMidsceneDefaults` for repo-wide defaults, or via `test.extend({ midsceneOptions: {...} })` for per-file overrides.
 
-### Playwright (`@midscene/rstest/playwright`)
-
 | Field | Type | Default | Description |
 | --- | --- | --- | --- |
 | `headless` | `boolean` | `true` in CI, `false` locally | Convenience for `launchOptions.headless`. |
@@ -260,16 +241,6 @@ Midscene reads configuration from four channels — pick the one that matches th
 | `agentOptions` | `WebPageAgentOpt` | — | Forwarded to `PlaywrightAgent` (e.g. `aiActionContext`, `modelConfig`). `groupName` and `reportFileName` are managed by the lifecycle. `cache` accepts `true \| false \| { strategy?, id? }` — when `cache: true` or `id` is omitted, a stable id is auto-derived from the test file name and test name so re-runs hit the same cache namespace. |
 | `debug` | `boolean \| PlaywrightDebugOptions` | `false` | Passed through to `@rstest/playwright`: headed browser, slowMo, DevTools, pause on failure. Also enabled via the `PWDEBUG` env var. |
 | `trace` | `'off' \| 'on' \| 'retain-on-failure' \| PlaywrightTraceOptions` | `'off'` | Passed through to `@rstest/playwright`: saves a Playwright trace (`trace.zip` plus an AI-readable summary) per test. Also enabled via the `RSTEST_PLAYWRIGHT_TRACE` env var. |
-
-### Puppeteer (`@midscene/rstest/puppeteer`)
-
-| Field | Type | Default | Description |
-| --- | --- | --- | --- |
-| `headless` | `boolean` | `true` in CI, `false` locally | Convenience for `launchOptions.headless`. |
-| `viewport` | `{ width, height }` | `1920×1080` | Convenience for `launchOptions.defaultViewport`. |
-| `launchOptions` | `LaunchOptions \| (defaults) => LaunchOptions` | — | Forwarded to `puppeteer.launch(...)`. |
-| `gotoOptions` | `GoToOptions` | — | Forwarded to `page.goto(url, ...)`. |
-| `agentOptions` | `WebPageAgentOpt` | — | Forwarded to `PuppeteerAgent`. Same `cache` shorthand as the Playwright provider — `cache: true` auto-derives the id. |
 
 Resolver fields (`launchOptions`, `contextOptions`) accept either an object — deep-merged over midscene's defaults, with arrays concatenated — or a function `(defaults) => options` (sync or async) that takes full control. An array of either is also accepted and applied left-to-right.
 
@@ -313,7 +284,7 @@ const test = base.extend({
 });
 ```
 
-Configure the context (Playwright):
+Configure the context:
 
 ```ts
 const test = base.extend({
@@ -349,7 +320,7 @@ Or via env vars without touching code — `PWDEBUG=1 npx rstest run` for debug m
 For lifecycles the defaults don't cover — per-test storage state, init scripts, CDP wiring — override the `page` fixture. Code before `await use(page)` is setup; code after is teardown.
 
 ```ts
-import { test as base } from '@midscene/rstest/playwright';
+import { test as base } from '@midscene/rstest';
 
 const test = base.extend({
   url: 'https://example.com',

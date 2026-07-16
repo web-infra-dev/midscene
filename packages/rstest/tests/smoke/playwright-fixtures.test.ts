@@ -3,7 +3,7 @@
  * `@rstest/playwright` — no AI model involved. Run via `test:smoke`; excluded
  * from the default unit-test include glob because it launches a real browser.
  */
-import { test as base, expect } from '../../src/playwright';
+import { test as base, expect } from '../../src/index';
 
 const PAGE_URL = 'data:text/html,<title>midscene-smoke</title><h1>hi</h1>';
 

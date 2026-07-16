@@ -1,4 +1,4 @@
-import { test as base, describe, expect } from '@midscene/rstest/playwright';
+import { test as base, describe, expect } from '@midscene/rstest';
 
 const PAGE_URL =
   'https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/contacts3.html';

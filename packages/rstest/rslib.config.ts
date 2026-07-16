@@ -7,8 +7,6 @@ export default defineConfig({
         entry: {
           index: './src/index.ts',
           reporter: './src/reporter.ts',
-          playwright: './src/playwright.ts',
-          puppeteer: './src/puppeteer.ts',
         },
       },
       format: 'esm',
