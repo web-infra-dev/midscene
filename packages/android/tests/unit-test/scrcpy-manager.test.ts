@@ -144,6 +144,42 @@ describe('ScrcpyScreenshotManager', () => {
 
       await expect(manager.ensureConnected()).resolves.toBeUndefined();
     });
+
+    it('should include client and server output in connection errors', () => {
+      const manager = new ScrcpyScreenshotManager({} as any);
+      const error = Object.assign(new Error('ExactReadable ended'), {
+        output: ['server exited before metadata'],
+      });
+
+      const result = (manager as any).createConnectionError(error, [
+        'java.lang.IllegalStateException: codec not ready',
+      ]);
+
+      expect(result.message).toContain('ExactReadable ended');
+      expect(result.message).toContain('server exited before metadata');
+      expect(result.message).toContain(
+        'java.lang.IllegalStateException: codec not ready',
+      );
+    });
+
+    it('should bound collected server output to the latest lines', async () => {
+      const manager = new ScrcpyScreenshotManager({} as any);
+      const lines: string[] = [];
+      const output = new ReadableStream<string>({
+        start(controller) {
+          for (let index = 0; index < 110; index++) {
+            controller.enqueue(`line-${index}`);
+          }
+          controller.close();
+        },
+      });
+
+      await (manager as any).collectServerOutput(output, lines);
+
+      expect(lines).toHaveLength(100);
+      expect(lines[0]).toBe('line-10');
+      expect(lines.at(-1)).toBe('line-109');
+    });
   });
 
   describe('consumeFramesLoop', () => {

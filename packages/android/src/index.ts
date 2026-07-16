@@ -8,4 +8,7 @@ export {
   getConnectedDevicesWithDetails,
 } from './utils';
 export type { AndroidConnectedDevice } from './utils';
-export { ScrcpyDeviceAdapter } from './scrcpy-device-adapter';
+export {
+  ScrcpyDeviceAdapter,
+  type ScrcpyStatus,
+} from './scrcpy-device-adapter';

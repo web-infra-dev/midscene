@@ -82,8 +82,21 @@ const device = new AndroidDevice(deviceId, {
 | `idleTimeoutMs` | `number` | `30000` | 空闲超时后自动断开连接（ms），设为 `0` 禁用 |
 
 :::tip
-Scrcpy 模式在连接失败时会自动降级到 ADB 截图，无需额外处理。
+Scrcpy 模式在连接失败时会自动降级到 ADB 截图。瞬态失败会进入五秒冷却期，冷却结束后的下一次截图会自动重试 Scrcpy，无需重新创建 `AndroidDevice`。
 :::
+
+如果调用方需要感知截图已降级，可以使用 `getScrcpyStatus()`；如需跳过冷却期立即重试，可以使用 `retryScrcpy()`：
+
+```ts
+const status = device.getScrcpyStatus();
+
+if (status.enabled && !status.connected && status.lastError) {
+  console.warn(status.lastError);
+  await device.retryScrcpy();
+}
+```
+
+`getScrcpyStatus()` 返回 `enabled`、`connected`、`lastError` 和 `retryAfter`。初始化异常会包含可获取到的设备端 Scrcpy server 输出，便于诊断编码器和媒体栈尚未就绪等问题。
 
 ### 使用说明
 

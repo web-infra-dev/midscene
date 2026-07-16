@@ -5,6 +5,7 @@ import type { RawKeyframe, ScrcpyScreenshotManager } from './scrcpy-manager';
 import { DEFAULT_SCRCPY_CONFIG } from './scrcpy-manager';
 
 const debugAdapter = getDebug('android:scrcpy-adapter');
+const SCRCPY_RETRY_COOLDOWN_MS = 5_000;
 
 interface ScrcpyConfig {
   enabled?: boolean;
@@ -28,6 +29,13 @@ export interface DevicePhysicalInfo {
   isCurrentOrientation?: boolean;
 }
 
+export interface ScrcpyStatus {
+  enabled: boolean;
+  connected: boolean;
+  lastError: string | null;
+  retryAfter: number | null;
+}
+
 /**
  * Adapter that encapsulates all scrcpy-related logic for AndroidDevice.
  * Handles config normalization, manager lifecycle, screenshot, and resolution.
@@ -35,7 +43,8 @@ export interface DevicePhysicalInfo {
 export class ScrcpyDeviceAdapter {
   private manager: ScrcpyScreenshotManager | null = null;
   private resolvedConfig: ResolvedScrcpyConfig | null = null;
-  private initFailed = false;
+  private lastError: string | null = null;
+  private retryAfter: number | null = null;
 
   constructor(
     private deviceId: string,
@@ -43,22 +52,55 @@ export class ScrcpyDeviceAdapter {
   ) {}
 
   isEnabled(): boolean {
-    if (this.initFailed) return false;
+    if (!this.isConfigured()) return false;
+    return this.retryAfter === null || Date.now() >= this.retryAfter;
+  }
+
+  getStatus(): ScrcpyStatus {
+    return {
+      enabled: this.isConfigured(),
+      connected: this.manager?.isConnected() ?? false,
+      lastError: this.lastError,
+      retryAfter: this.retryAfter,
+    };
+  }
+
+  private isConfigured(): boolean {
     return this.scrcpyConfig?.enabled ?? DEFAULT_SCRCPY_CONFIG.enabled;
   }
 
   /**
-   * Initialize scrcpy connection. Called once during device.connect().
-   * If initialization fails, marks scrcpy as permanently disabled (no further retries).
+   * Initialize scrcpy connection. Called during device.connect() and explicit retries.
    */
   async initialize(deviceInfo: DevicePhysicalInfo): Promise<void> {
     try {
       const manager = await this.ensureManager(deviceInfo);
       await manager.ensureConnected();
+      this.clearFailure();
     } catch (error) {
-      this.initFailed = true;
+      this.recordFailure(error);
       throw error;
     }
+  }
+
+  private recordFailure(error: unknown): void {
+    this.lastError = error instanceof Error ? error.message : String(error);
+    this.retryAfter = Date.now() + SCRCPY_RETRY_COOLDOWN_MS;
+  }
+
+  private clearFailure(): void {
+    this.lastError = null;
+    this.retryAfter = null;
+  }
+
+  private ensureRetryReady(): void {
+    if (this.retryAfter === null || Date.now() >= this.retryAfter) {
+      return;
+    }
+
+    throw new Error(
+      `scrcpy retry is cooling down until ${new Date(this.retryAfter).toISOString()}. Last error: ${this.lastError}`,
+    );
   }
 
   /**
@@ -78,7 +120,7 @@ export class ScrcpyDeviceAdapter {
       config?.videoBitRate ?? DEFAULT_SCRCPY_CONFIG.videoBitRate;
 
     this.resolvedConfig = {
-      enabled: this.isEnabled(),
+      enabled: this.isConfigured(),
       maxSize,
       idleTimeoutMs:
         config?.idleTimeoutMs ?? DEFAULT_SCRCPY_CONFIG.idleTimeoutMs,
@@ -144,10 +186,21 @@ export class ScrcpyDeviceAdapter {
    * Throws on failure (caller should fallback to ADB).
    */
   async screenshotBase64(deviceInfo: DevicePhysicalInfo): Promise<string> {
-    const manager = await this.ensureManager(deviceInfo);
-    const screenshotBuffer = await manager.getScreenshotJpeg();
+    this.ensureRetryReady();
 
-    return createImgBase64ByFormat('jpeg', screenshotBuffer.toString('base64'));
+    try {
+      const manager = await this.ensureManager(deviceInfo);
+      const screenshotBuffer = await manager.getScreenshotJpeg();
+      this.clearFailure();
+
+      return createImgBase64ByFormat(
+        'jpeg',
+        screenshotBuffer.toString('base64'),
+      );
+    } catch (error) {
+      this.recordFailure(error);
+      throw error;
+    }
   }
 
   /**
@@ -160,9 +213,17 @@ export class ScrcpyDeviceAdapter {
     deviceInfo: DevicePhysicalInfo,
     listener: (frame: RawKeyframe) => void,
   ): Promise<() => void> {
-    const manager = await this.ensureManager(deviceInfo);
-    await manager.ensureConnected();
-    return manager.subscribeKeyframes(listener);
+    this.ensureRetryReady();
+
+    try {
+      const manager = await this.ensureManager(deviceInfo);
+      await manager.ensureConnected();
+      this.clearFailure();
+      return manager.subscribeKeyframes(listener);
+    } catch (error) {
+      this.recordFailure(error);
+      throw error;
+    }
   }
 
   /** Latest raw keyframe seen on the stream, or null if none yet. */
@@ -227,5 +288,6 @@ export class ScrcpyDeviceAdapter {
       this.manager = null;
     }
     this.resolvedConfig = null;
+    this.clearFailure();
   }
 }
