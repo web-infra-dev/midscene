@@ -140,7 +140,10 @@ describe.runIf(RUN_SMOKE)('Android Emulator xpath cache smoke', () => {
         Math.round(center[0] * screenshotScale),
         Math.round(center[1] * screenshotScale),
       ];
-      const feature = await device.cacheFeatureForPoint(center);
+      const feature = await device.cacheFeatureForPoint(center, {
+        targetDescription: CACHE_PROMPT,
+        expectedRect: target.bounds,
+      });
       const xpath = firstXpath(feature);
       expect(feature).toMatchObject({
         kind: 'native-xpath',

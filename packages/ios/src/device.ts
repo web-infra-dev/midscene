@@ -11,6 +11,7 @@ import {
 } from '@midscene/core';
 import {
   type AbstractInterface,
+  type CacheFeatureOptions,
   type DeviceFrameSource,
   type IOSDeviceInputOpt,
   type IOSDeviceOpt,
@@ -49,6 +50,12 @@ export type WDAHttpMethod = (typeof WDA_HTTP_METHODS)[number];
 const DEFAULT_WDA_MJPEG_PORT = 9100;
 
 export class IOSDevice implements AbstractInterface {
+  get cacheFeatureOrderPolicy() {
+    return isNativeXpathCacheEnabled()
+      ? ('identity-only' as const)
+      : ('disabled' as const);
+  }
+
   private deviceId: string;
   private devicePixelRatio = 1;
   private devicePixelRatioInitialized = false;
@@ -395,9 +402,16 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
 
   async cacheFeatureForPoint(
     center: [number, number],
+    options?: CacheFeatureOptions,
   ): Promise<ElementCacheFeature> {
     if (!isNativeXpathCacheEnabled()) {
       debugDevice('cacheFeatureForPoint: native xpath cache is disabled');
+      return {};
+    }
+    if (options?.orderSensitive) {
+      debugDevice(
+        'cacheFeatureForPoint: skip order-sensitive native cache feature',
+      );
       return {};
     }
     const xml = await this.wdaBackend.getSource();
@@ -407,17 +421,16 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
       { x: center[0], y: center[1] },
       'ios',
       {
+        targetDescription: options?.targetDescription,
+        expectedRect: options?.expectedRect,
         excludedTargetTypes: [
           'XCUIElementTypeApplication',
           'XCUIElementTypeWindow',
           'XCUIElementTypeAlert',
           'XCUIElementTypeSheet',
         ],
-        // WDA exposes the element's accessibilityIdentifier as `name` in
-        // /source. When unset, `name` falls back to the visible label, but
-        // it is still the most stable identifier available.
-        stableAttrs: ['name'],
-        textAttrs: ['label', 'value'],
+        stableAttrs: ['accessibility-id'],
+        textAttrs: ['name', 'label', 'value'],
       },
     );
     if (!feature) {

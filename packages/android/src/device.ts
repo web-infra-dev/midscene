@@ -20,6 +20,7 @@ import {
   type AbstractInterface,
   type AndroidDeviceInputOpt,
   type AndroidDeviceOpt,
+  type CacheFeatureOptions,
   type DeviceFrameSource,
   type MobileInputPrimitives,
   type PointerPoint,
@@ -132,6 +133,12 @@ function shellEscapeArg(text: string): string {
 }
 
 export class AndroidDevice implements AbstractInterface {
+  get cacheFeatureOrderPolicy() {
+    return isNativeXpathCacheEnabled()
+      ? ('identity-only' as const)
+      : ('disabled' as const);
+  }
+
   private deviceId: string;
   private yadbPushed = false;
   private devicePixelRatio = 1;
@@ -801,9 +808,14 @@ ${Object.keys(size)
 
   async cacheFeatureForPoint(
     center: [number, number],
+    options?: CacheFeatureOptions,
   ): Promise<ElementCacheFeature> {
     if (!isNativeXpathCacheEnabled()) {
       debugCache('generate skipped reason=feature-disabled');
+      return {};
+    }
+    if (options?.orderSensitive) {
+      debugCache('generate skipped reason=order-sensitive-native-prompt');
       return {};
     }
     const xml = await this.dumpAccessibilityXml();
@@ -812,7 +824,11 @@ ${Object.keys(size)
       root,
       { x: center[0], y: center[1] },
       'android',
-      ANDROID_CACHE_CANDIDATE_OPTIONS,
+      {
+        ...ANDROID_CACHE_CANDIDATE_OPTIONS,
+        targetDescription: options?.targetDescription,
+        expectedRect: options?.expectedRect,
+      },
     );
     if (!feature) {
       debugDevice(

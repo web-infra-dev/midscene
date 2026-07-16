@@ -24,7 +24,11 @@ const root = (children: UiNode[]) => node('Window', {}, undefined, children);
 function featureFor(
   tree: UiNode,
   point: { x: number; y: number },
-  options: { stableAttrs?: string[]; textAttrs?: string[] },
+  options: {
+    stableAttrs?: string[];
+    textAttrs?: string[];
+    targetDescription?: string;
+  },
 ) {
   const feature = generateXpathCacheFeature(tree, point, 'android', options);
   if (!feature) throw new Error('Expected source tree to generate a feature');
@@ -77,7 +81,7 @@ describe('native xpath cache cross-state replay', () => {
     const feature = featureFor(
       source,
       { x: 100, y: 100 },
-      { textAttrs: ['label'] },
+      { textAttrs: ['label'], targetDescription: 'Settings' },
     );
     const replay = root([
       node('Text', { label: 'Parametres' }, bounds(20, 80, 180, 40)),
@@ -93,7 +97,7 @@ describe('native xpath cache cross-state replay', () => {
     const feature = featureFor(
       source,
       { x: 60, y: 100 },
-      { textAttrs: ['label'] },
+      { textAttrs: ['label'], targetDescription: 'More' },
     );
     const replay = root([
       node('Button', { label: 'More' }, bounds(20, 80)),

@@ -568,6 +568,7 @@ export class Agent<
   private collectUsageMetrics(execution: ExecutionDump) {
     for (const task of execution.tasks) {
       this.consumeUsage(task.usage, `${task.taskId}:usage`);
+      this.consumeUsage(task.cacheUsage, `${task.taskId}:cacheUsage`);
       this.consumeUsage(task.searchAreaUsage, `${task.taskId}:searchAreaUsage`);
     }
   }

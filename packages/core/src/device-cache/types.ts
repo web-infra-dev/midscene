@@ -74,6 +74,16 @@ export type XpathCacheFeature = Record<string, unknown> & {
 
 export interface XpathCandidateOptions {
   /**
+   * Natural-language target description used to verify semantic identities.
+   * A text-like attribute is eligible only when its value appears here.
+   */
+  targetDescription?: string;
+  /**
+   * Model-located target rect in the same logical coordinate space as `bounds`.
+   * When provided, only sufficiently overlapping tree nodes are considered.
+   */
+  expectedRect?: Rect;
+  /**
    * Platform structural node types that must never become element cache
    * targets. These nodes may cover the located point and carry a unique name,
    * but their bounds describe an application/window container rather than the
@@ -96,7 +106,8 @@ export interface XpathCandidateOptions {
   /**
    * Attribute names whose values describe the element semantically (label,
    * text, content). When no stable id is available, the generator emits a
-   * `//Type[@attr='value']` candidate from the first safe, unique match.
+   * `//Type[@attr='value']` candidate from the first safe, unique value that is
+   * grounded in `targetDescription`.
    */
   textAttrs?: string[];
   /** Maximum number of candidates to return. Defaults to 3. */

@@ -1,4 +1,8 @@
-import { findAllMidsceneLocatorField, parseActionParam } from '@/ai-model';
+import {
+  AiJudgeOrderSensitive,
+  findAllMidsceneLocatorField,
+  parseActionParam,
+} from '@/ai-model';
 import type { ModelRuntime } from '@/ai-model/models';
 import { findActionInActionSpaceOrThrow } from '@/common';
 import type { AbstractInterface } from '@/device';
@@ -70,6 +74,16 @@ function invalidLocateElementReason(
     return `Invalid locate result rect size: ${JSON.stringify(element)}`;
   }
   return undefined;
+}
+
+function toLogicalRect(rect: Rect, screenshotToLogicalRatio: number): Rect {
+  if (screenshotToLogicalRatio === 1) return rect;
+  return {
+    left: Math.round(rect.left / screenshotToLogicalRatio),
+    top: Math.round(rect.top / screenshotToLogicalRatio),
+    width: Math.round(rect.width / screenshotToLogicalRatio),
+    height: Math.round(rect.height / screenshotToLogicalRatio),
+  };
 }
 
 type LocateParamWithDeprecatedAlias = DetailedLocateParam & {
@@ -623,16 +637,51 @@ export class TaskBuilder {
                 );
               }
 
-              const feature = await this.interface.cacheFeatureForPoint(
-                pointForCache,
-                {
-                  targetDescription:
-                    typeof param.prompt === 'string'
-                      ? param.prompt
-                      : param.prompt?.prompt,
-                  modelRuntime: defaultModel,
-                },
-              );
+              const targetDescription =
+                typeof param.prompt === 'string'
+                  ? param.prompt
+                  : param.prompt?.prompt;
+              let orderSensitive = false;
+              const orderPolicy = this.interface.cacheFeatureOrderPolicy;
+              let canGenerateCache = orderPolicy !== 'disabled';
+              if (targetDescription && canGenerateCache) {
+                try {
+                  const judgeResult = await AiJudgeOrderSensitive(
+                    targetDescription,
+                    defaultModel,
+                  );
+                  orderSensitive = judgeResult.isOrderSensitive;
+                  task.cacheUsage = withUsageIntent(
+                    judgeResult.usage,
+                    'default',
+                  );
+                } catch (error) {
+                  debug('judge cache order sensitivity failed: %s', error);
+                  if (orderPolicy === 'identity-only') {
+                    canGenerateCache = false;
+                  }
+                }
+              }
+
+              if (orderSensitive && orderPolicy === 'identity-only') {
+                canGenerateCache = false;
+                debug(
+                  'skip cache update for order-sensitive native prompt: %s',
+                  cachePrompt,
+                );
+              }
+
+              const feature = canGenerateCache
+                ? await this.interface.cacheFeatureForPoint(pointForCache, {
+                    targetDescription,
+                    modelRuntime: defaultModel,
+                    orderSensitive,
+                    expectedRect: toLogicalRect(
+                      element.rect,
+                      shrunkShotToLogicalRatio,
+                    ),
+                  })
+                : {};
               if (hasNonEmptyCache(feature)) {
                 debug(
                   'update cache, prompt: %s, cache: %o',

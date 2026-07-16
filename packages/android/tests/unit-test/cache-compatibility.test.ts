@@ -28,7 +28,10 @@ describe('Android cache compatibility fixture matrix', () => {
         source,
         fixture.sourcePoint,
         'android',
-        ANDROID_CACHE_CANDIDATE_OPTIONS,
+        {
+          ...ANDROID_CACHE_CANDIDATE_OPTIONS,
+          targetDescription: fixture.prompt,
+        },
       );
 
       expect(feature).toBeDefined();
@@ -45,12 +48,10 @@ describe('Android cache compatibility fixture matrix', () => {
     (fixture) => {
       const source = readTree(fixture.sourceFile);
       expect(
-        generateXpathCacheFeature(
-          source,
-          fixture.safeMissPoint,
-          'android',
-          ANDROID_CACHE_CANDIDATE_OPTIONS,
-        ),
+        generateXpathCacheFeature(source, fixture.safeMissPoint, 'android', {
+          ...ANDROID_CACHE_CANDIDATE_OPTIONS,
+          targetDescription: fixture.prompt,
+        }),
       ).toBeUndefined();
     },
   );

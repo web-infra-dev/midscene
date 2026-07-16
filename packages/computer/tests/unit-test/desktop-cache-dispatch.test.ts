@@ -180,6 +180,17 @@ describe('ComputerDevice desktop xpath cache dispatch', () => {
     await device.destroy();
   });
 
+  it('skips order-sensitive targets before reading the hierarchy', async () => {
+    const device = await createConnectedDevice();
+    setPlatform('win32');
+
+    await expect(
+      device.cacheFeatureForPoint([80, 120], { orderSensitive: true }),
+    ).resolves.toEqual({});
+    expect(mockState.readWindowsAccessibilityTree).not.toHaveBeenCalled();
+    await device.destroy();
+  });
+
   it('maps Linux AT-SPI screen coordinates to the selected display', async () => {
     const device = await createConnectedDevice('DP-2');
 

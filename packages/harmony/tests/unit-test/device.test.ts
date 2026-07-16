@@ -182,6 +182,13 @@ describe('HarmonyDevice', () => {
       });
     });
 
+    it('skips order-sensitive targets before reading the hierarchy', async () => {
+      await expect(
+        device.cacheFeatureForPoint([120, 210], { orderSensitive: true }),
+      ).resolves.toEqual({});
+      expect(mockHdc.dumpLayout).not.toHaveBeenCalled();
+    });
+
     it('does not read the hierarchy when native xpath cache is disabled', async () => {
       vi.stubEnv(MIDSCENE_EXPERIMENTAL_NATIVE_XPATH_CACHE, '0');
 

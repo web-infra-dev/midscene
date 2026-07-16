@@ -110,6 +110,7 @@ describe('generateXpathCandidates', () => {
       {
         stableAttrs: ['accessibility-id'],
         textAttrs: ['name'],
+        targetDescription: '点击登录',
       },
     );
     expect(xpaths[0]).toBe("//*[@accessibility-id='login_btn']");
@@ -137,6 +138,7 @@ describe('generateXpathCandidates', () => {
       {
         stableAttrs: ['accessibility-id'],
         textAttrs: ['name'],
+        targetDescription: '点击登录',
       },
     );
     expect(xpaths[0]).toBe("//Button[@name='登录']");
@@ -187,7 +189,10 @@ describe('generateXpathCandidates', () => {
       root,
       { x: 150, y: 125 },
       'android',
-      { textAttrs: ['Name', 'Description'] },
+      {
+        textAttrs: ['Name', 'Description'],
+        targetDescription: 'Save changes',
+      },
     );
 
     expect(feature?.xpaths[0]).toBe("//Button[@Description='Save changes']");
@@ -358,7 +363,11 @@ describe('generateXpathCandidates', () => {
       root,
       { x: 150, y: 125 },
       'android',
-      { stableAttrs: ['id'], textAttrs: ['text'] },
+      {
+        stableAttrs: ['id'],
+        textAttrs: ['text'],
+        targetDescription: 'Save',
+      },
     );
 
     expect(feature?.xpaths[0]).toBe("//Button[@id='action'][@text='Save']");
@@ -401,7 +410,11 @@ describe('generateXpathCandidates', () => {
       root,
       { x: 350, y: 40 },
       'android',
-      { stableAttrs: ['id'], textAttrs: ['text'] },
+      {
+        stableAttrs: ['id'],
+        textAttrs: ['text'],
+        targetDescription: 'More',
+      },
     );
 
     expect(feature?.xpaths[0]).toBe("//*[@id='card-b']//Button[@text='More']");
@@ -569,6 +582,7 @@ describe('generateXpathCandidates', () => {
       {
         stableAttrs: ['resource-id'],
         textAttrs: ['text'],
+        targetDescription: 'Login',
       },
     );
 
@@ -580,6 +594,91 @@ describe('generateXpathCandidates', () => {
     for (const xpath of feature?.xpaths ?? []) {
       expect(evaluateXpath(root, xpath)).toEqual([target]);
     }
+  });
+
+  it('does not treat an unrelated semantic value as target identity', () => {
+    const target = node(
+      'Button',
+      { label: 'Active' },
+      { left: 20, top: 100, width: 120, height: 40 },
+    );
+
+    expect(
+      generateXpathCacheFeature(win([target]), { x: 80, y: 120 }, 'android', {
+        textAttrs: ['label'],
+        targetDescription: 'click the primary action',
+      }),
+    ).toBeUndefined();
+  });
+
+  it('grounds a detailed semantic description by a meaningful prompt token', () => {
+    const target = node(
+      'Button',
+      { description: `Search [video] for "O'Reilly"` },
+      { left: 20, top: 100, width: 120, height: 40 },
+    );
+
+    expect(
+      generateXpathCacheFeature(win([target]), { x: 80, y: 120 }, 'android', {
+        textAttrs: ['description'],
+        targetDescription: 'the Lynx search action',
+      })?.target,
+    ).toEqual({
+      type: 'Button',
+      attr: 'description',
+      value: `Search [video] for "O'Reilly"`,
+    });
+  });
+
+  it('grounds a longer CJK description by a shared semantic phrase', () => {
+    const target = node(
+      'Button',
+      { description: '搜索视频内容' },
+      { left: 20, top: 100, width: 120, height: 40 },
+    );
+
+    expect(
+      generateXpathCacheFeature(win([target]), { x: 80, y: 120 }, 'android', {
+        textAttrs: ['description'],
+        targetDescription: '点击搜索入口',
+      })?.target.value,
+    ).toBe('搜索视频内容');
+  });
+
+  it('uses a stable wrapper only when it agrees with the model rect', () => {
+    const inner = node(
+      'Text',
+      {},
+      { left: 100, top: 100, width: 100, height: 40 },
+    );
+    const wrapper = node(
+      'Button',
+      { id: 'submit' },
+      { left: 90, top: 95, width: 120, height: 50 },
+      [inner],
+    );
+
+    expect(
+      generateXpathCacheFeature(win([wrapper]), { x: 150, y: 120 }, 'android', {
+        stableAttrs: ['id'],
+        expectedRect: wrapper.bounds,
+      })?.target,
+    ).toEqual({ type: 'Button', attr: 'id', value: 'submit' });
+  });
+
+  it('rejects a full-window wrapper that does not agree with the model rect', () => {
+    const wrapper = node(
+      'AXGroup',
+      { AXIdentifier: 'content' },
+      { left: 0, top: 0, width: 1000, height: 1000 },
+    );
+
+    expect(
+      generateXpathCacheFeature(win([wrapper]), { x: 150, y: 120 }, 'darwin', {
+        stableAttrs: ['AXIdentifier'],
+        expectedRect: { left: 100, top: 100, width: 100, height: 40 },
+      }),
+    ).toBeUndefined();
   });
 
   it('handles realistic iOS WDA-shaped trees end-to-end', () => {

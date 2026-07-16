@@ -144,7 +144,7 @@ describe('Agent usage metrics', () => {
     await agent.destroy();
   });
 
-  it('counts both usage and searchAreaUsage of a task', async () => {
+  it('counts main, cache, and search-area usage of a task', async () => {
     const agent = new Agent(createMockInterface(), {
       modelConfig,
       generateReport: false,
@@ -155,13 +155,14 @@ describe('Agent usage metrics', () => {
         {
           taskId: 't1',
           usage: usage({ total_tokens: 50, intent: 'insight' }),
+          cacheUsage: usage({ total_tokens: 10, intent: 'default' }),
           searchAreaUsage: usage({ total_tokens: 20, intent: 'insight' }),
         },
       ]),
     );
 
-    expect(agent.metrics.totalTokens).toBe(70);
-    expect(agent.metrics.calls).toBe(2);
+    expect(agent.metrics.totalTokens).toBe(80);
+    expect(agent.metrics.calls).toBe(3);
 
     await agent.destroy();
   });

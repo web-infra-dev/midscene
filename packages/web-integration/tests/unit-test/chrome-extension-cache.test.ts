@@ -147,6 +147,22 @@ describe('ChromeExtensionProxyPage cache methods', () => {
       );
     });
 
+    it('should use a precomputed order-sensitive classification', async () => {
+      vi.spyOn(page, 'getXpathsByPoint').mockResolvedValue([
+        '/html/body/button[2]',
+      ]);
+
+      await page.cacheFeatureForPoint([100, 200], {
+        orderSensitive: true,
+      });
+
+      expect(AiJudgeOrderSensitive).not.toHaveBeenCalled();
+      expect(page.getXpathsByPoint).toHaveBeenCalledWith(
+        { left: 100, top: 200 },
+        true,
+      );
+    });
+
     it('should fall back to isOrderSensitive=false when AiJudgeOrderSensitive fails', async () => {
       const mockXpaths = ['/html/body/div[1]'];
       vi.spyOn(page, 'getXpathsByPoint').mockResolvedValue(mockXpaths);

@@ -34,12 +34,28 @@ function toUiNode(element: XmlElement): UiNode {
       attrs[k] = v;
     }
   }
+  // WDA's `name` is the accessibilityIdentifier when one exists, otherwise it
+  // may fall back to visible label text. Only promote the unambiguous case to
+  // a stable synthetic identity; the raw `name` remains available as semantic
+  // text and therefore requires prompt grounding.
+  if (
+    attrs.name &&
+    attrs.label &&
+    normalizeAccessibilityText(attrs.name) !==
+      normalizeAccessibilityText(attrs.label)
+  ) {
+    attrs['accessibility-id'] = attrs.name;
+  }
   return {
     type: element.name,
     attrs,
     bounds: parseBounds(element.attrs),
     children: element.children.map(toUiNode),
   };
+}
+
+function normalizeAccessibilityText(value: string): string {
+  return value.replace(/\s+/g, ' ').trim().toLowerCase();
 }
 
 /**

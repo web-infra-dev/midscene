@@ -188,6 +188,13 @@ describe('IOSDevice', () => {
       });
     });
 
+    it('skips order-sensitive targets before reading the hierarchy', async () => {
+      await expect(
+        device.cacheFeatureForPoint([70, 142], { orderSensitive: true }),
+      ).resolves.toEqual({});
+      expect(mockWdaClient.getSource).not.toHaveBeenCalled();
+    });
+
     it('does not read the hierarchy when native xpath cache is disabled', async () => {
       vi.stubEnv(MIDSCENE_EXPERIMENTAL_NATIVE_XPATH_CACHE, '0');
 

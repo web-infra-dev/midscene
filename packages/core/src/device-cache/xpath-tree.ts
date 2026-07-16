@@ -157,11 +157,12 @@ function pickFirstUniqueAttr(
   node: UiNode,
   attrNames: readonly string[] | undefined,
   buildXpath: (identity: { attr: string; value: string }) => string,
+  acceptValue: (value: string) => boolean = () => true,
 ): { identity: { attr: string; value: string }; xpath: string } | undefined {
   if (!attrNames) return undefined;
   for (const attr of attrNames) {
     const value = node.attrs?.[attr];
-    if (isAttrValueSafe(value)) {
+    if (isAttrValueSafe(value) && acceptValue(value)) {
       const identity = { attr, value };
       const xpath = buildXpath(identity);
       if (matchesUniquely(root, xpath, node)) {
@@ -170,6 +171,70 @@ function pickFirstUniqueAttr(
     }
   }
   return undefined;
+}
+
+function normalizeSemanticText(value: string): string {
+  return value.replace(/\s+/g, ' ').trim().toLowerCase();
+}
+
+const GENERIC_SEMANTIC_TOKENS = new Set([
+  'action',
+  'button',
+  'control',
+  'element',
+  'field',
+  'input',
+  'item',
+  'link',
+  'tab',
+  'view',
+  '元素',
+  '按钮',
+  '控件',
+  '操作',
+  '点击',
+  '标签',
+  '视图',
+  '输入',
+  '链接',
+]);
+
+function meaningfulSemanticTokens(value: string): Set<string> {
+  const result = new Set<string>();
+  for (const token of value.match(/[\p{L}\p{N}]+/gu) ?? []) {
+    const characters = [...token];
+    if (/\p{Script=Han}/u.test(token) && characters.length >= 2) {
+      for (let index = 0; index < characters.length - 1; index++) {
+        const bigram = `${characters[index]}${characters[index + 1]}`;
+        if (!GENERIC_SEMANTIC_TOKENS.has(bigram)) result.add(bigram);
+      }
+      continue;
+    }
+    if (token.length >= 3 && !GENERIC_SEMANTIC_TOKENS.has(token)) {
+      result.add(token);
+    }
+  }
+  return result;
+}
+
+function isSemanticValueGrounded(
+  value: string,
+  targetDescription: string | undefined,
+): boolean {
+  if (!targetDescription) return false;
+  const normalizedValue = normalizeSemanticText(value);
+  const normalizedDescription = normalizeSemanticText(targetDescription);
+  if (
+    normalizedValue.length > 0 &&
+    normalizedDescription.includes(normalizedValue)
+  ) {
+    return true;
+  }
+
+  const descriptionTokens = meaningfulSemanticTokens(normalizedDescription);
+  return [...meaningfulSemanticTokens(normalizedValue)].some((token) =>
+    descriptionTokens.has(token),
+  );
 }
 
 /**
@@ -211,6 +276,12 @@ function rankedIdentities(
       if (seen.has(attr)) continue;
       const value = node.attrs[attr];
       if (!isAttrValueSafe(value)) continue;
+      if (
+        kind === 'semantic' &&
+        !isSemanticValueGrounded(value, options?.targetDescription)
+      ) {
+        continue;
+      }
       identities.push({ attr, value, kind });
       seen.add(attr);
     }
@@ -344,6 +415,7 @@ function buildXpathCandidatesForHit(
       options?.textAttrs,
       ({ attr, value }) =>
         `//${xpathTag(node.type)}[@${attr}=${xpathLiteral(value)}]`,
+      (value) => isSemanticValueGrounded(value, options?.targetDescription),
     );
     if (
       semantic &&
@@ -402,6 +474,55 @@ function nodeArea(node: UiNode): number {
   return Math.max(0, node.bounds.width) * Math.max(0, node.bounds.height);
 }
 
+function rectIntersectionOverUnion(
+  node: UiNode,
+  expectedRect: NonNullable<XpathCandidateOptions['expectedRect']>,
+): number {
+  const left = Math.max(node.bounds.left, expectedRect.left);
+  const top = Math.max(node.bounds.top, expectedRect.top);
+  const right = Math.min(
+    node.bounds.left + node.bounds.width,
+    expectedRect.left + expectedRect.width,
+  );
+  const bottom = Math.min(
+    node.bounds.top + node.bounds.height,
+    expectedRect.top + expectedRect.height,
+  );
+  const intersection = Math.max(0, right - left) * Math.max(0, bottom - top);
+  const union =
+    nodeArea(node) +
+    Math.max(0, expectedRect.width) * Math.max(0, expectedRect.height) -
+    intersection;
+  return union > 0 ? intersection / union : 0;
+}
+
+const MIN_EXPECTED_RECT_IOU = 0.5;
+
+function rankPointHits(
+  hits: PointHit[],
+  expectedRect: XpathCandidateOptions['expectedRect'],
+): PointHit[] {
+  if (!expectedRect) {
+    const best = pickBestPointHit(hits);
+    return best ? [best] : [];
+  }
+
+  return hits
+    .map((hit) => ({
+      hit,
+      overlap: rectIntersectionOverUnion(hit.node, expectedRect),
+    }))
+    .filter(({ overlap }) => overlap >= MIN_EXPECTED_RECT_IOU)
+    .sort((a, b) => {
+      const overlapDelta = b.overlap - a.overlap;
+      if (overlapDelta !== 0) return overlapDelta;
+      const depthDelta = b.hit.path.length - a.hit.path.length;
+      if (depthDelta !== 0) return depthDelta;
+      return b.hit.order - a.hit.order;
+    })
+    .map(({ hit }) => hit);
+}
+
 function pickBestPointHit(hits: PointHit[]): PointHit | undefined {
   if (hits.length === 0) return undefined;
 
@@ -417,10 +538,8 @@ function pickBestPointHit(hits: PointHit[]): PointHit | undefined {
 }
 
 /**
- * Generate a small, ranked list of xpath candidates that locate the best cache
- * hit at `point` in `root`. The returned list is suitable for storage in
- * `cache.xpaths` and is consumed by xpath cache replay. Candidates are ordered
- * from most stable to most positional:
+ * Generate a small, ranked list of xpath candidates for a tree node that
+ * agrees with both `point` and, when provided, the model-located rect.
  *
  *   1) `//*[@<stableAttr>='value']`  — when the hit carries a stable id
  *   2) `//<Type>[@<textAttr>='value']` — when the hit carries a semantic label
@@ -429,9 +548,9 @@ function pickBestPointHit(hits: PointHit[]): PointHit | undefined {
  *   5) `/Root[1]/Child[i]/.../Target[k]` — identity-checked fallback
  *
  * Candidates that match more than one node in the current tree are dropped so
- * we never persist an ambiguous selector. Targets without a unique stable or
- * semantic identity are not cached because a positional path alone cannot
- * prove that it still points to the same element on replay.
+ * we never persist an ambiguous selector. Targets without a unique stable id
+ * or prompt-grounded semantic identity are not cached because a positional
+ * path alone cannot prove that it still points to the intended element.
  */
 export function generateXpathCacheFeature(
   root: UiNode,
@@ -439,14 +558,26 @@ export function generateXpathCacheFeature(
   platform: NativeXpathCachePlatform,
   options?: XpathCandidateOptions,
 ): XpathCacheFeature | undefined {
-  const hit = pickBestPointHit(collectNodesAtPoint(root, point));
-  if (!hit) {
+  const hits = rankPointHits(
+    collectNodesAtPoint(root, point),
+    options?.expectedRect,
+  );
+  if (hits.length === 0) {
     debugXpath('generate miss reason=no-point-hit point=%o', point);
     return undefined;
   }
 
-  const result = buildXpathCandidatesForHit(root, hit, options);
-  if (!result || result.candidates.length === 0) {
+  let selected: { hit: PointHit; result: XpathBuildResult } | undefined;
+  for (const hit of hits) {
+    const result = buildXpathCandidatesForHit(root, hit, options);
+    if (result?.candidates.length) {
+      selected = { hit, result };
+      break;
+    }
+  }
+
+  if (!selected) {
+    const hit = hits[0];
     const reason =
       hit.path.length === 1 ||
       options?.excludedTargetTypes?.includes(hit.node.type)
@@ -460,6 +591,8 @@ export function generateXpathCacheFeature(
     );
     return undefined;
   }
+
+  const { result } = selected;
 
   const xpaths = result.candidates.map((candidate) => candidate.xpath);
   const xpathSources = result.candidates.map((candidate) => candidate.source);
@@ -486,11 +619,15 @@ export function generateXpathCandidates(
   point: PointXY,
   options?: XpathCandidateOptions,
 ): string[] {
-  const hit = pickBestPointHit(collectNodesAtPoint(root, point));
-  if (!hit) return [];
-  return (
-    buildXpathCandidatesForHit(root, hit, options)?.candidates.map(
-      (candidate) => candidate.xpath,
-    ) ?? []
+  const hits = rankPointHits(
+    collectNodesAtPoint(root, point),
+    options?.expectedRect,
   );
+  for (const hit of hits) {
+    const result = buildXpathCandidatesForHit(root, hit, options);
+    if (result?.candidates.length) {
+      return result.candidates.map((candidate) => candidate.xpath);
+    }
+  }
+  return [];
 }

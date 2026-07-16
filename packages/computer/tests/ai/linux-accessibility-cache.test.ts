@@ -114,7 +114,10 @@ describe.runIf(RUN_SMOKE)('Linux AT-SPI xpath cache smoke', () => {
         Math.round(target.bounds.left + target.bounds.width / 2),
         Math.round(target.bounds.top + target.bounds.height / 2),
       ];
-      const feature = await device.cacheFeatureForPoint(center);
+      const feature = await device.cacheFeatureForPoint(center, {
+        targetDescription: CACHE_PROMPT,
+        expectedRect: target.bounds,
+      });
       const xpath = firstXpath(feature);
       expect(feature).toMatchObject({
         kind: 'native-xpath',

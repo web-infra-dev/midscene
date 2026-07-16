@@ -277,6 +277,15 @@ describe('report-markdown', () => {
                 time_cost: 456,
                 request_id: 'req-main',
               },
+              cacheUsage: {
+                intent: 'default',
+                model_name: 'gpt-4o-cache',
+                prompt_tokens: 8,
+                completion_tokens: 2,
+                total_tokens: 10,
+                time_cost: 50,
+                request_id: 'req-cache',
+              },
               searchAreaUsage: {
                 intent: 'insight',
                 model_name: 'gpt-4o-mini',
@@ -311,8 +320,12 @@ describe('report-markdown', () => {
     expect(result.markdown).toContain(
       '| gpt-4o-mini | 1 | 10 | 0 | 3 | 13 | 123 |',
     );
+    expect(result.markdown).toContain(
+      '| gpt-4o-cache | 1 | 8 | 0 | 2 | 10 | 50 |',
+    );
     expect(result.markdown).toContain('### Model Usage');
     expect(result.markdown).toContain('req-main');
+    expect(result.markdown).toContain('req-cache');
     expect(result.markdown).toContain('req-search');
     expect(result.markdown).toContain('### AI Action Context');
     expect(result.markdown).toContain('Complete checkout.');

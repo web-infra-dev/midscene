@@ -37,6 +37,20 @@ export interface MjpegStreamOptions {
   onError?(error: unknown): void;
 }
 
+export interface CacheFeatureOptions {
+  targetDescription?: string;
+  modelRuntime?: ModelRuntime;
+  /** Precomputed override used by tests and callers that already classified the prompt. */
+  orderSensitive?: boolean;
+  /** Model-located target rect in logical device coordinates. */
+  expectedRect?: Rect;
+}
+
+export type CacheFeatureOrderPolicy =
+  | 'supported'
+  | 'identity-only'
+  | 'disabled';
+
 /**
  * A cheap, not-yet-decoded handle to one screen frame from a
  * {@link DeviceFrameSource}. `ref` is platform-specific (a raw H.264 keyframe
@@ -166,16 +180,16 @@ export interface ComputerInputPrimitives extends InputPrimitives {
 export abstract class AbstractInterface {
   abstract interfaceType: string;
 
+  /** Native identity caches cannot safely encode ordinal prompt semantics. */
+  readonly cacheFeatureOrderPolicy?: CacheFeatureOrderPolicy;
+
   abstract screenshotBase64(): Promise<string>;
   abstract size(): Promise<Size>;
   abstract actionSpace(): DeviceAction[];
 
   abstract cacheFeatureForPoint?(
     center: [number, number],
-    options?: {
-      targetDescription?: string;
-      modelRuntime?: ModelRuntime;
-    },
+    options?: CacheFeatureOptions,
   ): Promise<ElementCacheFeature>;
   abstract rectMatchesCacheFeature?(
     feature: ElementCacheFeature,

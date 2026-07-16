@@ -241,6 +241,13 @@ describe('AndroidDevice', () => {
       expect(feature.xpaths).toContain("//*[@resource-id='open-details']");
     });
 
+    it('skips order-sensitive targets before reading the hierarchy', async () => {
+      await expect(
+        device.cacheFeatureForPoint([100, 150], { orderSensitive: true }),
+      ).resolves.toEqual({});
+      expect(mockAdb.shell).not.toHaveBeenCalled();
+    });
+
     it('keeps small interactive FrameLayout targets cacheable', async () => {
       mockYadbHierarchy(
         hierarchy(

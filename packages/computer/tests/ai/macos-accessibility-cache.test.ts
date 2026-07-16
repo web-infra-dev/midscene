@@ -336,7 +336,10 @@ describe.runIf(RUN_SMOKE)('macOS AX xpath cache smoke', () => {
         Math.round(center[1] * screenshotScale),
       ];
       await activateFixtureAndSettle(fixture.processId);
-      const feature = await device.cacheFeatureForPoint(center);
+      const feature = await device.cacheFeatureForPoint(center, {
+        targetDescription: CACHE_PROMPT,
+        expectedRect: target.bounds,
+      });
       const xpath = firstXpath(feature);
       expect(feature).toMatchObject({
         kind: 'native-xpath',

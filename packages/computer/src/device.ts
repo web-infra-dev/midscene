@@ -13,6 +13,7 @@ import type {
 } from '@midscene/core';
 import {
   type AbstractInterface,
+  type CacheFeatureOptions,
   type ComputerInputPrimitives,
   defineAction,
   defineActionsFromInputPrimitives,
@@ -717,6 +718,12 @@ export interface ComputerDeviceOpt {
 }
 
 export class ComputerDevice implements AbstractInterface {
+  get cacheFeatureOrderPolicy() {
+    return isNativeXpathCacheEnabled()
+      ? ('identity-only' as const)
+      : ('disabled' as const);
+  }
+
   interfaceType: InterfaceType = 'computer';
   private options?: ComputerDeviceOpt;
   private displayId?: string;
@@ -1358,9 +1365,16 @@ $g.Dispose(); $bmp.Dispose(); $ms.Dispose()
 
   async cacheFeatureForPoint(
     center: [number, number],
+    options?: CacheFeatureOptions,
   ): Promise<ElementCacheFeature> {
     if (!isNativeXpathCacheEnabled()) {
       debugDevice('cacheFeatureForPoint: native xpath cache is disabled');
+      return {};
+    }
+    if (options?.orderSensitive) {
+      debugDevice(
+        'cacheFeatureForPoint: skip order-sensitive native cache feature',
+      );
       return {};
     }
     const attributes = DESKTOP_CACHE_ATTRIBUTES[process.platform];
@@ -1378,7 +1392,11 @@ $g.Dispose(); $bmp.Dispose(); $ms.Dispose()
       root,
       { x: center[0], y: center[1] },
       platform,
-      attributes,
+      {
+        ...attributes,
+        targetDescription: options?.targetDescription,
+        expectedRect: options?.expectedRect,
+      },
     );
     if (!feature) {
       debugDevice(

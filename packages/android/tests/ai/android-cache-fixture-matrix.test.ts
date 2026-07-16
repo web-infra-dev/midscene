@@ -110,7 +110,10 @@ describe.runIf(RUN_SMOKE)('Android cache compatibility report', () => {
         source,
         fixture.sourcePoint,
         'android',
-        ANDROID_CACHE_CANDIDATE_OPTIONS,
+        {
+          ...ANDROID_CACHE_CANDIDATE_OPTIONS,
+          targetDescription: fixture.prompt,
+        },
       );
       expect(feature).toBeDefined();
       expect(feature).toMatchObject({
@@ -124,12 +127,10 @@ describe.runIf(RUN_SMOKE)('Android cache compatibility report', () => {
       expect(replayMatch.rect).toEqual(fixture.replayRect);
       expect(replayMatch.rect).not.toEqual(sourceMatch.rect);
       expect(
-        generateXpathCacheFeature(
-          source,
-          fixture.safeMissPoint,
-          'android',
-          ANDROID_CACHE_CANDIDATE_OPTIONS,
-        ),
+        generateXpathCacheFeature(source, fixture.safeMissPoint, 'android', {
+          ...ANDROID_CACHE_CANDIDATE_OPTIONS,
+          targetDescription: fixture.prompt,
+        }),
       ).toBeUndefined();
 
       replayRects.set(featureKey(feature!), replayMatch.rect);

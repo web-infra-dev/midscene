@@ -45,12 +45,18 @@ describe('wdaSourceToUiNode', () => {
 
   it('emits an accessibility-id selector for the deepest hit', () => {
     const root = wdaSourceToUiNode(SAMPLE_WDA_SOURCE);
+    const login = root.children[0].children[0].children[1];
+    expect(login.attrs['accessibility-id']).toBe('login_btn');
     const xpaths = generateXpathCandidates(
       root,
       { x: 350, y: 66 },
-      { stableAttrs: ['name'], textAttrs: ['label', 'value'] },
+      {
+        stableAttrs: ['accessibility-id'],
+        textAttrs: ['name', 'label', 'value'],
+        targetDescription: '登录',
+      },
     );
-    expect(xpaths[0]).toBe("//*[@name='login_btn']");
+    expect(xpaths[0]).toBe("//*[@accessibility-id='login_btn']");
     for (const xp of xpaths) {
       const matches = evaluateXpath(root, xp);
       expect(matches).toHaveLength(1);
@@ -68,9 +74,31 @@ describe('wdaSourceToUiNode', () => {
     const xpaths = generateXpathCandidates(
       root,
       { x: 75, y: 25 },
-      { stableAttrs: ['name'] },
+      { textAttrs: ['name'], targetDescription: 'dup' },
     );
     expect(xpaths).toEqual([]);
+  });
+
+  it('keeps name as semantic text when WDA falls back to the label', () => {
+    const root = wdaSourceToUiNode(`
+      <XCUIElementTypeApplication x="0" y="0" width="100" height="100">
+        <XCUIElementTypeButton name="Settings" label="Settings" x="0" y="0" width="50" height="50"/>
+      </XCUIElementTypeApplication>
+    `);
+    const button = root.children[0];
+
+    expect(button.attrs['accessibility-id']).toBeUndefined();
+    expect(
+      generateXpathCandidates(
+        root,
+        { x: 25, y: 25 },
+        {
+          stableAttrs: ['accessibility-id'],
+          textAttrs: ['name', 'label'],
+          targetDescription: 'open Settings',
+        },
+      )[0],
+    ).toBe("//XCUIElementTypeButton[@name='Settings']");
   });
 
   it('throws on malformed XML', () => {

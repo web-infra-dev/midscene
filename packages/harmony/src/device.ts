@@ -13,6 +13,7 @@ import {
 } from '@midscene/core';
 import {
   type AbstractInterface,
+  type CacheFeatureOptions,
   type HarmonyDeviceInputOpt as CoreHarmonyDeviceInputOpt,
   type HarmonyDeviceOpt as CoreHarmonyDeviceOpt,
   type MobileInputPrimitives,
@@ -147,6 +148,12 @@ const keyNameAliasMap: Record<string, string> = {
 } as const;
 
 export class HarmonyDevice implements AbstractInterface {
+  get cacheFeatureOrderPolicy() {
+    return isNativeXpathCacheEnabled()
+      ? ('identity-only' as const)
+      : ('disabled' as const);
+  }
+
   private deviceId: string;
   private hdc: HdcClient | null = null;
   private connecting: Promise<HdcClient> | null = null;
@@ -432,9 +439,16 @@ export class HarmonyDevice implements AbstractInterface {
 
   async cacheFeatureForPoint(
     center: [number, number],
+    options?: CacheFeatureOptions,
   ): Promise<ElementCacheFeature> {
     if (!isNativeXpathCacheEnabled()) {
       debugDevice('cacheFeatureForPoint: native xpath cache is disabled');
+      return {};
+    }
+    if (options?.orderSensitive) {
+      debugDevice(
+        'cacheFeatureForPoint: skip order-sensitive native cache feature',
+      );
       return {};
     }
     const hdc = await this.getHdc();
@@ -445,6 +459,8 @@ export class HarmonyDevice implements AbstractInterface {
       { x: center[0], y: center[1] },
       'harmony',
       {
+        targetDescription: options?.targetDescription,
+        expectedRect: options?.expectedRect,
         excludedTargetTypes: ['RootDecor', 'WindowScene', 'Dialog'],
         // ArkUI exposes inspectorKey via the `key` attribute in dumpLayout;
         // some component libraries also surface `id`. Prefer key when both
