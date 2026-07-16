@@ -30,7 +30,7 @@
     "build": "rslib build",
     "build:watch": "rslib build --watch --no-clean",
     "test": "rstest run",
-    "test:smoke": "rstest run --config rstest.smoke.config.ts",
+    "test:smoke": "SMOKE=true rstest run",
     "test:demo": "rstest run --config rstest.config.ts --root demo",
     "test:watch": "rstest watch",
     "typecheck": "tsc --noEmit"
