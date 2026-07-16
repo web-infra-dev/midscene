@@ -77,6 +77,7 @@ export interface PointerInputPrimitives {
   tap(p: PointerPoint, opts?: { duration?: number }): Promise<void>;
   doubleClick?(p: PointerPoint): Promise<void>;
   rightClick?(p: PointerPoint): Promise<void>;
+  middleClick?(p: PointerPoint): Promise<void>;
   hover?(p: PointerPoint): Promise<void>;
   longPress?(p: PointerPoint, opts?: { duration?: number }): Promise<void>;
   dragAndDrop?(from: PointerPoint, to: PointerPoint): Promise<void>;
@@ -380,6 +381,37 @@ export const defineActionRightClick = (
     missingLocateMessage: 'Element not found, cannot right click',
     call: async (point) => {
       await rightClick(point);
+    },
+  });
+};
+
+// MiddleClick
+export const actionMiddleClickParamSchema = z.object({
+  locate: getMidsceneLocationSchema().describe(
+    'The element to be middle clicked',
+  ),
+});
+export type ActionMiddleClickParam = {
+  locate: LocateResultElement;
+};
+
+export const defineActionMiddleClick = (
+  middleClick: NonNullable<PointerInputPrimitives['middleClick']>,
+): DeviceAction<ActionMiddleClickParam> => {
+  return defineLocatedPointAction<
+    typeof actionMiddleClickParamSchema,
+    ActionMiddleClickParam
+  >({
+    name: 'MiddleClick',
+    description: 'Middle click the element',
+    interfaceAlias: 'aiMiddleClick',
+    paramSchema: actionMiddleClickParamSchema,
+    sample: {
+      locate: { prompt: 'the link to open in a new tab' },
+    },
+    missingLocateMessage: 'Element not found, cannot middle click',
+    call: async (point) => {
+      await middleClick(point);
     },
   });
 };
@@ -1053,6 +1085,9 @@ export function defineActionsFromInputPrimitives(
     }
     if (pointer.rightClick) {
       actions.push(defineActionRightClick(pointer.rightClick));
+    }
+    if (pointer.middleClick) {
+      actions.push(defineActionMiddleClick(pointer.middleClick));
     }
     if (pointer.hover) {
       actions.push(defineActionHover(pointer.hover));
