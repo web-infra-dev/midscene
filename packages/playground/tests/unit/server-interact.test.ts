@@ -250,12 +250,17 @@ describe('PlaygroundServer manual interaction APIs', () => {
       resolveExecuteStarted = resolve;
     });
     const agent = {
+      reportFile: `${process.cwd()}/package.json`,
       interface: {
         actionSpace: () => [],
       },
       resetDump: vi.fn(),
       aiAct: vi.fn(async (_prompt: string, options: any) => {
         capturedSignal = options.abortSignal;
+        (agent as any).onDumpUpdate?.('', {
+          id: 'partial-execution',
+          tasks: [],
+        });
         resolveExecuteStarted?.();
 
         return await new Promise((resolve) => {
@@ -312,6 +317,10 @@ describe('PlaygroundServer manual interaction APIs', () => {
       expect((cancelResponse.body as { status: string }).status).toBe(
         'cancelled',
       );
+      expect(cancelResponse.body).toMatchObject({
+        dump: null,
+        reportHTML: expect.stringContaining('"name": "@midscene/playground"'),
+      });
       expect(capturedSignal?.aborted).toBe(true);
 
       await executePromise;
@@ -319,6 +328,8 @@ describe('PlaygroundServer manual interaction APIs', () => {
       expect((executeResponse.body as { result: unknown }).result).toBe(
         'aborted',
       );
+      expect(agent.dumpDataString).not.toHaveBeenCalled();
+      expect(agent.reportHTMLString).not.toHaveBeenCalled();
     } finally {
       await server.close();
     }

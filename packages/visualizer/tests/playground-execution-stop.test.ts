@@ -6,6 +6,10 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { usePlaygroundExecution } from '../src/hooks/usePlaygroundExecution';
 import type { InfoListItem, PlaygroundSDKLike } from '../src/types';
 
+const { allScriptsFromDumpMock } = vi.hoisted(() => ({
+  allScriptsFromDumpMock: vi.fn(() => null),
+}));
+
 vi.mock('@midscene/core/agent', () => ({
   paramStr: () => '',
   typeStr: () => 'Plan',
@@ -25,7 +29,7 @@ vi.mock('../src/store/store', () => ({
 }));
 
 vi.mock('../src/utils/replay-scripts', () => ({
-  allScriptsFromDump: () => null,
+  allScriptsFromDump: allScriptsFromDumpMock,
 }));
 
 (
@@ -92,6 +96,92 @@ describe('usePlaygroundExecution stop handling', () => {
   afterEach(() => {
     document.body.replaceChildren();
     vi.restoreAllMocks();
+    allScriptsFromDumpMock.mockReset();
+    allScriptsFromDumpMock.mockReturnValue(null);
+  });
+
+  it('restores replay scripts from a report-only stop result', async () => {
+    allScriptsFromDumpMock.mockReturnValue({
+      scripts: [{ type: 'img', duration: 0, img: 'data:image/png;base64,abc' }],
+      width: 100,
+      height: 200,
+      modelBriefs: [],
+    });
+    const reportHTML = `
+      <script type="midscene-image" data-id="shot-1">data:image/png;base64,abc</script>
+      <script type="midscene_web_dump">${JSON.stringify({
+        sdkVersion: 'test',
+        groupName: 'Stopped run',
+        modelBriefs: [],
+        executions: [
+          {
+            id: 'stopped-execution',
+            logTime: 1,
+            name: 'Stopped execution',
+            tasks: [
+              {
+                type: 'Planning',
+                uiContext: {
+                  screenshot: {
+                    type: 'midscene_screenshot_ref',
+                    id: 'shot-1',
+                    capturedAt: 1,
+                    mimeType: 'image/png',
+                    storage: 'inline',
+                  },
+                },
+              },
+            ],
+          },
+        ],
+      })}</script>
+    `;
+    let snapshot: HarnessSnapshot | null = null;
+    const getSnapshot = () => {
+      if (!snapshot) throw new Error('Harness snapshot is not ready');
+      return snapshot;
+    };
+    const playgroundSDK = {
+      cancelExecution: vi.fn(async () => ({
+        dump: null,
+        reportHTML,
+      })),
+      executeAction: vi.fn(() => new Promise(() => undefined)),
+      onDumpUpdate: vi.fn(),
+      onProgressUpdate: vi.fn(),
+    } as unknown as PlaygroundSDKLike;
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+
+    await act(async () => {
+      root.render(
+        createElement(Harness, {
+          onSnapshot: (nextSnapshot) => {
+            snapshot = nextSnapshot;
+          },
+          playgroundSDK,
+        }),
+      );
+    });
+    await act(async () => {
+      void getSnapshot().handleRun({ prompt: 'Replay', type: 'aiAct' });
+    });
+    await act(async () => {
+      await getSnapshot().handleStop();
+    });
+
+    const stoppedResult = getSnapshot().infoList.find((item) =>
+      item.id.startsWith('stop-result-'),
+    );
+    expect(stoppedResult?.result?.reportHTML).toBe(reportHTML);
+    expect(stoppedResult?.replayScriptsInfo?.scripts).toHaveLength(1);
+    const restoredDump = allScriptsFromDumpMock.mock.calls[0]?.[0] as any;
+    expect(
+      restoredDump.executions[0].tasks[0].uiContext.screenshot.base64,
+    ).toBe('data:image/png;base64,abc');
+
+    await act(async () => root.unmount());
   });
 
   it('does not render abort errors after the user stops execution', async () => {

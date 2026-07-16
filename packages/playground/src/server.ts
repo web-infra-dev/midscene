@@ -8,6 +8,7 @@ import {
   statSync,
   writeFileSync,
 } from 'node:fs';
+import { readFile } from 'node:fs/promises';
 import type { Server } from 'node:http';
 import { dirname, join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -763,6 +764,7 @@ const STATIC_PATH = join(__dirname, '..', '..', 'static');
 const debugScreenshot = getDebug('playground:screenshot', { console: true });
 const debugMjpeg = getDebug('playground:mjpeg', { console: true });
 const debugInteract = getDebug('playground:interact', { console: true });
+const debugCancel = getDebug('playground:cancel', { console: true });
 const debugRecorderAssets = getDebug('playground:recorder-assets', {
   console: true,
 });
@@ -3400,28 +3402,37 @@ class PlaygroundServer {
         }
       }
 
-      try {
-        const dumpString = agent.dumpDataString({
-          inlineScreenshots: true,
-        });
-        if (dumpString) {
-          const groupedDump = ReportActionDump.fromSerializedString(dumpString);
-          response.dump = groupedDump;
-        } else {
-          response.dump = null;
-        }
-        response.reportHTML =
-          agent.reportHTMLString({ inlineScreenshots: true }) || null;
+      if (abortController?.signal.aborted) {
+        // Cancellation recreates (and therefore destroys) the agent. Do not
+        // synchronously inline every screenshot into both a dump and an HTML
+        // report while that teardown is in progress: on long mobile runs this
+        // blocks Electron's main event loop, including IPC and scrcpy. The
+        // cancel response reads the incrementally persisted report instead.
+        response.dump = null;
+      } else {
+        try {
+          const dumpString = agent.dumpDataString({
+            inlineScreenshots: true,
+          });
+          if (dumpString) {
+            const groupedDump =
+              ReportActionDump.fromSerializedString(dumpString);
+            response.dump = groupedDump;
+          } else {
+            response.dump = null;
+          }
+          response.reportHTML =
+            agent.reportHTMLString({ inlineScreenshots: true }) || null;
 
-        agent.writeOutActionDumps();
-        agent.resetDump();
-      } catch (error: unknown) {
-        const errorMessage =
-          error instanceof Error ? error.message : 'Unknown error';
-        console.error(
-          `write out dump failed: requestId: ${requestId}, ${errorMessage}`,
-        );
-      } finally {
+          agent.writeOutActionDumps();
+          agent.resetDump();
+        } catch (error: unknown) {
+          const errorMessage =
+            error instanceof Error ? error.message : 'Unknown error';
+          console.error(
+            `write out dump failed: requestId: ${requestId}, ${errorMessage}`,
+          );
+        }
       }
 
       res.send(response);
@@ -3471,29 +3482,10 @@ class PlaygroundServer {
 
           console.log(`Cancelling task: ${requestId}`);
 
-          // Get current execution data before cancelling (dump and reportHTML)
-          let dump: any = null;
-          let reportHTML: string | null = null;
-
-          try {
-            const dumpString = agent.dumpDataString?.({
-              inlineScreenshots: true,
-            });
-            if (dumpString) {
-              const groupedDump =
-                ReportActionDump.fromSerializedString(dumpString);
-              dump = groupedDump;
-            }
-
-            reportHTML =
-              agent.reportHTMLString?.({
-                inlineScreenshots: true,
-              }) || null;
-          } catch (error: unknown) {
-            console.warn('Failed to get execution data before cancel:', error);
-          }
-
           const abortController = this.taskAbortControllers[requestId];
+          // Abort before doing any teardown work. The cached progress dump is
+          // already persisted by the report generator, so cancellation does
+          // not need to synchronously serialize inline screenshots.
           abortController?.abort(
             new Error(`Task cancelled by user: ${requestId}`),
           );
@@ -3509,6 +3501,22 @@ class PlaygroundServer {
             console.warn('Failed to recreate agent during cancel:', error);
           }
 
+          let reportHTML: string | null = null;
+          if (agent.reportFile) {
+            try {
+              // Agent.destroy() finalizes the incrementally persisted report
+              // before recreateAgent() resolves. Read that completed artifact
+              // asynchronously instead of rebuilding it from every screenshot
+              // on Electron's main thread.
+              reportHTML = await readFile(agent.reportFile, 'utf8');
+            } catch (error) {
+              debugCancel(
+                'Failed to read finalized report after cancel: %s',
+                error,
+              );
+            }
+          }
+
           // Clean up
           delete this.taskExecutionDumps[requestId];
           delete this.taskAbortControllers[requestId];
@@ -3517,7 +3525,7 @@ class PlaygroundServer {
           res.json({
             status: 'cancelled',
             message: 'Task cancelled successfully',
-            dump,
+            dump: null,
             reportHTML,
           });
         } catch (error: unknown) {

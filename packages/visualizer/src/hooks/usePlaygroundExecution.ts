@@ -5,6 +5,11 @@ import type {
   IReportActionDump,
 } from '@midscene/core';
 import { paramStr, typeStr } from '@midscene/core/agent';
+import {
+  parseDumpScript,
+  parseImageScripts,
+  restoreImageReferences,
+} from '@midscene/core/dump';
 import { useCallback } from 'react';
 import { useEnvConfig } from '../store/store';
 import type {
@@ -103,6 +108,20 @@ function replayInfoFromDump(
   }
 
   return null;
+}
+
+function replayInfoFromReportHTML(reportHTML: string, deviceType?: string) {
+  try {
+    const imageMap = parseImageScripts(reportHTML);
+    const dump = restoreImageReferences(
+      JSON.parse(parseDumpScript(reportHTML)) as IReportActionDump,
+      (ref) => imageMap[ref.id] || '',
+    );
+    return replayInfoFromDump(dump, deviceType);
+  } catch (error) {
+    console.error('Failed to restore replay from stopped report:', error);
+    return null;
+  }
 }
 
 export interface UsePlaygroundExecutionOptions {
@@ -470,7 +489,11 @@ export function usePlaygroundExecution(options: UsePlaygroundExecutionOptions) {
             let replayInfo = null;
             let counter = replayCounter;
 
-            replayInfo = replayInfoFromDump(executionData.dump, deviceType);
+            replayInfo = executionData.dump
+              ? replayInfoFromDump(executionData.dump, deviceType)
+              : executionData.reportHTML
+                ? replayInfoFromReportHTML(executionData.reportHTML, deviceType)
+                : null;
             if (replayInfo) {
               setReplayCounter((c) => c + 1);
               counter = replayCounter + 1;
