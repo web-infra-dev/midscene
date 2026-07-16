@@ -125,6 +125,8 @@ export default defineConfig(async () => {
         },
       ],
       ['meta', { name: 'twitter:image:alt', content: 'Midscene.js logo' }],
+      // Prevent Bing from selecting arbitrary homepage images as search previews.
+      ['meta', { name: 'bingbot', content: 'max-image-preview:none' }],
       `<script type="application/ld+json">${SEARCH_IDENTITY_JSON_LD}</script>`,
     ],
     markdown: {
