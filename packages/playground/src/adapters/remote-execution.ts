@@ -17,7 +17,12 @@ import type {
   PlaygroundSessionTarget,
 } from '../platform';
 import type { PlaygroundRuntimeInfo } from '../runtime-metadata';
-import type { ExecutionOptions, FormValue, ValidationResult } from '../types';
+import type {
+  ExecutionOptions,
+  FormValue,
+  PlaygroundReportRef,
+  ValidationResult,
+} from '../types';
 import { BasePlaygroundAdapter } from './base';
 
 export class RemoteExecutionAdapter extends BasePlaygroundAdapter {
@@ -28,6 +33,18 @@ export class RemoteExecutionAdapter extends BasePlaygroundAdapter {
     executionDump?: ExecutionDump,
   ) => void;
   private pollingIntervalId?: ReturnType<typeof setInterval>;
+
+  private resolveReportUrl(report: PlaygroundReportRef | null | undefined) {
+    if (!report || !this.serverUrl) return report;
+    const resolved = {
+      ...report,
+      url: new URL(report.url, this.serverUrl).toString(),
+    };
+    if (report.replayUrl) {
+      resolved.replayUrl = new URL(report.replayUrl, this.serverUrl).toString();
+    }
+    return resolved;
+  }
 
   constructor(serverUrl: string) {
     super();
@@ -189,6 +206,9 @@ export class RemoteExecutionAdapter extends BasePlaygroundAdapter {
       }
 
       const result = await response.json();
+      if (result?.report) {
+        result.report = this.resolveReportUrl(result.report);
+      }
 
       return result;
     } catch (error) {
@@ -438,6 +458,9 @@ export class RemoteExecutionAdapter extends BasePlaygroundAdapter {
       }
 
       const result = await res.json();
+      if (result?.report) {
+        result.report = this.resolveReportUrl(result.report);
+      }
       return { success: true, ...result };
     } catch (error) {
       console.error('Failed to cancel task:', error);

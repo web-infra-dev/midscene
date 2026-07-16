@@ -14,6 +14,7 @@ import { DEFAULT_STUDIO_WEB_VIEWPORT } from '@shared/web-viewport';
 import { ensureStudioShellEnvHydrated } from '../shell-env';
 import { createStudioCorsOptions } from './cors';
 import type { DeviceDiscoveryService } from './device-discovery';
+import { StudioScrcpySidecarProcess } from './scrcpy-sidecar-process';
 import type { PlaygroundRuntimeService } from './types';
 
 const require = createRequire(__filename);
@@ -236,6 +237,23 @@ async function createScrcpyDeviceListSource(
       });
     },
   };
+}
+
+async function createStudioScrcpyController(
+  ScrcpyServer: AndroidPlaygroundModule['ScrcpyServer'],
+  deviceDiscoveryService?: StudioDeviceDiscoveryService,
+) {
+  const deviceListSource = deviceDiscoveryService
+    ? await createScrcpyDeviceListSource(deviceDiscoveryService)
+    : undefined;
+
+  // Unit tests and non-Electron consumers keep the in-process implementation.
+  // Studio uses a utility process so report/main-process stalls cannot starve
+  // the preview Socket.IO heartbeat.
+  if (process.versions.electron && deviceListSource) {
+    return new StudioScrcpySidecarProcess(deviceListSource);
+  }
+  return new ScrcpyServer(deviceListSource ? { deviceListSource } : undefined);
 }
 
 const DEFAULT_STUDIO_WEB_URL = 'https://todomvc.com/examples/react/dist/';
@@ -490,14 +508,9 @@ const createStudioPlatformSpecs = ({
       const androidModule = await loadAndroidModule();
       return androidModule.androidPlaygroundPlatform.prepare({
         staticDir,
-        scrcpyServer: new androidModule.ScrcpyServer(
-          deviceDiscoveryService
-            ? {
-                deviceListSource: await createScrcpyDeviceListSource(
-                  deviceDiscoveryService,
-                ),
-              }
-            : undefined,
+        scrcpyServer: await createStudioScrcpyController(
+          androidModule.ScrcpyServer,
+          deviceDiscoveryService,
         ),
       });
     },
@@ -650,20 +663,16 @@ export function createMultiPlatformRuntimeService({
                   label: 'Android',
                   description: 'Connect to an Android device via ADB',
                   staticDirPackage: '@midscene/android-playground',
-                  prepare: async (staticDir) =>
-                    runtimeModules.androidPlaygroundPlatform.prepare({
+                  prepare: async (staticDir) => {
+                    const scrcpyServer = await createStudioScrcpyController(
+                      runtimeModules.ScrcpyServer,
+                      deviceDiscoveryService,
+                    );
+                    return runtimeModules.androidPlaygroundPlatform.prepare({
                       staticDir,
-                      scrcpyServer: new runtimeModules.ScrcpyServer(
-                        deviceDiscoveryService
-                          ? {
-                              deviceListSource:
-                                await createScrcpyDeviceListSource(
-                                  deviceDiscoveryService,
-                                ),
-                            }
-                          : undefined,
-                      ),
-                    }),
+                      scrcpyServer,
+                    });
+                  },
                 },
                 {
                   id: 'ios',

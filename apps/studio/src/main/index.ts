@@ -33,6 +33,7 @@ import {
 } from 'electron';
 import type { TitleBarOverlay } from 'electron';
 import { MACOS_TRAFFIC_LIGHT_POSITION } from '../shared/titlebar-layout';
+import { startStudioEventLoopWatchdog } from './performance-watchdog';
 import { requestPlaygroundBootstrap } from './playground/bootstrap-request';
 import { runConnectivityTest } from './playground/connectivity-test';
 import {
@@ -725,6 +726,8 @@ const registerIpcHandlers = () => {
 
 app.whenReady().then(() => {
   ensureStudioRunDirEnv();
+  const stopEventLoopWatchdog = startStudioEventLoopWatchdog();
+  app.once('before-quit', stopEventLoopWatchdog);
 
   if (process.platform === 'darwin' && app.dock) {
     app.dock.setIcon(getAppIcon());

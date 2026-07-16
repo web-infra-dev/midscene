@@ -1,5 +1,6 @@
 import { createHash, randomUUID } from 'node:crypto';
 import {
+  createReadStream,
   existsSync,
   mkdirSync,
   readFileSync,
@@ -8,9 +9,9 @@ import {
   statSync,
   writeFileSync,
 } from 'node:fs';
-import { readFile } from 'node:fs/promises';
+import { stat } from 'node:fs/promises';
 import type { Server } from 'node:http';
-import { dirname, join, resolve, sep } from 'node:path';
+import { basename, dirname, join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type {
   AgentDescribeElementAtPointResult,
@@ -21,7 +22,7 @@ import type {
   ExecutorContext,
 } from '@midscene/core';
 import {
-  ReportActionDump,
+  type ReportActionDump,
   describeElementAtPoint,
   runConnectivityTest,
 } from '@midscene/core';
@@ -47,7 +48,7 @@ import {
   buildMidsceneRecorderActionSummary,
   buildMidsceneRecorderReplayInstruction,
 } from '@midscene/shared/recorder';
-import { uuid } from '@midscene/shared/utils';
+import { antiEscapeScriptTag, uuid } from '@midscene/shared/utils';
 import express, { type Request, type Response } from 'express';
 import { executeAction, formatErrorMessage } from './common';
 import { MjpegStreamHandler } from './mjpeg-stream-handler';
@@ -70,7 +71,7 @@ import {
   type PlaygroundRuntimeInfo,
   buildRuntimeInfo,
 } from './runtime-metadata';
-import type { AgentFactory } from './types';
+import type { AgentFactory, PlaygroundReportRef } from './types';
 
 import 'dotenv/config';
 
@@ -87,9 +88,100 @@ const RECORDER_AI_DESCRIBE_SCREENSHOT_DUMP_DIR =
 const RECORDER_SCREENSHOT_ASSET_DIR = 'recorder-screenshots';
 const RECORDER_SCREENSHOT_ASSET_MAX_SESSION_BYTES = 128 * 1024 * 1024;
 const RECORDER_SCREENSHOT_ASSET_MAX_TOTAL_BYTES = 512 * 1024 * 1024;
+const PLAYGROUND_REPORT_REF_TTL_MS = 60 * 60 * 1000;
+const REPORT_DUMP_OPEN_TAG = '<script type="midscene_web_dump"';
+const REPORT_IMAGE_CLOSE_TAG = '</script>';
 const recorderScreenshotAssetQuotaExceededSessions = new Set<string>();
 const recorderScreenshotAssetBytesBySession = new Map<string, number>();
 let recorderScreenshotAssetUsageInitialized = false;
+
+async function extractLastReportDump(reportPath: string): Promise<string> {
+  let pending = '';
+  let current = '';
+  let last = '';
+  let capturing = false;
+
+  for await (const rawChunk of createReadStream(reportPath, {
+    encoding: 'utf8',
+  })) {
+    let chunk = pending + rawChunk;
+    pending = '';
+
+    while (chunk) {
+      if (!capturing) {
+        const openIndex = chunk.indexOf(REPORT_DUMP_OPEN_TAG);
+        if (openIndex === -1) {
+          pending = chunk.slice(-(REPORT_DUMP_OPEN_TAG.length - 1));
+          break;
+        }
+        const tagEndIndex = chunk.indexOf('>', openIndex);
+        if (tagEndIndex === -1) {
+          pending = chunk.slice(openIndex);
+          break;
+        }
+        capturing = true;
+        current = '';
+        chunk = chunk.slice(tagEndIndex + 1);
+        continue;
+      }
+
+      const closeIndex = chunk.indexOf(REPORT_IMAGE_CLOSE_TAG);
+      if (closeIndex === -1) {
+        const retainedLength = REPORT_IMAGE_CLOSE_TAG.length - 1;
+        current += chunk.slice(0, -retainedLength);
+        pending = chunk.slice(-retainedLength);
+        break;
+      }
+      current += chunk.slice(0, closeIndex);
+      last = current.trim();
+      current = '';
+      capturing = false;
+      chunk = chunk.slice(closeIndex + REPORT_IMAGE_CLOSE_TAG.length);
+    }
+  }
+
+  if (!last) throw new Error('No replay dump found in report');
+  return antiEscapeScriptTag(last);
+}
+
+async function extractInlineReportImage(
+  reportPath: string,
+  imageId: string,
+): Promise<string | null> {
+  const openTag = `<script type="midscene-image" data-id="${imageId}">`;
+  let pending = '';
+  let content = '';
+  let capturing = false;
+
+  for await (const rawChunk of createReadStream(reportPath, {
+    encoding: 'utf8',
+  })) {
+    let chunk = pending + rawChunk;
+    pending = '';
+
+    if (!capturing) {
+      const openIndex = chunk.indexOf(openTag);
+      if (openIndex === -1) {
+        pending = chunk.slice(-(openTag.length - 1));
+        continue;
+      }
+      capturing = true;
+      chunk = chunk.slice(openIndex + openTag.length);
+    }
+
+    const closeIndex = chunk.indexOf(REPORT_IMAGE_CLOSE_TAG);
+    if (closeIndex !== -1) {
+      content += chunk.slice(0, closeIndex);
+      return antiEscapeScriptTag(content.trim());
+    }
+
+    const retainedLength = REPORT_IMAGE_CLOSE_TAG.length - 1;
+    content += chunk.slice(0, -retainedLength);
+    pending = chunk.slice(-retainedLength);
+  }
+
+  return null;
+}
 
 function shouldPersistStudioPreviewRecorderScreenshot(actionType: string) {
   return [
@@ -765,6 +857,7 @@ const debugScreenshot = getDebug('playground:screenshot', { console: true });
 const debugMjpeg = getDebug('playground:mjpeg', { console: true });
 const debugInteract = getDebug('playground:interact', { console: true });
 const debugCancel = getDebug('playground:cancel', { console: true });
+const debugReport = getDebug('playground:report', { console: true });
 const debugRecorderAssets = getDebug('playground:recorder-assets', {
   console: true,
 });
@@ -1180,6 +1273,14 @@ class PlaygroundServer {
   staticPath: string;
   taskExecutionDumps: Record<string, ExecutionDump | null>; // Store execution dumps directly
   id: string; // Unique identifier for this server instance
+  private readonly reportFiles = new Map<
+    string,
+    {
+      path: string;
+      expiresAt: number;
+      format: PlaygroundReportRef['format'];
+    }
+  >();
 
   /**
    * Port for scrcpy server (used by Android playground for screen mirroring)
@@ -3010,6 +3111,56 @@ class PlaygroundServer {
     await action.call(params, createManualExecutorContext(actionType, params));
   }
 
+  private async registerReportFile(
+    reportPath: string | null | undefined,
+  ): Promise<PlaygroundReportRef | null> {
+    if (!reportPath) return null;
+
+    const reportStat = await stat(reportPath);
+    if (!reportStat.isFile()) {
+      throw new Error(`Report path is not a file: ${reportPath}`);
+    }
+
+    const screenshotsPath = join(dirname(reportPath), 'screenshots');
+    const hasExternalScreenshots = await stat(screenshotsPath)
+      .then((entry) => entry.isDirectory())
+      .catch(() => false);
+    const format: PlaygroundReportRef['format'] =
+      basename(reportPath) === 'index.html' && hasExternalScreenshots
+        ? 'html-and-external-assets'
+        : 'single-html';
+
+    const now = Date.now();
+    for (const [id, report] of this.reportFiles) {
+      if (report.expiresAt <= now) this.reportFiles.delete(id);
+    }
+
+    const id = randomUUID();
+    this.reportFiles.set(id, {
+      path: reportPath,
+      expiresAt: now + PLAYGROUND_REPORT_REF_TTL_MS,
+      format,
+    });
+
+    return {
+      id,
+      url: `/reports/${id}/`,
+      replayUrl: `/reports/${id}/replay`,
+      bytes: reportStat.size,
+      format,
+    };
+  }
+
+  private getRegisteredReport(reportId: string) {
+    const report = this.reportFiles.get(reportId);
+    if (!report || report.expiresAt <= Date.now()) {
+      if (report) this.reportFiles.delete(reportId);
+      return null;
+    }
+    report.expiresAt = Date.now() + PLAYGROUND_REPORT_REF_TTL_MS;
+    return report;
+  }
+
   /**
    * Setup all API routes
    */
@@ -3019,6 +3170,87 @@ class PlaygroundServer {
         status: 'ok',
         id: this.id,
       });
+    });
+
+    this._app.get(
+      '/reports/:reportId/replay',
+      async (req: Request, res: Response) => {
+        const report = this.getRegisteredReport(req.params.reportId);
+        if (!report) {
+          return res.status(404).json({ error: 'Report not found or expired' });
+        }
+
+        try {
+          const serializedDump = await extractLastReportDump(report.path);
+          res.setHeader('Cache-Control', 'no-store');
+          return res.type('json').send(serializedDump);
+        } catch (error) {
+          debugReport('failed to stream report replay: %s', error);
+          return res
+            .status(500)
+            .json({ error: 'Failed to load report replay' });
+        }
+      },
+    );
+
+    this._app.get(
+      '/reports/:reportId/screenshots/:assetName',
+      async (req: Request, res: Response) => {
+        const report = this.getRegisteredReport(req.params.reportId);
+        if (!report) {
+          return res.status(404).json({ error: 'Report not found or expired' });
+        }
+
+        const match = /^([A-Za-z0-9_-]+)\.(png|jpe?g)$/.exec(
+          req.params.assetName,
+        );
+        if (!match) {
+          return res.status(400).json({ error: 'Invalid screenshot asset' });
+        }
+
+        const [, imageId, extension] = match;
+        const externalAssetPath = join(
+          dirname(report.path),
+          'screenshots',
+          req.params.assetName,
+        );
+        const externalAssetExists = await stat(externalAssetPath)
+          .then((entry) => entry.isFile())
+          .catch(() => false);
+        res.setHeader('Cache-Control', 'private, max-age=3600');
+        if (externalAssetExists) {
+          return res.sendFile(externalAssetPath);
+        }
+
+        try {
+          const dataUri = await extractInlineReportImage(report.path, imageId);
+          if (!dataUri) {
+            return res.status(404).json({ error: 'Screenshot not found' });
+          }
+          const commaIndex = dataUri.indexOf(',');
+          if (commaIndex === -1) {
+            throw new Error('Invalid screenshot data URI');
+          }
+          const mimeType = extension === 'png' ? 'image/png' : 'image/jpeg';
+          return res
+            .type(mimeType)
+            .send(Buffer.from(dataUri.slice(commaIndex + 1), 'base64'));
+        } catch (error) {
+          debugReport('failed to stream report screenshot: %s', error);
+          return res.status(500).json({ error: 'Failed to load screenshot' });
+        }
+      },
+    );
+
+    this._app.get('/reports/:reportId/', (req: Request, res: Response) => {
+      const report = this.getRegisteredReport(req.params.reportId);
+      if (!report) {
+        return res.status(404).json({ error: 'Report not found or expired' });
+      }
+
+      res.setHeader('Cache-Control', 'no-store');
+      res.type('html');
+      return res.sendFile(report.path);
     });
 
     this._app.get('/session', async (_req: Request, res: Response) => {
@@ -3358,12 +3590,14 @@ class PlaygroundServer {
         dump: ExecutionDump | ReportActionDump | null;
         error: string | null;
         reportHTML: string | null;
+        report: PlaygroundReportRef | null;
         requestId?: string;
       } = {
         result: null,
         dump: null,
         error: null,
         reportHTML: null,
+        report: null,
         requestId,
       };
 
@@ -3411,26 +3645,31 @@ class PlaygroundServer {
         response.dump = null;
       } else {
         try {
-          const dumpString = agent.dumpDataString({
-            inlineScreenshots: true,
-          });
-          if (dumpString) {
-            const groupedDump =
-              ReportActionDump.fromSerializedString(dumpString);
-            response.dump = groupedDump;
-          } else {
-            response.dump = null;
-          }
-          response.reportHTML =
-            agent.reportHTMLString({ inlineScreenshots: true }) || null;
-
-          agent.writeOutActionDumps();
+          // Snapshot updates await incremental report persistence before the
+          // action resolves. Register that existing artifact instead of
+          // synchronously inlining every screenshot into both a dump and an
+          // HTML report. Large Android runs otherwise starve Electron's main
+          // event loop long enough for the scrcpy Socket.IO heartbeat to fail.
+          const reportStartedAt = Date.now();
+          const reportFile = agent.reportFile;
+          response.report = await this.registerReportFile(reportFile);
+          response.dump = null;
           agent.resetDump();
+
+          debugReport(
+            'registered persisted report: requestId=%s, duration=%dms, bytes=%d, file=%s',
+            requestId,
+            Date.now() - reportStartedAt,
+            response.report?.bytes || 0,
+            reportFile || 'none',
+          );
         } catch (error: unknown) {
           const errorMessage =
             error instanceof Error ? error.message : 'Unknown error';
-          console.error(
-            `write out dump failed: requestId: ${requestId}, ${errorMessage}`,
+          debugReport(
+            'register persisted report failed: requestId=%s, error=%s',
+            requestId,
+            errorMessage,
           );
         }
       }
@@ -3501,17 +3740,16 @@ class PlaygroundServer {
             console.warn('Failed to recreate agent during cancel:', error);
           }
 
-          let reportHTML: string | null = null;
+          let report: PlaygroundReportRef | null = null;
           if (agent.reportFile) {
             try {
               // Agent.destroy() finalizes the incrementally persisted report
-              // before recreateAgent() resolves. Read that completed artifact
-              // asynchronously instead of rebuilding it from every screenshot
-              // on Electron's main thread.
-              reportHTML = await readFile(agent.reportFile, 'utf8');
+              // before recreateAgent() resolves. Return an opaque streaming URL
+              // instead of putting the full artifact in cancellation JSON.
+              report = await this.registerReportFile(agent.reportFile);
             } catch (error) {
               debugCancel(
-                'Failed to read finalized report after cancel: %s',
+                'Failed to register finalized report after cancel: %s',
                 error,
               );
             }
@@ -3526,7 +3764,8 @@ class PlaygroundServer {
             status: 'cancelled',
             message: 'Task cancelled successfully',
             dump: null,
-            reportHTML,
+            reportHTML: null,
+            report,
           });
         } catch (error: unknown) {
           const errorMessage =
@@ -4127,6 +4366,7 @@ class PlaygroundServer {
       console.warn('Failed to destroy current session during shutdown:', error);
     });
     this._mjpegHandler.shutdown();
+    this.reportFiles.clear();
 
     return new Promise((resolve, reject) => {
       if (this.server) {

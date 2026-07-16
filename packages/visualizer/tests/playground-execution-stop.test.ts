@@ -92,10 +92,47 @@ function Harness({
   return null;
 }
 
+function replayDump() {
+  return {
+    sdkVersion: 'test',
+    groupName: 'Playground run',
+    modelBriefs: [],
+    executions: [
+      {
+        id: 'playground-execution',
+        logTime: 1,
+        name: 'Playground execution',
+        tasks: [
+          {
+            type: 'Planning',
+            uiContext: {
+              screenshot: {
+                type: 'midscene_screenshot_ref',
+                id: 'shot-1',
+                capturedAt: 1,
+                mimeType: 'image/png',
+                storage: 'inline',
+              },
+            },
+          },
+        ],
+      },
+    ],
+  };
+}
+
+function reportWithReplay() {
+  return `
+    <script type="midscene-image" data-id="shot-1">data:image/png;base64,abc</script>
+    <script type="midscene_web_dump">${JSON.stringify(replayDump())}</script>
+  `;
+}
+
 describe('usePlaygroundExecution stop handling', () => {
   afterEach(() => {
     document.body.replaceChildren();
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
     allScriptsFromDumpMock.mockReset();
     allScriptsFromDumpMock.mockReturnValue(null);
   });
@@ -107,35 +144,7 @@ describe('usePlaygroundExecution stop handling', () => {
       height: 200,
       modelBriefs: [],
     });
-    const reportHTML = `
-      <script type="midscene-image" data-id="shot-1">data:image/png;base64,abc</script>
-      <script type="midscene_web_dump">${JSON.stringify({
-        sdkVersion: 'test',
-        groupName: 'Stopped run',
-        modelBriefs: [],
-        executions: [
-          {
-            id: 'stopped-execution',
-            logTime: 1,
-            name: 'Stopped execution',
-            tasks: [
-              {
-                type: 'Planning',
-                uiContext: {
-                  screenshot: {
-                    type: 'midscene_screenshot_ref',
-                    id: 'shot-1',
-                    capturedAt: 1,
-                    mimeType: 'image/png',
-                    storage: 'inline',
-                  },
-                },
-              },
-            ],
-          },
-        ],
-      })}</script>
-    `;
+    const reportHTML = reportWithReplay();
     let snapshot: HarnessSnapshot | null = null;
     const getSnapshot = () => {
       if (!snapshot) throw new Error('Harness snapshot is not ready');
@@ -180,6 +189,142 @@ describe('usePlaygroundExecution stop handling', () => {
     expect(
       restoredDump.executions[0].tasks[0].uiContext.screenshot.base64,
     ).toBe('data:image/png;base64,abc');
+
+    await act(async () => root.unmount());
+  });
+
+  it('restores stopped replay from a compact report reference', async () => {
+    allScriptsFromDumpMock.mockReturnValue({
+      scripts: [{ type: 'img', duration: 0, img: 'report-image-url' }],
+      width: 100,
+      height: 200,
+      modelBriefs: [],
+    });
+    const fetchMock = vi.fn(async () => ({
+      ok: true,
+      json: async () => replayDump(),
+    }));
+    vi.stubGlobal('fetch', fetchMock);
+    let snapshot: HarnessSnapshot | null = null;
+    const getSnapshot = () => {
+      if (!snapshot) throw new Error('Harness snapshot is not ready');
+      return snapshot;
+    };
+    const report = {
+      id: 'stopped-report',
+      url: 'http://localhost/reports/stopped-report/',
+      replayUrl: 'http://localhost/reports/stopped-report/replay',
+      bytes: 1024,
+      format: 'single-html' as const,
+    };
+    const playgroundSDK = {
+      cancelExecution: vi.fn(async () => ({
+        dump: null,
+        reportHTML: null,
+        report,
+      })),
+      executeAction: vi.fn(() => new Promise(() => undefined)),
+      onDumpUpdate: vi.fn(),
+      onProgressUpdate: vi.fn(),
+    } as unknown as PlaygroundSDKLike;
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+
+    await act(async () => {
+      root.render(
+        createElement(Harness, {
+          onSnapshot: (nextSnapshot) => {
+            snapshot = nextSnapshot;
+          },
+          playgroundSDK,
+        }),
+      );
+    });
+    await act(async () => {
+      void getSnapshot().handleRun({ prompt: 'Replay', type: 'aiAct' });
+    });
+    await act(async () => {
+      await getSnapshot().handleStop();
+    });
+
+    const stoppedResult = getSnapshot().infoList.find((item) =>
+      item.id.startsWith('stop-result-'),
+    );
+    expect(stoppedResult?.result?.report).toEqual(report);
+    expect(stoppedResult?.replayScriptsInfo?.scripts).toHaveLength(1);
+    expect(fetchMock).toHaveBeenCalledWith(report.replayUrl);
+    const restoredDump = allScriptsFromDumpMock.mock.calls[0]?.[0] as any;
+    expect(
+      restoredDump.executions[0].tasks[0].uiContext.screenshot.base64,
+    ).toBe('http://localhost/reports/stopped-report/screenshots/shot-1.png');
+
+    await act(async () => root.unmount());
+  });
+
+  it('restores replay scripts from a report-only completed result', async () => {
+    allScriptsFromDumpMock.mockReturnValue({
+      scripts: [{ type: 'img', duration: 0, img: 'data:image/png;base64,abc' }],
+      width: 100,
+      height: 200,
+      modelBriefs: [],
+    });
+    const reportHTML = reportWithReplay();
+    const fetchMock = vi.fn(async () =>
+      Promise.resolve({
+        ok: true,
+        json: async () => replayDump(),
+      }),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    let snapshot: HarnessSnapshot | null = null;
+    const playgroundSDK = {
+      cancelExecution: vi.fn(),
+      executeAction: vi.fn(async () => ({
+        dump: null,
+        reportHTML: null,
+        report: {
+          id: 'report-1',
+          url: 'http://localhost/reports/report-1/',
+          replayUrl: 'http://localhost/reports/report-1/replay',
+          bytes: reportHTML.length,
+          format: 'single-html',
+        },
+        result: 'done',
+      })),
+      onDumpUpdate: vi.fn(),
+      onProgressUpdate: vi.fn(),
+    } as unknown as PlaygroundSDKLike;
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+
+    await act(async () => {
+      root.render(
+        createElement(Harness, {
+          onSnapshot: (nextSnapshot) => {
+            snapshot = nextSnapshot;
+          },
+          playgroundSDK,
+        }),
+      );
+    });
+    await act(async () => {
+      await snapshot?.handleRun({ prompt: 'Replay', type: 'aiAct' });
+    });
+
+    const completedResult = snapshot?.infoList.find(
+      (item) => item.type === 'result',
+    );
+    expect(completedResult?.result?.reportHTML).toBeNull();
+    expect(completedResult?.replayScriptsInfo?.scripts).toHaveLength(1);
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://localhost/reports/report-1/replay',
+    );
+    const restoredDump = allScriptsFromDumpMock.mock.calls[0]?.[0] as any;
+    expect(
+      restoredDump.executions[0].tasks[0].uiContext.screenshot.base64,
+    ).toBe('http://localhost/reports/report-1/screenshots/shot-1.png');
 
     await act(async () => root.unmount());
   });

@@ -15,11 +15,15 @@ import {
   SCRCPY_SERVER_PORT,
 } from '@midscene/shared/constants';
 import { findAvailablePort } from '@midscene/shared/node';
-import type ScrcpyServer from './scrcpy-server';
+export interface ScrcpyServerController {
+  currentDeviceId: string | null;
+  launch(port?: number): Promise<unknown>;
+  close(): unknown;
+}
 
 export interface AndroidPlatformOptions {
   staticDir?: string;
-  scrcpyServer?: ScrcpyServer;
+  scrcpyServer?: ScrcpyServerController;
   scrcpyPort?: number;
 }
 
@@ -170,7 +174,7 @@ export const androidPlaygroundPlatform = definePlaygroundPlatform<
                 await options.scrcpyServer?.launch(scrcpyPort);
               },
               stop: async () => {
-                options.scrcpyServer?.close();
+                await options.scrcpyServer?.close();
               },
             },
           ]

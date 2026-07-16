@@ -22,6 +22,7 @@ import type {
   FormValue,
   PlaygroundAgent,
   PlaygroundConfig,
+  PlaygroundReportRef,
   ValidationResult,
 } from '../types';
 
@@ -209,6 +210,7 @@ export class PlaygroundSDK {
   async cancelExecution(requestId: string): Promise<{
     dump: any | null;
     reportHTML: string | null;
+    report: PlaygroundReportRef | null;
   } | null> {
     if (this.adapter instanceof RemoteExecutionAdapter) {
       const result = await this.adapter.cancelTask(requestId);
@@ -217,6 +219,7 @@ export class PlaygroundSDK {
         return {
           dump: (result as any).dump || null,
           reportHTML: (result as any).reportHTML || null,
+          report: (result as any).report || null,
         };
       }
     } else if (this.adapter instanceof LocalExecutionAdapter) {
@@ -226,6 +229,7 @@ export class PlaygroundSDK {
         return {
           dump: (result as any).dump || null,
           reportHTML: (result as any).reportHTML || null,
+          report: null,
         };
       }
     }
@@ -236,6 +240,7 @@ export class PlaygroundSDK {
   async getCurrentExecutionData(): Promise<{
     dump: any | null;
     reportHTML: string | null;
+    report?: PlaygroundReportRef | null;
   }> {
     if (
       this.adapter instanceof LocalExecutionAdapter &&

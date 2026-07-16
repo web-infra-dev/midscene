@@ -123,6 +123,10 @@ export default class ScrcpyServer {
     this.app = express();
     this.httpServer = createServer(this.app);
     this.io = new Server(this.httpServer, {
+      // Tolerate short Windows main-process/renderer stalls while still
+      // detecting genuinely dead preview clients in a bounded time.
+      pingInterval: 25_000,
+      pingTimeout: 60_000,
       cors: {
         origin(origin, callback) {
           callback(null, isAllowedOrigin(origin));

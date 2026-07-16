@@ -45,6 +45,12 @@ vi.mock('node:fs', async (importOriginal) => {
 });
 
 describe('ScrcpyServer', () => {
+  it('allows short event-loop stalls without dropping the preview heartbeat', () => {
+    const server = new ScrcpyServer();
+    expect((server as any).io.engine.opts.pingInterval).toBe(25_000);
+    expect((server as any).io.engine.opts.pingTimeout).toBe(60_000);
+  });
+
   it('keeps only the most recent scrcpy output lines', () => {
     const lines: string[] = [];
     for (let index = 0; index < 5; index += 1) {

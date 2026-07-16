@@ -16,6 +16,7 @@ import type {
   ExecutionReportDisplay,
   FormValue,
   InfoListItem,
+  PlaygroundResult,
   PlaygroundSDKLike,
   StorageProvider,
 } from '../types';
@@ -119,8 +120,48 @@ function replayInfoFromReportHTML(reportHTML: string, deviceType?: string) {
     );
     return replayInfoFromDump(dump, deviceType);
   } catch (error) {
-    console.error('Failed to restore replay from stopped report:', error);
+    console.error('Failed to restore replay from playground report:', error);
     return null;
+  }
+}
+
+function replayInfoFromExecutionResult(
+  result:
+    | {
+        dump?: ExecutionDump | IExecutionDump | IReportActionDump | null;
+        reportHTML?: string | null;
+      }
+    | null
+    | undefined,
+  deviceType?: string,
+) {
+  return result?.dump
+    ? replayInfoFromDump(result.dump, deviceType)
+    : result?.reportHTML
+      ? replayInfoFromReportHTML(result.reportHTML, deviceType)
+      : null;
+}
+
+async function loadReportReplay(
+  result: Pick<PlaygroundResult, 'dump' | 'report'>,
+): Promise<void> {
+  if (result.dump || !result.report?.replayUrl) return;
+
+  try {
+    const response = await fetch(result.report.replayUrl);
+    if (!response.ok) {
+      throw new Error(`Report replay request failed (${response.status})`);
+    }
+    const dump = (await response.json()) as IReportActionDump;
+    result.dump = restoreImageReferences(dump, (ref) => {
+      const extension = ref.mimeType === 'image/jpeg' ? 'jpeg' : 'png';
+      return new URL(
+        `screenshots/${encodeURIComponent(ref.id)}.${extension}`,
+        result.report!.url,
+      ).toString();
+    });
+  } catch (error) {
+    console.error('Failed to load playground report replay:', error);
   }
 }
 
@@ -331,6 +372,7 @@ export function usePlaygroundExecution(options: UsePlaygroundExecutionOptions) {
             result.dump = resultObj.dump;
           }
           if (resultObj.reportHTML) result.reportHTML = resultObj.reportHTML;
+          if (resultObj.report) result.report = resultObj.report;
           if (resultObj.error) {
             result.error = formatPlaygroundError(resultObj.error);
           }
@@ -353,8 +395,11 @@ export function usePlaygroundExecution(options: UsePlaygroundExecutionOptions) {
         if (typeof e === 'object' && e !== null) {
           if (e.dump) result.dump = e.dump;
           if (e.reportHTML) result.reportHTML = e.reportHTML;
+          if (e.report) result.report = e.report;
         }
       }
+
+      await loadReportReplay(result);
 
       if (interruptedFlagRef.current[thisRunningId]) {
         return;
@@ -368,13 +413,11 @@ export function usePlaygroundExecution(options: UsePlaygroundExecutionOptions) {
 
       // Generate replay info for all APIs (including noReplayAPIs)
       // This allows noReplayAPIs to display both output and report
-      if (result?.dump) {
-        const info = replayInfoFromDump(result.dump, deviceType);
-        if (info) {
-          setReplayCounter((c) => c + 1);
-          replayInfo = info;
-          counter = replayCounter + 1;
-        }
+      const info = replayInfoFromExecutionResult(result, deviceType);
+      if (info) {
+        setReplayCounter((c) => c + 1);
+        replayInfo = info;
+        counter = replayCounter + 1;
       }
 
       // Update system message to completed
@@ -455,6 +498,7 @@ export function usePlaygroundExecution(options: UsePlaygroundExecutionOptions) {
         executionData?: {
           dump: ExecutionDump | IExecutionDump | IReportActionDump | null;
           reportHTML: string | null;
+          report?: PlaygroundResult['report'];
         } | null,
       ) => {
         setInfoList((prev) => {
@@ -484,16 +528,17 @@ export function usePlaygroundExecution(options: UsePlaygroundExecutionOptions) {
 
           if (
             executionData &&
-            (executionData.dump || executionData.reportHTML)
+            (executionData.dump ||
+              executionData.reportHTML ||
+              executionData.report)
           ) {
             let replayInfo = null;
             let counter = replayCounter;
 
-            replayInfo = executionData.dump
-              ? replayInfoFromDump(executionData.dump, deviceType)
-              : executionData.reportHTML
-                ? replayInfoFromReportHTML(executionData.reportHTML, deviceType)
-                : null;
+            replayInfo = replayInfoFromExecutionResult(
+              executionData,
+              deviceType,
+            );
             if (replayInfo) {
               setReplayCounter((c) => c + 1);
               counter = replayCounter + 1;
@@ -510,6 +555,7 @@ export function usePlaygroundExecution(options: UsePlaygroundExecutionOptions) {
                   result: null,
                   dump: executionData.dump,
                   reportHTML: executionData.reportHTML,
+                  report: executionData.report || null,
                   error: null,
                 },
                 loading: false,
@@ -541,6 +587,7 @@ export function usePlaygroundExecution(options: UsePlaygroundExecutionOptions) {
         let executionData: {
           dump: ExecutionDump | IExecutionDump | IReportActionDump | null;
           reportHTML: string | null;
+          report?: PlaygroundResult['report'];
         } | null = null;
 
         if (cancelResult) {
@@ -551,6 +598,10 @@ export function usePlaygroundExecution(options: UsePlaygroundExecutionOptions) {
           } catch (error) {
             console.error('Failed to get execution data before stop:', error);
           }
+        }
+
+        if (executionData) {
+          await loadReportReplay(executionData);
         }
 
         markStopped(executionData);

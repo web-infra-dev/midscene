@@ -1,5 +1,9 @@
+import { createReadStream } from 'node:fs';
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import {
-  ReportActionDump,
+  type ReportActionDump,
   describeElementAtPoint as coreDescribeElementAtPoint,
 } from '@midscene/core';
 import type { InputPrimitives } from '@midscene/core/device';
@@ -21,6 +25,7 @@ function createMockResponse() {
   return {
     statusCode: 200,
     body: undefined as unknown,
+    headers: {} as Record<string, string>,
     status(code: number) {
       this.statusCode = code;
       return this;
@@ -34,6 +39,15 @@ function createMockResponse() {
       return this;
     },
     type() {
+      return this;
+    },
+    setHeader(name: string, value: string) {
+      this.headers[name] = value;
+      return this;
+    },
+    sendFile(filePath: string, callback?: (error?: any) => void) {
+      this.body = { filePath };
+      callback?.();
       return this;
     },
   };
@@ -161,7 +175,7 @@ describe('PlaygroundServer manual interaction APIs', () => {
     );
   });
 
-  test('POST /execute resets stale preview dumps before replay execution', async () => {
+  test('POST /execute reads the persisted report after replay execution', async () => {
     const dump = {
       sdkVersion: 'test',
       groupName: 'Midscene Report',
@@ -191,6 +205,7 @@ describe('PlaygroundServer manual interaction APIs', () => {
       dumpDataString: vi.fn(() => JSON.stringify(dump)),
       reportHTMLString: vi.fn(() => '<html></html>'),
       writeOutActionDumps: vi.fn(),
+      reportFile: `${process.cwd()}/package.json`,
     };
     const server = new PlaygroundServer(agent as any);
     server.setPreparedPlatform({
@@ -226,15 +241,39 @@ describe('PlaygroundServer manual interaction APIs', () => {
     );
 
     expect(response.statusCode).toBe(200);
-    const body = response.body as { dump: ReportActionDump };
+    const body = response.body as {
+      dump: ReportActionDump | null;
+      reportHTML: string | null;
+      report: {
+        id: string;
+        url: string;
+        replayUrl: string;
+        bytes: number;
+        format: string;
+      };
+    };
     expect(agent.resetDump).toHaveBeenCalledBefore(
       agent.callActionInActionSpace,
     );
-    expect(body.dump).toBeInstanceOf(ReportActionDump);
-    expect(body.dump.executions.map((execution) => execution.id)).toEqual([
-      'logout',
-      'login',
-    ]);
+    expect(body.dump).toBeNull();
+    expect(body.reportHTML).toBeNull();
+    expect(body.report).toMatchObject({
+      id: expect.any(String),
+      url: expect.stringMatching(/^\/reports\/.*\/$/),
+      replayUrl: expect.stringMatching(/^\/reports\/.*\/replay$/),
+      bytes: expect.any(Number),
+      format: 'single-html',
+    });
+    expect(agent.dumpDataString).not.toHaveBeenCalled();
+    expect(agent.reportHTMLString).not.toHaveBeenCalled();
+
+    const reportHandler = getRouteHandler(server, 'get', '/reports/:reportId/');
+    const reportResponse = createMockResponse();
+    reportHandler({ params: { reportId: body.report.id } }, reportResponse);
+    expect(reportResponse.body).toEqual({
+      filePath: `${process.cwd()}/package.json`,
+    });
+    expect(reportResponse.headers['Cache-Control']).toBe('no-store');
   });
 
   test('POST /cancel aborts the running execute action', async () => {
@@ -319,7 +358,14 @@ describe('PlaygroundServer manual interaction APIs', () => {
       );
       expect(cancelResponse.body).toMatchObject({
         dump: null,
-        reportHTML: expect.stringContaining('"name": "@midscene/playground"'),
+        reportHTML: null,
+        report: {
+          id: expect.any(String),
+          url: expect.stringMatching(/^\/reports\//),
+          replayUrl: expect.stringMatching(/^\/reports\/.*\/replay$/),
+          bytes: expect.any(Number),
+          format: 'single-html',
+        },
       });
       expect(capturedSignal?.aborted).toBe(true);
 
@@ -332,6 +378,154 @@ describe('PlaygroundServer manual interaction APIs', () => {
       expect(agent.reportHTMLString).not.toHaveBeenCalled();
     } finally {
       await server.close();
+    }
+  });
+
+  test('report replay and screenshot routes stream compact persisted data', async () => {
+    const dump = {
+      sdkVersion: 'test',
+      groupName: 'Playground run',
+      modelBriefs: [],
+      executions: [
+        {
+          id: 'execution-1',
+          logTime: 1,
+          name: 'Execution',
+          tasks: [
+            {
+              type: 'Planning',
+              uiContext: {
+                screenshot: {
+                  type: 'midscene_screenshot_ref',
+                  id: 'shot-1',
+                  capturedAt: 1,
+                  mimeType: 'image/png',
+                  storage: 'inline',
+                },
+              },
+            },
+          ],
+        },
+      ],
+    };
+    const reportHTML = `<html></html>\n<script type="midscene-image" data-id="shot-1">${VALID_PNG_BASE64}</script>\n<script type="midscene_web_dump">${JSON.stringify(dump)}</script>`;
+    vi.mocked(createReadStream).mockImplementation(
+      () =>
+        ({
+          async *[Symbol.asyncIterator]() {
+            for (let index = 0; index < reportHTML.length; index += 17) {
+              yield reportHTML.slice(index, index + 17);
+            }
+          },
+        }) as any,
+    );
+    const agent = {
+      interface: {
+        actionSpace: () => [{ name: 'aiAct', description: 'act' }],
+      },
+      resetDump: vi.fn(),
+      callActionInActionSpace: vi.fn(async () => ({ ok: true })),
+      reportFile: `${process.cwd()}/package.json`,
+    };
+    const server = new PlaygroundServer(agent as any);
+
+    try {
+      await server.launch(6111);
+      const executeHandler = getRouteHandler(server, 'post', '/execute');
+      const executeResponse = createMockResponse();
+      await executeHandler(
+        {
+          body: {
+            type: 'aiAct',
+            prompt: 'replay',
+            requestId: 'compact-replay-1',
+          },
+        },
+        executeResponse,
+      );
+      const report = (executeResponse.body as any).report;
+
+      const replayHandler = getRouteHandler(
+        server,
+        'get',
+        '/reports/:reportId/replay',
+      );
+      const replayResponse = createMockResponse();
+      await replayHandler({ params: { reportId: report.id } }, replayResponse);
+      expect(JSON.parse(replayResponse.body as string)).toEqual(dump);
+
+      const screenshotHandler = getRouteHandler(
+        server,
+        'get',
+        '/reports/:reportId/screenshots/:assetName',
+      );
+      const screenshotResponse = createMockResponse();
+      await screenshotHandler(
+        {
+          params: { reportId: report.id, assetName: 'shot-1.png' },
+        },
+        screenshotResponse,
+      );
+      expect(Buffer.isBuffer(screenshotResponse.body)).toBe(true);
+      expect((screenshotResponse.body as Buffer).length).toBeGreaterThan(0);
+    } finally {
+      await server.close();
+    }
+  });
+
+  test('external report assets remain available under the report URL', async () => {
+    const tempDir = await mkdtemp(join(tmpdir(), 'midscene-report-assets-'));
+    const screenshotsDir = join(tempDir, 'screenshots');
+    const reportPath = join(tempDir, 'index.html');
+    const screenshotPath = join(screenshotsDir, 'shot-1.png');
+    await mkdir(screenshotsDir);
+    await Promise.all([
+      writeFile(reportPath, '<html></html>'),
+      writeFile(screenshotPath, Buffer.from('png')),
+    ]);
+    const agent = {
+      interface: {
+        actionSpace: () => [{ name: 'aiAct', description: 'act' }],
+      },
+      resetDump: vi.fn(),
+      callActionInActionSpace: vi.fn(async () => ({ ok: true })),
+      reportFile: reportPath,
+    };
+    const server = new PlaygroundServer(agent as any);
+
+    try {
+      await server.launch(6112);
+      const executeHandler = getRouteHandler(server, 'post', '/execute');
+      const executeResponse = createMockResponse();
+      await executeHandler(
+        {
+          body: {
+            type: 'aiAct',
+            prompt: 'external report',
+            requestId: 'external-report-1',
+          },
+        },
+        executeResponse,
+      );
+      const report = (executeResponse.body as any).report;
+      expect(report.format).toBe('html-and-external-assets');
+
+      const screenshotHandler = getRouteHandler(
+        server,
+        'get',
+        '/reports/:reportId/screenshots/:assetName',
+      );
+      const screenshotResponse = createMockResponse();
+      await screenshotHandler(
+        {
+          params: { reportId: report.id, assetName: 'shot-1.png' },
+        },
+        screenshotResponse,
+      );
+      expect(screenshotResponse.body).toEqual({ filePath: screenshotPath });
+    } finally {
+      await server.close();
+      await rm(tempDir, { force: true, recursive: true });
     }
   });
 

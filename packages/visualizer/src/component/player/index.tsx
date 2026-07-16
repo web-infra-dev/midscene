@@ -66,6 +66,8 @@ export function Player(props?: {
   imageWidth?: number;
   imageHeight?: number;
   reportFileContent?: string | null;
+  reportUrl?: string | null;
+  reportFormat?: 'single-html' | 'html-and-external-assets';
   key?: string | number;
   fitMode?: 'width' | 'height';
   autoZoom?: boolean;
@@ -203,19 +205,34 @@ export function Player(props?: {
   }, [frameMap, player.currentFrame]);
 
   const handleDownloadReport = useCallback(async () => {
-    if (!props?.reportFileContent) {
+    if (props?.reportFormat === 'html-and-external-assets' && props.reportUrl) {
+      globalThis.open(props.reportUrl, '_blank', 'noopener,noreferrer');
       return;
     }
 
     try {
+      let content = props?.reportFileContent;
+      if (!content && props?.reportUrl) {
+        const response = await fetch(props.reportUrl);
+        if (!response.ok) {
+          throw new Error(`Report request failed (${response.status})`);
+        }
+        content = await response.text();
+      }
+      if (!content) return;
       await triggerReportDownload({
-        content: props.reportFileContent,
-        onDownloadReport: props.onDownloadReport,
+        content,
+        onDownloadReport: props?.onDownloadReport,
       });
     } catch (error) {
       notifyError(error, { title: 'Failed to download report' });
     }
-  }, [props?.onDownloadReport, props?.reportFileContent]);
+  }, [
+    props?.onDownloadReport,
+    props?.reportFileContent,
+    props?.reportFormat,
+    props?.reportUrl,
+  ]);
 
   const subtitle = useMemo(() => {
     if (!currentFrameState) return null;
@@ -380,6 +397,11 @@ export function Player(props?: {
   }, [frameMap, effectiveEndFrame]);
 
   const reportFileContent = props?.reportFileContent ?? null;
+  const hasReport = Boolean(reportFileContent || props?.reportUrl);
+  const reportActionLabel =
+    props?.reportFormat === 'html-and-external-assets'
+      ? 'Open report'
+      : 'Download report';
   const canDownloadReport = props?.canDownloadReport !== false;
   const presentation = props?.presentation ?? 'default';
 
@@ -387,7 +409,7 @@ export function Player(props?: {
   // available (e.g. Stop was pressed before any task finished). Otherwise hide
   // the Player entirely instead of rendering an empty bordered box.
   if (!scripts || scripts.length === 0 || !frameMap) {
-    if (reportFileContent && canDownloadReport) {
+    if (hasReport && canDownloadReport) {
       return (
         <div
           className="player-container player-container-empty"
@@ -401,7 +423,7 @@ export function Player(props?: {
                 void handleDownloadReport();
               }}
             >
-              Download report
+              {reportActionLabel}
             </Button>
           </div>
         </div>
@@ -557,8 +579,8 @@ export function Player(props?: {
 
             {/* Custom controls */}
             <div className="player-custom-controls">
-              {reportFileContent && canDownloadReport ? (
-                <Tooltip title="Download Report">
+              {hasReport && canDownloadReport ? (
+                <Tooltip title={reportActionLabel}>
                   <div
                     className="status-icon"
                     onClick={() => {

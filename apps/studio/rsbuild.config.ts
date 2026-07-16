@@ -141,6 +141,10 @@ export default defineConfig({
             import: './src/main/index.ts',
             html: false,
           },
+          'scrcpy-worker': {
+            import: './src/main/playground/scrcpy-worker.ts',
+            html: false,
+          },
         },
       },
       output: {

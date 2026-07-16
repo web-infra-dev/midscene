@@ -20,8 +20,17 @@ export interface ValidationResult {
 export interface ServerResponse {
   result?: unknown;
   dump?: any;
-  reportHTML?: string;
+  reportHTML?: string | null;
+  report?: PlaygroundReportRef | null;
   error?: string;
+}
+
+export interface PlaygroundReportRef {
+  id: string;
+  url: string;
+  replayUrl?: string;
+  bytes: number;
+  format?: 'single-html' | 'html-and-external-assets';
 }
 
 export interface DeviceOptions {

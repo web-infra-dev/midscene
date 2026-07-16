@@ -51,6 +51,7 @@ export type {
   PlaygroundConfig,
   ExecutionType,
   PlaygroundAdapter,
+  PlaygroundReportRef,
   ServerResponse,
   AgentFactory,
 } from './types';

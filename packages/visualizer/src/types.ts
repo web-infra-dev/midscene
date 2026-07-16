@@ -252,6 +252,7 @@ import type {
   BeforeActionHook,
   ExecutionOptions,
   PlaygroundAgent,
+  PlaygroundReportRef,
   PlaygroundRuntimeInfo,
 } from '@midscene/playground';
 
@@ -260,6 +261,7 @@ export interface PlaygroundResult {
   result: any;
   dump?: ExecutionDump | IExecutionDump | IReportActionDump | null;
   reportHTML?: string | null;
+  report?: PlaygroundReportRef | null;
   error: string | null;
 }
 
@@ -355,10 +357,12 @@ export interface PlaygroundSDKLike {
   cancelExecution?(requestId: string): Promise<{
     dump: ExecutionDump | IExecutionDump | IReportActionDump | null;
     reportHTML: string | null;
+    report?: PlaygroundReportRef | null;
   } | null>;
   getCurrentExecutionData?(): Promise<{
     dump: ExecutionDump | IExecutionDump | IReportActionDump | null;
     reportHTML: string | null;
+    report?: PlaygroundReportRef | null;
   }>;
   overrideConfig?(config: any): Promise<void>;
   runConnectivityTest?(config: TModelConfig): Promise<ConnectivityTestResult>;
