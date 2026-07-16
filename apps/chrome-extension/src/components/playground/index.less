@@ -32,6 +32,13 @@
     background: var(--midscene-surface, #fff);
   }
 
+  // The side panel deliberately has no inline padding. Use an inset focus
+  // ring so all four sides remain visible instead of clipping an outer shadow
+  // at the panel boundary.
+  .prompt-input-wrapper .main-side-console-input:focus-within {
+    box-shadow: inset 0 0 0 3px rgba(43, 131, 255, 0.16);
+  }
+
   .prompt-input-wrapper .main-side-console-input.loading {
     border-color: transparent;
     background:
@@ -52,6 +59,31 @@
 
     &::before {
       display: none;
+    }
+  }
+
+  // The Studio conversation skin owns generous shell padding. The extension
+  // has a narrower side panel, so let its timeline and composer use their
+  // own internal spacing instead of inheriting that outer inset.
+  &.playground-conversation-skin {
+    .middle-dialog-area .info-list-container {
+      padding: 0;
+    }
+
+    .bottom-input-section {
+      padding: 0;
+      margin-top: 16px;
+    }
+
+    .prompt-input-wrapper {
+      padding: 0;
+    }
+
+    // The shared toolbar uses a white gradient beneath history/settings to
+    // hint at horizontal overflow. In the side panel it masks otherwise
+    // fully visible mode buttons, so keep the controls without that overlay.
+    .mode-radio-group-wrapper .action-icons {
+      background: transparent;
     }
   }
 
