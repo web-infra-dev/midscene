@@ -151,46 +151,6 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Ensure GitHub release notes are available
-      if: ${{ steps.get_version.outputs.is_prerelease != 'true' }}
-      env:
-        GH_TOKEN: ${{ github.token }}
-        RELEASE_TARGET: ${{ github.event.inputs.branch }}
-        RELEASE_VERSION: ${{ steps.get_version.outputs.version }}
-      run: |
-        set -euo pipefail
-
-        release_json="$(
-          gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${RELEASE_VERSION}"
-        )"
-
-        if jq -e '(.body // "") | test("\\S")' <<< "$release_json" >/dev/null; then
-          echo "Existing GitHub release notes found; preserving them."
-          exit 0
-        fi
-
-        generated_notes="$(
-          gh api --method POST \
-            "repos/${GITHUB_REPOSITORY}/releases/generate-notes" \
-            -f tag_name="$RELEASE_VERSION" \
-            -f target_commitish="$RELEASE_TARGET"
-        )"
-
-        if ! jq -e '.body | strings | test("\\S")' <<< "$generated_notes" >/dev/null; then
-          echo "GitHub generated empty release notes." >&2
-          exit 1
-        fi
-
-        release_id="$(jq -er '.id' <<< "$release_json")"
-        release_body="$(jq -er '.body' <<< "$generated_notes")"
-        jq -cn --arg body "$release_body" '{body: $body}' \
-          | gh api --method PATCH \
-              "repos/${GITHUB_REPOSITORY}/releases/${release_id}" \
-              --input - \
-              >/dev/null
-
-        echo "Generated GitHub release notes before sending notifications."
-
   publish_chrome_web_store:
     needs: release
     if: ${{ needs.release.result == 'success' && !contains(needs.release.outputs.version, 'beta') && !contains(needs.release.outputs.version, 'alpha') && !contains(needs.release.outputs.version, 'rc') }}
@@ -439,6 +399,7 @@ jobs:
       env:
         DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
         GH_TOKEN: ${{ github.token }}
+        RELEASE_TARGET: ${{ github.event.inputs.branch }}
         RELEASE_VERSION: ${{ needs.release.outputs.version }}
       run: |
         set -euo pipefail
@@ -454,13 +415,25 @@ jobs:
         RELEASE_JSON="$(
           gh release view "$RELEASE_VERSION" \
             --repo "$GITHUB_REPOSITORY" \
-            --json body,name,publishedAt,url
+            --json name,publishedAt,url
         )"
         RELEASE_NAME="$(jq -r '.name // empty' <<< "$RELEASE_JSON")"
-        RELEASE_BODY="$(jq -r '.body // empty' <<< "$RELEASE_JSON")"
         RELEASE_URL="$(jq -r '.url' <<< "$RELEASE_JSON")"
         RELEASE_PUBLISHED_AT="$(jq -r '.publishedAt' <<< "$RELEASE_JSON")"
         PACKAGE_VERSION="${RELEASE_VERSION#v}"
+
+        GENERATED_NOTES_JSON="$(
+          gh api --method POST \
+            "repos/${GITHUB_REPOSITORY}/releases/generate-notes" \
+            -f tag_name="$RELEASE_VERSION" \
+            -f target_commitish="$RELEASE_TARGET"
+        )"
+        if ! RELEASE_BODY="$(
+          jq -er '.body | strings | select(test("\\S"))' <<< "$GENERATED_NOTES_JSON"
+        )"; then
+          echo "GitHub generated empty release notes for the Discord notification." >&2
+          exit 1
+        fi
 
         PAYLOAD="$(
           jq -cn \
@@ -655,6 +628,7 @@ jobs:
         FEISHU_WEBHOOK_URL: ${{ secrets.FEISHU_WEBHOOK_URL }}
         FEISHU_WEBHOOK_URL_2: ${{ secrets.FEISHU_WEBHOOK_URL_2 }}
         GH_TOKEN: ${{ github.token }}
+        RELEASE_TARGET: ${{ github.event.inputs.branch }}
         RELEASE_VERSION: ${{ needs.release.outputs.version }}
       run: |
         set -euo pipefail
@@ -684,13 +658,25 @@ jobs:
         RELEASE_JSON="$(
           gh release view "$RELEASE_VERSION" \
             --repo "$GITHUB_REPOSITORY" \
-            --json body,name,url
+            --json name,url
         )"
         RELEASE_NAME="$(jq -r '.name // empty' <<< "$RELEASE_JSON")"
-        RELEASE_BODY="$(jq -r '.body // empty' <<< "$RELEASE_JSON")"
         RELEASE_URL="$(jq -r '.url' <<< "$RELEASE_JSON")"
         PACKAGE_VERSION="${RELEASE_VERSION#v}"
         NPM_URL="https://www.npmjs.com/package/@midscene/core/v/${PACKAGE_VERSION}"
+
+        GENERATED_NOTES_JSON="$(
+          gh api --method POST \
+            "repos/${GITHUB_REPOSITORY}/releases/generate-notes" \
+            -f tag_name="$RELEASE_VERSION" \
+            -f target_commitish="$RELEASE_TARGET"
+        )"
+        if ! RELEASE_BODY="$(
+          jq -er '.body | strings | select(test("\\S"))' <<< "$GENERATED_NOTES_JSON"
+        )"; then
+          echo "GitHub generated empty release notes for the Feishu notification." >&2
+          exit 1
+        fi
 
         CARD_CONTENT="$(
           jq -cn \
