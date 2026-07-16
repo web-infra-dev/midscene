@@ -150,12 +150,21 @@ describe('kimi model adapter', () => {
     });
   });
 
-  it('uses json_object response format for kimi locate intent', () => {
+  it('uses json_object response format when expected for kimi', () => {
     const result = kimiAdapter.chatCompletion.buildChatCompletionParams({
-      intent: 'default',
+      expectedJsonObjectResponse: true,
       userConfig: {},
     });
 
     expect(result.config.response_format).toEqual({ type: 'json_object' });
+  });
+
+  it('does not use json_object response format when disabled', () => {
+    const result = kimiAdapter.chatCompletion.buildChatCompletionParams({
+      expectedJsonObjectResponse: true,
+      userConfig: { responseFormat: 'none' },
+    });
+
+    expect(result.config.response_format).toBeUndefined();
   });
 });

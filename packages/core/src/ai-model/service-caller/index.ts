@@ -328,6 +328,7 @@ interface CallAIOptions {
   onChunk?: StreamingCallback;
   abortSignal?: AbortSignal;
   requiresOriginalImageDetail?: boolean;
+  expectedJsonObjectResponse?: boolean;
 }
 
 export async function callAI(
@@ -392,8 +393,10 @@ export async function callAI(
       reasoningEnabled: modelConfig.reasoningEnabled,
       reasoningEffort: modelConfig.reasoningEffort,
       reasoningBudget: modelConfig.reasoningBudget,
+      responseFormat: modelConfig.responseFormat,
     },
     requiresOriginalImageDetail: options?.requiresOriginalImageDetail,
+    expectedJsonObjectResponse: options?.expectedJsonObjectResponse,
   };
   const { config: adapterChatCompletionParams } =
     adapter.chatCompletion.buildChatCompletionParams(chatCompletionInput);
@@ -787,6 +790,7 @@ export async function callAIWithObjectResponse<T>(
     callAi: () =>
       callAI(messages, modelRuntime, {
         abortSignal: options?.abortSignal,
+        expectedJsonObjectResponse: true,
       }),
     parseResponse: (response) => {
       assert(response, 'empty response');

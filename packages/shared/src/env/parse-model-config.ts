@@ -288,6 +288,14 @@ export const parseOpenaiSdkConfig = ({
       const num = Number(val);
       return Number.isFinite(num) ? num : undefined;
     })(),
+    responseFormat: (() => {
+      const val = provider[keys.responseFormat]?.trim()?.toLowerCase();
+      if (!val || val === 'auto') return 'auto';
+      if (val === 'none') return 'none';
+      throw new Error(
+        `${keys.responseFormat} must be one of: none, auto. Got: ${val}`,
+      );
+    })(),
   };
 };
 

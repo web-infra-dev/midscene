@@ -114,6 +114,15 @@ const buildDoubaoChatCompletionParams = (
     commonOverrideConfig.temperature = userConfig.temperature;
   }
 
+  // Doubao Chat Completions JSON mode:
+  // https://docs.volcengine.com/docs/82379/1568221?lang=zh
+  if (
+    userConfig.responseFormat !== 'none' &&
+    input.expectedJsonObjectResponse
+  ) {
+    commonOverrideConfig.response_format = { type: 'json_object' };
+  }
+
   const modelSpecificConfig: Record<string, unknown> = {};
 
   if (reasoningEnabled !== 'default') {
