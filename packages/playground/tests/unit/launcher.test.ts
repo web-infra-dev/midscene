@@ -5,7 +5,10 @@ import {
   playgroundForAgentFactory,
 } from '../../src/launcher';
 import { launchPreparedPlaygroundPlatform } from '../../src/platform-launcher';
-import { buildPlaygroundBrowserUrl } from '../../src/server';
+import {
+  buildPlaygroundBrowserUrl,
+  resolvePlaygroundListenHost,
+} from '../../src/server';
 
 function createMockAgent() {
   return {
@@ -25,6 +28,21 @@ describe('playground launcher', () => {
       'http://localhost:5921',
     );
     expect(buildPlaygroundBrowserUrl('::1', 5921)).toBe('http://[::1]:5921');
+  });
+
+  it('should default the listen host to 127.0.0.1', () => {
+    const originalHost = process.env.MIDSCENE_PLAYGROUND_HOST;
+    Reflect.deleteProperty(process.env, 'MIDSCENE_PLAYGROUND_HOST');
+
+    try {
+      expect(resolvePlaygroundListenHost()).toBe('127.0.0.1');
+    } finally {
+      if (originalHost === undefined) {
+        Reflect.deleteProperty(process.env, 'MIDSCENE_PLAYGROUND_HOST');
+      } else {
+        process.env.MIDSCENE_PLAYGROUND_HOST = originalHost;
+      }
+    }
   });
 
   it('should launch with a custom static path and fixed id', async () => {
