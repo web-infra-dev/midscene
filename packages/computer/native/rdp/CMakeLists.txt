@@ -58,6 +58,26 @@ target_link_libraries(
   Threads::Threads
 )
 
+include(CTest)
+
+if(BUILD_TESTING)
+  add_executable(
+    rdp-connection-policy-test
+    tests/connection_policy_test.cpp
+  )
+
+  target_include_directories(
+    rdp-connection-policy-test
+    PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+  )
+
+  add_test(
+    NAME rdp-connection-policy-test
+    COMMAND rdp-connection-policy-test
+  )
+endif()
+
 if(APPLE)
   target_compile_definitions(rdp-helper PRIVATE _DARWIN_C_SOURCE)
 endif()
