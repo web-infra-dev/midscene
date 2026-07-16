@@ -1,14 +1,13 @@
 {
   "name": "@midscene/rstest",
-  "description": "Run Midscene AI browser agents as Rstest tests. Provides Playwright and Puppeteer providers plus a Rstest reporter that surfaces Midscene reports.",
+  "description": "Run Midscene AI browser agents as Rstest tests. Built on @rstest/playwright, plus a Rstest reporter that surfaces Midscene reports.",
   "keywords": [
     "rstest",
     "midscene",
     "AI testing",
     "AI UI automation",
     "Browser use",
-    "playwright",
-    "puppeteer"
+    "playwright"
   ],
   "version": "1.7.9",
   "repository": "https://github.com/web-infra-dev/midscene",
@@ -24,14 +23,6 @@
     "./reporter": {
       "types": "./dist/reporter.d.ts",
       "import": "./dist/reporter.js"
-    },
-    "./playwright": {
-      "types": "./dist/playwright.d.ts",
-      "import": "./dist/playwright.js"
-    },
-    "./puppeteer": {
-      "types": "./dist/puppeteer.d.ts",
-      "import": "./dist/puppeteer.js"
     }
   },
   "scripts": {
@@ -52,16 +43,7 @@
     "@midscene/core": "workspace:*",
     "@midscene/web": "workspace:*",
     "@rstest/core": "^0.11.2",
-    "playwright": "^1.49.1",
-    "puppeteer": ">=20.0.0"
-  },
-  "peerDependenciesMeta": {
-    "playwright": {
-      "optional": true
-    },
-    "puppeteer": {
-      "optional": true
-    }
+    "playwright": "^1.49.1"
   },
   "devDependencies": {
     "@midscene/core": "workspace:*",
@@ -72,7 +54,6 @@
     "deepmerge": "^4.3.1",
     "dotenv": "^16.4.5",
     "playwright": "^1.45.0",
-    "puppeteer": "24.6.0",
     "reduce-configs": "^1.1.2",
     "std-env": "^4.1.0",
     "typescript": "^5.8.3"
