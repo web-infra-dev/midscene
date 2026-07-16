@@ -183,7 +183,8 @@ async function callAndParsePlanningResponse(
         response.reasoning_content,
       );
     },
-    parseRetryTimes: 1,
+    parseRetryTimes: modelRuntime.config.retryCount,
+    parseRetryInterval: modelRuntime.config.retryInterval,
     abortSignal,
     onParseRetry: (parseError) => {
       debug(

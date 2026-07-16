@@ -39,6 +39,8 @@ describe('AiExtractElementInfo prompt assembly', () => {
     modelDescription: 'test-model-desc',
     intent: 'insight',
     slot: 'insight',
+    retryCount: 1,
+    retryInterval: 2000,
   };
 
   beforeEach(() => {

@@ -7,6 +7,8 @@ export type CallAiAndParseWithRetryOptions<Response, Parsed> = {
   toParseError: (error: unknown, response: Response) => Error;
   /** Number of additional model requests after a parsing failure. Defaults to 0. */
   parseRetryTimes?: number;
+  /** Delay in milliseconds before retrying a parsing failure. Defaults to 0. */
+  parseRetryInterval?: number;
   abortSignal?: AbortSignal;
   /** Runs immediately before a parsing failure triggers another model request. */
   onParseRetry?: (error: unknown, response: Response) => void;
@@ -25,11 +27,15 @@ export async function callAiAndParseWithRetry<Response, Parsed>({
   parseResponse,
   toParseError,
   parseRetryTimes = 0,
+  parseRetryInterval = 0,
   abortSignal,
   onParseRetry,
 }: CallAiAndParseWithRetryOptions<Response, Parsed>): Promise<Parsed> {
   const normalizedRetryTimes = Number.isFinite(parseRetryTimes)
     ? Math.max(0, Math.floor(parseRetryTimes))
+    : 0;
+  const normalizedRetryInterval = Number.isFinite(parseRetryInterval)
+    ? Math.max(0, parseRetryInterval)
     : 0;
 
   const callAndParseOnce = async (
@@ -42,6 +48,14 @@ export async function callAiAndParseWithRetry<Response, Parsed>({
     } catch (error) {
       if (remainingRetries > 0 && !abortSignal?.aborted) {
         onParseRetry?.(error, response);
+        if (normalizedRetryInterval > 0) {
+          await new Promise((resolve) =>
+            setTimeout(resolve, normalizedRetryInterval),
+          );
+        }
+        if (abortSignal?.aborted) {
+          throw toParseError(error, response);
+        }
         return callAndParseOnce(remainingRetries - 1);
       }
       throw toParseError(error, response);

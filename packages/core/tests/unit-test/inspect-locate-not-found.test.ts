@@ -24,6 +24,8 @@ describe('locate not-found parsing', () => {
     modelDescription: 'test-model-desc',
     intent: 'default',
     slot: 'default',
+    retryCount: 1,
+    retryInterval: 2000,
   };
 
   beforeEach(() => {
