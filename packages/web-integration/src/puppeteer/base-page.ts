@@ -221,6 +221,7 @@ export class Page<
   };
   private visualUpdateFlushInFlight: Promise<void> | null = null;
   private visualUpdateFlushQueued = false;
+  private visualUpdateForceQueued = false;
   private visualUpdateFollowupTimer?: ReturnType<typeof setTimeout>;
   interfaceType: AgentType;
 
@@ -623,13 +624,17 @@ export class Page<
     }
   }
 
-  async flushPendingVisualUpdate(): Promise<void> {
+  async flushPendingVisualUpdate(force = false): Promise<void> {
     const activeStream = this.activeMjpegStream;
-    // A direct screenshot is only the fallback for an idle page that has not
-    // emitted its first CDP screencast frame. Mixing it with screencast frames
-    // can alternate between two viewport sizes in headed browsers, making the
-    // preview visibly resize from one MJPEG frame to the next.
-    if (!activeStream || activeStream.hasReceivedScreencastFrame) return;
+    // A direct screenshot is normally only the fallback for an idle page that
+    // has not emitted its first CDP screencast frame. Navigation actions force
+    // one final screenshot because Chromium may emit a white transition frame
+    // during reload and then no more frames once the settled page is idle.
+    // Other actions avoid mixing screenshots with screencast frames because
+    // headed browsers can report different viewport sizes for the two paths.
+    if (!activeStream || (!force && activeStream.hasReceivedScreencastFrame)) {
+      return;
+    }
 
     try {
       await this.evaluate(
@@ -648,14 +653,14 @@ export class Page<
       );
       if (
         this.activeMjpegStream?.token !== activeStream.token ||
-        activeStream.hasReceivedScreencastFrame
+        (!force && activeStream.hasReceivedScreencastFrame)
       ) {
         return;
       }
       const dataUrl = await this.screenshotBase64();
       if (
         this.activeMjpegStream?.token !== activeStream.token ||
-        activeStream.hasReceivedScreencastFrame
+        (!force && activeStream.hasReceivedScreencastFrame)
       ) {
         return;
       }
@@ -693,11 +698,12 @@ export class Page<
     }
   }
 
-  private queuePendingVisualUpdate(): void {
+  private queuePendingVisualUpdate(force = false): void {
     if (!this.activeMjpegStream) {
       return;
     }
 
+    this.visualUpdateForceQueued ||= force;
     if (this.visualUpdateFlushInFlight) {
       this.visualUpdateFlushQueued = true;
       return;
@@ -706,7 +712,9 @@ export class Page<
     const flushTask = (async () => {
       do {
         this.visualUpdateFlushQueued = false;
-        await this.flushPendingVisualUpdate();
+        const forceRefresh = this.visualUpdateForceQueued;
+        this.visualUpdateForceQueued = false;
+        await this.flushPendingVisualUpdate(forceRefresh);
       } while (this.visualUpdateFlushQueued);
     })()
       .catch((error) => {
@@ -717,24 +725,25 @@ export class Page<
           this.visualUpdateFlushInFlight = null;
         }
         this.visualUpdateFlushQueued = false;
+        this.visualUpdateForceQueued = false;
       });
 
     this.visualUpdateFlushInFlight = flushTask;
   }
 
-  schedulePendingVisualUpdate(): void {
+  schedulePendingVisualUpdate(force = false): void {
     if (!this.activeMjpegStream) {
       return;
     }
 
-    this.queuePendingVisualUpdate();
+    this.queuePendingVisualUpdate(force);
 
     if (this.visualUpdateFollowupTimer) {
       clearTimeout(this.visualUpdateFollowupTimer);
     }
     this.visualUpdateFollowupTimer = setTimeout(() => {
       this.visualUpdateFollowupTimer = undefined;
-      this.queuePendingVisualUpdate();
+      this.queuePendingVisualUpdate(force);
     }, VISUAL_UPDATE_FOLLOWUP_DELAY_MS);
   }
 

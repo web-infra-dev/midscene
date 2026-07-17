@@ -113,7 +113,24 @@ describe('commonWebActionsForWebPage visual refresh', () => {
       ?.call({ url: 'https://example.com' }, mockExecutorContext);
 
     expect(page.navigate).toHaveBeenCalledWith('https://example.com');
-    expect(page.schedulePendingVisualUpdate).toHaveBeenCalledTimes(1);
+    expect(page.schedulePendingVisualUpdate).toHaveBeenCalledWith(true);
+    expect(page.flushPendingVisualUpdate).not.toHaveBeenCalled();
+  });
+
+  it('force-refreshes the preview after reload actions', async () => {
+    const page = {
+      reload: vi.fn(async () => undefined),
+      schedulePendingVisualUpdate: vi.fn(),
+      flushPendingVisualUpdate: vi.fn(async () => undefined),
+    };
+    const actions = commonWebActionsForWebPage(page as any);
+
+    await actions
+      .find((action) => action.name === 'Reload')
+      ?.call(undefined, mockExecutorContext);
+
+    expect(page.reload).toHaveBeenCalledTimes(1);
+    expect(page.schedulePendingVisualUpdate).toHaveBeenCalledWith(true);
     expect(page.flushPendingVisualUpdate).not.toHaveBeenCalled();
   });
 

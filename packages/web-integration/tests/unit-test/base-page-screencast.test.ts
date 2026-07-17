@@ -314,6 +314,38 @@ describe('Page startMjpegStream', () => {
     await handle.stop();
   });
 
+  it('force-pushes a final screenshot after navigation replaces the preview with a transient frame', async () => {
+    const mockPage = {
+      evaluate: vi.fn().mockResolvedValue({ width: 1280, height: 720 }),
+      screenshot: vi.fn().mockResolvedValue(jpegBase64(1280, 720)),
+      url: () => 'http://example.com',
+    } as any;
+    const page = new Page(mockPage, 'puppeteer');
+    const onFrame = vi.fn();
+    (page as any).activeMjpegStream = {
+      token: Symbol('mjpeg-stream'),
+      onFrame,
+      hasReceivedScreencastFrame: true,
+      expectedViewportSize: { width: 1280, height: 720 },
+    };
+    vi.mocked(imageInfoOfBase64).mockResolvedValueOnce({
+      width: 1280,
+      height: 720,
+    });
+
+    await page.flushPendingVisualUpdate(true);
+
+    expect(mockPage.screenshot).toHaveBeenCalledWith({
+      type: 'jpeg',
+      quality: 90,
+      encoding: 'base64',
+    });
+    expect(onFrame).toHaveBeenCalledWith({
+      data: jpegBase64(1280, 720),
+      contentType: 'image/jpeg',
+    });
+  });
+
   it('does not fail the MJPEG stream when visual refresh races with navigation', async () => {
     const mockPage = {
       evaluate: vi
