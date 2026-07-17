@@ -89,7 +89,8 @@ export function StudioActionMenu({
                     : 'studio-action-menu-item'
                 }
                 key={item.label}
-                onClick={() => {
+                onClick={(event) => {
+                  event.stopPropagation();
                   setOpen(false);
                   void item.onClick();
                 }}

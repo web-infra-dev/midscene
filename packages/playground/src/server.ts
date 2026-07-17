@@ -60,6 +60,8 @@ import type {
   PlaygroundRecorderDescribeTrace,
   PlaygroundRecorderEvent,
   PlaygroundSessionManager,
+  PlaygroundSessionNavigationEvent,
+  PlaygroundSessionNavigationSubscriber,
   PlaygroundSessionSetup,
   PlaygroundSessionState,
   PlaygroundSessionTarget,
@@ -78,10 +80,6 @@ import 'dotenv/config';
 const defaultPort = PLAYGROUND_SERVER_PORT;
 const RECORDER_CAPTURE_AFTER_INTERACT_DELAY_MS = 250;
 const RECORDER_TYPE_ONLY_INPUT_SETTLE_DELAY_MS = 750;
-const RECORDER_NAVIGATION_OBSERVATION_INTERVAL_MS = 250;
-const RECORDER_NAVIGATION_OBSERVATION_TIMEOUT_MS = 35_000;
-const RECORDER_NAVIGATION_STABLE_OBSERVATIONS = 2;
-const RECORDER_NAVIGATION_UNAVAILABLE_URL_OBSERVATIONS = 2;
 const RECORDER_AI_DESCRIBE_AFTER_INTERACT_TIMEOUT_MS = 30_000;
 const RECORDER_AI_DESCRIBE_VERIFY_PROMPT = false;
 const RECORDER_AI_DESCRIBE_SCREENSHOT_DUMP_DIR =
@@ -1211,6 +1209,8 @@ interface PlaygroundActiveConnection {
   runtime?: PlaygroundRuntimeState;
   executionHooks?: PlaygroundExecutionHooks;
   sidecars?: PlaygroundSidecar[];
+  subscribeNavigationEvents?: PlaygroundSessionNavigationSubscriber;
+  unsubscribeNavigationEvents?: () => void;
 }
 
 interface PlaygroundRecorderPageState {
@@ -1253,13 +1253,6 @@ type PlaygroundDescribeElementProgress = {
 
 const RECOVERABLE_PAGE_SESSION_ERROR_PATTERN =
   /Session closed|page has been closed|target closed|browser has been closed|Target page, context or browser has been closed/i;
-
-const BROWSER_CHROME_NAVIGATION_ACTIONS = new Set([
-  'GoBack',
-  'GoForward',
-  'Reload',
-  'Stop',
-]);
 
 function isRecoverablePageSessionError(error: unknown): boolean {
   const message = error instanceof Error ? error.message : String(error);
@@ -1331,7 +1324,6 @@ class PlaygroundServer {
     | undefined;
   private _recorderEventQueue: Promise<void> = Promise.resolve();
   private _recorderPendingCaptures = 0;
-  private _recorderNavigationCompletionTasks = new Set<Promise<void>>();
   private _studioPreviewRecorderLastTargetPoint:
     | PlaygroundRecorderTargetPoint
     | undefined;
@@ -1444,6 +1436,7 @@ class PlaygroundServer {
   }
 
   private restoreBaseSessionState(): void {
+    this.clearActiveSessionNavigationEvents();
     this.taskExecutionDumps = {};
     this.currentTaskId = null;
     this.sessionSetupState =
@@ -1648,7 +1641,6 @@ class PlaygroundServer {
     this._recorderEvents = [];
     this._recorderPendingTypeOnlyInput = null;
     this._recorderEventQueue = Promise.resolve();
-    this._recorderNavigationCompletionTasks.clear();
     this._studioPreviewRecorderLastTargetPoint = undefined;
     this._studioPreviewRecorderLastScreenshot = undefined;
     this._studioPreviewRecorderLastPageState = undefined;
@@ -1656,10 +1648,6 @@ class PlaygroundServer {
 
   async waitForRecorderIdle(): Promise<void> {
     await this.waitForQueuedRecorderEvents();
-    while (this._recorderNavigationCompletionTasks.size > 0) {
-      await Promise.all(this._recorderNavigationCompletionTasks);
-      await this.waitForQueuedRecorderEvents();
-    }
   }
 
   private async waitForQueuedRecorderEvents(): Promise<void> {
@@ -1821,7 +1809,6 @@ class PlaygroundServer {
     if (!this._recorderSessionId) {
       return;
     }
-    const sessionId = this._recorderSessionId;
     const before =
       snapshotBefore || (await this.captureRecorderSnapshotBeforeInteract());
     const screenshotBefore = before?.screenshot;
@@ -1854,243 +1841,14 @@ class PlaygroundServer {
       return;
     }
 
-    const navigationEvent = this.buildStudioPreviewNavigationChangeEvent(
+    const navigationEvent = this.buildStudioPreviewNavigationStateEvent(
       payload,
       this.getRecorderNavigationPageStateBefore(before?.pageState),
       pageStateAfter,
-      screenshotAfter,
     );
     this._studioPreviewRecorderLastScreenshot = screenshotAfter;
     this._studioPreviewRecorderLastPageState = pageStateAfter;
     this.queueStudioPreviewRecorderEventAppend(event, navigationEvent);
-    if (navigationEvent) {
-      this.observeStudioPreviewNavigationCompletion(navigationEvent, sessionId);
-    } else {
-      this.observeStudioPreviewNavigationChange(
-        payload,
-        before?.pageState,
-        event.hashId,
-        sessionId,
-      );
-    }
-  }
-
-  /**
-   * A browser popup redirected into the preview tab can take much longer than
-   * the initial recorder capture. Keep the click responsive, then observe the
-   * URL separately so the eventual navigation is still represented in the
-   * recording without blocking later manual interactions.
-   */
-  private observeStudioPreviewNavigationChange(
-    payload: Record<string, unknown>,
-    pageStateBefore: PlaygroundRecorderPageState | undefined,
-    triggerEventHashId: string,
-    sessionId: string,
-  ): void {
-    const actionType =
-      typeof payload.actionType === 'string' ? payload.actionType : undefined;
-    const beforeUrl = pageStateBefore?.url;
-    if (
-      !actionType ||
-      !beforeUrl ||
-      BROWSER_CHROME_NAVIGATION_ACTIONS.has(actionType)
-    ) {
-      return;
-    }
-
-    void (async () => {
-      const deadline = Date.now() + RECORDER_NAVIGATION_OBSERVATION_TIMEOUT_MS;
-      let unavailableUrlObservations = 0;
-      while (this._recorderSessionId === sessionId && Date.now() < deadline) {
-        await sleep(RECORDER_NAVIGATION_OBSERVATION_INTERVAL_MS);
-        if (this._recorderSessionId !== sessionId) {
-          return;
-        }
-
-        const currentUrl = await this.getActivePageUrl();
-        if (!currentUrl) {
-          unavailableUrlObservations++;
-          if (
-            unavailableUrlObservations >=
-            RECORDER_NAVIGATION_UNAVAILABLE_URL_OBSERVATIONS
-          ) {
-            debugInteract(
-              'stopping delayed recorder navigation observation because the page URL is unavailable',
-            );
-            return;
-          }
-          continue;
-        }
-        unavailableUrlObservations = 0;
-        if (currentUrl === beforeUrl) {
-          continue;
-        }
-
-        const screenshot = await this.takeRecorderScreenshot();
-        const pageStateAfter = await this.getActiveRecorderPageState();
-        const navigationEvent = this.buildStudioPreviewNavigationChangeEvent(
-          payload,
-          this.getRecorderNavigationPageStateBefore(pageStateBefore),
-          pageStateAfter,
-          screenshot,
-        );
-        if (!navigationEvent) {
-          return;
-        }
-
-        navigationEvent.rawPayload = {
-          ...navigationEvent.rawPayload,
-          triggerEventHashId,
-        };
-        if (
-          this.appendStudioPreviewNavigationEventAfterTrigger(
-            triggerEventHashId,
-            navigationEvent,
-          )
-        ) {
-          this._studioPreviewRecorderLastScreenshot = screenshot;
-          this._studioPreviewRecorderLastPageState = pageStateAfter;
-          this.observeStudioPreviewNavigationCompletion(
-            navigationEvent,
-            sessionId,
-          );
-        }
-        return;
-      }
-    })().catch((error) => {
-      debugInteract('delayed recorder navigation observation failed:', error);
-    });
-  }
-
-  private observeStudioPreviewNavigationCompletion(
-    navigationEvent: PlaygroundRecorderEvent,
-    sessionId: string,
-  ): void {
-    const task = (async () => {
-      let latestUrl = navigationEvent.url;
-      let stableObservations = 0;
-      let unavailableUrlObservations = 0;
-      const deadline = Date.now() + RECORDER_NAVIGATION_OBSERVATION_TIMEOUT_MS;
-
-      while (this._recorderSessionId === sessionId && Date.now() < deadline) {
-        await sleep(RECORDER_NAVIGATION_OBSERVATION_INTERVAL_MS);
-        if (this._recorderSessionId !== sessionId) {
-          return;
-        }
-
-        const pageState = await this.getActiveRecorderPageState();
-        const currentUrl = pageState.url;
-        if (!currentUrl) {
-          unavailableUrlObservations++;
-          if (
-            unavailableUrlObservations >=
-            RECORDER_NAVIGATION_UNAVAILABLE_URL_OBSERVATIONS
-          ) {
-            debugInteract(
-              'stopping recorder navigation completion observation because the page URL is unavailable',
-            );
-            return;
-          }
-          continue;
-        }
-        unavailableUrlObservations = 0;
-        if (currentUrl !== latestUrl) {
-          latestUrl = currentUrl;
-          stableObservations = 0;
-          continue;
-        }
-
-        const agent = this._activeConnection.agent;
-        let isLoading = false;
-        if (typeof agent?.interface.navigationState === 'function') {
-          try {
-            isLoading = (await agent.interface.navigationState()).isLoading;
-          } catch (error) {
-            debugInteract(
-              'recorder navigationState() failed while observing completion:',
-              error,
-            );
-          }
-        }
-        if (isLoading) {
-          stableObservations = 0;
-          continue;
-        }
-
-        stableObservations++;
-        if (stableObservations < RECORDER_NAVIGATION_STABLE_OBSERVATIONS) {
-          continue;
-        }
-
-        const semanticAction = buildRecorderSemanticAction(
-          'Navigate',
-          { value: currentUrl },
-          currentUrl,
-        );
-        this._recorderEvents.push({
-          ...navigationEvent,
-          actionType: 'Navigate',
-          rawPayload: {
-            ...navigationEvent.rawPayload,
-            afterUrl: currentUrl,
-            navigationCompleted: true,
-          },
-          pageInfo: pageState.pageInfo,
-          url: currentUrl,
-          title: pageState.title,
-          value: currentUrl,
-          semantic: buildReadyRecorderSemantic(
-            'heuristic',
-            semanticAction,
-            currentUrl,
-            'high',
-          ),
-          timestamp: Date.now(),
-          // The client uses the unchanged id to update the existing timeline
-          // item instead of rendering a redirect as a new Navigate step.
-          hashId: navigationEvent.hashId,
-        });
-        return;
-      }
-    })().catch((error) => {
-      debugInteract(
-        'recorder navigation completion observation failed:',
-        error,
-      );
-    });
-
-    this._recorderNavigationCompletionTasks.add(task);
-    void task.finally(() => {
-      this._recorderNavigationCompletionTasks.delete(task);
-    });
-  }
-
-  private appendStudioPreviewNavigationEventAfterTrigger(
-    triggerEventHashId: string,
-    navigationEvent: PlaygroundRecorderEvent,
-  ): boolean {
-    const triggerIndex = this._recorderEvents.findIndex(
-      (event) => event.hashId === triggerEventHashId,
-    );
-    if (triggerIndex < 0) {
-      return false;
-    }
-
-    const alreadyRecorded = this._recorderEvents.some((event) => {
-      if (event.actionType !== 'NavigationChanged') {
-        return false;
-      }
-      const rawPayload = event.rawPayload as
-        | { triggerEventHashId?: unknown }
-        | undefined;
-      return rawPayload?.triggerEventHashId === triggerEventHashId;
-    });
-    if (alreadyRecorded) {
-      return false;
-    }
-
-    this._recorderEvents.splice(triggerIndex + 1, 0, navigationEvent);
-    return true;
   }
 
   private async buildStudioPreviewRecorderEvent(
@@ -2709,6 +2467,133 @@ class PlaygroundServer {
     this._recorderPendingTypeOnlyInputFlushTimer = undefined;
   }
 
+  private getRecorderNavigationPageStateBefore(
+    snapshotPageState: PlaygroundRecorderPageState | undefined,
+  ): PlaygroundRecorderPageState | undefined {
+    const lastPageState = this._studioPreviewRecorderLastPageState;
+    if (
+      !snapshotPageState?.url ||
+      !lastPageState?.url ||
+      snapshotPageState.url === lastPageState.url
+    ) {
+      return snapshotPageState;
+    }
+    return lastPageState;
+  }
+
+  private buildStudioPreviewNavigationStateEvent(
+    payload: Record<string, unknown>,
+    pageStateBefore: PlaygroundRecorderPageState | undefined,
+    pageStateAfter: PlaygroundRecorderPageState,
+  ): PlaygroundRecorderEvent | null {
+    const triggerActionType =
+      typeof payload.actionType === 'string' ? payload.actionType : undefined;
+    const beforeUrl = pageStateBefore?.url;
+    const afterUrl = pageStateAfter.url;
+    if (!triggerActionType || !afterUrl || beforeUrl === afterUrl) {
+      return null;
+    }
+
+    const timestamp = Date.now();
+    const semanticAction = buildRecorderSemanticAction(
+      'Navigate',
+      { value: afterUrl },
+      afterUrl,
+    );
+    return {
+      source: 'studio-preview',
+      type: 'navigation',
+      actionType: 'Navigate',
+      rawPayload: {
+        triggerActionType,
+        beforeUrl,
+        afterUrl,
+        implicitNavigationState: true,
+      },
+      pageInfo: pageStateAfter.pageInfo,
+      url: afterUrl,
+      title: pageStateAfter.title,
+      value: afterUrl,
+      semantic: buildReadyRecorderSemantic(
+        'heuristic',
+        semanticAction,
+        afterUrl,
+        'high',
+      ),
+      timestamp,
+      hashId: `studio-preview-navigation-${timestamp}-${Math.random()
+        .toString(36)
+        .slice(2, 8)}`,
+    };
+  }
+
+  private recordStudioPreviewNavigationState(
+    navigation: PlaygroundSessionNavigationEvent,
+  ): void {
+    const sessionId = this._recorderSessionId;
+    if (!sessionId || !navigation.url) {
+      return;
+    }
+
+    const task = this._recorderEventQueue
+      .catch(() => undefined)
+      .then(() => {
+        if (this._recorderSessionId !== sessionId) {
+          return;
+        }
+        const pageStateBefore = this._studioPreviewRecorderLastPageState;
+        if (pageStateBefore?.url === navigation.url) {
+          return;
+        }
+        const navigationEvent = this.buildStudioPreviewNavigationStateEvent(
+          { actionType: 'SessionNavigation' },
+          pageStateBefore,
+          {
+            pageInfo: pageStateBefore?.pageInfo || { width: 0, height: 0 },
+            url: navigation.url,
+          },
+        );
+        if (!navigationEvent) {
+          return;
+        }
+        navigationEvent.timestamp = navigation.timestamp || Date.now();
+        navigationEvent.rawPayload = {
+          ...navigationEvent.rawPayload,
+          navigationSource: 'session-event',
+        };
+
+        const lastActionIndex = this._recorderEvents.findLastIndex(
+          (event) =>
+            event.source === 'studio-preview' && event.type !== 'navigation',
+        );
+        const existingState =
+          lastActionIndex >= 0
+            ? this._recorderEvents[lastActionIndex + 1]
+            : undefined;
+        if (existingState?.rawPayload?.implicitNavigationState === true) {
+          this._recorderEvents.push({
+            ...navigationEvent,
+            // Keep the same Timeline item while incremental polling receives
+            // this newer URL for the same user action.
+            hashId: existingState.hashId,
+          });
+        } else if (lastActionIndex >= 0) {
+          this._recorderEvents.splice(lastActionIndex + 1, 0, navigationEvent);
+        } else {
+          this._recorderEvents.push(navigationEvent);
+        }
+        this._studioPreviewRecorderLastPageState = {
+          pageInfo: pageStateBefore?.pageInfo || { width: 0, height: 0 },
+          ...(pageStateBefore?.title ? { title: pageStateBefore.title } : {}),
+          url: navigation.url,
+        };
+      });
+
+    this._recorderEventQueue = task.catch((error) => {
+      debugInteract('session navigation recorder event failed:', error);
+    });
+  }
+
   private queueStudioPreviewRecorderEvent(
     payload: Record<string, unknown>,
     snapshotBefore?: PlaygroundRecorderSnapshot,
@@ -2746,77 +2631,6 @@ class PlaygroundServer {
     this._recorderEventQueue = queuedTask.catch((error) => {
       debugInteract('async recorder event capture failed:', error);
     });
-  }
-
-  /**
-   * Recorder snapshots are captured when a manual action is received, but
-   * their events are persisted later from a serialized queue. During a slow
-   * navigation, a follow-up scroll or tap can therefore retain the previous
-   * URL even though an earlier queued action already recorded the transition.
-   * Use the last persisted page state as the navigation baseline in that case
-   * so those stale snapshots do not become duplicate Navigate steps.
-   */
-  private getRecorderNavigationPageStateBefore(
-    snapshotPageState: PlaygroundRecorderPageState | undefined,
-  ): PlaygroundRecorderPageState | undefined {
-    const lastPageState = this._studioPreviewRecorderLastPageState;
-    if (
-      !snapshotPageState?.url ||
-      !lastPageState?.url ||
-      snapshotPageState.url === lastPageState.url
-    ) {
-      return snapshotPageState;
-    }
-    return lastPageState;
-  }
-
-  private buildStudioPreviewNavigationChangeEvent(
-    payload: Record<string, unknown>,
-    pageStateBefore: PlaygroundRecorderPageState | undefined,
-    pageStateAfter: PlaygroundRecorderPageState,
-    screenshotAfter?: string,
-  ): PlaygroundRecorderEvent | null {
-    const actionType =
-      typeof payload.actionType === 'string' ? payload.actionType : undefined;
-    if (!actionType || BROWSER_CHROME_NAVIGATION_ACTIONS.has(actionType)) {
-      return null;
-    }
-    const beforeUrl = pageStateBefore?.url;
-    const afterUrl = pageStateAfter.url;
-    if (!afterUrl || beforeUrl === afterUrl) {
-      return null;
-    }
-
-    const timestamp = Date.now();
-    const semanticEvent = buildRecorderSemanticAction(
-      'NavigationChanged',
-      { value: afterUrl },
-      afterUrl,
-    );
-    return {
-      source: 'studio-preview',
-      type: 'navigation',
-      actionType: 'NavigationChanged',
-      rawPayload: {
-        triggerActionType: actionType,
-        beforeUrl,
-        afterUrl,
-      },
-      pageInfo: pageStateAfter.pageInfo,
-      url: afterUrl,
-      title: pageStateAfter.title,
-      value: afterUrl,
-      semantic: buildReadyRecorderSemantic(
-        'heuristic',
-        semanticEvent,
-        afterUrl,
-        'high',
-      ),
-      timestamp,
-      hashId: `studio-preview-navigation-${timestamp}-${Math.random()
-        .toString(36)
-        .slice(2, 8)}`,
-    };
   }
 
   private buildStudioPreviewInitialNavigationEvent(
@@ -2885,6 +2699,7 @@ class PlaygroundServer {
   private async destroyCurrentSession(): Promise<void> {
     const previousSession = this._activeConnection.session;
     const previousSidecars = this._activeConnection.sidecars;
+    this.clearActiveSessionNavigationEvents();
     await this.destroyCurrentAgent();
     await this.stopSidecars(previousSidecars);
 
@@ -2926,6 +2741,7 @@ class PlaygroundServer {
         },
         executionHooks: session.executionHooks || this._baseExecutionHooks,
         sidecars: sessionSidecars,
+        subscribeNavigationEvents: session.subscribeNavigationEvents,
       };
       this._mjpegHandler.reset();
       this.sessionSetupState = 'ready';
@@ -2935,6 +2751,30 @@ class PlaygroundServer {
       await this.stopSidecars(sessionSidecars).catch(() => {});
       this.restoreBaseSessionState();
       throw error;
+    }
+  }
+
+  private bindActiveSessionNavigationEvents(): void {
+    this.clearActiveSessionNavigationEvents();
+    const subscribe = this._activeConnection.subscribeNavigationEvents;
+    if (!subscribe) {
+      return;
+    }
+    this._activeConnection.unsubscribeNavigationEvents = subscribe((event) => {
+      this.recordStudioPreviewNavigationState(event);
+    });
+  }
+
+  private clearActiveSessionNavigationEvents(): void {
+    const unsubscribe = this._activeConnection.unsubscribeNavigationEvents;
+    this._activeConnection.unsubscribeNavigationEvents = undefined;
+    if (!unsubscribe) {
+      return;
+    }
+    try {
+      unsubscribe();
+    } catch (error) {
+      debugInteract('failed to unsubscribe session navigation events:', error);
     }
   }
 
@@ -3378,6 +3218,7 @@ class PlaygroundServer {
         ) {
           this.setActiveAgent(await this._activeConnection.agentFactory());
         }
+        this.bindActiveSessionNavigationEvents();
 
         if (this._configDirty && this._activeConnection.agentFactory) {
           this._configDirty = false;
@@ -3882,10 +3723,9 @@ class PlaygroundServer {
     );
 
     this._app.post('/recorder/stop', async (_req: Request, res: Response) => {
-      // Navigation completion is deliberately observed in the background so
-      // a destroyed page context cannot make Stop Recording wait for its
-      // 35-second observation timeout. waitForRecorderIdle() remains the
-      // full-settling helper for consumers that need the final Navigate event.
+      // URL changes caused by a click are not separate replay actions. Stop
+      // only waits for queued user-action capture, so a destroyed page context
+      // cannot delay finishing the recording.
       await this.waitForQueuedRecorderEvents();
       this.flushPendingTypeOnlyRecorderInput();
       this._recorderSessionId = null;

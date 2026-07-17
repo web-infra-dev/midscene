@@ -140,70 +140,9 @@ function mockDescribeElementAtPoint(
 }
 
 describe('PlaygroundServer manual interaction APIs', () => {
-  test('does not reject when navigation observation fails', async () => {
-    vi.useFakeTimers();
-    const server = new PlaygroundServer({ interface: {} } as any);
-    (server as any)._recorderSessionId = 'session-navigation-error';
-    vi.spyOn(server as any, 'getActiveRecorderPageState').mockRejectedValue(
-      new Error('Debugger is detached'),
-    );
-
-    try {
-      (server as any).observeStudioPreviewNavigationCompletion(
-        {
-          actionType: 'NavigationChanged',
-          hashId: 'navigation-error',
-          type: 'navigation',
-          url: 'https://example.com',
-        },
-        'session-navigation-error',
-      );
-
-      await vi.advanceTimersByTimeAsync(250);
-
-      await expect(server.waitForRecorderIdle()).resolves.toBeUndefined();
-    } finally {
-      vi.useRealTimers();
-    }
-  });
-
-  test('stops navigation observation when the page URL stays unavailable', async () => {
-    vi.useFakeTimers();
-    const server = new PlaygroundServer({ interface: {} } as any);
-    (server as any)._recorderSessionId = 'session-navigation-unavailable';
-
-    try {
-      (server as any).observeStudioPreviewNavigationCompletion(
-        {
-          actionType: 'NavigationChanged',
-          hashId: 'navigation-unavailable',
-          type: 'navigation',
-          url: 'https://example.com',
-        },
-        'session-navigation-unavailable',
-      );
-
-      const idle = server.waitForRecorderIdle();
-      await vi.advanceTimersByTimeAsync(500);
-
-      await expect(idle).resolves.toBeUndefined();
-    } finally {
-      vi.useRealTimers();
-    }
-  });
-
-  test('recorder stop does not wait for a pending navigation completion observation', async () => {
+  test('recorder stop does not wait for navigation completion', async () => {
     const server = new PlaygroundServer({ interface: {} } as any);
     (server as any)._recorderSessionId = 'session-navigation-pending';
-    (server as any).observeStudioPreviewNavigationCompletion(
-      {
-        actionType: 'NavigationChanged',
-        hashId: 'navigation-pending',
-        type: 'navigation',
-        url: 'https://example.com',
-      },
-      'session-navigation-pending',
-    );
 
     await server.launch(6130);
     const stopRecorderHandler = getRouteHandler(
@@ -217,6 +156,49 @@ describe('PlaygroundServer manual interaction APIs', () => {
 
     expect(response.body).toEqual({ ok: true });
     expect((server as any)._recorderSessionId).toBeNull();
+  });
+
+  test('records a session navigation event without polling for page idle', async () => {
+    const server = new PlaygroundServer({ interface: {} } as any);
+    (server as any)._recorderSessionId = 'session-navigation-event';
+    (server as any)._studioPreviewRecorderLastPageState = {
+      pageInfo: { width: 1280, height: 720 },
+      url: 'https://example.com/start',
+      title: 'Start page',
+    };
+    (server as any)._recorderEvents = [
+      {
+        source: 'studio-preview',
+        type: 'click',
+        actionType: 'Tap',
+        hashId: 'tap-search-result',
+      },
+    ];
+
+    (server as any).recordStudioPreviewNavigationState({
+      url: 'https://example.com/next',
+    });
+    await server.waitForRecorderIdle();
+    (server as any).recordStudioPreviewNavigationState({
+      url: 'https://example.com/final',
+    });
+    await server.waitForRecorderIdle();
+
+    expect(
+      latestRecorderEventsBody({ events: (server as any)._recorderEvents })
+        .events,
+    ).toEqual([
+      expect.objectContaining({ type: 'click' }),
+      expect.objectContaining({
+        type: 'navigation',
+        actionType: 'Navigate',
+        url: 'https://example.com/final',
+        rawPayload: expect.objectContaining({
+          implicitNavigationState: true,
+          navigationSource: 'session-event',
+        }),
+      }),
+    ]);
   });
 
   beforeEach(() => {
@@ -2025,7 +2007,7 @@ describe('PlaygroundServer manual interaction APIs', () => {
     ).not.toHaveProperty('descriptionSource');
   });
 
-  test('recorder appends navigation event when preview interact changes web url', async () => {
+  test('recorder saves one navigation state when preview interaction changes web URL', async () => {
     let currentUrl = 'https://example.com/start';
     let currentScreenshot = VALID_PNG_BASE64;
     const inputPrimitives = makeInputPrimitiveStub({
@@ -2086,10 +2068,12 @@ describe('PlaygroundServer manual interaction APIs', () => {
         event.type === 'navigation' && event.url === 'https://example.com/next',
     );
     expect(rawNavigationEvents).toEqual([
-      expect.objectContaining({ actionType: 'NavigationChanged' }),
       expect.objectContaining({
         actionType: 'Navigate',
-        hashId: rawNavigationEvents[0]?.hashId,
+        rawPayload: expect.objectContaining({
+          triggerActionType: 'Tap',
+          implicitNavigationState: true,
+        }),
       }),
     ]);
     const recorderEvents = latestRecorderEventsBody(eventsResponse.body);
@@ -2134,15 +2118,15 @@ describe('PlaygroundServer manual interaction APIs', () => {
       ],
       nextIndex: 4,
     });
-    const [initialNavigation, firstClick, navigationChange, secondClick] =
+    const [initialNavigation, firstClick, navigationState, secondClick] =
       recorderEvents.events as any[];
     expect(initialNavigation).not.toHaveProperty('screenshotAsset');
-    expect(navigationChange).not.toHaveProperty('screenshotAsset');
+    expect(navigationState).not.toHaveProperty('screenshotAsset');
     expect(firstClick).toMatchObject({ screenshotAsset: expect.any(Object) });
     expect(secondClick).toMatchObject({ screenshotAsset: expect.any(Object) });
   });
 
-  test('recorder ignores a stale snapshot from a follow-up action during navigation', async () => {
+  test('recorder saves delayed navigation state after a click changes the page URL', async () => {
     let currentUrl = 'https://example.com/start';
     let tapCount = 0;
     const inputPrimitives = makeInputPrimitiveStub({
@@ -2207,28 +2191,20 @@ describe('PlaygroundServer manual interaction APIs', () => {
     );
 
     expect(rawNavigationEvents).toEqual([
-      expect.objectContaining({ actionType: 'NavigationChanged' }),
       expect.objectContaining({
         actionType: 'Navigate',
-        hashId: rawNavigationEvents[0]?.hashId,
+        rawPayload: expect.objectContaining({
+          triggerActionType: 'Tap',
+          implicitNavigationState: true,
+        }),
       }),
     ]);
     expect(latestRecorderEventsBody(eventsResponse.body).events).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({
-          type: 'navigation',
-          actionType: 'Navigate',
-          url: 'https://example.com/next',
-        }),
+        expect.objectContaining({ actionType: 'InitialNavigation' }),
+        expect.objectContaining({ type: 'click', actionType: 'Tap' }),
       ]),
     );
-    expect(
-      latestRecorderEventsBody(eventsResponse.body).events.filter(
-        (event: any) =>
-          event.type === 'navigation' &&
-          event.url === 'https://example.com/next',
-      ),
-    ).toHaveLength(1);
   });
 
   test('POST /interact returns 400 for invalid manual params', async () => {

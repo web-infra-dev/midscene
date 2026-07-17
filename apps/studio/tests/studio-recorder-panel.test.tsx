@@ -588,9 +588,11 @@ describe('StudioRecorderPanel', () => {
     const session = createRecorderMock().state.sessions[0];
     const onDeleteSession = vi.fn();
     const onDownloadSession = vi.fn();
+    const onSelectSession = vi.fn();
     const { container, root } = await renderReplayPanel({
       onDeleteSession,
       onDownloadSession,
+      onSelectSession,
       sessions: [session],
     });
 
@@ -622,6 +624,7 @@ describe('StudioRecorderPanel', () => {
     });
 
     expect(onDownloadSession).toHaveBeenCalledWith(session);
+    expect(onSelectSession).not.toHaveBeenCalled();
 
     await act(async () => {
       moreButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
@@ -636,6 +639,7 @@ describe('StudioRecorderPanel', () => {
     });
 
     expect(onDeleteSession).toHaveBeenCalledWith(session);
+    expect(onSelectSession).not.toHaveBeenCalled();
 
     await unmount(root);
   });
