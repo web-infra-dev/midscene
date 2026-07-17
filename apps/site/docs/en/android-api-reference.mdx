@@ -30,7 +30,11 @@ Create a connection to an adb-managed device that an AndroidAgent can drive.
 ### Import
 
 ```ts
-import { AndroidDevice, getConnectedDevices } from '@midscene/android';
+import {
+  AndroidDevice,
+  getConnectedDevices,
+  getConnectedDevicesWithDetails,
+} from '@midscene/android';
 ```
 
 ### Constructor
@@ -220,19 +224,53 @@ function agentFromAdbDevice(
 ```
 
 - `deviceId?: string` &mdash; Connect to a specific device; omitted means “first available”.
-- `opts?: PageAgentOpt & AndroidDeviceOpt` &mdash; Combine agent options with [AndroidDevice](#androiddevice) settings.
+- `opts?: PageAgentOpt & AndroidDeviceOpt` &mdash; Combine agent options with [AndroidDevice](#androiddevice) settings. When `deviceId` is omitted, Midscene uses the ADB settings from `opts` for discovery.
 
 #### `getConnectedDevices()`
 
 Enumerate adb devices Midscene can drive.
 
 ```ts
-function getConnectedDevices(): Promise<Array<{
+function getConnectedDevices(
+  deviceOptions?: AndroidDeviceOpt,
+): Promise<Array<{
   udid: string;
   state: string;
   port?: number;
 }>>;
 ```
+
+Pass `deviceOptions` to use the same ADB executable and server settings as `AndroidDevice`. Midscene reads `androidAdbPath`, `remoteAdbHost`, and `remoteAdbPort`; other device options do not affect discovery.
+
+This example discovers devices through a remote ADB server with a specific local ADB executable:
+
+```ts
+const devices = await getConnectedDevices({
+  androidAdbPath: '/absolute/path/to/adb',
+  remoteAdbHost: '192.168.1.10',
+  remoteAdbPort: 5038,
+});
+```
+
+#### `getConnectedDevicesWithDetails()`
+
+Enumerate connected devices and add metadata when ADB reports it. Midscene leaves unavailable fields as `undefined`.
+
+```ts
+function getConnectedDevicesWithDetails(
+  deviceOptions?: AndroidDeviceOpt,
+): Promise<Array<{
+  udid: string;
+  state: string;
+  port?: number;
+  model?: string;
+  brand?: string;
+  resolution?: string;
+  density?: number;
+}>>;
+```
+
+`deviceOptions` selects the ADB executable and server settings for both device discovery and metadata lookup.
 
 ### See also
 
