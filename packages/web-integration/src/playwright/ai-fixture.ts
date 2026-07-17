@@ -8,10 +8,7 @@ import type { WebPageAgentOpt } from '@/web-element';
 import type { Cache } from '@midscene/core';
 import type { Agent as PageAgent } from '@midscene/core/agent';
 import { processCacheConfig } from '@midscene/core/utils';
-import {
-  DEFAULT_WAIT_FOR_NAVIGATION_TIMEOUT,
-  DEFAULT_WAIT_FOR_NETWORK_IDLE_TIMEOUT,
-} from '@midscene/shared/constants';
+import { DEFAULT_WAIT_FOR_NAVIGATION_TIMEOUT } from '@midscene/shared/constants';
 import { getDebug } from '@midscene/shared/logger';
 import { uuid } from '@midscene/shared/utils';
 import { replaceIllegalPathCharsAndSpace } from '@midscene/shared/utils';
@@ -78,7 +75,7 @@ export const PlaywrightAiFixture = (options?: PlaywrightAiFixtureOptions) => {
   const {
     forceSameTabNavigation = true,
     autoFollowNewPage = false,
-    waitForNetworkIdleTimeout = DEFAULT_WAIT_FOR_NETWORK_IDLE_TIMEOUT,
+    waitForNetworkIdleTimeout,
     waitForNavigationTimeout = DEFAULT_WAIT_FOR_NAVIGATION_TIMEOUT,
     cache,
     ...sharedAgentOptions

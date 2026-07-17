@@ -1,9 +1,16 @@
 import { Page } from '@/puppeteer/base-page';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+const loggerMocks = vi.hoisted(() => ({
+  debug: vi.fn(),
+  warning: vi.fn(),
+}));
 
 // Mock necessary dependencies to avoid loading AI service dependencies
 vi.mock('@midscene/shared/logger', () => ({
-  getDebug: vi.fn(() => vi.fn()),
+  getDebug: vi.fn((_topic: string, options?: { console?: boolean }) =>
+    options?.console ? loggerMocks.warning : loggerMocks.debug,
+  ),
   logMsg: vi.fn(),
 }));
 
@@ -34,6 +41,11 @@ vi.mock('@/web-page', () => ({
 }));
 
 describe('Page - beforeInvokeAction and afterInvokeAction', () => {
+  beforeEach(() => {
+    loggerMocks.debug.mockClear();
+    loggerMocks.warning.mockClear();
+  });
+
   describe('beforeInvokeAction', () => {
     it('should call the beforeInvokeAction hook', async () => {
       const mockPage = {
@@ -376,7 +388,7 @@ describe('Page - beforeInvokeAction and afterInvokeAction', () => {
       expect(mockPage.waitForSelector).not.toHaveBeenCalled();
     });
 
-    it('should work with playwright interface in afterInvokeAction', async () => {
+    it('should not warn about network idle with default Playwright options', async () => {
       const mockPage = {
         url: () => 'http://example.com',
         mouse: { move: vi.fn() },
@@ -392,6 +404,45 @@ describe('Page - beforeInvokeAction and afterInvokeAction', () => {
       expect(mockPage.waitForSelector).toHaveBeenCalledWith('html', {
         timeout: 5000,
       });
+      expect(loggerMocks.warning).not.toHaveBeenCalled();
+    });
+
+    it('should warn once when network idle is explicitly enabled for Playwright', async () => {
+      const mockPage = {
+        url: () => 'http://example.com',
+        mouse: { move: vi.fn() },
+        keyboard: { down: vi.fn(), up: vi.fn(), press: vi.fn(), type: vi.fn() },
+        waitForSelector: vi.fn().mockResolvedValue(true),
+        evaluate: vi.fn(),
+      } as any;
+
+      const page = new Page(mockPage, 'playwright', {
+        waitForNetworkIdleTimeout: 2000,
+      });
+      await page.afterInvokeAction('firstAction', {});
+      await page.afterInvokeAction('secondAction', {});
+
+      expect(loggerMocks.warning).toHaveBeenCalledTimes(1);
+      expect(loggerMocks.warning).toHaveBeenCalledWith(
+        expect.stringContaining('waitForNetworkIdle is skipped for Playwright'),
+      );
+    });
+
+    it('should not warn when network idle is explicitly disabled for Playwright', async () => {
+      const mockPage = {
+        url: () => 'http://example.com',
+        mouse: { move: vi.fn() },
+        keyboard: { down: vi.fn(), up: vi.fn(), press: vi.fn(), type: vi.fn() },
+        waitForSelector: vi.fn().mockResolvedValue(true),
+        evaluate: vi.fn(),
+      } as any;
+
+      const page = new Page(mockPage, 'playwright', {
+        waitForNetworkIdleTimeout: 0,
+      });
+      await page.afterInvokeAction('testAction', {});
+
+      expect(loggerMocks.warning).not.toHaveBeenCalled();
     });
   });
 });

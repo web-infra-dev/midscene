@@ -70,6 +70,20 @@ describe('PlaywrightAiFixture option forwarding', () => {
       forceChromeSelectRendering: true,
       generateReport: true,
     });
+    expect(mockState.ctorOpts[0].waitForNetworkIdleTimeout).toBeUndefined();
+  });
+
+  it('should forward an explicitly configured network idle timeout', async () => {
+    const fixture = PlaywrightAiFixture({
+      waitForNetworkIdleTimeout: 4321,
+    });
+
+    await fixture.ai({ page: createPage() }, async () => {}, createTestInfo());
+
+    expect(mockState.ctorOpts).toHaveLength(1);
+    expect(mockState.ctorOpts[0]).toMatchObject({
+      waitForNetworkIdleTimeout: 4321,
+    });
   });
 
   it('should allow the first agentForPage call to override fixture defaults', async () => {

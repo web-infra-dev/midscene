@@ -263,8 +263,13 @@ export class Page<
     this.interfaceType = interfaceType;
     this.waitForNavigationTimeout =
       opts?.waitForNavigationTimeout ?? DEFAULT_WAIT_FOR_NAVIGATION_TIMEOUT;
+    // Playwright cannot perform this post-action wait. Default to 0 so the
+    // internal action hook stays silent; an explicit non-zero value warns below.
     this.waitForNetworkIdleTimeout =
-      opts?.waitForNetworkIdleTimeout ?? DEFAULT_WAIT_FOR_NETWORK_IDLE_TIMEOUT;
+      opts?.waitForNetworkIdleTimeout ??
+      (interfaceType === 'puppeteer'
+        ? DEFAULT_WAIT_FOR_NETWORK_IDLE_TIMEOUT
+        : 0);
     this.onBeforeInvokeAction = opts?.beforeInvokeAction;
     this.onAfterInvokeAction = opts?.afterInvokeAction;
     this.customActions = opts?.customActions;
@@ -316,12 +321,12 @@ export class Page<
     moment: 'afterInvokeAction',
     actionName?: string,
   ): Promise<void> {
-    if (this.interfaceType === 'puppeteer') {
-      if (this.waitForNetworkIdleTimeout === 0) {
-        debugPage('waitForNetworkIdle timeout is 0, skip waiting');
-        return;
-      }
+    if (this.waitForNetworkIdleTimeout === 0) {
+      debugPage('waitForNetworkIdle timeout is 0, skip waiting');
+      return;
+    }
 
+    if (this.interfaceType === 'puppeteer') {
       debugPage(
         `waitForNetworkIdle begin at moment ${moment} with timeout: ${this.waitForNetworkIdleTimeout} and concurrency: ${DEFAULT_WAIT_FOR_NETWORK_IDLE_CONCURRENCY} and actionName: ${actionName}`,
       );
