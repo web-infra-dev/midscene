@@ -30,7 +30,11 @@ Create a connection to an adb-managed device that an AndroidAgent can drive.
 ### Import
 
 ```ts
-import { AndroidDevice, getConnectedDevices } from '@midscene/android';
+import {
+  AndroidDevice,
+  getConnectedDevices,
+  getConnectedDevicesWithDetails,
+} from '@midscene/android';
 ```
 
 ### Constructor
@@ -233,17 +237,47 @@ function agentFromAdbDevice(
 ```
 
 - `deviceId?: string` &mdash; Connect to a specific device; omitted means “first available”.
-- `opts?: PageAgentOpt & AndroidDeviceOpt` &mdash; Combine agent options with [AndroidDevice](#androiddevice) settings.
+- `opts?: PageAgentOpt & AndroidDeviceOpt` &mdash; Agent options and [AndroidDevice](#androiddevice) settings. When you omit `deviceId`, Midscene discovers a device through adb. Set `androidAdbPath`, `remoteAdbHost`, and `remoteAdbPort` in `opts` to choose the adb configuration for device discovery and connection.
 
 #### `getConnectedDevices()`
 
 Enumerate adb devices Midscene can drive.
 
 ```ts
-function getConnectedDevices(): Promise<Array<{
+function getConnectedDevices(
+  deviceOptions?: AndroidDeviceOpt,
+): Promise<Array<{
   udid: string;
   state: string;
   port?: number;
+}>>;
+```
+
+`deviceOptions` is optional. Omit it to use Midscene's default adb configuration. Set `androidAdbPath` to choose an adb executable, or set `remoteAdbHost` and `remoteAdbPort` to connect to a remote adb server:
+
+```ts
+const devices = await getConnectedDevices({
+  androidAdbPath: '/absolute/path/to/adb',
+  remoteAdbHost: '192.168.1.10',
+  remoteAdbPort: 5038,
+});
+```
+
+#### `getConnectedDevicesWithDetails()`
+
+This function works like `getConnectedDevices()` and also returns the device brand, model, resolution, and screen density. Unavailable fields are `undefined`.
+
+```ts
+function getConnectedDevicesWithDetails(
+  deviceOptions?: AndroidDeviceOpt,
+): Promise<Array<{
+  udid: string;
+  state: string;
+  port?: number;
+  model?: string;
+  brand?: string;
+  resolution?: string;
+  density?: number;
 }>>;
 ```
 

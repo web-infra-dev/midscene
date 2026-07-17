@@ -21,6 +21,20 @@ interface ResolvedScrcpyConfig {
   idleTimeoutMs: number;
 }
 
+interface AdbServerEndpoint {
+  host: string;
+  port: number;
+}
+
+type ResolveAdbServerEndpoint = () =>
+  | AdbServerEndpoint
+  | Promise<AdbServerEndpoint>;
+
+const DEFAULT_ADB_SERVER_ENDPOINT: AdbServerEndpoint = {
+  host: '127.0.0.1',
+  port: 5037,
+};
+
 export interface DevicePhysicalInfo {
   physicalWidth: number;
   physicalHeight: number;
@@ -49,6 +63,8 @@ export class ScrcpyDeviceAdapter {
   constructor(
     private deviceId: string,
     private scrcpyConfig: ScrcpyConfig | undefined,
+    private resolveAdbServerEndpoint: ResolveAdbServerEndpoint = () =>
+      DEFAULT_ADB_SERVER_ENDPOINT,
   ) {}
 
   isEnabled(): boolean {
@@ -150,8 +166,9 @@ export class ScrcpyDeviceAdapter {
         './scrcpy-manager'
       );
 
+      const adbServerEndpoint = await this.resolveAdbServerEndpoint();
       const adbClient = new AdbServerClient(
-        new AdbServerNodeTcpConnector({ host: '127.0.0.1', port: 5037 }),
+        new AdbServerNodeTcpConnector(adbServerEndpoint),
       );
       const adb = new Adb(
         await adbClient.createTransport({ serial: this.deviceId }),

@@ -17,6 +17,10 @@ import { AndroidDevice, escapeForShell } from '../../src/device';
 
 // Mock the entire appium-adb module
 const createMockAdb = () => ({
+  executable: {
+    path: '/mock/platform-tools/adb',
+    defaultArgs: [],
+  },
   EXEC_OUTPUT_FORMAT: {
     FULL: 'full',
     STDOUT: 'stdout',
@@ -45,13 +49,24 @@ const createValidPngBuffer = (size = 64) =>
   ]);
 
 vi.mock('appium-adb', () => {
-  return {
-    ADB: vi.fn(() => {
+  const MockADB = vi.fn(() => {
+    if (!mockAdbInstance) {
+      mockAdbInstance = createMockAdb();
+    }
+    return mockAdbInstance;
+  });
+  Object.assign(MockADB, {
+    createADB: vi.fn(async () => {
       if (!mockAdbInstance) {
         mockAdbInstance = createMockAdb();
       }
       return mockAdbInstance;
     }),
+  });
+
+  return {
+    ADB: MockADB,
+    getSdkRootFromEnv: vi.fn(() => undefined),
   };
 });
 
@@ -138,6 +153,28 @@ describe('AndroidDevice', () => {
     expect(() => new AndroidDevice(undefined as any)).toThrow(
       'deviceId is required for AndroidDevice',
     );
+  });
+
+  it('should include the ADB executable in proxied command errors', async () => {
+    mockAdb.shell.mockRejectedValue(new Error('protocol fault'));
+    const adbProxy = (device as any).createAdbProxy(mockAdb);
+
+    await expect(adbProxy.shell(['wm', 'size'])).rejects.toThrow(
+      'ADB error with device test-device when calling shell (ADB executable: /mock/platform-tools/adb)',
+    );
+  });
+
+  it('should share the resolved ADB server endpoint with scrcpy', async () => {
+    Object.assign(mockAdb, {
+      adbHost: '192.168.1.10',
+      adbPort: 5038,
+    });
+    const adapter = (device as any).getScrcpyAdapter();
+
+    await expect((adapter as any).resolveAdbServerEndpoint()).resolves.toEqual({
+      host: '192.168.1.10',
+      port: 5038,
+    });
   });
 
   describe('launch', () => {
