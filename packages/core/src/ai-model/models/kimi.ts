@@ -118,6 +118,10 @@ export const kimiAdapters = {
       unsupportedUserConfig: ['reasoningEnabled', 'reasoningBudget'],
       buildChatCompletionParams: buildKimi3ChatCompletionParams,
       useReasoningAsContentFallback: true,
+      // Kimi K3 multi-turn and tool calls must replay the complete assistant
+      // message, including reasoning_content and tool_calls.
+      // https://platform.kimi.com/docs/guide/use-thinking-effort
+      replayRawAssistantMessage: true,
     },
     locate: {
       resultAdapter: {
