@@ -51,6 +51,29 @@ export function isHardTimeoutError(err: unknown): boolean {
   return false;
 }
 
+/**
+ * The OpenAI SDK converts an abort from a caller-provided signal into an
+ * APIUserAbortError and discards the signal's reason. Restore our timeout
+ * reason before surfacing the error to callers (and consequently reports).
+ */
+export function restoreHardTimeoutError(
+  error: Error,
+  signal: AbortSignal,
+): Error {
+  if (!signal.aborted || !isHardTimeoutError(signal.reason)) {
+    return error;
+  }
+
+  const timeoutReason = signal.reason as Error & { code?: string };
+  const restored = new Error(timeoutReason.message, {
+    cause: error,
+  }) as Error & {
+    code?: string;
+  };
+  restored.code = AI_CALL_HARD_TIMEOUT_CODE;
+  return restored;
+}
+
 // Wires a hard timeout into the abort signal passed to fetch so the request
 // is actually cancelled even if the provider/client timeout only covers part
 // of the request. Honours any abortSignal supplied by the caller. Passing
