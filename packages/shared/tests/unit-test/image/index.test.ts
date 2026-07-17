@@ -291,6 +291,18 @@ describe('image utils', () => {
     expect(isValid).toBe(false);
   });
 
+  it('rejects a truncated PNG that has a valid signature but no IEND chunk', () => {
+    const validPng = readFileSync(getFixture('icon.png'));
+    const truncatedPng = validPng.subarray(0, validPng.length - 12);
+
+    expect(isValidPNGImageBuffer(truncatedPng)).toBe(false);
+    expect(() =>
+      validateScreenshotBuffer(truncatedPng, {
+        label: 'Screenshot',
+      }),
+    ).toThrow('Screenshot buffer has invalid image format');
+  });
+
   it('validateScreenshotBuffer accepts valid screenshots above the minimum size', () => {
     const buffer = readFileSync(getFixture('icon.png'));
 
