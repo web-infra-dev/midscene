@@ -186,4 +186,49 @@
 
 [data-theme='dark'] .chrome-extension-playground {
   --extension-timeline-connector: #444;
+
+  .system-message-header .system-message-title {
+    color: var(--midscene-text-primary);
+  }
+
+  .clear-button-container .clear-button {
+    color: var(--midscene-text-secondary);
+
+    &:hover {
+      color: var(--midscene-text-primary);
+    }
+  }
+
+  .mode-radio-group-wrapper .action-icons {
+    color: var(--midscene-text-secondary);
+
+    .history-selector-wrapper,
+    .settings-wrapper,
+    .selector-trigger,
+    .selector-trigger-button {
+      color: var(--midscene-text-secondary);
+    }
+  }
+
+  .prompt-input-wrapper .main-side-console-input {
+    border-color: var(--midscene-border-strong);
+    color: var(--midscene-text-primary);
+
+    .main-side-console-input-textarea,
+    .ant-input {
+      color: var(--midscene-text-primary) !important;
+
+      &::placeholder {
+        color: var(--midscene-text-secondary) !important;
+        opacity: 1;
+      }
+    }
+  }
+
+  // The shared dark theme restores this overflow fade with `!important`.
+  // It is intentionally disabled in the extension because it covers visible
+  // mode buttons beside the toolbar icons.
+  &.playground-conversation-skin .mode-radio-group-wrapper .action-icons {
+    background: transparent !important;
+  }
 }
