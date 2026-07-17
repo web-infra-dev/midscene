@@ -362,6 +362,41 @@ export async function imagePixelAtPoint(
   imageBase64: string,
   point: { x: number; y: number },
 ): Promise<ImagePixel> {
+  if (ifInNode) {
+    const { body } = parseBase64(imageBase64);
+    const imageBuffer = Buffer.from(body, 'base64');
+    const Sharp = await getSharp();
+    const metadata = await Sharp(imageBuffer).metadata();
+    const { width, height } = metadata;
+    if (!width || !height) {
+      throw new Error('Unable to read image dimensions');
+    }
+    if (
+      !Number.isInteger(point.x) ||
+      !Number.isInteger(point.y) ||
+      point.x < 0 ||
+      point.y < 0 ||
+      point.x >= width ||
+      point.y >= height
+    ) {
+      throw new Error(
+        `Image pixel point (${point.x}, ${point.y}) is outside ${width}x${height}`,
+      );
+    }
+
+    const { data } = await Sharp(imageBuffer)
+      .extract({ left: point.x, top: point.y, width: 1, height: 1 })
+      .ensureAlpha()
+      .raw()
+      .toBuffer({ resolveWithObject: true });
+    return {
+      red: data[0],
+      green: data[1],
+      blue: data[2],
+      alpha: data[3],
+    };
+  }
+
   const image = await photonFromBase64(imageBase64);
   try {
     const width = image.get_width();
