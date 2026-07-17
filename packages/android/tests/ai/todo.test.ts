@@ -10,7 +10,9 @@ vi.setConfig({
   hookTimeout: 60 * 1000,
 });
 
-const pageUrl = 'https://todomvc.com/examples/react/dist/';
+const pageUrl =
+  process.env.MIDSCENE_ANDROID_TODO_URL ??
+  'https://todomvc.com/examples/react/dist/';
 const diagnosticsDir = process.env.MIDSCENE_ANDROID_DIAGNOSTICS_DIR;
 const CHROME_FIRST_RUN_DUMP_PATH =
   '/sdcard/midscene_chrome_first_run_window_dump.xml';

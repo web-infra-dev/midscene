@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>TodoMVC</title>
+    <style>
+      :root {
+        color: #4d4d4d;
+        font-family: Helvetica, Arial, sans-serif;
+        background: #f5f5f5;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-width: 230px;
+      }
+
+      main {
+        width: min(92vw, 550px);
+        margin: 24px auto;
+      }
+
+      h1 {
+        margin: 0 0 12px;
+        color: rgba(175, 47, 47, 0.3);
+        font-size: clamp(56px, 20vw, 100px);
+        font-weight: 100;
+        line-height: 1;
+        text-align: center;
+      }
+
+      .todoapp {
+        background: #fff;
+        box-shadow:
+          0 2px 4px rgba(0, 0, 0, 0.2),
+          0 25px 50px rgba(0, 0, 0, 0.1);
+      }
+
+      #new-todo {
+        width: 100%;
+        padding: 18px 18px 18px 24px;
+        border: 0;
+        border-bottom: 1px solid #ededed;
+        outline: none;
+        color: inherit;
+        font: inherit;
+        font-size: 24px;
+        font-style: italic;
+        box-shadow: inset 0 -2px 1px rgba(0, 0, 0, 0.03);
+      }
+
+      #new-todo::placeholder {
+        color: #949494;
+        opacity: 1;
+      }
+
+      #todo-list {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .todo {
+        display: grid;
+        grid-template-columns: 52px minmax(0, 1fr) 52px;
+        min-height: 60px;
+        border-bottom: 1px solid #ededed;
+        align-items: center;
+      }
+
+      .toggle {
+        width: 28px;
+        height: 28px;
+        margin: 0 auto;
+        accent-color: #5dc2af;
+      }
+
+      .todo label {
+        min-width: 0;
+        padding: 14px 4px;
+        font-size: 22px;
+        line-height: 1.25;
+        overflow-wrap: anywhere;
+      }
+
+      .todo.completed label {
+        color: #949494;
+        text-decoration: line-through;
+      }
+
+      .destroy {
+        width: 44px;
+        height: 44px;
+        border: 0;
+        background: transparent;
+        color: #af5b5e;
+        font-size: 32px;
+        line-height: 1;
+      }
+
+      footer {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 10px;
+        padding: 12px 14px;
+        color: #777;
+        font-size: 14px;
+        align-items: center;
+      }
+
+      #filters {
+        display: flex;
+        gap: 4px;
+      }
+
+      #filters button {
+        padding: 4px 7px;
+        border: 1px solid transparent;
+        border-radius: 3px;
+        background: transparent;
+        color: inherit;
+      }
+
+      #filters button.selected {
+        border-color: rgba(175, 47, 47, 0.3);
+      }
+
+      [hidden] {
+        display: none !important;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>todos</h1>
+      <section class="todoapp" aria-label="TodoMVC todo list">
+        <input
+          id="new-todo"
+          placeholder="What needs to be done?"
+          aria-label="New todo task"
+          autocomplete="off"
+          autofocus
+        />
+        <ul id="todo-list" aria-label="Todo items"></ul>
+        <footer id="footer" hidden>
+          <span id="todo-count"></span>
+          <nav id="filters" aria-label="Todo status filters">
+            <button type="button" data-filter="all" class="selected">All</button>
+            <button type="button" data-filter="active">Active</button>
+            <button type="button" data-filter="completed">Completed</button>
+          </nav>
+        </footer>
+      </section>
+    </main>
+    <script>
+      const input = document.querySelector('#new-todo');
+      const list = document.querySelector('#todo-list');
+      const footer = document.querySelector('#footer');
+      const count = document.querySelector('#todo-count');
+      const filters = document.querySelector('#filters');
+      let todos = [];
+      let activeFilter = 'all';
+
+      function render() {
+        list.replaceChildren();
+        const visibleTodos = todos.filter((todo) => {
+          if (activeFilter === 'active') return !todo.completed;
+          if (activeFilter === 'completed') return todo.completed;
+          return true;
+        });
+
+        for (const todo of visibleTodos) {
+          const item = document.createElement('li');
+          item.className = `todo${todo.completed ? ' completed' : ''}`;
+          item.dataset.id = String(todo.id);
+
+          const toggle = document.createElement('input');
+          toggle.type = 'checkbox';
+          toggle.className = 'toggle';
+          toggle.checked = todo.completed;
+          toggle.setAttribute('aria-label', `Mark ${todo.title} as complete`);
+
+          const label = document.createElement('label');
+          label.textContent = todo.title;
+
+          const destroy = document.createElement('button');
+          destroy.type = 'button';
+          destroy.className = 'destroy';
+          destroy.textContent = '×';
+          destroy.setAttribute('aria-label', `Delete ${todo.title}`);
+
+          item.append(toggle, label, destroy);
+          list.append(item);
+        }
+
+        const activeCount = todos.filter((todo) => !todo.completed).length;
+        count.textContent = `${activeCount} ${activeCount === 1 ? 'item' : 'items'} left`;
+        footer.hidden = todos.length === 0;
+        for (const button of filters.querySelectorAll('button')) {
+          button.classList.toggle('selected', button.dataset.filter === activeFilter);
+        }
+      }
+
+      input.addEventListener('keydown', (event) => {
+        if (event.key !== 'Enter') return;
+        const title = input.value.trim();
+        if (!title) return;
+        todos.push({ id: Date.now(), title, completed: false });
+        input.value = '';
+        render();
+      });
+
+      list.addEventListener('change', (event) => {
+        if (!event.target.matches('.toggle')) return;
+        const id = Number(event.target.closest('.todo').dataset.id);
+        const todo = todos.find((candidate) => candidate.id === id);
+        todo.completed = event.target.checked;
+        render();
+      });
+
+      list.addEventListener('click', (event) => {
+        if (!event.target.matches('.destroy')) return;
+        const id = Number(event.target.closest('.todo').dataset.id);
+        todos = todos.filter((todo) => todo.id !== id);
+        render();
+      });
+
+      filters.addEventListener('click', (event) => {
+        const filter = event.target.dataset.filter;
+        if (!filter) return;
+        activeFilter = filter;
+        render();
+      });
+
+      render();
+    </script>
+  </body>
+</html>

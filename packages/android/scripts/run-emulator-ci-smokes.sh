@@ -5,8 +5,41 @@ set -euo pipefail
 : "${MIDSCENE_ANDROID_DIAGNOSTICS_DIR:?MIDSCENE_ANDROID_DIAGNOSTICS_DIR is required}"
 
 diagnostics_dir="$MIDSCENE_ANDROID_DIAGNOSTICS_DIR"
-todo_url="https://todomvc.com/examples/react/dist/"
+todo_port="${MIDSCENE_ANDROID_TODO_PORT:-4173}"
+todo_url="http://10.0.2.2:${todo_port}/"
+todo_server_pid=""
 mkdir -p "$diagnostics_dir"
+
+cleanup() {
+  if [[ -n "$todo_server_pid" ]]; then
+    kill "$todo_server_pid" 2>/dev/null || true
+    wait "$todo_server_pid" 2>/dev/null || true
+  fi
+}
+trap cleanup EXIT
+
+MIDSCENE_ANDROID_TODO_PORT="$todo_port" \
+node packages/android/scripts/serve-todo-fixture.mjs \
+  > "$diagnostics_dir/todo-fixture-server.log" 2>&1 &
+todo_server_pid=$!
+
+todo_server_ready=0
+for _ in {1..50}; do
+  if curl --fail --silent --show-error "http://127.0.0.1:${todo_port}/healthz" > /dev/null; then
+    todo_server_ready=1
+    break
+  fi
+  if ! kill -0 "$todo_server_pid" 2>/dev/null; then
+    break
+  fi
+  sleep 0.2
+done
+
+if ((todo_server_ready == 0)); then
+  echo "Android TodoMVC fixture server failed to start" >&2
+  cat "$diagnostics_dir/todo-fixture-server.log" >&2
+  exit 1
+fi
 
 adb devices -l > "$diagnostics_dir/adb-devices.txt"
 {
@@ -42,6 +75,7 @@ pnpm exec nx test @midscene/android --skip-nx-cache -- \
 smoke_exit=${PIPESTATUS[0]}
 
 AI_TEST_TYPE=android \
+MIDSCENE_ANDROID_TODO_URL="$todo_url" \
 pnpm exec nx test @midscene/android --skip-nx-cache -- \
   tests/ai/todo.test.ts --retry=0 2>&1 |
   tee "$diagnostics_dir/todo-mvc.log"
