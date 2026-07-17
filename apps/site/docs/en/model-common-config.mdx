@@ -252,11 +252,12 @@ Midscene disables model-native thinking by default for the best execution speed 
 
 | Model version | Commonly used model names | Corresponding MODEL_FAMILY | Notes |
 | --- | --- | --- | --- |
+| K3 series | `kimi-k3` | `kimi3` | According to the Kimi documentation, K3 always has reasoning enabled and cannot be disabled. Its reasoning effort defaults to `max`. |
 | K2.x series | `kimi-k2.5`, `kimi-k2.6` | `kimi` | — |
 
 </div>
 
-Environment variable configuration example, using `kimi-k2.6`:
+Environment variable configuration example, using `kimi-k3`:
 
 <ModelConfigTabs>
   <ModelConfigTab type="default">
@@ -264,8 +265,8 @@ Environment variable configuration example, using `kimi-k2.6`:
 ```bash
 MIDSCENE_MODEL_BASE_URL="https://api.moonshot.cn/v1" # Moonshot AI API endpoint
 MIDSCENE_MODEL_API_KEY="......"
-MIDSCENE_MODEL_NAME="kimi-k2.6"
-MIDSCENE_MODEL_FAMILY="kimi"
+MIDSCENE_MODEL_NAME="kimi-k3"
+MIDSCENE_MODEL_FAMILY="kimi3" # For kimi-k2.6, use "kimi"
 ```
 
   </ModelConfigTab>
@@ -274,8 +275,8 @@ MIDSCENE_MODEL_FAMILY="kimi"
 ```bash
 MIDSCENE_PLANNING_MODEL_BASE_URL="https://api.moonshot.cn/v1" # Moonshot AI API endpoint
 MIDSCENE_PLANNING_MODEL_API_KEY="......"
-MIDSCENE_PLANNING_MODEL_NAME="kimi-k2.6"
-MIDSCENE_PLANNING_MODEL_FAMILY="kimi"
+MIDSCENE_PLANNING_MODEL_NAME="kimi-k3"
+MIDSCENE_PLANNING_MODEL_FAMILY="kimi3" # For kimi-k2.6, use "kimi"
 ```
 
   </ModelConfigTab>
@@ -284,8 +285,8 @@ MIDSCENE_PLANNING_MODEL_FAMILY="kimi"
 ```bash
 MIDSCENE_INSIGHT_MODEL_BASE_URL="https://api.moonshot.cn/v1" # Moonshot AI API endpoint
 MIDSCENE_INSIGHT_MODEL_API_KEY="......"
-MIDSCENE_INSIGHT_MODEL_NAME="kimi-k2.6"
-MIDSCENE_INSIGHT_MODEL_FAMILY="kimi"
+MIDSCENE_INSIGHT_MODEL_NAME="kimi-k3"
+MIDSCENE_INSIGHT_MODEL_FAMILY="kimi3" # For kimi-k2.6, use "kimi"
 ```
 
   </ModelConfigTab>

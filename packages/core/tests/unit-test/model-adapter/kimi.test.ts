@@ -3,6 +3,7 @@ import { kimiAdapters } from '@/ai-model/models/kimi';
 import { describe, expect, it } from 'vitest';
 
 const kimiAdapter = new ResolvedModelAdapter(kimiAdapters.kimi, 'kimi');
+const kimi3Adapter = new ResolvedModelAdapter(kimiAdapters.kimi3, 'kimi3');
 
 describe('kimi model adapter', () => {
   it('uses 0-1 normalized xy point coordinates for kimi locate results', () => {
@@ -166,5 +167,32 @@ describe('kimi model adapter', () => {
     });
 
     expect(result.config.response_format).toBeUndefined();
+  });
+});
+
+describe('kimi3 model adapter', () => {
+  it('does not send reasoning or thinking config when unset', () => {
+    const result = kimi3Adapter.chatCompletion.buildChatCompletionParams({
+      userConfig: {},
+    });
+
+    expect(result.config).toEqual({
+      temperature: undefined,
+    });
+  });
+
+  it('maps reasoning effort to the Kimi 3 top-level config', () => {
+    const result = kimi3Adapter.chatCompletion.buildChatCompletionParams({
+      userConfig: { reasoningEffort: 'max', reasoningEnabled: false },
+    });
+
+    expect(kimi3Adapter.chatCompletion.unsupportedUserConfig).toEqual([
+      'reasoningEnabled',
+      'reasoningBudget',
+    ]);
+    expect(result.config).toEqual({
+      temperature: undefined,
+      reasoning_effort: 'max',
+    });
   });
 });
