@@ -171,6 +171,11 @@ describe('kimi model adapter', () => {
 });
 
 describe('kimi3 model adapter', () => {
+  it('replays the raw assistant message for multi-turn reasoning', () => {
+    expect(kimi3Adapter.chatCompletion.replayRawAssistantMessage).toBe(true);
+    expect(kimiAdapter.chatCompletion.replayRawAssistantMessage).toBe(false);
+  });
+
   it('does not send reasoning or thinking config when unset', () => {
     const result = kimi3Adapter.chatCompletion.buildChatCompletionParams({
       userConfig: {},

@@ -30,13 +30,14 @@ const mockAIResponse = (content: string) => ({
   isStreamed: false,
 });
 
-const mockModelConfig = (): IModelConfig => ({
+const mockModelConfig = (modelFamily?: IModelConfig['modelFamily']): IModelConfig => ({
   modelName: 'mock-model',
   modelDescription: 'mock model',
   intent: 'planning',
   slot: 'planning',
   retryCount: 1,
   retryInterval: 2000,
+  ...(modelFamily ? { modelFamily } : {}),
 });
 
 const mockContext = (): UIContext =>
@@ -108,6 +109,78 @@ describe('plan XML parse retry', () => {
     expect(callAI).toHaveBeenCalledTimes(3);
     expect(result.rawResponse).toContain('Tap button after retry');
     expect(result.actions).toEqual([{ type: 'Tap' }]);
+  });
+
+  it('replays the complete assistant message for adapters that opt in', async () => {
+    const firstResponse = `<log>Tap button</log>
+<action-type>Tap</action-type>`;
+    const rawAssistantMessage = {
+      role: 'assistant' as const,
+      content: firstResponse,
+      reasoning_content: 'The button is visible in the center of the screen.',
+    };
+    const conversationHistory = new ConversationHistory();
+    vi.mocked(callAI)
+      .mockResolvedValueOnce({
+        ...mockAIResponse(firstResponse),
+        rawChoiceMessage: rawAssistantMessage,
+      })
+      .mockResolvedValueOnce(
+        mockAIResponse(`<log>Task completed</log>
+<complete>true</complete>`),
+      );
+
+    const options = {
+      context: mockContext(),
+      actionSpace: mockActionSpace(),
+      modelRuntime: getModelRuntime(mockModelConfig('kimi3')),
+      conversationHistory,
+      includeLocateInPlanning: false,
+      deepThink: false,
+    } as const;
+
+    await plan('tap the button', options);
+    await plan('tap the button', options);
+
+    const secondRequestMessages = vi.mocked(callAI).mock.calls[1]?.[0];
+    expect(secondRequestMessages).toContainEqual(rawAssistantMessage);
+  });
+
+  it('uses normalized assistant content when the adapter does not opt in', async () => {
+    const firstResponse = `<log>Tap button</log>\n<action-type>Tap</action-type>`;
+    const rawAssistantMessage = {
+      role: 'assistant' as const,
+      content: firstResponse,
+      reasoning_content: 'Provider-specific reasoning state.',
+    };
+    const conversationHistory = new ConversationHistory();
+    vi.mocked(callAI)
+      .mockResolvedValueOnce({
+        ...mockAIResponse(firstResponse),
+        rawChoiceMessage: rawAssistantMessage,
+      })
+      .mockResolvedValueOnce(
+        mockAIResponse(`<log>Task completed</log>\n<complete>true</complete>`),
+      );
+
+    const options = {
+      context: mockContext(),
+      actionSpace: mockActionSpace(),
+      modelRuntime: getModelRuntime(mockModelConfig()),
+      conversationHistory,
+      includeLocateInPlanning: false,
+      deepThink: false,
+    } as const;
+
+    await plan('tap the button', options);
+    await plan('tap the button', options);
+
+    const secondRequestMessages = vi.mocked(callAI).mock.calls[1]?.[0];
+    expect(secondRequestMessages).not.toContainEqual(rawAssistantMessage);
+    expect(secondRequestMessages).toContainEqual({
+      role: 'assistant',
+      content: [{ type: 'text', text: firstResponse }],
+    });
   });
 
   it('preserves retry request errors instead of reporting them as XML parse errors', async () => {

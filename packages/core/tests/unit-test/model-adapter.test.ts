@@ -91,6 +91,14 @@ describe('model adapter registry', () => {
     );
   });
 
+  it('replays raw assistant messages only for kimi3', () => {
+    for (const modelFamily of MODEL_FAMILY_VALUES) {
+      expect(
+        getModelAdapter(modelFamily).chatCompletion.replayRawAssistantMessage,
+      ).toBe(modelFamily === 'kimi3');
+    }
+  });
+
   it('throws for unknown model families', () => {
     expect(() => getModelAdapter('missing-family' as any)).toThrow(
       /No model adapter registered for modelFamily: missing-family/,
