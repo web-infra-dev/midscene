@@ -8,7 +8,7 @@ const mocks = vi.hoisted(() => {
     write: ReturnType<typeof vi.fn>;
   }> = [];
   return {
-    createWriteStream: vi.fn(() => {
+    createWriteStream: vi.fn((_filePath: string) => {
       const stream = {
         end: vi.fn(),
         on: vi.fn(),
