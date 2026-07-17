@@ -395,15 +395,21 @@ export async function plan(
     conversationHistory.appendMemory(planFromAI.memory);
   }
 
-  conversationHistory.append({
-    role: 'assistant',
-    content: [
-      {
-        type: 'text',
-        text: rawResponse,
-      },
-    ],
-  });
+  // Some model providers require reasoning_content to be replayed verbatim in
+  // later turns, so retain their original assistant choice when available.
+  if (rawChoiceMessage) {
+    conversationHistory.append(rawChoiceMessage as ChatCompletionMessageParam);
+  } else {
+    conversationHistory.append({
+      role: 'assistant',
+      content: [
+        {
+          type: 'text',
+          text: rawResponse,
+        },
+      ],
+    });
+  }
 
   return returnValue;
 }

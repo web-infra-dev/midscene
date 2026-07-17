@@ -99,6 +99,48 @@ describe('plan XML parse retry', () => {
     expect(result.actions).toEqual([{ type: 'Tap' }]);
   });
 
+  it('replays the complete assistant message in the next planning turn', async () => {
+    const firstResponse = `<log>Tap button</log>
+<action-type>Tap</action-type>`;
+    const rawAssistantMessage = {
+      role: 'assistant' as const,
+      content: firstResponse,
+      reasoning_content: 'The button is visible in the center of the screen.',
+      tool_calls: [
+        {
+          id: 'call_1',
+          type: 'function',
+          function: { name: 'Tap', arguments: '{"x":50,"y":50}' },
+        },
+      ],
+    };
+    const conversationHistory = new ConversationHistory();
+    vi.mocked(callAI)
+      .mockResolvedValueOnce({
+        ...mockAIResponse(firstResponse),
+        rawChoiceMessage: rawAssistantMessage,
+      })
+      .mockResolvedValueOnce(
+        mockAIResponse(`<log>Task completed</log>
+<complete>true</complete>`),
+      );
+
+    const options = {
+      context: mockContext(),
+      actionSpace: mockActionSpace(),
+      modelRuntime: getModelRuntime(mockModelConfig()),
+      conversationHistory,
+      includeLocateInPlanning: false,
+      deepThink: false,
+    } as const;
+
+    await plan('tap the button', options);
+    await plan('tap the button', options);
+
+    const secondRequestMessages = vi.mocked(callAI).mock.calls[1]?.[0];
+    expect(secondRequestMessages).toContainEqual(rawAssistantMessage);
+  });
+
   it('preserves retry request errors instead of reporting them as XML parse errors', async () => {
     const requestError = new Error('failed to call AI model service');
     vi.mocked(callAI)
