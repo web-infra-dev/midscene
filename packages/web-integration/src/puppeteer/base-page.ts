@@ -793,14 +793,23 @@ export class Page<
         if (!isExpectedFrame) {
           if (!hasReportedInvalidScreencastFrame) {
             hasReportedInvalidScreencastFrame = true;
-            const error = new Error(
-              `CDP screencast frame aspect ratio mismatch: expected viewport ${expectedViewportSize?.width}x${expectedViewportSize?.height}, received ${frameSize.width}x${frameSize.height}`,
+            debugPage(
+              'CDP screencast frame aspect ratio mismatch: expected viewport %dx%d, received %dx%d; using screenshot fallback until the screencast recovers',
+              expectedViewportSize?.width ?? 0,
+              expectedViewportSize?.height ?? 0,
+              frameSize.width,
+              frameSize.height,
             );
-            debugPage('%s', error.message);
-            // The MJPEG hub treats producer errors as terminal and closes the
-            // subscriber response. ScreenshotViewer then remounts its <img>,
-            // which starts a fresh screencast instead of retaining this frame.
-            reportStreamError(error);
+            // Do not turn a single malformed CDP frame into a terminal stream
+            // error. Chromium keeps the last decoded multipart image when a
+            // response ends, so the renderer may never fire <img onError> or
+            // remount the stream. Keep the connection alive and push a direct
+            // screenshot instead; a later valid CDP frame will resume the
+            // low-cost screencast path automatically.
+            if (this.activeMjpegStream?.token === streamToken) {
+              this.activeMjpegStream.hasReceivedScreencastFrame = false;
+            }
+            this.schedulePendingVisualUpdate();
           }
         } else {
           if (this.activeMjpegStream?.token === streamToken) {

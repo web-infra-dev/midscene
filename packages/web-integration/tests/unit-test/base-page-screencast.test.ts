@@ -139,7 +139,7 @@ describe('Page startMjpegStream', () => {
     );
   });
 
-  it('rejects a screencast JPEG whose pixels do not match the viewport even if metadata does', async () => {
+  it('falls back to a screenshot when a screencast JPEG does not match the viewport', async () => {
     const handlers = new Map<string, (event: any) => unknown>();
     const send = vi.fn().mockResolvedValue(undefined);
     const detach = vi.fn().mockResolvedValue(undefined);
@@ -154,6 +154,7 @@ describe('Page startMjpegStream', () => {
     const mockPage = {
       bringToFront: vi.fn().mockResolvedValue(undefined),
       evaluate: vi.fn().mockResolvedValue({ width: 1280, height: 720 }),
+      screenshot: vi.fn().mockResolvedValue(jpegBase64(1280, 720)),
       url: () => 'http://example.com',
       target: () => ({
         createCDPSession: vi.fn().mockResolvedValue(client),
@@ -163,23 +164,29 @@ describe('Page startMjpegStream', () => {
     const onError = vi.fn();
     const page = new Page(mockPage, 'puppeteer');
     const handle = await page.startMjpegStream({ onFrame, onError });
+    (page as any).activeMjpegStream.hasReceivedScreencastFrame = true;
+    onFrame.mockClear();
+    onError.mockClear();
+    vi.mocked(imageInfoOfBase64).mockResolvedValue({
+      width: 1280,
+      height: 720,
+    });
 
     await handlers.get('Page.screencastFrame')?.({
       data: jpegBase64(2400, 1896),
       sessionId: 42,
       metadata: { deviceWidth: 1280, deviceHeight: 720 },
     });
-    await Promise.resolve();
+    await vi.waitFor(() => {
+      expect(onFrame).toHaveBeenCalledWith({
+        data: jpegBase64(1280, 720),
+        contentType: 'image/jpeg',
+      });
+    });
 
-    expect(onFrame).not.toHaveBeenCalled();
-    expect(onError).toHaveBeenCalledWith(
-      expect.objectContaining({
-        message:
-          'CDP screencast frame aspect ratio mismatch: expected viewport 1280x720, received 2400x1896',
-      }),
-    );
-    // Rejecting a frame must still ACK it; otherwise CDP stops producing and
-    // the next fresh stream cannot recover.
+    expect(onError).not.toHaveBeenCalled();
+    // A rejected CDP frame must still ACK; otherwise the stream cannot later
+    // recover when Chromium emits a correctly sized frame.
     expect(send).toHaveBeenCalledWith('Page.screencastFrameAck', {
       sessionId: 42,
     });

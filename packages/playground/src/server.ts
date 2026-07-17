@@ -81,6 +81,7 @@ const RECORDER_TYPE_ONLY_INPUT_SETTLE_DELAY_MS = 750;
 const RECORDER_NAVIGATION_OBSERVATION_INTERVAL_MS = 250;
 const RECORDER_NAVIGATION_OBSERVATION_TIMEOUT_MS = 35_000;
 const RECORDER_NAVIGATION_STABLE_OBSERVATIONS = 2;
+const RECORDER_NAVIGATION_UNAVAILABLE_URL_OBSERVATIONS = 2;
 const RECORDER_AI_DESCRIBE_AFTER_INTERACT_TIMEOUT_MS = 30_000;
 const RECORDER_AI_DESCRIBE_VERIFY_PROMPT = false;
 const RECORDER_AI_DESCRIBE_SCREENSHOT_DUMP_DIR =
@@ -1654,11 +1655,15 @@ class PlaygroundServer {
   }
 
   async waitForRecorderIdle(): Promise<void> {
-    await this._recorderEventQueue;
+    await this.waitForQueuedRecorderEvents();
     while (this._recorderNavigationCompletionTasks.size > 0) {
       await Promise.all(this._recorderNavigationCompletionTasks);
-      await this._recorderEventQueue;
+      await this.waitForQueuedRecorderEvents();
     }
+  }
+
+  private async waitForQueuedRecorderEvents(): Promise<void> {
+    await this._recorderEventQueue;
   }
 
   private canRecordStudioPreviewInteractions(): boolean {
@@ -1851,7 +1856,7 @@ class PlaygroundServer {
 
     const navigationEvent = this.buildStudioPreviewNavigationChangeEvent(
       payload,
-      before?.pageState,
+      this.getRecorderNavigationPageStateBefore(before?.pageState),
       pageStateAfter,
       screenshotAfter,
     );
@@ -1895,6 +1900,7 @@ class PlaygroundServer {
 
     void (async () => {
       const deadline = Date.now() + RECORDER_NAVIGATION_OBSERVATION_TIMEOUT_MS;
+      let unavailableUrlObservations = 0;
       while (this._recorderSessionId === sessionId && Date.now() < deadline) {
         await sleep(RECORDER_NAVIGATION_OBSERVATION_INTERVAL_MS);
         if (this._recorderSessionId !== sessionId) {
@@ -1902,7 +1908,21 @@ class PlaygroundServer {
         }
 
         const currentUrl = await this.getActivePageUrl();
-        if (!currentUrl || currentUrl === beforeUrl) {
+        if (!currentUrl) {
+          unavailableUrlObservations++;
+          if (
+            unavailableUrlObservations >=
+            RECORDER_NAVIGATION_UNAVAILABLE_URL_OBSERVATIONS
+          ) {
+            debugInteract(
+              'stopping delayed recorder navigation observation because the page URL is unavailable',
+            );
+            return;
+          }
+          continue;
+        }
+        unavailableUrlObservations = 0;
+        if (currentUrl === beforeUrl) {
           continue;
         }
 
@@ -1910,7 +1930,7 @@ class PlaygroundServer {
         const pageStateAfter = await this.getActiveRecorderPageState();
         const navigationEvent = this.buildStudioPreviewNavigationChangeEvent(
           payload,
-          pageStateBefore,
+          this.getRecorderNavigationPageStateBefore(pageStateBefore),
           pageStateAfter,
           screenshot,
         );
@@ -1949,6 +1969,7 @@ class PlaygroundServer {
     const task = (async () => {
       let latestUrl = navigationEvent.url;
       let stableObservations = 0;
+      let unavailableUrlObservations = 0;
       const deadline = Date.now() + RECORDER_NAVIGATION_OBSERVATION_TIMEOUT_MS;
 
       while (this._recorderSessionId === sessionId && Date.now() < deadline) {
@@ -1960,8 +1981,19 @@ class PlaygroundServer {
         const pageState = await this.getActiveRecorderPageState();
         const currentUrl = pageState.url;
         if (!currentUrl) {
+          unavailableUrlObservations++;
+          if (
+            unavailableUrlObservations >=
+            RECORDER_NAVIGATION_UNAVAILABLE_URL_OBSERVATIONS
+          ) {
+            debugInteract(
+              'stopping recorder navigation completion observation because the page URL is unavailable',
+            );
+            return;
+          }
           continue;
         }
+        unavailableUrlObservations = 0;
         if (currentUrl !== latestUrl) {
           latestUrl = currentUrl;
           stableObservations = 0;
@@ -2714,6 +2746,28 @@ class PlaygroundServer {
     this._recorderEventQueue = queuedTask.catch((error) => {
       debugInteract('async recorder event capture failed:', error);
     });
+  }
+
+  /**
+   * Recorder snapshots are captured when a manual action is received, but
+   * their events are persisted later from a serialized queue. During a slow
+   * navigation, a follow-up scroll or tap can therefore retain the previous
+   * URL even though an earlier queued action already recorded the transition.
+   * Use the last persisted page state as the navigation baseline in that case
+   * so those stale snapshots do not become duplicate Navigate steps.
+   */
+  private getRecorderNavigationPageStateBefore(
+    snapshotPageState: PlaygroundRecorderPageState | undefined,
+  ): PlaygroundRecorderPageState | undefined {
+    const lastPageState = this._studioPreviewRecorderLastPageState;
+    if (
+      !snapshotPageState?.url ||
+      !lastPageState?.url ||
+      snapshotPageState.url === lastPageState.url
+    ) {
+      return snapshotPageState;
+    }
+    return lastPageState;
   }
 
   private buildStudioPreviewNavigationChangeEvent(
@@ -3828,7 +3882,11 @@ class PlaygroundServer {
     );
 
     this._app.post('/recorder/stop', async (_req: Request, res: Response) => {
-      await this.waitForRecorderIdle();
+      // Navigation completion is deliberately observed in the background so
+      // a destroyed page context cannot make Stop Recording wait for its
+      // 35-second observation timeout. waitForRecorderIdle() remains the
+      // full-settling helper for consumers that need the final Navigate event.
+      await this.waitForQueuedRecorderEvents();
       this.flushPendingTypeOnlyRecorderInput();
       this._recorderSessionId = null;
       this._studioPreviewRecorderLastScreenshot = undefined;
