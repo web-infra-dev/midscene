@@ -457,6 +457,9 @@ export default function ShellLayout() {
                   },
                   onOpenDownloadPage: () =>
                     openExternalUrl(STUDIO_EXTERNAL_LINKS.studioReleases),
+                  onOpenRunDirectory: () => {
+                    void window.electronShell?.openRunDirectory();
+                  },
                   status: updater.status,
                 }}
               />

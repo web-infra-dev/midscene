@@ -60,6 +60,27 @@ describe('UpdaterSection', () => {
     await unmount(root);
   });
 
+  it('does not count update action clicks as Version row clicks', async () => {
+    const onOpenRunDirectory = vi.fn();
+    const { container, root } = await renderUpdaterSection({
+      appVersion: '1.8.0',
+      onDownload: vi.fn(),
+      onInstall: vi.fn(),
+      onOpenRunDirectory,
+      status: { state: 'available', version: '1.8.1' },
+    });
+    const button = container.querySelector('button');
+
+    await act(async () => {
+      for (let click = 0; click < 5; click += 1) {
+        button?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      }
+    });
+    expect(onOpenRunDirectory).not.toHaveBeenCalled();
+
+    await unmount(root);
+  });
+
   it('opens the release page for external-only update targets', async () => {
     const onDownload = vi.fn();
     const onOpenDownloadPage = vi.fn();
@@ -100,6 +121,39 @@ describe('UpdaterSection', () => {
       button?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
     expect(onInstall).toHaveBeenCalledTimes(1);
+
+    await unmount(root);
+  });
+
+  it('opens the run directory after five Version row clicks', async () => {
+    const onOpenRunDirectory = vi.fn();
+    const { container, root } = await renderUpdaterSection({
+      appVersion: '1.8.0',
+      onDownload: vi.fn(),
+      onInstall: vi.fn(),
+      onOpenRunDirectory,
+      status: { state: 'idle' },
+    });
+    const versionRow = container.firstElementChild;
+
+    await act(async () => {
+      for (let click = 0; click < 4; click += 1) {
+        versionRow?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      }
+    });
+    expect(onOpenRunDirectory).not.toHaveBeenCalled();
+
+    await act(async () => {
+      versionRow?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    expect(onOpenRunDirectory).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      for (let click = 0; click < 5; click += 1) {
+        versionRow?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      }
+    });
+    expect(onOpenRunDirectory).toHaveBeenCalledTimes(2);
 
     await unmount(root);
   });

@@ -16,6 +16,7 @@ const electronShellApi: ElectronShellApi = {
   minimizeWindow: () => ipcRenderer.invoke(IPC_CHANNELS.minimizeWindow),
   openExternalUrl: (url) =>
     ipcRenderer.invoke(IPC_CHANNELS.openExternalUrl, url),
+  openRunDirectory: () => ipcRenderer.invoke(IPC_CHANNELS.openRunDirectory),
   openImagePreview: (request) =>
     ipcRenderer.invoke(IPC_CHANNELS.openImagePreview, request),
   chooseReportSavePath: (defaultFileName) =>

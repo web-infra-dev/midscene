@@ -53,6 +53,7 @@ describe('preload bridge', () => {
     await shellApi.closeWindow();
     await shellApi.minimizeWindow();
     await shellApi.openExternalUrl('https://midscenejs.com');
+    await shellApi.openRunDirectory();
     await shellApi.chooseReportSavePath('report.html');
     await shellApi.chooseFileSavePath({
       defaultFileName: 'recording.json',
@@ -145,6 +146,7 @@ describe('preload bridge', () => {
       [IPC_CHANNELS.closeWindow],
       [IPC_CHANNELS.minimizeWindow],
       [IPC_CHANNELS.openExternalUrl, 'https://midscenejs.com'],
+      [IPC_CHANNELS.openRunDirectory],
       [IPC_CHANNELS.chooseReportSavePath, 'report.html'],
       [
         IPC_CHANNELS.chooseFileSavePath,

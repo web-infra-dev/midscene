@@ -464,6 +464,17 @@ const registerIpcHandlers = () => {
   ipcMain.handle(IPC_CHANNELS.openExternalUrl, async (_event, url: string) => {
     await shell.openExternal(resolveExternalUrl(url));
   });
+  ipcMain.handle(IPC_CHANNELS.openRunDirectory, async () => {
+    const runDir = process.env.MIDSCENE_RUN_DIR;
+    if (!runDir) {
+      throw new Error('openRunDirectory: MIDSCENE_RUN_DIR is not configured');
+    }
+    await mkdir(runDir, { recursive: true });
+    const errorMessage = await shell.openPath(path.resolve(runDir));
+    if (errorMessage) {
+      throw new Error(errorMessage);
+    }
+  });
   ipcMain.handle(
     IPC_CHANNELS.openImagePreview,
     async (_event, request: OpenImagePreviewRequest) => {
