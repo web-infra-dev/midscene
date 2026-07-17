@@ -42,11 +42,19 @@ const createMockAdb = () => ({
 
 let mockAdbInstance: ReturnType<typeof createMockAdb>;
 
-const createValidPngBuffer = (size = 64) =>
-  Buffer.concat([
-    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
-    Buffer.alloc(Math.max(size - 8, 0)),
+const createValidPngBuffer = (size = 64) => {
+  const signature = Buffer.from([
+    0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
   ]);
+  const iend = Buffer.from([
+    0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4e, 0x44, 0xae, 0x42, 0x60, 0x82,
+  ]);
+  return Buffer.concat([
+    signature,
+    Buffer.alloc(Math.max(size - signature.length - iend.length, 0)),
+    iend,
+  ]);
+};
 
 vi.mock('appium-adb', () => {
   const MockADB = vi.fn(() => {

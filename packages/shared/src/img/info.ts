@@ -70,7 +70,10 @@ export async function imageInfoOfBase64(
  * @returns true if the Buffer is a valid PNG image, otherwise false
  */
 export function isValidPNGImageBuffer(buffer: Buffer): boolean {
-  if (!buffer || buffer.length < 8) {
+  // A PNG consists of the 8-byte signature followed by chunks and must end
+  // with the 12-byte IEND chunk. Checking only the signature lets truncated
+  // screenshots through, which then fail when sent to an image model.
+  if (!buffer || buffer.length < 20) {
     return false;
   }
 
@@ -86,7 +89,18 @@ export function isValidPNGImageBuffer(buffer: Buffer): boolean {
     buffer[6] === 0x1a &&
     buffer[7] === 0x0a;
 
-  return isPNG;
+  if (!isPNG) {
+    return false;
+  }
+
+  // IEND has a zero-length payload and a fixed CRC (AE 42 60 82). It must be
+  // the final chunk in a conforming PNG.
+  const pngIendChunk = Buffer.from([
+    0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4e, 0x44, 0xae, 0x42, 0x60, 0x82,
+  ]);
+  return buffer
+    .subarray(buffer.length - pngIendChunk.length)
+    .equals(pngIendChunk);
 }
 
 /**
