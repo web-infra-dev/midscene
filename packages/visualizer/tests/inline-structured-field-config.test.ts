@@ -26,7 +26,7 @@ function makeLocateField() {
   return {
     _def: {
       typeName: 'ZodObject',
-      shape: { midscene_location_field_flag: {} },
+      shape: { prompt: makeStringField() },
     },
   };
 }

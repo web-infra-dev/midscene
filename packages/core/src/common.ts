@@ -276,8 +276,6 @@ export const multimodalPromptToChatMessages = async (
   return msgs;
 };
 
-const locateFieldFlagName = 'midscene_location_field_flag';
-
 // Schema for locator field input (when users provide locate parameters)
 const MidsceneLocationInput = z
   .object({
@@ -311,12 +309,6 @@ export const ifMidsceneLocatorField = (field: any): boolean => {
   if (actualField._def?.typeName === 'ZodObject') {
     const shape = actualField._def.shape();
 
-    // Method 1: Check for the location field flag (for result schema)
-    if (locateFieldFlagName in shape) {
-      return true;
-    }
-
-    // Method 2: Check if it's the input schema by checking for 'prompt' field
     // Input schema has 'prompt' as a required field
     if ('prompt' in shape && shape.prompt) {
       return true;

@@ -503,13 +503,11 @@ describe('dumpActionParam', () => {
     const input1 = {
       foo: 'test',
       locator1: {
-        midscene_location_field_flag: true,
         prompt: 'first locator',
         center: [100, 200],
         rect: { left: 50, top: 100, width: 100, height: 50 },
       },
       locator2: {
-        midscene_location_field_flag: true,
         prompt: 'second locator',
         center: [200, 300],
         rect: { left: 150, top: 200, width: 100, height: 50 },
@@ -533,7 +531,6 @@ describe('dumpActionParam', () => {
     const input2 = {
       foo: 'test2',
       locator1: {
-        midscene_location_field_flag: true,
         prompt: 'only locator',
         center: [50, 100],
         rect: { left: 25, top: 50, width: 50, height: 25 },
@@ -558,7 +555,6 @@ describe('dumpActionParam', () => {
 
     const inputWithImages = {
       locator: {
-        midscene_location_field_flag: true,
         prompt: {
           prompt: 'find the button',
           images: [
@@ -580,7 +576,6 @@ describe('dumpActionParam', () => {
 
     const inputWithOneImage = {
       locator: {
-        midscene_location_field_flag: true,
         prompt: {
           prompt: 'find the text',
           images: [{ name: 'text.png', url: 'data:image/png;base64,abc' }],
@@ -599,7 +594,6 @@ describe('dumpActionParam', () => {
 
     const inputWithEmptyImages = {
       locator: {
-        midscene_location_field_flag: true,
         prompt: {
           prompt: 'find the link',
           images: [],
@@ -645,13 +639,11 @@ describe('dumpActionParam', () => {
     const input2 = {
       foo: 'test2',
       locator1: {
-        midscene_location_field_flag: true,
         // missing prompt
         center: [100, 200],
         rect: { left: 50, top: 100, width: 100, height: 50 },
       },
       locator2: {
-        midscene_location_field_flag: true,
         prompt: 'valid locator',
         center: [200, 300],
         rect: { left: 150, top: 200, width: 100, height: 50 },
@@ -667,7 +659,6 @@ describe('dumpActionParam', () => {
             100,
             200,
           ],
-          "midscene_location_field_flag": true,
           "rect": {
             "height": 50,
             "left": 50,
