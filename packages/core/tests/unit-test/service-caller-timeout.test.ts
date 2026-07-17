@@ -135,6 +135,64 @@ describe('service-caller request timeout', () => {
     }
   });
 
+  it('restores the hard-timeout reason when the OpenAI SDK discards it', async () => {
+    const { callAI } = await import('@/ai-model/service-caller');
+    const { getModelRuntime } = await import('@/ai-model/models');
+    const { isHardTimeoutError } = await import(
+      '@/ai-model/service-caller/request-timeout'
+    );
+
+    mockCreate.mockImplementation((_body, opts) => {
+      const signal = opts?.signal as AbortSignal | undefined;
+      return new Promise((_resolve, reject) => {
+        signal?.addEventListener('abort', () => {
+          // openai@6.3.0 turns an external abort into APIUserAbortError and
+          // loses signal.reason; mirror that behaviour here.
+          reject(new Error('Request was aborted.'));
+        });
+      });
+    });
+
+    try {
+      await callAI(
+        [{ role: 'user', content: 'hello' }],
+        getModelRuntime(baseConfig({ timeout: 30 })),
+      );
+      throw new Error('should have timed out');
+    } catch (err) {
+      expect(err).toMatchObject({
+        message: expect.stringMatching(/AI call hard timeout after 30ms/),
+      });
+      expect(isHardTimeoutError(err)).toBe(true);
+      expect((err as Error).cause).toMatchObject({
+        code: 'AI_CALL_HARD_TIMEOUT',
+        cause: { message: 'Request was aborted.' },
+      });
+    }
+  });
+
+  it('restores the hard-timeout reason for streaming requests too', async () => {
+    const { callAI } = await import('@/ai-model/service-caller');
+    const { getModelRuntime } = await import('@/ai-model/models');
+
+    mockCreate.mockImplementation((_body, opts) => {
+      const signal = opts?.signal as AbortSignal | undefined;
+      return new Promise((_resolve, reject) => {
+        signal?.addEventListener('abort', () => {
+          reject(new Error('Request was aborted.'));
+        });
+      });
+    });
+
+    await expect(
+      callAI(
+        [{ role: 'user', content: 'hello' }],
+        getModelRuntime(baseConfig({ timeout: 30 })),
+        { stream: true, onChunk: vi.fn() },
+      ),
+    ).rejects.toThrow(/AI call hard timeout after 30ms/);
+  });
+
   it('uses the 180s default timeout when none is configured', async () => {
     const { callAI } = await import('@/ai-model/service-caller');
     const { getModelRuntime } = await import('@/ai-model/models');

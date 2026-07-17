@@ -56,6 +56,7 @@ import {
   buildRequestAbortSignal,
   isHardTimeoutError,
   resolveEffectiveTimeoutMs,
+  restoreHardTimeoutError,
 } from './request-timeout';
 import { callAiAndParseWithRetry } from './semantic-retry';
 export {
@@ -606,6 +607,8 @@ export async function callAI(
             break;
           }
         }
+      } catch (error) {
+        throw restoreHardTimeoutError(toError(error), streamSignal);
       } finally {
         cleanupStreamSignal();
       }
@@ -685,8 +688,8 @@ export async function callAI(
 
           break; // Success, exit retry loop
         } catch (error) {
-          lastError = toError(error);
-          attemptErrors.push({ attempt, error });
+          lastError = restoreHardTimeoutError(toError(error), attemptSignal);
+          attemptErrors.push({ attempt, error: lastError });
           const wasHardTimeout = isHardTimeoutError(lastError);
           if (wasHardTimeout) {
             warnCall(
