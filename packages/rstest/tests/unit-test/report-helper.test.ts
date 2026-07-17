@@ -1,4 +1,4 @@
-import { describe, expect, it } from '@rstest/core';
+import { describe, expect, it } from 'vitest';
 import {
   type RstestTestContext,
   buildReportMeta,

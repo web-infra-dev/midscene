@@ -1,13 +1,9 @@
 import { defineConfig } from '@rstest/core';
 
-// SMOKE=true switches to the browser-launching fixture smoke suite, which is
-// kept out of the default (CI) run — same env-gating convention as AITEST in
-// the vitest-based packages.
-const enableSmokeTest = Boolean(process.env.SMOKE);
-
+// The smoke suite exercises the real fixture wiring (rstest runtime plus a
+// real browser), so it has to run under rstest itself. Unit tests run under
+// vitest like every other package — see vitest.config.ts.
 export default defineConfig({
-  include: enableSmokeTest
-    ? ['tests/smoke/**/*.test.ts']
-    : ['tests/unit-test/**/*.test.ts'],
-  ...(enableSmokeTest ? { testTimeout: 120_000 } : {}),
+  include: ['tests/smoke/**/*.test.ts'],
+  testTimeout: 120_000,
 });
