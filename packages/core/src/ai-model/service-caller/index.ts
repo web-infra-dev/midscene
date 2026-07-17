@@ -776,6 +776,7 @@ export async function callAIWithObjectResponse<T>(
     abortSignal?: AbortSignal;
     jsonParserSource?: JsonParserSource;
     retryTimes?: number;
+    retryInterval?: number;
   },
 ): Promise<{
   // TODO: `content` is a misleading name here because this is already the parsed object response. Consider renaming it to `object` or `data`.
@@ -823,7 +824,8 @@ export async function callAIWithObjectResponse<T>(
         response.reasoning_content,
       );
     },
-    parseRetryTimes: options?.retryTimes,
+    parseRetryTimes: options?.retryTimes ?? modelConfig.retryCount,
+    parseRetryInterval: options?.retryInterval ?? modelConfig.retryInterval,
     abortSignal: options?.abortSignal,
   });
 }

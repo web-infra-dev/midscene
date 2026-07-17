@@ -43,7 +43,7 @@ If you configure a dedicated Insight or Planning model, model-related `MIDSCENE_
 |------|-------------|
 | `MIDSCENE_MODEL_TIMEOUT` | Hard timeout for AI API calls in milliseconds (default intent). Defaults to `180000` (180s). Set to `0` to disable the hard timeout and let the request run indefinitely (only a caller-provided `AbortSignal` will cancel it). Note: Midscene controls the full request lifetime, not just the time until the first response header arrives, so stalled body reads can still be terminated cleanly |
 | `MIDSCENE_MODEL_TEMPERATURE` | Sampling temperature for model responses |
-| `MIDSCENE_MODEL_RETRY_COUNT` | Number of retries when AI call fails, default 1 (i.e., retry once after failure) |
+| `MIDSCENE_MODEL_RETRY_COUNT` | Number of retries when AI call fails, default 1 (i.e., retry once after failure). Retries occur when the model request encounters an HTTP error or when the model response cannot be structurally parsed |
 | `MIDSCENE_MODEL_RETRY_INTERVAL` | Interval between retries in milliseconds, default 2000 |
 | `MIDSCENE_MODEL_REASONING_ENABLED` | Controls whether model-native thinking is enabled. Midscene disables it by default. See [Model-Native Thinking Mode](./model-strategy#model-native-thinking-mode) |
 | `MIDSCENE_MODEL_REASONING_EFFORT` | Controls model-native thinking effort, supported by some models. Common values: `low`, `medium`, `high`. See [Model-Native Thinking Mode](./model-strategy#model-native-thinking-mode) |

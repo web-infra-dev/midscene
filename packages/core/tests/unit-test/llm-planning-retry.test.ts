@@ -35,6 +35,8 @@ const mockModelConfig = (): IModelConfig => ({
   modelDescription: 'mock model',
   intent: 'planning',
   slot: 'planning',
+  retryCount: 1,
+  retryInterval: 2000,
 });
 
 const mockContext = (): UIContext =>
@@ -73,10 +75,15 @@ describe('plan XML parse retry', () => {
     vi.mocked(buildYamlFlowFromPlans).mockClear();
   });
 
-  it('should retry once when XML response parsing fails', async () => {
+  it('uses model retry settings when XML response parsing fails', async () => {
     vi.mocked(callAI)
       .mockResolvedValueOnce(
         mockAIResponse(`<log>Tap button</log>
+<action-type>Tap</action-type>
+<action-param-json>{invalid json}</action-param-json>`),
+      )
+      .mockResolvedValueOnce(
+        mockAIResponse(`<log>Still invalid</log>
 <action-type>Tap</action-type>
 <action-param-json>{invalid json}</action-param-json>`),
       )
@@ -88,13 +95,17 @@ describe('plan XML parse retry', () => {
     const result = await plan('tap the button', {
       context: mockContext(),
       actionSpace: mockActionSpace(),
-      modelRuntime: getModelRuntime(mockModelConfig()),
+      modelRuntime: getModelRuntime({
+        ...mockModelConfig(),
+        retryCount: 2,
+        retryInterval: 0,
+      }),
       conversationHistory: new ConversationHistory(),
       includeLocateInPlanning: false,
       deepThink: false,
     });
 
-    expect(callAI).toHaveBeenCalledTimes(2);
+    expect(callAI).toHaveBeenCalledTimes(3);
     expect(result.rawResponse).toContain('Tap button after retry');
     expect(result.actions).toEqual([{ type: 'Tap' }]);
   });

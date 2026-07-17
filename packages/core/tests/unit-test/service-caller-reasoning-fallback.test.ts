@@ -313,6 +313,40 @@ describe('service-caller reasoning fallback', () => {
     expect(response.content).toEqual({ bbox: [100, 200, 300, 400] });
   });
 
+  it('uses model retry settings for JSON parsing failures', async () => {
+    vi.useFakeTimers();
+    mockCreate
+      .mockResolvedValueOnce({
+        choices: [{ message: { content: 'not JSON' } }],
+      })
+      .mockResolvedValueOnce({
+        choices: [{ message: { content: '{"bbox":[100,200,300,400]}' } }],
+      });
+
+    try {
+      const responsePromise = callAIWithObjectResponse(
+        [{ role: 'user', content: 'locate element' }],
+        getModelRuntime({
+          ...baseModelConfig,
+          retryCount: 1,
+          retryInterval: 123,
+        }),
+        { jsonParserSource: 'locate' },
+      );
+
+      await vi.advanceTimersByTimeAsync(122);
+      expect(mockCreate).toHaveBeenCalledTimes(1);
+
+      await vi.advanceTimersByTimeAsync(1);
+      await expect(responsePromise).resolves.toMatchObject({
+        content: { bbox: [100, 200, 300, 400] },
+      });
+      expect(mockCreate).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('disables reasoning by default for supported model families', async () => {
     mockCreate.mockResolvedValue({
       choices: [

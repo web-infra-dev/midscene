@@ -501,6 +501,8 @@ export interface IModelConfig {
   /**
    * Number of retries when AI call fails.
    * Default is 1 (retry once after failure).
+   * Retries occur on HTTP errors or when the model response cannot be
+   * structurally parsed.
    */
   retryCount?: number;
   /**

@@ -275,7 +275,8 @@ export async function genericLocate(
         callAIWithObjectResponse<AIElementLocateResponse>(msgs, modelRuntime, {
           abortSignal: options.abortSignal,
           jsonParserSource: 'locate',
-          retryTimes: 1,
+          retryTimes: modelRuntime.config.retryCount,
+          retryInterval: modelRuntime.config.retryInterval,
         }),
       parseResponse: (response): LocateModelResponse => {
         const rawResponse = response.contentString;
@@ -326,7 +327,8 @@ export async function genericLocate(
           response.reasoning_content,
         );
       },
-      parseRetryTimes: 1,
+      parseRetryTimes: modelRuntime.config.retryCount,
+      parseRetryInterval: modelRuntime.config.retryInterval,
       abortSignal: options.abortSignal,
       onParseRetry: (error) => {
         debugInspect(
@@ -434,7 +436,8 @@ export async function AiLocateSection(options: {
         callAIWithObjectResponse<AISectionLocatorResponse>(msgs, modelRuntime, {
           abortSignal: options.abortSignal,
           jsonParserSource: 'section-locator',
-          retryTimes: 1,
+          retryTimes: modelRuntime.config.retryCount,
+          retryInterval: modelRuntime.config.retryInterval,
         }),
       parseResponse: (result) => {
         const sectionError = result.content.error;
@@ -475,7 +478,8 @@ export async function AiLocateSection(options: {
           result.reasoning_content,
         );
       },
-      parseRetryTimes: 1,
+      parseRetryTimes: modelRuntime.config.retryCount,
+      parseRetryInterval: modelRuntime.config.retryInterval,
       abortSignal: options.abortSignal,
       onParseRetry: (error) => {
         debugSection(
@@ -669,7 +673,8 @@ export async function AiExtractElementInfo<T>(options: {
         response.rawChoiceMessage,
       );
     },
-    parseRetryTimes: 1,
+    parseRetryTimes: modelRuntime.config.retryCount,
+    parseRetryInterval: modelRuntime.config.retryInterval,
     abortSignal: options.abortSignal,
     onParseRetry: (error) => {
       debugInspect(
