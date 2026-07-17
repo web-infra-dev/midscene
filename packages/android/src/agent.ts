@@ -143,7 +143,7 @@ export async function agentFromAdbDevice(
   opts?: AndroidAgentOpt & AndroidDeviceOpt,
 ) {
   if (!deviceId) {
-    const devices = await getConnectedDevices();
+    const devices = await getConnectedDevices(opts);
 
     if (devices.length === 0) {
       throw new Error(

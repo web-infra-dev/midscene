@@ -306,7 +306,7 @@ ${'o'.repeat(200)}
       vi.unstubAllEnvs();
     });
 
-    it('should use the first device if no deviceId is provided', async () => {
+    it('should use the first device and forward ADB options if no deviceId is provided', async () => {
       const mockDevices = [{ udid: 'device-1' }, { udid: 'device-2' }];
       vi.spyOn(Utils, 'getConnectedDevices').mockResolvedValue(
         mockDevices as any,
@@ -327,13 +327,15 @@ ${'o'.repeat(200)}
         };
       });
 
-      const agent = await agentFromAdbDevice();
+      const options = {
+        androidAdbPath: '/custom/platform-tools/adb',
+        remoteAdbHost: 'localhost',
+        remoteAdbPort: 5038,
+      };
+      const agent = await agentFromAdbDevice(undefined, options);
 
-      expect(Utils.getConnectedDevices).toHaveBeenCalled();
-      expect(AndroidDevice).toHaveBeenCalledWith(
-        'device-1',
-        expect.any(Object),
-      );
+      expect(Utils.getConnectedDevices).toHaveBeenCalledWith(options);
+      expect(AndroidDevice).toHaveBeenCalledWith('device-1', options);
       expect(mockConnect).toHaveBeenCalled();
       expect(agent).toBeInstanceOf(AndroidAgent);
     });

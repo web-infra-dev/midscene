@@ -3,6 +3,10 @@ import type { DevicePhysicalInfo } from '../../src/scrcpy-device-adapter';
 import { ScrcpyDeviceAdapter } from '../../src/scrcpy-device-adapter';
 import { DEFAULT_SCRCPY_CONFIG } from '../../src/scrcpy-manager';
 
+const mocks = vi.hoisted(() => ({
+  AdbServerNodeTcpConnector: vi.fn(),
+}));
+
 // Mock @yume-chan packages (ESM-only, used via dynamic import in ensureManager)
 vi.mock('@yume-chan/adb', () => ({
   Adb: vi.fn().mockImplementation(() => ({})),
@@ -12,7 +16,7 @@ vi.mock('@yume-chan/adb', () => ({
 }));
 
 vi.mock('@yume-chan/adb-server-node-tcp', () => ({
-  AdbServerNodeTcpConnector: vi.fn(),
+  AdbServerNodeTcpConnector: mocks.AdbServerNodeTcpConnector,
 }));
 
 // Mock ScrcpyScreenshotManager returned by dynamic import in ensureManager
@@ -236,6 +240,37 @@ describe('ScrcpyDeviceAdapter', () => {
   });
 
   describe('ensureManager', () => {
+    it('should use the local ADB server endpoint by default', async () => {
+      const adapter = new ScrcpyDeviceAdapter('device', { enabled: true });
+
+      await adapter.ensureManager(defaultDeviceInfo);
+
+      expect(mocks.AdbServerNodeTcpConnector).toHaveBeenCalledWith({
+        host: '127.0.0.1',
+        port: 5037,
+      });
+    });
+
+    it('should connect to the resolved ADB server endpoint', async () => {
+      const resolveAdbServerEndpoint = vi.fn().mockResolvedValue({
+        host: '192.168.1.10',
+        port: 5038,
+      });
+      const adapter = new ScrcpyDeviceAdapter(
+        'device',
+        { enabled: true },
+        resolveAdbServerEndpoint,
+      );
+
+      await adapter.ensureManager(defaultDeviceInfo);
+
+      expect(resolveAdbServerEndpoint).toHaveBeenCalledTimes(1);
+      expect(mocks.AdbServerNodeTcpConnector).toHaveBeenCalledWith({
+        host: '192.168.1.10',
+        port: 5038,
+      });
+    });
+
     it('should return cached manager without re-validation', async () => {
       const adapter = new ScrcpyDeviceAdapter('device', undefined);
       (adapter as any).manager = currentMockManager;

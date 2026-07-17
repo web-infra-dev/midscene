@@ -26,9 +26,6 @@ import {
 } from '@midscene/core/device';
 import { getTmpFile, sleep } from '@midscene/core/utils';
 import {
-  MIDSCENE_ADB_PATH,
-  MIDSCENE_ADB_REMOTE_HOST,
-  MIDSCENE_ADB_REMOTE_PORT,
   MIDSCENE_ANDROID_IME_STRATEGY,
   globalConfigManager,
 } from '@midscene/shared/env';
@@ -40,7 +37,8 @@ import {
 import { getDebug } from '@midscene/shared/logger';
 import { normalizeForComparison, repeat } from '@midscene/shared/utils';
 
-import { ADB } from 'appium-adb';
+import type { ADB } from 'appium-adb';
+import { createAndroidAdb } from './adb';
 import {
   buildRunAdbShellPlanningFeedback,
   runAdbShellStdoutOrThrow,
@@ -401,24 +399,10 @@ export class AndroidDevice implements AbstractInterface {
       let error: Error | null = null;
       debugDevice(`Initializing ADB with device ID: ${this.deviceId}`);
       try {
-        const androidAdbPath =
-          this.options?.androidAdbPath ||
-          globalConfigManager.getEnvConfigValue(MIDSCENE_ADB_PATH);
-        const remoteAdbHost =
-          this.options?.remoteAdbHost ||
-          globalConfigManager.getEnvConfigValue(MIDSCENE_ADB_REMOTE_HOST);
-        const remoteAdbPort =
-          this.options?.remoteAdbPort ||
-          globalConfigManager.getEnvConfigValue(MIDSCENE_ADB_REMOTE_PORT);
-
-        this.adb = new ADB({
-          udid: this.deviceId,
+        this.adb = await createAndroidAdb({
           adbExecTimeout: 60000,
-          executable: androidAdbPath
-            ? { path: androidAdbPath, defaultArgs: [] }
-            : undefined,
-          remoteAdbHost: remoteAdbHost || undefined,
-          remoteAdbPort: remoteAdbPort ? Number(remoteAdbPort) : undefined,
+          deviceId: this.deviceId,
+          deviceOptions: this.options,
         });
 
         const size = await this.getScreenSize();
@@ -475,13 +459,14 @@ ${Object.keys(size)
           } catch (error: any) {
             const methodName = String(prop);
             const deviceId = this.deviceId;
+            const adbExecutable = target.executable.path;
             debugDevice(
-              `ADB error with device ${deviceId} when calling ${methodName}: ${error}`,
+              `ADB error with device ${deviceId} when calling ${methodName} (ADB executable: ${adbExecutable}): ${error}`,
             );
 
             // throw the error again
             throw new Error(
-              `ADB error with device ${deviceId} when calling ${methodName}, please check https://midscenejs.com/integrate-with-android.html#faq : ${error.message}`,
+              `ADB error with device ${deviceId} when calling ${methodName} (ADB executable: ${adbExecutable}), please check https://midscenejs.com/integrate-with-android.html#faq : ${error.message}`,
               {
                 cause: error,
               },
@@ -500,6 +485,13 @@ ${Object.keys(size)
       this.scrcpyAdapter = new ScrcpyDeviceAdapter(
         this.deviceId,
         this.options?.scrcpyConfig,
+        async () => {
+          const adb = await this.getAdb();
+          return {
+            host: adb.adbHost ?? '127.0.0.1',
+            port: adb.adbPort ?? 5037,
+          };
+        },
       );
     }
     return this.scrcpyAdapter;
