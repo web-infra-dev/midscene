@@ -4,7 +4,17 @@ const PAGE_URL =
   'https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/contacts3.html';
 
 // Per-file URL override. The `page` fixture navigates here for every test.
-const test = base.extend({ url: PAGE_URL });
+// `DEMO_BROWSER_CHANNEL=chrome` runs against a system-installed Chrome instead
+// of the Playwright-managed Chromium (useful when the browser download is
+// unavailable), mirroring SMOKE_BROWSER_CHANNEL in the smoke suite.
+const test = base.extend({
+  url: PAGE_URL,
+  midsceneOptions: {
+    ...(process.env.DEMO_BROWSER_CHANNEL
+      ? { launchOptions: { channel: process.env.DEMO_BROWSER_CHANNEL } }
+      : {}),
+  },
+});
 
 describe('Contacts page', () => {
   // Pattern: semantic UI check via `aiAssert`.
