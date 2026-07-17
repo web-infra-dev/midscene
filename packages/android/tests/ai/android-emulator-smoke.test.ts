@@ -10,8 +10,8 @@ import {
   MIDSCENE_MODEL_TIMEOUT,
 } from '@midscene/shared/env';
 import { imageInfoOfBase64 } from '@midscene/shared/img';
+import { describe, expect, it, rs } from '@rstest/core';
 import type ADB from 'appium-adb';
-import { describe, expect, it, vi } from 'vitest';
 import { AndroidAgent, AndroidDevice, getConnectedDevices } from '../../src';
 
 const RUN_LIVE_SMOKE =
@@ -55,7 +55,7 @@ interface ReportDump {
   executions?: ReportExecution[];
 }
 
-vi.setConfig({ testTimeout: 240_000, hookTimeout: 30_000 });
+rs.setConfig({ testTimeout: 240_000, hookTimeout: 30_000 });
 
 function sleep(timeMs: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, timeMs));

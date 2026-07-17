@@ -12,7 +12,7 @@ import {
   MIDSCENE_MODEL_TIMEOUT,
 } from '@midscene/shared/env';
 import { imageInfoOfBase64 } from '@midscene/shared/img';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 import {
   ComputerAgent,
   ComputerDevice,

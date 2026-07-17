@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 
 import { mergePixelBboxesToRect } from '@/ai-model/workflows/inspect/locate-result-rect';
 import { expandSearchArea } from '@/common';

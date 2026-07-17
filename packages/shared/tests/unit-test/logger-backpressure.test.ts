@@ -1,39 +1,39 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 
-const mocks = vi.hoisted(() => {
+const mocks = rs.hoisted(() => {
   const listeners = new Map<string, () => void>();
   const stream = {
-    on: vi.fn(),
-    once: vi.fn((event: string, listener: () => void) => {
+    on: rs.fn(),
+    once: rs.fn((event: string, listener: () => void) => {
       listeners.set(event, listener);
       return stream;
     }),
-    write: vi.fn().mockReturnValueOnce(false).mockReturnValue(true),
+    write: rs.fn().mockReturnValueOnce(false).mockReturnValue(true),
   };
 
   return {
-    debugFn: vi.fn(),
+    debugFn: rs.fn(),
     listeners,
     stream,
   };
 });
 
-vi.mock('debug', () => ({
-  default: vi.fn(() => mocks.debugFn),
+rs.mock('debug', () => ({
+  default: rs.fn(() => mocks.debugFn),
 }));
 
-vi.mock('node:fs', () => ({
+rs.mock('node:fs', () => ({
   default: {
-    createWriteStream: vi.fn(() => mocks.stream),
+    createWriteStream: rs.fn(() => mocks.stream),
   },
-  createWriteStream: vi.fn(() => mocks.stream),
+  createWriteStream: rs.fn(() => mocks.stream),
 }));
 
-vi.mock('../../src/common', () => ({
-  getMidsceneRunSubDir: vi.fn(() => '/tmp/midscene-log'),
+rs.mock('../../src/common', () => ({
+  getMidsceneRunSubDir: rs.fn(() => '/tmp/midscene-log'),
 }));
 
-vi.mock('../../src/utils', () => ({
+rs.mock('../../src/utils', () => ({
   ifInNode: true,
 }));
 

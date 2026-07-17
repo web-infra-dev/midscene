@@ -1,12 +1,12 @@
 import { getModelRuntime } from '@/ai-model/models';
 import { callAI } from '@/ai-model/service-caller';
 import type { IModelConfig } from '@midscene/shared/env';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, rs } from '@rstest/core';
 
-const mockCreate = vi.fn();
+const mockCreate = rs.fn();
 
-vi.mock('openai', () => ({
-  default: vi.fn().mockImplementation(() => ({
+rs.mock('openai', () => ({
+  default: rs.fn().mockImplementation(() => ({
     chat: {
       completions: {
         create: mockCreate,

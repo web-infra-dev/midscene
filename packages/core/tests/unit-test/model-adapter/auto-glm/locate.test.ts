@@ -5,41 +5,20 @@ import { createAutoGlmPlanningTapLocator } from '@/ai-model/models/auto-glm/loca
 import { callAIWithStringResponse } from '@/ai-model/service-caller/index';
 import type { LocateOptions } from '@/ai-model/workflows/inspect/types';
 import type { UIContext } from '@/types';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, rs } from '@rstest/core';
 
-const serviceCallerMock = vi.hoisted(() => {
-  class AIResponseParseError extends Error {
-    rawResponse?: string;
-    usage?: unknown;
-    rawChoiceMessage?: unknown;
+import * as serviceCallerActual from '@/ai-model/service-caller/index' with {
+  rstest: 'importActual',
+};
 
-    constructor(
-      message: string,
-      rawResponse?: string,
-      usage?: unknown,
-      rawChoiceMessage?: unknown,
-    ) {
-      super(message);
-      this.name = 'AIResponseParseError';
-      this.rawResponse = rawResponse;
-      this.usage = usage;
-      this.rawChoiceMessage = rawChoiceMessage;
-    }
-  }
+const serviceCallerMock = rs.hoisted(() => ({
+  callAIWithStringResponse: rs.fn(),
+}));
 
-  return {
-    AIResponseParseError,
-    callAIWithStringResponse: vi.fn(),
-  };
-});
-
-vi.mock('@/ai-model/service-caller/index', () => {
-  return serviceCallerMock;
-});
-
-vi.mock('../../../../src/ai-model/service-caller/index', () => {
-  return serviceCallerMock;
-});
+rs.mock('@/ai-model/service-caller/index', () => ({
+  ...serviceCallerActual,
+  ...serviceCallerMock,
+}));
 
 const autoGlmAdapter = new ResolvedModelAdapter(
   autoGlmAdapters['auto-glm'],
@@ -107,7 +86,7 @@ function createLocateOptions(): LocateOptions {
 
 describe('Auto-GLM custom locate', () => {
   beforeEach(() => {
-    vi.mocked(callAIWithStringResponse).mockReset();
+    rs.mocked(callAIWithStringResponse).mockReset();
   });
 
   it('runs Auto-GLM custom locate and maps normalized coordinates to a rect', async () => {
@@ -115,7 +94,7 @@ describe('Auto-GLM custom locate', () => {
     if (autoGlmAdapter.locate.kind !== 'custom') {
       throw new Error('Auto-GLM should use custom locate adapter');
     }
-    vi.mocked(callAIWithStringResponse).mockResolvedValueOnce({
+    rs.mocked(callAIWithStringResponse).mockResolvedValueOnce({
       content:
         '<think>Found submit</think><answer>do(action="Tap", element=[500,500])</answer>',
       usage: { total_tokens: 8 } as any,
@@ -161,7 +140,7 @@ describe('Auto-GLM custom locate', () => {
     if (autoGlmAdapter.locate.kind !== 'custom') {
       throw new Error('Auto-GLM should use custom locate adapter');
     }
-    vi.mocked(callAIWithStringResponse).mockResolvedValueOnce({
+    rs.mocked(callAIWithStringResponse).mockResolvedValueOnce({
       content:
         '<think>Found item in crop</think><answer>do(action="Tap", element=[500,500])</answer>',
     });
@@ -191,7 +170,7 @@ describe('Auto-GLM custom locate', () => {
       },
     });
 
-    const messages = vi.mocked(callAIWithStringResponse).mock.calls[0]?.[0];
+    const messages = rs.mocked(callAIWithStringResponse).mock.calls[0]?.[0];
     expect(messages).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -220,7 +199,7 @@ describe('Auto-GLM custom locate', () => {
     if (autoGlmAdapter.locate.kind !== 'custom') {
       throw new Error('Auto-GLM should use custom locate adapter');
     }
-    vi.mocked(callAIWithStringResponse).mockResolvedValueOnce({
+    rs.mocked(callAIWithStringResponse).mockResolvedValueOnce({
       content: 'do(action="Swipe", start=[100,200], end=[300,400])',
     });
 
@@ -241,7 +220,7 @@ describe('Auto-GLM custom locate', () => {
     if (autoGlmAdapter.locate.kind !== 'custom') {
       throw new Error('Auto-GLM should use custom locate adapter');
     }
-    vi.mocked(callAIWithStringResponse).mockResolvedValueOnce({
+    rs.mocked(callAIWithStringResponse).mockResolvedValueOnce({
       content:
         '<think>Found matching icon</think><answer>do(action="Tap", element=[500,500])</answer>',
     });
@@ -259,7 +238,7 @@ describe('Auto-GLM custom locate', () => {
       },
     });
 
-    const messages = vi.mocked(callAIWithStringResponse).mock.calls[0]?.[0];
+    const messages = rs.mocked(callAIWithStringResponse).mock.calls[0]?.[0];
     expect(messages).toEqual(
       expect.arrayContaining([
         expect.objectContaining({

@@ -6,17 +6,15 @@ import {
   type ReportActionDump,
   describeElementAtPoint as coreDescribeElementAtPoint,
 } from '@midscene/core';
+import * as coreActual from '@midscene/core' with { rstest: 'importActual' };
 import type { InputPrimitives } from '@midscene/core/device';
-import { beforeEach, describe, expect, test, vi } from 'vitest';
+import { beforeEach, describe, expect, rs, test } from '@rstest/core';
 import { PlaygroundServer } from '../../src/server';
 
-vi.mock('@midscene/core', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@midscene/core')>();
-  return {
-    ...actual,
-    describeElementAtPoint: vi.fn(),
-  };
-});
+rs.mock('@midscene/core', () => ({
+  ...coreActual,
+  describeElementAtPoint: rs.fn(),
+}));
 
 const VALID_PNG_BASE64 =
   'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAUCAYAAACNiR0NAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAAKklEQVR4nO3MIQEAAAzDsPo3/ePhDi4CwpWxUMMXaaFH4QgLPQpHWHg6fOdROhs7ULsmAAAAAElFTkSuQmCC';
@@ -103,22 +101,22 @@ function makeInputPrimitiveStub(
 ): InputPrimitives {
   return {
     pointer: {
-      tap: vi.fn(async () => {}),
-      doubleClick: vi.fn(async () => {}),
-      longPress: vi.fn(async () => {}),
-      dragAndDrop: vi.fn(async () => {}),
+      tap: rs.fn(async () => {}),
+      doubleClick: rs.fn(async () => {}),
+      longPress: rs.fn(async () => {}),
+      dragAndDrop: rs.fn(async () => {}),
     },
     keyboard: {
-      keyboardPress: vi.fn(async () => {}),
-      typeText: vi.fn(async () => {}),
-      clearInput: vi.fn(async () => {}),
+      keyboardPress: rs.fn(async () => {}),
+      typeText: rs.fn(async () => {}),
+      clearInput: rs.fn(async () => {}),
     },
     touch: {
-      swipe: vi.fn(async () => {}),
-      pinch: vi.fn(async () => {}),
+      swipe: rs.fn(async () => {}),
+      pinch: rs.fn(async () => {}),
     },
     scroll: {
-      scroll: vi.fn(async () => {}),
+      scroll: rs.fn(async () => {}),
     },
     ...overrides,
   };
@@ -130,8 +128,8 @@ function mockDescribeElementAtPoint(
     opt?: { onProgress?: (progress: Record<string, unknown>) => void },
   ) => unknown,
 ) {
-  const describeElementAtPoint = vi.fn(implementation);
-  vi.mocked(coreDescribeElementAtPoint).mockImplementation(((
+  const describeElementAtPoint = rs.fn(implementation);
+  rs.mocked(coreDescribeElementAtPoint).mockImplementation(((
     _runtime: unknown,
     center: [number, number],
     opt?: { onProgress?: (progress: Record<string, unknown>) => void },
@@ -141,10 +139,10 @@ function mockDescribeElementAtPoint(
 
 describe('PlaygroundServer manual interaction APIs', () => {
   test('does not reject when navigation observation fails', async () => {
-    vi.useFakeTimers();
+    rs.useFakeTimers();
     const server = new PlaygroundServer({ interface: {} } as any);
     (server as any)._recorderSessionId = 'session-navigation-error';
-    vi.spyOn(server as any, 'getActiveRecorderPageState').mockRejectedValue(
+    rs.spyOn(server as any, 'getActiveRecorderPageState').mockRejectedValue(
       new Error('Debugger is detached'),
     );
 
@@ -159,16 +157,16 @@ describe('PlaygroundServer manual interaction APIs', () => {
         'session-navigation-error',
       );
 
-      await vi.advanceTimersByTimeAsync(250);
+      await rs.advanceTimersByTimeAsync(250);
 
       await expect(server.waitForRecorderIdle()).resolves.toBeUndefined();
     } finally {
-      vi.useRealTimers();
+      rs.useRealTimers();
     }
   });
 
   test('stops navigation observation when the page URL stays unavailable', async () => {
-    vi.useFakeTimers();
+    rs.useFakeTimers();
     const server = new PlaygroundServer({ interface: {} } as any);
     (server as any)._recorderSessionId = 'session-navigation-unavailable';
 
@@ -184,11 +182,11 @@ describe('PlaygroundServer manual interaction APIs', () => {
       );
 
       const idle = server.waitForRecorderIdle();
-      await vi.advanceTimersByTimeAsync(500);
+      await rs.advanceTimersByTimeAsync(500);
 
       await expect(idle).resolves.toBeUndefined();
     } finally {
-      vi.useRealTimers();
+      rs.useRealTimers();
     }
   });
 
@@ -220,8 +218,8 @@ describe('PlaygroundServer manual interaction APIs', () => {
   });
 
   beforeEach(() => {
-    vi.mocked(coreDescribeElementAtPoint).mockReset();
-    vi.mocked(coreDescribeElementAtPoint).mockRejectedValue(
+    rs.mocked(coreDescribeElementAtPoint).mockReset();
+    rs.mocked(coreDescribeElementAtPoint).mockRejectedValue(
       new Error('Active agent does not support describeElementAtPoint.'),
     );
   });
@@ -246,16 +244,16 @@ describe('PlaygroundServer manual interaction APIs', () => {
       interface: {
         actionSpace: () => [{ name: 'aiAct', description: 'act' }],
       },
-      resetDump: vi.fn(() => {
+      resetDump: rs.fn(() => {
         dump.executions = [];
       }),
-      callActionInActionSpace: vi.fn(async () => {
+      callActionInActionSpace: rs.fn(async () => {
         appendExecution({ id: 'login', logTime: 300, name: 'Act - login' });
         return { ok: true };
       }),
-      dumpDataString: vi.fn(() => JSON.stringify(dump)),
-      reportHTMLString: vi.fn(() => '<html></html>'),
-      writeOutActionDumps: vi.fn(),
+      dumpDataString: rs.fn(() => JSON.stringify(dump)),
+      reportHTMLString: rs.fn(() => '<html></html>'),
+      writeOutActionDumps: rs.fn(),
       reportFile: `${process.cwd()}/package.json`,
     };
     const server = new PlaygroundServer(agent as any);
@@ -344,8 +342,8 @@ describe('PlaygroundServer manual interaction APIs', () => {
       interface: {
         actionSpace: () => [],
       },
-      resetDump: vi.fn(),
-      aiAct: vi.fn(async (_prompt: string, options: any) => {
+      resetDump: rs.fn(),
+      aiAct: rs.fn(async (_prompt: string, options: any) => {
         capturedSignal = options.abortSignal;
         (agent as any).onDumpUpdate?.('', {
           id: 'partial-execution',
@@ -363,15 +361,15 @@ describe('PlaygroundServer manual interaction APIs', () => {
           );
         });
       }),
-      dumpDataString: vi.fn(() => JSON.stringify(dump)),
-      reportHTMLString: vi.fn(() => '<html></html>'),
-      writeOutActionDumps: vi.fn(),
+      dumpDataString: rs.fn(() => JSON.stringify(dump)),
+      reportHTMLString: rs.fn(() => '<html></html>'),
+      writeOutActionDumps: rs.fn(),
     };
     const server = new PlaygroundServer(agent as any);
 
     try {
       await server.launch(6140);
-      vi.spyOn(server as any, 'recreateAgent').mockResolvedValue(undefined);
+      rs.spyOn(server as any, 'recreateAgent').mockResolvedValue(undefined);
       const executeHandler = getRouteHandler(server, 'post', '/execute');
       const cancelHandler = getRouteHandler(
         server,
@@ -460,7 +458,7 @@ describe('PlaygroundServer manual interaction APIs', () => {
       ],
     };
     const reportHTML = `<html></html>\n<script type="midscene-image" data-id="shot-1">${VALID_PNG_BASE64}</script>\n<script type="midscene_web_dump">${JSON.stringify(dump)}</script>`;
-    vi.mocked(createReadStream).mockImplementation(
+    rs.mocked(createReadStream).mockImplementation(
       () =>
         ({
           async *[Symbol.asyncIterator]() {
@@ -474,8 +472,8 @@ describe('PlaygroundServer manual interaction APIs', () => {
       interface: {
         actionSpace: () => [{ name: 'aiAct', description: 'act' }],
       },
-      resetDump: vi.fn(),
-      callActionInActionSpace: vi.fn(async () => ({ ok: true })),
+      resetDump: rs.fn(),
+      callActionInActionSpace: rs.fn(async () => ({ ok: true })),
       reportFile: `${process.cwd()}/package.json`,
     };
     const server = new PlaygroundServer(agent as any);
@@ -538,8 +536,8 @@ describe('PlaygroundServer manual interaction APIs', () => {
       interface: {
         actionSpace: () => [{ name: 'aiAct', description: 'act' }],
       },
-      resetDump: vi.fn(),
-      callActionInActionSpace: vi.fn(async () => ({ ok: true })),
+      resetDump: rs.fn(),
+      callActionInActionSpace: rs.fn(async () => ({ ok: true })),
       reportFile: reportPath,
     };
     const server = new PlaygroundServer(agent as any);
@@ -582,7 +580,7 @@ describe('PlaygroundServer manual interaction APIs', () => {
 
   test('POST /interact routes pointer events to input primitives', async () => {
     const inputPrimitives = makeInputPrimitiveStub();
-    const actionCall = vi.fn();
+    const actionCall = rs.fn();
     const server = new PlaygroundServer({
       interface: {
         interfaceType: 'android',
@@ -779,7 +777,7 @@ describe('PlaygroundServer manual interaction APIs', () => {
   });
 
   test('POST /interact invokes the selected action with manual params', async () => {
-    const tapCall = vi.fn();
+    const tapCall = rs.fn();
     const server = new PlaygroundServer({
       interface: {
         interfaceType: 'android',
@@ -1057,22 +1055,22 @@ describe('PlaygroundServer manual interaction APIs', () => {
 
   test('recorder dispatches preview interactions before taking the after screenshot', async () => {
     const callOrder: string[] = [];
-    const tap = vi.fn(async () => {
+    const tap = rs.fn(async () => {
       callOrder.push('tap');
     });
     const inputPrimitives = makeInputPrimitiveStub({
       pointer: {
         tap,
-        doubleClick: vi.fn(async () => {}),
-        longPress: vi.fn(async () => {}),
-        dragAndDrop: vi.fn(async () => {}),
+        doubleClick: rs.fn(async () => {}),
+        longPress: rs.fn(async () => {}),
+        dragAndDrop: rs.fn(async () => {}),
       },
     });
-    const screenshotBase64 = vi.fn(async () => {
+    const screenshotBase64 = rs.fn(async () => {
       callOrder.push('screenshot');
       return 'base64-image';
     });
-    const size = vi.fn(async () => {
+    const size = rs.fn(async () => {
       callOrder.push('size');
       return { width: 390, height: 844 };
     });
@@ -1355,7 +1353,7 @@ describe('PlaygroundServer manual interaction APIs', () => {
 
     await server.launch(6129);
 
-    vi.useFakeTimers();
+    rs.useFakeTimers();
     try {
       const describePromise = describeRecorderEvent(server, {
         type: 'click',
@@ -1375,7 +1373,7 @@ describe('PlaygroundServer manual interaction APIs', () => {
         timestamp: 123,
         hashId: 'verify-failed-then-timeout-event',
       });
-      await vi.advanceTimersByTimeAsync(30_000);
+      await rs.advanceTimersByTimeAsync(30_000);
 
       const describeResponse = await describePromise;
 
@@ -1403,7 +1401,7 @@ describe('PlaygroundServer manual interaction APIs', () => {
         (describeResponse.body as any).event.semantic.aiDescribe,
       ).toBeUndefined();
     } finally {
-      vi.useRealTimers();
+      rs.useRealTimers();
     }
   });
 
@@ -1787,12 +1785,12 @@ describe('PlaygroundServer manual interaction APIs', () => {
     const callOrder: string[] = [];
     const inputPrimitives = makeInputPrimitiveStub({
       pointer: {
-        tap: vi.fn(async () => {
+        tap: rs.fn(async () => {
           callOrder.push('tap');
         }),
-        doubleClick: vi.fn(async () => {}),
-        longPress: vi.fn(async () => {}),
-        dragAndDrop: vi.fn(async () => {}),
+        doubleClick: rs.fn(async () => {}),
+        longPress: rs.fn(async () => {}),
+        dragAndDrop: rs.fn(async () => {}),
       },
     });
     const describeElementAtPoint = mockDescribeElementAtPoint(
@@ -1877,7 +1875,7 @@ describe('PlaygroundServer manual interaction APIs', () => {
 
   test('recorder uses event before screenshot for aiDescribe when the live page changes after capture', async () => {
     const inputPrimitives = makeInputPrimitiveStub();
-    const screenshotBase64 = vi
+    const screenshotBase64 = rs
       .fn()
       .mockResolvedValueOnce('initial-screenshot')
       .mockResolvedValueOnce('event-screenshot')
@@ -1951,13 +1949,13 @@ describe('PlaygroundServer manual interaction APIs', () => {
   });
 
   test('recorder keeps preview interactions independent from canonical aiDescribe', async () => {
-    const tap = vi.fn(async () => {});
+    const tap = rs.fn(async () => {});
     const inputPrimitives = makeInputPrimitiveStub({
       pointer: {
         tap,
-        doubleClick: vi.fn(async () => {}),
-        longPress: vi.fn(async () => {}),
-        dragAndDrop: vi.fn(async () => {}),
+        doubleClick: rs.fn(async () => {}),
+        longPress: rs.fn(async () => {}),
+        dragAndDrop: rs.fn(async () => {}),
       },
     });
     const server = new PlaygroundServer({
@@ -1981,7 +1979,7 @@ describe('PlaygroundServer manual interaction APIs', () => {
       createMockResponse(),
     );
 
-    vi.useFakeTimers();
+    rs.useFakeTimers();
     try {
       const interactHandler = getRouteHandler(server, 'post', '/interact');
       const response = createMockResponse();
@@ -1990,7 +1988,7 @@ describe('PlaygroundServer manual interaction APIs', () => {
         response,
       );
 
-      await vi.advanceTimersByTimeAsync(250);
+      await rs.advanceTimersByTimeAsync(250);
       await interactPromise;
       await server.waitForRecorderIdle();
 
@@ -2000,7 +1998,7 @@ describe('PlaygroundServer manual interaction APIs', () => {
         { duration: undefined },
       );
     } finally {
-      vi.useRealTimers();
+      rs.useRealTimers();
     }
 
     const eventsHandler = getRouteHandler(server, 'get', '/recorder/events');
@@ -2030,15 +2028,15 @@ describe('PlaygroundServer manual interaction APIs', () => {
     let currentScreenshot = VALID_PNG_BASE64;
     const inputPrimitives = makeInputPrimitiveStub({
       pointer: {
-        tap: vi.fn(async () => {
+        tap: rs.fn(async () => {
           if (currentUrl.endsWith('/start')) {
             currentUrl = 'https://example.com/next';
             currentScreenshot = VALID_PNG_BASE64;
           }
         }),
-        doubleClick: vi.fn(async () => {}),
-        longPress: vi.fn(async () => {}),
-        dragAndDrop: vi.fn(async () => {}),
+        doubleClick: rs.fn(async () => {}),
+        longPress: rs.fn(async () => {}),
+        dragAndDrop: rs.fn(async () => {}),
       },
     });
     const server = new PlaygroundServer({
@@ -2147,7 +2145,7 @@ describe('PlaygroundServer manual interaction APIs', () => {
     let tapCount = 0;
     const inputPrimitives = makeInputPrimitiveStub({
       pointer: {
-        tap: vi.fn(async () => {
+        tap: rs.fn(async () => {
           tapCount++;
           if (tapCount === 1) {
             setTimeout(() => {
@@ -2155,9 +2153,9 @@ describe('PlaygroundServer manual interaction APIs', () => {
             }, 50);
           }
         }),
-        doubleClick: vi.fn(async () => {}),
-        longPress: vi.fn(async () => {}),
-        dragAndDrop: vi.fn(async () => {}),
+        doubleClick: rs.fn(async () => {}),
+        longPress: rs.fn(async () => {}),
+        dragAndDrop: rs.fn(async () => {}),
       },
     });
     const server = new PlaygroundServer({
@@ -2235,7 +2233,7 @@ describe('PlaygroundServer manual interaction APIs', () => {
     const server = new PlaygroundServer({
       interface: {
         interfaceType: 'android',
-        actionSpace: () => [{ name: 'Tap', description: 'tap', call: vi.fn() }],
+        actionSpace: () => [{ name: 'Tap', description: 'tap', call: rs.fn() }],
       },
     } as any);
 
@@ -2275,7 +2273,7 @@ describe('PlaygroundServer manual interaction APIs', () => {
   test('POST /interact returns 404 when the requested primitive is not implemented', async () => {
     const inputPrimitives = makeInputPrimitiveStub({
       touch: {
-        swipe: vi.fn(async () => {}),
+        swipe: rs.fn(async () => {}),
       },
     });
     const server = new PlaygroundServer({
@@ -2326,7 +2324,7 @@ describe('PlaygroundServer manual interaction APIs', () => {
   });
 
   test('POST /interact runs web Stop through browser chrome instead of actionSpace', async () => {
-    const stopLoading = vi.fn(async () => undefined);
+    const stopLoading = rs.fn(async () => undefined);
     const server = new PlaygroundServer({
       interface: {
         interfaceType: 'web',
@@ -2346,14 +2344,14 @@ describe('PlaygroundServer manual interaction APIs', () => {
   });
 
   test('POST /interact recreates a factory-backed agent without replaying the failed action', async () => {
-    const firstDestroy = vi.fn();
-    const firstTapCall = vi.fn(async () => {
+    const firstDestroy = rs.fn();
+    const firstTapCall = rs.fn(async () => {
       throw new Error(
         'Protocol error (Input.dispatchMouseEvent): Session closed. Most likely the page has been closed.',
       );
     });
-    const secondTapCall = vi.fn();
-    const agentFactory = vi
+    const secondTapCall = rs.fn();
+    const agentFactory = rs
       .fn()
       .mockResolvedValueOnce({
         destroy: firstDestroy,
@@ -2395,7 +2393,7 @@ describe('PlaygroundServer manual interaction APIs', () => {
   });
 
   test('POST /interact responds before async recorder capture finishes', async () => {
-    const screenshotBase64 = vi
+    const screenshotBase64 = rs
       .fn<() => Promise<string>>()
       .mockResolvedValueOnce('base64-image')
       .mockImplementation(
@@ -2406,9 +2404,9 @@ describe('PlaygroundServer manual interaction APIs', () => {
       );
     const inputPrimitives = makeInputPrimitiveStub({
       keyboard: {
-        keyboardPress: vi.fn(async () => {}),
-        typeText: vi.fn(async () => {}),
-        clearInput: vi.fn(async () => {}),
+        keyboardPress: rs.fn(async () => {}),
+        typeText: rs.fn(async () => {}),
+        clearInput: rs.fn(async () => {}),
       },
     });
     const server = new PlaygroundServer({
@@ -2496,7 +2494,7 @@ describe('PlaygroundServer manual interaction APIs', () => {
       createMockResponse(),
     );
 
-    (server as any).createRecorderScreenshotWithMarker = vi.fn(async () => {
+    (server as any).createRecorderScreenshotWithMarker = rs.fn(async () => {
       throw new Error('marker failed');
     });
 
@@ -2538,7 +2536,7 @@ describe('PlaygroundServer manual interaction APIs', () => {
       createMockResponse(),
     );
 
-    const captureRecorderSnapshotBeforeInteract = vi.spyOn(
+    const captureRecorderSnapshotBeforeInteract = rs.spyOn(
       server as any,
       'captureRecorderSnapshotBeforeInteract',
     );
@@ -2562,7 +2560,7 @@ describe('PlaygroundServer manual interaction APIs', () => {
   });
 
   test('GET /interface-info includes device size without fetching a screenshot', async () => {
-    const screenshotBase64 = vi.fn(async () => 'base64-image');
+    const screenshotBase64 = rs.fn(async () => 'base64-image');
     const server = new PlaygroundServer({
       interface: {
         interfaceType: 'ios',
@@ -2596,10 +2594,10 @@ describe('PlaygroundServer manual interaction APIs', () => {
         interfaceType: 'computer',
         describe: () => 'Desktop',
         actionSpace: () => [
-          { name: 'Tap', description: '', call: vi.fn() },
-          { name: 'DragAndDrop', description: '', call: vi.fn() },
-          { name: 'KeyboardPress', description: '', call: vi.fn() },
-          { name: 'Input', description: '', call: vi.fn() },
+          { name: 'Tap', description: '', call: rs.fn() },
+          { name: 'DragAndDrop', description: '', call: rs.fn() },
+          { name: 'KeyboardPress', description: '', call: rs.fn() },
+          { name: 'Input', description: '', call: rs.fn() },
         ],
         screenshotBase64: async () => 'base64-image',
         size: async () => ({ width: 1920, height: 1080 }),

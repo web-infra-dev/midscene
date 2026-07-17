@@ -5,22 +5,22 @@ import {
   callAIWithObjectResponse,
 } from '@/ai-model/service-caller';
 import type { IModelConfig } from '@midscene/shared/env';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, rs } from '@rstest/core';
 
-const { mockDebugLog, mockWarnLog } = vi.hoisted(() => ({
-  mockDebugLog: vi.fn(),
-  mockWarnLog: vi.fn(),
+const { mockDebugLog, mockWarnLog } = rs.hoisted(() => ({
+  mockDebugLog: rs.fn(),
+  mockWarnLog: rs.fn(),
 }));
-const mockCreate = vi.fn();
+const mockCreate = rs.fn();
 
-vi.mock('@midscene/shared/logger', () => ({
-  getDebug: vi.fn((_topic, options) =>
+rs.mock('@midscene/shared/logger', () => ({
+  getDebug: rs.fn((_topic, options) =>
     options?.console ? mockWarnLog : mockDebugLog,
   ),
 }));
 
-vi.mock('openai', () => ({
-  default: vi.fn().mockImplementation(() => ({
+rs.mock('openai', () => ({
+  default: rs.fn().mockImplementation(() => ({
     chat: {
       completions: {
         create: mockCreate,
@@ -314,7 +314,7 @@ describe('service-caller reasoning fallback', () => {
   });
 
   it('uses model retry settings for JSON parsing failures', async () => {
-    vi.useFakeTimers();
+    rs.useFakeTimers();
     mockCreate
       .mockResolvedValueOnce({
         choices: [{ message: { content: 'not JSON' } }],
@@ -334,16 +334,16 @@ describe('service-caller reasoning fallback', () => {
         { jsonParserSource: 'locate' },
       );
 
-      await vi.advanceTimersByTimeAsync(122);
+      await rs.advanceTimersByTimeAsync(122);
       expect(mockCreate).toHaveBeenCalledTimes(1);
 
-      await vi.advanceTimersByTimeAsync(1);
+      await rs.advanceTimersByTimeAsync(1);
       await expect(responsePromise).resolves.toMatchObject({
         content: { bbox: [100, 200, 300, 400] },
       });
       expect(mockCreate).toHaveBeenCalledTimes(2);
     } finally {
-      vi.useRealTimers();
+      rs.useRealTimers();
     }
   });
 

@@ -22,7 +22,7 @@
     "build:watch": "rslib build --watch --no-clean"
   },
   "devDependencies": {
-    "@rsbuild/plugin-react": "^1.4.1",
+    "@rsbuild/plugin-react": "^1.4.6",
     "@rslib/core": "^0.18.3",
     "@types/react": "^18.3.1",
     "react": "18.3.1",

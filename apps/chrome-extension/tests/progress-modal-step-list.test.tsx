@@ -1,15 +1,15 @@
+import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
 /**
  * @vitest-environment jsdom
  */
 import { act } from 'react';
 import { createRoot } from 'react-dom/client';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('@midscene/visualizer', () => ({
+rs.mock('@midscene/visualizer', () => ({
   ShinyText: ({ text }: { text: string }) => <span>{text}</span>,
 }));
 
-vi.mock('antd', () => ({
+rs.mock('antd', () => ({
   Progress: () => null,
   Typography: {
     Text: ({ children }: { children: React.ReactNode }) => (

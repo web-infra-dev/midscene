@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from '@rstest/core';
 import { isLocateField } from '../src/types';
 import {
   getAvailablePromptActionTypes,

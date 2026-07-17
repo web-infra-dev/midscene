@@ -3,7 +3,7 @@ import { AiLocateSection } from '@/ai-model/workflows/inspect';
 import { getTmpFile } from '@/utils';
 import { globalModelConfigManager } from '@midscene/shared/env';
 import { saveBase64Image } from '@midscene/shared/img';
-import { expect, test } from 'vitest';
+import { expect, test } from '@rstest/core';
 import { getContextFromFixture } from '../evaluation';
 
 const modelConfig = globalModelConfigManager.getModelConfig('default');

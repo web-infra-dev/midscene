@@ -1,4 +1,5 @@
-import { describe, expect, it, vi } from 'vitest';
+import * as nodeFsActual from 'node:fs' with { rstest: 'importActual' };
+import { describe, expect, it, rs } from '@rstest/core';
 import ScrcpyServer, {
   appendBoundedScrcpyOutput,
   resolveRequestedDeviceId,
@@ -10,15 +11,15 @@ const {
   mockReadableFrom,
   mockCreateReadStream,
   mockOptionsCtor,
-} = vi.hoisted(() => ({
-  mockPushServer: vi.fn(),
-  mockStart: vi.fn(),
-  mockReadableFrom: vi.fn(),
-  mockCreateReadStream: vi.fn(),
-  mockOptionsCtor: vi.fn((options) => options),
+} = rs.hoisted(() => ({
+  mockPushServer: rs.fn(),
+  mockStart: rs.fn(),
+  mockReadableFrom: rs.fn(),
+  mockCreateReadStream: rs.fn(),
+  mockOptionsCtor: rs.fn((options) => options),
 }));
 
-vi.mock('@yume-chan/adb-scrcpy', () => ({
+rs.mock('@yume-chan/adb-scrcpy', () => ({
   AdbScrcpyClient: {
     pushServer: mockPushServer,
     start: mockStart,
@@ -26,23 +27,20 @@ vi.mock('@yume-chan/adb-scrcpy', () => ({
   AdbScrcpyOptions3_3_3: mockOptionsCtor,
 }));
 
-vi.mock('@yume-chan/stream-extra', () => ({
+rs.mock('@yume-chan/stream-extra', () => ({
   ReadableStream: {
     from: mockReadableFrom,
   },
 }));
 
-vi.mock('@yume-chan/scrcpy', () => ({
+rs.mock('@yume-chan/scrcpy', () => ({
   DefaultServerPath: '/mocked/scrcpy-server.jar',
 }));
 
-vi.mock('node:fs', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('node:fs')>();
-  return {
-    ...actual,
-    createReadStream: mockCreateReadStream,
-  };
-});
+rs.mock('node:fs', () => ({
+  ...nodeFsActual,
+  createReadStream: mockCreateReadStream,
+}));
 
 describe('ScrcpyServer', () => {
   it('allows short event-loop stalls without dropping the preview heartbeat', () => {
@@ -79,7 +77,7 @@ describe('ScrcpyServer', () => {
 
     const server = new ScrcpyServer();
     const adb = { serial: 'device-1' };
-    const onProgress = vi.fn();
+    const onProgress = rs.fn();
 
     await (server as any).startScrcpy(
       adb,
@@ -111,15 +109,15 @@ describe('ScrcpyServer', () => {
   });
 
   it('can consume device list updates from an external discovery source', async () => {
-    const unsubscribe = vi.fn();
-    const getDevices = vi.fn().mockResolvedValue([
+    const unsubscribe = rs.fn();
+    const getDevices = rs.fn().mockResolvedValue([
       {
         id: 'device-1',
         name: 'Pixel 9',
         status: 'device',
       },
     ]);
-    const subscribe = vi.fn((listener: (devices: any[]) => void) => {
+    const subscribe = rs.fn((listener: (devices: any[]) => void) => {
       listener([
         {
           id: 'device-2',
@@ -136,7 +134,7 @@ describe('ScrcpyServer', () => {
         subscribe,
       },
     });
-    const emitSpy = vi.spyOn(server.io, 'emit');
+    const emitSpy = rs.spyOn(server.io, 'emit');
 
     (server as any).startDeviceMonitoring();
     await Promise.resolve();

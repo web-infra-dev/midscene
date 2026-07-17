@@ -7,7 +7,7 @@ import {
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from '@rstest/core';
 import { generateDumpScriptTag, generateImageScriptTag } from '../../src/dump';
 import type { ScreenshotRef } from '../../src/dump/screenshot-store';
 import { splitReportHtmlByExecution } from '../../src/report';

@@ -7,42 +7,21 @@ import { callAIWithStringResponse } from '@/ai-model/service-caller/index';
 import { runCustomPlanning } from '@/ai-model/workflows/planning/custom-planning';
 import type { PlanOptions } from '@/ai-model/workflows/planning/types';
 import type { UIContext } from '@/types';
+import { beforeEach, describe, expect, it, rs } from '@rstest/core';
 import type { ChatCompletionUserMessageParam } from 'openai/resources/index';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const serviceCallerMock = vi.hoisted(() => {
-  class AIResponseParseError extends Error {
-    rawResponse?: string;
-    usage?: unknown;
-    rawChoiceMessage?: unknown;
+import * as serviceCallerActual from '@/ai-model/service-caller/index' with {
+  rstest: 'importActual',
+};
 
-    constructor(
-      message: string,
-      rawResponse?: string,
-      usage?: unknown,
-      rawChoiceMessage?: unknown,
-    ) {
-      super(message);
-      this.name = 'AIResponseParseError';
-      this.rawResponse = rawResponse;
-      this.usage = usage;
-      this.rawChoiceMessage = rawChoiceMessage;
-    }
-  }
+const serviceCallerMock = rs.hoisted(() => ({
+  callAIWithStringResponse: rs.fn(),
+}));
 
-  return {
-    AIResponseParseError,
-    callAIWithStringResponse: vi.fn(),
-  };
-});
-
-vi.mock('@/ai-model/service-caller/index', () => {
-  return serviceCallerMock;
-});
-
-vi.mock('../../../../src/ai-model/service-caller/index', () => {
-  return serviceCallerMock;
-});
+rs.mock('@/ai-model/service-caller/index', () => ({
+  ...serviceCallerActual,
+  ...serviceCallerMock,
+}));
 
 const autoGlmAdapter = new ResolvedModelAdapter(
   autoGlmAdapters['auto-glm'],
@@ -90,7 +69,7 @@ function runAutoGlmPlanning(userInstruction: string, options: PlanOptions) {
 
 describe('createAutoGlmPlanner messages', () => {
   beforeEach(() => {
-    vi.mocked(callAIWithStringResponse).mockReset();
+    rs.mocked(callAIWithStringResponse).mockReset();
   });
 
   it('passes Auto-GLM action context, reference images, and abort signal to the model call', async () => {
@@ -107,7 +86,7 @@ describe('createAutoGlmPlanner messages', () => {
       },
     ];
     const conversationHistory = new ConversationHistory();
-    vi.mocked(callAIWithStringResponse).mockResolvedValueOnce({
+    rs.mocked(callAIWithStringResponse).mockResolvedValueOnce({
       content:
         '<think>Need to click submit</think><answer>do(action="Tap", element=[500,500])</answer>',
       usage: { total_tokens: 12 } as any,
@@ -124,7 +103,7 @@ describe('createAutoGlmPlanner messages', () => {
       }),
     );
 
-    const [messages, runtime, callOptions] = vi.mocked(callAIWithStringResponse)
+    const [messages, runtime, callOptions] = rs.mocked(callAIWithStringResponse)
       .mock.calls[0];
     expect(runtime).toMatchObject({
       config: expect.objectContaining({ modelFamily: 'auto-glm' }),

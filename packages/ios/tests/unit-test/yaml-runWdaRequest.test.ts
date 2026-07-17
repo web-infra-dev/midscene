@@ -4,7 +4,7 @@ import type {
   MidsceneYamlScriptEnv,
 } from '@midscene/core/yaml';
 import { ScriptPlayer } from '@midscene/core/yaml';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 import { z } from 'zod';
 
 describe('YAML runWdaRequest support via ActionSpace', () => {
@@ -24,7 +24,7 @@ describe('YAML runWdaRequest support via ActionSpace', () => {
           .optional()
           .describe('Optional request body data as JSON object'),
       }),
-      call: vi.fn(
+      call: rs.fn(
         async (param: { method: string; endpoint: string; data?: any }) =>
           mockResult,
       ),
@@ -33,9 +33,9 @@ describe('YAML runWdaRequest support via ActionSpace', () => {
     const mockAgent = {
       reportFile: null,
       onTaskStartTip: undefined,
-      _unstableLogContent: vi.fn(async () => ({})),
-      getActionSpace: vi.fn(async () => [runWdaRequestAction]),
-      callActionInActionSpace: vi.fn(
+      _unstableLogContent: rs.fn(async () => ({})),
+      getActionSpace: rs.fn(async () => [runWdaRequestAction]),
+      callActionInActionSpace: rs.fn(
         async (actionName: string, params: any) => {
           // Simulate the actual behavior of callActionInActionSpace
           if (actionName === 'RunWdaRequest') {
@@ -89,9 +89,9 @@ describe('YAML runWdaRequest support via ActionSpace', () => {
     const mockAgent = {
       reportFile: null,
       onTaskStartTip: undefined,
-      _unstableLogContent: vi.fn(async () => ({})),
-      getActionSpace: vi.fn(async () => []), // Empty actionSpace, no runWdaRequest
-      callActionInActionSpace: vi.fn(),
+      _unstableLogContent: rs.fn(async () => ({})),
+      getActionSpace: rs.fn(async () => []), // Empty actionSpace, no runWdaRequest
+      callActionInActionSpace: rs.fn(),
     };
 
     const script: MidsceneYamlScript = {
@@ -142,7 +142,7 @@ describe('YAML runWdaRequest support via ActionSpace', () => {
           .optional()
           .describe('Optional request body data as JSON object'),
       }),
-      call: vi.fn(
+      call: rs.fn(
         async (param: { method: string; endpoint: string; data?: any }) =>
           mockResult,
       ),
@@ -151,9 +151,9 @@ describe('YAML runWdaRequest support via ActionSpace', () => {
     const mockAgent = {
       reportFile: null,
       onTaskStartTip: undefined,
-      _unstableLogContent: vi.fn(async () => ({})),
-      getActionSpace: vi.fn(async () => [runWdaRequestAction]),
-      callActionInActionSpace: vi.fn(
+      _unstableLogContent: rs.fn(async () => ({})),
+      getActionSpace: rs.fn(async () => [runWdaRequestAction]),
+      callActionInActionSpace: rs.fn(
         async (actionName: string, params: any) => {
           if (actionName === 'RunWdaRequest') {
             return mockResult;
@@ -216,7 +216,7 @@ describe('YAML runWdaRequest support via ActionSpace', () => {
           .optional()
           .describe('Optional request body data as JSON object'),
       }),
-      call: vi.fn(
+      call: rs.fn(
         async (param: { method: string; endpoint: string; data?: any }) => {
           if (!param.method || !param.endpoint) {
             throw new Error(
@@ -231,9 +231,9 @@ describe('YAML runWdaRequest support via ActionSpace', () => {
     const mockAgent = {
       reportFile: null,
       onTaskStartTip: undefined,
-      _unstableLogContent: vi.fn(async () => ({})),
-      getActionSpace: vi.fn(async () => [runWdaRequestAction]),
-      callActionInActionSpace: vi.fn(
+      _unstableLogContent: rs.fn(async () => ({})),
+      getActionSpace: rs.fn(async () => [runWdaRequestAction]),
+      callActionInActionSpace: rs.fn(
         async (actionName: string, params: any) => {
           if (actionName === 'RunWdaRequest') {
             // Call the actual action to trigger validation
@@ -289,7 +289,7 @@ describe('YAML runWdaRequest support via ActionSpace', () => {
           .optional()
           .describe('Optional request body data as JSON object'),
       }),
-      call: vi.fn(
+      call: rs.fn(
         async (param: { method: string; endpoint: string; data?: any }) =>
           mockResult,
       ),
@@ -298,9 +298,9 @@ describe('YAML runWdaRequest support via ActionSpace', () => {
     const mockAgent = {
       reportFile: null,
       onTaskStartTip: undefined,
-      _unstableLogContent: vi.fn(async () => ({})),
-      getActionSpace: vi.fn(async () => [runWdaRequestAction]),
-      callActionInActionSpace: vi.fn(
+      _unstableLogContent: rs.fn(async () => ({})),
+      getActionSpace: rs.fn(async () => [runWdaRequestAction]),
+      callActionInActionSpace: rs.fn(
         async (actionName: string, params: any) => {
           if (actionName === 'RunWdaRequest') {
             return mockResult;

@@ -1,7 +1,7 @@
 import type { UIContext } from '@midscene/core';
+import { describe, expect, it } from '@rstest/core';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { describe, expect, it } from 'vitest';
 import { Blackboard } from '../src/component/blackboard';
 import { normalizeBlackboardHighlights } from '../src/component/blackboard/highlights';
 

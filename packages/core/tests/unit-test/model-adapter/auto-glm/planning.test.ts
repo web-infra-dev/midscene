@@ -7,42 +7,21 @@ import { callAIWithStringResponse } from '@/ai-model/service-caller/index';
 import { runCustomPlanning } from '@/ai-model/workflows/planning/custom-planning';
 import type { PlanOptions } from '@/ai-model/workflows/planning/types';
 import type { UIContext } from '@/types';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, rs } from '@rstest/core';
 import { mockActionSpace } from '../../../common';
 
-const serviceCallerMock = vi.hoisted(() => {
-  class AIResponseParseError extends Error {
-    rawResponse?: string;
-    usage?: unknown;
-    rawChoiceMessage?: unknown;
+import * as serviceCallerActual from '@/ai-model/service-caller/index' with {
+  rstest: 'importActual',
+};
 
-    constructor(
-      message: string,
-      rawResponse?: string,
-      usage?: unknown,
-      rawChoiceMessage?: unknown,
-    ) {
-      super(message);
-      this.name = 'AIResponseParseError';
-      this.rawResponse = rawResponse;
-      this.usage = usage;
-      this.rawChoiceMessage = rawChoiceMessage;
-    }
-  }
+const serviceCallerMock = rs.hoisted(() => ({
+  callAIWithStringResponse: rs.fn(),
+}));
 
-  return {
-    AIResponseParseError,
-    callAIWithStringResponse: vi.fn(),
-  };
-});
-
-vi.mock('@/ai-model/service-caller/index', () => {
-  return serviceCallerMock;
-});
-
-vi.mock('../../../../src/ai-model/service-caller/index', () => {
-  return serviceCallerMock;
-});
+rs.mock('@/ai-model/service-caller/index', () => ({
+  ...serviceCallerActual,
+  ...serviceCallerMock,
+}));
 
 const autoGlmAdapter = new ResolvedModelAdapter(
   autoGlmAdapters['auto-glm'],
@@ -94,11 +73,11 @@ function runAutoGlmPlanning(
 
 describe('createAutoGlmPlanner', () => {
   beforeEach(() => {
-    vi.mocked(callAIWithStringResponse).mockReset();
+    rs.mocked(callAIWithStringResponse).mockReset();
   });
 
   it('runs Auto-GLM custom planning and transforms tap coordinates', async () => {
-    vi.mocked(callAIWithStringResponse).mockResolvedValueOnce({
+    rs.mocked(callAIWithStringResponse).mockResolvedValueOnce({
       content:
         '<think>Need to click submit</think><answer>do(action="Tap", element=[500,500])</answer>',
       usage: { total_tokens: 12 } as any,
@@ -134,7 +113,7 @@ describe('createAutoGlmPlanner', () => {
   });
 
   it('uses actionSpace names for Auto-GLM Back and Home planning actions', async () => {
-    vi.mocked(callAIWithStringResponse)
+    rs.mocked(callAIWithStringResponse)
       .mockResolvedValueOnce({
         content: 'Need to go back. do(action="Back")',
       })
@@ -173,7 +152,7 @@ describe('createAutoGlmPlanner', () => {
   });
 
   it('stops Auto-GLM custom planning on finish action', async () => {
-    vi.mocked(callAIWithStringResponse).mockResolvedValueOnce({
+    rs.mocked(callAIWithStringResponse).mockResolvedValueOnce({
       content: 'Task is done. finish(message="done")',
     });
 
@@ -193,7 +172,7 @@ describe('createAutoGlmPlanner', () => {
   });
 
   it('wraps Auto-GLM planning parse failures with raw response and usage', async () => {
-    vi.mocked(callAIWithStringResponse).mockResolvedValueOnce({
+    rs.mocked(callAIWithStringResponse).mockResolvedValueOnce({
       content: 'do(action="UnknownAction")',
       usage: { total_tokens: 3 } as any,
     });

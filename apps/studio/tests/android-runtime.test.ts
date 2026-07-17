@@ -1,5 +1,5 @@
 import type { RegisteredPlaygroundPlatform } from '@midscene/playground';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 import {
   createStudioCorsOptions,
   isAllowedStudioOrigin,
@@ -180,9 +180,9 @@ describe('playground runtime bootstrap', () => {
   });
 
   it('prepares a Web session with Puppeteer and MJPEG preview metadata', async () => {
-    const cleanupBrowser = vi.fn();
-    const destroyAgent = vi.fn();
-    const launchPuppeteerPage = vi.fn(async () => ({
+    const cleanupBrowser = rs.fn();
+    const destroyAgent = rs.fn();
+    const launchPuppeteerPage = rs.fn(async () => ({
       page: { id: 'puppeteer-page' },
       freeFn: [
         {
@@ -315,7 +315,7 @@ describe('playground runtime bootstrap', () => {
   });
 
   it('prepares Harmony in deferred mode so Studio never exits on device selection', async () => {
-    const harmonyPrepare = vi.fn(async () => ({
+    const harmonyPrepare = rs.fn(async () => ({
       platformId: 'harmony',
       title: 'Midscene HarmonyOS Playground',
       metadata: {

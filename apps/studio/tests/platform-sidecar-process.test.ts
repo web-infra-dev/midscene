@@ -1,12 +1,12 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, rs } from '@rstest/core';
 
-const { forkMock, children } = vi.hoisted(() => {
+const { forkMock, children } = rs.hoisted(() => {
   const createdChildren: any[] = [];
   const createChild = () => {
     const listeners = new Map<string, Array<(...args: any[]) => void>>();
     const child = {
-      kill: vi.fn(),
-      postMessage: vi.fn(),
+      kill: rs.fn(),
+      postMessage: rs.fn(),
       on(event: string, listener: (...args: any[]) => void) {
         listeners.set(event, [...(listeners.get(event) || []), listener]);
         return child;
@@ -32,11 +32,11 @@ const { forkMock, children } = vi.hoisted(() => {
   };
   return {
     children: createdChildren,
-    forkMock: vi.fn(createChild),
+    forkMock: rs.fn(createChild),
   };
 });
 
-vi.mock('electron', () => ({
+rs.mock('electron', () => ({
   utilityProcess: { fork: forkMock },
 }));
 
@@ -63,7 +63,7 @@ function createSidecar(startTimeoutMs = 20_000) {
 }
 
 afterEach(() => {
-  vi.useRealTimers();
+  rs.useRealTimers();
   children.length = 0;
   forkMock.mockClear();
 });
@@ -81,14 +81,14 @@ describe('PlatformSidecarProcess', () => {
   });
 
   it('kills a worker when startup times out', async () => {
-    vi.useFakeTimers();
+    rs.useFakeTimers();
     const sidecar = createSidecar(50);
     const startPromise = sidecar.start({ type: 'start' });
     const rejection =
       expect(startPromise).rejects.toThrow('Timed out starting');
     const child = children[0];
 
-    await vi.advanceTimersByTimeAsync(50);
+    await rs.advanceTimersByTimeAsync(50);
 
     await rejection;
     expect(child.kill).toHaveBeenCalledOnce();
@@ -115,7 +115,7 @@ describe('PlatformSidecarProcess', () => {
   });
 
   it('restarts a worker that exits after becoming ready', async () => {
-    vi.useFakeTimers();
+    rs.useFakeTimers();
     const sidecar = createSidecar();
     const startPromise = sidecar.start({ type: 'start' });
     const firstChild = children[0];
@@ -123,7 +123,7 @@ describe('PlatformSidecarProcess', () => {
     await startPromise;
 
     firstChild.emit('exit', 1);
-    await vi.advanceTimersByTimeAsync(1_000);
+    await rs.advanceTimersByTimeAsync(1_000);
 
     expect(forkMock).toHaveBeenCalledTimes(2);
     const restartedChild = children[1];

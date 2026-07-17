@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 import { flattenGroupedDumpTasks } from '../store/flatten-tasks';
 import { buildTimelineScreenshots } from './build-timeline-screenshots';
 

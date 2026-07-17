@@ -1,57 +1,47 @@
 import type { AbstractWebPage } from '@/web-page';
+import * as coreActual from '@midscene/core' with { rstest: 'importActual' };
 import { Agent as PageAgent } from '@midscene/core/agent';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import * as coreUtilsActual from '@midscene/core/utils' with {
+  rstest: 'importActual',
+};
+import { beforeEach, describe, expect, it, rs } from '@rstest/core';
 
 declare const __VERSION__: string;
 
 // Mock only the necessary parts to avoid side effects
-vi.mock('@midscene/core/utils', async () => {
-  const actual = await vi.importActual('@midscene/core/utils');
-  return {
-    ...actual,
-    writeLogFile: vi.fn(() => null),
-    reportHTMLContent: vi.fn(() => ''),
-    stringifyDumpData: vi.fn(() => '{}'),
-    groupedActionDumpFileExt: '.json',
-    getVersion: () => __VERSION__,
-    sleep: vi.fn(() => Promise.resolve()),
-  };
-});
-
-vi.mock('@midscene/shared/logger', () => ({
-  getDebug: vi.fn(() => vi.fn()),
-  logMsg: vi.fn(),
+rs.mock('@midscene/core/utils', () => ({
+  ...coreUtilsActual,
+  writeLogFile: rs.fn(() => null),
+  reportHTMLContent: rs.fn(() => ''),
+  stringifyDumpData: rs.fn(() => '{}'),
+  groupedActionDumpFileExt: '.json',
+  getVersion: () => __VERSION__,
+  sleep: rs.fn(() => Promise.resolve()),
 }));
 
-vi.mock('@midscene/core', async () => {
-  const actual = await vi.importActual('@midscene/core');
-  return {
-    ...actual,
-    Insight: vi.fn().mockImplementation(() => ({})),
-  };
-});
+rs.mock('@midscene/shared/logger', () => ({
+  getDebug: rs.fn(() => rs.fn()),
+  logMsg: rs.fn(),
+}));
 
-// Partial mock for utils - only mock the async functions that need mocking
-vi.mock('@/common/utils', async () => {
-  const actual = await vi.importActual('@/common/utils');
-  return {
-    ...actual,
-    WebPageContextParser: vi.fn().mockResolvedValue({}),
-    printReportMsg: vi.fn(),
-  };
-});
+rs.mock('@midscene/core', () => ({
+  ...coreActual,
+  Insight: rs.fn().mockImplementation(() => ({})),
+}));
+
+// `@/common/utils` no longer exists; functions moved to `@midscene/core/agent`.
 
 // Mock page implementation
 const mockPage = {
   interfaceType: 'puppeteer',
   keyboard: {
-    type: vi.fn(),
+    type: rs.fn(),
   },
-  actionSpace: vi.fn(() => []),
-  screenshotBase64: vi.fn().mockResolvedValue('mock-screenshot'),
-  evaluateJavaScript: vi.fn(),
-  size: vi.fn().mockResolvedValue({}),
-  destroy: vi.fn(),
+  actionSpace: rs.fn(() => []),
+  screenshotBase64: rs.fn().mockResolvedValue('mock-screenshot'),
+  evaluateJavaScript: rs.fn(),
+  size: rs.fn().mockResolvedValue({}),
+  destroy: rs.fn(),
 } as unknown as AbstractWebPage;
 
 const mockedModelConfig = {
@@ -63,14 +53,14 @@ const mockedModelConfig = {
 
 // Mock task executor
 const mockTaskExecutor = {
-  runPlans: vi.fn(),
+  runPlans: rs.fn(),
 } as any;
 
 describe('PageAgent aiInput with number value', () => {
   let agent: PageAgent;
 
   beforeEach(() => {
-    vi.clearAllMocks();
+    rs.clearAllMocks();
 
     // Create agent instance
     agent = new PageAgent(mockPage, {

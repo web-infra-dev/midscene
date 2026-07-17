@@ -1,9 +1,9 @@
+import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
 // @vitest-environment jsdom
 import { act, createElement } from 'react';
 import { createRoot } from 'react-dom/client';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const mocks = vi.hoisted(() => ({
+const mocks = rs.hoisted(() => ({
   latestExternalRunRequest: null as any,
   latestApiPlaygroundConfig: null as any,
   latestPlaygroundConfig: null as any,
@@ -14,19 +14,19 @@ const mocks = vi.hoisted(() => ({
   timelineWrapperState: { empty: true } as { empty: boolean },
 }));
 
-vi.mock('antd', () => ({
+rs.mock('antd', () => ({
   App: {
     useApp: () => ({
       message: {
-        error: vi.fn(),
-        info: vi.fn(),
+        error: rs.fn(),
+        info: rs.fn(),
       },
     }),
   },
   Tooltip: ({ children }: { children: React.ReactNode }) => children,
 }));
 
-vi.mock('@midscene/playground-app', () => ({
+rs.mock('@midscene/playground-app', () => ({
   PlaygroundConversationPanel: ({ playgroundConfig }: any) => {
     mocks.latestPlaygroundConfig = playgroundConfig;
     if (playgroundConfig.hidePromptInput) {
@@ -50,7 +50,7 @@ vi.mock('@midscene/playground-app', () => ({
   },
 }));
 
-vi.mock('../src/renderer/components/Recorder', () => ({
+rs.mock('../src/renderer/components/Recorder', () => ({
   StudioReplayPanel: (props: any) => {
     mocks.latestReplayPanelProps = props;
     return createElement('div', { 'data-testid': 'studio-replay-panel' });
@@ -59,7 +59,7 @@ vi.mock('../src/renderer/components/Recorder', () => ({
     createElement('div', { 'data-testid': 'studio-recorder-panel' }),
 }));
 
-vi.mock('../src/renderer/components/StudioTimelinePanel', () => ({
+rs.mock('../src/renderer/components/StudioTimelinePanel', () => ({
   StudioTimelineEmptyState: ({ description, title }: any) =>
     createElement(
       'div',
@@ -85,17 +85,17 @@ vi.mock('../src/renderer/components/StudioTimelinePanel', () => ({
     ),
 }));
 
-vi.mock('../src/renderer/components/PlaygroundShell/mode-icons', () => ({
+rs.mock('../src/renderer/components/PlaygroundShell/mode-icons', () => ({
   ApiPlaygroundModeIcon: () => createElement('span'),
   RecorderModeIcon: () => createElement('span'),
   ReplayModeIcon: () => createElement('span'),
 }));
 
-vi.mock('../src/renderer/playground/useStudioPlayground', () => ({
+rs.mock('../src/renderer/playground/useStudioPlayground', () => ({
   useStudioPlayground: () => mocks.playground,
 }));
 
-vi.mock('../src/renderer/recorder/useStudioRecorder', () => ({
+rs.mock('../src/renderer/recorder/useStudioRecorder', () => ({
   useStudioRecorder: () => mocks.recorder,
 }));
 
@@ -129,23 +129,23 @@ function createReadyPlayground() {
       },
     },
     phase: 'ready',
-    refreshDiscoveredDevices: vi.fn(async () => undefined),
-    restartPlayground: vi.fn(async () => undefined),
+    refreshDiscoveredDevices: rs.fn(async () => undefined),
+    restartPlayground: rs.fn(async () => undefined),
     serverUrl: 'http://localhost:5800',
-    setDiscoveryPollingPaused: vi.fn(),
+    setDiscoveryPollingPaused: rs.fn(),
   };
 }
 
 function createRecorder() {
   return {
     currentTarget: target,
-    deleteSession: vi.fn(async () => undefined),
-    generateSessionCode: vi.fn(async () => '# Replay'),
+    deleteSession: rs.fn(async () => undefined),
+    generateSessionCode: rs.fn(async () => '# Replay'),
     state: {
       isRecording: false,
       sessions: [],
     },
-    stopRecording: vi.fn(async () => undefined),
+    stopRecording: rs.fn(async () => undefined),
   };
 }
 
@@ -175,7 +175,7 @@ async function renderApiPlayground() {
   const container = document.createElement('div');
   document.body.appendChild(container);
   const root = createRoot(container);
-  const onStudioModeChange = vi.fn();
+  const onStudioModeChange = rs.fn();
 
   await act(async () => {
     root.render(
@@ -210,7 +210,7 @@ async function renderReplayWithHeaderChange() {
   const container = document.createElement('div');
   document.body.appendChild(container);
   const root = createRoot(container);
-  const onHeaderChange = vi.fn();
+  const onHeaderChange = rs.fn();
 
   await act(async () => {
     root.render(
@@ -236,7 +236,7 @@ describe('Studio Playground imported replay', () => {
     mocks.recorder = createRecorder();
     mocks.timelineWrapperState = { empty: true };
     window.studioRuntime = {
-      chooseReplayFile: vi.fn(async () => ({
+      chooseReplayFile: rs.fn(async () => ({
         content: '# Replay\n\n## Steps\n1. Tap login',
         displayName: 'recording.md',
         type: 'markdown',
@@ -246,7 +246,7 @@ describe('Studio Playground imported replay', () => {
 
   afterEach(() => {
     document.body.replaceChildren();
-    vi.restoreAllMocks();
+    rs.restoreAllMocks();
   });
 
   it('wraps imported Markdown content into an aiAct replay request', async () => {
@@ -400,7 +400,7 @@ describe('Studio Playground imported replay', () => {
         sessions: [session],
       },
     };
-    const stop = vi.fn();
+    const stop = rs.fn();
     const { root } = await renderPlayground();
 
     await act(async () => {
@@ -497,7 +497,7 @@ describe('Studio Playground imported replay', () => {
         sessions: [session],
       },
     };
-    const onOpenStudioRightPanel = vi.fn();
+    const onOpenStudioRightPanel = rs.fn();
     const { root } = await renderPlayground(onOpenStudioRightPanel);
 
     await act(async () => {
@@ -538,8 +538,8 @@ describe('Studio Playground imported replay', () => {
         sessions: [session],
       },
     };
-    const onCloseStudioRightPanel = vi.fn();
-    const { root } = await renderPlayground(vi.fn(), onCloseStudioRightPanel);
+    const onCloseStudioRightPanel = rs.fn();
+    const { root } = await renderPlayground(rs.fn(), onCloseStudioRightPanel);
 
     await act(async () => {
       await mocks.latestReplayPanelProps.onSelectSession(session);
@@ -575,7 +575,7 @@ describe('Studio Playground imported replay', () => {
         sessions: [session],
       },
     };
-    const stopPlayground = vi.fn(async () => undefined);
+    const stopPlayground = rs.fn(async () => undefined);
     const { root } = await renderPlayground();
 
     await act(async () => {
@@ -642,7 +642,7 @@ describe('Studio Playground imported replay', () => {
     const container = document.createElement('div');
     document.body.appendChild(container);
     const root = createRoot(container);
-    const firstStopRecording = vi.fn(async () => undefined);
+    const firstStopRecording = rs.fn(async () => undefined);
     mocks.recorder = {
       ...createRecorder(),
       state: { isRecording: true, sessions: [] },
@@ -658,7 +658,7 @@ describe('Studio Playground imported replay', () => {
       );
     });
 
-    const secondStopRecording = vi.fn(async () => undefined);
+    const secondStopRecording = rs.fn(async () => undefined);
     mocks.recorder = {
       ...mocks.recorder,
       stopRecording: secondStopRecording,

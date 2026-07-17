@@ -1,46 +1,44 @@
 import { Buffer } from 'node:buffer';
 import { Page } from '@/puppeteer/base-page';
+import * as coreUtilsActual from '@midscene/core/utils' with {
+  rstest: 'importActual',
+};
 import { imageInfoOfBase64 } from '@midscene/shared/img';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import * as sharedImgActual from '@midscene/shared/img' with {
+  rstest: 'importActual',
+};
+import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
 
-vi.mock('@midscene/shared/img', async () => {
-  const actual = await vi.importActual<typeof import('@midscene/shared/img')>(
-    '@midscene/shared/img',
-  );
-  return {
-    ...actual,
-    imageInfoOfBase64: vi.fn(),
-  };
-});
-
-vi.mock('@midscene/shared/logger', () => ({
-  getDebug: vi.fn(() => vi.fn()),
-  logMsg: vi.fn(),
+rs.mock('@midscene/shared/img', () => ({
+  ...sharedImgActual,
+  imageInfoOfBase64: rs.fn(),
 }));
 
-vi.mock('@midscene/core/utils', async () => {
-  const actual = await vi.importActual('@midscene/core/utils');
-  return {
-    ...actual,
-    sleep: vi.fn(() => Promise.resolve()),
-  };
-});
-
-vi.mock('@midscene/shared/node', () => ({
-  getElementInfosScriptContent: vi.fn(() => ''),
-  getExtraReturnLogic: vi.fn(() => Promise.resolve('() => ({})')),
+rs.mock('@midscene/shared/logger', () => ({
+  getDebug: rs.fn(() => rs.fn()),
+  logMsg: rs.fn(),
 }));
 
-vi.mock('@/web-page', () => ({
-  commonWebActionsForWebPage: vi.fn(() => []),
+rs.mock('@midscene/core/utils', () => ({
+  ...coreUtilsActual,
+  sleep: rs.fn(() => Promise.resolve()),
+}));
+
+rs.mock('@midscene/shared/node', () => ({
+  getElementInfosScriptContent: rs.fn(() => ''),
+  getExtraReturnLogic: rs.fn(() => Promise.resolve('() => ({})')),
+}));
+
+rs.mock('@/web-page', () => ({
+  commonWebActionsForWebPage: rs.fn(() => []),
 }));
 
 afterEach(() => {
-  vi.useRealTimers();
+  rs.useRealTimers();
 });
 
 beforeEach(() => {
-  vi.mocked(imageInfoOfBase64).mockResolvedValue({
+  rs.mocked(imageInfoOfBase64).mockResolvedValue({
     width: 1280,
     height: 768,
   });
@@ -79,25 +77,25 @@ function jpegBase64(width: number, height: number): string {
 describe('Page startMjpegStream', () => {
   it('starts a Puppeteer CDP screencast and ACKs incoming frames', async () => {
     const handlers = new Map<string, (event: any) => unknown>();
-    const send = vi.fn().mockResolvedValue(undefined);
-    const detach = vi.fn().mockResolvedValue(undefined);
+    const send = rs.fn().mockResolvedValue(undefined);
+    const detach = rs.fn().mockResolvedValue(undefined);
     const client = {
       send,
       detach,
-      on: vi.fn((event: string, handler: (event: any) => unknown) => {
+      on: rs.fn((event: string, handler: (event: any) => unknown) => {
         handlers.set(event, handler);
       }),
-      off: vi.fn(),
+      off: rs.fn(),
     };
     const mockPage = {
-      bringToFront: vi.fn().mockResolvedValue(undefined),
-      evaluate: vi.fn().mockResolvedValue({ width: 1280, height: 768 }),
+      bringToFront: rs.fn().mockResolvedValue(undefined),
+      evaluate: rs.fn().mockResolvedValue({ width: 1280, height: 768 }),
       url: () => 'http://example.com',
       target: () => ({
-        createCDPSession: vi.fn().mockResolvedValue(client),
+        createCDPSession: rs.fn().mockResolvedValue(client),
       }),
     } as any;
-    const onFrame = vi.fn();
+    const onFrame = rs.fn();
 
     const page = new Page(mockPage, 'puppeteer');
     const handle = await page.startMjpegStream({ onFrame });
@@ -141,33 +139,33 @@ describe('Page startMjpegStream', () => {
 
   it('falls back to a screenshot when a screencast JPEG does not match the viewport', async () => {
     const handlers = new Map<string, (event: any) => unknown>();
-    const send = vi.fn().mockResolvedValue(undefined);
-    const detach = vi.fn().mockResolvedValue(undefined);
+    const send = rs.fn().mockResolvedValue(undefined);
+    const detach = rs.fn().mockResolvedValue(undefined);
     const client = {
       send,
       detach,
-      on: vi.fn((event: string, handler: (event: any) => unknown) => {
+      on: rs.fn((event: string, handler: (event: any) => unknown) => {
         handlers.set(event, handler);
       }),
-      off: vi.fn(),
+      off: rs.fn(),
     };
     const mockPage = {
-      bringToFront: vi.fn().mockResolvedValue(undefined),
-      evaluate: vi.fn().mockResolvedValue({ width: 1280, height: 720 }),
-      screenshot: vi.fn().mockResolvedValue(jpegBase64(1280, 720)),
+      bringToFront: rs.fn().mockResolvedValue(undefined),
+      evaluate: rs.fn().mockResolvedValue({ width: 1280, height: 720 }),
+      screenshot: rs.fn().mockResolvedValue(jpegBase64(1280, 720)),
       url: () => 'http://example.com',
       target: () => ({
-        createCDPSession: vi.fn().mockResolvedValue(client),
+        createCDPSession: rs.fn().mockResolvedValue(client),
       }),
     } as any;
-    const onFrame = vi.fn();
-    const onError = vi.fn();
+    const onFrame = rs.fn();
+    const onError = rs.fn();
     const page = new Page(mockPage, 'puppeteer');
     const handle = await page.startMjpegStream({ onFrame, onError });
     (page as any).activeMjpegStream.hasReceivedScreencastFrame = true;
     onFrame.mockClear();
     onError.mockClear();
-    vi.mocked(imageInfoOfBase64).mockResolvedValue({
+    rs.mocked(imageInfoOfBase64).mockResolvedValue({
       width: 1280,
       height: 720,
     });
@@ -177,7 +175,7 @@ describe('Page startMjpegStream', () => {
       sessionId: 42,
       metadata: { deviceWidth: 1280, deviceHeight: 720 },
     });
-    await vi.waitFor(() => {
+    await rs.waitFor(() => {
       expect(onFrame).toHaveBeenCalledWith({
         data: jpegBase64(1280, 720),
         contentType: 'image/jpeg',
@@ -195,16 +193,16 @@ describe('Page startMjpegStream', () => {
   });
 
   it('stops the screencast when the abort signal fires', async () => {
-    const send = vi.fn().mockResolvedValue(undefined);
-    const detach = vi.fn().mockResolvedValue(undefined);
+    const send = rs.fn().mockResolvedValue(undefined);
+    const detach = rs.fn().mockResolvedValue(undefined);
     const client = {
       send,
       detach,
-      on: vi.fn(),
-      off: vi.fn(),
+      on: rs.fn(),
+      off: rs.fn(),
     };
     const mockPage = {
-      evaluate: vi.fn().mockResolvedValue({ width: 1280, height: 768 }),
+      evaluate: rs.fn().mockResolvedValue({ width: 1280, height: 768 }),
       url: () => 'http://example.com',
       context: () => ({
         browser: () => ({
@@ -212,7 +210,7 @@ describe('Page startMjpegStream', () => {
             name: () => 'chromium',
           }),
         }),
-        newCDPSession: vi.fn().mockResolvedValue(client),
+        newCDPSession: rs.fn().mockResolvedValue(client),
       }),
     } as any;
     const controller = new AbortController();
@@ -220,7 +218,7 @@ describe('Page startMjpegStream', () => {
     const page = new Page(mockPage, 'playwright');
     await page.startMjpegStream({
       signal: controller.signal,
-      onFrame: vi.fn(),
+      onFrame: rs.fn(),
     });
     controller.abort();
 
@@ -231,24 +229,24 @@ describe('Page startMjpegStream', () => {
   });
 
   it('can push a screenshot frame to refresh keyboard-only visual changes', async () => {
-    const send = vi.fn().mockResolvedValue(undefined);
-    const detach = vi.fn().mockResolvedValue(undefined);
+    const send = rs.fn().mockResolvedValue(undefined);
+    const detach = rs.fn().mockResolvedValue(undefined);
     const client = {
       send,
       detach,
-      on: vi.fn(),
-      off: vi.fn(),
+      on: rs.fn(),
+      off: rs.fn(),
     };
     const mockPage = {
-      bringToFront: vi.fn().mockResolvedValue(undefined),
-      evaluate: vi.fn().mockResolvedValue({ width: 1280, height: 768 }),
-      screenshot: vi.fn().mockResolvedValue('cmVmcmVzaA=='),
+      bringToFront: rs.fn().mockResolvedValue(undefined),
+      evaluate: rs.fn().mockResolvedValue({ width: 1280, height: 768 }),
+      screenshot: rs.fn().mockResolvedValue('cmVmcmVzaA=='),
       url: () => 'http://example.com',
       target: () => ({
-        createCDPSession: vi.fn().mockResolvedValue(client),
+        createCDPSession: rs.fn().mockResolvedValue(client),
       }),
     } as any;
-    const onFrame = vi.fn();
+    const onFrame = rs.fn();
 
     const page = new Page(mockPage, 'puppeteer');
     const handle = await page.startMjpegStream({ onFrame });
@@ -274,25 +272,25 @@ describe('Page startMjpegStream', () => {
 
   it('does not mix fallback screenshots into an active CDP screencast', async () => {
     const handlers = new Map<string, (event: any) => unknown>();
-    const send = vi.fn().mockResolvedValue(undefined);
-    const detach = vi.fn().mockResolvedValue(undefined);
+    const send = rs.fn().mockResolvedValue(undefined);
+    const detach = rs.fn().mockResolvedValue(undefined);
     const client = {
       send,
       detach,
-      on: vi.fn((event: string, handler: (event: any) => unknown) => {
+      on: rs.fn((event: string, handler: (event: any) => unknown) => {
         handlers.set(event, handler);
       }),
-      off: vi.fn(),
+      off: rs.fn(),
     };
     const mockPage = {
-      evaluate: vi.fn().mockResolvedValue({ width: 1280, height: 768 }),
-      screenshot: vi.fn().mockResolvedValue('ZmFsbGJhY2s='),
+      evaluate: rs.fn().mockResolvedValue({ width: 1280, height: 768 }),
+      screenshot: rs.fn().mockResolvedValue('ZmFsbGJhY2s='),
       url: () => 'http://example.com',
       target: () => ({
-        createCDPSession: vi.fn().mockResolvedValue(client),
+        createCDPSession: rs.fn().mockResolvedValue(client),
       }),
     } as any;
-    const onFrame = vi.fn();
+    const onFrame = rs.fn();
     const page = new Page(mockPage, 'puppeteer');
 
     const handle = await page.startMjpegStream({ onFrame });
@@ -316,22 +314,22 @@ describe('Page startMjpegStream', () => {
 
   it('does not fail the MJPEG stream when visual refresh races with navigation', async () => {
     const mockPage = {
-      evaluate: vi
+      evaluate: rs
         .fn()
         .mockRejectedValue(
           new Error(
             'Execution context was destroyed, most likely because of a navigation.',
           ),
         ),
-      screenshot: vi.fn(),
+      screenshot: rs.fn(),
       url: () => 'http://example.com',
     } as any;
 
     const page = new Page(mockPage, 'puppeteer');
-    const onError = vi.fn();
+    const onError = rs.fn();
     (page as any).activeMjpegStream = {
       token: Symbol('mjpeg-stream'),
-      onFrame: vi.fn(),
+      onFrame: rs.fn(),
       onError,
     };
 
@@ -343,12 +341,12 @@ describe('Page startMjpegStream', () => {
 
   it('rejects a fallback screenshot whose dimensions do not match the viewport', async () => {
     const mockPage = {
-      evaluate: vi.fn().mockResolvedValue({ width: 1280, height: 720 }),
+      evaluate: rs.fn().mockResolvedValue({ width: 1280, height: 720 }),
       url: () => 'http://example.com',
     } as any;
     const page = new Page(mockPage, 'puppeteer');
-    const onFrame = vi.fn();
-    const onError = vi.fn();
+    const onFrame = rs.fn();
+    const onError = rs.fn();
     (page as any).activeMjpegStream = {
       token: Symbol('mjpeg-stream'),
       onFrame,
@@ -356,10 +354,10 @@ describe('Page startMjpegStream', () => {
       hasReceivedScreencastFrame: false,
       expectedViewportSize: { width: 1280, height: 720 },
     };
-    vi.spyOn(page, 'screenshotBase64').mockResolvedValue(
+    rs.spyOn(page, 'screenshotBase64').mockResolvedValue(
       'data:image/jpeg;base64,ZmFsbGJhY2s=',
     );
-    vi.mocked(imageInfoOfBase64).mockResolvedValueOnce({
+    rs.mocked(imageInfoOfBase64).mockResolvedValueOnce({
       width: 1280,
       height: 1024,
     });
@@ -376,20 +374,20 @@ describe('Page startMjpegStream', () => {
   });
 
   it('coalesces scheduled visual refreshes while one refresh is in flight', async () => {
-    vi.useFakeTimers();
+    rs.useFakeTimers();
     const mockPage = {
-      evaluate: vi.fn(async () => ({ width: 1280, height: 768 })),
+      evaluate: rs.fn(async () => ({ width: 1280, height: 768 })),
       url: () => 'http://example.com',
     } as any;
 
     const page = new Page(mockPage, 'puppeteer');
     (page as any).activeMjpegStream = {
       token: Symbol('mjpeg-stream'),
-      onFrame: vi.fn(),
+      onFrame: rs.fn(),
     };
 
     let resolveFirstFlush = () => {};
-    const flushSpy = vi
+    const flushSpy = rs
       .spyOn(page, 'flushPendingVisualUpdate')
       .mockImplementationOnce(
         () =>
@@ -413,19 +411,19 @@ describe('Page startMjpegStream', () => {
   });
 
   it('runs a delayed follow-up visual refresh after the immediate one', async () => {
-    vi.useFakeTimers();
+    rs.useFakeTimers();
     const mockPage = {
-      evaluate: vi.fn(async () => ({ width: 1280, height: 768 })),
+      evaluate: rs.fn(async () => ({ width: 1280, height: 768 })),
       url: () => 'http://example.com',
     } as any;
 
     const page = new Page(mockPage, 'puppeteer');
     (page as any).activeMjpegStream = {
       token: Symbol('mjpeg-stream'),
-      onFrame: vi.fn(),
+      onFrame: rs.fn(),
     };
 
-    const flushSpy = vi
+    const flushSpy = rs
       .spyOn(page, 'flushPendingVisualUpdate')
       .mockImplementation(async () => undefined);
 
@@ -436,11 +434,11 @@ describe('Page startMjpegStream', () => {
     await Promise.resolve();
     await Promise.resolve();
 
-    vi.advanceTimersByTime(799);
+    rs.advanceTimersByTime(799);
     await Promise.resolve();
     expect(flushSpy).toHaveBeenCalledTimes(1);
 
-    vi.advanceTimersByTime(1);
+    rs.advanceTimersByTime(1);
     await Promise.resolve();
     await Promise.resolve();
     expect(flushSpy).toHaveBeenCalledTimes(2);
@@ -450,7 +448,7 @@ describe('Page startMjpegStream', () => {
 describe('Page web navigation controls', () => {
   it('uses page history for forward navigation', async () => {
     const mockPage = {
-      goForward: vi.fn().mockResolvedValue(undefined),
+      goForward: rs.fn().mockResolvedValue(undefined),
     } as any;
 
     const page = new Page(mockPage, 'puppeteer');
@@ -460,12 +458,12 @@ describe('Page web navigation controls', () => {
   });
 
   it('stops Puppeteer page loading through CDP', async () => {
-    const send = vi.fn().mockResolvedValue(undefined);
-    const detach = vi.fn().mockResolvedValue(undefined);
+    const send = rs.fn().mockResolvedValue(undefined);
+    const detach = rs.fn().mockResolvedValue(undefined);
     const client = { send, detach };
     const mockPage = {
       target: () => ({
-        createCDPSession: vi.fn().mockResolvedValue(client),
+        createCDPSession: rs.fn().mockResolvedValue(client),
       }),
     } as any;
 
@@ -478,7 +476,7 @@ describe('Page web navigation controls', () => {
 
   it('reports Puppeteer loading state from document.readyState', async () => {
     const mockPage = {
-      evaluate: vi.fn().mockResolvedValue('interactive'),
+      evaluate: rs.fn().mockResolvedValue('interactive'),
     } as any;
 
     const page = new Page(mockPage, 'puppeteer');

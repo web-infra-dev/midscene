@@ -1,16 +1,16 @@
 import path from 'node:path';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, rs } from '@rstest/core';
 
-const mocks = vi.hoisted(() => ({
-  buildStudioRuntimeEnv: vi.fn(),
-  spawn: vi.fn(),
+const mocks = rs.hoisted(() => ({
+  buildStudioRuntimeEnv: rs.fn(),
+  spawn: rs.fn(),
 }));
 
-vi.mock('node:child_process', () => ({
+rs.mock('node:child_process', () => ({
   spawn: mocks.spawn,
 }));
 
-vi.mock('node:module', () => ({
+rs.mock('node:module', () => ({
   createRequire: () => (specifier: string) => {
     if (specifier !== 'electron') {
       throw new Error(`Unexpected require: ${specifier}`);
@@ -19,11 +19,11 @@ vi.mock('node:module', () => ({
   },
 }));
 
-vi.mock('../scripts/runtime-env.mjs', () => ({
+rs.mock('../scripts/runtime-env.mjs', () => ({
   buildStudioRuntimeEnv: mocks.buildStudioRuntimeEnv,
 }));
 
-vi.mock('../scripts/renderer-dev-config.mjs', () => ({
+rs.mock('../scripts/renderer-dev-config.mjs', () => ({
   rendererDevUrl: 'http://127.0.0.1:3210',
 }));
 
@@ -31,11 +31,11 @@ function createMockChildProcess() {
   const eventHandlers = new Map<string, (...args: unknown[]) => void>();
   const child = {
     killed: false,
-    kill: vi.fn((signal?: NodeJS.Signals | number) => {
+    kill: rs.fn((signal?: NodeJS.Signals | number) => {
       child.killed = true;
       return signal !== undefined;
     }),
-    on: vi.fn((event: string, handler: (...args: unknown[]) => void) => {
+    on: rs.fn((event: string, handler: (...args: unknown[]) => void) => {
       eventHandlers.set(event, handler);
       return child;
     }),
@@ -49,7 +49,7 @@ async function loadLaunchScript(
     | '../scripts/launch-electron-dev.mjs'
     | '../scripts/launch-electron-prod.mjs',
 ) {
-  vi.resetModules();
+  rs.resetModules();
 
   const { child, eventHandlers } = createMockChildProcess();
   const processHandlers = new Map<string, (...args: unknown[]) => void>();
@@ -69,26 +69,38 @@ async function loadLaunchScript(
     }),
   );
 
-  const processOnSpy = vi.spyOn(process, 'on').mockImplementation(((
+  const processOnSpy = rs.spyOn(process, 'on').mockImplementation(((
     event,
     handler,
   ) => {
     processHandlers.set(String(event), handler as (...args: unknown[]) => void);
     return process;
   }) as typeof process.on);
-  const processExitSpy = vi.spyOn(process, 'exit').mockImplementation(((
+  const processExitSpy = rs.spyOn(process, 'exit').mockImplementation(((
     code?: string | number | null,
   ) => {
     throw new Error(`process.exit:${String(code ?? 0)}`);
   }) as never);
-  const processKillSpy = vi
+  const processKillSpy = rs
     .spyOn(process, 'kill')
     .mockImplementation(
       ((pid: number, signal?: NodeJS.Signals | number) =>
         pid === process.pid && signal !== undefined) as typeof process.kill,
     );
 
-  await import(relativeModulePath);
+  // Import the launch script through statically-analyzable string-literal
+  // imports (there are only the two scripts named in this function's parameter
+  // type). This is required, not a temporary shim: test mocks are injected via
+  // an rspack build-time transform, so a dynamic `import(variable)` would escape
+  // the transform and load the module via Node's native ESM loader — bypassing
+  // rs.mock('node:child_process') etc. and spawning a REAL Electron process.
+  if (relativeModulePath === '../scripts/launch-electron-dev.mjs') {
+    // @ts-expect-error dev-only .mjs launch script ships no type declaration
+    await import('../scripts/launch-electron-dev.mjs');
+  } else {
+    // @ts-expect-error prod-only .mjs launch script ships no type declaration
+    await import('../scripts/launch-electron-prod.mjs');
+  }
 
   processOnSpy.mockRestore();
 
@@ -103,9 +115,9 @@ async function loadLaunchScript(
 
 describe('Electron launch scripts', () => {
   beforeEach(() => {
-    vi.restoreAllMocks();
-    vi.clearAllMocks();
-    vi.unstubAllEnvs();
+    rs.restoreAllMocks();
+    rs.clearAllMocks();
+    rs.unstubAllEnvs();
   });
 
   it('launches the dev entrypoint with an inspector and renderer URL override', async () => {
@@ -149,7 +161,7 @@ describe('Electron launch scripts', () => {
   });
 
   it('allows opting out of the dev inspector port', async () => {
-    vi.stubEnv('MIDSCENE_STUDIO_MAIN_INSPECT', '0');
+    rs.stubEnv('MIDSCENE_STUDIO_MAIN_INSPECT', '0');
 
     await loadLaunchScript('../scripts/launch-electron-dev.mjs');
 

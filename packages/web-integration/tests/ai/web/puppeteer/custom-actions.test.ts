@@ -1,7 +1,7 @@
 import { PuppeteerAgent } from '@/puppeteer';
 import { z } from '@midscene/core';
 import { defineAction } from '@midscene/core/device';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 import {
   DEFAULT_TEST_TIMEOUT,
   createTestContext,
@@ -19,7 +19,7 @@ describe(
       const { originPage, reset } = await launchPage(`file://${htmlPath}`);
       ctx.resetFn = reset;
 
-      const doAJobCalled = vi.fn();
+      const doAJobCalled = rs.fn();
       const DoAJob = defineAction({
         name: 'DoAJob',
         description:

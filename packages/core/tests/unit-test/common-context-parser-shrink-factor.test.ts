@@ -1,13 +1,13 @@
 import { commonContextParser } from '@/agent/utils';
 import type { AbstractInterface } from '@/device';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, rs } from '@rstest/core';
 
-vi.mock('@midscene/shared/img', () => ({
-  convertImgBufferToJpeg: vi.fn(),
-  createImgBase64ByFormat: vi.fn(),
-  imageInfoOfBase64: vi.fn(),
-  parseBase64: vi.fn(),
-  resizeImgBase64: vi.fn().mockResolvedValue('mock-resized-base64-data'),
+rs.mock('@midscene/shared/img', () => ({
+  convertImgBufferToJpeg: rs.fn(),
+  createImgBase64ByFormat: rs.fn(),
+  imageInfoOfBase64: rs.fn(),
+  parseBase64: rs.fn(),
+  resizeImgBase64: rs.fn().mockResolvedValue('mock-resized-base64-data'),
 }));
 
 import {
@@ -18,29 +18,29 @@ import {
   resizeImgBase64,
 } from '@midscene/shared/img';
 
-const mockedConvertToJpeg = vi.mocked(convertImgBufferToJpeg);
-const mockedCreateBase64 = vi.mocked(createImgBase64ByFormat);
-const mockedImageInfo = vi.mocked(imageInfoOfBase64);
-const mockedParseBase64 = vi.mocked(parseBase64);
-const mockedResizeImg = vi.mocked(resizeImgBase64);
+const mockedConvertToJpeg = rs.mocked(convertImgBufferToJpeg);
+const mockedCreateBase64 = rs.mocked(createImgBase64ByFormat);
+const mockedImageInfo = rs.mocked(imageInfoOfBase64);
+const mockedParseBase64 = rs.mocked(parseBase64);
+const mockedResizeImg = rs.mocked(resizeImgBase64);
 
 function createMockInterface(
   logicalWidth: number,
   logicalHeight: number,
 ): AbstractInterface {
   return {
-    screenshotBase64: vi.fn().mockResolvedValue('mock-base64-data'),
-    size: vi
+    screenshotBase64: rs.fn().mockResolvedValue('mock-base64-data'),
+    size: rs
       .fn()
       .mockResolvedValue({ width: logicalWidth, height: logicalHeight }),
-    actionSpace: vi.fn(() => []),
-    describe: vi.fn(() => ''),
+    actionSpace: rs.fn(() => []),
+    describe: rs.fn(() => ''),
   } as unknown as AbstractInterface;
 }
 
 describe('commonContextParser screenshotShrinkFactor', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    rs.clearAllMocks();
     mockedParseBase64.mockReturnValue({
       mimeType: 'image/jpeg',
       body: 'mock-base64-data',

@@ -12,7 +12,7 @@ import {
   MIDSCENE_PLANNING_MODEL_BASE_URL,
   MIDSCENE_PLANNING_MODEL_NAME,
 } from '@midscene/shared/env';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
 
 const defaultModelConfig = {
   [MIDSCENE_MODEL_NAME]: 'qwen2.5-vl-max',
@@ -39,11 +39,11 @@ const createMockInterface = () =>
 
 describe('Agent with custom OpenAI client', () => {
   beforeEach(() => {
-    vi.mock('openai');
+    rs.mock('openai');
   });
 
   afterEach(() => {
-    vi.clearAllMocks();
+    rs.clearAllMocks();
   });
 
   describe('default modelConfig without createOpenAIClient', () => {
@@ -246,8 +246,8 @@ describe('Agent with custom OpenAI client', () => {
 
   describe('constructor with createOpenAIClient', () => {
     it('should accept createOpenAIClient in AgentOpt with modelConfig', () => {
-      const mockCreateClient = vi.fn(async () => ({
-        chat: { completions: { create: vi.fn() } },
+      const mockCreateClient = rs.fn(async () => ({
+        chat: { completions: { create: rs.fn() } },
       }));
 
       // Create a mock interface instance
@@ -263,8 +263,8 @@ describe('Agent with custom OpenAI client', () => {
     });
 
     it('should pass createOpenAIClient to ModelConfigManager when modelConfig is provided', () => {
-      const mockCreateClient = vi.fn(async () => ({
-        chat: { completions: { create: vi.fn() } },
+      const mockCreateClient = rs.fn(async () => ({
+        chat: { completions: { create: rs.fn() } },
       }));
 
       // Create a mock interface instance
@@ -301,12 +301,12 @@ describe('Agent with custom OpenAI client', () => {
 
   describe('intent-specific custom clients', () => {
     it('should support different clients for different intents', () => {
-      const mockCreateClient: CreateOpenAIClientFn = vi.fn(
+      const mockCreateClient: CreateOpenAIClientFn = rs.fn(
         async (_client, opts) => {
           const { apiKey } = opts as { apiKey?: string };
           // Return different mock clients based on provided options
           return {
-            chat: { completions: { create: vi.fn() } },
+            chat: { completions: { create: rs.fn() } },
             _apiKey: apiKey, // For testing purposes
           };
         },
@@ -338,13 +338,13 @@ describe('Agent with custom OpenAI client', () => {
 
   describe('observability wrapper integration', () => {
     it('should support wrapping clients with langsmith-style wrappers', async () => {
-      const mockWrapOpenAI = vi.fn((client, options) => ({
+      const mockWrapOpenAI = rs.fn((client, options) => ({
         ...client,
         _wrapped: true,
         _options: options,
       }));
 
-      const mockCreateClient: CreateOpenAIClientFn = vi.fn(
+      const mockCreateClient: CreateOpenAIClientFn = rs.fn(
         async (client, opts) => {
           const options = opts as { apiKey?: string };
 
@@ -385,7 +385,7 @@ describe('Agent with custom OpenAI client', () => {
       expect(planningConfig.createOpenAIClient).toBeDefined();
 
       // Simulate calling the client creator
-      const baseClient = { chat: { completions: { create: vi.fn() } } };
+      const baseClient = { chat: { completions: { create: rs.fn() } } };
       const clientOptions = {
         baseURL: planningConfig.openaiBaseURL,
         apiKey: planningConfig.openaiApiKey,
@@ -412,8 +412,8 @@ describe('Agent with custom OpenAI client', () => {
     });
 
     it('should provide all config parameters to createOpenAIClient', async () => {
-      const mockCreateClient: CreateOpenAIClientFn = vi.fn(async () => ({
-        chat: { completions: { create: vi.fn() } },
+      const mockCreateClient: CreateOpenAIClientFn = rs.fn(async () => ({
+        chat: { completions: { create: rs.fn() } },
       }));
 
       // Create a mock interface instance
@@ -433,7 +433,7 @@ describe('Agent with custom OpenAI client', () => {
       );
 
       // Simulate what createChatClient does
-      const baseClient = { chat: { completions: { create: vi.fn() } } };
+      const baseClient = { chat: { completions: { create: rs.fn() } } };
       const options = {
         baseURL: config.openaiBaseURL,
         apiKey: config.openaiApiKey,
@@ -448,8 +448,8 @@ describe('Agent with custom OpenAI client', () => {
 
   describe('performance characteristics', () => {
     it('should inject createOpenAIClient during config initialization, not on getModelConfig', () => {
-      const mockCreateClient = vi.fn(async () => ({
-        chat: { completions: { create: vi.fn() } },
+      const mockCreateClient = rs.fn(async () => ({
+        chat: { completions: { create: rs.fn() } },
       }));
 
       // Create a mock interface instance
@@ -492,7 +492,7 @@ describe('Agent with custom OpenAI client', () => {
             defaultModelConfig[MIDSCENE_MODEL_BASE_URL],
         },
       });
-      const actionSpy = vi
+      const actionSpy = rs
         .spyOn((agent as any).taskExecutor, 'action')
         .mockResolvedValue({
           output: {
@@ -514,7 +514,7 @@ describe('Agent with custom OpenAI client', () => {
       const agent = new Agent(mockInterface, {
         modelConfig: defaultModelConfig,
       });
-      const actionSpy = vi
+      const actionSpy = rs
         .spyOn((agent as any).taskExecutor, 'action')
         .mockResolvedValue({
           output: {
@@ -539,14 +539,14 @@ describe('Agent with custom OpenAI client', () => {
           [MIDSCENE_MODEL_FAMILY]: 'auto-glm',
         },
       });
-      const actionSpy = vi
+      const actionSpy = rs
         .spyOn((agent as any).taskExecutor, 'action')
         .mockResolvedValue({
           output: {
             yamlFlow: [],
           },
         });
-      const warnSpy = vi
+      const warnSpy = rs
         .spyOn(console, 'warn')
         .mockImplementation(() => undefined);
 
@@ -570,14 +570,14 @@ describe('Agent with custom OpenAI client', () => {
           [MIDSCENE_MODEL_FAMILY]: 'auto-glm',
         },
       });
-      const actionSpy = vi
+      const actionSpy = rs
         .spyOn((agent as any).taskExecutor, 'action')
         .mockResolvedValue({
           output: {
             yamlFlow: [],
           },
         });
-      const warnSpy = vi
+      const warnSpy = rs
         .spyOn(console, 'warn')
         .mockImplementation(() => undefined);
 

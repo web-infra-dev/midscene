@@ -1,10 +1,10 @@
 import { ConversationHistory, plan } from '@/ai-model';
 import { getModelRuntime } from '@/ai-model/models';
 import { globalModelConfigManager } from '@midscene/shared/env';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 import { mockActionSpace } from '../../common';
 import { getContextFromFixture } from '../../evaluation';
-vi.setConfig({
+rs.setConfig({
   testTimeout: 180 * 1000,
   hookTimeout: 30 * 1000,
 });

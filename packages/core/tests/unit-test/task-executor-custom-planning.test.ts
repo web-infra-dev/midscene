@@ -1,38 +1,17 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
 
-const serviceCallerMock = vi.hoisted(() => {
-  class AIResponseParseError extends Error {
-    rawResponse?: string;
-    usage?: unknown;
-    rawChoiceMessage?: unknown;
+import * as serviceCallerActual from '@/ai-model/service-caller/index' with {
+  rstest: 'importActual',
+};
 
-    constructor(
-      message: string,
-      rawResponse?: string,
-      usage?: unknown,
-      rawChoiceMessage?: unknown,
-    ) {
-      super(message);
-      this.name = 'AIResponseParseError';
-      this.rawResponse = rawResponse;
-      this.usage = usage;
-      this.rawChoiceMessage = rawChoiceMessage;
-    }
-  }
+const serviceCallerMock = rs.hoisted(() => ({
+  callAIWithStringResponse: rs.fn(),
+}));
 
-  return {
-    AIResponseParseError,
-    callAIWithStringResponse: vi.fn(),
-  };
-});
-
-vi.mock('@/ai-model/service-caller/index', () => {
-  return serviceCallerMock;
-});
-
-vi.mock('../../src/ai-model/service-caller/index', () => {
-  return serviceCallerMock;
-});
+rs.mock('@/ai-model/service-caller/index', () => ({
+  ...serviceCallerActual,
+  ...serviceCallerMock,
+}));
 
 import { TaskExecutor } from '@/agent/tasks';
 import { getMidsceneLocationSchema } from '@/ai-model';
@@ -95,11 +74,11 @@ describe('TaskExecutor custom planning adapters', () => {
   beforeEach(() => {
     mockInterface = {
       interfaceType: 'web',
-      actionSpace: vi.fn(),
+      actionSpace: rs.fn(),
     } as unknown as AbstractInterface;
 
     mockService = {
-      contextRetrieverFn: vi.fn().mockResolvedValue({
+      contextRetrieverFn: rs.fn().mockResolvedValue({
         screenshot: ScreenshotItem.create(validBase64Image, Date.now()),
         shotSize: { width: 1920, height: 1080 },
         shrunkShotToLogicalRatio: 1,
@@ -113,7 +92,7 @@ describe('TaskExecutor custom planning adapters', () => {
   });
 
   afterEach(() => {
-    vi.restoreAllMocks();
+    rs.restoreAllMocks();
   });
 
   it('passes normalized deepLocate through custom planning adapters', async () => {
@@ -127,12 +106,12 @@ describe('TaskExecutor custom planning adapters', () => {
         call: async () => undefined,
       },
     ];
-    mockInterface.actionSpace = vi.fn().mockReturnValue(actionSpace);
+    mockInterface.actionSpace = rs.fn().mockReturnValue(actionSpace);
     taskExecutor = new TaskExecutor(mockInterface, mockService, {
       replanningCycleLimit: 1,
       actionSpace,
     });
-    vi.spyOn(taskExecutor, 'convertPlanToExecutable').mockResolvedValue({
+    rs.spyOn(taskExecutor, 'convertPlanToExecutable').mockResolvedValue({
       tasks: [],
       yamlFlow: [],
     } as any);
@@ -150,8 +129,8 @@ describe('TaskExecutor custom planning adapters', () => {
       },
     ];
     const customPlanningModel = createCustomPlanningModel(plannedActions);
-    vi.mocked(callAIWithStringResponse).mockResolvedValueOnce({ content: '' });
-    const convertSpy = vi.mocked(taskExecutor.convertPlanToExecutable);
+    rs.mocked(callAIWithStringResponse).mockResolvedValueOnce({ content: '' });
+    const convertSpy = rs.mocked(taskExecutor.convertPlanToExecutable);
     await taskExecutor.action(
       'prompt',
       customPlanningModel,

@@ -1,6 +1,6 @@
 import { ConversationHistory } from '@/ai-model';
+import { describe, expect, it } from '@rstest/core';
 import type { ChatCompletionMessageParam } from 'openai/resources/index';
-import { describe, expect, it } from 'vitest';
 
 const userMessage = (content: string) => ({
   role: 'user' as const,

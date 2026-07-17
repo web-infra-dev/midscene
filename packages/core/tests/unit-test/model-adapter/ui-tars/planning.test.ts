@@ -9,18 +9,25 @@ import { runCustomPlanning } from '@/ai-model/workflows/planning/custom-planning
 import type { PlanOptions } from '@/ai-model/workflows/planning/types';
 import type { UIContext } from '@/types';
 import { UITarsModelVersion } from '@midscene/shared/env';
+import { beforeEach, describe, expect, it, rs } from '@rstest/core';
 import type { ChatCompletionUserMessageParam } from 'openai/resources/index';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { mockActionSpace } from '../../../common';
 
-vi.mock('@/ai-model/service-caller/index', async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import('@/ai-model/service-caller/index')>();
-  return {
-    ...actual,
-    callAIWithStringResponse: vi.fn(),
-  };
-});
+// Keep the real `AIResponseParseError` (and every other export) by spreading the
+// actual module; only `callAIWithStringResponse` is stubbed. importActual of the
+// very module being mocked is the safe form -- it does not poison sibling mocks
+// the way importActual of a *different* module can (web-infra-dev/rstest#1581).
+import * as serviceCallerActual from '@/ai-model/service-caller/index' with {
+  rstest: 'importActual',
+};
+
+const serviceCallerMock = rs.hoisted(() => ({
+  callAIWithStringResponse: rs.fn(),
+}));
+rs.mock('@/ai-model/service-caller/index', () => ({
+  ...serviceCallerActual,
+  ...serviceCallerMock,
+}));
 
 const context: UIContext = {
   screenshot: {
@@ -71,7 +78,7 @@ function runUiTarsPlanning(
 
 describe('createUiTarsPlanner', () => {
   beforeEach(() => {
-    vi.mocked(callAIWithStringResponse).mockReset();
+    rs.mocked(callAIWithStringResponse).mockReset();
   });
 
   it('runs UI-TARS planning through the resolved adapter planner', async () => {
@@ -79,7 +86,7 @@ describe('createUiTarsPlanner', () => {
     if (uiTarsAdapter.planning.kind !== 'custom') {
       throw new Error('UI-TARS should use custom planning adapter');
     }
-    vi.mocked(callAIWithStringResponse).mockResolvedValueOnce({
+    rs.mocked(callAIWithStringResponse).mockResolvedValueOnce({
       content: `Thought: Click submit
 Action: click(start_box='(500,500)')`,
     });
@@ -109,13 +116,23 @@ Action: click(start_box='(500,500)')`,
   });
 
   it('stops planning when UI-TARS returns a finished action', async () => {
-    vi.mocked(callAIWithStringResponse).mockResolvedValueOnce({
+    rs.mocked(callAIWithStringResponse).mockResolvedValueOnce({
       content: "finished(content='已经将计数器加到3，任务完成。')",
     });
 
     const result = await runUiTarsPlanning(
       'increase counter to 3',
-      createPlanOptions(),
+      createPlanOptions({
+        actionSpace: [
+          ...mockActionSpace,
+          {
+            name: 'Finished',
+            description: 'The task is finished',
+            paramSchema: undefined,
+            call: async () => {},
+          } as any,
+        ],
+      }),
       UITarsModelVersion.V1_0,
     );
 
@@ -144,7 +161,7 @@ Action: click(start_box='(500,500)')`,
     ];
     const conversationHistory = new ConversationHistory();
 
-    vi.mocked(callAIWithStringResponse).mockResolvedValueOnce({
+    rs.mocked(callAIWithStringResponse).mockResolvedValueOnce({
       content: `Thought: Click submit
 Action: click(start_box='(500,500)')`,
       usage: { total_tokens: 33 } as any,
@@ -162,7 +179,7 @@ Action: click(start_box='(500,500)')`,
       UITarsModelVersion.V1_0,
     );
 
-    const [messages, runtime, callOptions] = vi.mocked(callAIWithStringResponse)
+    const [messages, runtime, callOptions] = rs.mocked(callAIWithStringResponse)
       .mock.calls[0];
     expect(runtime).toBe(modelRuntime);
     expect(callOptions).toEqual({
@@ -199,7 +216,7 @@ Action: click(start_box='(500,500)')`,
   });
 
   it('wraps malformed UI-TARS planning responses with raw response and usage', async () => {
-    vi.mocked(callAIWithStringResponse).mockResolvedValueOnce({
+    rs.mocked(callAIWithStringResponse).mockResolvedValueOnce({
       content: 'Thought: I know what to do, but no action line.',
       usage: { total_tokens: 5 } as any,
       rawChoiceMessage: { role: 'assistant', content: 'bad response' } as any,

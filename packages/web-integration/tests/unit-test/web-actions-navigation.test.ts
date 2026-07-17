@@ -1,5 +1,5 @@
 import type { ExecutorContext } from '@midscene/core';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 import { commonWebActionsForWebPage } from '../../src/web-page';
 
 const mockExecutorContext = { task: {} } as ExecutorContext;
@@ -7,8 +7,8 @@ const mockExecutorContext = { task: {} } as ExecutorContext;
 describe('commonWebActionsForWebPage navigation actions', () => {
   it('exposes forward without exposing stop as an action-space entry', async () => {
     const page = {
-      goForward: vi.fn(async () => undefined),
-      stopLoading: vi.fn(async () => undefined),
+      goForward: rs.fn(async () => undefined),
+      stopLoading: rs.fn(async () => undefined),
     };
     const actions = commonWebActionsForWebPage(page as any);
 
@@ -26,10 +26,10 @@ describe('commonWebActionsForWebPage visual refresh', () => {
   it('schedules the preview refresh after tap actions', async () => {
     const page = {
       mouse: {
-        click: vi.fn(async () => undefined),
+        click: rs.fn(async () => undefined),
       },
-      schedulePendingVisualUpdate: vi.fn(),
-      flushPendingVisualUpdate: vi.fn(async () => undefined),
+      schedulePendingVisualUpdate: rs.fn(),
+      flushPendingVisualUpdate: rs.fn(async () => undefined),
     };
     const actions = commonWebActionsForWebPage(page as any);
 
@@ -45,10 +45,10 @@ describe('commonWebActionsForWebPage visual refresh', () => {
   it('schedules the preview refresh after keyboard-only actions', async () => {
     const page = {
       keyboard: {
-        press: vi.fn(async () => undefined),
+        press: rs.fn(async () => undefined),
       },
-      schedulePendingVisualUpdate: vi.fn(),
-      flushPendingVisualUpdate: vi.fn(async () => undefined),
+      schedulePendingVisualUpdate: rs.fn(),
+      flushPendingVisualUpdate: rs.fn(async () => undefined),
     };
     const actions = commonWebActionsForWebPage(page as any);
 
@@ -64,10 +64,10 @@ describe('commonWebActionsForWebPage visual refresh', () => {
   it('schedules the preview refresh after text input actions', async () => {
     const page = {
       keyboard: {
-        type: vi.fn(async () => undefined),
+        type: rs.fn(async () => undefined),
       },
-      schedulePendingVisualUpdate: vi.fn(),
-      flushPendingVisualUpdate: vi.fn(async () => undefined),
+      schedulePendingVisualUpdate: rs.fn(),
+      flushPendingVisualUpdate: rs.fn(async () => undefined),
     };
     const actions = commonWebActionsForWebPage(page as any);
 
@@ -82,9 +82,9 @@ describe('commonWebActionsForWebPage visual refresh', () => {
 
   it('schedules the preview refresh after scroll actions', async () => {
     const page = {
-      scrollDown: vi.fn(async () => undefined),
-      schedulePendingVisualUpdate: vi.fn(),
-      flushPendingVisualUpdate: vi.fn(async () => undefined),
+      scrollDown: rs.fn(async () => undefined),
+      schedulePendingVisualUpdate: rs.fn(),
+      flushPendingVisualUpdate: rs.fn(async () => undefined),
     };
     const actions = commonWebActionsForWebPage(page as any);
 
@@ -102,9 +102,9 @@ describe('commonWebActionsForWebPage visual refresh', () => {
 
   it('schedules the preview refresh after navigation actions', async () => {
     const page = {
-      navigate: vi.fn(async () => undefined),
-      schedulePendingVisualUpdate: vi.fn(),
-      flushPendingVisualUpdate: vi.fn(async () => undefined),
+      navigate: rs.fn(async () => undefined),
+      schedulePendingVisualUpdate: rs.fn(),
+      flushPendingVisualUpdate: rs.fn(async () => undefined),
     };
     const actions = commonWebActionsForWebPage(page as any);
 
@@ -120,9 +120,9 @@ describe('commonWebActionsForWebPage visual refresh', () => {
   it('passes action-level keyboardTypeDelay to text input actions', async () => {
     const page = {
       keyboard: {
-        type: vi.fn(async () => undefined),
+        type: rs.fn(async () => undefined),
       },
-      schedulePendingVisualUpdate: vi.fn(),
+      schedulePendingVisualUpdate: rs.fn(),
     };
     const actions = commonWebActionsForWebPage(page as any);
 

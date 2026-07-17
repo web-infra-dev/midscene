@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 import { AndroidDevice } from '../../src/device';
 
 const deviceInfo = {
@@ -20,7 +20,7 @@ describe('AndroidDevice scrcpy recovery API', () => {
       retryAfter: Date.now() + 5_000,
     };
     (device as any).scrcpyAdapter = {
-      getStatus: vi.fn().mockReturnValue(status),
+      getStatus: rs.fn().mockReturnValue(status),
     };
 
     expect(device.getScrcpyStatus()).toBe(status);
@@ -37,12 +37,12 @@ describe('AndroidDevice scrcpy recovery API', () => {
       retryAfter: null,
     };
     const adapter = {
-      isEnabled: vi.fn().mockReturnValue(true),
-      initialize: vi.fn().mockResolvedValue(undefined),
-      getStatus: vi.fn().mockReturnValue(status),
+      isEnabled: rs.fn().mockReturnValue(true),
+      initialize: rs.fn().mockResolvedValue(undefined),
+      getStatus: rs.fn().mockReturnValue(status),
     };
     (device as any).scrcpyAdapter = adapter;
-    (device as any).getDevicePhysicalInfo = vi
+    (device as any).getDevicePhysicalInfo = rs
       .fn()
       .mockResolvedValue(deviceInfo);
 

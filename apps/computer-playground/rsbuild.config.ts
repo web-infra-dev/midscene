@@ -56,6 +56,10 @@ export default defineConfig({
       ),
       react: path.resolve(__dirname, 'node_modules/react'),
       'react-dom': path.resolve(__dirname, 'node_modules/react-dom'),
+      // Node-only proxy modules loaded dynamically by @midscene/core behind an
+      // ifInBrowser guard; stub so rspack does not walk their internals.
+      undici: false,
+      'fetch-socks': false,
     },
   },
   output: {

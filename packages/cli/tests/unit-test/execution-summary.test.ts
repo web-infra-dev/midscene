@@ -12,15 +12,15 @@ import {
   type MidsceneYamlConfigResult,
   ReportMergingTool,
 } from '@midscene/core';
-import { afterEach, describe, expect, test, vi } from 'vitest';
+import { afterEach, describe, expect, rs, test } from '@rstest/core';
 import {
   printExecutionPlan,
   printExecutionSummary,
   writeExecutionSummaryFile,
 } from '../../src/execution-summary';
 
-const consoleLog = vi.spyOn(console, 'log').mockImplementation(() => {});
-const consoleWarn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+const consoleLog = rs.spyOn(console, 'log').mockImplementation(() => {});
+const consoleWarn = rs.spyOn(console, 'warn').mockImplementation(() => {});
 
 const writeFakeReport = (
   file: string,
@@ -296,7 +296,7 @@ describe('execution summary', () => {
     writeFileSync(yaml, 'web:\n  url: about:blank\ntasks: []\n');
     writeFakeReport(attemptOneReport, 'attempt-one', 'failed-before-retry');
     writeFakeReport(attemptTwoReport, 'attempt-two', 'failed-after-retry');
-    const mergeReports = vi
+    const mergeReports = rs
       .spyOn(ReportMergingTool.prototype, 'mergeReports')
       .mockImplementationOnce(() => {
         throw new Error('merge failed');
@@ -344,7 +344,7 @@ describe('execution summary', () => {
         expect.stringContaining('Failed to merge retry attempt report'),
       );
       expect(mergeReports).toHaveBeenCalled();
-      await vi.waitFor(() => {
+      await rs.waitFor(() => {
         expect(existsSync(join(runDir, 'log', 'execution-summary.log'))).toBe(
           true,
         );

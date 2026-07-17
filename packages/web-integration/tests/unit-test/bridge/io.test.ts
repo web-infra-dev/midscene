@@ -1,7 +1,7 @@
 import { BridgeSignalKill } from '@/bridge-mode/common';
 import { BridgeClient } from '@/bridge-mode/io-client';
 import { BridgeServer, killRunningServer } from '@/bridge-mode/io-server';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 
 const DEFAULT_HOST = '127.0.0.1';
 let testPort = 1234;
@@ -35,7 +35,7 @@ describe('bridge-io', () => {
     // client should be closed automatically
     // client.disconnect();
 
-    const onDisconnect = vi.fn();
+    const onDisconnect = rs.fn();
     const client2 = new BridgeClient(
       `ws://localhost:${port}`,
       (method, args) => {
@@ -152,7 +152,7 @@ describe('bridge-io', () => {
     const server = new BridgeServer(DEFAULT_HOST, port);
     await server.listen();
 
-    const fn = vi.fn();
+    const fn = rs.fn();
 
     const client = new BridgeClient(
       `ws://localhost:${port}`,
@@ -173,8 +173,8 @@ describe('bridge-io', () => {
 
   it('client close before server', async () => {
     const port = testPort++;
-    const onConnect = vi.fn();
-    const onDisconnect = vi.fn();
+    const onConnect = rs.fn();
+    const onDisconnect = rs.fn();
     const server = new BridgeServer(
       DEFAULT_HOST,
       port,

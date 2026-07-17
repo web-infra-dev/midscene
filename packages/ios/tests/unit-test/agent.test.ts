@@ -1,3 +1,4 @@
+import path from 'node:path';
 import {
   MIDSCENE_IOS_DEVICE_CLASS_OVERRIDE,
   MIDSCENE_MODEL_NAME,
@@ -5,19 +6,19 @@ import {
   OPENAI_API_KEY,
   OPENAI_BASE_URL,
 } from '@midscene/shared/env';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
 import { IOSAgent, agentFromWebDriverAgent } from '../../src/agent';
 import { IOSDevice } from '../../src/device';
 
 // Mock dependencies
-vi.mock('../../src/device');
+rs.mock('../../src/device');
 
-const MockedIOSDevice = vi.mocked(IOSDevice);
-const doMockVirtual = vi.doMock as unknown as (
-  path: string,
-  factory: () => unknown,
-  options: { virtual: true },
-) => void;
+const MockedIOSDevice = rs.mocked(IOSDevice);
+
+declare global {
+  var __iosOverrideConnectFromOption: number | undefined;
+  var __iosOverrideConnectFromEnv: number | undefined;
+}
 
 const mockedModelConfig = {
   MIDSCENE_MODEL_NAME: 'mock',
@@ -32,10 +33,10 @@ describe('IOSAgent', () => {
 
   beforeEach(() => {
     // Set up environment variables for AI model
-    vi.stubEnv(MIDSCENE_USE_DOUBAO_VISION, 'true');
-    vi.stubEnv(MIDSCENE_MODEL_NAME, 'mock');
-    vi.stubEnv(OPENAI_API_KEY, 'mock');
-    vi.stubEnv(OPENAI_BASE_URL, 'mock');
+    rs.stubEnv(MIDSCENE_USE_DOUBAO_VISION, 'true');
+    rs.stubEnv(MIDSCENE_MODEL_NAME, 'mock');
+    rs.stubEnv(OPENAI_API_KEY, 'mock');
+    rs.stubEnv(OPENAI_BASE_URL, 'mock');
 
     // Create a valid 1x1 PNG image in base64 with data URI prefix
     // This is a minimal valid PNG image (1x1 transparent pixel)
@@ -44,16 +45,16 @@ describe('IOSAgent', () => {
 
     // Create a mock device with actionSpace
     mockDevice = {
-      connect: vi.fn().mockResolvedValue(undefined),
-      launch: vi.fn().mockResolvedValue(undefined),
-      terminate: vi.fn().mockResolvedValue(undefined),
-      destroy: vi.fn().mockResolvedValue(undefined),
-      runWdaRequest: vi.fn().mockResolvedValue({ success: true }),
-      screenshotBase64: vi.fn().mockResolvedValue(validPngBase64),
-      size: vi.fn().mockResolvedValue({ width: 375, height: 812 }),
-      getElementsInfo: vi.fn().mockResolvedValue([]),
-      url: vi.fn().mockResolvedValue('https://example.com'),
-      actionSpace: vi.fn().mockReturnValue([
+      connect: rs.fn().mockResolvedValue(undefined),
+      launch: rs.fn().mockResolvedValue(undefined),
+      terminate: rs.fn().mockResolvedValue(undefined),
+      destroy: rs.fn().mockResolvedValue(undefined),
+      runWdaRequest: rs.fn().mockResolvedValue({ success: true }),
+      screenshotBase64: rs.fn().mockResolvedValue(validPngBase64),
+      size: rs.fn().mockResolvedValue({ width: 375, height: 812 }),
+      getElementsInfo: rs.fn().mockResolvedValue([]),
+      url: rs.fn().mockResolvedValue('https://example.com'),
+      actionSpace: rs.fn().mockReturnValue([
         {
           name: 'Launch',
           paramSchema: undefined,
@@ -80,7 +81,7 @@ describe('IOSAgent', () => {
           },
         },
       ]),
-      setAppNameMapping: vi.fn(),
+      setAppNameMapping: rs.fn(),
     };
 
     MockedIOSDevice.mockImplementation(() => mockDevice as IOSDevice);
@@ -91,8 +92,8 @@ describe('IOSAgent', () => {
   });
 
   afterEach(() => {
-    vi.clearAllMocks();
-    vi.unstubAllEnvs();
+    rs.clearAllMocks();
+    rs.unstubAllEnvs();
   });
 
   describe('Constructor', () => {
@@ -118,7 +119,7 @@ describe('IOSAgent', () => {
 
     it('should handle launch errors from actionSpace', async () => {
       const error = new Error('Launch failed');
-      mockDevice.launch = vi.fn().mockRejectedValue(error);
+      mockDevice.launch = rs.fn().mockRejectedValue(error);
 
       await expect(agent.launch('com.invalid.app')).rejects.toThrow(
         'Launch failed',
@@ -138,7 +139,7 @@ describe('IOSAgent', () => {
 
     it('should handle terminate errors from actionSpace', async () => {
       const error = new Error('Terminate failed');
-      mockDevice.terminate = vi.fn().mockRejectedValue(error);
+      mockDevice.terminate = rs.fn().mockRejectedValue(error);
 
       await expect(agent.terminate('com.invalid.app')).rejects.toThrow(
         'Terminate failed',
@@ -162,7 +163,7 @@ describe('IOSAgent', () => {
         value: { state: string };
       }
       const mockResponse: StatusResponse = { value: { state: 'ready' } };
-      mockDevice.runWdaRequest = vi.fn().mockResolvedValue(mockResponse);
+      mockDevice.runWdaRequest = rs.fn().mockResolvedValue(mockResponse);
 
       await agent.runWdaRequest({ method: 'GET', endpoint: '/status' });
 
@@ -175,7 +176,7 @@ describe('IOSAgent', () => {
 
     it('should pass data parameter correctly', async () => {
       const requestData = { key: 'value' };
-      mockDevice.runWdaRequest = vi.fn().mockResolvedValue({ success: true });
+      mockDevice.runWdaRequest = rs.fn().mockResolvedValue({ success: true });
 
       await agent.runWdaRequest({
         method: 'POST',
@@ -193,13 +194,13 @@ describe('IOSAgent', () => {
 
   describe('agentFromWebDriverAgent', () => {
     it('should create default IOSDevice when no override is provided', async () => {
-      const connectSpy = vi.fn().mockResolvedValue(undefined);
+      const connectSpy = rs.fn().mockResolvedValue(undefined);
       MockedIOSDevice.mockImplementationOnce(
         () =>
           ({
             connect: connectSpy,
-            actionSpace: vi.fn().mockReturnValue([]),
-            setAppNameMapping: vi.fn(),
+            actionSpace: rs.fn().mockReturnValue([]),
+            setAppNameMapping: rs.fn(),
           }) as unknown as IOSDevice,
       );
 
@@ -209,56 +210,44 @@ describe('IOSAgent', () => {
       expect(connectSpy).toHaveBeenCalledTimes(1);
     });
 
+    // `agent.ts` loads the override via a genuinely dynamic
+    // `await import(overrideModule)` where `overrideModule` is a user-supplied
+    // runtime value, so it cannot be turned into a static literal nor mocked
+    // through rstest's build-time transform. Instead of mocking, point the
+    // override at a real on-disk fixture module and observe its `connect()` via
+    // a global counter (robust across the rstest-registry / native-loader module
+    // realm split).
     it('should load override device class from documented option', async () => {
-      const connectSpy = vi.fn().mockResolvedValue(undefined);
-      const actionSpaceSpy = vi.fn().mockReturnValue([]);
-      const setAppNameMappingSpy = vi.fn();
-      const moduleName = 'test-ios-device-override';
-
-      doMockVirtual(
-        moduleName,
-        () => ({
-          IOSDevice: class {
-            connect = connectSpy;
-            actionSpace = actionSpaceSpy;
-            setAppNameMapping = setAppNameMappingSpy;
-          },
-        }),
-        { virtual: true },
+      const fixture = path.join(
+        __dirname,
+        'fixtures',
+        'ios-device-override.mjs',
       );
+      globalThis.__iosOverrideConnectFromOption = 0;
 
       await agentFromWebDriverAgent({
         modelConfig: mockedModelConfig,
-        iOSDeviceClassOverride: moduleName,
+        iOSDeviceClassOverride: fixture,
       });
 
-      expect(connectSpy).toHaveBeenCalledTimes(1);
-      vi.doUnmock(moduleName);
+      expect(globalThis.__iosOverrideConnectFromOption).toBe(1);
+      // the default device class must not be used when an override is provided
+      expect(MockedIOSDevice).not.toHaveBeenCalled();
     });
 
     it('should load override device class from env', async () => {
-      const connectSpy = vi.fn().mockResolvedValue(undefined);
-      const actionSpaceSpy = vi.fn().mockReturnValue([]);
-      const setAppNameMappingSpy = vi.fn();
-      const moduleName = 'test-ios-device-override-env';
-      vi.stubEnv(MIDSCENE_IOS_DEVICE_CLASS_OVERRIDE, moduleName);
-
-      doMockVirtual(
-        moduleName,
-        () => ({
-          default: class {
-            connect = connectSpy;
-            actionSpace = actionSpaceSpy;
-            setAppNameMapping = setAppNameMappingSpy;
-          },
-        }),
-        { virtual: true },
+      const fixture = path.join(
+        __dirname,
+        'fixtures',
+        'ios-device-override-env.mjs',
       );
+      rs.stubEnv(MIDSCENE_IOS_DEVICE_CLASS_OVERRIDE, fixture);
+      globalThis.__iosOverrideConnectFromEnv = 0;
 
       await agentFromWebDriverAgent({ modelConfig: mockedModelConfig });
 
-      expect(connectSpy).toHaveBeenCalledTimes(1);
-      vi.doUnmock(moduleName);
+      expect(globalThis.__iosOverrideConnectFromEnv).toBe(1);
+      expect(MockedIOSDevice).not.toHaveBeenCalled();
     });
 
     it('should throw clear error when override package is missing', async () => {

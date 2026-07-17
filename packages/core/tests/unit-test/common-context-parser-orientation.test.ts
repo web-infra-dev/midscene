@@ -1,40 +1,40 @@
 import { commonContextParser } from '@/agent/utils';
 import type { AbstractInterface } from '@/device';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, rs } from '@rstest/core';
 
 // Mock imageInfoOfBase64 to control screenshot dimensions
-vi.mock('@midscene/shared/img', () => ({
-  convertImgBufferToJpeg: vi.fn(),
-  createImgBase64ByFormat: vi.fn(),
-  imageInfoOfBase64: vi.fn(),
-  parseBase64: vi.fn(() => ({
+rs.mock('@midscene/shared/img', () => ({
+  convertImgBufferToJpeg: rs.fn(),
+  createImgBase64ByFormat: rs.fn(),
+  imageInfoOfBase64: rs.fn(),
+  parseBase64: rs.fn(() => ({
     mimeType: 'image/jpeg',
     body: 'mock-base64-data',
   })),
-  resizeImgBase64: vi.fn().mockResolvedValue('mock-resized-base64-data'),
+  resizeImgBase64: rs.fn().mockResolvedValue('mock-resized-base64-data'),
 }));
 
 import { imageInfoOfBase64 } from '@midscene/shared/img';
 
-const mockedImageInfo = vi.mocked(imageInfoOfBase64);
+const mockedImageInfo = rs.mocked(imageInfoOfBase64);
 
 function createMockInterface(
   logicalWidth: number,
   logicalHeight: number,
 ): AbstractInterface {
   return {
-    screenshotBase64: vi.fn().mockResolvedValue('mock-base64-data'),
-    size: vi
+    screenshotBase64: rs.fn().mockResolvedValue('mock-base64-data'),
+    size: rs
       .fn()
       .mockResolvedValue({ width: logicalWidth, height: logicalHeight }),
-    actionSpace: vi.fn(() => []),
-    describe: vi.fn(() => ''),
+    actionSpace: rs.fn(() => []),
+    describe: rs.fn(() => ''),
   } as unknown as AbstractInterface;
 }
 
 describe('commonContextParser orientation mismatch detection', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    rs.clearAllMocks();
   });
 
   it('should compute correct dpr when logical size and screenshot have same orientation (both portrait)', async () => {

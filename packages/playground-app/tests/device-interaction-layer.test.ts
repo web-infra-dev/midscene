@@ -1,8 +1,8 @@
 /** @vitest-environment jsdom */
 import { PREVIEW_WHEEL_SCROLL_BATCH_DELAY_MS } from '@midscene/shared/constants';
+import { afterEach, beforeAll, describe, expect, it, rs } from '@rstest/core';
 import { act, createElement, createRef } from 'react';
 import { createRoot } from 'react-dom/client';
-import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import {
   DeviceInteractionLayer,
   inscribedContentRect,
@@ -19,8 +19,8 @@ beforeAll(() => {
 
 afterEach(() => {
   document.body.innerHTML = '';
-  vi.restoreAllMocks();
-  vi.useRealTimers();
+  rs.restoreAllMocks();
+  rs.useRealTimers();
 });
 
 function createDeferred<T>() {
@@ -119,9 +119,9 @@ describe('DeviceInteractionLayer keyboard capture', () => {
   async function renderKeyboardLayer(
     props: Partial<React.ComponentProps<typeof DeviceInteractionLayer>> = {},
   ) {
-    const onTextInput = vi.fn();
-    const onKeyboardPress = vi.fn();
-    const onTap = vi.fn();
+    const onTextInput = rs.fn();
+    const onKeyboardPress = rs.fn();
+    const onTap = rs.fn();
     const container = document.createElement('div');
     document.body.appendChild(container);
     const root = createRoot(container);
@@ -145,11 +145,11 @@ describe('DeviceInteractionLayer keyboard capture', () => {
     ) as HTMLDivElement;
     Object.defineProperty(overlay, 'setPointerCapture', {
       configurable: true,
-      value: vi.fn(),
+      value: rs.fn(),
     });
     Object.defineProperty(overlay, 'releasePointerCapture', {
       configurable: true,
-      value: vi.fn(),
+      value: rs.fn(),
     });
     Object.defineProperty(overlay, 'getBoundingClientRect', {
       configurable: true,
@@ -225,9 +225,9 @@ describe('DeviceInteractionLayer keyboard capture', () => {
   });
 
   it('refocuses the keyboard sink after an async tap steals focus', async () => {
-    vi.useFakeTimers();
+    rs.useFakeTimers();
     const tapDeferred = createDeferred<void>();
-    const onTap = vi.fn(() => tapDeferred.promise);
+    const onTap = rs.fn(() => tapDeferred.promise);
     const hostInput = document.createElement('input');
     document.body.appendChild(hostInput);
     const { keyboardSink, onTextInput, overlay, root } =
@@ -262,7 +262,7 @@ describe('DeviceInteractionLayer keyboard capture', () => {
       await Promise.resolve();
     });
     await act(async () => {
-      vi.runOnlyPendingTimers();
+      rs.runOnlyPendingTimers();
     });
 
     expect(document.activeElement).toBe(keyboardSink);
@@ -492,9 +492,9 @@ describe('DeviceInteractionLayer contentRef projection', () => {
   } as const;
 
   async function renderWithContentRef(options: {
-    onTap: ReturnType<typeof vi.fn>;
+    onTap: ReturnType<typeof rs.fn>;
     withContentRef: boolean;
-    onWheelScroll?: ReturnType<typeof vi.fn>;
+    onWheelScroll?: ReturnType<typeof rs.fn>;
   }) {
     const container = document.createElement('div');
     document.body.appendChild(container);
@@ -526,11 +526,11 @@ describe('DeviceInteractionLayer contentRef projection', () => {
     ) as HTMLDivElement;
     Object.defineProperty(overlay, 'setPointerCapture', {
       configurable: true,
-      value: vi.fn(),
+      value: rs.fn(),
     });
     Object.defineProperty(overlay, 'releasePointerCapture', {
       configurable: true,
-      value: vi.fn(),
+      value: rs.fn(),
     });
     Object.defineProperty(overlay, 'getBoundingClientRect', {
       configurable: true,
@@ -541,7 +541,7 @@ describe('DeviceInteractionLayer contentRef projection', () => {
   }
 
   it('projects taps against the screen-mirror box, not the surrounding overlay', async () => {
-    const onTap = vi.fn();
+    const onTap = rs.fn();
     const { overlay, root } = await renderWithContentRef({
       onTap,
       withContentRef: true,
@@ -578,7 +578,7 @@ describe('DeviceInteractionLayer contentRef projection', () => {
   });
 
   it('falls back to the overlay rect when no contentRef is passed', async () => {
-    const onTap = vi.fn();
+    const onTap = rs.fn();
     const { overlay, root } = await renderWithContentRef({
       onTap,
       withContentRef: false,
@@ -619,9 +619,9 @@ describe('DeviceInteractionLayer contentRef projection', () => {
   });
 
   it('projects wheel scroll against the screen-mirror box', async () => {
-    vi.useFakeTimers();
-    const onTap = vi.fn();
-    const onWheelScroll = vi.fn();
+    rs.useFakeTimers();
+    const onTap = rs.fn();
+    const onWheelScroll = rs.fn();
     const { overlay, root } = await renderWithContentRef({
       onTap,
       onWheelScroll,
@@ -639,7 +639,7 @@ describe('DeviceInteractionLayer contentRef projection', () => {
           deltaY: 120,
         }),
       );
-      vi.advanceTimersByTime(PREVIEW_WHEEL_SCROLL_BATCH_DELAY_MS + 10);
+      rs.advanceTimersByTime(PREVIEW_WHEEL_SCROLL_BATCH_DELAY_MS + 10);
     });
 
     expect(onWheelScroll).toHaveBeenCalledWith(
@@ -650,6 +650,6 @@ describe('DeviceInteractionLayer contentRef projection', () => {
     await act(async () => {
       root.unmount();
     });
-    vi.useRealTimers();
+    rs.useRealTimers();
   });
 });

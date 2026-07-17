@@ -1,23 +1,23 @@
-import { beforeEach, describe, expect, test, vi } from 'vitest';
+import { beforeEach, describe, expect, rs, test } from '@rstest/core';
 
-const checkAccessibilityPermissionMock = vi.fn();
-const checkScreenRecordingPermissionMock = vi.fn();
-const getConnectedDisplaysMock = vi.fn();
-const agentFromComputerMock = vi.fn();
-const findAvailablePortMock = vi.fn(async (port: number) => port);
+const checkAccessibilityPermissionMock = rs.fn();
+const checkScreenRecordingPermissionMock = rs.fn();
+const getConnectedDisplaysMock = rs.fn();
+const agentFromComputerMock = rs.fn();
+const findAvailablePortMock = rs.fn(async (port: number) => port);
 
-vi.mock('@midscene/computer', () => ({
+rs.mock('@midscene/computer', () => ({
   agentFromComputer: agentFromComputerMock,
   checkAccessibilityPermission: checkAccessibilityPermissionMock,
   checkScreenRecordingPermission: checkScreenRecordingPermissionMock,
   getConnectedDisplays: getConnectedDisplaysMock,
 }));
 
-vi.mock('@midscene/shared/node', () => ({
+rs.mock('@midscene/shared/node', () => ({
   findAvailablePort: findAvailablePortMock,
 }));
 
-vi.mock('@midscene/playground', () => ({
+rs.mock('@midscene/playground', () => ({
   definePlaygroundPlatform: (descriptor: unknown) => descriptor,
   createScreenshotPreviewDescriptor: (
     overrides: Record<string, unknown> = {},
@@ -30,7 +30,7 @@ vi.mock('@midscene/playground', () => ({
 
 describe('computerPlaygroundPlatform session manager', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    rs.clearAllMocks();
     checkScreenRecordingPermissionMock.mockReturnValue({
       hasPermission: true,
     });
@@ -91,9 +91,9 @@ describe('computerPlaygroundPlatform session manager', () => {
         interfaceType: 'computer',
         describe: () => 'Desktop',
         actionSpace: () => [],
-        screenshotBase64: vi.fn(async () => 'screenshot'),
+        screenshotBase64: rs.fn(async () => 'screenshot'),
       },
-      destroy: vi.fn(),
+      destroy: rs.fn(),
     });
 
     const { computerPlaygroundPlatform } = await import('../../src/platform');

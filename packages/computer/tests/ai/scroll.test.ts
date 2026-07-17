@@ -1,10 +1,10 @@
 import { execSync } from 'node:child_process';
 import { resolve } from 'node:path';
 import { sleep } from '@midscene/core/utils';
-import { beforeAll, describe, it, vi } from 'vitest';
+import { beforeAll, describe, it, rs } from '@rstest/core';
 import { ComputerAgent, ComputerDevice } from '../../src';
 
-vi.setConfig({
+rs.setConfig({
   testTimeout: 360 * 1000,
 });
 

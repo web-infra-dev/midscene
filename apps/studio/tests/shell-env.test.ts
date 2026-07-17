@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, rs } from '@rstest/core';
 import {
   configureStudioShellEnvHydration,
   ensureStudioShellEnvHydrated,
@@ -22,7 +22,7 @@ afterEach(() => {
 describe('hydrateLoginShellEnv', () => {
   it('skips non-packaged runs (dev already inherits shell env)', () => {
     const env: NodeJS.ProcessEnv = {};
-    const runShell = vi.fn();
+    const runShell = rs.fn();
     const result = hydrateLoginShellEnv({
       isPackaged: false,
       platform: 'darwin',
@@ -38,7 +38,7 @@ describe('hydrateLoginShellEnv', () => {
   });
 
   it('skips Windows (GUI launches inherit env there)', () => {
-    const runShell = vi.fn();
+    const runShell = rs.fn();
     const result = hydrateLoginShellEnv({
       isPackaged: true,
       platform: 'win32',
@@ -119,7 +119,7 @@ describe('hydrateLoginShellEnv', () => {
   });
 
   it('reports shell-failed without throwing when the spawn rejects', () => {
-    const log = vi.fn();
+    const log = rs.fn();
     const env: NodeJS.ProcessEnv = {};
     const result = hydrateLoginShellEnv({
       isPackaged: true,
@@ -164,7 +164,7 @@ describe('ensureStudioShellEnvHydrated', () => {
   });
 
   it('hydrates at most once after configuration', () => {
-    const runShell = vi.fn(() =>
+    const runShell = rs.fn(() =>
       fakeShellOutput({
         PATH: '/opt/homebrew/bin:/usr/bin:/bin',
         ANDROID_HOME: '/sdk',

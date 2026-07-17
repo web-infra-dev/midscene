@@ -6,8 +6,8 @@ import React, {
   useRef,
 } from 'react';
 
-// The package-local Vitest setup still uses the classic JSX runtime for this
-// source file, so keep a runtime React binding even though the component code
+// The rstest build transform still compiles this source file with the classic
+// JSX runtime, so keep a runtime React binding even though the component code
 // only references React types explicitly.
 void React;
 

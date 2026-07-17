@@ -1,20 +1,20 @@
+import { afterEach, describe, expect, it, rs } from '@rstest/core';
 // @vitest-environment jsdom
 import { act, cloneElement, createElement, isValidElement } from 'react';
 import type { ComponentProps, ReactElement, ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { afterEach, describe, expect, it, vi } from 'vitest';
 
-const mocks = vi.hoisted(() => ({
+const mocks = rs.hoisted(() => ({
   playground: null as any,
   recorder: null as any,
   truncated: false,
 }));
 
-vi.mock('antd', () => {
+rs.mock('antd', () => {
   const message = {
-    error: vi.fn(),
-    info: vi.fn(),
-    success: vi.fn(),
+    error: rs.fn(),
+    info: rs.fn(),
+    success: rs.fn(),
   };
 
   return {
@@ -52,7 +52,7 @@ vi.mock('antd', () => {
   };
 });
 
-vi.mock('@midscene/recorder', () => ({
+rs.mock('@midscene/recorder', () => ({
   RecordTimeline: ({ events }: { events: Array<{ actionSummary?: string }> }) =>
     createElement(
       'div',
@@ -63,23 +63,23 @@ vi.mock('@midscene/recorder', () => ({
     ),
 }));
 
-vi.mock('@midscene/shared/recorder', () => ({
+rs.mock('@midscene/shared/recorder', () => ({
   getMidsceneRecorderEventDescription: () => '',
   getMidsceneRecorderSemantic: () => null,
 }));
 
-vi.mock('@midscene/visualizer', () => ({
+rs.mock('@midscene/visualizer', () => ({
   useTextTruncation: () => ({
     ref: { current: null },
     truncated: mocks.truncated,
   }),
 }));
 
-vi.mock('../src/renderer/playground/useStudioPlayground', () => ({
+rs.mock('../src/renderer/playground/useStudioPlayground', () => ({
   useStudioPlayground: () => mocks.playground,
 }));
 
-vi.mock('../src/renderer/recorder/useStudioRecorder', () => ({
+rs.mock('../src/renderer/recorder/useStudioRecorder', () => ({
   useStudioRecorder: () => mocks.recorder,
 }));
 
@@ -133,27 +133,27 @@ function createRecorderMock({
     canStartRecording: true,
     currentSession: currentSession ?? null,
     currentTarget: session.target,
-    deleteSession: vi.fn(),
-    exportAllZip: vi.fn(),
-    exportSessionCode: vi.fn(),
-    generateSessionCode: vi.fn(),
-    getRecorderScreenshotAssetUrl: vi.fn(() => null),
-    loadSessionScreenshots: vi.fn(async (sessionId: string) => {
+    deleteSession: rs.fn(),
+    exportAllZip: rs.fn(),
+    exportSessionCode: rs.fn(),
+    generateSessionCode: rs.fn(),
+    getRecorderScreenshotAssetUrl: rs.fn(() => null),
+    loadSessionScreenshots: rs.fn(async (sessionId: string) => {
       const matchingSession = [currentSession, session].find(
         (item) => item?.id === sessionId,
       );
       return matchingSession?.events ?? [];
     }),
-    renameSession: vi.fn(async () => undefined),
-    selectSession: vi.fn(),
-    startRecording: vi.fn(),
+    renameSession: rs.fn(async () => undefined),
+    selectSession: rs.fn(),
+    startRecording: rs.fn(),
     state: {
       error: null,
       initializing: false,
       isRecording,
       sessions: [session],
     },
-    stopRecording: vi.fn(),
+    stopRecording: rs.fn(),
   };
 }
 
@@ -176,19 +176,19 @@ async function renderReplayPanel({
   activeSessionStoppable = false,
   onDeleteSession,
   onDownloadSession,
-  onReplaySession = vi.fn(),
-  onSelectSession = vi.fn(),
+  onReplaySession = rs.fn(),
+  onSelectSession = rs.fn(),
   onStopActiveSession,
   selectedSessionId = null,
   sessions = createRecorderMock().state.sessions,
 }: {
   activeSessionId?: string | null;
   activeSessionStoppable?: boolean;
-  onDeleteSession?: ReturnType<typeof vi.fn>;
-  onDownloadSession?: ReturnType<typeof vi.fn>;
-  onReplaySession?: ReturnType<typeof vi.fn>;
-  onSelectSession?: ReturnType<typeof vi.fn>;
-  onStopActiveSession?: ReturnType<typeof vi.fn>;
+  onDeleteSession?: ReturnType<typeof rs.fn>;
+  onDownloadSession?: ReturnType<typeof rs.fn>;
+  onReplaySession?: ReturnType<typeof rs.fn>;
+  onSelectSession?: ReturnType<typeof rs.fn>;
+  onStopActiveSession?: ReturnType<typeof rs.fn>;
   selectedSessionId?: string | null;
   sessions?: any[];
 } = {}) {
@@ -225,7 +225,7 @@ describe('StudioRecorderPanel', () => {
   afterEach(() => {
     document.body.replaceChildren();
     mocks.truncated = false;
-    vi.restoreAllMocks();
+    rs.restoreAllMocks();
   });
 
   it('starts without the initial empty timeline panel or recorder history controls', async () => {
@@ -268,7 +268,7 @@ describe('StudioRecorderPanel', () => {
   });
 
   it('scrolls the record timeline to the newest event', async () => {
-    vi.useFakeTimers();
+    rs.useFakeTimers();
     const session = createRecorderMock().state.sessions[0];
     mocks.recorder = createRecorderMock({
       currentSession: session,
@@ -295,17 +295,17 @@ describe('StudioRecorderPanel', () => {
     });
 
     await act(async () => {
-      vi.runAllTimers();
+      rs.runAllTimers();
     });
 
     expect(timeline?.scrollTop).toBe(480);
 
     await unmount(root);
-    vi.useRealTimers();
+    rs.useRealTimers();
   });
 
   it('scrolls again after stop actions expand the timeline footer', async () => {
-    vi.useFakeTimers();
+    rs.useFakeTimers();
     const session = createRecorderMock().state.sessions[0];
     mocks.recorder = createRecorderMock({
       currentSession: session,
@@ -344,13 +344,13 @@ describe('StudioRecorderPanel', () => {
     timeline!.scrollTop = 0;
 
     await act(async () => {
-      vi.runAllTimers();
+      rs.runAllTimers();
     });
 
     expect(timeline?.scrollTop).toBe(560);
 
     await unmount(root);
-    vi.useRealTimers();
+    rs.useRealTimers();
   });
 
   it('numbers screenshots independently from timeline events without images', async () => {
@@ -459,8 +459,8 @@ describe('StudioRecorderPanel', () => {
 
   it('renders saved recordings in the replay panel', async () => {
     const session = createRecorderMock().state.sessions[0];
-    const onReplaySession = vi.fn();
-    const onSelectSession = vi.fn();
+    const onReplaySession = rs.fn();
+    const onSelectSession = rs.fn();
     const { container, root } = await renderReplayPanel({
       onReplaySession,
       onSelectSession,
@@ -554,8 +554,8 @@ describe('StudioRecorderPanel', () => {
 
   it('renders a stop control for the active stoppable replay session', async () => {
     const session = createRecorderMock().state.sessions[0];
-    const onReplaySession = vi.fn();
-    const onStopActiveSession = vi.fn();
+    const onReplaySession = rs.fn();
+    const onStopActiveSession = rs.fn();
     const { container, root } = await renderReplayPanel({
       activeSessionId: session.id,
       activeSessionStoppable: true,
@@ -586,8 +586,8 @@ describe('StudioRecorderPanel', () => {
 
   it('renders fixed replay history item actions for download and delete', async () => {
     const session = createRecorderMock().state.sessions[0];
-    const onDeleteSession = vi.fn();
-    const onDownloadSession = vi.fn();
+    const onDeleteSession = rs.fn();
+    const onDownloadSession = rs.fn();
     const { container, root } = await renderReplayPanel({
       onDeleteSession,
       onDownloadSession,
@@ -643,8 +643,8 @@ describe('StudioRecorderPanel', () => {
   it('closes replay history actions when clicking outside', async () => {
     const session = createRecorderMock().state.sessions[0];
     const { container, root } = await renderReplayPanel({
-      onDeleteSession: vi.fn(),
-      onDownloadSession: vi.fn(),
+      onDeleteSession: rs.fn(),
+      onDownloadSession: rs.fn(),
       sessions: [session],
     });
 
@@ -794,7 +794,7 @@ describe('StudioRecorderPanel', () => {
       },
       phase: 'ready',
     };
-    const onShowScreenshots = vi.fn();
+    const onShowScreenshots = rs.fn();
     const { container, root } = await renderRecorderPanel({
       onShowScreenshots,
     });
@@ -1131,8 +1131,8 @@ describe('StudioRecorderPanel', () => {
       isRecording: true,
       sessionOverrides: currentSession,
     });
-    mocks.recorder.stopRecording = vi.fn(() => stopRecordingPromise);
-    mocks.recorder.generateSessionCode = vi.fn(async () => '# Generated');
+    mocks.recorder.stopRecording = rs.fn(() => stopRecordingPromise);
+    mocks.recorder.generateSessionCode = rs.fn(async () => '# Generated');
     mocks.playground = {
       controller: {
         state: {
@@ -1143,7 +1143,7 @@ describe('StudioRecorderPanel', () => {
       phase: 'ready',
     };
 
-    const onShowMarkdown = vi.fn();
+    const onShowMarkdown = rs.fn();
     const { container, root } = await renderRecorderPanel({ onShowMarkdown });
 
     const stopButton = container.querySelector(

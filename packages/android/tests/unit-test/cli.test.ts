@@ -7,18 +7,18 @@
  * handler-level unit tests by locking down the CLI argument plumbing.
  */
 import { runToolsCLI } from '@midscene/shared/cli';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
 import { agentFromAdbDevice } from '../../src/agent';
 import { AndroidMidsceneTools } from '../../src/agent-tools';
 
-vi.mock('../../src/agent', () => ({
-  agentFromAdbDevice: vi.fn(),
+rs.mock('../../src/agent', () => ({
+  agentFromAdbDevice: rs.fn(),
 }));
 
-vi.mock('../../src/device', () => ({
-  AndroidDevice: vi.fn().mockImplementation(() => ({
-    actionSpace: vi.fn().mockReturnValue([]),
-    destroy: vi.fn(),
+rs.mock('../../src/device', () => ({
+  AndroidDevice: rs.fn().mockImplementation(() => ({
+    actionSpace: rs.fn().mockReturnValue([]),
+    destroy: rs.fn(),
   })),
 }));
 
@@ -28,29 +28,29 @@ const validPngBase64 =
 function createMockAgent() {
   return {
     page: {
-      screenshotBase64: vi.fn().mockResolvedValue(validPngBase64),
+      screenshotBase64: rs.fn().mockResolvedValue(validPngBase64),
     },
-    aiAction: vi.fn().mockResolvedValue('done'),
-    destroy: vi.fn(),
+    aiAction: rs.fn().mockResolvedValue('done'),
+    destroy: rs.fn(),
   };
 }
 
 describe('Android CLI integration', () => {
-  let consoleLogSpy: ReturnType<typeof vi.spyOn>;
-  let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
+  let consoleLogSpy: ReturnType<typeof rs.spyOn>;
+  let consoleErrorSpy: ReturnType<typeof rs.spyOn>;
 
   beforeEach(() => {
-    vi.mocked(agentFromAdbDevice).mockResolvedValue(createMockAgent() as any);
+    rs.mocked(agentFromAdbDevice).mockResolvedValue(createMockAgent() as any);
     // Silence expected CLI log output without touching the module-level mocks
-    // set up via `vi.mock` — `restoreAllMocks` would reset those too.
-    consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
-    consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    // set up via `rs.mock` — `restoreAllMocks` would reset those too.
+    consoleLogSpy = rs.spyOn(console, 'log').mockImplementation(() => {});
+    consoleErrorSpy = rs.spyOn(console, 'error').mockImplementation(() => {});
   });
 
   afterEach(() => {
     consoleLogSpy.mockRestore();
     consoleErrorSpy.mockRestore();
-    vi.mocked(agentFromAdbDevice).mockReset();
+    rs.mocked(agentFromAdbDevice).mockReset();
   });
 
   it('routes --device-id (preferred bare form) through the same pipeline', async () => {
@@ -111,7 +111,7 @@ describe('Android CLI integration', () => {
 
   it('threads init args through the act command alongside --prompt', async () => {
     const mockAgent = createMockAgent();
-    vi.mocked(agentFromAdbDevice).mockResolvedValue(mockAgent as any);
+    rs.mocked(agentFromAdbDevice).mockResolvedValue(mockAgent as any);
 
     const tools = new AndroidMidsceneTools();
 
@@ -130,7 +130,7 @@ describe('Android CLI integration', () => {
 
   it('threads common agent behavior args through the generated CLI', async () => {
     const mockAgent = createMockAgent();
-    vi.mocked(agentFromAdbDevice).mockResolvedValue(mockAgent as any);
+    rs.mocked(agentFromAdbDevice).mockResolvedValue(mockAgent as any);
 
     const tools = new AndroidMidsceneTools();
 
@@ -181,7 +181,7 @@ describe('Android CLI integration', () => {
 
   it('strips init args from the payload passed to the action', async () => {
     const mockAgent = createMockAgent();
-    vi.mocked(agentFromAdbDevice).mockResolvedValue(mockAgent as any);
+    rs.mocked(agentFromAdbDevice).mockResolvedValue(mockAgent as any);
 
     const tools = new AndroidMidsceneTools();
 
@@ -199,7 +199,7 @@ describe('Android CLI integration', () => {
   it('renders bare flags first in single-platform command help', async () => {
     const tools = new AndroidMidsceneTools();
     const output: string[] = [];
-    const logSpy = vi.spyOn(console, 'log').mockImplementation((...args) => {
+    const logSpy = rs.spyOn(console, 'log').mockImplementation((...args) => {
       output.push(args.map(String).join(' '));
     });
 

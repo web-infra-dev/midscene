@@ -1,6 +1,3 @@
-// @vitest-environment jsdom
-import { act, createElement } from 'react';
-import { createRoot } from 'react-dom/client';
 import {
   afterEach,
   beforeAll,
@@ -8,8 +5,11 @@ import {
   describe,
   expect,
   it,
-  vi,
-} from 'vitest';
+  rs,
+} from '@rstest/core';
+// @vitest-environment jsdom
+import { act, createElement } from 'react';
+import { createRoot } from 'react-dom/client';
 import { MobilePreviewFrame } from '../src/renderer/components/MainContent/MobilePreviewFrame';
 
 let mockStageWidth = 1000;
@@ -51,11 +51,11 @@ describe('MobilePreviewFrame', () => {
   beforeEach(() => {
     mockStageWidth = 1000;
     mockStageHeight = 1000;
-    vi.stubGlobal('ResizeObserver', MockResizeObserver);
+    rs.stubGlobal('ResizeObserver', MockResizeObserver);
   });
 
   afterEach(() => {
-    vi.unstubAllGlobals();
+    rs.unstubAllGlobals();
   });
 
   async function renderMobilePreviewFrame(options: {

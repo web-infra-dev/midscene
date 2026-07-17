@@ -1,5 +1,5 @@
 import type { DeviceAction } from '@midscene/core';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, rs } from '@rstest/core';
 import { LocalExecutionAdapter } from '../../src/adapters/local-execution';
 import { RemoteExecutionAdapter } from '../../src/adapters/remote-execution';
 import { PlaygroundSDK } from '../../src/sdk';
@@ -11,8 +11,8 @@ import type {
 } from '../../src/types';
 
 // Mock the adapters
-vi.mock('../../src/adapters/local-execution');
-vi.mock('../../src/adapters/remote-execution');
+rs.mock('../../src/adapters/local-execution');
+rs.mock('../../src/adapters/remote-execution');
 
 const createMockPlaygroundAgent = (
   partial: Partial<PlaygroundAgent> = {},
@@ -20,7 +20,7 @@ const createMockPlaygroundAgent = (
 
 describe('PlaygroundSDK', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    rs.clearAllMocks();
   });
 
   describe('constructor', () => {
@@ -60,7 +60,7 @@ describe('PlaygroundSDK', () => {
     });
 
     it('should create LocalExecutionAdapter with only agentFactory', () => {
-      const mockAgentFactory = vi.fn();
+      const mockAgentFactory = rs.fn();
       const config: PlaygroundConfig = {
         type: 'local-execution',
         agentFactory: mockAgentFactory,
@@ -87,8 +87,8 @@ describe('PlaygroundSDK', () => {
 
   describe('executeAction', () => {
     it('should delegate to adapter executeAction', async () => {
-      const mockExecuteAction = vi.fn().mockResolvedValue('test result');
-      const MockAdapter = vi.mocked(LocalExecutionAdapter);
+      const mockExecuteAction = rs.fn().mockResolvedValue('test result');
+      const MockAdapter = rs.mocked(LocalExecutionAdapter);
       MockAdapter.prototype.executeAction = mockExecuteAction;
 
       const config: PlaygroundConfig = {
@@ -112,14 +112,14 @@ describe('PlaygroundSDK', () => {
 
     it('should run beforeAction hook before delegating execution', async () => {
       const callOrder: string[] = [];
-      const mockExecuteAction = vi.fn().mockImplementation(async () => {
+      const mockExecuteAction = rs.fn().mockImplementation(async () => {
         callOrder.push('adapter');
         return 'test result';
       });
-      const beforeActionHook = vi.fn().mockImplementation(async () => {
+      const beforeActionHook = rs.fn().mockImplementation(async () => {
         callOrder.push('hook');
       });
-      const MockAdapter = vi.mocked(LocalExecutionAdapter);
+      const MockAdapter = rs.mocked(LocalExecutionAdapter);
       MockAdapter.prototype.executeAction = mockExecuteAction;
 
       const sdk = new PlaygroundSDK({
@@ -142,9 +142,9 @@ describe('PlaygroundSDK', () => {
     });
 
     it('should allow clearing the beforeAction hook', async () => {
-      const mockExecuteAction = vi.fn().mockResolvedValue('test result');
-      const beforeActionHook = vi.fn();
-      const MockAdapter = vi.mocked(LocalExecutionAdapter);
+      const mockExecuteAction = rs.fn().mockResolvedValue('test result');
+      const beforeActionHook = rs.fn();
+      const MockAdapter = rs.mocked(LocalExecutionAdapter);
       MockAdapter.prototype.executeAction = mockExecuteAction;
 
       const sdk = new PlaygroundSDK({
@@ -164,10 +164,10 @@ describe('PlaygroundSDK', () => {
   describe('getActionSpace', () => {
     it('should delegate to adapter getActionSpace', async () => {
       const mockActions: DeviceAction<unknown>[] = [
-        { name: 'test', description: 'Test action', call: vi.fn() },
+        { name: 'test', description: 'Test action', call: rs.fn() },
       ];
-      const mockGetActionSpace = vi.fn().mockResolvedValue(mockActions);
-      const MockAdapter = vi.mocked(LocalExecutionAdapter);
+      const mockGetActionSpace = rs.fn().mockResolvedValue(mockActions);
+      const MockAdapter = rs.mocked(LocalExecutionAdapter);
       MockAdapter.prototype.getActionSpace = mockGetActionSpace;
 
       const config: PlaygroundConfig = {
@@ -187,8 +187,8 @@ describe('PlaygroundSDK', () => {
 
   describe('validateStructuredParams', () => {
     it('should delegate to adapter validateParams', () => {
-      const mockValidateParams = vi.fn().mockReturnValue({ valid: true });
-      const MockAdapter = vi.mocked(LocalExecutionAdapter);
+      const mockValidateParams = rs.fn().mockReturnValue({ valid: true });
+      const MockAdapter = rs.mocked(LocalExecutionAdapter);
       MockAdapter.prototype.validateParams = mockValidateParams;
 
       const config: PlaygroundConfig = {
@@ -201,7 +201,7 @@ describe('PlaygroundSDK', () => {
       const action: DeviceAction<unknown> = {
         name: 'test',
         description: 'Test',
-        call: vi.fn(),
+        call: rs.fn(),
       };
 
       const result = sdk.validateStructuredParams(value, action);
@@ -213,8 +213,8 @@ describe('PlaygroundSDK', () => {
 
   describe('formatErrorMessage', () => {
     it('should delegate to adapter formatErrorMessage', () => {
-      const mockFormatError = vi.fn().mockReturnValue('formatted error');
-      const MockAdapter = vi.mocked(LocalExecutionAdapter);
+      const mockFormatError = rs.fn().mockReturnValue('formatted error');
+      const MockAdapter = rs.mocked(LocalExecutionAdapter);
       MockAdapter.prototype.formatErrorMessage = mockFormatError;
 
       const config: PlaygroundConfig = {
@@ -234,8 +234,8 @@ describe('PlaygroundSDK', () => {
 
   describe('createDisplayContent', () => {
     it('should delegate to adapter createDisplayContent', () => {
-      const mockCreateDisplay = vi.fn().mockReturnValue('display content');
-      const MockAdapter = vi.mocked(LocalExecutionAdapter);
+      const mockCreateDisplay = rs.fn().mockReturnValue('display content');
+      const MockAdapter = rs.mocked(LocalExecutionAdapter);
       MockAdapter.prototype.createDisplayContent = mockCreateDisplay;
 
       const config: PlaygroundConfig = {
@@ -248,7 +248,7 @@ describe('PlaygroundSDK', () => {
       const action: DeviceAction<unknown> = {
         name: 'test',
         description: 'Test',
-        call: vi.fn(),
+        call: rs.fn(),
       };
 
       const result = sdk.createDisplayContent(value, true, action);
@@ -272,8 +272,8 @@ describe('PlaygroundSDK', () => {
     });
 
     it('should delegate to RemoteExecutionAdapter checkStatus', async () => {
-      const mockCheckStatus = vi.fn().mockResolvedValue(false);
-      const MockAdapter = vi.mocked(RemoteExecutionAdapter);
+      const mockCheckStatus = rs.fn().mockResolvedValue(false);
+      const MockAdapter = rs.mocked(RemoteExecutionAdapter);
       MockAdapter.prototype.checkStatus = mockCheckStatus;
 
       const config: PlaygroundConfig = {
@@ -291,8 +291,8 @@ describe('PlaygroundSDK', () => {
 
   describe('overrideConfig', () => {
     it('should delegate to LocalExecutionAdapter overrideConfig', async () => {
-      const mockOverrideConfig = vi.fn().mockResolvedValue(undefined);
-      const MockAdapter = vi.mocked(LocalExecutionAdapter);
+      const mockOverrideConfig = rs.fn().mockResolvedValue(undefined);
+      const MockAdapter = rs.mocked(LocalExecutionAdapter);
       MockAdapter.prototype.overrideConfig = mockOverrideConfig;
 
       const config: PlaygroundConfig = {
@@ -309,8 +309,8 @@ describe('PlaygroundSDK', () => {
     });
 
     it('should delegate to RemoteExecutionAdapter overrideConfig', async () => {
-      const mockOverrideConfig = vi.fn().mockResolvedValue(undefined);
-      const MockAdapter = vi.mocked(RemoteExecutionAdapter);
+      const mockOverrideConfig = rs.fn().mockResolvedValue(undefined);
+      const MockAdapter = rs.mocked(RemoteExecutionAdapter);
       MockAdapter.prototype.overrideConfig = mockOverrideConfig;
 
       const config: PlaygroundConfig = {
@@ -329,10 +329,10 @@ describe('PlaygroundSDK', () => {
 
   describe('runConnectivityTest', () => {
     it('should delegate to LocalExecutionAdapter', async () => {
-      const mockRunConnectivityTest = vi.fn().mockResolvedValue({
+      const mockRunConnectivityTest = rs.fn().mockResolvedValue({
         passed: true,
       });
-      const MockAdapter = vi.mocked(LocalExecutionAdapter);
+      const MockAdapter = rs.mocked(LocalExecutionAdapter);
       MockAdapter.prototype.runConnectivityTest = mockRunConnectivityTest;
 
       const sdk = new PlaygroundSDK({
@@ -348,10 +348,10 @@ describe('PlaygroundSDK', () => {
     });
 
     it('should delegate to RemoteExecutionAdapter', async () => {
-      const mockRunConnectivityTest = vi.fn().mockResolvedValue({
+      const mockRunConnectivityTest = rs.fn().mockResolvedValue({
         passed: true,
       });
-      const MockAdapter = vi.mocked(RemoteExecutionAdapter);
+      const MockAdapter = rs.mocked(RemoteExecutionAdapter);
       MockAdapter.prototype.runConnectivityTest = mockRunConnectivityTest;
 
       const sdk = new PlaygroundSDK({
@@ -383,8 +383,8 @@ describe('PlaygroundSDK', () => {
     });
 
     it('should delegate to RemoteExecutionAdapter cancelTask', async () => {
-      const mockCancelTask = vi.fn().mockResolvedValue({ success: true });
-      const MockAdapter = vi.mocked(RemoteExecutionAdapter);
+      const mockCancelTask = rs.fn().mockResolvedValue({ success: true });
+      const MockAdapter = rs.mocked(RemoteExecutionAdapter);
       MockAdapter.prototype.cancelTask = mockCancelTask;
 
       const config: PlaygroundConfig = {
@@ -402,8 +402,8 @@ describe('PlaygroundSDK', () => {
 
   describe('runtime metadata APIs', () => {
     it('should delegate runtime metadata methods to the local adapter', async () => {
-      const MockAdapter = vi.mocked(LocalExecutionAdapter);
-      MockAdapter.prototype.getRuntimeInfo = vi.fn().mockResolvedValue({
+      const MockAdapter = rs.mocked(LocalExecutionAdapter);
+      MockAdapter.prototype.getRuntimeInfo = rs.fn().mockResolvedValue({
         interface: { type: 'web' },
         preview: { kind: 'screenshot', capabilities: [] },
         executionUxHints: [],
@@ -423,8 +423,8 @@ describe('PlaygroundSDK', () => {
     });
 
     it('should delegate runtime metadata methods to the remote adapter', async () => {
-      const MockAdapter = vi.mocked(RemoteExecutionAdapter);
-      MockAdapter.prototype.getRuntimeInfo = vi.fn().mockResolvedValue({
+      const MockAdapter = rs.mocked(RemoteExecutionAdapter);
+      MockAdapter.prototype.getRuntimeInfo = rs.fn().mockResolvedValue({
         interface: { type: 'ios' },
         preview: { kind: 'mjpeg', capabilities: [] },
         executionUxHints: ['hint'],

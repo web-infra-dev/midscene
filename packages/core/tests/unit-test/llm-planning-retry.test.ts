@@ -2,28 +2,25 @@ import { ConversationHistory } from '@/ai-model/conversation-history';
 import { plan } from '@/ai-model/llm-planning';
 import { getModelRuntime } from '@/ai-model/models';
 import { callAI } from '@/ai-model/service-caller/index';
+import * as serviceCallerActual from '@/ai-model/service-caller/index' with {
+  rstest: 'importActual',
+};
 import { buildYamlFlowFromPlans, getMidsceneLocationSchema } from '@/common';
+import * as commonActual from '@/common' with { rstest: 'importActual' };
 import type { DeviceAction, UIContext } from '@/types';
 import type { IModelConfig } from '@midscene/shared/env';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, rs } from '@rstest/core';
 import { z } from 'zod';
 
-vi.mock('@/ai-model/service-caller/index', async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import('@/ai-model/service-caller/index')>();
-  return {
-    ...actual,
-    callAI: vi.fn(),
-  };
-});
+rs.mock('@/ai-model/service-caller/index', () => ({
+  ...serviceCallerActual,
+  callAI: rs.fn(),
+}));
 
-vi.mock('@/common', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@/common')>();
-  return {
-    ...actual,
-    buildYamlFlowFromPlans: vi.fn(actual.buildYamlFlowFromPlans),
-  };
-});
+rs.mock('@/common', () => ({
+  ...commonActual,
+  buildYamlFlowFromPlans: rs.fn(commonActual.buildYamlFlowFromPlans),
+}));
 
 const mockAIResponse = (content: string) => ({
   content,
@@ -54,12 +51,12 @@ const mockActionSpace = (): DeviceAction[] => [
   {
     name: 'Tap',
     description: 'Tap an element',
-    call: vi.fn(),
+    call: rs.fn(),
   },
 ];
 
 const latestImageDetail = () => {
-  const messages = vi.mocked(callAI).mock.calls[0]?.[0];
+  const messages = rs.mocked(callAI).mock.calls[0]?.[0];
   const latestMessage = messages?.at(-1);
   const imagePart = Array.isArray(latestMessage?.content)
     ? latestMessage.content.find((part) => part.type === 'image_url')
@@ -67,16 +64,16 @@ const latestImageDetail = () => {
   return imagePart?.image_url.detail;
 };
 
-const latestCallAIOptions = () => vi.mocked(callAI).mock.calls[0]?.[2];
+const latestCallAIOptions = () => rs.mocked(callAI).mock.calls[0]?.[2];
 
 describe('plan XML parse retry', () => {
   beforeEach(() => {
-    vi.mocked(callAI).mockReset();
-    vi.mocked(buildYamlFlowFromPlans).mockClear();
+    rs.mocked(callAI).mockReset();
+    rs.mocked(buildYamlFlowFromPlans).mockClear();
   });
 
   it('uses model retry settings when XML response parsing fails', async () => {
-    vi.mocked(callAI)
+    rs.mocked(callAI)
       .mockResolvedValueOnce(
         mockAIResponse(`<log>Tap button</log>
 <action-type>Tap</action-type>
@@ -112,7 +109,7 @@ describe('plan XML parse retry', () => {
 
   it('preserves retry request errors instead of reporting them as XML parse errors', async () => {
     const requestError = new Error('failed to call AI model service');
-    vi.mocked(callAI)
+    rs.mocked(callAI)
       .mockResolvedValueOnce(
         mockAIResponse(`<action-type>Tap</action-type>
 <action-param-json>{invalid json}</action-param-json>`),
@@ -134,7 +131,7 @@ describe('plan XML parse retry', () => {
   });
 
   it('should tell the model when no previous aiAct actions have been executed', async () => {
-    vi.mocked(callAI).mockResolvedValueOnce(
+    rs.mocked(callAI).mockResolvedValueOnce(
       mockAIResponse(`<log>Tap button</log>
 <action-type>Tap</action-type>`),
     );
@@ -148,7 +145,7 @@ describe('plan XML parse retry', () => {
       deepThink: false,
     });
 
-    const messages = vi.mocked(callAI).mock.calls[0]?.[0];
+    const messages = rs.mocked(callAI).mock.calls[0]?.[0];
     const latestMessage = messages?.at(-1);
     const textPart = Array.isArray(latestMessage?.content)
       ? latestMessage.content.find((part) => part.type === 'text')
@@ -164,7 +161,7 @@ describe('plan XML parse retry', () => {
   });
 
   it('marks planning as requiring original image detail when locate is included', async () => {
-    vi.mocked(callAI).mockResolvedValueOnce(
+    rs.mocked(callAI).mockResolvedValueOnce(
       mockAIResponse(`<log>Tap button</log>
 <action-type>Tap</action-type>`),
     );
@@ -191,10 +188,10 @@ describe('plan XML parse retry', () => {
         name: 'Tap',
         description: 'Tap an element',
         paramSchema: z.object({ locate: getMidsceneLocationSchema() }),
-        call: vi.fn(),
+        call: rs.fn(),
       },
     ];
-    vi.mocked(callAI)
+    rs.mocked(callAI)
       .mockResolvedValueOnce(
         mockAIResponse(`<action-type>Tap</action-type>
 <action-param-json>{"locate":{"prompt":"submit","bbox":["invalid"]}}</action-param-json>`),
@@ -204,7 +201,7 @@ describe('plan XML parse retry', () => {
 <action-param-json>{"locate":{"prompt":"submit","bbox":[100,200,300,400]}}</action-param-json>`),
       );
     const yamlFlowInputs: unknown[] = [];
-    const buildYamlFlow = vi.mocked(buildYamlFlowFromPlans);
+    const buildYamlFlow = rs.mocked(buildYamlFlowFromPlans);
     const originalBuildYamlFlow = buildYamlFlow.getMockImplementation();
     const captureYamlFlowInput = (
       plans: Parameters<typeof buildYamlFlowFromPlans>[0],

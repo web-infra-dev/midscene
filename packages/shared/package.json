@@ -96,8 +96,8 @@
     "build:script": "rslib build -c ./rslib.inspect.config.ts",
     "build:watch": "npm run build:script && rslib build --watch --no-clean",
     "reset": "rimraf ./**/node_modules",
-    "test": "vitest --run",
-    "test:u": "vitest --run -u"
+    "test": "rstest",
+    "test:u": "rstest -u"
   },
   "dependencies": {
     "@silvia-odwyer/photon": "0.3.3",
@@ -110,13 +110,14 @@
   },
   "devDependencies": {
     "@rslib/core": "^0.18.3",
+    "@rstest/core": "0.11.2",
     "@types/debug": "4.1.12",
     "@types/node": "^18.0.0",
     "@ui-tars/shared": "1.2.0",
+    "jsdom": "29.0.2",
     "openai": "6.3.0",
     "rimraf": "~5.0.10",
-    "typescript": "^5.8.3",
-    "vitest": "3.0.5"
+    "typescript": "^5.8.3"
   },
   "sideEffects": [],
   "publishConfig": {

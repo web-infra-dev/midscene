@@ -139,6 +139,10 @@ export default defineConfig({
         __dirname,
         '../../packages/shared/src/polyfills/async-hooks.ts',
       ),
+      // Node-only proxy modules loaded dynamically by @midscene/core behind an
+      // ifInBrowser guard; stub so rspack does not walk their internals.
+      undici: false,
+      'fetch-socks': false,
     },
   },
   dev: {

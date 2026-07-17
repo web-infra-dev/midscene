@@ -1,7 +1,7 @@
 import { ConversationHistory } from '@/ai-model/conversation-history';
 import { buildCustomPlanningMessages } from '@/ai-model/workflows/planning/custom-planning';
 import type { PlanOptions } from '@/ai-model/workflows/planning/types';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 
 function createPlanOptions(
   conversationHistory = new ConversationHistory(),

@@ -1,8 +1,8 @@
 import { sleep } from '@midscene/core/utils';
-import { beforeAll, describe, it, vi } from 'vitest';
+import { beforeAll, describe, it, rs } from '@rstest/core';
 import { AndroidAgent, AndroidDevice, getConnectedDevices } from '../../src';
 
-vi.setConfig({
+rs.setConfig({
   testTimeout: 240 * 1000,
 });
 

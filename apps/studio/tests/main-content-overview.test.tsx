@@ -1,9 +1,10 @@
+// @vitest-environment jsdom
 import type { PlaygroundControllerResult } from '@midscene/playground-app';
 import type { StudioPlaygroundContextValue } from '@renderer/playground/types';
+import { describe, expect, it, rs } from '@rstest/core';
 import type { ReactElement } from 'react';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { describe, expect, it, vi } from 'vitest';
 import MainContent from '../src/renderer/components/MainContent';
 import { StudioPlaygroundContext } from '../src/renderer/playground/useStudioPlayground';
 import type { StudioRecorderContextValue } from '../src/renderer/recorder/types';
@@ -16,7 +17,7 @@ type ReadyStudioPlaygroundContextValue = Extract<
 
 (globalThis as { __APP_VERSION__?: string }).__APP_VERSION__ = 'test-version';
 
-vi.mock('@midscene/playground-app', () => ({
+rs.mock('@midscene/playground-app', () => ({
   // Real PlaygroundPreview pulls in a WASM helper through visualizer; the
   // tests only care that MainContent threads the connecting overlay
   // through, so stub it down to that overlay.
@@ -38,20 +39,20 @@ function createRecorderContextValue(): StudioRecorderContextValue {
     currentSession: null,
     currentTarget: null,
     canStartRecording: false,
-    startRecording: vi.fn(async () => null),
-    stopRecording: vi.fn(async () => undefined),
-    deleteSession: vi.fn(async () => undefined),
-    renameSession: vi.fn(async () => undefined),
-    selectSession: vi.fn(),
-    generateSessionYaml: vi.fn(async () => ''),
-    generateSessionCode: vi.fn(async () => ''),
-    deleteSessionCode: vi.fn(async () => undefined),
-    exportSessionJson: vi.fn(async () => undefined),
-    exportSessionYaml: vi.fn(async () => undefined),
-    exportSessionCode: vi.fn(async () => undefined),
-    getRecorderScreenshotAssetUrl: vi.fn(() => null),
-    loadSessionScreenshots: vi.fn(async () => []),
-    exportAllZip: vi.fn(async () => undefined),
+    startRecording: rs.fn(async () => null),
+    stopRecording: rs.fn(async () => undefined),
+    deleteSession: rs.fn(async () => undefined),
+    renameSession: rs.fn(async () => undefined),
+    selectSession: rs.fn(),
+    generateSessionYaml: rs.fn(async () => ''),
+    generateSessionCode: rs.fn(async () => ''),
+    deleteSessionCode: rs.fn(async () => undefined),
+    exportSessionJson: rs.fn(async () => undefined),
+    exportSessionYaml: rs.fn(async () => undefined),
+    exportSessionCode: rs.fn(async () => undefined),
+    getRecorderScreenshotAssetUrl: rs.fn(() => null),
+    loadSessionScreenshots: rs.fn(async () => []),
+    exportAllZip: rs.fn(async () => undefined),
   };
 }
 
@@ -94,9 +95,9 @@ function createReadyContextValue(): ReadyStudioPlaygroundContextValue {
         },
       },
       actions: {
-        refreshSessionSetup: vi.fn(async () => undefined),
-        createSession: vi.fn(async () => false),
-        destroySession: vi.fn(async () => undefined),
+        refreshSessionSetup: rs.fn(async () => undefined),
+        createSession: rs.fn(async () => false),
+        destroySession: rs.fn(async () => undefined),
       },
     } as unknown as PlaygroundControllerResult,
     discoveredDevices: {
@@ -112,9 +113,9 @@ function createReadyContextValue(): ReadyStudioPlaygroundContextValue {
       harmony: [],
       web: [],
     },
-    refreshDiscoveredDevices: vi.fn(async () => undefined),
-    restartPlayground: vi.fn(async () => undefined),
-    setDiscoveryPollingPaused: vi.fn(),
+    refreshDiscoveredDevices: rs.fn(async () => undefined),
+    restartPlayground: rs.fn(async () => undefined),
+    setDiscoveryPollingPaused: rs.fn(),
   };
 }
 
@@ -125,7 +126,7 @@ function createConnectedWebContextValue(): ReadyStudioPlaygroundContextValue {
     serverOnline: true,
     isUserOperating: false,
     playgroundSDK: {
-      interact: vi.fn(async () => ({ ok: true })),
+      interact: rs.fn(async () => ({ ok: true })),
     },
     runtimeInfo: {
       platformId: 'web',
@@ -202,7 +203,7 @@ function createConnectedComputerContextValue(): ReadyStudioPlaygroundContextValu
     serverOnline: true,
     isUserOperating: false,
     playgroundSDK: {
-      interact: vi.fn(async () => ({ ok: true })),
+      interact: rs.fn(async () => ({ ok: true })),
     },
     runtimeInfo: {
       platformId: 'computer',

@@ -14,9 +14,9 @@
     "dev": "npm run build:watch",
     "build": "rslib build",
     "build:watch": "rslib build --watch --no-clean",
-    "test": "vitest --run",
-    "test:ai": "AITEST=true vitest --run",
-    "test:ai:temp": "AITEST=true BRIDGE_MODE=true vitest tests/bridge.test.ts"
+    "test": "rstest",
+    "test:ai": "AITEST=true rstest",
+    "test:ai:temp": "AITEST=true BRIDGE_MODE=true rstest tests/bridge.test.ts"
   },
   "dependencies": {
     "@midscene/android": "workspace:*",
@@ -26,13 +26,14 @@
     "@midscene/ios": "workspace:*",
     "@midscene/shared": "workspace:*",
     "@midscene/web": "workspace:*",
-    "@rstest/core": "0.10.3",
+    "@rstest/core": "0.11.2",
     "http-server": "14.1.1",
     "lodash.merge": "4.6.2",
     "puppeteer": "24.6.0"
   },
   "devDependencies": {
     "@rslib/core": "^0.18.3",
+    "@rstest/core": "0.11.2",
     "@types/js-yaml": "4.0.9",
     "@types/lodash.merge": "4.6.9",
     "@types/minimist": "1.2.5",
@@ -47,7 +48,6 @@
     "p-limit": "6.2.0",
     "restore-cursor": "5.1.0",
     "typescript": "^5.8.3",
-    "vitest": "3.0.5",
     "yargs": "17.7.2"
   },
   "engines": {

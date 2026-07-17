@@ -7,9 +7,9 @@ import {
   MIDSCENE_MODEL_BASE_URL,
   MIDSCENE_MODEL_NAME,
 } from '@midscene/shared/env';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, rs } from '@rstest/core';
 
-vi.mock('openai');
+rs.mock('openai');
 
 const modelConfig = {
   [MIDSCENE_MODEL_NAME]: 'test-model',
@@ -120,7 +120,7 @@ describe('MetricsCollector', () => {
 
 describe('Agent usage metrics', () => {
   afterEach(() => {
-    vi.clearAllMocks();
+    rs.clearAllMocks();
   });
 
   it('counts each task usage once across re-emitted snapshots', async () => {
@@ -187,7 +187,7 @@ describe('Agent usage metrics', () => {
   });
 
   it('invokes the onLLMUsage callback once per usage', async () => {
-    const onLLMUsage = vi.fn();
+    const onLLMUsage = rs.fn();
     const agent = new Agent(createMockInterface(), {
       modelConfig,
       generateReport: false,
@@ -212,11 +212,11 @@ describe('Agent usage metrics', () => {
 
 describe('Agent usage via ModelRuntime.onUsage (real lifecycle)', () => {
   afterEach(() => {
-    vi.clearAllMocks();
+    rs.clearAllMocks();
   });
 
   it('collects usage reported through the model runtime onUsage callback', async () => {
-    const onLLMUsage = vi.fn();
+    const onLLMUsage = rs.fn();
     const agent = new Agent(createMockInterface(), {
       modelConfig,
       generateReport: false,
@@ -275,7 +275,7 @@ describe('Agent usage via ModelRuntime.onUsage (real lifecycle)', () => {
   });
 
   it('deduplicates across onUsage and collectUsageMetrics paths by request_id', async () => {
-    const onLLMUsage = vi.fn();
+    const onLLMUsage = rs.fn();
     const agent = new Agent(createMockInterface(), {
       modelConfig,
       generateReport: false,
@@ -312,7 +312,7 @@ describe('Agent usage via ModelRuntime.onUsage (real lifecycle)', () => {
   });
 
   it('deduplicates across paths by internal call id when request_id is absent', async () => {
-    const onLLMUsage = vi.fn();
+    const onLLMUsage = rs.fn();
     const agent = new Agent(createMockInterface(), {
       modelConfig,
       generateReport: false,
@@ -380,7 +380,7 @@ describe('Agent usage via ModelRuntime.onUsage (real lifecycle)', () => {
   });
 
   it('isolates onLLMUsage listener errors from metrics collection', async () => {
-    const onLLMUsage = vi.fn(() => {
+    const onLLMUsage = rs.fn(() => {
       throw new Error('listener boom');
     });
     const agent = new Agent(createMockInterface(), {

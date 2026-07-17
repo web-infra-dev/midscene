@@ -2,9 +2,10 @@
 import type { PlaygroundControllerResult } from '@midscene/playground-app';
 import type { PlaygroundExecutionStatus } from '@midscene/visualizer';
 import type { StudioPlaygroundContextValue } from '@renderer/playground/types';
+import { beforeAll, beforeEach, describe, expect, it, rs } from '@rstest/core';
 import { act, createElement } from 'react';
+import * as React from 'react' with { rstest: 'importActual' };
 import { createRoot } from 'react-dom/client';
-import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import MainContent from '../src/renderer/components/MainContent';
 import { StudioPlaygroundContext } from '../src/renderer/playground/useStudioPlayground';
 import { StudioRecorderContext } from '../src/renderer/recorder/useStudioRecorder';
@@ -16,18 +17,16 @@ type ReadyStudioPlaygroundContextValue = Extract<
 
 (globalThis as { __APP_VERSION__?: string }).__APP_VERSION__ = 'test-version';
 
-const studioModePanelMockState = vi.hoisted(() => ({
+const studioModePanelMockState = rs.hoisted(() => ({
   executionStatus: null as PlaygroundExecutionStatus | null,
 }));
 
-vi.mock('@midscene/playground-app', () => ({
+rs.mock('@midscene/playground-app', () => ({
   PlaygroundPreview: () => null,
   PlaygroundConversationPanel: () => null,
 }));
 
-vi.mock('../src/renderer/components/StudioModePanel', async () => {
-  const React = await import('react');
-
+rs.mock('../src/renderer/components/StudioModePanel', () => {
   return {
     default: (props: {
       onTimelineExecutionStatusChange?: (
@@ -87,18 +86,18 @@ function createRecorderContextValue(overrides: Record<string, unknown> = {}) {
     currentSession: null,
     currentTarget: null,
     canStartRecording: false,
-    startRecording: vi.fn(async () => null),
-    stopRecording: vi.fn(async () => undefined),
-    deleteSession: vi.fn(async () => undefined),
-    renameSession: vi.fn(async () => undefined),
-    selectSession: vi.fn(),
-    generateSessionYaml: vi.fn(async () => ''),
-    generateSessionCode: vi.fn(async () => ''),
-    deleteSessionCode: vi.fn(async () => undefined),
-    exportSessionJson: vi.fn(async () => undefined),
-    exportSessionYaml: vi.fn(async () => undefined),
-    exportSessionCode: vi.fn(async () => undefined),
-    exportAllZip: vi.fn(async () => undefined),
+    startRecording: rs.fn(async () => null),
+    stopRecording: rs.fn(async () => undefined),
+    deleteSession: rs.fn(async () => undefined),
+    renameSession: rs.fn(async () => undefined),
+    selectSession: rs.fn(),
+    generateSessionYaml: rs.fn(async () => ''),
+    generateSessionCode: rs.fn(async () => ''),
+    deleteSessionCode: rs.fn(async () => undefined),
+    exportSessionJson: rs.fn(async () => undefined),
+    exportSessionYaml: rs.fn(async () => undefined),
+    exportSessionCode: rs.fn(async () => undefined),
+    exportAllZip: rs.fn(async () => undefined),
     ...overrides,
   };
 }
@@ -142,10 +141,10 @@ function createConnectedWebContextValue(): ReadyStudioPlaygroundContextValue {
         isUserOperating: false,
         sessionMutating: false,
         playgroundSDK: {
-          getInterfaceInfo: vi.fn(async () => {
+          getInterfaceInfo: rs.fn(async () => {
             throw new Error('server restarting');
           }),
-          interact: vi.fn(async () => ({ ok: true })),
+          interact: rs.fn(async () => ({ ok: true })),
         },
         sessionViewState: {
           connected: true,
@@ -153,9 +152,9 @@ function createConnectedWebContextValue(): ReadyStudioPlaygroundContextValue {
         },
       },
       actions: {
-        refreshSessionSetup: vi.fn(async () => undefined),
-        createSession: vi.fn(async () => false),
-        destroySession: vi.fn(async () => undefined),
+        refreshSessionSetup: rs.fn(async () => undefined),
+        createSession: rs.fn(async () => false),
+        destroySession: rs.fn(async () => undefined),
       },
     } as unknown as PlaygroundControllerResult,
     discoveredDevices: {
@@ -165,9 +164,9 @@ function createConnectedWebContextValue(): ReadyStudioPlaygroundContextValue {
       harmony: [],
       web: [],
     },
-    refreshDiscoveredDevices: vi.fn(async () => undefined),
-    restartPlayground: vi.fn(async () => undefined),
-    setDiscoveryPollingPaused: vi.fn(),
+    refreshDiscoveredDevices: rs.fn(async () => undefined),
+    restartPlayground: rs.fn(async () => undefined),
+    setDiscoveryPollingPaused: rs.fn(),
   };
 }
 
@@ -214,10 +213,10 @@ describe('MainContent web navigation', () => {
   it('stops active timeline execution before reloading the web page', async () => {
     const context = createConnectedWebContextValue();
     const calls: string[] = [];
-    const stopTimelineExecution = vi.fn(async () => {
+    const stopTimelineExecution = rs.fn(async () => {
       calls.push('stop');
     });
-    const interact = vi.fn(async ({ actionType }: { actionType: string }) => {
+    const interact = rs.fn(async ({ actionType }: { actionType: string }) => {
       calls.push(`interact:${actionType}`);
       return { ok: true };
     });
@@ -271,9 +270,9 @@ describe('MainContent web navigation', () => {
   it('stops an active recorder before disconnecting the live session', async () => {
     const context = createConnectedWebContextValue();
     const stopDeferred = createDeferred<void>();
-    const stopRecording = vi.fn(() => stopDeferred.promise);
+    const stopRecording = rs.fn(() => stopDeferred.promise);
     const destroySession = context.controller.actions
-      .destroySession as ReturnType<typeof vi.fn>;
+      .destroySession as ReturnType<typeof rs.fn>;
     const container = document.createElement('div');
     document.body.appendChild(container);
     const root = createRoot(container);
