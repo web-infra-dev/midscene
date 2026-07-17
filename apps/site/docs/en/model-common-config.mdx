@@ -99,7 +99,7 @@ MIDSCENE_MODEL_NAME="qwen3.7-plus" # For Qwen3.5 and Qwen3.6, use "qwen3.5-plus"
 MIDSCENE_MODEL_FAMILY="qwen3" # For Qwen3.5 and Qwen3.6, the previous families `qwen3.5` and `qwen3.6` remain compatible.
 ```
 
-### Moonshot Kimi Model {#kimi}
+### Moonshot Kimi K2 Series {#kimi}
 
 Midscene currently supports Moonshot AI's `kimi-k2.5` and `kimi-k2.6` models.
 
@@ -110,6 +110,18 @@ MIDSCENE_MODEL_BASE_URL="https://api.moonshot.cn/v1"
 MIDSCENE_MODEL_API_KEY="......"
 MIDSCENE_MODEL_NAME="kimi-k2.6" # Or "kimi-k2.5"
 MIDSCENE_MODEL_FAMILY="kimi"
+```
+
+### Moonshot Kimi K3 Series {#kimi3}
+
+Kimi K3 always uses reasoning.
+
+```bash
+MIDSCENE_MODEL_BASE_URL="https://api.moonshot.cn/v1"
+MIDSCENE_MODEL_API_KEY="......"
+MIDSCENE_MODEL_NAME="kimi-k3"
+MIDSCENE_MODEL_FAMILY="kimi3"
+MIDSCENE_MODEL_REASONING_EFFORT="max"
 ```
 
 ### Xiaomi MiMo Model {#xiaomi-mimo}

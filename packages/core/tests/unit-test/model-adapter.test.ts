@@ -74,6 +74,7 @@ describe('model adapter registry', () => {
       'qwen3.6',
       'glm-v',
       'kimi',
+      'kimi3',
       'xiaomi-mimo',
     ];
     const enabledSet = new Set<TModelFamily>(enabledFamilies);

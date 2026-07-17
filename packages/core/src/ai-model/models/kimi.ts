@@ -70,6 +70,35 @@ const buildKimiChatCompletionParams = (
   };
 };
 
+const buildKimi3ChatCompletionParams = (
+  input: ChatCompletionCallContext,
+): ChatCompletionParamsResult => {
+  const { midsceneDefaults, userConfig } = input;
+  const commonOverrideConfig: Record<string, unknown> = {};
+
+  // Kimi disallows custom temperature.
+  commonOverrideConfig.temperature = undefined;
+
+  if (
+    userConfig.responseFormat !== 'none' &&
+    input.expectedJsonObjectResponse
+  ) {
+    commonOverrideConfig.response_format = { type: 'json_object' };
+  }
+
+  // Kimi K3 currently only supports reasoning_effort="max"; its docs say
+  // additional effort levels will be available later.
+  const reasoningEffort = userConfig.reasoningEffort;
+
+  return {
+    config: {
+      ...midsceneDefaults,
+      ...commonOverrideConfig,
+      ...(reasoningEffort ? { reasoning_effort: reasoningEffort } : {}),
+    },
+  };
+};
+
 export const kimiAdapters = {
   kimi: {
     chatCompletion: {
@@ -84,4 +113,20 @@ export const kimiAdapters = {
       },
     },
   },
-} satisfies Pick<Record<TModelFamily, ModelAdapterDefinition>, 'kimi'>;
+  kimi3: {
+    chatCompletion: {
+      unsupportedUserConfig: ['reasoningEnabled', 'reasoningBudget'],
+      buildChatCompletionParams: buildKimi3ChatCompletionParams,
+      useReasoningAsContentFallback: true,
+    },
+    locate: {
+      resultAdapter: {
+        coordinates: kimiNormalizedPointCoordinatesMeta,
+        parseRawLocateValue: parseKimiRawLocateValue,
+      },
+    },
+  },
+} satisfies Pick<
+  Record<TModelFamily, ModelAdapterDefinition>,
+  'kimi' | 'kimi3'
+>;
