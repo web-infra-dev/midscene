@@ -8,6 +8,10 @@ import { ifInNode } from './utils';
 const topicPrefix = 'midscene';
 // Map to store file streams
 const logStreams = new Map<string, fs.WriteStream>();
+const logStreamPaths = new Map<string, string>();
+const logStreamBytes = new Map<string, number>();
+const logStreamSegments = new Map<string, number>();
+const MAX_PARTITIONED_LOG_FILE_BYTES = 20 * 1024 * 1024;
 // A WriteStream queues every write made after it reports backpressure. The
 // main process can keep running while macOS has deprioritized a backgrounded
 // app, so retaining diagnostic logs here can otherwise grow without bound.
@@ -18,15 +22,44 @@ const unavailableLogStreams = new Set<string>();
 const debugInstances = new Map<string, DebugFunction>();
 
 // Function to get or create a log stream
-function getLogStream(topic: string): fs.WriteStream | null {
+function getLogStream(
+  topic: string,
+  incomingBytes: number,
+): fs.WriteStream | null {
   const topicFileName = topic.replace(/:/g, '-');
   if (unavailableLogStreams.has(topicFileName)) {
     return null;
   }
+  const logDir = getMidsceneRunSubDir('log');
+  const partitioned = process.env.MIDSCENE_RUN_DATE_PARTITIONS === '1';
+  const existingStream = logStreams.get(topicFileName);
+  const existingPath = logStreamPaths.get(topicFileName);
+  const crossedPartition =
+    partitioned && existingPath && path.dirname(existingPath) !== logDir;
+  const exceededSize =
+    partitioned &&
+    existingStream &&
+    (logStreamBytes.get(topicFileName) ?? 0) + incomingBytes >
+      MAX_PARTITIONED_LOG_FILE_BYTES;
+  if (existingStream && (crossedPartition || exceededSize)) {
+    existingStream.end();
+    logStreams.delete(topicFileName);
+    logStreamPaths.delete(topicFileName);
+    logStreamBytes.delete(topicFileName);
+    logStreamSegments.set(
+      topicFileName,
+      crossedPartition ? 0 : (logStreamSegments.get(topicFileName) ?? 0) + 1,
+    );
+  }
   if (!logStreams.has(topicFileName)) {
+    const segment = logStreamSegments.get(topicFileName) ?? 0;
     const logFile = path.join(
-      getMidsceneRunSubDir('log'),
-      `${topicFileName}.log`,
+      logDir,
+      partitioned
+        ? segment === 0
+          ? `${topicFileName}.log`
+          : `${topicFileName}.${segment}.log`
+        : `${topicFileName}.log`,
     );
     const stream = fs.createWriteStream(logFile, { flags: 'a' });
     // A stream error without a listener terminates the Electron main process.
@@ -37,10 +70,18 @@ function getLogStream(topic: string): fs.WriteStream | null {
       backpressuredLogStreams.delete(topicFileName);
       if (logStreams.get(topicFileName) === stream) {
         logStreams.delete(topicFileName);
+        logStreamPaths.delete(topicFileName);
+        logStreamBytes.delete(topicFileName);
       }
     });
     logStreams.set(topicFileName, stream);
+    logStreamPaths.set(topicFileName, logFile);
+    logStreamBytes.set(topicFileName, 0);
   }
+  logStreamBytes.set(
+    topicFileName,
+    (logStreamBytes.get(topicFileName) ?? 0) + incomingBytes,
+  );
   return logStreams.get(topicFileName) ?? null;
 }
 
@@ -53,8 +94,6 @@ function writeLogToFile(topic: string, message: string): void {
     return;
   }
 
-  const stream = getLogStream(topic);
-  if (!stream) return;
   // Generate ISO format timestamp with local timezone
   const now = new Date();
   // Use sv-SE locale to get ISO-like format (YYYY-MM-DD HH:mm:ss)
@@ -72,8 +111,11 @@ function writeLogToFile(topic: string, message: string): void {
     .padStart(2, '0');
   const timezoneString = `${sign}${hours}:${minutes}`;
   const localISOTime = `${isoDate}T${isoTime}.${milliseconds}${timezoneString}`;
+  const line = `[${localISOTime}] ${message}\n`;
+  const stream = getLogStream(topic, Buffer.byteLength(line));
+  if (!stream) return;
   try {
-    if (!stream.write(`[${localISOTime}] ${message}\n`)) {
+    if (!stream.write(line)) {
       backpressuredLogStreams.add(topicFileName);
       stream.once('drain', () => {
         backpressuredLogStreams.delete(topicFileName);

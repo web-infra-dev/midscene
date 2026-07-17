@@ -47,6 +47,7 @@ import {
   generateRecorderCodeInMain,
   generateRecorderMetadataInMain,
 } from './recorder/codegen';
+import { RunDirectoryManager } from './run-directory-manager';
 import { configureStudioShellEnvHydration } from './shell-env';
 import { studioUpdater } from './updater';
 import { registerUpdaterHandlers } from './updater-handlers';
@@ -72,6 +73,8 @@ let cachedAppIcon: NativeImage | null = null;
 let playgroundRuntimePromise: Promise<PlaygroundRuntimeService> | null = null;
 let deviceDiscoveryServicePromise: Promise<DeviceDiscoveryService> | null =
   null;
+let runDirectoryManager: RunDirectoryManager | null = null;
+let runDirectoryCleanupTimer: NodeJS.Timeout | null = null;
 const isStudioSmokeTest = process.env.MIDSCENE_STUDIO_SMOKE_TEST === '1';
 const isStudioE2ETest = process.env.MIDSCENE_STUDIO_E2E_TEST === '1';
 const STUDIO_SMOKE_READY_MARKER = 'MIDSCENE_STUDIO_SMOKE_READY';
@@ -150,6 +153,7 @@ const ensureStudioRunDirEnv = () => {
       : resolveStudioUserRunDir();
 
   process.env.MIDSCENE_RUN_DIR = runDir;
+  process.env.MIDSCENE_RUN_DATE_PARTITIONS = '1';
   mkdirSync(runDir, { recursive: true });
 };
 
@@ -737,6 +741,21 @@ const registerIpcHandlers = () => {
 
 app.whenReady().then(() => {
   ensureStudioRunDirEnv();
+  runDirectoryManager = new RunDirectoryManager(
+    path.resolve(process.env.MIDSCENE_RUN_DIR!),
+  );
+  void runDirectoryManager.cleanup().catch((error) => {
+    console.error('Failed to clean the Studio run directory:', error);
+  });
+  runDirectoryCleanupTimer = setInterval(
+    () => {
+      void runDirectoryManager?.cleanup().catch((error) => {
+        console.error('Failed to clean the Studio run directory:', error);
+      });
+    },
+    24 * 60 * 60 * 1000,
+  );
+  runDirectoryCleanupTimer.unref();
   const stopEventLoopWatchdog = startStudioEventLoopWatchdog();
   app.once('before-quit', stopEventLoopWatchdog);
 
@@ -786,6 +805,10 @@ app.on('window-all-closed', () => {
 });
 
 app.on('before-quit', () => {
+  if (runDirectoryCleanupTimer) {
+    clearInterval(runDirectoryCleanupTimer);
+    runDirectoryCleanupTimer = null;
+  }
   void closePlaygroundRuntime();
   void getDeviceDiscoveryService()
     .then((service) => {
