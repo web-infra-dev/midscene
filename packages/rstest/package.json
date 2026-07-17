@@ -29,10 +29,10 @@
     "dev": "npm run build:watch",
     "build": "rslib build",
     "build:watch": "rslib build --watch --no-clean",
-    "test": "rstest run",
-    "test:smoke": "SMOKE=true rstest run",
+    "test": "vitest --run",
+    "test:smoke": "rstest run",
     "test:demo": "rstest run --config rstest.config.ts --root demo",
-    "test:watch": "rstest watch",
+    "test:watch": "vitest",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -57,7 +57,8 @@
     "playwright": "^1.45.0",
     "reduce-configs": "^1.1.2",
     "std-env": "^4.1.0",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "vitest": "3.0.5"
   },
   "engines": {
     "node": "^20.19.0 || >=22.12.0"
