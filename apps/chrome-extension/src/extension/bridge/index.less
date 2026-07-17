@@ -395,3 +395,37 @@
     }
   }
 }
+
+// Bridge Mode owns its presentation styles, so it does not inherit the
+// Universal Playground's dark-mode text tokens automatically.
+[data-theme='dark'] .bridge-mode-container {
+  .bridge-mode-description,
+  .mode-header .mode-title,
+  .system-message-content,
+  .system-message-text {
+    color: var(--midscene-text-primary);
+  }
+
+  .server-config-arrow,
+  .server-config-title,
+  .server-config-hint,
+  .permission-info-container .permission-info-text,
+  .bottom-status-bar .bridge-toggle-btn {
+    color: var(--midscene-text-secondary);
+  }
+
+  .message-body,
+  .input-placeholder,
+  .bottom-input-section {
+    background: var(--midscene-surface-elevated);
+    border-color: var(--midscene-border-strong);
+  }
+
+  .clear-button-container .clear-button {
+    color: var(--midscene-text-secondary);
+
+    &:hover {
+      color: var(--midscene-text-primary);
+    }
+  }
+}

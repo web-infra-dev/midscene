@@ -18,9 +18,10 @@ import {
   Popover,
   Space,
   Timeline,
+  Tooltip,
   Typography,
 } from 'antd';
-import { useEffect, useRef, useState } from 'react';
+import { type ReactNode, useEffect, useRef, useState } from 'react';
 import { ShinyText } from './components/shiny-text';
 import type { RecordedEvent } from './recorder';
 import './RecordTimeline.css';
@@ -30,11 +31,51 @@ const { Text } = Typography;
 interface RecordTimelineProps {
   events: RecordedEvent[];
   onEventClick?: (event: RecordedEvent, index: number) => void;
+  variant?: 'default' | 'chrome-extension';
+}
+
+function TwoLineEventDescription({
+  children,
+  tooltip,
+}: {
+  children: ReactNode;
+  tooltip: string;
+}) {
+  const contentRef = useRef<HTMLDivElement>(null);
+  const [isTruncated, setIsTruncated] = useState(false);
+
+  useEffect(() => {
+    const updateTruncation = () => {
+      const element = contentRef.current;
+      if (!element) {
+        return;
+      }
+      setIsTruncated(element.scrollHeight > element.clientHeight + 1);
+    };
+
+    updateTruncation();
+    if (typeof ResizeObserver === 'undefined' || !contentRef.current) {
+      return;
+    }
+
+    const observer = new ResizeObserver(updateTruncation);
+    observer.observe(contentRef.current);
+    return () => observer.disconnect();
+  }, [tooltip]);
+
+  return (
+    <Tooltip title={isTruncated ? tooltip : undefined}>
+      <div ref={contentRef} className="record-timeline-event-description">
+        {children}
+      </div>
+    </Tooltip>
+  );
 }
 
 export const RecordTimeline = ({
   events,
   onEventClick,
+  variant = 'default',
 }: RecordTimelineProps) => {
   const { message } = AntdApp.useApp();
   const [expandedEvents, setExpandedEvents] = useState<Set<number>>(new Set());
@@ -154,6 +195,22 @@ export const RecordTimeline = ({
   const getDisplayDescription = (event: RecordedEvent) =>
     getMidsceneRecorderEventDescription(event);
 
+  const getViewportDescription = (event: RecordedEvent) => {
+    const width = event.pageInfo?.width;
+    const height = event.pageInfo?.height;
+    if (
+      typeof width !== 'number' ||
+      typeof height !== 'number' ||
+      !Number.isFinite(width) ||
+      !Number.isFinite(height) ||
+      width <= 0 ||
+      height <= 0
+    ) {
+      return undefined;
+    }
+    return `${width}x${height} px`;
+  };
+
   const getEventTitle = (event: RecordedEvent) => {
     switch (event.type) {
       case 'click':
@@ -173,7 +230,7 @@ export const RecordTimeline = ({
       case 'navigation':
         return 'Navigate';
       case 'setViewport':
-        return 'Set viewport';
+        return 'Viewport changed';
       case 'keydown':
         return 'Key down';
       default:
@@ -266,8 +323,15 @@ export const RecordTimeline = ({
         );
       }
 
-      case 'setViewport':
-        return <Text>{eventTitle} - Desktop 964x992 px</Text>;
+      case 'setViewport': {
+        const viewportDescription = getViewportDescription(event);
+        return (
+          <Text>
+            {eventTitle}
+            {viewportDescription ? ` - ${viewportDescription}` : ''}
+          </Text>
+        );
+      }
 
       case 'keydown':
         return (
@@ -281,10 +345,47 @@ export const RecordTimeline = ({
     }
   };
 
+  const getEventDescriptionText = (event: RecordedEvent) => {
+    const eventTitle = getEventTitle(event);
+    const description = getDisplayDescription(event);
+
+    switch (event.type) {
+      case 'click':
+      case 'drag':
+        return getMidsceneRecorderSemantic(event)?.status === 'pending'
+          ? `${eventTitle} - analyzing target...`
+          : description
+            ? `${eventTitle} - ${description}`
+            : eventTitle;
+      case 'input':
+        return getMidsceneRecorderSemantic(event)?.status === 'ready'
+          ? `${eventTitle} - ${description}`
+          : `${eventTitle} - ${event.value ? `"${event.value}"` : ''}`;
+      case 'scroll':
+        return description
+          ? `${eventTitle} - ${description}`
+          : `${eventTitle} - ${event.value?.split(' ')[0] || 'recorded scroll'}`;
+      case 'navigation':
+        return `${eventTitle} - ${description || event.url || ''}`;
+      case 'setViewport': {
+        const viewportDescription = getViewportDescription(event);
+        return viewportDescription
+          ? `${eventTitle} - ${viewportDescription}`
+          : eventTitle;
+      }
+      case 'keydown':
+        return `${eventTitle} - Key: ${event.value || 'Unknown'}`;
+      default:
+        return eventTitle;
+    }
+  };
+
   const timelineItems = events.map((event, index) => {
     const boxedImage = event.screenshotWithBox;
     const afterImage = event.screenshotAfter;
     const isExpanded = expandedEvents.has(index);
+    const eventDescription = getEventDescription(event);
+    const eventDescriptionText = getEventDescriptionText(event);
 
     return {
       dot: getEventIcon(event.type),
@@ -292,6 +393,7 @@ export const RecordTimeline = ({
       children: (
         <div>
           <Card
+            className="record-timeline-event-card"
             size="small"
             bordered={false}
             style={{ marginBottom: isExpanded ? 8 : 8, cursor: 'pointer' }}
@@ -308,6 +410,11 @@ export const RecordTimeline = ({
             }}
           >
             <Space
+              className={
+                variant === 'chrome-extension'
+                  ? 'record-timeline-event-row'
+                  : undefined
+              }
               style={{
                 width: '100%',
                 justifyContent: 'space-between',
@@ -315,14 +422,34 @@ export const RecordTimeline = ({
                 color: 'rgba(0, 0, 0, 0.85)',
               }}
             >
-              <Space style={{ flex: 1, minWidth: 0 }}>
-                {getEventDescription(event)}
+              <Space
+                className={
+                  variant === 'chrome-extension'
+                    ? 'record-timeline-event-copy'
+                    : undefined
+                }
+                style={{ flex: 1, minWidth: 0 }}
+              >
+                {variant === 'chrome-extension' ? (
+                  <TwoLineEventDescription tooltip={eventDescriptionText}>
+                    {eventDescription}
+                  </TwoLineEventDescription>
+                ) : (
+                  eventDescription
+                )}
               </Space>
-              <Space>
+              <Space
+                className={
+                  variant === 'chrome-extension'
+                    ? 'record-timeline-event-media'
+                    : undefined
+                }
+              >
                 {(boxedImage || afterImage) && (
                   <div style={{ display: 'flex', alignItems: 'center' }}>
                     {boxedImage && (
                       <div
+                        className="record-timeline-screenshot-thumbnail"
                         style={{
                           width: '24px',
                           height: '24px',
@@ -363,6 +490,7 @@ export const RecordTimeline = ({
                     )}
                     {afterImage && (
                       <div
+                        className="record-timeline-screenshot-thumbnail"
                         style={{
                           width: '24px',
                           height: '24px',
@@ -459,7 +587,11 @@ export const RecordTimeline = ({
   });
 
   return (
-    <div ref={timelineRootRef} style={{ minHeight: 0, padding: '3px' }}>
+    <div
+      ref={timelineRootRef}
+      className={`record-timeline-${variant}`}
+      style={{ minHeight: 0, padding: '3px' }}
+    >
       <Space direction="vertical" size="large" style={{ width: '100%' }}>
         <Timeline
           mode="left"

@@ -2,18 +2,233 @@
   position: fixed;
 }
 
-.clear-button-container {
-  width: 28;
-  height: 28;
-  border-radius: 4px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin: 4px 0;
-  position: fixed;
-  top: 60px;
-  right: 12px;
-  background: #fff;
-  z-index: 999;
-  border: 1px solid rgba(240, 240, 240);
+/*
+ * The shared playground root defaults to viewport height. In a Chrome side
+ * panel it is nested below the extension navigation, so every flex ancestor
+ * must be shrinkable for the timeline to own the remaining scrollable space.
+ */
+.chrome-extension-playground {
+  height: 100%;
+  min-height: 0;
+  flex: 1 1 auto;
+
+  .command-form,
+  .playground-timeline-region,
+  .middle-dialog-area {
+    min-height: 0;
+  }
+
+  /* Keep the shared clear action inside the timeline instead of pinning it
+   * to the side-panel viewport while the message list scrolls. */
+  .clear-button-container {
+    top: 16px;
+    right: 0;
+  }
+
+  /* Keep the composer state explicit in the extension. The shared pseudo
+   * element relies on a mask that is clipped by the side-panel layout. */
+  .prompt-input-wrapper .main-side-console-input {
+    border: 1px solid #e5e5e5;
+    background: var(--midscene-surface, #fff);
+  }
+
+  // The side panel deliberately has no inline padding. Use an inset focus
+  // ring so all four sides remain visible instead of clipping an outer shadow
+  // at the panel boundary.
+  .prompt-input-wrapper .main-side-console-input:focus-within {
+    box-shadow: inset 0 0 0 3px rgba(43, 131, 255, 0.16);
+  }
+
+  .prompt-input-wrapper .main-side-console-input.loading {
+    border-color: transparent;
+    background:
+      linear-gradient(
+          var(--midscene-surface, #fff),
+          var(--midscene-surface, #fff)
+        )
+        padding-box,
+      linear-gradient(
+          135deg,
+          #4285f4 0%,
+          #0066ff 25%,
+          #7b02c5 50%,
+          #ea4335 75%,
+          #ff7043 100%
+        )
+        border-box;
+
+    &::before {
+      display: none;
+    }
+  }
+
+  // The Studio conversation skin owns generous shell padding. The extension
+  // has a narrower side panel, so let its timeline and composer use their
+  // own internal spacing instead of inheriting that outer inset.
+  &.playground-conversation-skin {
+    .middle-dialog-area .info-list-container {
+      padding: 0;
+    }
+
+    .bottom-input-section {
+      padding: 0;
+      margin-top: 16px;
+    }
+
+    .prompt-input-wrapper {
+      padding: 0;
+    }
+
+    // The shared toolbar uses a white gradient beneath history/settings to
+    // hint at horizontal overflow. In the side panel it masks otherwise
+    // fully visible mode buttons, so keep the controls without that overlay.
+    .mode-radio-group-wrapper .action-icons {
+      background: transparent;
+    }
+  }
+
+  .extension-welcome-empty-state {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 24px;
+    text-align: center;
+
+    .ant-empty {
+      margin: 0;
+    }
+
+    .ant-empty-image {
+      width: 56px;
+      height: 56px;
+      margin: 0 auto 16px;
+    }
+
+    .extension-welcome-midscene-icon {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    .ant-empty-description {
+      color: var(--midscene-text-secondary, #777);
+    }
+
+    .extension-welcome-copy {
+      max-width: 320px;
+      font-size: 14px;
+      line-height: 22px;
+    }
+
+    .extension-welcome-title {
+      color: var(--midscene-text-primary, #1f2329);
+      font-size: 16px;
+      font-weight: 600;
+      line-height: 24px;
+    }
+
+    p {
+      margin: 12px 0 0;
+    }
+  }
+
+  .middle-dialog-area .info-list-container.info-list-container-empty {
+    display: flex;
+    min-height: 0;
+
+    .playground-empty-state-wrapper {
+      display: flex;
+      flex: 1;
+      min-height: 0;
+    }
+  }
+
+  /* Studio renders these connectors through its execution timeline wrapper.
+   * The extension uses the same progress markup but owns this wrapper and
+   * palette so Studio's styles remain unchanged. */
+  .chrome-extension-execution-timeline-skin {
+    position: relative;
+    display: flex;
+    flex: 1;
+    min-height: 0;
+    flex-direction: column;
+
+    .clear-button-container {
+      position: absolute;
+      top: 16px;
+      right: -6px;
+      z-index: 20;
+    }
+
+    .middle-dialog-area .info-list-container {
+      .list-item:has(.progress-row) > div:has(> .progress-row) {
+        position: relative;
+      }
+
+      .list-item:has(.progress-row) > div:has(> .progress-row)::after {
+        position: absolute;
+        top: 30px;
+        bottom: 0;
+        left: 8px;
+        width: 1px;
+        background: var(--extension-timeline-connector, #d9d9d9);
+        content: '';
+      }
+
+      .list-item:has(.progress-row-last) > div:has(> .progress-row)::after {
+        display: none;
+      }
+    }
+  }
+}
+
+[data-theme='dark'] .chrome-extension-playground {
+  --extension-timeline-connector: #444;
+
+  .system-message-header .system-message-title {
+    color: var(--midscene-text-primary);
+  }
+
+  .clear-button-container .clear-button {
+    color: var(--midscene-text-secondary);
+
+    &:hover {
+      color: var(--midscene-text-primary);
+    }
+  }
+
+  .mode-radio-group-wrapper .action-icons {
+    color: var(--midscene-text-secondary);
+
+    .history-selector-wrapper,
+    .settings-wrapper,
+    .selector-trigger,
+    .selector-trigger-button {
+      color: var(--midscene-text-secondary);
+    }
+  }
+
+  .prompt-input-wrapper .main-side-console-input {
+    border-color: var(--midscene-border-strong);
+    color: var(--midscene-text-primary);
+
+    .main-side-console-input-textarea,
+    .ant-input {
+      color: var(--midscene-text-primary) !important;
+
+      &::placeholder {
+        color: var(--midscene-text-secondary) !important;
+        opacity: 1;
+      }
+    }
+  }
+
+  // The shared dark theme restores this overflow fade with `!important`.
+  // It is intentionally disabled in the extension because it covers visible
+  // mode buttons beside the toolbar icons.
+  &.playground-conversation-skin .mode-radio-group-wrapper .action-icons {
+    background: transparent !important;
+  }
 }

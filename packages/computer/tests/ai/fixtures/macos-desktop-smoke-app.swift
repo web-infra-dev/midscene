@@ -60,6 +60,11 @@ final class FixtureController: NSObject, NSApplicationDelegate, NSTextFieldDeleg
     )
     window.title = "Midscene macOS Desktop Smoke"
     window.isReleasedWhenClosed = false
+    // GitHub-hosted macOS sessions can keep Chrome above a newly activated
+    // regular-level window even after System Events reports this fixture as
+    // frontmost. Keep this test-only fixture above the browser so the
+    // computer-input smoke checks are delivered to their intended target.
+    window.level = .floating
 
     button = SmokeButton(title: "Midscene Smoke Button", target: self, action: #selector(buttonClicked))
     button.frame = NSRect(x: 190, y: 370, width: 260, height: 72)
@@ -150,6 +155,7 @@ final class FixtureController: NSObject, NSApplicationDelegate, NSTextFieldDeleg
     window.makeKeyAndOrderFront(nil)
     NSApplication.shared.activate(ignoringOtherApps: true)
     NSRunningApplication.current.activate(options: [.activateAllWindows])
+    window.makeFirstResponder(textField)
   }
 
   private func installActivationSignal() {

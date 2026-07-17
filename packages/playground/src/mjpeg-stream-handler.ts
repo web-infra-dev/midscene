@@ -22,6 +22,13 @@ const ERROR_LOG_THRESHOLD = 3;
 
 type ActiveInterface = PageAgent['interface'];
 
+function toMjpegFrameDataUrl(data: string, contentType?: string) {
+  if (data.startsWith('data:')) {
+    return data;
+  }
+  return `data:${contentType || 'image/jpeg'};base64,${data}`;
+}
+
 /**
  * Inputs the handler reads on every request, late-bound through callbacks
  * so a single handler instance can survive across device reconnects without
@@ -85,7 +92,16 @@ export class MjpegStreamHandler {
   }
 
   getLastFrameBase64(): string | undefined {
-    return this.interfaceMjpegHub.getLastFrame()?.data || this.lastPollingFrame;
+    const interfaceFrame = this.interfaceMjpegHub.getLastFrame();
+    if (interfaceFrame) {
+      return toMjpegFrameDataUrl(
+        interfaceFrame.data,
+        interfaceFrame.contentType,
+      );
+    }
+    return this.lastPollingFrame
+      ? toMjpegFrameDataUrl(this.lastPollingFrame)
+      : undefined;
   }
 
   async serve(req: Request, res: Response): Promise<void> {

@@ -270,6 +270,23 @@ describe('image utils', () => {
     console.log('cropped image saved to', tmpFile);
   });
 
+  it('cropByRect normalizes fractional browser coordinates for Sharp', async () => {
+    const image = getFixture('heytea.jpeg');
+    const result = await cropByRect(localImg2Base64(image), {
+      left: 200.4,
+      top: 80.8,
+      width: 100.7,
+      height: 40.6,
+    });
+
+    expect(result.width).toBe(101);
+    expect(result.height).toBe(41);
+    await expect(imageInfoOfBase64(result.imageBase64)).resolves.toEqual({
+      width: 101,
+      height: 41,
+    });
+  });
+
   it('isValidPNGImageBuffer', () => {
     const buffer = readFileSync(getFixture('icon.png'));
     const isValid = isValidPNGImageBuffer(buffer);
@@ -450,7 +467,7 @@ describe('resizeAndConvertImgBuffer', () => {
     });
   });
 
-  describe('fallback photon', () => {
+  describe('sharp failure', () => {
     const metadataFn = vi.fn(() => {
       throw new Error('sharp is not available');
     });
@@ -467,29 +484,14 @@ describe('resizeAndConvertImgBuffer', () => {
       vi.resetAllMocks();
     });
 
-    it('fallback photon no-resize will get original format', async () => {
-      const { format, buffer } = await resizeAndConvertImgBuffer(
-        'png',
-        imageBuffer,
-        {
+    it('throws instead of loading the browser image backend', async () => {
+      await expect(
+        resizeAndConvertImgBuffer('png', imageBuffer, {
           width: 2,
           height: 2,
-        },
-      );
+        }),
+      ).rejects.toThrow('sharp is not available');
       expect(metadataFn).toHaveBeenCalledTimes(1);
-      expect(format).toBe('png');
-    });
-    it('fallback photon resize will get jpeg format', async () => {
-      const { format, buffer } = await resizeAndConvertImgBuffer(
-        'png',
-        imageBuffer,
-        {
-          width: 1,
-          height: 1,
-        },
-      );
-      expect(format).toBe('jpeg');
-      expect(metadataFn).toHaveBeenCalledTimes(2);
     });
   });
 });

@@ -260,7 +260,7 @@ export const RecordDetail: React.FC<RecordDetailProps> = ({
             <Empty description="No events recorded yet" />
           ) : (
             <div className="p-[16px 0]">
-              <RecordTimeline events={events} />
+              <RecordTimeline events={events} variant="chrome-extension" />
             </div>
           )
         ) : (

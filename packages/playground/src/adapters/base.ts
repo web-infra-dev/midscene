@@ -30,6 +30,14 @@ export abstract class BasePlaygroundAdapter {
     return [];
   }
 
+  /**
+   * Returns a browser-loadable URL for a recorder screenshot asset when the
+   * adapter can expose one. Local adapters intentionally return null.
+   */
+  getRecorderScreenshotAssetUrl(_assetId: string): string | null {
+    return null;
+  }
+
   // Common validation logic - can be overridden if needed
   validateParams(
     value: FormValue,

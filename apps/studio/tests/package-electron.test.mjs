@@ -22,6 +22,7 @@ import {
   collectNestedMacCodeSignTargets,
   collectPackagedNodeModuleSymlinkIssues,
   collectWorkspaceDependencyClosure,
+  copyStudioFontLicenseToStageDir,
   dedupePlaygroundStatic,
   dropAntdEsmBuild,
   dropMidsceneEsmBuilds,
@@ -308,6 +309,30 @@ describe('package-electron helpers', () => {
     expect(packagedAsarOptions.unpackDir).toContain(
       path.join('node_modules', '@midscene', 'computer', 'bin'),
     );
+  });
+
+  it('copies the Inter OFL into the packaged app staging directory', async () => {
+    const stageDir = await fs.mkdtemp(
+      path.join(os.tmpdir(), 'midscene-studio-license-'),
+    );
+
+    try {
+      const destinationPath = await copyStudioFontLicenseToStageDir(stageDir);
+      const [sourceLicense, packagedLicense] = await Promise.all([
+        fs.readFile(
+          new URL('../src/renderer/assets/fonts/OFL.txt', import.meta.url),
+          'utf8',
+        ),
+        fs.readFile(destinationPath, 'utf8'),
+      ]);
+
+      expect(destinationPath).toBe(
+        path.join(stageDir, 'licenses', 'Inter-OFL.txt'),
+      );
+      expect(packagedLicense).toBe(sourceLicense);
+    } finally {
+      await fs.rm(stageDir, { force: true, recursive: true });
+    }
   });
 
   it('points packager at the Midscene .icns on macOS', () => {

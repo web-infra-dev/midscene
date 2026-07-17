@@ -8,28 +8,53 @@ import { ifInNode } from './utils';
 const topicPrefix = 'midscene';
 // Map to store file streams
 const logStreams = new Map<string, fs.WriteStream>();
+// A WriteStream queues every write made after it reports backpressure. The
+// main process can keep running while macOS has deprioritized a backgrounded
+// app, so retaining diagnostic logs here can otherwise grow without bound.
+// Drop best-effort logs until the stream drains instead.
+const backpressuredLogStreams = new Set<string>();
+const unavailableLogStreams = new Set<string>();
 // Map to store debug instances
 const debugInstances = new Map<string, DebugFunction>();
 
 // Function to get or create a log stream
-function getLogStream(topic: string): fs.WriteStream {
+function getLogStream(topic: string): fs.WriteStream | null {
   const topicFileName = topic.replace(/:/g, '-');
+  if (unavailableLogStreams.has(topicFileName)) {
+    return null;
+  }
   if (!logStreams.has(topicFileName)) {
     const logFile = path.join(
       getMidsceneRunSubDir('log'),
       `${topicFileName}.log`,
     );
     const stream = fs.createWriteStream(logFile, { flags: 'a' });
+    // A stream error without a listener terminates the Electron main process.
+    // Logging must remain best-effort, so disable this topic after a file error
+    // rather than repeatedly queuing writes to a broken stream.
+    stream.on('error', () => {
+      unavailableLogStreams.add(topicFileName);
+      backpressuredLogStreams.delete(topicFileName);
+      if (logStreams.get(topicFileName) === stream) {
+        logStreams.delete(topicFileName);
+      }
+    });
     logStreams.set(topicFileName, stream);
   }
-  return logStreams.get(topicFileName)!;
+  return logStreams.get(topicFileName) ?? null;
 }
 
 // Function to write log to file
 function writeLogToFile(topic: string, message: string): void {
   if (!ifInNode) return;
 
+  const topicFileName = topic.replace(/:/g, '-');
+  if (backpressuredLogStreams.has(topicFileName)) {
+    return;
+  }
+
   const stream = getLogStream(topic);
+  if (!stream) return;
   // Generate ISO format timestamp with local timezone
   const now = new Date();
   // Use sv-SE locale to get ISO-like format (YYYY-MM-DD HH:mm:ss)
@@ -47,7 +72,17 @@ function writeLogToFile(topic: string, message: string): void {
     .padStart(2, '0');
   const timezoneString = `${sign}${hours}:${minutes}`;
   const localISOTime = `${isoDate}T${isoTime}.${milliseconds}${timezoneString}`;
-  stream.write(`[${localISOTime}] ${message}\n`);
+  try {
+    if (!stream.write(`[${localISOTime}] ${message}\n`)) {
+      backpressuredLogStreams.add(topicFileName);
+      stream.once('drain', () => {
+        backpressuredLogStreams.delete(topicFileName);
+      });
+    }
+  } catch {
+    unavailableLogStreams.add(topicFileName);
+    backpressuredLogStreams.delete(topicFileName);
+  }
 }
 
 export type DebugFunction = (...args: unknown[]) => void;

@@ -3,7 +3,7 @@ import { Buffer } from 'node:buffer';
 import { readFileSync } from 'node:fs';
 import { writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import type { PhotonImage as PhotonImageType } from '@silvia-odwyer/photon-node';
+import type { PhotonImage as PhotonImageType } from '@silvia-odwyer/photon';
 import { getDebug } from '../logger';
 import type { Rect } from '../types';
 import { ifInNode } from '../utils';
@@ -61,44 +61,36 @@ export async function resizeAndConvertImgBuffer(
   imgDebug(`resizeImg start, target size: ${newSize.width}x${newSize.height}`);
 
   if (ifInNode) {
-    // Node.js environment: use Sharp
-    try {
-      const Sharp = await getSharp();
-      const metadata = await Sharp(inputData).metadata();
-      const { width: originalWidth, height: originalHeight } = metadata;
+    const Sharp = await getSharp();
+    const metadata = await Sharp(inputData).metadata();
+    const { width: originalWidth, height: originalHeight } = metadata;
 
-      if (!originalWidth || !originalHeight) {
-        throw Error('Undefined width or height from the input image.');
-      }
-
-      if (
-        newSize.width === originalWidth &&
-        newSize.height === originalHeight
-      ) {
-        return {
-          buffer: inputData,
-          format: inputFormat,
-        };
-      }
-
-      const resizedBuffer = await Sharp(inputData)
-        .resize(newSize.width, newSize.height)
-        .jpeg({ quality: 90 })
-        .toBuffer();
-
-      const resizeEndTime = Date.now();
-      imgDebug(
-        `resizeImg done (Sharp), target size: ${newSize.width}x${newSize.height}, cost: ${resizeEndTime - resizeStartTime}ms`,
-      );
-
-      return {
-        buffer: resizedBuffer,
-        // by Sharp.jpeg()
-        format: 'jpeg',
-      };
-    } catch (error) {
-      imgDebug('Sharp failed, falling back to Photon:', error);
+    if (!originalWidth || !originalHeight) {
+      throw Error('Undefined width or height from the input image.');
     }
+
+    if (newSize.width === originalWidth && newSize.height === originalHeight) {
+      return {
+        buffer: inputData,
+        format: inputFormat,
+      };
+    }
+
+    const resizedBuffer = await Sharp(inputData)
+      .resize(newSize.width, newSize.height)
+      .jpeg({ quality: 90 })
+      .toBuffer();
+
+    const resizeEndTime = Date.now();
+    imgDebug(
+      `resizeImg done (Sharp), target size: ${newSize.width}x${newSize.height}, cost: ${resizeEndTime - resizeStartTime}ms`,
+    );
+
+    return {
+      buffer: resizedBuffer,
+      // by Sharp.jpeg()
+      format: 'jpeg',
+    };
   }
 
   // browser environment: use Photon (or Canvas fallback)
@@ -410,6 +402,38 @@ export async function paddingToMatchBlockByBase64(
   height: number;
   imageBase64: string;
 }> {
+  if (ifInNode) {
+    const { body } = parseBase64(imageBase64);
+    const inputBuffer = Buffer.from(body, 'base64');
+    const Sharp = await getSharp();
+    const metadata = await Sharp(inputBuffer).metadata();
+    const width = metadata.width;
+    const height = metadata.height;
+    if (!width || !height) {
+      throw new Error('Failed to get image dimensions');
+    }
+
+    const targetWidth = Math.ceil(width / blockSize) * blockSize;
+    const targetHeight = Math.ceil(height / blockSize) * blockSize;
+    if (targetWidth === width && targetHeight === height) {
+      return { width, height, imageBase64 };
+    }
+
+    const output = await Sharp(inputBuffer)
+      .extend({
+        right: targetWidth - width,
+        bottom: targetHeight - height,
+        background: { r: 255, g: 255, b: 255, alpha: 1 },
+      })
+      .jpeg({ quality: 90 })
+      .toBuffer();
+    return {
+      width: targetWidth,
+      height: targetHeight,
+      imageBase64: createImgBase64ByFormat('jpeg', output.toString('base64')),
+    };
+  }
+
   const photonImage = await photonFromBase64(imageBase64);
   try {
     const paddedResult = await paddingToMatchBlock(photonImage, blockSize);
@@ -435,6 +459,29 @@ export async function cropByRect(
   height: number;
   imageBase64: string;
 }> {
+  if (ifInNode) {
+    const { body } = parseBase64(imageBase64);
+    const Sharp = await getSharp();
+    const left = Math.trunc(rect.left);
+    const top = Math.trunc(rect.top);
+    const width = Math.trunc(rect.left + rect.width) - left;
+    const height = Math.trunc(rect.top + rect.height) - top;
+    const output = await Sharp(Buffer.from(body, 'base64'))
+      .extract({
+        left,
+        top,
+        width,
+        height,
+      })
+      .jpeg({ quality: 90 })
+      .toBuffer();
+    return {
+      width,
+      height,
+      imageBase64: createImgBase64ByFormat('jpeg', output.toString('base64')),
+    };
+  }
+
   const { crop } = await getPhoton();
   const photonImage = await photonFromBase64(imageBase64);
   const { left, top, width, height } = rect;
@@ -593,48 +640,43 @@ export async function scaleImage(
   imgDebug(`scaleImage start, scale factor: ${scale}`);
 
   if (ifInNode) {
-    // Node.js environment: use Sharp
-    try {
-      const Sharp = await getSharp();
-      const metadata = await Sharp(buffer).metadata();
-      const originalWidth = metadata.width || 0;
-      const originalHeight = metadata.height || 0;
+    const Sharp = await getSharp();
+    const metadata = await Sharp(buffer).metadata();
+    const originalWidth = metadata.width || 0;
+    const originalHeight = metadata.height || 0;
 
-      if (originalWidth === 0 || originalHeight === 0) {
-        throw new Error('Failed to get image dimensions');
-      }
-
-      const newWidth = Math.round(originalWidth * scale);
-      const newHeight = Math.round(originalHeight * scale);
-
-      const resizedBuffer = await Sharp(buffer)
-        .resize(newWidth, newHeight, {
-          kernel: 'lanczos3',
-          fit: 'fill',
-        })
-        .jpeg({
-          quality: 90,
-        })
-        .toBuffer();
-
-      const scaleEndTime = Date.now();
-      imgDebug(
-        `scaleImage done (Sharp): ${originalWidth}x${originalHeight} -> ${newWidth}x${newHeight} (scale=${scale}), cost: ${scaleEndTime - scaleStartTime}ms`,
-      );
-
-      const base64 = `data:image/jpeg;base64,${resizedBuffer.toString('base64')}`;
-
-      return {
-        width: newWidth,
-        height: newHeight,
-        imageBase64: base64,
-      };
-    } catch (error) {
-      imgDebug('Sharp failed, falling back to Photon:', error);
+    if (originalWidth === 0 || originalHeight === 0) {
+      throw new Error('Failed to get image dimensions');
     }
+
+    const newWidth = Math.round(originalWidth * scale);
+    const newHeight = Math.round(originalHeight * scale);
+
+    const resizedBuffer = await Sharp(buffer)
+      .resize(newWidth, newHeight, {
+        kernel: 'lanczos3',
+        fit: 'fill',
+      })
+      .jpeg({
+        quality: 90,
+      })
+      .toBuffer();
+
+    const scaleEndTime = Date.now();
+    imgDebug(
+      `scaleImage done (Sharp): ${originalWidth}x${originalHeight} -> ${newWidth}x${newHeight} (scale=${scale}), cost: ${scaleEndTime - scaleStartTime}ms`,
+    );
+
+    const base64 = `data:image/jpeg;base64,${resizedBuffer.toString('base64')}`;
+
+    return {
+      width: newWidth,
+      height: newHeight,
+      imageBase64: base64,
+    };
   }
 
-  // Browser environment or Sharp failed: use Photon (or Canvas fallback)
+  // Browser environment: use Photon (or Canvas fallback)
   const { PhotonImage, SamplingFilter, resize } = await getPhoton();
   const inputBytes = new Uint8Array(buffer);
   // Support both sync (Photon) and async (Canvas fallback) versions

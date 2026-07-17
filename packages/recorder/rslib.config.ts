@@ -24,6 +24,7 @@ export default defineConfig({
       },
       resolve: {
         alias: {
+          '@midscene/shared/constants': '../shared/src/constants/index.ts',
           '@midscene/shared/extractor': '../shared/src/extractor/index.ts',
         },
       },

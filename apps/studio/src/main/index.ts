@@ -13,6 +13,7 @@ import {
   type ChooseReplayFileResult,
   type DiscoverDevicesRequest,
   IPC_CHANNELS,
+  type OpenImagePreviewRequest,
   type PrepareRecorderMarkdownReplayRequest,
   type WriteFileRequest,
   type WriteReportFileRequest,
@@ -31,7 +32,15 @@ import {
   shell,
 } from 'electron';
 import type { TitleBarOverlay } from 'electron';
+import { MACOS_TRAFFIC_LIGHT_POSITION } from '../shared/titlebar-layout';
+import { startStudioEventLoopWatchdog } from './performance-watchdog';
 import { requestPlaygroundBootstrap } from './playground/bootstrap-request';
+import { runConnectivityTest } from './playground/connectivity-test';
+import {
+  type DeviceDiscoveryService,
+  createDeviceDiscoveryService,
+} from './playground/device-discovery';
+import { createMultiPlatformRuntimeService } from './playground/multi-platform-runtime';
 import type { PlaygroundRuntimeService } from './playground/types';
 import {
   describeRecorderUIEventsInMain,
@@ -61,9 +70,8 @@ configureStudioShellEnvHydration({
 let mainWindow: BrowserWindow | null = null;
 let cachedAppIcon: NativeImage | null = null;
 let playgroundRuntimePromise: Promise<PlaygroundRuntimeService> | null = null;
-let deviceDiscoveryServicePromise: Promise<
-  import('./playground/device-discovery').DeviceDiscoveryService
-> | null = null;
+let deviceDiscoveryServicePromise: Promise<DeviceDiscoveryService> | null =
+  null;
 const isStudioSmokeTest = process.env.MIDSCENE_STUDIO_SMOKE_TEST === '1';
 const isStudioE2ETest = process.env.MIDSCENE_STUDIO_E2E_TEST === '1';
 const STUDIO_SMOKE_READY_MARKER = 'MIDSCENE_STUDIO_SMOKE_READY';
@@ -197,6 +205,24 @@ const ensureFileExtensionFromFilters = (
   return `${filePath}.${firstExtension.replace(/^\./, '')}`;
 };
 
+const sanitizeImagePreviewFileName = (fileName?: string) => {
+  const baseName = path.basename(fileName?.trim() || 'screenshot.png');
+  const withoutUnsafeChars = baseName.replace(/[^a-zA-Z0-9._-]/g, '_');
+  const withFallback = withoutUnsafeChars || 'screenshot.png';
+  return path.extname(withFallback) ? withFallback : `${withFallback}.png`;
+};
+
+const decodeImagePreviewData = (data: string) => {
+  if (typeof data !== 'string' || !data.trim()) {
+    throw new Error('openImagePreview: image data is required');
+  }
+  const trimmed = data.trim();
+  const dataUrlMatch = /^data:image\/(?:png|jpeg|jpg|webp);base64,(.+)$/i.exec(
+    trimmed,
+  );
+  return Buffer.from(dataUrlMatch?.[1] ?? trimmed, 'base64');
+};
+
 const MARKDOWN_REPLAY_EXTENSIONS = new Set(['.md', '.markdown']);
 const YAML_REPLAY_EXTENSIONS = new Set(['.yaml', '.yml']);
 
@@ -287,8 +313,8 @@ async function prepareRecorderMarkdownReplayBundle(
 
 const getPlaygroundRuntime = async (): Promise<PlaygroundRuntimeService> => {
   if (!playgroundRuntimePromise) {
-    playgroundRuntimePromise = import('./playground/multi-platform-runtime')
-      .then(({ createMultiPlatformRuntimeService }) =>
+    playgroundRuntimePromise = Promise.resolve()
+      .then(() =>
         createMultiPlatformRuntimeService({
           deviceDiscoveryService: getDeviceDiscoveryService(),
         }),
@@ -313,10 +339,8 @@ const closePlaygroundRuntime = async (): Promise<void> => {
 
 const getDeviceDiscoveryService = async () => {
   if (!deviceDiscoveryServicePromise) {
-    deviceDiscoveryServicePromise = import('./playground/device-discovery')
-      .then(({ createDeviceDiscoveryService }) =>
-        createDeviceDiscoveryService(),
-      )
+    deviceDiscoveryServicePromise = Promise.resolve()
+      .then(() => createDeviceDiscoveryService())
       .catch((error) => {
         deviceDiscoveryServicePromise = null;
         throw error;
@@ -342,11 +366,10 @@ const createMainWindow = () => {
     titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'hidden',
     titleBarOverlay:
       process.platform === 'darwin' ? undefined : getTitleBarOverlay(),
-    // Vertical centers of the 12px traffic lights line up with the sidebar
-    // collapse toggle (24px) at window y=20: (8 + 24/2 = 20 = 14 + 12/2).
-    // y=14 hugs the inset titlebar like native macOS apps.
+    // Keep the native 12px traffic lights vertically centered with the
+    // ShellLayout titlebar controls.
     trafficLightPosition:
-      process.platform === 'darwin' ? { x: 18, y: 14 } : undefined,
+      process.platform === 'darwin' ? MACOS_TRAFFIC_LIGHT_POSITION : undefined,
     vibrancy: process.platform === 'darwin' ? 'sidebar' : undefined,
     visualEffectState: process.platform === 'darwin' ? 'active' : undefined,
     backgroundMaterial: process.platform === 'win32' ? 'acrylic' : undefined,
@@ -441,6 +464,23 @@ const registerIpcHandlers = () => {
   ipcMain.handle(IPC_CHANNELS.openExternalUrl, async (_event, url: string) => {
     await shell.openExternal(resolveExternalUrl(url));
   });
+  ipcMain.handle(
+    IPC_CHANNELS.openImagePreview,
+    async (_event, request: OpenImagePreviewRequest) => {
+      const imageBuffer = decodeImagePreviewData(request?.data);
+      const previewDir = path.join(app.getPath('temp'), 'midscene-studio');
+      await mkdir(previewDir, { recursive: true });
+      const filePath = path.join(
+        previewDir,
+        `${Date.now()}-${sanitizeImagePreviewFileName(request?.fileName)}`,
+      );
+      await writeFileToDisk(filePath, imageBuffer);
+      const errorMessage = await shell.openPath(filePath);
+      if (errorMessage) {
+        throw new Error(errorMessage);
+      }
+    },
+  );
   ipcMain.handle(
     IPC_CHANNELS.chooseReportSavePath,
     async (_event, defaultFileName?: string) => {
@@ -581,7 +621,7 @@ const registerIpcHandlers = () => {
       // on OS material (macOS vibrancy / Windows acrylic); only Linux needs
       // a solid theme-tinted fallback.
       if (process.platform === 'linux') {
-        mainWindow.setBackgroundColor(isDark ? '#171717' : '#eef1f5');
+        mainWindow.setBackgroundColor(isDark ? '#282828' : '#eef1f5');
       } else {
         mainWindow.setBackgroundColor('#00000000');
       }
@@ -660,12 +700,9 @@ const registerIpcHandlers = () => {
       (await getDeviceDiscoveryService()).setPollingPaused(Boolean(paused));
     },
   );
-  ipcMain.handle(IPC_CHANNELS.runConnectivityTest, async (_event, request) => {
-    const { runConnectivityTest } = await import(
-      './playground/connectivity-test'
-    );
-    return runConnectivityTest(request);
-  });
+  ipcMain.handle(IPC_CHANNELS.runConnectivityTest, async (_event, request) =>
+    runConnectivityTest(request),
+  );
   ipcMain.handle(IPC_CHANNELS.generateRecorderCode, async (_event, request) => {
     return generateRecorderCodeInMain(request);
   });
@@ -689,6 +726,8 @@ const registerIpcHandlers = () => {
 
 app.whenReady().then(() => {
   ensureStudioRunDirEnv();
+  const stopEventLoopWatchdog = startStudioEventLoopWatchdog();
+  app.once('before-quit', stopEventLoopWatchdog);
 
   if (process.platform === 'darwin' && app.dock) {
     app.dock.setIcon(getAppIcon());

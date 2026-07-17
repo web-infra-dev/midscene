@@ -1,5 +1,5 @@
 import { getDebug } from '../logger';
-import { ifInBrowser, ifInNode, ifInWorker } from '../utils';
+import { ifInBrowser, ifInWorker } from '../utils';
 
 const debug = getDebug('img');
 
@@ -8,31 +8,25 @@ let isInitialized = false;
 let usingCanvasFallback = false;
 
 export default async function getPhoton(): Promise<{
-  PhotonImage: typeof import('@silvia-odwyer/photon-node').PhotonImage;
-  SamplingFilter: typeof import('@silvia-odwyer/photon-node').SamplingFilter;
-  resize: typeof import('@silvia-odwyer/photon-node').resize;
-  crop: typeof import('@silvia-odwyer/photon-node').crop;
-  open_image: typeof import('@silvia-odwyer/photon-node').open_image;
-  base64_to_image: typeof import('@silvia-odwyer/photon-node').base64_to_image;
-  padding_uniform: typeof import('@silvia-odwyer/photon-node').padding_uniform;
-  padding_left: typeof import('@silvia-odwyer/photon-node').padding_left;
-  padding_right: typeof import('@silvia-odwyer/photon-node').padding_right;
-  padding_top: typeof import('@silvia-odwyer/photon-node').padding_top;
-  padding_bottom: typeof import('@silvia-odwyer/photon-node').padding_bottom;
-  watermark: typeof import('@silvia-odwyer/photon-node').watermark;
-  Rgba: typeof import('@silvia-odwyer/photon-node').Rgba;
+  PhotonImage: typeof import('@silvia-odwyer/photon').PhotonImage;
+  SamplingFilter: typeof import('@silvia-odwyer/photon').SamplingFilter;
+  resize: typeof import('@silvia-odwyer/photon').resize;
+  crop: typeof import('@silvia-odwyer/photon').crop;
+  open_image: typeof import('@silvia-odwyer/photon').open_image;
+  base64_to_image: typeof import('@silvia-odwyer/photon').base64_to_image;
+  padding_uniform: typeof import('@silvia-odwyer/photon').padding_uniform;
+  padding_left: typeof import('@silvia-odwyer/photon').padding_left;
+  padding_right: typeof import('@silvia-odwyer/photon').padding_right;
+  padding_top: typeof import('@silvia-odwyer/photon').padding_top;
+  padding_bottom: typeof import('@silvia-odwyer/photon').padding_bottom;
+  watermark: typeof import('@silvia-odwyer/photon').watermark;
+  Rgba: typeof import('@silvia-odwyer/photon').Rgba;
 }> {
   if (photonModule && isInitialized) {
     return photonModule;
   }
 
-  const env = ifInBrowser
-    ? 'browser'
-    : ifInWorker
-      ? 'worker'
-      : ifInNode
-        ? 'node'
-        : 'unknown';
+  const env = ifInBrowser ? 'browser' : ifInWorker ? 'worker' : 'unknown';
   debug(`Loading photon module in ${env} environment`);
 
   // Try to load Photon first
@@ -46,10 +40,8 @@ export default async function getPhoton(): Promise<{
       }
       debug('Photon loaded: @silvia-odwyer/photon (browser/worker)');
       photonModule = photon;
-    } else if (ifInNode) {
-      // Node.js environment: use @silvia-odwyer/photon-node
-      photonModule = await import('@silvia-odwyer/photon-node');
-      debug('Photon loaded: @silvia-odwyer/photon-node (node)');
+    } else {
+      throw new Error('Photon is only available in browser environments');
     }
 
     // verify that the critical functions exist (only for Photon, not Canvas fallback)

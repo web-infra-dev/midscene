@@ -271,6 +271,12 @@ describe('playground runtime bootstrap', () => {
       defaultValue: 'https://todomvc.com/examples/react/dist/',
       placeholder: 'https://todomvc.com/examples/react/dist/',
     });
+    expect(
+      setup?.fields.find((field) => field.key === 'viewportWidth'),
+    ).toMatchObject({ defaultValue: 1280 });
+    expect(
+      setup?.fields.find((field) => field.key === 'viewportHeight'),
+    ).toMatchObject({ defaultValue: 720 });
 
     const defaultSession = await prepared?.sessionManager?.createSession({});
     expect(defaultSession?.displayName).toBe(

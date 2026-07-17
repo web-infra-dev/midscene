@@ -1,3 +1,4 @@
+import { Buffer } from 'node:buffer';
 import type { WebPageAgentOpt } from '@/web-element';
 import type {
   DeviceAction,
@@ -22,7 +23,10 @@ import {
 } from '@midscene/shared/constants';
 import type { ElementInfo } from '@midscene/shared/extractor';
 import { treeToList } from '@midscene/shared/extractor';
-import { createImgBase64ByFormat } from '@midscene/shared/img';
+import {
+  createImgBase64ByFormat,
+  imageInfoOfBase64,
+} from '@midscene/shared/img';
 import { type DebugFunction, getDebug } from '@midscene/shared/logger';
 import {
   getElementInfosScriptContent,
@@ -52,6 +56,12 @@ export const BROWSER_NAVIGATION_ERROR_PATTERN =
 
 const CDP_SCREENCAST_QUALITY = 70;
 const CDP_SCREENCAST_EVERY_NTH_FRAME = 1;
+// JPEG encoders may round one edge after applying a device scale factor. A
+// couple of output pixels is harmless; a changed viewport is much larger.
+const MAX_FRAME_ASPECT_RATIO_PIXEL_ERROR = 2;
+// Empirical follow-up window for async UI paints after input actions.
+// The immediate refresh can happen before React/state transitions settle.
+const VISUAL_UPDATE_FOLLOWUP_DELAY_MS = 800;
 // Upper bound for the "wait for browser repaint" promise inside
 // flushPendingVisualUpdate so the call does not hang forever if the page
 // stops scheduling animation frames (e.g. backgrounded tab).
@@ -61,6 +71,10 @@ const DATA_URL_BASE64_PREFIX = /^data:image\/\w+;base64,/;
 type ScreencastFrameEvent = {
   data: string;
   sessionId: number;
+  metadata?: {
+    deviceWidth?: number;
+    deviceHeight?: number;
+  };
 };
 
 type PageCdpSession = {
@@ -93,6 +107,92 @@ function isClosedPageError(error: unknown) {
   );
 }
 
+function isTransientNavigationError(error: unknown) {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+
+  return /execution context was destroyed|frame was detached|context was destroyed|net::ERR_ABORTED/i.test(
+    error.message,
+  );
+}
+
+function hasMatchingFrameAspectRatio(
+  frameSize: Size,
+  viewportSize: Size,
+): boolean {
+  if (
+    !Number.isFinite(frameSize.width) ||
+    !Number.isFinite(frameSize.height) ||
+    frameSize.width <= 0 ||
+    frameSize.height <= 0
+  ) {
+    // Older Chromium versions may omit useful metadata. Do not reject an
+    // otherwise usable frame solely because it cannot be diagnosed.
+    return true;
+  }
+
+  const expectedFrameHeight =
+    (frameSize.width * viewportSize.height) / viewportSize.width;
+  return (
+    Math.abs(frameSize.height - expectedFrameHeight) <=
+    MAX_FRAME_ASPECT_RATIO_PIXEL_ERROR
+  );
+}
+
+function isJpegStartOfFrameMarker(marker: number): boolean {
+  return (
+    (marker >= 0xc0 && marker <= 0xc3) ||
+    (marker >= 0xc5 && marker <= 0xc7) ||
+    (marker >= 0xc9 && marker <= 0xcb) ||
+    (marker >= 0xcd && marker <= 0xcf)
+  );
+}
+
+/**
+ * Reads JPEG dimensions without decoding pixels. CDP already sends JPEG for
+ * screencast frames, so this is cheap enough to validate every frame.
+ */
+function jpegSizeFromBase64(data: string): Size | undefined {
+  const bytes = Buffer.from(data.replace(DATA_URL_BASE64_PREFIX, ''), 'base64');
+  if (bytes.length < 10 || bytes[0] !== 0xff || bytes[1] !== 0xd8) {
+    return undefined;
+  }
+
+  let offset = 2;
+  while (offset + 9 <= bytes.length) {
+    if (bytes[offset] !== 0xff) {
+      offset++;
+      continue;
+    }
+    while (bytes[offset] === 0xff) offset++;
+    const marker = bytes[offset++];
+    if (
+      marker === undefined ||
+      marker === 0x00 ||
+      marker === 0xd8 ||
+      marker === 0xd9 ||
+      (marker >= 0xd0 && marker <= 0xd7)
+    ) {
+      continue;
+    }
+    if (offset + 2 > bytes.length) return undefined;
+    const segmentLength = bytes.readUInt16BE(offset);
+    if (segmentLength < 2 || offset + segmentLength > bytes.length) {
+      return undefined;
+    }
+    if (isJpegStartOfFrameMarker(marker)) {
+      return {
+        height: bytes.readUInt16BE(offset + 3),
+        width: bytes.readUInt16BE(offset + 5),
+      };
+    }
+    offset += segmentLength;
+  }
+
+  return undefined;
+}
+
 export class Page<
   AgentType extends 'puppeteer' | 'playwright',
   InterfaceType extends PuppeteerPage | PlaywrightPage,
@@ -113,12 +213,15 @@ export class Page<
   ) => Promise<void>;
   private playwrightNetworkIdleWarningShown = false;
   private activeMjpegStream?: {
+    hasReceivedScreencastFrame: boolean;
+    expectedViewportSize?: Size;
     token: symbol;
     onFrame: MjpegStreamOptions['onFrame'];
     onError?: MjpegStreamOptions['onError'];
   };
   private visualUpdateFlushInFlight: Promise<void> | null = null;
   private visualUpdateFlushQueued = false;
+  private visualUpdateFollowupTimer?: ReturnType<typeof setTimeout>;
   interfaceType: AgentType;
 
   actionSpace(): DeviceAction[] {
@@ -522,7 +625,11 @@ export class Page<
 
   async flushPendingVisualUpdate(): Promise<void> {
     const activeStream = this.activeMjpegStream;
-    if (!activeStream) return;
+    // A direct screenshot is only the fallback for an idle page that has not
+    // emitted its first CDP screencast frame. Mixing it with screencast frames
+    // can alternate between two viewport sizes in headed browsers, making the
+    // preview visibly resize from one MJPEG frame to the next.
+    if (!activeStream || activeStream.hasReceivedScreencastFrame) return;
 
     try {
       await this.evaluate(
@@ -539,8 +646,38 @@ export class Page<
           }),
         FLUSH_VISUAL_UPDATE_TIMEOUT_MS,
       );
+      if (
+        this.activeMjpegStream?.token !== activeStream.token ||
+        activeStream.hasReceivedScreencastFrame
+      ) {
+        return;
+      }
       const dataUrl = await this.screenshotBase64();
-      if (this.activeMjpegStream?.token !== activeStream.token) return;
+      if (
+        this.activeMjpegStream?.token !== activeStream.token ||
+        activeStream.hasReceivedScreencastFrame
+      ) {
+        return;
+      }
+      const frameSize = await imageInfoOfBase64(dataUrl);
+      if (
+        activeStream.expectedViewportSize &&
+        !hasMatchingFrameAspectRatio(
+          frameSize,
+          activeStream.expectedViewportSize,
+        )
+      ) {
+        throw new Error(
+          `Screenshot fallback aspect ratio mismatch: expected viewport ${activeStream.expectedViewportSize.width}x${activeStream.expectedViewportSize.height}, received ${frameSize.width}x${frameSize.height}`,
+        );
+      }
+      debugPage(
+        'screencast fallback screenshot size %dx%d for viewport %dx%d',
+        frameSize.width,
+        frameSize.height,
+        activeStream.expectedViewportSize?.width ?? 0,
+        activeStream.expectedViewportSize?.height ?? 0,
+      );
       // MjpegStreamFrame.data is contractually bare base64; screenshotBase64()
       // returns a `data:image/...;base64,...` URL, so strip the prefix here.
       activeStream.onFrame({
@@ -549,11 +686,14 @@ export class Page<
       });
     } catch (error) {
       debugPage('screencast visual refresh failed: %s', error);
+      if (isTransientNavigationError(error) && !isClosedPageError(error)) {
+        return;
+      }
       activeStream.onError?.(error);
     }
   }
 
-  schedulePendingVisualUpdate(): void {
+  private queuePendingVisualUpdate(): void {
     if (!this.activeMjpegStream) {
       return;
     }
@@ -582,6 +722,22 @@ export class Page<
     this.visualUpdateFlushInFlight = flushTask;
   }
 
+  schedulePendingVisualUpdate(): void {
+    if (!this.activeMjpegStream) {
+      return;
+    }
+
+    this.queuePendingVisualUpdate();
+
+    if (this.visualUpdateFollowupTimer) {
+      clearTimeout(this.visualUpdateFollowupTimer);
+    }
+    this.visualUpdateFollowupTimer = setTimeout(() => {
+      this.visualUpdateFollowupTimer = undefined;
+      this.queuePendingVisualUpdate();
+    }, VISUAL_UPDATE_FOLLOWUP_DELAY_MS);
+  }
+
   async startMjpegStream(
     options: MjpegStreamOptions,
   ): Promise<MjpegStreamHandle> {
@@ -593,6 +749,9 @@ export class Page<
       'CDP screencast',
     )) as ScreencastCdpSession;
     let stopped = false;
+    let expectedViewportSize: Size | undefined;
+    let hasLoggedScreencastFrameSize = false;
+    let hasReportedInvalidScreencastFrame = false;
     const streamToken = Symbol('mjpeg-stream');
 
     const reportStreamError = (error: unknown) => {
@@ -606,13 +765,64 @@ export class Page<
     const handleFrame = (event: ScreencastFrameEvent) => {
       void (async () => {
         if (stopped) return;
-        try {
-          onFrame({
-            data: event.data,
-            contentType: 'image/jpeg',
-          });
-        } catch (error) {
-          reportStreamError(error);
+        const compositorFrameSize = {
+          width: event.metadata?.deviceWidth ?? 0,
+          height: event.metadata?.deviceHeight ?? 0,
+        };
+        // JPEG dimensions are what the preview actually displays. Prefer
+        // them over compositor metadata: the latter may be stale while a
+        // viewport resize or navigation is in flight.
+        const frameSize = jpegSizeFromBase64(event.data) ?? compositorFrameSize;
+        const isExpectedFrame =
+          !expectedViewportSize ||
+          hasMatchingFrameAspectRatio(frameSize, expectedViewportSize);
+
+        if (!hasLoggedScreencastFrameSize && expectedViewportSize) {
+          hasLoggedScreencastFrameSize = true;
+          debugPage(
+            'CDP screencast JPEG size %dx%d (metadata %dx%d) for viewport %dx%d',
+            frameSize.width,
+            frameSize.height,
+            compositorFrameSize.width,
+            compositorFrameSize.height,
+            expectedViewportSize.width,
+            expectedViewportSize.height,
+          );
+        }
+
+        if (!isExpectedFrame) {
+          if (!hasReportedInvalidScreencastFrame) {
+            hasReportedInvalidScreencastFrame = true;
+            debugPage(
+              'CDP screencast frame aspect ratio mismatch: expected viewport %dx%d, received %dx%d; using screenshot fallback until the screencast recovers',
+              expectedViewportSize?.width ?? 0,
+              expectedViewportSize?.height ?? 0,
+              frameSize.width,
+              frameSize.height,
+            );
+            // Do not turn a single malformed CDP frame into a terminal stream
+            // error. Chromium keeps the last decoded multipart image when a
+            // response ends, so the renderer may never fire <img onError> or
+            // remount the stream. Keep the connection alive and push a direct
+            // screenshot instead; a later valid CDP frame will resume the
+            // low-cost screencast path automatically.
+            if (this.activeMjpegStream?.token === streamToken) {
+              this.activeMjpegStream.hasReceivedScreencastFrame = false;
+            }
+            this.schedulePendingVisualUpdate();
+          }
+        } else {
+          if (this.activeMjpegStream?.token === streamToken) {
+            this.activeMjpegStream.hasReceivedScreencastFrame = true;
+          }
+          try {
+            onFrame({
+              data: event.data,
+              contentType: 'image/jpeg',
+            });
+          } catch (error) {
+            reportStreamError(error);
+          }
         }
 
         try {
@@ -641,6 +851,10 @@ export class Page<
       if (this.activeMjpegStream?.token === streamToken) {
         this.activeMjpegStream = undefined;
       }
+      if (this.visualUpdateFollowupTimer) {
+        clearTimeout(this.visualUpdateFollowupTimer);
+        this.visualUpdateFollowupTimer = undefined;
+      }
       signal?.removeEventListener('abort', abortHandler);
       removeFrameListener();
       await client.send('Page.stopScreencast').catch((error) => {
@@ -658,6 +872,7 @@ export class Page<
     try {
       client.on('Page.screencastFrame', handleFrame);
       this.activeMjpegStream = {
+        hasReceivedScreencastFrame: false,
         token: streamToken,
         onFrame,
         onError,
@@ -672,6 +887,10 @@ export class Page<
       await client.send('Page.enable');
       try {
         const { width, height } = await this.size();
+        expectedViewportSize = { width, height };
+        if (this.activeMjpegStream?.token === streamToken) {
+          this.activeMjpegStream.expectedViewportSize = expectedViewportSize;
+        }
         await client.send('Emulation.setVisibleSize', { width, height });
       } catch (error) {
         debugPage('CDP screencast visible size sync failed: %s', error);
@@ -679,6 +898,12 @@ export class Page<
       await client.send('Page.startScreencast', {
         format: 'jpeg',
         quality: CDP_SCREENCAST_QUALITY,
+        ...(expectedViewportSize
+          ? {
+              maxWidth: expectedViewportSize.width,
+              maxHeight: expectedViewportSize.height,
+            }
+          : {}),
         everyNthFrame: CDP_SCREENCAST_EVERY_NTH_FRAME,
       });
 
@@ -688,7 +913,7 @@ export class Page<
       // attached subscribers staring at a blank canvas. Force-push one
       // manual screenshot so producer.lastFrame is populated before any
       // /mjpeg subscriber connects.
-      void this.flushPendingVisualUpdate();
+      this.schedulePendingVisualUpdate();
 
       return { stop };
     } catch (error) {
@@ -1295,7 +1520,15 @@ export function forceClosePopup(
 
     if (!page.isClosed()) {
       try {
-        await page.goto(url);
+        // A target=_blank navigation (for example Baidu's Map link) is
+        // redirected back into the preview tab. Waiting for the target page's
+        // full `load` event keeps the interaction pending for up to Puppeteer's
+        // default 30 seconds on pages with long-lived resources. DOM content is
+        // enough for the preview to switch to the new page.
+        await page.goto(url, {
+          waitUntil: 'domcontentloaded',
+          timeout: 10_000,
+        });
       } catch (error) {
         debugProfile(`failed to goto ${url}, error: ${error}`);
       }

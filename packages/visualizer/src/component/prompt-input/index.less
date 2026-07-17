@@ -65,8 +65,9 @@
         border: none;
         background-color: #f1f2f3;
         color: #1c1f23;
-        font-family: Inter, system-ui, sans-serif;
-        font-size: 12px;
+        font-family: Inter, 'PingFang SC', system-ui, sans-serif;
+        font-size: 13px;
+        font-weight: 500;
         flex-shrink: 0; /* Prevent buttons from shrinking */
         white-space: nowrap; /* Prevent text wrapping */
 
@@ -103,8 +104,9 @@
         border: none;
         background-color: #f1f2f3;
         color: #1c1f23;
-        font-family: Inter, system-ui, sans-serif;
-        font-size: 12px;
+        font-family: Inter, 'PingFang SC', system-ui, sans-serif;
+        font-size: 13px;
+        font-weight: 500;
         display: inline-flex;
         align-items: center;
         gap: 6px;
@@ -323,6 +325,14 @@
       pointer-events: auto;
     }
 
+    .input-actions-wrapper {
+      display: inline-flex;
+      margin-right: auto;
+      align-items: center;
+      gap: 8px;
+      line-height: normal;
+    }
+
     // Send/Run action button — align with the design's brand blue
     // (#2b83ff) instead of antd's default primary.
     .ant-btn-primary {
@@ -478,6 +488,15 @@
       }
     }
   }
+}
+
+.prompt-stop-square-icon {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  flex: 0 0 10px;
+  border-radius: 2px;
+  background: currentColor;
 }
 
 .selector-trigger {
@@ -736,6 +755,13 @@
       &:hover {
         background: #a8a8a8;
       }
+    }
+
+    .ant-dropdown-menu-item,
+    .ant-dropdown-menu-item-group-title {
+      font-family: Inter, 'PingFang SC', system-ui, sans-serif;
+      font-size: 13px;
+      font-weight: 500;
     }
   }
 }

@@ -1,5 +1,9 @@
+import { createReadStream } from 'node:fs';
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import {
-  ReportActionDump,
+  type ReportActionDump,
   describeElementAtPoint as coreDescribeElementAtPoint,
 } from '@midscene/core';
 import type { InputPrimitives } from '@midscene/core/device';
@@ -21,6 +25,7 @@ function createMockResponse() {
   return {
     statusCode: 200,
     body: undefined as unknown,
+    headers: {} as Record<string, string>,
     status(code: number) {
       this.statusCode = code;
       return this;
@@ -31,6 +36,18 @@ function createMockResponse() {
     },
     send(payload: unknown) {
       this.body = payload;
+      return this;
+    },
+    type() {
+      return this;
+    },
+    setHeader(name: string, value: string) {
+      this.headers[name] = value;
+      return this;
+    },
+    sendFile(filePath: string, callback?: (error?: any) => void) {
+      this.body = { filePath };
+      callback?.();
       return this;
     },
   };
@@ -123,6 +140,85 @@ function mockDescribeElementAtPoint(
 }
 
 describe('PlaygroundServer manual interaction APIs', () => {
+  test('does not reject when navigation observation fails', async () => {
+    vi.useFakeTimers();
+    const server = new PlaygroundServer({ interface: {} } as any);
+    (server as any)._recorderSessionId = 'session-navigation-error';
+    vi.spyOn(server as any, 'getActiveRecorderPageState').mockRejectedValue(
+      new Error('Debugger is detached'),
+    );
+
+    try {
+      (server as any).observeStudioPreviewNavigationCompletion(
+        {
+          actionType: 'NavigationChanged',
+          hashId: 'navigation-error',
+          type: 'navigation',
+          url: 'https://example.com',
+        },
+        'session-navigation-error',
+      );
+
+      await vi.advanceTimersByTimeAsync(250);
+
+      await expect(server.waitForRecorderIdle()).resolves.toBeUndefined();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  test('stops navigation observation when the page URL stays unavailable', async () => {
+    vi.useFakeTimers();
+    const server = new PlaygroundServer({ interface: {} } as any);
+    (server as any)._recorderSessionId = 'session-navigation-unavailable';
+
+    try {
+      (server as any).observeStudioPreviewNavigationCompletion(
+        {
+          actionType: 'NavigationChanged',
+          hashId: 'navigation-unavailable',
+          type: 'navigation',
+          url: 'https://example.com',
+        },
+        'session-navigation-unavailable',
+      );
+
+      const idle = server.waitForRecorderIdle();
+      await vi.advanceTimersByTimeAsync(500);
+
+      await expect(idle).resolves.toBeUndefined();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  test('recorder stop does not wait for a pending navigation completion observation', async () => {
+    const server = new PlaygroundServer({ interface: {} } as any);
+    (server as any)._recorderSessionId = 'session-navigation-pending';
+    (server as any).observeStudioPreviewNavigationCompletion(
+      {
+        actionType: 'NavigationChanged',
+        hashId: 'navigation-pending',
+        type: 'navigation',
+        url: 'https://example.com',
+      },
+      'session-navigation-pending',
+    );
+
+    await server.launch(6130);
+    const stopRecorderHandler = getRouteHandler(
+      server,
+      'post',
+      '/recorder/stop',
+    );
+    const response = createMockResponse();
+
+    await stopRecorderHandler({}, response);
+
+    expect(response.body).toEqual({ ok: true });
+    expect((server as any)._recorderSessionId).toBeNull();
+  });
+
   beforeEach(() => {
     vi.mocked(coreDescribeElementAtPoint).mockReset();
     vi.mocked(coreDescribeElementAtPoint).mockRejectedValue(
@@ -130,7 +226,7 @@ describe('PlaygroundServer manual interaction APIs', () => {
     );
   });
 
-  test('POST /execute resets stale preview dumps before replay execution', async () => {
+  test('POST /execute reads the persisted report after replay execution', async () => {
     const dump = {
       sdkVersion: 'test',
       groupName: 'Midscene Report',
@@ -160,6 +256,7 @@ describe('PlaygroundServer manual interaction APIs', () => {
       dumpDataString: vi.fn(() => JSON.stringify(dump)),
       reportHTMLString: vi.fn(() => '<html></html>'),
       writeOutActionDumps: vi.fn(),
+      reportFile: `${process.cwd()}/package.json`,
     };
     const server = new PlaygroundServer(agent as any);
     server.setPreparedPlatform({
@@ -195,15 +292,292 @@ describe('PlaygroundServer manual interaction APIs', () => {
     );
 
     expect(response.statusCode).toBe(200);
-    const body = response.body as { dump: ReportActionDump };
+    const body = response.body as {
+      dump: ReportActionDump | null;
+      reportHTML: string | null;
+      report: {
+        id: string;
+        url: string;
+        replayUrl: string;
+        bytes: number;
+        format: string;
+      };
+    };
     expect(agent.resetDump).toHaveBeenCalledBefore(
       agent.callActionInActionSpace,
     );
-    expect(body.dump).toBeInstanceOf(ReportActionDump);
-    expect(body.dump.executions.map((execution) => execution.id)).toEqual([
-      'logout',
-      'login',
+    expect(body.dump).toBeNull();
+    expect(body.reportHTML).toBeNull();
+    expect(body.report).toMatchObject({
+      id: expect.any(String),
+      url: expect.stringMatching(/^\/reports\/.*\/$/),
+      replayUrl: expect.stringMatching(/^\/reports\/.*\/replay$/),
+      bytes: expect.any(Number),
+      format: 'single-html',
+    });
+    expect(agent.dumpDataString).not.toHaveBeenCalled();
+    expect(agent.reportHTMLString).not.toHaveBeenCalled();
+
+    const reportHandler = getRouteHandler(server, 'get', '/reports/:reportId/');
+    const reportResponse = createMockResponse();
+    reportHandler({ params: { reportId: body.report.id } }, reportResponse);
+    expect(reportResponse.body).toEqual({
+      filePath: `${process.cwd()}/package.json`,
+    });
+    expect(reportResponse.headers['Cache-Control']).toBe('no-store');
+  });
+
+  test('POST /cancel aborts the running execute action', async () => {
+    const dump = {
+      sdkVersion: 'test',
+      groupName: 'Midscene Report',
+      modelBriefs: [],
+      executions: [],
+    };
+    let capturedSignal: AbortSignal | undefined;
+    let resolveExecuteStarted: (() => void) | undefined;
+    const executeStarted = new Promise<void>((resolve) => {
+      resolveExecuteStarted = resolve;
+    });
+    const agent = {
+      reportFile: `${process.cwd()}/package.json`,
+      interface: {
+        actionSpace: () => [],
+      },
+      resetDump: vi.fn(),
+      aiAct: vi.fn(async (_prompt: string, options: any) => {
+        capturedSignal = options.abortSignal;
+        (agent as any).onDumpUpdate?.('', {
+          id: 'partial-execution',
+          tasks: [],
+        });
+        resolveExecuteStarted?.();
+
+        return await new Promise((resolve) => {
+          capturedSignal?.addEventListener(
+            'abort',
+            () => {
+              resolve('aborted');
+            },
+            { once: true },
+          );
+        });
+      }),
+      dumpDataString: vi.fn(() => JSON.stringify(dump)),
+      reportHTMLString: vi.fn(() => '<html></html>'),
+      writeOutActionDumps: vi.fn(),
+    };
+    const server = new PlaygroundServer(agent as any);
+
+    try {
+      await server.launch(6140);
+      vi.spyOn(server as any, 'recreateAgent').mockResolvedValue(undefined);
+      const executeHandler = getRouteHandler(server, 'post', '/execute');
+      const cancelHandler = getRouteHandler(
+        server,
+        'post',
+        '/cancel/:requestId',
+      );
+      expect(executeHandler).toBeTypeOf('function');
+      expect(cancelHandler).toBeTypeOf('function');
+
+      const executeResponse = createMockResponse();
+      const executePromise = executeHandler(
+        {
+          body: {
+            type: 'aiAct',
+            prompt: 'keep running until cancelled',
+            requestId: 'abort-request-1',
+          },
+        },
+        executeResponse,
+      );
+
+      await executeStarted;
+      expect(capturedSignal).toBeDefined();
+      expect(capturedSignal?.aborted).toBe(false);
+
+      const cancelResponse = createMockResponse();
+      await cancelHandler(
+        { params: { requestId: 'abort-request-1' } },
+        cancelResponse,
+      );
+
+      expect(cancelResponse.statusCode).toBe(200);
+      expect((cancelResponse.body as { status: string }).status).toBe(
+        'cancelled',
+      );
+      expect(cancelResponse.body).toMatchObject({
+        dump: null,
+        reportHTML: null,
+        report: {
+          id: expect.any(String),
+          url: expect.stringMatching(/^\/reports\//),
+          replayUrl: expect.stringMatching(/^\/reports\/.*\/replay$/),
+          bytes: expect.any(Number),
+          format: 'single-html',
+        },
+      });
+      expect(capturedSignal?.aborted).toBe(true);
+
+      await executePromise;
+      expect(executeResponse.statusCode).toBe(200);
+      expect((executeResponse.body as { result: unknown }).result).toBe(
+        'aborted',
+      );
+      expect(agent.dumpDataString).not.toHaveBeenCalled();
+      expect(agent.reportHTMLString).not.toHaveBeenCalled();
+    } finally {
+      await server.close();
+    }
+  });
+
+  test('report replay and screenshot routes stream compact persisted data', async () => {
+    const dump = {
+      sdkVersion: 'test',
+      groupName: 'Playground run',
+      modelBriefs: [],
+      executions: [
+        {
+          id: 'execution-1',
+          logTime: 1,
+          name: 'Execution',
+          tasks: [
+            {
+              type: 'Planning',
+              uiContext: {
+                screenshot: {
+                  type: 'midscene_screenshot_ref',
+                  id: 'shot-1',
+                  capturedAt: 1,
+                  mimeType: 'image/png',
+                  storage: 'inline',
+                },
+              },
+            },
+          ],
+        },
+      ],
+    };
+    const reportHTML = `<html></html>\n<script type="midscene-image" data-id="shot-1">${VALID_PNG_BASE64}</script>\n<script type="midscene_web_dump">${JSON.stringify(dump)}</script>`;
+    vi.mocked(createReadStream).mockImplementation(
+      () =>
+        ({
+          async *[Symbol.asyncIterator]() {
+            for (let index = 0; index < reportHTML.length; index += 17) {
+              yield reportHTML.slice(index, index + 17);
+            }
+          },
+        }) as any,
+    );
+    const agent = {
+      interface: {
+        actionSpace: () => [{ name: 'aiAct', description: 'act' }],
+      },
+      resetDump: vi.fn(),
+      callActionInActionSpace: vi.fn(async () => ({ ok: true })),
+      reportFile: `${process.cwd()}/package.json`,
+    };
+    const server = new PlaygroundServer(agent as any);
+
+    try {
+      await server.launch(6111);
+      const executeHandler = getRouteHandler(server, 'post', '/execute');
+      const executeResponse = createMockResponse();
+      await executeHandler(
+        {
+          body: {
+            type: 'aiAct',
+            prompt: 'replay',
+            requestId: 'compact-replay-1',
+          },
+        },
+        executeResponse,
+      );
+      const report = (executeResponse.body as any).report;
+
+      const replayHandler = getRouteHandler(
+        server,
+        'get',
+        '/reports/:reportId/replay',
+      );
+      const replayResponse = createMockResponse();
+      await replayHandler({ params: { reportId: report.id } }, replayResponse);
+      expect(JSON.parse(replayResponse.body as string)).toEqual(dump);
+
+      const screenshotHandler = getRouteHandler(
+        server,
+        'get',
+        '/reports/:reportId/screenshots/:assetName',
+      );
+      const screenshotResponse = createMockResponse();
+      await screenshotHandler(
+        {
+          params: { reportId: report.id, assetName: 'shot-1.png' },
+        },
+        screenshotResponse,
+      );
+      expect(Buffer.isBuffer(screenshotResponse.body)).toBe(true);
+      expect((screenshotResponse.body as Buffer).length).toBeGreaterThan(0);
+    } finally {
+      await server.close();
+    }
+  });
+
+  test('external report assets remain available under the report URL', async () => {
+    const tempDir = await mkdtemp(join(tmpdir(), 'midscene-report-assets-'));
+    const screenshotsDir = join(tempDir, 'screenshots');
+    const reportPath = join(tempDir, 'index.html');
+    const screenshotPath = join(screenshotsDir, 'shot-1.png');
+    await mkdir(screenshotsDir);
+    await Promise.all([
+      writeFile(reportPath, '<html></html>'),
+      writeFile(screenshotPath, Buffer.from('png')),
     ]);
+    const agent = {
+      interface: {
+        actionSpace: () => [{ name: 'aiAct', description: 'act' }],
+      },
+      resetDump: vi.fn(),
+      callActionInActionSpace: vi.fn(async () => ({ ok: true })),
+      reportFile: reportPath,
+    };
+    const server = new PlaygroundServer(agent as any);
+
+    try {
+      await server.launch(6112);
+      const executeHandler = getRouteHandler(server, 'post', '/execute');
+      const executeResponse = createMockResponse();
+      await executeHandler(
+        {
+          body: {
+            type: 'aiAct',
+            prompt: 'external report',
+            requestId: 'external-report-1',
+          },
+        },
+        executeResponse,
+      );
+      const report = (executeResponse.body as any).report;
+      expect(report.format).toBe('html-and-external-assets');
+
+      const screenshotHandler = getRouteHandler(
+        server,
+        'get',
+        '/reports/:reportId/screenshots/:assetName',
+      );
+      const screenshotResponse = createMockResponse();
+      await screenshotHandler(
+        {
+          params: { reportId: report.id, assetName: 'shot-1.png' },
+        },
+        screenshotResponse,
+      );
+      expect(screenshotResponse.body).toEqual({ filePath: screenshotPath });
+    } finally {
+      await server.close();
+      await rm(tempDir, { force: true, recursive: true });
+    }
   });
 
   test('POST /interact routes pointer events to input primitives', async () => {
@@ -506,7 +880,7 @@ describe('PlaygroundServer manual interaction APIs', () => {
         interfaceType: 'ios',
         actionSpace: () => [],
         inputPrimitives,
-        screenshotBase64: async () => 'base64-image',
+        screenshotBase64: async () => VALID_PNG_BASE64,
         size: async () => ({ width: 390, height: 844 }),
       },
     } as any);
@@ -552,6 +926,28 @@ describe('PlaygroundServer manual interaction APIs', () => {
     });
     const rawEvents = (eventsResponse.body as any).events;
     expect(rawEvents).toHaveLength(1);
+    expect(rawEvents[0]).toMatchObject({
+      screenshotAsset: {
+        id: expect.stringMatching(/^session-preview-/),
+        mimeType: 'image/png',
+        bytes: expect.any(Number),
+      },
+    });
+    expect(rawEvents[0].screenshotBefore).toBeUndefined();
+    expect(rawEvents[0].screenshotAfter).toBeUndefined();
+    expect(rawEvents[0].screenshotWithBox).toBeUndefined();
+
+    const assetHandler = getRouteHandler(
+      server,
+      'get',
+      '/recorder/assets/:assetId',
+    );
+    const assetResponse = createMockResponse();
+    await assetHandler(
+      { params: { assetId: rawEvents[0].screenshotAsset.id } },
+      assetResponse,
+    );
+    expect(assetResponse.statusCode).toBe(200);
 
     const describeResponse = await describeRecorderEvent(server, rawEvents[0]);
     expect(describeResponse.body).toMatchObject({
@@ -580,14 +976,7 @@ describe('PlaygroundServer manual interaction APIs', () => {
         durationMs: expect.any(Number),
         modelCallDurationMs: expect.any(Number),
         elementDescription: 'login button',
-        verifyPassed: true,
-        centerDistance: 0,
-        verifyResult: {
-          pass: true,
-          rect: { left: 0, top: 0, width: 20, height: 20 },
-          center: [10, 20],
-          centerDistance: 0,
-        },
+        verifyPrompt: false,
       },
       event: {
         type: 'click',
@@ -601,14 +990,11 @@ describe('PlaygroundServer manual interaction APIs', () => {
           elementDescription: 'login button',
           replayInstruction: 'Tap on the element described as "login button".',
           actionSummary: 'Tap login button',
-          confidence: 'high',
+          confidence: 'medium',
           aiDescribe: {
-            verifyPrompt: true,
-            verifyPassed: true,
+            verifyPrompt: false,
             deepLocate: false,
-            centerDistance: 0,
             expectedCenter: [10, 20],
-            actualCenter: [10, 20],
           },
         },
       },
@@ -616,13 +1002,57 @@ describe('PlaygroundServer manual interaction APIs', () => {
     expect(describeElementAtPoint).toHaveBeenCalledWith(
       [10, 20],
       expect.objectContaining({
-        verifyPrompt: true,
-        screenshotBase64: 'base64-image',
+        verifyPrompt: false,
+        screenshotBase64: expect.stringMatching(/^data:image\/png;base64,/),
         coordinateSpace: 'logical',
         logicalSize: { width: 390, height: 844 },
         onProgress: expect.any(Function),
       }),
     );
+  });
+
+  test('recorder marks events failed when a screenshot cannot be retained', async () => {
+    const inputPrimitives = makeInputPrimitiveStub();
+    const server = new PlaygroundServer({
+      interface: {
+        interfaceType: 'ios',
+        actionSpace: () => [],
+        inputPrimitives,
+        screenshotBase64: async () => undefined,
+        size: async () => ({ width: 390, height: 844 }),
+      },
+    } as any);
+
+    await server.launch(6119);
+    const startRecorderHandler = getRouteHandler(
+      server,
+      'post',
+      '/recorder/start',
+    );
+    await startRecorderHandler(
+      { body: { sessionId: 'session-without-screenshot' } },
+      createMockResponse(),
+    );
+    const interactHandler = getRouteHandler(server, 'post', '/interact');
+    await interactHandler(
+      { body: { actionType: 'Tap', x: 10, y: 20 } },
+      createMockResponse(),
+    );
+    await server.waitForRecorderIdle();
+
+    const eventsHandler = getRouteHandler(server, 'get', '/recorder/events');
+    const eventsResponse = createMockResponse();
+    await eventsHandler({ query: { since: '0' } }, eventsResponse);
+    expect((eventsResponse.body as any).events).toMatchObject([
+      {
+        type: 'click',
+        semantic: {
+          source: 'aiDescribe',
+          status: 'failed',
+          error: expect.stringContaining('screenshot was not retained'),
+        },
+      },
+    ]);
   });
 
   test('recorder dispatches preview interactions before taking the after screenshot', async () => {
@@ -687,7 +1117,7 @@ describe('PlaygroundServer manual interaction APIs', () => {
         interfaceType: 'ios',
         actionSpace: () => [],
         inputPrimitives,
-        screenshotBase64: async () => 'base64-image',
+        screenshotBase64: async () => VALID_PNG_BASE64,
         size: async () => ({ width: 390, height: 844 }),
       },
     } as any);
@@ -778,14 +1208,12 @@ describe('PlaygroundServer manual interaction APIs', () => {
     expect(failedTrace.eventSummary.rawPayloadSummary.value).toBeUndefined();
   });
 
-  test('recorder keeps aiDescribe ready and writes annotated screenshots when verification fails', async () => {
+  test('recorder does not report verification metadata when verifyPrompt is disabled', async () => {
     const inputPrimitives = makeInputPrimitiveStub();
     const describeElementAtPoint = mockDescribeElementAtPoint(async () => ({
       prompt: 'login button',
       deepLocate: false,
-      success: false,
-      error: 'describeElementAtPoint verify failed',
-      failureStage: 'verify',
+      success: true,
       verifyResult: {
         pass: false,
         rect: { left: 10, top: 10, width: 5, height: 5 },
@@ -830,35 +1258,26 @@ describe('PlaygroundServer manual interaction APIs', () => {
       trace: {
         status: 'ready',
         elementDescription: 'login button',
-        verifyPassed: false,
-        centerDistance: 14.14,
-        screenshotRef: {
-          path: expect.stringMatching(
-            /recorder-ai-describe-screenshots\/\d{4}-\d{2}-\d{2}\/\d{2}\/.+_raw\.png$/,
-          ),
-          sha256: expect.any(String),
-          bytes: expect.any(Number),
-        },
-        annotatedScreenshotPersistError: expect.any(String),
+        verifyPrompt: false,
       },
       event: {
         semantic: {
           source: 'aiDescribe',
           status: 'ready',
           elementDescription: 'login button',
-          confidence: 'low',
+          confidence: 'medium',
           aiDescribe: {
-            verifyPrompt: true,
-            verifyPassed: false,
-            centerDistance: 14.14,
+            verifyPrompt: false,
             expectedCenter: [2.5, 2.5],
-            actualCenter: [12.5, 12.5],
           },
         },
       },
     });
     const trace = (describeResponse.body as any).trace;
-    expect(trace.annotatedScreenshotPersistError).toEqual(expect.any(String));
+    expect(trace.verifyPassed).toBeUndefined();
+    expect(trace.verifyResult).toBeUndefined();
+    expect(trace.screenshotRef).toBeUndefined();
+    expect(trace.annotatedScreenshotRef).toBeUndefined();
   });
 
   test('recorder sanitizes screenshot dump paths from event metadata', async () => {
@@ -903,7 +1322,7 @@ describe('PlaygroundServer manual interaction APIs', () => {
     expect(screenshotPath).toMatch(/_raw\.png$/);
   });
 
-  test('recorder reports verification failure when aiDescribe times out after failed progress', async () => {
+  test('recorder reports timeout instead of verification failure when verifyPrompt is disabled', async () => {
     const inputPrimitives = makeInputPrimitiveStub();
     const describeElementAtPoint = mockDescribeElementAtPoint(
       (
@@ -965,28 +1384,24 @@ describe('PlaygroundServer manual interaction APIs', () => {
         ok: true,
         trace: {
           status: 'failed',
-          error: 'aiDescribe verification failed.',
+          error: 'Timed out while analyzing recorder event with aiDescribe.',
           modelCallDurationMs: expect.any(Number),
           elementDescription: 'sidebar Icon menu item',
-          verifyPassed: false,
-          centerDistance: 140,
+          verifyPrompt: false,
         },
         event: {
           semantic: {
             source: 'aiDescribe',
             status: 'failed',
-            error: 'aiDescribe verification failed.',
-            aiDescribe: {
-              verifyPrompt: true,
-              verifyPassed: false,
-              deepLocate: true,
-              centerDistance: 140,
-              expectedCenter: [155, 709],
-              actualCenter: [170, 718],
-            },
+            error: 'Timed out while analyzing recorder event with aiDescribe.',
           },
         },
       });
+      expect((describeResponse.body as any).trace.verifyPassed).toBeUndefined();
+      expect((describeResponse.body as any).trace.verifyResult).toBeUndefined();
+      expect(
+        (describeResponse.body as any).event.semantic.aiDescribe,
+      ).toBeUndefined();
     } finally {
       vi.useRealTimers();
     }
@@ -1120,7 +1535,7 @@ describe('PlaygroundServer manual interaction APIs', () => {
     });
   });
 
-  test('recorder describes typeOnly input when the merged event has a stable point', async () => {
+  test('coalesces typeOnly input before persisting its final screenshot', async () => {
     const inputPrimitives = makeInputPrimitiveStub();
     const describeElementAtPoint = mockDescribeElementAtPoint(async () => ({
       prompt: 'phone number input',
@@ -1132,7 +1547,7 @@ describe('PlaygroundServer manual interaction APIs', () => {
         interfaceType: 'ios',
         actionSpace: () => [],
         inputPrimitives,
-        screenshotBase64: async () => 'base64-image',
+        screenshotBase64: async () => VALID_PNG_BASE64,
         size: async () => ({ width: 390, height: 844 }),
       },
     } as any);
@@ -1161,20 +1576,49 @@ describe('PlaygroundServer manual interaction APIs', () => {
       },
       createMockResponse(),
     );
+    await interactHandler(
+      {
+        body: {
+          actionType: 'Input',
+          x: 10,
+          y: 20,
+          value: 'e',
+          mode: 'typeOnly',
+        },
+      },
+      createMockResponse(),
+    );
     await server.waitForRecorderIdle();
 
     const eventsHandler = getRouteHandler(server, 'get', '/recorder/events');
+    const pendingEventsResponse = createMockResponse();
+    await eventsHandler(
+      { query: { since: '0', flushPending: 'false' } },
+      pendingEventsResponse,
+    );
+    expect(pendingEventsResponse.body).toMatchObject({
+      events: [],
+      nextIndex: 0,
+    });
+
     const eventsResponse = createMockResponse();
     await eventsHandler({ query: { since: '0' } }, eventsResponse);
-    const [event] = latestRecorderEventsBody(eventsResponse.body).events;
+    const events = latestRecorderEventsBody(eventsResponse.body).events;
+    expect(events).toHaveLength(1);
+    const [event] = events;
+    expect(event).toMatchObject({
+      value: 'he',
+      mergedHashIds: expect.any(Array),
+      screenshotAsset: expect.any(Object),
+    });
 
     const describeResponse = await describeRecorderEvent(server, event);
 
     expect(describeElementAtPoint).toHaveBeenCalledWith(
       [10, 20],
       expect.objectContaining({
-        verifyPrompt: true,
-        screenshotBase64: 'base64-image',
+        verifyPrompt: false,
+        screenshotBase64: expect.stringMatching(/^data:image\/png;base64,/),
         coordinateSpace: 'logical',
         logicalSize: { width: 390, height: 844 },
         onProgress: expect.any(Function),
@@ -1191,14 +1635,14 @@ describe('PlaygroundServer manual interaction APIs', () => {
         eventSummary: {
           rawPayloadSummary: {
             mode: 'typeOnly',
-            valueLength: 1,
+            valueLength: 2,
           },
         },
       },
       event: {
         type: 'input',
         actionType: 'Input',
-        value: 'h',
+        value: 'he',
         semantic: {
           source: 'aiDescribe',
           status: 'ready',
@@ -1408,7 +1852,7 @@ describe('PlaygroundServer manual interaction APIs', () => {
     expect(describeElementAtPoint).toHaveBeenCalledWith(
       [10, 20],
       expect.objectContaining({
-        verifyPrompt: true,
+        verifyPrompt: false,
         screenshotBase64: 'base64-image',
         coordinateSpace: 'logical',
         logicalSize: { width: 390, height: 844 },
@@ -1482,7 +1926,7 @@ describe('PlaygroundServer manual interaction APIs', () => {
     expect(describeElementAtPoint).toHaveBeenCalledWith(
       [10, 20],
       expect.objectContaining({
-        verifyPrompt: true,
+        verifyPrompt: false,
         screenshotBase64: 'initial-screenshot',
         coordinateSpace: 'logical',
         logicalSize: { width: 390, height: 844 },
@@ -1583,13 +2027,13 @@ describe('PlaygroundServer manual interaction APIs', () => {
 
   test('recorder appends navigation event when preview interact changes web url', async () => {
     let currentUrl = 'https://example.com/start';
-    let currentScreenshot = 'start-screenshot';
+    let currentScreenshot = VALID_PNG_BASE64;
     const inputPrimitives = makeInputPrimitiveStub({
       pointer: {
         tap: vi.fn(async () => {
           if (currentUrl.endsWith('/start')) {
             currentUrl = 'https://example.com/next';
-            currentScreenshot = 'next-screenshot';
+            currentScreenshot = VALID_PNG_BASE64;
           }
         }),
         doubleClick: vi.fn(async () => {}),
@@ -1635,7 +2079,21 @@ describe('PlaygroundServer manual interaction APIs', () => {
     const eventsHandler = getRouteHandler(server, 'get', '/recorder/events');
     const eventsResponse = createMockResponse();
     await eventsHandler({ query: { since: '0' } }, eventsResponse);
-    expect(latestRecorderEventsBody(eventsResponse.body)).toMatchObject({
+    const rawNavigationEvents = (
+      eventsResponse.body as { events: Array<Record<string, unknown>> }
+    ).events.filter(
+      (event) =>
+        event.type === 'navigation' && event.url === 'https://example.com/next',
+    );
+    expect(rawNavigationEvents).toEqual([
+      expect.objectContaining({ actionType: 'NavigationChanged' }),
+      expect.objectContaining({
+        actionType: 'Navigate',
+        hashId: rawNavigationEvents[0]?.hashId,
+      }),
+    ]);
+    const recorderEvents = latestRecorderEventsBody(eventsResponse.body);
+    expect(recorderEvents).toMatchObject({
       events: [
         {
           type: 'navigation',
@@ -1654,19 +2112,17 @@ describe('PlaygroundServer manual interaction APIs', () => {
           source: 'studio-preview',
           url: 'https://example.com/start',
           title: 'Start page',
-          screenshotBefore: 'start-screenshot',
         },
         {
           type: 'navigation',
           source: 'studio-preview',
-          actionType: 'NavigationChanged',
+          actionType: 'Navigate',
           url: 'https://example.com/next',
           title: 'Next page',
           semantic: {
             source: 'heuristic',
             status: 'ready',
-            replayInstruction:
-              'Wait for navigation to complete at `https://example.com/next`.',
+            replayInstruction: 'Navigate to `https://example.com/next`.',
           },
         },
         {
@@ -1674,11 +2130,105 @@ describe('PlaygroundServer manual interaction APIs', () => {
           source: 'studio-preview',
           url: 'https://example.com/next',
           title: 'Next page',
-          screenshotBefore: 'next-screenshot',
         },
       ],
       nextIndex: 4,
     });
+    const [initialNavigation, firstClick, navigationChange, secondClick] =
+      recorderEvents.events as any[];
+    expect(initialNavigation).not.toHaveProperty('screenshotAsset');
+    expect(navigationChange).not.toHaveProperty('screenshotAsset');
+    expect(firstClick).toMatchObject({ screenshotAsset: expect.any(Object) });
+    expect(secondClick).toMatchObject({ screenshotAsset: expect.any(Object) });
+  });
+
+  test('recorder ignores a stale snapshot from a follow-up action during navigation', async () => {
+    let currentUrl = 'https://example.com/start';
+    let tapCount = 0;
+    const inputPrimitives = makeInputPrimitiveStub({
+      pointer: {
+        tap: vi.fn(async () => {
+          tapCount++;
+          if (tapCount === 1) {
+            setTimeout(() => {
+              currentUrl = 'https://example.com/next';
+            }, 50);
+          }
+        }),
+        doubleClick: vi.fn(async () => {}),
+        longPress: vi.fn(async () => {}),
+        dragAndDrop: vi.fn(async () => {}),
+      },
+    });
+    const server = new PlaygroundServer({
+      interface: {
+        interfaceType: 'web',
+        actionSpace: () => [],
+        inputPrimitives,
+        screenshotBase64: async () => VALID_PNG_BASE64,
+        size: async () => ({ width: 1280, height: 720 }),
+        url: async () => currentUrl,
+        evaluateJavaScript: async () =>
+          currentUrl.endsWith('/next') ? 'Next page' : 'Start page',
+      },
+    } as any);
+
+    await server.launch(6129);
+    const startRecorderHandler = getRouteHandler(
+      server,
+      'post',
+      '/recorder/start',
+    );
+    await startRecorderHandler(
+      { body: { sessionId: 'session-web-stale-navigation-snapshot' } },
+      createMockResponse(),
+    );
+
+    const interactHandler = getRouteHandler(server, 'post', '/interact');
+    await interactHandler(
+      { body: { actionType: 'Tap', x: 120, y: 314 } },
+      createMockResponse(),
+    );
+    await interactHandler(
+      { body: { actionType: 'Tap', x: 220, y: 414 } },
+      createMockResponse(),
+    );
+    await new Promise((resolve) => setTimeout(resolve, 60));
+    await server.waitForRecorderIdle();
+
+    const eventsHandler = getRouteHandler(server, 'get', '/recorder/events');
+    const eventsResponse = createMockResponse();
+    await eventsHandler({ query: { since: '0' } }, eventsResponse);
+    const rawNavigationEvents = (
+      eventsResponse.body as { events: Array<Record<string, unknown>> }
+    ).events.filter(
+      (event) =>
+        event.type === 'navigation' && event.url === 'https://example.com/next',
+    );
+
+    expect(rawNavigationEvents).toEqual([
+      expect.objectContaining({ actionType: 'NavigationChanged' }),
+      expect.objectContaining({
+        actionType: 'Navigate',
+        hashId: rawNavigationEvents[0]?.hashId,
+      }),
+    ]);
+    expect(latestRecorderEventsBody(eventsResponse.body).events).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: 'navigation',
+          actionType: 'Navigate',
+          url: 'https://example.com/next',
+        }),
+      ]),
+    );
+    expect(
+      latestRecorderEventsBody(eventsResponse.body).events.filter(
+        (event: any) =>
+          event.type === 'navigation' &&
+          event.url === 'https://example.com/next',
+      ),
+    ).toHaveLength(1);
   });
 
   test('POST /interact returns 400 for invalid manual params', async () => {

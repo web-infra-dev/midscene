@@ -16,6 +16,8 @@ const electronShellApi: ElectronShellApi = {
   minimizeWindow: () => ipcRenderer.invoke(IPC_CHANNELS.minimizeWindow),
   openExternalUrl: (url) =>
     ipcRenderer.invoke(IPC_CHANNELS.openExternalUrl, url),
+  openImagePreview: (request) =>
+    ipcRenderer.invoke(IPC_CHANNELS.openImagePreview, request),
   chooseReportSavePath: (defaultFileName) =>
     ipcRenderer.invoke(IPC_CHANNELS.chooseReportSavePath, defaultFileName),
   chooseFileSavePath: (request) =>
@@ -41,7 +43,6 @@ const electronShellApi: ElectronShellApi = {
 };
 
 const studioRuntimeApi: StudioRuntimeApi = {
-  recorderEntryEnabled: process.env.VITE_STUDIO_RECORDER_ENABLED === 'true',
   getPlaygroundBootstrap: () =>
     ipcRenderer.invoke(IPC_CHANNELS.getPlaygroundBootstrap),
   restartPlayground: () => ipcRenderer.invoke(IPC_CHANNELS.restartPlayground),

@@ -1,7 +1,17 @@
 import { createHash, randomUUID } from 'node:crypto';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import {
+  createReadStream,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  readdirSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs';
+import { stat } from 'node:fs/promises';
 import type { Server } from 'node:http';
-import { dirname, join, resolve, sep } from 'node:path';
+import { basename, dirname, join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type {
   AgentDescribeElementAtPointResult,
@@ -12,7 +22,7 @@ import type {
   ExecutorContext,
 } from '@midscene/core';
 import {
-  ReportActionDump,
+  type ReportActionDump,
   describeElementAtPoint,
   runConnectivityTest,
 } from '@midscene/core';
@@ -27,13 +37,10 @@ import {
   overrideAIConfig,
 } from '@midscene/shared/env';
 import { generateElementByPoint } from '@midscene/shared/extractor';
-import {
-  annotateRects,
-  compositePointMarkerImg,
-  imageInfoOfBase64,
-} from '@midscene/shared/img';
+import { annotateRects, imageInfoOfBase64 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import type {
+  MidsceneRecorderScreenshotAssetRef,
   MidsceneRecorderSemantic,
   MidsceneRecorderSemanticAction,
 } from '@midscene/shared/recorder';
@@ -41,7 +48,7 @@ import {
   buildMidsceneRecorderActionSummary,
   buildMidsceneRecorderReplayInstruction,
 } from '@midscene/shared/recorder';
-import { uuid } from '@midscene/shared/utils';
+import { antiEscapeScriptTag, uuid } from '@midscene/shared/utils';
 import express, { type Request, type Response } from 'express';
 import { executeAction, formatErrorMessage } from './common';
 import { MjpegStreamHandler } from './mjpeg-stream-handler';
@@ -64,15 +71,129 @@ import {
   type PlaygroundRuntimeInfo,
   buildRuntimeInfo,
 } from './runtime-metadata';
-import type { AgentFactory } from './types';
+import type { AgentFactory, PlaygroundReportRef } from './types';
 
 import 'dotenv/config';
 
 const defaultPort = PLAYGROUND_SERVER_PORT;
 const RECORDER_CAPTURE_AFTER_INTERACT_DELAY_MS = 250;
+const RECORDER_TYPE_ONLY_INPUT_SETTLE_DELAY_MS = 750;
+const RECORDER_NAVIGATION_OBSERVATION_INTERVAL_MS = 250;
+const RECORDER_NAVIGATION_OBSERVATION_TIMEOUT_MS = 35_000;
+const RECORDER_NAVIGATION_STABLE_OBSERVATIONS = 2;
+const RECORDER_NAVIGATION_UNAVAILABLE_URL_OBSERVATIONS = 2;
 const RECORDER_AI_DESCRIBE_AFTER_INTERACT_TIMEOUT_MS = 30_000;
+const RECORDER_AI_DESCRIBE_VERIFY_PROMPT = false;
 const RECORDER_AI_DESCRIBE_SCREENSHOT_DUMP_DIR =
   'recorder-ai-describe-screenshots';
+const RECORDER_SCREENSHOT_ASSET_DIR = 'recorder-screenshots';
+const RECORDER_SCREENSHOT_ASSET_MAX_SESSION_BYTES = 128 * 1024 * 1024;
+const RECORDER_SCREENSHOT_ASSET_MAX_TOTAL_BYTES = 512 * 1024 * 1024;
+const PLAYGROUND_REPORT_REF_TTL_MS = 60 * 60 * 1000;
+const REPORT_DUMP_OPEN_TAG = '<script type="midscene_web_dump"';
+const REPORT_IMAGE_CLOSE_TAG = '</script>';
+const recorderScreenshotAssetQuotaExceededSessions = new Set<string>();
+const recorderScreenshotAssetBytesBySession = new Map<string, number>();
+let recorderScreenshotAssetUsageInitialized = false;
+
+async function extractLastReportDump(reportPath: string): Promise<string> {
+  let pending = '';
+  let current = '';
+  let last = '';
+  let capturing = false;
+
+  for await (const rawChunk of createReadStream(reportPath, {
+    encoding: 'utf8',
+  })) {
+    let chunk = pending + rawChunk;
+    pending = '';
+
+    while (chunk) {
+      if (!capturing) {
+        const openIndex = chunk.indexOf(REPORT_DUMP_OPEN_TAG);
+        if (openIndex === -1) {
+          pending = chunk.slice(-(REPORT_DUMP_OPEN_TAG.length - 1));
+          break;
+        }
+        const tagEndIndex = chunk.indexOf('>', openIndex);
+        if (tagEndIndex === -1) {
+          pending = chunk.slice(openIndex);
+          break;
+        }
+        capturing = true;
+        current = '';
+        chunk = chunk.slice(tagEndIndex + 1);
+        continue;
+      }
+
+      const closeIndex = chunk.indexOf(REPORT_IMAGE_CLOSE_TAG);
+      if (closeIndex === -1) {
+        const retainedLength = REPORT_IMAGE_CLOSE_TAG.length - 1;
+        current += chunk.slice(0, -retainedLength);
+        pending = chunk.slice(-retainedLength);
+        break;
+      }
+      current += chunk.slice(0, closeIndex);
+      last = current.trim();
+      current = '';
+      capturing = false;
+      chunk = chunk.slice(closeIndex + REPORT_IMAGE_CLOSE_TAG.length);
+    }
+  }
+
+  if (!last) throw new Error('No replay dump found in report');
+  return antiEscapeScriptTag(last);
+}
+
+async function extractInlineReportImage(
+  reportPath: string,
+  imageId: string,
+): Promise<string | null> {
+  const openTag = `<script type="midscene-image" data-id="${imageId}">`;
+  let pending = '';
+  let content = '';
+  let capturing = false;
+
+  for await (const rawChunk of createReadStream(reportPath, {
+    encoding: 'utf8',
+  })) {
+    let chunk = pending + rawChunk;
+    pending = '';
+
+    if (!capturing) {
+      const openIndex = chunk.indexOf(openTag);
+      if (openIndex === -1) {
+        pending = chunk.slice(-(openTag.length - 1));
+        continue;
+      }
+      capturing = true;
+      chunk = chunk.slice(openIndex + openTag.length);
+    }
+
+    const closeIndex = chunk.indexOf(REPORT_IMAGE_CLOSE_TAG);
+    if (closeIndex !== -1) {
+      content += chunk.slice(0, closeIndex);
+      return antiEscapeScriptTag(content.trim());
+    }
+
+    const retainedLength = REPORT_IMAGE_CLOSE_TAG.length - 1;
+    content += chunk.slice(0, -retainedLength);
+    pending = chunk.slice(-retainedLength);
+  }
+
+  return null;
+}
+
+function shouldPersistStudioPreviewRecorderScreenshot(actionType: string) {
+  return [
+    'Tap',
+    'DoubleClick',
+    'LongPress',
+    'RightClick',
+    'DragAndDrop',
+    'Input',
+  ].includes(actionType);
+}
 
 function createElementDescriberRuntime(
   agent: PageAgent,
@@ -167,10 +288,6 @@ function buildRecorderEventSummary(event: PlaygroundRecorderEvent) {
   };
 }
 
-function shouldVerifyRecorderAiDescribeEvent(event: PlaygroundRecorderEvent) {
-  return event.type !== 'scroll';
-}
-
 type RecorderAiDescribeScreenshotRef = NonNullable<
   PlaygroundRecorderDescribeTrace['screenshotRef']
 >;
@@ -259,6 +376,195 @@ function writeRecorderAiDescribeScreenshot(
     bytes: bytes.byteLength,
     mimeType,
   };
+}
+
+function getRecorderScreenshotAssetRoot() {
+  const root = resolve(
+    getMidsceneRunSubDir('output'),
+    RECORDER_SCREENSHOT_ASSET_DIR,
+  );
+  mkdirSync(root, { recursive: true });
+  return root;
+}
+
+function assertRecorderScreenshotAssetId(assetId: string) {
+  if (!/^[a-zA-Z0-9_-]+$/.test(assetId)) {
+    throw new Error('Invalid recorder screenshot asset id');
+  }
+  return assetId;
+}
+
+function recorderScreenshotAssetExtension(mimeType?: string) {
+  return mimeType?.includes('jpeg') ? 'jpg' : 'png';
+}
+
+function recorderScreenshotAssetPath(assetId: string, mimeType?: string) {
+  const root = getRecorderScreenshotAssetRoot();
+  const safeAssetId = assertRecorderScreenshotAssetId(assetId);
+  return assertPathInsideDirectory(
+    root,
+    join(root, `${safeAssetId}.${recorderScreenshotAssetExtension(mimeType)}`),
+  );
+}
+
+function getRecorderScreenshotAssetUsage(sessionId: string) {
+  initializeRecorderScreenshotAssetUsage();
+  const safeSessionId = sanitizeRecorderPathSegment(sessionId, 'session');
+  const sessionBytes =
+    recorderScreenshotAssetBytesBySession.get(safeSessionId) || 0;
+  const totalBytes = Array.from(
+    recorderScreenshotAssetBytesBySession.values(),
+  ).reduce((total, bytes) => total + bytes, 0);
+  return { totalBytes, sessionBytes };
+}
+
+function initializeRecorderScreenshotAssetUsage() {
+  if (recorderScreenshotAssetUsageInitialized) {
+    return;
+  }
+  recorderScreenshotAssetUsageInitialized = true;
+  const root = getRecorderScreenshotAssetRoot();
+  try {
+    for (const entry of readdirSync(root, { withFileTypes: true })) {
+      if (!entry.isFile()) {
+        continue;
+      }
+      const match = entry.name.match(
+        /^(.*)-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.(?:png|jpg)$/i,
+      );
+      if (!match?.[1]) {
+        continue;
+      }
+      const sessionId = match[1];
+      const bytes = statSync(join(root, entry.name)).size;
+      recorderScreenshotAssetBytesBySession.set(
+        sessionId,
+        (recorderScreenshotAssetBytesBySession.get(sessionId) || 0) + bytes,
+      );
+    }
+  } catch (error) {
+    debugRecorderAssets(
+      'failed to initialize recorder screenshot asset usage:',
+      error,
+    );
+  }
+}
+
+function persistRecorderScreenshotAsset(
+  sessionId: string,
+  imageBase64?: string,
+): MidsceneRecorderScreenshotAssetRef | undefined {
+  if (!imageBase64?.startsWith('data:')) {
+    return undefined;
+  }
+  const { base64, mimeType } = extractBase64Payload(imageBase64);
+  const bytes = Buffer.from(base64, 'base64');
+  const safeSessionId = sanitizeRecorderPathSegment(sessionId, 'session');
+  const usage = getRecorderScreenshotAssetUsage(sessionId);
+  if (
+    usage.sessionBytes + bytes.byteLength >
+      RECORDER_SCREENSHOT_ASSET_MAX_SESSION_BYTES ||
+    usage.totalBytes + bytes.byteLength >
+      RECORDER_SCREENSHOT_ASSET_MAX_TOTAL_BYTES
+  ) {
+    if (!recorderScreenshotAssetQuotaExceededSessions.has(safeSessionId)) {
+      recorderScreenshotAssetQuotaExceededSessions.add(safeSessionId);
+      debugRecorderAssets('recorder screenshot asset quota reached %o', {
+        sessionId: safeSessionId,
+        sessionBytes: usage.sessionBytes,
+        totalBytes: usage.totalBytes,
+      });
+    }
+    return undefined;
+  }
+  const assetId = `${safeSessionId}-${randomUUID()}`;
+  const normalizedMimeType = mimeType || 'image/png';
+  const filePath = recorderScreenshotAssetPath(assetId, normalizedMimeType);
+  try {
+    writeFileSync(filePath, bytes);
+  } catch (error) {
+    debugRecorderAssets('failed to persist recorder screenshot asset:', error);
+    return undefined;
+  }
+  recorderScreenshotAssetBytesBySession.set(
+    safeSessionId,
+    usage.sessionBytes + bytes.byteLength,
+  );
+  return {
+    id: assetId,
+    mimeType: normalizedMimeType,
+    bytes: bytes.byteLength,
+  };
+}
+
+function readRecorderScreenshotAsset(
+  asset: MidsceneRecorderScreenshotAssetRef,
+): string | undefined {
+  const filePath = recorderScreenshotAssetPath(asset.id, asset.mimeType);
+  if (!existsSync(filePath)) {
+    return undefined;
+  }
+  return `data:${asset.mimeType};base64,${readFileSync(filePath).toString('base64')}`;
+}
+
+function findRecorderScreenshotAssetPath(assetId: string) {
+  const safeAssetId = assertRecorderScreenshotAssetId(assetId);
+  const root = getRecorderScreenshotAssetRoot();
+  for (const extension of ['png', 'jpg']) {
+    const filePath = assertPathInsideDirectory(
+      root,
+      join(root, `${safeAssetId}.${extension}`),
+    );
+    if (existsSync(filePath)) {
+      return filePath;
+    }
+  }
+  return undefined;
+}
+
+function removeRecorderScreenshotAssetsForSession(sessionId: string) {
+  const safeSessionId = sanitizeRecorderPathSegment(sessionId, 'session');
+  const prefix = `${safeSessionId}-`;
+  const root = getRecorderScreenshotAssetRoot();
+  for (const entry of readdirSync(root, { withFileTypes: true })) {
+    if (entry.isFile() && entry.name.startsWith(prefix)) {
+      rmSync(join(root, entry.name), { force: true });
+    }
+  }
+  recorderScreenshotAssetQuotaExceededSessions.delete(safeSessionId);
+  recorderScreenshotAssetBytesBySession.delete(safeSessionId);
+}
+
+function pruneRecorderScreenshotAssetsForSession(
+  sessionId: string,
+  retainedAssetIds: string[],
+) {
+  const safeSessionId = sanitizeRecorderPathSegment(sessionId, 'session');
+  const prefix = `${safeSessionId}-`;
+  const retained = new Set(
+    retainedAssetIds.map((assetId) => {
+      const safeAssetId = assertRecorderScreenshotAssetId(assetId);
+      if (!safeAssetId.startsWith(prefix)) {
+        throw new Error('Recorder screenshot asset does not belong to session');
+      }
+      return safeAssetId;
+    }),
+  );
+  const root = getRecorderScreenshotAssetRoot();
+  let sessionBytes = 0;
+  for (const entry of readdirSync(root, { withFileTypes: true })) {
+    if (!entry.isFile() || !entry.name.startsWith(prefix)) {
+      continue;
+    }
+    const assetId = entry.name.replace(/\.(?:png|jpg)$/i, '');
+    const filePath = join(root, entry.name);
+    if (!retained.has(assetId)) {
+      rmSync(filePath, { force: true });
+      continue;
+    }
+    sessionBytes += statSync(filePath).size;
+  }
+  recorderScreenshotAssetBytesBySession.set(safeSessionId, sessionBytes);
 }
 
 function calculateRecorderScreenshotAnnotation(
@@ -551,6 +857,11 @@ const STATIC_PATH = join(__dirname, '..', '..', 'static');
 const debugScreenshot = getDebug('playground:screenshot', { console: true });
 const debugMjpeg = getDebug('playground:mjpeg', { console: true });
 const debugInteract = getDebug('playground:interact', { console: true });
+const debugCancel = getDebug('playground:cancel', { console: true });
+const debugReport = getDebug('playground:report', { console: true });
+const debugRecorderAssets = getDebug('playground:recorder-assets', {
+  console: true,
+});
 
 /**
  * Thrown when a caller supplies an /interact body that fails validation
@@ -776,6 +1087,7 @@ function getRecorderSemanticActionType(
     case 'GoForward':
     case 'Reload':
     case 'Stop':
+    case 'Navigate':
     case 'InitialNavigation':
     case 'NavigationChanged':
       return 'navigation';
@@ -962,6 +1274,14 @@ class PlaygroundServer {
   staticPath: string;
   taskExecutionDumps: Record<string, ExecutionDump | null>; // Store execution dumps directly
   id: string; // Unique identifier for this server instance
+  private readonly reportFiles = new Map<
+    string,
+    {
+      path: string;
+      expiresAt: number;
+      format: PlaygroundReportRef['format'];
+    }
+  >();
 
   /**
    * Port for scrcpy server (used by Android playground for screen mirroring)
@@ -991,6 +1311,7 @@ class PlaygroundServer {
 
   // Track current running task
   private currentTaskId: string | null = null;
+  private taskAbortControllers: Record<string, AbortController> = {};
 
   // Flag to pause MJPEG polling during agent recreation or task execution
   private _agentReady = true;
@@ -1004,8 +1325,13 @@ class PlaygroundServer {
   private _baseSidecars?: PlaygroundSidecar[];
   private _recorderSessionId: string | null = null;
   private _recorderEvents: PlaygroundRecorderEvent[] = [];
+  private _recorderPendingTypeOnlyInput: PlaygroundRecorderEvent | null = null;
+  private _recorderPendingTypeOnlyInputFlushTimer:
+    | ReturnType<typeof setTimeout>
+    | undefined;
   private _recorderEventQueue: Promise<void> = Promise.resolve();
   private _recorderPendingCaptures = 0;
+  private _recorderNavigationCompletionTasks = new Set<Promise<void>>();
   private _studioPreviewRecorderLastTargetPoint:
     | PlaygroundRecorderTargetPoint
     | undefined;
@@ -1317,15 +1643,26 @@ class PlaygroundServer {
   }
 
   private resetRecorderState(): void {
+    this.clearPendingTypeOnlyRecorderInputFlushTimer();
     this._recorderSessionId = null;
     this._recorderEvents = [];
+    this._recorderPendingTypeOnlyInput = null;
     this._recorderEventQueue = Promise.resolve();
+    this._recorderNavigationCompletionTasks.clear();
     this._studioPreviewRecorderLastTargetPoint = undefined;
     this._studioPreviewRecorderLastScreenshot = undefined;
     this._studioPreviewRecorderLastPageState = undefined;
   }
 
   async waitForRecorderIdle(): Promise<void> {
+    await this.waitForQueuedRecorderEvents();
+    while (this._recorderNavigationCompletionTasks.size > 0) {
+      await Promise.all(this._recorderNavigationCompletionTasks);
+      await this.waitForQueuedRecorderEvents();
+    }
+  }
+
+  private async waitForQueuedRecorderEvents(): Promise<void> {
     await this._recorderEventQueue;
   }
 
@@ -1467,6 +1804,15 @@ class PlaygroundServer {
     }
   }
 
+  private persistStudioPreviewRecorderScreenshot(
+    screenshot?: string,
+  ): MidsceneRecorderScreenshotAssetRef | undefined {
+    if (!this._recorderSessionId) {
+      return undefined;
+    }
+    return persistRecorderScreenshotAsset(this._recorderSessionId, screenshot);
+  }
+
   private async storeStudioPreviewRecorderEvent(
     payload: Record<string, unknown>,
     snapshotBefore?: PlaygroundRecorderSnapshot,
@@ -1475,6 +1821,7 @@ class PlaygroundServer {
     if (!this._recorderSessionId) {
       return;
     }
+    const sessionId = this._recorderSessionId;
     const before =
       snapshotBefore || (await this.captureRecorderSnapshotBeforeInteract());
     const screenshotBefore = before?.screenshot;
@@ -1509,13 +1856,241 @@ class PlaygroundServer {
 
     const navigationEvent = this.buildStudioPreviewNavigationChangeEvent(
       payload,
-      before?.pageState,
+      this.getRecorderNavigationPageStateBefore(before?.pageState),
       pageStateAfter,
       screenshotAfter,
     );
     this._studioPreviewRecorderLastScreenshot = screenshotAfter;
     this._studioPreviewRecorderLastPageState = pageStateAfter;
     this.queueStudioPreviewRecorderEventAppend(event, navigationEvent);
+    if (navigationEvent) {
+      this.observeStudioPreviewNavigationCompletion(navigationEvent, sessionId);
+    } else {
+      this.observeStudioPreviewNavigationChange(
+        payload,
+        before?.pageState,
+        event.hashId,
+        sessionId,
+      );
+    }
+  }
+
+  /**
+   * A browser popup redirected into the preview tab can take much longer than
+   * the initial recorder capture. Keep the click responsive, then observe the
+   * URL separately so the eventual navigation is still represented in the
+   * recording without blocking later manual interactions.
+   */
+  private observeStudioPreviewNavigationChange(
+    payload: Record<string, unknown>,
+    pageStateBefore: PlaygroundRecorderPageState | undefined,
+    triggerEventHashId: string,
+    sessionId: string,
+  ): void {
+    const actionType =
+      typeof payload.actionType === 'string' ? payload.actionType : undefined;
+    const beforeUrl = pageStateBefore?.url;
+    if (
+      !actionType ||
+      !beforeUrl ||
+      BROWSER_CHROME_NAVIGATION_ACTIONS.has(actionType)
+    ) {
+      return;
+    }
+
+    void (async () => {
+      const deadline = Date.now() + RECORDER_NAVIGATION_OBSERVATION_TIMEOUT_MS;
+      let unavailableUrlObservations = 0;
+      while (this._recorderSessionId === sessionId && Date.now() < deadline) {
+        await sleep(RECORDER_NAVIGATION_OBSERVATION_INTERVAL_MS);
+        if (this._recorderSessionId !== sessionId) {
+          return;
+        }
+
+        const currentUrl = await this.getActivePageUrl();
+        if (!currentUrl) {
+          unavailableUrlObservations++;
+          if (
+            unavailableUrlObservations >=
+            RECORDER_NAVIGATION_UNAVAILABLE_URL_OBSERVATIONS
+          ) {
+            debugInteract(
+              'stopping delayed recorder navigation observation because the page URL is unavailable',
+            );
+            return;
+          }
+          continue;
+        }
+        unavailableUrlObservations = 0;
+        if (currentUrl === beforeUrl) {
+          continue;
+        }
+
+        const screenshot = await this.takeRecorderScreenshot();
+        const pageStateAfter = await this.getActiveRecorderPageState();
+        const navigationEvent = this.buildStudioPreviewNavigationChangeEvent(
+          payload,
+          this.getRecorderNavigationPageStateBefore(pageStateBefore),
+          pageStateAfter,
+          screenshot,
+        );
+        if (!navigationEvent) {
+          return;
+        }
+
+        navigationEvent.rawPayload = {
+          ...navigationEvent.rawPayload,
+          triggerEventHashId,
+        };
+        if (
+          this.appendStudioPreviewNavigationEventAfterTrigger(
+            triggerEventHashId,
+            navigationEvent,
+          )
+        ) {
+          this._studioPreviewRecorderLastScreenshot = screenshot;
+          this._studioPreviewRecorderLastPageState = pageStateAfter;
+          this.observeStudioPreviewNavigationCompletion(
+            navigationEvent,
+            sessionId,
+          );
+        }
+        return;
+      }
+    })().catch((error) => {
+      debugInteract('delayed recorder navigation observation failed:', error);
+    });
+  }
+
+  private observeStudioPreviewNavigationCompletion(
+    navigationEvent: PlaygroundRecorderEvent,
+    sessionId: string,
+  ): void {
+    const task = (async () => {
+      let latestUrl = navigationEvent.url;
+      let stableObservations = 0;
+      let unavailableUrlObservations = 0;
+      const deadline = Date.now() + RECORDER_NAVIGATION_OBSERVATION_TIMEOUT_MS;
+
+      while (this._recorderSessionId === sessionId && Date.now() < deadline) {
+        await sleep(RECORDER_NAVIGATION_OBSERVATION_INTERVAL_MS);
+        if (this._recorderSessionId !== sessionId) {
+          return;
+        }
+
+        const pageState = await this.getActiveRecorderPageState();
+        const currentUrl = pageState.url;
+        if (!currentUrl) {
+          unavailableUrlObservations++;
+          if (
+            unavailableUrlObservations >=
+            RECORDER_NAVIGATION_UNAVAILABLE_URL_OBSERVATIONS
+          ) {
+            debugInteract(
+              'stopping recorder navigation completion observation because the page URL is unavailable',
+            );
+            return;
+          }
+          continue;
+        }
+        unavailableUrlObservations = 0;
+        if (currentUrl !== latestUrl) {
+          latestUrl = currentUrl;
+          stableObservations = 0;
+          continue;
+        }
+
+        const agent = this._activeConnection.agent;
+        let isLoading = false;
+        if (typeof agent?.interface.navigationState === 'function') {
+          try {
+            isLoading = (await agent.interface.navigationState()).isLoading;
+          } catch (error) {
+            debugInteract(
+              'recorder navigationState() failed while observing completion:',
+              error,
+            );
+          }
+        }
+        if (isLoading) {
+          stableObservations = 0;
+          continue;
+        }
+
+        stableObservations++;
+        if (stableObservations < RECORDER_NAVIGATION_STABLE_OBSERVATIONS) {
+          continue;
+        }
+
+        const semanticAction = buildRecorderSemanticAction(
+          'Navigate',
+          { value: currentUrl },
+          currentUrl,
+        );
+        this._recorderEvents.push({
+          ...navigationEvent,
+          actionType: 'Navigate',
+          rawPayload: {
+            ...navigationEvent.rawPayload,
+            afterUrl: currentUrl,
+            navigationCompleted: true,
+          },
+          pageInfo: pageState.pageInfo,
+          url: currentUrl,
+          title: pageState.title,
+          value: currentUrl,
+          semantic: buildReadyRecorderSemantic(
+            'heuristic',
+            semanticAction,
+            currentUrl,
+            'high',
+          ),
+          timestamp: Date.now(),
+          // The client uses the unchanged id to update the existing timeline
+          // item instead of rendering a redirect as a new Navigate step.
+          hashId: navigationEvent.hashId,
+        });
+        return;
+      }
+    })().catch((error) => {
+      debugInteract(
+        'recorder navigation completion observation failed:',
+        error,
+      );
+    });
+
+    this._recorderNavigationCompletionTasks.add(task);
+    void task.finally(() => {
+      this._recorderNavigationCompletionTasks.delete(task);
+    });
+  }
+
+  private appendStudioPreviewNavigationEventAfterTrigger(
+    triggerEventHashId: string,
+    navigationEvent: PlaygroundRecorderEvent,
+  ): boolean {
+    const triggerIndex = this._recorderEvents.findIndex(
+      (event) => event.hashId === triggerEventHashId,
+    );
+    if (triggerIndex < 0) {
+      return false;
+    }
+
+    const alreadyRecorded = this._recorderEvents.some((event) => {
+      if (event.actionType !== 'NavigationChanged') {
+        return false;
+      }
+      const rawPayload = event.rawPayload as
+        | { triggerEventHashId?: unknown }
+        | undefined;
+      return rawPayload?.triggerEventHashId === triggerEventHashId;
+    });
+    if (alreadyRecorded) {
+      return false;
+    }
+
+    this._recorderEvents.splice(triggerIndex + 1, 0, navigationEvent);
+    return true;
   }
 
   private async buildStudioPreviewRecorderEvent(
@@ -1556,14 +2131,24 @@ class PlaygroundServer {
       endY !== undefined
         ? `${Math.round(x)},${Math.round(y)} -> ${Math.round(endX)},${Math.round(endY)}`
         : undefined;
-    const screenshotWithMarker =
-      x !== undefined && y !== undefined
-        ? await this.createRecorderScreenshotWithMarker(
-            screenshotBefore || screenshotAfter,
-            pageInfo,
-            { x, y },
-          )
-        : undefined;
+    const shouldPersistScreenshot =
+      shouldPersistStudioPreviewRecorderScreenshot(actionType);
+    const retainedScreenshot = shouldPersistScreenshot
+      ? screenshotBefore || screenshotAfter
+      : undefined;
+    const deferScreenshotPersistence =
+      actionType === 'Input' && payload.mode === 'typeOnly';
+    const screenshotAsset = deferScreenshotPersistence
+      ? undefined
+      : this.persistStudioPreviewRecorderScreenshot(retainedScreenshot);
+    const shouldDiscardDataUrlScreenshot = Boolean(
+      retainedScreenshot?.startsWith('data:'),
+    );
+    const hasRetainedScreenshot = Boolean(
+      screenshotAsset ||
+        (deferScreenshotPersistence && retainedScreenshot) ||
+        (!shouldDiscardDataUrlScreenshot && retainedScreenshot),
+    );
 
     const base = {
       source: 'studio-preview' as const,
@@ -1572,13 +2157,26 @@ class PlaygroundServer {
       pageInfo,
       url,
       title,
-      screenshotBefore,
-      screenshotAfter,
-      screenshotWithBox: screenshotWithMarker,
-      semantic: {
-        source: 'aiDescribe' as const,
-        status: 'pending' as const,
-      },
+      ...(screenshotAsset
+        ? { screenshotAsset }
+        : deferScreenshotPersistence
+          ? retainedScreenshot
+            ? { screenshotWithBox: retainedScreenshot }
+            : {}
+          : shouldDiscardDataUrlScreenshot
+            ? {}
+            : {
+                screenshotBefore,
+                screenshotAfter,
+              }),
+      semantic: hasRetainedScreenshot
+        ? {
+            source: 'aiDescribe' as const,
+            status: 'pending' as const,
+          }
+        : buildFailedAiDescribeRecorderSemantic(
+            'Recorder screenshot was not retained because asset storage is unavailable or its quota was reached.',
+          ),
       timestamp,
       hashId: `studio-preview-${actionType}-${timestamp}-${Math.random()
         .toString(36)
@@ -1696,7 +2294,7 @@ class PlaygroundServer {
   }> {
     const startedAt = new Date();
     const startedAtMs = Date.now();
-    const eventScreenshot = this.getRecorderAiDescribeScreenshot(event);
+    const eventScreenshot = await this.getRecorderAiDescribeScreenshot(event);
     const traceBase = createRecorderAiDescribeTraceBase(event, eventScreenshot);
     const finishTrace = async (
       status: PlaygroundRecorderDescribeTrace['status'],
@@ -1781,6 +2379,7 @@ class PlaygroundServer {
       | AgentDescribeElementAtPointResult['verifyResult']
       | PlaygroundDescribeElementVerifyResult
       | undefined;
+    const verifyPrompt = RECORDER_AI_DESCRIBE_VERIFY_PROMPT;
     try {
       if (typeof x !== 'number' || typeof y !== 'number') {
         throw new Error(
@@ -1797,9 +2396,11 @@ class PlaygroundServer {
           'Skipped aiDescribe because the recorder event has no pageInfo for coordinate mapping.',
         );
       }
-      const verifyPrompt = shouldVerifyRecorderAiDescribeEvent(event);
       modelCallStartedAt = Date.now();
       const elementDescriber = createElementDescriberRuntime(agent);
+      /**
+       * Verification is disabled for recorder aiDescribe because it took too long and caused timeouts.
+       */
       const describeResult = await withTimeout(
         describeElementAtPoint(elementDescriber, [x, y], {
           verifyPrompt,
@@ -1831,6 +2432,7 @@ class PlaygroundServer {
         const trace = await finishTrace('ready', {
           modelCallDurationMs,
           elementDescription,
+          verifyPrompt,
           verifyPassed: false,
           centerDistance: verifyResult.centerDistance,
           verifyResult,
@@ -1869,6 +2471,7 @@ class PlaygroundServer {
       const trace = await finishTrace('ready', {
         modelCallDurationMs,
         elementDescription,
+        verifyPrompt,
         verifyPassed: verifyResult?.pass,
         centerDistance: verifyResult?.centerDistance,
         verifyResult,
@@ -1913,16 +2516,17 @@ class PlaygroundServer {
             : String(reportedError),
         modelCallDurationMs,
         elementDescription,
+        verifyPrompt,
         verifyPassed: verifyResult?.pass,
         centerDistance: verifyResult?.centerDistance,
         verifyResult,
       });
       debugInteract('recorder aiDescribe trace:', trace);
       const aiDescribeDetails =
-        verifyResult || trace.annotatedScreenshotRef
+        verifyPrompt && (verifyResult || trace.annotatedScreenshotRef)
           ? {
               aiDescribe: {
-                verifyPrompt: true,
+                verifyPrompt,
                 verifyPassed: verifyResult?.pass,
                 deepLocate,
                 centerDistance: verifyResult?.centerDistance,
@@ -1948,9 +2552,15 @@ class PlaygroundServer {
     }
   }
 
-  private getRecorderAiDescribeScreenshot(
+  private async getRecorderAiDescribeScreenshot(
     event: PlaygroundRecorderEvent,
-  ): string | undefined {
+  ): Promise<string | undefined> {
+    if (event.screenshotAsset) {
+      const screenshot = readRecorderScreenshotAsset(event.screenshotAsset);
+      if (screenshot) {
+        return screenshot;
+      }
+    }
     if (
       event.type === 'click' ||
       event.type === 'input' ||
@@ -1959,7 +2569,9 @@ class PlaygroundServer {
     ) {
       return event.screenshotBefore || event.screenshotAfter;
     }
-    return event.screenshotAfter || event.screenshotBefore;
+    return (
+      event.screenshotAfter || event.screenshotBefore || event.screenshotWithBox
+    );
   }
 
   private queueStudioPreviewRecorderEventAppend(
@@ -1971,10 +2583,130 @@ class PlaygroundServer {
       return;
     }
 
+    if (this.isDeferredTypeOnlyRecorderInput(event) && !navigationEvent) {
+      const pending = this._recorderPendingTypeOnlyInput;
+      if (
+        pending &&
+        this.canCoalesceDeferredTypeOnlyRecorderInput(pending, event)
+      ) {
+        this._recorderPendingTypeOnlyInput =
+          this.mergeDeferredTypeOnlyRecorderInput(pending, event);
+      } else {
+        this.flushPendingTypeOnlyRecorderInput();
+        this._recorderPendingTypeOnlyInput = event;
+      }
+      this.schedulePendingTypeOnlyRecorderInputFlush();
+      return;
+    }
+
+    this.flushPendingTypeOnlyRecorderInput();
     this._recorderEvents.push(event);
     if (navigationEvent) {
       this._recorderEvents.push(navigationEvent);
     }
+  }
+
+  private isDeferredTypeOnlyRecorderInput(event: PlaygroundRecorderEvent) {
+    return (
+      event.source === 'studio-preview' &&
+      event.type === 'input' &&
+      event.actionType === 'Input' &&
+      event.rawPayload?.mode === 'typeOnly'
+    );
+  }
+
+  private canCoalesceDeferredTypeOnlyRecorderInput(
+    current: PlaygroundRecorderEvent,
+    next: PlaygroundRecorderEvent,
+  ) {
+    return (
+      current.url === next.url &&
+      current.title === next.title &&
+      current.rawPayload?.x === next.rawPayload?.x &&
+      current.rawPayload?.y === next.rawPayload?.y
+    );
+  }
+
+  private mergeDeferredTypeOnlyRecorderInput(
+    current: PlaygroundRecorderEvent,
+    next: PlaygroundRecorderEvent,
+  ): PlaygroundRecorderEvent {
+    const value = `${current.value || ''}${next.value || ''}`;
+    return {
+      ...current,
+      value,
+      rawPayload: {
+        ...current.rawPayload,
+        ...next.rawPayload,
+        value,
+      },
+      pageInfo: next.pageInfo || current.pageInfo,
+      screenshotWithBox:
+        next.screenshotWithBox ||
+        next.screenshotAfter ||
+        next.screenshotBefore ||
+        current.screenshotWithBox,
+      timestamp: next.timestamp,
+      mergedHashIds: Array.from(
+        new Set([
+          current.hashId,
+          ...(current.mergedHashIds || []),
+          next.hashId,
+          ...(next.mergedHashIds || []),
+        ]),
+      ),
+    };
+  }
+
+  private flushPendingTypeOnlyRecorderInput(): void {
+    this.clearPendingTypeOnlyRecorderInputFlushTimer();
+    const pending = this._recorderPendingTypeOnlyInput;
+    if (!pending) {
+      return;
+    }
+    this._recorderPendingTypeOnlyInput = null;
+    const screenshot =
+      pending.screenshotWithBox ||
+      pending.screenshotAfter ||
+      pending.screenshotBefore;
+    const screenshotAsset =
+      this.persistStudioPreviewRecorderScreenshot(screenshot);
+    if (screenshotAsset) {
+      this._recorderEvents.push({
+        ...pending,
+        screenshotAsset,
+        screenshotBefore: undefined,
+        screenshotAfter: undefined,
+        screenshotWithBox: undefined,
+      });
+      return;
+    }
+
+    this._recorderEvents.push({
+      ...pending,
+      screenshotBefore: undefined,
+      screenshotAfter: undefined,
+      screenshotWithBox: undefined,
+      semantic: buildFailedAiDescribeRecorderSemantic(
+        'Recorder screenshot was not retained because asset storage is unavailable or its quota was reached.',
+      ),
+    });
+  }
+
+  private schedulePendingTypeOnlyRecorderInputFlush(): void {
+    this.clearPendingTypeOnlyRecorderInputFlushTimer();
+    this._recorderPendingTypeOnlyInputFlushTimer = setTimeout(() => {
+      this._recorderPendingTypeOnlyInputFlushTimer = undefined;
+      this.flushPendingTypeOnlyRecorderInput();
+    }, RECORDER_TYPE_ONLY_INPUT_SETTLE_DELAY_MS);
+  }
+
+  private clearPendingTypeOnlyRecorderInputFlushTimer(): void {
+    if (!this._recorderPendingTypeOnlyInputFlushTimer) {
+      return;
+    }
+    clearTimeout(this._recorderPendingTypeOnlyInputFlushTimer);
+    this._recorderPendingTypeOnlyInputFlushTimer = undefined;
   }
 
   private queueStudioPreviewRecorderEvent(
@@ -2016,6 +2748,28 @@ class PlaygroundServer {
     });
   }
 
+  /**
+   * Recorder snapshots are captured when a manual action is received, but
+   * their events are persisted later from a serialized queue. During a slow
+   * navigation, a follow-up scroll or tap can therefore retain the previous
+   * URL even though an earlier queued action already recorded the transition.
+   * Use the last persisted page state as the navigation baseline in that case
+   * so those stale snapshots do not become duplicate Navigate steps.
+   */
+  private getRecorderNavigationPageStateBefore(
+    snapshotPageState: PlaygroundRecorderPageState | undefined,
+  ): PlaygroundRecorderPageState | undefined {
+    const lastPageState = this._studioPreviewRecorderLastPageState;
+    if (
+      !snapshotPageState?.url ||
+      !lastPageState?.url ||
+      snapshotPageState.url === lastPageState.url
+    ) {
+      return snapshotPageState;
+    }
+    return lastPageState;
+  }
+
   private buildStudioPreviewNavigationChangeEvent(
     payload: Record<string, unknown>,
     pageStateBefore: PlaygroundRecorderPageState | undefined,
@@ -2052,8 +2806,6 @@ class PlaygroundServer {
       url: afterUrl,
       title: pageStateAfter.title,
       value: afterUrl,
-      screenshotBefore: screenshotAfter,
-      screenshotAfter,
       semantic: buildReadyRecorderSemantic(
         'heuristic',
         semanticEvent,
@@ -2093,8 +2845,6 @@ class PlaygroundServer {
       url: pageState.url,
       title: pageState.title,
       value: pageState.url,
-      screenshotBefore: screenshot,
-      screenshotAfter: screenshot,
       semantic: buildReadyRecorderSemantic(
         'heuristic',
         semanticEvent,
@@ -2106,26 +2856,6 @@ class PlaygroundServer {
         .toString(36)
         .slice(2, 8)}`,
     };
-  }
-
-  private async createRecorderScreenshotWithMarker(
-    screenshot: string | undefined,
-    pageInfo: { width: number; height: number },
-    point: { x: number; y: number },
-  ): Promise<string | undefined> {
-    if (!screenshot || !pageInfo.width || !pageInfo.height) {
-      return undefined;
-    }
-    try {
-      return await compositePointMarkerImg({
-        inputImgBase64: screenshot,
-        size: pageInfo,
-        point,
-      });
-    } catch (error) {
-      debugScreenshot('recorder screenshot marker failed:', error);
-      return undefined;
-    }
   }
 
   private async destroyCurrentAgent({
@@ -2435,6 +3165,56 @@ class PlaygroundServer {
     await action.call(params, createManualExecutorContext(actionType, params));
   }
 
+  private async registerReportFile(
+    reportPath: string | null | undefined,
+  ): Promise<PlaygroundReportRef | null> {
+    if (!reportPath) return null;
+
+    const reportStat = await stat(reportPath);
+    if (!reportStat.isFile()) {
+      throw new Error(`Report path is not a file: ${reportPath}`);
+    }
+
+    const screenshotsPath = join(dirname(reportPath), 'screenshots');
+    const hasExternalScreenshots = await stat(screenshotsPath)
+      .then((entry) => entry.isDirectory())
+      .catch(() => false);
+    const format: PlaygroundReportRef['format'] =
+      basename(reportPath) === 'index.html' && hasExternalScreenshots
+        ? 'html-and-external-assets'
+        : 'single-html';
+
+    const now = Date.now();
+    for (const [id, report] of this.reportFiles) {
+      if (report.expiresAt <= now) this.reportFiles.delete(id);
+    }
+
+    const id = randomUUID();
+    this.reportFiles.set(id, {
+      path: reportPath,
+      expiresAt: now + PLAYGROUND_REPORT_REF_TTL_MS,
+      format,
+    });
+
+    return {
+      id,
+      url: `/reports/${id}/`,
+      replayUrl: `/reports/${id}/replay`,
+      bytes: reportStat.size,
+      format,
+    };
+  }
+
+  private getRegisteredReport(reportId: string) {
+    const report = this.reportFiles.get(reportId);
+    if (!report || report.expiresAt <= Date.now()) {
+      if (report) this.reportFiles.delete(reportId);
+      return null;
+    }
+    report.expiresAt = Date.now() + PLAYGROUND_REPORT_REF_TTL_MS;
+    return report;
+  }
+
   /**
    * Setup all API routes
    */
@@ -2444,6 +3224,87 @@ class PlaygroundServer {
         status: 'ok',
         id: this.id,
       });
+    });
+
+    this._app.get(
+      '/reports/:reportId/replay',
+      async (req: Request, res: Response) => {
+        const report = this.getRegisteredReport(req.params.reportId);
+        if (!report) {
+          return res.status(404).json({ error: 'Report not found or expired' });
+        }
+
+        try {
+          const serializedDump = await extractLastReportDump(report.path);
+          res.setHeader('Cache-Control', 'no-store');
+          return res.type('json').send(serializedDump);
+        } catch (error) {
+          debugReport('failed to stream report replay: %s', error);
+          return res
+            .status(500)
+            .json({ error: 'Failed to load report replay' });
+        }
+      },
+    );
+
+    this._app.get(
+      '/reports/:reportId/screenshots/:assetName',
+      async (req: Request, res: Response) => {
+        const report = this.getRegisteredReport(req.params.reportId);
+        if (!report) {
+          return res.status(404).json({ error: 'Report not found or expired' });
+        }
+
+        const match = /^([A-Za-z0-9_-]+)\.(png|jpe?g)$/.exec(
+          req.params.assetName,
+        );
+        if (!match) {
+          return res.status(400).json({ error: 'Invalid screenshot asset' });
+        }
+
+        const [, imageId, extension] = match;
+        const externalAssetPath = join(
+          dirname(report.path),
+          'screenshots',
+          req.params.assetName,
+        );
+        const externalAssetExists = await stat(externalAssetPath)
+          .then((entry) => entry.isFile())
+          .catch(() => false);
+        res.setHeader('Cache-Control', 'private, max-age=3600');
+        if (externalAssetExists) {
+          return res.sendFile(externalAssetPath);
+        }
+
+        try {
+          const dataUri = await extractInlineReportImage(report.path, imageId);
+          if (!dataUri) {
+            return res.status(404).json({ error: 'Screenshot not found' });
+          }
+          const commaIndex = dataUri.indexOf(',');
+          if (commaIndex === -1) {
+            throw new Error('Invalid screenshot data URI');
+          }
+          const mimeType = extension === 'png' ? 'image/png' : 'image/jpeg';
+          return res
+            .type(mimeType)
+            .send(Buffer.from(dataUri.slice(commaIndex + 1), 'base64'));
+        } catch (error) {
+          debugReport('failed to stream report screenshot: %s', error);
+          return res.status(500).json({ error: 'Failed to load screenshot' });
+        }
+      },
+    );
+
+    this._app.get('/reports/:reportId/', (req: Request, res: Response) => {
+      const report = this.getRegisteredReport(req.params.reportId);
+      if (!report) {
+        return res.status(404).json({ error: 'Report not found or expired' });
+      }
+
+      res.setHeader('Cache-Control', 'no-store');
+      res.type('html');
+      return res.sendFile(report.path);
     });
 
     this._app.get('/session', async (_req: Request, res: Response) => {
@@ -2762,9 +3623,12 @@ class PlaygroundServer {
       }
 
       // Lock this task
+      let abortController: AbortController | null = null;
       if (requestId) {
         this.currentTaskId = requestId;
         this.taskExecutionDumps[requestId] = null;
+        abortController = new AbortController();
+        this.taskAbortControllers[requestId] = abortController;
 
         // Use onDumpUpdate to receive and store executionDump directly
         agent.onDumpUpdate = (_dump: string, executionDump?: ExecutionDump) => {
@@ -2780,12 +3644,14 @@ class PlaygroundServer {
         dump: ExecutionDump | ReportActionDump | null;
         error: string | null;
         reportHTML: string | null;
+        report: PlaygroundReportRef | null;
         requestId?: string;
       } = {
         result: null,
         dump: null,
         error: null,
         reportHTML: null,
+        report: null,
         requestId,
       };
 
@@ -2805,10 +3671,12 @@ class PlaygroundServer {
         };
 
         response.result = await executeAction(agent, type, actionSpace, value, {
+          requestId,
           deepLocate,
           deepThink,
           screenshotIncluded,
           domIncluded,
+          abortSignal: abortController?.signal,
           deviceOptions,
           reportDisplay,
         });
@@ -2822,28 +3690,42 @@ class PlaygroundServer {
         }
       }
 
-      try {
-        const dumpString = agent.dumpDataString({
-          inlineScreenshots: true,
-        });
-        if (dumpString) {
-          const groupedDump = ReportActionDump.fromSerializedString(dumpString);
-          response.dump = groupedDump;
-        } else {
+      if (abortController?.signal.aborted) {
+        // Cancellation recreates (and therefore destroys) the agent. Do not
+        // synchronously inline every screenshot into both a dump and an HTML
+        // report while that teardown is in progress: on long mobile runs this
+        // blocks Electron's main event loop, including IPC and scrcpy. The
+        // cancel response reads the incrementally persisted report instead.
+        response.dump = null;
+      } else {
+        try {
+          // Snapshot updates await incremental report persistence before the
+          // action resolves. Register that existing artifact instead of
+          // synchronously inlining every screenshot into both a dump and an
+          // HTML report. Large Android runs otherwise starve Electron's main
+          // event loop long enough for the scrcpy Socket.IO heartbeat to fail.
+          const reportStartedAt = Date.now();
+          const reportFile = agent.reportFile;
+          response.report = await this.registerReportFile(reportFile);
           response.dump = null;
-        }
-        response.reportHTML =
-          agent.reportHTMLString({ inlineScreenshots: true }) || null;
+          agent.resetDump();
 
-        agent.writeOutActionDumps();
-        agent.resetDump();
-      } catch (error: unknown) {
-        const errorMessage =
-          error instanceof Error ? error.message : 'Unknown error';
-        console.error(
-          `write out dump failed: requestId: ${requestId}, ${errorMessage}`,
-        );
-      } finally {
+          debugReport(
+            'registered persisted report: requestId=%s, duration=%dms, bytes=%d, file=%s',
+            requestId,
+            Date.now() - reportStartedAt,
+            response.report?.bytes || 0,
+            reportFile || 'none',
+          );
+        } catch (error: unknown) {
+          const errorMessage =
+            error instanceof Error ? error.message : 'Unknown error';
+          debugReport(
+            'register persisted report failed: requestId=%s, error=%s',
+            requestId,
+            errorMessage,
+          );
+        }
       }
 
       res.send(response);
@@ -2862,6 +3744,7 @@ class PlaygroundServer {
       // Clean up task execution dumps and unlock after execution completes
       if (requestId) {
         delete this.taskExecutionDumps[requestId];
+        delete this.taskAbortControllers[requestId];
         // Release the lock
         if (this.currentTaskId === requestId) {
           this.currentTaskId = null;
@@ -2892,27 +3775,13 @@ class PlaygroundServer {
 
           console.log(`Cancelling task: ${requestId}`);
 
-          // Get current execution data before cancelling (dump and reportHTML)
-          let dump: any = null;
-          let reportHTML: string | null = null;
-
-          try {
-            const dumpString = agent.dumpDataString?.({
-              inlineScreenshots: true,
-            });
-            if (dumpString) {
-              const groupedDump =
-                ReportActionDump.fromSerializedString(dumpString);
-              dump = groupedDump;
-            }
-
-            reportHTML =
-              agent.reportHTMLString?.({
-                inlineScreenshots: true,
-              }) || null;
-          } catch (error: unknown) {
-            console.warn('Failed to get execution data before cancel:', error);
-          }
+          const abortController = this.taskAbortControllers[requestId];
+          // Abort before doing any teardown work. The cached progress dump is
+          // already persisted by the report generator, so cancellation does
+          // not need to synchronously serialize inline screenshots.
+          abortController?.abort(
+            new Error(`Task cancelled by user: ${requestId}`),
+          );
 
           // Destroy and recreate agent to cancel the current task,
           // while keeping the live preview stream alive so the user
@@ -2925,15 +3794,32 @@ class PlaygroundServer {
             console.warn('Failed to recreate agent during cancel:', error);
           }
 
+          let report: PlaygroundReportRef | null = null;
+          if (agent.reportFile) {
+            try {
+              // Agent.destroy() finalizes the incrementally persisted report
+              // before recreateAgent() resolves. Return an opaque streaming URL
+              // instead of putting the full artifact in cancellation JSON.
+              report = await this.registerReportFile(agent.reportFile);
+            } catch (error) {
+              debugCancel(
+                'Failed to register finalized report after cancel: %s',
+                error,
+              );
+            }
+          }
+
           // Clean up
           delete this.taskExecutionDumps[requestId];
+          delete this.taskAbortControllers[requestId];
           this.currentTaskId = null;
 
           res.json({
             status: 'cancelled',
             message: 'Task cancelled successfully',
-            dump,
-            reportHTML,
+            dump: null,
+            reportHTML: null,
+            report,
           });
         } catch (error: unknown) {
           const errorMessage =
@@ -2996,7 +3882,12 @@ class PlaygroundServer {
     );
 
     this._app.post('/recorder/stop', async (_req: Request, res: Response) => {
-      await this.waitForRecorderIdle();
+      // Navigation completion is deliberately observed in the background so
+      // a destroyed page context cannot make Stop Recording wait for its
+      // 35-second observation timeout. waitForRecorderIdle() remains the
+      // full-settling helper for consumers that need the final Navigate event.
+      await this.waitForQueuedRecorderEvents();
+      this.flushPendingTypeOnlyRecorderInput();
       this._recorderSessionId = null;
       this._studioPreviewRecorderLastScreenshot = undefined;
       this._studioPreviewRecorderLastPageState = undefined;
@@ -3004,6 +3895,9 @@ class PlaygroundServer {
     });
 
     this._app.get('/recorder/events', async (req: Request, res: Response) => {
+      if (req.query.flushPending !== 'false') {
+        this.flushPendingTypeOnlyRecorderInput();
+      }
       const since =
         typeof req.query.since === 'string'
           ? Number.parseInt(req.query.since, 10)
@@ -3014,6 +3908,77 @@ class PlaygroundServer {
         nextIndex: this._recorderEvents.length,
       });
     });
+
+    this._app.get(
+      '/recorder/assets/:assetId',
+      async (req: Request, res: Response) => {
+        try {
+          const assetId = String(req.params.assetId || '');
+          const filePath = findRecorderScreenshotAssetPath(assetId);
+          if (!filePath) {
+            return res
+              .status(404)
+              .json({ error: 'Recorder screenshot not found' });
+          }
+          res.type(filePath.endsWith('.jpg') ? 'image/jpeg' : 'image/png');
+          return res.send(readFileSync(filePath));
+        } catch (error) {
+          return res.status(400).json({
+            error:
+              error instanceof Error
+                ? error.message
+                : 'Invalid recorder screenshot request',
+          });
+        }
+      },
+    );
+
+    this._app.delete(
+      '/recorder/assets/session/:sessionId',
+      async (req: Request, res: Response) => {
+        try {
+          removeRecorderScreenshotAssetsForSession(
+            String(req.params.sessionId || ''),
+          );
+          return res.json({ ok: true });
+        } catch (error) {
+          return res.status(400).json({
+            ok: false,
+            error:
+              error instanceof Error
+                ? error.message
+                : 'Invalid recorder session id',
+          });
+        }
+      },
+    );
+
+    this._app.post(
+      '/recorder/assets/session/:sessionId/prune',
+      async (req: Request, res: Response) => {
+        try {
+          const assetIds = Array.isArray(req.body?.assetIds)
+            ? req.body.assetIds.filter(
+                (assetId: unknown): assetId is string =>
+                  typeof assetId === 'string',
+              )
+            : [];
+          pruneRecorderScreenshotAssetsForSession(
+            String(req.params.sessionId || ''),
+            assetIds,
+          );
+          return res.json({ ok: true });
+        } catch (error) {
+          return res.status(400).json({
+            ok: false,
+            error:
+              error instanceof Error
+                ? error.message
+                : 'Invalid recorder screenshot cleanup request',
+          });
+        }
+      },
+    );
 
     this._app.post(
       '/recorder/describe-event',
@@ -3459,6 +4424,7 @@ class PlaygroundServer {
       console.warn('Failed to destroy current session during shutdown:', error);
     });
     this._mjpegHandler.shutdown();
+    this.reportFiles.clear();
 
     return new Promise((resolve, reject) => {
       if (this.server) {

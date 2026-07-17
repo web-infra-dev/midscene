@@ -1,9 +1,4 @@
-import {
-  ArrowUpOutlined,
-  BorderOutlined,
-  DownOutlined,
-  SendOutlined,
-} from '@ant-design/icons';
+import { ArrowUpOutlined, DownOutlined, SendOutlined } from '@ant-design/icons';
 import type { DeviceAction, z } from '@midscene/core';
 import { Button, Dropdown, Form, Input, Radio, Tooltip } from 'antd';
 import type { MenuProps } from 'antd';
@@ -65,6 +60,10 @@ const STUDIO_MINIMAL_PROMPT_ICONS = {
     'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAACXBIWXMAAAsTAAALEwEAmpwYAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAOdEVYdFNvZnR3YXJlAEZpZ21hnrGWYwAAAaFJREFUeAHtlt9tgzAQxi8EJa/pBMkIHYENygalG7RvSQQKlfjz2I5ANkg3oBukG6QbtI9IIPq5ihHQOBXmFImqPwnZBvtsf9ydTfQPA77vz4IguCENDGJgOp3ux+PxLgxDnzrCsgAw/zZmGPOO48iUFci4wE42xITKXlEUO9d1X34s4NjZISZU9qCSjeKqastKWZYpMaKyNxqNto02MRDHcXmsJqvV6q7LWBYnxK4+SBOTeHDw2HAwn4aGlg9EUfQE2e+xYwchtaUeaPmAmFyUyH4W9aThA9jZ7alOiN39crl8O/FpoRpzjrq96hcgj2/wwVcNQlxb6/X6VdRrYaeNtGfUVvXbgE9iRNprOCHktPF/Z+3OeZ4fPM9LZbumgHjX2Qnr9rSioE/ma6MVBZDvWWQ/cbLR0GE5jEQoQhFLpGIkpvcuY1nOAkyeiBKJSRSXPw37UCkgbrWmaSZwsBkxoLInHBgJ6EG2KwUgn801+Tl78hyRVApkWfaIexxp4rRfqOzBUdN6+29cyYAMvQN1hCUMIbc1mUyu4VzDz4wX5wvRfah9kIOcwwAAAABJRU5ErkJggg==',
 } as const;
 
+function PromptStopSquareIcon() {
+  return <span aria-hidden="true" className="prompt-stop-square-icon" />;
+}
+
 interface PromptInputProps {
   runButtonEnabled: boolean;
   form: any; // Ant Design FormInstance - keeping as any since it's external library type
@@ -107,6 +106,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
     selectedType,
     chrome?.primaryActionLabel,
   );
+  const settingsPlacement = chrome?.settingsPlacement ?? 'toolbar';
   const textAreaRef = useRef<any>(null); // Ant Design TextArea ref with internal structure
   const modeRadioGroupRef = useRef<HTMLDivElement>(null); // Ref for the mode-radio-group container
   const params = Form.useWatch('params', form);
@@ -604,6 +604,12 @@ export const PromptInput: React.FC<PromptInputProps> = ({
       params,
     ],
   );
+  const isPromptInputEmpty =
+    needsAnyInput &&
+    !needsStructuredParams &&
+    !promptValue.trim() &&
+    !loading &&
+    !stoppable;
 
   // Handle run with history addition
   const handleRunWithHistory = useCallback(() => {
@@ -1002,7 +1008,8 @@ export const PromptInput: React.FC<PromptInputProps> = ({
     if (stoppable) {
       return (
         <Button
-          icon={<BorderOutlined />}
+          className="prompt-stop-button"
+          icon={<PromptStopSquareIcon />}
           onClick={onStop}
           style={{ borderRadius: 20, zIndex: 999 }}
         >
@@ -1049,8 +1056,8 @@ export const PromptInput: React.FC<PromptInputProps> = ({
       return (
         <Button
           aria-label="Stop running"
-          className="minimal-run-trigger minimal-run-trigger-stop"
-          icon={<BorderOutlined />}
+          className="minimal-run-trigger minimal-run-trigger-stop prompt-stop-button"
+          icon={<PromptStopSquareIcon />}
           onClick={onStop}
         />
       );
@@ -1065,6 +1072,67 @@ export const PromptInput: React.FC<PromptInputProps> = ({
     onStop,
     selectedType,
     stoppable,
+  ]);
+
+  const minimalActionIconSrc =
+    chrome?.icons?.action ?? STUDIO_MINIMAL_PROMPT_ICONS.action;
+  const minimalActionChevronSrc = chrome?.icons?.actionChevron;
+  const minimalSettingsIconSrc =
+    chrome?.icons?.settings ?? STUDIO_MINIMAL_PROMPT_ICONS.settings;
+  const minimalHistoryIconSrc = chrome?.icons?.history;
+
+  const renderInputSettingsAction = useCallback(() => {
+    if (!hasConfigOptions || settingsPlacement !== 'input') {
+      return null;
+    }
+
+    return (
+      <div
+        className={
+          hoveringSettings
+            ? 'settings-wrapper settings-wrapper-hover'
+            : 'settings-wrapper'
+        }
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+      >
+        <ConfigSelector
+          enableTracking={serviceMode === 'In-Browser-Extension'}
+          showDeepLocateOption={showDeepLocateOption}
+          showDeepThinkOption={showDeepThinkOption}
+          showDataExtractionOptions={showDataExtractionOptions}
+          hideDomAndScreenshotOptions={hideDomAndScreenshotOptions}
+          deviceType={deviceType}
+          popupPlacement="topLeft"
+          trigger={
+            <button
+              aria-label="Open run configuration"
+              className="input-icon-trigger"
+              type="button"
+            >
+              <img
+                alt=""
+                className="input-toolbar-icon"
+                src={minimalSettingsIconSrc}
+              />
+            </button>
+          }
+        />
+      </div>
+    );
+  }, [
+    deviceType,
+    handleMouseEnter,
+    handleMouseLeave,
+    hasConfigOptions,
+    hideDomAndScreenshotOptions,
+    hoveringSettings,
+    minimalSettingsIconSrc,
+    serviceMode,
+    settingsPlacement,
+    showDataExtractionOptions,
+    showDeepLocateOption,
+    showDeepThinkOption,
   ]);
 
   const inputContent = needsAnyInput ? (
@@ -1113,13 +1181,6 @@ export const PromptInput: React.FC<PromptInputProps> = ({
       Click "Run" to execute {actionNameForType(selectedType)}
     </div>
   );
-  const minimalActionIconSrc =
-    chrome?.icons?.action ?? STUDIO_MINIMAL_PROMPT_ICONS.action;
-  const minimalActionChevronSrc = chrome?.icons?.actionChevron;
-  const minimalSettingsIconSrc =
-    chrome?.icons?.settings ?? STUDIO_MINIMAL_PROMPT_ICONS.settings;
-  const minimalHistoryIconSrc = chrome?.icons?.history;
-
   if (isMinimalChrome) {
     return (
       <div className="prompt-input-wrapper prompt-input-wrapper-minimal">
@@ -1129,7 +1190,9 @@ export const PromptInput: React.FC<PromptInputProps> = ({
         <div
           className={`main-side-console-input minimal-main-side-console-input ${
             !runButtonEnabled ? 'disabled' : ''
-          } ${loading ? 'loading' : ''}`}
+          } ${loading ? 'loading' : ''} ${
+            isPromptInputEmpty ? 'prompt-input-empty' : ''
+          }`}
         >
           {inputContent}
 
@@ -1200,7 +1263,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
                 }
               />
 
-              {hasConfigOptions ? (
+              {hasConfigOptions && settingsPlacement !== 'hidden' ? (
                 <div
                   className={
                     hoveringSettings
@@ -1292,7 +1355,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
             history={historyForSelectedType}
             currentType={selectedType}
           />
-          {hasConfigOptions && (
+          {hasConfigOptions && settingsPlacement === 'toolbar' && (
             <div
               className={
                 hoveringSettings
@@ -1317,12 +1380,17 @@ export const PromptInput: React.FC<PromptInputProps> = ({
 
       {/* input box area */}
       <div
-        className={`main-side-console-input ${!runButtonEnabled ? 'disabled' : ''} ${loading ? 'loading' : ''}`}
+        className={`main-side-console-input ${!runButtonEnabled ? 'disabled' : ''} ${loading ? 'loading' : ''} ${
+          isPromptInputEmpty ? 'prompt-input-empty' : ''
+        }`}
       >
         {inputContent}
 
         <div className="form-controller-wrapper">
-          {chrome?.inputActions}
+          <div className="input-actions-wrapper">
+            {renderInputSettingsAction()}
+            {chrome?.inputActions}
+          </div>
           {renderActionButton()}
         </div>
       </div>

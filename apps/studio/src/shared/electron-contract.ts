@@ -17,6 +17,7 @@ export const IPC_CHANNELS = {
   closeWindow: 'shell:close-window',
   minimizeWindow: 'shell:minimize-window',
   openExternalUrl: 'shell:open-external-url',
+  openImagePreview: 'shell:open-image-preview',
   chooseReportSavePath: 'shell:choose-report-save-path',
   chooseFileSavePath: 'shell:choose-file-save-path',
   toggleMaximizeWindow: 'shell:toggle-maximize-window',
@@ -72,6 +73,11 @@ export interface WriteFileRequest {
   path: string;
   content: string;
   encoding?: 'utf-8' | 'base64';
+}
+
+export interface OpenImagePreviewRequest {
+  data: string;
+  fileName?: string;
 }
 
 export type StudioRecorderCodeType = 'markdown' | 'yaml' | 'playwright';
@@ -227,6 +233,8 @@ export interface ElectronShellApi {
   minimizeWindow: () => Promise<void>;
   /** Open an external HTTP(S) link in the system browser. */
   openExternalUrl: (url: string) => Promise<void>;
+  /** Open an image with the operating system's default image viewer. */
+  openImagePreview: (request: OpenImagePreviewRequest) => Promise<void>;
   /** Ask the main process for a target path for a report HTML export. */
   chooseReportSavePath: (defaultFileName?: string) => Promise<string | null>;
   /** Ask the main process for a target path for a generic file export. */
@@ -261,7 +269,6 @@ export interface ElectronShellApi {
 export type NativeThemeMode = 'light' | 'dark' | 'system';
 
 export interface StudioRuntimeApi {
-  recorderEntryEnabled: boolean;
   getPlaygroundBootstrap: () => Promise<PlaygroundBootstrap>;
   restartPlayground: () => Promise<PlaygroundBootstrap>;
   /** Scan ALL platforms for connected devices (ADB, HDC, displays). */

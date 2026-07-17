@@ -434,38 +434,46 @@ export abstract class AbstractWebPage extends AbstractInterface {
   ): Promise<void>;
 }
 
+const scheduleWebVisualUpdate = (page: AbstractWebPage): void => {
+  if (page.schedulePendingVisualUpdate) {
+    page.schedulePendingVisualUpdate();
+    return;
+  }
+
+  const pendingRefresh = page.flushPendingVisualUpdate?.();
+  void pendingRefresh?.catch(() => undefined);
+};
+
 export function createWebInputPrimitives(
   page: AbstractWebPage,
 ): BrowserInputPrimitives {
-  const scheduleVisualUpdate = () => {
-    if (page.schedulePendingVisualUpdate) {
-      page.schedulePendingVisualUpdate();
-      return;
-    }
-
-    const pendingRefresh = page.flushPendingVisualUpdate?.();
-    void pendingRefresh?.catch(() => undefined);
-  };
+  const scheduleVisualUpdate = () => scheduleWebVisualUpdate(page);
 
   return {
     pointer: {
       tap: async ({ x, y }) => {
         await page.mouse.click(x, y, { button: 'left' });
+        scheduleVisualUpdate();
       },
       rightClick: async ({ x, y }) => {
         await page.mouse.click(x, y, { button: 'right' });
+        scheduleVisualUpdate();
       },
       doubleClick: async ({ x, y }) => {
         await page.mouse.click(x, y, { button: 'left', count: 2 });
+        scheduleVisualUpdate();
       },
       hover: async ({ x, y }) => {
         await page.mouse.move(x, y);
+        scheduleVisualUpdate();
       },
       dragAndDrop: async (from, to) => {
         await page.mouse.drag(from, to);
+        scheduleVisualUpdate();
       },
       longPress: async ({ x, y }, opts) => {
         await page.longPress(x, y, opts?.duration);
+        scheduleVisualUpdate();
       },
     },
     keyboard: {
@@ -575,6 +583,7 @@ export function createWebInputPrimitives(
             )}`,
           );
         }
+        scheduleVisualUpdate();
       },
     },
   };
@@ -606,6 +615,7 @@ export const commonWebActionsForWebPage = <T extends AbstractWebPage>(
           );
         }
         await page.navigate(param.url);
+        scheduleWebVisualUpdate(page);
       },
     }),
 
@@ -619,6 +629,7 @@ export const commonWebActionsForWebPage = <T extends AbstractWebPage>(
           );
         }
         await page.reload();
+        scheduleWebVisualUpdate(page);
       },
     }),
 
@@ -632,6 +643,7 @@ export const commonWebActionsForWebPage = <T extends AbstractWebPage>(
           );
         }
         await page.goBack();
+        scheduleWebVisualUpdate(page);
       },
     }),
     defineAction({
@@ -644,6 +656,7 @@ export const commonWebActionsForWebPage = <T extends AbstractWebPage>(
           );
         }
         await page.goForward();
+        scheduleWebVisualUpdate(page);
       },
     }),
   ];

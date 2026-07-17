@@ -1,11 +1,14 @@
 import { describe, expect, test } from 'vitest';
+import { isLocateField } from '../src/types';
 import {
   getAvailablePromptActionTypes,
   getInlineStructuredFieldConfig,
   shouldOffsetEmptyStateForPromptInput,
 } from '../src/utils/prompt-input-utils';
 
-function makeStringField(description?: string) {
+function makeStringField(
+  description?: string,
+): Parameters<typeof isLocateField>[0] {
   return {
     _def: {
       typeName: 'ZodString',
@@ -14,7 +17,7 @@ function makeStringField(description?: string) {
   };
 }
 
-function makeNumberField() {
+function makeNumberField(): Parameters<typeof isLocateField>[0] {
   return {
     _def: {
       typeName: 'ZodNumber',
@@ -22,7 +25,7 @@ function makeNumberField() {
   };
 }
 
-function makeLocateField() {
+function makeLocateField(): Parameters<typeof isLocateField>[0] {
   return {
     _def: {
       typeName: 'ZodObject',
@@ -30,6 +33,40 @@ function makeLocateField() {
     },
   };
 }
+
+function makeMidsceneLocationField(
+  description?: string,
+): Parameters<typeof isLocateField>[0] {
+  return {
+    _def: {
+      typeName: 'ZodObject',
+      ...(description ? { description } : {}),
+      shape: {
+        prompt: makeStringField(),
+        deepLocate: {
+          _def: {
+            typeName: 'ZodOptional',
+            innerType: { _def: { typeName: 'ZodBoolean' } },
+          },
+        },
+        cacheable: {
+          _def: {
+            typeName: 'ZodOptional',
+            innerType: { _def: { typeName: 'ZodBoolean' } },
+          },
+        },
+      },
+    },
+  };
+}
+
+describe('isLocateField', () => {
+  test('recognizes Midscene location object fields without legacy flags', () => {
+    expect(
+      isLocateField(makeMidsceneLocationField('The position to be dragged')),
+    ).toBe(true);
+  });
+});
 
 describe('getInlineStructuredFieldConfig', () => {
   test('returns inline config for a single string field', () => {

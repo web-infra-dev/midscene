@@ -23,6 +23,25 @@ describe('commonWebActionsForWebPage navigation actions', () => {
 });
 
 describe('commonWebActionsForWebPage visual refresh', () => {
+  it('schedules the preview refresh after tap actions', async () => {
+    const page = {
+      mouse: {
+        click: vi.fn(async () => undefined),
+      },
+      schedulePendingVisualUpdate: vi.fn(),
+      flushPendingVisualUpdate: vi.fn(async () => undefined),
+    };
+    const actions = commonWebActionsForWebPage(page as any);
+
+    await actions
+      .find((action) => action.name === 'Tap')
+      ?.call({ locate: { center: [10, 20] } } as any, mockExecutorContext);
+
+    expect(page.mouse.click).toHaveBeenCalledWith(10, 20, { button: 'left' });
+    expect(page.schedulePendingVisualUpdate).toHaveBeenCalledTimes(1);
+    expect(page.flushPendingVisualUpdate).not.toHaveBeenCalled();
+  });
+
   it('schedules the preview refresh after keyboard-only actions', async () => {
     const page = {
       keyboard: {
@@ -57,6 +76,43 @@ describe('commonWebActionsForWebPage visual refresh', () => {
       ?.call({ value: 'hello', mode: 'typeOnly' }, mockExecutorContext);
 
     expect(page.keyboard.type).toHaveBeenCalledWith('hello', undefined);
+    expect(page.schedulePendingVisualUpdate).toHaveBeenCalledTimes(1);
+    expect(page.flushPendingVisualUpdate).not.toHaveBeenCalled();
+  });
+
+  it('schedules the preview refresh after scroll actions', async () => {
+    const page = {
+      scrollDown: vi.fn(async () => undefined),
+      schedulePendingVisualUpdate: vi.fn(),
+      flushPendingVisualUpdate: vi.fn(async () => undefined),
+    };
+    const actions = commonWebActionsForWebPage(page as any);
+
+    await actions
+      .find((action) => action.name === 'Scroll')
+      ?.call(
+        { direction: 'down', scrollType: 'singleAction' },
+        mockExecutorContext,
+      );
+
+    expect(page.scrollDown).toHaveBeenCalledTimes(1);
+    expect(page.schedulePendingVisualUpdate).toHaveBeenCalledTimes(1);
+    expect(page.flushPendingVisualUpdate).not.toHaveBeenCalled();
+  });
+
+  it('schedules the preview refresh after navigation actions', async () => {
+    const page = {
+      navigate: vi.fn(async () => undefined),
+      schedulePendingVisualUpdate: vi.fn(),
+      flushPendingVisualUpdate: vi.fn(async () => undefined),
+    };
+    const actions = commonWebActionsForWebPage(page as any);
+
+    await actions
+      .find((action) => action.name === 'Navigate')
+      ?.call({ url: 'https://example.com' }, mockExecutorContext);
+
+    expect(page.navigate).toHaveBeenCalledWith('https://example.com');
     expect(page.schedulePendingVisualUpdate).toHaveBeenCalledTimes(1);
     expect(page.flushPendingVisualUpdate).not.toHaveBeenCalled();
   });

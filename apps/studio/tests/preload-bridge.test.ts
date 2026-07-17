@@ -49,7 +49,6 @@ describe('preload bridge', () => {
     expect(shellApi).toBeDefined();
     expect(studioRuntimeApi).toBeDefined();
     expect(updaterApi).toBeDefined();
-    expect(studioRuntimeApi.recorderEntryEnabled).toBe(false);
 
     await shellApi.closeWindow();
     await shellApi.minimizeWindow();
@@ -260,17 +259,5 @@ describe('preload bridge', () => {
       IPC_CHANNELS.updaterStatus,
       expect.any(Function),
     );
-  });
-
-  it('exposes the runtime recorder entry flag from the launch environment', async () => {
-    vi.stubEnv('VITE_STUDIO_RECORDER_ENABLED', 'true');
-
-    await loadModule();
-
-    const studioRuntimeApi = mocks.exposeInMainWorld.mock.calls.find(
-      ([name]) => name === 'studioRuntime',
-    )?.[1];
-
-    expect(studioRuntimeApi?.recorderEntryEnabled).toBe(true);
   });
 });

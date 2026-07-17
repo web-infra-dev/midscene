@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   defaultProgressActionIcon,
+  defaultProgressErrorIcon,
   resolveProgressActionIcon,
 } from '../src/utils/progress-action-icon';
 
@@ -30,6 +31,18 @@ describe('progress-action-icon', () => {
       // Device-specific or custom actions still get an icon rather than null.
       expect(defaultProgressActionIcon('RunAdbShell')).toBeTruthy();
       expect(defaultProgressActionIcon('CompletelyUnknown')).toBeTruthy();
+    });
+  });
+
+  describe('defaultProgressErrorIcon', () => {
+    it('uses the same 1.2px stroke width as the completed checkmark', () => {
+      const icon = defaultProgressErrorIcon() as any;
+      const svg = icon.type();
+
+      expect(svg.props.width).toBe(16);
+      expect(svg.props.height).toBe(16);
+      expect(svg.props.viewBox).toBe('0 0 16 16');
+      expect(svg.props.children.props.strokeWidth).toBe('1.2');
     });
   });
 

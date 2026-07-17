@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import ScrcpyServer, {
+  appendBoundedScrcpyOutput,
   resolveRequestedDeviceId,
 } from '../../src/scrcpy-server';
 
@@ -44,10 +45,24 @@ vi.mock('node:fs', async (importOriginal) => {
 });
 
 describe('ScrcpyServer', () => {
+  it('allows short event-loop stalls without dropping the preview heartbeat', () => {
+    const server = new ScrcpyServer();
+    expect((server as any).io.engine.opts.pingInterval).toBe(25_000);
+    expect((server as any).io.engine.opts.pingTimeout).toBe(60_000);
+  });
+
+  it('keeps only the most recent scrcpy output lines', () => {
+    const lines: string[] = [];
+    for (let index = 0; index < 5; index += 1) {
+      appendBoundedScrcpyOutput(lines, `line-${index}`, 3);
+    }
+    expect(lines).toEqual(['line-2', 'line-3', 'line-4']);
+  });
+
   it('prefers the explicit device from the preview handshake', () => {
     expect(
       resolveRequestedDeviceId(
-        { deviceId: 'SERIAL123', maxSize: 1024 },
+        { deviceId: 'SERIAL123', maxSize: 0, videoBitRate: 8_000_000 },
         'OLD_DEVICE',
       ),
     ).toBe('SERIAL123');
@@ -66,16 +81,20 @@ describe('ScrcpyServer', () => {
     const adb = { serial: 'device-1' };
     const onProgress = vi.fn();
 
-    await (server as any).startScrcpy(adb, { maxSize: 720 }, onProgress);
+    await (server as any).startScrcpy(
+      adb,
+      { maxSize: 0, videoBitRate: 8_000_000 },
+      onProgress,
+    );
 
     expect(mockPushServer).toHaveBeenCalledOnce();
     expect(mockOptionsCtor).toHaveBeenCalledWith(
       expect.objectContaining({
         audio: false,
         control: true,
-        maxSize: 720,
+        maxSize: 0,
         sendFrameMeta: true,
-        videoBitRate: 2_000_000,
+        videoBitRate: 8_000_000,
       }),
     );
     expect(mockStart).toHaveBeenCalledWith(

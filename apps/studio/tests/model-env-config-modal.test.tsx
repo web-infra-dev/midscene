@@ -142,7 +142,13 @@ describe('ModelEnvConfigModal', () => {
       'M5 8.00002V3.95856L8.5 5.97929L12 8.00002L8.5 10.0208L5 12.0415V8.00002Z',
     );
     expect(html).toContain('model-env-close.svg');
-    expect(html).toContain('class="h-[16px] w-[16px]"');
+    const wrapper = document.createElement('div');
+    wrapper.innerHTML = html;
+    const closeButton = wrapper.querySelector('button[aria-label="Close"]');
+    expect(closeButton?.className).toContain('text-text-secondary');
+    expect(closeButton?.querySelector('span')?.className).toContain(
+      'bg-current',
+    );
     expect(html).toContain('h-[32px]');
     expect(html).toContain('justify-end');
     expect(html).toContain('gap-[16px]');

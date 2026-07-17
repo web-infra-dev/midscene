@@ -5,6 +5,8 @@ const DB_VERSION = 2;
 const SESSION_STORE = 'sessions';
 const CONFIG_STORE = 'config';
 const CURRENT_SESSION_KEY = 'currentSessionId';
+const RECORDER_STORAGE_FORMAT_KEY = 'recorderStorageFormat';
+const RECORDER_STORAGE_FORMAT_VERSION = 'asset-backed-v1';
 const MAX_SESSIONS = 20;
 
 interface StudioRecorderConfigRecord {
@@ -21,6 +23,39 @@ function sanitizeSession(
   session: StudioRecordingSession,
 ): StudioRecordingSession {
   return JSON.parse(JSON.stringify(session)) as StudioRecordingSession;
+}
+
+function migrateLegacyRecorderSessions(db: IDBDatabase): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(
+      [SESSION_STORE, CONFIG_STORE],
+      'readwrite',
+    );
+    const sessions = transaction.objectStore(SESSION_STORE);
+    const config = transaction.objectStore(CONFIG_STORE);
+    const migration = config.get(
+      RECORDER_STORAGE_FORMAT_KEY,
+    ) as IDBRequest<StudioRecorderConfigRecord>;
+    let shouldClearSessions = false;
+
+    migration.onsuccess = () => {
+      shouldClearSessions =
+        migration.result?.value !== RECORDER_STORAGE_FORMAT_VERSION;
+      if (shouldClearSessions) {
+        sessions.clear();
+        config.put({
+          key: RECORDER_STORAGE_FORMAT_KEY,
+          value: RECORDER_STORAGE_FORMAT_VERSION,
+        } satisfies StudioRecorderConfigRecord);
+      }
+    };
+    migration.onerror = () => {
+      reject(migration.error || new Error('Failed to read recorder migration'));
+    };
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () =>
+      reject(transaction.error || new Error('Failed to migrate recorder data'));
+  });
 }
 
 function openDatabase(): Promise<IDBDatabase | null> {
@@ -48,7 +83,13 @@ function openDatabase(): Promise<IDBDatabase | null> {
       }
     };
     request.onsuccess = () => {
-      resolve(request.result);
+      const db = request.result;
+      void migrateLegacyRecorderSessions(db)
+        .then(() => resolve(db))
+        .catch((error) => {
+          db.close();
+          reject(error);
+        });
     };
     request.onerror = () => {
       reject(request.error || new Error('Failed to open recorder database'));
@@ -95,15 +136,16 @@ function withStore<T>(
   });
 }
 
-async function trimSessions(): Promise<void> {
+async function trimSessions(): Promise<string[]> {
   const sessions = await getStudioRecorderSessions();
   if (sessions.length <= MAX_SESSIONS) {
-    return;
+    return [];
   }
   const expired = sessions.slice(MAX_SESSIONS);
   await Promise.all(
     expired.map((session) => deleteStudioRecorderSession(session.id)),
   );
+  return expired.map((session) => session.id);
 }
 
 export async function getStudioRecorderSessions(): Promise<
@@ -123,20 +165,22 @@ export async function getStudioRecorderSessions(): Promise<
 
 export async function upsertStudioRecorderSession(
   session: StudioRecordingSession,
-): Promise<void> {
+): Promise<string[]> {
   const safeSession = sanitizeSession(session);
   if (typeof indexedDB === 'undefined') {
-    memoryStore.sessions = [
+    const sessions = [
       safeSession,
       ...memoryStore.sessions.filter((item) => item.id !== safeSession.id),
-    ].slice(0, MAX_SESSIONS);
-    return;
+    ].sort((a, b) => b.updatedAt - a.updatedAt);
+    const expired = sessions.slice(MAX_SESSIONS);
+    memoryStore.sessions = sessions.slice(0, MAX_SESSIONS);
+    return expired.map((item) => item.id);
   }
 
   await withStore(SESSION_STORE, 'readwrite', (store) =>
     store.put(safeSession),
   );
-  await trimSessions();
+  return trimSessions();
 }
 
 export async function deleteStudioRecorderSession(

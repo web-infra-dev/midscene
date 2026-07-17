@@ -128,8 +128,11 @@ vi.mock('fs', () => {
     readFileSync: vi.fn(() => '{}'),
     writeFileSync: vi.fn(),
     mkdirSync: vi.fn(),
+    createReadStream: vi.fn(),
     createWriteStream: vi.fn(() => ({
       write: vi.fn(),
+      on: vi.fn(),
+      once: vi.fn(),
       end: vi.fn(),
       close: vi.fn(),
     })),
@@ -147,8 +150,11 @@ vi.mock('node:fs', () => {
     readFileSync: vi.fn(() => '{}'),
     writeFileSync: vi.fn(),
     mkdirSync: vi.fn(),
+    createReadStream: vi.fn(),
     createWriteStream: vi.fn(() => ({
       write: vi.fn(),
+      on: vi.fn(),
+      once: vi.fn(),
       end: vi.fn(),
       close: vi.fn(),
     })),

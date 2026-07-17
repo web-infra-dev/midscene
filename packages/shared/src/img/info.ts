@@ -1,7 +1,9 @@
 import assert from 'node:assert';
 import { Buffer } from 'node:buffer';
 import type { Size } from '../types';
+import { ifInNode } from '../utils';
 import getPhoton from './get-photon';
+import getSharp from './get-sharp';
 
 export interface ImageInfo extends Size {}
 
@@ -15,7 +17,6 @@ export interface ImageInfo extends Size {}
 export async function imageInfoOfBase64(
   imageBase64: string,
 ): Promise<ImageInfo> {
-  const { PhotonImage } = await getPhoton();
   const base64Data = imageBase64
     .replace(/^data:image\/\w+;base64,/, '')
     .replace(/\s/g, '');
@@ -26,6 +27,25 @@ export async function imageInfoOfBase64(
   );
   const imageBuffer = Buffer.from(base64Data, 'base64');
   assert(isValidImageBuffer(imageBuffer), 'Invalid image: unsupported format');
+  if (ifInNode) {
+    let metadata;
+    try {
+      const Sharp = await getSharp();
+      metadata = await Sharp(imageBuffer).metadata();
+    } catch (error) {
+      throw new Error(
+        `Invalid image: failed to decode base64 data (${error instanceof Error ? error.message : String(error)})`,
+        { cause: error },
+      );
+    }
+    assert(
+      metadata.width && metadata.height,
+      'Invalid image: cannot get width or height',
+    );
+    return { width: metadata.width, height: metadata.height };
+  }
+
+  const { PhotonImage } = await getPhoton();
   // Support both sync (Photon) and async (Canvas fallback) versions
   let result: ReturnType<typeof PhotonImage.new_from_base64>;
   try {

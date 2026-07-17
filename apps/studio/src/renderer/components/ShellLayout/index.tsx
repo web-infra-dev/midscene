@@ -8,15 +8,25 @@ import {
 } from 'react';
 import type { StudioPlatformId } from '../../../shared/electron-contract';
 import { STUDIO_EXTERNAL_LINKS } from '../../../shared/external-links';
+import {
+  SIDEBAR_TOGGLE_TOP,
+  TITLEBAR_CONTROL_TOP,
+  getRendererTitlebarRightInset,
+} from '../../../shared/titlebar-layout';
 import type { UpdateStatus } from '../../../shared/updater-contract';
 import { assetUrls } from '../../assets';
 import { useStudioUpdater } from '../../hooks/useStudioUpdater';
 import { useStudioPlayground } from '../../playground/useStudioPlayground';
-import type { StudioRecorderPanelMode } from '../../recorder/types';
+import { type StudioMode, StudioModeTab } from '../../recorder/types';
 import MainContent from '../MainContent';
-import Playground from '../Playground';
 import SettingsPanel from '../SettingsPanel';
 import Sidebar, { SidebarFooter } from '../Sidebar';
+import {
+  StudioRightPanel,
+  type StudioRightPanelView,
+  StudioRightPanelViewType,
+  getStudioRightPanelWidth,
+} from '../StudioRightPanel';
 import { ModelEnvConfigModal } from './ModelEnvConfigModal';
 import { hasCompleteModelEnvConfig } from './connectivity-env';
 import { loadModelEnvText, saveModelEnvText } from './model-env-storage';
@@ -25,25 +35,16 @@ import type { ShellActiveView } from './types';
 export type { ShellActiveView };
 
 const SIDEBAR_WIDTH_STORAGE_KEY = 'studio.sidebarWidth';
-const PLAYGROUND_WIDTH_STORAGE_KEY = 'studio.playgroundWidth';
 
 const SIDEBAR_DEFAULT_WIDTH = 240;
 const SIDEBAR_MIN_WIDTH = 200;
 const SIDEBAR_MAX_WIDTH = 400;
 
-const PLAYGROUND_DEFAULT_WIDTH = 400;
-const PLAYGROUND_MIN_WIDTH = 320;
-const PLAYGROUND_MAX_WIDTH = 720;
-const RECORDER_PANEL_CONTENT_WIDTH = 320;
-const RECORDER_PANEL_RIGHT_OFFSET = 12;
-const RECORDER_OVERLAY_WIDTH =
-  RECORDER_PANEL_CONTENT_WIDTH + RECORDER_PANEL_RIGHT_OFFSET;
 const SIDEBAR_COLLAPSED_WIDTH = 0;
 const COLLAPSED_TITLEBAR_INSET = 280;
-const TITLEBAR_CONTROL_TOP = 11;
-const UPDATE_PILL_LEFT = 128;
 const SIDEBAR_TOGGLE_LEFT = 98;
 const SIDEBAR_TRANSITION_CLASS = 'duration-200 ease-[cubic-bezier(0.2,0,0,1)]';
+const STUDIO_RIGHT_PANEL_ANIMATION_MS = 160;
 
 const requireElectronShell = () => {
   if (!window.electronShell) {
@@ -119,7 +120,7 @@ function UpdatePill({
   return (
     <button
       aria-label={title}
-      className="app-no-drag box-border inline-flex items-center gap-[4px] rounded-[40px] border-0 bg-[#DEEBEC] p-[5px] font-sans text-[11px] font-medium leading-[12px] text-[#1A79FF]"
+      className="app-no-drag box-border inline-flex h-[22px] items-center gap-[4px] rounded-[40px] border-0 bg-[#DEEBEC] px-[5px] py-[3px] font-sans text-[11px] font-medium leading-[12px] text-[#1A79FF]"
       disabled={isDownloading}
       onClick={() => {
         if (status.state === 'available') {
@@ -162,9 +163,14 @@ function UpdatePill({
 }
 
 export default function ShellLayout() {
+  const titlebarInsetRight = getRendererTitlebarRightInset();
   const [activeView, setActiveView] = useState<ShellActiveView>('overview');
-  const [rightPanelMode, setRightPanelMode] =
-    useState<StudioRecorderPanelMode>('playground');
+  const [studioMode, setStudioMode] = useState<StudioMode>(
+    StudioModeTab.Record,
+  );
+  const [studioRightPanelView, setStudioRightPanelView] =
+    useState<StudioRightPanelView | null>(null);
+  const [studioRightPanelClosing, setStudioRightPanelClosing] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [modelModalOpen, setModelModalOpen] = useState(false);
   // Bridges the gap between any device-click path (Sidebar row, Overview
@@ -189,21 +195,64 @@ export default function ShellLayout() {
       SIDEBAR_MAX_WIDTH,
     ),
   );
-  const [playgroundWidth, setPlaygroundWidth] = useState<number>(() =>
-    readPersistedWidth(
-      PLAYGROUND_WIDTH_STORAGE_KEY,
-      PLAYGROUND_DEFAULT_WIDTH,
-      PLAYGROUND_MIN_WIDTH,
-      PLAYGROUND_MAX_WIDTH,
-    ),
-  );
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const settingsAnchorRef = useRef<HTMLDivElement | null>(null);
+  const studioRightPanelCloseTimerRef = useRef<number | null>(null);
+  const previousStudioPanelContextRef = useRef({ activeView, studioMode });
   const updater = useStudioUpdater();
   const modelConfigComplete = useMemo(
     () => hasCompleteModelEnvConfig(modelEnvText),
     [modelEnvText],
   );
+  const clearStudioRightPanelCloseTimer = useCallback(() => {
+    if (studioRightPanelCloseTimerRef.current !== null) {
+      window.clearTimeout(studioRightPanelCloseTimerRef.current);
+      studioRightPanelCloseTimerRef.current = null;
+    }
+  }, []);
+  const openStudioRightPanel = useCallback(
+    (view: StudioRightPanelView) => {
+      clearStudioRightPanelCloseTimer();
+      setStudioRightPanelClosing(false);
+      setStudioRightPanelView(view);
+    },
+    [clearStudioRightPanelCloseTimer],
+  );
+  const closeStudioRightPanel = useCallback(() => {
+    if (!studioRightPanelView) {
+      return;
+    }
+    if (studioRightPanelClosing) {
+      clearStudioRightPanelCloseTimer();
+      setStudioRightPanelView(null);
+      setStudioRightPanelClosing(false);
+      return;
+    }
+    setStudioRightPanelClosing(true);
+    const reducedMotion = window.matchMedia?.(
+      '(prefers-reduced-motion: reduce)',
+    ).matches;
+    const finishClosing = () => {
+      studioRightPanelCloseTimerRef.current = null;
+      setStudioRightPanelView(null);
+      setStudioRightPanelClosing(false);
+    };
+    if (
+      reducedMotion ||
+      studioRightPanelView.type !== StudioRightPanelViewType.Markdown
+    ) {
+      finishClosing();
+      return;
+    }
+    studioRightPanelCloseTimerRef.current = window.setTimeout(
+      finishClosing,
+      STUDIO_RIGHT_PANEL_ANIMATION_MS,
+    );
+  }, [
+    clearStudioRightPanelCloseTimer,
+    studioRightPanelClosing,
+    studioRightPanelView,
+  ]);
   useEffect(() => {
     if (typeof window === 'undefined') return;
     window.localStorage.setItem(
@@ -211,6 +260,11 @@ export default function ShellLayout() {
       String(sidebarWidth),
     );
   }, [sidebarWidth]);
+
+  useEffect(
+    () => clearStudioRightPanelCloseTimer,
+    [clearStudioRightPanelCloseTimer],
+  );
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -223,14 +277,6 @@ export default function ShellLayout() {
       window.removeEventListener('blur', handleBlur);
     };
   }, []);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    window.localStorage.setItem(
-      PLAYGROUND_WIDTH_STORAGE_KEY,
-      String(playgroundWidth),
-    );
-  }, [playgroundWidth]);
 
   const studioPlayground = useStudioPlayground();
   const closeSettings = useCallback(() => setSettingsOpen(false), []);
@@ -292,24 +338,20 @@ export default function ShellLayout() {
   }, [settingsOpen, closeSettings]);
 
   const startResize = useCallback(
-    (kind: 'sidebar' | 'playground', event: React.MouseEvent) => {
+    (event: React.MouseEvent) => {
       event.preventDefault();
       event.stopPropagation();
 
       const startX = event.clientX;
-      const startWidth = kind === 'sidebar' ? sidebarWidth : playgroundWidth;
-      const min = kind === 'sidebar' ? SIDEBAR_MIN_WIDTH : PLAYGROUND_MIN_WIDTH;
-      const max = kind === 'sidebar' ? SIDEBAR_MAX_WIDTH : PLAYGROUND_MAX_WIDTH;
+      const startWidth = sidebarWidth;
 
       const handleMove = (e: MouseEvent) => {
-        const delta =
-          kind === 'sidebar' ? e.clientX - startX : startX - e.clientX;
-        const next = Math.min(max, Math.max(min, startWidth + delta));
-        if (kind === 'sidebar') {
-          setSidebarWidth(next);
-        } else {
-          setPlaygroundWidth(next);
-        }
+        const delta = e.clientX - startX;
+        const next = Math.min(
+          SIDEBAR_MAX_WIDTH,
+          Math.max(SIDEBAR_MIN_WIDTH, startWidth + delta),
+        );
+        setSidebarWidth(next);
       };
       const handleUp = () => {
         document.removeEventListener('mousemove', handleMove);
@@ -323,16 +365,39 @@ export default function ShellLayout() {
       document.body.style.userSelect = 'none';
       document.body.style.cursor = 'col-resize';
     },
-    [sidebarWidth, playgroundWidth],
+    [sidebarWidth],
   );
 
-  const mainAreaStyle: CSSProperties = {
-    left: sidebarCollapsed ? SIDEBAR_COLLAPSED_WIDTH : sidebarWidth,
-    ['--studio-playground-width' as string]: `${playgroundWidth}px`,
-  };
   const shouldShowRightPanel = activeView !== 'overview';
-  const recorderPanelActive =
-    shouldShowRightPanel && rightPanelMode === 'recorder';
+  const shouldShowStudioRightPanel =
+    shouldShowRightPanel && Boolean(studioRightPanelView);
+  const studioRightPanelWidth =
+    shouldShowStudioRightPanel && studioRightPanelView
+      ? getStudioRightPanelWidth(studioRightPanelView)
+      : 0;
+  const studioRightPanelStyle: CSSProperties = {
+    width: studioRightPanelWidth,
+    '--studio-titlebar-right-inset': `${titlebarInsetRight}px`,
+  } as CSSProperties;
+  const shouldFloatStudioModePanel =
+    shouldShowStudioRightPanel &&
+    (studioMode === StudioModeTab.Record ||
+      studioMode === StudioModeTab.Replay);
+  const mainAreaStyle: CSSProperties = {
+    left: (sidebarCollapsed ? SIDEBAR_COLLAPSED_WIDTH : sidebarWidth) + 4,
+  };
+
+  useEffect(() => {
+    const previousContext = previousStudioPanelContextRef.current;
+    const panelContextChanged =
+      previousContext.activeView !== activeView ||
+      previousContext.studioMode !== studioMode;
+    previousStudioPanelContextRef.current = { activeView, studioMode };
+    if (!panelContextChanged) {
+      return;
+    }
+    closeStudioRightPanel();
+  }, [activeView, closeStudioRightPanel, studioMode]);
 
   // When the OS window loses focus, replace the translucent vibrancy
   // background with a flat solid panel — matching macOS's own inactive
@@ -409,86 +474,57 @@ export default function ShellLayout() {
           <div
             aria-hidden
             className="app-no-drag absolute right-0 top-0 z-30 h-full w-[4px] cursor-col-resize hover:bg-border-subtle"
-            onMouseDown={(event) => startResize('sidebar', event)}
+            onMouseDown={startResize}
             style={{ touchAction: 'none' }}
           />
         )}
       </div>
 
       <div
-        className={`absolute bottom-[4px] right-[4px] top-[4px] z-20 flex rounded-[12px] bg-surface transition-[left] ${SIDEBAR_TRANSITION_CLASS}`}
+        className={`absolute bottom-[4px] right-[4px] top-[4px] z-20 flex gap-[4px] rounded-[12px] bg-transparent transition-[left] ${SIDEBAR_TRANSITION_CLASS}`}
         style={mainAreaStyle}
       >
         <MainContent
           activeView={activeView}
           modelConfigComplete={modelConfigComplete}
           modelEnvText={modelEnvText}
+          floatingStudioModePanel={shouldFloatStudioModePanel}
           onOpenEnvModal={openEnvModal}
+          onCloseStudioRightPanel={closeStudioRightPanel}
+          onOpenStudioRightPanel={openStudioRightPanel}
           onPendingCreatePlatformChange={setPendingCreatePlatform}
-          onRightPanelModeChange={setRightPanelMode}
+          onStudioModeChange={setStudioMode}
           onSelectDeviceView={() => setActiveView('device')}
           onSelectOverview={selectOverview}
           pendingCreatePlatform={pendingCreatePlatform}
-          rightPanelMode={rightPanelMode}
+          studioMode={studioMode}
           titlebarInsetLeft={
             sidebarCollapsed ? COLLAPSED_TITLEBAR_INSET : undefined
           }
+          titlebarInsetRight={titlebarInsetRight || undefined}
         />
-        {shouldShowRightPanel && (
-          <>
-            {recorderPanelActive ? null : (
-              <div
-                aria-hidden
-                className="app-no-drag absolute top-0 z-30 h-full w-[4px] cursor-col-resize hover:bg-border-subtle"
-                onMouseDown={(event) => startResize('playground', event)}
-                style={{ right: playgroundWidth - 2, touchAction: 'none' }}
-              />
-            )}
-            <div
-              className={
-                recorderPanelActive
-                  ? 'pointer-events-none absolute bottom-0 right-0 top-[52px] z-20 overflow-visible bg-transparent'
-                  : 'relative z-0 flex h-full min-h-0'
-              }
-              style={
-                recorderPanelActive
-                  ? { width: RECORDER_OVERLAY_WIDTH }
-                  : undefined
-              }
-            >
-              <Playground
-                onRightPanelModeChange={setRightPanelMode}
-                rightPanelMode={rightPanelMode}
-              />
-            </div>
-          </>
-        )}
+        {shouldShowStudioRightPanel && studioRightPanelView ? (
+          <div
+            className={`box-border flex h-full min-h-0 shrink-0 flex-col overflow-hidden rounded-[12px] border border-border-subtle bg-surface dark:border-[#323131] dark:bg-[#181818]${
+              studioRightPanelView.type === StudioRightPanelViewType.Markdown
+                ? ` studio-right-panel-markdown-drawer studio-right-panel-markdown-drawer-${
+                    studioRightPanelClosing ? 'exit' : 'enter'
+                  }`
+                : ''
+            }`}
+            style={studioRightPanelStyle}
+          >
+            <StudioRightPanel
+              onClose={closeStudioRightPanel}
+              view={studioRightPanelView}
+            />
+          </div>
+        ) : null}
       </div>
 
       <div
-        className="app-no-drag absolute z-[80]"
-        style={{
-          left: UPDATE_PILL_LEFT,
-          top: TITLEBAR_CONTROL_TOP,
-        }}
-      >
-        <UpdatePill
-          onDownload={() => {
-            void updater.download();
-          }}
-          onInstall={() => {
-            void updater.install();
-          }}
-          onOpenDownloadPage={() =>
-            openExternalUrl(STUDIO_EXTERNAL_LINKS.studioReleases)
-          }
-          status={updater.status}
-        />
-      </div>
-
-      <div
-        className={`app-no-drag absolute z-[80] flex items-center gap-[8px] transition-[opacity,transform] ${SIDEBAR_TRANSITION_CLASS}`}
-        style={{ left: SIDEBAR_TOGGLE_LEFT, top: TITLEBAR_CONTROL_TOP }}
+        className={`app-no-drag absolute z-[80] flex h-[22px] items-center gap-[8px] transition-[opacity,transform] ${SIDEBAR_TRANSITION_CLASS}`}
+        style={{ left: SIDEBAR_TOGGLE_LEFT, top: SIDEBAR_TOGGLE_TOP }}
       >
         <button
           aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
@@ -508,6 +544,18 @@ export default function ShellLayout() {
         >
           <SidebarCollapseIcon collapsed={sidebarCollapsed} />
         </button>
+        <UpdatePill
+          onDownload={() => {
+            void updater.download();
+          }}
+          onInstall={() => {
+            void updater.install();
+          }}
+          onOpenDownloadPage={() =>
+            openExternalUrl(STUDIO_EXTERNAL_LINKS.studioReleases)
+          }
+          status={updater.status}
+        />
       </div>
 
       <ModelEnvConfigModal

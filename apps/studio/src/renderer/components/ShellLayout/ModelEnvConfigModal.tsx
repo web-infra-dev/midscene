@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { MaskedIcon } from '../MaskedIcon';
 import { ModelEnvConfigFormFields } from './ModelEnvConfigFormFields';
 import { ModelEnvConfigStatus } from './ModelEnvConfigStatus';
 import {
@@ -58,16 +59,11 @@ function EnvModalHeader({ onClose }: { onClose: () => void }) {
       </h2>
       <button
         aria-label="Close"
-        className="flex h-[16px] w-[16px] cursor-pointer items-center justify-center border-0 bg-transparent p-0"
+        className="flex h-[16px] w-[16px] cursor-pointer items-center justify-center border-0 bg-transparent p-0 text-text-secondary transition-colors hover:text-text-primary"
         onClick={onClose}
         type="button"
       >
-        <img
-          alt=""
-          aria-hidden="true"
-          className="h-[16px] w-[16px]"
-          src={closeIconSrc}
-        />
+        <MaskedIcon className="h-[16px] w-[16px]" src={closeIconSrc} />
       </button>
     </div>
   );

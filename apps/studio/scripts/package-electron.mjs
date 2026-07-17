@@ -16,6 +16,14 @@ const __dirname = path.dirname(__filename);
 const studioRootDir = path.resolve(__dirname, '..');
 const workspaceRootDir = path.resolve(studioRootDir, '..', '..');
 const studioBuildDir = path.join(studioRootDir, 'build');
+const studioFontLicensePath = path.join(
+  studioRootDir,
+  'src',
+  'renderer',
+  'assets',
+  'fonts',
+  'OFL.txt',
+);
 const reportRootDir = path.join(workspaceRootDir, 'apps', 'report');
 const coreRootDir = path.join(workspaceRootDir, 'packages', 'core');
 const coreDistDir = path.join(coreRootDir, 'dist');
@@ -1654,11 +1662,19 @@ export const assertPortablePackagedNodeModules = async (packagedAppPath) => {
   );
 };
 
+export const copyStudioFontLicenseToStageDir = async (stageDir) => {
+  const destinationPath = path.join(stageDir, 'licenses', 'Inter-OFL.txt');
+  await fs.mkdir(path.dirname(destinationPath), { recursive: true });
+  await fs.copyFile(studioFontLicensePath, destinationPath);
+  return destinationPath;
+};
+
 const copyStudioBuildOutputToStageDir = async (stageDir) => {
   await fs.mkdir(stageDir, { recursive: true });
   await fs.cp(path.join(studioRootDir, 'dist'), path.join(stageDir, 'dist'), {
     recursive: true,
   });
+  await copyStudioFontLicenseToStageDir(stageDir);
 };
 
 const installStageDependencies = async (stageDir) => {

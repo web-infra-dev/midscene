@@ -10,13 +10,18 @@
   position: relative;
   display: flex;
   height: 100%;
-  width: var(--studio-playground-width, 400px);
+  width: 100%;
   flex-shrink: 0;
   flex-direction: column;
   overflow: hidden;
   border-top-right-radius: 12px;
   border-bottom-right-radius: 12px;
-  background: var(--midscene-surface);
+  background: transparent;
+}
+
+[data-theme="dark"] .playground-shell > .app-drag {
+  border-color: #323131;
+  background: #181818;
 }
 
 .playground-shell .playground-conversation-panel,
@@ -29,7 +34,7 @@
 }
 
 .playground-shell .playground-container {
-  background: var(--midscene-surface);
+  background: transparent;
 }
 
 .playground-shell-mode-menu {

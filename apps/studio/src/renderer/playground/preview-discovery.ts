@@ -3,6 +3,7 @@ import type { PlaygroundRuntimeInfo } from '@midscene/playground';
 export type StudioPreviewConnectionState =
   | 'connecting'
   | 'waiting-for-stream'
+  | 'recovering'
   | 'connected'
   | 'disconnected'
   | 'error'

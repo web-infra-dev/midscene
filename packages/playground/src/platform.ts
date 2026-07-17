@@ -201,6 +201,7 @@ export interface PlaygroundRecorderDescribeTrace {
   screenshotPersistError?: string;
   annotatedScreenshotPersistError?: string;
   elementDescription?: string;
+  verifyPrompt?: boolean;
   verifyPassed?: boolean;
   centerDistance?: number;
   verifyResult?: {

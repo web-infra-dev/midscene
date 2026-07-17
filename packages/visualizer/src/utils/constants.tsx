@@ -77,5 +77,6 @@ export const BLANK_RESULT: PlaygroundResult = {
   result: undefined,
   dump: null,
   reportHTML: null,
+  report: null,
   error: null,
 };

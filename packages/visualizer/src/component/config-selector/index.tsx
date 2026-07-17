@@ -28,7 +28,7 @@ interface ConfigSelectorProps {
   hideDomAndScreenshotOptions?: boolean; // Hide domIncluded and screenshotIncluded options
   deviceType?: DeviceType;
   trigger?: ReactNode;
-  popupPlacement?: 'topRight' | 'bottomRight';
+  popupPlacement?: 'top' | 'topLeft' | 'topRight' | 'bottomRight';
 }
 
 export const ConfigSelector: React.FC<ConfigSelectorProps> = ({
