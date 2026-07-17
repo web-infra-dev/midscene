@@ -2491,7 +2491,7 @@ class PlaygroundServer {
       });
       debugInteract('recorder aiDescribe trace:', trace);
       const aiDescribeDetails =
-        verifyResult || trace.annotatedScreenshotRef
+        verifyPrompt && (verifyResult || trace.annotatedScreenshotRef)
           ? {
               aiDescribe: {
                 verifyPrompt,
