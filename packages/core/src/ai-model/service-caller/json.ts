@@ -109,6 +109,14 @@ function trimParsedJsonStrings(
   return obj;
 }
 
+function repairKnownJsonIssues(
+  jsonBlock: string,
+  _rawResponse: string,
+): string {
+  // TODO: Add project-specific repairs that jsonrepair cannot handle.
+  return jsonBlock;
+}
+
 function assertJsonObject(
   parsed: unknown,
 ): asserts parsed is Record<string, unknown> {
@@ -137,17 +145,34 @@ export function parseModelResponseJson(
   const requireObject = context?.requireObject ?? true;
 
   let parsedObj: unknown;
+
   try {
     parsedObj = parseJsonWithRepair(cleanJsonString);
     if (requireObject) {
       assertJsonObject(parsedObj);
     }
-  } catch (error) {
-    throw new Error(
-      `failed to parse LLM response into JSON. Error - ${String(
-        error,
-      )}. Response - \n ${raw}`,
-    );
+  } catch (e1) {
+    const code = repairKnownJsonIssues(cleanJsonString, raw);
+    if (code === cleanJsonString) {
+      throw new Error(
+        `failed to parse LLM response into JSON. Error - ${String(
+          e1,
+        )}. Response - \n ${raw}`,
+      );
+    }
+
+    try {
+      parsedObj = parseJsonWithRepair(code);
+      if (requireObject) {
+        assertJsonObject(parsedObj);
+      }
+    } catch (e2) {
+      throw new Error(
+        `failed to parse LLM response into JSON. First error - ${String(
+          e1,
+        )}. Second error - ${String(e2)}. Response - \n ${raw}`,
+      );
+    }
   }
 
   return trimParsedJsonStrings(parsedObj, context);
