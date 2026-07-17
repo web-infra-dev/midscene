@@ -231,6 +231,24 @@ export abstract class BaseMidsceneTools<
     return readCliReportSession(sessionName)?.reportFileName;
   }
 
+  /**
+   * Read the agent construction args persisted at `connect` time, so a
+   * subsequent stateless CLI command can rebuild the agent with the same
+   * behavior (e.g. `screenshotShrinkFactor`). Returns `undefined` when no
+   * session exists or it carries no init args.
+   */
+  protected readPersistedAgentInitArgs(): Record<string, unknown> | undefined {
+    const sessionName = this.getCliReportSessionName();
+    if (!sessionName) {
+      return undefined;
+    }
+    const args = readCliReportSession(sessionName)?.agentInitArgs;
+    if (args && typeof args === 'object' && !Array.isArray(args)) {
+      return args;
+    }
+    return undefined;
+  }
+
   protected readCliReportAgentOptions():
     | {
         reportFileName: string;
