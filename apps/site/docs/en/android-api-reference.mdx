@@ -224,7 +224,7 @@ function agentFromAdbDevice(
 ```
 
 - `deviceId?: string` &mdash; Connect to a specific device; omitted means “first available”.
-- `opts?: PageAgentOpt & AndroidDeviceOpt` &mdash; Combine agent options with [AndroidDevice](#androiddevice) settings. When `deviceId` is omitted, Midscene uses the ADB settings from `opts` for discovery.
+- `opts?: PageAgentOpt & AndroidDeviceOpt` &mdash; Agent options and [AndroidDevice](#androiddevice) settings. When you omit `deviceId`, Midscene discovers a device through adb. Set `androidAdbPath`, `remoteAdbHost`, and `remoteAdbPort` in `opts` to choose the adb configuration for device discovery and connection.
 
 #### `getConnectedDevices()`
 
@@ -240,9 +240,7 @@ function getConnectedDevices(
 }>>;
 ```
 
-Pass `deviceOptions` to use the same ADB executable and server settings as `AndroidDevice`. Midscene reads `androidAdbPath`, `remoteAdbHost`, and `remoteAdbPort`; other device options do not affect discovery.
-
-This example discovers devices through a remote ADB server with a specific local ADB executable:
+`deviceOptions` is optional. Omit it to use Midscene's default adb configuration. Set `androidAdbPath` to choose an adb executable, or set `remoteAdbHost` and `remoteAdbPort` to connect to a remote adb server:
 
 ```ts
 const devices = await getConnectedDevices({
@@ -254,7 +252,7 @@ const devices = await getConnectedDevices({
 
 #### `getConnectedDevicesWithDetails()`
 
-Enumerate connected devices and add metadata when ADB reports it. Midscene leaves unavailable fields as `undefined`.
+This function works like `getConnectedDevices()` and also returns the device brand, model, resolution, and screen density. Unavailable fields are `undefined`.
 
 ```ts
 function getConnectedDevicesWithDetails(
@@ -269,8 +267,6 @@ function getConnectedDevicesWithDetails(
   density?: number;
 }>>;
 ```
-
-`deviceOptions` selects the ADB executable and server settings for both device discovery and metadata lookup.
 
 ### See also
 

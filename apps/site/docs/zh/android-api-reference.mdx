@@ -223,7 +223,7 @@ function agentFromAdbDevice(
 ```
 
 - `deviceId?: string` —— 连接特定设备；留空表示使用“第一个可用设备”。
-- `opts?: PageAgentOpt & AndroidDeviceOpt` —— 在一个对象中合并 Agent 选项与 [`AndroidDevice`](#androiddevice) 的设置。省略 `deviceId` 时，Midscene 会使用 `opts` 中的 ADB 设置发现设备。
+- `opts?: PageAgentOpt & AndroidDeviceOpt` —— Agent 选项与 [`AndroidDevice`](#androiddevice) 设置。未传 `deviceId` 时，Midscene 会通过 adb 自动发现设备。可在 `opts` 中设置 `androidAdbPath`、`remoteAdbHost` 和 `remoteAdbPort`，指定用于发现和连接设备的 adb。
 
 #### `getConnectedDevices()`
 
@@ -239,9 +239,7 @@ function getConnectedDevices(
 }>>;
 ```
 
-传入 `deviceOptions` 可让设备发现与 `AndroidDevice` 使用同一个 adb 可执行文件和 server 配置。Midscene 会读取 `androidAdbPath`、`remoteAdbHost` 和 `remoteAdbPort`；其他设备选项不会影响设备发现。
-
-以下示例通过远程 adb server 发现设备，并指定本地 adb 可执行文件：
+`deviceOptions` 是可选参数。省略时，Midscene 使用默认 adb 配置。通过 `androidAdbPath` 指定 adb 可执行文件，或通过 `remoteAdbHost` 和 `remoteAdbPort` 连接远程 adb server：
 
 ```ts
 const devices = await getConnectedDevices({
@@ -253,7 +251,7 @@ const devices = await getConnectedDevices({
 
 #### `getConnectedDevicesWithDetails()`
 
-列举已连接设备，并在 adb 可读取时补充设备元数据。无法读取的字段保持 `undefined`。
+与 `getConnectedDevices()` 功能类似，并额外返回设备品牌、型号、分辨率和屏幕密度。无法获取的字段为 `undefined`。
 
 ```ts
 function getConnectedDevicesWithDetails(
@@ -268,8 +266,6 @@ function getConnectedDevicesWithDetails(
   density?: number;
 }>>;
 ```
-
-`deviceOptions` 会为设备发现和元数据读取选择同一个 adb 可执行文件和 server 配置。
 
 ### 相关阅读
 
