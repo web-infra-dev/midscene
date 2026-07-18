@@ -30,7 +30,9 @@ const mockAIResponse = (content: string) => ({
   isStreamed: false,
 });
 
-const mockModelConfig = (modelFamily?: IModelConfig['modelFamily']): IModelConfig => ({
+const mockModelConfig = (
+  modelFamily?: IModelConfig['modelFamily'],
+): IModelConfig => ({
   modelName: 'mock-model',
   modelDescription: 'mock model',
   intent: 'planning',
@@ -147,7 +149,8 @@ describe('plan XML parse retry', () => {
   });
 
   it('uses normalized assistant content when the adapter does not opt in', async () => {
-    const firstResponse = `<log>Tap button</log>\n<action-type>Tap</action-type>`;
+    const firstResponse =
+      '<log>Tap button</log>\n<action-type>Tap</action-type>';
     const rawAssistantMessage = {
       role: 'assistant' as const,
       content: firstResponse,
@@ -160,7 +163,7 @@ describe('plan XML parse retry', () => {
         rawChoiceMessage: rawAssistantMessage,
       })
       .mockResolvedValueOnce(
-        mockAIResponse(`<log>Task completed</log>\n<complete>true</complete>`),
+        mockAIResponse('<log>Task completed</log>\n<complete>true</complete>'),
       );
 
     const options = {
