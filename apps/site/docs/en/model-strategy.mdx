@@ -1,5 +1,3 @@
-import TroubleshootingLLMConnectivity from './common/troubleshooting-llm-connectivity.mdx';
-
 # Model Strategy
 
 :::tip
@@ -34,30 +32,6 @@ Meanwhile, the pure-vision route has started to show clear advantages:
 
 Given these advantages, **Midscene 1.0 and later only support the pure-vision approach**—the DOM-extraction compatibility mode has been removed. This applies to UI actions and element localization; for data extraction or page understanding you can still opt in to include DOM when needed.
 
-## Recommended multimodal models {#recommended-vision-models}
-
-Based on extensive real-world usage, we recommend these defaults for Midscene: Doubao Seed, Qwen3.x, Zhipu GLM-V, Zhipu AutoGLM, and the Gemini 3.x series.
-
-They offer strong element-localization skills and solid performance in planning and screen understanding.
-
-If you are unsure where to start, pick whichever model is easiest to access today, then run side-by-side comparisons later.
-
-| Model family | Deployment | Midscene notes |
-| --- | --- | --- |
-| Doubao Seed Model<br />[Quick setup](./model-common-config#doubao-seed-model) | Volcano Engine:<br />[Doubao-Seed-2.1-turbo](https://www.volcengine.com/docs/82379/1799865) | ⭐⭐⭐⭐⭐<br />Strong localization quality<br />Fastest localization speed in our current private evaluation set |
-| Qwen3.x<br />[Quick setup](./model-common-config#qwen3x) | [Alibaba Cloud](https://help.aliyun.com/zh/model-studio/vision)<br/>[OpenRouter](https://openrouter.ai/qwen) | ⭐⭐⭐⭐<br />Stronger than Qwen3-VL and Qwen2.5-VL |
-| Zhipu GLM-4.6V<br />[Quick setup](./model-common-config#glm-v) | [Z.AI (Global)](https://docs.z.ai/guides/vlm/glm-4.6v)<br/>[BigModel (CN)](https://docs.bigmodel.cn/cn/guide/models/vlm/glm-4.6v) | Newly integrated, welcome to try it out<br />Weights open-sourced on [HuggingFace](https://huggingface.co/zai-org/GLM-4.6V) |
-| Zhipu AutoGLM<br />[Quick setup](./model-common-config#auto-glm) | [Z.AI (Global)](https://z.ai/model-api/AutoGLM/AutoGLM-Phone-9B)<br/>[BigModel (CN)](https://docs.bigmodel.cn/cn/guide/models/autoglm) | Designed for mobile app operations<br />For `aiAssert`, `aiQuery`, and other page-understanding tasks, pair it with a separate Insight model |
-| Gemini 3.x Series<br />[Quick setup](./model-common-config#gemini-3x) | [Google Cloud](https://ai.google.dev/gemini-api/docs/models/gemini) | ⭐⭐⭐⭐⭐<br />`gemini-3.5-flash` has the best localization performance in our private evaluation set<br />Price is higher than Doubao and Qwen |
-
-Midscene is also compatible with the following model configurations, but we do not recommend them as default choices: [UI-TARS](./model-common-config#ui-tars).
-
-:::info Why not use multimodal models like gpt-5 as the default?
-
-Midscene requires strong UI localization (visual grounding). Models like gpt-5 perform poorly here, so they cannot serve as the default. You can still use them as dedicated “planning models,” which we cover below.
-
-:::
-
 ## Advanced: combining multiple models
 
 The default model strategy covers most projects at kick-off. As prompts grow more complex and you need stronger generalization, the default models’ planning ability may fall short. Consider this GitHub sign-up prompt:
@@ -86,7 +60,7 @@ By default, the system follows these rules (unset intents fall back to the defau
 
 In short: **Planning goes to the Planning model, localization stays on the default model, and extraction/assertion goes to Insight** when configured.
 
-For a ready-to-use environment snippet, including an Insight model, see the [multi-model example](./model-common-config#gpt54-planning-insight-qwen35).
+For a ready-to-use environment snippet, including an Insight model, see the [multi-model combination example](./model-common-config#multi-model-combination-example).
 
 ### *Planning* intent
 
@@ -179,5 +153,3 @@ Yes. You can configure per-agent models via the `modelConfig` parameter. See the
 ### Want to send browser DOM info to the model?
 
 By default, Midscene does not send browser DOM data to models. If you need to include it for UI understanding (for example, to pass details not visible in a screenshot), set `domIncluded` to `true` in the options for interfaces like `aiAsk` or `aiQuery`. See the [API reference](./api) for details.
-
-<TroubleshootingLLMConnectivity />

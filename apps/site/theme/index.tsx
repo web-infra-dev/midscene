@@ -5,6 +5,7 @@ import {
   LlmsViewOptions,
 } from '@rspress/plugin-llms/runtime';
 import { BenchmarkReportPreview } from './components/BenchmarkReportPreview';
+import { ModelConfigTab, ModelConfigTabs } from './components/ModelConfigTabs';
 import { HomeLayout } from './pages';
 
 function getCustomMDXComponent() {
@@ -27,5 +28,11 @@ function getCustomMDXComponent() {
   };
 }
 
-export { BenchmarkReportPreview, getCustomMDXComponent, HomeLayout };
+export {
+  BenchmarkReportPreview,
+  getCustomMDXComponent,
+  HomeLayout,
+  ModelConfigTab,
+  ModelConfigTabs,
+};
 export * from '@rspress/core/theme-original';
