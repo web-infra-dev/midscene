@@ -133,7 +133,11 @@ export function isValidWebPImageBuffer(buffer: Buffer): boolean {
  * @returns true if the Buffer has a supported image signature, otherwise false
  */
 export function isValidImageBuffer(buffer: Buffer): boolean {
-  return detectScreenshotImageFormatFromBuffer(buffer) !== undefined;
+  return (
+    isValidPNGImageBuffer(buffer) ||
+    isValidJPEGImageBuffer(buffer) ||
+    isValidWebPImageBuffer(buffer)
+  );
 }
 
 export interface ValidateScreenshotBufferOptions {
