@@ -27,25 +27,17 @@ const BASE64_SEPARATOR = ';base64,';
  * Detect image format from a data URI or raw base64 body.
  */
 function detectFormat(base64: string): ScreenshotImageFormat {
-  // Web integrations use an empty ScreenshotItem as a temporary placeholder.
-  // Keep its historical PNG metadata until the real screenshot is attached.
-  if (base64 === '') {
-    return 'png';
-  }
-
   const separatorIndex = base64.indexOf(BASE64_SEPARATOR);
   const mimeType =
     separatorIndex === -1 ? undefined : base64.slice(5, separatorIndex);
-  const format =
+  const detectedFormat =
     separatorIndex === -1
       ? inferScreenshotImageFormatFromBase64(base64)
       : screenshotImageFormatFromMimeType(mimeType);
-  if (!format) {
-    throw new Error(
-      `ScreenshotItem: unsupported image format ${mimeType ?? 'unknown'}`,
-    );
-  }
-  return format;
+
+  // Before WebP support, every non-JPEG value used PNG metadata. Preserve that
+  // behavior for temporary and test placeholders while detecting valid images.
+  return detectedFormat ?? 'png';
 }
 
 function rawBase64Body(base64: string): string {

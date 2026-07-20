@@ -36,6 +36,16 @@ describe('ScreenshotItem', () => {
       });
     });
 
+    it('preserves unrecognized screenshot placeholders as PNG metadata', () => {
+      const item = ScreenshotItem.create('mock-screenshot', 123);
+
+      expect(item.base64).toBe('mock-screenshot');
+      expect(item.rawBase64).toBe('mock-screenshot');
+      expect(item.format).toBe('png');
+      expect(item.extension).toBe('png');
+      expect(item.mimeType).toBe('image/png');
+    });
+
     it('classifies WebP screenshots without corrupting their metadata or body', () => {
       const item = ScreenshotItem.create(webpBase64, 123);
 
