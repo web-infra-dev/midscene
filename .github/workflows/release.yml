@@ -391,7 +391,7 @@ jobs:
     if: ${{ needs.release.result == 'success' && needs.package_studio.result == 'success' && needs.release.outputs.is_prerelease != 'true' }}
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
     steps:
     - name: Publish release notification to Discord
       id: notify
@@ -617,7 +617,7 @@ jobs:
     if: ${{ needs.release.result == 'success' && needs.package_studio.result == 'success' && needs.release.outputs.is_prerelease != 'true' }}
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
     steps:
     - name: Publish release notification to Feishu
       id: notify
