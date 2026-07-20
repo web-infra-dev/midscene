@@ -27,8 +27,61 @@ const RUN_DIR =
   process.env.MIDSCENE_RUN_DIR || resolve(process.cwd(), 'midscene_run');
 const DIAGNOSTICS_DIR = join(RUN_DIR, 'diagnostics', 'android-emulator-cache');
 const UI_DUMP_PATH = '/sdcard/midscene_cache_smoke_window_dump.xml';
+const SETTINGS_ACTIVITY = 'com.android.settings/.Settings';
+const SYSTEM_ERROR_DIALOG_ACTION_IDS = [
+  'android:id/aerr_close',
+  'android:id/aerr_wait',
+] as const;
+const MAX_SYSTEM_DIALOG_RECOVERIES = 3;
 
 vi.setConfig({ testTimeout: 240_000, hookTimeout: 30_000 });
+
+interface SystemDialogAction {
+  resourceId: (typeof SYSTEM_ERROR_DIALOG_ACTION_IDS)[number];
+  center: [number, number];
+}
+
+function sleep(timeMs: number): Promise<void> {
+  return new Promise((resolveDelay) => setTimeout(resolveDelay, timeMs));
+}
+
+function findSystemErrorDialogAction(
+  xml: string,
+): SystemDialogAction | undefined {
+  const nodeTags = xml.match(/<node\b[^>]*>/g) ?? [];
+  for (const resourceId of SYSTEM_ERROR_DIALOG_ACTION_IDS) {
+    const nodeTag = nodeTags.find((tag) =>
+      tag.includes(`resource-id="${resourceId}"`),
+    );
+    if (!nodeTag) continue;
+
+    const bounds = /bounds="\[(-?\d+),(-?\d+)\]\[(-?\d+),(-?\d+)\]"/.exec(
+      nodeTag,
+    );
+    if (!bounds) {
+      throw new Error(`Missing bounds for Android system dialog ${resourceId}`);
+    }
+    const left = Number(bounds[1]);
+    const top = Number(bounds[2]);
+    const right = Number(bounds[3]);
+    const bottom = Number(bounds[4]);
+    if (right <= left || bottom <= top) {
+      throw new Error(
+        `Invalid bounds for Android system dialog ${resourceId}: ${bounds[0]}`,
+      );
+    }
+    return {
+      resourceId,
+      center: [Math.round((left + right) / 2), Math.round((top + bottom) / 2)],
+    };
+  }
+  return undefined;
+}
+
+async function launchSettings(adb: ADB): Promise<void> {
+  await adb.shell('am force-stop com.android.settings');
+  await adb.shell(`am start -W -n ${SETTINGS_ACTIVITY}`);
+}
 
 function firstXpath(feature: ElementCacheFeature): string {
   if (!Array.isArray(feature.xpaths) || typeof feature.xpaths[0] !== 'string') {
@@ -61,12 +114,39 @@ async function dumpUiautomatorXml(adb: ADB): Promise<string> {
 async function waitForTarget(
   adb: ADB,
   devicePixelRatio: number,
-): Promise<{ root: UiNode; target: UiNode; xml: string }> {
+): Promise<{
+  root: UiNode;
+  target: UiNode;
+  xml: string;
+  dismissedSystemDialogs: string[];
+}> {
   const deadline = Date.now() + 30_000;
   let lastXml = '';
   let lastMatchCount = 0;
+  const dismissedSystemDialogs: string[] = [];
   while (Date.now() < deadline) {
     lastXml = await dumpUiautomatorXml(adb);
+    const systemDialogAction = findSystemErrorDialogAction(lastXml);
+    if (systemDialogAction) {
+      const recovery = dismissedSystemDialogs.length + 1;
+      writeFileSync(
+        join(DIAGNOSTICS_DIR, `system-error-dialog-${recovery}.xml`),
+        lastXml,
+      );
+      if (recovery > MAX_SYSTEM_DIALOG_RECOVERIES) {
+        writeFileSync(join(DIAGNOSTICS_DIR, 'uiautomator-last.xml'), lastXml);
+        throw new Error(
+          `Android emulator repeatedly showed ${systemDialogAction.resourceId} after ${MAX_SYSTEM_DIALOG_RECOVERIES} recoveries`,
+        );
+      }
+      dismissedSystemDialogs.push(systemDialogAction.resourceId);
+      const [x, y] = systemDialogAction.center;
+      await adb.shell(`input swipe ${x} ${y} ${x} ${y} 150`);
+      await sleep(500);
+      await launchSettings(adb);
+      continue;
+    }
+
     const root = uiautomatorXmlToUiNode(lastXml, devicePixelRatio);
     const matches = collectNodes(
       root,
@@ -74,15 +154,42 @@ async function waitForTarget(
     );
     lastMatchCount = matches.length;
     if (matches.length === 1) {
-      return { root, target: matches[0], xml: lastXml };
+      return {
+        root,
+        target: matches[0],
+        xml: lastXml,
+        dismissedSystemDialogs,
+      };
     }
-    await new Promise((resolveDelay) => setTimeout(resolveDelay, 500));
+    await sleep(500);
   }
   writeFileSync(join(DIAGNOSTICS_DIR, 'uiautomator-last.xml'), lastXml);
   throw new Error(
     `Expected exactly one ${TARGET_RESOURCE_ID} node, found ${lastMatchCount}`,
   );
 }
+
+describe('Android Emulator cache smoke helpers', () => {
+  it('prefers closing a system error dialog and returns its physical center', () => {
+    const xml = `<hierarchy>
+      <node resource-id="android:id/aerr_wait" bounds="[10,30][110,90]" />
+      <node resource-id="android:id/aerr_close" bounds="[20,40][220,140]" />
+    </hierarchy>`;
+
+    expect(findSystemErrorDialogAction(xml)).toEqual({
+      resourceId: 'android:id/aerr_close',
+      center: [120, 90],
+    });
+  });
+
+  it('ignores a normal Settings hierarchy', () => {
+    expect(
+      findSystemErrorDialogAction(
+        `<node resource-id="${TARGET_RESOURCE_ID}" bounds="[40,100][400,180]" />`,
+      ),
+    ).toBeUndefined();
+  });
+});
 
 function saveScreenshot(base64: string): string {
   const screenshotFile = join(DIAGNOSTICS_DIR, 'android-emulator.png');
@@ -106,13 +213,15 @@ describe.runIf(RUN_SMOKE)('Android Emulator xpath cache smoke', () => {
     try {
       const adb = await device.connect();
       await adb.shell('settings put system font_scale 1.0');
-      await adb.shell('am force-stop com.android.settings');
-      await adb.shell('am start -W -n com.android.settings/.Settings');
+      await launchSettings(adb);
 
       const logicalSize = await device.size();
       const density = (await adb.getScreenDensity()) ?? 160;
       const devicePixelRatio = density / 160;
-      const { root, target, xml } = await waitForTarget(adb, devicePixelRatio);
+      const { root, target, xml, dismissedSystemDialogs } = await waitForTarget(
+        adb,
+        devicePixelRatio,
+      );
       writeFileSync(join(DIAGNOSTICS_DIR, 'uiautomator.xml'), xml);
       writeFileSync(
         join(DIAGNOSTICS_DIR, 'uiautomator-tree.json'),
@@ -224,6 +333,7 @@ describe.runIf(RUN_SMOKE)('Android Emulator xpath cache smoke', () => {
         logicalSize,
         screenshotSize,
         screenshotScale,
+        dismissedSystemDialogs,
         target: feature.target,
         bounds: target.bounds,
         xpath,
