@@ -2,11 +2,11 @@ import { readFileSync } from 'node:fs';
 import {
   type ScreenshotImageFormat,
   type ScreenshotImageMimeType,
-  parseBase64,
+  inferScreenshotImageFormatFromBase64,
   screenshotImageExtension,
   screenshotImageFormatFromMimeType,
   screenshotImageMimeType,
-} from '@midscene/shared/img';
+} from '@midscene/shared/img/image-format';
 import { uuid } from '@midscene/shared/utils';
 import { extractImageByIdSync } from './dump/html-utils';
 import {
@@ -21,16 +21,40 @@ import {
  */
 export type ScreenshotSerializeFormat = ScreenshotRef;
 
+const BASE64_SEPARATOR = ';base64,';
+
 /**
- * Detect image format from base64 data URI prefix.
+ * Detect image format from a data URI or raw base64 body.
  */
 function detectFormat(base64: string): ScreenshotImageFormat {
-  const { mimeType } = parseBase64(base64);
-  const format = screenshotImageFormatFromMimeType(mimeType);
+  // Web integrations use an empty ScreenshotItem as a temporary placeholder.
+  // Keep its historical PNG metadata until the real screenshot is attached.
+  if (base64 === '') {
+    return 'png';
+  }
+
+  const separatorIndex = base64.indexOf(BASE64_SEPARATOR);
+  const mimeType =
+    separatorIndex === -1 ? undefined : base64.slice(5, separatorIndex);
+  const format =
+    separatorIndex === -1
+      ? inferScreenshotImageFormatFromBase64(base64)
+      : screenshotImageFormatFromMimeType(mimeType);
   if (!format) {
-    throw new Error(`ScreenshotItem: unsupported image format ${mimeType}`);
+    throw new Error(
+      `ScreenshotItem: unsupported image format ${mimeType ?? 'unknown'}`,
+    );
   }
   return format;
+}
+
+function rawBase64Body(base64: string): string {
+  const separatorIndex = base64.indexOf(BASE64_SEPARATOR);
+  const body =
+    separatorIndex === -1
+      ? base64
+      : base64.slice(separatorIndex + BASE64_SEPARATOR.length);
+  return body.replace(/\s/g, '');
 }
 
 /**
@@ -229,6 +253,6 @@ export class ScreenshotItem {
    * Useful for writing raw binary data to files.
    */
   get rawBase64(): string {
-    return parseBase64(this.base64).body;
+    return rawBase64Body(this.base64);
   }
 }

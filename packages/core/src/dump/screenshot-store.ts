@@ -6,7 +6,7 @@ import {
   isScreenshotImageMimeType,
   screenshotImageExtension,
   screenshotImageFormatFromMimeType,
-} from '@midscene/shared/img';
+} from '@midscene/shared/img/image-format';
 import type { ScreenshotItem } from '../screenshot-item';
 import { extractImageByIdSync } from './html-utils';
 

@@ -9,7 +9,7 @@ import { join } from 'node:path';
 import {
   screenshotImageExtension,
   screenshotImageFormatFromMimeType,
-} from '@midscene/shared/img';
+} from '@midscene/shared/img/image-format';
 import { ScreenshotItem } from '../screenshot-item';
 import type {
   ExecutionTask,

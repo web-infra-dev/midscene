@@ -22,6 +22,20 @@ describe('ScreenshotItem', () => {
       expect(item.capturedAt).toBe(capturedAt);
     });
 
+    it('preserves empty screenshot placeholders as PNG metadata', () => {
+      const item = ScreenshotItem.create('', 123);
+
+      expect(item.base64).toBe('');
+      expect(item.rawBase64).toBe('');
+      expect(item.format).toBe('png');
+      expect(item.extension).toBe('png');
+      expect(item.mimeType).toBe('image/png');
+      expect(item.toSerializable()).toMatchObject({
+        capturedAt: 123,
+        mimeType: 'image/png',
+      });
+    });
+
     it('classifies WebP screenshots without corrupting their metadata or body', () => {
       const item = ScreenshotItem.create(webpBase64, 123);
 
