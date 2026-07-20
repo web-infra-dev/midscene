@@ -26,13 +26,20 @@ final class SmokeButton: NSButton {
 }
 
 @MainActor
+final class SmokeTextField: NSTextField {
+  override func acceptsFirstMouse(for event: NSEvent?) -> Bool {
+    true
+  }
+}
+
+@MainActor
 final class FixtureController: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
   private let readyURL: URL
   private let stateURL: URL
 
   private var window: NSWindow!
   private var button: SmokeButton!
-  private var textField: NSTextField!
+  private var textField: SmokeTextField!
   private var scrollView: NSScrollView!
   private var activationSource: DispatchSourceSignal?
 
@@ -90,7 +97,7 @@ final class FixtureController: NSObject, NSApplicationDelegate, NSTextFieldDeleg
       self.writeState()
     }
 
-    textField = NSTextField(frame: NSRect(x: 120, y: 275, width: 400, height: 44))
+    textField = SmokeTextField(frame: NSRect(x: 120, y: 275, width: 400, height: 44))
     textField.placeholderString = "Type smoke text"
     textField.delegate = self
     textField.target = self
