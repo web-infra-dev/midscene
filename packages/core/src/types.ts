@@ -489,7 +489,7 @@ export interface ExecutionRecorderItem {
 
 export interface RecordToReportScreenshot {
   /**
-   * PNG/JPEG data URI, or raw PNG base64 body.
+   * PNG/JPEG/WebP data URI, or raw PNG/WebP base64 body.
    */
   base64: string;
   description?: string;
@@ -740,7 +740,7 @@ export type ExecutionTaskPlanningLocate =
 /*
 How a report file stores screenshots:
 - `inline`: base64 image script tags embedded in the single HTML file
-- `directory`: external PNG files under a sibling `screenshots/` dir
+- `directory`: external image files under a sibling `screenshots/` dir
 */
 export type ScreenshotMode = 'inline' | 'directory';
 
@@ -916,7 +916,7 @@ export interface AgentOpt {
    * Use directory-based report format with separate image files.
    *
    * When enabled:
-   * - Screenshots are saved as PNG files in a `screenshots/` subdirectory
+   * - Screenshots retain their image format in a `screenshots/` subdirectory
    * - Report is generated as `index.html` with relative image paths
    * - Reduces memory usage and report file size
    *

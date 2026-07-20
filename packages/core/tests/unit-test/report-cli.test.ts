@@ -24,6 +24,9 @@ function fakeBase64(sizeBytes: number): string {
   return `data:image/png;base64,${'A'.repeat(sizeBytes)}`;
 }
 
+const webpBase64 =
+  'data:image/webp;base64,UklGRjQAAABXRUJQVlA4ICgAAACQAQCdASoCAAMAAMASJQBOl0AAjNAA/v4icv1difCfoP7mxzi2QwAA';
+
 function createExecution(
   id: string,
   screenshot: ScreenshotItem | ScreenshotRef,
@@ -221,6 +224,45 @@ describe('createReportCliCommands', () => {
 
     expect(result.markdownFiles.length).toBe(1);
     expect(existsSync(join(outputDir, 'report.md'))).toBe(true);
+  });
+
+  it('exports WebP screenshots and markdown links with the .webp suffix', async () => {
+    const reportPath = join(tmpDir, 'input-report-sdk-webp', 'index.html');
+    mkdirSync(join(tmpDir, 'input-report-sdk-webp'), { recursive: true });
+    const screenshot = ScreenshotItem.create(webpBase64, Date.now());
+    const dump = new ReportActionDump({
+      groupName: 'sdk-webp-test',
+      sdkVersion: '1.0.0-test',
+      modelBriefs: [],
+      executions: [createExecution('exec-sdk-webp', screenshot)],
+    });
+    writeFileSync(
+      reportPath,
+      [
+        generateImageScriptTag(screenshot.id, screenshot.base64),
+        generateDumpScriptTag(dump.serialize(), {
+          'data-group-id': 'webp-group',
+        }),
+      ].join('\n'),
+      'utf-8',
+    );
+
+    const outputDir = join(tmpDir, 'output-sdk-webp');
+    const result = await reportFileToMarkdown({
+      htmlPath: reportPath,
+      outputDir,
+    });
+    const expectedFileName = `execution-1-task-1-${screenshot.id}.webp`;
+
+    expect(result.screenshotFiles).toEqual([
+      join(outputDir, 'screenshots', expectedFileName),
+    ]);
+    expect(readFileSync(result.screenshotFiles[0]).toString('base64')).toBe(
+      webpBase64.split(',')[1],
+    );
+    expect(readFileSync(join(outputDir, 'report.md'), 'utf-8')).toContain(
+      `./screenshots/${expectedFileName}`,
+    );
   });
 
   it('throws SDK-friendly validation errors for reportFileToMarkdown', async () => {

@@ -95,16 +95,25 @@ describe('normalizeBase64Image', () => {
       'data:image/jpeg;base64,/9j/4AAQSkZJRg==',
     );
   });
+
+  it('wraps bare WebP base64 with the WebP MIME type', () => {
+    expect(normalizeBase64Image(' UklGRjQAAABXRUJQ VlA4IA== ')).toBe(
+      'data:image/webp;base64,UklGRjQAAABXRUJQVlA4IA==',
+    );
+  });
 });
 
 describe('normalizeScreenshotBase64', () => {
-  it('accepts PNG and JPEG data urls', () => {
+  it('accepts PNG, JPEG, and WebP data urls', () => {
     expect(
       normalizeScreenshotBase64(' data:image/png;base64,aaa\r\nbbb '),
     ).toBe('data:image/png;base64,aaabbb');
     expect(normalizeScreenshotBase64('data:image/jpeg;base64,/9j/4AAQ')).toBe(
       'data:image/jpeg;base64,/9j/4AAQ',
     );
+    expect(
+      normalizeScreenshotBase64('data:image/webp;base64,UklGRjQAAA=='),
+    ).toBe('data:image/webp;base64,UklGRjQAAA==');
   });
 
   it('normalizes jpg data urls to jpeg', () => {
@@ -119,6 +128,12 @@ describe('normalizeScreenshotBase64', () => {
     );
   });
 
+  it('recognizes raw WebP base64', () => {
+    expect(normalizeScreenshotBase64(' UklGRjQAAA BXRUJQ ')).toBe(
+      'data:image/webp;base64,UklGRjQAAABXRUJQ',
+    );
+  });
+
   it('uses the provided label in validation errors', () => {
     expect(() =>
       normalizeScreenshotBase64(' ', { label: 'custom screenshot' }),
@@ -129,14 +144,15 @@ describe('normalizeScreenshotBase64', () => {
         label: 'custom screenshot',
       }),
     ).toThrow(
-      'custom screenshot must be a PNG/JPEG data URI or raw PNG base64 string',
+      'custom screenshot must be a PNG/JPEG/WebP data URI or raw PNG/WebP base64 string',
     );
   });
 });
 
 describe('inferBase64ImageFormat', () => {
-  it('detects png payloads and otherwise falls back to jpeg', () => {
+  it('detects PNG and WebP payloads and otherwise falls back to JPEG', () => {
     expect(inferBase64ImageFormat('iVBORw0KGgoaaa')).toBe('png');
+    expect(inferBase64ImageFormat('UklGRjQAAABXRUJQ')).toBe('webp');
     expect(inferBase64ImageFormat('/9j/4AAQSkZJRg==')).toBe('jpeg');
   });
 });

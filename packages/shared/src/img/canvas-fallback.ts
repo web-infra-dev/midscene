@@ -4,6 +4,11 @@
  */
 
 import { getDebug } from '../logger';
+import {
+  detectScreenshotImageFormatFromBuffer,
+  inferScreenshotImageFormatFromBase64,
+  screenshotImageMimeType,
+} from './image-format';
 
 const debug = getDebug('img:canvas-fallback');
 
@@ -89,7 +94,9 @@ export class CanvasImage {
       if (base64Body.startsWith('data:')) {
         img.src = base64Body;
       } else {
-        img.src = `data:image/png;base64,${base64Body}`;
+        const format =
+          inferScreenshotImageFormatFromBase64(base64Body) ?? 'png';
+        img.src = `data:${screenshotImageMimeType(format)};base64,${base64Body}`;
       }
     });
   }
@@ -99,7 +106,10 @@ export class CanvasImage {
    */
   static async new_from_byteslice(bytes: Uint8Array): Promise<CanvasImage> {
     return new Promise((resolve, reject) => {
-      const blob = new Blob([bytes], { type: 'image/png' });
+      const format = detectScreenshotImageFormatFromBuffer(bytes) ?? 'png';
+      const blob = new Blob([bytes], {
+        type: screenshotImageMimeType(format),
+      });
       const url = URL.createObjectURL(blob);
       const img = new Image();
 

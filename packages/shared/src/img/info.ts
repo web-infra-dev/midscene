@@ -4,6 +4,7 @@ import type { Size } from '../types';
 import { ifInNode } from '../utils';
 import getPhoton from './get-photon';
 import getSharp from './get-sharp';
+import { detectScreenshotImageFormatFromBuffer } from './image-format';
 
 export interface ImageInfo extends Size {}
 
@@ -118,12 +119,21 @@ export function isValidJPEGImageBuffer(buffer: Buffer): boolean {
 }
 
 /**
- * Check if the Buffer is a valid image (PNG or JPEG)
+ * Check if the Buffer has a WebP signature.
  * @param buffer The Buffer to check
- * @returns true if the Buffer is a valid PNG or JPEG image, otherwise false
+ * @returns true if the Buffer has a WebP signature, otherwise false
+ */
+export function isValidWebPImageBuffer(buffer: Buffer): boolean {
+  return detectScreenshotImageFormatFromBuffer(buffer) === 'webp';
+}
+
+/**
+ * Check if the Buffer is a supported screenshot image (PNG, JPEG, or WebP)
+ * @param buffer The Buffer to check
+ * @returns true if the Buffer has a supported image signature, otherwise false
  */
 export function isValidImageBuffer(buffer: Buffer): boolean {
-  return isValidPNGImageBuffer(buffer) || isValidJPEGImageBuffer(buffer);
+  return detectScreenshotImageFormatFromBuffer(buffer) !== undefined;
 }
 
 export interface ValidateScreenshotBufferOptions {

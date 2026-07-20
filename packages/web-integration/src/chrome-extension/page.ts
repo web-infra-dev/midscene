@@ -21,7 +21,6 @@ import type {
 } from '@midscene/core/device';
 import type { ElementInfo } from '@midscene/shared/extractor';
 import { treeToList } from '@midscene/shared/extractor';
-import { createImgBase64ByFormat } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import type { Protocol as CDPTypes } from 'devtools-protocol';
@@ -43,6 +42,10 @@ import {
   injectStopWaterFlowAnimation,
   injectWaterFlowAnimation,
 } from './dynamic-scripts';
+import {
+  type ChromeExtensionScreenshotFormat,
+  captureChromeExtensionScreenshot,
+} from './screenshot';
 
 const debug = getDebug('web:chrome-extension:page');
 
@@ -768,15 +771,19 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
     return sizeInfo;
   }
 
-  async screenshotBase64() {
+  async screenshotBase64(
+    format?: ChromeExtensionScreenshotFormat,
+  ): Promise<string> {
     // screenshot by cdp
     await this.hideMousePointer();
-    const format = 'jpeg';
-    const base64 = await this.sendCommandToDebugger('Page.captureScreenshot', {
+    return captureChromeExtensionScreenshot(
+      (params) =>
+        this.sendCommandToDebugger<
+          CDPTypes.Page.CaptureScreenshotResponse,
+          CDPTypes.Page.CaptureScreenshotRequest
+        >('Page.captureScreenshot', params),
       format,
-      quality: 90,
-    });
-    return createImgBase64ByFormat(format, base64.data);
+    );
   }
 
   async url() {

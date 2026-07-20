@@ -9,6 +9,12 @@ import type { Rect } from '../types';
 import { ifInNode } from '../utils';
 import getPhoton from './get-photon';
 import getSharp from './get-sharp';
+import {
+  type ScreenshotImageFormat,
+  detectScreenshotImageFormatFromBuffer,
+  inferScreenshotImageFormatFromBase64,
+  screenshotImageMimeType,
+} from './image-format';
 
 const imgDebug = getDebug('img');
 
@@ -175,47 +181,21 @@ export async function convertImgBufferToJpeg(
 
 const base64ImageDataUrlPattern = /^data:image\/[a-zA-Z0-9.+-]+;base64,/i;
 const supportedScreenshotDataUriPattern =
-  /^data:image\/(png|jpe?g);base64,([\s\S]*)$/i;
+  /^data:image\/(png|jpe?g|webp);base64,([\s\S]*)$/i;
 const rawBase64BodyPattern = /^[A-Za-z0-9+/=\s]+$/;
 
-export const inferBase64ImageFormat = (base64Body: string) => {
-  if (base64Body.startsWith('iVBORw0KGgo')) {
-    return 'png';
-  }
-  return 'jpeg';
-};
+export const inferBase64ImageFormat = (
+  base64Body: string,
+): ScreenshotImageFormat =>
+  inferScreenshotImageFormatFromBase64(base64Body) ?? 'jpeg';
 
 function detectImageMimeTypeFromBuffer(buffer: Buffer): string | undefined {
-  if (
-    buffer.length >= 8 &&
-    buffer[0] === 0x89 &&
-    buffer[1] === 0x50 &&
-    buffer[2] === 0x4e &&
-    buffer[3] === 0x47 &&
-    buffer[4] === 0x0d &&
-    buffer[5] === 0x0a &&
-    buffer[6] === 0x1a &&
-    buffer[7] === 0x0a
-  ) {
-    return 'image/png';
-  }
-  if (
-    buffer.length >= 3 &&
-    buffer[0] === 0xff &&
-    buffer[1] === 0xd8 &&
-    buffer[2] === 0xff
-  ) {
-    return 'image/jpeg';
+  const screenshotFormat = detectScreenshotImageFormatFromBuffer(buffer);
+  if (screenshotFormat) {
+    return screenshotImageMimeType(screenshotFormat);
   }
   if (buffer.length >= 6 && buffer.subarray(0, 3).toString('ascii') === 'GIF') {
     return 'image/gif';
-  }
-  if (
-    buffer.length >= 12 &&
-    buffer.subarray(0, 4).toString('ascii') === 'RIFF' &&
-    buffer.subarray(8, 12).toString('ascii') === 'WEBP'
-  ) {
-    return 'image/webp';
   }
   if (buffer.length >= 2 && buffer[0] === 0x42 && buffer[1] === 0x4d) {
     return 'image/bmp';
@@ -243,10 +223,10 @@ export const normalizeScreenshotBase64 = (
 
   const dataUriMatch = trimmedBase64.match(supportedScreenshotDataUriPattern);
   if (dataUriMatch) {
-    const imageFormat =
+    const imageFormat: ScreenshotImageFormat =
       dataUriMatch[1].toLowerCase() === 'jpg'
         ? 'jpeg'
-        : dataUriMatch[1].toLowerCase();
+        : (dataUriMatch[1].toLowerCase() as ScreenshotImageFormat);
     const body = dataUriMatch[2];
     if (!normalizeBase64Body(body)) {
       throw new Error(`${label} cannot be empty`);
@@ -256,17 +236,22 @@ export const normalizeScreenshotBase64 = (
 
   if (trimmedBase64.startsWith('data:')) {
     throw new Error(
-      `${label} must be a PNG/JPEG data URI or raw PNG base64 string`,
+      `${label} must be a PNG/JPEG/WebP data URI or raw PNG/WebP base64 string`,
     );
   }
 
   if (!rawBase64BodyPattern.test(trimmedBase64)) {
     throw new Error(
-      `${label} must be a PNG/JPEG data URI or raw PNG base64 string`,
+      `${label} must be a PNG/JPEG/WebP data URI or raw PNG/WebP base64 string`,
     );
   }
 
-  return createImgBase64ByFormat('png', trimmedBase64);
+  const base64Body = normalizeBase64Body(trimmedBase64);
+  const inferredFormat = inferScreenshotImageFormatFromBase64(base64Body);
+  return createImgBase64ByFormat(
+    inferredFormat === 'webp' ? 'webp' : 'png',
+    base64Body,
+  );
 };
 
 export const normalizeBase64Image = (base64: string) => {

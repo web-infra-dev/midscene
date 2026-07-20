@@ -26,6 +26,7 @@ import {
   convertImgBufferToJpeg,
   createImgBase64ByFormat,
   imageInfoOfBase64,
+  normalizeBase64Image,
   parseBase64,
   resizeImgBase64,
 } from '@midscene/shared/img';
@@ -37,28 +38,6 @@ import type { TaskCache } from './task-cache';
 import { debug as cacheDebug } from './task-cache';
 
 const agentDebug = getDebug('agent');
-const screenshotDataUrlPattern = /^data:image\/[a-zA-Z0-9.+-]+;base64,/i;
-
-const inferBase64ImageFormat = (base64Body: string) => {
-  if (base64Body.startsWith('iVBORw0KGgo')) {
-    return 'png';
-  }
-  return 'jpeg';
-};
-
-const normalizeScreenshotBase64 = (screenshotBase64: string) => {
-  const trimmedBase64 = screenshotBase64.trim();
-  if (screenshotDataUrlPattern.test(trimmedBase64)) {
-    return trimmedBase64;
-  }
-
-  const base64Body = trimmedBase64.replace(/\s/g, '');
-  assert(base64Body, 'screenshotBase64 must include image data');
-  return createImgBase64ByFormat(
-    inferBase64ImageFormat(base64Body),
-    base64Body,
-  );
-};
 
 const legacyScrollTypeMap = {
   once: 'singleAction',
@@ -207,7 +186,7 @@ export async function commonContextParser(
     // This mainly covers Android's default screenshot path, which produces PNG screenshots.
     // Compared with conversion on Android, centralizing it here means each platform does not need to handle screenshot formats itself, and allows future output formats such as WebP.
     // Built-in paths that already output JPEG are unaffected, and custom devices that output JPEG will not be compressed again.
-    // The Web platform already outputs JPEG, so it does not enter this branch. Other built-in device platforms run in Node, where Sharp conversion is fast enough that its extra cost is negligible.
+    // Web platforms already output compressed formats, so they do not enter this branch. Other built-in device platforms run in Node, where Sharp conversion is fast enough that its extra cost is negligible.
     let outputScreenshotBase64 = screenshotBase64;
     const { mimeType, body } = parseBase64(screenshotBase64);
     if (mimeType.toLowerCase() === 'image/png') {
@@ -242,8 +221,7 @@ export async function createScreenshotBoundUIContext(
     screenshotSize?: Size;
   },
 ): Promise<UIContext> {
-  const normalizedScreenshotBase64 =
-    normalizeScreenshotBase64(screenshotBase64);
+  const normalizedScreenshotBase64 = normalizeBase64Image(screenshotBase64);
   const actualScreenshotSize = await imageInfoOfBase64(
     normalizedScreenshotBase64,
   );

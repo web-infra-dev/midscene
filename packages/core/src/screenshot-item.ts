@@ -1,4 +1,12 @@
 import { readFileSync } from 'node:fs';
+import {
+  type ScreenshotImageFormat,
+  type ScreenshotImageMimeType,
+  parseBase64,
+  screenshotImageExtension,
+  screenshotImageFormatFromMimeType,
+  screenshotImageMimeType,
+} from '@midscene/shared/img';
 import { uuid } from '@midscene/shared/utils';
 import { extractImageByIdSync } from './dump/html-utils';
 import {
@@ -16,10 +24,13 @@ export type ScreenshotSerializeFormat = ScreenshotRef;
 /**
  * Detect image format from base64 data URI prefix.
  */
-function detectFormat(base64: string): 'png' | 'jpeg' {
-  if (base64.startsWith('data:image/jpeg')) return 'jpeg';
-  if (base64.startsWith('data:image/jpg')) return 'jpeg';
-  return 'png';
+function detectFormat(base64: string): ScreenshotImageFormat {
+  const { mimeType } = parseBase64(base64);
+  const format = screenshotImageFormatFromMimeType(mimeType);
+  if (!format) {
+    throw new Error(`ScreenshotItem: unsupported image format ${mimeType}`);
+  }
+  return format;
 }
 
 /**
@@ -35,7 +46,7 @@ function detectFormat(base64: string): 'png' | 'jpeg' {
 export class ScreenshotItem {
   private _id: string;
   private _base64: string | null;
-  private _format: 'png' | 'jpeg';
+  private _format: ScreenshotImageFormat;
   private _capturedAt: number;
   private _serializedRef: ScreenshotRef | null = null;
   private _persistedPath: string | null = null;
@@ -57,14 +68,19 @@ export class ScreenshotItem {
     return this._id;
   }
 
-  /** Get the image format (png or jpeg) */
-  get format(): 'png' | 'jpeg' {
+  /** Get the image format (PNG, JPEG, or WebP). */
+  get format(): ScreenshotImageFormat {
     return this._format;
   }
 
   /** Get the file extension for this screenshot */
-  get extension(): string {
-    return this._format === 'jpeg' ? 'jpeg' : 'png';
+  get extension(): ScreenshotImageFormat {
+    return screenshotImageExtension(this._format);
+  }
+
+  /** Get the MIME type for this screenshot. */
+  get mimeType(): ScreenshotImageMimeType {
+    return screenshotImageMimeType(this._format);
   }
 
   /** Get screenshot capture timestamp in milliseconds */
@@ -83,7 +99,7 @@ export class ScreenshotItem {
         throw new Error(`Screenshot ${this._id}: file recovery path missing`);
       }
       const buffer = readFileSync(this._persistedPath);
-      return `data:image/${this._format};base64,${buffer.toString('base64')}`;
+      return `data:${this.mimeType};base64,${buffer.toString('base64')}`;
     };
 
     const loadFromInline = (): string => {
@@ -176,7 +192,7 @@ export class ScreenshotItem {
         type: 'midscene_screenshot_ref',
         id: this._id,
         capturedAt: this._capturedAt,
-        mimeType: this._format === 'jpeg' ? 'image/jpeg' : 'image/png',
+        mimeType: this.mimeType,
         storage: 'inline',
       }
     );
@@ -195,7 +211,7 @@ export class ScreenshotItem {
       type: 'midscene_screenshot_ref',
       id: this._id,
       capturedAt: this._capturedAt,
-      mimeType: this._format === 'jpeg' ? 'image/jpeg' : 'image/png',
+      mimeType: this.mimeType,
       storage,
     };
     if (storage === 'file') {
@@ -213,6 +229,6 @@ export class ScreenshotItem {
    * Useful for writing raw binary data to files.
    */
   get rawBase64(): string {
-    return this.base64.replace(/^data:image\/(png|jpeg|jpg);base64,/, '');
+    return parseBase64(this.base64).body;
   }
 }

@@ -2,10 +2,22 @@ export {
   imageInfoOfBase64,
   isValidPNGImageBuffer,
   isValidJPEGImageBuffer,
+  isValidWebPImageBuffer,
   isValidImageBuffer,
   validateScreenshotBuffer,
   type ValidateScreenshotBufferOptions,
 } from './info';
+export {
+  detectScreenshotImageFormatFromBuffer,
+  inferScreenshotImageFormatFromBase64,
+  isScreenshotImageMimeType,
+  screenshotImageExtension,
+  screenshotImageFormatFromExtension,
+  screenshotImageFormatFromMimeType,
+  screenshotImageMimeType,
+  type ScreenshotImageFormat,
+  type ScreenshotImageMimeType,
+} from './image-format';
 export {
   resizeAndConvertImgBuffer,
   convertImgBufferToJpeg,
