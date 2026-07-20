@@ -403,4 +403,25 @@ describe('ComputerDevice pointer input', () => {
       'left',
     );
   });
+
+  it('uses the held tap path when focusing a macOS keyboard target', async () => {
+    const device = await createConnectedDevice();
+
+    await device.inputPrimitives.keyboard.keyboardPress('Enter', {
+      target: { center: [100, 120] },
+    });
+
+    expect(mockState.libnut.mouseClick).not.toHaveBeenCalled();
+    expect(mockState.libnut.mouseToggle).toHaveBeenCalledTimes(2);
+    expect(mockState.libnut.mouseToggle).toHaveBeenNthCalledWith(
+      1,
+      'down',
+      'left',
+    );
+    expect(mockState.libnut.mouseToggle).toHaveBeenNthCalledWith(
+      2,
+      'up',
+      'left',
+    );
+  });
 });
