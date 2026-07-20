@@ -70,6 +70,7 @@ interface FixtureState {
   active: boolean;
   keyWindow: boolean;
   activationCount: number;
+  inputReadyGeneration: number;
   clickCount: number;
   buttonActionCount: number;
   text: string;
@@ -160,6 +161,10 @@ function normalizeState(value: unknown): FixtureState {
     activationCount: asFiniteNumber(
       raw.activationCount,
       'state.activationCount',
+    ),
+    inputReadyGeneration: asFiniteNumber(
+      raw.inputReadyGeneration,
+      'state.inputReadyGeneration',
     ),
     clickCount: asFiniteNumber(raw.clickCount, 'state.clickCount'),
     buttonActionCount: asFiniteNumber(
@@ -261,15 +266,15 @@ async function retryFixtureAction(options: {
       await waitForJson(
         options.stateFile,
         normalizeState,
-        // GitHub's hosted macOS session reports the fixture as frontmost to
-        // System Events while AppKit still reports inactive/non-key. The
-        // fixture's activation signal is the reliable synchronization point;
-        // each caller subsequently verifies that the real input was received.
-        (state) => state.activationCount > beforeActivation.activationCount,
+        (state) =>
+          state.activationCount > beforeActivation.activationCount &&
+          state.inputReadyGeneration > beforeActivation.inputReadyGeneration &&
+          state.visible &&
+          state.active &&
+          state.keyWindow,
         ACTIVATION_TIMEOUT_MS,
         options.fixtureProcess,
       );
-      await sleep(250);
       await options.action();
       const state = await waitForJson(
         options.stateFile,

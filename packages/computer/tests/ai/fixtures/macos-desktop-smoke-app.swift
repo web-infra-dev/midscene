@@ -10,9 +10,25 @@ final class FlippedDocumentView: NSView {
 final class SmokeButton: NSButton {
   var onMouseDown: (() -> Void)?
 
+  // AppKit normally consumes the first click while a programmatically
+  // activated application is still transitioning to the foreground. The
+  // hosted macOS runner can remain in that transition even after System
+  // Events says the process is frontmost. Accepting the activation click
+  // keeps this fixture focused on whether the global mouse event arrived.
+  override func acceptsFirstMouse(for event: NSEvent?) -> Bool {
+    true
+  }
+
   override func mouseDown(with event: NSEvent) {
     onMouseDown?()
     super.mouseDown(with: event)
+  }
+}
+
+@MainActor
+final class SmokeTextField: NSTextField {
+  override func acceptsFirstMouse(for event: NSEvent?) -> Bool {
+    true
   }
 }
 
@@ -23,11 +39,12 @@ final class FixtureController: NSObject, NSApplicationDelegate, NSTextFieldDeleg
 
   private var window: NSWindow!
   private var button: SmokeButton!
-  private var textField: NSTextField!
+  private var textField: SmokeTextField!
   private var scrollView: NSScrollView!
   private var activationSource: DispatchSourceSignal?
 
   private var activationCount = 0
+  private var inputReadyGeneration = 0
   private var clickCount = 0
   private var buttonActionCount = 0
   private var lastKey = ""
@@ -80,7 +97,7 @@ final class FixtureController: NSObject, NSApplicationDelegate, NSTextFieldDeleg
       self.writeState()
     }
 
-    textField = NSTextField(frame: NSRect(x: 120, y: 275, width: 400, height: 44))
+    textField = SmokeTextField(frame: NSRect(x: 120, y: 275, width: 400, height: 44))
     textField.placeholderString = "Type smoke text"
     textField.delegate = self
     textField.target = self
@@ -108,12 +125,7 @@ final class FixtureController: NSObject, NSApplicationDelegate, NSTextFieldDeleg
 
     installActivationSignal()
     activateFixture()
-    window.makeFirstResponder(textField)
     writeState()
-
-    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-      self?.writeReadyMetadata()
-    }
   }
 
   func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
@@ -140,22 +152,46 @@ final class FixtureController: NSObject, NSApplicationDelegate, NSTextFieldDeleg
   }
 
   private func activateFixture() {
-    focusFixture()
     activationCount += 1
+    let activation = activationCount
+    NSApplication.shared.unhide(nil)
+    NSApplication.shared.activate(ignoringOtherApps: true)
+    NSRunningApplication.current.activate(options: [.activateAllWindows])
     writeState()
-    DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in
-      self?.focusFixture()
-      self?.writeState()
+
+    // Present the window on the next AppKit turn, after the activation request
+    // has reached the application. A readiness generation is published only
+    // after AppKit itself reports a visible key window; callers synchronize on
+    // that generation instead of sleeping for an arbitrary duration.
+    DispatchQueue.main.async { [weak self] in
+      guard let self else { return }
+      self.window.orderFrontRegardless()
+      self.window.makeKeyAndOrderFront(nil)
+      self.window.makeFirstResponder(self.textField)
+      self.publishInputReady(for: activation, attemptsRemaining: 40)
     }
   }
 
-  private func focusFixture() {
-    NSApplication.shared.unhide(nil)
-    window.orderFrontRegardless()
-    window.makeKeyAndOrderFront(nil)
-    NSApplication.shared.activate(ignoringOtherApps: true)
-    NSRunningApplication.current.activate(options: [.activateAllWindows])
-    window.makeFirstResponder(textField)
+  private func publishInputReady(for activation: Int, attemptsRemaining: Int) {
+    guard activation == activationCount else { return }
+    if window.isVisible && window.isKeyWindow && NSApplication.shared.isActive {
+      inputReadyGeneration += 1
+      writeState()
+      if inputReadyGeneration == 1 {
+        writeReadyMetadata()
+      }
+      return
+    }
+    guard attemptsRemaining > 0 else {
+      writeState()
+      return
+    }
+    DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in
+      self?.publishInputReady(
+        for: activation,
+        attemptsRemaining: attemptsRemaining - 1
+      )
+    }
   }
 
   private func installActivationSignal() {
@@ -255,6 +291,7 @@ final class FixtureController: NSObject, NSApplicationDelegate, NSTextFieldDeleg
         "active": NSApplication.shared.isActive,
         "keyWindow": window.isKeyWindow,
         "activationCount": activationCount,
+        "inputReadyGeneration": inputReadyGeneration,
         "clickCount": clickCount,
         "buttonActionCount": buttonActionCount,
         "text": textField.stringValue,

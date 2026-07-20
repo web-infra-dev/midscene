@@ -828,14 +828,7 @@ export class ComputerDevice implements AbstractInterface {
         const element = opts?.target as LocateResultElement | undefined;
 
         if (element) {
-          const [x, y] = element.center;
-          const target = this.toGlobalPoint({ x, y });
-          this.inputDriver.moveMouse(
-            Math.round(target.x),
-            Math.round(target.y),
-          );
-          this.inputDriver.mouseClick('left');
-          await this.inputDriver.delay(INPUT_FOCUS_DELAY);
+          await this.focusKeyboardTarget(element, INPUT_FOCUS_DELAY);
 
           if (opts?.replace !== false) {
             await this.selectAllAndDelete();
@@ -848,23 +841,14 @@ export class ComputerDevice implements AbstractInterface {
       keyboardPress: async (keyName, opts) => {
         const target = opts?.target as LocateResultElement | undefined;
         if (target) {
-          const [x, y] = target.center;
-          const point = this.toGlobalPoint({ x, y });
-          this.inputDriver.moveMouse(Math.round(point.x), Math.round(point.y));
-          this.inputDriver.mouseClick('left');
-          await this.inputDriver.delay(50);
+          await this.focusKeyboardTarget(target, 50);
         }
 
         await this.pressKeyboardShortcut(keyName);
       },
       clearInput: async (target) => {
         if (target) {
-          const element = target as LocateResultElement;
-          const [x, y] = element.center;
-          const point = this.toGlobalPoint({ x, y });
-          this.inputDriver.moveMouse(Math.round(point.x), Math.round(point.y));
-          this.inputDriver.mouseClick('left');
-          await this.inputDriver.delay(100);
+          await this.focusKeyboardTarget(target as LocateResultElement, 100);
         }
 
         await this.selectAllAndDelete();
@@ -883,6 +867,25 @@ export class ComputerDevice implements AbstractInterface {
     this.displayId = options?.displayId;
     this.useAppleScript =
       process.platform === 'darwin' && options?.keyboardDriver !== 'libnut';
+  }
+
+  private async focusKeyboardTarget(
+    element: LocateResultElement,
+    delayMs: number,
+  ): Promise<void> {
+    const [x, y] = element.center;
+    if (process.platform === 'darwin') {
+      // Reuse the macOS tap path, which holds mouse-down long enough for
+      // AppKit and follows up when the click changes the foreground process.
+      // A bare libnut mouseClick can be consumed solely as an activation click
+      // on hosted desktops, leaving subsequent AppleScript typing unfocused.
+      await this.inputPrimitives.pointer.tap({ x, y });
+    } else {
+      const point = this.toGlobalPoint({ x, y });
+      this.inputDriver.moveMouse(Math.round(point.x), Math.round(point.y));
+      this.inputDriver.mouseClick('left');
+    }
+    await this.inputDriver.delay(delayMs);
   }
 
   describe(): string {
