@@ -67,6 +67,75 @@ describe('studio recorder export', () => {
     expect(exportSession.events[0].screenshotAsset).toBeUndefined();
   });
 
+  it('materializes screenshot assets into their recorded frame roles', async () => {
+    const target = {
+      platformId: 'web' as const,
+      label: 'Web',
+      values: { url: 'https://example.com' },
+    };
+    const session: StudioRecordingSession = {
+      id: 'session-frame-roles',
+      name: 'Frame roles',
+      status: 'completed',
+      target,
+      events: [
+        {
+          type: 'navigation',
+          platformId: 'web',
+          actionType: 'InitialNavigation',
+          rawPayload: {},
+          target,
+          pageInfo: { width: 1280, height: 720 },
+          screenshotAsset: {
+            id: 'initial-screenshot',
+            mimeType: 'image/png',
+            bytes: 42,
+            frameRole: 'after',
+          },
+          timestamp: 1,
+          hashId: 'initial-navigation',
+        },
+        {
+          type: 'click',
+          platformId: 'web',
+          actionType: 'Tap',
+          rawPayload: { x: 10, y: 20 },
+          target,
+          pageInfo: { width: 1280, height: 720 },
+          screenshotAsset: {
+            id: 'before-click',
+            mimeType: 'image/png',
+            bytes: 42,
+            frameRole: 'before',
+          },
+          timestamp: 2,
+          hashId: 'click',
+        },
+      ],
+      createdAt: 1,
+      updatedAt: 2,
+    };
+    const loadScreenshot = vi.fn(async (assetId: string) =>
+      assetId === 'initial-screenshot'
+        ? 'data:image/png;base64,initial'
+        : 'data:image/png;base64,before',
+    );
+
+    const exportSession = await materializeStudioRecorderSessionScreenshots(
+      session,
+      loadScreenshot,
+    );
+
+    expect(exportSession.events[0]).toMatchObject({
+      screenshotAfter: 'data:image/png;base64,initial',
+      screenshotAsset: undefined,
+    });
+    expect(exportSession.events[1]).toMatchObject({
+      screenshotBefore: 'data:image/png;base64,before',
+      screenshotAsset: undefined,
+    });
+  });
+
   it('falls back to browser download when generic file IPC is unavailable', async () => {
     const click = vi.fn();
     const writeFile = vi.fn();

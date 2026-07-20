@@ -101,6 +101,42 @@ function shouldPersistStudioPreviewRecorderScreenshot(actionType: string) {
   ].includes(actionType);
 }
 
+interface RecorderScreenshotFrame {
+  screenshot: string;
+  frameRole?: MidsceneRecorderScreenshotAssetRef['frameRole'];
+}
+
+function getRecorderScreenshotFrame(
+  event: PlaygroundRecorderEvent,
+): RecorderScreenshotFrame | undefined {
+  if (event.screenshotBefore) {
+    return { screenshot: event.screenshotBefore, frameRole: 'before' };
+  }
+  if (event.screenshotAfter) {
+    return { screenshot: event.screenshotAfter, frameRole: 'after' };
+  }
+  if (event.screenshotWithBox) {
+    return { screenshot: event.screenshotWithBox };
+  }
+  return undefined;
+}
+
+function toRecorderScreenshotFields(
+  frame: RecorderScreenshotFrame | undefined,
+): Pick<
+  PlaygroundRecorderEvent,
+  'screenshotBefore' | 'screenshotAfter' | 'screenshotWithBox'
+> {
+  return {
+    screenshotBefore:
+      frame?.frameRole === 'before' ? frame.screenshot : undefined,
+    screenshotAfter:
+      frame?.frameRole === 'after' ? frame.screenshot : undefined,
+    screenshotWithBox:
+      frame && frame.frameRole === undefined ? frame.screenshot : undefined,
+  };
+}
+
 function createElementDescriberRuntime(
   agent: PageAgent,
 ): ElementDescriberRuntime {
@@ -359,6 +395,7 @@ function initializeRecorderScreenshotAssetUsage() {
 function persistRecorderScreenshotAsset(
   sessionId: string,
   imageBase64?: string,
+  frameRole?: MidsceneRecorderScreenshotAssetRef['frameRole'],
 ): MidsceneRecorderScreenshotAssetRef | undefined {
   if (!imageBase64?.startsWith('data:')) {
     return undefined;
@@ -400,6 +437,7 @@ function persistRecorderScreenshotAsset(
     id: assetId,
     mimeType: normalizedMimeType,
     bytes: bytes.byteLength,
+    ...(frameRole ? { frameRole } : {}),
   };
 }
 
@@ -1698,11 +1736,16 @@ class PlaygroundServer {
 
   private persistStudioPreviewRecorderScreenshot(
     screenshot?: string,
+    frameRole?: MidsceneRecorderScreenshotAssetRef['frameRole'],
   ): MidsceneRecorderScreenshotAssetRef | undefined {
     if (!this._recorderSessionId) {
       return undefined;
     }
-    return persistRecorderScreenshotAsset(this._recorderSessionId, screenshot);
+    return persistRecorderScreenshotAsset(
+      this._recorderSessionId,
+      screenshot,
+      frameRole,
+    );
   }
 
   private async storeStudioPreviewRecorderEvent(
@@ -2001,11 +2044,19 @@ class PlaygroundServer {
     const retainedScreenshot = shouldPersistScreenshot
       ? screenshotBefore || screenshotAfter
       : undefined;
+    const retainedScreenshotFrameRole = screenshotBefore
+      ? ('before' as const)
+      : screenshotAfter
+        ? ('after' as const)
+        : undefined;
     const deferScreenshotPersistence =
       actionType === 'Input' && payload.mode === 'typeOnly';
     const screenshotAsset = deferScreenshotPersistence
       ? undefined
-      : this.persistStudioPreviewRecorderScreenshot(retainedScreenshot);
+      : this.persistStudioPreviewRecorderScreenshot(
+          retainedScreenshot,
+          retainedScreenshotFrameRole,
+        );
     const shouldDiscardDataUrlScreenshot = Boolean(
       retainedScreenshot?.startsWith('data:'),
     );
@@ -2026,7 +2077,10 @@ class PlaygroundServer {
         ? { screenshotAsset }
         : deferScreenshotPersistence
           ? retainedScreenshot
-            ? { screenshotWithBox: retainedScreenshot }
+            ? toRecorderScreenshotFields({
+                screenshot: retainedScreenshot,
+                frameRole: retainedScreenshotFrameRole,
+              })
             : {}
           : shouldDiscardDataUrlScreenshot
             ? {}
@@ -2497,6 +2551,8 @@ class PlaygroundServer {
     next: PlaygroundRecorderEvent,
   ): PlaygroundRecorderEvent {
     const value = `${current.value || ''}${next.value || ''}`;
+    const screenshotFrame =
+      getRecorderScreenshotFrame(next) ?? getRecorderScreenshotFrame(current);
     return {
       ...current,
       value,
@@ -2506,11 +2562,7 @@ class PlaygroundServer {
         value,
       },
       pageInfo: next.pageInfo || current.pageInfo,
-      screenshotWithBox:
-        next.screenshotWithBox ||
-        next.screenshotAfter ||
-        next.screenshotBefore ||
-        current.screenshotWithBox,
+      ...toRecorderScreenshotFields(screenshotFrame),
       timestamp: next.timestamp,
       mergedHashIds: Array.from(
         new Set([
@@ -2530,12 +2582,11 @@ class PlaygroundServer {
       return;
     }
     this._recorderPendingTypeOnlyInput = null;
-    const screenshot =
-      pending.screenshotWithBox ||
-      pending.screenshotAfter ||
-      pending.screenshotBefore;
-    const screenshotAsset =
-      this.persistStudioPreviewRecorderScreenshot(screenshot);
+    const screenshotFrame = getRecorderScreenshotFrame(pending);
+    const screenshotAsset = this.persistStudioPreviewRecorderScreenshot(
+      screenshotFrame?.screenshot,
+      screenshotFrame?.frameRole,
+    );
     if (screenshotAsset) {
       this._recorderEvents.push({
         ...pending,
@@ -2676,6 +2727,13 @@ class PlaygroundServer {
       { value: pageState.url },
       pageState.url,
     );
+    const screenshotAsset = this.persistStudioPreviewRecorderScreenshot(
+      screenshot,
+      'after',
+    );
+    const shouldDiscardDataUrlScreenshot = Boolean(
+      screenshot?.startsWith('data:'),
+    );
     return {
       source: 'studio-preview',
       type: 'navigation',
@@ -2688,6 +2746,11 @@ class PlaygroundServer {
       url: pageState.url,
       title: pageState.title,
       value: pageState.url,
+      ...(screenshotAsset
+        ? { screenshotAsset }
+        : screenshot && !shouldDiscardDataUrlScreenshot
+          ? { screenshotAfter: screenshot }
+          : {}),
       semantic: buildReadyRecorderSemantic(
         'heuristic',
         semanticEvent,

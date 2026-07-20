@@ -180,6 +180,53 @@ beforeEach(() => {
 });
 
 describe('Studio recorder UI knowledge evidence', () => {
+  it('accepts materialized and legacy single-frame screenshots', async () => {
+    const baseEvent = createCompletedSession().events[0];
+    const bundle = await buildStudioRecorderEvidenceBundle(
+      createCompletedSession({
+        events: [
+          {
+            ...baseEvent,
+            hashId: 'initial-navigation',
+            mergedHashIds: [],
+            type: 'navigation',
+            actionType: 'InitialNavigation',
+            rawPayload: {
+              actionType: 'InitialNavigation',
+              url: 'https://example.com',
+            },
+            screenshotBefore: undefined,
+            screenshotAfter: undefined,
+            screenshotWithBox: BEFORE_SCREENSHOT,
+          },
+          {
+            ...baseEvent,
+            hashId: 'asset-backed-click',
+            mergedHashIds: [],
+            screenshotBefore: undefined,
+            screenshotAfter: undefined,
+            screenshotWithBox: AFTER_SCREENSHOT,
+          },
+        ],
+      }),
+    );
+
+    expect(bundle.events).toMatchObject([
+      {
+        eventHashId: 'initial-navigation',
+        knowledgeRole: 'initial-state',
+        evidenceRefs: [expect.objectContaining({ frameRole: 'after' })],
+      },
+      {
+        eventHashId: 'asset-backed-click',
+        knowledgeRole: 'user-action',
+        evidenceRefs: [
+          expect.objectContaining({ frameRole: 'target-marked-before' }),
+        ],
+      },
+    ]);
+  });
+
   it('keeps exact action identity and removes the canonical ID from merged lineage', async () => {
     const bundle = await buildStudioRecorderEvidenceBundle(
       createCompletedSession(),
@@ -205,6 +252,101 @@ describe('Studio recorder UI knowledge evidence', () => {
       imageReferenceCount: 2,
       uniqueImageCount: 2,
     });
+  });
+
+  it('folds a completed navigation update into the preceding user action', async () => {
+    const actionEvent = {
+      ...createCompletedSession().events[0],
+      hashId: 'tap-search',
+      mergedHashIds: [],
+      url: 'https://example.com/search?draft=1',
+    };
+    const completedNavigation = {
+      ...actionEvent,
+      hashId: 'navigation-after-search',
+      type: 'navigation' as const,
+      actionType: 'Navigate',
+      actionTypeOrigin: 'fallback' as const,
+      rawPayload: {
+        actionType: 'Navigate',
+        afterUrl: 'https://example.com/results?q=midscene',
+        navigationCompleted: true,
+      },
+      url: 'https://example.com/results?q=midscene',
+      title: 'Search results',
+      screenshotBefore: undefined,
+      screenshotAfter: undefined,
+      screenshotWithBox: undefined,
+    };
+
+    const bundle = await buildStudioRecorderEvidenceBundle(
+      createCompletedSession({
+        events: [actionEvent, completedNavigation],
+      }),
+    );
+
+    expect(bundle.events).toHaveLength(1);
+    expect(bundle.events[0]).toMatchObject({
+      eventHashId: 'tap-search',
+      observedNavigation: {
+        navigationEventHashId: 'navigation-after-search',
+        beforeUrl: 'https://example.com/search',
+        afterUrl: 'https://example.com/results',
+        title: 'Search results',
+      },
+    });
+  });
+
+  it('links a delayed completed navigation through merged event lineage', async () => {
+    const baseEvent = createCompletedSession().events[0];
+    const triggerEvent = {
+      ...baseEvent,
+      hashId: 'merged-input',
+      mergedHashIds: ['merged-input', 'raw-input'],
+      url: 'https://example.com/form',
+    };
+    const unrelatedEvent = {
+      ...baseEvent,
+      hashId: 'unrelated-tap',
+      mergedHashIds: [],
+      timestamp: 2,
+    };
+    const completedNavigation = {
+      ...baseEvent,
+      hashId: 'delayed-navigation',
+      mergedHashIds: [],
+      timestamp: 3,
+      type: 'navigation' as const,
+      actionType: 'Navigate',
+      actionTypeOrigin: 'fallback' as const,
+      rawPayload: {
+        actionType: 'Navigate',
+        triggerEventHashId: 'raw-input',
+        afterUrl: 'https://example.com/complete?token=redacted',
+        navigationCompleted: true,
+      },
+      url: 'https://example.com/complete?token=redacted',
+      screenshotBefore: undefined,
+      screenshotAfter: undefined,
+      screenshotWithBox: undefined,
+    };
+
+    const bundle = await buildStudioRecorderEvidenceBundle(
+      createCompletedSession({
+        events: [triggerEvent, unrelatedEvent, completedNavigation],
+      }),
+    );
+
+    expect(bundle.events).toHaveLength(2);
+    expect(bundle.events[0]).toMatchObject({
+      eventHashId: 'merged-input',
+      mergedEventHashIds: ['raw-input'],
+      observedNavigation: {
+        navigationEventHashId: 'delayed-navigation',
+        afterUrl: 'https://example.com/complete',
+      },
+    });
+    expect(bundle.events[1]).not.toHaveProperty('observedNavigation');
   });
 
   it('rejects provided invalid action parameters instead of replacing them with defaults', async () => {

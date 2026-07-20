@@ -11,7 +11,7 @@
     "preview": "rsbuild preview --environment renderer",
     "start": "node scripts/sync-static-assets.mjs && node scripts/launch-electron-prod.mjs",
     "test": "vitest run",
-    "test:ai:goofy-knowledge": "MIDSCENE_RUN_GOOFY_KNOWLEDGE_EVAL=1 vitest run tests/goofy-knowledge-effect.ai.test.ts",
+    "test:ai:knowledge-ab": "MIDSCENE_RUN_KNOWLEDGE_AB_EVAL=1 vitest run tests/knowledge-ab.ai.test.ts",
     "test:smoke": "vitest run tests/startup-smoke.test.mjs",
     "test:smoke:ai": "vitest run tests/startup-smoke-ai.test.mjs",
     "test:smoke:web-preview": "vitest run tests/web-preview-e2e.test.mjs"

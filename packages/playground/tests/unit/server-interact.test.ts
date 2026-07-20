@@ -675,6 +675,7 @@ describe('PlaygroundServer manual interaction APIs', () => {
         id: expect.stringMatching(/^session-preview-/),
         mimeType: 'image/png',
         bytes: expect.any(Number),
+        frameRole: 'before',
       },
     });
     expect(rawEvents[0].screenshotBefore).toBeUndefined();
@@ -1353,7 +1354,7 @@ describe('PlaygroundServer manual interaction APIs', () => {
     expect(event).toMatchObject({
       value: 'he',
       mergedHashIds: expect.any(Array),
-      screenshotAsset: expect.any(Object),
+      screenshotAsset: expect.objectContaining({ frameRole: 'before' }),
     });
 
     const describeResponse = await describeRecorderEvent(server, event);
@@ -1880,10 +1881,19 @@ describe('PlaygroundServer manual interaction APIs', () => {
     });
     const [initialNavigation, firstClick, navigationChange, secondClick] =
       recorderEvents.events as any[];
-    expect(initialNavigation).not.toHaveProperty('screenshotAsset');
+    expect(initialNavigation).toMatchObject({
+      screenshotAsset: {
+        id: expect.stringMatching(/^session-web-preview-/),
+        frameRole: 'after',
+      },
+    });
     expect(navigationChange).not.toHaveProperty('screenshotAsset');
-    expect(firstClick).toMatchObject({ screenshotAsset: expect.any(Object) });
-    expect(secondClick).toMatchObject({ screenshotAsset: expect.any(Object) });
+    expect(firstClick).toMatchObject({
+      screenshotAsset: expect.objectContaining({ frameRole: 'before' }),
+    });
+    expect(secondClick).toMatchObject({
+      screenshotAsset: expect.objectContaining({ frameRole: 'before' }),
+    });
   });
 
   test('POST /interact returns 400 for invalid manual params', async () => {

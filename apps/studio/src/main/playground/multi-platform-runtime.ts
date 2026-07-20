@@ -11,10 +11,15 @@ import { getDebug } from '@midscene/shared/logger';
 import type { DiscoveredDevice } from '@shared/electron-contract';
 import type { PlaygroundBootstrap } from '@shared/electron-contract';
 import { DEFAULT_STUDIO_WEB_VIEWPORT } from '@shared/web-viewport';
+import type { Browser } from 'puppeteer';
 import { ensureStudioShellEnvHydrated } from '../shell-env';
 import { createStudioCorsOptions } from './cors';
 import type { DeviceDiscoveryService } from './device-discovery';
 import type { PlaygroundRuntimeService } from './types';
+import {
+  connectStudioWebBrowser,
+  resolveStudioWebCdpEndpoint,
+} from './web-cdp';
 
 const require = createRequire(__filename);
 const debugWebRuntime = getDebug('studio:web-runtime', { console: true });
@@ -52,10 +57,13 @@ type StudioLaunchPuppeteerPage = (
   preference?: {
     headed?: boolean;
   },
+  browser?: Browser,
 ) => Promise<{
   page: unknown;
   freeFn: StudioWebCleanup[];
 }>;
+
+type StudioConnectPuppeteerBrowser = (endpoint: string) => Promise<Browser>;
 
 type MultiPlatformRuntimeModules = {
   ScrcpyServer: AndroidPlaygroundModule['ScrcpyServer'];
@@ -67,6 +75,7 @@ type MultiPlatformRuntimeModules = {
   prepareMultiPlatformPlayground: PlaygroundModule['prepareMultiPlatformPlayground'];
   buildPlaygroundBrowserUrl: PlaygroundModule['buildPlaygroundBrowserUrl'];
   PuppeteerAgent: StudioPuppeteerAgentConstructor;
+  connectPuppeteerBrowser: StudioConnectPuppeteerBrowser;
   launchPuppeteerPage: StudioLaunchPuppeteerPage;
 };
 
@@ -145,9 +154,16 @@ export async function loadIosPlaygroundModule(): Promise<
 }
 
 export async function loadWebPlaygroundModule(): Promise<
-  Pick<MultiPlatformRuntimeModules, 'PuppeteerAgent' | 'launchPuppeteerPage'>
+  Pick<
+    MultiPlatformRuntimeModules,
+    'PuppeteerAgent' | 'connectPuppeteerBrowser' | 'launchPuppeteerPage'
+  >
 > {
   ensureStudioShellEnvHydrated();
+  const puppeteerModule = require('puppeteer') as Pick<
+    typeof import('puppeteer'),
+    'connect'
+  >;
   const webModule = require('@midscene/web/puppeteer') as {
     PuppeteerAgent: StudioPuppeteerAgentConstructor;
   };
@@ -157,6 +173,8 @@ export async function loadWebPlaygroundModule(): Promise<
 
   return {
     PuppeteerAgent: webModule.PuppeteerAgent,
+    connectPuppeteerBrowser: (endpoint) =>
+      connectStudioWebBrowser(puppeteerModule, endpoint),
     launchPuppeteerPage: launcherModule.launchPuppeteerPage,
   };
 }
@@ -193,6 +211,7 @@ export async function loadMultiPlatformRuntimeModules(): Promise<MultiPlatformRu
       playgroundCoreModules.prepareMultiPlatformPlayground,
     buildPlaygroundBrowserUrl: playgroundCoreModules.buildPlaygroundBrowserUrl,
     PuppeteerAgent: webPlaygroundModule.PuppeteerAgent,
+    connectPuppeteerBrowser: webPlaygroundModule.connectPuppeteerBrowser,
     launchPuppeteerPage: webPlaygroundModule.launchPuppeteerPage,
   };
 }
@@ -275,6 +294,37 @@ async function runWebCleanup(cleanupFns: StudioWebCleanup[] | null) {
   }
 }
 
+function createConnectedWebCleanup(
+  page: unknown,
+  browser: Browser,
+): StudioWebCleanup[] {
+  const connectedPage = page as {
+    close?: () => void | Promise<void>;
+    isClosed?: () => boolean;
+  };
+
+  return [
+    {
+      name: 'studio_web_cdp_page',
+      fn: async () => {
+        if (
+          typeof connectedPage.close === 'function' &&
+          !(
+            typeof connectedPage.isClosed === 'function' &&
+            connectedPage.isClosed()
+          )
+        ) {
+          await connectedPage.close();
+        }
+      },
+    },
+    {
+      name: 'studio_web_cdp_browser',
+      fn: () => browser.disconnect(),
+    },
+  ];
+}
+
 function createStudioWebPreviewDescriptor(): PlaygroundPreviewDescriptor {
   return {
     kind: 'mjpeg',
@@ -298,10 +348,13 @@ function createStudioWebPreviewDescriptor(): PlaygroundPreviewDescriptor {
 
 async function prepareStudioWebPlatform({
   loadWebModule,
+  resolveWebCdpEndpoint,
 }: {
   loadWebModule: typeof loadWebPlaygroundModule;
+  resolveWebCdpEndpoint: () => string | undefined;
 }): Promise<PreparedPlaygroundPlatform> {
   const webModule = await loadWebModule();
+  const cdpEndpoint = resolveWebCdpEndpoint();
   // The two cleanup baskets are kept separate so the playground server's
   // `recreateAgent` (the cancel path) can dispose just the in-flight
   // PuppeteerAgent without closing the browser/page underneath it. The
@@ -405,18 +458,52 @@ async function prepareStudioWebPlatform({
             await runWebCleanup(pageCleanup);
             pageCleanup = null;
             currentPage = null;
-            const { page, freeFn } = await webModule.launchPuppeteerPage(
-              {
+            let connectedBrowser: Browser | undefined;
+            if (cdpEndpoint) {
+              try {
+                connectedBrowser =
+                  await webModule.connectPuppeteerBrowser(cdpEndpoint);
+              } catch (error) {
+                throw new Error(
+                  `Failed to connect Studio Web recorder to Chrome at "${cdpEndpoint}": ${getErrorMessage(error)}`,
+                );
+              }
+            }
+
+            try {
+              const target = {
                 url,
                 viewportWidth,
                 viewportHeight,
-              },
-              {
-                headed,
-              },
-            );
-            currentPage = page;
-            pageCleanup = freeFn;
+              };
+              const preference = { headed };
+              const { page, freeFn } = connectedBrowser
+                ? await webModule.launchPuppeteerPage(
+                    target,
+                    preference,
+                    connectedBrowser,
+                  )
+                : await webModule.launchPuppeteerPage(target, preference);
+              currentPage = page;
+              pageCleanup = connectedBrowser
+                ? [
+                    ...freeFn,
+                    ...createConnectedWebCleanup(page, connectedBrowser),
+                  ]
+                : freeFn;
+            } catch (error) {
+              await runWebCleanup(
+                connectedBrowser
+                  ? [
+                      {
+                        name: 'studio_web_cdp_browser',
+                        fn: () => connectedBrowser.disconnect(),
+                      },
+                    ]
+                  : null,
+              );
+              throw error;
+            }
           }
 
           const agent = new webModule.PuppeteerAgent(currentPage, {
@@ -463,6 +550,7 @@ const createStudioPlatformSpecs = ({
   loadHarmonyModule = loadHarmonyPlaygroundModule,
   loadIosModule = loadIosPlaygroundModule,
   loadWebModule = loadWebPlaygroundModule,
+  resolveWebCdpEndpoint = resolveStudioWebCdpEndpoint,
 }: {
   loadAndroidModule?: typeof loadAndroidPlaygroundModule;
   loadComputerModule?: typeof loadComputerPlaygroundModule;
@@ -470,6 +558,7 @@ const createStudioPlatformSpecs = ({
   loadHarmonyModule?: typeof loadHarmonyPlaygroundModule;
   loadIosModule?: typeof loadIosPlaygroundModule;
   loadWebModule?: typeof loadWebPlaygroundModule;
+  resolveWebCdpEndpoint?: () => string | undefined;
 } = {}): StudioPlatformSpec[] => [
   {
     id: 'web',
@@ -479,6 +568,7 @@ const createStudioPlatformSpecs = ({
     prepare: async () =>
       prepareStudioWebPlatform({
         loadWebModule,
+        resolveWebCdpEndpoint,
       }),
   },
   {
@@ -576,6 +666,7 @@ export function createMultiPlatformRuntimeService({
   loadHarmonyModule = loadHarmonyPlaygroundModule,
   loadIosModule = loadIosPlaygroundModule,
   loadWebModule = loadWebPlaygroundModule,
+  resolveWebCdpEndpoint = resolveStudioWebCdpEndpoint,
   resolvePackageStaticDir = resolveStaticDir,
 }: {
   deviceDiscoveryService?: StudioDeviceDiscoveryService;
@@ -586,6 +677,7 @@ export function createMultiPlatformRuntimeService({
   loadHarmonyModule?: typeof loadHarmonyPlaygroundModule;
   loadIosModule?: typeof loadIosPlaygroundModule;
   loadWebModule?: typeof loadWebPlaygroundModule;
+  resolveWebCdpEndpoint?: () => string | undefined;
   resolvePackageStaticDir?: (packageName: string) => string;
 } = {}): PlaygroundRuntimeService {
   let bootstrap: PlaygroundBootstrap = {
@@ -641,8 +733,11 @@ export function createMultiPlatformRuntimeService({
                     prepareStudioWebPlatform({
                       loadWebModule: async () => ({
                         PuppeteerAgent: runtimeModules.PuppeteerAgent,
+                        connectPuppeteerBrowser:
+                          runtimeModules.connectPuppeteerBrowser,
                         launchPuppeteerPage: runtimeModules.launchPuppeteerPage,
                       }),
+                      resolveWebCdpEndpoint,
                     }),
                 },
                 {
@@ -703,6 +798,7 @@ export function createMultiPlatformRuntimeService({
                 loadHarmonyModule,
                 loadIosModule,
                 loadWebModule,
+                resolveWebCdpEndpoint,
               }),
           resolvePackageStaticDir,
         );

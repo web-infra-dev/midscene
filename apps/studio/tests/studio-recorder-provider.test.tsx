@@ -18,6 +18,26 @@ type ReadyStudioPlaygroundContext = Extract<
   { phase: 'ready' }
 >;
 
+const knowledgeMocks = vi.hoisted(() => ({
+  generateStudioRecorderKnowledgeWithAI: vi.fn(
+    async (session: { id: string; evidenceRevision?: number }) => ({
+      sessionId: session.id,
+      sourceEvidenceRevision: session.evidenceRevision ?? 0,
+      knowledge: {
+        schemaVersion: 'ui-knowledge/v1',
+        sessionId: session.id,
+        contents: [],
+        interactions: [],
+        navigations: [],
+      },
+      markdown: '# UI knowledge\n',
+      metadata: {},
+    }),
+  ),
+}));
+
+vi.mock('../src/renderer/recorder/knowledge', () => knowledgeMocks);
+
 vi.mock('../src/renderer/recorder/codegen', () => ({
   describeStudioRecorderEventsWithAI: vi.fn(
     async (events: Array<Record<string, unknown>>) =>
@@ -2359,6 +2379,118 @@ describe('StudioRecorderProvider preview recording', () => {
     expect(mounted.recorder?.currentSession?.events[0].screenshotWithBox).toBe(
       undefined,
     );
+
+    await mounted.cleanup();
+  });
+
+  it('materializes every asset-backed screenshot for knowledge generation', async () => {
+    const events = [
+      {
+        type: 'navigation',
+        source: 'studio-preview',
+        actionType: 'InitialNavigation',
+        rawPayload: {
+          actionType: 'InitialNavigation',
+          url: 'https://example.com',
+        },
+        url: 'https://example.com',
+        pageInfo: { width: 1200, height: 800 },
+        screenshotAsset: {
+          id: 'initial-navigation.png',
+          mimeType: 'image/png',
+          bytes: 4,
+          frameRole: 'after',
+        },
+        semantic: {
+          source: 'heuristic',
+          status: 'ready',
+        },
+        timestamp: 122,
+        hashId: 'initial-navigation',
+      },
+      {
+        type: 'click',
+        source: 'studio-preview',
+        actionType: 'Tap',
+        rawPayload: { actionType: 'Tap', x: 10, y: 20 },
+        elementRect: { x: 10, y: 20 },
+        pageInfo: { width: 1200, height: 800 },
+        screenshotAsset: {
+          id: 'before-click.png',
+          mimeType: 'image/png',
+          bytes: 4,
+          frameRole: 'before',
+        },
+        semantic: {
+          source: 'heuristic',
+          status: 'ready',
+          elementDescription: 'Search button',
+        },
+        timestamp: 123,
+        hashId: 'click-before',
+      },
+    ];
+    const { context, getRecorderScreenshotAsset } =
+      createConnectedStudioContext({ events });
+    getRecorderScreenshotAsset.mockImplementation(async (assetId: string) =>
+      assetId === 'initial-navigation.png'
+        ? 'data:image/png;base64,aW5pdGlhbA=='
+        : 'data:image/png;base64,YmVmb3Jl',
+    );
+    const mounted = await mountRecorder(context);
+
+    await act(async () => {
+      await mounted.recorder?.startRecording();
+    });
+    await flushPromises();
+    await act(async () => {
+      await mounted.recorder?.stopRecording();
+    });
+    getRecorderScreenshotAsset.mockClear();
+    knowledgeMocks.generateStudioRecorderKnowledgeWithAI.mockClear();
+
+    const sessionId = mounted.recorder?.currentSession?.id;
+    await act(async () => {
+      await mounted.recorder?.generateSessionKnowledge(sessionId!, {
+        confirmEgress: vi.fn(),
+      });
+    });
+
+    expect(getRecorderScreenshotAsset).toHaveBeenCalledTimes(2);
+    expect(
+      knowledgeMocks.generateStudioRecorderKnowledgeWithAI,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        events: [
+          expect.objectContaining({
+            hashId: 'initial-navigation',
+            screenshotAsset: undefined,
+            screenshotAfter: 'data:image/png;base64,aW5pdGlhbA==',
+          }),
+          expect.objectContaining({
+            hashId: 'click-before',
+            screenshotAsset: undefined,
+            screenshotBefore: 'data:image/png;base64,YmVmb3Jl',
+          }),
+        ],
+      }),
+      expect.objectContaining({ confirmEgress: expect.any(Function) }),
+    );
+    expect(mounted.recorder?.currentSession?.events).toMatchObject([
+      {
+        hashId: 'initial-navigation',
+        screenshotAsset: { id: 'initial-navigation.png' },
+      },
+      {
+        hashId: 'click-before',
+        screenshotAsset: { id: 'before-click.png' },
+      },
+    ]);
+    expect(
+      mounted.recorder?.currentSession?.events.some(
+        (event) => event.screenshotBefore || event.screenshotAfter,
+      ),
+    ).toBe(false);
 
     await mounted.cleanup();
   });

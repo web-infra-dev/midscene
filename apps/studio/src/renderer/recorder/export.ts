@@ -31,10 +31,16 @@ export async function materializeStudioRecorderSessionScreenshots(
       );
     }
     remainingScreenshots -= 1;
+    const materializedScreenshot =
+      event.screenshotAsset.frameRole === 'before'
+        ? { screenshotBefore: screenshot }
+        : event.screenshotAsset.frameRole === 'after'
+          ? { screenshotAfter: screenshot }
+          : { screenshotWithBox: screenshot };
     events.push({
       ...event,
       screenshotAsset: undefined,
-      screenshotWithBox: screenshot,
+      ...materializedScreenshot,
     });
   }
   return { ...session, events };

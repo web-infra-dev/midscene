@@ -181,6 +181,7 @@ describe('playground runtime bootstrap', () => {
 
   it('prepares a Web session with Puppeteer and MJPEG preview metadata', async () => {
     const cleanupBrowser = vi.fn();
+    const connectPuppeteerBrowser = vi.fn();
     const destroyAgent = vi.fn();
     const launchPuppeteerPage = vi.fn(async () => ({
       page: { id: 'puppeteer-page' },
@@ -239,10 +240,12 @@ describe('playground runtime bootstrap', () => {
       loadWebModule: (async () =>
         ({
           PuppeteerAgent: FakePuppeteerAgent,
+          connectPuppeteerBrowser,
           launchPuppeteerPage,
         }) as unknown as Awaited<
           ReturnType<typeof loadWebPlaygroundModule>
         >) as typeof loadWebPlaygroundModule,
+      resolveWebCdpEndpoint: () => undefined,
     });
 
     await expect(runtime.start()).resolves.toEqual({
@@ -308,10 +311,121 @@ describe('playground runtime bootstrap', () => {
     expect(session?.metadata?.sessionDisplayName).toBe('http://localhost:4173');
     expect(session?.preview?.kind).toBe('mjpeg');
     expect(agent).toBeInstanceOf(FakePuppeteerAgent);
+    expect(connectPuppeteerBrowser).not.toHaveBeenCalled();
 
     await prepared?.sessionManager?.destroySession?.();
     expect(destroyAgent).toHaveBeenCalledTimes(1);
     expect(cleanupBrowser).toHaveBeenCalledTimes(1);
+  });
+
+  it('connects Studio Web sessions to an existing CDP browser and leaves Chrome running', async () => {
+    const closePage = vi.fn();
+    const disconnectBrowser = vi.fn();
+    const connectedBrowser = {
+      disconnect: disconnectBrowser,
+    };
+    const connectedPage = {
+      close: closePage,
+      isClosed: () => false,
+    };
+    const connectPuppeteerBrowser = vi.fn(async () => connectedBrowser);
+    const launchPuppeteerPage = vi.fn(async () => ({
+      page: connectedPage,
+      freeFn: [],
+    }));
+    const destroyAgent = vi.fn();
+    class FakePuppeteerAgent {
+      interface = { interfaceType: 'web' };
+
+      constructor(
+        public page: unknown,
+        public opts: unknown,
+      ) {}
+
+      destroy = destroyAgent;
+    }
+    let capturedPlatforms:
+      | import('@midscene/playground').RegisteredPlaygroundPlatform[]
+      | undefined;
+
+    const runtime = createMultiPlatformRuntimeService({
+      loadPlaygroundCore: (async () =>
+        ({
+          launchPreparedPlaygroundPlatform: async () => ({
+            close: async () => undefined,
+            host: '127.0.0.1',
+            port: 5800,
+            server: {
+              setPreparedPlatform: () => undefined,
+            },
+          }),
+          buildPlaygroundBrowserUrl,
+          prepareMultiPlatformPlayground: async (
+            platforms: RegisteredPlaygroundPlatform[],
+          ) => {
+            capturedPlatforms = platforms;
+            return {
+              platformId: 'multi-platform',
+              title: 'Midscene Studio Beta',
+              description: 'Multi-platform playground',
+              metadata: {},
+              sessionManager: {
+                createSession: async () => {
+                  throw new Error('not needed for bootstrap');
+                },
+              },
+            };
+          },
+        }) as unknown as Awaited<
+          ReturnType<PlaygroundCoreLoader>
+        >) as PlaygroundCoreLoader,
+      loadWebModule: (async () =>
+        ({
+          PuppeteerAgent: FakePuppeteerAgent,
+          connectPuppeteerBrowser,
+          launchPuppeteerPage,
+        }) as unknown as Awaited<
+          ReturnType<typeof loadWebPlaygroundModule>
+        >) as typeof loadWebPlaygroundModule,
+      resolveWebCdpEndpoint: () => 'http://127.0.0.1:9222',
+    });
+
+    await runtime.start();
+    const webPlatform = capturedPlatforms?.find(
+      (platform) => platform.id === 'web',
+    );
+    const prepared = await webPlatform?.prepare();
+    const session = await prepared?.sessionManager?.createSession({
+      url: 'https://example.com',
+      headed: true,
+    });
+
+    await session?.agentFactory?.();
+    await session?.agentFactory?.();
+
+    expect(connectPuppeteerBrowser).toHaveBeenCalledTimes(1);
+    expect(connectPuppeteerBrowser).toHaveBeenCalledWith(
+      'http://127.0.0.1:9222',
+    );
+    expect(launchPuppeteerPage).toHaveBeenCalledTimes(1);
+    expect(launchPuppeteerPage).toHaveBeenCalledWith(
+      {
+        url: 'https://example.com',
+        viewportWidth: 1280,
+        viewportHeight: 720,
+      },
+      { headed: true },
+      connectedBrowser,
+    );
+
+    await prepared?.sessionManager?.destroySession?.();
+
+    expect(destroyAgent).toHaveBeenCalledTimes(2);
+    expect(closePage).toHaveBeenCalledTimes(1);
+    expect(disconnectBrowser).toHaveBeenCalledTimes(1);
+    expect(closePage.mock.invocationCallOrder[0]).toBeLessThan(
+      disconnectBrowser.mock.invocationCallOrder[0],
+    );
   });
 
   it('prepares Harmony in deferred mode so Studio never exits on device selection', async () => {

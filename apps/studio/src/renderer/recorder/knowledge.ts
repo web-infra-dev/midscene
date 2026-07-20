@@ -483,8 +483,11 @@ function getEventScreenshotCandidates(event: StudioRecordedEvent) {
     if (event.screenshotAfter) {
       return [{ role: 'after' as const, screenshot: event.screenshotAfter }];
     }
-    return event.screenshotBefore
-      ? [{ role: 'before' as const, screenshot: event.screenshotBefore }]
+    if (event.screenshotBefore) {
+      return [{ role: 'before' as const, screenshot: event.screenshotBefore }];
+    }
+    return event.screenshotWithBox
+      ? [{ role: 'after' as const, screenshot: event.screenshotWithBox }]
       : [];
   }
 
@@ -498,7 +501,12 @@ function getEventScreenshotCandidates(event: StudioRecordedEvent) {
         }
       : event.screenshotBefore
         ? { role: 'before' as const, screenshot: event.screenshotBefore }
-        : undefined;
+        : event.screenshotWithBox
+          ? {
+              role: 'target-marked-before' as const,
+              screenshot: event.screenshotWithBox,
+            }
+          : undefined;
   const after = event.screenshotAfter
     ? { role: 'after' as const, screenshot: event.screenshotAfter }
     : undefined;
@@ -506,6 +514,64 @@ function getEventScreenshotCandidates(event: StudioRecordedEvent) {
     (candidate): candidate is NonNullable<typeof candidate> =>
       candidate !== undefined,
   );
+}
+
+function isObservedNavigationEvent(
+  event: StudioRecordedEvent | undefined,
+): boolean {
+  return Boolean(
+    event?.type === 'navigation' &&
+      (event.actionType === 'NavigationChanged' ||
+        event.rawPayload.navigationCompleted === true),
+  );
+}
+
+function getObservedNavigationTriggerHashId(
+  event: StudioRecordedEvent,
+): string | undefined {
+  const triggerEventHashId = event.rawPayload.triggerEventHashId;
+  return typeof triggerEventHashId === 'string' && triggerEventHashId.trim()
+    ? triggerEventHashId
+    : undefined;
+}
+
+function indexObservedNavigationEvents(events: StudioRecordedEvent[]) {
+  const navigationByTriggerHashId = new Map<string, StudioRecordedEvent>();
+  for (const event of events) {
+    if (!isObservedNavigationEvent(event)) {
+      continue;
+    }
+    const triggerEventHashId = getObservedNavigationTriggerHashId(event);
+    if (triggerEventHashId) {
+      navigationByTriggerHashId.set(triggerEventHashId, event);
+    }
+  }
+  return navigationByTriggerHashId;
+}
+
+function findObservedNavigationForEvent(
+  event: StudioRecordedEvent,
+  nextEvent: StudioRecordedEvent | undefined,
+  navigationByTriggerHashId: Map<string, StudioRecordedEvent>,
+) {
+  const eventHashLineage = new Set([
+    event.hashId,
+    ...(event.mergedHashIds || []),
+  ]);
+  for (const hashId of eventHashLineage) {
+    const linkedNavigation = navigationByTriggerHashId.get(hashId);
+    if (linkedNavigation) {
+      return linkedNavigation;
+    }
+  }
+
+  if (!nextEvent || !isObservedNavigationEvent(nextEvent)) {
+    return undefined;
+  }
+  const adjacentTriggerHashId = getObservedNavigationTriggerHashId(nextEvent);
+  return !adjacentTriggerHashId || eventHashLineage.has(adjacentTriggerHashId)
+    ? nextEvent
+    : undefined;
 }
 
 function buildEventBase(
@@ -547,16 +613,24 @@ export async function buildStudioRecorderEvidenceBundle(
 
   const assetsById = new Map<string, ScreenshotAsset>();
   const events: EventEvidenceUnit[] = [];
+  const navigationByTriggerHashId = indexObservedNavigationEvents(
+    session.events,
+  );
   for (let index = 0; index < session.events.length; index += 1) {
     const event = session.events[index];
     if (event.type === 'setViewport' || event.actionType === 'Stop') {
       continue;
     }
-    if (event.actionType === 'NavigationChanged') {
+    if (isObservedNavigationEvent(event)) {
       continue;
     }
     const isInitialState = event.actionType === 'InitialNavigation';
     const nextEvent = session.events[index + 1];
+    const observedNavigation = findObservedNavigationForEvent(
+      event,
+      nextEvent,
+      navigationByTriggerHashId,
+    );
     const prepared = await Promise.all(
       getEventScreenshotCandidates(event).map((candidate) =>
         prepareScreenshotAsset(
@@ -588,24 +662,27 @@ export async function buildStudioRecorderEvidenceBundle(
       knowledgeRole: 'user-action',
       action,
       frameComparison: await compareUnmarkedEventFrames(event),
-      ...(nextEvent?.actionType === 'NavigationChanged'
+      ...(observedNavigation
         ? {
             observedNavigation: {
-              navigationEventHashId: nextEvent.hashId,
+              navigationEventHashId: observedNavigation.hashId,
               ...(sanitizeUrl(event.url)
                 ? { beforeUrl: sanitizeUrl(event.url) }
                 : {}),
-              ...(sanitizeUrl(nextEvent.url)
-                ? { afterUrl: sanitizeUrl(nextEvent.url) }
+              ...(sanitizeUrl(observedNavigation.url)
+                ? { afterUrl: sanitizeUrl(observedNavigation.url) }
                 : {}),
-              ...(nextEvent.title?.trim()
-                ? { title: nextEvent.title.trim().slice(0, 300) }
+              ...(observedNavigation.title?.trim()
+                ? { title: observedNavigation.title.trim().slice(0, 300) }
                 : {}),
               pageInfo: {
-                width: Math.max(1, Math.round(nextEvent.pageInfo?.width || 1)),
+                width: Math.max(
+                  1,
+                  Math.round(observedNavigation.pageInfo?.width || 1),
+                ),
                 height: Math.max(
                   1,
-                  Math.round(nextEvent.pageInfo?.height || 1),
+                  Math.round(observedNavigation.pageInfo?.height || 1),
                 ),
               },
             },

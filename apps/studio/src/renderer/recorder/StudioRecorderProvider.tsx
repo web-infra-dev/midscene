@@ -2130,8 +2130,13 @@ export function StudioRecorderProvider({ children }: PropsWithChildren) {
           'Confirm the model destination before uploading recorder screenshots.',
         );
       }
+      const materializedSessionForKnowledge =
+        await materializeSessionForScreenshotExport(
+          sessionForKnowledge,
+          sessionForKnowledge.events.length,
+        );
       const artifact = await generateStudioRecorderKnowledgeWithAI(
-        sessionForKnowledge,
+        materializedSessionForKnowledge,
         { confirmEgress: options.confirmEgress },
       );
       if (!artifact) {
@@ -2169,6 +2174,7 @@ export function StudioRecorderProvider({ children }: PropsWithChildren) {
     [
       flushPendingRecorderInput,
       markPendingDescriptionsAsFallback,
+      materializeSessionForScreenshotExport,
       updateSessionAtomic,
     ],
   );

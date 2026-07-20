@@ -45,6 +45,8 @@ export interface MidsceneRecorderScreenshotAssetRef {
   id: string;
   mimeType: string;
   bytes: number;
+  /** The event frame represented by the external screenshot asset. */
+  frameRole?: 'before' | 'after';
 }
 
 export interface MidsceneRecorderEvent {
