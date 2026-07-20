@@ -28,13 +28,14 @@ export function mapPreviewRecorderEventToStudioRecordedEvent(input: {
   event: PlaygroundPageRecordedEvent;
   target: StudioRecorderTarget;
 }): StudioRecordedEvent {
+  const recordedActionType = input.event.actionType?.trim();
   const actionType =
-    input.event.actionType ??
-    resolvePreviewRecorderActionType(input.event.type);
+    recordedActionType || resolvePreviewRecorderActionType(input.event.type);
   return {
     ...input.event,
     platformId: input.target.platformId,
     actionType,
+    actionTypeOrigin: recordedActionType ? 'recorded' : 'fallback',
     rawPayload:
       input.event.rawPayload && typeof input.event.rawPayload === 'object'
         ? { actionType, ...input.event.rawPayload }

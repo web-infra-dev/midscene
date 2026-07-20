@@ -258,6 +258,13 @@
   stroke-linejoin: round;
 }
 
+.studio-recorder-tab > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .studio-recorder-tab:disabled {
   cursor: not-allowed;
   opacity: 0.35;
@@ -350,6 +357,45 @@
 .studio-recorder-code-toolbar button:disabled {
   cursor: not-allowed;
   opacity: 0.45;
+}
+
+.studio-recorder-knowledge-file-label {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+  color: var(--midscene-text-primary);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", "Courier New", monospace;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 18px;
+}
+
+.studio-recorder-knowledge-file-label span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.studio-recorder-code-toolbar button.studio-recorder-knowledge-download {
+  width: 32px;
+  min-width: 32px;
+  flex-basis: 32px;
+}
+
+.studio-recorder-code-toolbar button.studio-recorder-knowledge-download-json {
+  width: 38px;
+  min-width: 38px;
+  flex-basis: 38px;
+}
+
+.studio-recorder-knowledge-format {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", "Courier New", monospace;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 12px;
 }
 
 .studio-recorder-select-shell {
@@ -538,6 +584,72 @@
   white-space: pre;
 }
 
+.studio-recorder-knowledge-block {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.studio-recorder-knowledge-empty {
+  display: flex;
+  min-height: 180px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  border: 1px dashed var(--midscene-border-subtle);
+  border-radius: 8px;
+  padding: 24px;
+  color: var(--midscene-text-secondary);
+  text-align: center;
+}
+
+.studio-recorder-knowledge-empty > div {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.studio-recorder-knowledge-empty strong {
+  color: var(--midscene-text-primary);
+  font-size: 14px;
+  line-height: 21px;
+}
+
+.studio-recorder-knowledge-empty span {
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.studio-recorder-knowledge-generate,
+.studio-recorder-floating-generate-knowledge {
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: #3288ff;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.studio-recorder-knowledge-generate {
+  min-height: 36px;
+  padding: 0 16px;
+}
+
+.studio-recorder-knowledge-generate:hover:not(:disabled),
+.studio-recorder-floating-generate-knowledge:hover:not(:disabled) {
+  background: #1f78ee;
+}
+
+.studio-recorder-knowledge-generate:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.studio-recorder-code-pane > .studio-recorder-notice {
+  margin: 0;
+}
+
 .studio-recorder-footer {
   position: absolute;
   right: 0;
@@ -579,6 +691,102 @@
   cursor: not-allowed;
   opacity: 0.45;
   box-shadow: none;
+}
+
+.studio-recorder-egress-summary {
+  color: var(--midscene-text-secondary);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.studio-recorder-egress-summary p {
+  margin: 0 0 12px;
+}
+
+.studio-recorder-egress-summary dl {
+  display: grid;
+  margin: 0;
+  grid-template-columns: 72px minmax(0, 1fr);
+  gap: 6px 10px;
+}
+
+.studio-recorder-egress-summary dt {
+  color: var(--midscene-text-secondary);
+}
+
+.studio-recorder-egress-summary dd {
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: var(--midscene-text-primary);
+}
+
+.studio-recorder-egress-evidence-section {
+  display: grid;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.studio-recorder-egress-event-list {
+  display: grid;
+  max-height: 120px;
+  padding: 8px 10px;
+  overflow: auto;
+  border: 1px solid var(--midscene-border-subtle);
+  border-radius: 8px;
+  gap: 6px;
+}
+
+.studio-recorder-egress-asset-grid {
+  display: grid;
+  max-height: 260px;
+  padding-right: 4px;
+  overflow: auto;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.studio-recorder-egress-asset {
+  display: grid;
+  min-width: 0;
+  padding: 8px;
+  border: 1px solid var(--midscene-border-subtle);
+  border-radius: 8px;
+  background: var(--midscene-surface-muted);
+  cursor: pointer;
+  grid-template-columns: 96px minmax(0, 1fr);
+  gap: 10px;
+}
+
+.studio-recorder-egress-asset > img {
+  width: 96px;
+  height: 72px;
+  border-radius: 6px;
+  object-fit: contain;
+  background: #101318;
+}
+
+.studio-recorder-egress-asset > span {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+}
+
+.studio-recorder-egress-asset small {
+  overflow: hidden;
+  color: var(--midscene-text-secondary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.studio-recorder-egress-selection-error {
+  margin-top: 12px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
 }
 
 .studio-recorder-stop {
@@ -1658,6 +1866,14 @@
   visibility: hidden;
 }
 
+.studio-recorder-floating-outputs:has(
+    .studio-recorder-floating-output-list > :nth-child(2)
+  ) {
+  height: 124px;
+  max-height: 124px;
+  flex-basis: 124px;
+}
+
 .studio-recorder-floating-outputs::before {
   display: block;
   position: absolute;
@@ -1675,6 +1891,18 @@
   min-width: 0;
   flex-direction: column;
   gap: 8px;
+}
+
+.studio-recorder-floating-output-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.studio-recorder-floating-output-list .studio-recorder-floating-output,
+.studio-recorder-floating-output-list
+  .studio-recorder-floating-generate-knowledge {
+  margin-top: 8px;
 }
 
 .studio-recorder-floating-output {
@@ -1734,6 +1962,18 @@
   color: #0d0d0d;
 }
 
+.studio-recorder-floating-output-open {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
+}
+
+.studio-recorder-floating-output-open:hover span {
+  color: #1a79ff;
+}
+
 .studio-recorder-floating-output-info svg,
 .studio-recorder-floating-output-action svg {
   width: 16px;
@@ -1761,6 +2001,11 @@
   transition: opacity var(--studio-recorder-motion);
 }
 
+.studio-recorder-floating-output-actions-visible {
+  gap: 6px;
+  opacity: 1;
+}
+
 .studio-recorder-floating-output-action {
   display: inline-flex;
   width: 16px;
@@ -1783,6 +2028,47 @@
 
 .studio-recorder-floating-output-action:hover {
   color: #0d0d0d;
+}
+
+.studio-recorder-floating-output-action-json {
+  width: 28px;
+  flex-basis: 28px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", "Courier New", monospace;
+  font-size: 8px;
+  font-weight: 700;
+}
+
+.studio-recorder-floating-generate-knowledge {
+  display: flex;
+  width: 100%;
+  height: 32px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 0 12px;
+}
+
+.studio-recorder-floating-generate-knowledge svg {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+  filter: brightness(0) invert(1);
+}
+
+.studio-recorder-floating-generate-knowledge-error {
+  border-color: rgba(239, 68, 68, 0.28);
+  background: #fff2f0;
+  color: #a8071a;
+}
+
+.studio-recorder-floating-generate-knowledge-error:hover:not(:disabled) {
+  background: #ffe7e3;
+}
+
+.studio-recorder-floating-generate-knowledge-error svg {
+  filter: none;
 }
 
 .studio-recorder-output-tooltip .ant-tooltip-inner {

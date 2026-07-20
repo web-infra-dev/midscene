@@ -8,7 +8,10 @@ import {
   toStudioRecorderCodegenEvents,
   toStudioRecorderCodegenInput,
 } from './codegen-adapter';
-import { resolveStudioRecorderModelConfig } from './model-config';
+import {
+  resolveStudioRecorderModelConfig,
+  toSerializableStudioRecorderModelConfig,
+} from './model-config';
 import type { StudioRecorderTarget, StudioRecordingSession } from './types';
 
 function normalizeGeneratedCode(content: string, type: StudioRecorderCodeType) {
@@ -30,12 +33,6 @@ function requireStudioRuntime() {
     throw new Error('Studio runtime bridge is unavailable.');
   }
   return window.studioRuntime;
-}
-
-function toSerializableModelConfig(modelConfig: IModelConfig): IModelConfig {
-  const { createOpenAIClient: _createOpenAIClient, ...serializableConfig } =
-    modelConfig;
-  return serializableConfig;
 }
 
 export async function generateStudioRecorderCodeWithAI(
@@ -66,7 +63,8 @@ export async function generateStudioRecorderCodeWithAI(
         : undefined,
   });
   const runtime = requireStudioRuntime();
-  const serializableModelConfig = toSerializableModelConfig(modelConfig);
+  const serializableModelConfig =
+    toSerializableStudioRecorderModelConfig(modelConfig);
   const code =
     typeof runtime.generateRecorderCode === 'function'
       ? (
@@ -122,7 +120,7 @@ export async function generateStudioRecorderMetadataWithAI(
       fallbackName: session.name,
       maxScreenshots: 1,
     },
-    modelConfig: toSerializableModelConfig(modelConfig),
+    modelConfig: toSerializableStudioRecorderModelConfig(modelConfig),
   });
 }
 
@@ -148,7 +146,7 @@ export async function describeStudioRecorderEventsWithAI(
       target: options.target,
       events: toStudioRecorderCodegenEvents(events),
     },
-    modelConfig: toSerializableModelConfig(modelConfig),
+    modelConfig: toSerializableStudioRecorderModelConfig(modelConfig),
   });
   return result.events;
 }

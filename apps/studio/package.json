@@ -11,6 +11,7 @@
     "preview": "rsbuild preview --environment renderer",
     "start": "node scripts/sync-static-assets.mjs && node scripts/launch-electron-prod.mjs",
     "test": "vitest run",
+    "test:ai:goofy-knowledge": "MIDSCENE_RUN_GOOFY_KNOWLEDGE_EVAL=1 vitest run tests/goofy-knowledge-effect.ai.test.ts",
     "test:smoke": "vitest run tests/startup-smoke.test.mjs",
     "test:smoke:ai": "vitest run tests/startup-smoke-ai.test.mjs",
     "test:smoke:web-preview": "vitest run tests/web-preview-e2e.test.mjs"
@@ -35,7 +36,8 @@
     "jszip": "3.10.1",
     "puppeteer": "24.6.0",
     "react": "18.3.1",
-    "react-dom": "18.3.1"
+    "react-dom": "18.3.1",
+    "zod": "^3.25.1"
   },
   "devDependencies": {
     "@electron/notarize": "3.1.1",

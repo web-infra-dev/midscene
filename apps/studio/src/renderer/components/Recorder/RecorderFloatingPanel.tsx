@@ -21,9 +21,13 @@ import {
   StudioTimelinePanel,
 } from '../StudioTimelinePanel';
 import {
+  CopyIcon,
+  DownloadIcon,
   RecorderButtonIcon,
   RecorderGenerateNaturalLanguageIcon,
+  RecorderOutputIcon,
   RecorderScreenshotIcon,
+  ReloadIcon,
 } from './assets/recorder-icons';
 
 interface RecorderFloatingPanelProps {
@@ -31,9 +35,17 @@ interface RecorderFloatingPanelProps {
   canGenerateMarkdown: boolean;
   error?: string | null;
   isMarkdownGenerating: boolean;
+  isKnowledgeGenerating: boolean;
   isRecording: boolean;
   isStoppingRecording: boolean;
+  knowledgeError: string | null;
+  knowledgeMarkdown: string;
+  onCopyKnowledge: () => void;
+  onExportKnowledge: (format: 'markdown' | 'json') => void;
   onGenerateMarkdown: () => void;
+  onGenerateKnowledge: () => void;
+  onOpenKnowledge: () => void;
+  onRegenerateKnowledge: () => void;
   onShowScreenshots: () => void;
   onToggleCollapsed: () => void;
   onToggleRecording: () => void;
@@ -297,17 +309,115 @@ function RecorderFloatingOutputs({
   canGenerateMarkdown,
   canShowScreenshots,
   isMarkdownGenerating,
+  isKnowledgeGenerating,
+  knowledgeError,
+  knowledgeMarkdown,
+  onCopyKnowledge,
+  onExportKnowledge,
   onGenerateMarkdown,
+  onGenerateKnowledge,
+  onOpenKnowledge,
+  onRegenerateKnowledge,
   onShowScreenshots,
   recorderPanelSession,
 }: {
   canGenerateMarkdown: boolean;
   canShowScreenshots: boolean;
   isMarkdownGenerating: boolean;
+  isKnowledgeGenerating: boolean;
+  knowledgeError: string | null;
+  knowledgeMarkdown: string;
+  onCopyKnowledge: () => void;
+  onExportKnowledge: (format: 'markdown' | 'json') => void;
   onGenerateMarkdown: () => void;
+  onGenerateKnowledge: () => void;
+  onOpenKnowledge: () => void;
+  onRegenerateKnowledge: () => void;
   onShowScreenshots: () => void;
   recorderPanelSession: StudioRecordingSession | null;
 }) {
+  const canGenerateKnowledge =
+    recorderPanelSession?.status === 'completed' &&
+    recorderPanelSession.events.length > 0;
+  const knowledgeOutput = isKnowledgeGenerating ? (
+    <button
+      className="studio-recorder-floating-output studio-recorder-floating-output-generating"
+      disabled
+      type="button"
+    >
+      <RecorderOutputIcon />
+      <span>Generating knowledge base...</span>
+    </button>
+  ) : knowledgeMarkdown && recorderPanelSession ? (
+    <div className="studio-recorder-floating-output">
+      <button
+        className="studio-recorder-floating-output-info studio-recorder-floating-output-open"
+        onClick={onOpenKnowledge}
+        title="Open knowledge base"
+        type="button"
+      >
+        <RecorderOutputIcon />
+        <span>KNOWLEDGE.md</span>
+      </button>
+      <div className="studio-recorder-floating-output-actions studio-recorder-floating-output-actions-visible">
+        <button
+          aria-label="Copy knowledge base"
+          className="studio-recorder-floating-output-action"
+          onClick={onCopyKnowledge}
+          title="Copy"
+          type="button"
+        >
+          <CopyIcon />
+        </button>
+        <button
+          aria-label="Regenerate knowledge base"
+          className="studio-recorder-floating-output-action"
+          onClick={onRegenerateKnowledge}
+          title="Regenerate"
+          type="button"
+        >
+          <ReloadIcon />
+        </button>
+        <button
+          aria-label="Download knowledge base as Markdown"
+          className="studio-recorder-floating-output-action"
+          onClick={() => onExportKnowledge('markdown')}
+          title="Download Markdown"
+          type="button"
+        >
+          <DownloadIcon />
+        </button>
+        <button
+          aria-label="Download knowledge base as JSON"
+          className="studio-recorder-floating-output-action studio-recorder-floating-output-action-json"
+          onClick={() => onExportKnowledge('json')}
+          title="Download JSON"
+          type="button"
+        >
+          <span>JSON</span>
+        </button>
+      </div>
+    </div>
+  ) : canGenerateKnowledge ? (
+    <button
+      className={
+        knowledgeError
+          ? 'studio-recorder-floating-generate-knowledge studio-recorder-floating-generate-knowledge-error'
+          : 'studio-recorder-floating-generate-knowledge'
+      }
+      onClick={onGenerateKnowledge}
+      title={knowledgeError || 'Generate knowledge base'}
+      type="button"
+    >
+      <RecorderOutputIcon />
+      <span>
+        {knowledgeError
+          ? 'Generation failed. Retry'
+          : 'Generate knowledge base'}
+      </span>
+    </button>
+  ) : null;
+
   let markdownOutput: ReactNode = null;
 
   if (isMarkdownGenerating) {
@@ -338,10 +448,15 @@ function RecorderFloatingOutputs({
     );
   }
 
-  if (canShowScreenshots && recorderPanelSession) {
-    return (
-      <div className="studio-recorder-floating-output-stack">
-        {markdownOutput}
+  if (!knowledgeOutput && !markdownOutput && !canShowScreenshots) {
+    return null;
+  }
+
+  return (
+    <div className="studio-recorder-floating-output-stack">
+      {knowledgeOutput}
+      {markdownOutput}
+      {canShowScreenshots && recorderPanelSession ? (
         <button
           aria-label="Show event screenshots"
           className="studio-recorder-floating-output studio-recorder-floating-output-generate"
@@ -351,11 +466,9 @@ function RecorderFloatingOutputs({
           <RecorderScreenshotIcon />
           <span>Screenshots</span>
         </button>
-      </div>
-    );
-  }
-
-  return markdownOutput;
+      ) : null}
+    </div>
+  );
 }
 
 function toImagePreviewDataUrl(source: string): Promise<string> {
@@ -561,9 +674,17 @@ export function RecorderFloatingPanel({
   detailView,
   error,
   isMarkdownGenerating,
+  isKnowledgeGenerating,
   isRecording,
   isStoppingRecording,
+  knowledgeError,
+  knowledgeMarkdown,
+  onCopyKnowledge,
+  onExportKnowledge,
   onGenerateMarkdown,
+  onGenerateKnowledge,
+  onOpenKnowledge,
+  onRegenerateKnowledge,
   onShowScreenshots,
   onToggleCollapsed,
   onToggleRecording,
@@ -615,7 +736,12 @@ export function RecorderFloatingPanel({
   ]
     .filter(Boolean)
     .join(' ');
+  const canGenerateKnowledge =
+    recorderPanelSession?.status === 'completed' &&
+    recorderPanelEvents.length > 0;
   const shouldShowOutputs =
+    isKnowledgeGenerating ||
+    canGenerateKnowledge ||
     isMarkdownGenerating ||
     canGenerateMarkdown ||
     (hasStudioRecorderEventScreenshots(recorderPanelEvents) && !isRecording);
@@ -688,7 +814,8 @@ export function RecorderFloatingPanel({
                   : 'studio-recorder-floating-start-button'
               }
               disabled={
-                isStoppingRecording || (!isRecording && !canStartRecording)
+                isStoppingRecording ||
+                (!isRecording && (!canStartRecording || isKnowledgeGenerating))
               }
               onClick={onToggleRecording}
               title={recordingButtonTitle}
@@ -732,7 +859,15 @@ export function RecorderFloatingPanel({
                     !isRecording
                   }
                   isMarkdownGenerating={isMarkdownGenerating}
+                  isKnowledgeGenerating={isKnowledgeGenerating}
+                  knowledgeError={knowledgeError}
+                  knowledgeMarkdown={knowledgeMarkdown}
+                  onCopyKnowledge={onCopyKnowledge}
+                  onExportKnowledge={onExportKnowledge}
                   onGenerateMarkdown={onGenerateMarkdown}
+                  onGenerateKnowledge={onGenerateKnowledge}
+                  onOpenKnowledge={onOpenKnowledge}
+                  onRegenerateKnowledge={onRegenerateKnowledge}
                   onShowScreenshots={onShowScreenshots}
                   recorderPanelSession={recorderPanelSession}
                 />

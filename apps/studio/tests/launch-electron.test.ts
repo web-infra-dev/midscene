@@ -117,6 +117,7 @@ describe('Electron launch scripts', () => {
         baseEnv: process.env,
         overrides: {
           MIDSCENE_STUDIO_RENDERER_URL: 'http://127.0.0.1:3210',
+          VITE_STUDIO_RECORDER_ENABLED: 'true',
         },
         studioRootDir: expect.stringContaining(path.join('apps', 'studio')),
       }),
@@ -133,6 +134,7 @@ describe('Electron launch scripts', () => {
           BUILT_ENV: '1',
           MIDSCENE_STUDIO_RENDERER_URL: 'http://127.0.0.1:3210',
           STUDIO_ROOT_DIR: expect.stringContaining(path.join('apps', 'studio')),
+          VITE_STUDIO_RECORDER_ENABLED: 'true',
         },
         stdio: 'inherit',
       },

@@ -7,6 +7,12 @@ import type {
   StudioPlatformId,
   StudioRecorderCodeType,
 } from '@shared/electron-contract';
+import type {
+  ModelEgressDescriptor,
+  SessionEvidenceBundle,
+  UIKnowledgeArtifact,
+  UIKnowledgeEgressDecision,
+} from '@shared/ui-knowledge-contract';
 
 export enum StudioModeTab {
   Record = 'record',
@@ -52,6 +58,8 @@ export interface StudioScreenshotRef {
 export interface StudioRecordedEvent extends MidsceneRecorderEvent {
   platformId: StudioPlatformId;
   actionType: string;
+  /** Missing on sessions created before UI knowledge generation shipped. */
+  actionTypeOrigin?: 'recorded' | 'fallback';
   rawPayload: Record<string, unknown>;
   target: StudioRecorderTarget;
 }
@@ -64,7 +72,10 @@ export interface StudioRecordingSession {
   status: StudioRecordingStatus;
   target: StudioRecorderTarget;
   events: StudioRecordedEvent[];
+  /** Missing legacy values are normalized to 0 when read from storage. */
+  evidenceRevision?: number;
   generatedCode?: MidsceneRecorderGeneratedCode;
+  generatedKnowledge?: UIKnowledgeArtifact;
   metadataGeneratedAt?: number;
   createdAt: number;
   updatedAt: number;
@@ -114,6 +125,16 @@ export interface StudioRecorderContextValue {
     sessionId: string,
     type: StudioRecorderCodeType,
   ) => Promise<void>;
+  generateSessionKnowledge: (
+    sessionId: string,
+    options?: {
+      force?: boolean;
+      confirmEgress?: (
+        descriptor: ModelEgressDescriptor,
+        evidenceBundle: SessionEvidenceBundle,
+      ) => Promise<UIKnowledgeEgressDecision>;
+    },
+  ) => Promise<UIKnowledgeArtifact | null>;
   exportSessionJson: (sessionId: string) => Promise<void>;
   exportSessionYaml: (sessionId: string) => Promise<void>;
   exportSessionCode: (
@@ -122,5 +143,9 @@ export interface StudioRecorderContextValue {
   ) => Promise<void>;
   getRecorderScreenshotAssetUrl: (assetId: string) => string | null;
   loadSessionScreenshots: (sessionId: string) => Promise<StudioRecordedEvent[]>;
+  exportSessionKnowledge: (
+    sessionId: string,
+    format: 'markdown' | 'json',
+  ) => Promise<void>;
   exportAllZip: () => Promise<void>;
 }

@@ -43,3 +43,11 @@ export function resolveStudioRecorderModelConfig(
 
   return globalModelConfigManager.getModelConfig('default');
 }
+
+export function toSerializableStudioRecorderModelConfig(
+  modelConfig: IModelConfig,
+): IModelConfig {
+  const { createOpenAIClient: _createOpenAIClient, ...serializableConfig } =
+    modelConfig;
+  return serializableConfig;
+}

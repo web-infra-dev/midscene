@@ -269,6 +269,38 @@ export function generateStudioRecorderJson(session: StudioRecordingSession) {
   return JSON.stringify(session, null, 2);
 }
 
+function requireFreshStudioRecorderKnowledge(session: StudioRecordingSession) {
+  const artifact = session.generatedKnowledge;
+  if (!artifact) {
+    throw new Error('Generate the UI knowledge base before downloading.');
+  }
+  if (
+    artifact.sessionId !== session.id ||
+    artifact.sourceEvidenceRevision !== (session.evidenceRevision || 0)
+  ) {
+    throw new Error(
+      'The recording changed after this knowledge base was generated. Regenerate it before downloading.',
+    );
+  }
+  return artifact;
+}
+
+export function generateStudioRecorderKnowledgeJson(
+  session: StudioRecordingSession,
+) {
+  return JSON.stringify(
+    requireFreshStudioRecorderKnowledge(session).knowledge,
+    null,
+    2,
+  );
+}
+
+export function generateStudioRecorderKnowledgeMarkdown(
+  session: StudioRecordingSession,
+) {
+  return requireFreshStudioRecorderKnowledge(session).markdown;
+}
+
 export function generateStudioRecorderMarkdown(
   sessions: StudioRecordingSession[],
 ) {

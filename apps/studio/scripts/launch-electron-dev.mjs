@@ -27,7 +27,14 @@ if (inspectSetting !== '0' && inspectSetting !== 'false') {
 const child = spawn(electronBinary, electronArgs, {
   env: buildStudioRuntimeEnv({
     baseEnv: process.env,
-    overrides: { MIDSCENE_STUDIO_RENDERER_URL: rendererDevUrl },
+    overrides: {
+      MIDSCENE_STUDIO_RENDERER_URL: rendererDevUrl,
+      // Recorder is still feature-gated in packaged builds, but it must be
+      // reachable by default in local development so the recording workflow
+      // can be exercised without a hidden startup prerequisite.
+      VITE_STUDIO_RECORDER_ENABLED:
+        process.env.VITE_STUDIO_RECORDER_ENABLED ?? 'true',
+    },
     studioRootDir: rootDir,
   }),
   stdio: 'inherit',

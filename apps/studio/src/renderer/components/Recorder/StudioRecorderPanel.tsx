@@ -1,5 +1,11 @@
 import type { StudioRecorderCodeType } from '@shared/electron-contract';
-import { App as AntdApp } from 'antd';
+import type {
+  ModelEgressDescriptor,
+  SessionEvidenceBundle,
+  UIKnowledgeEgressDecision,
+} from '@shared/ui-knowledge-contract';
+import { calculateUIKnowledgeInputStats } from '@shared/ui-knowledge-contract';
+import { App as AntdApp, Checkbox } from 'antd';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   filterStudioRecorderSessionsForTarget,
@@ -13,6 +19,7 @@ import {
   CODE_TYPE_STORAGE_KEY,
   LANGUAGE_STORAGE_KEY,
   type StudioRecorderGenerationState,
+  type StudioRecorderKnowledgeGenerationState,
   type StudioRecorderTab,
   codeTypeLabel,
   createInitialGenerationSteps,
@@ -35,11 +42,210 @@ interface StudioRecorderPanelProps {
   onShowScreenshots?: (events: StudioRecordedEvent[]) => void;
 }
 
+function toggleExcludedId(ids: string[], id: string, include: boolean) {
+  return include
+    ? ids.filter((candidate) => candidate !== id)
+    : Array.from(new Set([...ids, id]));
+}
+
+function KnowledgeEgressReview({
+  bundle,
+  descriptor,
+  onDecisionChange,
+}: {
+  bundle: SessionEvidenceBundle;
+  descriptor: ModelEgressDescriptor;
+  onDecisionChange: (decision: UIKnowledgeEgressDecision) => void;
+}) {
+  const [excludedAssetIds, setExcludedAssetIds] = useState<string[]>([]);
+  const [excludedEventHashIds, setExcludedEventHashIds] = useState<string[]>(
+    [],
+  );
+  const selection = useMemo(() => {
+    const excludedAssets = new Set(excludedAssetIds);
+    const excludedEvents = new Set(excludedEventHashIds);
+    const events = bundle.events
+      .filter((event) => !excludedEvents.has(event.eventHashId))
+      .map((event) => ({
+        ...event,
+        evidenceRefs: event.evidenceRefs.filter(
+          (ref) => !excludedAssets.has(ref.assetId),
+        ),
+      }));
+    const referencedAssetIds = new Set(
+      events.flatMap((event) => event.evidenceRefs.map((ref) => ref.assetId)),
+    );
+    const assets = bundle.assets.filter(
+      (asset) =>
+        !excludedAssets.has(asset.assetId) &&
+        referencedAssetIds.has(asset.assetId),
+    );
+    const invalidEvent = events.find(
+      (event) => event.evidenceRefs.length === 0,
+    );
+    const stats = calculateUIKnowledgeInputStats({
+      schemaVersion: bundle.schemaVersion,
+      session: bundle.session,
+      events,
+      assets,
+    });
+    return {
+      error:
+        events.length === 0
+          ? 'Keep at least one event.'
+          : invalidEvent
+            ? `Event ${invalidEvent.eventHashId} has no screenshot left.`
+            : null,
+      stats,
+    };
+  }, [bundle, excludedAssetIds, excludedEventHashIds]);
+
+  const updateDecision = (
+    nextExcludedAssetIds: string[],
+    nextExcludedEventHashIds: string[],
+  ) => {
+    onDecisionChange({
+      confirmed: true,
+      excludedAssetIds: nextExcludedAssetIds,
+      excludedEventHashIds: nextExcludedEventHashIds,
+    });
+  };
+  const refsByAssetId = useMemo(() => {
+    const refs = new Map<string, string[]>();
+    for (const event of bundle.events) {
+      for (const ref of event.evidenceRefs) {
+        const aliases = refs.get(ref.assetId) ?? [];
+        aliases.push(`${event.eventHashId} / ${ref.frameRole}`);
+        refs.set(ref.assetId, aliases);
+      }
+    }
+    return refs;
+  }, [bundle.events]);
+
+  return (
+    <div className="studio-recorder-egress-summary">
+      <p>
+        Review the exact events and screenshots. Uncheck sensitive evidence
+        before the single multimodal request.
+      </p>
+      <dl>
+        <dt>Model</dt>
+        <dd>{descriptor.modelName}</dd>
+        <dt>Provider</dt>
+        <dd>{descriptor.providerLabel}</dd>
+        <dt>Endpoint</dt>
+        <dd>{descriptor.endpointOrigin}</dd>
+        {descriptor.proxyOrigin ? (
+          <>
+            <dt>Proxy</dt>
+            <dd>{descriptor.proxyOrigin}</dd>
+          </>
+        ) : null}
+        {descriptor.tracingDestinations.length > 0 ? (
+          <>
+            <dt>Tracing</dt>
+            <dd>{descriptor.tracingDestinations.join(', ')}</dd>
+          </>
+        ) : null}
+        <dt>Selected images</dt>
+        <dd>
+          {selection.stats.imageReferenceCount} references /{' '}
+          {selection.stats.uniqueImageCount} unique
+        </dd>
+        <dt>Image payload</dt>
+        <dd>
+          {(selection.stats.totalImageEncodedBytes / 1024).toFixed(1)} KiB /{' '}
+          {selection.stats.totalImageDataUrlChars.toLocaleString()} request
+          characters
+        </dd>
+        <dt>Selected events</dt>
+        <dd>
+          {selection.stats.eligibleEventCount} eligible /{' '}
+          {selection.stats.userActionCount} user actions
+        </dd>
+        <dt>Evidence text</dt>
+        <dd>{selection.stats.textChars.toLocaleString()} characters</dd>
+      </dl>
+
+      <div className="studio-recorder-egress-evidence-section">
+        <strong>Events</strong>
+        <div className="studio-recorder-egress-event-list">
+          {bundle.events.map((event) => {
+            const included = !excludedEventHashIds.includes(event.eventHashId);
+            return (
+              <Checkbox
+                checked={included}
+                key={event.eventHashId}
+                onChange={(changeEvent) => {
+                  const next = toggleExcludedId(
+                    excludedEventHashIds,
+                    event.eventHashId,
+                    changeEvent.target.checked,
+                  );
+                  setExcludedEventHashIds(next);
+                  updateDecision(excludedAssetIds, next);
+                }}
+              >
+                {event.knowledgeRole === 'user-action'
+                  ? event.action.name
+                  : 'Initial state'}{' '}
+                · {event.eventHashId}
+              </Checkbox>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="studio-recorder-egress-evidence-section">
+        <strong>Screenshots</strong>
+        <div className="studio-recorder-egress-asset-grid">
+          {bundle.assets.map((asset) => {
+            const included = !excludedAssetIds.includes(asset.assetId);
+            const aliases = refsByAssetId.get(asset.assetId) ?? [];
+            return (
+              <div className="studio-recorder-egress-asset" key={asset.assetId}>
+                <img alt="Recorder evidence" src={asset.dataUrl} />
+                <span>
+                  <Checkbox
+                    checked={included}
+                    onChange={(changeEvent) => {
+                      const next = toggleExcludedId(
+                        excludedAssetIds,
+                        asset.assetId,
+                        changeEvent.target.checked,
+                      );
+                      setExcludedAssetIds(next);
+                      updateDecision(next, excludedEventHashIds);
+                    }}
+                  >
+                    Include screenshot
+                  </Checkbox>
+                  <small>
+                    {aliases.length} reference{aliases.length === 1 ? '' : 's'}
+                  </small>
+                  <small title={asset.assetId}>
+                    {asset.assetId.slice(0, 20)}…
+                  </small>
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+      {selection.error ? (
+        <div className="studio-recorder-egress-selection-error">
+          {selection.error} Exclude that event or keep one of its screenshots.
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 export function StudioRecorderPanel({
   onShowMarkdown,
   onShowScreenshots,
 }: StudioRecorderPanelProps = {}) {
-  const { message } = AntdApp.useApp();
+  const { message, modal } = AntdApp.useApp();
   const recorder = useStudioRecorder();
   const {
     state,
@@ -53,7 +259,9 @@ export function StudioRecorderPanel({
     renameSession,
     selectSession,
     generateSessionCode,
+    generateSessionKnowledge,
     exportSessionCode,
+    exportSessionKnowledge,
   } = recorder;
   const sessions = state.sessions;
   const visibleSessions = useMemo(
@@ -77,6 +285,13 @@ export function StudioRecorderPanel({
     error: null,
     steps: createInitialGenerationSteps(),
   });
+  const [knowledgeGeneration, setKnowledgeGeneration] =
+    useState<StudioRecorderKnowledgeGenerationState>({
+      sessionId: null,
+      status: 'idle',
+      markdown: '',
+      error: null,
+    });
   const runPanelAction = useCallback(
     async <T,>(action: () => Promise<T>) => {
       try {
@@ -122,6 +337,20 @@ export function StudioRecorderPanel({
     generation.status === 'generating' &&
     generation.sessionId === detailSession?.id &&
     generation.type === activeCodeType;
+  const persistedKnowledgeMarkdown =
+    detailSession?.generatedKnowledge?.markdown || '';
+  const knowledgeMarkdown =
+    knowledgeGeneration.sessionId === detailSession?.id
+      ? knowledgeGeneration.markdown || persistedKnowledgeMarkdown
+      : persistedKnowledgeMarkdown;
+  const isKnowledgeGenerating =
+    knowledgeGeneration.status === 'generating' &&
+    knowledgeGeneration.sessionId === detailSession?.id;
+  const knowledgeError =
+    knowledgeGeneration.status === 'error' &&
+    knowledgeGeneration.sessionId === detailSession?.id
+      ? knowledgeGeneration.error
+      : null;
   const statusText = useMemo(() => {
     if (state.initializing) {
       return 'Loading recorder...';
@@ -281,6 +510,100 @@ export function StudioRecorderPanel({
     ],
   );
 
+  const confirmKnowledgeEgress = useCallback(
+    (descriptor: ModelEgressDescriptor, bundle: SessionEvidenceBundle) =>
+      new Promise<UIKnowledgeEgressDecision>((resolve) => {
+        let settled = false;
+        let decision: UIKnowledgeEgressDecision = {
+          confirmed: false,
+          excludedAssetIds: [],
+          excludedEventHashIds: [],
+        };
+        const settle = (confirmed: boolean) => {
+          if (settled) {
+            return;
+          }
+          settled = true;
+          resolve({ ...decision, confirmed });
+        };
+        modal.confirm({
+          title: 'Send recording screenshots to the model?',
+          content: (
+            <KnowledgeEgressReview
+              bundle={bundle}
+              descriptor={descriptor}
+              onDecisionChange={(nextDecision) => {
+                decision = nextDecision;
+              }}
+            />
+          ),
+          width: 760,
+          okText: 'Generate',
+          cancelText: 'Cancel',
+          onOk: () => settle(true),
+          onCancel: () => settle(false),
+        });
+      }),
+    [modal],
+  );
+
+  const runKnowledgeGeneration = useCallback(
+    async (sessionId: string, force = false) => {
+      const session =
+        sessions.find((item) => item.id === sessionId) ??
+        (currentSession?.id === sessionId ? currentSession : null);
+      setKnowledgeGeneration({
+        sessionId,
+        status: 'generating',
+        markdown: session?.generatedKnowledge?.markdown || '',
+        error: null,
+      });
+
+      try {
+        const artifact = await generateSessionKnowledge(sessionId, {
+          force,
+          confirmEgress: confirmKnowledgeEgress,
+        });
+        if (!artifact) {
+          setKnowledgeGeneration({
+            sessionId,
+            status: 'idle',
+            markdown: session?.generatedKnowledge?.markdown || '',
+            error: null,
+          });
+          return null;
+        }
+        setKnowledgeGeneration({
+          sessionId,
+          status: 'success',
+          markdown: artifact.markdown,
+          error: null,
+        });
+        message.success('Knowledge base generated successfully!');
+        return artifact;
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error
+            ? error.message
+            : 'Failed to generate knowledge base.';
+        setKnowledgeGeneration({
+          sessionId,
+          status: 'error',
+          markdown: '',
+          error: errorMessage,
+        });
+        throw error;
+      }
+    },
+    [
+      confirmKnowledgeEgress,
+      currentSession,
+      generateSessionKnowledge,
+      message,
+      sessions,
+    ],
+  );
+
   const openDetail = useCallback(
     (sessionId: string, tab: StudioRecorderTab = 'timeline') => {
       selectSession(sessionId);
@@ -320,6 +643,14 @@ export function StudioRecorderPanel({
     await navigator.clipboard.writeText(activeCode);
     message.success(`${codeLabel} copied to clipboard`);
   }, [activeCode, codeLabel, message]);
+
+  const handleCopyKnowledge = useCallback(async () => {
+    if (!knowledgeMarkdown) {
+      return;
+    }
+    await navigator.clipboard.writeText(knowledgeMarkdown);
+    message.success('Knowledge base copied to clipboard');
+  }, [knowledgeMarkdown, message]);
 
   const handleCodeTypeChange = useCallback(
     (nextType: StudioRecorderCodeType) => {
@@ -410,6 +741,9 @@ export function StudioRecorderPanel({
       }
       generation={generation}
       isGenerating={isGenerating}
+      isKnowledgeGenerating={isKnowledgeGenerating}
+      knowledgeGeneration={knowledgeGeneration}
+      knowledgeMarkdown={knowledgeMarkdown}
       onBackToList={() => {
         setDetailSessionId(null);
         setActiveTab('timeline');
@@ -427,13 +761,41 @@ export function StudioRecorderPanel({
           exportSessionCode(detailSession.id, activeCodeType),
         );
       }}
+      onExportKnowledge={(format) => {
+        if (!detailSession) {
+          return;
+        }
+        void runPanelAction(() =>
+          exportSessionKnowledge(detailSession.id, format),
+        );
+      }}
+      onGenerateKnowledge={() => {
+        if (!detailSession) {
+          return;
+        }
+        void runPanelAction(() => runKnowledgeGeneration(detailSession.id));
+      }}
+      onKnowledgeTabClick={() => {
+        setActiveTab('knowledge');
+      }}
       onLanguageChange={handleLanguageChange}
+      onCopyKnowledge={() => {
+        void runPanelAction(handleCopyKnowledge);
+      }}
       onRegenerateCode={() => {
         if (!detailSession) {
           return;
         }
         void runPanelAction(() =>
           runCodeGeneration(detailSession.id, activeCodeType, true),
+        );
+      }}
+      onRegenerateKnowledge={() => {
+        if (!detailSession) {
+          return;
+        }
+        void runPanelAction(() =>
+          runKnowledgeGeneration(detailSession.id, true),
         );
       }}
       onTabChange={setActiveTab}
@@ -448,8 +810,22 @@ export function StudioRecorderPanel({
       detailView={detailView}
       error={state.error}
       isMarkdownGenerating={isMarkdownGenerating}
+      isKnowledgeGenerating={isKnowledgeGenerating}
       isRecording={state.isRecording}
       isStoppingRecording={isStoppingRecording}
+      knowledgeError={knowledgeError}
+      knowledgeMarkdown={knowledgeMarkdown}
+      onCopyKnowledge={() => {
+        void runPanelAction(handleCopyKnowledge);
+      }}
+      onExportKnowledge={(format) => {
+        if (!recorderPanelSession) {
+          return;
+        }
+        void runPanelAction(() =>
+          exportSessionKnowledge(recorderPanelSession.id, format),
+        );
+      }}
       onGenerateMarkdown={() => {
         if (!recorderPanelSession) {
           return;
@@ -472,6 +848,33 @@ export function StudioRecorderPanel({
             });
           }
         });
+      }}
+      onGenerateKnowledge={() => {
+        if (!recorderPanelSession) {
+          return;
+        }
+        void runPanelAction(() =>
+          runKnowledgeGeneration(recorderPanelSession.id),
+        );
+      }}
+      onOpenKnowledge={() => {
+        if (!recorderPanelSession || !knowledgeMarkdown) {
+          return;
+        }
+        onShowMarkdown?.({
+          markdown: knowledgeMarkdown,
+          onDownload: () =>
+            exportSessionKnowledge(recorderPanelSession.id, 'markdown'),
+          title: 'KNOWLEDGE.md',
+        });
+      }}
+      onRegenerateKnowledge={() => {
+        if (!recorderPanelSession) {
+          return;
+        }
+        void runPanelAction(() =>
+          runKnowledgeGeneration(recorderPanelSession.id, true),
+        );
       }}
       onShowScreenshots={() => {
         if (!recorderPanelSession) {

@@ -7,6 +7,19 @@ import type {
   MidsceneRecorderEvent,
   MidsceneRecorderTarget,
 } from '@midscene/shared/recorder';
+import type {
+  DescribeRecorderKnowledgeEgressRequest,
+  DescribeRecorderKnowledgeEgressResult,
+  GenerateRecorderKnowledgeRequest,
+  GenerateRecorderKnowledgeResult,
+} from './ui-knowledge-contract';
+
+export type {
+  DescribeRecorderKnowledgeEgressRequest,
+  DescribeRecorderKnowledgeEgressResult,
+  GenerateRecorderKnowledgeRequest,
+  GenerateRecorderKnowledgeResult,
+} from './ui-knowledge-contract';
 
 /**
  * IPC channel names bridging the Midscene Studio main process and renderer.
@@ -36,6 +49,8 @@ export const IPC_CHANNELS = {
   setDiscoveryPollingPaused: 'studio:set-discovery-polling-paused',
   runConnectivityTest: 'studio:run-connectivity-test',
   generateRecorderCode: 'studio:generate-recorder-code',
+  describeRecorderKnowledgeEgress: 'studio:describe-recorder-knowledge-egress',
+  generateRecorderKnowledge: 'studio:generate-recorder-knowledge',
   generateRecorderMetadata: 'studio:generate-recorder-metadata',
   describeRecorderUIEvents: 'studio:describe-recorder-ui-events',
   prepareRecorderMarkdownReplay: 'studio:prepare-recorder-markdown-replay',
@@ -285,6 +300,12 @@ export interface StudioRuntimeApi {
   generateRecorderCode: (
     request: GenerateRecorderCodeRequest,
   ) => Promise<GenerateRecorderCodeResult>;
+  describeRecorderKnowledgeEgress: (
+    request: DescribeRecorderKnowledgeEgressRequest,
+  ) => Promise<DescribeRecorderKnowledgeEgressResult>;
+  generateRecorderKnowledge: (
+    request: GenerateRecorderKnowledgeRequest,
+  ) => Promise<GenerateRecorderKnowledgeResult>;
   generateRecorderMetadata: (
     request: GenerateRecorderMetadataRequest,
   ) => Promise<GenerateRecorderMetadataResult>;

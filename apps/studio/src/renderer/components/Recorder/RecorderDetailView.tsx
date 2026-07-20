@@ -9,12 +9,14 @@ import {
   CodeIcon,
   CopyIcon,
   DownloadIcon,
+  RecorderOutputIcon,
   ReloadIcon,
   TimelineIcon,
 } from './assets/recorder-icons';
 import {
   LANGUAGE_OPTIONS,
   type StudioRecorderGenerationState,
+  type StudioRecorderKnowledgeGenerationState,
   type StudioRecorderTab,
   codeTypeLabel,
   generatingText,
@@ -32,13 +34,21 @@ interface RecorderDetailViewProps {
   fallback: ReactNode;
   generation: StudioRecorderGenerationState;
   isGenerating: boolean;
+  isKnowledgeGenerating: boolean;
+  knowledgeGeneration: StudioRecorderKnowledgeGenerationState;
+  knowledgeMarkdown: string;
   onBackToList: () => void;
   onCodeTabClick: () => void;
   onCodeTypeChange: (type: StudioRecorderCodeType) => void;
   onCopyCode: () => void;
   onExportCode: () => void;
+  onExportKnowledge: (format: 'markdown' | 'json') => void;
+  onGenerateKnowledge: () => void;
+  onKnowledgeTabClick: () => void;
   onLanguageChange: (language: string) => void;
+  onCopyKnowledge: () => void;
   onRegenerateCode: () => void;
+  onRegenerateKnowledge: () => void;
   onTabChange: (tab: StudioRecorderTab) => void;
   selectedLanguage: string;
 }
@@ -107,19 +117,35 @@ export function RecorderDetailView({
   fallback,
   generation,
   isGenerating,
+  isKnowledgeGenerating,
+  knowledgeGeneration,
+  knowledgeMarkdown,
   onBackToList,
   onCodeTabClick,
   onCodeTypeChange,
   onCopyCode,
   onExportCode,
+  onExportKnowledge,
+  onGenerateKnowledge,
+  onKnowledgeTabClick,
   onLanguageChange,
+  onCopyKnowledge,
   onRegenerateCode,
+  onRegenerateKnowledge,
   onTabChange,
   selectedLanguage,
 }: RecorderDetailViewProps) {
   if (!detailSession) {
     return fallback;
   }
+
+  const canGenerateKnowledge =
+    detailSession.status === 'completed' && detailSession.events.length > 0;
+  const knowledgeError =
+    knowledgeGeneration.sessionId === detailSession.id &&
+    knowledgeGeneration.status === 'error'
+      ? knowledgeGeneration.error
+      : null;
 
   return (
     <section className="studio-recorder-detail">
@@ -154,7 +180,28 @@ export function RecorderDetailView({
           type="button"
         >
           <TimelineIcon />
-          <span>Record Timeline</span>
+          <span>Timeline</span>
+        </button>
+        <span className="studio-recorder-tab-arrow">
+          <ArrowIcon />
+        </span>
+        <button
+          className={
+            activeTab === 'knowledge'
+              ? 'studio-recorder-tab studio-recorder-tab-active'
+              : 'studio-recorder-tab'
+          }
+          disabled={!canGenerateKnowledge}
+          onClick={onKnowledgeTabClick}
+          title={
+            canGenerateKnowledge
+              ? undefined
+              : 'Finish recording before generating knowledge'
+          }
+          type="button"
+        >
+          <RecorderOutputIcon />
+          <span>Knowledge</span>
         </button>
         <span className="studio-recorder-tab-arrow">
           <ArrowIcon />
@@ -175,7 +222,7 @@ export function RecorderDetailView({
           type="button"
         >
           <CodeIcon />
-          <span>Generate code</span>
+          <span>Code</span>
         </button>
       </div>
 
@@ -189,6 +236,87 @@ export function RecorderDetailView({
             Operate the connected device while recording to capture events.
           </div>
         )
+      ) : activeTab === 'knowledge' ? (
+        <div className="studio-recorder-code-pane">
+          <div className="studio-recorder-code-toolbar">
+            <div className="studio-recorder-knowledge-file-label">
+              <RecorderOutputIcon />
+              <span>KNOWLEDGE.md</span>
+            </div>
+            <div className="studio-recorder-code-spacer" />
+            <button
+              disabled={!knowledgeMarkdown || isKnowledgeGenerating}
+              onClick={onCopyKnowledge}
+              title="Copy knowledge base"
+              type="button"
+            >
+              <CopyIcon />
+            </button>
+            <button
+              disabled={!canGenerateKnowledge || isKnowledgeGenerating}
+              onClick={onRegenerateKnowledge}
+              title="Regenerate knowledge base"
+              type="button"
+            >
+              <ReloadIcon />
+            </button>
+            <button
+              className="studio-recorder-knowledge-download"
+              disabled={!knowledgeMarkdown || isKnowledgeGenerating}
+              onClick={() => onExportKnowledge('markdown')}
+              title="Download Markdown"
+              type="button"
+            >
+              <span className="studio-recorder-knowledge-format">MD</span>
+            </button>
+            <button
+              className="studio-recorder-knowledge-download studio-recorder-knowledge-download-json"
+              disabled={!knowledgeMarkdown || isKnowledgeGenerating}
+              onClick={() => onExportKnowledge('json')}
+              title="Download JSON"
+              type="button"
+            >
+              <span className="studio-recorder-knowledge-format">JSON</span>
+            </button>
+          </div>
+
+          {knowledgeError ? (
+            <div className="studio-recorder-notice">{knowledgeError}</div>
+          ) : null}
+
+          {isKnowledgeGenerating ? (
+            <div className="studio-recorder-generating-card">
+              <span>Generating knowledge base...</span>
+              <span className="studio-recorder-generating-pill">
+                Analyzing...
+              </span>
+            </div>
+          ) : knowledgeMarkdown ? (
+            <pre className="studio-recorder-code-block studio-recorder-knowledge-block">
+              {knowledgeMarkdown}
+            </pre>
+          ) : (
+            <div className="studio-recorder-knowledge-empty">
+              <div>
+                <strong>Generate UI knowledge from this recording</strong>
+                <span>
+                  Recorded actions and screenshots will be analyzed by the
+                  configured model.
+                </span>
+              </div>
+              <button
+                className="studio-recorder-knowledge-generate"
+                disabled={!canGenerateKnowledge}
+                onClick={onGenerateKnowledge}
+                type="button"
+              >
+                {knowledgeError
+                  ? 'Retry generation'
+                  : 'Generate knowledge base'}
+              </button>
+            </div>
+          )}
+        </div>
       ) : (
         <div className="studio-recorder-code-pane">
           <div className="studio-recorder-code-toolbar">

@@ -16,13 +16,23 @@ vi.mock('antd', () => {
     info: vi.fn(),
     success: vi.fn(),
   };
+  const modal = {
+    confirm: vi.fn((options: { onOk?: () => void }) => options.onOk?.()),
+  };
 
   return {
     App: Object.assign(({ children }: { children: ReactNode }) => children, {
-      useApp: () => ({ message }),
+      useApp: () => ({ message, modal }),
     }),
     Button: ({ children, icon, ...props }: any) =>
       createElement('button', { type: 'button', ...props }, icon, children),
+    Checkbox: ({ children, checked, onChange }: any) =>
+      createElement(
+        'label',
+        null,
+        createElement('input', { checked, onChange, type: 'checkbox' }),
+        children,
+      ),
     Input: ({ allowClear, className, prefix, ...props }: any) =>
       createElement('label', null, prefix, createElement('input', props)),
     Popover: ({ children, content, onOpenChange, open }: any) => {
@@ -136,7 +146,48 @@ function createRecorderMock({
     deleteSession: vi.fn(),
     exportAllZip: vi.fn(),
     exportSessionCode: vi.fn(),
+    exportSessionKnowledge: vi.fn(),
     generateSessionCode: vi.fn(),
+    generateSessionKnowledge: vi.fn(async (sessionId: string, options) => {
+      const decision = await options.confirmEgress(
+        {
+          descriptorId: 'sha256:descriptor',
+          endpointOrigin: 'https://example.com',
+          hasOpaqueCustomClient: false,
+          modelName: 'test-model',
+          providerLabel: 'test-provider',
+          tracingDestinations: [],
+        },
+        {
+          schemaVersion: 'session-evidence/v1',
+          session: {
+            sessionId,
+            platformId: 'android',
+            createdAt: 1,
+          },
+          events: [],
+          assets: [],
+          inputStats: {
+            eligibleEventCount: 0,
+            imageReferenceCount: 0,
+            uniqueImageCount: 0,
+            totalImageDataUrlChars: 0,
+            totalImageEncodedBytes: 0,
+            textChars: 0,
+            userActionCount: 0,
+          },
+        },
+      );
+      return decision.confirmed
+        ? {
+            sessionId,
+            sourceEvidenceRevision: 0,
+            knowledge: {},
+            markdown: '# UI knowledge\n',
+            metadata: {},
+          }
+        : null;
+    }),
     getRecorderScreenshotAssetUrl: vi.fn(() => null),
     loadSessionScreenshots: vi.fn(async (sessionId: string) => {
       const matchingSession = [currentSession, session].find(
@@ -1089,6 +1140,86 @@ describe('StudioRecorderPanel', () => {
     );
     expect(downloadOutputButton).toBeNull();
     expect(mocks.recorder.exportSessionCode).not.toHaveBeenCalled();
+
+    await unmount(root);
+  });
+
+  it('generates knowledge only after the user chooses it', async () => {
+    const currentSession = {
+      createdAt: Date.now(),
+      description: '',
+      events: [
+        {
+          actionSummary: 'Click - destination input field containing Beijing',
+          hashId: 'event-1',
+          type: 'click',
+        },
+      ],
+      generatedCode: {},
+      id: 'session-recording',
+      name: 'Recording now',
+      status: 'recording',
+      target: {
+        label: 'Android Device',
+        platformId: 'android',
+        values: {},
+      },
+      updatedAt: Date.now(),
+    };
+    mocks.recorder = createRecorderMock({
+      currentSession,
+      isRecording: true,
+      sessionOverrides: currentSession,
+    });
+    mocks.recorder.stopRecording = vi.fn(async () => {
+      const completedSession = {
+        ...currentSession,
+        status: 'completed',
+      };
+      mocks.recorder.currentSession = null;
+      mocks.recorder.state.isRecording = false;
+      mocks.recorder.state.sessions = [completedSession];
+    });
+    mocks.playground = {
+      controller: {
+        state: {
+          serverOnline: true,
+          sessionViewState: { connected: true },
+        },
+      },
+      phase: 'ready',
+    };
+
+    const { container, root } = await renderRecorderPanel();
+    const stopButton = container.querySelector(
+      'button[aria-label="Stop recording"]',
+    );
+    await act(async () => {
+      stopButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      await mocks.recorder.stopRecording.mock.results[0]?.value;
+      await new Promise((resolve) => window.setTimeout(resolve, 0));
+      root.render(<StudioRecorderPanel />);
+    });
+
+    expect(mocks.recorder.generateSessionKnowledge).not.toHaveBeenCalled();
+    const generateButton = container.querySelector(
+      '.studio-recorder-floating-generate-knowledge',
+    );
+    expect(generateButton).not.toBeNull();
+
+    await act(async () => {
+      generateButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      await Promise.resolve();
+    });
+
+    expect(mocks.recorder.generateSessionKnowledge).toHaveBeenCalledWith(
+      'session-recording',
+      expect.objectContaining({
+        confirmEgress: expect.any(Function),
+        force: false,
+      }),
+    );
+    expect(container.textContent).toContain('KNOWLEDGE.md');
 
     await unmount(root);
   });

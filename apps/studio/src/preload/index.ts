@@ -66,6 +66,10 @@ const studioRuntimeApi: StudioRuntimeApi = {
     ipcRenderer.invoke(IPC_CHANNELS.runConnectivityTest, request),
   generateRecorderCode: (request) =>
     ipcRenderer.invoke(IPC_CHANNELS.generateRecorderCode, request),
+  describeRecorderKnowledgeEgress: (request) =>
+    ipcRenderer.invoke(IPC_CHANNELS.describeRecorderKnowledgeEgress, request),
+  generateRecorderKnowledge: (request) =>
+    ipcRenderer.invoke(IPC_CHANNELS.generateRecorderKnowledge, request),
   generateRecorderMetadata: (request) =>
     ipcRenderer.invoke(IPC_CHANNELS.generateRecorderMetadata, request),
   describeRecorderUIEvents: (request) =>

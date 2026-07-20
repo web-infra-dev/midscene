@@ -46,6 +46,10 @@ import {
   generateRecorderCodeInMain,
   generateRecorderMetadataInMain,
 } from './recorder/codegen';
+import {
+  describeRecorderKnowledgeEgressInMain,
+  generateRecorderKnowledgeInMain,
+} from './recorder/knowledge-generator';
 import { configureStudioShellEnvHydration } from './shell-env';
 import { studioUpdater } from './updater';
 import { registerUpdaterHandlers } from './updater-handlers';
@@ -705,6 +709,14 @@ const registerIpcHandlers = () => {
   ipcMain.handle(IPC_CHANNELS.generateRecorderCode, async (_event, request) => {
     return generateRecorderCodeInMain(request);
   });
+  ipcMain.handle(
+    IPC_CHANNELS.describeRecorderKnowledgeEgress,
+    async (_event, request) => describeRecorderKnowledgeEgressInMain(request),
+  );
+  ipcMain.handle(
+    IPC_CHANNELS.generateRecorderKnowledge,
+    async (_event, request) => generateRecorderKnowledgeInMain(request),
+  );
   ipcMain.handle(
     IPC_CHANNELS.generateRecorderMetadata,
     async (_event, request) => {

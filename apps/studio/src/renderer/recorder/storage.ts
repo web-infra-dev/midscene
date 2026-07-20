@@ -22,7 +22,25 @@ const memoryStore = {
 function sanitizeSession(
   session: StudioRecordingSession,
 ): StudioRecordingSession {
-  return JSON.parse(JSON.stringify(session)) as StudioRecordingSession;
+  return normalizeStoredSession(
+    JSON.parse(JSON.stringify(session)) as StudioRecordingSession,
+  );
+}
+
+function normalizeStoredSession(
+  session: StudioRecordingSession,
+): StudioRecordingSession {
+  return {
+    ...session,
+    evidenceRevision:
+      typeof session.evidenceRevision === 'number'
+        ? session.evidenceRevision
+        : 0,
+    events: session.events.map((event) => ({
+      ...event,
+      actionTypeOrigin: event.actionTypeOrigin || 'fallback',
+    })),
+  };
 }
 
 function migrateLegacyRecorderSessions(db: IDBDatabase): Promise<void> {
@@ -152,7 +170,9 @@ export async function getStudioRecorderSessions(): Promise<
   StudioRecordingSession[]
 > {
   if (typeof indexedDB === 'undefined') {
-    return [...memoryStore.sessions].sort((a, b) => b.updatedAt - a.updatedAt);
+    return memoryStore.sessions
+      .map(normalizeStoredSession)
+      .sort((a, b) => b.updatedAt - a.updatedAt);
   }
 
   const sessions = await withStore<StudioRecordingSession[]>(
@@ -160,7 +180,9 @@ export async function getStudioRecorderSessions(): Promise<
     'readonly',
     (store) => store.getAll() as IDBRequest<StudioRecordingSession[]>,
   );
-  return [...(sessions || [])].sort((a, b) => b.updatedAt - a.updatedAt);
+  return (sessions || [])
+    .map(normalizeStoredSession)
+    .sort((a, b) => b.updatedAt - a.updatedAt);
 }
 
 export async function upsertStudioRecorderSession(
@@ -181,6 +203,103 @@ export async function upsertStudioRecorderSession(
     store.put(safeSession),
   );
   return trimSessions();
+}
+
+/**
+ * Update an existing session inside one IndexedDB read/write transaction.
+ * The updater must stay synchronous so the transaction cannot become inactive
+ * between reading and writing the record.
+ */
+export async function updateStudioRecorderSessionAtomic(
+  sessionId: string,
+  updater: (current: StudioRecordingSession) => StudioRecordingSession,
+): Promise<StudioRecordingSession> {
+  if (typeof indexedDB === 'undefined') {
+    const index = memoryStore.sessions.findIndex(
+      (session) => session.id === sessionId,
+    );
+    if (index < 0) {
+      throw new Error('Recorder session not found.');
+    }
+    const current = normalizeStoredSession(memoryStore.sessions[index]);
+    const updated = sanitizeSession(updater(current));
+    if (updated.id !== sessionId) {
+      throw new Error('Recorder session updater cannot change the session id.');
+    }
+    memoryStore.sessions = [
+      updated,
+      ...memoryStore.sessions.filter((session) => session.id !== sessionId),
+    ].slice(0, MAX_SESSIONS);
+    return updated;
+  }
+
+  const db = await openDatabase();
+  if (!db) {
+    throw new Error('Recorder database is unavailable.');
+  }
+
+  return new Promise<StudioRecordingSession>((resolve, reject) => {
+    const transaction = db.transaction(SESSION_STORE, 'readwrite');
+    const store = transaction.objectStore(SESSION_STORE);
+    const request = store.get(sessionId) as IDBRequest<StudioRecordingSession>;
+    let updatedSession: StudioRecordingSession | null = null;
+    let settled = false;
+
+    const fail = (error: unknown) => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      db.close();
+      reject(error instanceof Error ? error : new Error(String(error)));
+    };
+
+    request.onsuccess = () => {
+      if (!request.result) {
+        transaction.abort();
+        fail(new Error('Recorder session not found.'));
+        return;
+      }
+      try {
+        const current = normalizeStoredSession(request.result);
+        updatedSession = sanitizeSession(updater(current));
+        if (updatedSession.id !== sessionId) {
+          throw new Error(
+            'Recorder session updater cannot change the session id.',
+          );
+        }
+        store.put(updatedSession);
+      } catch (error) {
+        transaction.abort();
+        fail(error);
+      }
+    };
+    request.onerror = () => {
+      fail(request.error || new Error('Failed to read recorder session.'));
+    };
+    transaction.oncomplete = () => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      db.close();
+      if (!updatedSession) {
+        reject(new Error('Recorder session update produced no result.'));
+        return;
+      }
+      resolve(updatedSession);
+    };
+    transaction.onerror = () => {
+      fail(transaction.error || new Error('Recorder session update failed.'));
+    };
+    transaction.onabort = () => {
+      if (!settled) {
+        fail(
+          transaction.error || new Error('Recorder session update aborted.'),
+        );
+      }
+    };
+  });
 }
 
 export async function deleteStudioRecorderSession(

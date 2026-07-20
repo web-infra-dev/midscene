@@ -25,7 +25,14 @@ export type ReplayableCodeType = Extract<
   'markdown' | 'yaml'
 >;
 
-export type StudioRecorderTab = 'timeline' | 'code';
+export type StudioRecorderTab = 'timeline' | 'knowledge' | 'code';
+
+export type StudioRecorderKnowledgeGenerationState = {
+  sessionId: string | null;
+  status: 'idle' | 'generating' | 'success' | 'error';
+  markdown: string;
+  error: string | null;
+};
 
 export type StudioRecorderGenerationStepState = Record<
   StudioRecorderGenerationStepId,
