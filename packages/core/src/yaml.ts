@@ -306,6 +306,17 @@ export interface MidsceneYamlFlowItemLogScreenshot {
   content?: string;
 }
 
+export interface MidsceneYamlFlowItemHttpRequest {
+  httpRequest: {
+    url: string;
+    method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+    headers?: Record<string, string>;
+    body?: unknown;
+    timeout?: number;
+  };
+  name?: string;
+}
+
 export type MidsceneYamlFlowItem =
   | MidsceneYamlFlowItemAIAction
   | MidsceneYamlFlowItemAIAssert
@@ -313,7 +324,8 @@ export type MidsceneYamlFlowItem =
   | MidsceneYamlFlowItemRunGherkinScenario
   | MidsceneYamlFlowItemEvaluateJavaScript
   | MidsceneYamlFlowItemSleep
-  | MidsceneYamlFlowItemLogScreenshot;
+  | MidsceneYamlFlowItemLogScreenshot
+  | MidsceneYamlFlowItemHttpRequest;
 
 export interface FreeFn {
   name: string;

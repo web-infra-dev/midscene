@@ -44,6 +44,7 @@ import type {
   MidsceneYamlFlowItemAIAssert,
   MidsceneYamlFlowItemAIWaitFor,
   MidsceneYamlFlowItemEvaluateJavaScript,
+  MidsceneYamlFlowItemHttpRequest,
   MidsceneYamlFlowItemLogScreenshot,
   MidsceneYamlFlowItemRunGherkinScenario,
   MidsceneYamlFlowItemSleep,
@@ -460,6 +461,49 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
         `ms for sleep must be greater than 0, but got ${ms}`,
       );
       await new Promise((resolve) => setTimeout(resolve, msNumber));
+    } else if ('httpRequest' in flowItem) {
+      const httpRequestTask = flowItem as unknown as MidsceneYamlFlowItemHttpRequest;
+      const { url, method = 'GET', headers, body, timeout } = httpRequestTask.httpRequest;
+      assert(url, 'missing url for httpRequest');
+
+      const init: RequestInit = { method, headers: headers as HeadersInit };
+      if (body !== undefined) {
+        init.body = JSON.stringify(body);
+        init.headers = {
+          'Content-Type': 'application/json',
+          ...(headers || {}),
+        };
+      }
+
+      let controller: AbortController | undefined;
+      let timeoutId: ReturnType<typeof setTimeout> | undefined;
+      if (timeout !== undefined && timeout > 0) {
+        controller = new AbortController();
+        init.signal = controller.signal;
+        timeoutId = setTimeout(() => controller!.abort(), timeout);
+      }
+
+      let response: Response;
+      try {
+        response = await fetch(url, init);
+      } finally {
+        if (timeoutId !== undefined) {
+          clearTimeout(timeoutId);
+        }
+      }
+
+      if (!response.ok) {
+        throw new Error(
+          `httpRequest to ${url} failed with status ${response.status} ${response.statusText}`,
+        );
+      }
+
+      const contentType = response.headers.get('content-type') || '';
+      const data = contentType.includes('application/json')
+        ? await response.json()
+        : await response.text();
+
+      this.setResult(httpRequestTask.name, { status: response.status, data });
     } else if ('javascript' in flowItem) {
       const evaluateJavaScriptTask =
         flowItem as unknown as MidsceneYamlFlowItemEvaluateJavaScript;
