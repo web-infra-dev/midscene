@@ -1421,6 +1421,33 @@ ${Object.keys(size)
     return result;
   }
 
+  /**
+   * Read the system clipboard via `dumpsys clipboard`. Useful for a value only exposed
+   * through a native "Copy" action (e.g. a share sheet's "Copy Link"), which has no other
+   * on-screen representation to read.
+   *
+   * There is no public `cmd clipboard get` on stock Android, so this parses `dumpsys`
+   * output, whose exact wording differs across Android versions/OEMs (e.g. `ClipData {
+   * text/plain "..." }` vs `ClipData.Item { T:"..." }`). Several known shapes are tried;
+   * returns an empty string if the clipboard is genuinely empty or its content is not text.
+   */
+  async getClipboardText(): Promise<string> {
+    const adb = await this.getAdb();
+    const stdout = await adb.shell('dumpsys clipboard');
+
+    const patterns = [
+      /text\/plain["\s]*[:{]?\s*"([^"]*)"/, // ClipData { text/plain "..." }
+      /\bT:"([^"]*)"/, // ClipData.Item { T:"..." }
+    ];
+    for (const pattern of patterns) {
+      const match = stdout.match(pattern);
+      if (match) {
+        return match[1];
+      }
+    }
+    return '';
+  }
+
   async clearInput(element?: ElementInfo): Promise<void> {
     if (element) {
       await this.tapPoint({ x: element.center[0], y: element.center[1] });

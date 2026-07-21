@@ -502,6 +502,30 @@ describe('AndroidDevice', () => {
     });
   });
 
+  describe('getClipboardText', () => {
+    it('should parse a `ClipData { text/plain "..." }` dumpsys shape', async () => {
+      mockAdb.shell.mockResolvedValue(
+        'Clipboard state\n mPrimaryClip: ClipData { text/plain "https://example.com/j/123" }',
+      );
+      await expect(device.getClipboardText()).resolves.toBe(
+        'https://example.com/j/123',
+      );
+      expect(mockAdb.shell).toHaveBeenCalledWith('dumpsys clipboard');
+    });
+
+    it('should parse a `ClipData.Item { T:"..." }` dumpsys shape', async () => {
+      mockAdb.shell.mockResolvedValue(
+        'mPrimaryClip: ClipData.Item { T:"copied text here" }',
+      );
+      await expect(device.getClipboardText()).resolves.toBe('copied text here');
+    });
+
+    it('should return an empty string when the clipboard has no recognizable text', async () => {
+      mockAdb.shell.mockResolvedValue('Clipboard state\n (no primary clip)');
+      await expect(device.getClipboardText()).resolves.toBe('');
+    });
+  });
+
   // Cross-platform contract for https://github.com/web-infra-dev/midscene/issues/2313:
   // Launch/Terminate on every mobile platform must expose the SAME `uri` field.
   // The shared tool-generator already rejects non-object schemas, but a future
