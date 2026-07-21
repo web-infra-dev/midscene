@@ -75,6 +75,22 @@ type StudioWebCleanup = {
   fn: () => void | Promise<void>;
 };
 
+type StudioWebNavigationFrame = {
+  isMainFrame?: () => boolean;
+  url?: () => string;
+};
+
+type StudioWebNavigationEventPage = {
+  on?: (
+    event: 'framenavigated',
+    listener: (frame: StudioWebNavigationFrame) => void,
+  ) => unknown;
+  off?: (
+    event: 'framenavigated',
+    listener: (frame: StudioWebNavigationFrame) => void,
+  ) => unknown;
+};
+
 type StudioDeviceDiscoveryService =
   | DeviceDiscoveryService
   | Promise<DeviceDiscoveryService>;
@@ -453,6 +469,25 @@ async function prepareStudioWebPlatform({
 
         return {
           agentFactory,
+          subscribeNavigationEvents(listener) {
+            const page = currentPage as StudioWebNavigationEventPage | null;
+            if (!page || typeof page.on !== 'function') {
+              return () => {};
+            }
+            const onFrameNavigated = (frame: StudioWebNavigationFrame) => {
+              if (frame.isMainFrame?.() === false) {
+                return;
+              }
+              const navigatedUrl = frame.url?.();
+              if (navigatedUrl) {
+                listener({ url: navigatedUrl, timestamp: Date.now() });
+              }
+            };
+            page.on('framenavigated', onFrameNavigated);
+            return () => {
+              page.off?.('framenavigated', onFrameNavigated);
+            };
+          },
           displayName: url,
           metadata: {
             interfaceType: 'web',

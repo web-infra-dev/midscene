@@ -17,6 +17,7 @@ export const IPC_CHANNELS = {
   closeWindow: 'shell:close-window',
   minimizeWindow: 'shell:minimize-window',
   openExternalUrl: 'shell:open-external-url',
+  openRunDirectory: 'shell:open-run-directory',
   openImagePreview: 'shell:open-image-preview',
   chooseReportSavePath: 'shell:choose-report-save-path',
   chooseFileSavePath: 'shell:choose-file-save-path',
@@ -233,6 +234,8 @@ export interface ElectronShellApi {
   minimizeWindow: () => Promise<void>;
   /** Open an external HTTP(S) link in the system browser. */
   openExternalUrl: (url: string) => Promise<void>;
+  /** Open the active Midscene run/log directory in the system file manager. */
+  openRunDirectory: () => Promise<void>;
   /** Open an image with the operating system's default image viewer. */
   openImagePreview: (request: OpenImagePreviewRequest) => Promise<void>;
   /** Ask the main process for a target path for a report HTML export. */

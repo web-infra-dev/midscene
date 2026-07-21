@@ -374,8 +374,8 @@ export abstract class AbstractWebPage extends AbstractInterface {
   goForward?(): Promise<void>;
   stopLoading?(): Promise<void>;
   navigationState?(): Promise<{ isLoading: boolean }>;
-  flushPendingVisualUpdate?(): Promise<void>;
-  schedulePendingVisualUpdate?(): void;
+  flushPendingVisualUpdate?(force?: boolean): Promise<void>;
+  schedulePendingVisualUpdate?(force?: boolean): void;
   waitForDomQuiet?(opts?: {
     quietMs?: number;
     timeoutMs?: number;
@@ -434,13 +434,22 @@ export abstract class AbstractWebPage extends AbstractInterface {
   ): Promise<void>;
 }
 
-const scheduleWebVisualUpdate = (page: AbstractWebPage): void => {
+const scheduleWebVisualUpdate = (
+  page: AbstractWebPage,
+  force = false,
+): void => {
   if (page.schedulePendingVisualUpdate) {
-    page.schedulePendingVisualUpdate();
+    if (force) {
+      page.schedulePendingVisualUpdate(true);
+    } else {
+      page.schedulePendingVisualUpdate();
+    }
     return;
   }
 
-  const pendingRefresh = page.flushPendingVisualUpdate?.();
+  const pendingRefresh = force
+    ? page.flushPendingVisualUpdate?.(true)
+    : page.flushPendingVisualUpdate?.();
   void pendingRefresh?.catch(() => undefined);
 };
 
@@ -615,7 +624,7 @@ export const commonWebActionsForWebPage = <T extends AbstractWebPage>(
           );
         }
         await page.navigate(param.url);
-        scheduleWebVisualUpdate(page);
+        scheduleWebVisualUpdate(page, true);
       },
     }),
 
@@ -629,7 +638,7 @@ export const commonWebActionsForWebPage = <T extends AbstractWebPage>(
           );
         }
         await page.reload();
-        scheduleWebVisualUpdate(page);
+        scheduleWebVisualUpdate(page, true);
       },
     }),
 
@@ -643,7 +652,7 @@ export const commonWebActionsForWebPage = <T extends AbstractWebPage>(
           );
         }
         await page.goBack();
-        scheduleWebVisualUpdate(page);
+        scheduleWebVisualUpdate(page, true);
       },
     }),
     defineAction({
@@ -656,7 +665,7 @@ export const commonWebActionsForWebPage = <T extends AbstractWebPage>(
           );
         }
         await page.goForward();
-        scheduleWebVisualUpdate(page);
+        scheduleWebVisualUpdate(page, true);
       },
     }),
   ];

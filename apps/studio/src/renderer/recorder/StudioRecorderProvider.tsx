@@ -65,8 +65,6 @@ const RECORDER_DESCRIPTION_TASK_TIMEOUT_MS =
   RECORDER_AI_FALLBACK_TASK_TIMEOUT_MS +
   RECORDER_DESCRIPTION_STAGE_BUFFER_MS;
 const RECORDER_DESCRIPTION_IDLE_SETTLE_BUFFER_MS = 1000;
-const RECORDER_NAVIGATION_IDLE_TIMEOUT_MS = 15_000;
-const RECORDER_NAVIGATION_IDLE_POLL_MS = 250;
 
 type StudioRecorderAction =
   | {
@@ -275,6 +273,30 @@ function buildRecorderSemanticAction(
     value: event.value,
     url: event.url,
   };
+}
+
+function isImplicitNavigationRecorderState(event: StudioRecordedEvent) {
+  if (event.source !== 'studio-preview' || event.type !== 'navigation') {
+    return false;
+  }
+  if (event.actionType === 'NavigationChanged') {
+    return true;
+  }
+  return (
+    event.rawPayload.implicitNavigationState === true ||
+    typeof event.rawPayload.triggerActionType === 'string'
+  );
+}
+
+function excludeImplicitNavigationStatesFromCodegen(
+  session: StudioRecordingSession,
+): StudioRecordingSession {
+  const events = session.events.filter(
+    (event) => !isImplicitNavigationRecorderState(event),
+  );
+  return events.length === session.events.length
+    ? session
+    : { ...session, events };
 }
 
 function isReadyRecorderSemanticWithDescription(
@@ -1338,40 +1360,6 @@ export function StudioRecorderProvider({ children }: PropsWithChildren) {
     [flushPendingRecorderInput],
   );
 
-  const waitForRecorderNavigationIdle = useCallback(
-    async (session: StudioRecordingSession) => {
-      const hasNavigationChange = session.events.some(
-        (event) =>
-          event.type === 'navigation' &&
-          event.actionType === 'NavigationChanged',
-      );
-      if (!hasNavigationChange || studioPlayground.phase !== 'ready') {
-        return;
-      }
-
-      const { playgroundSDK } = studioPlayground.controller.state;
-      if (typeof playgroundSDK.getInterfaceInfo !== 'function') {
-        return;
-      }
-
-      const deadline = Date.now() + RECORDER_NAVIGATION_IDLE_TIMEOUT_MS;
-      do {
-        const interfaceInfo = await playgroundSDK.getInterfaceInfo();
-        if (!interfaceInfo?.navigationState?.isLoading) {
-          return;
-        }
-        await new Promise<void>((resolve) => {
-          window.setTimeout(resolve, RECORDER_NAVIGATION_IDLE_POLL_MS);
-        });
-      } while (Date.now() < deadline);
-
-      throw new Error(
-        'Timed out waiting for recorded navigation to complete before generating code.',
-      );
-    },
-    [studioPlayground],
-  );
-
   const drainRecorderRuntime = useCallback(async (sessionId: string) => {
     const runtime = recorderRuntimeRef.current;
     if (!runtime || runtime.sessionId !== sessionId) {
@@ -1848,7 +1836,8 @@ export function StudioRecorderProvider({ children }: PropsWithChildren) {
           stateRef.current.sessions.find((item) => item.id === session.id) ??
           sessionForCodegen;
       }
-      await waitForRecorderNavigationIdle(sessionForCodegen);
+      sessionForCodegen =
+        excludeImplicitNavigationStatesFromCodegen(sessionForCodegen);
       options.onProgress?.({
         step: 'prepare',
         status: 'completed',
@@ -1968,7 +1957,6 @@ export function StudioRecorderProvider({ children }: PropsWithChildren) {
       materializeSessionForScreenshotExport,
       persistStudioRecorderSession,
       waitForRecorderEventDescriptions,
-      waitForRecorderNavigationIdle,
     ],
   );
 

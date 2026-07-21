@@ -8,14 +8,26 @@ import { MIDSCENE_RUN_DIR } from './env/types';
 import { ifInNode } from './utils';
 
 export const defaultRunDirName = 'midscene_run';
+let configuredRunDir: string | undefined;
 // Define locally for now to avoid import issues
+
+/**
+ * Sets the run directory for the current process without changing the
+ * environment. Callers that do not set it keep the existing environment-based
+ * behavior.
+ */
+export const setMidsceneRunDir = (runDir: string | undefined): void => {
+  configuredRunDir = runDir;
+};
 
 export const getMidsceneRunDir = () => {
   if (!ifInNode) {
     return '';
   }
 
-  return getBasicEnvValue(MIDSCENE_RUN_DIR) || defaultRunDirName;
+  return (
+    configuredRunDir ?? getBasicEnvValue(MIDSCENE_RUN_DIR) ?? defaultRunDirName
+  );
 };
 
 export const getMidsceneRunBaseDir = () => {

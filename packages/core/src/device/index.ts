@@ -235,18 +235,20 @@ export abstract class AbstractInterface {
   ): MjpegStreamHandle | undefined | Promise<MjpegStreamHandle | undefined>;
 
   /**
-   * Optional hook used after keyboard-only actions to force a fresh frame on
-   * the active MJPEG stream. Implementations should be a no-op when no stream
-   * is active.
+   * Optional hook used after a UI action to push a fresh frame on the active
+   * MJPEG stream. Set `force` after navigation to replace a transient loading
+   * frame even when the screencast has already emitted one. Implementations
+   * should be a no-op when no stream is active.
    */
-  flushPendingVisualUpdate?(): Promise<void>;
+  flushPendingVisualUpdate?(force?: boolean): Promise<void>;
 
   /**
    * Optional non-blocking variant of `flushPendingVisualUpdate`. Keyboard-
    * heavy preview interactions can schedule a coalesced refresh here without
-   * stalling the input hot path.
+   * stalling the input hot path; `force` preserves a requested navigation
+   * refresh while work is already queued.
    */
-  schedulePendingVisualUpdate?(): void;
+  schedulePendingVisualUpdate?(force?: boolean): void;
 
   /**
    * Optional navigation state probe for browser-like interfaces, used to drive

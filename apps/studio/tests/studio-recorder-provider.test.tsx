@@ -2237,21 +2237,26 @@ describe('StudioRecorderProvider preview recording', () => {
     await mounted.cleanup();
   });
 
-  it('waits for recorded navigation to finish before generating Markdown', async () => {
+  it('excludes legacy implicit navigation states from Markdown generation', async () => {
     const events = [
       {
         type: 'navigation',
         source: 'studio-preview',
-        actionType: 'NavigationChanged',
+        actionType: 'Navigate',
+        rawPayload: {
+          triggerActionType: 'Tap',
+          afterUrl: 'https://example.com/search?q=midscene',
+          navigationCompleted: true,
+        },
         url: 'https://example.com/search?q=midscene',
         pageInfo: { width: 1200, height: 800 },
         timestamp: 122,
-        hashId: 'navigation-wait-for-complete',
+        hashId: 'completed-navigation-still-loading',
       },
       {
         type: 'click',
         source: 'studio-preview',
-        actionType: 'Click',
+        actionType: 'Tap',
         semantic: {
           source: 'heuristic',
           status: 'ready',
@@ -2263,23 +2268,9 @@ describe('StudioRecorderProvider preview recording', () => {
         hashId: 'click-after-navigation',
       },
     ];
-    const order: string[] = [];
-    const getInterfaceInfo = vi
-      .fn()
-      .mockImplementationOnce(async () => {
-        order.push('loading');
-        return { navigationState: { isLoading: true } };
-      })
-      .mockImplementationOnce(async () => {
-        order.push('idle');
-        return { navigationState: { isLoading: false } };
-      });
-    vi.mocked(generateStudioRecorderCodeWithAI).mockImplementationOnce(
-      async () => {
-        order.push('generated');
-        return 'ai markdown\n';
-      },
-    );
+    const getInterfaceInfo = vi.fn(async () => ({
+      navigationState: { isLoading: true },
+    }));
     const { context } = createConnectedStudioContext({
       events,
       getInterfaceInfo,
@@ -2290,14 +2281,28 @@ describe('StudioRecorderProvider preview recording', () => {
       await mounted.recorder?.startRecording();
     });
     await flushPromises();
+    await act(async () => {
+      await mounted.recorder?.stopRecording();
+    });
+    await flushPromises();
 
     const sessionId = mounted.recorder?.currentSession?.id;
     await act(async () => {
       await mounted.recorder!.generateSessionCode(sessionId!);
     });
 
-    expect(getInterfaceInfo).toHaveBeenCalledTimes(2);
-    expect(order).toEqual(['loading', 'idle', 'generated']);
+    expect(mounted.recorder?.currentSession?.status).toBe('completed');
+    expect(mounted.recorder?.currentSession?.events).toEqual([
+      expect.objectContaining({ actionType: 'Tap' }),
+    ]);
+    expect(getInterfaceInfo).not.toHaveBeenCalled();
+    expect(generateStudioRecorderCodeWithAI).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: sessionId,
+        events: [expect.objectContaining({ actionType: 'Tap' })],
+      }),
+      expect.objectContaining({ type: 'markdown' }),
+    );
 
     await mounted.cleanup();
   });
