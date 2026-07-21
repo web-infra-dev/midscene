@@ -63,7 +63,7 @@ export default defineConfig({
 });
 ```
 
-`MidsceneReporter` 会在每个测试文件结束时打印形如 `Midscene report: midscene_run/report/<file>.html` 的一行。在浏览器中打开这个 HTML，即可逐步回放每个 AI 步骤与对应截图。
+`MidsceneReporter` 会把一个文件里所有测试的报告合并成一份 HTML，并打印形如 `Midscene report: midscene_run/report/<file>.html` 的一行。在浏览器中打开这个 HTML，即可逐步回放每个 AI 步骤与对应截图。合并报告依赖这个 reporter：不注册它，每个测试仍会各自生成报告，但不会有人把它们合并起来。
 
 ## 第三步：编写测试
 
@@ -169,7 +169,7 @@ export default defineConfig({
 
 :::warning 必须从 `setupFiles` 里调用
 
-每个 test file 在 Rstest 默认的 `isolate: true` 模式下都有自己独立的 module graph，`defineMidsceneDefaults` 写入的是一个 module-scoped store，所以必须从被 Rstest 当作每个 test file 启动链路一部分的 setup file 中调用。在某个单一 test file 内部调用只会影响该文件本身。
+`defineMidsceneDefaults` 写入的是一个 module-scoped store，所以必须从被 Rstest 当作每个 test file 启动链路一部分的 setup file 中调用。在某个单一 test file 内部调用只会影响该文件本身。
 
 :::
 

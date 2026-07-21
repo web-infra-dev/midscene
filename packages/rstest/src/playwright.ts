@@ -7,10 +7,6 @@ import {
   overrideAIConfig,
 } from '@midscene/web/playwright';
 import {
-  afterAll as rstestAfterAll,
-  beforeAll as rstestBeforeAll,
-} from '@rstest/core';
-import {
   type PlaywrightFixture,
   type PlaywrightOptions,
   type PlaywrightTest,
@@ -19,9 +15,9 @@ import {
 import type { BrowserContextOptions, LaunchOptions, Page } from 'playwright';
 import { isCI } from 'std-env';
 import {
-  ReportHelper,
   type ReportMeta,
   buildReportMeta,
+  collectReport,
 } from './report-helper';
 import { type Resolver, applyResolver } from './resolve';
 
@@ -136,7 +132,7 @@ export interface MidsceneFixtures {
 // same timestamp in their reportFileName. `playwright` re-declares the
 // upstream options fixture so the bridge override below typechecks.
 interface InternalFixtures extends MidsceneFixtures {
-  __reportMeta: { meta: ReportMeta; startTime: number };
+  __reportMeta: { meta: ReportMeta; startTime: number; filepath: string };
   playwright: PlaywrightOptions;
 }
 
@@ -146,10 +142,9 @@ let _defaults: MidsceneOptions = {};
  * Set repo-wide `midsceneOptions` defaults that every test file picks up via
  * the `midsceneOptions` fixture.
  *
- * **Must be called from a file referenced in rstest's `setupFiles` config** —
- * each test file runs in its own isolated module graph, so the store is
- * populated per file at setup time. Calling this inside a single test file
- * only affects that file.
+ * **Must be called from a file referenced in rstest's `setupFiles` config**,
+ * which rstest loads as part of every test file's startup chain. Calling this
+ * inside a single test file only affects that file.
  *
  * Multiple calls shallow-merge: later calls overwrite previously-set top-level
  * keys but keep untouched ones. Per-file overrides go via
@@ -159,26 +154,13 @@ export const defineMidsceneDefaults = (next: MidsceneOptions): void => {
   _defaults = { ..._defaults, ...next };
 };
 
-// rstest's default `isolate: true` gives each test file a fresh module graph,
-// so these vars start clean per file. Browser lifecycle is managed by
-// `@rstest/playwright` (shared per worker, closed when idle) — this module
-// only tracks report state.
-let _filepath = '';
-const _reportHelper = new ReportHelper();
-
-rstestBeforeAll(async (suite: { filepath: string }) => {
-  if (_filepath && _filepath !== suite.filepath) {
-    throw new Error(
-      `@midscene/rstest requires test isolation but detected module-graph reuse across files (${_filepath} -> ${suite.filepath}). Remove \`isolate: false\` from your rstest config.`,
-    );
-  }
-  _filepath = suite.filepath;
-});
-
-rstestAfterAll(async () => {
-  _reportHelper.mergeReports(_filepath);
-});
-
+// This module deliberately registers no module-level hooks and keeps no
+// per-file state. Under `isolate: false` the module graph is shared across
+// test files, so anything registered here would bind to whichever file
+// happened to load it first. Everything per-file is derived from
+// `task.filepath` instead, and report merging happens in `MidsceneReporter`.
+// Browser lifecycle is managed by `@rstest/playwright` (shared per worker,
+// closed when idle).
 export const test = playwrightBaseTest.extend<InternalFixtures>({
   midsceneOptions: async (_ctx, use) => {
     await use(_defaults);
@@ -187,9 +169,16 @@ export const test = playwrightBaseTest.extend<InternalFixtures>({
   url: '',
 
   __reportMeta: async ({ task }, use) => {
+    const filepath = task.filepath;
+    if (!filepath) {
+      throw new Error(
+        '@midscene/rstest could not determine the current test file: `task.filepath` is missing from the rstest test context. This requires @rstest/core >= 0.11.2.',
+      );
+    }
     await use({
-      meta: buildReportMeta({ task }, _filepath),
+      meta: buildReportMeta({ task }, filepath),
       startTime: performance.now(),
+      filepath,
     });
   },
 
@@ -248,7 +237,12 @@ export const test = playwrightBaseTest.extend<InternalFixtures>({
       reportFileName: __reportMeta.meta.reportFileName,
     });
     await use(agent);
-    await _reportHelper.collectReport(agent, __reportMeta.startTime, { task });
+    await collectReport(
+      agent,
+      __reportMeta.startTime,
+      { task },
+      __reportMeta.filepath,
+    );
   },
 
   // Depends on `agent` so its teardown runs BEFORE the primary's — secondaries
@@ -280,9 +274,12 @@ export const test = playwrightBaseTest.extend<InternalFixtures>({
 
     for (const secondary of secondaries) {
       try {
-        await _reportHelper.collectReport(secondary, __reportMeta.startTime, {
-          task,
-        });
+        await collectReport(
+          secondary,
+          __reportMeta.startTime,
+          { task },
+          __reportMeta.filepath,
+        );
       } catch (err) {
         debug('secondary agent report failed:', err);
       }
