@@ -274,13 +274,16 @@ async function retryFixtureAction(options: {
         normalizeState,
         (state) =>
           state.activationCount > beforeActivation.activationCount &&
-          state.inputReadyGeneration > beforeActivation.inputReadyGeneration &&
           state.visible &&
-          state.active &&
-          state.keyWindow,
+          state.active,
         ACTIVATION_TIMEOUT_MS,
         options.fixtureProcess,
       );
+      // AppKit can keep the fixture active and visible while declining to make
+      // its window key again. The real action result is the reliable readiness
+      // probe, so let each retry invoke the action instead of consuming an
+      // attempt at this precondition.
+      await sleep(250);
       await options.action();
       const state = await waitForJson(
         options.stateFile,
@@ -468,7 +471,7 @@ describe.skipIf(!RUN_LIVE_SMOKE)('macOS desktop live smoke', () => {
         writeFile(fixtureStdoutFile, '', 'utf8'),
         writeFile(fixtureStderrFile, '', 'utf8'),
       ]);
-      fixtureProcess = spawn(
+      const runningFixtureProcess = spawn(
         '/usr/bin/open',
         [
           '-W',
@@ -485,14 +488,15 @@ describe.skipIf(!RUN_LIVE_SMOKE)('macOS desktop live smoke', () => {
         ],
         { stdio: 'pipe' },
       );
-      fixtureProcess.stdin.end();
+      fixtureProcess = runningFixtureProcess;
+      runningFixtureProcess.stdin.end();
 
       const metadata = await waitForJson(
         readyFile,
         normalizeMetadata,
         (value) => value.visible,
         FIXTURE_READY_TIMEOUT_MS,
-        fixtureProcess,
+        runningFixtureProcess,
       );
       fixturePid = metadata.processId;
       evidence.fixture = metadata;
@@ -599,7 +603,7 @@ describe.skipIf(!RUN_LIVE_SMOKE)('macOS desktop live smoke', () => {
       const actionWaitDurations = [2_000, 3_000, 5_000, 8_000];
       const tapResult = await retryFixtureAction({
         action: tapButton,
-        fixtureProcess,
+        fixtureProcess: runningFixtureProcess,
         fixturePid,
         predicate: (state) => state.clickCount >= 1,
         stateFile,
@@ -625,7 +629,7 @@ describe.skipIf(!RUN_LIVE_SMOKE)('macOS desktop live smoke', () => {
             normalizeState,
             () => true,
             STATE_TIMEOUT_MS,
-            fixtureProcess,
+            runningFixtureProcess,
           );
           delayedInputBaselineTextChangeCount =
             beforeDelayedInput.textChangeCount;
@@ -641,7 +645,7 @@ describe.skipIf(!RUN_LIVE_SMOKE)('macOS desktop live smoke', () => {
           });
           delayedInputElapsedMs = performance.now() - inputStart;
         },
-        fixtureProcess,
+        fixtureProcess: runningFixtureProcess,
         fixturePid,
         predicate: (state) =>
           state.text === delayedInputText &&
@@ -682,7 +686,7 @@ describe.skipIf(!RUN_LIVE_SMOKE)('macOS desktop live smoke', () => {
               'smoke text field',
             ),
           }),
-        fixtureProcess,
+        fixtureProcess: runningFixtureProcess,
         fixturePid,
         predicate: (state) => state.text === clipboardInputText,
         stateFile,
@@ -708,7 +712,7 @@ describe.skipIf(!RUN_LIVE_SMOKE)('macOS desktop live smoke', () => {
               'smoke text field',
             ),
           }),
-        fixtureProcess,
+        fixtureProcess: runningFixtureProcess,
         fixturePid,
         predicate: (state) => state.lastKey === 'Enter',
         stateFile,
@@ -729,7 +733,7 @@ describe.skipIf(!RUN_LIVE_SMOKE)('macOS desktop live smoke', () => {
         normalizeState,
         () => true,
         STATE_TIMEOUT_MS,
-        fixtureProcess,
+        runningFixtureProcess,
       );
       const scrollResult = await retryFixtureAction({
         action: () =>
@@ -743,7 +747,7 @@ describe.skipIf(!RUN_LIVE_SMOKE)('macOS desktop live smoke', () => {
               'scroll smoke area',
             ),
           }),
-        fixtureProcess,
+        fixtureProcess: runningFixtureProcess,
         fixturePid,
         predicate: (state) =>
           state.wheelEventCount > beforeScroll.wheelEventCount &&
