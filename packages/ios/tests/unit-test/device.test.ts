@@ -43,6 +43,8 @@ describe('IOSDevice', () => {
       clearActiveElement: vi.fn().mockResolvedValue(true),
       pressKey: vi.fn().mockResolvedValue(undefined),
       pressHomeButton: vi.fn().mockResolvedValue(undefined),
+      getPasteboard: vi.fn().mockResolvedValue('clipboard-text'),
+      setPasteboard: vi.fn().mockResolvedValue(undefined),
       launchApp: vi.fn().mockResolvedValue(undefined),
       terminateApp: vi.fn().mockResolvedValue(undefined),
       openUrl: vi.fn().mockResolvedValue(undefined),
@@ -411,6 +413,21 @@ describe('IOSDevice', () => {
 
       await device.appSwitcher();
       expect(mockWdaClient.swipe).toHaveBeenCalled();
+    });
+
+    it('should read the clipboard via the WDA pasteboard', async () => {
+      await device.connect();
+
+      const text = await device.getClipboardText();
+      expect(mockWdaClient.getPasteboard).toHaveBeenCalled();
+      expect(text).toBe('clipboard-text');
+    });
+
+    it('should write the clipboard via the WDA pasteboard', async () => {
+      await device.connect();
+
+      await device.setClipboardText('new-text');
+      expect(mockWdaClient.setPasteboard).toHaveBeenCalledWith('new-text');
     });
 
     it('should handle keyboard dismissal', async () => {

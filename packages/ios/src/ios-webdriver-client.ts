@@ -341,6 +341,57 @@ export class IOSWebDriverClient extends WebDriverClient {
     }
   }
 
+  /**
+   * Read the iOS pasteboard (system clipboard) via WDA's `wda/getPasteboard`.
+   * Useful for values only exposed through a native "Copy" action (e.g. a share
+   * sheet's "Copy Link"), which have no other readable representation on screen.
+   * @param contentType Pasteboard content type WDA should decode as; 'plaintext' covers
+   * the common case (copied text/URLs).
+   */
+  async getPasteboard(contentType = 'plaintext'): Promise<string> {
+    this.ensureSession();
+
+    try {
+      const response = await this.makeRequest(
+        'POST',
+        `/session/${this.sessionId}/wda/getPasteboard`,
+        { contentType },
+      );
+      const value = response?.value;
+      if (!value) {
+        return '';
+      }
+      return Buffer.from(value, 'base64').toString('utf8');
+    } catch (error) {
+      debugIOS(`Failed to read pasteboard: ${error}`);
+      throw new Error(`Failed to read pasteboard: ${error}`);
+    }
+  }
+
+  /**
+   * Write to the iOS pasteboard (system clipboard) via WDA's `wda/setPasteboard`.
+   * @param text Plain text to place on the pasteboard.
+   * @param contentType Pasteboard content type; 'plaintext' covers the common case.
+   */
+  async setPasteboard(text: string, contentType = 'plaintext'): Promise<void> {
+    this.ensureSession();
+
+    try {
+      await this.makeRequest(
+        'POST',
+        `/session/${this.sessionId}/wda/setPasteboard`,
+        {
+          content: Buffer.from(text, 'utf8').toString('base64'),
+          contentType,
+        },
+      );
+      debugIOS(`Wrote to pasteboard: "${text}"`);
+    } catch (error) {
+      debugIOS(`Failed to write pasteboard "${text}": ${error}`);
+      throw new Error(`Failed to write pasteboard: ${error}`);
+    }
+  }
+
   async tap(x: number, y: number): Promise<void> {
     this.ensureSession();
 

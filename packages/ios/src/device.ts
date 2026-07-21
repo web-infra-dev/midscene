@@ -860,6 +860,20 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
     await this.wdaBackend.pressHomeButton();
   }
 
+  /**
+   * Read the system pasteboard (clipboard). The only way to retrieve a value that an app
+   * exposes solely through a native "Copy" action -- e.g. a share sheet's "Copy Link" --
+   * since that value has no other on-screen representation to read.
+   */
+  async getClipboardText(): Promise<string> {
+    return await this.wdaBackend.getPasteboard();
+  }
+
+  /** Write plain text to the system pasteboard (clipboard). */
+  async setClipboardText(text: string): Promise<void> {
+    await this.wdaBackend.setPasteboard(text);
+  }
+
   async appSwitcher(): Promise<void> {
     try {
       // For iOS, use swipe up with slower/longer duration to trigger app switcher
