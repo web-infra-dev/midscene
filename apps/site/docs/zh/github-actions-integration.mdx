@@ -35,18 +35,18 @@ Midscene 的每条 workflow 都是一份可运行的 GitHub Actions 接入示例
 
 ## 验证 GitHub Actions 接入结果
 
-以下成功任务展示了各平台接入 GitHub Actions 后的预期结果。下载报告 artifact 并解压，然后在浏览器中打开表格列出的 HTML 文件。
+以下成功任务展示了各平台接入 GitHub Actions 后的预期结果。打开归档的 TodoMVC 报告，即可查看已经完成的 Midscene 操作。
 
-| 平台 | 成功的 GitHub Actions 任务 | HTML 报告 artifact | 报告文件 |
-| --- | --- | --- | --- |
-| Web | [任务 29302040780](https://github.com/web-infra-dev/midscene/actions/runs/29302040780) | [`e2e-report`](https://github.com/web-infra-dev/midscene/actions/runs/29302040780/artifacts/8298987616) | artifact 根目录中的报告文件 |
-| 无头 Linux | [任务 29252028039](https://github.com/web-infra-dev/midscene/actions/runs/29252028039) | [`headless-linux-ai-report`](https://github.com/web-infra-dev/midscene/actions/runs/29252028039/artifacts/8280608101) | artifact 根目录中的 TodoMVC 报告 |
-| Windows | [任务 29252027901](https://github.com/web-infra-dev/midscene/actions/runs/29252027901) | [`windows-todo-mvc-report`](https://github.com/web-infra-dev/midscene/actions/runs/29252027901/artifacts/8280120027) | `todo-mvc-win32.html` |
-| macOS | [任务 29252027999](https://github.com/web-infra-dev/midscene/actions/runs/29252027999) | [`macos-todo-mvc-report`](https://github.com/web-infra-dev/midscene/actions/runs/29252027999/artifacts/8280311446) | `todo-mvc-darwin.html` |
-| Android | [任务 29252028076](https://github.com/web-infra-dev/midscene/actions/runs/29252028076) | [`android-todo-mvc-report`](https://github.com/web-infra-dev/midscene/actions/runs/29252028076/artifacts/8280402662) | `todo-mvc-android.html` |
-| iOS | [任务 29311631217](https://github.com/web-infra-dev/midscene/actions/runs/29311631217) | [`ios-todo-mvc-report`](https://github.com/web-infra-dev/midscene/actions/runs/29311631217/artifacts/8302602686) | `todo-mvc-ios.html` |
+| 平台 | 成功的 GitHub Actions 任务 | 归档的 TodoMVC 报告 |
+| --- | --- | --- |
+| Web | [任务 29302040780](https://github.com/web-infra-dev/midscene/actions/runs/29302040780) | [打开 Web 报告](https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/github-ci/todo-mvc-web.html) |
+| 无头 Linux | [任务 29252028039](https://github.com/web-infra-dev/midscene/actions/runs/29252028039) | [打开无头 Linux 报告](https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/github-ci/todo-mvc-linux.html) |
+| Windows | [任务 29800318468](https://github.com/web-infra-dev/midscene/actions/runs/29800318468) | [打开 Windows 报告](https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/github-ci/todo-mvc-windows.html) |
+| macOS | [任务 29822678312](https://github.com/web-infra-dev/midscene/actions/runs/29822678312) | [打开 macOS 报告](https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/github-ci/todo-mvc-macos.html) |
+| Android | [任务 29822678280](https://github.com/web-infra-dev/midscene/actions/runs/29822678280) | [打开 Android 报告](https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/github-ci/todo-mvc-android.html) |
+| iOS | [任务 29822678283](https://github.com/web-infra-dev/midscene/actions/runs/29822678283) | [打开 iOS 报告](https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/github-ci/todo-mvc-ios.html) |
 
-下载 artifact 时，GitHub 可能要求登录。桌面与移动端 workflow 的 artifact 保留 7 天，因此 artifact 可能先于任务页面过期。
+归档报告不受原始 GitHub artifact 过期影响。从近期任务下载 artifact 时，GitHub 可能要求登录。桌面与移动端 workflow 的 artifact 保留 7 天，因此 artifact 可能先于任务页面过期。
 
 在 artifact 有效期内，可以使用 GitHub CLI 下载：
 
