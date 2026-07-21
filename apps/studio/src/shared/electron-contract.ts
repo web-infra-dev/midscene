@@ -41,6 +41,9 @@ export const IPC_CHANNELS = {
   describeRecorderUIEvents: 'studio:describe-recorder-ui-events',
   prepareRecorderMarkdownReplay: 'studio:prepare-recorder-markdown-replay',
   chooseReplayFile: 'studio:choose-replay-file',
+  // Reclaim OS keyboard focus after a Computer Target native tap that moved
+  // focus to a foreground window on a second monitor (Windows multi-monitor).
+  focusWindow: 'shell:focus-window',
   // Auto-updater bridge — main owns the electron-updater state machine,
   // the renderer just renders it.
   updaterCheck: 'updater:check',
@@ -228,6 +231,12 @@ export interface DiscoverDevicesRequest {
  * pass through this interface so the renderer stays trivially sandboxable.
  */
 export interface ElectronShellApi {
+  /**
+   * Ask the main process to call `BrowserWindow.focus()` so the Electron
+   * window reclaims OS keyboard focus after a Computer Target native tap on a
+   * second monitor shifts focus away from the Studio window (Windows).
+   */
+  focusWindow: () => Promise<void>;
   /** Request the main process to close the current shell window. */
   closeWindow: () => Promise<void>;
   /** Request the main process to minimize the current shell window. */

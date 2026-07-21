@@ -12,6 +12,7 @@ import { contextBridge, ipcRenderer } from 'electron';
  */
 
 const electronShellApi: ElectronShellApi = {
+  focusWindow: () => ipcRenderer.invoke(IPC_CHANNELS.focusWindow),
   closeWindow: () => ipcRenderer.invoke(IPC_CHANNELS.closeWindow),
   minimizeWindow: () => ipcRenderer.invoke(IPC_CHANNELS.minimizeWindow),
   openExternalUrl: (url) =>
