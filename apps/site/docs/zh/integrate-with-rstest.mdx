@@ -6,7 +6,7 @@ import { PackageManagerTabs } from '@theme';
 [Rstest](https://github.com/web-infra-dev/rstest) 是基于 Rspack 的高性能测试框架。`@midscene/rstest` 把 Midscene 暴露成原生 Rstest fixtures —— 浏览器启动、Agent 创建、HTML 报告生成都由 Midscene 自动处理。
 
 ```ts
-import { expect, test as base } from '@midscene/rstest';
+import { expect, test as base } from '@midscene/rstest/playwright';
 
 const test = base.extend({ url: 'http://localhost:5173/' });
 
@@ -24,6 +24,12 @@ test('adds a todo', async ({ agent }) => {
 - **每个文件一份合并后的 HTML 报告**，路径在文件结束时打印到控制台。
 
 这个包构建在 Rstest 官方 Playwright 集成 [`@rstest/playwright`](https://github.com/web-infra-dev/rstest/tree/main/packages/playwright) 之上。Midscene 在其上叠加 `agent` lifecycle 与报告能力，上游的全套工具箱直接继承：Playwright 风味的 `expect`（`toBeVisible`、`toHaveText` 等）、debug 模式（`PWDEBUG`、失败时暂停）、Playwright trace 采集，以及 `request` / `serve` fixtures。
+
+:::info 目前仅支持 Playwright
+
+目前只支持 Playwright 一种浏览器引擎，因此引擎显式写在 import 路径里（`@midscene/rstest/playwright`），与 `@midscene/web` 的 `/playwright`、`/puppeteer` 入口保持一致。暂不支持 Puppeteer。
+
+:::
 
 <SetupEnv />
 
@@ -62,7 +68,7 @@ export default defineConfig({
 ## 第三步：编写测试
 
 ```ts title="e2e/todo-list.test.ts"
-import { expect, test as base } from '@midscene/rstest';
+import { expect, test as base } from '@midscene/rstest/playwright';
 
 const test = base.extend({ url: 'http://localhost:5173/' });
 
@@ -79,7 +85,7 @@ test('adds and completes a todo', async ({ agent }) => {
 });
 ```
 
-`@midscene/rstest` 导出的 `test` 是预先挂好了 Midscene fixtures 的 Rstest test。直接从 test context 解构需要的 fixture，fixture 引擎会按依赖关系拓扑展开 setup 与 teardown。
+`@midscene/rstest/playwright` 导出的 `test` 是预先挂好了 Midscene fixtures 的 Rstest test。直接从 test context 解构需要的 fixture，fixture 引擎会按依赖关系拓扑展开 setup 与 teardown。
 
 可用的 fixtures：
 
@@ -146,7 +152,7 @@ Midscene report: midscene_run/report/<file>.html
 如果希望所有文件共享同一份配置，把 `defineMidsceneDefaults` 写到一个 setup 文件里，通过 Rstest 的 `setupFiles` 注册：
 
 ```ts title="midscene.setup.ts"
-import { defineMidsceneDefaults } from '@midscene/rstest';
+import { defineMidsceneDefaults } from '@midscene/rstest/playwright';
 
 defineMidsceneDefaults({
   viewport: { width: 1280, height: 720 },
@@ -211,10 +217,10 @@ Midscene 从四个渠道读取配置，按你想影响的作用域选一个。
    });
    ```
 
-3. **`overrideAIConfig(...)`** —— 在 setup file 里用，做环境变量表达不了的运行时全局覆盖（比如根据是否 CI 切模型）。已从 `@midscene/rstest` re-export。
+3. **`overrideAIConfig(...)`** —— 在 setup file 里用，做环境变量表达不了的运行时全局覆盖（比如根据是否 CI 切模型）。已从 `@midscene/rstest/playwright` re-export。
 
    ```ts title="midscene.setup.ts"
-   import { overrideAIConfig } from '@midscene/rstest';
+   import { overrideAIConfig } from '@midscene/rstest/playwright';
 
    overrideAIConfig({
      MIDSCENE_MODEL_NAME: process.env.CI ? 'gpt-5.5' : 'gpt-5.4',
@@ -320,7 +326,7 @@ const test = base.extend({
 默认 lifecycle 无法满足的场景 —— per-test storage state、init script、CDP 接线 —— 直接覆盖 `page` fixture。`await use(page)` 之前是 setup，之后是 teardown。
 
 ```ts
-import { test as base } from '@midscene/rstest';
+import { test as base } from '@midscene/rstest/playwright';
 
 const test = base.extend({
   url: 'https://example.com',

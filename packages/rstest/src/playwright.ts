@@ -54,7 +54,7 @@ export { overrideAIConfig };
 export type { WebPageAgentOpt };
 
 // Re-export the upstream surface so users can import everything (Playwright
-// flavored `expect`, hooks, fixture/option types) from a single entry.
+// flavored `expect`, hooks, fixture/option types) from this one entry.
 export {
   afterAll,
   afterEach,

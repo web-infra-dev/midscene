@@ -5,7 +5,7 @@ export default defineConfig({
     {
       source: {
         entry: {
-          index: './src/index.ts',
+          playwright: './src/playwright.ts',
           reporter: './src/reporter.ts',
         },
       },
