@@ -18,7 +18,7 @@ test('adds a todo', async ({ agent, page }) => {
 `@midscene/rstest` provides:
 
 - Typed fixtures. Destructure `agent`, `page`, `browser`, or `agentForPage` directly from the test context.
-- A lazy browser lifecycle. If no test in a file depends on `browser`, no browser is launched, so a file that mixes AI tests with plain unit tests only pays the AI cost for the AI tests.
+- A lazy browser lifecycle. The browser launches when the first test that depends on it runs, so a file that mixes AI tests with plain unit tests only pays the AI cost for the AI tests.
 - Composable setup. Use `test.extend({ ... })` to override the options or any individual fixture, such as a `page` that pre-navigates and injects routes, or a second `adminAgent` persona.
 - One merged Midscene HTML report per test file, with its path printed to the console after the file finishes.
 
@@ -62,7 +62,7 @@ export default defineConfig({
 });
 ```
 
-`MidsceneReporter` merges the reports of every test in a file into one HTML report and prints a line like `Midscene report: midscene_run/report/<file>.html`. Open it in your browser to replay every AI step with screenshots. Registering the reporter is required for the merged report: without it each test still writes its own report, but nothing combines them.
+`MidsceneReporter` merges the reports of every test in a file into one HTML report and prints a line like `Midscene report: midscene_run/report/<file>.html`. Open it in your browser to replay every AI step with screenshots. Each test writes its own report; the reporter is the component that merges them, so register it in `reporters` to get the per-file merged report.
 
 ## Step 3: Write a test
 
@@ -88,7 +88,7 @@ The `test` exported from `@midscene/rstest/playwright` is an Rstest test pre-wir
 The available fixtures are:
 
 - **`agent`**: the Midscene `PlaywrightAgent` bound to the primary page. Default tool for AI actions and assertions. Navigation is the test's own job (`await page.goto(...)`), exactly as in Midscene's Playwright integration.
-- **`page`**: the Playwright `Page`, straight from `@rstest/playwright` — including its failure behavior (kept open and paused under `PWDEBUG`). Escape hatch for things `agent` can't or shouldn't do, such as `page.route(...)` network mocking, `page.evaluate(...)`, or `page.context().cookies()`.
+- **`page`**: the Playwright `Page`, straight from `@rstest/playwright` — including its failure behavior (kept open and paused under `PWDEBUG`). Escape hatch for browser primitives such as `page.route(...)` network mocking, `page.evaluate(...)`, or `page.context().cookies()`.
 - **`browser`**: the shared `Browser`, managed by `@rstest/playwright`. It is launched lazily, shared per worker, and closed automatically when idle. Use it to spin up extra contexts or pages mid-test, for multi-user or cross-session scenarios.
 - **`context`**: the test-scoped `BrowserContext` the primary `page` is created from. Override via `test.extend` if you need a custom context per test.
 - **`request`** / **`serve`**: inherited from `@rstest/playwright`. An isolated `APIRequestContext` for API calls, and a one-liner static file server with automatic teardown.
@@ -251,7 +251,7 @@ The only thing `@midscene/rstest` adds here is a default value, exported as `def
 }
 ```
 
-Overriding the `playwright` fixture replaces the whole object — standard fixture semantics, no implicit merging. Spread the default when you want to keep it:
+Overriding the `playwright` fixture replaces the whole object — standard fixture semantics. Spread the default when you want to keep it:
 
 ```ts
 import {
@@ -281,7 +281,7 @@ const test = base.extend({
 
 ## Custom page setup
 
-To put a whole file on one URL, or for lifecycles the defaults don't cover (per-test storage state, init scripts, CDP wiring), override the `page` fixture — this is plain `@rstest/playwright` fixture composition; `@midscene/rstest` adds nothing on top of the upstream `page`. Code before `await use(page)` is setup; code after is teardown.
+To put a whole file on one URL, or for lifecycles the defaults don't cover (per-test storage state, init scripts, CDP wiring), override the `page` fixture — plain `@rstest/playwright` fixture composition. Code before `await use(page)` is setup; code after is teardown.
 
 ```ts
 import { test as base } from '@midscene/rstest/playwright';

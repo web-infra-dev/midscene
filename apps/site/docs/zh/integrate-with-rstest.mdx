@@ -18,7 +18,7 @@ test('adds a todo', async ({ agent, page }) => {
 `@midscene/rstest` 提供：
 
 - 类型化 fixtures。`agent`、`page`、`browser`、`agentForPage` 直接从 test context 解构。
-- Lazy 浏览器生命周期。一个文件里如果没有 test 依赖 `browser`，浏览器不会被启动。AI 测试和纯 unit test 混在同一个文件时，只有 AI 测试会产生 AI 开销。
+- Lazy 浏览器生命周期。浏览器在第一个依赖它的 test 运行时才启动，AI 测试和纯 unit test 混在同一个文件时，只有 AI 测试会产生 AI 开销。
 - 可组合。用 `test.extend({ ... })` 覆盖 options 或任何单独的 fixture，比如预导航并注入 route 的 `page`，或者第二个 `adminAgent` persona。
 - 每个文件一份合并后的 HTML 报告，路径在文件结束时打印到控制台。
 
@@ -62,7 +62,7 @@ export default defineConfig({
 });
 ```
 
-`MidsceneReporter` 会把一个文件里所有测试的报告合并成一份 HTML，并打印形如 `Midscene report: midscene_run/report/<file>.html` 的一行。在浏览器中打开这个 HTML，即可逐步回放每个 AI 步骤与对应截图。合并报告依赖这个 reporter：不注册它，每个测试仍会各自生成报告，但不会有人把它们合并起来。
+`MidsceneReporter` 会把一个文件里所有测试的报告合并成一份 HTML，并打印形如 `Midscene report: midscene_run/report/<file>.html` 的一行。在浏览器中打开这个 HTML，即可逐步回放每个 AI 步骤与对应截图。每个测试各自生成一份报告，合并这一步由 reporter 完成，所以要在 `reporters` 里注册它才能得到按文件合并的报告。
 
 ## 第三步：编写测试
 
@@ -88,7 +88,7 @@ test('adds and completes a todo', async ({ agent, page }) => {
 可用的 fixtures：
 
 - **`agent`**：绑定到主 page 上的 Midscene `PlaywrightAgent`。AI action 和 assertion 的默认入口。导航是测试自己的事（`await page.goto(...)`），与 Midscene 的 Playwright 集成完全一致。
-- **`page`**：Playwright `Page`，原样来自 `@rstest/playwright`——包括其失败时的行为（`PWDEBUG` 下失败保留现场并 pause）。用于 `agent` 做不到或不该做的事，比如 `page.route(...)` network mock、`page.evaluate(...)`、`page.context().cookies()`。
+- **`page`**：Playwright `Page`，原样来自 `@rstest/playwright`——包括其失败时的行为（`PWDEBUG` 下失败保留现场并 pause）。用于直接操作浏览器原语，比如 `page.route(...)` network mock、`page.evaluate(...)`、`page.context().cookies()`。
 - **`browser`**：共享的 `Browser`，由 `@rstest/playwright` 管理，惰性启动、worker 内共享、空闲时自动关闭。适合在测试中开新 context 或新 page，用于多用户、跨会话场景。
 - **`context`**：创建主 `page` 的 test-scoped `BrowserContext`。需要自定义 context 时通过 `test.extend` 覆盖。
 - **`request`** / **`serve`**：继承自 `@rstest/playwright`。隔离的 `APIRequestContext` 用于 API 调用，以及一行代码起静态文件服务器，自动清理。
@@ -251,7 +251,7 @@ const test = base.extend({
 }
 ```
 
-覆盖 `playwright` fixture 时整个对象被替换——标准 fixture 语义，没有任何隐式合并。想保留默认值就显式 spread：
+覆盖 `playwright` fixture 时整个对象被替换——标准 fixture 语义。想保留默认值就显式 spread：
 
 ```ts
 import {
@@ -281,7 +281,7 @@ const test = base.extend({
 
 ## 自定义 page 设置
 
-想让整个文件的测试都落在同一个 URL 上，或默认 lifecycle 无法满足的场景（per-test storage state、init script、CDP 接线），直接覆盖 `page` fixture——这就是普通的 `@rstest/playwright` fixture 组合，`@midscene/rstest` 没有在上游 `page` 之上加任何东西。`await use(page)` 之前是 setup，之后是 teardown。
+想让整个文件的测试都落在同一个 URL 上，或默认 lifecycle 无法满足的场景（per-test storage state、init script、CDP 接线），直接覆盖 `page` fixture——普通的 `@rstest/playwright` fixture 组合。`await use(page)` 之前是 setup，之后是 teardown。
 
 ```ts
 import { test as base } from '@midscene/rstest/playwright';
