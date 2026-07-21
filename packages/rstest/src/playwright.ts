@@ -107,6 +107,12 @@ export type AgentForPage = (
 ) => Promise<PlaywrightAgent>;
 
 export interface MidsceneFixtures {
+  /**
+   * Every Midscene knob. Defaults to `{}`; set project-wide values by
+   * extending this fixture in a shared module and exporting the extended
+   * `test` (the same pattern as Playwright Test), or per file via
+   * `test.extend({ midsceneOptions: { ... } })`.
+   */
   midsceneOptions: MidsceneOptions;
   /**
    * Target URL the default `page` fixture navigates to. Empty string disables
@@ -135,24 +141,6 @@ interface InternalFixtures extends MidsceneFixtures {
   __reportMeta: ReportMeta;
   playwright: PlaywrightOptions;
 }
-
-let _defaults: MidsceneOptions = {};
-
-/**
- * Set repo-wide `midsceneOptions` defaults that every test file picks up via
- * the `midsceneOptions` fixture.
- *
- * **Must be called from a file referenced in rstest's `setupFiles` config**,
- * which rstest loads as part of every test file's startup chain. Calling this
- * inside a single test file only affects that file.
- *
- * Multiple calls shallow-merge: later calls overwrite previously-set top-level
- * keys but keep untouched ones. Per-file overrides go via
- * `test.extend({ midsceneOptions: { ... } })`.
- */
-export const defineMidsceneDefaults = (next: MidsceneOptions): void => {
-  _defaults = { ..._defaults, ...next };
-};
 
 /**
  * Single place where agent options are resolved: fixture-level
@@ -189,9 +177,10 @@ function createAgent(
 // Browser lifecycle is managed by `@rstest/playwright` (shared per worker,
 // closed when idle).
 export const test = playwrightBaseTest.extend<InternalFixtures>({
-  midsceneOptions: async (_ctx, use) => {
-    await use(_defaults);
-  },
+  // Repo-wide defaults are set the same way as with Playwright Test: extend
+  // this fixture in a shared module and export the extended `test` — see the
+  // "Project-wide defaults" section of the docs. No side-channel setter.
+  midsceneOptions: {},
 
   url: '',
 
