@@ -26,6 +26,7 @@ import {
   generateImageScriptTag,
   getBaseUrlFixScript,
 } from './dump/html-utils';
+import { compactReportDumps } from './dump/report-dump-compactor';
 import { ScreenshotStore } from './dump/screenshot-store';
 import {
   type ExecutionDump,
@@ -213,6 +214,7 @@ export class ReportGenerator implements IReportGenerator {
     }
 
     await this.appendAgentReportComment();
+    await compactReportDumps(this.reportPath);
     return this.reportPath;
   }
 
