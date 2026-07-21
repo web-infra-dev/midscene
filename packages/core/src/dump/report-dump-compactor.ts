@@ -1,8 +1,11 @@
-import { randomUUID } from 'node:crypto';
 import { createReadStream } from 'node:fs';
 import { type FileHandle, open, rename, stat, unlink } from 'node:fs/promises';
 import { basename, dirname, join } from 'node:path';
-import { antiEscapeScriptTag, escapeScriptTag } from '@midscene/shared/utils';
+import {
+  antiEscapeScriptTag,
+  escapeScriptTag,
+  uuid,
+} from '@midscene/shared/utils';
 import { type ExecutionDump, ReportActionDump } from '../types';
 
 const SCRIPT_OPEN = Buffer.from('<script');
@@ -257,7 +260,7 @@ async function replaceReportFile(
 
   const backupPath = join(
     dirname(reportPath),
-    `.${basename(reportPath)}.${randomUUID()}.backup`,
+    `.${basename(reportPath)}.${uuid()}.backup`,
   );
   await rename(reportPath, backupPath);
   try {
@@ -293,7 +296,7 @@ export async function compactReportDumps(
 
   const temporaryPath = join(
     dirname(reportPath),
-    `.${basename(reportPath)}.${randomUUID()}.tmp`,
+    `.${basename(reportPath)}.${uuid()}.tmp`,
   );
 
   try {
