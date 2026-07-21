@@ -325,7 +325,7 @@ const DetailPanel = ({
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
-  });
+  }, [viewType, availableViewTypes]);
 
   const options = availableViewTypes.map((type) => {
     if (type === VIEW_TYPE_REPLAY) {
