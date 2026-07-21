@@ -173,6 +173,10 @@ export class ComputerInputDriver {
     }
   }
 
+  typeString(text: string): void {
+    this.getLibnutOrThrow('typeString').typeString(text);
+  }
+
   sendKeyViaAppleScript(key: string, modifiers: string[] = []): void {
     this.assertActive('sendKeyViaAppleScript');
     this.options.sendKeyViaAppleScript(key, modifiers);

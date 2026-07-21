@@ -47,6 +47,13 @@ const computerInitArgShape = {
     .describe(
       'Start virtual display via Xvfb (Linux local mode only). Ignored when host is set.',
     ),
+  keyboardTypeDelay: z
+    .number()
+    .nonnegative()
+    .optional()
+    .describe(
+      'Delay in milliseconds between keystrokes. Positive values enable key-by-key input; zero or omitted uses the default clipboard input strategy.',
+    ),
   // RDP options. Providing `host` switches connect into RDP mode and routes
   // the session through the RDP helper binary instead of the local desktop.
   // All other RDP options below are silently ignored unless `host` is set.
@@ -101,12 +108,14 @@ const computerInitArgShape = {
 export type ComputerLocalInitArgs = {
   mode: 'local';
 } & Pick<ComputerDeviceOpt, 'displayId' | 'headless'> &
+  Pick<ComputerDeviceOpt, 'keyboardTypeDelay'> &
   AgentBehaviorInitArgs;
 
 /** Init args for the RDP remote-desktop agent. */
 export type ComputerRDPInitArgs = {
   mode: 'rdp';
 } & RDPConnectionConfig &
+  Pick<ComputerDeviceOpt, 'keyboardTypeDelay'> &
   AgentBehaviorInitArgs;
 
 /**
@@ -117,7 +126,7 @@ export type ComputerRDPInitArgs = {
 export type ComputerInitArgs = ComputerLocalInitArgs | ComputerRDPInitArgs;
 
 type ExtractedComputerInitArgs = Partial<
-  Pick<ComputerDeviceOpt, 'displayId' | 'headless'> &
+  Pick<ComputerDeviceOpt, 'displayId' | 'headless' | 'keyboardTypeDelay'> &
     RDPConnectionConfig &
     AgentBehaviorInitArgs
 >;
@@ -142,6 +151,7 @@ function adaptComputerInitArgs(
     mode: 'local',
     displayId: extracted.displayId,
     headless: extracted.headless,
+    keyboardTypeDelay: extracted.keyboardTypeDelay,
     ...(extractAgentBehaviorInitArgs(extracted) ?? {}),
   };
 }
@@ -230,10 +240,12 @@ export class ComputerMidsceneTools extends BaseMidsceneTools<
 
     const displayId = opts?.mode === 'local' ? opts.displayId : undefined;
     const headless = opts?.mode === 'local' ? opts.headless : undefined;
+    const keyboardTypeDelay = opts?.keyboardTypeDelay;
     debug('Creating Computer agent with displayId:', displayId || 'primary');
     const agentOpts = {
       ...(displayId ? { displayId } : {}),
       ...(headless !== undefined ? { headless } : {}),
+      ...(keyboardTypeDelay !== undefined ? { keyboardTypeDelay } : {}),
       ...(extractAgentBehaviorInitArgs(opts) ?? {}),
       ...(reportOptions ?? {}),
     };

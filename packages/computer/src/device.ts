@@ -674,7 +674,19 @@ export interface DisplayInfo {
   primary?: boolean;
 }
 
-export interface ComputerDeviceOpt {
+export interface ComputerDeviceInputOpt {
+  /**
+   * Delay in milliseconds between keystrokes when typing text.
+   *
+   * Positive values switch input from clipboard paste to real key events.
+   * This helps applications that require physical-looking keystrokes or drop
+   * characters when an entire value arrives at once. When omitted or set to
+   * zero, Computer keeps using clipboard paste to avoid IME interference.
+   */
+  keyboardTypeDelay?: number;
+}
+
+export interface ComputerDeviceOpt extends ComputerDeviceInputOpt {
   displayId?: string;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   customActions?: DeviceAction<any>[];
@@ -836,7 +848,9 @@ export class ComputerDevice implements AbstractInterface {
           }
         }
 
-        await this.smartTypeString(value);
+        const keyboardTypeDelay =
+          opts?.keyboardTypeDelay ?? this.options?.keyboardTypeDelay;
+        await this.smartTypeString(value, keyboardTypeDelay);
       },
       keyboardPress: async (keyName, opts) => {
         const target = opts?.target as LocateResultElement | undefined;
@@ -1303,12 +1317,47 @@ $g.Dispose(); $bmp.Dispose(); $ms.Dispose()
   }
 
   /**
-   * Always use clipboard paste to input text, avoiding IME interference.
-   * Keystroke-based input (AppleScript/libnut) goes through the active input method,
-   * which can swallow characters or convert them when a non-English IME is active.
+   * Keep clipboard paste as the default to avoid IME interference. A positive
+   * delay explicitly opts into real key events, which can be required by apps
+   * that reject paste or need key-by-key input.
    */
-  private async smartTypeString(text: string): Promise<void> {
+  private async smartTypeString(
+    text: string,
+    keyboardTypeDelay?: number,
+  ): Promise<void> {
+    if (keyboardTypeDelay && keyboardTypeDelay > 0) {
+      await this.typeStringWithDelay(text, keyboardTypeDelay);
+      return;
+    }
+
     await this.typeViaClipboard(text);
+  }
+
+  private async typeStringWithDelay(
+    text: string,
+    keyboardTypeDelay: number,
+  ): Promise<void> {
+    const characters = Array.from(text.replace(/\r\n?/g, '\n'));
+
+    for (let index = 0; index < characters.length; index++) {
+      const character = characters[index];
+
+      if (character === '\n') {
+        this.inputDriver.sendKey('enter');
+      } else if (character === '\t') {
+        this.inputDriver.sendKey('tab');
+      } else if (character === ' ') {
+        this.inputDriver.sendKey('space');
+      } else if (this.useAppleScript) {
+        this.inputDriver.sendKeyViaAppleScript(character);
+      } else {
+        this.inputDriver.typeString(character);
+      }
+
+      if (index < characters.length - 1) {
+        await this.inputDriver.delay(keyboardTypeDelay);
+      }
+    }
   }
 
   private async selectAllAndDelete(): Promise<void> {

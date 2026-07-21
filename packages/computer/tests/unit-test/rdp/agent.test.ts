@@ -273,6 +273,45 @@ describe('@midscene/computer RDP device', () => {
     );
   });
 
+  it('types RDP Unicode code points individually with the device delay', async () => {
+    const backend = new FakeRDPBackend();
+    const agent = await agentForRDPComputer({
+      host: '10.0.0.1',
+      keyboardTypeDelay: 1,
+      backend,
+      generateReport: false,
+    });
+
+    await agent.interface.inputPrimitives.keyboard!.typeText('A😀B', {
+      replace: false,
+    });
+
+    expect(backend.calls.filter((call) => call.name === 'typeText')).toEqual([
+      { name: 'typeText', args: ['A'] },
+      { name: 'typeText', args: ['😀'] },
+      { name: 'typeText', args: ['B'] },
+    ]);
+  });
+
+  it('lets an action-level zero disable the RDP device delay', async () => {
+    const backend = new FakeRDPBackend();
+    const device = new RDPDevice({
+      host: '10.0.0.1',
+      keyboardTypeDelay: 80,
+      backend,
+    });
+    await device.connect();
+
+    await device.inputPrimitives.keyboard!.typeText('hello', {
+      replace: false,
+      keyboardTypeDelay: 0,
+    });
+
+    expect(backend.calls.filter((call) => call.name === 'typeText')).toEqual([
+      { name: 'typeText', args: ['hello'] },
+    ]);
+  });
+
   it('lists the connected RDP display as a single primary monitor', async () => {
     const backend = new FakeRDPBackend();
     const device = new RDPDevice({
