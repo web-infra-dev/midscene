@@ -27,19 +27,18 @@ const playwright = {
   },
 };
 
-const test = base.extend({ url: PAGE_URL, playwright });
-const testWithoutUrl = base.extend({ playwright });
+const test = base.extend({ playwright });
 
-test('agent fixture navigates page to url', async ({ agent, page }) => {
-  expect(agent).toBeDefined();
-  expect(page.url()).toBe(PAGE_URL);
-  expect(await page.title()).toBe('midscene-smoke');
-});
-
-test('page without agent stays un-navigated (upstream behavior)', async ({
+test("agent binds to the upstream page; navigation is the test's job", async ({
+  agent,
   page,
 }) => {
+  expect(agent).toBeDefined();
+  // No auto-navigation: the page starts blank, exactly as upstream.
   expect(page.url()).toBe('about:blank');
+
+  await page.goto(PAGE_URL);
+  expect(await page.title()).toBe('midscene-smoke');
 });
 
 test('context and browser fixtures come from @rstest/playwright', async ({
@@ -49,9 +48,4 @@ test('context and browser fixtures come from @rstest/playwright', async ({
 }) => {
   expect(browser.isConnected()).toBe(true);
   expect(context.pages()).toContain(page);
-});
-
-testWithoutUrl('empty url skips navigation', async ({ agent, page }) => {
-  expect(agent).toBeDefined();
-  expect(page.url()).toBe('about:blank');
 });

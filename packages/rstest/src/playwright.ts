@@ -20,8 +20,6 @@ import {
   collectReport,
 } from './report-helper';
 
-type GoToOptions = NonNullable<Parameters<Page['goto']>[1]>;
-
 /**
  * Cache configuration shape exposed to rstest users. `id` is optional — when
  * omitted (or when `cache: true`), the package fills in a stable id derived
@@ -33,7 +31,12 @@ export type RstestCache =
   | true
   | { strategy?: 'read-only' | 'read-write' | 'write-only'; id?: string };
 
-type AgentOptions = Omit<
+/**
+ * Options for constructing agents (the `agent` fixture and `agentForPage`
+ * ones). `groupName` and `reportFileName` are managed by the lifecycle;
+ * `cache` is reshaped so an id can be auto-derived from the test.
+ */
+export type AgentOptions = Omit<
   WebPageAgentOpt,
   'groupName' | 'reportFileName' | 'cache'
 > & {
@@ -92,22 +95,6 @@ export const defaultPlaywrightOptions: PlaywrightOptions = {
   },
 };
 
-/**
- * Midscene-only configuration. Browser-level configuration (launch options,
- * context options, debug, trace, browser choice) is NOT here — it lives on
- * `@rstest/playwright`'s own `playwright` fixture, configured exactly as the
- * upstream docs describe. The two domains do not overlap.
- */
-export interface MidsceneOptions {
-  /** Options for constructing every agent (primary and `agentForPage` ones). */
-  agentOptions?: AgentOptions;
-  /**
-   * Forwarded to `page.goto(url, ...)` when the `agent` fixture performs the
-   * `url` auto-navigation.
-   */
-  gotoOptions?: GoToOptions;
-}
-
 export type AgentForPage = (
   page: Page,
   opts?: AgentOptions,
@@ -115,19 +102,18 @@ export type AgentForPage = (
 
 export interface MidsceneFixtures {
   /**
-   * Midscene-only knobs (`agentOptions`, `gotoOptions`). Defaults to `{}`;
+   * Default options for every agent this test constructs. Defaults to `{}`;
    * set project-wide values by extending this fixture in a shared module and
    * exporting the extended `test`, or per file via
-   * `test.extend({ midsceneOptions: { ... } })`.
+   * `test.extend({ agentOptions: { ... } })`. `agentForPage`'s per-call opts
+   * override these.
    */
-  midsceneOptions: MidsceneOptions;
+  agentOptions: AgentOptions;
   /**
-   * Target URL the `agent` fixture navigates `page` to before handing the
-   * agent to the test. Empty string disables auto-navigation. Tests that use
-   * `page` without `agent` navigate themselves, exactly as in plain
-   * `@rstest/playwright`.
+   * Midscene `PlaywrightAgent` bound to the upstream `page`. Navigation is
+   * the test's own job (`await page.goto(...)`), exactly as in Midscene's
+   * Playwright integration and in plain `@rstest/playwright`.
    */
-  url: string;
   agent: PlaywrightAgent;
   /**
    * Factory for secondary agents bound to popups / extra contexts. Reports are
@@ -152,13 +138,12 @@ interface InternalFixtures extends MidsceneFixtures {
  */
 function createAgent(
   page: Page,
-  midsceneOptions: MidsceneOptions,
+  agentOptions: AgentOptions,
   meta: ReportMeta,
   reportFileName: string,
   opts?: AgentOptions,
 ): PlaywrightAgent {
-  const { cache: fixtureCache, ...fixtureRest } =
-    midsceneOptions.agentOptions ?? {};
+  const { cache: fixtureCache, ...fixtureRest } = agentOptions;
   const { cache: optsCache, ...optsRest } = opts ?? {};
   return new PlaywrightAgent(page, {
     ...fixtureRest,
@@ -187,9 +172,7 @@ export const test = playwrightBaseTest.extend<InternalFixtures>({
   // Repo-wide defaults are set the same way as with Playwright Test: extend
   // this fixture in a shared module and export the extended `test` — see the
   // "Project-wide defaults" section of the docs. No side-channel setter.
-  midsceneOptions: {},
-
-  url: '',
+  agentOptions: {},
 
   playwright: defaultPlaywrightOptions,
 
@@ -203,13 +186,10 @@ export const test = playwrightBaseTest.extend<InternalFixtures>({
     await use(buildReportMeta(task, filepath));
   },
 
-  agent: async ({ page, url, midsceneOptions, __reportMeta, task }, use) => {
-    if (url) {
-      await page.goto(url, midsceneOptions.gotoOptions);
-    }
+  agent: async ({ page, agentOptions, __reportMeta, task }, use) => {
     const agent = createAgent(
       page,
-      midsceneOptions,
+      agentOptions,
       __reportMeta,
       __reportMeta.reportFileName,
     );
@@ -219,13 +199,13 @@ export const test = playwrightBaseTest.extend<InternalFixtures>({
 
   // Depends on `agent` so its teardown runs BEFORE the primary's — secondaries
   // are collected while their pages are still alive.
-  agentForPage: async ({ agent, midsceneOptions, __reportMeta, task }, use) => {
+  agentForPage: async ({ agent, agentOptions, __reportMeta, task }, use) => {
     const secondaries: PlaywrightAgent[] = [];
 
     const helper: AgentForPage = async (secondaryPage, opts) => {
       const secondary = createAgent(
         secondaryPage,
-        midsceneOptions,
+        agentOptions,
         __reportMeta,
         `${__reportMeta.reportFileName}-page${secondaries.length + 1}`,
         opts,
