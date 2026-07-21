@@ -401,6 +401,10 @@ describe('PlaygroundServer manual interaction APIs', () => {
         },
       });
       expect(capturedSignal?.aborted).toBe(true);
+      expect(agent.writeOutActionDumps).toHaveBeenCalledWith({
+        id: 'partial-execution',
+        tasks: [],
+      });
 
       await executePromise;
       expect(executeResponse.statusCode).toBe(200);

@@ -8,6 +8,8 @@ import {
   writeFile as writeFileToDisk,
 } from 'node:fs/promises';
 import path from 'node:path';
+import { setMidsceneRunDir } from '@midscene/shared/common';
+import { setLogDirectoryResolver } from '@midscene/shared/logger';
 import {
   type ChooseFileSavePathRequest,
   type ChooseReplayFileResult,
@@ -47,8 +49,8 @@ import {
   generateRecorderCodeInMain,
   generateRecorderMetadataInMain,
 } from './recorder/codegen';
-import { RunDirectoryManager } from './run-directory-manager';
 import { configureStudioShellEnvHydration } from './shell-env';
+import { StudioArtifactCleanup } from './studio-artifact-cleanup';
 import { studioUpdater } from './updater';
 import { registerUpdaterHandlers } from './updater-handlers';
 import { registerWindowRevealHandlers } from './window-reveal';
@@ -73,8 +75,7 @@ let cachedAppIcon: NativeImage | null = null;
 let playgroundRuntimePromise: Promise<PlaygroundRuntimeService> | null = null;
 let deviceDiscoveryServicePromise: Promise<DeviceDiscoveryService> | null =
   null;
-let runDirectoryManager: RunDirectoryManager | null = null;
-let runDirectoryCleanupTimer: NodeJS.Timeout | null = null;
+let studioRunDir: string | null = null;
 const isStudioSmokeTest = process.env.MIDSCENE_STUDIO_SMOKE_TEST === '1';
 const isStudioE2ETest = process.env.MIDSCENE_STUDIO_E2E_TEST === '1';
 const STUDIO_SMOKE_READY_MARKER = 'MIDSCENE_STUDIO_SMOKE_READY';
@@ -138,23 +139,46 @@ const getAppIcon = () => {
   return icon;
 };
 
-const resolveStudioUserRunDir = () =>
+const resolveStudioUserRunRoot = () =>
   path.join(app.getPath('userData'), 'midscene_run');
 
 const resolveStudioTempRunDir = () =>
   path.join(app.getPath('temp'), 'midscene-studio');
 
-const ensureStudioRunDirEnv = () => {
+const resolveStudioRunDir = (runRoot: string) =>
+  path.basename(path.resolve(runRoot)) === 'studio'
+    ? runRoot
+    : path.join(runRoot, 'studio');
+
+const formatLocalDate = (date = new Date()) => {
+  const pad = (value: number) => String(value).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+};
+
+const configureStudioLogDirectory = (runDir: string) => {
+  setLogDirectoryResolver(() => {
+    const logDir = path.join(runDir, 'log', formatLocalDate());
+    mkdirSync(logDir, { recursive: true });
+    return logDir;
+  });
+};
+
+const ensureStudioRunDir = () => {
   const currentRunDir = process.env.MIDSCENE_RUN_DIR;
   const tempRunDir = resolveStudioTempRunDir();
-  const runDir =
+  const runRoot =
     currentRunDir && path.resolve(currentRunDir) !== path.resolve(tempRunDir)
       ? currentRunDir
-      : resolveStudioUserRunDir();
+      : resolveStudioUserRunRoot();
+  const runDir = resolveStudioRunDir(runRoot);
 
-  process.env.MIDSCENE_RUN_DIR = runDir;
-  process.env.MIDSCENE_RUN_DATE_PARTITIONS = '1';
   mkdirSync(runDir, { recursive: true });
+  setMidsceneRunDir(runDir);
+  configureStudioLogDirectory(runDir);
+  studioRunDir = runDir;
+  void new StudioArtifactCleanup(runDir).cleanup().catch((error) => {
+    console.error('Failed to clean Studio artifacts:', error);
+  });
 };
 
 // macOS `vibrancy` and Windows `backgroundMaterial: 'acrylic'` only show
@@ -469,9 +493,11 @@ const registerIpcHandlers = () => {
     await shell.openExternal(resolveExternalUrl(url));
   });
   ipcMain.handle(IPC_CHANNELS.openRunDirectory, async () => {
-    const runDir = process.env.MIDSCENE_RUN_DIR;
+    const runDir = studioRunDir;
     if (!runDir) {
-      throw new Error('openRunDirectory: MIDSCENE_RUN_DIR is not configured');
+      throw new Error(
+        'openRunDirectory: Studio run directory is not configured',
+      );
     }
     await mkdir(runDir, { recursive: true });
     const errorMessage = await shell.openPath(path.resolve(runDir));
@@ -740,22 +766,7 @@ const registerIpcHandlers = () => {
 };
 
 app.whenReady().then(() => {
-  ensureStudioRunDirEnv();
-  runDirectoryManager = new RunDirectoryManager(
-    path.resolve(process.env.MIDSCENE_RUN_DIR!),
-  );
-  void runDirectoryManager.cleanup().catch((error) => {
-    console.error('Failed to clean the Studio run directory:', error);
-  });
-  runDirectoryCleanupTimer = setInterval(
-    () => {
-      void runDirectoryManager?.cleanup().catch((error) => {
-        console.error('Failed to clean the Studio run directory:', error);
-      });
-    },
-    24 * 60 * 60 * 1000,
-  );
-  runDirectoryCleanupTimer.unref();
+  ensureStudioRunDir();
   const stopEventLoopWatchdog = startStudioEventLoopWatchdog();
   app.once('before-quit', stopEventLoopWatchdog);
 
@@ -805,10 +816,6 @@ app.on('window-all-closed', () => {
 });
 
 app.on('before-quit', () => {
-  if (runDirectoryCleanupTimer) {
-    clearInterval(runDirectoryCleanupTimer);
-    runDirectoryCleanupTimer = null;
-  }
   void closePlaygroundRuntime();
   void getDeviceDiscoveryService()
     .then((service) => {

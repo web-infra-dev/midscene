@@ -163,6 +163,11 @@ export default defineConfig({
           'electron',
           'electron-updater',
           'sharp',
+          // Playground is loaded from its packaged CommonJS build at runtime.
+          // Keep Shared external too, so Studio's process-local run-directory
+          // configuration and Playground's Recorder use the same module
+          // instance instead of separate bundled and disk-loaded copies.
+          /^@midscene\/shared(?:\/.*)?$/,
           '@midscene/android',
           '@midscene/android-playground',
           '@midscene/computer',

@@ -8,25 +8,26 @@ import { MIDSCENE_RUN_DIR } from './env/types';
 import { ifInNode } from './utils';
 
 export const defaultRunDirName = 'midscene_run';
-const DATE_PARTITIONED_RUN_SUBDIRS = new Set([
-  'dump',
-  'log',
-  'output',
-  'report',
-]);
-
-const formatLocalDate = (date = new Date()): string => {
-  const pad = (value: number) => String(value).padStart(2, '0');
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
-};
+let configuredRunDir: string | undefined;
 // Define locally for now to avoid import issues
+
+/**
+ * Sets the run directory for the current process without changing the
+ * environment. Callers that do not set it keep the existing environment-based
+ * behavior.
+ */
+export const setMidsceneRunDir = (runDir: string | undefined): void => {
+  configuredRunDir = runDir;
+};
 
 export const getMidsceneRunDir = () => {
   if (!ifInNode) {
     return '';
   }
 
-  return getBasicEnvValue(MIDSCENE_RUN_DIR) || defaultRunDirName;
+  return (
+    configuredRunDir ?? getBasicEnvValue(MIDSCENE_RUN_DIR) ?? defaultRunDirName
+  );
 };
 
 export const getMidsceneRunBaseDir = () => {
@@ -66,12 +67,7 @@ export const getMidsceneRunSubDir = (
 
   // Create a log directory
   const basePath = getMidsceneRunBaseDir();
-  const useDatePartition =
-    process.env.MIDSCENE_RUN_DATE_PARTITIONS === '1' &&
-    DATE_PARTITIONED_RUN_SUBDIRS.has(subdir);
-  const logPath = useDatePartition
-    ? path.join(basePath, subdir, formatLocalDate())
-    : path.join(basePath, subdir);
+  const logPath = path.join(basePath, subdir);
   if (!existsSync(logPath)) {
     mkdirSync(logPath, { recursive: true });
   }

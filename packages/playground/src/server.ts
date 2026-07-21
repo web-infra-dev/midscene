@@ -3624,6 +3624,15 @@ class PlaygroundServer {
             new Error(`Task cancelled by user: ${requestId}`),
           );
 
+          // A progress dump can reach the UI immediately before its queued
+          // report write starts. Persist that latest snapshot before destroy()
+          // flushes and finalizes the report, otherwise a stopped run can show
+          // a Timeline but have no report artifact to register.
+          const latestExecutionDump = this.taskExecutionDumps[requestId];
+          if (latestExecutionDump) {
+            agent.writeOutActionDumps?.(latestExecutionDump);
+          }
+
           // Destroy and recreate agent to cancel the current task,
           // while keeping the live preview stream alive so the user
           // doesn't see a 3–5s blackout / page reload when they hit
