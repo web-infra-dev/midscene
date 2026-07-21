@@ -8,14 +8,22 @@ import {
 const PAGE_URL =
   'https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/contacts3.html';
 
-// Per-file URL override. The `agent` fixture navigates here for every test.
+// Navigation is the test's own job, exactly as in Midscene's Playwright
+// integration. For a whole file on one URL, override the `page` fixture in
+// one place — plain `@rstest/playwright` fixture composition.
+//
 // Browser-level config goes on `@rstest/playwright`'s own `playwright`
 // fixture; overriding it replaces the package defaults wholesale, so spread
 // `defaultPlaywrightOptions` to keep them. `DEMO_BROWSER_CHANNEL=chrome` runs
 // against a system-installed Chrome instead of the Playwright-managed
 // Chromium (useful when the browser download is unavailable).
 const test = base.extend({
-  url: PAGE_URL,
+  page: async ({ context }, use) => {
+    const page = await context.newPage();
+    await page.goto(PAGE_URL);
+    await use(page);
+    await page.close();
+  },
   ...(process.env.DEMO_BROWSER_CHANNEL
     ? {
         playwright: {
@@ -78,13 +86,10 @@ describe('Contacts page', () => {
   });
 
   // Escape hatch: raw Playwright `Page` for browser-primitive checks that
-  // don't need the AI. `page` comes straight from `@rstest/playwright`;
-  // without the `agent` fixture there is no auto-navigation, so navigate
-  // explicitly — exactly as in a plain `@rstest/playwright` test.
+  // don't need the AI. The `page` override above already navigated it.
   test('inspects raw page state via the Playwright page escape hatch', async ({
     page,
   }) => {
-    await page.goto(PAGE_URL);
     expect(page.url()).toBe(PAGE_URL);
 
     const viewport = page.viewportSize();
