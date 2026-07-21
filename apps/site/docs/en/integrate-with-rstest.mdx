@@ -63,7 +63,7 @@ export default defineConfig({
 });
 ```
 
-`MidsceneReporter` prints a line like `Midscene report: midscene_run/report/<file>.html` after each test file. Open it in your browser to replay every AI step with screenshots.
+`MidsceneReporter` merges the reports of every test in a file into one HTML report and prints a line like `Midscene report: midscene_run/report/<file>.html`. Open it in your browser to replay every AI step with screenshots. Registering the reporter is required for the merged report: without it each test still writes its own report, but nothing combines them.
 
 ## Step 3: Write a test
 
@@ -169,7 +169,7 @@ export default defineConfig({
 
 :::warning Must be called from a `setupFiles` entry
 
-Each test file runs in its own isolated module graph (Rstest's default `isolate: true`). `defineMidsceneDefaults` populates a module-scoped store, so it only takes effect when called from a file that Rstest loads as part of every test file's setup chain. Calling it inside a single test file only affects that file.
+`defineMidsceneDefaults` populates a module-scoped store, so it only takes effect when called from a file that Rstest loads as part of every test file's startup chain. Calling it inside a single test file only affects that file.
 
 :::
 
