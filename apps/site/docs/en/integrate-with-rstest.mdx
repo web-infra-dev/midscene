@@ -149,34 +149,31 @@ Reports are written to `midscene_run/report/`. See [Consume report files](./cons
 
 ## Project-wide defaults (optional)
 
-For options that should apply to every file, call `defineMidsceneDefaults` from a setup file and register it via Rstest's `setupFiles`:
+For options that should apply to every file, extend the base test in a shared module and import your extended `test` everywhere — the same pattern as Playwright Test:
 
-```ts title="midscene.setup.ts"
-import { defineMidsceneDefaults } from '@midscene/rstest/playwright';
+```ts title="tests/midscene.ts"
+import { test as base } from '@midscene/rstest/playwright';
 
-defineMidsceneDefaults({
-  viewport: { width: 1280, height: 720 },
-  contextOptions: { locale: 'en-US' },
+export { describe, expect } from '@midscene/rstest/playwright';
+
+export const test = base.extend({
+  midsceneOptions: {
+    viewport: { width: 1280, height: 720 },
+    contextOptions: { locale: 'en-US' },
+  },
 });
 ```
 
-```ts title="rstest.config.ts"
-export default defineConfig({
-  // ...other config
-  setupFiles: ['./midscene.setup.ts'],
-});
+```ts title="tests/todo.test.ts"
+import { expect, test as shared } from './midscene';
+
+const test = shared.extend({ url: 'http://localhost:5173/' });
 ```
 
-:::warning Must be called from a `setupFiles` entry
-
-`defineMidsceneDefaults` populates a module-scoped store, so it only takes effect when called from a file that Rstest loads as part of every test file's startup chain. Calling it inside a single test file only affects that file.
-
-:::
-
-`defineMidsceneDefaults` is read by the `midsceneOptions` fixture at test time. To override per file, extend the test:
+A file that needs different values extends again — later `extend` calls override earlier ones:
 
 ```ts
-const test = base.extend({
+const test = shared.extend({
   url: 'http://localhost:5173/',
   midsceneOptions: {
     headless: false,
@@ -235,7 +232,7 @@ Midscene reads configuration from four channels. Pick the one that matches the s
 
 ## Options
 
-`midsceneOptions` carries every per-file knob. Set it via `defineMidsceneDefaults` for repo-wide defaults, or via `test.extend({ midsceneOptions: {...} })` for per-file overrides.
+`midsceneOptions` carries every per-file knob. Set it via `test.extend({ midsceneOptions: {...} })` — in a shared module for repo-wide defaults, or in a single file for per-file overrides.
 
 | Field | Type | Default | Description |
 | --- | --- | --- | --- |

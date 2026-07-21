@@ -149,34 +149,31 @@ Midscene report: midscene_run/report/<file>.html
 
 ## 项目级默认配置（可选）
 
-如果希望所有文件共享同一份配置，把 `defineMidsceneDefaults` 写到一个 setup 文件里，通过 Rstest 的 `setupFiles` 注册：
+如果希望所有文件共享同一份配置，在一个共享模块里扩展 base test 并导出，所有测试文件都从这里 import——与 Playwright Test 的模式完全一致：
 
-```ts title="midscene.setup.ts"
-import { defineMidsceneDefaults } from '@midscene/rstest/playwright';
+```ts title="tests/midscene.ts"
+import { test as base } from '@midscene/rstest/playwright';
 
-defineMidsceneDefaults({
-  viewport: { width: 1280, height: 720 },
-  contextOptions: { locale: 'zh-CN' },
+export { describe, expect } from '@midscene/rstest/playwright';
+
+export const test = base.extend({
+  midsceneOptions: {
+    viewport: { width: 1280, height: 720 },
+    contextOptions: { locale: 'zh-CN' },
+  },
 });
 ```
 
-```ts title="rstest.config.ts"
-export default defineConfig({
-  // ...其他配置
-  setupFiles: ['./midscene.setup.ts'],
-});
+```ts title="tests/todo.test.ts"
+import { expect, test as shared } from './midscene';
+
+const test = shared.extend({ url: 'http://localhost:5173/' });
 ```
 
-:::warning 必须从 `setupFiles` 里调用
-
-`defineMidsceneDefaults` 写入的是一个 module-scoped store，所以必须从被 Rstest 当作每个 test file 启动链路一部分的 setup file 中调用。在某个单一 test file 内部调用只会影响该文件本身。
-
-:::
-
-`defineMidsceneDefaults` 写入的值会在测试运行时由 `midsceneOptions` fixture 读取。需要在某个文件里覆盖时，扩展 test：
+需要不同配置的文件再次扩展即可——后调用的 `extend` 覆盖先前的值：
 
 ```ts
-const test = base.extend({
+const test = shared.extend({
   url: 'http://localhost:5173/',
   midsceneOptions: {
     headless: false,
@@ -235,7 +232,7 @@ Midscene 从四个渠道读取配置，按你想影响的作用域选一个。
 
 ## 选项
 
-`midsceneOptions` 集中承载所有 per-file 配置。可以通过 `defineMidsceneDefaults` 设仓库级默认，或通过 `test.extend({ midsceneOptions: {...} })` 在单个文件覆盖。
+`midsceneOptions` 集中承载所有 per-file 配置。统一通过 `test.extend({ midsceneOptions: {...} })` 设置——写在共享模块里就是仓库级默认，写在单个文件里就是 per-file 覆盖。
 
 | 字段 | 类型 | 默认值 | 说明 |
 | --- | --- | --- | --- |
