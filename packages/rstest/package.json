@@ -9,7 +9,7 @@
     "Browser use",
     "playwright"
   ],
-  "version": "1.10.5",
+  "version": "1.10.6",
   "repository": "https://github.com/web-infra-dev/midscene",
   "homepage": "https://midscenejs.com/",
   "type": "module",
