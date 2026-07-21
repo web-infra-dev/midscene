@@ -8,11 +8,12 @@ import {
 } from '@midscene/playground';
 import { PLAYGROUND_SERVER_PORT } from '@midscene/shared/constants';
 import { findAvailablePort } from '@midscene/shared/node';
-import { HarmonyAgent } from './agent';
+import { HarmonyAgent, type HarmonyAgentOpt } from './agent';
 import { HarmonyDevice } from './device';
 import { getConnectedDevices } from './utils';
 
 export interface HarmonyPlatformOptions {
+  agentOptions?: HarmonyAgentOpt;
   deferConnection?: boolean;
   deviceId?: string;
   staticDir?: string;
@@ -177,7 +178,10 @@ export const harmonyPlaygroundPlatform = definePlaygroundPlatform<
         const connectAgent = async () => {
           const device = new HarmonyDevice(deviceId);
           await device.connect();
-          return new HarmonyAgent(device);
+          return new HarmonyAgent(
+            device,
+            options?.agentOptions ? { ...options.agentOptions } : undefined,
+          );
         };
 
         const agent = await connectAgent();
@@ -226,7 +230,10 @@ export const harmonyPlaygroundPlatform = definePlaygroundPlatform<
       agentFactory: async () => {
         const device = new HarmonyDevice(selectedDeviceId);
         await device.connect();
-        return new HarmonyAgent(device);
+        return new HarmonyAgent(
+          device,
+          options?.agentOptions ? { ...options.agentOptions } : undefined,
+        );
       },
       launchOptions: {
         port: availablePort,

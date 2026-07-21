@@ -1,4 +1,5 @@
 import type { PlaygroundControllerResult } from '@midscene/playground-app';
+import type { StudioRuntimeSettingsV1 } from '@shared/advanced-settings';
 import type {
   DiscoveredDevice,
   PlatformDiscoveryError,
@@ -40,6 +41,9 @@ export type DiscoveryErrorsByPlatform = Partial<
 export type StudioPlaygroundContextValue =
   | {
       phase: 'booting';
+      applyRuntimeSettings: (
+        settings: StudioRuntimeSettingsV1,
+      ) => Promise<void>;
       restartPlayground: () => Promise<void>;
       refreshDiscoveredDevices: () => Promise<void>;
       setDiscoveryPollingPaused: (paused: boolean) => void;
@@ -49,6 +53,9 @@ export type StudioPlaygroundContextValue =
   | {
       phase: 'error';
       error: string;
+      applyRuntimeSettings: (
+        settings: StudioRuntimeSettingsV1,
+      ) => Promise<void>;
       restartPlayground: () => Promise<void>;
       refreshDiscoveredDevices: () => Promise<void>;
       setDiscoveryPollingPaused: (paused: boolean) => void;
@@ -59,6 +66,9 @@ export type StudioPlaygroundContextValue =
       phase: 'ready';
       serverUrl: string;
       controller: PlaygroundControllerResult;
+      applyRuntimeSettings: (
+        settings: StudioRuntimeSettingsV1,
+      ) => Promise<void>;
       restartPlayground: () => Promise<void>;
       refreshDiscoveredDevices: () => Promise<void>;
       setDiscoveryPollingPaused: (paused: boolean) => void;

@@ -9,9 +9,14 @@ import {
   PLAYGROUND_SERVER_PORT,
 } from '@midscene/shared/constants';
 import { findAvailablePort } from '@midscene/shared/node';
-import { type IOSAgent, agentFromWebDriverAgent } from './agent';
+import {
+  type IOSAgent,
+  type IOSAgentOpt,
+  agentFromWebDriverAgent,
+} from './agent';
 
 export interface IOSPlatformOptions {
+  agentOptions?: IOSAgentOpt;
   staticDir?: string;
 }
 
@@ -119,6 +124,7 @@ export const iosPlaygroundPlatform = definePlaygroundPlatform<
 
         const connectAgent = async (): Promise<IOSAgent> => {
           return agentFromWebDriverAgent({
+            ...options?.agentOptions,
             wdaHost: host,
             wdaPort: port,
             ...(sessionId ? { sessionId } : {}),

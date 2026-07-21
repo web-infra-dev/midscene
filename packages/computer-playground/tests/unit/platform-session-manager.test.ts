@@ -114,4 +114,39 @@ describe('computerPlaygroundPlatform session manager', () => {
       executionUx: 'countdown-before-run',
     });
   });
+
+  test('combines agent options with the selected display for every agent', async () => {
+    checkAccessibilityPermissionMock.mockReturnValue({ hasPermission: true });
+    agentFromComputerMock.mockResolvedValue({
+      interface: {
+        interfaceType: 'computer',
+        describe: () => 'Desktop',
+        actionSpace: () => [],
+      },
+      destroy: vi.fn(),
+    });
+    const { computerPlaygroundPlatform } = await import('../../src/platform');
+    const prepared = await computerPlaygroundPlatform.prepare({
+      agentOptions: {
+        screenshotShrinkFactor: 24,
+        waitAfterAction: 250,
+      },
+    });
+    const created = await prepared.sessionManager?.createSession({
+      displayId: '1',
+    });
+
+    await created?.agentFactory?.();
+
+    expect(agentFromComputerMock).toHaveBeenNthCalledWith(1, {
+      displayId: '1',
+      screenshotShrinkFactor: 24,
+      waitAfterAction: 250,
+    });
+    expect(agentFromComputerMock).toHaveBeenNthCalledWith(2, {
+      displayId: '1',
+      screenshotShrinkFactor: 24,
+      waitAfterAction: 250,
+    });
+  });
 });

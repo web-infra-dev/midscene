@@ -43,9 +43,10 @@ const electronShellApi: ElectronShellApi = {
 };
 
 const studioRuntimeApi: StudioRuntimeApi = {
-  getPlaygroundBootstrap: () =>
-    ipcRenderer.invoke(IPC_CHANNELS.getPlaygroundBootstrap),
-  restartPlayground: () => ipcRenderer.invoke(IPC_CHANNELS.restartPlayground),
+  getPlaygroundBootstrap: (settings) =>
+    ipcRenderer.invoke(IPC_CHANNELS.getPlaygroundBootstrap, settings),
+  restartPlayground: (settings) =>
+    ipcRenderer.invoke(IPC_CHANNELS.restartPlayground, settings),
   discoverDevices: (request) =>
     ipcRenderer.invoke(IPC_CHANNELS.discoverDevices, request),
   onDiscoveredDevicesChanged: (listener) => {

@@ -8,6 +8,12 @@ import type {
   RegisteredPlaygroundPlatform,
 } from '@midscene/playground';
 import { getDebug } from '@midscene/shared/logger';
+import {
+  type StudioResolvedAgentOptionsV1,
+  normalizeStudioRuntimeSettings,
+  resolveStudioAgentOptions,
+  serializeStudioRuntimeSettings,
+} from '@shared/advanced-settings';
 import type { DiscoveredDevice } from '@shared/electron-contract';
 import type { PlaygroundBootstrap } from '@shared/electron-contract';
 import { DEFAULT_STUDIO_WEB_VIEWPORT } from '@shared/web-viewport';
@@ -40,7 +46,7 @@ type PlaygroundModule = typeof import('@midscene/playground');
 
 type StudioPuppeteerAgentConstructor = new (
   page: unknown,
-  opts?: { cacheId?: string },
+  opts?: StudioResolvedAgentOptionsV1 & { cacheId?: string },
 ) => Agent;
 
 type StudioLaunchPuppeteerPage = (
@@ -78,6 +84,21 @@ type StudioWebCleanup = {
 type StudioDeviceDiscoveryService =
   | DeviceDiscoveryService
   | Promise<DeviceDiscoveryService>;
+
+const withAgentOptions = (
+  agentOptions: Readonly<StudioResolvedAgentOptionsV1>,
+): { agentOptions?: StudioResolvedAgentOptionsV1 } =>
+  Object.keys(agentOptions).length > 0
+    ? { agentOptions: { ...agentOptions } }
+    : {};
+
+const settingsFromResolvedAgentOptions = (
+  agentOptions: Readonly<StudioResolvedAgentOptionsV1>,
+) =>
+  normalizeStudioRuntimeSettings({
+    schemaVersion: 1,
+    agentOptions,
+  });
 
 const resolvePackageRootDir = (packageName: string): string =>
   path.resolve(path.dirname(require.resolve(packageName)), '..', '..');
@@ -317,8 +338,10 @@ function createStudioWebPreviewDescriptor(): PlaygroundPreviewDescriptor {
 }
 
 async function prepareStudioWebPlatform({
+  agentOptions,
   loadWebModule,
 }: {
+  agentOptions: Readonly<StudioResolvedAgentOptionsV1>;
   loadWebModule: typeof loadWebPlaygroundModule;
 }): Promise<PreparedPlaygroundPlatform> {
   const webModule = await loadWebModule();
@@ -440,6 +463,7 @@ async function prepareStudioWebPlatform({
           }
 
           const agent = new webModule.PuppeteerAgent(currentPage, {
+            ...agentOptions,
             cacheId: 'studio-web',
           });
           agentCleanup = [
@@ -477,6 +501,7 @@ async function prepareStudioWebPlatform({
 }
 
 const createStudioPlatformSpecs = ({
+  agentOptions = {},
   loadAndroidModule = loadAndroidPlaygroundModule,
   loadComputerModule = loadComputerPlaygroundModule,
   deviceDiscoveryService,
@@ -484,6 +509,7 @@ const createStudioPlatformSpecs = ({
   loadIosModule = loadIosPlaygroundModule,
   loadWebModule = loadWebPlaygroundModule,
 }: {
+  agentOptions?: Readonly<StudioResolvedAgentOptionsV1>;
   loadAndroidModule?: typeof loadAndroidPlaygroundModule;
   loadComputerModule?: typeof loadComputerPlaygroundModule;
   deviceDiscoveryService?: StudioDeviceDiscoveryService;
@@ -498,6 +524,7 @@ const createStudioPlatformSpecs = ({
     staticDirPackage: '@midscene/web',
     prepare: async () =>
       prepareStudioWebPlatform({
+        agentOptions,
         loadWebModule,
       }),
   },
@@ -509,6 +536,7 @@ const createStudioPlatformSpecs = ({
     prepare: async (staticDir) => {
       const androidModule = await loadAndroidModule();
       return androidModule.androidPlaygroundPlatform.prepare({
+        ...withAgentOptions(agentOptions),
         staticDir,
         scrcpyServer: await createStudioScrcpyController(
           androidModule.ScrcpyServer,
@@ -524,7 +552,10 @@ const createStudioPlatformSpecs = ({
     staticDirPackage: '@midscene/ios',
     prepare: async (staticDir) => {
       const iosModule = await loadIosModule();
-      return iosModule.iosPlaygroundPlatform.prepare({ staticDir });
+      return iosModule.iosPlaygroundPlatform.prepare({
+        ...withAgentOptions(agentOptions),
+        staticDir,
+      });
     },
   },
   {
@@ -535,6 +566,7 @@ const createStudioPlatformSpecs = ({
     prepare: async (staticDir) => {
       const harmonyModule = await loadHarmonyModule();
       return harmonyModule.harmonyPlaygroundPlatform.prepare({
+        ...withAgentOptions(agentOptions),
         staticDir,
         deferConnection: true,
       });
@@ -552,6 +584,7 @@ const createStudioPlatformSpecs = ({
     prepare: async (staticDir) => {
       const computerModule = await loadComputerModule();
       return computerModule.computerPlaygroundPlatform.prepare({
+        ...withAgentOptions(agentOptions),
         staticDir,
         getWindowController: () => null,
       });
@@ -583,6 +616,7 @@ function buildRegisteredPlatforms(
  * on the setup form routes to the correct backend.
  */
 export function createMultiPlatformRuntimeService({
+  agentOptions: initialAgentOptions,
   deviceDiscoveryService,
   loadModules,
   loadPlaygroundCore = loadPlaygroundCoreModules,
@@ -593,6 +627,7 @@ export function createMultiPlatformRuntimeService({
   loadWebModule = loadWebPlaygroundModule,
   resolvePackageStaticDir = resolveStaticDir,
 }: {
+  agentOptions?: StudioResolvedAgentOptionsV1;
   deviceDiscoveryService?: StudioDeviceDiscoveryService;
   loadModules?: () => Promise<MultiPlatformRuntimeModules>;
   loadPlaygroundCore?: () => Promise<PlaygroundCoreModules>;
@@ -603,6 +638,29 @@ export function createMultiPlatformRuntimeService({
   loadWebModule?: typeof loadWebPlaygroundModule;
   resolvePackageStaticDir?: (packageName: string) => string;
 } = {}): PlaygroundRuntimeService {
+  const createAgentOptionsSnapshot = (
+    agentOptions: StudioResolvedAgentOptionsV1 = {},
+  ): Readonly<StudioResolvedAgentOptionsV1> =>
+    Object.freeze(
+      resolveStudioAgentOptions(settingsFromResolvedAgentOptions(agentOptions)),
+    );
+  const getAgentOptionsSignature = (
+    agentOptions: Readonly<StudioResolvedAgentOptionsV1>,
+  ): string =>
+    serializeStudioRuntimeSettings(
+      settingsFromResolvedAgentOptions(agentOptions),
+    );
+
+  const initialSnapshot = createAgentOptionsSnapshot(initialAgentOptions);
+  const initialSignature = getAgentOptionsSignature(initialSnapshot);
+  const settingsState = {
+    desired: initialSnapshot,
+    desiredSignature: initialSignature,
+    active: null as Readonly<StudioResolvedAgentOptionsV1> | null,
+    activeSignature: null as string | null,
+    lastSuccessful: null as Readonly<StudioResolvedAgentOptionsV1> | null,
+    lastSuccessfulSignature: null as string | null,
+  };
   let bootstrap: PlaygroundBootstrap = {
     status: 'starting',
     serverUrl: null,
@@ -610,23 +668,39 @@ export function createMultiPlatformRuntimeService({
     error: null,
   };
   let launchResult: LaunchPlaygroundResult | null = null;
-  let startPromise: Promise<PlaygroundBootstrap> | null = null;
+  let lifecycleQueue: Promise<void> = Promise.resolve();
+  let startTransition: Promise<PlaygroundBootstrap> | null = null;
 
-  const close = async () => {
+  const enqueueLifecycle = <Result>(
+    operation: () => Promise<Result>,
+  ): Promise<Result> => {
+    const result = lifecycleQueue.then(operation, operation);
+    lifecycleQueue = result.then(
+      () => undefined,
+      () => undefined,
+    );
+    return result;
+  };
+
+  const closeInternal = async () => {
     if (!launchResult) {
+      settingsState.active = null;
+      settingsState.activeSignature = null;
       return;
     }
     const activeLaunch = launchResult;
     launchResult = null;
-    await activeLaunch.close();
+    try {
+      await activeLaunch.close();
+    } finally {
+      settingsState.active = null;
+      settingsState.activeSignature = null;
+    }
   };
 
-  const start = async (): Promise<PlaygroundBootstrap> => {
+  const startInternal = async (): Promise<PlaygroundBootstrap> => {
     if (launchResult) {
       return bootstrap;
-    }
-    if (startPromise) {
-      return startPromise;
     }
 
     bootstrap = {
@@ -636,144 +710,192 @@ export function createMultiPlatformRuntimeService({
       error: null,
     };
 
-    startPromise = (async () => {
-      try {
-        const runtimeModules = loadModules ? await loadModules() : null;
-        const playgroundCoreModules =
-          runtimeModules ??
-          ({
-            ...(await loadPlaygroundCore()),
-          } as PlaygroundCoreModules);
-        const platforms = buildRegisteredPlatforms(
-          runtimeModules
-            ? [
-                {
-                  id: 'web',
-                  label: 'Web',
-                  description: 'Open and control a Chromium page',
-                  staticDirPackage: '@midscene/web',
-                  prepare: async () =>
-                    prepareStudioWebPlatform({
-                      loadWebModule: async () => ({
-                        PuppeteerAgent: runtimeModules.PuppeteerAgent,
-                        launchPuppeteerPage: runtimeModules.launchPuppeteerPage,
-                      }),
+    try {
+      const agentOptions = settingsState.desired;
+      const runtimeModules = loadModules ? await loadModules() : null;
+      const playgroundCoreModules =
+        runtimeModules ??
+        ({
+          ...(await loadPlaygroundCore()),
+        } as PlaygroundCoreModules);
+      const platforms = buildRegisteredPlatforms(
+        runtimeModules
+          ? [
+              {
+                id: 'web',
+                label: 'Web',
+                description: 'Open and control a Chromium page',
+                staticDirPackage: '@midscene/web',
+                prepare: async () =>
+                  prepareStudioWebPlatform({
+                    agentOptions,
+                    loadWebModule: async () => ({
+                      PuppeteerAgent: runtimeModules.PuppeteerAgent,
+                      launchPuppeteerPage: runtimeModules.launchPuppeteerPage,
                     }),
+                  }),
+              },
+              {
+                id: 'android',
+                label: 'Android',
+                description: 'Connect to an Android device via ADB',
+                staticDirPackage: '@midscene/android-playground',
+                prepare: async (staticDir) => {
+                  const scrcpyServer = await createStudioScrcpyController(
+                    runtimeModules.ScrcpyServer,
+                    deviceDiscoveryService,
+                  );
+                  return runtimeModules.androidPlaygroundPlatform.prepare({
+                    ...withAgentOptions(agentOptions),
+                    staticDir,
+                    scrcpyServer,
+                  });
                 },
-                {
-                  id: 'android',
-                  label: 'Android',
-                  description: 'Connect to an Android device via ADB',
-                  staticDirPackage: '@midscene/android-playground',
-                  prepare: async (staticDir) => {
-                    const scrcpyServer = await createStudioScrcpyController(
-                      runtimeModules.ScrcpyServer,
-                      deviceDiscoveryService,
-                    );
-                    return runtimeModules.androidPlaygroundPlatform.prepare({
-                      staticDir,
-                      scrcpyServer,
-                    });
-                  },
-                },
-                {
-                  id: 'ios',
-                  label: 'iOS',
-                  description: 'Connect to an iOS device via WebDriverAgent',
-                  staticDirPackage: '@midscene/ios',
-                  prepare: (staticDir) =>
-                    runtimeModules.iosPlaygroundPlatform.prepare({ staticDir }),
-                },
-                {
-                  id: 'harmony',
-                  label: 'HarmonyOS',
-                  description: 'Connect to a HarmonyOS device via HDC',
-                  staticDirPackage: '@midscene/harmony',
-                  prepare: (staticDir) =>
-                    runtimeModules.harmonyPlaygroundPlatform.prepare({
-                      staticDir,
-                      deferConnection: true,
-                    }),
-                },
-                {
-                  id: 'computer',
-                  label: 'Computer',
-                  description: 'Control the local desktop',
-                  staticDirPackage: '@midscene/computer-playground',
-                  prepare: (staticDir) =>
-                    runtimeModules.computerPlaygroundPlatform.prepare({
-                      staticDir,
-                      getWindowController: () => null,
-                    }),
-                },
-              ]
-            : createStudioPlatformSpecs({
-                deviceDiscoveryService,
-                loadAndroidModule,
-                loadComputerModule,
-                loadHarmonyModule,
-                loadIosModule,
-                loadWebModule,
-              }),
-          resolvePackageStaticDir,
-        );
-        const prepared =
-          await playgroundCoreModules.prepareMultiPlatformPlayground(
-            platforms,
-            {
-              title: 'Midscene Studio Beta',
-              description: 'Multi-platform playground',
-              selectorFieldKey: 'platformId',
-              selectorVariant: 'cards',
-            },
-          );
+              },
+              {
+                id: 'ios',
+                label: 'iOS',
+                description: 'Connect to an iOS device via WebDriverAgent',
+                staticDirPackage: '@midscene/ios',
+                prepare: (staticDir) =>
+                  runtimeModules.iosPlaygroundPlatform.prepare({
+                    ...withAgentOptions(agentOptions),
+                    staticDir,
+                  }),
+              },
+              {
+                id: 'harmony',
+                label: 'HarmonyOS',
+                description: 'Connect to a HarmonyOS device via HDC',
+                staticDirPackage: '@midscene/harmony',
+                prepare: (staticDir) =>
+                  runtimeModules.harmonyPlaygroundPlatform.prepare({
+                    ...withAgentOptions(agentOptions),
+                    staticDir,
+                    deferConnection: true,
+                  }),
+              },
+              {
+                id: 'computer',
+                label: 'Computer',
+                description: 'Control the local desktop',
+                staticDirPackage: '@midscene/computer-playground',
+                prepare: (staticDir) =>
+                  runtimeModules.computerPlaygroundPlatform.prepare({
+                    ...withAgentOptions(agentOptions),
+                    staticDir,
+                    getWindowController: () => null,
+                  }),
+              },
+            ]
+          : createStudioPlatformSpecs({
+              agentOptions,
+              deviceDiscoveryService,
+              loadAndroidModule,
+              loadComputerModule,
+              loadHarmonyModule,
+              loadIosModule,
+              loadWebModule,
+            }),
+        resolvePackageStaticDir,
+      );
+      const prepared =
+        await playgroundCoreModules.prepareMultiPlatformPlayground(platforms, {
+          title: 'Midscene Studio Beta',
+          description: 'Multi-platform playground',
+          selectorFieldKey: 'platformId',
+          selectorVariant: 'cards',
+        });
 
-        const nextLaunchResult =
-          await playgroundCoreModules.launchPreparedPlaygroundPlatform(
-            prepared,
-            {
-              corsOptions: createStudioCorsOptions(),
-              enableCors: true,
-              openBrowser: false,
-              verbose: false,
-            },
-          );
+      const nextLaunchResult =
+        await playgroundCoreModules.launchPreparedPlaygroundPlatform(prepared, {
+          corsOptions: createStudioCorsOptions(),
+          enableCors: true,
+          openBrowser: false,
+          verbose: false,
+        });
 
-        launchResult = nextLaunchResult;
-        bootstrap = {
-          status: 'ready',
-          serverUrl: playgroundCoreModules.buildPlaygroundBrowserUrl(
-            nextLaunchResult.host,
-            nextLaunchResult.port,
-          ),
-          port: nextLaunchResult.port,
-          error: null,
-        };
+      launchResult = nextLaunchResult;
+      settingsState.active = agentOptions;
+      settingsState.activeSignature = settingsState.desiredSignature;
+      settingsState.lastSuccessful = agentOptions;
+      settingsState.lastSuccessfulSignature = settingsState.desiredSignature;
+      bootstrap = {
+        status: 'ready',
+        serverUrl: playgroundCoreModules.buildPlaygroundBrowserUrl(
+          nextLaunchResult.host,
+          nextLaunchResult.port,
+        ),
+        port: nextLaunchResult.port,
+        error: null,
+      };
 
-        return bootstrap;
-      } catch (error) {
-        bootstrap = {
-          status: 'error',
-          serverUrl: null,
-          port: null,
-          error: getErrorMessage(error),
-        };
-        return bootstrap;
-      } finally {
-        startPromise = null;
-      }
-    })();
+      return bootstrap;
+    } catch (error) {
+      settingsState.active = null;
+      settingsState.activeSignature = null;
+      bootstrap = {
+        status: 'error',
+        serverUrl: null,
+        port: null,
+        error: getErrorMessage(error),
+      };
+      return bootstrap;
+    }
+  };
 
-    return startPromise;
+  const start = (): Promise<PlaygroundBootstrap> => {
+    if (startTransition) return startTransition;
+    const transition = enqueueLifecycle(startInternal);
+    startTransition = transition;
+    void transition.finally(() => {
+      if (startTransition === transition) startTransition = null;
+    });
+    return transition;
   };
 
   return {
-    close,
+    close: () => enqueueLifecycle(closeInternal),
     getBootstrap: () => bootstrap,
-    restart: async () => {
-      await close();
-      return start();
-    },
+    restart: (nextAgentOptions) =>
+      enqueueLifecycle(async () => {
+        const previousDesired = settingsState.desired;
+        const previousDesiredSignature = settingsState.desiredSignature;
+        if (nextAgentOptions !== undefined) {
+          const nextSnapshot = createAgentOptionsSnapshot(nextAgentOptions);
+          settingsState.desired = nextSnapshot;
+          settingsState.desiredSignature =
+            getAgentOptionsSignature(nextSnapshot);
+        }
+
+        await closeInternal();
+        const result = await startInternal();
+        if (result.status === 'error' && nextAgentOptions !== undefined) {
+          const settingsApplyError =
+            result.error || 'Failed to apply Studio runtime settings.';
+          settingsState.desired =
+            settingsState.lastSuccessful ?? previousDesired;
+          settingsState.desiredSignature =
+            settingsState.lastSuccessfulSignature ?? previousDesiredSignature;
+
+          const recoveryResult = await startInternal();
+          if (recoveryResult.status === 'ready') {
+            return {
+              ...recoveryResult,
+              settingsApplyError,
+            };
+          }
+
+          bootstrap = {
+            ...recoveryResult,
+            error: `${settingsApplyError} Failed to restore the previous runtime: ${
+              recoveryResult.error || 'unknown error'
+            }`,
+          };
+          return bootstrap;
+        }
+        return result;
+      }),
     start,
   };
 }

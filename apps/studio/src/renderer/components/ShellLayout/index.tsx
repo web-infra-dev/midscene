@@ -6,6 +6,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import type { StudioRuntimeSettingsV1 } from '../../../shared/advanced-settings';
 import type { StudioPlatformId } from '../../../shared/electron-contract';
 import { STUDIO_EXTERNAL_LINKS } from '../../../shared/external-links';
 import {
@@ -18,6 +19,7 @@ import { assetUrls } from '../../assets';
 import { useStudioUpdater } from '../../hooks/useStudioUpdater';
 import { useStudioPlayground } from '../../playground/useStudioPlayground';
 import { type StudioMode, StudioModeTab } from '../../recorder/types';
+import { loadAdvancedSettings } from '../../settings/advanced-settings-storage';
 import MainContent from '../MainContent';
 import SettingsPanel from '../SettingsPanel';
 import Sidebar, { SidebarFooter } from '../Sidebar';
@@ -27,6 +29,7 @@ import {
   StudioRightPanelViewType,
   getStudioRightPanelWidth,
 } from '../StudioRightPanel';
+import { AdvancedSettingsModal } from './AdvancedSettingsModal';
 import { ModelEnvConfigModal } from './ModelEnvConfigModal';
 import { hasCompleteModelEnvConfig } from './connectivity-env';
 import { loadModelEnvText, saveModelEnvText } from './model-env-storage';
@@ -173,6 +176,9 @@ export default function ShellLayout() {
   const [studioRightPanelClosing, setStudioRightPanelClosing] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [modelModalOpen, setModelModalOpen] = useState(false);
+  const [advancedModalOpen, setAdvancedModalOpen] = useState(false);
+  const [advancedSettings, setAdvancedSettings] =
+    useState<StudioRuntimeSettingsV1>(() => loadAdvancedSettings());
   // Bridges the gap between any device-click path (Sidebar row, Overview
   // card, Overview-form Submit) and antd Form.useWatch propagating the
   // chosen platform to MainContent. Without this hint the connecting
@@ -285,6 +291,11 @@ export default function ShellLayout() {
     setModelModalOpen(true);
   }, []);
   const closeModelModal = useCallback(() => setModelModalOpen(false), []);
+  const openAdvancedModal = useCallback(() => {
+    setSettingsOpen(false);
+    setAdvancedModalOpen(true);
+  }, []);
+  const closeAdvancedModal = useCallback(() => setAdvancedModalOpen(false), []);
   // Going back to Overview tears down the live session and clears every
   // selection-shaped form field so the sidebar / device cards stop
   // showing a "still selected" row that no longer corresponds to
@@ -440,6 +451,7 @@ export default function ShellLayout() {
           {settingsOpen && (
             <div className="absolute bottom-[78px] left-0 z-50">
               <SettingsPanel
+                onAdvancedClick={openAdvancedModal}
                 onGithubClick={() =>
                   openExternalUrl(STUDIO_EXTERNAL_LINKS.github)
                 }
@@ -567,6 +579,17 @@ export default function ShellLayout() {
         }}
         open={modelModalOpen}
         textValue={modelEnvText}
+      />
+      <AdvancedSettingsModal
+        onApply={async (nextSettings) => {
+          await studioPlayground.applyRuntimeSettings(nextSettings);
+          setAdvancedSettings(nextSettings);
+          closeAdvancedModal();
+        }}
+        onClose={closeAdvancedModal}
+        open={advancedModalOpen}
+        runtimeReady={studioPlayground.phase === 'ready'}
+        settings={advancedSettings}
       />
     </div>
   );

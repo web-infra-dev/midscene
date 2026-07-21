@@ -206,6 +206,10 @@ describe('playground runtime bootstrap', () => {
       | undefined;
 
     const runtime = createMultiPlatformRuntimeService({
+      agentOptions: {
+        aiActContext: 'Prefer visible controls',
+        screenshotShrinkFactor: 24,
+      },
       loadPlaygroundCore: (async () =>
         ({
           launchPreparedPlaygroundPlatform: async () => ({
@@ -308,10 +312,137 @@ describe('playground runtime bootstrap', () => {
     expect(session?.metadata?.sessionDisplayName).toBe('http://localhost:4173');
     expect(session?.preview?.kind).toBe('mjpeg');
     expect(agent).toBeInstanceOf(FakePuppeteerAgent);
+    expect((agent as FakePuppeteerAgent).opts).toEqual({
+      aiActContext: 'Prefer visible controls',
+      screenshotShrinkFactor: 24,
+      cacheId: 'studio-web',
+    });
 
     await prepared?.sessionManager?.destroySession?.();
     expect(destroyAgent).toHaveBeenCalledTimes(1);
     expect(cleanupBrowser).toHaveBeenCalledTimes(1);
+  });
+
+  it('serializes restarts with immutable option snapshots for platform preparation', async () => {
+    const close = vi.fn(async () => undefined);
+    const iosPrepare = vi.fn(async () => ({
+      platformId: 'ios',
+      title: 'iOS',
+    }));
+    const platformGenerations: RegisteredPlaygroundPlatform[][] = [];
+    let port = 5800;
+    const runtime = createMultiPlatformRuntimeService({
+      agentOptions: { waitAfterAction: 100 },
+      loadPlaygroundCore: (async () =>
+        ({
+          launchPreparedPlaygroundPlatform: async () => ({
+            close,
+            host: '127.0.0.1',
+            port: port++,
+            server: { setPreparedPlatform: () => undefined },
+          }),
+          buildPlaygroundBrowserUrl,
+          prepareMultiPlatformPlayground: async (
+            platforms: RegisteredPlaygroundPlatform[],
+          ) => {
+            platformGenerations.push(platforms);
+            return {
+              platformId: 'multi-platform',
+              title: 'Studio',
+              metadata: {},
+            };
+          },
+        }) as unknown as Awaited<
+          ReturnType<PlaygroundCoreLoader>
+        >) as PlaygroundCoreLoader,
+      loadIosModule: (async () =>
+        ({
+          iosPlaygroundPlatform: { prepare: iosPrepare },
+        }) as never) as RuntimeServiceOptions['loadIosModule'],
+    });
+
+    await runtime.start();
+    await platformGenerations[0][2].prepare();
+    const firstRestart = runtime.restart({ waitAfterAction: 200 });
+    const secondRestart = runtime.restart({ waitAfterAction: 300 });
+    await Promise.all([firstRestart, secondRestart]);
+    await platformGenerations[1][2].prepare();
+    await platformGenerations[2][2].prepare();
+
+    expect(close).toHaveBeenCalledTimes(2);
+    expect(iosPrepare).toHaveBeenNthCalledWith(1, {
+      agentOptions: { waitAfterAction: 100 },
+      staticDir: expect.any(String),
+    });
+    expect(iosPrepare).toHaveBeenNthCalledWith(2, {
+      agentOptions: { waitAfterAction: 200 },
+      staticDir: expect.any(String),
+    });
+    expect(iosPrepare).toHaveBeenNthCalledWith(3, {
+      agentOptions: { waitAfterAction: 300 },
+      staticDir: expect.any(String),
+    });
+  });
+
+  it('restores the previous runtime after a settings restart fails', async () => {
+    const iosPrepare = vi.fn(async () => ({
+      platformId: 'ios',
+      title: 'iOS',
+    }));
+    const platformGenerations: RegisteredPlaygroundPlatform[][] = [];
+    let launchCount = 0;
+    const runtime = createMultiPlatformRuntimeService({
+      agentOptions: { waitAfterAction: 100 },
+      loadPlaygroundCore: (async () =>
+        ({
+          launchPreparedPlaygroundPlatform: async () => {
+            launchCount += 1;
+            if (launchCount === 2) {
+              throw new Error('Synthetic restart failure');
+            }
+            return {
+              close: async () => undefined,
+              host: '127.0.0.1',
+              port: 5800 + launchCount,
+              server: { setPreparedPlatform: () => undefined },
+            };
+          },
+          buildPlaygroundBrowserUrl,
+          prepareMultiPlatformPlayground: async (
+            platforms: RegisteredPlaygroundPlatform[],
+          ) => {
+            platformGenerations.push(platforms);
+            return {
+              platformId: 'multi-platform',
+              title: 'Studio',
+              metadata: {},
+            };
+          },
+        }) as unknown as Awaited<
+          ReturnType<PlaygroundCoreLoader>
+        >) as PlaygroundCoreLoader,
+      loadIosModule: (async () =>
+        ({
+          iosPlaygroundPlatform: { prepare: iosPrepare },
+        }) as never) as RuntimeServiceOptions['loadIosModule'],
+    });
+
+    await runtime.start();
+    const restartResult = await runtime.restart({ waitAfterAction: 999 });
+    expect(restartResult).toEqual(
+      expect.objectContaining({
+        status: 'ready',
+        error: null,
+        settingsApplyError: 'Synthetic restart failure',
+      }),
+    );
+    expect(runtime.getBootstrap()).not.toHaveProperty('settingsApplyError');
+    await platformGenerations[2][2].prepare();
+
+    expect(iosPrepare).toHaveBeenCalledWith({
+      agentOptions: { waitAfterAction: 100 },
+      staticDir: expect.any(String),
+    });
   });
 
   it('prepares Harmony in deferred mode so Studio never exits on device selection', async () => {

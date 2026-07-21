@@ -130,6 +130,7 @@ function createReadyPlayground() {
     },
     phase: 'ready',
     refreshDiscoveredDevices: vi.fn(async () => undefined),
+    applyRuntimeSettings: vi.fn(async () => undefined),
     restartPlayground: vi.fn(async () => undefined),
     serverUrl: 'http://localhost:5800',
     setDiscoveryPollingPaused: vi.fn(),

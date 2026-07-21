@@ -3,6 +3,14 @@ import { beforeEach, describe, expect, test, vi } from 'vitest';
 const connectMock = vi.fn();
 const getConnectedDevicesMock = vi.fn();
 const findAvailablePortMock = vi.fn(async () => 5810);
+const harmonyAgentMock = vi.fn().mockImplementation((device) => ({
+  device,
+  interface: {
+    interfaceType: 'harmony',
+    actionSpace: () => [],
+    describe: () => 'Mock Harmony device',
+  },
+}));
 
 vi.mock('@midscene/playground', () => ({
   createScreenshotPreviewDescriptor: (overrides = {}) => ({
@@ -18,14 +26,7 @@ vi.mock('@midscene/shared/node', () => ({
 }));
 
 vi.mock('../../src/agent', () => ({
-  HarmonyAgent: vi.fn().mockImplementation((device) => ({
-    device,
-    interface: {
-      interfaceType: 'harmony',
-      actionSpace: () => [],
-      describe: () => 'Mock Harmony device',
-    },
-  })),
+  HarmonyAgent: harmonyAgentMock,
 }));
 
 vi.mock('../../src/device', () => ({
@@ -97,6 +98,33 @@ describe('harmonyPlaygroundPlatform', () => {
       deviceId: 'SERIAL123',
     });
     expect(connectMock).toHaveBeenCalled();
+  });
+
+  test('passes agent options through deferred and direct agent factories', async () => {
+    const { harmonyPlaygroundPlatform } = await import('../../src/platform');
+    const agentOptions = {
+      replanningCycleLimit: 0,
+      waitAfterAction: 250,
+    };
+    const deferred = await harmonyPlaygroundPlatform.prepare({
+      agentOptions,
+      deferConnection: true,
+    });
+    const created = await deferred.sessionManager?.createSession({
+      deviceId: 'SERIAL123',
+    });
+    await created?.agentFactory?.();
+
+    const direct = await harmonyPlaygroundPlatform.prepare({
+      agentOptions,
+      deviceId: 'SERIAL123',
+    });
+    await direct.agentFactory?.();
+
+    expect(harmonyAgentMock).toHaveBeenCalledTimes(3);
+    for (const call of harmonyAgentMock.mock.calls) {
+      expect(call[1]).toEqual(agentOptions);
+    }
   });
 
   test('keeps deferred setup usable when no HarmonyOS devices are connected', async () => {

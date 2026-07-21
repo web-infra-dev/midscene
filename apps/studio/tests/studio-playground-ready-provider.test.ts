@@ -56,6 +56,7 @@ describe('StudioPlaygroundReadyProvider', () => {
         StudioPlaygroundReadyProvider,
         {
           refreshDiscoveredDevices: async () => undefined,
+          applyRuntimeSettings: async () => undefined,
           restartPlayground: async () => undefined,
           setDiscoveryPollingPaused: () => undefined,
           serverUrl: 'http://127.0.0.1:5800',
@@ -84,6 +85,7 @@ describe('StudioPlaygroundReadyProvider', () => {
         StudioPlaygroundReadyProvider,
         {
           refreshDiscoveredDevices: async () => undefined,
+          applyRuntimeSettings: async () => undefined,
           restartPlayground: async () => undefined,
           setDiscoveryPollingPaused: () => undefined,
           serverUrl: 'http://127.0.0.1:5800',
@@ -140,6 +142,7 @@ describe('StudioPlaygroundReadyProvider', () => {
               web: [],
             },
             refreshDiscoveredDevices: async () => undefined,
+            applyRuntimeSettings: async () => undefined,
             restartPlayground: async () => undefined,
             setDiscoveryPollingPaused: () => undefined,
             serverUrl: 'http://127.0.0.1:5800',

@@ -32,6 +32,13 @@ import {
   shell,
 } from 'electron';
 import type { TitleBarOverlay } from 'electron';
+import {
+  EMPTY_STUDIO_RUNTIME_SETTINGS,
+  type StudioRuntimeSettingsV1,
+  normalizeStudioRuntimeSettings,
+  resolveStudioAgentOptions,
+  serializeStudioRuntimeSettings,
+} from '../shared/advanced-settings';
 import { MACOS_TRAFFIC_LIGHT_POSITION } from '../shared/titlebar-layout';
 import { startStudioEventLoopWatchdog } from './performance-watchdog';
 import { requestPlaygroundBootstrap } from './playground/bootstrap-request';
@@ -70,6 +77,7 @@ configureStudioShellEnvHydration({
 let mainWindow: BrowserWindow | null = null;
 let cachedAppIcon: NativeImage | null = null;
 let playgroundRuntimePromise: Promise<PlaygroundRuntimeService> | null = null;
+let playgroundRuntimeDesiredSettingsSignature: string | null = null;
 let deviceDiscoveryServicePromise: Promise<DeviceDiscoveryService> | null =
   null;
 const isStudioSmokeTest = process.env.MIDSCENE_STUDIO_SMOKE_TEST === '1';
@@ -311,18 +319,36 @@ async function prepareRecorderMarkdownReplayBundle(
   return { markdownPath };
 }
 
-const getPlaygroundRuntime = async (): Promise<PlaygroundRuntimeService> => {
+const getPlaygroundRuntime = async (
+  initialSettings?: StudioRuntimeSettingsV1,
+): Promise<PlaygroundRuntimeService> => {
+  const resolvedInitialSettings =
+    initialSettings ?? EMPTY_STUDIO_RUNTIME_SETTINGS;
+  const settingsSignature = serializeStudioRuntimeSettings(
+    resolvedInitialSettings,
+  );
   if (!playgroundRuntimePromise) {
+    playgroundRuntimeDesiredSettingsSignature = settingsSignature;
     playgroundRuntimePromise = Promise.resolve()
       .then(() =>
         createMultiPlatformRuntimeService({
+          agentOptions: resolveStudioAgentOptions(resolvedInitialSettings),
           deviceDiscoveryService: getDeviceDiscoveryService(),
         }),
       )
       .catch((error) => {
         playgroundRuntimePromise = null;
+        playgroundRuntimeDesiredSettingsSignature = null;
         throw error;
       });
+  } else if (
+    initialSettings !== undefined &&
+    playgroundRuntimeDesiredSettingsSignature !== null &&
+    playgroundRuntimeDesiredSettingsSignature !== settingsSignature
+  ) {
+    console.warn(
+      '[studio] Ignoring bootstrap settings that differ from the active runtime. Apply settings through restartPlayground.',
+    );
   }
 
   return playgroundRuntimePromise;
@@ -675,8 +701,9 @@ const registerIpcHandlers = () => {
   // HarmonyOS, and Computer. Legacy channel names (getAndroidPlayground*)
   // are aliased to the same strings in IPC_CHANNELS, so the old
   // renderer code keeps working transparently.
-  ipcMain.handle(IPC_CHANNELS.getPlaygroundBootstrap, async () => {
-    const runtime = await getPlaygroundRuntime();
+  ipcMain.handle(IPC_CHANNELS.getPlaygroundBootstrap, async (_event, input) => {
+    const settings = normalizeStudioRuntimeSettings(input);
+    const runtime = await getPlaygroundRuntime(settings);
     return requestPlaygroundBootstrap(runtime, (error) => {
       console.error(
         'Failed to start Midscene Studio playground runtime:',
@@ -684,8 +711,22 @@ const registerIpcHandlers = () => {
       );
     });
   });
-  ipcMain.handle(IPC_CHANNELS.restartPlayground, async () =>
-    (await getPlaygroundRuntime()).restart(),
+  ipcMain.handle(
+    IPC_CHANNELS.restartPlayground,
+    async (_event, input: unknown) => {
+      const runtime = await getPlaygroundRuntime();
+      if (input === undefined) {
+        return runtime.restart();
+      }
+
+      const settings = normalizeStudioRuntimeSettings(input);
+      const result = await runtime.restart(resolveStudioAgentOptions(settings));
+      if (result.status === 'ready' && !result.settingsApplyError) {
+        playgroundRuntimeDesiredSettingsSignature =
+          serializeStudioRuntimeSettings(settings);
+      }
+      return result;
+    },
   );
   ipcMain.handle(
     IPC_CHANNELS.discoverDevices,

@@ -7,6 +7,7 @@ import type {
   MidsceneRecorderEvent,
   MidsceneRecorderTarget,
 } from '@midscene/shared/recorder';
+import type { StudioRuntimeSettingsV1 } from './advanced-settings';
 
 /**
  * IPC channel names bridging the Midscene Studio main process and renderer.
@@ -158,6 +159,8 @@ export interface PlaygroundBootstrap {
   serverUrl: string | null;
   port: number | null;
   error: string | null;
+  /** The requested settings failed, but the previous runtime was restored. */
+  settingsApplyError?: string;
 }
 
 /**
@@ -269,8 +272,12 @@ export interface ElectronShellApi {
 export type NativeThemeMode = 'light' | 'dark' | 'system';
 
 export interface StudioRuntimeApi {
-  getPlaygroundBootstrap: () => Promise<PlaygroundBootstrap>;
-  restartPlayground: () => Promise<PlaygroundBootstrap>;
+  getPlaygroundBootstrap: (
+    settings?: StudioRuntimeSettingsV1,
+  ) => Promise<PlaygroundBootstrap>;
+  restartPlayground: (
+    settings?: StudioRuntimeSettingsV1,
+  ) => Promise<PlaygroundBootstrap>;
   /** Scan ALL platforms for connected devices (ADB, HDC, displays). */
   discoverDevices: (
     request?: DiscoverDevicesRequest,

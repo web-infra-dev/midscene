@@ -1,9 +1,14 @@
+import type { StudioRuntimeSettingsV1 } from '@shared/advanced-settings';
 import type {
   DiscoverDevicesResult,
   PlaygroundBootstrap,
 } from '@shared/electron-contract';
 import type { PropsWithChildren } from 'react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  loadAdvancedSettings,
+  saveAdvancedSettings,
+} from '../settings/advanced-settings-storage';
 import StudioPlaygroundReadyProvider from './StudioPlaygroundReadyProvider';
 import { bucketDiscoveredDevices, bucketDiscoveryErrors } from './selectors';
 import type {
@@ -20,6 +25,8 @@ function normalizeBootstrapError(bootstrap: PlaygroundBootstrap): string {
   return bootstrap.error || 'Failed to start playground runtime.';
 }
 
+class RuntimeSettingsApplyError extends Error {}
+
 export function StudioPlaygroundProvider({ children }: PropsWithChildren) {
   const [bootstrap, setBootstrap] = useState<
     | { phase: 'booting' }
@@ -27,6 +34,10 @@ export function StudioPlaygroundProvider({ children }: PropsWithChildren) {
     | { phase: 'ready'; serverUrl: string }
   >({ phase: 'booting' });
   const [bootstrapTick, setBootstrapTick] = useState(0);
+  const runtimeSettingsRef = useRef(loadAdvancedSettings());
+  const requestGenerationRef = useRef(0);
+  const bootstrapSequenceRef = useRef(0);
+  const transitionInProgressRef = useRef(false);
 
   // Cross-platform device discovery — polls ALL platforms (ADB, HDC,
   // displays) once the playground runtime is ready, so the sidebar shows
@@ -103,16 +114,7 @@ export function StudioPlaygroundProvider({ children }: PropsWithChildren) {
     };
   }, [applyDiscoveredDevices, bootstrap.phase]);
 
-  const readBootstrap = useCallback(async () => {
-    if (!window.studioRuntime) {
-      setBootstrap({
-        phase: 'error',
-        error: getMissingBridgeError(),
-      });
-      return;
-    }
-
-    const nextBootstrap = await window.studioRuntime.getPlaygroundBootstrap();
+  const applyBootstrap = useCallback((nextBootstrap: PlaygroundBootstrap) => {
     if (nextBootstrap.status === 'ready' && nextBootstrap.serverUrl) {
       setBootstrap({
         phase: 'ready',
@@ -131,6 +133,45 @@ export function StudioPlaygroundProvider({ children }: PropsWithChildren) {
 
     setBootstrap({ phase: 'booting' });
   }, []);
+
+  const readBootstrap = useCallback(async () => {
+    if (transitionInProgressRef.current) return;
+    if (!window.studioRuntime) {
+      setBootstrap({
+        phase: 'error',
+        error: getMissingBridgeError(),
+      });
+      return;
+    }
+
+    const generation = requestGenerationRef.current;
+    const sequence = bootstrapSequenceRef.current + 1;
+    bootstrapSequenceRef.current = sequence;
+    try {
+      const nextBootstrap = await window.studioRuntime.getPlaygroundBootstrap(
+        runtimeSettingsRef.current,
+      );
+      if (
+        generation !== requestGenerationRef.current ||
+        sequence !== bootstrapSequenceRef.current ||
+        transitionInProgressRef.current
+      ) {
+        return;
+      }
+      applyBootstrap(nextBootstrap);
+    } catch (error) {
+      if (
+        generation !== requestGenerationRef.current ||
+        sequence !== bootstrapSequenceRef.current
+      ) {
+        return;
+      }
+      setBootstrap({
+        phase: 'error',
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }, [applyBootstrap]);
 
   useEffect(() => {
     let cancelled = false;
@@ -160,38 +201,77 @@ export function StudioPlaygroundProvider({ children }: PropsWithChildren) {
     };
   }, [bootstrap.phase, bootstrapTick, readBootstrap]);
 
-  const restartPlayground = useCallback(async () => {
-    setBootstrap({ phase: 'booting' });
-
-    if (!window.studioRuntime) {
-      setBootstrap({
-        phase: 'error',
-        error: getMissingBridgeError(),
-      });
-      return;
-    }
-
-    const nextBootstrap = await window.studioRuntime.restartPlayground();
-    if (nextBootstrap.status === 'ready' && nextBootstrap.serverUrl) {
-      setBootstrap({
-        phase: 'ready',
-        serverUrl: nextBootstrap.serverUrl,
-      });
-    } else if (nextBootstrap.status === 'error') {
-      setBootstrap({
-        phase: 'error',
-        error: normalizeBootstrapError(nextBootstrap),
-      });
-    } else {
+  const restartRuntime = useCallback(
+    async (settings?: StudioRuntimeSettingsV1) => {
+      const generation = requestGenerationRef.current + 1;
+      requestGenerationRef.current = generation;
+      bootstrapSequenceRef.current += 1;
+      transitionInProgressRef.current = true;
       setBootstrap({ phase: 'booting' });
-      setBootstrapTick((current) => current + 1);
+
+      try {
+        if (!window.studioRuntime) {
+          throw new Error(getMissingBridgeError());
+        }
+
+        const nextBootstrap =
+          await window.studioRuntime.restartPlayground(settings);
+        if (generation !== requestGenerationRef.current) return;
+
+        applyBootstrap(nextBootstrap);
+        if (nextBootstrap.settingsApplyError) {
+          throw new RuntimeSettingsApplyError(nextBootstrap.settingsApplyError);
+        }
+        if (nextBootstrap.status === 'error') {
+          throw new Error(normalizeBootstrapError(nextBootstrap));
+        }
+        if (nextBootstrap.status !== 'ready' || !nextBootstrap.serverUrl) {
+          setBootstrapTick((current) => current + 1);
+          return;
+        }
+        if (settings !== undefined) {
+          runtimeSettingsRef.current = saveAdvancedSettings(settings);
+        }
+      } catch (error) {
+        if (
+          generation === requestGenerationRef.current &&
+          !(error instanceof RuntimeSettingsApplyError)
+        ) {
+          setBootstrap({
+            phase: 'error',
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+        throw error;
+      } finally {
+        if (generation === requestGenerationRef.current) {
+          transitionInProgressRef.current = false;
+        }
+      }
+    },
+    [applyBootstrap],
+  );
+
+  const restartPlayground = useCallback(async () => {
+    try {
+      await restartRuntime();
+    } catch {
+      // restartRuntime has already moved the provider into its error state.
     }
-  }, []);
+  }, [restartRuntime]);
+
+  const applyRuntimeSettings = useCallback(
+    async (settings: StudioRuntimeSettingsV1) => {
+      await restartRuntime(settings);
+    },
+    [restartRuntime],
+  );
 
   const contextValue = useMemo(() => {
     if (bootstrap.phase === 'error') {
       return {
         phase: 'error' as const,
+        applyRuntimeSettings,
         error: bootstrap.error,
         restartPlayground,
         refreshDiscoveredDevices,
@@ -203,6 +283,7 @@ export function StudioPlaygroundProvider({ children }: PropsWithChildren) {
 
     return {
       phase: 'booting' as const,
+      applyRuntimeSettings,
       restartPlayground,
       refreshDiscoveredDevices,
       setDiscoveryPollingPaused: setDiscoveryPollingPausedValue,
@@ -211,6 +292,7 @@ export function StudioPlaygroundProvider({ children }: PropsWithChildren) {
     };
   }, [
     bootstrap,
+    applyRuntimeSettings,
     discoveredDevices,
     discoveryErrors,
     refreshDiscoveredDevices,
@@ -220,6 +302,8 @@ export function StudioPlaygroundProvider({ children }: PropsWithChildren) {
 
   return bootstrap.phase === 'ready' ? (
     <StudioPlaygroundReadyProvider
+      key={bootstrap.serverUrl}
+      applyRuntimeSettings={applyRuntimeSettings}
       discoveredDevices={discoveredDevices}
       discoveryErrors={discoveryErrors}
       refreshDiscoveredDevices={refreshDiscoveredDevices}

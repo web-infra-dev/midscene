@@ -144,6 +144,7 @@ function readStoredLanguage(): string {
 
 export interface SettingsPanelProps {
   className?: string;
+  onAdvancedClick?: () => void;
   onGithubClick?: () => void;
   /** Fires after the user picks a theme so the parent can dismiss the
    * popover — the new theme is hidden behind the popover otherwise. */
@@ -160,6 +161,7 @@ export interface SettingsPanelProps {
 
 export default function SettingsPanel({
   className,
+  onAdvancedClick,
   onGithubClick,
   onThemeChange,
   onWebsiteClick,
@@ -235,6 +237,11 @@ export default function SettingsPanel({
             onMouseLeave={scheduleClose}
             trailingIcon={<ChevronIcon />}
             value={THEME_LABELS[mode]}
+          />
+          <SettingItem
+            label="Advanced"
+            onClick={onAdvancedClick}
+            trailingIcon={<ChevronIcon />}
           />
         </div>
 

@@ -68,8 +68,12 @@ describe('preload bridge', () => {
       content: '{}',
     });
 
-    await studioRuntimeApi.getPlaygroundBootstrap();
-    await studioRuntimeApi.restartPlayground();
+    const runtimeSettings = {
+      schemaVersion: 1 as const,
+      agentOptions: { waitAfterAction: 250 },
+    };
+    await studioRuntimeApi.getPlaygroundBootstrap(runtimeSettings);
+    await studioRuntimeApi.restartPlayground(runtimeSettings);
     await studioRuntimeApi.discoverDevices();
     const stopListening = studioRuntimeApi.onDiscoveredDevicesChanged(
       () => undefined,
@@ -168,8 +172,8 @@ describe('preload bridge', () => {
           content: '{}',
         },
       ],
-      [IPC_CHANNELS.getPlaygroundBootstrap],
-      [IPC_CHANNELS.restartPlayground],
+      [IPC_CHANNELS.getPlaygroundBootstrap, runtimeSettings],
+      [IPC_CHANNELS.restartPlayground, runtimeSettings],
       [IPC_CHANNELS.discoverDevices, undefined],
       [IPC_CHANNELS.setDiscoveryPollingPaused, true],
       [

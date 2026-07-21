@@ -2,6 +2,7 @@ import {
   PlaygroundThemeProvider,
   usePlaygroundController,
 } from '@midscene/playground-app';
+import type { StudioRuntimeSettingsV1 } from '@shared/advanced-settings';
 import type { StudioPlatformId } from '@shared/electron-contract';
 import { Form } from 'antd';
 import type { PropsWithChildren } from 'react';
@@ -16,6 +17,7 @@ import { StudioPlaygroundContext } from './useStudioPlayground';
 const DEFAULT_PLATFORM_ID: StudioPlatformId = 'android';
 
 interface StudioPlaygroundReadyProviderProps {
+  applyRuntimeSettings: (settings: StudioRuntimeSettingsV1) => Promise<void>;
   discoveredDevices?: DiscoveredDevicesByPlatform;
   discoveryErrors?: DiscoveryErrorsByPlatform;
   refreshDiscoveredDevices: () => Promise<void>;
@@ -25,6 +27,7 @@ interface StudioPlaygroundReadyProviderProps {
 }
 
 export default function StudioPlaygroundReadyProvider({
+  applyRuntimeSettings,
   children,
   discoveredDevices,
   discoveryErrors,
@@ -61,6 +64,7 @@ export default function StudioPlaygroundReadyProvider({
   const contextValue = useMemo(
     () => ({
       phase: 'ready' as const,
+      applyRuntimeSettings,
       serverUrl,
       controller,
       restartPlayground,
@@ -70,6 +74,7 @@ export default function StudioPlaygroundReadyProvider({
       discoveryErrors,
     }),
     [
+      applyRuntimeSettings,
       controller,
       discoveredDevices,
       discoveryErrors,

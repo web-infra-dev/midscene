@@ -4,17 +4,18 @@ const connectMock = vi.fn();
 const currentDevice = { connect: connectMock };
 const getConnectedDevicesWithDetailsMock = vi.fn();
 const findAvailablePortMock = vi.fn(async (port: number) => port);
+const androidAgentMock = vi.fn().mockImplementation((device) => ({
+  interface: {
+    interfaceType: 'android',
+    describe: () => 'Mock Android device',
+    actionSpace: () => [],
+  },
+  destroy: vi.fn(),
+  device,
+}));
 
 vi.mock('@midscene/android', () => ({
-  AndroidAgent: vi.fn().mockImplementation((device) => ({
-    interface: {
-      interfaceType: 'android',
-      describe: () => 'Mock Android device',
-      actionSpace: () => [],
-    },
-    destroy: vi.fn(),
-    device,
-  })),
+  AndroidAgent: androidAgentMock,
   AndroidDevice: vi.fn().mockImplementation(() => currentDevice),
   getConnectedDevicesWithDetails: getConnectedDevicesWithDetailsMock,
 }));
@@ -74,6 +75,31 @@ describe('androidPlaygroundPlatform session manager', () => {
       deviceId: 'SERIAL123',
     });
     expect(connectMock).toHaveBeenCalled();
+  });
+
+  test('passes agent options to the initial and follow-up agents', async () => {
+    const { androidPlaygroundPlatform } = await import('../../src/platform');
+    const agentOptions = {
+      aiActContext: 'Prefer visible controls',
+      waitAfterAction: 250,
+    };
+    const prepared = await androidPlaygroundPlatform.prepare({ agentOptions });
+    const created = await prepared.sessionManager?.createSession({
+      deviceId: 'SERIAL123',
+    });
+
+    await created?.agentFactory?.();
+
+    expect(androidAgentMock).toHaveBeenNthCalledWith(
+      1,
+      expect.anything(),
+      agentOptions,
+    );
+    expect(androidAgentMock).toHaveBeenNthCalledWith(
+      2,
+      expect.anything(),
+      agentOptions,
+    );
   });
 
   test('keeps the setup schema usable when adb discovery fails', async () => {

@@ -56,6 +56,7 @@ function createReadyContextValue(): ReadyStudioPlaygroundContextValue {
       web: [],
     },
     refreshDiscoveredDevices: vi.fn(async () => undefined),
+    applyRuntimeSettings: vi.fn(async () => undefined),
     restartPlayground: vi.fn(async () => undefined),
     setDiscoveryPollingPaused: vi.fn(),
   };

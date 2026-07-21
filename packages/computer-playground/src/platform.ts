@@ -1,5 +1,6 @@
 import path from 'node:path';
 import {
+  type ComputerAgentOpt,
   agentFromComputer,
   checkAccessibilityPermission,
   checkScreenRecordingPermission,
@@ -15,6 +16,7 @@ import { findAvailablePort } from '@midscene/shared/node';
 import type { BrowserWindowController } from './browser-window-controller';
 
 export interface ComputerPlatformOptions {
+  agentOptions?: Omit<ComputerAgentOpt, 'displayId'>;
   staticDir?: string;
   getWindowController?: () => BrowserWindowController | null;
 }
@@ -119,20 +121,27 @@ export const computerPlaygroundPlatform = definePlaygroundPlatform<
           input?.displayId === undefined || input.displayId === null
             ? undefined
             : String(input.displayId);
-        const agent = await agentFromComputer(
-          displayId ? { displayId } : undefined,
-        );
+        const createAgent = (targetDisplayId?: string) => {
+          if (!options?.agentOptions && !targetDisplayId) {
+            return agentFromComputer();
+          }
+          return agentFromComputer({
+            ...options?.agentOptions,
+            ...(targetDisplayId ? { displayId: targetDisplayId } : {}),
+          });
+        };
+        const agent = await createAgent(displayId);
         const displays = await getConnectedDisplays();
         const selectedDisplay =
-          displays.find((display) => display.id === displayId) ||
+          displays.find((display) => String(display.id) === displayId) ||
           displays.find((display) => display.primary) ||
           displays[0];
 
         return {
           agent,
           agentFactory: () =>
-            agentFromComputer(
-              selectedDisplay ? { displayId: selectedDisplay.id } : undefined,
+            createAgent(
+              selectedDisplay ? String(selectedDisplay.id) : undefined,
             ),
           preview: createScreenshotPreviewDescriptor({
             title: 'Desktop preview',

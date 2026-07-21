@@ -84,4 +84,29 @@ describe('iosPlaygroundPlatform session manager', () => {
       wdaPort: 8300,
     });
   });
+
+  test('passes agent options to the initial and follow-up agents', async () => {
+    const { iosPlaygroundPlatform } = await import('../../src/platform');
+    const prepared = await iosPlaygroundPlatform.prepare({
+      agentOptions: {
+        aiActContext: 'Prefer visible controls',
+        screenshotShrinkFactor: 24,
+      },
+    });
+    const created = await prepared.sessionManager?.createSession({
+      host: 'localhost',
+      port: 8100,
+    });
+
+    await created?.agentFactory?.();
+
+    const expected = {
+      aiActContext: 'Prefer visible controls',
+      screenshotShrinkFactor: 24,
+      wdaHost: 'localhost',
+      wdaPort: 8100,
+    };
+    expect(agentFromWebDriverAgentMock).toHaveBeenNthCalledWith(1, expected);
+    expect(agentFromWebDriverAgentMock).toHaveBeenNthCalledWith(2, expected);
+  });
 });
