@@ -906,13 +906,12 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
     await this.mouse.click(element.center[0], element.center[1]);
 
     await this.sendCommandToDebugger('Input.dispatchKeyEvent', {
-      type: 'keyDown',
+      type: 'rawKeyDown',
       commands: ['selectAll'],
     });
 
     await this.sendCommandToDebugger('Input.dispatchKeyEvent', {
       type: 'keyUp',
-      commands: ['selectAll'],
     });
 
     await sleep(100);
