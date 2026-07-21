@@ -35,18 +35,18 @@ The desktop and mobile jobs fail if any required phase fails. Each job checks bu
 
 ## Verify the GitHub Actions integration
 
-These successful GitHub Actions runs show the expected result for each platform. Download the report artifact, extract it, and open the listed HTML file in a browser.
+These successful GitHub Actions runs show the expected result for each platform. Open the archived TodoMVC report to inspect the completed Midscene actions.
 
-| Platform | Successful GitHub Actions run | HTML report artifact | Report file |
-| --- | --- | --- | --- |
-| Web | [Run 29302040780](https://github.com/web-infra-dev/midscene/actions/runs/29302040780) | [`e2e-report`](https://github.com/web-infra-dev/midscene/actions/runs/29302040780/artifacts/8298987616) | Generated reports under the artifact root |
-| Headless Linux | [Run 29252028039](https://github.com/web-infra-dev/midscene/actions/runs/29252028039) | [`headless-linux-ai-report`](https://github.com/web-infra-dev/midscene/actions/runs/29252028039/artifacts/8280608101) | TodoMVC report under the artifact root |
-| Windows | [Run 29252027901](https://github.com/web-infra-dev/midscene/actions/runs/29252027901) | [`windows-todo-mvc-report`](https://github.com/web-infra-dev/midscene/actions/runs/29252027901/artifacts/8280120027) | `todo-mvc-win32.html` |
-| macOS | [Run 29252027999](https://github.com/web-infra-dev/midscene/actions/runs/29252027999) | [`macos-todo-mvc-report`](https://github.com/web-infra-dev/midscene/actions/runs/29252027999/artifacts/8280311446) | `todo-mvc-darwin.html` |
-| Android | [Run 29252028076](https://github.com/web-infra-dev/midscene/actions/runs/29252028076) | [`android-todo-mvc-report`](https://github.com/web-infra-dev/midscene/actions/runs/29252028076/artifacts/8280402662) | `todo-mvc-android.html` |
-| iOS | [Run 29311631217](https://github.com/web-infra-dev/midscene/actions/runs/29311631217) | [`ios-todo-mvc-report`](https://github.com/web-infra-dev/midscene/actions/runs/29311631217/artifacts/8302602686) | `todo-mvc-ios.html` |
+| Platform | Successful GitHub Actions run | Archived TodoMVC report |
+| --- | --- | --- |
+| Web | [Run 29302040780](https://github.com/web-infra-dev/midscene/actions/runs/29302040780) | [Open the Web report](https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/github-ci/todo-mvc-web.html) |
+| Headless Linux | [Run 29252028039](https://github.com/web-infra-dev/midscene/actions/runs/29252028039) | [Open the Headless Linux report](https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/github-ci/todo-mvc-linux.html) |
+| Windows | [Run 29800318468](https://github.com/web-infra-dev/midscene/actions/runs/29800318468) | [Open the Windows report](https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/github-ci/todo-mvc-windows.html) |
+| macOS | [Run 29822678312](https://github.com/web-infra-dev/midscene/actions/runs/29822678312) | [Open the macOS report](https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/github-ci/todo-mvc-macos.html) |
+| Android | [Run 29822678280](https://github.com/web-infra-dev/midscene/actions/runs/29822678280) | [Open the Android report](https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/github-ci/todo-mvc-android.html) |
+| iOS | [Run 29822678283](https://github.com/web-infra-dev/midscene/actions/runs/29822678283) | [Open the iOS report](https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/github-ci/todo-mvc-ios.html) |
 
-GitHub may require you to sign in before downloading an artifact. The desktop and mobile workflows retain artifacts for seven days, so an artifact can expire while its run remains visible.
+The archived reports remain available after the original GitHub artifacts expire. GitHub may require you to sign in before downloading an artifact from a recent run. The desktop and mobile workflows retain artifacts for seven days, so an artifact can expire while its run remains visible.
 
 Download an artifact with the GitHub CLI while it remains available:
 
