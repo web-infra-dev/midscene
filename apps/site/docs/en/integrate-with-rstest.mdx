@@ -6,7 +6,7 @@ import { PackageManagerTabs } from '@theme';
 [Rstest](https://github.com/web-infra-dev/rstest) is a fast Rspack-based testing framework. With `@midscene/rstest` you can write AI-driven end-to-end tests as plain Rstest fixtures — Midscene takes care of launching the browser, creating an Agent per test, and producing an HTML report at the end of every test file.
 
 ```ts
-import { expect, test as base } from '@midscene/rstest';
+import { expect, test as base } from '@midscene/rstest/playwright';
 
 const test = base.extend({ url: 'http://localhost:5173/' });
 
@@ -24,6 +24,12 @@ What you get out of the box:
 - A merged Midscene HTML report per test file, with the path printed to the console after the file finishes.
 
 The package is built on [`@rstest/playwright`](https://github.com/web-infra-dev/rstest/tree/main/packages/playwright), Rstest's official Playwright integration. Midscene layers the `agent` lifecycle and reporting on top, and you inherit the upstream toolbox as-is: Playwright-flavored `expect` (`toBeVisible`, `toHaveText`, …), debug mode (`PWDEBUG`, pause on failure), Playwright trace capture, and the `request` / `serve` fixtures.
+
+:::info Playwright only
+
+Playwright is the only browser engine supported today, which is why the engine is explicit in the import path (`@midscene/rstest/playwright`), mirroring `@midscene/web`'s `/playwright` and `/puppeteer` entries. Puppeteer is not supported.
+
+:::
 
 <SetupEnv />
 
@@ -62,7 +68,7 @@ export default defineConfig({
 ## Step 3: Write a test
 
 ```ts title="e2e/todo-list.test.ts"
-import { expect, test as base } from '@midscene/rstest';
+import { expect, test as base } from '@midscene/rstest/playwright';
 
 const test = base.extend({ url: 'http://localhost:5173/' });
 
@@ -79,7 +85,7 @@ test('adds and completes a todo', async ({ agent }) => {
 });
 ```
 
-The `test` exported from `@midscene/rstest` is an Rstest test pre-wired with Midscene fixtures. Destructure what you need from the test context — the fixture engine resolves dependencies and runs setup/teardown around each test.
+The `test` exported from `@midscene/rstest/playwright` is an Rstest test pre-wired with Midscene fixtures. Destructure what you need from the test context — the fixture engine resolves dependencies and runs setup/teardown around each test.
 
 The available fixtures are:
 
@@ -146,7 +152,7 @@ Reports are written to `midscene_run/report/`. See [Consume report files](./cons
 For options that should apply to every file, call `defineMidsceneDefaults` from a setup file and register it via Rstest's `setupFiles`:
 
 ```ts title="midscene.setup.ts"
-import { defineMidsceneDefaults } from '@midscene/rstest';
+import { defineMidsceneDefaults } from '@midscene/rstest/playwright';
 
 defineMidsceneDefaults({
   viewport: { width: 1280, height: 720 },
@@ -211,10 +217,10 @@ Midscene reads configuration from four channels — pick the one that matches th
    });
    ```
 
-3. **`overrideAIConfig(...)`** in a setup file — for programmatic global overrides that env vars can't express, or for swapping config between test runs. Re-exported from `@midscene/rstest`.
+3. **`overrideAIConfig(...)`** in a setup file — for programmatic global overrides that env vars can't express, or for swapping config between test runs. Re-exported from `@midscene/rstest/playwright`.
 
    ```ts title="midscene.setup.ts"
-   import { overrideAIConfig } from '@midscene/rstest';
+   import { overrideAIConfig } from '@midscene/rstest/playwright';
 
    overrideAIConfig({
      MIDSCENE_MODEL_NAME: process.env.CI ? 'gpt-5.5' : 'gpt-5.4',
@@ -320,7 +326,7 @@ Or via env vars without touching code — `PWDEBUG=1 npx rstest run` for debug m
 For lifecycles the defaults don't cover — per-test storage state, init scripts, CDP wiring — override the `page` fixture. Code before `await use(page)` is setup; code after is teardown.
 
 ```ts
-import { test as base } from '@midscene/rstest';
+import { test as base } from '@midscene/rstest/playwright';
 
 const test = base.extend({
   url: 'https://example.com',

@@ -16,9 +16,9 @@
   "sideEffects": false,
   "files": ["dist", "README.md"],
   "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+    "./playwright": {
+      "types": "./dist/playwright.d.ts",
+      "import": "./dist/playwright.js"
     },
     "./reporter": {
       "types": "./dist/reporter.d.ts",
