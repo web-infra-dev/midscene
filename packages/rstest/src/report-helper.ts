@@ -1,17 +1,16 @@
-import { appendFileSync, mkdirSync } from 'node:fs';
+import { appendFileSync } from 'node:fs';
 import { basename, extname, join } from 'node:path';
-import type { TestStatus } from '@midscene/core';
+import type { ReportFileWithAttributes, TestStatus } from '@midscene/core';
+import { getReportFileName } from '@midscene/core/agent';
 import { replaceIllegalPathCharsAndSpace } from '@midscene/shared/utils';
-import { generateTimestamp, getManifestDir, manifestKey } from './utils';
+import { getManifestDir, manifestKey } from './utils';
 
-export interface RstestTestContext {
-  task: {
-    id: string;
-    name: string;
-    result?: {
-      status: 'pass' | 'fail' | 'skip' | 'todo';
-      errors?: Array<{ message?: string }>;
-    };
+export interface RstestTask {
+  id: string;
+  name: string;
+  result?: {
+    status: 'pass' | 'fail' | 'skip' | 'todo';
+    errors?: Array<{ message?: string }>;
   };
 }
 
@@ -29,22 +28,17 @@ export interface ReportMeta {
    * same test reuse the same cache namespace.
    */
   cacheId: string;
+  /** Absolute path of the test file, i.e. which manifest to append to. */
+  filepath: string;
+  /** `performance.now()` at fixture setup, for the reported test duration. */
+  startTime: number;
 }
 
 /**
- * One test's collected report, handed from the worker to the reporter.
- * Shaped to be spread straight into `ReportMergingTool.append`.
+ * One test's collected report, handed from the worker to the reporter and fed
+ * straight into `ReportMergingTool.append`.
  */
-export interface ReportManifestEntry {
-  reportFilePath: string;
-  reportAttributes: {
-    testId: string;
-    testTitle: string;
-    testDescription: string;
-    testDuration: number;
-    testStatus: TestStatus;
-  };
-}
+export type ReportManifestEntry = ReportFileWithAttributes;
 
 /**
  * Per-test-file manifest the worker appends to and the reporter drains.
@@ -54,16 +48,11 @@ export function manifestPathFor(filepath: string): string {
   return join(getManifestDir(), `${manifestKey(filepath)}.jsonl`);
 }
 
-const STATUS_MAP: Record<string, TestStatus> = {
-  pass: 'passed',
-  fail: 'failed',
-};
-
-function deriveStatus(result: RstestTestContext['task']['result']): TestStatus {
+function deriveStatus(result: RstestTask['result']): TestStatus {
   // TODO: rstest may eventually surface a structured timeout flag. Until then
   // we substring-match the error message the way Vitest does.
   if (result?.errors?.[0]?.message?.includes('timed out')) return 'timedOut';
-  return STATUS_MAP[result?.status ?? ''] ?? 'passed';
+  return result?.status === 'fail' ? 'failed' : 'passed';
 }
 
 /**
@@ -78,32 +67,29 @@ function deriveStatus(result: RstestTestContext['task']['result']): TestStatus {
  * `isolate`.
  */
 export async function collectReport(
-  agent: AgentLike | undefined,
-  startTime: number | undefined,
-  testCtx: RstestTestContext,
-  filepath: string,
+  agent: AgentLike,
+  meta: ReportMeta,
+  task: RstestTask,
 ): Promise<void> {
-  const status = deriveStatus(testCtx.task.result);
+  const status = deriveStatus(task.result);
 
-  await agent?.destroy();
+  await agent.destroy();
 
-  const reportFile = agent?.reportFile;
+  const reportFile = agent.reportFile;
   if (!reportFile) return;
 
   const entry: ReportManifestEntry = {
     reportFilePath: reportFile,
     reportAttributes: {
-      testId: testCtx.task.id,
-      testTitle: testCtx.task.name,
+      testId: task.id,
+      testTitle: task.name,
       testDescription: '',
-      testDuration:
-        startTime !== undefined ? Math.round(performance.now() - startTime) : 0,
+      testDuration: Math.round(performance.now() - meta.startTime),
       testStatus: status,
     },
   };
 
-  mkdirSync(getManifestDir(), { recursive: true });
-  appendFileSync(manifestPathFor(filepath), `${JSON.stringify(entry)}\n`);
+  appendFileSync(manifestPathFor(meta.filepath), `${JSON.stringify(entry)}\n`);
 }
 
 /**
@@ -111,20 +97,24 @@ export async function collectReport(
  * so we derive `groupName` from the file basename.
  */
 export function buildReportMeta(
-  testCtx: RstestTestContext,
+  task: RstestTask,
   filepath: string,
 ): ReportMeta {
   const base = basename(filepath, extname(filepath)) || 'UnnamedGroup';
-  const taskName = testCtx.task.name;
+  const taskName = task.name;
   return {
     groupName: `E2E: ${base}`,
     // Test names routinely contain characters that are illegal in a filename
     // (`login: happy path`), and the report generator rejects path separators
     // outright, so the name is sanitized before it reaches the file system.
-    reportFileName: sanitizeForFileName(
-      `E2E-${base}-${taskName}-${generateTimestamp()}`,
+    // `getReportFileName` appends the timestamp and a uuid, and lets
+    // `MIDSCENE_REPORT_TAG_NAME` override the tag like every other integration.
+    reportFileName: getReportFileName(
+      sanitizeForFileName(`E2E-${base}-${taskName}`),
     ),
     cacheId: replaceIllegalPathCharsAndSpace(`${base}(${taskName})`),
+    filepath,
+    startTime: performance.now(),
   };
 }
 
@@ -132,7 +122,7 @@ export function buildReportMeta(
  * `replaceIllegalPathCharsAndSpace` deliberately preserves `/` and `\` so that
  * group names can carry hierarchy. File names cannot, so strip those too.
  */
-function sanitizeForFileName(value: string): string {
+export function sanitizeForFileName(value: string): string {
   return replaceIllegalPathCharsAndSpace(value).replace(/[\\/]/g, '-');
 }
 

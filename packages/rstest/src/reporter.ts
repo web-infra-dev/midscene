@@ -1,11 +1,14 @@
 import { readFileSync, rmSync } from 'node:fs';
 import { basename, extname } from 'node:path';
+import { getReportFileName, printReportMsg } from '@midscene/core/agent';
 import { ReportMergingTool } from '@midscene/core/report';
 import type { Reporter, TestFileResult } from '@rstest/core';
-import { type ReportManifestEntry, manifestPathFor } from './report-helper';
-import { generateTimestamp, getManifestDir } from './utils';
-
-const cyan = (text: string): string => `\x1b[36m${text}\x1b[0m`;
+import {
+  type ReportManifestEntry,
+  manifestPathFor,
+  sanitizeForFileName,
+} from './report-helper';
+import { getManifestDir } from './utils';
 
 /**
  * Merges each test file's Midscene reports and prints the result.
@@ -43,13 +46,15 @@ export default class MidsceneReporter implements Reporter {
 
     const base =
       basename(file.testPath, extname(file.testPath)) || 'MergedReport';
-    const merged = tool.mergeReports(`E2E-${base}-${generateTimestamp()}`);
+    const merged = tool.mergeReports(
+      getReportFileName(sanitizeForFileName(`E2E-${base}`)),
+      { overwrite: true },
+    );
     // Fall back to the first report so a path is still printed if the merger
     // declines to produce a new file.
     const report = merged ?? entries[0].reportFilePath;
-
     if (report) {
-      console.log(`  ${cyan(`Midscene report: ${report}`)}`);
+      printReportMsg(report);
     }
   }
 }

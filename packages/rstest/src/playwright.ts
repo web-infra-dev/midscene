@@ -128,11 +128,11 @@ export interface MidsceneFixtures {
 }
 
 // Private fixtures — hidden from the public type via the cast at the bottom.
-// `__reportMeta` shares meta + startTime so primary and secondaries get the
-// same timestamp in their reportFileName. `playwright` re-declares the
-// upstream options fixture so the bridge override below typechecks.
+// `__reportMeta` is shared so primary and secondary agents land in the same
+// report group and manifest. `playwright` re-declares the upstream options
+// fixture so the bridge override below typechecks.
 interface InternalFixtures extends MidsceneFixtures {
-  __reportMeta: { meta: ReportMeta; startTime: number; filepath: string };
+  __reportMeta: ReportMeta;
   playwright: PlaywrightOptions;
 }
 
@@ -153,6 +153,33 @@ let _defaults: MidsceneOptions = {};
 export const defineMidsceneDefaults = (next: MidsceneOptions): void => {
   _defaults = { ..._defaults, ...next };
 };
+
+/**
+ * Single place where agent options are resolved: fixture-level
+ * `agentOptions`, then per-call `opts` for secondaries, with the report group
+ * and cache namespace pinned to the current test.
+ */
+function createAgent(
+  page: Page,
+  midsceneOptions: MidsceneOptions,
+  meta: ReportMeta,
+  reportFileName: string,
+  opts?: AgentOptions,
+): PlaywrightAgent {
+  const { cache: fixtureCache, ...fixtureRest } =
+    midsceneOptions.agentOptions ?? {};
+  const { cache: optsCache, ...optsRest } = opts ?? {};
+  return new PlaywrightAgent(page, {
+    ...fixtureRest,
+    ...optsRest,
+    cache: processCacheConfig(
+      (optsCache ?? fixtureCache) as Cache | undefined,
+      meta.cacheId,
+    ),
+    groupName: meta.groupName,
+    reportFileName,
+  });
+}
 
 // This module deliberately registers no module-level hooks and keeps no
 // per-file state. Under `isolate: false` the module graph is shared across
@@ -175,30 +202,22 @@ export const test = playwrightBaseTest.extend<InternalFixtures>({
         '@midscene/rstest could not determine the current test file: `task.filepath` is missing from the rstest test context. This requires @rstest/core >= 0.11.2.',
       );
     }
-    await use({
-      meta: buildReportMeta({ task }, filepath),
-      startTime: performance.now(),
-      filepath,
-    });
+    await use(buildReportMeta(task, filepath));
   },
 
   // Bridge `midsceneOptions` onto `@rstest/playwright`'s `playwright` options
   // fixture. Browser/context lifecycle (including debug mode and trace
   // capture) is fully managed upstream from these options.
   playwright: async ({ midsceneOptions }, use) => {
-    const launchOptions = await applyResolver<LaunchOptions>(
-      midsceneOptions.launchOptions,
-      {
+    const [launchOptions, contextOptions] = await Promise.all([
+      applyResolver<LaunchOptions>(midsceneOptions.launchOptions, {
         headless: midsceneOptions.headless ?? isCI,
         args: DEFAULT_BROWSER_ARGS,
-      },
-    );
-    const contextOptions = await applyResolver<BrowserContextOptions>(
-      midsceneOptions.contextOptions,
-      {
+      }),
+      applyResolver<BrowserContextOptions>(midsceneOptions.contextOptions, {
         viewport: midsceneOptions.viewport ?? DEFAULT_VIEWPORT,
-      },
-    );
+      }),
+    ]);
     await use({
       launchOptions,
       contextOptions,
@@ -225,48 +244,29 @@ export const test = playwrightBaseTest.extend<InternalFixtures>({
   },
 
   agent: async ({ page, midsceneOptions, __reportMeta, task }, use) => {
-    const { cache: rawCache, ...rest } = midsceneOptions.agentOptions ?? {};
-    const cache = processCacheConfig(
-      rawCache as Cache | undefined,
-      __reportMeta.meta.cacheId,
+    const agent = createAgent(
+      page,
+      midsceneOptions,
+      __reportMeta,
+      __reportMeta.reportFileName,
     );
-    const agent = new PlaywrightAgent(page, {
-      ...rest,
-      cache,
-      groupName: __reportMeta.meta.groupName,
-      reportFileName: __reportMeta.meta.reportFileName,
-    });
     await use(agent);
-    await collectReport(
-      agent,
-      __reportMeta.startTime,
-      { task },
-      __reportMeta.filepath,
-    );
+    await collectReport(agent, __reportMeta, task);
   },
 
   // Depends on `agent` so its teardown runs BEFORE the primary's — secondaries
   // are collected while their pages are still alive.
   agentForPage: async ({ agent, midsceneOptions, __reportMeta, task }, use) => {
     const secondaries: PlaywrightAgent[] = [];
-    let counter = 0;
 
     const helper: AgentForPage = async (secondaryPage, opts) => {
-      counter += 1;
-      const { cache: optsCache, ...optsRest } = opts ?? {};
-      const { cache: fixtureCache, ...fixtureRest } =
-        midsceneOptions.agentOptions ?? {};
-      const cache = processCacheConfig(
-        (optsCache ?? fixtureCache) as Cache | undefined,
-        __reportMeta.meta.cacheId,
+      const secondary = createAgent(
+        secondaryPage,
+        midsceneOptions,
+        __reportMeta,
+        `${__reportMeta.reportFileName}-page${secondaries.length + 1}`,
+        opts,
       );
-      const secondary = new PlaywrightAgent(secondaryPage, {
-        ...fixtureRest,
-        ...optsRest,
-        cache,
-        groupName: __reportMeta.meta.groupName,
-        reportFileName: `${__reportMeta.meta.reportFileName}-page${counter}`,
-      });
       secondaries.push(secondary);
       return secondary;
     };
@@ -274,16 +274,10 @@ export const test = playwrightBaseTest.extend<InternalFixtures>({
 
     for (const secondary of secondaries) {
       try {
-        await collectReport(
-          secondary,
-          __reportMeta.startTime,
-          { task },
-          __reportMeta.filepath,
-        );
+        await collectReport(secondary, __reportMeta, task);
       } catch (err) {
         debug('secondary agent report failed:', err);
       }
     }
-    void agent;
   },
 }) as unknown as PlaywrightTest<PlaywrightFixture & MidsceneFixtures>;
