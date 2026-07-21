@@ -89,13 +89,14 @@ test('adds and completes a todo', async ({ agent }) => {
 
 可用的 fixtures：
 
-- **`agent`**：绑定到主 page 上的 Midscene `PlaywrightAgent`。AI action 和 assertion 的默认入口。
-- **`page`**：底层的 Playwright `Page`。用于 `agent` 做不到或不该做的事，比如 `page.route(...)` network mock、`page.evaluate(...)`、`page.context().cookies()`。
+- **`agent`**：绑定到主 page 上的 Midscene `PlaywrightAgent`。AI action 和 assertion 的默认入口。它的 setup 会在测试体运行前把 `page` 导航到 `url`。
+- **`page`**：Playwright `Page`，原样来自 `@rstest/playwright`——包括其失败时的行为（`PWDEBUG` 下失败保留现场并 pause）。用于 `agent` 做不到或不该做的事，比如 `page.route(...)` network mock、`page.evaluate(...)`、`page.context().cookies()`。不使用 `agent` 的测试请自行导航。
 - **`browser`**：共享的 `Browser`，由 `@rstest/playwright` 管理，惰性启动、worker 内共享、空闲时自动关闭。适合在测试中开新 context 或新 page，用于多用户、跨会话场景。
 - **`context`**：创建主 `page` 的 test-scoped `BrowserContext`。需要自定义 context 时通过 `test.extend` 覆盖。
 - **`request`** / **`serve`**：继承自 `@rstest/playwright`。隔离的 `APIRequestContext` 用于 API 调用，以及一行代码起静态文件服务器，自动清理。
 - **`agentForPage(page, opts?)`**：为另一个 page 构造 Midscene Agent，比如 popup 或手动开的 page。报告会和主 agent 合并，销毁自动完成。
-- **`url`** / **`midsceneOptions`**：配置 fixtures。详见 [项目级默认配置](#项目级默认配置可选) 与 [自定义 page 设置](#自定义-page-设置)。
+- **`playwright`**：浏览器级配置（launch options、context options、debug、trace），原样来自 `@rstest/playwright`。详见 [浏览器配置](#浏览器配置playwright-fixture)。
+- **`url`** / **`midsceneOptions`**：Midscene 侧的配置 fixtures。详见 [Options](#options) 与 [项目级默认配置](#项目级默认配置可选)。
 
 ```ts
 test('mocks the API and verifies the UI', async ({ agent, page }) => {
@@ -152,14 +153,20 @@ Midscene report: midscene_run/report/<file>.html
 如果希望所有文件共享同一份配置，在一个共享模块里扩展 base test 并导出，所有测试文件都从这里 import——与 Playwright Test 的模式完全一致：
 
 ```ts title="tests/midscene.ts"
-import { test as base } from '@midscene/rstest/playwright';
+import {
+  test as base,
+  defaultPlaywrightOptions,
+} from '@midscene/rstest/playwright';
 
 export { describe, expect } from '@midscene/rstest/playwright';
 
 export const test = base.extend({
+  playwright: {
+    ...defaultPlaywrightOptions,
+    contextOptions: { locale: 'zh-CN', viewport: { width: 1280, height: 720 } },
+  },
   midsceneOptions: {
-    viewport: { width: 1280, height: 720 },
-    contextOptions: { locale: 'zh-CN' },
+    agentOptions: { cache: true },
   },
 });
 ```
@@ -170,20 +177,7 @@ import { expect, test as shared } from './midscene';
 const test = shared.extend({ url: 'http://localhost:5173/' });
 ```
 
-需要不同配置的文件再次扩展即可——后调用的 `extend` 覆盖先前的值：
-
-```ts
-const test = shared.extend({
-  url: 'http://localhost:5173/',
-  midsceneOptions: {
-    headless: false,
-    viewport: { width: 375, height: 667 },
-    agentOptions: { cache: true }, // 自动从 test 名派生 cache id
-  },
-});
-```
-
-`launchOptions`、`contextOptions` 这类 resolver 字段会在 Midscene 默认值之上做**深度合并**，数组自动拼接。需要从默认值里去掉某个字段、或完全接管，用 resolver 的函数形式 `(defaults) => ...`。
+需要不同配置的文件再次扩展即可——后调用的 `extend` 覆盖先前的值（整体替换，标准 fixture 语义）。
 
 ## 配置 Midscene
 
@@ -232,107 +226,88 @@ Midscene 从四个渠道读取配置，按你想影响的作用域选一个。
 
 ## 选项
 
-`midsceneOptions` 集中承载所有 per-file 配置。统一通过 `test.extend({ midsceneOptions: {...} })` 设置——写在共享模块里就是仓库级默认，写在单个文件里就是 per-file 覆盖。
+配置分为两个互不重叠的域，各自只有一个入口：
+
+- **浏览器域** → `playwright` fixture，与 `@rstest/playwright` 完全一致。
+- **Midscene 域** → `midsceneOptions` fixture。
+
+### 浏览器配置（`playwright` fixture）
+
+launch options、context options、浏览器选择、debug、trace 全部配置在 `@rstest/playwright` 自己的 `playwright` fixture 上——[上游文档](https://github.com/web-infra-dev/rstest/tree/main/packages/playwright)里的每一个选项都原样可用：
+
+```ts
+const test = base.extend({
+  url: 'http://localhost:5173/',
+  playwright: {
+    launchOptions: { headless: false },
+    contextOptions: { locale: 'zh-CN', storageState: 'auth.json' },
+    debug: true, // headed + slowMo + DevTools，失败时暂停（也可用 PWDEBUG=1）
+    trace: 'retain-on-failure', // 保存 trace.zip（也可用 RSTEST_PLAYWRIGHT_TRACE）
+  },
+});
+```
+
+`@midscene/rstest` 在这里做的唯一一件事是提供一份默认值，以 `defaultPlaywrightOptions` 导出：
+
+```ts
+{
+  launchOptions: {
+    headless: /* CI 中 true，本地 false */,
+    args: ['--no-sandbox', '--ignore-certificate-errors'],
+  },
+  contextOptions: { viewport: { width: 1920, height: 1080 } },
+}
+```
+
+覆盖 `playwright` fixture 时整个对象被替换——标准 fixture 语义，没有任何隐式合并。想保留默认值就显式 spread：
+
+```ts
+import {
+  test as base,
+  defaultPlaywrightOptions,
+} from '@midscene/rstest/playwright';
+
+const test = base.extend({
+  url: 'http://localhost:5173/',
+  playwright: {
+    ...defaultPlaywrightOptions,
+    contextOptions: { viewport: { width: 375, height: 667 } },
+  },
+});
+```
+
+trace 产物落在 `.rstest/playwright-traces/`，附带 AI 可读的 `trace-summary.json`，控制台会打印 `npx playwright show-trace ...` 命令。
+
+### Midscene 配置（`midsceneOptions`）
 
 | 字段 | 类型 | 默认值 | 说明 |
 | --- | --- | --- | --- |
-| `headless` | `boolean` | CI 中 `true`，本地 `false` | `launchOptions.headless` 的便捷写法。 |
-| `viewport` | `{ width, height }` | `1920×1080` | `contextOptions.viewport` 的便捷写法。 |
-| `launchOptions` | `LaunchOptions \| (defaults) => LaunchOptions` | — | 透传到 `chromium.launch(...)`。 |
-| `contextOptions` | `BrowserContextOptions \| (defaults) => BrowserContextOptions` | — | 透传到 `browser.newContext(...)`。 |
-| `gotoOptions` | `Parameters<Page['goto']>[1]` | — | 透传到 `page.goto(url, ...)`。 |
+| `gotoOptions` | `Parameters<Page['goto']>[1]` | — | `agent` fixture 自动导航时透传给 `page.goto(url, ...)`。 |
 | `agentOptions` | `WebPageAgentOpt` | — | 透传给 `PlaywrightAgent`（如 `aiActionContext`、`modelConfig`）。`groupName` 与 `reportFileName` 由 lifecycle 管理。`cache` 接受 `true \| false \| { strategy?, id? }`。当 `cache: true` 或 `id` 缺省时，会自动从测试文件名 + test 名派生一个稳定 id，让重复跑同一个测试复用同一个 cache namespace。 |
-| `debug` | `boolean \| PlaywrightDebugOptions` | `false` | 透传给 `@rstest/playwright`：headed 浏览器、slowMo、DevTools、失败时暂停。也可通过 `PWDEBUG` 环境变量开启。 |
-| `trace` | `'off' \| 'on' \| 'retain-on-failure' \| PlaywrightTraceOptions` | `'off'` | 透传给 `@rstest/playwright`：为每个 test 保存 Playwright trace（`trace.zip` + AI 可读的 summary）。也可通过 `RSTEST_PLAYWRIGHT_TRACE` 环境变量开启。 |
-
-`launchOptions`、`contextOptions` 这类 resolver 字段同时接受对象、函数 `(defaults) => options`（同步或异步）、以及它们组成的数组。对象形态会和 Midscene 默认值做**深度合并**、数组自动拼接，函数形态则可以完全接管。
-
-### 示例
-
-加一个 launch flag，同时保留 Midscene 在 CI 上必需的默认 args：
 
 ```ts
 const test = base.extend({
   url: 'http://localhost:5173/',
   midsceneOptions: {
-    // 最终 `args` 为 ['--no-sandbox', '--ignore-certificate-errors', '--start-fullscreen']。
-    launchOptions: { args: ['--start-fullscreen'] },
+    agentOptions: { cache: true, aiActionContext: '先关掉任何弹出的促销对话框。' },
   },
 });
 ```
-
-只改动一个嵌套字段，兄弟字段不丢：
-
-```ts
-const test = base.extend({
-  url: 'http://localhost:5173/',
-  midsceneOptions: {
-    // 最终 viewport 为 { width: 1440, height: 1080 }，height 仍然保留。
-    contextOptions: { viewport: { width: 1440 } },
-  },
-});
-```
-
-深度合并解决不了的场景用函数形式，通常是想从默认值里**去掉**某些字段、写异步逻辑、或者完全替换：
-
-```ts
-const test = base.extend({
-  url: 'http://localhost:5173/',
-  midsceneOptions: {
-    launchOptions: (defaults) => ({
-      ...defaults,
-      args: defaults.args?.filter((a) => a !== '--no-sandbox'),
-    }),
-  },
-});
-```
-
-配置 context：
-
-```ts
-const test = base.extend({
-  url: 'http://localhost:5173/',
-  midsceneOptions: {
-    contextOptions: {
-      locale: 'zh-CN',
-      storageState: 'auth.json',
-      recordVideo: { dir: 'midscene_run/video' },
-    },
-  },
-});
-```
-
-## 调试与 trace
-
-两者都直接来自 `@rstest/playwright`，通过 `midsceneOptions` 暴露：
-
-```ts
-const test = base.extend({
-  url: 'http://localhost:5173/',
-  midsceneOptions: {
-    debug: true, // headed + slowMo + DevTools，失败时暂停
-    trace: 'retain-on-failure', // 只为失败的 test 保存 trace.zip
-  },
-});
-```
-
-也可以不改代码，用环境变量：`PWDEBUG=1 npx rstest run` 开 debug 模式，`RSTEST_PLAYWRIGHT_TRACE=retain-on-failure npx rstest run` 开 trace。trace 产物落在 `.rstest/playwright-traces/`，附带 AI 可读的 `trace-summary.json`，控制台会打印 `npx playwright show-trace ...` 命令。
 
 ## 自定义 page 设置
 
-默认 lifecycle 无法满足的场景，比如 per-test storage state、init script、CDP 接线，直接覆盖 `page` fixture。`await use(page)` 之前是 setup，之后是 teardown。
+默认 lifecycle 无法满足的场景，比如 per-test storage state、init script、CDP 接线，直接覆盖 `page` fixture——这就是普通的 `@rstest/playwright` fixture 组合，`@midscene/rstest` 没有在上游 `page` 之上加任何东西。`await use(page)` 之前是 setup，之后是 teardown。`agent` fixture 仍会在你产出的 page 上执行 `url` 导航。
 
 ```ts
 import { test as base } from '@midscene/rstest/playwright';
 
 const test = base.extend({
   url: 'https://example.com',
-  page: async ({ context, url }, use) => {
+  page: async ({ context }, use) => {
     await context.addInitScript(() => {
       window.localStorage.setItem('feature-flag', 'on');
     });
     const page = await context.newPage();
-    await page.goto(url);
 
     await use(page);
 

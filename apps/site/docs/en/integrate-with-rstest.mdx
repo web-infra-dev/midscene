@@ -89,13 +89,14 @@ The `test` exported from `@midscene/rstest/playwright` is an Rstest test pre-wir
 
 The available fixtures are:
 
-- **`agent`**: the Midscene `PlaywrightAgent` bound to the primary page. Default tool for AI actions and assertions.
-- **`page`**: the raw Playwright `Page`. Escape hatch for things `agent` can't or shouldn't do, such as `page.route(...)` network mocking, `page.evaluate(...)`, or `page.context().cookies()`.
+- **`agent`**: the Midscene `PlaywrightAgent` bound to the primary page. Default tool for AI actions and assertions. Its setup navigates `page` to `url` before the test body runs.
+- **`page`**: the Playwright `Page`, straight from `@rstest/playwright` — including its failure behavior (kept open and paused under `PWDEBUG`). Escape hatch for things `agent` can't or shouldn't do, such as `page.route(...)` network mocking, `page.evaluate(...)`, or `page.context().cookies()`. In a test that doesn't use `agent`, navigate it yourself.
 - **`browser`**: the shared `Browser`, managed by `@rstest/playwright`. It is launched lazily, shared per worker, and closed automatically when idle. Use it to spin up extra contexts or pages mid-test, for multi-user or cross-session scenarios.
 - **`context`**: the test-scoped `BrowserContext` the primary `page` is created from. Override via `test.extend` if you need a custom context per test.
 - **`request`** / **`serve`**: inherited from `@rstest/playwright`. An isolated `APIRequestContext` for API calls, and a one-liner static file server with automatic teardown.
 - **`agentForPage(page, opts?)`**: build a Midscene agent for another page, such as a popup or a manually-created page. Its report is merged with the primary's, and destroy is automatic.
-- **`url`** / **`midsceneOptions`**: configuration fixtures. See [Project-wide defaults](#project-wide-defaults-optional) and [Custom page setup](#custom-page-setup).
+- **`playwright`**: browser-level configuration (launch options, context options, debug, trace), straight from `@rstest/playwright`. See [Browser configuration](#browser-configuration-the-playwright-fixture).
+- **`url`** / **`midsceneOptions`**: Midscene-side configuration fixtures. See [Options](#options) and [Project-wide defaults](#project-wide-defaults-optional).
 
 ```ts
 test('mocks the API and verifies the UI', async ({ agent, page }) => {
@@ -152,14 +153,20 @@ Reports are written to `midscene_run/report/`. See [Consume report files](./cons
 For options that should apply to every file, extend the base test in a shared module and import your extended `test` everywhere — the same pattern as Playwright Test:
 
 ```ts title="tests/midscene.ts"
-import { test as base } from '@midscene/rstest/playwright';
+import {
+  test as base,
+  defaultPlaywrightOptions,
+} from '@midscene/rstest/playwright';
 
 export { describe, expect } from '@midscene/rstest/playwright';
 
 export const test = base.extend({
+  playwright: {
+    ...defaultPlaywrightOptions,
+    contextOptions: { locale: 'en-US', viewport: { width: 1280, height: 720 } },
+  },
   midsceneOptions: {
-    viewport: { width: 1280, height: 720 },
-    contextOptions: { locale: 'en-US' },
+    agentOptions: { cache: true },
   },
 });
 ```
@@ -170,20 +177,7 @@ import { expect, test as shared } from './midscene';
 const test = shared.extend({ url: 'http://localhost:5173/' });
 ```
 
-A file that needs different values extends again — later `extend` calls override earlier ones:
-
-```ts
-const test = shared.extend({
-  url: 'http://localhost:5173/',
-  midsceneOptions: {
-    headless: false,
-    viewport: { width: 375, height: 667 },
-    agentOptions: { cache: true }, // auto-derived cache id from test name
-  },
-});
-```
-
-Nested resolver fields like `launchOptions` and `contextOptions` are **deep-merged** over the package defaults, and arrays concatenate. Use the function form of a resolver (`(defaults) => ...`) when you need to remove a default value or take full control.
+A file that needs different values extends again — later `extend` calls override earlier ones (whole-value replacement, standard fixture semantics).
 
 ## Configure Midscene
 
@@ -232,107 +226,88 @@ Midscene reads configuration from four channels. Pick the one that matches the s
 
 ## Options
 
-`midsceneOptions` carries every per-file knob. Set it via `test.extend({ midsceneOptions: {...} })` — in a shared module for repo-wide defaults, or in a single file for per-file overrides.
+Configuration is split into two non-overlapping domains, each with exactly one home:
+
+- **Browser domain** → the `playwright` fixture, exactly as in `@rstest/playwright`.
+- **Midscene domain** → the `midsceneOptions` fixture.
+
+### Browser configuration (the `playwright` fixture)
+
+Launch options, context options, browser choice, debug, and trace are all configured on `@rstest/playwright`'s own `playwright` fixture — every option in the [upstream docs](https://github.com/web-infra-dev/rstest/tree/main/packages/playwright) works verbatim:
+
+```ts
+const test = base.extend({
+  url: 'http://localhost:5173/',
+  playwright: {
+    launchOptions: { headless: false },
+    contextOptions: { locale: 'zh-CN', storageState: 'auth.json' },
+    debug: true, // headed + slowMo + DevTools, pause on failure (also: PWDEBUG=1)
+    trace: 'retain-on-failure', // save trace.zip (also: RSTEST_PLAYWRIGHT_TRACE)
+  },
+});
+```
+
+The only thing `@midscene/rstest` adds here is a default value, exported as `defaultPlaywrightOptions`:
+
+```ts
+{
+  launchOptions: {
+    headless: /* true in CI, false locally */,
+    args: ['--no-sandbox', '--ignore-certificate-errors'],
+  },
+  contextOptions: { viewport: { width: 1920, height: 1080 } },
+}
+```
+
+Overriding the `playwright` fixture replaces the whole object — standard fixture semantics, no implicit merging. Spread the default when you want to keep it:
+
+```ts
+import {
+  test as base,
+  defaultPlaywrightOptions,
+} from '@midscene/rstest/playwright';
+
+const test = base.extend({
+  url: 'http://localhost:5173/',
+  playwright: {
+    ...defaultPlaywrightOptions,
+    contextOptions: { viewport: { width: 375, height: 667 } },
+  },
+});
+```
+
+Saved traces land in `.rstest/playwright-traces/` with an AI-readable `trace-summary.json` and a `npx playwright show-trace ...` command printed to the console.
+
+### Midscene configuration (`midsceneOptions`)
 
 | Field | Type | Default | Description |
 | --- | --- | --- | --- |
-| `headless` | `boolean` | `true` in CI, `false` locally | Convenience for `launchOptions.headless`. |
-| `viewport` | `{ width, height }` | `1920×1080` | Convenience for `contextOptions.viewport`. |
-| `launchOptions` | `LaunchOptions \| (defaults) => LaunchOptions` | — | Forwarded to `chromium.launch(...)`. |
-| `contextOptions` | `BrowserContextOptions \| (defaults) => BrowserContextOptions` | — | Forwarded to `browser.newContext(...)`. |
-| `gotoOptions` | `Parameters<Page['goto']>[1]` | — | Forwarded to `page.goto(url, ...)`. |
+| `gotoOptions` | `Parameters<Page['goto']>[1]` | — | Forwarded to `page.goto(url, ...)` when the `agent` fixture auto-navigates. |
 | `agentOptions` | `WebPageAgentOpt` | — | Forwarded to `PlaywrightAgent` (e.g. `aiActionContext`, `modelConfig`). `groupName` and `reportFileName` are managed by the lifecycle. `cache` accepts `true \| false \| { strategy?, id? }`. When `cache: true` or `id` is omitted, a stable id is auto-derived from the test file name and test name so re-runs hit the same cache namespace. |
-| `debug` | `boolean \| PlaywrightDebugOptions` | `false` | Passed through to `@rstest/playwright`: headed browser, slowMo, DevTools, pause on failure. Also enabled via the `PWDEBUG` env var. |
-| `trace` | `'off' \| 'on' \| 'retain-on-failure' \| PlaywrightTraceOptions` | `'off'` | Passed through to `@rstest/playwright`: saves a Playwright trace (`trace.zip` plus an AI-readable summary) per test. Also enabled via the `RSTEST_PLAYWRIGHT_TRACE` env var. |
-
-Resolver fields (`launchOptions`, `contextOptions`) accept either an object, which is deep-merged over Midscene's defaults with arrays concatenated, or a function `(defaults) => options` (sync or async) that takes full control. An array of either is also accepted and applied left-to-right.
-
-### Examples
-
-Add a launch arg without losing Midscene's CI-critical defaults:
 
 ```ts
 const test = base.extend({
   url: 'http://localhost:5173/',
   midsceneOptions: {
-    // Final `args` is ['--no-sandbox', '--ignore-certificate-errors', '--start-fullscreen'].
-    launchOptions: { args: ['--start-fullscreen'] },
+    agentOptions: { cache: true, aiActionContext: 'Close any promo dialog first.' },
   },
 });
 ```
-
-Tweak a single nested field without erasing siblings:
-
-```ts
-const test = base.extend({
-  url: 'http://localhost:5173/',
-  midsceneOptions: {
-    // Final viewport is { width: 1440, height: 1080 }, so `height` is kept.
-    contextOptions: { viewport: { width: 1440 } },
-  },
-});
-```
-
-Use the function form when deep-merge isn't enough, typically when you need to **remove** something from defaults, run async logic, or fully replace the options:
-
-```ts
-const test = base.extend({
-  url: 'http://localhost:5173/',
-  midsceneOptions: {
-    launchOptions: (defaults) => ({
-      ...defaults,
-      args: defaults.args?.filter((a) => a !== '--no-sandbox'),
-    }),
-  },
-});
-```
-
-Configure the context:
-
-```ts
-const test = base.extend({
-  url: 'http://localhost:5173/',
-  midsceneOptions: {
-    contextOptions: {
-      locale: 'zh-CN',
-      storageState: 'auth.json',
-      recordVideo: { dir: 'midscene_run/video' },
-    },
-  },
-});
-```
-
-## Debugging and traces
-
-Both come straight from `@rstest/playwright` and are exposed on `midsceneOptions`:
-
-```ts
-const test = base.extend({
-  url: 'http://localhost:5173/',
-  midsceneOptions: {
-    debug: true, // headed + slowMo + DevTools, pause on failure
-    trace: 'retain-on-failure', // save trace.zip for failing tests
-  },
-});
-```
-
-You can also use env vars without touching code: `PWDEBUG=1 npx rstest run` for debug mode, `RSTEST_PLAYWRIGHT_TRACE=retain-on-failure npx rstest run` for traces. Saved traces land in `.rstest/playwright-traces/` with an AI-readable `trace-summary.json` and a `npx playwright show-trace ...` command printed to the console.
 
 ## Custom page setup
 
-For lifecycles the defaults don't cover, such as per-test storage state, init scripts, or CDP wiring, override the `page` fixture. Code before `await use(page)` is setup; code after is teardown.
+For lifecycles the defaults don't cover, such as per-test storage state, init scripts, or CDP wiring, override the `page` fixture — this is plain `@rstest/playwright` fixture composition; `@midscene/rstest` adds nothing on top of the upstream `page`. Code before `await use(page)` is setup; code after is teardown. The `agent` fixture still performs the `url` navigation on whatever page your override produces.
 
 ```ts
 import { test as base } from '@midscene/rstest/playwright';
 
 const test = base.extend({
   url: 'https://example.com',
-  page: async ({ context, url }, use) => {
+  page: async ({ context }, use) => {
     await context.addInitScript(() => {
       window.localStorage.setItem('feature-flag', 'on');
     });
     const page = await context.newPage();
-    await page.goto(url);
 
     await use(page);
 

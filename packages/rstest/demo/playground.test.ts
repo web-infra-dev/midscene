@@ -1,19 +1,32 @@
-import { test as base, describe, expect } from '@midscene/rstest/playwright';
+import {
+  test as base,
+  defaultPlaywrightOptions,
+  describe,
+  expect,
+} from '@midscene/rstest/playwright';
 
 const PAGE_URL =
   'https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/contacts3.html';
 
-// Per-file URL override. The `page` fixture navigates here for every test.
-// `DEMO_BROWSER_CHANNEL=chrome` runs against a system-installed Chrome instead
-// of the Playwright-managed Chromium (useful when the browser download is
-// unavailable), mirroring SMOKE_BROWSER_CHANNEL in the smoke suite.
+// Per-file URL override. The `agent` fixture navigates here for every test.
+// Browser-level config goes on `@rstest/playwright`'s own `playwright`
+// fixture; overriding it replaces the package defaults wholesale, so spread
+// `defaultPlaywrightOptions` to keep them. `DEMO_BROWSER_CHANNEL=chrome` runs
+// against a system-installed Chrome instead of the Playwright-managed
+// Chromium (useful when the browser download is unavailable).
 const test = base.extend({
   url: PAGE_URL,
-  midsceneOptions: {
-    ...(process.env.DEMO_BROWSER_CHANNEL
-      ? { launchOptions: { channel: process.env.DEMO_BROWSER_CHANNEL } }
-      : {}),
-  },
+  ...(process.env.DEMO_BROWSER_CHANNEL
+    ? {
+        playwright: {
+          ...defaultPlaywrightOptions,
+          launchOptions: {
+            ...defaultPlaywrightOptions.launchOptions,
+            channel: process.env.DEMO_BROWSER_CHANNEL,
+          },
+        },
+      }
+    : {}),
 });
 
 describe('Contacts page', () => {
@@ -65,11 +78,13 @@ describe('Contacts page', () => {
   });
 
   // Escape hatch: raw Playwright `Page` for browser-primitive checks that
-  // don't need the AI. Destructure only `page` — the `agent` fixture is not
-  // created, but `page` still pulls in `browser`/`context`/auto-navigation.
+  // don't need the AI. `page` comes straight from `@rstest/playwright`;
+  // without the `agent` fixture there is no auto-navigation, so navigate
+  // explicitly — exactly as in a plain `@rstest/playwright` test.
   test('inspects raw page state via the Playwright page escape hatch', async ({
     page,
   }) => {
+    await page.goto(PAGE_URL);
     expect(page.url()).toBe(PAGE_URL);
 
     const viewport = page.viewportSize();

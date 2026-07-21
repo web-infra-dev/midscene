@@ -12,20 +12,15 @@ import {
   type PlaywrightTest,
   test as playwrightBaseTest,
 } from '@rstest/playwright';
-import type { BrowserContextOptions, LaunchOptions, Page } from 'playwright';
+import type { Page } from 'playwright';
 import { isCI } from 'std-env';
 import {
   type ReportMeta,
   buildReportMeta,
   collectReport,
 } from './report-helper';
-import { type Resolver, applyResolver } from './resolve';
 
 type GoToOptions = NonNullable<Parameters<Page['goto']>[1]>;
-
-const DEFAULT_BROWSER_ARGS = ['--no-sandbox', '--ignore-certificate-errors'];
-
-const DEFAULT_VIEWPORT = { width: 1920, height: 1080 } as const;
 
 /**
  * Cache configuration shape exposed to rstest users. `id` is optional — when
@@ -45,7 +40,6 @@ type AgentOptions = Omit<
   cache?: RstestCache;
 };
 
-export type { Resolver };
 export { overrideAIConfig };
 export type { WebPageAgentOpt };
 
@@ -73,32 +67,45 @@ export type {
 
 const debug = getDebug('rstest:playwright', { console: true });
 
+/**
+ * The default value this package ships for `@rstest/playwright`'s `playwright`
+ * options fixture. Overriding the fixture replaces this object wholesale
+ * (standard rstest fixture semantics — there is no implicit merging), so
+ * spread it when you want to keep the defaults:
+ *
+ * ```ts
+ * test.extend({
+ *   playwright: {
+ *     ...defaultPlaywrightOptions,
+ *     contextOptions: { locale: 'zh-CN' },
+ *   },
+ * });
+ * ```
+ */
+export const defaultPlaywrightOptions: PlaywrightOptions = {
+  launchOptions: {
+    headless: isCI,
+    args: ['--no-sandbox', '--ignore-certificate-errors'],
+  },
+  contextOptions: {
+    viewport: { width: 1920, height: 1080 },
+  },
+};
+
+/**
+ * Midscene-only configuration. Browser-level configuration (launch options,
+ * context options, debug, trace, browser choice) is NOT here — it lives on
+ * `@rstest/playwright`'s own `playwright` fixture, configured exactly as the
+ * upstream docs describe. The two domains do not overlap.
+ */
 export interface MidsceneOptions {
-  /** Default: `true` in CI, `false` locally. */
-  headless?: boolean;
-  /**
-   * Default: 1920×1080. Routed into the default `contextOptions.viewport`.
-   * Nested fields in `contextOptions.viewport` override this — e.g. passing
-   * `viewport: { width: 1440, height: 900 }` together with
-   * `contextOptions: { viewport: { width: 1920 } }` yields a final viewport of
-   * `{ width: 1920, height: 900 }`.
-   */
-  viewport?: { width: number; height: number };
-  launchOptions?: Resolver<LaunchOptions>;
-  contextOptions?: Resolver<BrowserContextOptions>;
-  gotoOptions?: GoToOptions;
+  /** Options for constructing every agent (primary and `agentForPage` ones). */
   agentOptions?: AgentOptions;
   /**
-   * Passed through to `@rstest/playwright`'s debug support: headed browser,
-   * slowMo, DevTools, pause-on-failure. Also enabled via the `PWDEBUG` env.
+   * Forwarded to `page.goto(url, ...)` when the `agent` fixture performs the
+   * `url` auto-navigation.
    */
-  debug?: PlaywrightOptions['debug'];
-  /**
-   * Passed through to `@rstest/playwright`'s trace support: saves a Playwright
-   * trace (`trace.zip` + AI-readable summary). Also enabled via the
-   * `RSTEST_PLAYWRIGHT_TRACE` env.
-   */
-  trace?: PlaywrightOptions['trace'];
+  gotoOptions?: GoToOptions;
 }
 
 export type AgentForPage = (
@@ -108,23 +115,19 @@ export type AgentForPage = (
 
 export interface MidsceneFixtures {
   /**
-   * Every Midscene knob. Defaults to `{}`; set project-wide values by
-   * extending this fixture in a shared module and exporting the extended
-   * `test` (the same pattern as Playwright Test), or per file via
+   * Midscene-only knobs (`agentOptions`, `gotoOptions`). Defaults to `{}`;
+   * set project-wide values by extending this fixture in a shared module and
+   * exporting the extended `test`, or per file via
    * `test.extend({ midsceneOptions: { ... } })`.
    */
   midsceneOptions: MidsceneOptions;
   /**
-   * Target URL the default `page` fixture navigates to. Empty string disables
-   * auto-navigation (page stays on `about:blank`).
+   * Target URL the `agent` fixture navigates `page` to before handing the
+   * agent to the test. Empty string disables auto-navigation. Tests that use
+   * `page` without `agent` navigate themselves, exactly as in plain
+   * `@rstest/playwright`.
    */
   url: string;
-  /**
-   * Per-test page created from `@rstest/playwright`'s `context` fixture, with
-   * `url` auto-navigation on top. `browser` / `context` / `request` / `serve`
-   * come straight from `@rstest/playwright`.
-   */
-  page: Page;
   agent: PlaywrightAgent;
   /**
    * Factory for secondary agents bound to popups / extra contexts. Reports are
@@ -133,10 +136,10 @@ export interface MidsceneFixtures {
   agentForPage: AgentForPage;
 }
 
-// Private fixtures — hidden from the public type via the cast at the bottom.
-// `__reportMeta` is shared so primary and secondary agents land in the same
-// report group and manifest. `playwright` re-declares the upstream options
-// fixture so the bridge override below typechecks.
+// `__reportMeta` is a private fixture — hidden from the public type via the
+// cast at the bottom. It is shared so primary and secondary agents land in the
+// same report group and manifest. `playwright` is re-declared only so the
+// static default value below typechecks; its public type comes from upstream.
 interface InternalFixtures extends MidsceneFixtures {
   __reportMeta: ReportMeta;
   playwright: PlaywrightOptions;
@@ -174,8 +177,12 @@ function createAgent(
 // test files, so anything registered here would bind to whichever file
 // happened to load it first. Everything per-file is derived from
 // `task.filepath` instead, and report merging happens in `MidsceneReporter`.
-// Browser lifecycle is managed by `@rstest/playwright` (shared per worker,
-// closed when idle).
+//
+// Upstream fixtures are passed through untouched: `playwright` only gets a
+// different default value (replaced wholesale on user override, upstream
+// semantics), and `page` / `browser` / `context` / lifecycle (including
+// PWDEBUG pause-on-failure and keep-page-open-on-failure) are entirely
+// upstream's.
 export const test = playwrightBaseTest.extend<InternalFixtures>({
   // Repo-wide defaults are set the same way as with Playwright Test: extend
   // this fixture in a shared module and export the extended `test` — see the
@@ -183,6 +190,8 @@ export const test = playwrightBaseTest.extend<InternalFixtures>({
   midsceneOptions: {},
 
   url: '',
+
+  playwright: defaultPlaywrightOptions,
 
   __reportMeta: async ({ task }, use) => {
     const filepath = task.filepath;
@@ -194,45 +203,10 @@ export const test = playwrightBaseTest.extend<InternalFixtures>({
     await use(buildReportMeta(task, filepath));
   },
 
-  // Bridge `midsceneOptions` onto `@rstest/playwright`'s `playwright` options
-  // fixture. Browser/context lifecycle (including debug mode and trace
-  // capture) is fully managed upstream from these options.
-  playwright: async ({ midsceneOptions }, use) => {
-    const [launchOptions, contextOptions] = await Promise.all([
-      applyResolver<LaunchOptions>(midsceneOptions.launchOptions, {
-        headless: midsceneOptions.headless ?? isCI,
-        args: DEFAULT_BROWSER_ARGS,
-      }),
-      applyResolver<BrowserContextOptions>(midsceneOptions.contextOptions, {
-        viewport: midsceneOptions.viewport ?? DEFAULT_VIEWPORT,
-      }),
-    ]);
-    await use({
-      launchOptions,
-      contextOptions,
-      debug: midsceneOptions.debug,
-      trace: midsceneOptions.trace,
-    });
-  },
-
-  // Override upstream `page` to add `url` auto-navigation. rstest fixture
-  // overrides cannot consume the overridden base value (it would be flagged
-  // as a circular dependency), so the page is re-created from the upstream
-  // `context` fixture instead of wrapping the upstream `page`.
-  page: async ({ context, url, midsceneOptions }, use) => {
-    const page = await context.newPage();
+  agent: async ({ page, url, midsceneOptions, __reportMeta, task }, use) => {
     if (url) {
       await page.goto(url, midsceneOptions.gotoOptions);
     }
-    await use(page);
-    try {
-      await page.close();
-    } catch (err) {
-      debug('page close failed:', err);
-    }
-  },
-
-  agent: async ({ page, midsceneOptions, __reportMeta, task }, use) => {
     const agent = createAgent(
       page,
       midsceneOptions,
