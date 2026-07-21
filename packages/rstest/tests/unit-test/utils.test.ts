@@ -2,15 +2,16 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
-  generateTimestamp,
   getManifestDir,
   manifestKey,
+  resetManifestDirCache,
 } from '../../src/utils';
 
 describe('utils', () => {
   const originalRunDir = process.env.MIDSCENE_RUN_DIR;
 
   afterEach(() => {
+    resetManifestDirCache();
     if (originalRunDir === undefined) {
       Reflect.deleteProperty(process.env, 'MIDSCENE_RUN_DIR');
     } else {
@@ -21,6 +22,7 @@ describe('utils', () => {
   it('getManifestDir lives under the Midscene run dir and respects MIDSCENE_RUN_DIR', () => {
     const runDir = join(tmpdir(), `midscene-rstest-utils-${process.pid}`);
     process.env.MIDSCENE_RUN_DIR = runDir;
+    resetManifestDirCache();
     expect(getManifestDir()).toBe(join(runDir, 'tmp', 'rstest-manifest'));
   });
 
@@ -37,8 +39,19 @@ describe('utils', () => {
     expect(a).not.toBe(b);
   });
 
-  it('generateTimestamp formats as YYYYMMDD-HHmmssSSS', () => {
-    const ts = generateTimestamp();
-    expect(ts).toMatch(/^\d{8}-\d{9}$/);
+  it('caches the resolved dir until it is explicitly reset', () => {
+    const runDir = join(tmpdir(), `midscene-rstest-utils-a-${process.pid}`);
+    process.env.MIDSCENE_RUN_DIR = runDir;
+    resetManifestDirCache();
+    const first = getManifestDir();
+
+    process.env.MIDSCENE_RUN_DIR = join(
+      tmpdir(),
+      `midscene-rstest-utils-b-${process.pid}`,
+    );
+    expect(getManifestDir()).toBe(first);
+
+    resetManifestDirCache();
+    expect(getManifestDir()).not.toBe(first);
   });
 });

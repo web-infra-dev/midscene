@@ -1,25 +1,30 @@
 import { createHash } from 'node:crypto';
+import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
 
+let manifestDir: string | undefined;
+
 /**
- * Manifest files bridge the worker processes (which write the merged report
- * path in `afterAll`) and the reporter in the main process (which prints it).
- * Kept under the `MIDSCENE_RUN_DIR`-aware tmp dir like every other Midscene
- * artifact.
+ * Manifest files bridge the worker processes (which append one entry per test
+ * from fixture teardown) and the reporter in the main process (which merges
+ * them per test file). Kept under the `MIDSCENE_RUN_DIR`-aware tmp dir like
+ * every other Midscene artifact.
+ *
+ * The path only depends on `process.cwd()` and `MIDSCENE_RUN_DIR`, so it is
+ * resolved and created once per process rather than on every test teardown.
  */
 export function getManifestDir(): string {
-  return join(getMidsceneRunSubDir('tmp'), 'rstest-manifest');
+  if (!manifestDir) {
+    manifestDir = join(getMidsceneRunSubDir('tmp'), 'rstest-manifest');
+    mkdirSync(manifestDir, { recursive: true });
+  }
+  return manifestDir;
 }
 
-export function generateTimestamp(): string {
-  const now = new Date();
-  const pad = (n: number, w = 2) => String(n).padStart(w, '0');
-  return (
-    `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}` +
-    `-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}` +
-    `${pad(now.getMilliseconds(), 3)}`
-  );
+/** Only for tests, which point `MIDSCENE_RUN_DIR` at a fresh tmp dir. */
+export function resetManifestDirCache(): void {
+  manifestDir = undefined;
 }
 
 export function manifestKey(testPath: string): string {

@@ -5,18 +5,20 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   type AgentLike,
   type ReportManifestEntry,
-  type RstestTestContext,
+  type RstestTask,
   buildReportMeta,
   collectReport,
   deriveStatus,
   manifestPathFor,
 } from '../../src/report-helper';
+import { resetManifestDirCache } from '../../src/utils';
 
-function ctx(
-  name: string,
-  result?: RstestTestContext['task']['result'],
-): RstestTestContext {
-  return { task: { id: `id-${name}`, name, result } };
+function task(name: string, result?: RstestTask['result']): RstestTask {
+  return { id: `id-${name}`, name, result };
+}
+
+function meta(name: string, filepath: string) {
+  return buildReportMeta(task(name), filepath);
 }
 
 function agentStub(reportFile: string | null): AgentLike & {
@@ -71,27 +73,29 @@ describe('deriveStatus', () => {
 describe('buildReportMeta', () => {
   it('derives groupName from file basename without extension', () => {
     const meta = buildReportMeta(
-      ctx('adds a todo'),
+      task('adds a todo'),
       '/repo/e2e/todo-list.test.ts',
     );
     expect(meta.groupName).toBe('E2E: todo-list.test');
   });
 
   it('falls back when filepath has no basename', () => {
-    const meta = buildReportMeta(ctx('case'), '');
+    const meta = buildReportMeta(task('case'), '');
     expect(meta.groupName).toBe('E2E: UnnamedGroup');
   });
 
   it('reportFileName embeds basename and task name', () => {
-    const meta = buildReportMeta(ctx('caseA'), '/x/foo.test.ts');
+    const meta = buildReportMeta(task('caseA'), '/x/foo.test.ts');
     expect(meta.reportFileName.startsWith('E2E-foo.test-caseA-')).toBe(true);
-    // trailing timestamp
-    expect(meta.reportFileName).toMatch(/-\d{8}-\d{9}$/);
+    // trailing `YYYY-MM-DD_HH-mm-ss-<uuid8>` from `getReportFileName`
+    expect(meta.reportFileName).toMatch(
+      /-\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}-[0-9a-f]{8}$/,
+    );
   });
 
   it('sanitizes characters that are illegal in a file name', () => {
     const meta = buildReportMeta(
-      ctx('login: happy path <fast> a/b'),
+      task('login: happy path <fast> a/b'),
       '/x/foo.test.ts',
     );
     expect(meta.reportFileName).not.toMatch(/[:*?"<>|\\/]/);
@@ -106,6 +110,7 @@ describe('collectReport', () => {
   beforeEach(() => {
     runDir = mkdtempSync(join(tmpdir(), 'midscene-rstest-report-'));
     process.env.MIDSCENE_RUN_DIR = runDir;
+    resetManifestDirCache();
   });
 
   afterEach(() => {
@@ -114,12 +119,17 @@ describe('collectReport', () => {
     } else {
       process.env.MIDSCENE_RUN_DIR = originalRunDir;
     }
+    resetManifestDirCache();
     rmSync(runDir, { recursive: true, force: true });
   });
 
   it('destroys the agent and records its report', async () => {
     const agent = agentStub('/reports/a.html');
-    await collectReport(agent, undefined, ctx('case A'), '/repo/a.test.ts');
+    await collectReport(
+      agent,
+      meta('case A', '/repo/a.test.ts'),
+      task('case A'),
+    );
 
     expect(agent.destroyed).toBe(true);
     const entries = readManifest('/repo/a.test.ts');
@@ -131,7 +141,11 @@ describe('collectReport', () => {
 
   it('still destroys the agent when it produced no report', async () => {
     const agent = agentStub(null);
-    await collectReport(agent, undefined, ctx('case A'), '/repo/a.test.ts');
+    await collectReport(
+      agent,
+      meta('case A', '/repo/a.test.ts'),
+      task('case A'),
+    );
 
     expect(agent.destroyed).toBe(true);
     expect(readManifest('/repo/a.test.ts')).toHaveLength(0);
@@ -140,15 +154,13 @@ describe('collectReport', () => {
   it('appends every test of a file in order', async () => {
     await collectReport(
       agentStub('/reports/1.html'),
-      undefined,
-      ctx('first'),
-      '/repo/a.test.ts',
+      meta('first', '/repo/a.test.ts'),
+      task('first'),
     );
     await collectReport(
       agentStub('/reports/2.html'),
-      undefined,
-      ctx('second'),
-      '/repo/a.test.ts',
+      meta('second', '/repo/a.test.ts'),
+      task('second'),
     );
 
     expect(
@@ -162,15 +174,13 @@ describe('collectReport', () => {
   it('keeps files separate when one module instance serves both', async () => {
     await collectReport(
       agentStub('/reports/a.html'),
-      undefined,
-      ctx('case A'),
-      '/repo/a.test.ts',
+      meta('case A', '/repo/a.test.ts'),
+      task('case A'),
     );
     await collectReport(
       agentStub('/reports/b.html'),
-      undefined,
-      ctx('case B'),
-      '/repo/b.test.ts',
+      meta('case B', '/repo/b.test.ts'),
+      task('case B'),
     );
 
     expect(
@@ -182,12 +192,13 @@ describe('collectReport', () => {
   });
 
   it('records the failed status and a measured duration', async () => {
-    const start = performance.now() - 25;
     await collectReport(
       agentStub('/reports/a.html'),
-      start,
-      ctx('case A', { status: 'fail' }),
-      '/repo/a.test.ts',
+      {
+        ...meta('case A', '/repo/a.test.ts'),
+        startTime: performance.now() - 25,
+      },
+      task('case A', { status: 'fail' }),
     );
 
     const [entry] = readManifest('/repo/a.test.ts');
