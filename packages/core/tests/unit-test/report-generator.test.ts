@@ -13,6 +13,7 @@ import {
   parseImageScripts,
   unescapeContent,
 } from '@/dump/html-utils';
+import * as reportDumpCompactor from '@/dump/report-dump-compactor';
 import { ReportGenerator, nullReportGenerator } from '@/report-generator';
 import { ScreenshotItem } from '@/screenshot-item';
 import {
@@ -273,6 +274,35 @@ describe('ReportGenerator — append-only model', () => {
       expect(finalDump.executions).toHaveLength(1);
       expect(finalDump.executions[0].id).toBe(executionId);
       expect(finalDump.executions[0].tasks).toHaveLength(2);
+    });
+
+    it('should preserve a successful report when final compaction fails', async () => {
+      const reportPath = join(tmpDir, 'finalize-compaction-failure.html');
+      const generator = new ReportGenerator({
+        reportPath,
+        screenshotMode: 'inline',
+        autoPrint: false,
+      });
+
+      generator.onExecutionUpdate(
+        createExecution([], 'compaction-failure'),
+        defaultReportMeta,
+      );
+
+      const compactionError = new Error('ENOSPC: no space left on device');
+      const compactSpy = vi
+        .spyOn(reportDumpCompactor, 'compactReportDumps')
+        .mockRejectedValueOnce(compactionError);
+
+      try {
+        await expect(generator.finalize()).resolves.toBe(reportPath);
+      } finally {
+        compactSpy.mockRestore();
+      }
+
+      const finalizedHtml = readFileSync(reportPath, 'utf-8');
+      expect(finalizedHtml).toContain('compaction-failure');
+      expect(countGroupedDumpScripts(finalizedHtml)).toBeGreaterThan(0);
     });
 
     it('should overwrite existing report file by default when a new generator uses the same path', async () => {
