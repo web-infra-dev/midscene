@@ -14,9 +14,9 @@ Commands:
   version                        Show CLI version
 
 Global Options:
-  --verbose     Print progress while the command is running. act prints readable progress by default. Use --verbose=jsonl for structured events.
+  --verbose     Print progress while the command is running. act and observe print readable progress by default. Use --verbose=jsonl for structured events.
   --deep-locate Force deep locate for every locating operation (better precision for small/ambiguous targets, a bit slower).
-  --deep-think  Plan the act tool with deep thinking (richer context and sub-goal decomposition, a bit slower).
+  --deep-think  Plan act and observe actions with deep thinking (richer context and sub-goal decomposition, a bit slower).
 
 Run "test-cli <command> --help" for more info."
 `;
@@ -32,7 +32,7 @@ Options:
   --timeout              Connection timeout in ms
 
 Global Options:
-  --verbose     Print progress while the command is running. act prints readable progress by default. Use --verbose=jsonl for structured events.
+  --verbose     Print progress while the command is running. act and observe print readable progress by default. Use --verbose=jsonl for structured events.
   --deep-locate Force deep locate for every locating operation (better precision for small/ambiguous targets, a bit slower).
-  --deep-think  Plan the act tool with deep thinking (richer context and sub-goal decomposition, a bit slower)."
+  --deep-think  Plan act and observe actions with deep thinking (richer context and sub-goal decomposition, a bit slower)."
 `;

@@ -286,6 +286,30 @@ describe('generateToolsFromActionSpace', () => {
       initArgCliMetadata,
     );
 
+    expect(commonTools.find((tool) => tool.name === 'observe')?.schema).toEqual(
+      expect.objectContaining({
+        action: expect.anything(),
+        prompt: expect.anything(),
+        'android.deviceId': expect.anything(),
+      }),
+    );
+    expect(commonTools.find((tool) => tool.name === 'observe')?.cli).toEqual({
+      options: expect.objectContaining({
+        intervalMs: {
+          preferredName: 'interval-ms',
+          aliases: ['intervalMs'],
+        },
+        deepThink: {
+          preferredName: 'deep-think',
+          aliases: ['deepThink'],
+        },
+        'android.deviceId': {
+          preferredName: 'device-id',
+          aliases: ['deviceId'],
+        },
+      }),
+    });
+
     expect(commonTools.find((tool) => tool.name === 'assert')?.schema).toEqual(
       expect.objectContaining({
         prompt: expect.anything(),
@@ -324,6 +348,169 @@ describe('generateToolsFromActionSpace', () => {
         { type: 'text', text: 'Result: Midscene' },
         { type: 'image', data: 'Zm9v', mimeType: 'image/png' },
       ],
+    });
+  });
+
+  it('observes an action and asserts against the stopped frame window', async () => {
+    const stop = vi.fn().mockResolvedValue(undefined);
+    const observerAssert = vi.fn().mockResolvedValue(undefined);
+    const startObserving = vi.fn().mockResolvedValue({
+      stop,
+      aiAssert: observerAssert,
+    });
+    const aiAction = vi.fn().mockResolvedValue('Submitted');
+    const commonTools = generateCommonTools(
+      async () => ({
+        aiAction,
+        startObserving,
+        getActionSpace: vi.fn().mockResolvedValue([]),
+        page: {
+          screenshotBase64: vi.fn().mockResolvedValue(screenshotBase64),
+        },
+      }),
+      undefined,
+      undefined,
+      { act: { deepLocate: true } },
+    );
+    const observeTool = commonTools.find((tool) => tool.name === 'observe');
+
+    const result = await observeTool?.handler({
+      action: 'click the Submit button',
+      prompt: 'a success toast appeared during submission',
+      message: 'success toast should appear',
+      intervalMs: 250,
+      maxFrames: 12,
+      watchdogMs: 5000,
+      deepThink: true,
+    });
+
+    expect(startObserving).toHaveBeenCalledWith({
+      intervalMs: 250,
+      maxFrames: 12,
+      watchdogMs: 5000,
+    });
+    expect(aiAction).toHaveBeenCalledWith('click the Submit button', {
+      deepThink: true,
+      deepLocate: true,
+    });
+    expect(stop).toHaveBeenCalledOnce();
+    expect(observerAssert).toHaveBeenCalledWith(
+      'a success toast appeared during submission',
+      'success toast should appear',
+    );
+    expect(startObserving.mock.invocationCallOrder[0]).toBeLessThan(
+      aiAction.mock.invocationCallOrder[0],
+    );
+    expect(aiAction.mock.invocationCallOrder[0]).toBeLessThan(
+      stop.mock.invocationCallOrder[0],
+    );
+    expect(stop.mock.invocationCallOrder[0]).toBeLessThan(
+      observerAssert.mock.invocationCallOrder[0],
+    );
+    expect(result).toEqual({
+      content: [
+        { type: 'text', text: 'Action "observe" completed.' },
+        { type: 'text', text: 'Result: Submitted' },
+        { type: 'image', data: 'Zm9v', mimeType: 'image/png' },
+      ],
+    });
+  });
+
+  it('stops observing and skips the assertion when the action fails', async () => {
+    const stop = vi.fn().mockResolvedValue(undefined);
+    const observerAssert = vi.fn().mockResolvedValue(undefined);
+    const startObserving = vi.fn().mockResolvedValue({
+      stop,
+      aiAssert: observerAssert,
+    });
+    const aiAction = vi.fn().mockRejectedValue(new Error('action failed'));
+    const commonTools = generateCommonTools(async () => ({
+      aiAction,
+      startObserving,
+      getActionSpace: vi.fn().mockResolvedValue([]),
+      page: {
+        screenshotBase64: vi.fn().mockResolvedValue(screenshotBase64),
+      },
+    }));
+    const observeTool = commonTools.find((tool) => tool.name === 'observe');
+    const consoleErrorSpy = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => {});
+
+    const result = await observeTool?.handler({
+      action: 'click the Submit button',
+      prompt: 'a success toast appeared',
+    });
+
+    expect(stop).toHaveBeenCalledOnce();
+    expect(observerAssert).not.toHaveBeenCalled();
+    expect(result).toEqual({
+      content: [
+        { type: 'text', text: 'Failed to execute observe: action failed' },
+      ],
+      isError: true,
+    });
+    consoleErrorSpy.mockRestore();
+  });
+
+  it('fails clearly without running the action when startObserving is unavailable', async () => {
+    const aiAction = vi.fn().mockResolvedValue('Submitted');
+    const commonTools = generateCommonTools(async () => ({
+      aiAction,
+      getActionSpace: vi.fn().mockResolvedValue([]),
+      page: {
+        screenshotBase64: vi.fn().mockResolvedValue(screenshotBase64),
+      },
+    }));
+    const observeTool = commonTools.find((tool) => tool.name === 'observe');
+
+    const result = await observeTool?.handler({
+      action: 'click the Submit button',
+      prompt: 'a success toast appeared',
+    });
+
+    expect(aiAction).not.toHaveBeenCalled();
+    expect(result).toEqual({
+      content: [
+        {
+          type: 'text',
+          text: 'observe is not supported because this agent does not provide startObserving',
+        },
+      ],
+      isError: true,
+    });
+  });
+
+  it('rejects missing observe prompts before creating an agent', async () => {
+    const getAgent = vi.fn();
+    const commonTools = generateCommonTools(getAgent);
+    const observeTool = commonTools.find((tool) => tool.name === 'observe');
+
+    const missingAction = await observeTool?.handler({
+      prompt: 'a success toast appeared',
+    });
+    const missingPrompt = await observeTool?.handler({
+      action: 'click the Submit button',
+    });
+
+    expect(getAgent).not.toHaveBeenCalled();
+    expect(missingAction).toEqual({
+      content: [
+        {
+          type: 'text',
+          text: 'observe requires a non-empty --action option',
+        },
+      ],
+      isError: true,
+    });
+    expect(missingPrompt).toEqual({
+      content: [
+        {
+          type: 'text',
+          text: 'observe requires a non-empty --prompt option',
+        },
+      ],
+      isError: true,
     });
   });
 

@@ -21,7 +21,7 @@ export interface ToolDefaults {
    */
   locate?: Record<string, unknown>;
   /**
-   * Merged into the `act` tool's `aiAction` options.
+   * Merged into the `aiAction` options used by the `act` and `observe` tools.
    * e.g. `{ deepLocate: true, deepThink: true }`.
    */
   act?: Record<string, unknown>;
@@ -50,7 +50,7 @@ export const TOOL_BEHAVIOR_FLAGS: readonly ToolBehaviorFlag[] = [
   {
     cli: 'deep-think',
     description:
-      'Plan the act tool with deep thinking (richer context and sub-goal decomposition, a bit slower).',
+      'Plan act and observe actions with deep thinking (richer context and sub-goal decomposition, a bit slower).',
     defaults: { act: { deepThink: true } },
   },
 ];
