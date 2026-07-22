@@ -1,16 +1,8 @@
-## 准备工作
-
-### 安装 Node.js
+#### 安装 Node.js
 
 安装 [Node.js 18 或以上版本](https://nodejs.org/en/download/)。
 
-### 准备 API Key
-
-准备一个视觉语言（VL）模型的 API Key。
-
-你可以在 [模型策略](../model-strategy) 文档中查看 Midscene.js 支持的模型和配置。
-
-### 准备 WebDriver 服务
+#### 配置 WebDriverAgent
 
 在开始之前，你需要先设置 iOS 开发环境：
 
@@ -18,7 +10,7 @@
 - Xcode 和 Xcode 命令行工具
 - iOS 模拟器或真机设备
 
-#### 配置环境
+**配置 WebDriverAgent**
 
 在使用 Midscene iOS 之前，需要先准备 WebDriverAgent 服务。
 
@@ -33,7 +25,7 @@ WebDriverAgent 版本需要 **>= 7.0.0**
 - **模拟器配置**：[Run Prebuilt WDA](https://appium.github.io/appium-xcuitest-driver/latest/guides/run-prebuilt-wda/)
 - **真机配置**：[Real Device Configuration](https://appium.github.io/appium-xcuitest-driver/latest/getting-started/device-setup/)
 
-#### 验证环境配置
+**验证 WebDriverAgent**
 
 配置完成后，可以通过访问 WebDriverAgent 的状态接口来验证 服务是否启动：
 

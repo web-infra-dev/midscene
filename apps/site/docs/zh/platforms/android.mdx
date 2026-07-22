@@ -1,36 +1,29 @@
 import StartExperience from '../common/start-experience.mdx';
-import SetupEnv from '../common/setup-env.mdx';
-import ShowcaseAndroid from '../showcases-android.mdx';
+import SetupEnv from '../common/setup-env-sdk.mdx';
 
 import { PackageManagerTabs } from '@theme';
 
 # Android
 
-Midscene 通过 adb 自动化 Android 设备。
+Midscene 通过 adb 连接 Android 设备，可自动化 App 和系统界面。
 
-## 案例展示
+本指南介绍设备连接、模型配置、Playground 体验，以及 `@midscene/android` 的 JavaScript SDK 集成。
 
-<ShowcaseAndroid />
+## 效果展示
 
-查看更多 [Midscene 案例](../showcases.mdx)。
+**提示词：** 打开懂车帝，搜索 SU7 车型，查看参数配置。
 
-本指南将带你完成使用 Midscene 自动化 Android 设备所需的一切：通过 adb 连接真机、配置模型 API Key、体验零代码 Playground，并运行你的首个 JavaScript 脚本。
+<video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/su72.mp4" poster="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/su7.png" height="300" controls />
 
-:::info 示例项目
+查看[完整报告](https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/su7.html)，或浏览更多 [Midscene 案例](../showcases.mdx)。
 
-使用 JavaScript 控制 Android 设备：[https://github.com/web-infra-dev/midscene-example/blob/main/android/javascript-sdk-demo](https://github.com/web-infra-dev/midscene-example/blob/main/android/javascript-sdk-demo)
+## 快速开始
 
-集成 Vitest 进行测试：[https://github.com/web-infra-dev/midscene-example/tree/main/android/vitest-demo](https://github.com/web-infra-dev/midscene-example/tree/main/android/vitest-demo)
-
-:::
-
-<SetupEnv />
-
-## 准备工作
+### 准备 Android 设备
 
 在编写脚本前，先确认 adb 能够连接设备且设备信任当前电脑。
 
-### 安装 adb 并设置 `ANDROID_HOME`
+#### 安装 adb 并设置 `ANDROID_HOME`
 
 - 通过 [Android Studio](https://developer.android.com/studio) 或 [命令行工具](https://developer.android.com/studio#command-line-tools-only) 安装 adb
 - 验证安装是否成功：
@@ -60,7 +53,7 @@ echo $ANDROID_HOME
 /Users/your_username/Library/Android/sdk
 ```
 
-### 启用 USB 调试并验证设备
+#### 启用 USB 调试并验证设备
 
 在系统设置的开发者选项中开启 **USB 调试**（若有 **USB 调试（安全设置）** 也请一并开启），然后用数据线连接手机。
 
@@ -81,11 +74,9 @@ List of devices attached
 s4ey59	device usb:34603008X product:cezanne model:M2006J device:cezan transport_id:3
 ```
 
-## 试用 Playground（零代码）
+### 启动 Playground
 
 Playground 是验证连接、观察 AI Agent 的最快方式，无需编写代码。它与 `@midscene/android` 共享相同的代码实现，因此在 Playground 上验证通过的流程，用脚本运行时也完全一致。
-
-<video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/booking2.mp4" controls/>
 
 1. 启动 Playground CLI：
 
@@ -97,19 +88,21 @@ npx --yes @midscene/android-playground
 
 ![](/android-set-env.png)
 
-## 开始体验
+### 体验核心功能
 
 <StartExperience />
 
-## 集成 Midscene Agent
+## 使用 JavaScript SDK
 
 当 Playground 运行正常后，就可以切换到可复用的 JavaScript 脚本。
 
-### 第 1 步：安装依赖
+<SetupEnv />
+
+### 安装依赖
 
 <PackageManagerTabs command="install @midscene/android dotenv --save-dev" />
 
-### 第 2 步：编写脚本
+### 编写脚本
 
 下面的示例会在设备上打开浏览器、搜索 eBay，并断言结果列表。
 
@@ -148,13 +141,13 @@ Promise.resolve(
 );
 ```
 
-### 第 3 步：运行示例
+### 运行脚本
 
 ```bash
 npx tsx demo.ts
 ```
 
-### 第 4 步：查看报告
+### 查看报告
 
 脚本成功后会输出 `Midscene - report file updated: /path/to/report/some_id.html`。在浏览器中打开该 HTML 文件即可回放每一步交互、查询与断言。
 

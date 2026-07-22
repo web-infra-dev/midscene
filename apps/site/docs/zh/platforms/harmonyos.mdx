@@ -1,36 +1,29 @@
 import StartExperience from '../common/start-experience.mdx';
-import SetupEnv from '../common/setup-env.mdx';
-import ShowcaseHarmony from '../showcases-harmony.mdx';
+import SetupEnv from '../common/setup-env-sdk.mdx';
 
 import { PackageManagerTabs } from '@theme';
 
 # HarmonyOS
 
-Midscene 通过 HarmonyOS Device Connector（HDC）自动化 HarmonyOS NEXT 设备。
+Midscene 通过 HarmonyOS Device Connector（HDC）连接 HarmonyOS NEXT 设备，可自动化 App 和系统界面。
 
-## 案例展示
+本指南介绍设备连接、模型配置、Playground 体验，以及 `@midscene/harmony` 的 JavaScript SDK 集成。
 
-<ShowcaseHarmony />
+## 效果展示
 
-查看更多 [Midscene 案例](../showcases.mdx)。
+**提示词：** 打开设置，找到“关于手机”，查看设备信息。
 
-本指南将带你完成使用 Midscene 自动化 HarmonyOS 设备所需的一切：通过 HDC 连接真机、配置模型 API Key、体验零代码 Playground，并运行你的首个 JavaScript 脚本。
+<video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/harmony.mp4" poster="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/harmony.png" height="300" controls />
 
-:::info 示例项目
+查看[完整报告](https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/harmony.html)，或浏览更多 [Midscene 案例](../showcases.mdx)。
 
-使用 JavaScript 控制鸿蒙设备：[https://github.com/web-infra-dev/midscene-example/blob/main/harmony/javascript-sdk-demo](https://github.com/web-infra-dev/midscene-example/blob/main/harmony/javascript-sdk-demo)
+## 快速开始
 
-集成 Vitest 进行测试：[https://github.com/web-infra-dev/midscene-example/tree/main/harmony/vitest-demo](https://github.com/web-infra-dev/midscene-example/tree/main/harmony/vitest-demo)
-
-:::
-
-<SetupEnv />
-
-## 准备工作
+### 准备 HarmonyOS 设备
 
 在编写脚本前，先确认 HDC 能够连接设备且设备信任当前电脑。
 
-### 安装 HDC
+#### 安装 HDC
 
 HDC（HarmonyOS Device Connector）是 HarmonyOS 提供的命令行工具，用于与 HarmonyOS 设备通信。安装方式：
 
@@ -55,7 +48,7 @@ export HDC_HOME=/path/to/hdc/directory
 
 :::
 
-### 启用开发者模式并验证设备
+#### 启用开发者模式并验证设备
 
 在 HarmonyOS 设备的设置中进入 **开发者选项**，开启 **USB 调试**，然后用数据线连接设备。
 
@@ -71,11 +64,9 @@ hdc list targets
 0123456789ABCDEF
 ```
 
-## 试用 Playground（零代码）
+### 启动 Playground
 
 Playground 是验证连接、观察 AI Agent 的最快方式，无需编写代码。它与 `@midscene/harmony` 共享相同的代码实现，因此在 Playground 上验证通过的流程，用脚本运行时也完全一致。
-
-<video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/harmony.mp4" controls/>
 
 1. 启动 Playground CLI：
 
@@ -85,19 +76,21 @@ npx --yes @midscene/harmony-playground
 
 2. 点击 Playground 窗口中的齿轮按钮，粘贴你的 API Key 配置。如果还没有 API Key，请回到 [模型配置](../model-config) 获取。
 
-## 开始体验
+### 体验核心功能
 
 <StartExperience />
 
-## 集成 Midscene Agent
+## 使用 JavaScript SDK
 
 当 Playground 运行正常后，就可以切换到可复用的 JavaScript 脚本。
 
-### 第 1 步：安装依赖
+<SetupEnv />
+
+### 安装依赖
 
 <PackageManagerTabs command="install @midscene/harmony dotenv --save-dev" />
 
-### 第 2 步：编写脚本
+### 编写脚本
 
 下面的示例会在设备上打开设置应用，并执行滚动操作。
 
@@ -140,13 +133,13 @@ Promise.resolve(
 );
 ```
 
-### 第 3 步：运行示例
+### 运行脚本
 
 ```bash
 npx tsx demo.ts
 ```
 
-### 第 4 步：查看报告
+### 查看报告
 
 脚本成功后会输出 `Midscene - report file updated: /path/to/report/some_id.html`。在浏览器中打开该 HTML 文件即可回放每一步交互、查询与断言。
 

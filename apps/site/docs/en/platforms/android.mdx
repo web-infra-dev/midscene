@@ -1,36 +1,29 @@
 import StartExperience from '../common/start-experience.mdx';
-import SetupEnv from '../common/setup-env.mdx';
-import ShowcaseAndroid from '../showcases-android.mdx';
+import SetupEnv from '../common/setup-env-sdk.mdx';
 
 import { PackageManagerTabs } from '@theme';
 
 # Android
 
-Midscene drives adb to automate Android devices.
+Midscene connects to Android devices through adb to automate apps and system interfaces.
 
-## Showcases
+This guide covers device connection, model configuration, Playground, and JavaScript SDK integration with `@midscene/android`.
 
-<ShowcaseAndroid />
+## See it in action
 
-See more [Midscene showcases](../showcases.mdx).
+**Prompt:** Open the Booking app. Search for a hotel in Tokyo for four adults on Christmas, with a score of 8 or above.
 
-This guide walks you through everything required to automate an Android device with Midscene: connect a real phone over adb, configure model credentials, try the no-code Playground, and run your first JavaScript script.
+<video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/booking2.mp4" poster="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/booking.png" height="300" controls />
 
-:::info Demo Projects
+View the [full report](https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/booking.html), or explore more [Midscene showcases](../showcases.mdx).
 
-Control Android devices with JavaScript: [https://github.com/web-infra-dev/midscene-example/blob/main/android/javascript-sdk-demo](https://github.com/web-infra-dev/midscene-example/blob/main/android/javascript-sdk-demo)
+## Get started
 
-Integrate Vitest for testing: [https://github.com/web-infra-dev/midscene-example/tree/main/android/vitest-demo](https://github.com/web-infra-dev/midscene-example/tree/main/android/vitest-demo)
-
-:::
-
-<SetupEnv />
-
-## Prepare your Android device
+### Prepare your Android device
 
 Before scripting, confirm adb can talk to your device and the device trusts your machine.
 
-### Install adb and set `ANDROID_HOME`
+#### Install adb and set `ANDROID_HOME`
 
 - Install via [Android Studio](https://developer.android.com/studio) or the [command-line tools](https://developer.android.com/studio#command-line-tools-only)
 - Verify installation:
@@ -60,7 +53,7 @@ Any non-empty output means it is configured:
 /Users/your_username/Library/Android/sdk
 ```
 
-### Enable USB debugging and verify the device
+#### Enable USB debugging and verify the device
 
 In the system settings developer options, enable **USB debugging** (and **USB debugging (Security settings)** if present), then connect the device via USB.
 
@@ -81,11 +74,9 @@ List of devices attached
 s4ey59	device usb:34603008X product:cezanne model:M2006J device:cezan transport_id:3
 ```
 
-## Try Playground (no code)
+### Launch Playground
 
 Playground is the fastest way to validate the connection and observe AI-driven steps without writing code. It shares the same core as `@midscene/android`, so anything that works here will behave the same once scripted.
-
-<video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/booking2.mp4" controls/>
 
 1. Launch the Playground CLI:
 
@@ -97,19 +88,21 @@ npx --yes @midscene/android-playground
 
 ![](/android-set-env.png)
 
-## Start experiencing
+### Try the core capabilities
 
 <StartExperience />
 
-## Integration with Midscene Agent
+## Use the JavaScript SDK
 
 Once Playground works, move to a repeatable script with the JavaScript SDK.
 
-### Step 1. Install dependencies
+<SetupEnv />
+
+### Install dependencies
 
 <PackageManagerTabs command="install @midscene/android dotenv --save-dev" />
 
-### Step 2. Write scripts
+### Write a script
 
 Save the following code as `./demo.ts`. It opens the browser on the device, searches eBay, and asserts the result list.
 
@@ -148,13 +141,13 @@ Promise.resolve(
 );
 ```
 
-### Step 3. Run
+### Run the script
 
 ```bash
 npx tsx demo.ts
 ```
 
-### Step 4: View the report
+### View the report
 
 Successful runs print `Midscene - report file updated: /path/to/report/some_id.html`. Open the generated HTML file in a browser to replay every interaction, query, and assertion.
 

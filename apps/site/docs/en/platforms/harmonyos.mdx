@@ -1,36 +1,29 @@
 import StartExperience from '../common/start-experience.mdx';
-import SetupEnv from '../common/setup-env.mdx';
-import ShowcaseHarmony from '../showcases-harmony.mdx';
+import SetupEnv from '../common/setup-env-sdk.mdx';
 
 import { PackageManagerTabs } from '@theme';
 
 # HarmonyOS
 
-Midscene drives HarmonyOS Device Connector (HDC) to automate HarmonyOS NEXT devices.
+Midscene connects to HarmonyOS NEXT devices through HarmonyOS Device Connector (HDC) to automate apps and system interfaces.
 
-## Showcases
+This guide covers device connection, model configuration, Playground, and JavaScript SDK integration with `@midscene/harmony`.
 
-<ShowcaseHarmony />
+## See it in action
 
-See more [Midscene showcases](../showcases.mdx).
+**Prompt:** Open Settings, find About phone, and view the device information.
 
-This guide walks you through everything needed to automate HarmonyOS devices with Midscene: connecting a real device via HDC, configuring model API keys, trying the zero-code Playground, and running your first JavaScript script.
+<video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/harmony.mp4" poster="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/harmony.png" height="300" controls />
 
-:::info Demo Projects
+View the [full report](https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/harmony.html), or explore more [Midscene showcases](../showcases.mdx).
 
-Control HarmonyOS devices with JavaScript: [https://github.com/web-infra-dev/midscene-example/blob/main/harmony/javascript-sdk-demo](https://github.com/web-infra-dev/midscene-example/blob/main/harmony/javascript-sdk-demo)
+## Get started
 
-Integrate Vitest for testing: [https://github.com/web-infra-dev/midscene-example/tree/main/harmony/vitest-demo](https://github.com/web-infra-dev/midscene-example/tree/main/harmony/vitest-demo)
-
-:::
-
-<SetupEnv />
-
-## Prerequisites
+### Prepare your HarmonyOS device
 
 Before writing scripts, verify that HDC can connect to your device and the device trusts the current computer.
 
-### Install HDC
+#### Install HDC
 
 HDC (HarmonyOS Device Connector) is a command-line tool provided by HarmonyOS for communicating with devices. Installation options:
 
@@ -55,7 +48,7 @@ export HDC_HOME=/path/to/hdc/directory
 
 :::
 
-### Enable Developer Mode and Verify Device
+#### Enable Developer Mode and verify the device
 
 In your HarmonyOS device settings, go to **Developer Options** and enable **USB Debugging**, then connect via USB cable.
 
@@ -71,11 +64,9 @@ A device ID in the output confirms a successful connection:
 0123456789ABCDEF
 ```
 
-## Try Playground (Zero Code)
+### Launch Playground
 
 Playground is the fastest way to verify your connection and observe the AI Agent, without writing any code. It shares the same code implementation as `@midscene/harmony`, so flows validated in Playground will work identically when run via scripts.
-
-<video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/harmony.mp4" controls/>
 
 1. Launch the Playground CLI:
 
@@ -85,19 +76,21 @@ npx --yes @midscene/harmony-playground
 
 2. Click the gear button in the Playground window and paste your API Key configuration. If you don't have an API Key yet, go back to [Model Configuration](../model-config) to get one.
 
-## Start Your Experience
+### Try the core capabilities
 
 <StartExperience />
 
-## Integrate Midscene Agent
+## Use the JavaScript SDK
 
 Once Playground runs successfully, you can switch to reusable JavaScript scripts.
 
-### Step 1: Install Dependencies
+<SetupEnv />
+
+### Install dependencies
 
 <PackageManagerTabs command="install @midscene/harmony dotenv --save-dev" />
 
-### Step 2: Write a Script
+### Write a script
 
 The following example opens the Settings app on the device and performs scrolling operations.
 
@@ -140,13 +133,13 @@ Promise.resolve(
 );
 ```
 
-### Step 3: Run the Example
+### Run the script
 
 ```bash
 npx tsx demo.ts
 ```
 
-### Step 4: View the Report
+### View the report
 
 After a successful run, the console outputs `Midscene - report file updated: /path/to/report/some_id.html`. Open this HTML file in a browser to replay each interaction, query, and assertion.
 

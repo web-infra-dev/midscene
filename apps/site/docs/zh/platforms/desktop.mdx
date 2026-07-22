@@ -1,6 +1,5 @@
 import StartExperience from '../common/start-experience.mdx';
-import SetupEnv from '../common/setup-env.mdx';
-import ShowcaseComputer from '../showcases-computer.mdx';
+import SetupEnv from '../common/setup-env-sdk.mdx';
 
 import { PackageManagerTabs } from '@theme';
 
@@ -8,11 +7,15 @@ import { PackageManagerTabs } from '@theme';
 
 Midscene 通过原生键盘和鼠标控制，在 Windows、macOS 和 Linux 上自动化桌面应用。
 
-## 案例展示
+本指南介绍平台配置、模型配置、Playground 体验，以及 `@midscene/computer` 的 JavaScript SDK 集成。
 
-<ShowcaseComputer />
+## 效果展示
 
-查看更多 [Midscene 案例](../showcases.mdx)。
+**提示词（macOS）：** 打开 Safari，发布一条介绍 Midscene 支持 AutoGLM 的推文，并使用“下载”文件夹中的 AutoGLM 视频。
+
+<video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/pc-twitter2.mp4" height="300" controls />
+
+查看[完整报告](https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/pc-twitter2-midscene_report.html)，或浏览更多 [Midscene 案例](../showcases.mdx)。
 
 ## 核心功能
 
@@ -41,29 +44,15 @@ await agent.aiAct('按回车键');
 - 按顺序控制多个应用。
 - 使用自然语言指令测试桌面界面。
 
-本指南将引导您完成使用 Midscene 自动化 PC 桌面应用所需的一切：安装依赖、配置模型凭据并运行您的第一个 JavaScript 脚本。
+## 快速开始
 
-:::info 示例项目
+### 准备桌面环境
 
-使用 JavaScript 控制 PC 桌面：[https://github.com/web-infra-dev/midscene-example/tree/main/computer/javascript-sdk-demo](https://github.com/web-infra-dev/midscene-example/tree/main/computer/javascript-sdk-demo)
-
-集成 Vitest 进行测试：[https://github.com/web-infra-dev/midscene-example/tree/main/computer/vitest-demo](https://github.com/web-infra-dev/midscene-example/tree/main/computer/vitest-demo)
-
-通过 RDP 控制远程 Windows 桌面：[https://github.com/web-infra-dev/midscene-example/tree/main/computer/rdp-demo](https://github.com/web-infra-dev/midscene-example/tree/main/computer/rdp-demo)
-
-使用 `@midscene/computer` 在无头 Linux CI 中测试 [Obsidian](https://obsidian.md/)（Electron 应用）：[https://github.com/web-infra-dev/midscene-example/tree/main/computer/electron-demo](https://github.com/web-infra-dev/midscene-example/tree/main/computer/electron-demo)
-
-:::
-
-<SetupEnv />
-
-## 系统要求
-
-### Node.js
+#### Node.js
 
 需要 Node.js 18.19.0 或更高版本。
 
-### 平台特定依赖
+#### 平台特定依赖
 
 **macOS**：需要辅助功能权限才能控制键盘和鼠标。首次运行脚本时，macOS 会提示你授予访问权限。前往 **系统设置 > 隐私与安全性 > 辅助功能**，为运行脚本的应用程序（如 Terminal、iTerm2、VS Code、WebStorm 或其他 IDE）启用权限。更多详情请参阅 [nut.js macOS 设置](https://github.com/nut-tree/nut.js#macos)。
 
@@ -88,11 +77,9 @@ const agent = await agentForComputer({ headless: true });
 
 Xvfb 会创建一个虚拟显示器，使鼠标、键盘和截图操作在没有物理显示器的情况下正常工作。详见 [API 参考](../reference/#desktop)。
 
-## 试用 Playground（零代码）
+### 启动 Playground
 
 Playground 是验证连接、观察 AI Agent 的最快方式，无需编写代码。它与 `@midscene/computer` 共享相同的代码实现，因此在 Playground 上验证通过的流程，用脚本运行时也完全一致。
-
-<video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/pc-twitter2.mp4" controls/>
 
 1. 启动 Playground CLI：
 
@@ -102,19 +89,21 @@ npx --yes @midscene/computer-playground
 
 2. 点击 Playground 窗口中的齿轮按钮，粘贴你的 API Key 配置。如果还没有 API Key，请回到 [模型配置](../model-config) 获取。
 
-## 开始体验
+### 体验核心功能
 
 <StartExperience />
 
-## 与 Midscene Agent 集成
+## 使用 JavaScript SDK
 
 当 Playground 运行正常后，就可以切换到可复用的 JavaScript 脚本。
 
-### 步骤 1. 安装依赖
+<SetupEnv />
+
+### 安装依赖
 
 <PackageManagerTabs command="install @midscene/computer" />
 
-### 步骤 2. 编写您的第一个脚本
+### 编写脚本
 
 创建 `example.ts`：
 
@@ -143,7 +132,7 @@ import { agentForComputer } from '@midscene/computer';
 })();
 ```
 
-### 步骤 3. 运行脚本
+### 运行脚本
 
 ```bash
 npx tsx example.ts
@@ -331,3 +320,8 @@ MIDSCENE_COMPUTER_HEADLESS_LINUX=true npx tsx example.ts
 - [使用 YAML 格式自动化脚本](../automate-with-scripts-in-yaml)
 - [YAML 脚本运行器](../yaml-script-runner)
 - [缓存提高效率](../caching)
+- 示例项目
+  - [JavaScript SDK 示例](https://github.com/web-infra-dev/midscene-example/tree/main/computer/javascript-sdk-demo)
+  - [Vitest 示例](https://github.com/web-infra-dev/midscene-example/tree/main/computer/vitest-demo)
+  - [通过 RDP 控制远程 Windows 桌面](https://github.com/web-infra-dev/midscene-example/tree/main/computer/rdp-demo)
+  - [在无头 Linux CI 中测试 Obsidian](https://github.com/web-infra-dev/midscene-example/tree/main/computer/electron-demo)
