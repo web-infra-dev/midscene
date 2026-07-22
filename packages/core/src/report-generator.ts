@@ -18,6 +18,7 @@ import {
   MIDSCENE_REPORT_QUIET,
   globalConfigManager,
 } from '@midscene/shared/env';
+import { getDebug } from '@midscene/shared/logger';
 import { ifInBrowser, logMsg, uuid } from '@midscene/shared/utils';
 import {
   DATA_SCREENSHOT_MODE_ATTR,
@@ -26,6 +27,7 @@ import {
   generateImageScriptTag,
   getBaseUrlFixScript,
 } from './dump/html-utils';
+import { compactReportDumps } from './dump/report-dump-compactor';
 import { ScreenshotStore } from './dump/screenshot-store';
 import {
   type ExecutionDump,
@@ -35,6 +37,8 @@ import {
   type ScreenshotMode,
 } from './types';
 import { getReportTpl } from './utils';
+
+const warnReport = getDebug('report-generator', { console: true });
 
 export interface IReportGenerator {
   /**
@@ -213,6 +217,13 @@ export class ReportGenerator implements IReportGenerator {
     }
 
     await this.appendAgentReportComment();
+    try {
+      await compactReportDumps(this.reportPath);
+    } catch (error) {
+      warnReport(
+        `Failed to compact report ${this.reportPath}; keeping the uncompressed report: ${String(error)}`,
+      );
+    }
     return this.reportPath;
   }
 

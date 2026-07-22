@@ -13,6 +13,7 @@ import {
   parseImageScripts,
   unescapeContent,
 } from '@/dump/html-utils';
+import * as reportDumpCompactor from '@/dump/report-dump-compactor';
 import { ReportGenerator, nullReportGenerator } from '@/report-generator';
 import { ScreenshotItem } from '@/screenshot-item';
 import {
@@ -227,6 +228,83 @@ describe('ReportGenerator — append-only model', () => {
       expect(countGroupedDumpScripts(html)).toBe(3);
     });
 
+    it('should remove superseded dump tags when the report is finalized', async () => {
+      const reportPath = join(tmpDir, 'finalize-compacts-dumps.html');
+      const generator = new ReportGenerator({
+        reportPath,
+        screenshotMode: 'inline',
+        autoPrint: false,
+      });
+
+      const firstScreenshot = ScreenshotItem.create(
+        fakeBase64(100),
+        Date.now(),
+      );
+      const secondScreenshot = ScreenshotItem.create(
+        fakeBase64(120),
+        Date.now(),
+      );
+      const executionId = 'execution-updated-before-finalize';
+
+      generator.onExecutionUpdate(
+        createExecution([firstScreenshot], 'finalize-compact', executionId),
+        defaultReportMeta,
+      );
+      await generator.flush();
+      generator.onExecutionUpdate(
+        createExecution(
+          [firstScreenshot, secondScreenshot],
+          'finalize-compact',
+          executionId,
+        ),
+        defaultReportMeta,
+      );
+      await generator.flush();
+
+      const runningHtml = readFileSync(reportPath, 'utf-8');
+      expect(countGroupedDumpScripts(runningHtml)).toBe(2);
+
+      await generator.finalize();
+
+      const finalizedHtml = readFileSync(reportPath, 'utf-8');
+      const dumpScripts = extractGroupedDumpScripts(finalizedHtml);
+      expect(dumpScripts).toHaveLength(1);
+
+      const finalDump = JSON.parse(unescapeContent(dumpScripts[0].content));
+      expect(finalDump.executions).toHaveLength(1);
+      expect(finalDump.executions[0].id).toBe(executionId);
+      expect(finalDump.executions[0].tasks).toHaveLength(2);
+    });
+
+    it('should preserve a successful report when final compaction fails', async () => {
+      const reportPath = join(tmpDir, 'finalize-compaction-failure.html');
+      const generator = new ReportGenerator({
+        reportPath,
+        screenshotMode: 'inline',
+        autoPrint: false,
+      });
+
+      generator.onExecutionUpdate(
+        createExecution([], 'compaction-failure'),
+        defaultReportMeta,
+      );
+
+      const compactionError = new Error('ENOSPC: no space left on device');
+      const compactSpy = vi
+        .spyOn(reportDumpCompactor, 'compactReportDumps')
+        .mockRejectedValueOnce(compactionError);
+
+      try {
+        await expect(generator.finalize()).resolves.toBe(reportPath);
+      } finally {
+        compactSpy.mockRestore();
+      }
+
+      const finalizedHtml = readFileSync(reportPath, 'utf-8');
+      expect(finalizedHtml).toContain('compaction-failure');
+      expect(countGroupedDumpScripts(finalizedHtml)).toBeGreaterThan(0);
+    });
+
     it('should overwrite existing report file by default when a new generator uses the same path', async () => {
       const reportPath = join(tmpDir, 'append-existing-report.html');
       const firstGenerator = new ReportGenerator({
@@ -263,8 +341,8 @@ describe('ReportGenerator — append-only model', () => {
       await secondGenerator.finalize();
 
       const html = readFileSync(reportPath, 'utf-8');
-      // second finalize() re-writes last execution once, so total dump tags = 2
-      expect(countGroupedDumpScripts(html)).toBe(2);
+      // Finalized reports contain one compacted dump for the active group.
+      expect(countGroupedDumpScripts(html)).toBe(1);
       expect(html).not.toContain(firstScreenshot.id);
       expect(html).toContain(secondScreenshot.id);
     });
@@ -848,6 +926,13 @@ describe('ReportGenerator — append-only model', () => {
       expect(
         existsSync(join(reportDir, 'screenshots', `${screenshot.id}.png`)),
       ).toBe(true);
+
+      await generator.finalize();
+      const finalizedHtml = readFileSync(reportPath, 'utf-8');
+      expect(countGroupedDumpScripts(finalizedHtml)).toBe(1);
+      expect(
+        existsSync(join(reportDir, 'screenshots', `${screenshot.id}.png`)),
+      ).toBe(true);
     });
 
     it('should write merged attributes in directory mode', async () => {
@@ -1249,6 +1334,13 @@ describe('ReportGenerator — append-only model', () => {
         .length;
       expect(agentCommentCount).toBe(1);
       expect(html).toContain('Executions: 2; Tasks: 2');
+
+      const dumpScripts = extractGroupedDumpScripts(html);
+      expect(dumpScripts).toHaveLength(1);
+      const compactedDump = JSON.parse(unescapeContent(dumpScripts[0].content));
+      expect(
+        compactedDump.executions.map(({ id }: { id: string }) => id),
+      ).toEqual([exec1.id, exec2.id]);
     });
 
     it('keeps same-name executions without id in the agent comment', async () => {
@@ -1288,6 +1380,15 @@ describe('ReportGenerator — append-only model', () => {
 
       const html = readFileSync(reportPath, 'utf-8');
       expect(html).toContain('Executions: 2; Tasks: 2');
+
+      const dumpScripts = extractGroupedDumpScripts(html);
+      expect(dumpScripts).toHaveLength(1);
+      const compactedDump = JSON.parse(unescapeContent(dumpScripts[0].content));
+      expect(
+        compactedDump.executions.map(
+          ({ tasks }: { tasks: { taskId: string }[] }) => tasks[0].taskId,
+        ),
+      ).toEqual(['task-a', 'task-b', 'task-b']);
     });
 
     it('should work correctly in directory mode with lazy loading', async () => {
