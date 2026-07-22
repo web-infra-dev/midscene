@@ -3,7 +3,7 @@ import { PackageManagerTabs } from '@theme';
 
 # Integrate with Rstest
 
-[Rstest](https://github.com/web-infra-dev/rstest) is a fast Rspack-based testing framework. With `@midscene/rstest` you can write AI-driven end-to-end tests as plain Rstest fixtures. Midscene launches the browser, creates an Agent per test, and produces an HTML report at the end of every test file.
+[Rstest](https://github.com/web-infra-dev/rstest) is a fast, Rspack-based testing framework. With `@midscene/rstest`, you can describe browser interactions and assertions in natural language and run them as regular Rstest tests:
 
 ```ts
 import { expect, test } from '@midscene/rstest/playwright';
@@ -15,34 +15,37 @@ test('adds a todo', async ({ agent, page }) => {
 });
 ```
 
-`@midscene/rstest` provides:
+Midscene launches the browser, creates an agent for each test, and generates a visual HTML report for every test file, so you can replay each AI step with screenshots.
 
-- Typed fixtures. Destructure `agent`, `page`, `browser`, or `agentForPage` directly from the test context.
-- A lazy browser lifecycle. The browser launches when the first test that depends on it runs, so a file that mixes AI tests with plain unit tests only pays the AI cost for the AI tests.
-- Composable setup. Use `test.extend({ ... })` to override the options or any upstream fixture, such as a `page` that pre-navigates and injects routes, or to add new fixtures like a second `adminAgent` persona. `agent` and `agentForPage` are sealed at the type level — overriding them is a compile error.
-- One merged Midscene HTML report per test file, with its path printed to the console after the file finishes.
-
-The package is built on [`@rstest/playwright`](https://github.com/web-infra-dev/rstest/tree/main/packages/playwright), Rstest's official Playwright integration. Midscene layers the `agent` lifecycle and reporting on top, and you inherit the upstream toolbox as-is: Playwright-flavored `expect` (`toBeVisible`, `toHaveText`, etc.), debug mode (`PWDEBUG`, pause on failure), Playwright trace capture, and the `request` / `serve` fixtures.
+Since `@midscene/rstest` is built on [`@rstest/playwright`](https://github.com/web-infra-dev/rstest/tree/main/packages/playwright), everything it offers is also available here: Playwright-flavored `expect` (`toBeVisible`, `toHaveText`, etc.), debug mode (`PWDEBUG`), trace capture, and the `request` / `serve` fixtures.
 
 :::info Playwright only
 
-Playwright is the only browser engine supported today, which is why the engine is explicit in the import path (`@midscene/rstest/playwright`), mirroring `@midscene/web`'s `/playwright` and `/puppeteer` entries. Puppeteer is not supported.
+`@midscene/rstest` drives the browser through Playwright, which is why the import path is `@midscene/rstest/playwright`. Puppeteer is not supported.
 
 :::
 
 <SetupEnv />
 
-:::info Example Project
+:::info Example project
 
-A runnable example lives at [https://github.com/web-infra-dev/midscene/tree/main/packages/rstest/demo](https://github.com/web-infra-dev/midscene/tree/main/packages/rstest/demo).
+A runnable example is available at [midscene/packages/rstest/demo](https://github.com/web-infra-dev/midscene/tree/main/packages/rstest/demo).
 
 :::
 
 ## Step 1: Install dependencies
 
-Install `@midscene/rstest` together with `@midscene/web`, `@rstest/core`, `@rstest/playwright`, and `playwright`. Requires `@rstest/core >= 0.11.2`, `playwright >= 1.49.1`, and Node `^20.19.0 || >=22.12.0`.
+Install `@midscene/rstest` together with `@midscene/web`, `@rstest/core`, `@rstest/playwright`, and `playwright`:
 
 <PackageManagerTabs command="install @midscene/web @midscene/rstest @rstest/core @rstest/playwright playwright --save-dev" />
+
+:::tip Version requirements
+
+- `@rstest/core >= 0.11.2`
+- `playwright >= 1.49.1`
+- Node.js `^20.19.0 || >=22.12.0`
+
+:::
 
 ## Step 2: Configure Rstest
 
@@ -55,16 +58,18 @@ import { defineConfig } from '@rstest/core';
 
 export default defineConfig({
   include: ['e2e/**/*.test.ts'],
-  // AI calls are slow, so leave plenty of headroom for both tests and hooks.
+  // AI calls take time, so leave plenty of headroom for tests and hooks.
   testTimeout: 1_800_000,
   hookTimeout: 60_000,
   reporters: ['default', new MidsceneReporter()],
 });
 ```
 
-`MidsceneReporter` merges the reports of every test in a file into one HTML report and prints a line like `Midscene report: midscene_run/report/<file>.html`. Open it in your browser to replay every AI step with screenshots. Each test writes its own report; the reporter is the component that merges them, so register it in `reporters` to get the per-file merged report.
+Register `MidsceneReporter` in `reporters`. After a test file finishes, it merges the reports of all tests in that file into one HTML report and prints the path to the console.
 
 ## Step 3: Write a test
+
+Import `test` and `expect` from `@midscene/rstest/playwright`, then destructure the fixtures you need in the test function:
 
 ```ts title="e2e/todo-list.test.ts"
 import { expect, test } from '@midscene/rstest/playwright';
@@ -83,18 +88,22 @@ test('adds and completes a todo', async ({ agent, page }) => {
 });
 ```
 
-The `test` exported from `@midscene/rstest/playwright` is an Rstest test pre-wired with Midscene fixtures. Destructure what you need from the test context, and the fixture engine resolves dependencies and runs setup/teardown around each test.
+Call `page.goto(...)` at the start of the test to open the page you want to test, then use `agent` to interact with it. See the [API Reference](./api#interaction-methods) for all agent methods.
 
-The available fixtures are:
+The available fixtures:
 
-- **`agent`**: the Midscene `PlaywrightAgent` bound to the primary page. Default tool for AI actions and assertions. Navigation is the test's own job (`await page.goto(...)`), exactly as in Midscene's Playwright integration. `agent` and `agentForPage` are deliverables: consume them in tests or as dependencies of derived fixtures; `test.extend` rejects overriding them at the type level, since a replacement would bypass report collection.
-- **`page`**: the Playwright `Page`, straight from `@rstest/playwright` — including its failure behavior (kept open and paused under `PWDEBUG`). Escape hatch for browser primitives such as `page.route(...)` network mocking, `page.evaluate(...)`, or `page.context().cookies()`.
-- **`browser`**: the shared `Browser`, managed by `@rstest/playwright`. It is launched lazily, shared per worker, and closed automatically when idle. Use it to spin up extra contexts or pages mid-test, for multi-user or cross-session scenarios.
-- **`context`**: the test-scoped `BrowserContext` the primary `page` is created from. Override via `test.extend` if you need a custom context per test.
-- **`request`** / **`serve`**: inherited from `@rstest/playwright`. An isolated `APIRequestContext` for API calls, and a one-liner static file server with automatic teardown.
-- **`agentForPage(page, opts?)`**: build a Midscene agent for another page, such as a popup or a manually-created page. Its report is merged with the primary's, and destroy is automatic.
-- **`playwright`**: browser-level configuration (launch options, context options, debug, trace), straight from `@rstest/playwright`. See [Browser configuration](#browser-configuration-the-playwright-fixture).
-- **`agentOptions`**: default options for every agent this test constructs. See [Options](#options) and [Project-wide defaults](#project-wide-defaults-optional).
+| Fixture | Description |
+| --- | --- |
+| `agent` | The Midscene agent for the current page. Use `agent.aiAct(...)`, `agent.aiQuery(...)`, `agent.aiAssert(...)`, etc. to drive and check the page. |
+| `page` | The Playwright `Page`. Use it to navigate (`page.goto`) and to call any Playwright API, such as `page.route(...)` or `page.evaluate(...)`. |
+| `browser` | The shared Playwright `Browser`. It launches when first used and closes automatically. Use it to open extra contexts or pages. |
+| `context` | The `BrowserContext` that `page` belongs to. |
+| `request` / `serve` | From `@rstest/playwright`: an isolated `APIRequestContext` for HTTP calls, and a one-line static file server. |
+| `agentForPage(page, opts?)` | Creates a Midscene agent for another page, such as a popup or a second session. Its steps appear in the same report. |
+| `playwright` | Browser options: launch, context, debug, trace. See [Configure the browser](#configure-the-browser). |
+| `agentOptions` | Agent options: cache, action context, and more. See [Configure the agent](#configure-the-agent). |
+
+AI methods and Playwright APIs mix freely. For example, mock an API with `page.route` and verify the result with `aiAssert`:
 
 ```ts
 test('mocks the API and verifies the UI', async ({ agent, page }) => {
@@ -103,31 +112,6 @@ test('mocks the API and verifies the UI', async ({ agent, page }) => {
   );
   await page.goto('http://localhost:5173/');
   await agent.aiAssert('the contact list shows "Fake Alice"');
-});
-
-test('drives a popup with a second agent', async ({
-  agent,
-  page,
-  agentForPage,
-}) => {
-  await page.goto('http://localhost:5173/');
-  await agent.aiTap("the 'View details' button");
-  const popup = await page.waitForEvent('popup');
-
-  const popupAgent = await agentForPage(popup);
-  await popupAgent.aiAssert('the popup shows order details');
-});
-
-test('runs two isolated user sessions in one test', async ({
-  browser,
-  agentForPage,
-}) => {
-  const sessionB = await browser.newContext({ storageState: 'user-b.json' });
-  const pageB = await sessionB.newPage();
-  await pageB.goto('http://localhost:5173/');
-  const agentB = await agentForPage(pageB);
-
-  await agentB.aiAct('send a message to user A');
 });
 ```
 
@@ -140,17 +124,69 @@ npx rstest run
 npx rstest watch
 ```
 
-After each file finishes you'll see something like:
+After each test file finishes, the console prints the report path:
 
 ```text
 Midscene report: midscene_run/report/<file>.html
 ```
 
-Reports are written to `midscene_run/report/`. See [Consume report files](./consume-report-file) for programmatic access.
+Open it in your browser to replay every AI step with screenshots. To process report files programmatically, see [Consume report files](./consume-report-file).
 
-## Project-wide defaults (optional)
+## Configure the browser
 
-For options that should apply to every file, extend the base test in a shared module and import your extended `test` everywhere — the same pattern as Playwright Test:
+Browser behavior — launch options, context options, debug, trace — is configured through the `playwright` fixture, which comes from `@rstest/playwright`. Every option in the [upstream docs](https://github.com/web-infra-dev/rstest/tree/main/packages/playwright) is available:
+
+```ts
+import { test as base } from '@midscene/rstest/playwright';
+
+const test = base.extend({
+  playwright: {
+    launchOptions: { headless: false },
+    contextOptions: { locale: 'zh-CN', storageState: 'auth.json' },
+    debug: true, // headed + slowMo + DevTools, pause on failure (also: PWDEBUG=1)
+    trace: 'retain-on-failure', // save trace.zip (also: RSTEST_PLAYWRIGHT_TRACE)
+  },
+});
+```
+
+`@midscene/rstest` ships a default value for this fixture — headless in CI, headed locally, with a 1920×1080 viewport. Overriding the fixture replaces the whole object, so spread `defaultPlaywrightOptions` to keep the defaults:
+
+```ts
+import {
+  test as base,
+  defaultPlaywrightOptions,
+} from '@midscene/rstest/playwright';
+
+const test = base.extend({
+  playwright: {
+    ...defaultPlaywrightOptions,
+    contextOptions: { viewport: { width: 375, height: 667 } },
+  },
+});
+```
+
+Saved traces land in `.rstest/playwright-traces/`, and the console prints a `npx playwright show-trace ...` command to open them.
+
+## Configure the agent
+
+The `agentOptions` fixture sets the options used to construct every agent in a test. It accepts the same options as `PlaywrightAgent`, such as `aiActionContext`, `modelConfig`, `waitAfterAction`, and `replanningCycleLimit`:
+
+```ts
+const test = base.extend({
+  agentOptions: {
+    aiActionContext: 'Close any promo dialog first.',
+    cache: true,
+  },
+});
+```
+
+Set `cache: true` to reuse AI planning results across runs and speed up repeated executions. Midscene derives a stable cache id from the test file name and test name, so re-running the same test hits the same cache. To control the strategy or the id yourself, pass `cache: { strategy, id }`. See [Caching](./caching).
+
+`agentForPage(page, opts)` accepts the same options per call; they take precedence over `agentOptions`.
+
+## Set project-wide defaults
+
+To apply the same options to every test file, extend the base test in a shared module and import your extended `test` everywhere:
 
 ```ts title="tests/midscene.ts"
 import {
@@ -173,120 +209,17 @@ export const test = base.extend({
 import { expect, test } from './midscene';
 ```
 
-A file that needs different values extends again — later `extend` calls override earlier ones (whole-value replacement, standard fixture semantics).
+A file that needs different values calls `extend` again — the later value replaces the earlier one.
 
-## Configure Midscene
+## Customize the page
 
-Midscene reads configuration from four channels. Pick the one that matches the scope you want.
-
-1. **Environment variables** (model endpoint, API key, vision-family flags, cache dir, report dir, debug toggles): set them however you usually set env vars (`.env`, CI secrets, shell exports). They flow into the Midscene runtime automatically, with nothing extra to wire up. The full list lives in the [model configuration reference](./model-config). Quick sample:
-
-   ```bash
-   MIDSCENE_MODEL_BASE_URL=https://api.openai.com/v1
-   MIDSCENE_MODEL_API_KEY=sk-...
-   MIDSCENE_MODEL_NAME=qwen3.7-plus
-   MIDSCENE_DEBUG_MODEL_RESPONSE=1   # dump raw model responses to disk
-   MIDSCENE_RUN_DIR=./midscene_run   # where reports + cache live
-   ```
-
-2. **The `agentOptions` fixture**: for anything you set per agent. Accepts the full `AgentOpt` surface (`modelConfig`, `aiActionContext`, `cache`, `replanningCycleLimit`, `waitAfterAction`, `screenshotShrinkFactor`, `onTaskStartTip`, `onOpenAIClientCreated`, etc.). `groupName` and `reportFileName` are reserved by the lifecycle.
-
-   ```ts
-   const test = base.extend({
-     agentOptions: {
-       aiActionContext: 'You are testing a multilingual checkout flow.',
-       cache: { strategy: 'read-write' },
-       waitAfterAction: 500,
-     },
-   });
-   ```
-
-3. **`overrideAIConfig(...)`** in a setup file: for programmatic global overrides that env vars can't express, or for swapping config between test runs. Re-exported from `@midscene/rstest/playwright`.
-
-   ```ts title="midscene.setup.ts"
-   import { overrideAIConfig } from '@midscene/rstest/playwright';
-
-   overrideAIConfig({
-     MIDSCENE_MODEL_NAME: process.env.CI ? 'gpt-5.5' : 'gpt-5.4',
-   });
-   ```
-
-4. **Debug logs**: `@midscene/rstest` uses the `debug` package; turn on what you want via the `DEBUG` env var.
-
-   ```bash
-   DEBUG=midscene:*,rstest:* npx rstest run
-   ```
-
-## Options
-
-Configuration is split into two non-overlapping domains, each with exactly one home:
-
-- **Browser domain** → the `playwright` fixture, exactly as in `@rstest/playwright`.
-- **Midscene domain** → the `agentOptions` fixture.
-
-### Browser configuration (the `playwright` fixture)
-
-Launch options, context options, browser choice, debug, and trace are all configured on `@rstest/playwright`'s own `playwright` fixture — every option in the [upstream docs](https://github.com/web-infra-dev/rstest/tree/main/packages/playwright) works verbatim:
+To open the same URL for every test in a file, or to run setup that needs the page before the test starts — init scripts, storage state, and so on — override the `page` fixture. Code before `await use(page)` runs before each test; code after runs as teardown:
 
 ```ts
-const test = base.extend({
-  playwright: {
-    launchOptions: { headless: false },
-    contextOptions: { locale: 'zh-CN', storageState: 'auth.json' },
-    debug: true, // headed + slowMo + DevTools, pause on failure (also: PWDEBUG=1)
-    trace: 'retain-on-failure', // save trace.zip (also: RSTEST_PLAYWRIGHT_TRACE)
-  },
-});
-```
-
-The only thing `@midscene/rstest` adds here is a default value, exported as `defaultPlaywrightOptions`:
-
-```ts
-{
-  launchOptions: {
-    headless: /* true in CI, false locally */,
-    args: ['--no-sandbox', '--ignore-certificate-errors'],
-  },
-  contextOptions: { viewport: { width: 1920, height: 1080 } },
-}
-```
-
-Overriding the `playwright` fixture replaces the whole object — standard fixture semantics. Spread the default when you want to keep it:
-
-```ts
-import {
-  test as base,
-  defaultPlaywrightOptions,
-} from '@midscene/rstest/playwright';
-
-const test = base.extend({
-  playwright: {
-    ...defaultPlaywrightOptions,
-    contextOptions: { viewport: { width: 375, height: 667 } },
-  },
-});
-```
-
-Saved traces land in `.rstest/playwright-traces/` with an AI-readable `trace-summary.json` and a `npx playwright show-trace ...` command printed to the console.
-
-### Midscene configuration (`agentOptions`)
-
-The `agentOptions` fixture holds the default options for every agent the test constructs. It is forwarded to `PlaywrightAgent` (e.g. `aiActionContext`, `modelConfig`, `waitAfterAction`), so new upstream agent options flow through without this package changing. `groupName` and `reportFileName` are managed by the lifecycle. `cache` accepts `true | false | { strategy?, id? }`; when `cache: true` or `id` is omitted, a stable id is auto-derived from the test file name and test name so re-runs hit the same cache namespace. `agentForPage(page, opts)`'s per-call `opts` override these per top-level key.
-
-```ts
-const test = base.extend({
-  agentOptions: { cache: true, aiActionContext: 'Close any promo dialog first.' },
-});
-```
-
-## Custom page setup
-
-To put a whole file on one URL, or for lifecycles the defaults don't cover (per-test storage state, init scripts, CDP wiring), override the `page` fixture — plain `@rstest/playwright` fixture composition. Code before `await use(page)` is setup; code after is teardown.
-
-```ts
+import type { Page } from 'playwright';
 import { test as base } from '@midscene/rstest/playwright';
 
-const test = base.extend({
+const test = base.extend<{ page: Page }>({
   page: async ({ context }, use) => {
     await context.addInitScript(() => {
       window.localStorage.setItem('feature-flag', 'on');
@@ -301,25 +234,86 @@ const test = base.extend({
 });
 ```
 
-Teardown of the `page` fixture runs **after** `agent.destroy()`, so the page is still alive at that point. That is exactly the window you want for saving videos or dumping cookies. The shared `browser` and the default-built `context` are still open; only your custom teardown decides when to close anything you opened yourself.
+When your teardown code runs, Midscene has already collected the report and the page is still open — a good place to save videos or export cookies.
 
-For deeper customization, such as a persistent context from scratch, override `context` instead and the default `page` will pick up whatever context you produce. Note that an Rstest fixture override cannot consume the value it overrides: a custom `page` builds from `context`, a custom `context` builds from `browser`.
+For deeper customization, such as a persistent context, override `context` instead; the default `page` is created from whatever context you provide. Note that a fixture override cannot read the value it replaces: build a custom `page` from `context`, and a custom `context` from `browser`.
 
-## Personas and composed fixtures
+## Test with multiple pages or users
 
-`test.extend` composes, so you can layer fixtures the same way you'd layer options:
+Use `agentForPage` to get an agent for any page beyond the primary one. Its steps are recorded in the same report, and cleanup is automatic.
+
+Drive a popup:
 
 ```ts
-const test = base.extend<{
-  adminAgent: PlaywrightAgent;
-}>({
-  adminAgent: async ({ browser }, use) => {
+test('drives a popup with a second agent', async ({
+  agent,
+  page,
+  agentForPage,
+}) => {
+  await page.goto('http://localhost:5173/');
+  await agent.aiTap("the 'View details' button");
+  const popup = await page.waitForEvent('popup');
+
+  const popupAgent = await agentForPage(popup);
+  await popupAgent.aiAssert('the popup shows order details');
+});
+```
+
+Run two logged-in users in one test — open a second browser context (with its own cookies and storage) from `browser`:
+
+```ts
+test('user B receives the message from user A', async ({
+  agent,
+  page,
+  browser,
+  agentForPage,
+}) => {
+  await page.goto('http://localhost:5173/');
+
+  const sessionB = await browser.newContext({ storageState: 'user-b.json' });
+  const pageB = await sessionB.newPage();
+  await pageB.goto('http://localhost:5173/');
+  const agentB = await agentForPage(pageB);
+
+  await agent.aiAct("send 'hello' to user B");
+  await agentB.aiWaitFor("the chat shows a new message 'hello'");
+});
+```
+
+## Reuse setup with custom fixtures
+
+In Rstest, hooks such as `beforeEach` cannot access fixtures. Shared setup — logging in, seeding data, preparing a second role — is written as a custom fixture via `test.extend`, and your fixtures can depend on `agent` and `agentForPage`.
+
+Log in before every test in a file — declare the fixture with `{ auto: true }` so it runs even when tests don't reference it:
+
+```ts title="e2e/fixtures.ts"
+import { test as base } from '@midscene/rstest/playwright';
+
+export const test = base.extend<{ loggedIn: void }>({
+  loggedIn: [
+    async ({ page, agent }, use) => {
+      await page.goto('http://localhost:5173/');
+      await agent.aiAct('log in with alice / password');
+      await use(undefined);
+    },
+    { auto: true },
+  ],
+});
+
+export { expect } from '@midscene/rstest/playwright';
+```
+
+Add an always-available second role, with its own login state:
+
+```ts
+import type { PlaywrightAgent } from '@midscene/web/playwright';
+
+const test = base.extend<{ adminAgent: PlaywrightAgent }>({
+  adminAgent: async ({ browser, agentForPage }, use) => {
     const context = await browser.newContext({ storageState: 'admin.json' });
     const page = await context.newPage();
     await page.goto('http://localhost:5173/');
-    const agent = new PlaywrightAgent(page);
-    await use(agent);
-    await agent.destroy();
+    await use(await agentForPage(page));
     await context.close();
   },
 });
@@ -331,9 +325,35 @@ test('only admin can delete', async ({ agent, page, adminAgent }) => {
 });
 ```
 
-This is the recommended pattern for multi-persona tests, mock-server fixtures, database seeding, and anything else you'd otherwise reach for `beforeEach` to do. Fixtures compose by dependency graph and tear down in reverse, so ordering is explicit and correct.
+`agent` and `agentForPage` themselves cannot be overridden in `test.extend` — TypeScript reports an error, because a replacement would lose report collection. Depend on them from your own fixtures instead, as above.
+
+## Configure the model
+
+Model access is configured through environment variables — API endpoint, key, model name, and more. Set them in `.env`, CI secrets, or shell exports, and they take effect automatically. See [Model configuration](./model-config) for the full list.
+
+```bash
+MIDSCENE_MODEL_BASE_URL=https://api.openai.com/v1
+MIDSCENE_MODEL_API_KEY=sk-...
+MIDSCENE_MODEL_NAME=qwen3.7-plus
+```
+
+To change model configuration at runtime — for example, switching models based on the environment — call `overrideAIConfig` in a setup file:
+
+```ts title="midscene.setup.ts"
+import { overrideAIConfig } from '@midscene/rstest/playwright';
+
+overrideAIConfig({
+  MIDSCENE_MODEL_NAME: process.env.CI ? 'gpt-5.5' : 'gpt-5.4',
+});
+```
+
+To print debug logs, use the `DEBUG` environment variable:
+
+```bash
+DEBUG=midscene:*,rstest:* npx rstest run
+```
 
 ## More
 
-- All Agent methods: [API Reference](./api#interaction-methods).
-- Working example: [https://github.com/web-infra-dev/midscene/tree/main/packages/rstest/demo](https://github.com/web-infra-dev/midscene/tree/main/packages/rstest/demo).
+- All agent methods: [API Reference](./api#interaction-methods)
+- Working example: [midscene/packages/rstest/demo](https://github.com/web-infra-dev/midscene/tree/main/packages/rstest/demo)

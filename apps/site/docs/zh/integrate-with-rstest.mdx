@@ -3,7 +3,7 @@ import { PackageManagerTabs } from '@theme';
 
 # 集成到 Rstest
 
-[Rstest](https://github.com/web-infra-dev/rstest) 是基于 Rspack 的高性能测试框架。`@midscene/rstest` 把 Midscene 暴露成原生 Rstest fixtures，浏览器启动、Agent 创建、HTML 报告生成都由 Midscene 自动处理。
+[Rstest](https://github.com/web-infra-dev/rstest) 是基于 Rspack 的高性能测试框架。通过 `@midscene/rstest`，你可以用自然语言描述浏览器操作和断言，并把它们当作普通的 Rstest 测试来运行：
 
 ```ts
 import { expect, test } from '@midscene/rstest/playwright';
@@ -15,56 +15,61 @@ test('adds a todo', async ({ agent, page }) => {
 });
 ```
 
-`@midscene/rstest` 提供：
+Midscene 会启动浏览器、为每个测试创建 agent，并为每个测试文件生成一份可视化 HTML 报告，你可以在报告中带着截图回放每一步 AI 操作。
 
-- 类型化 fixtures。`agent`、`page`、`browser`、`agentForPage` 直接从 test context 解构。
-- Lazy 浏览器生命周期。浏览器在第一个依赖它的 test 运行时才启动，AI 测试和纯 unit test 混在同一个文件时，只有 AI 测试会产生 AI 开销。
-- 可组合。用 `test.extend({ ... })` 覆盖 options 或任何上游 fixture，比如预导航并注入 route 的 `page`，或新增第二个 `adminAgent` persona 这样的自定义 fixture。`agent` 与 `agentForPage` 在类型层面被封印，覆盖它们会直接编译报错。
-- 每个文件一份合并后的 HTML 报告，路径在文件结束时打印到控制台。
+`@midscene/rstest` 构建在 [`@rstest/playwright`](https://github.com/web-infra-dev/rstest/tree/main/packages/playwright) 之上，它提供的能力在这里全部可用：Playwright 风味的 `expect`（`toBeVisible`、`toHaveText` 等）、debug 模式（`PWDEBUG`）、trace 采集，以及 `request` / `serve` fixtures。
 
-这个包构建在 Rstest 官方 Playwright 集成 [`@rstest/playwright`](https://github.com/web-infra-dev/rstest/tree/main/packages/playwright) 之上。Midscene 在其上叠加 `agent` lifecycle 与报告能力，上游的全套工具箱直接继承：Playwright 风味的 `expect`（`toBeVisible`、`toHaveText` 等）、debug 模式（`PWDEBUG`、失败时暂停）、Playwright trace 采集，以及 `request` / `serve` fixtures。
+:::info 仅支持 Playwright
 
-:::info 目前仅支持 Playwright
-
-目前只支持 Playwright 一种浏览器引擎，因此引擎显式写在 import 路径里（`@midscene/rstest/playwright`），与 `@midscene/web` 的 `/playwright`、`/puppeteer` 入口保持一致。暂不支持 Puppeteer。
+`@midscene/rstest` 通过 Playwright 驱动浏览器，所以 import 路径是 `@midscene/rstest/playwright`。Puppeteer 不支持。
 
 :::
 
 <SetupEnv />
 
-:::info 样例项目
+:::info 示例项目
 
-可运行的样例：[https://github.com/web-infra-dev/midscene/tree/main/packages/rstest/demo](https://github.com/web-infra-dev/midscene/tree/main/packages/rstest/demo)。
+可直接运行的示例见 [midscene/packages/rstest/demo](https://github.com/web-infra-dev/midscene/tree/main/packages/rstest/demo)。
 
 :::
 
 ## 第一步：安装依赖
 
-将 `@midscene/rstest` 与 `@midscene/web`、`@rstest/core`、`@rstest/playwright`、`playwright` 一起安装。要求 `@rstest/core >= 0.11.2`、`playwright >= 1.49.1`，以及 Node `^20.19.0 || >=22.12.0`。
+安装 `@midscene/rstest`，以及 `@midscene/web`、`@rstest/core`、`@rstest/playwright` 和 `playwright`：
 
 <PackageManagerTabs command="install @midscene/web @midscene/rstest @rstest/core @rstest/playwright playwright --save-dev" />
 
+:::tip 版本要求
+
+- `@rstest/core >= 0.11.2`
+- `playwright >= 1.49.1`
+- Node.js `^20.19.0 || >=22.12.0`
+
+:::
+
 ## 第二步：配置 Rstest
 
-在测试项目根目录新建 `rstest.config.ts`：
+在测试项目根目录创建 `rstest.config.ts`：
 
 ```ts title="rstest.config.ts"
-import 'dotenv/config'; // 从 .env 加载模型相关环境变量
+import 'dotenv/config'; // load model env vars from .env
 import MidsceneReporter from '@midscene/rstest/reporter';
 import { defineConfig } from '@rstest/core';
 
 export default defineConfig({
   include: ['e2e/**/*.test.ts'],
-  // AI 调用较慢，testTimeout 与 hookTimeout 都留足。
+  // AI calls take time, so leave plenty of headroom for tests and hooks.
   testTimeout: 1_800_000,
   hookTimeout: 60_000,
   reporters: ['default', new MidsceneReporter()],
 });
 ```
 
-`MidsceneReporter` 会把一个文件里所有测试的报告合并成一份 HTML，并打印形如 `Midscene report: midscene_run/report/<file>.html` 的一行。在浏览器中打开这个 HTML，即可逐步回放每个 AI 步骤与对应截图。每个测试各自生成一份报告，合并这一步由 reporter 完成，所以要在 `reporters` 里注册它才能得到按文件合并的报告。
+在 `reporters` 中注册 `MidsceneReporter`。每个测试文件跑完后，它会把该文件中所有测试的报告合并成一份 HTML 报告，并在控制台打印路径。
 
 ## 第三步：编写测试
+
+从 `@midscene/rstest/playwright` 导入 `test` 和 `expect`，在测试函数中解构需要的 fixture：
 
 ```ts title="e2e/todo-list.test.ts"
 import { expect, test } from '@midscene/rstest/playwright';
@@ -83,18 +88,22 @@ test('adds and completes a todo', async ({ agent, page }) => {
 });
 ```
 
-`@midscene/rstest/playwright` 导出的 `test` 是预先挂好了 Midscene fixtures 的 Rstest test。直接从 test context 解构需要的 fixture，fixture 引擎会按依赖关系拓扑展开 setup 与 teardown。
+在测试开头调用 `page.goto(...)` 打开要测试的页面，然后用 `agent` 与页面交互。所有 agent 方法见 [API 参考](./api#交互方法)。
 
 可用的 fixtures：
 
-- **`agent`**：绑定到主 page 上的 Midscene `PlaywrightAgent`。AI action 和 assertion 的默认入口。导航是测试自己的事（`await page.goto(...)`），与 Midscene 的 Playwright 集成完全一致。`agent` 与 `agentForPage` 是交付物：在测试里解构使用，或作为派生 fixture 的依赖；`test.extend` 在类型层面拒绝覆盖它们，因为替换后报告收集会被绕过。
-- **`page`**：Playwright `Page`，原样来自 `@rstest/playwright`——包括其失败时的行为（`PWDEBUG` 下失败保留现场并 pause）。用于直接操作浏览器原语，比如 `page.route(...)` network mock、`page.evaluate(...)`、`page.context().cookies()`。
-- **`browser`**：共享的 `Browser`，由 `@rstest/playwright` 管理，惰性启动、worker 内共享、空闲时自动关闭。适合在测试中开新 context 或新 page，用于多用户、跨会话场景。
-- **`context`**：创建主 `page` 的 test-scoped `BrowserContext`。需要自定义 context 时通过 `test.extend` 覆盖。
-- **`request`** / **`serve`**：继承自 `@rstest/playwright`。隔离的 `APIRequestContext` 用于 API 调用，以及一行代码起静态文件服务器，自动清理。
-- **`agentForPage(page, opts?)`**：为另一个 page 构造 Midscene Agent，比如 popup 或手动开的 page。报告会和主 agent 合并，销毁自动完成。
-- **`playwright`**：浏览器级配置（launch options、context options、debug、trace），原样来自 `@rstest/playwright`。详见 [浏览器配置](#浏览器配置playwright-fixture)。
-- **`agentOptions`**：本测试构造的所有 agent 的默认选项。详见 [选项](#选项) 与 [项目级默认配置](#项目级默认配置可选)。
+| Fixture | 说明 |
+| --- | --- |
+| `agent` | 当前页面的 Midscene agent。用 `agent.aiAct(...)`、`agent.aiQuery(...)`、`agent.aiAssert(...)` 等方法驱动和检查页面。 |
+| `page` | Playwright `Page`。用于导航（`page.goto`），也可以调用任意 Playwright API，比如 `page.route(...)`、`page.evaluate(...)`。 |
+| `browser` | 共享的 Playwright `Browser`。首次使用时启动，自动关闭。用于开额外的 context 或 page。 |
+| `context` | `page` 所属的 `BrowserContext`。 |
+| `request` / `serve` | 来自 `@rstest/playwright`：隔离的 `APIRequestContext` 用于发 HTTP 请求，以及一行代码起静态文件服务器。 |
+| `agentForPage(page, opts?)` | 为另一个页面（比如 popup 或第二个会话）创建 Midscene agent，操作会记录进同一份报告。 |
+| `playwright` | 浏览器选项：launch、context、debug、trace。见 [配置浏览器](#配置浏览器)。 |
+| `agentOptions` | Agent 选项：cache、action context 等。见 [配置 agent](#配置-agent)。 |
+
+AI 方法和 Playwright API 可以自由混用。比如用 `page.route` mock 接口，再用 `aiAssert` 验证结果：
 
 ```ts
 test('mocks the API and verifies the UI', async ({ agent, page }) => {
@@ -104,31 +113,6 @@ test('mocks the API and verifies the UI', async ({ agent, page }) => {
   await page.goto('http://localhost:5173/');
   await agent.aiAssert('the contact list shows "Fake Alice"');
 });
-
-test('drives a popup with a second agent', async ({
-  agent,
-  page,
-  agentForPage,
-}) => {
-  await page.goto('http://localhost:5173/');
-  await agent.aiTap("the 'View details' button");
-  const popup = await page.waitForEvent('popup');
-
-  const popupAgent = await agentForPage(popup);
-  await popupAgent.aiAssert('the popup shows order details');
-});
-
-test('runs two isolated user sessions in one test', async ({
-  browser,
-  agentForPage,
-}) => {
-  const sessionB = await browser.newContext({ storageState: 'user-b.json' });
-  const pageB = await sessionB.newPage();
-  await pageB.goto('http://localhost:5173/');
-  const agentB = await agentForPage(pageB);
-
-  await agentB.aiAct('send a message to user A');
-});
 ```
 
 ## 第四步：运行测试
@@ -136,122 +120,36 @@ test('runs two isolated user sessions in one test', async ({
 ```bash
 npx rstest run
 
-# 调试时也可以用 watch 模式：
+# 或在开发时：
 npx rstest watch
 ```
 
-每个文件运行完后会输出：
+每个测试文件跑完后，控制台会打印报告路径：
 
 ```text
 Midscene report: midscene_run/report/<file>.html
 ```
 
-报告默认输出到 `midscene_run/report/`。详见[消费报告文件](./consume-report-file)。
+在浏览器中打开即可带着截图回放每一步 AI 操作。如需以编程方式处理报告文件，见 [处理报告文件](./consume-report-file)。
 
-## 项目级默认配置（可选）
+## 配置浏览器
 
-如果希望所有文件共享同一份配置，在一个共享模块里扩展 base test 并导出，所有测试文件都从这里 import——与 Playwright Test 的模式完全一致：
-
-```ts title="tests/midscene.ts"
-import {
-  test as base,
-  defaultPlaywrightOptions,
-} from '@midscene/rstest/playwright';
-
-export { describe, expect } from '@midscene/rstest/playwright';
-
-export const test = base.extend({
-  playwright: {
-    ...defaultPlaywrightOptions,
-    contextOptions: { locale: 'zh-CN', viewport: { width: 1280, height: 720 } },
-  },
-  agentOptions: { cache: true },
-});
-```
-
-```ts title="tests/todo.test.ts"
-import { expect, test } from './midscene';
-```
-
-需要不同配置的文件再次扩展即可——后调用的 `extend` 覆盖先前的值（整体替换，标准 fixture 语义）。
-
-## 配置 Midscene
-
-Midscene 从四个渠道读取配置，按你想影响的作用域选一个。
-
-1. **环境变量**（模型端点、API Key、vision-family 开关、cache 目录、report 目录、debug 开关）：用你平时设环境变量的方式即可（`.env`、CI secret、shell export）。Midscene runtime 会自动读取，不用额外接线。完整列表见 [模型配置](./model-config)。示例：
-
-   ```bash
-   MIDSCENE_MODEL_BASE_URL=https://api.openai.com/v1
-   MIDSCENE_MODEL_API_KEY=sk-...
-   MIDSCENE_MODEL_NAME=qwen3.7-plus
-   MIDSCENE_DEBUG_MODEL_RESPONSE=1   # 把模型原始响应 dump 到磁盘
-   MIDSCENE_RUN_DIR=./midscene_run   # 报告 + 缓存的根目录
-   ```
-
-2. **`agentOptions` fixture**：每个文件可独立配置，针对 per-agent 配置。接收完整 `AgentOpt`（`modelConfig`、`aiActionContext`、`cache`、`replanningCycleLimit`、`waitAfterAction`、`screenshotShrinkFactor`、`onTaskStartTip`、`onOpenAIClientCreated` 等）。`groupName` 和 `reportFileName` 由 lifecycle 保留。
-
-   ```ts
-   const test = base.extend({
-     agentOptions: {
-       aiActionContext: 'You are testing a multilingual checkout flow.',
-       cache: { strategy: 'read-write' },
-       waitAfterAction: 500,
-     },
-   });
-   ```
-
-3. **`overrideAIConfig(...)`**：在 setup file 里用，做环境变量表达不了的运行时全局覆盖（比如根据是否 CI 切模型）。已从 `@midscene/rstest/playwright` re-export。
-
-   ```ts title="midscene.setup.ts"
-   import { overrideAIConfig } from '@midscene/rstest/playwright';
-
-   overrideAIConfig({
-     MIDSCENE_MODEL_NAME: process.env.CI ? 'gpt-5.5' : 'gpt-5.4',
-   });
-   ```
-
-4. **Debug 日志**：`@midscene/rstest` 用 `debug` 包，按需通过 `DEBUG` 环境变量打开 topic：
-
-   ```bash
-   DEBUG=midscene:*,rstest:* npx rstest run
-   ```
-
-## 选项
-
-配置分为两个互不重叠的域，各自只有一个入口：
-
-- **浏览器域** → `playwright` fixture，与 `@rstest/playwright` 完全一致。
-- **Midscene 域** → `agentOptions` fixture。
-
-### 浏览器配置（`playwright` fixture）
-
-launch options、context options、浏览器选择、debug、trace 全部配置在 `@rstest/playwright` 自己的 `playwright` fixture 上——[上游文档](https://github.com/web-infra-dev/rstest/tree/main/packages/playwright)里的每一个选项都原样可用：
+浏览器相关行为——launch options、context options、debug、trace——通过来自 `@rstest/playwright` 的 `playwright` fixture 配置，[上游文档](https://github.com/web-infra-dev/rstest/tree/main/packages/playwright)中的每个选项都可用：
 
 ```ts
+import { test as base } from '@midscene/rstest/playwright';
+
 const test = base.extend({
   playwright: {
     launchOptions: { headless: false },
     contextOptions: { locale: 'zh-CN', storageState: 'auth.json' },
-    debug: true, // headed + slowMo + DevTools，失败时暂停（也可用 PWDEBUG=1）
-    trace: 'retain-on-failure', // 保存 trace.zip（也可用 RSTEST_PLAYWRIGHT_TRACE）
+    debug: true, // headed + slowMo + DevTools, pause on failure (also: PWDEBUG=1)
+    trace: 'retain-on-failure', // save trace.zip (also: RSTEST_PLAYWRIGHT_TRACE)
   },
 });
 ```
 
-`@midscene/rstest` 在这里做的唯一一件事是提供一份默认值，以 `defaultPlaywrightOptions` 导出：
-
-```ts
-{
-  launchOptions: {
-    headless: /* CI 中 true，本地 false */,
-    args: ['--no-sandbox', '--ignore-certificate-errors'],
-  },
-  contextOptions: { viewport: { width: 1920, height: 1080 } },
-}
-```
-
-覆盖 `playwright` fixture 时整个对象被替换——标准 fixture 语义。想保留默认值就显式 spread：
+`@midscene/rstest` 为这个 fixture 提供了默认值——CI 中 headless、本地 headed，viewport 为 1920×1080。覆盖 fixture 时整个对象会被替换，想保留默认值就 spread `defaultPlaywrightOptions`：
 
 ```ts
 import {
@@ -267,26 +165,61 @@ const test = base.extend({
 });
 ```
 
-trace 产物落在 `.rstest/playwright-traces/`，附带 AI 可读的 `trace-summary.json`，控制台会打印 `npx playwright show-trace ...` 命令。
+保存的 trace 位于 `.rstest/playwright-traces/`，控制台会打印 `npx playwright show-trace ...` 命令用于打开。
 
-### Midscene 配置（`agentOptions`）
+## 配置 agent
 
-`agentOptions` fixture 承载本测试构造的所有 agent 的默认选项，原样透传给 `PlaywrightAgent`（如 `aiActionContext`、`modelConfig`、`waitAfterAction`）——Midscene 上游新增什么选项就自动流过什么，本包无需改动。`groupName` 与 `reportFileName` 由 lifecycle 管理。`cache` 接受 `true | false | { strategy?, id? }`；当 `cache: true` 或 `id` 缺省时，会自动从测试文件名 + test 名派生一个稳定 id，让重复跑同一个测试复用同一个 cache namespace。`agentForPage(page, opts)` 的 per-call `opts` 按 top-level 键覆盖这里的值。
+`agentOptions` fixture 设置测试中构造每个 agent 时使用的选项，接受与 `PlaywrightAgent` 相同的选项，比如 `aiActionContext`、`modelConfig`、`waitAfterAction`、`replanningCycleLimit`：
 
 ```ts
 const test = base.extend({
-  agentOptions: { cache: true, aiActionContext: '先关掉任何弹出的促销对话框。' },
+  agentOptions: {
+    aiActionContext: 'Close any promo dialog first.',
+    cache: true,
+  },
 });
 ```
 
-## 自定义 page 设置
+设置 `cache: true` 可以在多次运行间复用 AI 规划结果，加速重复执行。Midscene 会从测试文件名和测试名派生一个稳定的 cache id，重跑同一个测试会命中同一份缓存。如需自己控制策略或 id，传 `cache: { strategy, id }`。详见 [缓存](./caching)。
 
-想让整个文件的测试都落在同一个 URL 上，或默认 lifecycle 无法满足的场景（per-test storage state、init script、CDP 接线），直接覆盖 `page` fixture——普通的 `@rstest/playwright` fixture 组合。`await use(page)` 之前是 setup，之后是 teardown。
+`agentForPage(page, opts)` 每次调用也接受同样的选项，优先级高于 `agentOptions`。
+
+## 设置项目级默认值
+
+想让所有测试文件使用同一套选项，在共享模块中扩展基础 test，并在各处导入扩展后的 `test`：
+
+```ts title="tests/midscene.ts"
+import {
+  test as base,
+  defaultPlaywrightOptions,
+} from '@midscene/rstest/playwright';
+
+export { describe, expect } from '@midscene/rstest/playwright';
+
+export const test = base.extend({
+  playwright: {
+    ...defaultPlaywrightOptions,
+    contextOptions: { locale: 'en-US', viewport: { width: 1280, height: 720 } },
+  },
+  agentOptions: { cache: true },
+});
+```
+
+```ts title="tests/todo.test.ts"
+import { expect, test } from './midscene';
+```
+
+需要不同配置的文件再次调用 `extend` 即可——后面的值替换前面的值。
+
+## 自定义 page
+
+想让一个文件里的所有测试打开同一个 URL，或需要在测试开始前对页面做准备——init script、storage state 等——可以覆盖 `page` fixture。`await use(page)` 之前的代码在每个测试前运行，之后的代码作为 teardown 运行：
 
 ```ts
+import type { Page } from 'playwright';
 import { test as base } from '@midscene/rstest/playwright';
 
-const test = base.extend({
+const test = base.extend<{ page: Page }>({
   page: async ({ context }, use) => {
     await context.addInitScript(() => {
       window.localStorage.setItem('feature-flag', 'on');
@@ -301,25 +234,86 @@ const test = base.extend({
 });
 ```
 
-`page` fixture 的 teardown 在 `agent.destroy()` **之后**触发，此时 page 仍然存活，这正是保存录屏、dump cookies 等操作的窗口期。共享的 `browser` 和默认构造的 `context` 也都还活着；只有你自己开的资源由你自己的 teardown 决定何时关闭。
+你的 teardown 代码运行时，Midscene 已经收集完报告，页面也仍然打开着——适合在这里保存录屏或导出 cookies。
 
-如果需要更深层定制（比如完全自建一个 persistent context），覆盖 `context` fixture，默认的 `page` 会自动复用你产出的 context。注意 Rstest 的 fixture 覆写不能引用被覆写的原值：自定义 `page` 从 `context` 构建，自定义 `context` 从 `browser` 构建。
+需要更深层的定制（比如 persistent context）时，改为覆盖 `context`；默认的 `page` 会基于你提供的 context 创建。注意 fixture 覆盖读不到被替换的原值：自定义 `page` 要从 `context` 构建，自定义 `context` 要从 `browser` 构建。
 
-## 多 Persona 与组合 fixtures
+## 测试多个页面或多个用户
 
-`test.extend` 是可组合的，像叠 options 一样叠 fixtures：
+用 `agentForPage` 为主页面之外的任何页面获取 agent，操作会记录进同一份报告，清理自动完成。
+
+驱动 popup：
 
 ```ts
-const test = base.extend<{
-  adminAgent: PlaywrightAgent;
-}>({
-  adminAgent: async ({ browser }, use) => {
+test('drives a popup with a second agent', async ({
+  agent,
+  page,
+  agentForPage,
+}) => {
+  await page.goto('http://localhost:5173/');
+  await agent.aiTap("the 'View details' button");
+  const popup = await page.waitForEvent('popup');
+
+  const popupAgent = await agentForPage(popup);
+  await popupAgent.aiAssert('the popup shows order details');
+});
+```
+
+在一个测试里跑两个已登录用户——从 `browser` 开第二个 context（有独立的 cookies 和 storage）：
+
+```ts
+test('user B receives the message from user A', async ({
+  agent,
+  page,
+  browser,
+  agentForPage,
+}) => {
+  await page.goto('http://localhost:5173/');
+
+  const sessionB = await browser.newContext({ storageState: 'user-b.json' });
+  const pageB = await sessionB.newPage();
+  await pageB.goto('http://localhost:5173/');
+  const agentB = await agentForPage(pageB);
+
+  await agent.aiAct("send 'hello' to user B");
+  await agentB.aiWaitFor("the chat shows a new message 'hello'");
+});
+```
+
+## 用自定义 fixture 复用 setup
+
+在 Rstest 中，`beforeEach` 等 hook 无法访问 fixture。共享的 setup——登录、准备数据、准备第二个角色——通过 `test.extend` 写成自定义 fixture，你的 fixture 可以依赖 `agent` 和 `agentForPage`。
+
+让文件里的每个测试先登录——用 `{ auto: true }` 声明 fixture，即使测试没有引用它也会执行：
+
+```ts title="e2e/fixtures.ts"
+import { test as base } from '@midscene/rstest/playwright';
+
+export const test = base.extend<{ loggedIn: void }>({
+  loggedIn: [
+    async ({ page, agent }, use) => {
+      await page.goto('http://localhost:5173/');
+      await agent.aiAct('log in with alice / password');
+      await use(undefined);
+    },
+    { auto: true },
+  ],
+});
+
+export { expect } from '@midscene/rstest/playwright';
+```
+
+添加一个随时可用的第二角色，带自己的登录态：
+
+```ts
+import type { PlaywrightAgent } from '@midscene/web/playwright';
+
+const test = base.extend<{ adminAgent: PlaywrightAgent }>({
+  adminAgent: async ({ browser, agentForPage }, use) => {
     const context = await browser.newContext({ storageState: 'admin.json' });
     const page = await context.newPage();
     await page.goto('http://localhost:5173/');
-    const agent = new PlaywrightAgent(page);
-    await use(agent);
-    await agent.destroy();
+    await use(await agentForPage(page));
     await context.close();
   },
 });
@@ -331,9 +325,35 @@ test('only admin can delete', async ({ agent, page, adminAgent }) => {
 });
 ```
 
-这是多 persona 测试、mock server fixture、数据库 seed 以及其它你过去写在 `beforeEach` 里的东西的推荐写法。fixtures 按依赖图组合，按反向顺序 teardown，顺序显式且确定。
+`agent` 和 `agentForPage` 本身无法在 `test.extend` 中覆盖——TypeScript 会报错，因为替换后会丢失报告收集。像上面这样在自定义 fixture 中依赖它们即可。
+
+## 配置模型
+
+模型接入通过环境变量配置——API 地址、密钥、模型名等。写在 `.env`、CI secrets 或 shell 导出中即可自动生效。完整列表见[模型配置](./model-config)。
+
+```bash
+MIDSCENE_MODEL_BASE_URL=https://api.openai.com/v1
+MIDSCENE_MODEL_API_KEY=sk-...
+MIDSCENE_MODEL_NAME=qwen3.7-plus
+```
+
+想在运行时修改模型配置——比如根据环境切换模型——在 setup 文件中调用 `overrideAIConfig`：
+
+```ts title="midscene.setup.ts"
+import { overrideAIConfig } from '@midscene/rstest/playwright';
+
+overrideAIConfig({
+  MIDSCENE_MODEL_NAME: process.env.CI ? 'gpt-5.5' : 'gpt-5.4',
+});
+```
+
+打印 debug 日志用 `DEBUG` 环境变量：
+
+```bash
+DEBUG=midscene:*,rstest:* npx rstest run
+```
 
 ## 更多
 
-- 所有 Agent 方法：[API Reference](./api#interaction-methods)。
-- 样例项目：[https://github.com/web-infra-dev/midscene/tree/main/packages/rstest/demo](https://github.com/web-infra-dev/midscene/tree/main/packages/rstest/demo)。
+- 所有 agent 方法：[API 参考](./api#交互方法)
+- 可运行示例：[midscene/packages/rstest/demo](https://github.com/web-infra-dev/midscene/tree/main/packages/rstest/demo)
