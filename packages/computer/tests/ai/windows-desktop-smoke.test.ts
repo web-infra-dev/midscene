@@ -411,7 +411,7 @@ describe.skipIf(!RUN_LIVE_SMOKE)('Windows desktop live smoke', () => {
     const stateFile = path.join(diagnosticsDir, 'fixture-state.json');
     const fixtureStdoutFile = path.join(diagnosticsDir, 'fixture.stdout.log');
     const fixtureStderrFile = path.join(diagnosticsDir, 'fixture.stderr.log');
-    const screenshotFile = path.join(diagnosticsDir, 'desktop.png');
+    const screenshotFile = path.join(diagnosticsDir, 'desktop.webp');
     const dumpFile = path.join(diagnosticsDir, 'agent-dump.json');
     const evidenceFile = path.join(diagnosticsDir, 'evidence.json');
     const runDir = path.resolve(process.env.MIDSCENE_RUN_DIR || 'midscene_run');
@@ -533,9 +533,8 @@ describe.skipIf(!RUN_LIVE_SMOKE)('Windows desktop live smoke', () => {
         width: metadata.screen.width,
         height: metadata.screen.height,
       });
-      expect(screenshotBuffer.subarray(0, 8)).toEqual(
-        Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
-      );
+      expect(screenshotBuffer.subarray(0, 4).toString('ascii')).toBe('RIFF');
+      expect(screenshotBuffer.subarray(8, 12).toString('ascii')).toBe('WEBP');
 
       const screenshotAnalysis = await analyzeScreenshot(
         screenshotFile,
