@@ -53,6 +53,7 @@ import {
 import { readFile } from 'node:fs/promises';
 import { basename } from 'node:path';
 import type { AbstractInterface } from '@/device';
+import { generateInspectionXpathCandidates } from '@/device-cache';
 import type { TaskRunner } from '@/task-runner';
 import {
   type IModelConfig,
@@ -285,6 +286,7 @@ export class Agent<
 
     this.opts = Object.assign(
       {
+        captureUITree: false,
         generateReport: true,
         persistExecutionDump: false,
         autoPrintReportMsg: true,
@@ -319,8 +321,8 @@ export class Agent<
 
     this.onTaskStartTip = this.opts.onTaskStartTip;
 
-    this.service = new Service(async () => {
-      return this.getUIContext();
+    this.service = new Service(async (action) => {
+      return this.getUIContext(action);
     });
 
     // Process cache configuration
@@ -405,6 +407,94 @@ export class Agent<
     return false;
   }
 
+  /**
+   * Generate ranked inspection XPath candidates for a point in a saved Android
+   * UI context. Screenshot coordinates are used by default and converted to
+   * logical coordinates with `shrunkShotToLogicalRatio`. This method reads only
+   * the supplied historical tree and never reconnects to the device.
+   *
+   * @throws When the tree is missing or non-Android, coordinates are invalid or
+   * out of bounds, no node is hit, or only a structural node is exposed.
+   */
+  async getXpathsByPoint(
+    uiContext: UIContext,
+    point: { x: number; y: number },
+    options?: {
+      coordinateSpace?: 'screenshot' | 'logical';
+    },
+  ): Promise<string[]> {
+    if (!uiContext?.uiTree) {
+      const captureError = uiContext?.uiTreeError
+        ? ` Capture error: ${uiContext.uiTreeError}`
+        : '';
+      throw new Error(
+        `getXpathsByPoint: UI tree is missing from UIContext.${captureError}`,
+      );
+    }
+    if (uiContext.uiTree.platform !== 'android') {
+      throw new Error(
+        `getXpathsByPoint: unsupported UI tree platform ${String(uiContext.uiTree.platform)}; only android is supported`,
+      );
+    }
+
+    const coordinateSpace = options?.coordinateSpace ?? 'screenshot';
+    if (coordinateSpace !== 'screenshot' && coordinateSpace !== 'logical') {
+      throw new Error(
+        `getXpathsByPoint: invalid coordinateSpace ${String(coordinateSpace)}`,
+      );
+    }
+    if (
+      !point ||
+      !Number.isFinite(point.x) ||
+      !Number.isFinite(point.y) ||
+      point.x < 0 ||
+      point.y < 0
+    ) {
+      throw new Error(
+        'getXpathsByPoint: point must contain finite, non-negative x and y coordinates',
+      );
+    }
+
+    const ratio = uiContext.shrunkShotToLogicalRatio;
+    if (!Number.isFinite(ratio) || ratio <= 0) {
+      throw new Error(
+        `getXpathsByPoint: invalid shrunkShotToLogicalRatio ${String(ratio)}`,
+      );
+    }
+    const bounds =
+      coordinateSpace === 'screenshot'
+        ? uiContext.shotSize
+        : {
+            width: uiContext.shotSize.width / ratio,
+            height: uiContext.shotSize.height / ratio,
+          };
+    if (
+      !Number.isFinite(bounds.width) ||
+      !Number.isFinite(bounds.height) ||
+      bounds.width <= 0 ||
+      bounds.height <= 0
+    ) {
+      throw new Error(
+        'getXpathsByPoint: UIContext has invalid coordinate bounds',
+      );
+    }
+    if (point.x >= bounds.width || point.y >= bounds.height) {
+      throw new Error(
+        `getXpathsByPoint: point (${point.x}, ${point.y}) is outside ${coordinateSpace} bounds ${bounds.width}x${bounds.height}`,
+      );
+    }
+
+    const logicalPoint =
+      coordinateSpace === 'screenshot'
+        ? { x: point.x / ratio, y: point.y / ratio }
+        : point;
+    return generateInspectionXpathCandidates(
+      uiContext.uiTree.root,
+      logicalPoint,
+      uiContext.uiTree.xpathPolicy,
+    );
+  }
+
   async getUIContext(action?: ServiceAction): Promise<UIContext> {
     // Some non-web flows, such as Android, need an Agent instance before they
     // can call device methods via ADB, so defer missing modelFamily errors
@@ -423,6 +513,8 @@ export class Agent<
         return await commonContextParser(this.interface, {
           uploadServerUrl: this.modelConfigManager.getUploadTestServerUrl(),
           screenshotShrinkFactor: this.opts.screenshotShrinkFactor,
+          captureUITree:
+            Boolean(this.opts.captureUITree) && action === 'locate',
         });
       } catch (error) {
         if (attempt < maxRetries && this.isRetryableContextError(error)) {

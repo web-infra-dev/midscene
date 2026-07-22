@@ -21,6 +21,11 @@ export {
   generateXpathCandidates,
 } from './xpath-tree';
 export {
+  findInspectionTargetAtPoint,
+  generateInspectionXpathCandidates,
+} from './inspection-xpath';
+export { pruneUITreeSnapshotToTarget } from './ui-tree-snapshot';
+export {
   evaluateXpath,
   findRectByXpath,
   matchRectByXpathCache,

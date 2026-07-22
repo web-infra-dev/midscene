@@ -13,6 +13,8 @@ import {
   type Point,
   type Rect,
   type Size,
+  type UITreeSnapshot,
+  type UiNode,
   getMidsceneLocationSchema,
   z,
 } from '@midscene/core';
@@ -102,6 +104,115 @@ function validateHierarchyXml(
   ) {
     throw new Error(`${source} did not produce valid hierarchy XML`);
   }
+}
+
+function physicalDisplayIdForLogicalDisplay(
+  displayDump: string,
+  logicalDisplayId: number,
+): string | null {
+  for (const viewportMatch of displayDump.matchAll(
+    /DisplayViewport\{([^}]*)\}/g,
+  )) {
+    const viewport = viewportMatch[1];
+    const displayId = viewport.match(/\bdisplayId=(\d+)\b/)?.[1];
+    const physicalId = viewport.match(/\buniqueId=['"]local:(\d+)['"]/)?.[1];
+    if (Number(displayId) === logicalDisplayId && physicalId) {
+      return physicalId;
+    }
+  }
+
+  const lines = displayDump.split(/\r?\n/);
+  for (let index = 0; index < lines.length; index++) {
+    const displayId = lines[index].match(/^\s*mDisplayId=(\d+)\b/)?.[1];
+    if (Number(displayId) !== logicalDisplayId) continue;
+
+    for (let cursor = index + 1; cursor < lines.length; cursor++) {
+      if (/^\s*mDisplayId=\d+\b/.test(lines[cursor])) break;
+      const physicalId = lines[cursor].match(
+        /mBaseDisplayInfo=.*\buniqueId "local:(\d+)"/,
+      )?.[1];
+      if (physicalId) return physicalId;
+    }
+  }
+
+  return null;
+}
+
+function focusedPackageForLogicalDisplay(
+  windowDump: string,
+  logicalDisplayId: number,
+): string | null {
+  const displayMatches = [
+    ...windowDump.matchAll(/^\s*Display: mDisplayId=(\d+)\b.*$/gm),
+  ];
+  const displayIndex = displayMatches.findIndex(
+    (match) => Number(match[1]) === logicalDisplayId,
+  );
+  if (displayIndex === -1) return null;
+
+  const start = displayMatches[displayIndex].index ?? 0;
+  const end = displayMatches[displayIndex + 1]?.index ?? windowDump.length;
+  const displayBlock = windowDump.slice(start, end);
+
+  for (const field of ['mCurrentFocus', 'mFocusedApp']) {
+    const value = displayBlock.match(
+      new RegExp(`^\\s*${field}=([^\\n]*)$`, 'm'),
+    )?.[1];
+    const packageName = value?.match(/\bu\d+\s+([A-Za-z0-9_$.-]+)\//)?.[1];
+    if (packageName) return packageName;
+  }
+
+  return null;
+}
+
+function firstTreePackage(root: UiNode): string | null {
+  if (root.attrs.package) return root.attrs.package;
+  for (const child of root.children) {
+    const packageName = firstTreePackage(child);
+    if (packageName) return packageName;
+  }
+  return null;
+}
+
+function windowDisplayIdsForPackage(
+  windowDump: string,
+  packageName: string,
+): number[] {
+  const windowMatches = [
+    ...windowDump.matchAll(/^\s*Window #\d+ Window\{.*$/gm),
+  ];
+  const displayIds = new Set<number>();
+
+  for (let index = 0; index < windowMatches.length; index++) {
+    const start = windowMatches[index].index ?? 0;
+    const end = windowMatches[index + 1]?.index ?? windowDump.length;
+    const windowBlock = windowDump.slice(start, end);
+    const ownerPackage = windowBlock.match(
+      /^\s*mOwnerUid=.*\bpackage=([A-Za-z0-9_$.-]+)\b/m,
+    )?.[1];
+    const headerPackage = windowMatches[index][0].match(
+      /\bu\d+\s+([A-Za-z0-9_$.-]+)\//,
+    )?.[1];
+    if (ownerPackage !== packageName && headerPackage !== packageName) {
+      continue;
+    }
+
+    const displayId = windowBlock.match(/^\s*mDisplayId=(\d+)\b/m)?.[1];
+    if (displayId !== undefined) displayIds.add(Number(displayId));
+  }
+
+  return [...displayIds];
+}
+
+function uiTreeExtent(root: UiNode): { right: number; bottom: number } {
+  let right = root.bounds.left + root.bounds.width;
+  let bottom = root.bounds.top + root.bounds.height;
+  for (const child of root.children) {
+    const childExtent = uiTreeExtent(child);
+    right = Math.max(right, childExtent.right);
+    bottom = Math.max(bottom, childExtent.bottom);
+  }
+  return { right, bottom };
 }
 
 /**
@@ -804,6 +915,112 @@ ${Object.keys(size)
     throw new Error(
       `Unable to read Android accessibility hierarchy after ${failures.length} attempt(s): ${failures.join('; ')}`,
     );
+  }
+
+  private async validateUITreeDisplay(root: UiNode): Promise<void> {
+    if (typeof this.options?.displayId !== 'number') return;
+
+    const displayId = this.options.displayId;
+    const adb = await this.getAdb();
+    const displayWindowDump = await runAdbShellStdoutOrThrow(
+      adb,
+      'dumpsys window displays',
+      { timeout: ACCESSIBILITY_DUMP_TIMEOUT_MS },
+    );
+    const expectedPackage = focusedPackageForLogicalDisplay(
+      displayWindowDump,
+      displayId,
+    );
+    const treePackage = firstTreePackage(root);
+    if (!expectedPackage) {
+      throw new Error(
+        `Unable to verify Android UI tree display alignment for displayId=${displayId}: no focused package found on the target display`,
+      );
+    }
+    if (!treePackage) {
+      throw new Error(
+        `Unable to verify Android UI tree display alignment for displayId=${displayId}: accessibility hierarchy has no package`,
+      );
+    }
+
+    const allWindowDump = await runAdbShellStdoutOrThrow(
+      adb,
+      'dumpsys window windows',
+      { timeout: ACCESSIBILITY_DUMP_TIMEOUT_MS },
+    );
+    const treePackageDisplayIds = windowDisplayIdsForPackage(
+      allWindowDump,
+      treePackage,
+    );
+    if (treePackageDisplayIds.length === 0) {
+      throw new Error(
+        `Unable to verify Android UI tree display alignment for displayId=${displayId}: no window display ownership found for accessibility package ${treePackage}`,
+      );
+    }
+    if (!treePackageDisplayIds.includes(displayId)) {
+      throw new Error(
+        `Android UI tree display mismatch for displayId=${displayId}: expected focused package ${expectedPackage}, but accessibility hierarchy belongs to ${treePackage} on displayId=${treePackageDisplayIds.join(',')}`,
+      );
+    }
+
+    const targetSize = await this.size();
+    const extent = uiTreeExtent(root);
+    const tolerance = 1;
+    if (
+      extent.right > targetSize.width + tolerance ||
+      extent.bottom > targetSize.height + tolerance
+    ) {
+      throw new Error(
+        `Android UI tree bounds exceed displayId=${displayId}: tree ${Math.round(extent.right)}x${Math.round(extent.bottom)} is outside target ${targetSize.width}x${targetSize.height}`,
+      );
+    }
+  }
+
+  async getUITree(): Promise<UITreeSnapshot> {
+    let lastError: unknown;
+    for (let attempt = 1; attempt <= ACCESSIBILITY_DUMP_ATTEMPTS; attempt++) {
+      try {
+        const xml =
+          attempt === 1
+            ? await this.dumpAccessibilityXml()
+            : await this.dumpAccessibilityXmlAttempt('uiautomator');
+        const capturedAt = Date.now();
+        const root = uiautomatorXmlToUiNode(xml, this.devicePixelRatio || 1);
+        await this.validateUITreeDisplay(root);
+        return {
+          platform: 'android',
+          capturedAt,
+          root,
+          xpathPolicy: {
+            stableAttrs: [
+              ...(ANDROID_CACHE_CANDIDATE_OPTIONS.stableAttrs ?? []),
+            ],
+            textAttrs: [...(ANDROID_CACHE_CANDIDATE_OPTIONS.textAttrs ?? [])],
+            excludedTargetTypes: [
+              ...(ANDROID_CACHE_CANDIDATE_OPTIONS.excludedTargetTypes ?? []),
+            ],
+            max: ANDROID_CACHE_CANDIDATE_OPTIONS.max ?? 3,
+          },
+        };
+      } catch (error) {
+        lastError = error;
+        debugCache(
+          'UI tree alignment miss attempt=%d/%d error=%s',
+          attempt,
+          ACCESSIBILITY_DUMP_ATTEMPTS,
+          errorMessage(error),
+        );
+        if (attempt < ACCESSIBILITY_DUMP_ATTEMPTS) {
+          await sleep(ACCESSIBILITY_DUMP_RETRY_DELAY_MS);
+        }
+      }
+    }
+
+    throw lastError instanceof Error
+      ? lastError
+      : new Error(
+          `Unable to capture Android UI tree: ${errorMessage(lastError)}`,
+        );
   }
 
   async cacheFeatureForPoint(
@@ -2270,6 +2487,21 @@ ${Object.keys(size)
 
     const adb = await this.getAdb();
     try {
+      const displayDump = await adb.shell('dumpsys display');
+      const logicalDisplayPhysicalId = physicalDisplayIdForLogicalDisplay(
+        displayDump,
+        this.options.displayId,
+      );
+      if (logicalDisplayPhysicalId) {
+        this.cachedPhysicalDisplayId = logicalDisplayPhysicalId;
+        debugDevice(
+          `Found and cached physical display ID: ${logicalDisplayPhysicalId} for logical display ID: ${this.options.displayId}`,
+        );
+        return this.cachedPhysicalDisplayId;
+      }
+
+      // Older Android builds may not expose a logical-to-physical mapping in
+      // dumpsys display. Keep the previous HWC-index lookup as a fallback.
       const stdout = await adb.shell(
         `dumpsys SurfaceFlinger --display-id ${this.options.displayId}`,
       );

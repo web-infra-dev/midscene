@@ -2,6 +2,7 @@
 import './index.less';
 import { isElementField, useExecutionDump } from '@/components/store';
 import {
+  ApartmentOutlined,
   CameraOutlined,
   CopyOutlined,
   DownloadOutlined,
@@ -32,6 +33,8 @@ import {
 import OpenInPlayground from '../open-in-playground';
 import { sanitizeJsonViewData } from './json-view-data';
 import { getExecutionMarkdownView } from './markdown-view';
+import { hasUITreeView } from './ui-tree-data';
+import UITreeView from './ui-tree-view';
 
 const ScreenshotDisplay = (props: {
   title: string;
@@ -54,6 +57,7 @@ const ScreenshotDisplay = (props: {
 const VIEW_TYPE_REPLAY = 'replay';
 const VIEW_TYPE_MARKDOWN = 'markdown';
 const VIEW_TYPE_SCREENSHOT = 'screenshot';
+const VIEW_TYPE_UI_TREE = 'ui-tree';
 const VIEW_TYPE_JSON = 'json';
 
 const jsonViewStyles = {
@@ -151,7 +155,12 @@ const DetailPanel = ({
     animationScripts &&
     animationScripts.length > 0;
 
-  const availableViewTypes = [VIEW_TYPE_SCREENSHOT, VIEW_TYPE_JSON];
+  const availableViewTypes = [VIEW_TYPE_SCREENSHOT];
+
+  if (hasUITreeView(activeTask?.uiContext)) {
+    availableViewTypes.push(VIEW_TYPE_UI_TREE);
+  }
+  availableViewTypes.push(VIEW_TYPE_JSON);
 
   if (hasReplay) {
     availableViewTypes.unshift(VIEW_TYPE_REPLAY);
@@ -211,6 +220,14 @@ const DetailPanel = ({
           clickToExpandNode
         />
       </div>
+    );
+  } else if (viewType === VIEW_TYPE_UI_TREE) {
+    content = (
+      <UITreeView
+        key={activeTask.taskId}
+        snapshot={activeTask.uiContext?.uiTree}
+        error={activeTask.uiContext?.uiTreeError}
+      />
     );
   } else if (viewType === VIEW_TYPE_SCREENSHOT) {
     const screenshotItems: {
@@ -354,6 +371,13 @@ const DetailPanel = ({
         label: 'JSON View',
         value: type,
         icon: <FileTextOutlined />,
+      };
+    }
+    if (type === VIEW_TYPE_UI_TREE) {
+      return {
+        label: 'UI Tree',
+        value: type,
+        icon: <ApartmentOutlined />,
       };
     }
 

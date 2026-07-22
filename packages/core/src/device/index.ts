@@ -10,7 +10,13 @@ import type { ElementNode } from '@midscene/shared/extractor';
 import { getDebug } from '@midscene/shared/logger';
 import { _keyDefinitions } from '@midscene/shared/us-keyboard-layout';
 import { z } from 'zod';
-import type { ElementCacheFeature, Rect, Size, UIContext } from '../types';
+import type {
+  ElementCacheFeature,
+  Rect,
+  Size,
+  UIContext,
+  UITreeSnapshot,
+} from '../types';
 
 export interface FileChooserHandler {
   accept(files: string[]): Promise<void>;
@@ -194,6 +200,8 @@ export abstract class AbstractInterface {
   abstract rectMatchesCacheFeature?(
     feature: ElementCacheFeature,
   ): Promise<Rect>;
+
+  abstract getUITree?(): Promise<UITreeSnapshot>;
 
   abstract destroy?(): Promise<void>;
 
