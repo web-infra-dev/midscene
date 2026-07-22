@@ -279,11 +279,21 @@ async function retryFixtureAction(options: {
         ACTIVATION_TIMEOUT_MS,
         options.fixtureProcess,
       );
-      // AppKit can keep the fixture active and visible while declining to make
-      // its window key again. The real action result is the reliable readiness
-      // probe, so let each retry invoke the action instead of consuming an
-      // attempt at this precondition.
-      await sleep(250);
+      // Prefer AppKit's durable input-readiness signal and act as soon as it is
+      // published. If AppKit declines to make the window key, still invoke the
+      // action so the real result remains the final readiness probe.
+      try {
+        await waitForJson(
+          options.stateFile,
+          normalizeState,
+          (state) =>
+            state.inputReadyGeneration > beforeActivation.inputReadyGeneration,
+          ACTIVATION_TIMEOUT_MS,
+          options.fixtureProcess,
+        );
+      } catch {
+        // Fall through to the action-based readiness probe.
+      }
       await options.action();
       const state = await waitForJson(
         options.stateFile,
