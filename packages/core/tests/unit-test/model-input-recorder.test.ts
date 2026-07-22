@@ -42,10 +42,9 @@ describe('recordModelInputsForTask', () => {
   it('records a transformed model image and deduplicates request retries', () => {
     const task = createTask();
     const parentCallback = vi.fn();
-    const runtime = recordModelInputsForTask(
-      { onModelInputImages: parentCallback } as ModelRuntime,
-      task,
-    );
+    const parentRuntime = {} as ModelRuntime;
+    parentRuntime.onModelInputImages = parentCallback;
+    const runtime = recordModelInputsForTask(parentRuntime, task);
 
     runtime.onModelInputImages?.([webpBase64]);
     runtime.onModelInputImages?.([webpBase64]);
