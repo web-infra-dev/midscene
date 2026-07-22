@@ -1,9 +1,45 @@
-import StartExperience from './common/start-experience.mdx';
-import SetupEnv from './common/setup-env.mdx';
+import StartExperience from '../common/start-experience.mdx';
+import SetupEnv from '../common/setup-env.mdx';
+import ShowcaseComputer from '../showcases-computer.mdx';
 
 import { PackageManagerTabs } from '@theme';
 
-# PC Desktop Getting Started
+# Desktop
+
+Midscene uses native keyboard and mouse controls to automate desktop applications on Windows, macOS, and Linux.
+
+## Showcases
+
+<ShowcaseComputer />
+
+See more [Midscene showcases](../showcases.mdx).
+
+## Key features
+
+**Cross-platform desktop control**
+
+- Mouse operations: click, double-click, right-click, move, and drag-and-drop.
+- Keyboard input: type text and press keys with Cmd, Ctrl, Alt, or Shift.
+- Screen capture: take screenshots from any display.
+- Multiple displays: work with multiple monitors in one workflow.
+
+**AI-powered automation**
+
+Use natural-language instructions to automate desktop applications:
+
+```typescript
+await agent.aiAct('open the File menu');
+await agent.aiAct('click on Save As');
+await agent.aiAct('type "my-document" in the filename field');
+await agent.aiAct('press Enter');
+```
+
+## Use cases
+
+- Test Electron, Qt, and native desktop applications.
+- Automate repetitive work across desktop applications.
+- Control multiple applications in sequence.
+- Test desktop interfaces with natural-language instructions.
 
 This guide walks you through everything required to automate PC desktop applications with Midscene: install dependencies, configure model credentials, and run your first JavaScript script.
 
@@ -50,7 +86,7 @@ const agent = await agentForComputer({ headless: true });
 // MIDSCENE_COMPUTER_HEADLESS_LINUX=true npx tsx example.ts
 ```
 
-Xvfb creates a virtual display so that mouse, keyboard, and screenshot operations work without a physical monitor. See [API Reference](./computer-api-reference) for details.
+Xvfb creates a virtual display so that mouse, keyboard, and screenshot operations work without a physical monitor. See [API Reference](../reference/#desktop) for details.
 
 ## Try Playground (no code)
 
@@ -64,7 +100,7 @@ Playground is the fastest way to validate the connection and observe AI-driven s
 npx --yes @midscene/computer-playground
 ```
 
-2. Click the gear icon in the Playground window, then paste your API key configuration. Refer back to [Model configuration](./model-config) if you still need credentials.
+2. Click the gear icon in the Playground window, then paste your API key configuration. Refer back to [Model configuration](../model-config) if you still need credentials.
 
 ## Start experiencing
 
@@ -291,7 +327,7 @@ MIDSCENE_COMPUTER_HEADLESS_LINUX=true npx tsx example.ts
 
 ## Next Steps
 
-- [API Reference](./computer-api-reference)
-- [Use YAML format automation scripts](./automate-with-scripts-in-yaml)
-- [YAML script runner](./yaml-script-runner)
-- [Caching for efficiency](./caching)
+- [API Reference](../reference/#desktop)
+- [Use YAML format automation scripts](../automate-with-scripts-in-yaml)
+- [YAML script runner](../yaml-script-runner)
+- [Caching for efficiency](../caching)

@@ -1,17 +1,30 @@
-# API reference (Common)
+# API reference
 
-## Constructors
+Use this page to look up shared Agent APIs and platform-specific constructors, options, actions, and helper methods.
+
+- [Common](#common)
+- [Web browser](#web)
+- [Android](#android)
+- [iOS](#ios)
+- [HarmonyOS](#harmonyos)
+- [Desktop](#desktop)
+
+## Common {#common}
+
+### Constructors
 
 Midscene ships multiple agents tuned for specific automation environments. Every constructor takes the target page/device plus a shared options bag (reporting, caching, AI configuration, hooks), and then layers on platform-only switches such as navigation guards in browsers or ADB wiring on Android. Use the sections below to review the import path and platform-specific parameters for each agent:
 
-- In Puppeteer, use [PuppeteerAgent](./web-api-reference#puppeteer-agent)
-- In Playwright, use [PlaywrightAgent](./web-api-reference#playwright-agent)
-- In Bridge Mode, use [AgentOverChromeBridge](./web-api-reference#chrome-bridge-agent)
-- On Android, use [Android API reference](./android-api-reference)
-- On iOS, use [iOS API reference](./ios-api-reference)
-- For GUI agents integrating with your own interface, refer to [Custom Interface Agent](./integrate-with-any-interface)
+- In Puppeteer, use [PuppeteerAgent](#puppeteer-agent)
+- In Playwright, use [PlaywrightAgent](#playwright-agent)
+- In Bridge Mode, use [AgentOverChromeBridge](#chrome-bridge-agent)
+- On Android, use [Android API reference](#android)
+- On iOS, use [iOS API reference](#ios)
+- For GUI agents integrating with your own interface, refer to [Custom Interface Agent](../integrate-with-any-interface)
 
-### Parameters
+<a id="common-parameters"></a>
+
+#### Parameters
 
 All agents share these base options:
 
@@ -55,14 +68,14 @@ All agents share these base options:
 
 :::
 
-The device CLIs expose these same Agent behavior options per call. Convert the camelCase API option to a bare kebab-case flag, such as `waitAfterAction` -> `--wait-after-action`. See [Skills](./skills) for the platform CLI entry points.
+The device CLIs expose these same Agent behavior options per call. Convert the camelCase API option to a bare kebab-case flag, such as `waitAfterAction` -> `--wait-after-action`. See [Skills](../skills) for the platform CLI entry points.
 
-### Custom model configuration
+#### Custom model configuration
 
 Use `modelConfig: Record<string, string | number>` to configure models directly in code instead of environment variables.
 
 > If `modelConfig` is provided at agent initialization, **all system environment variables for model config are ignored**. Only the values in this object are used.
-> The keys/values you can set here are the same ones listed in [Model configuration](./model-config). You can also see explanation in [Model strategy](./model-strategy).
+> The keys/values you can set here are the same ones listed in [Model configuration](../model-config). You can also see explanation in [Model strategy](../model-strategy).
 
 **Basic Example (single model for all intents):**
 ```typescript
@@ -100,7 +113,7 @@ const agent = new PuppeteerAgent(page, {
 });
 ```
 
-### Custom OpenAI client
+#### Custom OpenAI client
 
 `createOpenAIClient: (openai, options) => Promise<OpenAI | undefined>` lets you wrap the OpenAI client instance for integrating observability tools (such as LangSmith, LangFuse) or applying custom middleware.
 
@@ -134,9 +147,9 @@ const agent = new PuppeteerAgent(page, {
 });
 ```
 
-**Note:** For LangSmith and Langfuse integration, we recommend using the environment-variable approach documented in [Model configuration](./model-config#using-langsmith), which requires no `createOpenAIClient` code. If you provide a custom client wrapper function, it will override the auto-integration behavior from environment variables.
+**Note:** For LangSmith and Langfuse integration, we recommend using the environment-variable approach documented in [Model configuration](../model-config#using-langsmith), which requires no `createOpenAIClient` code. If you provide a custom client wrapper function, it will override the auto-integration behavior from environment variables.
 
-## Interaction methods
+### Interaction methods
 
 Below are the main APIs available for the various Agents in Midscene.
 
@@ -149,7 +162,9 @@ In Midscene, you can choose to use either auto planning or instant action.
 
 :::
 
-### `agent.aiAct()` or `agent.ai()`
+<a id="agentaiact"></a>
+
+#### `agent.aiAct()` or `agent.ai()`
 
 This method allows you to perform a series of UI actions described in natural language. Midscene automatically plans the steps and executes them.
 
@@ -179,8 +194,8 @@ function ai(prompt: string): Promise<string | undefined>; // shorthand form
 
   - `prompt: string` - A natural language description of the UI steps.
   - `options?: Object` - Optional, a configuration object containing:
-    - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
-    - `deepThink?: 'unset' | true | false` - Controls the planning implementation used by Midscene when `aiAct` performs planning. When enabled, `aiAct` focuses more on task decomposition and separates task planning from UI element locating into different model calls. For compatibility, `'unset'` is accepted and treated the same as `false`. [Learn more about deepThink](./model-strategy#about-the-deepthink-option-in-aiact).
+    - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](../caching.mdx). True by default.
+    - `deepThink?: 'unset' | true | false` - Controls the planning implementation used by Midscene when `aiAct` performs planning. When enabled, `aiAct` focuses more on task decomposition and separates task planning from UI element locating into different model calls. For compatibility, `'unset'` is accepted and treated the same as `false`. [Learn more about deepThink](../model-strategy#about-the-deepthink-option-in-aiact).
     - `deepLocate?: boolean` - Whether to enable [Deep Locate](#deep-locate-deeplocate). False by default.
     - `fileChooserAccept?: string | string[]` - When a file chooser pops up, specify the file path(s) to accept. Can be a single file path or an array of paths. Only available in web pages (Playwright, Puppeteer, or Chrome extension Bridge mode).
       - **Note**: If the file input does not support multiple files (no `multiple` attribute) but multiple files are provided, an error will be thrown.
@@ -225,11 +240,11 @@ For optimal results, please provide clear and detailed instructions for `agent.a
 
 Related Documentation:
 
-- [Model strategy](./model-strategy)
+- [Model strategy](../model-strategy)
 
 :::
 
-### `agent.aiTap()`
+#### `agent.aiTap()`
 
 Tap something.
 
@@ -245,7 +260,7 @@ function aiTap(locate: string | Object, options?: Object): Promise<void>;
   - `options?: Object` - Optional, a configuration object containing:
     - `deepLocate?: boolean` - Whether to enable [Deep Locate](#deep-locate-deeplocate). Previously named `deepThink`, now renamed to `deepLocate`. False by default.
     - `xpath?: string` - The xpath of the element to operate. If provided, Midscene will first use this xpath to locate the element before using the cache and the AI model. Empty by default.
-    - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
+    - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](../caching.mdx). True by default.
     - `fileChooserAccept?: string | string[]` - When a file chooser pops up, specify the file path(s) to accept. Can be a single file path or an array of paths. Only available in web pages (Playwright, Puppeteer, or Chrome extension Bridge mode).
       - **Note**: If the file input does not support multiple files (no `multiple` attribute) but multiple files are provided, an error will be thrown.
       - **Note**: If a file chooser is triggered but no `fileChooserAccept` parameter is provided, the file chooser will be ignored and the page can continue to operate normally.
@@ -270,7 +285,7 @@ await agent.aiTap('Choose file button', { fileChooserAccept: ['./document.pdf'] 
 await agent.aiTap('Upload images', { fileChooserAccept: ['./image1.jpg', './image2.png'] });
 ```
 
-### `agent.aiHover()`
+#### `agent.aiHover()`
 
 > Available in web pages and PC desktop (`@midscene/computer`), not available on mobile devices (Android / iOS).
 
@@ -288,7 +303,7 @@ function aiHover(locate: string | Object, options?: Object): Promise<void>;
   - `options?: Object` - Optional, a configuration object containing:
     - `deepLocate?: boolean` - Whether to enable [Deep Locate](#deep-locate-deeplocate). Previously named `deepThink`, now renamed to `deepLocate`. False by default.
     - `xpath?: string` - The xpath of the element to operate. If provided, Midscene will first use this xpath to locate the element before using the cache and the AI model. Empty by default.
-    - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
+    - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](../caching.mdx). True by default.
 
 - Return Value:
 
@@ -300,7 +315,7 @@ function aiHover(locate: string | Object, options?: Object): Promise<void>;
 await agent.aiHover('The version number of the current page');
 ```
 
-### `agent.aiInput()`
+#### `agent.aiInput()`
 
 Input text into something.
 
@@ -340,7 +355,7 @@ function aiInput(
       - When `mode` is `'clear'`: The text is ignored and the input field will be cleared.
     - `deepLocate?: boolean` - Whether to enable [Deep Locate](#deep-locate-deeplocate). Previously named `deepThink`, now renamed to `deepLocate`. False by default.
     - `xpath?: string` - The xpath of the element to operate. If provided, Midscene will first use this xpath to locate the element before using the cache and the AI model. Empty by default.
-    - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
+    - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](../caching.mdx). True by default.
     - `autoDismissKeyboard?: boolean` - If true, the keyboard will be dismissed after input text, only available in Android/iOS/HarmonyOS. (Default: true)
     - `keyboardTypeDelay?: number` - Delay in milliseconds between keystrokes when typing text. When set, text is typed one character at a time with this delay between each character. Useful when input fields drop characters under fast typing.
     - `mode?: 'replace' | 'clear' | 'typeOnly'` - Input mode. (Default: 'replace')
@@ -373,7 +388,7 @@ We recently updated the `aiInput` API signature to put the locate prompt as the 
 
 :::
 
-### `agent.aiClearInput()`
+#### `agent.aiClearInput()`
 
 Clear the content of an input field. Useful as a standalone step before typing, or when you need to remove existing text without immediately inputting a new value.
 
@@ -396,7 +411,7 @@ function aiClearInput(
   - `opt?: Object` - Optional, a configuration object containing:
     - `deepLocate?: boolean` - Whether to enable [Deep Locate](#deep-locate-deeplocate). False by default.
     - `xpath?: string` - The xpath of the element to operate. Empty by default.
-    - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
+    - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](../caching.mdx). True by default.
 
 - Return Value:
 
@@ -419,7 +434,7 @@ await agent.aiInput('the email input', { value: 'user@example.com' });
 
 :::
 
-### `agent.aiKeyboardPress()`
+#### `agent.aiKeyboardPress()`
 
 Press a keyboard key.
 
@@ -453,7 +468,7 @@ function aiKeyboardPress(
     - `keyName: string` - **Required**. The web key to press, e.g. 'Enter', 'Tab', 'Escape', etc. Key Combination is not supported. Refer to the [complete list of supported key names in our source code](https://github.com/web-infra-dev/midscene/blob/main/packages/shared/src/us-keyboard-layout.ts) for available values.
     - `deepLocate?: boolean` - Whether to enable [Deep Locate](#deep-locate-deeplocate). Previously named `deepThink`, now renamed to `deepLocate`. False by default.
     - `xpath?: string` - The xpath of the element to operate. If provided, Midscene will first use this xpath to locate the element before using the cache and the AI model. Empty by default.
-    - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
+    - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](../caching.mdx). True by default.
 
   **Backward compatible usage (deprecated but still supported):**
   - `key: string` - The web key to press, e.g. 'Enter', 'Tab', 'Escape', etc. Key Combination is not supported.
@@ -480,7 +495,7 @@ We recently updated the `aiKeyboardPress` API signature to put the locate prompt
 
 :::
 
-### `agent.aiScroll()`
+#### `agent.aiScroll()`
 
 Scroll a page or an element.
 
@@ -518,7 +533,7 @@ function aiScroll(
     - `distance?: number | null` - Optional, the distance to scroll in px. Use `null` to allow Midscene to decide automatically.
     - `deepLocate?: boolean` - Whether to enable [Deep Locate](#deep-locate-deeplocate). Previously named `deepThink`, now renamed to `deepLocate`. False by default.
     - `xpath?: string` - The xpath of the element to operate. If provided, Midscene will first use this xpath to locate the element before using the cache and the AI model. Empty by default.
-    - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
+    - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](../caching.mdx). True by default.
 
   **Backward compatible usage (deprecated but still supported):**
   - `scrollParam: PlanningActionParamScroll` - The scroll parameter (contains scrollType, direction, distance).
@@ -552,7 +567,7 @@ We recently updated the `aiScroll` API signature to put the locate prompt as the
 
 :::
 
-### `agent.aiPinch()`
+#### `agent.aiPinch()`
 
 Perform a two-finger pinch gesture to zoom in or zoom out. Supported on Android, iOS, and Web (Chromium-based browsers).
 
@@ -581,7 +596,7 @@ function aiPinch(
     - `duration?: number` - Duration of the pinch gesture in milliseconds. Defaults to `500`.
     - `deepLocate?: boolean` - Whether to enable [Deep Locate](#deep-locate-deeplocate). False by default.
     - `xpath?: string` - The xpath of the element to operate. Empty by default.
-    - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
+    - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](../caching.mdx). True by default.
 
 - Return Value:
 
@@ -609,7 +624,7 @@ await agent.aiPinch('the image', { direction: 'out', distance: 300, duration: 10
 
 :::
 
-### `agent.aiLongPress()`
+#### `agent.aiLongPress()`
 
 Long-press (or click-and-hold) an element. Useful for opening context menus, selecting items, or triggering long-press gestures.
 
@@ -634,7 +649,7 @@ function aiLongPress(
     - `duration?: number` - How long the press is held, in milliseconds. When omitted, each platform applies its own default (Android `2000`, iOS `1000`, Web `500`).
     - `deepLocate?: boolean` - Whether to enable [Deep Locate](#deep-locate-deeplocate). False by default.
     - `xpath?: string` - The xpath of the element to operate. Empty by default.
-    - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
+    - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](../caching.mdx). True by default.
 
 - Return Value:
 
@@ -656,7 +671,7 @@ await agent.aiLongPress('the message bubble', { duration: 2000 });
 
 :::
 
-### `agent.aiDoubleClick()`
+#### `agent.aiDoubleClick()`
 
 Double-click on an element.
 
@@ -672,7 +687,7 @@ function aiDoubleClick(locate: string | Object, options?: Object): Promise<void>
   - `options?: Object` - Optional, a configuration object containing:
     - `deepLocate?: boolean` - Whether to enable [Deep Locate](#deep-locate-deeplocate). Previously named `deepThink`, now renamed to `deepLocate`. False by default.
     - `xpath?: string` - The xpath of the element to operate. If provided, Midscene will first use this xpath to locate the element before using the cache and the AI model. Empty by default.
-    - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
+    - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](../caching.mdx). True by default.
 
 - Return Value:
 
@@ -689,7 +704,7 @@ await agent.aiDoubleClick('The file name at the top of the page', {
 });
 ```
 
-### `agent.aiRightClick()`
+#### `agent.aiRightClick()`
 
 > Only available in web pages, not available in Android.
 
@@ -707,7 +722,7 @@ function aiRightClick(locate: string, options?: Object): Promise<void>;
   - `options?: Object` - Optional, a configuration object containing:
     - `deepLocate?: boolean` - Whether to enable [Deep Locate](#deep-locate-deeplocate). Previously named `deepThink`, now renamed to `deepLocate`. False by default.
     - `xpath?: string` - The xpath of the element to operate. If provided, Midscene will first use this xpath to locate the element before using the cache and the AI model. Empty by default.
-    - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
+    - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](../caching.mdx). True by default.
 
 - Return Value:
 
@@ -724,9 +739,9 @@ await agent.aiRightClick('The file name at the top of the page', {
 });
 ```
 
-## Data extraction
+### Data extraction
 
-### `agent.aiAsk()`
+#### `agent.aiAsk()`
 
 Ask the AI model any question about the current page. It returns the answer in string from the AI model.
 
@@ -758,7 +773,7 @@ console.log(result); // Output the answer from the AI model
 
 Besides `aiAsk`, you can also use `aiQuery` to extract structured data from the UI.
 
-### `agent.aiQuery()`
+#### `agent.aiQuery()`
 
 This method allows you to extract structured data from current page. Simply define the expected format (e.g., string, number, JSON, or an array) in the `dataDemand`, and Midscene will return a result that matches the format.
 
@@ -808,7 +823,7 @@ const dataD = await agent.aiQuery(
 );
 ```
 
-### `agent.aiBoolean()`
+#### `agent.aiBoolean()`
 
 Extract a boolean value from the UI.
 
@@ -838,7 +853,7 @@ const boolB = await agent.aiBoolean('Whether the login button has a link', {
 });
 ```
 
-### `agent.aiNumber()`
+#### `agent.aiNumber()`
 
 Extract a number value from the UI.
 
@@ -869,7 +884,7 @@ const numberB = await agent.aiNumber(
 );
 ```
 
-### `agent.aiString()`
+#### `agent.aiString()`
 
 Extract a string value from the UI.
 
@@ -901,9 +916,9 @@ const stringB = await agent.aiString('The link of the first item in the list', {
 });
 ```
 
-## More APIs
+### More APIs
 
-### `agent.aiAssert()`
+#### `agent.aiAssert()`
 
 Specify an assertion in natural language, and the AI determines whether the condition is true. If the assertion fails, the SDK throws an error that includes both the optional `errorMsg` and a detailed reason generated by the AI.
 
@@ -952,7 +967,7 @@ expect(onesieItem.price).toBe(7.99);
 
 :::
 
-### `agent.startObserving()`
+#### `agent.startObserving()`
 
 Observe the screen over an explicit time window so a later assertion can judge everything that happened while other agent calls ran — including transient UI (toasts, banners, screen transitions) that a single screenshot would miss.
 
@@ -985,7 +1000,7 @@ How it works and what it costs:
 - All buffered frames (up to `maxFrames`, plus the final representative screenshot) are sent to the model so transient UI in long windows is not missed. To bound token cost, increase `intervalMs` (lower frame density) or decrease `maxFrames` (smaller buffer). The observed frames are shown in the report timeline with an `Observed` tag.
 - On iOS the observed frames come from the MJPEG stream (scaled, lower quality) while the final representative frame is a full-quality screenshot.
 
-### `agent.aiLocate()`
+#### `agent.aiLocate()`
 
 Locate an element using natural language.
 
@@ -1013,7 +1028,7 @@ function aiLocate(
   - `options?: Object` - Optional, a configuration object containing:
     - `deepLocate?: boolean` - Whether to enable [Deep Locate](#deep-locate-deeplocate). Previously named `deepThink`, now renamed to `deepLocate`. False by default.
     - `xpath?: string` - The xpath of the element to operate. If provided, Midscene will first use this xpath to locate the element before using the cache and the AI model. Empty by default.
-    - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
+    - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](../caching.mdx). True by default.
 
 - Return Value:
 
@@ -1032,7 +1047,7 @@ const locateInfo = await agent.aiLocate(
 console.log(locateInfo);
 ```
 
-### `agent.aiWaitFor()`
+#### `agent.aiWaitFor()`
 
 Wait until a specified condition, described in natural language, becomes true. Considering the cost of AI calls, the check interval will not exceed the specified `checkIntervalMs`.
 
@@ -1080,7 +1095,9 @@ Given the time consumption of AI services, `.aiWaitFor` might not be the most ef
 
 :::
 
-### `agent.runYaml()`
+<a id="runyaml"></a>
+
+#### `agent.runYaml()`
 
 Execute an automation script written in YAML. Only the `tasks` part of the script is parsed and executed, and it returns the results of all `.aiQuery` calls within the script.
 
@@ -1117,11 +1134,11 @@ console.log(result);
 
 :::tip
 
-For more information about YAML scripts, please refer to [Automate with Scripts in YAML](./automate-with-scripts-in-yaml).
+For more information about YAML scripts, please refer to [Automate with Scripts in YAML](../automate-with-scripts-in-yaml).
 
 :::
 
-### `agent.runGherkinScenario()`
+#### `agent.runGherkinScenario()`
 
 Run one Gherkin Scenario and map its steps to Midscene Agent calls.
 
@@ -1169,9 +1186,9 @@ Scenario: Add a todo item
 `);
 ```
 
-For supported rules, limitations, cache behavior, and YAML usage, see [BDD-style scripts with Gherkin](./advanced/bdd-style-scripts-with-gherkin).
+For supported rules, limitations, cache behavior, and YAML usage, see [BDD-style scripts with Gherkin](../advanced/bdd-style-scripts-with-gherkin).
 
-### `agent.setAIActContext()`
+#### `agent.setAIActContext()`
 
 Set the background knowledge that should be sent to the AI model when calling `agent.aiAct()` or `agent.ai()`. This will override the previous setting.
 
@@ -1199,7 +1216,7 @@ await agent.setAIActContext('Close the cookie consent dialog first if it exists'
 
 :::
 
-### `agent.evaluateJavaScript()`
+#### `agent.evaluateJavaScript()`
 
 > Only available in web pages, not available in Android.
 
@@ -1226,7 +1243,10 @@ const result = await agent.evaluateJavaScript('document.title');
 console.log(result);
 ```
 
-### `agent.recordToReport()`
+<a id="log-screenshot"></a>
+<a id="agentlogscreenshot"></a>
+
+#### `agent.recordToReport()`
 
 Log the current screenshot with a description in the report file by default, or
 record screenshots provided by the caller.
@@ -1294,7 +1314,7 @@ await agent.recordToReport('Checkout comparison', {
 });
 ```
 
-### `agent.freezePageContext()`
+#### `agent.freezePageContext()`
 
 Freeze the current page context, allowing all subsequent operations to reuse the same page snapshot without retrieving the page state repeatedly. This significantly improves performance when executing a large number of concurrent operations. 
 
@@ -1337,7 +1357,7 @@ In the report, operations using frozen context will display a 🧊 icon in the I
 
 :::
 
-### `agent.unfreezePageContext()`
+#### `agent.unfreezePageContext()`
 
 Unfreezes the page context, restoring the use of real-time page state.
 
@@ -1351,7 +1371,7 @@ function unfreezePageContext(): Promise<void>;
 
   - `Promise<void>`
 
-### `agent._unstableLogContent()`
+#### `agent._unstableLogContent()`
 
 Retrieve the log content from the report file. The structure of the log object may change in future versions.
 
@@ -1372,13 +1392,13 @@ const logContent = agent._unstableLogContent();
 console.log(logContent);
 ```
 
-## LLM usage metrics
+### LLM usage metrics
 
 Midscene records the token usage of every LLM call. You can read the aggregated
 totals from the agent at runtime, which is useful for cost observability with
 tools like Langfuse.
 
-### `agent.metrics`
+#### `agent.metrics`
 
 A getter that returns a snapshot of the LLM usage accumulated by the agent since
 it was created.
@@ -1415,7 +1435,7 @@ const usage = agent.metrics;
 console.log(usage.totalTokens, usage.byIntent, usage.byModel);
 ```
 
-### `onLLMUsage` option
+#### `onLLMUsage` option
 
 For real-time tracking, pass an `onLLMUsage` callback when constructing the
 agent. It is invoked once per LLM call as soon as the usage is available, with
@@ -1429,7 +1449,7 @@ const agent = new PuppeteerAgent(page, {
 });
 ```
 
-## Deep Locate (deepLocate)
+### Deep Locate (deepLocate)
 
 `deepLocate` is an optional parameter available on all APIs that require element location (`aiAct`, `aiTap`, `aiHover`, `aiInput`, `aiKeyboardPress`, `aiScroll`, `aiDoubleClick`, `aiRightClick`, `aiLocate`, etc.).
 
@@ -1446,7 +1466,7 @@ await agent.aiTap('Shopping cart icon in the top right', { deepLocate: true });
 
 Historically, the name `deepThink` has carried two different meanings across APIs:
 
-- In `aiAct()`, `deepThink` has always meant **planning mode**, guiding task decomposition and planning-focused reasoning. See [aiAct deepThink documentation](./model-strategy#about-the-deepthink-option-in-aiact) for details.
+- In `aiAct()`, `deepThink` has always meant **planning mode**, guiding task decomposition and planning-focused reasoning. See [aiAct deepThink documentation](../model-strategy#about-the-deepthink-option-in-aiact) for details.
 - In single-step action methods such as `aiTap` and `aiHover`, the old `deepThink` meant **enhanced element location**, equivalent to today's `deepLocate`.
 
 To separate these two meanings, `deepThink` has been reserved for planning mode since v1.5.1, while enhanced element location is consistently named `deepLocate`.
@@ -1456,7 +1476,7 @@ To separate these two meanings, `deepThink` has been reserved for planning mode 
 
 :::
 
-## Prompting with images
+### Prompting with images
 
 You can use images as supplements in the prompt to describe things that cannot be expressed in natural language.
 
@@ -1511,24 +1531,24 @@ await agent.aiAssert({
 
 When prompting with images, it is necessary to pay attention to the requirements of the AI model provider regarding the size and dimensions of the images. Images that are too large (such as exceeding 10M) or too small (such as being less than 10 pixels) may cause errors when the model is invoked. The specific restrictions should be based on the documentation provided by the AI model provider you are using.
 
-## Properties
+### Properties
 
-### `.reportFile`
+#### `.reportFile`
 
 The path to the report file.
 
 
-## Report Merging Tool
+### Report Merging Tool
 
 When running multiple automation workflows, each agent generates its own report file. The `ReportMergingTool` can merge multiple automation reports into a single report for unified viewing and management.
 
-### Use cases
+#### Use cases
 
 - Running multiple workflows in a suite and need one consolidated report
 - Cross-platform automation (for example, Web and Android) that needs a unified result
 - CI/CD pipelines that require a summarized automation report
 
-### `new ReportMergingTool()`
+#### `new ReportMergingTool()`
 
 Create a report merging tool instance.
 
@@ -1540,7 +1560,7 @@ import { ReportMergingTool } from '@midscene/core/report';
 const reportMergingTool = new ReportMergingTool();
 ```
 
-### `.append()`
+#### `.append()`
 
 Add an automation report to the list to be merged, typically right after each workflow finishes.
 
@@ -1588,7 +1608,7 @@ afterEach((ctx) => {
 });
 ```
 
-### `.mergeReports()`
+#### `.mergeReports()`
 
 Merge all added reports into a single HTML file.
 
@@ -1646,7 +1666,7 @@ afterAll(() => {
 });
 ```
 
-### `.clear()`
+#### `.clear()`
 
 Clear the list of reports to be merged. Use this if you need to reuse the same instance for multiple merge operations.
 
@@ -1668,7 +1688,7 @@ reportMergingTool.clear(); // Clear the list
 // Continue adding new reports...
 ```
 
-### Full example
+#### Full example
 
 Below is a complete example of using `ReportMergingTool` in a Vitest suite:
 
@@ -1737,3 +1757,1651 @@ describe('Android settings automation', () => {
 The merged report is saved under the `midscene_run/report` directory. Open the generated HTML file in your browser to review the workflows.
 
 :::
+
+## Web browser {#web}
+
+Use this doc when you need to customize Midscene's browser automation agents or review browser-only constructor options. For shared parameters (reporting, hooks, caching, etc.), see the platform-agnostic [API reference (Common)](#common).
+
+### Action Space
+
+PuppeteerAgent, PlaywrightAgent, and Chrome Bridge share one action space; the Midscene Agent can use these actions while planning tasks:
+
+- `Tap` &mdash; Left-click an element.
+- `RightClick` &mdash; Right-click an element.
+- `DoubleClick` &mdash; Double-click an element.
+- `Hover` &mdash; Hover over an element.
+- `Input` &mdash; Enter text with `replace`/`typeOnly`/`clear` modes (`append` is a deprecated alias for `typeOnly`).
+- `KeyboardPress` &mdash; Press a specified key (optionally focusing a target element first).
+- `Scroll` &mdash; Scroll from an element or screen center; supports scroll-to-top/bottom/left/right helpers.
+- `DragAndDrop` &mdash; Drag from one element to another.
+- `LongPress` &mdash; Long-press a target element with optional duration.
+- `Swipe` &mdash; Touch-style swipe gesture (available when `enableTouchEventsInActionSpace` is `true`).
+- `Pinch` &mdash; Two-finger pinch gesture for zoom in/out (available when `enableTouchEventsInActionSpace` is `true`; Chromium-based browsers only for Playwright).
+- `ClearInput` &mdash; Clear the contents of an input field.
+- `Navigate` &mdash; Open a URL in the current tab.
+- `Reload` &mdash; Reload the page.
+- `GoBack` &mdash; Navigate back in history.
+
+### PuppeteerPageAgent / PuppeteerAgent {#puppeteer-agent}
+
+Use Midscene against a Puppeteer-controlled browser when you need AI actions in your own Puppeteer workflows.
+
+`PuppeteerPageAgent` is bound to one Puppeteer `Page`. `PuppeteerAgent` remains an alias for backward compatibility.
+
+#### Import
+
+```ts
+import { PuppeteerPageAgent } from '@midscene/web/puppeteer';
+```
+
+#### Constructor
+
+```ts
+const agent = new PuppeteerPageAgent(page, {
+  // browser-specific options...
+});
+```
+
+#### Browser-specific options
+
+In addition to the base agent options, Puppeteer exposes:
+
+- `forceSameTabNavigation: boolean` &mdash; Restrict navigation to the current tab. Default `true`.
+- `waitForNavigationTimeout: number` &mdash; Maximum wait when a step causes navigation. Default `5000` (set `0` to skip waiting).
+- `waitForNetworkIdleTimeout: number` &mdash; Wait for network idle between actions to reduce flakiness. Default `2000` (set `0` to skip waiting).
+- `enableTouchEventsInActionSpace: boolean` &mdash; Add touch gestures (like swipe) to the action space so the agent can handle touch-only interactions. Default `false`.
+- `keyboardTypeDelay: number` &mdash; Per-character delay (ms) forwarded to Puppeteer's `page.keyboard.type`. Default `undefined`, which leaves the option unset and uses Puppeteer's own default. You usually do not need to configure it; raise it (e.g. `80`) only when a controlled input drops characters under fast typing.
+- `forceChromeSelectRendering: boolean` &mdash; Force `select` elements to render with Chrome's base-select styling so they're visible in screenshots/element extraction; requires Puppeteer > `24.6.0`. Defaults to `true`; set to `false` to opt out (e.g. on older Chrome/Puppeteer versions).
+- `customActions: DeviceAction[]` &mdash; Register bespoke actions defined via `defineAction` so planning can call domain-specific steps.
+
+#### Usage notes
+
+:::info
+
+- One agent per page: by default (`forceSameTabNavigation: true`), Midscene opens new links in the current tab for easier debugging. Set it to `false` if you want normal new-tab behavior and create a new `PuppeteerAgent` for each page yourself. Use `PuppeteerBrowserAgent` when the same Agent should manage browser-level page switching.
+- `PuppeteerAgent` / `PuppeteerPageAgent` remains page-scoped for compatibility. It does not expose browser-level page switching unless you explicitly choose `PuppeteerBrowserAgent`.
+- For the full list of interaction methods, see [API reference (Common)](#interaction-methods).
+
+:::
+
+#### Browser agent
+
+Use `PuppeteerBrowserAgent` when one Midscene Agent should manage page switching inside a Puppeteer browser. It is bound to a browser instance, keeps one active page, and can optionally follow newly opened pages.
+
+```ts
+const agent = new PuppeteerBrowserAgent(browser, page, {
+  autoFollowNewPage: true,
+});
+```
+
+- Constructor: `new PuppeteerBrowserAgent(browser, page, options?)` &mdash; Use this when you explicitly choose the initial active page.
+- Factory: `PuppeteerBrowserAgent.create(browser, options?)` &mdash; Use this when you want Midscene to choose or create the initial active page. It uses `initialPage` if provided, otherwise the first existing browser page, or creates a new page.
+- `initialPage: Page` &mdash; Initial Puppeteer page for the factory.
+- `autoFollowNewPage: boolean` &mdash; Automatically switch the active page when the browser opens a new page. Default `false`.
+- `newPageTimeout: number` &mdash; Timeout for `waitForNewPage`. Default `5000`.
+- `activePage: Page` &mdash; Current page controlled by the Browser Agent.
+- `pages()` &mdash; List pages from the bound browser.
+- `newPage()` &mdash; Create a new page and make it active.
+- `setActivePage(page: Page)` &mdash; Explicitly set which Puppeteer page the Browser Agent controls next.
+- `waitForNewPage(action?, options?)` &mdash; Wait for a newly opened page without implicitly switching the active page.
+
+#### Examples
+
+<a id="web-quick-start"></a>
+
+**Quick start**
+
+```ts
+import puppeteer from 'puppeteer';
+import { PuppeteerAgent } from '@midscene/web/puppeteer';
+
+const browser = await puppeteer.launch({ headless: false });
+const page = await browser.newPage();
+await page.goto('https://www.ebay.com');
+
+const agent = new PuppeteerAgent(page, {
+  actionContext: 'When a cookie dialog appears, accept it.',
+});
+
+await agent.aiAct('search "Noise cancelling headphones" and open first result');
+const items = await agent.aiQuery(
+  '{itemTitle: string, price: number}[], list two products with price',
+);
+console.log(items);
+
+await agent.aiAssert('there is a category filter on the left sidebar');
+await browser.close();
+```
+
+<a id="web-connect-to-a-remote-puppeteer-browser"></a>
+
+**Connect to a remote Puppeteer browser**
+
+```ts
+import puppeteer from 'puppeteer';
+import { PuppeteerAgent } from '@midscene/web/puppeteer';
+
+const browser = await puppeteer.connect({
+  browserWSEndpoint: process.env.REMOTE_CDP_URL!,
+});
+
+const [page = await browser.newPage()] = await browser.pages();
+const agent = new PuppeteerAgent(page, {
+  waitForNetworkIdleTimeout: 0,
+});
+
+await agent.aiAct('open https://example.com and click the login button');
+await agent.destroy();
+await browser.disconnect();
+```
+
+#### See also
+
+- [Integrate with Puppeteer](../integrate-with-puppeteer) for installation, fixtures, and remote-CDP guidance.
+
+### PlaywrightPageAgent / PlaywrightAgent {#playwright-agent}
+
+Use Midscene inside a Playwright browser for AI-driven testing or automation alongside your Playwright flows.
+
+`PlaywrightPageAgent` is bound to one Playwright `Page`. `PlaywrightAgent` remains an alias for backward compatibility.
+
+#### Import
+
+```ts
+import { PlaywrightPageAgent } from '@midscene/web/playwright';
+```
+
+#### Constructor
+
+```ts
+const agent = new PlaywrightPageAgent(page, {
+  // browser-specific options...
+});
+```
+
+#### Browser-specific options
+
+- `forceSameTabNavigation: boolean` &mdash; Keep automation inside the active tab. Default `true`.
+- `waitForNavigationTimeout: number` &mdash; Wait time for navigation completion. Default `5000` (set `0` to disable).
+- `waitForNetworkIdleTimeout: number` &mdash; Wait between actions for network idle. Default `2000` (set `0` to disable).
+- `enableTouchEventsInActionSpace: boolean` &mdash; Add touch gestures (like swipe) to the action space so the agent can handle touch-only interactions. Default `false`.
+- `keyboardTypeDelay: number` &mdash; Per-character delay (ms) forwarded to Playwright's `page.keyboard.type`. Default `undefined`, which leaves the option unset and uses Playwright's own default. You usually do not need to configure it; raise it (e.g. `80`) only when a controlled input drops characters under fast typing.
+- `forceChromeSelectRendering: boolean` &mdash; Force `select` elements to render with Chrome's base-select styling so they're visible in screenshots/element extraction; requires Playwright ≥ `1.52.0`. Defaults to `true`; set to `false` to opt out (e.g. on older Chrome/Playwright versions).
+- `customActions: DeviceAction[]` &mdash; Extend planning with project-specific actions.
+
+#### Usage notes
+
+:::info
+
+- One agent per page: with `forceSameTabNavigation` (default `true`), Midscene intercepts new tabs for stability. Set it to `false` to allow normal new tabs and create a new `PlaywrightAgent` for each page yourself. Use `PlaywrightBrowserAgent` when the same Agent should manage browser-context-level page switching.
+- `PlaywrightAgent` / `PlaywrightPageAgent` remains page-scoped for compatibility. It does not expose browser-level page switching unless you explicitly choose `PlaywrightBrowserAgent`.
+- For the full list of interaction methods, see [API reference (Common)](#interaction-methods).
+
+:::
+
+#### Browser agent
+
+Use `PlaywrightBrowserAgent` when one Midscene Agent should manage page switching inside a Playwright browser context. It is bound to a browser context, keeps one active page, and can optionally follow newly opened pages.
+
+```ts
+const agent = new PlaywrightBrowserAgent(context, page, {
+  autoFollowNewPage: true,
+});
+```
+
+- Constructor: `new PlaywrightBrowserAgent(context, page, options?)` &mdash; Use this when you explicitly choose the initial active page.
+- Factory: `PlaywrightBrowserAgent.create(context, options?)` &mdash; Use this when you want Midscene to choose or create the initial active page. It uses `initialPage` if provided, otherwise the first existing context page, or creates a new page.
+- `initialPage: Page` &mdash; Initial Playwright page for the factory.
+- `autoFollowNewPage: boolean` &mdash; Automatically switch the active page when the context opens a new page. Default `false`.
+- `newPageTimeout: number` &mdash; Timeout for `waitForNewPage`. Default `5000`.
+- `activePage: Page` &mdash; Current page controlled by the Browser Agent.
+- `pages()` &mdash; List pages from the bound browser context.
+- `newPage()` &mdash; Create a new page and make it active.
+- `setActivePage(page: Page)` &mdash; Explicitly set which Playwright page the Browser Agent controls next.
+- `waitForNewPage(action?, options?)` &mdash; Wait for a newly opened page without implicitly switching the active page.
+
+#### Examples
+
+<a id="web-quick-start"></a>
+
+**Quick start**
+
+```ts
+import { chromium } from 'playwright';
+import { PlaywrightAgent } from '@midscene/web/playwright';
+
+const browser = await chromium.launch({ headless: true });
+const page = await browser.newPage();
+await page.goto('https://www.ebay.com');
+
+const agent = new PlaywrightAgent(page);
+await agent.aiAct('search "Noise cancelling headphones" and wait for results');
+await agent.aiWaitFor('the results grid becomes visible');
+
+const price = await agent.aiNumber('price of the first headphone');
+console.log('first price', price);
+
+await agent.aiTap('click the first result card');
+await browser.close();
+```
+
+<a id="web-extend-playwright-tests-with-midscene-fixtures"></a>
+
+**Extend Playwright tests with Midscene fixtures**
+
+```ts
+// playwright.config.ts
+export default defineConfig({
+  reporter: [['list'], ['@midscene/web/playwright-reporter']],
+});
+
+// e2e/fixture.ts
+import { test as base } from '@playwright/test';
+import { PlaywrightAiFixture } from '@midscene/web/playwright';
+
+export const test = base.extend(
+  PlaywrightAiFixture({ waitForNetworkIdleTimeout: 1000 }),
+);
+
+// e2e/examples.spec.ts
+test('search flow', async ({ agentForPage, page }) => {
+  await page.goto('https://www.ebay.com');
+  const agent = await agentForPage(page);
+  await agent.aiAct('search "keyboard" and open first listing');
+  await agent.aiAssert('a product detail page is opened');
+});
+```
+
+The fixture accepts all `PlaywrightAgent` options, so you can configure shared agent behavior once at fixture creation time. Per-test metadata such as `testId`, `reportFileName`, `groupName`, and `groupDescription` remain fixture-managed.
+
+#### See also
+
+- [Integrate with Playwright](../integrate-with-playwright) for setup, fixtures, and advanced configuration.
+
+### Chrome Bridge Agent {#chrome-bridge-agent}
+
+Bridge Mode lets Midscene operate your currently active desktop Chrome tab through the extension instead of launching a dedicated automation browser.
+
+#### Import
+
+```ts
+import { AgentOverChromeBridge } from '@midscene/web/bridge-mode';
+```
+
+#### Constructor
+
+```ts
+const agent = new AgentOverChromeBridge({
+  allowRemoteAccess: false,
+  // other bridge options...
+});
+```
+
+#### Bridge options
+
+- `closeNewTabsAfterDisconnect?: boolean` &mdash; Close any bridge-created tabs when the agent is destroyed. Default `false`.
+- `allowRemoteAccess?: boolean` &mdash; Allow remote machines to attach. Defaults to `false` (binds to `127.0.0.1`).
+- `host?: string` &mdash; Override the interface for the bridge server. Takes precedence over `allowRemoteAccess`.
+- `port?: number` &mdash; TCP port for the bridge server. Default `3766`.
+
+See [Bridge Mode by Chrome extension](../bridge-mode#constructor) for full installation and capability details.
+
+#### Usage notes
+
+:::info
+
+Call `connectCurrentTab` or `connectNewTabWithUrl` before issuing other actions. Each `AgentOverChromeBridge` instance can only attach to one tab; create a new instance after `destroy`.
+
+:::
+
+#### Bridge methods
+
+<a id="web-connectcurrenttab"></a>
+
+**`connectCurrentTab()`**
+
+```ts
+function connectCurrentTab(options?: {
+  forceSameTabNavigation?: boolean;
+}): Promise<void>;
+```
+
+- `options.forceSameTabNavigation` (default `true`) intercepts new tabs and opens them in the current tab to simplify debugging; set to `false` if you want normal new-tab behavior (create a separate agent per tab).
+- Resolves on a successful handshake with the active tab; rejects if the extension is not allowed to connect.
+
+<a id="web-connectnewtabwithurl"></a>
+
+**`connectNewTabWithUrl()`**
+
+```ts
+function connectNewTabWithUrl(
+  url: string,
+  options?: { forceSameTabNavigation?: boolean },
+): Promise<void>;
+```
+
+- `url` &mdash; Address to open in a new desktop tab before attaching.
+- `options` &mdash; Same as `connectCurrentTab`.
+- Resolves when the new tab is opened and the bridge is connected.
+
+<a id="web-destroy"></a>
+
+**`destroy()`**
+
+```ts
+function destroy(closeNewTabsAfterDisconnect?: boolean): Promise<void>;
+```
+
+- `closeNewTabsAfterDisconnect` &mdash; Optional runtime override for the constructor setting; `true` closes bridge-created tabs on teardown.
+- Resolves after the bridge connection and local server are fully cleaned up.
+
+#### Examples
+
+<a id="web-open-a-new-desktop-tab"></a>
+
+**Open a new desktop tab**
+
+```ts
+import { AgentOverChromeBridge } from '@midscene/web/bridge-mode';
+
+const agent = new AgentOverChromeBridge();
+await agent.connectNewTabWithUrl('https://www.bing.com');
+
+await agent.ai('search "AI automation" and summarise first result');
+await agent.aiAssert('some search results show up');
+await agent.destroy();
+```
+
+<a id="web-attach-to-current-tab"></a>
+
+**Attach to current tab**
+
+```ts
+import { AgentOverChromeBridge } from '@midscene/web/bridge-mode';
+
+const agent = new AgentOverChromeBridge({
+  allowRemoteAccess: false,
+  closeNewTabsAfterDisconnect: true,
+});
+
+await agent.connectCurrentTab({ forceSameTabNavigation: true });
+await agent.aiAct('open Gmail and report how many unread emails are visible');
+await agent.destroy();
+```
+
+#### See also
+
+- [API reference (Common)](#interaction-methods) for shared agent methods.
+- [Bridge mode](../bridge-mode) for extension setup, command sequence, and YAML usage.
+
+## Android {#android}
+
+Use this doc when you need to customize Midscene's Android automation or review Android-only constructor options. For shared parameters (reporting, hooks, caching, etc.), see the platform-agnostic [API reference (Common)](#common).
+
+### Action Space
+
+`AndroidDevice` uses the following action space; the Midscene Agent can use these actions while planning tasks:
+
+- `Tap` &mdash; Tap an element.
+- `DoubleClick` &mdash; Double-tap an element.
+- `Input` &mdash; Enter text with `replace`/`typeOnly`/`clear` modes (`append` is a deprecated alias for `typeOnly`). Supports optional `autoDismissKeyboard` and `keyboardTypeDelay` parameters.
+- `Scroll` &mdash; Scroll from an element or screen center in any direction, with helpers to reach the top, bottom, left, or right.
+- `DragAndDrop` &mdash; Drag from one element to another.
+- `KeyboardPress` &mdash; Press a specified key.
+- `LongPress` &mdash; Long-press a target element with optional duration.
+- `PullGesture` &mdash; Pull up or down (e.g., to refresh) with optional distance and duration.
+- `Pinch` &mdash; Two-finger pinch gesture. Use `scale > 1` to zoom in, `scale < 1` to zoom out.
+- `ClearInput` &mdash; Clear the contents of an input field.
+- `Launch` &mdash; Open a web URL or `package/.Activity` string.
+- `Terminate` &mdash; Force-stop an app by package name.
+- `RunAdbShell` &mdash; Execute raw `adb shell` commands.
+- `AndroidBackButton` &mdash; Trigger the system back action.
+- `AndroidHomeButton` &mdash; Return to the home screen.
+- `AndroidRecentAppsButton` &mdash; Open the multitasking/recent apps view.
+
+### AndroidDevice {#androiddevice}
+
+Create a connection to an adb-managed device that an AndroidAgent can drive.
+
+#### Import
+
+```ts
+import {
+  AndroidDevice,
+  getConnectedDevices,
+  getConnectedDevicesWithDetails,
+} from '@midscene/android';
+```
+
+#### Constructor
+
+```ts
+const device = new AndroidDevice(deviceId, {
+  // device options...
+});
+```
+
+#### Device options
+
+- `deviceId: string` &mdash; Value returned by `adb devices` or `getConnectedDevices()`.
+- `autoDismissKeyboard?: boolean` &mdash; Automatically hide the keyboard after input. Default `true`.
+- `keyboardDismissStrategy?: 'esc-first' | 'back-first'` &mdash; Order for dismissing keyboards. Default `'esc-first'`.
+- `keyboardTypeDelay?: number` &mdash; Delay in milliseconds between keystrokes when typing text. When set, text is typed one character at a time with this delay between each character, instead of sending the whole string at once. Useful on devices or input fields that drop characters when input arrives too fast. Only applies to the `input text` path; ignored when yadb is used.
+- `androidAdbPath?: string` &mdash; Custom path to the adb executable.
+- `remoteAdbHost?: string` / `remoteAdbPort?: number` &mdash; Point to a remote adb server.
+- `imeStrategy?: 'always-yadb' | 'yadb-for-non-ascii'` &mdash; Choose when to invoke [yadb](https://github.com/ysbing/YADB) for text input. Default `'yadb-for-non-ascii'`.
+  - `'yadb-for-non-ascii'` (default) &mdash; Uses yadb for Unicode characters (including Latin Unicode like ö, é, ñ), Chinese, Japanese, and format specifiers (like %s, %d). Pure ASCII text uses the faster native `adb input text`.
+  - `'always-yadb'` &mdash; Always uses yadb for all text input, providing maximum compatibility but slightly slower for pure ASCII text.
+- `displayId?: number` &mdash; Target a specific virtual display if the device mirrors multiple displays.
+- `screenshotResizeScale?: number` &mdash; **Deprecated.** This option has been removed and no longer has any effect. Use `screenshotShrinkFactor` in `AgentOpt` instead to control screenshot size sent to the AI model.
+- `minScreenshotBufferSize?: number` &mdash; Screenshot buffer size validation threshold in bytes. Buffers below this value are treated as failed or corrupted captures. Default `1024` (1KB). Set to `0` to skip only this size check; Midscene still rejects empty buffers and invalid image formats.
+- `alwaysRefreshScreenInfo?: boolean` &mdash; Re-query rotation and screen size every step. Default `false`.
+- `scrcpyConfig?: object` &mdash; Scrcpy high-performance screenshot configuration, disabled by default. See [Scrcpy Screenshot Mode](#scrcpy) below.
+
+#### Scrcpy Screenshot Mode {#scrcpy}
+
+By default, Midscene captures screenshots via `adb shell screencap`, which takes ~500–2000ms per call. Enabling Scrcpy mode streams H.264 video from the device and captures frames in real time, reducing screenshot latency to approximately **100–200ms**.
+
+**How to enable:**
+
+```ts
+const device = new AndroidDevice(deviceId, {
+  scrcpyConfig: {
+    enabled: true,
+  },
+});
+```
+
+**Optional parameters:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `enabled` | `boolean` | `false` | Enable Scrcpy screenshots |
+| `maxSize` | `number` | `0` | Max video dimension (width or height). `0` = no scaling |
+| `videoBitRate` | `number` | `2000000` | H.264 encoding bitrate (bps) |
+| `idleTimeoutMs` | `number` | `30000` | Auto-disconnect after idle (ms). Set to `0` to disable |
+
+:::tip
+Scrcpy mode automatically falls back to ADB screenshots if the connection fails. Transient failures enter a five-second cooldown and the next screenshot retries Scrcpy after the cooldown, without recreating the `AndroidDevice`.
+:::
+
+Use `getScrcpyStatus()` when the caller needs to observe degraded capture, and `retryScrcpy()` to retry immediately instead of waiting for the cooldown:
+
+```ts
+const status = device.getScrcpyStatus();
+
+if (status.enabled && !status.connected && status.lastError) {
+  console.warn(status.lastError);
+  await device.retryScrcpy();
+}
+```
+
+`getScrcpyStatus()` returns `enabled`, `connected`, `lastError`, and `retryAfter`. Initialization errors include available output from the device-side Scrcpy server to make codec and media-stack failures diagnosable.
+
+#### Usage notes
+
+- Discover devices with `getConnectedDevices()`; the `udid` matches `adb devices`.
+- Supports remote adb via `remoteAdbHost/remoteAdbPort`; set `androidAdbPath` if adb is not on PATH.
+- Use `screenshotShrinkFactor` in `AgentOpt` to cut latency on high-DPI devices.
+
+#### Examples
+
+<a id="android-quick-start"></a>
+
+**Quick start**
+
+```ts
+import { AndroidAgent, AndroidDevice, getConnectedDevices } from '@midscene/android';
+
+const [first] = await getConnectedDevices();
+const device = new AndroidDevice(first.udid);
+await device.connect();
+
+const agent = new AndroidAgent(device, {
+  aiActionContext: 'If a permissions dialog appears, accept it.',
+});
+
+await agent.launch('https://www.ebay.com');
+await agent.aiAct('search "Headphones" and wait for results');
+const items = await agent.aiQuery(
+  '{itemTitle: string, price: number}[], find item in list and corresponding price',
+);
+console.log(items);
+```
+
+<a id="android-launch-native-packages"></a>
+
+**Launch native packages**
+
+```ts
+await agent.launch('com.android.settings/.Settings');
+await agent.back();
+await agent.home();
+```
+
+### AndroidAgent {#androidagent}
+
+Wire Midscene's AI planner to an AndroidDevice for UI automation.
+
+#### Import
+
+```ts
+import { AndroidAgent } from '@midscene/android';
+```
+
+#### Constructor
+
+```ts
+const agent = new AndroidAgent(device, {
+  // common agent options...
+});
+```
+
+#### Android-specific options
+
+- `customActions?: DeviceAction[]` &mdash; Extend planning with actions defined via `defineAction`.
+- `appNameMapping?: Record<string, string>` &mdash; Map friendly app names to package names. When you pass an app name to `launch(target)`, the agent will look up the package name in this mapping. If no mapping is found, it will attempt to launch `target` as-is. User-provided mappings take precedence over default mappings.
+- All other fields match [API constructors](#common-parameters): `generateReport`, `reportFileName`, `aiActionContext`, `modelConfig`, `cacheId`, `createOpenAIClient`, `onTaskStartTip`, and more.
+
+#### Usage notes
+
+:::info
+
+- Use one agent per device connection.
+- Android-only helpers such as `launch`, `terminate`, and `runAdbShell` are also exposed in YAML scripts. See [Android platform-specific actions](../automate-with-scripts-in-yaml#the-android-part).
+- For shared interaction methods, see [API reference (Common)](#interaction-methods).
+
+:::
+
+#### Android-specific methods
+
+<a id="android-agentlaunch"></a>
+
+**`agent.launch()`**
+
+Launch a web URL or native Android activity/package.
+
+```ts
+function launch(target: string): Promise<void>;
+```
+
+- `target: string` &mdash; Can be a web URL, a string in `package/.Activity` format (e.g., `com.android.settings/.Settings`), an app package name, or an app name. If you pass an app name and it exists in `appNameMapping`, it will be automatically resolved to the mapped package name; otherwise, `target` will be launched as-is.
+
+<a id="android-agentrunadbshell"></a>
+
+**`agent.runAdbShell()`**
+
+Run a raw `adb shell` command through the connected device. Pass only the shell command itself, without the `adb shell` prefix.
+
+```ts
+function runAdbShell(command: string, opt?: { timeout?: number }): Promise<string>;
+```
+
+- `command: string` &mdash; Command passed verbatim to `adb shell`. For example, use `input tap 100 200`, not `adb shell input tap 100 200`.
+- `opt.timeout?: number` &mdash; Optional command execution timeout in milliseconds.
+
+```ts
+const result = await agent.runAdbShell('dumpsys battery', { timeout: 60 * 1000 });
+console.log(result);
+
+await agent.runAdbShell('input tap 100 200');
+```
+
+<a id="android-agentterminate"></a>
+
+**`agent.terminate()`**
+
+Terminate (force-stop) a running Android app.
+
+```ts
+function terminate(uri: string): Promise<void>;
+```
+
+- `uri: string` &mdash; Package name, app name in `appNameMapping`, or `package/.Activity` (only the package part is used).
+
+```ts
+await agent.terminate('com.android.settings');
+```
+
+<a id="android-navigation-helpers"></a>
+
+**Navigation helpers**
+
+- `agent.back(): Promise<void>` &mdash; Trigger the Android system Back action.
+- `agent.home(): Promise<void>` &mdash; Return to the launcher.
+- `agent.recentApps(): Promise<void>` &mdash; Open the Recents/Overview screen.
+
+#### Helper utilities
+
+<a id="android-agentfromadbdevice"></a>
+
+**`agentFromAdbDevice()`**
+
+Create an `AndroidAgent` from any connected adb device.
+
+```ts
+function agentFromAdbDevice(
+  deviceId?: string,
+  opts?: PageAgentOpt & AndroidDeviceOpt,
+): Promise<AndroidAgent>;
+```
+
+- `deviceId?: string` &mdash; Connect to a specific device; omitted means “first available”.
+- `opts?: PageAgentOpt & AndroidDeviceOpt` &mdash; Agent options and [AndroidDevice](#androiddevice) settings. When you omit `deviceId`, Midscene discovers a device through adb. Set `androidAdbPath`, `remoteAdbHost`, and `remoteAdbPort` in `opts` to choose the adb configuration for device discovery and connection.
+
+<a id="android-getconnecteddevices"></a>
+
+**`getConnectedDevices()`**
+
+Enumerate adb devices Midscene can drive.
+
+```ts
+function getConnectedDevices(
+  deviceOptions?: AndroidDeviceOpt,
+): Promise<Array<{
+  udid: string;
+  state: string;
+  port?: number;
+}>>;
+```
+
+`deviceOptions` is optional. Omit it to use Midscene's default adb configuration. Set `androidAdbPath` to choose an adb executable, or set `remoteAdbHost` and `remoteAdbPort` to connect to a remote adb server:
+
+```ts
+const devices = await getConnectedDevices({
+  androidAdbPath: '/absolute/path/to/adb',
+  remoteAdbHost: '192.168.1.10',
+  remoteAdbPort: 5038,
+});
+```
+
+<a id="android-getconnecteddeviceswithdetails"></a>
+
+**`getConnectedDevicesWithDetails()`**
+
+This function works like `getConnectedDevices()` and also returns the device brand, model, resolution, and screen density. Unavailable fields are `undefined`.
+
+```ts
+function getConnectedDevicesWithDetails(
+  deviceOptions?: AndroidDeviceOpt,
+): Promise<Array<{
+  udid: string;
+  state: string;
+  port?: number;
+  model?: string;
+  brand?: string;
+  resolution?: string;
+  density?: number;
+}>>;
+```
+
+#### See also
+
+- [Android getting started](../platforms/android) for setup and scripting steps.
+
+## iOS {#ios}
+
+Use this doc when you need to customize iOS device behavior, wire Midscene into WebDriverAgent-driven workflows, or troubleshoot WDA requests. For shared constructor options (reporting, hooks, caching, etc.), see the platform-agnostic [API reference (Common)](#common).
+
+### Action Space
+
+`IOSDevice` uses the following action space; the Midscene Agent can use these actions while planning tasks:
+
+- `Tap` &mdash; Tap an element.
+- `DoubleClick` &mdash; Double-tap an element.
+- `Input` &mdash; Enter text with `replace`/`typeOnly`/`clear` modes (`append` is a deprecated alias for `typeOnly`). Supports optional `autoDismissKeyboard` and `keyboardTypeDelay` parameters.
+- `Scroll` &mdash; Scroll from an element or screen center in any direction, including scroll-to-top/bottom/left/right helpers.
+- `DragAndDrop` &mdash; Drag from one element to another.
+- `KeyboardPress` &mdash; Press a specified key.
+- `LongPress` &mdash; Long-press a target element with optional duration.
+- `Pinch` &mdash; Two-finger pinch gesture. Use `scale > 1` to zoom in, `scale < 1` to zoom out.
+- `ClearInput` &mdash; Clear the contents of an input field.
+- `Launch` &mdash; Open a URL, bundle identifier, or URL scheme.
+- `Terminate` &mdash; Close a running iOS app by its bundle identifier.
+- `RunWdaRequest` &mdash; Call WebDriverAgent REST endpoints directly.
+- `IOSHomeButton` &mdash; Trigger the iOS system Home action.
+- `IOSAppSwitcher` &mdash; Open the iOS multitasking view.
+
+### IOSDevice {#iosdevice}
+
+Create a WebDriverAgent-backed instance that an IOSAgent can drive.
+
+#### Import
+
+```ts
+import { IOSDevice } from '@midscene/ios';
+```
+
+#### Constructor
+
+```ts
+const device = new IOSDevice({
+  // device options...
+});
+```
+
+#### Device options
+
+- `wdaPort?: number` &mdash; WebDriverAgent port. Default `8100`.
+- `wdaHost?: string` &mdash; WebDriverAgent host. Default `'localhost'`.
+- `iOSDeviceClassOverride?: string` &mdash; Optional npm module path that replaces the default `IOSDevice` when using `agentFromWebDriverAgent()` or iOS Playground. The module must export an `IOSDevice` class or a default class.
+- `autoDismissKeyboard?: boolean` &mdash; Hide the keyboard after text input. Default `true`.
+- `keyboardTypeDelay?: number` &mdash; Per-character delay (ms) when typing text. When set, text is typed one character at a time with this delay between each character via WDA's `/wda/keys` endpoint. Useful when input fields drop characters under fast typing.
+- `customActions?: DeviceAction<any>[]` &mdash; Additional device actions exposed to the agent.
+
+#### Usage notes
+
+- Ensure Developer Mode is enabled and WDA can reach the device; use `iproxy` when forwarding ports from a real device.
+- Use `wdaHost`/`wdaPort` to target remote devices or custom WDA deployments.
+- For shared interaction methods, see [API reference (Common)](#interaction-methods).
+
+#### Examples
+
+<a id="ios-quick-start"></a>
+
+**Quick start**
+
+```ts
+import { IOSAgent, IOSDevice } from '@midscene/ios';
+
+const device = new IOSDevice({ wdaHost: 'localhost', wdaPort: 8100 });
+await device.connect();
+
+const agent = new IOSAgent(device, {
+  aiActionContext: 'If any permission dialog appears, accept it.',
+});
+
+await agent.launch('https://ebay.com');
+await agent.aiAct('Search for "Headphones"');
+const items = await agent.aiQuery(
+  '{itemTitle: string, price: Number}[], list headphone products',
+);
+console.log(items);
+```
+
+<a id="ios-custom-host-and-port"></a>
+
+**Custom host and port**
+
+```ts
+const device = new IOSDevice({
+  wdaHost: '192.168.1.100',
+  wdaPort: 8300,
+});
+await device.connect();
+```
+
+### IOSAgent {#iosagent}
+
+Wire Midscene's AI planner to an IOSDevice for UI automation over WebDriverAgent.
+
+#### Import
+
+```ts
+import { IOSAgent } from '@midscene/ios';
+```
+
+#### Constructor
+
+```ts
+const agent = new IOSAgent(device, {
+  // common agent options...
+});
+```
+
+#### iOS-specific options
+
+- `customActions?: DeviceAction<any>[]` &mdash; Extend planning with actions defined via `defineAction`.
+- `appNameMapping?: Record<string, string>` &mdash; Map friendly app names to bundle identifiers. When you pass an app name to `launch(target)` or `terminate(bundleId)`, the agent will look up the bundle ID in this mapping. If no mapping is found, it will attempt to use `target` as-is. User-provided mappings take precedence over default mappings.
+- All other fields match [API constructors](#common-parameters): `generateReport`, `reportFileName`, `aiActionContext`, `modelConfig`, `cacheId`, `createOpenAIClient`, `onTaskStartTip`, and more.
+
+#### Usage notes
+
+:::info
+
+- Use one agent per device connection.
+- iOS-only helpers such as `launch`, `terminate`, and `runWdaRequest` are also exposed in YAML scripts. See [iOS platform-specific actions](../automate-with-scripts-in-yaml#the-ios-part).
+- For shared interaction methods, see [API reference (Common)](#interaction-methods).
+
+:::
+
+#### iOS-specific methods
+
+<a id="ios-agentlaunch"></a>
+
+**`agent.launch()`**
+
+Launch a web URL, native application bundle, or custom scheme.
+
+```ts
+function launch(target: string): Promise<void>;
+```
+
+- `target: string` &mdash; Target address (web URL, Bundle Identifier, URL scheme, tel/mailto, etc.) or app name. If you pass an app name and it exists in `appNameMapping`, it will be automatically resolved to the mapped Bundle ID; otherwise, `target` will be launched as-is.
+
+```ts
+await agent.launch('https://www.apple.com');
+await agent.launch('com.apple.Preferences');
+await agent.launch('myapp://profile/user/123');
+await agent.launch('tel:+1234567890');
+```
+
+<a id="ios-agentterminate"></a>
+
+**`agent.terminate()`**
+
+Terminate (close) a running iOS app by its bundle ID.
+
+```ts
+function terminate(bundleId: string): Promise<void>;
+```
+
+- `bundleId: string` &mdash; The bundle identifier of the app to terminate (e.g. `com.apple.Preferences`). If you pass an app name and it exists in `appNameMapping`, it will be automatically resolved to the mapped Bundle ID.
+
+```ts
+await agent.terminate('com.apple.Preferences');
+await agent.terminate('com.apple.mobilesafari');
+```
+
+<a id="ios-agentrunwdarequest"></a>
+
+**`agent.runWdaRequest()`**
+
+Execute raw WebDriverAgent REST calls when you need low-level control.
+
+```ts
+function runWdaRequest(
+  method: string,
+  endpoint: string,
+  data?: Record<string, any>,
+): Promise<any>;
+```
+
+- `method: string` &mdash; HTTP verb (`GET`, `POST`, `DELETE`, etc.).
+- `endpoint: string` &mdash; WebDriverAgent endpoint path.
+- `data?: Record<string, any>` &mdash; Optional JSON body.
+
+```ts
+const screen = await agent.runWdaRequest('GET', '/wda/screen');
+await agent.runWdaRequest('POST', '/session/test/wda/pressButton', { name: 'home' });
+```
+
+<a id="ios-navigation-helpers"></a>
+
+**Navigation helpers**
+
+- `agent.home(): Promise<void>` &mdash; Return to the Home screen.
+- `agent.appSwitcher(): Promise<void>` &mdash; Reveal the multitasking view.
+
+#### Helper utilities
+
+<a id="agentfromwebdriveragent"></a>
+
+**`agentFromWebDriverAgent()`**
+
+Connect to WebDriverAgent and return a ready-to-use IOSAgent.
+
+```ts
+function agentFromWebDriverAgent(
+  opts?: PageAgentOpt & IOSDeviceOpt,
+): Promise<IOSAgent>;
+```
+
+- `opts?: PageAgentOpt & IOSDeviceOpt` &mdash; Combine common agent options with [`IOSDevice`](#iosdevice) settings.
+- Set `MIDSCENE_IOS_DEVICE_CLASS_OVERRIDE` to apply the same device class override through the environment. An explicit option takes precedence over the environment variable.
+
+```ts
+import { agentFromWebDriverAgent } from '@midscene/ios';
+
+const agent = await agentFromWebDriverAgent({
+  wdaHost: 'localhost',
+  wdaPort: 8100,
+  iOSDeviceClassOverride: '@your-scope/ios-device',
+  aiActionContext: 'Accept permission dialogs automatically.',
+});
+```
+
+#### Extending custom interaction actions
+
+Extend the Agent's action space by supplying `customActions` with handlers created via `defineAction`. These actions appear after the built-in ones and can be called during planning.
+
+```ts
+import { getMidsceneLocationSchema, z } from '@midscene/core';
+import { defineAction } from '@midscene/core/device';
+import { agentFromWebDriverAgent } from '@midscene/ios';
+
+const ContinuousClick = defineAction({
+  name: 'continuousClick',
+  description: 'Click the same target repeatedly',
+  paramSchema: z.object({
+    locate: getMidsceneLocationSchema(),
+    count: z.number().int().positive().describe('How many times to click'),
+  }),
+  async call({ locate, count }) {
+    console.log('click target center', locate.center);
+    console.log('click count', count);
+  },
+});
+
+const agent = await agentFromWebDriverAgent({
+  customActions: [ContinuousClick],
+});
+
+await agent.aiAct('Click the red button five times');
+```
+
+#### See also
+
+- [iOS getting started](../platforms/ios) for setup and scripting steps.
+- [Integrate with any interface](../integrate-with-any-interface#define-a-custom-action) for custom actions and schemas.
+
+## HarmonyOS {#harmonyos}
+
+When you need to customize device behavior, integrate Midscene into a framework, or troubleshoot HDC issues, refer to this section. For common constructor parameters (reports, hooks, caching, etc.), see the platform-agnostic [API Reference](#common).
+
+### Action Space
+
+`HarmonyDevice` uses the following action space. The Midscene Agent can use these operations when planning tasks:
+
+- `Tap` — Tap on an element.
+- `DoubleClick` — Double-tap on an element.
+- `Input` — Input text, supporting `replace`/`typeOnly`/`clear` modes.
+- `Scroll` — Scroll from an element or screen center in any direction, supporting scroll-to-top/bottom/left/right.
+- `DragAndDrop` — Drag from one element to another.
+- `KeyboardPress` — Press a specific key.
+- `LongPress` — Long-press a target element with optional custom duration.
+- `ClearInput` — Clear input field contents.
+- ~~`Pinch`~~ — Not supported. The HarmonyOS `uitest` framework does not provide multi-touch input APIs.
+- `Launch` — Open a HarmonyOS app (bundle name).
+- `Terminate` — Force-stop a HarmonyOS app by bundle name.
+- `RunHdcShell` — Execute a raw `hdc shell` command.
+- `HarmonyBackButton` — Trigger system back.
+- `HarmonyHomeButton` — Return to home screen.
+- `HarmonyRecentAppsButton` — Open recent apps / multitasking.
+
+### HarmonyDevice {#harmonydevice}
+
+Creates an HDC device instance that can be driven by HarmonyAgent.
+
+#### Import
+
+```ts
+import { HarmonyDevice, getConnectedDevices } from '@midscene/harmony';
+```
+
+#### Constructor
+
+```ts
+const device = new HarmonyDevice(deviceId, {
+  // device options...
+});
+```
+
+#### Device Options
+
+- `deviceId: string` — Value from `hdc list targets` or `getConnectedDevices()`.
+- `hdcPath?: string` — Custom path to the HDC executable. If not set, it searches `HDC_HOME` environment variable and common installation paths.
+- `autoDismissKeyboard?: boolean` — Automatically hide keyboard after input, default `true`.
+- `keyboardDismissStrategy?: 'esc-first' | 'back-first'` — Key preference for automatically hiding the keyboard, default `'esc-first'`. HarmonyOS sends the first key from the strategy only: `'esc-first'` sends ESC, while `'back-first'` sends Back.
+- `keyboardTypeDelay?: number` — Per-character delay (ms) when typing text. When set, text is typed one character at a time with this delay between each character via `uitest uiInput inputText`. Useful when input fields drop characters under fast typing.
+- `screenshotResizeScale?: number` — **Deprecated.** This option has been removed and no longer has any effect. Use `screenshotShrinkFactor` in `AgentOpt` instead to control screenshot size sent to the AI model.
+- `customActions?: DeviceAction[]` — Extend the planner's available actions via `defineAction`.
+
+#### Usage Notes
+
+- Use `getConnectedDevices()` to discover devices. The returned `deviceId` matches `hdc list targets` output.
+- If HDC is not in your system PATH, specify it via the `HDC_HOME` environment variable or the `hdcPath` option.
+
+#### Examples
+
+<a id="harmonyos-quick-start"></a>
+
+**Quick Start**
+
+```ts
+import { HarmonyAgent, HarmonyDevice, getConnectedDevices } from '@midscene/harmony';
+
+const [first] = await getConnectedDevices();
+const device = new HarmonyDevice(first.deviceId, {});
+await device.connect();
+
+const agent = new HarmonyAgent(device, {
+  aiActionContext: 'This is a HarmonyOS device. If any popup appears, agree to it.',
+});
+
+await agent.launch('com.huawei.hmos.settings');
+await agent.aiAct('scroll down one screen');
+const items = await agent.aiQuery(
+  'string[], list all visible setting item names',
+);
+console.log(items);
+```
+
+<a id="harmonyos-launch-apps"></a>
+
+**Launch Apps**
+
+```ts
+await agent.launch('com.huawei.hmos.settings'); // Open Settings
+await agent.launch('com.huawei.hmos.camera');    // Open Camera
+await agent.back();
+await agent.home();
+```
+
+### HarmonyAgent {#harmonyagent}
+
+Binds Midscene's AI planning capabilities to a HarmonyDevice for UI automation.
+
+#### Import
+
+```ts
+import { HarmonyAgent } from '@midscene/harmony';
+```
+
+#### Constructor
+
+```ts
+const agent = new HarmonyAgent(device, {
+  // common Agent options...
+});
+```
+
+#### HarmonyOS-Specific Options
+
+- `customActions?: DeviceAction[]` — Extend the planner's available actions via `defineAction`.
+- `appNameMapping?: Record<string, string>` — Map friendly app names to bundle names. When you pass an app name to `launch(target)`, the Agent looks up the corresponding bundle name in this mapping; if no mapping is found, it tries to launch `target` as-is.
+- Other fields are the same as [API constructors](#common-parameters): `generateReport`, `reportFileName`, `aiActionContext`, `modelConfig`, `cacheId`, `createOpenAIClient`, `onTaskStartTip`, etc.
+
+#### Usage Notes
+
+:::info
+
+- One device connection corresponds to one Agent.
+- HarmonyOS-specific helpers like `launch`, `terminate`, and `runHdcShell` can also be used in YAML scripts. See [HarmonyOS platform-specific actions](../automate-with-scripts-in-yaml#the-harmony-part).
+- For common interaction methods, see [API Reference (Common)](#interaction-methods).
+
+:::
+
+#### HarmonyOS-Specific Methods
+
+<a id="harmonyos-agentlaunch"></a>
+
+**`agent.launch()`**
+
+Launch a HarmonyOS app.
+
+```ts
+function launch(uri: string): Promise<void>;
+```
+
+- `uri: string` — Can be an app bundle name (e.g., `com.huawei.hmos.settings`), or an app name registered in `appNameMapping`. If a URL starting with `http://` or `https://` is passed, it opens via the browser.
+
+```ts
+await agent.launch('com.huawei.hmos.settings'); // Open Settings
+await agent.launch('com.huawei.hmos.camera');    // Open Camera
+```
+
+<a id="harmonyos-agentrunhdcshell"></a>
+
+**`agent.runHdcShell()`**
+
+Run a raw `hdc shell` command on the connected device.
+
+```ts
+function runHdcShell(command: string): Promise<string>;
+```
+
+- `command: string` — The command passed directly to `hdc shell`.
+
+```ts
+const result = await agent.runHdcShell('hidumper -s RenderService -a screen');
+console.log(result);
+```
+
+<a id="harmonyos-agentterminate"></a>
+
+**`agent.terminate()`**
+
+Terminate (force-stop) a running HarmonyOS app.
+
+```ts
+function terminate(uri: string): Promise<void>;
+```
+
+- `uri: string` — Bundle name, app name in `appNameMapping`, or `bundle/Ability` (only the bundle part is used).
+
+```ts
+await agent.terminate('com.huawei.hmos.settings');
+```
+
+<a id="harmonyos-navigation-helpers"></a>
+
+**Navigation Helpers**
+
+- `agent.back(): Promise<void>` — Trigger HarmonyOS system back.
+- `agent.home(): Promise<void>` — Return to home screen.
+- `agent.recentApps(): Promise<void>` — Open recent apps / multitasking.
+
+#### Utilities
+
+<a id="harmonyos-agentfromhdcdevice"></a>
+
+**`agentFromHdcDevice()`**
+
+Create a `HarmonyAgent` from any connected HDC device.
+
+```ts
+function agentFromHdcDevice(
+  deviceId?: string,
+  opts?: HarmonyAgentOpt & HarmonyDeviceOpt,
+): Promise<HarmonyAgent>;
+```
+
+- `deviceId?: string` — Connect to a specific device; leave empty for "first available device".
+- `opts?: HarmonyAgentOpt & HarmonyDeviceOpt` — Merge Agent options and [`HarmonyDevice`](#harmonydevice) settings in a single object.
+
+```ts
+import { agentFromHdcDevice } from '@midscene/harmony';
+
+const agent = await agentFromHdcDevice('0123456789ABCDEF'); // specific device
+const agent = await agentFromHdcDevice(); // first available device
+```
+
+<a id="harmonyos-getconnecteddevices"></a>
+
+**`getConnectedDevices()`**
+
+List HDC devices that Midscene can drive.
+
+```ts
+function getConnectedDevices(
+  hdcPath?: string,
+): Promise<Array<{ deviceId: string }>>;
+```
+
+```ts
+import { getConnectedDevices } from '@midscene/harmony';
+
+const devices = await getConnectedDevices();
+console.log(devices); // [{ deviceId: '0123456789ABCDEF' }]
+```
+
+#### Related Reading
+
+- [HarmonyOS Getting Started](../platforms/harmonyos) for setup and script examples.
+
+## Desktop {#desktop}
+
+This page documents the PC desktop-specific APIs provided by `@midscene/computer`.
+
+For common APIs that work across all platforms, see [Common API Reference](#common).
+
+### Agent Creation
+
+`agentForComputer(opts?): Promise<ComputerAgent>`
+
+Create an agent for local desktop automation.
+
+> Backward compatibility: `agentFromComputer` is still available as an alias.
+
+`agentForRDPComputer(opts): Promise<ComputerAgent<RDPDevice>>`
+
+Create an agent for remote Windows desktop automation over RDP.
+
+**Parameters:**
+
+```typescript
+interface BaseComputerAgentOpt {
+  // Agent options (inherited from AgentOpt)
+  aiActionContext?: string;
+  cache?: boolean;
+  // ... other AgentOpt properties
+
+  customActions?: DeviceAction<any>[];
+  keyboardTypeDelay?: number;
+}
+
+interface LocalComputerAgentOpt extends BaseComputerAgentOpt {
+
+  // Local desktop options
+  displayId?: string;
+  headless?: boolean;
+  xvfbResolution?: string;
+}
+
+interface RDPComputerAgentOpt extends BaseComputerAgentOpt {
+  host: string;
+  port?: number;
+  username?: string;
+  password?: string;
+  domain?: string;
+  adminSession?: boolean;
+  ignoreCertificate?: boolean;
+  securityProtocol?: 'auto' | 'tls' | 'nla' | 'rdp';
+  desktopWidth?: number;
+  desktopHeight?: number;
+}
+```
+
+#### Local Desktop Options
+
+- `displayId` (optional): Specify which display to control. Get available displays with `ComputerDevice.listDisplays()`.
+- `customActions` (optional): Add custom actions to the device.
+- `headless` (optional, Linux only): Set to `true` to start a virtual display via [Xvfb](https://www.x.org/releases/X11R7.6/doc/man/man1/Xvfb.1.xhtml), enabling desktop automation on headless Linux servers and CI environments without a physical display. Can also be set via the `MIDSCENE_COMPUTER_HEADLESS_LINUX=true` environment variable.
+- `xvfbResolution` (optional): Resolution for the Xvfb virtual display. Defaults to `'1920x1080x24'`.
+
+#### Keyboard Input Options
+
+- `keyboardTypeDelay` (optional): Minimum delay in milliseconds between keystrokes. A positive value makes local and RDP Computer agents emit text one Unicode character at a time instead of using the default burst input. Local Computer uses real key events; when this option is omitted or set to `0`, it keeps using clipboard paste to avoid interference from the active IME. An action-level `keyboardTypeDelay` passed to `aiInput()` overrides this agent-level default, including `0` to restore clipboard input for one action.
+
+The agent-level option also applies to `Input` actions generated by `agent.ai()`, so the prompt does not need to call `aiInput()` explicitly:
+
+```typescript
+const agent = await agentForComputer({ keyboardTypeDelay: 80 });
+
+await agent.ai('Type the account details into the form');
+
+// Override the default for one deterministic input action.
+await agent.aiInput('the notes field', {
+  value: 'Pasted as one value',
+  keyboardTypeDelay: 0,
+});
+```
+
+#### RDP Options
+
+- `host`: Remote Windows host or IP.
+- `port`: RDP port. Defaults to `3389`.
+- `username` / `password`: Credentials for the remote session.
+- `domain`: Optional Windows domain.
+- `adminSession`: Request the remote admin session when the server allows it.
+- `ignoreCertificate`: Skip certificate validation for self-signed setups.
+- `securityProtocol`: Choose `'auto'`, `'tls'`, `'nla'`, or `'rdp'`.
+- `desktopWidth` / `desktopHeight`: Request a specific remote desktop resolution.
+
+:::tip Example: Testing Electron Apps on Headless Linux CI
+A complete demo of testing [Obsidian](https://obsidian.md/) (an Electron app) on headless Linux CI with `@midscene/computer`: [https://github.com/web-infra-dev/midscene-example/tree/main/computer/electron-demo](https://github.com/web-infra-dev/midscene-example/tree/main/computer/electron-demo)
+:::
+
+**Example:**
+
+```typescript
+import { agentForComputer } from '@midscene/computer';
+
+// Connect to primary display
+const agent = await agentForComputer({
+  aiActionContext: 'You are automating a desktop application.',
+});
+
+// Connect to specific display
+const displays = await ComputerDevice.listDisplays();
+const agent2 = await agentForComputer({
+  displayId: displays[1].id,
+});
+```
+
+**Example: connect to a remote Windows desktop over RDP**
+
+```typescript
+import { agentForRDPComputer } from '@midscene/computer';
+
+const agent = await agentForRDPComputer({
+  aiActionContext:
+    'You are controlling a remote Windows desktop over the RDP protocol.',
+  host: '10.75.166.249',
+  port: 3389,
+  username: 'Admin',
+  password: 'replace-with-your-password',
+  // Optional: bind the TCP connection to this local source IP.
+  localAddress: '10.75.166.10',
+  ignoreCertificate: true,
+});
+
+await agent.aiWaitFor('The remote Windows desktop is visible');
+await agent.aiAct('Click the Windows Start button');
+await agent.aiAct('Open Settings');
+```
+
+:::tip Example: Remote Windows desktop over RDP
+A runnable demo that connects to a remote Windows machine over RDP, opens Settings, navigates into Windows Update, and emits a structured report: [https://github.com/web-infra-dev/midscene-example/tree/main/computer/rdp-demo](https://github.com/web-infra-dev/midscene-example/tree/main/computer/rdp-demo)
+:::
+
+Use `localAddress` only when the machine running Midscene has multiple outbound
+routes and the RDP server must be reached from a specific local source IP. Pass
+an IP address, not a network interface name.
+
+### Device Management
+
+`ComputerDevice.listDisplays(): Promise<DisplayInfo[]>`
+
+List all available displays.
+
+**Returns:**
+
+```typescript
+interface DisplayInfo {
+  id: string;
+  name: string;
+  primary?: boolean;
+}
+```
+
+**Example:**
+
+```typescript
+import { ComputerDevice } from '@midscene/computer';
+
+const displays = await ComputerDevice.listDisplays();
+console.log('Available displays:', displays);
+// [
+//   { id: '0', name: 'Built-in Display', primary: true },
+//   { id: '1', name: 'External Display', primary: false }
+// ]
+```
+
+`checkComputerEnvironment(): Promise<EnvironmentCheck>`
+
+Check if the computer environment is properly configured.
+
+**Returns:**
+
+```typescript
+interface EnvironmentCheck {
+  available: boolean;
+  error?: string;
+  platform: string;
+  displays: number;
+}
+```
+
+**Example:**
+
+```typescript
+import { checkComputerEnvironment } from '@midscene/computer';
+
+const env = await checkComputerEnvironment();
+console.log('Environment check:', env);
+
+if (!env.available) {
+  console.error('Environment error:', env.error);
+}
+```
+
+### ComputerAgent
+
+The `ComputerAgent` class extends `PageAgent<ComputerDevice>` and inherits all common agent methods:
+
+- `aiAct(action: string)`: Perform an action with AI
+- `aiQuery(query: string)`: Extract information with AI
+- `aiAssert(assertion: string)`: Assert a condition with AI
+- `aiWaitFor(condition: string)`: Wait for a condition
+- `aiLocate(description: string)`: Locate an element
+- And more...
+
+Instant actions are also available for direct, deterministic control once an element is located:
+
+- `aiTap()`, `aiDoubleClick()`, `aiRightClick()`, `aiHover()`: Mouse actions
+- `aiInput()`, `aiClearInput()`, `aiKeyboardPress()`: Keyboard actions
+- `aiScroll()`: Scroll action
+
+See [Common API Reference](#common) for details.
+
+### Available Actions
+
+The `ComputerDevice` supports the following actions:
+
+#### Mouse Actions
+
+<a id="desktop-tap-click"></a>
+
+**Tap (Click)**
+
+Single click at the target location.
+
+```typescript
+await agent.aiAct('click on the File menu');
+await agent.aiAct('click at center of screen');
+```
+
+<a id="desktop-doubleclick"></a>
+
+**DoubleClick**
+
+Double-click at the target location.
+
+```typescript
+await agent.aiAct('double-click on the desktop icon');
+```
+
+<a id="desktop-rightclick"></a>
+
+**RightClick**
+
+Right-click to open context menu.
+
+```typescript
+await agent.aiAct('right-click on the desktop');
+await agent.aiAct('right-click on the file');
+```
+
+<a id="desktop-mousemove-hover"></a>
+
+**MouseMove (Hover)**
+
+Move the mouse to an element — also known as hovering — for example to reveal a hover menu or tooltip.
+
+```typescript
+// Natural-language form (move mouse / hover)
+await agent.aiAct('move mouse to the menu item');
+
+// Instant action: locate and hover in one call
+await agent.aiHover('the menu item "Products"');
+```
+
+<a id="desktop-draganddrop"></a>
+
+**DragAndDrop**
+
+Drag from one location and drop at another.
+
+```typescript
+await agent.aiAct('drag the file to the folder');
+```
+
+#### Keyboard Actions
+
+<a id="desktop-keyboardpress"></a>
+
+**KeyboardPress**
+
+Press keyboard keys with optional modifiers.
+
+**Supported keys:**
+- Regular keys: `a-z`, `0-9`, `Enter`, `Escape`, `Space`, `Tab`, etc.
+- Arrow keys: `ArrowUp`, `ArrowDown`, `ArrowLeft`, `ArrowRight`
+- Function keys: `F1`-`F12`
+- Modifiers: `Command`/`Cmd` (macOS), `Control`/`Ctrl`, `Alt`, `Shift`, `Win` (Windows)
+- Media keys: `VolumeUp`, `VolumeDown`, `Mute`, etc.
+
+**Examples:**
+
+```typescript
+// Simple key press
+await agent.aiAct('press Enter');
+await agent.aiAct('press Escape');
+
+// Key combinations (platform-specific)
+if (process.platform === 'darwin') {
+  // macOS
+  await agent.aiAct('press Cmd+Space');  // Open Spotlight
+  await agent.aiAct('press Cmd+Tab');    // App switcher
+  await agent.aiAct('press Cmd+C');      // Copy
+  await agent.aiAct('press Cmd+V');      // Paste
+} else {
+  // Windows/Linux
+  await agent.aiAct('press Windows key'); // Start menu
+  await agent.aiAct('press Alt+Tab');     // App switcher
+  await agent.aiAct('press Ctrl+C');      // Copy
+  await agent.aiAct('press Ctrl+V');      // Paste
+}
+
+// Arrow keys
+await agent.aiAct('press ArrowDown');
+await agent.aiAct('press ArrowUp');
+
+// Function keys
+await agent.aiAct('press F5');  // Refresh
+```
+
+<a id="desktop-input"></a>
+
+**Input**
+
+Type text into an input field.
+
+```typescript
+await agent.aiAct('type "Hello World" in the search box');
+await agent.aiAct('type "my-document.txt"');
+```
+
+<a id="desktop-clearinput"></a>
+
+**ClearInput**
+
+Clear the content of an input field.
+
+```typescript
+await agent.aiAct('clear the text field');
+```
+
+#### Scroll Actions
+
+Scroll the screen or a specific area.
+
+```typescript
+// Scroll directions
+await agent.aiAct('scroll down');
+await agent.aiAct('scroll up');
+await agent.aiAct('scroll left');
+await agent.aiAct('scroll right');
+
+// Scroll to positions
+await agent.aiAct('scroll to top');
+await agent.aiAct('scroll to bottom');
+```
+
+#### Display Actions
+
+<a id="desktop-listdisplays"></a>
+
+**ListDisplays**
+
+Get information about all connected displays.
+
+```typescript
+const displays = await ComputerDevice.listDisplays();
+```
+
+When you use RDP, `ListDisplays` returns the current remote session as a single display.
+
+### Examples
+
+#### Open Application and Navigate
+
+```typescript
+import { agentForComputer } from '@midscene/computer';
+
+const agent = await agentForComputer();
+
+// Open application
+if (process.platform === 'darwin') {
+  await agent.aiAct('press Cmd+Space');
+  await agent.aiAct('type "TextEdit" and press Enter');
+} else {
+  await agent.aiAct('press Windows key');
+  await agent.aiAct('type "Notepad" and press Enter');
+}
+
+await agent.aiWaitFor('text editor window is visible');
+
+// Type content
+await agent.aiAct('type "Hello, Midscene!"');
+
+// Save file
+if (process.platform === 'darwin') {
+  await agent.aiAct('press Cmd+S');
+} else {
+  await agent.aiAct('press Ctrl+S');
+}
+```
+
+#### Multi-Display Workflow
+
+```typescript
+import { ComputerDevice, agentForComputer } from '@midscene/computer';
+
+// List displays
+const displays = await ComputerDevice.listDisplays();
+console.log(`Found ${displays.length} displays`);
+
+// Control primary display
+const agent1 = await agentForComputer({
+  displayId: displays[0].id,
+});
+await agent1.aiAct('move mouse to center of screen');
+
+// Control secondary display
+if (displays.length > 1) {
+  const agent2 = await agentForComputer({
+    displayId: displays[1].id,
+  });
+  await agent2.aiAct('move mouse to center of screen');
+}
+```
+
+#### Web Browser Automation
+
+```typescript
+import { agentForComputer } from '@midscene/computer';
+
+const agent = await agentForComputer();
+
+// Open browser
+if (process.platform === 'darwin') {
+  await agent.aiAct('press Cmd+Space');
+  await agent.aiAct('type "Safari" and press Enter');
+} else {
+  await agent.aiAct('press Windows key');
+  await agent.aiAct('type "Chrome" and press Enter');
+}
+
+await agent.aiWaitFor('browser window is open');
+
+// Navigate
+await agent.aiAct('click on address bar');
+await agent.aiAct('type "example.com" and press Enter');
+await agent.aiWaitFor('page has loaded');
+
+// Extract information
+const title = await agent.aiQuery('string, get the page title');
+console.log('Page title:', title);
+```
+
+### TypeScript Types
+
+```typescript
+import type {
+  ComputerAgent,
+  ComputerAgentOpt,
+  ComputerDevice,
+  ComputerDeviceOpt,
+  DisplayInfo,
+  EnvironmentCheck,
+} from '@midscene/computer';
+```
+
+### See Also
+
+- [Common API Reference](#common) - APIs that work across all platforms
+- [Model Configuration](../model-config) - Configure AI models
+- [Caching](../caching) - Improve performance with caching

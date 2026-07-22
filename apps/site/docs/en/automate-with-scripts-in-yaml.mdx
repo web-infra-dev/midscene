@@ -274,7 +274,7 @@ android:
 
 :::tip View Complete Android Configuration Options
 
-YAML scripts now support all configuration options from the `AndroidDevice` constructor. For the complete list of options, please refer to [AndroidDevice Constructor in Android Integration Documentation](./android-getting-started#androiddevice-constructor).
+YAML scripts now support all configuration options from the `AndroidDevice` constructor. For the complete list of options, see [`AndroidDevice`](./reference/#androiddevice) in the Android API reference.
 
 :::
 
@@ -375,7 +375,7 @@ ios:
 
 :::tip View Complete iOS Configuration Options
 
-YAML scripts now support all configuration options from the `IOSDevice` constructor. For the complete list of options, please refer to [IOSDevice constructor in the iOS API reference](./ios-api-reference#iosdevice-constructor).
+YAML scripts now support all configuration options from the `IOSDevice` constructor. For the complete list of options, see [`IOSDevice`](./reference/#iosdevice) in the iOS API reference.
 
 :::
 
@@ -569,7 +569,7 @@ The demo scripts above use macOS commands. For Windows, modify the scripts to us
 
 The `tasks` part is an array that defines the steps of the script. Remember to add a `-` before each step to indicate it's an array item.
 
-The interfaces in the `flow` section are almost identical to the [API](./api.html), with some differences in parameter nesting levels.
+The interfaces in the `flow` section are almost identical to the [API](./reference/#common), with some differences in parameter nesting levels.
 
 ```yaml
 tasks:
@@ -733,7 +733,7 @@ Notes:
 
 #### Prompting with images
 
-For steps whose prompt accepts images, you can attach images to the prompt by setting the `images` field to an array of objects, each containing a `name` and a `url`. (see the [API reference](./api#prompting-with-images)), replace the string value with an object that contains:
+For steps whose prompt accepts images, you can attach images to the prompt by setting the `images` field to an array of objects, each containing a `name` and a `url`. (see the [API reference](./reference/#prompting-with-images)), replace the string value with an object that contains:
 
 - `prompt`: The text prompt.
 - `images`: (Optional) The reference images used in the prompt. Each image needs a `name` and a `url`.

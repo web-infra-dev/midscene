@@ -1,10 +1,34 @@
-import StartExperience from './common/start-experience.mdx';
-import SetupEnv from './common/setup-env.mdx';
-import PrepareIOS from './common/prepare-ios.mdx';
+import StartExperience from '../common/start-experience.mdx';
+import SetupEnv from '../common/setup-env.mdx';
+import PrepareIOS from '../common/prepare-ios.mdx';
+import ShowcaseIOS from '../showcases-ios.mdx';
 
 import { PackageManagerTabs } from '@theme';
 
-# iOS getting started
+# iOS
+
+Midscene uses WebDriverAgent to automate iOS devices.
+
+## Showcases
+
+<ShowcaseIOS />
+
+See more [Midscene showcases](../showcases.mdx).
+
+## WebDriverAgent
+
+WebDriver is a W3C standard protocol for browser automation. It provides a common API for controlling browsers and applications. The protocol defines how clients and servers communicate, which allows automation tools to control interfaces across platforms.
+
+The Appium team and other open source communities maintain tools that expose desktop and mobile automation through WebDriver. These tools include:
+
+- **Appium**: a cross-platform mobile automation framework.
+- **WebDriverAgent**: a service for iOS device automation.
+- **Selenium**: a Web browser automation tool.
+- **WinAppDriver**: a Windows application automation tool.
+
+Midscene supports the WebDriver protocol. You can use AI models to automate any compatible device. Midscene can understand interface context, perform multistep operations, validate results, and extract data in addition to clicking and typing.
+
+On iOS, Midscene connects through WebDriverAgent. You can then use natural-language instructions to control iOS apps and system interfaces.
 
 This guide walks you through everything required to automate an iOS device with Midscene: connect a real phone through WebDriverAgent, configure model credentials, try the no-code Playground, and run your first JavaScript script.
 
@@ -32,7 +56,7 @@ Playground is the fastest way to validate the connection and observe AI-driven s
 npx --yes @midscene/ios-playground
 ```
 
-2. Click the gear button to enter the configuration page and paste your API key config. Refer back to [Model configuration](./model-config) if you still need credentials.
+2. Click the gear button to enter the configuration page and paste your API key config. Refer back to [Model configuration](../model-config) if you still need credentials.
 
 ![](/ios-set-env.png)
 
@@ -121,7 +145,7 @@ Successful runs print `Midscene - report file updated: /path/to/report/some_id.h
 
 ## API reference and more resources
 
-Looking for constructors, helper methods, and platform-only device APIs? See the dedicated [iOS API reference](./ios-api-reference) for detailed parameter lists plus advanced topics like custom actions. For API surfaces shared across platforms, head to the [common API reference](./api).
+For constructors, helper methods, and platform-specific device APIs, see the [iOS section of the API reference](../reference/#ios). It includes detailed parameter lists and advanced topics such as custom actions. For APIs shared across platforms, see the [Common section](../reference/#common).
 
 ## FAQ
 
@@ -185,8 +209,9 @@ Playground automatically probes port 9100 on startup. If available, the log will
 
 ## More
 
-- For every Agent method, check the [API reference (Common)](./api#interaction-methods).
-- For the iOS API reference, see [iOS Agent API](./ios-api-reference).
+- For every Agent method, check the [API reference (Common)](../reference/#interaction-methods).
+- For iOS-specific APIs, see [API reference (iOS)](../reference/#ios).
+- Use [YAML automation scripts and command-line tools](../automate-with-scripts-in-yaml).
 - Demo projects
   - iOS JavaScript SDK demo: [https://github.com/web-infra-dev/midscene-example/blob/main/ios/javascript-sdk-demo](https://github.com/web-infra-dev/midscene-example/blob/main/ios/javascript-sdk-demo)
   - iOS + Vitest demo: [https://github.com/web-infra-dev/midscene-example/tree/main/ios/vitest-demo](https://github.com/web-infra-dev/midscene-example/tree/main/ios/vitest-demo)

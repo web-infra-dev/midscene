@@ -1,9 +1,18 @@
-import StartExperience from './common/start-experience.mdx';
-import SetupEnv from './common/setup-env.mdx';
+import StartExperience from '../common/start-experience.mdx';
+import SetupEnv from '../common/setup-env.mdx';
+import ShowcaseHarmony from '../showcases-harmony.mdx';
 
 import { PackageManagerTabs } from '@theme';
 
-# HarmonyOS Getting Started
+# HarmonyOS
+
+Midscene drives HarmonyOS Device Connector (HDC) to automate HarmonyOS NEXT devices.
+
+## Showcases
+
+<ShowcaseHarmony />
+
+See more [Midscene showcases](../showcases.mdx).
 
 This guide walks you through everything needed to automate HarmonyOS devices with Midscene: connecting a real device via HDC, configuring model API keys, trying the zero-code Playground, and running your first JavaScript script.
 
@@ -74,7 +83,7 @@ Playground is the fastest way to verify your connection and observe the AI Agent
 npx --yes @midscene/harmony-playground
 ```
 
-2. Click the gear button in the Playground window and paste your API Key configuration. If you don't have an API Key yet, go back to [Model Configuration](./model-config) to get one.
+2. Click the gear button in the Playground window and paste your API Key configuration. If you don't have an API Key yet, go back to [Model Configuration](../model-config) to get one.
 
 ## Start Your Experience
 
@@ -143,7 +152,7 @@ After a successful run, the console outputs `Midscene - report file updated: /pa
 
 ## Advanced
 
-When you need to customize device behavior, integrate Midscene into a standalone framework, or troubleshoot HDC issues, refer to this section. See [API Reference (HarmonyOS)](./harmony-api-reference) for more constructor parameters.
+Use this section to customize device behavior, integrate Midscene into a standalone framework, or troubleshoot HDC issues. See the [HarmonyOS section of the API reference](../reference/#harmonyos) for more constructor parameters.
 
 ### Extending Midscene on HarmonyOS
 
@@ -179,12 +188,13 @@ const agent = new HarmonyAgent(device, {
 await agent.aiAct('click the red button five times');
 ```
 
-For more details on custom actions and action schemas, see [Integrate with Any Interface](./integrate-with-any-interface#define-a-custom-action).
+For more details on custom actions and action schemas, see [Integrate with Any Interface](../integrate-with-any-interface#define-a-custom-action).
 
 ## More
 
-- View all Agent methods: [API Reference (Common)](./api#interaction-methods)
-- HarmonyOS-specific parameters and interfaces: [HarmonyOS Agent API](./harmony-api-reference)
+- View all Agent methods: [API Reference (Common)](../reference/#interaction-methods)
+- HarmonyOS-specific parameters and interfaces: [API reference (HarmonyOS)](../reference/#harmonyos)
+- Use [YAML automation scripts and command-line tools](../automate-with-scripts-in-yaml).
 - Demo projects
   - HarmonyOS JavaScript SDK demo: [https://github.com/web-infra-dev/midscene-example/blob/main/harmony/javascript-sdk-demo](https://github.com/web-infra-dev/midscene-example/blob/main/harmony/javascript-sdk-demo)
   - HarmonyOS + Vitest demo: [https://github.com/web-infra-dev/midscene-example/tree/main/harmony/vitest-demo](https://github.com/web-infra-dev/midscene-example/tree/main/harmony/vitest-demo)
