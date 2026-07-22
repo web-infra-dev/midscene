@@ -685,6 +685,33 @@ describe('runToolsCLI', () => {
     consoleSpy.mockRestore();
   });
 
+  it('emits readable progress for observe without an explicit verbose flag', async () => {
+    const handler = vi.fn().mockResolvedValue({
+      content: [{ type: 'text', text: 'Observation passed' }],
+      isError: false,
+    });
+    const tools = createMockTools([{ name: 'observe', handler }]);
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+    await runToolsCLI(tools, 'test-cli', {
+      argv: [
+        'observe',
+        '--action',
+        'click Submit',
+        '--prompt',
+        'a success toast appeared',
+      ],
+    });
+
+    const messages = consoleSpy.mock.calls.map(([message]) => String(message));
+    expect(messages).toEqual([
+      '[Midscene] observe started (action=click Submit, prompt=a success toast appeared)',
+      'Observation passed',
+      expect.stringMatching(/^\[Midscene\] observe finished in \d+ms$/),
+    ]);
+    consoleSpy.mockRestore();
+  });
+
   it('preserves structured command args in jsonl verbose progress events', async () => {
     const handler = vi.fn().mockResolvedValue({
       content: [{ type: 'text', text: 'Tapped' }],
@@ -873,6 +900,46 @@ describe('runToolsCLI', () => {
 
     expect(handler).not.toHaveBeenCalled();
     expect(consoleSpy).toHaveBeenCalled();
+    consoleSpy.mockRestore();
+  });
+
+  it('lists behavior flags only once in observe command help', async () => {
+    const tools = {
+      initTools: vi.fn().mockResolvedValue(undefined),
+      destroy: vi.fn().mockResolvedValue(undefined),
+      getToolDefinitions: vi.fn().mockReturnValue([
+        {
+          name: 'observe',
+          description: 'observe command',
+          schema: {
+            deepLocate: z.boolean().optional(),
+            deepThink: z.boolean().optional(),
+          },
+          cli: {
+            options: {
+              deepLocate: { preferredName: 'deep-locate' },
+              deepThink: { preferredName: 'deep-think' },
+            },
+          },
+          handler: vi.fn(),
+        },
+      ]),
+    } as any;
+    const lines: string[] = [];
+    const consoleSpy = vi
+      .spyOn(console, 'log')
+      .mockImplementation((...args: unknown[]) => {
+        lines.push(args.map(String).join(' '));
+      });
+
+    await runToolsCLI(tools, 'test-cli', {
+      argv: ['observe', '--help'],
+    });
+
+    const output = lines.join('\n');
+    expect(output.match(/^\s+--deep-locate\b/gm)).toHaveLength(1);
+    expect(output.match(/^\s+--deep-think\b/gm)).toHaveLength(1);
+    expect(output).toContain('Global Options:');
     consoleSpy.mockRestore();
   });
 

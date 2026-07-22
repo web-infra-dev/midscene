@@ -546,6 +546,48 @@ function mergeToolCliMetadata(
   return Object.keys(options).length > 0 ? { options } : undefined;
 }
 
+const observeCliMetadata: ToolCliMetadata = {
+  options: {
+    intervalMs: {
+      preferredName: 'interval-ms',
+      aliases: ['intervalMs'],
+    },
+    maxFrames: {
+      preferredName: 'max-frames',
+      aliases: ['maxFrames'],
+    },
+    watchdogMs: {
+      preferredName: 'watchdog-ms',
+      aliases: ['watchdogMs'],
+    },
+    deepLocate: {
+      preferredName: 'deep-locate',
+      aliases: ['deepLocate'],
+    },
+    deepThink: {
+      preferredName: 'deep-think',
+      aliases: ['deepThink'],
+    },
+  },
+};
+
+function buildActOptions(
+  args: Record<string, unknown>,
+  toolDefaults: ToolDefaults,
+): Record<string, unknown> {
+  const actOptions: Record<string, unknown> = {
+    deepThink: false,
+    ...toolDefaults.act,
+  };
+  if (args.deepLocate !== undefined) {
+    actOptions.deepLocate = args.deepLocate;
+  }
+  if (args.deepThink !== undefined) {
+    actOptions.deepThink = args.deepThink;
+  }
+  return actOptions;
+}
+
 /**
  * Converts DeviceAction from actionSpace into ToolDefinition.
  * This is the core logic that removes need for hardcoded tool definitions
@@ -732,18 +774,7 @@ export function generateCommonTools(
             toolName: 'act',
           });
           try {
-            // Start from the act defaults (deepThink off), overlay the server
-            // tool defaults, then let explicit per-call args win.
-            const actOptions: Record<string, unknown> = {
-              deepThink: false,
-              ...toolDefaults.act,
-            };
-            if (args.deepLocate !== undefined) {
-              actOptions.deepLocate = args.deepLocate;
-            }
-            if (args.deepThink !== undefined) {
-              actOptions.deepThink = args.deepThink;
-            }
+            const actOptions = buildActOptions(args, toolDefaults);
             const result = await agent.aiAction(prompt, actOptions);
             return await captureScreenshotResult(agent, 'act', result);
           } finally {
@@ -753,6 +784,129 @@ export function generateCommonTools(
           const errorMessage = getErrorMessage(error);
           console.error('Error executing act:', errorMessage);
           return createErrorResult(`Failed to execute act: ${errorMessage}`);
+        }
+      },
+    },
+    {
+      name: 'observe',
+      description:
+        'Observe the page/screen while executing a natural language action, then assert against the full captured time window. Use this for transient UI such as toasts, banners, and transitions that may disappear before a separate assert command runs.',
+      schema: {
+        action: z
+          .string()
+          .min(1)
+          .describe(
+            'Natural language action to execute while the observation window is active, e.g. "click the Submit button".',
+          ),
+        prompt: z
+          .string()
+          .min(1)
+          .describe(
+            'Natural language assertion to evaluate against the observed window, e.g. "a success toast appeared during submission".',
+          ),
+        message: z
+          .string()
+          .optional()
+          .describe('Custom error message to throw when the assertion fails.'),
+        intervalMs: z
+          .number()
+          .min(200)
+          .optional()
+          .describe(
+            'Sampling interval in milliseconds. Defaults to 1000; minimum 200 (5fps).',
+          ),
+        maxFrames: z
+          .number()
+          .int()
+          .min(2)
+          .optional()
+          .describe('Maximum buffered frames. Defaults to 30; minimum 2.'),
+        watchdogMs: z
+          .number()
+          .min(0)
+          .optional()
+          .describe(
+            'Auto-stop timeout in milliseconds. Defaults to 300000 (5 minutes); set 0 to disable.',
+          ),
+        deepLocate: z
+          .boolean()
+          .optional()
+          .describe(
+            'Use deep locate for every element the action targets. Improves precision for small or ambiguous targets at the cost of speed. Defaults to the server --deep-locate setting.',
+          ),
+        deepThink: z
+          .boolean()
+          .optional()
+          .describe(
+            'Plan the action with deep thinking (richer context and sub-goal decomposition). Helps with complex multi-step instructions at the cost of speed. Defaults to the server --deep-think setting.',
+          ),
+        ...initArgSchema,
+      },
+      cli: mergeToolCliMetadata(observeCliMetadata, initArgCliMetadata),
+      handler: async (
+        args: Record<string, unknown> = {},
+      ): Promise<ToolResult> => {
+        const action = args.action;
+        const prompt = args.prompt;
+        const message = args.message as string | undefined;
+        if (typeof action !== 'string' || action.trim().length === 0) {
+          return createErrorResult(
+            'observe requires a non-empty --action option',
+          );
+        }
+        if (typeof prompt !== 'string' || prompt.trim().length === 0) {
+          return createErrorResult(
+            'observe requires a non-empty --prompt option',
+          );
+        }
+        try {
+          const agent = await getAgent(args);
+          emitCliVerboseEvent({
+            event: 'agent_ready',
+            tool: 'observe',
+          });
+          if (!agent.aiAction) {
+            return createErrorResult('observe is not supported by this agent');
+          }
+          if (!agent.startObserving) {
+            return createErrorResult(
+              'observe is not supported because this agent does not provide startObserving',
+            );
+          }
+
+          const unsubscribeVerbose = attachCliVerboseDumpListener(agent, {
+            toolName: 'observe',
+          });
+          try {
+            const observer = await agent.startObserving({
+              intervalMs: args.intervalMs as number | undefined,
+              maxFrames: args.maxFrames as number | undefined,
+              watchdogMs: args.watchdogMs as number | undefined,
+            });
+            let actionResult: unknown;
+            try {
+              actionResult = await agent.aiAction(
+                action,
+                buildActOptions(args, toolDefaults),
+              );
+            } finally {
+              await observer.stop();
+            }
+            await observer.aiAssert(prompt, message);
+            return await captureScreenshotResult(
+              agent,
+              'observe',
+              actionResult,
+            );
+          } finally {
+            unsubscribeVerbose();
+          }
+        } catch (error: unknown) {
+          const errorMessage = getErrorMessage(error);
+          console.error('Error executing observe:', errorMessage);
+          return createErrorResult(
+            `Failed to execute observe: ${errorMessage}`,
+          );
         }
       },
     },

@@ -973,6 +973,18 @@ await observer.stop();
 await observer.aiAssert('过程中弹出了成功提示 toast');
 ```
 
+各平台 CLI 通过一次 `observe` 命令提供相同能力。这个命令会在同一个进程内启动观察、执行操作和停止观察，然后基于整个观察窗口完成断言：
+
+```bash
+npx -y @midscene/web@1 observe \
+  --action "点击 Submit 按钮" \
+  --prompt "提交过程中曾出现成功提示 toast"
+```
+
+`@midscene/android`、`@midscene/ios`、`@midscene/harmony` 和 `@midscene/computer` 也提供该命令。`observe` 可以使用各平台原有的目标参数，并支持 `--interval-ms`、`--max-frames` 和 `--watchdog-ms`。
+
+如果要验证操作过程中可能短暂出现并消失的 UI，请使用 `observe`。如果只关心当前或最终画面，请使用普通的 `assert` 命令。
+
 工作方式与成本：
 
 - Midscene 会优先从设备的连续帧源采集画面：Android 使用 scrcpy（`scrcpyConfig.enabled`）、iOS 使用 WDA MJPEG（`wdaMjpegFrameSource.enabled`）、Web 使用 CDP screencast（始终可用）。没有帧源时，会退回到定时截图；移动端实际帧率会明显降低。
