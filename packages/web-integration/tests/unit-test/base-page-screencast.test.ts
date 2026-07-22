@@ -320,7 +320,7 @@ describe('Page startMjpegStream', () => {
   it('force-pushes a final screenshot after navigation replaces the preview with a transient frame', async () => {
     const mockPage = {
       evaluate: vi.fn().mockResolvedValue({ width: 1280, height: 720 }),
-      screenshot: vi.fn().mockResolvedValue(jpegBase64(1280, 720)),
+      screenshot: vi.fn().mockResolvedValue(webpBase64),
       url: () => 'http://example.com',
     } as any;
     const page = new Page(mockPage, 'puppeteer');
@@ -339,13 +339,13 @@ describe('Page startMjpegStream', () => {
     await page.flushPendingVisualUpdate(true);
 
     expect(mockPage.screenshot).toHaveBeenCalledWith({
-      type: 'jpeg',
+      type: 'webp',
       quality: 90,
       encoding: 'base64',
     });
     expect(onFrame).toHaveBeenCalledWith({
-      data: jpegBase64(1280, 720),
-      contentType: 'image/jpeg',
+      data: webpBase64,
+      contentType: 'image/webp',
     });
   });
 
