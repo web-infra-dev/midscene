@@ -72,6 +72,9 @@ interface FixtureState {
   keyWindow: boolean;
   activationCount: number;
   inputReadyGeneration: number;
+  pointerDownCount: number;
+  lastPointerX: number;
+  lastPointerY: number;
   clickCount: number;
   buttonActionCount: number;
   textChangeCount: number;
@@ -168,6 +171,12 @@ function normalizeState(value: unknown): FixtureState {
       raw.inputReadyGeneration,
       'state.inputReadyGeneration',
     ),
+    pointerDownCount: asFiniteNumber(
+      raw.pointerDownCount,
+      'state.pointerDownCount',
+    ),
+    lastPointerX: asFiniteNumber(raw.lastPointerX, 'state.lastPointerX'),
+    lastPointerY: asFiniteNumber(raw.lastPointerY, 'state.lastPointerY'),
     clickCount: asFiniteNumber(raw.clickCount, 'state.clickCount'),
     buttonActionCount: asFiniteNumber(
       raw.buttonActionCount,
