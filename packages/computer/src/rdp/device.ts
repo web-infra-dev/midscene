@@ -13,7 +13,7 @@ import {
 } from '@midscene/core/device';
 import { sleep } from '@midscene/core/utils';
 import { getDebug } from '@midscene/shared/logger';
-import type { DisplayInfo } from '../device';
+import type { ComputerDeviceInputOpt, DisplayInfo } from '../device';
 import {
   formatRdpServerAddress,
   normalizeRdpConnectionConfig,
@@ -46,7 +46,9 @@ const DEFAULT_SCROLL_VIEWPORT_RATIO = 0.7;
 const EDGE_SCROLL_STEPS = 10;
 const DEFAULT_SCROLL_STEP_AMOUNT = 120;
 
-export interface RDPDeviceOpt extends RDPConnectionConfig {
+export interface RDPDeviceOpt
+  extends RDPConnectionConfig,
+    ComputerDeviceInputOpt {
   backend?: RDPBackendClient;
   customActions?: DeviceAction<any>[];
 }
@@ -126,7 +128,9 @@ export class RDPDevice implements AbstractInterface {
         if (opts?.focusOnly || !value) {
           return;
         }
-        await this.backend.typeText(value);
+        const keyboardTypeDelay =
+          opts?.keyboardTypeDelay ?? this.options.keyboardTypeDelay;
+        await this.typeText(value, keyboardTypeDelay);
       },
       clearInput: async (target) => {
         this.assertConnected();
@@ -187,6 +191,24 @@ export class RDPDevice implements AbstractInterface {
       },
     },
   };
+
+  private async typeText(
+    value: string,
+    keyboardTypeDelay?: number,
+  ): Promise<void> {
+    if (!keyboardTypeDelay || keyboardTypeDelay <= 0) {
+      await this.backend.typeText(value);
+      return;
+    }
+
+    const characters = Array.from(value);
+    for (let index = 0; index < characters.length; index++) {
+      await this.backend.typeText(characters[index]);
+      if (index < characters.length - 1) {
+        await sleep(keyboardTypeDelay);
+      }
+    }
+  }
 
   constructor(options: RDPDeviceOpt) {
     const normalizedOptions = normalizeRdpConnectionConfig(options);

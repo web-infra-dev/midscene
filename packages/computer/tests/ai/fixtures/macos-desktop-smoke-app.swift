@@ -47,6 +47,7 @@ final class FixtureController: NSObject, NSApplicationDelegate, NSTextFieldDeleg
   private var inputReadyGeneration = 0
   private var clickCount = 0
   private var buttonActionCount = 0
+  private var textChangeCount = 0
   private var lastKey = ""
   private var wheelEventCount = 0
 
@@ -133,6 +134,7 @@ final class FixtureController: NSObject, NSApplicationDelegate, NSTextFieldDeleg
   }
 
   func controlTextDidChange(_ obj: Notification) {
+    textChangeCount += 1
     writeState()
   }
 
@@ -294,6 +296,7 @@ final class FixtureController: NSObject, NSApplicationDelegate, NSTextFieldDeleg
         "inputReadyGeneration": inputReadyGeneration,
         "clickCount": clickCount,
         "buttonActionCount": buttonActionCount,
+        "textChangeCount": textChangeCount,
         "text": textField.stringValue,
         "lastKey": lastKey,
         "wheelEventCount": wheelEventCount,

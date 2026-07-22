@@ -46,6 +46,7 @@ const FIXTURE_READY_TIMEOUT_MS = 30_000;
 const ACTIVATION_TIMEOUT_MS = 3_000;
 const STATE_TIMEOUT_MS = 15_000;
 const POLL_INTERVAL_MS = 100;
+const KEYBOARD_TYPE_DELAY_MS = 80;
 
 interface Bounds {
   left: number;
@@ -73,6 +74,7 @@ interface FixtureState {
   inputReadyGeneration: number;
   clickCount: number;
   buttonActionCount: number;
+  textChangeCount: number;
   text: string;
   lastKey: string;
   wheelEventCount: number;
@@ -171,6 +173,10 @@ function normalizeState(value: unknown): FixtureState {
       raw.buttonActionCount,
       'state.buttonActionCount',
     ),
+    textChangeCount: asFiniteNumber(
+      raw.textChangeCount,
+      'state.textChangeCount',
+    ),
     text: String(raw.text ?? ''),
     lastKey: String(raw.lastKey ?? ''),
     wheelEventCount: asFiniteNumber(
@@ -268,13 +274,16 @@ async function retryFixtureAction(options: {
         normalizeState,
         (state) =>
           state.activationCount > beforeActivation.activationCount &&
-          state.inputReadyGeneration > beforeActivation.inputReadyGeneration &&
           state.visible &&
-          state.active &&
-          state.keyWindow,
+          state.active,
         ACTIVATION_TIMEOUT_MS,
         options.fixtureProcess,
       );
+      // AppKit can keep the fixture active and visible while declining to make
+      // its window key again. The real action result is the reliable readiness
+      // probe, so let each retry invoke the action instead of consuming an
+      // attempt at this precondition.
+      await sleep(250);
       await options.action();
       const state = await waitForJson(
         options.stateFile,
@@ -462,7 +471,7 @@ describe.skipIf(!RUN_LIVE_SMOKE)('macOS desktop live smoke', () => {
         writeFile(fixtureStdoutFile, '', 'utf8'),
         writeFile(fixtureStderrFile, '', 'utf8'),
       ]);
-      fixtureProcess = spawn(
+      const runningFixtureProcess = spawn(
         '/usr/bin/open',
         [
           '-W',
@@ -479,14 +488,15 @@ describe.skipIf(!RUN_LIVE_SMOKE)('macOS desktop live smoke', () => {
         ],
         { stdio: 'pipe' },
       );
-      fixtureProcess.stdin.end();
+      fixtureProcess = runningFixtureProcess;
+      runningFixtureProcess.stdin.end();
 
       const metadata = await waitForJson(
         readyFile,
         normalizeMetadata,
         (value) => value.visible,
         FIXTURE_READY_TIMEOUT_MS,
-        fixtureProcess,
+        runningFixtureProcess,
       );
       fixturePid = metadata.processId;
       evidence.fixture = metadata;
@@ -515,7 +525,9 @@ describe.skipIf(!RUN_LIVE_SMOKE)('macOS desktop live smoke', () => {
         platform: 'darwin',
       });
 
-      device = new ComputerDevice({});
+      device = new ComputerDevice({
+        keyboardTypeDelay: KEYBOARD_TYPE_DELAY_MS,
+      });
       await device.connect();
       const logicalSize = await device.size();
       evidence.logicalSize = logicalSize;
@@ -591,7 +603,7 @@ describe.skipIf(!RUN_LIVE_SMOKE)('macOS desktop live smoke', () => {
       const actionWaitDurations = [2_000, 3_000, 5_000, 8_000];
       const tapResult = await retryFixtureAction({
         action: tapButton,
-        fixtureProcess,
+        fixtureProcess: runningFixtureProcess,
         fixturePid,
         predicate: (state) => state.clickCount >= 1,
         stateFile,
@@ -607,11 +619,66 @@ describe.skipIf(!RUN_LIVE_SMOKE)('macOS desktop live smoke', () => {
       }
       expect(clickedState.clickCount).toBeGreaterThanOrEqual(1);
 
-      const inputText = 'Midscene macOS 输入 😀';
-      const inputResult = await retryFixtureAction({
+      const delayedInputText = 'Midscene typed 123';
+      let delayedInputBaselineTextChangeCount = 0;
+      let delayedInputElapsedMs = 0;
+      const delayedInputResult = await retryFixtureAction({
+        action: async () => {
+          const beforeDelayedInput = await waitForJson(
+            stateFile,
+            normalizeState,
+            () => true,
+            STATE_TIMEOUT_MS,
+            runningFixtureProcess,
+          );
+          delayedInputBaselineTextChangeCount =
+            beforeDelayedInput.textChangeCount;
+          const inputStart = performance.now();
+          await agent!.callActionInActionSpace('Input', {
+            value: delayedInputText,
+            mode: 'replace',
+            locate: locate(
+              metadata.textField,
+              screenshotScale,
+              'smoke text field',
+            ),
+          });
+          delayedInputElapsedMs = performance.now() - inputStart;
+        },
+        fixtureProcess: runningFixtureProcess,
+        fixturePid,
+        predicate: (state) =>
+          state.text === delayedInputText &&
+          state.textChangeCount - delayedInputBaselineTextChangeCount >=
+            Array.from(delayedInputText).length,
+        stateFile,
+        waitDurations: actionWaitDurations,
+      });
+      evidence.delayedInputAttempts = delayedInputResult.attempts;
+      evidence.delayedInputAttemptErrors = delayedInputResult.errors;
+      evidence.delayedInputElapsedMs = delayedInputElapsedMs;
+      const delayedInputState = delayedInputResult.state;
+      if (!delayedInputState) {
+        throw new Error(
+          `macOS fixture did not receive delayed text after ${delayedInputResult.attempts} input attempts: ${delayedInputResult.errors.at(-1)}`,
+        );
+      }
+      expect(delayedInputState.text).toBe(delayedInputText);
+      evidence.delayedInputTextChangeCount =
+        delayedInputState.textChangeCount - delayedInputBaselineTextChangeCount;
+      expect(
+        delayedInputState.textChangeCount - delayedInputBaselineTextChangeCount,
+      ).toBeGreaterThanOrEqual(Array.from(delayedInputText).length);
+      expect(delayedInputElapsedMs).toBeGreaterThanOrEqual(
+        (Array.from(delayedInputText).length - 1) * KEYBOARD_TYPE_DELAY_MS,
+      );
+
+      const clipboardInputText = 'Midscene macOS 输入 😀';
+      const clipboardInputResult = await retryFixtureAction({
         action: () =>
           agent!.callActionInActionSpace('Input', {
-            value: inputText,
+            keyboardTypeDelay: 0,
+            value: clipboardInputText,
             mode: 'replace',
             locate: locate(
               metadata.textField,
@@ -619,21 +686,21 @@ describe.skipIf(!RUN_LIVE_SMOKE)('macOS desktop live smoke', () => {
               'smoke text field',
             ),
           }),
-        fixtureProcess,
+        fixtureProcess: runningFixtureProcess,
         fixturePid,
-        predicate: (state) => state.text === inputText,
+        predicate: (state) => state.text === clipboardInputText,
         stateFile,
         waitDurations: actionWaitDurations,
       });
-      evidence.inputAttempts = inputResult.attempts;
-      evidence.inputAttemptErrors = inputResult.errors;
-      const inputState = inputResult.state;
-      if (!inputState) {
+      evidence.clipboardInputAttempts = clipboardInputResult.attempts;
+      evidence.clipboardInputAttemptErrors = clipboardInputResult.errors;
+      const clipboardInputState = clipboardInputResult.state;
+      if (!clipboardInputState) {
         throw new Error(
-          `macOS fixture did not receive text after ${inputResult.attempts} input attempts: ${inputResult.errors.at(-1)}`,
+          `macOS fixture did not receive clipboard text after ${clipboardInputResult.attempts} input attempts: ${clipboardInputResult.errors.at(-1)}`,
         );
       }
-      expect(inputState.text).toBe(inputText);
+      expect(clipboardInputState.text).toBe(clipboardInputText);
 
       const keyResult = await retryFixtureAction({
         action: () =>
@@ -645,7 +712,7 @@ describe.skipIf(!RUN_LIVE_SMOKE)('macOS desktop live smoke', () => {
               'smoke text field',
             ),
           }),
-        fixtureProcess,
+        fixtureProcess: runningFixtureProcess,
         fixturePid,
         predicate: (state) => state.lastKey === 'Enter',
         stateFile,
@@ -666,7 +733,7 @@ describe.skipIf(!RUN_LIVE_SMOKE)('macOS desktop live smoke', () => {
         normalizeState,
         () => true,
         STATE_TIMEOUT_MS,
-        fixtureProcess,
+        runningFixtureProcess,
       );
       const scrollResult = await retryFixtureAction({
         action: () =>
@@ -680,7 +747,7 @@ describe.skipIf(!RUN_LIVE_SMOKE)('macOS desktop live smoke', () => {
               'scroll smoke area',
             ),
           }),
-        fixtureProcess,
+        fixtureProcess: runningFixtureProcess,
         fixturePid,
         predicate: (state) =>
           state.wheelEventCount > beforeScroll.wheelEventCount &&
@@ -709,7 +776,8 @@ describe.skipIf(!RUN_LIVE_SMOKE)('macOS desktop live smoke', () => {
       );
       const actionAttempts =
         tapResult.attempts +
-        inputResult.attempts +
+        delayedInputResult.attempts +
+        clipboardInputResult.attempts +
         keyResult.attempts +
         scrollResult.attempts;
       expect(locateTasks).toHaveLength(actionAttempts);

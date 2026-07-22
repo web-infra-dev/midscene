@@ -26,6 +26,7 @@ interface BaseComputerAgentOpt {
   // ... 其他 AgentOpt 属性
 
   customActions?: DeviceAction<any>[];
+  keyboardTypeDelay?: number;
 }
 
 interface LocalComputerAgentOpt extends BaseComputerAgentOpt {
@@ -56,6 +57,24 @@ interface RDPComputerAgentOpt extends BaseComputerAgentOpt {
 - `customActions`（可选）：向设备添加自定义操作。
 - `headless`（可选，仅 Linux）：设为 `true` 时通过 [Xvfb](https://www.x.org/releases/X11R7.6/doc/man/man1/Xvfb.1.xhtml) 启动虚拟显示器，使桌面自动化能在无物理显示器的 Linux 服务器和 CI 环境中运行。也可通过环境变量 `MIDSCENE_COMPUTER_HEADLESS_LINUX=true` 设置。
 - `xvfbResolution`（可选）：Xvfb 虚拟显示器的分辨率，默认为 `'1920x1080x24'`。
+
+### 键盘输入选项
+
+- `keyboardTypeDelay`（可选）：每次按键之间的最小延迟，单位为毫秒。设为正数后，本机和 RDP Computer Agent 会逐个 Unicode 字符发送文本，不再使用默认的整串输入。本机 Computer 会发送真实按键事件；未设置或设为 `0` 时，仍使用剪贴板粘贴，以免受到当前输入法的干扰。通过 `aiInput()` 传入的动作级 `keyboardTypeDelay` 优先于 Agent 级默认值，也可以传 `0`，只对当前动作恢复剪贴板输入。
+
+Agent 级选项同样会作用于 `agent.ai()` 自动规划生成的 `Input` 动作，因此不要求用户单独调用 `aiInput()`：
+
+```typescript
+const agent = await agentForComputer({ keyboardTypeDelay: 80 });
+
+await agent.ai('把账号信息输入表单');
+
+// 只覆盖这一次确定性输入，恢复整串粘贴。
+await agent.aiInput('备注输入框', {
+  value: '整串粘贴的内容',
+  keyboardTypeDelay: 0,
+});
+```
 
 ### RDP 选项
 
