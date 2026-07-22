@@ -4,6 +4,7 @@ import {
   describe,
   expect,
 } from '@midscene/rstest/playwright';
+import type { Page } from 'playwright';
 
 const PAGE_URL =
   'https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/contacts3.html';
@@ -17,7 +18,7 @@ const PAGE_URL =
 // `defaultPlaywrightOptions` to keep them. `DEMO_BROWSER_CHANNEL=chrome` runs
 // against a system-installed Chrome instead of the Playwright-managed
 // Chromium (useful when the browser download is unavailable).
-const test = base.extend({
+const test = base.extend<{ page: Page }>({
   page: async ({ context }, use) => {
     const page = await context.newPage();
     await page.goto(PAGE_URL);
