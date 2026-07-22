@@ -1,12 +1,12 @@
 # 将 Midscene 集成到 GitHub Actions
 
-本文介绍如何将 Midscene 的 Web、无头 Linux、Windows、macOS、Android 和 iOS 检查接入 GitHub Actions。你可以参考 Midscene 仓库中的 workflow，配置 GitHub 仓库 Secrets 与 Variables，并将 HTML 报告和诊断材料保存为 GitHub artifact。
+本文介绍如何在 GitHub Actions 中验证 Midscene 的各个平台。验证范围包括 Web、无头 Linux、Windows、macOS、Android 和 iOS。你可以参考 Midscene 仓库中的 workflow。配置仓库 Secrets 与 Variables 后，将 HTML 报告和诊断材料保存为 artifact。
 
-本文中的 GitHub CI 专指 GitHub Actions。下面的 workflow 文件、GitHub-hosted runner、Secrets、Variables、artifact 和 `gh` 命令不能直接用于其他 CI 平台。
+本文中的 GitHub CI 专指 GitHub Actions。文中的 workflow、runner、仓库配置和命令不适用于其他 CI 平台。
 
 ## 将 Midscene 添加到 GitHub 仓库
 
-先选择一个平台 workflow，再根据你的仓库调整安装、构建和测试命令。链接中的 workflow 用于测试 Midscene monorepo，是接入示例，不能不加修改地复制到其他项目。
+先选择一个平台 workflow，再根据你的仓库调整安装、构建和测试命令。链接中的 workflow 用于测试 Midscene monorepo。它们是接入示例，需要根据其他项目进行修改。
 
 1. 将平台 workflow 复制到 `.github/workflows/`，并保留 `pull_request` 与 `workflow_dispatch` 触发器。
 2. 将 `MIDSCENE_MODEL_API_KEY` 添加为 GitHub Actions 仓库 Secret。
@@ -15,11 +15,11 @@
 5. 保留 `actions/upload-artifact` 步骤，让成功和失败任务都能保存报告与诊断材料。
 6. 推送分支，在 GitHub 的 **Actions** 页面检查平台任务及其 artifacts。
 
-GitHub 不会把仓库 Actions Secrets 传给由不受信任的 fork 触发的 workflow。请从可信分支运行模型测试，或者在主仓库中使用经过审核的中转分支。
+GitHub 不会向不受信任的 fork 提供仓库 Actions Secrets。请从可信分支运行模型测试，或在主仓库中使用经过审核的中转分支。
 
 ## 选择 GitHub Actions workflow
 
-Midscene 的每条 workflow 都是一份可运行的 GitHub Actions 接入示例。它们会在 GitHub-hosted 桌面、模拟器或浏览器中验证对应的平台适配器。
+Midscene 的每条 workflow 都是一份可运行的 GitHub Actions 接入示例。这些 workflow 会验证对应的平台适配器。验证环境包括 GitHub-hosted 桌面、模拟器和浏览器。
 
 | 平台 | Workflow 与 GitHub-hosted runner | UI 环境 | 验证内容 |
 | --- | --- | --- | --- |
@@ -31,11 +31,11 @@ Midscene 的每条 workflow 都是一份可运行的 GitHub Actions 接入示例
 | iOS | [iOS Simulator](https://github.com/web-infra-dev/midscene/blob/main/.github/workflows/ios-simulator.yml)，`macos-15` | iPhone Simulator、Mobile Safari 与 WebDriverAgent | 包产物、单元测试、模拟器输入、截图和 TodoMVC |
 | HarmonyOS | 暂无 GitHub Actions workflow | 未覆盖 | 在 HarmonyOS 设备或设备农场中验证 |
 
-桌面与移动端任务会在任一必要阶段失败时返回失败。检查范围包括构建产物、包入口、单元测试、确定性冒烟，以及适用平台的 TodoMVC。
+任一必要阶段失败，桌面与移动端任务就会失败。检查范围包括构建产物、包入口、单元测试、确定性冒烟，以及适用平台的 TodoMVC。
 
 ## 验证 GitHub Actions 接入结果
 
-以下成功任务展示了各平台接入 GitHub Actions 后的预期结果。打开归档的 TodoMVC 报告，即可查看已经完成的 Midscene 操作。
+下表列出各平台的成功任务和归档报告。打开报告，即可查看 Midscene 完成的操作。
 
 | 平台 | 成功的 GitHub Actions 任务 | 归档的 TodoMVC 报告 |
 | --- | --- | --- |
@@ -46,24 +46,13 @@ Midscene 的每条 workflow 都是一份可运行的 GitHub Actions 接入示例
 | Android | [任务 29822678280](https://github.com/web-infra-dev/midscene/actions/runs/29822678280) | [打开 Android 报告](https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/github-ci/todo-mvc-android.html) |
 | iOS | [任务 29822678283](https://github.com/web-infra-dev/midscene/actions/runs/29822678283) | [打开 iOS 报告](https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/github-ci/todo-mvc-ios.html) |
 
-归档报告不受原始 GitHub artifact 过期影响。从近期任务下载 artifact 时，GitHub 可能要求登录。桌面与移动端 workflow 的 artifact 保留 7 天，因此 artifact 可能先于任务页面过期。
-
-在 artifact 有效期内，可以使用 GitHub CLI 下载：
-
-```bash
-run_id=29252027901
-artifact_name=windows-todo-mvc-report
-
-gh run download "$run_id" \
-  --repo web-infra-dev/midscene \
-  --name "$artifact_name"
-```
-
-如果 artifact 已经过期，请从平台表格进入对应 workflow，并选择最新的成功任务。任务页面的 **Artifacts** 区域包含当前报告和诊断材料。
+:::warning
+桌面与移动端的 GitHub artifact 保留 7 天，下载时可能需要登录；长期访问请使用上方归档报告。
+:::
 
 ## 将报告与诊断材料上传为 GitHub artifacts
 
-即使任务失败，平台 workflow 也会上传证据。先使用 HTML 报告回放 Midscene 操作，再使用诊断 artifact 检查 runner 或设备状态。
+即使任务失败，平台 workflow 也会上传证据。HTML 报告用于回放 Midscene 操作。诊断 artifact 用于检查 runner 或设备状态。
 
 | 平台 | 冒烟报告 | TodoMVC 报告 | 诊断材料 |
 | --- | --- | --- | --- |
@@ -74,43 +63,11 @@ gh run download "$run_id" \
 | 无头 Linux | `headless-linux-ai-report` | 包含在 AI 报告中 | Workflow 日志 |
 | Web | `e2e-report` | 包含在端到端报告中 | `e2e-cache-report` 与 `e2e-report-output` |
 
-诊断材料可以包含 runner 元数据、截图、平台日志、包清单和步骤结果。具体文件由平台 workflow 决定。
-
-## 配置 PR 路径过滤器
-
-GitHub Actions 会先检查 `pull_request.paths`，再决定是否创建平台任务。请覆盖平台包和所有共享构建或运行时依赖，避免出现验证盲区。
-
-- **Windows 与 macOS**：监听 `packages/computer/**`、`packages/core/**`、`packages/shared/**`、报告输入和 workspace 配置
-- **Android**：监听 `packages/android/**`、`packages/core/**`、`packages/shared/**`、报告输入和 workspace 配置
-- **iOS**：监听 `packages/ios/**`、`packages/core/**`、`packages/shared/**`、报告输入和 workspace 配置
-- **无头 Linux**：监听 Computer、Core、Shared、Chrome 扩展、报告输入和 workspace 配置
-
-每条 workflow 也会监听自身的 YAML 文件。你可以从平台表格打开 workflow 源码，查看当前的完整路径列表。
-
-## 使用 GitHub CLI 运行 workflow
-
-所有平台 workflow 都支持 `workflow_dispatch`。触发任务前，请先将分支推送到 GitHub。
-
-```bash
-branch_name=your_branch_name
-
-gh workflow run windows-desktop.yml \
-  --repo web-infra-dev/midscene \
-  --ref "$branch_name" \
-  -f branch="$branch_name"
-
-gh run list \
-  --repo web-infra-dev/midscene \
-  --workflow windows-desktop.yml \
-  --branch "$branch_name" \
-  --limit 1
-```
-
-你可以将 `windows-desktop.yml` 替换为 `macos-desktop.yml`、`android-emulator.yml`、`ios-simulator.yml`、`headless-linux.yml` 或 `ai.yml`。
+诊断材料包括 runner 元数据、截图、平台日志、包清单和步骤结果。具体内容取决于平台 workflow。
 
 ## 理解 GitHub-hosted runner 的验证边界
 
-这些 workflow 只能证明被测链路可以在指定的 GitHub-hosted runner 上运行，不能认证所有设备、显示、权限或远程会话配置。
+这些 workflow 只能证明被测链路可以在指定的 GitHub-hosted runner 上运行。其他设备、显示设置、权限或远程会话需要单独验证。
 
 - **Windows**：使用 96 DPI，即 100% 缩放的交互会话。不覆盖提权窗口、混合 DPI 或远程桌面协议（RDP）会话
 - **macOS**：使用已启用辅助功能权限的 hosted 交互桌面。不覆盖所有 macOS 版本或权限策略
