@@ -147,17 +147,19 @@ const DetailPanel = ({
   );
 
   const hasReplay =
-    activeTask?.type === 'Planning' &&
-    animationScripts &&
-    animationScripts.length > 0;
+    activeTask?.type === 'Planning' && (animationScripts?.length ?? 0) > 0;
 
-  const availableViewTypes = [VIEW_TYPE_SCREENSHOT, VIEW_TYPE_JSON];
+  const availableViewTypes = useMemo(() => {
+    const viewTypes = [VIEW_TYPE_SCREENSHOT, VIEW_TYPE_JSON];
 
-  if (hasReplay) {
-    availableViewTypes.unshift(VIEW_TYPE_REPLAY);
-    // Temporary: hide the Markdown segment without removing the implementation.
-    // availableViewTypes.push(VIEW_TYPE_MARKDOWN);
-  }
+    if (hasReplay) {
+      viewTypes.unshift(VIEW_TYPE_REPLAY);
+      // Temporary: hide the Markdown segment without removing the implementation.
+      // viewTypes.push(VIEW_TYPE_MARKDOWN);
+    }
+
+    return viewTypes;
+  }, [hasReplay]);
 
   const viewType =
     availableViewTypes.indexOf(preferredViewType) >= 0
