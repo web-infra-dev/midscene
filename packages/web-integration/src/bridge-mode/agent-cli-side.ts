@@ -300,7 +300,10 @@ export class AgentOverChromeBridge extends Agent<ChromeExtensionPageCliSide> {
   }
 
   async connectNewTabWithUrl(url: string, options?: BridgeConnectTabOptions) {
-    await this.page.connectNewTabWithUrl(url, options);
+    await this.page.connectNewTabWithUrl(url, {
+      ...options,
+      enableWaterFlowAnimation: this.enableWaterFlowAnimation,
+    });
     await this.configureWaterFlowAnimation();
     await sleep(500);
     await this.setDestroyOptionsAfterConnect();
@@ -315,7 +318,10 @@ export class AgentOverChromeBridge extends Agent<ChromeExtensionPageCliSide> {
   }
 
   async connectCurrentTab(options?: BridgeConnectTabOptions) {
-    await this.page.connectCurrentTab(options);
+    await this.page.connectCurrentTab({
+      ...options,
+      enableWaterFlowAnimation: this.enableWaterFlowAnimation,
+    });
     await this.configureWaterFlowAnimation();
     await sleep(500);
     await this.setDestroyOptionsAfterConnect();

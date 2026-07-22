@@ -50,6 +50,12 @@ export interface BridgeConnectTabOptions {
    * @default 30000 (30 seconds)
    */
   timeout?: number;
+  /**
+   * Whether the blue water-flow animation border and mouse pointer
+   * overlay should be shown while controlling the page.
+   * @default true
+   */
+  enableWaterFlowAnimation?: boolean;
 }
 
 export enum MouseEvent {
