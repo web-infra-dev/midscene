@@ -1,5 +1,5 @@
 import type { ChildProcessWithoutNullStreams } from 'node:child_process';
-import { execFile, spawn } from 'node:child_process';
+import { spawn } from 'node:child_process';
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { parseDumpScript } from '@midscene/core';
@@ -266,38 +266,8 @@ function base64Body(dataUrl: string): string {
   return dataUrl.slice(commaIndex + 1);
 }
 
-function quotePowerShellSingle(value: string): string {
-  return `'${value.replace(/'/g, "''")}'`;
-}
-
-function runPowerShell(script: string): Promise<string> {
-  const encoded = Buffer.from(
-    `$ErrorActionPreference = 'Stop'\n${script}`,
-    'utf16le',
-  ).toString('base64');
-
-  return new Promise((resolve, reject) => {
-    execFile(
-      'powershell.exe',
-      ['-NoProfile', '-NonInteractive', '-EncodedCommand', encoded],
-      { encoding: 'utf8', maxBuffer: 1024 * 1024, windowsHide: true },
-      (error, stdout, stderr) => {
-        if (error) {
-          reject(
-            new Error(
-              `PowerShell screenshot analysis failed: ${error.message}\n${stderr}`,
-            ),
-          );
-          return;
-        }
-        resolve(stdout.trim());
-      },
-    );
-  });
-}
-
 async function analyzeScreenshot(
-  screenshotPath: string,
+  screenshotBuffer: Buffer,
   button: Bounds,
   form: Bounds,
   screen: Bounds,
@@ -310,34 +280,45 @@ async function analyzeScreenshot(
     localForm.left + localForm.width - backgroundSize - 12,
   );
   const backgroundTop = Math.max(localForm.top + 2, localForm.top + 42);
-
-  const script = `
-Add-Type -AssemblyName System.Drawing
-$bitmap = [System.Drawing.Bitmap]::FromFile(${quotePowerShellSingle(screenshotPath)})
-function Get-AverageColor([int] $left, [int] $top, [int] $width, [int] $height) {
-  $red = 0L; $green = 0L; $blue = 0L; $count = 0L
-  $stepX = [Math]::Max(1, [Math]::Floor($width / 7))
-  $stepY = [Math]::Max(1, [Math]::Floor($height / 7))
-  for ($x = $left; $x -lt ($left + $width); $x += $stepX) {
-    for ($y = $top; $y -lt ($top + $height); $y += $stepY) {
-      $pixel = $bitmap.GetPixel($x, $y)
-      $red += $pixel.R; $green += $pixel.G; $blue += $pixel.B; $count += 1
-    }
-  }
-  [PSCustomObject]@{
-    r = [Math]::Round($red / $count)
-    g = [Math]::Round($green / $count)
-    b = [Math]::Round($blue / $count)
-  }
-}
-$target = Get-AverageColor ${Math.round(target.left + 7)} ${Math.round(target.top + 7)} ${Math.max(1, Math.round(target.width - 14))} ${Math.max(1, Math.round(target.height - 14))}
-$background = Get-AverageColor ${Math.round(backgroundLeft)} ${Math.round(backgroundTop)} ${backgroundSize} ${backgroundSize}
-$difference = [Math]::Abs($target.r - $background.r) + [Math]::Abs($target.g - $background.g) + [Math]::Abs($target.b - $background.b)
-[PSCustomObject]@{ target = $target; background = $background; channelDifference = $difference } | ConvertTo-Json -Compress
-$bitmap.Dispose()
-`.trim();
-
-  return JSON.parse(await runPowerShell(script)) as ScreenshotAnalysis;
+  const { default: sharp } = await import('sharp');
+  const averageColor = async (bounds: Bounds) => {
+    const cropped = await sharp(screenshotBuffer)
+      .extract({
+        left: Math.round(bounds.left),
+        top: Math.round(bounds.top),
+        width: Math.max(1, Math.round(bounds.width)),
+        height: Math.max(1, Math.round(bounds.height)),
+      })
+      .toBuffer();
+    const stats = await sharp(cropped).stats();
+    return {
+      r: Math.round(stats.channels[0].mean),
+      g: Math.round(stats.channels[1].mean),
+      b: Math.round(stats.channels[2].mean),
+    };
+  };
+  const [targetColor, backgroundColor] = await Promise.all([
+    averageColor({
+      left: target.left + 7,
+      top: target.top + 7,
+      width: target.width - 14,
+      height: target.height - 14,
+    }),
+    averageColor({
+      left: backgroundLeft,
+      top: backgroundTop,
+      width: backgroundSize,
+      height: backgroundSize,
+    }),
+  ]);
+  return {
+    target: targetColor,
+    background: backgroundColor,
+    channelDifference:
+      Math.abs(targetColor.r - backgroundColor.r) +
+      Math.abs(targetColor.g - backgroundColor.g) +
+      Math.abs(targetColor.b - backgroundColor.b),
+  };
 }
 
 function parseReportDumps(html: string): ReportDump[] {
@@ -396,6 +377,47 @@ async function stopFixture(
   fixtureProcess.kill();
   await Promise.race([exitPromise, sleep(5_000)]);
 }
+
+describe('WebP screenshot analysis', () => {
+  it('decodes WebP evidence without relying on System.Drawing', async () => {
+    const { default: sharp } = await import('sharp');
+    const screenshotBuffer = await sharp({
+      create: {
+        width: 100,
+        height: 100,
+        channels: 3,
+        background: { r: 255, g: 255, b: 255 },
+      },
+    })
+      .composite([
+        {
+          input: {
+            create: {
+              width: 30,
+              height: 30,
+              channels: 3,
+              background: { r: 0, g: 255, b: 0 },
+            },
+          },
+          left: 10,
+          top: 10,
+        },
+      ])
+      .webp({ quality: 90 })
+      .toBuffer();
+
+    const analysis = await analyzeScreenshot(
+      screenshotBuffer,
+      { left: 10, top: 10, width: 30, height: 30 },
+      { left: 0, top: 0, width: 100, height: 100 },
+      { left: 0, top: 0, width: 100, height: 100 },
+    );
+
+    expect(analysis.target.g - analysis.target.r).toBeGreaterThan(200);
+    expect(analysis.target.g - analysis.target.b).toBeGreaterThan(200);
+    expect(analysis.channelDifference).toBeGreaterThan(400);
+  });
+});
 
 describe.skipIf(!RUN_LIVE_SMOKE)('Windows desktop live smoke', () => {
   it('drives a visible WinForms app without calling a model and emits evidence', async () => {
@@ -537,7 +559,7 @@ describe.skipIf(!RUN_LIVE_SMOKE)('Windows desktop live smoke', () => {
       expect(screenshotBuffer.subarray(8, 12).toString('ascii')).toBe('WEBP');
 
       const screenshotAnalysis = await analyzeScreenshot(
-        screenshotFile,
+        screenshotBuffer,
         metadata.button,
         metadata.form,
         metadata.screen,
