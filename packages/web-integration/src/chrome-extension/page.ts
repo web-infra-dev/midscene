@@ -177,7 +177,7 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
 
   private isMobileEmulation: boolean | null = null;
 
-  private waterFlowAnimationEnabled = true;
+  protected waterFlowAnimationEnabled = true;
 
   public _continueWhenFailedToAttachDebugger = false;
 
@@ -358,7 +358,9 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
       });
     }
 
-    if (!this.waterFlowAnimationEnabled) return;
+    if (!this.waterFlowAnimationEnabled) {
+      return;
+    }
 
     const script = await injectWaterFlowAnimation();
     // we will call this function in sendCommandToDebugger, so we have to use the chrome.debugger.sendCommand
@@ -383,6 +385,13 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
         expression: script,
       });
     }
+  }
+
+  /**
+   * Returns the current water-flow animation enabled flag.
+   */
+  public getWaterFlowAnimationEnabled(): boolean {
+    return this.waterFlowAnimationEnabled;
   }
 
   /**
