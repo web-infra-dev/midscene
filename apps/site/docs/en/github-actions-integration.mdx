@@ -46,20 +46,9 @@ These successful GitHub Actions runs show the expected result for each platform.
 | Android | [Run 29822678280](https://github.com/web-infra-dev/midscene/actions/runs/29822678280) | [Open the Android report](https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/github-ci/todo-mvc-android.html) |
 | iOS | [Run 29822678283](https://github.com/web-infra-dev/midscene/actions/runs/29822678283) | [Open the iOS report](https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/github-ci/todo-mvc-ios.html) |
 
-The archived reports remain available after the original GitHub artifacts expire. GitHub may require you to sign in before downloading an artifact from a recent run. The desktop and mobile workflows retain artifacts for seven days, so an artifact can expire while its run remains visible.
-
-Download an artifact with the GitHub CLI while it remains available:
-
-```bash
-run_id=29252027901
-artifact_name=windows-todo-mvc-report
-
-gh run download "$run_id" \
-  --repo web-infra-dev/midscene \
-  --name "$artifact_name"
-```
-
-If an artifact expires, open the workflow from the platform table and select its latest successful run. The **Artifacts** section contains current reports and diagnostics.
+:::warning
+Desktop and mobile GitHub artifacts expire after seven days and may require sign-in; use the archived reports above for long-term access.
+:::
 
 ## Upload reports and diagnostics as GitHub artifacts
 
@@ -75,38 +64,6 @@ The platform workflows upload evidence even when a job fails. Use the HTML repor
 | Web | `e2e-report` | Included in the end-to-end report | `e2e-cache-report` and `e2e-report-output` |
 
 Diagnostics can contain runner metadata, screenshots, platform logs, package manifests, and step outcomes. The exact files depend on the platform workflow.
-
-## Configure pull request path filters
-
-GitHub Actions evaluates `pull_request.paths` before it creates a platform job. Include the platform package and all shared build or runtime dependencies to avoid a coverage gap.
-
-- **Windows and macOS**: Watch `packages/computer/**`, `packages/core/**`, `packages/shared/**`, report inputs, and workspace configuration
-- **Android**: Watch `packages/android/**`, `packages/core/**`, `packages/shared/**`, report inputs, and workspace configuration
-- **iOS**: Watch `packages/ios/**`, `packages/core/**`, `packages/shared/**`, report inputs, and workspace configuration
-- **Headless Linux**: Watch Computer, Core, Shared, Chrome extension, report inputs, and workspace configuration
-
-Each workflow also watches its own YAML file. Open the workflow source from the platform table for its current path list.
-
-## Run a workflow with the GitHub CLI
-
-Every platform workflow supports `workflow_dispatch`. Push the branch to GitHub before dispatching it.
-
-```bash
-branch_name=your_branch_name
-
-gh workflow run windows-desktop.yml \
-  --repo web-infra-dev/midscene \
-  --ref "$branch_name" \
-  -f branch="$branch_name"
-
-gh run list \
-  --repo web-infra-dev/midscene \
-  --workflow windows-desktop.yml \
-  --branch "$branch_name" \
-  --limit 1
-```
-
-Replace `windows-desktop.yml` with `macos-desktop.yml`, `android-emulator.yml`, `ios-simulator.yml`, `headless-linux.yml`, or `ai.yml`.
 
 ## Understand the GitHub-hosted runner boundary
 
