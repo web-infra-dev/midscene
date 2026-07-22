@@ -430,7 +430,7 @@ export class TaskBuilder {
         );
 
         if (!uiContext) {
-          uiContext = await this.service.contextRetrieverFn();
+          uiContext = await this.service.contextRetrieverFn('locate');
         }
 
         assert(uiContext, 'uiContext is required for Service task');

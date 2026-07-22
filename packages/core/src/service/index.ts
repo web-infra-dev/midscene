@@ -22,6 +22,7 @@ import type {
   PartialServiceDumpFromSDK,
   PlanningLocateParam,
   Rect,
+  ServiceAction,
   ServiceExtractOption,
   ServiceExtractParam,
   ServiceExtractResult,
@@ -75,12 +76,16 @@ interface LocateSearchAreaResult {
 const debug = getDebug('ai:service');
 
 export default class Service {
-  contextRetrieverFn: () => Promise<UIContext> | UIContext;
+  contextRetrieverFn: (
+    action?: ServiceAction,
+  ) => Promise<UIContext> | UIContext;
 
   taskInfo?: Omit<ServiceTaskInfo, 'durationMs'>;
 
   constructor(
-    context: UIContext | (() => Promise<UIContext> | UIContext),
+    context:
+      | UIContext
+      | ((action?: ServiceAction) => Promise<UIContext> | UIContext),
     opt?: ServiceOptions,
   ) {
     assert(context, 'context is required for Service');
@@ -111,7 +116,7 @@ export default class Service {
       throw new Error(defaultModelFamilyRequiredForLocateMessage);
     }
 
-    const context = opt?.context || (await this.contextRetrieverFn());
+    const context = opt?.context || (await this.contextRetrieverFn('locate'));
 
     const searchArea = await this.resolveLocateSearchArea({
       query,
@@ -416,7 +421,7 @@ export default class Service {
     },
   ): Promise<Pick<AIDescribeElementResponse, 'description'>> {
     assert(target, 'target is required for service.describe');
-    const context = opt?.context || (await this.contextRetrieverFn());
+    const context = opt?.context || (await this.contextRetrieverFn('describe'));
     const { shotSize } = context;
     const screenshotBase64 = context.screenshot.base64;
     assert(screenshotBase64, 'screenshot is required for service.describe');

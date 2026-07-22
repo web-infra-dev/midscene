@@ -118,4 +118,44 @@ describe('sanitizeJsonViewData', () => {
       second: { value: 1 },
     });
   });
+
+  it('replaces a full UI tree root with a compact summary', () => {
+    const result = sanitizeJsonViewData({
+      uiContext: {
+        uiTree: {
+          platform: 'android',
+          capturedAt: 123,
+          xpathPolicy: {
+            stableAttrs: ['resource-id'],
+            textAttrs: ['content-desc', 'text'],
+            excludedTargetTypes: [],
+            max: 3,
+          },
+          root: {
+            type: 'Root',
+            attrs: { large: 'root attrs should be omitted' },
+            bounds: { left: 0, top: 0, width: 100, height: 100 },
+            children: [
+              {
+                type: 'Child',
+                attrs: { text: 'child attrs should be omitted' },
+                bounds: { left: 0, top: 0, width: 10, height: 10 },
+                children: [],
+              },
+            ],
+          },
+        },
+      },
+    }) as {
+      uiContext: { uiTree: { root: Record<string, unknown> } };
+    };
+
+    expect(result.uiContext.uiTree.root).toMatchObject({
+      type: 'Root',
+      childCount: 1,
+      nodeCount: 2,
+    });
+    expect(result.uiContext.uiTree.root).not.toHaveProperty('attrs');
+    expect(result.uiContext.uiTree.root).not.toHaveProperty('children');
+  });
 });
