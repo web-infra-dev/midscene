@@ -36,6 +36,7 @@ final class FixtureController: NSObject, NSApplicationDelegate, NSTextFieldDeleg
   private var scrollView: NSScrollView!
   private var activationSource: DispatchSourceSignal?
   private var pointerMonitor: DispatchSourceTimer?
+  private var focusTimer: DispatchSourceTimer?
   private var leftButtonWasDown = false
 
   private var activationCount = 0
@@ -117,6 +118,7 @@ final class FixtureController: NSObject, NSApplicationDelegate, NSTextFieldDeleg
     )
     window.contentView?.addSubview(scrollView)
 
+    installFocusKeeper()
     installActivationSignal()
     installPointerMonitor()
     activateFixture()
@@ -237,6 +239,23 @@ final class FixtureController: NSObject, NSApplicationDelegate, NSTextFieldDeleg
       clickCount += 1
     }
     writeState()
+  }
+
+  private func installFocusKeeper() {
+    let timer = DispatchSource.makeTimerSource(queue: .main)
+    timer.schedule(
+      deadline: .now(),
+      repeating: .milliseconds(50),
+      leeway: .milliseconds(10)
+    )
+    timer.setEventHandler { [weak self] in
+      guard let self else { return }
+      if !NSApplication.shared.isActive || !self.window.isKeyWindow {
+        self.focusFixture()
+      }
+    }
+    timer.resume()
+    focusTimer = timer
   }
 
   private func installMainMenu() {
