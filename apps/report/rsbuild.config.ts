@@ -26,10 +26,16 @@ const jsonFiles = fs
   .filter((file) => file.endsWith('.json'));
 const allTestData = jsonFiles.map((file) => {
   const filePath = path.join(testDataDir, file);
-  const data = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+  const fixture = JSON.parse(fs.readFileSync(filePath, 'utf-8')) as {
+    dump: {
+      groupDescription?: string;
+      groupName?: string;
+    };
+    images: Record<string, string>;
+  };
   return {
     fileName: file,
-    data,
+    fixture,
   };
 });
 
@@ -114,20 +120,30 @@ export default defineConfig({
     inject: 'body',
     tags:
       process.env.NODE_ENV === 'development'
-        ? allTestData.map((item, index) => ({
-            tag: 'script',
-            attrs: {
-              type: 'midscene_web_dump',
-              playwright_test_description: item.data.groupDescription,
-              playwright_test_id: `id-${index}`,
-              playwright_test_title: item.data.groupName,
-              playwright_test_status: 'passed',
-              playwright_test_duration: Math.round(
-                Math.random() * 100000,
-              ).toString(),
+        ? allTestData.flatMap((item, index) => [
+            ...Object.entries(item.fixture.images).map(([id, dataUri]) => ({
+              tag: 'script',
+              attrs: {
+                type: 'midscene-image',
+                'data-id': id,
+              },
+              children: dataUri,
+            })),
+            {
+              tag: 'script',
+              attrs: {
+                type: 'midscene_web_dump',
+                playwright_test_description: item.fixture.dump.groupDescription,
+                playwright_test_id: `id-${index}`,
+                playwright_test_title: item.fixture.dump.groupName,
+                playwright_test_status: 'passed',
+                playwright_test_duration: Math.round(
+                  Math.random() * 100000,
+                ).toString(),
+              },
+              children: JSON.stringify(item.fixture.dump),
             },
-            children: JSON.stringify(item.data),
-          }))
+          ])
         : [],
   },
   source: {

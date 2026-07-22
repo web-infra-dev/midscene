@@ -42,6 +42,7 @@ import type {
   ReportViewMode,
   VisualizerProps,
 } from './types';
+import { prepareAnimatedWebpFrames } from './utils/animated-webp';
 import {
   downloadMarkdownZip,
   getReportMarkdownView,
@@ -670,8 +671,28 @@ export function App() {
       setReportDump(dumpElements);
     };
 
-    const loadDumps = () => {
+    const loadDumps = async () => {
       console.time('loading_dump');
+      try {
+        const animation = await prepareAnimatedWebpFrames();
+        for (const [id, url] of animation.frameUrls) {
+          imageCache.set(id, url);
+        }
+        if (animation.frameCount > 0) {
+          console.info(
+            `[Midscene] Decoded ${animation.frameCount} Animated WebP frames in ${animation.decodeTimeMs.toFixed(1)}ms`,
+          );
+        } else if (!animation.supported) {
+          console.warn(
+            '[Midscene] Animated WebP report attachment requires ImageDecoder support',
+          );
+        }
+      } catch (error) {
+        console.error(
+          '[Midscene] Failed to decode Animated WebP attachment',
+          error,
+        );
+      }
       loadDumpElements();
       console.timeEnd('loading_dump');
     };

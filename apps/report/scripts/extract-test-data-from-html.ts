@@ -12,9 +12,13 @@
  *           with this timing value (e.g. "observed-frame"). Omit to include all.
  */
 
+import { createHash } from 'node:crypto';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { parseImageScripts } from '../../../packages/core/src/dump/html-utils';
-import { restoreImageReferences } from '../../../packages/core/src/dump/screenshot-restoration';
+import {
+  normalizeScreenshotRef,
+  resolveScreenshotSource,
+} from '../../../packages/core/src/dump/screenshot-store';
 
 // --- arg parsing ---
 function getArg(name: string): string | undefined {
@@ -66,22 +70,6 @@ for (const match of html.matchAll(dumpRegex)) {
 }
 
 console.log(`Found ${dumps.length} dump scripts`);
-
-// --- resolve image references in each dump ---
-const resolveImage = (ref: {
-  id: string;
-  storage?: string;
-  path?: string;
-}): string => {
-  const cached = imageMap[ref.id];
-  if (cached) return cached;
-  if (ref.storage === 'file' && ref.path) return ref.path;
-  return `./screenshots/${ref.id}.png`;
-};
-
-for (const dump of dumps) {
-  dump.data = restoreImageReferences(dump.data, resolveImage);
-}
 
 // --- filter executions ---
 interface ExecutionInfo {
@@ -218,8 +206,8 @@ if (filter) {
   }
 }
 
-// --- build output object ---
-const output = {
+// --- build production-shaped dump ---
+const dump = {
   sdkVersion,
   groupName: filter
     ? `HarmonyOS UI Observer Test (${filter})`
@@ -231,35 +219,79 @@ const output = {
   ...(deviceType ? { deviceType } : {}),
 };
 
-// --- serialize (this triggers lazy base64 getters) ---
-console.log('\nSerializing (resolving inline images)...');
+for (const [executionIndex, execution] of dump.executions.entries()) {
+  for (const [taskIndex, task] of execution.tasks.entries()) {
+    if (task.taskId) continue;
+    const hash = createHash('sha256')
+      .update(`${execution.name}:${executionIndex}:${taskIndex}`)
+      .digest('hex');
+    task.taskId = `${hash.slice(0, 8)}-${hash.slice(8, 12)}-${hash.slice(12, 16)}-${hash.slice(16, 20)}-${hash.slice(20, 32)}`;
+  }
+}
+
+const images: Record<string, string> = {};
+
+function collectImages(value: unknown): void {
+  const ref = normalizeScreenshotRef(value);
+  if (ref) {
+    if (images[ref.id]) return;
+
+    const inlineImage = imageMap[ref.id];
+    if (inlineImage) {
+      images[ref.id] = inlineImage;
+      return;
+    }
+
+    const source = resolveScreenshotSource(ref, { reportPath: htmlPath });
+    if (source.type === 'data-uri') {
+      images[ref.id] = source.dataUri;
+      return;
+    }
+
+    const base64 = readFileSync(source.filePath).toString('base64');
+    images[ref.id] = `data:${source.mimeType};base64,${base64}`;
+    return;
+  }
+
+  if (Array.isArray(value)) {
+    for (const item of value) collectImages(item);
+    return;
+  }
+
+  if (typeof value === 'object' && value !== null) {
+    for (const item of Object.values(value)) collectImages(item);
+  }
+}
+
+collectImages(dump);
+
+const output = { dump, images };
 const json = JSON.stringify(output);
 
 const sizeMB = (Buffer.byteLength(json, 'utf-8') / 1024 / 1024).toFixed(1);
-console.log(`Output size: ${sizeMB} MB`);
+console.log(
+  `Output size: ${sizeMB} MB (${Object.keys(images).length} unique image(s))`,
+);
 
 writeFileSync(outputPath, json);
 console.log(`Saved to: ${outputPath}`);
 
 // --- verify ---
-const parsed = JSON.parse(json);
-console.log(`\nVerification: ${parsed.executions.length} executions`);
-for (const exec of parsed.executions) {
+const parsed = JSON.parse(json) as typeof output;
+console.log(`\nVerification: ${parsed.dump.executions.length} executions`);
+for (const exec of parsed.dump.executions) {
   for (const task of exec.tasks ?? []) {
     for (const rec of task.recorder ?? []) {
       const ss = rec.screenshot;
       if (ss) {
         const isRef =
           typeof ss === 'object' && ss.type === 'midscene_screenshot_ref';
-        const isBase64 = typeof ss === 'string' && ss.startsWith('data:');
-        const hasBase64 =
-          typeof ss === 'object' &&
-          typeof ss.base64 === 'string' &&
-          ss.base64.startsWith('data:');
         if (isRef) {
-          console.error(`  ERROR: unresolved ref in ${exec.name}: ${ss.id}`);
-        } else if (isBase64 || hasBase64) {
-          // ok
+          if (!parsed.images[ss.id]) {
+            console.error(`  ERROR: missing image for ref ${ss.id}`);
+          }
+        } else {
+          console.error(`  ERROR: expected screenshot ref in ${exec.name}`);
         }
       }
     }
