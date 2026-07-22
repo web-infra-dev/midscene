@@ -1,6 +1,7 @@
 import path from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 import {
+  canonicalizeScreenshotBase64,
   inferBase64ImageFormat,
   normalizeBase64Image,
   normalizeScreenshotBase64,
@@ -168,7 +169,7 @@ describe('scaleImage', () => {
     expect(result.width).toBe(2);
     expect(result.height).toBe(2);
     expect(result.imageBase64).toMatchInlineSnapshot(
-      `"data:image/jpeg;base64,/9j/2wBDAAMCAgMCAgMDAwMEAwMEBQgFBQQEBQoHBwYIDAoMDAsKCwsNDhIQDQ4RDgsLEBYQERMUFRUVDA8XGBYUGBIUFRT/2wBDAQMEBAUEBQkFBQkUDQsNFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBT/wAARCAACAAIDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAn/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFAEBAAAAAAAAAAAAAAAAAAAAAP/EABQRAQAAAAAAAAAAAAAAAAAAAAD/2gAMAwEAAhEDEQA/AKpgA//Z"`,
+      `"data:image/webp;base64,UklGRioAAABXRUJQVlA4IB4AAACQAQCdASoCAAIAAMASJaQAAzoO0gAA/v/+JwoMAAA="`,
     );
   });
 
@@ -178,7 +179,7 @@ describe('scaleImage', () => {
     expect(result.width).toBe(3);
     expect(result.height).toBe(3);
     expect(result.imageBase64).toMatchInlineSnapshot(
-      `"data:image/jpeg;base64,/9j/2wBDAAMCAgMCAgMDAwMEAwMEBQgFBQQEBQoHBwYIDAoMDAsKCwsNDhIQDQ4RDgsLEBYQERMUFRUVDA8XGBYUGBIUFRT/2wBDAQMEBAUEBQkFBQkUDQsNFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBT/wAARCAADAAMDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAn/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFAEBAAAAAAAAAAAAAAAAAAAAAP/EABQRAQAAAAAAAAAAAAAAAAAAAAD/2gAMAwEAAhEDEQA/AKpgA//Z"`,
+      `"data:image/webp;base64,UklGRioAAABXRUJQVlA4IB4AAACQAQCdASoDAAMAAMASJaQAAzoO0gAA/v/+JwoMAAA="`,
     );
   });
 
@@ -223,5 +224,32 @@ describe('scaleImage', () => {
 
     // Restore
     vi.restoreAllMocks();
+  });
+});
+
+describe('canonicalizeScreenshotBase64', () => {
+  const onePixelWhiteImage =
+    'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wCEAAMDAwMDAwMDAwMEBAQEBAYFBQUFBgkGBwYHBgkOCAoICAoIDgwPDAsMDwwWEQ8PERYZFRQVGR4bGx4mJCYyMkMBAwMDAwMDAwMDAwQEBAQEBgUFBQUGCQYHBgcGCQ4ICggICggODA8MCwwPDBYRDw8RFhkVFBUZHhsbHiYkJjIyQ//CABEIAAEAAQMBIgACEQEDEQH/xAAnAAEBAAAAAAAAAAAAAAAAAAAACQEBAAAAAAAAAAAAAAAAAAAAAP/aAAwDAQACEAMQAAAAqmD/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/9oACAEBAAE/AH//xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oACAECAQE/AH//xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oACAEDAQE/AH//2Q==';
+
+  it('passes an existing WebP through byte-for-byte', async () => {
+    const webp = await canonicalizeScreenshotBase64(onePixelWhiteImage);
+    expect(await canonicalizeScreenshotBase64(webp)).toBe(webp);
+  });
+
+  it('preserves native JPEG only when auto policy requests it', async () => {
+    expect(
+      await canonicalizeScreenshotBase64(onePixelWhiteImage, {
+        preserveJpeg: true,
+      }),
+    ).toBe(onePixelWhiteImage);
+    expect(await canonicalizeScreenshotBase64(onePixelWhiteImage)).toMatch(
+      /^data:image\/webp;base64,UklGR/,
+    );
+  });
+
+  it('rejects unsupported image bytes instead of returning a blank image', async () => {
+    await expect(
+      canonicalizeScreenshotBase64('data:image/png;base64,aGVsbG8='),
+    ).rejects.toThrow('unsupported screenshot image');
   });
 });

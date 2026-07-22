@@ -21,6 +21,10 @@ export {
 export {
   resizeAndConvertImgBuffer,
   convertImgBufferToJpeg,
+  convertImgBufferToWebp,
+  canonicalizeScreenshotBase64,
+  DEFAULT_WEBP_SCREENSHOT_EFFORT,
+  DEFAULT_WEBP_SCREENSHOT_QUALITY,
   resizeImgBase64,
   zoomForGPT4o,
   saveBase64Image,
@@ -36,6 +40,8 @@ export {
   normalizeBase64Image,
   normalizeScreenshotBase64,
   type NormalizeScreenshotBase64Options,
+  type CanonicalizeScreenshotOptions,
+  type WebpScreenshotEncodeOptions,
 } from './transform';
 export {
   processImageElementInfo,

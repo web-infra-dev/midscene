@@ -23,11 +23,9 @@ import {
 } from '@midscene/shared/env';
 import { generateElementByRect } from '@midscene/shared/extractor';
 import {
-  convertImgBufferToJpeg,
-  createImgBase64ByFormat,
+  canonicalizeScreenshotBase64,
   imageInfoOfBase64,
   normalizeBase64Image,
-  parseBase64,
   resizeImgBase64,
 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
@@ -182,23 +180,13 @@ export async function commonContextParser(
       shrunkShotToLogicalRatio,
     };
   } else {
-    // For screenshots that do not need shrinking, convert PNG to JPEG to reduce the image payload in model requests and reports. (Shrunk images are already JPEG.)
-    // This mainly covers Android's default screenshot path, which produces PNG screenshots.
-    // Compared with conversion on Android, centralizing it here means each platform does not need to handle screenshot formats itself, and allows future output formats such as WebP.
-    // Built-in paths that already output JPEG are unaffected, and custom devices that output JPEG will not be compressed again.
-    // Web platforms already output compressed formats, so they do not enter this branch. Other built-in device platforms run in Node, where Sharp conversion is fast enough that its extra cost is negligible.
-    let outputScreenshotBase64 = screenshotBase64;
-    const { mimeType, body } = parseBase64(screenshotBase64);
-    if (mimeType.toLowerCase() === 'image/png') {
-      const jpegBuffer = await convertImgBufferToJpeg(
-        Buffer.from(body, 'base64'),
-        90,
-      );
-      outputScreenshotBase64 = createImgBase64ByFormat(
-        'jpeg',
-        jpegBuffer.toString('base64'),
-      );
-    }
+    // PNG/raw producers are encoded once as WebP before the ScreenshotItem is
+    // shared by model requests and reports. Native JPEG sources are preserved
+    // to avoid a second lossy encode for MJPEG/HDC frames.
+    const outputScreenshotBase64 = await canonicalizeScreenshotBase64(
+      screenshotBase64,
+      { preserveJpeg: true },
+    );
 
     return {
       shotSize: {
@@ -222,8 +210,12 @@ export async function createScreenshotBoundUIContext(
   },
 ): Promise<UIContext> {
   const normalizedScreenshotBase64 = normalizeBase64Image(screenshotBase64);
-  const actualScreenshotSize = await imageInfoOfBase64(
+  const canonicalScreenshotBase64 = await canonicalizeScreenshotBase64(
     normalizedScreenshotBase64,
+    { preserveJpeg: true },
+  );
+  const actualScreenshotSize = await imageInfoOfBase64(
+    canonicalScreenshotBase64,
   );
   if (
     opt.screenshotSize &&
@@ -240,7 +232,7 @@ export async function createScreenshotBoundUIContext(
   }
 
   return {
-    screenshot: ScreenshotItem.create(normalizedScreenshotBase64, Date.now()),
+    screenshot: ScreenshotItem.create(canonicalScreenshotBase64, Date.now()),
     shotSize: actualScreenshotSize,
     shrunkShotToLogicalRatio: 1,
     _isFrozen: true,

@@ -487,7 +487,7 @@ describe('resizeAndConvertImgBuffer', () => {
       );
       expect(format).toBe('png');
     });
-    it('Sharp resize will get jpeg format', async () => {
+    it('Sharp resize will get WebP format', async () => {
       const { format, buffer } = await resizeAndConvertImgBuffer(
         'png',
         imageBuffer,
@@ -496,7 +496,9 @@ describe('resizeAndConvertImgBuffer', () => {
           height: 1,
         },
       );
-      expect(format).toBe('jpeg');
+      expect(format).toBe('webp');
+      expect(buffer.subarray(0, 4).toString('ascii')).toBe('RIFF');
+      expect(buffer.subarray(8, 12).toString('ascii')).toBe('WEBP');
     });
   });
 

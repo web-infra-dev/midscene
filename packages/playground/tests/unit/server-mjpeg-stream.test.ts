@@ -385,6 +385,35 @@ describe('PlaygroundServer MJPEG streaming', () => {
     );
   });
 
+  test('GET /mjpeg labels polling WebP bytes with image/webp', async () => {
+    const webpBase64 =
+      'data:image/webp;base64,UklGRjQAAABXRUJQVlA4ICgAAACQAQCdASoCAAMAAMASJQBOl0AAjNAA/v4icv1difCfoP7mxzi2QwAA';
+    const screenshotBase64 = vi.fn(async () => webpBase64);
+    const server = new PlaygroundServer({
+      interface: {
+        interfaceType: 'web',
+        actionSpace: () => [],
+        screenshotBase64,
+        size: async () => ({ width: 2, height: 3 }),
+      },
+    } as any);
+
+    await server.launch(6128);
+    const mjpegHandler = getRouteHandler(server, 'get', '/mjpeg');
+    const request = createMockRequest();
+    const response = createMockStreamResponse();
+    const streamPromise = mjpegHandler(request, response);
+    for (let i = 0; i < 10 && screenshotBase64.mock.calls.length === 0; i++) {
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    }
+    request.listeners.get('close')?.();
+    await streamPromise;
+
+    expect(response.chunks.map((chunk) => chunk.toString()).join('')).toContain(
+      'Content-Type: image/webp',
+    );
+  });
+
   test('GET /mjpeg falls back to screenshot polling when producer emits no initial frame', async () => {
     const stop = vi.fn();
     const screenshotBase64 = vi.fn(async () =>
