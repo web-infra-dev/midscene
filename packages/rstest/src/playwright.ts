@@ -6,8 +6,10 @@ import {
   type WebPageAgentOpt,
   overrideAIConfig,
 } from '@midscene/web/playwright';
+import type { TestContext, TestOptions } from '@rstest/core';
 import {
   type PlaywrightFixture,
+  type PlaywrightFixtures,
   type PlaywrightOptions,
   type PlaywrightTest,
   test as playwrightBaseTest,
@@ -132,6 +134,49 @@ interface InternalFixtures extends MidsceneFixtures {
 }
 
 /**
+ * Fixture keys `test.extend` rejects at compile time. `agent` and
+ * `agentForPage` are deliverables, not override points — a replacement cannot
+ * consume the base value (rstest overrides never can) and would silently
+ * bypass report collection. `__reportMeta` is internal plumbing.
+ */
+type SealedFixtureKeys = 'agent' | 'agentForPage' | '__reportMeta';
+
+/**
+ * The public type of {@link test}: upstream's `PlaywrightTest` with `extend`
+ * re-declared to reject {@link SealedFixtureKeys} — the same technique
+ * `@rstest/playwright` itself uses to specialize `@rstest/core`'s `extend`.
+ * Type-level only; runtime fixture semantics are untouched.
+ *
+ * `Omit` over a callable type drops its call signatures, so they are
+ * re-declared here, mirroring upstream's `PlaywrightTestBase` (function-first
+ * overload first, so `test(name, fn)` binds the callback's context types).
+ */
+export type MidsceneTest<ExtraContext = PlaywrightFixture & MidsceneFixtures> =
+  Omit<PlaywrightTest<ExtraContext>, 'extend'> & {
+    (
+      description: string,
+      fn?: (context: TestContext & ExtraContext) => void | Promise<void>,
+      timeout?: number,
+    ): void;
+    (
+      description: string,
+      options: TestOptions,
+      fn?: (context: TestContext & ExtraContext) => void | Promise<void>,
+    ): void;
+    extend: <
+      T extends Record<string, any> & { [K in SealedFixtureKeys]?: never },
+    >(
+      fixtures: PlaywrightFixtures<T, ExtraContext>,
+    ) => MidsceneTest<{
+      [K in keyof T | keyof ExtraContext]: K extends keyof T
+        ? T[K]
+        : K extends keyof ExtraContext
+          ? ExtraContext[K]
+          : never;
+    }>;
+  };
+
+/**
  * Single place where agent options are resolved: fixture-level
  * `agentOptions`, then per-call `opts` for secondaries, with the report group
  * and cache namespace pinned to the current test.
@@ -223,4 +268,4 @@ export const test = playwrightBaseTest.extend<InternalFixtures>({
       }
     }
   },
-}) as unknown as PlaywrightTest<PlaywrightFixture & MidsceneFixtures>;
+}) as unknown as MidsceneTest;
