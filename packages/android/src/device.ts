@@ -39,6 +39,7 @@ import { normalizeForComparison, repeat } from '@midscene/shared/utils';
 
 import type { ADB } from 'appium-adb';
 import { createAndroidAdb } from './adb';
+import { ADB_SCREENSHOT_TIMEOUT_MS, takeAdbScreenshot } from './adb-screenshot';
 import {
   buildRunAdbShellPlanningFeedback,
   runAdbShellStdoutOrThrow,
@@ -60,6 +61,7 @@ export type {
 const defaultScrollUntilTimes = 10;
 const defaultFastScrollDuration = 100;
 const defaultNormalScrollDuration = 1000;
+const ADB_SCREENSHOT_PROBE_TIMEOUT_MS = 3_000;
 const IME_STRATEGY_ALWAYS_YADB = 'always-yadb' as const;
 const IME_STRATEGY_YADB_FOR_NON_ASCII = 'yadb-for-non-ascii' as const;
 type ScrollDirection = 'up' | 'down' | 'left' | 'right';
@@ -1214,21 +1216,26 @@ ${Object.keys(size)
     const screenshotId = Date.now().toString(36);
     const androidScreenshotPath = `/data/local/tmp/ms_${screenshotId}.png`;
     const useShellScreencap = typeof this.options?.displayId === 'number';
+    let attemptedPrimaryScreencap = false;
 
     try {
-      // Skip takeScreenshot if it has failed consecutively, go directly to shell screencap
+      // Skip exec-out if it has failed consecutively, go directly to shell screencap
       if (
         !useShellScreencap &&
         this.takeScreenshotFailCount <
           AndroidDevice.TAKE_SCREENSHOT_FAIL_THRESHOLD
       ) {
-        debugDevice('Taking screenshot via adb.takeScreenshot');
-        screenshotBuffer = await (
-          adb.takeScreenshot as unknown as () => Promise<Buffer>
-        ).call(adb);
-        debugDevice('adb.takeScreenshot completed');
-
         try {
+          attemptedPrimaryScreencap = true;
+          const takeScreenshotStartedAt = Date.now();
+          debugDevice(
+            `Taking screenshot via bounded adb exec-out (timeout=${ADB_SCREENSHOT_TIMEOUT_MS}ms)`,
+          );
+          screenshotBuffer = await takeAdbScreenshot(adb);
+          debugDevice(
+            `Bounded adb exec-out screenshot completed in ${Date.now() - takeScreenshotStartedAt}ms (${screenshotBuffer.length} bytes)`,
+          );
+
           validateScreenshotBuffer(screenshotBuffer, {
             label: 'Screenshot',
             minBufferSize:
@@ -1237,7 +1244,7 @@ ${Object.keys(size)
           });
         } catch (validationError) {
           debugDevice(
-            'Invalid screenshot buffer detected: %s',
+            'Primary adb exec-out screenshot failed: %s',
             validationError instanceof Error
               ? validationError.message
               : String(validationError),
@@ -1254,7 +1261,7 @@ ${Object.keys(size)
           AndroidDevice.TAKE_SCREENSHOT_FAIL_THRESHOLD
         ) {
           debugDevice(
-            'Skipping takeScreenshot (failed %d consecutive times), using shell screencap directly',
+            'Skipping adb exec-out screencap (failed %d consecutive times), using shell screencap directly',
             this.takeScreenshotFailCount,
           );
         }
@@ -1262,8 +1269,28 @@ ${Object.keys(size)
       }
     } catch (error) {
       debugDevice(
-        `Taking screenshot via adb.takeScreenshot failed or was skipped: ${error}`,
+        `Taking screenshot via bounded adb exec-out failed or was skipped: ${error}`,
       );
+
+      if (attemptedPrimaryScreencap) {
+        const probeStartedAt = Date.now();
+        try {
+          const probeOutput = await adb.shell(
+            'echo midscene_screenshot_probe',
+            {
+              timeout: ADB_SCREENSHOT_PROBE_TIMEOUT_MS,
+            },
+          );
+          warnDevice(
+            `[ADB-SCREENSHOT-DIAG] Primary screencap failed, but ADB shell probe succeeded in ${Date.now() - probeStartedAt}ms (output=${String(probeOutput).trim() || '<empty>'}): ${error}`,
+          );
+        } catch (probeError) {
+          warnDevice(
+            `[ADB-SCREENSHOT-DIAG] Primary screencap failed and ADB shell probe also failed after ${Date.now() - probeStartedAt}ms: screencap=${error}; probe=${probeError}`,
+          );
+        }
+      }
+
       const screenshotPath = getTmpFile('png')!;
       localScreenshotPath = screenshotPath;
 
@@ -1277,16 +1304,22 @@ ${Object.keys(size)
           // Take a screenshot and save it locally
           await adb.shell(
             `screencap -p ${displayArg} ${androidScreenshotPath}`.trim(),
+            { timeout: ADB_SCREENSHOT_TIMEOUT_MS },
           );
           debugDevice('adb.shell screencap completed');
         } catch (screencapError) {
           debugDevice('screencap failed, using forceScreenshot');
-          await this.forceScreenshot(androidScreenshotPath);
+          await this.forceScreenshot(
+            androidScreenshotPath,
+            ADB_SCREENSHOT_TIMEOUT_MS,
+          );
           debugDevice('forceScreenshot completed');
         }
 
         debugDevice('Pulling screenshot file from device');
-        await adb.pull(androidScreenshotPath, screenshotPath);
+        await adb.pull(androidScreenshotPath, screenshotPath, {
+          timeout: ADB_SCREENSHOT_TIMEOUT_MS,
+        });
         debugDevice(`adb.pull completed, local path: ${screenshotPath}`);
         screenshotBuffer = await fs.promises.readFile(screenshotPath);
 
@@ -1389,7 +1422,10 @@ ${Object.keys(size)
     }
   }
 
-  async forceScreenshot(path: string): Promise<void> {
+  async forceScreenshot(
+    path: string,
+    timeout = ADB_SCREENSHOT_TIMEOUT_MS,
+  ): Promise<void> {
     // screenshot which is forbidden by app
     await this.ensureYadb();
 
@@ -1397,6 +1433,7 @@ ${Object.keys(size)
 
     await adb.shell(
       `app_process -Djava.class.path=/data/local/tmp/yadb /data/local/tmp com.ysbing.yadb.Main -screenshot ${path}`,
+      { timeout },
     );
   }
 

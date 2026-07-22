@@ -13,6 +13,7 @@ import {
   it,
   vi,
 } from 'vitest';
+import { takeAdbScreenshot } from '../../src/adb-screenshot';
 import { AndroidDevice, escapeForShell } from '../../src/device';
 
 // Mock the entire appium-adb module
@@ -75,6 +76,15 @@ vi.mock('appium-adb', () => {
   return {
     ADB: MockADB,
     getSdkRootFromEnv: vi.fn(() => undefined),
+  };
+});
+
+vi.mock('../../src/adb-screenshot', async (importOriginal) => {
+  const original =
+    await importOriginal<typeof import('../../src/adb-screenshot')>();
+  return {
+    ...original,
+    takeAdbScreenshot: vi.fn(),
   };
 });
 
@@ -151,6 +161,9 @@ describe('AndroidDevice', () => {
     });
     // Manually assign the mocked adb instance
     vi.spyOn(device, 'getAdb').mockResolvedValue(mockAdb);
+    vi.mocked(takeAdbScreenshot).mockImplementation(() =>
+      mockAdb.takeScreenshot(),
+    );
   });
 
   afterEach(() => {
@@ -577,11 +590,45 @@ Stdout:
 
       expect(mockAdb.shell).toHaveBeenCalledWith(
         expect.stringMatching(/screencap -p/),
+        expect.objectContaining({ timeout: 10_000 }),
       );
-      expect(mockAdb.pull).toHaveBeenCalled();
+      expect(mockAdb.shell).toHaveBeenCalledWith(
+        'echo midscene_screenshot_probe',
+        expect.objectContaining({ timeout: 3_000 }),
+      );
+      expect(mockAdb.pull).toHaveBeenCalledWith(
+        expect.stringMatching(/^\/data\/local\/tmp\/ms_/),
+        '/tmp/test.png',
+        expect.objectContaining({ timeout: 10_000 }),
+      );
       expect(fs.promises.readFile).toHaveBeenCalled();
       expect(result).toContain(mockBuffer.toString('base64'));
       // rm is now executed via execFile (fire-and-forget), not adb.shell
+    });
+
+    it('should stop retrying exec-out after three consecutive failures', async () => {
+      mockAdb.takeScreenshot.mockRejectedValue(new Error('screencap stuck'));
+      const mockBuffer = createValidPngBuffer();
+      vi.spyOn(CoreUtils, 'getTmpFile').mockReturnValue('/tmp/test.png');
+      (fs.promises.readFile as Mock).mockResolvedValue(mockBuffer);
+      vi.spyOn(ImgUtils, 'createImgBase64ByFormat').mockReturnValue(
+        `data:image/png;base64,${mockBuffer.toString('base64')}`,
+      );
+
+      for (let index = 0; index < 4; index++) {
+        await device.screenshotBase64();
+      }
+
+      expect(takeAdbScreenshot).toHaveBeenCalledTimes(3);
+      expect(mockAdb.shell).toHaveBeenCalledWith(
+        'echo midscene_screenshot_probe',
+        expect.objectContaining({ timeout: 3_000 }),
+      );
+      expect(
+        mockAdb.shell.mock.calls.filter(
+          ([command]) => command === 'echo midscene_screenshot_probe',
+        ),
+      ).toHaveLength(3);
     });
 
     it('should accept valid fallback screenshots larger than 1KB by default', async () => {
@@ -2555,6 +2602,7 @@ Stdout:
       // Verify that screencap command uses the display ID by default
       expect(mockAdbInstance.shell).toHaveBeenCalledWith(
         expect.stringMatching(/screencap -p -d 1/),
+        expect.objectContaining({ timeout: 10_000 }),
       );
       expect(mockAdbInstance.shell).not.toHaveBeenCalledWith(
         expect.stringMatching(/screencap -p -d 4630946423637606531/),
@@ -2596,6 +2644,7 @@ Stdout:
       // Verify that screencap command uses the physical display ID
       expect(mockAdbInstance.shell).toHaveBeenCalledWith(
         expect.stringMatching(/screencap -p -d 4630946423637606531/),
+        expect.objectContaining({ timeout: 10_000 }),
       );
     });
 
@@ -2643,6 +2692,7 @@ Stdout:
       // Verify that screencap command uses the display ID (2), not the long one
       expect(mockAdbInstance.shell).toHaveBeenCalledWith(
         expect.stringMatching(/screencap -p -d 2/),
+        expect.objectContaining({ timeout: 10_000 }),
       );
       expect(mockAdbInstance.shell).not.toHaveBeenCalledWith(
         expect.stringMatching(/screencap -p -d 4630946423637606531/),
@@ -2793,6 +2843,7 @@ Stdout:
       // Verify that screencap command does not use any display ID (note the extra space)
       expect(mockAdbInstance.shell).toHaveBeenCalledWith(
         expect.stringMatching(/screencap -p {2}\/data\/local\/tmp\/ms_/),
+        expect.objectContaining({ timeout: 10_000 }),
       );
       expect(mockAdbInstance.shell).not.toHaveBeenCalledWith(
         expect.stringMatching(/screencap -p -d/),
