@@ -19,7 +19,7 @@ test('adds a todo', async ({ agent, page }) => {
 
 - 类型化 fixtures。`agent`、`page`、`browser`、`agentForPage` 直接从 test context 解构。
 - Lazy 浏览器生命周期。浏览器在第一个依赖它的 test 运行时才启动，AI 测试和纯 unit test 混在同一个文件时，只有 AI 测试会产生 AI 开销。
-- 可组合。用 `test.extend({ ... })` 覆盖 options 或任何单独的 fixture，比如预导航并注入 route 的 `page`，或者第二个 `adminAgent` persona。
+- 可组合。用 `test.extend({ ... })` 覆盖 options 或任何上游 fixture，比如预导航并注入 route 的 `page`，或新增第二个 `adminAgent` persona 这样的自定义 fixture。`agent` 与 `agentForPage` 在类型层面被封印，覆盖它们会直接编译报错。
 - 每个文件一份合并后的 HTML 报告，路径在文件结束时打印到控制台。
 
 这个包构建在 Rstest 官方 Playwright 集成 [`@rstest/playwright`](https://github.com/web-infra-dev/rstest/tree/main/packages/playwright) 之上。Midscene 在其上叠加 `agent` lifecycle 与报告能力，上游的全套工具箱直接继承：Playwright 风味的 `expect`（`toBeVisible`、`toHaveText` 等）、debug 模式（`PWDEBUG`、失败时暂停）、Playwright trace 采集，以及 `request` / `serve` fixtures。
@@ -87,7 +87,7 @@ test('adds and completes a todo', async ({ agent, page }) => {
 
 可用的 fixtures：
 
-- **`agent`**：绑定到主 page 上的 Midscene `PlaywrightAgent`。AI action 和 assertion 的默认入口。导航是测试自己的事（`await page.goto(...)`），与 Midscene 的 Playwright 集成完全一致。
+- **`agent`**：绑定到主 page 上的 Midscene `PlaywrightAgent`。AI action 和 assertion 的默认入口。导航是测试自己的事（`await page.goto(...)`），与 Midscene 的 Playwright 集成完全一致。`agent` 与 `agentForPage` 是交付物：在测试里解构使用，或作为派生 fixture 的依赖；`test.extend` 在类型层面拒绝覆盖它们，因为替换后报告收集会被绕过。
 - **`page`**：Playwright `Page`，原样来自 `@rstest/playwright`——包括其失败时的行为（`PWDEBUG` 下失败保留现场并 pause）。用于直接操作浏览器原语，比如 `page.route(...)` network mock、`page.evaluate(...)`、`page.context().cookies()`。
 - **`browser`**：共享的 `Browser`，由 `@rstest/playwright` 管理，惰性启动、worker 内共享、空闲时自动关闭。适合在测试中开新 context 或新 page，用于多用户、跨会话场景。
 - **`context`**：创建主 `page` 的 test-scoped `BrowserContext`。需要自定义 context 时通过 `test.extend` 覆盖。

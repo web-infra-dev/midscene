@@ -19,7 +19,7 @@ test('adds a todo', async ({ agent, page }) => {
 
 - Typed fixtures. Destructure `agent`, `page`, `browser`, or `agentForPage` directly from the test context.
 - A lazy browser lifecycle. The browser launches when the first test that depends on it runs, so a file that mixes AI tests with plain unit tests only pays the AI cost for the AI tests.
-- Composable setup. Use `test.extend({ ... })` to override the options or any individual fixture, such as a `page` that pre-navigates and injects routes, or a second `adminAgent` persona.
+- Composable setup. Use `test.extend({ ... })` to override the options or any upstream fixture, such as a `page` that pre-navigates and injects routes, or to add new fixtures like a second `adminAgent` persona. `agent` and `agentForPage` are sealed at the type level — overriding them is a compile error.
 - One merged Midscene HTML report per test file, with its path printed to the console after the file finishes.
 
 The package is built on [`@rstest/playwright`](https://github.com/web-infra-dev/rstest/tree/main/packages/playwright), Rstest's official Playwright integration. Midscene layers the `agent` lifecycle and reporting on top, and you inherit the upstream toolbox as-is: Playwright-flavored `expect` (`toBeVisible`, `toHaveText`, etc.), debug mode (`PWDEBUG`, pause on failure), Playwright trace capture, and the `request` / `serve` fixtures.
@@ -87,7 +87,7 @@ The `test` exported from `@midscene/rstest/playwright` is an Rstest test pre-wir
 
 The available fixtures are:
 
-- **`agent`**: the Midscene `PlaywrightAgent` bound to the primary page. Default tool for AI actions and assertions. Navigation is the test's own job (`await page.goto(...)`), exactly as in Midscene's Playwright integration.
+- **`agent`**: the Midscene `PlaywrightAgent` bound to the primary page. Default tool for AI actions and assertions. Navigation is the test's own job (`await page.goto(...)`), exactly as in Midscene's Playwright integration. `agent` and `agentForPage` are deliverables: consume them in tests or as dependencies of derived fixtures; `test.extend` rejects overriding them at the type level, since a replacement would bypass report collection.
 - **`page`**: the Playwright `Page`, straight from `@rstest/playwright` — including its failure behavior (kept open and paused under `PWDEBUG`). Escape hatch for browser primitives such as `page.route(...)` network mocking, `page.evaluate(...)`, or `page.context().cookies()`.
 - **`browser`**: the shared `Browser`, managed by `@rstest/playwright`. It is launched lazily, shared per worker, and closed automatically when idle. Use it to spin up extra contexts or pages mid-test, for multi-user or cross-session scenarios.
 - **`context`**: the test-scoped `BrowserContext` the primary `page` is created from. Override via `test.extend` if you need a custom context per test.
