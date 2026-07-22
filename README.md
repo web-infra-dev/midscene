@@ -49,7 +49,7 @@ Most UI automation — including AI tools that read the DOM or the accessibility
 - **Less maintenance** — no selectors to chase when the UI changes.
 - **Reach every element and surface** — if a human can see it, Midscene can target it, even with no semantic annotations, on `<canvas>`, native apps, and cross-origin iframes.
 - **Assert what users actually see** — verify colors, highlights, layout, and rendered state, not just whether a DOM node exists.
-- **Two ways to test** — add Midscene to your [Playwright](https://midscenejs.com/integrate-with-playwright) / Vitest suite, or let an AI agent test autonomously via [Skills](https://midscenejs.com/skills).
+- **Two ways to test** — add Midscene to your [Playwright](https://midscenejs.com/integrate-with-playwright) / [Rstest](https://midscenejs.com/integrate-with-rstest) / Vitest suite, or let an AI agent test autonomously via [Skills](https://midscenejs.com/skills).
 
 Midscene is built for UI testing first, but the same vision-driven engine handles any UI automation task.
 
