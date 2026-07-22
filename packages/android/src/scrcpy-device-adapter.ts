@@ -57,7 +57,8 @@ export interface ScrcpyStatus {
 export interface ScrcpyPauseResult {
   reason: string;
   wasConnected: boolean;
-  pausedUntil: number;
+  pausedUntil: null;
+  requiresManualRetry: true;
   diagnostics: ScrcpyStreamDiagnostics | null;
 }
 
@@ -70,7 +71,7 @@ export class ScrcpyDeviceAdapter {
   private resolvedConfig: ResolvedScrcpyConfig | null = null;
   private lastError: string | null = null;
   private retryAfter: number | null = null;
-  private suspendedUntil: number | null = null;
+  private suspended = false;
   private suspensionReason: string | null = null;
 
   constructor(
@@ -81,9 +82,8 @@ export class ScrcpyDeviceAdapter {
   ) {}
 
   isEnabled(): boolean {
-    if (!this.isConfigured()) return false;
-    const unavailableUntil = this.getUnavailableUntil();
-    return unavailableUntil === null || Date.now() >= unavailableUntil;
+    if (!this.isConfigured() || this.suspended) return false;
+    return this.retryAfter === null || Date.now() >= this.retryAfter;
   }
 
   getStatus(): ScrcpyStatus {
@@ -91,7 +91,7 @@ export class ScrcpyDeviceAdapter {
       enabled: this.isConfigured(),
       connected: this.manager?.isConnected() ?? false,
       lastError: this.lastError,
-      retryAfter: this.getUnavailableUntil(),
+      retryAfter: this.retryAfter,
     };
   }
 
@@ -124,10 +124,9 @@ export class ScrcpyDeviceAdapter {
   }
 
   private ensureRetryReady(): void {
-    const suspendedUntil = this.getActiveSuspensionUntil();
-    if (suspendedUntil !== null) {
+    if (this.suspended) {
       throw new Error(
-        `scrcpy is temporarily paused until ${new Date(suspendedUntil).toISOString()} (${this.suspensionReason})`,
+        `scrcpy is paused for this device session (${this.suspensionReason}). Call retryScrcpy() to resume explicitly.`,
       );
     }
 
@@ -316,46 +315,37 @@ export class ScrcpyDeviceAdapter {
     return resolution.width / physicalWidth;
   }
 
-  async pauseForAdbCommand(
-    reason: string,
-    cooldownMs: number,
-  ): Promise<ScrcpyPauseResult> {
+  async pauseForAdbCommand(reason: string): Promise<ScrcpyPauseResult> {
     const manager = this.manager;
     const wasConnected = manager?.isConnected() ?? false;
     const diagnostics = manager?.getDiagnostics() ?? null;
 
     await this.disconnectManager();
 
-    const pausedUntil = Date.now() + cooldownMs;
-    this.suspendedUntil = Math.max(this.suspendedUntil ?? 0, pausedUntil);
+    this.suspended = true;
     this.suspensionReason = reason;
 
     debugAdapter(
-      `[STREAM-DIAG] scrcpy paused for ${reason} until ${new Date(this.suspendedUntil).toISOString()}: ${JSON.stringify(diagnostics)}`,
+      `[STREAM-DIAG] scrcpy paused for this device session after ${reason}; call retryScrcpy() to resume explicitly: ${JSON.stringify(diagnostics)}`,
     );
 
     return {
       reason,
       wasConnected,
-      pausedUntil: this.suspendedUntil,
+      pausedUntil: null,
+      requiresManualRetry: true,
       diagnostics,
     };
   }
 
-  private getActiveSuspensionUntil(): number | null {
-    if (this.suspendedUntil === null) return null;
-    if (Date.now() < this.suspendedUntil) return this.suspendedUntil;
+  resumeForExplicitRetry(): void {
+    if (!this.suspended) return;
 
-    this.suspendedUntil = null;
+    debugAdapter(
+      `[STREAM-DIAG] resuming scrcpy after explicit retry; previous suspension reason: ${this.suspensionReason}`,
+    );
+    this.suspended = false;
     this.suspensionReason = null;
-    return null;
-  }
-
-  private getUnavailableUntil(): number | null {
-    const suspendedUntil = this.getActiveSuspensionUntil();
-    if (this.retryAfter === null) return suspendedUntil;
-    if (suspendedUntil === null) return this.retryAfter;
-    return Math.max(this.retryAfter, suspendedUntil);
   }
 
   private async disconnectManager(): Promise<void> {
@@ -373,7 +363,7 @@ export class ScrcpyDeviceAdapter {
   async disconnect(): Promise<void> {
     await this.disconnectManager();
     this.clearFailure();
-    this.suspendedUntil = null;
+    this.suspended = false;
     this.suspensionReason = null;
   }
 }

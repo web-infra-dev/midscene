@@ -60,8 +60,6 @@ export type {
 const defaultScrollUntilTimes = 10;
 const defaultFastScrollDuration = 100;
 const defaultNormalScrollDuration = 1000;
-const NETWORK_CHANGE_SCRCPY_COOLDOWN_MS = 10_000;
-
 const IME_STRATEGY_ALWAYS_YADB = 'always-yadb' as const;
 const IME_STRATEGY_YADB_FOR_NON_ASCII = 'yadb-for-non-ascii' as const;
 type ScrollDirection = 'up' | 'down' | 'left' | 'right';
@@ -118,6 +116,12 @@ function isNetworkStateMutationCommand(command: unknown): boolean {
       normalized,
     ) ||
     /(?:^|[;&|]\s*)settings\s+put\s+global\s+airplane_mode_on\s+[01](?=\s|$|[;&|])/.test(
+      normalized,
+    ) ||
+    /(?:^|[;&|]\s*)settings\s+put\s+global\s+(?:mobile_data\d*|wifi_on)\s+[01](?=\s|$|[;&|])/.test(
+      normalized,
+    ) ||
+    /(?:^|[;&|]\s*)cmd\s+wifi\s+set-wifi-enabled\s+(?:enabled|disabled|true|false)(?=\s|$|[;&|])/.test(
       normalized,
     ) ||
     /(?:^|[;&|]\s*)am\s+broadcast\b[^;&|]*android\.intent\.action\.airplane_mode\b/.test(
@@ -483,7 +487,6 @@ ${Object.keys(size)
           const isNetworkMutation =
             prop === 'shell' && isNetworkStateMutationCommand(args[0]);
           let scrcpyPaused = false;
-          let pausedUntil: number | null = null;
           const commandStartedAt = Date.now();
           try {
             if (isNetworkMutation) {
@@ -491,10 +494,8 @@ ${Object.keys(size)
               if (adapter.getStatus().enabled) {
                 const pauseResult = await adapter.pauseForAdbCommand(
                   'network-state-change',
-                  NETWORK_CHANGE_SCRCPY_COOLDOWN_MS,
                 );
                 scrcpyPaused = true;
-                pausedUntil = pauseResult.pausedUntil;
                 warnDevice(
                   `[STREAM-DIAG] Paused scrcpy before Android network state change: ${JSON.stringify(pauseResult)}`,
                 );
@@ -508,7 +509,7 @@ ${Object.keys(size)
             debugDevice(`adb ${String(prop)} ${args.join(' ')} end`);
             if (scrcpyPaused) {
               warnDevice(
-                `[STREAM-DIAG] Android network state change completed in ${Date.now() - commandStartedAt}ms; scrcpy remains paused until ${pausedUntil ? new Date(pausedUntil).toISOString() : 'unknown'}`,
+                `[STREAM-DIAG] Android network state change completed in ${Date.now() - commandStartedAt}ms; scrcpy remains paused for this device session. Call retryScrcpy() to resume explicitly.`,
               );
             }
             return result;
@@ -546,6 +547,7 @@ ${Object.keys(size)
     }
 
     const deviceInfo = await this.getDevicePhysicalInfo();
+    adapter.resumeForExplicitRetry();
     await adapter.initialize(deviceInfo);
     return adapter.getStatus();
   }

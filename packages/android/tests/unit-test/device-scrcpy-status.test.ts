@@ -44,6 +44,7 @@ describe('AndroidDevice scrcpy recovery API', () => {
     };
     const adapter = {
       isEnabled: vi.fn().mockReturnValue(true),
+      resumeForExplicitRetry: vi.fn(),
       initialize: vi.fn().mockResolvedValue(undefined),
       getStatus: vi.fn().mockReturnValue(status),
     };
@@ -53,6 +54,7 @@ describe('AndroidDevice scrcpy recovery API', () => {
       .mockResolvedValue(deviceInfo);
 
     await expect(device.retryScrcpy()).resolves.toBe(status);
+    expect(adapter.resumeForExplicitRetry).toHaveBeenCalledOnce();
     expect(adapter.initialize).toHaveBeenCalledWith(deviceInfo);
   });
 
@@ -75,7 +77,8 @@ describe('AndroidDevice scrcpy recovery API', () => {
       return {
         reason: 'network-state-change',
         wasConnected: true,
-        pausedUntil: Date.now() + 10_000,
+        pausedUntil: null,
+        requiresManualRetry: true,
         diagnostics: { connected: true, totalPackets: 10 },
       };
     });
@@ -100,10 +103,7 @@ describe('AndroidDevice scrcpy recovery API', () => {
     await adb.shell('svc wifi disable && svc data disable');
 
     expect(order).toEqual(['pause', 'shell']);
-    expect(pauseForAdbCommand).toHaveBeenCalledWith(
-      'network-state-change',
-      10_000,
-    );
+    expect(pauseForAdbCommand).toHaveBeenCalledWith('network-state-change');
   });
 
   it('should recognize array-form network commands', async () => {
@@ -111,7 +111,8 @@ describe('AndroidDevice scrcpy recovery API', () => {
     const pauseForAdbCommand = vi.fn().mockResolvedValue({
       reason: 'network-state-change',
       wasConnected: true,
-      pausedUntil: Date.now() + 10_000,
+      pausedUntil: null,
+      requiresManualRetry: true,
       diagnostics: null,
     });
     const device = new AndroidDevice('device', {
@@ -133,6 +134,43 @@ describe('AndroidDevice scrcpy recovery API', () => {
 
     const adb = await device.getAdb();
     await adb.shell(['svc', 'wifi', 'enable']);
+
+    expect(pauseForAdbCommand).toHaveBeenCalledOnce();
+  });
+
+  it.each([
+    'settings put global mobile_data 1',
+    'settings put global mobile_data2 0',
+    'settings put global wifi_on 0',
+    'cmd wifi set-wifi-enabled disabled',
+  ])('should recognize network mutation command: %s', async (command) => {
+    const shell = vi.fn().mockResolvedValue('');
+    const pauseForAdbCommand = vi.fn().mockResolvedValue({
+      reason: 'network-state-change',
+      wasConnected: true,
+      pausedUntil: null,
+      requiresManualRetry: true,
+      diagnostics: null,
+    });
+    const device = new AndroidDevice('device', {
+      scrcpyConfig: { enabled: true },
+    });
+    (device as any).adb = {
+      executable: { path: '/mock/adb' },
+      shell,
+    };
+    (device as any).scrcpyAdapter = {
+      getStatus: vi.fn().mockReturnValue({
+        enabled: true,
+        connected: true,
+        lastError: null,
+        retryAfter: null,
+      }),
+      pauseForAdbCommand,
+    };
+
+    const adb = await device.getAdb();
+    await adb.shell(command);
 
     expect(pauseForAdbCommand).toHaveBeenCalledOnce();
   });
@@ -191,7 +229,7 @@ describe('AndroidDevice scrcpy recovery API', () => {
     expect(shell).toHaveBeenCalledOnce();
   });
 
-  it('should disconnect an active stream and temporarily disable scrcpy', async () => {
+  it('should keep scrcpy suspended until an explicit retry', async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-07-22T00:00:00Z'));
     const adapter = new ScrcpyDeviceAdapter('device', { enabled: true });
@@ -206,16 +244,14 @@ describe('AndroidDevice scrcpy recovery API', () => {
     };
     (adapter as any).manager = manager;
 
-    const result = await adapter.pauseForAdbCommand(
-      'network-state-change',
-      10_000,
-    );
+    const result = await adapter.pauseForAdbCommand('network-state-change');
 
     expect(manager.disconnect).toHaveBeenCalledOnce();
     expect(result).toMatchObject({
       reason: 'network-state-change',
       wasConnected: true,
-      pausedUntil: Date.now() + 10_000,
+      pausedUntil: null,
+      requiresManualRetry: true,
       diagnostics: {
         connected: true,
         totalPackets: 42,
@@ -227,10 +263,13 @@ describe('AndroidDevice scrcpy recovery API', () => {
       enabled: true,
       connected: false,
       lastError: null,
-      retryAfter: Date.now() + 10_000,
+      retryAfter: null,
     });
 
-    vi.advanceTimersByTime(10_000);
+    vi.advanceTimersByTime(60_000);
+    expect(adapter.isEnabled()).toBe(false);
+
+    adapter.resumeForExplicitRetry();
     expect(adapter.isEnabled()).toBe(true);
   });
 
@@ -240,7 +279,7 @@ describe('AndroidDevice scrcpy recovery API', () => {
     const adapter = new ScrcpyDeviceAdapter('device', { enabled: true });
     (adapter as any).retryAfter = Date.now() + 60_000;
 
-    await adapter.pauseForAdbCommand('network-state-change', 10_000);
+    await adapter.pauseForAdbCommand('network-state-change');
 
     expect(adapter.getStatus().retryAfter).toBe(Date.now() + 60_000);
   });
