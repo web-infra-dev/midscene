@@ -1,3 +1,4 @@
+import type { BaseUIObserverOptions } from '@midscene/shared/agent-tools/types';
 import { imageInfoOfBase64, resizeImgBase64 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
@@ -22,22 +23,8 @@ const DEFAULT_WATCHDOG_MS = 5 * 60 * 1000;
 // (no silent dropping), but warn the user when this is exceeded.
 const MAX_FRAMES_TO_MODEL = 50;
 
-export interface UIObserverOption {
-  /** Sampling interval between frames in ms. Default 1000, min 200 (5fps). */
-  intervalMs?: number;
-  /**
-   * Maximum number of frames to keep in the buffer. When full the buffer is
-   * thinned (change-point frames preserved, static intervals halved) so the
-   * whole window keeps temporal coverage. Default 30.
-   */
-  maxFrames?: number;
-  /**
-   * Auto-stop the observer after this many ms if stop() was never called.
-   * Prevents resource leaks from forgotten observers. Default 5min. Set 0 to
-   * disable.
-   */
-  watchdogMs?: number;
-}
+/** Options for a UI observation window. */
+export type UIObserverOption = BaseUIObserverOptions;
 
 interface UIObserverDeps {
   /**

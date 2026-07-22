@@ -102,7 +102,13 @@ function printCommandHelp(scriptName: string, cmd: CLICommand): void {
   console.log(`\nUsage: ${scriptName} ${cmd.name} [options]\n`);
   console.log(def.description);
 
-  const schemaEntries = Object.entries(def.schema);
+  const globalOptionFlags = new Set(
+    getGlobalOptions().map((option) => option.flag),
+  );
+  const schemaEntries = Object.entries(def.schema).filter(([key]) => {
+    const { label } = getCliOptionDisplay(key, def.cli?.options?.[key]);
+    return !globalOptionFlags.has(label);
+  });
   if (schemaEntries.length > 0) {
     const optionWidth = Math.max(
       22,
@@ -151,23 +157,27 @@ function printHelp(
 }
 
 function printGlobalOptions(): void {
-  const options = [
-    {
-      flag: `--${cliVerboseFlag}`,
-      description:
-        'Print progress while the command is running. act prints readable progress by default. Use --verbose=jsonl for structured events.',
-    },
-    ...TOOL_BEHAVIOR_FLAGS.map((flag) => ({
-      flag: `--${flag.cli}`,
-      description: flag.description,
-    })),
-  ];
+  const options = getGlobalOptions();
   const optionWidth = Math.max(...options.map((option) => option.flag.length));
 
   console.log('\nGlobal Options:');
   for (const option of options) {
     console.log(`  ${option.flag.padEnd(optionWidth)} ${option.description}`);
   }
+}
+
+function getGlobalOptions(): Array<{ flag: string; description: string }> {
+  return [
+    {
+      flag: `--${cliVerboseFlag}`,
+      description:
+        'Print progress while the command is running. act and observe print readable progress by default. Use --verbose=jsonl for structured events.',
+    },
+    ...TOOL_BEHAVIOR_FLAGS.map((flag) => ({
+      flag: `--${flag.cli}`,
+      description: flag.description,
+    })),
+  ];
 }
 
 type AnyMidsceneTools = BaseMidsceneTools<any, any>;
@@ -282,7 +292,8 @@ export async function runToolsCLI(
 
   debug('command: %s, args: %s', match.name, JSON.stringify(handlerArgs));
 
-  const verboseEnabled = verbose || match.name === 'act';
+  const verboseEnabled =
+    verbose || match.name === 'act' || match.name === 'observe';
 
   await withCliVerboseContext(
     {
