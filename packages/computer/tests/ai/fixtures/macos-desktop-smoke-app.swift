@@ -156,22 +156,27 @@ final class FixtureController: NSObject, NSApplicationDelegate, NSTextFieldDeleg
   private func activateFixture() {
     activationCount += 1
     let activation = activationCount
-    NSApplication.shared.unhide(nil)
-    NSApplication.shared.activate(ignoringOtherApps: true)
-    NSRunningApplication.current.activate(options: [.activateAllWindows])
+    focusFixture()
     writeState()
 
-    // Present the window on the next AppKit turn, after the activation request
-    // has reached the application. A readiness generation is published only
-    // after AppKit itself reports a visible key window; callers synchronize on
-    // that generation instead of sleeping for an arbitrary duration.
-    DispatchQueue.main.async { [weak self] in
+    // Hosted macOS sessions can report the app as active before the first
+    // activation request has settled. Repeat the complete focus sequence on a
+    // later AppKit turn, then publish readiness only after the window is key.
+    DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in
       guard let self else { return }
-      self.window.orderFrontRegardless()
-      self.window.makeKeyAndOrderFront(nil)
-      self.window.makeFirstResponder(self.textField)
+      guard activation == self.activationCount else { return }
+      self.focusFixture()
       self.publishInputReady(for: activation, attemptsRemaining: 40)
     }
+  }
+
+  private func focusFixture() {
+    NSApplication.shared.unhide(nil)
+    window.orderFrontRegardless()
+    window.makeKeyAndOrderFront(nil)
+    NSApplication.shared.activate(ignoringOtherApps: true)
+    NSRunningApplication.current.activate(options: [.activateAllWindows])
+    window.makeFirstResponder(textField)
   }
 
   private func publishInputReady(for activation: Int, attemptsRemaining: Int) {
