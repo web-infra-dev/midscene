@@ -18,6 +18,12 @@ vi.mock('@midscene/shared/logger', () => ({
   getDebug: vi.fn(() => vi.fn()),
 }));
 
+vi.mock('../../src/chrome-extension/dynamic-scripts', () => ({
+  getHtmlElementScript: vi.fn(),
+  injectWaterFlowAnimation: vi.fn(async () => 'enable-water-flow'),
+  injectStopWaterFlowAnimation: vi.fn(async () => 'disable-water-flow'),
+}));
+
 import ChromeExtensionProxyPage from '../../src/chrome-extension/page';
 
 describe('debugger detach race during lazy attach', () => {
@@ -97,5 +103,30 @@ describe('debugger detach race during lazy attach', () => {
     expect(result).toEqual({ width: 1024, height: 768 });
     // attach was triggered exactly once by the lazy retry path.
     expect(chrome.debugger.attach).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not inject the water-flow animation when it is disabled', async () => {
+    (chrome.debugger.sendCommand as any).mockResolvedValue({
+      result: { value: { width: 1024, height: 768 } },
+    });
+
+    await page.setWaterFlowAnimationEnabled(false);
+    vi.clearAllMocks();
+
+    const result = await page.size();
+
+    expect(result).toEqual({ width: 1024, height: 768 });
+    expect(chrome.debugger.sendCommand).toHaveBeenCalledWith(
+      { tabId: 1302238007 },
+      'Runtime.evaluate',
+      expect.objectContaining({
+        expression: expect.stringContaining('window.innerWidth'),
+      }),
+    );
+    expect(chrome.debugger.sendCommand).not.toHaveBeenCalledWith(
+      { tabId: 1302238007 },
+      'Runtime.evaluate',
+      { expression: 'enable-water-flow' },
+    );
   });
 });
