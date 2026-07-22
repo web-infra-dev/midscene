@@ -130,6 +130,25 @@ export interface AgentDescribeElementAtPointResult {
  * context
  */
 
+export interface UiNode {
+  type: string;
+  attrs: Record<string, string | undefined>;
+  bounds: Rect;
+  children: UiNode[];
+}
+
+export interface UITreeSnapshot {
+  platform: 'android';
+  capturedAt: number;
+  root: UiNode;
+  xpathPolicy: {
+    stableAttrs: string[];
+    textAttrs: string[];
+    excludedTargetTypes: string[];
+    max: number;
+  };
+}
+
 export abstract class UIContext {
   /**
    * screenshot of the current UI state. which size is shotSize(be shrunk by screenshotShrinkFactor),
@@ -162,6 +181,12 @@ export abstract class UIContext {
    * - To map back to logical coordinates: 1500 / shrunkShotToLogicalRatio = 500px
    */
   abstract shrunkShotToLogicalRatio: number;
+
+  /** Accessibility tree captured alongside {@link screenshot}, when enabled. */
+  abstract uiTree?: UITreeSnapshot;
+
+  /** Non-fatal error raised while capturing {@link uiTree}. */
+  abstract uiTreeError?: string;
 
   abstract _isFrozen?: boolean;
 
@@ -980,6 +1005,16 @@ export interface AgentOpt {
    * @default 1 (no shrinking, uses original physical screenshot)
    */
   screenshotShrinkFactor?: number;
+
+  /**
+   * Capture an Android accessibility tree for Locate tasks. The task report
+   * retains only the located target's direct ancestor chain up to its nearest
+   * resource-id ancestor. Tree capture failures are recorded on UIContext
+   * without failing the AI task.
+   *
+   * @default false
+   */
+  captureUITree?: boolean;
 
   /**
    * Custom OpenAI client factory function

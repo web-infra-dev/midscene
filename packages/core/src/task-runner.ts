@@ -1,3 +1,4 @@
+import { pruneUITreeSnapshotToTarget } from '@/agent/ui-tree-snapshot';
 import type { ScreenshotItem } from '@/screenshot-item';
 import { setTimingFieldOnce } from '@/task-timing';
 import {
@@ -18,6 +19,63 @@ import { assert, uuid } from '@midscene/shared/utils';
 
 const debug = getDebug('task-runner');
 const UI_CONTEXT_CACHE_TTL_MS = 300;
+
+type UIContextKind = 'default' | 'locate';
+
+function uiContextKindForTask(task?: ExecutionTask): UIContextKind {
+  return task?.type === 'Planning' && task.subType === 'Locate'
+    ? 'locate'
+    : 'default';
+}
+
+function uiContextWithoutTree(
+  uiContext: UIContext,
+  preserveTreeError = false,
+): UIContext {
+  const { uiTree: _uiTree, uiTreeError, ...contextWithoutTree } = uiContext;
+  return {
+    ...contextWithoutTree,
+    ...(preserveTreeError && uiTreeError ? { uiTreeError } : {}),
+  } as UIContext;
+}
+
+function locateReportUIContext(
+  uiContext: UIContext,
+  element: ExecutionTaskPlanningLocateOutput['element'] | undefined,
+): UIContext {
+  const contextWithoutTree = uiContextWithoutTree(uiContext, true);
+  if (!uiContext.uiTree || !element) {
+    return contextWithoutTree;
+  }
+
+  const ratio = uiContext.shrunkShotToLogicalRatio;
+  if (!Number.isFinite(ratio) || ratio <= 0) {
+    debug('skip locate UI tree: invalid shrunkShotToLogicalRatio %s', ratio);
+    return contextWithoutTree;
+  }
+
+  try {
+    return {
+      ...contextWithoutTree,
+      uiTree: pruneUITreeSnapshotToTarget(
+        uiContext.uiTree,
+        {
+          x: element.center[0] / ratio,
+          y: element.center[1] / ratio,
+        },
+        {
+          left: element.rect.left / ratio,
+          top: element.rect.top / ratio,
+          width: element.rect.width / ratio,
+          height: element.rect.height / ratio,
+        },
+      ),
+    };
+  } catch (error) {
+    debug('skip locate UI tree: target could not be mapped: %s', error);
+    return contextWithoutTree;
+  }
+}
 
 /**
  * A native, per-task lifecycle notification. The runner is the single source
@@ -72,7 +130,9 @@ export class TaskRunner {
 
   onTaskStart?: ExecutionTaskProgressOptions['onTaskStart'];
 
-  private readonly uiContextBuilder: () => Promise<UIContext>;
+  private readonly uiContextBuilder: (
+    task?: ExecutionTask,
+  ) => Promise<UIContext>;
 
   private readonly onSnapshotChange?:
     | ((runner: TaskRunner, error?: TaskExecutionError) => Promise<void> | void)
@@ -84,7 +144,7 @@ export class TaskRunner {
 
   constructor(
     name: string,
-    uiContextBuilder: () => Promise<UIContext>,
+    uiContextBuilder: (task?: ExecutionTask) => Promise<UIContext>,
     options?: TaskRunnerInitOptions,
   ) {
     this.id = uuid();
@@ -125,15 +185,19 @@ export class TaskRunner {
   private lastUiContext?: {
     context: UIContext;
     capturedAt: number;
+    kind: UIContextKind;
   };
 
-  private async getUiContext(options?: { forceRefresh?: boolean }): Promise<
-    UIContext | undefined
-  > {
+  private async getUiContext(
+    task?: ExecutionTask,
+    options?: { forceRefresh?: boolean },
+  ): Promise<UIContext | undefined> {
     const now = Date.now();
+    const kind = uiContextKindForTask(task);
     const shouldReuse =
       !options?.forceRefresh &&
       this.lastUiContext &&
+      this.lastUiContext.kind === kind &&
       now - this.lastUiContext.capturedAt <= UI_CONTEXT_CACHE_TTL_MS;
 
     if (shouldReuse && this.lastUiContext?.context) {
@@ -144,11 +208,12 @@ export class TaskRunner {
     }
 
     try {
-      const uiContext = await this.uiContextBuilder();
+      const uiContext = await this.uiContextBuilder(task);
       if (uiContext) {
         this.lastUiContext = {
           context: uiContext,
           capturedAt: Date.now(),
+          kind,
         };
       } else {
         this.lastUiContext = undefined;
@@ -162,7 +227,9 @@ export class TaskRunner {
 
   private async captureScreenshot(): Promise<ScreenshotItem | undefined> {
     try {
-      const uiContext = await this.getUiContext({ forceRefresh: true });
+      const uiContext = await this.getUiContext(undefined, {
+        forceRefresh: true,
+      });
       return uiContext?.screenshot;
     } catch (error) {
       console.error('error while capturing screenshot', error);
@@ -310,10 +377,15 @@ export class TaskRunner {
         // to ensure we have the latest UI state after any preceding actions
         const forceRefresh = task.type === 'Insight';
         setTimingFieldOnce(task.timing, 'getUiContextStart');
-        const uiContext = await this.getUiContext({ forceRefresh });
+        const uiContext = await this.getUiContext(task, { forceRefresh });
         setTimingFieldOnce(task.timing, 'getUiContextEnd');
 
-        task.uiContext = uiContext;
+        task.uiContext = uiContext
+          ? uiContextWithoutTree(
+              uiContext,
+              uiContextKindForTask(task) === 'locate',
+            )
+          : uiContext;
         const executorContext: ExecutorContext = {
           task,
           element: previousFindOutput?.element,
@@ -337,6 +409,12 @@ export class TaskRunner {
             previousFindOutput = (
               returnValue as ExecutionTaskReturn<ExecutionTaskPlanningLocateOutput>
             )?.output;
+            if (uiContext) {
+              task.uiContext = locateReportUIContext(
+                uiContext,
+                previousFindOutput?.element,
+              );
+            }
           }
         } else if (task.type === 'Action Space') {
           returnValue = await task.executor(param, executorContext);
