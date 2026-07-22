@@ -4,6 +4,17 @@ import { createRoot } from 'react-dom/client';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
+  modelEnvModalProps: null as null | {
+    onSave?: (payload: {
+      text: string;
+      agentOptions: {
+        replanningCycleLimit?: number;
+        waitAfterAction?: number;
+        screenshotShrinkFactor?: number;
+      };
+    }) => void | Promise<void>;
+  },
+  saveAgentOptions: vi.fn(),
   playground: {
     phase: 'ready',
     controller: {
@@ -171,7 +182,15 @@ vi.mock('../src/renderer/components/SettingsPanel', () => ({
 }));
 
 vi.mock('../src/renderer/components/ShellLayout/ModelEnvConfigModal', () => ({
-  ModelEnvConfigModal: () => null,
+  ModelEnvConfigModal: (props: unknown) => {
+    mocks.modelEnvModalProps = props as typeof mocks.modelEnvModalProps;
+    return null;
+  },
+}));
+
+vi.mock('../src/renderer/components/ShellLayout/agent-options-storage', () => ({
+  loadAgentOptions: () => ({}),
+  saveAgentOptions: mocks.saveAgentOptions,
 }));
 
 vi.mock('../src/renderer/components/ShellLayout/connectivity-env', () => ({
@@ -207,6 +226,48 @@ describe('ShellLayout right panel tabs', () => {
   afterEach(() => {
     document.body.replaceChildren();
     vi.clearAllMocks();
+    vi.unstubAllGlobals();
+    mocks.modelEnvModalProps = null;
+  });
+
+  it('waits for runtime Agent options synchronization before persisting', async () => {
+    let resolveRuntimeUpdate: (() => void) | undefined;
+    const updateAgentOptions = vi
+      .fn()
+      .mockResolvedValueOnce(undefined)
+      .mockImplementationOnce(
+        () =>
+          new Promise<void>((resolve) => {
+            resolveRuntimeUpdate = resolve;
+          }),
+      );
+    vi.stubGlobal('studioRuntime', { updateAgentOptions });
+    const { root } = await renderShellLayout();
+    const agentOptions = {
+      replanningCycleLimit: 0,
+      waitAfterAction: 500,
+      screenshotShrinkFactor: 2,
+    };
+
+    let savePromise: void | Promise<void>;
+    await act(async () => {
+      savePromise = mocks.modelEnvModalProps?.onSave?.({
+        text: 'MIDSCENE_MODEL_NAME=test-model',
+        agentOptions,
+      });
+      await Promise.resolve();
+    });
+
+    expect(updateAgentOptions).toHaveBeenLastCalledWith(agentOptions);
+    expect(mocks.saveAgentOptions).not.toHaveBeenCalled();
+
+    resolveRuntimeUpdate?.();
+    await act(async () => {
+      await savePromise;
+    });
+
+    expect(mocks.saveAgentOptions).toHaveBeenCalledWith(agentOptions);
+    await act(async () => root.unmount());
   });
 
   it('aligns the update pill with the sidebar toggle in one titlebar flex row', async () => {

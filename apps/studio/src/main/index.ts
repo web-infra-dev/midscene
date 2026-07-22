@@ -34,6 +34,7 @@ import {
   shell,
 } from 'electron';
 import type { TitleBarOverlay } from 'electron';
+import { normalizeStudioAgentOptions } from '../shared/agent-options';
 import { MACOS_TRAFFIC_LIGHT_POSITION } from '../shared/titlebar-layout';
 import { startStudioEventLoopWatchdog } from './performance-watchdog';
 import { requestPlaygroundBootstrap } from './playground/bootstrap-request';
@@ -744,6 +745,11 @@ const registerIpcHandlers = () => {
   ipcMain.handle(IPC_CHANNELS.runConnectivityTest, async (_event, request) =>
     runConnectivityTest(request),
   );
+  ipcMain.handle(IPC_CHANNELS.updateAgentOptions, async (_event, options) => {
+    await (await getPlaygroundRuntime()).updateAgentOptions(
+      normalizeStudioAgentOptions(options),
+    );
+  });
   ipcMain.handle(IPC_CHANNELS.generateRecorderCode, async (_event, request) => {
     return generateRecorderCodeInMain(request);
   });

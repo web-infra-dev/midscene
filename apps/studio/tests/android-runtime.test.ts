@@ -251,6 +251,11 @@ describe('playground runtime bootstrap', () => {
       port: 5800,
       error: null,
     });
+    await runtime.updateAgentOptions({
+      replanningCycleLimit: 12,
+      waitAfterAction: 500,
+      screenshotShrinkFactor: 2,
+    });
 
     const webPlatform = capturedPlatforms?.find(
       (platform) => platform.id === 'web',
@@ -308,6 +313,12 @@ describe('playground runtime bootstrap', () => {
     expect(session?.metadata?.sessionDisplayName).toBe('http://localhost:4173');
     expect(session?.preview?.kind).toBe('mjpeg');
     expect(agent).toBeInstanceOf(FakePuppeteerAgent);
+    expect((agent as unknown as FakePuppeteerAgent).opts).toEqual({
+      replanningCycleLimit: 12,
+      waitAfterAction: 500,
+      screenshotShrinkFactor: 2,
+      cacheId: 'studio-web',
+    });
 
     await prepared?.sessionManager?.destroySession?.();
     expect(destroyAgent).toHaveBeenCalledTimes(1);
@@ -315,19 +326,29 @@ describe('playground runtime bootstrap', () => {
   });
 
   it('prepares Harmony in deferred mode so Studio never exits on device selection', async () => {
-    const harmonyPrepare = vi.fn(async () => ({
-      platformId: 'harmony',
-      title: 'Midscene HarmonyOS Playground',
-      metadata: {
-        sessionConnected: false,
-        setupState: 'required',
-      },
-      sessionManager: {
-        createSession: async () => ({
-          displayName: 'unused',
-        }),
-      },
-    }));
+    const harmonyPrepare = vi.fn(
+      async (_options: {
+        staticDir?: string;
+        deferConnection?: boolean;
+        getAgentOptions?: () => {
+          replanningCycleLimit?: number;
+          waitAfterAction?: number;
+          screenshotShrinkFactor?: number;
+        };
+      }) => ({
+        platformId: 'harmony',
+        title: 'Midscene HarmonyOS Playground',
+        metadata: {
+          sessionConnected: false,
+          setupState: 'required',
+        },
+        sessionManager: {
+          createSession: async () => ({
+            displayName: 'unused',
+          }),
+        },
+      }),
+    );
     let capturedPlatforms:
       | import('@midscene/playground').RegisteredPlaygroundPlatform[]
       | undefined;
@@ -380,12 +401,21 @@ describe('playground runtime bootstrap', () => {
       port: 5800,
       error: null,
     });
+    const agentOptions = {
+      replanningCycleLimit: 0,
+      waitAfterAction: 500,
+      screenshotShrinkFactor: 2,
+    };
+    await runtime.updateAgentOptions(agentOptions);
 
     await capturedPlatforms?.[3]?.prepare();
 
     expect(harmonyPrepare).toHaveBeenCalledWith({
       staticDir: '/virtual/@midscene/harmony',
       deferConnection: true,
+      getAgentOptions: expect.any(Function),
     });
+    const prepareOptions = harmonyPrepare.mock.calls[0]?.[0];
+    expect(prepareOptions?.getAgentOptions?.()).toEqual(agentOptions);
   });
 });

@@ -81,6 +81,11 @@ describe('preload bridge', () => {
       MIDSCENE_MODEL_BASE_URL: 'https://api.example.com/v1',
       MIDSCENE_MODEL_NAME: 'gpt-4o',
     });
+    await studioRuntimeApi.updateAgentOptions({
+      replanningCycleLimit: 12,
+      waitAfterAction: 500,
+      screenshotShrinkFactor: 2,
+    });
     await studioRuntimeApi.generateRecorderCode({
       type: 'playwright',
       input: {
@@ -180,6 +185,14 @@ describe('preload bridge', () => {
           MIDSCENE_MODEL_API_KEY: 'sk-test',
           MIDSCENE_MODEL_BASE_URL: 'https://api.example.com/v1',
           MIDSCENE_MODEL_NAME: 'gpt-4o',
+        },
+      ],
+      [
+        IPC_CHANNELS.updateAgentOptions,
+        {
+          replanningCycleLimit: 12,
+          waitAfterAction: 500,
+          screenshotShrinkFactor: 2,
         },
       ],
       [

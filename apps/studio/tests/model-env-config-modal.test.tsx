@@ -85,6 +85,36 @@ function setTextareaValue(container: HTMLElement, value: string) {
   );
 }
 
+function setNumberInputValue(
+  container: HTMLElement,
+  label: string,
+  value: string,
+) {
+  const input = container.querySelector<HTMLInputElement>(
+    `input[aria-label="${label}"]`,
+  );
+  expect(input).toBeTruthy();
+  const valueSetter = Object.getOwnPropertyDescriptor(
+    HTMLInputElement.prototype,
+    'value',
+  )?.set;
+  valueSetter?.call(input, value);
+  input?.dispatchEvent(new InputEvent('input', { bubbles: true }));
+}
+
+function setEnvStyle(container: HTMLElement, value: 'text' | 'form') {
+  const select = container.querySelector<HTMLSelectElement>(
+    'select[aria-label="Model env config style"]',
+  );
+  expect(select).toBeTruthy();
+  const valueSetter = Object.getOwnPropertyDescriptor(
+    HTMLSelectElement.prototype,
+    'value',
+  )?.set;
+  valueSetter?.call(select, value);
+  select?.dispatchEvent(new Event('change', { bubbles: true }));
+}
+
 async function unmountModal(root: ReturnType<typeof createRoot>) {
   await act(async () => {
     root.unmount();
@@ -119,12 +149,11 @@ describe('ModelEnvConfigModal', () => {
       }),
     );
 
-    expect(html).toContain('box-border flex h-[404px] w-[400px]');
+    expect(html).toContain('max-h-[90vh] min-h-[600px] w-[500px]');
     expect(html).toContain('text-[16px] font-semibold leading-[24px]');
-    expect(html).toContain('w-[210px]');
-    expect(html).toContain('items-center');
-    expect(html).toContain('rounded-[32px]');
-    expect(html).toContain('bg-surface-muted');
+    expect(html).toContain('w-[132px]');
+    expect(html).toContain('appearance-none');
+    expect(html).toContain('aria-label="Model env config style"');
     expect(html).toContain('border-border-control');
     expect(html).toContain('bg-surface-elevated');
     expect(html).toContain('text-[12px] font-normal leading-[14.5px]');
@@ -132,6 +161,11 @@ describe('ModelEnvConfigModal', () => {
     expect(html).toContain('shadow-[0px_4px_20px_rgba(0,0,0,0.05)]');
     expect(html).toContain('.env Style');
     expect(html).toContain('Form Style');
+    expect(html).toContain('Model Env Config');
+    expect(html).toContain('Agent Option Config');
+    expect(html).toContain('Replanning Cycle Limit');
+    expect(html).toContain('Wait After Action (ms)');
+    expect(html).toContain('Screenshot Shrink Factor');
     expect(html).toContain('The format is KEY=VALUE');
     expect(html).toContain('Verify and Save Model');
     expect(html).toContain('bg-black/35 font-sans');
@@ -151,7 +185,6 @@ describe('ModelEnvConfigModal', () => {
     );
     expect(html).toContain('h-[32px]');
     expect(html).toContain('justify-end');
-    expect(html).toContain('gap-[16px]');
     expect(html).toContain('w-auto min-w-[190px]');
     expect(html).not.toContain('Cancel');
     expect(html).toContain('gap-[6px]');
@@ -160,6 +193,12 @@ describe('ModelEnvConfigModal', () => {
     expect(html).toContain('bg-surface-elevated');
     expect(html).toContain('text-text-primary leading-[16px]');
     expect(html).not.toMatch(/[\u4e00-\u9fff]/);
+
+    const verifyIndex = html.indexOf('Verify and Save Model');
+    const agentOptionIndex = html.indexOf('Agent Option Config');
+    const saveIndex = html.lastIndexOf('>Save<');
+    expect(verifyIndex).toBeLessThan(agentOptionIndex);
+    expect(saveIndex).toBeGreaterThan(agentOptionIndex);
   });
 
   it('enables connectivity test only when required model config is present', async () => {
@@ -170,6 +209,51 @@ describe('ModelEnvConfigModal', () => {
     const validRender = await renderModal(VALID_ENV_TEXT);
     expect(getConnectivityButton(validRender.container).disabled).toBe(false);
     await unmountModal(validRender.root);
+  });
+
+  it('saves the three supported Agent options with the model config', async () => {
+    const onSave = vi.fn();
+    const { container, root } = await renderModal(VALID_ENV_TEXT, { onSave });
+
+    await act(async () => {
+      setNumberInputValue(container, 'Replanning Cycle Limit', '12');
+      setNumberInputValue(container, 'Wait After Action (ms)', '500');
+      setNumberInputValue(container, 'Screenshot Shrink Factor', '2');
+      await Promise.resolve();
+    });
+    await act(async () => {
+      getButtonByText(container, 'Save').click();
+    });
+
+    expect(onSave).toHaveBeenCalledWith({
+      text: VALID_ENV_TEXT,
+      agentOptions: {
+        replanningCycleLimit: 12,
+        waitAfterAction: 500,
+        screenshotShrinkFactor: 2,
+      },
+    });
+
+    await unmountModal(root);
+  });
+
+  it('keeps the modal open and reports runtime synchronization failures', async () => {
+    const onSave = vi.fn().mockRejectedValue(new Error('Runtime sync failed'));
+    const { container, root } = await renderModal(VALID_ENV_TEXT, { onSave });
+
+    await act(async () => {
+      getButtonByText(container, 'Save').click();
+      await Promise.resolve();
+    });
+
+    expect(onSave).toHaveBeenCalledWith({
+      text: VALID_ENV_TEXT,
+      agentOptions: {},
+    });
+    expect(container.textContent).toContain('Runtime sync failed');
+    expect(getButtonByText(container, 'Save').disabled).toBe(false);
+
+    await unmountModal(root);
   });
 
   it('shows invalid model family without crashing the modal', async () => {
@@ -192,7 +276,7 @@ describe('ModelEnvConfigModal', () => {
     );
     expect(errorMessage?.className).toContain('whitespace-pre-wrap');
     expect(errorMessage?.className).not.toContain('text-ellipsis');
-    expect(container.querySelector('.h-\\[524px\\]')).toBeTruthy();
+    expect(container.querySelector('.max-h-\\[90vh\\]')).toBeTruthy();
 
     await unmountModal(root);
   });
@@ -370,6 +454,9 @@ describe('ModelEnvConfigModal', () => {
     expect(container.innerHTML).toContain('text-status-success-fg');
     expect(button.textContent).toContain('Verify and Save Model');
     expect(button.textContent).not.toContain('Test passed');
+    expect(container.textContent?.indexOf('Test passed.')).toBeLessThan(
+      container.textContent?.indexOf('Verify and Save Model') ?? -1,
+    );
     expect(button.innerHTML).toContain('text-text-primary leading-[16px]');
     expect(button.innerHTML).not.toContain('model-env-connectivity.svg');
     expect(button.innerHTML).toContain(
@@ -384,7 +471,10 @@ describe('ModelEnvConfigModal', () => {
       await Promise.resolve();
     });
 
-    expect(onSave).toHaveBeenCalledWith({ text: VALID_ENV_TEXT });
+    expect(onSave).toHaveBeenCalledWith({
+      text: VALID_ENV_TEXT,
+      agentOptions: {},
+    });
 
     await unmountModal(root);
   });
@@ -399,11 +489,11 @@ describe('ModelEnvConfigModal', () => {
     const { container, root } = await renderModal(VALID_ENV_TEXT);
 
     await act(async () => {
-      getButtonByText(container, 'Form Style').click();
+      setEnvStyle(container, 'form');
       await Promise.resolve();
     });
     await act(async () => {
-      getButtonByText(container, '.env Style').click();
+      setEnvStyle(container, 'text');
       await Promise.resolve();
     });
     await act(async () => {
@@ -433,7 +523,7 @@ describe('ModelEnvConfigModal', () => {
       await Promise.resolve();
     });
 
-    expect(container.innerHTML).toContain('h-[444px] w-[400px]');
+    expect(container.innerHTML).toContain('max-h-[90vh]');
     expect(container.innerHTML).toContain('bg-[#E13E37]/11');
     expect(container.innerHTML).toContain('text-[#E13E37]');
     expect(container.textContent).toContain(
@@ -542,8 +632,7 @@ describe('ModelEnvConfigModal', () => {
       }),
     );
 
-    expect(html).toContain('h-[563px] w-[400px]');
-    expect(html).toContain('translate-y-[79.5px]');
+    expect(html).toContain('max-h-[90vh] min-h-[600px] w-[500px]');
     expect(html).toContain('flex flex-col gap-[24px]');
     expect(html).toContain('h-[61px]');
     expect(html).toContain('h-[36px]');
@@ -559,10 +648,10 @@ describe('ModelEnvConfigModal', () => {
     expect(baseUrlLabel?.className).toContain('text-[14px]');
     expect(baseUrlLabel?.className).toContain('text-text-primary');
 
-    const formTab = Array.from(wrapper.querySelectorAll('button')).find(
-      (button) => button.textContent === 'Form Style',
+    const styleSelect = wrapper.querySelector<HTMLSelectElement>(
+      'select[aria-label="Model env config style"]',
     );
-    expect(formTab?.className).toContain('rounded-[30px]');
-    expect(formTab?.className).not.toContain('rounded-[10px]');
+    expect(styleSelect?.value).toBe('form');
+    expect(styleSelect?.className).toContain('rounded-[8px]');
   });
 });

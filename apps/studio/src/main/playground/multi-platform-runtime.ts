@@ -1,6 +1,6 @@
 import { createRequire } from 'node:module';
 import path from 'node:path';
-import type { Agent } from '@midscene/core/agent';
+import type { Agent, AgentOpt } from '@midscene/core/agent';
 import type {
   LaunchPlaygroundResult,
   PlaygroundPreviewDescriptor,
@@ -8,6 +8,7 @@ import type {
   RegisteredPlaygroundPlatform,
 } from '@midscene/playground';
 import { getDebug } from '@midscene/shared/logger';
+import type { StudioAgentOptions } from '@shared/agent-options';
 import type { DiscoveredDevice } from '@shared/electron-contract';
 import type { PlaygroundBootstrap } from '@shared/electron-contract';
 import { DEFAULT_STUDIO_WEB_VIEWPORT } from '@shared/web-viewport';
@@ -40,7 +41,7 @@ type PlaygroundModule = typeof import('@midscene/playground');
 
 type StudioPuppeteerAgentConstructor = new (
   page: unknown,
-  opts?: { cacheId?: string },
+  opts?: AgentOpt & { cacheId?: string },
 ) => Agent;
 
 type StudioLaunchPuppeteerPage = (
@@ -334,8 +335,10 @@ function createStudioWebPreviewDescriptor(): PlaygroundPreviewDescriptor {
 
 async function prepareStudioWebPlatform({
   loadWebModule,
+  getAgentOptions,
 }: {
   loadWebModule: typeof loadWebPlaygroundModule;
+  getAgentOptions: () => StudioAgentOptions;
 }): Promise<PreparedPlaygroundPlatform> {
   const webModule = await loadWebModule();
   // The two cleanup baskets are kept separate so the playground server's
@@ -456,6 +459,7 @@ async function prepareStudioWebPlatform({
           }
 
           const agent = new webModule.PuppeteerAgent(currentPage, {
+            ...getAgentOptions(),
             cacheId: 'studio-web',
           });
           agentCleanup = [
@@ -518,6 +522,7 @@ const createStudioPlatformSpecs = ({
   loadHarmonyModule = loadHarmonyPlaygroundModule,
   loadIosModule = loadIosPlaygroundModule,
   loadWebModule = loadWebPlaygroundModule,
+  getAgentOptions = () => ({}),
 }: {
   loadAndroidModule?: typeof loadAndroidPlaygroundModule;
   loadComputerModule?: typeof loadComputerPlaygroundModule;
@@ -525,6 +530,7 @@ const createStudioPlatformSpecs = ({
   loadHarmonyModule?: typeof loadHarmonyPlaygroundModule;
   loadIosModule?: typeof loadIosPlaygroundModule;
   loadWebModule?: typeof loadWebPlaygroundModule;
+  getAgentOptions?: () => StudioAgentOptions;
 } = {}): StudioPlatformSpec[] => [
   {
     id: 'web',
@@ -534,6 +540,7 @@ const createStudioPlatformSpecs = ({
     prepare: async () =>
       prepareStudioWebPlatform({
         loadWebModule,
+        getAgentOptions,
       }),
   },
   {
@@ -545,6 +552,7 @@ const createStudioPlatformSpecs = ({
       const androidModule = await loadAndroidModule();
       return androidModule.androidPlaygroundPlatform.prepare({
         staticDir,
+        getAgentOptions,
         scrcpyServer: await createStudioScrcpyController(
           androidModule.ScrcpyServer,
           deviceDiscoveryService,
@@ -559,7 +567,10 @@ const createStudioPlatformSpecs = ({
     staticDirPackage: '@midscene/ios',
     prepare: async (staticDir) => {
       const iosModule = await loadIosModule();
-      return iosModule.iosPlaygroundPlatform.prepare({ staticDir });
+      return iosModule.iosPlaygroundPlatform.prepare({
+        staticDir,
+        getAgentOptions,
+      });
     },
   },
   {
@@ -572,6 +583,7 @@ const createStudioPlatformSpecs = ({
       return harmonyModule.harmonyPlaygroundPlatform.prepare({
         staticDir,
         deferConnection: true,
+        getAgentOptions,
       });
     },
   },
@@ -589,6 +601,7 @@ const createStudioPlatformSpecs = ({
       return computerModule.computerPlaygroundPlatform.prepare({
         staticDir,
         getWindowController: () => null,
+        getAgentOptions,
       });
     },
   },
@@ -638,6 +651,7 @@ export function createMultiPlatformRuntimeService({
   loadWebModule?: typeof loadWebPlaygroundModule;
   resolvePackageStaticDir?: (packageName: string) => string;
 } = {}): PlaygroundRuntimeService {
+  let agentOptions: StudioAgentOptions = {};
   let bootstrap: PlaygroundBootstrap = {
     status: 'starting',
     serverUrl: null,
@@ -693,6 +707,7 @@ export function createMultiPlatformRuntimeService({
                         PuppeteerAgent: runtimeModules.PuppeteerAgent,
                         launchPuppeteerPage: runtimeModules.launchPuppeteerPage,
                       }),
+                      getAgentOptions: () => agentOptions,
                     }),
                 },
                 {
@@ -708,6 +723,7 @@ export function createMultiPlatformRuntimeService({
                     return runtimeModules.androidPlaygroundPlatform.prepare({
                       staticDir,
                       scrcpyServer,
+                      getAgentOptions: () => agentOptions,
                     });
                   },
                 },
@@ -717,7 +733,10 @@ export function createMultiPlatformRuntimeService({
                   description: 'Connect to an iOS device via WebDriverAgent',
                   staticDirPackage: '@midscene/ios',
                   prepare: (staticDir) =>
-                    runtimeModules.iosPlaygroundPlatform.prepare({ staticDir }),
+                    runtimeModules.iosPlaygroundPlatform.prepare({
+                      staticDir,
+                      getAgentOptions: () => agentOptions,
+                    }),
                 },
                 {
                   id: 'harmony',
@@ -728,6 +747,7 @@ export function createMultiPlatformRuntimeService({
                     runtimeModules.harmonyPlaygroundPlatform.prepare({
                       staticDir,
                       deferConnection: true,
+                      getAgentOptions: () => agentOptions,
                     }),
                 },
                 {
@@ -739,6 +759,7 @@ export function createMultiPlatformRuntimeService({
                     runtimeModules.computerPlaygroundPlatform.prepare({
                       staticDir,
                       getWindowController: () => null,
+                      getAgentOptions: () => agentOptions,
                     }),
                 },
               ]
@@ -749,6 +770,7 @@ export function createMultiPlatformRuntimeService({
                 loadHarmonyModule,
                 loadIosModule,
                 loadWebModule,
+                getAgentOptions: () => agentOptions,
               }),
           resolvePackageStaticDir,
         );
@@ -810,5 +832,8 @@ export function createMultiPlatformRuntimeService({
       return start();
     },
     start,
+    async updateAgentOptions(nextOptions) {
+      agentOptions = nextOptions;
+    },
   };
 }

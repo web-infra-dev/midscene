@@ -76,9 +76,9 @@ export function ModelEnvConfigStatus({
     (isSuccess ? 'Test passed.' : 'Test failed. Please try again.');
 
   return (
-    <div className="relative z-10 mt-[12px] px-[21px]">
+    <div className="relative z-10 min-w-0 flex-1">
       <div
-        className={`box-border flex min-h-[32px] w-[360px] items-start justify-between rounded-[8px] px-[12px] py-[8px] ${statusClasses}`}
+        className={`box-border flex min-h-[32px] w-full items-start rounded-[8px] px-[12px] py-[8px] ${statusClasses}`}
       >
         <div className="flex min-w-0 flex-1 items-start gap-[10px]">
           {isSuccess ? <SuccessStatusIcon /> : <ErrorStatusIcon />}
@@ -89,7 +89,6 @@ export function ModelEnvConfigStatus({
             {message}
           </span>
         </div>
-        <div aria-hidden="true" className="h-4 w-4 opacity-[0.01]" />
       </div>
     </div>
   );

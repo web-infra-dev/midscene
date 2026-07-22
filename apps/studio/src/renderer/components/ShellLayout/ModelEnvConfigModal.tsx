@@ -1,5 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import type { StudioAgentOptions } from '../../../shared/agent-options';
 import { MaskedIcon } from '../MaskedIcon';
+import {
+  AgentOptionConfigForm,
+  type AgentOptionFormValues,
+  agentOptionsToFormValues,
+  parseAgentOptionFormValues,
+} from './AgentOptionConfigForm';
 import { ModelEnvConfigFormFields } from './ModelEnvConfigFormFields';
 import { ModelEnvConfigStatus } from './ModelEnvConfigStatus';
 import {
@@ -20,8 +27,12 @@ export interface ModelEnvConfigModalProps {
   open: boolean;
   initialTab?: TabKey;
   textValue?: string;
+  agentOptionsValue?: StudioAgentOptions;
   onClose: () => void;
-  onSave?: (payload: { text: string }) => void;
+  onSave?: (payload: {
+    text: string;
+    agentOptions: StudioAgentOptions;
+  }) => void | Promise<void>;
 }
 
 const TEXT_PLACEHOLDER =
@@ -51,11 +62,11 @@ function ConnectivityPlayIcon() {
   );
 }
 
-function EnvModalHeader({ onClose }: { onClose: () => void }) {
+function ConfigModalHeader({ onClose }: { onClose: () => void }) {
   return (
     <div className="relative z-10 box-border flex w-full items-center justify-between px-[20px] pt-[20.8px]">
       <h2 className="m-0 font-sans text-[16px] font-semibold leading-[24px] tracking-normal text-text-primary">
-        Model Env Config
+        Config
       </h2>
       <button
         aria-label="Close"
@@ -69,7 +80,7 @@ function EnvModalHeader({ onClose }: { onClose: () => void }) {
   );
 }
 
-function EnvModalTabs({
+function EnvStyleSelect({
   tab,
   onTabChange,
 }: {
@@ -77,83 +88,94 @@ function EnvModalTabs({
   onTabChange: (tab: TabKey) => void;
 }) {
   return (
-    <div className="relative z-10 box-border flex h-[36px] w-[210px] items-center rounded-[32px] border border-border-control bg-surface-muted p-[2px]">
-      {/*
-        Active tab fills with `bg-surface-elevated` for the white pill on
-        light mode. In dark mode `surface-elevated` and `surface-muted`
-        collapse to the same `#2b2b2b`, so the pill disappears — fall
-        back to the translucent `bg-surface-active` overlay only in dark.
-      */}
-      <button
-        className={`flex h-[32px] w-[103px] cursor-pointer items-center justify-center border-0 p-0 font-sans text-[14px] leading-[16.9px] transition-colors duration-200 ${
-          tab === 'text'
-            ? 'rounded-[30px] bg-surface-elevated font-medium text-text-primary dark:bg-surface-active'
-            : 'rounded-[10px] bg-transparent font-normal text-text-secondary'
-        }`}
-        onClick={() => onTabChange('text')}
-        type="button"
+    <div className="relative z-10 h-[32px] w-[132px]">
+      <select
+        aria-label="Model env config style"
+        className="h-full w-full cursor-pointer appearance-none rounded-[8px] border border-border-control bg-surface-elevated px-[12px] pr-[32px] font-sans text-[14px] font-medium leading-[16.9px] text-text-primary outline-none hover:bg-surface-hover focus:border-brand"
+        onChange={(event) => onTabChange(event.target.value as TabKey)}
+        value={tab}
       >
-        .env Style
-      </button>
-      <button
-        className={`flex h-[32px] w-[103px] cursor-pointer items-center justify-center border-0 p-0 font-sans text-[14px] leading-[16.9px] transition-colors duration-200 ${
-          tab === 'form'
-            ? 'rounded-[30px] bg-surface-elevated font-medium text-text-primary dark:bg-surface-active'
-            : 'rounded-[10px] bg-transparent font-normal text-text-secondary'
-        }`}
-        onClick={() => onTabChange('form')}
-        type="button"
+        <option value="text">.env Style</option>
+        <option value="form">Form Style</option>
+      </select>
+      <svg
+        aria-hidden="true"
+        className="pointer-events-none absolute right-[10px] top-1/2 h-[12px] w-[12px] -translate-y-1/2 text-text-secondary"
+        fill="none"
+        viewBox="0 0 12 12"
       >
-        Form Style
-      </button>
+        <path
+          d="M3 4.5L6 7.5L9 4.5"
+          stroke="currentColor"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth="1.2"
+        />
+      </svg>
     </div>
   );
 }
 
-function EnvModalFooter({
+function ConnectivityButton({
   onConnectivityTest,
-  onSave,
   canRunConnectivityTest,
+  isSaving,
   testStatus,
 }: {
   onConnectivityTest: () => void;
-  onSave: () => void;
   canRunConnectivityTest: boolean;
+  isSaving: boolean;
   testStatus: TestStatus;
 }) {
   const isTesting = testStatus.kind === 'running';
   const connectivityLabel = isTesting ? 'Testing...' : 'Verify and Save Model';
 
   return (
-    <div className="relative z-10 mt-auto box-border flex w-full items-center justify-end gap-[16px] px-[20px] pb-[24px]">
-      <button
-        className={`flex h-[32px] w-auto min-w-[190px] items-center justify-center gap-[6px] rounded-[8px] border border-border-control bg-surface-elevated px-[16px] py-0 ${
-          isTesting
-            ? 'cursor-not-allowed opacity-60'
-            : canRunConnectivityTest
-              ? 'cursor-pointer hover:bg-surface-hover'
-              : 'cursor-not-allowed'
-        }`}
-        disabled={!canRunConnectivityTest || isTesting}
-        onClick={onConnectivityTest}
-        type="button"
-      >
-        {isTesting ? (
-          <img
-            alt=""
-            className="h-4 w-4 animate-spin"
-            src={connectivityIconSrc}
-          />
-        ) : (
-          <ConnectivityPlayIcon />
-        )}
-        <span className="whitespace-nowrap font-sans text-[14px] font-medium text-text-primary leading-[16px]">
-          {connectivityLabel}
-        </span>
-      </button>
+    <button
+      className={`flex h-[32px] w-auto min-w-[190px] items-center justify-center gap-[6px] rounded-[8px] border border-border-control bg-surface-elevated px-[16px] py-0 ${
+        isTesting
+          ? 'cursor-not-allowed opacity-60'
+          : canRunConnectivityTest
+            ? 'cursor-pointer hover:bg-surface-hover'
+            : 'cursor-not-allowed'
+      }`}
+      disabled={!canRunConnectivityTest || isTesting || isSaving}
+      onClick={onConnectivityTest}
+      type="button"
+    >
+      {isTesting ? (
+        <img
+          alt=""
+          className="h-4 w-4 animate-spin"
+          src={connectivityIconSrc}
+        />
+      ) : (
+        <ConnectivityPlayIcon />
+      )}
+      <span className="whitespace-nowrap font-sans text-[14px] font-medium text-text-primary leading-[16px]">
+        {connectivityLabel}
+      </span>
+    </button>
+  );
+}
 
+function EnvModalFooter({
+  onSave,
+  canSave,
+  isSaving,
+}: {
+  onSave: () => void;
+  canSave: boolean;
+  isSaving: boolean;
+}) {
+  return (
+    <div className="relative z-10 mt-auto box-border flex w-full items-center justify-end px-[20px] pb-[24px]">
       <button
-        className="flex h-[32px] w-[76px] cursor-pointer items-center justify-center rounded-[8px] border border-brand bg-brand p-0 hover:opacity-90"
+        className={`flex h-[32px] w-[76px] items-center justify-center rounded-[8px] border border-brand bg-brand p-0 hover:opacity-90 ${
+          canSave ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'
+        }`}
+        disabled={!canSave}
+        aria-busy={isSaving}
         onClick={onSave}
         type="button"
       >
@@ -169,12 +191,19 @@ export function ModelEnvConfigModal({
   open,
   initialTab = 'text',
   textValue: initialTextValue,
+  agentOptionsValue: initialAgentOptionsValue,
   onClose,
   onSave,
 }: ModelEnvConfigModalProps) {
   const [tab, setTab] = useState<TabKey>(initialTab);
   const [text, setText] = useState(initialTextValue ?? '');
+  const [agentOptionValues, setAgentOptionValues] =
+    useState<AgentOptionFormValues>(() =>
+      agentOptionsToFormValues(initialAgentOptionsValue ?? {}),
+    );
   const [testStatus, setTestStatus] = useState<TestStatus>({ kind: 'idle' });
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const testRunIdRef = useRef(0);
   const pendingSaveTimerRef = useRef<number | null>(null);
 
@@ -196,8 +225,13 @@ export function ModelEnvConfigModal({
     testRunIdRef.current += 1;
     setTab(initialTab);
     setText(initialTextValue ?? '');
+    setAgentOptionValues(
+      agentOptionsToFormValues(initialAgentOptionsValue ?? {}),
+    );
     setTestStatus({ kind: 'idle' });
-  }, [initialTab, initialTextValue, open]);
+    setIsSaving(false);
+    setSaveError(null);
+  }, [initialAgentOptionsValue, initialTab, initialTextValue, open]);
 
   useEffect(() => () => clearPendingSaveTimer(), []);
 
@@ -218,6 +252,10 @@ export function ModelEnvConfigModal({
   }, [open, onClose]);
 
   const envValues = useMemo(() => parseEnvText(text), [text]);
+  const parsedAgentOptions = useMemo(
+    () => parseAgentOptionFormValues(agentOptionValues),
+    [agentOptionValues],
+  );
   const resolvedConnection = useMemo(
     () => resolveModelConnection(envValues),
     [envValues],
@@ -228,7 +266,6 @@ export function ModelEnvConfigModal({
       ? resolvedConnection.error
       : null;
   const canRunConnectivityTest = !('error' in resolvedConnection);
-  const isExpandedForm = tab === 'form';
   const hasTestStatus =
     testStatus.kind === 'success' || testStatus.kind === 'error';
   const statusKind = validationError
@@ -239,26 +276,6 @@ export function ModelEnvConfigModal({
   const statusMessage =
     validationError ??
     (testStatus.kind === 'error' ? testStatus.message : undefined);
-  const hasStatusRow = statusKind !== null;
-  const hasValidationStatus = validationError !== null;
-  const modalHeightClass = (() => {
-    if (isExpandedForm && hasValidationStatus) return 'h-[683px]';
-    if (isExpandedForm && hasStatusRow) return 'h-[603px]';
-    if (isExpandedForm) return 'h-[563px]';
-    if (hasValidationStatus) return 'h-[524px]';
-    if (hasStatusRow) return 'h-[444px]';
-    return 'h-[404px]';
-  })();
-  const modalVerticalOffsetClass = (() => {
-    if (isExpandedForm && hasValidationStatus) return 'translate-y-[139.5px]';
-    if (isExpandedForm && hasStatusRow) return 'translate-y-[99.5px]';
-    if (isExpandedForm) return 'translate-y-[79.5px]';
-    if (hasValidationStatus) return 'translate-y-[60px]';
-    if (hasStatusRow) return 'translate-y-[20px]';
-    return '';
-  })();
-  const descriptionMarginClass = hasStatusRow ? 'mt-[12px]' : 'mt-[16px]';
-
   if (!open) {
     return null;
   }
@@ -267,6 +284,7 @@ export function ModelEnvConfigModal({
     clearPendingSaveTimer();
     testRunIdRef.current += 1;
     setText(nextText);
+    setSaveError(null);
     setTestStatus((currentStatus) =>
       currentStatus.kind === 'idle' ? currentStatus : { kind: 'idle' },
     );
@@ -276,8 +294,37 @@ export function ModelEnvConfigModal({
     handleTextChange(setEnvFieldValue(text, key, value));
   };
 
+  const handleAgentOptionChange = (
+    key: keyof AgentOptionFormValues,
+    value: string,
+  ) => {
+    clearPendingSaveTimer();
+    testRunIdRef.current += 1;
+    setAgentOptionValues((current) => ({ ...current, [key]: value }));
+    setSaveError(null);
+    setTestStatus((currentStatus) =>
+      currentStatus.kind === 'idle' ? currentStatus : { kind: 'idle' },
+    );
+  };
+
+  const saveConfig = async (agentOptions: StudioAgentOptions) => {
+    setIsSaving(true);
+    setSaveError(null);
+    try {
+      await onSave?.({ text, agentOptions });
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : String(error));
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const handleConnectivityTest = async () => {
-    if (testStatus.kind === 'running' || 'error' in resolvedConnection) {
+    if (
+      testStatus.kind === 'running' ||
+      'error' in resolvedConnection ||
+      !parsedAgentOptions.options
+    ) {
       return;
     }
 
@@ -302,7 +349,7 @@ export function ModelEnvConfigModal({
         clearPendingSaveTimer();
         pendingSaveTimerRef.current = window.setTimeout(() => {
           if (testRunIdRef.current === testRunId) {
-            onSave?.({ text });
+            void saveConfig(parsedAgentOptions.options);
           }
           pendingSaveTimerRef.current = null;
         }, SAVE_AFTER_SUCCESS_DELAY_MS);
@@ -324,9 +371,12 @@ export function ModelEnvConfigModal({
   };
 
   const handleSave = () => {
+    if (!parsedAgentOptions.options || isSaving) {
+      return;
+    }
     clearPendingSaveTimer();
     testRunIdRef.current += 1;
-    onSave?.({ text });
+    void saveConfig(parsedAgentOptions.options);
   };
 
   return (
@@ -338,18 +388,21 @@ export function ModelEnvConfigModal({
       role="dialog"
     >
       <div
-        className={`relative box-border flex ${modalHeightClass} w-[400px] ${modalVerticalOffsetClass} flex-col overflow-hidden rounded-[16px] bg-surface-elevated shadow-[0px_4px_20px_rgba(0,0,0,0.05)]`}
+        className="relative box-border flex max-h-[90vh] min-h-[600px] w-[500px] flex-col overflow-y-auto rounded-[16px] bg-surface-elevated shadow-[0px_4px_20px_rgba(0,0,0,0.05)]"
         onClick={(event) => event.stopPropagation()}
       >
-        <EnvModalHeader onClose={onClose} />
-        <div className="mt-[19.2px] px-[21px]">
-          <EnvModalTabs onTabChange={setTab} tab={tab} />
+        <ConfigModalHeader onClose={onClose} />
+        <h3 className="m-0 mt-[20px] px-[21px] font-sans text-[14px] font-semibold leading-[20px] text-text-primary">
+          Model Env Config
+        </h3>
+        <div className="mt-[12px] px-[21px]">
+          <EnvStyleSelect onTabChange={setTab} tab={tab} />
         </div>
 
         {tab === 'text' ? (
-          <div className="relative z-10 mt-[16px] flex w-full justify-center">
+          <div className="relative z-10 mx-[21px] mt-[16px]">
             <textarea
-              className="box-border h-[162px] w-[360px] resize-none overflow-hidden rounded-[12px] border border-border-control bg-surface-elevated p-[12px] font-sans text-[14px] font-normal leading-[16.9px] text-text-primary outline-none placeholder:text-text-placeholder"
+              className="box-border h-[162px] w-full resize-none overflow-hidden rounded-[12px] border border-border-control bg-surface-elevated p-[12px] font-sans text-[14px] font-normal leading-[16.9px] text-text-primary outline-none placeholder:text-text-placeholder"
               onChange={(event) => handleTextChange(event.target.value)}
               placeholder={TEXT_PLACEHOLDER}
               value={text}
@@ -364,7 +417,7 @@ export function ModelEnvConfigModal({
         )}
 
         {tab === 'text' ? (
-          <div className={`relative z-10 ${descriptionMarginClass} px-[21px]`}>
+          <div className="relative z-10 mt-[16px] px-[21px]">
             <p className="m-0 font-sans text-[12px] font-normal leading-[14.5px] text-text-secondary">
               The format is KEY=VALUE and separated by new lines. These data
               will be saved{' '}
@@ -376,15 +429,33 @@ export function ModelEnvConfigModal({
           </div>
         ) : null}
 
-        {statusKind ? (
-          <ModelEnvConfigStatus kind={statusKind} message={statusMessage} />
-        ) : null}
+        <div className="relative z-10 mt-[12px] flex items-start justify-end gap-[12px] px-[21px]">
+          {statusKind ? (
+            <ModelEnvConfigStatus kind={statusKind} message={statusMessage} />
+          ) : null}
+          <ConnectivityButton
+            canRunConnectivityTest={
+              canRunConnectivityTest &&
+              Boolean(parsedAgentOptions.options) &&
+              !isSaving
+            }
+            isSaving={isSaving}
+            onConnectivityTest={handleConnectivityTest}
+            testStatus={testStatus}
+          />
+        </div>
+
+        <div className="mx-[21px] my-[16px] h-px shrink-0 bg-border-control" />
+        <AgentOptionConfigForm
+          error={parsedAgentOptions.error ?? saveError}
+          onChange={handleAgentOptionChange}
+          values={agentOptionValues}
+        />
 
         <EnvModalFooter
-          canRunConnectivityTest={canRunConnectivityTest}
-          onConnectivityTest={handleConnectivityTest}
+          canSave={Boolean(parsedAgentOptions.options) && !isSaving}
+          isSaving={isSaving}
           onSave={handleSave}
-          testStatus={testStatus}
         />
       </div>
     </div>

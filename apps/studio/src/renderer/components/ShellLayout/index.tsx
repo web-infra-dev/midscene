@@ -1,3 +1,4 @@
+import { getDebug } from '@midscene/shared/logger';
 import {
   type CSSProperties,
   useCallback,
@@ -28,6 +29,7 @@ import {
   getStudioRightPanelWidth,
 } from '../StudioRightPanel';
 import { ModelEnvConfigModal } from './ModelEnvConfigModal';
+import { loadAgentOptions, saveAgentOptions } from './agent-options-storage';
 import { hasCompleteModelEnvConfig } from './connectivity-env';
 import { loadModelEnvText, saveModelEnvText } from './model-env-storage';
 import type { ShellActiveView } from './types';
@@ -45,6 +47,7 @@ const COLLAPSED_TITLEBAR_INSET = 280;
 const SIDEBAR_TOGGLE_LEFT = 98;
 const SIDEBAR_TRANSITION_CLASS = 'duration-200 ease-[cubic-bezier(0.2,0,0,1)]';
 const STUDIO_RIGHT_PANEL_ANIMATION_MS = 160;
+const debugAgentOptions = getDebug('studio:agent-options', { console: true });
 
 const requireElectronShell = () => {
   if (!window.electronShell) {
@@ -187,6 +190,8 @@ export default function ShellLayout() {
   const [modelEnvText, setModelEnvText] = useState<string>(() =>
     loadModelEnvText(),
   );
+  const [agentOptions, setAgentOptions] = useState(() => loadAgentOptions());
+  const initialAgentOptionsRef = useRef(agentOptions);
   const [sidebarWidth, setSidebarWidth] = useState<number>(() =>
     readPersistedWidth(
       SIDEBAR_WIDTH_STORAGE_KEY,
@@ -204,6 +209,17 @@ export default function ShellLayout() {
     () => hasCompleteModelEnvConfig(modelEnvText),
     [modelEnvText],
   );
+  useEffect(() => {
+    const runtime = window.studioRuntime;
+    if (!runtime) {
+      return;
+    }
+    void runtime
+      .updateAgentOptions(initialAgentOptionsRef.current)
+      .catch((error) =>
+        debugAgentOptions('Failed to restore Agent options:', error),
+      );
+  }, []);
   const clearStudioRightPanelCloseTimer = useCallback(() => {
     if (studioRightPanelCloseTimerRef.current !== null) {
       window.clearTimeout(studioRightPanelCloseTimerRef.current);
@@ -563,9 +579,17 @@ export default function ShellLayout() {
 
       <ModelEnvConfigModal
         onClose={closeModelModal}
-        onSave={({ text }) => {
+        agentOptionsValue={agentOptions}
+        onSave={async ({ text, agentOptions: nextAgentOptions }) => {
+          const runtime = window.studioRuntime;
+          if (!runtime) {
+            throw new Error('Studio runtime is not available.');
+          }
+          await runtime.updateAgentOptions(nextAgentOptions);
           saveModelEnvText(text);
           setModelEnvText(text);
+          saveAgentOptions(nextAgentOptions);
+          setAgentOptions(nextAgentOptions);
           closeModelModal();
         }}
         open={modelModalOpen}
