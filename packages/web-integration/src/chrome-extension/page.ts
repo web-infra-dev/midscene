@@ -898,10 +898,7 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
   }
 
   async clearInput(element: ElementInfo) {
-    if (!element) {
-      console.warn('No element to clear input');
-      return;
-    }
+    assert(element, 'Chrome extension clearInput requires an element');
 
     await this.mouse.click(element.center[0], element.center[1]);
 
