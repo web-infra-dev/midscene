@@ -3,6 +3,7 @@ import { ScrcpyScreenshotManager } from '../../src/scrcpy-manager';
 
 describe('ScrcpyScreenshotManager', () => {
   afterEach(() => {
+    vi.useRealTimers();
     vi.restoreAllMocks();
   });
 
@@ -103,6 +104,43 @@ describe('ScrcpyScreenshotManager', () => {
     it('should return null when not connected', () => {
       const manager = new ScrcpyScreenshotManager({} as any);
       expect(manager.getResolution()).toBeNull();
+    });
+  });
+
+  describe('getDiagnostics', () => {
+    it('should expose stream configuration and packet freshness', () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-07-22T00:00:00Z'));
+      const manager = new ScrcpyScreenshotManager({} as any, {
+        maxSize: 1000,
+        videoBitRate: 8_000_000,
+      });
+      (manager as any).scrcpyClient = {};
+      (manager as any).isInitialized = true;
+      (manager as any).streamReader = {};
+      (manager as any).videoResolution = { width: 448, height: 1000 };
+      (manager as any).streamStartedAt = Date.now() - 5_000;
+      (manager as any).lastPacketAt = Date.now() - 20;
+      (manager as any).lastRawKeyframeAt = Date.now() - 50;
+      (manager as any).totalPackets = 42;
+      (manager as any).lastPacketSize = 67_655;
+      (manager as any).lastPacketType = 'data';
+      (manager as any).recentServerOutput = ['codec initialized'];
+
+      expect(manager.getDiagnostics()).toMatchObject({
+        connected: true,
+        readerActive: true,
+        resolution: { width: 448, height: 1000 },
+        maxSize: 1000,
+        videoBitRate: 8_000_000,
+        streamAgeMs: 5_000,
+        lastPacketAgeMs: 20,
+        lastKeyframeAgeMs: 50,
+        totalPackets: 42,
+        lastPacketSize: 67_655,
+        lastPacketType: 'data',
+        recentServerOutput: ['codec initialized'],
+      });
     });
   });
 
@@ -334,6 +372,24 @@ describe('ScrcpyScreenshotManager', () => {
 
       await expect(manager.disconnect()).resolves.toBeUndefined();
       expect((manager as any).streamReader).toBeNull();
+    });
+
+    it('should not block forever when streamReader.cancel() never settles', async () => {
+      vi.useFakeTimers();
+      const manager = new ScrcpyScreenshotManager({} as any);
+      (manager as any).streamReader = {
+        cancel: vi.fn().mockReturnValue(new Promise(() => {})),
+      };
+
+      let settled = false;
+      const disconnectPromise = manager.disconnect().then(() => {
+        settled = true;
+      });
+
+      await vi.advanceTimersByTimeAsync(2_000);
+
+      expect(settled).toBe(true);
+      await disconnectPromise;
     });
 
     it('should null references before awaiting close to prevent race conditions', async () => {

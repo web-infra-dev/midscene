@@ -27,6 +27,7 @@ const MAX_SCAN_BYTES = 1_000;
 const CONNECTION_WAIT_MS = 1_000;
 const MAX_SERVER_OUTPUT_LINES = 100;
 const SERVER_OUTPUT_DRAIN_TIMEOUT_MS = 500;
+const STREAM_CLEANUP_TIMEOUT_MS = 2_000;
 
 // Busy-loop detection thresholds
 const BUSY_LOOP_WINDOW_MS = 1_000; // Sliding window for measuring frame rate
@@ -46,6 +47,29 @@ export interface ScrcpyScreenshotOptions {
   maxSize?: number;
   videoBitRate?: number;
   idleTimeoutMs?: number;
+}
+
+export interface ScrcpyStreamDiagnostics {
+  connected: boolean;
+  initialized: boolean;
+  connecting: boolean;
+  readerActive: boolean;
+  resolution: { width: number; height: number } | null;
+  maxSize: number;
+  videoBitRate: number;
+  idleTimeoutMs: number;
+  streamStartedAt: number | null;
+  streamAgeMs: number | null;
+  lastPacketAt: number | null;
+  lastPacketAgeMs: number | null;
+  lastKeyframeAt: number | null;
+  lastKeyframeAgeMs: number | null;
+  totalPackets: number;
+  lastPacketSize: number | null;
+  lastPacketType: string | null;
+  lastStreamEndReason: string | null;
+  lastStreamError: string | null;
+  recentServerOutput: string[];
 }
 
 /**
@@ -134,6 +158,15 @@ export class ScrcpyScreenshotManager {
   private lastRawKeyframeAt = 0;
   private videoResolution: { width: number; height: number } | null = null;
   private streamReader: any = null;
+  private streamStartedAt = 0;
+  private lastPacketAt = 0;
+  private lastKeyframeAt = 0;
+  private totalPackets = 0;
+  private lastPacketSize = 0;
+  private lastPacketType: string | null = null;
+  private lastStreamEndReason: string | null = null;
+  private lastStreamError: string | null = null;
+  private recentServerOutput: string[] = [];
 
   constructor(adb: Adb, options: ScrcpyScreenshotOptions = {}) {
     this.adb = adb;
@@ -183,12 +216,14 @@ export class ScrcpyScreenshotManager {
       );
     }
 
-    const serverOutput: string[] = [];
     let serverOutputTask: Promise<void> | null = null;
 
     try {
       this.isConnecting = true;
-      debugScrcpy('Starting scrcpy connection...');
+      this.resetStreamDiagnostics();
+      debugScrcpy(
+        `[STREAM-DIAG] Starting scrcpy connection: ${JSON.stringify(this.getDiagnostics())}`,
+      );
 
       const { AdbScrcpyClient, AdbScrcpyOptions3_3_3 } = await import(
         '@yume-chan/adb-scrcpy'
@@ -220,7 +255,7 @@ export class ScrcpyScreenshotManager {
       );
       serverOutputTask = this.collectServerOutput(
         this.scrcpyClient.output,
-        serverOutput,
+        this.recentServerOutput,
       );
 
       const videoStreamPromise = this.scrcpyClient.videoStream;
@@ -233,6 +268,7 @@ export class ScrcpyScreenshotManager {
 
       // Store the actual video resolution
       this.videoResolution = { width, height };
+      this.streamStartedAt = Date.now();
 
       this.startFrameConsumer();
       this.resetIdleTimer();
@@ -250,7 +286,7 @@ export class ScrcpyScreenshotManager {
           ),
         ]);
       }
-      throw this.createConnectionError(error, serverOutput);
+      throw this.createConnectionError(error, this.recentServerOutput);
     } finally {
       this.isConnecting = false;
     }
@@ -397,6 +433,8 @@ export class ScrcpyScreenshotManager {
       }
     } catch (error) {
       endReason = 'stream error';
+      this.lastStreamError =
+        error instanceof Error ? error.message : String(error);
       debugScrcpy(
         `Frame consumer error (total reads: ${totalReads}): ${error}`,
       );
@@ -406,7 +444,11 @@ export class ScrcpyScreenshotManager {
     // finish after disconnect() has already cleared it or a reconnect has
     // installed a replacement reader.
     if (this.streamReader === reader) {
-      await this.disconnect();
+      this.lastStreamEndReason = endReason;
+      warnScrcpy(
+        `[STREAM-DIAG] Frame consumer ended unexpectedly: ${JSON.stringify(this.getDiagnostics())}`,
+      );
+      await this.disconnect(endReason);
     }
     debugScrcpy(
       `Frame consumer loop ended (${endReason}, total reads: ${totalReads})`,
@@ -422,6 +464,12 @@ export class ScrcpyScreenshotManager {
    * at high resolutions where raw chunks may not align with frame boundaries.
    */
   private processFrame(packet: any): void {
+    const packetData = packet?.data;
+    this.totalPackets++;
+    this.lastPacketAt = Date.now();
+    this.lastPacketSize = packetData?.byteLength ?? packetData?.length ?? 0;
+    this.lastPacketType = String(packet?.type ?? 'unknown');
+
     if (packet.type === 'configuration') {
       // Configuration packet contains SPS/PPS in Annex B format
       this.spsHeader = Buffer.from(packet.data);
@@ -436,6 +484,7 @@ export class ScrcpyScreenshotManager {
     if (isKeyFrame && this.spsHeader) {
       this.lastRawKeyframe = frameBuffer;
       this.lastRawKeyframeAt = Date.now();
+      this.lastKeyframeAt = this.lastRawKeyframeAt;
       if (this.keyframeResolvers.length > 0) {
         const combined = Buffer.concat([this.spsHeader, frameBuffer]);
         this.notifyKeyframeWaiters(combined);
@@ -559,6 +608,74 @@ export class ScrcpyScreenshotManager {
    */
   getResolution(): { width: number; height: number } | null {
     return this.videoResolution;
+  }
+
+  getDiagnostics(): ScrcpyStreamDiagnostics {
+    const now = Date.now();
+    const lastKeyframeAt = this.lastKeyframeAt || this.lastRawKeyframeAt;
+    return {
+      connected: this.isConnected(),
+      initialized: this.isInitialized,
+      connecting: this.isConnecting,
+      readerActive: this.streamReader !== null,
+      resolution: this.videoResolution,
+      maxSize: this.options.maxSize,
+      videoBitRate: this.options.videoBitRate,
+      idleTimeoutMs: this.options.idleTimeoutMs,
+      streamStartedAt: this.streamStartedAt || null,
+      streamAgeMs: this.streamStartedAt ? now - this.streamStartedAt : null,
+      lastPacketAt: this.lastPacketAt || null,
+      lastPacketAgeMs: this.lastPacketAt ? now - this.lastPacketAt : null,
+      lastKeyframeAt: lastKeyframeAt || null,
+      lastKeyframeAgeMs: lastKeyframeAt ? now - lastKeyframeAt : null,
+      totalPackets: this.totalPackets,
+      lastPacketSize: this.lastPacketAt ? this.lastPacketSize : null,
+      lastPacketType: this.lastPacketType,
+      lastStreamEndReason: this.lastStreamEndReason,
+      lastStreamError: this.lastStreamError,
+      recentServerOutput: [...this.recentServerOutput],
+    };
+  }
+
+  private resetStreamDiagnostics(): void {
+    this.streamStartedAt = 0;
+    this.lastPacketAt = 0;
+    this.lastKeyframeAt = 0;
+    this.totalPackets = 0;
+    this.lastPacketSize = 0;
+    this.lastPacketType = null;
+    this.lastStreamEndReason = null;
+    this.lastStreamError = null;
+    this.recentServerOutput = [];
+  }
+
+  private async runCleanupWithTimeout(
+    label: string,
+    task: () => Promise<void>,
+  ): Promise<void> {
+    let timer: NodeJS.Timeout | null = null;
+    try {
+      await Promise.race([
+        task(),
+        new Promise<never>((_, reject) => {
+          timer = setTimeout(
+            () =>
+              reject(
+                new Error(
+                  `${label} did not complete within ${STREAM_CLEANUP_TIMEOUT_MS}ms`,
+                ),
+              ),
+            STREAM_CLEANUP_TIMEOUT_MS,
+          );
+        }),
+      ]);
+    } catch (error) {
+      warnScrcpy(
+        `[STREAM-DIAG] ${label} failed during scrcpy cleanup: ${error}; ${JSON.stringify(this.getDiagnostics())}`,
+      );
+    } finally {
+      if (timer) clearTimeout(timer);
+    }
   }
 
   /**
@@ -753,8 +870,9 @@ export class ScrcpyScreenshotManager {
   /**
    * Disconnect scrcpy
    */
-  async disconnect(): Promise<void> {
+  async disconnect(reason = 'disconnect requested'): Promise<void> {
     debugScrcpy('Disconnecting scrcpy...');
+    this.lastStreamEndReason = reason;
 
     if (this.idleTimer) {
       clearTimeout(this.idleTimer);
@@ -777,23 +895,21 @@ export class ScrcpyScreenshotManager {
 
     // Cancel reader first to stop consumeFramesLoop
     if (reader) {
-      try {
-        await reader.cancel();
-      } catch (error) {
-        debugScrcpy(`Error cancelling scrcpy stream reader: ${error}`);
-      }
+      await this.runCleanupWithTimeout('stream reader cancellation', async () =>
+        reader.cancel(),
+      );
     }
 
     // Then close the client
     if (client) {
-      try {
-        await client.close();
-      } catch (error) {
-        debugScrcpy(`Error closing scrcpy client: ${error}`);
-      }
+      await this.runCleanupWithTimeout('scrcpy client close', async () =>
+        client.close(),
+      );
     }
 
-    debugScrcpy('Scrcpy disconnected');
+    debugScrcpy(
+      `[STREAM-DIAG] Scrcpy disconnected: ${JSON.stringify(this.getDiagnostics())}`,
+    );
   }
 
   /**

@@ -1,7 +1,11 @@
 import type { Size } from '@midscene/core';
 import { createImgBase64ByFormat } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
-import type { RawKeyframe, ScrcpyScreenshotManager } from './scrcpy-manager';
+import type {
+  RawKeyframe,
+  ScrcpyScreenshotManager,
+  ScrcpyStreamDiagnostics,
+} from './scrcpy-manager';
 import { DEFAULT_SCRCPY_CONFIG } from './scrcpy-manager';
 
 const debugAdapter = getDebug('android:scrcpy-adapter');
@@ -50,6 +54,13 @@ export interface ScrcpyStatus {
   retryAfter: number | null;
 }
 
+export interface ScrcpyPauseResult {
+  reason: string;
+  wasConnected: boolean;
+  pausedUntil: number;
+  diagnostics: ScrcpyStreamDiagnostics | null;
+}
+
 /**
  * Adapter that encapsulates all scrcpy-related logic for AndroidDevice.
  * Handles config normalization, manager lifecycle, screenshot, and resolution.
@@ -59,6 +70,8 @@ export class ScrcpyDeviceAdapter {
   private resolvedConfig: ResolvedScrcpyConfig | null = null;
   private lastError: string | null = null;
   private retryAfter: number | null = null;
+  private suspendedUntil: number | null = null;
+  private suspensionReason: string | null = null;
 
   constructor(
     private deviceId: string,
@@ -69,7 +82,8 @@ export class ScrcpyDeviceAdapter {
 
   isEnabled(): boolean {
     if (!this.isConfigured()) return false;
-    return this.retryAfter === null || Date.now() >= this.retryAfter;
+    const unavailableUntil = this.getUnavailableUntil();
+    return unavailableUntil === null || Date.now() >= unavailableUntil;
   }
 
   getStatus(): ScrcpyStatus {
@@ -77,7 +91,7 @@ export class ScrcpyDeviceAdapter {
       enabled: this.isConfigured(),
       connected: this.manager?.isConnected() ?? false,
       lastError: this.lastError,
-      retryAfter: this.retryAfter,
+      retryAfter: this.getUnavailableUntil(),
     };
   }
 
@@ -110,6 +124,13 @@ export class ScrcpyDeviceAdapter {
   }
 
   private ensureRetryReady(): void {
+    const suspendedUntil = this.getActiveSuspensionUntil();
+    if (suspendedUntil !== null) {
+      throw new Error(
+        `scrcpy is temporarily paused until ${new Date(suspendedUntil).toISOString()} (${this.suspensionReason})`,
+      );
+    }
+
     if (this.retryAfter === null || Date.now() >= this.retryAfter) {
       return;
     }
@@ -295,16 +316,64 @@ export class ScrcpyDeviceAdapter {
     return resolution.width / physicalWidth;
   }
 
-  async disconnect(): Promise<void> {
-    if (this.manager) {
-      try {
-        await this.manager.disconnect();
-      } catch (error) {
-        debugAdapter(`Error disconnecting scrcpy: ${error}`);
-      }
-      this.manager = null;
+  async pauseForAdbCommand(
+    reason: string,
+    cooldownMs: number,
+  ): Promise<ScrcpyPauseResult> {
+    const manager = this.manager;
+    const wasConnected = manager?.isConnected() ?? false;
+    const diagnostics = manager?.getDiagnostics() ?? null;
+
+    await this.disconnectManager();
+
+    const pausedUntil = Date.now() + cooldownMs;
+    this.suspendedUntil = Math.max(this.suspendedUntil ?? 0, pausedUntil);
+    this.suspensionReason = reason;
+
+    debugAdapter(
+      `[STREAM-DIAG] scrcpy paused for ${reason} until ${new Date(this.suspendedUntil).toISOString()}: ${JSON.stringify(diagnostics)}`,
+    );
+
+    return {
+      reason,
+      wasConnected,
+      pausedUntil: this.suspendedUntil,
+      diagnostics,
+    };
+  }
+
+  private getActiveSuspensionUntil(): number | null {
+    if (this.suspendedUntil === null) return null;
+    if (Date.now() < this.suspendedUntil) return this.suspendedUntil;
+
+    this.suspendedUntil = null;
+    this.suspensionReason = null;
+    return null;
+  }
+
+  private getUnavailableUntil(): number | null {
+    const suspendedUntil = this.getActiveSuspensionUntil();
+    if (this.retryAfter === null) return suspendedUntil;
+    if (suspendedUntil === null) return this.retryAfter;
+    return Math.max(this.retryAfter, suspendedUntil);
+  }
+
+  private async disconnectManager(): Promise<void> {
+    if (!this.manager) return;
+
+    try {
+      await this.manager.disconnect();
+    } catch (error) {
+      debugAdapter(`Error disconnecting scrcpy: ${error}`);
     }
+    this.manager = null;
     this.resolvedConfig = null;
+  }
+
+  async disconnect(): Promise<void> {
+    await this.disconnectManager();
     this.clearFailure();
+    this.suspendedUntil = null;
+    this.suspensionReason = null;
   }
 }

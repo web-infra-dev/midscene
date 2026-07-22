@@ -60,6 +60,7 @@ export type {
 const defaultScrollUntilTimes = 10;
 const defaultFastScrollDuration = 100;
 const defaultNormalScrollDuration = 1000;
+const NETWORK_CHANGE_SCRCPY_COOLDOWN_MS = 10_000;
 
 const IME_STRATEGY_ALWAYS_YADB = 'always-yadb' as const;
 const IME_STRATEGY_YADB_FOR_NON_ASCII = 'yadb-for-non-ascii' as const;
@@ -94,6 +95,35 @@ export function escapeForShell(text: string): string {
 function shellEscapeArg(text: string): string {
   const escaped = text.replace(/'/g, "'\\''");
   return `'${escaped}'`;
+}
+
+function normalizeAdbShellCommand(command: unknown): string {
+  if (Array.isArray(command)) {
+    return command.map(String).join(' ');
+  }
+  return typeof command === 'string' ? command : '';
+}
+
+function isNetworkStateMutationCommand(command: unknown): boolean {
+  const normalized = normalizeAdbShellCommand(command)
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  return (
+    /(?:^|[;&|]\s*)svc\s+(?:wifi|data)\s+(?:enable|disable)(?=\s|$|[;&|])/.test(
+      normalized,
+    ) ||
+    /(?:^|[;&|]\s*)cmd\s+connectivity\s+airplane-mode\s+(?:enable|disable)(?=\s|$|[;&|])/.test(
+      normalized,
+    ) ||
+    /(?:^|[;&|]\s*)settings\s+put\s+global\s+airplane_mode_on\s+[01](?=\s|$|[;&|])/.test(
+      normalized,
+    ) ||
+    /(?:^|[;&|]\s*)am\s+broadcast\b[^;&|]*android\.intent\.action\.airplane_mode\b/.test(
+      normalized,
+    )
+  );
 }
 
 export class AndroidDevice implements AbstractInterface {
@@ -450,12 +480,37 @@ ${Object.keys(size)
 
         // return the proxied method
         return async (...args: any[]) => {
+          const isNetworkMutation =
+            prop === 'shell' && isNetworkStateMutationCommand(args[0]);
+          let scrcpyPaused = false;
+          let pausedUntil: number | null = null;
+          const commandStartedAt = Date.now();
           try {
+            if (isNetworkMutation) {
+              const adapter = this.getScrcpyAdapter();
+              if (adapter.getStatus().enabled) {
+                const pauseResult = await adapter.pauseForAdbCommand(
+                  'network-state-change',
+                  NETWORK_CHANGE_SCRCPY_COOLDOWN_MS,
+                );
+                scrcpyPaused = true;
+                pausedUntil = pauseResult.pausedUntil;
+                warnDevice(
+                  `[STREAM-DIAG] Paused scrcpy before Android network state change: ${JSON.stringify(pauseResult)}`,
+                );
+              }
+            }
+
             debugDevice(`adb ${String(prop)} ${args.join(' ')}`);
             const result = await (
               originalMethod as (...args: any[]) => any
             ).apply(target, args);
             debugDevice(`adb ${String(prop)} ${args.join(' ')} end`);
+            if (scrcpyPaused) {
+              warnDevice(
+                `[STREAM-DIAG] Android network state change completed in ${Date.now() - commandStartedAt}ms; scrcpy remains paused until ${pausedUntil ? new Date(pausedUntil).toISOString() : 'unknown'}`,
+              );
+            }
             return result;
           } catch (error: any) {
             const methodName = String(prop);
