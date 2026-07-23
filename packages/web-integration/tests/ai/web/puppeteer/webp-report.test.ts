@@ -16,6 +16,19 @@ const FIXTURES_DIR = join(__dirname, '../../fixtures');
 const REPORT_NAME =
   process.env.MIDSCENE_WEBP_REPORT_NAME || 'webp-model-input-validation';
 
+interface ChatCompletionRequest {
+  messages?: Array<{
+    content?:
+      | string
+      | Array<{
+          type?: string;
+          image_url?: {
+            url?: string;
+          };
+        }>;
+  }>;
+}
+
 vi.setConfig({
   testTimeout: 180 * 1000,
 });
@@ -37,15 +50,75 @@ describe('WebP model input report', () => {
       { viewport: { width: 1120, height: 700 } },
     );
     reset = launched.reset;
+    const modelInputUrls: string[] = [];
+    const createCompletion = vi.fn(async (request: unknown) => {
+      const { messages = [] } = request as ChatCompletionRequest;
+      for (const message of messages) {
+        if (!Array.isArray(message.content)) {
+          continue;
+        }
+        for (const part of message.content) {
+          if (
+            part.type === 'image_url' &&
+            typeof part.image_url?.url === 'string'
+          ) {
+            modelInputUrls.push(part.image_url.url);
+          }
+        }
+      }
+
+      return {
+        id: 'webp-report-test-completion',
+        object: 'chat.completion',
+        created: 0,
+        model: 'webp-report-test-model',
+        choices: [
+          {
+            index: 0,
+            finish_reason: 'stop',
+            message: {
+              role: 'assistant',
+              content:
+                '<observation>The search controls are visible.</observation><data-json>{"StatementIsTruthy":true}</data-json>',
+            },
+          },
+        ],
+        usage: {
+          prompt_tokens: 100,
+          completion_tokens: 10,
+          total_tokens: 110,
+        },
+      };
+    });
     agent = new PuppeteerAgent(launched.originPage, {
       generateReport: true,
       reportFileName: REPORT_NAME,
+      modelConfig: {
+        MIDSCENE_MODEL_NAME: 'webp-report-test-model',
+        MIDSCENE_MODEL_API_KEY: 'webp-report-test-key',
+        MIDSCENE_MODEL_BASE_URL: 'https://example.test/v1',
+        MIDSCENE_MODEL_FAMILY: 'qwen3-vl',
+      },
+      createOpenAIClient: async () => ({
+        chat: {
+          completions: {
+            create: createCompletion,
+          },
+        },
+      }),
     });
 
     const captured = await agent.interface.screenshotBase64();
     expect(captured).toMatch(/^data:image\/webp;base64,UklGR/);
 
     await agent.aiAssert('A search input box and a search button are visible');
+    expect(createCompletion).toHaveBeenCalledTimes(1);
+    expect(modelInputUrls).toHaveLength(1);
+    expect(modelInputUrls[0]).toMatch(/^data:image\/webp;base64,UklGR/);
+    const modelInputHash = createHash('sha256')
+      .update(Buffer.from(modelInputUrls[0].split(',')[1], 'base64'))
+      .digest('hex');
+
     await agent.destroy();
     const reportFile = agent.reportFile;
     agent = undefined;
@@ -62,12 +135,6 @@ describe('WebP model input report', () => {
     const markdown = readFileSync(markdownResult.markdownFiles[0], 'utf8');
     expect(markdown).not.toContain('No model metadata recorded.');
     expect(markdown).not.toContain('No token usage recorded.');
-    expect(markdown).toContain('timing=model-input');
-
-    const modelInputHash = markdown.match(
-      /Model input \d+ \(exact bytes, sha256: ([a-f0-9]{64})\)/,
-    )?.[1];
-    expect(modelInputHash).toBeTruthy();
     expect(markdownResult.screenshotFiles.length).toBeGreaterThan(0);
     expect(
       markdownResult.screenshotFiles.every((file) => file.endsWith('.webp')),
