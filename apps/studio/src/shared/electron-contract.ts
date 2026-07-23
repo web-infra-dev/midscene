@@ -7,6 +7,7 @@ import type {
   MidsceneRecorderEvent,
   MidsceneRecorderTarget,
 } from '@midscene/shared/recorder';
+import type { StudioAgentOptions } from './agent-options';
 
 /**
  * IPC channel names bridging the Midscene Studio main process and renderer.
@@ -36,6 +37,7 @@ export const IPC_CHANNELS = {
   discoveredDevicesUpdated: 'studio:discovered-devices-updated',
   setDiscoveryPollingPaused: 'studio:set-discovery-polling-paused',
   runConnectivityTest: 'studio:run-connectivity-test',
+  updateAgentOptions: 'studio:update-agent-options',
   generateRecorderCode: 'studio:generate-recorder-code',
   generateRecorderMetadata: 'studio:generate-recorder-metadata',
   describeRecorderUIEvents: 'studio:describe-recorder-ui-events',
@@ -285,6 +287,7 @@ export interface StudioRuntimeApi {
   runConnectivityTest: (
     request: ConnectivityTestRequest,
   ) => Promise<ConnectivityTestResult>;
+  updateAgentOptions: (options: StudioAgentOptions) => Promise<void>;
   generateRecorderCode: (
     request: GenerateRecorderCodeRequest,
   ) => Promise<GenerateRecorderCodeResult>;

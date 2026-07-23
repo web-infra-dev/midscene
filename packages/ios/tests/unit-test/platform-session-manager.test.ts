@@ -84,4 +84,32 @@ describe('iosPlaygroundPlatform session manager', () => {
       wdaPort: 8300,
     });
   });
+
+  test('passes host Agent options to each new iOS Agent', async () => {
+    const agentOptions = {
+      replanningCycleLimit: 12,
+      waitAfterAction: 500,
+      screenshotShrinkFactor: 2,
+    };
+    const { iosPlaygroundPlatform } = await import('../../src/platform');
+    const prepared = await iosPlaygroundPlatform.prepare({
+      getAgentOptions: () => agentOptions,
+    });
+    const created = await prepared.sessionManager?.createSession({
+      host: 'localhost',
+      port: 8100,
+    });
+    await created?.agentFactory?.();
+
+    expect(agentFromWebDriverAgentMock).toHaveBeenNthCalledWith(1, {
+      ...agentOptions,
+      wdaHost: 'localhost',
+      wdaPort: 8100,
+    });
+    expect(agentFromWebDriverAgentMock).toHaveBeenNthCalledWith(2, {
+      ...agentOptions,
+      wdaHost: 'localhost',
+      wdaPort: 8100,
+    });
+  });
 });

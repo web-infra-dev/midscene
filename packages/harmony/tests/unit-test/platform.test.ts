@@ -3,6 +3,14 @@ import { beforeEach, describe, expect, test, vi } from 'vitest';
 const connectMock = vi.fn();
 const getConnectedDevicesMock = vi.fn();
 const findAvailablePortMock = vi.fn(async () => 5810);
+const harmonyAgentMock = vi.fn().mockImplementation((device) => ({
+  device,
+  interface: {
+    interfaceType: 'harmony',
+    actionSpace: () => [],
+    describe: () => 'Mock Harmony device',
+  },
+}));
 
 vi.mock('@midscene/playground', () => ({
   createScreenshotPreviewDescriptor: (overrides = {}) => ({
@@ -18,14 +26,7 @@ vi.mock('@midscene/shared/node', () => ({
 }));
 
 vi.mock('../../src/agent', () => ({
-  HarmonyAgent: vi.fn().mockImplementation((device) => ({
-    device,
-    interface: {
-      interfaceType: 'harmony',
-      actionSpace: () => [],
-      describe: () => 'Mock Harmony device',
-    },
-  })),
+  HarmonyAgent: harmonyAgentMock,
 }));
 
 vi.mock('../../src/device', () => ({
@@ -115,6 +116,34 @@ describe('harmonyPlaygroundPlatform', () => {
     await expect(prepared.sessionManager?.listTargets?.()).resolves.toEqual([]);
     await expect(prepared.sessionManager?.createSession({})).rejects.toThrow(
       'No HarmonyOS devices found',
+    );
+  });
+
+  test('passes host Agent options to each new HarmonyOS Agent', async () => {
+    const agentOptions = {
+      replanningCycleLimit: 12,
+      waitAfterAction: 500,
+      screenshotShrinkFactor: 2,
+    };
+    const { harmonyPlaygroundPlatform } = await import('../../src/platform');
+    const prepared = await harmonyPlaygroundPlatform.prepare({
+      deferConnection: true,
+      getAgentOptions: () => agentOptions,
+    });
+    const created = await prepared.sessionManager?.createSession({
+      deviceId: 'SERIAL123',
+    });
+    await created?.agentFactory?.();
+
+    expect(harmonyAgentMock).toHaveBeenNthCalledWith(
+      1,
+      expect.anything(),
+      agentOptions,
+    );
+    expect(harmonyAgentMock).toHaveBeenNthCalledWith(
+      2,
+      expect.anything(),
+      agentOptions,
     );
   });
 

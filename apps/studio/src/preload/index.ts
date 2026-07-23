@@ -65,6 +65,8 @@ const studioRuntimeApi: StudioRuntimeApi = {
     ipcRenderer.invoke(IPC_CHANNELS.setDiscoveryPollingPaused, paused),
   runConnectivityTest: (request) =>
     ipcRenderer.invoke(IPC_CHANNELS.runConnectivityTest, request),
+  updateAgentOptions: (options) =>
+    ipcRenderer.invoke(IPC_CHANNELS.updateAgentOptions, options),
   generateRecorderCode: (request) =>
     ipcRenderer.invoke(IPC_CHANNELS.generateRecorderCode, request),
   generateRecorderMetadata: (request) =>

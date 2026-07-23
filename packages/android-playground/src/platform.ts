@@ -1,6 +1,7 @@
 import path from 'node:path';
 import {
   AndroidAgent,
+  type AndroidAgentOpt,
   AndroidDevice,
   getConnectedDevicesWithDetails,
 } from '@midscene/android';
@@ -25,6 +26,7 @@ export interface AndroidPlatformOptions {
   staticDir?: string;
   scrcpyServer?: ScrcpyServerController;
   scrcpyPort?: number;
+  getAgentOptions?: () => AndroidAgentOpt;
 }
 
 async function getAdbTargets(): Promise<PlaygroundSessionTarget[]> {
@@ -137,7 +139,7 @@ export const androidPlaygroundPlatform = definePlaygroundPlatform<
         const connectAgent = async () => {
           const device = new AndroidDevice(deviceId);
           await device.connect();
-          return new AndroidAgent(device);
+          return new AndroidAgent(device, options?.getAgentOptions?.());
         };
 
         if (options?.scrcpyServer) {
