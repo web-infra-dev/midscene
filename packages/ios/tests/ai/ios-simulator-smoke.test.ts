@@ -283,10 +283,10 @@ describe.skipIf(!RUN_LIVE_SMOKE)('iOS Simulator live smoke', () => {
       diagnosticsDir,
       'safari-after-input-source.xml',
     );
-    const screenshotFile = path.join(diagnosticsDir, 'safari-smoke.png');
+    const screenshotFile = path.join(diagnosticsDir, 'safari-smoke.webp');
     const postInputScreenshotFile = path.join(
       diagnosticsDir,
-      'safari-after-input.png',
+      'safari-after-input.webp',
     );
     const dumpFile = path.join(diagnosticsDir, 'agent-dump.json');
     const evidenceFile = path.join(diagnosticsDir, 'evidence.json');
@@ -337,6 +337,7 @@ describe.skipIf(!RUN_LIVE_SMOKE)('iOS Simulator live smoke', () => {
       const screenSize = await agent.interface.getScreenSize();
       const screenshot = await agent.interface.screenshotBase64();
       const screenshotSize = await imageInfoOfBase64(screenshot);
+      expect(screenshot).toMatch(/^data:image\/webp;base64,/);
       await writeFile(screenshotFile, screenshotBuffer(screenshot));
       evidence.screen = { screenSize, screenshotSize };
       expect(screenSize.width).toBeGreaterThan(0);
@@ -387,11 +388,12 @@ describe.skipIf(!RUN_LIVE_SMOKE)('iOS Simulator live smoke', () => {
         : undefined;
       evidence.inputText = inputText;
       expect(inputText).toBe(SUBMITTED_TEXT);
-      await agent.interface
-        .screenshotBase64()
-        .then((base64) =>
-          writeFile(postInputScreenshotFile, screenshotBuffer(base64)),
-        );
+      const postInputScreenshot = await agent.interface.screenshotBase64();
+      expect(postInputScreenshot).toMatch(/^data:image\/webp;base64,/);
+      await writeFile(
+        postInputScreenshotFile,
+        screenshotBuffer(postInputScreenshot),
+      );
 
       const submittedValue = await waitForSubmittedValue(
         fixture.submittedValue,
