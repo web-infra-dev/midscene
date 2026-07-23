@@ -19,6 +19,7 @@ class MockInterface extends AbstractInterface {
     undefined;
   override afterInvokeAction: AbstractInterface['afterInvokeAction'] =
     undefined;
+  override getUITree: AbstractInterface['getUITree'] = undefined;
   override getElementsNodeTree: AbstractInterface['getElementsNodeTree'] =
     undefined;
   override url: AbstractInterface['url'] = undefined;
