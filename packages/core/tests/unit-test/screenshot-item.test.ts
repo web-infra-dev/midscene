@@ -6,6 +6,8 @@ import { ScreenshotItem } from '../../src/screenshot-item';
 
 describe('ScreenshotItem', () => {
   const testBase64 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUA';
+  const webpBase64 =
+    'data:image/webp;base64,UklGRjQAAABXRUJQVlA4ICgAAACQAQCdASoCAAMAAMASJQBOl0AAjNAA/v4icv1difCfoP7mxzi2QwAA';
 
   describe('create', () => {
     it('should create a ScreenshotItem from base64 string', () => {
@@ -18,6 +20,43 @@ describe('ScreenshotItem', () => {
       const capturedAt = Date.now();
       const item = ScreenshotItem.create(testBase64, capturedAt);
       expect(item.capturedAt).toBe(capturedAt);
+    });
+
+    it('preserves empty screenshot placeholders as PNG metadata', () => {
+      const item = ScreenshotItem.create('', 123);
+
+      expect(item.base64).toBe('');
+      expect(item.rawBase64).toBe('');
+      expect(item.format).toBe('png');
+      expect(item.extension).toBe('png');
+      expect(item.mimeType).toBe('image/png');
+      expect(item.toSerializable()).toMatchObject({
+        capturedAt: 123,
+        mimeType: 'image/png',
+      });
+    });
+
+    it('preserves unrecognized screenshot placeholders as PNG metadata', () => {
+      const item = ScreenshotItem.create('mock-screenshot', 123);
+
+      expect(item.base64).toBe('mock-screenshot');
+      expect(item.rawBase64).toBe('mock-screenshot');
+      expect(item.format).toBe('png');
+      expect(item.extension).toBe('png');
+      expect(item.mimeType).toBe('image/png');
+    });
+
+    it('classifies WebP screenshots without corrupting their metadata or body', () => {
+      const item = ScreenshotItem.create(webpBase64, 123);
+
+      expect(item.format).toBe('webp');
+      expect(item.extension).toBe('webp');
+      expect(item.mimeType).toBe('image/webp');
+      expect(item.rawBase64).toBe(webpBase64.split(',')[1]);
+      expect(item.toSerializable()).toMatchObject({
+        capturedAt: 123,
+        mimeType: 'image/webp',
+      });
     });
   });
 
@@ -124,6 +163,11 @@ describe('ScreenshotItem', () => {
         Date.now(),
       );
       expect(item.rawBase64).toBe('/9j/4AAQ');
+    });
+
+    it('should strip data URI prefix from WebP', () => {
+      const item = ScreenshotItem.create(webpBase64, Date.now());
+      expect(item.rawBase64).toBe(webpBase64.split(',')[1]);
     });
 
     it('should return unchanged if no prefix', () => {

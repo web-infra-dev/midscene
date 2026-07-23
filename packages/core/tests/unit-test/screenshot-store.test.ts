@@ -13,6 +13,9 @@ import { ScreenshotItem } from '../../src/screenshot-item';
 
 describe('ScreenshotStore', () => {
   const pngBase64 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUA';
+  const webpBody =
+    'UklGRjQAAABXRUJQVlA4ICgAAACQAQCdASoCAAMAAMASJQBOl0AAjNAA/v4icv1difCfoP7mxzi2QwAA';
+  const webpBase64 = `data:image/webp;base64,${webpBody}`;
   let tmpRoot: string;
 
   beforeEach(() => {
@@ -42,6 +45,53 @@ describe('ScreenshotStore', () => {
     expect(ref.storage).toBe('file');
     expect(existsSync(join(screenshotsDir, `${item.id}.png`))).toBe(true);
     expect(store.loadBase64(ref)).toContain('data:image/png;base64,');
+  });
+
+  it('persists WebP bytes with a .webp path and restores the WebP MIME type', async () => {
+    const reportPath = join(tmpRoot, 'index.html');
+    const screenshotsDir = join(tmpRoot, 'screenshots');
+    const item = ScreenshotItem.create(webpBase64, 100);
+    const store = new ScreenshotStore({
+      mode: 'directory',
+      reportPath,
+      screenshotsDir,
+    });
+
+    const ref = await store.persist(item);
+    const filePath = join(screenshotsDir, `${item.id}.webp`);
+
+    expect(ref).toMatchObject({
+      mimeType: 'image/webp',
+      path: `./screenshots/${item.id}.webp`,
+    });
+    expect(readFileSync(filePath).toString('base64')).toBe(webpBody);
+    expect(store.loadBase64(ref)).toBe(webpBase64);
+  });
+
+  it('resolves sibling WebP files for inline references', () => {
+    const reportPath = join(tmpRoot, 'index.html');
+    const screenshotsDir = join(tmpRoot, 'screenshots');
+    mkdirSync(screenshotsDir, { recursive: true });
+    writeFileSync(reportPath, '<html></html>');
+    writeFileSync(
+      join(screenshotsDir, 'sibling-webp.webp'),
+      Buffer.from(webpBody, 'base64'),
+    );
+    const store = new ScreenshotStore({
+      mode: 'inline',
+      reportPath,
+      writeInlineImage: () => {},
+    });
+
+    expect(
+      store.loadBase64({
+        type: 'midscene_screenshot_ref',
+        id: 'sibling-webp',
+        capturedAt: 100,
+        mimeType: 'image/webp',
+        storage: 'inline',
+      }),
+    ).toBe(webpBase64);
   });
 
   it('deduplicates same screenshot persistence by id', async () => {

@@ -424,7 +424,7 @@ describe('element describer utils', () => {
 
     const describeContext = describe.mock.calls[0][2]?.context;
     expect(describeContext?.screenshot.base64).toMatch(
-      /^data:image\/png;base64,/,
+      /^data:image\/webp;base64,UklGR/,
     );
     expect(describeContext?.shotSize).toEqual(fixtureScreenshotSize);
 
