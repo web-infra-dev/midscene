@@ -72,6 +72,9 @@ interface FixtureState {
   keyWindow: boolean;
   activationCount: number;
   inputReadyGeneration: number;
+  pointerDownCount: number;
+  lastPointerX: number;
+  lastPointerY: number;
   clickCount: number;
   buttonActionCount: number;
   textChangeCount: number;
@@ -168,6 +171,12 @@ function normalizeState(value: unknown): FixtureState {
       raw.inputReadyGeneration,
       'state.inputReadyGeneration',
     ),
+    pointerDownCount: asFiniteNumber(
+      raw.pointerDownCount,
+      'state.pointerDownCount',
+    ),
+    lastPointerX: asFiniteNumber(raw.lastPointerX, 'state.lastPointerX'),
+    lastPointerY: asFiniteNumber(raw.lastPointerY, 'state.lastPointerY'),
     clickCount: asFiniteNumber(raw.clickCount, 'state.clickCount'),
     buttonActionCount: asFiniteNumber(
       raw.buttonActionCount,
@@ -279,11 +288,21 @@ async function retryFixtureAction(options: {
         ACTIVATION_TIMEOUT_MS,
         options.fixtureProcess,
       );
-      // AppKit can keep the fixture active and visible while declining to make
-      // its window key again. The real action result is the reliable readiness
-      // probe, so let each retry invoke the action instead of consuming an
-      // attempt at this precondition.
-      await sleep(250);
+      // Prefer AppKit's durable input-readiness signal and act as soon as it is
+      // published. If AppKit declines to make the window key, still invoke the
+      // action so the real result remains the final readiness probe.
+      try {
+        await waitForJson(
+          options.stateFile,
+          normalizeState,
+          (state) =>
+            state.inputReadyGeneration > beforeActivation.inputReadyGeneration,
+          ACTIVATION_TIMEOUT_MS,
+          options.fixtureProcess,
+        );
+      } catch {
+        // Fall through to the action-based readiness probe.
+      }
       await options.action();
       const state = await waitForJson(
         options.stateFile,
@@ -421,7 +440,7 @@ describe.skipIf(!RUN_LIVE_SMOKE)('macOS desktop live smoke', () => {
     const stateFile = path.join(diagnosticsDir, 'fixture-state.json');
     const fixtureStdoutFile = path.join(diagnosticsDir, 'fixture.stdout.log');
     const fixtureStderrFile = path.join(diagnosticsDir, 'fixture.stderr.log');
-    const screenshotFile = path.join(diagnosticsDir, 'desktop.png');
+    const screenshotFile = path.join(diagnosticsDir, 'desktop.webp');
     const dumpFile = path.join(diagnosticsDir, 'agent-dump.json');
     const evidenceFile = path.join(diagnosticsDir, 'evidence.json');
     const runDir = path.resolve(process.env.MIDSCENE_RUN_DIR || 'midscene_run');
@@ -545,6 +564,8 @@ describe.skipIf(!RUN_LIVE_SMOKE)('macOS desktop live smoke', () => {
       );
       const screenshotBuffer = Buffer.from(base64Body(screenshot), 'base64');
       await writeFile(screenshotFile, screenshotBuffer);
+      expect(screenshotBuffer.subarray(0, 4).toString('ascii')).toBe('RIFF');
+      expect(screenshotBuffer.subarray(8, 12).toString('ascii')).toBe('WEBP');
       evidence.screenshot = {
         ...screenshotInfo,
         scale: screenshotScale,

@@ -15,6 +15,9 @@ import type {
 } from '../../../src';
 import { formatRdpServerAddress } from '../../../src/rdp/address';
 
+const VALID_PNG_BASE64 =
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+
 class FakeRDPBackend implements RDPBackendClient {
   calls: Array<{ name: string; args: unknown[] }> = [];
 
@@ -33,7 +36,7 @@ class FakeRDPBackend implements RDPBackendClient {
 
   async screenshotBase64(): Promise<string> {
     this.calls.push({ name: 'screenshotBase64', args: [] });
-    return 'data:image/png;base64,ZmFrZQ==';
+    return `data:image/png;base64,${VALID_PNG_BASE64}`;
   }
 
   async size(): Promise<Size> {
@@ -93,6 +96,16 @@ function createLocate(
 }
 
 describe('@midscene/computer RDP device', () => {
+  it('converts backend PNG screenshots to WebP', async () => {
+    const backend = new FakeRDPBackend();
+    const device = new RDPDevice({ host: '10.0.0.1', backend });
+    await device.connect();
+
+    await expect(device.screenshotBase64()).resolves.toMatch(
+      /^data:image\/webp;base64,UklGR/,
+    );
+  });
+
   it('connects and exposes the RDP device through agentForRDPComputer', async () => {
     const backend = new FakeRDPBackend();
     const agent = await agentForRDPComputer({

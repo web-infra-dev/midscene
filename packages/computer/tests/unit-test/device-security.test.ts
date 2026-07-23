@@ -110,6 +110,14 @@ vi.mock('node:module', () => ({
   createRequire: mockState.createRequire,
 }));
 
+vi.mock('@midscene/shared/img', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@midscene/shared/img')>()),
+  canonicalizeScreenshotBase64: vi.fn(
+    async () =>
+      'data:image/webp;base64,UklGRioAAABXRUJQVlA4IB4AAAAwAQCdASoBAAEAAUAmJQBOgCHwAP7+hNQAAAA=',
+  ),
+}));
+
 const originalPlatform = process.platform;
 const mockExecutorContext = { task: {} } as ExecutorContext;
 

@@ -12,6 +12,7 @@ import {
   defineActionsFromInputPrimitives,
 } from '@midscene/core/device';
 import { sleep } from '@midscene/core/utils';
+import { canonicalizeScreenshotBase64 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import type { ComputerDeviceInputOpt, DisplayInfo } from '../device';
 import {
@@ -258,7 +259,9 @@ export class RDPDevice implements AbstractInterface {
 
   async screenshotBase64(): Promise<string> {
     this.assertConnected();
-    return this.backend.screenshotBase64();
+    return canonicalizeScreenshotBase64(await this.backend.screenshotBase64(), {
+      preserveJpeg: true,
+    });
   }
 
   async size(): Promise<Size> {
