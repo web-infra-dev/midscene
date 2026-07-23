@@ -1,0 +1,30 @@
+cases:
+  - name: Midscene 文档语言跟随 UA 切换
+    tags: [smoke]
+    steps:
+      - browser.setLanguage:
+          language: en
+      - aiAct:
+          prompt: 点击页面中的 Documentation 按钮，进入 Midscene 文档页
+          $:
+            timeout: 60_000
+      - aiAssert:
+          prompt: 当前页面是 Midscene 的英文文档页。页面主体和导航使用英文，例如可见 “Introduction” 和 “Quick start”，并且不是中文文档页。
+          message: Midscene 文档页没有显示为英文
+          $:
+            timeout: 60_000
+      - browser.setLanguage:
+          language: zh
+      - aiAssert:
+          prompt: 当前页面是 Midscene 的中文文档页。页面主体和导航使用中文，例如可见“介绍”和“快速开始”，并且不是英文文档页。
+          message: Midscene 文档页没有显示为中文
+          $:
+            timeout: 60_000
+
+afterEach:
+  - page.recordState: {}
+
+afterAll:
+  - recordToReport:
+      title: Midscene 文档语言切换测试完成
+      content: 已验证文档页会根据 UA 语言显示英文或中文。

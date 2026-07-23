@@ -1,0 +1,64 @@
+# YAML 测试运行器概览
+
+我们在实践中发现，使用 YAML 组装测试流程十分自然。YAML 的声明式结构既便于人类阅读、编写和评审，也便于 Agent 理解、生成和维护。
+
+实际项目中的测试流程通常还要调用外部工具或脚本，例如调用业务接口、运行数据准备脚本或管理浏览器资源。`@midscene/test` 为这些需求提供扩展能力，包括注册业务 Node（节点）、管理运行资源和定义执行生命周期。
+
+借助这些扩展能力，团队可以从两个维度组织测试工作，并在平台开发者与用例作者之间找到协作的平衡点：
+
+- **测试框架维护**：平台开发者使用 TypeScript 接入浏览器、Agent、外部工具和业务接口，并统一管理运行资源和执行生命周期。
+- **测试用例维护**：人类或 Agent 使用 YAML 组合框架提供的能力，编写和维护测试用例，无需编写 JavaScript 或关注底层实现。
+
+运行器直接执行一套规范 YAML 协议。它会在获取 Project 资源前完成全部选中计划的解析、规范化、变量解析和校验，不引入单独的 IR：
+
+```text
+midscene.config.ts ── Projects / setup / Node Registry
+                              │
+Workflow YAML ── collect and validate ── Normalized Steps
+                                           │
+                            串行生命周期调度器
+                                           │
+                         Node 执行 + 只读 history
+                                           │
+                         summary.json + facts + reports
+```
+
+一份 Test Project 配置可以定义多个作为子配置的 Execution Project。每个 Execution Project 负责文件与 tags 筛选、平台 setup 和整 Case retry。Project setup 管理浏览器或设备连接等长生命周期资源；YAML 的 `beforeAll` / `afterAll` 管理一个 Workflow Document 的业务准备与清理；Node teardown 管理 attempt 或 Document scope 的内部资源，例如 Agent 报告。
+
+## 实战场景：验证订单退款流程
+
+假设电商团队需要验证已支付订单的退款流程。每个用例开始前，运行器调用订单接口或数据脚本创建测试订单。订单准备完成后，Agent 在页面上提交退款申请并检查结果。每个用例结束后，运行器删除测试订单。
+
+框架维护者将这些能力注册为 `order.prepare`、`browser.openRefundPage` 和 `order.cleanup`。用例作者只需使用 YAML 组合它们：
+
+```yaml
+beforeEach:
+  - order.prepare:
+      status: paid
+  - browser.openRefundPage: {}
+
+cases:
+  - name: 已支付订单可以申请全额退款
+    steps:
+      - aiAct: 点击申请退款，选择全额退款并提交
+      - aiAssert:
+          prompt: 页面显示退款申请已提交，退款金额为订单的全部金额
+          message: 全额退款申请提交失败
+
+  - name: 已支付订单可以申请部分退款
+    steps:
+      - aiAct: 点击申请退款，输入退款金额 10 元并提交
+      - aiAssert:
+          prompt: 页面显示退款申请已提交，退款金额为 10 元
+          message: 部分退款申请提交失败
+
+afterEach:
+  - order.cleanup: {}
+```
+
+自定义 Node 负责准备数据、初始化页面和清理数据，Midscene Node 负责界面操作和结果检查。测试框架与测试意图彼此分离，两类维护工作可以独立演进。
+
+## 接下来
+
+- 阅读[编写和运行 YAML 测试用例](./yaml-test-cases)，了解 Case、Step、生命周期和运行结果。
+- 阅读[扩展和维护 YAML 测试运行器](./extend-yaml-test-runner)，了解如何注册 Node、管理运行资源和配置 Test Project。

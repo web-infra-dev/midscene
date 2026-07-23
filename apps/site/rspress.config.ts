@@ -302,7 +302,22 @@ export default defineConfig(async () => {
             link: '/computer-api-reference',
           },
           {
-            sectionHeaderText: 'YAML automation',
+            sectionHeaderText: 'Yaml test runner',
+          },
+          {
+            text: 'Overview',
+            link: '/yaml-test-runner-overview',
+          },
+          {
+            text: 'Write and run YAML test cases',
+            link: '/yaml-test-cases',
+          },
+          {
+            text: 'Extend and maintain the YAML test runner',
+            link: '/extend-yaml-test-runner',
+          },
+          {
+            sectionHeaderText: 'Yaml automation (legacy)',
           },
           {
             text: 'YAML script runner',
@@ -492,7 +507,22 @@ export default defineConfig(async () => {
             link: '/zh/computer-api-reference',
           },
           {
-            sectionHeaderText: 'YAML automation',
+            sectionHeaderText: 'Yaml 测试运行器',
+          },
+          {
+            text: '概览',
+            link: '/zh/yaml-test-runner-overview',
+          },
+          {
+            text: '编写和运行 YAML 测试用例',
+            link: '/zh/yaml-test-cases',
+          },
+          {
+            text: '扩展和维护 YAML 测试运行器',
+            link: '/zh/extend-yaml-test-runner',
+          },
+          {
+            sectionHeaderText: 'Yaml automation (legacy)',
           },
           {
             text: 'YAML 脚本运行器',
