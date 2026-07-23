@@ -4,6 +4,7 @@ import type { UIContext } from '@midscene/core';
 import { uuid } from '@midscene/shared/utils';
 import { BridgeConnector, type BridgeStatus } from '../utils/bridgeConnector';
 import { registerAlarmListener, safeSetupKeepalive } from '../utils/keepalive';
+import { canonicalizeRecorderScreenshot } from '../utils/screenshot';
 import { workerMessageTypes } from '../utils/workerMessageTypes';
 
 // save screenshot
@@ -448,8 +449,22 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
               chrome.runtime.lastError,
             );
             sendResponse(null);
+          } else if (!dataUrl) {
+            console.error(
+              '[ServiceWorker] Screenshot capture returned empty data',
+            );
+            sendResponse(null);
           } else {
-            sendResponse(dataUrl);
+            void canonicalizeRecorderScreenshot(dataUrl).then(
+              (webpDataUrl) => sendResponse(webpDataUrl),
+              (error) => {
+                console.error(
+                  '[ServiceWorker] Failed to encode recorder screenshot as WebP:',
+                  error,
+                );
+                sendResponse(null);
+              },
+            );
           }
         },
       );
