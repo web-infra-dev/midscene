@@ -3,7 +3,7 @@ import { pathToFileURL } from 'node:url';
 import { require as tsxRequire } from 'tsx/cjs/api';
 import { tsImport } from 'tsx/esm/api';
 import { NodeRegistry } from '../engine/registry';
-import type { Awaitable, WorkflowDocumentSetup } from '../engine/types';
+import type { Awaitable } from '../engine/types';
 import type { WorkflowError } from '../errors';
 import type { NodeDefinition } from '../node/types';
 
@@ -93,42 +93,30 @@ export interface ProjectSetupDefinition<TProjectContext = unknown> {
   setup(ctx: ProjectSetupContext<TProjectContext>): Awaitable<TProjectContext>;
 }
 
-export interface TestProjectDefinition<
-  TProjectContext = undefined,
-  TDocumentContext = TProjectContext,
-> {
+export interface TestProjectDefinition<TContext = undefined> {
   root?: string;
   files?: TestFileSelection;
-  projects?: readonly ExecutionProjectDefinition<TProjectContext>[];
+  setup?: ProjectSetupDefinition<TContext>;
+  projects?: readonly ExecutionProjectDefinition<TContext>[];
   testRunner?: TestRunnerDefinition;
   output?: TestOutputDefinition;
-  nodes: readonly NodeDefinition<any, any, TDocumentContext>[];
-  setupDocument?: WorkflowDocumentSetup<TProjectContext, TDocumentContext>;
+  nodes: readonly NodeDefinition<any, any, TContext>[];
 }
 
-export interface LoadedTestProject<
-  TProjectContext = undefined,
-  TDocumentContext = TProjectContext,
-> {
+export interface LoadedTestProject<TContext = undefined> {
   root?: string;
   files?: TestFileSelection;
-  projects: readonly ResolvedExecutionProject<TProjectContext>[];
+  projects: readonly ResolvedExecutionProject<TContext>[];
   hasExplicitProjects: boolean;
   testRunner: ResolvedTestRunnerDefinition;
   output: ResolvedTestOutputDefinition;
   nodes: NodeRegistry;
-  setupDocument?: WorkflowDocumentSetup<TProjectContext, TDocumentContext>;
-  resolveNode(
-    name: string,
-  ): NodeDefinition<any, any, TDocumentContext> | undefined;
+  resolveNode(name: string): NodeDefinition<any, any, TContext> | undefined;
 }
 
-export const defineTestProject = <
-  TProjectContext = undefined,
-  TDocumentContext = TProjectContext,
->(
-  definition: TestProjectDefinition<TProjectContext, TDocumentContext>,
-): TestProjectDefinition<TProjectContext, TDocumentContext> => definition;
+export const defineTestProject = <TContext = undefined>(
+  definition: TestProjectDefinition<TContext>,
+): TestProjectDefinition<TContext> => definition;
 
 export const defineProjectSetup = <TProjectContext>(
   definition: ProjectSetupDefinition<TProjectContext>,
@@ -399,17 +387,43 @@ const validateNonNegativeInteger = (
 const validateExecutionProjects = <TProjectContext>(
   value: unknown,
   defaultFiles: TestFileSelection | undefined,
+  defaultSetup: unknown,
 ): {
   projects: readonly ResolvedExecutionProject<TProjectContext>[];
   hasExplicitProjects: boolean;
 } => {
   if (value === undefined) {
+    let platform: TestPlatform = 'web';
+    if (defaultSetup !== undefined) {
+      if (!isRecord(defaultSetup)) {
+        throw new TypeError('Midscene config setup must be an object.');
+      }
+      if (Array.isArray(defaultSetup.platform)) {
+        if (defaultSetup.platform.length !== 1) {
+          throw new TypeError(
+            'Midscene config setup.platform must select exactly one platform when projects is omitted.',
+          );
+        }
+        platform = validatePlatform(
+          defaultSetup.platform[0],
+          'setup.platform[0]',
+        );
+      } else if (defaultSetup.platform !== undefined) {
+        platform = validatePlatform(defaultSetup.platform, 'setup.platform');
+      }
+    }
+    const setup = validateProjectSetup<TProjectContext>(
+      defaultSetup,
+      platform,
+      'setup',
+    );
     return {
       hasExplicitProjects: false,
       projects: Object.freeze([
         Object.freeze({
           name: 'default',
-          platform: 'web' as const,
+          platform,
+          ...(setup ? { setup } : {}),
           ...(defaultFiles ? { files: defaultFiles } : {}),
           tags: Object.freeze({ include: [], exclude: [] }),
           repeat: 1,
@@ -418,6 +432,11 @@ const validateExecutionProjects = <TProjectContext>(
         }),
       ]),
     };
+  }
+  if (defaultSetup !== undefined) {
+    throw new TypeError(
+      'Midscene config setup cannot be used together with projects. Move setup to projects[].setup.',
+    );
   }
   if (!Array.isArray(value) || value.length === 0) {
     throw new TypeError(
@@ -526,9 +545,9 @@ const validateOutput = (value: unknown): ResolvedTestOutputDefinition => {
   });
 };
 
-const validateTestProjectDefinition = <TProjectContext, TDocumentContext>(
+const validateTestProjectDefinition = <TContext>(
   definition: unknown,
-): LoadedTestProject<TProjectContext, TDocumentContext> => {
+): LoadedTestProject<TContext> => {
   if (
     !isRecord(definition) ||
     !('nodes' in definition) ||
@@ -540,7 +559,12 @@ const validateTestProjectDefinition = <TProjectContext, TDocumentContext>(
   }
   if ('setupWorkflow' in definition) {
     throw new TypeError(
-      'Midscene config setupWorkflow is no longer supported. Use setupDocument instead.',
+      'Midscene config setupWorkflow is no longer supported. Use setup or projects[].setup instead.',
+    );
+  }
+  if ('setupDocument' in definition) {
+    throw new TypeError(
+      'Midscene config setupDocument is not supported. Use setup or projects[].setup for resources, and beforeAll/afterAll for document lifecycle steps.',
     );
   }
   if (
@@ -550,15 +574,10 @@ const validateTestProjectDefinition = <TProjectContext, TDocumentContext>(
     throw new TypeError('Midscene config root must be a non-empty string.');
   }
   const files = validateTestFileSelection(definition.files);
-  if (
-    definition.setupDocument !== undefined &&
-    typeof definition.setupDocument !== 'function'
-  ) {
-    throw new TypeError('Midscene config setupDocument must be a function.');
-  }
-  const resolvedProjects = validateExecutionProjects<TProjectContext>(
+  const resolvedProjects = validateExecutionProjects<TContext>(
     definition.projects,
     files,
+    definition.setup,
   );
   const nodes = new NodeRegistry(definition.nodes as NodeDefinition[]);
   return {
@@ -568,16 +587,8 @@ const validateTestProjectDefinition = <TProjectContext, TDocumentContext>(
     testRunner: validateTestRunner(definition.testRunner),
     output: validateOutput(definition.output),
     nodes,
-    ...(definition.setupDocument
-      ? {
-          setupDocument: definition.setupDocument as WorkflowDocumentSetup<
-            TProjectContext,
-            TDocumentContext
-          >,
-        }
-      : {}),
     resolveNode: (name) =>
-      nodes.get(name) as NodeDefinition<any, any, TDocumentContext> | undefined,
+      nodes.get(name) as NodeDefinition<any, any, TContext> | undefined,
   };
 };
 
@@ -596,14 +607,11 @@ const canRetryWithCjsLoader = (error: unknown): error is SyntaxError =>
     (error as SyntaxError & { code?: string }).code ===
       'ERR_UNSUPPORTED_TYPESCRIPT_SYNTAX');
 
-export async function loadTestProject<
-  TProjectContext = undefined,
-  TDocumentContext = TProjectContext,
->(
+export async function loadTestProject<TContext = undefined>(
   configPath?: string,
-): Promise<LoadedTestProject<TProjectContext, TDocumentContext>> {
+): Promise<LoadedTestProject<TContext>> {
   if (!configPath) {
-    return validateTestProjectDefinition<TProjectContext, TDocumentContext>({
+    return validateTestProjectDefinition<TContext>({
       nodes: [],
     });
   }
@@ -630,7 +638,7 @@ export async function loadTestProject<
     }
   }
 
-  return validateTestProjectDefinition<TProjectContext, TDocumentContext>(
+  return validateTestProjectDefinition<TContext>(
     getDefaultExport(loaded, absolutePath),
   );
 }

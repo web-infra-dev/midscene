@@ -23,7 +23,7 @@ Workflow YAML ── collect and validate ── Normalized Steps
                          summary.json + facts + reports
 ```
 
-A configuration can define multiple Execution Projects. Each Project selects files and tags, binds one platform setup, and controls repeat and whole-Case retry. Project setup owns long-lived resources such as a browser or device connection; `setupDocument()` owns resources for one YAML file in one repeat; Node teardown owns attempt- or document-scoped resources such as an Agent report.
+A Test Project configuration can contain multiple Execution Project child configurations. Each Execution Project selects files and tags, binds one platform setup, and controls repeat and whole-Case retry. Project setup owns long-lived resources such as a browser or device connection; YAML `beforeAll` / `afterAll` own business preparation and cleanup for one Workflow Document in one repeat; Node teardown owns internal attempt- or document-scoped resources such as an Agent report.
 
 ## Example: validate an order refund flow
 

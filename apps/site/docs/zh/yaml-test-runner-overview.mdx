@@ -23,7 +23,7 @@ Workflow YAML ── collect and validate ── Normalized Steps
                          summary.json + facts + reports
 ```
 
-一份配置可以定义多个 Execution Project。每个 Project 负责文件与 tags 筛选、平台 setup、repeat 和整 Case retry。Project setup 管理浏览器或设备连接等长生命周期资源；`setupDocument()` 管理一个 repeat 中一个 YAML 文件的资源；Node teardown 管理 attempt 或 Document 级资源，例如 Agent 报告。
+一份 Test Project 配置可以定义多个作为子配置的 Execution Project。每个 Execution Project 负责文件与 tags 筛选、平台 setup、repeat 和整 Case retry。Project setup 管理浏览器或设备连接等长生命周期资源；YAML 的 `beforeAll` / `afterAll` 管理一个 repeat 中一个 Workflow Document 的业务准备与清理；Node teardown 管理 attempt 或 Document scope 的内部资源，例如 Agent 报告。
 
 ## 实战场景：验证订单退款流程
 

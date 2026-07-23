@@ -35,9 +35,6 @@ import { chromium, type Browser, type Page } from 'playwright';
 
 interface ProjectContext {
   browser: Browser;
-}
-
-interface DocumentContext extends ProjectContext {
   page: Page;
   agent?: PlaywrightAgent;
 }
@@ -51,7 +48,7 @@ const setLanguageInputSchema = z.strictObject({
 const setLanguage = defineNode<
   typeof setLanguageInputSchema,
   unknown,
-  DocumentContext
+  ProjectContext
 >({
   name: 'browser.setLanguage',
   description: 'Switch the browser language and reopen the current page.',
@@ -62,11 +59,12 @@ const setLanguage = defineNode<
       locale: input.language === 'zh' ? 'zh-CN' : 'en-US',
     });
     context.page = await browserContext.newPage();
+    context.agent = undefined;
     await previousContext.close();
   },
 });
 
-const midsceneNodes = createMidsceneNodes<DocumentContext>({
+const midsceneNodes = createMidsceneNodes<ProjectContext>({
   getAgent: ({ context }) => {
     context.agent ??= new PlaywrightAgent(context.page);
     return context.agent;
@@ -79,11 +77,14 @@ const playwrightSetup = defineProjectSetup<ProjectContext>({
   async setup({ onTeardown }) {
     const browser = await chromium.launch({ headless: true });
     onTeardown(() => browser.close());
-    return { browser };
+    const browserContext = await browser.newContext();
+    const page = await browserContext.newPage();
+    await page.goto('https://midscenejs.com');
+    return { browser, page };
   },
 });
 
-export default defineTestProject<ProjectContext, DocumentContext>({
+export default defineTestProject<ProjectContext>({
   projects: [
     {
       name: 'chromium',
@@ -94,14 +95,6 @@ export default defineTestProject<ProjectContext, DocumentContext>({
     },
   ],
   nodes: [setLanguage, ...midsceneNodes],
-
-  async setupDocument({ projectContext, onTeardown }) {
-    const browserContext = await projectContext.browser.newContext();
-    onTeardown(() => browserContext.close());
-    const page = await browserContext.newPage();
-    await page.goto('https://midscenejs.com');
-    return { browser: projectContext.browser, page };
-  },
 });
 ```
 
@@ -164,7 +157,7 @@ const createOrder = defineNode({
 });
 ```
 
-When a Node needs a typed Document Context, provide the Schema type, output type, and Context type:
+When a Node needs a typed Project context, provide the Schema type, output type, and Context type:
 
 ```ts
 defineNode<typeof createOrderInputSchema, { id: string }, ProjectContext>({
@@ -187,7 +180,7 @@ Every Node receives the same execution contract:
 - `$`: normalized runner metadata such as `timeoutMs` and `continueOnError`.
 - `scope` plus `case` or `document`: the current identity, lifecycle phase, and Step index.
 - `signal`: the Step timeout and cancellation signal.
-- `context`: the value returned by `setupDocument()`.
+- `context`: the value returned by the selected Project setup, or `undefined` when the Project has no setup.
 - `history`: a deeply read-only, JSON-compatible view of completed Nodes.
 - `onTeardown()`: register attempt- or document-scoped cleanup in LIFO order.
 
@@ -215,7 +208,7 @@ For retry isolation and finalized Midscene report indexing, prefer `agentProvide
 ```ts
 const agents = new Map<string, PlaywrightAgent>();
 
-const midsceneNodes = createMidsceneNodes<DocumentContext>({
+const midsceneNodes = createMidsceneNodes<ProjectContext>({
   agentProvider: {
     getAgent(runId, { context }) {
       let agent = agents.get(runId);
@@ -243,7 +236,7 @@ The runner calls `releaseAgent()` exactly once after the attempt or Document sco
 
 ## Configure a Test Project
 
-`defineTestProject()` provides contextual types for the project fields and Document Context.
+`defineTestProject()` provides one Context type shared by Project setup and every Node in that Project.
 
 ```ts filename=midscene.config.ts
 export default defineTestProject<ProjectContext>({
@@ -260,7 +253,7 @@ export default defineTestProject<ProjectContext>({
       tags: { include: ['smoke'], exclude: ['manual'] },
       repeat: 2,
       retry: 1,
-      variables: { appName: 'Example', reinstall: false },
+      variables: { appUri: 'com.example.app' },
     },
   ],
   testRunner: {
@@ -273,15 +266,12 @@ export default defineTestProject<ProjectContext>({
     reportDir: './midscene_run/report',
   },
   nodes: [createOrder, ...midsceneNodes],
-  async setupDocument({ projectContext, env, onTeardown }) {
-    const database = await connectTestDatabase(env.TEST_DATABASE_URL);
-    onTeardown(() => database.close());
-    return { ...projectContext, database };
-  },
 });
 ```
 
 Declare reusable Project setup with `defineProjectSetup()`. Setup runs once for the selected Execution Project and can acquire a browser, device lease, connection-renewal task, or other shared resource. Registered Project teardown functions run in LIFO order after every repeat and document has finished, including setup failure and interruption.
+
+When `projects` is omitted, a root `setup` is attached to the implicit `default` Execution Project. Its single declared `platform` becomes the default Project platform. Root `setup` and an explicit `projects` array are mutually exclusive; put setup on each `projects[]` entry when defining multiple targets.
 
 Each `projects[]` entry requires a unique `name` and a `platform` of `web`, `android`, `ios`, or `computer`. It may override `files`, configure `tags`, bind one setup definition, provide JSON-compatible `variables`, and set `repeat` and whole-Case `retry`. Root-level `files` remains as a compatibility default inherited by Projects that do not override it.
 
@@ -312,11 +302,11 @@ pnpm exec midscene-test describe-nodes ./e2e
 pnpm exec midscene-test describe-nodes --config ./config/midscene.config.ts
 ```
 
-The reference contains the common Step contract plus each Node name, description, and JSON Schema. The JSON Schema is generated from the Zod `inputSchema`. The built-in `aiAct`, `aiAssert`, `recordToReport`, `launch`, `wait`, and `agent` Nodes include their own schemas.
+The reference contains the common Step contract plus each Node name, description, and JSON Schema. The JSON Schema is generated from the Zod `inputSchema`. The built-in `aiAct`, `aiAssert`, `recordToReport`, `launch`, `wait`, and `agent` Nodes include their own schemas. Built-in `launch` only asks the current Midscene Agent to launch one app, URL, or URI; application installation and management belong in platform-specific Nodes.
 
 Nodes without `description` or `inputSchema` are still listed. The document marks the missing fields, and the CLI writes warnings to stderr instead of guessing their behavior.
 
-`describe-nodes` only loads `midscene.config.ts`. It does not read Workflow YAML, run Project setup or `setupDocument()`, execute Node Handlers, or create a result directory. Add the generated `midscene-nodes.md` to an AI Agent's context so it can write YAML Cases using the capabilities that the project actually exposes.
+`describe-nodes` only loads `midscene.config.ts`. It does not read Workflow YAML, run Project setup, execute Node Handlers, or create a result directory. Add the generated `midscene-nodes.md` to an AI Agent's context so it can write YAML Cases using the capabilities that the project actually exposes.
 
 ## Programmatic API
 

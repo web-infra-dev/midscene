@@ -24,12 +24,9 @@ const asNotRun = (
   notRunReason: reason,
 });
 
-export async function runWorkflowDocument<
-  TProjectContext = undefined,
-  TDocumentContext = TProjectContext,
->(
+export async function runWorkflowDocument<TContext = undefined>(
   document: CollectedWorkflowDocument,
-  options: RunWorkflowDocumentOptions<TProjectContext, TDocumentContext>,
+  options: RunWorkflowDocumentOptions<TContext>,
 ): Promise<WorkflowDocumentExecutionResult> {
   const createDocumentRunId = options.createDocumentRunId;
   const createCaseRunId = options.createCaseRunId;
@@ -46,7 +43,6 @@ export async function runWorkflowDocument<
     project: options.project,
     projectContext: options.projectContext,
     repeatIndex,
-    setupDocument: options.setupDocument,
     signal: options.signal,
     defaultTimeoutMs: options.defaultTimeoutMs,
     onStepStart: options.onStepStart,

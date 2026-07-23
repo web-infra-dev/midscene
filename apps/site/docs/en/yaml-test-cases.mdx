@@ -19,9 +19,9 @@ Test Project configuration
 - **Node**: an executable capability registered by a developer.
 - **Step**: one YAML invocation of a Node.
 - **Case**: a named test made of multiple Steps.
-- **Workflow Document**: one YAML file containing lifecycle Steps and Cases.
-- **Execution Project**: one configured runtime target, file/tag selection, variables, repeat count, and retry policy.
-- **Test Project configuration**: the shared Nodes plus one or more Execution Projects and their Workflow Documents.
+- **Test Project**: the top-level `midscene.config.ts` configuration. It registers shared Nodes and defines either a default runtime target or a `projects` array.
+- **Execution Project**: a child configuration inside a Test Project. It defines one runtime target, Project setup, file/tag selection, variables, repeat count, and retry policy; it is not a peer of the Test Project.
+- **Workflow Document**: one YAML file selected by an Execution Project and containing lifecycle Steps and Cases.
 
 Nodes define the capabilities available to the team. YAML defines how each test case combines those capabilities.
 
@@ -100,8 +100,7 @@ The runner resolves variables recursively in Node input before execution:
 ```yaml
 steps:
   - launch:
-      appName: ${appName}
-      reinstall: ${reinstall}
+      uri: ${appUri}
   - api.createOrder:
       baseURL: ${{TEST_API_BASE_URL}}
       payload:
@@ -163,21 +162,20 @@ For one selected Execution Project, the complete execution order is:
 ```text
 Project setup
   Repeat 1
-    setupDocument
     beforeAll
       Case 1 attempt 1: beforeEach → steps → afterEach
       Case 1 retry:     beforeEach → steps → afterEach
       Case 2 attempt 1: beforeEach → steps → afterEach
     afterAll
-    document teardown
+    document-scoped Node cleanup
   Repeat 2
     ...
 Project teardown
 ```
 
-`setupDocument()` and document teardown create and release resources for one YAML file in one repeat. `beforeAll` and `afterAll` run once in that scope. `beforeEach` and `afterEach` run once per Case attempt. A retry reruns the whole Case with a new run ID, Agent scope, cache scope, and Case history; it does not rerun `beforeAll`.
+`beforeAll` and `afterAll` run once for each YAML file in each repeat and own document-level business preparation and cleanup. `beforeEach` and `afterEach` run once per Case attempt. A retry reruns the whole Case with a new run ID, Agent scope, cache scope, and Case history; it does not rerun `beforeAll`. Nodes may register internal attempt- or document-scoped cleanup for resources such as Agents and reports.
 
-`afterEach` still runs when the Case body fails. If `beforeAll` fails, the runner marks the file's Cases as `not-run`, then runs `afterAll` and teardown functions. If `setupDocument()` fails, the runner skips the YAML lifecycle and Cases but still runs registered teardown functions.
+`afterEach` still runs when the Case body fails. If `beforeAll` fails, the runner marks the file's Cases as `not-run`, then runs `afterAll` and registered Node cleanup.
 
 Project setup runs once before all repeats and Project teardown always runs in LIFO order. On interruption, the active Step receives an aborted signal, while cleanup hooks and registered teardown functions receive a usable cleanup signal.
 
@@ -228,7 +226,16 @@ midscene_run/
 └── collection-errors/<error-id>.json
 ```
 
-`summary.json` is the public consumer contract. It contains Project, repeat, Case-attempt, lifecycle, result-file, collection-error, and finalized-report indexes. Paths are relative to the summary file so CI and visualizers can move the output tree. Detailed fact files contain the full Step inputs, outputs, timings, and normalized errors. `--result-dir` changes only the internal fact directory; `output.summary` and `output.reportDir` are configured in `midscene.config.ts`.
+`summary.json` is the public consumer contract. It contains:
+
+- Run metadata: `schemaVersion`, `runId`, start/end time, duration, final `status`, and CLI `exitCode`.
+- The Test Project root and configuration file, plus `factsRoot` and `reportDir` paths relative to the summary so CI and visualizers can move the output tree.
+- Aggregate counts for passed, failed, not-run, and filtered Cases, plus collection, Document, and Project failures.
+- Each Execution Project's platform, repeat/retry policy, file/tag selection, discovered/selected/filtered counts, and Project setup/teardown lifecycle status.
+- Each Case, attempt, and Workflow Document status, source location, internal result-file path, and finalized Midscene report index.
+- Each collection error's source file and error-fact path.
+
+Detailed fact files contain the full Step inputs, outputs, timings, and normalized errors. `--result-dir` changes only the internal fact directory; `output.summary` and `output.reportDir` are configured in `midscene.config.ts`.
 
 The CLI exits with code `1` when a Case fails or does not run, a Workflow Document fails, or collection reports an error.
 

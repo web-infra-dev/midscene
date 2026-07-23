@@ -118,40 +118,6 @@ export class NodeExecutionError extends WorkflowError {
   }
 }
 
-export class WorkflowDocumentSetupError extends WorkflowError {
-  constructor(
-    cause: unknown,
-    details: { documentId: string; documentRunId: string },
-  ) {
-    const causeMessage =
-      cause instanceof Error ? cause.message : String(cause ?? 'Unknown error');
-    super(`Workflow document setup failed: ${causeMessage}`, {
-      code: 'WORKFLOW_DOCUMENT_SETUP_ERROR',
-      details,
-      cause,
-    });
-  }
-}
-
-export class WorkflowDocumentTeardownError extends WorkflowError {
-  constructor(
-    cause: unknown,
-    details: {
-      documentId: string;
-      documentRunId: string;
-      registrationIndex: number;
-    },
-  ) {
-    const causeMessage =
-      cause instanceof Error ? cause.message : String(cause ?? 'Unknown error');
-    super(`Workflow document teardown failed: ${causeMessage}`, {
-      code: 'WORKFLOW_DOCUMENT_TEARDOWN_ERROR',
-      details,
-      cause,
-    });
-  }
-}
-
 export class WorkflowLifecycleError extends WorkflowError {
   constructor(message: string, details?: unknown) {
     super(message, { code: 'WORKFLOW_LIFECYCLE_ERROR', details });

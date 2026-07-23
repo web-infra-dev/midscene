@@ -5,7 +5,7 @@
 这个示例演示以下能力：
 
 - 注册 `browser.setLanguage` 自定义节点，并通过 YAML 传入 `language: en` 或 `language: zh`。
-- 通过 Project setup 创建浏览器，通过 `setupDocument` 为每个 Document repeat 创建页面，并按作用域逆序释放资源。Agent 会在首次运行 Midscene Node 时创建。
+- 通过根 `setup` 配置隐式的 `default` Project，一次性创建浏览器和页面，并在 Project 结束时按逆序释放资源。Agent 会在首次运行 Midscene Node 时创建。
 - 切换 UA 语言时创建新的 Playwright Context，并让后续 Agent 使用新页面。
 - 在 YAML 中组合自定义节点、`aiAct` 和 `aiAssert`。
 - 为 AI 步骤设置独立的超时时间。

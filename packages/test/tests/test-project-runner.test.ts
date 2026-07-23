@@ -344,7 +344,7 @@ afterAll:
     ]);
   });
 
-  it('collects first, loads config once, and runs cases serially in one process', async () => {
+  it('collects first, loads config once, and shares one Project context serially', async () => {
     const root = createProject();
     const resultDir = join(root, 'results');
     const state = setRunnerState(resultDir);
@@ -358,8 +358,8 @@ afterAll:
         const node = {
           name: 'test.record',
           async execute({ input, context }) {
-            if (context !== state.contexts[input.source]) {
-              throw new Error('case did not receive its document context');
+            if (context !== state.contexts.project) {
+              throw new Error('case did not receive its Project context');
             }
             state.active += 1;
             state.maxActive = Math.max(state.maxActive, state.active);
@@ -371,17 +371,21 @@ afterAll:
         };
         export default {
           nodes: [node],
-          setupDocument({ sourcePath, onTeardown }) {
-            state.collectionCompletedBeforeSetup.push(
-              existsSync(join(state.resultDir, 'collection-errors')),
-            );
-            const context = { sourcePath };
-            state.contexts[sourcePath] = context;
-            state.events.push('setup:' + sourcePath + ':' + process.pid);
-            onTeardown(() => {
-              state.events.push('teardown:' + sourcePath + ':' + process.pid);
-            });
-            return context;
+          setup: {
+            name: 'fixture',
+            platform: 'web',
+            setup({ project, onTeardown }) {
+              state.collectionCompletedBeforeSetup.push(
+                existsSync(join(state.resultDir, 'collection-errors')),
+              );
+              const context = { projectName: project.name };
+              state.contexts.project = context;
+              state.events.push('setup:' + project.name + ':' + process.pid);
+              onTeardown(() => {
+                state.events.push('teardown:' + project.name + ':' + process.pid);
+              });
+              return context;
+            },
           },
         };
       `,
@@ -422,15 +426,13 @@ cases:
 
     expect(state.configLoads).toBe(1);
     expect(state.maxActive).toBe(1);
-    expect(state.collectionCompletedBeforeSetup).toEqual([false, false]);
+    expect(state.collectionCompletedBeforeSetup).toEqual([false]);
     expect(state.events).toEqual([
-      `setup:a.yaml:${process.pid}`,
+      `setup:default:${process.pid}`,
       `step:first:${process.pid}`,
       `step:second:${process.pid}`,
-      `teardown:a.yaml:${process.pid}`,
-      `setup:nested/b.yml:${process.pid}`,
       `step:third:${process.pid}`,
-      `teardown:nested/b.yml:${process.pid}`,
+      `teardown:default:${process.pid}`,
     ]);
     expect(result).toMatchObject({
       status: 'failed',
@@ -528,7 +530,7 @@ cases:
     });
   });
 
-  it('runs projects in config order with setup once, document per repeat, and full-case retry', async () => {
+  it('runs projects in config order with setup once, document lifecycle per repeat, and full-case retry', async () => {
     const root = createProject();
     const resultDir = join(root, 'results');
     const state = setRunnerState(resultDir);
@@ -581,13 +583,6 @@ cases:
               return { summary: input.value };
             },
           }],
-          setupDocument({ project, projectContext, repeatIndex, onTeardown }) {
-            state.events.push('document-setup:' + project.name + ':' + repeatIndex);
-            onTeardown(() =>
-              state.events.push('document-teardown:' + project.name + ':' + repeatIndex),
-            );
-            return projectContext;
-          },
         };
       `,
     );
@@ -632,13 +627,6 @@ cases:
     ).toEqual([
       'project-teardown:android-smoke',
       'project-teardown:ios-regression',
-    ]);
-    expect(
-      state.events.filter((event) => event.startsWith('document-setup')),
-    ).toEqual([
-      'document-setup:android-smoke:0',
-      'document-setup:android-smoke:1',
-      'document-setup:ios-regression:0',
     ]);
     expect(result.projects[0].cases).toHaveLength(2);
     expect(result.projects[0].documents).toHaveLength(2);
@@ -733,8 +721,9 @@ cases:
             { name: 'body', execute() { state.events.push('body'); } },
             {
               name: 'before.fail',
-              execute() {
+              execute({ onTeardown }) {
                 state.events.push('beforeAll');
+                onTeardown(() => state.events.push('node-teardown'));
                 throw new Error('beforeAll failed');
               },
             },
@@ -743,10 +732,6 @@ cases:
               execute() { state.events.push('afterAll'); },
             },
           ],
-          setupDocument({ onTeardown }) {
-            state.events.push('setupDocument');
-            onTeardown(() => state.events.push('teardown'));
-          },
         };
       `,
     );
@@ -770,12 +755,7 @@ afterAll:
 
     const result = await runTestProject({ projectRoot: root, resultDir });
 
-    expect(state.events).toEqual([
-      'setupDocument',
-      'beforeAll',
-      'afterAll',
-      'teardown',
-    ]);
+    expect(state.events).toEqual(['beforeAll', 'afterAll', 'node-teardown']);
     expect(result.summary).toMatchObject({
       total: 2,
       passed: 0,

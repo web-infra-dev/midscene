@@ -182,7 +182,7 @@ describe('midscene-test CLI', () => {
     expect(existsSync(join(projectRoot, '.midscene'))).toBe(false);
   });
 
-  it('shares one setupDocument Agent with lifecycle nodes in the CLI process', async () => {
+  it('shares one Project Agent with lifecycle nodes in the CLI process', async () => {
     const projectRoot = join(__dirname, 'fixtures', 'midscene-context-project');
     const { resultDir, executionLog } = temporaryRun('midscene-context-e2e-');
 
@@ -200,15 +200,15 @@ describe('midscene-test CLI', () => {
     expect(lines).toHaveLength(9);
     const pid = lines[0].split(':')[1];
     expect(lines[0]).toBe(`config:${pid}`);
-    expect(lines[1]).toBe(`setupDocument:1:report.yaml:${pid}`);
+    expect(lines[1]).toBe(`projectSetup:1:${pid}`);
     expect(lines[2]).toBe(`beforeAll:1:${pid}`);
     expect(lines[3]).toMatch(new RegExp(`^beforeEach:1:1:.+:${pid}$`));
     expect(lines.slice(4)).toEqual([
       `record:1:1:Attempt started:Shared document Agent:${pid}`,
-      `record:1:1:Ready:Agent came from setupDocument:${pid}`,
+      `record:1:1:Ready:Agent came from Project setup:${pid}`,
       `record:1:1:Attempt finished:Shared document Agent:${pid}`,
       `afterAll:1:${pid}`,
-      `documentTeardown:1:1:${pid}`,
+      `projectTeardown:1:1:${pid}`,
     ]);
 
     const [runResultPath] = jsonFilesBelow(join(resultDir, 'runs'));
@@ -264,7 +264,7 @@ describe('midscene-test CLI', () => {
     ).toEqual(['failed', 'success', 'success']);
   });
 
-  it('runs afterAll and teardown after beforeAll fails', async () => {
+  it('runs afterAll and Node teardown after beforeAll fails', async () => {
     const projectRoot = join(
       __dirname,
       'fixtures',
@@ -282,10 +282,9 @@ describe('midscene-test CLI', () => {
     expect(failure.code).toBe(1);
     expect(failure.stdout).toContain('0/1 cases passed, 0 failed, 1 not run');
     expect(readFileSync(executionLog, 'utf8').trim().split('\n')).toEqual([
-      'setupDocument',
       'beforeAll',
       'afterAll',
-      'documentTeardown',
+      'documentNodeTeardown',
     ]);
     expect(jsonFilesBelow(join(resultDir, 'runs'))).toHaveLength(0);
     const [documentResultPath] = jsonFilesBelow(join(resultDir, 'documents'));
@@ -331,9 +330,9 @@ describe('midscene-test CLI', () => {
 
     expect(failure.code).toBe(1);
     expect(readFileSync(executionLog, 'utf8').trim().split('\n')).toEqual([
-      'setup:a.yaml',
+      'setup:default',
       'interrupt',
-      'teardown:a.yaml',
+      'teardown:default',
     ]);
     const projectResult = JSON.parse(
       readFileSync(summaryPathFor(projectRoot), 'utf8'),

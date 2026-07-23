@@ -6,9 +6,7 @@ import type { WorkflowError } from '../errors';
 import type { NodeDefinition, NodeResult } from '../node/types';
 import type {
   CollectedCase,
-  CollectedDocumentLifecycle,
   CollectedWorkflowDocument,
-  NormalizedCaseDefinition,
   NormalizedStep,
   NormalizedStepMeta,
 } from '../parser/types';
@@ -88,7 +86,6 @@ export interface WorkflowDocumentRunResult {
   durationMs: number;
   beforeAll: StepRunResult[];
   afterAll: StepRunResult[];
-  setupError?: WorkflowError;
   teardownErrors?: WorkflowError[];
   reportPaths?: string[];
 }
@@ -188,16 +185,12 @@ export interface WorkflowDocumentExecutionResult {
   cases: readonly CaseRunOutcome[];
 }
 
-export interface RunWorkflowDocumentOptions<
-  TProjectContext = undefined,
-  TDocumentContext = TProjectContext,
-> {
-  resolveNode(name: string): NodeDefinition<any, any, TDocumentContext>;
-  project?: ResolvedExecutionProject<TProjectContext>;
-  projectContext?: TProjectContext;
+export interface RunWorkflowDocumentOptions<TContext = undefined> {
+  resolveNode(name: string): NodeDefinition<any, any, TContext>;
+  project?: ResolvedExecutionProject<TContext>;
+  projectContext?: TContext;
   repeatIndex?: number;
   retry?: number;
-  setupDocument?: WorkflowDocumentSetup<TProjectContext, TDocumentContext>;
   signal?: AbortSignal;
   defaultTimeoutMs?: number;
   shouldStop?(): boolean;
@@ -213,54 +206,11 @@ export interface RunWorkflowDocumentOptions<
   createDocumentRunId?(document: CollectedWorkflowDocument): string;
 }
 
-export interface WorkflowDocumentInfo<TProjectContext = unknown> {
-  readonly documentId: string;
-  readonly documentRunId: string;
-  readonly projectId: string;
-  readonly projectName: string;
-  readonly project: ResolvedExecutionProject<TProjectContext>;
-  readonly projectContext: TProjectContext;
-  readonly repeatIndex: number;
-  readonly sourcePath: string;
-  readonly cases: readonly NormalizedCaseDefinition[];
-  readonly lifecycle: CollectedDocumentLifecycle;
-  readonly env: Readonly<NodeJS.ProcessEnv>;
-  readonly signal: AbortSignal;
-}
-
-export interface WorkflowDocumentTeardownContext<TProjectContext = unknown>
-  extends WorkflowDocumentInfo<TProjectContext> {
-  readonly beforeAll: readonly StepRunResult[];
-  readonly afterAll: readonly StepRunResult[];
-  readonly status: 'success' | 'failed';
-  readonly setupError?: WorkflowError;
-}
-
-export type WorkflowDocumentTeardown<TProjectContext = unknown> = (
-  ctx: WorkflowDocumentTeardownContext<TProjectContext>,
-) => Awaitable<void>;
-
-export interface WorkflowDocumentSetupContext<TProjectContext = unknown>
-  extends WorkflowDocumentInfo<TProjectContext> {
-  onTeardown(teardown: WorkflowDocumentTeardown<TProjectContext>): void;
-}
-
-export type WorkflowDocumentSetup<
-  TProjectContext = undefined,
-  TDocumentContext = TProjectContext,
-> = (
-  ctx: WorkflowDocumentSetupContext<TProjectContext>,
-) => Awaitable<TDocumentContext>;
-
-export interface CreateDocumentRuntimeOptions<
-  TProjectContext = undefined,
-  TDocumentContext = TProjectContext,
-> {
-  resolveNode(name: string): NodeDefinition<any, any, TDocumentContext>;
-  project?: ResolvedExecutionProject<TProjectContext>;
-  projectContext?: TProjectContext;
+export interface CreateDocumentRuntimeOptions<TContext = undefined> {
+  resolveNode(name: string): NodeDefinition<any, any, TContext>;
+  project?: ResolvedExecutionProject<TContext>;
+  projectContext?: TContext;
   repeatIndex?: number;
-  setupDocument?: WorkflowDocumentSetup<TProjectContext, TDocumentContext>;
   signal?: AbortSignal;
   defaultTimeoutMs?: number;
   onStepStart?: StepStartHandler;

@@ -24,8 +24,12 @@ export default defineTestProject({
       },
     }),
   ],
-  setupDocument({ sourcePath, onTeardown }) {
-    log(`setup:${sourcePath}`);
-    onTeardown(() => log(`teardown:${sourcePath}`));
+  setup: {
+    name: 'fixture',
+    platform: 'web',
+    setup({ project, onTeardown }) {
+      log(`setup:${project.name}`);
+      onTeardown(() => log(`teardown:${project.name}`));
+    },
   },
 });

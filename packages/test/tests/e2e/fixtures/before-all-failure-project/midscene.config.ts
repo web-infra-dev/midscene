@@ -12,8 +12,9 @@ export default defineTestProject({
   nodes: [
     defineNode({
       name: 'before.fail',
-      execute() {
+      execute({ onTeardown }) {
         log('beforeAll');
+        onTeardown(() => log('documentNodeTeardown'));
         throw new Error('controlled beforeAll failure');
       },
     }),
@@ -30,8 +31,4 @@ export default defineTestProject({
       },
     }),
   ],
-  setupDocument({ onTeardown }) {
-    log('setupDocument');
-    onTeardown(() => log('documentTeardown'));
-  },
 });

@@ -8,7 +8,7 @@
 
 订单退款测试需要在每个 Case 开始前创建测试订单，并在 Case 结束后清理数据。框架维护者可以将这些操作封装为 `order.prepare`、`browser.openRefundPage` 和 `order.cleanup`。
 
-框架维护者可以在 `midscene.config.ts` 中注册 `order.prepare`、`browser.openRefundPage` 和 `order.cleanup`。以下代码展示了这三个 Node 的核心实现。`setupDocument()` 创建 `page`、`orderService` 和 Agent，并通过 `context` 将它们传给 Node。
+框架维护者可以在 `midscene.config.ts` 中注册 `order.prepare`、`browser.openRefundPage` 和 `order.cleanup`。以下代码展示了这三个 Node 的核心实现。Project setup 创建 `page`、`orderService` 和 Agent，并通过共享 `context` 将它们传给 Node。
 
 ```ts filename=midscene.config.ts
 import { defineNode, z } from '@midscene/test';
@@ -115,7 +115,7 @@ team-test-runner/
 └── midscene.config.ts
 ```
 
-在项目根目录创建 `midscene.config.ts`。这个配置文件负责注册 Node，并为每个 YAML 文件创建运行资源。
+在项目根目录创建 `midscene.config.ts`。这个配置文件负责注册 Node，并为 Execution Project 创建共享运行资源。
 
 ```ts filename=midscene.config.ts
 import { defineNode, z } from '@midscene/test';
@@ -135,9 +135,6 @@ const LANGUAGE_LOCALES = {
 
 interface ProjectContext {
   browser: Browser;
-}
-
-interface DocumentContext extends ProjectContext {
   page: Page;
   agent?: PlaywrightAgent;
 }
@@ -164,7 +161,7 @@ const openPage = async (page: Page, url: string) => {
 const setUserAgentLanguage = defineNode<
   typeof setLanguageInputSchema,
   { language: string; locale: string; url: string },
-  DocumentContext
+  ProjectContext
 >({
   name: 'browser.setLanguage',
   title: '设置 UA 语言',
@@ -206,7 +203,7 @@ const setUserAgentLanguage = defineNode<
   },
 });
 
-const midsceneNodes = createMidsceneNodes<DocumentContext>({
+const midsceneNodes = createMidsceneNodes<ProjectContext>({
   getAgent: ({ context }) => {
     context.agent ??= new PlaywrightAgent(context.page);
     return context.agent;
@@ -219,11 +216,16 @@ const playwrightSetup = defineProjectSetup<ProjectContext>({
   async setup({ onTeardown }) {
     const browser = await chromium.launch({ headless: true });
     onTeardown(() => browser.close());
-    return { browser };
+    const browserContext = await browser.newContext({
+      viewport: VIEWPORT,
+    });
+    const page = await browserContext.newPage();
+    await openPage(page, 'https://midscenejs.com');
+    return { browser, page };
   },
 });
 
-export default defineTestProject<ProjectContext, DocumentContext>({
+export default defineTestProject<ProjectContext>({
   projects: [
     {
       name: 'chromium',
@@ -234,26 +236,12 @@ export default defineTestProject<ProjectContext, DocumentContext>({
     },
   ],
   nodes: [setUserAgentLanguage, ...midsceneNodes],
-
-  async setupDocument({ projectContext, onTeardown }) {
-    const browserContext = await projectContext.browser.newContext({
-      viewport: VIEWPORT,
-    });
-    onTeardown(() => browserContext.close());
-    const page = await browserContext.newPage();
-    await openPage(page, 'https://midscenejs.com');
-
-    return {
-      browser: projectContext.browser,
-      page,
-    };
-  },
 });
 ```
 
 `browser.setLanguage` 接受 `language: en` 或 `language: zh`。这个 Node 会创建使用相应语言的新 Playwright Context，并重新打开当前页面。后续 Agent 将使用这个新页面。
 
-`createMidsceneNodes()` 注册 `aiAct`、`aiAssert`、`recordToReport`、`launch`、`wait` 和 `agent`。运行器会将 `setupDocument()` 返回的 `context` 传递给当前 YAML 文件中的所有 Node。
+`createMidsceneNodes()` 注册 `aiAct`、`aiAssert`、`recordToReport`、`launch`、`wait` 和 `agent`。运行器会将所选 Project setup 返回的 `context` 传递给该 Execution Project 中的所有 Node。内置 `launch` 仅通过当前 Midscene Agent 拉起应用、URL 或 URI，不负责安装和管理应用。
 
 在 `cases/midscene.yaml` 中编写测试用例。
 
@@ -350,19 +338,17 @@ const createOrder = defineNode<
 将 Node 加入项目配置的 `nodes` 数组。
 
 ```ts filename=midscene.config.ts
-export default defineTestProject<ProjectContext>({
-  nodes: [createOrder, ...midsceneNodes],
-
-  async setupDocument({ onTeardown }) {
-    const browser = await chromium.launch();
-    onTeardown(() => browser.close());
-
-    const page = await browser.newPage();
-    return {
-      apiBaseUrl: 'https://test-api.example.com',
-      agent: new PlaywrightAgent(page),
-    };
+const orderSetup = defineProjectSetup<ProjectContext>({
+  name: 'order-api',
+  platform: 'web',
+  setup() {
+    return { apiBaseUrl: 'https://test-api.example.com' };
   },
+});
+
+export default defineTestProject<ProjectContext>({
+  setup: orderSetup,
+  nodes: [createOrder],
 });
 ```
 
@@ -409,7 +395,7 @@ const refundOrder = defineNode({
 - `input`：YAML 传入的业务参数，不包含 `$`。
 - `$`：规范化后的 `timeout` 和 `continue-on-error`。
 - `signal`：Step 超时或取消时触发的 `AbortSignal`。
-- `context`：`setupDocument()` 返回的文件级共享资源。
+- `context`：所选 Project setup 返回的 Project 级共享资源；Project 没有 setup 时为 `undefined`。
 - `history`：深度只读、JSON 兼容的已完成 Node 历史。
 - `onTeardown()`：按 LIFO 注册 attempt 或 Document 级清理函数。
 - `scope`：当前 Node 的执行作用域，值为 `case` 或 `document`。
@@ -447,11 +433,11 @@ Node 如果创建 attempt 级资源，应通过 `onTeardown()` 释放。teardown
 | `aiAct` | 使用自然语言执行界面操作 |
 | `aiAssert` | 使用自然语言检查界面状态 |
 | `recordToReport` | 向 Midscene 报告中写入补充信息 |
-| `launch` | 安装（如需要）、停止并启动应用 |
+| `launch` | 通过当前 Midscene Agent 拉起一个应用、URL 或 URI，不负责安装或应用管理 |
 | `wait` | 支持取消的固定时长等待 |
 | `agent` | 执行一个自包含的自然语言 Agent 任务 |
 
-使用 `createMidsceneNodes()` 创建这些 Node。`getAgent()` 可以从文档上下文（Document Context）中获取当前 Agent。
+使用 `createMidsceneNodes()` 创建这些 Node。`getAgent()` 可以从 Project context 中获取当前 Agent。
 
 ```ts
 import { createMidsceneNodes } from '@midscene/test/midscene';
@@ -520,7 +506,7 @@ pnpm exec midscene-test describe-nodes --config ./config/midscene.config.ts
 
 即使 Node 没有 `description` 或 `inputSchema`，它仍会出现在文档中。CLI 会明确标记缺失字段，并将警告写入 `stderr`，而不会猜测 Node 的行为或输入。
 
-`describe-nodes` 只加载 `midscene.config.ts`。它不会读取 Workflow YAML、运行 Project setup 或 `setupDocument()`、执行 Node Handler 或创建测试结果目录。将生成的 `midscene-nodes.md` 提供给 AI Agent 后，Agent 可以根据项目的实际能力编写 YAML Case。
+`describe-nodes` 只加载 `midscene.config.ts`。它不会读取 Workflow YAML、运行 Project setup、执行 Node Handler 或创建测试结果目录。将生成的 `midscene-nodes.md` 提供给 AI Agent 后，Agent 可以根据项目的实际能力编写 YAML Case。
 
 ## 配置 Test Project
 
@@ -541,7 +527,7 @@ export default defineTestProject<ProjectContext>({
       tags: { include: ['smoke'], exclude: ['manual'] },
       repeat: 2,
       retry: 1,
-      variables: { appName: 'Example', reinstall: false },
+      variables: { appUri: 'com.example.app' },
     },
   ],
   testRunner: {
@@ -554,14 +540,12 @@ export default defineTestProject<ProjectContext>({
     reportDir: './midscene_run/report',
   },
   nodes: [createOrder, ...midsceneNodes],
-  async setupDocument({ projectContext, onTeardown }) {
-    // 创建当前 YAML 文件共享的资源。
-    return projectContext;
-  },
 });
 ```
 
 用 `defineProjectSetup()` 声明可复用的 Project setup。它在选中的 Execution Project 中只运行一次，适合获取浏览器、云设备租约、续租任务或连接。注册的 Project teardown 会在全部 repeat 和 Document 结束后按 LIFO 执行，也覆盖 setup 部分失败和中断。
+
+如果省略 `projects`，可以在根级声明 `setup`；运行器会创建隐式的 `default` Execution Project，并使用 setup 声明的单一 `platform`。根级 `setup` 与显式 `projects` 数组不能同时使用；多目标场景应在每个 `projects[]` 条目中绑定 setup。
 
 每个 `projects[]` 条目都需要唯一 `name`，`platform` 可为 `web`、`android`、`ios` 或 `computer`。条目可以覆盖 `files`，配置 `tags`，绑定一个 setup，提供 JSON 兼容的 `variables`，并设置 `repeat` 与整 Case `retry`。根级 `files` 作为增量兼容默认值，供未覆盖它的 Project 继承。
 
@@ -597,27 +581,33 @@ files: {
 
 运行器会按照项目相对路径对匹配结果排序，不会使用 glob 的声明顺序控制执行顺序。
 
-### 管理文件级资源
+### 管理 Project 级资源
 
-开始执行每个 YAML 文件前，运行器会调用一次 `setupDocument()`。运行器将返回值作为 `context`，传入当前文件的所有 Node。
-
-使用 `onTeardown()` 注册清理函数。多个清理函数按照注册顺序的逆序执行。
+Project setup 在选中的 Execution Project 开始时运行一次，返回值会作为 `context` 传给该 Project 中的所有 Node。使用 `onTeardown()` 注册清理函数；多个清理函数按照注册顺序的逆序执行，即使 setup 部分失败或运行被中断也会清理已经成功获取的资源。
 
 ```ts
-async setupDocument({ sourcePath, env, onTeardown }) {
-  const database = await connectTestDatabase(env.TEST_DATABASE_URL);
-  onTeardown(() => database.close());
+const runtimeSetup = defineProjectSetup<RuntimeContext>({
+  name: 'browser-and-database',
+  platform: 'web',
+  async setup({ env, onTeardown }) {
+    const database = await connectTestDatabase(env.TEST_DATABASE_URL);
+    onTeardown(() => database.close());
 
-  const browser = await chromium.launch();
-  onTeardown(() => browser.close());
+    const browser = await chromium.launch();
+    onTeardown(() => browser.close());
+    const page = await browser.newPage();
 
-  return {
-    sourcePath,
-    database,
-    browser,
-  };
-}
+    return { database, browser, page };
+  },
+});
+
+export default defineTestProject<RuntimeContext>({
+  setup: runtimeSetup,
+  nodes: [...nodes],
+});
 ```
+
+如果配置了多个 `projects[]`，应把 setup 绑定到相应条目。某个 YAML 文件专属的业务准备与清理直接写在该 Workflow Document 的 `beforeAll` 与 `afterAll` 中，不再增加另一套 TypeScript 文档 setup 生命周期。
 
 项目配置仅支持 TypeScript。文件名必须为 `midscene.config.ts`，并使用默认导出。CLI 会拒绝 `.js`、`.cjs`、`.mts`、`.cts` 和 `.tsx` 文件。运行时不会解析 `tsconfig.json` 的 `paths`。请使用带 `.ts` 扩展名的相对导入或包说明符（package specifier）。
 

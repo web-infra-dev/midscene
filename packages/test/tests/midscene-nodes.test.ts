@@ -217,16 +217,13 @@ describe('createMidsceneNodes', () => {
   });
 
   it('delegates launch and agent nodes and provides history to the executor', async () => {
-    const launcher = {
-      launch: vi.fn(async () => ({ summary: 'application launched' })),
-    };
+    const launch = vi.fn(async () => undefined);
     const agentExecutor = {
       execute: vi.fn(async () => ({ summary: 'agent completed' })),
     };
     const registry = new NodeRegistry(
       createMidsceneNodes({
-        getAgent: () => ({}) as MidsceneUIAgent,
-        launcher,
+        getAgent: () => ({ launch }) as unknown as MidsceneUIAgent,
         agentExecutor,
       }),
     );
@@ -235,7 +232,7 @@ describe('createMidsceneNodes', () => {
       collected([
         {
           node: 'launch',
-          input: { appName: 'TikTok', bundleId: 'com.example.app' },
+          input: { uri: 'com.example.app' },
           meta: { continueOnError: false },
         },
         {
@@ -257,18 +254,7 @@ describe('createMidsceneNodes', () => {
     );
 
     expect(result.status).toBe('success');
-    expect(launcher.launch).toHaveBeenCalledWith(
-      {
-        appName: 'TikTok',
-        bundleId: 'com.example.app',
-        reinstall: false,
-        forceStop: true,
-      },
-      expect.objectContaining({
-        scope: 'case',
-        context: { platform: 'ios' },
-      }),
-    );
+    expect(launch).toHaveBeenCalledWith('com.example.app');
     expect(agentExecutor.execute).toHaveBeenCalledWith(
       expect.objectContaining({
         prompt: 'Inspect the current page with the allowed tools.',
@@ -349,7 +335,7 @@ describe('createMidsceneNodes', () => {
     };
     const runtime = createDocumentRuntime(document, {
       resolveNode: registry.require.bind(registry),
-      setupDocument: () => ({ agent }),
+      projectContext: { agent },
     });
 
     const result = await runtime.start();
@@ -359,5 +345,14 @@ describe('createMidsceneNodes', () => {
     });
     expect(recordToReport).toHaveBeenCalledWith('Document started', {});
     await runtime.finish();
+  });
+
+  it('can omit launch when a project registers a platform-specific replacement', () => {
+    const nodes = createMidsceneNodes({
+      getAgent: () => ({}) as MidsceneUIAgent,
+      includeLaunch: false,
+    });
+
+    expect(nodes.map((node) => node.name)).not.toContain('launch');
   });
 });

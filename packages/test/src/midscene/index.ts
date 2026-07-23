@@ -50,6 +50,8 @@ export interface MidsceneUIAgent {
     title?: string,
     options?: MidsceneRecordToReportOptions,
   ): Promise<unknown>;
+  /** Available on device Agents that support launching an app, URL, or URI. */
+  launch?(uri: string): Promise<void>;
 }
 
 export interface AgentProvider<TContext> {
@@ -65,24 +67,6 @@ export interface AgentProvider<TContext> {
 export interface AgentReleaseResult {
   /** Absolute path to the finalized report for this Agent scope. */
   reportPath?: string;
-}
-
-export interface ApplicationLaunchInput {
-  appName: string;
-  uri?: string;
-  packageName?: string;
-  bundleId?: string;
-  downloadUrl?: string;
-  reinstall: boolean;
-  forceStop: boolean;
-}
-
-export interface ApplicationLauncher<TContext> {
-  launch(
-    input: ApplicationLaunchInput,
-    ctx: NodeExecutionContext<ApplicationLaunchInput, TContext>,
-    // biome-ignore lint/suspicious/noConfusingVoidType: launchers may perform side effects without returning a summary.
-  ): Awaitable<NodeResult | void>;
 }
 
 export interface AgentExecutorInput<TContext> {
@@ -193,25 +177,29 @@ export const recordToReportInputSchema = z
     }
   });
 
-export const launchInputSchema = z.strictObject({
-  appName: z.string().min(1).describe('Application display name or identity.'),
-  uri: z.string().min(1).optional().describe('URI or deep link to launch.'),
-  packageName: z.string().min(1).optional().describe('Android package name.'),
-  bundleId: z.string().min(1).optional().describe('iOS bundle identifier.'),
-  downloadUrl: z
-    .string()
-    .url()
-    .optional()
-    .describe('Application package download URL.'),
-  reinstall: z
-    .boolean()
-    .default(false)
-    .describe('Whether to reinstall the application before launch.'),
-  forceStop: z
-    .boolean()
-    .default(true)
-    .describe('Whether to stop an existing process before launch.'),
-});
+export const launchInputSchema = z
+  .strictObject({
+    prompt: z
+      .string()
+      .min(1)
+      .optional()
+      .describe('String shorthand for the app, URL, or URI to launch.'),
+    uri: z
+      .string()
+      .min(1)
+      .optional()
+      .describe(
+        'The app, URL, URI, package name, or bundle identifier to launch.',
+      ),
+  })
+  .superRefine((input, ctx) => {
+    if ((input.prompt === undefined) === (input.uri === undefined)) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'exactly one of prompt and uri is required',
+      });
+    }
+  });
 
 export const waitInputSchema = z.strictObject({
   duration: z.number().positive().describe('How long to wait.'),
@@ -239,7 +227,8 @@ export interface CreateMidsceneNodesOptions<TContext> {
     ctx: NodeExecutionContext<unknown, TContext>,
   ): Awaitable<MidsceneUIAgent>;
   agentProvider?: AgentProvider<TContext>;
-  launcher?: ApplicationLauncher<TContext>;
+  /** Disable when a project registers its own platform-specific launch Node. */
+  includeLaunch?: boolean;
   agentExecutor?: AgentExecutor<TContext>;
 }
 
@@ -250,14 +239,14 @@ const requireAgentMethod = <TMethod extends keyof MidsceneUIAgent>(
   agent: MidsceneUIAgent,
   method: TMethod,
   node: string,
-): MidsceneUIAgent[TMethod] => {
+): NonNullable<MidsceneUIAgent[TMethod]> => {
   if (!isRecord(agent) || typeof agent[method] !== 'function') {
     throw new NodeExecutionError(
       node,
       new TypeError(`getAgent() must return an Agent with ${method}().`),
     );
   }
-  return agent[method];
+  return agent[method] as NonNullable<MidsceneUIAgent[TMethod]>;
 };
 
 export const renderNodeHistory = (
@@ -399,22 +388,23 @@ export function createMidsceneNodes<TContext>(
         return { summary: `Recorded to report: ${title ?? 'untitled'}` };
       },
     }),
-    defineNode<typeof launchInputSchema, unknown, TContext>({
-      name: 'launch',
-      description:
-        'Ensure an application is installed as requested, stop an existing process, and launch it.',
-      inputSchema: launchInputSchema,
-      async execute(ctx) {
-        if (!options.launcher) {
-          throw new NodeExecutionError(
-            'launch',
-            new TypeError('createMidsceneNodes() requires a launcher.'),
-          );
-        }
-        const result = await options.launcher.launch(ctx.input, ctx);
-        return result ?? { summary: `Launched ${ctx.input.appName}` };
-      },
-    }),
+    ...(options.includeLaunch === false
+      ? []
+      : [
+          defineNode<typeof launchInputSchema, unknown, TContext>({
+            name: 'launch',
+            description:
+              'Launch an app, URL, or URI through the current Midscene Agent. This Node does not install or manage applications.',
+            inputSchema: launchInputSchema,
+            async execute(ctx) {
+              const uri = ctx.input.uri ?? ctx.input.prompt!;
+              const agent = await getAgent(ctx);
+              const launch = requireAgentMethod(agent, 'launch', 'launch');
+              await launch.call(agent, uri);
+              return { summary: `Launched ${uri}` };
+            },
+          }),
+        ]),
     defineNode<typeof waitInputSchema, unknown, TContext>({
       name: 'wait',
       description: 'Wait for a fixed duration while honoring cancellation.',

@@ -31,34 +31,34 @@ const startAttempt = defineNode({
 const midsceneNodes = createMidsceneNodes({
   getAgent: ({ context }) => context.uiAgent,
 });
-let documentCount = 0;
-
 export default defineTestProject({
   nodes: [documentLifecycle, startAttempt, ...midsceneNodes],
+  setup: {
+    name: 'fixture',
+    platform: 'web',
+    async setup({ onTeardown }) {
+      const context = { id: 1, attempt: 0 };
+      log(`projectSetup:${context.id}:${process.pid}`);
 
-  async setupDocument({ sourcePath, onTeardown }) {
-    documentCount += 1;
-    const context = { id: documentCount, attempt: 0 };
-    log(`setupDocument:${context.id}:${sourcePath}:${process.pid}`);
+      context.uiAgent = {
+        async recordToReport(title, options) {
+          log(
+            `record:${context.id}:${context.attempt}:${title}:${options.content}:${process.pid}`,
+          );
+          if (
+            process.env.WORKFLOW_E2E_FAIL_FIRST === '1' &&
+            context.attempt === 1 &&
+            title === 'Ready'
+          ) {
+            throw new Error('controlled first-attempt failure');
+          }
+        },
+      };
 
-    context.uiAgent = {
-      async recordToReport(title, options) {
-        log(
-          `record:${context.id}:${context.attempt}:${title}:${options.content}:${process.pid}`,
-        );
-        if (
-          process.env.WORKFLOW_E2E_FAIL_FIRST === '1' &&
-          context.attempt === 1 &&
-          title === 'Ready'
-        ) {
-          throw new Error('controlled first-attempt failure');
-        }
-      },
-    };
-
-    onTeardown(() => {
-      log(`documentTeardown:${context.id}:${context.attempt}:${process.pid}`);
-    });
-    return context;
+      onTeardown(() => {
+        log(`projectTeardown:${context.id}:${context.attempt}:${process.pid}`);
+      });
+      return context;
+    },
   },
 });

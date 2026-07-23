@@ -64,15 +64,19 @@ describe('test project config', () => {
     expect(project.resolveNode('local.node')?.name).toBe('local.node');
   });
 
-  it('loads setupDocument without executing it', async () => {
+  it('attaches root setup to the implicit Project without executing it', async () => {
     const marker = vi.fn();
     (globalThis as Record<string, unknown>).__testSetupMarker = marker;
     const { path } = createConfig(`
       export default {
         nodes: [],
-        setupDocument() {
-          globalThis.__testSetupMarker();
-          return { ready: true };
+        setup: {
+          name: 'android',
+          platform: 'android',
+          setup() {
+            globalThis.__testSetupMarker();
+            return { ready: true };
+          },
         },
       };
     `);
@@ -80,7 +84,14 @@ describe('test project config', () => {
     const project = await loadTestProject<{ ready: boolean }>(path);
 
     expect(marker).not.toHaveBeenCalled();
-    expect(await project.setupDocument?.({} as never)).toEqual({ ready: true });
+    expect(project.projects[0]).toMatchObject({
+      name: 'default',
+      platform: 'android',
+      setup: { name: 'android', platform: 'android' },
+    });
+    expect(await project.projects[0].setup?.setup({} as never)).toEqual({
+      ready: true,
+    });
     expect(marker).toHaveBeenCalledOnce();
   });
 
@@ -225,6 +236,21 @@ describe('test project config', () => {
       'does not support project platform "ios"',
     ],
     [
+      'root setup with explicit projects',
+      `setup: { name: 'web', platform: 'web', setup() {} },
+       projects: [{ name: 'web', platform: 'web' }]`,
+      'setup cannot be used together with projects',
+    ],
+    [
+      'ambiguous root setup platform',
+      `setup: {
+        name: 'mobile',
+        platform: ['android', 'ios'],
+        setup() {},
+      }`,
+      'setup.platform must select exactly one platform',
+    ],
+    [
       'empty project include',
       `projects: [{
         name: 'web', platform: 'web', files: { include: [] },
@@ -341,13 +367,13 @@ describe('test project config', () => {
     );
   });
 
-  it('rejects invalid document lifecycle config', async () => {
+  it('rejects removed setup lifecycle config', async () => {
     const { path } = createConfig(
       'export default { nodes: [], setupDocument: true };',
     );
 
     await expect(loadTestProject(path)).rejects.toThrow(
-      'Midscene config setupDocument must be a function.',
+      'Midscene config setupDocument is not supported.',
     );
 
     const removedSetup = createConfig(

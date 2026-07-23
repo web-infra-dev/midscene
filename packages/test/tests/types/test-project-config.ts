@@ -10,10 +10,6 @@ interface ProjectContext {
   baseURL: string;
 }
 
-interface DocumentContext extends ProjectContext {
-  documentName: string;
-}
-
 const requestNode = defineNode<
   { path: string },
   { status: number },
@@ -34,9 +30,13 @@ const project: TestProjectDefinition<ProjectContext> =
       exclude: ['workflows/**/*.draft.yaml'],
     },
     nodes: [requestNode],
-    setupDocument({ env }) {
-      return { baseURL: env.TEST_BASE_URL ?? 'https://example.com' };
-    },
+    setup: defineProjectSetup<ProjectContext>({
+      name: 'default-web',
+      platform: 'web',
+      setup({ env }) {
+        return { baseURL: env.TEST_BASE_URL ?? 'https://example.com' };
+      },
+    }),
   });
 
 void project;
@@ -54,17 +54,17 @@ const webSetup = defineProjectSetup<ProjectContext>({
   },
 });
 
-const documentNode = defineNode<unknown, unknown, DocumentContext>({
-  name: 'document.read',
+const projectNode = defineNode<unknown, unknown, ProjectContext>({
+  name: 'project.read',
   execute({ context, history }) {
-    context.documentName satisfies string;
+    context.baseURL satisfies string;
     history[0]?.node satisfies string | undefined;
     // @ts-expect-error Node history is read-only.
     history.push({});
   },
 });
 
-defineTestProject<ProjectContext, DocumentContext>({
+defineTestProject<ProjectContext>({
   projects: [
     {
       name: 'web',
@@ -77,11 +77,7 @@ defineTestProject<ProjectContext, DocumentContext>({
       variables: { locale: 'en-US' },
     },
   ],
-  nodes: [documentNode],
-  setupDocument({ projectContext, repeatIndex }) {
-    repeatIndex satisfies number;
-    return { ...projectContext, documentName: 'example' };
-  },
+  nodes: [projectNode],
 });
 
 const schemaInput = z.strictObject({

@@ -498,7 +498,6 @@ export async function runTestProject(
                   projectContext: runtime.context,
                   repeatIndex,
                   retry: project.retry,
-                  setupDocument: definition.setupDocument,
                   signal: runtime.signal,
                   defaultTimeoutMs: definition.testRunner.testTimeout,
                   shouldStop: () =>
