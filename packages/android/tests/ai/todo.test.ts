@@ -4,6 +4,10 @@ import { sleep } from '@midscene/core/utils';
 import type ADB from 'appium-adb';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { AndroidAgent, AndroidDevice, getConnectedDevices } from '../../src';
+import {
+  isRetryableUiDumpError,
+  isTransientAdbTransportError,
+} from '../android-emulator-ui-dump';
 
 vi.setConfig({
   testTimeout: 240 * 1000,
@@ -58,21 +62,6 @@ function screenshotBuffer(base64: string): Buffer {
   return Buffer.from(match[1], 'base64');
 }
 
-function isTransientAdbTransportError(error: unknown): boolean {
-  const message = error instanceof Error ? error.message : String(error);
-  return /device offline|device unauthorized|no devices\/emulators found/i.test(
-    message,
-  );
-}
-
-function isRetryableChromeUiDumpError(error: unknown): boolean {
-  const message = error instanceof Error ? error.message : String(error);
-  return (
-    isTransientAdbTransportError(error) ||
-    /No such file or directory|empty Chrome UI dump/i.test(message)
-  );
-}
-
 async function dumpUiautomatorXml(adb: ADB): Promise<string> {
   for (let attempt = 1; attempt <= CHROME_UI_DUMP_MAX_ATTEMPTS; attempt += 1) {
     try {
@@ -88,7 +77,7 @@ async function dumpUiautomatorXml(adb: ADB): Promise<string> {
     } catch (error) {
       if (
         attempt === CHROME_UI_DUMP_MAX_ATTEMPTS ||
-        !isRetryableChromeUiDumpError(error)
+        !isRetryableUiDumpError(error)
       ) {
         throw error;
       }

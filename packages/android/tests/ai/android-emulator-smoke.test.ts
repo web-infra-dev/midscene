@@ -13,6 +13,10 @@ import { imageInfoOfBase64 } from '@midscene/shared/img';
 import type ADB from 'appium-adb';
 import { describe, expect, it, vi } from 'vitest';
 import { AndroidAgent, AndroidDevice, getConnectedDevices } from '../../src';
+import {
+  isRetryableUiDumpError,
+  isTransientAdbTransportError,
+} from '../android-emulator-ui-dump';
 
 const RUN_LIVE_SMOKE =
   process.env.AI_TEST_TYPE === 'android' &&
@@ -59,25 +63,6 @@ vi.setConfig({ testTimeout: 240_000, hookTimeout: 30_000 });
 
 function sleep(timeMs: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, timeMs));
-}
-
-function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
-}
-
-function isTransientAdbTransportError(error: unknown): boolean {
-  return /device offline|device unauthorized|no devices\/emulators found/i.test(
-    errorMessage(error),
-  );
-}
-
-function isRetryableUiDumpError(error: unknown): boolean {
-  return (
-    isTransientAdbTransportError(error) ||
-    /No such file or directory|empty uiautomator dump/i.test(
-      errorMessage(error),
-    )
-  );
 }
 
 async function dumpUiautomatorXml(adb: ADB): Promise<string> {
