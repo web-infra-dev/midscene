@@ -71,7 +71,9 @@ function screenshotRawBase64(value: unknown): string | undefined {
   }
 
   const base64 = getStringProperty(value, 'base64');
-  const match = base64?.match(/^data:image\/(?:png|jpeg|jpg);base64,(.+)$/);
+  const match = base64?.match(
+    /^data:image\/(?:png|jpeg|jpg|webp);base64,(.+)$/,
+  );
   return match?.[1];
 }
 

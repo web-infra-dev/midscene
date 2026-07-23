@@ -9,12 +9,19 @@ import type {
   ModelBrief,
   ReportActionDump,
 } from '@/types';
+import {
+  type ScreenshotImageFormat,
+  type ScreenshotImageMimeType,
+  normalizeScreenshotBase64,
+  parseBase64,
+  screenshotImageExtension,
+  screenshotImageFormatFromMimeType,
+  screenshotImageMimeType,
+} from '@midscene/shared/img';
 import type { ScreenshotRef } from './dump/screenshot-store';
 import { normalizeScreenshotRef } from './dump/screenshot-store';
 
-const screenshotDataUrlPattern =
-  /^data:image\/(png|jpeg|jpg);base64,([\s\S]*)$/i;
-const rawBase64BodyPattern = /^[a-zA-Z0-9+/=\s]+$/;
+const screenshotDataUrlPattern = /^data:image\/(?:png|jpe?g|webp);base64,/i;
 const jsonContextMaxStringLength = 12_000;
 
 type ExecutionTaskWithExtraUsage = ExecutionTask & {
@@ -39,7 +46,7 @@ export interface MarkdownAttachment {
    * write the screenshot under this name to keep links in sync. See #2392.
    */
   suggestedFileName: string;
-  mimeType?: string;
+  mimeType?: ScreenshotImageMimeType;
   /**
    * Reference to the screenshot in the source report, used to locate the
    * original bytes when copying them to the exported name. Absent for in-memory
@@ -448,26 +455,11 @@ function extractLocateCenter(
 
 function tryExtractBase64(screenshot: unknown): string | undefined {
   if (typeof screenshot === 'string') {
-    const trimmedScreenshot = screenshot.trim();
-    const dataUrlMatch = trimmedScreenshot.match(screenshotDataUrlPattern);
-    if (dataUrlMatch) {
-      const format = dataUrlMatch[1].toLowerCase() === 'jpg' ? 'jpeg' : 'png';
-      const base64Body = dataUrlMatch[2].replace(/\s/g, '');
-      if (!base64Body) {
-        return undefined;
-      }
-      return `data:image/${format};base64,${base64Body}`;
-    }
-
-    if (
-      trimmedScreenshot.startsWith('data:') ||
-      !rawBase64BodyPattern.test(trimmedScreenshot)
-    ) {
+    try {
+      return normalizeScreenshotBase64(screenshot);
+    } catch {
       return undefined;
     }
-
-    const base64Body = trimmedScreenshot.replace(/\s/g, '');
-    return base64Body ? `data:image/png;base64,${base64Body}` : undefined;
   }
 
   if (!screenshot || typeof screenshot !== 'object') return undefined;
@@ -476,6 +468,20 @@ function tryExtractBase64(screenshot: unknown): string | undefined {
     return s.base64;
   }
   return undefined;
+}
+
+function screenshotMetadataFromMimeType(mimeType: unknown): {
+  extension: ScreenshotImageFormat;
+  mimeType: ScreenshotImageMimeType;
+} {
+  const format = screenshotImageFormatFromMimeType(mimeType);
+  if (!format) {
+    throw new Error(`Unsupported screenshot mime type: ${String(mimeType)}`);
+  }
+  return {
+    extension: screenshotImageExtension(format),
+    mimeType: screenshotImageMimeType(format),
+  };
 }
 
 function restoredSourceRef(screenshot: unknown): ScreenshotRef | undefined {
@@ -507,7 +513,7 @@ function screenshotAttachment(
       attachment: {
         id: screenshot.id,
         suggestedFileName,
-        mimeType: `image/${ext === 'jpeg' ? 'jpeg' : 'png'}`,
+        mimeType: screenshot.mimeType,
         executionIndex,
         taskIndex,
         base64Data: tryExtractBase64(screenshot),
@@ -517,7 +523,7 @@ function screenshotAttachment(
 
   const ref = normalizeScreenshotRef(screenshot);
   if (ref) {
-    const ext = ref.mimeType === 'image/jpeg' ? 'jpeg' : 'png';
+    const { extension: ext } = screenshotMetadataFromMimeType(ref.mimeType);
     const suggestedFileName = `execution-${executionIndex + 1}-task-${taskIndex + 1}-${ref.id}.${ext}`;
     return {
       markdown: `\n![${markdownLabel}](${screenshotBaseDir}/${suggestedFileName})`,
@@ -535,7 +541,9 @@ function screenshotAttachment(
 
   const sourceRef = restoredSourceRef(screenshot);
   if (sourceRef) {
-    const ext = sourceRef.mimeType === 'image/jpeg' ? 'jpeg' : 'png';
+    const { extension: ext } = screenshotMetadataFromMimeType(
+      sourceRef.mimeType,
+    );
     const suggestedFileName = `execution-${executionIndex + 1}-task-${taskIndex + 1}-${sourceRef.id}.${ext}`;
     return {
       markdown: `\n![${markdownLabel}](${screenshotBaseDir}/${suggestedFileName})`,
@@ -553,7 +561,9 @@ function screenshotAttachment(
 
   const base64 = tryExtractBase64(screenshot);
   if (base64) {
-    const ext = base64.startsWith('data:image/jpeg') ? 'jpeg' : 'png';
+    const { extension: ext, mimeType } = screenshotMetadataFromMimeType(
+      parseBase64(base64).mimeType,
+    );
     const idSuffix = options?.fallbackIdSuffix
       ? `-${options.fallbackIdSuffix}`
       : '';
@@ -564,7 +574,7 @@ function screenshotAttachment(
       attachment: {
         id,
         suggestedFileName,
-        mimeType: `image/${ext}`,
+        mimeType,
         executionIndex,
         taskIndex,
         base64Data: base64,

@@ -10,6 +10,11 @@ import {
 } from 'node:fs';
 import * as path from 'node:path';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
+import {
+  type ScreenshotImageFormat,
+  screenshotImageExtension,
+  screenshotImageFormatFromMimeType,
+} from '@midscene/shared/img';
 import { antiEscapeScriptTag, logMsg } from '@midscene/shared/utils';
 import { getReportFileName } from './agent';
 import {
@@ -22,6 +27,7 @@ import {
   streamImageScriptsToFile,
 } from './dump/html-utils';
 import {
+  type ScreenshotRef,
   normalizeScreenshotRef,
   resolveScreenshotSource,
 } from './dump/screenshot-store';
@@ -526,10 +532,14 @@ export function collectDedupedExecutions(
   };
 }
 
-function extensionByMimeType(mimeType: string): 'png' | 'jpeg' {
-  if (mimeType === 'image/png') return 'png';
-  if (mimeType === 'image/jpeg') return 'jpeg';
-  throw new Error(`Unsupported screenshot mime type: ${mimeType}`);
+function extensionByMimeType(
+  mimeType: ScreenshotRef['mimeType'],
+): ScreenshotImageFormat {
+  const format = screenshotImageFormatFromMimeType(mimeType);
+  if (!format) {
+    throw new Error(`Unsupported screenshot mime type: ${mimeType}`);
+  }
+  return screenshotImageExtension(format);
 }
 
 function externalizeScreenshotsInExecution(
