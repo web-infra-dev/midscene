@@ -91,14 +91,13 @@ describe('Test todo list', () => {
           endpoint: '/source',
         })) as { value: string };
         await Promise.all([
-          agent.interface
-            .screenshotBase64()
-            .then((base64) =>
-              writeFile(
-                path.join(resolvedDiagnosticsDir, 'todo-final.png'),
-                screenshotBuffer(base64),
-              ),
-            ),
+          agent.interface.screenshotBase64().then((base64) => {
+            expect(base64).toMatch(/^data:image\/webp;base64,/);
+            return writeFile(
+              path.join(resolvedDiagnosticsDir, 'todo-final.webp'),
+              screenshotBuffer(base64),
+            );
+          }),
           writeFile(
             path.join(resolvedDiagnosticsDir, 'todo-source.xml'),
             source.value,

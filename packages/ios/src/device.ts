@@ -20,7 +20,10 @@ import {
 import { sleep } from '@midscene/core/utils';
 import { DEFAULT_WDA_PORT } from '@midscene/shared/constants';
 import type { ElementInfo } from '@midscene/shared/extractor';
-import { createImgBase64ByFormat } from '@midscene/shared/img';
+import {
+  canonicalizeScreenshotBase64,
+  createImgBase64ByFormat,
+} from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { normalizeForComparison } from '@midscene/shared/utils';
 import { WDAManager } from '@midscene/webdriver';
@@ -433,7 +436,9 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
     debugDevice('Taking screenshot via WDA');
     try {
       const base64Data = await this.wdaBackend.takeScreenshot();
-      const result = createImgBase64ByFormat('png', base64Data);
+      const result = await canonicalizeScreenshotBase64(
+        createImgBase64ByFormat('png', base64Data),
+      );
       debugDevice('Screenshot taken successfully');
       return result;
     } catch (error) {

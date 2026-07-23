@@ -17,6 +17,8 @@ const getInternalTextInput = (target: IOSDevice) =>
   };
 
 describe('IOSDevice', () => {
+  const validPngBase64 =
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
   let device: IOSDevice;
   let mockWdaClient: any;
 
@@ -32,7 +34,7 @@ describe('IOSDevice', () => {
       setupExistingSession: vi.fn().mockResolvedValue(undefined),
       deleteSession: vi.fn().mockResolvedValue(undefined),
       getWindowSize: vi.fn().mockResolvedValue({ width: 375, height: 812 }),
-      takeScreenshot: vi.fn().mockResolvedValue('base64-screenshot'),
+      takeScreenshot: vi.fn().mockResolvedValue(validPngBase64),
       tap: vi.fn().mockResolvedValue(undefined),
       doubleTap: vi.fn().mockResolvedValue(undefined),
       tripleTap: vi.fn().mockResolvedValue(undefined),
@@ -297,8 +299,7 @@ describe('IOSDevice', () => {
       await device.connect();
 
       const screenshot = await device.screenshotBase64();
-      expect(screenshot).toContain('data:image/png;base64,');
-      expect(screenshot).toContain('base64-screenshot');
+      expect(screenshot).toMatch(/^data:image\/webp;base64,UklGR/);
       expect(mockWdaClient.takeScreenshot).toHaveBeenCalled();
     });
 
@@ -624,8 +625,7 @@ describe('IOSDevice', () => {
     it('should return base64 screenshot', async () => {
       const screenshot = await device.screenshotBase64();
       expect(typeof screenshot).toBe('string');
-      expect(screenshot).toContain('data:image/png;base64,');
-      expect(screenshot).toContain('base64-screenshot');
+      expect(screenshot).toMatch(/^data:image\/webp;base64,UklGR/);
     });
   });
 
