@@ -440,7 +440,7 @@ describe.skipIf(!RUN_LIVE_SMOKE)('macOS desktop live smoke', () => {
     const stateFile = path.join(diagnosticsDir, 'fixture-state.json');
     const fixtureStdoutFile = path.join(diagnosticsDir, 'fixture.stdout.log');
     const fixtureStderrFile = path.join(diagnosticsDir, 'fixture.stderr.log');
-    const screenshotFile = path.join(diagnosticsDir, 'desktop.png');
+    const screenshotFile = path.join(diagnosticsDir, 'desktop.webp');
     const dumpFile = path.join(diagnosticsDir, 'agent-dump.json');
     const evidenceFile = path.join(diagnosticsDir, 'evidence.json');
     const runDir = path.resolve(process.env.MIDSCENE_RUN_DIR || 'midscene_run');
@@ -564,6 +564,8 @@ describe.skipIf(!RUN_LIVE_SMOKE)('macOS desktop live smoke', () => {
       );
       const screenshotBuffer = Buffer.from(base64Body(screenshot), 'base64');
       await writeFile(screenshotFile, screenshotBuffer);
+      expect(screenshotBuffer.subarray(0, 4).toString('ascii')).toBe('RIFF');
+      expect(screenshotBuffer.subarray(8, 12).toString('ascii')).toBe('WEBP');
       evidence.screenshot = {
         ...screenshotInfo,
         scale: screenshotScale,
