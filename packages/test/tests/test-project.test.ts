@@ -22,19 +22,25 @@ const createConfig = (source: string): { directory: string; path: string } => {
 };
 
 describe('test project config', () => {
-  it('loads TypeScript syntax, root, and file selection', async () => {
+  it('loads TypeScript syntax and Project file selection', async () => {
     const { path } = createConfig(`
       interface Config {
-        root: string;
-        files: { include: string[]; exclude: string[] };
+        projects: Array<{
+          name: string;
+          platform: 'web';
+          files: { include: string[]; exclude: string[] };
+        }>;
         nodes: unknown[];
       }
       const config: Config = {
-        root: './e2e',
-        files: {
-          include: ['workflows/**/*.{yaml,yml}'],
-          exclude: ['workflows/**/*.draft.yaml'],
-        },
+        projects: [{
+          name: 'web',
+          platform: 'web',
+          files: {
+            include: ['workflows/**/*.{yaml,yml}'],
+            exclude: ['workflows/**/*.draft.yaml'],
+          },
+        }],
         nodes: [],
       };
       export default config;
@@ -42,8 +48,7 @@ describe('test project config', () => {
 
     const project = await loadTestProject(path);
 
-    expect(project.root).toBe('./e2e');
-    expect(project.files).toEqual({
+    expect(project.projects[0].files).toEqual({
       include: ['workflows/**/*.{yaml,yml}'],
       exclude: ['workflows/**/*.draft.yaml'],
     });
@@ -104,12 +109,7 @@ describe('test project config', () => {
   });
 
   it('creates a compatible implicit default project', async () => {
-    const { path } = createConfig(`
-      export default {
-        files: { include: ['cases/**/*.yaml'] },
-        nodes: [],
-      };
-    `);
+    const { path } = createConfig('export default { nodes: [] };');
 
     const loaded = await loadTestProject(path);
 
@@ -118,16 +118,14 @@ describe('test project config', () => {
       {
         name: 'default',
         platform: 'web',
-        files: { include: ['cases/**/*.yaml'] },
         tags: { include: [], exclude: [] },
-        repeat: 1,
         retry: 0,
         variables: {},
       },
     ]);
   });
 
-  it('resolves project inheritance, selectors, setup binding, runner, and output', async () => {
+  it('resolves Project selectors, setup binding, test options, and output', async () => {
     const setupMarker = vi.fn();
     (globalThis as Record<string, unknown>).__testSetupMarker = setupMarker;
     const { path } = createConfig(`
@@ -140,17 +138,16 @@ describe('test project config', () => {
         },
       };
       export default {
-        files: {
-          include: ['cases/**/*.{yaml,yml}'],
-          exclude: ['cases/**/*.draft.yaml'],
-        },
         projects: [
           {
             name: 'android-smoke',
             platform: 'android',
             setup: androidSetup,
+            files: {
+              include: ['cases/**/*.{yaml,yml}'],
+              exclude: ['cases/**/*.draft.yaml'],
+            },
             tags: { include: ['smoke'], exclude: ['ios-only'] },
-            repeat: 2,
             retry: 1,
             variables: {
               appName: 'Aweme',
@@ -163,7 +160,7 @@ describe('test project config', () => {
             files: { include: ['ios/**/*.yaml'], exclude: [] },
           },
         ],
-        testRunner: { maxConcurrency: 1, bail: 2, testTimeout: 30000 },
+        test: { maxConcurrency: 1, bail: 2, testTimeout: 30000 },
         output: { summary: './out/summary.json', reportDir: './out/report' },
         nodes: [],
       };
@@ -181,7 +178,6 @@ describe('test project config', () => {
         exclude: ['cases/**/*.draft.yaml'],
       },
       tags: { include: ['smoke'], exclude: ['ios-only'] },
-      repeat: 2,
       retry: 1,
       variables: {
         appName: 'Aweme',
@@ -197,10 +193,9 @@ describe('test project config', () => {
     expect(loaded.projects[1]).toMatchObject({
       files: { include: ['ios/**/*.yaml'], exclude: [] },
       tags: { include: [], exclude: [] },
-      repeat: 1,
       retry: 0,
     });
-    expect(loaded.testRunner).toEqual({
+    expect(loaded.test).toEqual({
       maxConcurrency: 1,
       bail: 2,
       testTimeout: 30000,
@@ -265,9 +260,9 @@ describe('test project config', () => {
       'projects[0].tags.include must be an array',
     ],
     [
-      'zero repeat',
-      `projects: [{ name: 'web', platform: 'web', repeat: 0 }]`,
-      'projects[0].repeat must be a positive integer',
+      'unknown Project field',
+      `projects: [{ name: 'web', platform: 'web', unknown: true }]`,
+      'projects[0].unknown is not supported',
     ],
     [
       'negative retry',
@@ -290,13 +285,13 @@ describe('test project config', () => {
     ],
     [
       'parallel runner',
-      'testRunner: { maxConcurrency: 2 }',
-      'testRunner.maxConcurrency currently only supports 1',
+      'test: { maxConcurrency: 2 }',
+      'test.maxConcurrency currently only supports 1',
     ],
     [
       'negative bail',
-      'testRunner: { bail: -1 }',
-      'testRunner.bail must be a non-negative integer',
+      'test: { bail: -1 }',
+      'test.bail must be a non-negative integer',
     ],
   ])('rejects invalid %s configuration', async (_name, field, message) => {
     const { path } = createConfig(`export default { ${field}, nodes: [] };`);
@@ -387,53 +382,63 @@ describe('test project config', () => {
   it.each([
     [
       'root',
-      'export default { nodes: [], root: "" };',
-      'root must be a non-empty string',
+      'export default { nodes: [], root: "./e2e" };',
+      'root is not supported',
     ],
     [
-      'files',
-      'export default { nodes: [], files: [] };',
-      'files must be an object',
+      'root files',
+      'export default { nodes: [], files: { include: ["*.yaml"] } };',
+      'files is not supported at the root',
+    ],
+    [
+      'renamed testRunner',
+      'export default { nodes: [], testRunner: {} };',
+      'testRunner is not supported. Rename it to test',
+    ],
+    [
+      'Project files',
+      'export default { nodes: [], projects: [{ name: "web", platform: "web", files: [] }] };',
+      'projects[0].files must be an object',
     ],
     [
       'missing include',
-      'export default { nodes: [], files: {} };',
-      'files.include must be an array',
+      'export default { nodes: [], projects: [{ name: "web", platform: "web", files: {} }] };',
+      'projects[0].files.include must be an array',
     ],
     [
       'empty include',
-      'export default { nodes: [], files: { include: [] } };',
-      'files.include must be a non-empty array',
+      'export default { nodes: [], projects: [{ name: "web", platform: "web", files: { include: [] } }] };',
+      'projects[0].files.include must be a non-empty array',
     ],
     [
       'absolute pattern',
-      'export default { nodes: [], files: { include: ["/outside/*.yaml"] } };',
+      'export default { nodes: [], projects: [{ name: "web", platform: "web", files: { include: ["/outside/*.yaml"] } }] };',
       'must be relative to the project root',
     ],
     [
       'parent pattern',
-      'export default { nodes: [], files: { include: ["../outside/*.yaml"] } };',
+      'export default { nodes: [], projects: [{ name: "web", platform: "web", files: { include: ["../outside/*.yaml"] } }] };',
       'must not contain a ".." path segment',
     ],
     [
       'negated include',
-      'export default { nodes: [], files: { include: ["!draft.yaml"] } };',
+      'export default { nodes: [], projects: [{ name: "web", platform: "web", files: { include: ["!draft.yaml"] } }] };',
       'Use files.exclude instead',
     ],
     [
       'negated exclude',
-      'export default { nodes: [], files: { include: ["*.yaml"], exclude: ["!keep.yaml"] } };',
-      'files.exclude[0] must not be a negated pattern',
+      'export default { nodes: [], projects: [{ name: "web", platform: "web", files: { include: ["*.yaml"], exclude: ["!keep.yaml"] } }] };',
+      'projects[0].files.exclude[0] must not be a negated pattern',
     ],
     [
       'non-POSIX separator',
-      'export default { nodes: [], files: { include: ["flows\\\\*.yaml"] } };',
+      'export default { nodes: [], projects: [{ name: "web", platform: "web", files: { include: ["flows\\\\*.yaml"] } }] };',
       'must use POSIX path separators',
     ],
     [
       'invalid exclude',
-      'export default { nodes: [], files: { include: ["*.yaml"], exclude: true } };',
-      'files.exclude must be an array',
+      'export default { nodes: [], projects: [{ name: "web", platform: "web", files: { include: ["*.yaml"], exclude: true } }] };',
+      'projects[0].files.exclude must be an array',
     ],
   ])('rejects invalid %s config', async (_name, source, message) => {
     const { path } = createConfig(source);

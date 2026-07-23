@@ -33,7 +33,6 @@ export interface TestExecutionProjectRunResult {
   name: string;
   platform: TestPlatform;
   status: 'success' | 'failed';
-  repeat: number;
   retry: number;
   fileSelection: TestFileSelection;
   tagSelection: Readonly<Required<TestTagSelection>>;

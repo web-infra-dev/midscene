@@ -20,7 +20,7 @@ Test Project configuration
 - **Step**: one YAML invocation of a Node.
 - **Case**: a named test made of multiple Steps.
 - **Test Project**: the top-level `midscene.config.ts` configuration. It registers shared Nodes and defines either a default runtime target or a `projects` array.
-- **Execution Project**: a child configuration inside a Test Project. It defines one runtime target, Project setup, file/tag selection, variables, repeat count, and retry policy; it is not a peer of the Test Project.
+- **Execution Project**: a child configuration inside a Test Project. It defines one runtime target, Project setup, file/tag selection, variables, and retry policy; it is not a peer of the Test Project.
 - **Workflow Document**: one YAML file selected by an Execution Project and containing lifecycle Steps and Cases.
 
 Nodes define the capabilities available to the team. YAML defines how each test case combines those capabilities.
@@ -161,23 +161,23 @@ For one selected Execution Project, the complete execution order is:
 
 ```text
 Project setup
-  Repeat 1
+  Workflow Document 1
     beforeAll
       Case 1 attempt 1: beforeEach → steps → afterEach
       Case 1 retry:     beforeEach → steps → afterEach
       Case 2 attempt 1: beforeEach → steps → afterEach
     afterAll
     document-scoped Node cleanup
-  Repeat 2
+  Workflow Document 2
     ...
 Project teardown
 ```
 
-`beforeAll` and `afterAll` run once for each YAML file in each repeat and own document-level business preparation and cleanup. `beforeEach` and `afterEach` run once per Case attempt. A retry reruns the whole Case with a new run ID, Agent scope, cache scope, and Case history; it does not rerun `beforeAll`. Nodes may register internal attempt- or document-scoped cleanup for resources such as Agents and reports.
+`beforeAll` and `afterAll` run once for each YAML file and own document-level business preparation and cleanup. `beforeEach` and `afterEach` run once per Case attempt. A retry reruns the whole Case with a new run ID, Agent scope, cache scope, and Case history; it does not rerun `beforeAll`. Nodes may register internal attempt- or document-scoped cleanup for resources such as Agents and reports.
 
 `afterEach` still runs when the Case body fails. If `beforeAll` fails, the runner marks the file's Cases as `not-run`, then runs `afterAll` and registered Node cleanup.
 
-Project setup runs once before all repeats and Project teardown always runs in LIFO order. On interruption, the active Step receives an aborted signal, while cleanup hooks and registered teardown functions receive a usable cleanup signal.
+Project setup runs once before the Project's Workflow Documents and Project teardown always runs in LIFO order. On interruption, the active Step receives an aborted signal, while cleanup hooks and registered teardown functions receive a usable cleanup signal.
 
 ## Run the project
 
@@ -207,7 +207,7 @@ Select one or more named Execution Projects:
 pnpm exec midscene-test --project android-smoke --project ios-regression
 ```
 
-Projects, repeats, Workflow Documents, Cases, attempts, and Steps execute serially. `projects[].retry` retries the complete failed Case and `projects[].repeat` reruns every selected Workflow Document lifecycle. `testRunner.maxConcurrency` currently accepts only `1`.
+Projects, Workflow Documents, Cases, attempts, and Steps execute serially. `projects[].retry` retries the complete failed Case. `test.maxConcurrency` currently accepts only `1`.
 
 ### Inspect results
 
@@ -231,7 +231,7 @@ midscene_run/
 - Run metadata: `schemaVersion`, `runId`, start/end time, duration, final `status`, and CLI `exitCode`.
 - The Test Project root and configuration file, plus `factsRoot` and `reportDir` paths relative to the summary so CI and visualizers can move the output tree.
 - Aggregate counts for passed, failed, not-run, and filtered Cases, plus collection, Document, and Project failures.
-- Each Execution Project's platform, repeat/retry policy, file/tag selection, discovered/selected/filtered counts, and Project setup/teardown lifecycle status.
+- Each Execution Project's platform, retry policy, file/tag selection, discovered/selected/filtered counts, and Project setup/teardown lifecycle status.
 - Each Case, attempt, and Workflow Document status, source location, internal result-file path, and finalized Midscene report index.
 - Each collection error's source file and error-fact path.
 

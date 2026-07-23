@@ -25,13 +25,13 @@ export interface TestTagSelection {
   exclude?: readonly string[];
 }
 
-export interface TestRunnerDefinition {
+export interface TestOptions {
   maxConcurrency?: number;
   bail?: number;
   testTimeout?: number;
 }
 
-export interface ResolvedTestRunnerDefinition {
+export interface ResolvedTestOptions {
   maxConcurrency: 1;
   bail: number;
   testTimeout: number;
@@ -53,7 +53,6 @@ export interface ExecutionProjectDefinition<TProjectContext = unknown> {
   setup?: ProjectSetupDefinition<TProjectContext>;
   files?: TestFileSelection;
   tags?: TestTagSelection;
-  repeat?: number;
   retry?: number;
   variables?: Readonly<Record<string, JsonValue>>;
 }
@@ -64,7 +63,6 @@ export interface ResolvedExecutionProject<TProjectContext = unknown> {
   readonly setup?: ProjectSetupDefinition<TProjectContext>;
   readonly files?: TestFileSelection;
   readonly tags: Readonly<Required<TestTagSelection>>;
-  readonly repeat: number;
   readonly retry: number;
   readonly variables: Readonly<Record<string, JsonValue>>;
 }
@@ -94,21 +92,17 @@ export interface ProjectSetupDefinition<TProjectContext = unknown> {
 }
 
 export interface TestProjectDefinition<TContext = undefined> {
-  root?: string;
-  files?: TestFileSelection;
   setup?: ProjectSetupDefinition<TContext>;
   projects?: readonly ExecutionProjectDefinition<TContext>[];
-  testRunner?: TestRunnerDefinition;
+  test?: TestOptions;
   output?: TestOutputDefinition;
   nodes: readonly NodeDefinition<any, any, TContext>[];
 }
 
 export interface LoadedTestProject<TContext = undefined> {
-  root?: string;
-  files?: TestFileSelection;
   projects: readonly ResolvedExecutionProject<TContext>[];
   hasExplicitProjects: boolean;
-  testRunner: ResolvedTestRunnerDefinition;
+  test: ResolvedTestOptions;
   output: ResolvedTestOutputDefinition;
   nodes: NodeRegistry;
   resolveNode(name: string): NodeDefinition<any, any, TContext> | undefined;
@@ -146,6 +140,20 @@ const getDefaultExport = (loaded: unknown, absolutePath: string): unknown => {
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const rejectUnknownKeys = (
+  value: Record<string, unknown>,
+  allowedKeys: readonly string[],
+  label: string,
+): void => {
+  const allowed = new Set(allowedKeys);
+  const unknown = Object.keys(value).find((key) => !allowed.has(key));
+  if (unknown) {
+    throw new TypeError(
+      `Midscene config ${label}.${unknown} is not supported.`,
+    );
+  }
+};
 
 const isAbsolutePattern = (pattern: string): boolean =>
   isAbsolute(pattern) ||
@@ -386,7 +394,6 @@ const validateNonNegativeInteger = (
 
 const validateExecutionProjects = <TProjectContext>(
   value: unknown,
-  defaultFiles: TestFileSelection | undefined,
   defaultSetup: unknown,
 ): {
   projects: readonly ResolvedExecutionProject<TProjectContext>[];
@@ -424,9 +431,7 @@ const validateExecutionProjects = <TProjectContext>(
           name: 'default',
           platform,
           ...(setup ? { setup } : {}),
-          ...(defaultFiles ? { files: defaultFiles } : {}),
           tags: Object.freeze({ include: [], exclude: [] }),
-          repeat: 1,
           retry: 0,
           variables: Object.freeze({}),
         }),
@@ -449,6 +454,11 @@ const validateExecutionProjects = <TProjectContext>(
     if (!isRecord(candidate)) {
       throw new TypeError(`Midscene config ${label} must be an object.`);
     }
+    rejectUnknownKeys(
+      candidate,
+      ['name', 'platform', 'setup', 'files', 'tags', 'retry', 'variables'],
+      label,
+    );
     if (
       typeof candidate.name !== 'string' ||
       candidate.name.trim().length === 0
@@ -462,16 +472,12 @@ const validateExecutionProjects = <TProjectContext>(
     }
     names.add(candidate.name);
     const platform = validatePlatform(candidate.platform, `${label}.platform`);
-    const files =
-      candidate.files === undefined
-        ? defaultFiles
-        : validateTestFileSelection(candidate.files, `${label}.files`);
+    const files = validateTestFileSelection(candidate.files, `${label}.files`);
     return Object.freeze({
       name: candidate.name,
       platform,
       ...(files ? { files } : {}),
       tags: validateTagSelection(candidate.tags, `${label}.tags`),
-      repeat: validatePositiveInteger(candidate.repeat, 1, `${label}.repeat`),
       retry: validateNonNegativeInteger(candidate.retry, 0, `${label}.retry`),
       variables: validateVariables(candidate.variables, `${label}.variables`),
       ...(candidate.setup === undefined
@@ -488,15 +494,15 @@ const validateExecutionProjects = <TProjectContext>(
   return { projects: Object.freeze(projects), hasExplicitProjects: true };
 };
 
-const validateTestRunner = (value: unknown): ResolvedTestRunnerDefinition => {
+const validateTestOptions = (value: unknown): ResolvedTestOptions => {
   if (value !== undefined && !isRecord(value)) {
-    throw new TypeError('Midscene config testRunner must be an object.');
+    throw new TypeError('Midscene config test must be an object.');
   }
   const candidate = value ?? {};
   const maxConcurrency = (candidate as Record<string, unknown>).maxConcurrency;
   if (maxConcurrency !== undefined && maxConcurrency !== 1) {
     throw new TypeError(
-      'Midscene config testRunner.maxConcurrency currently only supports 1.',
+      'Midscene config test.maxConcurrency currently only supports 1.',
     );
   }
   return Object.freeze({
@@ -504,12 +510,12 @@ const validateTestRunner = (value: unknown): ResolvedTestRunnerDefinition => {
     bail: validateNonNegativeInteger(
       (candidate as Record<string, unknown>).bail,
       0,
-      'testRunner.bail',
+      'test.bail',
     ),
     testTimeout: validatePositiveInteger(
       (candidate as Record<string, unknown>).testTimeout,
       120_000,
-      'testRunner.testTimeout',
+      'test.testTimeout',
     ),
   });
 };
@@ -567,24 +573,34 @@ const validateTestProjectDefinition = <TContext>(
       'Midscene config setupDocument is not supported. Use setup or projects[].setup for resources, and beforeAll/afterAll for document lifecycle steps.',
     );
   }
-  if (
-    definition.root !== undefined &&
-    (typeof definition.root !== 'string' || definition.root.trim().length === 0)
-  ) {
-    throw new TypeError('Midscene config root must be a non-empty string.');
+  if ('root' in definition) {
+    throw new TypeError(
+      'Midscene config root is not supported. Pass the Test Project directory to midscene-test instead.',
+    );
   }
-  const files = validateTestFileSelection(definition.files);
+  if ('files' in definition) {
+    throw new TypeError(
+      'Midscene config files is not supported at the root. Move it to projects[].files.',
+    );
+  }
+  if ('testRunner' in definition) {
+    throw new TypeError(
+      'Midscene config testRunner is not supported. Rename it to test.',
+    );
+  }
+  rejectUnknownKeys(
+    definition,
+    ['setup', 'projects', 'test', 'output', 'nodes'],
+    'root',
+  );
   const resolvedProjects = validateExecutionProjects<TContext>(
     definition.projects,
-    files,
     definition.setup,
   );
   const nodes = new NodeRegistry(definition.nodes as NodeDefinition[]);
   return {
-    ...(definition.root ? { root: definition.root } : {}),
-    ...(files ? { files } : {}),
     ...resolvedProjects,
-    testRunner: validateTestRunner(definition.testRunner),
+    test: validateTestOptions(definition.test),
     output: validateOutput(definition.output),
     nodes,
     resolveNode: (name) =>

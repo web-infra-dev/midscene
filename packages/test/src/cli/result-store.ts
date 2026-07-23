@@ -101,7 +101,6 @@ export const writeTestProjectRunResult = (
       name: project.name,
       platform: project.platform,
       status: project.status,
-      repeat: project.repeat,
       retry: project.retry,
       fileSelection: project.fileSelection,
       tagSelection: project.tagSelection,
@@ -131,7 +130,6 @@ export const writeTestProjectRunResult = (
         caseId: outcome.caseId,
         sourcePath: outcome.sourcePath,
         caseIndex: outcome.caseIndex,
-        repeatIndex: outcome.repeatIndex,
         name: outcome.name,
         status: outcome.status,
         ...(outcome.notRunReason ? { notRunReason: outcome.notRunReason } : {}),
@@ -157,7 +155,6 @@ export const writeTestProjectRunResult = (
         documentId: document.documentId,
         documentRunId: document.documentRunId,
         sourcePath: document.sourcePath,
-        repeatIndex: document.repeatIndex,
         status: document.status,
         resultFile: fact(workflowDocumentRunResultPath(document)),
         ...(document.reportPaths?.length

@@ -57,7 +57,6 @@ export interface CaseRunResult {
   caseId: string;
   runId: string;
   projectName: string;
-  repeatIndex: number;
   attemptIndex: number;
   name: string;
   sourcePath: string;
@@ -78,7 +77,6 @@ export interface WorkflowDocumentRunResult {
   documentRunId: string;
   projectId: string;
   projectName: string;
-  repeatIndex: number;
   sourcePath: string;
   status: 'success' | 'failed';
   startedAt: string;
@@ -94,7 +92,6 @@ export interface CaseExecutionContext {
   readonly caseId: string;
   readonly runId: string;
   readonly projectName: string;
-  readonly repeatIndex: number;
   readonly attemptIndex: number;
   readonly name: string;
   readonly sourcePath: string;
@@ -113,7 +110,6 @@ export interface NodeDocumentContext {
   readonly documentRunId: string;
   readonly projectId: string;
   readonly projectName: string;
-  readonly repeatIndex: number;
   readonly sourcePath: string;
   readonly phase: DocumentNodePhase;
   readonly stepIndex: number;
@@ -148,7 +144,6 @@ export interface RunCollectedCaseOptions<TContext = undefined> {
   afterEach?: readonly NormalizedStep[];
   context?: TContext;
   projectName?: string;
-  repeatIndex?: number;
   attemptIndex?: number;
   documentHistory?: readonly NodeHistoryEntry[];
   signal?: AbortSignal;
@@ -164,7 +159,6 @@ export type CaseRunStatus = 'success' | 'failed' | 'not-run';
 export interface CaseRunOutcome {
   caseId: string;
   projectName: string;
-  repeatIndex: number;
   name: string;
   sourcePath: string;
   caseIndex: number;
@@ -189,7 +183,6 @@ export interface RunWorkflowDocumentOptions<TContext = undefined> {
   resolveNode(name: string): NodeDefinition<any, any, TContext>;
   project?: ResolvedExecutionProject<TContext>;
   projectContext?: TContext;
-  repeatIndex?: number;
   retry?: number;
   signal?: AbortSignal;
   defaultTimeoutMs?: number;
@@ -210,7 +203,6 @@ export interface CreateDocumentRuntimeOptions<TContext = undefined> {
   resolveNode(name: string): NodeDefinition<any, any, TContext>;
   project?: ResolvedExecutionProject<TContext>;
   projectContext?: TContext;
-  repeatIndex?: number;
   signal?: AbortSignal;
   defaultTimeoutMs?: number;
   onStepStart?: StepStartHandler;

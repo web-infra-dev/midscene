@@ -41,7 +41,6 @@ export function createDocumentRuntime<TContext = undefined>(
       name: document.projectId,
       platform: 'web' as const,
       tags: Object.freeze({ include: [], exclude: [] }),
-      repeat: 1,
       retry: 0,
       variables: Object.freeze({}),
     });
@@ -66,7 +65,6 @@ export function createDocumentRuntime<TContext = undefined>(
       documentRunId,
       projectId: document.projectId,
       projectName: project.name,
-      repeatIndex: options.repeatIndex ?? 0,
       sourcePath: document.sourcePath,
       status:
         completedNodes.some((step) => step.status === 'failed') ||
@@ -94,7 +92,6 @@ export function createDocumentRuntime<TContext = undefined>(
         documentRunId,
         projectId: document.projectId,
         projectName: project.name,
-        repeatIndex: options.repeatIndex ?? 0,
         sourcePath: document.sourcePath,
         phase,
         stepIndex,

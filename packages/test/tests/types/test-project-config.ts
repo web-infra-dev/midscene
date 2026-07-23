@@ -24,11 +24,6 @@ const requestNode = defineNode<
 
 const project: TestProjectDefinition<ProjectContext> =
   defineTestProject<ProjectContext>({
-    root: './e2e',
-    files: {
-      include: ['workflows/**/*.{yaml,yml}'],
-      exclude: ['workflows/**/*.draft.yaml'],
-    },
     nodes: [requestNode],
     setup: defineProjectSetup<ProjectContext>({
       name: 'default-web',
@@ -70,13 +65,16 @@ defineTestProject<ProjectContext>({
       name: 'web',
       platform: 'web',
       setup: webSetup,
-      files: { include: ['cases/**/*.yaml'] },
+      files: {
+        include: ['cases/**/*.yaml'],
+        exclude: ['cases/**/*.draft.yaml'],
+      },
       tags: { include: ['smoke'], exclude: ['manual'] },
-      repeat: 2,
       retry: 1,
       variables: { locale: 'en-US' },
     },
   ],
+  test: { maxConcurrency: 1, bail: 1, testTimeout: 30_000 },
   nodes: [projectNode],
 });
 
@@ -110,10 +108,16 @@ defineNode<typeof schemaInput, { status: number }, ProjectContext>({
 
 defineTestProject({
   nodes: [],
-  files: {
-    // @ts-expect-error files.include must be an array.
-    include: 'workflows/*.yaml',
-  },
+  projects: [
+    {
+      name: 'web',
+      platform: 'web',
+      files: {
+        // @ts-expect-error files.include must be an array.
+        include: 'workflows/*.yaml',
+      },
+    },
+  ],
 });
 
 defineNode<unknown, unknown, ProjectContext>({

@@ -108,9 +108,7 @@ describe('midscene-test CLI', () => {
     expect(execution.stdout).toContain(
       'midscene-test: preflighted 1 projects, 2 documents, 3 cases, 0 collection errors',
     );
-    expect(execution.stdout).toContain(
-      '[repeat 1/1] [document 1/2] flows/first.yaml',
-    );
+    expect(execution.stdout).toContain('[document 1/2] flows/first.yaml');
     expect(execution.stdout).toContain('    [case 1/2] first case');
     expect(execution.stdout).toContain('      → step 1/3: test.record');
     expect(execution.stdout).toMatch(
@@ -148,7 +146,7 @@ describe('midscene-test CLI', () => {
       },
       projects: [
         {
-          name: 'default',
+          name: 'web',
           platform: 'web',
           cases: [
             { status: 'success', attempts: [{ attemptIndex: 0 }] },

@@ -240,23 +240,21 @@ The runner calls `releaseAgent()` exactly once after the attempt or Document sco
 
 ```ts filename=midscene.config.ts
 export default defineTestProject<ProjectContext>({
-  root: './e2e',
-  files: {
-    include: ['cases/**/*.{yaml,yml}'],
-    exclude: ['cases/**/*.draft.yaml'],
-  },
   projects: [
     {
       name: 'android-smoke',
       platform: 'android',
       setup: doraAndroidSetup,
+      files: {
+        include: ['cases/**/*.{yaml,yml}'],
+        exclude: ['cases/**/*.draft.yaml'],
+      },
       tags: { include: ['smoke'], exclude: ['manual'] },
-      repeat: 2,
       retry: 1,
       variables: { appUri: 'com.example.app' },
     },
   ],
-  testRunner: {
+  test: {
     maxConcurrency: 1,
     bail: 0,
     testTimeout: 120_000,
@@ -269,21 +267,20 @@ export default defineTestProject<ProjectContext>({
 });
 ```
 
-Declare reusable Project setup with `defineProjectSetup()`. Setup runs once for the selected Execution Project and can acquire a browser, device lease, connection-renewal task, or other shared resource. Registered Project teardown functions run in LIFO order after every repeat and document has finished, including setup failure and interruption.
+Declare reusable Project setup with `defineProjectSetup()`. Setup runs once for the selected Execution Project and can acquire a browser, device lease, connection-renewal task, or other shared resource. Registered Project teardown functions run in LIFO order after every document has finished, including setup failure and interruption.
 
 When `projects` is omitted, a root `setup` is attached to the implicit `default` Execution Project. Its single declared `platform` becomes the default Project platform. Root `setup` and an explicit `projects` array are mutually exclusive; put setup on each `projects[]` entry when defining multiple targets.
 
-Each `projects[]` entry requires a unique `name` and a `platform` of `web`, `android`, `ios`, or `computer`. It may override `files`, configure `tags`, bind one setup definition, provide JSON-compatible `variables`, and set `repeat` and whole-Case `retry`. Root-level `files` remains as a compatibility default inherited by Projects that do not override it.
+Each `projects[]` entry requires a unique `name` and a `platform` of `web`, `android`, `ios`, or `computer`. It may configure `files`, `tags`, one setup definition, JSON-compatible `variables`, and whole-Case `retry`. File selection belongs only to an Execution Project; when `files` is omitted, that Project recursively selects all `.yaml` and `.yml` files.
 
-`testRunner.maxConcurrency` currently supports only `1`. `testRunner.bail` stops scheduling after the configured number of final Case failures, and `testRunner.testTimeout` is the default Step timeout.
+`test.maxConcurrency` currently supports only `1`. `test.bail` stops scheduling after the configured number of final Case failures, and `test.testTimeout` is the default Step timeout.
 
-The project root is selected in this order:
+The Test Project directory is selected in this order:
 
 1. The `project-directory` CLI argument.
-2. The `root` field in `midscene.config.ts`.
-3. The current working directory.
+2. The current working directory.
 
-`files.include` and `files.exclude` are glob patterns relative to the project root. The runner always ignores `.git`, `.midscene`, and `node_modules`.
+`midscene.config.ts` has no `root` field. Selecting a config with `--config` does not change the Test Project directory. `projects[].files.include` and `projects[].files.exclude` are glob patterns relative to that directory. The runner always ignores `.git`, `.midscene`, and `node_modules`.
 
 Configuration files support only the `.ts` extension. `.js`, `.cjs`, `.mts`, `.cts`, and `.tsx` are rejected. Runtime loading does not resolve `tsconfig.json` `paths`; use relative imports with an explicit `.ts` extension or package specifiers.
 

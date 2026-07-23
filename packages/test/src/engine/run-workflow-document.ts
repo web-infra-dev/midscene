@@ -11,12 +11,10 @@ import type {
 const asNotRun = (
   collectedCase: CollectedCase,
   projectName: string,
-  repeatIndex: number,
   reason: NonNullable<CaseRunOutcome['notRunReason']>,
 ): CaseRunOutcome => ({
   caseId: collectedCase.caseId,
   projectName,
-  repeatIndex,
   name: collectedCase.definition.name,
   sourcePath: collectedCase.sourcePath,
   caseIndex: collectedCase.caseIndex,
@@ -31,7 +29,6 @@ export async function runWorkflowDocument<TContext = undefined>(
   const createDocumentRunId = options.createDocumentRunId;
   const createCaseRunId = options.createCaseRunId;
   const projectName = options.project?.name ?? document.projectId;
-  const repeatIndex = options.repeatIndex ?? 0;
   const retry = options.retry ?? options.project?.retry ?? 0;
   if (!Number.isInteger(retry) || retry < 0) {
     throw new TypeError(
@@ -42,7 +39,6 @@ export async function runWorkflowDocument<TContext = undefined>(
     resolveNode: options.resolveNode,
     project: options.project,
     projectContext: options.projectContext,
-    repeatIndex,
     signal: options.signal,
     defaultTimeoutMs: options.defaultTimeoutMs,
     onStepStart: options.onStepStart,
@@ -68,7 +64,7 @@ export async function runWorkflowDocument<TContext = undefined>(
         : 'document-start-failed';
       cases.push(
         ...document.cases.map((collectedCase) =>
-          asNotRun(collectedCase, projectName, repeatIndex, reason),
+          asNotRun(collectedCase, projectName, reason),
         ),
       );
     } else {
@@ -77,7 +73,6 @@ export async function runWorkflowDocument<TContext = undefined>(
           const outcome = asNotRun(
             collectedCase,
             projectName,
-            repeatIndex,
             fatalError
               ? 'fatal-error'
               : (options.stopReason?.() ?? 'interrupted'),
@@ -96,7 +91,6 @@ export async function runWorkflowDocument<TContext = undefined>(
             afterEach: document.lifecycle.afterEach,
             context: runtime.context,
             projectName,
-            repeatIndex,
             attemptIndex,
             documentHistory: runtime.history,
             signal: options.signal,
@@ -116,7 +110,6 @@ export async function runWorkflowDocument<TContext = undefined>(
         const outcome: CaseRunOutcome = {
           caseId: collectedCase.caseId,
           projectName,
-          repeatIndex,
           name: collectedCase.definition.name,
           sourcePath: collectedCase.sourcePath,
           caseIndex: collectedCase.caseIndex,

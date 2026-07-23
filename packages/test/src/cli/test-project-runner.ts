@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { existsSync, mkdirSync, readdirSync, statSync } from 'node:fs';
-import { dirname, join, relative, resolve, sep } from 'node:path';
+import { join, relative, resolve, sep } from 'node:path';
 import { globSync } from 'tinyglobby';
 import { createProjectRuntime } from '../engine/project-runtime';
 import { runWorkflowDocument } from '../engine/run-workflow-document';
@@ -183,12 +183,10 @@ const filterDocumentCases = (
 const asNotRun = (
   collectedCase: CollectedCase,
   projectName: string,
-  repeatIndex: number,
   reason: NonNullable<TestProjectCaseRunResult['notRunReason']>,
 ): TestProjectCaseRunResult => ({
   caseId: collectedCase.caseId,
   projectName,
-  repeatIndex,
   name: collectedCase.definition.name,
   sourcePath: collectedCase.sourcePath,
   caseIndex: collectedCase.caseIndex,
@@ -333,23 +331,10 @@ const prepareProject = <TProjectContext>(
 const notRunSuite = (
   prepared: PreparedExecutionProject,
   reason: NonNullable<TestProjectCaseRunResult['notRunReason']>,
-): TestProjectCaseRunResult[] => {
-  const outcomes: TestProjectCaseRunResult[] = [];
-  for (
-    let repeatIndex = 0;
-    repeatIndex < prepared.project.repeat;
-    repeatIndex += 1
-  ) {
-    for (const document of prepared.documents) {
-      outcomes.push(
-        ...document.cases.map((item) =>
-          asNotRun(item, prepared.project.name, repeatIndex, reason),
-        ),
-      );
-    }
-  }
-  return outcomes;
-};
+): TestProjectCaseRunResult[] =>
+  prepared.documents.flatMap((document) =>
+    document.cases.map((item) => asNotRun(item, prepared.project.name, reason)),
+  );
 
 export async function runTestProject(
   options: TestProjectRunOptions = {},
@@ -371,15 +356,7 @@ export async function runTestProject(
   }
 
   const definition = await loadTestProject(configPath);
-  const projectRoot = cliProjectRoot
-    ? cliProjectRoot
-    : definition.root
-      ? resolve(
-          configPath ? dirname(configPath) : configSearchRoot,
-          definition.root,
-        )
-      : cwd;
-  assertDirectory(projectRoot, 'Test project root');
+  const projectRoot = cliProjectRoot ?? cwd;
 
   const resultDir = options.resultDir
     ? resolve(cwd, options.resultDir)
@@ -424,8 +401,7 @@ export async function runTestProject(
   const projectResults: TestExecutionProjectRunResult[] = [];
   let failedCaseCount = 0;
   const bailReached = () =>
-    definition.testRunner.bail > 0 &&
-    failedCaseCount >= definition.testRunner.bail;
+    definition.test.bail > 0 && failedCaseCount >= definition.test.bail;
 
   try {
     for (const [projectIndex, prepared] of preparedProjects.entries()) {
@@ -463,84 +439,77 @@ export async function runTestProject(
               ),
             );
           } else {
-            for (
-              let repeatIndex = 0;
-              repeatIndex < project.repeat;
-              repeatIndex += 1
-            ) {
-              for (const [
-                documentIndex,
-                document,
-              ] of prepared.documents.entries()) {
-                if (
+            for (const [
+              documentIndex,
+              document,
+            ] of prepared.documents.entries()) {
+              if (
+                rootController.signal.aborted ||
+                bailReached() ||
+                projectFatal
+              ) {
+                const reason = rootController.signal.aborted
+                  ? 'interrupted'
+                  : projectFatal
+                    ? 'fatal-error'
+                    : 'bail';
+                cases.push(
+                  ...document.cases.map((item) =>
+                    asNotRun(item, project.name, reason),
+                  ),
+                );
+                continue;
+              }
+              progress(
+                `  [document ${documentIndex + 1}/${prepared.documents.length}] ${document.sourcePath}`,
+              );
+              const execution = await runWorkflowDocument(document, {
+                resolveNode: definition.nodes.require.bind(definition.nodes),
+                project,
+                projectContext: runtime.context,
+                retry: project.retry,
+                signal: runtime.signal,
+                defaultTimeoutMs: definition.test.testTimeout,
+                shouldStop: () =>
                   rootController.signal.aborted ||
                   bailReached() ||
-                  projectFatal
-                ) {
-                  const reason = rootController.signal.aborted
+                  projectFatal,
+                stopReason: () =>
+                  rootController.signal.aborted
                     ? 'interrupted'
                     : projectFatal
                       ? 'fatal-error'
-                      : 'bail';
-                  cases.push(
-                    ...document.cases.map((item) =>
-                      asNotRun(item, project.name, repeatIndex, reason),
-                    ),
+                      : 'bail',
+                isFatalError: (run) =>
+                  [...run.beforeEach, ...run.steps, ...run.afterEach].some(
+                    (step) => step.error && isFatalDeviceError(step.error),
+                  ) || (run.teardownErrors ?? []).some(isFatalDeviceError),
+                onCaseStart: (collectedCase) => {
+                  progress(
+                    `    [case ${collectedCase.caseIndex + 1}/${document.cases.length}] ${collectedCase.definition.name}`,
                   );
-                  continue;
-                }
-                progress(
-                  `  [repeat ${repeatIndex + 1}/${project.repeat}] [document ${documentIndex + 1}/${prepared.documents.length}] ${document.sourcePath}`,
-                );
-                const execution = await runWorkflowDocument(document, {
-                  resolveNode: definition.nodes.require.bind(definition.nodes),
-                  project,
-                  projectContext: runtime.context,
-                  repeatIndex,
-                  retry: project.retry,
-                  signal: runtime.signal,
-                  defaultTimeoutMs: definition.testRunner.testTimeout,
-                  shouldStop: () =>
-                    rootController.signal.aborted ||
-                    bailReached() ||
-                    projectFatal,
-                  stopReason: () =>
-                    rootController.signal.aborted
-                      ? 'interrupted'
-                      : projectFatal
-                        ? 'fatal-error'
-                        : 'bail',
-                  isFatalError: (run) =>
-                    [...run.beforeEach, ...run.steps, ...run.afterEach].some(
-                      (step) => step.error && isFatalDeviceError(step.error),
-                    ) || (run.teardownErrors ?? []).some(isFatalDeviceError),
-                  onCaseStart: (collectedCase) => {
-                    progress(
-                      `    [case ${collectedCase.caseIndex + 1}/${document.cases.length}] ${collectedCase.definition.name}`,
-                    );
-                  },
-                  onStepStart: (info) => {
-                    const indent = info.scope === 'case' ? '      ' : '    ';
-                    progress(`${indent}→ ${formatStep(info)}`);
-                  },
-                  onStepResult: (info, result) =>
-                    progress(formatStepResult(info, result)),
-                  onCaseResult: (attempt) => {
-                    writeCaseRunResult(resultDir, attempt);
-                    progress(
-                      `    ${attempt.status === 'success' ? '✓' : '✗'} attempt ${attempt.attemptIndex + 1}/${project.retry + 1}: ${attempt.name} (${attempt.durationMs} ms)`,
-                    );
-                  },
-                  onCaseOutcome: (outcome) => {
-                    if (outcome.status === 'failed') failedCaseCount += 1;
-                    if (caseHasFatalError(outcome)) projectFatal = true;
-                  },
-                  onDocumentResult: (documentResult) =>
-                    writeWorkflowDocumentRunResult(resultDir, documentResult),
-                });
-                cases.push(...execution.cases);
-                documents.push(execution.document);
-              }
+                },
+                onStepStart: (info) => {
+                  const indent = info.scope === 'case' ? '      ' : '    ';
+                  progress(`${indent}→ ${formatStep(info)}`);
+                },
+                onStepResult: (info, result) =>
+                  progress(formatStepResult(info, result)),
+                onCaseResult: (attempt) => {
+                  writeCaseRunResult(resultDir, attempt);
+                  progress(
+                    `    ${attempt.status === 'success' ? '✓' : '✗'} attempt ${attempt.attemptIndex + 1}/${project.retry + 1}: ${attempt.name} (${attempt.durationMs} ms)`,
+                  );
+                },
+                onCaseOutcome: (outcome) => {
+                  if (outcome.status === 'failed') failedCaseCount += 1;
+                  if (caseHasFatalError(outcome)) projectFatal = true;
+                },
+                onDocumentResult: (documentResult) =>
+                  writeWorkflowDocumentRunResult(resultDir, documentResult),
+              });
+              cases.push(...execution.cases);
+              documents.push(execution.document);
             }
           }
         } catch (error) {
@@ -566,7 +535,6 @@ export async function runTestProject(
         name: project.name,
         platform: project.platform,
         status: projectFailed ? 'failed' : 'success',
-        repeat: project.repeat,
         retry: project.retry,
         fileSelection: prepared.fileSelection,
         tagSelection: project.tags,

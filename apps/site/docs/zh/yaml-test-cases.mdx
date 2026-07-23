@@ -22,7 +22,7 @@ Test Project 配置
 - **Step（步骤）**：在 YAML 中对 Node 的一次调用。
 - **Case（用例）**：由多个 Step 组成的具名测试用例。
 - **Test Project（测试项目）**：由 `midscene.config.ts` 定义的顶层配置，负责注册共享 Node，并配置默认运行目标或 `projects` 数组。
-- **Execution Project**：Test Project 内的一项子配置，描述一个运行目标及其平台、Project setup、文件和标签筛选、变量、repeat 与 retry 策略；它不是独立于 Test Project 的同级实体。
+- **Execution Project**：Test Project 内的一项子配置，描述一个运行目标及其平台、Project setup、文件和标签筛选、变量与 retry 策略；它不是独立于 Test Project 的同级实体。
 - **Workflow Document（工作流文档）**：被 Execution Project 选中的 YAML 文件，包含生命周期和多个 Case。
 
 Node 定义团队可用的执行能力，YAML 定义每个测试用例如何组合这些能力。
@@ -161,21 +161,21 @@ afterAll:
 
 ```text
 Project setup
-  Repeat 1
+  Workflow Document 1
     beforeAll
       Case 1 attempt 1：beforeEach → steps → afterEach
       Case 1 retry：    beforeEach → steps → afterEach
       Case 2 attempt 1：beforeEach → steps → afterEach
     afterAll
     Node 文档级清理
-  Repeat 2
+  Workflow Document 2
     ...
 Project teardown
 ```
 
 各阶段的职责如下：
 
-- `beforeAll` 和 `afterAll` 对每个 repeat 中的每个 YAML 文件各运行一次，负责文档级业务准备与清理。
+- `beforeAll` 和 `afterAll` 对每个 YAML 文件各运行一次，负责文档级业务准备与清理。
 - `beforeEach` 和 `afterEach` 对每次 Case attempt 各运行一次。
 - retry 会以新的 run ID、Agent scope、缓存 scope 和 Case history 重跑整个 Case，但不会重跑 `beforeAll`。
 - Node 可以注册 attempt 或 Document scope 的内部清理，例如释放 Agent 和生成报告；这些清理在相应 scope 结束时执行。
@@ -184,7 +184,7 @@ Project teardown
 
 如果 `beforeAll` 失败，运行器会将当前文件中的 Case 标记为 `not-run`，但仍会执行 `afterAll` 和已经注册的 Node 清理。
 
-Project setup 在全部 repeat 之前只执行一次，Project teardown 始终按 LIFO 顺序执行。收到中断信号时，当前 Step 会被取消，但 cleanup hook 与已注册 teardown 会使用可执行清理工作的 signal。
+Project setup 在该 Project 的 Workflow Document 之前只执行一次，Project teardown 始终按 LIFO 顺序执行。收到中断信号时，当前 Step 会被取消，但 cleanup hook 与已注册 teardown 会使用可执行清理工作的 signal。
 
 ## 运行项目
 
@@ -214,7 +214,7 @@ pnpm exec midscene-test \
 pnpm exec midscene-test --project android-smoke --project ios-regression
 ```
 
-Project、repeat、Workflow Document、Case、attempt 与 Step 都串行执行。`projects[].retry` 会重试整个失败 Case，`projects[].repeat` 会重复执行选中的全部 Workflow Document 生命周期。`testRunner.maxConcurrency` 当前只接受 `1`。
+Project、Workflow Document、Case、attempt 与 Step 都串行执行。`projects[].retry` 会重试整个失败 Case。`test.maxConcurrency` 当前只接受 `1`。
 
 ### 查看运行结果
 
@@ -238,7 +238,7 @@ midscene_run/
 - 本次运行的 `schemaVersion`、`runId`、开始/结束时间、耗时、最终 `status` 与 CLI `exitCode`。
 - Test Project 根目录、配置文件，以及相对 summary 文件记录的 `factsRoot` 和 `reportDir`，便于 CI 和可视化工具整体移动产物目录。
 - `summary` 汇总计数，包括通过、失败、未运行、被过滤的 Case，以及收集、Document 和 Project 失败数。
-- 每个 Execution Project 的平台、repeat/retry、文件与标签筛选、发现/选择/过滤数量，以及 Project setup/teardown 生命周期状态。
+- 每个 Execution Project 的平台、retry、文件与标签筛选、发现/选择/过滤数量，以及 Project setup/teardown 生命周期状态。
 - 每个 Case、attempt 和 Workflow Document 的状态、来源位置、内部结果文件路径及最终 Midscene 报告索引。
 - 每个收集错误的来源文件和对应错误事实文件路径。
 

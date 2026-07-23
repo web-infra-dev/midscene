@@ -130,7 +130,11 @@ describe('test project main-process runner', () => {
     writeFileSync(
       join(cwd, 'midscene.config.ts'),
       `export default {
-        files: { include: ['missing/**/*.yaml'] },
+        projects: [{
+          name: 'default',
+          platform: 'web',
+          files: { include: ['missing/**/*.yaml'] },
+        }],
         nodes: [],
       };`,
     );
@@ -170,7 +174,7 @@ describe('test project main-process runner', () => {
     expect(result.resultDir).toContain(join(root, '.midscene', 'test-results'));
   });
 
-  it('fails when config root does not point to a directory', async () => {
+  it('rejects the removed config root field', async () => {
     const cwd = createProject();
     writeFileSync(
       join(cwd, 'midscene.config.ts'),
@@ -178,14 +182,11 @@ describe('test project main-process runner', () => {
     );
 
     await expect(runTestProject({ cwd })).rejects.toThrow(
-      `Test project root does not exist or is not a directory: ${join(
-        cwd,
-        'missing',
-      )}`,
+      'Midscene config root is not supported',
     );
   });
 
-  it('resolves config root and file selection before discovery', async () => {
+  it('uses the CLI project directory and Project file selection for discovery', async () => {
     const cwd = createProject();
     const configuredRoot = join(cwd, 'e2e');
     const configDirectory = join(cwd, 'config');
@@ -196,11 +197,14 @@ describe('test project main-process runner', () => {
       join(configDirectory, 'midscene.config.ts'),
       `
         export default {
-          root: '../e2e',
-          files: {
-            include: ['selected/**/*.yaml'],
-            exclude: ['**/*.draft.yaml'],
-          },
+          projects: [{
+            name: 'web',
+            platform: 'web',
+            files: {
+              include: ['selected/**/*.yaml'],
+              exclude: ['**/*.draft.yaml'],
+            },
+          }],
           nodes: [{ name: 'noop', execute() {} }],
         };
       `,
@@ -219,7 +223,8 @@ describe('test project main-process runner', () => {
 
     const result = await runTestProject({
       cwd,
-      configPath: 'config/midscene.config.ts',
+      projectRoot: './e2e',
+      configPath: '../config/midscene.config.ts',
       resultDir,
     });
 
@@ -235,7 +240,7 @@ describe('test project main-process runner', () => {
       projectRoot: configuredRoot,
       projects: [
         {
-          name: 'default',
+          name: 'web',
           sourceCount: 1,
           fileSelection: {
             include: ['selected/**/*.yaml'],
@@ -246,26 +251,18 @@ describe('test project main-process runner', () => {
     });
   });
 
-  it('lets an explicit CLI project directory override config root', async () => {
+  it('uses an explicit CLI project directory for config and YAML discovery', async () => {
     const cwd = createProject();
-    const configuredRoot = join(cwd, 'configured');
     const overrideRoot = join(cwd, 'override');
     const resultDir = join(cwd, 'results');
-    mkdirSync(configuredRoot);
     mkdirSync(overrideRoot);
     writeFileSync(
       join(cwd, 'midscene.config.ts'),
       `
         export default {
-          root: './configured',
           nodes: [{ name: 'noop', execute() {} }],
         };
       `,
-    );
-    writeWorkflow(
-      configuredRoot,
-      'configured.yaml',
-      'cases: [{ name: configured, steps: [{ noop: run }] }]',
     );
     writeWorkflow(
       overrideRoot,
@@ -328,7 +325,7 @@ afterAll:
     expect(progress).toEqual([
       'midscene-test: preflighted 1 projects, 1 documents, 1 cases, 0 collection errors',
       '[project 1/1] default (web)',
-      '  [repeat 1/1] [document 1/1] progress.yaml',
+      '  [document 1/1] progress.yaml',
       '    → beforeAll 1/1: noop',
       expect.stringMatching(/^ {4}✓ beforeAll 1\/1: noop \(\d+ ms\)$/),
       '    [case 1/1] progress case',
@@ -530,7 +527,7 @@ cases:
     });
   });
 
-  it('runs projects in config order with setup once, document lifecycle per repeat, and full-case retry', async () => {
+  it('runs projects in config order with setup once and full-case retry', async () => {
     const root = createProject();
     const resultDir = join(root, 'results');
     const state = setRunnerState(resultDir);
@@ -554,7 +551,6 @@ cases:
               platform: 'android',
               setup: createSetup('android', 'android'),
               tags: { include: ['android'], exclude: [] },
-              repeat: 2,
               retry: 1,
               variables: { value: 'android-value' },
             },
@@ -563,18 +559,15 @@ cases:
               platform: 'ios',
               setup: createSetup('ios', 'ios'),
               tags: { include: ['ios'], exclude: [] },
-              repeat: 1,
               retry: 0,
               variables: { value: 'ios-value' },
             },
           ],
           nodes: [{
             name: 'record',
-            execute({ input, context, case: caseContext, document }) {
-              const identity = caseContext || document;
+            execute({ input, context, case: caseContext }) {
               state.events.push(
                 'node:' + context.projectName + ':' + input.value +
-                ':repeat-' + identity.repeatIndex +
                 (caseContext ? ':attempt-' + caseContext.attemptIndex : ''),
               );
               if (input.failFirst && caseContext.attemptIndex === 0) {
@@ -628,8 +621,8 @@ cases:
       'project-teardown:android-smoke',
       'project-teardown:ios-regression',
     ]);
-    expect(result.projects[0].cases).toHaveLength(2);
-    expect(result.projects[0].documents).toHaveLength(2);
+    expect(result.projects[0].cases).toHaveLength(1);
+    expect(result.projects[0].documents).toHaveLength(1);
     expect(
       result.projects[0].cases.every((item) => item.attempts?.length === 2),
     ).toBe(true);
@@ -639,12 +632,12 @@ cases:
           (item.attempts ?? []).map((attempt) => attempt.runId),
         ),
       ).size,
-    ).toBe(4);
+    ).toBe(2);
     expect(result.projects[1].cases).toHaveLength(1);
     expect(result.projects[1].cases[0].attempts).toHaveLength(1);
     expect(result.summary).toMatchObject({
-      total: 3,
-      passed: 3,
+      total: 2,
+      passed: 2,
       failed: 0,
       filtered: 2,
       projectFailures: 0,

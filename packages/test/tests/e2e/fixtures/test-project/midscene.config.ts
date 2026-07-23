@@ -9,9 +9,13 @@ const log = (value) => {
 };
 
 export default defineTestProject({
-  files: {
-    include: ['flows/**/*.{yaml,yml}'],
-  },
+  projects: [
+    {
+      name: 'web',
+      platform: 'web',
+      files: { include: ['flows/**/*.{yaml,yml}'] },
+    },
+  ],
   nodes: [
     defineNode({
       name: 'test.record',

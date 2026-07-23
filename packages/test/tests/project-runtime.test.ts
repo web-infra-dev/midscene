@@ -6,7 +6,6 @@ const project = (): ResolvedExecutionProject<{ lease: string }> => ({
   name: 'android-smoke',
   platform: 'android',
   tags: { include: [], exclude: [] },
-  repeat: 1,
   retry: 0,
   variables: {},
 });

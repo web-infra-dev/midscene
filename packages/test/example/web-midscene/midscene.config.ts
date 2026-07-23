@@ -136,7 +136,13 @@ const playwrightSetup = defineProjectSetup<ProjectContext>({
 });
 
 export default defineTestProject<ProjectContext>({
-  files: { include: ['midscene.yaml'] },
-  setup: playwrightSetup,
+  projects: [
+    {
+      name: 'web',
+      platform: 'web',
+      files: { include: ['midscene.yaml'] },
+      setup: playwrightSetup,
+    },
+  ],
   nodes: [setUserAgentLanguage, recordPageState, ...midsceneNodes],
 });

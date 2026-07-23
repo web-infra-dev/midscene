@@ -514,23 +514,21 @@ pnpm exec midscene-test describe-nodes --config ./config/midscene.config.ts
 
 ```ts filename=midscene.config.ts
 export default defineTestProject<ProjectContext>({
-  root: './e2e',
-  files: {
-    include: ['cases/**/*.{yaml,yml}'],
-    exclude: ['cases/**/*.draft.yaml'],
-  },
   projects: [
     {
       name: 'android-smoke',
       platform: 'android',
       setup: doraAndroidSetup,
+      files: {
+        include: ['cases/**/*.{yaml,yml}'],
+        exclude: ['cases/**/*.draft.yaml'],
+      },
       tags: { include: ['smoke'], exclude: ['manual'] },
-      repeat: 2,
       retry: 1,
       variables: { appUri: 'com.example.app' },
     },
   ],
-  testRunner: {
+  test: {
     maxConcurrency: 1,
     bail: 0,
     testTimeout: 120_000,
@@ -543,38 +541,39 @@ export default defineTestProject<ProjectContext>({
 });
 ```
 
-用 `defineProjectSetup()` 声明可复用的 Project setup。它在选中的 Execution Project 中只运行一次，适合获取浏览器、云设备租约、续租任务或连接。注册的 Project teardown 会在全部 repeat 和 Document 结束后按 LIFO 执行，也覆盖 setup 部分失败和中断。
+用 `defineProjectSetup()` 声明可复用的 Project setup。它在选中的 Execution Project 中只运行一次，适合获取浏览器、云设备租约、续租任务或连接。注册的 Project teardown 会在全部 Document 结束后按 LIFO 执行，也覆盖 setup 部分失败和中断。
 
 如果省略 `projects`，可以在根级声明 `setup`；运行器会创建隐式的 `default` Execution Project，并使用 setup 声明的单一 `platform`。根级 `setup` 与显式 `projects` 数组不能同时使用；多目标场景应在每个 `projects[]` 条目中绑定 setup。
 
-每个 `projects[]` 条目都需要唯一 `name`，`platform` 可为 `web`、`android`、`ios` 或 `computer`。条目可以覆盖 `files`，配置 `tags`，绑定一个 setup，提供 JSON 兼容的 `variables`，并设置 `repeat` 与整 Case `retry`。根级 `files` 作为增量兼容默认值，供未覆盖它的 Project 继承。
+每个 `projects[]` 条目都需要唯一 `name`，`platform` 可为 `web`、`android`、`ios` 或 `computer`。条目可以配置 `files`、`tags`，绑定一个 setup，提供 JSON 兼容的 `variables`，并设置整 Case `retry`。文件筛选只属于 Execution Project；省略 `files` 时，该 Project 会递归选择全部 `.yaml` 和 `.yml` 文件。
 
-`testRunner.maxConcurrency` 当前只支持 `1`；`testRunner.bail` 按最终失败 Case 数量停止后续调度；`testRunner.testTimeout` 是默认 Step 超时。
+`test.maxConcurrency` 当前只支持 `1`；`test.bail` 按最终失败 Case 数量停止后续调度；`test.testTimeout` 是默认 Step 超时。
 
-### 选择项目根目录
-
-`root` 用于声明 Test Project 的根目录。相对路径以配置文件所在目录为基准。
+### 选择 Test Project 目录
 
 运行器按照以下优先级确定项目根目录：
 
 1. CLI 传入的 `project-directory`。
-2. 项目配置中的 `root`。
-3. 当前工作目录。
+2. 当前工作目录。
 
-项目根目录用于查找 YAML 文件、计算运行结果中的 `sourcePath`，以及保存默认运行结果。
+`midscene.config.ts` 不再提供 `root` 字段；`--config` 只选择配置文件，不会改变 Test Project 目录。该目录用于查找 YAML 文件、计算运行结果中的 `sourcePath`，以及保存默认运行结果。
 
 ### 选择 YAML 文件
 
-`files.include` 和 `files.exclude` 使用相对于项目根目录的 glob 模式。`exclude` 的优先级高于 `include`。
+`projects[].files.include` 和 `projects[].files.exclude` 使用相对于项目根目录的 glob 模式。`exclude` 的优先级高于 `include`。
 
 ```ts
-files: {
-  include: [
-    'cases/smoke.yaml',
-    'cases/regression/**/*.yml',
-  ],
-  exclude: ['cases/**/*.draft.yaml'],
-}
+projects: [{
+  name: 'web',
+  platform: 'web',
+  files: {
+    include: [
+      'cases/smoke.yaml',
+      'cases/regression/**/*.yml',
+    ],
+    exclude: ['cases/**/*.draft.yaml'],
+  },
+}]
 ```
 
 如果未配置 `files`，运行器会递归查找项目根目录中的所有 `.yaml` 和 `.yml` 文件。运行器始终忽略 `.git`、`.midscene` 和 `node_modules` 目录。
