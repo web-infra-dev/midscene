@@ -3,7 +3,7 @@ import type { AddressInfo } from 'node:net';
 import { PlaywrightWebPage } from '@/playwright';
 import { expect, test } from '@playwright/test';
 
-test.describe('playwright screenshot CDP fallback', () => {
+test.describe('playwright CDP screenshot', () => {
   test.setTimeout(30 * 1000);
 
   let slowServer: ReturnType<typeof createServer>;
@@ -31,7 +31,7 @@ test.describe('playwright screenshot CDP fallback', () => {
     slowServer?.close();
   });
 
-  test('should fall back to CDP when a hanging web font blocks screenshot', async ({
+  test('should capture WebP when a hanging web font blocks Playwright screenshot', async ({
     page,
   }) => {
     await page.setViewportSize({ width: 1280, height: 900 });
@@ -40,8 +40,8 @@ test.describe('playwright screenshot CDP fallback', () => {
       timeout: 15_000,
     });
 
-    // Inject a @font-face pointing to the local slow server,
-    // causing Playwright's screenshot to hang on "waiting for fonts to load"
+    // Inject a @font-face pointing to the local slow server. Playwright's
+    // public screenshot API waits for fonts, while CDP capture should not.
     const fontUrl = `${slowServerUrl}/hanging-font.woff2`;
     await page.evaluate((url: string) => {
       const style = document.createElement('style');
@@ -63,7 +63,7 @@ test.describe('playwright screenshot CDP fallback', () => {
     const webPage = new PlaywrightWebPage(page);
     const screenshotBase64 = await webPage.screenshotBase64();
 
-    expect(screenshotBase64).toContain('data:image/jpeg;base64,');
+    expect(screenshotBase64).toContain('data:image/webp;base64,');
     expect(screenshotBase64.length).toBeGreaterThan(1_000);
   });
 });

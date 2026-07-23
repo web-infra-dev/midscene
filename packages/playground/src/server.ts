@@ -11,7 +11,7 @@ import {
 } from 'node:fs';
 import { stat } from 'node:fs/promises';
 import type { Server } from 'node:http';
-import { basename, dirname, join, resolve, sep } from 'node:path';
+import { basename, dirname, extname, join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type {
   AgentDescribeElementAtPointResult,
@@ -37,7 +37,14 @@ import {
   overrideAIConfig,
 } from '@midscene/shared/env';
 import { generateElementByPoint } from '@midscene/shared/extractor';
-import { annotateRects, imageInfoOfBase64 } from '@midscene/shared/img';
+import {
+  annotateRects,
+  imageInfoOfBase64,
+  screenshotImageExtension,
+  screenshotImageFormatFromExtension,
+  screenshotImageFormatFromMimeType,
+  screenshotImageMimeType,
+} from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import type {
   MidsceneRecorderScreenshotAssetRef,
@@ -350,7 +357,7 @@ function writeRecorderAiDescribeScreenshot(
   const { base64, mimeType } = extractBase64Payload(imageBase64);
   const bytes = Buffer.from(base64, 'base64');
   const sha256 = createHash('sha256').update(bytes).digest('hex');
-  const extension = mimeType?.includes('jpeg') ? 'jpg' : 'png';
+  const extension = recorderScreenshotAssetExtension(mimeType);
   const pathParts = formatRecorderAiDescribeScreenshotPathParts();
   const dumpRoot = resolve(
     getMidsceneRunSubDir('dump'),
@@ -393,7 +400,11 @@ function assertRecorderScreenshotAssetId(assetId: string) {
 }
 
 function recorderScreenshotAssetExtension(mimeType?: string) {
-  return mimeType?.includes('jpeg') ? 'jpg' : 'png';
+  const format = screenshotImageFormatFromMimeType(mimeType);
+  if (!format) {
+    return 'png';
+  }
+  return format === 'jpeg' ? 'jpg' : screenshotImageExtension(format);
 }
 
 function recorderScreenshotAssetPath(assetId: string, mimeType?: string) {
@@ -428,7 +439,7 @@ function initializeRecorderScreenshotAssetUsage() {
         continue;
       }
       const match = entry.name.match(
-        /^(.*)-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.(?:png|jpg)$/i,
+        /^(.*)-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.(?:png|jpg|webp)$/i,
       );
       if (!match?.[1]) {
         continue;
@@ -508,7 +519,7 @@ function readRecorderScreenshotAsset(
 function findRecorderScreenshotAssetPath(assetId: string) {
   const safeAssetId = assertRecorderScreenshotAssetId(assetId);
   const root = getRecorderScreenshotAssetRoot();
-  for (const extension of ['png', 'jpg']) {
+  for (const extension of ['png', 'jpg', 'webp']) {
     const filePath = assertPathInsideDirectory(
       root,
       join(root, `${safeAssetId}.${extension}`),
@@ -554,7 +565,7 @@ function pruneRecorderScreenshotAssetsForSession(
     if (!entry.isFile() || !entry.name.startsWith(prefix)) {
       continue;
     }
-    const assetId = entry.name.replace(/\.(?:png|jpg)$/i, '');
+    const assetId = entry.name.replace(/\.(?:png|jpg|webp)$/i, '');
     const filePath = join(root, entry.name);
     if (!retained.has(assetId)) {
       rmSync(filePath, { force: true });
@@ -3095,7 +3106,7 @@ class PlaygroundServer {
           return res.status(404).json({ error: 'Report not found or expired' });
         }
 
-        const match = /^([A-Za-z0-9_-]+)\.(png|jpe?g)$/.exec(
+        const match = /^([A-Za-z0-9_-]+)\.(png|jpe?g|webp)$/.exec(
           req.params.assetName,
         );
         if (!match) {
@@ -3125,7 +3136,11 @@ class PlaygroundServer {
           if (commaIndex === -1) {
             throw new Error('Invalid screenshot data URI');
           }
-          const mimeType = extension === 'png' ? 'image/png' : 'image/jpeg';
+          const format = screenshotImageFormatFromExtension(extension);
+          if (!format) {
+            throw new Error(`Unsupported screenshot extension: ${extension}`);
+          }
+          const mimeType = screenshotImageMimeType(format);
           return res
             .type(mimeType)
             .send(Buffer.from(dataUri.slice(commaIndex + 1), 'base64'));
@@ -3769,7 +3784,13 @@ class PlaygroundServer {
               .status(404)
               .json({ error: 'Recorder screenshot not found' });
           }
-          res.type(filePath.endsWith('.jpg') ? 'image/jpeg' : 'image/png');
+          const format = screenshotImageFormatFromExtension(
+            extname(filePath).slice(1),
+          );
+          if (!format) {
+            throw new Error('Unsupported recorder screenshot format');
+          }
+          res.type(screenshotImageMimeType(format));
           return res.send(readFileSync(filePath));
         } catch (error) {
           return res.status(400).json({

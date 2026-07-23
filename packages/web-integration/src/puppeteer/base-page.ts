@@ -24,6 +24,7 @@ import {
 import type { ElementInfo } from '@midscene/shared/extractor';
 import { treeToList } from '@midscene/shared/extractor';
 import {
+  canonicalizeScreenshotBase64,
   createImgBase64ByFormat,
   imageInfoOfBase64,
 } from '@midscene/shared/img';
@@ -457,7 +458,7 @@ export class Page<
   }
 
   async screenshotBase64(): Promise<string> {
-    const imgType = 'jpeg' as const;
+    const imgType = 'webp' as const;
     const quality = 90;
     const startTime = Date.now();
     debugPage('screenshotBase64 begin');
@@ -473,26 +474,41 @@ export class Page<
     } else if (this.interfaceType === 'playwright') {
       const page = this.underlyingPage as PlaywrightPage;
       try {
-        const buffer = await page.screenshot({
-          type: imgType,
-          quality,
-          timeout: 10 * 1000,
-        });
-        base64 = createImgBase64ByFormat(imgType, buffer.toString('base64'));
+        // Playwright's public API only exposes PNG/JPEG. Chromium can avoid an
+        // extra conversion by using CDP's native WebP encoder.
+        base64 = await this.screenshotBase64ByPlaywrightCdp(imgType, quality);
       } catch (error) {
         if (isClosedPageError(error) || page.isClosed()) {
           throw error;
         }
 
         const errorMsg = error instanceof Error ? error.message : String(error);
-        console.warn(
-          `[Midscene] Playwright screenshot failed: ${errorMsg}. Falling back to CDP screenshot.`,
+        warnPage(
+          `Playwright CDP WebP screenshot failed: ${errorMsg}. Falling back to PNG capture and WebP encoding.`,
         );
-        debugPage(
-          'playwright screenshot failed, trying CDP fallback: %s',
-          error,
-        );
-        base64 = await this.screenshotBase64ByPlaywrightCdp(imgType, quality);
+        try {
+          const buffer = await page.screenshot({
+            type: 'png',
+            timeout: 10 * 1000,
+          });
+          base64 = await canonicalizeScreenshotBase64(
+            createImgBase64ByFormat('png', buffer.toString('base64')),
+            { quality },
+          );
+        } catch (fallbackError) {
+          debugPage(
+            'Playwright PNG screenshot fallback also failed: %s',
+            fallbackError,
+          );
+          const fallbackErrorMessage =
+            fallbackError instanceof Error
+              ? fallbackError.message
+              : String(fallbackError);
+          throw new Error(
+            `Playwright screenshot failed through both CDP WebP and PNG fallback (CDP: ${errorMsg}; PNG fallback: ${fallbackErrorMessage})`,
+            { cause: fallbackError },
+          );
+        }
       }
     } else {
       throw new Error('Unsupported page type for screenshot');
@@ -503,7 +519,7 @@ export class Page<
   }
 
   private async screenshotBase64ByPlaywrightCdp(
-    imgType: 'jpeg' | 'png',
+    imgType: 'jpeg' | 'png' | 'webp',
     quality?: number,
   ) {
     const client = await this.createPageCdpSession('CDP screenshot fallback');
@@ -685,9 +701,15 @@ export class Page<
       );
       // MjpegStreamFrame.data is contractually bare base64; screenshotBase64()
       // returns a `data:image/...;base64,...` URL, so strip the prefix here.
+      const contentType = dataUrl.match(/^data:(image\/\w+);base64,/)?.[1];
+      if (!contentType) {
+        throw new Error(
+          'Screenshot fallback returned an invalid image data URL',
+        );
+      }
       activeStream.onFrame({
         data: dataUrl.replace(DATA_URL_BASE64_PREFIX, ''),
-        contentType: 'image/jpeg',
+        contentType,
       });
     } catch (error) {
       debugPage('screencast visual refresh failed: %s', error);
