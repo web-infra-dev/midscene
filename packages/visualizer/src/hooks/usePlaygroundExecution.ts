@@ -10,6 +10,10 @@ import {
   parseImageScripts,
   restoreImageReferences,
 } from '@midscene/core/dump';
+import {
+  screenshotImageExtension,
+  screenshotImageFormatFromMimeType,
+} from '@midscene/shared/img/image-format';
 import { useCallback } from 'react';
 import { useEnvConfig } from '../store/store';
 import type {
@@ -154,7 +158,11 @@ async function loadReportReplay(
     }
     const dump = (await response.json()) as IReportActionDump;
     result.dump = restoreImageReferences(dump, (ref) => {
-      const extension = ref.mimeType === 'image/jpeg' ? 'jpeg' : 'png';
+      const format = screenshotImageFormatFromMimeType(ref.mimeType);
+      if (!format) {
+        throw new Error(`Unsupported screenshot mime type: ${ref.mimeType}`);
+      }
+      const extension = screenshotImageExtension(format);
       return new URL(
         `screenshots/${encodeURIComponent(ref.id)}.${extension}`,
         result.report!.url,

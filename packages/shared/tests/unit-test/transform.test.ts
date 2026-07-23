@@ -1,12 +1,47 @@
 import path from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
+import { encodeRgbaToWebp } from '../../src/img/browser-webp-encoder';
 import {
+  canonicalizeScreenshotBase64,
   inferBase64ImageFormat,
   normalizeBase64Image,
   normalizeScreenshotBase64,
   preProcessImageUrl,
   scaleImage,
 } from '../../src/img/transform';
+
+describe('encodeRgbaToWebp', () => {
+  it('validates dimensions before selecting a browser encoder', async () => {
+    await expect(
+      encodeRgbaToWebp({
+        pixels: [],
+        width: 0,
+        height: 1,
+      }),
+    ).rejects.toThrow('WebP image dimensions must be positive safe integers');
+  });
+
+  it('validates the RGBA pixel length', async () => {
+    await expect(
+      encodeRgbaToWebp({
+        pixels: [255, 255, 255],
+        width: 1,
+        height: 1,
+      }),
+    ).rejects.toThrow('WebP RGBA pixel length must be 4, got 3');
+  });
+
+  it('validates encoder quality', async () => {
+    await expect(
+      encodeRgbaToWebp({
+        pixels: [255, 255, 255, 255],
+        width: 1,
+        height: 1,
+        quality: 101,
+      }),
+    ).rejects.toThrow('WebP quality must be between 0 and 100');
+  });
+});
 
 describe('preapareImageUrl', () => {
   it('url is not a string will throw an error', async () => {
@@ -95,16 +130,25 @@ describe('normalizeBase64Image', () => {
       'data:image/jpeg;base64,/9j/4AAQSkZJRg==',
     );
   });
+
+  it('wraps bare WebP base64 with the WebP MIME type', () => {
+    expect(normalizeBase64Image(' UklGRjQAAABXRUJQ VlA4IA== ')).toBe(
+      'data:image/webp;base64,UklGRjQAAABXRUJQVlA4IA==',
+    );
+  });
 });
 
 describe('normalizeScreenshotBase64', () => {
-  it('accepts PNG and JPEG data urls', () => {
+  it('accepts PNG, JPEG, and WebP data urls', () => {
     expect(
       normalizeScreenshotBase64(' data:image/png;base64,aaa\r\nbbb '),
     ).toBe('data:image/png;base64,aaabbb');
     expect(normalizeScreenshotBase64('data:image/jpeg;base64,/9j/4AAQ')).toBe(
       'data:image/jpeg;base64,/9j/4AAQ',
     );
+    expect(
+      normalizeScreenshotBase64('data:image/webp;base64,UklGRjQAAA=='),
+    ).toBe('data:image/webp;base64,UklGRjQAAA==');
   });
 
   it('normalizes jpg data urls to jpeg', () => {
@@ -119,6 +163,12 @@ describe('normalizeScreenshotBase64', () => {
     );
   });
 
+  it('recognizes raw WebP base64', () => {
+    expect(normalizeScreenshotBase64(' UklGRjQAAA BXRUJQ ')).toBe(
+      'data:image/webp;base64,UklGRjQAAABXRUJQ',
+    );
+  });
+
   it('uses the provided label in validation errors', () => {
     expect(() =>
       normalizeScreenshotBase64(' ', { label: 'custom screenshot' }),
@@ -129,14 +179,15 @@ describe('normalizeScreenshotBase64', () => {
         label: 'custom screenshot',
       }),
     ).toThrow(
-      'custom screenshot must be a PNG/JPEG data URI or raw PNG base64 string',
+      'custom screenshot must be a PNG/JPEG/WebP data URI or raw PNG/WebP base64 string',
     );
   });
 });
 
 describe('inferBase64ImageFormat', () => {
-  it('detects png payloads and otherwise falls back to jpeg', () => {
+  it('detects PNG and WebP payloads and otherwise falls back to JPEG', () => {
     expect(inferBase64ImageFormat('iVBORw0KGgoaaa')).toBe('png');
+    expect(inferBase64ImageFormat('UklGRjQAAABXRUJQ')).toBe('webp');
     expect(inferBase64ImageFormat('/9j/4AAQSkZJRg==')).toBe('jpeg');
   });
 });
@@ -152,7 +203,7 @@ describe('scaleImage', () => {
     expect(result.width).toBe(2);
     expect(result.height).toBe(2);
     expect(result.imageBase64).toMatchInlineSnapshot(
-      `"data:image/jpeg;base64,/9j/2wBDAAMCAgMCAgMDAwMEAwMEBQgFBQQEBQoHBwYIDAoMDAsKCwsNDhIQDQ4RDgsLEBYQERMUFRUVDA8XGBYUGBIUFRT/2wBDAQMEBAUEBQkFBQkUDQsNFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBT/wAARCAACAAIDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAn/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFAEBAAAAAAAAAAAAAAAAAAAAAP/EABQRAQAAAAAAAAAAAAAAAAAAAAD/2gAMAwEAAhEDEQA/AKpgA//Z"`,
+      `"data:image/webp;base64,UklGRioAAABXRUJQVlA4IB4AAACQAQCdASoCAAIAAMASJaQAAzoO0gAA/v/+JwoMAAA="`,
     );
   });
 
@@ -162,7 +213,7 @@ describe('scaleImage', () => {
     expect(result.width).toBe(3);
     expect(result.height).toBe(3);
     expect(result.imageBase64).toMatchInlineSnapshot(
-      `"data:image/jpeg;base64,/9j/2wBDAAMCAgMCAgMDAwMEAwMEBQgFBQQEBQoHBwYIDAoMDAsKCwsNDhIQDQ4RDgsLEBYQERMUFRUVDA8XGBYUGBIUFRT/2wBDAQMEBAUEBQkFBQkUDQsNFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBT/wAARCAADAAMDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAn/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFAEBAAAAAAAAAAAAAAAAAAAAAP/EABQRAQAAAAAAAAAAAAAAAAAAAAD/2gAMAwEAAhEDEQA/AKpgA//Z"`,
+      `"data:image/webp;base64,UklGRioAAABXRUJQVlA4IB4AAACQAQCdASoDAAMAAMASJaQAAzoO0gAA/v/+JwoMAAA="`,
     );
   });
 
@@ -207,5 +258,32 @@ describe('scaleImage', () => {
 
     // Restore
     vi.restoreAllMocks();
+  });
+});
+
+describe('canonicalizeScreenshotBase64', () => {
+  const onePixelWhiteImage =
+    'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wCEAAMDAwMDAwMDAwMEBAQEBAYFBQUFBgkGBwYHBgkOCAoICAoIDgwPDAsMDwwWEQ8PERYZFRQVGR4bGx4mJCYyMkMBAwMDAwMDAwMDAwQEBAQEBgUFBQUGCQYHBgcGCQ4ICggICggODA8MCwwPDBYRDw8RFhkVFBUZHhsbHiYkJjIyQ//CABEIAAEAAQMBIgACEQEDEQH/xAAnAAEBAAAAAAAAAAAAAAAAAAAACQEBAAAAAAAAAAAAAAAAAAAAAP/aAAwDAQACEAMQAAAAqmD/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/9oACAEBAAE/AH//xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oACAECAQE/AH//xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oACAEDAQE/AH//2Q==';
+
+  it('passes an existing WebP through byte-for-byte', async () => {
+    const webp = await canonicalizeScreenshotBase64(onePixelWhiteImage);
+    expect(await canonicalizeScreenshotBase64(webp)).toBe(webp);
+  });
+
+  it('preserves native JPEG only when auto policy requests it', async () => {
+    expect(
+      await canonicalizeScreenshotBase64(onePixelWhiteImage, {
+        preserveJpeg: true,
+      }),
+    ).toBe(onePixelWhiteImage);
+    expect(await canonicalizeScreenshotBase64(onePixelWhiteImage)).toMatch(
+      /^data:image\/webp;base64,UklGR/,
+    );
+  });
+
+  it('rejects unsupported image bytes instead of returning a blank image', async () => {
+    await expect(
+      canonicalizeScreenshotBase64('data:image/png;base64,aGVsbG8='),
+    ).rejects.toThrow('unsupported screenshot image');
   });
 });

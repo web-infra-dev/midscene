@@ -15,6 +15,10 @@ import {
 import { type PlaygroundSDK, noReplayAPIs } from '@midscene/playground';
 import type { ServerResponse } from '@midscene/playground';
 import {
+  screenshotImageExtension,
+  screenshotImageFormatFromMimeType,
+} from '@midscene/shared/img/image-format';
+import {
   ContextPreview,
   Logo,
   type PlaygroundResult,
@@ -55,7 +59,11 @@ async function loadReferencedReplay(result: PlaygroundResult) {
   }
   const dump = (await response.json()) as IReportActionDump;
   result.dump = restoreImageReferences(dump, (ref) => {
-    const extension = ref.mimeType === 'image/jpeg' ? 'jpeg' : 'png';
+    const format = screenshotImageFormatFromMimeType(ref.mimeType);
+    if (!format) {
+      throw new Error(`Unsupported screenshot mime type: ${ref.mimeType}`);
+    }
+    const extension = screenshotImageExtension(format);
     return new URL(
       `screenshots/${encodeURIComponent(ref.id)}.${extension}`,
       result.report!.url,

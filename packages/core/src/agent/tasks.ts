@@ -38,6 +38,7 @@ import { ServiceError, aiActProgressScope } from '@/types';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import { ExecutionSession } from './execution-session';
+import { recordModelInputsForTask } from './model-input-recorder';
 import {
   type AgentProgressPublisher,
   createAiActActionReporter,
@@ -587,7 +588,11 @@ export class TaskExecutor {
                 context: planningUiContext,
                 actionContext: param.aiActContext,
                 actionSpace,
-                modelRuntime: planningModel,
+                modelRuntime: recordModelInputsForTask(
+                  planningModel,
+                  executorContext.task,
+                  planningUiContext.screenshot,
+                ),
                 conversationHistory,
                 includeLocateInPlanning,
                 imagesIncludeCount,
@@ -917,7 +922,7 @@ export class TaskExecutor {
         try {
           extractResult = await this.service.extract<any>(
             demandInput,
-            modelRuntime,
+            recordModelInputsForTask(modelRuntime, task, uiContext.screenshot),
             opt,
             extraPageDescription,
             multimodalPrompt,
