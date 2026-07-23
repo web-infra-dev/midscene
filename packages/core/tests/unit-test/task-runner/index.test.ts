@@ -185,12 +185,14 @@ describe(
           ],
         },
       };
-      const contextBuilder = vi.fn(async () => ({
+      const contextBuilder = vi.fn<
+        (task?: ExecutionTaskApply) => Promise<UIContext>
+      >(async () => ({
         screenshot: ScreenshotItem.create('', Date.now()),
         shotSize: { width: 400, height: 400 },
         shrunkShotToLogicalRatio: 2,
         uiTree,
-      })) as (task?: ExecutionTaskApply) => Promise<UIContext>;
+      }));
       const locateTask: ExecutionTaskPlanningLocateApply = {
         type: 'Planning',
         subType: 'Locate',
@@ -200,13 +202,14 @@ describe(
             element: {
               center: [80, 80],
               rect: { left: 40, top: 40, width: 80, height: 80 },
+              description: 'Pay',
             },
           },
         }),
       };
       const actionTask: ExecutionTaskActionApply = {
         type: 'Action Space',
-        executor: async () => ({ output: 'done' }),
+        executor: async () => {},
       };
       const runner = new TaskRunner('tree-scope', contextBuilder, {
         tasks: [locateTask, actionTask],
