@@ -8,6 +8,7 @@ import {
   httpImg2Base64,
   imageInfoOfBase64,
   isValidPNGImageBuffer,
+  isValidWebPImageBuffer,
   localImg2Base64,
   resizeAndConvertImgBuffer,
   resizeImgBase64,
@@ -21,6 +22,10 @@ import {
   saveBase64Image,
 } from '../../../src/img/transform';
 import { getFixture } from '../../utils';
+
+const webpBase64 =
+  'UklGRjQAAABXRUJQVlA4ICgAAACQAQCdASoCAAMAAMASJQBOl0AAjNAA/v4icv1difCfoP7mxzi2QwAA';
+const webpDataUri = `data:image/webp;base64,${webpBase64}`;
 
 describe('imageInfoOfBase64', () => {
   it('returns correct dimensions for PNG image', async () => {
@@ -39,6 +44,13 @@ describe('imageInfoOfBase64', () => {
 
     expect(info.width).toBe(400);
     expect(info.height).toBe(905);
+  });
+
+  it('returns correct dimensions for WebP image', async () => {
+    await expect(imageInfoOfBase64(webpDataUri)).resolves.toEqual({
+      width: 2,
+      height: 3,
+    });
   });
 
   it('works with base64 string without data URI header', async () => {
@@ -320,6 +332,15 @@ describe('image utils', () => {
     ).toThrow('Screenshot buffer has invalid image format');
   });
 
+  it('isValidWebPImageBuffer accepts WebP and rejects malformed RIFF data', () => {
+    expect(isValidWebPImageBuffer(Buffer.from(webpBase64, 'base64'))).toBe(
+      true,
+    );
+    expect(isValidWebPImageBuffer(Buffer.from('RIFF1234NOPE', 'ascii'))).toBe(
+      false,
+    );
+  });
+
   it('validateScreenshotBuffer accepts valid screenshots above the minimum size', () => {
     const buffer = readFileSync(getFixture('icon.png'));
 
@@ -466,7 +487,7 @@ describe('resizeAndConvertImgBuffer', () => {
       );
       expect(format).toBe('png');
     });
-    it('Sharp resize will get jpeg format', async () => {
+    it('Sharp resize will get WebP format', async () => {
       const { format, buffer } = await resizeAndConvertImgBuffer(
         'png',
         imageBuffer,
@@ -475,7 +496,9 @@ describe('resizeAndConvertImgBuffer', () => {
           height: 1,
         },
       );
-      expect(format).toBe('jpeg');
+      expect(format).toBe('webp');
+      expect(buffer.subarray(0, 4).toString('ascii')).toBe('RIFF');
+      expect(buffer.subarray(8, 12).toString('ascii')).toBe('WEBP');
     });
   });
 
