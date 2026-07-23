@@ -9,6 +9,22 @@ These capabilities divide the work into two complementary areas:
 - **Test framework maintenance**: platform developers use TypeScript to connect browsers, Agents, external tools, and business APIs while managing runtime resources and lifecycles.
 - **Test case maintenance**: people or Agents compose those capabilities in YAML without writing JavaScript or depending on implementation details.
 
+The runner executes one canonical YAML protocol directly. It parses, normalizes, resolves variables, and validates the complete selected plan before acquiring Project resources; it does not introduce a separate IR:
+
+```text
+midscene.config.ts ── Projects / setup / Node Registry
+                              │
+Workflow YAML ── collect and validate ── Normalized Steps
+                                           │
+                         serial lifecycle scheduler
+                                           │
+                         Node execution + read-only history
+                                           │
+                         summary.json + facts + reports
+```
+
+A Test Project configuration can contain multiple Execution Project child configurations. Each Execution Project selects files and tags, binds one platform setup, and controls whole-Case retry. Project setup owns long-lived resources such as a browser or device connection; YAML `beforeAll` / `afterAll` own business preparation and cleanup for one Workflow Document; Node teardown owns internal attempt- or document-scoped resources such as an Agent report.
+
 ## Example: validate an order refund flow
 
 Suppose an e-commerce team needs to test refunds for paid orders. Before each Case, the runner calls an order API or data script to create an order. An Agent then submits a refund in the UI and verifies the result. After each Case, the runner deletes the test order.

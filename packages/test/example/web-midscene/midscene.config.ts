@@ -1,5 +1,5 @@
 import { defineNode } from '@midscene/test';
-import { defineTestProject } from '@midscene/test/config';
+import { defineProjectSetup, defineTestProject } from '@midscene/test/config';
 import { createMidsceneNodes } from '@midscene/test/midscene';
 import { PlaywrightAgent } from '@midscene/web/playwright';
 import { type Browser, type Page, chromium } from 'playwright';
@@ -112,28 +112,37 @@ const midsceneNodes = createMidsceneNodes<ProjectContext>({
     context.agent ??= new PlaywrightAgent(context.page);
     return context.agent;
   },
+  includeLaunch: false,
 });
 
-export default defineTestProject<ProjectContext>({
-  files: {
-    include: ['midscene.yaml'],
-  },
-  nodes: [setUserAgentLanguage, recordPageState, ...midsceneNodes],
-
-  async setupDocument({ onTeardown }) {
+const playwrightSetup = defineProjectSetup<ProjectContext>({
+  name: 'playwright',
+  platform: 'web',
+  async setup({ onTeardown }) {
     const browser = await chromium.launch({
       headless: process.env.HEADLESS !== 'false',
       args: ['--no-sandbox', '--disable-setuid-sandbox'],
     });
     onTeardown(() => browser.close());
-
-    const browserContext = await browser.newContext({ viewport: VIEWPORT });
+    const browserContext = await browser.newContext({
+      viewport: VIEWPORT,
+    });
     const page = await browserContext.newPage();
+    const context: ProjectContext = { browser, page };
+    onTeardown(() => context.page.context().close());
     await openPage(page, 'https://midscenejs.com');
-
-    return {
-      browser,
-      page,
-    };
+    return context;
   },
+});
+
+export default defineTestProject<ProjectContext>({
+  projects: [
+    {
+      name: 'web',
+      platform: 'web',
+      files: { include: ['midscene.yaml'] },
+      setup: playwrightSetup,
+    },
+  ],
+  nodes: [setUserAgentLanguage, recordPageState, ...midsceneNodes],
 });

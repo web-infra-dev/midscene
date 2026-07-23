@@ -7,10 +7,13 @@ import {
 import type { NodeDefinition, NodeResult } from '../node/types';
 import { validateCommonNodeInput } from '../parser/normalize';
 import type { CommonNodeInput, NormalizedStep } from '../parser/types';
+import { assertJsonSerializable } from './history';
 import type {
   NodeCaseContext,
   NodeDocumentContext,
   NodeExecutionPhase,
+  NodeHistoryEntry,
+  NodeScopeTeardown,
   StepRunResult,
 } from './types';
 
@@ -40,6 +43,10 @@ function validateNodeOutput<TData>(
     );
   }
 
+  if ('data' in output && output.data !== undefined) {
+    assertJsonSerializable(output.data, 'output.data', node);
+  }
+
   return output as NodeResult<TData>;
 }
 
@@ -67,17 +74,31 @@ async function executeNode<TOutputData>(
   execute: (signal: AbortSignal) => unknown,
   phase: NodeExecutionPhase,
   stepIndex: number,
+  options: { parentSignal?: AbortSignal; defaultTimeoutMs?: number },
 ): Promise<StepRunResult<TOutputData>> {
   validateCommonNodeInput(step.input, stepIndex);
 
   const startedAt = new Date();
   const abortController = new AbortController();
-  const timeoutMs = step.meta.timeoutMs;
+  const parentSignal = options.parentSignal;
+  const abortFromParent = () =>
+    abortController.abort(
+      parentSignal?.reason ?? new Error('Workflow execution aborted.'),
+    );
+  if (parentSignal?.aborted) abortFromParent();
+  else parentSignal?.addEventListener('abort', abortFromParent, { once: true });
+  const timeoutMs = step.meta.timeoutMs ?? options.defaultTimeoutMs;
   let timeout: ReturnType<typeof setTimeout> | undefined;
   let timeoutError: StepTimeoutError | undefined;
-  const execution = Promise.resolve().then(() =>
-    execute(abortController.signal),
-  );
+  const execution = Promise.resolve().then(() => {
+    if (abortController.signal.aborted) {
+      throw (
+        abortController.signal.reason ??
+        new Error('Workflow execution aborted.')
+      );
+    }
+    return execute(abortController.signal);
+  });
   const timedExecution =
     timeoutMs === undefined
       ? execution
@@ -112,6 +133,7 @@ async function executeNode<TOutputData>(
     };
   } finally {
     if (timeout !== undefined) clearTimeout(timeout);
+    parentSignal?.removeEventListener('abort', abortFromParent);
   }
 }
 
@@ -143,6 +165,12 @@ export async function executeStep<
   node: NodeDefinition<TInput, TOutputData, TContext>,
   target: StepExecutionTarget,
   context: TContext,
+  execution: {
+    history?: readonly NodeHistoryEntry[];
+    signal?: AbortSignal;
+    defaultTimeoutMs?: number;
+    onTeardown?(node: string, teardown: NodeScopeTeardown): void;
+  } = {},
 ): Promise<StepRunResult<TOutputData>> {
   const phase =
     target.scope === 'case' ? target.case.phase : target.document.phase;
@@ -158,6 +186,18 @@ export async function executeStep<
         $: step.meta,
         signal,
         context,
+        history: execution.history ?? Object.freeze([]),
+        onTeardown: (teardown: NodeScopeTeardown) => {
+          if (!execution.onTeardown) {
+            throw new NodeExecutionError(
+              step.node,
+              new Error(
+                'The current execution scope cannot register teardown.',
+              ),
+            );
+          }
+          execution.onTeardown(step.node, teardown);
+        },
       };
       return target.scope === 'case'
         ? node.execute({ ...common, scope: 'case', case: target.case })
@@ -169,5 +209,9 @@ export async function executeStep<
     },
     phase,
     stepIndex,
+    {
+      parentSignal: execution.signal,
+      defaultTimeoutMs: execution.defaultTimeoutMs,
+    },
   );
 }

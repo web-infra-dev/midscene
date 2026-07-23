@@ -1,5 +1,6 @@
 cases:
   - name: Midscene 文档语言跟随 UA 切换
+    tags: [smoke]
     steps:
       - browser.setLanguage:
           language: en
