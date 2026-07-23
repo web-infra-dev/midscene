@@ -50,7 +50,7 @@ export interface ScrcpyScreenshotOptions {
 
 /**
  * A raw (not yet decoded) H.264 keyframe emitted by the scrcpy stream.
- * Holding these is cheap — decoding to JPEG costs an ffmpeg run per frame, so
+ * Holding these is cheap — decoding to WebP costs an ffmpeg run per frame, so
  * consumers (e.g. UI observers) buffer raw keyframes and decode only
  * the frames they actually need, after sampling.
  */
@@ -465,7 +465,7 @@ export class ScrcpyScreenshotManager {
    * one subscriber is active, incoming keyframes keep resetting the idle timer
    * so the connection is not torn down mid-capture. Returns an unsubscribe fn.
    *
-   * Frames are emitted RAW (no decoding). Use {@link decodeRawKeyframeToJpeg}
+   * Frames are emitted RAW (no decoding). Use {@link decodeRawKeyframeToWebp}
    * on the frames you actually need — one ffmpeg run per unique frame.
    */
   subscribeKeyframes(listener: (frame: RawKeyframe) => void): () => void {
@@ -492,20 +492,20 @@ export class ScrcpyScreenshotManager {
 
   /**
    * Decode a raw keyframe (from {@link subscribeKeyframes} or
-   * {@link getLatestRawKeyframe}) to a JPEG buffer. This is the deferred,
+   * {@link getLatestRawKeyframe}) to a WebP buffer. This is the deferred,
    * per-frame-expensive step (one ffmpeg process per call) — call it only on
    * sampled frames, never inside a capture loop.
    */
-  async decodeRawKeyframeToJpeg(frame: RawKeyframe): Promise<Buffer> {
-    return this.decodeH264ToJpeg(Buffer.concat([frame.header, frame.data]));
+  async decodeRawKeyframeToWebp(frame: RawKeyframe): Promise<Buffer> {
+    return this.decodeH264ToWebp(Buffer.concat([frame.header, frame.data]));
   }
 
   /**
-   * Get screenshot as JPEG.
+   * Get screenshot as WebP.
    * Tries to get a fresh frame within a short timeout. If the screen is static
    * (no new frames arrive), falls back to the latest cached keyframe.
    */
-  async getScreenshotJpeg(): Promise<Buffer> {
+  async getScreenshotWebp(): Promise<Buffer> {
     const perfStart = Date.now();
 
     const t1 = Date.now();
@@ -542,7 +542,7 @@ export class ScrcpyScreenshotManager {
     );
 
     const t4 = Date.now();
-    const result = await this.decodeH264ToJpeg(keyframeBuffer);
+    const result = await this.decodeH264ToWebp(keyframeBuffer);
     const decodeTime = Date.now() - t4;
 
     const totalTime = Date.now() - perfStart;
@@ -662,10 +662,18 @@ export class ScrcpyScreenshotManager {
   }
 
   /**
-   * Decode H.264 data to JPEG using ffmpeg
+   * Decode H.264 to raw RGB with ffmpeg, then encode the selected frame once
+   * as WebP with Sharp. The bundled ffmpeg does not include libwebp.
    */
-  private async decodeH264ToJpeg(h264Buffer: Buffer): Promise<Buffer> {
+  private async decodeH264ToWebp(h264Buffer: Buffer): Promise<Buffer> {
     const { spawn } = await import('node:child_process');
+    const { default: sharp } = await import('sharp');
+    const resolution = this.videoResolution;
+    if (!resolution?.width || !resolution.height) {
+      throw new Error(
+        'Cannot decode scrcpy frame before video resolution is known',
+      );
+    }
 
     return new Promise((resolve, reject) => {
       const ffmpegArgs = [
@@ -676,11 +684,9 @@ export class ScrcpyScreenshotManager {
         '-vframes',
         '1',
         '-f',
-        'image2pipe',
-        '-vcodec',
-        'mjpeg',
-        '-q:v',
-        '5',
+        'rawvideo',
+        '-pix_fmt',
+        'rgb24',
         '-loglevel',
         'error',
         'pipe:1',
@@ -691,32 +697,68 @@ export class ScrcpyScreenshotManager {
         stdio: ['pipe', 'pipe', 'pipe'],
       });
 
-      const chunks: Buffer[] = [];
       let stderrOutput = '';
+      let settled = false;
 
-      ffmpeg.stdout.on('data', (chunk: Buffer) => {
-        chunks.push(chunk);
-      });
+      const encoder = sharp({
+        raw: {
+          width: resolution.width,
+          height: resolution.height,
+          channels: 3,
+        },
+      }).webp({ quality: 90, effort: 1 });
+      // Resolve failures into a value immediately so an ffmpeg spawn/exit
+      // failure cannot leave Sharp with a temporarily unhandled rejection.
+      const encodedWebpResult = encoder.toBuffer().then(
+        (buffer) => ({ ok: true as const, buffer }),
+        (error: unknown) => ({ ok: false as const, error }),
+      );
+      ffmpeg.stdout.pipe(encoder);
 
       ffmpeg.stderr.on('data', (data: Buffer) => {
         stderrOutput += data.toString();
       });
 
-      ffmpeg.on('close', (code) => {
-        if (code === 0 && chunks.length > 0) {
-          const jpegBuffer = Buffer.concat(chunks);
-          debugScrcpy(
-            `FFmpeg decode successful, JPEG size: ${jpegBuffer.length} bytes`,
-          );
-          resolve(jpegBuffer);
-        } else {
+      ffmpeg.on('close', async (code) => {
+        if (settled) return;
+        if (code !== 0) {
+          settled = true;
           const errorMsg = stderrOutput || `FFmpeg exited with code ${code}`;
           debugScrcpy(`FFmpeg decode failed: ${errorMsg}`);
-          reject(new Error(`H.264 to JPEG decode failed: ${errorMsg}`));
+          reject(new Error(`H.264 frame decode failed: ${errorMsg}`));
+          return;
+        }
+
+        try {
+          const encodeResult = await encodedWebpResult;
+          if (!encodeResult.ok) {
+            throw encodeResult.error;
+          }
+          const webpBuffer = encodeResult.buffer;
+          if (
+            webpBuffer.subarray(0, 4).toString('ascii') !== 'RIFF' ||
+            webpBuffer.subarray(8, 12).toString('ascii') !== 'WEBP'
+          ) {
+            throw new Error('Sharp returned invalid WebP bytes');
+          }
+          settled = true;
+          debugScrcpy(
+            `H.264 decode and WebP encode successful, WebP size: ${webpBuffer.length} bytes`,
+          );
+          resolve(webpBuffer);
+        } catch (error) {
+          settled = true;
+          reject(
+            new Error(
+              `H.264 to WebP encode failed: ${error instanceof Error ? error.message : String(error)}`,
+            ),
+          );
         }
       });
 
       ffmpeg.on('error', (error) => {
+        if (settled) return;
+        settled = true;
         reject(new Error(`Failed to spawn ffmpeg process: ${error.message}`));
       });
 

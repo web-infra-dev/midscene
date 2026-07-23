@@ -108,6 +108,7 @@ vi.mock('@midscene/shared/img', async (importOriginal) => {
     });
   return {
     ...original,
+    canonicalizeScreenshotBase64: vi.fn(),
     createImgBase64ByFormat: vi.fn(),
     resizeAndConvertImgBuffer: vi.fn(),
     validateScreenshotBuffer,
@@ -546,6 +547,9 @@ Stdout:
           format,
         }),
       );
+      vi.mocked(ImgUtils.canonicalizeScreenshotBase64).mockImplementation(
+        async (dataUrl) => dataUrl.replace('image/png', 'image/webp'),
+      );
     });
 
     it('should take screenshot successfully with takeScreenshot', async () => {
@@ -558,6 +562,7 @@ Stdout:
       );
 
       const result = await device.screenshotBase64();
+      expect(result).toContain('data:image/webp;base64,');
       expect(result).toContain(mockBuffer.toString('base64'));
       expect(mockAdb.shell).not.toHaveBeenCalled();
     });
@@ -581,6 +586,7 @@ Stdout:
       expect(mockAdb.pull).toHaveBeenCalled();
       expect(fs.promises.readFile).toHaveBeenCalled();
       expect(result).toContain(mockBuffer.toString('base64'));
+      expect(result).toContain('data:image/webp;base64,');
       // rm is now executed via execFile (fire-and-forget), not adb.shell
     });
 
@@ -601,6 +607,7 @@ Stdout:
       const result = await defaultDevice.screenshotBase64();
 
       expect(result).toContain(smallValidPng.toString('base64'));
+      expect(result).toContain('data:image/webp;base64,');
       expect(mockAdb.pull).toHaveBeenCalled();
     });
 

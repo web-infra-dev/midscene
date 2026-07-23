@@ -386,7 +386,7 @@ describe.skipIf(!RUN_LIVE_SMOKE)('Android Emulator live smoke', () => {
       'settings-search-attempt-1.xml',
     );
     const finalXmlFile = path.join(diagnosticsDir, 'settings-final.xml');
-    const screenshotFile = path.join(diagnosticsDir, 'settings-search.png');
+    const screenshotFile = path.join(diagnosticsDir, 'settings-search.webp');
     const dumpFile = path.join(diagnosticsDir, 'agent-dump.json');
     const evidenceFile = path.join(diagnosticsDir, 'evidence.json');
     const runDir = path.resolve(process.env.MIDSCENE_RUN_DIR || 'midscene_run');
@@ -434,6 +434,7 @@ describe.skipIf(!RUN_LIVE_SMOKE)('Android Emulator live smoke', () => {
       const logicalSize = await device.size();
       const screenshot = await device.screenshotBase64();
       const screenshotSize = await imageInfoOfBase64(screenshot);
+      expect(screenshot).toMatch(/^data:image\/webp;base64,/);
       const density = await adb.getScreenDensity();
       evidence.device = {
         id: devices[0].udid,
@@ -525,6 +526,7 @@ describe.skipIf(!RUN_LIVE_SMOKE)('Android Emulator live smoke', () => {
       evidence.keyboardShownBeforeBack = await waitForKeyboardState(adb, true);
 
       const searchScreenshot = await device.screenshotBase64();
+      expect(searchScreenshot).toMatch(/^data:image\/webp;base64,/);
       await writeFile(screenshotFile, screenshotBuffer(searchScreenshot));
 
       await agent.back();
