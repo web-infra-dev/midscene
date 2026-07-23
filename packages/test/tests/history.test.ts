@@ -33,7 +33,7 @@ describe('node history', () => {
       nodes: string[];
       frozen: boolean;
     }> = [];
-    const inspect = defineNode({
+    const inspect = defineNode<{ label: string }>({
       name: 'inspect',
       execute(ctx) {
         snapshots.push({
@@ -135,6 +135,9 @@ describe('node history', () => {
       defineNode({
         name: 'document-node',
         execute(ctx) {
+          if (ctx.scope !== 'document') {
+            throw new Error('document-node only supports document hooks.');
+          }
           documentHistories.push(ctx.history.map((entry) => entry.node));
           return { summary: ctx.document.phase };
         },
@@ -142,6 +145,9 @@ describe('node history', () => {
       defineNode({
         name: 'case-node',
         execute(ctx) {
+          if (ctx.scope !== 'case') {
+            throw new Error('case-node only supports case steps.');
+          }
           caseHistories.push(ctx.history.map((entry) => entry.node));
           if (ctx.case.attemptIndex === 0) throw new Error('retry me');
           return { summary: 'passed' };

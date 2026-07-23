@@ -243,7 +243,9 @@ describe('workflow document runtime', () => {
         name: 'before.fail',
         execute({ onTeardown }) {
           calls.push('beforeAll');
-          onTeardown(() => calls.push('teardown'));
+          onTeardown(() => {
+            calls.push('teardown');
+          });
           throw new Error('prepare failed');
         },
       }),

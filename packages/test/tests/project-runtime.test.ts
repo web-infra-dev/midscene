@@ -15,8 +15,12 @@ describe('project runtime', () => {
     const events: string[] = [];
     const setup = vi.fn(({ onTeardown }) => {
       events.push('setup');
-      onTeardown(() => events.push('release-device'));
-      onTeardown(() => events.push('stop-renewal'));
+      onTeardown(() => {
+        events.push('release-device');
+      });
+      onTeardown(() => {
+        events.push('stop-renewal');
+      });
       return { lease: 'lease-1' };
     });
     const runtime = createProjectRuntime({
@@ -44,7 +48,9 @@ describe('project runtime', () => {
       setup: {
         name: 'dora-android',
         setup({ onTeardown }) {
-          onTeardown(() => events.push('release'));
+          onTeardown(() => {
+            events.push('release');
+          });
           throw new Error('connect failed');
         },
       },
@@ -68,7 +74,9 @@ describe('project runtime', () => {
       setup: {
         name: 'dora-android',
         setup({ onTeardown }) {
-          onTeardown(() => events.push('first'));
+          onTeardown(() => {
+            events.push('first');
+          });
           onTeardown(() => {
             events.push('second');
             throw new Error('close failed');

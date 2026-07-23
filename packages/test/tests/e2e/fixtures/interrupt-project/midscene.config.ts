@@ -2,7 +2,7 @@ import { appendFileSync } from 'node:fs';
 import { defineNode } from '@midscene/test';
 import { defineTestProject } from '@midscene/test/config';
 
-const log = (value) => {
+const log = (value: string) => {
   const path = process.env.WORKFLOW_E2E_LOG;
   if (!path) throw new Error('WORKFLOW_E2E_LOG is required');
   appendFileSync(path, `${value}\n`);

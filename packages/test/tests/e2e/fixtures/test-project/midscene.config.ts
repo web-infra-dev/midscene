@@ -2,7 +2,7 @@ import { appendFileSync } from 'node:fs';
 import { defineNode, z } from '@midscene/test';
 import { defineTestProject } from '@midscene/test/config';
 
-const log = (value) => {
+const log = (value: string) => {
   const path = process.env.WORKFLOW_E2E_LOG;
   if (!path) throw new Error('WORKFLOW_E2E_LOG is required');
   appendFileSync(path, `${value}\n`);
@@ -39,6 +39,9 @@ export default defineTestProject({
           .describe('The expected completed step count.'),
       }),
       execute(ctx) {
+        if (ctx.scope !== 'case') {
+          throw new Error('test.expect-history only supports case steps.');
+        }
         if (ctx.case.completedSteps.length !== ctx.input.count) {
           throw new Error(
             `Expected ${ctx.input.count} completed steps, received ${ctx.case.completedSteps.length}`,

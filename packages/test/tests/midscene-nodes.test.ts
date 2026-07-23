@@ -175,7 +175,7 @@ describe('createMidsceneNodes', () => {
       aiAssert: vi.fn(async () => undefined),
       recordToReport: vi.fn(async () => undefined),
     };
-    const getAgent = vi.fn(async () => agent);
+    const getAgent = vi.fn(async (_runId: string) => agent);
     const releaseAgent = vi.fn(async (runId: string) => ({
       reportPath: resolve(`/tmp/${runId}.html`),
     }));
