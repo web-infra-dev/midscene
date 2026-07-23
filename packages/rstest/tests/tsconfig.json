@@ -4,6 +4,6 @@
     "baseUrl": "../",
     "rootDir": "../"
   },
-  "include": ["**/*", "../src", "../rslib.config.ts", "../rstest.config.ts"],
+  "include": ["**/*", "../src", "../rstest.config.ts"],
   "exclude": ["**/node_modules"]
 }

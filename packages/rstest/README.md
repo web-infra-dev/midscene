@@ -88,12 +88,15 @@ surrounding `describe` name in the test context.
 ## Commands
 
 ```bash
-pnpm build          # rslib, two ESM entries + unbundled dts
+pnpm build          # rslib, two ESM entries + unbundled dts; type-checks too
 pnpm test           # vitest, tests/unit-test only
 pnpm test:smoke     # rstest + a real browser
 pnpm test:demo      # runs demo/ as a project
-pnpm typecheck      # tsc --noEmit
 ```
+
+Type checking rides on `build` via the shared `createTypeCheckPlugin`, and the
+root `pnpm type-check:tests` covers `tests/` — there is no package-local
+`typecheck` script.
 
 `test:smoke` honors `SMOKE_BROWSER_CHANNEL=chrome` to use a system Chrome when
 the Playwright-managed Chromium is not downloaded.

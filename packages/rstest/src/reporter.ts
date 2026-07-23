@@ -25,13 +25,17 @@ export default class MidsceneReporter implements Reporter {
   }
 
   onTestFileResult(file: TestFileResult): void {
+    const manifestPath = manifestPathFor(file.testPath);
     let raw: string;
     try {
-      raw = readFileSync(manifestPathFor(file.testPath), 'utf8');
+      raw = readFileSync(manifestPath, 'utf8');
     } catch {
       // No agent ran in this file, so there is nothing to merge.
       return;
     }
+    // Drained into memory — without this the file would linger until the next
+    // run's `onTestRunStart` pre-clean.
+    rmSync(manifestPath, { force: true });
 
     const entries: ReportManifestEntry[] = raw
       .split('\n')
@@ -50,11 +54,8 @@ export default class MidsceneReporter implements Reporter {
       getReportFileName(sanitizeForFileName(`E2E-${base}`)),
       { overwrite: true },
     );
-    // Fall back to the first report so a path is still printed if the merger
-    // declines to produce a new file.
-    const report = merged ?? entries[0].reportFilePath;
-    if (report) {
-      printReportMsg(report);
+    if (merged) {
+      printReportMsg(merged);
     }
   }
 }

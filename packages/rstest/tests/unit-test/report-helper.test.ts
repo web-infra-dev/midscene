@@ -1,6 +1,7 @@
 import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import type { TestStatus } from '@midscene/core';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   type AgentLike,
@@ -11,7 +12,6 @@ import {
   deriveStatus,
   manifestPathFor,
 } from '../../src/report-helper';
-import { resetManifestDirCache } from '../../src/utils';
 
 function task(name: string, result?: RstestTask['result']): RstestTask {
   return { id: `id-${name}`, name, result };
@@ -43,30 +43,20 @@ function readManifest(filepath: string): ReportManifestEntry[] {
 }
 
 describe('deriveStatus', () => {
-  it('maps pass → passed', () => {
-    expect(deriveStatus({ status: 'pass' })).toBe('passed');
-  });
-
-  it('maps fail → failed', () => {
-    expect(deriveStatus({ status: 'fail' })).toBe('failed');
-  });
-
-  it('detects timeout from error message substring', () => {
-    expect(
-      deriveStatus({
-        status: 'fail',
-        errors: [{ message: 'hook timed out in 60000ms' }],
-      }),
-    ).toBe('timedOut');
-  });
-
-  it('falls back to passed when result is missing', () => {
-    expect(deriveStatus(undefined)).toBe('passed');
-  });
-
-  it('treats skip/todo as passed (no dedicated mapping)', () => {
-    expect(deriveStatus({ status: 'skip' })).toBe('passed');
-    expect(deriveStatus({ status: 'todo' })).toBe('passed');
+  it.each<[string, RstestTask['result'], TestStatus]>([
+    ['pass → passed', { status: 'pass' }, 'passed'],
+    ['fail → failed', { status: 'fail' }, 'failed'],
+    [
+      'timeout, detected from the error message substring',
+      { status: 'fail', errors: [{ message: 'hook timed out in 60000ms' }] },
+      'timedOut',
+    ],
+    ['a missing result → passed', undefined, 'passed'],
+    // skip/todo have no dedicated mapping.
+    ['skip → passed', { status: 'skip' }, 'passed'],
+    ['todo → passed', { status: 'todo' }, 'passed'],
+  ])('maps %s', (_label, result, expected) => {
+    expect(deriveStatus(result)).toBe(expected);
   });
 });
 
@@ -110,7 +100,6 @@ describe('collectReport', () => {
   beforeEach(() => {
     runDir = mkdtempSync(join(tmpdir(), 'midscene-rstest-report-'));
     process.env.MIDSCENE_RUN_DIR = runDir;
-    resetManifestDirCache();
   });
 
   afterEach(() => {
@@ -119,7 +108,6 @@ describe('collectReport', () => {
     } else {
       process.env.MIDSCENE_RUN_DIR = originalRunDir;
     }
-    resetManifestDirCache();
     rmSync(runDir, { recursive: true, force: true });
   });
 

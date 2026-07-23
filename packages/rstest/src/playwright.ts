@@ -1,4 +1,4 @@
-import type { Cache } from '@midscene/core';
+import type { Cache, CacheConfig } from '@midscene/core';
 import { processCacheConfig } from '@midscene/core/utils';
 import { getDebug } from '@midscene/shared/logger';
 import {
@@ -23,15 +23,16 @@ import {
 } from './report-helper';
 
 /**
- * Cache configuration shape exposed to rstest users. `id` is optional — when
- * omitted (or when `cache: true`), the package fills in a stable id derived
- * from the test's file basename and name, so re-runs of the same test reuse
- * the same cache namespace without the user having to manage id strings.
+ * Core's {@link CacheConfig} with `id` relaxed to optional — when omitted (or
+ * when `cache: true`), the package fills in a stable id derived from the
+ * test's file basename and name, so re-runs of the same test reuse the same
+ * cache namespace without the user having to manage id strings. Derived from
+ * `CacheConfig` rather than restated so new cache options stay reachable.
  */
 export type RstestCache =
   | false
   | true
-  | { strategy?: 'read-only' | 'read-write' | 'write-only'; id?: string };
+  | (Omit<CacheConfig, 'id'> & { id?: string });
 
 /**
  * Options for constructing agents (the `agent` fixture and `agentForPage`
@@ -267,5 +268,9 @@ export const test = playwrightBaseTest.extend<InternalFixtures>({
         debug('secondary agent report failed:', err);
       }
     }
+    // The closure above outlives this teardown — rstest keeps a test's fixture
+    // values until the whole file's test tree is released — so drop the
+    // collected agents rather than pinning their dumps for the rest of the file.
+    secondaries.length = 0;
   },
 }) as unknown as MidsceneTest;
