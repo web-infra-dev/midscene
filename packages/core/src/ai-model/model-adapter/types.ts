@@ -245,6 +245,8 @@ export interface ModelRuntime {
    * such as order-sensitive judging and deep-locate search-area calls).
    */
   onUsage?: (usage: AIUsageInfo) => void;
+  /** Exact image URLs included in a model request, after all preprocessing. */
+  onModelInputImages?: (images: readonly string[]) => void;
 }
 
 export interface ModelAdapterDefinition {
