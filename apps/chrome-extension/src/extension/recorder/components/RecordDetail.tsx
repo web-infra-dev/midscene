@@ -19,6 +19,7 @@ import { ProgressModal } from './ProgressModal';
 interface RecordDetailProps {
   sessionId: string;
   isRecording: boolean;
+  isStarting: boolean;
   currentTab: chrome.tabs.Tab | null;
   // events: ChromeRecordedEvent[];
   onBack: () => void;
@@ -32,6 +33,7 @@ interface RecordDetailProps {
 export const RecordDetail: React.FC<RecordDetailProps> = ({
   sessionId,
   isRecording,
+  isStarting,
   // events = [],
   onBack,
   onStartRecording,
@@ -283,7 +285,8 @@ export const RecordDetail: React.FC<RecordDetailProps> = ({
               type="primary"
               icon={<PlayCircleOutlined />}
               onClick={() => onStartRecording(sessionId)}
-              disabled={isRecording}
+              disabled={isRecording || isStarting}
+              loading={isStarting}
               className="!fixed bottom-4 left-1/2 transform -translate-x-1/2 z-[1000] !h-[40px] !py-[12px] !px-[12px] !rounded-[48px]"
               style={{ fontFamily: 'Inter, -apple-system, sans-serif' }}
             >

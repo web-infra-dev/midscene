@@ -67,7 +67,7 @@
   // own internal spacing instead of inheriting that outer inset.
   &.playground-conversation-skin {
     .middle-dialog-area .info-list-container {
-      padding: 0;
+      padding: 16px 0 0;
     }
 
     .bottom-input-section {
@@ -157,9 +157,17 @@
 
     .clear-button-container {
       position: absolute;
-      top: 16px;
+      top: 24px;
       right: -6px;
       z-index: 20;
+    }
+
+    // The clear control occupies the timeline's right edge. Reserve its
+    // 24px hit area plus an 8px gap so a right-aligned user bubble never
+    // sits underneath it.
+    .user-message-container {
+      box-sizing: border-box;
+      padding-right: 32px;
     }
 
     .middle-dialog-area .info-list-container {

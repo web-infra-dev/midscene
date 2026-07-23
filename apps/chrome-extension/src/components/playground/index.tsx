@@ -149,6 +149,10 @@ export function BrowserExtensionPlayground({
         // short-lived SDK instance so a tab switch does not open an empty
         // session.
         storageNamespace: 'chrome-extension-playground',
+        hidePlayerFullscreenControl: true,
+        // The extension is an action console, not a long-lived report archive.
+        // Keep one execution timeline so repeated submits cannot pile up cards.
+        clearTimelineBeforeRun: true,
         layout: 'vertical',
         showVersionInfo: true,
         enableScrollToBottom: true,

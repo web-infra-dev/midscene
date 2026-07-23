@@ -1,59 +1,32 @@
 #!/usr/bin/env node
 
 import fs from 'node:fs';
+import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-const manifestPath = path.resolve(__dirname, '../dist/manifest.json');
-const indexHtmlPath = path.resolve(__dirname, '../dist/index.html');
-const indexJsPath = path.resolve(__dirname, '../dist/static/js/index.js');
-const popupJsPath = path.resolve(__dirname, '../dist/static/js/popup.js');
-const maxWaitTime = 180000; // 180 seconds (workspace dev dependencies take time to start)
-const checkInterval = 500; // 500ms
-const stabilityWait = 1000; // Wait 1 second after detection to ensure files are stable
-
+const extensionReloadSignalPath = path.join(
+  tmpdir(),
+  'midscene-chrome-extension-reload',
+);
+const maxWaitTime = 180000;
+const checkInterval = 100;
 let elapsed = 0;
 
-console.log('Waiting for initial build to complete...');
+console.log('Waiting for the first complete extension build...');
 
-const checkBuildComplete = () => {
-  const manifestExists = fs.existsSync(manifestPath);
-  const indexExists = fs.existsSync(indexHtmlPath);
-  const indexJsExists = fs.existsSync(indexJsPath);
-  const popupJsExists = fs.existsSync(popupJsPath);
-
-  if (manifestExists && indexExists && indexJsExists && popupJsExists) {
-    // Wait a bit more to ensure all files are written
-    console.log('Build files detected, waiting for stability...');
-    setTimeout(() => {
-      // Double check the files still exist
-      if (
-        fs.existsSync(manifestPath) &&
-        fs.existsSync(indexHtmlPath) &&
-        fs.existsSync(indexJsPath) &&
-        fs.existsSync(popupJsPath)
-      ) {
-        console.log('Build complete! Starting web-ext...');
-        process.exit(0);
-      } else {
-        console.log('Build files disappeared, continuing to wait...');
-        setTimeout(checkBuildComplete, checkInterval);
-      }
-    }, stabilityWait);
-    return;
+const waitForBuildSignal = () => {
+  if (fs.existsSync(extensionReloadSignalPath)) {
+    console.log('Build complete! Starting web-ext...');
+    process.exit(0);
   }
 
   elapsed += checkInterval;
-
   if (elapsed >= maxWaitTime) {
-    console.error('Timeout waiting for build to complete');
+    console.error('Timeout waiting for build completion signal');
     process.exit(1);
   }
 
-  setTimeout(checkBuildComplete, checkInterval);
+  setTimeout(waitForBuildSignal, checkInterval);
 };
 
-checkBuildComplete();
+waitForBuildSignal();

@@ -19,6 +19,7 @@ interface RecordListProps {
   onExportAllEvents: () => void;
   onViewDetail: (session: RecordingSession) => void;
   isExtensionMode: boolean;
+  isRecordingStoreReady: boolean;
   handleCreateNewSession: () => void;
 }
 
@@ -31,13 +32,14 @@ export const RecordList: React.FC<RecordListProps> = ({
   onExportAllEvents,
   onViewDetail,
   isExtensionMode,
+  isRecordingStoreReady,
   handleCreateNewSession,
 }) => {
   const { config } = useEnvConfig();
 
   const runButtonEnabled = Object.keys(config || {}).length >= 1;
   const hasEventsToExport = sessions.some(
-    (session) => session.events.length > 0,
+    (session) => (session.eventCount ?? session.events.length) > 0,
   );
 
   return (
@@ -131,7 +133,9 @@ export const RecordList: React.FC<RecordListProps> = ({
                         e.stopPropagation();
                         onExportSession(session);
                       }}
-                      disabled={session.events.length === 0}
+                      disabled={
+                        (session.eventCount ?? session.events.length) === 0
+                      }
                     />
                   </div>
                   <div className="w-px h-5 bg-[rgba(0, 0, 0, 0.04)]" />
@@ -165,7 +169,7 @@ export const RecordList: React.FC<RecordListProps> = ({
       <Button
         type="primary"
         className="!fixed bottom-4 left-1/2 transform -translate-x-1/2 z-[1000] !h-[40px] !py-[12px] !px-[16px] !rounded-[48px]"
-        disabled={!runButtonEnabled}
+        disabled={!runButtonEnabled || !isRecordingStoreReady}
         // className="!fixed bottom-4 left-1/2 transform -translate-x-1/2 z-[1000] flex items-center justify-center gap-[10px] text-[14px] text-white w-[172px] h-[40px] rounded-[48px] border py-[12px] px-[16px]"
         icon={<PlusOutlined className="stroke-[2]" />}
         onClick={handleCreateNewSession}

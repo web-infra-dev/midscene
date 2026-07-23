@@ -1,7 +1,11 @@
 import { GithubOutlined, QuestionCircleOutlined } from '@ant-design/icons';
 import { Typography } from 'antd';
 import type { PlaygroundSDKLike } from '../../types';
-import { EnvConfig } from '../env-config';
+import {
+  type CommonAgentOptions,
+  EnvConfig,
+  type EnvConfigProps,
+} from '../env-config';
 import './style.less';
 
 export interface NavActionsProps {
@@ -12,6 +16,9 @@ export interface NavActionsProps {
   helpUrl?: string;
   className?: string;
   playgroundSDK?: PlaygroundSDKLike | null;
+  onVerify?: EnvConfigProps['onVerify'];
+  agentOptions?: CommonAgentOptions;
+  onAgentOptionsSave?: (options: CommonAgentOptions) => void | Promise<void>;
 }
 
 export function NavActions({
@@ -22,6 +29,9 @@ export function NavActions({
   helpUrl = 'https://midscenejs.com/quick-experience.html',
   className = '',
   playgroundSDK,
+  onVerify,
+  agentOptions,
+  onAgentOptionsSave,
 }: NavActionsProps) {
   return (
     <div className={`nav-actions ${className}`}>
@@ -36,6 +46,9 @@ export function NavActions({
           showTooltipWhenEmpty={showTooltipWhenEmpty}
           showModelName={showModelName}
           playgroundSDK={playgroundSDK}
+          onVerify={onVerify}
+          agentOptions={agentOptions}
+          onAgentOptionsSave={onAgentOptionsSave}
         />
       )}
     </div>

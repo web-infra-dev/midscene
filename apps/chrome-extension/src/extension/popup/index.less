@@ -178,6 +178,13 @@ html[data-theme='dark'] {
       min-height: 0;
     }
   }
+
+  // The Playground's clear action intentionally extends slightly into this
+  // shell padding. Let it render there; the popup wrapper still clips at the
+  // actual side-panel boundary.
+  .popup-content:has(.chrome-extension-playground) {
+    overflow: visible;
+  }
 }
 
 /* dropdown menu style */

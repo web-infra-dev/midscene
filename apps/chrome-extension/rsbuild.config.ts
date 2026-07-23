@@ -1,3 +1,5 @@
+import { writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { defineConfig } from '@rsbuild/core';
 import { pluginLess } from '@rsbuild/plugin-less';
@@ -10,6 +12,11 @@ import {
   commonIgnoreWarnings,
   createTypeCheckPlugin,
 } from '../../scripts/rsbuild-utils.ts';
+
+const extensionReloadSignalPath = path.join(
+  tmpdir(),
+  'midscene-chrome-extension-reload',
+);
 
 export default defineConfig({
   tools: {
@@ -73,6 +80,10 @@ export default defineConfig({
     lazyCompilation: false, // Disable lazy compilation for Chrome extension compatibility
   },
   output: {
+    // Chrome continues to serve the currently loaded extension while a dev
+    // build runs. Keep that complete release intact until the next compile has
+    // finished and emitted the reload signal below.
+    cleanDistPath: false,
     polyfill: 'entry',
     injectStyles: true,
     copy: [
@@ -129,5 +140,15 @@ export default defineConfig({
         },
       },
     }),
+    {
+      name: 'chrome-extension-reload-signal',
+      setup(api) {
+        api.onAfterDevCompile(async () => {
+          // web-ext watches this file instead of dist, which can be temporarily
+          // incomplete while Rsbuild replaces the extension manifest and assets.
+          await writeFile(extensionReloadSignalPath, `${Date.now()}\n`);
+        });
+      },
+    },
   ],
 });
