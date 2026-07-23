@@ -32,8 +32,7 @@
     "test": "vitest --run",
     "test:smoke": "rstest run",
     "test:demo": "rstest run --config rstest.config.ts --root demo",
-    "test:watch": "vitest",
-    "typecheck": "tsc --noEmit"
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@midscene/shared": "workspace:*"
@@ -52,10 +51,8 @@
     "@rstest/core": "0.11.2",
     "@rstest/playwright": "^0.11.2",
     "@types/node": "^18.0.0",
-    "deepmerge": "^4.3.1",
     "dotenv": "^16.4.5",
     "playwright": "^1.45.0",
-    "reduce-configs": "^1.1.2",
     "std-env": "^4.1.0",
     "typescript": "^5.8.3",
     "vitest": "3.0.5"

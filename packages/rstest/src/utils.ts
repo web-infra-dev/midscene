@@ -3,28 +3,21 @@ import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
 
-let manifestDir: string | undefined;
-
 /**
  * Manifest files bridge the worker processes (which append one entry per test
  * from fixture teardown) and the reporter in the main process (which merges
  * them per test file). Kept under the `MIDSCENE_RUN_DIR`-aware tmp dir like
  * every other Midscene artifact.
  *
- * The path only depends on `process.cwd()` and `MIDSCENE_RUN_DIR`, so it is
- * resolved and created once per process rather than on every test teardown.
+ * Resolved fresh on every call rather than memoized: `MidsceneReporter`
+ * removes this directory at run start, so a cached path would survive its own
+ * directory in watch mode. `getMidsceneRunSubDir` already guards its own mkdir,
+ * making the repeat cost negligible next to the report write that follows.
  */
 export function getManifestDir(): string {
-  if (!manifestDir) {
-    manifestDir = join(getMidsceneRunSubDir('tmp'), 'rstest-manifest');
-    mkdirSync(manifestDir, { recursive: true });
-  }
-  return manifestDir;
-}
-
-/** Only for tests, which point `MIDSCENE_RUN_DIR` at a fresh tmp dir. */
-export function resetManifestDirCache(): void {
-  manifestDir = undefined;
+  const dir = join(getMidsceneRunSubDir('tmp'), 'rstest-manifest');
+  mkdirSync(dir, { recursive: true });
+  return dir;
 }
 
 export function manifestKey(testPath: string): string {
