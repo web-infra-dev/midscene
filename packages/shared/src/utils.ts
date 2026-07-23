@@ -12,6 +12,11 @@ export function uuid(): string {
   return generateUUID();
 }
 
+/** Return the lowercase SHA-256 digest of UTF-8 text or raw bytes. */
+export function sha256Hex(input: string | Uint8Array): string {
+  return sha256.create().update(input).hex();
+}
+
 const hashMap: Record<string, string> = {}; // id - combined
 
 export function generateHashId(rect: any, content = ''): string {

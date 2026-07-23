@@ -4,6 +4,11 @@
  */
 
 import { getDebug } from '../logger';
+import {
+  detectScreenshotImageFormatFromBuffer,
+  inferScreenshotImageFormatFromBase64,
+  screenshotImageMimeType,
+} from './image-format';
 
 const debug = getDebug('img:canvas-fallback');
 
@@ -42,6 +47,18 @@ export class CanvasImage {
 
   get_bytes_jpeg(quality: number): Uint8Array {
     const dataUrl = this.canvas.toDataURL('image/jpeg', quality / 100);
+    return CanvasImage.bytesFromDataUrl(dataUrl);
+  }
+
+  get_bytes_webp(quality = 90): Uint8Array {
+    const dataUrl = this.canvas.toDataURL('image/webp', quality / 100);
+    if (!dataUrl.startsWith('data:image/webp;base64,')) {
+      throw new Error('Canvas does not support WebP encoding');
+    }
+    return CanvasImage.bytesFromDataUrl(dataUrl);
+  }
+
+  private static bytesFromDataUrl(dataUrl: string): Uint8Array {
     const base64 = dataUrl.split(',')[1];
     const binary = atob(base64);
     const bytes = new Uint8Array(binary.length);
@@ -89,7 +106,9 @@ export class CanvasImage {
       if (base64Body.startsWith('data:')) {
         img.src = base64Body;
       } else {
-        img.src = `data:image/png;base64,${base64Body}`;
+        const format =
+          inferScreenshotImageFormatFromBase64(base64Body) ?? 'png';
+        img.src = `data:${screenshotImageMimeType(format)};base64,${base64Body}`;
       }
     });
   }
@@ -99,7 +118,10 @@ export class CanvasImage {
    */
   static async new_from_byteslice(bytes: Uint8Array): Promise<CanvasImage> {
     return new Promise((resolve, reject) => {
-      const blob = new Blob([bytes], { type: 'image/png' });
+      const format = detectScreenshotImageFormatFromBuffer(bytes) ?? 'png';
+      const blob = new Blob([bytes], {
+        type: screenshotImageMimeType(format),
+      });
       const url = URL.createObjectURL(blob);
       const img = new Image();
 

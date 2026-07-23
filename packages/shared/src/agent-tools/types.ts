@@ -98,7 +98,7 @@ export type UserPromptLike =
 
 export interface RecordToReportScreenshot {
   /**
-   * PNG/JPEG data URI, or raw PNG base64 body.
+   * PNG/JPEG/WebP data URI, or raw PNG/WebP base64 body.
    */
   base64: string;
   description?: string;

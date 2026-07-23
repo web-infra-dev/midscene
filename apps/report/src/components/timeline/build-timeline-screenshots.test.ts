@@ -4,6 +4,8 @@ import { buildTimelineScreenshots } from './build-timeline-screenshots';
 
 const onePixelPngBase64 =
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAFgwJ/lz8yrwAAAABJRU5ErkJggg==';
+const webpBase64 =
+  'UklGRjQAAABXRUJQVlA4ICgAAACQAQCdASoCAAMAAMASJQBOl0AAjNAA/v4icv1difCfoP7mxzi2QwAA';
 
 interface TaskFixtureOptions {
   id: string;
@@ -101,6 +103,19 @@ describe('buildTimelineScreenshots', () => {
     expect(allScreenshots[0].img).toBe(
       `data:image/png;base64,${onePixelPngBase64}`,
     );
+  });
+
+  it('labels raw WebP recorder screenshots with the WebP MIME type', () => {
+    const task = makeTask({
+      id: 'raw-webp-recorder',
+      startTs: 1000,
+      recorder: [{ ts: 1200, screenshot: webpBase64 }],
+    });
+
+    const { allScreenshots } = buildTimelineScreenshots([task]);
+
+    expect(allScreenshots).toHaveLength(1);
+    expect(allScreenshots[0].img).toBe(`data:image/webp;base64,${webpBase64}`);
   });
 
   it('keeps already-prefixed data URLs unchanged', () => {

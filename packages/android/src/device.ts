@@ -31,6 +31,7 @@ import {
 } from '@midscene/shared/env';
 import type { ElementInfo } from '@midscene/shared/extractor';
 import {
+  canonicalizeScreenshotBase64,
   createImgBase64ByFormat,
   validateScreenshotBuffer,
 } from '@midscene/shared/img';
@@ -518,7 +519,7 @@ ${Object.keys(size)
   /**
    * Continuous frame source backed by the scrcpy video stream.
    *
-   * Decoding H.264 to JPEG costs an ffmpeg process per frame (~100ms measured
+   * Decoding H.264 to WebP costs an ffmpeg process plus one Sharp encode per
    * on-device), so `latest()` hands out RAW keyframe handles (near-zero cost —
    * the stream is already flowing) and `decode()` pays the ffmpeg cost only
    * for the frames the observer actually sampled, at the end of the window.
@@ -551,7 +552,7 @@ ${Object.keys(size)
         const images: string[] = [];
         for (const frameRef of refs) {
           images.push(
-            await adapter.decodeRawKeyframeToJpegBase64(
+            await adapter.decodeRawKeyframeToWebpBase64(
               frameRef.ref as RawKeyframe,
             ),
           );
@@ -1269,9 +1270,8 @@ ${Object.keys(size)
     }
 
     debugDevice('Converting to base64');
-    const result = createImgBase64ByFormat(
-      'png',
-      screenshotBuffer.toString('base64'),
+    const result = await canonicalizeScreenshotBase64(
+      createImgBase64ByFormat('png', screenshotBuffer.toString('base64')),
     );
     if (localScreenshotPath) {
       debugDevice(`Deleting local screenshot: ${localScreenshotPath}`);

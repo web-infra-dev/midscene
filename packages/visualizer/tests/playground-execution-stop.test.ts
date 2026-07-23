@@ -95,7 +95,7 @@ function Harness({
   return null;
 }
 
-function replayDump() {
+function replayDump(mimeType: 'image/png' | 'image/webp' = 'image/png') {
   return {
     sdkVersion: 'test',
     groupName: 'Playground run',
@@ -113,7 +113,7 @@ function replayDump() {
                 type: 'midscene_screenshot_ref',
                 id: 'shot-1',
                 capturedAt: 1,
-                mimeType: 'image/png',
+                mimeType,
                 storage: 'inline',
               },
             },
@@ -276,7 +276,7 @@ describe('usePlaygroundExecution stop handling', () => {
     const fetchMock = vi.fn(async () =>
       Promise.resolve({
         ok: true,
-        json: async () => replayDump(),
+        json: async () => replayDump('image/webp'),
       }),
     );
     vi.stubGlobal('fetch', fetchMock);
@@ -331,7 +331,7 @@ describe('usePlaygroundExecution stop handling', () => {
     const restoredDump = allScriptsFromDumpMock.mock.calls[0]?.[0] as any;
     expect(
       restoredDump.executions[0].tasks[0].uiContext.screenshot.base64,
-    ).toBe('http://localhost/reports/report-1/screenshots/shot-1.png');
+    ).toBe('http://localhost/reports/report-1/screenshots/shot-1.webp');
 
     await act(async () => root.unmount());
   });

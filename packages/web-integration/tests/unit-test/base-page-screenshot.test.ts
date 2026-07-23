@@ -24,43 +24,36 @@ vi.mock('@/web-page', () => ({
 }));
 
 describe('Page screenshotBase64', () => {
-  it('uses the regular playwright screenshot path when it succeeds', async () => {
-    const screenshot = vi.fn().mockResolvedValue(Buffer.from('plain-shot'));
-    const newCDPSession = vi.fn();
-    const mockPage = {
-      url: () => 'http://example.com',
-      isClosed: () => false,
-      screenshot,
-      context: () => ({
-        browser: () => ({
-          browserType: () => ({
-            name: () => 'chromium',
-          }),
-        }),
-        newCDPSession,
-      }),
-    } as any;
+  const webpBody =
+    'UklGRjQAAABXRUJQVlA4ICgAAACQAQCdASoCAAMAAMASJQBOl0AAjNAA/v4icv1difCfoP7mxzi2QwAA';
+  const pngBody =
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
 
-    const page = new Page(mockPage, 'playwright');
-    const result = await page.screenshotBase64();
+  it('uses Puppeteer native WebP capture', async () => {
+    const screenshot = vi.fn().mockResolvedValue(webpBody);
+    const page = new Page(
+      {
+        url: () => 'http://example.com',
+        screenshot,
+      } as any,
+      'puppeteer',
+    );
 
-    expect(result).toContain('data:image/jpeg;base64,');
-    expect(screenshot).toHaveBeenCalledTimes(1);
-    expect(newCDPSession).not.toHaveBeenCalled();
+    await expect(page.screenshotBase64()).resolves.toBe(
+      `data:image/webp;base64,${webpBody}`,
+    );
+    expect(screenshot).toHaveBeenCalledWith({
+      type: 'webp',
+      quality: 90,
+      encoding: 'base64',
+    });
   });
 
-  it('falls back to a CDP screenshot when playwright screenshot times out', async () => {
-    const screenshot = vi
-      .fn()
-      .mockRejectedValue(
-        new Error('page.screenshot: Timeout 10000ms exceeded.'),
-      );
+  it('uses Chromium CDP native WebP when available', async () => {
+    const screenshot = vi.fn().mockResolvedValue(Buffer.from('plain-shot'));
     const detach = vi.fn().mockResolvedValue(undefined);
-    const send = vi.fn().mockResolvedValue({ data: 'Y2RwLXNob3Q=' });
-    const newCDPSession = vi.fn().mockResolvedValue({
-      send,
-      detach,
-    });
+    const send = vi.fn().mockResolvedValue({ data: webpBody });
+    const newCDPSession = vi.fn().mockResolvedValue({ send, detach });
     const mockPage = {
       url: () => 'http://example.com',
       isClosed: () => false,
@@ -78,13 +71,44 @@ describe('Page screenshotBase64', () => {
     const page = new Page(mockPage, 'playwright');
     const result = await page.screenshotBase64();
 
-    expect(result).toContain('data:image/jpeg;base64,');
-    expect(newCDPSession).toHaveBeenCalledTimes(1);
+    expect(result).toBe(`data:image/webp;base64,${webpBody}`);
+    expect(screenshot).not.toHaveBeenCalled();
     expect(send).toHaveBeenCalledWith('Page.captureScreenshot', {
-      format: 'jpeg',
+      format: 'webp',
       quality: 90,
     });
-    expect(detach).toHaveBeenCalledTimes(1);
+  });
+
+  it('falls back to public PNG capture and returns WebP without CDP', async () => {
+    const screenshot = vi
+      .fn()
+      .mockResolvedValue(Buffer.from(pngBody, 'base64'));
+    const newCDPSession = vi
+      .fn()
+      .mockRejectedValue(new Error('CDP unavailable'));
+    const mockPage = {
+      url: () => 'http://example.com',
+      isClosed: () => false,
+      screenshot,
+      context: () => ({
+        browser: () => ({
+          browserType: () => ({
+            name: () => 'chromium',
+          }),
+        }),
+        newCDPSession,
+      }),
+    } as any;
+
+    const page = new Page(mockPage, 'playwright');
+    const result = await page.screenshotBase64();
+
+    expect(result).toMatch(/^data:image\/webp;base64,UklGR/);
+    expect(newCDPSession).toHaveBeenCalledTimes(1);
+    expect(screenshot).toHaveBeenCalledWith({
+      type: 'png',
+      timeout: 10 * 1000,
+    });
   });
 
   it('times out when the CDP screenshot fallback does not return in time', async () => {
@@ -124,11 +148,13 @@ describe('Page screenshotBase64', () => {
     await vi.advanceTimersByTimeAsync(10 * 1000);
 
     await expect(resultPromise).resolves.toMatchObject({
-      message: 'CDP screenshot timeout after 10000ms.',
+      message: expect.stringContaining(
+        'Playwright screenshot failed through both CDP WebP and PNG fallback',
+      ),
     });
     expect(newCDPSession).toHaveBeenCalledTimes(1);
     expect(send).toHaveBeenCalledWith('Page.captureScreenshot', {
-      format: 'jpeg',
+      format: 'webp',
       quality: 90,
     });
     expect(detach).toHaveBeenCalledTimes(1);
@@ -173,7 +199,9 @@ describe('Page screenshotBase64', () => {
     await vi.advanceTimersByTimeAsync(10 * 1000);
 
     await expect(resultPromise).resolves.toMatchObject({
-      message: 'CDP screenshot timeout after 10000ms.',
+      message: expect.stringContaining(
+        'Playwright screenshot failed through both CDP WebP and PNG fallback',
+      ),
     });
     expect(detach).toHaveBeenCalledTimes(1);
 
