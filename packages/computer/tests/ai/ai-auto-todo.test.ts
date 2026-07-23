@@ -75,7 +75,7 @@ describe('computer todo app automation', () => {
             .screenshotBase64()
             .then((base64) =>
               writeFile(
-                path.join(resolvedDiagnosticsDir, 'todo-final.png'),
+                path.join(resolvedDiagnosticsDir, 'todo-final.webp'),
                 screenshotBuffer(base64),
               ),
             ),

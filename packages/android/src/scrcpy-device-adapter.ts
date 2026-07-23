@@ -207,11 +207,11 @@ export class ScrcpyDeviceAdapter {
 
     try {
       const manager = await this.ensureManager(deviceInfo);
-      const screenshotBuffer = await manager.getScreenshotJpeg();
+      const screenshotBuffer = await manager.getScreenshotWebp();
       this.clearFailure();
 
       return createImgBase64ByFormat(
-        'jpeg',
+        'webp',
         screenshotBuffer.toString('base64'),
       );
     } catch (error) {
@@ -249,15 +249,15 @@ export class ScrcpyDeviceAdapter {
   }
 
   /**
-   * Decode a raw keyframe to a JPEG data URL. Deferred, per-frame-expensive
+   * Decode a raw keyframe to a WebP data URL. Deferred, per-frame-expensive
    * step (one ffmpeg process per call) — only call on sampled frames.
    */
-  async decodeRawKeyframeToJpegBase64(frame: RawKeyframe): Promise<string> {
+  async decodeRawKeyframeToWebpBase64(frame: RawKeyframe): Promise<string> {
     if (!this.manager) {
       throw new Error('scrcpy manager is not initialized');
     }
-    const jpegBuffer = await this.manager.decodeRawKeyframeToJpeg(frame);
-    return createImgBase64ByFormat('jpeg', jpegBuffer.toString('base64'));
+    const webpBuffer = await this.manager.decodeRawKeyframeToWebp(frame);
+    return createImgBase64ByFormat('webp', webpBuffer.toString('base64'));
   }
 
   /**

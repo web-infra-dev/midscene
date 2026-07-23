@@ -1,6 +1,16 @@
 import { Buffer } from 'node:buffer';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+const FAKE_WEBP_BASE64 =
+  'UklGRioAAABXRUJQVlA4IB4AAAAwAQCdASoBAAEAAUAmJQBOgCHwAP7+hNQAAAA=';
+
+vi.mock('@midscene/shared/img', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@midscene/shared/img')>()),
+  canonicalizeScreenshotBase64: vi.fn(
+    async () => `data:image/webp;base64,${FAKE_WEBP_BASE64}`,
+  ),
+}));
+
 // A 1x1 PNG, base64-encoded, as PowerShell's CopyFromScreen path would print
 // to stdout.
 const FAKE_PNG_BASE64 =
@@ -36,7 +46,7 @@ describe('Windows screenshot via PowerShell (issue #2150)', () => {
     vi.resetModules();
   });
 
-  it('captures through powershell.exe and returns a PNG data URI', async () => {
+  it('captures through powershell.exe and returns a WebP data URI', async () => {
     Object.defineProperty(process, 'platform', { value: 'win32' });
     const { ComputerDevice } = await import('../../src/device');
 
@@ -45,7 +55,7 @@ describe('Windows screenshot via PowerShell (issue #2150)', () => {
 
     expect(execFileSync).toHaveBeenCalledTimes(1);
     expect(execFileSync.mock.calls[0][0]).toBe('powershell.exe');
-    expect(base64).toBe(`data:image/png;base64,${FAKE_PNG_BASE64}`);
+    expect(base64).toMatch(/^data:image\/webp;base64,UklGR/);
 
     // ExecutionPolicy only gates .ps1 files, not -EncodedCommand input, so it
     // must not be passed.
