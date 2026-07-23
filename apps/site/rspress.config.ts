@@ -234,10 +234,6 @@ export default defineConfig(async () => {
             link: '/integrate-with-puppeteer',
           },
           {
-            text: 'Integrate with Rstest',
-            link: '/integrate-with-rstest',
-          },
-          {
             text: 'Bridge to the desktop Chrome',
             link: '/bridge-mode',
           },
@@ -426,10 +422,6 @@ export default defineConfig(async () => {
           {
             text: '集成到 Puppeteer',
             link: '/zh/integrate-with-puppeteer',
-          },
-          {
-            text: '集成到 Rstest',
-            link: '/zh/integrate-with-rstest',
           },
           {
             text: '桥接到桌面 Chrome',
