@@ -37,6 +37,7 @@
 #include <winpr/synch.h>
 
 #include "rdp_helper_connection_policy.hpp"
+#include "rdp_helper_session_policy.hpp"
 
 namespace midscene::rdp {
 
@@ -512,6 +513,7 @@ BOOL MidsceneEndPaint(rdpContext* context) {
     ok = typed_context->owner->CallOriginalEndPaint(context);
     const bool already_painted = typed_context->owner->HasFramePainted();
     if (ok && framebuffer_invalidated) {
+      typed_context->owner->MarkFramebufferUpdated();
       if (already_painted) {
         typed_context->owner->MarkFramePainted();
       } else if (auto first_frame = CaptureInformativeFramebuffer(context);
@@ -978,6 +980,7 @@ ConnectionInfo FreeRdpSessionTransport::Connect(const ConnectionConfig& config) 
     mouse_x_ = 0;
     mouse_y_ = 0;
     frames_painted_.store(0, std::memory_order_relaxed);
+    framebuffer_updates_.store(0, std::memory_order_relaxed);
     {
       std::lock_guard<std::mutex> frame_lock(frame_mutex_);
       first_frame_.reset();
@@ -1061,18 +1064,15 @@ ConnectionInfo FreeRdpSessionTransport::Connect(const ConnectionConfig& config) 
 
   if (!painted) {
     std::string reason;
+    const uint64_t framebuffer_updates =
+        framebuffer_updates_.load(std::memory_order_relaxed);
     {
       std::lock_guard<std::mutex> lock(mutex_);
       reason = connected_ ? std::string() : LastFreeRdpErrorLocked();
     }
     StopInstance(false);
-    std::string message =
-        "Connected to the RDP server but received no desktop frame within "
-        "timeout; the remote desktop may be blank or locked";
-    if (!reason.empty()) {
-      message += " (" + reason + ")";
-    }
-    throw std::runtime_error(message);
+    throw std::runtime_error(
+        BuildFirstFrameTimeoutMessage(framebuffer_updates, reason));
   }
 
   return info;
@@ -1357,6 +1357,7 @@ void FreeRdpSessionTransport::ResetStateLocked() {
   connected_ = false;
   gdi_initialized_ = false;
   frames_painted_.store(0, std::memory_order_relaxed);
+  framebuffer_updates_.store(0, std::memory_order_relaxed);
   {
     std::lock_guard<std::mutex> frame_lock(frame_mutex_);
     first_frame_.reset();
@@ -1402,6 +1403,10 @@ void FreeRdpSessionTransport::MarkFramePainted(
   frame_cv_.notify_all();
 }
 
+void FreeRdpSessionTransport::MarkFramebufferUpdated() {
+  framebuffer_updates_.fetch_add(1, std::memory_order_relaxed);
+}
+
 bool FreeRdpSessionTransport::HasFramePainted() const {
   return frames_painted_.load(std::memory_order_relaxed) > 0;
 }
@@ -1418,12 +1423,22 @@ void FreeRdpSessionTransport::ClearSessionErrorLocked() {
   last_error_.reset();
 }
 
-void FreeRdpSessionTransport::SetSessionError(std::string message, std::string code) {
+bool FreeRdpSessionTransport::RecordEventLoopFailureIfActive(
+    bool operation_failed,
+    bool disconnect_requested,
+    std::string message) {
   std::lock_guard<std::mutex> lock(mutex_);
+  if (!ShouldReportEventLoopFailure(operation_failed, disconnect_requested,
+                                    running_, connected_)) {
+    return false;
+  }
   last_error_ = ErrorPayload{
-      std::move(code),
+      "session_lost",
       message.empty() ? "RDP session was lost" : std::move(message),
   };
+  connected_ = false;
+  running_ = false;
+  return true;
 }
 
 std::string FreeRdpSessionTransport::LastFreeRdpErrorLocked() const {
@@ -1522,11 +1537,9 @@ void FreeRdpSessionTransport::EventLoop() {
     const DWORD count = freerdp_get_event_handles(
         instance->context, handles, static_cast<DWORD>(std::size(handles)));
     if (count == 0) {
-      SetSessionError("freerdp_get_event_handles returned no handles", "session_lost");
-      {
-        std::lock_guard<std::mutex> lock(mutex_);
-        connected_ = false;
-        running_ = false;
+      if (!RecordEventLoopFailureIfActive(
+              true, false, "freerdp_get_event_handles returned no handles")) {
+        return;
       }
       std::fprintf(stderr,
                    "RDP session event loop failed: freerdp_get_event_handles returned no handles\n");
@@ -1537,12 +1550,10 @@ void FreeRdpSessionTransport::EventLoop() {
 
     const DWORD status = WaitForMultipleObjects(count, handles, FALSE, 100);
     if (status == WAIT_FAILED) {
-      SetSessionError("WaitForMultipleObjects failed in the RDP event loop",
-                      "session_lost");
-      {
-        std::lock_guard<std::mutex> lock(mutex_);
-        connected_ = false;
-        running_ = false;
+      if (!RecordEventLoopFailureIfActive(
+              true, false,
+              "WaitForMultipleObjects failed in the RDP event loop")) {
+        return;
       }
       std::fprintf(stderr,
                    "RDP session event loop failed: WaitForMultipleObjects failed\n");
@@ -1568,11 +1579,9 @@ void FreeRdpSessionTransport::EventLoop() {
     }
 
     if (!ok || should_disconnect) {
-      SetSessionError(failure_reason, "session_lost");
-      {
-        std::lock_guard<std::mutex> lock(mutex_);
-        connected_ = false;
-        running_ = false;
+      if (!RecordEventLoopFailureIfActive(!ok, should_disconnect,
+                                          failure_reason)) {
+        return;
       }
       std::fprintf(stderr, "RDP session event loop failed: %s\n",
                    failure_reason.c_str());
