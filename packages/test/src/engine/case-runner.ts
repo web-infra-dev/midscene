@@ -27,6 +27,7 @@ export class CaseRunner<TContext = undefined> {
       caseIndex: 0,
       definition: {
         name: input.name ?? 'case',
+        tags: input.tags ?? [],
         steps: normalizeSteps(input.steps),
       },
     };

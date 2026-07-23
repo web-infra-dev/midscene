@@ -26,7 +26,19 @@ afterAll(() => {
   for (const directory of temporaryDirectories) {
     rmSync(directory, { recursive: true, force: true });
   }
+  const fixtures = join(__dirname, 'fixtures');
+  for (const entry of readdirSync(fixtures, { withFileTypes: true })) {
+    if (entry.isDirectory()) {
+      rmSync(join(fixtures, entry.name, 'midscene_run'), {
+        recursive: true,
+        force: true,
+      });
+    }
+  }
 });
+
+const summaryPathFor = (projectRoot: string) =>
+  join(projectRoot, 'midscene_run', 'output', 'summary.json');
 
 const jsonFilesBelow = (directory: string): string[] => {
   if (!existsSync(directory)) return [];
@@ -94,16 +106,13 @@ describe('midscene-test CLI', () => {
     );
 
     expect(execution.stdout).toContain(
-      'midscene-test: collected 2 documents, 3 cases, 0 collection errors',
+      'midscene-test: preflighted 1 projects, 2 documents, 3 cases, 0 collection errors',
     );
     expect(execution.stdout).toContain('[document 1/2] flows/first.yaml');
-    expect(execution.stdout).toContain('  [case 1/2] first case');
-    expect(execution.stdout).toContain('    → step 1/3: test.record');
+    expect(execution.stdout).toContain('    [case 1/2] first case');
+    expect(execution.stdout).toContain('      → step 1/3: test.record');
     expect(execution.stdout).toMatch(
-      / {4}✓ step 1\/3: test\.record \(\d+ ms\)/,
-    );
-    expect(execution.stdout).toMatch(
-      /✓ document 2\/2: flows\/nested\/second\.yml \(\d+ ms\)/,
+      / {6}✓ step 1\/3: test\.record \(\d+ ms\)/,
     );
     expect(execution.stdout).toContain('3/3 cases passed, 0 failed, 0 not run');
     expect(readFileSync(executionLog, 'utf8').trim().split('\n')).toEqual([
@@ -115,14 +124,16 @@ describe('midscene-test CLI', () => {
     ]);
     expect(jsonFilesBelow(join(resultDir, 'runs'))).toHaveLength(3);
     expect(jsonFilesBelow(join(resultDir, 'documents'))).toHaveLength(2);
-    expect(existsSync(join(resultDir, 'project.json'))).toBe(true);
+    expect(existsSync(summaryPathFor(projectRoot))).toBe(true);
+    expect(existsSync(join(resultDir, 'project.json'))).toBe(false);
     expect(existsSync(join(resultDir, 'manifest.json'))).toBe(false);
     expect(existsSync(join(resultDir, 'rstest-tests'))).toBe(false);
 
     const projectResult = JSON.parse(
-      readFileSync(join(resultDir, 'project.json'), 'utf8'),
+      readFileSync(summaryPathFor(projectRoot), 'utf8'),
     );
     expect(projectResult).toMatchObject({
+      schemaVersion: 1,
       status: 'success',
       exitCode: 0,
       summary: {
@@ -133,6 +144,17 @@ describe('midscene-test CLI', () => {
         collectionErrors: 0,
         documentFailures: 0,
       },
+      projects: [
+        {
+          name: 'web',
+          platform: 'web',
+          cases: [
+            { status: 'success', attempts: [{ attemptIndex: 0 }] },
+            { status: 'success', attempts: [{ attemptIndex: 0 }] },
+            { status: 'success', attempts: [{ attemptIndex: 0 }] },
+          ],
+        },
+      ],
     });
   });
 
@@ -158,7 +180,7 @@ describe('midscene-test CLI', () => {
     expect(existsSync(join(projectRoot, '.midscene'))).toBe(false);
   });
 
-  it('shares one setupDocument Agent with lifecycle nodes in the CLI process', async () => {
+  it('shares one Project Agent with lifecycle nodes in the CLI process', async () => {
     const projectRoot = join(__dirname, 'fixtures', 'midscene-context-project');
     const { resultDir, executionLog } = temporaryRun('midscene-context-e2e-');
 
@@ -176,15 +198,15 @@ describe('midscene-test CLI', () => {
     expect(lines).toHaveLength(9);
     const pid = lines[0].split(':')[1];
     expect(lines[0]).toBe(`config:${pid}`);
-    expect(lines[1]).toBe(`setupDocument:1:report.yaml:${pid}`);
+    expect(lines[1]).toBe(`projectSetup:1:${pid}`);
     expect(lines[2]).toBe(`beforeAll:1:${pid}`);
     expect(lines[3]).toMatch(new RegExp(`^beforeEach:1:1:.+:${pid}$`));
     expect(lines.slice(4)).toEqual([
       `record:1:1:Attempt started:Shared document Agent:${pid}`,
-      `record:1:1:Ready:Agent came from setupDocument:${pid}`,
+      `record:1:1:Ready:Agent came from Project setup:${pid}`,
       `record:1:1:Attempt finished:Shared document Agent:${pid}`,
       `afterAll:1:${pid}`,
-      `documentTeardown:1:1:${pid}`,
+      `projectTeardown:1:1:${pid}`,
     ]);
 
     const [runResultPath] = jsonFilesBelow(join(resultDir, 'runs'));
@@ -222,7 +244,7 @@ describe('midscene-test CLI', () => {
     expect(failure.code).toBe(1);
     expect(failure.stdout).toContain('    → step 1/1: test.record');
     expect(failure.stdout).toMatch(
-      / {4}✗ step 1\/1: test\.record \(\d+ ms\) — Node "test\.record" failed: controlled case failure/,
+      / {6}✗ step 1\/1: test\.record \(\d+ ms\) — Node "test\.record" failed: controlled case failure/,
     );
     expect(failure.stdout).toContain('2/3 cases passed, 1 failed, 0 not run');
     expect(readFileSync(executionLog, 'utf8').trim().split('\n')).toEqual([
@@ -231,16 +253,16 @@ describe('midscene-test CLI', () => {
       'third:passed',
     ]);
     const projectResult = JSON.parse(
-      readFileSync(join(resultDir, 'project.json'), 'utf8'),
+      readFileSync(summaryPathFor(projectRoot), 'utf8'),
     );
     expect(
-      projectResult.cases.map(
+      projectResult.projects[0].cases.map(
         (caseResult: { status: string }) => caseResult.status,
       ),
     ).toEqual(['failed', 'success', 'success']);
   });
 
-  it('runs afterAll and teardown after beforeAll fails', async () => {
+  it('runs afterAll and Node teardown after beforeAll fails', async () => {
     const projectRoot = join(
       __dirname,
       'fixtures',
@@ -258,10 +280,9 @@ describe('midscene-test CLI', () => {
     expect(failure.code).toBe(1);
     expect(failure.stdout).toContain('0/1 cases passed, 0 failed, 1 not run');
     expect(readFileSync(executionLog, 'utf8').trim().split('\n')).toEqual([
-      'setupDocument',
       'beforeAll',
       'afterAll',
-      'documentTeardown',
+      'documentNodeTeardown',
     ]);
     expect(jsonFilesBelow(join(resultDir, 'runs'))).toHaveLength(0);
     const [documentResultPath] = jsonFilesBelow(join(resultDir, 'documents'));
@@ -272,9 +293,9 @@ describe('midscene-test CLI', () => {
     );
     expect(documentResult.afterAll[0].status).toBe('success');
     const projectResult = JSON.parse(
-      readFileSync(join(resultDir, 'project.json'), 'utf8'),
+      readFileSync(summaryPathFor(projectRoot), 'utf8'),
     );
-    expect(projectResult.cases).toEqual([
+    expect(projectResult.projects[0].cases).toEqual([
       expect.objectContaining({
         status: 'not-run',
         notRunReason: 'document-start-failed',
@@ -307,14 +328,14 @@ describe('midscene-test CLI', () => {
 
     expect(failure.code).toBe(1);
     expect(readFileSync(executionLog, 'utf8').trim().split('\n')).toEqual([
-      'setup:a.yaml',
+      'setup:default',
       'interrupt',
-      'teardown:a.yaml',
+      'teardown:default',
     ]);
     const projectResult = JSON.parse(
-      readFileSync(join(resultDir, 'project.json'), 'utf8'),
+      readFileSync(summaryPathFor(projectRoot), 'utf8'),
     );
-    expect(projectResult.cases).toEqual([
+    expect(projectResult.projects[0].cases).toEqual([
       expect.objectContaining({ name: 'active case', status: 'success' }),
       expect.objectContaining({
         name: 'skipped case',
@@ -327,6 +348,6 @@ describe('midscene-test CLI', () => {
         notRunReason: 'interrupted',
       }),
     ]);
-    expect(projectResult.documents).toHaveLength(1);
+    expect(projectResult.projects[0].documents).toHaveLength(1);
   });
 });

@@ -9,6 +9,22 @@
 - **测试框架维护**：平台开发者使用 TypeScript 接入浏览器、Agent、外部工具和业务接口，并统一管理运行资源和执行生命周期。
 - **测试用例维护**：人类或 Agent 使用 YAML 组合框架提供的能力，编写和维护测试用例，无需编写 JavaScript 或关注底层实现。
 
+运行器直接执行一套规范 YAML 协议。它会在获取 Project 资源前完成全部选中计划的解析、规范化、变量解析和校验，不引入单独的 IR：
+
+```text
+midscene.config.ts ── Projects / setup / Node Registry
+                              │
+Workflow YAML ── collect and validate ── Normalized Steps
+                                           │
+                            串行生命周期调度器
+                                           │
+                         Node 执行 + 只读 history
+                                           │
+                         summary.json + facts + reports
+```
+
+一份 Test Project 配置可以定义多个作为子配置的 Execution Project。每个 Execution Project 负责文件与 tags 筛选、平台 setup 和整 Case retry。Project setup 管理浏览器或设备连接等长生命周期资源；YAML 的 `beforeAll` / `afterAll` 管理一个 Workflow Document 的业务准备与清理；Node teardown 管理 attempt 或 Document scope 的内部资源，例如 Agent 报告。
+
 ## 实战场景：验证订单退款流程
 
 假设电商团队需要验证已支付订单的退款流程。每个用例开始前，运行器调用订单接口或数据脚本创建测试订单。订单准备完成后，Agent 在页面上提交退款申请并检查结果。每个用例结束后，运行器删除测试订单。

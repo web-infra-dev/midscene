@@ -1,5 +1,10 @@
 import type { z } from 'zod/v4';
-import type { NodeCaseContext, NodeDocumentContext } from '../engine/types';
+import type {
+  NodeCaseContext,
+  NodeDocumentContext,
+  NodeHistoryEntry,
+  NodeScopeTeardown,
+} from '../engine/types';
 import type { CommonNodeInput, NormalizedStepMeta } from '../parser/types';
 
 export interface NodeResult<TData = unknown> {
@@ -22,6 +27,12 @@ interface NodeExecutionContextBase<TInput = unknown, TContext = unknown> {
 
   /** Resources shared by the current workflow document. */
   context: TContext;
+
+  /** Read-only results completed in the current document/case scope. */
+  history: readonly NodeHistoryEntry[];
+
+  /** Register resource cleanup for the current case attempt or document. */
+  onTeardown(teardown: NodeScopeTeardown): void;
 }
 
 export type NodeExecutionContext<

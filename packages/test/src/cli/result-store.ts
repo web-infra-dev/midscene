@@ -1,9 +1,7 @@
 import { createHash } from 'node:crypto';
 import { mkdirSync, writeFileSync } from 'node:fs';
-import { dirname, join, sep } from 'node:path';
+import { dirname, join, relative, sep } from 'node:path';
 import type { CaseRunResult, WorkflowDocumentRunResult } from '../engine/types';
-import type { WorkflowDocumentSource } from '../parser/types';
-import type { TestFileSelection } from './test-project';
 import type { TestProjectCollectionError, TestProjectRunResult } from './types';
 
 const writeJson = (path: string, value: unknown) => {
@@ -21,8 +19,13 @@ export const workflowDocumentRunResultPath = (
 ): string =>
   toPosix(join('documents', result.documentId, `${result.documentRunId}.json`));
 
-export const collectionErrorPath = (sourcePath: string): string => {
-  const id = createHash('sha256').update(sourcePath).digest('hex');
+export const collectionErrorPath = (
+  projectName: string,
+  sourcePath: string,
+): string => {
+  const id = createHash('sha256')
+    .update(JSON.stringify([projectName, sourcePath]))
+    .digest('hex');
   return toPosix(join('collection-errors', `${id}.json`));
 };
 
@@ -44,64 +47,130 @@ export const writeCollectionError = (
   resultDir: string,
   collectionError: TestProjectCollectionError,
 ) => {
-  writeJson(join(resultDir, collectionErrorPath(collectionError.sourcePath)), {
-    kind: 'collection-error',
-    ...collectionError,
-  });
+  writeJson(
+    join(
+      resultDir,
+      collectionErrorPath(
+        collectionError.projectName,
+        collectionError.sourcePath,
+      ),
+    ),
+    { kind: 'collection-error', ...collectionError },
+  );
 };
 
+const relativeToSummary = (summaryPath: string, target: string): string => {
+  const value = relative(dirname(summaryPath), target);
+  return toPosix(value || '.');
+};
+
+const errorJson = (error: unknown) =>
+  error instanceof Error && 'toJSON' in error
+    ? (error as Error & { toJSON(): unknown }).toJSON()
+    : error;
+
 export interface TestProjectResultFileOptions {
-  projectId: string;
   projectRoot: string;
   configPath?: string;
-  fileSelection: TestFileSelection;
-  sources: readonly WorkflowDocumentSource[];
   result: TestProjectRunResult;
 }
 
 export const writeTestProjectRunResult = (
-  resultDir: string,
   options: TestProjectResultFileOptions,
 ) => {
   const { result } = options;
-  writeJson(join(resultDir, 'project.json'), {
-    version: 3,
-    projectId: options.projectId,
-    projectRoot: options.projectRoot,
-    ...(options.configPath ? { configPath: options.configPath } : {}),
-    fileSelection: {
-      include: [...options.fileSelection.include],
-      ...(options.fileSelection.exclude
-        ? { exclude: [...options.fileSelection.exclude] }
-        : {}),
-    },
-    sources: options.sources,
+  const fact = (path: string) =>
+    toPosix(
+      join(relativeToSummary(result.summaryPath, result.resultDir), path),
+    );
+
+  writeJson(result.summaryPath, {
+    schemaVersion: result.schemaVersion,
+    runId: result.runId,
+    startedAt: result.startedAt,
+    endedAt: result.endedAt,
+    durationMs: result.durationMs,
     status: result.status,
     exitCode: result.exitCode,
-    resultDir: result.resultDir,
+    projectRoot: options.projectRoot,
+    ...(options.configPath ? { configPath: options.configPath } : {}),
+    factsRoot: relativeToSummary(result.summaryPath, result.resultDir),
+    reportDir: relativeToSummary(result.summaryPath, result.reportDir),
     summary: result.summary,
-    cases: result.cases.map((caseResult) => ({
-      caseId: caseResult.caseId,
-      name: caseResult.name,
-      sourcePath: caseResult.sourcePath,
-      caseIndex: caseResult.caseIndex,
-      status: caseResult.status,
-      ...(caseResult.run
-        ? { resultFile: caseRunResultPath(caseResult.run) }
+    projects: result.projects.map((project) => ({
+      name: project.name,
+      platform: project.platform,
+      status: project.status,
+      retry: project.retry,
+      fileSelection: project.fileSelection,
+      tagSelection: project.tagSelection,
+      sourceCount: project.sourceCount,
+      selectedCaseCount: project.selectedCaseCount,
+      filteredCaseCount: project.filteredCaseCount,
+      ...(project.lifecycle
+        ? {
+            lifecycle: {
+              status: project.lifecycle.status,
+              startedAt: project.lifecycle.startedAt,
+              endedAt: project.lifecycle.endedAt,
+              durationMs: project.lifecycle.durationMs,
+              ...(project.lifecycle.setupError
+                ? { setupError: errorJson(project.lifecycle.setupError) }
+                : {}),
+              ...(project.lifecycle.teardownErrors
+                ? {
+                    teardownErrors:
+                      project.lifecycle.teardownErrors.map(errorJson),
+                  }
+                : {}),
+            },
+          }
         : {}),
-      ...(caseResult.notRunReason
-        ? { notRunReason: caseResult.notRunReason }
-        : {}),
-    })),
-    documents: result.documents.map((document) => ({
-      documentId: document.documentId,
-      sourcePath: document.sourcePath,
-      status: document.status,
-      resultFile: workflowDocumentRunResultPath(document),
-    })),
-    collectionErrors: result.collectionErrors.map((error) => ({
-      sourcePath: error.sourcePath,
-      errorFile: collectionErrorPath(error.sourcePath),
+      cases: project.cases.map((outcome) => ({
+        caseId: outcome.caseId,
+        sourcePath: outcome.sourcePath,
+        caseIndex: outcome.caseIndex,
+        name: outcome.name,
+        status: outcome.status,
+        ...(outcome.notRunReason ? { notRunReason: outcome.notRunReason } : {}),
+        ...(outcome.attempts
+          ? {
+              attempts: outcome.attempts.map((attempt) => ({
+                runId: attempt.runId,
+                attemptIndex: attempt.attemptIndex,
+                status: attempt.status,
+                resultFile: fact(caseRunResultPath(attempt)),
+                ...(attempt.reportPaths?.length
+                  ? {
+                      reports: attempt.reportPaths.map((path) =>
+                        relativeToSummary(result.summaryPath, path),
+                      ),
+                    }
+                  : {}),
+              })),
+            }
+          : {}),
+      })),
+      documents: project.documents.map((document) => ({
+        documentId: document.documentId,
+        documentRunId: document.documentRunId,
+        sourcePath: document.sourcePath,
+        status: document.status,
+        resultFile: fact(workflowDocumentRunResultPath(document)),
+        ...(document.reportPaths?.length
+          ? {
+              reports: document.reportPaths.map((path) =>
+                relativeToSummary(result.summaryPath, path),
+              ),
+            }
+          : {}),
+      })),
+      collectionErrors: project.collectionErrors.map((error) => ({
+        sourcePath: error.sourcePath,
+        errorFile: fact(
+          collectionErrorPath(error.projectName, error.sourcePath),
+        ),
+      })),
     })),
   });
 };

@@ -1,3 +1,4 @@
+import { resolve } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 import { type CollectedCase, NodeRegistry, defineNode } from '../src';
 import { runCollectedCase } from '../src/engine/run-collected-case';
@@ -176,5 +177,43 @@ describe('runCollectedCase', () => {
       onResult,
     });
     expect(onResult).toHaveBeenCalledWith(result);
+  });
+
+  it('runs node teardowns LIFO after failure and collects finalized reports', async () => {
+    const calls: string[] = [];
+    const registry = new NodeRegistry([
+      defineNode({
+        name: 'resource',
+        execute({ onTeardown }) {
+          onTeardown(() => {
+            calls.push('release:first');
+            return { reportPaths: [resolve('/tmp/first.html')] };
+          });
+          onTeardown(() => {
+            calls.push('release:second');
+            return { reportPaths: [resolve('/tmp/second.html')] };
+          });
+        },
+      }),
+      defineNode({
+        name: 'fail',
+        execute() {
+          calls.push('fail');
+          throw new Error('case failed');
+        },
+      }),
+    ]);
+
+    const result = await runCollectedCase(
+      collected([step('resource'), step('fail')]),
+      { resolveNode: registry.require.bind(registry) },
+    );
+
+    expect(calls).toEqual(['fail', 'release:second', 'release:first']);
+    expect(result.status).toBe('failed');
+    expect(result.reportPaths).toEqual([
+      resolve('/tmp/second.html'),
+      resolve('/tmp/first.html'),
+    ]);
   });
 });

@@ -16,6 +16,7 @@ interface ParsedTestArgs {
   projectRoot?: string;
   configPath?: string;
   resultDir?: string;
+  projectNames?: string[];
 }
 
 export const parseTestCliArgs = (
@@ -27,6 +28,7 @@ export const parseTestCliArgs = (
   let projectRoot: string | undefined;
   let configPath: string | undefined;
   let resultDir: string | undefined;
+  const projectNames: string[] = [];
 
   for (let index = commandOffset; index < args.length; index += 1) {
     const arg = args[index];
@@ -36,11 +38,12 @@ export const parseTestCliArgs = (
       projectRoot = resolve(cwd, arg);
       continue;
     }
-    if (arg === '--config' || arg === '--result-dir') {
+    if (arg === '--config' || arg === '--result-dir' || arg === '--project') {
       const value = args[index + 1];
-      if (!value) throw new Error(`${arg} requires a path.`);
+      if (!value) throw new Error(`${arg} requires a value.`);
       if (arg === '--config') configPath = value;
-      else resultDir = resolve(cwd, value);
+      else if (arg === '--result-dir') resultDir = resolve(cwd, value);
+      else projectNames.push(value);
       index += 1;
     } else {
       throw new Error(`Unknown option: ${arg}`);
@@ -50,6 +53,9 @@ export const parseTestCliArgs = (
   if (command === 'describe-nodes' && resultDir) {
     throw new Error('--result-dir is not supported by describe-nodes.');
   }
+  if (command === 'describe-nodes' && projectNames.length > 0) {
+    throw new Error('--project is not supported by describe-nodes.');
+  }
 
   return {
     ...(command ? { command } : {}),
@@ -57,6 +63,7 @@ export const parseTestCliArgs = (
     projectRoot,
     configPath,
     resultDir,
+    ...(projectNames.length > 0 ? { projectNames } : {}),
   };
 };
 
@@ -118,6 +125,7 @@ export async function runTestCli(
       `midscene-test: ${result.summary.passed}/${result.summary.total} cases passed, ${result.summary.failed} failed, ${result.summary.notRun} not run`,
     );
     io.log(`Results: ${result.resultDir}`);
+    io.log(`Summary: ${result.summaryPath}`);
     return result.exitCode;
   } catch (error) {
     io.error(error instanceof Error ? error.message : String(error));
