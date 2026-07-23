@@ -25,7 +25,10 @@ The project configuration must be named `midscene.config.ts`. It directly defaul
 
 ```ts filename=midscene.config.ts
 import { defineNode, z } from '@midscene/test';
-import { defineTestProject } from '@midscene/test/config';
+import {
+  defineProjectSetup,
+  defineTestProject,
+} from '@midscene/test/config';
 import { createMidsceneNodes } from '@midscene/test/midscene';
 import { PlaywrightAgent } from '@midscene/web/playwright';
 import { chromium, type Browser, type Page } from 'playwright';
@@ -56,6 +59,7 @@ const setLanguage = defineNode<
       locale: input.language === 'zh' ? 'zh-CN' : 'en-US',
     });
     context.page = await browserContext.newPage();
+    context.agent = undefined;
     await previousContext.close();
   },
 });
@@ -67,21 +71,30 @@ const midsceneNodes = createMidsceneNodes<ProjectContext>({
   },
 });
 
-export default defineTestProject<ProjectContext>({
-  files: {
-    include: ['cases/**/*.{yaml,yml}'],
-  },
-  nodes: [setLanguage, ...midsceneNodes],
-
-  async setupDocument({ onTeardown }) {
+const playwrightSetup = defineProjectSetup<ProjectContext>({
+  name: 'playwright',
+  platform: 'web',
+  async setup({ onTeardown }) {
     const browser = await chromium.launch({ headless: true });
     onTeardown(() => browser.close());
-
     const browserContext = await browser.newContext();
     const page = await browserContext.newPage();
     await page.goto('https://midscenejs.com');
     return { browser, page };
   },
+});
+
+export default defineTestProject<ProjectContext>({
+  projects: [
+    {
+      name: 'chromium',
+      platform: 'web',
+      setup: playwrightSetup,
+      files: { include: ['cases/**/*.{yaml,yml}'] },
+      tags: { include: ['smoke'], exclude: ['manual'] },
+    },
+  ],
+  nodes: [setLanguage, ...midsceneNodes],
 });
 ```
 
@@ -90,6 +103,7 @@ Add a YAML test document:
 ```yaml filename=cases/midscene.yaml
 cases:
   - name: Midscene docs follow the browser language
+    tags: [smoke]
     steps:
       - browser.setLanguage:
           language: en
@@ -116,6 +130,8 @@ The CLI automatically loads `midscene.config.ts`, discovers matching YAML files,
 .midscene/test-results/<timestamp>-<process-id>/
 ```
 
+The stable public summary defaults to `midscene_run/output/summary.json`, while finalized Midscene reports default to `midscene_run/report/`.
+
 ## Define Node inputs with Zod
 
 `inputSchema` is optional. When a Node declares it, the runner validates the YAML input with Zod before calling `execute()`. TypeScript infers `ctx.input` from the Schema, so you do not need to maintain a separate Input interface.
@@ -141,7 +157,7 @@ const createOrder = defineNode({
 });
 ```
 
-When a Node needs a typed Document Context, provide the Schema type, output type, and Context type:
+When a Node needs a typed Project context, provide the Schema type, output type, and Context type:
 
 ```ts
 defineNode<typeof createOrderInputSchema, { id: string }, ProjectContext>({
@@ -156,33 +172,115 @@ defineNode<typeof createOrderInputSchema, { id: string }, ProjectContext>({
 
 Without `inputSchema`, the runner preserves the existing behavior and passes the YAML input directly to the Handler. The Handler must validate it, and the generated reference cannot describe its fields.
 
-## Configure a Test Project
+## Use the Node execution context
 
-`defineTestProject()` provides contextual types for the project fields and Document Context.
+Every Node receives the same execution contract:
 
-```ts filename=midscene.config.ts
-export default defineTestProject<ProjectContext>({
-  root: './e2e',
-  files: {
-    include: ['cases/**/*.{yaml,yml}'],
-    exclude: ['cases/**/*.draft.yaml'],
-  },
-  nodes: [createOrder, ...midsceneNodes],
-  async setupDocument({ env, onTeardown }) {
-    const database = await connectTestDatabase(env.TEST_DATABASE_URL);
-    onTeardown(() => database.close());
-    return { database };
+- `input`: Node input after string shorthand normalization and variable resolution; `$` is removed.
+- `$`: normalized runner metadata such as `timeoutMs` and `continueOnError`.
+- `scope` plus `case` or `document`: the current identity, lifecycle phase, and Step index.
+- `signal`: the Step timeout and cancellation signal.
+- `context`: the value returned by the selected Project setup, or `undefined` when the Project has no setup.
+- `history`: a deeply read-only, JSON-compatible view of completed Nodes.
+- `onTeardown()`: register attempt- or document-scoped cleanup in LIFO order.
+
+`history` contains completed `beforeAll` Nodes and the current Case attempt's completed Nodes. Each retry gets a fresh Case history. All Nodes receive history by default; deterministic Nodes may ignore it. The built-in `aiAct` and `aiAssert` Nodes merge it into Agent context, and the built-in `agent` Node passes it to the configured Agent executor.
+
+A Node that owns an attempt-scoped resource should release it through `onTeardown()`, even when a later Step fails:
+
+```ts
+const sessionNode = defineNode({
+  name: 'session.open',
+  async execute({ onTeardown }) {
+    const session = await openSession();
+    onTeardown(async () => {
+      await session.close();
+      return { reportPaths: [session.reportPath] };
+    });
   },
 });
 ```
 
-The project root is selected in this order:
+Returned report paths must be absolute. The runner stores them as paths relative to `summary.json`.
+
+For retry isolation and finalized Midscene report indexing, prefer `agentProvider` over the compatibility `getAgent` callback:
+
+```ts
+const agents = new Map<string, PlaywrightAgent>();
+
+const midsceneNodes = createMidsceneNodes<ProjectContext>({
+  agentProvider: {
+    getAgent(runId, { context }) {
+      let agent = agents.get(runId);
+      if (!agent) {
+        agent = new PlaywrightAgent(context.page, {
+          reportFileName: runId,
+          cache: { id: runId },
+        });
+        agents.set(runId, agent);
+      }
+      return agent;
+    },
+    async releaseAgent(runId) {
+      const agent = agents.get(runId);
+      if (!agent) return;
+      agents.delete(runId);
+      await agent.destroy();
+      return { reportPath: agent.reportFile ?? undefined };
+    },
+  },
+});
+```
+
+The runner calls `releaseAgent()` exactly once after the attempt or Document scope that first requested the Agent. A retry has a new run ID, so it cannot reuse the previous Agent or cache scope.
+
+## Configure a Test Project
+
+`defineTestProject()` provides one Context type shared by Project setup and every Node in that Project.
+
+```ts filename=midscene.config.ts
+export default defineTestProject<ProjectContext>({
+  projects: [
+    {
+      name: 'android-smoke',
+      platform: 'android',
+      setup: doraAndroidSetup,
+      files: {
+        include: ['cases/**/*.{yaml,yml}'],
+        exclude: ['cases/**/*.draft.yaml'],
+      },
+      tags: { include: ['smoke'], exclude: ['manual'] },
+      retry: 1,
+      variables: { appUri: 'com.example.app' },
+    },
+  ],
+  test: {
+    maxConcurrency: 1,
+    bail: 0,
+    testTimeout: 120_000,
+  },
+  output: {
+    summary: './midscene_run/output/summary.json',
+    reportDir: './midscene_run/report',
+  },
+  nodes: [createOrder, ...midsceneNodes],
+});
+```
+
+Declare reusable Project setup with `defineProjectSetup()`. Setup runs once for the selected Execution Project and can acquire a browser, device lease, connection-renewal task, or other shared resource. Registered Project teardown functions run in LIFO order after every document has finished, including setup failure and interruption.
+
+When `projects` is omitted, a root `setup` is attached to the implicit `default` Execution Project. Its single declared `platform` becomes the default Project platform. Root `setup` and an explicit `projects` array are mutually exclusive; put setup on each `projects[]` entry when defining multiple targets.
+
+Each `projects[]` entry requires a unique `name` and a `platform` of `web`, `android`, `ios`, or `computer`. It may configure `files`, `tags`, one setup definition, JSON-compatible `variables`, and whole-Case `retry`. File selection belongs only to an Execution Project; when `files` is omitted, that Project recursively selects all `.yaml` and `.yml` files.
+
+`test.maxConcurrency` currently supports only `1`. `test.bail` stops scheduling after the configured number of final Case failures, and `test.testTimeout` is the default Step timeout.
+
+The Test Project directory is selected in this order:
 
 1. The `project-directory` CLI argument.
-2. The `root` field in `midscene.config.ts`.
-3. The current working directory.
+2. The current working directory.
 
-`files.include` and `files.exclude` are glob patterns relative to the project root. The runner always ignores `.git`, `.midscene`, and `node_modules`.
+`midscene.config.ts` has no `root` field. Selecting a config with `--config` does not change the Test Project directory. `projects[].files.include` and `projects[].files.exclude` are glob patterns relative to that directory. The runner always ignores `.git`, `.midscene`, and `node_modules`.
 
 Configuration files support only the `.ts` extension. `.js`, `.cjs`, `.mts`, `.cts`, and `.tsx` are rejected. Runtime loading does not resolve `tsconfig.json` `paths`; use relative imports with an explicit `.ts` extension or package specifiers.
 
@@ -201,11 +299,11 @@ pnpm exec midscene-test describe-nodes ./e2e
 pnpm exec midscene-test describe-nodes --config ./config/midscene.config.ts
 ```
 
-The reference contains the common Step contract plus each Node name, description, and JSON Schema. The JSON Schema is generated from the Zod `inputSchema`. The built-in `aiAct`, `aiAssert`, and `recordToReport` Nodes include their own schemas.
+The reference contains the common Step contract plus each Node name, description, and JSON Schema. The JSON Schema is generated from the Zod `inputSchema`. The built-in `aiAct`, `aiAssert`, `recordToReport`, `launch`, `wait`, and `agent` Nodes include their own schemas. Built-in `launch` only asks the current Midscene Agent to launch one app, URL, or URI; application installation and management belong in platform-specific Nodes.
 
 Nodes without `description` or `inputSchema` are still listed. The document marks the missing fields, and the CLI writes warnings to stderr instead of guessing their behavior.
 
-`describe-nodes` only loads `midscene.config.ts`. It does not read Workflow YAML, call `setupDocument()`, execute Node Handlers, or create a result directory. Add the generated `midscene-nodes.md` to an AI Agent's context so it can write YAML Cases using the capabilities that the project actually exposes.
+`describe-nodes` only loads `midscene.config.ts`. It does not read Workflow YAML, run Project setup, execute Node Handlers, or create a result directory. Add the generated `midscene-nodes.md` to an AI Agent's context so it can write YAML Cases using the capabilities that the project actually exposes.
 
 ## Programmatic API
 
@@ -214,6 +312,7 @@ Use these APIs when embedding the runner in another tool:
 - `CaseRunner` or `createCaseRunner()` runs one object-form Case.
 - `collectWorkflowDocument()` parses and statically validates one YAML file.
 - `runWorkflowDocument()` runs one document lifecycle and its Cases.
+- `createProjectRuntime()` manages one Execution Project's setup and teardown.
 - `loadTestProject()` asynchronously loads a TypeScript project configuration.
 - `runTestProject()` discovers, runs, and summarizes a Test Project.
 

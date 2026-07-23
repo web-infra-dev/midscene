@@ -2,7 +2,7 @@ import { appendFileSync } from 'node:fs';
 import { defineNode } from '@midscene/test';
 import { defineTestProject } from '@midscene/test/config';
 
-const log = (value) => {
+const log = (value: string) => {
   const path = process.env.WORKFLOW_E2E_LOG;
   if (!path) throw new Error('WORKFLOW_E2E_LOG is required');
   appendFileSync(path, `${value}\n`);
@@ -24,8 +24,12 @@ export default defineTestProject({
       },
     }),
   ],
-  setupDocument({ sourcePath, onTeardown }) {
-    log(`setup:${sourcePath}`);
-    onTeardown(() => log(`teardown:${sourcePath}`));
+  setup: {
+    name: 'fixture',
+    platform: 'web',
+    setup({ project, onTeardown }) {
+      log(`setup:${project.name}`);
+      onTeardown(() => log(`teardown:${project.name}`));
+    },
   },
 });

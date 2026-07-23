@@ -2,7 +2,6 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   type CollectedWorkflowDocument,
   NodeRegistry,
-  WorkflowLifecycleError,
   createDocumentRuntime,
   defineNode,
   runWorkflowDocument,
@@ -40,6 +39,17 @@ const collectedDocument = (
 });
 
 describe('workflow document runtime', () => {
+  it('rejects an invalid retry before running document lifecycle', async () => {
+    await expect(
+      runWorkflowDocument(collectedDocument(), {
+        resolveNode: () => {
+          throw new Error('no nodes');
+        },
+        retry: -1,
+      }),
+    ).rejects.toThrow('retry must be a non-negative integer');
+  });
+
   it('runs one node definition in document and case scopes', async () => {
     const calls: string[] = [];
     const sharedNode = defineNode({
@@ -114,22 +124,12 @@ describe('workflow document runtime', () => {
 
     const result = await runWorkflowDocument(document, {
       resolveNode: registry.require.bind(registry),
-      setupDocument({ onTeardown }) {
-        calls.push('setupDocument');
-        onTeardown(() => calls.push('documentTeardown'));
-      },
       shouldStop: () => stopped,
       createCaseRunId: ({ caseId }) => `${caseId}-run`,
       createDocumentRunId: () => 'document-run',
     });
 
-    expect(calls).toEqual([
-      'setupDocument',
-      'beforeAll',
-      'example:steps',
-      'afterAll',
-      'documentTeardown',
-    ]);
+    expect(calls).toEqual(['beforeAll', 'example:steps', 'afterAll']);
     expect(result.document).toMatchObject({
       documentRunId: 'document-run',
       status: 'success',
@@ -148,7 +148,7 @@ describe('workflow document runtime', () => {
     ]);
   });
 
-  it('shares one setup context with document hooks and case runs', async () => {
+  it('shares one Project context with document hooks and case runs', async () => {
     const calls: string[] = [];
     const context = { marker: 'shared' };
     const documentNode = defineNode<unknown, unknown, typeof context>({
@@ -180,19 +180,7 @@ describe('workflow document runtime', () => {
     const registry = new NodeRegistry([documentNode]);
     const runtime = createDocumentRuntime(document, {
       resolveNode: registry.require.bind(registry),
-      setupDocument(setup) {
-        expect(setup).toMatchObject({
-          documentId: 'document-id',
-          documentRunId: 'document-run',
-          projectId: 'project-id',
-          sourcePath: 'flows/example.yaml',
-        });
-        expect(setup.cases).toHaveLength(1);
-        expect(Object.isFrozen(setup.env)).toBe(true);
-        calls.push('setupDocument');
-        setup.onTeardown(() => calls.push('documentTeardown'));
-        return context;
-      },
+      projectContext: context,
       createDocumentRunId: () => 'document-run',
     });
 
@@ -206,19 +194,16 @@ describe('workflow document runtime', () => {
     expect(attempt.status).toBe('success');
     expect((await runtime.finish()).status).toBe('success');
     expect(calls).toEqual([
-      'setupDocument',
       'beforeAll',
       'beforeEach',
       'steps',
       'afterEach',
       'afterAll',
-      'documentTeardown',
     ]);
   });
 
-  it('shares one setup context across concurrent case runs', async () => {
+  it('shares one Project context across concurrent case runs', async () => {
     const context = { id: 'shared-concurrent-context' };
-    const setupDocument = vi.fn(() => context);
     const seen: unknown[] = [];
     const node = defineNode<unknown, unknown, typeof context>({
       name: 'read.context',
@@ -233,7 +218,7 @@ describe('workflow document runtime', () => {
       resolveNode: () => {
         throw new Error('no document nodes');
       },
-      setupDocument,
+      projectContext: context,
     });
 
     await runtime.start();
@@ -248,47 +233,19 @@ describe('workflow document runtime', () => {
     );
     await runtime.finish();
 
-    expect(setupDocument).toHaveBeenCalledOnce();
     expect(seen).toEqual([context, context]);
   });
 
-  it('tears down partial setup and skips all YAML hooks after setup fails', async () => {
-    const hook = vi.fn();
-    const teardown = vi.fn();
-    const node = defineNode({ name: 'hook', execute: hook });
-    const registry = new NodeRegistry([node]);
-    const runtime = createDocumentRuntime(
-      collectedDocument({
-        beforeAll: [step('hook')],
-        afterAll: [step('hook')],
-      }),
-      {
-        resolveNode: registry.require.bind(registry),
-        setupDocument({ onTeardown }) {
-          onTeardown(teardown);
-          throw new Error('database unavailable');
-        },
-      },
-    );
-
-    expect((await runtime.start()).setupError).toMatchObject({
-      code: 'WORKFLOW_DOCUMENT_SETUP_ERROR',
-      message: expect.stringContaining('database unavailable'),
-    });
-    const result = await runtime.finish();
-    expect(hook).not.toHaveBeenCalled();
-    expect(teardown).toHaveBeenCalledOnce();
-    expect(result.status).toBe('failed');
-    expect(runtime.canRunCases).toBe(false);
-  });
-
-  it('runs afterAll and teardown after beforeAll fails', async () => {
+  it('runs afterAll and Node teardown after beforeAll fails', async () => {
     const calls: string[] = [];
     const registry = new NodeRegistry([
       defineNode({
         name: 'before.fail',
-        execute() {
+        execute({ onTeardown }) {
           calls.push('beforeAll');
+          onTeardown(() => {
+            calls.push('teardown');
+          });
           throw new Error('prepare failed');
         },
       }),
@@ -306,10 +263,6 @@ describe('workflow document runtime', () => {
       }),
       {
         resolveNode: registry.require.bind(registry),
-        setupDocument({ onTeardown }) {
-          onTeardown(() => calls.push('teardown'));
-          return undefined;
-        },
       },
     );
 
@@ -320,32 +273,37 @@ describe('workflow document runtime', () => {
     expect(result.beforeAll[0].error?.message).toContain('prepare failed');
   });
 
-  it('continues reverse teardown after afterAll and teardown failures', async () => {
+  it('continues reverse Node teardown after afterAll and teardown failures', async () => {
     const calls: string[] = [];
-    const node = defineNode({
+    const resource = defineNode({
+      name: 'resource',
+      execute({ onTeardown }) {
+        onTeardown(() => {
+          calls.push('teardown:first');
+          throw new Error('first failed');
+        });
+        onTeardown(() => {
+          calls.push('teardown:second');
+          throw new Error('second failed');
+        });
+      },
+    });
+    const after = defineNode({
       name: 'after.fail',
       execute() {
         calls.push('afterAll');
         throw new Error('after failed');
       },
     });
-    const registry = new NodeRegistry([node]);
+    const registry = new NodeRegistry([resource, after]);
     const onResult = vi.fn(() => calls.push('result'));
     const runtime = createDocumentRuntime(
-      collectedDocument({ afterAll: [step(node.name)] }),
+      collectedDocument({
+        beforeAll: [step(resource.name)],
+        afterAll: [step(after.name)],
+      }),
       {
         resolveNode: registry.require.bind(registry),
-        setupDocument({ onTeardown }) {
-          onTeardown(() => {
-            calls.push('teardown:first');
-            throw new Error('first failed');
-          });
-          onTeardown(() => {
-            calls.push('teardown:second');
-            throw new Error('second failed');
-          });
-          return undefined;
-        },
         onResult,
       },
     );
@@ -362,34 +320,79 @@ describe('workflow document runtime', () => {
     expect(result.teardownErrors).toHaveLength(2);
     expect(result.teardownErrors?.map((error) => error.details)).toEqual([
       {
-        documentId: 'document-id',
-        documentRunId: expect.any(String),
+        scope: 'document',
+        scopeId: expect.any(String),
+        node: 'resource',
         registrationIndex: 1,
       },
       {
-        documentId: 'document-id',
-        documentRunId: expect.any(String),
+        scope: 'document',
+        scopeId: expect.any(String),
+        node: 'resource',
         registrationIndex: 0,
       },
     ]);
     expect(onResult).toHaveBeenCalledWith(result);
   });
 
-  it('rejects teardown registration outside setupDocument', async () => {
-    let lateRegistration: (() => void) | undefined;
-    const runtime = createDocumentRuntime(collectedDocument(), {
-      resolveNode: () => {
-        throw new Error('no nodes');
-      },
-      setupDocument({ onTeardown }) {
-        lateRegistration = () => onTeardown(() => {});
-        return undefined;
+  it('exposes Node teardown failure in the document result', async () => {
+    const node = defineNode({
+      name: 'resource',
+      execute({ onTeardown }) {
+        onTeardown(() => {
+          throw new Error('agent release failed');
+        });
       },
     });
+    const runtime = createDocumentRuntime(
+      collectedDocument({ beforeAll: [step(node.name)] }),
+      {
+        resolveNode: () => node,
+      },
+    );
 
     await runtime.start();
-    expect(lateRegistration).toBeDefined();
-    expect(lateRegistration).toThrow(WorkflowLifecycleError);
-    await runtime.finish();
+    const result = await runtime.finish();
+
+    expect(result).toMatchObject({
+      status: 'failed',
+      teardownErrors: [{ code: 'NODE_SCOPE_TEARDOWN_ERROR' }],
+    });
+  });
+
+  it('runs cleanup hooks with usable signals after interruption', async () => {
+    const calls: string[] = [];
+    const controller = new AbortController();
+    const abort = defineNode({
+      name: 'abort.workflow',
+      execute(ctx) {
+        calls.push(`body:${ctx.signal.aborted}`);
+        controller.abort(new Error('interrupted'));
+      },
+    });
+    const cleanup = defineNode({
+      name: 'cleanup.workflow',
+      execute(ctx) {
+        const phase =
+          ctx.scope === 'case' ? ctx.case.phase : ctx.document.phase;
+        calls.push(`${phase}:${ctx.signal.aborted}`);
+        expect(ctx.signal.aborted).toBe(false);
+      },
+    });
+    const document = collectedDocument({
+      afterEach: [step(cleanup.name)],
+      afterAll: [step(cleanup.name)],
+    });
+    document.cases[0].definition.steps = [step(abort.name)];
+    const registry = new NodeRegistry([abort, cleanup]);
+
+    const result = await runWorkflowDocument(document, {
+      resolveNode: registry.require.bind(registry),
+      signal: controller.signal,
+    });
+
+    expect(calls).toEqual(['body:false', 'afterEach:false', 'afterAll:false']);
+    expect(result.cases[0].status).toBe('success');
+    expect(result.document.status).toBe('success');
   });
 });

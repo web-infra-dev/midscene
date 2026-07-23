@@ -1,6 +1,7 @@
 import { defineNode, z } from '@midscene/test';
 import {
   type TestProjectDefinition,
+  defineProjectSetup,
   defineTestProject,
   loadTestProject,
 } from '@midscene/test/config';
@@ -23,19 +24,59 @@ const requestNode = defineNode<
 
 const project: TestProjectDefinition<ProjectContext> =
   defineTestProject<ProjectContext>({
-    root: './e2e',
-    files: {
-      include: ['workflows/**/*.{yaml,yml}'],
-      exclude: ['workflows/**/*.draft.yaml'],
-    },
     nodes: [requestNode],
-    setupDocument({ env }) {
-      return { baseURL: env.TEST_BASE_URL ?? 'https://example.com' };
-    },
+    setup: defineProjectSetup<ProjectContext>({
+      name: 'default-web',
+      platform: 'web',
+      setup({ env }) {
+        return { baseURL: env.TEST_BASE_URL ?? 'https://example.com' };
+      },
+    }),
   });
 
 void project;
 void loadTestProject<ProjectContext>();
+
+const webSetup = defineProjectSetup<ProjectContext>({
+  name: 'web',
+  platform: 'web',
+  setup({ project, onTeardown }) {
+    project.platform satisfies 'web' | 'android' | 'ios' | 'computer';
+    onTeardown(({ context }) => {
+      context?.baseURL satisfies string | undefined;
+    });
+    return { baseURL: 'https://example.com' };
+  },
+});
+
+const projectNode = defineNode<unknown, unknown, ProjectContext>({
+  name: 'project.read',
+  execute({ context, history }) {
+    context.baseURL satisfies string;
+    history[0]?.node satisfies string | undefined;
+    // @ts-expect-error Node history is read-only.
+    history.push({});
+  },
+});
+
+defineTestProject<ProjectContext>({
+  projects: [
+    {
+      name: 'web',
+      platform: 'web',
+      setup: webSetup,
+      files: {
+        include: ['cases/**/*.yaml'],
+        exclude: ['cases/**/*.draft.yaml'],
+      },
+      tags: { include: ['smoke'], exclude: ['manual'] },
+      retry: 1,
+      variables: { locale: 'en-US' },
+    },
+  ],
+  test: { maxConcurrency: 1, bail: 1, testTimeout: 30_000 },
+  nodes: [projectNode],
+});
 
 const schemaInput = z.strictObject({
   path: z.string(),
@@ -67,10 +108,16 @@ defineNode<typeof schemaInput, { status: number }, ProjectContext>({
 
 defineTestProject({
   nodes: [],
-  files: {
-    // @ts-expect-error files.include must be an array.
-    include: 'workflows/*.yaml',
-  },
+  projects: [
+    {
+      name: 'web',
+      platform: 'web',
+      files: {
+        // @ts-expect-error files.include must be an array.
+        include: 'workflows/*.yaml',
+      },
+    },
+  ],
 });
 
 defineNode<unknown, unknown, ProjectContext>({

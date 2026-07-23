@@ -1,9 +1,18 @@
 import { appendFileSync } from 'node:fs';
 import { defineNode } from '@midscene/test';
 import { defineTestProject } from '@midscene/test/config';
-import { createMidsceneNodes } from '@midscene/test/midscene';
+import {
+  type MidsceneUIAgent,
+  createMidsceneNodes,
+} from '@midscene/test/midscene';
 
-const log = (value) => {
+interface FixtureContext {
+  id: number;
+  attempt: number;
+  uiAgent: MidsceneUIAgent;
+}
+
+const log = (value: string) => {
   const path = process.env.WORKFLOW_E2E_LOG;
   if (!path) throw new Error('WORKFLOW_E2E_LOG is required');
   appendFileSync(path, `${value}\n`);
@@ -11,54 +20,68 @@ const log = (value) => {
 
 log(`config:${process.pid}`);
 
-const documentLifecycle = defineNode({
+const documentLifecycle = defineNode<unknown, unknown, FixtureContext>({
   name: 'document.lifecycle',
-  execute({ document, context }) {
-    log(`${document.phase}:${context.id}:${process.pid}`);
+  execute(ctx) {
+    if (ctx.scope !== 'document') {
+      throw new Error('document.lifecycle only supports document hooks.');
+    }
+    log(`${ctx.document.phase}:${ctx.context.id}:${process.pid}`);
   },
 });
 
-const startAttempt = defineNode({
+const startAttempt = defineNode<unknown, unknown, FixtureContext>({
   name: 'attempt.start',
-  execute({ context, case: caseContext }) {
-    context.attempt += 1;
+  execute(ctx) {
+    if (ctx.scope !== 'case') {
+      throw new Error('attempt.start only supports case hooks.');
+    }
+    ctx.context.attempt += 1;
     log(
-      `beforeEach:${context.id}:${context.attempt}:${caseContext.runId}:${process.pid}`,
+      `beforeEach:${ctx.context.id}:${ctx.context.attempt}:${ctx.case.runId}:${process.pid}`,
     );
   },
 });
 
-const midsceneNodes = createMidsceneNodes({
+const midsceneNodes = createMidsceneNodes<FixtureContext>({
   getAgent: ({ context }) => context.uiAgent,
 });
-let documentCount = 0;
-
-export default defineTestProject({
+export default defineTestProject<FixtureContext>({
   nodes: [documentLifecycle, startAttempt, ...midsceneNodes],
+  setup: {
+    name: 'fixture',
+    platform: 'web',
+    async setup({ onTeardown }) {
+      const context: FixtureContext = {
+        id: 1,
+        attempt: 0,
+        uiAgent: {
+          async aiAct() {
+            throw new Error('aiAct is not used by this fixture.');
+          },
+          async aiAssert() {
+            throw new Error('aiAssert is not used by this fixture.');
+          },
+          async recordToReport(title, options) {
+            log(
+              `record:${context.id}:${context.attempt}:${title}:${options?.content}:${process.pid}`,
+            );
+            if (
+              process.env.WORKFLOW_E2E_FAIL_FIRST === '1' &&
+              context.attempt === 1 &&
+              title === 'Ready'
+            ) {
+              throw new Error('controlled first-attempt failure');
+            }
+          },
+        },
+      };
+      log(`projectSetup:${context.id}:${process.pid}`);
 
-  async setupDocument({ sourcePath, onTeardown }) {
-    documentCount += 1;
-    const context = { id: documentCount, attempt: 0 };
-    log(`setupDocument:${context.id}:${sourcePath}:${process.pid}`);
-
-    context.uiAgent = {
-      async recordToReport(title, options) {
-        log(
-          `record:${context.id}:${context.attempt}:${title}:${options.content}:${process.pid}`,
-        );
-        if (
-          process.env.WORKFLOW_E2E_FAIL_FIRST === '1' &&
-          context.attempt === 1 &&
-          title === 'Ready'
-        ) {
-          throw new Error('controlled first-attempt failure');
-        }
-      },
-    };
-
-    onTeardown(() => {
-      log(`documentTeardown:${context.id}:${context.attempt}:${process.pid}`);
-    });
-    return context;
+      onTeardown(() => {
+        log(`projectTeardown:${context.id}:${context.attempt}:${process.pid}`);
+      });
+      return context;
+    },
   },
 });

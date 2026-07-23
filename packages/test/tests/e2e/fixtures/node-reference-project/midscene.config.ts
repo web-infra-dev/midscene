@@ -20,7 +20,11 @@ export default defineTestProject({
       },
     }),
   ],
-  setupDocument() {
-    throw new Error('describe-nodes must not run setupDocument.');
+  setup: {
+    name: 'must-not-run',
+    platform: 'web',
+    setup() {
+      throw new Error('describe-nodes must not run Project setup.');
+    },
   },
 });
