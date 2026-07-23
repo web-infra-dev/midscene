@@ -1,0 +1,78 @@
+# 将 Midscene 集成到 GitHub Actions
+
+本文介绍如何在 GitHub Actions 中验证 Midscene 的各个平台。验证范围包括 Web、无头 Linux、Windows、macOS、Android 和 iOS。你可以参考 Midscene 仓库中的 workflow。配置仓库 Secrets 与 Variables 后，将 HTML 报告和诊断材料保存为 artifact。
+
+本文中的 GitHub CI 专指 GitHub Actions。文中的 workflow、runner、仓库配置和命令不适用于其他 CI 平台。
+
+## 将 Midscene 添加到 GitHub 仓库
+
+先选择一个平台 workflow，再根据你的仓库调整安装、构建和测试命令。链接中的 workflow 用于测试 Midscene monorepo。它们是接入示例，需要根据其他项目进行修改。
+
+1. 将平台 workflow 复制到 `.github/workflows/`，并保留 `pull_request` 与 `workflow_dispatch` 触发器。
+2. 将 `MIDSCENE_MODEL_API_KEY` 添加为 GitHub Actions 仓库 Secret。
+3. 将 `MIDSCENE_MODEL_BASE_URL`、`MIDSCENE_MODEL_NAME` 和 `MIDSCENE_MODEL_FAMILY` 添加为 GitHub Actions 仓库 Variables。
+4. 调整 `pull_request.paths`，覆盖平台包及所有可能影响它的共享包。
+5. 保留 `actions/upload-artifact` 步骤，让成功和失败任务都能保存报告与诊断材料。
+6. 推送分支，在 GitHub 的 **Actions** 页面检查平台任务及其 artifacts。
+
+GitHub 不会向不受信任的 fork 提供仓库 Actions Secrets。请从可信分支运行模型测试，或在主仓库中使用经过审核的中转分支。
+
+## 选择 GitHub Actions workflow
+
+Midscene 的每条 workflow 都是一份可运行的 GitHub Actions 接入示例。这些 workflow 会验证对应的平台适配器。验证环境包括 GitHub-hosted 桌面、模拟器和浏览器。
+
+| 平台 | Workflow 与 GitHub-hosted runner | UI 环境 | 验证内容 |
+| --- | --- | --- | --- |
+| Web | [AI - Playwright e2e](https://github.com/web-infra-dev/midscene/blob/main/.github/workflows/ai.yml)，`ubuntu-22.04` | Playwright 驱动的桌面版 Chrome | TodoMVC 操作与查询、缓存回放、报告生成 |
+| 无头 Linux | [Headless Linux](https://github.com/web-infra-dev/midscene/blob/main/.github/workflows/headless-linux.yml)，`ubuntu-22.04` | X 虚拟帧缓冲区（Xvfb）中的 Google Chrome | 在没有物理显示器的环境中执行 Computer TodoMVC 与 Chrome 扩展流程 |
+| Windows | [Windows Desktop](https://github.com/web-infra-dev/midscene/blob/main/.github/workflows/windows-desktop.yml)，`windows-2022` | 可见的 WinForms fixture 与 Chrome TodoMVC | 包产物、单元测试、原生输入、截图和 TodoMVC |
+| macOS | [macOS Desktop](https://github.com/web-infra-dev/midscene/blob/main/.github/workflows/macos-desktop.yml)，`macos-15-intel` | 可见的 AppKit fixture 与 Safari TodoMVC | 包产物、单元测试、原生输入、截图和 TodoMVC |
+| Android | [Android Emulator](https://github.com/web-infra-dev/midscene/blob/main/.github/workflows/android-emulator.yml)，`ubuntu-22.04` | Android API 35 Pixel 6 模拟器 | 包产物、单元测试、Android 调试桥输入、截图和 TodoMVC |
+| iOS | [iOS Simulator](https://github.com/web-infra-dev/midscene/blob/main/.github/workflows/ios-simulator.yml)，`macos-15` | iPhone Simulator、Mobile Safari 与 WebDriverAgent | 包产物、单元测试、模拟器输入、截图和 TodoMVC |
+| HarmonyOS | 暂无 GitHub Actions workflow | 未覆盖 | 在 HarmonyOS 设备或设备农场中验证 |
+
+任一必要阶段失败，桌面与移动端任务就会失败。检查范围包括构建产物、包入口、单元测试、确定性冒烟，以及适用平台的 TodoMVC。
+
+## 验证 GitHub Actions 接入结果
+
+下表列出各平台的成功任务和归档报告。打开报告，即可查看 Midscene 完成的操作。
+
+| 平台 | 成功的 GitHub Actions 任务 | 归档的 TodoMVC 报告 |
+| --- | --- | --- |
+| Web | [任务 29302040780](https://github.com/web-infra-dev/midscene/actions/runs/29302040780) | [打开 Web 报告](https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/github-ci/todo-mvc-web.html) |
+| 无头 Linux | [任务 29252028039](https://github.com/web-infra-dev/midscene/actions/runs/29252028039) | [打开无头 Linux 报告](https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/github-ci/todo-mvc-linux.html) |
+| Windows | [任务 29800318468](https://github.com/web-infra-dev/midscene/actions/runs/29800318468) | [打开 Windows 报告](https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/github-ci/todo-mvc-windows.html) |
+| macOS | [任务 29822678312](https://github.com/web-infra-dev/midscene/actions/runs/29822678312) | [打开 macOS 报告](https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/github-ci/todo-mvc-macos.html) |
+| Android | [任务 29822678280](https://github.com/web-infra-dev/midscene/actions/runs/29822678280) | [打开 Android 报告](https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/github-ci/todo-mvc-android.html) |
+| iOS | [任务 29822678283](https://github.com/web-infra-dev/midscene/actions/runs/29822678283) | [打开 iOS 报告](https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/github-ci/todo-mvc-ios.html) |
+
+:::warning
+桌面与移动端的 GitHub artifact 保留 7 天，下载时可能需要登录；长期访问请使用上方归档报告。
+:::
+
+## 将报告与诊断材料上传为 GitHub artifacts
+
+即使任务失败，平台 workflow 也会上传证据。HTML 报告用于回放 Midscene 操作。诊断 artifact 用于检查 runner 或设备状态。
+
+| 平台 | 冒烟报告 | TodoMVC 报告 | 诊断材料 |
+| --- | --- | --- | --- |
+| Windows | `windows-desktop-smoke-report` | `windows-todo-mvc-report` | `windows-desktop-diagnostics` |
+| macOS | `macos-desktop-smoke-report` | `macos-todo-mvc-report` | `macos-desktop-diagnostics` |
+| Android | `android-emulator-smoke-report` | `android-todo-mvc-report` | `android-emulator-diagnostics` |
+| iOS | `ios-simulator-smoke-report` | `ios-todo-mvc-report` | `ios-simulator-diagnostics` |
+| 无头 Linux | `headless-linux-ai-report` | 包含在 AI 报告中 | Workflow 日志 |
+| Web | `e2e-report` | 包含在端到端报告中 | `e2e-cache-report` 与 `e2e-report-output` |
+
+诊断材料包括 runner 元数据、截图、平台日志、包清单和步骤结果。具体内容取决于平台 workflow。
+
+## 理解 GitHub-hosted runner 的验证边界
+
+这些 workflow 只能证明被测链路可以在指定的 GitHub-hosted runner 上运行。其他设备、显示设置、权限或远程会话需要单独验证。
+
+- **Windows**：使用 96 DPI，即 100% 缩放的交互会话。不覆盖提权窗口、混合 DPI 或远程桌面协议（RDP）会话
+- **macOS**：使用已启用辅助功能权限的 hosted 交互桌面。不覆盖所有 macOS 版本或权限策略
+- **Android**：使用 Android API 35 的 x86_64 Pixel 6 模拟器，不能替代真机验证
+- **iOS**：通过 WebDriverAgent 控制 iPhone Simulator 与 Mobile Safari，不能替代真机验证
+- **无头 Linux**：使用 Xvfb 代替物理显示器。窗口管理器和图形驱动行为可能与工作站不同
+- **Web**：通过 Playwright 使用桌面版 Chrome。其他浏览器需要单独验证
+- **HarmonyOS**：暂无 GitHub Actions 冒烟，发布前需要验证目标设备

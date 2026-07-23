@@ -42,6 +42,7 @@ final class FixtureController: NSObject, NSApplicationDelegate, NSTextFieldDeleg
   private var textField: SmokeTextField!
   private var scrollView: NSScrollView!
   private var activationSource: DispatchSourceSignal?
+  private var focusTimer: DispatchSourceTimer?
 
   private var activationCount = 0
   private var inputReadyGeneration = 0
@@ -124,6 +125,7 @@ final class FixtureController: NSObject, NSApplicationDelegate, NSTextFieldDeleg
     )
     window.contentView?.addSubview(scrollView)
 
+    installFocusKeeper()
     installActivationSignal()
     activateFixture()
     writeState()
@@ -156,22 +158,26 @@ final class FixtureController: NSObject, NSApplicationDelegate, NSTextFieldDeleg
   private func activateFixture() {
     activationCount += 1
     let activation = activationCount
-    NSApplication.shared.unhide(nil)
-    NSApplication.shared.activate(ignoringOtherApps: true)
-    NSRunningApplication.current.activate(options: [.activateAllWindows])
+    focusFixture()
     writeState()
 
-    // Present the window on the next AppKit turn, after the activation request
-    // has reached the application. A readiness generation is published only
-    // after AppKit itself reports a visible key window; callers synchronize on
-    // that generation instead of sleeping for an arbitrary duration.
+    // Re-assert focus on the next AppKit turn before publishing readiness.
+    // The hosted runner may briefly remove key-window status when another
+    // helper process (for example osascript) inspects the frontmost app.
     DispatchQueue.main.async { [weak self] in
       guard let self else { return }
-      self.window.orderFrontRegardless()
-      self.window.makeKeyAndOrderFront(nil)
-      self.window.makeFirstResponder(self.textField)
+      self.focusFixture()
       self.publishInputReady(for: activation, attemptsRemaining: 40)
     }
+  }
+
+  private func focusFixture() {
+    NSApplication.shared.unhide(nil)
+    window.orderFrontRegardless()
+    NSApplication.shared.activate(ignoringOtherApps: true)
+    NSRunningApplication.current.activate(options: [.activateAllWindows])
+    window.makeKeyAndOrderFront(nil)
+    window.makeFirstResponder(textField)
   }
 
   private func publishInputReady(for activation: Int, attemptsRemaining: Int) {
@@ -204,6 +210,23 @@ final class FixtureController: NSObject, NSApplicationDelegate, NSTextFieldDeleg
     }
     source.resume()
     activationSource = source
+  }
+
+  private func installFocusKeeper() {
+    let timer = DispatchSource.makeTimerSource(queue: .main)
+    timer.schedule(
+      deadline: .now(),
+      repeating: .milliseconds(50),
+      leeway: .milliseconds(10)
+    )
+    timer.setEventHandler { [weak self] in
+      guard let self else { return }
+      if !NSApplication.shared.isActive || !self.window.isKeyWindow {
+        self.focusFixture()
+      }
+    }
+    timer.resume()
+    focusTimer = timer
   }
 
   private func installMainMenu() {

@@ -5,17 +5,17 @@ tasks:
   - name: view screenshots tab
     flow:
       - sleep: 2000
-      - ai: Click on the first task row in the left sidebar that has type "Planning" or "Insight" or "Locate"
+      - aiTap: the first Planning task row in the left sidebar
       - sleep: 2000
-      - ai: In the center task detail Replay/Screenshots/JSON View switcher, select "Screenshots" (not Replay or JSON View) and wait until screenshot thumbnails are displayed
-      - sleep: 1500
-      - aiAssert: The center task detail area has the Screenshots option selected and shows UI screenshot images for the selected task
+      - aiTap: the Screenshots segment in the Replay/Screenshots/JSON View switcher at the top of the center task detail area
+      - sleep: 1000
+      - aiAssert: The center task detail area is showing the Screenshots view. The Screenshots segment is selected, and the content below it includes a UI Context section with at least one screenshot image. The UI Context image is part of the Screenshots view, not Replay content.
 
   - name: view JSON data tab
     flow:
-      - ai: In the center task detail area, click the "JSON View" option in the Replay/Screenshots/JSON View switcher and wait until the content changes to the text data view
+      - aiTap: the JSON View segment in the Replay/Screenshots/JSON View switcher at the top of the center task detail area
       - sleep: 1000
-      - aiAssert: The center task detail area has the JSON View option selected and shows structured task details as text instead of screenshot images
+      - aiAssert: The center task detail area is showing the JSON View. The JSON View segment is selected, and the content below it shows structured task details as text instead of UI Context or other screenshot images.
 
   - name: inspect detail side sections
     flow:
