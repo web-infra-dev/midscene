@@ -16,6 +16,24 @@ Skills work by running CLI commands directly in the terminal. The AI agent acts 
 
 In default Puppeteer mode, you can override the default `1440x800` viewport with `--viewport-width <width>` and `--viewport-height <height>`. These flags are only supported in default Puppeteer mode, not in `--bridge` or `--cdp` mode.
 
+In CDP mode, use `--extra-http-headers '<json-object>'` to add HTTP headers to page requests. Header values must be strings, and the option must be passed to every separate CLI command that may issue requests because each command creates a new CDP session:
+
+```bash
+CDP_HEADERS='{"x-use-ppe":"1","x-tt-env":"ppe_example"}'
+
+npx @midscene/web connect \
+  --cdp ws://127.0.0.1:9222/devtools/browser \
+  --extra-http-headers "$CDP_HEADERS" \
+  --url https://example.com
+
+npx @midscene/web act \
+  --cdp ws://127.0.0.1:9222/devtools/browser \
+  --extra-http-headers "$CDP_HEADERS" \
+  --prompt "click the button"
+```
+
+The headers are applied before `connect --url` navigates, so the initial document request includes them. Avoid putting sensitive authentication values directly in shell history.
+
 If Chrome is installed in a non-standard location, set `MIDSCENE_CHROME_PATH` to the Chrome executable path. `MIDSCENE_MCP_CHROME_PATH` is still accepted as a temporary migration alias.
 
 ## Installation

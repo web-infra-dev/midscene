@@ -24,6 +24,7 @@ const mockPage = {
   url: vi.fn(() => 'https://example.com/'),
   bringToFront: vi.fn(),
   goto: vi.fn(),
+  setExtraHTTPHeaders: vi.fn(),
   setViewport: vi.fn(),
   target: vi.fn((): { _targetId?: string } => ({ _targetId: 'target-1' })),
 };
@@ -594,5 +595,83 @@ describe('web agent tool init args', () => {
         screenshotShrinkFactor: 2,
       }),
     );
+  });
+
+  it('exposes extra HTTP headers only in CDP mode', async () => {
+    const bridgeTools = new WebMidsceneTools();
+    const puppeteerTools = new WebPuppeteerMidsceneTools();
+    const cdpTools = new WebCdpMidsceneTools('ws://127.0.0.1:9222/devtools/1');
+
+    await Promise.all([
+      bridgeTools.initTools(),
+      puppeteerTools.initTools(),
+      cdpTools.initTools(),
+    ]);
+
+    const getConnectSchema = (
+      tools: WebMidsceneTools | WebPuppeteerMidsceneTools | WebCdpMidsceneTools,
+    ) =>
+      tools.getToolDefinitions().find((tool) => tool.name === 'web_connect')
+        ?.schema;
+
+    expect(getConnectSchema(bridgeTools)?.['web.extraHTTPHeaders']).toBe(
+      undefined,
+    );
+    expect(getConnectSchema(puppeteerTools)?.['web.extraHTTPHeaders']).toBe(
+      undefined,
+    );
+    expect(getConnectSchema(cdpTools)?.['web.extraHTTPHeaders']).toBeDefined();
+    expect(
+      cdpTools.getToolDefinitions().find((tool) => tool.name === 'web_connect')
+        ?.cli?.options?.['web.extraHTTPHeaders']?.preferredName,
+    ).toBe('extra-http-headers');
+  });
+
+  it('applies CDP extra HTTP headers before navigating', async () => {
+    const tools = new WebCdpMidsceneTools('ws://127.0.0.1:9222/devtools/1');
+    await tools.initTools();
+
+    const connectTool = tools
+      .getToolDefinitions()
+      .find((tool) => tool.name === 'web_connect');
+    const headers = {
+      'x-use-ppe': '1',
+      'x-tt-env': 'ppe_example',
+    };
+
+    await connectTool?.handler({
+      url: 'https://example.com',
+      extraHTTPHeaders: headers,
+    });
+
+    expect(mockPage.setExtraHTTPHeaders).toHaveBeenCalledWith(headers);
+    expect(
+      mockPage.setExtraHTTPHeaders.mock.invocationCallOrder[0],
+    ).toBeLessThan(mockPage.goto.mock.invocationCallOrder[0]);
+  });
+
+  it('does not apply CDP extra HTTP headers when omitted', async () => {
+    const tools = new WebCdpMidsceneTools('ws://127.0.0.1:9222/devtools/1');
+    await tools.initTools();
+
+    const connectTool = tools
+      .getToolDefinitions()
+      .find((tool) => tool.name === 'web_connect');
+
+    await connectTool?.handler({ url: 'https://example.com' });
+
+    expect(mockPage.setExtraHTTPHeaders).not.toHaveBeenCalled();
+  });
+
+  it('rejects non-string CDP extra HTTP header values', async () => {
+    const tools = new WebCdpMidsceneTools('ws://127.0.0.1:9222/devtools/1');
+    await tools.initTools();
+
+    const connectTool = tools
+      .getToolDefinitions()
+      .find((tool) => tool.name === 'web_connect');
+    const headerSchema = connectTool?.schema['web.extraHTTPHeaders'];
+
+    expect(headerSchema?.safeParse({ 'x-use-ppe': 1 }).success).toBe(false);
   });
 });
