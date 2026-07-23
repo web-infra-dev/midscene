@@ -88,8 +88,193 @@ describe('test project config', () => {
     const { path } = createConfig('export const config = { nodes: [] };');
 
     await expect(loadTestProject(path)).rejects.toThrow(
-      'Midscene config must default export an object with a nodes array.',
+      /must (?:have a default export|default export an object with a nodes array)/,
     );
+  });
+
+  it('creates a compatible implicit default project', async () => {
+    const { path } = createConfig(`
+      export default {
+        files: { include: ['cases/**/*.yaml'] },
+        nodes: [],
+      };
+    `);
+
+    const loaded = await loadTestProject(path);
+
+    expect(loaded.hasExplicitProjects).toBe(false);
+    expect(loaded.projects).toEqual([
+      {
+        name: 'default',
+        platform: 'web',
+        files: { include: ['cases/**/*.yaml'] },
+        tags: { include: [], exclude: [] },
+        repeat: 1,
+        retry: 0,
+        variables: {},
+      },
+    ]);
+  });
+
+  it('resolves project inheritance, selectors, setup binding, runner, and output', async () => {
+    const setupMarker = vi.fn();
+    (globalThis as Record<string, unknown>).__testSetupMarker = setupMarker;
+    const { path } = createConfig(`
+      const androidSetup = {
+        name: 'dora-android',
+        platform: ['android'],
+        setup() {
+          globalThis.__testSetupMarker();
+          return { connected: true };
+        },
+      };
+      export default {
+        files: {
+          include: ['cases/**/*.{yaml,yml}'],
+          exclude: ['cases/**/*.draft.yaml'],
+        },
+        projects: [
+          {
+            name: 'android-smoke',
+            platform: 'android',
+            setup: androidSetup,
+            tags: { include: ['smoke'], exclude: ['ios-only'] },
+            repeat: 2,
+            retry: 1,
+            variables: {
+              appName: 'Aweme',
+              launch: { reinstall: false },
+            },
+          },
+          {
+            name: 'ios-regression',
+            platform: 'ios',
+            files: { include: ['ios/**/*.yaml'], exclude: [] },
+          },
+        ],
+        testRunner: { maxConcurrency: 1, bail: 2, testTimeout: 30000 },
+        output: { summary: './out/summary.json', reportDir: './out/report' },
+        nodes: [],
+      };
+    `);
+
+    const loaded = await loadTestProject(path);
+
+    expect(setupMarker).not.toHaveBeenCalled();
+    expect(loaded.hasExplicitProjects).toBe(true);
+    expect(loaded.projects[0]).toMatchObject({
+      name: 'android-smoke',
+      platform: 'android',
+      files: {
+        include: ['cases/**/*.{yaml,yml}'],
+        exclude: ['cases/**/*.draft.yaml'],
+      },
+      tags: { include: ['smoke'], exclude: ['ios-only'] },
+      repeat: 2,
+      retry: 1,
+      variables: {
+        appName: 'Aweme',
+        launch: { reinstall: false },
+      },
+      setup: { name: 'dora-android', platform: ['android'] },
+    });
+    expect(Object.isFrozen(loaded.projects[0].variables)).toBe(true);
+    expect(Object.isFrozen(loaded.projects[0].variables.launch)).toBe(true);
+    expect(Object.isFrozen(loaded.projects)).toBe(true);
+    expect(Object.isFrozen(loaded.projects[0].files)).toBe(true);
+    expect(Object.isFrozen(loaded.projects[0].files?.include)).toBe(true);
+    expect(loaded.projects[1]).toMatchObject({
+      files: { include: ['ios/**/*.yaml'], exclude: [] },
+      tags: { include: [], exclude: [] },
+      repeat: 1,
+      retry: 0,
+    });
+    expect(loaded.testRunner).toEqual({
+      maxConcurrency: 1,
+      bail: 2,
+      testTimeout: 30000,
+    });
+    expect(loaded.output).toEqual({
+      summary: './out/summary.json',
+      reportDir: './out/report',
+    });
+  });
+
+  it.each([
+    ['empty projects', 'projects: []', 'projects must be a non-empty array'],
+    [
+      'duplicate project names',
+      `projects: [
+        { name: 'same', platform: 'web' },
+        { name: 'same', platform: 'ios' },
+      ]`,
+      'project name "same" must be unique',
+    ],
+    [
+      'unknown platform',
+      `projects: [{ name: 'bad', platform: 'desktop' }]`,
+      'must be one of web, android, ios, computer',
+    ],
+    [
+      'setup platform mismatch',
+      `projects: [{
+        name: 'ios',
+        platform: 'ios',
+        setup: { name: 'android', platform: 'android', setup() {} },
+      }]`,
+      'does not support project platform "ios"',
+    ],
+    [
+      'empty project include',
+      `projects: [{
+        name: 'web', platform: 'web', files: { include: [] },
+      }]`,
+      'projects[0].files.include must be a non-empty array',
+    ],
+    [
+      'invalid tags',
+      `projects: [{
+        name: 'web', platform: 'web', tags: { include: 'smoke' },
+      }]`,
+      'projects[0].tags.include must be an array',
+    ],
+    [
+      'zero repeat',
+      `projects: [{ name: 'web', platform: 'web', repeat: 0 }]`,
+      'projects[0].repeat must be a positive integer',
+    ],
+    [
+      'negative retry',
+      `projects: [{ name: 'web', platform: 'web', retry: -1 }]`,
+      'projects[0].retry must be a non-negative integer',
+    ],
+    [
+      'non-JSON variable',
+      `projects: [{
+        name: 'web', platform: 'web', variables: { bad() {} },
+      }]`,
+      'projects[0].variables.bad must be JSON-compatible',
+    ],
+    [
+      'non-plain variable',
+      `projects: [{
+        name: 'web', platform: 'web', variables: { bad: new Date() },
+      }]`,
+      'projects[0].variables.bad must be JSON-compatible',
+    ],
+    [
+      'parallel runner',
+      'testRunner: { maxConcurrency: 2 }',
+      'testRunner.maxConcurrency currently only supports 1',
+    ],
+    [
+      'negative bail',
+      'testRunner: { bail: -1 }',
+      'testRunner.bail must be a non-negative integer',
+    ],
+  ])('rejects invalid %s configuration', async (_name, field, message) => {
+    const { path } = createConfig(`export default { ${field}, nodes: [] };`);
+    await expect(loadTestProject(path)).rejects.toThrow(message);
   });
 
   it.each(['.js', '.cjs', '.mts', '.cts', '.tsx', '.json'])(
@@ -125,6 +310,18 @@ describe('test project config', () => {
     expect(error).toBeInstanceOf(Error);
     expect(error.message).toContain(`Failed to load Midscene config "${path}"`);
     expect(error.cause).toBeInstanceOf(Error);
+  });
+
+  it('does not execute a config twice when it throws a runtime SyntaxError', async () => {
+    const marker = vi.fn();
+    (globalThis as Record<string, unknown>).__testSetupMarker = marker;
+    const { path } = createConfig(`
+      globalThis.__testSetupMarker();
+      throw new SyntaxError('runtime syntax error');
+    `);
+
+    await expect(loadTestProject(path)).rejects.toThrow('runtime syntax error');
+    expect(marker).toHaveBeenCalledOnce();
   });
 
   it('does not resolve tsconfig paths', async () => {

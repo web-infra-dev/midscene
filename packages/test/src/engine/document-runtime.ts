@@ -1,15 +1,20 @@
 import { randomUUID } from 'node:crypto';
 import {
+  NodeScopeTeardownError,
   WorkflowDocumentSetupError,
   WorkflowDocumentTeardownError,
+  type WorkflowError,
   WorkflowLifecycleError,
 } from '../errors';
 import type { CollectedWorkflowDocument } from '../parser/types';
 import { executeStep } from './execute-step';
+import { createHistory } from './history';
+import { reportPathsFromTeardown } from './scope-teardown';
 import type {
   CreateDocumentRuntimeOptions,
   DocumentNodePhase,
   NodeDocumentContext,
+  NodeScopeTeardown,
   StepRunResult,
   WorkflowDocumentInfo,
   WorkflowDocumentRunResult,
@@ -17,10 +22,13 @@ import type {
   WorkflowDocumentTeardown,
 } from './types';
 
-export function createDocumentRuntime<TContext = undefined>(
+export function createDocumentRuntime<
+  TProjectContext = undefined,
+  TDocumentContext = TProjectContext,
+>(
   document: CollectedWorkflowDocument,
-  options: CreateDocumentRuntimeOptions<TContext>,
-): WorkflowDocumentRuntime<TContext> {
+  options: CreateDocumentRuntimeOptions<TProjectContext, TDocumentContext>,
+): WorkflowDocumentRuntime<TDocumentContext> {
   const documentRunId = options.createDocumentRunId?.() ?? randomUUID();
   const startedAt = new Date();
   const beforeAll: StepRunResult[] = [];
@@ -34,33 +42,59 @@ export function createDocumentRuntime<TContext = undefined>(
       options.resolveNode(step.node),
     ),
   };
-  const info: WorkflowDocumentInfo = {
+  const project =
+    options.project ??
+    Object.freeze({
+      name: document.projectId,
+      platform: 'web' as const,
+      tags: Object.freeze({ include: [], exclude: [] }),
+      repeat: 1,
+      retry: 0,
+      variables: Object.freeze({}),
+    });
+  const projectContext = options.projectContext as TProjectContext;
+  const signal = options.signal ?? new AbortController().signal;
+  const info: WorkflowDocumentInfo<TProjectContext> = {
     documentId: document.documentId,
     documentRunId,
     projectId: document.projectId,
+    projectName: project.name,
+    project,
+    projectContext,
+    repeatIndex: options.repeatIndex ?? 0,
     sourcePath: document.sourcePath,
     cases: document.cases.map((caseDefinition) => caseDefinition.definition),
     lifecycle: document.lifecycle,
     env: Object.freeze({ ...process.env }),
+    signal,
   };
   const teardownStack: Array<{
     registrationIndex: number;
-    teardown: WorkflowDocumentTeardown;
+    teardown: WorkflowDocumentTeardown<TProjectContext>;
+  }> = [];
+  const nodeTeardownStack: Array<{
+    registrationIndex: number;
+    node: string;
+    teardown: NodeScopeTeardown;
   }> = [];
   let acceptingTeardowns = options.setupDocument !== undefined;
-  let context = undefined as TContext;
+  let acceptingNodeTeardowns = true;
+  let context = projectContext as unknown as TDocumentContext;
   let setupError: WorkflowDocumentSetupError | undefined;
   let started = false;
   let finishedResult: WorkflowDocumentRunResult | undefined;
+  const reportPaths = new Set<string>();
 
   const createResult = (
-    teardownErrors: WorkflowDocumentTeardownError[] = [],
+    teardownErrors: WorkflowError[] = [],
   ): WorkflowDocumentRunResult => {
     const endedAt = new Date();
     return {
       documentId: document.documentId,
       documentRunId,
       projectId: document.projectId,
+      projectName: project.name,
+      repeatIndex: options.repeatIndex ?? 0,
       sourcePath: document.sourcePath,
       status:
         setupError ||
@@ -75,18 +109,22 @@ export function createDocumentRuntime<TContext = undefined>(
       afterAll: [...afterAll],
       ...(setupError ? { setupError } : {}),
       ...(teardownErrors.length > 0 ? { teardownErrors } : {}),
+      ...(reportPaths.size > 0 ? { reportPaths: [...reportPaths] } : {}),
     };
   };
 
   const runPhase = async (
     phase: DocumentNodePhase,
     results: StepRunResult[],
+    executionSignal = signal,
   ): Promise<void> => {
     for (const [stepIndex, step] of document.lifecycle[phase].entries()) {
       const documentContext: NodeDocumentContext = {
         documentId: document.documentId,
         documentRunId,
         projectId: document.projectId,
+        projectName: project.name,
+        repeatIndex: options.repeatIndex ?? 0,
         sourcePath: document.sourcePath,
         phase,
         stepIndex,
@@ -104,6 +142,30 @@ export function createDocumentRuntime<TContext = undefined>(
         nodes[phase][stepIndex],
         { scope: 'document', document: documentContext },
         context,
+        {
+          history: createHistory([], completedNodes, 'document'),
+          signal: executionSignal,
+          defaultTimeoutMs: options.defaultTimeoutMs,
+          onTeardown(node, teardown) {
+            if (!acceptingNodeTeardowns) {
+              throw new WorkflowLifecycleError(
+                'Node teardown can only be registered while a workflow document is running.',
+                { documentId: document.documentId, documentRunId, node },
+              );
+            }
+            if (typeof teardown !== 'function') {
+              throw new WorkflowLifecycleError(
+                'Node onTeardown() requires a teardown function.',
+                { documentId: document.documentId, documentRunId, node },
+              );
+            }
+            nodeTeardownStack.push({
+              registrationIndex: nodeTeardownStack.length,
+              node,
+              teardown,
+            });
+          },
+        },
       );
       await options.onStepResult?.(stepInfo, result);
       results.push(result);
@@ -112,7 +174,9 @@ export function createDocumentRuntime<TContext = undefined>(
     }
   };
 
-  const onTeardown = (teardown: WorkflowDocumentTeardown): void => {
+  const onTeardown = (
+    teardown: WorkflowDocumentTeardown<TProjectContext>,
+  ): void => {
     if (!acceptingTeardowns) {
       throw new WorkflowLifecycleError(
         'onTeardown() can only be called while setupDocument is running.',
@@ -135,9 +199,13 @@ export function createDocumentRuntime<TContext = undefined>(
     get context() {
       return context;
     },
+    get history() {
+      return createHistory([], completedNodes, 'document');
+    },
     get canRunCases() {
       return (
         started &&
+        !signal.aborted &&
         !setupError &&
         !beforeAll.some((step) => step.status === 'failed')
       );
@@ -150,7 +218,7 @@ export function createDocumentRuntime<TContext = undefined>(
         );
       }
       started = true;
-      if (options.setupDocument) {
+      if (options.setupDocument && !signal.aborted) {
         try {
           context = await options.setupDocument({ ...info, onTeardown });
         } catch (error) {
@@ -162,7 +230,8 @@ export function createDocumentRuntime<TContext = undefined>(
           acceptingTeardowns = false;
         }
       }
-      if (!setupError) await runPhase('beforeAll', beforeAll);
+      if (!setupError && !signal.aborted)
+        await runPhase('beforeAll', beforeAll);
       return createResult();
     },
     async finish() {
@@ -173,10 +242,42 @@ export function createDocumentRuntime<TContext = undefined>(
           { documentId: document.documentId, documentRunId },
         );
       }
-      if (!setupError) await runPhase('afterAll', afterAll);
+      let finishError: unknown;
+      if (!setupError) {
+        try {
+          await runPhase(
+            'afterAll',
+            afterAll,
+            signal.aborted ? new AbortController().signal : signal,
+          );
+        } catch (error) {
+          finishError = error;
+        }
+      }
 
-      const statusBeforeTeardown = createResult().status;
-      const teardownErrors: WorkflowDocumentTeardownError[] = [];
+      acceptingNodeTeardowns = false;
+      const teardownErrors: WorkflowError[] = [];
+      for (const {
+        registrationIndex,
+        node,
+        teardown,
+      } of nodeTeardownStack.reverse()) {
+        try {
+          for (const path of reportPathsFromTeardown(await teardown())) {
+            reportPaths.add(path);
+          }
+        } catch (error) {
+          teardownErrors.push(
+            new NodeScopeTeardownError(error, {
+              scope: 'document',
+              scopeId: documentRunId,
+              node,
+              registrationIndex,
+            }),
+          );
+        }
+      }
+      const statusBeforeTeardown = createResult(teardownErrors).status;
       for (const { registrationIndex, teardown } of teardownStack.reverse()) {
         try {
           await teardown({
@@ -197,6 +298,7 @@ export function createDocumentRuntime<TContext = undefined>(
         }
       }
       finishedResult = createResult(teardownErrors);
+      if (finishError) throw finishError;
       await options.onResult?.(finishedResult);
       return finishedResult;
     },

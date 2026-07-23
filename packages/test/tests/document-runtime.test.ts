@@ -40,6 +40,21 @@ const collectedDocument = (
 });
 
 describe('workflow document runtime', () => {
+  it('rejects an invalid retry before acquiring document resources', async () => {
+    const setupDocument = vi.fn();
+
+    await expect(
+      runWorkflowDocument(collectedDocument(), {
+        resolveNode: () => {
+          throw new Error('no nodes');
+        },
+        retry: -1,
+        setupDocument,
+      }),
+    ).rejects.toThrow('retry must be a non-negative integer');
+    expect(setupDocument).not.toHaveBeenCalled();
+  });
+
   it('runs one node definition in document and case scopes', async () => {
     const calls: string[] = [];
     const sharedNode = defineNode({
@@ -375,6 +390,39 @@ describe('workflow document runtime', () => {
     expect(onResult).toHaveBeenCalledWith(result);
   });
 
+  it('exposes node teardown failure to document teardown status', async () => {
+    let teardownStatus: string | undefined;
+    const node = defineNode({
+      name: 'resource',
+      execute({ onTeardown }) {
+        onTeardown(() => {
+          throw new Error('agent release failed');
+        });
+      },
+    });
+    const runtime = createDocumentRuntime(
+      collectedDocument({ beforeAll: [step(node.name)] }),
+      {
+        resolveNode: () => node,
+        setupDocument({ onTeardown }) {
+          onTeardown(({ status }) => {
+            teardownStatus = status;
+          });
+          return undefined;
+        },
+      },
+    );
+
+    await runtime.start();
+    const result = await runtime.finish();
+
+    expect(teardownStatus).toBe('failed');
+    expect(result).toMatchObject({
+      status: 'failed',
+      teardownErrors: [{ code: 'NODE_SCOPE_TEARDOWN_ERROR' }],
+    });
+  });
+
   it('rejects teardown registration outside setupDocument', async () => {
     let lateRegistration: (() => void) | undefined;
     const runtime = createDocumentRuntime(collectedDocument(), {
@@ -391,5 +439,50 @@ describe('workflow document runtime', () => {
     expect(lateRegistration).toBeDefined();
     expect(lateRegistration).toThrow(WorkflowLifecycleError);
     await runtime.finish();
+  });
+
+  it('runs cleanup hooks and teardown with usable signals after interruption', async () => {
+    const calls: string[] = [];
+    const controller = new AbortController();
+    const abort = defineNode({
+      name: 'abort.workflow',
+      execute(ctx) {
+        calls.push(`body:${ctx.signal.aborted}`);
+        controller.abort(new Error('interrupted'));
+      },
+    });
+    const cleanup = defineNode({
+      name: 'cleanup.workflow',
+      execute(ctx) {
+        const phase =
+          ctx.scope === 'case' ? ctx.case.phase : ctx.document.phase;
+        calls.push(`${phase}:${ctx.signal.aborted}`);
+        expect(ctx.signal.aborted).toBe(false);
+      },
+    });
+    const document = collectedDocument({
+      afterEach: [step(cleanup.name)],
+      afterAll: [step(cleanup.name)],
+    });
+    document.cases[0].definition.steps = [step(abort.name)];
+    const registry = new NodeRegistry([abort, cleanup]);
+
+    const result = await runWorkflowDocument(document, {
+      resolveNode: registry.require.bind(registry),
+      signal: controller.signal,
+      setupDocument({ onTeardown }) {
+        onTeardown(() => calls.push('teardown'));
+        return undefined;
+      },
+    });
+
+    expect(calls).toEqual([
+      'body:false',
+      'afterEach:false',
+      'afterAll:false',
+      'teardown',
+    ]);
+    expect(result.cases[0].status).toBe('success');
+    expect(result.document.status).toBe('success');
   });
 });

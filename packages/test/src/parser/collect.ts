@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { sep } from 'node:path';
 import { JSON_SCHEMA, load as loadYaml } from 'js-yaml';
+import type { JsonValue } from '../cli/test-project';
 import { WorkflowParseError } from '../errors';
 import type { NodeDefinition } from '../node/types';
 import { normalizeSteps } from './normalize';
@@ -10,9 +11,12 @@ import type {
   CollectedWorkflowDocument,
   WorkflowDocumentSource,
 } from './types';
+import { resolveWorkflowVariables } from './variables';
 
 export interface CollectWorkflowDocumentOptions {
   resolveNode(name: string): NodeDefinition<any, any> | undefined;
+  variables?: Readonly<Record<string, JsonValue>>;
+  env?: Readonly<NodeJS.ProcessEnv>;
 }
 
 const isMapping = (value: unknown): value is Record<string, unknown> =>
@@ -82,6 +86,25 @@ export function collectWorkflowDocument(
   }
 
   const sourcePath = source.sourcePath.split(sep).join('/');
+  const resolveStepVariables = (
+    step: ReturnType<typeof normalizeSteps>[number],
+    phase: 'beforeAll' | 'beforeEach' | 'steps' | 'afterEach' | 'afterAll',
+    stepIndex: number,
+    caseIndex?: number,
+  ) => ({
+    ...step,
+    input: resolveWorkflowVariables(step.input, {
+      variables: options.variables,
+      env: options.env ?? process.env,
+      location: {
+        projectName: source.projectId,
+        sourcePath,
+        phase,
+        stepIndex,
+        ...(caseIndex === undefined ? {} : { caseIndex }),
+      },
+    }) as typeof step.input,
+  });
   const normalizeLifecycle = (
     phase: 'beforeAll' | 'beforeEach' | 'afterEach' | 'afterAll',
   ) => {
@@ -101,7 +124,7 @@ export function collectWorkflowDocument(
           { phase, stepIndex, node: normalized.node },
         );
       }
-      return normalized;
+      return resolveStepVariables(normalized, phase, stepIndex);
     });
   };
   const lifecycle = {
@@ -117,7 +140,11 @@ export function collectWorkflowDocument(
         caseIndex,
       });
     }
-    rejectUnknownKeys(definition, ['name', 'steps'], `Case ${caseIndex + 1}`);
+    rejectUnknownKeys(
+      definition,
+      ['name', 'tags', 'steps'],
+      `Case ${caseIndex + 1}`,
+    );
     if (
       typeof definition.name !== 'string' ||
       definition.name.trim().length === 0
@@ -133,6 +160,16 @@ export function collectWorkflowDocument(
         { caseIndex },
       );
     }
+    const tags = definition.tags ?? [];
+    if (
+      !Array.isArray(tags) ||
+      tags.some((tag) => typeof tag !== 'string' || tag.trim().length === 0)
+    ) {
+      throw new WorkflowParseError(
+        `Case ${caseIndex + 1} tags must be an array of non-empty strings.`,
+        { caseIndex },
+      );
+    }
 
     const steps = normalizeSteps(definition.steps).map(
       (normalized, stepIndex) => {
@@ -142,7 +179,7 @@ export function collectWorkflowDocument(
             { caseIndex, stepIndex, node: normalized.node },
           );
         }
-        return normalized;
+        return resolveStepVariables(normalized, 'steps', stepIndex, caseIndex);
       },
     );
     const caseId = createCaseId(source.projectId, sourcePath, caseIndex);
@@ -158,7 +195,11 @@ export function collectWorkflowDocument(
       projectId: source.projectId,
       sourcePath,
       caseIndex,
-      definition: { name: definition.name, steps },
+      definition: {
+        name: definition.name,
+        tags: tags as string[],
+        steps,
+      },
     };
   });
 

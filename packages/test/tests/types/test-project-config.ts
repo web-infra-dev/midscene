@@ -1,12 +1,17 @@
 import { defineNode, z } from '@midscene/test';
 import {
   type TestProjectDefinition,
+  defineProjectSetup,
   defineTestProject,
   loadTestProject,
 } from '@midscene/test/config';
 
 interface ProjectContext {
   baseURL: string;
+}
+
+interface DocumentContext extends ProjectContext {
+  documentName: string;
 }
 
 const requestNode = defineNode<
@@ -36,6 +41,48 @@ const project: TestProjectDefinition<ProjectContext> =
 
 void project;
 void loadTestProject<ProjectContext>();
+
+const webSetup = defineProjectSetup<ProjectContext>({
+  name: 'web',
+  platform: 'web',
+  setup({ project, onTeardown }) {
+    project.platform satisfies 'web' | 'android' | 'ios' | 'computer';
+    onTeardown(({ context }) => {
+      context?.baseURL satisfies string | undefined;
+    });
+    return { baseURL: 'https://example.com' };
+  },
+});
+
+const documentNode = defineNode<unknown, unknown, DocumentContext>({
+  name: 'document.read',
+  execute({ context, history }) {
+    context.documentName satisfies string;
+    history[0]?.node satisfies string | undefined;
+    // @ts-expect-error Node history is read-only.
+    history.push({});
+  },
+});
+
+defineTestProject<ProjectContext, DocumentContext>({
+  projects: [
+    {
+      name: 'web',
+      platform: 'web',
+      setup: webSetup,
+      files: { include: ['cases/**/*.yaml'] },
+      tags: { include: ['smoke'], exclude: ['manual'] },
+      repeat: 2,
+      retry: 1,
+      variables: { locale: 'en-US' },
+    },
+  ],
+  nodes: [documentNode],
+  setupDocument({ projectContext, repeatIndex }) {
+    repeatIndex satisfies number;
+    return { ...projectContext, documentName: 'example' };
+  },
+});
 
 const schemaInput = z.strictObject({
   path: z.string(),

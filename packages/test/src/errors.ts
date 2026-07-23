@@ -158,6 +158,76 @@ export class WorkflowLifecycleError extends WorkflowError {
   }
 }
 
+export class ProjectSetupError extends WorkflowError {
+  constructor(cause: unknown, details: { projectName: string }) {
+    const causeMessage =
+      cause instanceof Error ? cause.message : String(cause ?? 'Unknown error');
+    super(`Project "${details.projectName}" setup failed: ${causeMessage}`, {
+      code: 'PROJECT_SETUP_ERROR',
+      details,
+      cause,
+    });
+  }
+}
+
+export class ProjectTeardownError extends WorkflowError {
+  constructor(
+    cause: unknown,
+    details: { projectName: string; registrationIndex: number },
+  ) {
+    const causeMessage =
+      cause instanceof Error ? cause.message : String(cause ?? 'Unknown error');
+    super(`Project "${details.projectName}" teardown failed: ${causeMessage}`, {
+      code: 'PROJECT_TEARDOWN_ERROR',
+      details,
+      cause,
+    });
+  }
+}
+
+export class NodeScopeTeardownError extends WorkflowError {
+  constructor(
+    cause: unknown,
+    details: {
+      scope: 'case' | 'document';
+      scopeId: string;
+      node: string;
+      registrationIndex: number;
+    },
+  ) {
+    const causeMessage =
+      cause instanceof Error ? cause.message : String(cause ?? 'Unknown error');
+    super(
+      `${details.scope === 'case' ? 'Case attempt' : 'Workflow document'} node teardown failed for "${details.node}": ${causeMessage}`,
+      { code: 'NODE_SCOPE_TEARDOWN_ERROR', details, cause },
+    );
+  }
+}
+
+export class FatalDeviceError extends WorkflowError {
+  constructor(message: string, cause?: unknown) {
+    super(message, { code: 'FATAL_DEVICE_ERROR', cause });
+  }
+}
+
+export const isFatalDeviceError = (error: unknown): boolean => {
+  if (error instanceof FatalDeviceError) return true;
+  if (error instanceof WorkflowError && error.code === 'FATAL_DEVICE_ERROR') {
+    return true;
+  }
+  if (
+    error instanceof Error &&
+    /device offline|device not found|(?:adb|bdc|device) connection (?:was )?closed/i.test(
+      error.message,
+    )
+  ) {
+    return true;
+  }
+  return error instanceof Error && error.cause !== undefined
+    ? isFatalDeviceError(error.cause)
+    : false;
+};
+
 export class CaseExecutionError extends WorkflowError {
   readonly result: import('./engine/types').CaseRunResult;
 

@@ -7,7 +7,7 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, isAbsolute, join, resolve } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
   discoverTestConfig,
@@ -125,7 +125,7 @@ describe('test project main-process runner', () => {
     ).toEqual(['flows/a.yaml', 'flows/nested/b.yml']);
   });
 
-  it('fails when the final file selection matches no workflow YAML', async () => {
+  it('reports an empty final file selection as a preflight failure', async () => {
     const cwd = createProject();
     writeFileSync(
       join(cwd, 'midscene.config.ts'),
@@ -135,9 +135,30 @@ describe('test project main-process runner', () => {
       };`,
     );
 
-    await expect(runTestProject({ cwd })).rejects.toThrow(
-      `No workflow YAML files found in ${cwd}.`,
-    );
+    const result = await runTestProject({ cwd });
+
+    expect(result).toMatchObject({
+      status: 'failed',
+      exitCode: 1,
+      summary: { collectionErrors: 1, projectFailures: 1 },
+      projects: [
+        {
+          name: 'default',
+          status: 'failed',
+          collectionErrors: [
+            {
+              sourcePath: '<project>',
+              error: {
+                message: expect.stringContaining(
+                  'No workflow YAML files found for project "default"',
+                ),
+              },
+            },
+          ],
+        },
+      ],
+    });
+    expect(existsSync(result.summaryPath)).toBe(true);
   });
 
   it('uses the test results directory by default', async () => {
@@ -208,17 +229,20 @@ describe('test project main-process runner', () => {
       collectionErrors: 0,
     });
     expect(result.cases[0].sourcePath).toBe('selected/run.yaml');
-    const projectResult = JSON.parse(
-      readFileSync(join(resultDir, 'project.json'), 'utf8'),
-    );
+    const projectResult = JSON.parse(readFileSync(result.summaryPath, 'utf8'));
     expect(projectResult).toMatchObject({
-      version: 3,
+      schemaVersion: 1,
       projectRoot: configuredRoot,
-      fileSelection: {
-        include: ['selected/**/*.yaml'],
-        exclude: ['**/*.draft.yaml'],
-      },
-      sources: [{ sourcePath: 'selected/run.yaml' }],
+      projects: [
+        {
+          name: 'default',
+          sourceCount: 1,
+          fileSelection: {
+            include: ['selected/**/*.yaml'],
+            exclude: ['**/*.draft.yaml'],
+          },
+        },
+      ],
     });
   });
 
@@ -259,11 +283,9 @@ describe('test project main-process runner', () => {
     expect(result.cases).toEqual([
       expect.objectContaining({ name: 'override', status: 'success' }),
     ]);
-    const projectResult = JSON.parse(
-      readFileSync(join(resultDir, 'project.json'), 'utf8'),
-    );
+    const projectResult = JSON.parse(readFileSync(result.summaryPath, 'utf8'));
     expect(projectResult.projectRoot).toBe(overrideRoot);
-    expect(projectResult.fileSelection).toEqual({
+    expect(projectResult.projects[0].fileSelection).toEqual({
       include: ['**/*.{yaml,yml}'],
     });
   });
@@ -304,21 +326,21 @@ afterAll:
     });
 
     expect(progress).toEqual([
-      'midscene-test: collected 1 documents, 1 cases, 0 collection errors',
-      '[document 1/1] progress.yaml',
-      '  → beforeAll 1/1: noop',
-      expect.stringMatching(/^ {2}✓ beforeAll 1\/1: noop \(\d+ ms\)$/),
-      '  [case 1/1] progress case',
-      '    → beforeEach 1/1: noop',
-      expect.stringMatching(/^ {4}✓ beforeEach 1\/1: noop \(\d+ ms\)$/),
-      '    → step 1/1: noop',
-      expect.stringMatching(/^ {4}✓ step 1\/1: noop \(\d+ ms\)$/),
-      '    → afterEach 1/1: noop',
-      expect.stringMatching(/^ {4}✓ afterEach 1\/1: noop \(\d+ ms\)$/),
-      expect.stringMatching(/^ {2}✓ case 1\/1: progress case \(\d+ ms\)$/),
-      '  → afterAll 1/1: noop',
-      expect.stringMatching(/^ {2}✓ afterAll 1\/1: noop \(\d+ ms\)$/),
-      expect.stringMatching(/^✓ document 1\/1: progress\.yaml \(\d+ ms\)$/),
+      'midscene-test: preflighted 1 projects, 1 documents, 1 cases, 0 collection errors',
+      '[project 1/1] default (web)',
+      '  [repeat 1/1] [document 1/1] progress.yaml',
+      '    → beforeAll 1/1: noop',
+      expect.stringMatching(/^ {4}✓ beforeAll 1\/1: noop \(\d+ ms\)$/),
+      '    [case 1/1] progress case',
+      '      → beforeEach 1/1: noop',
+      expect.stringMatching(/^ {6}✓ beforeEach 1\/1: noop \(\d+ ms\)$/),
+      '      → step 1/1: noop',
+      expect.stringMatching(/^ {6}✓ step 1\/1: noop \(\d+ ms\)$/),
+      '      → afterEach 1/1: noop',
+      expect.stringMatching(/^ {6}✓ afterEach 1\/1: noop \(\d+ ms\)$/),
+      expect.stringMatching(/^ {4}✓ attempt 1\/1: progress case \(\d+ ms\)$/),
+      '    → afterAll 1/1: noop',
+      expect.stringMatching(/^ {4}✓ afterAll 1\/1: noop \(\d+ ms\)$/),
     ]);
   });
 
@@ -394,15 +416,13 @@ cases:
           value: third
 `,
     );
-    writeWorkflow(root, 'z-invalid.yaml', 'cases: invalid');
-
     const beforeSigint = process.listenerCount('SIGINT');
     const beforeSigterm = process.listenerCount('SIGTERM');
     const result = await runTestProject({ projectRoot: root, resultDir });
 
     expect(state.configLoads).toBe(1);
     expect(state.maxActive).toBe(1);
-    expect(state.collectionCompletedBeforeSetup).toEqual([true, true]);
+    expect(state.collectionCompletedBeforeSetup).toEqual([false, false]);
     expect(state.events).toEqual([
       `setup:a.yaml:${process.pid}`,
       `step:first:${process.pid}`,
@@ -420,7 +440,7 @@ cases:
         passed: 2,
         failed: 1,
         notRun: 0,
-        collectionErrors: 1,
+        collectionErrors: 0,
         documentFailures: 0,
       },
     });
@@ -435,23 +455,269 @@ cases:
     expect(process.listenerCount('SIGINT')).toBe(beforeSigint);
     expect(process.listenerCount('SIGTERM')).toBe(beforeSigterm);
 
-    const projectResult = JSON.parse(
-      readFileSync(join(resultDir, 'project.json'), 'utf8'),
-    );
+    const projectResult = JSON.parse(readFileSync(result.summaryPath, 'utf8'));
     expect(projectResult).toMatchObject({
-      version: 3,
-      fileSelection: { include: ['**/*.{yaml,yml}'] },
+      schemaVersion: 1,
       status: 'failed',
       summary: result.summary,
-      cases: [
-        { status: 'failed', resultFile: expect.stringMatching(/^runs\//) },
-        { status: 'success', resultFile: expect.stringMatching(/^runs\//) },
-        { status: 'success', resultFile: expect.stringMatching(/^runs\//) },
-      ],
-      collectionErrors: [
-        { sourcePath: 'z-invalid.yaml', errorFile: expect.any(String) },
+      projects: [
+        {
+          fileSelection: { include: ['**/*.{yaml,yml}'] },
+          cases: [
+            {
+              status: 'failed',
+              attempts: [{ resultFile: expect.stringContaining('/runs/') }],
+            },
+            {
+              status: 'success',
+              attempts: [{ resultFile: expect.stringContaining('/runs/') }],
+            },
+            {
+              status: 'success',
+              attempts: [{ resultFile: expect.stringContaining('/runs/') }],
+            },
+          ],
+          collectionErrors: [],
+        },
       ],
     });
+  });
+
+  it('finishes every selected project preflight before setup and skips a failed project setup', async () => {
+    const root = createProject();
+    const resultDir = join(root, 'results');
+    const state = setRunnerState(resultDir);
+    writeFileSync(
+      join(root, 'midscene.config.ts'),
+      `
+        const state = globalThis.__testProjectRunnerState;
+        const setup = {
+          name: 'web-setup',
+          platform: 'web',
+          setup() {
+            state.events.push('project-setup');
+            return {};
+          },
+        };
+        export default {
+          projects: [{ name: 'web', platform: 'web', setup }],
+          nodes: [{ name: 'noop', execute() {} }],
+        };
+      `,
+    );
+    writeWorkflow(
+      root,
+      'valid.yaml',
+      'cases: [{ name: valid, steps: [{ noop: run }] }]',
+    );
+    writeWorkflow(root, 'invalid.yaml', 'cases: invalid');
+
+    const result = await runTestProject({ projectRoot: root, resultDir });
+
+    expect(state.events).toEqual([]);
+    expect(result).toMatchObject({
+      status: 'failed',
+      summary: { collectionErrors: 1, notRun: 1 },
+      projects: [
+        {
+          cases: [
+            { status: 'not-run', notRunReason: 'project-preflight-failed' },
+          ],
+        },
+      ],
+    });
+  });
+
+  it('runs projects in config order with setup once, document per repeat, and full-case retry', async () => {
+    const root = createProject();
+    const resultDir = join(root, 'results');
+    const state = setRunnerState(resultDir);
+    writeFileSync(
+      join(root, 'midscene.config.ts'),
+      `
+        const state = globalThis.__testProjectRunnerState;
+        const createSetup = (name, platform) => ({
+          name: 'setup-' + name,
+          platform,
+          setup({ project, onTeardown }) {
+            state.events.push('project-setup:' + project.name);
+            onTeardown(() => state.events.push('project-teardown:' + project.name));
+            return { projectName: project.name, platform };
+          },
+        });
+        export default {
+          projects: [
+            {
+              name: 'android-smoke',
+              platform: 'android',
+              setup: createSetup('android', 'android'),
+              tags: { include: ['android'], exclude: [] },
+              repeat: 2,
+              retry: 1,
+              variables: { value: 'android-value' },
+            },
+            {
+              name: 'ios-regression',
+              platform: 'ios',
+              setup: createSetup('ios', 'ios'),
+              tags: { include: ['ios'], exclude: [] },
+              repeat: 1,
+              retry: 0,
+              variables: { value: 'ios-value' },
+            },
+          ],
+          nodes: [{
+            name: 'record',
+            execute({ input, context, case: caseContext, document }) {
+              const identity = caseContext || document;
+              state.events.push(
+                'node:' + context.projectName + ':' + input.value +
+                ':repeat-' + identity.repeatIndex +
+                (caseContext ? ':attempt-' + caseContext.attemptIndex : ''),
+              );
+              if (input.failFirst && caseContext.attemptIndex === 0) {
+                throw new Error('first attempt fails');
+              }
+              return { summary: input.value };
+            },
+          }],
+          setupDocument({ project, projectContext, repeatIndex, onTeardown }) {
+            state.events.push('document-setup:' + project.name + ':' + repeatIndex);
+            onTeardown(() =>
+              state.events.push('document-teardown:' + project.name + ':' + repeatIndex),
+            );
+            return projectContext;
+          },
+        };
+      `,
+    );
+    writeWorkflow(
+      root,
+      'projects.yaml',
+      `
+beforeAll:
+  - record:
+      value: before-\${value}
+cases:
+  - name: android case
+    tags: [android]
+    steps:
+      - record:
+          value: \${value}
+          failFirst: true
+  - name: ios case
+    tags: [ios]
+    steps:
+      - record:
+          value: \${value}
+`,
+    );
+
+    const result = await runTestProject({
+      projectRoot: root,
+      resultDir,
+      projectNames: ['ios-regression', 'android-smoke'],
+    });
+
+    expect(result.status).toBe('success');
+    expect(result.projects.map((project) => project.name)).toEqual([
+      'android-smoke',
+      'ios-regression',
+    ]);
+    expect(
+      state.events.filter((event) => event.startsWith('project-setup')),
+    ).toEqual(['project-setup:android-smoke', 'project-setup:ios-regression']);
+    expect(
+      state.events.filter((event) => event.startsWith('project-teardown')),
+    ).toEqual([
+      'project-teardown:android-smoke',
+      'project-teardown:ios-regression',
+    ]);
+    expect(
+      state.events.filter((event) => event.startsWith('document-setup')),
+    ).toEqual([
+      'document-setup:android-smoke:0',
+      'document-setup:android-smoke:1',
+      'document-setup:ios-regression:0',
+    ]);
+    expect(result.projects[0].cases).toHaveLength(2);
+    expect(result.projects[0].documents).toHaveLength(2);
+    expect(
+      result.projects[0].cases.every((item) => item.attempts?.length === 2),
+    ).toBe(true);
+    expect(
+      new Set(
+        result.projects[0].cases.flatMap((item) =>
+          (item.attempts ?? []).map((attempt) => attempt.runId),
+        ),
+      ).size,
+    ).toBe(4);
+    expect(result.projects[1].cases).toHaveLength(1);
+    expect(result.projects[1].cases[0].attempts).toHaveLength(1);
+    expect(result.summary).toMatchObject({
+      total: 3,
+      passed: 3,
+      failed: 0,
+      filtered: 2,
+      projectFailures: 0,
+    });
+
+    const summary = JSON.parse(readFileSync(result.summaryPath, 'utf8'));
+    expect(
+      summary.projects.map((project: { name: string }) => project.name),
+    ).toEqual(['android-smoke', 'ios-regression']);
+    expect(summary.projects[0].cases[0].attempts).toHaveLength(2);
+    for (const attempt of summary.projects[0].cases[0].attempts) {
+      expect(
+        existsSync(join(result.summaryPath, '..', attempt.resultFile)),
+      ).toBe(true);
+    }
+  });
+
+  it('indexes finalized attempt reports from node teardown in summary.json', async () => {
+    const root = createProject();
+    const resultDir = join(root, 'results');
+    setRunnerState(resultDir);
+    writeFileSync(
+      join(root, 'midscene.config.ts'),
+      `
+        import { mkdirSync, writeFileSync } from 'node:fs';
+        import { dirname, join } from 'node:path';
+        const state = globalThis.__testProjectRunnerState;
+        export default {
+          nodes: [{
+            name: 'report',
+            execute({ case: caseContext, onTeardown }) {
+              const reportPath = join(
+                state.resultDir,
+                'reports',
+                caseContext.runId + '.html',
+              );
+              onTeardown(() => {
+                mkdirSync(dirname(reportPath), { recursive: true });
+                writeFileSync(reportPath, '<html>report</html>');
+                return { reportPaths: [reportPath] };
+              });
+            },
+          }],
+        };
+      `,
+    );
+    writeWorkflow(
+      root,
+      'report.yaml',
+      'cases: [{ name: report, steps: [{ report: create }] }]',
+    );
+
+    const result = await runTestProject({ projectRoot: root, resultDir });
+    const summary = JSON.parse(readFileSync(result.summaryPath, 'utf8'));
+    const [attempt] = summary.projects[0].cases[0].attempts;
+
+    expect(attempt.reports).toEqual([expect.stringMatching(/\.html$/)]);
+    expect(isAbsolute(attempt.reports[0])).toBe(false);
+    expect(
+      existsSync(resolve(dirname(result.summaryPath), attempt.reports[0])),
+    ).toBe(true);
   });
 
   it('marks every case not run when beforeAll fails and still cleans up', async () => {
@@ -574,5 +840,20 @@ afterAll:
     expect(() =>
       parseTestCliArgs(['describe-nodes', '--result-dir', 'results']),
     ).toThrow('--result-dir is not supported by describe-nodes');
+    expect(
+      parseTestCliArgs(
+        ['project', '--project', 'ios', '--project', 'android'],
+        '/workspace',
+      ),
+    ).toEqual({
+      cwd: '/workspace',
+      projectRoot: '/workspace/project',
+      configPath: undefined,
+      resultDir: undefined,
+      projectNames: ['ios', 'android'],
+    });
+    expect(() =>
+      parseTestCliArgs(['describe-nodes', '--project', 'ios']),
+    ).toThrow('--project is not supported by describe-nodes');
   });
 });
