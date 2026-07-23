@@ -32,6 +32,7 @@ const SYSTEM_ERROR_DIALOG_ACTION_IDS = [
 const POLL_INTERVAL_MS = 500;
 const TARGET_TIMEOUT_MS = 30_000;
 const UI_DUMP_MAX_ATTEMPTS = 3;
+const SEARCH_MAX_ATTEMPTS = 3;
 
 interface Bounds {
   left: number;
@@ -366,10 +367,6 @@ describe.skipIf(!RUN_LIVE_SMOKE)('Android Emulator live smoke', () => {
       'settings-system-dialog.xml',
     );
     const searchXmlFile = path.join(diagnosticsDir, 'settings-search.xml');
-    const firstSearchAttemptXmlFile = path.join(
-      diagnosticsDir,
-      'settings-search-attempt-1.xml',
-    );
     const finalXmlFile = path.join(diagnosticsDir, 'settings-final.xml');
     const screenshotFile = path.join(diagnosticsDir, 'settings-search.png');
     const dumpFile = path.join(diagnosticsDir, 'agent-dump.json');
@@ -484,25 +481,46 @@ describe.skipIf(!RUN_LIVE_SMOKE)('Android Emulator live smoke', () => {
         return waitForEditableNode(adb, searchXmlFile, 'wifi');
       };
 
-      let searchState: { resourceId?: string; bounds: Bounds; xml: string };
-      try {
-        searchState = await performSearchAttempt(initialTarget);
-      } catch (error) {
-        searchAttemptErrors.push(String(error));
-        evidence.searchAttemptErrors = searchAttemptErrors;
-        await writeFile(
-          firstSearchAttemptXmlFile,
-          await readFile(searchXmlFile, 'utf8'),
-          'utf8',
+      let searchState:
+        | { resourceId?: string; bounds: Bounds; xml: string }
+        | undefined;
+      let searchTarget = initialTarget;
+      for (let attempt = 1; attempt <= SEARCH_MAX_ATTEMPTS; attempt += 1) {
+        try {
+          searchState = await performSearchAttempt(searchTarget);
+          break;
+        } catch (error) {
+          searchAttemptErrors.push(String(error));
+          evidence.searchAttemptErrors = searchAttemptErrors;
+          const failedSearchXml = await readFile(searchXmlFile, 'utf8').catch(
+            () => '',
+          );
+          if (failedSearchXml) {
+            await writeFile(
+              path.join(
+                diagnosticsDir,
+                `settings-search-attempt-${attempt}.xml`,
+              ),
+              failedSearchXml,
+              'utf8',
+            );
+          }
+          if (attempt === SEARCH_MAX_ATTEMPTS) {
+            throw error;
+          }
+          await adb.shell('am force-stop com.android.settings');
+          await adb.shell('am start -W -n com.android.settings/.Settings');
+          searchTarget = await waitForResource(
+            adb,
+            [SETTINGS_SEARCH_BAR_ID],
+            initialXmlFile,
+          );
+        }
+      }
+      if (!searchState) {
+        throw new Error(
+          'Settings search retry loop completed without a result',
         );
-        await adb.shell('am force-stop com.android.settings');
-        await adb.shell('am start -W -n com.android.settings/.Settings');
-        const retryTarget = await waitForResource(
-          adb,
-          [SETTINGS_SEARCH_BAR_ID],
-          initialXmlFile,
-        );
-        searchState = await performSearchAttempt(retryTarget);
       }
       evidence.searchAttemptErrors = searchAttemptErrors;
       expect(searchState.xml).toMatch(/text="wifi"/i);
