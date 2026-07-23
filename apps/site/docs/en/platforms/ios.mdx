@@ -1,4 +1,3 @@
-import StartExperience from '../common/start-experience.mdx';
 import SetupEnv from '../common/setup-env.mdx';
 import PrepareIOS from '../common/prepare-ios.mdx';
 
@@ -41,7 +40,7 @@ Before continuing, make sure WebDriverAgent can communicate with the device.
 
 ### Launch Playground
 
-Playground is the fastest way to validate the connection and observe AI-driven steps without writing code. It shares the same core as `@midscene/ios`, so anything that works here will behave the same once scripted.
+Playground is the fastest way to validate the connection and try core capabilities such as `aiAct`, `aiQuery`, and `aiAssert` without writing code. It shares the same core as `@midscene/ios`, so anything that works here will behave the same once scripted.
 
 1. Launch the Playground CLI:
 
@@ -52,10 +51,6 @@ npx --yes @midscene/ios-playground
 2. Click the gear button to enter the configuration page and paste your API key config. Refer back to [Model configuration](../model-config) if you still need credentials.
 
 ![](/ios-set-env.png)
-
-### Try the core capabilities
-
-<StartExperience />
 
 ## Use the JavaScript SDK
 

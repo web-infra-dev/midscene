@@ -1,4 +1,3 @@
-import StartExperience from '../common/start-experience.mdx';
 import SetupEnv from '../common/setup-env.mdx';
 
 import { PackageManagerTabs } from '@theme';
@@ -66,7 +65,7 @@ hdc list targets
 
 ### 启动 Playground
 
-Playground 是验证连接、观察 AI Agent 的最快方式，无需编写代码。它与 `@midscene/harmony` 共享相同的代码实现，因此在 Playground 上验证通过的流程，用脚本运行时也完全一致。
+Playground 是验证连接的最快方式。无需编写代码，即可体验 `aiAct`、`aiQuery` 和 `aiAssert` 等核心能力。它与 `@midscene/harmony` 共享相同的核心，因此在 Playground 中通过的流程，在脚本中运行会保持一致。
 
 1. 启动 Playground CLI：
 
@@ -75,10 +74,6 @@ npx --yes @midscene/harmony-playground
 ```
 
 2. 点击 Playground 窗口中的齿轮按钮，粘贴你的 API Key 配置。如果还没有 API Key，请回到 [模型配置](../model-config) 获取。
-
-### 体验核心功能
-
-<StartExperience />
 
 ## 使用 JavaScript SDK
 
