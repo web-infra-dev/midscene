@@ -275,6 +275,7 @@ const agent = new AgentOverChromeBridge({
 - `allowRemoteAccess?: boolean` &mdash; Allow remote machines to attach. Defaults to `false` (binds to `127.0.0.1`).
 - `host?: string` &mdash; Override the interface for the bridge server. Takes precedence over `allowRemoteAccess`.
 - `port?: number` &mdash; TCP port for the bridge server. Default `3766`.
+- `enableWaterFlowAnimation?: boolean` &mdash; Show the blue animated border and mouse pointer while Midscene controls the page. Defaults to `true`; set it to `false` when taking screenshots without the visual overlay.
 
 See [Bridge Mode by Chrome extension](./bridge-mode#constructor) for full installation and capability details.
 

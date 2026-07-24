@@ -275,6 +275,7 @@ const agent = new AgentOverChromeBridge({
 - `allowRemoteAccess?: boolean` —— 是否允许远程机器连接，默认 `false`（监听 `127.0.0.1`）。
 - `host?: string` —— 自定义 Bridge Server 的监听地址，优先级高于 `allowRemoteAccess`。
 - `port?: number` —— Bridge Server 端口，默认 `3766`。
+- `enableWaterFlowAnimation?: boolean` —— Midscene 控制页面时是否显示蓝色动态边框和鼠标指示，默认 `true`；如需截取不含视觉覆盖层的截图，可设为 `false`。
 
 完整安装与能力说明，见 [Chrome 插件桥接模式](./bridge-mode#constructor)。
 

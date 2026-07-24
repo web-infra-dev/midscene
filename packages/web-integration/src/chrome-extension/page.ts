@@ -177,6 +177,8 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
 
   private isMobileEmulation: boolean | null = null;
 
+  protected waterFlowAnimationEnabled = true;
+
   public _continueWhenFailedToAttachDebugger = false;
 
   constructor(forceSameTabNavigation: boolean) {
@@ -291,6 +293,8 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
   }
 
   private async showMousePointer(x: number, y: number) {
+    if (!this.waterFlowAnimationEnabled) return;
+
     // update mouse pointer while redirecting
     const pointerScript = `(() => {
       if(typeof window.midsceneWaterFlowAnimation !== 'undefined') {
@@ -354,6 +358,10 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
       });
     }
 
+    if (!this.waterFlowAnimationEnabled) {
+      return;
+    }
+
     const script = await injectWaterFlowAnimation();
     // we will call this function in sendCommandToDebugger, so we have to use the chrome.debugger.sendCommand
     await chrome.debugger.sendCommand({ tabId }, 'Runtime.evaluate', {
@@ -367,6 +375,23 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
     await chrome.debugger.sendCommand({ tabId }, 'Runtime.evaluate', {
       expression: script,
     });
+  }
+
+  public async setWaterFlowAnimationEnabled(enabled: boolean) {
+    this.waterFlowAnimationEnabled = enabled;
+    if (!enabled) {
+      const script = await injectStopWaterFlowAnimation();
+      await this.sendCommandToDebugger('Runtime.evaluate', {
+        expression: script,
+      });
+    }
+  }
+
+  /**
+   * Returns the current water-flow animation enabled flag.
+   */
+  public getWaterFlowAnimationEnabled(): boolean {
+    return this.waterFlowAnimationEnabled;
   }
 
   /**

@@ -228,6 +228,8 @@ export const getBridgePageInCliSide = (options?: {
 export class AgentOverChromeBridge extends Agent<ChromeExtensionPageCliSide> {
   private destroyAfterDisconnectFlag?: boolean;
 
+  private enableWaterFlowAnimation: boolean;
+
   constructor(
     opts?: AgentOpt & {
       /**
@@ -249,6 +251,12 @@ export class AgentOverChromeBridge extends Agent<ChromeExtensionPageCliSide> {
       closeNewTabsAfterDisconnect?: boolean;
       serverListeningTimeout?: number | false;
       closeConflictServer?: boolean;
+      /**
+       * Show the blue water-flow border and mouse pointer while controlling
+       * the page.
+       * @default true
+       */
+      enableWaterFlowAnimation?: boolean;
     },
   ) {
     const host = getBridgeServerHost({
@@ -274,6 +282,13 @@ export class AgentOverChromeBridge extends Agent<ChromeExtensionPageCliSide> {
       }),
     );
     this.destroyAfterDisconnectFlag = opts?.closeNewTabsAfterDisconnect;
+    this.enableWaterFlowAnimation = opts?.enableWaterFlowAnimation ?? true;
+  }
+
+  private async configureWaterFlowAnimation() {
+    if (!this.enableWaterFlowAnimation) {
+      await this.page.setWaterFlowAnimationEnabled(false);
+    }
   }
 
   async setDestroyOptionsAfterConnect() {
@@ -285,7 +300,11 @@ export class AgentOverChromeBridge extends Agent<ChromeExtensionPageCliSide> {
   }
 
   async connectNewTabWithUrl(url: string, options?: BridgeConnectTabOptions) {
-    await this.page.connectNewTabWithUrl(url, options);
+    await this.page.connectNewTabWithUrl(url, {
+      ...options,
+      enableWaterFlowAnimation: this.enableWaterFlowAnimation,
+    });
+    await this.configureWaterFlowAnimation();
     await sleep(500);
     await this.setDestroyOptionsAfterConnect();
   }
@@ -299,7 +318,11 @@ export class AgentOverChromeBridge extends Agent<ChromeExtensionPageCliSide> {
   }
 
   async connectCurrentTab(options?: BridgeConnectTabOptions) {
-    await this.page.connectCurrentTab(options);
+    await this.page.connectCurrentTab({
+      ...options,
+      enableWaterFlowAnimation: this.enableWaterFlowAnimation,
+    });
+    await this.configureWaterFlowAnimation();
     await sleep(500);
     await this.setDestroyOptionsAfterConnect();
   }
