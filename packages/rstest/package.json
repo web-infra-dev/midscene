@@ -1,0 +1,68 @@
+{
+  "name": "@midscene/rstest",
+  "description": "Run Midscene AI browser agents as Rstest tests. Built on @rstest/playwright, plus a Rstest reporter that surfaces Midscene reports.",
+  "keywords": [
+    "rstest",
+    "midscene",
+    "AI testing",
+    "AI UI automation",
+    "Browser use",
+    "playwright"
+  ],
+  "version": "1.10.6",
+  "repository": "https://github.com/web-infra-dev/midscene",
+  "homepage": "https://midscenejs.com/",
+  "type": "module",
+  "sideEffects": false,
+  "files": ["dist", "README.md"],
+  "exports": {
+    "./playwright": {
+      "types": "./dist/playwright.d.ts",
+      "import": "./dist/playwright.js"
+    },
+    "./reporter": {
+      "types": "./dist/reporter.d.ts",
+      "import": "./dist/reporter.js"
+    }
+  },
+  "scripts": {
+    "dev": "npm run build:watch",
+    "build": "rslib build",
+    "build:watch": "rslib build --watch --no-clean",
+    "test": "vitest --run",
+    "test:smoke": "rstest run",
+    "test:demo": "rstest run --config rstest.config.ts --root demo",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@midscene/shared": "workspace:*"
+  },
+  "peerDependencies": {
+    "@midscene/core": "workspace:*",
+    "@midscene/web": "workspace:*",
+    "@rstest/core": "^0.11.2",
+    "@rstest/playwright": "^0.11.2",
+    "playwright": "^1.49.1"
+  },
+  "devDependencies": {
+    "@midscene/core": "workspace:*",
+    "@midscene/web": "workspace:*",
+    "@rslib/core": "^0.18.3",
+    "@rstest/core": "0.11.2",
+    "@rstest/playwright": "^0.11.2",
+    "@types/node": "^18.0.0",
+    "dotenv": "^16.4.5",
+    "playwright": "^1.45.0",
+    "std-env": "^4.1.0",
+    "typescript": "^5.8.3",
+    "vitest": "3.0.5"
+  },
+  "engines": {
+    "node": "^20.19.0 || >=22.12.0"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
+  },
+  "license": "MIT"
+}
