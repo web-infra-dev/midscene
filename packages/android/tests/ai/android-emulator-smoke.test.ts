@@ -13,10 +13,7 @@ import { imageInfoOfBase64 } from '@midscene/shared/img';
 import type ADB from 'appium-adb';
 import { describe, expect, it, vi } from 'vitest';
 import { AndroidAgent, AndroidDevice, getConnectedDevices } from '../../src';
-import {
-  isRetryableUiDumpError,
-  isTransientAdbTransportError,
-} from '../android-emulator-ui-dump';
+import { dumpUiHierarchyWithRetry } from '../android-emulator-ui-dump';
 
 const RUN_LIVE_SMOKE =
   process.env.AI_TEST_TYPE === 'android' &&
@@ -33,6 +30,7 @@ const POLL_INTERVAL_MS = 500;
 const TARGET_TIMEOUT_MS = 30_000;
 const UI_DUMP_MAX_ATTEMPTS = 3;
 const SEARCH_MAX_ATTEMPTS = 3;
+const SEARCH_TIMEOUT_MS = 90_000;
 
 interface Bounds {
   left: number;
@@ -66,29 +64,26 @@ function sleep(timeMs: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, timeMs));
 }
 
-async function dumpUiautomatorXml(adb: ADB): Promise<string> {
-  for (let attempt = 1; attempt <= UI_DUMP_MAX_ATTEMPTS; attempt += 1) {
-    try {
-      await adb.shell(`rm -f ${UI_DUMP_PATH}`);
-      await adb.shell(`uiautomator dump --compressed ${UI_DUMP_PATH}`);
-      const xml = await adb.shell(`cat ${UI_DUMP_PATH}`);
-      if (typeof xml !== 'string' || xml.trim().length === 0) {
-        throw new Error('Android emulator returned an empty uiautomator dump');
-      }
-      return xml;
-    } catch (error) {
-      if (attempt === UI_DUMP_MAX_ATTEMPTS || !isRetryableUiDumpError(error)) {
-        throw error;
-      }
-      if (isTransientAdbTransportError(error)) {
-        await adb.waitForDevice(15);
-      } else {
-        await sleep(POLL_INTERVAL_MS);
-      }
-    }
+class AndroidUiStateTimeoutError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'AndroidUiStateTimeoutError';
   }
+}
 
-  throw new Error('UI dump retry loop completed without a result');
+async function dumpUiautomatorXml(adb: ADB): Promise<string> {
+  const result = await dumpUiHierarchyWithRetry(adb, {
+    remotePath: UI_DUMP_PATH,
+    label: 'uiautomator',
+    maxAttempts: UI_DUMP_MAX_ATTEMPTS,
+    retryIntervalMs: POLL_INTERVAL_MS,
+    onRetry: ({ nextAttempt, phase, error }) => {
+      console.log(
+        `UI hierarchy dump failed during ${phase}; retrying attempt ${nextAttempt}: ${String(error)}`,
+      );
+    },
+  });
+  return result.xml;
 }
 
 function boundsForResourceId(xml: string, resourceId: string): Bounds[] {
@@ -152,46 +147,38 @@ async function waitForEditableNode(
   adb: ADB,
   diagnosticsFile: string,
   expectedText?: string,
+  deadline = Date.now() + TARGET_TIMEOUT_MS,
 ): Promise<{ resourceId?: string; bounds: Bounds; xml: string }> {
-  const deadline = Date.now() + TARGET_TIMEOUT_MS;
   let lastXml = '';
-  let lastError: unknown;
+  let lastState = 'No hierarchy has been read';
   while (Date.now() < deadline) {
-    try {
-      lastXml = await dumpUiautomatorXml(adb);
-      await writeFile(diagnosticsFile, lastXml, 'utf8');
-      const candidates = (lastXml.match(/<node\b[^>]*>/g) ?? []).filter(
-        (tag) => {
-          const className = attributeValue(tag, 'class');
-          const text = attributeValue(tag, 'text');
-          return (
-            className?.endsWith('EditText') &&
-            (expectedText === undefined || text === expectedText)
-          );
-        },
+    lastXml = await dumpUiautomatorXml(adb);
+    await writeFile(diagnosticsFile, lastXml, 'utf8');
+    const candidates = (lastXml.match(/<node\b[^>]*>/g) ?? []).filter((tag) => {
+      const className = attributeValue(tag, 'class');
+      const text = attributeValue(tag, 'text');
+      return (
+        className?.endsWith('EditText') &&
+        (expectedText === undefined || text === expectedText)
       );
-      const focusedCandidates = candidates.filter(
-        (tag) => attributeValue(tag, 'focused') === 'true',
-      );
-      const matches =
-        focusedCandidates.length === 1 ? focusedCandidates : candidates;
-      if (matches.length === 1) {
-        return {
-          resourceId: attributeValue(matches[0], 'resource-id'),
-          bounds: boundsForNodeTag(matches[0], 'editable node'),
-          xml: lastXml,
-        };
-      }
-      lastError = new Error(
-        `Expected one editable node, found ${candidates.length} (${focusedCandidates.length} focused)`,
-      );
-    } catch (error) {
-      lastError = error;
+    });
+    const focusedCandidates = candidates.filter(
+      (tag) => attributeValue(tag, 'focused') === 'true',
+    );
+    const matches =
+      focusedCandidates.length === 1 ? focusedCandidates : candidates;
+    if (matches.length === 1) {
+      return {
+        resourceId: attributeValue(matches[0], 'resource-id'),
+        bounds: boundsForNodeTag(matches[0], 'editable node'),
+        xml: lastXml,
+      };
     }
+    lastState = `Expected one editable node, found ${candidates.length} (${focusedCandidates.length} focused)`;
     await sleep(POLL_INTERVAL_MS);
   }
-  throw new Error(
-    `Timed out waiting for Android editable node${expectedText ? ` with text ${expectedText}` : ''}. Last error: ${String(lastError)}. Last XML saved to ${diagnosticsFile} (${lastXml.length} bytes)`,
+  throw new AndroidUiStateTimeoutError(
+    `Timed out waiting for Android editable node${expectedText ? ` with text ${expectedText}` : ''}. Last state: ${lastState}. Last XML saved to ${diagnosticsFile} (${lastXml.length} bytes)`,
   );
 }
 
@@ -199,34 +186,26 @@ async function waitForResource(
   adb: ADB,
   resourceIds: readonly string[],
   diagnosticsFile?: string,
+  deadline = Date.now() + TARGET_TIMEOUT_MS,
 ): Promise<{ resourceId: string; bounds: Bounds; xml: string }> {
-  const deadline = Date.now() + TARGET_TIMEOUT_MS;
   let lastXml = '';
-  let lastError: unknown;
+  let lastState = 'No hierarchy has been read';
   while (Date.now() < deadline) {
-    try {
-      lastXml = await dumpUiautomatorXml(adb);
-      if (diagnosticsFile) {
-        await writeFile(diagnosticsFile, lastXml, 'utf8');
+    lastXml = await dumpUiautomatorXml(adb);
+    if (diagnosticsFile) {
+      await writeFile(diagnosticsFile, lastXml, 'utf8');
+    }
+    for (const resourceId of resourceIds) {
+      const matches = boundsForResourceId(lastXml, resourceId);
+      if (matches.length === 1) {
+        return { resourceId, bounds: matches[0], xml: lastXml };
       }
-      for (const resourceId of resourceIds) {
-        const matches = boundsForResourceId(lastXml, resourceId);
-        if (matches.length === 1) {
-          return { resourceId, bounds: matches[0], xml: lastXml };
-        }
-        if (matches.length > 1) {
-          lastError = new Error(
-            `Expected one ${resourceId}, found ${matches.length}`,
-          );
-        }
-      }
-    } catch (error) {
-      lastError = error;
+      lastState = `Expected one ${resourceId}, found ${matches.length}`;
     }
     await sleep(POLL_INTERVAL_MS);
   }
-  throw new Error(
-    `Timed out waiting for Android resources ${resourceIds.join(', ')}. Last error: ${String(lastError)}. Last XML length: ${lastXml.length}`,
+  throw new AndroidUiStateTimeoutError(
+    `Timed out waiting for Android resources ${resourceIds.join(', ')}. Last state: ${lastState}. Last XML length: ${lastXml.length}`,
   );
 }
 
@@ -457,9 +436,10 @@ describe.skipIf(!RUN_LIVE_SMOKE)('Android Emulator live smoke', () => {
       let searchAttempts = 0;
       let locateActionCalls = 0;
       const searchAttemptErrors: string[] = [];
-      const performSearchAttempt = async (target: {
-        bounds: Bounds;
-      }): Promise<{ resourceId?: string; bounds: Bounds; xml: string }> => {
+      const performSearchAttempt = async (
+        target: { bounds: Bounds },
+        deadline: number,
+      ): Promise<{ resourceId?: string; bounds: Bounds; xml: string }> => {
         searchAttempts += 1;
         evidence.searchAttempts = searchAttempts;
         locateActionCalls += 1;
@@ -467,27 +447,50 @@ describe.skipIf(!RUN_LIVE_SMOKE)('Android Emulator live smoke', () => {
         await agent!.callActionInActionSpace('Tap', {
           locate: locate(target.bounds, 'Settings search bar'),
         });
-        const searchInput = await waitForEditableNode(adb, searchXmlFile);
+        const searchInput = await waitForEditableNode(
+          adb,
+          searchXmlFile,
+          undefined,
+          deadline,
+        );
         evidence.searchInputResourceId = searchInput.resourceId;
 
         locateActionCalls += 1;
         evidence.locateActionCalls = locateActionCalls;
         await agent!.callActionInActionSpace('Input', {
           value: 'wifi',
-          mode: 'typeOnly',
+          mode: 'replace',
           autoDismissKeyboard: false,
           locate: locate(searchInput.bounds, 'Settings search input'),
         });
-        return waitForEditableNode(adb, searchXmlFile, 'wifi');
+        return waitForEditableNode(adb, searchXmlFile, 'wifi', deadline);
       };
 
       let searchState:
         | { resourceId?: string; bounds: Bounds; xml: string }
         | undefined;
       let searchTarget = initialTarget;
+      const searchDeadline = Date.now() + SEARCH_TIMEOUT_MS;
       for (let attempt = 1; attempt <= SEARCH_MAX_ATTEMPTS; attempt += 1) {
+        const attemptDeadline = Math.min(
+          searchDeadline,
+          Date.now() + TARGET_TIMEOUT_MS,
+        );
         try {
-          searchState = await performSearchAttempt(searchTarget);
+          if (attempt > 1) {
+            await adb.shell('am force-stop com.android.settings');
+            await adb.shell('am start -W -n com.android.settings/.Settings');
+            searchTarget = await waitForResource(
+              adb,
+              [SETTINGS_SEARCH_BAR_ID],
+              initialXmlFile,
+              attemptDeadline,
+            );
+          }
+          searchState = await performSearchAttempt(
+            searchTarget,
+            attemptDeadline,
+          );
           break;
         } catch (error) {
           searchAttemptErrors.push(String(error));
@@ -505,16 +508,13 @@ describe.skipIf(!RUN_LIVE_SMOKE)('Android Emulator live smoke', () => {
               'utf8',
             );
           }
-          if (attempt === SEARCH_MAX_ATTEMPTS) {
+          if (
+            !(error instanceof AndroidUiStateTimeoutError) ||
+            attempt === SEARCH_MAX_ATTEMPTS ||
+            Date.now() >= searchDeadline
+          ) {
             throw error;
           }
-          await adb.shell('am force-stop com.android.settings');
-          await adb.shell('am start -W -n com.android.settings/.Settings');
-          searchTarget = await waitForResource(
-            adb,
-            [SETTINGS_SEARCH_BAR_ID],
-            initialXmlFile,
-          );
         }
       }
       if (!searchState) {
