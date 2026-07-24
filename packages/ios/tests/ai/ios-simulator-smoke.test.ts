@@ -360,11 +360,14 @@ describe.skipIf(!RUN_LIVE_SMOKE)('iOS Simulator live smoke', () => {
         value: string | undefined;
         sourceFile: string;
       }> = [];
+      const inputAgent = agent;
       const observedInput = await inputUntilObserved({
         expectedValue: SUBMITTED_TEXT,
         performInput: async () => {
-          await agent.callActionInActionSpace('Tap', { locate: targetLocate });
-          await agent.callActionInActionSpace('Input', {
+          await inputAgent.callActionInActionSpace('Tap', {
+            locate: targetLocate,
+          });
+          await inputAgent.callActionInActionSpace('Input', {
             value: SUBMITTED_TEXT,
             mode: 'replace',
             autoDismissKeyboard: false,
@@ -372,7 +375,7 @@ describe.skipIf(!RUN_LIVE_SMOKE)('iOS Simulator live smoke', () => {
           });
         },
         readValue: async (attempt) => {
-          const response = (await agent.runWdaRequest({
+          const response = (await inputAgent.runWdaRequest({
             method: 'GET',
             endpoint: '/source',
           })) as WdaValueResponse<string>;
