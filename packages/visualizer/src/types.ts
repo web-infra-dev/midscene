@@ -468,6 +468,8 @@ export interface UniversalPlaygroundConfig {
    * existing history behaviour.
    */
   clearTimelineBeforeRun?: boolean;
+  /** Hide report fullscreen controls when the embedding host cannot support fullscreen. */
+  hidePlayerFullscreenControl?: boolean;
   /**
    * Whether to render the "clear conversation" button that appears above the
    * message list once there is more than one item. Defaults to `true`.

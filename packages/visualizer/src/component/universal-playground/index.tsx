@@ -773,6 +773,9 @@ export function UniversalPlayground({
                                         componentConfig.onDownloadReport
                                       }
                                       playerPresentation="timeline"
+                                      hidePlayerFullscreenControl={
+                                        componentConfig.hidePlayerFullscreenControl
+                                      }
                                     />
                                   ) : (
                                     <>

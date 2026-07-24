@@ -1,0 +1,57 @@
+.midscene-config-modal {
+  .midscene-config-modal-verify-button {
+    width: 144px;
+  }
+
+  .midscene-config-modal-verify-icon {
+    align-items: center;
+    display: inline-flex;
+    height: 16px;
+    justify-content: center;
+    width: 16px;
+  }
+
+  .midscene-config-modal-spinner {
+    animation: midscene-config-modal-spin 0.8s linear infinite;
+  }
+
+  .ant-btn-default:not(:disabled):hover {
+    background-color: var(
+      --midscene-surface-hover,
+      rgba(0, 0, 0, 0.05)
+    ) !important;
+    border-color: var(--midscene-border-control, #e9ecf3) !important;
+    color: var(--midscene-text-primary, #0d0d0d) !important;
+  }
+
+  .ant-btn:focus,
+  .ant-btn:focus-visible {
+    box-shadow: none;
+    outline: none;
+  }
+
+  .ant-select-focused .ant-select-selector,
+  .ant-select-selector:focus,
+  .ant-select-selector:focus-within {
+    border-color: var(--midscene-border-control, #e9ecf3) !important;
+    box-shadow: none !important;
+  }
+}
+
+@keyframes midscene-config-modal-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.midscene-config-modal-select-dropdown {
+  .ant-select-item-option-selected:not(.ant-select-item-option-disabled) {
+    background-color: var(--midscene-surface-muted, #f2f4f7);
+    color: var(--midscene-text-primary, #0d0d0d);
+    font-weight: 500;
+  }
+
+  .ant-select-item-option-active:not(.ant-select-item-option-disabled) {
+    background-color: var(--midscene-surface-hover, rgba(0, 0, 0, 0.05));
+  }
+}

@@ -1,10 +1,26 @@
 import { SettingOutlined } from '@ant-design/icons';
-import type { ConnectivityTestResult } from '@midscene/core';
-import { Alert, App as AntdApp, Button, Input, Modal, Tooltip } from 'antd';
+import { Tooltip } from 'antd';
 import { useEffect, useRef, useState } from 'react';
 import { parseConfig, useEnvConfig } from '../../store/store';
 import type { PlaygroundSDKLike } from '../../types';
-import { notifyError } from '../../utils';
+import {
+  type CommonAgentOptions,
+  ConfigModal,
+  type ConfigModalProps,
+} from '../config-modal';
+
+export type { CommonAgentOptions } from '../config-modal';
+
+export interface EnvConfigProps {
+  showTooltipWhenEmpty?: boolean;
+  showModelName?: boolean;
+  tooltipPlacement?: 'bottom' | 'top';
+  mode?: 'icon' | 'text';
+  playgroundSDK?: PlaygroundSDKLike | null;
+  onVerify?: ConfigModalProps['onVerify'];
+  agentOptions?: CommonAgentOptions;
+  onAgentOptionsSave?: (options: CommonAgentOptions) => void | Promise<void>;
+}
 
 export function EnvConfig({
   showTooltipWhenEmpty = true,
@@ -12,131 +28,53 @@ export function EnvConfig({
   tooltipPlacement = 'bottom',
   mode = 'icon',
   playgroundSDK,
-}: {
-  showTooltipWhenEmpty?: boolean;
-  showModelName?: boolean;
-  tooltipPlacement?: 'bottom' | 'top';
-  mode?: 'icon' | 'text';
-  playgroundSDK?: PlaygroundSDKLike | null;
-}) {
-  const { message } = AntdApp.useApp();
+  onVerify,
+  agentOptions,
+  onAgentOptionsSave,
+}: EnvConfigProps) {
   const { config, configString, loadConfig, syncFromStorage } = useEnvConfig();
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [tempConfigString, setTempConfigString] = useState(configString);
-  const [connectivityResult, setConnectivityResult] =
-    useState<ConnectivityTestResult | null>(null);
-  const [connectivityLoading, setConnectivityLoading] = useState(false);
   const midsceneModelName = config.MIDSCENE_MODEL_NAME;
-  const canRunConnectivityTest = !!playgroundSDK?.runConnectivityTest;
   const componentRef = useRef<HTMLDivElement>(null);
-  const closeTimerRef = useRef<number | null>(null);
+  const verifyModel = onVerify ?? playgroundSDK?.runConnectivityTest;
 
-  const clearCloseTimer = () => {
-    if (closeTimerRef.current !== null) {
-      window.clearTimeout(closeTimerRef.current);
-      closeTimerRef.current = null;
-    }
-  };
-
-  const showModal = (e: React.MouseEvent) => {
-    // every time open modal, sync from localStorage
+  const showModal = (event: React.MouseEvent) => {
     syncFromStorage();
-
-    clearCloseTimer();
     setIsModalOpen(true);
-    e.preventDefault();
-    e.stopPropagation();
+    event.preventDefault();
+    event.stopPropagation();
   };
-
-  const handleOk = () => {
-    clearCloseTimer();
-    setIsModalOpen(false);
-    loadConfig(tempConfigString);
-  };
-
-  const handleSaveAndRun = async () => {
-    const sdk = playgroundSDK;
-
-    if (!sdk?.runConnectivityTest) {
-      return;
-    }
-
-    try {
-      setConnectivityLoading(true);
-      setConnectivityResult(null);
-      const nextConfig = parseConfig(tempConfigString);
-      const result = await sdk.runConnectivityTest(nextConfig);
-      setConnectivityResult(result);
-      if (result.passed) {
-        loadConfig(tempConfigString);
-        message.success('Model verification passed');
-        clearCloseTimer();
-        closeTimerRef.current = window.setTimeout(() => {
-          setIsModalOpen(false);
-          closeTimerRef.current = null;
-        }, 2000);
-      } else {
-        message.warning('Model verification found issues');
-      }
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
-      notifyError(error, { title: 'Model verification failed' });
-      setConnectivityResult({
-        passed: false,
-        message: errorMessage,
-      });
-    } finally {
-      setConnectivityLoading(false);
-    }
-  };
-
-  const handleCancel = () => {
-    clearCloseTimer();
-    setIsModalOpen(false);
-  };
-
-  // when modal is open, use the latest config string
-  useEffect(() => {
-    if (isModalOpen) {
-      setTempConfigString(configString);
-      setConnectivityResult(null);
-    }
-  }, [isModalOpen, configString]);
 
   useEffect(() => {
-    return () => {
-      clearCloseTimer();
-    };
-  }, []);
+    if (!isModalOpen) return;
+    syncFromStorage();
+  }, [isModalOpen, syncFromStorage]);
 
   return (
     <div
+      ref={componentRef}
       style={{
-        display: 'flex',
-        justifyContent: 'flex-end',
-        gap: '10px',
         alignItems: 'center',
+        display: 'flex',
+        gap: '10px',
         height: '100%',
+        justifyContent: 'flex-end',
         minHeight: '32px',
       }}
-      ref={componentRef}
     >
       {showModelName ? midsceneModelName : null}
       <Tooltip
-        title="Please set up your environment variables before using."
-        placement={tooltipPlacement}
         align={{ offset: [-10, 5] }}
         getPopupContainer={() => componentRef.current as HTMLElement}
         open={
-          // undefined for default behavior of tooltip, hover for show
-          // close tooltip when modal is open
           isModalOpen
             ? false
             : showTooltipWhenEmpty
               ? Object.keys(config).length === 0
               : undefined
         }
+        placement={tooltipPlacement}
+        title="Please set up your environment variables before using."
       >
         {mode === 'icon' ? (
           <SettingOutlined onClick={showModal} />
@@ -149,77 +87,53 @@ export function EnvConfig({
           </span>
         )}
       </Tooltip>
-      <Modal
-        title="Model Env Config"
-        open={isModalOpen}
-        onOk={handleOk}
-        onCancel={handleCancel}
-        footer={
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'flex-end',
-              alignItems: 'center',
-              gap: 8,
-            }}
-          >
-            {canRunConnectivityTest ? (
-              <Button
-                key="save-and-run"
-                type="primary"
-                ghost
-                loading={connectivityLoading}
-                onClick={handleSaveAndRun}
-              >
-                Verify and Save Model
-              </Button>
-            ) : null}
-            <Button key="save" type="primary" onClick={handleOk}>
-              Save
-            </Button>
-          </div>
-        }
-        style={{ width: '800px', height: '100%', marginTop: '10%' }}
-        destroyOnClose={true}
-        maskClosable={true}
-        centered={true}
-      >
-        <Input.TextArea
-          rows={7}
-          placeholder={
-            'MIDSCENE_MODEL_API_KEY=sk-...\nMIDSCENE_MODEL_NAME=gpt-4o-2024-08-06\n...'
+      <ConfigModal
+        agentOptionsValue={agentOptions}
+        onClose={() => setIsModalOpen(false)}
+        onSave={async ({ text, agentOptions: nextAgentOptions }) => {
+          const previousConfigText = configString;
+          const previousAgentOptions = agentOptions ?? {};
+          let agentOptionsSaved = false;
+          let configSaveStarted = false;
+
+          try {
+            await onAgentOptionsSave?.(nextAgentOptions);
+            agentOptionsSaved = Boolean(onAgentOptionsSave);
+            configSaveStarted = true;
+            loadConfig(text);
+            setIsModalOpen(false);
+          } catch (error) {
+            const rollbackErrors: unknown[] = [];
+
+            if (configSaveStarted) {
+              try {
+                loadConfig(previousConfigText);
+              } catch (rollbackError) {
+                rollbackErrors.push(rollbackError);
+              }
+            }
+            if (agentOptionsSaved) {
+              try {
+                await onAgentOptionsSave?.(previousAgentOptions);
+              } catch (rollbackError) {
+                rollbackErrors.push(rollbackError);
+              }
+            }
+
+            if (rollbackErrors.length > 0) {
+              throw new Error(
+                `Saving configuration failed and rollback was incomplete. Original error: ${String(error)}. Rollback errors: ${rollbackErrors.map(String).join('; ')}`,
+              );
+            }
+            throw error;
           }
-          value={tempConfigString}
-          onChange={(e) => setTempConfigString(e.target.value)}
-          style={{ whiteSpace: 'nowrap', wordWrap: 'break-word' }}
-        />
-        <div>
-          <p>The format is KEY=VALUE and separated by new lines.</p>
-          <p>
-            These data will be saved <strong>locally in your browser</strong>.
-          </p>
-        </div>
-        {connectivityResult ? (
-          <Alert
-            type={connectivityResult.passed ? 'success' : 'warning'}
-            showIcon
-            message={
-              connectivityResult.passed
-                ? 'Model verification passed'
-                : 'Model verification failed'
-            }
-            description={
-              connectivityResult.passed ? undefined : (
-                <span style={{ whiteSpace: 'pre-wrap' }}>
-                  {connectivityResult.message ||
-                    'Connectivity test failed without details.'}
-                </span>
-              )
-            }
-            style={{ marginTop: 16 }}
-          />
-        ) : null}
-      </Modal>
+        }}
+        onVerify={verifyModel ? (env) => verifyModel(env) : undefined}
+        open={isModalOpen}
+        parseEnvText={parseConfig}
+        showAgentOptions={Boolean(onAgentOptionsSave)}
+        textValue={configString}
+      />
     </div>
   );
 }

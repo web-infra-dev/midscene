@@ -29,6 +29,7 @@ interface PlaygroundResultProps {
   canDownloadReport?: boolean;
   onDownloadReport?: ReportDownloadHandler;
   playerPresentation?: PlayerPresentation;
+  hidePlayerFullscreenControl?: boolean;
 }
 
 export const PlaygroundResultView: React.FC<PlaygroundResultProps> = ({
@@ -47,6 +48,7 @@ export const PlaygroundResultView: React.FC<PlaygroundResultProps> = ({
   canDownloadReport,
   onDownloadReport,
   playerPresentation,
+  hidePlayerFullscreenControl,
 }) => {
   let resultWrapperClassName = 'result-wrapper';
   if (verticalMode) {
@@ -110,6 +112,7 @@ export const PlaygroundResultView: React.FC<PlaygroundResultProps> = ({
                 }
                 onDownloadReport={onDownloadReport}
                 presentation={playerPresentation}
+                hideFullscreenControl={hidePlayerFullscreenControl}
               />
             </div>
           </div>
@@ -157,6 +160,7 @@ export const PlaygroundResultView: React.FC<PlaygroundResultProps> = ({
               }
               onDownloadReport={onDownloadReport}
               presentation={playerPresentation}
+              hideFullscreenControl={hidePlayerFullscreenControl}
             />
           </div>
         </div>
@@ -180,6 +184,7 @@ export const PlaygroundResultView: React.FC<PlaygroundResultProps> = ({
         canDownloadReport={canDownloadReport ?? serviceMode !== 'In-Browser'}
         onDownloadReport={onDownloadReport}
         presentation={playerPresentation}
+        hideFullscreenControl={hidePlayerFullscreenControl}
       />
     );
   } else if (
@@ -216,6 +221,7 @@ export const PlaygroundResultView: React.FC<PlaygroundResultProps> = ({
               }
               onDownloadReport={onDownloadReport}
               presentation={playerPresentation}
+              hideFullscreenControl={hidePlayerFullscreenControl}
             />
           </div>
         </div>
@@ -242,6 +248,7 @@ export const PlaygroundResultView: React.FC<PlaygroundResultProps> = ({
         canDownloadReport={canDownloadReport ?? serviceMode !== 'In-Browser'}
         onDownloadReport={onDownloadReport}
         presentation={playerPresentation}
+        hideFullscreenControl={hidePlayerFullscreenControl}
       />
     );
   } else if (result?.result !== undefined) {

@@ -37,6 +37,12 @@ export interface RecordingSession {
     yaml?: string;
     lastGenerated?: number; // timestamp of last generation
   };
+  /**
+   * Persisted only in the lightweight session metadata cache. Summaries keep
+   * `events` empty so the Recorder list can render without deserializing every
+   * screenshot in IndexedDB.
+   */
+  eventCount?: number;
 }
 
 // Storage keys
@@ -48,7 +54,7 @@ const RECORDING_STATE_KEY = 'midscene-recording-state';
 const loadSessionsFromStorage = async (): Promise<RecordingSession[]> => {
   try {
     // initializeDB is now idempotent, safe to call
-    return await dbManager.getAllSessions();
+    return await dbManager.getSessionSummaries();
   } catch (error) {
     console.error('Failed to load sessions from IndexedDB:', error);
     return [];
@@ -108,6 +114,7 @@ export const useRecordingSessionStore = create<{
   deleteSession: (sessionId: string) => Promise<void>;
   setCurrentSession: (sessionId: string | null) => Promise<void>;
   getCurrentSession: () => RecordingSession | null;
+  loadSession: (sessionId: string) => Promise<RecordingSession | null>;
 }>((set, get) => ({
   sessions: [],
   currentSessionId: null,
@@ -133,12 +140,21 @@ export const useRecordingSessionStore = create<{
     }
   },
   addSession: async (session) => {
+    const previousSessions = get().sessions;
+    const nextSessions = [
+      { ...session, eventCount: session.events.length },
+      ...previousSessions.filter(({ id }) => id !== session.id),
+    ]
+      .sort((a, b) => b.updatedAt - a.updatedAt)
+      .slice(0, 5);
+    set({ sessions: nextSessions });
+
     try {
       await dbManager.addSession(session);
-      const sessions = await dbManager.getAllSessions();
-      set({ sessions });
     } catch (error) {
+      set({ sessions: previousSessions });
       console.error('Failed to add session:', error);
+      throw error;
     }
   },
   updateSession: async (sessionId, updates) => {
@@ -158,6 +174,8 @@ export const useRecordingSessionStore = create<{
           ...sessions[sessionIndex],
           ...updates,
           updatedAt: Date.now(),
+          eventCount:
+            updates.events?.length ?? sessions[sessionIndex].eventCount,
         };
         const newSessions = [...sessions];
         newSessions[sessionIndex] = updatedSession;
@@ -189,18 +207,21 @@ export const useRecordingSessionStore = create<{
     }
   },
   deleteSession: async (sessionId) => {
+    const previousSessions = get().sessions;
+    set({
+      sessions: previousSessions.filter((session) => session.id !== sessionId),
+    });
     try {
       await dbManager.deleteSession(sessionId);
-      const sessions = await dbManager.getAllSessions();
-      set({ sessions });
     } catch (error) {
+      set({ sessions: previousSessions });
       console.error('Failed to delete session:', error);
     }
   },
   setCurrentSession: async (sessionId) => {
+    set({ currentSessionId: sessionId });
     try {
       await saveCurrentSessionIdToStorage(sessionId);
-      set({ currentSessionId: sessionId });
     } catch (error) {
       console.error('Failed to set current session:', error);
     }
@@ -208,6 +229,21 @@ export const useRecordingSessionStore = create<{
   getCurrentSession: () => {
     const state = get();
     return state.sessions.find((s) => s.id === state.currentSessionId) || null;
+  },
+  loadSession: async (sessionId) => {
+    const session = await dbManager.getSession(sessionId);
+    if (!session) {
+      return null;
+    }
+
+    set((state) => ({
+      sessions: state.sessions.map((candidate) =>
+        candidate.id === sessionId
+          ? { ...session, eventCount: session.events.length }
+          : candidate,
+      ),
+    }));
+    return session;
   },
 }));
 

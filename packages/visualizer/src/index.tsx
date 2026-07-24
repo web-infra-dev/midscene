@@ -16,6 +16,19 @@ export {
 
 export { EnvConfig } from './component/env-config';
 export { EnvConfigReminder } from './component/env-config-reminder';
+export {
+  ConfigModal,
+  agentOptionsToFormValues,
+  parseAgentOptionFormValues,
+} from './component/config-modal';
+export type {
+  CommonAgentOptionFormValues,
+  CommonAgentOptionKey,
+  CommonAgentOptions,
+  ConfigModalEnvField,
+  ConfigModalProps,
+  ConfigModalTab,
+} from './component/config-modal';
 export { NavActions } from './component/nav-actions';
 export type { NavActionsProps } from './component/nav-actions';
 
