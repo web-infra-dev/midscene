@@ -14,9 +14,9 @@ import type { Page as PuppeteerPage } from 'puppeteer';
 import puppeteer from 'puppeteer-core';
 import type { Browser, Page } from 'puppeteer-core';
 import {
-  type WebAgentInitArgs,
-  adaptWebAgentInitArgs,
-  webAgentInitArgShape,
+  type WebCdpAgentInitArgs,
+  adaptWebCdpAgentInitArgs,
+  webCdpAgentInitArgShape,
 } from './agent-init-args';
 import { getProxyEndpoint } from './cdp-proxy-manager';
 import {
@@ -54,7 +54,7 @@ function getTargetId(page: Page): string | undefined {
  */
 export class WebCdpMidsceneTools extends BaseMidsceneTools<
   PuppeteerAgent,
-  WebAgentInitArgs
+  WebCdpAgentInitArgs
 > {
   protected getCliReportSessionName() {
     return 'midscene-web';
@@ -68,13 +68,13 @@ export class WebCdpMidsceneTools extends BaseMidsceneTools<
     this.cdpEndpoint = cdpEndpoint;
   }
 
-  protected readonly initArgSpec: InitArgSpec<WebAgentInitArgs> = {
+  protected readonly initArgSpec: InitArgSpec<WebCdpAgentInitArgs> = {
     namespace: 'web',
-    shape: webAgentInitArgShape,
+    shape: webCdpAgentInitArgShape,
     cli: {
       preferBareKeys: true,
     },
-    adapt: adaptWebAgentInitArgs,
+    adapt: adaptWebCdpAgentInitArgs,
   };
 
   protected createTemporaryDevice() {
@@ -86,7 +86,7 @@ export class WebCdpMidsceneTools extends BaseMidsceneTools<
   }
 
   protected async ensureAgent(
-    initArgs?: WebAgentInitArgs,
+    initArgs?: WebCdpAgentInitArgs,
   ): Promise<PuppeteerAgent> {
     const navigateToUrl = initArgs?.url;
     const nextSignature = getAgentInitArgsSignature(initArgs);
@@ -145,17 +145,9 @@ export class WebCdpMidsceneTools extends BaseMidsceneTools<
         // discovery endpoints, /devtools/page/* returns 403).
         page = webPages[webPages.length - 1];
         await page.bringToFront();
-        await page.goto(navigateToUrl, {
-          timeout: 30000,
-          waitUntil: 'domcontentloaded',
-        });
       } else {
         // No existing web pages — fall back to creating a new tab
         page = await browser.newPage();
-        await page.goto(navigateToUrl, {
-          timeout: 30000,
-          waitUntil: 'domcontentloaded',
-        });
       }
     } else {
       // Try to find the exact tab from a previous `connect` command via saved targetId.
@@ -186,6 +178,17 @@ export class WebCdpMidsceneTools extends BaseMidsceneTools<
       }
 
       await page.bringToFront();
+    }
+
+    if (initArgs?.extraHTTPHeaders) {
+      await page.setExtraHTTPHeaders(initArgs.extraHTTPHeaders);
+    }
+
+    if (navigateToUrl) {
+      await page.goto(navigateToUrl, {
+        timeout: 30000,
+        waitUntil: 'domcontentloaded',
+      });
     }
 
     // Persist the targetId so subsequent CLI commands can find this exact tab
