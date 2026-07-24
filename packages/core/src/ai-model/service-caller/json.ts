@@ -111,9 +111,27 @@ function trimParsedJsonStrings(
 
 function repairKnownJsonIssues(
   jsonBlock: string,
-  _rawResponse: string,
+  context?: JsonParserContext,
 ): string {
-  // TODO: Add project-specific repairs that jsonrepair cannot handle.
+  if (context?.source !== 'locate') {
+    return jsonBlock;
+  }
+
+  // For example, {"bbox": [725, 505, 900, 526]</bbox>} becomes valid JSON.
+  const bboxTagFragments = [
+    '</bbox>',
+    '/bbox>',
+    '<bbox>',
+    '</bbox',
+    '/bbox',
+    '<bbox',
+    'bbox>',
+  ];
+
+  for (const fragment of bboxTagFragments) {
+    jsonBlock = jsonBlock.replaceAll(fragment, '');
+  }
+
   return jsonBlock;
 }
 
@@ -152,7 +170,7 @@ export function parseModelResponseJson(
       assertJsonObject(parsedObj);
     }
   } catch (e1) {
-    const code = repairKnownJsonIssues(cleanJsonString, raw);
+    const code = repairKnownJsonIssues(cleanJsonString, context);
     if (code === cleanJsonString) {
       throw new Error(
         `failed to parse LLM response into JSON. Error - ${String(
