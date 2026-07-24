@@ -60,27 +60,13 @@ export type AgentOptions = Omit<
 export { overrideAIConfig };
 export type { WebPageAgentOpt };
 
-// Re-export the upstream surface so users can import everything (Playwright
-// flavored `expect`, hooks, fixture/option types) from this one entry.
-export {
-  afterAll,
-  afterEach,
-  beforeAll,
-  beforeEach,
-  describe,
-  expect,
-} from '@rstest/playwright';
-export type {
-  PlaywrightDebugOptions,
-  PlaywrightFixture,
-  PlaywrightOptions,
-  PlaywrightServe,
-  PlaywrightServeOptions,
-  PlaywrightServeResult,
-  PlaywrightTest,
-  PlaywrightTraceMode,
-  PlaywrightTraceOptions,
-} from '@rstest/playwright';
+// Re-export the whole upstream surface so users import everything (Playwright
+// flavored `expect`, hooks, assertion and fixture/option types) from this one
+// entry, and so anything upstream adds later flows through without a change
+// here. `test` is the one name we shadow: the local export below wins over a
+// star export, which is exactly the intent — ours is upstream's `test` with
+// the Midscene fixtures attached.
+export * from '@rstest/playwright';
 
 const debug = getDebug('rstest:playwright', { console: true });
 
