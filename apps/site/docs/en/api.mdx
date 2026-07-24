@@ -978,6 +978,23 @@ await observer.stop();
 await observer.aiAssert('a success toast appeared during the process');
 ```
 
+The platform CLIs expose the same lifecycle as a one-shot `observe` command.
+It starts observation, runs the action, stops observation, and checks the
+assertion in one process:
+
+```bash
+npx -y @midscene/web@1 observe \
+  --action "click the Submit button" \
+  --prompt "a success toast appeared during submission"
+```
+
+The command is also available from `@midscene/android`, `@midscene/ios`,
+`@midscene/harmony`, and `@midscene/computer`. Their normal target options can
+be used on `observe`, along with `--interval-ms`, `--max-frames`, and
+`--watchdog-ms`. Use `observe` when something may appear and disappear during
+the action; use the ordinary `assert` command when only the current or final
+screen matters.
+
 How it works and what it costs:
 
 - Frames come from the device's continuous frame source when available — scrcpy on Android (`scrcpyConfig.enabled`), WDA MJPEG on iOS (`wdaMjpegFrameSource.enabled`), CDP screencast on web (always available) — and fall back to plain screenshots per tick otherwise (much lower effective frame rate on mobile).

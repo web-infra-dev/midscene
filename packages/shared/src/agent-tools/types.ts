@@ -122,6 +122,32 @@ export interface BaseAgentProgressEvent {
 }
 
 /**
+ * Minimal UI observation lifecycle required by shared tool surfaces.
+ * Call {@link stop} before {@link aiAssert} so the assertion receives the
+ * complete observation window.
+ */
+export interface BaseUIObserver {
+  /** Stop sampling and finalize the observed frame window. */
+  stop(): Promise<void>;
+  /** Assert against all frames captured before {@link stop} completed. */
+  aiAssert(
+    assertion: string,
+    msg?: string,
+    options?: Record<string, unknown>,
+  ): Promise<unknown>;
+}
+
+/** Options for {@link BaseAgent.startObserving}. */
+export interface BaseUIObserverOptions {
+  /** Sampling interval in milliseconds. Defaults to 1000; minimum 200. */
+  intervalMs?: number;
+  /** Maximum number of buffered frames. Defaults to 30; minimum 2. */
+  maxFrames?: number;
+  /** Auto-stop timeout in milliseconds. Defaults to 300000; 0 disables it. */
+  watchdogMs?: number;
+}
+
+/**
  * Base agent interface
  * Represents a platform-specific agent (Android, iOS, Web)
  * Note: Return types use `unknown` for compatibility with platform-specific implementations
@@ -160,6 +186,8 @@ export interface BaseAgent {
     msg?: string,
     options?: Record<string, unknown>,
   ) => Promise<unknown>;
+  /** Start a UI observation window and capture its baseline frame. */
+  startObserving?: (options?: BaseUIObserverOptions) => Promise<BaseUIObserver>;
 }
 
 /**
