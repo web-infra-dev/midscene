@@ -11,6 +11,8 @@ There are two ways to integrate with Playwright:
 - Directly integrate and call the Midscene Agent via script, suitable for quick prototyping, data scraping, and automation scripts.
 - Integrate Midscene into Playwright test cases, suitable for UI testing scenarios.
 
+## Set up API keys for model
+
 <SetupEnv />
 
 ## Direct integration with Midscene agent
@@ -97,7 +99,7 @@ Promise.resolve(
 );
 ```
 
-For more Agent API details, please refer to [API Reference](./api#interaction-methods).
+For more Agent API details, please refer to [API Reference](./reference/#interaction-methods).
 
 ### Step 3: Run the script
 
@@ -179,7 +181,7 @@ export const test = base.extend<PlayWrightAiFixtureType>(
 
 ### Step 3: Write test cases
 
-Review the full catalog of action, query, and utility methods in the [Agent API reference](./api#interaction-methods). When you need lower-level control, you can use `agentForPage` to obtain the underlying `PageAgent` instance and call any API directly:
+Review the full catalog of action, query, and utility methods in the [Agent API reference](./reference/#interaction-methods). When you need lower-level control, you can use `agentForPage` to obtain the underlying `PageAgent` instance and call any API directly:
 
 ```typescript
 test('case demo', async ({ agentForPage, page }) => {
@@ -249,7 +251,7 @@ test('search headphone on ebay', async ({
 });
 ```
 
-For more Agent API details, please refer to [API Reference](./api#interaction-methods).
+For more Agent API details, please refer to [API Reference](./reference/#interaction-methods).
 
 ### Step 4. Run test cases
 
@@ -424,7 +426,7 @@ The default timeout is configured as follows:
 
 You can also customize or disable the timeout by options:
 
-- Use `waitForNetworkIdleTimeout` and `waitForNavigationTimeout` parameters in [Agent](/api#constructors).
+- Use `waitForNetworkIdleTimeout` and `waitForNavigationTimeout` parameters in [Agent](/reference/#constructors).
 - Use `waitForNetworkIdle` parameter in [Yaml](/automate-with-scripts-in-yaml#the-web-part) or [PlaywrightAiFixture](/integrate-with-playwright#step-2-extend-the-test-instance).
 
 ### `waiting for fonts to load` or `page.screenshot: Timeout ... exceeded` when taking screenshots
@@ -456,8 +458,8 @@ For more background, see the Playwright issue: [[BUG] Page.screenshot method han
 
 ## More
 
-- For all the methods on the Agent, please refer to [API Reference](./api#interaction-methods).
-- For the Playwright API reference, see [Playwright Agent API](./web-api-reference#playwright-agent).
+- For all the methods on the Agent, please refer to [API Reference](./reference/#interaction-methods).
+- For the Playwright API reference, see [Playwright Agent API](./reference/#playwright-agent).
 - Demo projects
   - Direct integration: [https://github.com/web-infra-dev/midscene-example/blob/main/playwright-demo](https://github.com/web-infra-dev/midscene-example/blob/main/playwright-demo)
   - Playwright test integration: [https://github.com/web-infra-dev/midscene-example/blob/main/playwright-testing-demo](https://github.com/web-infra-dev/midscene-example/blob/main/playwright-testing-demo)

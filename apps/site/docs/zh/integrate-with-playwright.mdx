@@ -11,6 +11,8 @@ import { PackageManagerTabs } from '@theme';
 - 直接用脚本方式集成和调用 Midscene Agent，适合快速体验、原型开发、数据抓取和自动化脚本等场景。
 - 在 Playwright 的测试用例中集成 Midscene，适合需要执行 UI 测试的场景。
 
+## 配置 AI 模型服务
+
 <SetupEnv />
 
 ## 直接集成 Midscene Agent
@@ -97,7 +99,7 @@ Promise.resolve(
 );
 ```
 
-更多 Agent 的 API 讲解请参考 [API 参考](./api#interaction-methods)。
+更多 Agent 的 API 讲解请参考 [API 参考](./reference/#interaction-methods)。
 
 ### 第三步：运行
 
@@ -179,7 +181,7 @@ export const test = base.extend<PlayWrightAiFixtureType>(
 
 ### 第三步：编写测试用例
 
-完整的交互、查询和辅助 API 请参考 [Agent API 参考](./api#interaction-methods)。如果需要调用更底层的能力，可以使用 `agentForPage` 获取 `PageAgent` 实例，再直接调用对应的方法：
+完整的交互、查询和辅助 API 请参考 [Agent API 参考](./reference/#interaction-methods)。如果需要调用更底层的能力，可以使用 `agentForPage` 获取 `PageAgent` 实例，再直接调用对应的方法：
 
 ```typescript
 test('case demo', async ({ agentForPage, page }) => {
@@ -248,7 +250,7 @@ test('search headphone on ebay', async ({
 });
 ```
 
-更多 Agent 的 API 讲解请参考 [API 参考](./api#interaction-methods)。
+更多 Agent 的 API 讲解请参考 [API 参考](./reference/#interaction-methods)。
 
 ### 第四步：运行测试用例
 
@@ -422,7 +424,7 @@ data:text/html,<script>alert(`deviceScaleFactor of your browser: ${devicePixelRa
 
 当然，你可以通过配置参数修改默认超时时间，或者关闭这个功能：
 
-- 使用 [Agent](/zh/api#%E6%9E%84%E9%80%A0%E5%99%A8) 上的 `waitForNetworkIdleTimeout` 和 `waitForNavigationTimeout` 参数
+- 使用 [Agent](/zh/reference/#%E6%9E%84%E9%80%A0%E5%99%A8) 上的 `waitForNetworkIdleTimeout` 和 `waitForNavigationTimeout` 参数
 - 使用 [Yaml](/zh/automate-with-scripts-in-yaml#web-%E9%83%A8%E5%88%86) 脚本和 [PlaywrightAiFixture](/zh/integrate-with-playwright#%E7%AC%AC%E4%BA%8C%E6%AD%A5%E6%89%A9%E5%B1%95-test-%E5%AE%9E%E4%BE%8B) 中的 `waitForNetworkIdle` 参数
 
 ### 截图时报 `waiting for fonts to load` 或 `page.screenshot: Timeout ... exceeded`
@@ -454,6 +456,6 @@ PW_TEST_SCREENSHOT_NO_FONTS_READY=1 <你的命令>
 
 ## 更多
 
-- 更多 Agent 的 API 文档请参考 [API 参考](./api#interaction-methods)。
-- Playwright 的 API 文档请参考 [Playwright Agent API](./web-api-reference#playwright-agent)。
+- 更多 Agent 的 API 文档请参考 [API 参考](./reference/#interaction-methods)。
+- Playwright 的 API 文档请参考 [Playwright Agent API](./reference/#playwright-agent)。
 - 样例项目：[直接集成 Playwright](https://github.com/web-infra-dev/midscene-example/blob/main/playwright-demo)，[Playwright 测试集成](https://github.com/web-infra-dev/midscene-example/blob/main/playwright-testing-demo)，[远程 Playwright 集成](https://github.com/web-infra-dev/midscene-example/tree/main/remote-playwright-demo)

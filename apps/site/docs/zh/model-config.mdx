@@ -143,7 +143,7 @@ export MIDSCENE_MODEL_FAMILY="gpt-5"
 
 ## 使用 JavaScript 配置参数
 
-你也可以使用 JavaScript 来为每个 Agent 配置模型参数，详见 [API 参考](./api)
+你也可以使用 JavaScript 来为每个 Agent 配置模型参数，详见 [API 参考](./reference/#common)
 
 ```typescript
 const agent = new Agent(page, {
@@ -196,9 +196,9 @@ DEBUGGING MODE: langsmith wrapper enabled
 注意：
 - LangSmith 和 Langfuse 可以同时启用
 - 仅支持 Node.js 环境，浏览器环境会报错
-- 如果使用 [`createOpenAIClient`](./api#自定义-openai-客户端) 参数，环境变量方式会被覆盖
+- 如果使用 [`createOpenAIClient`](./reference/#自定义-openai-客户端) 参数，环境变量方式会被覆盖
 
-如果需要更细粒度的控制（例如只对特定任务启用 LangSmith），可以通过 [`createOpenAIClient`](./api#自定义-openai-客户端) 手动包装客户端。
+如果需要更细粒度的控制（例如只对特定任务启用 LangSmith），可以通过 [`createOpenAIClient`](./reference/#自定义-openai-客户端) 手动包装客户端。
 
 ### 使用 Langfuse
 
@@ -251,4 +251,4 @@ DEBUGGING MODE: langfuse wrapper enabled
 注意：
 - LangSmith 和 Langfuse 可以同时启用
 - 仅支持 Node.js 环境，浏览器环境会报错
-- 如果使用 [`createOpenAIClient`](./api#自定义-openai-客户端) 参数，环境变量方式会被覆盖
+- 如果使用 [`createOpenAIClient`](./reference/#自定义-openai-客户端) 参数，环境变量方式会被覆盖

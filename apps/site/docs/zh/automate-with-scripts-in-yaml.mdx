@@ -33,6 +33,8 @@ tasks:
 
 :::
 
+## 配置 AI 模型服务
+
 <SetupEnv />
 
 如果需要通过命令行执行 YAML 工作流，请查看 [YAML 脚本运行器](./yaml-script-runner)，了解安装、`.env` 支持以及 `midscene` 命令的用法。
@@ -275,7 +277,7 @@ android:
 
 :::tip 查看完整的 Android 配置项
 
-YAML 脚本现在支持 `AndroidDevice` 构造函数的所有配置选项。完整的配置项列表请参考 [Android API 参考中的 AndroidDevice](./android-api-reference#androiddevice)。
+YAML 脚本现在支持 `AndroidDevice` 构造函数的所有配置选项。完整的配置项列表请参考 [Android API 参考中的 AndroidDevice](./reference/#androiddevice)。
 
 :::
 
@@ -378,7 +380,7 @@ ios:
 
 :::tip 查看完整的 iOS 配置项
 
-YAML 脚本现在支持 `IOSDevice` 构造函数的所有配置选项。完整的配置项列表请参考 [iOS API 参考中的 IOSDevice](./ios-api-reference#iosdevice)。
+YAML 脚本现在支持 `IOSDevice` 构造函数的所有配置选项。完整的配置项列表请参考 [iOS API 参考中的 IOSDevice](./reference/#iosdevice)。
 
 :::
 
@@ -574,7 +576,7 @@ tasks:
 
 `tasks` 部分是一个数组，定义了脚本执行的步骤。记得在每个步骤前添加 `-` 符号，表明这些步骤是个数组。
 
-`flow` 部分的接口与 [API](./api.html) 几乎相同，除了一些参数的嵌套层级。
+`flow` 部分的接口与 [API](./reference/#common) 几乎相同，除了一些参数的嵌套层级。
 
 ```yaml
 tasks:
@@ -741,7 +743,7 @@ tasks:
 
 #### 使用图像提示
 
-对于支持在提示词中附带图像的步骤（参见 [API 参考](./api#prompting-with-images)），可以把提示词改写为对象，并通过设置 `images` 字段（一个包含 `name` 和 `url` 的对象数组）来附加图像。该对象包含以下字段：
+对于支持在提示词中附带图像的步骤（参见 [API 参考](./reference/#prompting-with-images)），可以把提示词改写为对象，并通过设置 `images` 字段（一个包含 `name` 和 `url` 的对象数组）来附加图像。该对象包含以下字段：
 
 - `prompt`：发送给模型的文本描述。
 - `images`（可选）：提示词引用的参考图像，每一项需要提供 `name` 和 `url`。

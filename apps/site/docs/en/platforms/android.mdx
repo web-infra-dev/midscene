@@ -1,27 +1,28 @@
-import StartExperience from './common/start-experience.mdx';
-import SetupEnv from './common/setup-env.mdx';
+import SetupEnv from '../common/setup-env.mdx';
 
 import { PackageManagerTabs } from '@theme';
 
-# Android Getting Started
+# Android
 
-This guide walks you through everything required to automate an Android device with Midscene: connect a real phone over adb, configure model credentials, try the no-code Playground, and run your first JavaScript script.
+Midscene connects to Android devices through adb to automate apps and system interfaces.
 
-:::info Demo Projects
+This guide covers device connection, model configuration, Playground, and JavaScript SDK integration with `@midscene/android`.
 
-Control Android devices with JavaScript: [https://github.com/web-infra-dev/midscene-example/blob/main/android/javascript-sdk-demo](https://github.com/web-infra-dev/midscene-example/blob/main/android/javascript-sdk-demo)
+## See it in action
 
-Integrate Vitest for testing: [https://github.com/web-infra-dev/midscene-example/tree/main/android/vitest-demo](https://github.com/web-infra-dev/midscene-example/tree/main/android/vitest-demo)
+**Prompt:** Open the Booking app. Search for a hotel in Tokyo for four adults on Christmas, with a score of 8 or above.
 
-:::
+<video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/booking2.mp4" poster="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/booking.png" height="300" controls />
 
-<SetupEnv />
+View the [full report](https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/booking.html), or explore more [Midscene showcases](../showcases.mdx).
 
-## Prepare your Android device
+## Get started
+
+### Prepare your Android device
 
 Before scripting, confirm adb can talk to your device and the device trusts your machine.
 
-### Install adb and set `ANDROID_HOME`
+#### Install adb and set `ANDROID_HOME`
 
 - Install via [Android Studio](https://developer.android.com/studio) or the [command-line tools](https://developer.android.com/studio#command-line-tools-only)
 - Verify installation:
@@ -51,7 +52,7 @@ Any non-empty output means it is configured:
 /Users/your_username/Library/Android/sdk
 ```
 
-### Enable USB debugging and verify the device
+#### Enable USB debugging and verify the device
 
 In the system settings developer options, enable **USB debugging** (and **USB debugging (Security settings)** if present), then connect the device via USB.
 
@@ -72,11 +73,9 @@ List of devices attached
 s4ey59	device usb:34603008X product:cezanne model:M2006J device:cezan transport_id:3
 ```
 
-## Try Playground (no code)
+### Launch Playground
 
-Playground is the fastest way to validate the connection and observe AI-driven steps without writing code. It shares the same core as `@midscene/android`, so anything that works here will behave the same once scripted.
-
-<video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/booking2.mp4" controls/>
+Playground is the fastest way to validate the connection and try core capabilities such as `aiAct`, `aiQuery`, and `aiAssert` without writing code. It shares the same core as `@midscene/android`, so anything that works here will behave the same once scripted.
 
 1. Launch the Playground CLI:
 
@@ -84,23 +83,23 @@ Playground is the fastest way to validate the connection and observe AI-driven s
 npx --yes @midscene/android-playground
 ```
 
-2. Click the gear icon in the Playground window, then paste your API key configuration. Refer back to [Model configuration](./model-config) if you still need credentials.
+2. Click the gear icon in the Playground window, then paste your API key configuration. Refer back to [Model configuration](../model-config) if you still need credentials.
 
 ![](/android-set-env.png)
 
-## Start experiencing
-
-<StartExperience />
-
-## Integration with Midscene Agent
+## Use the JavaScript SDK
 
 Once Playground works, move to a repeatable script with the JavaScript SDK.
 
-### Step 1. Install dependencies
+### Configure the model
+
+<SetupEnv />
+
+### Install dependencies
 
 <PackageManagerTabs command="install @midscene/android dotenv --save-dev" />
 
-### Step 2. Write scripts
+### Write a script
 
 Save the following code as `./demo.ts`. It opens the browser on the device, searches eBay, and asserts the result list.
 
@@ -139,19 +138,19 @@ Promise.resolve(
 );
 ```
 
-### Step 3. Run
+### Run the script
 
 ```bash
 npx tsx demo.ts
 ```
 
-### Step 4: View the report
+### View the report
 
 Successful runs print `Midscene - report file updated: /path/to/report/some_id.html`. Open the generated HTML file in a browser to replay every interaction, query, and assertion.
 
 ## Advanced
 
-Use this section when you need to customize device behavior, wire Midscene into your framework, or troubleshoot adb issues. For detailed constructor parameters, jump to the [API reference(Android)](./android-api-reference).
+Use this section to customize device behavior, integrate Midscene into your framework, or troubleshoot adb issues. For detailed constructor parameters, see the [Android section of the API reference](../reference/#android).
 
 ### Extend Midscene on Android
 
@@ -187,12 +186,13 @@ const agent = new AndroidAgent(device, {
 await agent.aiAct('click the red button five times');
 ```
 
-See [Integrate with any interface](./integrate-with-any-interface#define-a-custom-action) for a deeper explanation of custom actions and action schemas.
+See [Integrate with any interface](../integrate-with-any-interface#define-a-custom-action) for a deeper explanation of custom actions and action schemas.
 
 ## More
 
-- For every Agent method, check the [API reference (Common)](./api#interaction-methods).
-- For the Android API reference, see [Android Agent API](./android-api-reference).
+- For every Agent method, check the [API reference (Common)](../reference/#interaction-methods).
+- For Android-specific APIs, see [API reference (Android)](../reference/#android).
+- Use [YAML automation scripts and command-line tools](../automate-with-scripts-in-yaml).
 - Demo projects
   - Android JavaScript SDK demo: [https://github.com/web-infra-dev/midscene-example/blob/main/android/javascript-sdk-demo](https://github.com/web-infra-dev/midscene-example/blob/main/android/javascript-sdk-demo)
   - Android + Vitest demo: [https://github.com/web-infra-dev/midscene-example/tree/main/android/vitest-demo](https://github.com/web-infra-dev/midscene-example/tree/main/android/vitest-demo)

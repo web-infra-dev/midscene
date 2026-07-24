@@ -129,7 +129,7 @@ const userList = await agent.aiQuery('string[], 用户列表');
 
 ### 即时操作方法
 
-Midscene 提供了一些即时操作方法，如 `aiTap` `aiInput` `aiScroll` `aiHover` 等，它们也常用于自动化代码中。你可以在 [API](./api.mdx) 页面查看。
+Midscene 提供了一些即时操作方法，如 `aiTap` `aiInput` `aiScroll` `aiHover` 等，它们也常用于自动化代码中。你可以在 [API](./reference/#common) 页面查看。
 
 
 ## 选用 `aiAct` 与结构化代码，哪个才是最优解？
@@ -149,6 +149,6 @@ Midscene 提供了一些即时操作方法，如 `aiTap` `aiInput` `aiScroll` `a
 使用你的 AI IDE 索引我们的文档即可：
 
 - https://midscenejs.com/use-javascript-to-optimize-ai-automation-code.md
-- https://midscenejs.com/api.md
+- https://midscenejs.com/zh/reference/#common
 
 关于如何将 Midscene 文档添加到 AI IDE，请参考 [这篇文章](./llm-txt.mdx#usage)。

@@ -119,6 +119,6 @@ and more`,
   multiModelStrategyLink: '/model-strategy#advanced-combining-multiple-models',
   platformWebLink: '/quick-experience.html',
   platformPCLink: '/quick-experience.html',
-  platformMobileLink: '/android-introduction.html',
+  platformMobileLink: '/platforms/android.html',
   platformAnyInterfaceLink: '/integrate-with-any-interface.html',
 } as const;

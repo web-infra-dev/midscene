@@ -55,13 +55,13 @@ Midscene is built for UI testing first, but the same vision-driven engine handle
 
 ## 💡 What you can automate
 
-Midscene works anywhere you can take a screenshot — web browsers, Android, iOS, HarmonyOS, desktop apps, and [any custom interface](https://midscenejs.com/integrate-with-any-interface) — all through one API. Write automation with the JavaScript SDK or in YAML, hand it to AI agents via [Skills](https://midscenejs.com/skills), and look up every method (`aiAct`, `aiQuery`, `aiAssert`, and more) in the [API reference](https://midscenejs.com/api).
+Midscene works anywhere you can take a screenshot — web browsers, Android, iOS, HarmonyOS, desktop apps, and [any custom interface](https://midscenejs.com/integrate-with-any-interface) — all through one API. Write automation with the JavaScript SDK or in YAML, hand it to AI agents via [Skills](https://midscenejs.com/skills), and look up every method (`aiAct`, `aiQuery`, `aiAssert`, and more) in the [API reference](https://midscenejs.com/reference/#common).
 
 ## 🚀 Get started
 
 - **Write your first script** in a few minutes — [Quick start](https://midscenejs.com/quick-start).
 - **No code?** Try Midscene on any web page with the [Chrome extension](https://midscenejs.com/quick-experience).
-- **Other platforms** — getting-started guides for [Android](https://midscenejs.com/android-getting-started), [iOS](https://midscenejs.com/ios-getting-started), [HarmonyOS](https://midscenejs.com/harmony-getting-started), and [desktop](https://midscenejs.com/computer-getting-started).
+- **Other platforms** — getting-started guides for [Android](https://midscenejs.com/platforms/android), [iOS](https://midscenejs.com/platforms/ios), [HarmonyOS](https://midscenejs.com/platforms/harmonyos), and [desktop](https://midscenejs.com/platforms/desktop).
 
 ## ✨ Driven by Multimodal Models
 
@@ -75,7 +75,7 @@ Read more about [Model Strategy](https://midscenejs.com/model-strategy).
 
 * Documentation: [https://midscenejs.com](https://midscenejs.com/)
 * Sample projects: [midscene-example](https://github.com/web-infra-dev/midscene-example)
-* API reference: [https://midscenejs.com/api](https://midscenejs.com/api)
+* API reference: [https://midscenejs.com/reference/#common](https://midscenejs.com/reference/#common)
 
 ## 🤝 Community
 
