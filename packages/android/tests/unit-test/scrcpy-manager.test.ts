@@ -106,6 +106,31 @@ describe('ScrcpyScreenshotManager', () => {
     });
   });
 
+  describe('getScreenshotJpeg', () => {
+    it('does not reuse a frame captured before the latest interaction', async () => {
+      const manager = new ScrcpyScreenshotManager({} as any);
+      const staleFrame = Buffer.from('stale');
+      (manager as any).spsHeader = Buffer.from('header');
+      (manager as any).lastRawKeyframe = staleFrame;
+      (manager as any).lastRawKeyframeAt = 100;
+
+      vi.spyOn(manager, 'ensureConnected').mockResolvedValue();
+      vi.spyOn(manager as any, 'resetIdleTimer').mockImplementation(() => {});
+      vi.spyOn(manager as any, 'waitForNextKeyframe').mockRejectedValueOnce(
+        new Error('no immediate frame'),
+      );
+      const decode = vi
+        .spyOn(manager as any, 'decodeH264ToJpeg')
+        .mockResolvedValue(Buffer.from('jpeg'));
+
+      await expect(manager.getScreenshotJpeg(101)).rejects.toThrow(
+        'did not produce a fresh frame',
+      );
+
+      expect(decode).not.toHaveBeenCalled();
+    });
+  });
+
   describe('isConnected', () => {
     it('should return false initially', () => {
       const manager = new ScrcpyScreenshotManager({} as any);

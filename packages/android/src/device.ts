@@ -1746,6 +1746,7 @@ ${Object.keys(size)
       point.x,
       point.y,
     );
+    this.getScrcpyAdapter().markInteraction();
     await adb.shell(
       `input${this.getDisplayArg()} swipe ${adjustedX} ${adjustedY} ${adjustedX} ${adjustedY} 150`,
     );
@@ -1761,6 +1762,7 @@ ${Object.keys(size)
     // Use input tap for double-click as it generates proper touch events
     // that Android can recognize as a double-click gesture
     const tapCommand = `input${this.getDisplayArg()} tap ${adjustedX} ${adjustedY}`;
+    this.getScrcpyAdapter().markInteraction();
     await adb.shell(tapCommand);
     // Short delay between taps for double-click recognition
     await sleep(50);
