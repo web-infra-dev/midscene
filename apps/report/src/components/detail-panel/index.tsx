@@ -234,6 +234,10 @@ const DetailPanel = ({
       highlightElements = [activeTask.output.element];
     }
 
+    if (Array.isArray(activeTask.output?.elements)) {
+      highlightElements = [...highlightElements, ...activeTask.output.elements];
+    }
+
     // Extract elements from param
     if (activeTask.param) {
       // For Planning tasks, extract from output.actions[0].param

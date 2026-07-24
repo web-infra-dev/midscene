@@ -80,6 +80,11 @@ export interface AIElementLocateResponse {
   errors?: string[];
 }
 
+export interface AIElementLocateAllResponse {
+  elements?: AIElementLocateResponse[];
+  errors?: string[];
+}
+
 export interface AIDataExtractionResponse<DataDemand> {
   data: DataDemand;
   errors?: string[];
@@ -250,6 +255,12 @@ export interface ServiceResultBase {
 }
 
 export type LocateResultWithDump = LocateResult & ServiceResultBase;
+
+export interface LocateAllResult {
+  elements: LocateResultElement[];
+}
+
+export type LocateAllResultWithDump = LocateAllResult & ServiceResultBase;
 
 export interface ServiceExtractResult<T> extends ServiceResultBase {
   data: T;
@@ -725,6 +736,10 @@ export interface ExecutionTaskPlanningLocateOutput {
   element: LocateResultElement | null;
 }
 
+export interface ExecutionTaskPlanningLocateAllOutput {
+  elements: LocateResultElement[];
+}
+
 export type ExecutionTaskPlanningDump = ServiceDump;
 
 export type ExecutionTaskPlanningLocateApply = ExecutionTaskApply<
@@ -736,6 +751,16 @@ export type ExecutionTaskPlanningLocateApply = ExecutionTaskApply<
 
 export type ExecutionTaskPlanningLocate =
   ExecutionTask<ExecutionTaskPlanningLocateApply>;
+
+export type ExecutionTaskPlanningLocateAllApply = ExecutionTaskApply<
+  'Planning',
+  ExecutionTaskPlanningLocateParam,
+  ExecutionTaskPlanningLocateAllOutput,
+  ExecutionTaskPlanningDump
+>;
+
+export type ExecutionTaskPlanningLocateAll =
+  ExecutionTask<ExecutionTaskPlanningLocateAllApply>;
 
 /*
 How a report file stores screenshots:

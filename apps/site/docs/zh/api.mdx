@@ -1025,6 +1025,51 @@ const locateInfo = await agent.aiLocate('页面顶部的登录按钮');
 console.log(locateInfo);
 ```
 
+### `agent.aiLocateAll()`
+
+通过自然语言描述，一次模型调用定位所有匹配的元素。
+
+- 类型
+
+```typescript
+function aiLocateAll(
+  locate: string | Object,
+  options?: Object,
+): Promise<
+  Array<{
+    rect: {
+      left: number;
+      top: number;
+      width: number;
+      height: number;
+    };
+    center: [number, number];
+    dpr?: number; // device pixel ratio
+  }>
+>;
+```
+
+- 参数：
+
+  - `locate: string | Object` - 所有目标元素共用的自然语言描述，或[使用图片作为提示词](#使用图片作为提示词)。
+  - `options?: Object` - 可选配置对象。支持 `uiContext` 和图片提示词相关配置。`xpath`、定位缓存、`deepLocate` 等单元素定位优化不会应用到 `aiLocateAll()`；传入这些选项会抛错。
+
+- 返回值：
+
+  - 返回所有可见且匹配描述的元素。
+  - 结果按从上到下、从左到右排序。
+  - 如果没有找到匹配元素，返回空数组。
+  - 与 `aiLocate()` 一样，当底层模型只支持按点定位时，`rect` 可能是近似框。如果只需要稳定点击位置，优先使用 `center`。
+
+- 示例：
+
+```typescript
+const buttons = await agent.aiLocateAll('所有加入购物车按钮');
+for (const button of buttons) {
+  console.log(button.center);
+}
+```
+
 ### `agent.aiWaitFor()`
 
 等待某个条件达成。考虑到 AI 服务的成本，检查间隔不会超过 `checkIntervalMs` 毫秒。

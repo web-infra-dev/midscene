@@ -8,6 +8,7 @@ vi.mock('@/ai-model/inspect', () => ({
   AIResponseParseError: class AIResponseParseError extends Error {},
   AiExtractElementInfo: vi.fn(),
   AiLocateElement: vi.fn(),
+  AiLocateAllElements: vi.fn(),
   AiLocateSection: vi.fn(),
   buildSearchAreaConfig: vi.fn(),
 }));

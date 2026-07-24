@@ -1,0 +1,115 @@
+import { getModelRuntime } from '@/ai-model/models';
+import { callAIWithObjectResponse } from '@/ai-model/service-caller/index';
+import { AiLocateAllElements } from '@/ai-model/workflows/inspect';
+import type { IModelConfig } from '@midscene/shared/env';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { createFakeContext } from '../utils';
+
+vi.mock('@/ai-model/service-caller/index', async () => {
+  const actual = await vi.importActual<
+    typeof import('@/ai-model/service-caller/index')
+  >('@/ai-model/service-caller/index');
+  return {
+    ...actual,
+    callAIWithObjectResponse: vi.fn(),
+  };
+});
+
+describe('AiLocateAllElements', () => {
+  const modelConfig: IModelConfig = {
+    modelFamily: 'qwen2.5-vl',
+    modelName: 'test-model',
+    modelDescription: 'test-model-desc',
+    intent: 'default',
+    slot: 'default',
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('parses, sorts, and deduplicates multiple locate results in one model call', async () => {
+    vi.mocked(callAIWithObjectResponse).mockResolvedValue({
+      content: {
+        elements: [
+          { bbox: [300, 100, 350, 130] },
+          { bbox: [100, 100, 120, 130] },
+          { bbox: [101, 101, 120, 130] },
+          { bbox: [10, 20, Number.NaN, 40] },
+        ],
+        errors: ['model warning'],
+      },
+      rawChoiceMessage: { role: 'assistant' },
+      usage: { total_tokens: 10 } as any,
+      reasoning_content: 'all locate reasoning',
+      contentString: '{}',
+    });
+
+    const result = await AiLocateAllElements({
+      context: createFakeContext(),
+      targetElementDescription: 'submit buttons',
+      modelRuntime: getModelRuntime(modelConfig),
+    });
+
+    expect(callAIWithObjectResponse).toHaveBeenCalledTimes(1);
+    expect(result.parseResult.elements.map((element) => element.rect)).toEqual([
+      { left: 100, top: 100, width: 21, height: 31 },
+      { left: 300, top: 100, width: 51, height: 31 },
+    ]);
+    expect(result.parseResult.errors).toEqual([
+      'model warning',
+      expect.stringMatching(/Failed to parse locate result #4/),
+    ]);
+    expect(result.rawChoiceMessage).toEqual({ role: 'assistant' });
+    expect(result.rawResponse).toBe('{}');
+    expect(result.usage).toEqual({ total_tokens: 10 });
+    expect(result.reasoning_content).toBe('all locate reasoning');
+  });
+
+  it('marks malformed top-level locate-all responses as fatal', async () => {
+    vi.mocked(callAIWithObjectResponse).mockResolvedValue({
+      content: {
+        bbox: [100, 100, 120, 120],
+      },
+      rawChoiceMessage: { role: 'assistant' },
+      contentString: '{}',
+    });
+
+    const result = await AiLocateAllElements({
+      context: createFakeContext(),
+      targetElementDescription: 'submit buttons',
+      modelRuntime: getModelRuntime(modelConfig),
+    });
+
+    expect(result.parseResult).toEqual({
+      elements: [],
+      errors: [
+        'AI response error: locate all response must contain an elements array',
+      ],
+      fatalError: true,
+    });
+  });
+
+  it('marks responses as fatal when every returned candidate fails to parse', async () => {
+    vi.mocked(callAIWithObjectResponse).mockResolvedValue({
+      content: {
+        elements: [{ bbox: [10, 20, Number.NaN, 40] }],
+      },
+      rawChoiceMessage: { role: 'assistant' },
+      contentString: '{}',
+    });
+
+    const result = await AiLocateAllElements({
+      context: createFakeContext(),
+      targetElementDescription: 'submit buttons',
+      modelRuntime: getModelRuntime(modelConfig),
+    });
+
+    expect(result.parseResult.elements).toEqual([]);
+    expect(result.parseResult.errors).toEqual([
+      expect.stringMatching(/Failed to parse locate result #1/),
+      'AI response error: failed to parse every locate all element',
+    ]);
+    expect(result.parseResult.fatalError).toBe(true);
+  });
+});

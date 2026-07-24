@@ -21,6 +21,7 @@ import {
   type ExecutionRecorderItem,
   type ExecutionTask,
   type ExecutionTaskLog,
+  type LocateAllOption,
   type LocateOption,
   type LocateResultElement,
   type OnTaskStartTip,
@@ -80,6 +81,7 @@ import {
   TaskExecutionError,
   TaskExecutor,
   locatePlanForLocate,
+  locatePlanForLocateAll,
   withFileChooser,
 } from './tasks';
 import { UIObserver, type UIObserverOption } from './ui-observer';
@@ -104,6 +106,10 @@ const warn = getDebug('agent', { console: true });
 const defaultServiceExtractOption: ServiceExtractOption = {
   domIncluded: false,
   screenshotIncluded: true,
+};
+
+type LocateAllResultItem = Pick<LocateResultElement, 'rect' | 'center'> & {
+  dpr?: number;
 };
 
 export type AiActOptions = {
@@ -131,6 +137,30 @@ type AgentInputOption = LocateOption & {
   keyboardTypeDelay?: number;
   mode?: 'replace' | 'clear' | 'typeOnly' | 'append';
 };
+
+const unsupportedLocateAllOptionKeys = [
+  'deepLocate',
+  'deepThink',
+  'xpath',
+  'cacheable',
+  'fileChooserAccept',
+] as const;
+
+function assertLocateAllOptionsSupported(opt?: LocateAllOption) {
+  if (!opt || typeof opt !== 'object') {
+    return;
+  }
+
+  const providedUnsupportedKeys = unsupportedLocateAllOptionKeys.filter((key) =>
+    Object.prototype.hasOwnProperty.call(opt, key),
+  );
+  assert(
+    providedUnsupportedKeys.length === 0,
+    `aiLocateAll does not support these single-element locate options: ${providedUnsupportedKeys.join(
+      ', ',
+    )}. Supported options are uiContext and image prompt options.`,
+  );
+}
 
 export class Agent<
   InterfaceType extends AbstractInterface = AbstractInterface,
@@ -1309,6 +1339,38 @@ export class Agent<
       center: element?.center,
       dpr: element?.dpr,
     } as Pick<LocateResultElement, 'rect' | 'center'>;
+  }
+
+  async aiLocateAll(
+    prompt: TUserPrompt,
+    opt?: LocateAllOption,
+  ): Promise<LocateAllResultItem[]> {
+    assertLocateAllOptionsSupported(opt);
+    const locateParam = buildDetailedLocateParam(prompt, opt);
+    assert(locateParam, 'cannot get locate param for aiLocateAll');
+    const locateAllParam = { prompt: locateParam.prompt };
+    const locatePlan = locatePlanForLocateAll(locateAllParam);
+    const plans = [locatePlan];
+    const defaultModel = this.resolveModelRuntime('default');
+    const planningModel = this.resolveModelRuntime('planning');
+
+    const { output } = await this.taskExecutor.runPlans(
+      taskTitleStr('LocateAll', locateParamStr(locateAllParam)),
+      plans,
+      planningModel,
+      defaultModel,
+      opt?.uiContext ? { uiContext: opt.uiContext } : undefined,
+    );
+
+    const { elements } = output;
+
+    return (elements || []).map(
+      (element: LocateResultElement & { dpr?: number }) => ({
+        rect: element.rect,
+        center: element.center,
+        dpr: element.dpr,
+      }),
+    );
   }
 
   async aiAssert(
