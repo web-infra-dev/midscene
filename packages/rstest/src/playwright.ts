@@ -57,8 +57,14 @@ export type AgentOptions = Omit<
   cache?: RstestCache;
 };
 
+// The Midscene half of the surface. Deliberately not a star re-export of
+// `@midscene/web/playwright`: most of what it exports (`PlaywrightAiFixture`,
+// `PlayWrightAiFixtureType`, `PlaywrightAiFixtureOptions`) is the Playwright
+// Test integration, which would be actively misleading here. What a user of
+// this package needs is the type of what the fixtures hand them, plus the
+// runtime model-config escape hatch.
 export { overrideAIConfig };
-export type { WebPageAgentOpt };
+export type { PlaywrightAgent, WebPageAgentOpt };
 
 // Re-export the whole upstream surface so users import everything (Playwright
 // flavored `expect`, hooks, assertion and fixture/option types) from this one
