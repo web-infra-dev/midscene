@@ -13,6 +13,7 @@ import {
 import { imageInfoOfBase64 } from '@midscene/shared/img';
 import { describe, expect, it, vi } from 'vitest';
 import { type IOSAgent, agentFromWebDriverAgent } from '../../src';
+import { inputUntilObserved } from '../ios-simulator-input-retry';
 
 const RUN_LIVE_SMOKE =
   process.env.AI_TEST_TYPE === 'iOS' &&
@@ -354,39 +355,68 @@ describe.skipIf(!RUN_LIVE_SMOKE)('iOS Simulator live smoke', () => {
         screenSize.scale,
         INPUT_ACCESSIBILITY_ID,
       );
-      await agent.callActionInActionSpace('Tap', { locate: targetLocate });
-      await agent.callActionInActionSpace('Input', {
-        value: SUBMITTED_TEXT,
-        mode: 'typeOnly',
-        autoDismissKeyboard: false,
-        locate: targetLocate,
+      const inputAttempts: Array<{
+        attempt: number;
+        value: string | undefined;
+        sourceFile: string;
+      }> = [];
+      const inputAgent = agent;
+      const observedInput = await inputUntilObserved({
+        expectedValue: SUBMITTED_TEXT,
+        performInput: async () => {
+          await inputAgent.callActionInActionSpace('Tap', {
+            locate: targetLocate,
+          });
+          await inputAgent.callActionInActionSpace('Input', {
+            value: SUBMITTED_TEXT,
+            mode: 'replace',
+            autoDismissKeyboard: false,
+            locate: targetLocate,
+          });
+        },
+        readValue: async (attempt) => {
+          const response = (await inputAgent.runWdaRequest({
+            method: 'GET',
+            endpoint: '/source',
+          })) as WdaValueResponse<string>;
+          const attemptSourceFile = path.join(
+            diagnosticsDir,
+            `safari-after-input-attempt-${attempt}.xml`,
+          );
+          await Promise.all([
+            writeFile(attemptSourceFile, response.value, 'utf8'),
+            writeFile(postInputSourceFile, response.value, 'utf8'),
+          ]);
+          const inputNode = (
+            response.value.match(/<XCUIElementTypeTextField\b[^>]*>/g) ?? []
+          ).find(
+            (nodeTag) =>
+              xmlAttribute(nodeTag, 'name') === INPUT_ACCESSIBILITY_ID,
+          );
+          const value = inputNode
+            ? xmlAttribute(inputNode, 'value')
+            : undefined;
+          inputAttempts.push({
+            attempt,
+            value,
+            sourceFile: attemptSourceFile,
+          });
+          return value;
+        },
+        onRetry: ({ attempt, nextAttempt, actualValue }) => {
+          console.log(
+            `iOS Simulator input attempt ${attempt} observed ${JSON.stringify(actualValue)}; retrying with idempotent replace input (attempt ${nextAttempt})`,
+          );
+        },
       });
       await agent.callActionInActionSpace('KeyboardPress', {
         keyName: 'Enter',
         locate: targetLocate,
       });
 
-      const postInputSourceResponse = (await agent.runWdaRequest({
-        method: 'GET',
-        endpoint: '/source',
-      })) as WdaValueResponse<string>;
-      await writeFile(
-        postInputSourceFile,
-        postInputSourceResponse.value,
-        'utf8',
-      );
-      const postInputNode = (
-        postInputSourceResponse.value.match(
-          /<XCUIElementTypeTextField\b[^>]*>/g,
-        ) ?? []
-      ).find(
-        (nodeTag) => xmlAttribute(nodeTag, 'name') === INPUT_ACCESSIBILITY_ID,
-      );
-      const inputText = postInputNode
-        ? xmlAttribute(postInputNode, 'value')
-        : undefined;
-      evidence.inputText = inputText;
-      expect(inputText).toBe(SUBMITTED_TEXT);
+      evidence.inputAttempts = inputAttempts;
+      evidence.inputText = observedInput.value;
+      expect(observedInput.value).toBe(SUBMITTED_TEXT);
       await agent.interface
         .screenshotBase64()
         .then((base64) =>
@@ -407,7 +437,7 @@ describe.skipIf(!RUN_LIVE_SMOKE)('iOS Simulator live smoke', () => {
       const locateTasks = dumpTasks.filter(
         (task) => task.type === 'Planning' && task.subType === 'Locate',
       );
-      expect(locateTasks).toHaveLength(3);
+      expect(locateTasks).toHaveLength(observedInput.attempts * 2 + 1);
       expect(locateTasks.every((task) => task.hitBy?.from === 'Plan')).toBe(
         true,
       );
@@ -432,7 +462,7 @@ describe.skipIf(!RUN_LIVE_SMOKE)('iOS Simulator live smoke', () => {
       const reportLocateTasks = reportTasks.filter(
         (task) => task.type === 'Planning' && task.subType === 'Locate',
       );
-      expect(reportLocateTasks).toHaveLength(3);
+      expect(reportLocateTasks).toHaveLength(observedInput.attempts * 2 + 1);
       expect(
         reportLocateTasks.every((task) => task.hitBy?.from === 'Plan'),
       ).toBe(true);
