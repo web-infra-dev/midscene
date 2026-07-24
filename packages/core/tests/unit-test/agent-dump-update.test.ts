@@ -255,7 +255,7 @@ describe('Agent dump update screenshot serialization', () => {
         screenshots: [{ base64: 'data:image/svg+xml;base64,custom' }],
       }),
     ).rejects.toThrow(
-      'recordToReport: screenshot #1 base64 must be a PNG/JPEG data URI or raw PNG base64 string',
+      'recordToReport: screenshot #1 base64 must be a PNG/JPEG/WebP data URI or raw PNG/WebP base64 string',
     );
 
     expect(screenshotBase64).not.toHaveBeenCalled();

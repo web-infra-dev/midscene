@@ -1230,7 +1230,7 @@ interface RecordToReportOptions {
   screenshotBase64?: string;
   screenshots?: {
     /**
-     * PNG/JPEG data URI，或裸 PNG base64 body。
+     * PNG/JPEG/WebP data URI，或裸 PNG/WebP base64 body。
      */
     base64: string;
     description?: string;
@@ -1248,7 +1248,7 @@ function recordToReport(
   - `title?: string` - 可选，截图的标题，如果未提供，则标题为 'untitled'。
   - `options?: RecordToReportOptions` - 可选，一个配置对象，包含：
     - `content?: string` - 截图的描述。
-    - `screenshots?: Array<{ base64: string; description?: string }>` - 在同一个报告条目下记录一张或多张传入的截图。设置该选项后，Midscene 不会再自动截图。`base64` 推荐使用 PNG/JPEG data URI，例如 `data:image/png;base64,...`；也可以传裸 base64 body，此时会按 PNG 处理。
+    - `screenshots?: Array<{ base64: string; description?: string }>` - 在同一个报告条目下记录一张或多张传入的截图。设置该选项后，Midscene 不会再自动截图。`base64` 推荐使用 PNG/JPEG/WebP data URI，例如 `data:image/webp;base64,...`；裸 WebP base64 会通过文件签名识别，其他裸 base64 body 保持现有的 PNG 默认行为。
 
 - 兼容性：
 

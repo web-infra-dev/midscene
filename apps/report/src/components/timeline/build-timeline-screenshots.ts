@@ -1,4 +1,8 @@
 import type { ExecutionTask } from '@midscene/core';
+import {
+  inferScreenshotImageFormatFromBase64,
+  screenshotImageMimeType,
+} from '@midscene/shared/img/image-format';
 
 export interface TimelineScreenshot {
   id: string;
@@ -30,11 +34,8 @@ const imageSrcFromString = (value: string): string => {
   }
 
   const body = trimmed.replace(/\s/g, '');
-  const mimeType = body.startsWith('/9j/')
-    ? 'image/jpeg'
-    : body.startsWith('UklGR')
-      ? 'image/webp'
-      : 'image/png';
+  const format = inferScreenshotImageFormatFromBase64(body) ?? 'png';
+  const mimeType = screenshotImageMimeType(format);
   return `data:${mimeType};base64,${body}`;
 };
 
