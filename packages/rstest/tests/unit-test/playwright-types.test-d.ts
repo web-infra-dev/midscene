@@ -4,9 +4,10 @@
  * the tests project verifies it — a no-longer-erroring `@ts-expect-error`
  * fails the typecheck.
  */
-import type { PlaywrightAgent } from '@midscene/web/playwright';
 import type { Page } from 'playwright';
-import type { AgentForPage } from '../../src/playwright';
+// Imported from our own entry on purpose: a user must be able to type a
+// custom fixture without reaching for `@midscene/web/playwright`.
+import type { AgentForPage, PlaywrightAgent } from '../../src/playwright';
 import { test } from '../../src/playwright';
 
 /** Stands in for the `agentForPage` fixture, to check its `opts` type. */

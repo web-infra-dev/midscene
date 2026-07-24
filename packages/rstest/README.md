@@ -13,13 +13,39 @@ owns as little as possible.
 
 | Path | Role |
 | --- | --- |
-| `src/playwright.ts` | The `./playwright` entry: fixtures (`agent`, `agentForPage`, `agentOptions`, private `__reportMeta`), `defaultPlaywrightOptions`, and the `MidsceneTest` type. Re-exports upstream's `expect` / hooks / option types so users have one import site. |
+| `src/playwright.ts` | The `./playwright` entry: fixtures (`agent`, `agentForPage`, `agentOptions`, private `__reportMeta`), `defaultPlaywrightOptions`, and the `MidsceneTest` type. Also the single import site — see "Nothing upstream gets hidden" below. |
 | `src/reporter.ts` | The `./reporter` entry: `MidsceneReporter`, which merges each test file's reports. |
 | `src/report-helper.ts` | Report metadata derivation (`buildReportMeta`) and the worker-side manifest append (`collectReport`). |
 | `src/utils.ts` | Manifest directory resolution and the per-file manifest key. |
 | `tests/unit-test/` | Vitest. Pure functions plus a `.test-d.ts` guarding the sealed-fixture types. |
 | `tests/smoke/` | Rstest + a real browser. Exercises fixture wiring; constructs an agent but makes no AI call. |
 | `demo/` | Runnable example project, also the target of `test:demo`. |
+
+## Nothing upstream gets hidden
+
+This package is `@midscene/web/playwright` + `@rstest/playwright` fused into
+one entry, so the standing rule is that a user must not lose access to either
+half by going through it. Concretely:
+
+- **Options are derived, never restated.** `AgentOptions` is
+  `WebPageAgentOpt` minus the same keys `PlaywrightAiFixtureOptions` omits, and
+  `RstestCache` is `CacheConfig` with `id` relaxed. New upstream options are
+  reachable without touching this package. Both have already regressed once by
+  being hand-written — `cacheDir` was silently unreachable — so keep them
+  derived.
+- **No upstream fixture is intercepted.** Only `agent`, `agentForPage`,
+  `agentOptions` and `__reportMeta` are ours. `playwright` gets a default value
+  and nothing else; `page` / `browser` / `context` / `request` / `serve` are
+  untouched, which is what keeps PWDEBUG pause-on-failure and trace capture
+  working.
+- **`export * from '@rstest/playwright'`**, so the Rstest half stays complete
+  as it grows. The local `test` shadows upstream's, which is the intent.
+- **The Midscene half is re-exported by hand, on purpose.** A star re-export
+  would drag in `PlaywrightAiFixture` and friends — the Playwright Test
+  integration, wrong runner, actively misleading here. Export what the fixtures
+  hand back (`PlaywrightAgent`) plus the config escape hatch
+  (`overrideAIConfig`); add to it when a new symbol becomes necessary to type
+  what users touch.
 
 ## Constraints that shape the design
 
