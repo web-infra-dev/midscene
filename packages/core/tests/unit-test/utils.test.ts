@@ -1,5 +1,6 @@
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import * as fs from 'node:fs';
+import { locateParamStr } from '@/agent/ui-utils';
 import { dumpActionParam, findAllMidsceneLocatorField } from '@/common';
 import { getMidsceneLocationSchema } from '@/index';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
@@ -267,6 +268,19 @@ describe('utils', () => {
 });
 
 describe('buildDetailedLocateParam', () => {
+  it('adds per-call context to the locate prompt', () => {
+    const result = buildDetailedLocateParam('Click the checkout button', {
+      context: 'The current user is a wholesale customer.',
+    });
+
+    expect(result?.prompt).toBe(
+      '<CONTEXT>\nThe current user is a wholesale customer.\n</CONTEXT>\n\n<LOCATE_TARGET>\nClick the checkout button\n</LOCATE_TARGET>',
+    );
+    expect(result?.promptDisplay).toBe('Click the checkout button');
+    expect(result?.context).toBe('The current user is a wholesale customer.');
+    expect(locateParamStr(result)).toBe('Click the checkout button');
+  });
+
   it('merges multimodal locate options into the prompt object', () => {
     const result = buildDetailedLocateParam('Click the icon', {
       images: [
@@ -298,6 +312,20 @@ describe('buildDetailedLocateParam', () => {
 });
 
 describe('buildDetailedLocateParamAndRestParams', () => {
+  it('consumes context without leaking it into action params', () => {
+    const result = buildDetailedLocateParamAndRestParams(
+      'Click the checkout button',
+      {
+        context: 'The current user is a wholesale customer.',
+      },
+    );
+
+    expect(result.locateParam?.prompt).toContain(
+      'The current user is a wholesale customer.',
+    );
+    expect(result.restParams).not.toHaveProperty('context');
+  });
+
   it('does not leak multimodal locate options into rest params', () => {
     const uiContext = {
       screenshot: {

@@ -8,6 +8,7 @@ import type {
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import yaml from 'js-yaml';
+import { buildLocatePromptWithContext } from '../agent/prompt-context';
 
 const debugUtils = getDebug('yaml:utils');
 
@@ -315,6 +316,10 @@ export function buildDetailedLocateParam(
     return undefined;
   }
 
+  const promptDisplay = typeof prompt === 'string' ? prompt : prompt.prompt;
+  const context = opt?.context?.trim() || undefined;
+  prompt = buildLocatePromptWithContext(prompt, opt?.context);
+
   const multimodalPrompt = extractMultimodalPrompt(opt);
   if (multimodalPrompt) {
     prompt =
@@ -331,6 +336,7 @@ export function buildDetailedLocateParam(
 
   return {
     prompt,
+    ...(context ? { promptDisplay, context } : {}),
     deepLocate,
     cacheable,
     xpath,
@@ -355,7 +361,7 @@ export function buildDetailedLocateParamAndRestParams(
     // Get all keys from opt
     const allKeys = Object.keys(opt);
 
-    // Keys already included in locateParam: prompt, deepLocate, cacheable, xpath
+    // `context` has already been merged into the locate prompt.
     const locateParamKeys = Object.keys(locateParam || {});
     const multimodalPromptKeys =
       typeof locateParam?.prompt === 'object' && locateParam?.prompt !== null
@@ -366,6 +372,8 @@ export function buildDetailedLocateParamAndRestParams(
     for (const key of allKeys) {
       if (
         !locateParamKeys.includes(key) &&
+        key !== 'context' &&
+        key !== 'deepThink' &&
         !multimodalPromptKeys.includes(key) &&
         !excludeKeys.includes(key) &&
         key !== 'locate'

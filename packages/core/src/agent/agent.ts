@@ -47,6 +47,7 @@ import { getVersion, processCacheConfig, reportHTMLContent } from '@/utils';
 import {
   ScriptPlayer,
   buildDetailedLocateParam,
+  buildDetailedLocateParamAndRestParams,
   parseYamlScript,
 } from '../yaml/index';
 
@@ -489,7 +490,7 @@ export class Agent<
         screenshot: () => this.interface.screenshotBase64(),
         captureRepresentative: () => this.getUIContext('assert'),
         runAssert: (assertion, uiContext, msg, assertOpt) =>
-          this.aiAssertWithContext(assertion, uiContext, msg, assertOpt),
+          this.aiAssertWithUIContext(assertion, uiContext, msg, assertOpt),
         runBoolean: (prompt, uiContext, boolOpt) =>
           this.aiBooleanWithContext(prompt, uiContext, boolOpt),
         onStopped: () => {
@@ -816,7 +817,10 @@ export class Agent<
     );
     assert(locatePrompt, 'missing locate prompt for input');
 
-    const detailedLocateParam = buildDetailedLocateParam(locatePrompt, opt);
+    const { locateParam, restParams } = buildDetailedLocateParamAndRestParams(
+      locatePrompt,
+      opt,
+    );
 
     // Convert value to string to ensure consistency
     const stringValue = typeof value === 'number' ? String(value) : value;
@@ -825,9 +829,9 @@ export class Agent<
     const mode = opt?.mode === 'append' ? 'typeOnly' : opt?.mode;
 
     await this.callActionInActionSpace('Input', {
-      ...(opt || {}),
+      ...restParams,
       value: stringValue,
-      locate: detailedLocateParam,
+      locate: locateParam,
       mode,
     });
   }
@@ -884,13 +888,14 @@ export class Agent<
 
     assert(opt?.keyName, 'missing keyName for keyboard press');
 
-    const detailedLocateParam = locatePrompt
-      ? buildDetailedLocateParam(locatePrompt, opt)
-      : undefined;
+    const { locateParam, restParams } = buildDetailedLocateParamAndRestParams(
+      locatePrompt || '',
+      opt,
+    );
 
     await this.callActionInActionSpace('KeyboardPress', {
-      ...(opt || {}),
-      locate: detailedLocateParam,
+      ...restParams,
+      locate: locateParam,
     });
   }
 
@@ -964,14 +969,14 @@ export class Agent<
       }
     }
 
-    const detailedLocateParam = buildDetailedLocateParam(
+    const { locateParam, restParams } = buildDetailedLocateParamAndRestParams(
       locatePrompt || '',
       opt,
     );
 
     await this.callActionInActionSpace('Scroll', {
-      ...(opt || {}),
-      locate: detailedLocateParam,
+      ...restParams,
+      locate: locateParam,
     });
   }
 
@@ -983,14 +988,14 @@ export class Agent<
       duration?: number;
     },
   ): Promise<void> {
-    const detailedLocateParam = buildDetailedLocateParam(
+    const { locateParam, restParams } = buildDetailedLocateParamAndRestParams(
       locatePrompt || '',
       opt,
     );
 
     await this.callActionInActionSpace('Pinch', {
-      ...opt,
-      locate: detailedLocateParam,
+      ...restParams,
+      locate: locateParam,
     });
   }
 
@@ -1000,11 +1005,14 @@ export class Agent<
   ): Promise<void> {
     assert(locatePrompt, 'missing locate prompt for long press');
 
-    const detailedLocateParam = buildDetailedLocateParam(locatePrompt, opt);
+    const { locateParam, restParams } = buildDetailedLocateParamAndRestParams(
+      locatePrompt,
+      opt,
+    );
 
     await this.callActionInActionSpace('LongPress', {
-      ...(opt || {}),
-      locate: detailedLocateParam,
+      ...restParams,
+      locate: locateParam,
     });
   }
 
@@ -1316,10 +1324,10 @@ export class Agent<
     msg?: string,
     opt?: AgentAssertOpt & ServiceExtractOption,
   ) {
-    return this.aiAssertWithContext(assertion, undefined, msg, opt);
+    return this.aiAssertWithUIContext(assertion, undefined, msg, opt);
   }
 
-  private async aiAssertWithContext(
+  private async aiAssertWithUIContext(
     assertion: TUserPrompt,
     uiContext?: UIContext,
     msg?: string,
@@ -1332,13 +1340,10 @@ export class Agent<
       screenshotIncluded:
         opt?.screenshotIncluded ??
         defaultServiceExtractOption.screenshotIncluded,
+      ...(opt?.context !== undefined ? { context: opt.context } : {}),
     };
 
-    const assertionWithContext = buildPromptWithContext(
-      assertion,
-      opt?.context,
-    );
-    const { textPrompt, multimodalPrompt } = parsePrompt(assertionWithContext);
+    const { textPrompt, multimodalPrompt } = parsePrompt(assertion);
     const assertionText =
       typeof assertion === 'string' ? assertion : assertion.prompt;
 

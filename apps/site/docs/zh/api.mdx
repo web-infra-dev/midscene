@@ -172,9 +172,10 @@ function aiAct(
     deepLocate?: boolean;
     fileChooserAccept?: string | string[];
     abortSignal?: AbortSignal;
+    context?: string;
   },
 ): Promise<string | undefined>;
-function ai(prompt: string): Promise<string | undefined>; // 简写形式
+function ai(prompt: string, options?: Object): Promise<string | undefined>; // 简写形式
 ```
 
 - 参数：
@@ -189,6 +190,7 @@ function ai(prompt: string): Promise<string | undefined>; // 简写形式
       - **注意**：如果点击触发了文件选择器但没有传入 `fileChooserAccept` 参数，文件选择器会被忽略，页面可以继续正常操作。
       - **注意**：Chrome extension Bridge mode 不支持目录上传输入框（`webkitdirectory` / `directory`）。如需上传目录，请使用 Playwright。
     - `abortSignal?: AbortSignal` - 可选的 [AbortSignal](https://developer.mozilla.org/zh-CN/docs/Web/API/AbortSignal)，用于中止 `aiAct` 的执行。当信号被触发时，Midscene 会停止当前的规划循环并抛出错误。适用于实现超时控制或用户主动取消操作的场景。
+    - `context?: string` - 本次调用的额外上下文。详见[单次调用上下文](#单次调用上下文)。
 
 - 返回值：
 
@@ -242,6 +244,7 @@ function aiTap(locate: string | Object, options?: Object): Promise<void>;
   - `locate: string | Object` - 用自然语言描述的元素定位，或[使用图片作为提示词](#使用图片作为提示词)。
   - `options?: Object` - 可选，一个配置对象，包含：
     - `deepLocate?: boolean` - 是否开启[深度定位](#深度定位deeplocate)。该参数原来叫 `deepThink`，现已更名为 `deepLocate`。默认值为 false。
+    - `context?: string` - 本次调用的额外上下文。详见[单次调用上下文](#单次调用上下文)。
     - `xpath?: string` - 目标元素的 xpath 路径，用于执行当前操作。如果提供了这个 xpath，Midscene 会优先使用该 xpath 来找到元素，然后依次使用缓存和 AI 模型。默认值为空
     - `cacheable?: boolean` - 当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 true
     - `fileChooserAccept?: string | string[]` - 当文件选择器弹出时，指定对应的文件路径。可以是单个文件路径或路径数组。仅在 web 页面（Playwright、Puppeteer 或 Chrome extension Bridge mode）中可用。
@@ -281,6 +284,7 @@ function aiHover(locate: string | Object, options?: Object): Promise<void>;
   - `locate: string | Object` - 用自然语言描述的元素定位，或[使用图片作为提示词](#使用图片作为提示词)。
   - `options?: Object` - 可选，一个配置对象，包含：
     - `deepLocate?: boolean` - 是否开启[深度定位](#深度定位deeplocate)。该参数原来叫 `deepThink`，现已更名为 `deepLocate`。默认值为 false。
+    - `context?: string` - 本次调用的额外上下文。详见[单次调用上下文](#单次调用上下文)。
     - `xpath?: string` - 目标元素的 xpath 路径，用于执行当前操作。如果提供了这个 xpath，Midscene 会优先使用该 xpath 来找到元素，然后依次使用缓存和 AI 模型。默认值为空
     - `cacheable?: boolean` - 当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 true
 - 返回值：
@@ -306,6 +310,7 @@ function aiInput(
   opt: {
     value: string | number;
     deepLocate?: boolean;
+    context?: string;
     xpath?: string;
     cacheable?: boolean;
     autoDismissKeyboard?: boolean;
@@ -332,6 +337,7 @@ function aiInput(
       - 当 `mode` 为 `'typeOnly'` 时：直接输入文本，不会先清空输入框。
       - 当 `mode` 为 `'clear'` 时：会忽略文本内容，仅清空输入框。
     - `deepLocate?: boolean` - 是否开启[深度定位](#深度定位deeplocate)。该参数原来叫 `deepThink`，现已更名为 `deepLocate`。默认值为 false。
+    - `context?: string` - 本次调用的额外上下文。详见[单次调用上下文](#单次调用上下文)。
     - `xpath?: string` - 目标元素的 xpath 路径，用于执行当前操作。如果提供了这个 xpath，Midscene 会优先使用该 xpath 来找到元素，然后依次使用缓存和 AI 模型。默认值为空
     - `cacheable?: boolean` - 当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 true
     - `autoDismissKeyboard?: boolean` - 如果为 true，则键盘会在输入文本后自动关闭，仅在 Android/iOS/HarmonyOS 中有效。默认值为 true。
@@ -377,6 +383,7 @@ function aiClearInput(
   locate: string | Object,
   opt?: {
     deepLocate?: boolean;
+    context?: string;
     xpath?: string;
     cacheable?: boolean;
   },
@@ -388,6 +395,7 @@ function aiClearInput(
   - `locate: string | Object` - 要清空的输入框的自然语言描述，或[通过图像提示](#通过图像提示)。
   - `opt?: Object` - 可选配置对象：
     - `deepLocate?: boolean` - 是否开启[深度定位](#深度定位deeplocate)。默认 `false`。
+    - `context?: string` - 本次调用的额外上下文。详见[单次调用上下文](#单次调用上下文)。
     - `xpath?: string` - 要操作元素的 xpath，默认空。
     - `cacheable?: boolean` - 启用[缓存功能](./caching.mdx)时是否缓存，默认 `true`。
 
@@ -425,6 +433,7 @@ function aiKeyboardPress(
   opt: {
     keyName: string;
     deepLocate?: boolean;
+    context?: string;
     xpath?: string;
     cacheable?: boolean;
   },
@@ -445,6 +454,7 @@ function aiKeyboardPress(
   - `opt: Object` - 配置对象，包含：
     - `keyName: string` - **必填**，要按下的键，如 `Enter`、`Tab`、`Escape` 等。不支持组合键。可在[我们的源码中查看完整的按键名称列表](https://github.com/web-infra-dev/midscene/blob/main/packages/shared/src/us-keyboard-layout.ts)。
     - `deepLocate?: boolean` - 是否开启[深度定位](#深度定位deeplocate)。该参数原来叫 `deepThink`，现已更名为 `deepLocate`。默认值为 false。
+    - `context?: string` - 本次调用的额外上下文。详见[单次调用上下文](#单次调用上下文)。
     - `xpath?: string` - 目标元素的 xpath 路径，用于执行当前操作。如果提供了这个 xpath，Midscene 会优先使用该 xpath 来找到元素，然后依次使用缓存和 AI 模型。默认值为空
     - `cacheable?: boolean` - 当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 true
 
@@ -488,6 +498,7 @@ function aiScroll(
     direction?: 'down' | 'up' | 'left' | 'right';
     distance?: number | null;
     deepLocate?: boolean;
+    context?: string;
     xpath?: string;
     cacheable?: boolean;
   },
@@ -510,6 +521,7 @@ function aiScroll(
     - `direction?: 'down' | 'up' | 'left' | 'right'` - 滚动方向，默认值为 `down`。仅在 `scrollType` 为 `singleAction` 时生效。不论是 Android 还是 Web，这里的滚动方向都是指页面哪个方向的内容会进入屏幕。比如当滚动方向是 `down` 时，页面下方被隐藏的内容会从屏幕底部开始逐渐向上露出。
     - `distance?: number | null` - 滚动距离，单位为像素。设置为 `null` 表示由 Midscene 自动决定。
     - `deepLocate?: boolean` - 是否开启[深度定位](#深度定位deeplocate)。该参数原来叫 `deepThink`，现已更名为 `deepLocate`。默认值为 false。
+    - `context?: string` - 本次调用的额外上下文。详见[单次调用上下文](#单次调用上下文)。
     - `xpath?: string` - 目标元素的 xpath 路径，用于执行当前操作。如果提供了这个 xpath，Midscene 会优先使用该 xpath 来找到元素，然后依次使用缓存和 AI 模型。默认值为空
     - `cacheable?: boolean` - 当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 true
 
@@ -559,6 +571,7 @@ function aiPinch(
     distance?: number;
     duration?: number;
     deepLocate?: boolean;
+    context?: string;
     xpath?: string;
     cacheable?: boolean;
   },
@@ -573,6 +586,7 @@ function aiPinch(
     - `distance?: number` - 每根手指移动的距离（像素）。默认值为屏幕较短边的四分之一。
     - `duration?: number` - 缩放手势持续时间（毫秒），默认值为 `500`。
     - `deepLocate?: boolean` - 是否开启[深度定位](#深度定位deeplocate)。默认值为 false。
+    - `context?: string` - 本次调用的额外上下文。详见[单次调用上下文](#单次调用上下文)。
     - `xpath?: string` - 目标元素的 xpath 路径。默认值为空。
     - `cacheable?: boolean` - 当启用[缓存功能](./caching.mdx)时，是否允许缓存。默认值为 true。
 
@@ -614,6 +628,7 @@ function aiLongPress(
   opt?: {
     duration?: number;
     deepLocate?: boolean;
+    context?: string;
     xpath?: string;
     cacheable?: boolean;
   },
@@ -626,6 +641,7 @@ function aiLongPress(
   - `opt?: Object` - 可选配置对象：
     - `duration?: number` - 按住时长（毫秒）。未传时各平台使用各自默认值：Android `2000`，iOS `1000`，Web `500`。
     - `deepLocate?: boolean` - 是否启用[深度定位](#深度定位deeplocate)，默认 `false`。
+    - `context?: string` - 本次调用的额外上下文。详见[单次调用上下文](#单次调用上下文)。
     - `xpath?: string` - 要操作元素的 xpath，默认空。
     - `cacheable?: boolean` - 启用[缓存功能](./caching.mdx)时是否缓存，默认 `true`。
 
@@ -664,6 +680,7 @@ function aiDoubleClick(locate: string | Object, options?: Object): Promise<void>
   - `locate: string | Object` - 用自然语言描述的元素定位，或[使用图片作为提示词](#使用图片作为提示词)。
   - `options?: Object` - 可选，一个配置对象，包含：
     - `deepLocate?: boolean` - 是否开启[深度定位](#深度定位deeplocate)。该参数原来叫 `deepThink`，现已更名为 `deepLocate`。默认值为 false。
+    - `context?: string` - 本次调用的额外上下文。详见[单次调用上下文](#单次调用上下文)。
     - `xpath?: string` - 目标元素的 xpath 路径，用于执行当前操作。如果提供了这个 xpath，Midscene 会优先使用该 xpath 来找到元素，然后依次使用缓存和 AI 模型。默认值为空
     - `cacheable?: boolean` - 当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 true
 
@@ -697,6 +714,7 @@ function aiRightClick(locate: string | Object, options?: Object): Promise<void>;
   - `locate: string | Object` - 用自然语言描述的元素定位，或[使用图片作为提示词](#使用图片作为提示词)。
   - `options?: Object` - 可选，一个配置对象，包含：
     - `deepLocate?: boolean` - 是否开启[深度定位](#深度定位deeplocate)。该参数原来叫 `deepThink`，现已更名为 `deepLocate`。默认值为 false。
+    - `context?: string` - 本次调用的额外上下文。详见[单次调用上下文](#单次调用上下文)。
     - `xpath?: string` - 目标元素的 xpath 路径，用于执行当前操作。如果提供了这个 xpath，Midscene 会优先使用该 xpath 来找到元素，然后依次使用缓存和 AI 模型。默认值为空
     - `cacheable?: boolean` - 当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 true
 
@@ -733,6 +751,7 @@ function aiAsk(prompt: string | Object, options?: Object): Promise<string>;
   - `options?: Object` - 可选，一个配置对象，包含：
     - `domIncluded?: boolean | 'visible-only'` - 是否向模型发送精简后的 DOM 信息，一般用于提取 UI 中不可见的属性，比如图片的链接。如果设置为 `'visible-only'`，则只发送可见的元素。默认值为 false。
     - `screenshotIncluded?: boolean` - 是否向模型发送截图。默认值为 true。
+    - `context?: string` - 本次调用的额外上下文。详见[单次调用上下文](#单次调用上下文)。
 
 - 返回值：
 
@@ -763,6 +782,7 @@ function aiQuery<T>(dataDemand: string | Object, options?: Object): Promise<T>;
   - `options?: Object` - 可选，一个配置对象，包含：
     - `domIncluded?: boolean | 'visible-only'` - 是否向模型发送精简后的 DOM 信息，一般用于提取 UI 中不可见的属性，比如图片的链接。如果设置为 `'visible-only'`，则只发送可见的元素。默认值为 false。
     - `screenshotIncluded?: boolean` - 是否向模型发送截图。默认值为 true。
+    - `context?: string` - 本次调用的额外上下文。详见[单次调用上下文](#单次调用上下文)。
 
 - 返回值：
 
@@ -814,6 +834,7 @@ function aiBoolean(prompt: string | Object, options?: Object): Promise<boolean>;
   - `options?: Object` - 可选，一个配置对象，包含：
     - `domIncluded?: boolean | 'visible-only'` - 是否向模型发送精简后的 DOM 信息，一般用于提取 UI 中不可见的属性，比如图片的链接。如果设置为 `'visible-only'`，则只发送可见的元素。默认值为 false。
     - `screenshotIncluded?: boolean` - 是否向模型发送截图。默认值为 true。
+    - `context?: string` - 本次调用的额外上下文。详见[单次调用上下文](#单次调用上下文)。
 
 - 返回值：
 
@@ -846,6 +867,7 @@ function aiNumber(prompt: string | Object, options?: Object): Promise<number>;
   - `options?: Object` - 可选，一个配置对象，包含：
     - `domIncluded?: boolean | 'visible-only'` - 是否向模型发送精简后的 DOM 信息，一般用于提取 UI 中不可见的属性，比如图片的链接。如果设置为 `'visible-only'`，则只发送可见的元素。默认值为 false。
     - `screenshotIncluded?: boolean` - 是否向模型发送截图。默认值为 true。
+    - `context?: string` - 本次调用的额外上下文。详见[单次调用上下文](#单次调用上下文)。
 
 - 返回值：
 
@@ -880,6 +902,7 @@ function aiString(prompt: string | Object, options?: Object): Promise<string>;
   - `options?: Object` - 可选，一个配置对象，包含：
     - `domIncluded?: boolean | 'visible-only'` - 是否向模型发送精简后的 DOM 信息，一般用于提取 UI 中不可见的属性，比如图片的链接。如果设置为 `'visible-only'`，则只发送可见的元素。默认值为 false。
     - `screenshotIncluded?: boolean` - 是否向模型发送截图。默认值为 true。
+    - `context?: string` - 本次调用的额外上下文。详见[单次调用上下文](#单次调用上下文)。
 
 - 返回值：
 
@@ -919,6 +942,7 @@ function aiAssert(
   - options?: Object - 可选，一个配置对象，包含：
     - `domIncluded?: boolean | 'visible-only'` - 是否向模型发送精简后的 DOM 信息，一般用于提取 UI 中不可见的属性，比如图片的链接。如果设置为 `'visible-only'`，则只发送可见的元素。默认值为 false。
     - `screenshotIncluded?: boolean` - 是否向模型发送截图。默认值为 true。
+    - `context?: string` - 本次调用的额外上下文。详见[单次调用上下文](#单次调用上下文)。
 
 - 返回值：
 
@@ -1007,6 +1031,7 @@ function aiLocate(
   - `locate: string | Object` - 用自然语言描述的元素定位，或[使用图片作为提示词](#使用图片作为提示词)。
   - `options?: Object` - 可选，一个配置对象，包含：
     - `deepLocate?: boolean` - 是否开启[深度定位](#深度定位deeplocate)。该参数原来叫 `deepThink`，现已更名为 `deepLocate`。默认值为 false。
+    - `context?: string` - 本次调用的额外上下文。详见[单次调用上下文](#单次调用上下文)。
     - `xpath?: string` - 目标元素的 xpath 路径，用于执行当前操作。如果提供了这个 xpath，Midscene 会优先使用该 xpath 来找到元素，然后依次使用缓存和 AI 模型。默认值为空
     - `cacheable?: boolean` - 当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 true
 
@@ -1037,6 +1062,7 @@ function aiWaitFor(
   options?: {
     timeoutMs?: number;
     checkIntervalMs?: number;
+    context?: string;
   },
 ): Promise<void>;
 ```
@@ -1047,6 +1073,7 @@ function aiWaitFor(
   - `options?: object` - 可选的配置对象
     - `timeoutMs?: number` - 超时时间（毫秒，默认为 15000）。每轮检查开始时都会记录时间，只要该时间点仍在超时窗口内，就会进入下一轮检查；否则视为超时
     - `checkIntervalMs?: number` - 检查间隔（毫秒），默认为 3000
+    - `context?: string` - 本次调用的额外上下文。详见[单次调用上下文](#单次调用上下文)。
 
 - 返回值：
 
@@ -1438,6 +1465,39 @@ overrideAIConfig({
   // OPENAI_API_KEY: '...',
 });
 ```
+
+## 单次调用上下文
+
+每个 `agent.ai*` 方法的 options 都支持可选的 `context` 字符串。它可以为单次请求补充业务知识、用户状态、术语或其他背景，而不必把这些信息写入主 prompt。
+
+```typescript
+await agent.aiAssert('当前登录用户是 VIP 会员', undefined, {
+  context: 'VIP 会员的标准是页面右上角的用户头像会展示一个 VIP 的徽章。',
+});
+
+await agent.aiTap('收藏按钮', {
+  context: '收藏按钮是页面右下角的五角星 icon。',
+});
+```
+
+你也可以把大量业务自定义规则集中写入 `context`，再基于它封装通用的业务断言方法或点击方法。不同调用只需传入本次任务的简短 prompt，无需每次重复编写完整的业务规则。
+
+```typescript
+const myAssert = (prompt: string, errMsg?: string) =>
+  agent.aiAssert(prompt, errMsg, {
+    context: `业务自定义的大量断言规则，例如：
+- VIP 会员的头像会展示 VIP 徽章
+- 商品显示“暂时缺货”时，不应存在可点击的购买按钮
+- 订单状态为“已完成”时，实付金额必须可见`,
+  });
+
+await myAssert('当前登录用户是 VIP 会员');
+await myAssert('缺货商品不能购买');
+```
+
+context 仅对本次方法调用生效。对于 `aiAct`，单次调用的 `context` 优先于 Agent 级别的 `aiActContext`（显式传入空字符串也会覆盖）。其他 AI 方法不会自动继承 `aiActContext`。
+
+`context` 只补充请求信息，不会替代方法的主 prompt，也不会改变对象形式 `aiQuery` 的返回 schema。
 
 ## 深度定位（deepLocate）
 
