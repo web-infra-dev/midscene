@@ -71,6 +71,8 @@ export function resolveChatCompletion(
     resolveExtractContentAndReasoning(chatCompletion);
   const useReasoningAsContentFallback =
     chatCompletion?.useReasoningAsContentFallback ?? false;
+  const replayRawAssistantMessage =
+    chatCompletion?.replayRawAssistantMessage ?? false;
 
   return {
     unsupportedUserConfig,
@@ -90,5 +92,6 @@ export function resolveChatCompletion(
       }),
     extractContentAndReasoning,
     useReasoningAsContentFallback,
+    replayRawAssistantMessage,
   };
 }
