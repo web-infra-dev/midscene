@@ -13,6 +13,21 @@ export type WebCdpAgentInitArgs = WebAgentInitArgs & {
   extraHTTPHeaders?: Record<string, string>;
 };
 
+const httpHeaderEntrySchema = z.string().refine(
+  (entry) => {
+    const separatorIndex = entry.indexOf(':');
+    return (
+      separatorIndex > 0 &&
+      /^[!#$%&'*+.^_`|~0-9A-Za-z-]+$/.test(
+        entry.slice(0, separatorIndex).trim(),
+      )
+    );
+  },
+  {
+    message: 'Expected an HTTP header in "Name:Value" format.',
+  },
+);
+
 export const webAgentInitArgShape = {
   url: z
     .string()
@@ -24,11 +39,11 @@ export const webAgentInitArgShape = {
 
 export const webCdpAgentInitArgShape = {
   ...webAgentInitArgShape,
-  extraHTTPHeaders: z
-    .record(z.string())
+  extraHttpHeader: z
+    .union([httpHeaderEntrySchema, z.array(httpHeaderEntrySchema).min(1)])
     .optional()
     .describe(
-      'Extra HTTP headers sent with page requests in CDP mode. Pass a JSON object with string values.',
+      'Extra HTTP header sent with page requests in CDP mode, in "Name:Value" format. Repeat --extra-http-header to send multiple headers.',
     ),
 };
 
@@ -55,9 +70,22 @@ export function adaptWebCdpAgentInitArgs(
   }
 
   const baseArgs = adaptWebAgentInitArgs(extracted);
-  const extraHTTPHeaders = webCdpAgentInitArgShape.extraHTTPHeaders.parse(
-    extracted.extraHTTPHeaders,
+  const extraHttpHeader = webCdpAgentInitArgShape.extraHttpHeader.parse(
+    extracted.extraHttpHeader,
   );
+  const headerEntries =
+    typeof extraHttpHeader === 'string' ? [extraHttpHeader] : extraHttpHeader;
+  const extraHTTPHeaders = headerEntries
+    ? Object.fromEntries(
+        headerEntries.map((entry) => {
+          const separatorIndex = entry.indexOf(':');
+          return [
+            entry.slice(0, separatorIndex).trim(),
+            entry.slice(separatorIndex + 1).trim(),
+          ];
+        }),
+      )
+    : undefined;
   const initArgs: WebCdpAgentInitArgs = {
     ...(baseArgs ?? {}),
     ...(extraHTTPHeaders !== undefined ? { extraHTTPHeaders } : {}),

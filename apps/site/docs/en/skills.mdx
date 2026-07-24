@@ -16,19 +16,19 @@ Skills work by running CLI commands directly in the terminal. The AI agent acts 
 
 In default Puppeteer mode, you can override the default `1440x800` viewport with `--viewport-width <width>` and `--viewport-height <height>`. These flags are only supported in default Puppeteer mode, not in `--bridge` or `--cdp` mode.
 
-In CDP mode, use `--extra-http-headers '<json-object>'` to add HTTP headers to page requests. Header values must be strings, and the option must be passed to every separate CLI command that may issue requests because each command creates a new CDP session:
+In CDP mode, use a separate `--extra-http-header 'Name:Value'` option for each HTTP header added to page requests. Repeat the option on every separate CLI command that may issue requests because each command creates a new CDP session:
 
 ```bash
-CDP_HEADERS='{"x-use-ppe":"1","x-tt-env":"ppe_example"}'
-
 npx @midscene/web connect \
   --cdp ws://127.0.0.1:9222/devtools/browser \
-  --extra-http-headers "$CDP_HEADERS" \
+  --extra-http-header 'x-use-ppe:1' \
+  --extra-http-header 'x-tt-env:ppe_example' \
   --url https://example.com
 
 npx @midscene/web act \
   --cdp ws://127.0.0.1:9222/devtools/browser \
-  --extra-http-headers "$CDP_HEADERS" \
+  --extra-http-header 'x-use-ppe:1' \
+  --extra-http-header 'x-tt-env:ppe_example' \
   --prompt "click the button"
 ```
 

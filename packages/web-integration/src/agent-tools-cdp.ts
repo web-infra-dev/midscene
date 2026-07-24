@@ -73,9 +73,6 @@ export class WebCdpMidsceneTools extends BaseMidsceneTools<
     shape: webCdpAgentInitArgShape,
     cli: {
       preferBareKeys: true,
-      preferredNames: {
-        extraHTTPHeaders: 'extra-http-headers',
-      },
     },
     adapt: adaptWebCdpAgentInitArgs,
   };
