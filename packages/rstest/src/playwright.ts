@@ -36,12 +36,23 @@ export type RstestCache =
 
 /**
  * Options for constructing agents (the `agent` fixture and `agentForPage`
- * ones). `groupName` and `reportFileName` are managed by the lifecycle;
- * `cache` is reshaped so an id can be auto-derived from the test.
+ * ones). `cache` is reshaped so an id can be auto-derived from the test.
+ *
+ * The omitted keys mirror `PlaywrightAiFixtureOptions` in
+ * `@midscene/web/playwright`, so this integration exposes exactly what the
+ * Playwright Test one does: report identity (`groupName`,
+ * `groupDescription`, `reportFileName`) belongs to the runner, since it drives
+ * report merging, and `testId` / `cacheId` are deprecated in core. Everything
+ * else on `WebPageAgentOpt` passes straight through.
  */
 export type AgentOptions = Omit<
   WebPageAgentOpt,
-  'groupName' | 'reportFileName' | 'cache'
+  | 'testId'
+  | 'cacheId'
+  | 'groupName'
+  | 'groupDescription'
+  | 'reportFileName'
+  | 'cache'
 > & {
   cache?: RstestCache;
 };
