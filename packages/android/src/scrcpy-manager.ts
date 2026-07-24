@@ -505,7 +505,7 @@ export class ScrcpyScreenshotManager {
    * Tries to get a fresh frame within a short timeout. If the screen is static
    * (no new frames arrive), falls back to the latest cached keyframe.
    */
-  async getScreenshotJpeg(): Promise<Buffer> {
+  async getScreenshotJpeg(minCapturedAt = 0): Promise<Buffer> {
     const perfStart = Date.now();
 
     const t1 = Date.now();
@@ -525,6 +525,11 @@ export class ScrcpyScreenshotManager {
     } catch {
       // No fresh frame within timeout — screen is likely static, use cached frame
       if (this.lastRawKeyframe && this.spsHeader) {
+        if (this.lastRawKeyframeAt < minCapturedAt) {
+          throw new Error(
+            'Scrcpy did not produce a fresh frame after the latest interaction',
+          );
+        }
         keyframeBuffer = Buffer.concat([this.spsHeader, this.lastRawKeyframe]);
         frameSource = 'cached';
       } else {

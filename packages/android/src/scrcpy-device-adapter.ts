@@ -59,6 +59,7 @@ export class ScrcpyDeviceAdapter {
   private resolvedConfig: ResolvedScrcpyConfig | null = null;
   private lastError: string | null = null;
   private retryAfter: number | null = null;
+  private minScreenshotCapturedAt = 0;
 
   constructor(
     private deviceId: string,
@@ -79,6 +80,14 @@ export class ScrcpyDeviceAdapter {
       lastError: this.lastError,
       retryAfter: this.retryAfter,
     };
+  }
+
+  /**
+   * Mark the current scrcpy frame as stale before an input action.
+   * The next screenshot must come from a frame captured after this point.
+   */
+  markInteraction(): void {
+    this.minScreenshotCapturedAt = Date.now();
   }
 
   private isConfigured(): boolean {
@@ -207,7 +216,10 @@ export class ScrcpyDeviceAdapter {
 
     try {
       const manager = await this.ensureManager(deviceInfo);
-      const screenshotBuffer = await manager.getScreenshotJpeg();
+      const screenshotBuffer = await manager.getScreenshotJpeg(
+        this.minScreenshotCapturedAt,
+      );
+      this.minScreenshotCapturedAt = 0;
       this.clearFailure();
 
       return createImgBase64ByFormat(

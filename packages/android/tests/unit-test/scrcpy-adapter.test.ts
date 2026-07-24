@@ -339,6 +339,18 @@ describe('ScrcpyDeviceAdapter', () => {
       expect(result).toBe('data:image/png;base64,test');
       expect(currentMockManager.getScreenshotJpeg).toHaveBeenCalledTimes(1);
     });
+
+    it('requires a frame captured after the latest interaction', async () => {
+      vi.spyOn(Date, 'now').mockReturnValue(1234);
+      const adapter = new ScrcpyDeviceAdapter('device', undefined);
+      (adapter as any).manager = currentMockManager;
+
+      adapter.markInteraction();
+      await adapter.screenshotBase64(defaultDeviceInfo);
+
+      expect(currentMockManager.getScreenshotJpeg).toHaveBeenCalledWith(1234);
+      expect((adapter as any).minScreenshotCapturedAt).toBe(0);
+    });
   });
 
   describe('initialize', () => {
