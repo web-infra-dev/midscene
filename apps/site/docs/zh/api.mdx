@@ -216,6 +216,20 @@ await agent.aiAct('填写表单并提交', {
 await agent.aiAct('完成 github 账号注册的表单填写。地区必须选择「加拿大」。确保表单上没有遗漏的字段，确保所有的表单项能够通过校验。 只需要填写表单项即可，不需要发起真实的账号注册。 最终请返回表单上实际填写的字段内容', { deepThink: true });
 ```
 
+#### 在 `aiAct` 提示词中上传文件
+
+除了 `fileChooserAccept` option 外，也可以直接在 `aiAct` 提示词中写入文件的准确路径，让 Midscene 上传文件。Midscene 会在打开文件选择器的操作之前规划文件选择器配置。
+
+```typescript
+await agent.aiAct(
+  '先点击“上传头像”按钮并上传 /absolute/path/to/avatar.png；然后点击“上传封面”按钮并上传 /absolute/path/to/cover.png。上传完成后，请确认页面头像显示一只猫、封面显示一片海滩。',
+);
+```
+
+如果一次 `aiAct` 需要上传多个文件，请在提示词中把每个路径与对应的上传操作明确写出。后出现的路径会覆盖此前配置的文件选择器路径。不要将提示词中的文件路径与 `options.fileChooserAccept` 混用：模型在规划过程中生成的后续文件选择器配置可能覆盖该 option 的值。
+
+此能力仅适用于 web 页面（Playwright、Puppeteer 和 Chrome extension Bridge mode）。请提供准确路径，推荐使用绝对路径；相对路径会基于当前命令执行目录解析。
+
 :::tip
 
 在实际运行时，Midscene 会将用户指令规划（Planning）成多个步骤，然后逐步执行。如果 Midscene 认为无法执行，将抛出一个错误。

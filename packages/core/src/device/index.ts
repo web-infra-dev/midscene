@@ -355,6 +355,38 @@ export const defineActionTap = (
   });
 };
 
+export const registerFileChooserAcceptParamSchema = z.object({
+  files: z
+    .union([z.string(), z.array(z.string())])
+    .describe(
+      'File path(s) to use whenever a later action in this aiAct triggers a file chooser. This setting replaces any previously registered file path(s).',
+    ),
+});
+export type RegisterFileChooserAcceptParam = {
+  files: string | string[];
+};
+
+export const defineActionRegisterFileChooserAccept = (
+  register: (files: string | string[]) => Promise<void>,
+): DeviceAction<RegisterFileChooserAcceptParam> => {
+  return defineAction<
+    typeof registerFileChooserAcceptParamSchema,
+    RegisterFileChooserAcceptParam
+  >({
+    name: 'RegisterFileChooserAccept',
+    description:
+      'Configure files for file chooser dialogs triggered by later actions in this aiAct',
+    interfaceAlias: 'registerFileChooserAccept',
+    paramSchema: registerFileChooserAcceptParamSchema,
+    sample: {
+      files: ['/tmp/document.pdf'],
+    },
+    call: async (param) => {
+      await register(param.files);
+    },
+  });
+};
+
 // RightClick
 export const actionRightClickParamSchema = z.object({
   locate: getMidsceneLocationSchema().describe(

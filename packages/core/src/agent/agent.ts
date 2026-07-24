@@ -64,8 +64,12 @@ import {
 } from '@midscene/shared/env';
 import { getDebug } from '@midscene/shared/logger';
 import { assert, ifInBrowser, uuid } from '@midscene/shared/utils';
-import { defineActionSleep } from '../device';
+import {
+  defineActionRegisterFileChooserAccept,
+  defineActionSleep,
+} from '../device';
 import { validateAgentCacheInput } from './cache-config';
+import { FileChooserAccepter } from './file-chooser';
 import { MetricsCollector, type MidsceneUsageMetrics } from './metrics';
 import { AgentProgressBus } from './progress';
 import { buildPromptWithContext } from './prompt-context';
@@ -216,6 +220,8 @@ export class Agent<
 
   private fullActionSpace: DeviceAction[];
 
+  private activeFileChooserAccepter?: FileChooserAccepter;
+
   private reportGenerator: IReportGenerator;
 
   // @deprecated use .interface instead
@@ -339,7 +345,23 @@ export class Agent<
     }
 
     const baseActionSpace = this.interface.actionSpace();
-    this.fullActionSpace = [...baseActionSpace, defineActionSleep()];
+    const fileChooserActions = this.interface.registerFileChooserListener
+      ? [
+          defineActionRegisterFileChooserAccept(async (files) => {
+            if (!this.activeFileChooserAccepter) {
+              throw new Error(
+                'RegisterFileChooserAccept can only be used while aiAct is running',
+              );
+            }
+            await this.activeFileChooserAccepter.register(files);
+          }),
+        ]
+      : [];
+    this.fullActionSpace = [
+      ...baseActionSpace,
+      ...fileChooserActions,
+      defineActionSleep(),
+    ];
 
     this.taskExecutor = new TaskExecutor(this.interface, this.service, {
       taskCache: this.taskCache,
@@ -1124,7 +1146,7 @@ export class Agent<
         replanningCycleLimit,
         imagesIncludeCount,
         deepThink,
-        fileChooserAccept,
+        undefined,
         deepLocate,
         abortSignal,
         internalReportDisplay,
@@ -1161,7 +1183,41 @@ export class Agent<
       return actionOutput?.output;
     };
 
-    return await runAiAct();
+    const fileChooserAccepter = this.interface.registerFileChooserListener
+      ? new FileChooserAccepter(this.interface)
+      : undefined;
+    this.activeFileChooserAccepter = fileChooserAccepter;
+    let aiActError: { error: unknown } | undefined;
+    let fileChooserHandlingError: Error | undefined;
+    let result: string | undefined;
+    try {
+      if (fileChooserAccept) {
+        if (!fileChooserAccepter) {
+          throw new Error(
+            `File upload is not supported on ${this.interface.interfaceType}`,
+          );
+        }
+        await fileChooserAccepter.register(fileChooserAccept);
+      }
+      result = await runAiAct();
+    } catch (error) {
+      aiActError = { error };
+    } finally {
+      this.activeFileChooserAccepter = undefined;
+      try {
+        fileChooserHandlingError = await fileChooserAccepter?.clear();
+      } catch (error) {
+        warn(`Failed to clear file chooser registration: ${error}`);
+      }
+    }
+
+    if (aiActError) {
+      throw aiActError.error;
+    }
+    if (fileChooserHandlingError) {
+      throw fileChooserHandlingError;
+    }
+    return result;
   }
 
   async runMarkdown(

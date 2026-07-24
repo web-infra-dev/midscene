@@ -217,6 +217,20 @@ await agent.aiAct('Fill in the form and submit', {
 await agent.aiAct('Complete the GitHub account registration form. The region must be set to "Canada". Make sure no fields on the form are missed and all form fields pass validation. Just fill in the form fields without actually submitting the registration. Finally, return the actual content filled in the form fields', { deepThink: true });
 ```
 
+#### Upload files from an `aiAct` prompt
+
+Besides the `fileChooserAccept` option, you can ask `aiAct` to upload files by including their exact paths in the prompt. Midscene plans the file chooser setup before the action that opens the dialog.
+
+```typescript
+await agent.aiAct(
+  'First click the "Upload avatar" button and upload /absolute/path/to/avatar.png. Then click the "Upload cover" button and upload /absolute/path/to/cover.png. After uploading, confirm that the avatar displays a cat and the cover displays a beach.',
+);
+```
+
+For multiple uploads in one `aiAct`, name each path together with the action that should upload it. A later path replaces the previously configured file chooser path(s). Do not combine prompt-specified paths with `options.fileChooserAccept`: a later file chooser configuration generated during planning can override the option value.
+
+This capability is available for web pages (Playwright, Puppeteer, and Chrome extension Bridge mode). Use exact paths; absolute paths are recommended. Relative paths are resolved from the current working directory.
+
 :::tip
 
 Under the hood, Midscene uses AI model to split the instruction into a series of steps (a.k.a. "Planning"). It then executes these steps sequentially. If Midscene determines that the actions cannot be performed, an error will be thrown.
