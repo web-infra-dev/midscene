@@ -41,6 +41,12 @@ const expectEmptyUIContext = () =>
     shrunkShotToLogicalRatio: 1,
   });
 
+const expectRecordedModelRuntime = (config: IModelConfig) =>
+  expect.objectContaining({
+    config: expect.objectContaining(config),
+    onModelInputImages: expect.any(Function),
+  });
+
 const createMockUsage = (totalTokens: number): AIUsageInfo => ({
   prompt_tokens: 0,
   completion_tokens: 0,
@@ -214,7 +220,7 @@ describe('TaskExecutor - Null Data Handling', () => {
           StatementIsTruthy:
             'Boolean, based on the current screenshot and its contents if provided, unless the user explicitly asks to compare with reference images, whether the following statement is true: Page title is correct',
         },
-        getModelRuntime(mockModelConfig),
+        expectRecordedModelRuntime(mockModelConfig),
         {},
         '',
         undefined,
@@ -269,7 +275,7 @@ describe('TaskExecutor - Null Data Handling', () => {
           StatementIsTruthy:
             "Boolean, the user wants to do some 'wait for' operation. based on the current screenshot and its contents if provided, unless the user explicitly asks to compare with reference images, please check whether the following statement is true: Element is visible",
         },
-        getModelRuntime(mockModelConfig),
+        expectRecordedModelRuntime(mockModelConfig),
         {},
         '',
         undefined,
@@ -636,7 +642,7 @@ describe('TaskExecutor - Null Data Handling', () => {
           Number:
             'Number, based on the current screenshot and its contents if provided, unless the user explicitly asks to compare with reference images, Extract the price',
         },
-        getModelRuntime(mockModelConfig),
+        expectRecordedModelRuntime(mockModelConfig),
         {},
         '',
         undefined,
@@ -731,7 +737,7 @@ describe('TaskExecutor - Null Data Handling', () => {
           Number:
             'Number, based on the current screenshot and its contents if provided, unless the user explicitly asks to compare with reference images, Extract the price',
         },
-        getModelRuntime(mockModelConfig),
+        expectRecordedModelRuntime(mockModelConfig),
         {},
         '',
         undefined,
@@ -787,7 +793,7 @@ describe('TaskExecutor - Null Data Handling', () => {
           Boolean:
             'Boolean, based on the current screenshot and its contents if provided, unless the user explicitly asks to compare with reference images, there is a like button',
         },
-        getModelRuntime(mockModelConfig),
+        expectRecordedModelRuntime(mockModelConfig),
         {},
         '',
         undefined,
