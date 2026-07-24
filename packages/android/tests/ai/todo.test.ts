@@ -4,6 +4,7 @@ import { sleep } from '@midscene/core/utils';
 import type ADB from 'appium-adb';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { AndroidAgent, AndroidDevice, getConnectedDevices } from '../../src';
+import { dumpUiHierarchyWithRetry } from '../android-emulator-ui-dump';
 
 vi.setConfig({
   testTimeout: 240 * 1000,
@@ -58,52 +59,19 @@ function screenshotBuffer(base64: string): Buffer {
   return Buffer.from(match[1], 'base64');
 }
 
-function isTransientAdbTransportError(error: unknown): boolean {
-  const message = error instanceof Error ? error.message : String(error);
-  return /device offline|device unauthorized|no devices\/emulators found/i.test(
-    message,
-  );
-}
-
-function isRetryableChromeUiDumpError(error: unknown): boolean {
-  const message = error instanceof Error ? error.message : String(error);
-  return (
-    isTransientAdbTransportError(error) ||
-    /No such file or directory|empty Chrome UI dump/i.test(message)
-  );
-}
-
 async function dumpUiautomatorXml(adb: ADB): Promise<string> {
-  for (let attempt = 1; attempt <= CHROME_UI_DUMP_MAX_ATTEMPTS; attempt += 1) {
-    try {
-      await adb.shell(`rm -f ${CHROME_FIRST_RUN_DUMP_PATH}`);
-      await adb.shell(
-        `uiautomator dump --compressed ${CHROME_FIRST_RUN_DUMP_PATH}`,
-      );
-      const xml = await adb.shell(`cat ${CHROME_FIRST_RUN_DUMP_PATH}`);
-      if (typeof xml !== 'string' || xml.trim().length === 0) {
-        throw new Error('Android emulator returned an empty Chrome UI dump');
-      }
-      return xml;
-    } catch (error) {
-      if (
-        attempt === CHROME_UI_DUMP_MAX_ATTEMPTS ||
-        !isRetryableChromeUiDumpError(error)
-      ) {
-        throw error;
-      }
+  const result = await dumpUiHierarchyWithRetry(adb, {
+    remotePath: CHROME_FIRST_RUN_DUMP_PATH,
+    label: 'Chrome UI',
+    maxAttempts: CHROME_UI_DUMP_MAX_ATTEMPTS,
+    retryIntervalMs: CHROME_FIRST_RUN_POLL_INTERVAL_MS,
+    onRetry: ({ nextAttempt, phase, error }) => {
       console.log(
-        `Chrome UI dump was not ready; retrying attempt ${attempt + 1}`,
+        `Chrome UI dump failed during ${phase}; retrying attempt ${nextAttempt}: ${String(error)}`,
       );
-      if (isTransientAdbTransportError(error)) {
-        await adb.waitForDevice(15);
-      } else {
-        await sleep(CHROME_FIRST_RUN_POLL_INTERVAL_MS);
-      }
-    }
-  }
-
-  throw new Error('Chrome UI dump retry loop completed without a result');
+    },
+  });
+  return result.xml;
 }
 
 function centerForExactText(
