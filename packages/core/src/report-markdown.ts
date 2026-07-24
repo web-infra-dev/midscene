@@ -18,6 +18,7 @@ const rawBase64BodyPattern = /^[a-zA-Z0-9+/=\s]+$/;
 const jsonContextMaxStringLength = 12_000;
 
 type ExecutionTaskWithExtraUsage = ExecutionTask & {
+  cacheUsage?: AIUsageInfo;
   searchAreaUsage?: AIUsageInfo;
   reasoning_content?: string;
 };
@@ -153,6 +154,7 @@ function modelRowsFromUsage(report: IReportActionDump): unknown[][] {
     for (const task of execution.tasks) {
       const taskWithUsage = task as ExecutionTaskWithExtraUsage;
       addUsage('main', taskWithUsage.usage);
+      addUsage('cache', taskWithUsage.cacheUsage);
       addUsage('searchArea', taskWithUsage.searchAreaUsage);
     }
   }
@@ -220,6 +222,7 @@ function usageRowsForTask(task: ExecutionTask): unknown[][] {
   };
 
   appendUsage('main', taskWithUsage.usage);
+  appendUsage('cache', taskWithUsage.cacheUsage);
   appendUsage('searchArea', taskWithUsage.searchAreaUsage);
   return rows;
 }
@@ -254,6 +257,7 @@ function collectUsageTotals(
     for (const task of execution.tasks) {
       const taskWithUsage = task as ExecutionTaskWithExtraUsage;
       addUsage(taskWithUsage.usage);
+      addUsage(taskWithUsage.cacheUsage);
       addUsage(taskWithUsage.searchAreaUsage);
     }
   }

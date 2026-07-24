@@ -9,6 +9,7 @@ import {
   readFileSync,
   readdirSync,
   rmSync,
+  statSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
@@ -113,6 +114,7 @@ describe('browser parse simulation for merged directory-mode reports', () => {
   it('step 2: verify merged report preserves directory mode with screenshots', async () => {
     const tool = new ReportMergingTool();
     const numReports = 2;
+    let largestSourceReportSizeBytes = 0;
 
     // Create 2 directory mode reports
     for (let r = 0; r < numReports; r++) {
@@ -138,6 +140,10 @@ describe('browser parse simulation for merged directory-mode reports', () => {
         generator.onExecutionUpdate(exec, groupMeta);
       }
       await generator.finalize();
+      largestSourceReportSizeBytes = Math.max(
+        largestSourceReportSizeBytes,
+        statSync(reportPath).size,
+      );
 
       tool.append({
         reportFilePath: reportPath,
@@ -162,9 +168,10 @@ describe('browser parse simulation for merged directory-mode reports', () => {
     // Read the full merged HTML
     const mergedHtml = readFileSync(mergedPath!, 'utf-8');
 
-    // Verify merged file is not bloated with garbage from streamImageScriptsToFile
-    const mergedSizeMB = mergedHtml.length / 1024 / 1024;
-    expect(mergedSizeMB).toBeLessThan(15);
+    // Merging must not duplicate the embedded report template or streamed images.
+    expect(statSync(mergedPath!).size).toBeLessThan(
+      largestSourceReportSizeBytes + 1024 * 1024,
+    );
 
     // Verify base URL fix script is injected
     expect(mergedHtml).toContain('document.createElement("base")');

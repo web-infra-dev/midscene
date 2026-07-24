@@ -1,3 +1,4 @@
+import { MIDSCENE_EXPERIMENTAL_NATIVE_XPATH_CACHE } from '@midscene/shared/env';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock chrome API
@@ -34,6 +35,50 @@ describe('ChromeExtensionProxyPage cache methods', () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.unstubAllEnvs();
+  });
+
+  it('keeps web xpath generation and replay enabled when native cache is off', async () => {
+    vi.stubEnv(MIDSCENE_EXPERIMENTAL_NATIVE_XPATH_CACHE, '0');
+    vi.spyOn(page, 'getXpathsByPoint').mockResolvedValue(['/html/body/button']);
+    vi.spyOn(page, 'getElementInfoByXpath').mockResolvedValue({
+      rect: { left: 10, top: 20, width: 100, height: 50 },
+    } as any);
+
+    await expect(page.cacheFeatureForPoint([100, 200])).resolves.toEqual({
+      xpaths: ['/html/body/button'],
+    });
+    await expect(
+      page.rectMatchesCacheFeature({ xpaths: ['/html/body/button'] }),
+    ).resolves.toEqual({ left: 10, top: 20, width: 100, height: 50 });
+  });
+
+  it('rejects native xpath entries before evaluating them in the DOM', async () => {
+    const getElementInfo = vi.spyOn(page, 'getElementInfoByXpath');
+
+    await expect(
+      page.rectMatchesCacheFeature({
+        kind: 'native-xpath',
+        schemaVersion: 1,
+        platform: 'harmony',
+        xpaths: ["//*[@id='submit']"],
+        target: { type: 'Button', attr: 'id', value: 'submit' },
+      }),
+    ).rejects.toThrow('Unsupported Web cache feature kind: native-xpath');
+    expect(getElementInfo).not.toHaveBeenCalled();
+  });
+
+  it('still evaluates explicitly provided xpath features', async () => {
+    vi.spyOn(page, 'getElementInfoByXpath').mockResolvedValue({
+      rect: { left: 5, top: 6, width: 70, height: 30 },
+    } as any);
+
+    await expect(
+      page.rectMatchesCacheFeature({
+        kind: 'explicit-xpath',
+        xpaths: ['/html/body/button'],
+      }),
+    ).resolves.toEqual({ left: 5, top: 6, width: 70, height: 30 });
   });
 
   describe('cacheFeatureForPoint', () => {
@@ -96,6 +141,22 @@ describe('ChromeExtensionProxyPage cache methods', () => {
         'Click the submit button',
         modelRuntime,
       );
+      expect(page.getXpathsByPoint).toHaveBeenCalledWith(
+        { left: 100, top: 200 },
+        true,
+      );
+    });
+
+    it('should use a precomputed order-sensitive classification', async () => {
+      vi.spyOn(page, 'getXpathsByPoint').mockResolvedValue([
+        '/html/body/button[2]',
+      ]);
+
+      await page.cacheFeatureForPoint([100, 200], {
+        orderSensitive: true,
+      });
+
+      expect(AiJudgeOrderSensitive).not.toHaveBeenCalled();
       expect(page.getXpathsByPoint).toHaveBeenCalledWith(
         { left: 100, top: 200 },
         true,

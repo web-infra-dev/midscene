@@ -27,8 +27,8 @@ import { assert } from '@midscene/shared/utils';
 import type { Protocol as CDPTypes } from 'devtools-protocol';
 import {
   type CacheFeatureOptions,
-  type WebElementCacheFeature,
   buildRectFromElementInfo,
+  getWebCacheXpaths,
   judgeOrderSensitive,
   sanitizeXpaths,
 } from '../common/cache-helper';
@@ -725,7 +725,7 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
   }
 
   async rectMatchesCacheFeature(feature: ElementCacheFeature): Promise<Rect> {
-    const xpaths = sanitizeXpaths((feature as WebElementCacheFeature).xpaths);
+    const xpaths = getWebCacheXpaths(feature);
 
     for (const xpath of xpaths) {
       try {

@@ -26,6 +26,7 @@ import {
   ComputerDevice,
   checkComputerEnvironment,
 } from '../../src';
+import { prepareMacosScreenCapture } from './macos-screen-capture-prompt';
 
 const RUN_LIVE_SMOKE =
   process.platform === 'darwin' &&
@@ -548,6 +549,7 @@ describe.skipIf(!RUN_LIVE_SMOKE)('macOS desktop live smoke', () => {
         keyboardTypeDelay: KEYBOARD_TYPE_DELAY_MS,
       });
       await device.connect();
+      evidence.screenCapturePrompt = await prepareMacosScreenCapture(device);
       const logicalSize = await device.size();
       evidence.logicalSize = logicalSize;
       expect(logicalSize).toEqual({

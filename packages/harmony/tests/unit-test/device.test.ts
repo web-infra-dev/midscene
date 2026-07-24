@@ -1,3 +1,4 @@
+import { MIDSCENE_EXPERIMENTAL_NATIVE_XPATH_CACHE } from '@midscene/shared/env';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { HarmonyDeviceInputOpt } from '../../src/device';
 
@@ -23,6 +24,7 @@ const mockHdc = {
   queryMainAbility: vi.fn().mockResolvedValue(undefined),
   forceStop: vi.fn().mockResolvedValue(undefined),
   clearTextField: vi.fn().mockResolvedValue(undefined),
+  dumpLayout: vi.fn().mockResolvedValue('{}'),
 };
 
 vi.mock('../../src/hdc', () => ({
@@ -61,6 +63,7 @@ describe('HarmonyDevice', () => {
   let device: InstanceType<typeof HarmonyDevice>;
 
   beforeEach(() => {
+    vi.stubEnv(MIDSCENE_EXPERIMENTAL_NATIVE_XPATH_CACHE, '1');
     vi.clearAllMocks();
     mockHdc.getScreenInfo.mockResolvedValue({ width: 1216, height: 2688 });
     device = new HarmonyDevice('test-device-id');
@@ -70,6 +73,7 @@ describe('HarmonyDevice', () => {
     if (device) {
       await device.destroy();
     }
+    vi.unstubAllEnvs();
   });
 
   describe('constructor', () => {
@@ -146,6 +150,84 @@ describe('HarmonyDevice', () => {
       ]);
       expect(hdc1).toBe(hdc2);
       expect(mockHdc.getScreenInfo).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('xpath cache', () => {
+    it('scopes generated entries to HarmonyOS', async () => {
+      mockHdc.dumpLayout.mockResolvedValueOnce(
+        JSON.stringify({
+          attributes: { type: 'RootDecor', bounds: '[0,0][1216,2688]' },
+          children: [
+            {
+              attributes: {
+                type: 'Button',
+                key: 'login_btn',
+                text: 'Login',
+                bounds: '[20,40][220,140]',
+              },
+              children: [],
+            },
+          ],
+        }),
+      );
+
+      await expect(
+        device.cacheFeatureForPoint([120, 90]),
+      ).resolves.toMatchObject({
+        kind: 'native-xpath',
+        schemaVersion: 1,
+        platform: 'harmony',
+        target: { type: 'Button', value: 'login_btn' },
+      });
+    });
+
+    it('skips order-sensitive targets before reading the hierarchy', async () => {
+      await expect(
+        device.cacheFeatureForPoint([120, 210], { orderSensitive: true }),
+      ).resolves.toEqual({});
+      expect(mockHdc.dumpLayout).not.toHaveBeenCalled();
+    });
+
+    it('does not read the hierarchy when native xpath cache is disabled', async () => {
+      vi.stubEnv(MIDSCENE_EXPERIMENTAL_NATIVE_XPATH_CACHE, '0');
+
+      await expect(device.cacheFeatureForPoint([10, 20])).resolves.toEqual({});
+      await expect(device.rectMatchesCacheFeature({})).rejects.toThrow(
+        'Native XPath cache is disabled',
+      );
+      expect(mockHdc.dumpLayout).not.toHaveBeenCalled();
+    });
+
+    it('does not cache a window when its inner target is not exposed', async () => {
+      mockHdc.dumpLayout.mockResolvedValueOnce(
+        JSON.stringify({
+          attributes: {
+            type: 'RootDecor',
+            bounds: '[0,0][1216,2688]',
+          },
+          children: [
+            {
+              attributes: {
+                type: 'WindowScene',
+                key: 'main-window',
+                bounds: '[0,0][1216,2688]',
+              },
+              children: [],
+            },
+          ],
+        }),
+      );
+
+      await expect(device.cacheFeatureForPoint([10, 20])).resolves.toEqual({});
+    });
+
+    it('propagates dumpLayout failures', async () => {
+      mockHdc.dumpLayout.mockRejectedValueOnce(new Error('dump failed'));
+
+      await expect(device.cacheFeatureForPoint([10, 20])).rejects.toThrow(
+        'dump failed',
+      );
     });
   });
 

@@ -24,6 +24,15 @@ import { uuid } from '@midscene/shared/utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { getMidsceneLocationSchema, z } from '../../src';
 
+const aiMocks = vi.hoisted(() => ({
+  judgeOrderSensitive: vi.fn(),
+}));
+
+vi.mock('@/ai-model', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/ai-model')>()),
+  AiJudgeOrderSensitive: aiMocks.judgeOrderSensitive,
+}));
+
 /**
  * Type for accessing TaskCache internal state in tests
  * @internal Only for testing purposes
@@ -82,6 +91,15 @@ describe('bbox locate cache fix', () => {
   const mockModelRuntime = getModelRuntime(mockModelConfig);
 
   beforeEach(() => {
+    aiMocks.judgeOrderSensitive.mockReset();
+    aiMocks.judgeOrderSensitive.mockResolvedValue({
+      isOrderSensitive: false,
+      usage: {
+        total_tokens: 7,
+        model_name: 'test-model',
+        request_id: 'cache-judge-default',
+      },
+    });
     // Create mock interface with typed methods
     mockInterface = {
       interfaceType: 'web',
@@ -208,8 +226,16 @@ describe('bbox locate cache fix', () => {
       expect(result!.output.element).toBeDefined();
       expect(result!.hitBy?.from).toBe('Plan');
 
-      // Verify cacheFeatureForPoint was called to write cache
-      expect(mockInterface.cacheFeatureForPoint).toHaveBeenCalled();
+      // Verify cache extraction receives the classified prompt and model rect.
+      expect(mockInterface.cacheFeatureForPoint).toHaveBeenCalledWith(
+        [500, 300],
+        {
+          targetDescription: 'search input box',
+          modelRuntime: mockModelRuntime,
+          orderSensitive: false,
+          expectedRect: { left: 450, top: 280, width: 101, height: 41 },
+        },
+      );
 
       // Verify locate cache was written (check internal cache array directly)
       const cachedLocate = findLocateCacheByPrompt(
@@ -219,6 +245,157 @@ describe('bbox locate cache fix', () => {
       expect(cachedLocate).toBeDefined();
       expect(cachedLocate?.cache).toBeDefined();
       expect(cachedLocate?.cache?.xpaths).toContain('/html/body/input[1]');
+    });
+
+    it('skips order-sensitive native cache writes and records judge usage', async () => {
+      Object.assign(mockInterface, {
+        cacheFeatureOrderPolicy: 'identity-only',
+      });
+      aiMocks.judgeOrderSensitive.mockResolvedValueOnce({
+        isOrderSensitive: true,
+        usage: {
+          total_tokens: 11,
+          model_name: 'test-model',
+          request_id: 'cache-judge-order-sensitive',
+        },
+      });
+      const { tasks } = await taskBuilder.build(
+        [
+          {
+            type: 'Tap',
+            param: {
+              locate: {
+                prompt: 'the second search input',
+                locatedPixelBbox: [450, 280, 550, 320],
+              },
+            },
+            thought: 'tap the second input',
+          },
+        ],
+        mockModelRuntime,
+        mockModelRuntime,
+        { cacheable: true },
+      );
+      const locateTask = tasks.find((task) => task.subType === 'Locate')!;
+      const runtimeTask = createRuntimeTask(locateTask);
+
+      await locateTask.executor(locateTask.param, {
+        task: runtimeTask,
+        uiContext: await createMockUIContext(validBase64Image),
+      });
+
+      expect(mockInterface.cacheFeatureForPoint).not.toHaveBeenCalled();
+      expect(
+        findLocateCacheByPrompt(taskCache, 'the second search input'),
+      ).toBeUndefined();
+      expect(runtimeTask.cacheUsage).toMatchObject({
+        total_tokens: 11,
+        request_id: 'cache-judge-order-sensitive',
+        intent: 'default',
+      });
+    });
+
+    it('fails closed when native order classification fails', async () => {
+      Object.assign(mockInterface, {
+        cacheFeatureOrderPolicy: 'identity-only',
+      });
+      aiMocks.judgeOrderSensitive.mockRejectedValueOnce(
+        new Error('classifier unavailable'),
+      );
+      const { tasks } = await taskBuilder.build(
+        [
+          {
+            type: 'Tap',
+            param: {
+              locate: {
+                prompt: 'search input box',
+                locatedPixelBbox: [450, 280, 550, 320],
+              },
+            },
+            thought: 'tap the input',
+          },
+        ],
+        mockModelRuntime,
+        mockModelRuntime,
+        { cacheable: true },
+      );
+      const locateTask = tasks.find((task) => task.subType === 'Locate')!;
+
+      await locateTask.executor(locateTask.param, {
+        task: createRuntimeTask(locateTask),
+        uiContext: await createMockUIContext(validBase64Image),
+      });
+
+      expect(mockInterface.cacheFeatureForPoint).not.toHaveBeenCalled();
+      expect(
+        findLocateCacheByPrompt(taskCache, 'search input box'),
+      ).toBeUndefined();
+    });
+
+    it('does not classify prompts when native cache is disabled', async () => {
+      Object.assign(mockInterface, {
+        cacheFeatureOrderPolicy: 'disabled',
+      });
+      const { tasks } = await taskBuilder.build(
+        [
+          {
+            type: 'Tap',
+            param: {
+              locate: {
+                prompt: 'search input box',
+                locatedPixelBbox: [450, 280, 550, 320],
+              },
+            },
+            thought: 'tap the input',
+          },
+        ],
+        mockModelRuntime,
+        mockModelRuntime,
+        { cacheable: true },
+      );
+      const locateTask = tasks.find((task) => task.subType === 'Locate')!;
+
+      await locateTask.executor(locateTask.param, {
+        task: createRuntimeTask(locateTask),
+        uiContext: await createMockUIContext(validBase64Image),
+      });
+
+      expect(aiMocks.judgeOrderSensitive).not.toHaveBeenCalled();
+      expect(mockInterface.cacheFeatureForPoint).not.toHaveBeenCalled();
+    });
+
+    it('keeps the Web fallback order-insensitive when classification fails', async () => {
+      aiMocks.judgeOrderSensitive.mockRejectedValueOnce(
+        new Error('classifier unavailable'),
+      );
+      const { tasks } = await taskBuilder.build(
+        [
+          {
+            type: 'Tap',
+            param: {
+              locate: {
+                prompt: 'search input box',
+                locatedPixelBbox: [450, 280, 550, 320],
+              },
+            },
+            thought: 'tap the input',
+          },
+        ],
+        mockModelRuntime,
+        mockModelRuntime,
+        { cacheable: true },
+      );
+      const locateTask = tasks.find((task) => task.subType === 'Locate')!;
+
+      await locateTask.executor(locateTask.param, {
+        task: createRuntimeTask(locateTask),
+        uiContext: await createMockUIContext(validBase64Image),
+      });
+
+      expect(mockInterface.cacheFeatureForPoint).toHaveBeenCalledWith(
+        [500, 300],
+        expect.objectContaining({ orderSensitive: false }),
+      );
     });
 
     it('should not call AI locate when bbox is available', async () => {
@@ -512,6 +689,45 @@ describe('bbox locate cache fix', () => {
   });
 
   describe('edge cases', () => {
+    it('marks a user-provided xpath separately from cached xpath features', async () => {
+      vi.mocked(mockInterface.rectMatchesCacheFeature!).mockResolvedValue({
+        left: 100,
+        top: 120,
+        width: 80,
+        height: 40,
+      });
+
+      const { tasks } = await taskBuilder.build(
+        [
+          {
+            type: 'Tap',
+            param: {
+              locate: {
+                prompt: 'submit button',
+                xpath: "//*[@id='submit']",
+              },
+            },
+            thought: 'tap submit',
+          },
+        ],
+        mockModelRuntime,
+        mockModelRuntime,
+      );
+      const locateTask = tasks.find((task) => task.subType === 'Locate');
+
+      const result = await locateTask!.executor(locateTask!.param, {
+        task: createRuntimeTask(locateTask!),
+        uiContext: await createMockUIContext(validBase64Image),
+      });
+
+      expect(mockInterface.rectMatchesCacheFeature).toHaveBeenCalledWith({
+        kind: 'explicit-xpath',
+        xpaths: ["//*[@id='submit']"],
+      });
+      expect(result?.hitBy?.from).toBe('User expected path');
+      expect(mockService.locate).not.toHaveBeenCalled();
+    });
+
     it('should handle empty prompt gracefully', async () => {
       const plansWithBbox = [
         {

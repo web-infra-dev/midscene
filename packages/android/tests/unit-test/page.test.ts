@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import type { ExecutorContext } from '@midscene/core';
 import * as CoreUtils from '@midscene/core/utils';
+import { MIDSCENE_EXPERIMENTAL_NATIVE_XPATH_CACHE } from '@midscene/shared/env';
 import * as ImgUtils from '@midscene/shared/img';
 import { ADB } from 'appium-adb';
 import {
@@ -137,6 +138,7 @@ describe('AndroidDevice', () => {
   let mockAdb: Mocked<ADB>;
 
   beforeEach(() => {
+    vi.stubEnv(MIDSCENE_EXPERIMENTAL_NATIVE_XPATH_CACHE, '1');
     // Ensure mockAdbInstance is available
     if (!mockAdbInstance) {
       mockAdbInstance = createMockAdb();
@@ -155,6 +157,7 @@ describe('AndroidDevice', () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.unstubAllEnvs();
   });
 
   it('should throw error if deviceId is not provided', () => {
@@ -182,6 +185,172 @@ describe('AndroidDevice', () => {
     await expect((adapter as any).resolveAdbServerEndpoint()).resolves.toEqual({
       host: '192.168.1.10',
       port: 5038,
+    });
+  });
+
+  describe('xpath cache', () => {
+    const hierarchy = (children: string) => `<?xml version="1.0"?>
+<hierarchy rotation="0">
+  <node class="android.widget.FrameLayout" bounds="[0,0][400,800]">
+    ${children}
+  </node>
+</hierarchy>`;
+
+    const mockYadbHierarchy = (xml: string) => {
+      mockAdb.shell.mockImplementation(async (command) => {
+        if (
+          String(command) ===
+          'cat /data/local/tmp/midscene_yadb_layout_dump.xml'
+        ) {
+          return xml;
+        }
+        return '';
+      });
+    };
+
+    it('does not read the hierarchy when native xpath cache is disabled', async () => {
+      vi.stubEnv(MIDSCENE_EXPERIMENTAL_NATIVE_XPATH_CACHE, '0');
+
+      await expect(device.cacheFeatureForPoint([100, 70])).resolves.toEqual({});
+      await expect(device.rectMatchesCacheFeature({})).rejects.toThrow(
+        'Native XPath cache is disabled',
+      );
+      expect(mockAdb.shell).not.toHaveBeenCalled();
+    });
+
+    it('does not cache excluded Android structural containers', async () => {
+      mockYadbHierarchy(
+        hierarchy(
+          '<node class="android.widget.GridView" resource-id="feed-grid" bounds="[0,0][400,800]"/>',
+        ),
+      );
+
+      await expect(device.cacheFeatureForPoint([200, 400])).resolves.toEqual(
+        {},
+      );
+    });
+
+    it('keeps exposed children inside structural containers cacheable', async () => {
+      mockYadbHierarchy(
+        hierarchy(`
+          <node class="androidx.recyclerview.widget.RecyclerView" resource-id="feed" bounds="[0,0][400,800]">
+            <node class="android.widget.Button" resource-id="open-details" text="Open" bounds="[20,40][180,100]"/>
+          </node>`),
+      );
+
+      const feature = await device.cacheFeatureForPoint([100, 70]);
+      expect(feature).toMatchObject({
+        target: {
+          type: 'android.widget.Button',
+          attr: 'resource-id',
+          value: 'open-details',
+        },
+      });
+      expect(feature.xpaths).toContain("//*[@resource-id='open-details']");
+    });
+
+    it('skips order-sensitive targets before reading the hierarchy', async () => {
+      await expect(
+        device.cacheFeatureForPoint([100, 150], { orderSensitive: true }),
+      ).resolves.toEqual({});
+      expect(mockAdb.shell).not.toHaveBeenCalled();
+    });
+
+    it('keeps small interactive FrameLayout targets cacheable', async () => {
+      mockYadbHierarchy(
+        hierarchy(
+          '<node class="android.widget.FrameLayout" resource-id="product-card" clickable="true" bounds="[20,40][180,100]"/>',
+        ),
+      );
+
+      await expect(
+        device.cacheFeatureForPoint([100, 70]),
+      ).resolves.toMatchObject({
+        target: {
+          type: 'android.widget.FrameLayout',
+          attr: 'resource-id',
+          value: 'product-card',
+        },
+      });
+    });
+
+    it('falls back to bounded uiautomator retries after YADB fails', async () => {
+      let uiautomatorAttempts = 0;
+      mockAdb.shell.mockImplementation(async (command) => {
+        const value = String(command);
+        if (value.includes('com.ysbing.yadb.Main -layout')) {
+          throw new Error('YADB layout unavailable');
+        }
+        if (value.startsWith('uiautomator dump')) {
+          uiautomatorAttempts++;
+          if (uiautomatorAttempts < 3) {
+            throw new Error('ERROR: could not get idle state');
+          }
+        }
+        if (value === 'cat /sdcard/midscene_window_dump.xml') {
+          return hierarchy(
+            '<node class="android.widget.Button" resource-id="retry-target" bounds="[20,40][180,100]"/>',
+          );
+        }
+        return '';
+      });
+
+      await expect(
+        device.cacheFeatureForPoint([100, 70]),
+      ).resolves.toMatchObject({
+        target: { value: 'retry-target' },
+      });
+      expect(uiautomatorAttempts).toBe(3);
+      expect(mockAdb.shell).toHaveBeenCalledWith(
+        'uiautomator dump --compressed /sdcard/midscene_window_dump.xml',
+        expect.objectContaining({ timeout: 5_000 }),
+      );
+    });
+
+    it('removes stale files on every attempt and reports all failures', async () => {
+      mockAdb.shell.mockImplementation(async (command) => {
+        const value = String(command);
+        if (value.startsWith('rm -f ')) return '';
+        if (value.startsWith('cat ')) {
+          return 'cat: layout dump does not exist';
+        }
+        return 'ERROR: could not get idle state.';
+      });
+
+      await expect(device.cacheFeatureForPoint([10, 20])).rejects.toThrow(
+        /Unable to read Android accessibility hierarchy after 6 attempt\(s\).*yadb did not produce valid hierarchy XML.*uiautomator did not produce valid hierarchy XML/,
+      );
+      expect(
+        mockAdb.shell.mock.calls.filter(([command]) =>
+          String(command).startsWith('rm -f '),
+        ),
+      ).toHaveLength(6);
+    });
+
+    it('uses UIAutomator directly for a non-default display', async () => {
+      const secondaryDisplayDevice = new AndroidDevice('test-device', {
+        displayId: 1,
+        minScreenshotBufferSize: 0,
+        scrcpyConfig: { enabled: false },
+      });
+      vi.spyOn(secondaryDisplayDevice, 'getAdb').mockResolvedValue(mockAdb);
+      mockAdb.shell.mockImplementation(async (command) => {
+        if (String(command) === 'cat /sdcard/midscene_window_dump.xml') {
+          return hierarchy(
+            '<node class="android.widget.Button" resource-id="display-target" bounds="[20,40][180,100]"/>',
+          );
+        }
+        return '';
+      });
+
+      await expect(
+        secondaryDisplayDevice.cacheFeatureForPoint([100, 70]),
+      ).resolves.toMatchObject({ target: { value: 'display-target' } });
+      expect(mockAdb.push).not.toHaveBeenCalled();
+      expect(mockAdb.shell).not.toHaveBeenCalledWith(
+        expect.stringContaining('com.ysbing.yadb.Main -layout'),
+        expect.anything(),
+      );
     });
   });
 

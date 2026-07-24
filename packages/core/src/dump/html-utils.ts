@@ -47,10 +47,12 @@ function collectUsageModelsForAgent(report: IReportActionDump): string {
     for (const task of tasks) {
       const taskWithUsage = task as {
         usage?: AIUsageInfo;
+        cacheUsage?: AIUsageInfo;
         searchAreaUsage?: AIUsageInfo;
       };
       const usages: Array<[string, AIUsageInfo | undefined]> = [
         ['main', taskWithUsage.usage],
+        ['cache', taskWithUsage.cacheUsage],
         ['searchArea', taskWithUsage.searchAreaUsage],
       ];
 
@@ -87,7 +89,7 @@ export function generateAgentReportComment(report: IReportActionDump): string {
     `Models: ${cleanHtmlCommentValue(modelBriefs)}`,
     'Structured report JSON is stored in script[type="midscene_web_dump"] tags near this comment.',
     'Screenshots are stored as script[type="midscene-image"] tags or files referenced by screenshot refs.',
-    'For AI analysis, inspect each execution task for type, status, timing, param, output, usage, searchAreaUsage, recorder, and screenshot refs.',
+    'For AI analysis, inspect each execution task for type, status, timing, param, output, usage, cacheUsage, searchAreaUsage, recorder, and screenshot refs.',
     'Use the Markdown export when available; it contains the same report context plus image links for agent review.',
   ];
 

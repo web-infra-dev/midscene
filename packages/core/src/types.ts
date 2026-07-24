@@ -590,6 +590,8 @@ export type ExecutionTask<
       cost?: number;
     };
     usage?: AIUsageInfo;
+    /** Usage from classifying cache selector order sensitivity. */
+    cacheUsage?: AIUsageInfo;
     /**
      * Pixel rect of the deepLocate first-stage search area in screenshot
      * coordinates. Used by reports to explain the crop/zoom area that the

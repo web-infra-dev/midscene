@@ -80,6 +80,10 @@ describe('html-utils', () => {
                 model_name: 'openai_qwen3.5-plus',
                 model_description: 'qwen3.5 mode',
               },
+              cacheUsage: {
+                intent: 'default',
+                model_name: 'cache-judge-model',
+              },
               executor: async () => {},
             } as any,
           ],
@@ -90,6 +94,7 @@ describe('html-utils', () => {
     expect(comment).toContain(
       'Models: planning: openai_qwen3.5-plus (qwen3.5 mode)',
     );
+    expect(comment).toContain('default: cache-judge-model');
     expect(comment).not.toContain('No report-level model metadata recorded');
   });
 

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hierarchy rotation="0">
+  <node index="0" text="" resource-id="" class="android.widget.FrameLayout" package="com.ss.android.ugc.aweme" content-desc="" bounds="[0,0][400,800]">
+    <node index="0" text="Feed" resource-id="" class="android.widget.TextView" package="com.ss.android.ugc.aweme" content-desc="" bounds="[20,80][380,130]"/>
+    <node index="1" text="" resource-id="" class="android.view.ViewGroup" package="com.ss.android.ugc.aweme" content-desc="Search [video] for &quot;O'Reilly&quot;" clickable="true" bounds="[40,300][360,400]"/>
+  </node>
+</hierarchy>

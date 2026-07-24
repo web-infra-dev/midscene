@@ -35,12 +35,14 @@ jobs:
     env:
       CI: '1'
       FORCE_COLOR: '0'
+      DEBUG: 'midscene:cache:*'
       MIDSCENE_MODEL_API_KEY: ${{ secrets.MIDSCENE_MODEL_API_KEY }}
       MIDSCENE_MODEL_BASE_URL: ${{ vars.MIDSCENE_MODEL_BASE_URL }}
       MIDSCENE_MODEL_NAME: ${{ vars.MIDSCENE_MODEL_NAME }}
       MIDSCENE_MODEL_FAMILY: ${{ vars.MIDSCENE_MODEL_FAMILY }}
       MIDSCENE_MODEL_RETRY_COUNT: '2'
       MIDSCENE_MODEL_RETRY_INTERVAL: '60000'
+      MIDSCENE_EXPERIMENTAL_NATIVE_XPATH_CACHE: '1'
       MIDSCENE_REPORT_QUIET: 'true'
       MIDSCENE_RUN_DIR: ${{ github.workspace }}/midscene_run
       MIDSCENE_ANDROID_DIAGNOSTICS_DIR: ${{ github.workspace }}/midscene_run/android-emulator-diagnostics
@@ -131,7 +133,7 @@ jobs:
           pnpm exec nx test @midscene/android --skip-nx-cache 2>&1 |
             tee "$MIDSCENE_ANDROID_DIAGNOSTICS_DIR/unit-tests.log"
 
-      - name: Run Android Emulator smoke and TodoMVC tests
+      - name: Run Android Emulator smoke, cache, and TodoMVC tests
         id: emulator-tests
         continue-on-error: true
         timeout-minutes: 35
@@ -183,6 +185,35 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+      - name: Upload Android Emulator cache-hit report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: android-emulator-cache-hit-report
+          path: midscene_run/report/android-emulator-cache-hit-report.html
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Upload Android cache compatibility report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: android-cache-fixture-matrix-report
+          path: midscene_run/report/android-cache-fixture-matrix-report.html
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Upload Android cache compatibility diagnostics
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: android-cache-fixture-matrix-diagnostics
+          path: |
+            midscene_run/diagnostics/android-cache-fixture-matrix
+            midscene_run/log/cache-xpath*.log
+          if-no-files-found: error
+          retention-days: 7
+
       - name: Upload Android TodoMVC report
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
@@ -199,6 +230,15 @@ jobs:
           name: android-emulator-diagnostics
           path: midscene_run/android-emulator-diagnostics
           if-no-files-found: error
+          retention-days: 7
+
+      - name: Upload Android Emulator cache diagnostics
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: android-emulator-cache-diagnostics
+          path: midscene_run/diagnostics/android-emulator-cache
+          if-no-files-found: warn
           retention-days: 7
 
       - name: Check Android validation results

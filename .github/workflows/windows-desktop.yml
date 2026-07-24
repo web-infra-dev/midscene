@@ -351,3 +351,66 @@ jobs:
           if ($failed.Count -gt 0) {
             throw "Windows validation failed: $($failed -join ', ')"
           }
+
+  windows-accessibility-cache:
+    runs-on: windows-2022
+    timeout-minutes: 30
+    env:
+      AI_TEST_TYPE: computer
+      CI: '1'
+      MIDSCENE_EXPERIMENTAL_NATIVE_XPATH_CACHE: '1'
+      MIDSCENE_REPORT_QUIET: 'true'
+      MIDSCENE_RUN_DIR: ${{ github.workspace }}/packages/computer/midscene_run
+      MIDSCENE_WINDOWS_ACCESSIBILITY_CACHE_SMOKE: '1'
+
+    steps:
+    - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+      with:
+        ref: ${{ github.event.inputs.branch || github.ref }}
+
+    - name: Setup pnpm
+      uses: pnpm/action-setup@eae0cfeb286e66ffb5155f1a79b90583a127a68b # v2.4.1
+      with:
+        version: 9.3.0
+
+    - name: Setup Node.js
+      uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+      with:
+        node-version: '24.13.0'
+        cache: 'pnpm'
+
+    - name: Inspect Windows desktop session
+      shell: powershell
+      run: |
+        Add-Type -AssemblyName System.Windows.Forms
+        $process = Get-Process -Id $PID
+        $screen = [System.Windows.Forms.Screen]::PrimaryScreen
+        Write-Host "UserInteractive=$([Environment]::UserInteractive)"
+        Write-Host "SessionId=$($process.SessionId)"
+        Write-Host "PrimaryScreen=$($screen.DeviceName) $($screen.Bounds)"
+        Write-Host "PowerShell=$($PSVersionTable.PSVersion)"
+
+    - name: Install dependencies
+      run: pnpm install --frozen-lockfile --ignore-scripts
+
+    - name: Build project
+      run: pnpm run build:skip-cache
+
+    - name: Run Windows accessibility cache smoke
+      run: pnpm --filter @midscene/computer exec vitest run tests/ai/windows-accessibility-cache.test.ts --retry=0
+
+    - name: Upload Windows accessibility cache-hit report
+      if: always()
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      with:
+        name: windows-accessibility-cache-hit-report
+        path: packages/computer/midscene_run/report/windows-accessibility-cache-hit-report.html
+        if-no-files-found: error
+
+    - name: Upload Windows accessibility diagnostics
+      if: always()
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      with:
+        name: windows-accessibility-cache-diagnostics
+        path: packages/computer/midscene_run/diagnostics/windows-cache
+        if-no-files-found: warn

@@ -2,13 +2,16 @@ import assert from 'node:assert';
 import {
   type ActionScrollParam,
   type DeviceAction,
+  type ElementCacheFeature,
   type InterfaceType,
   type Point,
+  type Rect,
   type Size,
   z,
 } from '@midscene/core';
 import {
   type AbstractInterface,
+  type CacheFeatureOptions,
   type DeviceFrameSource,
   type IOSDeviceInputOpt,
   type IOSDeviceOpt,
@@ -17,6 +20,11 @@ import {
   createDefaultMobileActions,
   defineAction,
 } from '@midscene/core/device';
+import {
+  generateXpathCacheFeature,
+  isNativeXpathCacheEnabled,
+  matchRectByXpathCache,
+} from '@midscene/core/internal/device-cache';
 import { sleep } from '@midscene/core/utils';
 import { DEFAULT_WDA_PORT } from '@midscene/shared/constants';
 import type { ElementInfo } from '@midscene/shared/extractor';
@@ -26,6 +34,7 @@ import { normalizeForComparison } from '@midscene/shared/utils';
 import { WDAManager } from '@midscene/webdriver';
 import { IOSWebDriverClient as WebDriverAgentBackend } from './ios-webdriver-client';
 import { MjpegFrameSource } from './mjpeg-frame-source';
+import { wdaSourceToUiNode } from './wda-source-tree';
 
 // Re-export IOSDeviceOpt and IOSDeviceInputOpt for backward compatibility
 export type { IOSDeviceOpt, IOSDeviceInputOpt } from '@midscene/core/device';
@@ -41,6 +50,12 @@ export type WDAHttpMethod = (typeof WDA_HTTP_METHODS)[number];
 const DEFAULT_WDA_MJPEG_PORT = 9100;
 
 export class IOSDevice implements AbstractInterface {
+  get cacheFeatureOrderPolicy() {
+    return isNativeXpathCacheEnabled()
+      ? ('identity-only' as const)
+      : ('disabled' as const);
+  }
+
   private deviceId: string;
   private devicePixelRatio = 1;
   private devicePixelRatioInitialized = false;
@@ -383,6 +398,60 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
       node: null,
       children: [],
     };
+  }
+
+  async cacheFeatureForPoint(
+    center: [number, number],
+    options?: CacheFeatureOptions,
+  ): Promise<ElementCacheFeature> {
+    if (!isNativeXpathCacheEnabled()) {
+      debugDevice('cacheFeatureForPoint: native xpath cache is disabled');
+      return {};
+    }
+    if (options?.orderSensitive) {
+      debugDevice(
+        'cacheFeatureForPoint: skip order-sensitive native cache feature',
+      );
+      return {};
+    }
+    const xml = await this.wdaBackend.getSource();
+    const root = wdaSourceToUiNode(xml);
+    const feature = generateXpathCacheFeature(
+      root,
+      { x: center[0], y: center[1] },
+      'ios',
+      {
+        targetDescription: options?.targetDescription,
+        expectedRect: options?.expectedRect,
+        excludedTargetTypes: [
+          'XCUIElementTypeApplication',
+          'XCUIElementTypeWindow',
+          'XCUIElementTypeAlert',
+          'XCUIElementTypeSheet',
+        ],
+        stableAttrs: ['accessibility-id'],
+        textAttrs: ['name', 'label', 'value'],
+      },
+    );
+    if (!feature) {
+      debugDevice(
+        'cacheFeatureForPoint: no verifiable xpath candidate at point %o',
+        center,
+      );
+      return {};
+    }
+    return feature;
+  }
+
+  async rectMatchesCacheFeature(feature: ElementCacheFeature): Promise<Rect> {
+    if (!isNativeXpathCacheEnabled()) {
+      throw new Error('Native XPath cache is disabled');
+    }
+    const xml = await this.wdaBackend.getSource();
+    const root = wdaSourceToUiNode(xml);
+    const { xpath, rect } = matchRectByXpathCache(root, feature, 'ios');
+    debugDevice('rectMatchesCacheFeature: hit xpath %s -> %o', xpath, rect);
+    return rect;
   }
 
   private async initializeDevicePixelRatio(): Promise<void> {

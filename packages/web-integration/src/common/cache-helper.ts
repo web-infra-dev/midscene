@@ -19,10 +19,19 @@ export const sanitizeXpaths = (xpaths: unknown): string[] => {
   );
 };
 
+export const getWebCacheXpaths = (feature: ElementCacheFeature): string[] => {
+  const kind = (feature as { kind?: unknown }).kind;
+  if (kind !== undefined && kind !== 'explicit-xpath') {
+    throw new Error(`Unsupported Web cache feature kind: ${String(kind)}`);
+  }
+  return sanitizeXpaths((feature as WebElementCacheFeature).xpaths);
+};
+
 // Cache feature extraction options interface
 export interface CacheFeatureOptions {
   targetDescription?: string;
   modelRuntime?: ModelRuntime;
+  orderSensitive?: boolean;
 }
 
 // Shared logic for judging isOrderSensitive
@@ -30,6 +39,9 @@ export async function judgeOrderSensitive(
   options: CacheFeatureOptions | undefined,
   debug: DebugFunction,
 ): Promise<boolean> {
+  if (options?.orderSensitive !== undefined) {
+    return options.orderSensitive;
+  }
   if (!options?.targetDescription || !options?.modelRuntime) {
     return false;
   }

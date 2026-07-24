@@ -14,6 +14,7 @@ export {
   saveBase64Image,
   paddingToMatchBlockByBase64,
   cropByRect,
+  imagePixelAtPoint,
   scaleImage,
   localImg2Base64,
   httpImg2Base64,
@@ -24,6 +25,7 @@ export {
   normalizeBase64Image,
   normalizeScreenshotBase64,
   type NormalizeScreenshotBase64Options,
+  type ImagePixel,
 } from './transform';
 export {
   processImageElementInfo,

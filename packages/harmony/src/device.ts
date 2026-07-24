@@ -3,14 +3,17 @@ import fs from 'node:fs';
 import {
   type ActionScrollParam,
   type DeviceAction,
+  type ElementCacheFeature,
   type InterfaceType,
   type LocateResultElement,
   type Point,
+  type Rect,
   type Size,
   z,
 } from '@midscene/core';
 import {
   type AbstractInterface,
+  type CacheFeatureOptions,
   type HarmonyDeviceInputOpt as CoreHarmonyDeviceInputOpt,
   type HarmonyDeviceOpt as CoreHarmonyDeviceOpt,
   type MobileInputPrimitives,
@@ -18,12 +21,18 @@ import {
   createDefaultMobileActions,
   defineAction,
 } from '@midscene/core/device';
+import {
+  generateXpathCacheFeature,
+  isNativeXpathCacheEnabled,
+  matchRectByXpathCache,
+} from '@midscene/core/internal/device-cache';
 import { getTmpFile, sleep } from '@midscene/core/utils';
 import type { ElementInfo } from '@midscene/shared/extractor';
 import { createImgBase64ByFormat } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { normalizeForComparison, repeat } from '@midscene/shared/utils';
 import { HdcClient } from './hdc';
+import { uitestJsonToUiNode } from './uitest-tree';
 
 type KeyboardDismissStrategy = 'esc-first' | 'back-first';
 
@@ -139,6 +148,12 @@ const keyNameAliasMap: Record<string, string> = {
 } as const;
 
 export class HarmonyDevice implements AbstractInterface {
+  get cacheFeatureOrderPolicy() {
+    return isNativeXpathCacheEnabled()
+      ? ('identity-only' as const)
+      : ('disabled' as const);
+  }
+
   private deviceId: string;
   private hdc: HdcClient | null = null;
   private connecting: Promise<HdcClient> | null = null;
@@ -420,6 +435,60 @@ export class HarmonyDevice implements AbstractInterface {
     const screenInfo = await hdc.getScreenInfo();
     this.cachedScreenSize = screenInfo;
     return screenInfo;
+  }
+
+  async cacheFeatureForPoint(
+    center: [number, number],
+    options?: CacheFeatureOptions,
+  ): Promise<ElementCacheFeature> {
+    if (!isNativeXpathCacheEnabled()) {
+      debugDevice('cacheFeatureForPoint: native xpath cache is disabled');
+      return {};
+    }
+    if (options?.orderSensitive) {
+      debugDevice(
+        'cacheFeatureForPoint: skip order-sensitive native cache feature',
+      );
+      return {};
+    }
+    const hdc = await this.getHdc();
+    const json = await hdc.dumpLayout();
+    const root = uitestJsonToUiNode(json);
+    const feature = generateXpathCacheFeature(
+      root,
+      { x: center[0], y: center[1] },
+      'harmony',
+      {
+        targetDescription: options?.targetDescription,
+        expectedRect: options?.expectedRect,
+        excludedTargetTypes: ['RootDecor', 'WindowScene', 'Dialog'],
+        // ArkUI exposes inspectorKey via the `key` attribute in dumpLayout;
+        // some component libraries also surface `id`. Prefer key when both
+        // exist.
+        stableAttrs: ['key', 'id', 'inspectorKey'],
+        textAttrs: ['text', 'description', 'accessibilityText'],
+      },
+    );
+    if (!feature) {
+      debugDevice(
+        'cacheFeatureForPoint: no verifiable xpath candidate at point %o',
+        center,
+      );
+      return {};
+    }
+    return feature;
+  }
+
+  async rectMatchesCacheFeature(feature: ElementCacheFeature): Promise<Rect> {
+    if (!isNativeXpathCacheEnabled()) {
+      throw new Error('Native XPath cache is disabled');
+    }
+    const hdc = await this.getHdc();
+    const json = await hdc.dumpLayout();
+    const root = uitestJsonToUiNode(json);
+    const { xpath, rect } = matchRectByXpathCache(root, feature, 'harmony');
+    debugDevice('rectMatchesCacheFeature: hit xpath %s -> %o', xpath, rect);
+    return rect;
   }
 
   async size(): Promise<Size> {

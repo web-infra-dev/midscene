@@ -31,7 +31,7 @@ concurrency:
 jobs:
   macos-desktop:
     runs-on: macos-15-intel
-    timeout-minutes: 50
+    timeout-minutes: 60
     env:
       CI: '1'
       FORCE_COLOR: '0'
@@ -45,7 +45,6 @@ jobs:
       MIDSCENE_RUN_DIR: ${{ github.workspace }}/midscene_run
       MIDSCENE_MACOS_DIAGNOSTICS_DIR: ${{ github.workspace }}/midscene_run/macos-desktop-diagnostics
       MIDSCENE_TODO_DIAGNOSTICS_DIR: ${{ github.workspace }}/midscene_run/macos-desktop-diagnostics
-
     steps:
       - name: Checkout source
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
@@ -153,6 +152,20 @@ jobs:
           pnpm exec nx test @midscene/computer --skip-nx-cache -- tests/ai/macos-desktop-smoke.test.ts --retry=0 2>&1 |
             tee "$MIDSCENE_MACOS_DIAGNOSTICS_DIR/live-smoke.log"
 
+      - name: Run macOS accessibility cache smoke
+        id: cache-smoke
+        continue-on-error: true
+        timeout-minutes: 10
+        shell: bash
+        env:
+          AI_TEST_TYPE: computer
+          MIDSCENE_EXPERIMENTAL_NATIVE_XPATH_CACHE: '1'
+          MIDSCENE_MACOS_ACCESSIBILITY_CACHE_SMOKE: '1'
+        run: |
+          set -o pipefail
+          pnpm exec nx test @midscene/computer --skip-nx-cache -- tests/ai/macos-accessibility-cache.test.ts --retry=0 2>&1 |
+            tee "$MIDSCENE_MACOS_DIAGNOSTICS_DIR/cache-smoke.log"
+
       - name: Run macOS TodoMVC AI test
         id: todo-mvc
         continue-on-error: true
@@ -173,6 +186,7 @@ jobs:
           PACKAGE_OUTCOME: ${{ steps.package-smoke.outcome }}
           UNIT_OUTCOME: ${{ steps.unit-tests.outcome }}
           LIVE_OUTCOME: ${{ steps.live-smoke.outcome }}
+          CACHE_OUTCOME: ${{ steps.cache-smoke.outcome }}
           TODO_OUTCOME: ${{ steps.todo-mvc.outcome }}
         run: |
           mkdir -p "$MIDSCENE_MACOS_DIAGNOSTICS_DIR"
@@ -184,6 +198,7 @@ jobs:
               packageSmoke: process.env.PACKAGE_OUTCOME,
               unitTests: process.env.UNIT_OUTCOME,
               liveSmoke: process.env.LIVE_OUTCOME,
+              cacheSmoke: process.env.CACHE_OUTCOME,
               todoMvc: process.env.TODO_OUTCOME,
             };
             fs.writeFileSync(
@@ -198,6 +213,15 @@ jobs:
         with:
           name: macos-desktop-smoke-report
           path: midscene_run/report/macos-desktop-smoke.html
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Upload macOS accessibility cache-hit report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: macos-accessibility-cache-hit-report
+          path: midscene_run/report/macos-accessibility-cache-hit-report.html
           if-no-files-found: error
           retention-days: 7
 
@@ -219,6 +243,15 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+      - name: Upload macOS accessibility cache diagnostics
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: macos-accessibility-cache-diagnostics
+          path: midscene_run/diagnostics/macos-cache
+          if-no-files-found: warn
+          retention-days: 7
+
       - name: Check macOS validation results
         if: always()
         shell: bash
@@ -228,6 +261,7 @@ jobs:
           [[ '${{ steps.package-smoke.outcome }}' == success ]] || failed+=("package smoke")
           [[ '${{ steps.unit-tests.outcome }}' == success ]] || failed+=("unit tests")
           [[ '${{ steps.live-smoke.outcome }}' == success ]] || failed+=("live desktop smoke")
+          [[ '${{ steps.cache-smoke.outcome }}' == success ]] || failed+=("cache smoke")
           [[ '${{ steps.todo-mvc.outcome }}' == success ]] || failed+=("TodoMVC")
           if ((${#failed[@]} > 0)); then
             printf 'macOS validation failed: %s\n' "${failed[*]}" >&2

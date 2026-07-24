@@ -1,5 +1,6 @@
 import type { DeviceAction, ExecutorContext } from '@midscene/core';
 import { DEFAULT_WDA_PORT } from '@midscene/shared/constants';
+import { MIDSCENE_EXPERIMENTAL_NATIVE_XPATH_CACHE } from '@midscene/shared/env';
 import { WDAManager } from '@midscene/webdriver';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { IOSDevice } from '../../src/device';
@@ -24,6 +25,7 @@ describe('IOSDevice', () => {
   const MockedWdaManager = vi.mocked(WDAManager);
 
   beforeEach(async () => {
+    vi.stubEnv(MIDSCENE_EXPERIMENTAL_NATIVE_XPATH_CACHE, '1');
     // Setup mock WDA client
     mockWdaClient = {
       createSession: vi
@@ -47,6 +49,11 @@ describe('IOSDevice', () => {
       terminateApp: vi.fn().mockResolvedValue(undefined),
       openUrl: vi.fn().mockResolvedValue(undefined),
       dismissKeyboard: vi.fn().mockResolvedValue(true),
+      getSource: vi
+        .fn()
+        .mockResolvedValue(
+          '<XCUIElementTypeApplication x="0" y="0" width="100" height="100"/>',
+        ),
       makeRequest: vi.fn().mockResolvedValue(null),
       sessionInfo: {
         sessionId: 'test-session-id',
@@ -87,6 +94,7 @@ describe('IOSDevice', () => {
     if (device) {
       await device.destroy();
     }
+    vi.unstubAllEnvs();
   });
 
   describe('Constructor', () => {
@@ -157,6 +165,62 @@ describe('IOSDevice', () => {
       expect(description).toContain('UDID: test-device-udid');
       expect(description).toContain('Name: Test Device');
       expect(description).toContain('Model: iPhone 15');
+    });
+  });
+
+  describe('xpath cache', () => {
+    it('scopes generated entries to iOS', async () => {
+      mockWdaClient.getSource.mockResolvedValueOnce(`
+        <XCUIElementTypeApplication x="0" y="0" width="375" height="812">
+          <XCUIElementTypeWindow x="0" y="0" width="375" height="812">
+            <XCUIElementTypeButton name="login_btn" label="Login" x="20" y="40" width="100" height="44" />
+          </XCUIElementTypeWindow>
+        </XCUIElementTypeApplication>
+      `);
+
+      await expect(
+        device.cacheFeatureForPoint([70, 62]),
+      ).resolves.toMatchObject({
+        kind: 'native-xpath',
+        schemaVersion: 1,
+        platform: 'ios',
+        target: { type: 'XCUIElementTypeButton', value: 'login_btn' },
+      });
+    });
+
+    it('skips order-sensitive targets before reading the hierarchy', async () => {
+      await expect(
+        device.cacheFeatureForPoint([70, 142], { orderSensitive: true }),
+      ).resolves.toEqual({});
+      expect(mockWdaClient.getSource).not.toHaveBeenCalled();
+    });
+
+    it('does not read the hierarchy when native xpath cache is disabled', async () => {
+      vi.stubEnv(MIDSCENE_EXPERIMENTAL_NATIVE_XPATH_CACHE, '0');
+
+      await expect(device.cacheFeatureForPoint([10, 20])).resolves.toEqual({});
+      await expect(device.rectMatchesCacheFeature({})).rejects.toThrow(
+        'Native XPath cache is disabled',
+      );
+      expect(mockWdaClient.getSource).not.toHaveBeenCalled();
+    });
+
+    it('does not cache a window when its inner target is not exposed', async () => {
+      mockWdaClient.getSource.mockResolvedValueOnce(`
+        <XCUIElementTypeApplication name="Demo" x="0" y="0" width="375" height="812">
+          <XCUIElementTypeWindow name="Demo" x="0" y="0" width="375" height="812" />
+        </XCUIElementTypeApplication>
+      `);
+
+      await expect(device.cacheFeatureForPoint([10, 20])).resolves.toEqual({});
+    });
+
+    it('propagates WDA source failures', async () => {
+      mockWdaClient.getSource.mockRejectedValueOnce(new Error('source failed'));
+
+      await expect(device.cacheFeatureForPoint([10, 20])).rejects.toThrow(
+        'source failed',
+      );
     });
   });
 

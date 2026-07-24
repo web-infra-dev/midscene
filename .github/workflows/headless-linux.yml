@@ -29,6 +29,90 @@ env:
   ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
 
 jobs:
+  linux-accessibility-cache:
+    runs-on: ubuntu-22.04
+    env:
+      CI: "1"
+      ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
+      MIDSCENE_EXPERIMENTAL_NATIVE_XPATH_CACHE: "1"
+      MIDSCENE_REPORT_QUIET: "true"
+      MIDSCENE_RUN_DIR: ${{ github.workspace }}/packages/computer/midscene_run
+
+    steps:
+    - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+      with:
+        ref: ${{ github.event.inputs.branch || github.ref }}
+
+    - name: Setup pnpm
+      uses: pnpm/action-setup@eae0cfeb286e66ffb5155f1a79b90583a127a68b # v2.4.1
+      with:
+        version: 9.3.0
+
+    - name: Setup Node.js
+      uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+      with:
+        node-version: '24.13.0'
+        cache: 'pnpm'
+
+    - name: Install Linux accessibility dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          at-spi2-core \
+          dbus-x11 \
+          gir1.2-atspi-2.0 \
+          gir1.2-gtk-3.0 \
+          gsettings-desktop-schemas \
+          imagemagick \
+          libatk-bridge2.0-0 \
+          libglib2.0-bin \
+          libpng16-16 \
+          libx11-6 \
+          libxinerama1 \
+          libxkbcommon-x11-0 \
+          libxtst6 \
+          openbox \
+          python3-gi \
+          x11-xserver-utils \
+          xvfb
+
+    - name: Install dependencies
+      run: pnpm install --frozen-lockfile
+
+    - name: Build project
+      run: pnpm run build:skip-cache
+
+    - name: Verify Python AT-SPI binding
+      run: |
+        python3 -c "import gi; gi.require_version('Atspi', '2.0'); from gi.repository import Atspi; Atspi.init(); print(Atspi.get_desktop_count())"
+
+    - name: Run Linux accessibility cache smoke
+      timeout-minutes: 10
+      run: |
+        dbus-run-session -- \
+          xvfb-run -a --server-args="-screen 0 1280x720x24 -ac" \
+          bash -euo pipefail -c '
+            gsettings set org.gnome.desktop.interface toolkit-accessibility true
+            openbox > /tmp/midscene-openbox.log 2>&1 &
+            openbox_pid=$!
+            trap "kill ${openbox_pid} 2>/dev/null || true" EXIT
+            sleep 2
+            export GDK_BACKEND=x11
+            export NO_AT_BRIDGE=0
+            export MIDSCENE_LINUX_ACCESSIBILITY_CACHE_SMOKE=1
+            export AI_TEST_TYPE=computer
+            pnpm --filter @midscene/computer exec vitest run \
+              tests/ai/linux-accessibility-cache.test.ts
+          '
+
+    - name: Upload Linux accessibility cache-hit report
+      if: always()
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      with:
+        name: linux-accessibility-cache-hit-report
+        path: packages/computer/midscene_run/report/linux-accessibility-cache-hit-report.html
+        if-no-files-found: error
+
   headless-linux-ai-todo:
     runs-on: ubuntu-22.04
     env:
