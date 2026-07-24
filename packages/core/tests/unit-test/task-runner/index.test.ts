@@ -7,6 +7,7 @@ import type {
   ExecutionTaskPlanningLocate,
   ExecutionTaskPlanningLocateApply,
   UIContext,
+  UITreeSnapshot,
 } from '@/index';
 import Service from '@/service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -144,6 +145,97 @@ describe(
       expect(dump.logTime).toBeTruthy();
 
       expect(flushResult?.output).toBe(flushResultData);
+    });
+
+    it('stores a pruned tree only on Locate tasks and isolates context reuse', async () => {
+      const uiTree: UITreeSnapshot = {
+        platform: 'android',
+        capturedAt: 1,
+        xpathPolicy: {
+          stableAttrs: ['resource-id'],
+          textAttrs: ['content-desc', 'text'],
+          excludedTargetTypes: [],
+          max: 5,
+        },
+        root: {
+          type: 'Window',
+          attrs: {},
+          bounds: { left: 0, top: 0, width: 200, height: 200 },
+          children: [
+            {
+              type: 'Card',
+              attrs: { 'resource-id': 'wallet-card' },
+              bounds: { left: 10, top: 10, width: 100, height: 100 },
+              children: [
+                {
+                  type: 'Button',
+                  attrs: { 'resource-id': 'pay-button', text: 'Pay' },
+                  bounds: { left: 20, top: 20, width: 40, height: 40 },
+                  children: [
+                    {
+                      type: 'TextView',
+                      attrs: { text: 'Pay' },
+                      bounds: { left: 35, top: 35, width: 10, height: 10 },
+                      children: [],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      };
+      const contextBuilder = vi.fn<
+        (task?: ExecutionTaskApply) => Promise<UIContext>
+      >(async () => ({
+        screenshot: ScreenshotItem.create('', Date.now()),
+        shotSize: { width: 400, height: 400 },
+        shrunkShotToLogicalRatio: 2,
+        uiTree,
+      }));
+      const locateTask: ExecutionTaskPlanningLocateApply = {
+        type: 'Planning',
+        subType: 'Locate',
+        param: { prompt: 'Pay' },
+        executor: async () => ({
+          output: {
+            element: {
+              center: [80, 80],
+              rect: { left: 40, top: 40, width: 80, height: 80 },
+              description: 'Pay',
+            },
+          },
+        }),
+      };
+      const actionTask: ExecutionTaskActionApply = {
+        type: 'Action Space',
+        executor: async () => {},
+      };
+      const runner = new TaskRunner('tree-scope', contextBuilder, {
+        tasks: [locateTask, actionTask],
+      });
+
+      await runner.flush();
+
+      expect(runner.tasks[0].uiContext?.uiTree?.root).toMatchObject({
+        type: 'Card',
+        attrs: { 'resource-id': 'wallet-card' },
+        children: [
+          {
+            type: 'Button',
+            attrs: { 'resource-id': 'pay-button' },
+            children: [],
+          },
+        ],
+      });
+      expect(runner.tasks[1].uiContext?.uiTree).toBeUndefined();
+      expect(contextBuilder.mock.calls[0][0]).toMatchObject({
+        type: 'Planning',
+        subType: 'Locate',
+      });
+      expect(contextBuilder.mock.calls[1][0]).toMatchObject({
+        type: 'Action Space',
+      });
     });
 
     it('insight - init and append', async () => {

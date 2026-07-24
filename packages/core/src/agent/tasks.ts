@@ -165,10 +165,16 @@ export class TaskExecutor {
   ) {
     return new ExecutionSession(
       title,
-      () =>
+      (task) =>
         options?.uiContext
           ? Promise.resolve(options.uiContext)
-          : Promise.resolve(this.service.contextRetrieverFn()),
+          : Promise.resolve(
+              this.service.contextRetrieverFn(
+                task?.type === 'Planning' && task.subType === 'Locate'
+                  ? 'locate'
+                  : undefined,
+              ),
+            ),
       {
         onTaskStart: this.onTaskStartCallback,
         tasks: options?.tasks,
