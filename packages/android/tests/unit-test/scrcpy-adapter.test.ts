@@ -24,7 +24,8 @@ const createMockManager = () => ({
   validateEnvironment: vi.fn().mockResolvedValue(undefined),
   ensureConnected: vi.fn().mockResolvedValue(undefined),
   isConnected: vi.fn().mockReturnValue(false),
-  getScreenshotJpeg: vi.fn().mockResolvedValue(Buffer.from('fake-png')),
+  getScreenshotWebp: vi.fn().mockResolvedValue(Buffer.from('fake-webp')),
+  decodeRawKeyframeToWebp: vi.fn().mockResolvedValue(Buffer.from('fake-webp')),
   getResolution: vi.fn().mockReturnValue(null),
   disconnect: vi.fn().mockResolvedValue(undefined),
 });
@@ -44,7 +45,7 @@ vi.mock('../../src/scrcpy-manager', async (importOriginal) => {
 vi.mock('@midscene/shared/img', () => ({
   createImgBase64ByFormat: vi
     .fn()
-    .mockReturnValue('data:image/png;base64,test'),
+    .mockReturnValue('data:image/webp;base64,test'),
 }));
 
 const defaultDeviceInfo: DevicePhysicalInfo = {
@@ -336,8 +337,25 @@ describe('ScrcpyDeviceAdapter', () => {
       (adapter as any).manager = currentMockManager;
 
       const result = await adapter.screenshotBase64(defaultDeviceInfo);
-      expect(result).toBe('data:image/png;base64,test');
-      expect(currentMockManager.getScreenshotJpeg).toHaveBeenCalledTimes(1);
+      expect(result).toBe('data:image/webp;base64,test');
+      expect(currentMockManager.getScreenshotWebp).toHaveBeenCalledTimes(1);
+    });
+
+    it('decodes sampled H.264 keyframes directly to WebP data URLs', async () => {
+      const adapter = new ScrcpyDeviceAdapter('device', undefined);
+      (adapter as any).manager = currentMockManager;
+      const frame = {
+        header: Buffer.from([0x67]),
+        data: Buffer.from([0x65]),
+        capturedAt: 123,
+      };
+
+      await expect(adapter.decodeRawKeyframeToWebpBase64(frame)).resolves.toBe(
+        'data:image/webp;base64,test',
+      );
+      expect(currentMockManager.decodeRawKeyframeToWebp).toHaveBeenCalledWith(
+        frame,
+      );
     });
   });
 
@@ -407,13 +425,13 @@ describe('ScrcpyDeviceAdapter', () => {
       await expect(adapter.screenshotBase64(defaultDeviceInfo)).rejects.toThrow(
         /retry is cooling down/,
       );
-      expect(currentMockManager.getScreenshotJpeg).not.toHaveBeenCalled();
+      expect(currentMockManager.getScreenshotWebp).not.toHaveBeenCalled();
 
       vi.advanceTimersByTime(60_000);
       await expect(adapter.screenshotBase64(defaultDeviceInfo)).resolves.toBe(
-        'data:image/png;base64,test',
+        'data:image/webp;base64,test',
       );
-      expect(currentMockManager.getScreenshotJpeg).toHaveBeenCalledTimes(1);
+      expect(currentMockManager.getScreenshotWebp).toHaveBeenCalledTimes(1);
       expect(adapter.getStatus().lastError).toBeNull();
     });
   });

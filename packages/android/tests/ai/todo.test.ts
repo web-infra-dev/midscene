@@ -224,14 +224,13 @@ describe('Test todo list', () => {
         const resolvedDiagnosticsDir = path.resolve(diagnosticsDir);
         await mkdir(resolvedDiagnosticsDir, { recursive: true });
         await Promise.all([
-          agent.interface
-            .screenshotBase64()
-            .then((base64) =>
-              writeFile(
-                path.join(resolvedDiagnosticsDir, 'todo-final.png'),
-                screenshotBuffer(base64),
-              ),
-            ),
+          agent.interface.screenshotBase64().then((base64) => {
+            expect(base64).toMatch(/^data:image\/webp;base64,/);
+            return writeFile(
+              path.join(resolvedDiagnosticsDir, 'todo-final.webp'),
+              screenshotBuffer(base64),
+            );
+          }),
           writeFile(
             path.join(resolvedDiagnosticsDir, 'todo-agent-dump.json'),
             `${agent.dumpDataString()}\n`,

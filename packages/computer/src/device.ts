@@ -16,7 +16,10 @@ import {
   defineActionsFromInputPrimitives,
 } from '@midscene/core/device';
 import { sleep } from '@midscene/core/utils';
-import { createImgBase64ByFormat } from '@midscene/shared/img';
+import {
+  canonicalizeScreenshotBase64,
+  createImgBase64ByFormat,
+} from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import screenshot from 'screenshot-desktop';
 import {
@@ -1156,7 +1159,9 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
         if (attempt > 1) {
           debugDevice(`Screenshot succeeded on attempt ${attempt}`);
         }
-        return createImgBase64ByFormat('png', buffer.toString('base64'));
+        return canonicalizeScreenshotBase64(
+          createImgBase64ByFormat('png', buffer.toString('base64')),
+        );
       } catch (error) {
         lastRawMessage = error instanceof Error ? error.message : String(error);
         const isMacTransient =
@@ -1208,7 +1213,7 @@ Original error: ${lastRawMessage}`,
    * separate Windows concern to be addressed in a follow-up with real-device
    * verification.
    */
-  private screenshotViaPowershell(): string {
+  private async screenshotViaPowershell(): Promise<string> {
     const deviceName = this.displayId ? String(this.displayId) : '';
     // A requested displayId that cannot be matched (stale saved id, unplugged
     // monitor) must fail fast rather than silently capturing the primary
@@ -1247,7 +1252,7 @@ $g.Dispose(); $bmp.Dispose(); $ms.Dispose()
         'Failed to take screenshot on Windows: PowerShell returned no image data',
       );
     }
-    return createImgBase64ByFormat('png', body);
+    return canonicalizeScreenshotBase64(createImgBase64ByFormat('png', body));
   }
 
   async size(): Promise<Size> {

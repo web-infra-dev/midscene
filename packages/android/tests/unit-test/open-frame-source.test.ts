@@ -117,7 +117,7 @@ describe('AndroidDevice frame-source capability', () => {
         listener = cb;
         return unsubscribe;
       }),
-      decodeRawKeyframeToJpegBase64: decode,
+      decodeRawKeyframeToWebpBase64: decode,
     };
     (device as any).getDevicePhysicalInfo = vi.fn().mockResolvedValue({});
 
