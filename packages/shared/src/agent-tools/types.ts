@@ -84,9 +84,10 @@ export interface ActionSpaceItem {
  * Structural shape compatible with @midscene/core `TUserPrompt`.
  * Declared locally to avoid a circular dep on `@midscene/core` from `@midscene/shared`.
  *
- * Currently consumed only by the `assert` tool in `generateCommonTools`.
- * `aiAction` and `aiWaitFor` stay string-only at the CLI surface because the
- * tools generator does not yet expose multimodal entry points for them.
+ * Consumed by the `assert` and `act` tools in `generateCommonTools`, both of
+ * which forward reference images to core (`aiAssert` / `aiAct`). `aiWaitFor`
+ * stays string-only at the CLI surface because the tools generator does not
+ * yet expose a multimodal entry point for it.
  */
 export type UserPromptLike =
   | string
@@ -148,7 +149,7 @@ export interface BaseAgent {
     params?: unknown,
   ) => Promise<unknown>;
   aiAction?: (
-    description: string,
+    description: UserPromptLike,
     params?: Record<string, unknown>,
   ) => Promise<unknown>;
   aiWaitFor?: (
