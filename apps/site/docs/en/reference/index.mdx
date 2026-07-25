@@ -41,9 +41,13 @@ All agents share these base options:
   - `cacheDir` — Cache directory. When set, Midscene writes cache files here instead of `<MIDSCENE_RUN_DIR>/cache`. Relative paths are resolved from the current working directory, not from `MIDSCENE_RUN_DIR`. This lets you use separate cache, log, and report directories.
 - `cacheId: string | undefined` (deprecated) — Legacy cache ID for backward compatibility. Prefer `cache.id`.
 - `aiActContext: string` — Background context sent to the AI model with `agent.aiAct()` calls. For example: `'Close the cookie consent dialog first if it exists.'` Default: `undefined`. This option was previously named `aiActionContext`; the legacy name remains supported.
+- `modelConfig: Record<string, string | number>` — Model configuration for this Agent. When provided, it replaces model-related system environment variables for this Agent. See the detailed configuration section below.
 - `replanningCycleLimit: number` — Maximum number of `aiAct` replanning cycles. Default: `20` for standard models, `40` for UI-TARS models, and `100` for AutoGLM models. Prefer this Agent option; `MIDSCENE_REPLANNING_CYCLE_LIMIT` remains available only for backward compatibility.
 - `waitAfterAction: number` — Delay in milliseconds after each action. This gives the UI time to settle before the next action. Default: `300`.
+- `useDeviceTime: boolean` — Whether task timestamps use the target device's local time. The target interface must implement `getDeviceLocalTimeString`; otherwise, Midscene logs a warning and uses the runtime system time. Default: `false`.
 - `onTaskStartTip: (tip: string) => void | Promise<void>` — Optional hook called before each task begins. It receives a human-readable task summary. Default: `undefined`.
+- `createOpenAIClient: (openai, options) => Promise<OpenAI | undefined>` — Optional factory for wrapping the OpenAI client with observability or custom middleware. See the detailed example below.
+- `onLLMUsage: (usage: AIUsageInfo) => void` — Optional callback invoked once for each LLM call when usage data becomes available. Use it for real-time cost and usage tracking.
 - `outputFormat: 'single-html' | 'html-and-external-assets'` — Report output format. `'single-html'` embeds all screenshots as base64 in one HTML file and uses `reportFileName` as the file name. `'html-and-external-assets'` saves screenshots as separate PNG files and uses `reportFileName` as the output directory. Default: `'single-html'`.
 
   Reports created with `'html-and-external-assets'` must be served over HTTP; they cannot be opened through the `file://` protocol because browsers block the relative asset requests. For local testing, open the report directory and run one of these commands:
@@ -789,7 +793,7 @@ function aiQuery<T>(dataDemand: string | object, options?: object): Promise<T>;
 
 - Parameters:
 
-  - `dataDemand: T`: A description of the expected data and its return format.
+  - `dataDemand: string | object` — A description of the expected data and its return format.
   - `options?: object` — Optional configuration:
     - `domIncluded?: boolean | 'visible-only'` — Whether to include simplified DOM data, which can expose attributes such as image URLs. Use `'visible-only'` to include only visible elements. Default: `false`.
     - `screenshotIncluded?: boolean` — Whether to include a screenshot. Default: `true`.
@@ -1021,7 +1025,7 @@ function aiLocate(
     height: number;
   };
   center: [number, number];
-  dpr: number; // device pixel ratio
+  dpr?: number; // Web only: device pixel ratio
 }>;
 ```
 
@@ -1040,6 +1044,7 @@ function aiLocate(
   - Some models only support point grounding rather than boundary grounding. In those cases, such as AutoGLM, `rect` will be a small `8x8` box containing the element center instead of the true element boundary.
   - Because `rect` can vary significantly depending on model capability, it is not recommended to rely too heavily on this field for strict boundary semantics.
   - If you need a stable click target, prefer the `center` field.
+  - `dpr` is a Web-only compatibility field. It is the ratio between physical screenshot pixels and logical CSS pixels. Other Agent types do not guarantee this field.
 
 - Examples:
 

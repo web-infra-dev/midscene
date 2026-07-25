@@ -43,9 +43,13 @@ Midscene 针对每个不同环境都有对应的 Agent。每个 Agent 的构造�
   - `cacheDir`：可选缓存目录路径。配置后，缓存文件会写入该目录，而不是 `<MIDSCENE_RUN_DIR>/cache`。相对路径会基于当前工作目录解析，而不是基于 `MIDSCENE_RUN_DIR`。这样可以把缓存、日志和报告目录拆开。
 - `cacheId: string | undefined`（已废弃）：仅用于向后兼容。推荐使用 `cache.id`。
 - `aiActContext: string`: 调用 `agent.aiAct()` 时，发送给 AI 模型的背景知识，比如 "有 cookie 对话框时先关闭它"，默认值为空。此前名为 `aiActionContext`，旧名称仍然兼容。
+- `modelConfig: Record<string, string | number>`：当前 Agent 的模型配置。传入该参数后，当前 Agent 不再读取系统环境变量中的模型配置。详细用法见下文。
 - `replanningCycleLimit: number`: `aiAct` 的最大重规划次数。标准模型默认 20，UI-TARS 模型默认 40，AutoGLM 模型默认 100。推荐通过 Agent 入参设置；`MIDSCENE_REPLANNING_CYCLE_LIMIT` 环境变量仅作兼容读取。
 - `waitAfterAction: number`: 每次动作执行后的等待时间（毫秒）。这让 UI 有时间稳定，然后再执行下一个动作。默认值为 300 毫秒。
+- `useDeviceTime: boolean`：是否使用目标设备的本地时间记录任务时间。目标接口必须实现 `getDeviceLocalTimeString`。如果未实现，Midscene 会输出警告并改用运行环境的系统时间。默认值为 `false`。
 - `onTaskStartTip: (tip: string) => void | Promise<void>`：可选回调，在每个子任务执行开始前收到一条可读的任务描述提示。默认值为 undefined。
+- `createOpenAIClient: (openai, options) => Promise<OpenAI | undefined>`：可选的 OpenAI 客户端包装函数，可用于接入可观测性工具或自定义中间件。详细示例见下文。
+- `onLLMUsage: (usage: AIUsageInfo) => void`：可选回调。每次大模型调用的用量信息就绪后，Midscene 会调用一次该函数，可用于实时统计用量和成本。
 - `outputFormat: 'single-html' | 'html-and-external-assets'`: 控制报告的生成格式。`'single-html'`（默认）将所有截图作为 base64 内嵌到单个 HTML 文件中，并把 `reportFileName` 作为 HTML 文件名。`'html-and-external-assets'` 将截图保存为独立的 PNG 文件到子目录，并把 `reportFileName` 作为该目录名，适用于报告文件过大的场景。**注意**：使用 `'html-and-external-assets'` 时，报告必须通过 HTTP 服务器或 CDN 地址访问，无法直接使用 `file://` 协议打开。这是因为浏览器的 CORS（跨源资源共享）限制会阻止从 file 协议加载相对路径的本地图片。如需在本地测试，可在报告目录下启动简易的 HTTP 服务器。进入报告目录后运行以下命令之一：
   - 使用 Node.js：`npx serve`
   - 使用 Python：`python -m http.server` 或 `python3 -m http.server`
@@ -776,7 +780,7 @@ function aiQuery<T>(dataDemand: string | object, options?: object): Promise<T>;
 
 - 参数：
 
-  - `dataDemand: T`: 描述预期的返回值和格式。
+  - `dataDemand: string | object`：描述预期的返回值和格式。
   - `options?: object` - 可选，一个配置对象，包含：
     - `domIncluded?: boolean | 'visible-only'` - 是否向模型发送精简后的 DOM 信息，一般用于提取 UI 中不可见的属性，比如图片的链接。如果设置为 `'visible-only'`，则只发送可见的元素。默认值为 false。
     - `screenshotIncluded?: boolean` - 是否向模型发送截图。默认值为 true。
@@ -1015,7 +1019,7 @@ function aiLocate(
     height: number;
   };
   center: [number, number];
-  dpr: number; // device pixel ratio
+  dpr?: number; // 仅 Web：设备像素比
 }>;
 ```
 
@@ -1034,6 +1038,7 @@ function aiLocate(
   - 有些模型只支持按点定位，不支持按元素边界定位。在这种情况下，例如 AutoGLM，这里的 `rect` 会退化成一个包含元素中心的 `8x8` 小方块，而不是真实的元素边界。
   - 由于 `rect` 的表现会明显受底层模型能力影响，不建议对这个字段建立过强的边界语义依赖。
   - 如果你想获得更稳定的点击位置，推荐优先使用 `center` 字段。
+  - `dpr` 是仅供 Web 使用的兼容字段，表示截图物理像素与 CSS 逻辑像素的比例。其他 Agent 类型不保证提供该字段。
 
 - 示例：
 
