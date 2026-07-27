@@ -200,6 +200,42 @@ describe('AndroidDevice', () => {
       });
     };
 
+    it('captures the production hierarchy with raw XML and coordinate metadata', async () => {
+      const xml = hierarchy(
+        '<node class="android.widget.Button" resource-id="snapshot-target" bounds="[20,40][180,100]"/>',
+      );
+      mockYadbHierarchy(xml);
+      vi.spyOn(device, 'getDisplayDensity').mockResolvedValue(320);
+      vi.spyOn(device, 'getScreenSize').mockResolvedValue({
+        override: '',
+        physical: '400x800',
+        orientation: 0,
+        isCurrentOrientation: false,
+      });
+
+      const snapshot = await device.captureAccessibilitySnapshot();
+
+      expect(snapshot).toMatchObject({
+        source: 'yadb',
+        sourceXml: xml,
+        dpr: 2,
+        rotation: 0,
+        logicalSize: { width: 200, height: 400 },
+        root: {
+          type: 'android.widget.FrameLayout',
+          children: [
+            {
+              type: 'android.widget.Button',
+              bounds: { left: 10, top: 20, width: 80, height: 30 },
+            },
+          ],
+        },
+      });
+      expect(snapshot.captureId).toMatch(/^[a-z0-9]+-[a-z0-9]+$/);
+      expect(snapshot.capturedAt).toBeTruthy();
+      expect(snapshot.durationMs).toBeGreaterThanOrEqual(0);
+    });
+
     it('does not read the hierarchy when native xpath cache is disabled', async () => {
       vi.stubEnv(MIDSCENE_EXPERIMENTAL_NATIVE_XPATH_CACHE, '0');
 
