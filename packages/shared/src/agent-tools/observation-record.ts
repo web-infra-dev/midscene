@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import {
+  copyFileSync,
   existsSync,
   mkdirSync,
   readFileSync,
@@ -121,14 +122,15 @@ export interface UIObservationRecordMetadata {
 }
 
 /**
- * Incrementally persists observation frames, then writes a portable JSON
- * manifest whose paths point into an adjacent image directory.
+ * Incrementally persists observation frames and exports a runtime record whose
+ * paths resolve to those image files.
  */
 export class UIObservationRecordWriter {
   readonly outputPath: string;
   readonly framesDirectory: string;
   private readonly temporaryFramesDirectory: string;
   private finalized = false;
+  private finalizedRecord: UIObservationRecord | null = null;
 
   constructor(filePath?: string) {
     this.outputPath = filePath
@@ -181,8 +183,8 @@ export class UIObservationRecordWriter {
   finalize(
     frames: UIObservationFrame[],
     metadata: UIObservationRecordMetadata,
-  ): string {
-    if (this.finalized) return this.outputPath;
+  ): UIObservationRecord {
+    if (this.finalizedRecord) return this.finalizedRecord;
     const record = parseUIObservationRecord({
       type: 'midscene_ui_observation',
       version: 1,
@@ -193,12 +195,82 @@ export class UIObservationRecordWriter {
     mkdirSync(this.temporaryFramesDirectory, { recursive: true });
     rmSync(this.framesDirectory, { recursive: true, force: true });
     renameSync(this.temporaryFramesDirectory, this.framesDirectory);
-    const temporaryManifest = `${this.outputPath}.tmp-${process.pid}-${Math.random()
-      .toString(36)
-      .slice(2, 10)}`;
-    writeFileSync(temporaryManifest, JSON.stringify(record, null, 2), 'utf8');
-    renameSync(temporaryManifest, this.outputPath);
     this.finalized = true;
-    return this.outputPath;
+    this.finalizedRecord = {
+      ...record,
+      frames: record.frames.map((frame) => ({
+        ...frame,
+        path: resolve(dirname(this.outputPath), frame.path),
+      })),
+    };
+    return this.finalizedRecord;
+  }
+}
+
+/**
+ * Persist a resolved observation record as a portable JSON manifest plus an
+ * adjacent image directory. The input record remains usable after writing.
+ */
+export function writeUIObservationRecord(
+  record: UIObservationRecord,
+  filePath?: string,
+): string {
+  const validated = parseUIObservationRecord(record);
+  const outputPath = filePath
+    ? resolve(filePath)
+    : defaultObservationRecordPath();
+  const extension = extname(outputPath);
+  const stem = basename(outputPath, extension);
+  const framesDirectory = join(dirname(outputPath), `${stem}.frames`);
+  const temporaryFramesDirectory = `${framesDirectory}.tmp-${process.pid}-${Math.random()
+    .toString(36)
+    .slice(2, 10)}`;
+  const temporaryManifest = `${outputPath}.tmp-${process.pid}-${Math.random()
+    .toString(36)
+    .slice(2, 10)}`;
+  const copiedPaths = new Map<string, string>();
+
+  try {
+    mkdirSync(temporaryFramesDirectory, { recursive: true });
+    const frames = validated.frames.map((frame, index) => {
+      const sourcePath = resolve(frame.path);
+      try {
+        if (!statSync(sourcePath).isFile()) {
+          throw new Error('path is not a file');
+        }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        throw new Error(
+          `Invalid UI observation record at frames.${index}.path: cannot read image ${sourcePath}: ${message}`,
+        );
+      }
+
+      let relativePath = copiedPaths.get(sourcePath);
+      if (!relativePath) {
+        const imageExtension = frame.mimeType === 'image/png' ? 'png' : 'jpeg';
+        const fileName = `${String(copiedPaths.size).padStart(4, '0')}.${imageExtension}`;
+        relativePath = `${basename(framesDirectory)}/${fileName}`;
+        copyFileSync(sourcePath, join(temporaryFramesDirectory, fileName));
+        copiedPaths.set(sourcePath, relativePath);
+      }
+      return { ...frame, path: relativePath };
+    });
+    const serializedRecord = parseUIObservationRecord({
+      ...validated,
+      frames,
+    });
+    mkdirSync(dirname(outputPath), { recursive: true });
+    writeFileSync(
+      temporaryManifest,
+      JSON.stringify(serializedRecord, null, 2),
+      'utf8',
+    );
+    rmSync(framesDirectory, { recursive: true, force: true });
+    renameSync(temporaryFramesDirectory, framesDirectory);
+    renameSync(temporaryManifest, outputPath);
+    return outputPath;
+  } finally {
+    rmSync(temporaryFramesDirectory, { recursive: true, force: true });
+    rmSync(temporaryManifest, { force: true });
   }
 }

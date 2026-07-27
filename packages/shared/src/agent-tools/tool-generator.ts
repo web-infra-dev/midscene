@@ -13,7 +13,10 @@ import {
   unwrapZodField,
 } from '../zod-schema-utils';
 import { getErrorMessage } from './error-formatter';
-import { readUIObservationRecord } from './observation-record';
+import {
+  readUIObservationRecord,
+  writeUIObservationRecord,
+} from './observation-record';
 import type { ToolDefaults } from './tool-defaults';
 import type {
   ActionSpaceItem,
@@ -884,7 +887,6 @@ export function generateCommonTools(
             const watchdogMs =
               (args.watchdogMs as number | undefined) ?? 300_000;
             const observer = await agent.startObserving({
-              outputPath: args.output as string | undefined,
               intervalMs: args.intervalMs as number | undefined,
               maxFrames: args.maxFrames as number | undefined,
               watchdogMs,
@@ -901,7 +903,11 @@ export function generateCommonTools(
               reason: stopReason,
             });
             await observer.stop();
-            const outputPath = await observer.exportRecord();
+            const record = await observer.exportRecord();
+            const outputPath = writeUIObservationRecord(
+              record,
+              args.output as string | undefined,
+            );
             return {
               content: [
                 {

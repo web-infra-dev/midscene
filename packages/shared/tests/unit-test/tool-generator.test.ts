@@ -362,8 +362,22 @@ describe('generateToolsFromActionSpace', () => {
   it('stops a foreground recording on Ctrl+C before writing its artifact', async () => {
     const tempDir = mkdtempSync(join(tmpdir(), 'midscene-record-test-'));
     const output = join(tempDir, 'toast-observation.json');
+    const sourceFrame = join(tempDir, 'source.png');
+    writeFileSync(sourceFrame, Buffer.from('recorded-frame'));
     const stop = vi.fn().mockResolvedValue(undefined);
-    const exportRecord = vi.fn().mockResolvedValue(output);
+    const exportRecord = vi.fn().mockResolvedValue({
+      type: 'midscene_ui_observation',
+      version: 1,
+      frames: [
+        {
+          path: sourceFrame,
+          mimeType: 'image/png',
+          capturedAt: 100,
+        },
+      ],
+      shotSize: { width: 100, height: 50 },
+      shrunkShotToLogicalRatio: 1,
+    });
     const startObserving = vi.fn().mockResolvedValue({
       stop,
       exportRecord,
@@ -398,7 +412,6 @@ describe('generateToolsFromActionSpace', () => {
     );
 
     expect(startObserving).toHaveBeenCalledWith({
-      outputPath: output,
       intervalMs: 250,
       maxFrames: 12,
       watchdogMs: 5000,

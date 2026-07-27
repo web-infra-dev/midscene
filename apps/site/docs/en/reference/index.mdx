@@ -979,7 +979,7 @@ function aiAssert(
     - `domIncluded?: boolean | 'visible-only'` — Whether to include simplified DOM data, which can expose attributes such as image URLs. Use `'visible-only'` to include only visible elements. Default: `false`.
     - `screenshotIncluded?: boolean` — Whether to include a screenshot. Default: `true`.
     - `context?: string` — Additional context for this call. See [Per-call context](#per-call-context).
-    - `observationRecord?: string | UIObservationRecord` — The path to an observation JSON manifest, or an already resolved record. When set, the assertion evaluates that frame window instead of the current screen.
+    - `observationRecord?: UIObservationRecord` — A record returned by `observer.exportRecord()`. When set, the assertion evaluates that frame window instead of the current screen.
 
 - Return value:
 
@@ -1016,7 +1016,6 @@ Observe the screen over a defined time window while other Agent calls run. A lat
 
 ```typescript
 function startObserving(options?: {
-  outputPath?: string; // JSON manifest path; images are stored in an adjacent .frames directory
   intervalMs?: number;  // sampling interval, default 1000ms, min 200ms (5fps)
   maxFrames?: number;   // frame-buffer cap, default 30 (self-thinning when full)
   watchdogMs?: number;  // auto-stop after this many ms if stop() is never called. Default 300000 (5 min). Set 0 to disable.
@@ -1026,13 +1025,11 @@ function startObserving(options?: {
 The returned `UIObserver` provides:
 
 - `observer.stop(): Promise<void>` — Stop sampling and capture the final representative screenshot. Must be called before asserting.
-- `observer.exportRecord(): Promise<string>` — Finalize the JSON manifest and adjacent image directory, then return the absolute manifest path.
+- `observer.exportRecord(): Promise<UIObservationRecord>` — Return the observed frame window. Frames reference image files on disk rather than embedding base64 data.
 - `observer.frameCount: number` — Number of frames currently buffered.
 
 ```typescript
-const observer = await agent.startObserving({
-  outputPath: './submission-observation.json',
-});
+const observer = await agent.startObserving();
 await agent.aiAct('submit the form');
 await observer.stop();
 await observer.aiAssert('a success toast appeared during the process');

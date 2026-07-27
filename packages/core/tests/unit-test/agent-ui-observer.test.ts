@@ -1,19 +1,19 @@
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { Agent } from '@/agent';
 import { ScreenshotItem } from '@/screenshot-item';
 import type { UIContext } from '@/types';
-import { readUIObservationRecord } from '@midscene/shared/agent-tools/observation-record';
+import type { UIObservationRecord } from '@midscene/shared/agent-tools/types';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const defaultModel = { config: { slot: 'default' } };
 const tempDirectories: string[] = [];
 
-function createOutputPath(): string {
-  const directory = mkdtempSync(join(tmpdir(), 'midscene-agent-observer-'));
-  tempDirectories.push(directory);
-  return join(directory, 'observation.json');
+function trackRecordFiles(record: UIObservationRecord): void {
+  for (const frame of record.frames) {
+    tempDirectories.push(dirname(frame.path));
+  }
 }
 
 const dataUrl = (text: string) =>
@@ -67,13 +67,11 @@ describe('Agent.startObserving', () => {
     const { agent, createTypeQueryExecution, screenshotBase64 } =
       createAgentStub({ openFrameSource });
 
-    const observer = await agent.startObserving({
-      intervalMs: 200,
-      outputPath: createOutputPath(),
-    });
+    const observer = await agent.startObserving({ intervalMs: 200 });
     await new Promise((resolve) => setTimeout(resolve, 250));
     await observer.stop();
     const observationRecord = await observer.exportRecord();
+    trackRecordFiles(observationRecord);
     await agent.aiAssert('a toast appeared during the process', undefined, {
       observationRecord,
     });
@@ -105,33 +103,24 @@ describe('Agent.startObserving', () => {
     }));
     const { agent } = createAgentStub({ openFrameSource });
 
-    const observer1 = await agent.startObserving({
-      intervalMs: 200,
-      outputPath: createOutputPath(),
-    });
-    await expect(
-      agent.startObserving({
-        intervalMs: 200,
-        outputPath: createOutputPath(),
-      }),
-    ).rejects.toThrow(/already active/);
+    const observer1 = await agent.startObserving({ intervalMs: 200 });
+    await expect(agent.startObserving({ intervalMs: 200 })).rejects.toThrow(
+      /already active/,
+    );
     await observer1.stop();
-    const observer2 = await agent.startObserving({
-      intervalMs: 200,
-      outputPath: createOutputPath(),
-    });
+    trackRecordFiles(await observer1.exportRecord());
+    const observer2 = await agent.startObserving({ intervalMs: 200 });
     await observer2.stop();
+    trackRecordFiles(await observer2.exportRecord());
     expect(stop).toHaveBeenCalledTimes(2);
   });
 
   it('falls back to plain screenshots when no frame source exists', async () => {
     const { agent, screenshotBase64 } = createAgentStub();
-    const observer = await agent.startObserving({
-      intervalMs: 200,
-      outputPath: createOutputPath(),
-    });
+    const observer = await agent.startObserving({ intervalMs: 200 });
     await observer.stop();
-    const record = readUIObservationRecord(await observer.exportRecord());
+    const record = await observer.exportRecord();
+    trackRecordFiles(record);
 
     expect(screenshotBase64).toHaveBeenCalled();
     expect(record.frames.length).toBeGreaterThanOrEqual(2);

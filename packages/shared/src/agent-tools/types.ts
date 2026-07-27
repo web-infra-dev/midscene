@@ -157,14 +157,12 @@ export interface UIObservationRecord {
 export interface BaseUIObserver {
   /** Stop sampling and finalize the observed frame window. */
   stop(): Promise<void>;
-  /** Export the stopped observation window and return its JSON manifest path. */
-  exportRecord(): Promise<string>;
+  /** Export the stopped observation window as a file-backed record. */
+  exportRecord(): Promise<UIObservationRecord>;
 }
 
 /** Options for {@link BaseAgent.startObserving}. */
 export interface BaseUIObserverOptions {
-  /** JSON manifest path. Frames are stored in an adjacent `<name>.frames` directory. */
-  outputPath?: string;
   /** Sampling interval in milliseconds. Defaults to 1000; minimum 200. */
   intervalMs?: number;
   /** Maximum number of buffered frames. Defaults to 30; minimum 2. */

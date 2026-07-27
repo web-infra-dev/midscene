@@ -1,27 +1,24 @@
-import { readFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { UIObserver } from '@/agent/ui-observer';
 import type { DeviceFrameRef, DeviceFrameSource } from '@/device';
 import { ScreenshotItem } from '@/screenshot-item';
 import type { UIContext } from '@/types';
-import { readUIObservationRecord } from '@midscene/shared/agent-tools/observation-record';
+import { UIObservationRecordWriter } from '@midscene/shared/agent-tools/observation-record';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-const createdOutputs: string[] = [];
+const createdDirectories: string[] = [];
 
-function outputPath(): string {
-  const path = join(
-    tmpdir(),
-    `midscene-observer-${process.pid}-${Date.now()}-${Math.random()}.json`,
-  );
-  createdOutputs.push(path);
-  return path;
+function recordWriter(): UIObservationRecordWriter {
+  const directory = mkdtempSync(join(tmpdir(), 'midscene-observer-'));
+  createdDirectories.push(directory);
+  return new UIObservationRecordWriter(join(directory, 'observation.json'));
 }
 
 function options(extra: Record<string, unknown> = {}) {
-  return { outputPath: outputPath(), ...extra };
+  return extra;
 }
 
 const fakeRepresentative = (): UIContext =>
@@ -70,6 +67,7 @@ const makeDeps = (fake: ReturnType<typeof makeFakeSource> | null) => {
       screenshot,
       captureRepresentative: async () => fakeRepresentative(),
       onStopped,
+      observationRecordWriter: recordWriter(),
     },
     screenshot,
     onStopped,
@@ -83,12 +81,8 @@ function frameContents(path: string): string {
 describe('UIObserver', () => {
   afterEach(() => {
     vi.useRealTimers();
-    for (const path of createdOutputs.splice(0)) {
-      rmSync(path, { force: true });
-      rmSync(path.replace(/\.json$/, '.frames'), {
-        recursive: true,
-        force: true,
-      });
+    for (const directory of createdDirectories.splice(0)) {
+      rmSync(directory, { recursive: true, force: true });
     }
   });
 
@@ -115,8 +109,7 @@ describe('UIObserver', () => {
     fake.setLatest('f1', 100);
     await sleep(250);
     await observer.stop();
-    const manifestPath = await observer.exportRecord();
-    const record = readUIObservationRecord(manifestPath);
+    const record = await observer.exportRecord();
 
     expect(observer.frameCount).toBeGreaterThanOrEqual(2);
     expect(onStopped).toHaveBeenCalledOnce();
@@ -124,9 +117,7 @@ describe('UIObserver', () => {
     expect(record.frames.length).toBeGreaterThanOrEqual(3);
     expect(frameContents(record.frames[0].path)).toBe('decoded:f0');
     expect(frameContents(record.frames.at(-1)!.path)).toBe('decoded:f1');
-    expect(JSON.parse(readFileSync(manifestPath, 'utf8'))).not.toHaveProperty(
-      'frames.0.base64',
-    );
+    expect(record.frames[0]).not.toHaveProperty('base64');
   });
 
   it('decodes opaque source handles in bounded batches and reuses the export', async () => {
@@ -143,15 +134,15 @@ describe('UIObserver', () => {
     (observer as any).stopped = true;
     (observer as any).representative = fakeRepresentative();
 
-    const firstPath = await observer.exportRecord();
-    const secondPath = await observer.exportRecord();
+    const firstRecord = await observer.exportRecord();
+    const secondRecord = await observer.exportRecord();
 
-    expect(firstPath).toBe(secondPath);
+    expect(firstRecord).toBe(secondRecord);
     expect(fake.decode).toHaveBeenCalledTimes(3);
     expect(fake.decode.mock.calls.every(([batch]) => batch.length <= 4)).toBe(
       true,
     );
-    expect(readUIObservationRecord(firstPath).frames).toHaveLength(11);
+    expect(firstRecord.frames).toHaveLength(11);
   });
 
   it('exports every buffered frame up to the configured cap', async () => {
@@ -168,7 +159,7 @@ describe('UIObserver', () => {
     (observer as any).stopped = true;
     (observer as any).representative = fakeRepresentative();
 
-    const record = readUIObservationRecord(await observer.exportRecord());
+    const record = await observer.exportRecord();
 
     expect(record.frames).toHaveLength(26);
     expect(fake.decode.mock.calls.flatMap(([frames]) => frames)).toHaveLength(
@@ -272,7 +263,7 @@ describe('UIObserver', () => {
     (observer as any).stopped = true;
     (observer as any).representative = fakeRepresentative();
 
-    const record = readUIObservationRecord(await observer.exportRecord());
+    const record = await observer.exportRecord();
     expect(record.frames).toHaveLength(56);
   });
 
@@ -282,7 +273,7 @@ describe('UIObserver', () => {
     await observer.start();
     await sleep(250);
     await observer.stop();
-    const record = readUIObservationRecord(await observer.exportRecord());
+    const record = await observer.exportRecord();
 
     expect(screenshot).toHaveBeenCalled();
     expect(frameContents(record.frames[0].path)).toBe('fallback');
@@ -301,6 +292,7 @@ describe('UIObserver', () => {
         },
         screenshot,
         captureRepresentative: async () => fakeRepresentative(),
+        observationRecordWriter: recordWriter(),
       },
       options({ intervalMs: 200 }),
     );
@@ -345,7 +337,10 @@ describe('UIObserver', () => {
     finishRepresentative?.();
     await Promise.all([firstStop, secondStop]);
 
-    await expect(observer.exportRecord()).resolves.toMatch(/\.json$/);
+    await expect(observer.exportRecord()).resolves.toMatchObject({
+      type: 'midscene_ui_observation',
+      version: 1,
+    });
     expect(onStopped).toHaveBeenCalledOnce();
   });
 });
