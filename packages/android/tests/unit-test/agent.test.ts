@@ -56,6 +56,7 @@ describe('AndroidAgent', () => {
         actionSpace: rs.fn().mockReturnValue([]),
         screenshotBase64: rs.fn(),
         size: rs.fn(),
+        getUITree: rs.fn(),
         getElementsInfo: rs.fn(),
         url: rs.fn(),
         launch: rs.fn(),
@@ -78,6 +79,86 @@ describe('AndroidAgent', () => {
             modelConfig: mockedModelConfig,
           }),
       ).not.toThrow();
+    });
+
+    it('does not capture a UI tree when captureUITree is disabled', async () => {
+      const mockPage = new AndroidDevice('test-device');
+      rs.mocked(mockPage.screenshotBase64).mockResolvedValue(
+        'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+      );
+      rs.mocked(mockPage.size).mockResolvedValue({ width: 1, height: 1 });
+      const agent = new AndroidAgent(mockPage, {
+        generateReport: false,
+        modelConfig: mockedModelConfig,
+      });
+
+      const uiContext = await agent.getUIContext();
+
+      expect(mockPage.getUITree).not.toHaveBeenCalled();
+      expect(uiContext.uiTree).toBeUndefined();
+      expect(agent.opts.captureUITree).toBe(false);
+    });
+
+    it('captures a UI tree only for Locate contexts', async () => {
+      const mockPage = new AndroidDevice('test-device');
+      rs.mocked(mockPage.screenshotBase64).mockResolvedValue(
+        'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+      );
+      rs.mocked(mockPage.size).mockResolvedValue({ width: 1, height: 1 });
+      rs.mocked(mockPage.getUITree).mockResolvedValue({
+        platform: 'android',
+        capturedAt: 1,
+        root: {
+          type: 'Window',
+          attrs: {},
+          bounds: { left: 0, top: 0, width: 1, height: 1 },
+          children: [],
+        },
+        xpathPolicy: {
+          stableAttrs: ['resource-id'],
+          textAttrs: ['content-desc', 'text'],
+          excludedTargetTypes: [],
+          max: 5,
+        },
+      });
+      const agent = new AndroidAgent(mockPage, {
+        captureUITree: true,
+        generateReport: false,
+        modelConfig: mockedModelConfig,
+      });
+
+      const regularContext = await agent.getUIContext();
+      const locateContext = await agent.getUIContext('locate');
+
+      expect(regularContext.uiTree).toBeUndefined();
+      expect(mockPage.getUITree).toHaveBeenCalledOnce();
+      expect(locateContext.uiTree?.platform).toBe('android');
+    });
+
+    it('keeps the Locate UI context usable when the layout dump fails', async () => {
+      const mockPage = new AndroidDevice('test-device');
+      rs.mocked(mockPage.screenshotBase64).mockResolvedValue(
+        'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+      );
+      rs.mocked(mockPage.size).mockResolvedValue({ width: 1, height: 1 });
+      rs.mocked(mockPage.getUITree).mockRejectedValue(
+        new Error('layout dump failed'),
+      );
+      const agent = new AndroidAgent(mockPage, {
+        captureUITree: true,
+        generateReport: false,
+        modelConfig: mockedModelConfig,
+      });
+
+      const uiContext = await agent.getUIContext('locate');
+
+      expect(mockPage.getUITree).toHaveBeenCalledOnce();
+      expect(
+        rs.mocked(mockPage.screenshotBase64).mock.invocationCallOrder[0],
+      ).toBeLessThan(rs.mocked(mockPage.getUITree).mock.invocationCallOrder[0]);
+      expect(uiContext.screenshot.base64).toContain('data:image/');
+      expect(uiContext.uiTree).toBeUndefined();
+      expect(uiContext.uiTreeError).toBe('layout dump failed');
     });
   });
 

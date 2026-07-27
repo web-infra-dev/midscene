@@ -22,6 +22,7 @@ import {
   type ReportMeta,
   type UIContext,
 } from '@/types';
+import { getReportTpl } from '@/utils';
 import { uuid } from '@midscene/shared/utils';
 import { antiEscapeScriptTag, escapeScriptTag } from '@midscene/shared/utils';
 import { afterEach, beforeEach, describe, expect, it } from '@rstest/core';
@@ -162,9 +163,12 @@ describe('browser parse simulation for merged directory-mode reports', () => {
     // Read the full merged HTML
     const mergedHtml = readFileSync(mergedPath!, 'utf-8');
 
-    // Verify merged file is not bloated with garbage from streamImageScriptsToFile
-    const mergedSizeMB = mergedHtml.length / 1024 / 1024;
-    expect(mergedSizeMB).toBeLessThan(15);
+    // Verify the merge adds only bounded metadata instead of duplicating the
+    // report application or leaking directory-mode screenshots into the HTML.
+    const maxMergeOverheadBytes = 1024 * 1024;
+    expect(mergedHtml.length).toBeLessThan(
+      getReportTpl().length + maxMergeOverheadBytes,
+    );
 
     // Verify base URL fix script is injected
     expect(mergedHtml).toContain('document.createElement("base")');

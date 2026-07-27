@@ -5,6 +5,7 @@ import {
   type TaskRunnerEventListener,
 } from '@/task-runner';
 import type {
+  ExecutionTask,
   ExecutionTaskApply,
   ExecutionTaskProgressOptions,
   UIContext,
@@ -28,7 +29,7 @@ export class ExecutionSession {
 
   constructor(
     name: string,
-    contextProvider: () => Promise<UIContext>,
+    contextProvider: (task?: ExecutionTask) => Promise<UIContext>,
     options?: ExecutionSessionOptions,
   ) {
     this.runner = new TaskRunner(name, contextProvider, options);
