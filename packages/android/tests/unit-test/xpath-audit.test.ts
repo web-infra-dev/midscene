@@ -500,11 +500,25 @@ describe('Android live XPath audit', () => {
     expect(audit.overlays.map((overlay) => overlay.nodeId)).toEqual([
       'node-0003',
       'node-0007',
+      'node-0008',
+      'node-0009',
+      'node-0010',
+      'node-0011',
+      'node-0012',
+      'node-0013',
       'node-0016',
       'node-0017',
     ]);
     expect(
       audit.overlays.every((overlay) => overlay.rectSource === 'tree'),
+    ).toBe(true);
+    expect(
+      audit.overlays
+        .filter((overlay) => {
+          const sequence = Number(overlay.nodeId?.slice(-4));
+          return sequence >= 7 && sequence <= 13;
+        })
+        .every((overlay) => overlay.status !== 'cache-xpath-hit'),
     ).toBe(true);
   });
 

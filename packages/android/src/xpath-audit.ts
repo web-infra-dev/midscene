@@ -708,9 +708,68 @@ function selectTreeOverlayNodes(
     };
   };
 
-  return nodes
+  const primaryUnits = nodes
     .filter((node) => !node.parentNodeId)
     .flatMap((node) => selectMinimalUnits(node).units);
+  if (!supportsUnnamedVirtualStructure) return primaryUnits;
+
+  const isUnnamedStructuralUnit = (node: AndroidAuditTreeNode): boolean =>
+    !hasTreeText(node) &&
+    !hasTreeResourceId(node) &&
+    !hasDirectInteractionSemantics(node);
+  const isDetailType = (node: AndroidAuditTreeNode): boolean =>
+    /\.(?:ViewGroup|View|Image|ImageView|TextView|Button)$/.test(node.type);
+  const rectKey = (node: AndroidAuditTreeNode): string =>
+    [node.bounds.left, node.bounds.top, node.bounds.width, node.bounds.height]
+      .map((value) => value.toFixed(3))
+      .join(':');
+  const detailPriority = (node: AndroidAuditTreeNode): number =>
+    (hasTreeText(node) || hasTreeResourceId(node) ? 2 : 0) +
+    (hasDirectInteractionSemantics(node) ? 2 : 0) +
+    node.depth / 1000;
+
+  const structuralDetailsFor = (
+    unit: AndroidAuditTreeNode,
+  ): AndroidAuditTreeNode[] => {
+    const detailsByRect = new Map<string, AndroidAuditTreeNode>();
+    const visit = (node: AndroidAuditTreeNode, relativeDepth: number): void => {
+      for (const child of childrenById.get(node.nodeId) ?? []) {
+        if (!child.visible || isAndroidSystemBar(child)) continue;
+        const childArea = rectArea(child.bounds);
+        if (
+          relativeDepth <= 4 &&
+          isDetailType(child) &&
+          child.bounds.width >= 8 &&
+          child.bounds.height >= 4 &&
+          childArea < rectArea(unit.bounds) * 0.98
+        ) {
+          const key = rectKey(child);
+          const existing = detailsByRect.get(key);
+          if (!existing || detailPriority(child) > detailPriority(existing)) {
+            detailsByRect.set(key, child);
+          }
+        }
+        if (relativeDepth < 4) visit(child, relativeDepth + 1);
+      }
+    };
+    visit(unit, 1);
+    return [...detailsByRect.values()];
+  };
+
+  const expandedUnits: AndroidAuditTreeNode[] = [];
+  const expandedNodeIds = new Set<string>();
+  for (const unit of primaryUnits) {
+    const expanded = [
+      unit,
+      ...(isUnnamedStructuralUnit(unit) ? structuralDetailsFor(unit) : []),
+    ];
+    for (const node of expanded) {
+      if (expandedNodeIds.has(node.nodeId)) continue;
+      expandedNodeIds.add(node.nodeId);
+      expandedUnits.push(node);
+    }
+  }
+  return expandedUnits;
 }
 
 function visualGeometryScore(
