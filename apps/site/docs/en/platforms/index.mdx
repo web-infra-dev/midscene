@@ -1,0 +1,18 @@
+# More platforms
+
+Midscene supports mobile devices, HarmonyOS devices, and desktop applications in addition to Web browsers. Choose a platform based on the target interface and its connection method.
+
+Midscene uses a multimodal visual model to understand screenshots, so automation works with the rendered interface instead of depending on the underlying UI structure. The same approach applies to native apps and cross-platform technology stacks.
+
+## Choose a platform
+
+| Platform | Package | Connection | Typical use |
+| --- | --- | --- | --- |
+| [Android](./android) | `@midscene/android` | adb | Android apps and system interfaces |
+| [iOS](./ios) | `@midscene/ios` | WebDriverAgent | iOS apps and system interfaces |
+| [HarmonyOS](./harmonyos) | `@midscene/harmony` | HDC | HarmonyOS NEXT apps and system interfaces |
+| [Desktop](./desktop) | `@midscene/computer` | Native input or RDP | Windows, macOS, and Linux applications |
+
+Each guide covers platform capabilities, environment preparation, Playground, JavaScript integration, examples, and troubleshooting.
+
+Use the [API reference](../reference/) when you need constructor options, platform-specific methods, or shared Agent APIs.

@@ -139,7 +139,7 @@ The following environment variables are deprecated but still compatible. We reco
 
 ## Configure settings via JavaScript
 
-You can configure models for each agent in JavaScript. See the [API reference](./api) for details.
+You can configure models for each agent in JavaScript. See the [API reference](./reference/#common) for details.
 
 ```typescript
 const agent = new Agent(page, {
@@ -193,9 +193,9 @@ DEBUGGING MODE: langsmith wrapper enabled
 Notes:
 - LangSmith and Langfuse can be enabled simultaneously.
 - Node.js only; browser environments will throw errors.
-- If you use [`createOpenAIClient`](./api#custom-openai-client), it overrides the env-based auto-integration.
+- If you use [`createOpenAIClient`](./reference/#custom-openai-client), it overrides the env-based auto-integration.
 
-For finer-grained control (e.g., enabling LangSmith only for specific tasks), use [`createOpenAIClient`](./api#custom-openai-client) to wrap the client manually.
+For finer-grained control (e.g., enabling LangSmith only for specific tasks), use [`createOpenAIClient`](./reference/#custom-openai-client) to wrap the client manually.
 
 ### Using Langfuse
 
@@ -248,4 +248,4 @@ DEBUGGING MODE: langfuse wrapper enabled
 Notes:
 - LangSmith and Langfuse can be enabled simultaneously.
 - Node.js only; browser environments will throw errors.
-- If you use [`createOpenAIClient`](./api#custom-openai-client), it overrides the env-based auto-integration.
+- If you use [`createOpenAIClient`](./reference/#custom-openai-client), it overrides the env-based auto-integration.

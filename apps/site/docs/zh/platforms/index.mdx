@@ -1,0 +1,18 @@
+# 更多平台
+
+除 Web 浏览器外，Midscene 还支持移动设备、HarmonyOS 设备和桌面应用。请根据目标界面和连接方式选择平台。
+
+Midscene 使用多模态视觉模型理解截图，因此自动化过程面向最终呈现的界面，不依赖底层 UI 结构。同一套方法可以适配原生应用和跨平台技术栈。
+
+## 选择平台
+
+| 平台 | npm 包 | 连接方式 | 典型用途 |
+| --- | --- | --- | --- |
+| [Android](./android) | `@midscene/android` | adb | Android App 和系统界面 |
+| [iOS](./ios) | `@midscene/ios` | WebDriverAgent | iOS App 和系统界面 |
+| [HarmonyOS](./harmonyos) | `@midscene/harmony` | HDC | HarmonyOS NEXT App 和系统界面 |
+| [桌面端](./desktop) | `@midscene/computer` | 原生输入或 RDP | Windows、macOS 和 Linux 应用 |
+
+每篇平台指南都包含平台能力、环境准备、Playground、JavaScript 集成、示例和故障排查。
+
+如果需要构造函数选项、平台专属方法或通用 Agent API，请阅读 [API 参考](../reference/)。

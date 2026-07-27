@@ -110,7 +110,7 @@ console.log(mergedResult.mergedReportPath);
 
 - `splitReportFile` generates JSON files for the original structured objects (one `*.execution.json` per execution). The JSON keeps the raw `ReportActionDump`-style data and exports screenshots alongside it. The returned `executionJsonFiles` and `screenshotFiles` are lists of generated file paths.
 - `reportFileToMarkdown` converts the same report into human-readable Markdown and exports the screenshots referenced by that Markdown. The returned `markdownFiles` contains the generated Markdown file paths.
-- `mergeReportFiles` combines several report files into one merged HTML report. It is a thin wrapper over [`ReportMergingTool`](./api#new-reportmergingtool) that derives `testTitle`/`testDescription` from each source report's `groupName` automatically. Use it when you run multiple CLI actions or tests and want to consolidate their reports.
+- `mergeReportFiles` combines several report files into one merged HTML report. It is a thin wrapper over [`ReportMergingTool`](./reference/#new-reportmergingtool) that derives `testTitle`/`testDescription` from each source report's `groupName` automatically. Use it when you run multiple CLI actions or tests and want to consolidate their reports.
 
 
 ## About Fields In JSON And Markdown
