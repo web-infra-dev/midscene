@@ -176,6 +176,12 @@ export abstract class UIContext {
    */
   abstract shrunkShotToLogicalRatio: number;
 
+  /** Accessibility tree captured alongside {@link screenshot}, when enabled. */
+  abstract uiTree?: UITreeSnapshot;
+
+  /** Non-fatal error raised while capturing {@link uiTree}. */
+  abstract uiTreeError?: string;
+
   abstract _isFrozen?: boolean;
 
   // @deprecated - backward compatibility for aiLocate
@@ -994,6 +1000,16 @@ export interface AgentOpt {
    * @default 1 (no shrinking, uses original physical screenshot)
    */
   screenshotShrinkFactor?: number;
+
+  /**
+   * Capture an Android accessibility tree for Locate tasks. The task report
+   * retains only the located target's direct ancestor chain up to its nearest
+   * resource-id ancestor. Tree capture failures are recorded on UIContext
+   * without failing the AI task.
+   *
+   * @default false
+   */
+  captureUITree?: boolean;
 
   /**
    * Custom OpenAI client factory function
