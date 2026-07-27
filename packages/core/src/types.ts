@@ -130,6 +130,45 @@ export interface AgentDescribeElementAtPointResult {
  * context
  */
 
+export interface UiNode {
+  type: string;
+  attrs: Record<string, string | undefined>;
+  bounds: Rect;
+  children: UiNode[];
+}
+
+export interface UITreeIdentityCount {
+  attr: string;
+  value: string;
+  count: number;
+}
+
+export interface UITreeInspectionMetadata {
+  /** The serialized root contains only the located target's retained lineage. */
+  scope: 'target-lineage';
+
+  /**
+   * Occurrence counts measured against the complete captured page before it was
+   * reduced to {@link scope}. Only identities present on the retained lineage
+   * are included.
+   */
+  pageIdentityCounts: UITreeIdentityCount[];
+}
+
+export interface UITreeSnapshot {
+  platform: 'android';
+  capturedAt: number;
+  root: UiNode;
+  xpathPolicy: {
+    stableAttrs: string[];
+    textAttrs: string[];
+    excludedTargetTypes: string[];
+    max: number;
+  };
+  /** Inspection evidence retained when {@link root} is a lossy report view. */
+  inspection?: UITreeInspectionMetadata;
+}
+
 export abstract class UIContext {
   /**
    * screenshot of the current UI state. which size is shotSize(be shrunk by screenshotShrinkFactor),
