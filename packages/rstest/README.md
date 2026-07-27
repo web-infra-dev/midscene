@@ -63,8 +63,19 @@ direct consequence of the above: workers append one JSONL entry per test to a
 per-file manifest, and `MidsceneReporter.onTestFileResult` — which fires per
 file in the main process regardless of `isolate` — drains and merges it through
 `ReportMergingTool`. The manifest dir sits under
-`getMidsceneRunSubDir('tmp')/rstest-manifest`, keyed by a sha1 prefix of the
-test path. `onTestRunStart` pre-cleans it in case a previous run crashed.
+`getMidsceneRunSubDir('tmp')/rstest-manifest/<runId>`, with each file's manifest
+keyed by a sha1 prefix of the test path.
+
+**The manifest dir is namespaced per run.** `MidsceneReporter` clears the whole
+directory at `onTestRunStart` (crash recovery) and at `onTestRunEnd`, so an
+unscoped directory would mean two rstest processes started against the same
+project deleting each other's pending manifests — and a missing manifest reads
+as "no agent ran in this file", so the reports would disappear without an error.
+The reporter's constructor mints the id into `MIDSCENE_RSTEST_RUN_ID`, which is
+the one channel that reaches the workers: the config module is evaluated in the
+main process before any worker exists, and workers inherit `process.env` at
+spawn. `ensureRunId` keeps an inherited id rather than minting a second one, in
+case rstest evaluates the config in a worker too.
 
 **`agent`, `agentForPage`, and `__reportMeta` are sealed against `test.extend`.**
 Enforcement is type-level only (`SealedFixtureKeys` + the `MidsceneTest` type,
@@ -76,17 +87,37 @@ report collection. Custom fixtures are expected to *depend on* these instead.
 **`agentForPage` depends on `agent` so its teardown runs first.** Secondary
 agents must be collected while their pages are still alive.
 
+**A report that cannot be produced fails the test.** Secondary collection keeps
+going after one agent throws — a bad page should not cost the others their
+report — but the failures are rethrown together as an `AggregateError` instead
+of being logged away. Same rule in the reporter: only `ENOENT` on the manifest
+is swallowed, because that is the ordinary "no agent ran in this file" case;
+any other read error is rethrown with the manifest path attached. A run with
+half a report is not a run that passed.
+
 **Fixture overrides replace wholesale — there is no implicit merging.** That is
 upstream Rstest semantics, and it is why `defaultPlaywrightOptions` is exported
 at all: users spread it to keep the defaults.
 
 **`cacheId` and `reportFileName` are deliberately different.** `reportFileName`
-goes through `getReportFileName`, which appends a timestamp and uuid.
-`cacheId` is `${fileBase}(${taskName})` with no timestamp, so retries and
+goes through `getReportFileName`, which appends a timestamp and uuid. `cacheId`
+is `${projectRelativeFile}(${taskName})` with no timestamp, so retries and
 re-runs of the same test land in the same cache namespace.
 
+**`cacheId` identifies the file by path, not by basename.** It is the same shape
+`@midscene/web/playwright` derives from Playwright's `titlePath[0]`, which is
+also a project-relative path. A basename is not an identity —
+`e2e/login/smoke.test.ts` and `e2e/checkout/smoke.test.ts` share one — and cache
+entries match on the prompt alone, with no page or URL check, so two tests
+sharing a namespace can replay each other's cached plan against the wrong page.
+The path is taken relative to `task.projectRoot` and separator-normalized, so
+the id survives a different checkout location and a different OS.
+
 **`groupName` comes from the file basename.** Rstest does not expose the
-surrounding `describe` name in the test context.
+surrounding `describe` name in the test context. That also means `cacheId`
+cannot separate two same-named tests in different `describe` blocks of one
+file — unlike the Playwright integration, which folds the whole `titlePath` in.
+Users who hit it can set `cache.id` explicitly.
 
 ## Known rough edges
 

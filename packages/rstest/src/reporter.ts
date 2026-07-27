@@ -8,7 +8,7 @@ import {
   manifestPathFor,
   sanitizeForFileName,
 } from './report-helper';
-import { getManifestDir } from './utils';
+import { ensureRunId, getManifestDir } from './utils';
 
 /**
  * Merges each test file's Midscene reports and prints the result.
@@ -19,8 +19,25 @@ import { getManifestDir } from './utils';
  * in the main process either way.
  */
 export default class MidsceneReporter implements Reporter {
+  constructor() {
+    // Claim this run's manifest namespace here rather than in
+    // `onTestRunStart`: the config module — and with it the user's
+    // `new MidsceneReporter()` — is evaluated in the main process before any
+    // worker exists, and workers inherit `process.env` at spawn. Minting it
+    // later would risk workers that were already spawned writing elsewhere.
+    ensureRunId();
+  }
+
   onTestRunStart(): void {
-    // Pre-clean in case a previous run crashed mid-flight.
+    // Pre-clean in case a previous run in this same process (watch mode)
+    // crashed mid-flight. Scoped to this run's namespace, so a concurrent
+    // rstest process is untouched.
+    rmSync(getManifestDir(), { recursive: true, force: true });
+  }
+
+  onTestRunEnd(): void {
+    // Every file's manifest is drained as it finishes, so by now this only
+    // removes the empty namespace directory itself.
     rmSync(getManifestDir(), { recursive: true, force: true });
   }
 
@@ -29,9 +46,15 @@ export default class MidsceneReporter implements Reporter {
     let raw: string;
     try {
       raw = readFileSync(manifestPath, 'utf8');
-    } catch {
-      // No agent ran in this file, so there is nothing to merge.
-      return;
+    } catch (err) {
+      // A missing manifest is the ordinary "no agent ran in this file" case.
+      // Anything else — a permission error, a truncated read — means reports
+      // exist but cannot be merged, which must not pass for silence.
+      if ((err as NodeJS.ErrnoException).code === 'ENOENT') return;
+      throw new Error(
+        `@midscene/rstest failed to read the report manifest for ${file.testPath} at ${manifestPath}`,
+        { cause: err },
+      );
     }
     // Drained into memory — without this the file would linger until the next
     // run's `onTestRunStart` pre-clean.

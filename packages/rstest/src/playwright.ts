@@ -264,16 +264,33 @@ export const test = playwrightBaseTest.extend<InternalFixtures>({
     };
     await use(helper);
 
-    for (const secondary of secondaries) {
-      try {
-        await collectReport(secondary, __reportMeta, task);
-      } catch (err) {
-        debug('secondary agent report failed:', err);
+    // Every secondary gets its turn even after one fails, so a single bad page
+    // cannot cost the others their report — but the failures are surfaced
+    // rather than logged away. A test whose report is incomplete is not a test
+    // that passed.
+    const failures: unknown[] = [];
+    try {
+      for (const secondary of secondaries) {
+        try {
+          await collectReport(secondary, __reportMeta, task);
+        } catch (err) {
+          debug('secondary agent report failed:', err);
+          failures.push(err);
+        }
       }
+    } finally {
+      // The closure above outlives this teardown — rstest keeps a test's
+      // fixture values until the whole file's test tree is released — so drop
+      // the collected agents rather than pinning their dumps for the rest of
+      // the file.
+      secondaries.length = 0;
     }
-    // The closure above outlives this teardown — rstest keeps a test's fixture
-    // values until the whole file's test tree is released — so drop the
-    // collected agents rather than pinning their dumps for the rest of the file.
-    secondaries.length = 0;
+
+    if (failures.length) {
+      throw new AggregateError(
+        failures,
+        `@midscene/rstest failed to collect ${failures.length} secondary agent report(s) for "${task.name}".`,
+      );
+    }
   },
 }) as unknown as MidsceneTest;

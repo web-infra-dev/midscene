@@ -10,11 +10,16 @@ import {
   buildReportMeta,
   collectReport,
   deriveStatus,
+  fileIdentity,
   manifestPathFor,
 } from '../../src/report-helper';
 
-function task(name: string, result?: RstestTask['result']): RstestTask {
-  return { id: `id-${name}`, name, result };
+function task(
+  name: string,
+  result?: RstestTask['result'],
+  projectRoot?: string,
+): RstestTask {
+  return { id: `id-${name}`, name, result, projectRoot };
 }
 
 function meta(name: string, filepath: string) {
@@ -91,6 +96,86 @@ describe('buildReportMeta', () => {
     );
     expect(meta.reportFileName).not.toMatch(/[:*?"<>|\\/]/);
     expect(meta.reportFileName).toContain('login--happy-path');
+  });
+});
+
+describe('buildReportMeta cacheId', () => {
+  it('is built from the project-relative path, matching the Playwright integration', () => {
+    const meta = buildReportMeta(
+      task('adds a todo', undefined, '/repo'),
+      '/repo/e2e/todo-list.test.ts',
+    );
+    // Spaces become `-` on the way through `replaceIllegalPathCharsAndSpace`;
+    // `/` survives, because the cache file is allowed to nest.
+    expect(meta.cacheId).toBe('e2e/todo-list.test.ts(adds-a-todo)');
+  });
+
+  // The bug this guards: a basename is not a file identity. Same-named specs
+  // under different directories would share one auto-derived cache namespace,
+  // and a plan cached by one could be replayed against the other's page.
+  it('separates same-named files in different directories', () => {
+    const login = buildReportMeta(
+      task('smoke', undefined, '/repo'),
+      '/repo/e2e/login/smoke.test.ts',
+    );
+    const checkout = buildReportMeta(
+      task('smoke', undefined, '/repo'),
+      '/repo/e2e/checkout/smoke.test.ts',
+    );
+    expect(login.cacheId).not.toBe(checkout.cacheId);
+  });
+
+  it('stays stable across re-runs of the same test', () => {
+    const first = buildReportMeta(
+      task('adds a todo', undefined, '/repo'),
+      '/repo/e2e/todo.test.ts',
+    );
+    const second = buildReportMeta(
+      task('adds a todo', undefined, '/repo'),
+      '/repo/e2e/todo.test.ts',
+    );
+    expect(first.cacheId).toBe(second.cacheId);
+    // ...unlike reportFileName, which carries a timestamp and a uuid.
+    expect(first.reportFileName).not.toBe(second.reportFileName);
+  });
+
+  it('is independent of where the project is checked out', () => {
+    const here = buildReportMeta(
+      task('adds a todo', undefined, '/home/alice/repo'),
+      '/home/alice/repo/e2e/todo.test.ts',
+    );
+    const there = buildReportMeta(
+      task('adds a todo', undefined, '/ci/build/42/repo'),
+      '/ci/build/42/repo/e2e/todo.test.ts',
+    );
+    expect(here.cacheId).toBe(there.cacheId);
+  });
+
+  it('falls back to the absolute path when the project root is unknown', () => {
+    const meta = buildReportMeta(task('case'), '/repo/e2e/todo.test.ts');
+    expect(meta.cacheId).toBe('/repo/e2e/todo.test.ts(case)');
+  });
+
+  it('falls back to the basename for a file that is the project root', () => {
+    const meta = buildReportMeta(
+      task('case', undefined, '/repo/solo.test.ts'),
+      '/repo/solo.test.ts',
+    );
+    expect(meta.cacheId).toBe('solo.test.ts(case)');
+  });
+});
+
+describe('fileIdentity', () => {
+  it('normalizes separators so ids match across platforms', () => {
+    expect(fileIdentity('/repo/e2e/todo.test.ts', '/repo')).toBe(
+      'e2e/todo.test.ts',
+    );
+  });
+
+  it('keeps a file outside the project root addressable', () => {
+    const id = fileIdentity('/shared/e2e/todo.test.ts', '/repo');
+    expect(id).toContain('todo.test.ts');
+    expect(id).not.toBe('');
   });
 });
 

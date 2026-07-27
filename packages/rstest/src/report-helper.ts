@@ -1,5 +1,5 @@
 import { appendFileSync } from 'node:fs';
-import { basename, extname, join } from 'node:path';
+import { basename, extname, join, relative, sep } from 'node:path';
 import type { ReportFileWithAttributes, TestStatus } from '@midscene/core';
 import { getReportFileName } from '@midscene/core/agent';
 import { replaceIllegalPathCharsAndSpace } from '@midscene/shared/utils';
@@ -8,6 +8,13 @@ import { getManifestDir, manifestKey } from './utils';
 export interface RstestTask {
   id: string;
   name: string;
+  /**
+   * Absolute path of the project root, used to keep the derived cache id
+   * independent of where the repository is checked out. Optional because
+   * rstest only started reporting it recently; the absolute path is the
+   * fallback, which is still collision-free, just not portable.
+   */
+  projectRoot?: string;
   result?: {
     status: 'pass' | 'fail' | 'skip' | 'todo';
     errors?: Array<{ message?: string }>;
@@ -23,9 +30,10 @@ export interface ReportMeta {
   groupName: string;
   reportFileName: string;
   /**
-   * Stable cache id derived from `${file}(${task.name})`. Unlike
-   * `reportFileName` this carries no timestamp, so retries and re-runs of the
-   * same test reuse the same cache namespace.
+   * Stable cache id derived from `${projectRelativeFile}(${task.name})`, the
+   * same shape `@midscene/web/playwright` builds from Playwright's
+   * `titlePath`. Unlike `reportFileName` this carries no timestamp, so retries
+   * and re-runs of the same test reuse the same cache namespace.
    */
   cacheId: string;
   /** Absolute path of the test file, i.e. which manifest to append to. */
@@ -109,6 +117,25 @@ export async function collectReport(
 }
 
 /**
+ * Identify a test file the way `@midscene/web/playwright` does, i.e. by the
+ * path that leads to it rather than by its basename alone. A basename is not
+ * an identity: `e2e/login/smoke.test.ts` and `e2e/checkout/smoke.test.ts`
+ * share one, and so would their auto-derived cache namespaces.
+ *
+ * Separators are normalized so an id built on Windows matches the one built on
+ * a POSIX box for the same file — cache files outlive the machine that wrote
+ * them. `replaceIllegalPathCharsAndSpace` deliberately keeps `/`, and
+ * `TaskCache` creates the nested cache directory, so the slashes survive into
+ * the cache file path exactly as they do for the Playwright integration.
+ */
+export function fileIdentity(filepath: string, projectRoot?: string): string {
+  const relativePath = projectRoot ? relative(projectRoot, filepath) : filepath;
+  // `relative` yields '' for the root itself and a '..'-prefixed path for a
+  // file outside it. Both are stable ids; only the empty one is unusable.
+  return (relativePath || basename(filepath)).split(sep).join('/');
+}
+
+/**
  * Rstest doesn't expose the surrounding `describe` name in the test context,
  * so we derive `groupName` from the file basename.
  */
@@ -128,7 +155,9 @@ export function buildReportMeta(
     reportFileName: getReportFileName(
       sanitizeForFileName(`E2E-${base}-${taskName}`),
     ),
-    cacheId: replaceIllegalPathCharsAndSpace(`${base}(${taskName})`),
+    cacheId: replaceIllegalPathCharsAndSpace(
+      `${fileIdentity(filepath, task.projectRoot)}(${taskName})`,
+    ),
     filepath,
     startTime: performance.now(),
   };
