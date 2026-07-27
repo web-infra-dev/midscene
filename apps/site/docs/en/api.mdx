@@ -163,7 +163,7 @@ This method was previously named `aiAction()` in earlier versions. The current v
 
 ```typescript
 function aiAct(
-  prompt: string,
+  prompt: string | Object,
   options?: {
     cacheable?: boolean;
     deepThink?: 'unset' | true | false;
@@ -177,7 +177,7 @@ function ai(prompt: string): Promise<string | undefined>; // shorthand form
 
 - Parameters:
 
-  - `prompt: string` - A natural language description of the UI steps.
+  - `prompt: string | Object` - A natural language description of the UI steps, or [prompting with images](#prompting-with-images).
   - `options?: Object` - Optional, a configuration object containing:
     - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
     - `deepThink?: 'unset' | true | false` - Controls the planning implementation used by Midscene when `aiAct` performs planning. When enabled, `aiAct` focuses more on task decomposition and separates task planning from UI element locating into different model calls. For compatibility, `'unset'` is accepted and treated the same as `false`. [Learn more about deepThink](./model-strategy#about-the-deepthink-option-in-aiact).
@@ -1498,6 +1498,20 @@ await agent.aiTap({
 ```javascript
 await agent.aiAssert({
   prompt: 'Whether there is a specific logo on the page.',
+  images: [
+    {
+      name: 'The specific logo',
+      url: 'https://github.githubassets.com/assets/GitHub-Mark-ea2971cee799.png',
+    },
+  ],
+});
+```
+
+- Example 3: use images to guide an action (`aiAct`).
+
+```javascript
+await agent.aiAct({
+  prompt: 'Tap the icon that matches the reference logo',
   images: [
     {
       name: 'The specific logo',

@@ -788,6 +788,20 @@ tasks:
           convertHttpImage2Base64: true
 ```
 
+对于 `aiAct`（及其简写 `ai`），可以直接在操作指令下设置 `prompt` 和 `images` 字段：
+
+```yaml
+tasks:
+  - name: 校验品牌一致性
+    flow:
+      - aiAct:
+          prompt: 点击与参考标志一致的图标。
+          images:
+            - name: 目标标志
+              url: https://github.githubassets.com/assets/GitHub-Mark-ea2971cee799.png
+          convertHttpImage2Base64: true
+```
+
 ## 注意事项
 
 ### `agent.runYaml` 只会解析 `tasks` 字段

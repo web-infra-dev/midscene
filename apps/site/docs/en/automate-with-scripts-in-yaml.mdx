@@ -780,6 +780,20 @@ tasks:
           convertHttpImage2Base64: true
 ```
 
+For `aiAct` (and its `ai` shorthand), set the `prompt` and `images` fields directly under the action key:
+
+```yaml
+tasks:
+  - name: Verify branding
+    flow:
+      - aiAct:
+          prompt: Tap the icon that matches the reference logo.
+          images:
+            - name: target logo
+              url: https://github.githubassets.com/assets/GitHub-Mark-ea2971cee799.png
+          convertHttpImage2Base64: true
+```
+
 ## Notes
 
 ### `agent.runYaml` only parses the `tasks` field
