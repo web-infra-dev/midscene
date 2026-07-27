@@ -768,7 +768,7 @@ tasks:
 
 > The legacy nested format (where `locate` is indented under the action key, e.g. `aiTap: \n    locate: ...`) is still supported but not recommended.
 
-For insight steps like `aiAsk`, `aiQuery`, `aiBoolean`, `aiNumber`, `aiString`, and `aiAssert`, you can set the `prompt` and `images` fields directly.
+For `aiAct` (and its `ai` shorthand), and for insight steps like `aiAsk`, `aiQuery`, `aiBoolean`, `aiNumber`, `aiString`, and `aiAssert`, you can set the `prompt` and `images` fields directly under the action key.
 
 ```yaml
 tasks:
@@ -776,20 +776,6 @@ tasks:
     flow:
       - aiAssert:
           prompt: Check whether the image appears on the page.
-          images:
-            - name: target logo
-              url: https://github.githubassets.com/assets/GitHub-Mark-ea2971cee799.png
-          convertHttpImage2Base64: true
-```
-
-For `aiAct` (and its `ai` shorthand), set the `prompt` and `images` fields directly under the action key:
-
-```yaml
-tasks:
-  - name: Verify branding
-    flow:
-      - aiAct:
-          prompt: Tap the icon that matches the reference logo.
           images:
             - name: target logo
               url: https://github.githubassets.com/assets/GitHub-Mark-ea2971cee799.png
