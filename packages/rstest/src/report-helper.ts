@@ -48,11 +48,27 @@ export function manifestPathFor(filepath: string): string {
   return join(getManifestDir(), `${manifestKey(filepath)}.jsonl`);
 }
 
+/**
+ * Map rstest's status onto Midscene's `TestStatus`, the way
+ * `@midscene/web/playwright`'s reporter passes Playwright's status through
+ * verbatim. Every rstest status is spelled out: collapsing the unknown ones
+ * onto `passed` is what let a dynamically skipped test — `skip()` called after
+ * the agent had already produced a report — show up as a pass in the merged
+ * report and inflate the pass rate.
+ */
 function deriveStatus(result: RstestTask['result']): TestStatus {
   // TODO: rstest may eventually surface a structured timeout flag. Until then
   // we substring-match the error message the way Vitest does.
   if (result?.errors?.[0]?.message?.includes('timed out')) return 'timedOut';
-  return result?.status === 'fail' ? 'failed' : 'passed';
+  switch (result?.status) {
+    case 'fail':
+      return 'failed';
+    case 'skip':
+    case 'todo':
+      return 'skipped';
+    default:
+      return 'passed';
+  }
 }
 
 /**

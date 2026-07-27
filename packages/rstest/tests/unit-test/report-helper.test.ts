@@ -52,9 +52,10 @@ describe('deriveStatus', () => {
       'timedOut',
     ],
     ['a missing result → passed', undefined, 'passed'],
-    // skip/todo have no dedicated mapping.
-    ['skip → passed', { status: 'skip' }, 'passed'],
-    ['todo → passed', { status: 'todo' }, 'passed'],
+    // A test that called `skip()` after the agent had already run still reaches
+    // teardown with a report to collect, so the status has to survive the trip.
+    ['skip → skipped', { status: 'skip' }, 'skipped'],
+    ['todo → skipped', { status: 'todo' }, 'skipped'],
   ])('maps %s', (_label, result, expected) => {
     expect(deriveStatus(result)).toBe(expected);
   });
@@ -192,5 +193,19 @@ describe('collectReport', () => {
     const [entry] = readManifest('/repo/a.test.ts');
     expect(entry.reportAttributes.testStatus).toBe('failed');
     expect(entry.reportAttributes.testDuration).toBeGreaterThanOrEqual(25);
+  });
+
+  // `skip()` mid-test aborts the body but still runs fixture teardown, and
+  // rstest has already set `result.status` by then — so an agent that ran
+  // before the skip contributes a report that must not read as a pass.
+  it('records a mid-test skip as skipped rather than passed', async () => {
+    await collectReport(
+      agentStub('/reports/a.html'),
+      meta('case A', '/repo/a.test.ts'),
+      task('case A', { status: 'skip' }),
+    );
+
+    const [entry] = readManifest('/repo/a.test.ts');
+    expect(entry.reportAttributes.testStatus).toBe('skipped');
   });
 });
