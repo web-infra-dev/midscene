@@ -18,6 +18,27 @@ export interface ObservedInputValue {
   attempts: number;
 }
 
+function xmlAttribute(nodeTag: string, attribute: string): string | undefined {
+  return new RegExp(`${attribute}="([^"]*)"`).exec(nodeTag)?.[1];
+}
+
+export function readIOSSimulatorInputValue(
+  source: string,
+  accessibilityId: string,
+): string | undefined {
+  const inputNode = (
+    source.match(/<XCUIElementTypeTextField\b[^>]*>/g) ?? []
+  ).find((nodeTag) => xmlAttribute(nodeTag, 'name') === accessibilityId);
+
+  if (!inputNode) {
+    throw new Error(
+      `iOS Simulator input ${JSON.stringify(accessibilityId)} is missing from WDA source`,
+    );
+  }
+
+  return xmlAttribute(inputNode, 'value');
+}
+
 export class IOSSimulatorInputValueError extends Error {
   constructor(
     readonly expectedValue: string,

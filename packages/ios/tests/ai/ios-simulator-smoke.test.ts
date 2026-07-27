@@ -13,7 +13,10 @@ import {
 import { imageInfoOfBase64 } from '@midscene/shared/img';
 import { describe, expect, it, vi } from 'vitest';
 import { type IOSAgent, agentFromWebDriverAgent } from '../../src';
-import { inputUntilObserved } from '../ios-simulator-input-retry';
+import {
+  inputUntilObserved,
+  readIOSSimulatorInputValue,
+} from '../ios-simulator-input-retry';
 
 const RUN_LIVE_SMOKE =
   process.env.AI_TEST_TYPE === 'iOS' &&
@@ -46,6 +49,7 @@ interface WdaRect {
 interface ReportTask {
   type?: string;
   subType?: string;
+  param?: { mode?: string; [key: string]: unknown };
   hitBy?: { from?: string };
   timing?: { callAiStart?: number; callAiEnd?: number };
   usage?: unknown;
@@ -86,10 +90,6 @@ function locate(rect: WdaRect, screenshotScale: number, prompt: string) {
       Math.round((rect.y + rect.height) * screenshotScale),
     ] as [number, number, number, number],
   };
-}
-
-function xmlAttribute(nodeTag: string, attribute: string): string | undefined {
-  return new RegExp(`${attribute}="([^"]*)"`).exec(nodeTag)?.[1];
 }
 
 function parseReportDumps(html: string): ReportDump[] {
@@ -363,13 +363,13 @@ describe.skipIf(!RUN_LIVE_SMOKE)('iOS Simulator live smoke', () => {
       const inputAgent = agent;
       const observedInput = await inputUntilObserved({
         expectedValue: SUBMITTED_TEXT,
-        performInput: async () => {
+        performInput: async (attempt) => {
           await inputAgent.callActionInActionSpace('Tap', {
             locate: targetLocate,
           });
           await inputAgent.callActionInActionSpace('Input', {
             value: SUBMITTED_TEXT,
-            mode: 'replace',
+            mode: attempt === 1 ? 'typeOnly' : 'replace',
             autoDismissKeyboard: false,
             locate: targetLocate,
           });
@@ -387,15 +387,10 @@ describe.skipIf(!RUN_LIVE_SMOKE)('iOS Simulator live smoke', () => {
             writeFile(attemptSourceFile, response.value, 'utf8'),
             writeFile(postInputSourceFile, response.value, 'utf8'),
           ]);
-          const inputNode = (
-            response.value.match(/<XCUIElementTypeTextField\b[^>]*>/g) ?? []
-          ).find(
-            (nodeTag) =>
-              xmlAttribute(nodeTag, 'name') === INPUT_ACCESSIBILITY_ID,
+          const value = readIOSSimulatorInputValue(
+            response.value,
+            INPUT_ACCESSIBILITY_ID,
           );
-          const value = inputNode
-            ? xmlAttribute(inputNode, 'value')
-            : undefined;
           inputAttempts.push({
             attempt,
             value,
@@ -409,6 +404,10 @@ describe.skipIf(!RUN_LIVE_SMOKE)('iOS Simulator live smoke', () => {
           );
         },
       });
+      const expectedInputModes = Array.from(
+        { length: observedInput.attempts },
+        (_, index) => (index === 0 ? 'typeOnly' : 'replace'),
+      );
       await agent.callActionInActionSpace('KeyboardPress', {
         keyName: 'Enter',
         locate: targetLocate,
@@ -437,7 +436,13 @@ describe.skipIf(!RUN_LIVE_SMOKE)('iOS Simulator live smoke', () => {
       const locateTasks = dumpTasks.filter(
         (task) => task.type === 'Planning' && task.subType === 'Locate',
       );
+      const inputTasks = dumpTasks.filter(
+        (task) => task.type === 'Action Space' && task.subType === 'Input',
+      );
       expect(locateTasks).toHaveLength(observedInput.attempts * 2 + 1);
+      expect(inputTasks.map((task) => task.param?.mode)).toEqual(
+        expectedInputModes,
+      );
       expect(locateTasks.every((task) => task.hitBy?.from === 'Plan')).toBe(
         true,
       );
@@ -462,7 +467,13 @@ describe.skipIf(!RUN_LIVE_SMOKE)('iOS Simulator live smoke', () => {
       const reportLocateTasks = reportTasks.filter(
         (task) => task.type === 'Planning' && task.subType === 'Locate',
       );
+      const reportInputTasks = reportTasks.filter(
+        (task) => task.type === 'Action Space' && task.subType === 'Input',
+      );
       expect(reportLocateTasks).toHaveLength(observedInput.attempts * 2 + 1);
+      expect(reportInputTasks.map((task) => task.param?.mode)).toEqual(
+        expectedInputModes,
+      );
       expect(
         reportLocateTasks.every((task) => task.hitBy?.from === 'Plan'),
       ).toBe(true);

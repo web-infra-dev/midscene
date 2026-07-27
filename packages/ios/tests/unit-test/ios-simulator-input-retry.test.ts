@@ -2,9 +2,42 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   IOSSimulatorInputValueError,
   inputUntilObserved,
+  readIOSSimulatorInputValue,
 } from '../ios-simulator-input-retry';
 
 const EXPECTED_VALUE = 'Midscene iOS input 2026';
+
+describe('readIOSSimulatorInputValue', () => {
+  it('returns the value of the matching text field', () => {
+    expect(
+      readIOSSimulatorInputValue(
+        `<XCUIElementTypeTextField name="Other Input" value="other" />
+<XCUIElementTypeTextField name="Midscene Smoke Input" value="${EXPECTED_VALUE}" />`,
+        'Midscene Smoke Input',
+      ),
+    ).toBe(EXPECTED_VALUE);
+  });
+
+  it('returns undefined when the matching text field has no value', () => {
+    expect(
+      readIOSSimulatorInputValue(
+        '<XCUIElementTypeTextField name="Midscene Smoke Input" />',
+        'Midscene Smoke Input',
+      ),
+    ).toBeUndefined();
+  });
+
+  it('fails when the matching text field is missing', () => {
+    expect(() =>
+      readIOSSimulatorInputValue(
+        '<XCUIElementTypeTextField name="Other Input" value="other" />',
+        'Midscene Smoke Input',
+      ),
+    ).toThrow(
+      'iOS Simulator input "Midscene Smoke Input" is missing from WDA source',
+    );
+  });
+});
 
 describe('iOS Simulator input retry', () => {
   it('returns the first observed value without retrying', async () => {
