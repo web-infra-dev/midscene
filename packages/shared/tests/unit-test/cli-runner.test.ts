@@ -663,6 +663,36 @@ describe('runToolsCLI', () => {
     consoleSpy.mockRestore();
   });
 
+  it('maps leading command positionals into handler arguments', async () => {
+    const handler = vi.fn().mockResolvedValue({
+      content: [{ type: 'text', text: 'Recording started' }],
+      isError: false,
+    });
+    const tools = {
+      ...createMockTools([]),
+      getToolDefinitions: vi.fn().mockReturnValue([
+        {
+          name: 'record',
+          description: 'record command',
+          schema: {
+            action: z.enum(['start', 'end']),
+            session: z.string().optional(),
+          },
+          cli: { positionals: ['action'] },
+          handler,
+        },
+      ]),
+    } as any;
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+    await runToolsCLI(tools, 'test-cli', {
+      argv: ['record', 'start', '--session', 'toast'],
+    });
+
+    expect(handler).toHaveBeenCalledWith({ action: 'start', session: 'toast' });
+    consoleSpy.mockRestore();
+  });
+
   it('strips global --verbose and emits readable progress lines', async () => {
     const handler = vi.fn().mockResolvedValue({
       content: [{ type: 'text', text: 'Connected' }],
@@ -685,29 +715,23 @@ describe('runToolsCLI', () => {
     consoleSpy.mockRestore();
   });
 
-  it('emits readable progress for observe without an explicit verbose flag', async () => {
+  it('emits readable progress for record without an explicit verbose flag', async () => {
     const handler = vi.fn().mockResolvedValue({
       content: [{ type: 'text', text: 'Observation passed' }],
       isError: false,
     });
-    const tools = createMockTools([{ name: 'observe', handler }]);
+    const tools = createMockTools([{ name: 'record', handler }]);
     const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
 
     await runToolsCLI(tools, 'test-cli', {
-      argv: [
-        'observe',
-        '--action',
-        'click Submit',
-        '--prompt',
-        'a success toast appeared',
-      ],
+      argv: ['record', '--session', 'toast'],
     });
 
     const messages = consoleSpy.mock.calls.map(([message]) => String(message));
     expect(messages).toEqual([
-      '[Midscene] observe started (action=click Submit, prompt=a success toast appeared)',
+      '[Midscene] record started (session=toast)',
       'Observation passed',
-      expect.stringMatching(/^\[Midscene\] observe finished in \d+ms$/),
+      expect.stringMatching(/^\[Midscene\] record finished in \d+ms$/),
     ]);
     consoleSpy.mockRestore();
   });
@@ -903,22 +927,25 @@ describe('runToolsCLI', () => {
     consoleSpy.mockRestore();
   });
 
-  it('lists behavior flags only once in observe command help', async () => {
+  it('shows the record operation as a positional and hides worker plumbing', async () => {
     const tools = {
       initTools: vi.fn().mockResolvedValue(undefined),
       destroy: vi.fn().mockResolvedValue(undefined),
       getToolDefinitions: vi.fn().mockReturnValue([
         {
-          name: 'observe',
-          description: 'observe command',
+          name: 'record',
+          description: 'record command',
           schema: {
-            deepLocate: z.boolean().optional(),
-            deepThink: z.boolean().optional(),
+            action: z.enum(['start', 'end']),
+            recordWorker: z.string().optional(),
           },
           cli: {
+            positionals: ['action'],
             options: {
-              deepLocate: { preferredName: 'deep-locate' },
-              deepThink: { preferredName: 'deep-think' },
+              recordWorker: {
+                preferredName: 'record-worker',
+                hidden: true,
+              },
             },
           },
           handler: vi.fn(),
@@ -933,12 +960,12 @@ describe('runToolsCLI', () => {
       });
 
     await runToolsCLI(tools, 'test-cli', {
-      argv: ['observe', '--help'],
+      argv: ['record', '--help'],
     });
 
     const output = lines.join('\n');
-    expect(output.match(/^\s+--deep-locate\b/gm)).toHaveLength(1);
-    expect(output.match(/^\s+--deep-think\b/gm)).toHaveLength(1);
+    expect(output).toContain('Usage: test-cli record <action> [options]');
+    expect(output).not.toContain('--record-worker');
     expect(output).toContain('Global Options:');
     consoleSpy.mockRestore();
   });

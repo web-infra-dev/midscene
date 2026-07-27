@@ -6,3 +6,4 @@ export * from './error-formatter';
 export * from './tool-generator';
 export * from './types';
 export * from './chrome-path';
+export * from './observation-record';

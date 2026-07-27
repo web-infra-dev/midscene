@@ -1,10 +1,13 @@
-import type { BaseUIObserverOptions } from '@midscene/shared/agent-tools/types';
+import type {
+  BaseUIObserverOptions,
+  UIObservationRecord,
+} from '@midscene/shared/agent-tools/types';
 import { imageInfoOfBase64, resizeImgBase64 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import type { DeviceFrameRef, DeviceFrameSource } from '../device';
 import { ScreenshotItem } from '../screenshot-item';
-import type { AgentAssertOpt, ServiceExtractOption, UIContext } from '../types';
+import type { UIContext } from '../types';
 
 const debug = getDebug('ui-observer');
 const warnObserver = getDebug('ui-observer', { console: true });
@@ -19,9 +22,9 @@ const DEFAULT_MAX_FRAMES = 30;
 const FIRST_FRAME_TIMEOUT_MS = 3000;
 // Default watchdog: auto-stop an observer that was never explicitly stopped.
 const DEFAULT_WATCHDOG_MS = 5 * 60 * 1000;
-// Soft cap on frames sent to the model per assertion. We still send all frames
-// (no silent dropping), but warn the user when this is exceeded.
-const MAX_FRAMES_TO_MODEL = 50;
+// Soft cap on exported frames. We still export all frames (no silent dropping),
+// but warn because asserting a larger record sends every frame to the model.
+const MAX_FRAMES_PER_RECORD = 50;
 
 /** Options for a UI observation window. */
 export type UIObserverOption = BaseUIObserverOptions;
@@ -36,21 +39,6 @@ interface UIObserverDeps {
   screenshot: () => Promise<string>;
   /** Capture the final full-quality UIContext (used as the representative). */
   captureRepresentative: () => Promise<UIContext>;
-  /** Run an assert against a pre-built multi-frame UIContext. */
-  runAssert: (
-    assertion: string,
-    uiContext: UIContext,
-    msg?: string,
-    opt?: AgentAssertOpt & ServiceExtractOption,
-  ) => Promise<
-    undefined | { pass: boolean; thought?: string; message?: string }
-  >;
-  /** Run a boolean query against a pre-built multi-frame UIContext. */
-  runBoolean: (
-    prompt: string,
-    uiContext: UIContext,
-    opt?: ServiceExtractOption,
-  ) => Promise<boolean>;
   /** Called when stop() completes, so the agent can clear its active-observer reference. */
   onStopped?: () => void;
   /** Screenshot shrink factor applied to fallback frames. Default 1 (no shrink). */
@@ -66,7 +54,10 @@ interface UIObserverDeps {
  * const observer = await agent.startObserving();
  * await agent.aiAct('submit the form');
  * await observer.stop();
- * await observer.aiAssert('a success toast appeared during the process');
+ * const observationRecord = await observer.exportRecord();
+ * await agent.aiAssert('a success toast appeared during the process', undefined, {
+ *   observationRecord,
+ * });
  * ```
  *
  * Sampling is deliberately cheap: when the device exposes a continuous frame
@@ -83,9 +74,10 @@ export class UIObserver {
   private usingFallback = false;
   private stopped = false;
   private loopPromise: Promise<void> | null = null;
+  private stopPromise: Promise<void> | null = null;
   private representative: UIContext | null = null;
   private watchdogTimer: ReturnType<typeof setTimeout> | null = null;
-  /** Cross-assertion decode cache: keyed by frame.ref, avoids re-decoding on Android. */
+  /** Decode cache keyed by frame.ref, avoiding duplicate Android decodes. */
   private decodedCache = new Map<unknown, string>();
   /** Background pre-decode started in stop(), awaited by buildObservedUIContext(). */
   private preDecodePromise: Promise<void> | null = null;
@@ -173,8 +165,14 @@ export class UIObserver {
    * and the agent's active-observer reference is cleared even if intermediate
    * steps (pre-decode, representative capture) throw.
    */
-  async stop(): Promise<void> {
-    if (this.stopped) return;
+  stop(): Promise<void> {
+    if (!this.stopPromise) {
+      this.stopPromise = this.finalizeStop();
+    }
+    return this.stopPromise;
+  }
+
+  private async finalizeStop(): Promise<void> {
     this.stopped = true;
 
     // Clear the watchdog.
@@ -186,9 +184,8 @@ export class UIObserver {
     await this.loopPromise;
 
     try {
-      // Kick off pre-decode in the background so aiAssert() doesn't have to
-      // wait for decode at call time. This runs concurrently with
-      // captureRepresentative().
+      // Kick off pre-decode in the background while captureRepresentative()
+      // runs so exportRecord() can serialize the final window promptly.
       if (this.source && this.frames.length > 0) {
         const uniqueRefs = this.dedupeRefs(this.frames);
         this.preDecodePromise = this.source
@@ -201,7 +198,7 @@ export class UIObserver {
             debug(`pre-decoded ${uniqueRefs.length} frames`);
           })
           .catch((error) => {
-            debug(`pre-decode failed, will retry at assert time: ${error}`);
+            debug(`pre-decode failed, will retry during export: ${error}`);
           });
       }
 
@@ -253,49 +250,40 @@ export class UIObserver {
   }
 
   /**
-   * Assert against the observed window. All buffered frames (plus the final
-   * representative) are decoded and sent to the model. To control cost for
-   * long windows, increase `intervalMs` or decrease `maxFrames`.
-   * Throws when the assertion fails, mirroring `agent.aiAssert`.
+   * Export the stopped observation window as a portable, serializable record.
+   * The record can be persisted and supplied to a later Agent assertion.
    */
-  async aiAssert(
-    assertion: string,
-    msg?: string,
-    opt?: AgentAssertOpt & ServiceExtractOption,
-  ): Promise<
-    undefined | { pass: boolean; thought?: string; message?: string }
-  > {
+  async exportRecord(): Promise<UIObservationRecord> {
     const uiContext = await this.buildObservedUIContext();
-    return this.deps.runAssert(assertion, uiContext, msg, opt);
-  }
-
-  /** Boolean query over the observed window (same frame semantics as aiAssert). */
-  async aiBoolean(
-    prompt: string,
-    opt?: ServiceExtractOption,
-  ): Promise<boolean> {
-    const uiContext = await this.buildObservedUIContext();
-    return this.deps.runBoolean(prompt, uiContext, opt);
+    const screenshots = uiContext.screenshotSequence ?? [uiContext.screenshot];
+    return {
+      type: 'midscene_ui_observation',
+      version: 1,
+      frames: screenshots.map((screenshot) => ({
+        base64: screenshot.base64,
+        capturedAt: screenshot.capturedAt,
+      })),
+      shotSize: { ...uiContext.shotSize },
+      shrunkShotToLogicalRatio: uiContext.shrunkShotToLogicalRatio,
+    };
   }
 
   private async buildObservedUIContext(): Promise<UIContext> {
     assert(
       this.stopped && this.representative,
-      'call observer.stop() before asserting on the observed window',
+      'call observer.stop() before exporting the observed window',
     );
     const representative = this.representative!;
 
-    // If pre-decode is still running (e.g. user called aiAssert very quickly
-    // after stop), wait for it to complete.
+    // If pre-decode is still running, wait for it to complete.
     if (this.preDecodePromise) {
       await this.preDecodePromise;
       this.preDecodePromise = null;
     }
 
-    // Send ALL buffered frames to the model so transient UI in long windows
-    // is not missed by down-sampling. Cost is controlled by intervalMs and
-    // maxFrames instead. Decode each UNIQUE frame once, using the
-    // cross-assertion cache.
+    // Export ALL buffered frames so transient UI in long windows is not lost.
+    // Downstream assertion cost is controlled by intervalMs and maxFrames.
+    // Decode each UNIQUE frame once, using the decode cache.
     const sampled = this.frames;
     const uniqueRefs = this.dedupeRefs(sampled);
 
@@ -332,9 +320,9 @@ export class UIObserver {
     );
 
     const totalFrames = sequence.length + 1; // +1 for representative
-    if (totalFrames > MAX_FRAMES_TO_MODEL) {
+    if (totalFrames > MAX_FRAMES_PER_RECORD) {
       warnObserver(
-        `WARNING: sending ${totalFrames} frames to the model (soft limit ${MAX_FRAMES_TO_MODEL}). Consider increasing intervalMs or decreasing maxFrames to reduce token cost.`,
+        `WARNING: exporting ${totalFrames} frames (soft limit ${MAX_FRAMES_PER_RECORD}). Asserting this record sends every frame to the model; consider increasing intervalMs or decreasing maxFrames to reduce token cost.`,
       );
     }
 
@@ -486,4 +474,37 @@ export class UIObserver {
     }
     return result;
   }
+}
+
+/** Rebuild the model-facing temporal context from a portable record. */
+export function uiContextFromObservationRecord(
+  record: UIObservationRecord,
+): UIContext {
+  assert(
+    record.type === 'midscene_ui_observation' && record.version === 1,
+    'invalid UI observation record type or version',
+  );
+  assert(record.frames.length > 0, 'UI observation record contains no frames');
+  assert(
+    Number.isFinite(record.shotSize.width) && record.shotSize.width > 0,
+    'UI observation record shot width must be positive',
+  );
+  assert(
+    Number.isFinite(record.shotSize.height) && record.shotSize.height > 0,
+    'UI observation record shot height must be positive',
+  );
+  assert(
+    Number.isFinite(record.shrunkShotToLogicalRatio) &&
+      record.shrunkShotToLogicalRatio > 0,
+    'UI observation record screenshot ratio must be positive',
+  );
+  const screenshotSequence = record.frames.map((frame) =>
+    ScreenshotItem.create(frame.base64, frame.capturedAt),
+  );
+  return {
+    screenshot: screenshotSequence[screenshotSequence.length - 1],
+    screenshotSequence,
+    shotSize: { ...record.shotSize },
+    shrunkShotToLogicalRatio: record.shrunkShotToLogicalRatio,
+  };
 }

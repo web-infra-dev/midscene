@@ -38,7 +38,7 @@ const createAgentStub = (opts: { openFrameSource?: () => any } = {}) => {
 };
 
 describe('Agent.startObserving', () => {
-  it('prefers the device frame source and passes an observed multi-frame context to aiAssert', async () => {
+  it('prefers the device frame source and passes its exported record to aiAssert', async () => {
     const decode = vi.fn(async (refs: any[]) =>
       refs.map((r) => `dec:${r.ref}`),
     );
@@ -55,7 +55,10 @@ describe('Agent.startObserving', () => {
     const observer = await agent.startObserving({ intervalMs: 200 });
     await new Promise((r) => setTimeout(r, 250));
     await observer.stop();
-    await observer.aiAssert('a toast appeared during the process');
+    const observationRecord = await observer.exportRecord();
+    await agent.aiAssert('a toast appeared during the process', undefined, {
+      observationRecord,
+    });
 
     expect(openFrameSource).toHaveBeenCalledTimes(1);
     expect(screenshotBase64).not.toHaveBeenCalled(); // no fallback used
@@ -96,21 +99,49 @@ describe('Agent.startObserving', () => {
   });
 
   it('falls back to plain screenshots when the device has no frame source', async () => {
-    const { agent, createTypeQueryExecution, screenshotBase64 } =
-      createAgentStub();
+    const { agent, screenshotBase64 } = createAgentStub();
 
     const observer = await agent.startObserving({ intervalMs: 200 });
     await observer.stop();
-    const result = await observer.aiBoolean('did a toast appear?');
+    const record = await observer.exportRecord();
 
-    expect(result).toBe(true);
     expect(screenshotBase64).toHaveBeenCalled();
+    expect(record.frames.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('rebuilds the ordered assertion context from an observation record', async () => {
+    const { agent, createTypeQueryExecution } = createAgentStub();
+
+    await agent.aiAssert('a toast appeared during the process', undefined, {
+      observationRecord: {
+        type: 'midscene_ui_observation',
+        version: 1,
+        frames: [
+          { base64: 'data:image/png;base64,frame-before', capturedAt: 100 },
+          { base64: 'data:image/png;base64,frame-toast', capturedAt: 200 },
+          { base64: 'data:image/png;base64,frame-after', capturedAt: 300 },
+        ],
+        shotSize: { width: 100, height: 100 },
+        shrunkShotToLogicalRatio: 1,
+      },
+      keepRawResponse: true,
+    });
+
     const executionOptions = (
       createTypeQueryExecution.mock.calls[0] as any[]
     )[5];
     expect(
-      executionOptions.uiContext.screenshotSequence.length,
-    ).toBeGreaterThanOrEqual(2);
+      executionOptions.uiContext.screenshotSequence.map(
+        (frame: ScreenshotItem) => frame.base64,
+      ),
+    ).toEqual([
+      'data:image/png;base64,frame-before',
+      'data:image/png;base64,frame-toast',
+      'data:image/png;base64,frame-after',
+    ]);
+    expect(executionOptions.uiContext.screenshot.base64).toBe(
+      'data:image/png;base64,frame-after',
+    );
   });
 
   it('plain aiAssert / aiBoolean stay single-frame (no uiContext injected)', async () => {

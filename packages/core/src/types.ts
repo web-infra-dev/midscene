@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+import type { UIObservationRecord } from '@midscene/shared/agent-tools/types';
 import type { NodeType } from '@midscene/shared/constants';
 import type { CreateOpenAIClientFn, TModelConfig } from '@midscene/shared/env';
 import type {
@@ -300,6 +301,8 @@ export interface AgentAssertOpt {
   keepRawResponse?: boolean;
   context?: string;
   abortSignal?: AbortSignal;
+  /** Assert against a previously captured observation window. */
+  observationRecord?: UIObservationRecord;
 }
 
 /**

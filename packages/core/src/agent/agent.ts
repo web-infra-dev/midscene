@@ -87,7 +87,11 @@ import {
   locatePlanForLocate,
   withFileChooser,
 } from './tasks';
-import { UIObserver, type UIObserverOption } from './ui-observer';
+import {
+  UIObserver,
+  type UIObserverOption,
+  uiContextFromObservationRecord,
+} from './ui-observer';
 import {
   type TaskTitleType,
   locateParamStr,
@@ -486,7 +490,10 @@ export class Agent<
    * const observer = await agent.startObserving();
    * await agent.aiAct('submit the form');
    * await observer.stop();
-   * await observer.aiAssert('a success toast appeared during the process');
+   * const observationRecord = await observer.exportRecord();
+   * await agent.aiAssert('a success toast appeared during the process', undefined, {
+   *   observationRecord,
+   * });
    * ```
    *
    * Frames come from the device's continuous frame source when available
@@ -522,10 +529,6 @@ export class Agent<
         // the observation loop never pollutes the TaskRunner context cache.
         screenshot: () => this.interface.screenshotBase64(),
         captureRepresentative: () => this.getUIContext('assert'),
-        runAssert: (assertion, uiContext, msg, assertOpt) =>
-          this.aiAssertWithUIContext(assertion, uiContext, msg, assertOpt),
-        runBoolean: (prompt, uiContext, boolOpt) =>
-          this.aiBooleanWithContext(prompt, uiContext, boolOpt),
         onStopped: () => {
           this.activeObserver = null;
         },
@@ -1395,7 +1398,10 @@ export class Agent<
     msg?: string,
     opt?: AgentAssertOpt & ServiceExtractOption,
   ) {
-    return this.aiAssertWithUIContext(assertion, undefined, msg, opt);
+    const uiContext = opt?.observationRecord
+      ? uiContextFromObservationRecord(opt.observationRecord)
+      : undefined;
+    return this.aiAssertWithUIContext(assertion, uiContext, msg, opt);
   }
 
   private async aiAssertWithUIContext(

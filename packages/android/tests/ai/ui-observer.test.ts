@@ -41,19 +41,25 @@ describe(
         await observer.stop();
 
         expect(observer.frameCount).toBeGreaterThanOrEqual(3);
+        const observationRecord = await observer.exportRecord();
 
         // The prompt is agnostic to WHAT the starting screen shows (an app,
         // or a system dialog covering it) — it only asserts the transition.
-        await observer.aiAssert(
+        await agent.aiAssert(
           'comparing the earlier and later frames, the screen transitions from one screen to a clearly different one, and the device home screen (launcher / desktop) appears in the later frames',
+          undefined,
+          { observationRecord },
         );
 
         // Negative sanity: the model must not rubber-stamp "true" for
         // anything asked about the observed window.
-        const sawCalculator = await observer.aiBoolean(
-          'a calculator app interface appears in any of these frames',
-        );
-        expect(sawCalculator).toBe(false);
+        await expect(
+          agent.aiAssert(
+            'a calculator app interface appears in any of these frames',
+            undefined,
+            { observationRecord },
+          ),
+        ).rejects.toThrow();
       } finally {
         await agent.destroy();
       }
