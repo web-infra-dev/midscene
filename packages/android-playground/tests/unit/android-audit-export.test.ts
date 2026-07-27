@@ -40,11 +40,43 @@ describe('Android audit report export', () => {
     const { download, result } = await writeAndroidAuditExportWithDownload(
       {
         deviceId: 'serial-1',
+        entryPath: 'Opened manually',
+        environment: {
+          device: {
+            serial: 'serial-1',
+            manufacturer: 'Fixture',
+            model: 'Phone',
+            androidVersion: '15',
+            apiLevel: '35',
+            resolution: {
+              physical: { width: 400, height: 800 },
+              logical: { width: 400, height: 800 },
+              screenshot: { width: 400, height: 800 },
+            },
+            density: 160,
+            dpr: 1,
+            rotation: 0,
+          },
+          app: {
+            expectedPackage: 'com.example.app',
+            package: 'com.example.app',
+            activity: '.MainActivity',
+            versionName: '1.2.3',
+            versionCode: '123',
+          },
+        },
         fresh: { ...source, captureId: 'fresh' },
         overlays: [],
         replay: { attempted: 0, hits: 0, misses: 0, wrongMappings: 0 },
+        replayResults: [],
         screenshotBase64: Buffer.from('fake-png').toString('base64'),
+        screenshotCapturedAt: '2026-07-22T01:00:00.500Z',
         source,
+        technology: {
+          declaredStack: 'unknown',
+          confidence: 'unknown',
+          evidence: ['No declaration'],
+        },
         treeNodes: [],
         visualElements: [],
       },
@@ -64,6 +96,22 @@ describe('Android audit report export', () => {
     expect(indexHtml).toContain('Android XPath Audit');
     expect(indexHtml).toContain('Complete UiNode Tree (0)');
     expect(indexHtml).not.toMatch(/\p{Script=Han}/u);
+    const metadata = JSON.parse(
+      await readFile(path.join(pageDir, 'metadata.json'), 'utf8'),
+    );
+    expect(metadata).toMatchObject({
+      schemaVersion: 2,
+      reportKind: 'playground-live',
+      entryPath: 'Opened manually',
+      app: { package: 'com.example.app', versionName: '1.2.3' },
+      device: { manufacturer: 'Fixture', model: 'Phone' },
+      sourceUsed: 'yadb',
+      captures: {
+        source: {
+          screenshot: { capturedAt: '2026-07-22T01:00:00.500Z' },
+        },
+      },
+    });
     expect(download).toMatchObject({
       directoryName: result.runId,
       runId: result.runId,

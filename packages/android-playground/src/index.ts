@@ -9,6 +9,7 @@ export type {
   AndroidAuditState,
 } from './android-audit-session';
 export {
+  buildAndroidAuditDownloadBundle,
   writeAndroidAuditExport,
   writeAndroidAuditExportWithDownload,
 } from './android-audit-export';

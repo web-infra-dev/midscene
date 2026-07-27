@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import type {
   AndroidAccessibilitySnapshot,
   AndroidAgent,
+  AndroidAuditEnvironment,
   AndroidAuditOverlay,
   AndroidAuditReplaySummary,
   AndroidAuditTreeNode,
@@ -10,6 +11,7 @@ import type {
   AndroidLiveTreeAudit,
 } from '@midscene/android';
 import {
+  applyAndroidAuditReplayToSource,
   buildAndroidLiveTreeAudit,
   buildAndroidVisualAudit,
 } from '@midscene/android';
@@ -18,8 +20,7 @@ import type { Application, Request, Response } from 'express';
 import express from 'express';
 import {
   type AndroidAuditDownloadBundle,
-  type AndroidAuditExportResult,
-  writeAndroidAuditExportWithDownload,
+  buildAndroidAuditDownloadBundle,
 } from './android-audit-export';
 
 const debugAudit = getDebug('android:playground:audit');
@@ -52,7 +53,7 @@ export interface AndroidAuditState {
     verifiedCaptureId?: string;
   };
   revision: number;
-  lastExport?: AndroidAuditExportResult;
+  lastExport?: { runId: string };
   source?: AndroidAuditSnapshotSummary;
   status: 'idle' | 'capturing' | 'ready' | 'error';
   treeNodes: AndroidAuditTreeNode[];
@@ -67,6 +68,9 @@ export interface AndroidAuditState {
 }
 
 export interface AndroidAuditDevice {
+  captureAuditEnvironment?(
+    snapshot: AndroidAccessibilitySnapshot,
+  ): Promise<AndroidAuditEnvironment>;
   captureAccessibilitySnapshot(): Promise<AndroidAccessibilitySnapshot>;
   screenshotBase64(): Promise<string>;
 }
@@ -108,6 +112,42 @@ function snapshotSummary(
   };
 }
 
+function fallbackAuditEnvironment(
+  deviceId: string,
+  snapshot: AndroidAccessibilitySnapshot,
+): AndroidAuditEnvironment {
+  return {
+    device: {
+      serial: deviceId,
+      manufacturer: 'unknown',
+      model: 'unknown',
+      androidVersion: 'unknown',
+      apiLevel: 'unknown',
+      resolution: {
+        physical: {
+          width: Math.round(snapshot.logicalSize.width * snapshot.dpr),
+          height: Math.round(snapshot.logicalSize.height * snapshot.dpr),
+        },
+        logical: snapshot.logicalSize,
+        screenshot: {
+          width: Math.round(snapshot.logicalSize.width * snapshot.dpr),
+          height: Math.round(snapshot.logicalSize.height * snapshot.dpr),
+        },
+      },
+      density: snapshot.dpr * 160,
+      dpr: snapshot.dpr,
+      rotation: snapshot.rotation,
+    },
+    app: {
+      expectedPackage: 'unknown',
+      package: 'unknown',
+      activity: 'unknown',
+      versionName: 'unknown',
+      versionCode: 'unknown',
+    },
+  };
+}
+
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
@@ -127,32 +167,33 @@ function treeFingerprint(
   ];
   const visit = (node: AndroidAccessibilitySnapshot['root']) => {
     const resourceId = node.attrs['resource-id'] || '';
+    const text = node.attrs.text || '';
+    const contentDescription = node.attrs['content-desc'] || '';
     const webRole =
       node.attrs['chrome-role'] ||
       node.attrs.chromeRole ||
       node.attrs.role ||
       '';
-    if (
-      includeBounds ||
-      resourceId ||
-      webRole ||
-      node.type.toLowerCase().includes('webview')
-    ) {
-      records.push([
-        node.type,
-        node.attrs.package || '',
-        resourceId,
-        webRole,
-        ...(includeBounds
-          ? [
-              Math.round(node.bounds.left),
-              Math.round(node.bounds.top),
-              Math.round(node.bounds.width),
-              Math.round(node.bounds.height),
-            ]
-          : []),
-      ]);
-    }
+    records.push([
+      node.type,
+      node.attrs.package || '',
+      resourceId,
+      text,
+      contentDescription,
+      webRole,
+      node.attrs.clickable || '',
+      node.attrs.focusable || '',
+      node.attrs.actions || node.attrs['action-list'] || '',
+      node.attrs['target-url'] || node.attrs.targetUrl || '',
+      ...(includeBounds
+        ? [
+            Math.round(node.bounds.left),
+            Math.round(node.bounds.top),
+            Math.round(node.bounds.width),
+            Math.round(node.bounds.height),
+          ]
+        : []),
+    ]);
     node.children.forEach(visit);
   };
   visit(snapshot.root);
@@ -710,7 +751,11 @@ export class AndroidAuditSessionController {
     try {
       const source = await device.captureAccessibilitySnapshot();
       const screenshotBase64 = await device.screenshotBase64();
+      const screenshotCapturedAt = new Date().toISOString();
       const fresh = await device.captureAccessibilitySnapshot();
+      const environment = device.captureAuditEnvironment
+        ? await device.captureAuditEnvironment(source)
+        : fallbackAuditEnvironment(deviceId, source);
       if (generation !== this.generation || device !== this.device) {
         throw new Error('Android device changed while exporting the audit');
       }
@@ -723,6 +768,20 @@ export class AndroidAuditSessionController {
         fresh.logicalSize,
         sourceAudit.treeNodes,
       );
+      const sourceReportAudit = applyAndroidAuditReplayToSource(
+        source.root,
+        source.logicalSize,
+        sourceAudit,
+        freshAudit.replayResults,
+      );
+      const sourceVisualAudit = this.visualInputs.length
+        ? buildAndroidVisualAudit(
+            source.root,
+            source.logicalSize,
+            sourceReportAudit,
+            this.visualInputs,
+          )
+        : null;
       const freshVisualAudit = this.visualInputs.length
         ? buildAndroidVisualAudit(
             fresh.root,
@@ -731,15 +790,30 @@ export class AndroidAuditSessionController {
             this.visualInputs,
           )
         : null;
-      const { download, result } = await writeAndroidAuditExportWithDownload({
+      const download = buildAndroidAuditDownloadBundle({
         deviceId,
+        entryPath:
+          'Current Playground session; navigation was performed manually.',
+        environment,
         fresh,
-        overlays: mergeVisualAndTreeOverlays(freshAudit, freshVisualAudit),
+        overlays: mergeVisualAndTreeOverlays(
+          sourceReportAudit,
+          sourceVisualAudit,
+        ),
         replay: freshAudit.replay,
+        replayResults: freshAudit.replayResults,
         screenshotBase64,
+        screenshotCapturedAt,
         source,
-        treeNodes: sourceAudit.treeNodes,
-        visualElements: freshVisualAudit?.visualElements ?? [],
+        technology: {
+          declaredStack: 'unknown',
+          confidence: 'unknown',
+          evidence: [
+            'No explicit technology declaration was supplied for this live Playground capture.',
+          ],
+        },
+        treeNodes: sourceReportAudit.treeNodes,
+        visualElements: sourceVisualAudit?.visualElements ?? [],
         ...(this.revisitBaseline &&
         this.revisitSnapshot &&
         this.state.revisit?.replay
@@ -760,7 +834,7 @@ export class AndroidAuditSessionController {
         : null;
       this.state = {
         ...this.state,
-        lastExport: result,
+        lastExport: { runId: download.runId },
         overlays: mergeVisualAndTreeOverlays(freshAudit, freshVisualAudit),
         replay: freshAudit.replay,
         revision: this.state.revision + 1,

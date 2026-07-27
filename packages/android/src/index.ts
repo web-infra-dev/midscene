@@ -1,9 +1,22 @@
 export { AndroidDevice } from './device';
+export {
+  ANDROID_AUDIT_SCHEMA_VERSION,
+  collectAndroidAuditEnvironment,
+} from './audit-metadata';
+export type {
+  AndroidAuditEnvironment,
+  AndroidAuditReportKind,
+  AndroidAuditTechnologyConfidence,
+  AndroidAuditTechnologyMetadata,
+  CollectAndroidAuditEnvironmentOptions,
+} from './audit-metadata';
 export type {
   AndroidAccessibilitySnapshot,
   AndroidAccessibilityTreeSource,
 } from './accessibility-snapshot';
 export {
+  ANDROID_AUDIT_STATUS_LABELS,
+  applyAndroidAuditReplayToSource,
   buildAndroidAuditTree,
   buildAndroidLiveTreeAudit,
   buildAndroidVisualAudit,
@@ -12,9 +25,13 @@ export {
 } from './xpath-audit';
 export type {
   AndroidAuditCandidateDiagnostic,
+  AndroidAuditEnumeratedNode,
+  AndroidAuditEnumeratedTree,
   AndroidAuditOverlay,
   AndroidAuditRectSource,
   AndroidAuditReplaySummary,
+  AndroidAuditReplayOutcome,
+  AndroidAuditReplayResult,
   AndroidAuditStatus,
   AndroidAuditTreeNode,
   AndroidAuditVisualElement,

@@ -66,6 +66,26 @@ function webViewSnapshot(
   };
 }
 
+function semanticSnapshot(text: string): AndroidAccessibilitySnapshot {
+  return {
+    ...snapshot(20),
+    captureId: `capture-${text}`,
+    root: {
+      attrs: {},
+      bounds: { left: 0, top: 0, width: 400, height: 800 },
+      children: [
+        {
+          attrs: { focusable: 'true', text },
+          bounds: { left: 20, top: 20, width: 120, height: 60 },
+          children: [],
+          type: 'android.view.ViewGroup',
+        },
+      ],
+      type: 'android.widget.FrameLayout',
+    },
+  };
+}
+
 async function waitFor(
   predicate: () => boolean,
   timeoutMs = 1_000,
@@ -519,6 +539,48 @@ describe('AndroidAuditSessionController', () => {
     controller.close();
   });
 
+  it('exports source geometry with fresh replay results applied to source nodes', async () => {
+    const captureAccessibilitySnapshot = vi
+      .fn<() => Promise<AndroidAccessibilitySnapshot>>()
+      .mockResolvedValueOnce(snapshot(20))
+      .mockResolvedValueOnce(snapshot(80));
+    const controller = new AndroidAuditSessionController({
+      captureIntervalMs: 60_000,
+    });
+    controller.attachDevice('serial-1', {
+      captureAccessibilitySnapshot,
+      screenshotBase64: vi.fn(async () =>
+        Buffer.from('fake-png').toString('base64'),
+      ),
+    });
+
+    const download = await controller.exportReport();
+    const readDownload = (relativePath: string): string => {
+      const file = download.files.find(
+        (candidate) => candidate.relativePath === relativePath,
+      );
+      if (!file) throw new Error(`Missing download file: ${relativePath}`);
+      return Buffer.from(file.contentBase64, 'base64').toString();
+    };
+    const elements = JSON.parse(
+      readDownload('pages/playground-current/elements.json'),
+    );
+    const sourceButton = elements.treeNodes.find(
+      (candidate: { attrs: Record<string, string> }) =>
+        candidate.attrs['resource-id'] === 'stable',
+    );
+    const reportHtml = readDownload('pages/playground-current/annotated.html');
+
+    expect(sourceButton).toMatchObject({
+      bounds: { left: 20, top: 20, width: 120, height: 60 },
+      replayVerified: true,
+    });
+    expect(reportHtml).toContain('top:2.5%');
+    expect(reportHtml).not.toContain('top:10%');
+    expect(controller.getState().source?.captureId).toBe('capture-80');
+    controller.close();
+  });
+
   it('drops page-scoped visual boxes after the Accessibility layout changes', async () => {
     const captureAccessibilitySnapshot = vi
       .fn<() => Promise<AndroidAccessibilitySnapshot>>()
@@ -549,6 +611,41 @@ describe('AndroidAuditSessionController', () => {
       controller
         .getState()
         .overlays.some((overlay) => overlay.name === 'Page A button'),
+    ).toBe(false);
+    controller.close();
+  });
+
+  it('drops page-scoped visual boxes when semantics change at the same bounds', async () => {
+    const captureAccessibilitySnapshot = vi
+      .fn<() => Promise<AndroidAccessibilitySnapshot>>()
+      .mockResolvedValueOnce(semanticSnapshot('Page A'))
+      .mockResolvedValueOnce(semanticSnapshot('Page B'));
+    const controller = new AndroidAuditSessionController({
+      captureIntervalMs: 60_000,
+    });
+    controller.attachDevice('serial-1', {
+      captureAccessibilitySnapshot,
+      screenshotBase64: vi.fn(async () => 'unused'),
+    });
+
+    await controller.captureNow();
+    await controller.setVisualElements([
+      {
+        description: 'Visual control on Page A',
+        id: 'visual-page-a',
+        name: 'Page A control',
+        rect: { left: 250, top: 40, width: 80, height: 80 },
+        rectSource: 'manual',
+      },
+    ]);
+    await controller.captureNow();
+
+    expect(controller.getState().source?.captureId).toBe('capture-Page B');
+    expect(controller.getState().visualElements).toEqual([]);
+    expect(
+      controller
+        .getState()
+        .overlays.some((overlay) => overlay.name === 'Page A control'),
     ).toBe(false);
     controller.close();
   });

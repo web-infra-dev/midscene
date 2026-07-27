@@ -28,12 +28,25 @@ import type { ADB } from 'appium-adb';
 import sharp from 'sharp';
 import { createAndroidAdb } from '../src/adb';
 import { runAdbShellStdoutOrThrow } from '../src/adb-shell';
+import {
+  ANDROID_AUDIT_SCHEMA_VERSION,
+  type AndroidAuditEnvironment,
+  type AndroidAuditTechnologyConfidence,
+  collectAndroidAuditEnvironment,
+} from '../src/audit-metadata';
 import { ANDROID_CACHE_CANDIDATE_OPTIONS } from '../src/cache-policy';
 import { uiautomatorXmlToUiNode } from '../src/uiautomator-tree';
+import {
+  ANDROID_AUDIT_STATUS_LABELS,
+  type AndroidAuditEnumeratedTree,
+  type AndroidAuditTreeNode,
+  buildAndroidAuditTree,
+  enumerateAndroidUiTree,
+} from '../src/xpath-audit';
 
 const execFileAsync = promisify(execFile);
 
-const AUDIT_SCHEMA_VERSION = 1 as const;
+const AUDIT_SCHEMA_VERSION = ANDROID_AUDIT_SCHEMA_VERSION;
 const DUMP_ATTEMPTS = 3;
 // Audit captures favor completeness over the tighter production latency bound.
 // Complex, animated pages can need more than five seconds to serialize a tree.
@@ -49,7 +62,7 @@ const DEFAULT_OUTPUT_ROOT = join(
 
 type CapturePhase = 'source' | 'fresh' | 'revisit';
 type TreeSource = 'yadb' | 'uiautomator';
-type TechnologyConfidence = 'confirmed' | 'strong' | 'suspected' | 'unknown';
+type TechnologyConfidence = AndroidAuditTechnologyConfidence;
 type ReplayOutcome = 'hit' | 'miss' | 'wrong-target' | 'pending' | 'skipped';
 
 export type VisualAuditStatus =
@@ -124,32 +137,12 @@ interface PhaseCaptureMetadata {
 
 export interface PageMetadata {
   schemaVersion: typeof AUDIT_SCHEMA_VERSION;
+  reportKind: 'cli-capture';
   pageId: string;
   createdAt: string;
   updatedAt: string;
-  device: {
-    serial: string;
-    manufacturer: string;
-    model: string;
-    androidVersion: string;
-    apiLevel: string;
-    resolution: {
-      physical: { width: number; height: number };
-      override?: { width: number; height: number };
-      logical: { width: number; height: number };
-      screenshot: { width: number; height: number };
-    };
-    density: number;
-    dpr: number;
-    rotation: number;
-  };
-  app: {
-    expectedPackage: string;
-    package: string;
-    activity: string;
-    versionName: string;
-    versionCode: string;
-  };
+  device: AndroidAuditEnvironment['device'];
+  app: AndroidAuditEnvironment['app'];
   entryPath: string;
   technology: {
     declaredStack: string;
@@ -162,6 +155,7 @@ export interface PageMetadata {
 
 interface RunMetadata {
   schemaVersion: typeof AUDIT_SCHEMA_VERSION;
+  reportKind: 'cli-capture';
   runId: string;
   createdAt: string;
   updatedAt: string;
@@ -173,49 +167,8 @@ interface RunMetadata {
   pages: string[];
 }
 
-export interface TreeNodeAuditRecord {
-  nodeId: string;
-  parentNodeId: string | null;
-  depth: number;
-  childIndex: number;
-  typeSiblingIndex: number;
-  type: string;
-  attrs: Record<string, string | undefined>;
-  bounds: AuditRect;
-  center: AuditPoint;
-  visible: boolean;
-  interactive: boolean;
-  structuralXpath: string;
-  cacheFeatureXpaths: string[];
-  cacheFeatureXpathSources: string[];
-  cacheFeature?: XpathCacheFeature;
-  cacheSelectedNodeId?: string;
-  cacheSelectedOther: boolean;
-  sourceUnique: boolean;
-  candidateDiagnostics: Array<{
-    xpath: string;
-    source?: string;
-    matchCount: number;
-    selectsNode: boolean;
-  }>;
-  failureReason?: string;
-}
-
-interface EnumeratedNode {
-  node: UiNode;
-  nodeId: string;
-  parentNodeId: string | null;
-  depth: number;
-  childIndex: number;
-  typeSiblingIndex: number;
-  structuralXpath: string;
-}
-
-export interface EnumeratedTree {
-  nodes: EnumeratedNode[];
-  nodeById: Map<string, UiNode>;
-  idByNode: Map<UiNode, string>;
-}
+export type TreeNodeAuditRecord = AndroidAuditTreeNode;
+export type EnumeratedTree = AndroidAuditEnumeratedTree;
 
 export interface ReplayResult {
   phase: 'fresh' | 'revisit';
@@ -320,6 +273,7 @@ interface PageSummary {
 
 interface RunSummary {
   schemaVersion: typeof AUDIT_SCHEMA_VERSION;
+  reportKind: 'cli-capture';
   generatedAt: string;
   runId: string;
   pages: PageSummary[];
@@ -597,97 +551,7 @@ async function captureScreenshot(adb: ADB): Promise<Buffer> {
   }
 }
 
-function xpathTag(type: string): string {
-  return /^[A-Za-z_*][A-Za-z0-9_.\-:*]*$/.test(type) ? type : '*';
-}
-
-export function enumerateUiTree(root: UiNode): EnumeratedTree {
-  const nodes: EnumeratedNode[] = [];
-  const nodeById = new Map<string, UiNode>();
-  const idByNode = new Map<UiNode, string>();
-  let sequence = 0;
-
-  const visit = (
-    node: UiNode,
-    parent: UiNode | null,
-    parentNodeId: string | null,
-    depth: number,
-    childIndex: number,
-    parentXpath: string,
-  ): void => {
-    sequence++;
-    const nodeId = `node-${String(sequence).padStart(4, '0')}`;
-    const tag = xpathTag(node.type);
-    const siblings = parent?.children ?? [node];
-    let typeSiblingIndex = 0;
-    for (const sibling of siblings) {
-      if (tag === '*' || sibling.type === node.type) typeSiblingIndex++;
-      if (sibling === node) break;
-    }
-    const structuralXpath = `${parentXpath}/${tag}[${typeSiblingIndex}]`;
-    nodes.push({
-      node,
-      nodeId,
-      parentNodeId,
-      depth,
-      childIndex,
-      typeSiblingIndex,
-      structuralXpath,
-    });
-    nodeById.set(nodeId, node);
-    idByNode.set(node, nodeId);
-    node.children.forEach((child, index) =>
-      visit(child, node, nodeId, depth + 1, index, structuralXpath),
-    );
-  };
-
-  visit(root, null, null, 0, 0, '');
-  return { nodes, nodeById, idByNode };
-}
-
-function centerOf(rect: AuditRect): AuditPoint {
-  return {
-    x: rect.left + rect.width / 2,
-    y: rect.top + rect.height / 2,
-  };
-}
-
-function isVisible(rect: AuditRect, logicalSize: AuditRect): boolean {
-  return (
-    rect.width > 0 &&
-    rect.height > 0 &&
-    rect.left < logicalSize.width &&
-    rect.top < logicalSize.height &&
-    rect.left + rect.width > 0 &&
-    rect.top + rect.height > 0
-  );
-}
-
-function attrIsTrue(value: string | undefined): boolean {
-  return value === 'true';
-}
-
-function nodeIsInteractive(node: UiNode): boolean {
-  return [
-    'clickable',
-    'long-clickable',
-    'focusable',
-    'scrollable',
-    'checkable',
-    'editable',
-  ].some((attr) => attrIsTrue(node.attrs[attr]));
-}
-
-function nodeDescription(node: UiNode): string {
-  return [
-    node.attrs['resource-id'],
-    node.attrs['content-desc'],
-    node.attrs.text,
-    node.type,
-  ]
-    .filter((value): value is string => Boolean(value))
-    .join(' ');
-}
+export const enumerateUiTree = enumerateAndroidUiTree;
 
 function hasAndroidIdentityFields(node: UiNode): boolean {
   return ['resource-id', 'content-desc', 'text'].some((attr) =>
@@ -749,65 +613,13 @@ export function buildTreeNodeAuditRecords(
   logicalHeight: number,
 ): { records: TreeNodeAuditRecord[]; enumerated: EnumeratedTree } {
   const enumerated = enumerateUiTree(root);
-  const viewport: AuditRect = {
-    left: 0,
-    top: 0,
-    width: logicalWidth,
-    height: logicalHeight,
+  return {
+    records: buildAndroidAuditTree(root, {
+      width: logicalWidth,
+      height: logicalHeight,
+    }),
+    enumerated,
   };
-  const records = enumerated.nodes.map((entry): TreeNodeAuditRecord => {
-    const point = centerOf(entry.node.bounds);
-    const feature = generateXpathCacheFeature(root, point, 'android', {
-      ...ANDROID_CACHE_CANDIDATE_OPTIONS,
-      targetDescription: nodeDescription(entry.node),
-      expectedRect: entry.node.bounds,
-    });
-    const selected = feature
-      ? selectedNodeForFeature(root, feature, enumerated.idByNode)
-      : {
-          sourceUnique: false,
-          failureReason: hasAndroidIdentityFields(entry.node)
-            ? 'Production generation rejected the node identity as unsafe'
-            : 'No Android identity fields; only the structural XPath is available',
-        };
-    const candidateDiagnostics = feature
-      ? featureDiagnostics(root, feature, entry.node)
-      : [];
-
-    return {
-      nodeId: entry.nodeId,
-      parentNodeId: entry.parentNodeId,
-      depth: entry.depth,
-      childIndex: entry.childIndex,
-      typeSiblingIndex: entry.typeSiblingIndex,
-      type: entry.node.type,
-      attrs: entry.node.attrs,
-      bounds: entry.node.bounds,
-      center: point,
-      visible: isVisible(entry.node.bounds, viewport),
-      interactive: nodeIsInteractive(entry.node),
-      structuralXpath: entry.structuralXpath,
-      cacheFeatureXpaths: feature?.xpaths ?? [],
-      cacheFeatureXpathSources: feature?.xpathSources ?? [],
-      ...(feature ? { cacheFeature: feature } : {}),
-      ...(selected.nodeId ? { cacheSelectedNodeId: selected.nodeId } : {}),
-      cacheSelectedOther:
-        Boolean(selected.nodeId) && selected.nodeId !== entry.nodeId,
-      sourceUnique:
-        selected.sourceUnique &&
-        selected.nodeId === entry.nodeId &&
-        candidateDiagnostics.length > 0 &&
-        candidateDiagnostics.every(
-          (candidate) => candidate.matchCount === 1 && candidate.selectsNode,
-        ),
-      candidateDiagnostics,
-      ...(selected.failureReason
-        ? { failureReason: selected.failureReason }
-        : {}),
-    };
-  });
-
-  return { records, enumerated };
 }
 
 function validatePoint(point: AuditPoint, label: string): void {
@@ -1317,27 +1129,27 @@ interface StatusPresentation {
 
 const STATUS_PRESENTATION: Record<VisualAuditStatus, StatusPresentation> = {
   'cache-xpath-hit': {
-    label: 'Cache XPath Hit',
+    label: ANDROID_AUDIT_STATUS_LABELS['cache-xpath-hit'],
     description:
       'Green: A safe cache XPath was generated, was unique in the source tree, and matched the same element in the fresh tree.',
   },
   'tree-only-positional': {
-    label: 'Structural XPath Only',
+    label: ANDROID_AUDIT_STATUS_LABELS['tree-only-positional'],
     description:
       'Yellow: The node is present in the tree but has no verifiable identity fields, so only an order-sensitive structural XPath is available.',
   },
   'exposed-no-safe-xpath': {
-    label: 'Exposed Without Safe XPath',
+    label: ANDROID_AUDIT_STATUS_LABELS['exposed-no-safe-xpath'],
     description:
       'Red: The node is present in the tree, but its identity is duplicated, its semantics are merged, or production generation rejected a safe cache XPath.',
   },
   'not-exposed': {
-    label: 'Not Exposed in Tree',
+    label: ANDROID_AUDIT_STATUS_LABELS['not-exposed'],
     description:
       'Red: The element is visible in the screenshot but has no corresponding Accessibility tree node.',
   },
   'point-selected-other': {
-    label: 'Point Selected Another Node',
+    label: ANDROID_AUDIT_STATUS_LABELS['point-selected-other'],
     description:
       'Purple: The point intersects overlapping nodes and production point selection chose a node different from the manual mapping.',
   },
@@ -1723,158 +1535,33 @@ async function capturePhaseArtifacts(
   };
 }
 
-function parseWmDimension(
-  output: string,
-  label: 'Physical' | 'Override',
-): { width: number; height: number } | undefined {
-  const match = output.match(new RegExp(`${label} size:\\s*(\\d+)x(\\d+)`));
-  return match
-    ? {
-        width: Number.parseInt(match[1], 10),
-        height: Number.parseInt(match[2], 10),
-      }
-    : undefined;
-}
-
-async function requiredShellValue(
-  adb: ADB,
-  command: string,
-  label: string,
-): Promise<string> {
-  const value = (await adb.shell(command)).trim();
-  if (!value) throw new Error(`Unable to read ${label} with: ${command}`);
-  return value;
-}
-
-async function getRotation(adb: ADB): Promise<number> {
-  const input = await adb.shell('dumpsys input');
-  const inputMatch = input.match(/SurfaceOrientation:\s*(\d)/);
-  if (inputMatch) return Number.parseInt(inputMatch[1], 10);
-  const display = await adb.shell('dumpsys display');
-  const displayMatch = display.match(/mCurrentOrientation=(\d)/);
-  if (displayMatch) return Number.parseInt(displayMatch[1], 10);
-  throw new Error('Unable to determine Android display rotation');
-}
-
-async function getFocusedApp(adb: ADB): Promise<{
-  package: string;
-  activity: string;
-}> {
-  const activityDump = await adb.shell('dumpsys activity activities');
-  const activityLines = activityDump
-    .split(/\r?\n/)
-    .filter((line) =>
-      /mResumedActivity|topResumedActivity|ResumedActivity/.test(line),
-    );
-  const windowDump = await adb.shell('dumpsys window windows');
-  const windowLines = windowDump
-    .split(/\r?\n/)
-    .filter((line) => /mCurrentFocus|mFocusedApp/.test(line));
-  for (const line of [...activityLines, ...windowLines]) {
-    const match = line.match(/([A-Za-z0-9_.]+)\/([A-Za-z0-9_.$]+)/);
-    if (match) return { package: match[1], activity: match[2] };
-  }
-  throw new Error('Unable to determine the focused Android package/activity');
-}
-
-async function getAppVersion(
-  adb: ADB,
-  packageName: string,
-): Promise<{ versionName: string; versionCode: string }> {
-  const dump = await adb.shell(`dumpsys package ${packageName}`);
-  const versionName = dump.match(/\bversionName=([^\s]+)/)?.[1];
-  const versionCode = dump.match(/\bversionCode=(\d+)/)?.[1];
-  if (!versionName || !versionCode) {
-    throw new Error(`Unable to read installed version for ${packageName}`);
-  }
-  return { versionName, versionCode };
-}
-
 async function collectPageMetadata(
   adb: ADB,
   options: CaptureCliOptions,
   capture: PhaseCaptureMetadata,
   screenshot: Buffer,
 ): Promise<PageMetadata> {
-  const [
-    manufacturer,
-    model,
-    androidVersion,
-    apiLevel,
-    wmSize,
-    rotation,
-    focused,
-    appVersion,
-  ] = await Promise.all([
-    requiredShellValue(adb, 'getprop ro.product.manufacturer', 'manufacturer'),
-    requiredShellValue(adb, 'getprop ro.product.model', 'model'),
-    requiredShellValue(
-      adb,
-      'getprop ro.build.version.release',
-      'Android version',
-    ),
-    requiredShellValue(
-      adb,
-      'getprop ro.build.version.sdk',
-      'Android API level',
-    ),
-    adb.shell('wm size'),
-    getRotation(adb),
-    getFocusedApp(adb),
-    getAppVersion(adb, options.app),
-  ]);
-  if (focused.package !== options.app) {
-    throw new Error(
-      `Focused package ${focused.package} does not match requested app ${options.app}`,
-    );
-  }
-  const density = (await adb.getScreenDensity()) ?? 160;
-  const dpr = density / 160;
   const screenshotMetadata = await sharp(screenshot).metadata();
   if (!screenshotMetadata.width || !screenshotMetadata.height) {
     throw new Error('Unable to determine screenshot dimensions');
   }
-  const physical = parseWmDimension(wmSize, 'Physical') ??
-    parseWmDimension(wmSize, 'Override') ?? {
+  const environment = await collectAndroidAuditEnvironment(adb, {
+    deviceId: options.device,
+    expectedPackage: options.app,
+    screenshotSize: {
       width: screenshotMetadata.width,
       height: screenshotMetadata.height,
-    };
-  const override = parseWmDimension(wmSize, 'Override');
+    },
+  });
   const createdAt = nowIso();
 
   return {
     schemaVersion: AUDIT_SCHEMA_VERSION,
+    reportKind: 'cli-capture',
     pageId: options.page,
     createdAt,
     updatedAt: createdAt,
-    device: {
-      serial: options.device,
-      manufacturer,
-      model,
-      androidVersion,
-      apiLevel,
-      resolution: {
-        physical,
-        ...(override ? { override } : {}),
-        logical: {
-          width: screenshotMetadata.width / dpr,
-          height: screenshotMetadata.height / dpr,
-        },
-        screenshot: {
-          width: screenshotMetadata.width,
-          height: screenshotMetadata.height,
-        },
-      },
-      density,
-      dpr,
-      rotation,
-    },
-    app: {
-      expectedPackage: options.app,
-      package: focused.package,
-      activity: focused.activity,
-      ...appVersion,
-    },
+    ...environment,
     entryPath: options.entryPath,
     technology: options.technology,
     sourceUsed: capture.treeSource,
@@ -1902,6 +1589,7 @@ async function createRunMetadata(runId: string): Promise<RunMetadata> {
   const createdAt = nowIso();
   return {
     schemaVersion: AUDIT_SCHEMA_VERSION,
+    reportKind: 'cli-capture',
     runId,
     createdAt,
     updatedAt: createdAt,
@@ -1980,6 +1668,7 @@ async function rebuildPageArtifacts(pageDir: string): Promise<PageSummary> {
 function buildRunSummary(run: RunMetadata, pages: PageSummary[]): RunSummary {
   return {
     schemaVersion: AUDIT_SCHEMA_VERSION,
+    reportKind: 'cli-capture',
     generatedAt: nowIso(),
     runId: run.runId,
     pages,

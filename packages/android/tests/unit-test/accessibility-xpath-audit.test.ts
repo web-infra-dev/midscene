@@ -7,6 +7,7 @@ import {
   type PageMetadata,
   type VisualInventory,
   buildPageAuditData,
+  buildTreeNodeAuditRecords,
   enumerateUiTree,
   helpText,
   parseCliOptions,
@@ -67,7 +68,7 @@ function auditTree(): UiNode {
 
 function inventory(name = 'Stable control'): VisualInventory {
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     coordinateSpace: 'screenshot-pixel',
     reviewed: true,
     elements: [
@@ -117,7 +118,8 @@ function inventory(name = 'Stable control'): VisualInventory {
 
 function metadata(): PageMetadata {
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
+    reportKind: 'cli-capture',
     pageId: 'douyin-search',
     createdAt: '2026-07-21T00:00:00.000Z',
     updatedAt: '2026-07-21T00:00:01.000Z',
@@ -195,6 +197,28 @@ describe('accessibility XPath audit', () => {
       '/android.widget.FrameLayout[1]/android.widget.TextView[2]',
       '/android.widget.FrameLayout[1]/*[3]',
     ]);
+  });
+
+  it('uses the shared WebView interaction semantics for CLI tree records', () => {
+    const root = node(
+      'android.webkit.WebView',
+      { left: 0, top: 0, width: 400, height: 800 },
+      {},
+      [
+        node(
+          'android.view.View',
+          { left: 20, top: 20, width: 120, height: 60 },
+          { 'chrome-role': 'button', clickable: 'false', text: 'Continue' },
+        ),
+      ],
+    );
+
+    const result = buildTreeNodeAuditRecords(root, 400, 800);
+
+    expect(result.records[1]).toMatchObject({
+      interactive: true,
+      interactionEvidence: ['web-role'],
+    });
   });
 
   it('classifies all five visual audit states and keeps every tree node', () => {
@@ -409,7 +433,7 @@ describe('accessibility XPath audit', () => {
       },
     };
     const visualInventory: VisualInventory = {
-      schemaVersion: 1,
+      schemaVersion: 2,
       coordinateSpace: 'screenshot-pixel',
       reviewed: true,
       elements: [inventory().elements[0]],
@@ -420,7 +444,8 @@ describe('accessibility XPath audit', () => {
         writeFile(
           join(tempRoot, 'run.json'),
           JSON.stringify({
-            schemaVersion: 1,
+            schemaVersion: 2,
+            reportKind: 'cli-capture',
             runId: 'fixture-run',
             createdAt: '2026-07-21T00:00:00.000Z',
             updatedAt: '2026-07-21T00:00:00.000Z',

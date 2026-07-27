@@ -19,6 +19,16 @@ export type AndroidAuditStatus =
   | 'point-selected-other'
   | 'pending';
 
+/** English labels shared by live and saved Android audit presentations. */
+export const ANDROID_AUDIT_STATUS_LABELS: Record<AndroidAuditStatus, string> = {
+  'cache-xpath-hit': 'Cache XPath Hit',
+  'tree-only-positional': 'Structural XPath Only',
+  'exposed-no-safe-xpath': 'Exposed Without Safe XPath',
+  'not-exposed': 'Not Exposed in Tree',
+  'point-selected-other': 'Point Selected Another Node',
+  pending: 'Awaiting Fresh Validation',
+};
+
 export type AndroidAuditRectSource = 'tree' | 'ai' | 'manual' | 'adjusted';
 
 export type AndroidInteractionEvidenceSource =
@@ -43,7 +53,9 @@ export interface AndroidAuditTreeNode {
   cacheFeatureXpathSources: XpathCandidateSource[];
   cacheSelectedNodeId?: string;
   candidateDiagnostics: AndroidAuditCandidateDiagnostic[];
+  center: { x: number; y: number };
   childIndex: number;
+  cacheSelectedOther: boolean;
   depth: number;
   failureReason?: string;
   interactive: boolean;
@@ -54,6 +66,7 @@ export interface AndroidAuditTreeNode {
   sourceUnique: boolean;
   structuralXpath: string;
   type: string;
+  typeSiblingIndex: number;
   visible: boolean;
 }
 
@@ -103,9 +116,21 @@ export interface AndroidAuditReplaySummary {
   wrongMappings: number;
 }
 
+export type AndroidAuditReplayOutcome = 'hit' | 'miss' | 'wrong-mapping';
+
+export interface AndroidAuditReplayResult {
+  failureReason?: string;
+  matchedNodeId?: string;
+  outcome: AndroidAuditReplayOutcome;
+  sourceNodeId: string;
+  xpath?: string;
+  xpathSource?: XpathCandidateSource;
+}
+
 export interface AndroidLiveTreeAudit {
   overlays: AndroidAuditOverlay[];
   replay: AndroidAuditReplaySummary;
+  replayResults: AndroidAuditReplayResult[];
   treeNodes: AndroidAuditTreeNode[];
 }
 
@@ -127,7 +152,7 @@ const MAX_ADJACENT_IMAGE_SIZE = 20;
 const CACHE_XPATH_HIT_REASON =
   'The cache XPath from the previous capture uniquely matched the same identity in the current tree';
 
-interface EnumeratedNode {
+export interface AndroidAuditEnumeratedNode {
   childIndex: number;
   depth: number;
   node: UiNode;
@@ -135,20 +160,23 @@ interface EnumeratedNode {
   parent: UiNode | null;
   parentNodeId: string | null;
   structuralXpath: string;
+  typeSiblingIndex: number;
 }
 
-interface EnumeratedTree {
+export interface AndroidAuditEnumeratedTree {
   idByNode: Map<UiNode, string>;
   nodeById: Map<string, UiNode>;
-  nodes: EnumeratedNode[];
+  nodes: AndroidAuditEnumeratedNode[];
 }
 
 function xpathTag(type: string): string {
   return /^[A-Za-z_*][A-Za-z0-9_.\-:*]*$/.test(type) ? type : '*';
 }
 
-export function enumerateAndroidUiTree(root: UiNode): EnumeratedTree {
-  const nodes: EnumeratedNode[] = [];
+export function enumerateAndroidUiTree(
+  root: UiNode,
+): AndroidAuditEnumeratedTree {
+  const nodes: AndroidAuditEnumeratedNode[] = [];
   const nodeById = new Map<string, UiNode>();
   const idByNode = new Map<UiNode, string>();
   let sequence = 0;
@@ -179,6 +207,7 @@ export function enumerateAndroidUiTree(root: UiNode): EnumeratedTree {
       parent,
       parentNodeId,
       structuralXpath,
+      typeSiblingIndex,
     });
     nodeById.set(nodeId, node);
     idByNode.set(node, nodeId);
@@ -395,7 +424,7 @@ function hasTreeResourceId(node: AndroidAuditTreeNode): boolean {
 }
 
 function isTreeImage(node: AndroidAuditTreeNode): boolean {
-  return node.type.endsWith('.Image');
+  return /\.(?:Image|ImageView)$/.test(node.type);
 }
 
 interface TreeSubtreeStats {
@@ -1079,7 +1108,10 @@ export function buildAndroidAuditTree(
       cacheFeatureXpaths: feature?.xpaths ?? [],
       cacheFeatureXpathSources: feature?.xpathSources ?? [],
       cacheSelectedNodeId,
+      cacheSelectedOther:
+        Boolean(cacheSelectedNodeId) && cacheSelectedNodeId !== entry.nodeId,
       candidateDiagnostics,
+      center: point,
       childIndex: entry.childIndex,
       depth: entry.depth,
       failureReason,
@@ -1091,9 +1123,25 @@ export function buildAndroidAuditTree(
       sourceUnique,
       structuralXpath: entry.structuralXpath,
       type: entry.node.type,
+      typeSiblingIndex: entry.typeSiblingIndex,
       visible: isVisible(entry.node.bounds, viewport),
     };
   });
+}
+
+function replaySummary(
+  results: AndroidAuditReplayResult[],
+): AndroidAuditReplaySummary {
+  return results.reduce<AndroidAuditReplaySummary>(
+    (summary, result) => {
+      summary.attempted++;
+      if (result.outcome === 'hit') summary.hits++;
+      else if (result.outcome === 'wrong-mapping') summary.wrongMappings++;
+      else summary.misses++;
+      return summary;
+    },
+    { attempted: 0, hits: 0, misses: 0, wrongMappings: 0 },
+  );
 }
 
 function unresolvedStatus(record: AndroidAuditTreeNode): {
@@ -1146,16 +1194,10 @@ export function buildAndroidLiveTreeAudit(
   const currentEnumerated = enumerateAndroidUiTree(currentRoot);
   const currentTreeNodes = buildAndroidAuditTree(currentRoot, logicalSize);
   const verifiedNodeIds = new Set<string>();
-  const replay: AndroidAuditReplaySummary = {
-    attempted: 0,
-    hits: 0,
-    misses: 0,
-    wrongMappings: 0,
-  };
+  const replayResults: AndroidAuditReplayResult[] = [];
 
   for (const previous of previousTreeNodes) {
     if (!previous.cacheFeature || !previous.sourceUnique) continue;
-    replay.attempted++;
     try {
       const match = matchRectByXpathCache(
         currentRoot,
@@ -1169,14 +1211,31 @@ export function buildAndroidLiveTreeAudit(
           : undefined;
       if (nodeId) {
         verifiedNodeIds.add(nodeId);
-        replay.hits++;
+        replayResults.push({
+          matchedNodeId: nodeId,
+          outcome: 'hit',
+          sourceNodeId: previous.nodeId,
+          xpath: match.xpath,
+          ...(match.source ? { xpathSource: match.source } : {}),
+        });
       } else {
-        replay.misses++;
+        replayResults.push({
+          failureReason: `${match.xpath} did not resolve to one current tree node`,
+          outcome: 'miss',
+          sourceNodeId: previous.nodeId,
+          xpath: match.xpath,
+          ...(match.source ? { xpathSource: match.source } : {}),
+        });
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      if (message.includes('different target')) replay.wrongMappings++;
-      else replay.misses++;
+      replayResults.push({
+        failureReason: message,
+        outcome: message.includes('different target')
+          ? 'wrong-mapping'
+          : 'miss',
+        sourceNodeId: previous.nodeId,
+      });
     }
   }
 
@@ -1205,7 +1264,61 @@ export function buildAndroidLiveTreeAudit(
     },
   );
 
-  return { overlays, replay, treeNodes: replayedTreeNodes };
+  return {
+    overlays,
+    replay: replaySummary(replayResults),
+    replayResults,
+    treeNodes: replayedTreeNodes,
+  };
+}
+
+/**
+ * Apply replay outcomes from a fresh capture to the source tree while keeping
+ * every node id and rectangle in the source coordinate snapshot. Reports use
+ * this projection so their screenshot, tree, and overlays describe one moment.
+ */
+export function applyAndroidAuditReplayToSource(
+  sourceRoot: UiNode,
+  logicalSize: Size,
+  sourceAudit: AndroidLiveTreeAudit,
+  replayResults: AndroidAuditReplayResult[],
+): AndroidLiveTreeAudit {
+  const verifiedSourceNodeIds = new Set(
+    replayResults
+      .filter((result) => result.outcome === 'hit')
+      .map((result) => result.sourceNodeId),
+  );
+  const treeNodes = sourceAudit.treeNodes.map((node) => ({
+    ...node,
+    replayVerified: verifiedSourceNodeIds.has(node.nodeId),
+  }));
+  const enumerated = enumerateAndroidUiTree(sourceRoot);
+  const overlays = selectTreeOverlayNodes(treeNodes, logicalSize).map(
+    (record): AndroidAuditOverlay => {
+      const node = enumerated.nodeById.get(record.nodeId);
+      if (!node) {
+        throw new Error(`Unable to resolve source tree node ${record.nodeId}`);
+      }
+      const unresolved = unresolvedStatus(record);
+      return {
+        description: identityDescription(node),
+        name: displayName(node),
+        nodeId: record.nodeId,
+        rect: record.bounds,
+        rectSource: 'tree',
+        status: record.replayVerified ? 'cache-xpath-hit' : unresolved.status,
+        statusReason: record.replayVerified
+          ? CACHE_XPATH_HIT_REASON
+          : unresolved.reason,
+      };
+    },
+  );
+  return {
+    overlays,
+    replay: replaySummary(replayResults),
+    replayResults,
+    treeNodes,
+  };
 }
 
 export function buildAndroidVisualAudit(

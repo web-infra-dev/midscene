@@ -56,6 +56,10 @@ import {
   buildRunAdbShellPlanningFeedback,
   runAdbShellStdoutOrThrow,
 } from './adb-shell';
+import {
+  type AndroidAuditEnvironment,
+  collectAndroidAuditEnvironment,
+} from './audit-metadata';
 import { ANDROID_CACHE_CANDIDATE_OPTIONS } from './cache-policy';
 import {
   type DevicePhysicalInfo,
@@ -846,6 +850,22 @@ ${Object.keys(size)
       rotation: screenInfo.orientation,
       logicalSize,
     };
+  }
+
+  /** Collect device and foreground-app metadata for an accessibility audit. */
+  async captureAuditEnvironment(
+    snapshot: AndroidAccessibilitySnapshot,
+  ): Promise<AndroidAuditEnvironment> {
+    const adb = await this.getAdb();
+    return collectAndroidAuditEnvironment(adb, {
+      deviceId: this.deviceId,
+      logicalSize: snapshot.logicalSize,
+      rotation: snapshot.rotation,
+      screenshotSize: {
+        width: Math.round(snapshot.logicalSize.width * snapshot.dpr),
+        height: Math.round(snapshot.logicalSize.height * snapshot.dpr),
+      },
+    });
   }
 
   async cacheFeatureForPoint(

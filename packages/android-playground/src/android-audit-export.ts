@@ -3,19 +3,31 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import type {
   AndroidAccessibilitySnapshot,
+  AndroidAuditEnvironment,
   AndroidAuditOverlay,
+  AndroidAuditReplayResult,
   AndroidAuditReplaySummary,
+  AndroidAuditTechnologyMetadata,
   AndroidAuditTreeNode,
   AndroidAuditVisualElement,
+} from '@midscene/android';
+import {
+  ANDROID_AUDIT_SCHEMA_VERSION,
+  ANDROID_AUDIT_STATUS_LABELS,
 } from '@midscene/android';
 
 export interface AndroidAuditExportInput {
   deviceId: string;
+  entryPath: string;
+  environment: AndroidAuditEnvironment;
   fresh: AndroidAccessibilitySnapshot;
   overlays: AndroidAuditOverlay[];
   replay: AndroidAuditReplaySummary;
+  replayResults: AndroidAuditReplayResult[];
   screenshotBase64: string;
+  screenshotCapturedAt: string;
   source: AndroidAccessibilitySnapshot;
+  technology: AndroidAuditTechnologyMetadata;
   treeNodes: AndroidAuditTreeNode[];
   visualElements: AndroidAuditVisualElement[];
   revisit?: {
@@ -45,15 +57,6 @@ export interface AndroidAuditExportWithDownload {
   download: AndroidAuditDownloadBundle;
   result: AndroidAuditExportResult;
 }
-
-const STATUS_LABELS: Record<AndroidAuditOverlay['status'], string> = {
-  'cache-xpath-hit': 'Cache XPath Hit',
-  'tree-only-positional': 'Structural XPath Only',
-  'exposed-no-safe-xpath': 'Exposed Without Safe XPath',
-  'not-exposed': 'Not Exposed in Tree',
-  'point-selected-other': 'Point Selected Another Node',
-  pending: 'Awaiting Fresh Validation',
-};
 
 function sha256(value: string | Buffer): string {
   return createHash('sha256').update(value).digest('hex');
@@ -88,6 +91,11 @@ function runId(): string {
   return `playground-${new Date().toISOString().replace(/[-:.]/g, '')}`;
 }
 
+interface AndroidAuditExportFile {
+  content: Buffer | string;
+  relativePath: string;
+}
+
 function statusCounts(overlays: AndroidAuditOverlay[]) {
   const counts: Record<string, number> = {};
   for (const overlay of overlays) {
@@ -104,7 +112,7 @@ function renderAnnotatedReport(
   const markers = input.overlays
     .map(
       (overlay, index) =>
-        `<button class="marker status-${html(overlay.status)}" style="left:${(overlay.rect.left / size.width) * 100}%;top:${(overlay.rect.top / size.height) * 100}%;width:${(overlay.rect.width / size.width) * 100}%;height:${(overlay.rect.height / size.height) * 100}%" data-node="${html(overlay.nodeId ?? '')}" data-visual="${html(overlay.visualElementId ?? '')}" title="${html(`${STATUS_LABELS[overlay.status]}: ${overlay.statusReason ?? 'No additional details'}`)}"><span>${index + 1}</span></button>`,
+        `<button class="marker status-${html(overlay.status)}" style="left:${(overlay.rect.left / size.width) * 100}%;top:${(overlay.rect.top / size.height) * 100}%;width:${(overlay.rect.width / size.width) * 100}%;height:${(overlay.rect.height / size.height) * 100}%" data-node="${html(overlay.nodeId ?? '')}" data-visual="${html(overlay.visualElementId ?? '')}" title="${html(`${ANDROID_AUDIT_STATUS_LABELS[overlay.status]}: ${overlay.statusReason ?? 'No additional details'}`)}"><span>${index + 1}</span></button>`,
     )
     .join('');
   const rows = input.treeNodes
@@ -130,18 +138,14 @@ function renderAnnotatedReport(
 </style></head><body>
 <header class="top"><div><strong>Android XPath Audit</strong> · ${html(input.deviceId)} · ${html(input.source.source)}</div><div>source ${html(input.source.capturedAt)} · fresh ${html(input.fresh.capturedAt)}</div></header>
 <main class="layout"><section class="screen-wrap"><div class="screen"><img src="${html(screenshotSrc)}" alt="Device screenshot">${markers}</div></section><aside class="right"><section class="tree"><h2>Complete UiNode Tree (${input.treeNodes.length})</h2>${rows}</section><section class="detail"><h3>Element Details</h3><p>Select a frame or tree node to inspect it.</p><pre id="detail">Nothing selected</pre></section></aside></main>
-<script>const data=${data};const detail=document.querySelector('#detail');function select(id,visualId){document.querySelectorAll('[data-node]').forEach((el)=>el.classList.toggle('active',Boolean((visualId&&el.dataset.visual===visualId)||(id&&el.dataset.node===id))));const node=data.treeNodes.find((item)=>item.nodeId===id);const visual=data.visualElements.find((item)=>item.id===visualId);const overlay=data.overlays.find((item)=>visualId?item.visualElementId===visualId:item.nodeId===id);detail.textContent=JSON.stringify({name:visual?.name,status:overlay?${JSON.stringify(STATUS_LABELS)}[overlay.status]:undefined,statusReason:overlay?.statusReason,rectSource:visual?.rectSource,mappedNodeId:visual?.mappedNodeId,structuralXpath:visual?.structuralXpath??node?.structuralXpath,cacheFeatureXpaths:visual?.cacheFeatureXpaths??node?.cacheFeatureXpaths,candidateDiagnostics:visual?.candidateDiagnostics??node?.candidateDiagnostics,attrs:node?.attrs,bounds:visual?.rect??node?.bounds},null,2)}document.addEventListener('click',(event)=>{const target=event.target.closest('[data-node]');if(target)select(target.dataset.node,target.dataset.visual)});</script></body></html>`;
+<script>const data=${data};const detail=document.querySelector('#detail');function select(id,visualId){document.querySelectorAll('[data-node]').forEach((el)=>el.classList.toggle('active',Boolean((visualId&&el.dataset.visual===visualId)||(id&&el.dataset.node===id))));const node=data.treeNodes.find((item)=>item.nodeId===id);const visual=data.visualElements.find((item)=>item.id===visualId);const overlay=data.overlays.find((item)=>visualId?item.visualElementId===visualId:item.nodeId===id);detail.textContent=JSON.stringify({name:visual?.name,status:overlay?${JSON.stringify(ANDROID_AUDIT_STATUS_LABELS)}[overlay.status]:undefined,statusReason:overlay?.statusReason,rectSource:visual?.rectSource,mappedNodeId:visual?.mappedNodeId,structuralXpath:visual?.structuralXpath??node?.structuralXpath,cacheFeatureXpaths:visual?.cacheFeatureXpaths??node?.cacheFeatureXpaths,candidateDiagnostics:visual?.candidateDiagnostics??node?.candidateDiagnostics,attrs:node?.attrs,bounds:visual?.rect??node?.bounds},null,2)}document.addEventListener('click',(event)=>{const target=event.target.closest('[data-node]');if(target)select(target.dataset.node,target.dataset.visual)});</script></body></html>`;
 }
 
-export async function writeAndroidAuditExportWithDownload(
+/** Builds a browser-downloadable report without writing server-side files. */
+export function buildAndroidAuditDownloadBundle(
   input: AndroidAuditExportInput,
-  outputRoot = path.join(process.cwd(), 'midscene_run', 'douyin-xpath-audit'),
-): Promise<AndroidAuditExportWithDownload> {
+): AndroidAuditDownloadBundle {
   const id = runId();
-  const outputDir = path.join(outputRoot, id);
-  const pageDir = path.join(outputDir, 'pages', 'playground-current');
-  await mkdir(pageDir, { recursive: true });
-
   const screenshot = screenshotBuffer(input.screenshotBase64);
   const generatedAt = new Date().toISOString();
   const reportHtml = renderAnnotatedReport(input, 'screenshot.png');
@@ -150,41 +154,63 @@ export async function writeAndroidAuditExportWithDownload(
     'pages/playground-current/screenshot.png',
   );
   const metadata = {
-    schemaVersion: 1,
+    schemaVersion: ANDROID_AUDIT_SCHEMA_VERSION,
+    reportKind: 'playground-live' as const,
     pageId: 'playground-current',
+    createdAt: input.source.capturedAt,
+    updatedAt: generatedAt,
     generatedAt,
-    device: {
-      serial: input.deviceId,
-      logicalSize: input.source.logicalSize,
-      dpr: input.source.dpr,
-      rotation: input.source.rotation,
-    },
-    treeSource: input.source.source,
+    ...input.environment,
+    entryPath: input.entryPath,
+    technology: input.technology,
+    sourceUsed: input.source.source,
     captures: {
       source: {
+        phase: 'source',
+        treeSource: input.source.source,
         capturedAt: input.source.capturedAt,
         durationMs: input.source.durationMs,
-        xmlSha256: sha256(input.source.sourceXml),
+        screenshot: {
+          file: 'screenshot.png',
+          capturedAt: input.screenshotCapturedAt,
+          bytes: screenshot.length,
+          sha256: sha256(screenshot),
+        },
+        usedXml: {
+          file: 'source-used.xml',
+          capturedAt: input.source.capturedAt,
+          bytes: Buffer.byteLength(input.source.sourceXml),
+          sha256: sha256(input.source.sourceXml),
+        },
       },
       fresh: {
+        phase: 'fresh',
+        treeSource: input.fresh.source,
         capturedAt: input.fresh.capturedAt,
         durationMs: input.fresh.durationMs,
-        xmlSha256: sha256(input.fresh.sourceXml),
+        usedXml: {
+          file: 'fresh-replay.xml',
+          capturedAt: input.fresh.capturedAt,
+          bytes: Buffer.byteLength(input.fresh.sourceXml),
+          sha256: sha256(input.fresh.sourceXml),
+        },
       },
       ...(input.revisit
         ? {
             revisit: {
+              phase: 'revisit',
+              treeSource: input.revisit.snapshot.source,
               capturedAt: input.revisit.snapshot.capturedAt,
               durationMs: input.revisit.snapshot.durationMs,
-              xmlSha256: sha256(input.revisit.snapshot.sourceXml),
+              usedXml: {
+                file: 'revisit-replay.xml',
+                capturedAt: input.revisit.snapshot.capturedAt,
+                bytes: Buffer.byteLength(input.revisit.snapshot.sourceXml),
+                sha256: sha256(input.revisit.snapshot.sourceXml),
+              },
             },
           }
         : {}),
-    },
-    screenshot: {
-      capturedAt: generatedAt,
-      bytes: screenshot.length,
-      sha256: sha256(screenshot),
     },
     transport: {
       cdpUsed: false,
@@ -192,7 +218,8 @@ export async function writeAndroidAuditExportWithDownload(
     },
   };
   const summary = {
-    schemaVersion: 1,
+    schemaVersion: ANDROID_AUDIT_SCHEMA_VERSION,
+    reportKind: 'playground-live' as const,
     generatedAt,
     runId: id,
     pages: 1,
@@ -203,18 +230,20 @@ export async function writeAndroidAuditExportWithDownload(
     revisit: input.revisit?.replay,
   };
   const run = {
-    schemaVersion: 1,
+    schemaVersion: ANDROID_AUDIT_SCHEMA_VERSION,
+    reportKind: 'playground-live' as const,
     runId: id,
     createdAt: generatedAt,
     pages: ['playground-current'],
   };
   const replayResults = {
+    schemaVersion: ANDROID_AUDIT_SCHEMA_VERSION,
     generatedAt,
     fresh: input.replay,
+    results: input.replayResults,
     revisit: input.revisit?.replay,
   };
-  const indexHtml = path.join(outputDir, 'index.html');
-  const files: Array<{ content: Buffer | string; relativePath: string }> = [
+  const files: AndroidAuditExportFile[] = [
     { relativePath: 'run.json', content: json(run) },
     { relativePath: 'summary.json', content: json(summary) },
     { relativePath: 'index.html', content: indexReportHtml },
@@ -253,7 +282,7 @@ export async function writeAndroidAuditExportWithDownload(
     {
       relativePath: 'pages/playground-current/visual-elements.json',
       content: json({
-        schemaVersion: 1,
+        schemaVersion: ANDROID_AUDIT_SCHEMA_VERSION,
         coordinateSpace: 'logical',
         reviewed: false,
         elements: input.visualElements,
@@ -276,25 +305,36 @@ export async function writeAndroidAuditExportWithDownload(
     },
   ];
 
-  await Promise.all(
-    files.map((file) =>
-      writeFile(
-        path.join(outputDir, ...file.relativePath.split('/')),
-        file.content,
-      ),
-    ),
-  );
-
   return {
-    download: {
-      directoryName: id,
-      files: files.map((file) => ({
-        contentBase64: Buffer.from(file.content).toString('base64'),
-        relativePath: file.relativePath,
-      })),
-      runId: id,
+    directoryName: id,
+    files: files.map((file) => ({
+      contentBase64: Buffer.from(file.content).toString('base64'),
+      relativePath: file.relativePath,
+    })),
+    runId: id,
+  };
+}
+
+export async function writeAndroidAuditExportWithDownload(
+  input: AndroidAuditExportInput,
+  outputRoot = path.join(process.cwd(), 'midscene_run', 'douyin-xpath-audit'),
+): Promise<AndroidAuditExportWithDownload> {
+  const download = buildAndroidAuditDownloadBundle(input);
+  const outputDir = path.join(outputRoot, download.runId);
+  await Promise.all(
+    download.files.map(async (file) => {
+      const outputPath = path.join(outputDir, ...file.relativePath.split('/'));
+      await mkdir(path.dirname(outputPath), { recursive: true });
+      await writeFile(outputPath, Buffer.from(file.contentBase64, 'base64'));
+    }),
+  );
+  return {
+    download,
+    result: {
+      indexHtml: path.join(outputDir, 'index.html'),
+      outputDir,
+      runId: download.runId,
     },
-    result: { indexHtml, outputDir, runId: id },
   };
 }
 

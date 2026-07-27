@@ -1,6 +1,7 @@
 import type { UiNode } from '@midscene/core/internal/device-cache';
 import { describe, expect, it } from 'vitest';
 import {
+  applyAndroidAuditReplayToSource,
   buildAndroidLiveTreeAudit,
   buildAndroidVisualAudit,
   enumerateAndroidUiTree,
@@ -685,6 +686,41 @@ describe('Android live XPath audit', () => {
     }
   });
 
+  it('treats UIAutomator ImageView nodes as image semantics', () => {
+    const buildAudit = (imageType: string) => {
+      const root = node(
+        'android.webkit.WebView',
+        { left: 0, top: 0, width: 400, height: 800 },
+        {},
+        [
+          node(
+            'android.view.View',
+            { left: 20, top: 100, width: 180, height: 80 },
+            {},
+            [
+              node(
+                'android.widget.TextView',
+                { left: 40, top: 120, width: 100, height: 30 },
+                { text: 'Details' },
+              ),
+              node(imageType, {
+                left: 150,
+                top: 120,
+                width: 20,
+                height: 20,
+              }),
+            ],
+          ),
+        ],
+      );
+      return buildAndroidLiveTreeAudit(root, { width: 400, height: 800 });
+    };
+
+    expect(buildAudit('android.widget.ImageView').overlays).toEqual(
+      buildAudit('android.widget.Image').overlays,
+    );
+  });
+
   it('selects the smallest complete semantic unit instead of a wrapper with identical content', () => {
     const root = node(
       'android.webkit.WebView',
@@ -967,6 +1003,37 @@ describe('Android live XPath audit', () => {
       status: 'cache-xpath-hit',
     });
     expect(fresh.overlays[1].status).toBe('tree-only-positional');
+  });
+
+  it('projects fresh replay results back onto source geometry for reports', () => {
+    const sourceRoot = auditTree(20);
+    const source = buildAndroidLiveTreeAudit(sourceRoot, {
+      width: 400,
+      height: 800,
+    });
+    const fresh = buildAndroidLiveTreeAudit(
+      auditTree(80),
+      { width: 400, height: 800 },
+      source.treeNodes,
+    );
+
+    const report = applyAndroidAuditReplayToSource(
+      sourceRoot,
+      { width: 400, height: 800 },
+      source,
+      fresh.replayResults,
+    );
+
+    expect(report.replay).toEqual(fresh.replay);
+    expect(report.overlays[0]).toMatchObject({
+      nodeId: 'node-0002',
+      rect: { left: 20, top: 20, width: 120, height: 60 },
+      status: 'cache-xpath-hit',
+    });
+    expect(report.treeNodes[1]).toMatchObject({
+      bounds: { left: 20, top: 20, width: 120, height: 60 },
+      replayVerified: true,
+    });
   });
 
   it('carries fresh replay hits to visual overlays mapped to non-interactive nodes', () => {
