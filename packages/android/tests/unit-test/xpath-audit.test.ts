@@ -495,6 +495,105 @@ describe('Android live XPath audit', () => {
     }
   });
 
+  it('selects the smallest complete semantic unit instead of a wrapper with identical content', () => {
+    const root = node(
+      'android.webkit.WebView',
+      { left: 0, top: 0, width: 400, height: 800 },
+      {},
+      [
+        node(
+          'android.view.View',
+          { left: 20, top: 100, width: 360, height: 140 },
+          {},
+          [
+            node(
+              'android.view.View',
+              { left: 60, top: 120, width: 200, height: 80 },
+              {},
+              [
+                node(
+                  'android.widget.TextView',
+                  { left: 80, top: 140, width: 80, height: 30 },
+                  { text: '消费明细' },
+                ),
+                node('android.widget.Image', {
+                  left: 180,
+                  top: 140,
+                  width: 20,
+                  height: 20,
+                }),
+              ],
+            ),
+          ],
+        ),
+      ],
+    );
+
+    const audit = buildAndroidLiveTreeAudit(root, {
+      width: 400,
+      height: 800,
+    });
+
+    expect(audit.overlays).toEqual([
+      expect.objectContaining({
+        nodeId: 'node-0003',
+        rect: { left: 60, top: 120, width: 200, height: 80 },
+      }),
+    ]);
+  });
+
+  it('lifts a semantic unit when its parent contributes additional content', () => {
+    const root = node(
+      'android.webkit.WebView',
+      { left: 0, top: 0, width: 400, height: 800 },
+      {},
+      [
+        node(
+          'android.view.View',
+          { left: 20, top: 100, width: 360, height: 120 },
+          {},
+          [
+            node(
+              'android.widget.TextView',
+              { left: 40, top: 115, width: 100, height: 30 },
+              { text: '自动扣款' },
+            ),
+            node(
+              'android.view.View',
+              { left: 40, top: 155, width: 220, height: 40 },
+              {},
+              [
+                node(
+                  'android.widget.TextView',
+                  { left: 40, top: 160, width: 120, height: 30 },
+                  { text: '招商银行(2479)' },
+                ),
+                node('android.widget.Image', {
+                  left: 180,
+                  top: 165,
+                  width: 16,
+                  height: 16,
+                }),
+              ],
+            ),
+          ],
+        ),
+      ],
+    );
+
+    const audit = buildAndroidLiveTreeAudit(root, {
+      width: 400,
+      height: 800,
+    });
+
+    expect(audit.overlays).toEqual([
+      expect.objectContaining({
+        nodeId: 'node-0002',
+        rect: { left: 20, top: 100, width: 360, height: 120 },
+      }),
+    ]);
+  });
+
   it('keeps sibling buttons separate inside a compact semantic container', () => {
     const root = node(
       'android.webkit.WebView',
@@ -529,6 +628,110 @@ describe('Android live XPath audit', () => {
     expect(audit.overlays.map((overlay) => overlay.nodeId)).toEqual([
       'node-0003',
       'node-0004',
+    ]);
+  });
+
+  it('preserves sibling units through nested stable containers', () => {
+    const root = node(
+      'android.webkit.WebView',
+      { left: 0, top: 0, width: 400, height: 800 },
+      {},
+      [
+        node(
+          'android.view.View',
+          { left: 20, top: 100, width: 360, height: 100 },
+          { 'resource-id': 'entry-list' },
+          [
+            node(
+              'android.view.View',
+              { left: 20, top: 100, width: 360, height: 100 },
+              { 'resource-id': 'entry-grid' },
+              [
+                node(
+                  'android.view.View',
+                  { left: 20, top: 100, width: 170, height: 100 },
+                  { 'resource-id': 'entry-left' },
+                  [
+                    node(
+                      'android.widget.TextView',
+                      { left: 60, top: 130, width: 80, height: 30 },
+                      { text: '消费明细' },
+                    ),
+                  ],
+                ),
+                node(
+                  'android.view.View',
+                  { left: 210, top: 100, width: 170, height: 100 },
+                  { 'resource-id': 'entry-right' },
+                  [
+                    node(
+                      'android.widget.TextView',
+                      { left: 250, top: 130, width: 80, height: 30 },
+                      { text: '月付金' },
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ],
+        ),
+      ],
+    );
+
+    const audit = buildAndroidLiveTreeAudit(root, {
+      width: 400,
+      height: 800,
+    });
+
+    expect(audit.overlays.map((overlay) => overlay.nodeId)).toEqual([
+      'node-0004',
+      'node-0006',
+    ]);
+  });
+
+  it('keeps a stable business boundary around internal action fragments', () => {
+    const root = node(
+      'android.webkit.WebView',
+      { left: 0, top: 0, width: 400, height: 800 },
+      {},
+      [
+        node(
+          'android.view.View',
+          { left: 20, top: 100, width: 360, height: 100 },
+          { 'resource-id': 'campaign-card' },
+          [
+            node(
+              'android.view.View',
+              { left: 20, top: 100, width: 360, height: 100 },
+              {},
+              [
+                node(
+                  'android.view.View',
+                  { left: 20, top: 100, width: 280, height: 100 },
+                  { clickable: 'true', text: '领取红包' },
+                ),
+                node(
+                  'android.view.View',
+                  { left: 300, top: 100, width: 80, height: 100 },
+                  { clickable: 'true', text: '下一张' },
+                ),
+              ],
+            ),
+          ],
+        ),
+      ],
+    );
+
+    const audit = buildAndroidLiveTreeAudit(root, {
+      width: 400,
+      height: 800,
+    });
+
+    expect(audit.overlays).toEqual([
+      expect.objectContaining({
+        nodeId: 'node-0002',
+        rect: { left: 20, top: 100, width: 360, height: 100 },
+      }),
     ]);
   });
 

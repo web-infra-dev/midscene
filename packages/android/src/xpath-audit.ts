@@ -391,33 +391,10 @@ function isTreeImage(node: AndroidAuditTreeNode): boolean {
   return node.type.endsWith('.Image');
 }
 
-function rectContains(outer: Rect, inner: Rect): boolean {
-  return (
-    inner.left >= outer.left &&
-    inner.top >= outer.top &&
-    inner.left + inner.width <= outer.left + outer.width &&
-    inner.top + inner.height <= outer.top + outer.height
-  );
-}
-
 interface TreeSubtreeStats {
   images: number;
   resourceIds: number;
   texts: number;
-}
-
-type TreeOverlayCandidateReason =
-  | 'direct'
-  | 'resource-id'
-  | 'text-image'
-  | 'multi-text'
-  | 'adjacent-image'
-  | 'image-cluster';
-
-interface TreeOverlayCandidate {
-  node: AndroidAuditTreeNode;
-  priority: number;
-  reason: TreeOverlayCandidateReason;
 }
 
 function selectTreeOverlayNodes(
@@ -516,11 +493,11 @@ function selectTreeOverlayNodes(
   };
 
   const viewportArea = logicalSize.width * logicalSize.height;
-  const candidates: TreeOverlayCandidate[] = [];
-  for (const node of nodes) {
-    if (!node.visible || isAndroidSystemBar(node)) continue;
-    const insideWebView = isInsideWebView(node);
-    const areaRatio = rectArea(node.bounds) / viewportArea;
+  const isDirectBoundary = (
+    node: AndroidAuditTreeNode,
+    insideWebView: boolean,
+    areaRatio: number,
+  ): boolean => {
     const weakWebViewTextInteraction =
       insideWebView &&
       node.type.endsWith('.TextView') &&
@@ -528,126 +505,160 @@ function selectTreeOverlayNodes(
       node.interactionEvidence.every(
         (evidence) => evidence === 'accessibility-flag',
       );
-    if (
+    return (
       hasDirectInteractionSemantics(node) &&
       !weakWebViewTextInteraction &&
       (node.type.endsWith('.Button') || areaRatio <= MAX_TREE_DIRECT_AREA_RATIO)
-    ) {
-      candidates.push({ node, priority: 5, reason: 'direct' });
-      continue;
-    }
-    if (!insideWebView) continue;
-
-    const stats = statsFor(node);
-    const isContainer = !node.type.endsWith('.TextView') && !isTreeImage(node);
-    if (
-      hasTreeResourceId(node) &&
-      areaRatio <= MAX_TREE_ID_AREA_RATIO &&
-      !node.attrs['resource-id']?.startsWith('android:id/')
-    ) {
-      candidates.push({ node, priority: 4, reason: 'resource-id' });
-    } else if (
-      isContainer &&
-      node.bounds.width >= 24 &&
-      node.bounds.height >= 12 &&
-      areaRatio <= MAX_TREE_TEXT_IMAGE_AREA_RATIO &&
-      stats.texts >= 1 &&
-      stats.images >= 1
-    ) {
-      candidates.push({ node, priority: 3, reason: 'text-image' });
-    } else if (
-      isContainer &&
-      node.bounds.width >= 24 &&
-      node.bounds.height >= 12 &&
-      areaRatio <= MAX_TREE_MULTI_TEXT_AREA_RATIO &&
-      stats.texts >= 2 &&
-      (childrenById.get(node.nodeId)?.length ?? 0) >= 2
-    ) {
-      candidates.push({ node, priority: 2, reason: 'multi-text' });
-    } else if (hasAdjacentSmallImage(node)) {
-      candidates.push({ node, priority: 2, reason: 'adjacent-image' });
-    } else if (isImageClusterLeaf(node)) {
-      candidates.push({ node, priority: 2, reason: 'image-cluster' });
-    }
-  }
-
-  const candidateById = new Map(
-    candidates.map((candidate) => [candidate.node.nodeId, candidate]),
-  );
-  const candidateChildren = new Map<string, TreeOverlayCandidate[]>();
-  const roots: TreeOverlayCandidate[] = [];
-
-  for (const candidate of candidates) {
-    let parentNodeId = candidate.node.parentNodeId;
-    while (parentNodeId && !candidateById.has(parentNodeId)) {
-      parentNodeId = nodeById.get(parentNodeId)?.parentNodeId ?? null;
-    }
-    if (!parentNodeId) {
-      roots.push(candidate);
-      continue;
-    }
-    const siblings = candidateChildren.get(parentNodeId) ?? [];
-    siblings.push(candidate);
-    candidateChildren.set(parentNodeId, siblings);
-  }
-
-  const selectGroup = (
-    candidate: TreeOverlayCandidate,
-  ): TreeOverlayCandidate[] => {
-    const children = candidateChildren.get(candidate.node.nodeId) ?? [];
-    if (children.length === 0) return [candidate];
-    const stats = statsFor(candidate.node);
-    const areaRatio = rectArea(candidate.node.bounds) / viewportArea;
-    const isSemanticContainer =
-      ['direct', 'text-image', 'multi-text'].includes(candidate.reason) &&
-      !candidate.node.type.endsWith('.TextView') &&
-      !isTreeImage(candidate.node) &&
-      areaRatio <= MAX_TREE_TEXT_IMAGE_AREA_RATIO &&
-      (stats.texts >= 2 || (stats.texts >= 1 && stats.images >= 1));
-    if (
-      isSemanticContainer &&
-      (candidate.reason === 'direct' || children.length === 1)
-    ) {
-      return [candidate];
-    }
-    if (children.length === 1) {
-      const child = children[0];
-      const grandchildCount =
-        candidateChildren.get(child.node.nodeId)?.length ?? 0;
-      if (
-        candidate.reason === 'resource-id' &&
-        child.reason === 'resource-id' &&
-        grandchildCount >= 2
-      ) {
-        return selectGroup(child);
-      }
-      const nodeArea = rectArea(candidate.node.bounds);
-      const childArea = rectArea(child.node.bounds);
-      if (
-        childArea > 0 &&
-        nodeArea <= childArea * MAX_SEMANTIC_CONTAINER_AREA_RATIO &&
-        rectContains(candidate.node.bounds, child.node.bounds) &&
-        candidate.priority >= child.priority
-      ) {
-        return [candidate];
-      }
-    }
-    if (candidate.reason === 'resource-id') {
-      const resourceIdBranches = children.filter(
-        (child) => child.reason === 'resource-id',
-      ).length;
-      const actionBranches = children.filter(
-        (child) =>
-          child.reason === 'direct' || child.reason === 'image-cluster',
-      ).length;
-      if (resourceIdBranches < 2 && actionBranches < 2) {
-        return [candidate];
-      }
-    }
-    return children.flatMap(selectGroup);
+    );
   };
 
-  return roots.flatMap(selectGroup).map((candidate) => candidate.node);
+  const isStableIdBoundary = (
+    node: AndroidAuditTreeNode,
+    insideWebView: boolean,
+    areaRatio: number,
+  ): boolean =>
+    insideWebView &&
+    hasTreeResourceId(node) &&
+    areaRatio <= MAX_TREE_ID_AREA_RATIO &&
+    !node.attrs['resource-id']?.startsWith('android:id/');
+
+  const isCompositeBoundary = (
+    node: AndroidAuditTreeNode,
+    insideWebView: boolean,
+    areaRatio: number,
+  ): boolean => {
+    if (
+      !insideWebView ||
+      node.type.endsWith('.TextView') ||
+      isTreeImage(node) ||
+      node.bounds.width < 24 ||
+      node.bounds.height < 12
+    ) {
+      return false;
+    }
+    const stats = statsFor(node);
+    return (
+      (areaRatio <= MAX_TREE_TEXT_IMAGE_AREA_RATIO &&
+        stats.texts >= 1 &&
+        stats.images >= 1) ||
+      (areaRatio <= MAX_TREE_MULTI_TEXT_AREA_RATIO &&
+        stats.texts >= 2 &&
+        (childrenById.get(node.nodeId)?.length ?? 0) >= 2)
+    );
+  };
+
+  const contributesContentOutside = (
+    parent: AndroidAuditTreeNode,
+    child: AndroidAuditTreeNode,
+  ): boolean => {
+    const parentStats = statsFor(parent);
+    const childStats = statsFor(child);
+    return (
+      parentStats.images > childStats.images ||
+      parentStats.resourceIds > childStats.resourceIds ||
+      parentStats.texts > childStats.texts
+    );
+  };
+
+  interface MinimalUnitSelection {
+    hasIndependentBoundary: boolean;
+    // Preserve sibling units exposed by a nested stable container.
+    splitStableBoundary: boolean;
+    units: AndroidAuditTreeNode[];
+  }
+
+  const selectMinimalUnits = (
+    node: AndroidAuditTreeNode,
+  ): MinimalUnitSelection => {
+    const childBranches = (childrenById.get(node.nodeId) ?? []).map(
+      (child) => ({ child, selection: selectMinimalUnits(child) }),
+    );
+    const activeBranches = childBranches.filter(
+      ({ selection }) => selection.units.length > 0,
+    );
+    const childSelection = {
+      hasIndependentBoundary: activeBranches.some(
+        ({ selection }) => selection.hasIndependentBoundary,
+      ),
+      splitStableBoundary: activeBranches.some(
+        ({ selection }) => selection.splitStableBoundary,
+      ),
+      units: activeBranches.flatMap(({ selection }) => selection.units),
+    };
+    if (!node.visible || isAndroidSystemBar(node)) return childSelection;
+
+    const insideWebView = isInsideWebView(node);
+    const areaRatio = rectArea(node.bounds) / viewportArea;
+    if (isDirectBoundary(node, insideWebView, areaRatio)) {
+      return {
+        hasIndependentBoundary: true,
+        splitStableBoundary: false,
+        units: [node],
+      };
+    }
+    if (!insideWebView) return childSelection;
+
+    const stableIdBoundary = isStableIdBoundary(node, insideWebView, areaRatio);
+    const compositeBoundary = isCompositeBoundary(
+      node,
+      insideWebView,
+      areaRatio,
+    );
+    const adjacentImageBoundary = hasAdjacentSmallImage(node);
+    const imageClusterBoundary = isImageClusterLeaf(node);
+    if (
+      !stableIdBoundary &&
+      !compositeBoundary &&
+      !adjacentImageBoundary &&
+      !imageClusterBoundary
+    ) {
+      return childSelection;
+    }
+
+    const independentBranches = activeBranches.filter(
+      ({ selection }) => selection.hasIndependentBoundary,
+    ).length;
+    if (stableIdBoundary) {
+      if (
+        independentBranches >= 2 ||
+        (activeBranches.length === 1 &&
+          activeBranches[0].selection.splitStableBoundary)
+      ) {
+        return {
+          ...childSelection,
+          splitStableBoundary: true,
+        };
+      }
+      return {
+        hasIndependentBoundary: true,
+        splitStableBoundary: false,
+        units: [node],
+      };
+    }
+    if (compositeBoundary) {
+      if (activeBranches.length >= 2) return childSelection;
+      if (
+        activeBranches.length === 1 &&
+        !contributesContentOutside(node, activeBranches[0].child)
+      ) {
+        return childSelection;
+      }
+      return {
+        hasIndependentBoundary: childSelection.hasIndependentBoundary,
+        splitStableBoundary: false,
+        units: [node],
+      };
+    }
+    return {
+      hasIndependentBoundary: imageClusterBoundary,
+      splitStableBoundary: false,
+      units: [node],
+    };
+  };
+
+  return nodes
+    .filter((node) => !node.parentNodeId)
+    .flatMap((node) => selectMinimalUnits(node).units);
 }
 
 function visualGeometryScore(
