@@ -87,6 +87,7 @@ describe('Agent.startObserving', () => {
     const sequence = executionOptions.uiContext.screenshotSequence;
     expect(sequence.length).toBeGreaterThanOrEqual(2);
     expect(sequence[0].hasBase64()).toBe(false);
+    expect(sequence[0].toSerializable()).not.toHaveProperty('path');
     expect(Buffer.from(sequence[0].rawBase64, 'base64').toString()).toMatch(
       /^decoded:/,
     );
