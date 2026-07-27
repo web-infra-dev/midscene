@@ -37,6 +37,9 @@ import type { TaskCache } from './task-cache';
 import { debug as cacheDebug } from './task-cache';
 
 const agentDebug = getDebug('agent');
+const uiTreeWarning = getDebug('commonContextParser:ui-tree', {
+  console: true,
+});
 const screenshotDataUrlPattern = /^data:image\/[a-zA-Z0-9.+-]+;base64,/i;
 
 const inferBase64ImageFormat = (base64Body: string) => {
@@ -87,6 +90,7 @@ export async function commonContextParser(
   _opt: {
     uploadServerUrl?: string;
     screenshotShrinkFactor?: number;
+    captureUITree?: boolean;
   },
 ): Promise<UIContext> {
   const debug = getDebug('commonContextParser');
@@ -131,6 +135,18 @@ export async function commonContextParser(
   const screenshotBase64 = await interfaceInstance.screenshotBase64();
   const screenshotCapturedAt = Date.now();
   assert(screenshotBase64!, 'screenshotBase64 is required');
+
+  let uiTreeCapture: Pick<UIContext, 'uiTree' | 'uiTreeError'> = {};
+  if (_opt.captureUITree && interfaceInstance.getUITree) {
+    try {
+      uiTreeCapture = { uiTree: await interfaceInstance.getUITree() };
+    } catch (error) {
+      const uiTreeError =
+        error instanceof Error ? error.message : String(error);
+      uiTreeWarning(`Failed to capture UI tree: ${uiTreeError}`);
+      uiTreeCapture = { uiTreeError };
+    }
+  }
 
   // Get physical screenshot dimensions
   debug('will get screenshot dimensions');
@@ -201,6 +217,7 @@ export async function commonContextParser(
       deprecatedDpr: dpr,
       screenshot: ScreenshotItem.create(resizedBase64, screenshotCapturedAt),
       shrunkShotToLogicalRatio,
+      ...uiTreeCapture,
     };
   } else {
     // For screenshots that do not need shrinking, convert PNG to JPEG to reduce the image payload in model requests and reports. (Shrunk images are already JPEG.)
@@ -232,6 +249,7 @@ export async function commonContextParser(
         screenshotCapturedAt,
       ),
       shrunkShotToLogicalRatio,
+      ...uiTreeCapture,
     };
   }
 }
