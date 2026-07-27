@@ -411,7 +411,9 @@ export class Agent<
    * Generate ranked inspection XPath candidates for a point in a saved Android
    * UI context. Screenshot coordinates are used by default and converted to
    * logical coordinates with `shrunkShotToLogicalRatio`. This method reads only
-   * the supplied historical tree and never reconnects to the device.
+   * the supplied historical tree and never reconnects to the device. A pruned
+   * target-lineage snapshot returns only semantic candidates proven unique on
+   * the original full page; it never fabricates a positional fallback.
    *
    * @throws When the tree is missing or non-Android, coordinates are invalid or
    * out of bounds, no node is hit, or only a structural node is exposed.
@@ -491,7 +493,11 @@ export class Agent<
     return generateInspectionXpathCandidates(
       uiContext.uiTree.root,
       logicalPoint,
-      uiContext.uiTree.xpathPolicy,
+      {
+        ...uiContext.uiTree.xpathPolicy,
+        treeScope: uiContext.uiTree.inspection?.scope ?? 'full',
+        pageIdentityCounts: uiContext.uiTree.inspection?.pageIdentityCounts,
+      },
     );
   }
 

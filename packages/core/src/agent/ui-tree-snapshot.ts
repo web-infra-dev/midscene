@@ -1,4 +1,9 @@
-import type { Rect, UITreeSnapshot, UiNode } from '@/types';
+import type {
+  Rect,
+  UITreeIdentityCount,
+  UITreeSnapshot,
+  UiNode,
+} from '@/types';
 import { findInspectionTargetAtPoint } from './inspection-xpath';
 
 interface PointXY {
@@ -26,6 +31,41 @@ function cloneAncestorChain(path: UiNode[], rootIndex: number): UiNode {
   }
 
   return branch;
+}
+
+function identityKey(attr: string, value: string): string {
+  return JSON.stringify([attr, value]);
+}
+
+function collectPageIdentityCounts(
+  root: UiNode,
+  retainedPath: UiNode[],
+  attributes: string[],
+): UITreeIdentityCount[] {
+  const identities = new Map<string, UITreeIdentityCount>();
+  const uniqueAttributes = [...new Set(attributes)];
+
+  for (const node of retainedPath) {
+    for (const attr of uniqueAttributes) {
+      const value = node.attrs[attr];
+      if (!value) continue;
+      const key = identityKey(attr, value);
+      if (!identities.has(key)) {
+        identities.set(key, { attr, value, count: 0 });
+      }
+    }
+  }
+
+  const visit = (node: UiNode) => {
+    for (const identity of identities.values()) {
+      if (node.attrs[identity.attr] === identity.value) {
+        identity.count++;
+      }
+    }
+    for (const child of node.children) visit(child);
+  };
+  visit(root);
+  return [...identities.values()];
 }
 
 /**
@@ -57,5 +97,16 @@ export function pruneUITreeSnapshotToTarget(
   return {
     ...snapshot,
     root: cloneAncestorChain(hit.path, rootIndex),
+    inspection: {
+      scope: 'target-lineage',
+      pageIdentityCounts: collectPageIdentityCounts(
+        snapshot.root,
+        hit.path.slice(rootIndex),
+        [
+          ...snapshot.xpathPolicy.stableAttrs,
+          ...snapshot.xpathPolicy.textAttrs,
+        ],
+      ),
+    },
   };
 }

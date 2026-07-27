@@ -58,6 +58,66 @@ describe('Agent.getXpathsByPoint', () => {
     ).resolves.toContain("//*[@resource-id='com.example:id/submit']");
   });
 
+  it('uses full-page identity counts for a target-lineage snapshot', async () => {
+    const lineageSnapshot: UITreeSnapshot = {
+      ...snapshot,
+      root: {
+        type: 'Panel',
+        attrs: { 'resource-id': 'panel-b' },
+        bounds: { left: 0, top: 0, width: 80, height: 80 },
+        children: [
+          {
+            type: 'Button',
+            attrs: { text: 'Pay' },
+            bounds: { left: 20, top: 20, width: 20, height: 20 },
+            children: [],
+          },
+        ],
+      },
+      inspection: {
+        scope: 'target-lineage',
+        pageIdentityCounts: [
+          { attr: 'resource-id', value: 'panel-b', count: 1 },
+          { attr: 'text', value: 'Pay', count: 1 },
+        ],
+      },
+    };
+
+    await expect(
+      agent.getXpathsByPoint(context(lineageSnapshot), { x: 50, y: 50 }),
+    ).resolves.toEqual(["//Button[@text='Pay']"]);
+  });
+
+  it('rejects a target-lineage snapshot when only positional identity remains', async () => {
+    const lineageSnapshot: UITreeSnapshot = {
+      ...snapshot,
+      root: {
+        type: 'Panel',
+        attrs: { 'resource-id': 'panel-b' },
+        bounds: { left: 0, top: 0, width: 80, height: 80 },
+        children: [
+          {
+            type: 'Button',
+            attrs: { text: 'Pay' },
+            bounds: { left: 20, top: 20, width: 20, height: 20 },
+            children: [],
+          },
+        ],
+      },
+      inspection: {
+        scope: 'target-lineage',
+        pageIdentityCounts: [
+          { attr: 'resource-id', value: 'panel-b', count: 1 },
+          { attr: 'text', value: 'Pay', count: 2 },
+        ],
+      },
+    };
+
+    await expect(
+      agent.getXpathsByPoint(context(lineageSnapshot), { x: 50, y: 50 }),
+    ).rejects.toThrow('requires positional identity');
+  });
+
   it('throws when the saved UI tree is missing', async () => {
     const missingTreeContext = context();
     missingTreeContext.uiTree = undefined;

@@ -1,4 +1,4 @@
-import type { Rect, UiNode } from '@/types';
+import type { Rect, UITreeIdentityCount, UiNode } from '@/types';
 
 const DEFAULT_MAX_CANDIDATES = 5;
 const MAX_ATTR_VALUE_LENGTH = 256;
@@ -15,6 +15,8 @@ export interface InspectionXpathOptions {
   stableAttrs?: readonly string[];
   textAttrs?: readonly string[];
   max?: number;
+  treeScope?: 'full' | 'target-lineage';
+  pageIdentityCounts?: readonly UITreeIdentityCount[];
 }
 
 interface PointHit {
@@ -194,7 +196,14 @@ function identityIsGloballyUnique(
   root: UiNode,
   target: UiNode,
   identity: Identity,
+  options?: InspectionXpathOptions,
 ): boolean {
+  if (options?.treeScope === 'target-lineage') {
+    const pageCount = options.pageIdentityCounts?.find(
+      ({ attr, value }) => attr === identity.attr && value === identity.value,
+    )?.count;
+    return target.attrs[identity.attr] === identity.value && pageCount === 1;
+  }
   return identitiesAreUnique(root, target, [identity], false);
 }
 
@@ -223,12 +232,15 @@ function nearestSemanticAncestorHit(
 ): { node: UiNode; path: UiNode[] } {
   if (targetIdentities(hit.node, options).length > 0) return hit;
 
-  for (let pathIndex = hit.path.length - 2; pathIndex >= 1; pathIndex--) {
+  for (let pathIndex = hit.path.length - 2; pathIndex >= 0; pathIndex--) {
     const ancestor = hit.path[pathIndex];
-    if (options?.excludedTargetTypes?.includes(ancestor.type)) break;
-    const hasSemanticIdentity = (options?.textAttrs ?? []).some((attr) =>
-      isAttrValueSafe(ancestor.attrs[attr]),
-    );
+    if (options?.excludedTargetTypes?.includes(ancestor.type)) {
+      throw new Error(
+        `findInspectionTargetAtPoint: target node is not exposed (目标节点未暴露); matched structural node ${ancestor.type}`,
+      );
+    }
+    if (pathIndex === 0) continue;
+    const hasSemanticIdentity = targetIdentities(ancestor, options).length > 0;
     if (hasSemanticIdentity) {
       return {
         node: ancestor,
@@ -324,8 +336,9 @@ function uniqueStableAncestorXpath(
 
 /**
  * Generate ranked XPath candidates for inspecting a node in a saved UI tree.
- * Semantic and positional selectors are allowed because the result is
- * evaluated against the same historical snapshot.
+ * Full snapshots may return semantic, scoped, and positional selectors.
+ * Target-lineage snapshots return only semantic selectors whose uniqueness was
+ * measured against the complete page before pruning.
  */
 export function generateInspectionXpathCandidates(
   root: UiNode,
@@ -356,7 +369,7 @@ export function generateInspectionXpathCandidates(
       const identity = { attr, value };
       append(
         `//*[@${attr}=${xpathLiteral(value)}]`,
-        identityIsGloballyUnique(root, hit.node, identity),
+        identityIsGloballyUnique(root, hit.node, identity, options),
       );
     }
   }
@@ -364,13 +377,17 @@ export function generateInspectionXpathCandidates(
   for (const attr of options?.textAttrs ?? []) {
     const value = hit.node.attrs[attr];
     const identity = isAttrValueSafe(value) ? { attr, value } : undefined;
-    if (identity && identityIsGloballyUnique(root, hit.node, identity)) {
+    if (
+      identity &&
+      identityIsGloballyUnique(root, hit.node, identity, options)
+    ) {
       append(exactNodeXpath(hit.node, [identity]), true);
     }
   }
 
   const identities = targetIdentities(hit.node, options);
-  if (candidates.length === 0) {
+  const isTargetLineage = options?.treeScope === 'target-lineage';
+  if (!isTargetLineage && candidates.length === 0) {
     for (let first = 0; first < identities.length; first++) {
       for (let second = first + 1; second < identities.length; second++) {
         const pair = [identities[first], identities[second]];
@@ -391,6 +408,13 @@ export function generateInspectionXpathCandidates(
     if (ancestorScoped) append(ancestorScoped, true);
   }
 
-  append(buildPositionalXpath(hit.path), true);
+  if (!isTargetLineage) {
+    append(buildPositionalXpath(hit.path), true);
+  }
+  if (candidates.length === 0) {
+    throw new Error(
+      'generateInspectionXpathCandidates: no stable XPath candidate; target requires positional identity (顺序敏感)',
+    );
+  }
   return candidates;
 }

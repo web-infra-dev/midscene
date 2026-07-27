@@ -825,7 +825,7 @@ ${Object.keys(size)
     };
   }
 
-  private async dumpAccessibilityXmlAttempt(
+  private async dumpAccessibilityXml(
     source: AndroidAccessibilityTreeSource,
   ): Promise<string> {
     const adb = await this.getAdb();
@@ -851,48 +851,6 @@ ${Object.keys(size)
     });
     validateHierarchyXml(xml, source);
     return xml;
-  }
-
-  private async dumpAccessibilityXml(): Promise<string> {
-    const sources: AndroidAccessibilityTreeSource[] =
-      (this.options?.displayId ?? 0) === 0
-        ? ['yadb', 'uiautomator']
-        : ['uiautomator'];
-    const failures: string[] = [];
-
-    for (const source of sources) {
-      for (let attempt = 1; attempt <= ACCESSIBILITY_DUMP_ATTEMPTS; attempt++) {
-        const startedAt = Date.now();
-        try {
-          const xml = await this.dumpAccessibilityXmlAttempt(source);
-          debugUITree(
-            'capture source=%s attempt=%d durationMs=%d bytes=%d',
-            source,
-            attempt,
-            Date.now() - startedAt,
-            xml.length,
-          );
-          return xml;
-        } catch (error) {
-          const failure = `${source} attempt ${attempt}/${ACCESSIBILITY_DUMP_ATTEMPTS}: ${errorMessage(error)}`;
-          failures.push(failure);
-          debugUITree(
-            'capture failed source=%s attempt=%d durationMs=%d error=%s',
-            source,
-            attempt,
-            Date.now() - startedAt,
-            errorMessage(error),
-          );
-          if (attempt < ACCESSIBILITY_DUMP_ATTEMPTS) {
-            await sleep(ACCESSIBILITY_DUMP_RETRY_DELAY_MS);
-          }
-        }
-      }
-    }
-
-    throw new Error(
-      `Unable to read Android accessibility hierarchy after ${failures.length} attempt(s): ${failures.join('; ')}`,
-    );
   }
 
   private async validateUITreeDisplay(root: UiNode): Promise<void> {
@@ -955,16 +913,28 @@ ${Object.keys(size)
   }
 
   async getUITree(): Promise<UITreeSnapshot> {
-    let lastError: unknown;
+    await this.initializeDevicePixelRatio();
+    const sources: AndroidAccessibilityTreeSource[] =
+      (this.options?.displayId ?? 0) === 0
+        ? ['yadb', 'uiautomator']
+        : ['uiautomator'];
+    const failures: string[] = [];
+
     for (let attempt = 1; attempt <= ACCESSIBILITY_DUMP_ATTEMPTS; attempt++) {
+      const source = sources[Math.min(attempt - 1, sources.length - 1)];
+      const startedAt = Date.now();
       try {
-        const xml =
-          attempt === 1
-            ? await this.dumpAccessibilityXml()
-            : await this.dumpAccessibilityXmlAttempt('uiautomator');
+        const xml = await this.dumpAccessibilityXml(source);
         const capturedAt = Date.now();
-        const root = uiautomatorXmlToUiNode(xml, this.devicePixelRatio || 1);
+        const root = uiautomatorXmlToUiNode(xml, this.devicePixelRatio);
         await this.validateUITreeDisplay(root);
+        debugUITree(
+          'capture source=%s attempt=%d durationMs=%d bytes=%d',
+          source,
+          attempt,
+          Date.now() - startedAt,
+          xml.length,
+        );
         return {
           platform: 'android',
           capturedAt,
@@ -979,11 +949,14 @@ ${Object.keys(size)
           },
         };
       } catch (error) {
-        lastError = error;
+        const failure = `${source} attempt ${attempt}/${ACCESSIBILITY_DUMP_ATTEMPTS}: ${errorMessage(error)}`;
+        failures.push(failure);
         debugUITree(
-          'alignment failed attempt=%d/%d error=%s',
+          'capture failed source=%s attempt=%d/%d durationMs=%d error=%s',
+          source,
           attempt,
           ACCESSIBILITY_DUMP_ATTEMPTS,
+          Date.now() - startedAt,
           errorMessage(error),
         );
         if (attempt < ACCESSIBILITY_DUMP_ATTEMPTS) {
@@ -992,11 +965,9 @@ ${Object.keys(size)
       }
     }
 
-    throw lastError instanceof Error
-      ? lastError
-      : new Error(
-          `Unable to capture Android UI tree: ${errorMessage(lastError)}`,
-        );
+    throw new Error(
+      `Unable to capture Android UI tree after ${failures.length} attempt(s): ${failures.join('; ')}`,
+    );
   }
 
   async getScreenSize(): Promise<{

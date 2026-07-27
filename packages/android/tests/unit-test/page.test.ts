@@ -211,7 +211,7 @@ describe('AndroidDevice', () => {
           '<node class="android.widget.Button" resource-id="submit" text="Submit" bounds="[20,40][180,100]"/>',
         ),
       );
-      (device as any).devicePixelRatio = 2;
+      mockAdb.getScreenDensity.mockResolvedValue(320);
       const beforeCapture = Date.now();
 
       const snapshot = await device.getUITree();
@@ -239,10 +239,40 @@ describe('AndroidDevice', () => {
       expect(snapshot.xpathPolicy.excludedTargetTypes).toContain(
         'android.webkit.WebView',
       );
+      expect(mockAdb.getScreenDensity).toHaveBeenCalledOnce();
       expect(mockAdb.shell).toHaveBeenCalledWith(
         'cat /data/local/tmp/midscene_yadb_layout_dump.xml',
         expect.objectContaining({ timeout: 5_000 }),
       );
+    });
+
+    it('shares one total retry budget across accessibility dump sources', async () => {
+      mockAdb.getScreenDensity.mockResolvedValue(160);
+      mockAdb.shell.mockImplementation(async (command) => {
+        const value = String(command);
+        if (
+          value.includes(' -layout ') ||
+          value.startsWith('uiautomator dump')
+        ) {
+          throw new Error('layout dump failed');
+        }
+        return '';
+      });
+
+      await expect(device.getUITree()).rejects.toThrow('layout dump failed');
+
+      const dumpCommands = mockAdb.shell.mock.calls
+        .map(([command]) => String(command))
+        .filter(
+          (command) =>
+            command.includes(' -layout ') ||
+            command.startsWith('uiautomator dump'),
+        );
+      expect(dumpCommands).toEqual([
+        'app_process -Djava.class.path=/data/local/tmp/yadb /data/local/tmp com.ysbing.yadb.Main -layout /data/local/tmp/midscene_yadb_layout_dump.xml',
+        'uiautomator dump --compressed /sdcard/midscene_window_dump.xml',
+        'uiautomator dump --compressed /sdcard/midscene_window_dump.xml',
+      ]);
     });
 
     it('rejects a tree captured from a different logical display', async () => {

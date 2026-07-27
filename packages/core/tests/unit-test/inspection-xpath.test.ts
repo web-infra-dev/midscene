@@ -153,6 +153,28 @@ describe('generateInspectionXpathCandidates', () => {
     ).toBe("//android.view.ViewGroup[@content-desc='抖音月付  按钮']");
   });
 
+  it('promotes an anonymous nested hit to the nearest resource-id node', () => {
+    const icon = node(
+      'android.view.View',
+      {},
+      { left: 40, top: 40, width: 40, height: 40 },
+    );
+    const button = node(
+      'android.widget.Button',
+      { 'resource-id': 'com.example:id/search' },
+      { left: 20, top: 20, width: 100, height: 100 },
+      [icon],
+    );
+
+    expect(
+      generateInspectionXpathCandidates(
+        windowWith([button]),
+        { x: 60, y: 60 },
+        androidPolicy,
+      )[0],
+    ).toBe("//*[@resource-id='com.example:id/search']");
+  });
+
   it('falls back to an absolute positional XPath', () => {
     const target = node(
       'Button',
@@ -194,6 +216,27 @@ describe('generateInspectionXpathCandidates', () => {
         { x: 100, y: 100 },
         androidPolicy,
       ),
+    ).toThrow('目标节点未暴露');
+  });
+
+  it('rejects an anonymous descendant whose nearest boundary is structural', () => {
+    const root = windowWith([
+      node(
+        'android.webkit.WebView',
+        {},
+        { left: 0, top: 0, width: 500, height: 500 },
+        [
+          node(
+            'android.view.View',
+            {},
+            { left: 20, top: 20, width: 100, height: 100 },
+          ),
+        ],
+      ),
+    ]);
+
+    expect(() =>
+      generateInspectionXpathCandidates(root, { x: 40, y: 40 }, androidPolicy),
     ).toThrow('目标节点未暴露');
   });
 });

@@ -18,6 +18,7 @@ import { getDebug } from '@midscene/shared/logger';
 import { assert, uuid } from '@midscene/shared/utils';
 
 const debug = getDebug('task-runner');
+const uiTreeWarning = getDebug('task-runner:ui-tree', { console: true });
 const UI_CONTEXT_CACHE_TTL_MS = 300;
 
 type UIContextKind = 'default' | 'locate';
@@ -50,8 +51,9 @@ function locateReportUIContext(
 
   const ratio = uiContext.shrunkShotToLogicalRatio;
   if (!Number.isFinite(ratio) || ratio <= 0) {
-    debug('skip locate UI tree: invalid shrunkShotToLogicalRatio %s', ratio);
-    return contextWithoutTree;
+    const uiTreeError = `Failed to map captured UI tree to located target: invalid shrunkShotToLogicalRatio ${String(ratio)}`;
+    uiTreeWarning(uiTreeError);
+    return { ...contextWithoutTree, uiTreeError };
   }
 
   try {
@@ -72,8 +74,10 @@ function locateReportUIContext(
       ),
     };
   } catch (error) {
-    debug('skip locate UI tree: target could not be mapped: %s', error);
-    return contextWithoutTree;
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const uiTreeError = `Failed to map captured UI tree to located target: ${errorMessage}`;
+    uiTreeWarning(uiTreeError);
+    return { ...contextWithoutTree, uiTreeError };
   }
 }
 

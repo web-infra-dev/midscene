@@ -238,6 +238,56 @@ describe(
       });
     });
 
+    it('records an error when a captured tree cannot be mapped to the located element', async () => {
+      const uiTree: UITreeSnapshot = {
+        platform: 'android',
+        capturedAt: 1,
+        xpathPolicy: {
+          stableAttrs: ['resource-id'],
+          textAttrs: ['content-desc', 'text'],
+          excludedTargetTypes: [],
+          max: 5,
+        },
+        root: {
+          type: 'Window',
+          attrs: {},
+          bounds: { left: 0, top: 0, width: 100, height: 100 },
+          children: [],
+        },
+      };
+      const contextBuilder = vi.fn(async () => ({
+        screenshot: ScreenshotItem.create('', Date.now()),
+        shotSize: { width: 400, height: 400 },
+        shrunkShotToLogicalRatio: 2,
+        uiTree,
+      }));
+      const locateTask: ExecutionTaskPlanningLocateApply = {
+        type: 'Planning',
+        subType: 'Locate',
+        param: { prompt: 'Outside the tree' },
+        executor: async () => ({
+          output: {
+            element: {
+              center: [300, 300],
+              rect: { left: 280, top: 280, width: 40, height: 40 },
+              description: 'Outside the tree',
+            },
+          },
+        }),
+      };
+      const runner = new TaskRunner('tree-mapping-error', contextBuilder, {
+        tasks: [locateTask],
+      });
+
+      await runner.flush();
+
+      expect(runner.tasks[0].uiContext?.uiTree).toBeUndefined();
+      expect(runner.tasks[0].uiContext?.uiTreeError).toContain(
+        'Failed to map captured UI tree to located target',
+      );
+      expect(runner.tasks[0].uiContext?.uiTreeError).toContain('no node found');
+    });
+
     it('insight - init and append', async () => {
       const initRunner = new TaskRunner('test', fakeUIContextBuilder);
       expect(initRunner.status).toBe('init');
