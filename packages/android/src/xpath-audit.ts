@@ -368,11 +368,15 @@ function isAndroidSystemBar(node: AndroidAuditTreeNode): boolean {
 }
 
 function hasDirectInteractionSemantics(node: AndroidAuditTreeNode): boolean {
+  const hasDescribedFocusTarget =
+    attrIsTrue(node.attrs.focusable) &&
+    Boolean(node.attrs.text || node.attrs['content-desc']);
   return (
     node.type.endsWith('.Button') ||
     ['clickable', 'long-clickable', 'checkable', 'editable'].some((attr) =>
       attrIsTrue(node.attrs[attr]),
     ) ||
+    hasDescribedFocusTarget ||
     node.interactionEvidence.some(
       (evidence) => evidence !== 'accessibility-flag',
     )

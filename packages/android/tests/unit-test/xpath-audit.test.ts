@@ -332,6 +332,63 @@ describe('Android live XPath audit', () => {
     ]);
   });
 
+  it('infers described Lynx controls without a WebView ancestor', () => {
+    const root = node(
+      'android.widget.FrameLayout',
+      { left: 0, top: 0, width: 400, height: 800 },
+      {},
+      [
+        node(
+          'android.widget.ScrollView',
+          { left: 0, top: 80, width: 400, height: 720 },
+          {
+            'content-desc': '钱包页面',
+            focusable: 'true',
+            scrollable: 'true',
+          },
+          [
+            node(
+              'android.view.ViewGroup',
+              { left: 20, top: 120, width: 90, height: 72 },
+              {
+                clickable: 'false',
+                'content-desc': '放心借  按钮',
+                focusable: 'true',
+              },
+            ),
+            node(
+              'android.view.ViewGroup',
+              { left: 110, top: 120, width: 90, height: 72 },
+              {
+                clickable: 'false',
+                'content-desc': '抖音月付  按钮',
+                focusable: 'true',
+              },
+            ),
+          ],
+        ),
+      ],
+    );
+
+    const audit = buildAndroidLiveTreeAudit(root, {
+      width: 400,
+      height: 800,
+    });
+
+    expect(audit.overlays).toEqual([
+      expect.objectContaining({
+        name: '放心借  按钮',
+        nodeId: 'node-0003',
+        rect: { left: 20, top: 120, width: 90, height: 72 },
+      }),
+      expect.objectContaining({
+        name: '抖音月付  按钮',
+        nodeId: 'node-0004',
+        rect: { left: 110, top: 120, width: 90, height: 72 },
+      }),
+    ]);
+  });
+
   it('ignores full-page clickable wrappers when selecting WebView controls', () => {
     const buildAudit = (clickable: string) => {
       const root = node(
