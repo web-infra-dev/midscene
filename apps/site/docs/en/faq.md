@@ -8,10 +8,10 @@ The following platform-specific FAQs are maintained in their respective document
 - [Web Browser - Puppeteer](./integrate-with-puppeteer#faq)
 - [Web Browser - Chrome Extension](./quick-experience#faq)
 - [Web Browser - Bridge Mode](./bridge-mode#faq)
-- [Android](./android-getting-started#faq)
-- [iOS](./ios-getting-started#faq)
-- [HarmonyOS](./harmony-getting-started#faq)
-- [PC Desktop](./computer-getting-started#faq)
+- [Android](./platforms/android#faq)
+- [iOS](./platforms/ios#faq)
+- [HarmonyOS](./platforms/harmonyos#faq)
+- [PC Desktop](./platforms/desktop#faq)
 
 ## What data is sent to AI model?
 
@@ -84,7 +84,7 @@ The cause is image handling on the Azure side. GPT-5 returns absolute coordinate
 There are two ways to work around it:
 
 1. Use the official OpenAI GPT-5, or configure a separate model dedicated to grounding (localization) and keep the Azure GPT-5 only as the planning model.
-2. Pre-shrink the screenshot with the `screenshotShrinkFactor` agent option so the image stays under Azure's downscale threshold and no server-side resizing happens. See [`screenshotShrinkFactor`](./api).
+2. Pre-shrink the screenshot with the `screenshotShrinkFactor` agent option so the image stays under Azure's downscale threshold and no server-side resizing happens. See [`screenshotShrinkFactor`](./reference/#common).
 
 ## How to improve the running time?
 
@@ -190,7 +190,7 @@ await agent.aiTap('Login button', {
 });
 ```
 
-For more information about `deepLocate`, please refer to the [API documentation](/api).
+For more information about `deepLocate`, please refer to the [API documentation](/reference/#common).
 
 ### 6. Increase the browser DPR to 2 on web
 

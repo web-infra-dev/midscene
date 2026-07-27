@@ -49,4 +49,9 @@ export type LocateResultElement = {
   description: string; // the description of the element
   center: [number, number];
   rect: Rect;
+  /**
+   * Web-only compatibility field returned by `Agent.aiLocate()`.
+   * It is the ratio between physical screenshot pixels and logical CSS pixels.
+   */
+  dpr?: number;
 };

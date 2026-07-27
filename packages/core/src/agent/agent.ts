@@ -1308,7 +1308,7 @@ export class Agent<
       rect: element?.rect,
       center: element?.center,
       dpr: element?.dpr,
-    } as Pick<LocateResultElement, 'rect' | 'center'>;
+    } as Pick<LocateResultElement, 'rect' | 'center' | 'dpr'>;
   }
 
   async aiAssert(

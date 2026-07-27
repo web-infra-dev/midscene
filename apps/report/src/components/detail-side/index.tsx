@@ -434,7 +434,9 @@ const DetailSide = (): JSX.Element => {
         ? [
             {
               key: 'act context',
-              content: aiActContextValue,
+              content: (
+                <pre className="act-context-source">{aiActContextValue}</pre>
+              ),
             },
           ]
         : []),
