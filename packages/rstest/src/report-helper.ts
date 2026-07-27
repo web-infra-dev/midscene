@@ -2,8 +2,13 @@ import { appendFileSync } from 'node:fs';
 import { basename, extname, join, relative, sep } from 'node:path';
 import type { ReportFileWithAttributes, TestStatus } from '@midscene/core';
 import { getReportFileName } from '@midscene/core/agent';
+import { getDebug } from '@midscene/shared/logger';
 import { replaceIllegalPathCharsAndSpace } from '@midscene/shared/utils';
-import { getManifestDir, manifestKey } from './utils';
+import { currentRunId, getManifestDir, manifestKey } from './utils';
+
+const debug = getDebug('rstest:report', { console: true });
+
+let warnedMissingReporter = false;
 
 export interface RstestTask {
   id: string;
@@ -59,10 +64,11 @@ export function manifestPathFor(filepath: string): string {
 /**
  * Map rstest's status onto Midscene's `TestStatus`, the way
  * `@midscene/web/playwright`'s reporter passes Playwright's status through
- * verbatim. Every rstest status is spelled out: collapsing the unknown ones
- * onto `passed` is what let a dynamically skipped test — `skip()` called after
- * the agent had already produced a report — show up as a pass in the merged
- * report and inflate the pass rate.
+ * verbatim. Every status rstest defines today gets its own case, because
+ * folding the unrecognized ones onto `passed` is what let a dynamically
+ * skipped test — `skip()` called after the agent had already produced a
+ * report — show up as a pass and inflate the pass rate. `default` covers a
+ * result that has not been set yet, and would cover a status added upstream.
  */
 function deriveStatus(result: RstestTask['result']): TestStatus {
   // TODO: rstest may eventually surface a structured timeout flag. Until then
@@ -74,6 +80,8 @@ function deriveStatus(result: RstestTask['result']): TestStatus {
     case 'skip':
     case 'todo':
       return 'skipped';
+    case 'pass':
+      return 'passed';
     default:
       return 'passed';
   }
@@ -102,6 +110,19 @@ export async function collectReport(
   const reportFile = agent.reportFile;
   if (!reportFile) return;
 
+  if (!currentRunId()) {
+    // Only `MidsceneReporter` drains manifests, so without one this entry
+    // would be written to a file nothing ever reads or truncates. Say so once
+    // instead of growing that file for the life of the project.
+    if (!warnedMissingReporter) {
+      warnedMissingReporter = true;
+      debug(
+        "no MidsceneReporter is configured, so per-file report merging is off. Add `new MidsceneReporter()` to `reporters` in your rstest config to merge each test file's Midscene reports. Individual reports are still written.",
+      );
+    }
+    return;
+  }
+
   const entry: ReportManifestEntry = {
     reportFilePath: reportFile,
     reportAttributes: {
@@ -117,18 +138,16 @@ export async function collectReport(
 }
 
 /**
- * Identify a test file the way `@midscene/web/playwright` does, i.e. by the
- * path that leads to it rather than by its basename alone. A basename is not
- * an identity: `e2e/login/smoke.test.ts` and `e2e/checkout/smoke.test.ts`
- * share one, and so would their auto-derived cache namespaces.
+ * Identify a test file the way `@midscene/web/playwright` does, by the path
+ * that leads to it rather than its basename alone — a basename is not an
+ * identity, and two files sharing one would share a cache namespace.
  *
- * Separators are normalized so an id built on Windows matches the one built on
- * a POSIX box for the same file — cache files outlive the machine that wrote
- * them. `replaceIllegalPathCharsAndSpace` deliberately keeps `/`, and
- * `TaskCache` creates the nested cache directory, so the slashes survive into
- * the cache file path exactly as they do for the Playwright integration.
+ * Separators are normalized because cache files outlive the machine that wrote
+ * them. The `/` survives `replaceIllegalPathCharsAndSpace` on purpose:
+ * `TaskCache` creates the nested cache directory, as it already does for the
+ * Playwright integration.
  */
-export function fileIdentity(filepath: string, projectRoot?: string): string {
+function fileIdentity(filepath: string, projectRoot?: string): string {
   const relativePath = projectRoot ? relative(projectRoot, filepath) : filepath;
   // `relative` yields '' for the root itself and a '..'-prefixed path for a
   // file outside it. Both are stable ids; only the empty one is unusable.

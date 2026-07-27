@@ -2,7 +2,7 @@ import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { TestStatus } from '@midscene/core';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   type AgentLike,
   type ReportManifestEntry,
@@ -10,9 +10,9 @@ import {
   buildReportMeta,
   collectReport,
   deriveStatus,
-  fileIdentity,
   manifestPathFor,
 } from '../../src/report-helper';
+import { RUN_ID_ENV } from '../../src/utils';
 
 function task(
   name: string,
@@ -100,14 +100,39 @@ describe('buildReportMeta', () => {
 });
 
 describe('buildReportMeta cacheId', () => {
-  it('is built from the project-relative path, matching the Playwright integration', () => {
-    const meta = buildReportMeta(
-      task('adds a todo', undefined, '/repo'),
-      '/repo/e2e/todo-list.test.ts',
-    );
+  it.each<[string, string | undefined, string, string]>([
     // Spaces become `-` on the way through `replaceIllegalPathCharsAndSpace`;
     // `/` survives, because the cache file is allowed to nest.
-    expect(meta.cacheId).toBe('e2e/todo-list.test.ts(adds-a-todo)');
+    [
+      'the project-relative path, matching the Playwright integration',
+      '/repo',
+      '/repo/e2e/todo-list.test.ts',
+      'e2e/todo-list.test.ts(adds-a-todo)',
+    ],
+    [
+      'the absolute path when the project root is unknown',
+      undefined,
+      '/repo/e2e/todo.test.ts',
+      '/repo/e2e/todo.test.ts(adds-a-todo)',
+    ],
+    [
+      'the basename for a file that is itself the project root',
+      '/repo/solo.test.ts',
+      '/repo/solo.test.ts',
+      'solo.test.ts(adds-a-todo)',
+    ],
+    [
+      'an escaping path for a file outside the project root',
+      '/repo',
+      '/shared/e2e/todo.test.ts',
+      '../shared/e2e/todo.test.ts(adds-a-todo)',
+    ],
+  ])('is built from %s', (_label, projectRoot, filepath, expected) => {
+    const meta = buildReportMeta(
+      task('adds a todo', undefined, projectRoot),
+      filepath,
+    );
+    expect(meta.cacheId).toBe(expected);
   });
 
   // The bug this guards: a basename is not a file identity. Same-named specs
@@ -150,50 +175,20 @@ describe('buildReportMeta cacheId', () => {
     );
     expect(here.cacheId).toBe(there.cacheId);
   });
-
-  it('falls back to the absolute path when the project root is unknown', () => {
-    const meta = buildReportMeta(task('case'), '/repo/e2e/todo.test.ts');
-    expect(meta.cacheId).toBe('/repo/e2e/todo.test.ts(case)');
-  });
-
-  it('falls back to the basename for a file that is the project root', () => {
-    const meta = buildReportMeta(
-      task('case', undefined, '/repo/solo.test.ts'),
-      '/repo/solo.test.ts',
-    );
-    expect(meta.cacheId).toBe('solo.test.ts(case)');
-  });
-});
-
-describe('fileIdentity', () => {
-  it('normalizes separators so ids match across platforms', () => {
-    expect(fileIdentity('/repo/e2e/todo.test.ts', '/repo')).toBe(
-      'e2e/todo.test.ts',
-    );
-  });
-
-  it('keeps a file outside the project root addressable', () => {
-    const id = fileIdentity('/shared/e2e/todo.test.ts', '/repo');
-    expect(id).toContain('todo.test.ts');
-    expect(id).not.toBe('');
-  });
 });
 
 describe('collectReport', () => {
   let runDir: string;
-  const originalRunDir = process.env.MIDSCENE_RUN_DIR;
 
   beforeEach(() => {
     runDir = mkdtempSync(join(tmpdir(), 'midscene-rstest-report-'));
-    process.env.MIDSCENE_RUN_DIR = runDir;
+    vi.stubEnv('MIDSCENE_RUN_DIR', runDir);
+    // Stands in for the namespace `MidsceneReporter` claims in a real run.
+    vi.stubEnv(RUN_ID_ENV, 'run-under-test');
   });
 
   afterEach(() => {
-    if (originalRunDir === undefined) {
-      Reflect.deleteProperty(process.env, 'MIDSCENE_RUN_DIR');
-    } else {
-      process.env.MIDSCENE_RUN_DIR = originalRunDir;
-    }
+    vi.unstubAllEnvs();
     rmSync(runDir, { recursive: true, force: true });
   });
 
@@ -222,6 +217,20 @@ describe('collectReport', () => {
     );
 
     expect(agent.destroyed).toBe(true);
+    expect(readManifest('/repo/a.test.ts')).toHaveLength(0);
+  });
+
+  // Only the reporter drains manifests. Without one, writing an entry would
+  // grow a file nothing ever reads or truncates.
+  it('destroys the agent but writes nothing when no reporter claimed the run', async () => {
+    vi.stubEnv(RUN_ID_ENV, '');
+    const agent = agentStub('/reports/a.html');
+    const reportMeta = { ...meta('case A', '/repo/a.test.ts') };
+
+    await collectReport(agent, reportMeta, task('case A'));
+
+    expect(agent.destroyed).toBe(true);
+    vi.stubEnv(RUN_ID_ENV, 'run-under-test');
     expect(readManifest('/repo/a.test.ts')).toHaveLength(0);
   });
 

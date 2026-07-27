@@ -71,11 +71,20 @@ directory at `onTestRunStart` (crash recovery) and at `onTestRunEnd`, so an
 unscoped directory would mean two rstest processes started against the same
 project deleting each other's pending manifests — and a missing manifest reads
 as "no agent ran in this file", so the reports would disappear without an error.
-The reporter's constructor mints the id into `MIDSCENE_RSTEST_RUN_ID`, which is
-the one channel that reaches the workers: the config module is evaluated in the
-main process before any worker exists, and workers inherit `process.env` at
-spawn. `ensureRunId` keeps an inherited id rather than minting a second one, in
-case rstest evaluates the config in a worker too.
+Importing `reporter.ts` claims the id into `MIDSCENE_RSTEST_RUN_ID`: the config
+module is evaluated in the main process before any worker exists, and the node
+pool spawns workers with `{ ...process.env }`, so they inherit it. It is claimed
+at module load rather than in the constructor so that merely constructing a
+reporter does not mutate global process state. `ensureRunId` keeps an inherited
+id rather than claiming a second one, in case rstest evaluates the config in a
+worker too. Rstest 0.11 has no Vitest-style `provide`/`inject`; the only other
+main→worker channel is `globalSetup`'s env overlay, which would force every user
+to add a second config entry.
+
+**Without a reporter, nothing is written.** Manifests exist only for the
+reporter to drain, so `collectReport` warns once and skips the append when no
+run id was claimed. Writing them anyway would grow a file nothing ever reads or
+truncates — `collectReport` appends, and only the reporter deletes.
 
 **`agent`, `agentForPage`, and `__reportMeta` are sealed against `test.extend`.**
 Enforcement is type-level only (`SealedFixtureKeys` + the `MidsceneTest` type,
@@ -123,6 +132,13 @@ Users who hit it can set `cache.id` explicitly.
 
 - `deriveStatus` substring-matches `'timed out'` on the error message, the way
   Vitest does. Replace it once Rstest surfaces a structured timeout flag.
+- The JSONL manifest may be replaceable by `task.meta`. Rstest copies it to
+  `TestResult.meta`, which reaches `onTestFileResult` as `file.results[i].meta`,
+  and it assigns it *after* fixture cleanup — so a write from `collectReport`
+  would land. That would delete the run-id namespace, the manifest files, and
+  the ENOENT handling along with it. Not attempted yet: it needs checking
+  against `retry`/`repeats`, and a worker that crashes mid-file would lose its
+  entries where an on-disk manifest survives.
 - `task.filepath` requires `@rstest/core >= 0.11.2`; its absence throws with an
   explicit message rather than degrading.
 - Playwright is the only browser engine. The engine is in the import path

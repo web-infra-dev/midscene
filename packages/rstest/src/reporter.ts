@@ -8,7 +8,16 @@ import {
   manifestPathFor,
   sanitizeForFileName,
 } from './report-helper';
-import { ensureRunId, getManifestDir } from './utils';
+import { ensureRunId, manifestDirPath } from './utils';
+
+// Claim this run's manifest namespace when the module loads, not in the
+// constructor: importing this module is what the user's config does, and the
+// config is evaluated in the main process before any worker exists — workers
+// then inherit `process.env` at spawn. Claiming it later would let an
+// already-spawned worker write somewhere the reporter never looks, and doing
+// it in the constructor would mean merely constructing a reporter mutates
+// global process state.
+ensureRunId();
 
 /**
  * Merges each test file's Midscene reports and prints the result.
@@ -19,26 +28,21 @@ import { ensureRunId, getManifestDir } from './utils';
  * in the main process either way.
  */
 export default class MidsceneReporter implements Reporter {
-  constructor() {
-    // Claim this run's manifest namespace here rather than in
-    // `onTestRunStart`: the config module — and with it the user's
-    // `new MidsceneReporter()` — is evaluated in the main process before any
-    // worker exists, and workers inherit `process.env` at spawn. Minting it
-    // later would risk workers that were already spawned writing elsewhere.
-    ensureRunId();
+  /** Scoped to this run's namespace, so a concurrent rstest process is left alone. */
+  private clearManifestDir(): void {
+    rmSync(manifestDirPath(), { recursive: true, force: true });
   }
 
   onTestRunStart(): void {
     // Pre-clean in case a previous run in this same process (watch mode)
-    // crashed mid-flight. Scoped to this run's namespace, so a concurrent
-    // rstest process is untouched.
-    rmSync(getManifestDir(), { recursive: true, force: true });
+    // crashed mid-flight.
+    this.clearManifestDir();
   }
 
   onTestRunEnd(): void {
     // Every file's manifest is drained as it finishes, so by now this only
     // removes the empty namespace directory itself.
-    rmSync(getManifestDir(), { recursive: true, force: true });
+    this.clearManifestDir();
   }
 
   onTestFileResult(file: TestFileResult): void {
