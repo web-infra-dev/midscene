@@ -44,6 +44,10 @@ import {
 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { normalizeForComparison, repeat } from '@midscene/shared/utils';
+import type {
+  AndroidAccessibilitySnapshot,
+  AndroidAccessibilityTreeSource,
+} from './accessibility-snapshot';
 import { uiautomatorXmlToUiNode } from './uiautomator-tree';
 
 import type { ADB } from 'appium-adb';
@@ -85,7 +89,12 @@ const debugDevice = getDebug('android:device');
 const warnDevice = getDebug('android:device', { console: true });
 const debugCache = getDebug('cache:xpath:android');
 
-type AndroidAccessibilityTreeSource = 'yadb' | 'uiautomator';
+interface AndroidAccessibilityDump {
+  capturedAt: string;
+  durationMs: number;
+  source: AndroidAccessibilityTreeSource;
+  xml: string;
+}
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
@@ -764,7 +773,7 @@ ${Object.keys(size)
    * wait-for-idle gate. UIAutomator remains a bounded fallback and the only
    * source for non-default displays because YADB currently targets display 0.
    */
-  private async dumpAccessibilityXml(): Promise<string> {
+  private async dumpAccessibilityHierarchy(): Promise<AndroidAccessibilityDump> {
     const sources: AndroidAccessibilityTreeSource[] =
       (this.options?.displayId ?? 0) === 0
         ? ['yadb', 'uiautomator']
@@ -776,14 +785,16 @@ ${Object.keys(size)
         const startedAt = Date.now();
         try {
           const xml = await this.dumpAccessibilityXmlAttempt(source);
+          const capturedAt = new Date().toISOString();
+          const durationMs = Date.now() - startedAt;
           debugCache(
             'tree source=%s attempt=%d durationMs=%d bytes=%d',
             source,
             attempt,
-            Date.now() - startedAt,
+            durationMs,
             xml.length,
           );
-          return xml;
+          return { capturedAt, durationMs, source, xml };
         } catch (error) {
           const failure = `${source} attempt ${attempt}/${ACCESSIBILITY_DUMP_ATTEMPTS}: ${errorMessage(error)}`;
           failures.push(failure);
@@ -804,6 +815,37 @@ ${Object.keys(size)
     throw new Error(
       `Unable to read Android accessibility hierarchy after ${failures.length} attempt(s): ${failures.join('; ')}`,
     );
+  }
+
+  private async dumpAccessibilityXml(): Promise<string> {
+    return (await this.dumpAccessibilityHierarchy()).xml;
+  }
+
+  /**
+   * Capture the same accessibility hierarchy used by production native XPath
+   * generation, together with the raw XML and coordinate metadata required by
+   * diagnostic tooling.
+   */
+  async captureAccessibilitySnapshot(): Promise<AndroidAccessibilitySnapshot> {
+    const captureStartedAt = Date.now();
+    await this.initializeDevicePixelRatio();
+    const dump = await this.dumpAccessibilityHierarchy();
+    const [logicalSize, screenInfo] = await Promise.all([
+      this.size(),
+      this.getScreenSize(),
+    ]);
+
+    return {
+      captureId: `${captureStartedAt.toString(36)}-${Math.random().toString(36).slice(2, 10)}`,
+      capturedAt: dump.capturedAt,
+      durationMs: Date.now() - captureStartedAt,
+      source: dump.source,
+      sourceXml: dump.xml,
+      root: uiautomatorXmlToUiNode(dump.xml, this.devicePixelRatio || 1),
+      dpr: this.devicePixelRatio || 1,
+      rotation: screenInfo.orientation,
+      logicalSize,
+    };
   }
 
   async cacheFeatureForPoint(
