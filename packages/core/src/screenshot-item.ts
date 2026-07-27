@@ -71,7 +71,6 @@ export class ScreenshotItem {
       mimeType === 'image/jpeg' ? 'jpeg' : 'png',
     );
     item._persistedPath = filePath;
-    item._serializedRef = item.createRef('file', filePath);
     return item;
   }
 
