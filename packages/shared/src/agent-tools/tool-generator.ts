@@ -13,10 +13,7 @@ import {
   unwrapZodField,
 } from '../zod-schema-utils';
 import { getErrorMessage } from './error-formatter';
-import {
-  readUIObservationRecord,
-  writeUIObservationRecord,
-} from './observation-record';
+import { readUIObservationRecord } from './observation-record';
 import type { ToolDefaults } from './tool-defaults';
 import type {
   ActionSpaceItem,
@@ -822,7 +819,7 @@ export function generateCommonTools(
           .string()
           .optional()
           .describe(
-            'Path for the JSON observation record. Defaults to a generated file under midscene_run/output.',
+            'Path for the JSON observation manifest. Frames are stored in an adjacent <name>.frames directory. Defaults to a generated path under midscene_run/output.',
           ),
         intervalMs: z
           .number()
@@ -878,6 +875,7 @@ export function generateCommonTools(
             const watchdogMs =
               (args.watchdogMs as number | undefined) ?? 300_000;
             const observer = await agent.startObserving({
+              outputPath: args.output as string | undefined,
               intervalMs: args.intervalMs as number | undefined,
               maxFrames: args.maxFrames as number | undefined,
               watchdogMs,
@@ -894,11 +892,7 @@ export function generateCommonTools(
               reason: stopReason,
             });
             await observer.stop();
-            const record = await observer.exportRecord();
-            const outputPath = writeUIObservationRecord(
-              record,
-              args.output as string | undefined,
-            );
+            const outputPath = await observer.exportRecord();
             return {
               content: [
                 {
@@ -937,7 +931,7 @@ export function generateCommonTools(
           .string()
           .optional()
           .describe(
-            'Path to a JSON observation record created by the record command. When set, the assertion uses its ordered frame window instead of the current screen.',
+            'Path to a JSON observation manifest created by the record command. Keep its adjacent image directory with it. When set, the assertion uses that ordered frame window instead of the current screen.',
           ),
         ...promptInputExtraSchema,
         ...initArgSchema,

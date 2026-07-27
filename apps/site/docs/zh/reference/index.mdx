@@ -945,6 +945,7 @@ function aiAssert(
     - `domIncluded?: boolean | 'visible-only'` - 是否向模型发送精简后的 DOM 信息，一般用于提取 UI 中不可见的属性，比如图片的链接。如果设置为 `'visible-only'`，则只发送可见的元素。默认值为 false。
     - `screenshotIncluded?: boolean` - 是否向模型发送截图。默认值为 true。
     - `context?: string` - 本次调用的额外上下文。详见[单次调用上下文](#单次调用上下文)。
+    - `observationRecord?: string | UIObservationRecord` - 观察记录 JSON 清单的路径，或已经解析的记录对象。设置后，断言会基于这段画面记录执行，而不是读取当前屏幕。
 
 - 返回值：
 
@@ -981,6 +982,7 @@ expect(onesieItem.price).toBe(7.99);
 
 ```typescript
 function startObserving(options?: {
+  outputPath?: string; // JSON 清单路径；图片保存在相邻的 .frames 目录
   intervalMs?: number;  // 采样间隔,默认 1000ms,最小 200ms(5fps)
   maxFrames?: number;   // 帧缓冲上限,默认 30(缓冲满时自动抽稀)
   watchdogMs?: number;  // 如果一直没有调用 stop(),会在指定毫秒数后自动停止。默认 300000(5 分钟)。设为 0 可禁用。
@@ -990,12 +992,13 @@ function startObserving(options?: {
 返回的 `UIObserver` 提供：
 
 - `observer.stop(): Promise<void>` - 停止采样，并截取最后一张用于断言的截图。断言前必须先调用。
-- `observer.aiAssert(assertion: string, msg?: string, opt?: object): Promise<void>` - 基于已观察到的时间段执行断言。模型会收到所有缓冲帧和最后一张截图；断言文本决定它应该判断“是否曾经出现”、最终状态，还是按顺序发生的变化。
-- `observer.aiBoolean(prompt: string, opt?: object): Promise<boolean>` - 基于已观察到的时间段做布尔查询。
+- `observer.exportRecord(): Promise<string>` - 完成 JSON 清单和相邻图片目录的写入，并返回清单的绝对路径。
 - `observer.frameCount: number` - 当前已缓冲的帧数。
 
 ```typescript
-const observer = await agent.startObserving();
+const observer = await agent.startObserving({
+  outputPath: './submission-observation.json',
+});
 await agent.aiAct('提交表单');
 await observer.stop();
 await observer.aiAssert('过程中弹出了成功提示 toast');
@@ -1021,12 +1024,30 @@ npx -y @midscene/web@1 assert \
 
 `@midscene/android`、`@midscene/ios`、`@midscene/harmony` 和 `@midscene/computer` 也提供 `record start`。各平台原有的目标参数和 `--output` 都应传给这个前台命令。录制参数包括 `--interval-ms`、`--max-frames` 和 `--watchdog-ms`。默认 watchdog 会在 5 分钟后自动结束并保存录制，只有确实需要无限期录制时才应传入 `--watchdog-ms 0`。
 
-产物是带版本号的 JSON 有序截图序列，而不是编码后的视频，因为 Midscene 断言实际消费的就是这类时间序列输入。每一帧 JPEG 或 PNG 都会以内嵌 base64 图片 data URL 的形式保存。如果只关心当前画面，直接使用不带 `--record` 的普通 `assert` 命令。在 Web Bridge 模式下，前台录制会占用唯一的 Bridge 连接，因此应手动操作浏览器，不要再启动第二个 Bridge CLI 操作。
+产物由带版本号的 JSON 清单和相邻图片目录组成，既不是编码后的视频，也不是压缩包。对于 `submission-observation.json`，图片会保存在 `submission-observation.frames/` 中；移动或保留产物时，两者必须放在一起。JSON 只保存 JPEG 或 PNG 的相对路径，不包含 base64 图片正文：
+
+```json
+{
+  "type": "midscene_ui_observation",
+  "version": 1,
+  "frames": [
+    {
+      "path": "submission-observation.frames/4f32c0a8.jpeg",
+      "mimeType": "image/jpeg",
+      "capturedAt": 1785132000123
+    }
+  ],
+  "shotSize": { "width": 1440, "height": 900 },
+  "shrunkShotToLogicalRatio": 1
+}
+```
+
+如果只关心当前画面，直接使用不带 `--record` 的普通 `assert` 命令。在 Web Bridge 模式下，前台录制会占用唯一的 Bridge 连接，因此应手动操作浏览器，不要再启动第二个 Bridge CLI 操作。
 
 工作方式与成本：
 
 - Midscene 会优先从设备的连续帧源采集画面：Android 使用 scrcpy（`scrcpyConfig.enabled`）、iOS 使用 WDA MJPEG（`wdaMjpegFrameSource.enabled`）、Web 使用 CDP screencast（始终可用）。没有帧源时，会退回到定时截图；移动端实际帧率会明显降低。
-- 采样阶段只保存帧句柄。断言时再解码需要发送给模型的帧，避免在后台采样时持续解码。
+- 对于 data URL 画面，采样时就会写入图片文件，observer 不会在内存中长期保留整组画面。设备的不透明帧句柄会在录制停止时分小批解码并落盘；执行断言时再按需读取图片。
 - 模型会收到缓冲区内的所有帧（最多 `maxFrames` 帧）和最后一张截图，避免漏掉长时间观察中的短暂 UI。如需控制 token 成本，可增大 `intervalMs`（降低采样密度）或减小 `maxFrames`（缩小缓冲区）。观察帧会显示在报告时间线中，并带有 `Observed` 标签。
 - iOS 的观察帧来自 MJPEG 流，分辨率和质量较低；最后一张截图仍是全质量截图。
 

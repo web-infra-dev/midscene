@@ -127,8 +127,10 @@ export interface BaseAgentProgressEvent {
 
 /** A single frame in a portable UI observation record. */
 export interface UIObservationFrame {
-  /** Image data URI for the captured frame. */
-  base64: string;
+  /** Path to the captured image. Serialized manifests use relative paths. */
+  path: string;
+  /** MIME type of the captured image file. */
+  mimeType: 'image/png' | 'image/jpeg';
   /** Capture timestamp in milliseconds. */
   capturedAt: number;
 }
@@ -155,12 +157,14 @@ export interface UIObservationRecord {
 export interface BaseUIObserver {
   /** Stop sampling and finalize the observed frame window. */
   stop(): Promise<void>;
-  /** Export the stopped observation window as a portable record. */
-  exportRecord(): Promise<UIObservationRecord>;
+  /** Export the stopped observation window and return its JSON manifest path. */
+  exportRecord(): Promise<string>;
 }
 
 /** Options for {@link BaseAgent.startObserving}. */
 export interface BaseUIObserverOptions {
+  /** JSON manifest path. Frames are stored in an adjacent `<name>.frames` directory. */
+  outputPath?: string;
   /** Sampling interval in milliseconds. Defaults to 1000; minimum 200. */
   intervalMs?: number;
   /** Maximum number of buffered frames. Defaults to 30; minimum 2. */

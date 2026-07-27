@@ -1,5 +1,6 @@
 import {
   existsSync,
+  mkdirSync,
   mkdtempSync,
   readFileSync,
   rmSync,
@@ -359,20 +360,8 @@ describe('generateToolsFromActionSpace', () => {
   it('stops a foreground recording on Ctrl+C before writing its artifact', async () => {
     const tempDir = mkdtempSync(join(tmpdir(), 'midscene-record-test-'));
     const output = join(tempDir, 'toast-observation.json');
-    const observationRecord = {
-      type: 'midscene_ui_observation' as const,
-      version: 1 as const,
-      frames: [
-        {
-          base64: screenshotBase64,
-          capturedAt: 100,
-        },
-      ],
-      shotSize: { width: 100, height: 100 },
-      shrunkShotToLogicalRatio: 1,
-    };
     const stop = vi.fn().mockResolvedValue(undefined);
-    const exportRecord = vi.fn().mockResolvedValue(observationRecord);
+    const exportRecord = vi.fn().mockResolvedValue(output);
     const startObserving = vi.fn().mockResolvedValue({
       stop,
       exportRecord,
@@ -407,6 +396,7 @@ describe('generateToolsFromActionSpace', () => {
     );
 
     expect(startObserving).toHaveBeenCalledWith({
+      outputPath: output,
       intervalMs: 250,
       maxFrames: 12,
       watchdogMs: 5000,
@@ -418,8 +408,6 @@ describe('generateToolsFromActionSpace', () => {
     expect(startObserving.mock.invocationCallOrder[0]).toBeLessThan(
       stop.mock.invocationCallOrder[0],
     );
-    expect(existsSync(output)).toBe(true);
-    expect(JSON.parse(readFileSync(output, 'utf8'))).toEqual(observationRecord);
     expect(result).toEqual({
       content: [{ type: 'text', text: `Observation record saved: ${output}` }],
     });
@@ -735,12 +723,24 @@ describe('generateCommonTools — assert image prompts', () => {
   it('loads an observation record and forwards it to aiAssert', async () => {
     const tempDir = mkdtempSync(join(tmpdir(), 'midscene-assert-record-test-'));
     const recordPath = join(tempDir, 'toast-observation.json');
+    const framesDir = join(tempDir, 'toast-observation.frames');
+    mkdirSync(framesDir, { recursive: true });
+    const framePath = join(framesDir, 'frame.png');
+    writeFileSync(framePath, Buffer.from('frame'));
     const observationRecord = {
       type: 'midscene_ui_observation' as const,
       version: 1 as const,
       frames: [
-        { base64: screenshotBase64, capturedAt: 100 },
-        { base64: screenshotBase64, capturedAt: 200 },
+        {
+          path: 'toast-observation.frames/frame.png',
+          mimeType: 'image/png' as const,
+          capturedAt: 100,
+        },
+        {
+          path: 'toast-observation.frames/frame.png',
+          mimeType: 'image/png' as const,
+          capturedAt: 200,
+        },
       ],
       shotSize: { width: 100, height: 100 },
       shrunkShotToLogicalRatio: 1,
@@ -762,7 +762,15 @@ describe('generateCommonTools — assert image prompts', () => {
     expect(aiAssert).toHaveBeenCalledWith(
       'a success toast appeared',
       undefined,
-      { observationRecord },
+      {
+        observationRecord: {
+          ...observationRecord,
+          frames: observationRecord.frames.map((frame) => ({
+            ...frame,
+            path: framePath,
+          })),
+        },
+      },
     );
     expect(result).toEqual({
       content: [{ type: 'text', text: 'Assertion passed.' }],
@@ -770,7 +778,7 @@ describe('generateCommonTools — assert image prompts', () => {
     rmSync(tempDir, { recursive: true });
   });
 
-  it('rejects a record whose frames are not image data URLs', async () => {
+  it('rejects a record whose image path escapes the manifest directory', async () => {
     const tempDir = mkdtempSync(
       join(tmpdir(), 'midscene-invalid-record-test-'),
     );
@@ -780,7 +788,13 @@ describe('generateCommonTools — assert image prompts', () => {
       JSON.stringify({
         type: 'midscene_ui_observation',
         version: 1,
-        frames: [{ base64: 'not-an-image', capturedAt: 100 }],
+        frames: [
+          {
+            path: '../not-an-image.png',
+            mimeType: 'image/png',
+            capturedAt: 100,
+          },
+        ],
         shotSize: { width: 100, height: 100 },
         shrunkShotToLogicalRatio: 1,
       }),
@@ -808,7 +822,7 @@ describe('generateCommonTools — assert image prompts', () => {
         {
           type: 'text',
           text: expect.stringContaining(
-            'Invalid UI observation record at frames.0.base64',
+            'Invalid UI observation record at frames.0.path',
           ),
         },
       ],
