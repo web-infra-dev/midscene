@@ -13,6 +13,7 @@ import {
 } from '@/agent-tools/tool-generator';
 import { composeUserPrompt } from '@/agent-tools/user-prompt';
 import { withCliVerboseContext } from '@/cli';
+import * as cliInterrupt from '@/cli/interrupt';
 import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 
@@ -297,7 +298,6 @@ describe('generateToolsFromActionSpace', () => {
       expect.objectContaining({
         action: expect.anything(),
         output: expect.anything(),
-        session: expect.anything(),
         'android.deviceId': expect.anything(),
       }),
     );
@@ -358,7 +358,7 @@ describe('generateToolsFromActionSpace', () => {
     });
   });
 
-  it('starts and ends an independent recording before writing its artifact', async () => {
+  it('stops a foreground recording on Ctrl+C before writing its artifact', async () => {
     const tempDir = mkdtempSync(join(tmpdir(), 'midscene-record-test-'));
     const output = join(tempDir, 'toast-observation.json');
     const observationRecord = {
@@ -388,25 +388,32 @@ describe('generateToolsFromActionSpace', () => {
     }));
     const commonTools = generateCommonTools(getAgent, undefined, undefined);
     const recordTool = commonTools.find((tool) => tool.name === 'record');
+    const interruptSpy = vi
+      .spyOn(cliInterrupt, 'waitForCliInterrupt')
+      .mockResolvedValue('sigint');
 
-    const started = await recordTool?.handler({
-      action: 'start',
-      session: 'toast',
-      output,
-      intervalMs: 250,
-      maxFrames: 12,
-      watchdogMs: 5000,
-    });
-    const ended = await recordTool?.handler({
-      action: 'end',
-      session: 'toast',
-    });
+    const result = await withCliVerboseContext(
+      {
+        enabled: false,
+        scriptName: 'midscene-web',
+        commandName: 'record',
+      },
+      () =>
+        recordTool!.handler({
+          action: 'start',
+          output,
+          intervalMs: 250,
+          maxFrames: 12,
+          watchdogMs: 5000,
+        }),
+    );
 
     expect(startObserving).toHaveBeenCalledWith({
       intervalMs: 250,
       maxFrames: 12,
       watchdogMs: 5000,
     });
+    expect(interruptSpy).toHaveBeenCalledWith(5000);
     expect(getAgent).toHaveBeenCalledTimes(1);
     expect(stop).toHaveBeenCalledOnce();
     expect(exportRecord).toHaveBeenCalledOnce();
@@ -415,12 +422,10 @@ describe('generateToolsFromActionSpace', () => {
     );
     expect(existsSync(output)).toBe(true);
     expect(JSON.parse(readFileSync(output, 'utf8'))).toEqual(observationRecord);
-    expect(started).toEqual({
-      content: [{ type: 'text', text: 'Recording started: toast' }],
-    });
-    expect(ended).toEqual({
+    expect(result).toEqual({
       content: [{ type: 'text', text: `Observation record saved: ${output}` }],
     });
+    interruptSpy.mockRestore();
     rmSync(tempDir, { recursive: true });
   });
 
@@ -436,9 +441,14 @@ describe('generateToolsFromActionSpace', () => {
     }));
     const recordTool = commonTools.find((tool) => tool.name === 'record');
 
-    const result = await recordTool?.handler({
-      action: 'start',
-    });
+    const result = await withCliVerboseContext(
+      {
+        enabled: false,
+        scriptName: 'midscene-web',
+        commandName: 'record',
+      },
+      () => recordTool!.handler({ action: 'start' }),
+    );
 
     expect(result).toEqual({
       content: [
@@ -464,11 +474,34 @@ describe('generateToolsFromActionSpace', () => {
       content: [
         {
           type: 'text',
-          text: 'record requires a start or end operation (for example: record start)',
+          text: 'record requires the start operation (for example: record start --output ./observation.json)',
         },
       ],
       isError: true,
     });
+  });
+
+  it('directs non-CLI callers to the SDK observation API', async () => {
+    const getAgent = vi.fn();
+    const commonTools = generateCommonTools(getAgent);
+    const recordTool = commonTools.find((tool) => tool.name === 'record');
+    const consoleErrorSpy = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => {});
+
+    const result = await recordTool?.handler({ action: 'start' });
+
+    expect(getAgent).not.toHaveBeenCalled();
+    expect(result).toEqual({
+      content: [
+        {
+          type: 'text',
+          text: 'Failed to execute record: record start is only available from the Midscene CLI; SDK callers should use agent.startObserving()',
+        },
+      ],
+      isError: true,
+    });
+    consoleErrorSpy.mockRestore();
   });
 
   it('records take_screenshot in reports with the captured screenshot', async () => {
