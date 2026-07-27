@@ -675,8 +675,8 @@ describe('runToolsCLI', () => {
           name: 'record',
           description: 'record command',
           schema: {
-            action: z.enum(['start', 'end']),
-            session: z.string().optional(),
+            action: z.literal('start'),
+            output: z.string().optional(),
           },
           cli: { positionals: ['action'] },
           handler,
@@ -686,10 +686,13 @@ describe('runToolsCLI', () => {
     const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
 
     await runToolsCLI(tools, 'test-cli', {
-      argv: ['record', 'start', '--session', 'toast'],
+      argv: ['record', 'start', '--output', 'toast.json'],
     });
 
-    expect(handler).toHaveBeenCalledWith({ action: 'start', session: 'toast' });
+    expect(handler).toHaveBeenCalledWith({
+      action: 'start',
+      output: 'toast.json',
+    });
     consoleSpy.mockRestore();
   });
 
@@ -724,12 +727,12 @@ describe('runToolsCLI', () => {
     const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
 
     await runToolsCLI(tools, 'test-cli', {
-      argv: ['record', '--session', 'toast'],
+      argv: ['record', '--output', 'toast.json'],
     });
 
     const messages = consoleSpy.mock.calls.map(([message]) => String(message));
     expect(messages).toEqual([
-      '[Midscene] record started (session=toast)',
+      '[Midscene] record started (output=toast.json)',
       'Observation passed',
       expect.stringMatching(/^\[Midscene\] record finished in \d+ms$/),
     ]);
@@ -927,7 +930,7 @@ describe('runToolsCLI', () => {
     consoleSpy.mockRestore();
   });
 
-  it('shows the record operation as a positional and hides worker plumbing', async () => {
+  it('shows foreground record help without session or end plumbing', async () => {
     const tools = {
       initTools: vi.fn().mockResolvedValue(undefined),
       destroy: vi.fn().mockResolvedValue(undefined),
@@ -936,18 +939,10 @@ describe('runToolsCLI', () => {
           name: 'record',
           description: 'record command',
           schema: {
-            action: z.enum(['start', 'end']),
-            recordWorker: z.string().optional(),
+            action: z.literal('start'),
+            output: z.string().optional(),
           },
-          cli: {
-            positionals: ['action'],
-            options: {
-              recordWorker: {
-                preferredName: 'record-worker',
-                hidden: true,
-              },
-            },
-          },
+          cli: { positionals: ['action'] },
           handler: vi.fn(),
         },
       ]),
@@ -965,7 +960,8 @@ describe('runToolsCLI', () => {
 
     const output = lines.join('\n');
     expect(output).toContain('Usage: test-cli record <action> [options]');
-    expect(output).not.toContain('--record-worker');
+    expect(output).toContain('--output');
+    expect(output).not.toContain('--session');
     expect(output).toContain('Global Options:');
     consoleSpy.mockRestore();
   });
