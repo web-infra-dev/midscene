@@ -34,6 +34,8 @@ interface UIObserverDeps {
   captureRepresentative: () => Promise<UIContext>;
   onStopped?: () => void;
   screenshotShrinkFactor?: number;
+  /** Test/internal persistence override; not part of the Agent SDK options. */
+  observationRecordWriter?: UIObservationRecordWriter;
 }
 
 interface BufferedFrame extends DeviceFrameRef {
@@ -50,8 +52,8 @@ function isImageDataUrl(value: unknown): value is string {
 
 /**
  * Observe an explicit screen window and persist its frames as image files.
- * `exportRecord()` returns a JSON manifest path; the manifest contains relative
- * paths into an adjacent `<name>.frames` directory and never embeds base64.
+ * `exportRecord()` keeps the SDK contract of returning an observation record;
+ * its frames reference files rather than embedding base64.
  */
 export class UIObserver {
   private frames: BufferedFrame[] = [];
@@ -65,7 +67,7 @@ export class UIObserver {
   private watchdogTimer: ReturnType<typeof setTimeout> | null = null;
   private persistPromise: Promise<void> | null = null;
   private persistedByRef = new Map<unknown, UIObservationFrame>();
-  private exportedPath: string | null = null;
+  private exportedRecord: UIObservationRecord | null = null;
   private readonly intervalMs: number;
   private readonly maxFrames: number;
   private readonly watchdogMs: number;
@@ -83,7 +85,8 @@ export class UIObserver {
     this.maxFrames = Math.max(2, opt?.maxFrames ?? DEFAULT_MAX_FRAMES);
     this.watchdogMs = opt?.watchdogMs ?? DEFAULT_WATCHDOG_MS;
     this.screenshotShrinkFactor = deps.screenshotShrinkFactor ?? 1;
-    this.writer = new UIObservationRecordWriter(opt?.outputPath);
+    this.writer =
+      deps.observationRecordWriter ?? new UIObservationRecordWriter();
   }
 
   get frameCount(): number {
@@ -191,15 +194,15 @@ export class UIObserver {
   }
 
   /**
-   * Finalize the image directory and JSON manifest, then return the absolute
-   * manifest path. Repeated exports return the same path without re-decoding.
+   * Finalize the image directory and return a file-backed observation record.
+   * Repeated exports return the same record without re-decoding.
    */
-  async exportRecord(): Promise<string> {
+  async exportRecord(): Promise<UIObservationRecord> {
     assert(
       this.stopped && this.representative,
       'call observer.stop() before exporting the observed window',
     );
-    if (this.exportedPath) return this.exportedPath;
+    if (this.exportedRecord) return this.exportedRecord;
     if (this.persistPromise) {
       await this.persistPromise;
       this.persistPromise = null;
@@ -237,8 +240,8 @@ export class UIObserver {
       shotSize: { ...this.representative!.shotSize },
       shrunkShotToLogicalRatio: this.representative!.shrunkShotToLogicalRatio,
     };
-    this.exportedPath = this.writer.finalize(frames, metadata);
-    return this.exportedPath;
+    this.exportedRecord = this.writer.finalize(frames, metadata);
+    return this.exportedRecord;
   }
 
   private async persistUnstoredFrames(): Promise<void> {

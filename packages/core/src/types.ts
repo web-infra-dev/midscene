@@ -288,8 +288,8 @@ export interface AgentAssertOpt {
   keepRawResponse?: boolean;
   context?: string;
   abortSignal?: AbortSignal;
-  /** Assert against a record manifest path or an already resolved record. */
-  observationRecord?: string | UIObservationRecord;
+  /** Assert against a previously captured observation window. */
+  observationRecord?: UIObservationRecord;
 }
 
 /**

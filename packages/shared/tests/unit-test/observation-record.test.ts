@@ -10,6 +10,7 @@ import { isAbsolute, join } from 'node:path';
 import {
   UIObservationRecordWriter,
   readUIObservationRecord,
+  writeUIObservationRecord,
 } from '@/agent-tools/observation-record';
 import { afterEach, describe, expect, it } from 'vitest';
 
@@ -31,24 +32,28 @@ describe('UIObservationRecordWriter', () => {
     }
   });
 
-  it('writes a JSON manifest plus deduplicated adjacent image files', () => {
+  it('exports a file-backed record and writes a portable JSON manifest', () => {
     const directory = tempDirectory();
     const outputPath = join(directory, 'submission-observation.json');
-    const writer = new UIObservationRecordWriter(outputPath);
+    const writer = new UIObservationRecordWriter(
+      join(directory, 'internal-observation.json'),
+    );
     const first = writer.persistFrame(dataUrl('same-frame'), 100);
     const second = writer.persistFrame(dataUrl('same-frame'), 200);
 
+    const record = writer.finalize([first, second], {
+      shotSize: { width: 100, height: 50 },
+      shrunkShotToLogicalRatio: 1,
+    });
+
     expect(first.path).toBe(second.path);
-    expect(
-      writer.finalize([first, second], {
-        shotSize: { width: 100, height: 50 },
-        shrunkShotToLogicalRatio: 1,
-      }),
-    ).toBe(outputPath);
+    expect(isAbsolute(record.frames[0].path)).toBe(true);
+    expect(existsSync(record.frames[0].path)).toBe(true);
+    expect(writeUIObservationRecord(record, outputPath)).toBe(outputPath);
 
     const serialized = JSON.parse(readFileSync(outputPath, 'utf8'));
     expect(serialized.frames[0]).toEqual({
-      path: first.path,
+      path: 'submission-observation.frames/0000.png',
       mimeType: 'image/png',
       capturedAt: 100,
     });
