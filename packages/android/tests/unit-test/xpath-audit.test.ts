@@ -389,6 +389,125 @@ describe('Android live XPath audit', () => {
     ]);
   });
 
+  it('covers unnamed Lynx regions with minimal structural units', () => {
+    const root = node(
+      'android.widget.FrameLayout',
+      { left: 0, top: 0, width: 400, height: 800 },
+      {},
+      [
+        node(
+          'android.widget.FrameLayout',
+          { left: 0, top: 0, width: 400, height: 800 },
+          { focusable: 'true' },
+          [
+            node('android.view.ViewGroup', {
+              left: 0,
+              top: 0,
+              width: 400,
+              height: 80,
+            }),
+            node(
+              'android.widget.ScrollView',
+              { left: 0, top: 80, width: 400, height: 720 },
+              { focusable: 'true', scrollable: 'true' },
+              [
+                node(
+                  'android.widget.LinearLayout',
+                  { left: 0, top: 80, width: 400, height: 720 },
+                  { focusable: 'true' },
+                  [
+                    node(
+                      'android.view.ViewGroup',
+                      { left: 20, top: 100, width: 360, height: 180 },
+                      {},
+                      [
+                        node(
+                          'android.view.ViewGroup',
+                          { left: 20, top: 110, width: 360, height: 170 },
+                          {},
+                          [
+                            node(
+                              'android.view.ViewGroup',
+                              { left: 20, top: 110, width: 360, height: 80 },
+                              {},
+                              [
+                                node('android.view.ViewGroup', {
+                                  left: 100,
+                                  top: 120,
+                                  width: 16,
+                                  height: 16,
+                                }),
+                              ],
+                            ),
+                            ...[40, 120, 200, 280].map((left) =>
+                              node('android.view.ViewGroup', {
+                                left,
+                                top: 210,
+                                width: 30,
+                                height: 60,
+                              }),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    node(
+                      'android.view.ViewGroup',
+                      { left: 20, top: 300, width: 360, height: 160 },
+                      {},
+                      [
+                        node(
+                          'android.view.ViewGroup',
+                          { left: 20, top: 320, width: 360, height: 140 },
+                          {},
+                          [
+                            node(
+                              'android.view.ViewGroup',
+                              { left: 20, top: 320, width: 180, height: 140 },
+                              {
+                                clickable: 'false',
+                                'content-desc': '放心借  按钮',
+                                focusable: 'true',
+                              },
+                            ),
+                            node(
+                              'android.view.ViewGroup',
+                              { left: 200, top: 320, width: 180, height: 140 },
+                              {
+                                clickable: 'false',
+                                'content-desc': '抖音月付  按钮',
+                                focusable: 'true',
+                              },
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ],
+        ),
+      ],
+    );
+
+    const audit = buildAndroidLiveTreeAudit(root, {
+      width: 400,
+      height: 800,
+    });
+
+    expect(audit.overlays.map((overlay) => overlay.nodeId)).toEqual([
+      'node-0003',
+      'node-0007',
+      'node-0016',
+      'node-0017',
+    ]);
+    expect(
+      audit.overlays.every((overlay) => overlay.rectSource === 'tree'),
+    ).toBe(true);
+  });
+
   it('ignores full-page clickable wrappers when selecting WebView controls', () => {
     const buildAudit = (clickable: string) => {
       const root = node(

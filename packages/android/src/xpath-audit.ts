@@ -120,6 +120,9 @@ const MAX_TREE_ID_AREA_RATIO = 0.25;
 const MAX_TREE_DIRECT_AREA_RATIO = 0.25;
 const MAX_TREE_TEXT_IMAGE_AREA_RATIO = 0.2;
 const MAX_TREE_MULTI_TEXT_AREA_RATIO = 0.12;
+const MAX_TREE_STRUCTURAL_AREA_RATIO = 0.3;
+const MIN_TREE_STRUCTURAL_COVERAGE_RATIO = 0.8;
+const MAX_TREE_STRUCTURAL_OVERLAP_RATIO = 1.1;
 const MAX_ADJACENT_IMAGE_SIZE = 20;
 const CACHE_XPATH_HIT_REASON =
   'The cache XPath from the previous capture uniquely matched the same identity in the current tree';
@@ -497,6 +500,44 @@ function selectTreeOverlayNodes(
   };
 
   const viewportArea = logicalSize.width * logicalSize.height;
+  const supportsUnnamedVirtualStructure =
+    !nodes.some((node) => node.type.toLowerCase().includes('webview')) &&
+    nodes.some(
+      (node) =>
+        node.visible &&
+        node.type.endsWith('.ViewGroup') &&
+        attrIsTrue(node.attrs.focusable) &&
+        !attrIsTrue(node.attrs.clickable) &&
+        hasTreeText(node),
+    );
+
+  const shouldUseStructuralBoundary = (
+    node: AndroidAuditTreeNode,
+    childUnits: AndroidAuditTreeNode[],
+    areaRatio: number,
+  ): boolean => {
+    if (
+      !supportsUnnamedVirtualStructure ||
+      node.type !== 'android.view.ViewGroup' ||
+      node.bounds.width < 24 ||
+      node.bounds.height < 12 ||
+      areaRatio > MAX_TREE_STRUCTURAL_AREA_RATIO
+    ) {
+      return false;
+    }
+    const nodeArea = rectArea(node.bounds);
+    const childCoverageRatio =
+      childUnits.reduce(
+        (coveredArea, child) =>
+          coveredArea + intersectionArea(node.bounds, child.bounds),
+        0,
+      ) / nodeArea;
+    return (
+      childCoverageRatio < MIN_TREE_STRUCTURAL_COVERAGE_RATIO ||
+      childCoverageRatio > MAX_TREE_STRUCTURAL_OVERLAP_RATIO
+    );
+  };
+
   const isDirectBoundary = (
     node: AndroidAuditTreeNode,
     insideWebView: boolean,
@@ -596,6 +637,13 @@ function selectTreeOverlayNodes(
     if (isDirectBoundary(node, insideWebView, areaRatio)) {
       return {
         hasIndependentBoundary: true,
+        splitStableBoundary: false,
+        units: [node],
+      };
+    }
+    if (shouldUseStructuralBoundary(node, childSelection.units, areaRatio)) {
+      return {
+        hasIndependentBoundary: false,
         splitStableBoundary: false,
         units: [node],
       };
