@@ -3,6 +3,7 @@ import { z } from 'zod';
 import {
   attachCliVerboseDumpListener,
   emitCliVerboseEvent,
+  getCliVerboseContext,
 } from '../cli/verbose';
 import {
   getZodDescription,
@@ -10,11 +11,28 @@ import {
   isMidsceneLocatorField,
   unwrapZodField,
 } from '../zod-schema-utils';
+import {
+  cliObservationWorkerToken,
+  completeCliObservationWorker,
+  defaultCliObservationScope,
+  failCliObservationWorker,
+  markCliObservationWorkerRecording,
+  readCliObservationSession,
+  startCliObservationWorker,
+  stopCliObservationWorker,
+  waitForCliObservationStop,
+  waitForCliObservationWorkerState,
+} from './cli-observation-session';
 import { getErrorMessage } from './error-formatter';
+import {
+  readUIObservationRecord,
+  writeUIObservationRecord,
+} from './observation-record';
 import type { ToolDefaults } from './tool-defaults';
 import type {
   ActionSpaceItem,
   BaseAgent,
+  BaseUIObserver,
   ToolCliMetadata,
   ToolDefinition,
   ToolResult,
@@ -543,10 +561,14 @@ function mergeToolCliMetadata(
     ...(extra?.options ?? {}),
   };
 
-  return Object.keys(options).length > 0 ? { options } : undefined;
+  const positionals = base?.positionals ?? extra?.positionals;
+  return Object.keys(options).length > 0 || positionals
+    ? { options, positionals }
+    : undefined;
 }
 
-const observeCliMetadata: ToolCliMetadata = {
+const recordCliMetadata: ToolCliMetadata = {
+  positionals: ['action'],
   options: {
     intervalMs: {
       preferredName: 'interval-ms',
@@ -560,13 +582,8 @@ const observeCliMetadata: ToolCliMetadata = {
       preferredName: 'watchdog-ms',
       aliases: ['watchdogMs'],
     },
-    deepLocate: {
-      preferredName: 'deep-locate',
-      aliases: ['deepLocate'],
-    },
-    deepThink: {
-      preferredName: 'deep-think',
-      aliases: ['deepThink'],
+    action: {
+      hidden: true,
     },
   },
 };
@@ -688,6 +705,15 @@ export function generateCommonTools(
   initArgCliMetadata?: ToolCliMetadata,
   toolDefaults: ToolDefaults = {},
 ): ToolDefinition[] {
+  let activeObservation:
+    | {
+        observer: BaseUIObserver;
+        sessionName: string;
+        outputPath?: string;
+        unsubscribeVerbose: () => void;
+      }
+    | undefined;
+
   return [
     {
       name: 'take_screenshot',
@@ -806,26 +832,24 @@ export function generateCommonTools(
       },
     },
     {
-      name: 'observe',
+      name: 'record',
       description:
-        'Observe the page/screen while executing a natural language action, then assert against the full captured time window. Use this for transient UI such as toasts, banners, and transitions that may disappear before a separate assert command runs.',
+        'Start or end an independent page/screen recording. Ending saves the ordered frame window for a later assert command.',
       schema: {
         action: z
+          .enum(['start', 'end'])
+          .describe('Recording lifecycle operation: start or end.'),
+        session: z
           .string()
           .min(1)
-          .describe(
-            'Natural language action to execute while the observation window is active, e.g. "click the Submit button".',
-          ),
-        prompt: z
-          .string()
-          .min(1)
-          .describe(
-            'Natural language assertion to evaluate against the observed window, e.g. "a success toast appeared during submission".',
-          ),
-        message: z
+          .optional()
+          .describe('Recording session name. Defaults to "default".'),
+        output: z
           .string()
           .optional()
-          .describe('Custom error message to throw when the assertion fails.'),
+          .describe(
+            'Path for the JSON observation record. It can be supplied to start or end. Defaults to a generated file under midscene_run/output.',
+          ),
         intervalMs: z
           .number()
           .min(200)
@@ -844,94 +868,189 @@ export function generateCommonTools(
           .min(0)
           .optional()
           .describe(
-            'Auto-stop timeout in milliseconds. Defaults to 300000 (5 minutes); set 0 to disable.',
-          ),
-        deepLocate: z
-          .boolean()
-          .optional()
-          .describe(
-            'Use deep locate for every element the action targets. Improves precision for small or ambiguous targets at the cost of speed. Defaults to the server --deep-locate setting.',
-          ),
-        deepThink: z
-          .boolean()
-          .optional()
-          .describe(
-            'Plan the action with deep thinking (richer context and sub-goal decomposition). Helps with complex multi-step instructions at the cost of speed. Defaults to the server --deep-think setting.',
+            'Safety timeout in milliseconds. Defaults to 300000 (5 minutes); 0 disables it.',
           ),
         ...initArgSchema,
       },
-      cli: mergeToolCliMetadata(observeCliMetadata, initArgCliMetadata),
+      cli: mergeToolCliMetadata(recordCliMetadata, initArgCliMetadata),
       handler: async (
         args: Record<string, unknown> = {},
       ): Promise<ToolResult> => {
         const action = args.action;
-        const prompt = args.prompt;
-        const message = args.message as string | undefined;
-        if (typeof action !== 'string' || action.trim().length === 0) {
+        if (action !== 'start' && action !== 'end') {
           return createErrorResult(
-            'observe requires a non-empty --action option',
+            'record requires a start or end operation (for example: record start)',
           );
         }
-        if (typeof prompt !== 'string' || prompt.trim().length === 0) {
-          return createErrorResult(
-            'observe requires a non-empty --prompt option',
-          );
-        }
+        const sessionName =
+          typeof args.session === 'string' ? args.session : 'default';
+        const cliContext = getCliVerboseContext();
+        const isCliInvocation = typeof cliContext.scriptName === 'string';
+        const scope = cliContext.scriptName ?? defaultCliObservationScope();
+        const workerToken = cliObservationWorkerToken();
+
         try {
-          const agent = await getAgent(args);
-          emitCliVerboseEvent({
-            event: 'agent_ready',
-            tool: 'observe',
-          });
-          if (!agent.aiAction) {
-            return createErrorResult('observe is not supported by this agent');
-          }
-          if (!agent.startObserving) {
-            return createErrorResult(
-              'observe is not supported because this agent does not provide startObserving',
-            );
+          if (typeof workerToken === 'string') {
+            const state = await waitForCliObservationWorkerState({
+              scope,
+              sessionName,
+              token: workerToken,
+            });
+            try {
+              const agent = await getAgent(args);
+              emitCliVerboseEvent({ event: 'agent_ready', tool: 'record' });
+              if (!agent.startObserving) {
+                throw new Error(
+                  'record is not supported because this agent does not provide startObserving',
+                );
+              }
+              const unsubscribeVerbose = attachCliVerboseDumpListener(agent, {
+                toolName: 'record',
+              });
+              try {
+                const watchdogMs =
+                  (args.watchdogMs as number | undefined) ?? 300_000;
+                const observer = await agent.startObserving({
+                  intervalMs: args.intervalMs as number | undefined,
+                  maxFrames: args.maxFrames as number | undefined,
+                  watchdogMs,
+                });
+                const recordingState = markCliObservationWorkerRecording(state);
+                await waitForCliObservationStop(recordingState, watchdogMs);
+                await observer.stop();
+                const record = await observer.exportRecord();
+                const latestState =
+                  readCliObservationSession(scope, sessionName) ??
+                  recordingState;
+                const outputPath = writeUIObservationRecord(
+                  record,
+                  latestState.requestedOutputPath ??
+                    (args.output as string | undefined),
+                );
+                completeCliObservationWorker(latestState, outputPath);
+                return {
+                  content: [
+                    {
+                      type: 'text',
+                      text: `Observation record saved: ${outputPath}`,
+                    },
+                  ],
+                };
+              } finally {
+                unsubscribeVerbose();
+              }
+            } catch (error) {
+              failCliObservationWorker(state, error);
+              throw error;
+            }
           }
 
-          const unsubscribeVerbose = attachCliVerboseDumpListener(agent, {
-            toolName: 'observe',
-          });
-          try {
-            const observer = await agent.startObserving({
-              intervalMs: args.intervalMs as number | undefined,
-              maxFrames: args.maxFrames as number | undefined,
-              watchdogMs: args.watchdogMs as number | undefined,
-            });
-            let actionResult: unknown;
-            try {
-              actionResult = await agent.aiAction(
-                action,
-                buildActOptions(args, toolDefaults),
-              );
-            } finally {
-              await observer.stop();
+          if (isCliInvocation) {
+            if (action === 'start') {
+              const state = await startCliObservationWorker({
+                scope,
+                sessionName,
+              });
+              return {
+                content: [
+                  {
+                    type: 'text',
+                    text: `Recording started. Session: ${sessionName}. Worker log: ${state.logFilePath}`,
+                  },
+                ],
+              };
             }
-            await observer.aiAssert(prompt, message);
-            return await captureScreenshotResult(
-              agent,
-              'observe',
-              actionResult,
+            const state = await stopCliObservationWorker({
+              scope,
+              sessionName,
+              outputPath: args.output as string | undefined,
+            });
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: `Observation record saved: ${state.outputPath}`,
+                },
+              ],
+            };
+          }
+
+          if (action === 'start') {
+            if (activeObservation) {
+              throw new Error(
+                `Recording session "${activeObservation.sessionName}" is already active`,
+              );
+            }
+            const agent = await getAgent(args);
+            if (!agent.startObserving) {
+              throw new Error(
+                'record is not supported because this agent does not provide startObserving',
+              );
+            }
+            const unsubscribeVerbose = attachCliVerboseDumpListener(agent, {
+              toolName: 'record',
+            });
+            let observer: BaseUIObserver;
+            try {
+              observer = await agent.startObserving({
+                intervalMs: args.intervalMs as number | undefined,
+                maxFrames: args.maxFrames as number | undefined,
+                watchdogMs: (args.watchdogMs as number | undefined) ?? 300_000,
+              });
+            } catch (error) {
+              unsubscribeVerbose();
+              throw error;
+            }
+            activeObservation = {
+              observer,
+              sessionName,
+              outputPath: args.output as string | undefined,
+              unsubscribeVerbose,
+            };
+            return {
+              content: [
+                { type: 'text', text: `Recording started: ${sessionName}` },
+              ],
+            };
+          }
+
+          if (
+            !activeObservation ||
+            activeObservation.sessionName !== sessionName
+          ) {
+            throw new Error(`Recording session "${sessionName}" is not active`);
+          }
+          const current = activeObservation;
+          activeObservation = undefined;
+          try {
+            await current.observer.stop();
+            const record = await current.observer.exportRecord();
+            const outputPath = writeUIObservationRecord(
+              record,
+              (args.output as string | undefined) ?? current.outputPath,
             );
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: `Observation record saved: ${outputPath}`,
+                },
+              ],
+            };
           } finally {
-            unsubscribeVerbose();
+            current.unsubscribeVerbose();
           }
         } catch (error: unknown) {
           const errorMessage = getErrorMessage(error);
-          console.error('Error executing observe:', errorMessage);
-          return createErrorResult(
-            `Failed to execute observe: ${errorMessage}`,
-          );
+          console.error('Error executing record:', errorMessage);
+          return createErrorResult(`Failed to execute record: ${errorMessage}`);
         }
       },
     },
     {
       name: 'assert',
       description:
-        'Assert a natural language statement against the current page/screen.',
+        'Assert a natural language statement against the current page/screen or a saved UI observation record.',
       schema: {
         prompt: z
           .string()
@@ -943,6 +1062,12 @@ export function generateCommonTools(
           .optional()
           .describe(
             'Custom error message to throw when the assertion fails, e.g. "the login button should be visible".',
+          ),
+        record: z
+          .string()
+          .optional()
+          .describe(
+            'Path to a JSON observation record created by the record command. When set, the assertion uses its ordered frame window instead of the current screen.',
           ),
         ...promptInputExtraSchema,
         ...initArgSchema,
@@ -966,13 +1091,21 @@ export function generateCommonTools(
             toolName: 'assert',
           });
           try {
+            const observationRecord =
+              typeof args.record === 'string'
+                ? readUIObservationRecord(args.record)
+                : undefined;
             const userPrompt = composeUserPrompt({
               prompt,
               image: args.image,
               imageName: args.imageName,
               convertHttpImage2Base64: args.convertHttpImage2Base64,
             });
-            await agent.aiAssert(userPrompt, message);
+            if (observationRecord) {
+              await agent.aiAssert(userPrompt, message, { observationRecord });
+            } else {
+              await agent.aiAssert(userPrompt, message);
+            }
             return {
               content: [{ type: 'text', text: 'Assertion passed.' }],
             };

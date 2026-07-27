@@ -66,8 +66,11 @@ describe(
         await observer.stop();
 
         expect(observer.frameCount).toBeGreaterThanOrEqual(4);
-        await observer.aiAssert(
+        const observationRecord = await observer.exportRecord();
+        await ctx.agent.aiAssert(
           'a "login failed" error toast appeared at some point during the observed process',
+          undefined,
+          { observationRecord },
         );
 
         // ...whereas a single screenshot taken before it appears misses it.

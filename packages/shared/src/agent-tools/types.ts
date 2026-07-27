@@ -50,10 +50,13 @@ export type ToolSchema = Record<string, z.ZodTypeAny>;
 export interface ToolCliOption {
   preferredName?: string;
   aliases?: string[];
+  hidden?: boolean;
 }
 
 export interface ToolCliMetadata {
   options?: Record<string, ToolCliOption>;
+  /** Schema keys populated from leading positional CLI arguments. */
+  positionals?: string[];
 }
 
 /**
@@ -122,20 +125,38 @@ export interface BaseAgentProgressEvent {
   data?: unknown;
 }
 
+/** A single frame in a portable UI observation record. */
+export interface UIObservationFrame {
+  /** Image data URI for the captured frame. */
+  base64: string;
+  /** Capture timestamp in milliseconds. */
+  capturedAt: number;
+}
+
+/**
+ * Serializable observation window that can be persisted and asserted later.
+ * Frames are ordered from earliest to latest; the final frame represents the
+ * UI state at the end of the observation window.
+ */
+export interface UIObservationRecord {
+  type: 'midscene_ui_observation';
+  version: 1;
+  frames: UIObservationFrame[];
+  shotSize: {
+    width: number;
+    height: number;
+  };
+  shrunkShotToLogicalRatio: number;
+}
+
 /**
  * Minimal UI observation lifecycle required by shared tool surfaces.
- * Call {@link stop} before {@link aiAssert} so the assertion receives the
- * complete observation window.
  */
 export interface BaseUIObserver {
   /** Stop sampling and finalize the observed frame window. */
   stop(): Promise<void>;
-  /** Assert against all frames captured before {@link stop} completed. */
-  aiAssert(
-    assertion: string,
-    msg?: string,
-    options?: Record<string, unknown>,
-  ): Promise<unknown>;
+  /** Export the stopped observation window as a portable record. */
+  exportRecord(): Promise<UIObservationRecord>;
 }
 
 /** Options for {@link BaseAgent.startObserving}. */
