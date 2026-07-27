@@ -101,6 +101,116 @@
     color: #24292f;
   }
 
+  .ui-tree-view {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-width: 0;
+    overflow-x: hidden;
+  }
+
+  .ui-tree-view-embedded {
+    overflow-y: visible;
+  }
+
+  .ui-tree-summary {
+    color: @weak-text;
+    font-size: 12px;
+  }
+
+  .ui-tree-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .ui-tree-search {
+    width: min(420px, 60%);
+  }
+
+  .ui-tree-columns {
+    display: grid;
+    grid-template-columns: minmax(320px, 1fr) minmax(320px, 1fr);
+    gap: 16px;
+    min-height: 0;
+  }
+
+  .ui-tree-browser,
+  .ui-tree-details {
+    min-width: 0;
+    padding: 12px;
+    border: 1px solid @heavy-border-color;
+    border-radius: 6px;
+  }
+
+  .ui-tree-browser {
+    overflow: hidden;
+  }
+
+  .ui-tree-details {
+    overflow: auto;
+  }
+
+  .ui-tree-horizontal-scroll {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    overflow-x: scroll;
+    overflow-y: hidden;
+    overscroll-behavior-x: contain;
+    scrollbar-gutter: stable;
+  }
+
+  .ui-tree-scroll-content {
+    min-width: 100%;
+    max-width: none;
+    flex: none;
+  }
+
+  .ui-tree-scroll-content .ant-tree {
+    width: 100%;
+  }
+
+  .ui-tree-scroll-content .ant-tree-title {
+    white-space: nowrap;
+  }
+
+  .ui-tree-node-details-title {
+    margin-bottom: 14px;
+    font-weight: 600;
+    word-break: break-all;
+  }
+
+  .ui-tree-node-details-section {
+    margin: 12px 0 6px;
+    color: @weak-text;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+
+  .ui-tree-node-details table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family:
+      'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    font-size: 12px;
+
+    th,
+    td {
+      padding: 5px 8px;
+      border-bottom: 1px solid @heavy-border-color;
+      text-align: left;
+      vertical-align: top;
+      word-break: break-all;
+    }
+
+    th {
+      width: 35%;
+      font-weight: 600;
+    }
+  }
+
   .report-json-view {
     white-space: pre-wrap;
     word-break: break-word;
