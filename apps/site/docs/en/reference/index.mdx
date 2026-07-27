@@ -979,6 +979,7 @@ function aiAssert(
     - `domIncluded?: boolean | 'visible-only'` — Whether to include simplified DOM data, which can expose attributes such as image URLs. Use `'visible-only'` to include only visible elements. Default: `false`.
     - `screenshotIncluded?: boolean` — Whether to include a screenshot. Default: `true`.
     - `context?: string` — Additional context for this call. See [Per-call context](#per-call-context).
+    - `observationRecord?: string | UIObservationRecord` — The path to an observation JSON manifest, or an already resolved record. When set, the assertion evaluates that frame window instead of the current screen.
 
 - Return value:
 
@@ -1015,6 +1016,7 @@ Observe the screen over a defined time window while other Agent calls run. A lat
 
 ```typescript
 function startObserving(options?: {
+  outputPath?: string; // JSON manifest path; images are stored in an adjacent .frames directory
   intervalMs?: number;  // sampling interval, default 1000ms, min 200ms (5fps)
   maxFrames?: number;   // frame-buffer cap, default 30 (self-thinning when full)
   watchdogMs?: number;  // auto-stop after this many ms if stop() is never called. Default 300000 (5 min). Set 0 to disable.
@@ -1024,12 +1026,13 @@ function startObserving(options?: {
 The returned `UIObserver` provides:
 
 - `observer.stop(): Promise<void>` — Stop sampling and capture the final representative screenshot. Must be called before asserting.
-- `observer.aiAssert(assertion: string, msg?: string, opt?: object): Promise<void>` — Assert against the observed window. All buffered frames (plus the representative) are sent to the model, and the assertion text determines whether the model should look for something that appeared at any point, the final state, or an ordered change.
-- `observer.aiBoolean(prompt: string, opt?: object): Promise<boolean>` — Boolean query over the observed window.
+- `observer.exportRecord(): Promise<string>` — Finalize the JSON manifest and adjacent image directory, then return the absolute manifest path.
 - `observer.frameCount: number` — Number of frames currently buffered.
 
 ```typescript
-const observer = await agent.startObserving();
+const observer = await agent.startObserving({
+  outputPath: './submission-observation.json',
+});
 await agent.aiAct('submit the form');
 await observer.stop();
 await observer.aiAssert('a success toast appeared during the process');
@@ -1057,12 +1060,30 @@ npx -y @midscene/web@1 assert \
 
 `record start` is also available from `@midscene/android`, `@midscene/ios`, `@midscene/harmony`, and `@midscene/computer`. Pass normal target options and `--output` to that foreground command. Capture options include `--interval-ms`, `--max-frames`, and `--watchdog-ms`. The default watchdog finalizes and saves the recording after five minutes; pass `--watchdog-ms 0` only when an unbounded recording is intentional.
 
-The artifact is a versioned JSON sequence of ordered screenshots, not encoded video, because this is the temporal input consumed by Midscene assertions. Each JPEG or PNG frame is embedded as a base64 image data URL. Use ordinary `assert` without `--record` when only the current screen matters. In Web Bridge mode, the foreground recording owns the single Bridge connection, so interact with that browser manually instead of starting a second Bridge CLI action.
+The artifact consists of a versioned JSON manifest and an adjacent image directory; it is neither encoded video nor an archive. For `submission-observation.json`, frames are stored under `submission-observation.frames/`. Keep or move the manifest and that directory together. The manifest contains relative JPEG or PNG paths and no base64 image bodies:
+
+```json
+{
+  "type": "midscene_ui_observation",
+  "version": 1,
+  "frames": [
+    {
+      "path": "submission-observation.frames/4f32c0a8.jpeg",
+      "mimeType": "image/jpeg",
+      "capturedAt": 1785132000123
+    }
+  ],
+  "shotSize": { "width": 1440, "height": 900 },
+  "shrunkShotToLogicalRatio": 1
+}
+```
+
+Use ordinary `assert` without `--record` when only the current screen matters. In Web Bridge mode, the foreground recording owns the single Bridge connection, so interact with that browser manually instead of starting a second Bridge CLI action.
 
 How it works and what it costs:
 
 - Frames come from the device's continuous frame source when available: scrcpy on Android (`scrcpyConfig.enabled`), WDA MJPEG on iOS (`wdaMjpegFrameSource.enabled`), or CDP screencast on the web. Otherwise, Midscene captures individual screenshots at a much lower effective frame rate on mobile.
-- Sampling stores lightweight frame references. Midscene decodes only the frames sent to the model, and only at assertion time.
+- Data-URL frames are written to image files during sampling so the observer does not retain the full sequence in memory. Opaque device frame handles are decoded in small batches and persisted when recording stops. Images are read lazily when the assertion is sent to the model.
 - All buffered frames (up to `maxFrames`, plus the final representative screenshot) are sent to the model so transient UI in long windows is not missed. To bound token cost, increase `intervalMs` (lower frame density) or decrease `maxFrames` (smaller buffer). The observed frames are shown in the report timeline with an `Observed` tag.
 - On iOS, observed frames come from the scaled, lower-quality MJPEG stream, while the final representative frame is a full-quality screenshot.
 

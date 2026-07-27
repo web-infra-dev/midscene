@@ -41,16 +41,38 @@ export class ScreenshotItem {
   private _persistedPath: string | null = null;
   private _persistedHtmlPath: string | null = null;
 
-  private constructor(id: string, base64: string, capturedAt: number) {
+  private constructor(
+    id: string,
+    base64: string | null,
+    capturedAt: number,
+    format: 'png' | 'jpeg',
+  ) {
     this._id = id;
     this._base64 = base64;
-    this._format = detectFormat(base64);
+    this._format = format;
     this._capturedAt = capturedAt;
   }
 
   /** Create a new ScreenshotItem from base64 data */
   static create(base64: string, capturedAt: number): ScreenshotItem {
-    return new ScreenshotItem(uuid(), base64, capturedAt);
+    return new ScreenshotItem(uuid(), base64, capturedAt, detectFormat(base64));
+  }
+
+  /** Create a lazily loaded ScreenshotItem backed by an image file. */
+  static fromFile(
+    filePath: string,
+    mimeType: 'image/png' | 'image/jpeg',
+    capturedAt: number,
+  ): ScreenshotItem {
+    const item = new ScreenshotItem(
+      uuid(),
+      null,
+      capturedAt,
+      mimeType === 'image/jpeg' ? 'jpeg' : 'png',
+    );
+    item._persistedPath = filePath;
+    item._serializedRef = item.createRef('file', filePath);
+    return item;
   }
 
   get id(): string {

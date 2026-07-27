@@ -55,6 +55,7 @@ import { readFile } from 'node:fs/promises';
 import { basename, resolve } from 'node:path';
 import type { AbstractInterface } from '@/device';
 import type { TaskRunner } from '@/task-runner';
+import { readUIObservationRecord } from '@midscene/shared/agent-tools/observation-record';
 import {
   type IModelConfig,
   MIDSCENE_REPLANNING_CYCLE_LIMIT,
@@ -487,10 +488,12 @@ export class Agent<
    * transient UI (toasts, banners, transitions) that appears mid-action:
    *
    * ```ts
-   * const observer = await agent.startObserving();
+   * const observer = await agent.startObserving({
+   *   outputPath: './submission-observation.json',
+   * });
    * await agent.aiAct('submit the form');
    * await observer.stop();
-   * const observationRecord = await observer.exportRecord();
+   * const observationRecord = await observer.exportRecord(); // manifest path
    * await agent.aiAssert('a success toast appeared during the process', undefined, {
    *   observationRecord,
    * });
@@ -1398,8 +1401,12 @@ export class Agent<
     msg?: string,
     opt?: AgentAssertOpt & ServiceExtractOption,
   ) {
-    const uiContext = opt?.observationRecord
-      ? uiContextFromObservationRecord(opt.observationRecord)
+    const observationRecord =
+      typeof opt?.observationRecord === 'string'
+        ? readUIObservationRecord(opt.observationRecord)
+        : opt?.observationRecord;
+    const uiContext = observationRecord
+      ? uiContextFromObservationRecord(observationRecord)
       : undefined;
     return this.aiAssertWithUIContext(assertion, uiContext, msg, opt);
   }
