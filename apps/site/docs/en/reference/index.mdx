@@ -1443,14 +1443,9 @@ The path to the report file.
 Every `agent.ai*` method accepts an optional `context` string in its options. Use it to provide business knowledge, user state, terminology, or other background that is relevant to one request without changing the main prompt.
 
 ```typescript
-await agent.aiAssert('The currently logged-in user is a VIP member', undefined, {
+await agent.aiAssert('The current page uses the new version styling', undefined, {
   context:
-    'A VIP member is identified by a VIP badge displayed on the user avatar in the top-right corner of the page.',
-});
-
-await agent.aiTap('Favorite button', {
-  context:
-    'The favorite button is the five-pointed star icon in the bottom-right corner of the page.',
+    'In the new version, the Tab bar is at the top and the page theme color is red. In the old version, the Tab bar is at the bottom and the page theme color is green. Treat the page as the new version only when both new-version conditions are met.',
 });
 ```
 

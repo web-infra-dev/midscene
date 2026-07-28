@@ -1418,12 +1418,9 @@ const agent = new PuppeteerAgent(page, {
 每个 `agent.ai*` 方法的 options 都支持可选的 `context` 字符串。它可以为单次请求补充业务知识、用户状态、术语或其他背景，而不必把这些信息写入主 prompt。
 
 ```typescript
-await agent.aiAssert('当前登录用户是 VIP 会员', undefined, {
-  context: 'VIP 会员的标准是页面右上角的用户头像会展示一个 VIP 的徽章。',
-});
-
-await agent.aiTap('收藏按钮', {
-  context: '收藏按钮是页面右下角的五角星 icon。',
+await agent.aiAssert('当前页面是新版本样式', undefined, {
+  context:
+    '新版本的 Tab 栏位于页面顶部，且页面主色调为红色；旧版本的 Tab 栏位于页面底部，且页面主色调为绿色。只有同时满足新版本的两项条件时，才视为新版本。',
 });
 ```
 
