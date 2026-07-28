@@ -1,3 +1,4 @@
+import { isAbsolute, relative, resolve, sep } from 'node:path';
 import type {
   AbstractInterface,
   FileChooserHandler,
@@ -12,6 +13,31 @@ export function normalizeFileChooserAccept(files: FileChooserAccept): string[] {
   return normalizeFilePaths(filesArray);
 }
 
+export function normalizeFileChooserAcceptInAllowedDir(
+  files: FileChooserAccept,
+  allowedDir: string,
+): string[] {
+  const absoluteAllowedDir = resolve(allowedDir);
+  const filesArray = Array.isArray(files) ? files : [files];
+  const resolvedFiles = filesArray.map((file) => {
+    const resolvedFile = resolve(absoluteAllowedDir, file);
+    const relativePath = relative(absoluteAllowedDir, resolvedFile);
+    if (
+      relativePath === '..' ||
+      relativePath.startsWith(`..${sep}`) ||
+      isAbsolute(relativePath)
+    ) {
+      throw new Error(
+        `File chooser path must be inside the configured fileChooserAllowedDir: ${file}`,
+      );
+    }
+
+    return resolvedFile;
+  });
+
+  return normalizeFilePaths(resolvedFiles);
+}
+
 /**
  * Holds the current file chooser configuration for one aiAct execution.
  * Registering new files replaces the previous configuration; callers must
@@ -23,6 +49,19 @@ export class FileChooserAccepter {
   constructor(private readonly interfaceInstance: AbstractInterface) {}
 
   async register(files: FileChooserAccept): Promise<void> {
+    await this.replaceAcceptedFiles(normalizeFileChooserAccept(files));
+  }
+
+  async registerFromAllowedDir(
+    files: FileChooserAccept,
+    allowedDir: string,
+  ): Promise<void> {
+    await this.replaceAcceptedFiles(
+      normalizeFileChooserAcceptInAllowedDir(files, allowedDir),
+    );
+  }
+
+  private async replaceAcceptedFiles(acceptedFiles: string[]): Promise<void> {
     const previousRegistrationError = await this.clear();
     if (previousRegistrationError) {
       throw previousRegistrationError;
@@ -34,7 +73,6 @@ export class FileChooserAccepter {
       );
     }
 
-    const acceptedFiles = normalizeFileChooserAccept(files);
     this.registration =
       await this.interfaceInstance.registerFileChooserListener(
         async (chooser: FileChooserHandler) => {

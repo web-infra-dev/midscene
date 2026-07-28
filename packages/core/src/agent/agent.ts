@@ -113,6 +113,7 @@ const defaultServiceExtractOption: ServiceExtractOption = {
 export type AiActOptions = {
   cacheable?: boolean;
   fileChooserAccept?: string | string[];
+  fileChooserAllowedDir?: string;
   deepThink?: DeepThinkOption;
   deepLocate?: boolean;
   abortSignal?: AbortSignal;
@@ -221,6 +222,8 @@ export class Agent<
   private fullActionSpace: DeviceAction[];
 
   private activeFileChooserAccepter?: FileChooserAccepter;
+
+  private activeFileChooserAllowedDir?: string;
 
   private reportGenerator: IReportGenerator;
 
@@ -353,7 +356,10 @@ export class Agent<
                 'RegisterFileChooserAccept can only be used while aiAct is running',
               );
             }
-            await this.activeFileChooserAccepter.register(files);
+            await this.activeFileChooserAccepter.registerFromAllowedDir(
+              files,
+              this.activeFileChooserAllowedDir ?? process.cwd(),
+            );
           }),
         ]
       : [];
@@ -1187,6 +1193,8 @@ export class Agent<
       ? new FileChooserAccepter(this.interface)
       : undefined;
     this.activeFileChooserAccepter = fileChooserAccepter;
+    this.activeFileChooserAllowedDir =
+      opt?.fileChooserAllowedDir ?? process.cwd();
     let aiActError: { error: unknown } | undefined;
     let fileChooserHandlingError: Error | undefined;
     let result: string | undefined;
@@ -1204,6 +1212,7 @@ export class Agent<
       aiActError = { error };
     } finally {
       this.activeFileChooserAccepter = undefined;
+      this.activeFileChooserAllowedDir = undefined;
       try {
         fileChooserHandlingError = await fileChooserAccepter?.clear();
       } catch (error) {

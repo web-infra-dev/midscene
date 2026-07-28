@@ -150,11 +150,11 @@ function ai(prompt: string): Promise<string | undefined>; // shorthand form
     - `cacheable?: boolean` — Whether this call can use the [cache](../caching.mdx). Default: `true`.
     - `deepThink?: 'unset' | true | false` — Controls the planning implementation used by Midscene when `aiAct` performs planning. When enabled, `aiAct` focuses more on task decomposition and separates task planning from UI element locating into different model calls. For compatibility, `'unset'` is accepted and treated the same as `false`. [Learn more about deepThink](../model-strategy#about-the-deepthink-option-in-aiact).
     - `deepLocate?: boolean` — Whether to enable [Deep Locate](#deep-locate-deeplocate). Default: `false`.
-    - `fileChooserAccept?: string | string[]` — When a file chooser pops up, specify the file path(s) to accept. Can be a single file path or an array of paths. Only available in web pages (Playwright, Puppeteer, or Chrome extension Bridge mode).
+    - `fileChooserAccept?: string | string[]` — When a file chooser pops up, specify the file path(s) to accept. Can be a single file path or an array of paths. Only available in web pages (Playwright, Puppeteer, or Chrome extension Bridge mode). This option is not constrained by `fileChooserAllowedDir`.
       - **Note**: If the file input does not support multiple files (no `multiple` attribute) but multiple files are provided, an error will be thrown.
       - **Note**: If a file chooser is triggered but no `fileChooserAccept` parameter is provided, the file chooser will be ignored and the page can continue to operate normally.
       - **Note**: Chrome extension Bridge mode does not support directory upload inputs (`webkitdirectory` / `directory`). Use Playwright for directory uploads.
-    - `fileChooserAllowedDir?: string` — Trusted directory from which this `aiAct` call may select files mentioned in its prompt. The model must provide relative paths inside this directory; absolute paths and paths that escape it are rejected. Symlinks within the directory are allowed. Without this option, model-driven file uploads are rejected.
+    - `fileChooserAllowedDir?: string` — Limits the paths this `aiAct` call may directly specify for prompt-driven file uploads. Defaults to `process.cwd()`. Relative paths in the prompt are resolved against this directory and then validated; absolute paths are validated directly. Symlinks located within this directory are also allowed.
     - `abortSignal?: AbortSignal` — Signal used to cancel the `aiAct` call. When aborted, Midscene stops the planning loop and throws an error. Use it to implement timeouts or user-initiated cancellation.
 
 - Return value:
@@ -188,7 +188,7 @@ await agent.aiAct('Complete the GitHub account registration form. The region mus
 
 ##### Upload files from an `aiAct` prompt
 
-To let `aiAct` upload files mentioned in its prompt, pass a trusted `fileChooserAllowedDir` to that call. Midscene plans the file chooser setup before the action that opens the dialog. The model can only use relative paths inside this directory.
+`aiAct` can upload files mentioned in its prompt. By default, it resolves paths from the current working directory. Pass `fileChooserAllowedDir` to use another root directory for that call. Midscene resolves both relative and absolute paths before validating that they stay within the selected directory.
 
 ```typescript
 const agent = new PlaywrightAgent(page);
@@ -201,7 +201,7 @@ await agent.aiAct(
 
 For multiple uploads in one `aiAct`, name each relative path together with the action that should upload it. A later path replaces the previously configured file chooser path(s). Do not combine prompt-specified paths with `options.fileChooserAccept`: a later file chooser configuration generated during planning can override the option value.
 
-This capability is available for web pages (Playwright, Puppeteer, and Chrome extension Bridge mode). Without `fileChooserAllowedDir`, prompt-specified file paths are rejected; use `options.fileChooserAccept` when your application explicitly selects the files. The configured directory also makes the prompt portable across local and CI environments.
+This capability is available for web pages (Playwright, Puppeteer, and Chrome extension Bridge mode). Use `fileChooserAllowedDir` when fixtures live outside the current working directory or when the same prompt must work in local and CI environments.
 
 :::tip
 

@@ -359,7 +359,7 @@ export const registerFileChooserAcceptParamSchema = z.object({
   files: z
     .union([z.string(), z.array(z.string())])
     .describe(
-      'File path(s) to use whenever a later action in this aiAct triggers a file chooser. This setting replaces any previously registered file path(s).',
+      "File path(s) within the current aiAct call's fileChooserAllowedDir, or the current working directory when it is omitted, to use whenever a later action triggers a file chooser. This setting replaces any previously registered file path(s).",
     ),
 });
 export type RegisterFileChooserAcceptParam = {
@@ -379,7 +379,7 @@ export const defineActionRegisterFileChooserAccept = (
     interfaceAlias: 'registerFileChooserAccept',
     paramSchema: registerFileChooserAcceptParamSchema,
     sample: {
-      files: ['/tmp/document.pdf'],
+      files: ['fixtures/document.pdf'],
     },
     call: async (param) => {
       await register(param.files);
