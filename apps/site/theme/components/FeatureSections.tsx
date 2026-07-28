@@ -20,6 +20,78 @@ const GradientIcon = () => (
   </svg>
 );
 
+interface BenchmarkLinkCardProps {
+  href: string;
+  score: string;
+  title: string;
+  details: string;
+  description: string;
+  positionClassName: string;
+}
+
+function BenchmarkLinkCard({
+  href,
+  score,
+  title,
+  details,
+  description,
+  positionClassName,
+}: BenchmarkLinkCardProps) {
+  return (
+    <div
+      className={`w-full md:w-[381px] md:h-[289px] flex flex-col gap-y-4 md:gap-y-6 ${positionClassName}`}
+    >
+      <div className="font-sans font-medium text-xl md:text-2xl leading-6 text-transparent">
+        {/* Empty placeholder to align with other cards */}.
+      </div>
+      <div className="flex flex-col gap-[17px]">
+        <TiltCard
+          href={href}
+          className="rounded-2xl w-full h-[120px] md:h-[185px] flex flex-col justify-center items-center hover:bg-gray-200 dark:hover:bg-[#252525] transition-all duration-200 cursor-pointer group border-2 border-transparent hover:border-[#0555FF] overflow-hidden"
+        >
+          <div
+            className="dark:hidden w-full h-full flex flex-col justify-center items-center bg-cover bg-center rounded-2xl"
+            style={{
+              backgroundImage: 'url(/images/backgrounds/grid-light.svg)',
+            }}
+          >
+            <div className="font-sans font-semibold text-[#0555FF]">
+              <span className="text-[40px] md:text-[56px] leading-none">
+                {score}
+              </span>
+            </div>
+            <div className="mt-2 font-sans text-sm text-black/60 text-center">
+              <div>{title}</div>
+              <div>{details}</div>
+            </div>
+          </div>
+          <div
+            className="hidden dark:flex w-full h-full flex-col justify-center items-center rounded-2xl"
+            style={{
+              backgroundImage: 'url(/images/backgrounds/grid-dark.svg)',
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+            }}
+          >
+            <div className="font-sans font-semibold text-[#80A8FF]">
+              <span className="text-[40px] md:text-[56px] leading-none">
+                {score}
+              </span>
+            </div>
+            <div className="mt-2 font-sans text-sm text-white/60 text-center">
+              <div>{title}</div>
+              <div>{details}</div>
+            </div>
+          </div>
+        </TiltCard>
+        <div className="font-sans text-sm md:text-base font-normal leading-5 md:leading-6 text-black/70 dark:text-white/70">
+          {description}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function FeatureSections() {
   const t = useI18n();
   const tUrl = useI18nUrl();
@@ -700,10 +772,10 @@ export function FeatureSections() {
               </TiltCard>
             </div>
 
-            {/* View All APIs row */}
-            <div className="flex flex-col-reverse md:flex-row-reverse gap-6">
+            {/* Benchmark and API cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* View All APIs Link Card */}
-              <div className="w-full md:w-[381px] md:h-[289px] flex flex-col gap-y-4 md:gap-y-6">
+              <div className="order-3 md:order-none md:col-start-1 md:row-start-2 w-full md:w-[381px] md:h-[289px] flex flex-col gap-y-4 md:gap-y-6">
                 <div className="font-sans font-medium text-xl md:text-2xl leading-6 text-transparent">
                   {/* Empty placeholder to align with other cards */}.
                 </div>
@@ -787,58 +859,23 @@ export function FeatureSections() {
                 </div>
               </div>
 
-              {/* Benchmark Link Card */}
-              <div className="w-full md:w-[381px] md:h-[289px] flex flex-col gap-y-4 md:gap-y-6">
-                <div className="font-sans font-medium text-xl md:text-2xl leading-6 text-transparent">
-                  {/* Empty placeholder to align with other cards */}.
-                </div>
-                <div className="flex flex-col gap-[17px]">
-                  <TiltCard
-                    href={tUrl(t('featureBenchmarkLink'))}
-                    className="rounded-2xl w-full h-[120px] md:h-[185px] flex flex-col justify-center items-center hover:bg-gray-200 dark:hover:bg-[#252525] transition-all duration-200 cursor-pointer group border-2 border-transparent hover:border-[#0555FF] overflow-hidden"
-                  >
-                    <div
-                      className="dark:hidden w-full h-full flex flex-col justify-center items-center bg-cover bg-center rounded-2xl"
-                      style={{
-                        backgroundImage:
-                          'url(/images/backgrounds/grid-light.svg)',
-                      }}
-                    >
-                      <div className="font-sans font-semibold text-[#0555FF]">
-                        <span className="text-[40px] md:text-[56px] leading-none">
-                          93.1%
-                        </span>
-                      </div>
-                      <div className="mt-2 font-sans text-sm text-black/60 text-center">
-                        <div>AndroidWorld Benchmark</div>
-                        <div>{t('benchmark')} 93.1% · Pass@3 97.4%</div>
-                      </div>
-                    </div>
-                    <div
-                      className="hidden dark:flex w-full h-full flex-col justify-center items-center rounded-2xl"
-                      style={{
-                        backgroundImage:
-                          'url(/images/backgrounds/grid-dark.svg)',
-                        backgroundSize: 'cover',
-                        backgroundPosition: 'center',
-                      }}
-                    >
-                      <div className="font-sans font-semibold text-[#80A8FF]">
-                        <span className="text-[40px] md:text-[56px] leading-none">
-                          93.1%
-                        </span>
-                      </div>
-                      <div className="mt-2 font-sans text-sm text-white/60 text-center">
-                        <div>AndroidWorld Benchmark</div>
-                        <div>{t('benchmark')} 93.1% · Pass@3 97.4%</div>
-                      </div>
-                    </div>
-                  </TiltCard>
-                  <div className="font-sans text-sm md:text-base font-normal leading-5 md:leading-6 text-black/70 dark:text-white/70">
-                    {t('featureBenchmarkDesc')}
-                  </div>
-                </div>
-              </div>
+              <BenchmarkLinkCard
+                href={tUrl(t('featureBenchmarkLink'))}
+                score="93.1%"
+                title="AndroidWorld Benchmark"
+                details={`${t('benchmark')} 93.1% · Pass@3 97.4%`}
+                description={t('featureBenchmarkDesc')}
+                positionClassName="order-1 md:order-none md:col-start-1 md:row-start-1"
+              />
+
+              <BenchmarkLinkCard
+                href={tUrl(t('featureMobileWorldBenchmarkLink'))}
+                score="78.6%"
+                title="MobileWorld Benchmark"
+                details={`${t('benchmark')} 78.6% · 92/117`}
+                description={t('featureMobileWorldBenchmarkDesc')}
+                positionClassName="order-2 md:order-none md:col-start-2 md:row-start-1"
+              />
             </div>
           </div>
         </div>
