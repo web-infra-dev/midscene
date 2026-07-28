@@ -59,7 +59,6 @@ export class ScrcpyDeviceAdapter {
   private resolvedConfig: ResolvedScrcpyConfig | null = null;
   private lastError: string | null = null;
   private retryAfter: number | null = null;
-  private minScreenshotCapturedAt = 0;
 
   constructor(
     private deviceId: string,
@@ -83,11 +82,18 @@ export class ScrcpyDeviceAdapter {
   }
 
   /**
-   * Mark the current scrcpy frame as stale before an input action.
-   * The next screenshot must come from a frame captured after this point.
+   * Drop the current scrcpy stream before an input action.
+   *
+   * Frames can arrive after an interaction while still belonging to a remote
+   * video backlog, so host receive timestamps are not a reliable freshness
+   * signal. Reconnecting after the action creates a hard stream boundary and
+   * prevents pre-action packets from being used by subsequent screenshots.
    */
-  markInteraction(): void {
-    this.minScreenshotCapturedAt = Date.now();
+  async prepareForInteraction(): Promise<void> {
+    if (!this.manager?.isConnected()) return;
+
+    debugAdapter('Resetting scrcpy stream before input interaction');
+    await this.manager.disconnect();
   }
 
   private isConfigured(): boolean {
@@ -216,10 +222,7 @@ export class ScrcpyDeviceAdapter {
 
     try {
       const manager = await this.ensureManager(deviceInfo);
-      const screenshotBuffer = await manager.getScreenshotJpeg(
-        this.minScreenshotCapturedAt,
-      );
-      this.minScreenshotCapturedAt = 0;
+      const screenshotBuffer = await manager.getScreenshotJpeg();
       this.clearFailure();
 
       return createImgBase64ByFormat(

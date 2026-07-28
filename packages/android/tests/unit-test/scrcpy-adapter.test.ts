@@ -339,17 +339,27 @@ describe('ScrcpyDeviceAdapter', () => {
       expect(result).toBe('data:image/png;base64,test');
       expect(currentMockManager.getScreenshotJpeg).toHaveBeenCalledTimes(1);
     });
+  });
 
-    it('requires a frame captured after the latest interaction', async () => {
-      vi.spyOn(Date, 'now').mockReturnValue(1234);
-      const adapter = new ScrcpyDeviceAdapter('device', undefined);
+  describe('prepareForInteraction', () => {
+    it('disconnects a connected stream to discard queued frames', async () => {
+      const adapter = new ScrcpyDeviceAdapter('device', { enabled: true });
       (adapter as any).manager = currentMockManager;
+      currentMockManager.isConnected.mockReturnValue(true);
 
-      adapter.markInteraction();
-      await adapter.screenshotBase64(defaultDeviceInfo);
+      await adapter.prepareForInteraction();
 
-      expect(currentMockManager.getScreenshotJpeg).toHaveBeenCalledWith(1234);
-      expect((adapter as any).minScreenshotCapturedAt).toBe(0);
+      expect(currentMockManager.disconnect).toHaveBeenCalledTimes(1);
+    });
+
+    it('does nothing when scrcpy is not connected', async () => {
+      const adapter = new ScrcpyDeviceAdapter('device', { enabled: true });
+      (adapter as any).manager = currentMockManager;
+      currentMockManager.isConnected.mockReturnValue(false);
+
+      await adapter.prepareForInteraction();
+
+      expect(currentMockManager.disconnect).not.toHaveBeenCalled();
     });
   });
 
