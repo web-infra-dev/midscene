@@ -45,7 +45,7 @@ test.describe('ai todo describe', () => {
     const expectedActiveTasks = [
       'Learn JS today',
       'Learn Rust tomorrow',
-      'Learning AI the day after tomorrow',
+      'Learn CSS the day after tomorrow',
     ] as const;
 
     await ai('Type "Happy Birthday" in the task box, do NOT press Enter');
@@ -57,7 +57,7 @@ test.describe('ai todo describe', () => {
       'Type "Learn Rust tomorrow" in the task box, then press Enter to create',
     );
     await ai(
-      'Type "Learning AI the day after tomorrow" in the task box, then press Enter to create',
+      'Type "Learn CSS the day after tomorrow" in the task box, then press Enter to create',
     );
 
     await expect(page.locator('.todo-list li label')).toHaveText(
@@ -71,7 +71,7 @@ test.describe('ai todo describe', () => {
     );
     expect(allTaskList).toContain('Learn JS today');
     expect(allTaskList).toContain('Learn Rust tomorrow');
-    expect(allTaskList).toContain('Learning AI the day after tomorrow');
+    expect(allTaskList).toContain('Learn CSS the day after tomorrow');
 
     await ai(
       'Move your mouse over "Learn Rust tomorrow" in the task list to reveal the delete button',
@@ -79,19 +79,19 @@ test.describe('ai todo describe', () => {
     await ai(
       'Click the delete button (×) to the right of "Learn Rust tomorrow"',
     );
-    await ai('Click the checkbox next to "Learning AI the day after tomorrow"');
+    await ai('Click the checkbox next to "Learn CSS the day after tomorrow"');
     await ai('Click the "Completed" status filter button below the task list');
 
     await expect(page.locator('.todo-list li label')).toHaveText([
-      'Learning AI the day after tomorrow',
+      'Learn CSS the day after tomorrow',
     ]);
 
     const taskList = await queryVisibleTodoListWithRetry(
       aiQuery,
-      ['Learning AI the day after tomorrow'],
+      ['Learn CSS the day after tomorrow'],
       'completedTaskList',
     );
-    expect(taskList).toContain('Learning AI the day after tomorrow');
+    expect(taskList).toContain('Learn CSS the day after tomorrow');
 
     const placeholder = await aiQuery(
       'string, return the placeholder text in the input box',
