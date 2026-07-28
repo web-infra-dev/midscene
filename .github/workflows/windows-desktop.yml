@@ -30,7 +30,7 @@ concurrency:
 
 jobs:
   windows-desktop:
-    runs-on: ${{ vars.WINDOWS_SELF_HOSTED_RUNNER_LABELS }}
+    runs-on: ${{ fromJSON(vars.WINDOWS_SELF_HOSTED_RUNNER_LABELS || '"windows-latest"') }}
     timeout-minutes: 50
     env:
       CI: '1'
