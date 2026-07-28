@@ -1006,6 +1006,7 @@ The returned `UIObserver` provides:
 
 - `observer.stop(): Promise<void>` — Stop sampling and capture the final representative screenshot. Must be called before asserting.
 - `observer.exportRecord(): Promise<UIObservationRecord>` — Return the observed frame window. Frames reference image files on disk rather than embedding base64 data.
+- `observer.dispose(): Promise<void>` — Delete the observer-owned image files when the exported record is no longer needed. Do not dispose the observer before the last assertion that uses its record.
 - `observer.frameCount: number` — Number of frames currently buffered.
 
 ```typescript

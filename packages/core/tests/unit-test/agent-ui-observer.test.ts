@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { Agent } from '@/agent';
@@ -34,6 +34,7 @@ const createAgentStub = (opts: { openFrameSource?: () => any } = {}) => {
   }));
   const screenshotBase64 = vi.fn(async () => dataUrl('fallback'));
   (agent as any).opts = {};
+  (agent as any).unexportedObservers = new Set();
   (agent as any).taskExecutor = { createTypeQueryExecution };
   (agent as any).resolveModelRuntime = vi.fn(() => defaultModel);
   (agent as any).interface = {
@@ -124,6 +125,25 @@ describe('Agent.startObserving', () => {
 
     expect(screenshotBase64).toHaveBeenCalled();
     expect(record.frames.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('disposes a stopped unexported observer when the agent is destroyed', async () => {
+    const { agent } = createAgentStub();
+    const observer = await agent.startObserving({ intervalMs: 200 });
+    await observer.stop();
+    const bufferedFrame = (observer as any).frames[0];
+    const framePath = (observer as any).writer.resolveFramePath(
+      bufferedFrame.persisted,
+    );
+    (agent as any).reportGenerator = {
+      flush: vi.fn().mockResolvedValue(undefined),
+      finalize: vi.fn().mockResolvedValue(undefined),
+    };
+    (agent as any).resetDump = vi.fn();
+
+    expect(existsSync(framePath)).toBe(true);
+    await agent.destroy();
+    expect(existsSync(framePath)).toBe(false);
   });
 
   it('rebuilds ordered assertion context from resolved image paths', async () => {

@@ -992,6 +992,7 @@ function startObserving(options?: {
 
 - `observer.stop(): Promise<void>` - 停止采样，并截取最后一张用于断言的截图。断言前必须先调用。
 - `observer.exportRecord(): Promise<UIObservationRecord>` - 返回录制得到的帧序列。各帧引用磁盘上的图片文件，不在对象中嵌入 base64 数据。
+- `observer.dispose(): Promise<void>` - 不再需要导出的观察记录后，删除 observer 持有的图片文件。使用该记录执行最后一次断言前，不要调用此方法。
 - `observer.frameCount: number` - 当前已缓冲的帧数。
 
 ```typescript
