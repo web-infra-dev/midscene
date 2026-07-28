@@ -31,6 +31,23 @@ const mockedModelConfig = {
   MIDSCENE_MODEL_FAMILY: 'doubao-vision',
 } as const;
 
+async function createActualAndroidDevice(
+  options?: ConstructorParameters<typeof AndroidDevice>[1],
+) {
+  const { AndroidDevice: ActualAndroidDevice } =
+    await vi.importActual<typeof import('../../src/device')>(
+      '../../src/device',
+    );
+  const device = new ActualAndroidDevice('test-device', options);
+  vi.spyOn(device, 'screenshotBase64').mockResolvedValue(
+    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+  );
+  vi.spyOn(device, 'size').mockResolvedValue({ width: 375, height: 812 });
+  vi.spyOn(device, 'getElementsInfo').mockResolvedValue([]);
+  vi.spyOn(device, 'url').mockResolvedValue('https://example.com');
+  return device;
+}
+
 describe('AndroidAgent', () => {
   beforeEach(() => {
     MockedAndroidDevice.mockImplementation(() => {
@@ -156,8 +173,8 @@ describe('AndroidAgent', () => {
   });
 
   describe('runAdbShell', () => {
-    it('should pass timeout options to adb.shell without changing action schema', async () => {
-      const mockPage = new AndroidDevice('test-device');
+    it('should pass timeout options through the RunAdbShell action', async () => {
+      const mockPage = await createActualAndroidDevice();
       const shell = vi.fn().mockResolvedValue({
         stdout: 'adb-result',
         stderr: '',
@@ -180,8 +197,8 @@ describe('AndroidAgent', () => {
       });
     });
 
-    it('should return raw adb shell output when timeout options bypass action space', async () => {
-      const mockPage = new AndroidDevice('test-device');
+    it('should return raw adb shell output through the action space', async () => {
+      const mockPage = await createActualAndroidDevice();
       const rawOutput = `Result: Parcel(
         0x00000000: fffffffd 00000008 006f004e 00690020 '........N.o. .i.'
         0x00000010: 00650074 0073006d 00000000 000003a4 't.e.m.s.........'
@@ -209,7 +226,7 @@ describe('AndroidAgent', () => {
     });
 
     it('should throw when adb shell exits zero with stderr output', async () => {
-      const mockPage = new AndroidDevice('test-device');
+      const mockPage = await createActualAndroidDevice();
       const shell = vi.fn().mockResolvedValue({
         stdout: '',
         stderr: 'No shell command implementation.',
@@ -233,7 +250,7 @@ describe('AndroidAgent', () => {
     });
 
     it('should truncate stdout and stderr in adb shell stderr errors', async () => {
-      const mockPage = new AndroidDevice('test-device');
+      const mockPage = await createActualAndroidDevice();
       const shell = vi.fn().mockResolvedValue({
         stdout: 'o'.repeat(240),
         stderr: 'e'.repeat(240),
@@ -257,39 +274,25 @@ ${'o'.repeat(200)}
 ...[stdout truncated, 40 more characters]`);
     });
 
-    it('should return raw adb shell output from RunAdbShell action wrapper', async () => {
-      const device = new AndroidDevice('test-device');
-      const validPngBase64 =
-        'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
-      const rawOutput = `Result: Parcel(
-        0x00000000: fffffffd 00000008 006f004e 00690020 '........N.o. .i.'
-        0x00000010: 00650074 0073006d 00000000 000003a4 't.e.m.s.........'
-      )`;
-      const runAdbShellCall = vi.fn().mockResolvedValue(rawOutput);
-      vi.spyOn(device, 'screenshotBase64').mockResolvedValue(validPngBase64);
-      vi.spyOn(device, 'size').mockResolvedValue({ width: 375, height: 812 });
-      vi.spyOn(device, 'getElementsInfo').mockResolvedValue([]);
-      vi.spyOn(device, 'url').mockResolvedValue('https://example.com');
-      vi.spyOn(device, 'actionSpace').mockReturnValue([
-        {
-          name: 'RunAdbShell',
-          paramSchema: undefined,
-          call: runAdbShellCall,
-        },
-      ] as any);
-
+    it('should reject explicit calls when RunAdbShell is hidden', async () => {
+      const device = await createActualAndroidDevice({
+        exposeRunAdbShellAction: false,
+        minScreenshotBufferSize: 0,
+        scrcpyConfig: { enabled: false },
+      });
       const agent = new AndroidAgent(device, {
         modelConfig: mockedModelConfig,
       });
 
-      await expect(agent.runAdbShell('service call clipboard 2')).resolves.toBe(
-        rawOutput,
+      await expect(agent.getActionSpace()).resolves.not.toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ name: 'RunAdbShell' }),
+        ]),
       );
-      expect(runAdbShellCall).toHaveBeenCalledWith(
-        {
-          command: 'service call clipboard 2',
-        },
-        expect.any(Object),
+      await expect(
+        agent.runAdbShell('service call clipboard 2'),
+      ).rejects.toThrow(
+        /Action type 'RunAdbShell' is not in the current action space/,
       );
     });
   });

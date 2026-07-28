@@ -17,7 +17,7 @@ import {
 import {
   type AbstractInterface,
   type AndroidDeviceInputOpt,
-  type AndroidDeviceOpt as CoreAndroidDeviceOpt,
+  type AndroidDeviceOpt,
   type DeviceFrameSource,
   type MobileInputPrimitives,
   type PointerPoint,
@@ -51,13 +51,11 @@ import {
 } from './scrcpy-device-adapter';
 import type { RawKeyframe } from './scrcpy-manager';
 
-export type AndroidDeviceOpt = CoreAndroidDeviceOpt & {
-  /** Expose RunAdbShell in the Android action space. Defaults to true. */
-  useRunAdbShellAction?: boolean;
-};
-
-// Re-export AndroidDeviceInputOpt for backward compatibility
-export type { AndroidDeviceInputOpt } from '@midscene/core/device';
+// Re-export AndroidDeviceOpt and AndroidDeviceInputOpt for backward compatibility
+export type {
+  AndroidDeviceOpt,
+  AndroidDeviceInputOpt,
+} from '@midscene/core/device';
 
 // only for Android, because it's impossible to scroll to the bottom, so we need to set a default scroll times
 const defaultScrollUntilTimes = 10;
@@ -293,19 +291,17 @@ export class AndroidDevice implements AbstractInterface {
       }),
     ];
 
-    const platformSpecificActions = Object.values(createPlatformActions(this));
-    const customActions = this.customActions || [];
-    const actions = [
-      ...defaultActions,
-      ...platformSpecificActions,
-      ...customActions,
-    ];
+    const platformActions = createPlatformActions(this);
+    let platformSpecificActions = Object.values(platformActions);
 
-    if (this.options?.useRunAdbShellAction === false) {
-      return actions.filter((action) => action.name !== 'RunAdbShell');
+    if (this.options?.exposeRunAdbShellAction === false) {
+      platformSpecificActions = platformSpecificActions.filter(
+        (action) => action !== platformActions.RunAdbShell,
+      );
     }
 
-    return actions;
+    const customActions = this.customActions || [];
+    return [...defaultActions, ...platformSpecificActions, ...customActions];
   }
 
   private async performActionScroll(param: ActionScrollParam): Promise<void> {
@@ -2206,6 +2202,10 @@ ${Object.keys(size)
  */
 const runAdbShellParamSchema = z.object({
   command: z.string().describe('ADB shell command to execute'),
+  timeout: z
+    .number()
+    .optional()
+    .describe('ADB shell command execution timeout in milliseconds'),
 });
 
 const launchParamSchema = z.object({
@@ -2258,7 +2258,11 @@ const createPlatformActions = (
           throw new Error('RunAdbShell requires a non-empty command parameter');
         }
         const adb = await device.getAdb();
-        const stdout = await runAdbShellStdoutOrThrow(adb, param.command);
+        const stdout = await runAdbShellStdoutOrThrow(
+          adb,
+          param.command,
+          param.timeout === undefined ? undefined : { timeout: param.timeout },
+        );
         const planningFeedback = buildRunAdbShellPlanningFeedback({
           command: param.command,
           stdout,
