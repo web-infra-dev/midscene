@@ -82,11 +82,14 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
     '用 YAML 编写流程，接入你的测试运行器，并自定义 Agent 执行策略。',
   featureBenchmarkDesc:
     '查看 AndroidWorld benchmark 分数、运行配置、报告文件和验收备注。',
+  featureMobileWorldBenchmarkDesc:
+    '查看 MobileWorld benchmark 分数、运行配置、报告文件和验收备注。',
   featureRichAPIsLink: '/api',
   featureSkillsLink: '/skills',
   featureReportsPlaygroundLink: '/quick-experience',
   featureFlexibleIntegrationLink: '/automate-with-scripts-in-yaml',
   featureBenchmarkLink: '/android-world-benchmark-report',
+  featureMobileWorldBenchmarkLink: '/mobile-world-benchmark-report',
 
   // View All APIs
   apiMoreLink: '查看所有 API',

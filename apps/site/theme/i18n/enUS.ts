@@ -88,11 +88,14 @@ and more`,
     'Write flows in YAML, integrate with your test runner, and customize agent execution strategies.',
   featureBenchmarkDesc:
     'Review the AndroidWorld benchmark score, run configuration, reports, and validation notes.',
+  featureMobileWorldBenchmarkDesc:
+    'Review the MobileWorld benchmark score, run configuration, reports, and validation notes.',
   featureRichAPIsLink: '/api',
   featureSkillsLink: '/skills',
   featureReportsPlaygroundLink: '/quick-experience',
   featureFlexibleIntegrationLink: '/automate-with-scripts-in-yaml',
   featureBenchmarkLink: '/android-world-benchmark-report',
+  featureMobileWorldBenchmarkLink: '/mobile-world-benchmark-report',
 
   // View All APIs
   apiMoreLink: 'View All APIs',
