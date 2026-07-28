@@ -1411,11 +1411,53 @@ const agent = new PuppeteerAgent(page, {
 });
 ```
 
+#### `destroy()` {#agentdestroy}
+
+Finalize the Agent's report and release resources owned by the Agent.
+
+- Type
+
+```typescript
+function destroy(): Promise<void>;
+```
+
+- Behavior:
+  - Stops an active observer, if one exists.
+  - Calls the underlying interface's optional `destroy()` method and waits for
+    it to finish.
+  - Flushes and finalizes the report, then updates `.reportFile` with the final
+    path, or `undefined` when no report was generated.
+  - Does nothing when called again after the first call.
+  - If interface cleanup fails, Midscene still attempts to finalize the report
+    before rejecting with the cleanup error.
+
+Treat the Agent as disposed after calling this method.
+
+:::warning Cleanup scope
+
+`Agent.destroy()` stops the Agent, finalizes its report, and releases the
+control resources held by Midscene. It generally does not close the target page
+or disconnect a physical device, although some platforms end their automation
+session or connection. See each platform's `destroy()` description for the
+exact behavior.
+
+:::
+
 <a id="properties"></a>
 
 #### `.reportFile`
 
-The path to the report file.
+The path to the current report file. Its type is
+`string | null | undefined`.
+
+The value is unavailable before the first report update. It also remains
+unavailable when report generation is disabled, the Agent runs in a browser
+runtime without file-system access, or the Agent produces no executions.
+
+After the value becomes available, the report can still receive updates. Call
+[`await agent.destroy()`](#agentdestroy) before consuming the final report.
+This flushes and finalizes the report, then updates `.reportFile` with the final
+path.
 
 
 ### Shared types {#shared-types}
@@ -1510,7 +1552,10 @@ Follow your model provider's image size and dimension limits. Oversized or very 
 
 ### Report utilities {#reporting-utilities}
 
-Each automation workflow generates its own report. `ReportMergingTool` combines those reports into one file so you can review all workflows together.
+Each automation workflow can generate its own report. `ReportMergingTool`
+combines those reports into one report so you can review all workflows
+together. The output is either a standalone HTML file or a directory containing
+`index.html` and its external screenshot assets.
 
 #### `new ReportMergingTool()`
 
@@ -1531,13 +1576,25 @@ Add an automation report to the list to be merged, typically right after each wo
 - Type
 
 ```typescript
+type ReportFileWithAttributes =
+  | {
+      reportFilePath: string;
+      reportAttributes: ReportFileAttributes;
+    }
+  | {
+      reportFilePath?: string;
+      reportAttributes: ReportFileAttributes & { testStatus: 'skipped' };
+    };
+
 function append(reportInfo: ReportFileWithAttributes): void;
 ```
 
 - Parameters:
 
   - `reportInfo: ReportFileWithAttributes` — Report to append:
-    - `reportFilePath: string` — Path to the report file, usually `agent.reportFile`.
+    - `reportFilePath: string | undefined` — Path to the report file, usually
+      `agent.reportFile`. This field can be omitted only when
+      `reportAttributes.testStatus` is `'skipped'`.
     - `reportAttributes: object` — Report metadata:
       - `testId: string` — Unique workflow identifier.
       - `testTitle: string` — Workflow title.
@@ -1552,29 +1609,59 @@ function append(reportInfo: ReportFileWithAttributes): void;
 - Example:
 
 ```typescript
+import type { TestStatus } from '@midscene/core';
+
 // Add a report in your test hooks
-afterEach((ctx) => {
-  let workflowStatus = 'passed';
-  if (ctx.task.result?.state === 'fail') {
+// This example assumes that each test owns its Agent and underlying interface.
+afterEach(async (ctx) => {
+  let workflowStatus: TestStatus = 'passed';
+  if (ctx.task.result?.state === 'skip') {
+    workflowStatus = 'skipped';
+  } else if (ctx.task.result?.errors?.[0]?.message.includes('timed out')) {
+    workflowStatus = 'timedOut';
+  } else if (ctx.task.result?.state === 'fail') {
     workflowStatus = 'failed';
   }
 
+  // Finalize the report before reading its final path.
+  await agent.destroy();
+  const reportFilePath = agent.reportFile;
+  const reportAttributes = {
+    testId: ctx.task.name,
+    testTitle: ctx.task.name,
+    testDescription: 'Automation workflow description',
+    testDuration: Date.now() - startTime,
+  };
+
+  if (!reportFilePath) {
+    if (workflowStatus !== 'skipped') {
+      throw new Error('Midscene report was not generated');
+    }
+
+    reportMergingTool.append({
+      reportAttributes: {
+        ...reportAttributes,
+        testStatus: 'skipped',
+      },
+    });
+    return;
+  }
+
   reportMergingTool.append({
-    reportFilePath: agent.reportFile as string,
+    reportFilePath,
     reportAttributes: {
-      testId: ctx.task.name,
-      testTitle: ctx.task.name,
-      testDescription: 'Automation workflow description',
-      testDuration: Date.now() - startTime,
+      ...reportAttributes,
       testStatus: workflowStatus,
     },
   });
 });
 ```
 
+Finalize every report-producing Agent before calling `.mergeReports()`.
+
 #### `.mergeReports()`
 
-Merge all added reports into a single HTML file.
+Merge all added reports into one report.
 
 - Type
 
@@ -1584,6 +1671,7 @@ function mergeReports(
   opts?: {
     rmOriginalReports?: boolean;
     overwrite?: boolean;
+    outputDir?: string;
   },
 ): string | null;
 ```
@@ -1594,10 +1682,18 @@ function mergeReports(
   - `opts?: object` — Optional configuration:
     - `rmOriginalReports?: boolean` — Whether to delete the original report files after merging. Default: `false`.
     - `overwrite?: boolean` — Whether to overwrite an existing target file. Default: `false`.
+    - `outputDir?: string` — Directory for the merged report. Relative paths
+      are resolved from the current working directory. Default:
+      `midscene_run/report/`.
 
 - Return value:
 
-  - Returns the merged report path, or `null` if no reports have been added.
+  - Returns the merged report's entry HTML path, or `null` if no reports have
+    been added.
+  - If every source report uses `single-html`, the output is
+    `<outputDir>/<reportFileName>.html`.
+  - If any source report uses `html-and-external-assets`, the output is
+    `<outputDir>/<reportFileName>/index.html` plus its screenshot assets.
 
 - Examples:
 
@@ -1623,6 +1719,13 @@ afterAll(() => {
 afterAll(() => {
   reportMergingTool.mergeReports('my-automation-report', {
     overwrite: true,
+  });
+});
+
+// Write the merged report to a custom directory
+afterAll(() => {
+  reportMergingTool.mergeReports('my-automation-report', {
+    outputDir: './test-results',
   });
 });
 ```
@@ -1672,6 +1775,13 @@ Use this section to configure Midscene's browser agents and review browser-speci
 - `Navigate` — Open a URL in the current tab.
 - `Reload` — Reload the page.
 - `GoBack` — Navigate back in history.
+
+**Lifecycle and ownership**
+
+Puppeteer and Playwright Page/Browser Agents inherit the shared
+[`destroy()`](#agentdestroy) method. Calling it finalizes the Midscene report
+and performs Agent-owned cleanup, but does not close the Page, Browser, or
+BrowserContext used by the Agent.
 
 ### PuppeteerPageAgent / PuppeteerAgent {#puppeteer-agent}
 
@@ -1887,7 +1997,10 @@ function destroy(closeNewTabsAfterDisconnect?: boolean): Promise<void>;
 ```
 
 - `closeNewTabsAfterDisconnect` — Optional runtime override for the constructor setting; `true` closes bridge-created tabs on teardown.
-- Resolves after the bridge connection and local server are fully cleaned up.
+- Includes all [shared Agent cleanup behavior](#agentdestroy), including report
+  finalization.
+- Resolves after the bridge connection, local server, and Agent report are
+  cleaned up.
 
 <a id="web-open-a-new-desktop-tab"></a>
 <a id="web-attach-to-current-tab"></a>
@@ -1975,6 +2088,23 @@ const device = new AndroidDevice(deviceId, {
 - Discover devices with `getConnectedDevices()`; the `udid` matches `adb devices`.
 - Midscene supports remote `adb` through `remoteAdbHost` and `remoteAdbPort`. Set `androidAdbPath` if `adb` is not on `PATH`.
 - Use `screenshotShrinkFactor` in `AgentOpt` to reduce screenshot processing cost on high-DPI devices.
+
+<a id="android-device-destroy"></a>
+
+**`destroy()`**
+
+```ts
+function destroy(): Promise<void>;
+```
+
+Release resources owned by this `AndroidDevice`, including an active scrcpy
+connection, and clear its ADB state. The method is idempotent. After it
+resolves, this Device instance cannot execute more ADB commands. The physical
+device remains connected to the ADB server.
+
+Calling [`AndroidAgent.destroy()`](#agentdestroy) invokes this method
+automatically. Each `AndroidDevice` instance belongs to exactly one
+`AndroidAgent`.
 
 ### AndroidAgent {#androidagent}
 
@@ -2195,6 +2325,22 @@ const device = new IOSDevice({
 - Use `wdaHost`/`wdaPort` to target remote devices or custom WDA deployments.
 - For shared interaction methods, see [Shared Agent APIs](#interaction-methods).
 
+<a id="ios-device-destroy"></a>
+
+**`destroy()`**
+
+```ts
+function destroy(): Promise<void>;
+```
+
+Attempt to stop the MJPEG frame source, delete the WebDriverAgent session, and
+stop the WDA manager. Cleanup failures are logged and do not reject the
+Promise. The method is idempotent. After it resolves, this `IOSDevice` instance
+cannot be reused.
+
+Calling [`IOSAgent.destroy()`](#agentdestroy) invokes this method automatically.
+Each `IOSDevice` instance belongs to exactly one `IOSAgent`.
+
 ### IOSAgent {#iosagent}
 
 Connect Midscene's AI planner to an `IOSDevice` through WebDriverAgent.
@@ -2389,6 +2535,22 @@ const device = new HarmonyDevice(deviceId, {
 
 - Use `getConnectedDevices()` to discover devices. The returned `deviceId` matches `hdc list targets` output.
 - If HDC is not in your system PATH, specify it via the `HDC_HOME` environment variable or the `hdcPath` option.
+
+<a id="harmony-device-destroy"></a>
+
+**`destroy()`**
+
+```ts
+function destroy(): Promise<void>;
+```
+
+Release the HDC state and cached screen information owned by this
+`HarmonyDevice`. The method is idempotent. After it resolves, this Device
+instance cannot execute more HDC commands. The physical device remains connected to HDC.
+
+Calling [`HarmonyAgent.destroy()`](#agentdestroy) invokes this method
+automatically. Each `HarmonyDevice` instance belongs to exactly one
+`HarmonyAgent`.
 
 ### HarmonyAgent {#harmonyagent}
 
@@ -2735,6 +2897,33 @@ if (!env.available) {
   console.error('Environment error:', env.error);
 }
 ```
+
+<a id="computer-device-destroy"></a>
+
+**`ComputerDevice.destroy()`**
+
+```typescript
+function destroy(): Promise<void>;
+```
+
+Release the local input driver and stop an Agent-owned Xvfb instance, if one
+exists. The method is idempotent. After it resolves, this `ComputerDevice`
+instance cannot be reused.
+
+<a id="rdp-device-destroy"></a>
+
+**`RDPDevice.destroy()`**
+
+```typescript
+function destroy(): Promise<void>;
+```
+
+Disconnect the RDP backend and clear its connection state. The method is
+idempotent. After it resolves, this `RDPDevice` instance cannot be reused.
+
+Calling [`ComputerAgent.destroy()`](#agentdestroy) invokes the matching Device
+method automatically. This applies to Agents returned by both
+`agentForComputer()` and `agentForRDPComputer()`.
 
 ### ComputerAgent
 

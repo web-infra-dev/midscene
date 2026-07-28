@@ -1386,11 +1386,46 @@ const agent = new PuppeteerAgent(page, {
 });
 ```
 
+#### `destroy()` {#agentdestroy}
+
+完成 Agent 报告的收尾（finalization），并释放 Agent 持有的资源。
+
+- 类型
+
+```typescript
+function destroy(): Promise<void>;
+```
+
+- 行为：
+  - 停止正在运行的 observer。
+  - 调用底层 interface 的可选 `destroy()` 方法，并等待清理完成。
+  - 等待报告写入完成，再完成报告收尾。最后，将最终路径写入
+    `.reportFile`。如果没有生成报告，则写入 `undefined`。
+  - 首次调用完成后，再次调用不会重复清理。
+  - 如果 interface 清理失败，Midscene 仍会尝试完成报告收尾，然后抛出清理错误。
+
+调用该方法后，请勿继续使用这个 Agent。
+
+:::warning 资源清理范围
+
+`Agent.destroy()` 会停止 Agent、完成报告收尾，并释放 Midscene 持有的控制资源。
+它通常不会关闭目标页面或断开物理设备，但部分平台会结束相应的自动化会话或连接。
+具体行为请参见各平台的 `destroy()` 说明。
+
+:::
+
 **属性**
 
 #### `.reportFile` {#agentreportfile}
 
-报告文件的路径。
+当前报告文件的路径。它的类型是 `string | null | undefined`。
+
+首次更新报告前，该属性没有可用值。以下情况也不会生成报告路径：关闭报告生成功能、Agent 在没有文件系统访问能力的浏览器环境中运行，或 Agent 没有产生 execution。
+
+报告路径可用后，报告内容仍可能继续更新。使用最终报告前，请调用
+[`await agent.destroy()`](#agentdestroy)。该方法会等待报告写入完成，完成报告的
+收尾，并将最终路径写入 `.reportFile`。
+
 
 <a id="深度定位deeplocate"></a>
 
@@ -1484,7 +1519,7 @@ await agent.aiAssert({
 
 **`ReportMergingTool`**
 
-在运行多个自动化工作流时，每个 agent 都会生成独立的报告文件。`ReportMergingTool` 提供了将多个自动化报告合并为单个报告的能力，便于统一查看和管理自动化结果。
+每个自动化工作流都可以生成独立报告。`ReportMergingTool` 可以将这些报告合并，便于统一查看和管理。合并结果可能是独立的 HTML 文件，也可能是包含 `index.html` 和外部截图资源的目录。
 
 #### `new ReportMergingTool()`
 
@@ -1505,13 +1540,23 @@ const reportMergingTool = new ReportMergingTool();
 - 类型
 
 ```typescript
+type ReportFileWithAttributes =
+  | {
+      reportFilePath: string;
+      reportAttributes: ReportFileAttributes;
+    }
+  | {
+      reportFilePath?: string;
+      reportAttributes: ReportFileAttributes & { testStatus: 'skipped' };
+    };
+
 function append(reportInfo: ReportFileWithAttributes): void;
 ```
 
 - 参数:
 
   - `reportInfo: ReportFileWithAttributes` - 报告信息对象，包含:
-    - `reportFilePath: string` - 报告文件的路径，通常是 `agent.reportFile`
+    - `reportFilePath: string | undefined` - 报告文件的路径，通常是 `agent.reportFile`。只有当 `reportAttributes.testStatus` 为 `'skipped'` 时，才能省略该字段
     - `reportAttributes: object` - 报告属性
       - `testId: string` - 自动化工作流的唯一标识符
       - `testTitle: string` - 自动化工作流标题
@@ -1526,29 +1571,58 @@ function append(reportInfo: ReportFileWithAttributes): void;
 - 示例:
 
 ```typescript
+import type { TestStatus } from '@midscene/core';
+
 // 在 afterEach 钩子中添加报告
-afterEach((ctx) => {
-  let workflowStatus = 'passed';
-  if (ctx.task.result?.state === 'fail') {
+afterEach(async (ctx) => {
+  let workflowStatus: TestStatus = 'passed';
+  if (ctx.task.result?.state === 'skip') {
+    workflowStatus = 'skipped';
+  } else if (ctx.task.result?.errors?.[0]?.message.includes('timed out')) {
+    workflowStatus = 'timedOut';
+  } else if (ctx.task.result?.state === 'fail') {
     workflowStatus = 'failed';
   }
 
+  // 读取最终路径前，先完成报告的 finalization。
+  await agent.destroy();
+  const reportFilePath = agent.reportFile;
+  const reportAttributes = {
+    testId: ctx.task.name,
+    testTitle: ctx.task.name,
+    testDescription: '自动化工作流描述',
+    testDuration: Date.now() - startTime,
+  };
+
+  if (!reportFilePath) {
+    if (workflowStatus !== 'skipped') {
+      throw new Error('Midscene 报告未生成');
+    }
+
+    reportMergingTool.append({
+      reportAttributes: {
+        ...reportAttributes,
+        testStatus: 'skipped',
+      },
+    });
+    return;
+  }
+
   reportMergingTool.append({
-    reportFilePath: agent.reportFile as string,
+    reportFilePath,
     reportAttributes: {
-      testId: ctx.task.name,
-      testTitle: ctx.task.name,
-      testDescription: '自动化工作流描述',
-      testDuration: Date.now() - startTime,
+      ...reportAttributes,
       testStatus: workflowStatus,
     },
   });
 });
 ```
 
+调用 `.mergeReports()` 前，应完成所有报告相关 Agent 的收尾。
+
 #### `.mergeReports()`
 
-执行报告合并操作，将所有添加的报告合并为一个 HTML 文件。
+执行报告合并操作，将所有添加的报告合并为一份报告。
 
 - 类型
 
@@ -1558,6 +1632,7 @@ function mergeReports(
   opts?: {
     rmOriginalReports?: boolean;
     overwrite?: boolean;
+    outputDir?: string;
   },
 ): string | null;
 ```
@@ -1570,11 +1645,14 @@ function mergeReports(
   - `opts?: object` - 可选配置对象
     - `rmOriginalReports?: boolean` - 是否删除原始报告文件,默认为 `false`
     - `overwrite?: boolean` - 如果目标文件已存在是否覆盖，默认为 `false`
+    - `outputDir?: string` - 合并报告的输出目录。相对路径从当前工作目录开始解析。默认输出到 `midscene_run/report/`
 
 - 返回值:
 
-  - 成功时返回合并后的报告文件路径
+  - 成功时返回合并报告的入口 HTML 路径
   - 如果没有添加任何报告，返回 `null`
+  - 所有源报告均使用 `single-html` 时，输出路径为 `<outputDir>/<reportFileName>.html`
+  - 任一源报告使用 `html-and-external-assets` 时，输出路径为 `<outputDir>/<reportFileName>/index.html`，同时输出截图资源
 
 - 示例:
 
@@ -1600,6 +1678,13 @@ afterAll(() => {
 afterAll(() => {
   reportMergingTool.mergeReports('my-automation-report', {
     overwrite: true,
+  });
+});
+
+// 将合并报告写入自定义目录
+afterAll(() => {
+  reportMergingTool.mergeReports('my-automation-report', {
+    outputDir: './test-results',
   });
 });
 ```
@@ -1649,6 +1734,13 @@ PuppeteerAgent、PlaywrightAgent 和 Chrome Bridge 共用一套 Action Space，M
 - `Navigate` —— 在当前标签页打开指定 URL。
 - `Reload` —— 刷新当前页面。
 - `GoBack` —— 浏览器后退。
+
+**生命周期与所有权**
+
+Puppeteer 和 Playwright Page/Browser Agent 继承通用的
+[`destroy()`](#agentdestroy) 方法。调用该方法会完成 Midscene 报告收尾，
+并清理 Agent 持有的资源。该方法不会关闭 Agent 使用的 Page、Browser 或
+BrowserContext。
 
 ### PuppeteerPageAgent / PuppeteerAgent {#puppeteer-agent}
 
@@ -1864,7 +1956,8 @@ function destroy(closeNewTabsAfterDisconnect?: boolean): Promise<void>;
 ```
 
 - `closeNewTabsAfterDisconnect` —— 运行时覆盖构造器配置，为 `true` 时销毁时关闭桥接创建的新标签页。
-- 清理桥接连接和本地服务完成后返回 `Promise<void>`。
+- 包含[通用 Agent 清理行为](#agentdestroy)，其中包括报告收尾。
+- 清理桥接连接、本地服务和 Agent 报告后，返回 `Promise<void>`。
 
 <a id="web-打开新的桌面标签页"></a>
 <a id="web-附着到当前标签页"></a>
@@ -1954,6 +2047,21 @@ const device = new AndroidDevice(deviceId, {
 
 - 可以使用 `getConnectedDevices()` 发现设备，`udid` 与 `adb devices` 输出一致。
 - 可以使用 `remoteAdbHost/remoteAdbPort` 连接远程 adb；如果 adb 不在 PATH 中，可设置 `androidAdbPath`。
+
+<a id="android-device-destroy"></a>
+
+**`destroy()`**
+
+```ts
+function destroy(): Promise<void>;
+```
+
+释放 `AndroidDevice` 持有的资源，其中包括正在运行的 scrcpy 连接。同时，清除
+ADB 状态。该方法可以重复调用。调用完成后，这个 Device 实例不能再执行 ADB
+命令，但物理设备仍与 ADB server 保持连接。
+
+调用 [`AndroidAgent.destroy()`](#agentdestroy) 时，会自动执行该方法。每个
+`AndroidDevice` 实例只属于一个 `AndroidAgent`。
 
 ### AndroidAgent {#androidagent}
 
@@ -2175,6 +2283,21 @@ const device = new IOSDevice({
 - 通过 `wdaHost`/`wdaPort` 可指向远程设备或自建的 WDA。
 - 通用交互方法请查阅 [API 参考（通用）](#interaction-methods)。
 
+<a id="ios-device-destroy"></a>
+
+**`destroy()`**
+
+```ts
+function destroy(): Promise<void>;
+```
+
+尝试停止 MJPEG frame source、删除 WebDriverAgent session，并停止 WDA manager。
+清理失败时会记录日志，但 Promise 不会因此被拒绝。该方法可以重复调用。调用完成
+后，不能再使用这个 `IOSDevice` 实例。
+
+调用 [`IOSAgent.destroy()`](#agentdestroy) 时，会自动执行该方法。每个
+`IOSDevice` 实例只属于一个 `IOSAgent`。
+
 ### IOSAgent {#iosagent}
 
 将 Midscene 的 AI 规划能力绑定到 IOSDevice，通过 WebDriverAgent 实现 UI 自动化。
@@ -2369,6 +2492,20 @@ const device = new HarmonyDevice(deviceId, {
 
 - 可以使用 `getConnectedDevices()` 发现设备，返回的 `deviceId` 与 `hdc list targets` 输出一致。
 - 如果 HDC 不在系统 PATH 中，可通过 `HDC_HOME` 环境变量或 `hdcPath` 选项指定路径。
+
+<a id="harmony-device-destroy"></a>
+
+**`destroy()`**
+
+```ts
+function destroy(): Promise<void>;
+```
+
+释放 `HarmonyDevice` 持有的 HDC 状态和屏幕信息缓存。该方法可以重复调用。调用
+完成后，这个 Device 实例不能再执行 HDC 命令，但物理设备仍与 HDC 保持连接。
+
+调用 [`HarmonyAgent.destroy()`](#agentdestroy) 时，会自动执行该方法。每个
+`HarmonyDevice` 实例只属于一个 `HarmonyAgent`。
 
 ### HarmonyAgent {#harmonyagent}
 
@@ -2715,6 +2852,31 @@ if (!env.available) {
   console.error('环境错误:', env.error);
 }
 ```
+
+<a id="computer-device-destroy"></a>
+
+**`ComputerDevice.destroy()`**
+
+```typescript
+function destroy(): Promise<void>;
+```
+
+释放本机输入驱动。如果存在 Agent 创建的 Xvfb 实例，也会将它停止。该方法可以
+重复调用。调用完成后，不能再使用这个 `ComputerDevice` 实例。
+
+<a id="rdp-device-destroy"></a>
+
+**`RDPDevice.destroy()`**
+
+```typescript
+function destroy(): Promise<void>;
+```
+
+断开 RDP backend，并清除连接状态。该方法可以重复调用。调用完成后，不能再使用
+这个 `RDPDevice` 实例。
+
+调用 [`ComputerAgent.destroy()`](#agentdestroy) 时，会自动执行对应的 Device
+方法。`agentForComputer()` 和 `agentForRDPComputer()` 返回的 Agent 都遵循该行为。
 
 ### ComputerAgent
 
