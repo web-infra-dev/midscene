@@ -11,16 +11,12 @@ import {
 const ACCESSIBILITY_DUMP_ATTEMPTS = 3;
 const ACCESSIBILITY_DUMP_TIMEOUT_MS = 5_000;
 const ACCESSIBILITY_DUMP_RETRY_DELAY_MS = 250;
-const YADB_LAYOUT_PATH = '/data/local/tmp/midscene_yadb_layout_dump.xml';
 const UIAUTOMATOR_LAYOUT_PATH = '/sdcard/midscene_window_dump.xml';
-
-type AndroidAccessibilityTreeSource = 'yadb' | 'uiautomator';
 
 interface AndroidUITreeCaptureOptions {
   adb: ADB;
   devicePixelRatio: number;
   displayId?: number;
-  ensureYadb: () => Promise<void>;
   getDisplaySize: () => Promise<Size>;
 }
 
@@ -30,16 +26,13 @@ function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
-function validateHierarchyXml(
-  xml: unknown,
-  source: AndroidAccessibilityTreeSource,
-): asserts xml is string {
+function validateHierarchyXml(xml: unknown): asserts xml is string {
   if (
     typeof xml !== 'string' ||
     !/<hierarchy(?:\s|>)/.test(xml) ||
     !xml.includes('</hierarchy>')
   ) {
-    throw new Error(`${source} did not produce valid hierarchy XML`);
+    throw new Error('uiautomator did not produce valid hierarchy XML');
   }
 }
 
@@ -118,32 +111,25 @@ function uiTreeExtent(root: UiNode): { right: number; bottom: number } {
   return { right, bottom };
 }
 
-async function dumpAccessibilityXml(
-  adb: ADB,
-  source: AndroidAccessibilityTreeSource,
-  ensureYadb: () => Promise<void>,
-): Promise<string> {
-  const destination =
-    source === 'yadb' ? YADB_LAYOUT_PATH : UIAUTOMATOR_LAYOUT_PATH;
-
-  if (source === 'yadb') {
-    await ensureYadb();
-  }
-
-  await runAdbShellStdoutOrThrow(adb, `rm -f ${destination}`, {
+async function dumpAccessibilityXml(adb: ADB): Promise<string> {
+  await runAdbShellStdoutOrThrow(adb, `rm -f ${UIAUTOMATOR_LAYOUT_PATH}`, {
     timeout: ACCESSIBILITY_DUMP_TIMEOUT_MS,
   });
-  const command =
-    source === 'yadb'
-      ? `app_process -Djava.class.path=/data/local/tmp/yadb /data/local/tmp com.ysbing.yadb.Main -layout ${destination}`
-      : `uiautomator dump --compressed ${destination}`;
-  await runAdbShellStdoutOrThrow(adb, command, {
-    timeout: ACCESSIBILITY_DUMP_TIMEOUT_MS,
-  });
-  const xml = await runAdbShellStdoutOrThrow(adb, `cat ${destination}`, {
-    timeout: ACCESSIBILITY_DUMP_TIMEOUT_MS,
-  });
-  validateHierarchyXml(xml, source);
+  await runAdbShellStdoutOrThrow(
+    adb,
+    `uiautomator dump --compressed ${UIAUTOMATOR_LAYOUT_PATH}`,
+    {
+      timeout: ACCESSIBILITY_DUMP_TIMEOUT_MS,
+    },
+  );
+  const xml = await runAdbShellStdoutOrThrow(
+    adb,
+    `cat ${UIAUTOMATOR_LAYOUT_PATH}`,
+    {
+      timeout: ACCESSIBILITY_DUMP_TIMEOUT_MS,
+    },
+  );
+  validateHierarchyXml(xml);
   return xml;
 }
 
@@ -214,25 +200,18 @@ async function validateUITreeDisplay(
 export async function captureAndroidUITree(
   options: AndroidUITreeCaptureOptions,
 ): Promise<UITreeSnapshot> {
-  const sources: AndroidAccessibilityTreeSource[] =
-    (options.displayId ?? 0) === 0 ? ['yadb', 'uiautomator'] : ['uiautomator'];
   const failures: string[] = [];
 
   for (let attempt = 1; attempt <= ACCESSIBILITY_DUMP_ATTEMPTS; attempt++) {
-    const source = sources[Math.min(attempt - 1, sources.length - 1)];
     const startedAt = Date.now();
     try {
-      const xml = await dumpAccessibilityXml(
-        options.adb,
-        source,
-        options.ensureYadb,
-      );
+      const xml = await dumpAccessibilityXml(options.adb);
       const capturedAt = Date.now();
       const root = uiautomatorXmlToUiNode(xml, options.devicePixelRatio);
       await validateUITreeDisplay(root, options);
       debugUITree(
         'capture source=%s attempt=%d durationMs=%d bytes=%d',
-        source,
+        'uiautomator',
         attempt,
         Date.now() - startedAt,
         xml.length,
@@ -251,11 +230,11 @@ export async function captureAndroidUITree(
         },
       };
     } catch (error) {
-      const failure = `${source} attempt ${attempt}/${ACCESSIBILITY_DUMP_ATTEMPTS}: ${errorMessage(error)}`;
+      const failure = `uiautomator attempt ${attempt}/${ACCESSIBILITY_DUMP_ATTEMPTS}: ${errorMessage(error)}`;
       failures.push(failure);
       debugUITree(
         'capture failed source=%s attempt=%d/%d durationMs=%d error=%s',
-        source,
+        'uiautomator',
         attempt,
         ACCESSIBILITY_DUMP_ATTEMPTS,
         Date.now() - startedAt,
