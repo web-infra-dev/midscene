@@ -30,7 +30,7 @@ concurrency:
 
 jobs:
   android-emulator:
-    runs-on: ubuntu-22.04
+    runs-on: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS }}
     timeout-minutes: 55
     env:
       CI: '1'

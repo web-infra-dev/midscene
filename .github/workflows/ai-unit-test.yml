@@ -17,7 +17,7 @@ permissions:
 
 jobs:
   main:
-    runs-on: ubuntu-22.04
+    runs-on: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS }}
     strategy:
       matrix:
         node-version: [24.13.0]

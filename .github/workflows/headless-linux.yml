@@ -30,7 +30,7 @@ env:
 
 jobs:
   headless-linux-ai-todo:
-    runs-on: ubuntu-22.04
+    runs-on: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS }}
     env:
       MIDSCENE_MODEL_API_KEY: ${{ secrets.MIDSCENE_MODEL_API_KEY }}
       MIDSCENE_MODEL_BASE_URL: ${{ vars.MIDSCENE_MODEL_BASE_URL }}
@@ -117,7 +117,7 @@ jobs:
       run: exit 1
 
   chrome-extension:
-    runs-on: ubuntu-22.04
+    runs-on: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS }}
     env:
       # Env vars for computer agent (screenshot + AI actions)
       MIDSCENE_MODEL_API_KEY: ${{ secrets.MIDSCENE_MODEL_API_KEY }}
@@ -194,7 +194,7 @@ jobs:
       run: exit 1
 
   chrome-extension-bridge:
-    runs-on: ubuntu-22.04
+    runs-on: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS }}
     env:
       MIDSCENE_MODEL_API_KEY: ${{ secrets.MIDSCENE_MODEL_API_KEY }}
       MIDSCENE_MODEL_BASE_URL: ${{ vars.MIDSCENE_MODEL_BASE_URL }}
@@ -268,7 +268,7 @@ jobs:
       run: exit 1
 
   chrome-extension-playground:
-    runs-on: ubuntu-22.04
+    runs-on: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS }}
     env:
       MIDSCENE_MODEL_API_KEY: ${{ secrets.MIDSCENE_MODEL_API_KEY }}
       MIDSCENE_MODEL_BASE_URL: ${{ vars.MIDSCENE_MODEL_BASE_URL }}
@@ -342,7 +342,7 @@ jobs:
       run: exit 1
 
   chrome-extension-recorder:
-    runs-on: ubuntu-22.04
+    runs-on: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS }}
     env:
       MIDSCENE_MODEL_API_KEY: ${{ secrets.MIDSCENE_MODEL_API_KEY }}
       MIDSCENE_MODEL_BASE_URL: ${{ vars.MIDSCENE_MODEL_BASE_URL }}
@@ -416,7 +416,7 @@ jobs:
       run: exit 1
 
   chrome-extension-settings:
-    runs-on: ubuntu-22.04
+    runs-on: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS }}
     env:
       MIDSCENE_MODEL_API_KEY: ${{ secrets.MIDSCENE_MODEL_API_KEY }}
       MIDSCENE_MODEL_BASE_URL: ${{ vars.MIDSCENE_MODEL_BASE_URL }}

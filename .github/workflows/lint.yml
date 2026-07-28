@@ -13,7 +13,7 @@ permissions:
 
 jobs:
   main:
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.CI_LINUX_MINI_RUNNER }}
     strategy:
       matrix:
         node-version: [24.13.0]

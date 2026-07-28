@@ -12,21 +12,21 @@ permissions:
 
 jobs:
   package_studio:
-    runs-on: ${{ matrix.os }}
+    runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu-latest
+          - runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS }}
             platform: linux
             arch: x64
-          - os: windows-latest
+          - runner: ${{ vars.WINDOWS_SELF_HOSTED_RUNNER_LABELS }}
             platform: win32
             arch: x64
-          - os: macos-15
+          - runner: ${{ vars.MAC_SELF_HOSTED_RUNNER_LABELS }}
             platform: darwin
             arch: arm64
-          - os: macos-15-intel
+          - runner: ${{ vars.MAC_SELF_HOSTED_RUNNER_LABELS }}
             platform: darwin
             arch: x64
     env:

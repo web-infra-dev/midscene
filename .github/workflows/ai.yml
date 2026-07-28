@@ -27,7 +27,7 @@ env:
 
 jobs:
   e2e-web:
-    runs-on: ubuntu-22.04
+    runs-on: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS }}
     steps:
     - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
       with:
@@ -123,7 +123,7 @@ jobs:
         exit 1
 
   e2e-report:
-    runs-on: ubuntu-22.04
+    runs-on: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS }}
     steps:
     - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
       with:
