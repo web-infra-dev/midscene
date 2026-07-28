@@ -230,6 +230,8 @@ MIDSCENE_INSIGHT_MODEL_FAMILY="gpt-5"
   </ModelConfigTab>
 </ModelConfigTabs>
 
+你也可以通过[**使用 Codex App Server（OAuth，无需 API Key）**](./model-config#使用-codex-app-serveroauth无需-api-key) 使用 GPT。
+
 :::warning GPT-5 使用注意事项
 
 - 使用 GPT 做 UI 定位时，目前只支持使用 `gpt-5.4` 及以后的模型。因为为了获得最佳的定位效果，需要在发送图片时指定 `"detail": "original"` 参数，这一参数仅在 `gpt-5.4` 及后续模型上可用，`gpt-5.4-mini`、`gpt-5.4-nano` 等更小的 GPT-5 变体以及前代模型不支持 `original` 参数，会导致报错。详情请参考 [Images and Vision guide](https://developers.openai.com/api/docs/guides/images-vision) 和 [Computer use guide](https://developers.openai.com/api/docs/guides/tools-computer-use)。
