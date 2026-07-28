@@ -2,7 +2,8 @@ import { ScreenshotItem } from '@midscene/core';
 import { describe, expect, it } from 'vitest';
 import { StaticPage } from '../../src/static';
 
-const screenshotBase64 = 'data:image/png;base64,abc123';
+const screenshotBase64 =
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
 
 function createContext(
   screenshot: ConstructorParameters<typeof StaticPage>[0]['screenshot'],
@@ -15,27 +16,41 @@ function createContext(
 }
 
 describe('StaticPage', () => {
-  it('returns base64 from a ScreenshotItem instance', async () => {
+  it('returns WebP from a ScreenshotItem instance', async () => {
     const page = new StaticPage(
       createContext(ScreenshotItem.create(screenshotBase64, Date.now())),
     );
 
-    await expect(page.screenshotBase64()).resolves.toBe(screenshotBase64);
+    await expect(page.screenshotBase64()).resolves.toMatch(
+      /^data:image\/webp;base64,UklGR/,
+    );
   });
 
-  it('returns base64 from a restored report screenshot object', async () => {
+  it('returns WebP from a restored report screenshot object', async () => {
     const page = new StaticPage(createContext({ base64: screenshotBase64 }));
 
-    await expect(page.screenshotBase64()).resolves.toBe(screenshotBase64);
+    await expect(page.screenshotBase64()).resolves.toMatch(
+      /^data:image\/webp;base64,UklGR/,
+    );
   });
 
-  it('returns base64 from a JSON-serialized ScreenshotItem', async () => {
+  it('returns WebP from a JSON-serialized ScreenshotItem', async () => {
     const serializedScreenshot = JSON.parse(
       JSON.stringify(ScreenshotItem.create(screenshotBase64, Date.now())),
     );
     const page = new StaticPage(createContext(serializedScreenshot));
 
-    await expect(page.screenshotBase64()).resolves.toBe(screenshotBase64);
+    await expect(page.screenshotBase64()).resolves.toMatch(
+      /^data:image\/webp;base64,UklGR/,
+    );
+  });
+
+  it('returns the source bytes when Core will resize the screenshot', async () => {
+    const page = new StaticPage(createContext({ base64: screenshotBase64 }));
+
+    await expect(page.screenshotBase64({ preferLossless: true })).resolves.toBe(
+      screenshotBase64,
+    );
   });
 
   it('rejects screenshot refs that do not include base64 data', async () => {

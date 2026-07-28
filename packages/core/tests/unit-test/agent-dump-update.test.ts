@@ -15,20 +15,29 @@ const modelConfig = {
   [MIDSCENE_MODEL_BASE_URL]: 'https://api.test.com/v1',
 };
 
+const VALID_PNG =
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+const VALID_JPEG =
+  'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wCEAAMDAwMDAwMDAwMEBAQEBAYFBQUFBgkGBwYHBgkOCAoICAoIDgwPDAsMDwwWEQ8PERYZFRQVGR4bGx4mJCYyMkMBAwMDAwMDAwMDAwQEBAQEBgUFBQUGCQYHBgcGCQ4ICggICggODA8MCwwPDBYRDw8RFhkVFBUZHhsbHiYkJjIyQ//CABEIAAEAAQMBIgACEQEDEQH/xAAnAAEBAAAAAAAAAAAAAAAAAAAACQEBAAAAAAAAAAAAAAAAAAAAAP/aAAwDAQACEAMQAAAAqmD/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/9oACAEBAAE/AH//xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oACAECAQE/AH//xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oACAEDAQE/AH//2Q==';
+const VALID_WEBP_BODY =
+  'UklGRioAAABXRUJQVlA4IB4AAACQAQCdASoCAAIAAMASJaQAAzoO0gAA/v/+JwoMAAA=';
+
 function createMockInterface() {
   return {
     interfaceType: 'puppeteer',
     actionSpace: () => [],
     describe: () => 'test page',
     size: async () => ({ width: 1280, height: 720 }),
-    screenshotBase64: async () =>
-      'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=',
+    screenshotBase64: async () => VALID_PNG,
   } as any;
 }
 
 function createLargeBase64DataUri(byteSize: number): string {
-  const payload = 'A'.repeat(byteSize);
-  return `data:image/png;base64,${payload}`;
+  const payload = Buffer.concat([
+    Buffer.from(VALID_WEBP_BODY, 'base64'),
+    Buffer.alloc(byteSize),
+  ]).toString('base64');
+  return `data:image/webp;base64,${payload}`;
 }
 
 describe('Agent dump update screenshot serialization', () => {
@@ -126,14 +135,17 @@ describe('Agent dump update screenshot serialization', () => {
 
     (agent as any).reportGenerator = reportGeneratorStub;
 
-    const providedScreenshot =
-      'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAAB';
     await agent.recordToReport('snapshot', {
-      screenshotBase64: providedScreenshot,
+      screenshotBase64: VALID_PNG,
     });
 
     expect(screenshotBase64).not.toHaveBeenCalled();
     expect(reportGeneratorStub.onExecutionUpdate).toHaveBeenCalled();
+    const execution = reportGeneratorStub.onExecutionUpdate.mock
+      .calls[0][0] as ExecutionDump;
+    expect(execution.collectScreenshots()[0].base64).toMatch(
+      /^data:image\/webp;base64,UklGR/,
+    );
 
     await agent.destroy();
   });
@@ -162,13 +174,11 @@ describe('Agent dump update screenshot serialization', () => {
 
     (agent as any).reportGenerator = reportGeneratorStub;
 
-    const beforeScreenshot = 'before';
-    const afterScreenshot = 'data:image/jpg;base64,after';
     await agent.recordToReport('comparison', {
       content: 'before and after state',
       screenshots: [
-        { base64: beforeScreenshot, description: 'Before click' },
-        { base64: afterScreenshot, description: 'After click' },
+        { base64: VALID_PNG, description: 'Before click' },
+        { base64: VALID_JPEG, description: 'After click' },
       ],
     });
 
@@ -188,10 +198,9 @@ describe('Agent dump update screenshot serialization', () => {
       'Before click',
       'After click',
     ]);
-    expect(task.recorder?.map((item) => item.screenshot?.base64)).toEqual([
-      'data:image/png;base64,before',
-      'data:image/jpeg;base64,after',
-    ]);
+    for (const item of task.recorder ?? []) {
+      expect(item.screenshot?.base64).toMatch(/^data:image\/webp;base64,UklGR/);
+    }
     expect(task.recorder?.[0].ts ?? 0).toBeLessThan(task.recorder?.[1].ts ?? 0);
 
     await agent.destroy();
@@ -373,6 +382,11 @@ describe('Agent dump update screenshot serialization', () => {
       }),
       expect.anything(),
       undefined,
+    );
+    const execution = reportGeneratorStub.onExecutionUpdate.mock
+      .calls[0][0] as ExecutionDump;
+    expect(execution.collectScreenshots()[0].base64).toMatch(
+      /^data:image\/webp;base64,UklGR/,
     );
 
     await agent.destroy();

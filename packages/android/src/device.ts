@@ -21,6 +21,7 @@ import {
   type DeviceFrameSource,
   type MobileInputPrimitives,
   type PointerPoint,
+  type ScreenshotCaptureOptions,
   createDefaultMobileActions,
   defineAction,
 } from '@midscene/core/device';
@@ -552,7 +553,7 @@ ${Object.keys(size)
         const images: string[] = [];
         for (const frameRef of refs) {
           images.push(
-            await adapter.decodeRawKeyframeToWebpBase64(
+            await adapter.decodeRawKeyframeToPngBase64(
               frameRef.ref as RawKeyframe,
             ),
           );
@@ -1131,7 +1132,7 @@ ${Object.keys(size)
     );
   }
 
-  async screenshotBase64(): Promise<string> {
+  async screenshotBase64(options?: ScreenshotCaptureOptions): Promise<string> {
     debugDevice('screenshotBase64 begin');
 
     // Try scrcpy mode first (if enabled and initialized)
@@ -1140,7 +1141,7 @@ ${Object.keys(size)
       try {
         debugDevice('Attempting scrcpy screenshot...');
         const deviceInfo = await this.getDevicePhysicalInfo();
-        const result = await adapter.screenshotBase64(deviceInfo);
+        const result = await adapter.screenshotBase64(deviceInfo, options);
         debugDevice('screenshotBase64 end (scrcpy mode)');
         return result;
       } catch (error) {
@@ -1270,9 +1271,13 @@ ${Object.keys(size)
     }
 
     debugDevice('Converting to base64');
-    const result = await canonicalizeScreenshotBase64(
-      createImgBase64ByFormat('png', screenshotBuffer.toString('base64')),
+    const png = createImgBase64ByFormat(
+      'png',
+      screenshotBuffer.toString('base64'),
     );
+    const result = options?.preferLossless
+      ? png
+      : await canonicalizeScreenshotBase64(png);
     if (localScreenshotPath) {
       debugDevice(`Deleting local screenshot: ${localScreenshotPath}`);
       unlink(localScreenshotPath, (unlinkError) => {

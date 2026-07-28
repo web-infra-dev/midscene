@@ -22,16 +22,15 @@ import {
   globalConfigManager,
 } from '@midscene/shared/env';
 import { generateElementByRect } from '@midscene/shared/extractor';
-import {
-  canonicalizeScreenshotBase64,
-  imageInfoOfBase64,
-  normalizeBase64Image,
-  resizeImgBase64,
-} from '@midscene/shared/img';
+import { imageInfoOfBase64, normalizeBase64Image } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { _keyDefinitions } from '@midscene/shared/us-keyboard-layout';
 import { assert, ifInBrowser, logMsg, uuid } from '@midscene/shared/utils';
 import dayjs from 'dayjs';
+import {
+  createFinalizedScreenshotItem,
+  finalizeScreenshotBase64,
+} from './screenshot-finalizer';
 import type { TaskCache } from './task-cache';
 import { debug as cacheDebug } from './task-cache';
 
@@ -81,6 +80,14 @@ export async function commonContextParser(
   });
   debug('UploadTestInfoToServer end');
 
+  const userShrinkFactor = _opt.screenshotShrinkFactor ?? 1;
+
+  if (!Number.isFinite(userShrinkFactor) || userShrinkFactor < 1) {
+    throw new Error(
+      `Invalid screenshotShrinkFactor: must be a finite number >= 1. Received: ${userShrinkFactor}`,
+    );
+  }
+
   debug('will get size');
   const interfaceSize = await interfaceInstance.size();
   const { width: logicalWidth, height: logicalHeight } = interfaceSize;
@@ -105,7 +112,10 @@ export async function commonContextParser(
 
   debug(`size: ${logicalWidth}x${logicalHeight}`);
 
-  const screenshotBase64 = await interfaceInstance.screenshotBase64();
+  const shouldResize = userShrinkFactor > 1;
+  const screenshotBase64 = await interfaceInstance.screenshotBase64(
+    shouldResize ? { preferLossless: true } : undefined,
+  );
   const screenshotCapturedAt = Date.now();
   assert(screenshotBase64!, 'screenshotBase64 is required');
 
@@ -142,14 +152,6 @@ export async function commonContextParser(
     finalLogicalHeight = logicalWidth;
   }
 
-  const userShrinkFactor = _opt.screenshotShrinkFactor ?? 1;
-
-  if (!Number.isFinite(userShrinkFactor) || userShrinkFactor < 1) {
-    throw new Error(
-      `Invalid screenshotShrinkFactor: must be a finite number >= 1. Received: ${userShrinkFactor}`,
-    );
-  }
-
   const dpr = imgWidth / finalLogicalWidth;
 
   debug('calculated dpr:', dpr);
@@ -158,7 +160,7 @@ export async function commonContextParser(
 
   debug('shrunkShotToLogicalRatio', shrunkShotToLogicalRatio);
 
-  if (userShrinkFactor !== 1) {
+  if (shouldResize) {
     const targetWidth = Math.round(imgWidth / userShrinkFactor);
     const targetHeight = Math.round(imgHeight / userShrinkFactor);
 
@@ -166,36 +168,30 @@ export async function commonContextParser(
       `Applying screenshot shrink factor: ${userShrinkFactor} (physical: ${imgWidth}x${imgHeight} -> target: ${targetWidth}x${targetHeight})`,
     );
 
-    const resizedBase64 = await resizeImgBase64(screenshotBase64, {
-      width: targetWidth,
-      height: targetHeight,
-    });
     return {
       shotSize: {
         width: targetWidth,
         height: targetHeight,
       },
       deprecatedDpr: dpr,
-      screenshot: ScreenshotItem.create(resizedBase64, screenshotCapturedAt),
+      screenshot: await createFinalizedScreenshotItem(
+        screenshotBase64,
+        screenshotCapturedAt,
+        {
+          targetSize: { width: targetWidth, height: targetHeight },
+        },
+      ),
       shrunkShotToLogicalRatio,
     };
   } else {
-    // PNG/raw producers are encoded once as WebP before the ScreenshotItem is
-    // shared by model requests and reports. Native JPEG sources are preserved
-    // to avoid a second lossy encode for MJPEG/HDC frames.
-    const outputScreenshotBase64 = await canonicalizeScreenshotBase64(
-      screenshotBase64,
-      { preserveJpeg: true },
-    );
-
     return {
       shotSize: {
         width: imgWidth,
         height: imgHeight,
       },
       deprecatedDpr: dpr,
-      screenshot: ScreenshotItem.create(
-        outputScreenshotBase64,
+      screenshot: await createFinalizedScreenshotItem(
+        screenshotBase64,
         screenshotCapturedAt,
       ),
       shrunkShotToLogicalRatio,
@@ -210,9 +206,8 @@ export async function createScreenshotBoundUIContext(
   },
 ): Promise<UIContext> {
   const normalizedScreenshotBase64 = normalizeBase64Image(screenshotBase64);
-  const canonicalScreenshotBase64 = await canonicalizeScreenshotBase64(
+  const canonicalScreenshotBase64 = await finalizeScreenshotBase64(
     normalizedScreenshotBase64,
-    { preserveJpeg: true },
   );
   const actualScreenshotSize = await imageInfoOfBase64(
     canonicalScreenshotBase64,

@@ -15,12 +15,16 @@ import {
   type HarmonyDeviceOpt as CoreHarmonyDeviceOpt,
   type MobileInputPrimitives,
   type PointerPoint,
+  type ScreenshotCaptureOptions,
   createDefaultMobileActions,
   defineAction,
 } from '@midscene/core/device';
 import { getTmpFile, sleep } from '@midscene/core/utils';
 import type { ElementInfo } from '@midscene/shared/extractor';
-import { createImgBase64ByFormat } from '@midscene/shared/img';
+import {
+  canonicalizeScreenshotBase64,
+  createImgBase64ByFormat,
+} from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { normalizeForComparison, repeat } from '@midscene/shared/utils';
 import { HdcClient } from './hdc';
@@ -433,7 +437,7 @@ export class HarmonyDevice implements AbstractInterface {
   private remoteScreenshotPath = '/data/local/tmp/ms_screen.jpeg';
   private localScreenshotPath: string | null = null;
 
-  async screenshotBase64(): Promise<string> {
+  async screenshotBase64(options?: ScreenshotCaptureOptions): Promise<string> {
     debugDevice('screenshotBase64 begin');
     const hdc = await this.getHdc();
 
@@ -475,10 +479,13 @@ export class HarmonyDevice implements AbstractInterface {
 
       if (screenshotBuffer && screenshotBuffer.length > 0) {
         debugDevice(`Screenshot captured: ${screenshotBuffer.length} bytes`);
-        return createImgBase64ByFormat(
+        const jpeg = createImgBase64ByFormat(
           'jpeg',
           screenshotBuffer.toString('base64'),
         );
+        return options?.preferLossless
+          ? jpeg
+          : canonicalizeScreenshotBase64(jpeg);
       }
 
       debugDevice(

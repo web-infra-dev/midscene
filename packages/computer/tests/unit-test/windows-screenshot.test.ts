@@ -76,6 +76,16 @@ describe('Windows screenshot via PowerShell (issue #2150)', () => {
     expect(script).not.toContain('DllImport');
   });
 
+  it('returns the native PNG source when Core will resize it', async () => {
+    Object.defineProperty(process, 'platform', { value: 'win32' });
+    const { ComputerDevice } = await import('../../src/device');
+
+    const device = new ComputerDevice({});
+    const base64 = await device.screenshotBase64({ preferLossless: true });
+
+    expect(base64).toBe(`data:image/png;base64,${FAKE_PNG_BASE64}`);
+  });
+
   it('targets the requested display by DeviceName and fails fast if missing', async () => {
     Object.defineProperty(process, 'platform', { value: 'win32' });
     const { ComputerDevice } = await import('../../src/device');

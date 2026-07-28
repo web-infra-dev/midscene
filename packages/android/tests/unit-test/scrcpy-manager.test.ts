@@ -106,6 +106,52 @@ describe('ScrcpyScreenshotManager', () => {
     });
   });
 
+  describe('screenshot output formats', () => {
+    it('routes regular screenshots through the WebP encoder', async () => {
+      const manager = new ScrcpyScreenshotManager({} as any);
+      const getScreenshot = vi
+        .spyOn(manager as any, 'getScreenshot')
+        .mockResolvedValue(Buffer.from('webp'));
+
+      await expect(manager.getScreenshotWebp()).resolves.toEqual(
+        Buffer.from('webp'),
+      );
+      expect(getScreenshot).toHaveBeenCalledWith('webp');
+    });
+
+    it('routes post-processing sources through the PNG encoder', async () => {
+      const manager = new ScrcpyScreenshotManager({} as any);
+      const getScreenshot = vi
+        .spyOn(manager as any, 'getScreenshot')
+        .mockResolvedValue(Buffer.from('png'));
+
+      await expect(manager.getScreenshotPng()).resolves.toEqual(
+        Buffer.from('png'),
+      );
+      expect(getScreenshot).toHaveBeenCalledWith('png');
+    });
+
+    it('decodes observed keyframes to PNG for Core finalization', async () => {
+      const manager = new ScrcpyScreenshotManager({} as any);
+      const decode = vi
+        .spyOn(manager as any, 'decodeH264ToImage')
+        .mockResolvedValue(Buffer.from('png'));
+      const frame = {
+        header: Buffer.from([0x67]),
+        data: Buffer.from([0x65]),
+        capturedAt: 123,
+      };
+
+      await expect(manager.decodeRawKeyframeToPng(frame)).resolves.toEqual(
+        Buffer.from('png'),
+      );
+      expect(decode).toHaveBeenCalledWith(
+        Buffer.concat([frame.header, frame.data]),
+        'png',
+      );
+    });
+  });
+
   describe('isConnected', () => {
     it('should return false initially', () => {
       const manager = new ScrcpyScreenshotManager({} as any);

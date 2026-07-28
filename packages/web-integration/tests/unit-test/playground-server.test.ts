@@ -1,7 +1,27 @@
+import { createServer } from 'node:net';
 import { ScreenshotItem } from '@midscene/core';
 import { PlaygroundServer } from '@midscene/playground';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { StaticPage, StaticPageAgent } from '../../src/static';
+
+async function findLoopbackPort(): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const probe = createServer();
+    probe.once('error', reject);
+    probe.listen(0, '127.0.0.1', () => {
+      const address = probe.address();
+      if (!address || typeof address === 'string') {
+        probe.close();
+        reject(new Error('Failed to allocate a loopback test port'));
+        return;
+      }
+      probe.close((error) => {
+        if (error) reject(error);
+        else resolve(address.port);
+      });
+    });
+  });
+}
 
 describe('Playground Server', () => {
   let server: PlaygroundServer;
@@ -14,7 +34,7 @@ describe('Playground Server', () => {
     });
     const agent = new StaticPageAgent(page);
     server = new PlaygroundServer(agent);
-    await server.launch();
+    await server.launch(await findLoopbackPort());
     serverBase = `http://localhost:${server.port}`;
   });
 
@@ -46,7 +66,8 @@ describe('Playground Server', () => {
   });
 
   it('updates static context with a JSON-serialized ScreenshotItem', async () => {
-    const screenshotBase64 = 'data:image/png;base64,abc123';
+    const screenshotBase64 =
+      'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
     const serializedScreenshot = JSON.parse(
       JSON.stringify(ScreenshotItem.create(screenshotBase64, Date.now())),
     );
@@ -70,6 +91,6 @@ describe('Playground Server', () => {
     const screenshotRes = await fetch(`${serverBase}/screenshot`);
     expect(screenshotRes.status).toBe(200);
     const screenshot = await screenshotRes.json();
-    expect(screenshot.screenshot).toBe(screenshotBase64);
+    expect(screenshot.screenshot).toMatch(/^data:image\/webp;base64,UklGR/);
   });
 });

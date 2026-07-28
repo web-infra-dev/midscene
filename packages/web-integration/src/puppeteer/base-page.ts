@@ -14,6 +14,7 @@ import type {
   DeviceFrameSource,
   MjpegStreamHandle,
   MjpegStreamOptions,
+  ScreenshotCaptureOptions,
 } from '@midscene/core/device';
 import { sleep } from '@midscene/core/utils';
 import {
@@ -457,7 +458,19 @@ export class Page<
     return sizeInfo;
   }
 
-  async screenshotBase64(): Promise<string> {
+  async screenshotBase64(options?: ScreenshotCaptureOptions): Promise<string> {
+    if (options?.preferLossless) {
+      const png = await this.underlyingPage.screenshot({
+        type: 'png',
+        ...(this.interfaceType === 'puppeteer'
+          ? { encoding: 'base64' as const }
+          : { timeout: 10 * 1000 }),
+      });
+      const body =
+        typeof png === 'string' ? png : Buffer.from(png).toString('base64');
+      return createImgBase64ByFormat('png', body);
+    }
+
     const imgType = 'webp' as const;
     const quality = 90;
     const startTime = Date.now();

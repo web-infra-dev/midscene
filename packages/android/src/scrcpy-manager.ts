@@ -62,6 +62,8 @@ export interface RawKeyframe {
   capturedAt: number;
 }
 
+type ScrcpyScreenshotFormat = 'png' | 'webp';
+
 /**
  * Check if NAL unit type indicates a keyframe (IDR, SPS, or PPS)
  */
@@ -497,7 +499,17 @@ export class ScrcpyScreenshotManager {
    * sampled frames, never inside a capture loop.
    */
   async decodeRawKeyframeToWebp(frame: RawKeyframe): Promise<Buffer> {
-    return this.decodeH264ToWebp(Buffer.concat([frame.header, frame.data]));
+    return this.decodeH264ToImage(
+      Buffer.concat([frame.header, frame.data]),
+      'webp',
+    );
+  }
+
+  async decodeRawKeyframeToPng(frame: RawKeyframe): Promise<Buffer> {
+    return this.decodeH264ToImage(
+      Buffer.concat([frame.header, frame.data]),
+      'png',
+    );
   }
 
   /**
@@ -506,6 +518,15 @@ export class ScrcpyScreenshotManager {
    * (no new frames arrive), falls back to the latest cached keyframe.
    */
   async getScreenshotWebp(): Promise<Buffer> {
+    return this.getScreenshot('webp');
+  }
+
+  /** Lossless source for callers that will resize and WebP-encode in Core. */
+  async getScreenshotPng(): Promise<Buffer> {
+    return this.getScreenshot('png');
+  }
+
+  private async getScreenshot(format: ScrcpyScreenshotFormat): Promise<Buffer> {
     const perfStart = Date.now();
 
     const t1 = Date.now();
@@ -542,7 +563,7 @@ export class ScrcpyScreenshotManager {
     );
 
     const t4 = Date.now();
-    const result = await this.decodeH264ToWebp(keyframeBuffer);
+    const result = await this.decodeH264ToImage(keyframeBuffer, format);
     const decodeTime = Date.now() - t4;
 
     const totalTime = Date.now() - perfStart;
@@ -662,10 +683,14 @@ export class ScrcpyScreenshotManager {
   }
 
   /**
-   * Decode H.264 to raw RGB with ffmpeg, then encode the selected frame once
-   * as WebP with Sharp. The bundled ffmpeg does not include libwebp.
+   * Decode H.264 to raw RGB with ffmpeg, then encode the selected frame with
+   * Sharp. PNG is used only as a lossless handoff when Core will resize and
+   * perform the single final WebP encode.
    */
-  private async decodeH264ToWebp(h264Buffer: Buffer): Promise<Buffer> {
+  private async decodeH264ToImage(
+    h264Buffer: Buffer,
+    format: ScrcpyScreenshotFormat,
+  ): Promise<Buffer> {
     const { spawn } = await import('node:child_process');
     const { default: sharp } = await import('sharp');
     const resolution = this.videoResolution;
@@ -700,16 +725,20 @@ export class ScrcpyScreenshotManager {
       let stderrOutput = '';
       let settled = false;
 
-      const encoder = sharp({
+      const rawImage = sharp({
         raw: {
           width: resolution.width,
           height: resolution.height,
           channels: 3,
         },
-      }).webp({ quality: 90, effort: 1 });
+      });
+      const encoder =
+        format === 'webp'
+          ? rawImage.webp({ quality: 90, effort: 1 })
+          : rawImage.png({ compressionLevel: 1 });
       // Resolve failures into a value immediately so an ffmpeg spawn/exit
       // failure cannot leave Sharp with a temporarily unhandled rejection.
-      const encodedWebpResult = encoder.toBuffer().then(
+      const encodedImageResult = encoder.toBuffer().then(
         (buffer) => ({ ok: true as const, buffer }),
         (error: unknown) => ({ ok: false as const, error }),
       );
@@ -730,27 +759,33 @@ export class ScrcpyScreenshotManager {
         }
 
         try {
-          const encodeResult = await encodedWebpResult;
+          const encodeResult = await encodedImageResult;
           if (!encodeResult.ok) {
             throw encodeResult.error;
           }
-          const webpBuffer = encodeResult.buffer;
-          if (
-            webpBuffer.subarray(0, 4).toString('ascii') !== 'RIFF' ||
-            webpBuffer.subarray(8, 12).toString('ascii') !== 'WEBP'
-          ) {
-            throw new Error('Sharp returned invalid WebP bytes');
+          const imageBuffer = encodeResult.buffer;
+          const validOutput =
+            format === 'webp'
+              ? imageBuffer.subarray(0, 4).toString('ascii') === 'RIFF' &&
+                imageBuffer.subarray(8, 12).toString('ascii') === 'WEBP'
+              : imageBuffer.length >= 8 &&
+                imageBuffer[0] === 0x89 &&
+                imageBuffer.subarray(1, 4).toString('ascii') === 'PNG';
+          if (!validOutput) {
+            throw new Error(
+              `Sharp returned invalid ${format.toUpperCase()} bytes`,
+            );
           }
           settled = true;
           debugScrcpy(
-            `H.264 decode and WebP encode successful, WebP size: ${webpBuffer.length} bytes`,
+            `H.264 decode and ${format.toUpperCase()} encode successful, size: ${imageBuffer.length} bytes`,
           );
-          resolve(webpBuffer);
+          resolve(imageBuffer);
         } catch (error) {
           settled = true;
           reject(
             new Error(
-              `H.264 to WebP encode failed: ${error instanceof Error ? error.message : String(error)}`,
+              `H.264 to ${format.toUpperCase()} encode failed: ${error instanceof Error ? error.message : String(error)}`,
             ),
           );
         }

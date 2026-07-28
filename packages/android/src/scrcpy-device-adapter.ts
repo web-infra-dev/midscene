@@ -1,4 +1,5 @@
 import type { Size } from '@midscene/core';
+import type { ScreenshotCaptureOptions } from '@midscene/core/device';
 import { createImgBase64ByFormat } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import type { RawKeyframe, ScrcpyScreenshotManager } from './scrcpy-manager';
@@ -202,16 +203,22 @@ export class ScrcpyDeviceAdapter {
    * Take a screenshot via scrcpy, returns base64 string.
    * Throws on failure (caller should fallback to ADB).
    */
-  async screenshotBase64(deviceInfo: DevicePhysicalInfo): Promise<string> {
+  async screenshotBase64(
+    deviceInfo: DevicePhysicalInfo,
+    options?: ScreenshotCaptureOptions,
+  ): Promise<string> {
     this.ensureRetryReady();
 
     try {
       const manager = await this.ensureManager(deviceInfo);
-      const screenshotBuffer = await manager.getScreenshotWebp();
+      const format = options?.preferLossless ? 'png' : 'webp';
+      const screenshotBuffer = options?.preferLossless
+        ? await manager.getScreenshotPng()
+        : await manager.getScreenshotWebp();
       this.clearFailure();
 
       return createImgBase64ByFormat(
-        'webp',
+        format,
         screenshotBuffer.toString('base64'),
       );
     } catch (error) {
@@ -258,6 +265,15 @@ export class ScrcpyDeviceAdapter {
     }
     const webpBuffer = await this.manager.decodeRawKeyframeToWebp(frame);
     return createImgBase64ByFormat('webp', webpBuffer.toString('base64'));
+  }
+
+  /** Decode losslessly so Core can resize and perform the final WebP encode. */
+  async decodeRawKeyframeToPngBase64(frame: RawKeyframe): Promise<string> {
+    if (!this.manager) {
+      throw new Error('scrcpy manager is not initialized');
+    }
+    const pngBuffer = await this.manager.decodeRawKeyframeToPng(frame);
+    return createImgBase64ByFormat('png', pngBuffer.toString('base64'));
   }
 
   /**

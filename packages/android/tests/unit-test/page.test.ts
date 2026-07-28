@@ -567,6 +567,21 @@ Stdout:
       expect(mockAdb.shell).not.toHaveBeenCalled();
     });
 
+    it('should return the native PNG source when Core will resize it', async () => {
+      const mockBuffer = createValidPngBuffer();
+      mockAdb.takeScreenshot.mockResolvedValue(mockBuffer);
+      vi.spyOn(ImgUtils, 'createImgBase64ByFormat').mockReturnValue(
+        `data:image/png;base64,${mockBuffer.toString('base64')}`,
+      );
+
+      const result = await device.screenshotBase64({ preferLossless: true });
+
+      expect(result).toBe(
+        `data:image/png;base64,${mockBuffer.toString('base64')}`,
+      );
+      expect(ImgUtils.canonicalizeScreenshotBase64).not.toHaveBeenCalled();
+    });
+
     it('should fall back to screencap and pull if takeScreenshot fails', async () => {
       mockAdb.takeScreenshot.mockRejectedValue(new Error('fail'));
       const mockBuffer = createValidPngBuffer();

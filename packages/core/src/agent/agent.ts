@@ -75,6 +75,7 @@ import {
   runGherkinScenario,
 } from './run-gherkin-scenario';
 import { markdownToAiActPrompt } from './run-markdown';
+import { createFinalizedScreenshotItem } from './screenshot-finalizer';
 import { TaskCache } from './task-cache';
 import {
   TaskExecutionError,
@@ -486,7 +487,12 @@ export class Agent<
           (await this.interface.openFrameSource?.()) ?? undefined,
         // Fallback single-frame capture. Deliberately bypasses getUIContext so
         // the observation loop never pollutes the TaskRunner context cache.
-        screenshot: () => this.interface.screenshotBase64(),
+        screenshot: () =>
+          this.interface.screenshotBase64(
+            (this.opts.screenshotShrinkFactor ?? 1) > 1
+              ? { preferLossless: true }
+              : undefined,
+          ),
         captureRepresentative: () => this.getUIContext('assert'),
         runAssert: (assertion, uiContext, msg, assertOpt) =>
           this.aiAssertWithContext(assertion, uiContext, msg, assertOpt),
@@ -1598,8 +1604,8 @@ export class Agent<
         : [{ base64: await this.interface.screenshotBase64() }]);
 
     // 1. build recorder
-    const recorder: ExecutionRecorderItem[] = screenshotInputs.map(
-      (screenshotInput, index) => {
+    const recorder: ExecutionRecorderItem[] = await Promise.all(
+      screenshotInputs.map(async (screenshotInput, index) => {
         const normalizedScreenshotInput = normalizeRecordToReportScreenshot(
           screenshotInput,
           index,
@@ -1608,13 +1614,14 @@ export class Agent<
         return {
           type: 'screenshot',
           ts,
-          screenshot: ScreenshotItem.create(
+          screenshot: await createFinalizedScreenshotItem(
             normalizedScreenshotInput.base64,
             ts,
+            { label: `recordToReport: screenshot #${index + 1} base64` },
           ),
           description: normalizedScreenshotInput.description,
         };
-      },
+      }),
     );
     // 2. build ExecutionTaskLog
     const task: ExecutionTaskLog = {
@@ -1667,7 +1674,9 @@ export class Agent<
       recorder.push({
         type: 'screenshot',
         ts: now,
-        screenshot: ScreenshotItem.create(base64, now),
+        screenshot: await createFinalizedScreenshotItem(base64, now, {
+          label: 'recordErrorToReport: screenshotBase64',
+        }),
       });
     }
 

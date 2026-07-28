@@ -1,9 +1,10 @@
-import { imageInfoOfBase64, resizeImgBase64 } from '@midscene/shared/img';
+import { imageInfoOfBase64 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import type { DeviceFrameRef, DeviceFrameSource } from '../device';
 import { ScreenshotItem } from '../screenshot-item';
 import type { AgentAssertOpt, ServiceExtractOption, UIContext } from '../types';
+import { finalizeScreenshotBase64 } from './screenshot-finalizer';
 
 const debug = getDebug('ui-observer');
 const warnObserver = getDebug('ui-observer', { console: true });
@@ -207,9 +208,9 @@ export class UIObserver {
         this.preDecodePromise = this.source
           .decode(uniqueRefs)
           .then(async (results) => {
-            const shrunk = await this.shrinkAllIfNeeded(results);
+            const finalized = await this.finalizeAll(results);
             uniqueRefs.forEach((ref, i) => {
-              this.decodedCache.set(ref.ref, shrunk[i]);
+              this.decodedCache.set(ref.ref, finalized[i]);
             });
             debug(`pre-decoded ${uniqueRefs.length} frames`);
           })
@@ -318,7 +319,7 @@ export class UIObserver {
     );
     if (uncachedRefs.length > 0) {
       const results = this.source
-        ? await this.shrinkAllIfNeeded(await this.source.decode(uncachedRefs))
+        ? await this.finalizeAll(await this.source.decode(uncachedRefs))
         : uncachedRefs.map((f) => f.ref as string);
       assert(
         results.length === uncachedRefs.length,
@@ -369,16 +370,7 @@ export class UIObserver {
         if (frame) this.pushFrame(frame);
         return;
       }
-      let base64 = await this.deps.screenshot();
-      // Apply shrink factor to fallback screenshots so they match the
-      // representative frame size and don't inflate token cost.
-      if (this.screenshotShrinkFactor > 1) {
-        const { width, height } = await imageInfoOfBase64(base64);
-        base64 = await resizeImgBase64(base64, {
-          width: Math.round(width / this.screenshotShrinkFactor),
-          height: Math.round(height / this.screenshotShrinkFactor),
-        });
-      }
+      const base64 = await this.finalizeOne(await this.deps.screenshot());
       this.pushFrame({ ref: base64, capturedAt: Date.now() });
     } catch (error) {
       debug(`frame capture failed, skipping tick: ${error}`);
@@ -386,24 +378,25 @@ export class UIObserver {
   }
 
   /**
-   * Apply screenshotShrinkFactor to an array of decoded base64 images in
-   * parallel. Returns the input unchanged when shrink factor is 1. Source
-   * frames come at device-native resolution; shrinking them matches the
-   * representative frame size so the sequence sent to the model has
-   * consistent resolution and token cost.
+   * Finalize decoded screenshots in parallel. Source frames can be PNG/JPEG
+   * so the resize and final WebP encode happen together exactly once.
    */
-  private async shrinkAllIfNeeded(base64s: string[]): Promise<string[]> {
-    if (this.screenshotShrinkFactor <= 1) return base64s;
-    const factor = this.screenshotShrinkFactor;
-    return Promise.all(
-      base64s.map(async (b64) => {
-        const { width, height } = await imageInfoOfBase64(b64);
-        return resizeImgBase64(b64, {
-          width: Math.round(width / factor),
-          height: Math.round(height / factor),
-        });
-      }),
-    );
+  private async finalizeAll(base64s: string[]): Promise<string[]> {
+    return Promise.all(base64s.map((base64) => this.finalizeOne(base64)));
+  }
+
+  private async finalizeOne(base64: string): Promise<string> {
+    if (this.screenshotShrinkFactor <= 1) {
+      return finalizeScreenshotBase64(base64);
+    }
+
+    const { width, height } = await imageInfoOfBase64(base64);
+    return finalizeScreenshotBase64(base64, {
+      targetSize: {
+        width: Math.round(width / this.screenshotShrinkFactor),
+        height: Math.round(height / this.screenshotShrinkFactor),
+      },
+    });
   }
 
   private async runLoop(): Promise<void> {

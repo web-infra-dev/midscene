@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock('@midscene/shared/img', () => ({
   canonicalizeScreenshotBase64: vi.fn().mockResolvedValue('mock-base64-data'),
   imageInfoOfBase64: vi.fn(),
+  normalizeScreenshotBase64: vi.fn((base64) => base64),
   resizeImgBase64: vi.fn().mockResolvedValue('mock-resized-base64-data'),
 }));
 

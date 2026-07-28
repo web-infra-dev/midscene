@@ -8,6 +8,7 @@ import type {
 import {
   type AbstractInterface,
   type ComputerInputPrimitives,
+  type ScreenshotCaptureOptions,
   defineAction,
   defineActionsFromInputPrimitives,
 } from '@midscene/core/device';
@@ -257,11 +258,12 @@ export class RDPDevice implements AbstractInterface {
     ];
   }
 
-  async screenshotBase64(): Promise<string> {
+  async screenshotBase64(options?: ScreenshotCaptureOptions): Promise<string> {
     this.assertConnected();
-    return canonicalizeScreenshotBase64(await this.backend.screenshotBase64(), {
-      preserveJpeg: true,
-    });
+    const source = await this.backend.screenshotBase64();
+    return options?.preferLossless
+      ? source
+      : canonicalizeScreenshotBase64(source);
   }
 
   async size(): Promise<Size> {

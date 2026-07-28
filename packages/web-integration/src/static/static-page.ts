@@ -7,9 +7,11 @@ import type {
 import type { AbstractInterface } from '@midscene/core/device';
 import {
   type InputPrimitives,
+  type ScreenshotCaptureOptions,
   defineActionsFromInputPrimitives,
 } from '@midscene/core/device';
 import { ERROR_CODE_NOT_IMPLEMENTED_AS_DESIGNED } from '@midscene/shared/common';
+import { canonicalizeScreenshotBase64 } from '@midscene/shared/img';
 
 const ThrowNotImplemented = (methodName: string) => {
   throw new Error(
@@ -113,8 +115,11 @@ export default class StaticPage implements AbstractInterface {
     };
   }
 
-  async screenshotBase64() {
-    return screenshotBase64FromContext(this.uiContext.screenshot);
+  async screenshotBase64(options?: ScreenshotCaptureOptions) {
+    const source = screenshotBase64FromContext(this.uiContext.screenshot);
+    return options?.preferLossless
+      ? source
+      : canonicalizeScreenshotBase64(source);
   }
 
   async url() {

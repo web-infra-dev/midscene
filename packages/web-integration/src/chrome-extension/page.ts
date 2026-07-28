@@ -18,6 +18,7 @@ import type {
   DeviceAction,
   FileChooserHandler,
   FileChooserRegistration,
+  ScreenshotCaptureOptions,
 } from '@midscene/core/device';
 import type { ElementInfo } from '@midscene/shared/extractor';
 import { treeToList } from '@midscene/shared/extractor';
@@ -772,7 +773,7 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
   }
 
   async screenshotBase64(
-    format?: ChromeExtensionScreenshotFormat,
+    options?: ChromeExtensionScreenshotFormat | ScreenshotCaptureOptions,
   ): Promise<string> {
     // screenshot by cdp
     await this.hideMousePointer();
@@ -782,7 +783,11 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
           CDPTypes.Page.CaptureScreenshotResponse,
           CDPTypes.Page.CaptureScreenshotRequest
         >('Page.captureScreenshot', params),
-      format,
+      typeof options === 'string'
+        ? options
+        : options?.preferLossless
+          ? 'png'
+          : undefined,
     );
   }
 

@@ -303,6 +303,17 @@ describe('IOSDevice', () => {
       expect(mockWdaClient.takeScreenshot).toHaveBeenCalled();
     });
 
+    it('should return the native PNG source when Core will resize it', async () => {
+      await device.connect();
+
+      const screenshot = await device.screenshotBase64({
+        preferLossless: true,
+      });
+
+      expect(screenshot).toBe(`data:image/png;base64,${validPngBase64}`);
+      expect(mockWdaClient.takeScreenshot).toHaveBeenCalled();
+    });
+
     it('should handle app launch with bundle ID', async () => {
       await device.connect();
 

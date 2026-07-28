@@ -49,6 +49,25 @@ describe('Page screenshotBase64', () => {
     });
   });
 
+  it('returns a native PNG source when Core will resize a Puppeteer screenshot', async () => {
+    const screenshot = vi.fn().mockResolvedValue(pngBody);
+    const page = new Page(
+      {
+        url: () => 'http://example.com',
+        screenshot,
+      } as any,
+      'puppeteer',
+    );
+
+    await expect(page.screenshotBase64({ preferLossless: true })).resolves.toBe(
+      `data:image/png;base64,${pngBody}`,
+    );
+    expect(screenshot).toHaveBeenCalledWith({
+      type: 'png',
+      encoding: 'base64',
+    });
+  });
+
   it('uses Chromium CDP native WebP when available', async () => {
     const screenshot = vi.fn().mockResolvedValue(Buffer.from('plain-shot'));
     const detach = vi.fn().mockResolvedValue(undefined);
@@ -77,6 +96,37 @@ describe('Page screenshotBase64', () => {
       format: 'webp',
       quality: 90,
     });
+  });
+
+  it('returns a native PNG source without opening CDP when Core will resize a Playwright screenshot', async () => {
+    const screenshot = vi
+      .fn()
+      .mockResolvedValue(Buffer.from(pngBody, 'base64'));
+    const newCDPSession = vi.fn();
+    const mockPage = {
+      url: () => 'http://example.com',
+      isClosed: () => false,
+      screenshot,
+      context: () => ({
+        browser: () => ({
+          browserType: () => ({
+            name: () => 'chromium',
+          }),
+        }),
+        newCDPSession,
+      }),
+    } as any;
+
+    const page = new Page(mockPage, 'playwright');
+
+    await expect(page.screenshotBase64({ preferLossless: true })).resolves.toBe(
+      `data:image/png;base64,${pngBody}`,
+    );
+    expect(screenshot).toHaveBeenCalledWith({
+      type: 'png',
+      timeout: 10 * 1000,
+    });
+    expect(newCDPSession).not.toHaveBeenCalled();
   });
 
   it('falls back to public PNG capture and returns WebP without CDP', async () => {

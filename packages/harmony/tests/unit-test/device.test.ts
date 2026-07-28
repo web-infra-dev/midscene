@@ -52,6 +52,9 @@ vi.mock('@midscene/shared/img', () => ({
   createImgBase64ByFormat: vi
     .fn()
     .mockReturnValue('data:image/jpeg;base64,fake'),
+  canonicalizeScreenshotBase64: vi
+    .fn()
+    .mockResolvedValue('data:image/webp;base64,converted'),
 }));
 
 // @ts-ignore package tsconfig keeps module=ES2020 for build compatibility; this test intentionally uses top-level dynamic import so mocks are registered first.
@@ -727,9 +730,18 @@ describe('HarmonyDevice', () => {
     it('should take screenshot and return base64', async () => {
       await device.connect();
       const result = await device.screenshotBase64();
-      expect(result).toBe('data:image/jpeg;base64,fake');
+      expect(result).toBe('data:image/webp;base64,converted');
       expect(mockHdc.screenshot).toHaveBeenCalled();
       expect(mockHdc.fileRecv).toHaveBeenCalled();
+    });
+
+    it('should return the native JPEG source when Core will resize it', async () => {
+      await device.connect();
+
+      const result = await device.screenshotBase64({ preferLossless: true });
+
+      expect(result).toBe('data:image/jpeg;base64,fake');
+      expect(mockHdc.screenshot).toHaveBeenCalled();
     });
   });
 

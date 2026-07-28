@@ -25,7 +25,9 @@ const createMockManager = () => ({
   ensureConnected: vi.fn().mockResolvedValue(undefined),
   isConnected: vi.fn().mockReturnValue(false),
   getScreenshotWebp: vi.fn().mockResolvedValue(Buffer.from('fake-webp')),
+  getScreenshotPng: vi.fn().mockResolvedValue(Buffer.from('fake-png')),
   decodeRawKeyframeToWebp: vi.fn().mockResolvedValue(Buffer.from('fake-webp')),
+  decodeRawKeyframeToPng: vi.fn().mockResolvedValue(Buffer.from('fake-png')),
   getResolution: vi.fn().mockReturnValue(null),
   disconnect: vi.fn().mockResolvedValue(undefined),
 });
@@ -45,7 +47,7 @@ vi.mock('../../src/scrcpy-manager', async (importOriginal) => {
 vi.mock('@midscene/shared/img', () => ({
   createImgBase64ByFormat: vi
     .fn()
-    .mockReturnValue('data:image/webp;base64,test'),
+    .mockImplementation((format: string) => `data:image/${format};base64,test`),
 }));
 
 const defaultDeviceInfo: DevicePhysicalInfo = {
@@ -341,6 +343,19 @@ describe('ScrcpyDeviceAdapter', () => {
       expect(currentMockManager.getScreenshotWebp).toHaveBeenCalledTimes(1);
     });
 
+    it('should return a PNG source when Core will resize the screenshot', async () => {
+      const adapter = new ScrcpyDeviceAdapter('device', undefined);
+      (adapter as any).manager = currentMockManager;
+
+      const result = await adapter.screenshotBase64(defaultDeviceInfo, {
+        preferLossless: true,
+      });
+
+      expect(result).toBe('data:image/png;base64,test');
+      expect(currentMockManager.getScreenshotPng).toHaveBeenCalledTimes(1);
+      expect(currentMockManager.getScreenshotWebp).not.toHaveBeenCalled();
+    });
+
     it('decodes sampled H.264 keyframes directly to WebP data URLs', async () => {
       const adapter = new ScrcpyDeviceAdapter('device', undefined);
       (adapter as any).manager = currentMockManager;
@@ -354,6 +369,23 @@ describe('ScrcpyDeviceAdapter', () => {
         'data:image/webp;base64,test',
       );
       expect(currentMockManager.decodeRawKeyframeToWebp).toHaveBeenCalledWith(
+        frame,
+      );
+    });
+
+    it('decodes sampled H.264 keyframes losslessly for Core finalization', async () => {
+      const adapter = new ScrcpyDeviceAdapter('device', undefined);
+      (adapter as any).manager = currentMockManager;
+      const frame = {
+        header: Buffer.from([0x67]),
+        data: Buffer.from([0x65]),
+        capturedAt: 123,
+      };
+
+      await expect(adapter.decodeRawKeyframeToPngBase64(frame)).resolves.toBe(
+        'data:image/png;base64,test',
+      );
+      expect(currentMockManager.decodeRawKeyframeToPng).toHaveBeenCalledWith(
         frame,
       );
     });

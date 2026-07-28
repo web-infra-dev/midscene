@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock('@midscene/shared/img', () => ({
   canonicalizeScreenshotBase64: vi.fn(),
   imageInfoOfBase64: vi.fn(),
+  normalizeScreenshotBase64: vi.fn((base64) => base64),
   resizeImgBase64: vi.fn().mockResolvedValue('mock-resized-base64-data'),
 }));
 
@@ -35,7 +36,7 @@ function createMockInterface(
 describe('commonContextParser screenshotShrinkFactor', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockedCanonicalize.mockResolvedValue('mock-base64-data');
+    mockedCanonicalize.mockImplementation(async (base64) => base64);
   });
 
   it('canonicalizes screenshots before sharing them with AI and reports', async () => {
@@ -47,9 +48,8 @@ describe('commonContextParser screenshotShrinkFactor', () => {
 
     const result = await commonContextParser(mockInterface, {});
 
-    expect(mockedCanonicalize).toHaveBeenCalledWith('mock-base64-data', {
-      preserveJpeg: true,
-    });
+    expect(mockedCanonicalize).toHaveBeenCalledWith('mock-base64-data');
+    expect(mockInterface.screenshotBase64).toHaveBeenCalledWith(undefined);
     expect(result.screenshot.base64).toBe(
       'data:image/webp;base64,canonical-webp',
     );
@@ -77,7 +77,10 @@ describe('commonContextParser screenshotShrinkFactor', () => {
       width: 1200,
       height: 600,
     });
-    expect(mockedCanonicalize).not.toHaveBeenCalled();
+    expect(mockedCanonicalize).toHaveBeenCalledWith('mock-resized-base64-data');
+    expect(mockInterface.screenshotBase64).toHaveBeenCalledWith({
+      preferLossless: true,
+    });
     expect(result.shotSize).toEqual({ width: 1200, height: 600 });
   });
 

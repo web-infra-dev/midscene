@@ -3,6 +3,14 @@ import { ScreenshotItem } from '@/screenshot-item';
 import type { UIContext } from '@/types';
 import { describe, expect, it, vi } from 'vitest';
 
+const { finalizeScreenshotBase64 } = vi.hoisted(() => ({
+  finalizeScreenshotBase64: vi.fn(async (base64: string) => `final:${base64}`),
+}));
+
+vi.mock('@/agent/screenshot-finalizer', () => ({
+  finalizeScreenshotBase64,
+}));
+
 const defaultModel = { config: { slot: 'default' } };
 
 const fakeContext = (tag: string): UIContext =>
@@ -15,7 +23,12 @@ const fakeContext = (tag: string): UIContext =>
     shrunkShotToLogicalRatio: 1,
   }) as UIContext;
 
-const createAgentStub = (opts: { openFrameSource?: () => any } = {}) => {
+const createAgentStub = (
+  opts: {
+    openFrameSource?: () => any;
+    screenshotShrinkFactor?: number;
+  } = {},
+) => {
   const agent = Object.create(Agent.prototype) as Agent<any>;
   const createTypeQueryExecution = vi.fn(async () => ({
     output: true,
@@ -24,7 +37,9 @@ const createAgentStub = (opts: { openFrameSource?: () => any } = {}) => {
   const screenshotBase64 = vi.fn(
     async () => 'data:image/png;base64,iVBORw0KGgo-fallback',
   );
-  (agent as any).opts = {};
+  (agent as any).opts = {
+    screenshotShrinkFactor: opts.screenshotShrinkFactor,
+  };
   (agent as any).taskExecutor = { createTypeQueryExecution };
   (agent as any).resolveModelRuntime = vi.fn(() => defaultModel);
   (agent as any).interface = {
@@ -68,7 +83,7 @@ describe('Agent.startObserving', () => {
     expect(executionOptions.uiContext).toBeDefined();
     const sequence = executionOptions.uiContext.screenshotSequence;
     expect(sequence.length).toBeGreaterThanOrEqual(2);
-    expect(sequence[0].base64.startsWith('dec:')).toBe(true);
+    expect(sequence[0].base64.startsWith('final:dec:')).toBe(true);
   });
 
   it('rejects starting a second observer while one is active', async () => {
@@ -111,6 +126,17 @@ describe('Agent.startObserving', () => {
     expect(
       executionOptions.uiContext.screenshotSequence.length,
     ).toBeGreaterThanOrEqual(2);
+  });
+
+  it('requests a lossless fallback source when Core will resize the frame', async () => {
+    const { agent, screenshotBase64 } = createAgentStub({
+      screenshotShrinkFactor: 2,
+    });
+
+    const observer = await agent.startObserving({ intervalMs: 200 });
+    await observer.stop();
+
+    expect(screenshotBase64).toHaveBeenCalledWith({ preferLossless: true });
   });
 
   it('plain aiAssert / aiBoolean stay single-frame (no uiContext injected)', async () => {

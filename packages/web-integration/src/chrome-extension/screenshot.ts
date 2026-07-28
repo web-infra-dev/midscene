@@ -1,6 +1,6 @@
 import type { Protocol as CDPTypes } from 'devtools-protocol';
 
-export type ChromeExtensionScreenshotFormat = 'webp' | 'jpeg';
+export type ChromeExtensionScreenshotFormat = 'webp' | 'jpeg' | 'png';
 
 export const DEFAULT_CHROME_EXTENSION_SCREENSHOT_FORMAT: ChromeExtensionScreenshotFormat =
   'webp';
@@ -13,7 +13,7 @@ export async function captureChromeExtensionScreenshot(
 ): Promise<string> {
   const result = await sendCaptureCommand({
     format,
-    quality: 90,
+    ...(format === 'png' ? {} : { quality: 90 }),
   });
   return `data:image/${format};base64,${result.data}`;
 }

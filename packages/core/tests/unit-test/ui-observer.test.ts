@@ -4,6 +4,14 @@ import { ScreenshotItem } from '@/screenshot-item';
 import type { UIContext } from '@/types';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+const { finalizeScreenshotBase64 } = vi.hoisted(() => ({
+  finalizeScreenshotBase64: vi.fn(async (base64: string) => `final:${base64}`),
+}));
+
+vi.mock('@/agent/screenshot-finalizer', () => ({
+  finalizeScreenshotBase64,
+}));
+
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 const fakeRepresentative = (): UIContext =>
@@ -110,9 +118,9 @@ describe('UIObserver', () => {
     const uiContext = (runAssert.mock.calls[0] as any[])[1] as UIContext;
     const sequence = uiContext.screenshotSequence!;
     expect(sequence.length).toBeGreaterThanOrEqual(3);
-    expect(sequence[0].base64).toBe('decoded:f0');
+    expect(sequence[0].base64).toBe('final:decoded:f0');
     // Representative screenshot is aligned with last sampled frame.
-    expect(sequence[sequence.length - 1].base64).toBe('decoded:f1');
+    expect(sequence[sequence.length - 1].base64).toBe('final:decoded:f1');
     expect(fake.stop).toHaveBeenCalledTimes(1);
   });
 
@@ -313,7 +321,9 @@ describe('UIObserver', () => {
     expect(screenshot).toHaveBeenCalled();
     const uiContext = (runAssert.mock.calls[0] as any[])[1] as UIContext;
     expect(
-      uiContext.screenshotSequence![0].base64.startsWith('data:image/png'),
+      uiContext.screenshotSequence![0].base64.startsWith(
+        'final:data:image/png',
+      ),
     ).toBe(true);
   });
 

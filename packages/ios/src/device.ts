@@ -14,6 +14,7 @@ import {
   type IOSDeviceOpt,
   type MobileInputPrimitives,
   type PointerPoint,
+  type ScreenshotCaptureOptions,
   createDefaultMobileActions,
   defineAction,
 } from '@midscene/core/device';
@@ -432,13 +433,14 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
     };
   }
 
-  async screenshotBase64(): Promise<string> {
+  async screenshotBase64(options?: ScreenshotCaptureOptions): Promise<string> {
     debugDevice('Taking screenshot via WDA');
     try {
       const base64Data = await this.wdaBackend.takeScreenshot();
-      const result = await canonicalizeScreenshotBase64(
-        createImgBase64ByFormat('png', base64Data),
-      );
+      const png = createImgBase64ByFormat('png', base64Data);
+      const result = options?.preferLossless
+        ? png
+        : await canonicalizeScreenshotBase64(png);
       debugDevice('Screenshot taken successfully');
       return result;
     } catch (error) {

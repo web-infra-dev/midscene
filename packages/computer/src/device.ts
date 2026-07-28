@@ -12,6 +12,7 @@ import type {
 import {
   type AbstractInterface,
   type ComputerInputPrimitives,
+  type ScreenshotCaptureOptions,
   defineAction,
   defineActionsFromInputPrimitives,
 } from '@midscene/core/device';
@@ -1108,7 +1109,7 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
     return this.adminCheckCache;
   }
 
-  async screenshotBase64(): Promise<string> {
+  async screenshotBase64(options?: ScreenshotCaptureOptions): Promise<string> {
     if (this.destroyed) {
       throw new Error('ComputerDevice has been destroyed');
     }
@@ -1123,10 +1124,10 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
     // virtual-desktop coordinates, so it captures any monitor (including
     // secondary displays at negative offsets) without csc/.bat/.NET source.
     if (process.platform === 'win32') {
-      return this.screenshotViaPowershell();
+      return this.screenshotViaPowershell(options);
     }
 
-    const options: ScreenshotOptions = { format: 'png' };
+    const screenshotOptions: ScreenshotOptions = { format: 'png' };
     if (this.displayId !== undefined) {
       // On macOS: displayId is screenshot-desktop's screen index.
       // On Windows: displayId is string like "\\.\DISPLAY1"
@@ -1134,14 +1135,14 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
       if (process.platform === 'darwin') {
         const screenIndex = Number(this.displayId);
         if (!Number.isNaN(screenIndex)) {
-          options.screen = screenIndex;
+          screenshotOptions.screen = screenIndex;
         }
       } else {
         // Windows and Linux use string IDs directly
-        options.screen = this.displayId;
+        screenshotOptions.screen = this.displayId;
       }
     }
-    debugDevice('Screenshot options', options);
+    debugDevice('Screenshot options', screenshotOptions);
 
     // macOS `screencapture` returns "could not create image from display"
     // both for missing TCC Screen Recording permission AND for transient
@@ -1155,13 +1156,14 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
     let lastRawMessage = '';
     for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
       try {
-        const buffer: Buffer = await screenshot(options);
+        const buffer: Buffer = await screenshot(screenshotOptions);
         if (attempt > 1) {
           debugDevice(`Screenshot succeeded on attempt ${attempt}`);
         }
-        return canonicalizeScreenshotBase64(
-          createImgBase64ByFormat('png', buffer.toString('base64')),
-        );
+        const png = createImgBase64ByFormat('png', buffer.toString('base64'));
+        return options?.preferLossless
+          ? png
+          : canonicalizeScreenshotBase64(png);
       } catch (error) {
         lastRawMessage = error instanceof Error ? error.message : String(error);
         const isMacTransient =
@@ -1213,7 +1215,9 @@ Original error: ${lastRawMessage}`,
    * separate Windows concern to be addressed in a follow-up with real-device
    * verification.
    */
-  private async screenshotViaPowershell(): Promise<string> {
+  private async screenshotViaPowershell(
+    options?: ScreenshotCaptureOptions,
+  ): Promise<string> {
     const deviceName = this.displayId ? String(this.displayId) : '';
     // A requested displayId that cannot be matched (stale saved id, unplugged
     // monitor) must fail fast rather than silently capturing the primary
@@ -1252,7 +1256,8 @@ $g.Dispose(); $bmp.Dispose(); $ms.Dispose()
         'Failed to take screenshot on Windows: PowerShell returned no image data',
       );
     }
-    return canonicalizeScreenshotBase64(createImgBase64ByFormat('png', body));
+    const png = createImgBase64ByFormat('png', body);
+    return options?.preferLossless ? png : canonicalizeScreenshotBase64(png);
   }
 
   async size(): Promise<Size> {

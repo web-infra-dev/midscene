@@ -67,6 +67,15 @@ export interface DeviceFrameSource {
   stop(): Promise<void> | void;
 }
 
+export interface ScreenshotCaptureOptions {
+  /**
+   * The caller will resize and encode the final screenshot. When possible,
+   * return a native or lossless source instead of an already-lossy WebP so the
+   * final image is encoded only once.
+   */
+  preferLossless?: boolean;
+}
+
 /** A point in device-pixel coordinates on the screen. */
 export interface PointerPoint {
   x: number;
@@ -166,7 +175,9 @@ export interface ComputerInputPrimitives extends InputPrimitives {
 export abstract class AbstractInterface {
   abstract interfaceType: string;
 
-  abstract screenshotBase64(): Promise<string>;
+  abstract screenshotBase64(
+    options?: ScreenshotCaptureOptions,
+  ): Promise<string>;
   abstract size(): Promise<Size>;
   abstract actionSpace(): DeviceAction[];
 

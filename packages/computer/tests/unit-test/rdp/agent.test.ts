@@ -106,6 +106,16 @@ describe('@midscene/computer RDP device', () => {
     );
   });
 
+  it('returns the backend PNG source when Core will resize it', async () => {
+    const backend = new FakeRDPBackend();
+    const device = new RDPDevice({ host: '10.0.0.1', backend });
+    await device.connect();
+
+    await expect(
+      device.screenshotBase64({ preferLossless: true }),
+    ).resolves.toBe(`data:image/png;base64,${VALID_PNG_BASE64}`);
+  });
+
   it('connects and exposes the RDP device through agentForRDPComputer', async () => {
     const backend = new FakeRDPBackend();
     const agent = await agentForRDPComputer({

@@ -42,6 +42,19 @@ describe('Chrome extension screenshot format', () => {
     });
   });
 
+  it('captures a lossless PNG source without a quality option', async () => {
+    const sendCaptureCommand = vi
+      .fn()
+      .mockResolvedValue({ data: 'SCREENSHOT_BASE64' });
+
+    await expect(
+      captureChromeExtensionScreenshot(sendCaptureCommand, 'png'),
+    ).resolves.toBe('data:image/png;base64,SCREENSHOT_BASE64');
+    expect(sendCaptureCommand).toHaveBeenCalledWith({
+      format: 'png',
+    });
+  });
+
   it('keeps a real CDP WebP capture intact through report and Markdown export', async () => {
     const tmpDir = mkdtempSync(
       join(tmpdir(), 'midscene-chrome-extension-webp-'),
