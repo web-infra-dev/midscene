@@ -82,6 +82,8 @@
       "import": "./dist/es/logger.mjs",
       "require": "./dist/lib/logger.js"
     },
+    "./img/canvas-fallback": null,
+    "./img/photon-loader": null,
     "./*": {
       "types": "./dist/types/*.d.ts",
       "import": "./dist/es/*.mjs",

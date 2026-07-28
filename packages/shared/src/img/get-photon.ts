@@ -1,11 +1,11 @@
 import { getDebug } from '../logger';
 import { ifInBrowser, ifInWorker } from '../utils';
+import { loadPhotonModule } from './photon-loader';
 
 const debug = getDebug('img');
 
 let photonModule: any = null;
 let isInitialized = false;
-let usingCanvasFallback = false;
 
 export default async function getPhoton(): Promise<{
   PhotonImage: typeof import('@silvia-odwyer/photon').PhotonImage;
@@ -32,23 +32,24 @@ export default async function getPhoton(): Promise<{
   // Try to load Photon first
   try {
     if (ifInBrowser || ifInWorker) {
-      // Regular browser environment: use @silvia-odwyer/photon
-      const photon = await import('@silvia-odwyer/photon');
+      // Browser and worker environments use @silvia-odwyer/photon.
+      const photon = await loadPhotonModule();
       if (typeof photon.default === 'function') {
-        // for browser environment, ensure WASM module is correctly initialized
+        // Ensure the WASM module is initialized before exposing its functions.
         await photon.default();
       }
       debug('Photon loaded: @silvia-odwyer/photon (browser/worker)');
       photonModule = photon;
     } else {
-      throw new Error('Photon is only available in browser environments');
+      throw new Error(
+        'Photon is only available in browser or worker environments',
+      );
     }
 
-    // verify that the critical functions exist (only for Photon, not Canvas fallback)
+    // Verify that the critical Photon functions exist.
     if (!photonModule?.PhotonImage) {
       throw new Error('PhotonImage is not available');
     }
-    // new_from_byteslice may be sync (Photon) or async (Canvas), both are acceptable
     if (
       !photonModule.PhotonImage.new_from_byteslice &&
       !photonModule.PhotonImage.new_from_base64
@@ -65,36 +66,17 @@ export default async function getPhoton(): Promise<{
       `Photon load failed: ${error instanceof Error ? error.message : String(error)}`,
     );
 
-    // In browser environment, fall back to Canvas API
-    if (ifInBrowser) {
-      console.warn(
-        `[midscene:img] Photon WASM failed to load, falling back to Canvas API. Error: ${error instanceof Error ? error.message : String(error)}`,
-      );
-
-      try {
-        const { createCanvasFallbackModule } = await import(
-          './canvas-fallback'
-        );
-        photonModule = createCanvasFallbackModule();
-        usingCanvasFallback = true;
-        isInitialized = true;
-        return photonModule;
-      } catch (fallbackError) {
-        debug(
-          `Canvas fallback also failed: ${fallbackError instanceof Error ? fallbackError.message : String(fallbackError)}`,
-        );
-      }
-    }
-
     throw new Error(
       `Failed to load photon module: ${error instanceof Error ? error.message : String(error)}`,
+      { cause: error },
     );
   }
 }
 
 /**
- * Check if we're using the Canvas fallback instead of Photon
+ * @deprecated Canvas fallback has been removed. This function always returns
+ * false.
  */
-export function isUsingCanvasFallback(): boolean {
-  return usingCanvasFallback;
+export function isUsingCanvasFallback(): false {
+  return false;
 }
