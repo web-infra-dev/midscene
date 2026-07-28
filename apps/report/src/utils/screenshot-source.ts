@@ -1,31 +1,20 @@
+import type { ScreenshotRef } from '@midscene/core';
 import {
   screenshotImageExtension,
   screenshotImageFormatFromMimeType,
 } from '@midscene/shared/img/image-format';
 
-export interface ReportScreenshotSourceRef {
-  id: string;
-  mimeType?: unknown;
-  storage?: 'inline' | 'file';
-  path?: string;
-}
-
-export function resolveScreenshotFallbackPath(
-  refOrId: string | ReportScreenshotSourceRef,
-): string {
-  if (
-    typeof refOrId === 'object' &&
-    refOrId.storage === 'file' &&
-    refOrId.path
-  ) {
-    return refOrId.path;
+export function resolveScreenshotFallbackPath(ref: ScreenshotRef): string {
+  const format = screenshotImageFormatFromMimeType(ref.mimeType);
+  if (!format) {
+    throw new Error(
+      `Unsupported screenshot mime type: ${String(ref.mimeType)}`,
+    );
   }
 
-  const id = typeof refOrId === 'string' ? refOrId : refOrId.id;
-  const format =
-    typeof refOrId === 'object'
-      ? screenshotImageFormatFromMimeType(refOrId.mimeType)
-      : undefined;
-  const extension = format ? screenshotImageExtension(format) : 'png';
-  return `./screenshots/${id}.${extension}`;
+  if (ref.storage === 'file' && ref.path) {
+    return ref.path;
+  }
+
+  return `./screenshots/${ref.id}.${screenshotImageExtension(format)}`;
 }

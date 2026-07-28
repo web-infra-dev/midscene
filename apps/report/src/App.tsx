@@ -15,6 +15,7 @@ import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 
 import {
   GroupedActionDump,
+  type ScreenshotRef,
   dedupeExecutionsKeepLatest,
   reportToMarkdown,
   restoreImageReferences,
@@ -54,18 +55,13 @@ import {
   getEmptyDumpDescription,
   parseDumpAttributes,
 } from './utils/report-dump';
-import {
-  type ReportScreenshotSourceRef,
-  resolveScreenshotFallbackPath,
-} from './utils/screenshot-source';
+import { resolveScreenshotFallbackPath } from './utils/screenshot-source';
 
 // Shared image cache across all test cases — resolved images are cached by id
 const imageCache = new Map<string, string>();
 
-function resolveImageFromDom(
-  refOrId: string | ReportScreenshotSourceRef,
-): string {
-  const id = typeof refOrId === 'string' ? refOrId : refOrId.id;
+function resolveImageFromDom(ref: ScreenshotRef): string {
+  const id = ref.id;
   const cached = imageCache.get(id);
   if (cached) return cached;
 
@@ -78,7 +74,7 @@ function resolveImageFromDom(
     return data;
   }
 
-  return resolveScreenshotFallbackPath(refOrId);
+  return resolveScreenshotFallbackPath(ref);
 }
 
 let globalRenderCount = 1;
