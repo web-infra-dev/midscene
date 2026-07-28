@@ -79,7 +79,37 @@ describe('Page screenshotBase64', () => {
     });
   });
 
-  it('falls back to public PNG capture and returns WebP without CDP', async () => {
+  it('uses PNG capture directly for non-Chromium Playwright browsers', async () => {
+    const screenshot = vi
+      .fn()
+      .mockResolvedValue(Buffer.from(pngBody, 'base64'));
+    const newCDPSession = vi.fn();
+    const mockPage = {
+      url: () => 'http://example.com',
+      isClosed: () => false,
+      screenshot,
+      context: () => ({
+        browser: () => ({
+          browserType: () => ({
+            name: () => 'firefox',
+          }),
+        }),
+        newCDPSession,
+      }),
+    } as any;
+
+    const page = new Page(mockPage, 'playwright');
+    const result = await page.screenshotBase64();
+
+    expect(result).toMatch(/^data:image\/webp;base64,UklGR/);
+    expect(newCDPSession).not.toHaveBeenCalled();
+    expect(screenshot).toHaveBeenCalledWith({
+      type: 'png',
+      timeout: 10 * 1000,
+    });
+  });
+
+  it('disables CDP after failure and reuses the PNG WebP path', async () => {
     const screenshot = vi
       .fn()
       .mockResolvedValue(Buffer.from(pngBody, 'base64'));
@@ -101,11 +131,18 @@ describe('Page screenshotBase64', () => {
     } as any;
 
     const page = new Page(mockPage, 'playwright');
-    const result = await page.screenshotBase64();
+    const firstResult = await page.screenshotBase64();
+    const secondResult = await page.screenshotBase64();
 
-    expect(result).toMatch(/^data:image\/webp;base64,UklGR/);
+    expect(firstResult).toMatch(/^data:image\/webp;base64,UklGR/);
+    expect(secondResult).toMatch(/^data:image\/webp;base64,UklGR/);
     expect(newCDPSession).toHaveBeenCalledTimes(1);
-    expect(screenshot).toHaveBeenCalledWith({
+    expect(screenshot).toHaveBeenCalledTimes(2);
+    expect(screenshot).toHaveBeenNthCalledWith(1, {
+      type: 'png',
+      timeout: 10 * 1000,
+    });
+    expect(screenshot).toHaveBeenNthCalledWith(2, {
       type: 'png',
       timeout: 10 * 1000,
     });
@@ -158,6 +195,19 @@ describe('Page screenshotBase64', () => {
       quality: 90,
     });
     expect(detach).toHaveBeenCalledTimes(1);
+
+    const secondResultPromise = page.screenshotBase64().then(
+      () => undefined,
+      (error) => error,
+    );
+    await expect(secondResultPromise).resolves.toMatchObject({
+      message: expect.stringContaining(
+        'Playwright screenshot failed through both CDP WebP and PNG fallback',
+      ),
+    });
+    expect(newCDPSession).toHaveBeenCalledTimes(1);
+    expect(send).toHaveBeenCalledTimes(1);
+    expect(screenshot).toHaveBeenCalledTimes(2);
 
     vi.useRealTimers();
   });

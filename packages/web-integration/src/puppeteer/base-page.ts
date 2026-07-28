@@ -213,6 +213,7 @@ export class Page<
     event: Protocol.Page.FileChooserOpenedEvent,
   ) => Promise<void>;
   private playwrightNetworkIdleWarningShown = false;
+  private playwrightCdpScreenshotDisabledReason?: string;
   private activeMjpegStream?: {
     hasReceivedScreencastFrame: boolean;
     expectedViewportSize?: Size;
@@ -472,50 +473,79 @@ export class Page<
       });
       base64 = createImgBase64ByFormat(imgType, result);
     } else if (this.interfaceType === 'playwright') {
-      const page = this.underlyingPage as PlaywrightPage;
-      try {
-        // Playwright's public API only exposes PNG/JPEG. Chromium can avoid an
-        // extra conversion by using CDP's native WebP encoder.
-        base64 = await this.screenshotBase64ByPlaywrightCdpWebp(quality);
-      } catch (error) {
-        if (isClosedPageError(error) || page.isClosed()) {
-          throw error;
-        }
-
-        const errorMsg = error instanceof Error ? error.message : String(error);
-        warnPage(
-          `Playwright CDP WebP screenshot failed: ${errorMsg}. Falling back to PNG capture and WebP encoding.`,
-        );
-        try {
-          const buffer = await page.screenshot({
-            type: 'png',
-            timeout: 10 * 1000,
-          });
-          base64 = await canonicalizeScreenshotBase64(
-            createImgBase64ByFormat('png', buffer.toString('base64')),
-            { quality },
-          );
-        } catch (fallbackError) {
-          debugPage(
-            'Playwright PNG screenshot fallback also failed: %s',
-            fallbackError,
-          );
-          const fallbackErrorMessage =
-            fallbackError instanceof Error
-              ? fallbackError.message
-              : String(fallbackError);
-          throw new Error(
-            `Playwright screenshot failed through both CDP WebP and PNG fallback (CDP: ${errorMsg}; PNG fallback: ${fallbackErrorMessage})`,
-            { cause: fallbackError },
-          );
-        }
-      }
+      base64 = await this.screenshotBase64ByPlaywright(quality);
     } else {
       throw new Error('Unsupported page type for screenshot');
     }
     const endTime = Date.now();
     debugPage(`screenshotBase64 end, cost: ${endTime - startTime}ms`);
     return base64;
+  }
+
+  private async screenshotBase64ByPlaywright(quality: number): Promise<string> {
+    const page = this.underlyingPage as PlaywrightPage;
+    const browserName = page.context().browser()?.browserType().name();
+    let cdpFailureMessage = this.playwrightCdpScreenshotDisabledReason;
+    const shouldTryCdp =
+      !cdpFailureMessage && (!browserName || browserName === 'chromium');
+
+    if (shouldTryCdp) {
+      try {
+        // Playwright's public API only exposes PNG/JPEG. Chromium can avoid an
+        // extra conversion by using CDP's native WebP encoder.
+        return await this.screenshotBase64ByPlaywrightCdpWebp(quality);
+      } catch (error) {
+        if (isClosedPageError(error) || page.isClosed()) {
+          throw error;
+        }
+
+        cdpFailureMessage =
+          error instanceof Error ? error.message : String(error);
+        this.playwrightCdpScreenshotDisabledReason = cdpFailureMessage;
+        warnPage(
+          `Playwright CDP WebP screenshot failed: ${cdpFailureMessage}. Falling back to PNG capture and disabling CDP WebP screenshots for this page.`,
+        );
+      }
+    } else if (browserName && browserName !== 'chromium') {
+      debugPage(
+        'Playwright browser %s does not support CDP WebP screenshots; using PNG capture and WebP encoding',
+        browserName,
+      );
+    }
+
+    try {
+      const buffer = await page.screenshot({
+        type: 'png',
+        timeout: 10 * 1000,
+      });
+      return await canonicalizeScreenshotBase64(
+        createImgBase64ByFormat('png', buffer.toString('base64')),
+        { quality },
+      );
+    } catch (fallbackError) {
+      if (isClosedPageError(fallbackError) || page.isClosed()) {
+        throw fallbackError;
+      }
+
+      debugPage(
+        'Playwright PNG screenshot and WebP encoding failed: %s',
+        fallbackError,
+      );
+      const fallbackErrorMessage =
+        fallbackError instanceof Error
+          ? fallbackError.message
+          : String(fallbackError);
+      if (cdpFailureMessage) {
+        throw new Error(
+          `Playwright screenshot failed through both CDP WebP and PNG fallback (CDP: ${cdpFailureMessage}; PNG fallback: ${fallbackErrorMessage})`,
+          { cause: fallbackError },
+        );
+      }
+      throw new Error(
+        `Playwright PNG screenshot and WebP encoding failed: ${fallbackErrorMessage}`,
+        { cause: fallbackError },
+      );
+    }
   }
 
   private async screenshotBase64ByPlaywrightCdpWebp(quality: number) {
