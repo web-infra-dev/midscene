@@ -79,36 +79,6 @@ describe('Page screenshotBase64', () => {
     });
   });
 
-  it('uses PNG capture directly for non-Chromium Playwright browsers', async () => {
-    const screenshot = vi
-      .fn()
-      .mockResolvedValue(Buffer.from(pngBody, 'base64'));
-    const newCDPSession = vi.fn();
-    const mockPage = {
-      url: () => 'http://example.com',
-      isClosed: () => false,
-      screenshot,
-      context: () => ({
-        browser: () => ({
-          browserType: () => ({
-            name: () => 'firefox',
-          }),
-        }),
-        newCDPSession,
-      }),
-    } as any;
-
-    const page = new Page(mockPage, 'playwright');
-    const result = await page.screenshotBase64();
-
-    expect(result).toMatch(/^data:image\/webp;base64,UklGR/);
-    expect(newCDPSession).not.toHaveBeenCalled();
-    expect(screenshot).toHaveBeenCalledWith({
-      type: 'png',
-      timeout: 10 * 1000,
-    });
-  });
-
   it('disables CDP after failure and reuses the PNG WebP path', async () => {
     const screenshot = vi
       .fn()

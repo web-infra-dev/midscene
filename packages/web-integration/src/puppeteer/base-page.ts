@@ -484,12 +484,9 @@ export class Page<
 
   private async screenshotBase64ByPlaywright(quality: number): Promise<string> {
     const page = this.underlyingPage as PlaywrightPage;
-    const browserName = page.context().browser()?.browserType().name();
     let cdpFailureMessage = this.playwrightCdpScreenshotDisabledReason;
-    const shouldTryCdp =
-      !cdpFailureMessage && (!browserName || browserName === 'chromium');
 
-    if (shouldTryCdp) {
+    if (!cdpFailureMessage) {
       try {
         // Playwright's public API only exposes PNG/JPEG. Chromium can avoid an
         // extra conversion by using CDP's native WebP encoder.
@@ -506,11 +503,6 @@ export class Page<
           `Playwright CDP WebP screenshot failed: ${cdpFailureMessage}. Falling back to PNG capture and disabling CDP WebP screenshots for this page.`,
         );
       }
-    } else if (browserName && browserName !== 'chromium') {
-      debugPage(
-        'Playwright browser %s does not support CDP WebP screenshots; using PNG capture and WebP encoding',
-        browserName,
-      );
     }
 
     try {
