@@ -776,7 +776,7 @@ tasks:
 
 > 旧的嵌套写法（将 `locate` 缩进到操作指令内部，例如 `aiTap: \n    locate: ...`）仍然支持，但不推荐使用。
 
-对于视觉问答类步骤，例如 `aiAsk`、`aiQuery`、`aiBoolean`、`aiNumber`、`aiString`、`aiAssert`，可以直接设置 `prompt` 和 `images` 字段。
+对于 `aiAct`（及其简写 `ai`），以及 `aiAsk`、`aiQuery`、`aiBoolean`、`aiNumber`、`aiString`、`aiAssert` 等视觉问答类步骤，都可以直接在操作指令下设置 `prompt` 和 `images` 字段。
 
 ```yaml
 tasks:

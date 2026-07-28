@@ -620,12 +620,85 @@ describe('generateCommonTools — assert image prompts', () => {
     expect(assertSchema).not.toHaveProperty('images');
     expect(assertSchema).not.toHaveProperty('imageFiles');
 
-    // act schema stays string-only because the underlying core aiAct
-    // does not yet parse multimodal prompts.
+    // act mirrors assert: it exposes the same reference-image flags, which
+    // core aiAct forwards to the planner as reference images.
     const actSchema = tools.find((t) => t.name === 'act')!.schema;
     expect(actSchema).toHaveProperty('prompt');
+    expect(actSchema).toHaveProperty('image');
+    expect(actSchema).toHaveProperty('imageName');
+    expect(actSchema).toHaveProperty('convertHttpImage2Base64');
     expect(actSchema).not.toHaveProperty('images');
     expect(actSchema).not.toHaveProperty('imageFiles');
+  });
+});
+
+describe('generateCommonTools — act image prompts', () => {
+  const screenshotBase64 = 'data:image/png;base64,Zm9v';
+
+  it('passes the prompt through unchanged when no images are supplied', async () => {
+    const aiAction = vi.fn().mockResolvedValue(undefined);
+    const tools = generateCommonTools(async () => ({
+      aiAction,
+      getActionSpace: vi.fn().mockResolvedValue([]),
+      page: { screenshotBase64: vi.fn().mockResolvedValue(screenshotBase64) },
+    }));
+
+    const act = tools.find((t) => t.name === 'act')!;
+    await act.handler({ prompt: 'click the login button' });
+
+    expect(aiAction).toHaveBeenCalledWith('click the login button', {
+      deepThink: false,
+    });
+  });
+
+  it('forwards images to aiAction as a TUserPrompt-style object', async () => {
+    const aiAction = vi.fn().mockResolvedValue(undefined);
+    const tools = generateCommonTools(async () => ({
+      aiAction,
+      getActionSpace: vi.fn().mockResolvedValue([]),
+      page: { screenshotBase64: vi.fn().mockResolvedValue(screenshotBase64) },
+    }));
+
+    const act = tools.find((t) => t.name === 'act')!;
+    await act.handler({
+      prompt: 'tap the icon that matches the reference image',
+      image: 'https://example.com/icon.png',
+      imageName: 'target',
+    });
+
+    expect(aiAction).toHaveBeenCalledWith(
+      {
+        prompt: 'tap the icon that matches the reference image',
+        images: [{ name: 'target', url: 'https://example.com/icon.png' }],
+      },
+      { deepThink: false },
+    );
+  });
+
+  it('forwards a local-path url verbatim so core can resolve it', async () => {
+    const aiAction = vi.fn().mockResolvedValue(undefined);
+    const tools = generateCommonTools(async () => ({
+      aiAction,
+      getActionSpace: vi.fn().mockResolvedValue([]),
+      page: { screenshotBase64: vi.fn().mockResolvedValue(screenshotBase64) },
+    }));
+
+    const act = tools.find((t) => t.name === 'act')!;
+    await act.handler({
+      prompt: 'tap the icon that matches the supplied image',
+      image: './fixtures/icon.png',
+      imageName: 'icon',
+      convertHttpImage2Base64: true,
+    });
+
+    expect(aiAction).toHaveBeenCalledWith(
+      {
+        prompt: 'tap the icon that matches the supplied image',
+        images: [{ name: 'icon', url: './fixtures/icon.png' }],
+        convertHttpImage2Base64: true,
+      },
+      { deepThink: false },
+    );
   });
 });
 
