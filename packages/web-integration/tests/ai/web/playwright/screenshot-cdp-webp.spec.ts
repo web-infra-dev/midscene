@@ -3,7 +3,7 @@ import type { AddressInfo } from 'node:net';
 import { PlaywrightWebPage } from '@/playwright';
 import { expect, test } from '@playwright/test';
 
-test.describe('playwright CDP screenshot', () => {
+test.describe('playwright CDP WebP screenshot', () => {
   test.setTimeout(30 * 1000);
 
   let slowServer: ReturnType<typeof createServer>;
@@ -31,7 +31,7 @@ test.describe('playwright CDP screenshot', () => {
     slowServer?.close();
   });
 
-  test('should capture WebP when a hanging web font blocks Playwright screenshot', async ({
+  test('uses native WebP when Playwright public screenshot waits for a font', async ({
     page,
   }) => {
     await page.setViewportSize({ width: 1280, height: 900 });

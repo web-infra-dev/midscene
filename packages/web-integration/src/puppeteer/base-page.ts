@@ -476,7 +476,7 @@ export class Page<
       try {
         // Playwright's public API only exposes PNG/JPEG. Chromium can avoid an
         // extra conversion by using CDP's native WebP encoder.
-        base64 = await this.screenshotBase64ByPlaywrightCdp(imgType, quality);
+        base64 = await this.screenshotBase64ByPlaywrightCdpWebp(quality);
       } catch (error) {
         if (isClosedPageError(error) || page.isClosed()) {
           throw error;
@@ -518,11 +518,10 @@ export class Page<
     return base64;
   }
 
-  private async screenshotBase64ByPlaywrightCdp(
-    imgType: 'jpeg' | 'png' | 'webp',
-    quality?: number,
-  ) {
-    const client = await this.createPageCdpSession('CDP screenshot fallback');
+  private async screenshotBase64ByPlaywrightCdpWebp(quality: number) {
+    const client = await this.createPageCdpSession(
+      'Playwright CDP WebP screenshot',
+    );
     try {
       const result = (await new Promise<{
         data: string;
@@ -533,8 +532,8 @@ export class Page<
 
         client
           .send('Page.captureScreenshot', {
-            format: imgType,
-            ...(quality ? { quality } : {}),
+            format: 'webp',
+            quality,
           })
           .then(
             (value) => {
@@ -549,7 +548,7 @@ export class Page<
       })) as {
         data: string;
       };
-      return createImgBase64ByFormat(imgType, result.data);
+      return createImgBase64ByFormat('webp', result.data);
     } finally {
       void client.detach().catch((error) => {
         debugPage('failed to detach CDP screenshot session: %s', error);

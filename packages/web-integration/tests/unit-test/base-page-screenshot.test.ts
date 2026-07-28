@@ -111,7 +111,7 @@ describe('Page screenshotBase64', () => {
     });
   });
 
-  it('times out when the CDP screenshot fallback does not return in time', async () => {
+  it('attempts PNG fallback when the primary CDP WebP screenshot times out', async () => {
     vi.useFakeTimers();
 
     const screenshot = vi
