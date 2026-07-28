@@ -1,15 +1,23 @@
 import { ExclamationCircleFilled } from '@ant-design/icons';
 import { useEnvConfig } from '../../store/store';
-import { EnvConfig } from '../env-config';
+import { EnvConfig, type EnvConfigProps } from '../env-config';
 
 import './index.less';
 
-interface EnvConfigReminderProps {
+export interface EnvConfigReminderProps
+  extends Pick<
+    EnvConfigProps,
+    'playgroundSDK' | 'onVerify' | 'agentOptions' | 'onAgentOptionsSave'
+  > {
   className?: string;
 }
 
 export const EnvConfigReminder: React.FC<EnvConfigReminderProps> = ({
   className = '',
+  playgroundSDK,
+  onVerify,
+  agentOptions,
+  onAgentOptionsSave,
 }) => {
   const { config } = useEnvConfig();
   const configAlreadySet = Object.keys(config || {}).length >= 1;
@@ -24,7 +32,14 @@ export const EnvConfigReminder: React.FC<EnvConfigReminderProps> = ({
       <span className="reminder-text">
         Please set up your environment variables before using.
       </span>
-      <EnvConfig mode="text" showTooltipWhenEmpty={false} />
+      <EnvConfig
+        agentOptions={agentOptions}
+        mode="text"
+        onAgentOptionsSave={onAgentOptionsSave}
+        onVerify={onVerify}
+        playgroundSDK={playgroundSDK}
+        showTooltipWhenEmpty={false}
+      />
     </div>
   );
 };

@@ -212,9 +212,12 @@ export function PlaygroundPopup() {
         {/* Playground Component */}
         <div className="playground-component">
           <BrowserExtensionPlayground
+            agentOptions={agentOptions}
             getAgent={getAgent}
+            onAgentOptionsSave={handleAgentOptionsSave}
             showContextPreview={false}
             onPlaygroundSDKChange={setPlaygroundSDK}
+            onVerify={runChromeConnectivityTest}
           />
         </div>
       </div>

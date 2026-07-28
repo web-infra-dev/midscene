@@ -1,5 +1,9 @@
 import { PlaygroundSDK } from '@midscene/playground';
-import { UniversalPlayground } from '@midscene/visualizer';
+import {
+  type CommonAgentOptions,
+  type EnvConfigProps,
+  UniversalPlayground,
+} from '@midscene/visualizer';
 import { useEnvConfig } from '@midscene/visualizer';
 import { Empty } from 'antd';
 import { useEffect, useMemo, useState } from 'react';
@@ -13,6 +17,9 @@ export interface PlaygroundProps {
   showContextPreview?: boolean;
   dryMode?: boolean;
   onPlaygroundSDKChange?: (sdk: PlaygroundSDK | null) => void;
+  onVerify?: EnvConfigProps['onVerify'];
+  agentOptions?: CommonAgentOptions;
+  onAgentOptionsSave?: (options: CommonAgentOptions) => void | Promise<void>;
 }
 
 function ExtensionWelcomeEmptyState() {
@@ -54,6 +61,9 @@ export function BrowserExtensionPlayground({
   showContextPreview = true,
   dryMode = false,
   onPlaygroundSDKChange,
+  onVerify,
+  agentOptions,
+  onAgentOptionsSave,
 }: PlaygroundProps) {
   const extensionVersion = getExtensionVersion();
   const forceSameTabNavigation = useEnvConfig(
@@ -142,6 +152,11 @@ export function BrowserExtensionPlayground({
     <UniversalPlayground
       playgroundSDK={playgroundSDK}
       contextProvider={contextProvider}
+      envConfigReminderProps={{
+        onVerify,
+        agentOptions,
+        onAgentOptionsSave,
+      }}
       config={{
         showContextPreview,
         // The SDK is intentionally recreated when the active browser tab

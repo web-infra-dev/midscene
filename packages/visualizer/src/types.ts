@@ -6,6 +6,7 @@ import type {
 } from '@midscene/core';
 import type { TModelConfig } from '@midscene/shared/env';
 import type { ComponentType, ReactNode } from 'react';
+import type { EnvConfigReminderProps } from './component/env-config-reminder';
 
 // Zod schema related types - compatible with actual zod types
 export interface ZodType {
@@ -602,6 +603,12 @@ export interface UniversalPlaygroundProps {
 
   // UI config
   config?: UniversalPlaygroundConfig;
+
+  /**
+   * Extra capabilities for the empty-model-config reminder shown above the
+   * prompt input. The current Playground SDK is supplied automatically.
+   */
+  envConfigReminderProps?: Omit<EnvConfigReminderProps, 'playgroundSDK'>;
 
   // branding
   branding?: PlaygroundBranding;

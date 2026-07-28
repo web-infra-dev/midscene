@@ -112,6 +112,7 @@ export function UniversalPlayground({
   storage,
   contextProvider,
   config: componentConfig = {},
+  envConfigReminderProps,
   branding = {},
   className = '',
   dryMode = false,
@@ -563,7 +564,12 @@ export function UniversalPlayground({
     ) => content);
   const promptInputSection = componentConfig.hidePromptInput ? null : (
     <div className="bottom-input-section">
-      {componentConfig.showEnvConfigReminder ? <EnvConfigReminder /> : null}
+      {componentConfig.showEnvConfigReminder ? (
+        <EnvConfigReminder
+          {...envConfigReminderProps}
+          playgroundSDK={playgroundSDK}
+        />
+      ) : null}
       <PromptInput
         runButtonEnabled={runButtonEnabled}
         form={form}

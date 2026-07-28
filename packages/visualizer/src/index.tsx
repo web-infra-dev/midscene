@@ -15,7 +15,9 @@ export {
 } from './utils/color';
 
 export { EnvConfig } from './component/env-config';
+export type { EnvConfigProps } from './component/env-config';
 export { EnvConfigReminder } from './component/env-config-reminder';
+export type { EnvConfigReminderProps } from './component/env-config-reminder';
 export {
   ConfigModal,
   agentOptionsToFormValues,
