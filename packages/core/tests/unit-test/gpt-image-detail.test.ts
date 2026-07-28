@@ -183,4 +183,16 @@ describe('GPT image detail handling', () => {
 
     expect(mockCreate.mock.calls[0][0]).toHaveProperty('temperature', 0.7);
   });
+
+  it('reports the exact image URL included in the model request', async () => {
+    const onModelInputImages = vi.fn();
+    await callAI(imageMessage, {
+      ...getModelRuntime(baseModelConfig),
+      onModelInputImages,
+    });
+
+    expect(onModelInputImages).toHaveBeenCalledWith([
+      'https://example.com/shot.png',
+    ]);
+  });
 });

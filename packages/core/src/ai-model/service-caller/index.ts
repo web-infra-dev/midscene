@@ -345,6 +345,22 @@ export async function callAI(
 }> {
   const { config: modelConfig, adapter } = modelRuntime;
 
+  if (modelRuntime.onModelInputImages) {
+    const imageUrls = messages.flatMap((message) => {
+      if (!Array.isArray(message.content)) {
+        return [];
+      }
+      return message.content.flatMap((part) =>
+        part.type === 'image_url' && typeof part.image_url?.url === 'string'
+          ? [part.image_url.url]
+          : [],
+      );
+    });
+    if (imageUrls.length > 0) {
+      modelRuntime.onModelInputImages(imageUrls);
+    }
+  }
+
   // Stable internal ID for this call, used by the agent to deduplicate usage
   // across the onUsage callback and the task-dump-based collectUsageMetrics()
   // path when the provider does not return a request_id.

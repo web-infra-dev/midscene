@@ -25,6 +25,7 @@ import { sleep } from '@/utils';
 import { generateElementByRect } from '@midscene/shared/extractor';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
+import { recordModelInputsForTask } from './model-input-recorder';
 import type { TaskCache } from './task-cache';
 import { withUsageIntent } from './usage-intent';
 import {
@@ -554,7 +555,11 @@ export class TaskBuilder {
                 context: uiContext,
                 planLocatedElement,
               },
-              defaultModel,
+              recordModelInputsForTask(
+                defaultModel,
+                task,
+                uiContext.screenshot,
+              ),
               abortSignal,
             );
             applyDump(locateResult.dump);
