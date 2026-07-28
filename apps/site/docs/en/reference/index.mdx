@@ -137,9 +137,10 @@ function aiAct(
     deepLocate?: boolean;
     fileChooserAccept?: string | string[];
     abortSignal?: AbortSignal;
+    context?: string;
   },
 ): Promise<string | undefined>;
-function ai(prompt: string): Promise<string | undefined>; // shorthand form
+function ai(prompt: string, options?: Object): Promise<string | undefined>; // shorthand form
 ```
 
 - Parameters:
@@ -149,6 +150,7 @@ function ai(prompt: string): Promise<string | undefined>; // shorthand form
     - `cacheable?: boolean` — Whether this call can use the [cache](../caching.mdx). Default: `true`.
     - `deepThink?: 'unset' | true | false` — Controls the planning implementation used by Midscene when `aiAct` performs planning. When enabled, `aiAct` focuses more on task decomposition and separates task planning from UI element locating into different model calls. For compatibility, `'unset'` is accepted and treated the same as `false`. [Learn more about deepThink](../model-strategy#about-the-deepthink-option-in-aiact).
     - `deepLocate?: boolean` — Whether to enable [Deep Locate](#deep-locate-deeplocate). Default: `false`.
+    - `context?: string` — Additional context for this call. See [Per-call context](#per-call-context).
     - `fileChooserAccept?: string | string[]` — When a file chooser pops up, specify the file path(s) to accept. Can be a single file path or an array of paths. Only available in web pages (Playwright, Puppeteer, or Chrome extension Bridge mode).
       - **Note**: If the file input does not support multiple files (no `multiple` attribute) but multiple files are provided, an error will be thrown.
       - **Note**: If a file chooser is triggered but no `fileChooserAccept` parameter is provided, the file chooser will be ignored and the page can continue to operate normally.
@@ -211,6 +213,7 @@ function aiTap(locate: string | object, options?: object): Promise<void>;
   - `locate: string | object` — A natural language description of the element to tap, or [prompting with images](#prompting-with-images).
   - `options?: object` — Optional configuration:
     - `deepLocate?: boolean` — Whether to enable [Deep Locate](#deep-locate-deeplocate). The deprecated `deepThink` name remains supported. Default: `false`.
+    - `context?: string` — Additional context for this call. See [Per-call context](#per-call-context).
     - `xpath?: string` — XPath for the target element. Midscene tries the XPath before consulting the cache or AI model. Default: `undefined`.
     - `cacheable?: boolean` — Whether this call can use the [cache](../caching.mdx). Default: `true`.
     - `fileChooserAccept?: string | string[]` — When a file chooser pops up, specify the file path(s) to accept. Can be a single file path or an array of paths. Only available in web pages (Playwright, Puppeteer, or Chrome extension Bridge mode).
@@ -254,6 +257,7 @@ function aiHover(locate: string | object, options?: object): Promise<void>;
   - `locate: string | object` — A natural language description of the element to hover over, or [prompting with images](#prompting-with-images).
   - `options?: object` — Optional configuration:
     - `deepLocate?: boolean` — Whether to enable [Deep Locate](#deep-locate-deeplocate). The deprecated `deepThink` name remains supported. Default: `false`.
+    - `context?: string` — Additional context for this call. See [Per-call context](#per-call-context).
     - `xpath?: string` — XPath for the target element. Midscene tries the XPath before consulting the cache or AI model. Default: `undefined`.
     - `cacheable?: boolean` — Whether this call can use the [cache](../caching.mdx). Default: `true`.
 
@@ -306,6 +310,7 @@ function aiInput(
       - When `mode` is `'typeOnly'`: The text will be typed directly without clearing the field first.
       - When `mode` is `'clear'`: The text is ignored and the input field will be cleared.
     - `deepLocate?: boolean` — Whether to enable [Deep Locate](#deep-locate-deeplocate). The deprecated `deepThink` name remains supported. Default: `false`.
+    - `context?: string` — Additional context for this call. See [Per-call context](#per-call-context).
     - `xpath?: string` — XPath for the target element. Midscene tries the XPath before consulting the cache or AI model. Default: `undefined`.
     - `cacheable?: boolean` — Whether this call can use the [cache](../caching.mdx). Default: `true`.
     - `autoDismissKeyboard?: boolean` — Whether to dismiss the on-screen keyboard after entering text. Available only on Android, iOS, and HarmonyOS. Default: `true`.
@@ -362,6 +367,7 @@ function aiClearInput(
   - `locate: string | object` — A natural language description of the input field to clear, or [prompting with images](#prompting-with-images).
   - `opt?: object` — Optional configuration:
     - `deepLocate?: boolean` — Whether to enable [Deep Locate](#deep-locate-deeplocate). Default: `false`.
+    - `context?: string` — Additional context for this call. See [Per-call context](#per-call-context).
     - `xpath?: string` — XPath for the target element. Default: `undefined`.
     - `cacheable?: boolean` — Whether this call can use the [cache](../caching.mdx). Default: `true`.
 
@@ -419,6 +425,7 @@ function aiKeyboardPress(
   - `opt: object` — Configuration:
     - `keyName: string` — **Required.** Keyboard key to press, such as `'Enter'`, `'Tab'`, or `'Escape'`. Key combinations are not supported. See the [complete list of supported key names](https://github.com/web-infra-dev/midscene/blob/main/packages/shared/src/us-keyboard-layout.ts).
     - `deepLocate?: boolean` — Whether to enable [Deep Locate](#deep-locate-deeplocate). The deprecated `deepThink` name remains supported. Default: `false`.
+    - `context?: string` — Additional context for this call. See [Per-call context](#per-call-context).
     - `xpath?: string` — XPath for the target element. Midscene tries the XPath before consulting the cache or AI model. Default: `undefined`.
     - `cacheable?: boolean` — Whether this call can use the [cache](../caching.mdx). Default: `true`.
 
@@ -484,6 +491,7 @@ function aiScroll(
     - `direction?: 'down' | 'up' | 'right' | 'left'` — Direction of content movement. Used only when `scrollType` is `'singleAction'`. For example, `'down'` reveals content below the current viewport. Default: `'down'`.
     - `distance?: number | null` — Scroll distance in pixels. Use `null` to let Midscene choose the distance.
     - `deepLocate?: boolean` — Whether to enable [Deep Locate](#deep-locate-deeplocate). The deprecated `deepThink` name remains supported. Default: `false`.
+    - `context?: string` — Additional context for this call. See [Per-call context](#per-call-context).
     - `xpath?: string` — XPath for the target element. Midscene tries the XPath before consulting the cache or AI model. Default: `undefined`.
     - `cacheable?: boolean` — Whether this call can use the [cache](../caching.mdx). Default: `true`.
 
@@ -547,6 +555,7 @@ function aiPinch(
     - `distance?: number` — Distance each finger moves in pixels. Default: one quarter of the shorter screen dimension.
     - `duration?: number` — Gesture duration in milliseconds. Default: `500`.
     - `deepLocate?: boolean` — Whether to enable [Deep Locate](#deep-locate-deeplocate). Default: `false`.
+    - `context?: string` — Additional context for this call. See [Per-call context](#per-call-context).
     - `xpath?: string` — XPath for the target element. Default: `undefined`.
     - `cacheable?: boolean` — Whether this call can use the [cache](../caching.mdx). Default: `true`.
 
@@ -600,6 +609,7 @@ function aiLongPress(
   - `opt?: object` — Optional configuration:
     - `duration?: number` — How long to hold the press, in milliseconds. Defaults: Android `2000`, iOS `1000`, and web `500`. HarmonyOS uses the system long-click duration and ignores this option.
     - `deepLocate?: boolean` — Whether to enable [Deep Locate](#deep-locate-deeplocate). Default: `false`.
+    - `context?: string` — Additional context for this call. See [Per-call context](#per-call-context).
     - `xpath?: string` — XPath for the target element. Default: `undefined`.
     - `cacheable?: boolean` — Whether this call can use the [cache](../caching.mdx). Default: `true`.
 
@@ -638,6 +648,7 @@ function aiDoubleClick(locate: string | object, options?: object): Promise<void>
   - `locate: string | object` — A natural language description of the element to double-click on, or [prompting with images](#prompting-with-images).
   - `options?: object` — Optional configuration:
     - `deepLocate?: boolean` — Whether to enable [Deep Locate](#deep-locate-deeplocate). The deprecated `deepThink` name remains supported. Default: `false`.
+    - `context?: string` — Additional context for this call. See [Per-call context](#per-call-context).
     - `xpath?: string` — XPath for the target element. Midscene tries the XPath before consulting the cache or AI model. Default: `undefined`.
     - `cacheable?: boolean` — Whether this call can use the [cache](../caching.mdx). Default: `true`.
 
@@ -673,6 +684,7 @@ function aiRightClick(locate: string | object, options?: object): Promise<void>;
   - `locate: string | object` — A natural language description of the element to right-click on, or [prompting with images](#prompting-with-images).
   - `options?: object` — Optional configuration:
     - `deepLocate?: boolean` — Whether to enable [Deep Locate](#deep-locate-deeplocate). The deprecated `deepThink` name remains supported. Default: `false`.
+    - `context?: string` — Additional context for this call. See [Per-call context](#per-call-context).
     - `xpath?: string` — XPath for the target element. Midscene tries the XPath before consulting the cache or AI model. Default: `undefined`.
     - `cacheable?: boolean` — Whether this call can use the [cache](../caching.mdx). Default: `true`.
 
@@ -713,6 +725,7 @@ function aiAsk(prompt: string | object, options?: object): Promise<string>;
   - `options?: object` — Optional configuration:
     - `domIncluded?: boolean | 'visible-only'` — Whether to include simplified DOM data, which can expose attributes such as image URLs. Use `'visible-only'` to include only visible elements. Default: `false`.
     - `screenshotIncluded?: boolean` — Whether to include a screenshot. Default: `true`.
+    - `context?: string` — Additional context for this call. See [Per-call context](#per-call-context).
 
 - Return value:
 
@@ -743,6 +756,7 @@ function aiQuery<T>(dataDemand: string | object, options?: object): Promise<T>;
   - `options?: object` — Optional configuration:
     - `domIncluded?: boolean | 'visible-only'` — Whether to include simplified DOM data, which can expose attributes such as image URLs. Use `'visible-only'` to include only visible elements. Default: `false`.
     - `screenshotIncluded?: boolean` — Whether to include a screenshot. Default: `true`.
+    - `context?: string` — Additional context for this call. See [Per-call context](#per-call-context).
 
 - Return value:
 
@@ -791,6 +805,7 @@ function aiBoolean(prompt: string | object, options?: object): Promise<boolean>;
   - `options?: object` — Optional configuration:
     - `domIncluded?: boolean | 'visible-only'` — Whether to include simplified DOM data, which can expose attributes such as image URLs. Use `'visible-only'` to include only visible elements. Default: `false`.
     - `screenshotIncluded?: boolean` — Whether to include a screenshot. Default: `true`.
+    - `context?: string` — Additional context for this call. See [Per-call context](#per-call-context).
 - Return value:
 
   - Returns a Promise that resolves to the boolean returned by the AI model.
@@ -821,6 +836,7 @@ function aiNumber(prompt: string | object, options?: object): Promise<number>;
   - `options?: object` — Optional configuration:
     - `domIncluded?: boolean | 'visible-only'` — Whether to include simplified DOM data, which can expose attributes such as image URLs. Use `'visible-only'` to include only visible elements. Default: `false`.
     - `screenshotIncluded?: boolean` — Whether to include a screenshot. Default: `true`.
+    - `context?: string` — Additional context for this call. See [Per-call context](#per-call-context).
 - Return value:
 
   - Returns a Promise that resolves to the number returned by the AI model.
@@ -854,6 +870,7 @@ function aiString(prompt: string | object, options?: object): Promise<string>;
   - `options?: object` — Optional configuration:
     - `domIncluded?: boolean | 'visible-only'` — Whether to include simplified DOM data, which can expose attributes such as image URLs. Use `'visible-only'` to include only visible elements. Default: `false`.
     - `screenshotIncluded?: boolean` — Whether to include a screenshot. Default: `true`.
+    - `context?: string` — Additional context for this call. See [Per-call context](#per-call-context).
 - Return value:
 
   - Returns a Promise that resolves to the string returned by the AI model.
@@ -898,6 +915,7 @@ function aiLocate(
   - `locate: string | object` — A natural language description of the element to locate, or [prompting with images](#prompting-with-images).
   - `options?: object` — Optional configuration:
     - `deepLocate?: boolean` — Whether to enable [Deep Locate](#deep-locate-deeplocate). The deprecated `deepThink` name remains supported. Default: `false`.
+    - `context?: string` — Additional context for this call. See [Per-call context](#per-call-context).
     - `xpath?: string` — XPath for the target element. Midscene tries the XPath before consulting the cache or AI model. Default: `undefined`.
     - `cacheable?: boolean` — Whether this call can use the [cache](../caching.mdx). Default: `true`.
 
@@ -940,6 +958,7 @@ function aiAssert(
   - `options?: object` — Optional configuration:
     - `domIncluded?: boolean | 'visible-only'` — Whether to include simplified DOM data, which can expose attributes such as image URLs. Use `'visible-only'` to include only visible elements. Default: `false`.
     - `screenshotIncluded?: boolean` — Whether to include a screenshot. Default: `true`.
+    - `context?: string` — Additional context for this call. See [Per-call context](#per-call-context).
 
 - Return value:
 
@@ -1015,6 +1034,7 @@ function aiWaitFor(
   options?: {
     timeoutMs?: number;
     checkIntervalMs?: number;
+    context?: string;
   },
 ): Promise<void>;
 ```
@@ -1025,6 +1045,7 @@ function aiWaitFor(
   - `options?: object` — Optional configuration:
     - `timeoutMs?: number` — Maximum window in milliseconds for starting a new check. If the previous check began within this window, Midscene may complete it; otherwise the method times out. Default: `15000`.
     - `checkIntervalMs?: number` — Minimum interval in milliseconds between the start of consecutive checks. Default: `3000`.
+    - `context?: string` — Additional context for this call. See [Per-call context](#per-call-context).
 
 - Return value:
 
@@ -1416,6 +1437,20 @@ const agent = new PuppeteerAgent(page, {
 #### `.reportFile`
 
 The path to the report file.
+
+## Per-call context
+
+Every `agent.ai*` method accepts an optional `context` string in its options. Use it to provide business knowledge, user state, terminology, or other background that is relevant to one request without changing the main prompt.
+
+```typescript
+await agent.aiAssert('The current page uses the new version styling', undefined, {
+  context:
+    'In the new version, the Tab bar is at the top and the page theme color is red. In the old version, the Tab bar is at the bottom and the page theme color is green. Treat the page as the new version only when both new-version conditions are met.',
+});
+```
+
+
+The context only applies to that method call. For `aiAct`, a per-call `context` takes precedence over the Agent-level `aiActContext` (including an explicitly empty string). Other AI methods do not automatically inherit `aiActContext`.
 
 
 ### Shared types {#shared-types}

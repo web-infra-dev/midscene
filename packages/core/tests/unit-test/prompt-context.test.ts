@@ -1,4 +1,7 @@
-import { buildPromptWithContext } from '@/agent/prompt-context';
+import {
+  buildLocatePromptWithContext,
+  buildPromptWithContext,
+} from '@/agent/prompt-context';
 import { describe, expect, it } from 'vitest';
 
 describe('buildPromptWithContext', () => {
@@ -32,6 +35,35 @@ describe('buildPromptWithContext', () => {
         'Context for this request:\nUse mobile layout.\n\nClick the target shown in the reference image.',
       images: [{ name: 'target', url: './target.png' }],
       convertHttpImage2Base64: true,
+    });
+  });
+});
+
+describe('buildLocatePromptWithContext', () => {
+  it('wraps context and locate target in explicit tags', () => {
+    expect(
+      buildLocatePromptWithContext(
+        'Favorite button',
+        'The favorite button is the star icon in the bottom-right corner.',
+      ),
+    ).toBe(
+      '<CONTEXT>\nThe favorite button is the star icon in the bottom-right corner.\n</CONTEXT>\n\n<LOCATE_TARGET>\nFavorite button\n</LOCATE_TARGET>',
+    );
+  });
+
+  it('preserves multimodal fields while wrapping the prompt text', () => {
+    expect(
+      buildLocatePromptWithContext(
+        {
+          prompt: 'Favorite button',
+          images: [{ name: 'target', url: './target.png' }],
+        },
+        'Use the mobile layout.',
+      ),
+    ).toEqual({
+      prompt:
+        '<CONTEXT>\nUse the mobile layout.\n</CONTEXT>\n\n<LOCATE_TARGET>\nFavorite button\n</LOCATE_TARGET>',
+      images: [{ name: 'target', url: './target.png' }],
     });
   });
 });

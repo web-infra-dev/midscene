@@ -89,7 +89,7 @@ describe('Agent per-call context option', () => {
     expect(taskExecutor.action.mock.calls[0][4]).toBe('');
   });
 
-  it('adds per-call context to aiAssert prompts internally', async () => {
+  it('passes aiAssert context separately from the assertion prompt', async () => {
     const { agent, taskExecutor } = createAgentStub();
 
     const result = await agent.aiAssert(
@@ -103,9 +103,10 @@ describe('Agent per-call context option', () => {
 
     expect(taskExecutor.createTypeQueryExecution).toHaveBeenCalledWith(
       'Assert',
-      'Context for this request:\nThe current user is a logged-in buyer.\n\nThe success toast is visible',
+      'The success toast is visible',
       defaultModel,
       {
+        context: 'The current user is a logged-in buyer.',
         domIncluded: false,
         screenshotIncluded: true,
       },

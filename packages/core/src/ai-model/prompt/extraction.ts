@@ -191,6 +191,7 @@ By viewing the screenshot and page contents, you can extract the following data:
 export const extractDataQueryPrompt = (
   pageDescription: string,
   dataQuery: string | Record<string, string>,
+  context?: string,
 ) => {
   let dataQueryText = '';
   if (typeof dataQuery === 'string') {
@@ -199,11 +200,16 @@ export const extractDataQueryPrompt = (
     dataQueryText = JSON.stringify(dataQuery, null, 2);
   }
 
+  const trimmedContext = context?.trim();
+  const contextSection = trimmedContext
+    ? `\n<CONTEXT>\n${trimmedContext}\n</CONTEXT>\n`
+    : '';
+
   return `
 <PageDescription>
 ${pageDescription}
 </PageDescription>
-
+${contextSection}
 <DATA_DEMAND>
 ${dataQueryText}
 </DATA_DEMAND>

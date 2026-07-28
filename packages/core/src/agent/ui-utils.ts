@@ -37,6 +37,10 @@ export function locateParamStr(locate?: DetailedLocateParam | string): string {
   }
 
   if (typeof locate === 'object') {
+    if (typeof locate.promptDisplay === 'string') {
+      return locate.promptDisplay;
+    }
+
     // Check for nested prompt.prompt (Planning Locate tasks)
     if (
       typeof locate.prompt === 'object' &&

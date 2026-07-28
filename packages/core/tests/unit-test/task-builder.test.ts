@@ -130,6 +130,77 @@ describe('TaskBuilder', () => {
     ]);
   });
 
+  it('uses promptDisplay for the located element passed to an action', async () => {
+    const actionSchema = z.object({
+      locate: getMidsceneLocationSchema().describe('element to locate'),
+    });
+    const mockAction: DeviceAction = {
+      name: 'Tap',
+      description: 'mock tap action',
+      paramSchema: actionSchema,
+      call: vi.fn(),
+    };
+    const mockInterface = new MockInterface([mockAction]);
+    const locateDump = {
+      taskInfo: { durationMs: 1 },
+      matchedElement: [
+        {
+          center: [50, 50],
+          rect: { left: 40, top: 40, width: 20, height: 20 },
+          description:
+            '<CONTEXT>favorite fruit rule</CONTEXT><LOCATE_TARGET>orange</LOCATE_TARGET>',
+        },
+      ],
+    };
+    const insightService = {
+      contextRetrieverFn: vi.fn(),
+      locate: vi.fn(async () => ({
+        element: {
+          center: [50, 50],
+          rect: { left: 40, top: 40, width: 20, height: 20 },
+          description:
+            '<CONTEXT>favorite fruit rule</CONTEXT><LOCATE_TARGET>orange</LOCATE_TARGET>',
+        },
+        dump: locateDump,
+      })),
+    } as unknown as Service;
+    const taskBuilder = new TaskBuilder({
+      interfaceInstance: mockInterface,
+      service: insightService,
+      actionSpace: mockInterface.actionSpace(),
+    });
+    const plans: PlanningAction[] = [
+      {
+        type: 'Tap',
+        param: {
+          locate: {
+            prompt:
+              '<CONTEXT>favorite fruit rule</CONTEXT><LOCATE_TARGET>orange</LOCATE_TARGET>',
+            promptDisplay: 'orange',
+            context: 'favorite fruit rule',
+          },
+        },
+      },
+    ];
+
+    const { tasks } = await taskBuilder.build(
+      plans,
+      mockModelRuntime,
+      mockModelRuntime,
+    );
+    const locateTask = tasks[0];
+    await locateTask.executor(locateTask.param, {
+      task: { timing: {} },
+      uiContext: {
+        shrunkShotToLogicalRatio: 1,
+        deprecatedDpr: 1,
+      },
+    } as any);
+
+    expect((plans[0].param as any).locate.description).toBe('orange');
+    expect(locateDump.matchedElement[0].description).toBe('orange');
+  });
+
   it('throws when building an executable task for an action outside actionSpace', async () => {
     const mockInterface = new MockInterface([defineActionSleep()]);
     const insightService = {
