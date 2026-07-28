@@ -2205,7 +2205,9 @@ const runAdbShellParamSchema = z.object({
   timeout: z
     .number()
     .optional()
-    .describe('ADB shell command execution timeout in milliseconds'),
+    .describe(
+      'ADB shell command execution timeout in milliseconds. Only include this parameter when the user explicitly requests a timeout; otherwise, omit it.',
+    ),
 });
 
 const launchParamSchema = z.object({
