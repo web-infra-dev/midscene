@@ -125,6 +125,7 @@ describe('BrowserExtensionPlayground', () => {
     expect(universalPlaygroundProps.at(-1)?.config).toEqual(
       expect.objectContaining({
         emptyState: expect.anything(),
+        persistMessages: false,
         storageNamespace: 'chrome-extension-playground',
       }),
     );

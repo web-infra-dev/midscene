@@ -166,8 +166,10 @@ export function BrowserExtensionPlayground({
         storageNamespace: 'chrome-extension-playground',
         hidePlayerFullscreenControl: true,
         // The extension is an action console, not a long-lived report archive.
-        // Keep one execution timeline so repeated submits cannot pile up cards.
+        // Keep one execution timeline in memory so startup never has to
+        // deserialize old screenshots and execution reports from IndexedDB.
         clearTimelineBeforeRun: true,
+        persistMessages: false,
         layout: 'vertical',
         showVersionInfo: true,
         enableScrollToBottom: true,

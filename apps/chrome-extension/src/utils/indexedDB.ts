@@ -204,14 +204,21 @@ class IndexedDBManager {
   }
 
   // Session management
-  async getSessionSummaries(): Promise<RecordingSession[]> {
+  async getSessionSummaries(
+    hydrateMissingCache = true,
+  ): Promise<RecordingSession[]> {
     return this.safeDBOperation(async () => {
       const db = await this.ensureDB();
-      const [cachedMetadata, legacyMetadata, sessionKeys] = await Promise.all([
+      const [cachedMetadata, sessionKeys] = await Promise.all([
         this.getCachedSessionMetadata(db),
-        this.getLegacySessionMetadata(db),
         this.getSessionKeys(db),
       ]);
+      // The legacy store is only a migration fallback. Reading it on every
+      // startup can stall the session list behind old, screenshot-heavy data.
+      const legacyMetadata =
+        cachedMetadata || !hydrateMissingCache
+          ? null
+          : await this.getLegacySessionMetadata(db);
 
       let metadata = cachedMetadata || legacyMetadata;
       const cacheMatchesSessions =
@@ -225,6 +232,14 @@ class IndexedDBManager {
       if (!cacheMatchesSessions) {
         if (sessionKeys.length === 0) {
           metadata = [];
+        } else if (!hydrateMissingCache) {
+          // The caller is rendering the Recorder shell. Return any existing
+          // lightweight metadata now; it can hydrate a missing cache in the
+          // background without deserializing every stored screenshot first.
+          return (metadata || []).map((session) => ({
+            ...session,
+            events: [],
+          }));
         } else {
           const sessions = await this.getAllSessions();
           metadata = sessions

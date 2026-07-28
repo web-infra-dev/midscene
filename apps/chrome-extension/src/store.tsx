@@ -51,10 +51,12 @@ const CURRENT_SESSION_ID_KEY = 'midscene-current-session-id';
 const RECORDING_STATE_KEY = 'midscene-recording-state';
 
 // Helper functions for persistence with IndexedDB
-const loadSessionsFromStorage = async (): Promise<RecordingSession[]> => {
+const loadSessionsFromStorage = async (
+  hydrateMissingCache = true,
+): Promise<RecordingSession[]> => {
   try {
     // initializeDB is now idempotent, safe to call
-    return await dbManager.getSessionSummaries();
+    return await dbManager.getSessionSummaries(hydrateMissingCache);
   } catch (error) {
     console.error('Failed to load sessions from IndexedDB:', error);
     return [];
@@ -130,10 +132,19 @@ export const useRecordingSessionStore = create<{
       // Ensure database initialization
       await initializeDB();
       const [sessions, currentSessionId] = await Promise.all([
-        loadSessionsFromStorage(),
+        loadSessionsFromStorage(false),
         loadCurrentSessionIdFromStorage(),
       ]);
       set({ sessions, currentSessionId, isInitialized: true });
+
+      // Old profiles may not have summary metadata yet. Build it after the
+      // list shell is available so screenshot-heavy sessions cannot hold the
+      // SidePanel on its loading screen.
+      void loadSessionsFromStorage().then((hydratedSessions) => {
+        set((state) =>
+          state.sessions === sessions ? { sessions: hydratedSessions } : {},
+        );
+      });
     } catch (error) {
       console.error('Failed to initialize recording session store:', error);
       set({ isInitialized: true });

@@ -114,4 +114,41 @@ describe('Recorder session persistence', () => {
       'Promise.all([sessionStore.initializeStore(), recordStore.initialize()])',
     );
   });
+
+  it('does not read legacy metadata when the current summary cache exists', async () => {
+    const source = await readFile(
+      resolve(
+        dirname(fileURLToPath(import.meta.url)),
+        '../src/utils/indexedDB.ts',
+      ),
+      'utf8',
+    );
+    const summaries = source.slice(
+      source.indexOf('async getSessionSummaries('),
+      source.indexOf('private async getCachedSessionMetadata'),
+    );
+
+    expect(summaries).toContain('cachedMetadata || !hydrateMissingCache');
+    expect(summaries).toContain('await this.getLegacySessionMetadata(db)');
+  });
+
+  it('shows the session list before backfilling a missing metadata cache', async () => {
+    const source = await readFile(
+      resolve(dirname(fileURLToPath(import.meta.url)), '../src/store.tsx'),
+      'utf8',
+    );
+
+    const initialLoad = source.indexOf('loadSessionsFromStorage(false)');
+    const publishInitialSessions = source.indexOf(
+      'set({ sessions, currentSessionId, isInitialized: true })',
+    );
+    const backgroundHydration = source.indexOf(
+      'void loadSessionsFromStorage()',
+    );
+
+    expect(initialLoad).toBeGreaterThan(-1);
+    expect(publishInitialSessions).toBeGreaterThan(initialLoad);
+    expect(backgroundHydration).toBeGreaterThan(publishInitialSessions);
+    expect(source).toContain('state.sessions === sessions');
+  });
 });
