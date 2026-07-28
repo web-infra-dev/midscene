@@ -72,11 +72,3 @@ export default async function getPhoton(): Promise<{
     );
   }
 }
-
-/**
- * @deprecated Canvas fallback has been removed. This function always returns
- * false.
- */
-export function isUsingCanvasFallback(): false {
-  return false;
-}

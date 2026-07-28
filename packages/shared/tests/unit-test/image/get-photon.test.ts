@@ -46,24 +46,19 @@ describe('getPhoton', () => {
     const initializationError = new Error('WASM initialization failed');
     photonMocks.initialize.mockRejectedValue(initializationError);
 
-    const { default: getPhoton, isUsingCanvasFallback } = await import(
-      '../../../src/img/get-photon'
-    );
+    const { default: getPhoton } = await import('../../../src/img/get-photon');
 
     await expect(getPhoton()).rejects.toMatchObject({
       message: 'Failed to load photon module: WASM initialization failed',
       cause: initializationError,
     });
-    expect(isUsingCanvasFallback()).toBe(false);
   });
 
   it('initializes Photon directly in workers', async () => {
     environment.worker = true;
     photonMocks.initialize.mockResolvedValue(undefined);
 
-    const { default: getPhoton, isUsingCanvasFallback } = await import(
-      '../../../src/img/get-photon'
-    );
+    const { default: getPhoton } = await import('../../../src/img/get-photon');
     const photon = await getPhoton();
 
     expect(photon.PhotonImage.new_from_byteslice).toBe(
@@ -71,6 +66,5 @@ describe('getPhoton', () => {
     );
     expect(photonMocks.initialize).toHaveBeenCalledTimes(1);
     expect(photonMocks.loadModule).toHaveBeenCalledTimes(1);
-    expect(isUsingCanvasFallback()).toBe(false);
   });
 });
