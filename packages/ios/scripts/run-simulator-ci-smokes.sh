@@ -67,12 +67,6 @@ const { execFileSync } = require('node:child_process');
 const { writeFileSync } = require('node:fs');
 
 const outputFile = process.argv[2];
-const simulatorSdkVersion = execFileSync(
-  'xcrun',
-  ['--sdk', 'iphonesimulator', '--show-sdk-version'],
-  { encoding: 'utf8' },
-).trim();
-const simulatorSdk = simulatorSdkVersion.split('.').map(Number);
 const listing = JSON.parse(
   execFileSync('xcrun', ['simctl', 'list', 'devices', 'available', '-j'], {
     encoding: 'utf8',
@@ -109,37 +103,24 @@ if (runtimes.length === 0) {
   throw new Error('No available iOS iPhone Simulator was found');
 }
 
-const compatibleRuntimes = runtimes.filter(
-  (runtime) => compareVersions(runtime.version, simulatorSdk) <= 0,
-);
-if (compatibleRuntimes.length === 0) {
-  throw new Error(
-    `No iOS Simulator runtime is compatible with the active ${simulatorSdkVersion} SDK. ` +
-      `Available runtimes: ${runtimes.map((runtime) => runtime.version.join('.')).join(', ')}`,
-  );
-}
-
-const runtime = compatibleRuntimes[0];
+const runtime = runtimes[0];
 const device =
   runtime.devices.find((candidate) => / Pro$/.test(candidate.name)) ||
   runtime.devices[0];
 const result = {
   runtime: runtime.runtime,
   runtimeVersion: runtime.version.join('.'),
-  simulatorSdkVersion,
   name: device.name,
   udid: device.udid,
   stateBeforeBoot: device.state,
 };
 writeFileSync(outputFile, `${JSON.stringify(result, null, 2)}\n`);
-process.stdout.write(
-  `${result.udid}\t${result.name}\t${result.runtimeVersion}\t${result.simulatorSdkVersion}`,
-);
+process.stdout.write(`${result.udid}\t${result.name}\t${result.runtimeVersion}`);
 NODE
 )
 
-IFS=$'\t' read -r simulator_udid simulator_name simulator_runtime simulator_sdk <<< "$selection"
-echo "Selected $simulator_name ($simulator_udid) on iOS $simulator_runtime for the iOS $simulator_sdk Simulator SDK"
+IFS=$'\t' read -r simulator_udid simulator_name simulator_runtime <<< "$selection"
+echo "Selected $simulator_name ($simulator_udid) on iOS $simulator_runtime"
 
 xcrun simctl boot "$simulator_udid" 2> "$diagnostics_dir/simulator-boot.log" || true
 xcrun simctl bootstatus "$simulator_udid" -b 2>&1 |
