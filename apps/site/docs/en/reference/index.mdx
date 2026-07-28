@@ -1454,20 +1454,6 @@ await agent.aiTap('Favorite button', {
 });
 ```
 
-You can also place a large set of custom business rules in `context`, then use it to build reusable business-specific assertion or interaction methods. Each call only needs a short prompt for the current task, so the complete business rules do not have to be repeated every time.
-
-```typescript
-const myAssert = (prompt: string, errMsg?: string) =>
-  agent.aiAssert(prompt, errMsg, {
-    context: `Custom business assertion rules, for example:
-- A VIP member's avatar displays a VIP badge
-- When a product is marked "Out of stock", it must not have a clickable purchase button
-- When an order status is "Completed", the amount paid must be visible`,
-  });
-
-await myAssert('The currently logged-in user is a VIP member');
-await myAssert('An out-of-stock product cannot be purchased');
-```
 
 The context only applies to that method call. For `aiAct`, a per-call `context` takes precedence over the Agent-level `aiActContext` (including an explicitly empty string). Other AI methods do not automatically inherit `aiActContext`.
 

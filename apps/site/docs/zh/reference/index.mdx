@@ -1427,21 +1427,6 @@ await agent.aiTap('收藏按钮', {
 });
 ```
 
-你也可以把大量业务自定义规则集中写入 `context`，再基于它封装通用的业务断言方法或点击方法。不同调用只需传入本次任务的简短 prompt，无需每次重复编写完整的业务规则。
-
-```typescript
-const myAssert = (prompt: string, errMsg?: string) =>
-  agent.aiAssert(prompt, errMsg, {
-    context: `业务自定义的大量断言规则，例如：
-- VIP 会员的头像会展示 VIP 徽章
-- 商品显示“暂时缺货”时，不应存在可点击的购买按钮
-- 订单状态为“已完成”时，实付金额必须可见`,
-  });
-
-await myAssert('当前登录用户是 VIP 会员');
-await myAssert('缺货商品不能购买');
-```
-
 context 仅对本次方法调用生效。对于 `aiAct`，单次调用的 `context` 优先于 Agent 级别的 `aiActContext`（显式传入空字符串也会覆盖）。其他 AI 方法不会自动继承 `aiActContext`。
 
 <a id="深度定位deeplocate"></a>
