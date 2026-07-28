@@ -7,6 +7,7 @@ import type { PhotonImage as PhotonImageType } from '@silvia-odwyer/photon';
 import { getDebug } from '../logger';
 import type { Rect } from '../types';
 import { ifInNode } from '../utils';
+import { encodeRgbaToWebp } from './browser-webp-encoder';
 import getPhoton from './get-photon';
 import getSharp from './get-sharp';
 import {
@@ -40,19 +41,24 @@ function assertWebpBuffer(buffer: Uint8Array, label: string): void {
   }
 }
 
-async function encodePhotonImageToWebp(
-  image: PhotonImageType,
+interface BrowserImagePixels {
+  get_raw_pixels(): Uint8Array;
+  get_width(): number;
+  get_height(): number;
+}
+
+async function encodeBrowserImageToWebp(
+  image: BrowserImagePixels,
   quality = DEFAULT_WEBP_SCREENSHOT_QUALITY,
 ): Promise<Buffer> {
-  const encoder = (
-    image as PhotonImageType & {
-      get_bytes_webp: (quality?: number) => Uint8Array;
-    }
-  ).get_bytes_webp;
-  if (typeof encoder !== 'function') {
-    throw new Error('The active browser image backend cannot encode WebP');
-  }
-  const output = Buffer.from(encoder.call(image, quality));
+  const output = Buffer.from(
+    await encodeRgbaToWebp({
+      pixels: image.get_raw_pixels(),
+      width: image.get_width(),
+      height: image.get_height(),
+      quality,
+    }),
+  );
   assertWebpBuffer(output, 'Browser image encoder');
   return output;
 }
@@ -174,11 +180,13 @@ export async function resizeAndConvertImgBuffer(
     SamplingFilter.CatmullRom,
   );
 
-  const resizedBuffer = await encodePhotonImageToWebp(outputImage);
-
-  // Free memory
-  inputImage.free();
-  outputImage.free();
+  let resizedBuffer: Buffer;
+  try {
+    resizedBuffer = await encodeBrowserImageToWebp(outputImage);
+  } finally {
+    inputImage.free();
+    outputImage.free();
+  }
 
   const resizeEndTime = Date.now();
 
@@ -242,7 +250,7 @@ export async function convertImgBufferToWebp(
     `data:${mimeType};base64,${inputData.toString('base64')}`,
   );
   try {
-    return await encodePhotonImageToWebp(photonImage, quality);
+    return await encodeBrowserImageToWebp(photonImage, quality);
   } finally {
     photonImage.free();
   }
@@ -599,7 +607,7 @@ export async function photonToBase64(
   image: PhotonImageType,
   quality = DEFAULT_WEBP_SCREENSHOT_QUALITY,
 ): Promise<string> {
-  const bytes = await encodePhotonImageToWebp(image, quality);
+  const bytes = await encodeBrowserImageToWebp(image, quality);
   return createImgBase64ByFormat('webp', bytes.toString('base64'));
 }
 
@@ -801,11 +809,13 @@ export async function scaleImage(
     SamplingFilter.CatmullRom,
   );
 
-  const resizedBuffer = await encodePhotonImageToWebp(outputImage);
-
-  // Free memory
-  inputImage.free();
-  outputImage.free();
+  let resizedBuffer: Buffer;
+  try {
+    resizedBuffer = await encodeBrowserImageToWebp(outputImage);
+  } finally {
+    inputImage.free();
+    outputImage.free();
+  }
 
   const scaleEndTime = Date.now();
   imgDebug(

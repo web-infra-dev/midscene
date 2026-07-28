@@ -50,14 +50,6 @@ export class CanvasImage {
     return CanvasImage.bytesFromDataUrl(dataUrl);
   }
 
-  get_bytes_webp(quality = 90): Uint8Array {
-    const dataUrl = this.canvas.toDataURL('image/webp', quality / 100);
-    if (!dataUrl.startsWith('data:image/webp;base64,')) {
-      throw new Error('Canvas does not support WebP encoding');
-    }
-    return CanvasImage.bytesFromDataUrl(dataUrl);
-  }
-
   private static bytesFromDataUrl(dataUrl: string): Uint8Array {
     const base64 = dataUrl.split(',')[1];
     const binary = atob(base64);

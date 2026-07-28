@@ -1,5 +1,6 @@
 import path from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
+import { encodeRgbaToWebp } from '../../src/img/browser-webp-encoder';
 import {
   canonicalizeScreenshotBase64,
   inferBase64ImageFormat,
@@ -8,6 +9,58 @@ import {
   preProcessImageUrl,
   scaleImage,
 } from '../../src/img/transform';
+
+describe('encodeRgbaToWebp', () => {
+  it('validates dimensions before selecting a browser encoder', async () => {
+    await expect(
+      encodeRgbaToWebp({
+        pixels: [],
+        width: 0,
+        height: 1,
+      }),
+    ).rejects.toThrow('WebP image dimensions must be positive safe integers');
+  });
+
+  it('validates the RGBA pixel length', async () => {
+    await expect(
+      encodeRgbaToWebp({
+        pixels: [255, 255, 255],
+        width: 1,
+        height: 1,
+      }),
+    ).rejects.toThrow('WebP RGBA pixel length must be 4, got 3');
+  });
+
+  it('validates encoder quality', async () => {
+    await expect(
+      encodeRgbaToWebp({
+        pixels: [255, 255, 255, 255],
+        width: 1,
+        height: 1,
+        quality: 101,
+      }),
+    ).rejects.toThrow('WebP quality must be between 0 and 100');
+  });
+
+  it('fails explicitly when the runtime has no browser WebP encoder', async () => {
+    vi.stubGlobal('OffscreenCanvas', undefined);
+    vi.stubGlobal('document', undefined);
+
+    try {
+      await expect(
+        encodeRgbaToWebp({
+          pixels: [255, 255, 255, 255],
+          width: 1,
+          height: 1,
+        }),
+      ).rejects.toThrow(
+        'WebP encoding requires OffscreenCanvas or HTMLCanvasElement',
+      );
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+});
 
 describe('preapareImageUrl', () => {
   it('url is not a string will throw an error', async () => {

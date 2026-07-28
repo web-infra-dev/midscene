@@ -49,3 +49,7 @@ export {
   compositePointMarkerImg,
   annotateRects,
 } from './box-select';
+export {
+  encodeRgbaToWebp,
+  type BrowserWebpEncodeInput,
+} from './browser-webp-encoder';
