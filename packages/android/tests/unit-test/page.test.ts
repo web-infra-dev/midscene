@@ -193,12 +193,9 @@ describe('AndroidDevice', () => {
   </node>
 </hierarchy>`;
 
-    const mockYadbHierarchy = (xml: string) => {
+    const mockUiautomatorHierarchy = (xml: string) => {
       mockAdb.shell.mockImplementation(async (command) => {
-        if (
-          String(command) ===
-          'cat /data/local/tmp/midscene_yadb_layout_dump.xml'
-        ) {
+        if (String(command) === 'cat /sdcard/midscene_window_dump.xml') {
           return xml;
         }
         return '';
@@ -206,7 +203,7 @@ describe('AndroidDevice', () => {
     };
 
     it('returns a snapshot from the accessibility hierarchy', async () => {
-      mockYadbHierarchy(
+      mockUiautomatorHierarchy(
         hierarchy(
           '<node class="android.widget.Button" resource-id="submit" text="Submit" bounds="[20,40][180,100]"/>',
         ),
@@ -241,19 +238,16 @@ describe('AndroidDevice', () => {
       );
       expect(mockAdb.getScreenDensity).toHaveBeenCalledOnce();
       expect(mockAdb.shell).toHaveBeenCalledWith(
-        'cat /data/local/tmp/midscene_yadb_layout_dump.xml',
+        'cat /sdcard/midscene_window_dump.xml',
         expect.objectContaining({ timeout: 5_000 }),
       );
     });
 
-    it('shares one total retry budget across accessibility dump sources', async () => {
+    it('retries uiautomator within one total dump budget', async () => {
       mockAdb.getScreenDensity.mockResolvedValue(160);
       mockAdb.shell.mockImplementation(async (command) => {
         const value = String(command);
-        if (
-          value.includes(' -layout ') ||
-          value.startsWith('uiautomator dump')
-        ) {
+        if (value.startsWith('uiautomator dump')) {
           throw new Error('layout dump failed');
         }
         return '';
@@ -263,13 +257,9 @@ describe('AndroidDevice', () => {
 
       const dumpCommands = mockAdb.shell.mock.calls
         .map(([command]) => String(command))
-        .filter(
-          (command) =>
-            command.includes(' -layout ') ||
-            command.startsWith('uiautomator dump'),
-        );
+        .filter((command) => command.startsWith('uiautomator dump'));
       expect(dumpCommands).toEqual([
-        'app_process -Djava.class.path=/data/local/tmp/yadb /data/local/tmp com.ysbing.yadb.Main -layout /data/local/tmp/midscene_yadb_layout_dump.xml',
+        'uiautomator dump --compressed /sdcard/midscene_window_dump.xml',
         'uiautomator dump --compressed /sdcard/midscene_window_dump.xml',
         'uiautomator dump --compressed /sdcard/midscene_window_dump.xml',
       ]);

@@ -727,7 +727,6 @@ ${Object.keys(size)
       adb: await this.getAdb(),
       devicePixelRatio: this.devicePixelRatio,
       displayId: this.options?.displayId,
-      ensureYadb: () => this.ensureYadb(),
       getDisplaySize: () => this.size(),
     });
   }
