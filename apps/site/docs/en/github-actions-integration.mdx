@@ -1,12 +1,12 @@
 # Integrate Midscene with GitHub Actions
 
-This guide shows you how to add Midscene checks for Web, headless Linux, Windows, macOS, Android, and iOS to GitHub Actions. Use the Midscene repository workflows as templates, configure GitHub repository secrets and variables, then collect HTML reports and diagnostics as GitHub artifacts.
+This guide shows you how to add Midscene checks for Web, headless Linux, Windows, macOS, Android, and iOS to GitHub Actions. Use the midscene-example workflows as templates, configure GitHub repository secrets and variables, then collect HTML reports and diagnostics as GitHub artifacts.
 
 In this guide, GitHub CI means GitHub Actions. Its workflow files, GitHub-hosted runners, secrets, variables, artifacts, and `gh` commands do not apply directly to another CI provider.
 
 ## Add Midscene to a GitHub repository
 
-Start with one platform workflow, then adapt its install, build, and test commands to your repository. The linked workflows test the Midscene monorepo, so they are integration examples rather than files you can copy without changes.
+Start with one platform workflow, then adapt its install and test commands to your repository. The linked workflows live in [midscene-example](https://github.com/web-infra-dev/midscene-example), so they stay focused on application integration instead of Midscene's own monorepo build.
 
 1. Copy the platform workflow into `.github/workflows/` and keep its `pull_request` and `workflow_dispatch` triggers.
 2. Add `MIDSCENE_MODEL_API_KEY` as a GitHub Actions repository secret.
@@ -19,19 +19,19 @@ GitHub does not pass repository Actions secrets to workflows triggered from untr
 
 ## Choose a GitHub Actions workflow
 
-Each Midscene workflow is a working GitHub Actions integration example. It exercises a platform adapter against a GitHub-hosted desktop, simulator, emulator, or browser.
+Each example workflow exercises a platform adapter against a GitHub-hosted desktop, simulator, emulator, or browser.
 
 | Platform | Workflow and GitHub-hosted runner | Interface target | Validation |
 | --- | --- | --- | --- |
-| Web | [AI - Playwright e2e](https://github.com/web-infra-dev/midscene/blob/main/.github/workflows/ai.yml), `ubuntu-22.04` | Desktop Chrome through Playwright | TodoMVC actions, queries, cache replay, and report generation |
-| Headless Linux | [Headless Linux](https://github.com/web-infra-dev/midscene/blob/main/.github/workflows/headless-linux.yml), `ubuntu-22.04` | Google Chrome on an X virtual framebuffer (Xvfb) | Computer TodoMVC and Chrome extension flows without a physical display |
-| Windows | [Windows Desktop](https://github.com/web-infra-dev/midscene/blob/main/.github/workflows/windows-desktop.yml), `windows-2022` | Visible WinForms fixture and Chrome TodoMVC | Package outputs, unit tests, native input, screenshots, and TodoMVC |
-| macOS | [macOS Desktop](https://github.com/web-infra-dev/midscene/blob/main/.github/workflows/macos-desktop.yml), `macos-15-intel` | Visible AppKit fixture and Safari TodoMVC | Package outputs, unit tests, native input, screenshots, and TodoMVC |
-| Android | [Android Emulator](https://github.com/web-infra-dev/midscene/blob/main/.github/workflows/android-emulator.yml), `ubuntu-22.04` | Pixel 6 emulator with Android API 35 | Package outputs, unit tests, Android Debug Bridge input, screenshots, and TodoMVC |
-| iOS | [iOS Simulator](https://github.com/web-infra-dev/midscene/blob/main/.github/workflows/ios-simulator.yml), `macos-15` | iPhone Simulator, Mobile Safari, and WebDriverAgent | Package outputs, unit tests, simulator input, screenshots, and TodoMVC |
+| Web | [Playwright Demo](https://github.com/web-infra-dev/midscene-example/blob/main/.github/workflows/playwright-demo.yaml), `ubuntu-latest` | Desktop Chrome through Playwright | TodoMVC actions, queries, and report generation |
+| Headless Linux | [Computer Electron Demo](https://github.com/web-infra-dev/midscene-example/blob/main/.github/workflows/computer-electron-demo.yaml), `ubuntu-22.04` | Electron app on an X virtual framebuffer (Xvfb) | Desktop automation without a physical display |
+| Windows | [Windows Computer Demo](https://github.com/web-infra-dev/midscene-example/blob/main/.github/workflows/windows-computer-demo.yaml), `windows-2022` | Chrome TodoMVC on a GitHub-hosted Windows desktop | Native desktop input, screenshots, and TodoMVC |
+| macOS | [macOS Computer Demo](https://github.com/web-infra-dev/midscene-example/blob/main/.github/workflows/macos-computer-demo.yaml), `macos-15-intel` | Safari TodoMVC on a GitHub-hosted macOS desktop | Native desktop input, screenshots, and TodoMVC |
+| Android | [Android Emulator Demo](https://github.com/web-infra-dev/midscene-example/blob/main/.github/workflows/android-emulator-demo.yaml), `ubuntu-22.04` | Pixel 6 emulator with Android API 35 | Android Debug Bridge input, screenshots, and TodoMVC |
+| iOS | [iOS Simulator Demo](https://github.com/web-infra-dev/midscene-example/blob/main/.github/workflows/ios-simulator-demo.yaml), `macos-15` | iPhone Simulator, Mobile Safari, and WebDriverAgent | Simulator input, screenshots, and TodoMVC |
 | HarmonyOS | No GitHub Actions workflow | Not covered | Validate on a HarmonyOS device or device farm |
 
-The desktop and mobile jobs fail if any required phase fails. Each job checks build output, package entry points, unit tests, its deterministic smoke, and TodoMVC where applicable.
+Each demo job runs the target example and uploads the Midscene report so you can inspect the completed actions.
 
 ## Verify the GitHub Actions integration
 
