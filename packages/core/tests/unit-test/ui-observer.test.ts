@@ -1,6 +1,6 @@
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { UIObserver } from '@/agent/ui-observer';
 import type { DeviceFrameRef, DeviceFrameSource } from '@/device';
 import { ScreenshotItem } from '@/screenshot-item';
@@ -219,6 +219,62 @@ describe('UIObserver', () => {
     expect(frames).toHaveLength(10);
     expect(frames[0].ref).toBe('frame-0');
     expect(frames.at(-1)!.ref).toBe('frame-15');
+  });
+
+  it('prunes persisted image files when the frame buffer is thinned', () => {
+    const fake = makeFakeSource();
+    const { deps } = makeDeps(fake);
+    const writer = deps.observationRecordWriter;
+    const observer = new UIObserver(
+      deps,
+      options({ intervalMs: 200, maxFrames: 2 }),
+    );
+
+    for (let index = 0; index < 12; index++) {
+      const persisted = writer.persistFrame(
+        `data:image/png;base64,${Buffer.from(`frame-${index}`).toString('base64')}`,
+        index,
+      );
+      (observer as any).pushFrame({
+        ref: persisted.path,
+        capturedAt: index,
+        persisted,
+      });
+    }
+
+    const retainedFrames = (observer as any).frames as Array<{
+      persisted: { path: string };
+    }>;
+    const framesDirectory = dirname(
+      writer.resolveFramePath(retainedFrames[0].persisted as any),
+    );
+    expect(retainedFrames).toHaveLength(2);
+    expect(readdirSync(framesDirectory)).toHaveLength(2);
+  });
+
+  it('disposes the file-backed record after it is no longer needed', async () => {
+    const fake = makeFakeSource();
+    const { deps } = makeDeps(fake);
+    const observer = new UIObserver(deps, options({ intervalMs: 200 }));
+    const persisted = deps.observationRecordWriter.persistFrame(
+      `data:image/png;base64,${Buffer.from('frame').toString('base64')}`,
+      100,
+    );
+    (observer as any).pushFrame({
+      ref: persisted.path,
+      capturedAt: 100,
+      persisted,
+    });
+    (observer as any).stopped = true;
+    (observer as any).representative = fakeRepresentative();
+
+    const record = await observer.exportRecord();
+    expect(readFileSync(record.frames[0].path)).toBeDefined();
+
+    await observer.dispose();
+
+    expect(() => readFileSync(record.frames[0].path)).toThrow();
+    await expect(observer.exportRecord()).rejects.toThrow(/disposed/);
   });
 
   it('watchdog auto-stops and can also be disabled', async () => {

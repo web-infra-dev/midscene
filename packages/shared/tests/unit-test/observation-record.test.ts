@@ -2,6 +2,7 @@ import {
   existsSync,
   mkdtempSync,
   readFileSync,
+  readdirSync,
   rmSync,
   writeFileSync,
 } from 'node:fs';
@@ -101,5 +102,47 @@ describe('UIObservationRecordWriter', () => {
     expect(() => writer.persistFrame('not-an-image', 100)).toThrow(
       /PNG or JPEG data URL/,
     );
+  });
+
+  it('keeps only files referenced by the finalized record', () => {
+    const writer = new UIObservationRecordWriter(
+      join(tempDirectory(), 'record.json'),
+    );
+    const frames = Array.from({ length: 12 }, (_, index) =>
+      writer.persistFrame(dataUrl(`frame-${index}`), index),
+    );
+
+    const record = writer.finalize(frames.slice(-2), {
+      shotSize: { width: 100, height: 50 },
+      shrunkShotToLogicalRatio: 1,
+    });
+
+    expect(record.frames).toHaveLength(2);
+    expect(readdirSync(writer.framesDirectory)).toHaveLength(2);
+  });
+
+  it('disposes temporary and finalized frame directories', () => {
+    const writer = new UIObservationRecordWriter(
+      join(tempDirectory(), 'record.json'),
+    );
+    const frame = writer.persistFrame(dataUrl('frame'), 100);
+    const temporaryFramePath = writer.resolveFramePath(frame);
+
+    expect(existsSync(temporaryFramePath)).toBe(true);
+    writer.dispose();
+    expect(existsSync(temporaryFramePath)).toBe(false);
+
+    const finalizedWriter = new UIObservationRecordWriter(
+      join(tempDirectory(), 'finalized-record.json'),
+    );
+    const finalizedFrame = finalizedWriter.persistFrame(dataUrl('frame'), 100);
+    finalizedWriter.finalize([finalizedFrame], {
+      shotSize: { width: 100, height: 50 },
+      shrunkShotToLogicalRatio: 1,
+    });
+
+    expect(existsSync(finalizedWriter.framesDirectory)).toBe(true);
+    finalizedWriter.dispose();
+    expect(existsSync(finalizedWriter.framesDirectory)).toBe(false);
   });
 });

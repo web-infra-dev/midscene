@@ -670,7 +670,7 @@ describe('runToolsCLI', () => {
     });
     const tools = {
       ...createMockTools([]),
-      getToolDefinitions: vi.fn().mockReturnValue([
+      getCliToolDefinitions: vi.fn().mockReturnValue([
         {
           name: 'record',
           description: 'record command',
@@ -934,7 +934,8 @@ describe('runToolsCLI', () => {
     const tools = {
       initTools: vi.fn().mockResolvedValue(undefined),
       destroy: vi.fn().mockResolvedValue(undefined),
-      getToolDefinitions: vi.fn().mockReturnValue([
+      getToolDefinitions: vi.fn().mockReturnValue([]),
+      getCliToolDefinitions: vi.fn().mockReturnValue([
         {
           name: 'record',
           description: 'record command',

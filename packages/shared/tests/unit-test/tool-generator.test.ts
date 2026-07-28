@@ -15,6 +15,7 @@ import {
 import { composeUserPrompt } from '@/agent-tools/user-prompt';
 import { withCliVerboseContext } from '@/cli';
 import * as cliInterrupt from '@/cli/interrupt';
+import { createRecordCliCommand } from '@/cli/record-command';
 import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 
@@ -295,14 +296,22 @@ describe('generateToolsFromActionSpace', () => {
       initArgCliMetadata,
     );
 
-    expect(commonTools.find((tool) => tool.name === 'record')?.schema).toEqual(
+    const recordTool = createRecordCliCommand(
+      async () => ({
+        getActionSpace: vi.fn().mockResolvedValue([]),
+      }),
+      initArgSchema,
+      initArgCliMetadata,
+    );
+    expect(commonTools.find((tool) => tool.name === 'record')).toBeUndefined();
+    expect(recordTool.schema).toEqual(
       expect.objectContaining({
         action: expect.anything(),
         output: expect.anything(),
         'android.deviceId': expect.anything(),
       }),
     );
-    expect(commonTools.find((tool) => tool.name === 'record')?.cli).toEqual({
+    expect(recordTool.cli).toEqual({
       positionals: ['action'],
       options: expect.objectContaining({
         intervalMs: {
@@ -365,6 +374,7 @@ describe('generateToolsFromActionSpace', () => {
     const sourceFrame = join(tempDir, 'source.png');
     writeFileSync(sourceFrame, Buffer.from('recorded-frame'));
     const stop = vi.fn().mockResolvedValue(undefined);
+    const dispose = vi.fn().mockResolvedValue(undefined);
     const exportRecord = vi.fn().mockResolvedValue({
       type: 'midscene_ui_observation',
       version: 1,
@@ -381,6 +391,7 @@ describe('generateToolsFromActionSpace', () => {
     const startObserving = vi.fn().mockResolvedValue({
       stop,
       exportRecord,
+      dispose,
     });
     const getAgent = vi.fn(async () => ({
       startObserving,
@@ -389,8 +400,7 @@ describe('generateToolsFromActionSpace', () => {
         screenshotBase64: vi.fn().mockResolvedValue(screenshotBase64),
       },
     }));
-    const commonTools = generateCommonTools(getAgent, undefined, undefined);
-    const recordTool = commonTools.find((tool) => tool.name === 'record');
+    const recordTool = createRecordCliCommand(getAgent);
     const interruptSpy = vi
       .spyOn(cliInterrupt, 'waitForCliInterrupt')
       .mockResolvedValue('sigint');
@@ -402,7 +412,7 @@ describe('generateToolsFromActionSpace', () => {
         commandName: 'record',
       },
       () =>
-        recordTool!.handler({
+        recordTool.handler({
           action: 'start',
           output,
           intervalMs: 250,
@@ -420,6 +430,7 @@ describe('generateToolsFromActionSpace', () => {
     expect(getAgent).toHaveBeenCalledTimes(1);
     expect(stop).toHaveBeenCalledOnce();
     expect(exportRecord).toHaveBeenCalledOnce();
+    expect(dispose).toHaveBeenCalledOnce();
     expect(startObserving.mock.invocationCallOrder[0]).toBeLessThan(
       stop.mock.invocationCallOrder[0],
     );
@@ -434,13 +445,12 @@ describe('generateToolsFromActionSpace', () => {
     const consoleErrorSpy = vi
       .spyOn(console, 'error')
       .mockImplementation(() => {});
-    const commonTools = generateCommonTools(async () => ({
+    const recordTool = createRecordCliCommand(async () => ({
       getActionSpace: vi.fn().mockResolvedValue([]),
       page: {
         screenshotBase64: vi.fn().mockResolvedValue(screenshotBase64),
       },
     }));
-    const recordTool = commonTools.find((tool) => tool.name === 'record');
 
     const result = await withCliVerboseContext(
       {
@@ -448,7 +458,7 @@ describe('generateToolsFromActionSpace', () => {
         scriptName: 'midscene-web',
         commandName: 'record',
       },
-      () => recordTool!.handler({ action: 'start' }),
+      () => recordTool.handler({ action: 'start' }),
     );
 
     expect(result).toEqual({
@@ -465,10 +475,9 @@ describe('generateToolsFromActionSpace', () => {
 
   it('rejects a missing record operation before creating an agent', async () => {
     const getAgent = vi.fn();
-    const commonTools = generateCommonTools(getAgent);
-    const recordTool = commonTools.find((tool) => tool.name === 'record');
+    const recordTool = createRecordCliCommand(getAgent);
 
-    const missingAction = await recordTool?.handler({});
+    const missingAction = await recordTool.handler({});
 
     expect(getAgent).not.toHaveBeenCalled();
     expect(missingAction).toEqual({
@@ -480,29 +489,6 @@ describe('generateToolsFromActionSpace', () => {
       ],
       isError: true,
     });
-  });
-
-  it('directs non-CLI callers to the SDK observation API', async () => {
-    const getAgent = vi.fn();
-    const commonTools = generateCommonTools(getAgent);
-    const recordTool = commonTools.find((tool) => tool.name === 'record');
-    const consoleErrorSpy = vi
-      .spyOn(console, 'error')
-      .mockImplementation(() => {});
-
-    const result = await recordTool?.handler({ action: 'start' });
-
-    expect(getAgent).not.toHaveBeenCalled();
-    expect(result).toEqual({
-      content: [
-        {
-          type: 'text',
-          text: 'Failed to execute record: record start is only available from the Midscene CLI; SDK callers should use agent.startObserving()',
-        },
-      ],
-      isError: true,
-    });
-    consoleErrorSpy.mockRestore();
   });
 
   it('records take_screenshot in reports with the captured screenshot', async () => {

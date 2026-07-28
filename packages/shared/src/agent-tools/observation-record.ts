@@ -4,6 +4,7 @@ import {
   existsSync,
   mkdirSync,
   readFileSync,
+  readdirSync,
   renameSync,
   rmSync,
   statSync,
@@ -130,6 +131,7 @@ export class UIObservationRecordWriter {
   readonly framesDirectory: string;
   private readonly temporaryFramesDirectory: string;
   private finalized = false;
+  private disposed = false;
   private finalizedRecord: UIObservationRecord | null = null;
 
   constructor(filePath?: string) {
@@ -145,6 +147,9 @@ export class UIObservationRecordWriter {
   }
 
   persistFrame(dataUrl: string, capturedAt: number): UIObservationFrame {
+    if (this.disposed) {
+      throw new Error('UI observation record writer has been disposed');
+    }
     if (this.finalized) {
       throw new Error('UI observation record has already been finalized');
     }
@@ -174,16 +179,37 @@ export class UIObservationRecordWriter {
 
   /** Resolve a persisted frame before or after the writer is finalized. */
   resolveFramePath(frame: UIObservationFrame): string {
+    if (this.disposed) {
+      throw new Error('UI observation record writer has been disposed');
+    }
     const directory = this.finalized
       ? this.framesDirectory
       : this.temporaryFramesDirectory;
     return join(directory, basename(frame.path));
   }
 
+  /** Remove persisted images that are no longer referenced by the frame buffer. */
+  pruneFrames(frames: UIObservationFrame[]): void {
+    if (this.disposed) {
+      throw new Error('UI observation record writer has been disposed');
+    }
+    if (this.finalized || !existsSync(this.temporaryFramesDirectory)) return;
+
+    const retainedFiles = new Set(frames.map((frame) => basename(frame.path)));
+    for (const fileName of readdirSync(this.temporaryFramesDirectory)) {
+      if (!retainedFiles.has(fileName)) {
+        rmSync(join(this.temporaryFramesDirectory, fileName), { force: true });
+      }
+    }
+  }
+
   finalize(
     frames: UIObservationFrame[],
     metadata: UIObservationRecordMetadata,
   ): UIObservationRecord {
+    if (this.disposed) {
+      throw new Error('UI observation record writer has been disposed');
+    }
     if (this.finalizedRecord) return this.finalizedRecord;
     const record = parseUIObservationRecord({
       type: 'midscene_ui_observation',
@@ -191,6 +217,7 @@ export class UIObservationRecordWriter {
       frames,
       ...metadata,
     });
+    this.pruneFrames(record.frames);
     mkdirSync(dirname(this.outputPath), { recursive: true });
     mkdirSync(this.temporaryFramesDirectory, { recursive: true });
     rmSync(this.framesDirectory, { recursive: true, force: true });
@@ -204,6 +231,15 @@ export class UIObservationRecordWriter {
       })),
     };
     return this.finalizedRecord;
+  }
+
+  /** Delete writer-owned temporary or finalized frame files. */
+  dispose(): void {
+    if (this.disposed) return;
+    rmSync(this.temporaryFramesDirectory, { recursive: true, force: true });
+    rmSync(this.framesDirectory, { recursive: true, force: true });
+    this.disposed = true;
+    this.finalizedRecord = null;
   }
 }
 

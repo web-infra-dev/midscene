@@ -225,7 +225,11 @@ export async function runToolsCLI(
 
   await tools.initTools();
 
-  const commands: CLICommand[] = tools.getToolDefinitions().map((def) => ({
+  const toolDefinitions = [
+    ...tools.getToolDefinitions(),
+    ...(tools.getCliToolDefinitions?.() ?? []),
+  ];
+  const commands: CLICommand[] = toolDefinitions.map((def) => ({
     name: removePrefix(def.name, options?.stripPrefix).toLowerCase(),
     def,
   }));

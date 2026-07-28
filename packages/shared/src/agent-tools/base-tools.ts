@@ -1,6 +1,7 @@
 import { parseBase64 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import type { z } from 'zod';
+import { createRecordCliCommand } from '../cli/record-command';
 import { camelToKebab, getKeyAliases } from '../key-alias-utils';
 import {
   type CliReportSession,
@@ -322,6 +323,17 @@ export abstract class BaseMidsceneTools<
    */
   public getToolDefinitions(): ToolDefinition[] {
     return this.toolDefinitions;
+  }
+
+  /** Commands that exist only on the foreground CLI surface. */
+  public getCliToolDefinitions(): ToolDefinition[] {
+    return [
+      createRecordCliCommand(
+        (args = {}) => this.ensureAgent(this.extractAgentInitParam(args)),
+        this.getAgentInitArgSchema(),
+        this.getAgentInitArgCliMetadata(),
+      ),
+    ];
   }
 
   /**

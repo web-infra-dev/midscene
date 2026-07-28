@@ -218,6 +218,9 @@ export class Agent<
    */
   private activeObserver: UIObserver | null = null;
 
+  /** Stopped observers remain owned by the agent until exported or disposed. */
+  private unexportedObservers = new Set<UIObserver>();
+
   private get aiActContext(): string | undefined {
     return this.opts.aiActContext ?? this.opts.aiActionContext;
   }
@@ -530,8 +533,12 @@ export class Agent<
         screenshot: () => this.interface.screenshotBase64(),
         captureRepresentative: () => this.getUIContext('assert'),
         onStopped: () => {
-          this.activeObserver = null;
+          if (this.activeObserver === observer) {
+            this.activeObserver = null;
+          }
         },
+        onExported: () => this.unexportedObservers.delete(observer),
+        onDisposed: () => this.unexportedObservers.delete(observer),
         screenshotShrinkFactor: this.opts.screenshotShrinkFactor,
       },
       opt,
@@ -539,10 +546,15 @@ export class Agent<
     // Mark as active BEFORE the async start() so concurrent calls hit the
     // assert guard above. If start() throws, clear the reference below.
     this.activeObserver = observer;
+    this.unexportedObservers.add(observer);
     try {
       await observer.start();
     } catch (error) {
       this.activeObserver = null;
+      this.unexportedObservers.delete(observer);
+      await observer.dispose().catch((disposeError) => {
+        debug(`error disposing failed observer start: ${disposeError}`);
+      });
       throw error;
     }
     return observer;
@@ -1617,17 +1629,17 @@ export class Agent<
 
     this.destroyed = true;
 
-    // Stop any active observer before tearing down the interface. The observer
-    // may hold a frame source subscription that needs explicit cleanup.
-    if (this.activeObserver) {
+    // Unexported observers still own temporary frame files, including observers
+    // that were stopped automatically by the watchdog.
+    for (const observer of this.unexportedObservers) {
       try {
-        await this.activeObserver.stop();
+        await observer.dispose();
       } catch (error) {
-        debug(`error stopping active observer during destroy: ${error}`);
+        debug(`error disposing unexported observer during destroy: ${error}`);
       }
-      // onStopped callback should have cleared this, but ensure it's null
-      this.activeObserver = null;
     }
+    this.unexportedObservers.clear();
+    this.activeObserver = null;
 
     let interfaceDestroyError: unknown;
     try {

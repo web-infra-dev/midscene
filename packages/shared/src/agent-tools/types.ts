@@ -159,6 +159,8 @@ export interface BaseUIObserver {
   stop(): Promise<void>;
   /** Export the stopped observation window as a file-backed record. */
   exportRecord(): Promise<UIObservationRecord>;
+  /** Release temporary backing files after the record is no longer needed. */
+  dispose?(): Promise<void>;
 }
 
 /** Options for {@link BaseAgent.startObserving}. */
@@ -228,5 +230,6 @@ export interface BaseDevice {
 export interface IMidsceneTools {
   initTools(): Promise<void>;
   destroy?(): Promise<void>;
+  getCliToolDefinitions?(): ToolDefinition[];
   setToolDefaults?(toolDefaults: ToolDefaults): void;
 }

@@ -33,6 +33,8 @@ interface UIObserverDeps {
   screenshot: () => Promise<string>;
   captureRepresentative: () => Promise<UIContext>;
   onStopped?: () => void;
+  onExported?: () => void;
+  onDisposed?: () => void;
   screenshotShrinkFactor?: number;
   /** Test/internal persistence override; not part of the Agent SDK options. */
   observationRecordWriter?: UIObservationRecordWriter;
@@ -60,6 +62,7 @@ export class UIObserver {
   private source: DeviceFrameSource | null = null;
   private usingFallback = false;
   private stopped = false;
+  private disposed = false;
   private loopPromise: Promise<void> | null = null;
   private stopPromise: Promise<void> | null = null;
   private representative: UIContext | null = null;
@@ -198,6 +201,7 @@ export class UIObserver {
    * Repeated exports return the same record without re-decoding.
    */
   async exportRecord(): Promise<UIObservationRecord> {
+    assert(!this.disposed, 'UI observation record has been disposed');
     assert(
       this.stopped && this.representative,
       'call observer.stop() before exporting the observed window',
@@ -241,7 +245,25 @@ export class UIObserver {
       shrunkShotToLogicalRatio: this.representative!.shrunkShotToLogicalRatio,
     };
     this.exportedRecord = this.writer.finalize(frames, metadata);
+    this.deps.onExported?.();
     return this.exportedRecord;
+  }
+
+  /** Release writer-owned image files after the exported record is no longer needed. */
+  async dispose(): Promise<void> {
+    if (this.disposed) return;
+    try {
+      if (!this.stopped) {
+        await this.stop();
+      }
+    } finally {
+      this.writer.dispose();
+      this.frames = [];
+      this.persistedByRef.clear();
+      this.exportedRecord = null;
+      this.disposed = true;
+      this.deps.onDisposed?.();
+    }
   }
 
   private async persistUnstoredFrames(): Promise<void> {
@@ -341,6 +363,11 @@ export class UIObserver {
     this.frames.push(frame);
     if (this.frames.length > this.maxFrames) {
       this.frames = this.thinBuffer(this.frames);
+      this.writer.pruneFrames(
+        this.frames.flatMap((retainedFrame) =>
+          retainedFrame.persisted ? [retainedFrame.persisted] : [],
+        ),
+      );
       debug(`frame buffer thinned to ${this.frames.length} frames`);
     }
   }
