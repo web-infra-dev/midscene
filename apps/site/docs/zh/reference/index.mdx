@@ -179,7 +179,7 @@ await agent.aiAct('填写表单并提交', {
 await agent.aiAct('完成 github 账号注册的表单填写。地区必须选择「加拿大」。确保表单上没有遗漏的字段，确保所有的表单项能够通过校验。 只需要填写表单项即可，不需要发起真实的账号注册。 最终请返回表单上实际填写的字段内容', { deepThink: true });
 ```
 
-:::tip
+:::info
 
 在实际运行时，Midscene 会将用户指令规划（Planning）成多个步骤，然后逐步执行。如果 Midscene 认为无法执行，将抛出一个错误。
 
@@ -369,7 +369,7 @@ await agent.aiClearInput('邮箱输入框');
 await agent.aiInput('邮箱输入框', { value: 'user@example.com' });
 ```
 
-:::tip `aiClearInput` 与 `aiInput` 的取舍
+:::info `aiClearInput` 与 `aiInput` 的取舍
 
 `aiInput(locate, { value: '...' })` 默认会先清空输入框（`mode: 'replace'`）。只有在需要把清空当成独立一步时（例如测试空值校验，或想把清空和输入拆成两步分别控制）才使用 `aiClearInput`。
 
@@ -937,7 +937,7 @@ function aiAssert(
 await agent.aiAssert('"Sauce Labs Onesie" 的价格是 7.99');
 ```
 
-:::tip
+:::info
 
 断言在测试脚本中非常重要。为了降低因 AI 幻觉导致错误断言的风险（例如遗漏错误），你也可以使用 `.aiQuery` 加上常规的 JavaScript 断言来替代 `.aiAssert`。
 
@@ -1029,7 +1029,7 @@ await agent.aiWaitFor('购物车图标显示数量为 2', {
 });
 ```
 
-:::tip
+:::info
 
 考虑到 AI 服务的时间消耗，`.aiWaitFor` 并不是一个特别高效的方法。使用一个普通的 `sleep` 可能是替代 `waitFor` 的另一种方式。
 
@@ -1074,7 +1074,7 @@ tasks:
 console.log(result);
 ```
 
-:::tip
+:::info
 
 更多关于 YAML 脚本的信息，请参考 [Automate with Scripts in YAML](../automate-with-scripts-in-yaml)。
 
@@ -1222,7 +1222,7 @@ console.log(results);
 await agent.unfreezePageContext();
 ```
 
-:::tip
+:::info
 
 在报告中，使用冻结上下文的操作会在 Insight tab 中显示 🧊 图标。
 
@@ -2746,7 +2746,7 @@ await agent.aiInput('备注输入框', {
 - `securityProtocol`：可选 `'auto'`、`'tls'`、`'nla'` 或 `'rdp'`。
 - `desktopWidth` / `desktopHeight`：请求指定远程桌面分辨率。
 
-:::tip 示例：在无头 Linux CI 中测试 Electron 应用
+:::info 示例：在无头 Linux CI 中测试 Electron 应用
 使用 `@midscene/computer` 在无头 Linux CI 中测试 [Obsidian](https://obsidian.md/)（Electron 应用）的完整示例：[https://github.com/web-infra-dev/midscene-example/tree/main/computer/electron-demo](https://github.com/web-infra-dev/midscene-example/tree/main/computer/electron-demo)
 :::
 
@@ -2789,7 +2789,7 @@ await agent.aiAct('Click the Windows Start button');
 await agent.aiAct('Open Settings');
 ```
 
-:::tip 示例：通过 RDP 控制远程 Windows 桌面
+:::info 示例：通过 RDP 控制远程 Windows 桌面
 一个可直接运行的 Demo：连接远程 Windows，打开「设置」并进入「Windows 更新」，最后输出一份结构化报告：[https://github.com/web-infra-dev/midscene-example/tree/main/computer/rdp-demo](https://github.com/web-infra-dev/midscene-example/tree/main/computer/rdp-demo)
 :::
 

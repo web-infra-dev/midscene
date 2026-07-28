@@ -324,10 +324,6 @@ export default defineConfig(async () => {
             link: '/awesome-midscene',
           },
           {
-            text: 'LLMs.txt',
-            link: '/llm-txt',
-          },
-          {
             text: 'Data privacy',
             link: '/data-privacy',
           },
@@ -471,10 +467,6 @@ export default defineConfig(async () => {
           {
             text: 'Awesome Midscene',
             link: '/zh/awesome-midscene',
-          },
-          {
-            text: 'LLMs.txt',
-            link: '/zh/llm-txt',
           },
           {
             text: '数据隐私',

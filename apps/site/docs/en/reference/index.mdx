@@ -184,7 +184,7 @@ await agent.aiAct('Fill in the form and submit', {
 await agent.aiAct('Complete the GitHub account registration form. The region must be set to "Canada". Make sure no fields on the form are missed and all form fields pass validation. Just fill in the form fields without actually submitting the registration. Finally, return the actual content filled in the form fields', { deepThink: true });
 ```
 
-:::tip
+:::info
 
 Midscene uses an AI model to split the instruction into a sequence of steps, then executes those steps in order. If it cannot complete an action, it throws an error.
 
@@ -380,7 +380,7 @@ await agent.aiClearInput('the email input');
 await agent.aiInput('the email input', { value: 'user@example.com' });
 ```
 
-:::tip When to use `aiClearInput` vs `aiInput`
+:::info When to use `aiClearInput` vs `aiInput`
 
 `aiInput(locate, { value: '...' })` already clears the field by default (via `mode: 'replace'`). Reach for `aiClearInput` when you need clearing as an independent step — for example, to test empty-state validation, or when you want to control clearing and typing as separate actions.
 
@@ -951,7 +951,7 @@ function aiAssert(
 await agent.aiAssert('The price of "Sauce Labs Onesie" is 7.99');
 ```
 
-:::tip
+:::info
 
 Assertions are critical in test scripts. To reduce the risk of model false positives or false negatives, combine `.aiQuery` with standard JavaScript assertions when you need deterministic checks.
 
@@ -1045,7 +1045,7 @@ await agent.aiWaitFor('The shopping cart icon shows a quantity of 2', {
 });
 ```
 
-:::tip
+:::info
 
 Because each check calls an AI model, `.aiWaitFor()` can be slower and more expensive than a fixed delay. Use a simple sleep when you only need to wait for a known amount of time.
 
@@ -1090,7 +1090,7 @@ tasks:
 console.log(result);
 ```
 
-:::tip
+:::info
 
 For more information about YAML scripts, please refer to [Automate with Scripts in YAML](../automate-with-scripts-in-yaml).
 
@@ -1239,7 +1239,7 @@ console.log(results);
 await agent.unfreezePageContext();
 ```
 
-:::tip
+:::info
 
 In the report, operations using frozen context will display a 🧊 icon in the Insight tab.
 
@@ -2790,7 +2790,7 @@ await agent.aiInput('the notes field', {
 - `securityProtocol?: 'auto' | 'tls' | 'nla' | 'rdp'` — RDP security protocol. Default: `'auto'`.
 - `desktopWidth?: number` / `desktopHeight?: number` — Requested remote desktop resolution. When omitted, the RDP client and server negotiate the session size.
 
-:::tip Example: Test an Electron app on headless Linux
+:::info Example: Test an Electron app on headless Linux
 See the complete [Obsidian desktop automation demo](https://github.com/web-infra-dev/midscene-example/tree/main/computer/electron-demo) for a CI example that uses `@midscene/computer`.
 :::
 
@@ -2833,7 +2833,7 @@ await agent.aiAct('Click the Windows Start button');
 await agent.aiAct('Open Settings');
 ```
 
-:::tip Example: Automate a remote Windows desktop over RDP
+:::info Example: Automate a remote Windows desktop over RDP
 See the runnable [RDP automation demo](https://github.com/web-infra-dev/midscene-example/tree/main/computer/rdp-demo), which connects to a remote Windows machine, opens Settings, navigates to Windows Update, and generates a structured report.
 :::
 

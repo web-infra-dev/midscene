@@ -14,3 +14,8 @@ Device 生命周期规范：
 - 每个 Device 实例只能归属于一个 Agent。
 - 文档和示例不得把同一个 Device 实例传给多个 Agent，也不得在 Agent 结束后复用该 Device 实例。
 - `Agent.destroy()` 会调用 `Device.destroy()`。对于使用 Device 的 Agent，应为每个 Agent 创建独立的 Device 实例。该 Agent 独占并负责 Device 的完整生命周期。
+
+提示框样式规范：
+
+- 普通提示框统一使用 `:::info`（蓝色），不要使用 `:::tip`（绿色）。
+- 风险和错误提示仍应根据语义使用 `:::warning` 或 `:::danger`。
