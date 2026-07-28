@@ -12,6 +12,11 @@ import JSZip from 'jszip';
 import type { ChatCompletionContentPart } from 'openai/resources/index';
 import type { RecordingSession } from '../../store';
 import { recordLogger } from './logger';
+import {
+  type RecorderScreenshotAsset,
+  generateEventsMarkdownTable,
+  recorderScreenshotAsset,
+} from './screenshot-export';
 import { isChromeExtension, safeChromeAPI } from './types';
 
 // Generate default session name with current time
@@ -713,74 +718,12 @@ const generateDetailedSequentialMindmap = (
   return mermaid;
 };
 
-// Generate markdown table for event details
-const generateEventsMarkdownTable = (sessions: RecordingSession[]): string => {
-  let markdown = '# Test Events Report\n\n';
-
-  sessions.forEach((session, sessionIndex) => {
-    if (session.events.length === 0) return;
-
-    markdown += `## ${session.name}\n\n`;
-    if (session.description) {
-      markdown += `**Description:** ${session.description}\n\n`;
-    }
-    markdown += `**Created:** ${new Date(session.createdAt).toLocaleString()}\n\n`;
-
-    markdown += '| Page | Screenshot Before | Screenshot After | Action |\n';
-    markdown += '|------|------------|------------|--------|\n';
-
-    session.events.forEach((event, eventIndex) => {
-      let expected = 'N/A';
-      const page = event.title || event.url || '';
-      const screenshotBefore = event.screenshotBefore
-        ? `![](./images/screenshot_${sessionIndex}_${eventIndex}_before.png)`
-        : 'N/A';
-      const screenshotAfter = event.screenshotAfter
-        ? `![](./images/screenshot_${sessionIndex}_${eventIndex}_after.png)`
-        : 'N/A';
-      if (event.type === 'navigation') {
-        expected = `Navigate to ${event.url}`;
-      }
-
-      let action = '';
-      switch (event.type) {
-        case 'click':
-          action = `Click on ${event.elementDescription || 'element'}`;
-          break;
-        case 'input':
-          action = `Input "${event.value}" into ${event.elementDescription || 'field'}`;
-          break;
-        case 'navigation':
-          action = `Navigate to ${event.url}`;
-          break;
-        default:
-          action = `${event.type} on ${event.elementDescription || 'element'}`;
-      }
-
-      markdown += `| ${page} | ${screenshotBefore} | ${screenshotAfter} | ${action} |\n`;
-    });
-
-    if (session.generatedCode?.yaml || session.generatedCode?.playwright) {
-      markdown += '## Generated Code\n\n';
-      if (session.generatedCode?.yaml) {
-        markdown += '### YAML\n\n';
-        markdown += `\`\`\`yaml\n${session.generatedCode.yaml}\n\`\`\`\n\n`;
-      }
-      if (session.generatedCode?.playwright) {
-        markdown += '### Playwright\n\n';
-        markdown += `\`\`\`playwright\n${session.generatedCode.playwright}\n\`\`\`\n\n`;
-      }
-    }
-
-    markdown += '\n\n\n';
-  });
-
-  return markdown;
-};
-
 // Convert base64 to blob
-const base64ToBlob = (base64: string, mimeType: string): Blob => {
-  const byteCharacters = atob(base64.split(',')[1]);
+const base64BodyToBlob = (
+  base64Body: string,
+  mimeType: RecorderScreenshotAsset['mimeType'],
+): Blob => {
+  const byteCharacters = atob(base64Body);
   const byteNumbers = new Array(byteCharacters.length);
   for (let i = 0; i < byteCharacters.length; i++) {
     byteNumbers[i] = byteCharacters.charCodeAt(i);
@@ -810,15 +753,16 @@ export const exportAllEventsToZip = async (sessions: RecordingSession[]) => {
     // Process each session and extract images
     sessionsWithEvents.forEach((session, sessionIndex) => {
       session.events.forEach((event, eventIndex) => {
-        const ext = 'png';
         if (event.screenshotBefore) {
-          const fileName = `screenshot_${sessionIndex}_${eventIndex}_before.${ext}`;
-          const blob = base64ToBlob(event.screenshotBefore, `image/${ext}`);
+          const asset = recorderScreenshotAsset(event.screenshotBefore);
+          const fileName = `screenshot_${sessionIndex}_${eventIndex}_before.${asset.extension}`;
+          const blob = base64BodyToBlob(asset.body, asset.mimeType);
           imagesFolder?.file(fileName, blob);
         }
         if (event.screenshotAfter) {
-          const fileName = `screenshot_${sessionIndex}_${eventIndex}_after.${ext}`;
-          const blob = base64ToBlob(event.screenshotAfter, `image/${ext}`);
+          const asset = recorderScreenshotAsset(event.screenshotAfter);
+          const fileName = `screenshot_${sessionIndex}_${eventIndex}_after.${asset.extension}`;
+          const blob = base64BodyToBlob(asset.body, asset.mimeType);
           imagesFolder?.file(fileName, blob);
         }
       });

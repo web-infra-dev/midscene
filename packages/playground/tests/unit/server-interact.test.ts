@@ -1,4 +1,4 @@
-import { createReadStream } from 'node:fs';
+import { createReadStream, existsSync } from 'node:fs';
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -20,12 +20,15 @@ vi.mock('@midscene/core', async (importOriginal) => {
 
 const VALID_PNG_BASE64 =
   'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAUCAYAAACNiR0NAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAAKklEQVR4nO3MIQEAAAzDsPo3/ePhDi4CwpWxUMMXaaFH4QgLPQpHWHg6fOdROhs7ULsmAAAAAElFTkSuQmCC';
+const VALID_WEBP_BASE64 =
+  'data:image/webp;base64,UklGRjQAAABXRUJQVlA4ICgAAACQAQCdASoCAAMAAMASJQBOl0AAjNAA/v4icv1difCfoP7mxzi2QwAA';
 
 function createMockResponse() {
   return {
     statusCode: 200,
     body: undefined as unknown,
     headers: {} as Record<string, string>,
+    contentType: undefined as string | undefined,
     status(code: number) {
       this.statusCode = code;
       return this;
@@ -38,7 +41,8 @@ function createMockResponse() {
       this.body = payload;
       return this;
     },
-    type() {
+    type(contentType: string) {
+      this.contentType = contentType;
       return this;
     },
     setHeader(name: string, value: string) {
@@ -202,6 +206,7 @@ describe('PlaygroundServer manual interaction APIs', () => {
   });
 
   beforeEach(() => {
+    vi.mocked(existsSync).mockImplementation(() => true);
     vi.mocked(coreDescribeElementAtPoint).mockReset();
     vi.mocked(coreDescribeElementAtPoint).mockRejectedValue(
       new Error('Active agent does not support describeElementAtPoint.'),
@@ -436,7 +441,7 @@ describe('PlaygroundServer manual interaction APIs', () => {
                   type: 'midscene_screenshot_ref',
                   id: 'shot-1',
                   capturedAt: 1,
-                  mimeType: 'image/png',
+                  mimeType: 'image/webp',
                   storage: 'inline',
                 },
               },
@@ -445,7 +450,7 @@ describe('PlaygroundServer manual interaction APIs', () => {
         },
       ],
     };
-    const reportHTML = `<html></html>\n<script type="midscene-image" data-id="shot-1">${VALID_PNG_BASE64}</script>\n<script type="midscene_web_dump">${JSON.stringify(dump)}</script>`;
+    const reportHTML = `<html></html>\n<script type="midscene-image" data-id="shot-1">${VALID_WEBP_BASE64}</script>\n<script type="midscene_web_dump">${JSON.stringify(dump)}</script>`;
     vi.mocked(createReadStream).mockImplementation(
       () =>
         ({
@@ -499,12 +504,13 @@ describe('PlaygroundServer manual interaction APIs', () => {
       const screenshotResponse = createMockResponse();
       await screenshotHandler(
         {
-          params: { reportId: report.id, assetName: 'shot-1.png' },
+          params: { reportId: report.id, assetName: 'shot-1.webp' },
         },
         screenshotResponse,
       );
       expect(Buffer.isBuffer(screenshotResponse.body)).toBe(true);
       expect((screenshotResponse.body as Buffer).length).toBeGreaterThan(0);
+      expect(screenshotResponse.contentType).toBe('image/webp');
     } finally {
       await server.close();
     }
@@ -866,7 +872,7 @@ describe('PlaygroundServer manual interaction APIs', () => {
         interfaceType: 'ios',
         actionSpace: () => [],
         inputPrimitives,
-        screenshotBase64: async () => VALID_PNG_BASE64,
+        screenshotBase64: async () => VALID_WEBP_BASE64,
         size: async () => ({ width: 390, height: 844 }),
       },
     } as any);
@@ -915,7 +921,7 @@ describe('PlaygroundServer manual interaction APIs', () => {
     expect(rawEvents[0]).toMatchObject({
       screenshotAsset: {
         id: expect.stringMatching(/^session-preview-/),
-        mimeType: 'image/png',
+        mimeType: 'image/webp',
         bytes: expect.any(Number),
       },
     });
@@ -929,11 +935,16 @@ describe('PlaygroundServer manual interaction APIs', () => {
       '/recorder/assets/:assetId',
     );
     const assetResponse = createMockResponse();
+    vi.mocked(existsSync).mockImplementation((filePath) =>
+      String(filePath).endsWith('.webp'),
+    );
     await assetHandler(
       { params: { assetId: rawEvents[0].screenshotAsset.id } },
       assetResponse,
     );
+    vi.mocked(existsSync).mockImplementation(() => true);
     expect(assetResponse.statusCode).toBe(200);
+    expect(assetResponse.contentType).toBe('image/webp');
 
     const describeResponse = await describeRecorderEvent(server, rawEvents[0]);
     expect(describeResponse.body).toMatchObject({
@@ -989,7 +1000,7 @@ describe('PlaygroundServer manual interaction APIs', () => {
       [10, 20],
       expect.objectContaining({
         verifyPrompt: false,
-        screenshotBase64: expect.stringMatching(/^data:image\/png;base64,/),
+        screenshotBase64: expect.stringMatching(/^data:image\/webp;base64,/),
         coordinateSpace: 'logical',
         logicalSize: { width: 390, height: 844 },
         onProgress: expect.any(Function),

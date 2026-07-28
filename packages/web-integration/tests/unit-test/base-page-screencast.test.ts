@@ -76,6 +76,9 @@ function jpegBase64(width: number, height: number): string {
   ]).toString('base64');
 }
 
+const webpBase64 =
+  'UklGRioAAABXRUJQVlA4IB4AAAAwAQCdASoBAAEAAUAmJQBOgCHwAP7+hNQAAAA=';
+
 describe('Page startMjpegStream', () => {
   it('starts a Puppeteer CDP screencast and ACKs incoming frames', async () => {
     const handlers = new Map<string, (event: any) => unknown>();
@@ -154,7 +157,7 @@ describe('Page startMjpegStream', () => {
     const mockPage = {
       bringToFront: vi.fn().mockResolvedValue(undefined),
       evaluate: vi.fn().mockResolvedValue({ width: 1280, height: 720 }),
-      screenshot: vi.fn().mockResolvedValue(jpegBase64(1280, 720)),
+      screenshot: vi.fn().mockResolvedValue(webpBase64),
       url: () => 'http://example.com',
       target: () => ({
         createCDPSession: vi.fn().mockResolvedValue(client),
@@ -179,8 +182,8 @@ describe('Page startMjpegStream', () => {
     });
     await vi.waitFor(() => {
       expect(onFrame).toHaveBeenCalledWith({
-        data: jpegBase64(1280, 720),
-        contentType: 'image/jpeg',
+        data: webpBase64,
+        contentType: 'image/webp',
       });
     });
 
@@ -256,14 +259,14 @@ describe('Page startMjpegStream', () => {
     await page.flushPendingVisualUpdate();
 
     expect(mockPage.screenshot).toHaveBeenCalledWith({
-      type: 'jpeg',
+      type: 'webp',
       quality: 90,
       encoding: 'base64',
     });
     // Hub contract: MjpegStreamFrame.data is bare base64, never a data URL.
     expect(onFrame).toHaveBeenCalledWith({
       data: 'cmVmcmVzaA==',
-      contentType: 'image/jpeg',
+      contentType: 'image/webp',
     });
 
     await handle.stop();
@@ -317,7 +320,7 @@ describe('Page startMjpegStream', () => {
   it('force-pushes a final screenshot after navigation replaces the preview with a transient frame', async () => {
     const mockPage = {
       evaluate: vi.fn().mockResolvedValue({ width: 1280, height: 720 }),
-      screenshot: vi.fn().mockResolvedValue(jpegBase64(1280, 720)),
+      screenshot: vi.fn().mockResolvedValue(webpBase64),
       url: () => 'http://example.com',
     } as any;
     const page = new Page(mockPage, 'puppeteer');
@@ -336,13 +339,13 @@ describe('Page startMjpegStream', () => {
     await page.flushPendingVisualUpdate(true);
 
     expect(mockPage.screenshot).toHaveBeenCalledWith({
-      type: 'jpeg',
+      type: 'webp',
       quality: 90,
       encoding: 'base64',
     });
     expect(onFrame).toHaveBeenCalledWith({
-      data: jpegBase64(1280, 720),
-      contentType: 'image/jpeg',
+      data: webpBase64,
+      contentType: 'image/webp',
     });
   });
 
