@@ -73,7 +73,7 @@ describe('Doubao-X custom planning', () => {
   it('builds XML65 definitions from actionSpace and maps a click to Tap', async () => {
     vi.mocked(callAIWithStringResponse).mockResolvedValueOnce({
       content:
-        '<seed:tool_call><function name="click"><parameter name="point" string="true"><point>500 500</point></parameter></function></seed:tool_call>',
+        '<seed:tool_call><function name="click"><parameter name="point" string="true">500 500</point></function></seed:tool_call>',
       usage: { total_tokens: 12 } as any,
     });
 

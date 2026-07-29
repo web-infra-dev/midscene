@@ -161,11 +161,15 @@ export function getDoubaoXFunctionDefinitions(
 
 function parsePoint(value: unknown, name: string): [number, number] {
   assert(typeof value === 'string', `${name} must be a point string`);
-  const match = value.match(
-    /^\s*<point>\s*(\d+(?:\.\d+)?)\s+(\d+(?:\.\d+)?)\s*<\/point>\s*$/,
+  // Match the official demo's extract_point behavior: <point> is optional in
+  // model output even though it is present in the action schema example.
+  const inner = value.replace('<point>', '').replace('</point>', '').trim();
+  const parts = inner.split(/\s+/);
+  assert(
+    parts.length === 2 && parts.every((part) => /^\d+(?:\.\d+)?$/.test(part)),
+    `${name} must contain two numeric coordinates, got ${value}`,
   );
-  assert(match, `${name} must use <point>x y</point>, got ${value}`);
-  return [Number(match[1]), Number(match[2])];
+  return [Number(parts[0]), Number(parts[1])];
 }
 
 function actionAvailable(actionSpace: DeviceAction[], name: string): void {
