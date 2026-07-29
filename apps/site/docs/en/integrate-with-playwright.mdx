@@ -67,6 +67,47 @@ test('add a todo', async ({ page, aiAct, aiAssert }) => {
 
 You can combine Playwright's `page` and `expect` with Midscene's AI methods in the same test. In this example, Playwright opens the page and checks its title, while Midscene adds a todo item and asserts the result on the page. Beyond `aiAct` and `aiAssert`, the fixture also provides `aiTap`, `aiInput`, `aiQuery`, `aiWaitFor`, and more; see the [Agent API reference](./reference/index.mdx#interaction-methods).
 
+## Observe each atomic action
+
+An `aiAct()` call can perform several atomic actions. To capture a screenshot or
+publish progress after each one, create a `PlaywrightAgent` directly and listen
+to its progress stream. The listener is awaited before the next action starts,
+so an `action_done` or `action_failed` callback observes the page at that
+action's boundary.
+
+```typescript
+import { PlaywrightAgent } from '@midscene/web/playwright';
+
+const agent = new PlaywrightAgent(page);
+const off = agent.addProgressListener(async (event) => {
+  if (
+    event.scope !== 'aiAct' ||
+    (event.phase !== 'action_done' && event.phase !== 'action_failed')
+  ) {
+    return;
+  }
+
+  await page.screenshot({ path: `artifacts/${event.phase}.png` });
+  console.log({
+    action: event.data.action?.name,
+    durationMs: event.data.durationMs,
+    error: event.data.error,
+  });
+});
+
+try {
+  await agent.aiAct('type "midscene" in the search box and click search');
+} finally {
+  off();
+  await agent.destroy();
+}
+```
+
+The listener receives progress from every `aiAct()` call on that Agent. Filter
+by `event.scope`, remove the listener when it is no longer needed, and keep its
+work short because execution waits for it. `action_failed` is emitted at the
+failure site, before `aiAct()` rejects.
+
 ## 4. Run the test and view the report
 
 (Optional) Verify your model configuration before running the test:
