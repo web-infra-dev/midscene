@@ -585,4 +585,19 @@ describe('extract element', () => {
     });
     expect(prompt).toMatchSnapshot();
   });
+
+  it('adds context without changing an object data demand', () => {
+    const prompt = extractDataQueryPrompt(
+      'todo page',
+      { foo: 'an array indicates the foo' },
+      'Only include active items.',
+    );
+
+    expect(prompt).toContain(
+      '<CONTEXT>\nOnly include active items.\n</CONTEXT>',
+    );
+    expect(prompt).toContain(
+      '<DATA_DEMAND>\n{\n  "foo": "an array indicates the foo"\n}\n</DATA_DEMAND>',
+    );
+  });
 });

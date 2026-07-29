@@ -74,6 +74,7 @@ describe('model adapter registry', () => {
       'qwen3.6',
       'glm-v',
       'kimi',
+      'kimi3',
       'xiaomi-mimo',
     ];
     const enabledSet = new Set<TModelFamily>(enabledFamilies);
@@ -88,6 +89,14 @@ describe('model adapter registry', () => {
     expect(getModelAdapter().chatCompletion.useReasoningAsContentFallback).toBe(
       true,
     );
+  });
+
+  it('replays raw assistant messages only for kimi3', () => {
+    for (const modelFamily of MODEL_FAMILY_VALUES) {
+      expect(
+        getModelAdapter(modelFamily).chatCompletion.replayRawAssistantMessage,
+      ).toBe(modelFamily === 'kimi3');
+    }
   });
 
   it('throws for unknown model families', () => {
