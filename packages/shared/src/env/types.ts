@@ -301,6 +301,7 @@ export type TModelFamily =
   | 'qwen3.6'
   | 'doubao-vision'
   | 'doubao-seed'
+  | 'doubao-x'
   | 'gemini'
   | 'vlm-ui-tars'
   | 'vlm-ui-tars-doubao'
@@ -316,6 +317,7 @@ export type TModelFamily =
 export const MODEL_FAMILY_VALUES: TModelFamily[] = [
   'doubao-vision',
   'doubao-seed',
+  'doubao-x',
   'gemini',
   'qwen2.5-vl',
   'qwen3-vl',

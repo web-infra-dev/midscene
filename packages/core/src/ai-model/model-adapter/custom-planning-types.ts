@@ -41,7 +41,7 @@ export interface ResolvedCustomPlanningDefinition<TParsed = unknown>
 
 export interface CustomPlanningMessageConfig<TParsed = unknown> {
   systemPromptPlacement: 'system-message' | 'user-message';
-  buildSystemPrompt(): string;
+  buildSystemPrompt(input: CustomPlanningInput): string;
   historyImageLimit?: number;
   buildUserInstruction?: (userInstruction: string) => string;
   buildAssistantContent?: (

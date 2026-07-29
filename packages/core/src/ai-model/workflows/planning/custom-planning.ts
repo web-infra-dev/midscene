@@ -34,7 +34,7 @@ export function buildCustomPlanningMessages<TParsed>(
   const { options, userInstructionText } = input;
   const { conversationHistory, context, actionContext } = options;
   const systemPrompt = appendHighPriorityKnowledge(
-    config.buildSystemPrompt(),
+    config.buildSystemPrompt(input),
     actionContext,
   );
   const userInstruction = config.buildUserInstruction

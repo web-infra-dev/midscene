@@ -488,6 +488,19 @@ AutoGLM 更适合移动端的交互与操作流程。如果要使用 `aiAssert`�
 - GitHub: [https://github.com/zai-org/Open-AutoGLM](https://github.com/zai-org/Open-AutoGLM)
 - Hugging Face: [https://huggingface.co/zai-org/AutoGLM-Phone-9B](https://huggingface.co/zai-org/AutoGLM-Phone-9B)
 
+### Doubao-X CUA（实验性） {#doubao-x}
+
+将 `doubao-x` 用于遵循 Seed Computer Use XML65 action 协议的 Ark GUI 任务处理接入点：
+
+```bash
+MIDSCENE_MODEL_BASE_URL="https://ark.cn-beijing.volces.com/api/v3"
+MIDSCENE_MODEL_API_KEY="...."
+MIDSCENE_MODEL_NAME="ep-xxxx" # 火山引擎 GUI 任务处理接入点 ID
+MIDSCENE_MODEL_FAMILY="doubao-x"
+```
+
+Midscene 会在运行时将当前 Device 可用的 action 翻译为模型的 XML65 action 定义。该 family 面向 `aiAct` 与 `aiTap`；对于 `aiAssert`、`aiQuery` 等 API，请另行配置 Insight 模型。
+
 ### UI-TARS 系列 {#ui-tars}
 
 你可以在 [火山引擎](https://volcengine.com) 上使用已部署的 `doubao-1.5-ui-tars`。
