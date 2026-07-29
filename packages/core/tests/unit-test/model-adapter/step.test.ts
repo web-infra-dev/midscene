@@ -28,9 +28,9 @@ describe('Step model adapter', () => {
     }
     expect(
       chatCompletion.buildChatCompletionParams({
-        midsceneDefaults: { temperature: 0, seed: 1 },
+        midsceneDefaults: { temperature: 0 },
         userConfig: { temperature: 0.7 },
       }).config,
-    ).toEqual({ temperature: 0.7, seed: 1 });
+    ).toEqual({ temperature: 0.7 });
   });
 });
