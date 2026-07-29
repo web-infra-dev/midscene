@@ -170,7 +170,6 @@ export function summarizeUITreeSnapshot(snapshot: UITreeSnapshot) {
   return {
     platform: snapshot.platform,
     capturedAt: snapshot.capturedAt,
-    xpathPolicy: snapshot.xpathPolicy,
     root: {
       type: snapshot.root.type,
       bounds: snapshot.root.bounds,

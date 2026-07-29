@@ -102,12 +102,6 @@ const snapshot: UITreeSnapshot = {
       },
     ],
   },
-  xpathPolicy: {
-    stableAttrs: ['resource-id'],
-    textAttrs: ['content-desc', 'text'],
-    excludedTargetTypes: [],
-    max: 3,
-  },
 };
 
 let root: Root | undefined;

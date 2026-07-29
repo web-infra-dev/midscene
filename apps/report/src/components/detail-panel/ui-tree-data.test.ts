@@ -30,12 +30,6 @@ const snapshot: UITreeSnapshot = {
     bounds: { left: 0, top: 0, width: 200, height: 400 },
     children: [child],
   },
-  xpathPolicy: {
-    stableAttrs: ['resource-id'],
-    textAttrs: ['content-desc', 'text'],
-    excludedTargetTypes: ['android.webkit.WebView'],
-    max: 3,
-  },
 };
 
 describe('UI tree report data', () => {
