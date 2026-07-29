@@ -1588,14 +1588,21 @@ const reportMergingTool = new ReportMergingTool();
 - 类型
 
 ```typescript
+type SkippedReportFileAttributes = Omit<
+  ReportFileAttributes,
+  'testStatus'
+> & {
+  testStatus: 'skipped';
+};
+
 type ReportFileWithAttributes =
   | {
       reportFilePath: string;
       reportAttributes: ReportFileAttributes;
     }
   | {
-      reportFilePath?: string;
-      reportAttributes: ReportFileAttributes & { testStatus: 'skipped' };
+      reportFilePath?: undefined;
+      reportAttributes: SkippedReportFileAttributes;
     };
 
 function append(reportInfo: ReportFileWithAttributes): void;
@@ -1604,7 +1611,7 @@ function append(reportInfo: ReportFileWithAttributes): void;
 - 参数:
 
   - `reportInfo: ReportFileWithAttributes` - 报告信息对象，包含:
-    - `reportFilePath: string | undefined` - 报告文件的路径，通常是 `agent.reportFile`。只有当 `reportAttributes.testStatus` 为 `'skipped'` 时，才能省略该字段
+    - `reportFilePath: string | undefined` - 报告文件的路径，通常是 `agent.reportFile`。只有当 `reportAttributes.testStatus` 为 `'skipped'` 时，才能省略该字段。其他状态缺少路径时，`append()` 会抛出错误
     - `reportAttributes: object` - 报告属性
       - `testId: string` - 自动化工作流的唯一标识符
       - `testTitle: string` - 自动化工作流标题

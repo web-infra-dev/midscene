@@ -1625,14 +1625,21 @@ Add an automation report to the list to be merged, typically right after each wo
 - Type
 
 ```typescript
+type SkippedReportFileAttributes = Omit<
+  ReportFileAttributes,
+  'testStatus'
+> & {
+  testStatus: 'skipped';
+};
+
 type ReportFileWithAttributes =
   | {
       reportFilePath: string;
       reportAttributes: ReportFileAttributes;
     }
   | {
-      reportFilePath?: string;
-      reportAttributes: ReportFileAttributes & { testStatus: 'skipped' };
+      reportFilePath?: undefined;
+      reportAttributes: SkippedReportFileAttributes;
     };
 
 function append(reportInfo: ReportFileWithAttributes): void;
@@ -1643,7 +1650,8 @@ function append(reportInfo: ReportFileWithAttributes): void;
   - `reportInfo: ReportFileWithAttributes` — Report to append:
     - `reportFilePath: string | undefined` — Path to the report file, usually
       `agent.reportFile`. This field can be omitted only when
-      `reportAttributes.testStatus` is `'skipped'`.
+      `reportAttributes.testStatus` is `'skipped'`. Otherwise, `append()` throws
+      an error when the path is missing.
     - `reportAttributes: object` — Report metadata:
       - `testId: string` — Unique workflow identifier.
       - `testTitle: string` — Workflow title.
