@@ -30,7 +30,8 @@ concurrency:
 
 jobs:
   android-emulator:
-    runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"') }}
+    # The self-hosted Linux pool does not guarantee KVM passthrough.
+    runs-on: ubuntu-22.04
     timeout-minutes: 55
     env:
       CI: '1'
@@ -59,7 +60,10 @@ jobs:
             uname -a
             ls -l /dev/kvm || true
           } 2>&1 | tee "$MIDSCENE_ANDROID_DIAGNOSTICS_DIR/runner-environment.log"
-          sudo chmod 666 /dev/kvm
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' |
+            sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
 
       - name: Setup pnpm
         uses: pnpm/action-setup@eae0cfeb286e66ffb5155f1a79b90583a127a68b # v2.4.1
