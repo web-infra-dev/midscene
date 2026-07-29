@@ -33,8 +33,6 @@ const SYSTEM_ERROR_DIALOG_ACTION_IDS = [
   'android:id/aerr_wait',
 ] as const;
 const MAX_SYSTEM_DIALOG_RECOVERIES = 3;
-const UI_DUMP_MAX_ATTEMPTS = 3;
-const POLL_INTERVAL_MS = 500;
 
 vi.setConfig({ testTimeout: 240_000, hookTimeout: 30_000 });
 
@@ -45,25 +43,6 @@ interface SystemDialogAction {
 
 function sleep(timeMs: number): Promise<void> {
   return new Promise((resolveDelay) => setTimeout(resolveDelay, timeMs));
-}
-
-function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
-}
-
-function isTransientAdbTransportError(error: unknown): boolean {
-  return /device offline|device unauthorized|no devices\/emulators found/i.test(
-    errorMessage(error),
-  );
-}
-
-function isRetryableUiDumpError(error: unknown): boolean {
-  return (
-    isTransientAdbTransportError(error) ||
-    /No such file or directory|empty uiautomator dump/i.test(
-      errorMessage(error),
-    )
-  );
 }
 
 function findSystemErrorDialogAction(
@@ -124,29 +103,12 @@ function collectNodes(
 }
 
 async function dumpUiautomatorXml(adb: ADB): Promise<string> {
-  for (let attempt = 1; attempt <= UI_DUMP_MAX_ATTEMPTS; attempt += 1) {
-    try {
-      await adb.shell(`rm -f ${UI_DUMP_PATH}`);
-      await adb.shell(`uiautomator dump --compressed ${UI_DUMP_PATH}`);
-      const xml = await adb.shell(`cat ${UI_DUMP_PATH}`);
-      if (typeof xml !== 'string' || xml.trim().length === 0) {
-        throw new Error('Android emulator returned an empty uiautomator dump');
-      }
-      return xml;
-    } catch (error) {
-      if (attempt === UI_DUMP_MAX_ATTEMPTS || !isRetryableUiDumpError(error)) {
-        throw error;
-      }
-      console.log(`UI dump was not ready; retrying attempt ${attempt + 1}`);
-      if (isTransientAdbTransportError(error)) {
-        await adb.waitForDevice(15);
-      } else {
-        await sleep(POLL_INTERVAL_MS);
-      }
-    }
+  await adb.shell(`uiautomator dump --compressed ${UI_DUMP_PATH}`);
+  const xml = await adb.shell(`cat ${UI_DUMP_PATH}`);
+  if (typeof xml !== 'string' || xml.trim().length === 0) {
+    throw new Error('Android emulator returned an empty uiautomator dump');
   }
-
-  throw new Error('UI dump retry loop completed without a result');
+  return xml;
 }
 
 async function waitForTarget(
@@ -226,34 +188,6 @@ describe('Android Emulator cache smoke helpers', () => {
         `<node resource-id="${TARGET_RESOURCE_ID}" bounds="[40,100][400,180]" />`,
       ),
     ).toBeUndefined();
-  });
-
-  it('retries when the uiautomator dump file is not visible yet', async () => {
-    vi.useFakeTimers();
-    try {
-      const adb = {
-        shell: vi
-          .fn()
-          .mockResolvedValueOnce('')
-          .mockResolvedValueOnce('')
-          .mockRejectedValueOnce(
-            new Error(`cat: ${UI_DUMP_PATH}: No such file or directory`),
-          )
-          .mockResolvedValueOnce('')
-          .mockResolvedValueOnce('')
-          .mockResolvedValueOnce('<hierarchy />'),
-        waitForDevice: vi.fn(),
-      } as unknown as ADB;
-
-      const result = dumpUiautomatorXml(adb);
-      await vi.advanceTimersByTimeAsync(POLL_INTERVAL_MS);
-
-      await expect(result).resolves.toBe('<hierarchy />');
-      expect(adb.shell).toHaveBeenCalledTimes(6);
-      expect(adb.waitForDevice).not.toHaveBeenCalled();
-    } finally {
-      vi.useRealTimers();
-    }
   });
 });
 
