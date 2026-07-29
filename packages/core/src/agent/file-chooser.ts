@@ -67,6 +67,10 @@ export class FileChooserAccepter {
       throw previousRegistrationError;
     }
 
+    if (!acceptedFiles.length) {
+      return;
+    }
+
     if (!this.interfaceInstance.registerFileChooserListener) {
       throw new Error(
         `File upload is not supported on ${this.interfaceInstance.interfaceType}`,

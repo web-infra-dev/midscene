@@ -94,6 +94,24 @@ describe('aiAct file chooser registration', () => {
     expect(registrations[1].dispose).toHaveBeenCalledTimes(1);
   });
 
+  it('clears the active registration instead of accepting an empty file list', async () => {
+    const dispose = vi.fn();
+    const mockInterface = {
+      interfaceType: 'playwright',
+      registerFileChooserListener: vi.fn(async () => ({
+        dispose,
+        getError: () => undefined,
+      })),
+    } as any;
+    const accepter = new FileChooserAccepter(mockInterface);
+
+    await accepter.registerFromAllowedDir(basename(fixtureFile), __dirname);
+    await accepter.registerFromAllowedDir([], __dirname);
+
+    expect(dispose).toHaveBeenCalledTimes(1);
+    expect(mockInterface.registerFileChooserListener).toHaveBeenCalledTimes(1);
+  });
+
   it('should return a file chooser handling error while disposing the registration', async () => {
     const uploadError = new Error('file upload failed');
     const dispose = vi.fn();
