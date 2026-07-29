@@ -738,6 +738,38 @@ Stdout:
   });
 
   describe('getScreenSize', () => {
+    it('reuses the display dump for physical display lookup', async () => {
+      const displayDevice = new AndroidDevice('test-device', {
+        displayId: 1,
+        usePhysicalDisplayIdForDisplayLookup: true,
+        minScreenshotBufferSize: 0,
+        scrcpyConfig: { enabled: false },
+      });
+      vi.spyOn(displayDevice, 'getAdb').mockResolvedValue(mockAdb);
+      mockAdb.shell.mockImplementation(async (command: string | string[]) => {
+        if (command === 'dumpsys display') {
+          return `mDisplayId=1
+  mBaseDisplayInfo=DisplayInfo{"Inner", real 1080 x 1920, rotation 0, density 420, uniqueId "local:123"}`;
+        }
+        return '';
+      });
+
+      await expect(displayDevice.getScreenSize()).resolves.toMatchObject({
+        override: '1080x1920',
+        physical: '1080x1920',
+        orientation: 0,
+      });
+      await expect(displayDevice.getDisplayDensity()).resolves.toBe(420);
+
+      const displayDumpCalls = mockAdb.shell.mock.calls.filter(
+        ([command]) => command === 'dumpsys display',
+      );
+      expect(displayDumpCalls).toHaveLength(2);
+      expect(mockAdb.shell).not.toHaveBeenCalledWith(
+        'dumpsys SurfaceFlinger --display-id 1',
+      );
+    });
+
     it('should use fallback to get orientation when primary method fails', async () => {
       mockAdb.shell.mockImplementation(async (command: string | string[]) => {
         if (Array.isArray(command) && command.join(' ') === 'wm size') {
