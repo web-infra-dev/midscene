@@ -23,6 +23,8 @@ env:
   MIDSCENE_MODEL_RETRY_COUNT: "2"
   MIDSCENE_MODEL_RETRY_INTERVAL: "60000"
   MIDSCENE_REPORT_QUIET: "true"
+  # Avoid intermittent Nx plugin worker IPC startup failures on self-hosted runners.
+  NX_ISOLATE_PLUGINS: "false"
   CI: 1
 
 jobs:
