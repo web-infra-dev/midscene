@@ -125,12 +125,6 @@ describe('sanitizeJsonViewData', () => {
         uiTree: {
           platform: 'android',
           capturedAt: 123,
-          xpathPolicy: {
-            stableAttrs: ['resource-id'],
-            textAttrs: ['content-desc', 'text'],
-            excludedTargetTypes: [],
-            max: 3,
-          },
           root: {
             type: 'Root',
             attrs: { large: 'root attrs should be omitted' },
