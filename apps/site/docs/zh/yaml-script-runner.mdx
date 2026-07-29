@@ -190,7 +190,7 @@ page:
 + cdpEndpoint: ws://localhost:9222/devtools/browser
 ```
 
-:::tip
+:::info
 
 CDP 模式与桥接模式互斥，不可同时使用。CDP 模式下 Midscene 只会断开连接（disconnect），不会关闭浏览器。
 
@@ -212,7 +212,7 @@ page:
 
 ### 使用 JavaScript 运行 YAML 脚本
 
-调用 Agent 的 [`runYaml`](./api#runyaml) 方法同样可以在 JavaScript 中执行 YAML，注意该方法只会运行脚本中的 `tasks` 部分。
+调用 Agent 的 [`runYaml`](./reference/#runyaml) 方法同样可以在 JavaScript 中执行 YAML，注意该方法只会运行脚本中的 `tasks` 部分。
 
 ## 命令行参数
 

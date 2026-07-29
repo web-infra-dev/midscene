@@ -1,34 +1,46 @@
-import StartExperience from './common/start-experience.mdx';
-import SetupEnv from './common/setup-env.mdx';
-import PrepareIOS from './common/prepare-ios.mdx';
+import SetupEnv from '../common/setup-env.mdx';
+import PrepareIOS from '../common/prepare-ios.mdx';
 
 import { PackageManagerTabs } from '@theme';
 
-# iOS 开始使用
+# iOS
 
-本指南会带你完成使用 Midscene 控制 iOS 设备的全部步骤：通过 WebDriverAgent 连接真机、配置模型 API Key、体验零代码 Playground，并运行你的首个 JavaScript 脚本。
+Midscene 通过 WebDriverAgent 连接 iOS 设备，可自动化 App 和系统界面。
 
-:::info 示例项目
+本指南介绍 WebDriverAgent 配置、模型配置、Playground 体验，以及 `@midscene/ios` 的 JavaScript SDK 集成。
 
-使用 JavaScript 控制 iOS 设备：[https://github.com/web-infra-dev/midscene-example/blob/main/ios/javascript-sdk-demo](https://github.com/web-infra-dev/midscene-example/blob/main/ios/javascript-sdk-demo)
+## 效果展示
 
-集成 Vitest 进行测试：[https://github.com/web-infra-dev/midscene-example/tree/main/ios/vitest-demo](https://github.com/web-infra-dev/midscene-example/tree/main/ios/vitest-demo)
+**提示词：** 打开美团，帮我下单一杯 Manner 超大杯冰美式咖啡，选择加浓、少冰，并在进入结算页面后等待确认。
 
-:::
+<video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/meituan2.mp4" poster="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/meituan.png" height="300" controls />
 
-<SetupEnv />
+查看[完整报告](https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/meituan.html)，或浏览更多 [Midscene 案例](../showcases.mdx)。
 
-## 准备工作
+## 快速开始
+
+### 准备 iOS 环境
+
+WebDriver 是 W3C 制定的浏览器自动化标准协议。它提供统一的 API，用于控制不同的浏览器和应用。该协议定义了客户端与服务端之间的通信方式，使自动化工具可以跨平台控制界面。
+
+Appium 团队和其他开源社区维护了多种 WebDriver 工具。这些工具可以把桌面端和移动端的自动化操作转换为 WebDriver 协议：
+
+- **Appium**：跨平台移动自动化框架。
+- **WebDriverAgent**：用于 iOS 设备自动化的服务。
+- **Selenium**：Web 浏览器自动化工具。
+- **WinAppDriver**：Windows 应用自动化工具。
+
+Midscene 支持 WebDriver 协议。你可以使用 AI 模型自动化任何兼容设备。除了点击和输入，Midscene 还可以理解界面上下文、执行多步骤操作、验证结果并提取数据。
+
+在 iOS 上，Midscene 通过 WebDriverAgent 连接设备。连接后，你可以使用自然语言指令控制 iOS App 和系统界面。
 
 继续之前，请确保 WebDriverAgent 可以与设备通信。
 
 <PrepareIOS />
 
-## 试用 Playground（零代码）
+### 启动 Playground
 
-Playground 是验证连接、观察 AI 驱动步骤的最快方式，无需编写代码。它与 `@midscene/ios` 共享相同的核心，因此在 Playground 中通过的流程，在脚本中运行会保持一致。
-
-<video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/x2.mp4" controls/>
+Playground 是验证连接的最快方式。无需编写代码，即可体验 `aiAct`、`aiQuery` 和 `aiAssert` 等核心能力。它与 `@midscene/ios` 共享相同的核心，因此在 Playground 中通过的流程，在脚本中运行会保持一致。
 
 1. 启动 Playground CLI：
 
@@ -36,23 +48,21 @@ Playground 是验证连接、观察 AI 驱动步骤的最快方式，无需编�
 npx --yes @midscene/ios-playground
 ```
 
-2. 点击窗口中的齿轮按钮进入配置页，粘贴你的 API Key 配置。如果还没有 API Key，请回到 [模型配置](./model-config) 获取。
+2. 点击窗口中的齿轮按钮进入配置页，粘贴你的 API Key 配置。如果还没有 API Key，请回到 [模型配置](../model-config) 获取。
 
-![](/ios-set-env.png)
-
-## 开始体验
-
-<StartExperience />
-
-## 集成 Midscene Agent
+## 使用 JavaScript SDK
 
 当 Playground 工作正常后，就可以切换到可复用的 JavaScript 脚本。
 
-### 第 1 步：安装依赖
+### 配置模型
+
+<SetupEnv />
+
+### 安装依赖
 
 <PackageManagerTabs command="install @midscene/ios dotenv --save-dev" />
 
-### 第 2 步：编写脚本
+### 编写脚本
 
 下面的示例会在设备上打开 Safari，搜索 eBay，并断言结果列表。
 
@@ -113,19 +123,19 @@ Promise.resolve(
 );
 ```
 
-### 第 3 步：运行示例
+### 运行脚本
 
 ```bash
 npx tsx demo.ts
 ```
 
-### 第 4 步：查看报告
+### 查看报告
 
 脚本成功后会输出 `Midscene - report file updated: /path/to/report/some_id.html`。在浏览器中打开对应 HTML 文件即可回放每一步交互、查询与断言。
 
 ## API 参考与更多资源
 
-需要查看构造函数、辅助方法或平台专属设备 API？请移步 [iOS API 参考](./ios-api-reference) 获取详细参数及自定义操作等高级主题。若想了解跨平台共用的 API，可阅读 [通用 API 参考](./api)。
+构造函数、辅助方法和平台专属设备 API 位于 [API 参考的 iOS 章节](../reference/#ios)。该章节还包含详细参数和自定义操作等进阶内容。跨平台共用的 API 位于[通用章节](../reference/#common)。
 
 ## 常见问题
 
@@ -189,8 +199,9 @@ Playground 启动时会自动探测 9100 端口。如果可用，日志会显示
 
 ## 更多
 
-- 查看所有 Agent 方法：[API 参考（通用）](./api#interaction-methods)
-- iOS 专属参数与接口：[iOS Agent API](./ios-api-reference)
+- 查看所有 Agent 方法：[API 参考（通用）](../reference/#interaction-methods)
+- iOS 专属参数与接口：[API 参考（iOS）](../reference/#ios)
+- 使用 [YAML 自动化脚本和命令行工具](../automate-with-scripts-in-yaml)。
 - 示例项目
   - iOS JavaScript SDK 示例：[https://github.com/web-infra-dev/midscene-example/blob/main/ios/javascript-sdk-demo](https://github.com/web-infra-dev/midscene-example/blob/main/ios/javascript-sdk-demo)
   - iOS + Vitest 示例：[https://github.com/web-infra-dev/midscene-example/tree/main/ios/vitest-demo](https://github.com/web-infra-dev/midscene-example/tree/main/ios/vitest-demo)

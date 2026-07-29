@@ -33,6 +33,8 @@ You can find a sample project that uses YAML scripts for automation here:
 
 :::
 
+## Set up API keys for model
+
 <SetupEnv />
 
 To execute YAML workflows from the command line, install the Midscene CLI. See [YAML script runner](./yaml-script-runner) for installation guidance, `.env` usage, and details on the `midscene` runner.
@@ -98,7 +100,7 @@ agent:
     id: <string>
 ```
 
-:::tip Agent Configuration Notes
+:::info Agent Configuration Notes
 
 - **Applicable environments**: Web, iOS, and Android environments all support `agent` configuration
 - **testId priority**: CLI parameter > YAML agent.testId > filename
@@ -272,9 +274,9 @@ android:
   # See the AndroidDevice constructor documentation for the complete list
 ```
 
-:::tip View Complete Android Configuration Options
+:::info View Complete Android Configuration Options
 
-YAML scripts now support all configuration options from the `AndroidDevice` constructor. For the complete list of options, please refer to [AndroidDevice Constructor in Android Integration Documentation](./android-getting-started#androiddevice-constructor).
+YAML scripts now support all configuration options from the `AndroidDevice` constructor. For the complete list of options, see [`AndroidDevice`](./reference/#androiddevice) in the Android API reference.
 
 :::
 
@@ -373,9 +375,9 @@ ios:
   # See the IOSDevice constructor documentation for the complete list
 ```
 
-:::tip View Complete iOS Configuration Options
+:::info View Complete iOS Configuration Options
 
-YAML scripts now support all configuration options from the `IOSDevice` constructor. For the complete list of options, please refer to [IOSDevice constructor in the iOS API reference](./ios-api-reference#iosdevice-constructor).
+YAML scripts now support all configuration options from the `IOSDevice` constructor. For the complete list of options, see [`IOSDevice`](./reference/#iosdevice) in the iOS API reference.
 
 :::
 
@@ -556,7 +558,7 @@ tasks:
       - aiAssert: The results show weather information
 ```
 
-:::tip Platform Notes
+:::info Platform Notes
 
 The demo scripts above use macOS commands. For Windows, modify the scripts to use:
 - `press Windows key` instead of `press Cmd+Space`
@@ -569,7 +571,7 @@ The demo scripts above use macOS commands. For Windows, modify the scripts to us
 
 The `tasks` part is an array that defines the steps of the script. Remember to add a `-` before each step to indicate it's an array item.
 
-The interfaces in the `flow` section are almost identical to the [API](./api.html), with some differences in parameter nesting levels.
+The interfaces in the `flow` section are almost identical to the [API](./reference/#common), with some differences in parameter nesting levels.
 
 ```yaml
 tasks:
@@ -733,7 +735,7 @@ Notes:
 
 #### Prompting with images
 
-For steps whose prompt accepts images, you can attach images to the prompt by setting the `images` field to an array of objects, each containing a `name` and a `url`. (see the [API reference](./api#prompting-with-images)), replace the string value with an object that contains:
+For steps whose prompt accepts images, you can attach images to the prompt by setting the `images` field to an array of objects, each containing a `name` and a `url`. (see the [API reference](./reference/#prompting-with-images)), replace the string value with an object that contains:
 
 - `prompt`: The text prompt.
 - `images`: (Optional) The reference images used in the prompt. Each image needs a `name` and a `url`.
@@ -766,7 +768,7 @@ tasks:
 
 > The legacy nested format (where `locate` is indented under the action key, e.g. `aiTap: \n    locate: ...`) is still supported but not recommended.
 
-For insight steps like `aiAsk`, `aiQuery`, `aiBoolean`, `aiNumber`, `aiString`, and `aiAssert`, you can set the `prompt` and `images` fields directly.
+For `aiAct` (and its `ai` shorthand), and for insight steps like `aiAsk`, `aiQuery`, `aiBoolean`, `aiNumber`, `aiString`, and `aiAssert`, you can set the `prompt` and `images` fields directly under the action key.
 
 ```yaml
 tasks:

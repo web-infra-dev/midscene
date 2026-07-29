@@ -24,6 +24,7 @@ const mockPage = {
   url: vi.fn(() => 'https://example.com/'),
   bringToFront: vi.fn(),
   goto: vi.fn(),
+  setExtraHTTPHeaders: vi.fn(),
   setViewport: vi.fn(),
   target: vi.fn((): { _targetId?: string } => ({ _targetId: 'target-1' })),
 };
@@ -594,5 +595,119 @@ describe('web agent tool init args', () => {
         screenshotShrinkFactor: 2,
       }),
     );
+  });
+
+  it('exposes extra HTTP headers only in CDP mode', async () => {
+    const bridgeTools = new WebMidsceneTools();
+    const puppeteerTools = new WebPuppeteerMidsceneTools();
+    const cdpTools = new WebCdpMidsceneTools('ws://127.0.0.1:9222/devtools/1');
+
+    await Promise.all([
+      bridgeTools.initTools(),
+      puppeteerTools.initTools(),
+      cdpTools.initTools(),
+    ]);
+
+    const getConnectSchema = (
+      tools: WebMidsceneTools | WebPuppeteerMidsceneTools | WebCdpMidsceneTools,
+    ) =>
+      tools.getToolDefinitions().find((tool) => tool.name === 'web_connect')
+        ?.schema;
+
+    expect(getConnectSchema(bridgeTools)?.['web.extraHttpHeader']).toBe(
+      undefined,
+    );
+    expect(getConnectSchema(puppeteerTools)?.['web.extraHttpHeader']).toBe(
+      undefined,
+    );
+    expect(getConnectSchema(cdpTools)?.['web.extraHttpHeader']).toBeDefined();
+    expect(
+      cdpTools.getToolDefinitions().find((tool) => tool.name === 'web_connect')
+        ?.cli?.options?.['web.extraHttpHeader']?.preferredName,
+    ).toBe('extra-http-header');
+  });
+
+  it('combines repeated CDP extra HTTP headers before navigating', async () => {
+    const tools = new WebCdpMidsceneTools('ws://127.0.0.1:9222/devtools/1');
+    await tools.initTools();
+
+    const connectTool = tools
+      .getToolDefinitions()
+      .find((tool) => tool.name === 'web_connect');
+    await connectTool?.handler({
+      url: 'https://example.com',
+      extraHttpHeader: [
+        'x-use-ppe:1',
+        'x-tt-env:ppe_example',
+        'x-callback-url:https://example.com/callback',
+      ],
+    });
+
+    expect(mockPage.setExtraHTTPHeaders).toHaveBeenCalledWith({
+      'x-use-ppe': '1',
+      'x-tt-env': 'ppe_example',
+      'x-callback-url': 'https://example.com/callback',
+    });
+    expect(
+      mockPage.setExtraHTTPHeaders.mock.invocationCallOrder[0],
+    ).toBeLessThan(mockPage.goto.mock.invocationCallOrder[0]);
+  });
+
+  it('does not apply CDP extra HTTP headers when omitted', async () => {
+    const tools = new WebCdpMidsceneTools('ws://127.0.0.1:9222/devtools/1');
+    await tools.initTools();
+
+    const connectTool = tools
+      .getToolDefinitions()
+      .find((tool) => tool.name === 'web_connect');
+
+    await connectTool?.handler({ url: 'https://example.com' });
+
+    expect(mockPage.setExtraHTTPHeaders).not.toHaveBeenCalled();
+  });
+
+  it('accepts one CDP extra HTTP header without an array', async () => {
+    const tools = new WebCdpMidsceneTools('ws://127.0.0.1:9222/devtools/1');
+    await tools.initTools();
+
+    const connectTool = tools
+      .getToolDefinitions()
+      .find((tool) => tool.name === 'web_connect');
+
+    await connectTool?.handler({
+      url: 'https://example.com',
+      extraHttpHeader: 'x-use-ppe:1',
+    });
+
+    expect(mockPage.setExtraHTTPHeaders).toHaveBeenCalledWith({
+      'x-use-ppe': '1',
+    });
+  });
+
+  it.each(['missing-colon', ':missing-name', 'invalid name:value'])(
+    'rejects invalid CDP extra HTTP header entry %s',
+    async (entry) => {
+      const tools = new WebCdpMidsceneTools('ws://127.0.0.1:9222/devtools/1');
+      await tools.initTools();
+
+      const connectTool = tools
+        .getToolDefinitions()
+        .find((tool) => tool.name === 'web_connect');
+      const headerSchema = connectTool?.schema['web.extraHttpHeader'];
+
+      expect(headerSchema?.safeParse(entry).success).toBe(false);
+    },
+  );
+
+  it('rejects an empty CDP extra HTTP header array', async () => {
+    const tools = new WebCdpMidsceneTools('ws://127.0.0.1:9222/devtools/1');
+    await tools.initTools();
+
+    const connectTool = tools
+      .getToolDefinitions()
+      .find((tool) => tool.name === 'web_connect');
+    const headerSchema = connectTool?.schema['web.extraHttpHeader'];
+
+    expect(headerSchema?.safeParse([]).success).toBe(false);
   });
 });

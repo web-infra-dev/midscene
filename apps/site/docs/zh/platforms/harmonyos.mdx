@@ -1,27 +1,28 @@
-import StartExperience from './common/start-experience.mdx';
-import SetupEnv from './common/setup-env.mdx';
+import SetupEnv from '../common/setup-env.mdx';
 
 import { PackageManagerTabs } from '@theme';
 
-# HarmonyOS 开始使用
+# HarmonyOS
 
-本指南将带你完成使用 Midscene 自动化 HarmonyOS 设备所需的一切：通过 HDC 连接真机、配置模型 API Key、体验零代码 Playground，并运行你的首个 JavaScript 脚本。
+Midscene 通过 HarmonyOS Device Connector（HDC）连接 HarmonyOS NEXT 设备，可自动化 App 和系统界面。
 
-:::info 示例项目
+本指南介绍设备连接、模型配置、Playground 体验，以及 `@midscene/harmony` 的 JavaScript SDK 集成。
 
-使用 JavaScript 控制鸿蒙设备：[https://github.com/web-infra-dev/midscene-example/blob/main/harmony/javascript-sdk-demo](https://github.com/web-infra-dev/midscene-example/blob/main/harmony/javascript-sdk-demo)
+## 效果展示
 
-集成 Vitest 进行测试：[https://github.com/web-infra-dev/midscene-example/tree/main/harmony/vitest-demo](https://github.com/web-infra-dev/midscene-example/tree/main/harmony/vitest-demo)
+**提示词：** 打开设置，找到“关于手机”，查看设备信息。
 
-:::
+<video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/harmony.mp4" poster="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/harmony.png" height="300" controls />
 
-<SetupEnv />
+查看[完整报告](https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/harmony.html)，或浏览更多 [Midscene 案例](../showcases.mdx)。
 
-## 准备工作
+## 快速开始
+
+### 准备 HarmonyOS 设备
 
 在编写脚本前，先确认 HDC 能够连接设备且设备信任当前电脑。
 
-### 安装 HDC
+#### 安装 HDC
 
 HDC（HarmonyOS Device Connector）是 HarmonyOS 提供的命令行工具，用于与 HarmonyOS 设备通信。安装方式：
 
@@ -36,7 +37,7 @@ hdc version
 
 出现版本号表示安装成功。
 
-:::tip 配置 HDC 路径
+:::info 配置 HDC 路径
 
 如果 `hdc` 不在系统 PATH 中，你可以设置 `HDC_HOME` 环境变量指向 HDC 所在目录：
 
@@ -46,7 +47,7 @@ export HDC_HOME=/path/to/hdc/directory
 
 :::
 
-### 启用开发者模式并验证设备
+#### 启用开发者模式并验证设备
 
 在 HarmonyOS 设备的设置中进入 **开发者选项**，开启 **USB 调试**，然后用数据线连接设备。
 
@@ -62,11 +63,9 @@ hdc list targets
 0123456789ABCDEF
 ```
 
-## 试用 Playground（零代码）
+### 启动 Playground
 
-Playground 是验证连接、观察 AI Agent 的最快方式，无需编写代码。它与 `@midscene/harmony` 共享相同的代码实现，因此在 Playground 上验证通过的流程，用脚本运行时也完全一致。
-
-<video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/harmony.mp4" controls/>
+Playground 是验证连接的最快方式。无需编写代码，即可体验 `aiAct`、`aiQuery` 和 `aiAssert` 等核心能力。它与 `@midscene/harmony` 共享相同的核心，因此在 Playground 中通过的流程，在脚本中运行会保持一致。
 
 1. 启动 Playground CLI：
 
@@ -74,21 +73,21 @@ Playground 是验证连接、观察 AI Agent 的最快方式，无需编写代�
 npx --yes @midscene/harmony-playground
 ```
 
-2. 点击 Playground 窗口中的齿轮按钮，粘贴你的 API Key 配置。如果还没有 API Key，请回到 [模型配置](./model-config) 获取。
+2. 点击 Playground 窗口中的齿轮按钮，粘贴你的 API Key 配置。如果还没有 API Key，请回到 [模型配置](../model-config) 获取。
 
-## 开始体验
-
-<StartExperience />
-
-## 集成 Midscene Agent
+## 使用 JavaScript SDK
 
 当 Playground 运行正常后，就可以切换到可复用的 JavaScript 脚本。
 
-### 第 1 步：安装依赖
+### 配置模型
+
+<SetupEnv />
+
+### 安装依赖
 
 <PackageManagerTabs command="install @midscene/harmony dotenv --save-dev" />
 
-### 第 2 步：编写脚本
+### 编写脚本
 
 下面的示例会在设备上打开设置应用，并执行滚动操作。
 
@@ -131,19 +130,19 @@ Promise.resolve(
 );
 ```
 
-### 第 3 步：运行示例
+### 运行脚本
 
 ```bash
 npx tsx demo.ts
 ```
 
-### 第 4 步：查看报告
+### 查看报告
 
 脚本成功后会输出 `Midscene - report file updated: /path/to/report/some_id.html`。在浏览器中打开该 HTML 文件即可回放每一步交互、查询与断言。
 
 ## 进阶
 
-当你需要自定义设备行为、把 Midscene 接入独立框架，或排查 HDC 问题时，可参考本节内容。更多构造函数参数可前往 [API 参考（HarmonyOS）](./harmony-api-reference)。
+本节介绍如何自定义设备行为、把 Midscene 接入独立框架，以及排查 HDC 问题。更多构造函数参数位于 [API 参考的 HarmonyOS 章节](../reference/#harmonyos)。
 
 ### 扩展 HarmonyOS 上的 Midscene
 
@@ -179,12 +178,13 @@ const agent = new HarmonyAgent(device, {
 await agent.aiAct('click the red button five times');
 ```
 
-关于自定义动作和动作 Schema 的更多解释，请参阅 [与任意界面集成](./integrate-with-any-interface#define-a-custom-action)。
+关于自定义动作和动作 Schema 的更多解释，请参阅 [与任意界面集成](../integrate-with-any-interface#define-a-custom-action)。
 
 ## 更多
 
-- 查看所有 Agent 方法：[API 参考（通用）](./api#interaction-methods)
-- HarmonyOS 专属参数与接口：[HarmonyOS Agent API](./harmony-api-reference)
+- 查看所有 Agent 方法：[API 参考（通用）](../reference/#interaction-methods)
+- HarmonyOS 专属参数与接口：[API 参考（HarmonyOS）](../reference/#harmonyos)
+- 使用 [YAML 自动化脚本和命令行工具](../automate-with-scripts-in-yaml)。
 - 示例项目
   - HarmonyOS JavaScript SDK 示例：[https://github.com/web-infra-dev/midscene-example/blob/main/harmony/javascript-sdk-demo](https://github.com/web-infra-dev/midscene-example/blob/main/harmony/javascript-sdk-demo)
   - HarmonyOS + Vitest 示例：[https://github.com/web-infra-dev/midscene-example/tree/main/harmony/vitest-demo](https://github.com/web-infra-dev/midscene-example/tree/main/harmony/vitest-demo)
@@ -277,7 +277,7 @@ describe('HarmonyOS Settings Test', () => {
 });
 ```
 
-:::tip
+:::info
 
 合并报告默认存放在 `midscene_run/report` 目录。在 CI 中运行时可通过 `MIDSCENE_RUN_DIR` 覆盖。
 

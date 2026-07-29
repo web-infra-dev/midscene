@@ -434,7 +434,9 @@ const DetailSide = (): JSX.Element => {
         ? [
             {
               key: 'act context',
-              content: aiActContextValue,
+              content: (
+                <pre className="act-context-source">{aiActContextValue}</pre>
+              ),
             },
           ]
         : []),
@@ -507,6 +509,10 @@ const DetailSide = (): JSX.Element => {
     // Get subGoalStatus and memoriesStatus from param
     const subGoalStatus = (planningTask.param as any)?.subGoalStatus;
     const memoriesStatus = (planningTask.param as any)?.memoriesStatus;
+    const locateContext =
+      planningTask.subType === 'Locate'
+        ? (planningTask.param as any)?.context
+        : undefined;
 
     if (planningTask.param?.userInstruction) {
       const instructionContent =
@@ -540,7 +546,7 @@ const DetailSide = (): JSX.Element => {
           ...(isPageContextFrozen
             ? [
                 {
-                  key: 'context',
+                  key: 'UI Context',
                   content: <Tag color="blue">Frozen Context 🧊</Tag>,
                 },
               ]
@@ -562,6 +568,16 @@ const DetailSide = (): JSX.Element => {
             content: promptContent,
             images: images,
           },
+          ...(locateContext
+            ? [
+                {
+                  key: 'context',
+                  content: (
+                    <pre className="act-context-source">{locateContext}</pre>
+                  ),
+                },
+              ]
+            : []),
           ...(memoriesStatus
             ? [
                 {
@@ -581,7 +597,7 @@ const DetailSide = (): JSX.Element => {
           ...(isPageContextFrozen
             ? [
                 {
-                  key: 'context',
+                  key: 'UI Context',
                   content: <Tag color="blue">Frozen Context 🧊</Tag>,
                 },
               ]
@@ -618,10 +634,20 @@ const DetailSide = (): JSX.Element => {
               },
             ]
           : []),
-        ...(isPageContextFrozen
+        ...(taskParam?.context
           ? [
               {
                 key: 'context',
+                content: (
+                  <pre className="act-context-source">{taskParam.context}</pre>
+                ),
+              },
+            ]
+          : []),
+        ...(isPageContextFrozen
+          ? [
+              {
+                key: 'UI Context',
                 content: <Tag color="blue">Frozen Context 🧊</Tag>,
               },
             ]

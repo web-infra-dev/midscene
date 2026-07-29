@@ -67,7 +67,7 @@ describe(
         ctx.agent = new PuppeteerAgent(originPage);
         await ctx.agent.aiAct('type "AI 101" in search box');
         await ctx.agent.aiAct(
-          'type "Hello world" in search box, hit Enter, wait 2s',
+          'replace all existing text in the search box with "Hello world", hit Enter, wait 2s',
         );
 
         await ctx.agent.aiWaitFor(

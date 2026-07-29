@@ -8,10 +8,10 @@
 - [Web 浏览器 - Puppeteer](./integrate-with-puppeteer#faq)
 - [Web 浏览器 - Chrome 插件](./quick-experience#faq)
 - [Web 浏览器 - 桥接模式](./bridge-mode#faq)
-- [Android](./android-getting-started#常见问题)
-- [iOS](./ios-getting-started#常见问题)
-- [HarmonyOS](./harmony-getting-started#常见问题)
-- [PC 桌面](./computer-getting-started#常见问题)
+- [Android](./platforms/android#常见问题)
+- [iOS](./platforms/ios#常见问题)
+- [HarmonyOS](./platforms/harmonyos#常见问题)
+- [PC 桌面](./platforms/desktop#常见问题)
 
 ## 会有哪些信息发送到 AI 模型？
 
@@ -79,12 +79,12 @@ Azure AD / keyless 鉴权（`DefaultAzureCredential`）的方式现在已经不�
 
 在使用 GPT-5 系列模型时，你可能会发现：同一份脚本在 OpenAI 官方 API 上点击位置正确，但切到 Azure OpenAI 后点击位置出现固定比例的偏移。这个偏移和分辨率相关：截图较大时（如 `1920x1080`）出现，截图较小时（如 `1280x600`）则正常。
 
-原因在于 Azure 端的图片处理。GPT-5 返回的是基于它实际看到的截图尺寸的绝对坐标，而 Midscene 发送图片时带上了 `"detail": "original"`，让模型看到原始分辨率的图片（参见 [GPT-5 说明](./model-common-config#gpt-5-4)）。Azure 没有正确处理 `"detail": "original"`，会在服务端对大图进行缩放（短边被压缩到 768）。于是模型在缩放后的坐标系里作答，而 Midscene 仍按原始分辨率还原坐标，最终产生按比例的偏移。可以通过 token 消耗来验证 `original` 是否生效：如果 `original` 生效，图片的 token 消耗会明显更高。
+原因在于 Azure 端的图片处理。GPT-5 返回的是基于它实际看到的截图尺寸的绝对坐标，而 Midscene 发送图片时带上了 `"detail": "original"`，让模型看到原始分辨率的图片（参见 [GPT-5 说明](./model-common-config#gpt)）。Azure 没有正确处理 `"detail": "original"`，会在服务端对大图进行缩放（短边被压缩到 768）。于是模型在缩放后的坐标系里作答，而 Midscene 仍按原始分辨率还原坐标，最终产生按比例的偏移。可以通过 token 消耗来验证 `original` 是否生效：如果 `original` 生效，图片的 token 消耗会明显更高。
 
 有两种规避办法：
 
 1. 使用 OpenAI 官方的 GPT-5，或配置其他模型单独用于定位，而只把 Azure 平台的 GPT-5 作为规划模型。
-2. 通过 Agent 参数 `screenshotShrinkFactor` 把截图预先缩放到较小尺寸，使图片不触发 Azure 的服务端缩放阈值。详见 [`screenshotShrinkFactor`](./api)。
+2. 通过 Agent 参数 `screenshotShrinkFactor` 把截图预先缩放到较小尺寸，使图片不触发 Azure 的服务端缩放阈值。详见 [`screenshotShrinkFactor`](./reference/#common)。
 
 ## 如何配置 midscene_run 目录？
 
@@ -190,7 +190,7 @@ await agent.aiTap('登录按钮', {
 });
 ```
 
-更多关于 `deepLocate` 的说明，请参阅 [API 文档](/zh/api)。
+更多关于 `deepLocate` 的说明，请参阅 [API 文档](/zh/reference/#common)。
 
 ### 6. 在 web 浏览器中将 dpr 提高到 2
 

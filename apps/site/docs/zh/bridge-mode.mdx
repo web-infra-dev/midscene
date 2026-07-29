@@ -16,6 +16,8 @@ Midscene Chrome 插件的桥接模式允许你使用本地脚本来控制桌面�
 
 :::
 
+## 配置 AI 模型服务
+
 <SetupEnv />
 
 > 桥接模式下，AI 模型配置需要写在 Node.js 侧（终端环境变量），而不是浏览器侧。
@@ -69,7 +71,7 @@ tsx demo-new-tab.ts
   <img src="/bridge_in_extension.png" alt="bridge in extension" width="400"/>
 </p>
 
-:::tip
+:::info
 
 扩展安装后默认在后台持续监听连接请求，无需手动操作。扩展图标会显示状态徽标：黄点表示正在监听，绿点表示已连接。
 
@@ -154,7 +156,7 @@ const agent = new AgentOverChromeBridge({
 
 ## 更多
 
-- 更多 Agent 的 API 请参考 [API 参考](./api#interaction-methods)。
-- 完整的 Chrome 桥接 API 可参阅 [API 参考（Web）](./web-api-reference#chrome-bridge-agent)。
+- 更多 Agent 的 API 请参考 [API 参考](./reference/#interaction-methods)。
+- 完整的 Chrome 桥接 API 可参阅 [API 参考（Web）](./reference/#chrome-bridge-agent)。
 - 样例项目
   - 桥接模式示例：[https://github.com/web-infra-dev/midscene-example/blob/main/bridge-mode-demo](https://github.com/web-infra-dev/midscene-example/blob/main/bridge-mode-demo)

@@ -1,33 +1,57 @@
-import StartExperience from './common/start-experience.mdx';
-import SetupEnv from './common/setup-env.mdx';
+import SetupEnv from '../common/setup-env.mdx';
 
 import { PackageManagerTabs } from '@theme';
 
-# PC Desktop Getting Started
+# Desktop
 
-This guide walks you through everything required to automate PC desktop applications with Midscene: install dependencies, configure model credentials, and run your first JavaScript script.
+Midscene uses native keyboard and mouse controls to automate desktop applications on Windows, macOS, and Linux.
 
-:::info Demo Projects
+This guide covers platform setup, model configuration, Playground, and JavaScript SDK integration with `@midscene/computer`.
 
-Control PC desktop with JavaScript: [https://github.com/web-infra-dev/midscene-example/tree/main/computer/javascript-sdk-demo](https://github.com/web-infra-dev/midscene-example/tree/main/computer/javascript-sdk-demo)
+## See it in action
 
-Integrate Vitest for testing: [https://github.com/web-infra-dev/midscene-example/tree/main/computer/vitest-demo](https://github.com/web-infra-dev/midscene-example/tree/main/computer/vitest-demo)
+**Prompt (macOS):** Open Safari and post a tweet announcing that Midscene supports AutoGLM. Use the AutoGLM video from the Downloads folder.
 
-Control a remote Windows desktop over RDP: [https://github.com/web-infra-dev/midscene-example/tree/main/computer/rdp-demo](https://github.com/web-infra-dev/midscene-example/tree/main/computer/rdp-demo)
+<video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/pc-twitter2.mp4" height="300" controls />
 
-Test [Obsidian](https://obsidian.md/) (an Electron app) on headless Linux CI with `@midscene/computer`: [https://github.com/web-infra-dev/midscene-example/tree/main/computer/electron-demo](https://github.com/web-infra-dev/midscene-example/tree/main/computer/electron-demo)
+View the [full report](https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/pc-twitter2-midscene_report.html), or explore more [Midscene showcases](../showcases.mdx).
 
-:::
+## Key features
 
-<SetupEnv />
+**Cross-platform desktop control**
 
-## System Requirements
+- Mouse operations: click, double-click, right-click, move, and drag-and-drop.
+- Keyboard input: type text and press keys with Cmd, Ctrl, Alt, or Shift.
+- Screen capture: take screenshots from any display.
+- Multiple displays: work with multiple monitors in one workflow.
 
-### Node.js
+**AI-powered automation**
+
+Use natural-language instructions to automate desktop applications:
+
+```typescript
+await agent.aiAct('open the File menu');
+await agent.aiAct('click on Save As');
+await agent.aiAct('type "my-document" in the filename field');
+await agent.aiAct('press Enter');
+```
+
+## Use cases
+
+- Test Electron, Qt, and native desktop applications.
+- Automate repetitive work across desktop applications.
+- Control multiple applications in sequence.
+- Test desktop interfaces with natural-language instructions.
+
+## Get started
+
+### Prepare your desktop environment
+
+#### Node.js
 
 Node.js 18.19.0 or higher is required.
 
-### Platform-Specific Dependencies
+#### Platform-specific dependencies
 
 **macOS**: Accessibility permissions are required for keyboard and mouse control. When you run the script for the first time, macOS will prompt you to grant access. Go to **System Settings > Privacy & Security > Accessibility** and enable permissions for the application running your script (e.g., Terminal, iTerm2, VS Code, WebStorm, or other IDEs). For more details, see [nut.js macOS setup](https://github.com/nut-tree/nut.js#macos).
 
@@ -50,13 +74,11 @@ const agent = await agentForComputer({ headless: true });
 // MIDSCENE_COMPUTER_HEADLESS_LINUX=true npx tsx example.ts
 ```
 
-Xvfb creates a virtual display so that mouse, keyboard, and screenshot operations work without a physical monitor. See [API Reference](./computer-api-reference) for details.
+Xvfb creates a virtual display so that mouse, keyboard, and screenshot operations work without a physical monitor. See [API Reference](../reference/#desktop) for details.
 
-## Try Playground (no code)
+### Launch Playground
 
-Playground is the fastest way to validate the connection and observe AI-driven steps without writing code. It shares the same core as `@midscene/computer`, so anything that works here will behave the same once scripted.
-
-<video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/pc-twitter2.mp4" controls/>
+Playground is the fastest way to validate the connection and try core capabilities such as `aiAct`, `aiQuery`, and `aiAssert` without writing code. It shares the same core as `@midscene/computer`, so anything that works here will behave the same once scripted.
 
 1. Launch the Playground CLI:
 
@@ -64,21 +86,21 @@ Playground is the fastest way to validate the connection and observe AI-driven s
 npx --yes @midscene/computer-playground
 ```
 
-2. Click the gear icon in the Playground window, then paste your API key configuration. Refer back to [Model configuration](./model-config) if you still need credentials.
+2. Click the gear icon in the Playground window, then paste your API key configuration. Refer back to [Model configuration](../model-config) if you still need credentials.
 
-## Start experiencing
-
-<StartExperience />
-
-## Integration with Midscene Agent
+## Use the JavaScript SDK
 
 Once Playground works, move to a repeatable script with the JavaScript SDK.
 
-### Step 1. Install dependencies
+### Configure the model
+
+<SetupEnv />
+
+### Install dependencies
 
 <PackageManagerTabs command="install @midscene/computer" />
 
-### Step 2. Write your first script
+### Write a script
 
 Create `example.ts`:
 
@@ -107,7 +129,7 @@ import { agentForComputer } from '@midscene/computer';
 })();
 ```
 
-### Step 3. Run the script
+### Run the script
 
 ```bash
 npx tsx example.ts
@@ -291,7 +313,12 @@ MIDSCENE_COMPUTER_HEADLESS_LINUX=true npx tsx example.ts
 
 ## Next Steps
 
-- [API Reference](./computer-api-reference)
-- [Use YAML format automation scripts](./automate-with-scripts-in-yaml)
-- [YAML script runner](./yaml-script-runner)
-- [Caching for efficiency](./caching)
+- [API Reference](../reference/#desktop)
+- [Use YAML format automation scripts](../automate-with-scripts-in-yaml)
+- [YAML script runner](../yaml-script-runner)
+- [Caching for efficiency](../caching)
+- Demo projects
+  - [JavaScript SDK demo](https://github.com/web-infra-dev/midscene-example/tree/main/computer/javascript-sdk-demo)
+  - [Vitest demo](https://github.com/web-infra-dev/midscene-example/tree/main/computer/vitest-demo)
+  - [Remote Windows desktop over RDP](https://github.com/web-infra-dev/midscene-example/tree/main/computer/rdp-demo)
+  - [Obsidian on headless Linux CI](https://github.com/web-infra-dev/midscene-example/tree/main/computer/electron-demo)

@@ -14,7 +14,10 @@ import {
   generateImageScriptTag,
 } from '../../src/dump/html-utils';
 import { ReportMergingTool, isDirectoryModeReport } from '../../src/report';
-import { ReportActionDump } from '../../src/types';
+import {
+  ReportActionDump,
+  type ReportFileWithAttributes,
+} from '../../src/types';
 import { getReportTpl, getTmpFile, writeDumpReport } from '../../src/utils';
 
 function generateNReports(
@@ -522,6 +525,24 @@ describe('reportMergingTool', () => {
     expect(
       ReportActionDump.fromSerializedString(skippedDump!.content).executions,
     ).toHaveLength(0);
+  });
+
+  it('should reject a missing reportFilePath for non-skipped tests', () => {
+    const tool = new ReportMergingTool();
+    const reportInfo = {
+      reportFilePath: undefined,
+      reportAttributes: {
+        testDescription: 'passed test desc',
+        testDuration: 1,
+        testId: 'passed-1',
+        testStatus: 'passed',
+        testTitle: 'Passed Test',
+      },
+    } as unknown as ReportFileWithAttributes;
+
+    expect(() => tool.append(reportInfo)).toThrow(
+      'reportFilePath is required unless reportAttributes.testStatus is "skipped"',
+    );
   });
 
   it('should return null when no reports are appended', async () => {
