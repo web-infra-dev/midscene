@@ -11,6 +11,7 @@ import {
   type LocateResultElement,
   type Point,
   type Size,
+  type UITreeSnapshot,
   getMidsceneLocationSchema,
   z,
 } from '@midscene/core';
@@ -49,6 +50,7 @@ import {
   type ScrcpyStatus,
 } from './scrcpy-device-adapter';
 import type { RawKeyframe } from './scrcpy-manager';
+import { captureAndroidUITree } from './ui-tree-capture';
 
 // Re-export AndroidDeviceOpt and AndroidDeviceInputOpt for backward compatibility
 export type {
@@ -67,6 +69,38 @@ type ScrollDirection = 'up' | 'down' | 'left' | 'right';
 
 const debugDevice = getDebug('android:device');
 const warnDevice = getDebug('android:device', { console: true });
+
+function physicalDisplayIdForLogicalDisplay(
+  displayDump: string,
+  logicalDisplayId: number,
+): string | null {
+  for (const viewportMatch of displayDump.matchAll(
+    /DisplayViewport\{([^}]*)\}/g,
+  )) {
+    const viewport = viewportMatch[1];
+    const displayId = viewport.match(/\bdisplayId=(\d+)\b/)?.[1];
+    const physicalId = viewport.match(/\buniqueId=['"]local:(\d+)['"]/)?.[1];
+    if (Number(displayId) === logicalDisplayId && physicalId) {
+      return physicalId;
+    }
+  }
+
+  const lines = displayDump.split(/\r?\n/);
+  for (let index = 0; index < lines.length; index++) {
+    const displayId = lines[index].match(/^\s*mDisplayId=(\d+)\b/)?.[1];
+    if (Number(displayId) !== logicalDisplayId) continue;
+
+    for (let cursor = index + 1; cursor < lines.length; cursor++) {
+      if (/^\s*mDisplayId=\d+\b/.test(lines[cursor])) break;
+      const physicalId = lines[cursor].match(
+        /mBaseDisplayInfo=.*\buniqueId "local:(\d+)"/,
+      )?.[1];
+      if (physicalId) return physicalId;
+    }
+  }
+
+  return null;
+}
 
 /**
  * Escape text for safe use in shell single-quoted strings.
@@ -290,7 +324,14 @@ export class AndroidDevice implements AbstractInterface {
       }),
     ];
 
-    const platformSpecificActions = Object.values(createPlatformActions(this));
+    const platformActions = createPlatformActions(this);
+    let platformSpecificActions = Object.values(platformActions);
+
+    if (this.options?.exposeRunAdbShellAction === false) {
+      platformSpecificActions = platformSpecificActions.filter(
+        (action) => action !== platformActions.RunAdbShell,
+      );
+    }
 
     const customActions = this.customActions || [];
     return [...defaultActions, ...platformSpecificActions, ...customActions];
@@ -685,6 +726,16 @@ ${Object.keys(size)
       node: null,
       children: [],
     };
+  }
+
+  async getUITree(): Promise<UITreeSnapshot> {
+    await this.initializeDevicePixelRatio();
+    return captureAndroidUITree({
+      adb: await this.getAdb(),
+      devicePixelRatio: this.devicePixelRatio,
+      displayId: this.options?.displayId,
+      getDisplaySize: () => this.size(),
+    });
   }
 
   async getScreenSize(): Promise<{
@@ -2106,6 +2157,19 @@ ${Object.keys(size)
 
     const adb = await this.getAdb();
     try {
+      const displayDump = await adb.shell('dumpsys display');
+      const logicalDisplayPhysicalId = physicalDisplayIdForLogicalDisplay(
+        displayDump,
+        this.options.displayId,
+      );
+      if (logicalDisplayPhysicalId) {
+        this.cachedPhysicalDisplayId = logicalDisplayPhysicalId;
+        debugDevice(
+          `Found and cached physical display ID: ${logicalDisplayPhysicalId} for logical display ID: ${this.options.displayId}`,
+        );
+        return this.cachedPhysicalDisplayId;
+      }
+
       const stdout = await adb.shell(
         `dumpsys SurfaceFlinger --display-id ${this.options.displayId}`,
       );
@@ -2205,6 +2269,12 @@ ${Object.keys(size)
  */
 const runAdbShellParamSchema = z.object({
   command: z.string().describe('ADB shell command to execute'),
+  timeout: z
+    .number()
+    .optional()
+    .describe(
+      'ADB shell command execution timeout in milliseconds. Only include this parameter when the user explicitly requests a timeout; otherwise, omit it.',
+    ),
 });
 
 const launchParamSchema = z.object({
@@ -2257,7 +2327,11 @@ const createPlatformActions = (
           throw new Error('RunAdbShell requires a non-empty command parameter');
         }
         const adb = await device.getAdb();
-        const stdout = await runAdbShellStdoutOrThrow(adb, param.command);
+        const stdout = await runAdbShellStdoutOrThrow(
+          adb,
+          param.command,
+          param.timeout === undefined ? undefined : { timeout: param.timeout },
+        );
         const planningFeedback = buildRunAdbShellPlanningFeedback({
           command: param.command,
           stdout,

@@ -349,6 +349,20 @@ export async function callAI(
   // across the onUsage callback and the task-dump-based collectUsageMetrics()
   // path when the provider does not return a request_id.
   const internalCallId = nextInternalCallId();
+  const chatCompletionInput = {
+    intent: modelConfig.intent,
+    userConfig: {
+      temperature: modelConfig.temperature,
+      reasoningEnabled: modelConfig.reasoningEnabled,
+      reasoningEffort: modelConfig.reasoningEffort,
+      reasoningBudget: modelConfig.reasoningBudget,
+      responseFormat: modelConfig.responseFormat,
+    },
+    requiresOriginalImageDetail: options?.requiresOriginalImageDetail,
+    expectedJsonObjectResponse: options?.expectedJsonObjectResponse,
+  };
+  const imageDetail =
+    adapter.chatCompletion.resolveImageDetail(chatCompletionInput);
 
   if (isCodexAppServerProvider(modelConfig.openaiBaseURL)) {
     const codexResult = await callAIWithCodexAppServer(messages, modelConfig, {
@@ -356,6 +370,7 @@ export async function callAI(
       onChunk: options?.onChunk,
       reasoningEnabled: modelConfig.reasoningEnabled,
       abortSignal: options?.abortSignal,
+      imageDetail,
     });
     if (codexResult.usage) {
       (codexResult.usage as any)[INTERNAL_CALL_ID_FIELD] = internalCallId;
@@ -387,18 +402,6 @@ export async function callAI(
   const startTime = Date.now();
 
   const isStreaming = options?.stream && options?.onChunk;
-  const chatCompletionInput = {
-    intent: modelConfig.intent,
-    userConfig: {
-      temperature: modelConfig.temperature,
-      reasoningEnabled: modelConfig.reasoningEnabled,
-      reasoningEffort: modelConfig.reasoningEffort,
-      reasoningBudget: modelConfig.reasoningBudget,
-      responseFormat: modelConfig.responseFormat,
-    },
-    requiresOriginalImageDetail: options?.requiresOriginalImageDetail,
-    expectedJsonObjectResponse: options?.expectedJsonObjectResponse,
-  };
   const { config: adapterChatCompletionParams } =
     adapter.chatCompletion.buildChatCompletionParams(chatCompletionInput);
   debugCall(
@@ -474,9 +477,6 @@ export async function callAI(
     ...(extraBody ?? {}),
   };
   const temperature = requestConfig.temperature;
-
-  const imageDetail =
-    adapter.chatCompletion.resolveImageDetail(chatCompletionInput);
 
   // Some adapters request original image detail to preserve screenshot
   // resolution for localization-sensitive tasks.

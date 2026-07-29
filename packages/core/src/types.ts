@@ -130,6 +130,19 @@ export interface AgentDescribeElementAtPointResult {
  * context
  */
 
+export interface UiNode {
+  type: string;
+  attrs: Record<string, string | undefined>;
+  bounds: Rect;
+  children: UiNode[];
+}
+
+export interface UITreeSnapshot {
+  platform: 'android';
+  capturedAt: number;
+  root: UiNode;
+}
+
 export abstract class UIContext {
   /**
    * screenshot of the current UI state. which size is shotSize(be shrunk by screenshotShrinkFactor),
@@ -636,6 +649,7 @@ task - service-query
 export interface ExecutionTaskInsightQueryParam {
   dataDemand: ServiceExtractParam;
   domIncluded?: boolean | 'visible-only';
+  context?: string;
 }
 
 export interface ExecutionTaskInsightQueryOutput {
@@ -1033,12 +1047,16 @@ export interface ReportFileAttributes {
   testDescription: string;
 }
 
+type SkippedReportFileAttributes = Omit<ReportFileAttributes, 'testStatus'> & {
+  testStatus: 'skipped';
+};
+
 export type ReportFileWithAttributes =
   | {
       reportFilePath: string;
       reportAttributes: ReportFileAttributes;
     }
   | {
-      reportFilePath?: string;
-      reportAttributes: ReportFileAttributes & { testStatus: 'skipped' };
+      reportFilePath?: undefined;
+      reportAttributes: SkippedReportFileAttributes;
     };

@@ -134,10 +134,12 @@ function aiAct(
     deepThink?: 'unset' | true | false;
     deepLocate?: boolean;
     fileChooserAccept?: string | string[];
+    fileChooserAllowedDir?: string;
     abortSignal?: AbortSignal;
+    context?: string;
   },
 ): Promise<string | undefined>;
-function ai(prompt: string): Promise<string | undefined>; // 简写形式
+function ai(prompt: string, options?: Object): Promise<string | undefined>; // 简写形式
 ```
 
 - 参数：
@@ -147,10 +149,12 @@ function ai(prompt: string): Promise<string | undefined>; // 简写形式
     - `cacheable?: boolean` - 当启用 [缓存功能](../caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 true
     - `deepThink?: 'unset' | true | false` - 控制 Midscene 在 `aiAct` 执行规划时的具体实现。开启后，`aiAct` 会更注重任务拆解，并将任务 Planning 和 UI 元素定位拆解为不同的模型调用。为了兼容旧写法，`'unset'` 仍然可以传入，并会被按 `false` 处理。[详情参阅 deepThink 说明](../model-strategy#关于-aiact-方法的-deepthink-参数)。
     - `deepLocate?: boolean` - 是否开启[深度定位](#深度定位deeplocate)。默认值为 false。
-    - `fileChooserAccept?: string | string[]` - 当文件选择器弹出时，指定对应的文件路径。可以是单个文件路径或路径数组。仅在 web 页面（Playwright、Puppeteer 或 Chrome extension Bridge mode）中可用。
+    - `context?: string` - 本次调用的额外上下文。详见[单次调用上下文](#单次调用上下文)。
+    - `fileChooserAccept?: string | string[]` - 当文件选择器弹出时，指定对应的文件路径。可以是单个文件路径或路径数组。仅在 web 页面（Playwright、Puppeteer 或 Chrome extension Bridge mode）中可用。该选项不受 `fileChooserAllowedDir` 限制。
       - **注意**：如果文件输入框不支持多文件（没有 `multiple` 属性），但是传入了多个文件，会抛出错误。
       - **注意**：如果点击触发了文件选择器但没有传入 `fileChooserAccept` 参数，文件选择器会被忽略，页面可以继续正常操作。
       - **注意**：Chrome extension Bridge mode 不支持目录上传输入框（`webkitdirectory` / `directory`）。如需上传目录，请使用 Playwright。
+    - `fileChooserAllowedDir?: string`：显式授权当前 `aiAct` 通过提示词上传文件时可访问的目录。未配置时，模型规划的文件上传会被拒绝。配置后，提示词中的相对路径会基于此目录解析，并校验是否位于此目录下；绝对路径则直接校验是否位于此目录下。位于此目录下的 symlink 也允许上传。建议将其设置为测试用例的 `fixtures` 目录，以避免 AI 幻觉或页面提示词攻击导致 `aiAct` 上传敏感文件。
     - `abortSignal?: AbortSignal` - 可选的 [AbortSignal](https://developer.mozilla.org/zh-CN/docs/Web/API/AbortSignal)，用于中止 `aiAct` 的执行。当信号被触发时，Midscene 会停止当前的规划循环并抛出错误。适用于实现超时控制或用户主动取消操作的场景。
 
 - 返回值：
@@ -179,7 +183,24 @@ await agent.aiAct('填写表单并提交', {
 await agent.aiAct('完成 github 账号注册的表单填写。地区必须选择「加拿大」。确保表单上没有遗漏的字段，确保所有的表单项能够通过校验。 只需要填写表单项即可，不需要发起真实的账号注册。 最终请返回表单上实际填写的字段内容', { deepThink: true });
 ```
 
-:::tip
+##### 在 `aiAct` 提示词中上传文件
+
+如需让 `aiAct` 上传提示词中提到的文件，请为该次调用显式传入 `fileChooserAllowedDir`。建议将其设置为测试用例的 `fixtures` 目录。Midscene 会在打开文件选择器的操作之前规划文件选择器配置；相对路径和绝对路径都会先解析，再校验解析结果是否仍在所选目录内。
+
+```typescript
+const agent = new PlaywrightAgent(page);
+
+await agent.aiAct(
+  '先点击“上传头像”按钮并上传 avatar.png；然后点击“上传封面”按钮并上传 cover.png。上传完成后，请确认页面头像显示一只猫、封面显示一片海滩。',
+  { fileChooserAllowedDir: './fixtures' },
+);
+```
+
+如果一次 `aiAct` 需要上传多个文件，请在提示词中把每个相对路径与对应的上传操作明确写出。后出现的路径会覆盖此前配置的文件选择器路径。不要将提示词中的文件路径与 `options.fileChooserAccept` 混用：模型在规划过程中生成的后续文件选择器配置可能覆盖该 option 的值。
+
+此能力仅适用于 web 页面（Playwright、Puppeteer 和 Chrome extension Bridge mode）。当 fixture 不在当前工作目录下，或需要让同一提示词在本地和 CI 环境中复用时，请配置 `fileChooserAllowedDir`。
+
+:::info
 
 在实际运行时，Midscene 会将用户指令规划（Planning）成多个步骤，然后逐步执行。如果 Midscene 认为无法执行，将抛出一个错误。
 
@@ -205,6 +226,7 @@ function aiTap(locate: string | object, options?: object): Promise<void>;
   - `locate: string | object` - 用自然语言描述的元素定位，或[使用图片作为提示词](#使用图片作为提示词)。
   - `options?: object` - 可选，一个配置对象，包含：
     - `deepLocate?: boolean` - 是否开启[深度定位](#深度定位deeplocate)。该参数原来叫 `deepThink`，现已更名为 `deepLocate`。默认值为 false。
+    - `context?: string` - 本次调用的额外上下文。详见[单次调用上下文](#单次调用上下文)。
     - `xpath?: string` - 目标元素的 xpath 路径，用于执行当前操作。如果提供了这个 xpath，Midscene 会优先使用该 xpath 来找到元素，然后依次使用缓存和 AI 模型。默认值为空
     - `cacheable?: boolean` - 当启用 [缓存功能](../caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 true
     - `fileChooserAccept?: string | string[]` - 当文件选择器弹出时，指定对应的文件路径。可以是单个文件路径或路径数组。仅在 web 页面（Playwright、Puppeteer 或 Chrome extension Bridge mode）中可用。
@@ -244,6 +266,7 @@ function aiHover(locate: string | object, options?: object): Promise<void>;
   - `locate: string | object` - 用自然语言描述的元素定位，或[使用图片作为提示词](#使用图片作为提示词)。
   - `options?: object` - 可选，一个配置对象，包含：
     - `deepLocate?: boolean` - 是否开启[深度定位](#深度定位deeplocate)。该参数原来叫 `deepThink`，现已更名为 `deepLocate`。默认值为 false。
+    - `context?: string` - 本次调用的额外上下文。详见[单次调用上下文](#单次调用上下文)。
     - `xpath?: string` - 目标元素的 xpath 路径，用于执行当前操作。如果提供了这个 xpath，Midscene 会优先使用该 xpath 来找到元素，然后依次使用缓存和 AI 模型。默认值为空
     - `cacheable?: boolean` - 当启用 [缓存功能](../caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 true
 - 返回值：
@@ -295,6 +318,7 @@ function aiInput(
       - 当 `mode` 为 `'typeOnly'` 时：直接输入文本，不会先清空输入框。
       - 当 `mode` 为 `'clear'` 时：会忽略文本内容，仅清空输入框。
     - `deepLocate?: boolean` - 是否开启[深度定位](#深度定位deeplocate)。该参数原来叫 `deepThink`，现已更名为 `deepLocate`。默认值为 false。
+    - `context?: string` - 本次调用的额外上下文。详见[单次调用上下文](#单次调用上下文)。
     - `xpath?: string` - 目标元素的 xpath 路径，用于执行当前操作。如果提供了这个 xpath，Midscene 会优先使用该 xpath 来找到元素，然后依次使用缓存和 AI 模型。默认值为空
     - `cacheable?: boolean` - 当启用 [缓存功能](../caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 true
     - `autoDismissKeyboard?: boolean` - 如果为 true，则键盘会在输入文本后自动关闭，仅在 Android/iOS/HarmonyOS 中有效。默认值为 true。
@@ -351,6 +375,7 @@ function aiClearInput(
   - `locate: string | object` - 要清空的输入框的自然语言描述，或[通过图像提示](#通过图像提示)。
   - `opt?: object` - 可选配置对象：
     - `deepLocate?: boolean` - 是否开启[深度定位](#深度定位deeplocate)。默认 `false`。
+    - `context?: string` - 本次调用的额外上下文。详见[单次调用上下文](#单次调用上下文)。
     - `xpath?: string` - 要操作元素的 xpath，默认空。
     - `cacheable?: boolean` - 启用[缓存功能](../caching.mdx)时是否缓存，默认 `true`。
 
@@ -369,7 +394,7 @@ await agent.aiClearInput('邮箱输入框');
 await agent.aiInput('邮箱输入框', { value: 'user@example.com' });
 ```
 
-:::tip `aiClearInput` 与 `aiInput` 的取舍
+:::info `aiClearInput` 与 `aiInput` 的取舍
 
 `aiInput(locate, { value: '...' })` 默认会先清空输入框（`mode: 'replace'`）。只有在需要把清空当成独立一步时（例如测试空值校验，或想把清空和输入拆成两步分别控制）才使用 `aiClearInput`。
 
@@ -408,6 +433,7 @@ function aiKeyboardPress(
   - `opt: object` - 配置对象，包含：
     - `keyName: string` - **必填**，要按下的键，如 `Enter`、`Tab`、`Escape` 等。不支持组合键。可在[我们的源码中查看完整的按键名称列表](https://github.com/web-infra-dev/midscene/blob/main/packages/shared/src/us-keyboard-layout.ts)。
     - `deepLocate?: boolean` - 是否开启[深度定位](#深度定位deeplocate)。该参数原来叫 `deepThink`，现已更名为 `deepLocate`。默认值为 false。
+    - `context?: string` - 本次调用的额外上下文。详见[单次调用上下文](#单次调用上下文)。
     - `xpath?: string` - 目标元素的 xpath 路径，用于执行当前操作。如果提供了这个 xpath，Midscene 会优先使用该 xpath 来找到元素，然后依次使用缓存和 AI 模型。默认值为空
     - `cacheable?: boolean` - 当启用 [缓存功能](../caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 true
 
@@ -473,6 +499,7 @@ function aiScroll(
     - `direction?: 'down' | 'up' | 'left' | 'right'` - 滚动方向，默认值为 `down`。仅在 `scrollType` 为 `singleAction` 时生效。不论是 Android 还是 Web，这里的滚动方向都是指页面哪个方向的内容会进入屏幕。比如当滚动方向是 `down` 时，页面下方被隐藏的内容会从屏幕底部开始逐渐向上露出。
     - `distance?: number | null` - 滚动距离，单位为像素。设置为 `null` 表示由 Midscene 自动决定。
     - `deepLocate?: boolean` - 是否开启[深度定位](#深度定位deeplocate)。该参数原来叫 `deepThink`，现已更名为 `deepLocate`。默认值为 false。
+    - `context?: string` - 本次调用的额外上下文。详见[单次调用上下文](#单次调用上下文)。
     - `xpath?: string` - 目标元素的 xpath 路径，用于执行当前操作。如果提供了这个 xpath，Midscene 会优先使用该 xpath 来找到元素，然后依次使用缓存和 AI 模型。默认值为空
     - `cacheable?: boolean` - 当启用 [缓存功能](../caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 true
 
@@ -536,6 +563,7 @@ function aiPinch(
     - `distance?: number` - 每根手指移动的距离（像素）。默认值为屏幕较短边的四分之一。
     - `duration?: number` - 缩放手势持续时间（毫秒），默认值为 `500`。
     - `deepLocate?: boolean` - 是否开启[深度定位](#深度定位deeplocate)。默认值为 false。
+    - `context?: string` - 本次调用的额外上下文。详见[单次调用上下文](#单次调用上下文)。
     - `xpath?: string` - 目标元素的 xpath 路径。默认值为空。
     - `cacheable?: boolean` - 当启用[缓存功能](../caching.mdx)时，是否允许缓存。默认值为 true。
 
@@ -589,6 +617,7 @@ function aiLongPress(
   - `opt?: object` - 可选配置对象：
     - `duration?: number` - 按住时长（毫秒）。Android 默认 `2000`，iOS 默认 `1000`，Web 默认 `500`。HarmonyOS 使用系统长按时长并忽略此选项。
     - `deepLocate?: boolean` - 是否启用[深度定位](#深度定位deeplocate)，默认 `false`。
+    - `context?: string` - 本次调用的额外上下文。详见[单次调用上下文](#单次调用上下文)。
     - `xpath?: string` - 要操作元素的 xpath，默认空。
     - `cacheable?: boolean` - 启用[缓存功能](../caching.mdx)时是否缓存，默认 `true`。
 
@@ -627,6 +656,7 @@ function aiDoubleClick(locate: string | object, options?: object): Promise<void>
   - `locate: string | object` - 用自然语言描述的元素定位，或[使用图片作为提示词](#使用图片作为提示词)。
   - `options?: object` - 可选，一个配置对象，包含：
     - `deepLocate?: boolean` - 是否开启[深度定位](#深度定位deeplocate)。该参数原来叫 `deepThink`，现已更名为 `deepLocate`。默认值为 false。
+    - `context?: string` - 本次调用的额外上下文。详见[单次调用上下文](#单次调用上下文)。
     - `xpath?: string` - 目标元素的 xpath 路径，用于执行当前操作。如果提供了这个 xpath，Midscene 会优先使用该 xpath 来找到元素，然后依次使用缓存和 AI 模型。默认值为空
     - `cacheable?: boolean` - 当启用 [缓存功能](../caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 true
 
@@ -660,6 +690,7 @@ function aiRightClick(locate: string | object, options?: object): Promise<void>;
   - `locate: string | object` - 用自然语言描述的元素定位，或[使用图片作为提示词](#使用图片作为提示词)。
   - `options?: object` - 可选，一个配置对象，包含：
     - `deepLocate?: boolean` - 是否开启[深度定位](#深度定位deeplocate)。该参数原来叫 `deepThink`，现已更名为 `deepLocate`。默认值为 false。
+    - `context?: string` - 本次调用的额外上下文。详见[单次调用上下文](#单次调用上下文)。
     - `xpath?: string` - 目标元素的 xpath 路径，用于执行当前操作。如果提供了这个 xpath，Midscene 会优先使用该 xpath 来找到元素，然后依次使用缓存和 AI 模型。默认值为空
     - `cacheable?: boolean` - 当启用 [缓存功能](../caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 true
 
@@ -696,6 +727,7 @@ function aiAsk(prompt: string | object, options?: object): Promise<string>;
   - `options?: object` - 可选，一个配置对象，包含：
     - `domIncluded?: boolean | 'visible-only'` - 是否向模型发送精简后的 DOM 信息，一般用于提取 UI 中不可见的属性，比如图片的链接。如果设置为 `'visible-only'`，则只发送可见的元素。默认值为 false。
     - `screenshotIncluded?: boolean` - 是否向模型发送截图。默认值为 true。
+    - `context?: string` - 本次调用的额外上下文。详见[单次调用上下文](#单次调用上下文)。
 
 - 返回值：
 
@@ -726,6 +758,7 @@ function aiQuery<T>(dataDemand: string | object, options?: object): Promise<T>;
   - `options?: object` - 可选，一个配置对象，包含：
     - `domIncluded?: boolean | 'visible-only'` - 是否向模型发送精简后的 DOM 信息，一般用于提取 UI 中不可见的属性，比如图片的链接。如果设置为 `'visible-only'`，则只发送可见的元素。默认值为 false。
     - `screenshotIncluded?: boolean` - 是否向模型发送截图。默认值为 true。
+    - `context?: string` - 本次调用的额外上下文。详见[单次调用上下文](#单次调用上下文)。
 
 - 返回值：
 
@@ -777,6 +810,7 @@ function aiBoolean(prompt: string | object, options?: object): Promise<boolean>;
   - `options?: object` - 可选，一个配置对象，包含：
     - `domIncluded?: boolean | 'visible-only'` - 是否向模型发送精简后的 DOM 信息，一般用于提取 UI 中不可见的属性，比如图片的链接。如果设置为 `'visible-only'`，则只发送可见的元素。默认值为 false。
     - `screenshotIncluded?: boolean` - 是否向模型发送截图。默认值为 true。
+    - `context?: string` - 本次调用的额外上下文。详见[单次调用上下文](#单次调用上下文)。
 
 - 返回值：
 
@@ -809,6 +843,7 @@ function aiNumber(prompt: string | object, options?: object): Promise<number>;
   - `options?: object` - 可选，一个配置对象，包含：
     - `domIncluded?: boolean | 'visible-only'` - 是否向模型发送精简后的 DOM 信息，一般用于提取 UI 中不可见的属性，比如图片的链接。如果设置为 `'visible-only'`，则只发送可见的元素。默认值为 false。
     - `screenshotIncluded?: boolean` - 是否向模型发送截图。默认值为 true。
+    - `context?: string` - 本次调用的额外上下文。详见[单次调用上下文](#单次调用上下文)。
 
 - 返回值：
 
@@ -843,6 +878,7 @@ function aiString(prompt: string | object, options?: object): Promise<string>;
   - `options?: object` - 可选，一个配置对象，包含：
     - `domIncluded?: boolean | 'visible-only'` - 是否向模型发送精简后的 DOM 信息，一般用于提取 UI 中不可见的属性，比如图片的链接。如果设置为 `'visible-only'`，则只发送可见的元素。默认值为 false。
     - `screenshotIncluded?: boolean` - 是否向模型发送截图。默认值为 true。
+    - `context?: string` - 本次调用的额外上下文。详见[单次调用上下文](#单次调用上下文)。
 
 - 返回值：
 
@@ -886,6 +922,7 @@ function aiLocate(
   - `locate: string | object` - 用自然语言描述的元素定位，或[使用图片作为提示词](#使用图片作为提示词)。
   - `options?: object` - 可选，一个配置对象，包含：
     - `deepLocate?: boolean` - 是否开启[深度定位](#深度定位deeplocate)。该参数原来叫 `deepThink`，现已更名为 `deepLocate`。默认值为 false。
+    - `context?: string` - 本次调用的额外上下文。详见[单次调用上下文](#单次调用上下文)。
     - `xpath?: string` - 目标元素的 xpath 路径，用于执行当前操作。如果提供了这个 xpath，Midscene 会优先使用该 xpath 来找到元素，然后依次使用缓存和 AI 模型。默认值为空
     - `cacheable?: boolean` - 当启用 [缓存功能](../caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 true
 
@@ -926,6 +963,7 @@ function aiAssert(
   - `options?: object` - 可选，一个配置对象，包含：
     - `domIncluded?: boolean | 'visible-only'` - 是否向模型发送精简后的 DOM 信息，一般用于提取 UI 中不可见的属性，比如图片的链接。如果设置为 `'visible-only'`，则只发送可见的元素。默认值为 false。
     - `screenshotIncluded?: boolean` - 是否向模型发送截图。默认值为 true。
+    - `context?: string` - 本次调用的额外上下文。详见[单次调用上下文](#单次调用上下文)。
 
 - 返回值：
 
@@ -937,7 +975,7 @@ function aiAssert(
 await agent.aiAssert('"Sauce Labs Onesie" 的价格是 7.99');
 ```
 
-:::tip
+:::info
 
 断言在测试脚本中非常重要。为了降低因 AI 幻觉导致错误断言的风险（例如遗漏错误），你也可以使用 `.aiQuery` 加上常规的 JavaScript 断言来替代 `.aiAssert`。
 
@@ -1001,6 +1039,7 @@ function aiWaitFor(
   options?: {
     timeoutMs?: number;
     checkIntervalMs?: number;
+    context?: string;
   },
 ): Promise<void>;
 ```
@@ -1011,6 +1050,7 @@ function aiWaitFor(
   - `options?: object` - 可选的配置对象
     - `timeoutMs?: number` - 超时时间（毫秒，默认为 15000）。每轮检查开始时都会记录时间，只要该时间点仍在超时窗口内，就会进入下一轮检查；否则视为超时
     - `checkIntervalMs?: number` - 相邻两次检查开始时间的最小间隔（毫秒），默认值为 3000
+    - `context?: string` - 本次调用的额外上下文。详见[单次调用上下文](#单次调用上下文)。
 
 - 返回值：
 
@@ -1029,7 +1069,7 @@ await agent.aiWaitFor('购物车图标显示数量为 2', {
 });
 ```
 
-:::tip
+:::info
 
 考虑到 AI 服务的时间消耗，`.aiWaitFor` 并不是一个特别高效的方法。使用一个普通的 `sleep` 可能是替代 `waitFor` 的另一种方式。
 
@@ -1074,7 +1114,7 @@ tasks:
 console.log(result);
 ```
 
-:::tip
+:::info
 
 更多关于 YAML 脚本的信息，请参考 [Automate with Scripts in YAML](../automate-with-scripts-in-yaml)。
 
@@ -1222,7 +1262,7 @@ console.log(results);
 await agent.unfreezePageContext();
 ```
 
-:::tip
+:::info
 
 在报告中，使用冻结上下文的操作会在 Insight tab 中显示 🧊 图标。
 
@@ -1386,11 +1426,59 @@ const agent = new PuppeteerAgent(page, {
 });
 ```
 
+#### `destroy()` {#agentdestroy}
+
+完成 Agent 报告的收尾（finalization），并释放 Agent 持有的资源。
+
+- 类型
+
+```typescript
+function destroy(): Promise<void>;
+```
+
+- 行为：
+  - 停止正在运行的 observer。
+  - 调用底层 interface 的可选 `destroy()` 方法，并等待清理完成。
+  - 等待报告写入完成，再完成报告收尾。最后，将最终路径写入
+    `.reportFile`。如果没有生成报告，则写入 `undefined`。
+  - 首次调用完成后，再次调用不会重复清理。
+  - 如果 interface 清理失败，Midscene 仍会尝试完成报告收尾，然后抛出清理错误。
+
+调用该方法后，请勿继续使用这个 Agent。
+
+:::warning 资源清理范围
+
+`Agent.destroy()` 会停止 Agent、完成报告收尾，并释放 Midscene 持有的控制资源。
+它通常不会关闭目标页面或断开物理设备，但部分平台会结束相应的自动化会话或连接。
+具体行为请参见各平台的 `destroy()` 说明。
+
+:::
+
 **属性**
 
 #### `.reportFile` {#agentreportfile}
 
-报告文件的路径。
+当前报告文件的路径。它的类型是 `string | null | undefined`。
+
+首次更新报告前，该属性没有可用值。以下情况也不会生成报告路径：关闭报告生成功能、Agent 在没有文件系统访问能力的浏览器环境中运行，或 Agent 没有产生 execution。
+
+报告路径可用后，报告内容仍可能继续更新。使用最终报告前，请调用
+[`await agent.destroy()`](#agentdestroy)。该方法会等待报告写入完成，完成报告的
+收尾，并将最终路径写入 `.reportFile`。
+
+
+## 单次调用上下文
+
+每个 `agent.ai*` 方法的 options 都支持可选的 `context` 字符串。它可以为单次请求补充业务知识、用户状态、术语或其他背景，而不必把这些信息写入主 prompt。
+
+```typescript
+await agent.aiAssert('当前页面是新版本样式', undefined, {
+  context:
+    '新版本的 Tab 栏位于页面顶部，且页面主色调为红色；旧版本的 Tab 栏位于页面底部，且页面主色调为绿色。只有同时满足新版本的两项条件时，才视为新版本。',
+});
+```
+
+context 仅对本次方法调用生效。对于 `aiAct`，单次调用的 `context` 优先于 Agent 级别的 `aiActContext`（显式传入空字符串也会覆盖）。其他 AI 方法不会自动继承 `aiActContext`。
 
 <a id="深度定位deeplocate"></a>
 
@@ -1498,7 +1586,7 @@ await agent.aiAct({
 
 **`ReportMergingTool`**
 
-在运行多个自动化工作流时，每个 agent 都会生成独立的报告文件。`ReportMergingTool` 提供了将多个自动化报告合并为单个报告的能力，便于统一查看和管理自动化结果。
+每个自动化工作流都可以生成独立报告。`ReportMergingTool` 可以将这些报告合并，便于统一查看和管理。合并结果可能是独立的 HTML 文件，也可能是包含 `index.html` 和外部截图资源的目录。
 
 #### `new ReportMergingTool()`
 
@@ -1519,13 +1607,30 @@ const reportMergingTool = new ReportMergingTool();
 - 类型
 
 ```typescript
+type SkippedReportFileAttributes = Omit<
+  ReportFileAttributes,
+  'testStatus'
+> & {
+  testStatus: 'skipped';
+};
+
+type ReportFileWithAttributes =
+  | {
+      reportFilePath: string;
+      reportAttributes: ReportFileAttributes;
+    }
+  | {
+      reportFilePath?: undefined;
+      reportAttributes: SkippedReportFileAttributes;
+    };
+
 function append(reportInfo: ReportFileWithAttributes): void;
 ```
 
 - 参数:
 
   - `reportInfo: ReportFileWithAttributes` - 报告信息对象，包含:
-    - `reportFilePath: string` - 报告文件的路径，通常是 `agent.reportFile`
+    - `reportFilePath: string | undefined` - 报告文件的路径，通常是 `agent.reportFile`。只有当 `reportAttributes.testStatus` 为 `'skipped'` 时，才能省略该字段。其他状态缺少路径时，`append()` 会抛出错误
     - `reportAttributes: object` - 报告属性
       - `testId: string` - 自动化工作流的唯一标识符
       - `testTitle: string` - 自动化工作流标题
@@ -1540,29 +1645,58 @@ function append(reportInfo: ReportFileWithAttributes): void;
 - 示例:
 
 ```typescript
+import type { TestStatus } from '@midscene/core';
+
 // 在 afterEach 钩子中添加报告
-afterEach((ctx) => {
-  let workflowStatus = 'passed';
-  if (ctx.task.result?.state === 'fail') {
+afterEach(async (ctx) => {
+  let workflowStatus: TestStatus = 'passed';
+  if (ctx.task.result?.state === 'skip') {
+    workflowStatus = 'skipped';
+  } else if (ctx.task.result?.errors?.[0]?.message.includes('timed out')) {
+    workflowStatus = 'timedOut';
+  } else if (ctx.task.result?.state === 'fail') {
     workflowStatus = 'failed';
   }
 
+  // 读取最终路径前，先完成报告的 finalization。
+  await agent.destroy();
+  const reportFilePath = agent.reportFile;
+  const reportAttributes = {
+    testId: ctx.task.name,
+    testTitle: ctx.task.name,
+    testDescription: '自动化工作流描述',
+    testDuration: Date.now() - startTime,
+  };
+
+  if (!reportFilePath) {
+    if (workflowStatus !== 'skipped') {
+      throw new Error('Midscene 报告未生成');
+    }
+
+    reportMergingTool.append({
+      reportAttributes: {
+        ...reportAttributes,
+        testStatus: 'skipped',
+      },
+    });
+    return;
+  }
+
   reportMergingTool.append({
-    reportFilePath: agent.reportFile as string,
+    reportFilePath,
     reportAttributes: {
-      testId: ctx.task.name,
-      testTitle: ctx.task.name,
-      testDescription: '自动化工作流描述',
-      testDuration: Date.now() - startTime,
+      ...reportAttributes,
       testStatus: workflowStatus,
     },
   });
 });
 ```
 
+调用 `.mergeReports()` 前，应完成所有报告相关 Agent 的收尾。
+
 #### `.mergeReports()`
 
-执行报告合并操作，将所有添加的报告合并为一个 HTML 文件。
+执行报告合并操作，将所有添加的报告合并为一份报告。
 
 - 类型
 
@@ -1572,6 +1706,7 @@ function mergeReports(
   opts?: {
     rmOriginalReports?: boolean;
     overwrite?: boolean;
+    outputDir?: string;
   },
 ): string | null;
 ```
@@ -1584,11 +1719,14 @@ function mergeReports(
   - `opts?: object` - 可选配置对象
     - `rmOriginalReports?: boolean` - 是否删除原始报告文件,默认为 `false`
     - `overwrite?: boolean` - 如果目标文件已存在是否覆盖，默认为 `false`
+    - `outputDir?: string` - 合并报告的输出目录。相对路径从当前工作目录开始解析。默认输出到 `midscene_run/report/`
 
 - 返回值:
 
-  - 成功时返回合并后的报告文件路径
+  - 成功时返回合并报告的入口 HTML 路径
   - 如果没有添加任何报告，返回 `null`
+  - 所有源报告均使用 `single-html` 时，输出路径为 `<outputDir>/<reportFileName>.html`
+  - 任一源报告使用 `html-and-external-assets` 时，输出路径为 `<outputDir>/<reportFileName>/index.html`，同时输出截图资源
 
 - 示例:
 
@@ -1614,6 +1752,13 @@ afterAll(() => {
 afterAll(() => {
   reportMergingTool.mergeReports('my-automation-report', {
     overwrite: true,
+  });
+});
+
+// 将合并报告写入自定义目录
+afterAll(() => {
+  reportMergingTool.mergeReports('my-automation-report', {
+    outputDir: './test-results',
   });
 });
 ```
@@ -1663,6 +1808,13 @@ PuppeteerAgent、PlaywrightAgent 和 Chrome Bridge 共用一套 Action Space，M
 - `Navigate` —— 在当前标签页打开指定 URL。
 - `Reload` —— 刷新当前页面。
 - `GoBack` —— 浏览器后退。
+
+**生命周期与所有权**
+
+Puppeteer 和 Playwright Page/Browser Agent 继承通用的
+[`destroy()`](#agentdestroy) 方法。调用该方法会完成 Midscene 报告收尾，
+并清理 Agent 持有的资源。该方法不会关闭 Agent 使用的 Page、Browser 或
+BrowserContext。
 
 ### PuppeteerPageAgent / PuppeteerAgent {#puppeteer-agent}
 
@@ -1878,7 +2030,8 @@ function destroy(closeNewTabsAfterDisconnect?: boolean): Promise<void>;
 ```
 
 - `closeNewTabsAfterDisconnect` —— 运行时覆盖构造器配置，为 `true` 时销毁时关闭桥接创建的新标签页。
-- 清理桥接连接和本地服务完成后返回 `Promise<void>`。
+- 包含[通用 Agent 清理行为](#agentdestroy)，其中包括报告收尾。
+- 清理桥接连接、本地服务和 Agent 报告后，返回 `Promise<void>`。
 
 <a id="web-打开新的桌面标签页"></a>
 <a id="web-附着到当前标签页"></a>
@@ -1908,7 +2061,7 @@ function destroy(closeNewTabsAfterDisconnect?: boolean): Promise<void>;
 - `ClearInput` —— 清空输入框内容。
 - `Launch` —— 打开网页或 `package/.Activity`。
 - `Terminate` —— 按包名强制停止应用。
-- `RunAdbShell` —— 执行原始 `adb shell` 命令。
+- `RunAdbShell` —— 执行原始 `adb shell` 命令。此动作默认启用。将 `exposeRunAdbShellAction` 设为 `false`，可从动作空间中移除此动作。
 - `AndroidBackButton` —— 触发系统返回。
 - `AndroidHomeButton` —— 回到桌面。
 - `AndroidRecentAppsButton` —— 打开多任务/最近应用。
@@ -1947,6 +2100,7 @@ const device = new AndroidDevice(deviceId, {
   - `'yadb-for-non-ascii'`（默认）—— 对 Unicode 字符（包括 Latin Unicode 如 ö、é、ñ）、中文、日文以及格式化符号（如 %s、%d）使用 yadb。纯 ASCII 文本使用更快的原生 `adb input text`。
   - `'always-yadb'` —— 对所有文本输入始终使用 yadb，提供最大兼容性，但对纯 ASCII 文本稍慢。
 - `displayId?: number` —— 在设备镜像多个屏幕时，选择特定虚拟屏幕。
+- `exposeRunAdbShellAction?: boolean` —— 是否在动作空间中暴露内置的 `RunAdbShell` 动作。默认值：`true`。设为 `false` 后，AI 规划器、YAML 脚本和 `agent.runAdbShell()` 都无法执行 ADB shell 命令。
 - `screenshotResizeScale?: number` —— **已废弃。** 此选项已移除，不再生效。如需控制发送给 AI 模型的截图尺寸，请使用 `AgentOpt` 中的 `screenshotShrinkFactor`。
 - `minScreenshotBufferSize?: number` —— 截图 buffer 大小校验阈值，单位为字节；低于该值的 buffer 会被视为截图采集失败或已损坏。默认 `1024`（1KB）。设置为 `0` 仅跳过此大小校验；Midscene 仍会拒绝空 buffer 和无效图片格式。
 - `alwaysRefreshScreenInfo?: boolean` —— 每一步都重新查询旋转角度与屏幕尺寸，默认 `false`。
@@ -1968,6 +2122,21 @@ const device = new AndroidDevice(deviceId, {
 
 - 可以使用 `getConnectedDevices()` 发现设备，`udid` 与 `adb devices` 输出一致。
 - 可以使用 `remoteAdbHost/remoteAdbPort` 连接远程 adb；如果 adb 不在 PATH 中，可设置 `androidAdbPath`。
+
+<a id="android-device-destroy"></a>
+
+**`destroy()`**
+
+```ts
+function destroy(): Promise<void>;
+```
+
+释放 `AndroidDevice` 持有的资源，其中包括正在运行的 scrcpy 连接。同时，清除
+ADB 状态。该方法可以重复调用。调用完成后，这个 Device 实例不能再执行 ADB
+命令，但物理设备仍与 ADB server 保持连接。
+
+调用 [`AndroidAgent.destroy()`](#agentdestroy) 时，会自动执行该方法。每个
+`AndroidDevice` 实例只属于一个 `AndroidAgent`。
 
 ### AndroidAgent {#androidagent}
 
@@ -2029,6 +2198,8 @@ function runAdbShell(command: string, opt?: { timeout?: number }): Promise<strin
 
 - `command: string` —— 原样传递给 `adb shell` 的命令。例如要传 `input tap 100 200`，不要传 `adb shell input tap 100 200`。
 - `opt.timeout?: number` —— 可选的命令执行超时时间，单位为毫秒。
+
+此方法会调用 `RunAdbShell` 动作。创建 `AndroidDevice` 时，如果将 `exposeRunAdbShellAction` 设为 `false`，此方法将不可用。
 
 ```ts
 const result = await agent.runAdbShell('dumpsys battery', { timeout: 60 * 1000 });
@@ -2191,6 +2362,21 @@ const device = new IOSDevice({
 - 通过 `wdaHost`/`wdaPort` 可指向远程设备或自建的 WDA。
 - 多设备并发时，请为每个设备设置不同的 `wdaPort` 和 `wdaMjpegPort`，避免 WDA 命令和 MJPEG stream 端口冲突。
 - 通用交互方法请查阅 [API 参考（通用）](#interaction-methods)。
+
+<a id="ios-device-destroy"></a>
+
+**`destroy()`**
+
+```ts
+function destroy(): Promise<void>;
+```
+
+尝试停止 MJPEG frame source、删除 WebDriverAgent session，并停止 WDA manager。
+清理失败时会记录日志，但 Promise 不会因此被拒绝。该方法可以重复调用。调用完成
+后，不能再使用这个 `IOSDevice` 实例。
+
+调用 [`IOSAgent.destroy()`](#agentdestroy) 时，会自动执行该方法。每个
+`IOSDevice` 实例只属于一个 `IOSAgent`。
 
 ### IOSAgent {#iosagent}
 
@@ -2396,6 +2582,20 @@ const device = new HarmonyDevice(deviceId, {
 
 - 可以使用 `getConnectedDevices()` 发现设备，返回的 `deviceId` 与 `hdc list targets` 输出一致。
 - 如果 HDC 不在系统 PATH 中，可通过 `HDC_HOME` 环境变量或 `hdcPath` 选项指定路径。
+
+<a id="harmony-device-destroy"></a>
+
+**`destroy()`**
+
+```ts
+function destroy(): Promise<void>;
+```
+
+释放 `HarmonyDevice` 持有的 HDC 状态和屏幕信息缓存。该方法可以重复调用。调用
+完成后，这个 Device 实例不能再执行 HDC 命令，但物理设备仍与 HDC 保持连接。
+
+调用 [`HarmonyAgent.destroy()`](#agentdestroy) 时，会自动执行该方法。每个
+`HarmonyDevice` 实例只属于一个 `HarmonyAgent`。
 
 ### HarmonyAgent {#harmonyagent}
 
@@ -2636,7 +2836,7 @@ await agent.aiInput('备注输入框', {
 - `securityProtocol`：可选 `'auto'`、`'tls'`、`'nla'` 或 `'rdp'`。
 - `desktopWidth` / `desktopHeight`：请求指定远程桌面分辨率。
 
-:::tip 示例：在无头 Linux CI 中测试 Electron 应用
+:::info 示例：在无头 Linux CI 中测试 Electron 应用
 使用 `@midscene/computer` 在无头 Linux CI 中测试 [Obsidian](https://obsidian.md/)（Electron 应用）的完整示例：[https://github.com/web-infra-dev/midscene-example/tree/main/computer/electron-demo](https://github.com/web-infra-dev/midscene-example/tree/main/computer/electron-demo)
 :::
 
@@ -2679,7 +2879,7 @@ await agent.aiAct('Click the Windows Start button');
 await agent.aiAct('Open Settings');
 ```
 
-:::tip 示例：通过 RDP 控制远程 Windows 桌面
+:::info 示例：通过 RDP 控制远程 Windows 桌面
 一个可直接运行的 Demo：连接远程 Windows，打开「设置」并进入「Windows 更新」，最后输出一份结构化报告：[https://github.com/web-infra-dev/midscene-example/tree/main/computer/rdp-demo](https://github.com/web-infra-dev/midscene-example/tree/main/computer/rdp-demo)
 :::
 
@@ -2742,6 +2942,31 @@ if (!env.available) {
   console.error('环境错误:', env.error);
 }
 ```
+
+<a id="computer-device-destroy"></a>
+
+**`ComputerDevice.destroy()`**
+
+```typescript
+function destroy(): Promise<void>;
+```
+
+释放本机输入驱动。如果存在 Agent 创建的 Xvfb 实例，也会将它停止。该方法可以
+重复调用。调用完成后，不能再使用这个 `ComputerDevice` 实例。
+
+<a id="rdp-device-destroy"></a>
+
+**`RDPDevice.destroy()`**
+
+```typescript
+function destroy(): Promise<void>;
+```
+
+断开 RDP backend，并清除连接状态。该方法可以重复调用。调用完成后，不能再使用
+这个 `RDPDevice` 实例。
+
+调用 [`ComputerAgent.destroy()`](#agentdestroy) 时，会自动执行对应的 Device
+方法。`agentForComputer()` 和 `agentForRDPComputer()` 返回的 Agent 都遵循该行为。
 
 ### ComputerAgent
 

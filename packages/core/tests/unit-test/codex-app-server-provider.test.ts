@@ -39,7 +39,7 @@ describe('codex app-server provider helper', () => {
         reasoningEnabled: true,
         modelConfig: baseModelConfig,
       }),
-    ).toBe('high');
+    ).toBe('medium');
 
     expect(
       resolveCodexReasoningEffort({
@@ -58,7 +58,7 @@ describe('codex app-server provider helper', () => {
           reasoningEffort: 'medium',
         },
       }),
-    ).toBe('medium');
+    ).toBe('none');
 
     expect(
       resolveCodexReasoningEffort({
@@ -67,7 +67,7 @@ describe('codex app-server provider helper', () => {
           reasoningEffort: 'minimal',
         },
       }),
-    ).toBe('minimal');
+    ).toBe('none');
 
     expect(
       resolveCodexReasoningEffort({
@@ -96,9 +96,12 @@ describe('codex app-server provider helper', () => {
     expect(
       resolveCodexReasoningEffort({
         reasoningEnabled: true,
-        modelConfig: baseModelConfig,
+        modelConfig: {
+          ...baseModelConfig,
+          reasoningEffort: 'xhigh',
+        },
       }),
-    ).toBe('high');
+    ).toBe('xhigh');
 
     expect(
       resolveCodexReasoningEffort({
@@ -125,7 +128,7 @@ describe('codex app-server provider helper', () => {
           reasoningEffort: 'medium',
         },
       }),
-    ).toBeUndefined();
+    ).toBe('none');
   });
 
   it('converts chat messages into codex turn payload', () => {
@@ -177,7 +180,7 @@ describe('codex app-server provider helper', () => {
     });
   });
 
-  it('does not include image detail in codex turn inputs', () => {
+  it('preserves image detail in codex turn inputs', () => {
     const messages: ChatCompletionMessageParam[] = [
       {
         role: 'user',
@@ -199,6 +202,32 @@ describe('codex app-server provider helper', () => {
     expect(payload.input).toContainEqual({
       type: 'image',
       url: 'https://example.com/img.png',
+      detail: 'high',
+    });
+  });
+
+  it('overrides image detail in codex turn inputs when required by adapter', () => {
+    const messages: ChatCompletionMessageParam[] = [
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'image_url',
+            image_url: {
+              url: 'file:///tmp/local-shot.png',
+              detail: 'high',
+            },
+          },
+        ],
+      },
+    ];
+
+    const payload = buildCodexTurnPayloadFromMessages(messages, 'original');
+
+    expect(payload.input).toContainEqual({
+      type: 'localImage',
+      path: '/tmp/local-shot.png',
+      detail: 'original',
     });
   });
 

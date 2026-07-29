@@ -47,11 +47,12 @@ import { getVersion, processCacheConfig, reportHTMLContent } from '@/utils';
 import {
   ScriptPlayer,
   buildDetailedLocateParam,
+  buildDetailedLocateParamAndRestParams,
   parseYamlScript,
 } from '../yaml/index';
 
 import { readFile } from 'node:fs/promises';
-import { basename } from 'node:path';
+import { basename, resolve } from 'node:path';
 import type { AbstractInterface } from '@/device';
 import type { TaskRunner } from '@/task-runner';
 import {
@@ -64,8 +65,12 @@ import {
 } from '@midscene/shared/env';
 import { getDebug } from '@midscene/shared/logger';
 import { assert, ifInBrowser, uuid } from '@midscene/shared/utils';
-import { defineActionSleep } from '../device';
+import {
+  defineActionRegisterFileChooserAccept,
+  defineActionSleep,
+} from '../device';
 import { validateAgentCacheInput } from './cache-config';
+import { FileChooserAccepter } from './file-chooser';
 import { MetricsCollector, type MidsceneUsageMetrics } from './metrics';
 import { AgentProgressBus } from './progress';
 import { buildPromptWithContext } from './prompt-context';
@@ -109,6 +114,7 @@ const defaultServiceExtractOption: ServiceExtractOption = {
 export type AiActOptions = {
   cacheable?: boolean;
   fileChooserAccept?: string | string[];
+  fileChooserAllowedDir?: string;
   deepThink?: DeepThinkOption;
   deepLocate?: boolean;
   abortSignal?: AbortSignal;
@@ -215,6 +221,10 @@ export class Agent<
   private executionDumpIndexByRunner = new WeakMap<TaskRunner, number>();
 
   private fullActionSpace: DeviceAction[];
+
+  private activeFileChooserAccepter?: FileChooserAccepter;
+
+  private activeFileChooserAllowedDir?: string;
 
   private reportGenerator: IReportGenerator;
 
@@ -339,7 +349,31 @@ export class Agent<
     }
 
     const baseActionSpace = this.interface.actionSpace();
-    this.fullActionSpace = [...baseActionSpace, defineActionSleep()];
+    const fileChooserActions = this.interface.registerFileChooserListener
+      ? [
+          defineActionRegisterFileChooserAccept(async (files) => {
+            if (!this.activeFileChooserAccepter) {
+              throw new Error(
+                'RegisterFileChooserAccept can only be used while aiAct is running',
+              );
+            }
+            if (!this.activeFileChooserAllowedDir) {
+              throw new Error(
+                'RegisterFileChooserAccept requires aiAct option fileChooserAllowedDir',
+              );
+            }
+            await this.activeFileChooserAccepter.registerFromAllowedDir(
+              files,
+              this.activeFileChooserAllowedDir,
+            );
+          }),
+        ]
+      : [];
+    this.fullActionSpace = [
+      ...baseActionSpace,
+      ...fileChooserActions,
+      defineActionSleep(),
+    ];
 
     this.taskExecutor = new TaskExecutor(this.interface, this.service, {
       taskCache: this.taskCache,
@@ -489,7 +523,7 @@ export class Agent<
         screenshot: () => this.interface.screenshotBase64(),
         captureRepresentative: () => this.getUIContext('assert'),
         runAssert: (assertion, uiContext, msg, assertOpt) =>
-          this.aiAssertWithContext(assertion, uiContext, msg, assertOpt),
+          this.aiAssertWithUIContext(assertion, uiContext, msg, assertOpt),
         runBoolean: (prompt, uiContext, boolOpt) =>
           this.aiBooleanWithContext(prompt, uiContext, boolOpt),
         onStopped: () => {
@@ -816,7 +850,10 @@ export class Agent<
     );
     assert(locatePrompt, 'missing locate prompt for input');
 
-    const detailedLocateParam = buildDetailedLocateParam(locatePrompt, opt);
+    const { locateParam, restParams } = buildDetailedLocateParamAndRestParams(
+      locatePrompt,
+      opt,
+    );
 
     // Convert value to string to ensure consistency
     const stringValue = typeof value === 'number' ? String(value) : value;
@@ -825,9 +862,9 @@ export class Agent<
     const mode = opt?.mode === 'append' ? 'typeOnly' : opt?.mode;
 
     await this.callActionInActionSpace('Input', {
-      ...(opt || {}),
+      ...restParams,
       value: stringValue,
-      locate: detailedLocateParam,
+      locate: locateParam,
       mode,
     });
   }
@@ -884,13 +921,14 @@ export class Agent<
 
     assert(opt?.keyName, 'missing keyName for keyboard press');
 
-    const detailedLocateParam = locatePrompt
-      ? buildDetailedLocateParam(locatePrompt, opt)
-      : undefined;
+    const { locateParam, restParams } = buildDetailedLocateParamAndRestParams(
+      locatePrompt || '',
+      opt,
+    );
 
     await this.callActionInActionSpace('KeyboardPress', {
-      ...(opt || {}),
-      locate: detailedLocateParam,
+      ...restParams,
+      locate: locateParam,
     });
   }
 
@@ -964,14 +1002,14 @@ export class Agent<
       }
     }
 
-    const detailedLocateParam = buildDetailedLocateParam(
+    const { locateParam, restParams } = buildDetailedLocateParamAndRestParams(
       locatePrompt || '',
       opt,
     );
 
     await this.callActionInActionSpace('Scroll', {
-      ...(opt || {}),
-      locate: detailedLocateParam,
+      ...restParams,
+      locate: locateParam,
     });
   }
 
@@ -983,14 +1021,14 @@ export class Agent<
       duration?: number;
     },
   ): Promise<void> {
-    const detailedLocateParam = buildDetailedLocateParam(
+    const { locateParam, restParams } = buildDetailedLocateParamAndRestParams(
       locatePrompt || '',
       opt,
     );
 
     await this.callActionInActionSpace('Pinch', {
-      ...opt,
-      locate: detailedLocateParam,
+      ...restParams,
+      locate: locateParam,
     });
   }
 
@@ -1000,11 +1038,14 @@ export class Agent<
   ): Promise<void> {
     assert(locatePrompt, 'missing locate prompt for long press');
 
-    const detailedLocateParam = buildDetailedLocateParam(locatePrompt, opt);
+    const { locateParam, restParams } = buildDetailedLocateParamAndRestParams(
+      locatePrompt,
+      opt,
+    );
 
     await this.callActionInActionSpace('LongPress', {
-      ...(opt || {}),
-      locate: detailedLocateParam,
+      ...restParams,
+      locate: locateParam,
     });
   }
 
@@ -1124,7 +1165,7 @@ export class Agent<
         replanningCycleLimit,
         imagesIncludeCount,
         deepThink,
-        fileChooserAccept,
+        undefined,
         deepLocate,
         abortSignal,
         internalReportDisplay,
@@ -1161,7 +1202,45 @@ export class Agent<
       return actionOutput?.output;
     };
 
-    return await runAiAct();
+    const fileChooserAccepter = this.interface.registerFileChooserListener
+      ? new FileChooserAccepter(this.interface)
+      : undefined;
+    this.activeFileChooserAccepter = fileChooserAccepter;
+    this.activeFileChooserAllowedDir = opt?.fileChooserAllowedDir
+      ? resolve(opt.fileChooserAllowedDir)
+      : undefined;
+    let aiActError: { error: unknown } | undefined;
+    let fileChooserHandlingError: Error | undefined;
+    let result: string | undefined;
+    try {
+      if (fileChooserAccept?.length) {
+        if (!fileChooserAccepter) {
+          throw new Error(
+            `File upload is not supported on ${this.interface.interfaceType}`,
+          );
+        }
+        await fileChooserAccepter.register(fileChooserAccept);
+      }
+      result = await runAiAct();
+    } catch (error) {
+      aiActError = { error };
+    } finally {
+      this.activeFileChooserAccepter = undefined;
+      this.activeFileChooserAllowedDir = undefined;
+      try {
+        fileChooserHandlingError = await fileChooserAccepter?.clear();
+      } catch (error) {
+        warn(`Failed to clear file chooser registration: ${error}`);
+      }
+    }
+
+    if (aiActError) {
+      throw aiActError.error;
+    }
+    if (fileChooserHandlingError) {
+      throw fileChooserHandlingError;
+    }
+    return result;
   }
 
   async runMarkdown(
@@ -1316,10 +1395,10 @@ export class Agent<
     msg?: string,
     opt?: AgentAssertOpt & ServiceExtractOption,
   ) {
-    return this.aiAssertWithContext(assertion, undefined, msg, opt);
+    return this.aiAssertWithUIContext(assertion, undefined, msg, opt);
   }
 
-  private async aiAssertWithContext(
+  private async aiAssertWithUIContext(
     assertion: TUserPrompt,
     uiContext?: UIContext,
     msg?: string,
@@ -1332,13 +1411,10 @@ export class Agent<
       screenshotIncluded:
         opt?.screenshotIncluded ??
         defaultServiceExtractOption.screenshotIncluded,
+      ...(opt?.context !== undefined ? { context: opt.context } : {}),
     };
 
-    const assertionWithContext = buildPromptWithContext(
-      assertion,
-      opt?.context,
-    );
-    const { textPrompt, multimodalPrompt } = parsePrompt(assertionWithContext);
+    const { textPrompt, multimodalPrompt } = parsePrompt(assertion);
     const assertionText =
       typeof assertion === 'string' ? assertion : assertion.prompt;
 

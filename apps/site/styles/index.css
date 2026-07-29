@@ -3,3 +3,37 @@ header {
     height: 2.6rem;
   }
 }
+
+.model-series-table {
+  overflow-x: auto;
+}
+
+.model-series-table table {
+  width: 100%;
+  min-width: 48rem;
+  table-layout: fixed;
+}
+
+.model-series-table th:nth-child(1),
+.model-series-table td:nth-child(1) {
+  width: 13%;
+}
+
+.model-series-table th:nth-child(2),
+.model-series-table td:nth-child(2) {
+  width: 29%;
+}
+
+.model-series-table th:nth-child(3),
+.model-series-table td:nth-child(3) {
+  width: 22%;
+}
+
+.model-series-table th:nth-child(4),
+.model-series-table td:nth-child(4) {
+  width: 36%;
+}
+
+.model-series-table code {
+  white-space: nowrap;
+}

@@ -647,7 +647,7 @@ describe('TaskExecutor - Null Data Handling', () => {
       expect(result.thought).toBe('Extracted the numeric value successfully');
     });
 
-    it('should preserve domIncluded on Insight task params for report rendering', async () => {
+    it('should preserve report fields on Insight task params', async () => {
       const mockInsight = {
         contextRetrieverFn: vi.fn(async () => await createMockUIContext()),
         extract: vi.fn(async () => ({
@@ -680,10 +680,14 @@ describe('TaskExecutor - Null Data Handling', () => {
         'Number',
         'Extract the price',
         getModelRuntime(mockModelConfig),
-        { domIncluded: true },
+        {
+          context: 'Use wholesale pricing rules.',
+          domIncluded: true,
+        },
       );
 
       expect(queryTask.param).toEqual({
+        context: 'Use wholesale pricing rules.',
         domIncluded: true,
         dataDemand: 'Extract the price',
       });

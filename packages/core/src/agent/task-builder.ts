@@ -696,12 +696,29 @@ export class TaskBuilder {
           };
         }
 
-        onResult?.(element);
+        const promptDisplay = param.promptDisplay;
+        const elementForAction = promptDisplay
+          ? {
+              ...element,
+              description: promptDisplay,
+            }
+          : element;
+
+        if (promptDisplay && locateDump?.matchedElement) {
+          locateDump.matchedElement = locateDump.matchedElement.map(
+            (matchedElement) => ({
+              ...matchedElement,
+              description: promptDisplay,
+            }),
+          );
+        }
+
+        onResult?.(elementForAction);
 
         return {
           output: {
             element: {
-              ...element,
+              ...elementForAction,
               // backward compatibility for aiLocate, which return value needs a dpr field
               dpr: uiContext.deprecatedDpr,
             },

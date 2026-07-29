@@ -186,6 +186,15 @@ export class ReportMergingTool {
   }
 
   public append(reportInfo: ReportFileWithAttributes) {
+    if (
+      !reportInfo.reportFilePath &&
+      reportInfo.reportAttributes.testStatus !== 'skipped'
+    ) {
+      throw new Error(
+        'reportFilePath is required unless reportAttributes.testStatus is "skipped"',
+      );
+    }
+
     if (reportInfo.reportFilePath) {
       const sourceVersion = peekReportSdkVersion(reportInfo.reportFilePath);
       const currentVersion = getVersion();
