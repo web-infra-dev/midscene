@@ -9,6 +9,7 @@ test.describe('file upload functionality', () => {
   }) => {
     const fooFile = join(__dirname, '../../fixtures/foo.txt');
     const barFile = join(__dirname, '../../fixtures/bar.txt');
+    const fixturesDir = join(__dirname, '../../fixtures');
     const selectedFileName = page.locator('#selected-file-name');
     const uploadedFileHistory = page.locator('#uploaded-file-history li');
 
@@ -18,7 +19,7 @@ test.describe('file upload functionality', () => {
 
     await aiAct(
       `First click the "Upload document" button and upload the file at this exact path: ${fooFile}. Wait until the page displays "foo.txt". Then click the "Upload document" button again and upload the file at this exact path: ${barFile}. Finish only after the page displays "bar.txt".`,
-      { cacheable: false },
+      { cacheable: false, fileChooserAllowedDir: fixturesDir },
     );
 
     await expect(selectedFileName).toHaveText('bar.txt');
