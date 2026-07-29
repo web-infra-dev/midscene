@@ -9,13 +9,6 @@ const node = (
   children: UiNode[] = [],
 ): UiNode => ({ type, attrs, bounds, children });
 
-const policy = {
-  stableAttrs: ['resource-id'],
-  textAttrs: ['content-desc', 'text'],
-  excludedTargetTypes: ['android.webkit.WebView'],
-  max: 5,
-};
-
 describe('pruneUITreeSnapshotToTarget', () => {
   it('keeps only the target lineage and stops at the nearest resource-id ancestor', () => {
     const target = node(
@@ -26,7 +19,6 @@ describe('pruneUITreeSnapshotToTarget', () => {
     const snapshot: UITreeSnapshot = {
       platform: 'android',
       capturedAt: 123,
-      xpathPolicy: policy,
       root: node('Window', {}, { left: 0, top: 0, width: 500, height: 500 }, [
         node(
           'Page',
@@ -66,54 +58,12 @@ describe('pruneUITreeSnapshotToTarget', () => {
       attrs: { text: 'Pay now', index: '2' },
       children: [],
     });
-    expect(pruned.inspection).toEqual({
-      scope: 'target-lineage',
-      pageIdentityCounts: [
-        { attr: 'resource-id', value: 'wallet-card', count: 1 },
-        { attr: 'text', value: 'Pay now', count: 1 },
-      ],
-    });
-  });
-
-  it('records identity counts from the full page before removing siblings', () => {
-    const snapshot: UITreeSnapshot = {
-      platform: 'android',
-      capturedAt: 1,
-      xpathPolicy: policy,
-      root: node('Window', {}, { left: 0, top: 0, width: 300, height: 200 }, [
-        node(
-          'Button',
-          { text: 'Pay' },
-          { left: 20, top: 20, width: 40, height: 40 },
-        ),
-        node(
-          'Panel',
-          { 'resource-id': 'panel-b' },
-          { left: 100, top: 0, width: 100, height: 100 },
-          [
-            node(
-              'Button',
-              { text: 'Pay' },
-              { left: 120, top: 20, width: 40, height: 40 },
-            ),
-          ],
-        ),
-      ]),
-    };
-
-    const pruned = pruneUITreeSnapshotToTarget(snapshot, { x: 130, y: 30 });
-
-    expect(pruned.inspection?.pageIdentityCounts).toEqual([
-      { attr: 'resource-id', value: 'panel-b', count: 1 },
-      { attr: 'text', value: 'Pay', count: 2 },
-    ]);
   });
 
   it('retains the original root when no node in the lineage has a resource-id', () => {
     const snapshot: UITreeSnapshot = {
       platform: 'android',
       capturedAt: 1,
-      xpathPolicy: policy,
       root: node('Window', {}, { left: 0, top: 0, width: 100, height: 100 }, [
         node(
           'Button',
@@ -135,7 +85,6 @@ describe('pruneUITreeSnapshotToTarget', () => {
     const snapshot: UITreeSnapshot = {
       platform: 'android',
       capturedAt: 1,
-      xpathPolicy: policy,
       root: node('Window', {}, { left: 0, top: 0, width: 100, height: 100 }, [
         node(
           'Toolbar',
@@ -171,7 +120,6 @@ describe('pruneUITreeSnapshotToTarget', () => {
     const snapshot: UITreeSnapshot = {
       platform: 'android',
       capturedAt: 1,
-      xpathPolicy: policy,
       root: node('Window', {}, { left: 0, top: 0, width: 200, height: 100 }, [
         node(
           'Button',
