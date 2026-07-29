@@ -136,6 +136,7 @@ function aiAct(
     deepThink?: 'unset' | true | false;
     deepLocate?: boolean;
     fileChooserAccept?: string | string[];
+    fileChooserAllowedDir?: string;
     abortSignal?: AbortSignal;
     context?: string;
   },
@@ -151,10 +152,11 @@ function ai(prompt: string, options?: Object): Promise<string | undefined>; // s
     - `deepThink?: 'unset' | true | false` — Controls the planning implementation used by Midscene when `aiAct` performs planning. When enabled, `aiAct` focuses more on task decomposition and separates task planning from UI element locating into different model calls. For compatibility, `'unset'` is accepted and treated the same as `false`. [Learn more about deepThink](../model-strategy#about-the-deepthink-option-in-aiact).
     - `deepLocate?: boolean` — Whether to enable [Deep Locate](#deep-locate-deeplocate). Default: `false`.
     - `context?: string` — Additional context for this call. See [Per-call context](#per-call-context).
-    - `fileChooserAccept?: string | string[]` — When a file chooser pops up, specify the file path(s) to accept. Can be a single file path or an array of paths. Only available in web pages (Playwright, Puppeteer, or Chrome extension Bridge mode).
+    - `fileChooserAccept?: string | string[]` — When a file chooser pops up, specify the file path(s) to accept. Can be a single file path or an array of paths. Only available in web pages (Playwright, Puppeteer, or Chrome extension Bridge mode). This option is not constrained by `fileChooserAllowedDir`.
       - **Note**: If the file input does not support multiple files (no `multiple` attribute) but multiple files are provided, an error will be thrown.
       - **Note**: If a file chooser is triggered but no `fileChooserAccept` parameter is provided, the file chooser will be ignored and the page can continue to operate normally.
       - **Note**: Chrome extension Bridge mode does not support directory upload inputs (`webkitdirectory` / `directory`). Use Playwright for directory uploads.
+    - `fileChooserAllowedDir?: string` — Explicitly authorizes the directory this `aiAct` call may access for prompt-driven file uploads. Without it, model-planned file uploads are rejected. Relative paths in the prompt are resolved against this directory and then validated; absolute paths are validated directly against this directory. Symlinks located within this directory are also allowed. We recommend using the test case's `fixtures` directory to reduce the risk of sensitive-file uploads caused by AI hallucinations or page prompt injection.
     - `abortSignal?: AbortSignal` — Signal used to cancel the `aiAct` call. When aborted, Midscene stops the planning loop and throws an error. Use it to implement timeouts or user-initiated cancellation.
 
 - Return value:
@@ -185,6 +187,23 @@ await agent.aiAct('Fill in the form and submit', {
 // For complex tasks, you can enable the deepThink parameter
 await agent.aiAct('Complete the GitHub account registration form. The region must be set to "Canada". Make sure no fields on the form are missed and all form fields pass validation. Just fill in the form fields without actually submitting the registration. Finally, return the actual content filled in the form fields', { deepThink: true });
 ```
+
+##### Upload files from an `aiAct` prompt
+
+To upload files mentioned in an `aiAct` prompt, explicitly pass `fileChooserAllowedDir` for that call. We recommend using the test case's `fixtures` directory. Midscene resolves both relative and absolute paths before validating that they stay within the selected directory.
+
+```typescript
+const agent = new PlaywrightAgent(page);
+
+await agent.aiAct(
+  'First click the "Upload avatar" button and upload avatar.png. Then click the "Upload cover" button and upload cover.png. After uploading, confirm that the avatar displays a cat and the cover displays a beach.',
+  { fileChooserAllowedDir: './fixtures' },
+);
+```
+
+For multiple uploads in one `aiAct`, name each relative path together with the action that should upload it. A later path replaces the previously configured file chooser path(s). Do not combine prompt-specified paths with `options.fileChooserAccept`: a later file chooser configuration generated during planning can override the option value.
+
+This capability is available for web pages (Playwright, Puppeteer, and Chrome extension Bridge mode). Use `fileChooserAllowedDir` when fixtures live outside the current working directory or when the same prompt must work in local and CI environments.
 
 :::info
 

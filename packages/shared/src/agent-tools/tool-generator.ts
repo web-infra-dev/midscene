@@ -712,6 +712,12 @@ export function generateCommonTools(
           .describe(
             'Plan this action with deep thinking (richer context and sub-goal decomposition). Helps with complex multi-step instructions at the cost of speed. Defaults to the server --deep-think setting.',
           ),
+        fileChooserAllowedDir: z
+          .string()
+          .optional()
+          .describe(
+            'Directory that model-planned file uploads may access. Required when the prompt asks the model to upload files.',
+          ),
         ...promptInputExtraSchema,
         ...initArgSchema,
       },
@@ -744,6 +750,9 @@ export function generateCommonTools(
             }
             if (args.deepThink !== undefined) {
               actOptions.deepThink = args.deepThink;
+            }
+            if (args.fileChooserAllowedDir !== undefined) {
+              actOptions.fileChooserAllowedDir = args.fileChooserAllowedDir;
             }
             const userPrompt = composeUserPrompt({
               prompt,
