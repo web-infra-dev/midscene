@@ -51,7 +51,7 @@ import {
 } from '../yaml/index';
 
 import { readFile } from 'node:fs/promises';
-import { basename } from 'node:path';
+import { basename, resolve } from 'node:path';
 import type { AbstractInterface } from '@/device';
 import type { TaskRunner } from '@/task-runner';
 import {
@@ -356,9 +356,14 @@ export class Agent<
                 'RegisterFileChooserAccept can only be used while aiAct is running',
               );
             }
+            if (!this.activeFileChooserAllowedDir) {
+              throw new Error(
+                'RegisterFileChooserAccept requires aiAct option fileChooserAllowedDir',
+              );
+            }
             await this.activeFileChooserAccepter.registerFromAllowedDir(
               files,
-              this.activeFileChooserAllowedDir ?? process.cwd(),
+              this.activeFileChooserAllowedDir,
             );
           }),
         ]
@@ -1193,8 +1198,9 @@ export class Agent<
       ? new FileChooserAccepter(this.interface)
       : undefined;
     this.activeFileChooserAccepter = fileChooserAccepter;
-    this.activeFileChooserAllowedDir =
-      opt?.fileChooserAllowedDir ?? process.cwd();
+    this.activeFileChooserAllowedDir = opt?.fileChooserAllowedDir
+      ? resolve(opt.fileChooserAllowedDir)
+      : undefined;
     let aiActError: { error: unknown } | undefined;
     let fileChooserHandlingError: Error | undefined;
     let result: string | undefined;

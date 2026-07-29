@@ -154,7 +154,7 @@ function ai(prompt: string): Promise<string | undefined>; // shorthand form
       - **Note**: If the file input does not support multiple files (no `multiple` attribute) but multiple files are provided, an error will be thrown.
       - **Note**: If a file chooser is triggered but no `fileChooserAccept` parameter is provided, the file chooser will be ignored and the page can continue to operate normally.
       - **Note**: Chrome extension Bridge mode does not support directory upload inputs (`webkitdirectory` / `directory`). Use Playwright for directory uploads.
-    - `fileChooserAllowedDir?: string` — Limits the paths this `aiAct` call may directly specify for prompt-driven file uploads. Defaults to `process.cwd()`. Relative paths in the prompt are resolved against this directory and then validated; absolute paths are validated directly. Symlinks located within this directory are also allowed.
+    - `fileChooserAllowedDir?: string` — Explicitly authorizes the directory this `aiAct` call may access for prompt-driven file uploads. Without it, model-planned file uploads are rejected. Relative paths in the prompt are resolved against this directory and then validated; absolute paths are validated directly against this directory. Symlinks located within this directory are also allowed. We recommend using the test case's `fixtures` directory to reduce the risk of sensitive-file uploads caused by AI hallucinations or page prompt injection.
     - `abortSignal?: AbortSignal` — Signal used to cancel the `aiAct` call. When aborted, Midscene stops the planning loop and throws an error. Use it to implement timeouts or user-initiated cancellation.
 
 - Return value:
@@ -188,14 +188,14 @@ await agent.aiAct('Complete the GitHub account registration form. The region mus
 
 ##### Upload files from an `aiAct` prompt
 
-`aiAct` can upload files mentioned in its prompt. By default, it resolves paths from the current working directory. Pass `fileChooserAllowedDir` to use another root directory for that call. Midscene resolves both relative and absolute paths before validating that they stay within the selected directory.
+To upload files mentioned in an `aiAct` prompt, explicitly pass `fileChooserAllowedDir` for that call. We recommend using the test case's `fixtures` directory. Midscene resolves both relative and absolute paths before validating that they stay within the selected directory.
 
 ```typescript
 const agent = new PlaywrightAgent(page);
 
 await agent.aiAct(
   'First click the "Upload avatar" button and upload avatar.png. Then click the "Upload cover" button and upload cover.png. After uploading, confirm that the avatar displays a cat and the cover displays a beach.',
-  { fileChooserAllowedDir: process.env.UPLOAD_ASSETS_DIR },
+  { fileChooserAllowedDir: './fixtures' },
 );
 ```
 

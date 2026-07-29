@@ -154,7 +154,7 @@ describe('aiAct file chooser registration', () => {
     expect(acceptedFiles).toEqual([[resolve(fixtureFile)]]);
   });
 
-  it('uses fileChooserAllowedDir or cwd from the current aiAct call', async () => {
+  it('requires fileChooserAllowedDir for model-driven uploads', async () => {
     const registerFileChooserListener = vi.fn(async () => ({
       dispose: vi.fn(),
       getError: () => undefined,
@@ -195,13 +195,19 @@ describe('aiAct file chooser registration', () => {
       return { output: { output: 'uploaded', yamlFlow: [] } } as any;
     });
 
-    vi.spyOn(process, 'cwd').mockReturnValue(__dirname);
-    await expect(agent.aiAct('Upload a file')).resolves.toBe('uploaded');
-    expect(registerFileChooserListener).toHaveBeenCalledTimes(1);
+    const cwdSpy = vi.spyOn(process, 'cwd').mockReturnValue(__dirname);
+    try {
+      await expect(agent.aiAct('Upload a file')).rejects.toThrow(
+        /requires aiAct option fileChooserAllowedDir/,
+      );
+      expect(registerFileChooserListener).not.toHaveBeenCalled();
 
-    await expect(
-      agent.aiAct('Upload a file', { fileChooserAllowedDir: __dirname }),
-    ).resolves.toBe('uploaded');
-    expect(registerFileChooserListener).toHaveBeenCalledTimes(2);
+      await expect(
+        agent.aiAct('Upload a file', { fileChooserAllowedDir: '.' }),
+      ).resolves.toBe('uploaded');
+      expect(registerFileChooserListener).toHaveBeenCalledTimes(1);
+    } finally {
+      cwdSpy.mockRestore();
+    }
   });
 });

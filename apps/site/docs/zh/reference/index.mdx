@@ -148,11 +148,11 @@ function ai(prompt: string): Promise<string | undefined>; // 简写形式
     - `cacheable?: boolean` - 当启用 [缓存功能](../caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 true
     - `deepThink?: 'unset' | true | false` - 控制 Midscene 在 `aiAct` 执行规划时的具体实现。开启后，`aiAct` 会更注重任务拆解，并将任务 Planning 和 UI 元素定位拆解为不同的模型调用。为了兼容旧写法，`'unset'` 仍然可以传入，并会被按 `false` 处理。[详情参阅 deepThink 说明](../model-strategy#关于-aiact-方法的-deepthink-参数)。
     - `deepLocate?: boolean` - 是否开启[深度定位](#深度定位deeplocate)。默认值为 false。
-    - `fileChooserAccept?: string | string[]` - 当文件选择器弹出时，指定对应的文件路径。可以是单个文件路径或路径数组。仅在 web 页面（Playwright、Puppeteer 或 Chrome extension Bridge mode）中可用。该 option 不受 `fileChooserAllowedDir` 限制。
+    - `fileChooserAccept?: string | string[]` - 当文件选择器弹出时，指定对应的文件路径。可以是单个文件路径或路径数组。仅在 web 页面（Playwright、Puppeteer 或 Chrome extension Bridge mode）中可用。该选项不受 `fileChooserAllowedDir` 限制。
       - **注意**：如果文件输入框不支持多文件（没有 `multiple` 属性），但是传入了多个文件，会抛出错误。
       - **注意**：如果点击触发了文件选择器但没有传入 `fileChooserAccept` 参数，文件选择器会被忽略，页面可以继续正常操作。
       - **注意**：Chrome extension Bridge mode 不支持目录上传输入框（`webkitdirectory` / `directory`）。如需上传目录，请使用 Playwright。
-    - `fileChooserAllowedDir?: string`：限制当前 `aiAct` 通过提示词上传文件时可直接指定的路径范围，默认使用 `process.cwd()`。提示词中的相对路径会相对此目录解析为绝对路径，并校验是否位于此目录下；绝对路径则直接校验。位于此目录下的 symlink 也允许上传。
+    - `fileChooserAllowedDir?: string`：显式授权当前 `aiAct` 通过提示词上传文件时可访问的目录。未配置时，模型规划的文件上传会被拒绝。配置后，提示词中的相对路径会基于此目录解析，并校验是否位于此目录下；绝对路径则直接校验是否位于此目录下。位于此目录下的 symlink 也允许上传。建议将其设置为测试用例的 `fixtures` 目录，以避免 AI 幻觉或页面提示词攻击导致 `aiAct` 上传敏感文件。
     - `abortSignal?: AbortSignal` - 可选的 [AbortSignal](https://developer.mozilla.org/zh-CN/docs/Web/API/AbortSignal)，用于中止 `aiAct` 的执行。当信号被触发时，Midscene 会停止当前的规划循环并抛出错误。适用于实现超时控制或用户主动取消操作的场景。
 
 - 返回值：
@@ -183,14 +183,14 @@ await agent.aiAct('完成 github 账号注册的表单填写。地区必须选�
 
 ##### 在 `aiAct` 提示词中上传文件
 
-`aiAct` 可以上传提示词中提到的文件，默认以当前工作目录作为路径根目录。若要为该次调用使用其他根目录，请传入 `fileChooserAllowedDir`。Midscene 会在打开文件选择器的操作之前规划文件选择器配置；相对路径和绝对路径都会先解析，再校验解析结果是否仍在所选目录内。
+如需让 `aiAct` 上传提示词中提到的文件，请为该次调用显式传入 `fileChooserAllowedDir`。建议将其设置为测试用例的 `fixtures` 目录。Midscene 会在打开文件选择器的操作之前规划文件选择器配置；相对路径和绝对路径都会先解析，再校验解析结果是否仍在所选目录内。
 
 ```typescript
 const agent = new PlaywrightAgent(page);
 
 await agent.aiAct(
   '先点击“上传头像”按钮并上传 avatar.png；然后点击“上传封面”按钮并上传 cover.png。上传完成后，请确认页面头像显示一只猫、封面显示一片海滩。',
-  { fileChooserAllowedDir: process.env.UPLOAD_ASSETS_DIR },
+  { fileChooserAllowedDir: './fixtures' },
 );
 ```
 
