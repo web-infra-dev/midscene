@@ -252,11 +252,12 @@ Midscene 默认关闭模型原生思考，以获得最佳的执行速度和稳�
 
 | 模型版本 | 常用模型名称 | 对应 MODEL_FAMILY | 备注 |
 | --- | --- | --- | --- |
+| K3 系列 | `kimi-k3` | `kimi3` | 根据 Kimi 的文档，K3 始终开启思考模式，无法关闭，且推理强度默认为 `max` |
 | K2.x 系列 | `kimi-k2.5`、`kimi-k2.6` | `kimi` | — |
 
 </div>
 
-环境变量配置示例，以 `kimi-k2.6` 为例：
+环境变量配置示例，以 `kimi-k3` 为例：
 
 <ModelConfigTabs>
   <ModelConfigTab type="default">
@@ -264,8 +265,8 @@ Midscene 默认关闭模型原生思考，以获得最佳的执行速度和稳�
 ```bash
 MIDSCENE_MODEL_BASE_URL="https://api.moonshot.cn/v1" # Moonshot AI API 地址
 MIDSCENE_MODEL_API_KEY="......"
-MIDSCENE_MODEL_NAME="kimi-k2.6"
-MIDSCENE_MODEL_FAMILY="kimi"
+MIDSCENE_MODEL_NAME="kimi-k3"
+MIDSCENE_MODEL_FAMILY="kimi3" # 如果使用 kimi-k2.6，请改为 "kimi"
 ```
 
   </ModelConfigTab>
@@ -274,8 +275,8 @@ MIDSCENE_MODEL_FAMILY="kimi"
 ```bash
 MIDSCENE_PLANNING_MODEL_BASE_URL="https://api.moonshot.cn/v1" # Moonshot AI API 地址
 MIDSCENE_PLANNING_MODEL_API_KEY="......"
-MIDSCENE_PLANNING_MODEL_NAME="kimi-k2.6"
-MIDSCENE_PLANNING_MODEL_FAMILY="kimi"
+MIDSCENE_PLANNING_MODEL_NAME="kimi-k3"
+MIDSCENE_PLANNING_MODEL_FAMILY="kimi3" # 如果使用 kimi-k2.6，请改为 "kimi"
 ```
 
   </ModelConfigTab>
@@ -284,12 +285,13 @@ MIDSCENE_PLANNING_MODEL_FAMILY="kimi"
 ```bash
 MIDSCENE_INSIGHT_MODEL_BASE_URL="https://api.moonshot.cn/v1" # Moonshot AI API 地址
 MIDSCENE_INSIGHT_MODEL_API_KEY="......"
-MIDSCENE_INSIGHT_MODEL_NAME="kimi-k2.6"
-MIDSCENE_INSIGHT_MODEL_FAMILY="kimi"
+MIDSCENE_INSIGHT_MODEL_NAME="kimi-k3"
+MIDSCENE_INSIGHT_MODEL_FAMILY="kimi3" # 如果使用 kimi-k2.6，请改为 "kimi"
 ```
 
   </ModelConfigTab>
 </ModelConfigTabs>
+
 
 ### 小米 MiMo 系列 {#xiaomi-mimo}
 
