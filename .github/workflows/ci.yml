@@ -13,7 +13,8 @@ permissions:
 
 jobs:
   main:
-    runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"') }}
+    # The viewport e2e relies on the hosted image's Chrome window behavior.
+    runs-on: ubuntu-22.04
     strategy:
       matrix:
         node-version: [24.13.0]
@@ -48,13 +49,10 @@ jobs:
     - name: Install dependencies
       run: pnpm install --frozen-lockfile --ignore-scripts
     
-    - name: Install Puppeteer browser
+    - name: Install puppeteer dependencies
       run: |
         cd packages/web-integration
         npx puppeteer browsers install chrome
-        chrome_path=$(node -e "process.stdout.write(require('puppeteer').executablePath())")
-        test -x "$chrome_path"
-        echo "MIDSCENE_CHROME_PATH=$chrome_path" >> "$GITHUB_ENV"
 
     - name: Check tsconfig references
       run: pnpm run check:references
