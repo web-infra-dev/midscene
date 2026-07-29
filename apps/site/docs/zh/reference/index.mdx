@@ -1019,7 +1019,10 @@ function startObserving(options?: {
 const observer = await agent.startObserving();
 await agent.aiAct('提交表单');
 await observer.stop();
-await observer.aiAssert('过程中弹出了成功提示 toast');
+const observationRecord = await observer.exportRecord();
+await agent.aiAssert('过程中弹出了成功提示 toast', undefined, {
+  observationRecord,
+});
 ```
 
 各平台 CLI 会在前台持续录制。可以在一个终端中启动录制，在另一个终端或通过手动操作触发交互，然后回到录制终端按 Ctrl+C，完成录制并保存产物：

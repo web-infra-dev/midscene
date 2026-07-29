@@ -1033,7 +1033,10 @@ The returned `UIObserver` provides:
 const observer = await agent.startObserving();
 await agent.aiAct('submit the form');
 await observer.stop();
-await observer.aiAssert('a success toast appeared during the process');
+const observationRecord = await observer.exportRecord();
+await agent.aiAssert('a success toast appeared during the process', undefined, {
+  observationRecord,
+});
 ```
 
 The platform CLIs run recording in the foreground. Start it in one terminal,
