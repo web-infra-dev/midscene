@@ -2079,7 +2079,7 @@ Use this section to configure Midscene's Android automation and review Android-s
 - `ClearInput` — Clear the contents of an input field.
 - `Launch` — Open a web URL or `package/.Activity` string.
 - `Terminate` — Force-stop an app by package name.
-- `RunAdbShell` — Execute raw `adb shell` commands.
+- `RunAdbShell` — Execute raw `adb shell` commands. This action is enabled by default. Set `exposeRunAdbShellAction` to `false` to remove it from the action space.
 - `AndroidBackButton` — Trigger the system back action.
 - `AndroidHomeButton` — Return to the home screen.
 - `AndroidRecentAppsButton` — Open the multitasking/recent apps view.
@@ -2118,6 +2118,7 @@ const device = new AndroidDevice(deviceId, {
   - `'yadb-for-non-ascii'` — Uses yadb for accented Latin characters such as ö, é, and ñ; Chinese and Japanese text; and format specifiers such as `%s` and `%d`. Pure ASCII text uses the faster native `adb input text`.
   - `'always-yadb'` — Uses yadb for all text input. This provides maximum compatibility but is slightly slower for pure ASCII text.
 - `displayId?: number` — Target a specific virtual display if the device mirrors multiple displays.
+- `exposeRunAdbShellAction?: boolean` — Whether to expose the built-in `RunAdbShell` action in the action space. Default: `true`. Set it to `false` to prevent the AI planner, YAML scripts, and `agent.runAdbShell()` from executing ADB shell commands.
 - `screenshotResizeScale?: number` — **Deprecated.** This option has been removed and no longer has any effect. Use `screenshotShrinkFactor` in `AgentOpt` instead to control screenshot size sent to the AI model.
 - `minScreenshotBufferSize?: number` — Minimum valid screenshot buffer size in bytes. Smaller buffers are treated as failed or corrupted captures. Set to `0` to skip this size check; Midscene still rejects empty buffers and invalid image formats. Default: `1024` (1 KB).
 - `alwaysRefreshScreenInfo?: boolean` — Whether to query rotation and screen size before every step. Default: `false`.
@@ -2215,6 +2216,8 @@ function runAdbShell(command: string, opt?: { timeout?: number }): Promise<strin
 
 - `command: string` — Command passed verbatim to `adb shell`. For example, use `input tap 100 200`, not `adb shell input tap 100 200`.
 - `opt.timeout?: number` — Optional command execution timeout in milliseconds.
+
+This method invokes the `RunAdbShell` action. If `exposeRunAdbShellAction` is set to `false` when creating the `AndroidDevice`, this method is unavailable.
 
 ```ts
 const result = await agent.runAdbShell('dumpsys battery', { timeout: 60 * 1000 });
