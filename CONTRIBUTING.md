@@ -247,6 +247,17 @@ For VS Code users, you can install the [Biome VS Code extension](https://marketp
 
 You can find the Midscene documentation in the [website](./apps/site) folder.
 
+Production site builds fetch the current GitHub star count and require an
+authenticated GitHub API token. Set `GITHUB_TOKEN` in the deployment
+environment, or provide it when building locally:
+
+```sh
+GITHUB_TOKEN=$(gh auth token) pnpm --filter doc build
+```
+
+The site development server does not require a token. If GitHub is unavailable,
+it renders a non-numeric placeholder instead of a stale star count.
+
 ---
 
 ## Submitting Changes

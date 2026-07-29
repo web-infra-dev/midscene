@@ -5,8 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "rspress dev",
-    "build": "rspress build && ./config_deploy.sh && node ./scripts/check-search-metadata.mjs",
-    "preview": "rspress preview"
+    "build": "MIDSCENE_SITE_BUILD=true rspress build && ./config_deploy.sh && node ./scripts/check-search-metadata.mjs",
+    "preview": "rspress preview",
+    "test": "vitest --run"
   },
   "engines": {
     "pnpm": ">=9.3.0",
@@ -28,6 +29,7 @@
     "@types/node": "^18.0.0",
     "autoprefixer": "10.4.22",
     "postcss": "8.5.6",
-    "tailwindcss": "4.1.11"
+    "tailwindcss": "4.1.11",
+    "vitest": "3.0.5"
   }
 }
