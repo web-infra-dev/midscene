@@ -130,6 +130,19 @@ export interface AgentDescribeElementAtPointResult {
  * context
  */
 
+export interface UiNode {
+  type: string;
+  attrs: Record<string, string | undefined>;
+  bounds: Rect;
+  children: UiNode[];
+}
+
+export interface UITreeSnapshot {
+  platform: 'android';
+  capturedAt: number;
+  root: UiNode;
+}
+
 export abstract class UIContext {
   /**
    * screenshot of the current UI state. which size is shotSize(be shrunk by screenshotShrinkFactor),
