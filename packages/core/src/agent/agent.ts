@@ -66,7 +66,6 @@ import { getDebug } from '@midscene/shared/logger';
 import { assert, ifInBrowser, uuid } from '@midscene/shared/utils';
 import { defineActionSleep } from '../device';
 import { validateAgentCacheInput } from './cache-config';
-import { generateInspectionXpathCandidates } from './inspection-xpath';
 import { MetricsCollector, type MidsceneUsageMetrics } from './metrics';
 import { AgentProgressBus } from './progress';
 import { buildPromptWithContext } from './prompt-context';
@@ -405,100 +404,6 @@ export class Agent<
    */
   protected isRetryableContextError(_error: unknown): boolean {
     return false;
-  }
-
-  /**
-   * Generate ranked inspection XPath candidates for a point in a saved Android
-   * UI context. Screenshot coordinates are used by default and converted to
-   * logical coordinates with `shrunkShotToLogicalRatio`. This method reads only
-   * the supplied historical tree and never reconnects to the device. A pruned
-   * target-lineage snapshot returns only semantic candidates proven unique on
-   * the original full page; it never fabricates a positional fallback.
-   *
-   * @throws When the tree is missing or non-Android, coordinates are invalid or
-   * out of bounds, no node is hit, or only a structural node is exposed.
-   */
-  async getXpathsByPoint(
-    uiContext: UIContext,
-    point: { x: number; y: number },
-    options?: {
-      coordinateSpace?: 'screenshot' | 'logical';
-    },
-  ): Promise<string[]> {
-    if (!uiContext?.uiTree) {
-      const captureError = uiContext?.uiTreeError
-        ? ` Capture error: ${uiContext.uiTreeError}`
-        : '';
-      throw new Error(
-        `getXpathsByPoint: UI tree is missing from UIContext.${captureError}`,
-      );
-    }
-    if (uiContext.uiTree.platform !== 'android') {
-      throw new Error(
-        `getXpathsByPoint: unsupported UI tree platform ${String(uiContext.uiTree.platform)}; only android is supported`,
-      );
-    }
-
-    const coordinateSpace = options?.coordinateSpace ?? 'screenshot';
-    if (coordinateSpace !== 'screenshot' && coordinateSpace !== 'logical') {
-      throw new Error(
-        `getXpathsByPoint: invalid coordinateSpace ${String(coordinateSpace)}`,
-      );
-    }
-    if (
-      !point ||
-      !Number.isFinite(point.x) ||
-      !Number.isFinite(point.y) ||
-      point.x < 0 ||
-      point.y < 0
-    ) {
-      throw new Error(
-        'getXpathsByPoint: point must contain finite, non-negative x and y coordinates',
-      );
-    }
-
-    const ratio = uiContext.shrunkShotToLogicalRatio;
-    if (!Number.isFinite(ratio) || ratio <= 0) {
-      throw new Error(
-        `getXpathsByPoint: invalid shrunkShotToLogicalRatio ${String(ratio)}`,
-      );
-    }
-    const bounds =
-      coordinateSpace === 'screenshot'
-        ? uiContext.shotSize
-        : {
-            width: uiContext.shotSize.width / ratio,
-            height: uiContext.shotSize.height / ratio,
-          };
-    if (
-      !Number.isFinite(bounds.width) ||
-      !Number.isFinite(bounds.height) ||
-      bounds.width <= 0 ||
-      bounds.height <= 0
-    ) {
-      throw new Error(
-        'getXpathsByPoint: UIContext has invalid coordinate bounds',
-      );
-    }
-    if (point.x >= bounds.width || point.y >= bounds.height) {
-      throw new Error(
-        `getXpathsByPoint: point (${point.x}, ${point.y}) is outside ${coordinateSpace} bounds ${bounds.width}x${bounds.height}`,
-      );
-    }
-
-    const logicalPoint =
-      coordinateSpace === 'screenshot'
-        ? { x: point.x / ratio, y: point.y / ratio }
-        : point;
-    return generateInspectionXpathCandidates(
-      uiContext.uiTree.root,
-      logicalPoint,
-      {
-        ...uiContext.uiTree.xpathPolicy,
-        treeScope: uiContext.uiTree.inspection?.scope ?? 'full',
-        pageIdentityCounts: uiContext.uiTree.inspection?.pageIdentityCounts,
-      },
-    );
   }
 
   async getUIContext(action?: ServiceAction): Promise<UIContext> {

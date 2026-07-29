@@ -151,12 +151,6 @@ describe(
       const uiTree: UITreeSnapshot = {
         platform: 'android',
         capturedAt: 1,
-        xpathPolicy: {
-          stableAttrs: ['resource-id'],
-          textAttrs: ['content-desc', 'text'],
-          excludedTargetTypes: [],
-          max: 5,
-        },
         root: {
           type: 'Window',
           attrs: {},
@@ -242,12 +236,6 @@ describe(
       const uiTree: UITreeSnapshot = {
         platform: 'android',
         capturedAt: 1,
-        xpathPolicy: {
-          stableAttrs: ['resource-id'],
-          textAttrs: ['content-desc', 'text'],
-          excludedTargetTypes: [],
-          max: 5,
-        },
         root: {
           type: 'Window',
           attrs: {},
