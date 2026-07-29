@@ -15,6 +15,7 @@ import { gptAdapters } from './gpt';
 import { kimiAdapters } from './kimi';
 import { mimoAdapters } from './mimo';
 import { qwenAdapters } from './qwen';
+import { stepAdapters } from './step';
 import { uiTarsAdapters } from './ui-tars/adapter';
 
 export const MODEL_ADAPTER_CONFIGS = {
@@ -24,6 +25,7 @@ export const MODEL_ADAPTER_CONFIGS = {
   ...uiTarsAdapters,
   ...glmAdapters,
   ...autoGlmAdapters,
+  ...stepAdapters,
   ...gptAdapters,
   ...kimiAdapters,
   ...mimoAdapters,

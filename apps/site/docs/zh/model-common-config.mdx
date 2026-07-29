@@ -136,6 +136,53 @@ MIDSCENE_INSIGHT_MODEL_FAMILY="qwen3" # 如果你使用了其他版本的 Qwen�
   </ModelConfigTab>
 </ModelConfigTabs>
 
+### 阶跃星辰 Step 3.7 Flash {#step}
+
+- 常用模型供应商：[阶跃星辰](https://platform.stepfun.com/)
+
+<div className="model-series-table">
+
+| 模型版本 | 常用模型名称 | 对应 MODEL_FAMILY | 备注 |
+| --- | --- | --- | --- |
+| Step 3.7 Flash | `step-3.7-flash` | `step` | Step 系列目前仅该模型支持多模态输入。 |
+
+</div>
+
+环境变量配置示例：
+
+<ModelConfigTabs>
+  <ModelConfigTab type="default">
+
+```bash
+MIDSCENE_MODEL_BASE_URL="https://api.stepfun.com/v1"
+MIDSCENE_MODEL_API_KEY="......"
+MIDSCENE_MODEL_NAME="step-3.7-flash"
+MIDSCENE_MODEL_FAMILY="step"
+```
+
+  </ModelConfigTab>
+  <ModelConfigTab type="planning">
+
+```bash
+MIDSCENE_PLANNING_MODEL_BASE_URL="https://api.stepfun.com/v1"
+MIDSCENE_PLANNING_MODEL_API_KEY="......"
+MIDSCENE_PLANNING_MODEL_NAME="step-3.7-flash"
+MIDSCENE_PLANNING_MODEL_FAMILY="step"
+```
+
+  </ModelConfigTab>
+  <ModelConfigTab type="insight">
+
+```bash
+MIDSCENE_INSIGHT_MODEL_BASE_URL="https://api.stepfun.com/v1"
+MIDSCENE_INSIGHT_MODEL_API_KEY="......"
+MIDSCENE_INSIGHT_MODEL_NAME="step-3.7-flash"
+MIDSCENE_INSIGHT_MODEL_FAMILY="step"
+```
+
+  </ModelConfigTab>
+</ModelConfigTabs>
+
 ### Google Gemini 系列 {#gemini}
 
 - 常用模型供应商：[Google Gemini](https://gemini.google.com/)

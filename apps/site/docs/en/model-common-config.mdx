@@ -136,6 +136,53 @@ MIDSCENE_INSIGHT_MODEL_FAMILY="qwen3" # If you use another Qwen version, replace
   </ModelConfigTab>
 </ModelConfigTabs>
 
+### StepFun Step 3.7 Flash {#step}
+
+- Common model provider: [StepFun](https://platform.stepfun.com/)
+
+<div className="model-series-table">
+
+| Model version | Commonly used model names | Corresponding MODEL_FAMILY | Notes |
+| --- | --- | --- | --- |
+| Step 3.7 Flash | `step-3.7-flash` | `step` | Currently the only Step model with multimodal input. |
+
+</div>
+
+Environment variable configuration example:
+
+<ModelConfigTabs>
+  <ModelConfigTab type="default">
+
+```bash
+MIDSCENE_MODEL_BASE_URL="https://api.stepfun.com/v1"
+MIDSCENE_MODEL_API_KEY="......"
+MIDSCENE_MODEL_NAME="step-3.7-flash"
+MIDSCENE_MODEL_FAMILY="step"
+```
+
+  </ModelConfigTab>
+  <ModelConfigTab type="planning">
+
+```bash
+MIDSCENE_PLANNING_MODEL_BASE_URL="https://api.stepfun.com/v1"
+MIDSCENE_PLANNING_MODEL_API_KEY="......"
+MIDSCENE_PLANNING_MODEL_NAME="step-3.7-flash"
+MIDSCENE_PLANNING_MODEL_FAMILY="step"
+```
+
+  </ModelConfigTab>
+  <ModelConfigTab type="insight">
+
+```bash
+MIDSCENE_INSIGHT_MODEL_BASE_URL="https://api.stepfun.com/v1"
+MIDSCENE_INSIGHT_MODEL_API_KEY="......"
+MIDSCENE_INSIGHT_MODEL_NAME="step-3.7-flash"
+MIDSCENE_INSIGHT_MODEL_FAMILY="step"
+```
+
+  </ModelConfigTab>
+</ModelConfigTabs>
+
 ### Google Gemini Series {#gemini}
 
 - Common model provider: [Google Gemini](https://gemini.google.com/)
