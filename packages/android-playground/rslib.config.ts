@@ -29,6 +29,8 @@ export default defineConfig({
   source: {
     tsconfigPath: 'tsconfig.build.json',
     entry: {
+      'android-audit-marker-presentation':
+        './src/android-audit-marker-presentation.ts',
       index: './src/index.ts',
       bin: './src/bin.ts',
     },

@@ -21,6 +21,10 @@ import {
   DeviceInteractionLayer,
   type DeviceSize,
 } from './DeviceInteractionLayer';
+import {
+  PreviewOverlayLayer,
+  type PreviewOverlayRenderContext,
+} from './PreviewOverlayLayer';
 import { type ScrcpyErrorOverlayRenderer, ScrcpyPanel } from './ScrcpyPanel';
 import {
   type ManualDragActionType,
@@ -45,6 +49,8 @@ interface PreviewRendererProps {
   serverUrl: string;
   serverOnline: boolean;
   isUserOperating: boolean;
+  manualInteractionEnabled?: boolean;
+  renderOverlay?: (context: PreviewOverlayRenderContext) => ReactNode;
 }
 
 function isNonLocalhostHttp(): boolean {
@@ -71,6 +77,8 @@ export function PreviewRenderer({
   serverUrl,
   serverOnline,
   isUserOperating,
+  manualInteractionEnabled = true,
+  renderOverlay,
 }: PreviewRendererProps) {
   const { message } = AntdApp.useApp();
   const previewConnection = resolvePreviewConnectionInfo(
@@ -98,6 +106,7 @@ export function PreviewRenderer({
   // and the interaction layer so pointer coords always project against the
   // real screen-mirror box, not the outer panel that may include chrome.
   const previewContentRef = useRef<HTMLDivElement>(null);
+  const previewRootRef = useRef<HTMLDivElement>(null);
   // Default to `screen-only` so the playground does not render chrome
   // (header / Refresh / timestamp) inside the same relative-positioned panel
   // that DeviceInteractionLayer overlays — embedding hosts (Studio) can opt
@@ -439,6 +448,7 @@ export function PreviewRenderer({
 
   return (
     <div
+      ref={previewRootRef}
       style={{ flex: 1, minHeight: 0, height: '100%', position: 'relative' }}
     >
       {showInsecureContextHint && (
@@ -541,7 +551,10 @@ export function PreviewRenderer({
       )}
       <DeviceInteractionLayer
         enabled={
-          manualControlEnabled && serverOnline && previewInteractionEnabled
+          manualInteractionEnabled &&
+          manualControlEnabled &&
+          serverOnline &&
+          previewInteractionEnabled
         }
         deviceSize={deviceSize}
         contentRef={previewContentRef}
@@ -553,6 +566,14 @@ export function PreviewRenderer({
         onTextInput={handleTextInput}
         onKeyboardPress={handleKeyboardPress}
       />
+      {renderOverlay && (
+        <PreviewOverlayLayer
+          contentRef={previewContentRef}
+          deviceSize={streamSize ?? deviceSize}
+          renderOverlay={renderOverlay}
+          rootRef={previewRootRef}
+        />
+      )}
     </div>
   );
 }

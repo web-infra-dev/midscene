@@ -4,6 +4,7 @@ import type {
 } from '@midscene/playground';
 import type { ScreenshotViewerMode } from '@midscene/visualizer';
 import type { CSSProperties, ReactNode } from 'react';
+import type { PreviewOverlayRenderContext } from './PreviewOverlayLayer';
 import { PreviewRenderer } from './PreviewRenderer';
 import type { ScrcpyErrorOverlayRenderer } from './ScrcpyPanel';
 import type { ScrcpyPreviewStatus } from './scrcpy-preview';
@@ -29,6 +30,8 @@ export interface PlaygroundPreviewProps {
   serverUrl: string;
   serverOnline: boolean;
   isUserOperating: boolean;
+  manualInteractionEnabled?: boolean;
+  renderOverlay?: (context: PreviewOverlayRenderContext) => ReactNode;
 }
 
 export function PlaygroundPreview(props: PlaygroundPreviewProps) {
