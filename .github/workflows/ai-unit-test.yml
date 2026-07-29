@@ -62,7 +62,8 @@ jobs:
       run: pnpm run build
     
     - name: Run tests with coverage
-      run: pnpm run test:ai:coverage
+      # Keep model request concurrency comparable to the former 4-core hosted runner.
+      run: MIDSCENE_COVERAGE_DIR=coverage-ai pnpm exec nx run-many --target=test:ai --projects=@midscene/core,@midscene/web,@midscene/cli --verbose -- --coverage --maxWorkers=4
       id: test-ai
       continue-on-error: true
 
