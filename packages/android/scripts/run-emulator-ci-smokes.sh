@@ -5,6 +5,7 @@ set -euo pipefail
 : "${MIDSCENE_ANDROID_DIAGNOSTICS_DIR:?MIDSCENE_ANDROID_DIAGNOSTICS_DIR is required}"
 
 diagnostics_dir="$MIDSCENE_ANDROID_DIAGNOSTICS_DIR"
+run_dir="${MIDSCENE_RUN_DIR:-midscene_run}"
 todo_port="${MIDSCENE_ANDROID_TODO_PORT:-4173}"
 todo_url="http://10.0.2.2:${todo_port}/"
 todo_server_pid=""
@@ -17,6 +18,24 @@ cleanup() {
   fi
 }
 trap cleanup EXIT
+
+wait_for_report_file() {
+  local report_file="$1"
+  local label="$2"
+
+  for _ in {1..20}; do
+    if [[ -s "$report_file" ]]; then
+      return 0
+    fi
+    sleep 0.5
+  done
+
+  echo "Expected $label report file was not written: $report_file" >&2
+  if [[ -d "$(dirname "$report_file")" ]]; then
+    ls -la "$(dirname "$report_file")" >&2
+  fi
+  return 1
+}
 
 MIDSCENE_ANDROID_TODO_PORT="$todo_port" \
 node packages/android/scripts/serve-todo-fixture.mjs \
@@ -96,6 +115,18 @@ pnpm exec nx test @midscene/android --skip-nx-cache -- \
 todo_exit=${PIPESTATUS[0]}
 set -e
 
+report_exit=0
+if ((fixture_exit == 0)); then
+  wait_for_report_file \
+    "$run_dir/report/android-cache-fixture-matrix-report.html" \
+    "Android cache compatibility" || report_exit=1
+fi
+if ((cache_exit == 0)); then
+  wait_for_report_file \
+    "$run_dir/report/android-emulator-cache-hit-report.html" \
+    "Android emulator cache-hit" || report_exit=1
+fi
+
 adb logcat -d -t 2000 > "$diagnostics_dir/emulator-logcat.txt" 2>&1 || true
 adb exec-out screencap -p > "$diagnostics_dir/emulator-final.png" 2>/dev/null || true
 
@@ -104,6 +135,7 @@ SMOKE_EXIT="$smoke_exit" \
 CACHE_EXIT="$cache_exit" \
 FIXTURE_EXIT="$fixture_exit" \
 TODO_EXIT="$todo_exit" \
+REPORT_EXIT="$report_exit" \
 node -e '
   const fs = require("node:fs");
   const path = require("node:path");
@@ -113,6 +145,7 @@ node -e '
     xpathCache: Number(process.env.CACHE_EXIT),
     cacheFixtureMatrix: Number(process.env.FIXTURE_EXIT),
     todoMvc: Number(process.env.TODO_EXIT),
+    requiredReports: Number(process.env.REPORT_EXIT),
   };
   fs.writeFileSync(
     path.join(process.env.MIDSCENE_ANDROID_DIAGNOSTICS_DIR, "emulator-step-outcomes.json"),
@@ -120,7 +153,7 @@ node -e '
   );
 '
 
-if ((browser_preflight_exit != 0 || smoke_exit != 0 || cache_exit != 0 || fixture_exit != 0 || todo_exit != 0)); then
-  echo "Android emulator validation failed: browser=$browser_preflight_exit smoke=$smoke_exit cache=$cache_exit fixture=$fixture_exit todo=$todo_exit" >&2
+if ((browser_preflight_exit != 0 || smoke_exit != 0 || cache_exit != 0 || fixture_exit != 0 || todo_exit != 0 || report_exit != 0)); then
+  echo "Android emulator validation failed: browser=$browser_preflight_exit smoke=$smoke_exit cache=$cache_exit fixture=$fixture_exit todo=$todo_exit reports=$report_exit" >&2
   exit 1
 fi
