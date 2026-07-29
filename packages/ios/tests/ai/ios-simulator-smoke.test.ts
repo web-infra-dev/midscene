@@ -13,6 +13,10 @@ import {
 import { imageInfoOfBase64 } from '@midscene/shared/img';
 import { describe, expect, it, vi } from 'vitest';
 import { type IOSAgent, agentFromWebDriverAgent } from '../../src';
+import {
+  inputUntilObserved,
+  readIOSSimulatorInputValue,
+} from '../ios-simulator-input-retry';
 
 const RUN_LIVE_SMOKE =
   process.env.AI_TEST_TYPE === 'iOS' &&
@@ -45,6 +49,7 @@ interface WdaRect {
 interface ReportTask {
   type?: string;
   subType?: string;
+  param?: { mode?: string; [key: string]: unknown };
   hitBy?: { from?: string };
   timing?: { callAiStart?: number; callAiEnd?: number };
   usage?: unknown;
@@ -85,10 +90,6 @@ function locate(rect: WdaRect, screenshotScale: number, prompt: string) {
       Math.round((rect.y + rect.height) * screenshotScale),
     ] as [number, number, number, number],
   };
-}
-
-function xmlAttribute(nodeTag: string, attribute: string): string | undefined {
-  return new RegExp(`${attribute}="([^"]*)"`).exec(nodeTag)?.[1];
 }
 
 function parseReportDumps(html: string): ReportDump[] {
@@ -354,39 +355,67 @@ describe.skipIf(!RUN_LIVE_SMOKE)('iOS Simulator live smoke', () => {
         screenSize.scale,
         INPUT_ACCESSIBILITY_ID,
       );
-      await agent.callActionInActionSpace('Tap', { locate: targetLocate });
-      await agent.callActionInActionSpace('Input', {
-        value: SUBMITTED_TEXT,
-        mode: 'typeOnly',
-        autoDismissKeyboard: false,
-        locate: targetLocate,
+      const inputAttempts: Array<{
+        attempt: number;
+        value: string | undefined;
+        sourceFile: string;
+      }> = [];
+      const inputAgent = agent;
+      const observedInput = await inputUntilObserved({
+        expectedValue: SUBMITTED_TEXT,
+        performInput: async (attempt) => {
+          await inputAgent.callActionInActionSpace('Tap', {
+            locate: targetLocate,
+          });
+          await inputAgent.callActionInActionSpace('Input', {
+            value: SUBMITTED_TEXT,
+            mode: attempt === 1 ? 'typeOnly' : 'replace',
+            autoDismissKeyboard: false,
+            locate: targetLocate,
+          });
+        },
+        readValue: async (attempt) => {
+          const response = (await inputAgent.runWdaRequest({
+            method: 'GET',
+            endpoint: '/source',
+          })) as WdaValueResponse<string>;
+          const attemptSourceFile = path.join(
+            diagnosticsDir,
+            `safari-after-input-attempt-${attempt}.xml`,
+          );
+          await Promise.all([
+            writeFile(attemptSourceFile, response.value, 'utf8'),
+            writeFile(postInputSourceFile, response.value, 'utf8'),
+          ]);
+          const value = readIOSSimulatorInputValue(
+            response.value,
+            INPUT_ACCESSIBILITY_ID,
+          );
+          inputAttempts.push({
+            attempt,
+            value,
+            sourceFile: attemptSourceFile,
+          });
+          return value;
+        },
+        onRetry: ({ attempt, nextAttempt, actualValue }) => {
+          console.log(
+            `iOS Simulator input attempt ${attempt} observed ${JSON.stringify(actualValue)}; retrying with idempotent replace input (attempt ${nextAttempt})`,
+          );
+        },
       });
+      const expectedInputModes = Array.from(
+        { length: observedInput.attempts },
+        (_, index) => (index === 0 ? 'typeOnly' : 'replace'),
+      );
       await agent.callActionInActionSpace('KeyboardPress', {
         keyName: 'Enter',
         locate: targetLocate,
       });
 
-      const postInputSourceResponse = (await agent.runWdaRequest({
-        method: 'GET',
-        endpoint: '/source',
-      })) as WdaValueResponse<string>;
-      await writeFile(
-        postInputSourceFile,
-        postInputSourceResponse.value,
-        'utf8',
-      );
-      const postInputNode = (
-        postInputSourceResponse.value.match(
-          /<XCUIElementTypeTextField\b[^>]*>/g,
-        ) ?? []
-      ).find(
-        (nodeTag) => xmlAttribute(nodeTag, 'name') === INPUT_ACCESSIBILITY_ID,
-      );
-      const inputText = postInputNode
-        ? xmlAttribute(postInputNode, 'value')
-        : undefined;
-      evidence.inputText = inputText;
-      expect(inputText).toBe(SUBMITTED_TEXT);
+      evidence.inputAttempts = inputAttempts;
+      evidence.inputText = observedInput.value;
+      expect(observedInput.value).toBe(SUBMITTED_TEXT);
       await agent.interface
         .screenshotBase64()
         .then((base64) =>
@@ -407,7 +436,13 @@ describe.skipIf(!RUN_LIVE_SMOKE)('iOS Simulator live smoke', () => {
       const locateTasks = dumpTasks.filter(
         (task) => task.type === 'Planning' && task.subType === 'Locate',
       );
-      expect(locateTasks).toHaveLength(3);
+      const inputTasks = dumpTasks.filter(
+        (task) => task.type === 'Action Space' && task.subType === 'Input',
+      );
+      expect(locateTasks).toHaveLength(observedInput.attempts * 2 + 1);
+      expect(inputTasks.map((task) => task.param?.mode)).toEqual(
+        expectedInputModes,
+      );
       expect(locateTasks.every((task) => task.hitBy?.from === 'Plan')).toBe(
         true,
       );
@@ -432,7 +467,13 @@ describe.skipIf(!RUN_LIVE_SMOKE)('iOS Simulator live smoke', () => {
       const reportLocateTasks = reportTasks.filter(
         (task) => task.type === 'Planning' && task.subType === 'Locate',
       );
-      expect(reportLocateTasks).toHaveLength(3);
+      const reportInputTasks = reportTasks.filter(
+        (task) => task.type === 'Action Space' && task.subType === 'Input',
+      );
+      expect(reportLocateTasks).toHaveLength(observedInput.attempts * 2 + 1);
+      expect(reportInputTasks.map((task) => task.param?.mode)).toEqual(
+        expectedInputModes,
+      );
       expect(
         reportLocateTasks.every((task) => task.hitBy?.from === 'Plan'),
       ).toBe(true);
