@@ -225,31 +225,27 @@ describe('parseProcessArgs', () => {
     expect(options.concurrent).toBe(10);
   });
 
-  test('should auto-parse iOS device options', async () => {
+  test('should auto-parse iOS WDA options', async () => {
     process.argv = [
       'node',
       'midscene',
-      '--ios.device-id',
-      '00008110-001234567890',
       '--ios.wda-port',
       '8100',
       '--ios.wda-host',
       '192.168.1.100',
-      '--ios.use-wda',
-      'true',
+      '--ios.session-id',
+      'external-session-id',
       '--ios.auto-dismiss-keyboard',
       'true',
     ];
     const { options } = await parseProcessArgs();
     expect(options.ios).toEqual({
-      'device-id': '00008110-001234567890',
-      deviceId: '00008110-001234567890',
       'wda-port': 8100,
       wdaPort: 8100,
       'wda-host': '192.168.1.100',
       wdaHost: '192.168.1.100',
-      'use-wda': 'true',
-      useWda: 'true',
+      'session-id': 'external-session-id',
+      sessionId: 'external-session-id',
       'auto-dismiss-keyboard': 'true',
       autoDismissKeyboard: 'true',
     });
@@ -311,8 +307,8 @@ describe('parseProcessArgs', () => {
       'always-yadb',
       '--ios.wda-port',
       '8100',
-      '--ios.device-id',
-      'test-ios',
+      '--ios.wda-host',
+      '127.0.0.1',
     ];
     const { options } = await parseProcessArgs();
 
@@ -336,8 +332,8 @@ describe('parseProcessArgs', () => {
     expect(options.ios).toEqual({
       'wda-port': 8100,
       wdaPort: 8100,
-      'device-id': 'test-ios',
-      deviceId: 'test-ios',
+      'wda-host': '127.0.0.1',
+      wdaHost: '127.0.0.1',
     });
   });
 

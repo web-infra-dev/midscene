@@ -135,7 +135,7 @@ describe('runYamlCase', () => {
             deviceId: 'global-device',
           },
           ios: {
-            deviceId: 'ios-device',
+            wdaHost: 'ios-wda-host',
           },
         },
       });
@@ -154,7 +154,7 @@ describe('runYamlCase', () => {
             deviceId: 'global-device',
           },
           ios: {
-            deviceId: 'ios-device',
+            wdaHost: 'ios-wda-host',
           },
           tasks: [],
         },

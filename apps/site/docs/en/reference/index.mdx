@@ -2394,6 +2394,9 @@ const device = new IOSDevice({
 - `wdaPort?: number` — WebDriverAgent port. Default: `8100`.
 - `wdaHost?: string` — WebDriverAgent host. Default: `'localhost'`.
 - `iOSDeviceClassOverride?: string` — Optional npm module path that replaces the default `IOSDevice` when using `agentFromWebDriverAgent()` or iOS Playground. The module must export an `IOSDevice` class or a default class.
+- `sessionId?: string` — Existing WebDriverAgent session ID to reuse. When provided, Midscene skips creating a new WDA session. During cleanup, Midscene detaches from the externally supplied WebDriver session instead of deleting it.
+- `wdaMjpegPort?: number` — WDA MJPEG server port for real-time screen streaming. Default: `9100`.
+- `wdaMjpegFrameSource?: { enabled?: boolean }` — Use WDA's MJPEG stream as the continuous frame source for `agent.startObserving()`. Disabled by default; when disabled, observers fall back to sequential `screenshotBase64()` capture.
 - `autoDismissKeyboard?: boolean` — Whether to hide the on-screen keyboard after text input. Default: `true`.
 - `keyboardTypeDelay?: number` — Delay in milliseconds between keystrokes. When set, Midscene enters one character at a time through WDA's `/wda/keys` endpoint. Use this option when an input field drops characters during fast input.
 - `customActions?: DeviceAction<any>[]` — Additional device actions exposed to the agent.
@@ -2402,6 +2405,7 @@ const device = new IOSDevice({
 
 - Ensure Developer Mode is enabled and WDA can reach the device; use `iproxy` when forwarding ports from a real device.
 - Use `wdaHost`/`wdaPort` to target remote devices or custom WDA deployments.
+- For multi-device concurrency, use distinct `wdaPort` and `wdaMjpegPort` values for each device so WDA commands and MJPEG streams do not conflict.
 - For shared interaction methods, see [Shared Agent APIs](#interaction-methods).
 
 <a id="ios-device-destroy"></a>
@@ -2440,7 +2444,6 @@ const agent = new IOSAgent(device, {
 
 **iOS-specific options**
 
-- `customActions?: DeviceAction<any>[]` — Extend planning with actions defined via `defineAction`.
 - `appNameMapping?: Record<string, string>` — Map friendly app names to bundle identifiers. When you pass an app name to `launch(target)` or `terminate(bundleId)`, the agent will look up the bundle ID in this mapping. If no mapping is found, it will attempt to use `target` as-is. User-provided mappings take precedence over default mappings.
 - All other fields match the [common constructor parameters](#common-parameters), including `generateReport`, `reportFileName`, `aiActContext`, `modelConfig`, `cache`, `createOpenAIClient`, and `onTaskStartTip`.
 
@@ -2449,6 +2452,7 @@ const agent = new IOSAgent(device, {
 :::info
 
 - Use one agent per device connection.
+- `customActions` is an `IOSDevice` option, not an `IOSAgent` constructor option. `agentFromWebDriverAgent()` can accept it because the factory takes both `IOSAgentOpt` and `IOSDeviceOpt` in one object.
 - iOS-only helpers such as `launch`, `terminate`, and `runWdaRequest` are also exposed in YAML scripts. See [iOS platform-specific actions](../automate-with-scripts-in-yaml#the-ios-part).
 - For shared interaction methods, see [Shared Agent APIs](#interaction-methods).
 
@@ -2499,21 +2503,31 @@ await agent.terminate('com.apple.mobilesafari');
 Send raw requests to WebDriverAgent REST endpoints when you need low-level control.
 
 ```ts
-function runWdaRequest(
-  method: string,
-  endpoint: string,
-  data?: Record<string, any>,
-): Promise<any>;
+function runWdaRequest(params: {
+  method: 'GET' | 'POST' | 'DELETE' | 'PUT';
+  endpoint: string;
+  data?: Record<string, any>;
+}): Promise<any>;
 ```
 
-- `method: string` — HTTP verb (`GET`, `POST`, `DELETE`, etc.).
-- `endpoint: string` — WebDriverAgent endpoint path.
-- `data?: Record<string, any>` — Optional JSON body.
+- `params.method` — HTTP verb. Supported values: `GET`, `POST`, `DELETE`, and `PUT`.
+- `params.endpoint` — WebDriverAgent endpoint path.
+- `params.data` — Optional JSON body.
 
 ```ts
-const screen = await agent.runWdaRequest('GET', '/wda/screen');
-await agent.runWdaRequest('POST', '/session/test/wda/pressButton', { name: 'home' });
+const screen = await agent.runWdaRequest({
+  method: 'GET',
+  endpoint: '/wda/screen',
+});
+
+await agent.runWdaRequest({
+  method: 'POST',
+  endpoint: '/session/test/wda/pressButton',
+  data: { name: 'home' },
+});
 ```
+
+When calling `IOSDevice.runWdaRequest()` directly on the device instance, use the positional signature `runWdaRequest(method, endpoint, data?)`.
 
 <a id="ios-navigation-helpers"></a>
 

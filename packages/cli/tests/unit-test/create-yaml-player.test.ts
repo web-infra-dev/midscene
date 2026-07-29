@@ -658,10 +658,9 @@ describe('create-yaml-player', () => {
 
     test('should pass all iOS device options from YAML to agentFromWebDriverAgent', async () => {
       const mockIOSOptions = {
-        deviceId: '00008110-000123456789ABCD',
         wdaPort: 8100,
         wdaHost: '192.168.1.100',
-        useWDA: true,
+        sessionId: 'external-session-id',
         autoDismissKeyboard: true,
         launch: 'com.example.app',
       };
@@ -694,10 +693,9 @@ describe('create-yaml-player', () => {
       // Verify agentFromWebDriverAgent was called with all options
       expect(agentFromWebDriverAgent).toHaveBeenCalledWith(
         expect.objectContaining({
-          deviceId: mockIOSOptions.deviceId,
           wdaPort: mockIOSOptions.wdaPort,
           wdaHost: mockIOSOptions.wdaHost,
-          useWDA: mockIOSOptions.useWDA,
+          sessionId: mockIOSOptions.sessionId,
           autoDismissKeyboard: mockIOSOptions.autoDismissKeyboard,
           launch: mockIOSOptions.launch,
         }),
@@ -898,7 +896,7 @@ describe('create-yaml-player', () => {
     test('should pass aiActionContext from agent config to iOS agent', async () => {
       const mockScript: MidsceneYamlScript = {
         ios: {
-          deviceId: 'test-ios-device',
+          wdaPort: 8100,
         },
         agent: {
           aiActionContext: 'This is a test context for iOS',
