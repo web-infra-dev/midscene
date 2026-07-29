@@ -2211,7 +2211,6 @@ const device = new IOSDevice({
 - Ensure Developer Mode is enabled and WDA can reach the device; use `iproxy` when forwarding ports from a real device.
 - Use `wdaHost`/`wdaPort` to target remote devices or custom WDA deployments.
 - For multi-device concurrency, use distinct `wdaPort` and `wdaMjpegPort` values for each device so WDA commands and MJPEG streams do not conflict.
-- `deviceId` and `useWDA` are present in the exported `IOSDeviceOpt` type for compatibility, but the current `IOSDevice` constructor does not read them. Use `wdaHost`, `wdaPort`, and `sessionId` to select the WDA endpoint or existing session.
 - For shared interaction methods, see [Shared Agent APIs](#interaction-methods).
 
 ### IOSAgent {#iosagent}

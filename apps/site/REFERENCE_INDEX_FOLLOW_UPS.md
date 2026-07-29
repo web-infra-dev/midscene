@@ -200,8 +200,6 @@ Android 章节还把 `customActions` 列为 `AndroidAgent` 构造选项，但它
 
 需要特别说明复用外部 WDA session 时的所有权和清理行为，以及多设备并发时端口不能冲突。
 
-`deviceId` 和 `useWDA` 虽然出现在公开类型中，但当前 `IOSDevice` 构造器没有读取它们。应先决定实现这些配置还是从公开类型移除，不能直接按类型声明补入文档。
-
 iOS 章节还存在两处事实错误：
 
 - `agent.runWdaRequest()` 实际接收一个对象 `{ method, endpoint, data? }`，文档却写成位置参数。位置参数签名属于 `IOSDevice.runWdaRequest()`。

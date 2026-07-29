@@ -2190,7 +2190,6 @@ const device = new IOSDevice({
 - 请确认已开启开发者模式且 WDA 能访问设备；真机转发端口时可借助 `iproxy`。
 - 通过 `wdaHost`/`wdaPort` 可指向远程设备或自建的 WDA。
 - 多设备并发时，请为每个设备设置不同的 `wdaPort` 和 `wdaMjpegPort`，避免 WDA 命令和 MJPEG stream 端口冲突。
-- `deviceId` 和 `useWDA` 虽然存在于导出的 `IOSDeviceOpt` 类型中，但当前 `IOSDevice` 构造器不会读取它们。请使用 `wdaHost`、`wdaPort` 和 `sessionId` 选择 WDA endpoint 或已有 session。
 - 通用交互方法请查阅 [API 参考（通用）](#interaction-methods)。
 
 ### IOSAgent {#iosagent}
