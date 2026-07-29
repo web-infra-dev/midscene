@@ -36,6 +36,11 @@ import {
 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { normalizeForComparison, repeat } from '@midscene/shared/utils';
+import type {
+  AndroidAccessibilitySnapshot,
+  AndroidAccessibilityTreeSource,
+} from './accessibility-snapshot';
+import { uiautomatorXmlToUiNode } from './uiautomator-tree';
 
 import type { ADB } from 'appium-adb';
 import { createAndroidAdb } from './adb';
@@ -43,6 +48,10 @@ import {
   buildRunAdbShellPlanningFeedback,
   runAdbShellStdoutOrThrow,
 } from './adb-shell';
+import {
+  type AndroidAuditEnvironment,
+  collectAndroidAuditEnvironment,
+} from './audit-metadata';
 import {
   type DevicePhysicalInfo,
   ScrcpyDeviceAdapter,
@@ -61,12 +70,43 @@ const defaultScrollUntilTimes = 10;
 const defaultFastScrollDuration = 100;
 const defaultNormalScrollDuration = 1000;
 
+const ACCESSIBILITY_DUMP_ATTEMPTS = 3;
+const ACCESSIBILITY_DUMP_TIMEOUT_MS = 5_000;
+const ACCESSIBILITY_DUMP_RETRY_DELAY_MS = 250;
+const YADB_LAYOUT_PATH = '/data/local/tmp/midscene_yadb_layout_dump.xml';
+const UIAUTOMATOR_LAYOUT_PATH = '/sdcard/midscene_window_dump.xml';
+
 const IME_STRATEGY_ALWAYS_YADB = 'always-yadb' as const;
 const IME_STRATEGY_YADB_FOR_NON_ASCII = 'yadb-for-non-ascii' as const;
 type ScrollDirection = 'up' | 'down' | 'left' | 'right';
 
 const debugDevice = getDebug('android:device');
 const warnDevice = getDebug('android:device', { console: true });
+const debugAudit = getDebug('android:xpath-audit');
+
+interface AndroidAccessibilityDump {
+  capturedAt: string;
+  durationMs: number;
+  source: AndroidAccessibilityTreeSource;
+  xml: string;
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+function validateHierarchyXml(
+  xml: unknown,
+  source: AndroidAccessibilityTreeSource,
+): asserts xml is string {
+  if (
+    typeof xml !== 'string' ||
+    !/<hierarchy(?:\s|>)/.test(xml) ||
+    !xml.includes('</hierarchy>')
+  ) {
+    throw new Error(`${source} did not produce valid hierarchy XML`);
+  }
+}
 
 /**
  * Escape text for safe use in shell single-quoted strings.
@@ -692,6 +732,124 @@ ${Object.keys(size)
       node: null,
       children: [],
     };
+  }
+
+  private async dumpAccessibilityXmlAttempt(
+    source: AndroidAccessibilityTreeSource,
+  ): Promise<string> {
+    const adb = await this.getAdb();
+    const path = source === 'yadb' ? YADB_LAYOUT_PATH : UIAUTOMATOR_LAYOUT_PATH;
+
+    if (source === 'yadb') {
+      await this.ensureYadb();
+    }
+
+    // Both tools can fail before replacing their destination. Removing it on
+    // every attempt prevents a previous application tree from being replayed.
+    await runAdbShellStdoutOrThrow(adb, `rm -f ${path}`, {
+      timeout: ACCESSIBILITY_DUMP_TIMEOUT_MS,
+    });
+    const command =
+      source === 'yadb'
+        ? `app_process -Djava.class.path=/data/local/tmp/yadb /data/local/tmp com.ysbing.yadb.Main -layout ${path}`
+        : `uiautomator dump --compressed ${path}`;
+    await runAdbShellStdoutOrThrow(adb, command, {
+      timeout: ACCESSIBILITY_DUMP_TIMEOUT_MS,
+    });
+    const xml = await runAdbShellStdoutOrThrow(adb, `cat ${path}`, {
+      timeout: ACCESSIBILITY_DUMP_TIMEOUT_MS,
+    });
+    validateHierarchyXml(xml, source);
+    return xml;
+  }
+
+  /**
+   * Read a fresh Android accessibility tree for XPath auditing. YADB's
+   * UiAutomation layout path avoids UIAutomator's wait-for-idle gate.
+   * UIAutomator remains a bounded fallback and the only source for non-default
+   * displays because YADB currently targets display 0.
+   */
+  private async dumpAccessibilityHierarchy(): Promise<AndroidAccessibilityDump> {
+    const sources: AndroidAccessibilityTreeSource[] =
+      (this.options?.displayId ?? 0) === 0
+        ? ['yadb', 'uiautomator']
+        : ['uiautomator'];
+    const failures: string[] = [];
+
+    for (const source of sources) {
+      for (let attempt = 1; attempt <= ACCESSIBILITY_DUMP_ATTEMPTS; attempt++) {
+        const startedAt = Date.now();
+        try {
+          const xml = await this.dumpAccessibilityXmlAttempt(source);
+          const capturedAt = new Date().toISOString();
+          const durationMs = Date.now() - startedAt;
+          debugAudit(
+            'tree source=%s attempt=%d durationMs=%d bytes=%d',
+            source,
+            attempt,
+            durationMs,
+            xml.length,
+          );
+          return { capturedAt, durationMs, source, xml };
+        } catch (error) {
+          const failure = `${source} attempt ${attempt}/${ACCESSIBILITY_DUMP_ATTEMPTS}: ${errorMessage(error)}`;
+          failures.push(failure);
+          debugAudit(
+            'tree miss source=%s attempt=%d durationMs=%d error=%s',
+            source,
+            attempt,
+            Date.now() - startedAt,
+            errorMessage(error),
+          );
+          if (attempt < ACCESSIBILITY_DUMP_ATTEMPTS) {
+            await sleep(ACCESSIBILITY_DUMP_RETRY_DELAY_MS);
+          }
+        }
+      }
+    }
+
+    throw new Error(
+      `Unable to read Android accessibility hierarchy after ${failures.length} attempt(s): ${failures.join('; ')}`,
+    );
+  }
+
+  /** Capture raw XML, normalized UiNode tree, and coordinate metadata. */
+  async captureAccessibilitySnapshot(): Promise<AndroidAccessibilitySnapshot> {
+    const captureStartedAt = Date.now();
+    await this.initializeDevicePixelRatio();
+    const dump = await this.dumpAccessibilityHierarchy();
+    const [logicalSize, screenInfo] = await Promise.all([
+      this.size(),
+      this.getScreenSize(),
+    ]);
+
+    return {
+      captureId: `${captureStartedAt.toString(36)}-${Math.random().toString(36).slice(2, 10)}`,
+      capturedAt: dump.capturedAt,
+      durationMs: Date.now() - captureStartedAt,
+      source: dump.source,
+      sourceXml: dump.xml,
+      root: uiautomatorXmlToUiNode(dump.xml, this.devicePixelRatio || 1),
+      dpr: this.devicePixelRatio || 1,
+      rotation: screenInfo.orientation,
+      logicalSize,
+    };
+  }
+
+  /** Collect device and foreground-app metadata for an accessibility audit. */
+  async captureAuditEnvironment(
+    snapshot: AndroidAccessibilitySnapshot,
+  ): Promise<AndroidAuditEnvironment> {
+    const adb = await this.getAdb();
+    return collectAndroidAuditEnvironment(adb, {
+      deviceId: this.deviceId,
+      logicalSize: snapshot.logicalSize,
+      rotation: snapshot.rotation,
+      screenshotSize: {
+        width: Math.round(snapshot.logicalSize.width * snapshot.dpr),
+        height: Math.round(snapshot.logicalSize.height * snapshot.dpr),
+      },
+    });
   }
 
   async getScreenSize(): Promise<{

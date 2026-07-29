@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hierarchy rotation="0">
+  <node index="0" text="" resource-id="" class="android.widget.FrameLayout" package="com.discord" content-desc="" bounds="[0,0][400,800]">
+    <node index="0" text="Register" resource-id="" class="android.widget.TextView" package="com.discord" content-desc="Create account" clickable="true" bounds="[40,100][360,200]"/>
+    <node index="1" text="System" resource-id="" class="android.widget.TextView" package="com.discord" content-desc="" bounds="[20,650][180,700]"/>
+    <node index="2" text="System" resource-id="" class="android.widget.TextView" package="com.discord" content-desc="" bounds="[220,650][380,700]"/>
+  </node>
+</hierarchy>
