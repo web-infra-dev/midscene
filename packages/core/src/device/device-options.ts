@@ -40,6 +40,13 @@ export type AndroidDeviceOpt = {
   usePhysicalDisplayIdForScreenshot?: boolean;
   /** Use physical display ID when looking up display information */
   usePhysicalDisplayIdForDisplayLookup?: boolean;
+  /**
+   * Whether to expose the built-in `RunAdbShell` action in the Android action
+   * space.
+   *
+   * @default true
+   */
+  exposeRunAdbShellAction?: boolean;
   /** Custom device actions to register */
   customActions?: DeviceAction<any>[];
   /**
