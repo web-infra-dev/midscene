@@ -34,6 +34,12 @@ Notes:
 - Midscene will call `codex app-server` through stdio.
 - Make sure `codex` is available in your PATH and verify auth with `codex login status`.
 
+:::warning Known limitation
+
+Compared with calling an OpenAI-compatible API directly, we have observed that this route may take longer and consume more tokens. We are still investigating the cause.
+
+:::
+
 ## Advanced settings (optional)
 
 If you configure a dedicated Insight or Planning model, model-related `MIDSCENE_MODEL_*` settings in this section only take effect for the Insight or Planning intent when you configure the corresponding `MIDSCENE_INSIGHT_MODEL_*` or `MIDSCENE_PLANNING_MODEL_*` setting.

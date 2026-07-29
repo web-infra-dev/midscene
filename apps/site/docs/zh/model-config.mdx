@@ -32,6 +32,12 @@ export MIDSCENE_MODEL_FAMILY="gpt-5"
 - Midscene 会通过 stdio 调用 `codex app-server`。
 - 请确保 `codex` 在 PATH 中可用，并通过 `codex login status` 确认登录状态。
 
+:::warning 已知限制
+
+相比于直接调用 OpenAI 兼容 API，我们观察到这种方式可能耗时更长、token 消耗更多，具体原因还在排查中。
+
+:::
+
 ## 高阶配置（可选）
 
 如果你为 Insight 或 Planning 配置了独立模型，那么本节中的模型相关 `MIDSCENE_MODEL_*` 配置需要使用对应的 `MIDSCENE_INSIGHT_MODEL_*` 或 `MIDSCENE_PLANNING_MODEL_*` 配置才能在 Insight 或 Planning 意图时生效。
