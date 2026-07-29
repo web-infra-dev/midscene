@@ -9,6 +9,8 @@
     "preview": "rsbuild preview"
   },
   "dependencies": {
+    "@midscene/android": "workspace:*",
+    "@midscene/android-playground": "workspace:*",
     "@midscene/playground-app": "workspace:*",
     "@midscene/shared": "workspace:*",
     "react": "18.3.1",

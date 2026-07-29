@@ -16,6 +16,11 @@
       "import": "./dist/es/index.mjs",
       "require": "./dist/lib/index.js"
     },
+    "./android-audit-marker-presentation": {
+      "types": "./dist/types/android-audit-marker-presentation.d.ts",
+      "import": "./dist/es/android-audit-marker-presentation.mjs",
+      "require": "./dist/lib/android-audit-marker-presentation.js"
+    },
     "./package.json": "./package.json"
   },
   "files": ["dist", "static", "bin", "README.md"],
