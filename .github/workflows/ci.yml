@@ -48,10 +48,13 @@ jobs:
     - name: Install dependencies
       run: pnpm install --frozen-lockfile --ignore-scripts
     
-    - name: Install puppeteer dependencies
+    - name: Install Puppeteer browser
       run: |
         cd packages/web-integration
         npx puppeteer browsers install chrome
+        chrome_path=$(node -e "process.stdout.write(require('puppeteer').executablePath())")
+        test -x "$chrome_path"
+        echo "MIDSCENE_CHROME_PATH=$chrome_path" >> "$GITHUB_ENV"
 
     - name: Check tsconfig references
       run: pnpm run check:references

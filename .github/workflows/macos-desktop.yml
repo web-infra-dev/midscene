@@ -30,7 +30,8 @@ concurrency:
 
 jobs:
   macos-desktop:
-    runs-on: ${{ fromJSON(vars.MAC_SELF_HOSTED_RUNNER_LABELS || '"macos-latest"') }}
+    # The self-hosted macOS runner is ARM and has no interactive GUI session.
+    runs-on: macos-15-intel
     timeout-minutes: 50
     env:
       CI: '1'

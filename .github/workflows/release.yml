@@ -203,7 +203,8 @@ jobs:
         - runner: ${{ vars.MAC_SELF_HOSTED_RUNNER_LABELS || '"macos-latest"' }}
           platform: darwin
           arch: arm64
-        - runner: ${{ vars.MAC_SELF_HOSTED_RUNNER_LABELS || '"macos-latest"' }}
+        - runner: '"macos-15-intel"'
+          os: macos-15-intel
           platform: darwin
           arch: x64
     # Same miette-graphical workaround as the `release` job above.

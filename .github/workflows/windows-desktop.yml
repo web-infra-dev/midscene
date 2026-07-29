@@ -30,7 +30,8 @@ concurrency:
 
 jobs:
   windows-desktop:
-    runs-on: ${{ fromJSON(vars.WINDOWS_SELF_HOSTED_RUNNER_LABELS || '"windows-latest"') }}
+    # The self-hosted Windows runner runs as a non-interactive service.
+    runs-on: windows-2022
     timeout-minutes: 50
     env:
       CI: '1'

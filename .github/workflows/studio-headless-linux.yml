@@ -18,7 +18,8 @@ permissions:
 
 jobs:
   studio-startup:
-    runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"') }}
+    # The computer-agent smoke test needs the hosted image's desktop tooling.
+    runs-on: ubuntu-22.04
     env:
       CI: '1'
       MIDSCENE_MODEL_API_KEY: ${{ secrets.MIDSCENE_MODEL_API_KEY }}
