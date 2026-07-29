@@ -185,6 +185,158 @@ describe('AndroidDevice', () => {
     });
   });
 
+  describe('accessibility snapshot', () => {
+    const hierarchy = (children: string) => `<?xml version="1.0"?>
+<hierarchy rotation="0">
+  <node class="android.widget.FrameLayout" bounds="[0,0][400,800]">
+    ${children}
+  </node>
+</hierarchy>`;
+
+    const mockYadbHierarchy = (xml: string) => {
+      mockAdb.shell.mockImplementation(async (command) => {
+        if (
+          String(command) ===
+          'cat /data/local/tmp/midscene_yadb_layout_dump.xml'
+        ) {
+          return xml;
+        }
+        return '';
+      });
+    };
+
+    const mockSnapshotScreen = (
+      target: AndroidDevice = device,
+      density = 160,
+    ) => {
+      vi.spyOn(target, 'getDisplayDensity').mockResolvedValue(density);
+      vi.spyOn(target, 'getScreenSize').mockResolvedValue({
+        override: '',
+        physical: '400x800',
+        orientation: 0,
+        isCurrentOrientation: false,
+      });
+    };
+
+    it('captures the hierarchy with raw XML and coordinate metadata', async () => {
+      const xml = hierarchy(
+        '<node class="android.widget.Button" resource-id="snapshot-target" bounds="[20,40][180,100]"/>',
+      );
+      mockYadbHierarchy(xml);
+      mockSnapshotScreen(device, 320);
+
+      const snapshot = await device.captureAccessibilitySnapshot();
+
+      expect(snapshot).toMatchObject({
+        source: 'yadb',
+        sourceXml: xml,
+        dpr: 2,
+        rotation: 0,
+        logicalSize: { width: 200, height: 400 },
+        root: {
+          type: 'android.widget.FrameLayout',
+          children: [
+            {
+              type: 'android.widget.Button',
+              bounds: { left: 10, top: 20, width: 80, height: 30 },
+            },
+          ],
+        },
+      });
+      expect(snapshot.captureId).toMatch(/^[a-z0-9]+-[a-z0-9]+$/);
+      expect(snapshot.capturedAt).toBeTruthy();
+      expect(snapshot.durationMs).toBeGreaterThanOrEqual(0);
+    });
+
+    it('falls back to bounded UIAutomator retries after YADB fails', async () => {
+      mockSnapshotScreen();
+      let uiautomatorAttempts = 0;
+      mockAdb.shell.mockImplementation(async (command) => {
+        const value = String(command);
+        if (value.includes('com.ysbing.yadb.Main -layout')) {
+          throw new Error('YADB layout unavailable');
+        }
+        if (value.startsWith('uiautomator dump')) {
+          uiautomatorAttempts++;
+          if (uiautomatorAttempts < 3) {
+            throw new Error('ERROR: could not get idle state');
+          }
+        }
+        if (value === 'cat /sdcard/midscene_window_dump.xml') {
+          return hierarchy(
+            '<node class="android.widget.Button" resource-id="retry-target" bounds="[20,40][180,100]"/>',
+          );
+        }
+        return '';
+      });
+
+      await expect(
+        device.captureAccessibilitySnapshot(),
+      ).resolves.toMatchObject({
+        source: 'uiautomator',
+        root: {
+          children: [
+            {
+              attrs: { 'resource-id': 'retry-target' },
+            },
+          ],
+        },
+      });
+      expect(uiautomatorAttempts).toBe(3);
+      expect(mockAdb.shell).toHaveBeenCalledWith(
+        'uiautomator dump --compressed /sdcard/midscene_window_dump.xml',
+        expect.objectContaining({ timeout: 5_000 }),
+      );
+    });
+
+    it('removes stale files on every attempt and reports all failures', async () => {
+      mockAdb.shell.mockImplementation(async (command) => {
+        const value = String(command);
+        if (value.startsWith('rm -f ')) return '';
+        if (value.startsWith('cat ')) {
+          return 'cat: layout dump does not exist';
+        }
+        return 'ERROR: could not get idle state.';
+      });
+
+      await expect(device.captureAccessibilitySnapshot()).rejects.toThrow(
+        /Unable to read Android accessibility hierarchy after 6 attempt\(s\).*yadb did not produce valid hierarchy XML.*uiautomator did not produce valid hierarchy XML/,
+      );
+      expect(
+        mockAdb.shell.mock.calls.filter(([command]) =>
+          String(command).startsWith('rm -f '),
+        ),
+      ).toHaveLength(6);
+    });
+
+    it('uses UIAutomator directly for a non-default display', async () => {
+      const secondaryDisplayDevice = new AndroidDevice('test-device', {
+        displayId: 1,
+        minScreenshotBufferSize: 0,
+        scrcpyConfig: { enabled: false },
+      });
+      vi.spyOn(secondaryDisplayDevice, 'getAdb').mockResolvedValue(mockAdb);
+      mockSnapshotScreen(secondaryDisplayDevice);
+      mockAdb.shell.mockImplementation(async (command) => {
+        if (String(command) === 'cat /sdcard/midscene_window_dump.xml') {
+          return hierarchy(
+            '<node class="android.widget.Button" resource-id="display-target" bounds="[20,40][180,100]"/>',
+          );
+        }
+        return '';
+      });
+
+      await expect(
+        secondaryDisplayDevice.captureAccessibilitySnapshot(),
+      ).resolves.toMatchObject({ source: 'uiautomator' });
+      expect(mockAdb.push).not.toHaveBeenCalled();
+      expect(mockAdb.shell).not.toHaveBeenCalledWith(
+        expect.stringContaining('com.ysbing.yadb.Main -layout'),
+        expect.anything(),
+      );
+    });
+  });
+
   describe('launch', () => {
     it('should start URI for http/https links', async () => {
       const uri = 'https://example.com';
