@@ -193,7 +193,7 @@ export interface VisualElementAuditRecord extends VisualElementInput {
     bounds: AuditRect;
   };
   cacheFeatureXpaths: string[];
-  cacheFeatureXpathSources: string[];
+  cacheFeatureXpathSources: TreeNodeAuditRecord['cacheFeatureXpathSources'];
   candidateDiagnostics: TreeNodeAuditRecord['candidateDiagnostics'];
   cacheFeature?: XpathCacheFeature;
   cacheSelectedNodeId?: string;
@@ -1740,6 +1740,21 @@ async function connectAdb(device: string): Promise<ADB> {
   return adb;
 }
 
+async function assertFocusedPackage(
+  adb: ADB,
+  expectedPackage: string,
+): Promise<void> {
+  const { appPackage } = await adb.getFocusedPackageAndActivity();
+  if (!appPackage) {
+    throw new Error('Unable to determine the focused Android package');
+  }
+  if (appPackage !== expectedPackage) {
+    throw new Error(
+      `Focused package ${appPackage} does not match requested app ${expectedPackage}`,
+    );
+  }
+}
+
 async function resolveRunDir(
   outputRoot: string,
   runId: string | undefined,
@@ -1786,12 +1801,7 @@ async function captureSource(options: CaptureCliOptions): Promise<string> {
   assertSafeId(runId, 'Run id');
   assertSafeId(options.page, 'Page id');
   const adb = await connectAdb(options.device);
-  const focused = await getFocusedApp(adb);
-  if (focused.package !== options.app) {
-    throw new Error(
-      `Focused package ${focused.package} does not match requested app ${options.app}`,
-    );
-  }
+  await assertFocusedPackage(adb, options.app);
   const runDir = join(options.outputRoot, runId);
   const runPath = join(runDir, 'run.json');
   let run: RunMetadata;
@@ -1865,12 +1875,7 @@ async function captureExistingPhase(
     );
   }
   const adb = await connectAdb(options.device);
-  const focused = await getFocusedApp(adb);
-  if (focused.package !== options.app) {
-    throw new Error(
-      `Focused package ${focused.package} does not match requested app ${options.app}`,
-    );
-  }
+  await assertFocusedPackage(adb, options.app);
   const capture = await capturePhaseArtifacts(adb, pageDir, options.phase);
   metadata.captures[options.phase] = capture.metadata;
   metadata.updatedAt = nowIso();
