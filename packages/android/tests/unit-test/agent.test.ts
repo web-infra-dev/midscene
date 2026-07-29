@@ -114,12 +114,6 @@ describe('AndroidAgent', () => {
           bounds: { left: 0, top: 0, width: 1, height: 1 },
           children: [],
         },
-        xpathPolicy: {
-          stableAttrs: ['resource-id'],
-          textAttrs: ['content-desc', 'text'],
-          excludedTargetTypes: [],
-          max: 5,
-        },
       });
       const agent = new AndroidAgent(mockPage, {
         captureUITree: true,
