@@ -258,8 +258,6 @@ GITHUB_TOKEN=$(gh auth token) pnpm --filter doc build
 The site development server does not require a token. If GitHub is unavailable,
 it renders a non-numeric placeholder instead of a stale star count.
 
-<!-- Temporary Cloudflare Pages preview deployment trigger for PR #2899. -->
-
 ---
 
 ## Submitting Changes
