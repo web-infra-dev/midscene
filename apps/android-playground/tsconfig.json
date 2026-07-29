@@ -7,6 +7,12 @@
   "include": ["src"],
   "references": [
     {
+      "path": "../../packages/android"
+    },
+    {
+      "path": "../../packages/android-playground"
+    },
+    {
       "path": "../../packages/playground-app"
     }
   ]

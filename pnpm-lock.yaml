@@ -77,6 +77,12 @@ importers:
 
   apps/android-playground:
     dependencies:
+      '@midscene/android':
+        specifier: workspace:*
+        version: link:../../packages/android
+      '@midscene/android-playground':
+        specifier: workspace:*
+        version: link:../../packages/android-playground
       '@midscene/playground-app':
         specifier: workspace:*
         version: link:../../packages/playground-app

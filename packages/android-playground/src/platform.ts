@@ -16,6 +16,7 @@ import {
   SCRCPY_SERVER_PORT,
 } from '@midscene/shared/constants';
 import { findAvailablePort } from '@midscene/shared/node';
+import { AndroidAuditSessionController } from './android-audit-session';
 export interface ScrcpyServerController {
   currentDeviceId: string | null;
   launch(port?: number): Promise<unknown>;
@@ -67,6 +68,7 @@ export const androidPlaygroundPlatform = definePlaygroundPlatform<
   title: 'Midscene Android Playground',
   description: 'Android playground platform descriptor',
   async prepare(options) {
+    const auditController = new AndroidAuditSessionController();
     const staticDir =
       options?.staticDir || path.join(__dirname, '../../static');
     const [playgroundPort, resolvedScrcpyPort] = await Promise.all([
@@ -139,7 +141,9 @@ export const androidPlaygroundPlatform = definePlaygroundPlatform<
         const connectAgent = async () => {
           const device = new AndroidDevice(deviceId);
           await device.connect();
-          return new AndroidAgent(device, options?.getAgentOptions?.());
+          const agent = new AndroidAgent(device, options?.getAgentOptions?.());
+          auditController.attachDevice(deviceId, device, agent);
+          return agent;
         };
 
         if (options?.scrcpyServer) {
@@ -161,6 +165,9 @@ export const androidPlaygroundPlatform = definePlaygroundPlatform<
             scrcpyPort,
           },
         };
+      },
+      async destroySession() {
+        auditController.detachDevice();
       },
     };
 
@@ -188,6 +195,7 @@ export const androidPlaygroundPlatform = definePlaygroundPlatform<
         staticPath: staticDir,
         configureServer(server) {
           server.scrcpyPort = scrcpyPort;
+          auditController.registerRoutes(server.app);
         },
       },
       preview: createScrcpyPreviewDescriptor(

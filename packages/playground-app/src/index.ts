@@ -9,7 +9,9 @@ export type {
 } from './DeviceInteractionLayer';
 export { PlaygroundConversationPanel } from './panels/PlaygroundConversationPanel';
 export type { PlaygroundAppProps } from './PlaygroundApp';
+export type { PlaygroundExtensionContext } from './PlaygroundApp';
 export type { PlaygroundPreviewProps } from './PlaygroundPreview';
+export type { PreviewOverlayRenderContext } from './PreviewOverlayLayer';
 export type { PlaygroundConversationPanelProps } from './panels/PlaygroundConversationPanel';
 export type { DeviceType } from '@midscene/visualizer';
 export type {
