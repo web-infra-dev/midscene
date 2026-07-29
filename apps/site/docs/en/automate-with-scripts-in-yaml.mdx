@@ -100,7 +100,7 @@ agent:
     id: <string>
 ```
 
-:::tip Agent Configuration Notes
+:::info Agent Configuration Notes
 
 - **Applicable environments**: Web, iOS, and Android environments all support `agent` configuration
 - **testId priority**: CLI parameter > YAML agent.testId > filename
@@ -274,7 +274,7 @@ android:
   # See the AndroidDevice constructor documentation for the complete list
 ```
 
-:::tip View Complete Android Configuration Options
+:::info View Complete Android Configuration Options
 
 YAML scripts now support all configuration options from the `AndroidDevice` constructor. For the complete list of options, see [`AndroidDevice`](./reference/#androiddevice) in the Android API reference.
 
@@ -375,7 +375,7 @@ ios:
   # See the IOSDevice constructor documentation for the complete list
 ```
 
-:::tip View Complete iOS Configuration Options
+:::info View Complete iOS Configuration Options
 
 YAML scripts now support all configuration options from the `IOSDevice` constructor. For the complete list of options, see [`IOSDevice`](./reference/#iosdevice) in the iOS API reference.
 
@@ -558,7 +558,7 @@ tasks:
       - aiAssert: The results show weather information
 ```
 
-:::tip Platform Notes
+:::info Platform Notes
 
 The demo scripts above use macOS commands. For Windows, modify the scripts to use:
 - `press Windows key` instead of `press Cmd+Space`
@@ -768,7 +768,7 @@ tasks:
 
 > The legacy nested format (where `locate` is indented under the action key, e.g. `aiTap: \n    locate: ...`) is still supported but not recommended.
 
-For insight steps like `aiAsk`, `aiQuery`, `aiBoolean`, `aiNumber`, `aiString`, and `aiAssert`, you can set the `prompt` and `images` fields directly.
+For `aiAct` (and its `ai` shorthand), and for insight steps like `aiAsk`, `aiQuery`, `aiBoolean`, `aiNumber`, `aiString`, and `aiAssert`, you can set the `prompt` and `images` fields directly under the action key.
 
 ```yaml
 tasks:

@@ -100,7 +100,7 @@ agent:
     id: <string>
 ```
 
-:::tip Agent 配置说明
+:::info Agent 配置说明
 
 - **适用环境**：Web、iOS 和 Android 环境都支持 `agent` 配置
 - **testId 优先级**：CLI 参数 > YAML agent.testId > 文件名
@@ -275,7 +275,7 @@ android:
   # 完整配置项请参考 AndroidDevice 的构造函数文档
 ```
 
-:::tip 查看完整的 Android 配置项
+:::info 查看完整的 Android 配置项
 
 YAML 脚本现在支持 `AndroidDevice` 构造函数的所有配置选项。完整的配置项列表请参考 [Android API 参考中的 AndroidDevice](./reference/#androiddevice)。
 
@@ -378,7 +378,7 @@ ios:
   # 完整配置项请参考 IOSDevice 的构造函数文档
 ```
 
-:::tip 查看完整的 iOS 配置项
+:::info 查看完整的 iOS 配置项
 
 YAML 脚本现在支持 `IOSDevice` 构造函数的所有配置选项。完整的配置项列表请参考 [iOS API 参考中的 IOSDevice](./reference/#iosdevice)。
 
@@ -563,7 +563,7 @@ tasks:
       - aiAssert: 结果显示天气信息
 ```
 
-:::tip 平台说明
+:::info 平台说明
 
 上面的示例脚本使用 macOS 命令。对于 Windows，请修改脚本：
 - 使用 `按下 Windows 键` 代替 `按下 Cmd+Space`
@@ -776,7 +776,7 @@ tasks:
 
 > 旧的嵌套写法（将 `locate` 缩进到操作指令内部，例如 `aiTap: \n    locate: ...`）仍然支持，但不推荐使用。
 
-对于视觉问答类步骤，例如 `aiAsk`、`aiQuery`、`aiBoolean`、`aiNumber`、`aiString`、`aiAssert`，可以直接设置 `prompt` 和 `images` 字段。
+对于 `aiAct`（及其简写 `ai`），以及 `aiAsk`、`aiQuery`、`aiBoolean`、`aiNumber`、`aiString`、`aiAssert` 等视觉问答类步骤，都可以直接在操作指令下设置 `prompt` 和 `images` 字段。
 
 ```yaml
 tasks:

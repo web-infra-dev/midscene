@@ -675,6 +675,7 @@ task - service-query
 export interface ExecutionTaskInsightQueryParam {
   dataDemand: ServiceExtractParam;
   domIncluded?: boolean | 'visible-only';
+  context?: string;
 }
 
 export interface ExecutionTaskInsightQueryOutput {
@@ -1072,12 +1073,16 @@ export interface ReportFileAttributes {
   testDescription: string;
 }
 
+type SkippedReportFileAttributes = Omit<ReportFileAttributes, 'testStatus'> & {
+  testStatus: 'skipped';
+};
+
 export type ReportFileWithAttributes =
   | {
       reportFilePath: string;
       reportAttributes: ReportFileAttributes;
     }
   | {
-      reportFilePath?: string;
-      reportAttributes: ReportFileAttributes & { testStatus: 'skipped' };
+      reportFilePath?: undefined;
+      reportAttributes: SkippedReportFileAttributes;
     };

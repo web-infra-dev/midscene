@@ -491,6 +491,30 @@ describe('AndroidDevice', () => {
   // Launch/Terminate on every mobile platform must expose the SAME `uri` field.
   // The shared tool-generator already rejects non-object schemas, but a future
   // author could still rename the field and silently break CLI ergonomics.
+  describe('actionSpace platform actions', () => {
+    it('includes RunAdbShell by default', () => {
+      const actionNames = device.actionSpace().map((action) => action.name);
+
+      expect(actionNames).toContain('RunAdbShell');
+    });
+
+    it('hides RunAdbShell when exposeRunAdbShellAction is false', () => {
+      const deviceWithoutAdbShell = new AndroidDevice('test-device', {
+        exposeRunAdbShellAction: false,
+        minScreenshotBufferSize: 0,
+        scrcpyConfig: { enabled: false },
+      });
+      const actions = deviceWithoutAdbShell.actionSpace();
+
+      expect(actions.map((action) => action.name)).not.toContain('RunAdbShell');
+      expect(actions.map((action) => action.interfaceAlias)).not.toContain(
+        'runAdbShell',
+      );
+      expect(actions.map((action) => action.name)).toContain('Launch');
+      expect(actions.map((action) => action.name)).toContain('Terminate');
+    });
+  });
+
   describe('Launch/Terminate action schema contract', () => {
     it('Launch paramSchema is a ZodObject with a `uri: ZodString` field', () => {
       const launchAction = device
@@ -601,6 +625,25 @@ Stdout:
         .find((action) => action.name === 'RunAdbShell');
 
       await expect(runAdbShellAction!.call({ command })).resolves.toBe('0\n');
+    });
+
+    it('should pass timeout through the RunAdbShell action', async () => {
+      const command = 'sleep 2';
+      mockAdb.shell.mockResolvedValue({
+        stdout: '',
+        stderr: '',
+      } as any);
+
+      const runAdbShellAction = device
+        .actionSpace()
+        .find((action) => action.name === 'RunAdbShell');
+
+      await runAdbShellAction!.call({ command, timeout: 2_000 });
+
+      expect(mockAdb.shell).toHaveBeenCalledWith(command, {
+        timeout: 2_000,
+        outputFormat: 'full',
+      });
     });
 
     it('should throw when adb shell exits zero with stderr output', async () => {

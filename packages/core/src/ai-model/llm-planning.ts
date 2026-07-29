@@ -396,15 +396,25 @@ export async function plan(
     conversationHistory.appendMemory(planFromAI.memory);
   }
 
-  conversationHistory.append({
-    role: 'assistant',
-    content: [
-      {
-        type: 'text',
-        text: rawResponse,
-      },
-    ],
-  });
+  // Some model providers require opaque assistant fields to be replayed
+  // verbatim in later turns. Keep this opt-in per model adapter so that an
+  // unverified provider does not receive non-standard response fields.
+  if (
+    modelRuntime.adapter.chatCompletion.replayRawAssistantMessage &&
+    rawChoiceMessage
+  ) {
+    conversationHistory.append(rawChoiceMessage as ChatCompletionMessageParam);
+  } else {
+    conversationHistory.append({
+      role: 'assistant',
+      content: [
+        {
+          type: 'text',
+          text: rawResponse,
+        },
+      ],
+    });
+  }
 
   return returnValue;
 }

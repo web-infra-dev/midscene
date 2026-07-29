@@ -350,7 +350,14 @@ export class AndroidDevice implements AbstractInterface {
       }),
     ];
 
-    const platformSpecificActions = Object.values(createPlatformActions(this));
+    const platformActions = createPlatformActions(this);
+    let platformSpecificActions = Object.values(platformActions);
+
+    if (this.options?.exposeRunAdbShellAction === false) {
+      platformSpecificActions = platformSpecificActions.filter(
+        (action) => action !== platformActions.RunAdbShell,
+      );
+    }
 
     const customActions = this.customActions || [];
     return [...defaultActions, ...platformSpecificActions, ...customActions];
@@ -2284,6 +2291,12 @@ ${Object.keys(size)
  */
 const runAdbShellParamSchema = z.object({
   command: z.string().describe('ADB shell command to execute'),
+  timeout: z
+    .number()
+    .optional()
+    .describe(
+      'ADB shell command execution timeout in milliseconds. Only include this parameter when the user explicitly requests a timeout; otherwise, omit it.',
+    ),
 });
 
 const launchParamSchema = z.object({
@@ -2336,7 +2349,11 @@ const createPlatformActions = (
           throw new Error('RunAdbShell requires a non-empty command parameter');
         }
         const adb = await device.getAdb();
-        const stdout = await runAdbShellStdoutOrThrow(adb, param.command);
+        const stdout = await runAdbShellStdoutOrThrow(
+          adb,
+          param.command,
+          param.timeout === undefined ? undefined : { timeout: param.timeout },
+        );
         const planningFeedback = buildRunAdbShellPlanningFeedback({
           command: param.command,
           stdout,

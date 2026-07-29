@@ -9,6 +9,8 @@ import type { UIContext } from './types';
 
 export interface LocateOption extends Partial<TMultimodalPrompt> {
   prompt?: TUserPrompt;
+  /** Additional context for this AI request. */
+  context?: string;
   deepLocate?: boolean; // only available in vl model
   /** @deprecated Use `deepLocate` instead. Kept for backward compatibility. */
   deepThink?: boolean; // alias for deepLocate
@@ -19,14 +21,23 @@ export interface LocateOption extends Partial<TMultimodalPrompt> {
 }
 
 export interface ServiceExtractOption {
+  /** Additional context for this AI request. */
+  context?: string;
   domIncluded?: boolean | 'visible-only';
   screenshotIncluded?: boolean;
   [key: string]: unknown;
 }
 
 export interface DetailedLocateParam
-  extends Omit<LocateOption, 'deepThink' | keyof TMultimodalPrompt> {
+  extends Omit<
+    LocateOption,
+    'context' | 'deepThink' | keyof TMultimodalPrompt
+  > {
   prompt: TUserPrompt;
+  /** Original prompt text used for user-facing reports. */
+  promptDisplay?: string;
+  /** Per-call business context used for user-facing reports. */
+  context?: string;
 }
 
 export type ScrollType =
