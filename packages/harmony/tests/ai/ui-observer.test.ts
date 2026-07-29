@@ -33,22 +33,17 @@ describe(
         await sleep(1600);
         await agent.home();
         await sleep(2000);
-        await observer.stop();
+        const observation = await observer.stop();
 
-        expect(observer.frameCount).toBeGreaterThanOrEqual(3);
-        const observationRecord = await observer.exportRecord();
+        expect(observer.bufferedFrameCount).toBeGreaterThanOrEqual(3);
 
-        await agent.aiAssert(
+        await observation.aiAssert(
           'comparing the earlier and later frames, the screen transitions from the Settings app to the home screen (launcher / desktop)',
-          undefined,
-          { observationRecord },
         );
 
         await expect(
-          agent.aiAssert(
+          observation.aiAssert(
             'a calculator app interface appears in any of these frames',
-            undefined,
-            { observationRecord },
           ),
         ).rejects.toThrow();
       } finally {

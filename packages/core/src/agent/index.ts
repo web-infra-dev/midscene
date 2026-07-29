@@ -1,5 +1,6 @@
 export { Agent, createAgent } from './agent';
 export {
+  UIObservation,
   UIObserver,
   type UIObserverOption,
   uiContextFromObservationRecord,

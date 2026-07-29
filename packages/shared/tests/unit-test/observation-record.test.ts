@@ -43,6 +43,8 @@ describe('UIObservationRecordWriter', () => {
     const second = writer.persistFrame(dataUrl('same-frame'), 200);
 
     const record = writer.finalize([first, second], {
+      startedAt: 50,
+      endedAt: 250,
       shotSize: { width: 100, height: 50 },
       shrunkShotToLogicalRatio: 1,
     });
@@ -73,6 +75,8 @@ describe('UIObservationRecordWriter', () => {
     const baseRecord = {
       type: 'midscene_ui_observation',
       version: 1,
+      startedAt: 50,
+      endedAt: 150,
       shotSize: { width: 100, height: 50 },
       shrunkShotToLogicalRatio: 1,
     };
@@ -104,6 +108,31 @@ describe('UIObservationRecordWriter', () => {
     );
   });
 
+  it('rejects an observation whose end precedes its start', () => {
+    const directory = tempDirectory();
+    const outputPath = join(directory, 'record.json');
+    writeFileSync(
+      outputPath,
+      JSON.stringify({
+        type: 'midscene_ui_observation',
+        version: 1,
+        startedAt: 200,
+        endedAt: 100,
+        frames: [
+          {
+            path: 'record.frames/frame.png',
+            mimeType: 'image/png',
+            capturedAt: 100,
+          },
+        ],
+        shotSize: { width: 100, height: 50 },
+        shrunkShotToLogicalRatio: 1,
+      }),
+    );
+
+    expect(() => readUIObservationRecord(outputPath)).toThrow(/endedAt/);
+  });
+
   it('keeps only files referenced by the finalized record', () => {
     const writer = new UIObservationRecordWriter(
       join(tempDirectory(), 'record.json'),
@@ -113,6 +142,8 @@ describe('UIObservationRecordWriter', () => {
     );
 
     const record = writer.finalize(frames.slice(-2), {
+      startedAt: 0,
+      endedAt: 20,
       shotSize: { width: 100, height: 50 },
       shrunkShotToLogicalRatio: 1,
     });
@@ -137,6 +168,8 @@ describe('UIObservationRecordWriter', () => {
     );
     const finalizedFrame = finalizedWriter.persistFrame(dataUrl('frame'), 100);
     finalizedWriter.finalize([finalizedFrame], {
+      startedAt: 50,
+      endedAt: 150,
       shotSize: { width: 100, height: 50 },
       shrunkShotToLogicalRatio: 1,
     });

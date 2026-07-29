@@ -979,7 +979,6 @@ function aiAssert(
     - `domIncluded?: boolean | 'visible-only'` — Whether to include simplified DOM data, which can expose attributes such as image URLs. Use `'visible-only'` to include only visible elements. Default: `false`.
     - `screenshotIncluded?: boolean` — Whether to include a screenshot. Default: `true`.
     - `context?: string` — Additional context for this call. See [Per-call context](#per-call-context).
-    - `observationRecord?: UIObservationRecord` — A record returned by `observer.exportRecord()`. When set, the assertion evaluates that frame window instead of the current screen.
 
 - Return value:
 
@@ -1012,7 +1011,7 @@ expect(onesieItem.price).toBe(7.99);
 
 #### `startObserving()` {#agentstartobserving}
 
-Observe the screen over a defined time window while other Agent calls run. A later assertion can then evaluate transient UI, such as toasts, banners, and screen transitions, that a single screenshot might miss.
+Observe the screen over a defined time window while other Agent calls run. Stopping the observer returns a fixed `UIObservation` whose read-only insight methods evaluate transient UI, such as toasts, banners, and screen transitions, that a live single-screen insight might miss.
 
 ```typescript
 function startObserving(options?: {
@@ -1022,21 +1021,22 @@ function startObserving(options?: {
 }): Promise<UIObserver>;
 ```
 
-The returned `UIObserver` provides:
+`UIObserver` only manages recording:
 
-- `observer.stop(): Promise<void>` — Stop sampling and capture the final representative screenshot. Must be called before asserting.
-- `observer.exportRecord(): Promise<UIObservationRecord>` — Return the observed frame window. Frames reference image files on disk rather than embedding base64 data.
-- `observer.dispose(): Promise<void>` — Delete the observer-owned image files when the exported record is no longer needed. Do not dispose the observer before the last assertion that uses its record.
-- `observer.frameCount: number` — Number of frames currently buffered.
+- `observer.bufferedFrameCount: number` — Number of frames currently buffered while recording.
+- `observer.stop(): Promise<UIObservation>` — Stop sampling, capture the final representative screenshot, and return the fixed observation window.
+
+`UIObservation` implements the same read-only `InsightAPI` as `Agent`: `aiQuery()`, `aiBoolean()`, `aiNumber()`, `aiString()`, `aiAsk()`, and `aiAssert()`. It also exposes `frameCount`, `startedAt`, and `endedAt`. Call `observation.dispose()` after its last insight call to release its image files early; otherwise `agent.destroy()` releases them.
 
 ```typescript
 const observer = await agent.startObserving();
 await agent.aiAct('submit the form');
-await observer.stop();
-const observationRecord = await observer.exportRecord();
-await agent.aiAssert('a success toast appeared during the process', undefined, {
-  observationRecord,
-});
+const observation = await observer.stop();
+await observation.aiAssert('a success toast appeared during the process');
+const toastCount = await observation.aiNumber(
+  'how many success toasts appeared?',
+);
+await observation.dispose();
 ```
 
 The platform CLIs run recording in the foreground. Start it in one terminal,
@@ -1067,6 +1067,8 @@ The artifact consists of a versioned JSON manifest and an adjacent image directo
 {
   "type": "midscene_ui_observation",
   "version": 1,
+  "startedAt": 1785132000000,
+  "endedAt": 1785132001000,
   "frames": [
     {
       "path": "submission-observation.frames/4f32c0a8.jpeg",

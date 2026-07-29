@@ -136,8 +136,8 @@ export function createRecordCliCommand(
             tool: 'record',
             reason: stopReason,
           });
-          await observer.stop();
-          const record = await observer.exportRecord();
+          const observation = await observer.stop();
+          const record = await observation.exportRecord();
           const outputPath = writeUIObservationRecord(
             record,
             args.output as string | undefined,

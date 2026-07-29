@@ -66,6 +66,14 @@ const makeDeps = (fake: ReturnType<typeof makeFakeSource> | null) => {
       openFrameSource: async () => fake?.source ?? undefined,
       screenshot,
       captureRepresentative: async () => fakeRepresentative(),
+      createInsight: () => ({
+        aiQuery: vi.fn(),
+        aiBoolean: vi.fn(),
+        aiNumber: vi.fn(),
+        aiString: vi.fn(),
+        aiAsk: vi.fn(),
+        aiAssert: vi.fn(),
+      }),
       onStopped,
       observationRecordWriter: recordWriter(),
     },
@@ -86,17 +94,19 @@ describe('UIObserver', () => {
     }
   });
 
-  it('rejects exporting before stop()', async () => {
+  it('exposes records only through the observation returned by stop()', async () => {
     const fake = makeFakeSource();
     fake.setLatest('f0', 0);
     const { deps } = makeDeps(fake);
     const observer = new UIObserver(deps, options({ intervalMs: 200 }));
     await observer.start();
 
-    await expect(observer.exportRecord()).rejects.toThrow(
-      /stop\(\) before exporting/,
-    );
-    await observer.stop();
+    expect((observer as any).exportRecord).toBeUndefined();
+    const observation = await observer.stop();
+    await expect(observation.exportRecord()).resolves.toMatchObject({
+      type: 'midscene_ui_observation',
+      version: 1,
+    });
   });
 
   it('persists source frames, aligns the representative, and stops the source', async () => {
@@ -108,10 +118,12 @@ describe('UIObserver', () => {
     await observer.start();
     fake.setLatest('f1', 100);
     await sleep(250);
-    await observer.stop();
-    const record = await observer.exportRecord();
+    const observation = await observer.stop();
+    const record = await observation.exportRecord();
 
-    expect(observer.frameCount).toBeGreaterThanOrEqual(2);
+    expect(observer.bufferedFrameCount).toBeGreaterThanOrEqual(2);
+    expect(observation.frameCount).toBe(record.frames.length);
+    expect(observation.endedAt).toBeGreaterThanOrEqual(observation.startedAt);
     expect(onStopped).toHaveBeenCalledOnce();
     expect(fake.stop).toHaveBeenCalledOnce();
     expect(record.frames.length).toBeGreaterThanOrEqual(3);
@@ -131,11 +143,9 @@ describe('UIObserver', () => {
       (observer as any).pushFrame({ ref: `f${index}`, capturedAt: index });
     }
     (observer as any).source = fake.source;
-    (observer as any).stopped = true;
-    (observer as any).representative = fakeRepresentative();
-
-    const firstRecord = await observer.exportRecord();
-    const secondRecord = await observer.exportRecord();
+    const observation = await observer.stop();
+    const firstRecord = await observation.exportRecord();
+    const secondRecord = await observation.exportRecord();
 
     expect(firstRecord).toBe(secondRecord);
     expect(fake.decode).toHaveBeenCalledTimes(3);
@@ -156,10 +166,8 @@ describe('UIObserver', () => {
       (observer as any).pushFrame({ ref: `f${index}`, capturedAt: index });
     }
     (observer as any).source = fake.source;
-    (observer as any).stopped = true;
-    (observer as any).representative = fakeRepresentative();
-
-    const record = await observer.exportRecord();
+    const observation = await observer.stop();
+    const record = await observation.exportRecord();
 
     expect(record.frames).toHaveLength(26);
     expect(fake.decode.mock.calls.flatMap(([frames]) => frames)).toHaveLength(
@@ -265,16 +273,14 @@ describe('UIObserver', () => {
       capturedAt: 100,
       persisted,
     });
-    (observer as any).stopped = true;
-    (observer as any).representative = fakeRepresentative();
-
-    const record = await observer.exportRecord();
+    const observation = await observer.stop();
+    const record = await observation.exportRecord();
     expect(readFileSync(record.frames[0].path)).toBeDefined();
 
-    await observer.dispose();
+    await observation.dispose();
 
     expect(() => readFileSync(record.frames[0].path)).toThrow();
-    await expect(observer.exportRecord()).rejects.toThrow(/disposed/);
+    await expect(observation.exportRecord()).rejects.toThrow(/disposed/);
   });
 
   it('watchdog auto-stops and can also be disabled', async () => {
@@ -316,10 +322,8 @@ describe('UIObserver', () => {
       (observer as any).pushFrame({ ref: `f${index}`, capturedAt: index });
     }
     (observer as any).source = fake.source;
-    (observer as any).stopped = true;
-    (observer as any).representative = fakeRepresentative();
-
-    const record = await observer.exportRecord();
+    const observation = await observer.stop();
+    const record = await observation.exportRecord();
     expect(record.frames).toHaveLength(56);
   });
 
@@ -328,8 +332,8 @@ describe('UIObserver', () => {
     const observer = new UIObserver(deps, options({ intervalMs: 200 }));
     await observer.start();
     await sleep(250);
-    await observer.stop();
-    const record = await observer.exportRecord();
+    const observation = await observer.stop();
+    const record = await observation.exportRecord();
 
     expect(screenshot).toHaveBeenCalled();
     expect(frameContents(record.frames[0].path)).toBe('fallback');
@@ -348,13 +352,21 @@ describe('UIObserver', () => {
         },
         screenshot,
         captureRepresentative: async () => fakeRepresentative(),
+        createInsight: () => ({
+          aiQuery: vi.fn(),
+          aiBoolean: vi.fn(),
+          aiNumber: vi.fn(),
+          aiString: vi.fn(),
+          aiAsk: vi.fn(),
+          aiAssert: vi.fn(),
+        }),
         observationRecordWriter: recordWriter(),
       },
       options({ intervalMs: 200 }),
     );
     await observer.start();
-    await observer.stop();
-    await observer.exportRecord();
+    const observation = await observer.stop();
+    await observation.exportRecord();
     expect(screenshot).toHaveBeenCalled();
   });
 
@@ -364,12 +376,13 @@ describe('UIObserver', () => {
     const { deps, onStopped } = makeDeps(fake);
     const observer = new UIObserver(deps, options({ intervalMs: 200 }));
     await observer.start();
-    await observer.stop();
-    await observer.stop();
-    const first = await observer.exportRecord();
-    const second = await observer.exportRecord();
+    const firstObservation = await observer.stop();
+    const secondObservation = await observer.stop();
+    const first = await firstObservation.exportRecord();
+    const second = await secondObservation.exportRecord();
 
     expect(onStopped).toHaveBeenCalledOnce();
+    expect(secondObservation).toBe(firstObservation);
     expect(second).toBe(first);
   });
 
@@ -391,9 +404,12 @@ describe('UIObserver', () => {
     const firstStop = observer.stop();
     const secondStop = observer.stop();
     finishRepresentative?.();
-    await Promise.all([firstStop, secondStop]);
-
-    await expect(observer.exportRecord()).resolves.toMatchObject({
+    const [firstObservation, secondObservation] = await Promise.all([
+      firstStop,
+      secondStop,
+    ]);
+    expect(secondObservation).toBe(firstObservation);
+    await expect(firstObservation.exportRecord()).resolves.toMatchObject({
       type: 'midscene_ui_observation',
       version: 1,
     });

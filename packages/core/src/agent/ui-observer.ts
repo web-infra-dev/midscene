@@ -10,9 +10,17 @@ import type {
 import { imageInfoOfBase64, resizeImgBase64 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
+import type { TUserPrompt } from '../common';
 import type { DeviceFrameRef, DeviceFrameSource } from '../device';
 import { ScreenshotItem } from '../screenshot-item';
-import type { UIContext } from '../types';
+import type {
+  AgentAssertResult,
+  AssertOptions,
+  InsightAPI,
+  QueryOptions,
+  ServiceExtractParam,
+  UIContext,
+} from '../types';
 
 const debug = getDebug('ui-observer');
 const warnObserver = getDebug('ui-observer', { console: true });
@@ -32,12 +40,95 @@ interface UIObserverDeps {
   openFrameSource: () => Promise<DeviceFrameSource | undefined>;
   screenshot: () => Promise<string>;
   captureRepresentative: () => Promise<UIContext>;
+  createInsight: (record: UIObservationRecord) => InsightAPI;
   onStopped?: () => void;
-  onExported?: () => void;
   onDisposed?: () => void;
   screenshotShrinkFactor?: number;
   /** Test/internal persistence override; not part of the Agent SDK options. */
   observationRecordWriter?: UIObservationRecordWriter;
+}
+
+/** A fixed observation window with the same read-only insight API as Agent. */
+export class UIObservation implements InsightAPI {
+  private disposed = false;
+
+  constructor(
+    private readonly record: UIObservationRecord,
+    private readonly insight: InsightAPI,
+    private readonly disposeRecord?: () => void,
+    private readonly onDisposed?: () => void,
+  ) {}
+
+  get frameCount(): number {
+    return this.record.frames.length;
+  }
+
+  get startedAt(): number {
+    return this.record.startedAt;
+  }
+
+  get endedAt(): number {
+    return this.record.endedAt;
+  }
+
+  private ensureUsable(): void {
+    assert(!this.disposed, 'UI observation has been disposed');
+  }
+
+  async aiQuery<ReturnType = any>(
+    demand: ServiceExtractParam,
+    options?: QueryOptions,
+  ): Promise<ReturnType> {
+    this.ensureUsable();
+    return this.insight.aiQuery<ReturnType>(demand, options);
+  }
+
+  async aiBoolean(
+    prompt: TUserPrompt,
+    options?: QueryOptions,
+  ): Promise<boolean> {
+    this.ensureUsable();
+    return this.insight.aiBoolean(prompt, options);
+  }
+
+  async aiNumber(prompt: TUserPrompt, options?: QueryOptions): Promise<number> {
+    this.ensureUsable();
+    return this.insight.aiNumber(prompt, options);
+  }
+
+  async aiString(prompt: TUserPrompt, options?: QueryOptions): Promise<string> {
+    this.ensureUsable();
+    return this.insight.aiString(prompt, options);
+  }
+
+  async aiAsk(prompt: TUserPrompt, options?: QueryOptions): Promise<string> {
+    this.ensureUsable();
+    return this.insight.aiAsk(prompt, options);
+  }
+
+  async aiAssert(
+    assertion: TUserPrompt,
+    message?: string,
+    options?: AssertOptions,
+  ): Promise<AgentAssertResult | undefined> {
+    this.ensureUsable();
+    return this.insight.aiAssert(assertion, message, options);
+  }
+
+  async exportRecord(): Promise<UIObservationRecord> {
+    this.ensureUsable();
+    return this.record;
+  }
+
+  async dispose(): Promise<void> {
+    if (this.disposed) return;
+    try {
+      this.disposeRecord?.();
+    } finally {
+      this.disposed = true;
+      this.onDisposed?.();
+    }
+  }
 }
 
 interface BufferedFrame extends DeviceFrameRef {
@@ -53,9 +144,7 @@ function isImageDataUrl(value: unknown): value is string {
 }
 
 /**
- * Observe an explicit screen window and persist its frames as image files.
- * `exportRecord()` keeps the SDK contract of returning an observation record;
- * its frames reference files rather than embedding base64.
+ * Observe an explicit screen window and produce a fixed UIObservation.
  */
 export class UIObserver {
   private frames: BufferedFrame[] = [];
@@ -64,13 +153,14 @@ export class UIObserver {
   private stopped = false;
   private disposed = false;
   private loopPromise: Promise<void> | null = null;
-  private stopPromise: Promise<void> | null = null;
+  private stopPromise: Promise<UIObservation> | null = null;
   private representative: UIContext | null = null;
   private representativeFrame: UIObservationFrame | null = null;
   private watchdogTimer: ReturnType<typeof setTimeout> | null = null;
   private persistPromise: Promise<void> | null = null;
   private persistedByRef = new Map<unknown, UIObservationFrame>();
-  private exportedRecord: UIObservationRecord | null = null;
+  private observation: UIObservation | null = null;
+  private startedAt = 0;
   private readonly intervalMs: number;
   private readonly maxFrames: number;
   private readonly watchdogMs: number;
@@ -92,12 +182,13 @@ export class UIObserver {
       deps.observationRecordWriter ?? new UIObservationRecordWriter();
   }
 
-  get frameCount(): number {
+  get bufferedFrameCount(): number {
     return this.frames.length;
   }
 
   async start(): Promise<void> {
     assert(!this.loopPromise && !this.stopped, 'observer has already started');
+    this.startedAt = Date.now();
     try {
       this.source = (await this.deps.openFrameSource()) ?? null;
     } catch (error) {
@@ -140,14 +231,14 @@ export class UIObserver {
     }
   }
 
-  stop(): Promise<void> {
+  stop(): Promise<UIObservation> {
     if (!this.stopPromise) {
       this.stopPromise = this.finalizeStop();
     }
     return this.stopPromise;
   }
 
-  private async finalizeStop(): Promise<void> {
+  private async finalizeStop(): Promise<UIObservation> {
     this.stopped = true;
     if (this.watchdogTimer) {
       clearTimeout(this.watchdogTimer);
@@ -181,6 +272,15 @@ export class UIObserver {
         debug('representative screenshot aligned with last sampled frame');
       }
       this.representative = representative;
+      const endedAt = Date.now();
+      const record = await this.finalizeRecord(endedAt);
+      this.observation = new UIObservation(
+        record,
+        this.deps.createInsight(record),
+        () => this.writer.dispose(),
+        this.deps.onDisposed,
+      );
+      return this.observation;
     } finally {
       if (this.source) {
         try {
@@ -196,17 +296,11 @@ export class UIObserver {
     }
   }
 
-  /**
-   * Finalize the image directory and return a file-backed observation record.
-   * Repeated exports return the same record without re-decoding.
-   */
-  async exportRecord(): Promise<UIObservationRecord> {
-    assert(!this.disposed, 'UI observation record has been disposed');
+  private async finalizeRecord(endedAt: number): Promise<UIObservationRecord> {
     assert(
       this.stopped && this.representative,
-      'call observer.stop() before exporting the observed window',
+      'observation must be stopped before finalizing the observed window',
     );
-    if (this.exportedRecord) return this.exportedRecord;
     if (this.persistPromise) {
       await this.persistPromise;
       this.persistPromise = null;
@@ -234,22 +328,22 @@ export class UIObserver {
     const frames = [...sampledFrames, this.representativeFrame];
     if (frames.length > MAX_FRAMES_PER_RECORD) {
       warnObserver(
-        `WARNING: exporting ${frames.length} frames (soft limit ${MAX_FRAMES_PER_RECORD}). Asserting this record sends every frame to the model; consider increasing intervalMs or decreasing maxFrames to reduce token cost.`,
+        `WARNING: exporting ${frames.length} frames (soft limit ${MAX_FRAMES_PER_RECORD}). Running insight against this observation sends every frame to the model; consider increasing intervalMs or decreasing maxFrames to reduce token cost.`,
       );
     }
     debug(
       `exporting ${frames.length} file-backed observation frames (${this.persistedByRef.size} decoded source refs)`,
     );
     const metadata: UIObservationRecordMetadata = {
+      startedAt: this.startedAt,
+      endedAt,
       shotSize: { ...this.representative!.shotSize },
       shrunkShotToLogicalRatio: this.representative!.shrunkShotToLogicalRatio,
     };
-    this.exportedRecord = this.writer.finalize(frames, metadata);
-    this.deps.onExported?.();
-    return this.exportedRecord;
+    return this.writer.finalize(frames, metadata);
   }
 
-  /** Release writer-owned image files after the exported record is no longer needed. */
+  /** Release writer-owned image files after the observation is no longer needed. */
   async dispose(): Promise<void> {
     if (this.disposed) return;
     try {
@@ -257,12 +351,16 @@ export class UIObserver {
         await this.stop();
       }
     } finally {
-      this.writer.dispose();
+      if (this.observation) {
+        await this.observation.dispose();
+      } else {
+        this.writer.dispose();
+        this.deps.onDisposed?.();
+      }
       this.frames = [];
       this.persistedByRef.clear();
-      this.exportedRecord = null;
+      this.observation = null;
       this.disposed = true;
-      this.deps.onDisposed?.();
     }
   }
 

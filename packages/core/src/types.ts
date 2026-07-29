@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import type { UIObservationRecord } from '@midscene/shared/agent-tools/types';
 import type { NodeType } from '@midscene/shared/constants';
 import type { CreateOpenAIClientFn, TModelConfig } from '@midscene/shared/env';
 import type {
@@ -301,8 +300,32 @@ export interface AgentAssertOpt {
   keepRawResponse?: boolean;
   context?: string;
   abortSignal?: AbortSignal;
-  /** Assert against a previously captured observation window. */
-  observationRecord?: UIObservationRecord;
+}
+
+export interface AgentAssertResult {
+  pass: boolean;
+  thought?: string;
+  message?: string;
+}
+
+export type QueryOptions = ServiceExtractOption;
+export type AssertOptions = AgentAssertOpt & ServiceExtractOption;
+
+/** Read-only AI operations supported by both live Agents and UI observations. */
+export interface InsightAPI {
+  aiQuery<ReturnType = any>(
+    demand: ServiceExtractParam,
+    options?: QueryOptions,
+  ): Promise<ReturnType>;
+  aiBoolean(prompt: TUserPrompt, options?: QueryOptions): Promise<boolean>;
+  aiNumber(prompt: TUserPrompt, options?: QueryOptions): Promise<number>;
+  aiString(prompt: TUserPrompt, options?: QueryOptions): Promise<string>;
+  aiAsk(prompt: TUserPrompt, options?: QueryOptions): Promise<string>;
+  aiAssert(
+    assertion: TUserPrompt,
+    message?: string,
+    options?: AssertOptions,
+  ): Promise<AgentAssertResult | undefined>;
 }
 
 /**

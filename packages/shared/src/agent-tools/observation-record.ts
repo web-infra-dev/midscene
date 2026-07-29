@@ -27,6 +27,8 @@ const observationRecordSchema = z
   .object({
     type: z.literal('midscene_ui_observation'),
     version: z.literal(1),
+    startedAt: z.number().finite().nonnegative(),
+    endedAt: z.number().finite().nonnegative(),
     frames: z
       .array(
         z
@@ -46,7 +48,11 @@ const observationRecordSchema = z
       .strict(),
     shrunkShotToLogicalRatio: z.number().finite().positive(),
   })
-  .strict();
+  .strict()
+  .refine((record) => record.endedAt >= record.startedAt, {
+    path: ['endedAt'],
+    message: 'must be greater than or equal to startedAt',
+  });
 
 export function defaultObservationRecordPath(): string {
   const suffix = Math.random().toString(36).slice(2, 10);
@@ -118,6 +124,8 @@ export function readUIObservationRecord(filePath: string): UIObservationRecord {
 }
 
 export interface UIObservationRecordMetadata {
+  startedAt: number;
+  endedAt: number;
   shotSize: UIObservationRecord['shotSize'];
   shrunkShotToLogicalRatio: number;
 }

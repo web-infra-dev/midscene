@@ -965,7 +965,6 @@ function aiAssert(
     - `domIncluded?: boolean | 'visible-only'` - 是否向模型发送精简后的 DOM 信息，一般用于提取 UI 中不可见的属性，比如图片的链接。如果设置为 `'visible-only'`，则只发送可见的元素。默认值为 false。
     - `screenshotIncluded?: boolean` - 是否向模型发送截图。默认值为 true。
     - `context?: string` - 本次调用的额外上下文。详见[单次调用上下文](#单次调用上下文)。
-    - `observationRecord?: UIObservationRecord` - `observer.exportRecord()` 返回的观察记录对象。设置后，断言会基于这段画面记录执行，而不是读取当前屏幕。
 
 - 返回值：
 
@@ -998,7 +997,7 @@ expect(onesieItem.price).toBe(7.99);
 
 #### `startObserving()` {#agentstartobserving}
 
-在一段时间内持续采样屏幕，后续断言会基于这段有序记录判断状态或变化。它适合捕捉单张截图容易错过的短暂 UI，比如 toast、横幅或页面切换。
+在一段时间内持续采样屏幕。停止 observer 后会得到固定的 `UIObservation`，其只读 insight 方法基于整段有序画面判断状态或变化，适合捕捉实时单屏 insight 容易错过的 toast、横幅或页面切换。
 
 ```typescript
 function startObserving(options?: {
@@ -1008,21 +1007,20 @@ function startObserving(options?: {
 }): Promise<UIObserver>;
 ```
 
-返回的 `UIObserver` 提供：
+`UIObserver` 只负责录制：
 
-- `observer.stop(): Promise<void>` - 停止采样，并截取最后一张用于断言的截图。断言前必须先调用。
-- `observer.exportRecord(): Promise<UIObservationRecord>` - 返回录制得到的帧序列。各帧引用磁盘上的图片文件，不在对象中嵌入 base64 数据。
-- `observer.dispose(): Promise<void>` - 不再需要导出的观察记录后，删除 observer 持有的图片文件。使用该记录执行最后一次断言前，不要调用此方法。
-- `observer.frameCount: number` - 当前已缓冲的帧数。
+- `observer.bufferedFrameCount: number` - 录制过程中当前缓冲的帧数。
+- `observer.stop(): Promise<UIObservation>` - 停止采样、截取最后一张代表性截图，并返回固定的观察窗口。
+
+`UIObservation` 与 `Agent` 实现相同的只读 `InsightAPI`：`aiQuery()`、`aiBoolean()`、`aiNumber()`、`aiString()`、`aiAsk()` 和 `aiAssert()`。它还提供 `frameCount`、`startedAt` 和 `endedAt`。最后一次 insight 调用完成后，可以调用 `observation.dispose()` 提前释放图片文件；否则 `agent.destroy()` 会负责清理。
 
 ```typescript
 const observer = await agent.startObserving();
 await agent.aiAct('提交表单');
-await observer.stop();
-const observationRecord = await observer.exportRecord();
-await agent.aiAssert('过程中弹出了成功提示 toast', undefined, {
-  observationRecord,
-});
+const observation = await observer.stop();
+await observation.aiAssert('过程中弹出了成功提示 toast');
+const toastCount = await observation.aiNumber('共出现了多少次成功 toast？');
+await observation.dispose();
 ```
 
 各平台 CLI 会在前台持续录制。可以在一个终端中启动录制，在另一个终端或通过手动操作触发交互，然后回到录制终端按 Ctrl+C，完成录制并保存产物：
@@ -1051,6 +1049,8 @@ npx -y @midscene/web@1 assert \
 {
   "type": "midscene_ui_observation",
   "version": 1,
+  "startedAt": 1785132000000,
+  "endedAt": 1785132001000,
   "frames": [
     {
       "path": "submission-observation.frames/4f32c0a8.jpeg",

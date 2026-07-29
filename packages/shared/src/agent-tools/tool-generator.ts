@@ -848,7 +848,17 @@ export function generateCommonTools(
               convertHttpImage2Base64: args.convertHttpImage2Base64,
             });
             if (observationRecord) {
-              await agent.aiAssert(userPrompt, message, { observationRecord });
+              if (!agent.loadUIObservation) {
+                throw new Error(
+                  'assert --record is not supported because this agent cannot load UI observations',
+                );
+              }
+              const observation = agent.loadUIObservation(observationRecord);
+              try {
+                await observation.aiAssert(userPrompt, message);
+              } finally {
+                await observation.dispose?.();
+              }
             } else {
               await agent.aiAssert(userPrompt, message);
             }

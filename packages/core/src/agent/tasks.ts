@@ -1119,7 +1119,7 @@ export class TaskExecutor {
  * Surface a captured screenshot sequence in the report timeline, then release
  * it from the UIContext.
  *
- * When a UIObserver assertion runs, the observed frames live on
+ * When a UIObservation insight runs, the observed frames live on
  * `uiContext.screenshotSequence` only as a transient model input. This attaches
  * them to the task recorder so the report renders the full sequence the model
  * saw (the report timeline builds one screenshot per recorder item), then drops

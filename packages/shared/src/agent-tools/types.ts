@@ -136,13 +136,17 @@ export interface UIObservationFrame {
 }
 
 /**
- * Serializable observation window that can be persisted and asserted later.
+ * Serializable observation window that can be persisted and loaded later.
  * Frames are ordered from earliest to latest; the final frame represents the
  * UI state at the end of the observation window.
  */
 export interface UIObservationRecord {
   type: 'midscene_ui_observation';
   version: 1;
+  /** Time when observation sampling started. */
+  startedAt: number;
+  /** Time when the final representative frame was captured. */
+  endedAt: number;
   frames: UIObservationFrame[];
   shotSize: {
     width: number;
@@ -151,15 +155,28 @@ export interface UIObservationRecord {
   shrunkShotToLogicalRatio: number;
 }
 
-/**
- * Minimal UI observation lifecycle required by shared tool surfaces.
- */
-export interface BaseUIObserver {
-  /** Stop sampling and finalize the observed frame window. */
-  stop(): Promise<void>;
-  /** Export the stopped observation window as a file-backed record. */
+/** Fixed observation window consumed by shared CLI surfaces. */
+export interface BaseUIObservation {
+  readonly frameCount: number;
+  readonly startedAt: number;
+  readonly endedAt: number;
+  aiAssert(
+    assertion: UserPromptLike,
+    message?: string,
+    options?: Record<string, unknown>,
+  ): Promise<unknown>;
+  /** Export the observation as a file-backed record. */
   exportRecord(): Promise<UIObservationRecord>;
-  /** Release temporary backing files after the record is no longer needed. */
+  /** Release any resources owned by this observation. */
+  dispose?(): Promise<void>;
+}
+
+/** Minimal UI observation lifecycle required by shared tool surfaces. */
+export interface BaseUIObserver {
+  readonly bufferedFrameCount: number;
+  /** Stop sampling and return the fixed observed window. */
+  stop(): Promise<BaseUIObservation>;
+  /** Release temporary backing files if observation does not complete. */
   dispose?(): Promise<void>;
 }
 
@@ -212,6 +229,8 @@ export interface BaseAgent {
     msg?: string,
     options?: Record<string, unknown>,
   ) => Promise<unknown>;
+  /** Rehydrate a persisted observation record for CLI insight commands. */
+  loadUIObservation?: (record: UIObservationRecord) => BaseUIObservation;
   /** Start a UI observation window and capture its baseline frame. */
   startObserving?: (options?: BaseUIObserverOptions) => Promise<BaseUIObserver>;
 }

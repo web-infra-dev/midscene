@@ -42,26 +42,21 @@ describe(
         await sleep(1200);
         await device.home(); // transition mid-window
         await sleep(1800);
-        await observer.stop();
+        const observation = await observer.stop();
 
-        expect(observer.frameCount).toBeGreaterThanOrEqual(3);
-        const observationRecord = await observer.exportRecord();
+        expect(observer.bufferedFrameCount).toBeGreaterThanOrEqual(3);
 
         // The prompt is agnostic to WHAT the starting screen shows (an app,
         // or a system dialog covering it) — it only asserts the transition.
-        await agent.aiAssert(
+        await observation.aiAssert(
           'comparing the earlier and later frames, the screen transitions from one screen to a clearly different one, and the iOS home screen (launcher with app icons) appears in the later frames',
-          undefined,
-          { observationRecord },
         );
 
         // Negative sanity: the model must not rubber-stamp "true" for
         // anything asked about the observed window.
         await expect(
-          agent.aiAssert(
+          observation.aiAssert(
             'a calculator app interface appears in any of these frames',
-            undefined,
-            { observationRecord },
           ),
         ).rejects.toThrow();
       } finally {

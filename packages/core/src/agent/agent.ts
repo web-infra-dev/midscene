@@ -11,27 +11,29 @@ import {
   type AIUsageInfo,
   type ActionParam,
   type ActionReturn,
-  type AgentAssertOpt,
+  type AgentAssertResult,
   type AgentOpt,
   type AgentProgressListener,
   type AgentWaitForOpt,
+  type AssertOptions,
   type DeepThinkOption,
   type DeviceAction,
   ExecutionDump,
   type ExecutionRecorderItem,
   type ExecutionTask,
   type ExecutionTaskLog,
+  type InsightAPI,
   type LocateOption,
   type LocateResultElement,
   type OnTaskStartTip,
   type PlanningAction,
+  type QueryOptions,
   type RecordToReportOptions,
   type RecordToReportScreenshot,
   ReportActionDump,
   type ReportMeta,
   type ScrollParam,
   type ServiceAction,
-  type ServiceExtractOption,
   type ServiceExtractParam,
   type TestStatus,
   type UIContext,
@@ -55,6 +57,7 @@ import { readFile } from 'node:fs/promises';
 import { basename, resolve } from 'node:path';
 import type { AbstractInterface } from '@/device';
 import type { TaskRunner } from '@/task-runner';
+import type { UIObservationRecord } from '@midscene/shared/agent-tools/types';
 import {
   type IModelConfig,
   MIDSCENE_REPLANNING_CYCLE_LIMIT,
@@ -71,6 +74,7 @@ import {
 } from '../device';
 import { validateAgentCacheInput } from './cache-config';
 import { FileChooserAccepter } from './file-chooser';
+import { Insight } from './insight';
 import { MetricsCollector, type MidsceneUsageMetrics } from './metrics';
 import { AgentProgressBus } from './progress';
 import { buildPromptWithContext } from './prompt-context';
@@ -81,13 +85,9 @@ import {
 } from './run-gherkin-scenario';
 import { markdownToAiActPrompt } from './run-markdown';
 import { TaskCache } from './task-cache';
+import { TaskExecutor, locatePlanForLocate, withFileChooser } from './tasks';
 import {
-  TaskExecutionError,
-  TaskExecutor,
-  locatePlanForLocate,
-  withFileChooser,
-} from './tasks';
-import {
+  UIObservation,
   UIObserver,
   type UIObserverOption,
   uiContextFromObservationRecord,
@@ -104,16 +104,10 @@ import {
   getReportFileName,
   normalizeFilePaths,
   normalizeScrollType,
-  parsePrompt,
 } from './utils';
 
 const debug = getDebug('agent');
 const warn = getDebug('agent', { console: true });
-
-const defaultServiceExtractOption: ServiceExtractOption = {
-  domIncluded: false,
-  screenshotIncluded: true,
-};
 
 export type AiActOptions = {
   cacheable?: boolean;
@@ -142,9 +136,9 @@ type AgentInputOption = LocateOption & {
   mode?: 'replace' | 'clear' | 'typeOnly' | 'append';
 };
 
-export class Agent<
-  InterfaceType extends AbstractInterface = AbstractInterface,
-> {
+export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
+  implements InsightAPI
+{
   interface: InterfaceType;
 
   service: Service;
@@ -218,8 +212,8 @@ export class Agent<
    */
   private activeObserver: UIObserver | null = null;
 
-  /** Stopped observers remain owned by the agent until exported or disposed. */
-  private unexportedObservers = new Set<UIObserver>();
+  /** Observers own temporary frame files until their observation is disposed. */
+  private ownedObservers = new Set<UIObserver>();
 
   private get aiActContext(): string | undefined {
     return this.opts.aiActContext ?? this.opts.aiActionContext;
@@ -295,6 +289,14 @@ export class Agent<
         );
       },
     };
+  }
+
+  private createInsight(getUIContext?: () => UIContext): Insight {
+    return new Insight(
+      this.taskExecutor,
+      () => this.resolveModelRuntime('insight'),
+      getUIContext,
+    );
   }
 
   constructor(interfaceInstance: InterfaceType, opts?: AgentOpt) {
@@ -485,18 +487,14 @@ export class Agent<
   }
 
   /**
-   * Start observing the screen in the background so a later assertion can
-   * judge everything that happened while other agent calls ran — including
-   * transient UI (toasts, banners, transitions) that appears mid-action:
+   * Start observing the screen in the background and return a fixed insight
+   * surface when the observation is stopped:
    *
    * ```ts
    * const observer = await agent.startObserving();
    * await agent.aiAct('submit the form');
-   * await observer.stop();
-   * const observationRecord = await observer.exportRecord();
-   * await agent.aiAssert('a success toast appeared during the process', undefined, {
-   *   observationRecord,
-   * });
+   * const observation = await observer.stop();
+   * await observation.aiAssert('a success toast appeared during the process');
    * ```
    *
    * Frames come from the device's continuous frame source when available
@@ -504,7 +502,7 @@ export class Agent<
    * web) and fall back to plain screenshots otherwise. Sampling is capped at
    * 5fps, the buffer is bounded and self-thinning, decoding is deferred to
    * the end, and all buffered frames (up to `maxFrames`) are sent to
-   * the model at assert time. To control token cost for long windows,
+   * the model at insight time. To control token cost for long windows,
    * increase `intervalMs` or decrease `maxFrames`.
    * Awaiting `startObserving()` guarantees one baseline frame is captured
    * before your next action.
@@ -532,13 +530,14 @@ export class Agent<
         // the observation loop never pollutes the TaskRunner context cache.
         screenshot: () => this.interface.screenshotBase64(),
         captureRepresentative: () => this.getUIContext('assert'),
+        createInsight: (record) =>
+          this.createInsight(() => uiContextFromObservationRecord(record)),
         onStopped: () => {
           if (this.activeObserver === observer) {
             this.activeObserver = null;
           }
         },
-        onExported: () => this.unexportedObservers.delete(observer),
-        onDisposed: () => this.unexportedObservers.delete(observer),
+        onDisposed: () => this.ownedObservers.delete(observer),
         screenshotShrinkFactor: this.opts.screenshotShrinkFactor,
       },
       opt,
@@ -546,18 +545,29 @@ export class Agent<
     // Mark as active BEFORE the async start() so concurrent calls hit the
     // assert guard above. If start() throws, clear the reference below.
     this.activeObserver = observer;
-    this.unexportedObservers.add(observer);
+    this.ownedObservers.add(observer);
     try {
       await observer.start();
     } catch (error) {
       this.activeObserver = null;
-      this.unexportedObservers.delete(observer);
+      this.ownedObservers.delete(observer);
       await observer.dispose().catch((disposeError) => {
         debug(`error disposing failed observer start: ${disposeError}`);
       });
       throw error;
     }
     return observer;
+  }
+
+  /** @internal Rehydrate a persisted observation for shared CLI commands. */
+  loadUIObservation(record: UIObservationRecord): UIObservation {
+    // Validate eagerly so malformed records fail at the load boundary rather
+    // than during the first insight call.
+    uiContextFromObservationRecord(record);
+    return new UIObservation(
+      record,
+      this.createInsight(() => uiContextFromObservationRecord(record)),
+    );
   }
 
   /**
@@ -1289,83 +1299,25 @@ export class Agent<
 
   async aiQuery<ReturnType = any>(
     demand: ServiceExtractParam,
-    opt: ServiceExtractOption = defaultServiceExtractOption,
+    opt?: QueryOptions,
   ): Promise<ReturnType> {
-    const modelRuntime = this.resolveModelRuntime('insight');
-    const { output } = await this.taskExecutor.createTypeQueryExecution(
-      'Query',
-      demand,
-      modelRuntime,
-      opt,
-    );
-    return output as ReturnType;
+    return this.createInsight().aiQuery<ReturnType>(demand, opt);
   }
 
-  async aiBoolean(
-    prompt: TUserPrompt,
-    opt: ServiceExtractOption = defaultServiceExtractOption,
-  ): Promise<boolean> {
-    return this.aiBooleanWithContext(prompt, undefined, opt);
+  async aiBoolean(prompt: TUserPrompt, opt?: QueryOptions): Promise<boolean> {
+    return this.createInsight().aiBoolean(prompt, opt);
   }
 
-  private async aiBooleanWithContext(
-    prompt: TUserPrompt,
-    uiContext?: UIContext,
-    opt: ServiceExtractOption = defaultServiceExtractOption,
-  ): Promise<boolean> {
-    const modelRuntime = this.resolveModelRuntime('insight');
-
-    const { textPrompt, multimodalPrompt } = parsePrompt(prompt);
-    const { output } = await this.taskExecutor.createTypeQueryExecution(
-      'Boolean',
-      textPrompt,
-      modelRuntime,
-      opt,
-      multimodalPrompt,
-      uiContext ? { uiContext } : undefined,
-    );
-    return output as boolean;
+  async aiNumber(prompt: TUserPrompt, opt?: QueryOptions): Promise<number> {
+    return this.createInsight().aiNumber(prompt, opt);
   }
 
-  async aiNumber(
-    prompt: TUserPrompt,
-    opt: ServiceExtractOption = defaultServiceExtractOption,
-  ): Promise<number> {
-    const modelRuntime = this.resolveModelRuntime('insight');
-
-    const { textPrompt, multimodalPrompt } = parsePrompt(prompt);
-    const { output } = await this.taskExecutor.createTypeQueryExecution(
-      'Number',
-      textPrompt,
-      modelRuntime,
-      opt,
-      multimodalPrompt,
-    );
-    return output as number;
+  async aiString(prompt: TUserPrompt, opt?: QueryOptions): Promise<string> {
+    return this.createInsight().aiString(prompt, opt);
   }
 
-  async aiString(
-    prompt: TUserPrompt,
-    opt: ServiceExtractOption = defaultServiceExtractOption,
-  ): Promise<string> {
-    const modelRuntime = this.resolveModelRuntime('insight');
-
-    const { textPrompt, multimodalPrompt } = parsePrompt(prompt);
-    const { output } = await this.taskExecutor.createTypeQueryExecution(
-      'String',
-      textPrompt,
-      modelRuntime,
-      opt,
-      multimodalPrompt,
-    );
-    return output as string;
-  }
-
-  async aiAsk(
-    prompt: TUserPrompt,
-    opt: ServiceExtractOption = defaultServiceExtractOption,
-  ): Promise<string> {
-    return this.aiString(prompt, opt);
+  async aiAsk(prompt: TUserPrompt, opt?: QueryOptions): Promise<string> {
+    return this.createInsight().aiAsk(prompt, opt);
   }
 
   /**
@@ -1408,96 +1360,9 @@ export class Agent<
   async aiAssert(
     assertion: TUserPrompt,
     msg?: string,
-    opt?: AgentAssertOpt & ServiceExtractOption,
-  ) {
-    const uiContext = opt?.observationRecord
-      ? uiContextFromObservationRecord(opt.observationRecord)
-      : undefined;
-    return this.aiAssertWithUIContext(assertion, uiContext, msg, opt);
-  }
-
-  private async aiAssertWithUIContext(
-    assertion: TUserPrompt,
-    uiContext?: UIContext,
-    msg?: string,
-    opt?: AgentAssertOpt & ServiceExtractOption,
-  ) {
-    const modelRuntime = this.resolveModelRuntime('insight');
-
-    const serviceOpt: ServiceExtractOption = {
-      domIncluded: opt?.domIncluded ?? defaultServiceExtractOption.domIncluded,
-      screenshotIncluded:
-        opt?.screenshotIncluded ??
-        defaultServiceExtractOption.screenshotIncluded,
-      ...(opt?.context !== undefined ? { context: opt.context } : {}),
-    };
-
-    const { textPrompt, multimodalPrompt } = parsePrompt(assertion);
-    const assertionText =
-      typeof assertion === 'string' ? assertion : assertion.prompt;
-
-    const executionOptions = {
-      abortSignal: opt?.abortSignal,
-      ...(uiContext ? { uiContext } : {}),
-    };
-
-    try {
-      const { output, thought } =
-        await this.taskExecutor.createTypeQueryExecution<boolean>(
-          'Assert',
-          textPrompt,
-          modelRuntime,
-          serviceOpt,
-          multimodalPrompt,
-          executionOptions,
-        );
-
-      const pass = Boolean(output);
-      const message = pass
-        ? undefined
-        : `Assertion failed: ${msg || assertionText}\nReason: ${thought || '(no_reason)'}`;
-
-      if (opt?.keepRawResponse) {
-        return {
-          pass,
-          thought,
-          message,
-        };
-      }
-
-      if (!pass) {
-        throw new Error(message);
-      }
-    } catch (error) {
-      if (error instanceof TaskExecutionError) {
-        const errorTask = error.errorTask;
-        const thought = errorTask?.thought;
-        const rawError = errorTask?.error;
-        const rawMessage =
-          errorTask?.errorMessage ||
-          (rawError instanceof Error
-            ? rawError.message
-            : rawError
-              ? String(rawError)
-              : undefined);
-        const reason = thought || rawMessage || '(no_reason)';
-        const message = `Assertion failed: ${msg || assertionText}\nReason: ${reason}`;
-
-        if (opt?.keepRawResponse) {
-          return {
-            pass: false,
-            thought,
-            message,
-          };
-        }
-
-        throw new Error(message, {
-          cause: rawError ?? error,
-        });
-      }
-
-      throw error;
-    }
+    opt?: AssertOptions,
+  ): Promise<AgentAssertResult | undefined> {
+    return this.createInsight().aiAssert(assertion, msg, opt);
   }
 
   async aiWaitFor(assertion: TUserPrompt, opt?: AgentWaitForOpt) {
@@ -1629,16 +1494,15 @@ export class Agent<
 
     this.destroyed = true;
 
-    // Unexported observers still own temporary frame files, including observers
-    // that were stopped automatically by the watchdog.
-    for (const observer of this.unexportedObservers) {
+    // Observers own observation frame files until explicitly disposed.
+    for (const observer of this.ownedObservers) {
       try {
         await observer.dispose();
       } catch (error) {
         debug(`error disposing unexported observer during destroy: ${error}`);
       }
     }
-    this.unexportedObservers.clear();
+    this.ownedObservers.clear();
     this.activeObserver = null;
 
     let interfaceDestroyError: unknown;

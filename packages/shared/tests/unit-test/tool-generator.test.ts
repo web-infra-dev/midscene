@@ -373,11 +373,12 @@ describe('generateToolsFromActionSpace', () => {
     const output = join(tempDir, 'toast-observation.json');
     const sourceFrame = join(tempDir, 'source.png');
     writeFileSync(sourceFrame, Buffer.from('recorded-frame'));
-    const stop = vi.fn().mockResolvedValue(undefined);
     const dispose = vi.fn().mockResolvedValue(undefined);
     const exportRecord = vi.fn().mockResolvedValue({
       type: 'midscene_ui_observation',
       version: 1,
+      startedAt: 50,
+      endedAt: 150,
       frames: [
         {
           path: sourceFrame,
@@ -388,9 +389,16 @@ describe('generateToolsFromActionSpace', () => {
       shotSize: { width: 100, height: 50 },
       shrunkShotToLogicalRatio: 1,
     });
+    const stop = vi.fn().mockResolvedValue({
+      frameCount: 1,
+      startedAt: 50,
+      endedAt: 150,
+      aiAssert: vi.fn(),
+      exportRecord,
+    });
     const startObserving = vi.fn().mockResolvedValue({
       stop,
-      exportRecord,
+      bufferedFrameCount: 1,
       dispose,
     });
     const getAgent = vi.fn(async () => ({
@@ -731,6 +739,8 @@ describe('generateCommonTools — assert image prompts', () => {
     const observationRecord = {
       type: 'midscene_ui_observation' as const,
       version: 1 as const,
+      startedAt: 50,
+      endedAt: 250,
       frames: [
         {
           path: 'toast-observation.frames/frame.png',
@@ -748,8 +758,19 @@ describe('generateCommonTools — assert image prompts', () => {
     };
     writeFileSync(recordPath, JSON.stringify(observationRecord), 'utf8');
     const aiAssert = vi.fn().mockResolvedValue(undefined);
+    const observationAssert = vi.fn().mockResolvedValue(undefined);
+    const dispose = vi.fn().mockResolvedValue(undefined);
+    const loadUIObservation = vi.fn().mockReturnValue({
+      frameCount: 2,
+      startedAt: 50,
+      endedAt: 250,
+      aiAssert: observationAssert,
+      exportRecord: vi.fn(),
+      dispose,
+    });
     const tools = generateCommonTools(async () => ({
       aiAssert,
+      loadUIObservation,
       getActionSpace: vi.fn().mockResolvedValue([]),
       page: { screenshotBase64: vi.fn().mockResolvedValue(screenshotBase64) },
     }));
@@ -760,19 +781,19 @@ describe('generateCommonTools — assert image prompts', () => {
       record: recordPath,
     });
 
-    expect(aiAssert).toHaveBeenCalledWith(
+    expect(loadUIObservation).toHaveBeenCalledWith({
+      ...observationRecord,
+      frames: observationRecord.frames.map((frame) => ({
+        ...frame,
+        path: framePath,
+      })),
+    });
+    expect(observationAssert).toHaveBeenCalledWith(
       'a success toast appeared',
       undefined,
-      {
-        observationRecord: {
-          ...observationRecord,
-          frames: observationRecord.frames.map((frame) => ({
-            ...frame,
-            path: framePath,
-          })),
-        },
-      },
     );
+    expect(aiAssert).not.toHaveBeenCalled();
+    expect(dispose).toHaveBeenCalledOnce();
     expect(result).toEqual({
       content: [{ type: 'text', text: 'Assertion passed.' }],
     });
@@ -789,6 +810,8 @@ describe('generateCommonTools — assert image prompts', () => {
       JSON.stringify({
         type: 'midscene_ui_observation',
         version: 1,
+        startedAt: 50,
+        endedAt: 150,
         frames: [
           {
             path: '../not-an-image.png',

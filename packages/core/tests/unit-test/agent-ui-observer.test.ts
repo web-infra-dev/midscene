@@ -34,7 +34,7 @@ const createAgentStub = (opts: { openFrameSource?: () => any } = {}) => {
   }));
   const screenshotBase64 = vi.fn(async () => dataUrl('fallback'));
   (agent as any).opts = {};
-  (agent as any).unexportedObservers = new Set();
+  (agent as any).ownedObservers = new Set();
   (agent as any).taskExecutor = { createTypeQueryExecution };
   (agent as any).resolveModelRuntime = vi.fn(() => defaultModel);
   (agent as any).interface = {
@@ -54,7 +54,7 @@ describe('Agent.startObserving', () => {
     }
   });
 
-  it('passes the exported file-backed record to aiAssert', async () => {
+  it('returns a fixed observation that can run aiAssert', async () => {
     const decode = vi.fn(async (refs: any[]) =>
       refs.map((frame) => dataUrl(`decoded:${frame.ref}`)),
     );
@@ -70,12 +70,10 @@ describe('Agent.startObserving', () => {
 
     const observer = await agent.startObserving({ intervalMs: 200 });
     await new Promise((resolve) => setTimeout(resolve, 250));
-    await observer.stop();
-    const observationRecord = await observer.exportRecord();
+    const observation = await observer.stop();
+    const observationRecord = await observation.exportRecord();
     trackRecordFiles(observationRecord);
-    await agent.aiAssert('a toast appeared during the process', undefined, {
-      observationRecord,
-    });
+    await observation.aiAssert('a toast appeared during the process');
 
     expect(openFrameSource).toHaveBeenCalledOnce();
     expect(screenshotBase64).not.toHaveBeenCalled();
@@ -108,19 +106,19 @@ describe('Agent.startObserving', () => {
     await expect(agent.startObserving({ intervalMs: 200 })).rejects.toThrow(
       /already active/,
     );
-    await observer1.stop();
-    trackRecordFiles(await observer1.exportRecord());
+    const observation1 = await observer1.stop();
+    trackRecordFiles(await observation1.exportRecord());
     const observer2 = await agent.startObserving({ intervalMs: 200 });
-    await observer2.stop();
-    trackRecordFiles(await observer2.exportRecord());
+    const observation2 = await observer2.stop();
+    trackRecordFiles(await observation2.exportRecord());
     expect(stop).toHaveBeenCalledTimes(2);
   });
 
   it('falls back to plain screenshots when no frame source exists', async () => {
     const { agent, screenshotBase64 } = createAgentStub();
     const observer = await agent.startObserving({ intervalMs: 200 });
-    await observer.stop();
-    const record = await observer.exportRecord();
+    const observation = await observer.stop();
+    const record = await observation.exportRecord();
     trackRecordFiles(record);
 
     expect(screenshotBase64).toHaveBeenCalled();
@@ -130,7 +128,7 @@ describe('Agent.startObserving', () => {
   it('disposes a stopped unexported observer when the agent is destroyed', async () => {
     const { agent } = createAgentStub();
     const observer = await agent.startObserving({ intervalMs: 200 });
-    await observer.stop();
+    const observation = await observer.stop();
     const bufferedFrame = (observer as any).frames[0];
     const framePath = (observer as any).writer.resolveFramePath(
       bufferedFrame.persisted,
@@ -144,6 +142,7 @@ describe('Agent.startObserving', () => {
     expect(existsSync(framePath)).toBe(true);
     await agent.destroy();
     expect(existsSync(framePath)).toBe(false);
+    await expect(observation.aiBoolean('anything')).rejects.toThrow(/disposed/);
   });
 
   it('rebuilds ordered assertion context from resolved image paths', async () => {
@@ -156,20 +155,26 @@ describe('Agent.startObserving', () => {
       return path;
     });
 
-    await agent.aiAssert('a toast appeared during the process', undefined, {
-      observationRecord: {
-        type: 'midscene_ui_observation',
-        version: 1,
-        frames: framePaths.map((path, index) => ({
-          path,
-          mimeType: 'image/png',
-          capturedAt: (index + 1) * 100,
-        })),
-        shotSize: { width: 100, height: 100 },
-        shrunkShotToLogicalRatio: 1,
-      },
-      keepRawResponse: true,
+    const observation = agent.loadUIObservation({
+      type: 'midscene_ui_observation',
+      version: 1,
+      startedAt: 100,
+      endedAt: 300,
+      frames: framePaths.map((path, index) => ({
+        path,
+        mimeType: 'image/png',
+        capturedAt: (index + 1) * 100,
+      })),
+      shotSize: { width: 100, height: 100 },
+      shrunkShotToLogicalRatio: 1,
     });
+    await observation.aiAssert(
+      'a toast appeared during the process',
+      undefined,
+      {
+        keepRawResponse: true,
+      },
+    );
 
     const executionOptions = (
       createTypeQueryExecution.mock.calls[0] as any[]
@@ -180,6 +185,22 @@ describe('Agent.startObserving', () => {
           Buffer.from(frame.rawBase64, 'base64').toString(),
       ),
     ).toEqual(['before', 'toast', 'after']);
+
+    await observation.aiQuery<string>('summarize the transition');
+    await observation.aiBoolean('did a toast appear?');
+    await observation.aiNumber('how many states are visible?');
+    await observation.aiString('what changed?');
+    await observation.aiAsk('describe the transition');
+
+    expect(observation.frameCount).toBe(3);
+    expect(observation.startedAt).toBe(100);
+    expect(observation.endedAt).toBe(300);
+    expect(
+      createTypeQueryExecution.mock.calls.map((call) => (call as any[])[0]),
+    ).toEqual(['Assert', 'Query', 'Boolean', 'Number', 'String', 'String']);
+    for (const call of createTypeQueryExecution.mock.calls) {
+      expect((call as any[])[5].uiContext.screenshotSequence).toHaveLength(3);
+    }
   });
 
   it('plain aiAssert and aiBoolean remain single-frame', async () => {

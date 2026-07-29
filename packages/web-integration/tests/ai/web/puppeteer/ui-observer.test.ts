@@ -63,14 +63,11 @@ describe(
         const observer = await ctx.agent.startObserving({ intervalMs: 500 });
         await ctx.agent.aiTap('the Sign in button');
         await sleep(3800); // cover the toast's appear+hide window
-        await observer.stop();
+        const observation = await observer.stop();
 
-        expect(observer.frameCount).toBeGreaterThanOrEqual(4);
-        const observationRecord = await observer.exportRecord();
-        await ctx.agent.aiAssert(
+        expect(observer.bufferedFrameCount).toBeGreaterThanOrEqual(4);
+        await observation.aiAssert(
           'a "login failed" error toast appeared at some point during the observed process',
-          undefined,
-          { observationRecord },
         );
 
         // ...whereas a single screenshot taken before it appears misses it.
