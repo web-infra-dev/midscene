@@ -3,7 +3,10 @@ import { sleep } from '@midscene/core/utils';
 import { getDebug } from '@midscene/shared/logger';
 import type { ADB } from 'appium-adb';
 import { runAdbShellStdoutOrThrow } from './adb-shell';
-import { uiautomatorXmlToUiNode } from './ui-tree';
+import {
+  ANDROID_UI_TREE_XPATH_POLICY,
+  uiautomatorXmlToUiNode,
+} from './ui-tree';
 
 const ACCESSIBILITY_DUMP_ATTEMPTS = 3;
 const ACCESSIBILITY_DUMP_TIMEOUT_MS = 5_000;
@@ -217,6 +220,14 @@ export async function captureAndroidUITree(
         platform: 'android',
         capturedAt,
         root,
+        xpathPolicy: {
+          ...ANDROID_UI_TREE_XPATH_POLICY,
+          stableAttrs: [...ANDROID_UI_TREE_XPATH_POLICY.stableAttrs],
+          textAttrs: [...ANDROID_UI_TREE_XPATH_POLICY.textAttrs],
+          excludedTargetTypes: [
+            ...ANDROID_UI_TREE_XPATH_POLICY.excludedTargetTypes,
+          ],
+        },
       };
     } catch (error) {
       const failure = `uiautomator attempt ${attempt}/${ACCESSIBILITY_DUMP_ATTEMPTS}: ${errorMessage(error)}`;

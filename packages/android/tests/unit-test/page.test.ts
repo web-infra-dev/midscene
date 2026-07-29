@@ -215,6 +215,11 @@ describe('AndroidDevice', () => {
 
       expect(snapshot).toMatchObject({
         platform: 'android',
+        xpathPolicy: {
+          stableAttrs: ['resource-id'],
+          textAttrs: ['content-desc', 'text'],
+          max: 3,
+        },
         root: {
           type: 'android.widget.FrameLayout',
           bounds: { left: 0, top: 0, width: 200, height: 400 },
@@ -228,6 +233,9 @@ describe('AndroidDevice', () => {
         },
       });
       expect(snapshot.capturedAt).toBeGreaterThanOrEqual(beforeCapture);
+      expect(snapshot.xpathPolicy.excludedTargetTypes).toContain(
+        'android.webkit.WebView',
+      );
       expect(mockAdb.getScreenDensity).toHaveBeenCalledOnce();
       expect(mockAdb.shell).toHaveBeenCalledWith(
         'cat /sdcard/midscene_window_dump.xml',

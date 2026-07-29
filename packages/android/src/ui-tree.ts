@@ -1,4 +1,23 @@
-import type { UiNode } from '@midscene/core';
+import type { UITreeSnapshot, UiNode } from '@midscene/core';
+
+export const ANDROID_UI_TREE_XPATH_POLICY: UITreeSnapshot['xpathPolicy'] = {
+  stableAttrs: ['resource-id'],
+  textAttrs: ['content-desc', 'text'],
+  excludedTargetTypes: [
+    'android.widget.GridView',
+    'android.widget.ListView',
+    'android.widget.ScrollView',
+    'android.widget.HorizontalScrollView',
+    'android.widget.RecyclerView',
+    'android.support.v7.widget.RecyclerView',
+    'androidx.recyclerview.widget.RecyclerView',
+    'android.support.v4.view.ViewPager',
+    'androidx.viewpager.widget.ViewPager',
+    'androidx.viewpager2.widget.ViewPager2',
+    'android.webkit.WebView',
+  ],
+  max: 3,
+};
 
 interface XmlElement {
   name: string;

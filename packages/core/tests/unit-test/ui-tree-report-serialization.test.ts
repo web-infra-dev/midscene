@@ -21,6 +21,12 @@ describe('UI tree report serialization', () => {
           },
         ],
       },
+      xpathPolicy: {
+        stableAttrs: ['resource-id'],
+        textAttrs: ['content-desc', 'text'],
+        excludedTargetTypes: ['android.webkit.WebView'],
+        max: 3,
+      },
     };
     const uiContext = {
       screenshot: ScreenshotItem.create('data:image/png;base64,AAA', 122),
