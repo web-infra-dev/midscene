@@ -136,6 +136,9 @@ export default defineConfig(async () => {
     },
     themeConfig: {
       lastUpdated: true,
+      llmsUI: {
+        placement: 'outline',
+      },
       socialLinks: [
         {
           icon: 'github',
