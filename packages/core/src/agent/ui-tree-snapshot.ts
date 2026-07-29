@@ -1,18 +1,105 @@
-import type {
-  Rect,
-  UITreeIdentityCount,
-  UITreeSnapshot,
-  UiNode,
-} from '@/types';
-import { findInspectionTargetAtPoint } from './inspection-xpath';
+import type { Rect, UITreeSnapshot, UiNode } from '@/types';
 
 interface PointXY {
   x: number;
   y: number;
 }
 
+interface PointHit {
+  node: UiNode;
+  path: UiNode[];
+  order: number;
+}
+
 function hasResourceId(node: UiNode): boolean {
   return Boolean(node.attrs['resource-id']?.trim());
+}
+
+function pointInBounds(node: UiNode, point: PointXY): boolean {
+  const { left, top, width, height } = node.bounds;
+  return (
+    width > 0 &&
+    height > 0 &&
+    point.x >= left &&
+    point.x < left + width &&
+    point.y >= top &&
+    point.y < top + height
+  );
+}
+
+function nodeArea(node: UiNode): number {
+  return Math.max(0, node.bounds.width) * Math.max(0, node.bounds.height);
+}
+
+function collectNodesAtPoint(root: UiNode, point: PointXY): PointHit[] {
+  const hits: PointHit[] = [];
+  const visit = (node: UiNode, path: UiNode[]) => {
+    const containsPoint = pointInBounds(node, point);
+    const hasBounds = node.bounds.width > 0 && node.bounds.height > 0;
+    if (!containsPoint && hasBounds) return;
+
+    if (containsPoint) {
+      hits.push({ node, path, order: hits.length });
+    }
+    for (const child of node.children) {
+      visit(child, [...path, child]);
+    }
+  };
+  visit(root, [root]);
+  return hits;
+}
+
+function rectIntersectionOverUnion(node: UiNode, expectedRect: Rect): number {
+  const left = Math.max(node.bounds.left, expectedRect.left);
+  const top = Math.max(node.bounds.top, expectedRect.top);
+  const right = Math.min(
+    node.bounds.left + node.bounds.width,
+    expectedRect.left + expectedRect.width,
+  );
+  const bottom = Math.min(
+    node.bounds.top + node.bounds.height,
+    expectedRect.top + expectedRect.height,
+  );
+  const intersection = Math.max(0, right - left) * Math.max(0, bottom - top);
+  const expectedArea =
+    Math.max(0, expectedRect.width) * Math.max(0, expectedRect.height);
+  const union = nodeArea(node) + expectedArea - intersection;
+  return union > 0 ? intersection / union : 0;
+}
+
+function findTargetPath(
+  root: UiNode,
+  point: PointXY,
+  expectedRect?: Rect,
+): UiNode[] {
+  const hits = collectNodesAtPoint(root, point);
+  const expectedRectHit = expectedRect
+    ? hits
+        .map((hit) => ({
+          ...hit,
+          overlap: rectIntersectionOverUnion(hit.node, expectedRect),
+        }))
+        .filter(({ overlap }) => overlap > 0)
+        .sort(
+          (left, right) =>
+            right.overlap - left.overlap ||
+            right.path.length - left.path.length,
+        )[0]
+    : undefined;
+  const best =
+    expectedRectHit ??
+    hits.sort((left, right) => {
+      const areaDelta = nodeArea(left.node) - nodeArea(right.node);
+      if (areaDelta !== 0) return areaDelta;
+      const depthDelta = right.path.length - left.path.length;
+      if (depthDelta !== 0) return depthDelta;
+      return right.order - left.order;
+    })[0];
+
+  if (!best) {
+    throw new Error(`no node found at point (${point.x}, ${point.y})`);
+  }
+  return best.path;
 }
 
 function cloneAncestorChain(path: UiNode[], rootIndex: number): UiNode {
@@ -33,47 +120,11 @@ function cloneAncestorChain(path: UiNode[], rootIndex: number): UiNode {
   return branch;
 }
 
-function identityKey(attr: string, value: string): string {
-  return JSON.stringify([attr, value]);
-}
-
-function collectPageIdentityCounts(
-  root: UiNode,
-  retainedPath: UiNode[],
-  attributes: string[],
-): UITreeIdentityCount[] {
-  const identities = new Map<string, UITreeIdentityCount>();
-  const uniqueAttributes = [...new Set(attributes)];
-
-  for (const node of retainedPath) {
-    for (const attr of uniqueAttributes) {
-      const value = node.attrs[attr];
-      if (!value) continue;
-      const key = identityKey(attr, value);
-      if (!identities.has(key)) {
-        identities.set(key, { attr, value, count: 0 });
-      }
-    }
-  }
-
-  const visit = (node: UiNode) => {
-    for (const identity of identities.values()) {
-      if (node.attrs[identity.attr] === identity.value) {
-        identity.count++;
-      }
-    }
-    for (const child of node.children) visit(child);
-  };
-  visit(root);
-  return [...identities.values()];
-}
-
 /**
  * Reduce a captured Android tree to the located target's direct ancestor chain.
  * The closest ancestor carrying a resource-id becomes the snapshot root; when
  * no such ancestor exists, the original tree root is retained. The located
- * target remains the only leaf (even when it has its own resource-id), so the
- * report can display the located element and its direct context without
+ * target remains the only leaf, so reports keep its direct context without
  * serializing unrelated branches.
  */
 export function pruneUITreeSnapshotToTarget(
@@ -81,14 +132,11 @@ export function pruneUITreeSnapshotToTarget(
   point: PointXY,
   expectedRect?: Rect,
 ): UITreeSnapshot {
-  const hit = findInspectionTargetAtPoint(snapshot.root, point, {
-    ...snapshot.xpathPolicy,
-    expectedRect,
-  });
+  const path = findTargetPath(snapshot.root, point, expectedRect);
 
   let rootIndex = 0;
-  for (let index = hit.path.length - 2; index >= 0; index--) {
-    if (hasResourceId(hit.path[index])) {
+  for (let index = path.length - 2; index >= 0; index--) {
+    if (hasResourceId(path[index])) {
       rootIndex = index;
       break;
     }
@@ -96,17 +144,6 @@ export function pruneUITreeSnapshotToTarget(
 
   return {
     ...snapshot,
-    root: cloneAncestorChain(hit.path, rootIndex),
-    inspection: {
-      scope: 'target-lineage',
-      pageIdentityCounts: collectPageIdentityCounts(
-        snapshot.root,
-        hit.path.slice(rootIndex),
-        [
-          ...snapshot.xpathPolicy.stableAttrs,
-          ...snapshot.xpathPolicy.textAttrs,
-        ],
-      ),
-    },
+    root: cloneAncestorChain(path, rootIndex),
   };
 }
