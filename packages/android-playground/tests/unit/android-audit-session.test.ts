@@ -99,6 +99,17 @@ async function waitFor(
   }
 }
 
+function deferred<T>(): {
+  promise: Promise<T>;
+  resolve: (value: T | PromiseLike<T>) => void;
+} {
+  let resolve!: (value: T | PromiseLike<T>) => void;
+  const promise = new Promise<T>((promiseResolve) => {
+    resolve = promiseResolve;
+  });
+  return { promise, resolve };
+}
+
 describe('AndroidAuditSessionController', () => {
   beforeEach(() => {
     vi.useRealTimers();
@@ -161,16 +172,10 @@ describe('AndroidAuditSessionController', () => {
   });
 
   it('single-flights concurrent captures and validates on the next tree', async () => {
-    let resolveCapture: ((value: AndroidAccessibilitySnapshot) => void) | null =
-      null;
+    const pendingCapture = deferred<AndroidAccessibilitySnapshot>();
     const captureAccessibilitySnapshot = vi
       .fn<() => Promise<AndroidAccessibilitySnapshot>>()
-      .mockImplementationOnce(
-        () =>
-          new Promise((resolve) => {
-            resolveCapture = resolve;
-          }),
-      )
+      .mockImplementationOnce(() => pendingCapture.promise)
       .mockResolvedValueOnce(snapshot(40));
     const controller = new AndroidAuditSessionController({
       captureIntervalMs: 60_000,
@@ -183,7 +188,7 @@ describe('AndroidAuditSessionController', () => {
     const first = controller.captureNow();
     const duplicate = controller.captureNow();
     expect(captureAccessibilitySnapshot).toHaveBeenCalledTimes(1);
-    resolveCapture?.(snapshot(20));
+    pendingCapture.resolve(snapshot(20));
     await Promise.all([first, duplicate]);
 
     await controller.captureNow();
@@ -199,20 +204,16 @@ describe('AndroidAuditSessionController', () => {
   });
 
   it('drops an in-flight result after the device is detached', async () => {
-    let resolveCapture: ((value: AndroidAccessibilitySnapshot) => void) | null =
-      null;
+    const pendingCapture = deferred<AndroidAccessibilitySnapshot>();
     const controller = new AndroidAuditSessionController();
     controller.attachDevice('serial-1', {
-      captureAccessibilitySnapshot: () =>
-        new Promise((resolve) => {
-          resolveCapture = resolve;
-        }),
+      captureAccessibilitySnapshot: () => pendingCapture.promise,
       screenshotBase64: vi.fn(async () => 'ZmFrZQ=='),
     });
 
     const capture = controller.captureNow();
     controller.detachDevice();
-    resolveCapture?.(snapshot(20));
+    pendingCapture.resolve(snapshot(20));
     await capture;
 
     expect(controller.getState()).toMatchObject({

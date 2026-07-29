@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import { describe, expect, it } from 'vitest';
-import { androidAuditMarkerLabelPlacement } from '../../../../apps/android-playground/src/android-audit/marker-presentation';
+import { androidAuditMarkerLabelPlacement } from '../../src/android-audit-marker-presentation';
 
 describe('Android audit marker presentation', () => {
   it('keeps a top-edge marker label inside the frame so its status color stays visible', () => {

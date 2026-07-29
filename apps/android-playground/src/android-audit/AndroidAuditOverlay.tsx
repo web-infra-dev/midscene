@@ -1,3 +1,4 @@
+import { androidAuditMarkerLabelPlacement } from '@midscene/android-playground/android-audit-marker-presentation';
 import type { PreviewOverlayRenderContext } from '@midscene/playground-app';
 import {
   type PointerEvent as ReactPointerEvent,
@@ -5,7 +6,6 @@ import {
   useState,
 } from 'react';
 import { useAndroidAudit } from './AndroidAuditContext';
-import { androidAuditMarkerLabelPlacement } from './marker-presentation';
 
 const STATUS_LABELS = {
   'cache-xpath-hit': 'Cache XPath Hit',
