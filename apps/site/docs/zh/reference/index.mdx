@@ -1588,14 +1588,21 @@ const reportMergingTool = new ReportMergingTool();
 - 类型
 
 ```typescript
+type SkippedReportFileAttributes = Omit<
+  ReportFileAttributes,
+  'testStatus'
+> & {
+  testStatus: 'skipped';
+};
+
 type ReportFileWithAttributes =
   | {
       reportFilePath: string;
       reportAttributes: ReportFileAttributes;
     }
   | {
-      reportFilePath?: string;
-      reportAttributes: ReportFileAttributes & { testStatus: 'skipped' };
+      reportFilePath?: undefined;
+      reportAttributes: SkippedReportFileAttributes;
     };
 
 function append(reportInfo: ReportFileWithAttributes): void;
@@ -1604,7 +1611,7 @@ function append(reportInfo: ReportFileWithAttributes): void;
 - 参数:
 
   - `reportInfo: ReportFileWithAttributes` - 报告信息对象，包含:
-    - `reportFilePath: string | undefined` - 报告文件的路径，通常是 `agent.reportFile`。只有当 `reportAttributes.testStatus` 为 `'skipped'` 时，才能省略该字段
+    - `reportFilePath: string | undefined` - 报告文件的路径，通常是 `agent.reportFile`。只有当 `reportAttributes.testStatus` 为 `'skipped'` 时，才能省略该字段。其他状态缺少路径时，`append()` 会抛出错误
     - `reportAttributes: object` - 报告属性
       - `testId: string` - 自动化工作流的唯一标识符
       - `testTitle: string` - 自动化工作流标题
@@ -2035,7 +2042,7 @@ function destroy(closeNewTabsAfterDisconnect?: boolean): Promise<void>;
 - `ClearInput` —— 清空输入框内容。
 - `Launch` —— 打开网页或 `package/.Activity`。
 - `Terminate` —— 按包名强制停止应用。
-- `RunAdbShell` —— 执行原始 `adb shell` 命令。
+- `RunAdbShell` —— 执行原始 `adb shell` 命令。此动作默认启用。将 `exposeRunAdbShellAction` 设为 `false`，可从动作空间中移除此动作。
 - `AndroidBackButton` —— 触发系统返回。
 - `AndroidHomeButton` —— 回到桌面。
 - `AndroidRecentAppsButton` —— 打开多任务/最近应用。
@@ -2074,6 +2081,7 @@ const device = new AndroidDevice(deviceId, {
   - `'yadb-for-non-ascii'`（默认）—— 对 Unicode 字符（包括 Latin Unicode 如 ö、é、ñ）、中文、日文以及格式化符号（如 %s、%d）使用 yadb。纯 ASCII 文本使用更快的原生 `adb input text`。
   - `'always-yadb'` —— 对所有文本输入始终使用 yadb，提供最大兼容性，但对纯 ASCII 文本稍慢。
 - `displayId?: number` —— 在设备镜像多个屏幕时，选择特定虚拟屏幕。
+- `exposeRunAdbShellAction?: boolean` —— 是否在动作空间中暴露内置的 `RunAdbShell` 动作。默认值：`true`。设为 `false` 后，AI 规划器、YAML 脚本和 `agent.runAdbShell()` 都无法执行 ADB shell 命令。
 - `screenshotResizeScale?: number` —— **已废弃。** 此选项已移除，不再生效。如需控制发送给 AI 模型的截图尺寸，请使用 `AgentOpt` 中的 `screenshotShrinkFactor`。
 - `minScreenshotBufferSize?: number` —— 截图 buffer 大小校验阈值，单位为字节；低于该值的 buffer 会被视为截图采集失败或已损坏。默认 `1024`（1KB）。设置为 `0` 仅跳过此大小校验；Midscene 仍会拒绝空 buffer 和无效图片格式。
 - `alwaysRefreshScreenInfo?: boolean` —— 每一步都重新查询旋转角度与屏幕尺寸，默认 `false`。
@@ -2171,6 +2179,8 @@ function runAdbShell(command: string, opt?: { timeout?: number }): Promise<strin
 
 - `command: string` —— 原样传递给 `adb shell` 的命令。例如要传 `input tap 100 200`，不要传 `adb shell input tap 100 200`。
 - `opt.timeout?: number` —— 可选的命令执行超时时间，单位为毫秒。
+
+此方法会调用 `RunAdbShell` 动作。创建 `AndroidDevice` 时，如果将 `exposeRunAdbShellAction` 设为 `false`，此方法将不可用。
 
 ```ts
 const result = await agent.runAdbShell('dumpsys battery', { timeout: 60 * 1000 });
