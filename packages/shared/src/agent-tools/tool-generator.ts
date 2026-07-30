@@ -11,6 +11,7 @@ import {
   unwrapZodField,
 } from '../zod-schema-utils';
 import { getErrorMessage } from './error-formatter';
+import type { ResolveObservationArtifactAdapter } from './observation-artifact';
 import { readUIObservationRecord } from './observation-record';
 import type { ToolDefaults } from './tool-defaults';
 import type {
@@ -666,6 +667,7 @@ export function generateCommonTools(
   initArgSchema: ToolSchema = {},
   initArgCliMetadata?: ToolCliMetadata,
   toolDefaults: ToolDefaults = {},
+  resolveObservationArtifacts?: ResolveObservationArtifactAdapter,
 ): ToolDefinition[] {
   return [
     {
@@ -848,12 +850,14 @@ export function generateCommonTools(
               convertHttpImage2Base64: args.convertHttpImage2Base64,
             });
             if (observationRecord) {
-              if (!agent.loadUIObservation) {
+              const observationArtifacts = resolveObservationArtifacts?.(agent);
+              if (!observationArtifacts) {
                 throw new Error(
                   'assert --record is not supported because this agent cannot load UI observations',
                 );
               }
-              const observation = agent.loadUIObservation(observationRecord);
+              const observation =
+                observationArtifacts.loadRecord(observationRecord);
               try {
                 await observation.aiAssert(userPrompt, message);
               } finally {

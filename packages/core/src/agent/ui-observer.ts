@@ -1,6 +1,7 @@
 import {
   type UIObservationRecordMetadata,
   UIObservationRecordWriter,
+  cloneUIObservationRecord,
 } from '@midscene/shared/agent-tools/observation-record';
 import type {
   BaseUIObserverOptions,
@@ -15,9 +16,9 @@ import type { DeviceFrameRef, DeviceFrameSource } from '../device';
 import { ScreenshotItem } from '../screenshot-item';
 import type {
   AgentAssertResult,
-  AssertOptions,
   InsightAPI,
-  QueryOptions,
+  ObservationAssertOptions,
+  ObservationQueryOptions,
   ServiceExtractParam,
   UIContext,
 } from '../types';
@@ -48,16 +49,42 @@ interface UIObserverDeps {
   observationRecordWriter?: UIObservationRecordWriter;
 }
 
-/** A fixed observation window with the same read-only insight API as Agent. */
-export class UIObservation implements InsightAPI {
+/** A fixed screen-recording window that supports read-only AI insights. */
+export interface UIObservation
+  extends InsightAPI<ObservationQueryOptions, ObservationAssertOptions> {
+  /** Number of captured frames in the fixed observation window. */
+  readonly frameCount: number;
+  /** Timestamp when screen sampling started. */
+  readonly startedAt: number;
+  /** Timestamp when screen sampling ended. */
+  readonly endedAt: number;
+  /** Release image files owned by this observation. Failed cleanup is retryable. */
+  dispose(): Promise<void>;
+}
+
+/** Recording lifecycle returned by {@link Agent.startObserving}. */
+export interface UIObserver {
+  /** Number of frames currently buffered while recording. */
+  readonly bufferedFrameCount: number;
+  /** Stop recording and return its fixed observation window. */
+  stop(): Promise<UIObservation>;
+  /** Stop recording if needed and release its image files. */
+  dispose(): Promise<void>;
+}
+
+/** @internal Concrete fixed-window implementation. */
+export class UIObservationImpl implements UIObservation {
   private disposed = false;
+  private readonly record: UIObservationRecord;
 
   constructor(
-    private readonly record: UIObservationRecord,
+    record: UIObservationRecord,
     private readonly insight: InsightAPI,
     private readonly disposeRecord?: () => void,
     private readonly onDisposed?: () => void,
-  ) {}
+  ) {
+    this.record = cloneUIObservationRecord(record);
+  }
 
   get frameCount(): number {
     return this.record.frames.length;
@@ -75,59 +102,79 @@ export class UIObservation implements InsightAPI {
     assert(!this.disposed, 'UI observation has been disposed');
   }
 
+  private ensureFixedWindowOptions(options?: { domIncluded?: unknown }): void {
+    assert(
+      options?.domIncluded === undefined,
+      'UIObservation does not support domIncluded because it only evaluates recorded screenshots',
+    );
+  }
+
   async aiQuery<ReturnType = any>(
     demand: ServiceExtractParam,
-    options?: QueryOptions,
+    options?: ObservationQueryOptions,
   ): Promise<ReturnType> {
     this.ensureUsable();
+    this.ensureFixedWindowOptions(options);
     return this.insight.aiQuery<ReturnType>(demand, options);
   }
 
   async aiBoolean(
     prompt: TUserPrompt,
-    options?: QueryOptions,
+    options?: ObservationQueryOptions,
   ): Promise<boolean> {
     this.ensureUsable();
+    this.ensureFixedWindowOptions(options);
     return this.insight.aiBoolean(prompt, options);
   }
 
-  async aiNumber(prompt: TUserPrompt, options?: QueryOptions): Promise<number> {
+  async aiNumber(
+    prompt: TUserPrompt,
+    options?: ObservationQueryOptions,
+  ): Promise<number> {
     this.ensureUsable();
+    this.ensureFixedWindowOptions(options);
     return this.insight.aiNumber(prompt, options);
   }
 
-  async aiString(prompt: TUserPrompt, options?: QueryOptions): Promise<string> {
+  async aiString(
+    prompt: TUserPrompt,
+    options?: ObservationQueryOptions,
+  ): Promise<string> {
     this.ensureUsable();
+    this.ensureFixedWindowOptions(options);
     return this.insight.aiString(prompt, options);
   }
 
-  async aiAsk(prompt: TUserPrompt, options?: QueryOptions): Promise<string> {
+  async aiAsk(
+    prompt: TUserPrompt,
+    options?: ObservationQueryOptions,
+  ): Promise<string> {
     this.ensureUsable();
+    this.ensureFixedWindowOptions(options);
     return this.insight.aiAsk(prompt, options);
   }
 
   async aiAssert(
     assertion: TUserPrompt,
     message?: string,
-    options?: AssertOptions,
+    options?: ObservationAssertOptions,
   ): Promise<AgentAssertResult | undefined> {
     this.ensureUsable();
+    this.ensureFixedWindowOptions(options);
     return this.insight.aiAssert(assertion, message, options);
   }
 
+  /** @internal Used only by the CLI observation artifact adapter. */
   async exportRecord(): Promise<UIObservationRecord> {
     this.ensureUsable();
-    return this.record;
+    return cloneUIObservationRecord(this.record);
   }
 
   async dispose(): Promise<void> {
     if (this.disposed) return;
-    try {
-      this.disposeRecord?.();
-    } finally {
-      this.disposed = true;
-      this.onDisposed?.();
-    }
+    this.disposeRecord?.();
+    this.disposed = true;
+    this.onDisposed?.();
   }
 }
 
@@ -146,20 +193,20 @@ function isImageDataUrl(value: unknown): value is string {
 /**
  * Observe an explicit screen window and produce a fixed UIObservation.
  */
-export class UIObserver {
+export class UIObserverImpl implements UIObserver {
   private frames: BufferedFrame[] = [];
   private source: DeviceFrameSource | null = null;
   private usingFallback = false;
   private stopped = false;
   private disposed = false;
   private loopPromise: Promise<void> | null = null;
-  private stopPromise: Promise<UIObservation> | null = null;
+  private stopPromise: Promise<UIObservationImpl> | null = null;
   private representative: UIContext | null = null;
   private representativeFrame: UIObservationFrame | null = null;
   private watchdogTimer: ReturnType<typeof setTimeout> | null = null;
   private persistPromise: Promise<void> | null = null;
   private persistedByRef = new Map<unknown, UIObservationFrame>();
-  private observation: UIObservation | null = null;
+  private observation: UIObservationImpl | null = null;
   private startedAt = 0;
   private readonly intervalMs: number;
   private readonly maxFrames: number;
@@ -231,14 +278,14 @@ export class UIObserver {
     }
   }
 
-  stop(): Promise<UIObservation> {
+  stop(): Promise<UIObservationImpl> {
     if (!this.stopPromise) {
       this.stopPromise = this.finalizeStop();
     }
     return this.stopPromise;
   }
 
-  private async finalizeStop(): Promise<UIObservation> {
+  private async finalizeStop(): Promise<UIObservationImpl> {
     this.stopped = true;
     if (this.watchdogTimer) {
       clearTimeout(this.watchdogTimer);
@@ -274,7 +321,7 @@ export class UIObserver {
       this.representative = representative;
       const endedAt = Date.now();
       const record = await this.finalizeRecord(endedAt);
-      this.observation = new UIObservation(
+      this.observation = new UIObservationImpl(
         record,
         this.deps.createInsight(record),
         () => this.writer.dispose(),
@@ -347,7 +394,9 @@ export class UIObserver {
   async dispose(): Promise<void> {
     if (this.disposed) return;
     try {
-      if (!this.stopped) {
+      if (this.stopPromise) {
+        await this.stopPromise;
+      } else if (!this.stopped) {
         await this.stop();
       }
     } finally {

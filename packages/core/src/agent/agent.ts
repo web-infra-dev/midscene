@@ -57,7 +57,7 @@ import { readFile } from 'node:fs/promises';
 import { basename, resolve } from 'node:path';
 import type { AbstractInterface } from '@/device';
 import type { TaskRunner } from '@/task-runner';
-import type { UIObservationRecord } from '@midscene/shared/agent-tools/types';
+import { registerObservationArtifactAdapter } from '@midscene/shared/agent-tools/observation-artifact';
 import {
   type IModelConfig,
   MIDSCENE_REPLANNING_CYCLE_LIMIT,
@@ -87,8 +87,9 @@ import { markdownToAiActPrompt } from './run-markdown';
 import { TaskCache } from './task-cache';
 import { TaskExecutor, locatePlanForLocate, withFileChooser } from './tasks';
 import {
-  UIObservation,
-  UIObserver,
+  UIObservationImpl,
+  type UIObserver,
+  UIObserverImpl,
   type UIObserverOption,
   uiContextFromObservationRecord,
 } from './ui-observer';
@@ -210,10 +211,10 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
    * Currently active UIObserver (from startObserving). Only one observer may
    * be active at a time since frame sources are device-level singletons.
    */
-  private activeObserver: UIObserver | null = null;
+  private activeObserver: UIObserverImpl | null = null;
 
   /** Observers own temporary frame files until their observation is disposed. */
-  private ownedObservers = new Set<UIObserver>();
+  private ownedObservers = new Set<UIObserverImpl>();
 
   private get aiActContext(): string | undefined {
     return this.opts.aiActContext ?? this.opts.aiActionContext;
@@ -430,6 +431,25 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
       reuseExistingReport:
         this.opts.reportAttributes?.['data-group-id'] === this.reportFileName,
     });
+
+    registerObservationArtifactAdapter(this, {
+      exportRecord: async (observation) => {
+        assert(
+          observation instanceof UIObservationImpl,
+          'Cannot export an observation that was not created by this Midscene runtime',
+        );
+        return observation.exportRecord();
+      },
+      loadRecord: (record) => {
+        // CLI manifests are validated before this adapter is called. Rebuild
+        // once here as a final runtime-boundary check before creating insight.
+        uiContextFromObservationRecord(record);
+        return new UIObservationImpl(
+          record,
+          this.createInsight(() => uiContextFromObservationRecord(record)),
+        );
+      },
+    });
   }
 
   async getActionSpace(): Promise<DeviceAction[]> {
@@ -522,7 +542,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
       'An observation window is already active on this agent. ' +
         'Stop the existing observer first (await observer.stop()) before starting a new one.',
     );
-    const observer = new UIObserver(
+    const observer = new UIObserverImpl(
       {
         openFrameSource: async () =>
           (await this.interface.openFrameSource?.()) ?? undefined,
@@ -557,17 +577,6 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
       throw error;
     }
     return observer;
-  }
-
-  /** @internal Rehydrate a persisted observation for shared CLI commands. */
-  loadUIObservation(record: UIObservationRecord): UIObservation {
-    // Validate eagerly so malformed records fail at the load boundary rather
-    // than during the first insight call.
-    uiContextFromObservationRecord(record);
-    return new UIObservation(
-      record,
-      this.createInsight(() => uiContextFromObservationRecord(record)),
-    );
   }
 
   /**

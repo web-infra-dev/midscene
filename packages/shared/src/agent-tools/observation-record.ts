@@ -74,6 +74,17 @@ export function parseUIObservationRecord(input: unknown): UIObservationRecord {
   return result.data;
 }
 
+/** Return a detached record so callers cannot mutate runtime-owned state. */
+export function cloneUIObservationRecord(
+  record: UIObservationRecord,
+): UIObservationRecord {
+  return {
+    ...record,
+    frames: record.frames.map((frame) => ({ ...frame })),
+    shotSize: { ...record.shotSize },
+  };
+}
+
 export function readUIObservationRecord(filePath: string): UIObservationRecord {
   const resolvedPath = resolve(filePath);
   let parsed: unknown;

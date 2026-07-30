@@ -1,9 +1,8 @@
 export { Agent, createAgent } from './agent';
-export {
+export type {
   UIObservation,
   UIObserver,
-  type UIObserverOption,
-  uiContextFromObservationRecord,
+  UIObserverOption,
 } from './ui-observer';
 export { commonContextParser } from './utils';
 export { getReportFileName, printReportMsg } from './utils';

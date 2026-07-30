@@ -14,6 +14,7 @@ import {
   extractNamespacedArgs,
   sanitizeNamespacedArgs,
 } from './init-arg-utils';
+import { resolveObservationArtifactAdapter } from './observation-artifact';
 import { type ToolDefaults, mergeToolDefaults } from './tool-defaults';
 import {
   generateCommonTools,
@@ -305,6 +306,7 @@ export abstract class BaseMidsceneTools<
       this.getAgentInitArgSchema(),
       this.getAgentInitArgCliMetadata(),
       this.toolDefaults,
+      resolveObservationArtifactAdapter,
     );
     this.toolDefinitions.push(...actionTools, ...commonTools);
 
@@ -332,6 +334,7 @@ export abstract class BaseMidsceneTools<
         (args = {}) => this.ensureAgent(this.extractAgentInitParam(args)),
         this.getAgentInitArgSchema(),
         this.getAgentInitArgCliMetadata(),
+        resolveObservationArtifactAdapter,
       ),
     ];
   }

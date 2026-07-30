@@ -394,7 +394,6 @@ describe('generateToolsFromActionSpace', () => {
       startedAt: 50,
       endedAt: 150,
       aiAssert: vi.fn(),
-      exportRecord,
     });
     const startObserving = vi.fn().mockResolvedValue({
       stop,
@@ -408,7 +407,10 @@ describe('generateToolsFromActionSpace', () => {
         screenshotBase64: vi.fn().mockResolvedValue(screenshotBase64),
       },
     }));
-    const recordTool = createRecordCliCommand(getAgent);
+    const recordTool = createRecordCliCommand(getAgent, {}, undefined, () => ({
+      exportRecord,
+      loadRecord: vi.fn(),
+    }));
     const interruptSpy = vi
       .spyOn(cliInterrupt, 'waitForCliInterrupt')
       .mockResolvedValue('sigint');
@@ -760,20 +762,29 @@ describe('generateCommonTools — assert image prompts', () => {
     const aiAssert = vi.fn().mockResolvedValue(undefined);
     const observationAssert = vi.fn().mockResolvedValue(undefined);
     const dispose = vi.fn().mockResolvedValue(undefined);
-    const loadUIObservation = vi.fn().mockReturnValue({
+    const loadRecord = vi.fn().mockReturnValue({
       frameCount: 2,
       startedAt: 50,
       endedAt: 250,
       aiAssert: observationAssert,
-      exportRecord: vi.fn(),
       dispose,
     });
-    const tools = generateCommonTools(async () => ({
-      aiAssert,
-      loadUIObservation,
-      getActionSpace: vi.fn().mockResolvedValue([]),
-      page: { screenshotBase64: vi.fn().mockResolvedValue(screenshotBase64) },
-    }));
+    const tools = generateCommonTools(
+      async () => ({
+        aiAssert,
+        getActionSpace: vi.fn().mockResolvedValue([]),
+        page: {
+          screenshotBase64: vi.fn().mockResolvedValue(screenshotBase64),
+        },
+      }),
+      {},
+      undefined,
+      {},
+      () => ({
+        exportRecord: vi.fn(),
+        loadRecord,
+      }),
+    );
 
     const assert = tools.find((t) => t.name === 'assert')!;
     const result = await assert.handler({
@@ -781,7 +792,7 @@ describe('generateCommonTools — assert image prompts', () => {
       record: recordPath,
     });
 
-    expect(loadUIObservation).toHaveBeenCalledWith({
+    expect(loadRecord).toHaveBeenCalledWith({
       ...observationRecord,
       frames: observationRecord.frames.map((frame) => ({
         ...frame,

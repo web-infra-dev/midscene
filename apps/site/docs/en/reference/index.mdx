@@ -1011,7 +1011,7 @@ expect(onesieItem.price).toBe(7.99);
 
 #### `startObserving()` {#agentstartobserving}
 
-Observe the screen over a defined time window while other Agent calls run. Stopping the observer returns a fixed `UIObservation` whose read-only insight methods evaluate transient UI, such as toasts, banners, and screen transitions, that a live single-screen insight might miss.
+Observe the screen over a defined time window while other Agent calls run. Stopping the observer returns a fixed `UIObservation`. Its read-only insight methods evaluate transient UI, such as toasts, banners, and screen transitions, that a live single-screen insight might miss.
 
 ```typescript
 function startObserving(options?: {
@@ -1026,7 +1026,9 @@ function startObserving(options?: {
 - `observer.bufferedFrameCount: number` — Number of frames currently buffered while recording.
 - `observer.stop(): Promise<UIObservation>` — Stop sampling, capture the final representative screenshot, and return the fixed observation window.
 
-`UIObservation` implements the same read-only `InsightAPI` as `Agent`: `aiQuery()`, `aiBoolean()`, `aiNumber()`, `aiString()`, `aiAsk()`, and `aiAssert()`. It also exposes `frameCount`, `startedAt`, and `endedAt`. Call `observation.dispose()` after its last insight call to release its image files early; otherwise `agent.destroy()` releases them.
+`UIObservation` provides the same read-only insight methods as `Agent`: `aiQuery()`, `aiBoolean()`, `aiNumber()`, `aiString()`, `aiAsk()`, and `aiAssert()`. These methods only evaluate recorded screenshots. They do not read the current DOM, and their options do not support `domIncluded`. Passing `domIncluded` from untyped JavaScript throws an error instead of mixing live DOM data with the fixed observation window.
+
+The observation also exposes `frameCount`, `startedAt`, and `endedAt`. Call `observation.dispose()` after its last insight call to release its image files early; otherwise `agent.destroy()` releases them.
 
 ```typescript
 const observer = await agent.startObserving();

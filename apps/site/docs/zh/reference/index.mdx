@@ -997,7 +997,7 @@ expect(onesieItem.price).toBe(7.99);
 
 #### `startObserving()` {#agentstartobserving}
 
-在一段时间内持续采样屏幕。停止 observer 后会得到固定的 `UIObservation`，其只读 insight 方法基于整段有序画面判断状态或变化，适合捕捉实时单屏 insight 容易错过的 toast、横幅或页面切换。
+在一段时间内持续采样屏幕。停止 observer 后，Midscene 会返回固定的 `UIObservation`。它的只读 insight 方法基于整段有序画面判断状态或变化，适合捕捉实时单屏 insight 容易错过的 toast、横幅或页面切换。
 
 ```typescript
 function startObserving(options?: {
@@ -1012,7 +1012,9 @@ function startObserving(options?: {
 - `observer.bufferedFrameCount: number` - 录制过程中当前缓冲的帧数。
 - `observer.stop(): Promise<UIObservation>` - 停止采样、截取最后一张代表性截图，并返回固定的观察窗口。
 
-`UIObservation` 与 `Agent` 实现相同的只读 `InsightAPI`：`aiQuery()`、`aiBoolean()`、`aiNumber()`、`aiString()`、`aiAsk()` 和 `aiAssert()`。它还提供 `frameCount`、`startedAt` 和 `endedAt`。最后一次 insight 调用完成后，可以调用 `observation.dispose()` 提前释放图片文件；否则 `agent.destroy()` 会负责清理。
+`UIObservation` 与 `Agent` 提供相同的只读 insight 方法：`aiQuery()`、`aiBoolean()`、`aiNumber()`、`aiString()`、`aiAsk()` 和 `aiAssert()`。这些方法只分析录制截图，不会读取当前 DOM，也不支持 `domIncluded`。如果无类型的 JavaScript 代码传入 `domIncluded`，Midscene 会直接抛错，避免把实时 DOM 与固定观察窗口混合。
+
+`UIObservation` 还提供 `frameCount`、`startedAt` 和 `endedAt`。最后一次 insight 调用完成后，可以调用 `observation.dispose()` 提前释放图片文件；否则 `agent.destroy()` 会负责清理。
 
 ```typescript
 const observer = await agent.startObserving();

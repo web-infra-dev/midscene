@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { getErrorMessage } from '../agent-tools/error-formatter';
+import type { ResolveObservationArtifactAdapter } from '../agent-tools/observation-artifact';
 import { writeUIObservationRecord } from '../agent-tools/observation-record';
 import type {
   BaseAgent,
@@ -57,6 +58,7 @@ export function createRecordCliCommand(
   getAgent: (args?: Record<string, unknown>) => Promise<BaseAgent>,
   initArgSchema: ToolSchema = {},
   initArgCliMetadata?: ToolCliMetadata,
+  resolveObservationArtifacts?: ResolveObservationArtifactAdapter,
 ): ToolDefinition {
   return {
     name: 'record',
@@ -112,6 +114,12 @@ export function createRecordCliCommand(
             'record is not supported because this agent does not provide startObserving',
           );
         }
+        const observationArtifacts = resolveObservationArtifacts?.(agent);
+        if (!observationArtifacts) {
+          throw new Error(
+            'record is not supported because this agent does not provide observation artifact persistence',
+          );
+        }
         const unsubscribeVerbose = attachCliVerboseDumpListener(agent, {
           toolName: 'record',
         });
@@ -137,7 +145,7 @@ export function createRecordCliCommand(
             reason: stopReason,
           });
           const observation = await observer.stop();
-          const record = await observation.exportRecord();
+          const record = await observationArtifacts.exportRecord(observation);
           const outputPath = writeUIObservationRecord(
             record,
             args.output as string | undefined,

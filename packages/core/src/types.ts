@@ -311,20 +311,33 @@ export interface AgentAssertResult {
 export type QueryOptions = ServiceExtractOption;
 export type AssertOptions = AgentAssertOpt & ServiceExtractOption;
 
+/** Options for fixed observations, which never read the live DOM. */
+export type ObservationQueryOptions = Omit<QueryOptions, 'domIncluded'> & {
+  domIncluded?: never;
+};
+
+/** Assertion options for fixed observations, which never read the live DOM. */
+export type ObservationAssertOptions = Omit<AssertOptions, 'domIncluded'> & {
+  domIncluded?: never;
+};
+
 /** Read-only AI operations supported by both live Agents and UI observations. */
-export interface InsightAPI {
+export interface InsightAPI<
+  QueryOpt extends QueryOptions = QueryOptions,
+  AssertOpt extends AssertOptions = AssertOptions,
+> {
   aiQuery<ReturnType = any>(
     demand: ServiceExtractParam,
-    options?: QueryOptions,
+    options?: QueryOpt,
   ): Promise<ReturnType>;
-  aiBoolean(prompt: TUserPrompt, options?: QueryOptions): Promise<boolean>;
-  aiNumber(prompt: TUserPrompt, options?: QueryOptions): Promise<number>;
-  aiString(prompt: TUserPrompt, options?: QueryOptions): Promise<string>;
-  aiAsk(prompt: TUserPrompt, options?: QueryOptions): Promise<string>;
+  aiBoolean(prompt: TUserPrompt, options?: QueryOpt): Promise<boolean>;
+  aiNumber(prompt: TUserPrompt, options?: QueryOpt): Promise<number>;
+  aiString(prompt: TUserPrompt, options?: QueryOpt): Promise<string>;
+  aiAsk(prompt: TUserPrompt, options?: QueryOpt): Promise<string>;
   aiAssert(
     assertion: TUserPrompt,
     message?: string,
-    options?: AssertOptions,
+    options?: AssertOpt,
   ): Promise<AgentAssertResult | undefined>;
 }
 

@@ -65,8 +65,8 @@ export {
   type RunGherkinScenarioOptions,
   type UsageBucket,
   createAgent,
-  UIObservation,
-  UIObserver,
+  type UIObservation,
+  type UIObserver,
   type UIObserverOption,
 } from './agent';
 export {

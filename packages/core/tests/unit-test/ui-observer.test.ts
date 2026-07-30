@@ -1,11 +1,12 @@
 import { mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
-import { UIObserver } from '@/agent/ui-observer';
+import { UIObservationImpl, UIObserverImpl } from '@/agent/ui-observer';
 import type { DeviceFrameRef, DeviceFrameSource } from '@/device';
 import { ScreenshotItem } from '@/screenshot-item';
 import type { UIContext } from '@/types';
 import { UIObservationRecordWriter } from '@midscene/shared/agent-tools/observation-record';
+import type { UIObservationRecord } from '@midscene/shared/agent-tools/types';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -86,6 +87,24 @@ function frameContents(path: string): string {
   return readFileSync(path).toString('utf8');
 }
 
+function fixedRecord(): UIObservationRecord {
+  return {
+    type: 'midscene_ui_observation',
+    version: 1,
+    startedAt: 100,
+    endedAt: 200,
+    frames: [
+      {
+        path: '/tmp/unused-observation-frame.png',
+        mimeType: 'image/png',
+        capturedAt: 150,
+      },
+    ],
+    shotSize: { width: 100, height: 100 },
+    shrunkShotToLogicalRatio: 1,
+  };
+}
+
 describe('UIObserver', () => {
   afterEach(() => {
     vi.useRealTimers();
@@ -98,7 +117,7 @@ describe('UIObserver', () => {
     const fake = makeFakeSource();
     fake.setLatest('f0', 0);
     const { deps } = makeDeps(fake);
-    const observer = new UIObserver(deps, options({ intervalMs: 200 }));
+    const observer = new UIObserverImpl(deps, options({ intervalMs: 200 }));
     await observer.start();
 
     expect((observer as any).exportRecord).toBeUndefined();
@@ -113,7 +132,7 @@ describe('UIObserver', () => {
     const fake = makeFakeSource();
     fake.setLatest('f0', 0);
     const { deps, onStopped } = makeDeps(fake);
-    const observer = new UIObserver(deps, options({ intervalMs: 200 }));
+    const observer = new UIObserverImpl(deps, options({ intervalMs: 200 }));
 
     await observer.start();
     fake.setLatest('f1', 100);
@@ -132,10 +151,10 @@ describe('UIObserver', () => {
     expect(record.frames[0]).not.toHaveProperty('base64');
   });
 
-  it('decodes opaque source handles in bounded batches and reuses the export', async () => {
+  it('decodes opaque source handles in bounded batches and detaches exports', async () => {
     const fake = makeFakeSource();
     const { deps } = makeDeps(fake);
-    const observer = new UIObserver(
+    const observer = new UIObserverImpl(
       deps,
       options({ intervalMs: 200, maxFrames: 30 }),
     );
@@ -147,18 +166,20 @@ describe('UIObserver', () => {
     const firstRecord = await observation.exportRecord();
     const secondRecord = await observation.exportRecord();
 
-    expect(firstRecord).toBe(secondRecord);
+    expect(firstRecord).not.toBe(secondRecord);
+    firstRecord.frames.length = 0;
+    expect(secondRecord.frames).toHaveLength(11);
     expect(fake.decode).toHaveBeenCalledTimes(3);
     expect(fake.decode.mock.calls.every(([batch]) => batch.length <= 4)).toBe(
       true,
     );
-    expect(firstRecord.frames).toHaveLength(11);
+    expect(firstRecord.frames).toHaveLength(0);
   });
 
   it('exports every buffered frame up to the configured cap', async () => {
     const fake = makeFakeSource();
     const { deps } = makeDeps(fake);
-    const observer = new UIObserver(
+    const observer = new UIObserverImpl(
       deps,
       options({ intervalMs: 200, maxFrames: 30 }),
     );
@@ -178,7 +199,7 @@ describe('UIObserver', () => {
   it('smart thinning preserves change points and temporal endpoints', () => {
     const fake = makeFakeSource();
     const { deps } = makeDeps(fake);
-    const observer = new UIObserver(
+    const observer = new UIObserverImpl(
       deps,
       options({ intervalMs: 200, maxFrames: 10 }),
     );
@@ -215,7 +236,7 @@ describe('UIObserver', () => {
   it('enforces maxFrames even when every frame is a change point', () => {
     const fake = makeFakeSource();
     const { deps } = makeDeps(fake);
-    const observer = new UIObserver(
+    const observer = new UIObserverImpl(
       deps,
       options({ intervalMs: 200, maxFrames: 10 }),
     );
@@ -233,7 +254,7 @@ describe('UIObserver', () => {
     const fake = makeFakeSource();
     const { deps } = makeDeps(fake);
     const writer = deps.observationRecordWriter;
-    const observer = new UIObserver(
+    const observer = new UIObserverImpl(
       deps,
       options({ intervalMs: 200, maxFrames: 2 }),
     );
@@ -263,7 +284,7 @@ describe('UIObserver', () => {
   it('disposes the file-backed record after it is no longer needed', async () => {
     const fake = makeFakeSource();
     const { deps } = makeDeps(fake);
-    const observer = new UIObserver(deps, options({ intervalMs: 200 }));
+    const observer = new UIObserverImpl(deps, options({ intervalMs: 200 }));
     const persisted = deps.observationRecordWriter.persistFrame(
       `data:image/png;base64,${Buffer.from('frame').toString('base64')}`,
       100,
@@ -283,12 +304,60 @@ describe('UIObserver', () => {
     await expect(observation.exportRecord()).rejects.toThrow(/disposed/);
   });
 
+  it('rejects live DOM options before delegating an observation insight', async () => {
+    const aiBoolean = vi.fn();
+    const observation = new UIObservationImpl(fixedRecord(), {
+      aiQuery: vi.fn(),
+      aiBoolean,
+      aiNumber: vi.fn(),
+      aiString: vi.fn(),
+      aiAsk: vi.fn(),
+      aiAssert: vi.fn(),
+    });
+
+    await expect(
+      observation.aiBoolean('is the old toast visible?', {
+        domIncluded: true,
+      } as never),
+    ).rejects.toThrow(/does not support domIncluded/);
+    expect(aiBoolean).not.toHaveBeenCalled();
+  });
+
+  it('keeps failed observation cleanup retryable', async () => {
+    const disposeRecord = vi
+      .fn()
+      .mockImplementationOnce(() => {
+        throw new Error('directory is busy');
+      })
+      .mockImplementationOnce(() => undefined);
+    const onDisposed = vi.fn();
+    const observation = new UIObservationImpl(
+      fixedRecord(),
+      {
+        aiQuery: vi.fn(),
+        aiBoolean: vi.fn(),
+        aiNumber: vi.fn(),
+        aiString: vi.fn(),
+        aiAsk: vi.fn(),
+        aiAssert: vi.fn(),
+      },
+      disposeRecord,
+      onDisposed,
+    );
+
+    await expect(observation.dispose()).rejects.toThrow('directory is busy');
+    expect(onDisposed).not.toHaveBeenCalled();
+    await expect(observation.dispose()).resolves.toBeUndefined();
+    expect(disposeRecord).toHaveBeenCalledTimes(2);
+    expect(onDisposed).toHaveBeenCalledOnce();
+  });
+
   it('watchdog auto-stops and can also be disabled', async () => {
     vi.useFakeTimers();
     const fake = makeFakeSource();
     fake.setLatest('f0', 0);
     const first = makeDeps(fake);
-    const observer = new UIObserver(
+    const observer = new UIObserverImpl(
       first.deps,
       options({ intervalMs: 200, watchdogMs: 5000 }),
     );
@@ -300,7 +369,7 @@ describe('UIObserver', () => {
     const secondFake = makeFakeSource();
     secondFake.setLatest('f0', 0);
     const second = makeDeps(secondFake);
-    const disabled = new UIObserver(
+    const disabled = new UIObserverImpl(
       second.deps,
       options({ intervalMs: 200, watchdogMs: 0 }),
     );
@@ -314,7 +383,7 @@ describe('UIObserver', () => {
   it('warns without dropping records over the soft frame limit', async () => {
     const fake = makeFakeSource();
     const { deps } = makeDeps(fake);
-    const observer = new UIObserver(
+    const observer = new UIObserverImpl(
       deps,
       options({ intervalMs: 200, maxFrames: 60 }),
     );
@@ -329,7 +398,7 @@ describe('UIObserver', () => {
 
   it('persists fallback screenshots immediately as files', async () => {
     const { deps, screenshot } = makeDeps(null);
-    const observer = new UIObserver(deps, options({ intervalMs: 200 }));
+    const observer = new UIObserverImpl(deps, options({ intervalMs: 200 }));
     await observer.start();
     await sleep(250);
     const observation = await observer.stop();
@@ -345,7 +414,7 @@ describe('UIObserver', () => {
       async () =>
         `data:image/png;base64,${Buffer.from('fallback').toString('base64')}`,
     );
-    const observer = new UIObserver(
+    const observer = new UIObserverImpl(
       {
         openFrameSource: async () => {
           throw new Error('stream unavailable');
@@ -374,7 +443,7 @@ describe('UIObserver', () => {
     const fake = makeFakeSource();
     fake.setLatest('f0', 0);
     const { deps, onStopped } = makeDeps(fake);
-    const observer = new UIObserver(deps, options({ intervalMs: 200 }));
+    const observer = new UIObserverImpl(deps, options({ intervalMs: 200 }));
     await observer.start();
     const firstObservation = await observer.stop();
     const secondObservation = await observer.stop();
@@ -383,7 +452,8 @@ describe('UIObserver', () => {
 
     expect(onStopped).toHaveBeenCalledOnce();
     expect(secondObservation).toBe(firstObservation);
-    expect(second).toBe(first);
+    expect(second).not.toBe(first);
+    expect(second).toEqual(first);
   });
 
   it('concurrent stop calls wait for the same finalization', async () => {
@@ -398,7 +468,7 @@ describe('UIObserver', () => {
       await representativeReady;
       return fakeRepresentative();
     };
-    const observer = new UIObserver(deps, options({ intervalMs: 200 }));
+    const observer = new UIObserverImpl(deps, options({ intervalMs: 200 }));
     await observer.start();
 
     const firstStop = observer.stop();

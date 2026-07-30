@@ -165,8 +165,6 @@ export interface BaseUIObservation {
     message?: string,
     options?: Record<string, unknown>,
   ): Promise<unknown>;
-  /** Export the observation as a file-backed record. */
-  exportRecord(): Promise<UIObservationRecord>;
   /** Release any resources owned by this observation. */
   dispose?(): Promise<void>;
 }
@@ -229,8 +227,6 @@ export interface BaseAgent {
     msg?: string,
     options?: Record<string, unknown>,
   ) => Promise<unknown>;
-  /** Rehydrate a persisted observation record for CLI insight commands. */
-  loadUIObservation?: (record: UIObservationRecord) => BaseUIObservation;
   /** Start a UI observation window and capture its baseline frame. */
   startObserving?: (options?: BaseUIObserverOptions) => Promise<BaseUIObserver>;
 }

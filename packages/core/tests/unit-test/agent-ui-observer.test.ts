@@ -2,8 +2,13 @@ import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { Agent } from '@/agent';
+import {
+  UIObservationImpl,
+  uiContextFromObservationRecord,
+} from '@/agent/ui-observer';
 import { ScreenshotItem } from '@/screenshot-item';
 import type { UIContext } from '@/types';
+import { resolveObservationArtifactAdapter } from '@midscene/shared/agent-tools/observation-artifact';
 import type { UIObservationRecord } from '@midscene/shared/agent-tools/types';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -71,7 +76,9 @@ describe('Agent.startObserving', () => {
     const observer = await agent.startObserving({ intervalMs: 200 });
     await new Promise((resolve) => setTimeout(resolve, 250));
     const observation = await observer.stop();
-    const observationRecord = await observation.exportRecord();
+    const observationRecord = await (
+      observation as UIObservationImpl
+    ).exportRecord();
     trackRecordFiles(observationRecord);
     await observation.aiAssert('a toast appeared during the process');
 
@@ -107,10 +114,10 @@ describe('Agent.startObserving', () => {
       /already active/,
     );
     const observation1 = await observer1.stop();
-    trackRecordFiles(await observation1.exportRecord());
+    trackRecordFiles(await (observation1 as UIObservationImpl).exportRecord());
     const observer2 = await agent.startObserving({ intervalMs: 200 });
     const observation2 = await observer2.stop();
-    trackRecordFiles(await observation2.exportRecord());
+    trackRecordFiles(await (observation2 as UIObservationImpl).exportRecord());
     expect(stop).toHaveBeenCalledTimes(2);
   });
 
@@ -118,7 +125,7 @@ describe('Agent.startObserving', () => {
     const { agent, screenshotBase64 } = createAgentStub();
     const observer = await agent.startObserving({ intervalMs: 200 });
     const observation = await observer.stop();
-    const record = await observation.exportRecord();
+    const record = await (observation as UIObservationImpl).exportRecord();
     trackRecordFiles(record);
 
     expect(screenshotBase64).toHaveBeenCalled();
@@ -155,7 +162,7 @@ describe('Agent.startObserving', () => {
       return path;
     });
 
-    const observation = agent.loadUIObservation({
+    const record: UIObservationRecord = {
       type: 'midscene_ui_observation',
       version: 1,
       startedAt: 100,
@@ -167,7 +174,13 @@ describe('Agent.startObserving', () => {
       })),
       shotSize: { width: 100, height: 100 },
       shrunkShotToLogicalRatio: 1,
-    });
+    };
+    const observation = new UIObservationImpl(
+      record,
+      (agent as any).createInsight(() =>
+        uiContextFromObservationRecord(record),
+      ),
+    );
     await observation.aiAssert(
       'a toast appeared during the process',
       undefined,
@@ -216,5 +229,49 @@ describe('Agent.startObserving', () => {
     expect(
       (createTypeQueryExecution.mock.calls[1] as any[])[5]?.uiContext,
     ).toBeUndefined();
+  });
+
+  it('registers CLI artifact persistence without expanding the Agent API', async () => {
+    const agent = new Agent(
+      {
+        interfaceType: 'puppeteer',
+        actionSpace: () => [],
+        screenshotBase64: async () => dataUrl('screen'),
+        size: async () => ({ width: 100, height: 100 }),
+      } as any,
+      { generateReport: false },
+    );
+    const directory = mkdtempSync(join(tmpdir(), 'midscene-adapter-record-'));
+    tempDirectories.push(directory);
+    const framePath = join(directory, 'frame.png');
+    writeFileSync(framePath, Buffer.from('frame'));
+    const record: UIObservationRecord = {
+      type: 'midscene_ui_observation',
+      version: 1,
+      startedAt: 100,
+      endedAt: 200,
+      frames: [
+        {
+          path: framePath,
+          mimeType: 'image/png',
+          capturedAt: 150,
+        },
+      ],
+      shotSize: { width: 100, height: 100 },
+      shrunkShotToLogicalRatio: 1,
+    };
+
+    expect((agent as any).loadUIObservation).toBeUndefined();
+    const adapter = resolveObservationArtifactAdapter(agent);
+    expect(adapter).toBeDefined();
+    const observation = adapter!.loadRecord(record);
+    const exported = await adapter!.exportRecord(observation);
+    exported.frames.length = 0;
+
+    expect(observation.frameCount).toBe(1);
+    await expect(adapter!.exportRecord(observation)).resolves.toMatchObject({
+      frames: [expect.objectContaining({ path: framePath })],
+    });
+    await agent.destroy();
   });
 });
