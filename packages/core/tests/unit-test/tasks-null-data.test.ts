@@ -201,13 +201,26 @@ describe('TaskExecutor - Null Data Handling', () => {
         {},
       );
 
-      // For Assert with null data (falsy), should throw error
+      // Keep a falsy assertion result as task output. The caller turns it into
+      // an assertion error after TaskRunner persists the task dump.
       await expect(
         queryTask.executor({}, {
           task: queryTask,
           uiContext: await createEmptyUIContext(),
         } as any),
-      ).rejects.toThrow('Assertion failed: Could not verify assertion');
+      ).resolves.toMatchObject({
+        output: false,
+        thought: 'Could not verify assertion',
+      });
+
+      expect(queryTask.log).toMatchObject({
+        rawResponse: 'null',
+        dump: expect.objectContaining({
+          taskInfo: expect.objectContaining({
+            rawResponse: 'null',
+          }),
+        }),
+      });
 
       expect(mockInsight.extract).toHaveBeenCalledWith(
         {
