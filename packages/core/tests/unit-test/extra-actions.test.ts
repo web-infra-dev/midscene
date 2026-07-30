@@ -53,7 +53,10 @@ actionParam:
     expect(loaded).toHaveLength(1);
     expect(loaded[0].planningAction).toMatchObject({
       name: 'MidsceneExtraAction_1',
-      description: expect.stringContaining('点击确定按钮'),
+      description: expect.stringContaining(
+        'always prefer this action over rebuilding the workflow',
+      ),
+      sample: {},
     });
     expect(
       expandExtraActionPlans(

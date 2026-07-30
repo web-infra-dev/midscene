@@ -216,7 +216,8 @@ function validateActionParam(
 function createPlanningAction(id: string, name: string): DeviceAction {
   return {
     name: id,
-    description: `Run the pre-recorded UI action "${name}". This action takes no parameters.`,
+    description: `Replay the known-good UI workflow ${JSON.stringify(name)}. If the user's request matches this workflow, always prefer this action over rebuilding the workflow from low-level actions. This action takes no parameters.`,
+    sample: {},
     call: () => {
       throw new Error(
         `Extra action "${name}" must be expanded before execution`,
