@@ -431,14 +431,14 @@ function aiKeyboardPress(
   **推荐用法**：
   - `locate: string | object` - 用自然语言描述的元素定位，或[使用图片作为提示词](#使用图片作为提示词)。
   - `opt: object` - 配置对象，包含：
-    - `keyName: string` - **必填**，要按下的键，如 `Enter`、`Tab`、`Escape` 等。不支持组合键。可在[我们的源码中查看完整的按键名称列表](https://github.com/web-infra-dev/midscene/blob/main/packages/shared/src/us-keyboard-layout.ts)。
+    - `keyName: string` - **必填**，要按下的键，如 `Enter`、`Tab`、`Escape` 等。Web 和 Computer Device 还支持 modifier shortcut，如 `Control+A`、`Shift+Enter`；使用 `+` 连接按键。内置的 Android、iOS 和 Harmony Device 仅支持单键；自定义 Device 是否支持组合键取决于其实现。可在[我们的源码中查看完整的按键名称列表](https://github.com/web-infra-dev/midscene/blob/main/packages/shared/src/us-keyboard-layout.ts)。
     - `deepLocate?: boolean` - 是否开启[深度定位](#深度定位deeplocate)。该参数原来叫 `deepThink`，现已更名为 `deepLocate`。默认值为 false。
     - `context?: string` - 本次调用的额外上下文。详见[单次调用上下文](#单次调用上下文)。
     - `xpath?: string` - 目标元素的 xpath 路径，用于执行当前操作。如果提供了这个 xpath，Midscene 会优先使用该 xpath 来找到元素，然后依次使用缓存和 AI 模型。默认值为空
     - `cacheable?: boolean` - 当启用 [缓存功能](../caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 true
 
   **兼容用法**（已过时，但仍然支持）：
-  - `key: string` - 要按下的键，如 `Enter`、`Tab`、`Escape` 等。不支持组合键。
+  - `key: string` - 要按下的键，如 `Enter`、`Tab`、`Escape` 等。
   - `locate?: string | object` - 用自然语言描述的元素定位，或[使用图片作为提示词](#使用图片作为提示词)。
   - `options?: object` - 可选的配置对象，类型与推荐用法中的 `opt` 类型相同。
 
@@ -451,6 +451,7 @@ function aiKeyboardPress(
 ```typescript
 // 推荐用法
 await agent.aiKeyboardPress('搜索框', { keyName: 'Enter' });
+await agent.aiKeyboardPress('搜索框', { keyName: 'Control+A' });
 
 // 兼容用法（不推荐）
 await agent.aiKeyboardPress('Enter', '搜索框');
