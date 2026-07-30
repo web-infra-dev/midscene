@@ -95,14 +95,6 @@ if (!passedReport) {
   process.exit(1);
 }
 
-console.log('=== Generating failed report ===');
-const failedYaml = path.join(rootDir, 'scripts', 'generate-report-failed.yaml');
-const failedReport = runYamlAndFindReport(failedYaml);
-if (!failedReport) {
-  console.error('Failed to generate failed report.');
-  process.exit(1);
-}
-
 // --- Copy single report as demo.html ---
 fs.mkdirSync(distDir, { recursive: true });
 const demoPath = path.join(distDir, 'demo.html');
@@ -133,7 +125,9 @@ merger.append({
   },
 });
 merger.append({
-  reportFilePath: failedReport,
+  // The merged viewer derives case status from report attributes. Reusing the
+  // real report avoids a second model run whose only purpose was to fail.
+  reportFilePath: passedReport,
   reportAttributes: {
     testDuration: 25000,
     testStatus: 'failed',

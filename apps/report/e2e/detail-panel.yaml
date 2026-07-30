@@ -29,10 +29,9 @@ tasks:
       # heading or the type/status/start rows out of the viewport.
       - aiTap: Output section header in the right detail side panel
       - sleep: 500
-      - aiAssert: The Output section is collapsed; the Output header is still visible but the output content under it is hidden
       - aiTap: Param section header in the right detail side panel
       - sleep: 1000
-      - aiAssert: The Meta section is visible in the right detail side panel and shows metadata entries such as type, status, start, end, or total time; Param and Output are collapsed above it
+      - aiAssert: The Meta section is visible in the right detail side panel and shows entries such as type, status, start, end, or total time; the Param and Output headers remain visible above it, both sections are collapsed, and their content is hidden
 
   - name: open in playground button
     flow:
