@@ -187,7 +187,7 @@ jobs:
       run: pnpm install --frozen-lockfile --ignore-scripts
 
     - name: Install Chrome for Testing
-      run: pnpm exec puppeteer browsers install chrome
+      run: pnpm --dir packages/web-integration exec puppeteer browsers install chrome
 
     - name: Save pnpm store
       if: steps.pnpm-cache.outputs.cache-hit != 'true'
@@ -271,7 +271,7 @@ jobs:
       run: pnpm install --frozen-lockfile --ignore-scripts
 
     - name: Install Chrome for Testing
-      run: pnpm exec puppeteer browsers install chrome
+      run: pnpm --dir packages/web-integration exec puppeteer browsers install chrome
 
     - name: Save pnpm store
       if: steps.pnpm-cache.outputs.cache-hit != 'true'
@@ -355,7 +355,7 @@ jobs:
       run: pnpm install --frozen-lockfile --ignore-scripts
 
     - name: Install Chrome for Testing
-      run: pnpm exec puppeteer browsers install chrome
+      run: pnpm --dir packages/web-integration exec puppeteer browsers install chrome
 
     - name: Save pnpm store
       if: steps.pnpm-cache.outputs.cache-hit != 'true'
@@ -439,7 +439,7 @@ jobs:
       run: pnpm install --frozen-lockfile --ignore-scripts
 
     - name: Install Chrome for Testing
-      run: pnpm exec puppeteer browsers install chrome
+      run: pnpm --dir packages/web-integration exec puppeteer browsers install chrome
 
     - name: Save pnpm store
       if: steps.pnpm-cache.outputs.cache-hit != 'true'
@@ -523,7 +523,7 @@ jobs:
       run: pnpm install --frozen-lockfile --ignore-scripts
 
     - name: Install Chrome for Testing
-      run: pnpm exec puppeteer browsers install chrome
+      run: pnpm --dir packages/web-integration exec puppeteer browsers install chrome
 
     - name: Save pnpm store
       if: steps.pnpm-cache.outputs.cache-hit != 'true'
