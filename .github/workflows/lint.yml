@@ -20,11 +20,6 @@ jobs:
 
     steps:
     - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
-      with:
-        fetch-depth: 0
-
-    - name: Fetch all branches
-      run: git fetch --all
 
     - name: Setup pnpm
       uses: pnpm/action-setup@eae0cfeb286e66ffb5155f1a79b90583a127a68b # v2.4.1
