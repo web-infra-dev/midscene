@@ -38,7 +38,7 @@ jobs:
         node-version: '24.13.0'
 
     - name: Cache Puppeteer dependencies
-      uses: actions/cache@6f8efc29b200d32929f49075959781ed54ec270c # v3.5.0
+      uses: ./.github/actions/cache
       id: cache-puppeteer
       with:
         path: ~/.cache/puppeteer

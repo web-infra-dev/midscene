@@ -1,0 +1,40 @@
+name: Cache
+
+description: Route caches to GitHub storage or the self-hosted internal cache service
+
+inputs:
+  key:
+    description: An explicit key for restoring and saving the cache
+    required: true
+  path:
+    description: Files, directories, and wildcard patterns to cache
+    required: true
+  restore-keys:
+    description: Ordered prefixes used to restore stale caches
+    required: false
+
+outputs:
+  cache-hit:
+    description: Whether the primary cache key was restored
+    value: ${{ steps.github-cache.outputs.cache-hit == 'true' || steps.internal-cache.outputs.cache-hit == 'true' }}
+
+runs:
+  using: composite
+  steps:
+    - name: Cache with GitHub storage
+      id: github-cache
+      if: ${{ runner.environment == 'github-hosted' }}
+      uses: actions/cache@2c8a9bd7457de244a408f35966fab2fb45fda9c8 # v6
+      with:
+        key: ${{ inputs.key }}
+        path: ${{ inputs.path }}
+        restore-keys: ${{ inputs.restore-keys }}
+
+    - name: Cache with internal storage
+      id: internal-cache
+      if: ${{ runner.environment == 'self-hosted' }}
+      uses: lynx-infra/cache@d6bd70bf2182b228ff5cfa9539e5f61b0929a1ba # main
+      with:
+        key: ${{ inputs.key }}
+        path: ${{ inputs.path }}
+        restore-keys: ${{ inputs.restore-keys }}

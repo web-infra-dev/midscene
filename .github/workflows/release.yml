@@ -62,11 +62,13 @@ jobs:
       uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
       with:
         node-version: '24.13.0'
-        cache: 'pnpm'
         registry-url: 'https://registry.npmjs.org'
 
+    - name: Cache pnpm store
+      uses: ./.github/actions/pnpm-cache
+
     - name: Cache Puppeteer
-      uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+      uses: ./.github/actions/cache
       with:
         path: ~/.cache/puppeteer
         key: ${{ runner.os }}-puppeteer-${{ hashFiles('**/package-lock.json') }}
@@ -233,7 +235,9 @@ jobs:
       uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
       with:
         node-version: '22.11.0'
-        cache: 'pnpm'
+
+    - name: Cache pnpm store
+      uses: ./.github/actions/pnpm-cache
 
     - name: Prepare macOS codesigning keychain
       if: ${{ matrix.platform == 'darwin' }}
