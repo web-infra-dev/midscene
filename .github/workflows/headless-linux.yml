@@ -87,7 +87,7 @@ jobs:
         sudo dpkg -i google-chrome-stable_current_amd64.deb || sudo apt-get -f install -y
 
     - name: Install dependencies
-      run: pnpm install --frozen-lockfile
+      run: pnpm install --frozen-lockfile --ignore-scripts
 
     - name: Save pnpm store
       if: steps.pnpm-cache.outputs.cache-hit != 'true'
@@ -184,7 +184,7 @@ jobs:
         sudo dpkg -i google-chrome-stable_current_amd64.deb || sudo apt-get -f install -y
 
     - name: Install dependencies
-      run: pnpm install --frozen-lockfile
+      run: pnpm install --frozen-lockfile --ignore-scripts
 
     - name: Save pnpm store
       if: steps.pnpm-cache.outputs.cache-hit != 'true'
@@ -265,7 +265,7 @@ jobs:
         sudo dpkg -i google-chrome-stable_current_amd64.deb || sudo apt-get -f install -y
 
     - name: Install dependencies
-      run: pnpm install --frozen-lockfile
+      run: pnpm install --frozen-lockfile --ignore-scripts
 
     - name: Save pnpm store
       if: steps.pnpm-cache.outputs.cache-hit != 'true'
@@ -346,7 +346,7 @@ jobs:
         sudo dpkg -i google-chrome-stable_current_amd64.deb || sudo apt-get -f install -y
 
     - name: Install dependencies
-      run: pnpm install --frozen-lockfile
+      run: pnpm install --frozen-lockfile --ignore-scripts
 
     - name: Save pnpm store
       if: steps.pnpm-cache.outputs.cache-hit != 'true'
@@ -427,7 +427,7 @@ jobs:
         sudo dpkg -i google-chrome-stable_current_amd64.deb || sudo apt-get -f install -y
 
     - name: Install dependencies
-      run: pnpm install --frozen-lockfile
+      run: pnpm install --frozen-lockfile --ignore-scripts
 
     - name: Save pnpm store
       if: steps.pnpm-cache.outputs.cache-hit != 'true'
@@ -508,7 +508,7 @@ jobs:
         sudo dpkg -i google-chrome-stable_current_amd64.deb || sudo apt-get -f install -y
 
     - name: Install dependencies
-      run: pnpm install --frozen-lockfile
+      run: pnpm install --frozen-lockfile --ignore-scripts
 
     - name: Save pnpm store
       if: steps.pnpm-cache.outputs.cache-hit != 'true'
