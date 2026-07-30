@@ -123,8 +123,7 @@ export class ScrcpyDeviceAdapter {
    * Resolve scrcpy config.
    * maxSize defaults to 0 (no scaling, full physical resolution) so the Agent layer
    * receives the highest quality image for AI processing.
-   * videoBitRate is auto-scaled based on physical pixel count to ensure
-   * sufficient quality for all-I-frame H.264 encoding.
+   * videoBitRate uses the shared default unless explicitly configured.
    */
   resolveConfig(deviceInfo: DevicePhysicalInfo): ResolvedScrcpyConfig {
     if (this.resolvedConfig) return this.resolvedConfig;

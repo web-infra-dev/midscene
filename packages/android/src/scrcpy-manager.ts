@@ -190,9 +190,7 @@ export class ScrcpyScreenshotManager {
       this.isConnecting = true;
       debugScrcpy('Starting scrcpy connection...');
 
-      const { AdbScrcpyClient, AdbScrcpyOptions3_3_3 } = await import(
-        '@yume-chan/adb-scrcpy'
-      );
+      const { AdbScrcpyClient } = await import('@yume-chan/adb-scrcpy');
       const { ReadableStream } = await import('@yume-chan/stream-extra');
       const { DefaultServerPath } = await import('@yume-chan/scrcpy');
 
@@ -203,15 +201,7 @@ export class ScrcpyScreenshotManager {
         ReadableStream.from(createReadStream(serverBinPath)),
       );
 
-      const scrcpyOptions = new AdbScrcpyOptions3_3_3({
-        audio: false,
-        control: false,
-        maxSize: this.options.maxSize,
-        videoBitRate: this.options.videoBitRate,
-        maxFps: 10,
-        sendFrameMeta: true,
-        videoCodecOptions: 'i-frame-interval=0,bitrate-mode=2',
-      });
+      const scrcpyOptions = await this.createScrcpyOptions();
 
       this.scrcpyClient = await AdbScrcpyClient.start(
         this.adb,
@@ -254,6 +244,24 @@ export class ScrcpyScreenshotManager {
     } finally {
       this.isConnecting = false;
     }
+  }
+
+  private async createScrcpyOptions(): Promise<any> {
+    const [{ AdbScrcpyOptions3_3_3 }, { ScrcpyInstanceId }] = await Promise.all(
+      [import('@yume-chan/adb-scrcpy'), import('@yume-chan/scrcpy')],
+    );
+
+    return new AdbScrcpyOptions3_3_3({
+      audio: false,
+      control: false,
+      tunnelForward: true,
+      scid: ScrcpyInstanceId.random(),
+      maxSize: this.options.maxSize,
+      videoBitRate: this.options.videoBitRate,
+      maxFps: 10,
+      sendFrameMeta: true,
+      videoCodecOptions: 'i-frame-interval=0,bitrate-mode=2',
+    });
   }
 
   private async collectServerOutput(
