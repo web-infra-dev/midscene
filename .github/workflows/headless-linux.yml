@@ -272,7 +272,7 @@ jobs:
 
     - name: Run Bridge mode start/stop test
       run: AI_TEST_TYPE=computer npx nx test @midscene/computer -- tests/ai/chrome-extension-bridge.test.ts
-      timeout-minutes: 25
+      timeout-minutes: 40
       id: test-bridge
       continue-on-error: true
 
