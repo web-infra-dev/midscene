@@ -485,16 +485,16 @@ importers:
     devDependencies:
       '@rspress/core':
         specifier: 2.0.18
-        version: 2.0.18(@rspack/core@2.1.6(@swc/helpers@0.5.23))(@types/mdast@4.0.4)(@types/react@19.1.5)(core-js@3.47.0)(micromark-util-types@2.0.2)(micromark@4.0.2)
+        version: 2.0.18(@rspack/core@2.1.6)(@types/mdast@4.0.4)(@types/react@19.1.5)(core-js@3.47.0)(micromark-util-types@2.0.2)(micromark@4.0.2)
       '@rspress/plugin-client-redirects':
         specifier: 2.0.18
-        version: 2.0.18(@rspress/core@2.0.18(@rspack/core@2.1.6(@swc/helpers@0.5.23))(@types/mdast@4.0.4)(@types/react@19.1.5)(core-js@3.47.0)(micromark-util-types@2.0.2)(micromark@4.0.2))
+        version: 2.0.18(@rspress/core@2.0.18(@rspack/core@2.1.6)(@types/mdast@4.0.4)(@types/react@19.1.5)(core-js@3.47.0)(micromark-util-types@2.0.2)(micromark@4.0.2))
       '@rspress/plugin-llms':
         specifier: 2.0.18
-        version: 2.0.18(@rspress/core@2.0.18(@rspack/core@2.1.6(@swc/helpers@0.5.23))(@types/mdast@4.0.4)(@types/react@19.1.5)(core-js@3.47.0)(micromark-util-types@2.0.2)(micromark@4.0.2))
+        version: 2.0.18(@rspress/core@2.0.18(@rspack/core@2.1.6)(@types/mdast@4.0.4)(@types/react@19.1.5)(core-js@3.47.0)(micromark-util-types@2.0.2)(micromark@4.0.2))
       '@rspress/plugin-sitemap':
         specifier: 2.0.18
-        version: 2.0.18(@rspress/core@2.0.18(@rspack/core@2.1.6(@swc/helpers@0.5.23))(@types/mdast@4.0.4)(@types/react@19.1.5)(core-js@3.47.0)(micromark-util-types@2.0.2)(micromark@4.0.2))
+        version: 2.0.18(@rspress/core@2.0.18(@rspack/core@2.1.6)(@types/mdast@4.0.4)(@types/react@19.1.5)(core-js@3.47.0)(micromark-util-types@2.0.2)(micromark@4.0.2))
       '@tailwindcss/postcss':
         specifier: 4.1.11
         version: 4.1.11
@@ -795,8 +795,8 @@ importers:
         specifier: workspace:*
         version: link:../web-integration
       '@rstest/core':
-        specifier: 0.11.2
-        version: 0.11.2(core-js@3.47.0)(jsdom@29.0.2)
+        specifier: 0.11.5
+        version: 0.11.5(core-js@3.47.0)(jsdom@29.0.2)
       http-server:
         specifier: 14.1.1
         version: 14.1.1
@@ -1339,11 +1339,11 @@ importers:
         specifier: ^0.18.3
         version: 0.18.3(@microsoft/api-extractor@7.52.10(@types/node@18.19.130))(typescript@5.8.3)
       '@rstest/core':
-        specifier: 0.11.2
-        version: 0.11.2(core-js@3.47.0)(jsdom@29.0.2)
+        specifier: 0.11.5
+        version: 0.11.5(core-js@3.47.0)(jsdom@29.0.2)
       '@rstest/playwright':
         specifier: ^0.11.2
-        version: 0.11.5(@rstest/core@0.11.2(core-js@3.47.0)(jsdom@29.0.2))(playwright@1.58.1)
+        version: 0.11.5(@rstest/core@0.11.5(core-js@3.47.0)(jsdom@29.0.2))(playwright@1.58.1)
       '@types/node':
         specifier: ^18.0.0
         version: 18.19.130
@@ -2045,19 +2045,16 @@ packages:
   '@computer-use/libnut-darwin@2.7.1':
     resolution: {integrity: sha512-7B/aPcIYS4a4S7D3IYIHSpZ4B4m8Z3CjlYq0efTr+/JYmEu+LlO67ZhPvisLKifhagxf7goqEfnphg1F4jq5jw==}
     engines: {node: '>=10.15.3'}
-    cpu: [x64, arm64]
     os: [darwin, linux, win32]
 
   '@computer-use/libnut-linux@2.7.1':
     resolution: {integrity: sha512-QJD5URTFJ/2+JwBwRyajRF2BB+3eXpd4+t5btGeRVeiRQLKQ4lgorbMHySo6IrfAbSfnU1OVOrxAUygGxj0cFg==}
     engines: {node: '>=10.15.3'}
-    cpu: [x64, arm64]
     os: [darwin, linux, win32]
 
   '@computer-use/libnut-win32@2.7.1':
     resolution: {integrity: sha512-nDvH5kP1zoO2cBtFYWV0om9xtTu523cc1LIk8r/wizqPrIAm0wCizTU+odF3Fi42zcKJWT6J+Pguy8fKrZyIuA==}
     engines: {node: '>=10.15.3'}
-    cpu: [x64, arm64]
     os: [darwin, linux, win32]
 
   '@computer-use/libnut@4.2.0':
@@ -4027,8 +4024,8 @@ packages:
   '@rspress/shared@2.0.18':
     resolution: {integrity: sha512-GJswqJQCPSxvBt5r+gJzz8Em8EEK/sOmCQjTpemTvldvxr1Lva85BGVnSQZOgofnM0nrjt18kn4mmnuuSstbpA==}
 
-  '@rstest/core@0.11.2':
-    resolution: {integrity: sha512-/CTLkvogDGozY+bCYsc+sKJDDsU/LvDdEZC545+QO1Iv9ds+6vgSWuA+Q2iQF3cReeSkOI9ySARfFemcCoSKpQ==}
+  '@rstest/core@0.11.5':
+    resolution: {integrity: sha512-ySXZaFqU1mJonm79ko7OwagG2AurULg1dLDErJguhv/sepEyjt39sq2Bpt42mOxHehiFcl0Pr0PrlaPltmYbbA==}
     engines: {node: ^20.19.0 || >=22.12.0}
     hasBin: true
     peerDependencies:
@@ -9836,9 +9833,6 @@ packages:
   reduce-configs@1.1.1:
     resolution: {integrity: sha512-EYtsVGAQarE8daT54cnaY1PIknF2VB78ug6Zre2rs36EsJfC40EG6hmTU2A2P1ZuXnKAt2KI0fzOGHcX7wzdPw==}
 
-  reduce-configs@1.1.2:
-    resolution: {integrity: sha512-AgBP55V8FC7NaqoOP2RCbTpu6LE+YuX3LUZkNAoitcfyS3/PIC8Obg/TJrBzTkJ+lDvZv0TTAeDpLkzjTtYlbw==}
-
   reflect.getprototypeof@1.0.10:
     resolution: {integrity: sha512-00o4I+DVrefhv+nX0ulyi3biSHCPDe+yLv5o/p6d/UVlirijB8E16FtfwSAi4g3tcqrQ4lRAqQSoFEZJehYEcw==}
     engines: {node: '>= 0.4'}
@@ -14365,9 +14359,9 @@ snapshots:
     transitivePeerDependencies:
       - webpack-hot-middleware
 
-  '@rsbuild/plugin-react@2.1.0(@rsbuild/core@2.1.8(core-js@3.47.0))(@rspack/core@2.1.6(@swc/helpers@0.5.23))':
+  '@rsbuild/plugin-react@2.1.0(@rsbuild/core@2.1.8(core-js@3.47.0))(@rspack/core@2.1.6)':
     dependencies:
-      '@rspack/plugin-react-refresh': 2.0.2(@rspack/core@2.1.6(@swc/helpers@0.5.23))(react-refresh@0.18.0)
+      '@rspack/plugin-react-refresh': 2.0.2(@rspack/core@2.1.6)(react-refresh@0.18.0)
       react-refresh: 0.18.0
     optionalDependencies:
       '@rsbuild/core': 2.1.8(core-js@3.47.0)
@@ -14406,7 +14400,7 @@ snapshots:
     dependencies:
       deepmerge: 4.3.1
       json5: 2.2.3
-      reduce-configs: 1.1.2
+      reduce-configs: 1.1.1
       ts-checker-rspack-plugin: 1.2.2(@rspack/core@1.6.8)(typescript@5.8.3)
     optionalDependencies:
       '@rsbuild/core': 1.6.15
@@ -14700,18 +14694,18 @@ snapshots:
       error-stack-parser: 2.1.4
       react-refresh: 0.18.0
 
-  '@rspack/plugin-react-refresh@2.0.2(@rspack/core@2.1.6(@swc/helpers@0.5.23))(react-refresh@0.18.0)':
+  '@rspack/plugin-react-refresh@2.0.2(@rspack/core@2.1.6)(react-refresh@0.18.0)':
     dependencies:
       react-refresh: 0.18.0
     optionalDependencies:
       '@rspack/core': 2.1.6(@swc/helpers@0.5.23)
 
-  '@rspress/core@2.0.18(@rspack/core@2.1.6(@swc/helpers@0.5.23))(@types/mdast@4.0.4)(@types/react@19.1.5)(core-js@3.47.0)(micromark-util-types@2.0.2)(micromark@4.0.2)':
+  '@rspress/core@2.0.18(@rspack/core@2.1.6)(@types/mdast@4.0.4)(@types/react@19.1.5)(core-js@3.47.0)(micromark-util-types@2.0.2)(micromark@4.0.2)':
     dependencies:
       '@mdx-js/mdx': 3.1.1
       '@mdx-js/react': 3.1.1(@types/react@19.1.5)(react@19.2.8)
       '@rsbuild/core': 2.1.8(core-js@3.47.0)
-      '@rsbuild/plugin-react': 2.1.0(@rsbuild/core@2.1.8(core-js@3.47.0))(@rspack/core@2.1.6(@swc/helpers@0.5.23))
+      '@rsbuild/plugin-react': 2.1.0(@rsbuild/core@2.1.8(core-js@3.47.0))(@rspack/core@2.1.6)
       '@rspress/shared': 2.0.18(core-js@3.47.0)
       '@shikijs/rehype': 4.3.1
       '@types/unist': 3.0.3
@@ -14756,13 +14750,13 @@ snapshots:
       - micromark-util-types
       - supports-color
 
-  '@rspress/plugin-client-redirects@2.0.18(@rspress/core@2.0.18(@rspack/core@2.1.6(@swc/helpers@0.5.23))(@types/mdast@4.0.4)(@types/react@19.1.5)(core-js@3.47.0)(micromark-util-types@2.0.2)(micromark@4.0.2))':
+  '@rspress/plugin-client-redirects@2.0.18(@rspress/core@2.0.18(@rspack/core@2.1.6)(@types/mdast@4.0.4)(@types/react@19.1.5)(core-js@3.47.0)(micromark-util-types@2.0.2)(micromark@4.0.2))':
     dependencies:
-      '@rspress/core': 2.0.18(@rspack/core@2.1.6(@swc/helpers@0.5.23))(@types/mdast@4.0.4)(@types/react@19.1.5)(core-js@3.47.0)(micromark-util-types@2.0.2)(micromark@4.0.2)
+      '@rspress/core': 2.0.18(@rspack/core@2.1.6)(@types/mdast@4.0.4)(@types/react@19.1.5)(core-js@3.47.0)(micromark-util-types@2.0.2)(micromark@4.0.2)
 
-  '@rspress/plugin-llms@2.0.18(@rspress/core@2.0.18(@rspack/core@2.1.6(@swc/helpers@0.5.23))(@types/mdast@4.0.4)(@types/react@19.1.5)(core-js@3.47.0)(micromark-util-types@2.0.2)(micromark@4.0.2))':
+  '@rspress/plugin-llms@2.0.18(@rspress/core@2.0.18(@rspack/core@2.1.6)(@types/mdast@4.0.4)(@types/react@19.1.5)(core-js@3.47.0)(micromark-util-types@2.0.2)(micromark@4.0.2))':
     dependencies:
-      '@rspress/core': 2.0.18(@rspack/core@2.1.6(@swc/helpers@0.5.23))(@types/mdast@4.0.4)(@types/react@19.1.5)(core-js@3.47.0)(micromark-util-types@2.0.2)(micromark@4.0.2)
+      '@rspress/core': 2.0.18(@rspack/core@2.1.6)(@types/mdast@4.0.4)(@types/react@19.1.5)(core-js@3.47.0)(micromark-util-types@2.0.2)(micromark@4.0.2)
       remark-mdx: 3.1.1
       remark-parse: 11.0.0
       remark-stringify: 11.0.0
@@ -14771,9 +14765,9 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@rspress/plugin-sitemap@2.0.18(@rspress/core@2.0.18(@rspack/core@2.1.6(@swc/helpers@0.5.23))(@types/mdast@4.0.4)(@types/react@19.1.5)(core-js@3.47.0)(micromark-util-types@2.0.2)(micromark@4.0.2))':
+  '@rspress/plugin-sitemap@2.0.18(@rspress/core@2.0.18(@rspack/core@2.1.6)(@types/mdast@4.0.4)(@types/react@19.1.5)(core-js@3.47.0)(micromark-util-types@2.0.2)(micromark@4.0.2))':
     dependencies:
-      '@rspress/core': 2.0.18(@rspack/core@2.1.6(@swc/helpers@0.5.23))(@types/mdast@4.0.4)(@types/react@19.1.5)(core-js@3.47.0)(micromark-util-types@2.0.2)(micromark@4.0.2)
+      '@rspress/core': 2.0.18(@rspack/core@2.1.6)(@types/mdast@4.0.4)(@types/react@19.1.5)(core-js@3.47.0)(micromark-util-types@2.0.2)(micromark@4.0.2)
 
   '@rspress/shared@2.0.18(core-js@3.47.0)':
     dependencies:
@@ -14784,7 +14778,7 @@ snapshots:
       - '@module-federation/runtime-tools'
       - core-js
 
-  '@rstest/core@0.11.2(core-js@3.47.0)(jsdom@29.0.2)':
+  '@rstest/core@0.11.5(core-js@3.47.0)(jsdom@29.0.2)':
     dependencies:
       '@rsbuild/core': 2.1.8(core-js@3.47.0)
       '@types/chai': 5.2.3
@@ -14794,9 +14788,9 @@ snapshots:
       - '@module-federation/runtime-tools'
       - core-js
 
-  '@rstest/playwright@0.11.5(@rstest/core@0.11.2(core-js@3.47.0)(jsdom@29.0.2))(playwright@1.58.1)':
+  '@rstest/playwright@0.11.5(@rstest/core@0.11.5(core-js@3.47.0)(jsdom@29.0.2))(playwright@1.58.1)':
     dependencies:
-      '@rstest/core': 0.11.2(core-js@3.47.0)(jsdom@29.0.2)
+      '@rstest/core': 0.11.5(core-js@3.47.0)(jsdom@29.0.2)
       playwright: 1.58.1
 
   '@rushstack/node-core-library@5.14.0(@types/node@18.19.118)':
@@ -21954,8 +21948,6 @@ snapshots:
       strip-indent: 3.0.0
 
   reduce-configs@1.1.1: {}
-
-  reduce-configs@1.1.2: {}
 
   reflect.getprototypeof@1.0.10:
     dependencies:
