@@ -330,6 +330,11 @@ interface CallAIOptions {
   abortSignal?: AbortSignal;
   requiresOriginalImageDetail?: boolean;
   expectedJsonObjectResponse?: boolean;
+  /**
+   * Number of preceding semantic parsing failures for this request.
+   * Network retries are intentionally excluded.
+   */
+  semanticRetryAttempt?: number;
 }
 
 export async function callAI(
@@ -358,6 +363,7 @@ export async function callAI(
       reasoningBudget: modelConfig.reasoningBudget,
       responseFormat: modelConfig.responseFormat,
     },
+    semanticRetryAttempt: options?.semanticRetryAttempt,
     requiresOriginalImageDetail: options?.requiresOriginalImageDetail,
     expectedJsonObjectResponse: options?.expectedJsonObjectResponse,
   };
@@ -772,6 +778,41 @@ export async function callAI(
   }
 }
 
+export type AIObjectResponse<T> = {
+  // TODO: `content` is a misleading name here because this is already the parsed object response. Consider renaming it to `object` or `data`.
+  content: T;
+  contentString: string;
+  usage?: AIUsageInfo;
+  reasoning_content?: string;
+  rawChoiceMessage?: unknown;
+};
+
+export function parseAIObjectResponse<T>(
+  response: Awaited<ReturnType<typeof callAI>>,
+  modelRuntime: ModelRuntime,
+  jsonParserSource: JsonParserSource = 'generic-object',
+): AIObjectResponse<T> {
+  const { config: modelConfig, adapter } = modelRuntime;
+  assert(response, 'empty response');
+  const jsonContent = adapter.jsonParser(response.content, {
+    source: jsonParserSource,
+  });
+  // This API expects a JSON object. Bare JSON primitives are valid JSON,
+  // but do not satisfy object-response callers.
+  if (!jsonContent || typeof jsonContent !== 'object') {
+    throw new Error(
+      `failed to parse json response from model (${modelConfig.modelName}): ${response.content}`,
+    );
+  }
+  return {
+    content: jsonContent as T,
+    contentString: response.content,
+    usage: response.usage,
+    reasoning_content: response.reasoning_content,
+    rawChoiceMessage: response.rawChoiceMessage,
+  };
+}
+
 export async function callAIWithObjectResponse<T>(
   messages: ChatCompletionMessageParam[],
   modelRuntime: ModelRuntime,
@@ -781,41 +822,21 @@ export async function callAIWithObjectResponse<T>(
     retryTimes?: number;
     retryInterval?: number;
   },
-): Promise<{
-  // TODO: `content` is a misleading name here because this is already the parsed object response. Consider renaming it to `object` or `data`.
-  content: T;
-  contentString: string;
-  usage?: AIUsageInfo;
-  reasoning_content?: string;
-  rawChoiceMessage?: unknown;
-}> {
-  const { config: modelConfig, adapter } = modelRuntime;
+): Promise<AIObjectResponse<T>> {
+  const { config: modelConfig } = modelRuntime;
   return callAiAndParseWithRetry({
-    callAi: () =>
+    callAi: (retryAttempt) =>
       callAI(messages, modelRuntime, {
         abortSignal: options?.abortSignal,
         expectedJsonObjectResponse: true,
+        semanticRetryAttempt: retryAttempt,
       }),
-    parseResponse: (response) => {
-      assert(response, 'empty response');
-      const jsonContent = adapter.jsonParser(response.content, {
-        source: options?.jsonParserSource ?? 'generic-object',
-      });
-      // This API expects a JSON object. Bare JSON primitives are valid JSON,
-      // but do not satisfy object-response callers.
-      if (!jsonContent || typeof jsonContent !== 'object') {
-        throw new Error(
-          `failed to parse json response from model (${modelConfig.modelName}): ${response.content}`,
-        );
-      }
-      return {
-        content: jsonContent as T,
-        contentString: response.content,
-        usage: response.usage,
-        reasoning_content: response.reasoning_content,
-        rawChoiceMessage: response.rawChoiceMessage,
-      };
-    },
+    parseResponse: (response) =>
+      parseAIObjectResponse<T>(
+        response,
+        modelRuntime,
+        options?.jsonParserSource,
+      ),
     toParseError: (error, response) => {
       const errorMessage =
         error instanceof Error ? error.message : String(error);

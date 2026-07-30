@@ -43,6 +43,7 @@ import {
   AIResponseParseError,
   callAI,
   callAIWithObjectResponse,
+  parseAIObjectResponse,
 } from './service-caller/index';
 import { callAiAndParseWithRetry } from './service-caller/semantic-retry';
 import { prepareModelImage } from './workflows/image-preprocess';
@@ -271,57 +272,66 @@ export async function genericLocate(
 
   try {
     return await callAiAndParseWithRetry({
-      callAi: () =>
-        callAIWithObjectResponse<AIElementLocateResponse>(msgs, modelRuntime, {
+      callAi: (retryAttempt) =>
+        callAI(msgs, modelRuntime, {
           abortSignal: options.abortSignal,
-          jsonParserSource: 'locate',
-          retryTimes: modelRuntime.config.retryCount,
-          retryInterval: modelRuntime.config.retryInterval,
+          expectedJsonObjectResponse: true,
+          semanticRetryAttempt: retryAttempt,
         }),
       parseResponse: (response): LocateModelResponse => {
-        const rawResponse = response.contentString;
-        const errors: string[] | undefined =
-          'errors' in response.content ? response.content.errors : [];
+        const result = parseAIObjectResponse<AIElementLocateResponse>(
+          response,
+          modelRuntime,
+          'locate',
+        );
+        const rawResponse = result.contentString;
+        const locateError = result.content.error;
         if (
-          !hasLocateResult(response.content, resultAdapter.promptSpec.resultKey)
+          !hasLocateResult(result.content, resultAdapter.promptSpec.resultKey)
         ) {
           return {
             rawResponse,
-            rawChoiceMessage: response.rawChoiceMessage,
-            usage: response.usage,
-            reasoningContent: response.reasoning_content,
-            errors: errors as string[],
+            rawChoiceMessage: result.rawChoiceMessage,
+            usage: result.usage,
+            reasoningContent: result.reasoning_content,
+            errors: locateError ? [locateError] : [],
           };
         }
 
-        const locatedPixelBbox =
-          resultAdapter.adaptElementLocateResultToPixelBbox(response.content, {
-            preparedSize: preparedImage.preparedSize,
-            contentSize: preparedImage.contentSize,
-          });
-        return {
-          locatedPixelBbox,
-          rawResponse,
-          rawChoiceMessage: response.rawChoiceMessage,
-          usage: response.usage,
-          reasoningContent: response.reasoning_content,
-          errors: errors as string[],
-        };
+        try {
+          const locatedPixelBbox =
+            resultAdapter.adaptElementLocateResultToPixelBbox(result.content, {
+              preparedSize: preparedImage.preparedSize,
+              contentSize: preparedImage.contentSize,
+            });
+          return {
+            locatedPixelBbox,
+            rawResponse,
+            rawChoiceMessage: result.rawChoiceMessage,
+            usage: result.usage,
+            reasoningContent: result.reasoning_content,
+            errors: [],
+          };
+        } catch (error) {
+          const errorMessage =
+            error instanceof Error ? error.message : String(error);
+          const message = [
+            locateError && `error in locate result: ${locateError}`,
+            `coordinate parsing error: ${errorMessage}`,
+          ]
+            .filter(Boolean)
+            .join('\n');
+          throw new Error(message, { cause: error });
+        }
       },
       toParseError: (error, response) => {
         const parseErrorMessage =
           error instanceof Error
             ? `Failed to parse locate result: ${error.message}`
             : 'unknown error in locate result';
-        const modelErrors =
-          'errors' in response.content ? response.content.errors : undefined;
-        const message =
-          modelErrors && modelErrors.length > 0
-            ? `${modelErrors.join('\n')} (${parseErrorMessage})`
-            : parseErrorMessage;
         return new AIResponseParseError(
-          message,
-          response.contentString,
+          parseErrorMessage,
+          response.content,
           response.usage,
           response.rawChoiceMessage,
           response.reasoning_content,
@@ -432,14 +442,18 @@ export async function AiLocateSection(options: {
 
   try {
     parsedResult = await callAiAndParseWithRetry({
-      callAi: () =>
-        callAIWithObjectResponse<AISectionLocatorResponse>(msgs, modelRuntime, {
+      callAi: (retryAttempt) =>
+        callAI(msgs, modelRuntime, {
           abortSignal: options.abortSignal,
-          jsonParserSource: 'section-locator',
-          retryTimes: modelRuntime.config.retryCount,
-          retryInterval: modelRuntime.config.retryInterval,
+          expectedJsonObjectResponse: true,
+          semanticRetryAttempt: retryAttempt,
         }),
-      parseResponse: (result) => {
+      parseResponse: (response) => {
+        const result = parseAIObjectResponse<AISectionLocatorResponse>(
+          response,
+          modelRuntime,
+          'section-locator',
+        );
         const sectionError = result.content.error;
         if (
           !hasLocateResult(result.content, resultAdapter.promptSpec.resultKey)
@@ -447,35 +461,44 @@ export async function AiLocateSection(options: {
           return { result, sectionError };
         }
 
-        const adaptedResult =
-          resultAdapter.adaptSectionLocateResultToPixelBboxGroup(
-            result.content,
-            {
-              preparedSize: preparedImage.preparedSize,
-              contentSize: preparedImage.contentSize,
-            },
-          );
-        const mergedRect = mergePixelBboxesToRect([
-          adaptedResult.target,
-          ...(adaptedResult.references ?? []),
-        ]);
-        debugSection('mergedRect %j', mergedRect);
-        return { result, sectionError, mergedRect };
+        try {
+          const adaptedResult =
+            resultAdapter.adaptSectionLocateResultToPixelBboxGroup(
+              result.content,
+              {
+                preparedSize: preparedImage.preparedSize,
+                contentSize: preparedImage.contentSize,
+              },
+            );
+          const mergedRect = mergePixelBboxesToRect([
+            adaptedResult.target,
+            ...(adaptedResult.references ?? []),
+          ]);
+          debugSection('mergedRect %j', mergedRect);
+          return { result, sectionError, mergedRect };
+        } catch (error) {
+          const errorMessage =
+            error instanceof Error ? error.message : String(error);
+          const message = [
+            sectionError && `error in section locate result: ${sectionError}`,
+            `coordinate parsing error: ${errorMessage}`,
+          ]
+            .filter(Boolean)
+            .join('\n');
+          throw new Error(message, { cause: error });
+        }
       },
-      toParseError: (error, result) => {
+      toParseError: (error, response) => {
         const parseErrorMessage =
           error instanceof Error
             ? `Failed to parse section locate result: ${error.message}`
             : 'unknown error in section locate';
-        const message = result.content.error
-          ? `${result.content.error} (${parseErrorMessage})`
-          : parseErrorMessage;
         return new AIResponseParseError(
-          message,
-          result.contentString,
-          result.usage,
-          result.rawChoiceMessage,
-          result.reasoning_content,
+          parseErrorMessage,
+          response.content,
+          response.usage,
+          response.rawChoiceMessage,
+          response.reasoning_content,
         );
       },
       parseRetryTimes: modelRuntime.config.retryCount,
@@ -644,9 +667,10 @@ export async function AiExtractElementInfo<T>(options: {
   }
 
   return callAiAndParseWithRetry({
-    callAi: () =>
+    callAi: (retryAttempt) =>
       callAI(msgs, modelRuntime, {
         abortSignal: options.abortSignal,
+        semanticRetryAttempt: retryAttempt,
       }),
     parseResponse: (response) => {
       const {

@@ -14,11 +14,12 @@ import { createFakeContext } from '../../utils';
 
 // Mock AI service caller
 vi.mock('@/ai-model/service-caller/index', () => ({
-  callAIWithObjectResponse: vi.fn(),
+  callAI: vi.fn(),
+  parseAIObjectResponse: vi.fn(),
   AIResponseParseError: class AIResponseParseError extends Error {},
 }));
 
-import { callAIWithObjectResponse } from '@/ai-model/service-caller/index';
+import { callAI, parseAIObjectResponse } from '@/ai-model/service-caller/index';
 
 const insightFindTask = (shouldThrow?: boolean) => {
   const insightFindTask: ExecutionTaskPlanningLocateApply = {
@@ -81,7 +82,8 @@ describe(
   () => {
     beforeEach(() => {
       // Setup default mock implementation for AI calls
-      vi.mocked(callAIWithObjectResponse).mockResolvedValue({
+      vi.mocked(callAI).mockResolvedValue({ content: '{}', isStreamed: false });
+      vi.mocked(parseAIObjectResponse).mockReturnValue({
         content: {
           bbox: [0, 0, 100, 100] as [number, number, number, number],
           errors: [],

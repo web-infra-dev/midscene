@@ -535,6 +535,7 @@ describe('system prompts', () => {
     const prompt = systemPromptToLocateElement(
       locatePromptSpecFor('qwen2.5-vl'),
     );
+    expect(prompt).toContain('"error"?: string');
     expect(prompt).toMatchSnapshot();
   });
 

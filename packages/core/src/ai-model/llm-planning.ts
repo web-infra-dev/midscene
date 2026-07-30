@@ -142,10 +142,11 @@ async function callAndParsePlanningResponse(
     locateResultContext,
   } = options;
   return callAiAndParseWithRetry({
-    callAi: () =>
+    callAi: (retryAttempt) =>
       callAI(messages, modelRuntime, {
         abortSignal,
         requiresOriginalImageDetail: includeLocateInPlanning,
+        semanticRetryAttempt: retryAttempt,
       }),
     parseResponse: (response) => {
       const planFromAI = parseXMLPlanningResponse(

@@ -183,7 +183,7 @@ describe('service-caller reasoning fallback', () => {
     const rawResponse = `\`\`\`json
 {
   "bbox": 37, 313, 55, 324,
-  "errors": []
+  "error": ""
 }
 \`\`\``;
 
@@ -306,11 +306,106 @@ describe('service-caller reasoning fallback', () => {
     const response = await callAIWithObjectResponse(
       [{ role: 'user', content: 'locate element' }],
       getModelRuntime(baseModelConfig),
-      { jsonParserSource: 'locate', retryTimes: 1 },
+      {
+        jsonParserSource: 'locate',
+        retryTimes: 1,
+      },
     );
 
     expect(mockCreate).toHaveBeenCalledTimes(2);
+    expect(mockCreate).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({ temperature: 0 }),
+      expect.any(Object),
+    );
+    expect(mockCreate).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({ temperature: 0.2 }),
+      expect.any(Object),
+    );
     expect(response.content).toEqual({ bbox: [100, 200, 300, 400] });
+  });
+
+  it('keeps a non-zero adapter temperature during JSON parsing retries', async () => {
+    mockCreate
+      .mockResolvedValueOnce({
+        choices: [{ message: { content: 'not JSON' } }],
+      })
+      .mockResolvedValueOnce({
+        choices: [{ message: { content: '{"answer":true}' } }],
+      });
+
+    await callAIWithObjectResponse(
+      [{ role: 'user', content: 'return a json object' }],
+      getModelRuntime({
+        ...baseModelConfig,
+        modelFamily: 'doubao-seed',
+        temperature: 0.6,
+      }),
+      { retryTimes: 1 },
+    );
+
+    expect(mockCreate).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({ temperature: 0.6 }),
+      expect.any(Object),
+    );
+    expect(mockCreate).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({ temperature: 0.6 }),
+      expect.any(Object),
+    );
+  });
+
+  it('keeps an explicitly configured zero temperature during JSON parsing retries', async () => {
+    mockCreate
+      .mockResolvedValueOnce({
+        choices: [{ message: { content: 'not JSON' } }],
+      })
+      .mockResolvedValueOnce({
+        choices: [{ message: { content: '{"answer":true}' } }],
+      });
+
+    await callAIWithObjectResponse(
+      [{ role: 'user', content: 'return a json object' }],
+      getModelRuntime({
+        ...baseModelConfig,
+        modelFamily: 'doubao-seed',
+        temperature: 0,
+      }),
+      { retryTimes: 1 },
+    );
+
+    expect(mockCreate).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({ temperature: 0 }),
+      expect.any(Object),
+    );
+  });
+
+  it('does not add temperature on retries when the adapter disables it', async () => {
+    mockCreate
+      .mockResolvedValueOnce({
+        choices: [{ message: { content: 'not JSON' } }],
+      })
+      .mockResolvedValueOnce({
+        choices: [{ message: { content: '{"answer":true}' } }],
+      });
+
+    await callAIWithObjectResponse(
+      [{ role: 'user', content: 'return a json object' }],
+      getModelRuntime({
+        ...baseModelConfig,
+        modelFamily: 'kimi',
+      }),
+      { retryTimes: 1 },
+    );
+
+    expect(mockCreate).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({ temperature: undefined }),
+      expect.any(Object),
+    );
   });
 
   it('uses model retry settings for JSON parsing failures', async () => {

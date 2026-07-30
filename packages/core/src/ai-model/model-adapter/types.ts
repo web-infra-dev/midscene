@@ -56,6 +56,11 @@ export type ChatCompletionUnsupportedUserConfig =
 export interface ChatCompletionCallInput {
   intent?: TIntent;
   userConfig?: ChatCompletionCallUserConfig;
+  /**
+   * Number of preceding semantic parsing failures for this request.
+   * This is execution context, not part of the user's model configuration.
+   */
+  semanticRetryAttempt?: number;
   requiresOriginalImageDetail?: boolean;
   /**
    * Whether this call expects a JSON object response.
@@ -71,6 +76,7 @@ export interface ChatCompletionCallInput {
 export interface ChatCompletionCallContext {
   intent?: TIntent;
   userConfig: ChatCompletionCallUserConfig;
+  semanticRetryAttempt?: number;
   requiresOriginalImageDetail?: boolean;
   expectedJsonObjectResponse?: boolean;
   midsceneDefaults: MidsceneChatCompletionDefaults;
