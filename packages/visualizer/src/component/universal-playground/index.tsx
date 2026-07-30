@@ -27,7 +27,10 @@ import {
 import { shouldOffsetEmptyStateForPromptInput } from '../../utils/prompt-input-utils';
 import { PromptInput } from '../prompt-input';
 import ShinyText from '../shiny-text';
-import { shouldRenderCustomEmptyState } from './empty-state';
+import {
+  shouldRenderCustomEmptyState,
+  shouldShowTimelineActions,
+} from './empty-state';
 import {
   preparePlaygroundExecution,
   shouldExecuteExternalRunRequest,
@@ -473,6 +476,7 @@ export function UniversalPlayground({
       shouldOffsetEmptyStateForPromptInput(actionSpace, selectedType),
     [actionSpace, renderCustomEmptyState, selectedType],
   );
+  const showTimelineActions = shouldShowTimelineActions(renderCustomEmptyState);
 
   useEffect(() => {
     if (!shouldOffsetEmptyStateForPrompt) {
@@ -545,17 +549,18 @@ export function UniversalPlayground({
       void clearInfoList();
     });
   }, [cancelCurrentExecution, clearInfoList]);
-  const timelineHeaderAction = showClearButton ? (
-    <div className="clear-button-container">
-      <Button
-        size="small"
-        icon={<ClearOutlined />}
-        onClick={handleClearInfoList}
-        type="text"
-        className="clear-button"
-      />
-    </div>
-  ) : null;
+  const timelineHeaderAction =
+    showClearButton && showTimelineActions ? (
+      <div className="clear-button-container">
+        <Button
+          size="small"
+          icon={<ClearOutlined />}
+          onClick={handleClearInfoList}
+          type="text"
+          className="clear-button"
+        />
+      </div>
+    ) : null;
   const wrapTimeline =
     componentConfig.timelineWrapper ??
     ((
@@ -810,7 +815,8 @@ export function UniversalPlayground({
               </div>
 
               {/* Scroll to Bottom Button */}
-              {showScrollToBottomButton &&
+              {showTimelineActions &&
+                showScrollToBottomButton &&
                 componentConfig.enableScrollToBottom !== false && (
                   <Button
                     className="scroll-to-bottom-button"

@@ -36,7 +36,11 @@ html[data-theme='dark'] {
   --midscene-text-primary: rgba(255, 255, 255, 0.88);
   --midscene-text-secondary: rgba(255, 255, 255, 0.65);
   --midscene-text-tertiary: rgba(255, 255, 255, 0.65);
+  --midscene-text-placeholder: rgba(255, 255, 255, 0.45);
+  --midscene-border-control: rgba(255, 255, 255, 0.14);
   --midscene-border-strong: rgba(255, 255, 255, 0.14);
+  --midscene-divider: rgba(255, 255, 255, 0.14);
+  --midscene-icon-muted: rgba(255, 255, 255, 0.65);
 
   .popup-wrapper,
   .popup-wrapper .popup-nav,
@@ -54,6 +58,23 @@ html[data-theme='dark'] {
   .popup-wrapper .popup-nav .nav-right .nav-icon {
     color: var(--midscene-text-primary);
   }
+}
+
+// The extension popup keeps Config as a light floating surface even when the
+// surrounding recorder or playground follows the system dark theme.
+html[data-theme='dark'] .chrome-extension-model-env-config-modal {
+  --midscene-surface: #fff;
+  --midscene-surface-elevated: #fff;
+  --midscene-surface-muted: #f1f2f3;
+  --midscene-surface-hover: rgba(0, 0, 0, 0.05);
+  --midscene-text-primary: #0d0d0d;
+  --midscene-text-secondary: rgba(0, 0, 0, 0.7);
+  --midscene-text-tertiary: #797a7a;
+  --midscene-text-placeholder: #9d9fa0;
+  --midscene-border-control: #dadada;
+  --midscene-border-strong: rgba(0, 0, 0, 0.08);
+  --midscene-divider: rgba(0, 0, 0, 0.08);
+  --midscene-icon-muted: #b6b6b6;
 }
 
 #root {
@@ -260,6 +281,12 @@ html[data-theme='dark'] {
 
   .midscene-config-modal-env-textarea {
     min-height: 160px !important;
+  }
+
+  .midscene-config-modal-body-content,
+  .midscene-config-modal-env-section,
+  .midscene-config-modal-agent-options {
+    gap: 12px;
   }
 
   .midscene-config-modal-section-heading {
