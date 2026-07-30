@@ -1,6 +1,6 @@
 import { getModelRuntime } from '@/ai-model/models';
 import Service from '@/service';
-import { ServiceError } from '@/types';
+import { type AIUsageInfo, ServiceError } from '@/types';
 import type { IModelConfig } from '@midscene/shared/env';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createFakeContext } from '../utils';
@@ -129,7 +129,19 @@ describe('service.locate deepLocate routing', () => {
       content: '{"bbox":["invalid bbox"]}',
       role: 'assistant',
     };
-    const usage = { prompt_tokens: 12, completion_tokens: 6 };
+    const usage: AIUsageInfo = {
+      prompt_tokens: 12,
+      completion_tokens: 6,
+      total_tokens: 18,
+      cached_input: undefined,
+      time_cost: undefined,
+      model_name: undefined,
+      model_description: undefined,
+      response_model_name: undefined,
+      intent: undefined,
+      slot: undefined,
+      request_id: undefined,
+    };
     vi.mocked(AiLocateSection).mockResolvedValue({
       searchAreaConfig: undefined,
       error: 'invalid bbox data',
