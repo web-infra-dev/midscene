@@ -37,10 +37,15 @@ jobs:
         node-version: '24.13.0'
 
     - name: Cache pnpm store
-      uses: ./.github/actions/pnpm-cache
+      id: pnpm-cache
+      uses: ./.github/actions/pnpm-cache/restore
 
     - name: Install Dependencies
       run: pnpm install --frozen-lockfile --ignore-scripts
+
+    - name: Save pnpm store
+      if: steps.pnpm-cache.outputs.cache-hit != 'true'
+      uses: ./.github/actions/pnpm-cache/save
 
     - name: Check Dependency Version
       run: pnpm run check-dependency-version

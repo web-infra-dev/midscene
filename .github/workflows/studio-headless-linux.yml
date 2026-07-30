@@ -46,7 +46,8 @@ jobs:
         node-version: '24.13.0'
 
     - name: Cache pnpm store
-      uses: ./.github/actions/pnpm-cache
+      id: pnpm-cache
+      uses: ./.github/actions/pnpm-cache/restore
 
     - name: Install system dependencies
       run: |
@@ -78,6 +79,10 @@ jobs:
 
     - name: Install dependencies
       run: pnpm install --frozen-lockfile
+
+    - name: Save pnpm store
+      if: steps.pnpm-cache.outputs.cache-hit != 'true'
+      uses: ./.github/actions/pnpm-cache/save
 
     - name: Install Puppeteer browser binary
       # `pnpm install` normally triggers puppeteer's `postinstall` to fetch

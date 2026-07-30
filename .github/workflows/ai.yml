@@ -47,10 +47,11 @@ jobs:
         node-version: '24.13.0'
 
     - name: Cache pnpm store
-      uses: ./.github/actions/pnpm-cache
+      id: pnpm-cache
+      uses: ./.github/actions/pnpm-cache/restore
 
     - name: Cache Playwright dependencies
-      uses: ./.github/actions/cache
+      uses: ./.github/actions/cache/restore
       id: cache-playwright
       with:
         path: ~/.cache/ms-playwright
@@ -61,6 +62,10 @@ jobs:
     - name: Install dependencies
       run: pnpm install --frozen-lockfile --ignore-scripts
 
+    - name: Save pnpm store
+      if: steps.pnpm-cache.outputs.cache-hit != 'true'
+      uses: ./.github/actions/pnpm-cache/save
+
     - name: Install Playwright dependencies
       run: |
         cd packages/web-integration
@@ -69,6 +74,13 @@ jobs:
         else
           npx playwright install-deps && npx playwright install
         fi
+
+    - name: Save Playwright dependencies
+      if: steps.cache-playwright.outputs.cache-hit != 'true'
+      uses: ./.github/actions/cache/save
+      with:
+        path: ~/.cache/ms-playwright
+        key: ${{ runner.os }}-playwright-${{ hashFiles('pnpm-lock.yaml') }}
 
     - name: Install puppeteer dependencies
       run: |
@@ -133,10 +145,11 @@ jobs:
         node-version: '24.13.0'
 
     - name: Cache pnpm store
-      uses: ./.github/actions/pnpm-cache
+      id: pnpm-cache
+      uses: ./.github/actions/pnpm-cache/restore
 
     - name: Cache Playwright dependencies
-      uses: ./.github/actions/cache
+      uses: ./.github/actions/cache/restore
       id: cache-playwright
       with:
         path: ~/.cache/ms-playwright
@@ -147,6 +160,10 @@ jobs:
     - name: Install dependencies
       run: pnpm install --frozen-lockfile --ignore-scripts
 
+    - name: Save pnpm store
+      if: steps.pnpm-cache.outputs.cache-hit != 'true'
+      uses: ./.github/actions/pnpm-cache/save
+
     - name: Install Playwright dependencies
       run: |
         cd packages/web-integration
@@ -155,6 +172,13 @@ jobs:
         else
           npx playwright install-deps && npx playwright install
         fi
+
+    - name: Save Playwright dependencies
+      if: steps.cache-playwright.outputs.cache-hit != 'true'
+      uses: ./.github/actions/cache/save
+      with:
+        path: ~/.cache/ms-playwright
+        key: ${{ runner.os }}-playwright-${{ hashFiles('pnpm-lock.yaml') }}
 
     - name: Install puppeteer dependencies
       run: |

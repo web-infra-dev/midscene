@@ -1,6 +1,11 @@
-name: Cache pnpm store
+name: Restore pnpm store
 
-description: Cache the pnpm content-addressable store on the runner-appropriate backend
+description: Restore the pnpm content-addressable store from the runner-appropriate backend
+
+outputs:
+  cache-hit:
+    description: Whether the primary pnpm cache key was restored
+    value: ${{ steps.cache.outputs.cache-hit }}
 
 runs:
   using: composite
@@ -12,8 +17,9 @@ runs:
         echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
         echo "version=$(pnpm --version)" >> "$GITHUB_OUTPUT"
 
-    - name: Cache pnpm store
-      uses: ./.github/actions/cache
+    - name: Restore pnpm store
+      id: cache
+      uses: ./.github/actions/cache/restore
       with:
         path: ${{ steps.pnpm-store.outputs.path }}
         key: midscene-pnpm-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.pnpm-store.outputs.version }}-${{ hashFiles('pnpm-lock.yaml') }}

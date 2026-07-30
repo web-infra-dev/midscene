@@ -54,7 +54,8 @@ jobs:
           node-version: '22.11.0'
 
       - name: Cache pnpm store
-        uses: ./.github/actions/pnpm-cache
+        id: pnpm-cache
+        uses: ./.github/actions/pnpm-cache/restore
 
       - name: Prepare macOS codesigning keychain
         if: ${{ matrix.platform == 'darwin' }}
@@ -110,6 +111,10 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Save pnpm store
+        if: steps.pnpm-cache.outputs.cache-hit != 'true'
+        uses: ./.github/actions/pnpm-cache/save
 
       - name: Install @midscene/computer native build deps (macOS)
         if: ${{ matrix.platform == 'darwin' }}
