@@ -186,6 +186,9 @@ jobs:
     - name: Install dependencies
       run: pnpm install --frozen-lockfile --ignore-scripts
 
+    - name: Install Chrome for Testing
+      run: pnpm exec puppeteer browsers install chrome
+
     - name: Save pnpm store
       if: steps.pnpm-cache.outputs.cache-hit != 'true'
       uses: ./.github/actions/pnpm-cache/save
@@ -266,6 +269,9 @@ jobs:
 
     - name: Install dependencies
       run: pnpm install --frozen-lockfile --ignore-scripts
+
+    - name: Install Chrome for Testing
+      run: pnpm exec puppeteer browsers install chrome
 
     - name: Save pnpm store
       if: steps.pnpm-cache.outputs.cache-hit != 'true'
@@ -348,6 +354,9 @@ jobs:
     - name: Install dependencies
       run: pnpm install --frozen-lockfile --ignore-scripts
 
+    - name: Install Chrome for Testing
+      run: pnpm exec puppeteer browsers install chrome
+
     - name: Save pnpm store
       if: steps.pnpm-cache.outputs.cache-hit != 'true'
       uses: ./.github/actions/pnpm-cache/save
@@ -429,6 +438,9 @@ jobs:
     - name: Install dependencies
       run: pnpm install --frozen-lockfile --ignore-scripts
 
+    - name: Install Chrome for Testing
+      run: pnpm exec puppeteer browsers install chrome
+
     - name: Save pnpm store
       if: steps.pnpm-cache.outputs.cache-hit != 'true'
       uses: ./.github/actions/pnpm-cache/save
@@ -509,6 +521,9 @@ jobs:
 
     - name: Install dependencies
       run: pnpm install --frozen-lockfile --ignore-scripts
+
+    - name: Install Chrome for Testing
+      run: pnpm exec puppeteer browsers install chrome
 
     - name: Save pnpm store
       if: steps.pnpm-cache.outputs.cache-hit != 'true'
