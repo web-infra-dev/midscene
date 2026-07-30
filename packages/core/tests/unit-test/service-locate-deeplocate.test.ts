@@ -1,5 +1,6 @@
 import { getModelRuntime } from '@/ai-model/models';
 import Service from '@/service';
+import { ServiceError } from '@/types';
 import type { IModelConfig } from '@midscene/shared/env';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createFakeContext } from '../utils';
@@ -120,6 +121,44 @@ describe('service.locate deepLocate routing', () => {
     );
     expect(AiLocateElement).toHaveBeenCalledTimes(1);
     expect(buildSearchAreaConfig).not.toHaveBeenCalled();
+  });
+
+  it('records search-area model data when section locate fails', async () => {
+    const service = new Service(createFakeContext());
+    const rawChoiceMessage = {
+      content: '{"bbox":["invalid bbox"]}',
+      role: 'assistant',
+    };
+    const usage = { prompt_tokens: 12, completion_tokens: 6 };
+    vi.mocked(AiLocateSection).mockResolvedValue({
+      searchAreaConfig: undefined,
+      error: 'invalid bbox data',
+      rawResponse: '{"bbox":["invalid bbox"]}',
+      rawChoiceMessage,
+      usage,
+    });
+
+    const error = await service
+      .locate({ prompt: 'target', deepLocate: true }, {}, modelRuntime)
+      .catch((caughtError: unknown) => caughtError);
+
+    expect(error).toBeInstanceOf(ServiceError);
+    expect((error as ServiceError).message).toBe(
+      'cannot find search area for "target": invalid bbox data',
+    );
+    expect((error as ServiceError).dump).toMatchObject({
+      type: 'locate',
+      userQuery: { element: 'target' },
+      matchedElement: [],
+      deepLocate: true,
+      error: 'cannot find search area for "target": invalid bbox data',
+      taskInfo: {
+        searchAreaRawResponse: '{"bbox":["invalid bbox"]}',
+        searchAreaRawChoiceMessage: rawChoiceMessage,
+        searchAreaUsage: usage,
+      },
+    });
+    expect(AiLocateElement).not.toHaveBeenCalled();
   });
 
   it('uses first-pass locate when the model does not support search-area locate', async () => {
