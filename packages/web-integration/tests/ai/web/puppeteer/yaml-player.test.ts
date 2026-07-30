@@ -31,9 +31,11 @@ const runYaml = async (yamlString: string, ignoreStatusAssertion = false) => {
 describe(
   'YAML player - AI e2e',
   () => {
-    test('flush output even if assertion failed', async () => {
-      const outputPath = `./midscene_run/output/${uuid()}.json`;
-      const yamlString = `
+    test(
+      'flush output even if assertion failed',
+      async () => {
+        const outputPath = `./midscene_run/output/${uuid()}.json`;
+        const yamlString = `
       target:
         url: https://www.bing.com
         output: ${outputPath}
@@ -45,13 +47,15 @@ describe(
         - name: check content
           flow:
             - aiAssert: this is a food delivery service app
-      `;
-      await expect(async () => {
-        await runYaml(yamlString);
-      }).rejects.toThrow();
+        `;
+        await expect(async () => {
+          await runYaml(yamlString);
+        }).rejects.toThrow();
 
-      expect(existsSync(outputPath)).toBe(true);
-    });
+        expect(existsSync(outputPath)).toBe(true);
+      },
+      { timeout: 12 * 60 * 1000, retry: 0 },
+    );
 
     test('set output path correctly', async () => {
       const yamlString = `

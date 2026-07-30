@@ -18,6 +18,7 @@ permissions:
 
 jobs:
   studio-startup:
+    # The computer-agent smoke test needs the hosted image's desktop tooling.
     runs-on: ubuntu-22.04
     env:
       CI: '1'

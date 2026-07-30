@@ -31,7 +31,7 @@ concurrency:
 
 jobs:
   ios-simulator:
-    runs-on: macos-15
+    runs-on: ${{ fromJSON(vars.MAC_SELF_HOSTED_RUNNER_LABELS || '"macos-latest"') }}
     timeout-minutes: 70
     env:
       CI: '1'

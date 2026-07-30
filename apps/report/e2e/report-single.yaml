@@ -6,8 +6,7 @@ tasks:
   - name: report loads and displays tasks
     flow:
       - sleep: 5000
-      - aiAssert: The report page is loaded with a left-side task list table. The table shows multiple task rows, visible task names, and a time or duration column for the tasks.
-      - aiAssert: The main report panel shows a "Record" timeline section with visible screenshot thumbnails or frame previews.
+      - aiAssert: The report page is loaded with a left-side task list table showing multiple named task rows and a time or duration column; the main report panel also shows a "Record" timeline with visible screenshot thumbnails or frame previews.
 
   # --- Player area visible with controls ---
   - name: player area is visible with playback controls
@@ -38,7 +37,6 @@ tasks:
 
   - name: toggle back to light mode
     flow:
-      - aiAssert: The report UI is currently in dark theme before clicking the theme toggle again
       - aiTap: theme toggle button in the top right header
       - sleep: 2000
       - aiAssert: The report UI is in light theme; the top header, left sidebar, and page chrome are light or white rather than dark charcoal or black

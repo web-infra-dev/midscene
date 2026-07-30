@@ -24,7 +24,7 @@ jobs:
     outputs:
       version: ${{ steps.get_version.outputs.version }}
       is_prerelease: ${{ steps.get_version.outputs.is_prerelease }}
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"') }}
     strategy:
       matrix:
         node-version: [24.13.0]
@@ -154,7 +154,7 @@ jobs:
   publish_chrome_web_store:
     needs: release
     if: ${{ needs.release.result == 'success' && !contains(needs.release.outputs.version, 'beta') && !contains(needs.release.outputs.version, 'alpha') && !contains(needs.release.outputs.version, 'rc') }}
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.CI_LINUX_MINI_RUNNER || '"ubuntu-latest"') }}
     steps:
     - uses: actions/checkout@ee0669bd1cc54295c223e0bb666b733df41de1c5 # v2.7.0
       with:
@@ -189,21 +189,22 @@ jobs:
   package_studio:
     needs: release
     if: ${{ needs.release.result == 'success' }}
-    runs-on: ${{ matrix.os }}
+    runs-on: ${{ fromJSON(matrix.runner) }}
     strategy:
       fail-fast: false
       matrix:
         include:
-        - os: ubuntu-latest
+        - runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
           platform: linux
           arch: x64
-        - os: windows-latest
+        - runner: ${{ vars.WINDOWS_SELF_HOSTED_RUNNER_LABELS || '"windows-latest"' }}
           platform: win32
           arch: x64
-        - os: macos-15
+        - runner: ${{ vars.MAC_SELF_HOSTED_RUNNER_LABELS || '"macos-latest"' }}
           platform: darwin
           arch: arm64
-        - os: macos-15-intel
+        - runner: '"macos-15-intel"'
+          os: macos-15-intel
           platform: darwin
           arch: x64
     # Same miette-graphical workaround as the `release` job above.
@@ -389,7 +390,7 @@ jobs:
     - release
     - package_studio
     if: ${{ needs.release.result == 'success' && needs.package_studio.result == 'success' && needs.release.outputs.is_prerelease != 'true' }}
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.CI_LINUX_MINI_RUNNER || '"ubuntu-latest"') }}
     permissions:
       contents: write
     steps:
@@ -615,7 +616,7 @@ jobs:
     - release
     - package_studio
     if: ${{ needs.release.result == 'success' && needs.package_studio.result == 'success' && needs.release.outputs.is_prerelease != 'true' }}
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.CI_LINUX_MINI_RUNNER || '"ubuntu-latest"') }}
     permissions:
       contents: write
     steps:
