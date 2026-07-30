@@ -1011,7 +1011,7 @@ expect(onesieItem.price).toBe(7.99);
 
 #### `startObserving()` {#agentstartobserving}
 
-Observe the screen over a defined time window while other Agent calls run. Stopping the observer returns a fixed `UIObservation`. Its read-only insight methods evaluate transient UI, such as toasts, banners, and screen transitions, that a live single-screen insight might miss.
+`startObserving()` records screen changes over a period of time. Start the recording, perform the page actions, and then call `stop()`. `stop()` returns a `UIObservation` that you can query or assert against. For example, a toast may disappear before a normal `agent.aiAssert()` runs, while `observation.aiAssert()` can still find it in the recorded frames.
 
 ```typescript
 function startObserving(options?: {
@@ -1021,14 +1021,14 @@ function startObserving(options?: {
 }): Promise<UIObserver>;
 ```
 
-`UIObserver` only manages recording:
+`UIObserver` only controls the recording process:
 
 - `observer.bufferedFrameCount: number` — Number of frames currently buffered while recording.
-- `observer.stop(): Promise<UIObservation>` — Stop sampling, capture the final representative screenshot, and return the fixed observation window.
+- `observer.stop(): Promise<UIObservation>` — Stop sampling and return the completed recording.
 
-`UIObservation` provides the same read-only insight methods as `Agent`: `aiQuery()`, `aiBoolean()`, `aiNumber()`, `aiString()`, `aiAsk()`, and `aiAssert()`. These methods only evaluate recorded screenshots. They do not read the current DOM, and their options do not support `domIncluded`. Passing `domIncluded` from untyped JavaScript throws an error instead of mixing live DOM data with the fixed observation window.
+`UIObservation` represents the recording as it existed when `stop()` was called. It provides `aiQuery()`, `aiBoolean()`, `aiNumber()`, `aiString()`, `aiAsk()`, and `aiAssert()`. These methods only analyze recorded images; they do not read the page DOM at query time. For that reason, their options do not include `domIncluded`. Passing `domIncluded` after bypassing TypeScript's checks also throws at runtime.
 
-The observation also exposes `frameCount`, `startedAt`, and `endedAt`. Call `observation.dispose()` after its last insight call to release its image files early; otherwise `agent.destroy()` releases them.
+The observation also exposes `frameCount`, `startedAt`, and `endedAt`. After the last query or assertion, call `observation.dispose()` to remove its temporary image files early. If you do not call it, `agent.destroy()` removes them.
 
 ```typescript
 const observer = await agent.startObserving();
