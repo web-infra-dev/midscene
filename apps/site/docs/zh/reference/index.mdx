@@ -1025,48 +1025,6 @@ const toastCount = await observation.aiNumber('共出现了多少次成功 toast
 await observation.dispose();
 ```
 
-各平台 CLI 会在前台持续录制。可以在一个终端中启动录制，在另一个终端或通过手动操作触发交互，然后回到录制终端按 Ctrl+C，完成录制并保存产物：
-
-```bash
-# 终端 1：命令会持续运行，直到按下 Ctrl+C
-npx -y @midscene/web@1 record start \
-  --output ./submission-observation.json
-
-# 终端 2：在终端 1 录制期间执行操作
-npx -y @midscene/web@1 act --prompt "点击 Submit 按钮"
-
-# 回到终端 1：按 Ctrl+C，并等待命令输出保存路径
-
-# 录制结束后执行断言
-npx -y @midscene/web@1 assert \
-  --record ./submission-observation.json \
-  --prompt "提交过程中曾出现成功提示 toast"
-```
-
-`@midscene/android`、`@midscene/ios`、`@midscene/harmony` 和 `@midscene/computer` 也提供 `record start`。各平台原有的目标参数和 `--output` 都应传给这个前台命令。录制参数包括 `--interval-ms`、`--max-frames` 和 `--watchdog-ms`。默认 watchdog 会在 5 分钟后自动结束并保存录制，只有确实需要无限期录制时才应传入 `--watchdog-ms 0`。
-
-产物由带版本号的 JSON 清单和相邻图片目录组成，既不是编码后的视频，也不是压缩包。对于 `submission-observation.json`，图片会保存在 `submission-observation.frames/` 中；移动或保留产物时，两者必须放在一起。JSON 只保存 JPEG 或 PNG 的相对路径，不包含 base64 图片正文：
-
-```json
-{
-  "type": "midscene_ui_observation",
-  "version": 1,
-  "startedAt": 1785132000000,
-  "endedAt": 1785132001000,
-  "frames": [
-    {
-      "path": "submission-observation.frames/4f32c0a8.jpeg",
-      "mimeType": "image/jpeg",
-      "capturedAt": 1785132000123
-    }
-  ],
-  "shotSize": { "width": 1440, "height": 900 },
-  "shrunkShotToLogicalRatio": 1
-}
-```
-
-如果只关心当前画面，直接使用不带 `--record` 的普通 `assert` 命令。在 Web Bridge 模式下，前台录制会占用唯一的 Bridge 连接，因此应手动操作浏览器，不要再启动第二个 Bridge CLI 操作。
-
 工作方式与成本：
 
 - Midscene 会优先从设备的连续帧源采集画面：Android 使用 scrcpy（`scrcpyConfig.enabled`）、iOS 使用 WDA MJPEG（`wdaMjpegFrameSource.enabled`）、Web 使用 CDP screencast（始终可用）。没有帧源时，会退回到定时截图；移动端实际帧率会明显降低。

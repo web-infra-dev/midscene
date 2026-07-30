@@ -1041,50 +1041,6 @@ const toastCount = await observation.aiNumber(
 await observation.dispose();
 ```
 
-The platform CLIs run recording in the foreground. Start it in one terminal,
-perform the interaction manually or from another terminal, then press Ctrl+C
-in the recording terminal to finalize the artifact:
-
-```bash
-# Terminal 1: this command keeps running until Ctrl+C
-npx -y @midscene/web@1 record start \
-  --output ./submission-observation.json
-
-# Terminal 2, while Terminal 1 is recording
-npx -y @midscene/web@1 act --prompt "click the Submit button"
-
-# Back in Terminal 1: press Ctrl+C and wait for the saved-path message
-
-# After recording has finished
-npx -y @midscene/web@1 assert \
-  --record ./submission-observation.json \
-  --prompt "a success toast appeared during submission"
-```
-
-`record start` is also available from `@midscene/android`, `@midscene/ios`, `@midscene/harmony`, and `@midscene/computer`. Pass normal target options and `--output` to that foreground command. Capture options include `--interval-ms`, `--max-frames`, and `--watchdog-ms`. The default watchdog finalizes and saves the recording after five minutes; pass `--watchdog-ms 0` only when an unbounded recording is intentional.
-
-The artifact consists of a versioned JSON manifest and an adjacent image directory; it is neither encoded video nor an archive. For `submission-observation.json`, frames are stored under `submission-observation.frames/`. Keep or move the manifest and that directory together. The manifest contains relative JPEG or PNG paths and no base64 image bodies:
-
-```json
-{
-  "type": "midscene_ui_observation",
-  "version": 1,
-  "startedAt": 1785132000000,
-  "endedAt": 1785132001000,
-  "frames": [
-    {
-      "path": "submission-observation.frames/4f32c0a8.jpeg",
-      "mimeType": "image/jpeg",
-      "capturedAt": 1785132000123
-    }
-  ],
-  "shotSize": { "width": 1440, "height": 900 },
-  "shrunkShotToLogicalRatio": 1
-}
-```
-
-Use ordinary `assert` without `--record` when only the current screen matters. In Web Bridge mode, the foreground recording owns the single Bridge connection, so interact with that browser manually instead of starting a second Bridge CLI action.
-
 How it works and what it costs:
 
 - Frames come from the device's continuous frame source when available: scrcpy on Android (`scrcpyConfig.enabled`), WDA MJPEG on iOS (`wdaMjpegFrameSource.enabled`), or CDP screencast on the web. Otherwise, Midscene captures individual screenshots at a much lower effective frame rate on mobile.
