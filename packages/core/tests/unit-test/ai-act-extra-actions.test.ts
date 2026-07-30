@@ -96,18 +96,16 @@ describe('aiAct extra action integration', () => {
       {
         name: '填写用户名',
         planningAction: extraPlanningAction,
-        plans: [
-          {
-            type: 'Input',
-            param: {
-              value: 'Alice',
-              locate: {
-                prompt: '填写用户名',
-                locatedPixelBbox: [0, 0, 1, 1],
-              },
+        plan: {
+          type: 'Input',
+          param: {
+            value: 'Alice',
+            locate: {
+              prompt: '填写用户名',
+              locatedPixelBbox: [0, 0, 1, 1],
             },
           },
-        ],
+        },
       },
     ];
 

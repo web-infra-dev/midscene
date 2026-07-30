@@ -158,7 +158,7 @@ function ai(prompt: string, options?: Object): Promise<string | undefined>; // s
       - **Note**: If a file chooser is triggered but no `fileChooserAccept` parameter is provided, the file chooser will be ignored and the page can continue to operate normally.
       - **Note**: Chrome extension Bridge mode does not support directory upload inputs (`webkitdirectory` / `directory`). Use Playwright for directory uploads.
     - `fileChooserAllowedDir?: string` — Explicitly authorizes the directory this `aiAct` call may access for prompt-driven file uploads. Without it, model-planned file uploads are rejected. Relative paths in the prompt are resolved against this directory and then validated; absolute paths are validated directly against this directory. Symlinks located within this directory are also allowed. We recommend using the test case's `fixtures` directory to reduce the risk of sensitive-file uploads caused by AI hallucinations or page prompt injection.
-    - `loadExtraActions?: string[]` — Load pre-recorded UI action YAML files for this call. The default is `undefined`, which loads no extra actions. Each file becomes a parameterless action available to the generic planner. If selected, Midscene expands it into the recorded low-level actions before execution. This option is available only in Node.js and is not supported by custom planning adapters. Relative paths are resolved from the current working directory. Invalid files, duplicate names, unsupported planning adapters, and unavailable underlying actions throw errors before planning starts.
+    - `loadExtraActions?: string[]` — Load pre-recorded UI action YAML files for this call. The default is `undefined`, which loads no extra actions. Each file represents one device operation and becomes a parameterless action available to the generic planner. If selected, Midscene expands it into the recorded low-level action before execution. This option is available only in Node.js and is not supported by custom planning adapters. Relative paths are resolved from the current working directory. Invalid files, duplicate names, unsupported planning adapters, and unavailable underlying actions throw errors before planning starts.
     - `abortSignal?: AbortSignal` — Signal used to cancel the `aiAct` call. When aborted, Midscene stops the planning loop and throws an error. Use it to implement timeouts or user-initiated cancellation.
 
 - Return value:
@@ -192,7 +192,7 @@ await agent.aiAct('Complete the GitHub account registration form. The region mus
 
 ##### Load pre-recorded UI actions
 
-An extra action file names one reusable action, identifies an action from the current interface's Action Space, and provides the fixed parameter sequence to replay:
+An extra action file represents one reusable device operation. It names the operation, identifies an action from the current interface's Action Space, and provides exactly one parameter entry:
 
 ```yaml title="extra-action.yaml"
 name: Click the confirm button
@@ -211,7 +211,7 @@ await agent.aiAct('Fill in the form', {
 
 This Node.js-only option works with the generic planning adapter. If the configured model uses a custom planning adapter, such as UI-TARS or AutoGLM, `aiAct` throws an error before reading the files or calling the model.
 
-The extra action is visible only to this call's planner and does not modify the Agent's Action Space. `name` is the description shown to the planner. It must not contain angle brackets, line breaks, or control characters. `actionName` accepts an Action Space name or `interfaceAlias`, without regard to case. Midscene validates every `actionParam` entry against the referenced Action before planning starts.
+The extra action is visible only to this call's planner and does not modify the Agent's Action Space. `name` is the description shown to the planner. It must not contain angle brackets, line breaks, or control characters. `actionName` accepts an Action Space name or `interfaceAlias`, without regard to case. `actionParam` must contain exactly one item, which Midscene validates against the referenced Action before planning starts. To replay multiple operations, record each operation in a separate file and pass all file paths through `loadExtraActions`.
 
 For an Action with one locate field, a parameter containing `prompt`, `xpath`, or `locatedPixelBbox` can use the shortcut shown above. Midscene moves only locator properties into the locate field and keeps other Action parameters, such as Input's `value` and `mode`, at the top level. If a locator contains an XPath or `locatedPixelBbox` but no prompt, the extra action's `name` is used as the fallback locate prompt.
 

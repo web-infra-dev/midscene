@@ -558,8 +558,12 @@ describe('Agent with custom OpenAI client', () => {
       );
       expect(actionSpy).toHaveBeenCalled();
       expect(actionSpy.mock.calls[0][3]).toBe(true);
-      expect(actionSpy.mock.calls[0][7]).toBe(1);
-      expect(actionSpy.mock.calls[0][8]).toBe(false);
+      expect(actionSpy.mock.calls[0][4]).toEqual(
+        expect.objectContaining({
+          imagesIncludeCount: 1,
+          deepThink: false,
+        }),
+      );
     });
 
     it('should disable deepLocate before running custom planning', async () => {
@@ -588,7 +592,9 @@ describe('Agent with custom OpenAI client', () => {
         'The "deepLocate" option is not supported for aiAct with the current planning adapter (modelFamily: auto-glm). It will be ignored.',
       );
       expect(actionSpy).toHaveBeenCalled();
-      expect(actionSpy.mock.calls[0][10]).toBe(false);
+      expect(actionSpy.mock.calls[0][4]).toEqual(
+        expect.objectContaining({ deepLocate: false }),
+      );
     });
   });
 });

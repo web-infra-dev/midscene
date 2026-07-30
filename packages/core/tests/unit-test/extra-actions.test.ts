@@ -54,7 +54,7 @@ actionParam:
     expect(loaded[0].planningAction).toMatchObject({
       name: 'MidsceneExtraAction_1',
       description: expect.stringContaining(
-        'always prefer this action over rebuilding the workflow',
+        'always prefer it over rebuilding the operation',
       ),
       sample: {},
     });
@@ -106,7 +106,7 @@ actionParam:
 
     const [loaded] = await loadExtraActions([filePath], [inputAction]);
 
-    expect(loaded.plans[0].param).toEqual({
+    expect(loaded.plan.param).toEqual({
       value: 'Alice',
       mode: 'typeOnly',
       locate: {
@@ -136,6 +136,72 @@ actionParam:
     await expect(loadExtraActions([filePath], [inputAction])).rejects.toThrow(
       `Invalid extra action file "${filePath}": "actionParam[0]" does not match action "Input": value: Required`,
     );
+  });
+
+  it('rejects multiple operations in one extra action file', async () => {
+    const filePath = await writeExtraAction(`
+name: 填写完整表单
+actionName: Tap
+actionParam:
+  - xpath: /html/body/input[1]
+  - xpath: /html/body/input[2]
+`);
+
+    await expect(loadExtraActions([filePath], [tapAction()])).rejects.toThrow(
+      `Invalid extra action file "${filePath}": "actionParam" must contain exactly one item because each extra action represents one device operation`,
+    );
+  });
+
+  it('expands multiple files into one operation per planner action', async () => {
+    const firstPath = await writeExtraAction(`
+name: 点击第一个按钮
+actionName: Tap
+actionParam:
+  - xpath: /html/body/button[1]
+`);
+    const secondPath = await writeExtraAction(`
+name: 点击第二个按钮
+actionName: Tap
+actionParam:
+  - xpath: /html/body/button[2]
+`);
+
+    const loaded = await loadExtraActions(
+      [firstPath, secondPath],
+      [tapAction()],
+    );
+
+    expect(
+      expandExtraActionPlans(
+        loaded.map((action) => ({
+          type: action.planningAction.name,
+          param: {},
+          thought: `run ${action.name}`,
+        })),
+        loaded,
+      ),
+    ).toEqual([
+      {
+        type: 'Tap',
+        param: {
+          locate: {
+            prompt: '点击第一个按钮',
+            xpath: '/html/body/button[1]',
+          },
+        },
+        thought: 'run 点击第一个按钮',
+      },
+      {
+        type: 'Tap',
+        param: {
+          locate: {
+            prompt: '点击第二个按钮',
+            xpath: '/html/body/button[2]',
+          },
+        },
+        thought: 'run 点击第二个按钮',
+      },
+    ]);
   });
 
   it('rejects display names that can corrupt the planner protocol', async () => {

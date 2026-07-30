@@ -6,13 +6,13 @@ import yaml from 'js-yaml';
 interface ExtraActionFile {
   name: string;
   actionName: string;
-  actionParam: unknown[];
+  actionParam: [unknown];
 }
 
 export interface LoadedExtraAction {
   name: string;
   planningAction: DeviceAction;
-  plans: PlanningAction[];
+  plan: PlanningAction;
 }
 
 const locatorShortcutFields = new Set([
@@ -82,16 +82,16 @@ function parseExtraActionFile(
       `Invalid extra action file "${sourcePath}": "name" must not contain angle brackets, line breaks, or control characters`,
     );
   }
-  if (!Array.isArray(parsed.actionParam) || parsed.actionParam.length === 0) {
+  if (!Array.isArray(parsed.actionParam) || parsed.actionParam.length !== 1) {
     throw new Error(
-      `Invalid extra action file "${sourcePath}": "actionParam" must be a non-empty array`,
+      `Invalid extra action file "${sourcePath}": "actionParam" must contain exactly one item because each extra action represents one device operation`,
     );
   }
 
   return {
     name: parsed.name.trim(),
     actionName: parsed.actionName.trim(),
-    actionParam: parsed.actionParam,
+    actionParam: [parsed.actionParam[0]],
   };
 }
 
@@ -216,7 +216,7 @@ function validateActionParam(
 function createPlanningAction(id: string, name: string): DeviceAction {
   return {
     name: id,
-    description: `Replay the known-good UI workflow ${JSON.stringify(name)}. If the user's request matches this workflow, always prefer this action over rebuilding the workflow from low-level actions. This action takes no parameters.`,
+    description: `Replay the known-good UI action ${JSON.stringify(name)}. If the user's request matches this action, always prefer it over rebuilding the operation from a low-level action. This action takes no parameters.`,
     sample: {},
     call: () => {
       throw new Error(
@@ -272,28 +272,26 @@ export async function loadExtraActions(
     }
     knownProtocolIds.add(protocolId);
 
-    const plans = definition.actionParam.map((param, actionIndex) => {
-      const normalizedParam = normalizeActionParam(
+    const normalizedParam = normalizeActionParam(
+      referencedAction,
+      definition.actionParam[0],
+      definition.name,
+    );
+    const plan = {
+      type: referencedAction.name,
+      param: validateActionParam(
         referencedAction,
-        param,
-        definition.name,
-      );
-      return {
-        type: referencedAction.name,
-        param: validateActionParam(
-          referencedAction,
-          normalizedParam,
-          sourcePath,
-          actionIndex,
-        ),
-        thought: `Run extra action "${definition.name}"`,
-      };
-    });
+        normalizedParam,
+        sourcePath,
+        0,
+      ),
+      thought: `Run extra action "${definition.name}"`,
+    };
 
     loadedActions.push({
       name: definition.name,
       planningAction: createPlanningAction(protocolId, definition.name),
-      plans,
+      plan,
     });
   }
 
@@ -312,17 +310,17 @@ export function expandExtraActionPlans(
     extraActions.map((action) => [action.planningAction.name, action]),
   );
 
-  return plans.flatMap((plan) => {
+  return plans.map((plan) => {
     const extraAction = extraActionsByName.get(plan.type);
     if (!extraAction) {
-      return [plan];
+      return plan;
     }
 
-    return extraAction.plans.map((expandedPlan) => ({
-      ...expandedPlan,
-      param: structuredClone(expandedPlan.param),
-      thought: plan.thought || expandedPlan.thought,
-    }));
+    return {
+      ...extraAction.plan,
+      param: structuredClone(extraAction.plan.param),
+      thought: plan.thought || extraAction.plan.thought,
+    };
   });
 }
 
@@ -336,7 +334,7 @@ export function extraActionsCacheKey(
   return JSON.stringify(
     extraActions.map((action) => ({
       name: action.name,
-      plans: action.plans,
+      plan: action.plan,
     })),
   );
 }
