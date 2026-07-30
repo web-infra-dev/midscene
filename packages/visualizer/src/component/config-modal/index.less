@@ -1,6 +1,135 @@
 .midscene-config-modal {
+  .ant-modal-content {
+    padding: 0;
+  }
+
+  .ant-modal-header {
+    margin: 0;
+    padding: 16px 20px 12px;
+  }
+
+  .ant-modal-title {
+    color: var(--midscene-text-primary, #0d0d0d);
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 24px;
+  }
+
+  .ant-modal-close {
+    inset-inline-end: 16px;
+    top: 16px;
+  }
+
+  .ant-modal-body {
+    padding: 0 24px 24px;
+  }
+
+  .ant-modal-footer {
+    margin: 0;
+    padding: 24px;
+  }
+
+  .midscene-config-modal-body-content,
+  .midscene-config-modal-env-section,
+  .midscene-config-modal-agent-options,
+  .midscene-config-modal-heading-copy,
+  .midscene-config-modal-env-fields,
+  .midscene-config-modal-env-field,
+  .midscene-config-modal-option-fields {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .midscene-config-modal-body-content,
+  .midscene-config-modal-env-section,
+  .midscene-config-modal-agent-options,
+  .midscene-config-modal-env-fields,
+  .midscene-config-modal-option-fields {
+    gap: 24px;
+  }
+
+  .midscene-config-modal-heading-copy,
+  .midscene-config-modal-env-field {
+    gap: 8px;
+  }
+
+  .midscene-config-modal-section-heading,
+  .midscene-config-modal-verify-row,
+  .midscene-config-modal-option-field,
+  .midscene-config-modal-footer-actions {
+    align-items: center;
+    display: flex;
+  }
+
+  .midscene-config-modal-section-heading {
+    gap: 24px;
+    justify-content: space-between;
+  }
+
+  .midscene-config-modal-heading-copy {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .midscene-config-modal-heading-copy > .ant-typography:first-child {
+    color: var(--midscene-text-primary, #0d0d0d);
+    font-size: 14px;
+    line-height: 20px;
+  }
+
+  .midscene-config-modal-heading-copy > .ant-typography:last-child {
+    color: var(--midscene-text-secondary, rgba(0, 0, 0, 0.7));
+    font-size: 12px;
+    line-height: 20px;
+  }
+
+  .midscene-config-modal-env-style-select {
+    flex: 0 0 200px;
+    width: 200px;
+  }
+
+  .ant-select-selector,
+  .ant-input,
+  .ant-input-affix-wrapper,
+  .midscene-config-modal-env-textarea {
+    border-color: var(--midscene-border-control, #dadada) !important;
+    border-radius: 8px !important;
+  }
+
+  .ant-select-single {
+    height: 32px;
+  }
+
+  .ant-select-single .ant-select-selector {
+    height: 32px !important;
+    padding-inline: 16px !important;
+  }
+
+  .ant-select-single .ant-select-selection-item,
+  .ant-select-single .ant-select-selection-placeholder {
+    line-height: 30px !important;
+  }
+
+  .ant-input {
+    height: 36px;
+    padding-inline: 16px;
+  }
+
+  .midscene-config-modal-env-textarea {
+    min-height: 274px;
+    overflow-y: hidden;
+    padding: 16px;
+    resize: none;
+  }
+
+  .midscene-config-modal-verify-row {
+    gap: 8px;
+    justify-content: space-between;
+    min-height: 32px;
+  }
+
   .midscene-config-modal-verify-button {
-    width: 144px;
+    min-width: 200px;
   }
 
   .midscene-config-modal-verify-icon {
@@ -35,6 +164,34 @@
   .ant-select-selector:focus-within {
     border-color: var(--midscene-border-control, #e9ecf3) !important;
     box-shadow: none !important;
+  }
+
+  .midscene-config-modal-agent-options > .ant-divider {
+    margin: 0;
+  }
+
+  .midscene-config-modal-option-field {
+    gap: 24px;
+    justify-content: space-between;
+  }
+
+  .midscene-config-modal-option-field > label {
+    flex: 0 1 160px;
+    min-width: 0;
+  }
+
+  .midscene-config-modal-option-field > .ant-input {
+    flex: 0 0 200px;
+    width: 200px;
+  }
+
+  .midscene-config-modal-footer-actions {
+    gap: 8px;
+    justify-content: flex-end;
+  }
+
+  .midscene-config-modal-footer-actions .ant-btn {
+    min-width: 72px;
   }
 }
 

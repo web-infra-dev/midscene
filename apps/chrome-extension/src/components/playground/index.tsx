@@ -156,6 +156,8 @@ export function BrowserExtensionPlayground({
         onVerify,
         agentOptions,
         onAgentOptionsSave,
+        configModalClassName: 'chrome-extension-model-env-config-modal',
+        envTextareaMinRows: 4,
       }}
       config={{
         showContextPreview,

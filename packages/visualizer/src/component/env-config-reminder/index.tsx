@@ -7,7 +7,12 @@ import './index.less';
 export interface EnvConfigReminderProps
   extends Pick<
     EnvConfigProps,
-    'playgroundSDK' | 'onVerify' | 'agentOptions' | 'onAgentOptionsSave'
+    | 'playgroundSDK'
+    | 'onVerify'
+    | 'agentOptions'
+    | 'onAgentOptionsSave'
+    | 'configModalClassName'
+    | 'envTextareaMinRows'
   > {
   className?: string;
 }
@@ -18,6 +23,8 @@ export const EnvConfigReminder: React.FC<EnvConfigReminderProps> = ({
   onVerify,
   agentOptions,
   onAgentOptionsSave,
+  configModalClassName,
+  envTextareaMinRows,
 }) => {
   const { config } = useEnvConfig();
   const configAlreadySet = Object.keys(config || {}).length >= 1;
@@ -34,6 +41,8 @@ export const EnvConfigReminder: React.FC<EnvConfigReminderProps> = ({
       </span>
       <EnvConfig
         agentOptions={agentOptions}
+        configModalClassName={configModalClassName}
+        envTextareaMinRows={envTextareaMinRows}
         mode="text"
         onAgentOptionsSave={onAgentOptionsSave}
         onVerify={onVerify}

@@ -84,7 +84,10 @@ describe('ModelEnvConfigModal', () => {
     expect(document.body.textContent).toContain('Replanning Cycle Limit');
     expect(document.body.textContent).toContain('Wait After Action (ms)');
     expect(document.body.textContent).toContain('Screenshot Shrink Factor');
-    const verifyButton = button('Verify Model');
+    expect(
+      document.body.querySelector('.midscene-config-modal--text'),
+    ).toBeTruthy();
+    const verifyButton = button('Verify and Save Model');
     expect(
       verifyButton.querySelector(
         'path[d="M5 8.00002V3.95856L8.5 5.97929L12 8.00002L8.5 10.0208L5 12.0415V8.00002Z"]',
@@ -94,6 +97,11 @@ describe('ModelEnvConfigModal', () => {
     expect(
       verifyButton.classList.contains('midscene-config-modal-verify-button'),
     ).toBe(true);
+    const textarea = document.body.querySelector<HTMLTextAreaElement>(
+      'textarea.midscene-config-modal-env-textarea',
+    );
+    expect(textarea).toBeTruthy();
+    expect(textarea?.rows).toBe(7);
 
     await act(async () => root.unmount());
   });
@@ -107,7 +115,7 @@ describe('ModelEnvConfigModal', () => {
     const { root } = await renderModal({ onSave });
 
     await act(async () => {
-      button('Verify Model').click();
+      button('Verify and Save Model').click();
       await Promise.resolve();
     });
 
@@ -131,6 +139,18 @@ describe('ModelEnvConfigModal', () => {
     await act(async () => root.unmount());
   });
 
+  it('closes when the footer Cancel button is clicked', async () => {
+    const onClose = vi.fn();
+    const { root } = await renderModal({ onClose });
+
+    await act(async () => {
+      button('Cancel').click();
+    });
+
+    expect(onClose).toHaveBeenCalledOnce();
+    await act(async () => root.unmount());
+  });
+
   it('dismisses successful verification feedback without saving', async () => {
     vi.useFakeTimers();
     const onSave = vi.fn();
@@ -142,7 +162,7 @@ describe('ModelEnvConfigModal', () => {
     const { root } = await renderModal({ onSave });
 
     await act(async () => {
-      button('Verify Model').click();
+      button('Verify and Save Model').click();
       await Promise.resolve();
     });
     expect(document.body.textContent).toContain('Test passed.');
@@ -165,7 +185,7 @@ describe('ModelEnvConfigModal', () => {
     });
 
     expect(document.body.textContent).toContain('Missing required keys:');
-    expect(button('Verify Model').disabled).toBe(true);
+    expect(button('Verify and Save Model').disabled).toBe(true);
     expect(runConnectivityTest).not.toHaveBeenCalled();
 
     await act(async () => root.unmount());
@@ -186,7 +206,7 @@ describe('ModelEnvConfigModal', () => {
     const { root } = await renderModal();
 
     await act(async () => {
-      button('Verify Model').click();
+      button('Verify and Save Model').click();
     });
     await act(async () => {
       setTextarea(`${VALID_ENV_TEXT}\nMIDSCENE_DEBUG=true`);
@@ -210,7 +230,7 @@ describe('ModelEnvConfigModal', () => {
     const { root } = await renderModal();
 
     await act(async () => {
-      button('Verify Model').click();
+      button('Verify and Save Model').click();
       await Promise.resolve();
     });
 

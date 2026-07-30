@@ -30,6 +30,8 @@ export function ModelEnvConfigModal({
   return (
     <ConfigModal
       agentOptionsValue={agentOptionsValue}
+      className="studio-model-env-config-modal"
+      envTextareaAutoSize={false}
       envFields={FIXED_MODEL_ENV_FIELDS}
       initialTab={initialTab}
       onClose={onClose}

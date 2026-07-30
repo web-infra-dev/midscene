@@ -20,6 +20,8 @@ export interface EnvConfigProps {
   onVerify?: ConfigModalProps['onVerify'];
   agentOptions?: CommonAgentOptions;
   onAgentOptionsSave?: (options: CommonAgentOptions) => void | Promise<void>;
+  configModalClassName?: string;
+  envTextareaMinRows?: ConfigModalProps['envTextareaMinRows'];
 }
 
 export function EnvConfig({
@@ -31,6 +33,8 @@ export function EnvConfig({
   onVerify,
   agentOptions,
   onAgentOptionsSave,
+  configModalClassName,
+  envTextareaMinRows,
 }: EnvConfigProps) {
   const { config, configString, loadConfig, syncFromStorage } = useEnvConfig();
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -89,6 +93,8 @@ export function EnvConfig({
       </Tooltip>
       <ConfigModal
         agentOptionsValue={agentOptions}
+        className={configModalClassName}
+        envTextareaMinRows={envTextareaMinRows}
         onClose={() => setIsModalOpen(false)}
         onSave={async ({ text, agentOptions: nextAgentOptions }) => {
           const previousConfigText = configString;

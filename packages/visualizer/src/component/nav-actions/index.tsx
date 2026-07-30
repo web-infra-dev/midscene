@@ -19,6 +19,8 @@ export interface NavActionsProps {
   onVerify?: EnvConfigProps['onVerify'];
   agentOptions?: CommonAgentOptions;
   onAgentOptionsSave?: (options: CommonAgentOptions) => void | Promise<void>;
+  configModalClassName?: EnvConfigProps['configModalClassName'];
+  envTextareaMinRows?: EnvConfigProps['envTextareaMinRows'];
 }
 
 export function NavActions({
@@ -32,6 +34,8 @@ export function NavActions({
   onVerify,
   agentOptions,
   onAgentOptionsSave,
+  configModalClassName,
+  envTextareaMinRows,
 }: NavActionsProps) {
   return (
     <div className={`nav-actions ${className}`}>
@@ -48,6 +52,8 @@ export function NavActions({
           playgroundSDK={playgroundSDK}
           onVerify={onVerify}
           agentOptions={agentOptions}
+          configModalClassName={configModalClassName}
+          envTextareaMinRows={envTextareaMinRows}
           onAgentOptionsSave={onAgentOptionsSave}
         />
       )}

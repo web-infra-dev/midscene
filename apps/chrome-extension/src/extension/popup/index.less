@@ -231,3 +231,61 @@ html[data-theme='dark'] {
     }
   }
 }
+
+// The shared dialog uses the same content structure as Studio. The extension
+// panel has a fixed visual viewport, so only its body scrolls while the title
+// and actions remain visible.
+.chrome-extension-model-env-config-modal {
+  max-width: 100vw;
+  width: 360px !important;
+
+  .ant-modal-content {
+    display: flex;
+    flex-direction: column;
+    height: min(509px, 100vh);
+    overflow: hidden;
+  }
+
+  .ant-modal-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+    scrollbar-gutter: stable;
+  }
+
+  .ant-modal-header,
+  .ant-modal-footer {
+    flex: 0 0 auto;
+  }
+
+  .midscene-config-modal-env-textarea {
+    min-height: 160px !important;
+  }
+
+  .midscene-config-modal-section-heading {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .midscene-config-modal-heading-copy {
+    flex: 0 0 auto;
+  }
+
+  .midscene-config-modal-env-style-select {
+    flex-basis: auto;
+    width: 100%;
+  }
+
+  .midscene-config-modal-option-field {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .midscene-config-modal-option-field > label,
+  .midscene-config-modal-option-field > .ant-input {
+    flex: 0 0 auto;
+    width: 100%;
+  }
+}

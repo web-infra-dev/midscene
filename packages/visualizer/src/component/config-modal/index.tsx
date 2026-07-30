@@ -1,14 +1,5 @@
 import type { AgentOpt, ConnectivityTestResult } from '@midscene/core';
-import {
-  Alert,
-  Button,
-  Divider,
-  Flex,
-  Input,
-  Modal,
-  Select,
-  Typography,
-} from 'antd';
+import { Alert, Button, Divider, Input, Modal, Select, Typography } from 'antd';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import './index.less';
 
@@ -32,10 +23,13 @@ export interface ConfigModalEnvField {
 
 export interface ConfigModalProps {
   open: boolean;
+  className?: string;
   textValue?: string;
   agentOptionsValue?: CommonAgentOptions;
   initialTab?: ConfigModalTab;
   showEnvStyleSelect?: boolean;
+  envTextareaMinRows?: number;
+  envTextareaAutoSize?: boolean;
   showAgentOptions?: boolean;
   envFields?: readonly ConfigModalEnvField[];
   parseEnvText?: (text: string) => Record<string, string>;
@@ -218,10 +212,13 @@ function VerifyButtonIcon({ isLoading }: { isLoading: boolean }) {
 
 export function ConfigModal({
   open,
+  className,
   textValue = '',
   agentOptionsValue = EMPTY_AGENT_OPTIONS,
   initialTab = 'text',
   showEnvStyleSelect = false,
+  envTextareaMinRows = 7,
+  envTextareaAutoSize = true,
   showAgentOptions = true,
   envFields = DEFAULT_ENV_FIELDS,
   parseEnvText = defaultParseEnvText,
@@ -340,172 +337,185 @@ export function ConfigModal({
   return (
     <Modal
       centered
-      className="midscene-config-modal"
+      className={[
+        'midscene-config-modal',
+        `midscene-config-modal--${tab}`,
+        className,
+      ]
+        .filter(Boolean)
+        .join(' ')}
       destroyOnClose
       footer={
-        <Button
-          disabled={!parsedAgentOptions.options}
-          loading={isSaving}
-          onClick={() => void handleSave()}
-          type="primary"
-        >
-          Save
-        </Button>
+        <div className="midscene-config-modal-footer-actions">
+          <Button onClick={onClose}>Cancel</Button>
+          <Button
+            disabled={!parsedAgentOptions.options}
+            loading={isSaving}
+            onClick={() => void handleSave()}
+            type="primary"
+          >
+            Save
+          </Button>
+        </div>
       }
       maskClosable
       onCancel={onClose}
       open={open}
       title="Config"
-      width={500}
+      width={640}
     >
-      <Flex gap={12} vertical>
-        <section>
-          <Flex gap={12} vertical>
-            <Typography.Text strong>Model Env Config</Typography.Text>
+      <div className="midscene-config-modal-body-content">
+        <section className="midscene-config-modal-env-section">
+          <div className="midscene-config-modal-section-heading">
+            <div className="midscene-config-modal-heading-copy">
+              <Typography.Text strong>Model Env Config</Typography.Text>
+              <Typography.Text type="secondary">
+                The format is KEY=VALUE and separated by new lines. These data
+                will be saved{' '}
+                <Typography.Text strong>
+                  locally in your browser
+                </Typography.Text>
+                .
+              </Typography.Text>
+            </div>
             {showEnvStyleSelect ? (
-              <div>
-                <Select
-                  aria-label="Model env config style"
-                  onChange={(value) => {
-                    resetFeedback();
-                    setTab(value);
-                  }}
-                  options={[
-                    { label: '.env Style', value: 'text' },
-                    { label: 'Form Style', value: 'form' },
-                  ]}
-                  popupClassName="midscene-config-modal-select-dropdown"
-                  value={tab}
-                />
-              </div>
+              <Select
+                aria-label="Model env config style"
+                className="midscene-config-modal-env-style-select"
+                onChange={(value) => {
+                  resetFeedback();
+                  setTab(value);
+                }}
+                options={[
+                  { label: '.env Style', value: 'text' },
+                  { label: 'Form Style', value: 'form' },
+                ]}
+                popupClassName="midscene-config-modal-select-dropdown"
+                value={tab}
+              />
             ) : null}
-          </Flex>
-        </section>
+          </div>
 
-        {tab === 'form' && showEnvStyleSelect ? (
-          <Flex gap={12} vertical>
-            {envFields.map((field) => (
-              <Flex gap="small" key={field.key} vertical>
-                <label htmlFor={`config-modal-${field.key}`}>
-                  <Typography.Text>{field.key}</Typography.Text>
-                </label>
-                <Input
-                  aria-label={`${field.key} value`}
-                  id={`config-modal-${field.key}`}
-                  onChange={(event) => {
-                    resetFeedback();
-                    setText(
-                      setEnvFieldValue(text, field.key, event.target.value),
-                    );
-                  }}
-                  placeholder={field.placeholder}
-                  value={envValues[field.key] ?? ''}
-                />
-              </Flex>
-            ))}
-          </Flex>
-        ) : (
-          <>
+          {tab === 'form' && showEnvStyleSelect ? (
+            <div className="midscene-config-modal-env-fields">
+              {envFields.map((field) => (
+                <div
+                  className="midscene-config-modal-env-field"
+                  key={field.key}
+                >
+                  <label htmlFor={`config-modal-${field.key}`}>
+                    <Typography.Text>{field.key}</Typography.Text>
+                  </label>
+                  <Input
+                    aria-label={`${field.key} value`}
+                    id={`config-modal-${field.key}`}
+                    onChange={(event) => {
+                      resetFeedback();
+                      setText(
+                        setEnvFieldValue(text, field.key, event.target.value),
+                      );
+                    }}
+                    placeholder={field.placeholder}
+                    value={envValues[field.key] ?? ''}
+                  />
+                </div>
+              ))}
+            </div>
+          ) : (
             <TextArea
               aria-label="Model environment configuration"
+              className="midscene-config-modal-env-textarea"
               onChange={(event) => {
                 resetFeedback();
                 setText(event.target.value);
               }}
+              autoSize={
+                envTextareaAutoSize ? { minRows: envTextareaMinRows } : false
+              }
               placeholder={TEXT_PLACEHOLDER}
-              rows={7}
+              rows={envTextareaMinRows}
               value={text}
               wrap="off"
             />
-            <Typography.Text type="secondary">
-              The format is KEY=VALUE and separated by new lines. These data
-              will be saved{' '}
-              <Typography.Text strong>locally in your browser</Typography.Text>.
-            </Typography.Text>
-          </>
-        )}
-
-        {envError ? <Alert message={envError} showIcon type="error" /> : null}
-
-        <Flex align="center" gap="small" justify="space-between">
-          {testStatus.kind === 'success' ? (
-            <Alert
-              message="Test passed."
-              showIcon
-              style={{ height: 32, paddingBlock: 4 }}
-              type="success"
-            />
-          ) : statusError ? (
-            <Alert message={statusError} showIcon type="error" />
-          ) : (
-            <span />
           )}
-          {onVerify ? (
-            <Button
-              className="midscene-config-modal-verify-button"
-              disabled={Boolean(envError) || testStatus.kind === 'running'}
-              icon={
-                <VerifyButtonIcon isLoading={testStatus.kind === 'running'} />
-              }
-              onClick={() => void handleVerify()}
-            >
-              Verify Model
-            </Button>
-          ) : null}
-        </Flex>
+
+          {envError ? <Alert message={envError} showIcon type="error" /> : null}
+
+          <div className="midscene-config-modal-verify-row">
+            {testStatus.kind === 'success' ? (
+              <Alert
+                message="Test passed."
+                showIcon
+                style={{ height: 32, paddingBlock: 4 }}
+                type="success"
+              />
+            ) : statusError ? (
+              <Alert message={statusError} showIcon type="error" />
+            ) : (
+              <span />
+            )}
+            {onVerify ? (
+              <Button
+                className="midscene-config-modal-verify-button"
+                disabled={Boolean(envError) || testStatus.kind === 'running'}
+                icon={
+                  <VerifyButtonIcon isLoading={testStatus.kind === 'running'} />
+                }
+                onClick={() => void handleVerify()}
+              >
+                Verify and Save Model
+              </Button>
+            ) : null}
+          </div>
+        </section>
 
         {showAgentOptions ? (
-          <>
-            <Divider style={{ marginBlock: 4 }} />
-            <section>
+          <section className="midscene-config-modal-agent-options">
+            <Divider />
+            <div className="midscene-config-modal-heading-copy">
               <Typography.Text strong>Agent Option Config</Typography.Text>
-              <Flex gap={12} vertical>
-                {OPTION_FIELDS.map((field) => (
-                  <Flex
-                    align="center"
-                    gap="middle"
-                    justify="space-between"
-                    key={field.key}
-                  >
-                    <Flex flex="1 1 auto">
-                      <Typography.Text type="secondary">
-                        {field.label}
-                      </Typography.Text>
-                    </Flex>
-                    <Flex flex="0 0 180px">
-                      <Input
-                        aria-label={field.label}
-                        min={field.key === 'screenshotShrinkFactor' ? 1 : 0}
-                        onChange={(event) => {
-                          resetFeedback();
-                          setAgentOptionValues((current) => ({
-                            ...current,
-                            [field.key]: event.target.value,
-                          }));
-                        }}
-                        placeholder={field.placeholder}
-                        type="number"
-                        value={agentOptionValues[field.key]}
-                      />
-                    </Flex>
-                  </Flex>
-                ))}
-              </Flex>
               <Typography.Text type="secondary">
                 Leave a field empty to use the default value. Changes apply on
                 the next Agent connection.
               </Typography.Text>
-              {(parsedAgentOptions.error ?? saveError) ? (
-                <Alert
-                  message={parsedAgentOptions.error ?? saveError}
-                  showIcon
-                  type="error"
-                />
-              ) : null}
-            </section>
-          </>
+            </div>
+            <div className="midscene-config-modal-option-fields">
+              {OPTION_FIELDS.map((field) => (
+                <div
+                  className="midscene-config-modal-option-field"
+                  key={field.key}
+                >
+                  <label htmlFor={`config-modal-${field.key}`}>
+                    <Typography.Text>{field.label}</Typography.Text>
+                  </label>
+                  <Input
+                    aria-label={field.label}
+                    id={`config-modal-${field.key}`}
+                    min={field.key === 'screenshotShrinkFactor' ? 1 : 0}
+                    onChange={(event) => {
+                      resetFeedback();
+                      setAgentOptionValues((current) => ({
+                        ...current,
+                        [field.key]: event.target.value,
+                      }));
+                    }}
+                    placeholder={field.placeholder}
+                    type="number"
+                    value={agentOptionValues[field.key]}
+                  />
+                </div>
+              ))}
+            </div>
+            {(parsedAgentOptions.error ?? saveError) ? (
+              <Alert
+                message={parsedAgentOptions.error ?? saveError}
+                showIcon
+                type="error"
+              />
+            ) : null}
+          </section>
         ) : null}
-      </Flex>
+      </div>
     </Modal>
   );
 }

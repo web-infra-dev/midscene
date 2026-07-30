@@ -254,6 +254,8 @@ export function PlaygroundPopup() {
                 playgroundSDK={playgroundSDK}
                 onVerify={runChromeConnectivityTest}
                 agentOptions={agentOptions}
+                configModalClassName="chrome-extension-model-env-config-modal"
+                envTextareaMinRows={4}
                 onAgentOptionsSave={handleAgentOptionsSave}
               />
             </div>
