@@ -323,6 +323,34 @@ describe('MidsceneReporter', () => {
       expect(readdirSync(outputDir).length).toBeGreaterThan(0);
     });
 
+    it('should shorten separate-mode filenames for very long titles', async () => {
+      const reporter = new MidsceneReporter({ type: 'separate' });
+      const reportPath = createReportFile(
+        'long-title-report',
+        'long-title-data',
+      );
+      const longTitle = 'policy-template-name-duplicates-existing-name-'.repeat(
+        20,
+      );
+
+      reporter.onTestEnd(
+        {
+          id: 'test-id-long',
+          title: longTitle,
+          annotations: [
+            { type: 'MIDSCENE_DUMP_ANNOTATION', description: reportPath },
+          ],
+        } as TestCase,
+        { status: 'passed', duration: 50 } as TestResult,
+      );
+
+      await reporter.onEnd();
+
+      const [fileName] = readdirSync(outputDir);
+      expect(Buffer.byteLength(fileName, 'utf8')).toBeLessThan(200);
+      expect(fileName).toMatch(/^playwright-.+-[0-9a-f]{10}-\d{4}-/);
+    });
+
     it('should log and skip missing report paths', async () => {
       const reporter = new MidsceneReporter({ type: 'merged' });
       const { logMsg } = await import('@midscene/shared/utils');

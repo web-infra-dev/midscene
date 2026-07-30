@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { resolveBrowserAgentRuntimeOptions } from '@/common/browser-agent';
 import {
   PlaywrightAgent,
@@ -20,6 +21,34 @@ import type { Page as OriginPlaywrightPage } from 'playwright';
 export type APITestType = Pick<TestType<any, any>, 'step'>;
 
 const debugPage = getDebug('web:playwright:ai-fixture');
+
+const MAX_PLAYWRIGHT_REPORT_SLUG_BYTES = 120;
+
+function getCompactHash(value: string) {
+  return createHash('sha1').update(value).digest('hex').slice(0, 10);
+}
+
+function truncateUtf8ByBytes(value: string, maxBytes: number) {
+  let truncated = '';
+  for (const char of value) {
+    const nextValue = truncated + char;
+    if (Buffer.byteLength(nextValue, 'utf8') > maxBytes) {
+      break;
+    }
+    truncated = nextValue;
+  }
+  return truncated;
+}
+
+function buildPlaywrightReportTag(title: string, pageId: string) {
+  const readableTitle = title.replace(/[\\/]/g, '-');
+  const slug = truncateUtf8ByBytes(
+    readableTitle,
+    MAX_PLAYWRIGHT_REPORT_SLUG_BYTES,
+  );
+  const titleHash = getCompactHash(title);
+  return `playwright-${slug}-${titleHash}-${pageId}`;
+}
 
 const groupAndCaseForTest = (testInfo: TestInfo) => {
   let taskFile: string;
@@ -148,7 +177,7 @@ export const PlaywrightAiFixture = (options?: PlaywrightAiFixtureOptions) => {
       // so groupName/groupDescription can still carry hierarchy. But
       // ReportGenerator rejects path separators in the file name, so strip
       // them here for the report tag only.
-      const reportTag = `playwright-${title.replace(/[\\/]/g, '-')}-${idForPage}`;
+      const reportTag = buildPlaywrightReportTag(title, idForPage);
 
       if (autoFollowNewPage && forceSameTabNavigation === true) {
         throw new Error(

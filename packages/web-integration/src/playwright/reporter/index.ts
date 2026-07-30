@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { copyFileSync, cpSync, existsSync, mkdirSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import type { ReportFileWithAttributes, TestStatus } from '@midscene/core';
@@ -23,6 +24,32 @@ import type {
 interface MidsceneReporterOptions {
   type?: 'merged' | 'separate';
   outputFormat?: 'single-html' | 'html-and-external-assets';
+}
+
+const MAX_SEPARATE_REPORT_TITLE_BYTES = 120;
+
+function getCompactHash(value: string) {
+  return createHash('sha1').update(value).digest('hex').slice(0, 10);
+}
+
+function truncateUtf8ByBytes(value: string, maxBytes: number) {
+  let truncated = '';
+  for (const char of value) {
+    const nextValue = truncated + char;
+    if (Buffer.byteLength(nextValue, 'utf8') > maxBytes) {
+      break;
+    }
+    truncated = nextValue;
+  }
+  return truncated;
+}
+
+function getSeparatedReportTag(testTitle: string) {
+  const safeTitle = truncateUtf8ByBytes(
+    replaceIllegalPathCharsAndSpace(testTitle).replace(/[\\/]/g, '-'),
+    MAX_SEPARATE_REPORT_TITLE_BYTES,
+  );
+  return `playwright-${safeTitle}-${getCompactHash(testTitle)}`;
 }
 
 class MidsceneReporter implements Reporter {
@@ -58,7 +85,7 @@ class MidsceneReporter implements Reporter {
 
   private getSeparatedFilename(testTitle: string): string {
     if (!this.testTitleToFilename.has(testTitle)) {
-      const baseTag = `playwright-${replaceIllegalPathCharsAndSpace(testTitle)}`;
+      const baseTag = getSeparatedReportTag(testTitle);
       const generatedFilename = getReportFileName(baseTag);
       this.testTitleToFilename.set(testTitle, generatedFilename);
     }

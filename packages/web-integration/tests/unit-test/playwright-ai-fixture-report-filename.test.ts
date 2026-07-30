@@ -105,6 +105,26 @@ describe('PlaywrightAiFixture reportFileName derivation', () => {
     expect(opts.reportFileName).toContain('login-case(retry--2)');
   });
 
+  it('caps very long titles and appends a stable hash to avoid ENAMETOOLONG', async () => {
+    const longTitle = 'policy-template-name-duplicates-existing-name-'.repeat(
+      20,
+    );
+    const opts = await runAi({
+      testId: 'uuid',
+      titlePath: ['1426803.spec.ts', longTitle],
+      annotations: [],
+      retry: 1,
+    });
+
+    expect(Buffer.byteLength(opts.reportFileName, 'utf8')).toBeLessThan(200);
+    expect(opts.reportFileName).toMatch(
+      /^playwright-.+-[0-9a-f]{10}-[0-9a-f-]{36}$/,
+    );
+    expect(opts.groupName).toContain(
+      'policy-template-name-duplicates-existing-name',
+    );
+  });
+
   it('preserves the page-level uuid suffix so multiple pages in one test do not clash', async () => {
     const fixture = PlaywrightAiFixture();
     const pageA = createPage();
