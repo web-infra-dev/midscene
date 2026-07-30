@@ -70,6 +70,11 @@ import {
   defineActionSleep,
 } from '../device';
 import { validateAgentCacheInput } from './cache-config';
+import {
+  createExtraActionExecutionOptions,
+  extraActionsCacheKey,
+  loadExtraActions,
+} from './extra-actions';
 import { FileChooserAccepter } from './file-chooser';
 import { MetricsCollector, type MidsceneUsageMetrics } from './metrics';
 import { AgentProgressBus } from './progress';
@@ -115,6 +120,7 @@ export type AiActOptions = {
   cacheable?: boolean;
   fileChooserAccept?: string | string[];
   fileChooserAllowedDir?: string;
+  loadExtraActions?: string[];
   deepThink?: DeepThinkOption;
   deepLocate?: boolean;
   abortSignal?: AbortSignal;
@@ -1084,10 +1090,30 @@ export class Agent<
 
     const runAiAct = async () => {
       const planningModel = this.resolveModelRuntime('planning');
+      const extraActionPaths = opt?.loadExtraActions ?? [];
+      if (
+        extraActionPaths.length > 0 &&
+        planningModel.adapter.planning.kind === 'custom'
+      ) {
+        throw new Error(
+          `The "loadExtraActions" option is not supported by custom planning adapters (modelFamily: ${planningModel.config.modelFamily ?? 'unknown'}). Use a model with the generic planning adapter.`,
+        );
+      }
+      const extraActions = await loadExtraActions(
+        extraActionPaths,
+        this.fullActionSpace,
+      );
       const defaultModel = this.resolveModelRuntime('default');
       const aiActContext =
         opt?.context !== undefined ? opt.context : this.aiActContext;
-      const cachePrompt = buildPromptWithContext(taskPrompt, aiActContext);
+      const promptWithContext = buildPromptWithContext(
+        taskPrompt,
+        aiActContext,
+      );
+      const extraActionKey = extraActionsCacheKey(extraActions);
+      const cachePrompt = extraActionKey
+        ? `${promptWithContext}\n\n<midscene_extra_actions>${extraActionKey}</midscene_extra_actions>`
+        : promptWithContext;
       // Controls the aiAct planning mode, such as sub-goal prompts and locate result strategy.
       let deepThink = opt?.deepThink === true;
       if (deepThink && planningModel.adapter.planning.kind === 'custom') {
@@ -1160,15 +1186,17 @@ export class Agent<
         planningModel,
         defaultModel,
         includeLocateInPlanning,
-        aiActContext,
-        cacheable,
-        replanningCycleLimit,
-        imagesIncludeCount,
-        deepThink,
-        undefined,
-        deepLocate,
-        abortSignal,
-        internalReportDisplay,
+        {
+          aiActContext,
+          cacheable,
+          replanningCycleLimitOverride: replanningCycleLimit,
+          imagesIncludeCount,
+          deepThink,
+          deepLocate,
+          abortSignal,
+          reportOptions: internalReportDisplay,
+          extraActions: createExtraActionExecutionOptions(extraActions),
+        },
       );
 
       // update cache

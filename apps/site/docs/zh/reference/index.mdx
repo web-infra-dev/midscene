@@ -135,6 +135,7 @@ function aiAct(
     deepLocate?: boolean;
     fileChooserAccept?: string | string[];
     fileChooserAllowedDir?: string;
+    loadExtraActions?: string[];
     abortSignal?: AbortSignal;
     context?: string;
   },
@@ -155,6 +156,7 @@ function ai(prompt: string, options?: Object): Promise<string | undefined>; // �
       - **注意**：如果点击触发了文件选择器但没有传入 `fileChooserAccept` 参数，文件选择器会被忽略，页面可以继续正常操作。
       - **注意**：Chrome extension Bridge mode 不支持目录上传输入框（`webkitdirectory` / `directory`）。如需上传目录，请使用 Playwright。
     - `fileChooserAllowedDir?: string`：显式授权当前 `aiAct` 通过提示词上传文件时可访问的目录。未配置时，模型规划的文件上传会被拒绝。配置后，提示词中的相对路径会基于此目录解析，并校验是否位于此目录下；绝对路径则直接校验是否位于此目录下。位于此目录下的 symlink 也允许上传。建议将其设置为测试用例的 `fixtures` 目录，以避免 AI 幻觉或页面提示词攻击导致 `aiAct` 上传敏感文件。
+    - `loadExtraActions?: string[]`：为本次调用加载预先录制的 UI Action YAML 文件。默认值为 `undefined`，即不加载 Extra Action。每个文件会成为一个无参数 Action，供通用规划器使用。规划器选中后，Midscene 会在执行前将其展开为录制好的底层 Action。该选项仅支持 Node.js，不支持自定义规划适配器。相对路径基于当前工作目录解析。文件无效、名称重复、规划适配器不受支持或底层 Action 不可用时，Midscene 会在规划开始前抛出错误。
     - `abortSignal?: AbortSignal` - 可选的 [AbortSignal](https://developer.mozilla.org/zh-CN/docs/Web/API/AbortSignal)，用于中止 `aiAct` 的执行。当信号被触发时，Midscene 会停止当前的规划循环并抛出错误。适用于实现超时控制或用户主动取消操作的场景。
 
 - 返回值：
@@ -182,6 +184,33 @@ await agent.aiAct('填写表单并提交', {
 // 对于复杂任务，可以启用 deepThink 参数
 await agent.aiAct('完成 github 账号注册的表单填写。地区必须选择「加拿大」。确保表单上没有遗漏的字段，确保所有的表单项能够通过校验。 只需要填写表单项即可，不需要发起真实的账号注册。 最终请返回表单上实际填写的字段内容', { deepThink: true });
 ```
+
+##### 加载预先录制的 UI Action
+
+一个 Extra Action 文件定义一个可复用 Action。
+
+`name` 是展示给规划器的名称。`actionName` 指向当前界面 `Action Space` 中已有的 Action。`actionParam` 是要依次执行的固定参数：
+
+```yaml title="extra-action.yaml"
+name: 点击确定按钮
+actionName: tap
+actionParam:
+  - xpath: /path/to/#confirm-button
+```
+
+在单次 `aiAct` 中传入一个或多个文件：
+
+```typescript
+await agent.aiAct('填写表单', {
+  loadExtraActions: ['./extra-action.yaml'],
+});
+```
+
+该选项仅支持 Node.js 和通用规划适配器。如果当前模型使用 UI-TARS、AutoGLM 等自定义规划适配器，`aiAct` 会在读取文件或调用模型之前抛出错误。
+
+Extra Action 只对本次调用的规划器可见，不会修改 Agent 的 `Action Space`。`name` 不能包含尖括号、换行符或控制字符。`actionName` 可以填写 Action 名称或 `interfaceAlias`，匹配时不区分大小写。规划开始前，Midscene 会根据目标 Action 校验每一项 `actionParam`。
+
+若底层 Action 只有一个定位字段，可以使用上面的简写。参数直接包含 `prompt`、`xpath` 或 `locatedPixelBbox` 即可。Midscene 只会把定位属性移入定位字段，`Input` 的 `value`、`mode` 等其他参数仍保留在顶层。如果定位参数包含 XPath 或 `locatedPixelBbox`，但没有提示词，Midscene 会使用 Extra Action 的 `name` 作为备用定位提示词。
 
 ##### 在 `aiAct` 提示词中上传文件
 
