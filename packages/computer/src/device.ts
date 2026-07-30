@@ -25,7 +25,12 @@ import {
   type ScrollDirection,
 } from './input-driver';
 import type { XvfbInstance } from './xvfb';
-import { checkXvfbInstalled, needsXvfb, startXvfb } from './xvfb';
+import {
+  checkXvfbInstalled,
+  createXvfbSigintCleanup,
+  needsXvfb,
+  startXvfb,
+} from './xvfb';
 
 declare const __VERSION__: string;
 
@@ -956,14 +961,9 @@ export class ComputerDevice implements AbstractInterface {
             this.xvfbInstance = undefined;
           }
         };
-        this.xvfbSigintCleanup = () => {
-          // A foreground recorder owns SIGINT so it can save the observation
-          // before destroy() tears down Xvfb. Without another SIGINT listener,
-          // preserve the existing immediate cleanup behavior.
-          if (process.listenerCount('SIGINT') === 1) {
-            this.xvfbCleanup?.();
-          }
-        };
+        this.xvfbSigintCleanup = createXvfbSigintCleanup(() =>
+          this.xvfbCleanup?.(),
+        );
         process.on('exit', this.xvfbCleanup);
         process.on('SIGINT', this.xvfbSigintCleanup);
         process.on('SIGTERM', this.xvfbCleanup);

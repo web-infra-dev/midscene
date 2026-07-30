@@ -1,5 +1,8 @@
 import { EventEmitter } from 'node:events';
-import { waitForCliInterrupt } from '@/cli/interrupt';
+import {
+  hasActiveCliInterruptWaiter,
+  waitForCliInterrupt,
+} from '@/cli/interrupt';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 describe('waitForCliInterrupt', () => {
@@ -11,9 +14,11 @@ describe('waitForCliInterrupt', () => {
     const source = new EventEmitter();
     const stopped = waitForCliInterrupt(0, source);
 
+    expect(hasActiveCliInterruptWaiter(source)).toBe(true);
     source.emit('SIGINT');
 
     await expect(stopped).resolves.toBe('sigint');
+    expect(hasActiveCliInterruptWaiter(source)).toBe(false);
     expect(source.listenerCount('SIGINT')).toBe(0);
   });
 
@@ -22,9 +27,18 @@ describe('waitForCliInterrupt', () => {
     const source = new EventEmitter();
     const stopped = waitForCliInterrupt(5000, source);
 
+    expect(hasActiveCliInterruptWaiter(source)).toBe(true);
     await vi.advanceTimersByTimeAsync(5000);
 
     await expect(stopped).resolves.toBe('watchdog');
+    expect(hasActiveCliInterruptWaiter(source)).toBe(false);
     expect(source.listenerCount('SIGINT')).toBe(0);
+  });
+
+  it('does not treat unrelated SIGINT listeners as CLI waiters', () => {
+    const source = new EventEmitter();
+    source.on('SIGINT', () => {});
+
+    expect(hasActiveCliInterruptWaiter(source)).toBe(false);
   });
 });

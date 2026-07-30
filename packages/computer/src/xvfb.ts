@@ -1,6 +1,10 @@
 import type { ChildProcess } from 'node:child_process';
 import { execSync, spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
+import {
+  type CliInterruptSource,
+  hasActiveCliInterruptWaiter,
+} from '@midscene/shared/cli/interrupt';
 import { getDebug } from '@midscene/shared/logger';
 
 const debugXvfb = getDebug('computer:xvfb');
@@ -14,6 +18,21 @@ export interface XvfbInstance {
   process: ChildProcess;
   display: string; // e.g. ':99'
   stop(): void;
+}
+
+/**
+ * Keep Xvfb alive while the foreground recorder handles SIGINT and saves its
+ * artifact. Other SIGINT listeners do not defer cleanup.
+ */
+export function createXvfbSigintCleanup(
+  cleanup: () => void,
+  source: CliInterruptSource = process,
+): () => void {
+  return () => {
+    if (!hasActiveCliInterruptWaiter(source)) {
+      cleanup();
+    }
+  };
 }
 
 /**
