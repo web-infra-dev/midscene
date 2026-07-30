@@ -17,7 +17,10 @@ import {
 } from './prompt/util';
 import { AIResponseParseError, callAI } from './service-caller/index';
 import type { JsonParser, JsonParserSource } from './service-caller/json';
-import { callAiAndParseWithRetry } from './service-caller/semantic-retry';
+import {
+  callAiAndParseWithRetry,
+  withSemanticRetryFeedback,
+} from './service-caller/semantic-retry';
 import type {
   LocateResultAdapter,
   LocateResultContext,
@@ -142,12 +145,16 @@ async function callAndParsePlanningResponse(
     locateResultContext,
   } = options;
   return callAiAndParseWithRetry({
-    callAi: (retryAttempt) =>
-      callAI(messages, modelRuntime, {
-        abortSignal,
-        requiresOriginalImageDetail: includeLocateInPlanning,
-        semanticRetryAttempt: retryAttempt,
-      }),
+    callAi: (retryAttempt, previousParseError) =>
+      callAI(
+        withSemanticRetryFeedback(messages, previousParseError),
+        modelRuntime,
+        {
+          abortSignal,
+          requiresOriginalImageDetail: includeLocateInPlanning,
+          semanticRetryAttempt: retryAttempt,
+        },
+      ),
     parseResponse: (response) => {
       const planFromAI = parseXMLPlanningResponse(
         response.content,

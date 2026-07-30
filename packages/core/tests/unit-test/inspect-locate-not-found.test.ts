@@ -122,6 +122,11 @@ describe('locate not-found parsing', () => {
       expect.objectContaining({ semanticRetryAttempt: 0 }),
       expect.objectContaining({ semanticRetryAttempt: 1 }),
     ]);
+    const retryFeedback = vi.mocked(callAI).mock.calls[1][0].at(-1);
+    expect(retryFeedback).toMatchObject({ role: 'user' });
+    expect(retryFeedback?.content).toEqual(
+      expect.stringContaining('coordinate parsing error'),
+    );
     expect(result.rect).toBeDefined();
     expect(result.parseResult.errors).toEqual([]);
   });
@@ -190,6 +195,11 @@ describe('locate not-found parsing', () => {
     });
 
     expect(callAI).toHaveBeenCalledTimes(2);
+    const retryFeedback = vi.mocked(callAI).mock.calls[1][0].at(-1);
+    expect(retryFeedback).toMatchObject({ role: 'user' });
+    expect(retryFeedback?.content).toEqual(
+      expect.stringContaining('coordinate parsing error'),
+    );
     expect(result.searchAreaConfig).toBeDefined();
   });
 

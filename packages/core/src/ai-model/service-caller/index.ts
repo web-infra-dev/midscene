@@ -58,7 +58,10 @@ import {
   resolveEffectiveTimeoutMs,
   restoreHardTimeoutError,
 } from './request-timeout';
-import { callAiAndParseWithRetry } from './semantic-retry';
+import {
+  callAiAndParseWithRetry,
+  withSemanticRetryFeedback,
+} from './semantic-retry';
 export {
   extractJSONFromCodeBlock,
   parseModelResponseJson,
@@ -825,12 +828,16 @@ export async function callAIWithObjectResponse<T>(
 ): Promise<AIObjectResponse<T>> {
   const { config: modelConfig } = modelRuntime;
   return callAiAndParseWithRetry({
-    callAi: (retryAttempt) =>
-      callAI(messages, modelRuntime, {
-        abortSignal: options?.abortSignal,
-        expectedJsonObjectResponse: true,
-        semanticRetryAttempt: retryAttempt,
-      }),
+    callAi: (retryAttempt, previousParseError) =>
+      callAI(
+        withSemanticRetryFeedback(messages, previousParseError),
+        modelRuntime,
+        {
+          abortSignal: options?.abortSignal,
+          expectedJsonObjectResponse: true,
+          semanticRetryAttempt: retryAttempt,
+        },
+      ),
     parseResponse: (response) =>
       parseAIObjectResponse<T>(
         response,

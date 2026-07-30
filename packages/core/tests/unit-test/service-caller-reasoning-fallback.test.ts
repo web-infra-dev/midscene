@@ -323,6 +323,12 @@ describe('service-caller reasoning fallback', () => {
       expect.objectContaining({ temperature: 0.2 }),
       expect.any(Object),
     );
+    const retryFeedback = mockCreate.mock.calls[1]?.[0]?.messages.at(-1);
+    expect(retryFeedback).toMatchObject({ role: 'user' });
+    expect(retryFeedback?.content).toEqual(
+      expect.stringContaining('The previous response was invalid:'),
+    );
+    expect(retryFeedback?.content).toContain('not JSON');
     expect(response.content).toEqual({ bbox: [100, 200, 300, 400] });
   });
 

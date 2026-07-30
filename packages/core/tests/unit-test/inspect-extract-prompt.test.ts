@@ -193,6 +193,11 @@ describe('AiExtractElementInfo prompt assembly', () => {
       expect.objectContaining({ semanticRetryAttempt: 0 }),
       expect.objectContaining({ semanticRetryAttempt: 1 }),
     ]);
+    const retryFeedback = vi.mocked(callAI).mock.calls[1]?.[0]?.at(-1);
+    expect(retryFeedback).toMatchObject({ role: 'user' });
+    expect(retryFeedback?.content).toEqual(
+      expect.stringContaining('Missing required field: data-json'),
+    );
     expect(result.parseResult.data).toEqual({ result: true });
   });
 });

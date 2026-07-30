@@ -45,7 +45,10 @@ import {
   callAIWithObjectResponse,
   parseAIObjectResponse,
 } from './service-caller/index';
-import { callAiAndParseWithRetry } from './service-caller/semantic-retry';
+import {
+  callAiAndParseWithRetry,
+  withSemanticRetryFeedback,
+} from './service-caller/semantic-retry';
 import { prepareModelImage } from './workflows/image-preprocess';
 import {
   mergePixelBboxesToRect,
@@ -272,12 +275,16 @@ export async function genericLocate(
 
   try {
     return await callAiAndParseWithRetry({
-      callAi: (retryAttempt) =>
-        callAI(msgs, modelRuntime, {
-          abortSignal: options.abortSignal,
-          expectedJsonObjectResponse: true,
-          semanticRetryAttempt: retryAttempt,
-        }),
+      callAi: (retryAttempt, previousParseError) =>
+        callAI(
+          withSemanticRetryFeedback(msgs, previousParseError),
+          modelRuntime,
+          {
+            abortSignal: options.abortSignal,
+            expectedJsonObjectResponse: true,
+            semanticRetryAttempt: retryAttempt,
+          },
+        ),
       parseResponse: (response): LocateModelResponse => {
         const result = parseAIObjectResponse<AIElementLocateResponse>(
           response,
@@ -442,12 +449,16 @@ export async function AiLocateSection(options: {
 
   try {
     parsedResult = await callAiAndParseWithRetry({
-      callAi: (retryAttempt) =>
-        callAI(msgs, modelRuntime, {
-          abortSignal: options.abortSignal,
-          expectedJsonObjectResponse: true,
-          semanticRetryAttempt: retryAttempt,
-        }),
+      callAi: (retryAttempt, previousParseError) =>
+        callAI(
+          withSemanticRetryFeedback(msgs, previousParseError),
+          modelRuntime,
+          {
+            abortSignal: options.abortSignal,
+            expectedJsonObjectResponse: true,
+            semanticRetryAttempt: retryAttempt,
+          },
+        ),
       parseResponse: (response) => {
         const result = parseAIObjectResponse<AISectionLocatorResponse>(
           response,
@@ -667,11 +678,15 @@ export async function AiExtractElementInfo<T>(options: {
   }
 
   return callAiAndParseWithRetry({
-    callAi: (retryAttempt) =>
-      callAI(msgs, modelRuntime, {
-        abortSignal: options.abortSignal,
-        semanticRetryAttempt: retryAttempt,
-      }),
+    callAi: (retryAttempt, previousParseError) =>
+      callAI(
+        withSemanticRetryFeedback(msgs, previousParseError),
+        modelRuntime,
+        {
+          abortSignal: options.abortSignal,
+          semanticRetryAttempt: retryAttempt,
+        },
+      ),
     parseResponse: (response) => {
       const {
         content: rawResponse,

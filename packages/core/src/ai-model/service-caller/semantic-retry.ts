@@ -1,10 +1,35 @@
+import type { ChatCompletionMessageParam } from 'openai/resources/index';
+
+export function withSemanticRetryFeedback(
+  messages: ChatCompletionMessageParam[],
+  previousParseError?: unknown,
+): ChatCompletionMessageParam[] {
+  if (!previousParseError) return messages;
+
+  const errorMessage =
+    previousParseError instanceof Error
+      ? previousParseError.message
+      : String(previousParseError);
+
+  return [
+    ...messages,
+    {
+      role: 'user',
+      content: `The previous response was invalid:\n${errorMessage}\n\nPlease avoid the validation error above in this response.`,
+    },
+  ];
+}
+
 export type CallAiAndParseWithRetryOptions<Response, Parsed> = {
   /** Sends a single model request. Request errors are always propagated as-is. */
   /**
    * `retryAttempt` is local to this retry loop: 0 for the initial request,
    * then incremented after each parsing failure.
    */
-  callAi: (retryAttempt: number) => Promise<Response>;
+  callAi: (
+    retryAttempt: number,
+    previousParseError?: unknown,
+  ) => Promise<Response>;
   /** Parses a successful model response. Only failures from this callback retry. */
   parseResponse: (response: Response) => Parsed | Promise<Parsed>;
   /** Converts the final parsing failure into the caller's domain error. */
@@ -45,8 +70,9 @@ export async function callAiAndParseWithRetry<Response, Parsed>({
   const callAndParseOnce = async (
     remainingRetries: number,
     retryAttempt: number,
+    previousParseError?: unknown,
   ): Promise<Parsed> => {
-    const response = await callAi(retryAttempt);
+    const response = await callAi(retryAttempt, previousParseError);
 
     try {
       return await parseResponse(response);
@@ -61,7 +87,7 @@ export async function callAiAndParseWithRetry<Response, Parsed>({
         if (abortSignal?.aborted) {
           throw toParseError(error, response);
         }
-        return callAndParseOnce(remainingRetries - 1, retryAttempt + 1);
+        return callAndParseOnce(remainingRetries - 1, retryAttempt + 1, error);
       }
       throw toParseError(error, response);
     }

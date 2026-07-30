@@ -109,6 +109,11 @@ describe('plan XML parse retry', () => {
     });
 
     expect(callAI).toHaveBeenCalledTimes(3);
+    const retryFeedback = vi.mocked(callAI).mock.calls[1]?.[0]?.at(-1);
+    expect(retryFeedback).toMatchObject({ role: 'user' });
+    expect(retryFeedback?.content).toEqual(
+      expect.stringContaining('The previous response was invalid:'),
+    );
     expect(result.rawResponse).toContain('Tap button after retry');
     expect(result.actions).toEqual([{ type: 'Tap' }]);
   });
