@@ -1,6 +1,19 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ScrcpyScreenshotManager } from '../../src/scrcpy-manager';
 
+// A minimal H.264 keyframe: 4-byte start code + IDR NAL (type 5).
+const idrFrame = (tag: number): Buffer =>
+  Buffer.from([0x00, 0x00, 0x00, 0x01, 0x65, tag]);
+const spsPacket = () => ({
+  type: 'configuration',
+  data: Buffer.from([0x00, 0x00, 0x00, 0x01, 0x67, 0xaa]),
+});
+const dataPacket = (tag: number, pts: bigint) => ({
+  type: 'data',
+  data: idrFrame(tag),
+  pts,
+});
+
 describe('ScrcpyScreenshotManager', () => {
   afterEach(() => {
     vi.restoreAllMocks();
@@ -268,6 +281,104 @@ describe('ScrcpyScreenshotManager', () => {
     });
   });
 
+  describe('frame transport freshness', () => {
+    it('drops frames delayed beyond the connection baseline', () => {
+      const manager = new ScrcpyScreenshotManager({} as any);
+      const listener = vi.fn();
+      manager.subscribeKeyframes(listener);
+      vi.spyOn(manager as any, 'monotonicTimeUs')
+        .mockReturnValueOnce(10_000_000n)
+        .mockReturnValueOnce(10_800_000n);
+
+      (manager as any).processFrame(spsPacket());
+      (manager as any).processFrame(dataPacket(0x01, 1_000_000n));
+      expect(manager.getLatestRawKeyframe()?.data[5]).toBe(0x01);
+
+      // PTS advanced by 100ms while host arrival advanced by 800ms:
+      // 700ms accumulated in transport, beyond the 500ms limit.
+      (manager as any).processFrame(dataPacket(0x02, 1_100_000n));
+
+      expect(manager.getLatestRawKeyframe()).toBeNull();
+      expect(listener).toHaveBeenCalledTimes(1);
+      expect((manager as any).frameTransportError?.message).toContain(
+        '700ms behind',
+      );
+    });
+
+    it('automatically accepts frames again after transport catches up', () => {
+      const manager = new ScrcpyScreenshotManager({} as any);
+      vi.spyOn(manager as any, 'monotonicTimeUs')
+        .mockReturnValueOnce(10_000_000n)
+        .mockReturnValueOnce(10_800_000n)
+        .mockReturnValueOnce(11_100_000n);
+
+      (manager as any).processFrame(spsPacket());
+      (manager as any).processFrame(dataPacket(0x01, 1_000_000n));
+      (manager as any).processFrame(dataPacket(0x02, 1_100_000n));
+      expect(manager.getLatestRawKeyframe()).toBeNull();
+
+      // Offset is now only 100ms above the best connection baseline.
+      (manager as any).processFrame(dataPacket(0x03, 2_000_000n));
+
+      expect(manager.getLatestRawKeyframe()?.data[5]).toBe(0x03);
+      expect((manager as any).frameTransportError).toBeNull();
+    });
+
+    it('accepts transport lag at the configured boundary', () => {
+      const manager = new ScrcpyScreenshotManager({} as any);
+      vi.spyOn(manager as any, 'monotonicTimeUs')
+        .mockReturnValueOnce(10_000_000n)
+        .mockReturnValueOnce(10_600_000n);
+
+      (manager as any).processFrame(spsPacket());
+      (manager as any).processFrame(dataPacket(0x01, 1_000_000n));
+      (manager as any).processFrame(dataPacket(0x02, 1_100_000n));
+
+      expect(manager.getLatestRawKeyframe()?.data[5]).toBe(0x02);
+      expect((manager as any).frameTransportError).toBeNull();
+    });
+
+    it('recalibrates after a backwards PTS jump', () => {
+      const manager = new ScrcpyScreenshotManager({} as any);
+      vi.spyOn(manager as any, 'monotonicTimeUs')
+        .mockReturnValueOnce(10_000_000n)
+        .mockReturnValueOnce(10_800_000n)
+        .mockReturnValueOnce(11_000_000n);
+
+      (manager as any).processFrame(spsPacket());
+      (manager as any).processFrame(dataPacket(0x01, 2_000_000n));
+      (manager as any).processFrame(dataPacket(0x02, 2_100_000n));
+      expect((manager as any).frameTransportError).not.toBeNull();
+
+      (manager as any).processFrame(dataPacket(0x03, 1_000_000n));
+
+      expect(manager.getLatestRawKeyframe()?.data[5]).toBe(0x03);
+      expect((manager as any).frameTransportError).toBeNull();
+      expect((manager as any).minimumFrameArrivalOffsetUs).toBe(10_000_000n);
+    });
+
+    it('rejects a screenshot instead of falling back to a delayed cache', async () => {
+      const manager = new ScrcpyScreenshotManager({} as any);
+      (manager as any).spsHeader = Buffer.from('header');
+      (manager as any).lastRawKeyframe = Buffer.from('stale');
+      (manager as any).frameTransportError = new Error(
+        'Scrcpy video stream is delayed',
+      );
+
+      vi.spyOn(manager, 'ensureConnected').mockResolvedValue();
+      vi.spyOn(manager as any, 'resetIdleTimer').mockImplementation(() => {});
+      vi.spyOn(manager as any, 'waitForNextKeyframe').mockRejectedValueOnce(
+        new Error('no current frame'),
+      );
+      const decode = vi.spyOn(manager as any, 'decodeH264ToJpeg');
+
+      await expect(manager.getScreenshotJpeg()).rejects.toThrow(
+        'Scrcpy video stream is delayed',
+      );
+      expect(decode).not.toHaveBeenCalled();
+    });
+  });
+
   describe('disconnect', () => {
     it('should reset all state', async () => {
       const manager = new ScrcpyScreenshotManager({} as any);
@@ -277,6 +388,9 @@ describe('ScrcpyScreenshotManager', () => {
       (manager as any).isInitialized = true;
       (manager as any).keyframeResolvers = [() => {}];
       (manager as any).streamReader = { cancel: vi.fn() };
+      (manager as any).minimumFrameArrivalOffsetUs = 123n;
+      (manager as any).lastFramePtsUs = 456n;
+      (manager as any).frameTransportError = new Error('lagging');
 
       await manager.disconnect();
 
@@ -287,6 +401,9 @@ describe('ScrcpyScreenshotManager', () => {
       expect((manager as any).videoStream).toBeNull();
       expect((manager as any).scrcpyClient).toBeNull();
       expect((manager as any).streamReader).toBeNull();
+      expect((manager as any).minimumFrameArrivalOffsetUs).toBeNull();
+      expect((manager as any).lastFramePtsUs).toBeNull();
+      expect((manager as any).frameTransportError).toBeNull();
     });
 
     it('should clear idle timer', async () => {

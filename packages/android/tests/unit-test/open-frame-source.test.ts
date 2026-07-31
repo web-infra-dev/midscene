@@ -106,15 +106,19 @@ describe('AndroidDevice frame-source capability', () => {
       header: Buffer.from([0x67]),
       capturedAt: 2000,
     };
+    let latestFrame: RawKeyframe | null = frameA;
     const decode = vi
       .fn()
       .mockImplementation(async (f: RawKeyframe) => `decoded-${f.data[5]}`);
     const unsubscribe = vi.fn();
     (device as any).scrcpyAdapter = {
       isEnabled: () => true,
-      getLatestRawKeyframe: () => frameA,
+      getLatestRawKeyframe: () => latestFrame,
       subscribeKeyframes: vi.fn().mockImplementation(async (_info, cb) => {
-        listener = cb;
+        listener = (frame) => {
+          latestFrame = frame;
+          cb(frame);
+        };
         return unsubscribe;
       }),
       decodeRawKeyframeToJpegBase64: decode,
@@ -130,6 +134,11 @@ describe('AndroidDevice frame-source capability', () => {
     expect(source!.latest()?.ref).toBe(frameB);
     expect(source!.latest()?.capturedAt).toBe(2000);
     expect(decode).not.toHaveBeenCalled();
+
+    // If the manager invalidates its cache (for example because transport
+    // backlog was detected), the frame source must not retain an old ref.
+    latestFrame = null;
+    expect(source!.latest()).toBeNull();
 
     // decode() materializes exactly the sampled refs, in order
     const images = await source!.decode([
