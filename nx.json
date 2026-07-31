@@ -10,6 +10,7 @@
       "{projectRoot}/scripts/**/*",
       "!{projectRoot}/**/*.{md,mdx}",
       "!{projectRoot}/vitest.config.ts",
+      "!{projectRoot}/rstest.config.ts",
       "!{projectRoot}/**/?(*.)+(spec|test).ts"
     ]
   },

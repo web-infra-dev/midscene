@@ -205,12 +205,19 @@ test(${JSON.stringify(name)}, async () => {
             'virtual:b.test.ts',
             'virtual:c.test.ts',
           ],
+          // Every file fails, so the assertion below holds whatever order
+          // Rstest schedules them in: at concurrency 1, the first file to run
+          // trips `bail`, and the other two must never start. Rstest 0.11.2
+          // does not promise to run `include` in array order (it reorders by
+          // previous-run history and file size), so an order-sensitive
+          // assertion would test the scheduler, not the bail.
           virtualModules: {
             'virtual:a.test.ts': `import { appendFileSync } from 'node:fs';
 import { test } from ${JSON.stringify(rstestImport)};
 
 test('a', async () => {
   appendFileSync(${JSON.stringify(marker)}, 'a\\n');
+  throw new Error('a failed');
 });
 `,
             'virtual:b.test.ts': `import { appendFileSync } from 'node:fs';
@@ -226,6 +233,7 @@ import { test } from ${JSON.stringify(rstestImport)};
 
 test('c', async () => {
   appendFileSync(${JSON.stringify(marker)}, 'c\\n');
+  throw new Error('c failed');
 });
 `,
           },
@@ -237,7 +245,9 @@ test('c', async () => {
       });
 
       expect(exitCode).toBe(1);
-      expect(readFileSync(marker, 'utf8')).toBe('a\nb\n');
+      const ran = readFileSync(marker, 'utf8').split('\n').filter(Boolean);
+      expect(ran).toHaveLength(1);
+      expect(['a', 'b', 'c']).toContain(ran[0]);
     } finally {
       rmSync(root, { recursive: true, force: true });
     }

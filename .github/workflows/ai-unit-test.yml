@@ -62,8 +62,10 @@ jobs:
       run: pnpm run build
     
     - name: Run tests with coverage
-      # Keep model request concurrency comparable to the former 4-core hosted runner.
-      run: MIDSCENE_COVERAGE_DIR=coverage-ai pnpm exec nx run-many --target=test:ai --projects=@midscene/core,@midscene/web,@midscene/cli --verbose -- --coverage --minWorkers=1 --maxWorkers=4
+      # Worker caps live in each package's test config (see vitest.config.ts of
+      # core/web-integration/cli) so the flags stay runner-agnostic: rstest
+      # rejects bare --minWorkers/--maxWorkers, so they must not be passed here.
+      run: MIDSCENE_COVERAGE_DIR=coverage-ai pnpm exec nx run-many --target=test:ai --projects=@midscene/core,@midscene/web,@midscene/cli --verbose -- --coverage
       id: test-ai
       continue-on-error: true
 
