@@ -21,14 +21,16 @@ const DEFAULT_IDLE_TIMEOUT_MS = 30_000;
 
 // Timeouts and limits
 const MAX_KEYFRAME_WAIT_MS = 5_000;
-const FRESH_FRAME_TIMEOUT_MS = 300; // Short timeout to wait for a fresh frame; fallback to cached frame if screen is static
+// Maximum time to wait for a post-barrier scrcpy frame before the adapter
+// falls back to the independent ADB screenshot path.
+const FRESH_FRAME_TIMEOUT_MS = 300;
 const KEYFRAME_POLL_INTERVAL_MS = 200;
 const MAX_SCAN_BYTES = 1_000;
 const CONNECTION_WAIT_MS = 1_000;
 const MAX_SERVER_OUTPUT_LINES = 100;
 const SERVER_OUTPUT_DRAIN_TIMEOUT_MS = 500;
-const MAX_FRAME_TRANSPORT_LAG_US = 500_000n;
-const FRAME_LAG_WARN_INTERVAL_MS = 5_000;
+const FRAME_FRESHNESS_WARN_INTERVAL_MS = 5_000;
+const DEVICE_UPTIME_COMMAND = ['dumpsys', 'power'] as const;
 
 // Busy-loop detection thresholds
 const BUSY_LOOP_WINDOW_MS = 1_000; // Sliding window for measuring frame rate
@@ -61,7 +63,38 @@ export interface RawKeyframe {
   data: Buffer;
   /** SPS/PPS header active when this frame was produced (needed to decode). */
   header: Buffer;
+  /** Device-monotonic capture timestamp forwarded by scrcpy. */
+  ptsUs?: bigint;
+  /** Estimated frame age when the packet reached the host. */
+  estimatedAgeMs?: number;
   capturedAt: number;
+}
+
+interface DeviceClockCalibration {
+  deviceUptimeUs: bigint;
+  hostMonotonicUs: bigint;
+  hostWallTimeMs: number;
+  roundTripUs: bigint;
+}
+
+/**
+ * Reconstruct SystemClock.uptimeMillis() from TimeUtils.formatUptime(), which
+ * PowerManagerService uses for the `mLastWakeTime` line.
+ */
+export function parseDeviceUptimeMs(output: string): bigint {
+  const match = output.match(
+    /mLastWakeTime=(\d+)\s+\((?:(\d+) ms ago|in (\d+) ms|now)\)/,
+  );
+  if (!match) {
+    throw new Error(
+      `Unable to read Android device uptime from dumpsys power: ${output.trim() || '<empty output>'}`,
+    );
+  }
+
+  const referenceMs = BigInt(match[1]);
+  if (match[2]) return referenceMs + BigInt(match[2]);
+  if (match[3]) return referenceMs - BigInt(match[3]);
+  return referenceMs;
 }
 
 /**
@@ -134,12 +167,18 @@ export class ScrcpyScreenshotManager {
   private keyframeListeners = new Set<(frame: RawKeyframe) => void>();
   private lastRawKeyframe: Buffer | null = null;
   private lastRawKeyframeAt = 0;
+  private lastRawKeyframePtsUs: bigint | undefined;
+  private lastRawKeyframeEstimatedAgeMs: number | undefined;
   private videoResolution: { width: number; height: number } | null = null;
   private streamReader: any = null;
-  private minimumFrameArrivalOffsetUs: bigint | null = null;
+  private frameFreshnessBarrierPtsUs: bigint | null = null;
+  private frameFreshnessBarrierReason: string | null = null;
+  private frameFreshnessBarrierPending = false;
+  private frameFreshnessBarrierGeneration = 0;
+  private deviceClockCalibration: DeviceClockCalibration | null = null;
   private lastFramePtsUs: bigint | null = null;
-  private frameTransportError: Error | null = null;
-  private lastFrameLagWarningAt = 0;
+  private frameFreshnessError: Error | null = null;
+  private lastFrameFreshnessWarningAt = 0;
 
   constructor(adb: Adb, options: ScrcpyScreenshotOptions = {}) {
     this.adb = adb;
@@ -443,7 +482,8 @@ export class ScrcpyScreenshotManager {
       return;
     }
 
-    if (!this.isFrameTransportCurrent(packet.pts)) {
+    const receivedAtUs = this.monotonicTimeUs();
+    if (!this.isFrameFresh(packet.pts)) {
       return;
     }
 
@@ -452,8 +492,11 @@ export class ScrcpyScreenshotManager {
     const isKeyFrame = detectH264KeyFrame(frameBuffer);
 
     if (isKeyFrame && this.spsHeader) {
+      const timing = this.estimateFrameTiming(packet.pts, receivedAtUs);
       this.lastRawKeyframe = frameBuffer;
-      this.lastRawKeyframeAt = Date.now();
+      this.lastRawKeyframeAt = timing.capturedAt;
+      this.lastRawKeyframePtsUs = packet.pts;
+      this.lastRawKeyframeEstimatedAgeMs = timing.estimatedAgeMs;
       if (this.keyframeResolvers.length > 0) {
         const combined = Buffer.concat([this.spsHeader, frameBuffer]);
         this.notifyKeyframeWaiters(combined);
@@ -462,6 +505,8 @@ export class ScrcpyScreenshotManager {
         const frame: RawKeyframe = {
           data: frameBuffer,
           header: this.spsHeader,
+          ptsUs: packet.pts,
+          estimatedAgeMs: timing.estimatedAgeMs,
           capturedAt: this.lastRawKeyframeAt,
         };
         for (const listener of this.keyframeListeners) {
@@ -479,76 +524,197 @@ export class ScrcpyScreenshotManager {
   }
 
   /**
-   * Detect transport backlog without synchronizing the host and device clocks.
-   *
-   * scrcpy packet PTS values and `process.hrtime.bigint()` are both monotonic.
-   * Their absolute epochs differ, but the minimum arrival offset observed
-   * during one connection is a stable baseline. Any later increase in that
-   * offset is time the packet spent queued in the transport.
+   * Read the Android uptime clock used by Surface/MediaCodec frame PTS values.
+   * The host timestamps bracket the ADB request so frame age can also be
+   * estimated on the host wall clock for reports.
    */
-  private isFrameTransportCurrent(
-    packetPtsUs: bigint | undefined,
-    receivedAtUs = this.monotonicTimeUs(),
-  ): boolean {
-    // sendFrameMeta is enabled for this stream, but keep the old behavior if a
-    // dependency or server version does not provide PTS metadata.
-    if (packetPtsUs === undefined) {
-      return true;
-    }
+  private async readDeviceClockCalibration(): Promise<DeviceClockCalibration> {
+    const startedAtUs = this.monotonicTimeUs();
+    const startedAtWallMs = Date.now();
+    const shellProtocol = this.adb.subprocess.shellProtocol;
+    let output: string;
 
-    // A backwards PTS jump starts a new media timeline (for example after a
-    // codec/session reset). Recalibrate instead of comparing different epochs.
-    if (this.lastFramePtsUs !== null && packetPtsUs < this.lastFramePtsUs) {
-      this.resetFrameTransportState();
-      this.lastRawKeyframe = null;
-      this.lastRawKeyframeAt = 0;
-    }
-    this.lastFramePtsUs = packetPtsUs;
-
-    const arrivalOffsetUs = receivedAtUs - packetPtsUs;
-    if (
-      this.minimumFrameArrivalOffsetUs === null ||
-      arrivalOffsetUs < this.minimumFrameArrivalOffsetUs
-    ) {
-      this.minimumFrameArrivalOffsetUs = arrivalOffsetUs;
-    }
-
-    const transportLagUs = arrivalOffsetUs - this.minimumFrameArrivalOffsetUs;
-    if (transportLagUs <= MAX_FRAME_TRANSPORT_LAG_US) {
-      if (this.frameTransportError) {
-        debugScrcpy(
-          `Scrcpy video transport recovered (lag=${Number(transportLagUs / 1_000n)}ms)`,
+    if (shellProtocol) {
+      const result = await shellProtocol.spawnWaitText(DEVICE_UPTIME_COMMAND);
+      if (result.exitCode !== 0) {
+        throw new Error(
+          `Unable to read Android device uptime (exit ${result.exitCode}): ${result.stderr.trim() || result.stdout.trim()}`,
         );
       }
-      this.frameTransportError = null;
+      output = result.stdout;
+    } else {
+      output = await this.adb.subprocess.noneProtocol.spawnWaitText(
+        DEVICE_UPTIME_COMMAND,
+      );
+    }
+
+    const finishedAtUs = this.monotonicTimeUs();
+    const finishedAtWallMs = Date.now();
+    return {
+      deviceUptimeUs: parseDeviceUptimeMs(output) * 1_000n,
+      hostMonotonicUs: startedAtUs + (finishedAtUs - startedAtUs) / 2n,
+      hostWallTimeMs:
+        startedAtWallMs + (finishedAtWallMs - startedAtWallMs) / 2,
+      roundTripUs: finishedAtUs - startedAtUs,
+    };
+  }
+
+  /**
+   * Invalidate cached frames and require future packets to be captured after a
+   * newly sampled point on the device clock. This is used for both screenshot
+   * requests and completed input actions.
+   */
+  async setFreshnessBarrier(reason: string): Promise<bigint> {
+    const generation = ++this.frameFreshnessBarrierGeneration;
+    this.frameFreshnessBarrierPending = true;
+    this.clearFrameCache();
+
+    try {
+      const calibration = await this.readDeviceClockCalibration();
+      // uptimeMillis() is truncated, so use the next millisecond as a
+      // conservative boundary.
+      const barrierPtsUs = (calibration.deviceUptimeUs / 1_000n + 1n) * 1_000n;
+
+      if (generation !== this.frameFreshnessBarrierGeneration) {
+        return this.frameFreshnessBarrierPtsUs ?? barrierPtsUs;
+      }
+
+      this.deviceClockCalibration = calibration;
+      this.frameFreshnessBarrierPtsUs =
+        this.frameFreshnessBarrierPtsUs === null ||
+        barrierPtsUs > this.frameFreshnessBarrierPtsUs
+          ? barrierPtsUs
+          : this.frameFreshnessBarrierPtsUs;
+      this.frameFreshnessBarrierReason = reason;
+      this.frameFreshnessBarrierPending = false;
+      this.frameFreshnessError = null;
+      this.lastFramePtsUs = null;
+      this.clearFrameCache();
+
+      debugScrcpy(
+        `Armed frame freshness barrier at PTS ${this.frameFreshnessBarrierPtsUs}µs (${reason}, clock RTT=${Number(calibration.roundTripUs / 1_000n)}ms)`,
+      );
+      return this.frameFreshnessBarrierPtsUs;
+    } catch (error) {
+      if (generation === this.frameFreshnessBarrierGeneration) {
+        this.frameFreshnessBarrierPending = false;
+        this.frameFreshnessError = new Error(
+          `Unable to establish scrcpy frame freshness barrier (${reason}): ${error instanceof Error ? error.message : String(error)}`,
+          { cause: error },
+        );
+      }
+      throw this.frameFreshnessError ?? error;
+    }
+  }
+
+  private isFrameFresh(packetPtsUs: bigint | undefined): boolean {
+    if (this.frameFreshnessBarrierPending) {
+      return false;
+    }
+
+    if (packetPtsUs !== undefined) {
+      if (this.lastFramePtsUs !== null && packetPtsUs < this.lastFramePtsUs) {
+        this.frameFreshnessError = new Error(
+          'Scrcpy frame PTS moved backwards; refusing frames until the device clock barrier is refreshed',
+        );
+        this.frameFreshnessBarrierPending = true;
+        this.clearFrameCache();
+        this.warnFrameFreshness();
+        return false;
+      }
+      this.lastFramePtsUs = packetPtsUs;
+    }
+
+    if (this.frameFreshnessBarrierPtsUs === null) {
       return true;
     }
 
-    const lagMs = Number(transportLagUs / 1_000n);
-    this.frameTransportError = new Error(
-      `Scrcpy video stream is ${lagMs}ms behind the device; refusing to use delayed frames`,
-    );
-    this.lastRawKeyframe = null;
-    this.lastRawKeyframeAt = 0;
-
-    const now = Date.now();
-    if (now - this.lastFrameLagWarningAt >= FRAME_LAG_WARN_INTERVAL_MS) {
-      warnScrcpy(this.frameTransportError.message);
-      this.lastFrameLagWarningAt = now;
+    if (packetPtsUs === undefined) {
+      this.frameFreshnessError = new Error(
+        'Scrcpy frame has no PTS metadata; cannot prove that it is newer than the freshness barrier',
+      );
+      this.warnFrameFreshness();
+      return false;
     }
 
+    if (packetPtsUs >= this.frameFreshnessBarrierPtsUs) {
+      if (this.frameFreshnessError) {
+        debugScrcpy(
+          `Scrcpy video crossed the ${this.frameFreshnessBarrierReason ?? 'active'} freshness barrier at PTS ${packetPtsUs}µs`,
+        );
+      }
+      this.frameFreshnessError = null;
+      return true;
+    }
+
+    const behindBarrierUs = this.frameFreshnessBarrierPtsUs - packetPtsUs;
+    this.frameFreshnessError = new Error(
+      `Scrcpy frame predates the ${this.frameFreshnessBarrierReason ?? 'active'} freshness barrier by ${Number(behindBarrierUs) / 1_000}ms; refusing to use it`,
+    );
+    this.clearFrameCache();
+    this.warnFrameFreshness();
     return false;
+  }
+
+  private warnFrameFreshness(): void {
+    if (!this.frameFreshnessError) return;
+    const now = Date.now();
+    if (
+      now - this.lastFrameFreshnessWarningAt >=
+      FRAME_FRESHNESS_WARN_INTERVAL_MS
+    ) {
+      warnScrcpy(this.frameFreshnessError.message);
+      this.lastFrameFreshnessWarningAt = now;
+    }
+  }
+
+  private estimateFrameTiming(
+    packetPtsUs: bigint | undefined,
+    receivedAtUs: bigint,
+  ): { capturedAt: number; estimatedAgeMs?: number } {
+    const calibration = this.deviceClockCalibration;
+    if (packetPtsUs === undefined || !calibration) {
+      return { capturedAt: Date.now() };
+    }
+
+    const estimatedDeviceNowUs =
+      calibration.deviceUptimeUs + (receivedAtUs - calibration.hostMonotonicUs);
+    const estimatedAgeUs =
+      estimatedDeviceNowUs > packetPtsUs
+        ? estimatedDeviceNowUs - packetPtsUs
+        : 0n;
+    const estimatedAgeMs = Number(estimatedAgeUs) / 1_000;
+    const receivedAtWallTimeMs =
+      calibration.hostWallTimeMs +
+      Number(receivedAtUs - calibration.hostMonotonicUs) / 1_000;
+    return {
+      // Derive capture time from the same age estimate and clamp impossible
+      // future PTS values to the packet's estimated host receipt time.
+      capturedAt: receivedAtWallTimeMs - estimatedAgeMs,
+      estimatedAgeMs,
+    };
+  }
+
+  private clearFrameCache(): void {
+    this.lastRawKeyframe = null;
+    this.lastRawKeyframeAt = 0;
+    this.lastRawKeyframePtsUs = undefined;
+    this.lastRawKeyframeEstimatedAgeMs = undefined;
   }
 
   private monotonicTimeUs(): bigint {
     return process.hrtime.bigint() / 1_000n;
   }
 
-  private resetFrameTransportState(): void {
-    this.minimumFrameArrivalOffsetUs = null;
+  private resetFrameFreshnessState(): void {
+    this.frameFreshnessBarrierPtsUs = null;
+    this.frameFreshnessBarrierReason = null;
+    this.frameFreshnessBarrierPending = false;
+    this.frameFreshnessBarrierGeneration = 0;
+    this.deviceClockCalibration = null;
     this.lastFramePtsUs = null;
-    this.frameTransportError = null;
-    this.lastFrameLagWarningAt = 0;
+    this.frameFreshnessError = null;
+    this.lastFrameFreshnessWarningAt = 0;
   }
 
   /**
@@ -577,6 +743,8 @@ export class ScrcpyScreenshotManager {
     return {
       data: this.lastRawKeyframe,
       header: this.spsHeader,
+      ptsUs: this.lastRawKeyframePtsUs,
+      estimatedAgeMs: this.lastRawKeyframeEstimatedAgeMs,
       capturedAt: this.lastRawKeyframeAt,
     };
   }
@@ -593,8 +761,9 @@ export class ScrcpyScreenshotManager {
 
   /**
    * Get screenshot as JPEG.
-   * Tries to get a fresh frame within a short timeout. If the screen is static
-   * (no new frames arrive), falls back to the latest cached keyframe.
+   * Arms a device-clock barrier and only accepts a frame captured after this
+   * request. A timeout is surfaced to the adapter so it can fall back to ADB;
+   * an older scrcpy cache is never used.
    */
   async getScreenshotJpeg(): Promise<Buffer> {
     const perfStart = Date.now();
@@ -608,41 +777,37 @@ export class ScrcpyScreenshotManager {
     const spsWaitTime = Date.now() - t2;
 
     const t3 = Date.now();
+    await this.setFreshnessBarrier('screenshot request');
+    const barrierTime = Date.now() - t3;
+
+    const t4 = Date.now();
     let keyframeBuffer: Buffer;
-    let frameSource: string;
     try {
       keyframeBuffer = await this.waitForNextKeyframe(FRESH_FRAME_TIMEOUT_MS);
-      frameSource = 'fresh';
-    } catch {
-      if (this.frameTransportError) {
-        throw this.frameTransportError;
+    } catch (error) {
+      if (this.frameFreshnessError) {
+        throw this.frameFreshnessError;
       }
-
-      // No fresh frame within timeout — screen is likely static, use cached frame
-      if (this.lastRawKeyframe && this.spsHeader) {
-        keyframeBuffer = Buffer.concat([this.spsHeader, this.lastRawKeyframe]);
-        frameSource = 'cached';
-      } else {
-        // No cached frame either, wait longer
-        keyframeBuffer = await this.waitForNextKeyframe(MAX_KEYFRAME_WAIT_MS);
-        frameSource = 'fresh-retry';
-      }
+      throw new Error(
+        `No scrcpy frame captured after the screenshot freshness barrier within ${FRESH_FRAME_TIMEOUT_MS}ms`,
+        { cause: error },
+      );
     }
-    const frameWaitTime = Date.now() - t3;
+    const frameWaitTime = Date.now() - t4;
 
     this.resetIdleTimer();
 
     debugScrcpy(
-      `Decoding H.264 stream: ${keyframeBuffer.length} bytes (${frameSource})`,
+      `Decoding H.264 stream: ${keyframeBuffer.length} bytes (post-barrier)`,
     );
 
-    const t4 = Date.now();
+    const t5 = Date.now();
     const result = await this.decodeH264ToJpeg(keyframeBuffer);
-    const decodeTime = Date.now() - t4;
+    const decodeTime = Date.now() - t5;
 
     const totalTime = Date.now() - perfStart;
     debugScrcpy(
-      `Performance: total=${totalTime}ms (connect=${connectTime}ms, spsWait=${spsWaitTime}ms, frameWait=${frameWaitTime}ms[${frameSource}], decode=${decodeTime}ms)`,
+      `Performance: total=${totalTime}ms (connect=${connectTime}ms, spsWait=${spsWaitTime}ms, barrier=${barrierTime}ms, frameWait=${frameWaitTime}ms, decode=${decodeTime}ms)`,
     );
 
     return result;
@@ -864,12 +1029,11 @@ export class ScrcpyScreenshotManager {
     this.videoStream = null;
     this.streamReader = null;
     this.spsHeader = null;
-    this.lastRawKeyframe = null;
-    this.lastRawKeyframeAt = 0;
+    this.clearFrameCache();
     this.isInitialized = false;
     this.keyframeResolvers = [];
     this.keyframeListeners.clear();
-    this.resetFrameTransportState();
+    this.resetFrameFreshnessState();
 
     // Cancel reader first to stop consumeFramesLoop
     if (reader) {

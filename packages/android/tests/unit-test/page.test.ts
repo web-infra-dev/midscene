@@ -505,6 +505,20 @@ describe('AndroidDevice', () => {
       expect(actions.map((action) => action.name)).toContain('Launch');
       expect(actions.map((action) => action.name)).toContain('Terminate');
     });
+
+    it('moves the scrcpy PTS barrier after input and platform actions', async () => {
+      const markActionBarrier = vi.fn().mockResolvedValue(undefined);
+      (device as any).scrcpyAdapter = { markActionBarrier };
+      vi.spyOn(device as any, 'tapPoint').mockResolvedValue(undefined);
+
+      await device.inputPrimitives.pointer.tap({ x: 10, y: 20 });
+      const launchAction = device
+        .actionSpace()
+        .find((action) => action.name === 'Launch');
+      await launchAction!.call({ uri: 'com.android.settings' });
+
+      expect(markActionBarrier).toHaveBeenCalledTimes(2);
+    });
   });
 
   describe('Launch/Terminate action schema contract', () => {

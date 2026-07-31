@@ -1,5 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { ScrcpyScreenshotManager } from '../../src/scrcpy-manager';
+import {
+  ScrcpyScreenshotManager,
+  parseDeviceUptimeMs,
+} from '../../src/scrcpy-manager';
 
 // A minimal H.264 keyframe: 4-byte start code + IDR NAL (type 5).
 const idrFrame = (tag: number): Buffer =>
@@ -281,91 +284,138 @@ describe('ScrcpyScreenshotManager', () => {
     });
   });
 
-  describe('frame transport freshness', () => {
-    it('drops frames delayed beyond the connection baseline', () => {
+  describe('device-clock frame freshness', () => {
+    it('parses Android uptime from every TimeUtils format', () => {
+      expect(
+        parseDeviceUptimeMs('  mLastWakeTime=324781136 (228676 ms ago)\n'),
+      ).toBe(325009812n);
+      expect(parseDeviceUptimeMs('mLastWakeTime=1000 (in 200 ms)')).toBe(800n);
+      expect(parseDeviceUptimeMs('mLastWakeTime=1000 (now)')).toBe(1000n);
+      expect(() => parseDeviceUptimeMs('no uptime here')).toThrow(
+        /Unable to read Android device uptime/,
+      );
+    });
+
+    it('samples the device uptime and brackets it with host clocks', async () => {
+      const spawnWaitText = vi.fn().mockResolvedValue({
+        exitCode: 0,
+        stdout: 'mLastWakeTime=1000 (50 ms ago)',
+        stderr: '',
+      });
+      const manager = new ScrcpyScreenshotManager({
+        subprocess: {
+          shellProtocol: { spawnWaitText },
+        },
+      } as any);
+      vi.spyOn(manager as any, 'monotonicTimeUs')
+        .mockReturnValueOnce(10_000_000n)
+        .mockReturnValueOnce(10_020_000n);
+      vi.spyOn(Date, 'now')
+        .mockReturnValueOnce(2_000)
+        .mockReturnValueOnce(2_020);
+
+      const calibration = await (manager as any).readDeviceClockCalibration();
+
+      expect(spawnWaitText).toHaveBeenCalledWith(['dumpsys', 'power']);
+      expect(calibration).toEqual({
+        deviceUptimeUs: 1_050_000n,
+        hostMonotonicUs: 10_010_000n,
+        hostWallTimeMs: 2_010,
+        roundTripUs: 20_000n,
+      });
+    });
+
+    it('drops frames captured before the device-clock barrier', async () => {
       const manager = new ScrcpyScreenshotManager({} as any);
       const listener = vi.fn();
       manager.subscribeKeyframes(listener);
-      vi.spyOn(manager as any, 'monotonicTimeUs')
-        .mockReturnValueOnce(10_000_000n)
-        .mockReturnValueOnce(10_800_000n);
+      vi.spyOn(manager as any, 'readDeviceClockCalibration').mockResolvedValue({
+        deviceUptimeUs: 1_000_000n,
+        hostMonotonicUs: 10_000_000n,
+        hostWallTimeMs: 2_000,
+        roundTripUs: 10_000n,
+      });
 
-      (manager as any).processFrame(spsPacket());
-      (manager as any).processFrame(dataPacket(0x01, 1_000_000n));
-      expect(manager.getLatestRawKeyframe()?.data[5]).toBe(0x01);
-
-      // PTS advanced by 100ms while host arrival advanced by 800ms:
-      // 700ms accumulated in transport, beyond the 500ms limit.
-      (manager as any).processFrame(dataPacket(0x02, 1_100_000n));
-
-      expect(manager.getLatestRawKeyframe()).toBeNull();
-      expect(listener).toHaveBeenCalledTimes(1);
-      expect((manager as any).frameTransportError?.message).toContain(
-        '700ms behind',
+      const barrier = await manager.setFreshnessBarrier(
+        'completed input action',
       );
-    });
-
-    it('automatically accepts frames again after transport catches up', () => {
-      const manager = new ScrcpyScreenshotManager({} as any);
-      vi.spyOn(manager as any, 'monotonicTimeUs')
-        .mockReturnValueOnce(10_000_000n)
-        .mockReturnValueOnce(10_800_000n)
-        .mockReturnValueOnce(11_100_000n);
+      expect(barrier).toBe(1_001_000n);
 
       (manager as any).processFrame(spsPacket());
+      (manager as any).processFrame(dataPacket(0x01, 1_000_999n));
+      expect(manager.getLatestRawKeyframe()).toBeNull();
+      expect(listener).not.toHaveBeenCalled();
+      expect((manager as any).frameFreshnessError?.message).toContain(
+        'completed input action',
+      );
+
+      (manager as any).processFrame(dataPacket(0x02, 1_001_000n));
+      expect(manager.getLatestRawKeyframe()?.data[5]).toBe(0x02);
+      expect(listener).toHaveBeenCalledTimes(1);
+      expect((manager as any).frameFreshnessError).toBeNull();
+    });
+
+    it('invalidates cached frames while a barrier sample is pending', async () => {
+      const manager = new ScrcpyScreenshotManager({} as any);
+      (manager as any).processFrame(spsPacket());
       (manager as any).processFrame(dataPacket(0x01, 1_000_000n));
-      (manager as any).processFrame(dataPacket(0x02, 1_100_000n));
+      expect(manager.getLatestRawKeyframe()).not.toBeNull();
+
+      let resolveClock:
+        | ((value: {
+            deviceUptimeUs: bigint;
+            hostMonotonicUs: bigint;
+            hostWallTimeMs: number;
+            roundTripUs: bigint;
+          }) => void)
+        | undefined;
+      vi.spyOn(manager as any, 'readDeviceClockCalibration').mockReturnValue(
+        new Promise((resolve) => {
+          resolveClock = resolve;
+        }),
+      );
+
+      const barrierPromise = manager.setFreshnessBarrier('screenshot request');
+      expect(manager.getLatestRawKeyframe()).toBeNull();
+      (manager as any).processFrame(dataPacket(0x02, 2_000_000n));
       expect(manager.getLatestRawKeyframe()).toBeNull();
 
-      // Offset is now only 100ms above the best connection baseline.
-      (manager as any).processFrame(dataPacket(0x03, 2_000_000n));
-
-      expect(manager.getLatestRawKeyframe()?.data[5]).toBe(0x03);
-      expect((manager as any).frameTransportError).toBeNull();
+      resolveClock?.({
+        deviceUptimeUs: 1_500_000n,
+        hostMonotonicUs: 10_000_000n,
+        hostWallTimeMs: 2_000,
+        roundTripUs: 10_000n,
+      });
+      await barrierPromise;
     });
 
-    it('accepts transport lag at the configured boundary', () => {
+    it('derives host capture time and absolute age from calibrated PTS', () => {
       const manager = new ScrcpyScreenshotManager({} as any);
-      vi.spyOn(manager as any, 'monotonicTimeUs')
-        .mockReturnValueOnce(10_000_000n)
-        .mockReturnValueOnce(10_600_000n);
+      (manager as any).deviceClockCalibration = {
+        deviceUptimeUs: 1_000_000n,
+        hostMonotonicUs: 10_000_000n,
+        hostWallTimeMs: 2_000,
+        roundTripUs: 10_000n,
+      };
+      vi.spyOn(manager as any, 'monotonicTimeUs').mockReturnValue(10_100_000n);
 
       (manager as any).processFrame(spsPacket());
-      (manager as any).processFrame(dataPacket(0x01, 1_000_000n));
-      (manager as any).processFrame(dataPacket(0x02, 1_100_000n));
+      (manager as any).processFrame(dataPacket(0x01, 1_050_000n));
 
-      expect(manager.getLatestRawKeyframe()?.data[5]).toBe(0x02);
-      expect((manager as any).frameTransportError).toBeNull();
+      expect(manager.getLatestRawKeyframe()).toMatchObject({
+        capturedAt: 2050,
+        estimatedAgeMs: 50,
+        ptsUs: 1_050_000n,
+      });
     });
 
-    it('recalibrates after a backwards PTS jump', () => {
-      const manager = new ScrcpyScreenshotManager({} as any);
-      vi.spyOn(manager as any, 'monotonicTimeUs')
-        .mockReturnValueOnce(10_000_000n)
-        .mockReturnValueOnce(10_800_000n)
-        .mockReturnValueOnce(11_000_000n);
-
-      (manager as any).processFrame(spsPacket());
-      (manager as any).processFrame(dataPacket(0x01, 2_000_000n));
-      (manager as any).processFrame(dataPacket(0x02, 2_100_000n));
-      expect((manager as any).frameTransportError).not.toBeNull();
-
-      (manager as any).processFrame(dataPacket(0x03, 1_000_000n));
-
-      expect(manager.getLatestRawKeyframe()?.data[5]).toBe(0x03);
-      expect((manager as any).frameTransportError).toBeNull();
-      expect((manager as any).minimumFrameArrivalOffsetUs).toBe(10_000_000n);
-    });
-
-    it('rejects a screenshot instead of falling back to a delayed cache', async () => {
+    it('rejects a screenshot instead of falling back to any cached frame', async () => {
       const manager = new ScrcpyScreenshotManager({} as any);
       (manager as any).spsHeader = Buffer.from('header');
       (manager as any).lastRawKeyframe = Buffer.from('stale');
-      (manager as any).frameTransportError = new Error(
-        'Scrcpy video stream is delayed',
-      );
 
       vi.spyOn(manager, 'ensureConnected').mockResolvedValue();
+      vi.spyOn(manager, 'setFreshnessBarrier').mockResolvedValue(1_000_000n);
       vi.spyOn(manager as any, 'resetIdleTimer').mockImplementation(() => {});
       vi.spyOn(manager as any, 'waitForNextKeyframe').mockRejectedValueOnce(
         new Error('no current frame'),
@@ -373,7 +423,7 @@ describe('ScrcpyScreenshotManager', () => {
       const decode = vi.spyOn(manager as any, 'decodeH264ToJpeg');
 
       await expect(manager.getScreenshotJpeg()).rejects.toThrow(
-        'Scrcpy video stream is delayed',
+        /No scrcpy frame captured after the screenshot freshness barrier/,
       );
       expect(decode).not.toHaveBeenCalled();
     });
@@ -388,9 +438,10 @@ describe('ScrcpyScreenshotManager', () => {
       (manager as any).isInitialized = true;
       (manager as any).keyframeResolvers = [() => {}];
       (manager as any).streamReader = { cancel: vi.fn() };
-      (manager as any).minimumFrameArrivalOffsetUs = 123n;
+      (manager as any).frameFreshnessBarrierPtsUs = 123n;
+      (manager as any).deviceClockCalibration = {};
       (manager as any).lastFramePtsUs = 456n;
-      (manager as any).frameTransportError = new Error('lagging');
+      (manager as any).frameFreshnessError = new Error('stale');
 
       await manager.disconnect();
 
@@ -401,9 +452,10 @@ describe('ScrcpyScreenshotManager', () => {
       expect((manager as any).videoStream).toBeNull();
       expect((manager as any).scrcpyClient).toBeNull();
       expect((manager as any).streamReader).toBeNull();
-      expect((manager as any).minimumFrameArrivalOffsetUs).toBeNull();
+      expect((manager as any).frameFreshnessBarrierPtsUs).toBeNull();
+      expect((manager as any).deviceClockCalibration).toBeNull();
       expect((manager as any).lastFramePtsUs).toBeNull();
-      expect((manager as any).frameTransportError).toBeNull();
+      expect((manager as any).frameFreshnessError).toBeNull();
     });
 
     it('should clear idle timer', async () => {

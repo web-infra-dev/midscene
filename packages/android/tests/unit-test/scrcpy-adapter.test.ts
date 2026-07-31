@@ -23,6 +23,10 @@ vi.mock('@yume-chan/adb-server-node-tcp', () => ({
 const createMockManager = () => ({
   validateEnvironment: vi.fn().mockResolvedValue(undefined),
   ensureConnected: vi.fn().mockResolvedValue(undefined),
+  setFreshnessBarrier: vi.fn().mockResolvedValue(1_000_000n),
+  subscribeKeyframes: vi.fn().mockReturnValue(vi.fn()),
+  getLatestRawKeyframe: vi.fn().mockReturnValue(null),
+  decodeRawKeyframeToJpeg: vi.fn().mockResolvedValue(Buffer.from('jpeg')),
   isConnected: vi.fn().mockReturnValue(false),
   getScreenshotJpeg: vi.fn().mockResolvedValue(Buffer.from('fake-png')),
   getResolution: vi.fn().mockReturnValue(null),
@@ -338,6 +342,51 @@ describe('ScrcpyDeviceAdapter', () => {
       const result = await adapter.screenshotBase64(defaultDeviceInfo);
       expect(result).toBe('data:image/png;base64,test');
       expect(currentMockManager.getScreenshotJpeg).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('frame freshness barriers', () => {
+    it('arms a barrier before exposing a continuous frame source', async () => {
+      const adapter = new ScrcpyDeviceAdapter('device', { enabled: true });
+      (adapter as any).manager = currentMockManager;
+
+      await adapter.subscribeKeyframes(defaultDeviceInfo, vi.fn());
+
+      expect(currentMockManager.ensureConnected).toHaveBeenCalledTimes(1);
+      expect(currentMockManager.setFreshnessBarrier).toHaveBeenCalledWith(
+        'frame observation start',
+      );
+      expect(currentMockManager.subscribeKeyframes).toHaveBeenCalledTimes(1);
+    });
+
+    it('moves the barrier after a completed input action', async () => {
+      const adapter = new ScrcpyDeviceAdapter('device', { enabled: true });
+      (adapter as any).manager = currentMockManager;
+      currentMockManager.isConnected.mockReturnValue(true);
+
+      await adapter.markActionBarrier();
+
+      expect(currentMockManager.setFreshnessBarrier).toHaveBeenCalledWith(
+        'completed input action',
+      );
+    });
+
+    it('keeps a successful input action successful when clock sampling fails', async () => {
+      const adapter = new ScrcpyDeviceAdapter('device', { enabled: true });
+      (adapter as any).manager = currentMockManager;
+      currentMockManager.isConnected.mockReturnValue(true);
+      currentMockManager.setFreshnessBarrier.mockRejectedValue(
+        new Error('dumpsys unavailable'),
+      );
+
+      await expect(adapter.markActionBarrier()).resolves.toBeUndefined();
+
+      expect(currentMockManager.disconnect).toHaveBeenCalledTimes(1);
+      expect((adapter as any).manager).toBeNull();
+      expect(adapter.getStatus()).toMatchObject({
+        lastError: 'dumpsys unavailable',
+        retryAfter: expect.any(Number),
+      });
     });
   });
 
