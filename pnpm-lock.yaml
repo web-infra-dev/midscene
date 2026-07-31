@@ -501,6 +501,9 @@ importers:
       '@rspress/plugin-sitemap':
         specifier: 2.0.18
         version: 2.0.18(@rspress/core@2.0.18(@rspack/core@2.1.6(@swc/helpers@0.5.23))(@types/mdast@4.0.4)(@types/react@19.1.5)(core-js@3.47.0)(micromark-util-types@2.0.2)(micromark@4.0.2))
+      '@rstest/core':
+        specifier: 0.11.2
+        version: 0.11.2(core-js@3.47.0)(jsdom@29.0.2)
       '@tailwindcss/postcss':
         specifier: 4.1.11
         version: 4.1.11
@@ -516,9 +519,6 @@ importers:
       tailwindcss:
         specifier: 4.1.11
         version: 4.1.11
-      vitest:
-        specifier: 3.0.5
-        version: 3.0.5(@types/debug@4.1.12)(@types/node@18.19.62)(jsdom@29.0.2)(less@4.3.0)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.46.1)
 
   apps/studio:
     dependencies:
@@ -761,6 +761,9 @@ importers:
       '@rslib/core':
         specifier: ^0.18.3
         version: 0.18.3(@microsoft/api-extractor@7.52.10(@types/node@18.19.62))(typescript@5.8.3)
+      '@rstest/core':
+        specifier: 0.11.2
+        version: 0.11.2(core-js@3.47.0)(jsdom@29.0.2)
       '@types/cors':
         specifier: ^2.8.17
         version: 2.8.19
@@ -773,9 +776,6 @@ importers:
       typescript:
         specifier: ^5.8.3
         version: 5.8.3
-      vitest:
-        specifier: 3.0.5
-        version: 3.0.5(@types/debug@4.1.12)(@types/node@18.19.62)(jsdom@29.0.2)(less@4.3.0)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.46.1)
 
   packages/cli:
     dependencies:
@@ -968,6 +968,9 @@ importers:
       '@rslib/core':
         specifier: ^0.18.3
         version: 0.18.3(@microsoft/api-extractor@7.52.10(@types/node@18.19.118))(typescript@5.8.3)
+      '@rstest/core':
+        specifier: 0.11.2
+        version: 0.11.2(core-js@3.47.0)(jsdom@29.0.2)
       '@types/cors':
         specifier: ^2.8.17
         version: 2.8.19
@@ -980,9 +983,6 @@ importers:
       typescript:
         specifier: ^5.8.3
         version: 5.8.3
-      vitest:
-        specifier: 3.0.5
-        version: 3.0.5(@types/debug@4.1.12)(@types/node@18.19.118)(jsdom@29.0.2)(less@4.3.0)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.46.1)
 
   packages/computer-win:
     dependencies:
@@ -1566,15 +1566,15 @@ importers:
       '@rslib/core':
         specifier: ^0.18.3
         version: 0.18.3(@microsoft/api-extractor@7.52.10(@types/node@18.19.118))(typescript@5.8.3)
+      '@rstest/core':
+        specifier: 0.11.2
+        version: 0.11.2(core-js@3.47.0)(jsdom@29.0.2)
       '@types/node':
         specifier: ^18.0.0
         version: 18.19.118
       typescript:
         specifier: ^5.8.3
         version: 5.8.3
-      vitest:
-        specifier: 3.0.5
-        version: 3.0.5(@types/debug@4.1.12)(@types/node@18.19.118)(jsdom@29.0.2)(less@4.3.0)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.46.1)
 
 packages:
 
