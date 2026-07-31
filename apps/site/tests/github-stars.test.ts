@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 import {
   GITHUB_STARS_DEV_PLACEHOLDER,
   getGitHubStars,
@@ -13,7 +13,7 @@ function githubResponse(stars: number): Response {
 
 describe('getGitHubStars', () => {
   it('fetches and formats the current star count with authentication', async () => {
-    const fetchImpl = vi
+    const fetchImpl = rs
       .fn<typeof fetch>()
       .mockResolvedValue(githubResponse(14_420));
 
@@ -32,7 +32,7 @@ describe('getGitHubStars', () => {
   });
 
   it('retries transient failures before returning a fresh value', async () => {
-    const fetchImpl = vi
+    const fetchImpl = rs
       .fn<typeof fetch>()
       .mockRejectedValueOnce(new Error('network unavailable'))
       .mockResolvedValueOnce(new Response(null, { status: 503 }))
@@ -50,7 +50,7 @@ describe('getGitHubStars', () => {
   });
 
   it('fails a production build instead of emitting a stale value', async () => {
-    const fetchImpl = vi
+    const fetchImpl = rs
       .fn<typeof fetch>()
       .mockResolvedValue(new Response(null, { status: 403 }));
 
@@ -68,7 +68,7 @@ describe('getGitHubStars', () => {
   });
 
   it('requires authentication for production builds', async () => {
-    const fetchImpl = vi.fn<typeof fetch>();
+    const fetchImpl = rs.fn<typeof fetch>();
 
     await expect(
       getGitHubStars({ strict: true, fetchImpl, retryDelayMs: 0 }),
@@ -79,10 +79,10 @@ describe('getGitHubStars', () => {
   });
 
   it('uses a non-numeric placeholder when development fetches fail', async () => {
-    const fetchImpl = vi
+    const fetchImpl = rs
       .fn<typeof fetch>()
       .mockRejectedValue(new Error('network unavailable'));
-    const warn = vi.fn();
+    const warn = rs.fn();
 
     await expect(
       getGitHubStars({
