@@ -966,9 +966,10 @@ export class TaskExecutor {
           }
         }
 
-        if (type === 'Assert' && !outputResult) {
-          task.thought = thought;
-          throw new Error(`Assertion failed: ${thought}`);
+        // Keep assertion failures in the task result so TaskRunner can persist
+        // the model dump before aiAssert turns the result into a thrown error.
+        if (type === 'Assert') {
+          outputResult = Boolean(outputResult);
         }
 
         return {
