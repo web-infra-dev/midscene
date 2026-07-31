@@ -624,66 +624,56 @@ jobs:
       id: notify
       continue-on-error: true
       env:
-        # Additional internal or external groups can be configured as a JSON
-        # array of {"url":"...","secret":"..."} webhook targets.
+        # All internal and external groups are configured as a JSON array of
+        # {"url":"...","secret":"..."} webhook targets.
         FEISHU_WEBHOOK_TARGETS_JSON: ${{ secrets.FEISHU_WEBHOOK_TARGETS_JSON }}
-        FEISHU_WEBHOOK_SECRET: ${{ secrets.FEISHU_WEBHOOK_SECRET }}
-        FEISHU_WEBHOOK_SECRET_2: ${{ secrets.FEISHU_WEBHOOK_SECRET_2 }}
-        FEISHU_WEBHOOK_URL: ${{ secrets.FEISHU_WEBHOOK_URL }}
-        FEISHU_WEBHOOK_URL_2: ${{ secrets.FEISHU_WEBHOOK_URL_2 }}
         GH_TOKEN: ${{ github.token }}
         RELEASE_TARGET: ${{ github.event.inputs.branch }}
         RELEASE_VERSION: ${{ needs.release.outputs.version }}
       run: |
         set -euo pipefail
 
-        WEBHOOK_URLS=("$FEISHU_WEBHOOK_URL" "$FEISHU_WEBHOOK_URL_2")
-        WEBHOOK_SECRETS=("$FEISHU_WEBHOOK_SECRET" "$FEISHU_WEBHOOK_SECRET_2")
-        if [[ -n "$FEISHU_WEBHOOK_TARGETS_JSON" ]]; then
-          if ! jq -e '
-            type == "array"
-            and all(.[];
-              type == "object"
-              and (.url | type) == "string"
-              and (.url | length) > 0
-              and (.secret | type) == "string"
-              and (.secret | length) > 0
-            )
-          ' >/dev/null <<< "$FEISHU_WEBHOOK_TARGETS_JSON"; then
-            echo "::warning::FEISHU_WEBHOOK_TARGETS_JSON must be a JSON array of non-empty url and secret strings."
-            exit 1
-          fi
-
-          JSON_TARGET_COUNT="$(jq 'length' <<< "$FEISHU_WEBHOOK_TARGETS_JSON")"
-          for ((JSON_TARGET_INDEX = 0; JSON_TARGET_INDEX < JSON_TARGET_COUNT; JSON_TARGET_INDEX += 1)); do
-            WEBHOOK_URLS+=("$(
-              jq -r --argjson index "$JSON_TARGET_INDEX" '.[$index].url' <<< "$FEISHU_WEBHOOK_TARGETS_JSON"
-            )")
-            WEBHOOK_SECRETS+=("$(
-              jq -r --argjson index "$JSON_TARGET_INDEX" '.[$index].secret' <<< "$FEISHU_WEBHOOK_TARGETS_JSON"
-            )")
-          done
-        fi
-
-        CONFIGURED_TARGETS=0
-        for TARGET_INDEX in "${!WEBHOOK_URLS[@]}"; do
-          if [[ -z "${WEBHOOK_URLS[$TARGET_INDEX]}" && -z "${WEBHOOK_SECRETS[$TARGET_INDEX]}" ]]; then
-            continue
-          fi
-          if [[ -z "${WEBHOOK_URLS[$TARGET_INDEX]}" || -z "${WEBHOOK_SECRETS[$TARGET_INDEX]}" ]]; then
-            echo "::warning::Feishu webhook target $((TARGET_INDEX + 1)) is only partially configured."
-            exit 1
-          fi
-          ((CONFIGURED_TARGETS += 1))
-        done
-
-        if [[ "$CONFIGURED_TARGETS" -eq 0 ]]; then
+        if [[ -z "$FEISHU_WEBHOOK_TARGETS_JSON" ]]; then
           echo "::warning::No Feishu webhook targets are configured; skipping the Feishu release notification."
           echo "## Feishu notification" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "Skipped because no complete Feishu webhook URL and signing secret pair is configured." >> "$GITHUB_STEP_SUMMARY"
+          echo "Skipped because the repository secret \`FEISHU_WEBHOOK_TARGETS_JSON\` is not configured." >> "$GITHUB_STEP_SUMMARY"
           exit 0
         fi
+
+        if ! jq -e '
+          type == "array"
+          and all(.[];
+            type == "object"
+            and (.url | type) == "string"
+            and (.url | length) > 0
+            and (.secret | type) == "string"
+            and (.secret | length) > 0
+          )
+        ' >/dev/null <<< "$FEISHU_WEBHOOK_TARGETS_JSON"; then
+          echo "::warning::FEISHU_WEBHOOK_TARGETS_JSON must be a JSON array of non-empty url and secret strings."
+          exit 1
+        fi
+
+        JSON_TARGET_COUNT="$(jq 'length' <<< "$FEISHU_WEBHOOK_TARGETS_JSON")"
+        if [[ "$JSON_TARGET_COUNT" -eq 0 ]]; then
+          echo "::warning::FEISHU_WEBHOOK_TARGETS_JSON contains no webhook targets; skipping the Feishu release notification."
+          echo "## Feishu notification" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Skipped because \`FEISHU_WEBHOOK_TARGETS_JSON\` contains no webhook targets." >> "$GITHUB_STEP_SUMMARY"
+          exit 0
+        fi
+
+        WEBHOOK_URLS=()
+        WEBHOOK_SECRETS=()
+        for ((JSON_TARGET_INDEX = 0; JSON_TARGET_INDEX < JSON_TARGET_COUNT; JSON_TARGET_INDEX += 1)); do
+          WEBHOOK_URLS+=("$(
+            jq -r --argjson index "$JSON_TARGET_INDEX" '.[$index].url' <<< "$FEISHU_WEBHOOK_TARGETS_JSON"
+          )")
+          WEBHOOK_SECRETS+=("$(
+            jq -r --argjson index "$JSON_TARGET_INDEX" '.[$index].secret' <<< "$FEISHU_WEBHOOK_TARGETS_JSON"
+          )")
+        done
 
         RELEASE_JSON="$(
           gh release view "$RELEASE_VERSION" \

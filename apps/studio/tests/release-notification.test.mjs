@@ -81,10 +81,6 @@ fi
     env: {
       ...process.env,
       CURL_LOG: curlLog,
-      FEISHU_WEBHOOK_SECRET: '',
-      FEISHU_WEBHOOK_SECRET_2: '',
-      FEISHU_WEBHOOK_URL: '',
-      FEISHU_WEBHOOK_URL_2: '',
       GH_TOKEN: 'test-token',
       GITHUB_REPOSITORY: 'web-infra-dev/midscene',
       GITHUB_STEP_SUMMARY: summaryPath,
@@ -104,25 +100,18 @@ afterEach(async () => {
 });
 
 describe.skipIf(!supportsReleaseShell)('Feishu release notification', () => {
-  it('delivers to every legacy and JSON webhook target', async () => {
+  it('delivers to every JSON webhook target', async () => {
     const script = await loadFeishuNotificationScript();
     const harness = await createNotificationHarness();
-    const jsonTargets = Array.from({ length: 4 }, (_, index) => ({
+    const targets = Array.from({ length: 4 }, (_, index) => ({
       url: `https://open.feishu.cn/open-apis/bot/v2/hook/external-${index + 1}`,
       secret: `secret-${index + 1}`,
     }));
-    const legacyTarget = {
-      url: 'https://open.feishu.cn/open-apis/bot/v2/hook/legacy',
-      secret: 'legacy-secret',
-    };
-    const targets = [legacyTarget, ...jsonTargets];
 
     execFileSync('bash', ['-c', script], {
       env: {
         ...harness.env,
-        FEISHU_WEBHOOK_SECRET: legacyTarget.secret,
-        FEISHU_WEBHOOK_TARGETS_JSON: JSON.stringify(jsonTargets),
-        FEISHU_WEBHOOK_URL: legacyTarget.url,
+        FEISHU_WEBHOOK_TARGETS_JSON: JSON.stringify(targets),
       },
       stdio: 'pipe',
     });
