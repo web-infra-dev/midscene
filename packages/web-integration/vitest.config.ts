@@ -39,6 +39,13 @@ export default defineConfig({
     testTimeout: 3 * 60 * 1000, // Global timeout set to 3 minutes
     retry: process.env.CI ? 1 : 0, // Retry failed tests once in CI to handle AI flakiness
     dangerouslyIgnoreUnhandledErrors: !!process.env.CI, // showcase.test.ts is not stable
+    // Keep CI model request concurrency comparable to the former 4-core hosted
+    // runner. Set here (CI-only) instead of as CLI flags in ai-unit-test.yml
+    // because rstest rejects bare --minWorkers/--maxWorkers. Local AI runs
+    // keep the default worker count.
+    ...(aiTestType === 'web' && process.env.CI
+      ? { minWorkers: 1, maxWorkers: 4 }
+      : {}),
     // Use verbose reporter in CI to show detailed failure messages
     reporters: process.env.CI ? ['verbose'] : ['default'],
     // Print full error details including stack traces
