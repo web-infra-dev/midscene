@@ -50,17 +50,15 @@ runs:
         set -euo pipefail
 
         browser_path="$(
-          find "$HOME/.cache/puppeteer/chrome" \
-            -type f \
-            -path '*/chrome-linux64/chrome' \
-            -perm -u+x \
-            -print \
-            -quit
+          pnpm --dir "${{ inputs.package-directory }}" exec node -e \
+            'process.stdout.write(require("puppeteer").executablePath())'
         )"
-        if [ -z "$browser_path" ]; then
-          echo "::error::Chrome for Testing was not found in the Puppeteer cache"
+        if [ ! -x "$browser_path" ]; then
+          echo "::error::Puppeteer resolved a missing or non-executable browser: $browser_path"
           exit 1
         fi
+
+        echo "PUPPETEER_EXECUTABLE_PATH=$browser_path" >> "$GITHUB_ENV"
 
         if [ "${{ inputs.expose-as-chromium }}" = "true" ]; then
           bin_dir="$RUNNER_TEMP/midscene-browser-bin"

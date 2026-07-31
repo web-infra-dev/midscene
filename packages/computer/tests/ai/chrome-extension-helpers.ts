@@ -45,6 +45,16 @@ const EXTENSION_ENV_KEYS = [
 // ─── Browser Helpers ────────────────────────────────────────────────────────
 
 function findExtensionCapableBrowser(): string {
+  const configuredBrowser = process.env.PUPPETEER_EXECUTABLE_PATH;
+  if (configuredBrowser) {
+    if (!fs.existsSync(configuredBrowser)) {
+      throw new Error(
+        `PUPPETEER_EXECUTABLE_PATH does not exist: ${configuredBrowser}`,
+      );
+    }
+    return configuredBrowser;
+  }
+
   // Check puppeteer cache first (Chrome for Testing supports --load-extension)
   const puppeteerBase = path.join(
     process.env.HOME ?? '~',

@@ -24,7 +24,8 @@ jobs:
     outputs:
       version: ${{ steps.get_version.outputs.version }}
       is_prerelease: ${{ steps.get_version.outputs.is_prerelease }}
-    runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"') }}
+    # npm Trusted Publishing currently requires a GitHub-hosted runner.
+    runs-on: ubuntu-22.04
     strategy:
       matrix:
         node-version: [24.13.0]
