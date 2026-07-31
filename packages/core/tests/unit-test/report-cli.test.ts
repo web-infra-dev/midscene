@@ -8,9 +8,14 @@ import {
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { parseCliArgs, runToolsCLI } from '@midscene/shared/cli';
+import yaml from 'js-yaml';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { z } from 'zod';
+import { loadExtraActions } from '../../src/agent/extra-actions';
+import { getMidsceneLocationSchema } from '../../src/ai-model';
 import { generateDumpScriptTag, generateImageScriptTag } from '../../src/dump';
 import type { ScreenshotRef } from '../../src/dump/screenshot-store';
+import { analyzeReportActions } from '../../src/report-analyzer';
 import {
   createReportCliCommands,
   mergeReportFiles,
@@ -59,6 +64,118 @@ function createExecution(
   });
 }
 
+function createActionExecution(options?: {
+  xpath?: string;
+  includeFailedAction?: boolean;
+}): ExecutionDump {
+  const locateHitBy = options?.xpath
+    ? {
+        from: 'Plan',
+        context: {
+          locatedPixelBbox: [10, 20, 110, 70],
+          cacheToSave: {
+            xpaths: [options.xpath],
+          },
+        },
+      }
+    : {
+        from: 'Plan',
+        context: {
+          locatedPixelBbox: [10, 20, 110, 70],
+        },
+      };
+
+  const tasks = [
+    {
+      taskId: 'plan-tap',
+      type: 'Planning',
+      subType: 'Plan',
+      param: {},
+      output: {
+        log: 'Click the confirm button',
+        actions: [],
+      },
+      executor: async () => undefined,
+      status: 'finished',
+    },
+    {
+      taskId: 'locate-confirm',
+      type: 'Planning',
+      subType: 'Locate',
+      param: {
+        prompt: 'Confirm button',
+        locatedPixelBbox: [10, 20, 110, 70],
+      },
+      hitBy: locateHitBy,
+      executor: async () => undefined,
+      status: 'finished',
+    },
+    {
+      taskId: 'tap-confirm',
+      type: 'Action Space',
+      subType: 'Tap',
+      param: {
+        locate: {
+          description: 'Confirm button',
+          rect: { left: 10, top: 20, width: 100, height: 50 },
+          center: [60, 45],
+        },
+      },
+      executor: async () => undefined,
+      status: 'finished',
+    },
+    {
+      taskId: 'plan-input',
+      type: 'Planning',
+      subType: 'Plan',
+      param: {},
+      output: {
+        log: 'Type the saved value',
+        actions: [],
+      },
+      executor: async () => undefined,
+      status: 'finished',
+    },
+    {
+      taskId: 'input-value',
+      type: 'Action Space',
+      subType: 'Input',
+      param: {
+        value: 'saved value',
+      },
+      executor: async () => undefined,
+      status: 'finished',
+    },
+    ...(options?.includeFailedAction
+      ? [
+          {
+            taskId: 'failed-tap',
+            type: 'Action Space',
+            subType: 'Tap',
+            param: {},
+            executor: async () => undefined,
+            status: 'failed',
+          },
+        ]
+      : []),
+    {
+      taskId: 'finished-marker',
+      type: 'Action Space',
+      subType: 'Finished',
+      param: null,
+      executor: async () => undefined,
+      status: 'finished',
+    },
+  ];
+
+  return new ExecutionDump({
+    id: 'action-execution',
+    logTime: Date.now(),
+    name: 'action execution',
+    tasks: tasks as any,
+  });
+}
+
 describe('createReportCliCommands', () => {
   let tmpDir: string;
 
@@ -73,10 +190,146 @@ describe('createReportCliCommands', () => {
     }
   });
 
-  it('exposes report-tool as the only generic report command', () => {
-    const [command] = createReportCliCommands();
-    expect(command.name).toBe('report-tool');
-    expect('aliases' in command).toBe(false);
+  it('exposes report-tool and analyze as generic report commands', () => {
+    const commands = createReportCliCommands();
+    expect(commands.map((command) => command.name)).toEqual([
+      'report-tool',
+      'analyze',
+    ]);
+    expect(commands.every((command) => !('aliases' in command))).toBe(true);
+  });
+
+  it('exports one loadable UI Action file per successful device operation', async () => {
+    const reportPath = join(tmpDir, 'action-report.html');
+    const report = new ReportActionDump({
+      groupName: 'action-export',
+      sdkVersion: '1.0.0-test',
+      modelBriefs: [],
+      executions: [
+        createActionExecution({
+          xpath: '/html/body/button[1]',
+          includeFailedAction: true,
+        }),
+      ],
+    });
+    writeFileSync(
+      reportPath,
+      generateDumpScriptTag(report.serialize(), {
+        'data-group-id': 'action-export',
+      }),
+      'utf-8',
+    );
+
+    const result = analyzeReportActions({ htmlPath: reportPath });
+
+    expect(result.actionFiles.map((file) => file.split('/').pop())).toEqual([
+      '001-tap.yaml',
+      '002-input.yaml',
+    ]);
+    expect(result.coordinateFallbackFiles).toEqual([]);
+    expect(yaml.load(readFileSync(result.actionFiles[0], 'utf-8'))).toEqual({
+      name: 'Click the confirm button',
+      actionName: 'Tap',
+      actionParam: [
+        {
+          prompt: 'Confirm button',
+          xpath: '/html/body/button[1]',
+        },
+      ],
+    });
+    expect(yaml.load(readFileSync(result.actionFiles[1], 'utf-8'))).toEqual({
+      name: 'Type the saved value',
+      actionName: 'Input',
+      actionParam: [{ value: 'saved value' }],
+    });
+
+    const loaded = await loadExtraActions(result.actionFiles, [
+      {
+        name: 'Tap',
+        description: 'Tap an element',
+        paramSchema: z.object({
+          locate: getMidsceneLocationSchema(),
+        }),
+        call: async () => undefined,
+      },
+      {
+        name: 'Input',
+        description: 'Input text',
+        paramSchema: z.object({
+          value: z.string(),
+        }),
+        call: async () => undefined,
+      },
+    ]);
+    expect(loaded.map((action) => action.plan)).toEqual([
+      expect.objectContaining({
+        type: 'Tap',
+        param: {
+          locate: {
+            prompt: 'Confirm button',
+            xpath: '/html/body/button[1]',
+          },
+        },
+      }),
+      expect.objectContaining({
+        type: 'Input',
+        param: { value: 'saved value' },
+      }),
+    ]);
+  });
+
+  it('falls back to locatedPixelBbox for reports without a recorded xpath', () => {
+    const reportPath = join(tmpDir, 'historical-report.html');
+    const report = new ReportActionDump({
+      groupName: 'historical-action-export',
+      sdkVersion: '1.0.0-test',
+      modelBriefs: [],
+      executions: [createActionExecution()],
+    });
+    writeFileSync(
+      reportPath,
+      generateDumpScriptTag(report.serialize(), {
+        'data-group-id': 'historical-action-export',
+      }),
+      'utf-8',
+    );
+
+    const result = analyzeReportActions({ htmlPath: reportPath });
+    const firstAction = yaml.load(
+      readFileSync(result.actionFiles[0], 'utf-8'),
+    ) as any;
+
+    expect(result.coordinateFallbackFiles).toEqual([result.actionFiles[0]]);
+    expect(firstAction.actionParam[0]).toEqual({
+      prompt: 'Confirm button',
+      locatedPixelBbox: [10, 20, 110, 70],
+    });
+  });
+
+  it('does not overwrite generated UI Actions unless requested', () => {
+    const reportPath = join(tmpDir, 'overwrite-report.html');
+    const report = new ReportActionDump({
+      groupName: 'overwrite-action-export',
+      sdkVersion: '1.0.0-test',
+      modelBriefs: [],
+      executions: [createActionExecution({ xpath: '//button' })],
+    });
+    writeFileSync(
+      reportPath,
+      generateDumpScriptTag(report.serialize(), {
+        'data-group-id': 'overwrite-action-export',
+      }),
+      'utf-8',
+    );
+
+    const first = analyzeReportActions({ htmlPath: reportPath });
+    expect(() => analyzeReportActions({ htmlPath: reportPath })).toThrow(
+      'output file already exists',
+    );
+    expect(() =>
+      analyzeReportActions({ htmlPath: reportPath, overwrite: true }),
+    ).not.toThrow();
+    expect(existsSync(first.actionFiles[0])).toBe(true);
   });
 
   it('runs report split through the generic report command', async () => {

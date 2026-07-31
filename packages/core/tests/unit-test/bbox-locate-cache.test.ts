@@ -207,6 +207,11 @@ describe('bbox locate cache fix', () => {
       expect(result).toBeDefined();
       expect(result!.output.element).toBeDefined();
       expect(result!.hitBy?.from).toBe('Plan');
+      expect(result!.hitBy?.context.cacheToSave).toEqual(
+        expect.objectContaining({
+          xpaths: ['/html/body/input[1]'],
+        }),
+      );
 
       // Verify cacheFeatureForPoint was called to write cache
       expect(mockInterface.cacheFeatureForPoint).toHaveBeenCalled();
