@@ -606,17 +606,13 @@ ${Object.keys(size)
     }
     const deviceInfo = await this.getDevicePhysicalInfo();
 
-    let latest: RawKeyframe | null = adapter.getLatestRawKeyframe();
-    const unsubscribe = await adapter.subscribeKeyframes(
-      deviceInfo,
-      (frame) => {
-        latest = frame;
-      },
-    );
+    const unsubscribe = await adapter.subscribeKeyframes(deviceInfo, () => {});
 
     return {
-      latest: () =>
-        latest ? { ref: latest, capturedAt: latest.capturedAt } : null,
+      latest: () => {
+        const latest = adapter.getLatestRawKeyframe();
+        return latest ? { ref: latest, capturedAt: latest.capturedAt } : null;
+      },
       decode: async (refs) => {
         const images: string[] = [];
         for (const frameRef of refs) {

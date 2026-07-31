@@ -27,6 +27,8 @@ const MAX_SCAN_BYTES = 1_000;
 const CONNECTION_WAIT_MS = 1_000;
 const MAX_SERVER_OUTPUT_LINES = 100;
 const SERVER_OUTPUT_DRAIN_TIMEOUT_MS = 500;
+const MAX_FRAME_TRANSPORT_LAG_US = 500_000n;
+const FRAME_LAG_WARN_INTERVAL_MS = 5_000;
 
 // Busy-loop detection thresholds
 const BUSY_LOOP_WINDOW_MS = 1_000; // Sliding window for measuring frame rate
@@ -134,6 +136,10 @@ export class ScrcpyScreenshotManager {
   private lastRawKeyframeAt = 0;
   private videoResolution: { width: number; height: number } | null = null;
   private streamReader: any = null;
+  private minimumFrameArrivalOffsetUs: bigint | null = null;
+  private lastFramePtsUs: bigint | null = null;
+  private frameTransportError: Error | null = null;
+  private lastFrameLagWarningAt = 0;
 
   constructor(adb: Adb, options: ScrcpyScreenshotOptions = {}) {
     this.adb = adb;
@@ -437,6 +443,10 @@ export class ScrcpyScreenshotManager {
       return;
     }
 
+    if (!this.isFrameTransportCurrent(packet.pts)) {
+      return;
+    }
+
     // Data packet - each packet is a complete frame
     const frameBuffer = Buffer.from(packet.data);
     const isKeyFrame = detectH264KeyFrame(frameBuffer);
@@ -466,6 +476,79 @@ export class ScrcpyScreenshotManager {
         this.resetIdleTimer();
       }
     }
+  }
+
+  /**
+   * Detect transport backlog without synchronizing the host and device clocks.
+   *
+   * scrcpy packet PTS values and `process.hrtime.bigint()` are both monotonic.
+   * Their absolute epochs differ, but the minimum arrival offset observed
+   * during one connection is a stable baseline. Any later increase in that
+   * offset is time the packet spent queued in the transport.
+   */
+  private isFrameTransportCurrent(
+    packetPtsUs: bigint | undefined,
+    receivedAtUs = this.monotonicTimeUs(),
+  ): boolean {
+    // sendFrameMeta is enabled for this stream, but keep the old behavior if a
+    // dependency or server version does not provide PTS metadata.
+    if (packetPtsUs === undefined) {
+      return true;
+    }
+
+    // A backwards PTS jump starts a new media timeline (for example after a
+    // codec/session reset). Recalibrate instead of comparing different epochs.
+    if (this.lastFramePtsUs !== null && packetPtsUs < this.lastFramePtsUs) {
+      this.resetFrameTransportState();
+      this.lastRawKeyframe = null;
+      this.lastRawKeyframeAt = 0;
+    }
+    this.lastFramePtsUs = packetPtsUs;
+
+    const arrivalOffsetUs = receivedAtUs - packetPtsUs;
+    if (
+      this.minimumFrameArrivalOffsetUs === null ||
+      arrivalOffsetUs < this.minimumFrameArrivalOffsetUs
+    ) {
+      this.minimumFrameArrivalOffsetUs = arrivalOffsetUs;
+    }
+
+    const transportLagUs = arrivalOffsetUs - this.minimumFrameArrivalOffsetUs;
+    if (transportLagUs <= MAX_FRAME_TRANSPORT_LAG_US) {
+      if (this.frameTransportError) {
+        debugScrcpy(
+          `Scrcpy video transport recovered (lag=${Number(transportLagUs / 1_000n)}ms)`,
+        );
+      }
+      this.frameTransportError = null;
+      return true;
+    }
+
+    const lagMs = Number(transportLagUs / 1_000n);
+    this.frameTransportError = new Error(
+      `Scrcpy video stream is ${lagMs}ms behind the device; refusing to use delayed frames`,
+    );
+    this.lastRawKeyframe = null;
+    this.lastRawKeyframeAt = 0;
+
+    const now = Date.now();
+    if (now - this.lastFrameLagWarningAt >= FRAME_LAG_WARN_INTERVAL_MS) {
+      warnScrcpy(this.frameTransportError.message);
+      this.lastFrameLagWarningAt = now;
+    }
+
+    return false;
+  }
+
+  private monotonicTimeUs(): bigint {
+    return process.hrtime.bigint() / 1_000n;
+  }
+
+  private resetFrameTransportState(): void {
+    this.minimumFrameArrivalOffsetUs = null;
+    this.lastFramePtsUs = null;
+    this.frameTransportError = null;
+    this.lastFrameLagWarningAt = 0;
   }
 
   /**
@@ -531,6 +614,10 @@ export class ScrcpyScreenshotManager {
       keyframeBuffer = await this.waitForNextKeyframe(FRESH_FRAME_TIMEOUT_MS);
       frameSource = 'fresh';
     } catch {
+      if (this.frameTransportError) {
+        throw this.frameTransportError;
+      }
+
       // No fresh frame within timeout — screen is likely static, use cached frame
       if (this.lastRawKeyframe && this.spsHeader) {
         keyframeBuffer = Buffer.concat([this.spsHeader, this.lastRawKeyframe]);
@@ -782,6 +869,7 @@ export class ScrcpyScreenshotManager {
     this.isInitialized = false;
     this.keyframeResolvers = [];
     this.keyframeListeners.clear();
+    this.resetFrameTransportState();
 
     // Cancel reader first to stop consumeFramesLoop
     if (reader) {
