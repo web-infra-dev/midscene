@@ -196,81 +196,95 @@ export class AndroidDevice implements AbstractInterface {
 
   readonly inputPrimitives: MobileInputPrimitives = {
     pointer: {
-      tap: (point) => this.tapPoint(point),
-      doubleClick: (point) => this.doubleTapPoint(point),
-      longPress: (point, opts) => this.longPressPoint(point, opts?.duration),
-      dragAndDrop: (from, to) => this.dragPoint(from, to),
+      tap: (point) => this.withScrcpyActionBarrier(() => this.tapPoint(point)),
+      doubleClick: (point) =>
+        this.withScrcpyActionBarrier(() => this.doubleTapPoint(point)),
+      longPress: (point, opts) =>
+        this.withScrcpyActionBarrier(() =>
+          this.longPressPoint(point, opts?.duration),
+        ),
+      dragAndDrop: (from, to) =>
+        this.withScrcpyActionBarrier(() => this.dragPoint(from, to)),
     },
     keyboard: {
-      keyboardPress: (keyName) => this.pressKey(keyName),
-      typeText: async (value, opts) => {
-        const target = opts?.target as ElementInfo | undefined;
-        if (target && opts?.replace !== false) {
-          await this.clearInput(target);
-        } else if (target) {
-          await this.tapPoint({ x: target.center[0], y: target.center[1] });
-        }
+      keyboardPress: (keyName) =>
+        this.withScrcpyActionBarrier(() => this.pressKey(keyName)),
+      typeText: (value, opts) =>
+        this.withScrcpyActionBarrier(async () => {
+          const target = opts?.target as ElementInfo | undefined;
+          if (target && opts?.replace !== false) {
+            await this.clearInput(target);
+          } else if (target) {
+            await this.tapPoint({ x: target.center[0], y: target.center[1] });
+          }
 
-        if (opts?.focusOnly) {
-          return;
-        }
+          if (opts?.focusOnly) {
+            return;
+          }
 
-        await this.typeText(value, opts);
-      },
+          await this.typeText(value, opts);
+        }),
       clearInput: (target) =>
-        this.clearInput(target as ElementInfo | undefined),
-      cursorMove: async (direction, times = 1) => {
-        const arrowKey = direction === 'left' ? 'ArrowLeft' : 'ArrowRight';
-        for (let i = 0; i < times; i++) {
-          await this.pressKey(arrowKey);
-        }
-      },
+        this.withScrcpyActionBarrier(() =>
+          this.clearInput(target as ElementInfo | undefined),
+        ),
+      cursorMove: (direction, times = 1) =>
+        this.withScrcpyActionBarrier(async () => {
+          const arrowKey = direction === 'left' ? 'ArrowLeft' : 'ArrowRight';
+          for (let i = 0; i < times; i++) {
+            await this.pressKey(arrowKey);
+          }
+        }),
     },
     touch: {
-      swipe: async (start, end, opts) => {
-        const duration = opts?.duration ?? 300;
-        const repeatCount = opts?.repeat ?? 1;
-        for (let i = 0; i < repeatCount; i++) {
-          await this.dragPoint(start, end, duration);
-        }
-      },
-      pinch: async (center, opts) => {
-        // yadb only injects gestures into the default display, so a non-default
-        // display would silently land the pinch on the main screen. Fail fast
-        // instead of misleading the caller.
-        if (
-          typeof this.options?.displayId === 'number' &&
-          this.options.displayId !== 0
-        ) {
-          throw new Error(
-            `Pinch is not supported on a non-default display (displayId=${this.options.displayId}). The underlying yadb tool only injects gestures into the default display.`,
+      swipe: (start, end, opts) =>
+        this.withScrcpyActionBarrier(async () => {
+          const duration = opts?.duration ?? 300;
+          const repeatCount = opts?.repeat ?? 1;
+          for (let i = 0; i < repeatCount; i++) {
+            await this.dragPoint(start, end, duration);
+          }
+        }),
+      pinch: (center, opts) =>
+        this.withScrcpyActionBarrier(async () => {
+          // yadb only injects gestures into the default display, so a non-default
+          // display would silently land the pinch on the main screen. Fail fast
+          // instead of misleading the caller.
+          if (
+            typeof this.options?.displayId === 'number' &&
+            this.options.displayId !== 0
+          ) {
+            throw new Error(
+              `Pinch is not supported on a non-default display (displayId=${this.options.displayId}). The underlying yadb tool only injects gestures into the default display.`,
+            );
+          }
+          const { x: adjCenterX, y: adjCenterY } = await this.adjustCoordinates(
+            Math.round(center.x),
+            Math.round(center.y),
           );
-        }
-        const { x: adjCenterX, y: adjCenterY } = await this.adjustCoordinates(
-          Math.round(center.x),
-          Math.round(center.y),
-        );
-        const ratio =
-          adjCenterX !== 0 && center.x !== 0 ? adjCenterX / center.x : 1;
-        const adjStartDist = Math.round(opts.startDistance * ratio);
-        const adjEndDist = Math.round(opts.endDistance * ratio);
-        await this.ensureYadb();
-        const adb = await this.getAdb();
-        await adb.shell(
-          // Note: do not append getDisplayArg() here. `app_process` is the ART
-          // runtime launcher and does not accept the `-d <displayId>` flag the
-          // way `input`/`dumpsys` do; passing it makes the VM fail to start.
-          `app_process -Djava.class.path=/data/local/tmp/yadb /data/local/tmp com.ysbing.yadb.Main -pinch ${adjCenterX} ${adjCenterY} ${adjStartDist} ${adjEndDist} ${opts.duration}`,
-        );
-      },
+          const ratio =
+            adjCenterX !== 0 && center.x !== 0 ? adjCenterX / center.x : 1;
+          const adjStartDist = Math.round(opts.startDistance * ratio);
+          const adjEndDist = Math.round(opts.endDistance * ratio);
+          await this.ensureYadb();
+          const adb = await this.getAdb();
+          await adb.shell(
+            // Note: do not append getDisplayArg() here. `app_process` is the ART
+            // runtime launcher and does not accept the `-d <displayId>` flag the
+            // way `input`/`dumpsys` do; passing it makes the VM fail to start.
+            `app_process -Djava.class.path=/data/local/tmp/yadb /data/local/tmp com.ysbing.yadb.Main -pinch ${adjCenterX} ${adjCenterY} ${adjStartDist} ${adjEndDist} ${opts.duration}`,
+          );
+        }),
     },
     scroll: {
-      scroll: (param) => this.performActionScroll(param),
+      scroll: (param) =>
+        this.withScrcpyActionBarrier(() => this.performActionScroll(param)),
     },
     system: {
-      backButton: () => this.back(),
-      homeButton: () => this.home(),
-      recentAppsButton: () => this.recentApps(),
+      backButton: () => this.withScrcpyActionBarrier(() => this.back()),
+      homeButton: () => this.withScrcpyActionBarrier(() => this.home()),
+      recentAppsButton: () =>
+        this.withScrcpyActionBarrier(() => this.recentApps()),
     },
   };
 
@@ -342,18 +356,22 @@ export class AndroidDevice implements AbstractInterface {
           if (!param || !param.direction) {
             throw new Error('PullGesture requires a direction parameter');
           }
-          if (param.direction === 'down') {
-            await this.pullDown(startPoint, param.distance, param.duration);
-          } else if (param.direction === 'up') {
-            await this.pullUp(startPoint, param.distance, param.duration);
-          } else {
-            throw new Error(`Unknown pull direction: ${param.direction}`);
-          }
+          await this.withScrcpyActionBarrier(async () => {
+            if (param.direction === 'down') {
+              await this.pullDown(startPoint, param.distance, param.duration);
+            } else if (param.direction === 'up') {
+              await this.pullUp(startPoint, param.distance, param.duration);
+            } else {
+              throw new Error(`Unknown pull direction: ${param.direction}`);
+            }
+          });
         },
       }),
     ];
 
-    const platformActions = createPlatformActions(this);
+    const platformActions = createPlatformActions(this, async () => {
+      await this.scrcpyAdapter?.markActionBarrier();
+    });
     let platformSpecificActions = Object.values(platformActions);
 
     if (this.options?.exposeRunAdbShellAction === false) {
@@ -583,6 +601,14 @@ ${Object.keys(size)
       );
     }
     return this.scrcpyAdapter;
+  }
+
+  private async withScrcpyActionBarrier<T>(
+    action: () => Promise<T>,
+  ): Promise<T> {
+    const result = await action();
+    await this.scrcpyAdapter?.markActionBarrier();
+    return result;
   }
 
   /**
@@ -2397,6 +2423,7 @@ export type DeviceActionTerminate = DeviceAction<TerminateParam, void>;
 
 const createPlatformActions = (
   device: AndroidDevice,
+  markActionBarrier: () => Promise<void>,
 ): {
   RunAdbShell: DeviceActionRunAdbShell;
   Launch: DeviceActionLaunch;
@@ -2433,6 +2460,7 @@ const createPlatformActions = (
         if (planningFeedback && context?.task) {
           context.task.planningFeedback = planningFeedback;
         }
+        await markActionBarrier();
         return stdout;
       },
     }),
@@ -2449,6 +2477,7 @@ const createPlatformActions = (
           throw new Error('Launch requires a non-empty uri parameter');
         }
         await device.launch(param.uri);
+        await markActionBarrier();
       },
     }),
     Terminate: defineAction<typeof terminateParamSchema, TerminateParam, void>({
@@ -2461,6 +2490,7 @@ const createPlatformActions = (
           throw new Error('Terminate requires a non-empty uri parameter');
         }
         await device.terminate(param.uri);
+        await markActionBarrier();
       },
     }),
   } as const;

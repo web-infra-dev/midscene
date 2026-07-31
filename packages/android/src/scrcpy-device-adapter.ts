@@ -234,6 +234,7 @@ export class ScrcpyDeviceAdapter {
     try {
       const manager = await this.ensureManager(deviceInfo);
       await manager.ensureConnected();
+      await manager.setFreshnessBarrier('frame observation start');
       this.clearFailure();
       return manager.subscribeKeyframes(listener);
     } catch (error) {
@@ -245,6 +246,37 @@ export class ScrcpyDeviceAdapter {
   /** Latest raw keyframe seen on the stream, or null if none yet. */
   getLatestRawKeyframe(): RawKeyframe | null {
     return this.manager?.getLatestRawKeyframe() ?? null;
+  }
+
+  /**
+   * Move the scrcpy PTS barrier past a completed input action. Barrier failures
+   * must not turn a successfully injected action into an action error; disable
+   * the stream and let subsequent captures use the existing ADB fallback.
+   */
+  async markActionBarrier(): Promise<void> {
+    const manager = this.manager;
+    if (!manager?.isConnected()) return;
+
+    try {
+      await manager.setFreshnessBarrier('completed input action');
+      this.clearFailure();
+    } catch (error) {
+      this.recordFailure(error);
+      debugAdapter(
+        `Unable to mark scrcpy action barrier; disabling this stream: ${error}`,
+      );
+      try {
+        await manager.disconnect();
+      } catch (disconnectError) {
+        debugAdapter(
+          `Error disconnecting scrcpy after barrier failure: ${disconnectError}`,
+        );
+      } finally {
+        if (this.manager === manager) {
+          this.manager = null;
+        }
+      }
+    }
   }
 
   /**
