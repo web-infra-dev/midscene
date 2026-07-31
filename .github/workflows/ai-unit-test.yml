@@ -3,7 +3,17 @@ on:
   push:
     branches:
       - main
+    paths-ignore:
+      - '**/*.md'
+      - 'apps/site/**'
+      - '.changeset/**'
+      - 'docs/**'
   pull_request:
+    paths-ignore:
+      - '**/*.md'
+      - 'apps/site/**'
+      - '.changeset/**'
+      - 'docs/**'
   workflow_dispatch:
     inputs:
       branch:
@@ -59,8 +69,8 @@ jobs:
     - name: Setup Puppeteer browser
       uses: ./.github/actions/setup-puppeteer-browser
 
-    - name: Build project
-      run: pnpm run build
+    - name: Build AI unit test projects
+      run: pnpm exec nx run-many --target=build --projects="@midscene/report,@midscene/core,@midscene/web,@midscene/cli"
     
     - name: Run tests with coverage
       # Keep model request concurrency comparable to the former 4-core hosted runner.

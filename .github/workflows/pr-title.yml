@@ -2,7 +2,7 @@ name: PR Title
 
 on:
   pull_request:
-    types: [opened, edited, synchronize, reopened]
+    types: [opened, edited, reopened]
 
 permissions:
   contents: read
@@ -10,20 +10,14 @@ permissions:
 jobs:
   commitlint:
     name: Validate title
+    if: github.event.action != 'edited' || github.event.changes.title
     runs-on: ${{ fromJSON(vars.CI_LINUX_MINI_RUNNER || '"ubuntu-latest"') }}
 
     steps:
     - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
 
-    - name: Setup pnpm
-      uses: pnpm/action-setup@eae0cfeb286e66ffb5155f1a79b90583a127a68b # v2.4.1
-      with:
-        version: 9.3.0
-
-    - name: Setup Node.js
-      uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
-      with:
-        node-version: '24.13.0'
+    - name: Setup Node.js and pnpm
+      uses: ./.github/actions/setup-node-pnpm
 
     - name: Cache pnpm store
       id: pnpm-cache

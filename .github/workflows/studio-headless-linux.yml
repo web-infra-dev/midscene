@@ -49,6 +49,15 @@ jobs:
       id: pnpm-cache
       uses: ./.github/actions/pnpm-cache/restore
 
+    - name: Cache Electron binary
+      id: electron-cache
+      uses: ./.github/actions/cache/restore
+      with:
+        path: ~/.cache/electron
+        key: midscene-electron-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('pnpm-lock.yaml') }}
+        restore-keys: |
+          midscene-electron-v1-${{ runner.os }}-${{ runner.arch }}-
+
     - name: Install system dependencies
       run: |
         sudo apt-get update
@@ -79,22 +88,24 @@ jobs:
 
     - name: Install dependencies
       run: pnpm install --frozen-lockfile
+      env:
+        PUPPETEER_SKIP_DOWNLOAD: 'true'
 
     - name: Save pnpm store
       if: steps.pnpm-cache.outputs.cache-hit != 'true'
       uses: ./.github/actions/pnpm-cache/save
 
-    - name: Install Puppeteer browser binary
-      # `pnpm install` normally triggers puppeteer's `postinstall` to fetch
-      # the Chrome binary into `~/.cache/puppeteer`, but the added
-      # `optionalDependencies` (appdmg) shifts the install layout enough
-      # that the postinstall sometimes does not fire on the headless Linux
-      # runner. The Studio Web playground session needs that Chrome to
-      # launch its puppeteer page; without it `createSession` throws
-      # "Could not find Chrome" and the web preview e2e asserts on a
-      # permanently disconnected device. Install it explicitly so the test
-      # environment is deterministic.
-      run: pnpm --dir apps/studio exec puppeteer browsers install chrome
+    - name: Save Electron binary
+      if: steps.electron-cache.outputs.cache-hit != 'true'
+      uses: ./.github/actions/cache/save
+      with:
+        path: ~/.cache/electron
+        key: midscene-electron-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('pnpm-lock.yaml') }}
+
+    - name: Setup Puppeteer browser
+      uses: ./.github/actions/setup-puppeteer-browser
+      with:
+        package-directory: apps/studio
 
     - name: Build Studio
       run: npx nx run-many --target=build --projects=studio,@midscene/report

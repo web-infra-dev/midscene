@@ -68,8 +68,8 @@ jobs:
     - name: Setup headless browser
       uses: ./.github/actions/setup-headless-browser
 
-    - name: Build project
-      run: pnpm run build:skip-cache
+    - name: Build AI todo projects
+      run: pnpm exec nx run-many --target=build --projects="@midscene/report,@midscene/computer" --skip-nx-cache
 
     - name: Verify system setup
       run: |
@@ -140,8 +140,8 @@ jobs:
     - name: Setup headless browser
       uses: ./.github/actions/setup-headless-browser
 
-    - name: Build project
-      run: pnpm run build:skip-cache
+    - name: Build Chrome extension projects
+      run: pnpm exec nx run-many --target=build --projects="@midscene/report,chrome-extension" --skip-nx-cache
 
     - name: Run Chrome extension test
       run: AI_TEST_TYPE=computer npx nx test @midscene/computer -- tests/ai/chrome-extension.test.ts
@@ -197,8 +197,8 @@ jobs:
     - name: Setup headless browser
       uses: ./.github/actions/setup-headless-browser
 
-    - name: Build project
-      run: pnpm run build:skip-cache
+    - name: Build Chrome extension projects
+      run: pnpm exec nx run-many --target=build --projects="@midscene/report,chrome-extension" --skip-nx-cache
 
     - name: Run Bridge mode start/stop test
       run: AI_TEST_TYPE=computer npx nx test @midscene/computer -- tests/ai/chrome-extension-bridge.test.ts
@@ -254,8 +254,8 @@ jobs:
     - name: Setup headless browser
       uses: ./.github/actions/setup-headless-browser
 
-    - name: Build project
-      run: pnpm run build:skip-cache
+    - name: Build Chrome extension projects
+      run: pnpm exec nx run-many --target=build --projects="@midscene/report,chrome-extension" --skip-nx-cache
 
     - name: Run Playground advanced tests
       run: AI_TEST_TYPE=computer npx nx test @midscene/computer -- tests/ai/chrome-extension-playground.test.ts
@@ -311,8 +311,8 @@ jobs:
     - name: Setup headless browser
       uses: ./.github/actions/setup-headless-browser
 
-    - name: Build project
-      run: pnpm run build:skip-cache
+    - name: Build Chrome extension projects
+      run: pnpm exec nx run-many --target=build --projects="@midscene/report,chrome-extension" --skip-nx-cache
 
     - name: Run Recorder mode tests
       run: AI_TEST_TYPE=computer npx nx test @midscene/computer -- tests/ai/chrome-extension-recorder.test.ts
@@ -368,8 +368,8 @@ jobs:
     - name: Setup headless browser
       uses: ./.github/actions/setup-headless-browser
 
-    - name: Build project
-      run: pnpm run build:skip-cache
+    - name: Build Chrome extension projects
+      run: pnpm exec nx run-many --target=build --projects="@midscene/report,chrome-extension" --skip-nx-cache
 
     - name: Run Settings and cross-mode tests
       run: AI_TEST_TYPE=computer npx nx test @midscene/computer -- tests/ai/chrome-extension-settings.test.ts
