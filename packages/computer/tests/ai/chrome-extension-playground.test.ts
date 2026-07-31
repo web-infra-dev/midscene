@@ -74,6 +74,23 @@ describe('chrome extension playground advanced tests', () => {
     }
   });
 
+  it('action type switching changes the composer placeholder', async () => {
+    await agent.aiAct(`Click the "Query" button in ${SIDE_PANEL}`);
+    await sleep(500);
+    await agent.aiAssert(
+      `${SIDE_PANEL} shows an input area with placeholder text containing "query"`,
+    );
+
+    await agent.aiAct(`Click the "Assert" button in ${SIDE_PANEL}`);
+    await sleep(500);
+    await agent.aiAssert(
+      `${SIDE_PANEL} shows an input area with placeholder text containing "assert"`,
+    );
+
+    await agent.aiAct(`Click the "Action" button in ${SIDE_PANEL}`);
+    await sleep(500);
+  });
+
   it('aiQuery: extract page title and verify result', async () => {
     await agent.aiAct(`Click the "aiQuery" button in ${SIDE_PANEL}`);
     await sleep(500);

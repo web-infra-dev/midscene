@@ -1,0 +1,80 @@
+name: Setup headless browser
+
+description: Install missing Linux desktop libraries and restore a Puppeteer Chrome binary
+
+inputs:
+  package-directory:
+    description: Workspace package that provides the Puppeteer CLI
+    required: false
+    default: packages/web-integration
+
+outputs:
+  browser-path:
+    description: Absolute path to the Chrome for Testing executable
+    value: ${{ steps.browser.outputs.browser-path }}
+  browser-cache-hit:
+    description: Whether the Puppeteer browser cache was restored
+    value: ${{ steps.browser.outputs.browser-cache-hit }}
+
+runs:
+  using: composite
+  steps:
+    - name: Install missing system dependencies
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        packages=(
+          xvfb
+          x11-xserver-utils
+          imagemagick
+          fonts-liberation
+          libasound2
+          libatk-bridge2.0-0
+          libdrm2
+          libgbm1
+          libgtk-3-0
+          libnss3
+          libpango-1.0-0
+          libvulkan1
+          libx11-6
+          libx11-xcb1
+          libxcomposite1
+          libxdamage1
+          libxfixes3
+          libxinerama1
+          libxkbcommon-x11-0
+          libxkbcommon0
+          libxrandr2
+          libxshmfence1
+          libxss1
+          libxtst6
+          xdg-utils
+        )
+        missing=()
+
+        for package in "${packages[@]}"; do
+          status="$(dpkg-query -W -f='${Status}' "$package" 2>/dev/null || true)"
+          if [ "$status" != "install ok installed" ]; then
+            missing+=("$package")
+          fi
+        done
+
+        if [ "${#missing[@]}" -eq 0 ]; then
+          echo "All headless browser system dependencies are preinstalled"
+          exit 0
+        fi
+
+        echo "Installing missing packages: ${missing[*]}"
+        sudo apt-get update
+        sudo env DEBIAN_FRONTEND=noninteractive apt-get install \
+          --yes \
+          --no-install-recommends \
+          "${missing[@]}"
+
+    - name: Setup Puppeteer browser
+      id: browser
+      uses: ./.github/actions/setup-puppeteer-browser
+      with:
+        package-directory: ${{ inputs.package-directory }}
+        expose-as-chromium: "true"
