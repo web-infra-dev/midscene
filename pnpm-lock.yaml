@@ -30,11 +30,11 @@ importers:
         specifier: ^1.3.2
         version: 1.3.2(@rsbuild/core@1.6.15)(@rspack/core@1.6.8)(typescript@5.8.3)
       '@rstest/core':
-        specifier: 0.11.2
-        version: 0.11.2(core-js@3.47.0)(jsdom@29.0.2)
+        specifier: 0.11.5
+        version: 0.11.5(core-js@3.47.0)(jsdom@29.0.2)
       '@rstest/coverage-istanbul':
-        specifier: 0.11.2
-        version: 0.11.2(@rstest/core@0.11.2(core-js@3.47.0)(jsdom@29.0.2))
+        specifier: 0.11.5
+        version: 0.11.5(@rstest/core@0.11.5(core-js@3.47.0)(jsdom@29.0.2))
       '@types/node':
         specifier: ^18.0.0
         version: 18.19.130
@@ -502,8 +502,8 @@ importers:
         specifier: 2.0.18
         version: 2.0.18(@rspress/core@2.0.18(@rspack/core@2.1.6(@swc/helpers@0.5.23))(@types/mdast@4.0.4)(@types/react@19.1.5)(core-js@3.47.0)(micromark-util-types@2.0.2)(micromark@4.0.2))
       '@rstest/core':
-        specifier: 0.11.2
-        version: 0.11.2(core-js@3.47.0)(jsdom@29.0.2)
+        specifier: 0.11.5
+        version: 0.11.5(core-js@3.47.0)(jsdom@29.0.2)
       '@tailwindcss/postcss':
         specifier: 4.1.11
         version: 4.1.11
@@ -762,8 +762,8 @@ importers:
         specifier: ^0.18.3
         version: 0.18.3(@microsoft/api-extractor@7.52.10(@types/node@18.19.62))(typescript@5.8.3)
       '@rstest/core':
-        specifier: 0.11.2
-        version: 0.11.2(core-js@3.47.0)(jsdom@29.0.2)
+        specifier: 0.11.5
+        version: 0.11.5(core-js@3.47.0)(jsdom@29.0.2)
       '@types/cors':
         specifier: ^2.8.17
         version: 2.8.19
@@ -801,8 +801,8 @@ importers:
         specifier: workspace:*
         version: link:../web-integration
       '@rstest/core':
-        specifier: 0.11.2
-        version: 0.11.2(core-js@3.47.0)(jsdom@29.0.2)
+        specifier: 0.11.5
+        version: 0.11.5(core-js@3.47.0)(jsdom@29.0.2)
       http-server:
         specifier: 14.1.1
         version: 14.1.1
@@ -969,8 +969,8 @@ importers:
         specifier: ^0.18.3
         version: 0.18.3(@microsoft/api-extractor@7.52.10(@types/node@18.19.118))(typescript@5.8.3)
       '@rstest/core':
-        specifier: 0.11.2
-        version: 0.11.2(core-js@3.47.0)(jsdom@29.0.2)
+        specifier: 0.11.5
+        version: 0.11.5(core-js@3.47.0)(jsdom@29.0.2)
       '@types/cors':
         specifier: ^2.8.17
         version: 2.8.19
@@ -1567,8 +1567,8 @@ importers:
         specifier: ^0.18.3
         version: 0.18.3(@microsoft/api-extractor@7.52.10(@types/node@18.19.118))(typescript@5.8.3)
       '@rstest/core':
-        specifier: 0.11.2
-        version: 0.11.2(core-js@3.47.0)(jsdom@29.0.2)
+        specifier: 0.11.5
+        version: 0.11.5(core-js@3.47.0)(jsdom@29.0.2)
       '@types/node':
         specifier: ^18.0.0
         version: 18.19.118
@@ -3990,8 +3990,8 @@ packages:
   '@rspress/shared@2.0.18':
     resolution: {integrity: sha512-GJswqJQCPSxvBt5r+gJzz8Em8EEK/sOmCQjTpemTvldvxr1Lva85BGVnSQZOgofnM0nrjt18kn4mmnuuSstbpA==}
 
-  '@rstest/core@0.11.2':
-    resolution: {integrity: sha512-/CTLkvogDGozY+bCYsc+sKJDDsU/LvDdEZC545+QO1Iv9ds+6vgSWuA+Q2iQF3cReeSkOI9ySARfFemcCoSKpQ==}
+  '@rstest/core@0.11.5':
+    resolution: {integrity: sha512-ySXZaFqU1mJonm79ko7OwagG2AurULg1dLDErJguhv/sepEyjt39sq2Bpt42mOxHehiFcl0Pr0PrlaPltmYbbA==}
     engines: {node: ^20.19.0 || >=22.12.0}
     hasBin: true
     peerDependencies:
@@ -4003,10 +4003,10 @@ packages:
       jsdom:
         optional: true
 
-  '@rstest/coverage-istanbul@0.11.2':
-    resolution: {integrity: sha512-Zynn5AhEsVky02/YNM6008/kgGoT/B/kJTRUpff00nIAbQBmbGYOesk1T8xtDwo6c3Zja4EgTvtsTtML3S80UQ==}
+  '@rstest/coverage-istanbul@0.11.5':
+    resolution: {integrity: sha512-wqkRzrxXiZgiO/VHPOpFzx0vYZMuTYhQ+xmVIBkbnap1nnVKLzMVdEctsQx7QmcDtouFfdmG7jgbir2J4lj3Sg==}
     peerDependencies:
-      '@rstest/core': ^0.11.2
+      '@rstest/core': ^0.11.5
 
   '@rushstack/node-core-library@5.14.0':
     resolution: {integrity: sha512-eRong84/rwQUlATGFW3TMTYVyqL1vfW9Lf10PH+mVGfIb9HzU3h5AASNIw+axnBLjnD0n3rT5uQBwu9fvzATrg==}
@@ -14742,7 +14742,7 @@ snapshots:
       - '@module-federation/runtime-tools'
       - core-js
 
-  '@rstest/core@0.11.2(core-js@3.47.0)(jsdom@29.0.2)':
+  '@rstest/core@0.11.5(core-js@3.47.0)(jsdom@29.0.2)':
     dependencies:
       '@rsbuild/core': 2.1.8(core-js@3.47.0)
       '@types/chai': 5.2.3
@@ -14752,9 +14752,9 @@ snapshots:
       - '@module-federation/runtime-tools'
       - core-js
 
-  '@rstest/coverage-istanbul@0.11.2(@rstest/core@0.11.2(core-js@3.47.0)(jsdom@29.0.2))':
+  '@rstest/coverage-istanbul@0.11.5(@rstest/core@0.11.5(core-js@3.47.0)(jsdom@29.0.2))':
     dependencies:
-      '@rstest/core': 0.11.2(core-js@3.47.0)(jsdom@29.0.2)
+      '@rstest/core': 0.11.5(core-js@3.47.0)(jsdom@29.0.2)
       istanbul-lib-coverage: 3.2.2
       istanbul-lib-report: 3.0.1
       istanbul-lib-source-maps: 5.0.6

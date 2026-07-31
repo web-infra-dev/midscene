@@ -25,7 +25,7 @@
     "@rspress/plugin-client-redirects": "2.0.18",
     "@rspress/plugin-llms": "2.0.18",
     "@rspress/plugin-sitemap": "2.0.18",
-    "@rstest/core": "0.11.2",
+    "@rstest/core": "0.11.5",
     "@tailwindcss/postcss": "4.1.11",
     "@types/node": "^18.0.0",
     "autoprefixer": "10.4.22",
