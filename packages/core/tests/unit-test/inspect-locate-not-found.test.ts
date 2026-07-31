@@ -1,6 +1,6 @@
 import { ResolvedModelAdapter } from '@/ai-model/model-adapter/resolve';
 import { getModelRuntime } from '@/ai-model/models';
-import { callAIWithObjectResponse } from '@/ai-model/service-caller/index';
+import { callAI, parseAIObjectResponse } from '@/ai-model/service-caller/index';
 import { AiLocateElement, AiLocateSection } from '@/ai-model/workflows/inspect';
 import type { LocateFn } from '@/ai-model/workflows/inspect/types';
 import type { IModelConfig } from '@midscene/shared/env';
@@ -13,7 +13,8 @@ vi.mock('@/ai-model/service-caller/index', async () => {
   >('@/ai-model/service-caller/index');
   return {
     ...actual,
-    callAIWithObjectResponse: vi.fn(),
+    callAI: vi.fn(),
+    parseAIObjectResponse: vi.fn(),
   };
 });
 
@@ -30,13 +31,14 @@ describe('locate not-found parsing', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(callAI).mockResolvedValue({ content: '{}', isStreamed: false });
   });
 
   it('keeps locate errors without parsing coordinates when result key is missing', async () => {
-    vi.mocked(callAIWithObjectResponse).mockResolvedValue({
-      content: { errors: ['target element is not found'] },
+    vi.mocked(parseAIObjectResponse).mockReturnValue({
+      content: { error: 'target element is not found' },
       usage: undefined,
-      contentString: '{"errors":["target element is not found"]}',
+      contentString: '{"error":"target element is not found"}',
     });
 
     const result = await AiLocateElement({
@@ -53,7 +55,7 @@ describe('locate not-found parsing', () => {
   });
 
   it('skips coordinate parsing when result key is missing even without errors', async () => {
-    vi.mocked(callAIWithObjectResponse).mockResolvedValue({
+    vi.mocked(parseAIObjectResponse).mockReturnValue({
       content: {},
       usage: undefined,
       contentString: '{}',
@@ -73,10 +75,10 @@ describe('locate not-found parsing', () => {
   });
 
   it('skips coordinate parsing when result key is an empty array', async () => {
-    vi.mocked(callAIWithObjectResponse).mockResolvedValue({
-      content: { bbox: [], errors: ['target element is not found'] },
+    vi.mocked(parseAIObjectResponse).mockReturnValue({
+      content: { bbox: [], error: 'target element is not found' },
       usage: undefined,
-      contentString: '{"bbox":[],"errors":["target element is not found"]}',
+      contentString: '{"bbox":[],"error":"target element is not found"}',
     });
 
     const result = await AiLocateElement({
@@ -93,17 +95,17 @@ describe('locate not-found parsing', () => {
   });
 
   it('retries once when result adapter cannot map coordinates', async () => {
-    vi.mocked(callAIWithObjectResponse)
-      .mockResolvedValueOnce({
+    vi.mocked(parseAIObjectResponse)
+      .mockReturnValueOnce({
         content: {
           bbox: [100, Number.NaN, 300, 400],
-          errors: ['model returned invalid coordinates'],
+          error: 'model returned invalid coordinates',
         },
         usage: undefined,
         contentString:
-          '{"bbox":[100,null,300,400],"errors":["model returned invalid coordinates"]}',
+          '{"bbox":[100,null,300,400],"error":"model returned invalid coordinates"}',
       })
-      .mockResolvedValueOnce({
+      .mockReturnValueOnce({
         content: { bbox: [100, 200, 300, 400] },
         usage: undefined,
         contentString: '{"bbox":[100,200,300,400]}',
@@ -115,22 +117,72 @@ describe('locate not-found parsing', () => {
       modelRuntime: getModelRuntime(modelConfig),
     });
 
-    expect(callAIWithObjectResponse).toHaveBeenCalledTimes(2);
-    expect(vi.mocked(callAIWithObjectResponse).mock.calls[0]?.[2]).toEqual(
-      expect.objectContaining({ retryTimes: 1 }),
+    expect(callAI).toHaveBeenCalledTimes(2);
+    expect(vi.mocked(callAI).mock.calls.map((call) => call[2])).toEqual([
+      expect.objectContaining({ semanticRetryAttempt: 0 }),
+      expect.objectContaining({ semanticRetryAttempt: 1 }),
+    ]);
+    const retryFeedback = vi.mocked(callAI).mock.calls[1][0].at(-1);
+    expect(retryFeedback).toMatchObject({ role: 'user' });
+    expect(retryFeedback?.content).toEqual(
+      expect.stringContaining('coordinate parsing error'),
     );
     expect(result.rect).toBeDefined();
     expect(result.parseResult.errors).toEqual([]);
   });
 
+  it('includes model errors when coordinate parsing ultimately fails', async () => {
+    vi.mocked(parseAIObjectResponse).mockReturnValue({
+      content: {
+        bbox: [100, Number.NaN, 300, 400],
+        error: 'model returned invalid coordinates',
+      },
+      usage: undefined,
+      contentString:
+        '{"bbox":[100,null,300,400],"error":"model returned invalid coordinates"}',
+    });
+
+    const result = await AiLocateElement({
+      context: createFakeContext(),
+      targetElementDescription: 'invalid coordinate target',
+      modelRuntime: getModelRuntime({ ...modelConfig, retryCount: 0 }),
+    });
+
+    expect(result.rect).toBeUndefined();
+    expect(result.parseResult.errors?.[0]).toContain(
+      'model returned invalid coordinates',
+    );
+  });
+
+  it('retries JSON parsing through the same locate retry loop', async () => {
+    vi.mocked(parseAIObjectResponse)
+      .mockImplementationOnce(() => {
+        throw new Error('invalid JSON response');
+      })
+      .mockReturnValueOnce({
+        content: { bbox: [100, 200, 300, 400] },
+        usage: undefined,
+        contentString: '{"bbox":[100,200,300,400]}',
+      });
+
+    const result = await AiLocateElement({
+      context: createFakeContext(),
+      targetElementDescription: 'target with malformed JSON',
+      modelRuntime: getModelRuntime(modelConfig),
+    });
+
+    expect(result.rect).toBeDefined();
+    expect(callAI).toHaveBeenCalledTimes(2);
+  });
+
   it('retries once when section result adapter cannot map coordinates', async () => {
-    vi.mocked(callAIWithObjectResponse)
-      .mockResolvedValueOnce({
+    vi.mocked(parseAIObjectResponse)
+      .mockReturnValueOnce({
         content: { bbox: [100, Number.NaN, 300, 400] },
         usage: undefined,
         contentString: '{"bbox":[100,null,300,400]}',
       })
-      .mockResolvedValueOnce({
+      .mockReturnValueOnce({
         content: { bbox: [100, 200, 300, 400] },
         usage: undefined,
         contentString: '{"bbox":[100,200,300,400]}',
@@ -142,7 +194,12 @@ describe('locate not-found parsing', () => {
       modelRuntime: getModelRuntime(modelConfig),
     });
 
-    expect(callAIWithObjectResponse).toHaveBeenCalledTimes(2);
+    expect(callAI).toHaveBeenCalledTimes(2);
+    const retryFeedback = vi.mocked(callAI).mock.calls[1][0].at(-1);
+    expect(retryFeedback).toMatchObject({ role: 'user' });
+    expect(retryFeedback?.content).toEqual(
+      expect.stringContaining('coordinate parsing error'),
+    );
     expect(result.searchAreaConfig).toBeDefined();
   });
 
@@ -223,7 +280,7 @@ describe('locate not-found parsing', () => {
   });
 
   it('keeps section locate error without parsing coordinates when result key is missing', async () => {
-    vi.mocked(callAIWithObjectResponse).mockResolvedValue({
+    vi.mocked(parseAIObjectResponse).mockReturnValue({
       content: { error: 'target section is not found' },
       usage: undefined,
       contentString: '{"error":"target section is not found"}',
@@ -240,7 +297,7 @@ describe('locate not-found parsing', () => {
   });
 
   it('keeps section locate error without parsing coordinates when result key is an empty array', async () => {
-    vi.mocked(callAIWithObjectResponse).mockResolvedValue({
+    vi.mocked(parseAIObjectResponse).mockReturnValue({
       content: { bbox: [], error: 'target section is not found' },
       usage: undefined,
       contentString: '{"bbox":[],"error":"target section is not found"}',

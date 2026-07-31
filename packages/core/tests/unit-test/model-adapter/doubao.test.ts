@@ -194,13 +194,11 @@ describe('doubao model adapter', () => {
     "550 216",
     "550 216",
     "550 216"
-  ],
-  "errors": []
+  ]
 }
     `;
     expect(parser(input, context)).toEqual({
       bbox: ['550 216', '550 216', '550 216', '550 216'],
-      errors: [],
     });
   });
 
@@ -360,7 +358,7 @@ describe('doubao model adapter', () => {
     },
     {
       name: 'JSON repair output with an XML-style closing tag',
-      input: [410, 295, 885, '345<', '/bbox>,\n  "errors": []\n}'],
+      input: [410, 295, 885, '345<', '/bbox>,\n  "error": ""\n}'],
       result: {
         coordinates: [410, 295, 885, 345],
         coordinatesMeta: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },

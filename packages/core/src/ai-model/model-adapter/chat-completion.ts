@@ -82,7 +82,24 @@ export function resolveChatCompletion(
         userConfig: input.userConfig ?? {},
         midsceneDefaults: midsceneChatCompletionDefaults,
       };
-      return buildChatCompletionParams(context);
+      const params = buildChatCompletionParams(context);
+      const retryAttempt = input.semanticRetryAttempt ?? 0;
+      // Only perturb the default deterministic request after a semantic parse
+      // failure: preserve an explicit user temperature, and avoid adding a
+      // temperature to adapters whose normal parameters do not include one.
+      if (
+        retryAttempt > 0 &&
+        input.userConfig?.temperature === undefined &&
+        params.config.temperature === 0
+      ) {
+        return {
+          config: {
+            ...params.config,
+            temperature: 0.2,
+          },
+        };
+      }
+      return params;
     },
     resolveImageDetail: (input) =>
       resolveImageDetail({

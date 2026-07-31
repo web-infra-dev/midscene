@@ -77,7 +77,7 @@ export type PixelBbox = Bbox;
 export interface AIElementLocateResponse {
   bbox?: LocateResultBbox;
   point?: LocateResultPoint;
-  errors?: string[];
+  error?: string;
 }
 
 export interface AIDataExtractionResponse<DataDemand> {
