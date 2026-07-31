@@ -30,6 +30,9 @@ concurrency:
 
 jobs:
   macos-desktop:
+    concurrency:
+      group: ai-desktop-${{ github.event.pull_request.number || inputs.branch || github.ref }}
+      cancel-in-progress: false
     # The self-hosted macOS runner is ARM and has no interactive GUI session.
     runs-on: macos-15-intel
     timeout-minutes: 50

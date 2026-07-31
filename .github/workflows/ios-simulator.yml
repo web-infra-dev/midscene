@@ -31,6 +31,9 @@ concurrency:
 
 jobs:
   ios-simulator:
+    concurrency:
+      group: ai-mobile-${{ github.event.pull_request.number || inputs.branch || github.ref }}
+      cancel-in-progress: false
     runs-on: ${{ fromJSON(vars.MAC_SELF_HOSTED_RUNNER_LABELS || '"macos-latest"') }}
     timeout-minutes: 70
     env:

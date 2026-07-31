@@ -221,6 +221,8 @@ jobs:
       run: exit 1
 
   chrome-extension-playground:
+    needs: chrome-extension-bridge
+    if: ${{ !cancelled() }}
     runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"') }}
     env:
       MIDSCENE_MODEL_API_KEY: ${{ secrets.MIDSCENE_MODEL_API_KEY }}
@@ -335,6 +337,8 @@ jobs:
       run: exit 1
 
   chrome-extension-settings:
+    needs: chrome-extension-recorder
+    if: ${{ !cancelled() }}
     runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"') }}
     env:
       MIDSCENE_MODEL_API_KEY: ${{ secrets.MIDSCENE_MODEL_API_KEY }}
