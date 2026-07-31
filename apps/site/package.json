@@ -7,7 +7,7 @@
     "dev": "rspress dev",
     "build": "MIDSCENE_SITE_BUILD=true rspress build && ./config_deploy.sh && node ./scripts/check-search-metadata.mjs",
     "preview": "rspress preview",
-    "test": "vitest --run"
+    "test": "rstest"
   },
   "engines": {
     "pnpm": ">=9.3.0",
@@ -25,11 +25,11 @@
     "@rspress/plugin-client-redirects": "2.0.18",
     "@rspress/plugin-llms": "2.0.18",
     "@rspress/plugin-sitemap": "2.0.18",
+    "@rstest/core": "0.11.2",
     "@tailwindcss/postcss": "4.1.11",
     "@types/node": "^18.0.0",
     "autoprefixer": "10.4.22",
     "postcss": "8.5.6",
-    "tailwindcss": "4.1.11",
-    "vitest": "3.0.5"
+    "tailwindcss": "4.1.11"
   }
 }
