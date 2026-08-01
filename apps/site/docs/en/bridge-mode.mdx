@@ -28,6 +28,12 @@ check the demo project of bridge mode: [https://github.com/web-infra-dev/midscen
 
 Install [Midscene extension from Chrome web store](https://chromewebstore.google.com/detail/midscene/gbldofcpkknbggpkmbdaefngejllnief)
 
+:::info File upload permission
+
+If your Bridge mode script needs to upload local files, open `chrome://extensions`, find the Midscene extension, click "Details", and turn on "Allow access to file URLs". Then switch back to the target `http(s)://` page before reconnecting Bridge mode.
+
+:::
+
 ### Step 2. Install dependencies
 
 <PackageManagerTabs command="install @midscene/web tsx --save-dev" />

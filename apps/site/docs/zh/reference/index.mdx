@@ -153,6 +153,7 @@ function ai(prompt: string, options?: Object): Promise<string | undefined>; // �
     - `fileChooserAccept?: string | string[]` - 当文件选择器弹出时，指定对应的文件路径。可以是单个文件路径或路径数组。仅在 web 页面（Playwright、Puppeteer 或 Chrome extension Bridge mode）中可用。该选项不受 `fileChooserAllowedDir` 限制。
       - **注意**：如果文件输入框不支持多文件（没有 `multiple` 属性），但是传入了多个文件，会抛出错误。
       - **注意**：如果点击触发了文件选择器但没有传入 `fileChooserAccept` 参数，文件选择器会被忽略，页面可以继续正常操作。
+      - **注意**：Chrome extension Bridge mode 上传本地文件时，需要在 `chrome://extensions` > Midscene > “Details” 中开启插件的 “Allow access to file URLs” 权限。开启后请从目标 `http(s)://` 页面重新连接桥接模式。
       - **注意**：Chrome extension Bridge mode 不支持目录上传输入框（`webkitdirectory` / `directory`）。如需上传目录，请使用 Playwright。
     - `fileChooserAllowedDir?: string`：显式授权当前 `aiAct` 通过提示词上传文件时可访问的目录。未配置时，模型规划的文件上传会被拒绝。配置后，提示词中的相对路径会基于此目录解析，并校验是否位于此目录下；绝对路径则直接校验是否位于此目录下。位于此目录下的 symlink 也允许上传。建议将其设置为测试用例的 `fixtures` 目录，以避免 AI 幻觉或页面提示词攻击导致 `aiAct` 上传敏感文件。
     - `abortSignal?: AbortSignal` - 可选的 [AbortSignal](https://developer.mozilla.org/zh-CN/docs/Web/API/AbortSignal)，用于中止 `aiAct` 的执行。当信号被触发时，Midscene 会停止当前的规划循环并抛出错误。适用于实现超时控制或用户主动取消操作的场景。
@@ -199,6 +200,8 @@ await agent.aiAct(
 如果一次 `aiAct` 需要上传多个文件，请在提示词中把每个相对路径与对应的上传操作明确写出。后出现的路径会覆盖此前配置的文件选择器路径。不要将提示词中的文件路径与 `options.fileChooserAccept` 混用：模型在规划过程中生成的后续文件选择器配置可能覆盖该 option 的值。
 
 此能力仅适用于 web 页面（Playwright、Puppeteer 和 Chrome extension Bridge mode）。当 fixture 不在当前工作目录下，或需要让同一提示词在本地和 CI 环境中复用时，请配置 `fileChooserAllowedDir`。
+
+在 Chrome extension Bridge mode 中上传本地文件时，需要在 `chrome://extensions` > Midscene > “Details” 中开启插件的 “Allow access to file URLs” 权限。开启后请切回目标 `http(s)://` 页面，再重新连接桥接模式。
 
 :::info
 

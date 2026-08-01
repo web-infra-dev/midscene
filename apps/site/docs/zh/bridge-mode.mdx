@@ -28,6 +28,12 @@ Midscene Chrome 插件的桥接模式允许你使用本地脚本来控制桌面�
 
 安装 [Midscene Chrome 插件](https://chromewebstore.google.com/detail/midscene/gbldofcpkknbggpkmbdaefngejllnief)。
 
+:::info 文件上传权限
+
+如果桥接模式脚本需要上传本地文件，请打开 `chrome://extensions`，找到 Midscene 插件，进入 “Details”，开启 “Allow access to file URLs”。开启后请切回目标 `http(s)://` 页面，再重新连接桥接模式。
+
+:::
+
 ### 第二步：安装依赖
 
 <PackageManagerTabs command="install @midscene/web tsx --save-dev" />
