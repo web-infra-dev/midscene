@@ -1,4 +1,5 @@
-import { join } from 'node:path';
+import { readFileSync } from 'node:fs';
+import { basename, join } from 'node:path';
 import { createConfig } from '@/config-factory';
 import { runFrameworkTestConfig } from '@/framework/command';
 import { createServer } from 'http-server';
@@ -30,7 +31,7 @@ describe('shareBrowserContext - Storage Sharing', () => {
     server?.server.close();
   });
 
-  test('should preserve all storage types when shareBrowserContext is true', async () => {
+  test('should run setup before the main file and report both results', async () => {
     const scriptDir = join(__dirname, '../share_context_test_scripts');
     const indexYamlPath = join(scriptDir, 'index.yaml');
     const frameworkImport = join(
@@ -49,6 +50,18 @@ describe('shareBrowserContext - Storage Sharing', () => {
       });
 
       expect(exitCode).toBe(0);
+      const summary = JSON.parse(
+        readFileSync(
+          join(scriptDir, 'midscene_run', 'output', config.summary),
+          'utf8',
+        ),
+      );
+      expect(summary.summary).toMatchObject({ total: 2, successful: 2 });
+      expect(
+        summary.results.map((result: { script: string }) =>
+          basename(result.script),
+        ),
+      ).toEqual(['01-login.yaml', '02-check-login.yaml']);
     } finally {
       process.chdir(previousCwd);
     }
