@@ -193,8 +193,17 @@ export function createRstestYamlProject(
   rmSync(outputDir, { recursive: true, force: true });
   mkdirSync(resultDir, { recursive: true });
 
+  // The batch executor reports setup as a first-class result. Reserve a result
+  // file for it too, otherwise the parent process drops it from the terminal
+  // and JSON summaries even though it ran inside the Rstest worker.
+  const resultYamlFiles = options.batchConfig
+    ? [
+        ...(options.batchConfig.setup ? [options.batchConfig.setup] : []),
+        ...options.batchConfig.files,
+      ]
+    : options.files;
   const virtualModules: Record<string, string> = {};
-  const cases = options.files.map((file, index) => {
+  const cases = resultYamlFiles.map((file, index) => {
     const yamlFile = resolve(file);
     const testName = resolveTestName(projectDir, yamlFile);
     const fileStem = safeFileStem(yamlFile, index);

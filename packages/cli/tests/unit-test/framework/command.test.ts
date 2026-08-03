@@ -6,7 +6,7 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { dirname, join } from 'node:path';
+import { basename, dirname, join } from 'node:path';
 import { runFrameworkTestConfig } from '@/framework/command';
 import { describe, expect, test } from 'vitest';
 
@@ -106,15 +106,21 @@ export function defineYamlCaseTest(test: any, options: any) {
 
   test('uses one batch virtual entry when shareBrowserContext is enabled', async () => {
     const root = createTempDir();
+    const runDir = join(root, 'midscene-run');
     const outputDir = join(root, 'generated-runner');
+    const setupYaml = join(root, 'setup.yaml');
     const yamlA = join(root, 'login.yaml');
     const yamlB = join(root, 'check-login.yaml');
+    const previousRunDir = process.env.MIDSCENE_RUN_DIR;
+    process.env.MIDSCENE_RUN_DIR = runDir;
+    writeFileSync(setupYaml, 'web:\n  url: about:blank\ntasks: []\n');
     writeFileSync(yamlA, 'web:\n  url: about:blank\ntasks: []\n');
     writeFileSync(yamlB, 'web:\n  url: about:blank\ntasks: []\n');
 
     try {
       const exitCode = await runFrameworkTestConfig(
         {
+          setup: setupYaml,
           files: [yamlA, yamlB],
           concurrent: 3,
           continueOnError: true,
@@ -144,6 +150,7 @@ export function defineYamlCaseTest(test: any, options: any) {
             expect(batchModule).toContain('"concurrent": 3');
             expect(batchModule).toContain('"shareBrowserContext": true');
             expect(project.cases.map((item) => item.yamlFile)).toEqual([
+              setupYaml,
               yamlA,
               yamlB,
             ]);
@@ -165,7 +172,21 @@ export function defineYamlCaseTest(test: any, options: any) {
         },
       );
       expect(exitCode).toBe(0);
+      const summary = JSON.parse(
+        readFileSync(join(runDir, 'output', 'summary.json'), 'utf8'),
+      );
+      expect(summary.summary).toMatchObject({ total: 3, successful: 3 });
+      expect(
+        summary.results.map((result: { script: string }) =>
+          basename(result.script),
+        ),
+      ).toEqual(['setup.yaml', 'login.yaml', 'check-login.yaml']);
     } finally {
+      if (previousRunDir === undefined) {
+        Reflect.deleteProperty(process.env, 'MIDSCENE_RUN_DIR');
+      } else {
+        process.env.MIDSCENE_RUN_DIR = previousRunDir;
+      }
       rmSync(root, { recursive: true, force: true });
     }
   });

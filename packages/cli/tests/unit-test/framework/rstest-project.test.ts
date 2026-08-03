@@ -207,8 +207,10 @@ describe('rstest yaml project generation', () => {
   test('generates a single batch virtual entry for shared browser context', () => {
     const root = createTempDir();
     const outputDir = join(root, 'runner');
+    const setupYaml = join(root, 'setup.yaml');
     const yamlA = join(root, 'login.yaml');
     const yamlB = join(root, 'check.yaml');
+    writeFileSync(setupYaml, 'web:\n  url: about:blank\ntasks: []\n');
     writeFileSync(yamlA, 'web:\n  url: about:blank\ntasks: []\n');
     writeFileSync(yamlB, 'web:\n  url: about:blank\ntasks: []\n');
 
@@ -220,6 +222,7 @@ describe('rstest yaml project generation', () => {
         frameworkImport: '@test/framework',
         rstestCoreImport: '@test/rstest-core',
         batchConfig: {
+          setup: setupYaml,
           files: [yamlA, yamlB],
           concurrent: 1,
           continueOnError: true,
@@ -242,7 +245,11 @@ describe('rstest yaml project generation', () => {
         testModule: 'virtual:midscene-yaml/batch.test.ts',
         testName: 'midscene yaml batch',
       });
-      expect(project.cases).toHaveLength(2);
+      expect(project.cases.map((item) => item.yamlFile)).toEqual([
+        setupYaml,
+        yamlA,
+        yamlB,
+      ]);
       expect(project.maxConcurrency).toBe(1);
       const generated = project.virtualModules[project.include[0]];
       expect(generated).toContain('import { test } from "@test/rstest-core"');
@@ -252,6 +259,7 @@ describe('rstest yaml project generation', () => {
       expect(generated).toContain('defineYamlBatchTest(test, testOptions)');
       expect(generated).not.toContain('defineYamlBatchTest(testOptions)');
       expect(generated).toContain('"shareBrowserContext": true');
+      expect(generated).toContain(JSON.stringify(setupYaml));
       expect(generated).toContain(JSON.stringify(yamlA));
       expect(generated).toContain(JSON.stringify(yamlB));
     } finally {
