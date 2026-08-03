@@ -134,46 +134,15 @@ describe('ScrcpyDeviceAdapter', () => {
       expect(config.maxSize).toBe(0);
     });
 
-    it('should use the high-quality default when neither endpoint contains an IP', () => {
+    it('should use the default videoBitRate when not explicitly configured', () => {
       const adapter = new ScrcpyDeviceAdapter('device', undefined);
       const config = adapter.resolveConfig(defaultDeviceInfo);
       expect(config.idleTimeoutMs).toBe(DEFAULT_SCRCPY_CONFIG.idleTimeoutMs);
       expect(config.videoBitRate).toBe(DEFAULT_SCRCPY_CONFIG.videoBitRate);
     });
 
-    it.each(['10.84.162.47', '10.84.162.47:36967'])(
-      'should use 4 Mbps when the device endpoint contains the non-loopback IPv4 address in %s',
-      (deviceId) => {
-        const adapter = new ScrcpyDeviceAdapter(deviceId, undefined);
-        const config = adapter.resolveConfig(defaultDeviceInfo);
-        expect(config.videoBitRate).toBe(4_000_000);
-      },
-    );
-
-    it('should use 4 Mbps when the ADB server host is a non-loopback IP address', () => {
-      const adapter = new ScrcpyDeviceAdapter('device', undefined);
-      const config = adapter.resolveConfig(defaultDeviceInfo, {
-        host: '192.168.1.10',
-        port: 5037,
-      });
-      expect(config.videoBitRate).toBe(4_000_000);
-    });
-
-    it('should use 4 Mbps when the device endpoint has a non-loopback IPv6 address', () => {
-      const adapter = new ScrcpyDeviceAdapter('[2001:db8::1]:5555', undefined);
-      const config = adapter.resolveConfig(defaultDeviceInfo);
-      expect(config.videoBitRate).toBe(4_000_000);
-    });
-
-    it.each([
-      '127.0.0.1:5555',
-      '127.0.0.1',
-      '127.0.0.2:5555',
-      '[::1]:5555',
-      'localhost:5555',
-      'device:5555',
-    ])(
-      'should not infer a network transport from the port in %s',
+    it.each(['10.84.162.47:36967', '127.0.0.1:5555', 'device:5555'])(
+      'should not infer videoBitRate from the device endpoint %s',
       (deviceId) => {
         const adapter = new ScrcpyDeviceAdapter(deviceId, undefined);
         const config = adapter.resolveConfig(defaultDeviceInfo);
@@ -181,16 +150,7 @@ describe('ScrcpyDeviceAdapter', () => {
       },
     );
 
-    it('should not infer a network transport from an ADB server hostname', () => {
-      const adapter = new ScrcpyDeviceAdapter('device', undefined);
-      const config = adapter.resolveConfig(defaultDeviceInfo, {
-        host: 'adb.example.test',
-        port: 5037,
-      });
-      expect(config.videoBitRate).toBe(DEFAULT_SCRCPY_CONFIG.videoBitRate);
-    });
-
-    it('should honor an explicit bitrate on a network IP device endpoint', () => {
+    it('should honor an explicit bitrate on a remote device endpoint', () => {
       const adapter = new ScrcpyDeviceAdapter('10.84.162.47:36967', {
         videoBitRate: 8_000_000,
       });
