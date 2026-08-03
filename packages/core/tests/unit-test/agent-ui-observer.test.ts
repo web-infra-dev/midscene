@@ -231,7 +231,7 @@ describe('Agent.startObserving', () => {
     ).toBeUndefined();
   });
 
-  it('registers CLI artifact persistence without expanding the Agent API', async () => {
+  it('exposes CLI artifact persistence without expanding the Agent API', async () => {
     const agent = new Agent(
       {
         interfaceType: 'puppeteer',

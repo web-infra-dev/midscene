@@ -10,32 +10,20 @@ export interface ObservationArtifactAdapter {
   loadRecord(record: UIObservationRecord): BaseUIObservation;
 }
 
-export type ResolveObservationArtifactAdapter = (
-  agent: BaseAgent,
-) => ObservationArtifactAdapter | undefined;
-
-const observationArtifactAdapter = Symbol(
+/** @internal Property key used by Core and the CLI artifact commands. */
+export const observationArtifactAdapterSymbol = Symbol(
   'midscene.observationArtifactAdapter',
 );
 
 type ObservationArtifactAdapterHost = {
-  [observationArtifactAdapter]?: ObservationArtifactAdapter;
+  [observationArtifactAdapterSymbol]?: ObservationArtifactAdapter;
 };
 
-/** @internal Attach the CLI artifact capability without expanding Agent's API. */
-export function registerObservationArtifactAdapter(
-  agent: object,
-  adapter: ObservationArtifactAdapter,
-): void {
-  Object.defineProperty(agent, observationArtifactAdapter, {
-    configurable: false,
-    enumerable: false,
-    value: adapter,
-    writable: false,
-  });
+/** Read the CLI artifact capability attached by the Core Agent. */
+export function resolveObservationArtifactAdapter(
+  agent: BaseAgent,
+): ObservationArtifactAdapter | undefined {
+  return (agent as ObservationArtifactAdapterHost)[
+    observationArtifactAdapterSymbol
+  ];
 }
-
-/** Resolve the separately registered CLI artifact capability for an Agent. */
-export const resolveObservationArtifactAdapter: ResolveObservationArtifactAdapter =
-  (agent) =>
-    (agent as ObservationArtifactAdapterHost)[observationArtifactAdapter];

@@ -9,6 +9,10 @@ import {
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
+  type ObservationArtifactAdapter,
+  observationArtifactAdapterSymbol,
+} from '@/agent-tools/observation-artifact';
+import {
   generateCommonTools,
   generateToolsFromActionSpace,
 } from '@/agent-tools/tool-generator';
@@ -53,6 +57,16 @@ const actionSpace = [
 ];
 
 const screenshotBase64 = 'data:image/png;base64,Zm9v';
+
+function withObservationArtifactAdapter<T extends object>(
+  agent: T,
+  adapter: ObservationArtifactAdapter,
+): T {
+  Object.defineProperty(agent, observationArtifactAdapterSymbol, {
+    value: adapter,
+  });
+  return agent;
+}
 
 describe('generateToolsFromActionSpace', () => {
   it('passes structured locate extras through callActionInActionSpace and keeps locate options at top level', async () => {
@@ -400,17 +414,22 @@ describe('generateToolsFromActionSpace', () => {
       bufferedFrameCount: 1,
       dispose,
     });
-    const getAgent = vi.fn(async () => ({
-      startObserving,
-      getActionSpace: vi.fn().mockResolvedValue([]),
-      page: {
-        screenshotBase64: vi.fn().mockResolvedValue(screenshotBase64),
-      },
-    }));
-    const recordTool = createRecordCliCommand(getAgent, {}, undefined, () => ({
-      exportRecord,
-      loadRecord: vi.fn(),
-    }));
+    const getAgent = vi.fn(async () =>
+      withObservationArtifactAdapter(
+        {
+          startObserving,
+          getActionSpace: vi.fn().mockResolvedValue([]),
+          page: {
+            screenshotBase64: vi.fn().mockResolvedValue(screenshotBase64),
+          },
+        },
+        {
+          exportRecord,
+          loadRecord: vi.fn(),
+        },
+      ),
+    );
+    const recordTool = createRecordCliCommand(getAgent);
     const interruptSpy = vi
       .spyOn(cliInterrupt, 'waitForCliInterrupt')
       .mockResolvedValue('sigint');
@@ -769,21 +788,20 @@ describe('generateCommonTools — assert image prompts', () => {
       aiAssert: observationAssert,
       dispose,
     });
-    const tools = generateCommonTools(
-      async () => ({
-        aiAssert,
-        getActionSpace: vi.fn().mockResolvedValue([]),
-        page: {
-          screenshotBase64: vi.fn().mockResolvedValue(screenshotBase64),
+    const tools = generateCommonTools(async () =>
+      withObservationArtifactAdapter(
+        {
+          aiAssert,
+          getActionSpace: vi.fn().mockResolvedValue([]),
+          page: {
+            screenshotBase64: vi.fn().mockResolvedValue(screenshotBase64),
+          },
         },
-      }),
-      {},
-      undefined,
-      {},
-      () => ({
-        exportRecord: vi.fn(),
-        loadRecord,
-      }),
+        {
+          exportRecord: vi.fn(),
+          loadRecord,
+        },
+      ),
     );
 
     const assert = tools.find((t) => t.name === 'assert')!;

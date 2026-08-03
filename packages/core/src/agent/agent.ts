@@ -57,7 +57,10 @@ import { readFile } from 'node:fs/promises';
 import { basename, resolve } from 'node:path';
 import type { AbstractInterface } from '@/device';
 import type { TaskRunner } from '@/task-runner';
-import { registerObservationArtifactAdapter } from '@midscene/shared/agent-tools/observation-artifact';
+import {
+  type ObservationArtifactAdapter,
+  observationArtifactAdapterSymbol,
+} from '@midscene/shared/agent-tools/observation-artifact';
 import {
   type IModelConfig,
   MIDSCENE_REPLANNING_CYCLE_LIMIT,
@@ -432,23 +435,25 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
         this.opts.reportAttributes?.['data-group-id'] === this.reportFileName,
     });
 
-    registerObservationArtifactAdapter(this, {
-      exportRecord: async (observation) => {
-        assert(
-          observation instanceof UIObservationImpl,
-          'Cannot export an observation that was not created by this Midscene runtime',
-        );
-        return observation.exportRecord();
-      },
-      loadRecord: (record) => {
-        // CLI manifests are validated before this adapter is called. Rebuild
-        // once here as a final runtime-boundary check before creating insight.
-        uiContextFromObservationRecord(record);
-        return new UIObservationImpl(
-          record,
-          this.createInsight(() => uiContextFromObservationRecord(record)),
-        );
-      },
+    Object.defineProperty(this, observationArtifactAdapterSymbol, {
+      value: {
+        exportRecord: async (observation) => {
+          assert(
+            observation instanceof UIObservationImpl,
+            'Cannot export an observation that was not created by this Midscene runtime',
+          );
+          return observation.exportRecord();
+        },
+        loadRecord: (record) => {
+          // CLI manifests are validated before this adapter is called. Rebuild
+          // once here as a final runtime-boundary check before creating insight.
+          uiContextFromObservationRecord(record);
+          return new UIObservationImpl(
+            record,
+            this.createInsight(() => uiContextFromObservationRecord(record)),
+          );
+        },
+      } satisfies ObservationArtifactAdapter,
     });
   }
 

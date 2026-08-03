@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { getErrorMessage } from '../agent-tools/error-formatter';
-import type { ResolveObservationArtifactAdapter } from '../agent-tools/observation-artifact';
+import { resolveObservationArtifactAdapter } from '../agent-tools/observation-artifact';
 import { writeUIObservationRecord } from '../agent-tools/observation-record';
 import type {
   BaseAgent,
@@ -58,7 +58,6 @@ export function createRecordCliCommand(
   getAgent: (args?: Record<string, unknown>) => Promise<BaseAgent>,
   initArgSchema: ToolSchema = {},
   initArgCliMetadata?: ToolCliMetadata,
-  resolveObservationArtifacts?: ResolveObservationArtifactAdapter,
 ): ToolDefinition {
   return {
     name: 'record',
@@ -114,7 +113,7 @@ export function createRecordCliCommand(
             'record is not supported because this agent does not provide startObserving',
           );
         }
-        const observationArtifacts = resolveObservationArtifacts?.(agent);
+        const observationArtifacts = resolveObservationArtifactAdapter(agent);
         if (!observationArtifacts) {
           throw new Error(
             'record is not supported because this agent does not provide observation artifact persistence',

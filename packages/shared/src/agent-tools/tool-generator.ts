@@ -11,7 +11,7 @@ import {
   unwrapZodField,
 } from '../zod-schema-utils';
 import { getErrorMessage } from './error-formatter';
-import type { ResolveObservationArtifactAdapter } from './observation-artifact';
+import { resolveObservationArtifactAdapter } from './observation-artifact';
 import { readUIObservationRecord } from './observation-record';
 import type { ToolDefaults } from './tool-defaults';
 import type {
@@ -551,23 +551,6 @@ function mergeToolCliMetadata(
     : undefined;
 }
 
-function buildActOptions(
-  args: Record<string, unknown>,
-  toolDefaults: ToolDefaults,
-): Record<string, unknown> {
-  const actOptions: Record<string, unknown> = {
-    deepThink: false,
-    ...toolDefaults.act,
-  };
-  if (args.deepLocate !== undefined) {
-    actOptions.deepLocate = args.deepLocate;
-  }
-  if (args.deepThink !== undefined) {
-    actOptions.deepThink = args.deepThink;
-  }
-  return actOptions;
-}
-
 /**
  * Converts DeviceAction from actionSpace into ToolDefinition.
  * This is the core logic that removes need for hardcoded tool definitions
@@ -667,7 +650,6 @@ export function generateCommonTools(
   initArgSchema: ToolSchema = {},
   initArgCliMetadata?: ToolCliMetadata,
   toolDefaults: ToolDefaults = {},
-  resolveObservationArtifacts?: ResolveObservationArtifactAdapter,
 ): ToolDefinition[] {
   return [
     {
@@ -850,7 +832,8 @@ export function generateCommonTools(
               convertHttpImage2Base64: args.convertHttpImage2Base64,
             });
             if (observationRecord) {
-              const observationArtifacts = resolveObservationArtifacts?.(agent);
+              const observationArtifacts =
+                resolveObservationArtifactAdapter(agent);
               if (!observationArtifacts) {
                 throw new Error(
                   'assert --record is not supported because this agent cannot load UI observations',
