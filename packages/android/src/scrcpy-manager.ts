@@ -21,8 +21,8 @@ const DEFAULT_IDLE_TIMEOUT_MS = 30_000;
 
 // Timeouts and limits
 const MAX_KEYFRAME_WAIT_MS = 5_000;
-// Maximum time to wait for a post-barrier scrcpy frame before the adapter
-// falls back to the independent ADB screenshot path.
+// Maximum time to wait for a frame that crosses the active action barrier
+// before rebuilding the stream epoch.
 const FRESH_FRAME_TIMEOUT_MS = 300;
 const KEYFRAME_POLL_INTERVAL_MS = 200;
 const MAX_SCAN_BYTES = 1_000;
@@ -561,8 +561,8 @@ export class ScrcpyScreenshotManager {
 
   /**
    * Invalidate cached frames and require future packets to be captured after a
-   * newly sampled point on the device clock. This is used for both screenshot
-   * requests and completed input actions.
+   * newly sampled point on the device clock after a completed input or
+   * platform action.
    */
   async setFreshnessBarrier(reason: string): Promise<bigint> {
     const generation = ++this.frameFreshnessBarrierGeneration;
@@ -759,11 +759,40 @@ export class ScrcpyScreenshotManager {
     return this.decodeH264ToJpeg(Buffer.concat([frame.header, frame.data]));
   }
 
+  private getCachedKeyframeBuffer(): Buffer | null {
+    const frame = this.getLatestRawKeyframe();
+    return frame ? Buffer.concat([frame.header, frame.data]) : null;
+  }
+
+  private async waitForUsableKeyframe(timeoutMs: number): Promise<Buffer> {
+    return (
+      this.getCachedKeyframeBuffer() ??
+      (await this.waitForNextKeyframe(timeoutMs))
+    );
+  }
+
+  /**
+   * A new stream starts after the active action, so its first frame is a safe
+   * recovery boundary even when a static screen emitted no post-barrier frame
+   * on the previous stream.
+   */
+  private async rebuildStreamEpoch(): Promise<Buffer> {
+    const listeners = [...this.keyframeListeners];
+    await this.disconnect();
+    for (const listener of listeners) {
+      this.keyframeListeners.add(listener);
+    }
+    await this.ensureConnected();
+    await this.waitForKeyframe();
+    return this.waitForUsableKeyframe(MAX_KEYFRAME_WAIT_MS);
+  }
+
   /**
    * Get screenshot as JPEG.
-   * Arms a device-clock barrier and only accepts a frame captured after this
-   * request. A timeout is surfaced to the adapter so it can fall back to ADB;
-   * an older scrcpy cache is never used.
+   * Reuses the latest frame that already crossed the active action barrier.
+   * Screenshot requests do not advance the barrier because static screens may
+   * not emit another frame. If the active stream cannot cross the barrier, it
+   * is rebuilt once; only a failed rebuild is surfaced for ADB fallback.
    */
   async getScreenshotJpeg(): Promise<Buffer> {
     const perfStart = Date.now();
@@ -776,22 +805,18 @@ export class ScrcpyScreenshotManager {
     await this.waitForKeyframe();
     const spsWaitTime = Date.now() - t2;
 
-    const t3 = Date.now();
-    await this.setFreshnessBarrier('screenshot request');
-    const barrierTime = Date.now() - t3;
-
     const t4 = Date.now();
     let keyframeBuffer: Buffer;
+    let streamResetTime = 0;
     try {
-      keyframeBuffer = await this.waitForNextKeyframe(FRESH_FRAME_TIMEOUT_MS);
+      keyframeBuffer = await this.waitForUsableKeyframe(FRESH_FRAME_TIMEOUT_MS);
     } catch (error) {
-      if (this.frameFreshnessError) {
-        throw this.frameFreshnessError;
-      }
-      throw new Error(
-        `No scrcpy frame captured after the screenshot freshness barrier within ${FRESH_FRAME_TIMEOUT_MS}ms`,
-        { cause: error },
+      debugScrcpy(
+        `No frame crossed the active action barrier within ${FRESH_FRAME_TIMEOUT_MS}ms; rebuilding the stream epoch: ${this.frameFreshnessError ?? error}`,
       );
+      const resetStartedAt = Date.now();
+      keyframeBuffer = await this.rebuildStreamEpoch();
+      streamResetTime = Date.now() - resetStartedAt;
     }
     const frameWaitTime = Date.now() - t4;
 
@@ -807,7 +832,7 @@ export class ScrcpyScreenshotManager {
 
     const totalTime = Date.now() - perfStart;
     debugScrcpy(
-      `Performance: total=${totalTime}ms (connect=${connectTime}ms, spsWait=${spsWaitTime}ms, barrier=${barrierTime}ms, frameWait=${frameWaitTime}ms, decode=${decodeTime}ms)`,
+      `Performance: total=${totalTime}ms (connect=${connectTime}ms, spsWait=${spsWaitTime}ms, frameWait=${frameWaitTime}ms, streamReset=${streamResetTime}ms, decode=${decodeTime}ms)`,
     );
 
     return result;

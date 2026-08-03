@@ -375,7 +375,9 @@ describe('ScrcpyScreenshotManager', () => {
         }),
       );
 
-      const barrierPromise = manager.setFreshnessBarrier('screenshot request');
+      const barrierPromise = manager.setFreshnessBarrier(
+        'completed input action',
+      );
       expect(manager.getLatestRawKeyframe()).toBeNull();
       (manager as any).processFrame(dataPacket(0x02, 2_000_000n));
       expect(manager.getLatestRawKeyframe()).toBeNull();
@@ -409,23 +411,63 @@ describe('ScrcpyScreenshotManager', () => {
       });
     });
 
-    it('rejects a screenshot instead of falling back to any cached frame', async () => {
+    it('reuses a cached frame that crossed the active action barrier', async () => {
       const manager = new ScrcpyScreenshotManager({} as any);
       (manager as any).spsHeader = Buffer.from('header');
-      (manager as any).lastRawKeyframe = Buffer.from('stale');
+      (manager as any).lastRawKeyframe = Buffer.from('post-action');
 
       vi.spyOn(manager, 'ensureConnected').mockResolvedValue();
-      vi.spyOn(manager, 'setFreshnessBarrier').mockResolvedValue(1_000_000n);
+      vi.spyOn(manager as any, 'resetIdleTimer').mockImplementation(() => {});
+      const waitForNext = vi.spyOn(manager as any, 'waitForNextKeyframe');
+      const setBarrier = vi.spyOn(manager, 'setFreshnessBarrier');
+      const decode = vi
+        .spyOn(manager as any, 'decodeH264ToJpeg')
+        .mockResolvedValue(Buffer.from('jpeg'));
+
+      await expect(manager.getScreenshotJpeg()).resolves.toEqual(
+        Buffer.from('jpeg'),
+      );
+      expect(setBarrier).not.toHaveBeenCalled();
+      expect(waitForNext).not.toHaveBeenCalled();
+      expect(decode).toHaveBeenCalledWith(
+        Buffer.concat([Buffer.from('header'), Buffer.from('post-action')]),
+      );
+    });
+
+    it('rebuilds the stream epoch when no frame crosses the action barrier', async () => {
+      const manager = new ScrcpyScreenshotManager({} as any);
+      (manager as any).spsHeader = Buffer.from('old-header');
+      const listener = vi.fn();
+      manager.subscribeKeyframes(listener);
+
+      let connectCount = 0;
+      const ensureConnected = vi
+        .spyOn(manager, 'ensureConnected')
+        .mockImplementation(async () => {
+          connectCount += 1;
+          if (connectCount === 2) {
+            (manager as any).spsHeader = Buffer.from('new-header');
+            (manager as any).lastRawKeyframe = Buffer.from('current');
+          }
+        });
+      const disconnect = vi.spyOn(manager, 'disconnect');
       vi.spyOn(manager as any, 'resetIdleTimer').mockImplementation(() => {});
       vi.spyOn(manager as any, 'waitForNextKeyframe').mockRejectedValueOnce(
-        new Error('no current frame'),
+        new Error('no post-action frame'),
       );
-      const decode = vi.spyOn(manager as any, 'decodeH264ToJpeg');
+      const decode = vi
+        .spyOn(manager as any, 'decodeH264ToJpeg')
+        .mockResolvedValue(Buffer.from('jpeg'));
 
-      await expect(manager.getScreenshotJpeg()).rejects.toThrow(
-        /No scrcpy frame captured after the screenshot freshness barrier/,
+      await expect(manager.getScreenshotJpeg()).resolves.toEqual(
+        Buffer.from('jpeg'),
       );
-      expect(decode).not.toHaveBeenCalled();
+      expect(ensureConnected).toHaveBeenCalledTimes(2);
+      expect(disconnect).toHaveBeenCalledTimes(1);
+      expect((manager as any).keyframeListeners.has(listener)).toBe(true);
+      expect(decode).toHaveBeenCalledWith(
+        Buffer.concat([Buffer.from('new-header'), Buffer.from('current')]),
+      );
     });
   });
 

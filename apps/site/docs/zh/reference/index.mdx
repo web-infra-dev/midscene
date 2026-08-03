@@ -2145,7 +2145,7 @@ const device = new AndroidDevice(deviceId, {
 - `scrcpyConfig?: object` —— scrcpy 截图配置，默认关闭。
   - `enabled?: boolean` —— 是否启用 scrcpy 截图，默认 `false`。
   - `maxSize?: number` —— 视频流最大宽度或高度，默认 `0`，表示不缩放。
-  - `videoBitRate?: number` —— H.264 编码码率，单位为 bps，默认 `100000000`。
+  - `videoBitRate?: number` —— scrcpy H.264 编码码率，单位为 bps。仅当设备端点或 ADB Server host 包含字面量非回环 IP 时，Midscene 才默认使用 `4000000`；其他情况默认使用 `100000000`。端口号不参与判断，因此 `127.0.0.1:5555` 仍使用本地默认值；显式配置始终优先。
   - `idleTimeoutMs?: number` —— 空闲连接的断开时间，单位为毫秒，默认 `30000`；设为 `0` 时禁用。
 
 - `device.getScrcpyStatus()` —— 返回 `enabled`、`connected`、`lastError` 和 `retryAfter`。
