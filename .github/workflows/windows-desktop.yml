@@ -30,9 +30,6 @@ concurrency:
 
 jobs:
   windows-desktop:
-    concurrency:
-      group: ai-desktop-${{ github.event.pull_request.number || inputs.branch || github.ref }}
-      cancel-in-progress: false
     # The self-hosted Windows runner runs as a non-interactive service.
     runs-on: windows-2022
     timeout-minutes: 50
