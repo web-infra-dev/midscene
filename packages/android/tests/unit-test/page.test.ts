@@ -529,18 +529,79 @@ describe('AndroidDevice', () => {
       expect(actions.map((action) => action.name)).toContain('Terminate');
     });
 
-    it('moves the scrcpy PTS barrier after input and platform actions', async () => {
+    it('routes every built-in action surface through one scrcpy barrier', async () => {
       const markActionBarrier = vi.fn().mockResolvedValue(undefined);
       (device as any).scrcpyAdapter = { markActionBarrier };
       vi.spyOn(device as any, 'tapPoint').mockResolvedValue(undefined);
+      vi.spyOn(device as any, 'homeRaw').mockResolvedValue(undefined);
+      vi.spyOn(device as any, 'pullDownRaw').mockResolvedValue(undefined);
+      vi.spyOn(device as any, 'launchRaw').mockResolvedValue(device);
 
-      await device.inputPrimitives.pointer.tap({ x: 10, y: 20 });
-      const launchAction = device
-        .actionSpace()
-        .find((action) => action.name === 'Launch');
-      await launchAction!.call({ uri: 'com.android.settings' });
+      const cases: Array<[string, () => Promise<unknown>]> = [
+        [
+          'input primitive',
+          () => device.inputPrimitives.pointer.tap({ x: 10, y: 20 }),
+        ],
+        ['direct API', () => device.home()],
+        [
+          'pull action',
+          () =>
+            device
+              .actionSpace()
+              .find((action) => action.name === 'PullGesture')!
+              .call({ direction: 'down' }),
+        ],
+        [
+          'platform action',
+          () =>
+            device
+              .actionSpace()
+              .find((action) => action.name === 'Launch')!
+              .call({ uri: 'com.android.settings' }),
+        ],
+      ];
 
-      expect(markActionBarrier).toHaveBeenCalledTimes(2);
+      for (const [surface, invoke] of cases) {
+        markActionBarrier.mockClear();
+        await invoke();
+        expect(markActionBarrier, surface).toHaveBeenCalledOnce();
+      }
+    });
+
+    it('moves one scrcpy barrier for a composite action', async () => {
+      const markActionBarrier = vi.fn().mockResolvedValue(undefined);
+      const dragPoint = vi
+        .spyOn(device as any, 'dragPoint')
+        .mockResolvedValue(undefined);
+      (device as any).scrcpyAdapter = { markActionBarrier };
+
+      await device.inputPrimitives.touch.swipe(
+        { x: 100, y: 800 },
+        { x: 100, y: 200 },
+        { repeat: 3 },
+      );
+
+      expect(dragPoint).toHaveBeenCalledTimes(3);
+      expect(markActionBarrier).toHaveBeenCalledOnce();
+    });
+
+    it('moves one scrcpy barrier when a composite action partially fails', async () => {
+      const actionError = new Error('second swipe failed');
+      const markActionBarrier = vi.fn().mockResolvedValue(undefined);
+      vi.spyOn(device as any, 'dragPoint')
+        .mockResolvedValueOnce(undefined)
+        .mockRejectedValueOnce(actionError);
+      (device as any).scrcpyAdapter = { markActionBarrier };
+
+      await expect(
+        device.inputPrimitives.touch.swipe(
+          { x: 100, y: 800 },
+          { x: 100, y: 200 },
+          { repeat: 2 },
+        ),
+      ).rejects.toBe(actionError);
+
+      expect(markActionBarrier).toHaveBeenCalledOnce();
     });
   });
 
