@@ -529,7 +529,7 @@ describe('AndroidDevice', () => {
       expect(actions.map((action) => action.name)).toContain('Terminate');
     });
 
-    it('routes every built-in action surface through one scrcpy barrier', async () => {
+    it('routes representative built-in action surfaces through one scrcpy barrier', async () => {
       const markActionBarrier = vi.fn().mockResolvedValue(undefined);
       (device as any).scrcpyAdapter = { markActionBarrier };
       vi.spyOn(device as any, 'tapPoint').mockResolvedValue(undefined);
