@@ -84,6 +84,7 @@ function findExtensionCapableBrowser(): string {
 export async function launchChromeWithExtension(
   extensionPath: string,
   url: string,
+  options: { forceDarkMode?: boolean } = {},
 ): Promise<void> {
   if (!isHeadlessLinux()) {
     throw new Error('Only supports headless Linux CI');
@@ -103,6 +104,7 @@ export async function launchChromeWithExtension(
     `--remote-debugging-port=${CDP_PORT}`,
     '--window-size=1920,1080',
     '--start-maximized',
+    ...(options.forceDarkMode ? ['--force-dark-mode'] : []),
     url,
   ];
 
