@@ -28,7 +28,9 @@ runs:
           xvfb
           x11-xserver-utils
           imagemagick
+          fontconfig
           fonts-liberation
+          fonts-wqy-zenhei
           libasound2
           libatk-bridge2.0-0
           libdrm2
@@ -62,19 +64,26 @@ runs:
 
         if [ "${#missing[@]}" -eq 0 ]; then
           echo "All headless browser system dependencies are preinstalled"
-          exit 0
+        else
+          echo "Installing missing packages: ${missing[*]}"
+          sudo apt-get update
+          sudo env DEBIAN_FRONTEND=noninteractive apt-get install \
+            --yes \
+            --no-install-recommends \
+            "${missing[@]}"
         fi
 
-        echo "Installing missing packages: ${missing[*]}"
-        sudo apt-get update
-        sudo env DEBIAN_FRONTEND=noninteractive apt-get install \
-          --yes \
-          --no-install-recommends \
-          "${missing[@]}"
+        chinese_fonts="$(fc-list :lang=zh family)"
+        if [ -z "$chinese_fonts" ]; then
+          echo "::error::No Chinese font is available to the browser"
+          exit 1
+        fi
+        echo "Chinese browser fonts:"
+        printf '%s\n' "$chinese_fonts"
 
     - name: Setup Puppeteer browser
       id: browser
       uses: ./.github/actions/setup-puppeteer-browser
       with:
         package-directory: ${{ inputs.package-directory }}
-        expose-as-chromium: "true"
+        expose-as-chromium: 'true'
