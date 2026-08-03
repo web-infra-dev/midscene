@@ -439,6 +439,7 @@ describe('ScrcpyScreenshotManager', () => {
       (manager as any).spsHeader = Buffer.from('old-header');
       const listener = vi.fn();
       manager.subscribeKeyframes(listener);
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
       let connectCount = 0;
       const ensureConnected = vi
@@ -465,6 +466,18 @@ describe('ScrcpyScreenshotManager', () => {
       expect(ensureConnected).toHaveBeenCalledTimes(2);
       expect(disconnect).toHaveBeenCalledTimes(1);
       expect((manager as any).keyframeListeners.has(listener)).toBe(true);
+      expect(warn).toHaveBeenCalledWith(
+        '[Midscene]',
+        expect.stringContaining(
+          'scrcpyConfig.videoBitRate to 4_000_000 (4 Mbps)',
+        ),
+      );
+      expect(warn).toHaveBeenCalledWith(
+        '[Midscene]',
+        expect.stringContaining(
+          'Current videoBitRate: 100000000 bps (100 Mbps)',
+        ),
+      );
       expect(decode).toHaveBeenCalledWith(
         Buffer.concat([Buffer.from('new-header'), Buffer.from('current')]),
       );

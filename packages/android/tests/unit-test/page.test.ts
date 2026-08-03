@@ -1062,6 +1062,36 @@ Stdout:
       expect(forceScreenshotSpy).not.toHaveBeenCalled();
     });
 
+    it('should recommend a network-aware videoBitRate when scrcpy falls back to ADB', async () => {
+      const adapter = (device as any).getScrcpyAdapter();
+      vi.spyOn(adapter, 'isEnabled').mockReturnValue(true);
+      vi.spyOn(adapter, 'screenshotBase64').mockRejectedValue(
+        new Error('stream recovery failed'),
+      );
+      vi.spyOn(device as any, 'getDevicePhysicalInfo').mockResolvedValue({
+        physicalWidth: 1080,
+        physicalHeight: 1920,
+        dpr: 1,
+        orientation: 0,
+      });
+      const mockBuffer = createValidPngBuffer();
+      mockAdb.takeScreenshot.mockResolvedValue(mockBuffer);
+      vi.spyOn(ImgUtils, 'createImgBase64ByFormat').mockReturnValue(
+        `data:image/png;base64,${mockBuffer.toString('base64')}`,
+      );
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      await expect(device.screenshotBase64()).resolves.toContain(
+        mockBuffer.toString('base64'),
+      );
+      expect(warn).toHaveBeenCalledWith(
+        '[Midscene]',
+        expect.stringContaining(
+          'scrcpyConfig.videoBitRate to 4_000_000 (4 Mbps)',
+        ),
+      );
+    });
+
     it('should fall back to screencap and pull if takeScreenshot fails', async () => {
       mockAdb.takeScreenshot.mockRejectedValue(new Error('fail'));
       const mockBuffer = createValidPngBuffer();

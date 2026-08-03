@@ -30,7 +30,11 @@ const CONNECTION_WAIT_MS = 1_000;
 const MAX_SERVER_OUTPUT_LINES = 100;
 const SERVER_OUTPUT_DRAIN_TIMEOUT_MS = 500;
 const FRAME_FRESHNESS_WARN_INTERVAL_MS = 5_000;
+const TRANSPORT_BACKLOG_WARN_INTERVAL_MS = 5_000;
 const DEVICE_UPTIME_COMMAND = ['dumpsys', 'power'] as const;
+
+export const SCRCPY_VIDEO_BIT_RATE_NETWORK_HINT =
+  'The appropriate scrcpy video bitrate depends on network conditions. For constrained remote links, consider setting scrcpyConfig.videoBitRate to 4_000_000 (4 Mbps) as a starting point, and lower it further if backlog persists.';
 
 // Busy-loop detection thresholds
 const BUSY_LOOP_WINDOW_MS = 1_000; // Sliding window for measuring frame rate
@@ -179,6 +183,9 @@ export class ScrcpyScreenshotManager {
   private lastFramePtsUs: bigint | null = null;
   private frameFreshnessError: Error | null = null;
   private lastFrameFreshnessWarningAt = 0;
+  // Keep this across stream epoch rebuilds so repeated recovery attempts do
+  // not emit the same network-tuning hint for every screenshot.
+  private lastTransportBacklogWarningAt = 0;
 
   constructor(adb: Adb, options: ScrcpyScreenshotOptions = {}) {
     this.adb = adb;
@@ -668,6 +675,24 @@ export class ScrcpyScreenshotManager {
     }
   }
 
+  private warnTransportBacklog(error: unknown): void {
+    const now = Date.now();
+    if (
+      now - this.lastTransportBacklogWarningAt <
+      TRANSPORT_BACKLOG_WARN_INTERVAL_MS
+    ) {
+      return;
+    }
+
+    const cause = this.frameFreshnessError ?? error;
+    const causeMessage = cause instanceof Error ? cause.message : String(cause);
+    const currentBitRateMbps = this.options.videoBitRate / 1_000_000;
+    warnScrcpy(
+      `No scrcpy frame crossed the active action barrier within ${FRESH_FRAME_TIMEOUT_MS}ms; rebuilding the stream epoch. This may indicate transport backlog. ${SCRCPY_VIDEO_BIT_RATE_NETWORK_HINT} Current videoBitRate: ${this.options.videoBitRate} bps (${currentBitRateMbps} Mbps).\nError: ${causeMessage}`,
+    );
+    this.lastTransportBacklogWarningAt = now;
+  }
+
   private estimateFrameTiming(
     packetPtsUs: bigint | undefined,
     receivedAtUs: bigint,
@@ -811,9 +836,7 @@ export class ScrcpyScreenshotManager {
     try {
       keyframeBuffer = await this.waitForUsableKeyframe(FRESH_FRAME_TIMEOUT_MS);
     } catch (error) {
-      debugScrcpy(
-        `No frame crossed the active action barrier within ${FRESH_FRAME_TIMEOUT_MS}ms; rebuilding the stream epoch: ${this.frameFreshnessError ?? error}`,
-      );
+      this.warnTransportBacklog(error);
       const resetStartedAt = Date.now();
       keyframeBuffer = await this.rebuildStreamEpoch();
       streamResetTime = Date.now() - resetStartedAt;
