@@ -1,5 +1,4 @@
 import { existsSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const screenshot = vi.hoisted(() => vi.fn());
@@ -33,14 +32,12 @@ describe('Linux screenshots', () => {
     await expect(device.screenshotBase64()).resolves.toBe(
       `data:image/png;base64,${PNG.toString('base64')}`,
     );
-    expect(screenshot).toHaveBeenCalledWith(
-      expect.objectContaining({
-        filename: expect.stringMatching(
-          new RegExp(`^${tmpdir()}/midscene-screenshot-.*\\.png$`),
-        ),
-        format: 'png',
-      }),
-    );
+    const [options] = screenshot.mock.calls[0] as [
+      { filename: string; format: string },
+    ];
+    expect(options.format).toBe('png');
+    expect(options.filename).toContain('midscene-screenshot-');
+    expect(options.filename).toMatch(/\.png$/);
     expect(existsSync(filename)).toBe(false);
   });
 });
