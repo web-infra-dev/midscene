@@ -1,7 +1,9 @@
 import { execFileSync, execSync, spawnSync } from 'node:child_process';
-import { chmodSync, existsSync, statSync } from 'node:fs';
+import { randomUUID } from 'node:crypto';
+import { chmodSync, existsSync, readFileSync, rmSync, statSync } from 'node:fs';
 import { createRequire } from 'node:module';
-import { dirname, resolve } from 'node:path';
+import { tmpdir } from 'node:os';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type {
   DeviceAction,
@@ -32,6 +34,24 @@ declare const __VERSION__: string;
 interface ScreenshotOptions {
   format: 'png' | 'jpg';
   screen?: string | number;
+}
+
+async function captureScreenshot(options: ScreenshotOptions): Promise<Buffer> {
+  if (process.platform !== 'linux') {
+    return screenshot(options);
+  }
+
+  // screenshot-desktop derives its Linux stdout maxBuffer from the screen's
+  // pixel count. PNGs can exceed that value on a 1920×1080 Chrome window,
+  // causing a screenshot failure before the image reaches the agent. Capture
+  // to a temporary file instead, which bypasses the stdout buffer entirely.
+  const filename = join(tmpdir(), `midscene-screenshot-${randomUUID()}.png`);
+  try {
+    await screenshot({ ...options, filename });
+    return readFileSync(filename);
+  } finally {
+    rmSync(filename, { force: true });
+  }
 }
 
 interface ScreenshotDisplay {
@@ -1152,7 +1172,7 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
     let lastRawMessage = '';
     for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
       try {
-        const buffer: Buffer = await screenshot(options);
+        const buffer = await captureScreenshot(options);
         if (attempt > 1) {
           debugDevice(`Screenshot succeeded on attempt ${attempt}`);
         }
