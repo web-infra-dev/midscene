@@ -145,8 +145,6 @@ export type IOSDeviceInputOpt = {
  * iOS device options
  */
 export type IOSDeviceOpt = {
-  /** Device ID (UDID) to connect to */
-  deviceId?: string;
   /**
    * Optional npm module path used to override the default iOS device implementation.
    * The target module must export an `IOSDevice` class (or default export) compatible with Midscene's iOS device interface.
@@ -164,8 +162,6 @@ export type IOSDeviceOpt = {
    * the external session during cleanup.
    */
   sessionId?: string;
-  /** Whether to use WebDriverAgent */
-  useWDA?: boolean;
   /** WDA MJPEG server port for real-time screen streaming (default: 9100) */
   wdaMjpegPort?: number;
   /**

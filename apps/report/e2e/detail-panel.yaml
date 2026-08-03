@@ -9,13 +9,13 @@ tasks:
       - sleep: 2000
       - ai: In the center task detail Replay/Screenshots/JSON View switcher, select "Screenshots" (not Replay or JSON View) and wait until screenshot thumbnails are displayed
       - sleep: 1500
-      - aiAssert: The center task detail area has the Screenshots option selected and shows UI screenshot images for the selected task
+      - aiAssert: In the center task detail panel, the selected tab among Replay, Screenshots, and JSON View is Screenshots. The content below the tabs shows UI screenshot images for the selected task.
 
   - name: view JSON data tab
     flow:
       - ai: In the center task detail area, click the "JSON View" option in the Replay/Screenshots/JSON View switcher and wait until the content changes to the text data view
       - sleep: 1000
-      - aiAssert: The center task detail area has the JSON View option selected and shows structured task details as text instead of screenshot images
+      - aiAssert: In the center task detail panel, the selected tab among Replay, Screenshots, and JSON View is JSON View. The content below the tabs shows structured task details as JSON text instead of UI screenshot images.
 
   - name: inspect detail side sections
     flow:
@@ -29,10 +29,9 @@ tasks:
       # heading or the type/status/start rows out of the viewport.
       - aiTap: Output section header in the right detail side panel
       - sleep: 500
-      - aiAssert: The Output section is collapsed; the Output header is still visible but the output content under it is hidden
       - aiTap: Param section header in the right detail side panel
       - sleep: 1000
-      - aiAssert: The Meta section is visible in the right detail side panel and shows metadata entries such as type, status, start, end, or total time; Param and Output are collapsed above it
+      - aiAssert: The Meta section is visible in the right detail side panel and shows entries such as type, status, start, end, or total time; the Param and Output headers remain visible above it, both sections are collapsed, and their content is hidden
 
   - name: open in playground button
     flow:

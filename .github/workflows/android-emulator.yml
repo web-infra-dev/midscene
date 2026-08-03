@@ -30,6 +30,7 @@ concurrency:
 
 jobs:
   android-emulator:
+    # The self-hosted Linux pool does not guarantee KVM passthrough.
     runs-on: ubuntu-22.04
     timeout-minutes: 55
     env:

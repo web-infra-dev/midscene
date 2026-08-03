@@ -13,7 +13,8 @@ permissions:
 
 jobs:
   main:
-    runs-on: ubuntu-latest
+    # The viewport e2e relies on the hosted image's Chrome window behavior.
+    runs-on: ubuntu-22.04
     strategy:
       matrix:
         node-version: [24.13.0]

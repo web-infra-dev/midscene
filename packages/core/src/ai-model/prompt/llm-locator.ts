@@ -26,19 +26,18 @@ ${locateGroundingRules()}
 \`\`\`json
 {
   "${resultKey}": ${promptSpec.resultValueSchema},  // ${promptSpec.resultValueDescription}
-  "errors"?: string[]
+  "error"?: string
 }
 \`\`\`
 
 Fields:
 * \`${resultKey}\` is ${resultFieldDescription}
-* \`errors\` is an optional array of error messages (if any)
+* \`error\` is an optional error message (if any)
 
 For example, when an element is found:
 \`\`\`json
 {
-  "${resultKey}": ${exampleValueText},
-  "errors": []
+  "${resultKey}": ${exampleValueText}
 }
 \`\`\`
 
@@ -46,7 +45,7 @@ When no element is found:
 \`\`\`json
 {
   "${resultKey}": [],
-  "errors": ["I can see ..., but {some element} is not found. Use ${preferredLanguage}."]
+  "error": "I can see ..., but {some element} is not found. Use ${preferredLanguage}."
 }
 \`\`\`
 `;

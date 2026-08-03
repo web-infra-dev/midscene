@@ -77,7 +77,7 @@ export type PixelBbox = Bbox;
 export interface AIElementLocateResponse {
   bbox?: LocateResultBbox;
   point?: LocateResultPoint;
-  errors?: string[];
+  error?: string;
 }
 
 export interface AIDataExtractionResponse<DataDemand> {
@@ -129,6 +129,19 @@ export interface AgentDescribeElementAtPointResult {
 /**
  * context
  */
+
+export interface UiNode {
+  type: string;
+  attrs: Record<string, string | undefined>;
+  bounds: Rect;
+  children: UiNode[];
+}
+
+export interface UITreeSnapshot {
+  platform: 'android';
+  capturedAt: number;
+  root: UiNode;
+}
 
 export abstract class UIContext {
   /**

@@ -6,8 +6,8 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 import { pluginClientRedirects } from '@rspress/plugin-client-redirects';
 import { pluginLlms } from '@rspress/plugin-llms';
 import { pluginSitemap } from '@rspress/plugin-sitemap';
+import { getGitHubStars } from './scripts/github-stars';
 
-const GITHUB_STARS_FALLBACK = '13k+';
 const SITE_URL = 'https://midscenejs.com';
 const FAVICON_URL = `${SITE_URL}/favicon.png`;
 const OG_IMAGE_URL = `${SITE_URL}/og-image.png`;
@@ -40,44 +40,11 @@ const SEARCH_IDENTITY_JSON_LD = JSON.stringify({
   ],
 });
 
-async function fetchGithubStars(): Promise<string> {
-  const repo = 'web-infra-dev/midscene';
-  try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 5000);
-    const res = await fetch(`https://api.github.com/repos/${repo}`, {
-      headers: {
-        Accept: 'application/vnd.github+json',
-        'User-Agent': 'midscene-docs-build',
-        ...(process.env.GITHUB_TOKEN
-          ? { Authorization: `Bearer ${process.env.GITHUB_TOKEN}` }
-          : {}),
-      },
-      signal: controller.signal,
-    });
-    clearTimeout(timeout);
-    if (!res.ok) {
-      console.warn(
-        `[midscene-docs] GitHub stars fetch returned ${res.status}, using fallback ${GITHUB_STARS_FALLBACK}`,
-      );
-      return GITHUB_STARS_FALLBACK;
-    }
-    const data = (await res.json()) as { stargazers_count?: number };
-    const stars = data.stargazers_count;
-    if (typeof stars !== 'number' || stars <= 0) {
-      return GITHUB_STARS_FALLBACK;
-    }
-    return `${Math.floor(stars / 1000)}k+`;
-  } catch (err) {
-    console.warn(
-      `[midscene-docs] GitHub stars fetch failed (${(err as Error).message}), using fallback ${GITHUB_STARS_FALLBACK}`,
-    );
-    return GITHUB_STARS_FALLBACK;
-  }
-}
-
 export default defineConfig(async () => {
-  const githubStars = await fetchGithubStars();
+  const githubStars = await getGitHubStars({
+    strict: process.env.MIDSCENE_SITE_BUILD === 'true',
+    token: process.env.GITHUB_TOKEN,
+  });
   return {
     root: path.join(__dirname, 'docs'),
     title: 'Midscene - Vision-Driven UI Automation',

@@ -10,7 +10,13 @@ import type { ElementNode } from '@midscene/shared/extractor';
 import { getDebug } from '@midscene/shared/logger';
 import { _keyDefinitions } from '@midscene/shared/us-keyboard-layout';
 import { z } from 'zod';
-import type { ElementCacheFeature, Rect, Size, UIContext } from '../types';
+import type {
+  ElementCacheFeature,
+  Rect,
+  Size,
+  UIContext,
+  UITreeSnapshot,
+} from '../types';
 
 export interface FileChooserHandler {
   accept(files: string[]): Promise<void>;
@@ -180,6 +186,8 @@ export abstract class AbstractInterface {
   abstract rectMatchesCacheFeature?(
     feature: ElementCacheFeature,
   ): Promise<Rect>;
+
+  abstract getUITree?(): Promise<UITreeSnapshot>;
 
   abstract destroy?(): Promise<void>;
 
@@ -351,6 +359,38 @@ export const defineActionTap = (
     missingLocateMessage: 'Element not found, cannot tap',
     call: async (point) => {
       await tap(point);
+    },
+  });
+};
+
+export const registerFileChooserAcceptParamSchema = z.object({
+  files: z
+    .union([z.string(), z.array(z.string())])
+    .describe(
+      "File path(s) within the current aiAct call's fileChooserAllowedDir to use whenever a later action triggers a file chooser. fileChooserAllowedDir must be provided for this action. This setting replaces any previously registered file path(s).",
+    ),
+});
+export type RegisterFileChooserAcceptParam = {
+  files: string | string[];
+};
+
+export const defineActionRegisterFileChooserAccept = (
+  register: (files: string | string[]) => Promise<void>,
+): DeviceAction<RegisterFileChooserAcceptParam> => {
+  return defineAction<
+    typeof registerFileChooserAcceptParamSchema,
+    RegisterFileChooserAcceptParam
+  >({
+    name: 'RegisterFileChooserAccept',
+    description:
+      'Configure files for file chooser dialogs triggered by later actions in this aiAct',
+    interfaceAlias: 'registerFileChooserAccept',
+    paramSchema: registerFileChooserAcceptParamSchema,
+    sample: {
+      files: ['fixtures/document.pdf'],
+    },
+    call: async (param) => {
+      await register(param.files);
     },
   });
 };

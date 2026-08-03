@@ -56,6 +56,11 @@ export type ChatCompletionUnsupportedUserConfig =
 export interface ChatCompletionCallInput {
   intent?: TIntent;
   userConfig?: ChatCompletionCallUserConfig;
+  /**
+   * Number of preceding semantic parsing failures for this request.
+   * This is execution context, not part of the user's model configuration.
+   */
+  semanticRetryAttempt?: number;
   requiresOriginalImageDetail?: boolean;
   /**
    * Whether this call expects a JSON object response.
@@ -71,6 +76,7 @@ export interface ChatCompletionCallInput {
 export interface ChatCompletionCallContext {
   intent?: TIntent;
   userConfig: ChatCompletionCallUserConfig;
+  semanticRetryAttempt?: number;
   requiresOriginalImageDetail?: boolean;
   expectedJsonObjectResponse?: boolean;
   midsceneDefaults: MidsceneChatCompletionDefaults;
@@ -103,6 +109,7 @@ export interface ChatCompletionAdapter {
   resolveImageDetail(input: ChatCompletionCallInput): ImageDetail | undefined;
   extractContentAndReasoning: ExtractContentAndReasoning;
   useReasoningAsContentFallback: boolean;
+  replayRawAssistantMessage: boolean;
 }
 
 type ChatCompletionMessageExtraction =
@@ -128,6 +135,14 @@ export type ChatCompletionDefinition = ChatCompletionMessageExtraction & {
     input: ChatCompletionCallContext,
   ) => ImageDetail | undefined;
   useReasoningAsContentFallback?: boolean;
+  /**
+   * Replay the provider's original assistant message in later planning turns.
+   *
+   * Enable this only for model families whose API requires opaque response
+   * fields (for example, reasoning state or thought signatures) to be passed
+   * back unchanged. The default replays Midscene's normalized assistant text.
+   */
+  replayRawAssistantMessage?: boolean;
 };
 
 export type ImagePreprocessDefinition = Partial<ImagePreprocessPolicy>;

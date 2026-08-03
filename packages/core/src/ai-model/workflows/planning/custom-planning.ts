@@ -160,6 +160,7 @@ export async function runCustomPlanning<TParsed>(
     content,
     input,
   );
+  // UI-TARS and Auto-GLM define their own assistant history format.
   if (assistantContent) {
     options.conversationHistory.append({
       role: 'assistant',

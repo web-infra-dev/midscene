@@ -12,11 +12,16 @@ vi.setConfig({
 
 const modelConfig = globalModelConfigManager.getModelConfig('insight');
 const modelRuntime = getModelRuntime(modelConfig);
+const locateTestOptions = {
+  // Allow three 180s model attempts plus two 60s retry intervals.
+  timeout: 12 * 60 * 1000,
+  retry: 0,
+};
 
 describe.skipIf(!modelConfig.modelFamily)(
   'service locate with deep think',
   () => {
-    test('service locate with search area', async () => {
+    test('service locate with search area', locateTestOptions, async () => {
       const { context } = await getContextFromFixture('taobao');
 
       const service = new Service(context);
@@ -31,36 +36,40 @@ describe.skipIf(!modelConfig.modelFamily)(
       expect(element).toBeDefined();
 
       await sleep(3000);
-    }, 300000); // 5 minutes timeout
+    });
 
-    test('service locate with search area - deep think', async () => {
-      const { context } = await getContextFromFixture('taobao');
+    test(
+      'service locate with search area - deep think',
+      locateTestOptions,
+      async () => {
+        const { context } = await getContextFromFixture('taobao');
 
-      const service = new Service(context);
-      const { element, rect } = await service.locate(
-        {
-          prompt: '顶部购物车 icon',
-          deepLocate: true,
-        },
-        {},
-        modelRuntime,
-      );
-      expect(element).toBeDefined();
-      expect(rect).toBeDefined();
-      expect(
-        distance(
+        const service = new Service(context);
+        const { element, rect } = await service.locate(
           {
-            x: element!.rect.left,
-            y: element!.rect.top,
+            prompt: '顶部购物车 icon',
+            deepLocate: true,
           },
-          {
-            x: rect!.left,
-            y: rect!.top,
-          },
-        ),
-      ).toBeLessThan(100);
-      await sleep(3000);
-    }, 300000); // 5 minutes timeout
+          {},
+          modelRuntime,
+        );
+        expect(element).toBeDefined();
+        expect(rect).toBeDefined();
+        expect(
+          distance(
+            {
+              x: element!.rect.left,
+              y: element!.rect.top,
+            },
+            {
+              x: rect!.left,
+              y: rect!.top,
+            },
+          ),
+        ).toBeLessThan(100);
+        await sleep(3000);
+      },
+    );
   },
 );
 

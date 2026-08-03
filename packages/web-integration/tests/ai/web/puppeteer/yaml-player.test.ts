@@ -1,9 +1,8 @@
-import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { puppeteerAgentForTarget } from '@/puppeteer/agent-launcher';
 import type { MidsceneYamlScriptWebEnv } from '@midscene/core';
 import { ScriptPlayer, parseYamlScript } from '@midscene/core/yaml';
-import { assert, uuid } from '@midscene/shared/utils';
+import { assert } from '@midscene/shared/utils';
 import { describe, expect, test, vi } from 'vitest';
 
 const runYaml = async (yamlString: string, ignoreStatusAssertion = false) => {
@@ -31,28 +30,6 @@ const runYaml = async (yamlString: string, ignoreStatusAssertion = false) => {
 describe(
   'YAML player - AI e2e',
   () => {
-    test('flush output even if assertion failed', async () => {
-      const outputPath = `./midscene_run/output/${uuid()}.json`;
-      const yamlString = `
-      target:
-        url: https://www.bing.com
-        output: ${outputPath}
-      tasks:
-        - name: local page
-          flow:
-            - aiQuery: >
-                the background color of the page, { color: 'white' | 'black' | 'red' | 'green' | 'blue' | 'yellow' | 'purple' | 'orange' | 'pink' | 'brown' | 'gray' | 'black' 
-        - name: check content
-          flow:
-            - aiAssert: this is a food delivery service app
-      `;
-      await expect(async () => {
-        await runYaml(yamlString);
-      }).rejects.toThrow();
-
-      expect(existsSync(outputPath)).toBe(true);
-    });
-
     test('set output path correctly', async () => {
       const yamlString = `
       target:

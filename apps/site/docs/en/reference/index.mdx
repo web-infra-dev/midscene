@@ -136,6 +136,7 @@ function aiAct(
     deepThink?: 'unset' | true | false;
     deepLocate?: boolean;
     fileChooserAccept?: string | string[];
+    fileChooserAllowedDir?: string;
     abortSignal?: AbortSignal;
     context?: string;
   },
@@ -151,10 +152,11 @@ function ai(prompt: string, options?: Object): Promise<string | undefined>; // s
     - `deepThink?: 'unset' | true | false` — Controls the planning implementation used by Midscene when `aiAct` performs planning. When enabled, `aiAct` focuses more on task decomposition and separates task planning from UI element locating into different model calls. For compatibility, `'unset'` is accepted and treated the same as `false`. [Learn more about deepThink](../model-strategy#about-the-deepthink-option-in-aiact).
     - `deepLocate?: boolean` — Whether to enable [Deep Locate](#deep-locate-deeplocate). Default: `false`.
     - `context?: string` — Additional context for this call. See [Per-call context](#per-call-context).
-    - `fileChooserAccept?: string | string[]` — When a file chooser pops up, specify the file path(s) to accept. Can be a single file path or an array of paths. Only available in web pages (Playwright, Puppeteer, or Chrome extension Bridge mode).
+    - `fileChooserAccept?: string | string[]` — When a file chooser pops up, specify the file path(s) to accept. Can be a single file path or an array of paths. Only available in web pages (Playwright, Puppeteer, or Chrome extension Bridge mode). This option is not constrained by `fileChooserAllowedDir`.
       - **Note**: If the file input does not support multiple files (no `multiple` attribute) but multiple files are provided, an error will be thrown.
       - **Note**: If a file chooser is triggered but no `fileChooserAccept` parameter is provided, the file chooser will be ignored and the page can continue to operate normally.
       - **Note**: Chrome extension Bridge mode does not support directory upload inputs (`webkitdirectory` / `directory`). Use Playwright for directory uploads.
+    - `fileChooserAllowedDir?: string` — Explicitly authorizes the directory this `aiAct` call may access for prompt-driven file uploads. Without it, model-planned file uploads are rejected. Relative paths in the prompt are resolved against this directory and then validated; absolute paths are validated directly against this directory. Symlinks located within this directory are also allowed. We recommend using the test case's `fixtures` directory to reduce the risk of sensitive-file uploads caused by AI hallucinations or page prompt injection.
     - `abortSignal?: AbortSignal` — Signal used to cancel the `aiAct` call. When aborted, Midscene stops the planning loop and throws an error. Use it to implement timeouts or user-initiated cancellation.
 
 - Return value:
@@ -185,6 +187,23 @@ await agent.aiAct('Fill in the form and submit', {
 // For complex tasks, you can enable the deepThink parameter
 await agent.aiAct('Complete the GitHub account registration form. The region must be set to "Canada". Make sure no fields on the form are missed and all form fields pass validation. Just fill in the form fields without actually submitting the registration. Finally, return the actual content filled in the form fields', { deepThink: true });
 ```
+
+##### Upload files from an `aiAct` prompt
+
+To upload files mentioned in an `aiAct` prompt, explicitly pass `fileChooserAllowedDir` for that call. We recommend using the test case's `fixtures` directory. Midscene resolves both relative and absolute paths before validating that they stay within the selected directory.
+
+```typescript
+const agent = new PlaywrightAgent(page);
+
+await agent.aiAct(
+  'First click the "Upload avatar" button and upload avatar.png. Then click the "Upload cover" button and upload cover.png. After uploading, confirm that the avatar displays a cat and the cover displays a beach.',
+  { fileChooserAllowedDir: './fixtures' },
+);
+```
+
+For multiple uploads in one `aiAct`, name each relative path together with the action that should upload it. A later path replaces the previously configured file chooser path(s). Do not combine prompt-specified paths with `options.fileChooserAccept`: a later file chooser configuration generated during planning can override the option value.
+
+This capability is available for web pages (Playwright, Puppeteer, and Chrome extension Bridge mode). Use `fileChooserAllowedDir` when fixtures live outside the current working directory or when the same prompt must work in local and CI environments.
 
 :::info
 
@@ -423,14 +442,14 @@ function aiKeyboardPress(
   **Recommended usage:**
   - `locate: string | object` — A natural language description of the element to press the key on, or [prompting with images](#prompting-with-images).
   - `opt: object` — Configuration:
-    - `keyName: string` — **Required.** Keyboard key to press, such as `'Enter'`, `'Tab'`, or `'Escape'`. Key combinations are not supported. See the [complete list of supported key names](https://github.com/web-infra-dev/midscene/blob/main/packages/shared/src/us-keyboard-layout.ts).
+    - `keyName: string` — **Required.** Keyboard key to press, such as `'Enter'`, `'Tab'`, or `'Escape'`. Web and Computer devices also support modifier shortcuts, such as `'Control+A'` and `'Shift+Enter'`; use `'+'` to join the keys. The built-in Android, iOS, and Harmony devices support single keys only. Support in custom devices depends on their implementation. See the [complete list of supported key names](https://github.com/web-infra-dev/midscene/blob/main/packages/shared/src/us-keyboard-layout.ts).
     - `deepLocate?: boolean` — Whether to enable [Deep Locate](#deep-locate-deeplocate). The deprecated `deepThink` name remains supported. Default: `false`.
     - `context?: string` — Additional context for this call. See [Per-call context](#per-call-context).
     - `xpath?: string` — XPath for the target element. Midscene tries the XPath before consulting the cache or AI model. Default: `undefined`.
     - `cacheable?: boolean` — Whether this call can use the [cache](../caching.mdx). Default: `true`.
 
   **Backward-compatible usage (deprecated but still supported):**
-  - `key: string` — Keyboard key to press, such as `'Enter'`, `'Tab'`, or `'Escape'`. Key combinations are not supported.
+  - `key: string` — Keyboard key to press, such as `'Enter'`, `'Tab'`, or `'Escape'`.
   - `locate?: string | object` — Optional natural-language description of the element, or [prompting with images](#prompting-with-images).
   - `options?: object` — Optional configuration. The type is the same as the `opt` type in the recommended usage.
 
@@ -443,6 +462,7 @@ function aiKeyboardPress(
 ```typescript
 // Recommended
 await agent.aiKeyboardPress('The search input box', { keyName: 'Enter' });
+await agent.aiKeyboardPress('The search input box', { keyName: 'Control+A' });
 
 // Backward compatible (not recommended)
 await agent.aiKeyboardPress('Enter', 'The search input box');
@@ -2375,6 +2395,9 @@ const device = new IOSDevice({
 - `wdaPort?: number` — WebDriverAgent port. Default: `8100`.
 - `wdaHost?: string` — WebDriverAgent host. Default: `'localhost'`.
 - `iOSDeviceClassOverride?: string` — Optional npm module path that replaces the default `IOSDevice` when using `agentFromWebDriverAgent()` or iOS Playground. The module must export an `IOSDevice` class or a default class.
+- `sessionId?: string` — Existing WebDriverAgent session ID to reuse. When provided, Midscene skips creating a new WDA session. During cleanup, Midscene detaches from the externally supplied WebDriver session instead of deleting it.
+- `wdaMjpegPort?: number` — WDA MJPEG server port for real-time screen streaming. Default: `9100`.
+- `wdaMjpegFrameSource?: { enabled?: boolean }` — Use WDA's MJPEG stream as the continuous frame source for `agent.startObserving()`. Disabled by default; when disabled, observers fall back to sequential `screenshotBase64()` capture.
 - `autoDismissKeyboard?: boolean` — Whether to hide the on-screen keyboard after text input. Default: `true`.
 - `keyboardTypeDelay?: number` — Delay in milliseconds between keystrokes. When set, Midscene enters one character at a time through WDA's `/wda/keys` endpoint. Use this option when an input field drops characters during fast input.
 - `customActions?: DeviceAction<any>[]` — Additional device actions exposed to the agent.
@@ -2383,6 +2406,7 @@ const device = new IOSDevice({
 
 - Ensure Developer Mode is enabled and WDA can reach the device; use `iproxy` when forwarding ports from a real device.
 - Use `wdaHost`/`wdaPort` to target remote devices or custom WDA deployments.
+- For multi-device concurrency, use distinct `wdaPort` and `wdaMjpegPort` values for each device so WDA commands and MJPEG streams do not conflict.
 - For shared interaction methods, see [Shared Agent APIs](#interaction-methods).
 
 <a id="ios-device-destroy"></a>
@@ -2421,7 +2445,6 @@ const agent = new IOSAgent(device, {
 
 **iOS-specific options**
 
-- `customActions?: DeviceAction<any>[]` — Extend planning with actions defined via `defineAction`.
 - `appNameMapping?: Record<string, string>` — Map friendly app names to bundle identifiers. When you pass an app name to `launch(target)` or `terminate(bundleId)`, the agent will look up the bundle ID in this mapping. If no mapping is found, it will attempt to use `target` as-is. User-provided mappings take precedence over default mappings.
 - All other fields match the [common constructor parameters](#common-parameters), including `generateReport`, `reportFileName`, `aiActContext`, `modelConfig`, `cache`, `createOpenAIClient`, and `onTaskStartTip`.
 
@@ -2430,6 +2453,7 @@ const agent = new IOSAgent(device, {
 :::info
 
 - Use one agent per device connection.
+- `customActions` is an `IOSDevice` option, not an `IOSAgent` constructor option. `agentFromWebDriverAgent()` can accept it because the factory takes both `IOSAgentOpt` and `IOSDeviceOpt` in one object.
 - iOS-only helpers such as `launch`, `terminate`, and `runWdaRequest` are also exposed in YAML scripts. See [iOS platform-specific actions](../automate-with-scripts-in-yaml#the-ios-part).
 - For shared interaction methods, see [Shared Agent APIs](#interaction-methods).
 
@@ -2480,21 +2504,31 @@ await agent.terminate('com.apple.mobilesafari');
 Send raw requests to WebDriverAgent REST endpoints when you need low-level control.
 
 ```ts
-function runWdaRequest(
-  method: string,
-  endpoint: string,
-  data?: Record<string, any>,
-): Promise<any>;
+function runWdaRequest(params: {
+  method: 'GET' | 'POST' | 'DELETE' | 'PUT';
+  endpoint: string;
+  data?: Record<string, any>;
+}): Promise<any>;
 ```
 
-- `method: string` — HTTP verb (`GET`, `POST`, `DELETE`, etc.).
-- `endpoint: string` — WebDriverAgent endpoint path.
-- `data?: Record<string, any>` — Optional JSON body.
+- `params.method` — HTTP verb. Supported values: `GET`, `POST`, `DELETE`, and `PUT`.
+- `params.endpoint` — WebDriverAgent endpoint path.
+- `params.data` — Optional JSON body.
 
 ```ts
-const screen = await agent.runWdaRequest('GET', '/wda/screen');
-await agent.runWdaRequest('POST', '/session/test/wda/pressButton', { name: 'home' });
+const screen = await agent.runWdaRequest({
+  method: 'GET',
+  endpoint: '/wda/screen',
+});
+
+await agent.runWdaRequest({
+  method: 'POST',
+  endpoint: '/session/test/wda/pressButton',
+  data: { name: 'home' },
+});
 ```
+
+When calling `IOSDevice.runWdaRequest()` directly on the device instance, use the positional signature `runWdaRequest(method, endpoint, data?)`.
 
 <a id="ios-navigation-helpers"></a>
 

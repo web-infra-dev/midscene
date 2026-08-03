@@ -162,6 +162,7 @@ describe('AiExtractElementInfo prompt assembly', () => {
 
     expect(vi.mocked(callAI).mock.calls[0]?.[2]).toEqual({
       abortSignal: abortController.signal,
+      semanticRetryAttempt: 0,
     });
   });
 
@@ -188,6 +189,15 @@ describe('AiExtractElementInfo prompt assembly', () => {
     });
 
     expect(callAI).toHaveBeenCalledTimes(2);
+    expect(vi.mocked(callAI).mock.calls.map((call) => call[2])).toEqual([
+      expect.objectContaining({ semanticRetryAttempt: 0 }),
+      expect.objectContaining({ semanticRetryAttempt: 1 }),
+    ]);
+    const retryFeedback = vi.mocked(callAI).mock.calls[1]?.[0]?.at(-1);
+    expect(retryFeedback).toMatchObject({ role: 'user' });
+    expect(retryFeedback?.content).toEqual(
+      expect.stringContaining('Missing required field: data-json'),
+    );
     expect(result.parseResult.data).toEqual({ result: true });
   });
 });

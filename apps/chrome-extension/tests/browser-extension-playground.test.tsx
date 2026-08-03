@@ -35,6 +35,21 @@ vi.mock('@midscene/visualizer', () => ({
   },
 }));
 
+vi.mock('antd', () => ({
+  Empty: ({
+    image,
+    description,
+  }: {
+    image?: React.ReactNode;
+    description?: React.ReactNode;
+  }) => (
+    <div>
+      {image}
+      {description}
+    </div>
+  ),
+}));
+
 vi.mock('../../src/utils/chrome', () => ({
   getExtensionVersion: () => '1.0.0',
 }));
@@ -171,7 +186,7 @@ describe('BrowserExtensionPlayground', () => {
       emptyStateRoot.unmount();
       root.unmount();
     });
-  }, 10_000);
+  });
 
   it('keeps a stable storage namespace when switching browser tabs', async () => {
     const { BrowserExtensionPlayground } = await import(

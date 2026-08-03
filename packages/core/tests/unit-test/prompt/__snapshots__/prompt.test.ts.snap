@@ -396,19 +396,18 @@ You are an AI assistant that helps identify UI elements.
 \`\`\`json
 {
   "bbox": [number, number, number, number],  // 2d bounding box, should be [ymin, xmin, ymax, xmax] normalized to 0-1000 relative to the screenshot. Do NOT use pixel coordinates or screenshot width/height.
-  "errors"?: string[]
+  "error"?: string
 }
 \`\`\`
 
 Fields:
 * \`bbox\` is the bounding box of the element that matches the user's description
-* \`errors\` is an optional array of error messages (if any)
+* \`error\` is an optional error message (if any)
 
 For example, when an element is found:
 \`\`\`json
 {
-  "bbox": [100, 100, 200, 200],
-  "errors": []
+  "bbox": [100, 100, 200, 200]
 }
 \`\`\`
 
@@ -416,7 +415,7 @@ When no element is found:
 \`\`\`json
 {
   "bbox": [],
-  "errors": ["I can see ..., but {some element} is not found. Use English."]
+  "error": "I can see ..., but {some element} is not found. Use English."
 }
 \`\`\`
 "
@@ -444,19 +443,18 @@ You are an AI assistant that helps identify UI elements.
 \`\`\`json
 {
   "bbox": [number, number, number, number],  // 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates relative to the screenshot.
-  "errors"?: string[]
+  "error"?: string
 }
 \`\`\`
 
 Fields:
 * \`bbox\` is the bounding box of the element that matches the user's description
-* \`errors\` is an optional array of error messages (if any)
+* \`error\` is an optional error message (if any)
 
 For example, when an element is found:
 \`\`\`json
 {
-  "bbox": [100, 100, 200, 200],
-  "errors": []
+  "bbox": [100, 100, 200, 200]
 }
 \`\`\`
 
@@ -464,7 +462,7 @@ When no element is found:
 \`\`\`json
 {
   "bbox": [],
-  "errors": ["I can see ..., but {some element} is not found. Use English."]
+  "error": "I can see ..., but {some element} is not found. Use English."
 }
 \`\`\`
 "

@@ -112,59 +112,63 @@ describe('chrome extension settings and cross-mode tests', () => {
   });
 
   // ── Combined: three-mode rotation with Bridge UI checks ───────────────
-  it('cross-mode: Playground → Bridge (verify UI) → Recorder → Playground', async () => {
-    // 1. Switch to Bridge Mode
-    await agent.aiAct(
-      `In ${SIDE_PANEL}, find and click the hamburger menu icon (three horizontal lines "≡") at the top-left corner`,
-    );
-    await sleep(2000);
-    await agent.aiAct(
-      'In the dropdown menu that just appeared, click the menu item labeled "Bridge Mode"',
-    );
-    await sleep(3000);
-
-    // Verify Bridge Mode UI elements
-    try {
-      await agent.aiAssert(
-        `${SIDE_PANEL} shows Bridge mode UI with "Bridge Mode" title and a status indicator (Connected, Listening, or Stopped) at the bottom`,
-      );
-    } catch {
-      // Retry menu click
+  it(
+    'cross-mode: Playground → Bridge (verify UI) → Recorder → Playground',
+    { timeout: 16 * 60 * 1000, retry: 0 },
+    async () => {
+      // 1. Switch to Bridge Mode
       await agent.aiAct(
         `In ${SIDE_PANEL}, find and click the hamburger menu icon (three horizontal lines "≡") at the top-left corner`,
       );
       await sleep(2000);
-      await agent.aiAct('In the dropdown menu, click "Bridge Mode"');
+      await agent.aiAct(
+        'In the dropdown menu that just appeared, click the menu item labeled "Bridge Mode"',
+      );
+      await sleep(3000);
+
+      // Verify Bridge Mode UI elements
+      try {
+        await agent.aiAssert(
+          `${SIDE_PANEL} shows Bridge mode UI with "Bridge Mode" title and a status indicator (Connected, Listening, or Stopped) at the bottom`,
+        );
+      } catch {
+        // Retry menu click
+        await agent.aiAct(
+          `In ${SIDE_PANEL}, find and click the hamburger menu icon (three horizontal lines "≡") at the top-left corner`,
+        );
+        await sleep(2000);
+        await agent.aiAct('In the dropdown menu, click "Bridge Mode"');
+        await sleep(3000);
+        await agent.aiAssert(
+          `${SIDE_PANEL} shows Bridge mode UI with "Bridge Mode" title`,
+        );
+      }
+
+      // 2. Switch to Recorder Mode
+      await agent.aiAct(
+        `In ${SIDE_PANEL}, find and click the hamburger menu icon (three horizontal lines "≡") at the top-left corner`,
+      );
+      await sleep(2000);
+      await agent.aiAct(
+        'In the dropdown menu that just appeared, click the menu item labeled "Recorder"',
+      );
       await sleep(3000);
       await agent.aiAssert(
-        `${SIDE_PANEL} shows Bridge mode UI with "Bridge Mode" title`,
+        `${SIDE_PANEL} shows Recorder mode UI with a "New Recording" button`,
       );
-    }
 
-    // 2. Switch to Recorder Mode
-    await agent.aiAct(
-      `In ${SIDE_PANEL}, find and click the hamburger menu icon (three horizontal lines "≡") at the top-left corner`,
-    );
-    await sleep(2000);
-    await agent.aiAct(
-      'In the dropdown menu that just appeared, click the menu item labeled "Recorder"',
-    );
-    await sleep(3000);
-    await agent.aiAssert(
-      `${SIDE_PANEL} shows Recorder mode UI with a "New Recording" button`,
-    );
-
-    // 3. Switch back to Playground
-    await agent.aiAct(
-      `In ${SIDE_PANEL}, find and click the hamburger menu icon (three horizontal lines "≡") at the top-left corner`,
-    );
-    await sleep(2000);
-    await agent.aiAct(
-      'In the dropdown menu that just appeared, click the menu item labeled "Playground"',
-    );
-    await sleep(3000);
-    await agent.aiAssert(
-      `${SIDE_PANEL} shows Playground UI with action type buttons like "Action" and "Query"`,
-    );
-  });
+      // 3. Switch back to Playground
+      await agent.aiAct(
+        `In ${SIDE_PANEL}, find and click the hamburger menu icon (three horizontal lines "≡") at the top-left corner`,
+      );
+      await sleep(2000);
+      await agent.aiAct(
+        'In the dropdown menu that just appeared, click the menu item labeled "Playground"',
+      );
+      await sleep(3000);
+      await agent.aiAssert(
+        `${SIDE_PANEL} shows Playground UI with action type buttons like "Action" and "Query"`,
+      );
+    },
+  );
 });

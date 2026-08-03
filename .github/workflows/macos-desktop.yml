@@ -30,6 +30,7 @@ concurrency:
 
 jobs:
   macos-desktop:
+    # The self-hosted macOS runner is ARM and has no interactive GUI session.
     runs-on: macos-15-intel
     timeout-minutes: 50
     env:

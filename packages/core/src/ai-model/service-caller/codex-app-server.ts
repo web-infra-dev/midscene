@@ -57,17 +57,25 @@ type CodexTextInput = {
   text_elements: any[];
 };
 
+// Codex app-server v2 accepts `detail` on both image input variants:
+// https://github.com/openai/codex/blob/main/codex-rs/app-server-protocol/src/protocol/v2/turn.rs#L276-L329
+// Codex has also reported `original` as a supported value in production:
+// https://github.com/openai/codex/issues/24797
 type CodexImageInput = {
   type: 'image';
   url: string;
+  detail?: CodexImageDetail;
 };
 
 type CodexLocalImageInput = {
   type: 'localImage';
   path: string;
+  detail?: CodexImageDetail;
 };
 
 type CodexTurnInput = CodexTextInput | CodexImageInput | CodexLocalImageInput;
+
+type CodexImageDetail = 'auto' | 'low' | 'high' | 'original';
 
 type CodexTurnResult = {
   content: string;
@@ -147,6 +155,14 @@ const toNonEmptyString = (value: unknown): string | undefined => {
   return trimmed || undefined;
 };
 
+const toCodexImageDetail = (value: unknown): CodexImageDetail | undefined =>
+  value === 'auto' ||
+  value === 'low' ||
+  value === 'high' ||
+  value === 'original'
+    ? value
+    : undefined;
+
 export const normalizeCodexLocalImagePath = (
   imageUrl: string,
   platform: NodeJS.Platform = process.platform,
@@ -214,6 +230,7 @@ const extractTextFromMessage = (
 
 const extractImageInputs = (
   message: ChatCompletionMessageParam,
+  imageDetailOverride?: CodexImageDetail,
 ): Array<CodexImageInput | CodexLocalImageInput> => {
   const content = (message as any).content;
   if (!Array.isArray(content)) return [];
@@ -229,6 +246,11 @@ const extractImageInputs = (
         : partType === 'input_image'
           ? toNonEmptyString(part.image_url || part.url)
           : undefined;
+    const imageDetail =
+      imageDetailOverride ??
+      toCodexImageDetail(
+        partType === 'image_url' ? part.image_url?.detail : part.detail,
+      );
 
     if (!imageUrl) continue;
 
@@ -245,6 +267,7 @@ const extractImageInputs = (
       inputs.push({
         type: 'localImage',
         path,
+        ...(imageDetail ? { detail: imageDetail } : {}),
       });
       continue;
     }
@@ -252,6 +275,7 @@ const extractImageInputs = (
     inputs.push({
       type: 'image',
       url: imageUrl,
+      ...(imageDetail ? { detail: imageDetail } : {}),
     });
   }
 
@@ -265,9 +289,7 @@ export const resolveCodexReasoningEffort = ({
   reasoningEnabled?: TModelReasoningEnabled;
   modelConfig: IModelConfig;
 }): CodexReasoningEffort | undefined => {
-  if (reasoningEnabled === true) return 'high';
-  if (reasoningEnabled === false) return 'none';
-  if (reasoningEnabled === 'default') return undefined;
+  if (reasoningEnabled !== true) return 'none';
 
   const normalized = modelConfig.reasoningEffort?.trim().toLowerCase();
   if (
@@ -281,11 +303,12 @@ export const resolveCodexReasoningEffort = ({
     return normalized;
   }
 
-  return 'none';
+  return 'medium';
 };
 
 export const buildCodexTurnPayloadFromMessages = (
   messages: ChatCompletionMessageParam[],
+  imageDetailOverride?: CodexImageDetail,
 ): {
   developerInstructions?: string;
   input: CodexTurnInput[];
@@ -311,7 +334,7 @@ export const buildCodexTurnPayloadFromMessages = (
     }
 
     if (role === 'user') {
-      imageInputs.push(...extractImageInputs(message));
+      imageInputs.push(...extractImageInputs(message, imageDetailOverride));
     }
   }
 
@@ -399,6 +422,7 @@ class CodexAppServerConnection {
     onChunk,
     reasoningEnabled,
     abortSignal,
+    imageDetail,
   }: {
     messages: ChatCompletionMessageParam[];
     modelConfig: IModelConfig;
@@ -406,14 +430,17 @@ class CodexAppServerConnection {
     onChunk?: StreamingCallback;
     reasoningEnabled?: TModelReasoningEnabled;
     abortSignal?: AbortSignal;
+    imageDetail?: CodexImageDetail;
   }): Promise<CodexTurnResult> {
     const startTime = Date.now();
     const timeoutMs = modelConfig.timeout || CODEX_DEFAULT_TIMEOUT_MS;
     const deadlineAt = Date.now() + timeoutMs;
     const isStreaming = !!(stream && onChunk);
 
-    const { developerInstructions, input } =
-      buildCodexTurnPayloadFromMessages(messages);
+    const { developerInstructions, input } = buildCodexTurnPayloadFromMessages(
+      messages,
+      imageDetail,
+    );
     const effort = resolveCodexReasoningEffort({
       reasoningEnabled,
       modelConfig,
@@ -934,6 +961,7 @@ class CodexAppServerConnectionManager {
     onChunk,
     reasoningEnabled,
     abortSignal,
+    imageDetail,
   }: {
     messages: ChatCompletionMessageParam[];
     modelConfig: IModelConfig;
@@ -941,6 +969,7 @@ class CodexAppServerConnectionManager {
     onChunk?: StreamingCallback;
     reasoningEnabled?: TModelReasoningEnabled;
     abortSignal?: AbortSignal;
+    imageDetail?: CodexImageDetail;
   }): Promise<CodexTurnResult> {
     return this.runner.run(async () => {
       const connection = await this.getConnection();
@@ -952,6 +981,7 @@ class CodexAppServerConnectionManager {
           onChunk,
           reasoningEnabled,
           abortSignal,
+          imageDetail,
         });
       } catch (error) {
         if (connection.isClosed() || !isAbortError(error)) {
@@ -993,6 +1023,7 @@ export async function callAIWithCodexAppServer(
     onChunk?: StreamingCallback;
     reasoningEnabled?: TModelReasoningEnabled;
     abortSignal?: AbortSignal;
+    imageDetail?: CodexImageDetail;
   },
 ): Promise<CodexTurnResult> {
   if (ifInBrowser) {
@@ -1008,6 +1039,7 @@ export async function callAIWithCodexAppServer(
     onChunk: options?.onChunk,
     reasoningEnabled: options?.reasoningEnabled,
     abortSignal: options?.abortSignal,
+    imageDetail: options?.imageDetail,
   });
 }
 

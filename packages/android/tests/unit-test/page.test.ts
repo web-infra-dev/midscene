@@ -185,6 +185,252 @@ describe('AndroidDevice', () => {
     });
   });
 
+  describe('UI tree', () => {
+    const hierarchy = (children: string) => `<?xml version="1.0"?>
+<hierarchy rotation="0">
+  <node class="android.widget.FrameLayout" bounds="[0,0][400,800]">
+    ${children}
+  </node>
+</hierarchy>`;
+
+    const mockUiautomatorHierarchy = (xml: string) => {
+      mockAdb.shell.mockImplementation(async (command) => {
+        if (String(command) === 'cat /sdcard/midscene_window_dump.xml') {
+          return xml;
+        }
+        return '';
+      });
+    };
+
+    it('returns a snapshot from the accessibility hierarchy', async () => {
+      mockUiautomatorHierarchy(
+        hierarchy(
+          '<node class="android.widget.Button" resource-id="submit" text="Submit" bounds="[20,40][180,100]"/>',
+        ),
+      );
+      mockAdb.getScreenDensity.mockResolvedValue(320);
+      const beforeCapture = Date.now();
+
+      const snapshot = await device.getUITree();
+
+      expect(snapshot).toMatchObject({
+        platform: 'android',
+        root: {
+          type: 'android.widget.FrameLayout',
+          bounds: { left: 0, top: 0, width: 200, height: 400 },
+          children: [
+            {
+              type: 'android.widget.Button',
+              attrs: { 'resource-id': 'submit', text: 'Submit' },
+              bounds: { left: 10, top: 20, width: 80, height: 30 },
+            },
+          ],
+        },
+      });
+      expect(snapshot.capturedAt).toBeGreaterThanOrEqual(beforeCapture);
+      expect(mockAdb.getScreenDensity).toHaveBeenCalledOnce();
+      expect(mockAdb.shell).toHaveBeenCalledWith(
+        'cat /sdcard/midscene_window_dump.xml',
+        expect.objectContaining({ timeout: 5_000 }),
+      );
+    });
+
+    it('retries uiautomator within one total dump budget', async () => {
+      mockAdb.getScreenDensity.mockResolvedValue(160);
+      mockAdb.shell.mockImplementation(async (command) => {
+        const value = String(command);
+        if (value.startsWith('uiautomator dump')) {
+          throw new Error('layout dump failed');
+        }
+        return '';
+      });
+
+      await expect(device.getUITree()).rejects.toThrow('layout dump failed');
+
+      const dumpCommands = mockAdb.shell.mock.calls
+        .map(([command]) => String(command))
+        .filter((command) => command.startsWith('uiautomator dump'));
+      expect(dumpCommands).toEqual([
+        'uiautomator dump --compressed /sdcard/midscene_window_dump.xml',
+        'uiautomator dump --compressed /sdcard/midscene_window_dump.xml',
+        'uiautomator dump --compressed /sdcard/midscene_window_dump.xml',
+      ]);
+    });
+
+    it('rejects a tree captured from a different logical display', async () => {
+      const secondaryDisplayDevice = new AndroidDevice('test-device', {
+        displayId: 2,
+        minScreenshotBufferSize: 0,
+        scrcpyConfig: { enabled: false },
+      });
+      vi.spyOn(secondaryDisplayDevice, 'getAdb').mockResolvedValue(mockAdb);
+      mockAdb.shell.mockImplementation(async (command) => {
+        const value = String(command);
+        if (value === 'cat /sdcard/midscene_window_dump.xml') {
+          return `<?xml version="1.0"?>
+<hierarchy rotation="0">
+  <node class="android.widget.FrameLayout" package="com.wrong.display" bounds="[0,0][400,800]"/>
+</hierarchy>`;
+        }
+        if (value === 'dumpsys window displays') {
+          return `Display: mDisplayId=2 (organized)
+  mCurrentFocus=Window{abc u0 com.expected.display/.MainActivity}
+  mFocusedApp=ActivityRecord{def u0 com.expected.display/.MainActivity}`;
+        }
+        if (value === 'dumpsys window windows') {
+          return `Window #0 Window{abc u0 com.wrong.display/.MainActivity}:
+  mDisplayId=3 rootTaskId=10
+  mOwnerUid=10001 package=com.wrong.display`;
+        }
+        return '';
+      });
+
+      await expect(secondaryDisplayDevice.getUITree()).rejects.toThrow(
+        /UI tree display mismatch.*displayId=2.*com\.expected\.display.*com\.wrong\.display/,
+      );
+    });
+
+    it('accepts a system overlay owned by the configured display', async () => {
+      const secondaryDisplayDevice = new AndroidDevice('test-device', {
+        displayId: 2,
+        minScreenshotBufferSize: 0,
+        scrcpyConfig: { enabled: false },
+      });
+      vi.spyOn(secondaryDisplayDevice, 'getAdb').mockResolvedValue(mockAdb);
+      vi.spyOn(secondaryDisplayDevice, 'size').mockResolvedValue({
+        width: 400,
+        height: 800,
+      });
+      mockAdb.shell.mockImplementation(async (command) => {
+        const value = String(command);
+        if (value === 'cat /sdcard/midscene_window_dump.xml') {
+          return `<?xml version="1.0"?>
+<hierarchy rotation="0">
+  <node class="android.widget.FrameLayout" package="com.android.systemui" bounds="[0,0][400,800]"/>
+</hierarchy>`;
+        }
+        if (value === 'dumpsys window displays') {
+          return `Display: mDisplayId=2 (organized)
+  mCurrentFocus=Window{abc u0 com.expected.display/.MainActivity}`;
+        }
+        if (value === 'dumpsys window windows') {
+          return `Window #0 Window{abc u0 StatusBar}:
+  mDisplayId=2 rootTaskId=1
+  mOwnerUid=10002 package=com.android.systemui`;
+        }
+        return '';
+      });
+
+      await expect(secondaryDisplayDevice.getUITree()).resolves.toMatchObject({
+        root: { attrs: { package: 'com.android.systemui' } },
+      });
+    });
+
+    it('rejects a tree whose display ownership cannot be verified', async () => {
+      const secondaryDisplayDevice = new AndroidDevice('test-device', {
+        displayId: 2,
+        minScreenshotBufferSize: 0,
+        scrcpyConfig: { enabled: false },
+      });
+      vi.spyOn(secondaryDisplayDevice, 'getAdb').mockResolvedValue(mockAdb);
+      mockAdb.shell.mockImplementation(async (command) => {
+        const value = String(command);
+        if (value === 'cat /sdcard/midscene_window_dump.xml') {
+          return `<?xml version="1.0"?>
+<hierarchy rotation="0">
+  <node class="android.widget.FrameLayout" package="com.unknown.display" bounds="[0,0][400,800]"/>
+</hierarchy>`;
+        }
+        if (value === 'dumpsys window displays') {
+          return `Display: mDisplayId=2 (organized)
+  mCurrentFocus=Window{abc u0 com.expected.display/.MainActivity}`;
+        }
+        if (value === 'dumpsys window windows') return '';
+        return '';
+      });
+
+      await expect(secondaryDisplayDevice.getUITree()).rejects.toThrow(
+        /no window display ownership found.*com\.unknown\.display/,
+      );
+    });
+
+    it('records capturedAt immediately after reading the hierarchy', async () => {
+      const secondaryDisplayDevice = new AndroidDevice('test-device', {
+        displayId: 2,
+        minScreenshotBufferSize: 0,
+        scrcpyConfig: { enabled: false },
+      });
+      vi.spyOn(secondaryDisplayDevice, 'getAdb').mockResolvedValue(mockAdb);
+      vi.spyOn(secondaryDisplayDevice, 'size').mockResolvedValue({
+        width: 400,
+        height: 800,
+      });
+      let currentTime = 10;
+      vi.spyOn(Date, 'now').mockImplementation(() => currentTime);
+      mockAdb.shell.mockImplementation(async (command) => {
+        const value = String(command);
+        if (value === 'cat /sdcard/midscene_window_dump.xml') {
+          currentTime = 100;
+          return `<?xml version="1.0"?>
+<hierarchy rotation="0">
+  <node class="android.widget.FrameLayout" package="com.expected.display" bounds="[0,0][400,800]"/>
+</hierarchy>`;
+        }
+        if (value === 'dumpsys window displays') {
+          currentTime = 200;
+          return `Display: mDisplayId=2 (organized)
+  mCurrentFocus=Window{abc u0 com.expected.display/.MainActivity}`;
+        }
+        if (value === 'dumpsys window windows') {
+          return `Window #0 Window{abc u0 com.expected.display/.MainActivity}:
+  mDisplayId=2 rootTaskId=10
+  mOwnerUid=10001 package=com.expected.display`;
+        }
+        return '';
+      });
+
+      await expect(secondaryDisplayDevice.getUITree()).resolves.toMatchObject({
+        capturedAt: 100,
+      });
+    });
+
+    it('rejects a tree whose bounds exceed the configured display', async () => {
+      const secondaryDisplayDevice = new AndroidDevice('test-device', {
+        displayId: 2,
+        minScreenshotBufferSize: 0,
+        scrcpyConfig: { enabled: false },
+      });
+      vi.spyOn(secondaryDisplayDevice, 'getAdb').mockResolvedValue(mockAdb);
+      vi.spyOn(secondaryDisplayDevice, 'size').mockResolvedValue({
+        width: 400,
+        height: 800,
+      });
+      mockAdb.shell.mockImplementation(async (command) => {
+        const value = String(command);
+        if (value === 'cat /sdcard/midscene_window_dump.xml') {
+          return `<?xml version="1.0"?>
+<hierarchy rotation="0">
+  <node class="android.widget.FrameLayout" package="com.expected.display" bounds="[0,0][600,800]"/>
+</hierarchy>`;
+        }
+        if (value === 'dumpsys window displays') {
+          return `Display: mDisplayId=2 (organized)
+  mCurrentFocus=Window{abc u0 com.expected.display/.MainActivity}`;
+        }
+        if (value === 'dumpsys window windows') {
+          return `Window #0 Window{abc u0 com.expected.display/.MainActivity}:
+  mDisplayId=2 rootTaskId=10
+  mOwnerUid=10001 package=com.expected.display`;
+        }
+        return '';
+      });
+
+      await expect(secondaryDisplayDevice.getUITree()).rejects.toThrow(
+        /UI tree bounds exceed displayId=2.*600x800.*400x800/,
+      );
+    });
+  });
+
   describe('launch', () => {
     it('should start URI for http/https links', async () => {
       const uri = 'https://example.com';
@@ -527,6 +773,38 @@ Stdout:
   });
 
   describe('getScreenSize', () => {
+    it('reuses the display dump for physical display lookup', async () => {
+      const displayDevice = new AndroidDevice('test-device', {
+        displayId: 1,
+        usePhysicalDisplayIdForDisplayLookup: true,
+        minScreenshotBufferSize: 0,
+        scrcpyConfig: { enabled: false },
+      });
+      vi.spyOn(displayDevice, 'getAdb').mockResolvedValue(mockAdb);
+      mockAdb.shell.mockImplementation(async (command: string | string[]) => {
+        if (command === 'dumpsys display') {
+          return `mDisplayId=1
+  mBaseDisplayInfo=DisplayInfo{"Inner", real 1080 x 1920, rotation 0, density 420, uniqueId "local:123"}`;
+        }
+        return '';
+      });
+
+      await expect(displayDevice.getScreenSize()).resolves.toMatchObject({
+        override: '1080x1920',
+        physical: '1080x1920',
+        orientation: 0,
+      });
+      await expect(displayDevice.getDisplayDensity()).resolves.toBe(420);
+
+      const displayDumpCalls = mockAdb.shell.mock.calls.filter(
+        ([command]) => command === 'dumpsys display',
+      );
+      expect(displayDumpCalls).toHaveLength(2);
+      expect(mockAdb.shell).not.toHaveBeenCalledWith(
+        'dumpsys SurfaceFlinger --display-id 1',
+      );
+    });
+
     it('should use fallback to get orientation when primary method fails', async () => {
       mockAdb.shell.mockImplementation(async (command: string | string[]) => {
         if (Array.isArray(command) && command.join(' ') === 'wm size') {
@@ -2546,6 +2824,30 @@ Stdout:
         'dumpsys SurfaceFlinger --display-id 1',
       );
       expect(result).toBe('4630946423637606531');
+    });
+
+    it('maps a logical display ID to its physical unique ID', async () => {
+      deviceWithDisplay = new AndroidDevice('test-device', {
+        displayId: 0,
+      });
+      setupMockAdb(mockAdbInstance);
+      mockAdbInstance.shell.mockImplementation(async (command) => {
+        const value = String(command);
+        if (value === 'dumpsys display') {
+          return `mDisplayId=0
+    mBaseDisplayInfo=DisplayInfo{"Outer", displayId 0, uniqueId "local:222"}
+mDisplayId=2
+    mBaseDisplayInfo=DisplayInfo{"Inner", displayId 2, uniqueId "local:111"}`;
+        }
+        return '';
+      });
+
+      await expect(deviceWithDisplay.getPhysicalDisplayId()).resolves.toBe(
+        '222',
+      );
+      expect(mockAdbInstance.shell).not.toHaveBeenCalledWith(
+        'dumpsys SurfaceFlinger --display-id 0',
+      );
     });
 
     it('should use display-specific size when displayId is set', async () => {

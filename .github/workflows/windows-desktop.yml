@@ -30,6 +30,7 @@ concurrency:
 
 jobs:
   windows-desktop:
+    # The self-hosted Windows runner runs as a non-interactive service.
     runs-on: windows-2022
     timeout-minutes: 50
     env:

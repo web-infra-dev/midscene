@@ -64,6 +64,7 @@ interface ServiceOptions {
 
 interface LocateSearchAreaResult {
   config?: SearchAreaConfig;
+  error?: string;
   trace: {
     sourceRect?: Rect;
     rawResponse?: string;
@@ -113,6 +114,7 @@ export default class Service {
 
     const context = opt?.context || (await this.contextRetrieverFn());
 
+    const searchAreaStartTime = Date.now();
     const searchArea = await this.resolveLocateSearchArea({
       query,
       queryPrompt,
@@ -121,6 +123,27 @@ export default class Service {
       modelRuntime,
       abortSignal,
     });
+
+    if (!searchArea.config && searchArea.error) {
+      const errorMessage = `cannot find search area for "${queryPrompt}": ${searchArea.error}`;
+      const taskInfo: ServiceTaskInfo = {
+        ...(this.taskInfo ? this.taskInfo : {}),
+        durationMs: Date.now() - searchAreaStartTime,
+        searchAreaRawResponse: searchArea.trace.rawResponse,
+        searchAreaRawChoiceMessage: searchArea.trace.rawChoiceMessage,
+        searchAreaUsage: searchArea.trace.usage,
+      };
+      const dump = createServiceDump({
+        type: 'locate',
+        userQuery: { element: queryPrompt },
+        matchedElement: [],
+        data: null,
+        taskInfo,
+        deepLocate: true,
+        error: errorMessage,
+      });
+      throw new ServiceError(errorMessage, dump);
+    }
 
     const startTime = Date.now();
     const {
@@ -243,12 +266,16 @@ export default class Service {
         abortSignal,
       });
       const { searchAreaConfig } = searchAreaResponse;
-      assert(
-        searchAreaConfig,
-        `cannot find search area for "${queryPrompt}"${
-          searchAreaResponse.error ? `: ${searchAreaResponse.error}` : ''
-        }`,
-      );
+      if (!searchAreaConfig) {
+        return {
+          error: searchAreaResponse.error || 'unknown search area error',
+          trace: {
+            rawResponse: searchAreaResponse.rawResponse,
+            rawChoiceMessage: searchAreaResponse.rawChoiceMessage,
+            usage: searchAreaResponse.usage,
+          },
+        };
+      }
 
       return {
         config: searchAreaConfig,

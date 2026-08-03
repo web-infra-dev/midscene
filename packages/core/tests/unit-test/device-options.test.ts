@@ -56,17 +56,29 @@ describe('Device Options Type Definitions', () => {
   describe('IOSDeviceOpt', () => {
     test('should include all required iOS device options', () => {
       const options: IOSDeviceOpt = {
-        deviceId: '00008110-000123456789ABCD',
         iOSDeviceClassOverride: '@private-package/ios',
         wdaPort: 8100,
         wdaHost: 'localhost',
         sessionId: 'external-session-id',
-        useWDA: true,
         autoDismissKeyboard: true,
       };
 
       // Type check - this will fail at compile time if types are incorrect
       expect(options).toBeDefined();
+    });
+
+    test('should reject unsupported device selectors', () => {
+      const deviceIdOptions: IOSDeviceOpt = {
+        // @ts-expect-error - select the target through the WDA endpoint
+        deviceId: '00008110-000123456789ABCD',
+      };
+      const useWDAOptions: IOSDeviceOpt = {
+        // @ts-expect-error - IOSDevice is always backed by WebDriverAgent
+        useWDA: true,
+      };
+
+      expect(deviceIdOptions).toBeDefined();
+      expect(useWDAOptions).toBeDefined();
     });
 
     test('should work with partial options', () => {
@@ -155,12 +167,10 @@ describe('Device Options Type Definitions', () => {
     test('MidsceneYamlScriptIOSEnv should include all IOSDeviceOpt except customActions', () => {
       const yamlConfig: MidsceneYamlScriptIOSEnv = {
         // From IOSDeviceOpt
-        deviceId: '00008110-000123456789ABCD',
         iOSDeviceClassOverride: '@private-package/ios',
         wdaPort: 8100,
         wdaHost: 'localhost',
         sessionId: 'external-session-id',
-        useWDA: true,
         autoDismissKeyboard: true,
 
         // YAML-specific
@@ -212,7 +222,7 @@ describe('Device Options Type Definitions', () => {
     test('IOSDeviceOpt should be assignable to agent function parameter', () => {
       const options: IOSDeviceOpt = {
         wdaPort: 8100,
-        deviceId: 'test-device',
+        wdaHost: 'localhost',
       };
 
       // This simulates what happens in agentFromWebDriverAgent

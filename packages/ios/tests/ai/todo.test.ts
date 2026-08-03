@@ -47,6 +47,36 @@ async function queryVisibleTodoListWithRetry(
   return tasks;
 }
 
+async function tapFilterUntilVisible(
+  agent: IOSAgent,
+  filterName: 'Completed',
+  expectedTasks: readonly string[],
+): Promise<string[]> {
+  let tasks: string[] = [];
+
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    await agent.aiTap(`the "${filterName}" status filter below the todo list`);
+    await sleep(1000);
+    tasks = await queryVisibleTodoListWithRetry(
+      agent,
+      expectedTasks,
+      `${filterName.toLowerCase()}FilterTaskList`,
+    );
+    if (
+      tasks.length === expectedTasks.length &&
+      expectedTasks.every((task) => tasks.includes(task))
+    ) {
+      return tasks;
+    }
+    console.log(
+      `${filterName} filter attempt ${attempt} did not show the expected tasks`,
+      tasks,
+    );
+  }
+
+  return tasks;
+}
+
 function screenshotBuffer(base64: string): Buffer {
   const match = /^data:image\/\w+;base64,(.+)$/s.exec(base64);
   if (!match) {
@@ -203,13 +233,10 @@ describe('Test todo list', () => {
       await agent.aiTap(
         'the checkbox immediately to the left of "Learning AI the day after tomorrow"',
       );
-      await agent.aiTap('the "Completed" status filter below the todo list');
 
-      const completedTasks = await queryVisibleTodoListWithRetry(
-        agent,
-        [completedTask],
-        'completedTaskList',
-      );
+      const completedTasks = await tapFilterUntilVisible(agent, 'Completed', [
+        completedTask,
+      ]);
       expect(completedTasks).toEqual([completedTask]);
 
       const placeholder = await agent.aiQuery<string>(

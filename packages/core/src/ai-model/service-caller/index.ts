@@ -58,7 +58,10 @@ import {
   resolveEffectiveTimeoutMs,
   restoreHardTimeoutError,
 } from './request-timeout';
-import { callAiAndParseWithRetry } from './semantic-retry';
+import {
+  callAiAndParseWithRetry,
+  withSemanticRetryFeedback,
+} from './semantic-retry';
 export {
   extractJSONFromCodeBlock,
   parseModelResponseJson,
@@ -330,6 +333,11 @@ interface CallAIOptions {
   abortSignal?: AbortSignal;
   requiresOriginalImageDetail?: boolean;
   expectedJsonObjectResponse?: boolean;
+  /**
+   * Number of preceding semantic parsing failures for this request.
+   * Network retries are intentionally excluded.
+   */
+  semanticRetryAttempt?: number;
 }
 
 export async function callAI(
@@ -349,6 +357,21 @@ export async function callAI(
   // across the onUsage callback and the task-dump-based collectUsageMetrics()
   // path when the provider does not return a request_id.
   const internalCallId = nextInternalCallId();
+  const chatCompletionInput = {
+    intent: modelConfig.intent,
+    userConfig: {
+      temperature: modelConfig.temperature,
+      reasoningEnabled: modelConfig.reasoningEnabled,
+      reasoningEffort: modelConfig.reasoningEffort,
+      reasoningBudget: modelConfig.reasoningBudget,
+      responseFormat: modelConfig.responseFormat,
+    },
+    semanticRetryAttempt: options?.semanticRetryAttempt,
+    requiresOriginalImageDetail: options?.requiresOriginalImageDetail,
+    expectedJsonObjectResponse: options?.expectedJsonObjectResponse,
+  };
+  const imageDetail =
+    adapter.chatCompletion.resolveImageDetail(chatCompletionInput);
 
   if (isCodexAppServerProvider(modelConfig.openaiBaseURL)) {
     const codexResult = await callAIWithCodexAppServer(messages, modelConfig, {
@@ -356,6 +379,7 @@ export async function callAI(
       onChunk: options?.onChunk,
       reasoningEnabled: modelConfig.reasoningEnabled,
       abortSignal: options?.abortSignal,
+      imageDetail,
     });
     if (codexResult.usage) {
       (codexResult.usage as any)[INTERNAL_CALL_ID_FIELD] = internalCallId;
@@ -387,18 +411,6 @@ export async function callAI(
   const startTime = Date.now();
 
   const isStreaming = options?.stream && options?.onChunk;
-  const chatCompletionInput = {
-    intent: modelConfig.intent,
-    userConfig: {
-      temperature: modelConfig.temperature,
-      reasoningEnabled: modelConfig.reasoningEnabled,
-      reasoningEffort: modelConfig.reasoningEffort,
-      reasoningBudget: modelConfig.reasoningBudget,
-      responseFormat: modelConfig.responseFormat,
-    },
-    requiresOriginalImageDetail: options?.requiresOriginalImageDetail,
-    expectedJsonObjectResponse: options?.expectedJsonObjectResponse,
-  };
   const { config: adapterChatCompletionParams } =
     adapter.chatCompletion.buildChatCompletionParams(chatCompletionInput);
   debugCall(
@@ -474,9 +486,6 @@ export async function callAI(
     ...(extraBody ?? {}),
   };
   const temperature = requestConfig.temperature;
-
-  const imageDetail =
-    adapter.chatCompletion.resolveImageDetail(chatCompletionInput);
 
   // Some adapters request original image detail to preserve screenshot
   // resolution for localization-sensitive tasks.
@@ -772,6 +781,41 @@ export async function callAI(
   }
 }
 
+export type AIObjectResponse<T> = {
+  // TODO: `content` is a misleading name here because this is already the parsed object response. Consider renaming it to `object` or `data`.
+  content: T;
+  contentString: string;
+  usage?: AIUsageInfo;
+  reasoning_content?: string;
+  rawChoiceMessage?: unknown;
+};
+
+export function parseAIObjectResponse<T>(
+  response: Awaited<ReturnType<typeof callAI>>,
+  modelRuntime: ModelRuntime,
+  jsonParserSource: JsonParserSource = 'generic-object',
+): AIObjectResponse<T> {
+  const { config: modelConfig, adapter } = modelRuntime;
+  assert(response, 'empty response');
+  const jsonContent = adapter.jsonParser(response.content, {
+    source: jsonParserSource,
+  });
+  // This API expects a JSON object. Bare JSON primitives are valid JSON,
+  // but do not satisfy object-response callers.
+  if (!jsonContent || typeof jsonContent !== 'object') {
+    throw new Error(
+      `failed to parse json response from model (${modelConfig.modelName}): ${response.content}`,
+    );
+  }
+  return {
+    content: jsonContent as T,
+    contentString: response.content,
+    usage: response.usage,
+    reasoning_content: response.reasoning_content,
+    rawChoiceMessage: response.rawChoiceMessage,
+  };
+}
+
 export async function callAIWithObjectResponse<T>(
   messages: ChatCompletionMessageParam[],
   modelRuntime: ModelRuntime,
@@ -781,41 +825,25 @@ export async function callAIWithObjectResponse<T>(
     retryTimes?: number;
     retryInterval?: number;
   },
-): Promise<{
-  // TODO: `content` is a misleading name here because this is already the parsed object response. Consider renaming it to `object` or `data`.
-  content: T;
-  contentString: string;
-  usage?: AIUsageInfo;
-  reasoning_content?: string;
-  rawChoiceMessage?: unknown;
-}> {
-  const { config: modelConfig, adapter } = modelRuntime;
+): Promise<AIObjectResponse<T>> {
+  const { config: modelConfig } = modelRuntime;
   return callAiAndParseWithRetry({
-    callAi: () =>
-      callAI(messages, modelRuntime, {
-        abortSignal: options?.abortSignal,
-        expectedJsonObjectResponse: true,
-      }),
-    parseResponse: (response) => {
-      assert(response, 'empty response');
-      const jsonContent = adapter.jsonParser(response.content, {
-        source: options?.jsonParserSource ?? 'generic-object',
-      });
-      // This API expects a JSON object. Bare JSON primitives are valid JSON,
-      // but do not satisfy object-response callers.
-      if (!jsonContent || typeof jsonContent !== 'object') {
-        throw new Error(
-          `failed to parse json response from model (${modelConfig.modelName}): ${response.content}`,
-        );
-      }
-      return {
-        content: jsonContent as T,
-        contentString: response.content,
-        usage: response.usage,
-        reasoning_content: response.reasoning_content,
-        rawChoiceMessage: response.rawChoiceMessage,
-      };
-    },
+    callAi: (retryAttempt, previousParseError) =>
+      callAI(
+        withSemanticRetryFeedback(messages, previousParseError),
+        modelRuntime,
+        {
+          abortSignal: options?.abortSignal,
+          expectedJsonObjectResponse: true,
+          semanticRetryAttempt: retryAttempt,
+        },
+      ),
+    parseResponse: (response) =>
+      parseAIObjectResponse<T>(
+        response,
+        modelRuntime,
+        options?.jsonParserSource,
+      ),
     toParseError: (error, response) => {
       const errorMessage =
         error instanceof Error ? error.message : String(error);

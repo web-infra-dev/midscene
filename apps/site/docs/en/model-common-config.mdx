@@ -136,7 +136,7 @@ MIDSCENE_INSIGHT_MODEL_FAMILY="qwen3" # If you use another Qwen version, replace
   </ModelConfigTab>
 </ModelConfigTabs>
 
-### Gemini Series {#gemini}
+### Google Gemini Series {#gemini}
 
 - Common model provider: [Google Gemini](https://gemini.google.com/)
 
@@ -183,7 +183,7 @@ MIDSCENE_INSIGHT_MODEL_FAMILY="gemini"
   </ModelConfigTab>
 </ModelConfigTabs>
 
-### GPT Series {#gpt}
+### OpenAI GPT Series {#gpt}
 
 - Common model provider: [OpenAI](https://openai.com/)
 
@@ -230,6 +230,8 @@ MIDSCENE_INSIGHT_MODEL_FAMILY="gpt-5"
   </ModelConfigTab>
 </ModelConfigTabs>
 
+You can also use GPT through [**Use Codex App Server (OAuth, no API Key)**](./model-config#use-codex-app-server-oauth-no-api-key).
+
 :::warning GPT-5 notes
 
 - For UI localization with GPT, Midscene currently supports `gpt-5.4` and later models. To get the best localization quality, image requests need `"detail": "original"`. According to OpenAI, this option is available on `gpt-5.4` and future models, while smaller GPT-5 variants such as `gpt-5.4-mini` and `gpt-5.4-nano`, as well as older models, do not support `original` and will fail if you send it. See the [Images and Vision guide](https://developers.openai.com/api/docs/guides/images-vision) and the [Computer use guide](https://developers.openai.com/api/docs/guides/tools-computer-use).
@@ -252,11 +254,12 @@ Midscene disables model-native thinking by default for the best execution speed 
 
 | Model version | Commonly used model names | Corresponding MODEL_FAMILY | Notes |
 | --- | --- | --- | --- |
+| K3 series | `kimi-k3` | `kimi3` | According to the Kimi documentation, K3 always has reasoning enabled and cannot be disabled. Its reasoning effort defaults to `max`. |
 | K2.x series | `kimi-k2.5`, `kimi-k2.6` | `kimi` | — |
 
 </div>
 
-Environment variable configuration example, using `kimi-k2.6`:
+Environment variable configuration example, using `kimi-k3`:
 
 <ModelConfigTabs>
   <ModelConfigTab type="default">
@@ -264,8 +267,8 @@ Environment variable configuration example, using `kimi-k2.6`:
 ```bash
 MIDSCENE_MODEL_BASE_URL="https://api.moonshot.cn/v1" # Moonshot AI API endpoint
 MIDSCENE_MODEL_API_KEY="......"
-MIDSCENE_MODEL_NAME="kimi-k2.6"
-MIDSCENE_MODEL_FAMILY="kimi"
+MIDSCENE_MODEL_NAME="kimi-k3"
+MIDSCENE_MODEL_FAMILY="kimi3" # For kimi-k2.6, use "kimi"
 ```
 
   </ModelConfigTab>
@@ -274,8 +277,8 @@ MIDSCENE_MODEL_FAMILY="kimi"
 ```bash
 MIDSCENE_PLANNING_MODEL_BASE_URL="https://api.moonshot.cn/v1" # Moonshot AI API endpoint
 MIDSCENE_PLANNING_MODEL_API_KEY="......"
-MIDSCENE_PLANNING_MODEL_NAME="kimi-k2.6"
-MIDSCENE_PLANNING_MODEL_FAMILY="kimi"
+MIDSCENE_PLANNING_MODEL_NAME="kimi-k3"
+MIDSCENE_PLANNING_MODEL_FAMILY="kimi3" # For kimi-k2.6, use "kimi"
 ```
 
   </ModelConfigTab>
@@ -284,8 +287,8 @@ MIDSCENE_PLANNING_MODEL_FAMILY="kimi"
 ```bash
 MIDSCENE_INSIGHT_MODEL_BASE_URL="https://api.moonshot.cn/v1" # Moonshot AI API endpoint
 MIDSCENE_INSIGHT_MODEL_API_KEY="......"
-MIDSCENE_INSIGHT_MODEL_NAME="kimi-k2.6"
-MIDSCENE_INSIGHT_MODEL_FAMILY="kimi"
+MIDSCENE_INSIGHT_MODEL_NAME="kimi-k3"
+MIDSCENE_INSIGHT_MODEL_FAMILY="kimi3" # For kimi-k2.6, use "kimi"
 ```
 
   </ModelConfigTab>

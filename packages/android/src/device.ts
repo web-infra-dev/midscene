@@ -11,6 +11,7 @@ import {
   type LocateResultElement,
   type Point,
   type Size,
+  type UITreeSnapshot,
   getMidsceneLocationSchema,
   z,
 } from '@midscene/core';
@@ -49,6 +50,7 @@ import {
   type ScrcpyStatus,
 } from './scrcpy-device-adapter';
 import type { RawKeyframe } from './scrcpy-manager';
+import { captureAndroidUITree } from './ui-tree-capture';
 
 // Re-export AndroidDeviceOpt and AndroidDeviceInputOpt for backward compatibility
 export type {
@@ -67,6 +69,64 @@ type ScrollDirection = 'up' | 'down' | 'left' | 'right';
 
 const debugDevice = getDebug('android:device');
 const warnDevice = getDebug('android:device', { console: true });
+
+function displayViewportForLogicalDisplay(
+  displayDump: string,
+  logicalDisplayId: number,
+): string | null {
+  for (const viewportMatch of displayDump.matchAll(
+    /DisplayViewport\{([^}]*)\}/g,
+  )) {
+    const viewport = viewportMatch[1];
+    const displayId = viewport.match(/\bdisplayId=(\d+)\b/)?.[1];
+    if (Number(displayId) === logicalDisplayId) {
+      return viewportMatch[0];
+    }
+  }
+
+  return null;
+}
+
+function displayInfoLineForPhysicalDisplay(
+  displayDump: string,
+  physicalDisplayId: string,
+): string | null {
+  const lineRegex = new RegExp(
+    `^.*uniqueId ["']local:${physicalDisplayId}["'].*$`,
+    'm',
+  );
+  return displayDump.match(lineRegex)?.[0] ?? null;
+}
+
+function physicalDisplayIdForLogicalDisplay(
+  displayDump: string,
+  logicalDisplayId: number,
+): string | null {
+  const viewport = displayViewportForLogicalDisplay(
+    displayDump,
+    logicalDisplayId,
+  );
+  if (viewport) {
+    const physicalId = viewport.match(/\buniqueId=['"]local:(\d+)['"]/)?.[1];
+    if (physicalId) return physicalId;
+  }
+
+  const lines = displayDump.split(/\r?\n/);
+  for (let index = 0; index < lines.length; index++) {
+    const displayId = lines[index].match(/^\s*mDisplayId=(\d+)\b/)?.[1];
+    if (Number(displayId) !== logicalDisplayId) continue;
+
+    for (let cursor = index + 1; cursor < lines.length; cursor++) {
+      if (/^\s*mDisplayId=\d+\b/.test(lines[cursor])) break;
+      const physicalId = lines[cursor].match(
+        /mBaseDisplayInfo=.*\buniqueId "local:(\d+)"/,
+      )?.[1];
+      if (physicalId) return physicalId;
+    }
+  }
+
+  return null;
+}
 
 /**
  * Escape text for safe use in shell single-quoted strings.
@@ -694,6 +754,16 @@ ${Object.keys(size)
     };
   }
 
+  async getUITree(): Promise<UITreeSnapshot> {
+    await this.initializeDevicePixelRatio();
+    return captureAndroidUITree({
+      adb: await this.getAdb(),
+      devicePixelRatio: this.devicePixelRatio,
+      displayId: this.options?.displayId,
+      getDisplaySize: () => this.size(),
+    });
+  }
+
   async getScreenSize(): Promise<{
     override: string;
     physical: string;
@@ -717,18 +787,14 @@ ${Object.keys(size)
         const stdout = await adb.shell('dumpsys display');
 
         if (this.options?.usePhysicalDisplayIdForDisplayLookup) {
-          const physicalDisplayId = await this.getPhysicalDisplayId();
+          const physicalDisplayId = await this.resolvePhysicalDisplayId(stdout);
           if (physicalDisplayId) {
-            // Use regex to find the line containing the target display's uniqueId
-            const lineRegex = new RegExp(
-              `^.*uniqueId \"local:${physicalDisplayId}\".*$
-`,
-              'm',
+            const targetLine = displayInfoLineForPhysicalDisplay(
+              stdout,
+              physicalDisplayId,
             );
-            const lineMatch = stdout.match(lineRegex);
 
-            if (lineMatch) {
-              const targetLine = lineMatch[0];
+            if (targetLine) {
               // Extract real size and rotation from the found line
               const realMatch = targetLine.match(/real (\d+) x (\d+)/);
               const rotationMatch = targetLine.match(/rotation (\d+)/);
@@ -760,14 +826,11 @@ ${Object.keys(size)
             }
           }
         } else {
-          // Use regex to find the DisplayViewport containing the target display's displayId
-          const viewportRegex = new RegExp(
-            `DisplayViewport{[^}]*displayId=${this.options.displayId}[^}]*}`,
-            'g',
+          const targetLine = displayViewportForLogicalDisplay(
+            stdout,
+            this.options.displayId,
           );
-          const match = stdout.match(viewportRegex);
-          if (match) {
-            const targetLine = match[0];
+          if (targetLine) {
             const physicalFrameMatch = targetLine.match(
               /physicalFrame=Rect\(\d+, \d+ - (\d+), (\d+)\)/,
             );
@@ -872,18 +935,14 @@ ${Object.keys(size)
       try {
         const stdout = await adb.shell('dumpsys display');
         if (this.options?.usePhysicalDisplayIdForDisplayLookup) {
-          const physicalDisplayId = await this.getPhysicalDisplayId();
+          const physicalDisplayId = await this.resolvePhysicalDisplayId(stdout);
           if (physicalDisplayId) {
-            // Use regex to find the line containing the target display's uniqueId
-            const lineRegex = new RegExp(
-              `^.*uniqueId \"local:${physicalDisplayId}\".*$
-`,
-              'm',
+            const targetLine = displayInfoLineForPhysicalDisplay(
+              stdout,
+              physicalDisplayId,
             );
-            const lineMatch = stdout.match(lineRegex);
 
-            if (lineMatch) {
-              const targetLine = lineMatch[0];
+            if (targetLine) {
               const densityMatch = targetLine.match(/density (\d+)/);
               if (densityMatch) {
                 const density = Number(densityMatch[1]);
@@ -2101,6 +2160,12 @@ ${Object.keys(size)
   }
 
   async getPhysicalDisplayId(): Promise<string | null> {
+    return this.resolvePhysicalDisplayId();
+  }
+
+  private async resolvePhysicalDisplayId(
+    displayDump?: string,
+  ): Promise<string | null> {
     // Return cached value if available
     if (this.cachedPhysicalDisplayId !== undefined) {
       return this.cachedPhysicalDisplayId;
@@ -2113,6 +2178,20 @@ ${Object.keys(size)
 
     const adb = await this.getAdb();
     try {
+      const resolvedDisplayDump =
+        displayDump ?? (await adb.shell('dumpsys display'));
+      const logicalDisplayPhysicalId = physicalDisplayIdForLogicalDisplay(
+        resolvedDisplayDump,
+        this.options.displayId,
+      );
+      if (logicalDisplayPhysicalId) {
+        this.cachedPhysicalDisplayId = logicalDisplayPhysicalId;
+        debugDevice(
+          `Found and cached physical display ID: ${logicalDisplayPhysicalId} for logical display ID: ${this.options.displayId}`,
+        );
+        return this.cachedPhysicalDisplayId;
+      }
+
       const stdout = await adb.shell(
         `dumpsys SurfaceFlinger --display-id ${this.options.displayId}`,
       );

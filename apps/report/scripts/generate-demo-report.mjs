@@ -85,6 +85,24 @@ function listGeneratedReportFiles() {
   return reportFiles;
 }
 
+function copyReportWithUniqueGroupId(sourcePath, targetPath, suffix) {
+  let rewrittenGroupCount = 0;
+  const sourceHtml = fs.readFileSync(sourcePath, 'utf8');
+  const targetHtml = sourceHtml.replace(
+    /(<script\b[^>]*\bdata-group-id=")([^"]+)("[^>]*>)/g,
+    (_match, prefix, groupId, postfix) => {
+      rewrittenGroupCount += 1;
+      return `${prefix}${groupId}-${suffix}${postfix}`;
+    },
+  );
+
+  if (rewrittenGroupCount === 0) {
+    throw new Error(`No report group IDs found in ${sourcePath}.`);
+  }
+
+  fs.writeFileSync(targetPath, targetHtml);
+}
+
 // --- Generate reports ---
 
 console.log('=== Generating passed report ===');
@@ -95,19 +113,17 @@ if (!passedReport) {
   process.exit(1);
 }
 
-console.log('=== Generating failed report ===');
-const failedYaml = path.join(rootDir, 'scripts', 'generate-report-failed.yaml');
-const failedReport = runYamlAndFindReport(failedYaml);
-if (!failedReport) {
-  console.error('Failed to generate failed report.');
-  process.exit(1);
-}
-
 // --- Copy single report as demo.html ---
 fs.mkdirSync(distDir, { recursive: true });
 const demoPath = path.join(distDir, 'demo.html');
 fs.copyFileSync(passedReport, demoPath);
 console.log(`Copied ${path.basename(passedReport)} -> dist/demo.html`);
+
+// A merged report identifies cases by each source report's group ID. Create a
+// second source with unique group IDs so the same model run can represent the
+// failed fixture without being collapsed into the passed case.
+const failedReportSource = path.join(distDir, '.failed-report-source.html');
+copyReportWithUniqueGroupId(passedReport, failedReportSource, 'failed');
 
 // --- Merge reports into demo-merged.html ---
 // Import ReportMergingTool dynamically (it's CJS from @midscene/core dist)
@@ -133,7 +149,7 @@ merger.append({
   },
 });
 merger.append({
-  reportFilePath: failedReport,
+  reportFilePath: failedReportSource,
   reportAttributes: {
     testDuration: 25000,
     testStatus: 'failed',
@@ -144,6 +160,7 @@ merger.append({
 });
 
 const mergedPath = merger.mergeReports('demo-merged', { overwrite: true });
+fs.unlinkSync(failedReportSource);
 if (!mergedPath) {
   console.error('Failed to merge reports.');
   process.exit(1);

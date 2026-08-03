@@ -136,7 +136,7 @@ MIDSCENE_INSIGHT_MODEL_FAMILY="qwen3" # 如果你使用了其他版本的 Qwen�
   </ModelConfigTab>
 </ModelConfigTabs>
 
-### Gemini 系列 {#gemini}
+### Google Gemini 系列 {#gemini}
 
 - 常用模型供应商：[Google Gemini](https://gemini.google.com/)
 
@@ -183,7 +183,7 @@ MIDSCENE_INSIGHT_MODEL_FAMILY="gemini"
   </ModelConfigTab>
 </ModelConfigTabs>
 
-### GPT 系列 {#gpt}
+### OpenAI GPT 系列 {#gpt}
 
 - 常用模型供应商：[OpenAI](https://openai.com/)
 
@@ -230,6 +230,8 @@ MIDSCENE_INSIGHT_MODEL_FAMILY="gpt-5"
   </ModelConfigTab>
 </ModelConfigTabs>
 
+你也可以通过[**使用 Codex App Server（OAuth，无需 API Key）**](./model-config#使用-codex-app-serveroauth无需-api-key) 使用 GPT。
+
 :::warning GPT-5 使用注意事项
 
 - 使用 GPT 做 UI 定位时，目前只支持使用 `gpt-5.4` 及以后的模型。因为为了获得最佳的定位效果，需要在发送图片时指定 `"detail": "original"` 参数，这一参数仅在 `gpt-5.4` 及后续模型上可用，`gpt-5.4-mini`、`gpt-5.4-nano` 等更小的 GPT-5 变体以及前代模型不支持 `original` 参数，会导致报错。详情请参考 [Images and Vision guide](https://developers.openai.com/api/docs/guides/images-vision) 和 [Computer use guide](https://developers.openai.com/api/docs/guides/tools-computer-use)。
@@ -252,11 +254,12 @@ Midscene 默认关闭模型原生思考，以获得最佳的执行速度和稳�
 
 | 模型版本 | 常用模型名称 | 对应 MODEL_FAMILY | 备注 |
 | --- | --- | --- | --- |
+| K3 系列 | `kimi-k3` | `kimi3` | 根据 Kimi 的文档，K3 始终开启思考模式，无法关闭，且推理强度默认为 `max` |
 | K2.x 系列 | `kimi-k2.5`、`kimi-k2.6` | `kimi` | — |
 
 </div>
 
-环境变量配置示例，以 `kimi-k2.6` 为例：
+环境变量配置示例，以 `kimi-k3` 为例：
 
 <ModelConfigTabs>
   <ModelConfigTab type="default">
@@ -264,8 +267,8 @@ Midscene 默认关闭模型原生思考，以获得最佳的执行速度和稳�
 ```bash
 MIDSCENE_MODEL_BASE_URL="https://api.moonshot.cn/v1" # Moonshot AI API 地址
 MIDSCENE_MODEL_API_KEY="......"
-MIDSCENE_MODEL_NAME="kimi-k2.6"
-MIDSCENE_MODEL_FAMILY="kimi"
+MIDSCENE_MODEL_NAME="kimi-k3"
+MIDSCENE_MODEL_FAMILY="kimi3" # 如果使用 kimi-k2.6，请改为 "kimi"
 ```
 
   </ModelConfigTab>
@@ -274,8 +277,8 @@ MIDSCENE_MODEL_FAMILY="kimi"
 ```bash
 MIDSCENE_PLANNING_MODEL_BASE_URL="https://api.moonshot.cn/v1" # Moonshot AI API 地址
 MIDSCENE_PLANNING_MODEL_API_KEY="......"
-MIDSCENE_PLANNING_MODEL_NAME="kimi-k2.6"
-MIDSCENE_PLANNING_MODEL_FAMILY="kimi"
+MIDSCENE_PLANNING_MODEL_NAME="kimi-k3"
+MIDSCENE_PLANNING_MODEL_FAMILY="kimi3" # 如果使用 kimi-k2.6，请改为 "kimi"
 ```
 
   </ModelConfigTab>
@@ -284,12 +287,13 @@ MIDSCENE_PLANNING_MODEL_FAMILY="kimi"
 ```bash
 MIDSCENE_INSIGHT_MODEL_BASE_URL="https://api.moonshot.cn/v1" # Moonshot AI API 地址
 MIDSCENE_INSIGHT_MODEL_API_KEY="......"
-MIDSCENE_INSIGHT_MODEL_NAME="kimi-k2.6"
-MIDSCENE_INSIGHT_MODEL_FAMILY="kimi"
+MIDSCENE_INSIGHT_MODEL_NAME="kimi-k3"
+MIDSCENE_INSIGHT_MODEL_FAMILY="kimi3" # 如果使用 kimi-k2.6，请改为 "kimi"
 ```
 
   </ModelConfigTab>
 </ModelConfigTabs>
+
 
 ### 小米 MiMo 系列 {#xiaomi-mimo}
 

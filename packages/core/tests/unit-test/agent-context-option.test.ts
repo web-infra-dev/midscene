@@ -34,6 +34,11 @@ const createAgentStub = () => {
   (agent as any).opts = {
     aiActContext: 'Global action context.',
   };
+  const registerFileChooserListener = vi.fn();
+  (agent as any).interface = {
+    interfaceType: 'playwright',
+    registerFileChooserListener,
+  };
   (agent as any).taskExecutor = taskExecutor;
   (agent as any).taskCache = taskCache;
   (agent as any).resolveModelRuntime = vi.fn((slot: string) =>
@@ -45,6 +50,7 @@ const createAgentStub = () => {
     agent,
     taskExecutor,
     taskCache,
+    registerFileChooserListener,
   };
 };
 
@@ -87,6 +93,18 @@ describe('Agent per-call context option', () => {
       'Click the submit button',
     );
     expect(taskExecutor.action.mock.calls[0][4]).toBe('');
+  });
+
+  it('does not register a file chooser for an empty fileChooserAccept array', async () => {
+    const { agent, taskExecutor, registerFileChooserListener } =
+      createAgentStub();
+
+    await agent.aiAct('Click the submit button', {
+      fileChooserAccept: [],
+    });
+
+    expect(registerFileChooserListener).not.toHaveBeenCalled();
+    expect(taskExecutor.action).toHaveBeenCalledTimes(1);
   });
 
   it('passes aiAssert context separately from the assertion prompt', async () => {

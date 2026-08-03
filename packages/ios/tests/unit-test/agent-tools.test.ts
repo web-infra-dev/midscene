@@ -49,7 +49,7 @@ describe('IOSMidsceneTools', () => {
 
     await takeScreenshotTool?.handler({
       ios: {
-        deviceId: 'ios-target',
+        'wda-host': '127.0.0.1',
         'wda-port': 8100,
         sessionId: 'external-session-id',
         waitAfterAction: 650,
@@ -62,7 +62,7 @@ describe('IOSMidsceneTools', () => {
     expect(agentFromWebDriverAgent).toHaveBeenCalledWith(
       expect.objectContaining({
         autoDismissKeyboard: false,
-        deviceId: 'ios-target',
+        wdaHost: '127.0.0.1',
         wdaPort: 8100,
         sessionId: 'external-session-id',
         waitAfterAction: 650,
@@ -117,7 +117,7 @@ describe('IOSMidsceneTools', () => {
 
     expect(takeScreenshotTool?.schema).toEqual(
       expect.objectContaining({
-        'ios.deviceId': expect.anything(),
+        'ios.wdaHost': expect.anything(),
         'ios.wdaPort': expect.anything(),
         'ios.sessionId': expect.anything(),
         'ios.waitAfterAction': expect.anything(),
@@ -127,12 +127,14 @@ describe('IOSMidsceneTools', () => {
     );
     expect(actTool?.schema).toEqual(
       expect.objectContaining({
-        'ios.deviceId': expect.anything(),
+        'ios.wdaHost': expect.anything(),
         'ios.wdaPort': expect.anything(),
         'ios.sessionId': expect.anything(),
         'ios.waitAfterAction': expect.anything(),
       }),
     );
+    expect(takeScreenshotTool?.schema['ios.deviceId']).toBeUndefined();
+    expect(takeScreenshotTool?.schema['ios.useWDA']).toBeUndefined();
   });
 
   it('reuses the iOS agent when called twice with identical init args', async () => {
@@ -146,8 +148,8 @@ describe('IOSMidsceneTools', () => {
       .getToolDefinitions()
       .find((tool) => tool.name === 'take_screenshot');
 
-    await takeScreenshotTool?.handler({ ios: { deviceId: 'udid-A' } });
-    await takeScreenshotTool?.handler({ ios: { deviceId: 'udid-A' } });
+    await takeScreenshotTool?.handler({ ios: { wdaPort: 8100 } });
+    await takeScreenshotTool?.handler({ ios: { wdaPort: 8100 } });
 
     expect(agentFromWebDriverAgent).toHaveBeenCalledTimes(1);
     expect(mockAgent.destroy).not.toHaveBeenCalled();
@@ -167,8 +169,8 @@ describe('IOSMidsceneTools', () => {
       .getToolDefinitions()
       .find((tool) => tool.name === 'take_screenshot');
 
-    await takeScreenshotTool?.handler({ ios: { deviceId: 'udid-A' } });
-    await takeScreenshotTool?.handler({ ios: { deviceId: 'udid-B' } });
+    await takeScreenshotTool?.handler({ ios: { wdaPort: 8100 } });
+    await takeScreenshotTool?.handler({ ios: { wdaPort: 8101 } });
 
     expect(agentFromWebDriverAgent).toHaveBeenCalledTimes(2);
     expect(firstAgent.destroy).toHaveBeenCalledTimes(1);
@@ -189,7 +191,7 @@ describe('IOSMidsceneTools', () => {
       .find((tool) => tool.name === 'take_screenshot');
 
     await takeScreenshotTool?.handler({
-      ios: { deviceId: 'udid-A', waitAfterAction: 650 },
+      ios: { wdaHost: '127.0.0.1', waitAfterAction: 650 },
     });
     await takeScreenshotTool?.handler({});
 
@@ -203,7 +205,7 @@ describe('IOSMidsceneTools', () => {
         autoDismissKeyboard: false,
       }),
     );
-    expect(lastAgentOptions).not.toHaveProperty('deviceId');
+    expect(lastAgentOptions).not.toHaveProperty('wdaHost');
     expect(lastAgentOptions).not.toHaveProperty('waitAfterAction');
   });
 

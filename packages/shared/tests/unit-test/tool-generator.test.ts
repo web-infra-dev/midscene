@@ -310,12 +310,14 @@ describe('generateToolsFromActionSpace', () => {
 
     const result = await actTool?.handler({
       prompt: 'return the first Google result heading for Midscene',
+      fileChooserAllowedDir: './fixtures',
     });
 
     expect(aiAction).toHaveBeenCalledWith(
       'return the first Google result heading for Midscene',
       {
         deepThink: false,
+        fileChooserAllowedDir: './fixtures',
       },
     );
     expect(result).toEqual({
