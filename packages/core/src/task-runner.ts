@@ -339,7 +339,14 @@ export class TaskRunner {
             )?.output;
           }
         } else if (task.type === 'Action Space') {
-          returnValue = await task.executor(param, executorContext);
+          try {
+            returnValue = await task.executor(param, executorContext);
+          } finally {
+            // The short TTL still lets planning and the action itself share one
+            // context. Once an action settles, time alone can no longer prove
+            // that the cached context represents the current UI.
+            this.lastUiContext = undefined;
+          }
         } else {
           console.warn(
             `unsupported task type: ${task.type}, will try to execute it directly`,
