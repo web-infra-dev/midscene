@@ -193,7 +193,27 @@
 }
 
 [data-theme='dark'] .chrome-extension-playground {
-  --extension-timeline-connector: #444;
+  --extension-timeline-connector: #8c8c8c;
+
+  // Ant Design assigns `rgba(0, 0, 0, 0.88)` directly to list items. That
+  // bypasses the playground root's dark foreground token and makes any
+  // currentColor-based timeline affordance render black. Override it at the
+  // actual list-item element, rather than relying on inheritance.
+  .chrome-extension-execution-timeline-skin
+    .middle-dialog-area
+    .info-list-container
+    .ant-list
+    .ant-list-item {
+    color: var(--midscene-text-primary);
+  }
+
+  // Keep the execution connector high contrast even if a shared playground
+  // skin supplies a darker background declaration later in the cascade.
+  .chrome-extension-execution-timeline-skin
+    .list-item:has(.progress-row)
+    > div:has(> .progress-row)::after {
+    background-color: #8c8c8c !important;
+  }
 
   .system-message-header .system-message-title {
     color: var(--midscene-text-primary);

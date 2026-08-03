@@ -269,6 +269,14 @@ jobs:
 
   chrome-extension-playground:
     runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        test:
+          - file: chrome-extension-playground.test.ts
+            report: chrome-extension-playground-report
+          - file: chrome-extension-playground-dark-timeline.test.ts
+            report: chrome-extension-playground-dark-timeline-report
     env:
       MIDSCENE_MODEL_API_KEY: ${{ secrets.MIDSCENE_MODEL_API_KEY }}
       MIDSCENE_MODEL_BASE_URL: ${{ vars.MIDSCENE_MODEL_BASE_URL }}
@@ -323,8 +331,8 @@ jobs:
     - name: Build project
       run: pnpm run build:skip-cache
 
-    - name: Run Playground advanced tests
-      run: AI_TEST_TYPE=computer npx nx test @midscene/computer -- tests/ai/chrome-extension-playground.test.ts
+    - name: Run Playground E2E test
+      run: AI_TEST_TYPE=computer npx nx test @midscene/computer -- tests/ai/${{ matrix.test.file }}
       timeout-minutes: 40
       id: test-playground
       continue-on-error: true
@@ -333,7 +341,7 @@ jobs:
       if: always()
       uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
       with:
-        name: chrome-extension-playground-report
+        name: ${{ matrix.test.report }}
         path: packages/computer/midscene_run/report
         if-no-files-found: ignore
 
