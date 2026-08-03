@@ -155,6 +155,7 @@ function ai(prompt: string, options?: Object): Promise<string | undefined>; // s
     - `fileChooserAccept?: string | string[]` — When a file chooser pops up, specify the file path(s) to accept. Can be a single file path or an array of paths. Only available in web pages (Playwright, Puppeteer, or Chrome extension Bridge mode). This option is not constrained by `fileChooserAllowedDir`.
       - **Note**: If the file input does not support multiple files (no `multiple` attribute) but multiple files are provided, an error will be thrown.
       - **Note**: If a file chooser is triggered but no `fileChooserAccept` parameter is provided, the file chooser will be ignored and the page can continue to operate normally.
+      - **Note**: In Chrome extension Bridge mode, local file uploads require the Midscene extension's "Allow access to file URLs" permission. Enable it in `chrome://extensions` > Midscene > "Details", then reconnect Bridge mode from the target `http(s)://` page.
       - **Note**: Chrome extension Bridge mode does not support directory upload inputs (`webkitdirectory` / `directory`). Use Playwright for directory uploads.
     - `fileChooserAllowedDir?: string` — Explicitly authorizes the directory this `aiAct` call may access for prompt-driven file uploads. Without it, model-planned file uploads are rejected. Relative paths in the prompt are resolved against this directory and then validated; absolute paths are validated directly against this directory. Symlinks located within this directory are also allowed. We recommend using the test case's `fixtures` directory to reduce the risk of sensitive-file uploads caused by AI hallucinations or page prompt injection.
     - `abortSignal?: AbortSignal` — Signal used to cancel the `aiAct` call. When aborted, Midscene stops the planning loop and throws an error. Use it to implement timeouts or user-initiated cancellation.
@@ -204,6 +205,8 @@ await agent.aiAct(
 For multiple uploads in one `aiAct`, name each relative path together with the action that should upload it. A later path replaces the previously configured file chooser path(s). Do not combine prompt-specified paths with `options.fileChooserAccept`: a later file chooser configuration generated during planning can override the option value.
 
 This capability is available for web pages (Playwright, Puppeteer, and Chrome extension Bridge mode). Use `fileChooserAllowedDir` when fixtures live outside the current working directory or when the same prompt must work in local and CI environments.
+
+When using Chrome extension Bridge mode for local file uploads, enable the Midscene extension's "Allow access to file URLs" permission in `chrome://extensions` > Midscene > "Details", then reconnect Bridge mode from the target `http(s)://` page.
 
 :::info
 

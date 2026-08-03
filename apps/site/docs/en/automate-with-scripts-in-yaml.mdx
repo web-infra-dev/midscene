@@ -731,6 +731,7 @@ Notes:
 - `fileChooserAccept` is only available for web pages (Playwright, Puppeteer, or Chrome extension Bridge mode).
 - Relative paths are resolved from the current command working directory, not from the YAML file directory.
 - If a file does not exist, the script throws before the tap is executed.
+- In Chrome extension Bridge mode, local file uploads require the Midscene extension's "Allow access to file URLs" permission. Enable it in `chrome://extensions` > Midscene > "Details", then reconnect Bridge mode from the target `http(s)://` page.
 - Chrome extension Bridge mode does not support directory upload inputs (`webkitdirectory` / `directory`). Use Playwright for directory uploads.
 
 #### Prompting with images
