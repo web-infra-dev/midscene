@@ -53,7 +53,10 @@ describe('chrome extension dark Playground timeline', () => {
     await sleep(1500);
   }
 
-  it('executes a Bing search and renders a visible dark execution timeline', async () => {
+  // Opening Chrome's extension menu is model-driven and can take several
+  // minutes on a cold CI runner. Keep setup separate so the Bing execution
+  // and visual assertion receive their own test timeout budget.
+  it('opens the dark side panel and configures the extension', async () => {
     await agent.aiAct(
       'Click the puzzle piece icon (Extensions button) in the top-right area of the Chrome toolbar',
     );
@@ -70,7 +73,9 @@ describe('chrome extension dark Playground timeline', () => {
       await reloadViaWebSocket(extensionTarget.webSocketDebuggerUrl);
       await sleep(3000);
     }
+  });
 
+  it('executes a Bing search and renders a visible dark execution timeline', async () => {
     await agent.aiAct(
       `In ${SIDE_PANEL}, click the "Action" button, then click the text input area and type: Click the Bing search field, type "midscene.js", then press Enter`,
     );
