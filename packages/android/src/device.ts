@@ -1209,7 +1209,7 @@ ${Object.keys(size)
         debugDevice('screenshotBase64 end (scrcpy mode)');
         return result;
       } catch (error) {
-        debugDevice(
+        warnDevice(
           `Scrcpy screenshot failed, falling back to standard ADB method.\nError: ${error}`,
         );
         // Continue to standard ADB path

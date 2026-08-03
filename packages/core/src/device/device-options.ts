@@ -119,7 +119,7 @@ export type AndroidDeviceOpt = {
     /**
      * Video bit rate for H.264 encoding in bits per second.
      * Higher values improve quality but increase bandwidth usage.
-     * @default 2000000 (2 Mbps)
+     * @default 100000000 (100 Mbps)
      */
     videoBitRate?: number;
   };

@@ -114,6 +114,25 @@ describe('ScrcpyScreenshotManager', () => {
   });
 
   describe('ensureConnected', () => {
+    it('should use a forward tunnel with a fresh scrcpy instance id', async () => {
+      const manager = new ScrcpyScreenshotManager({} as any, {
+        maxSize: 1024,
+        videoBitRate: 8_000_000,
+      });
+
+      const firstOptions = await (manager as any).createScrcpyOptions();
+      const secondOptions = await (manager as any).createScrcpyOptions();
+
+      expect(firstOptions.value).toMatchObject({
+        tunnelForward: true,
+        maxSize: 1024,
+        videoBitRate: 8_000_000,
+      });
+      expect(firstOptions.value.scid).toBeDefined();
+      expect(secondOptions.value.scid).toBeDefined();
+      expect(firstOptions.value.scid).not.toBe(secondOptions.value.scid);
+    });
+
     it('should throw instead of recursing when isConnecting is true', async () => {
       const manager = new ScrcpyScreenshotManager({} as any);
       (manager as any).isConnecting = true;
