@@ -1,3 +1,4 @@
+import { isIP } from 'node:net';
 import type { Size } from '@midscene/core';
 import { createImgBase64ByFormat } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
@@ -6,6 +7,7 @@ import { DEFAULT_SCRCPY_CONFIG } from './scrcpy-manager';
 
 const debugAdapter = getDebug('android:scrcpy-adapter');
 const SCRCPY_RETRY_COOLDOWN_MS = 5_000;
+const NETWORK_SCRCPY_DEFAULT_VIDEO_BIT_RATE = 4_000_000;
 
 interface ScrcpyConfig {
   enabled?: boolean;
@@ -34,6 +36,45 @@ const DEFAULT_ADB_SERVER_ENDPOINT: AdbServerEndpoint = {
   host: '127.0.0.1',
   port: 5037,
 };
+
+function extractIpAddress(value: string): string | null {
+  const normalizedValue = value.trim().toLowerCase();
+  const bracketedHost = normalizedValue.match(/^\[([^\]]+)\](?::\d+)?$/)?.[1];
+
+  if (bracketedHost && isIP(bracketedHost)) {
+    return bracketedHost;
+  }
+
+  if (isIP(normalizedValue)) {
+    return normalizedValue;
+  }
+
+  const ipv4Host = normalizedValue.match(/^(.+):\d+$/)?.[1];
+  return ipv4Host && isIP(ipv4Host) === 4 ? ipv4Host : null;
+}
+
+function isLoopbackIpAddress(ipAddress: string): boolean {
+  if (isIP(ipAddress) === 4) {
+    return ipAddress.startsWith('127.');
+  }
+
+  return ipAddress === '::1' || ipAddress.startsWith('::ffff:127.');
+}
+
+function containsNetworkIpAddress(value: string): boolean {
+  const ipAddress = extractIpAddress(value);
+  return ipAddress !== null && !isLoopbackIpAddress(ipAddress);
+}
+
+function usesNetworkIpTransport(
+  deviceId: string,
+  adbServerEndpoint: AdbServerEndpoint,
+): boolean {
+  return (
+    containsNetworkIpAddress(deviceId) ||
+    containsNetworkIpAddress(adbServerEndpoint.host)
+  );
+}
 
 export interface DevicePhysicalInfo {
   physicalWidth: number;
@@ -123,16 +164,25 @@ export class ScrcpyDeviceAdapter {
    * Resolve scrcpy config.
    * maxSize defaults to 0 (no scaling, full physical resolution) so the Agent layer
    * receives the highest quality image for AI processing.
-   * videoBitRate uses the shared default unless explicitly configured.
+   * Scrcpy streams over a literal non-loopback IP use a lower default bitrate
+   * to prevent the all-I-frame stream from accumulating transport backlog.
+   * Port numbers don't affect this decision. Explicit configuration always
+   * wins.
    */
-  resolveConfig(deviceInfo: DevicePhysicalInfo): ResolvedScrcpyConfig {
+  resolveConfig(
+    deviceInfo: DevicePhysicalInfo,
+    adbServerEndpoint: AdbServerEndpoint = DEFAULT_ADB_SERVER_ENDPOINT,
+  ): ResolvedScrcpyConfig {
     if (this.resolvedConfig) return this.resolvedConfig;
 
     const config = this.scrcpyConfig;
     const maxSize = config?.maxSize ?? DEFAULT_SCRCPY_CONFIG.maxSize;
 
     const videoBitRate =
-      config?.videoBitRate ?? DEFAULT_SCRCPY_CONFIG.videoBitRate;
+      config?.videoBitRate ??
+      (usesNetworkIpTransport(this.deviceId, adbServerEndpoint)
+        ? NETWORK_SCRCPY_DEFAULT_VIDEO_BIT_RATE
+        : DEFAULT_SCRCPY_CONFIG.videoBitRate);
 
     this.resolvedConfig = {
       enabled: this.isConfigured(),
@@ -173,7 +223,7 @@ export class ScrcpyDeviceAdapter {
         await adbClient.createTransport({ serial: this.deviceId }),
       );
 
-      const config = this.resolveConfig(deviceInfo);
+      const config = this.resolveConfig(deviceInfo, adbServerEndpoint);
       const manager = new ScrcpyManager(adb, {
         maxSize: config.maxSize,
         videoBitRate: config.videoBitRate,
@@ -234,7 +284,6 @@ export class ScrcpyDeviceAdapter {
     try {
       const manager = await this.ensureManager(deviceInfo);
       await manager.ensureConnected();
-      await manager.setFreshnessBarrier('frame observation start');
       this.clearFailure();
       return manager.subscribeKeyframes(listener);
     } catch (error) {

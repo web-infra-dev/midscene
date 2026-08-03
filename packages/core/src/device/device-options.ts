@@ -119,7 +119,9 @@ export type AndroidDeviceOpt = {
     /**
      * Video bit rate for H.264 encoding in bits per second.
      * Higher values improve quality but increase bandwidth usage.
-     * @default 100000000 (100 Mbps)
+     * @default 4000000 (4 Mbps) when the device endpoint or ADB server host
+     * contains a literal non-loopback IP; otherwise 100000000 (100 Mbps).
+     * Port numbers don't affect this decision.
      */
     videoBitRate?: number;
   };
