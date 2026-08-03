@@ -105,6 +105,26 @@ function isDirectoryBasedReport(reportFilePath: string): boolean {
 }
 
 /**
+ * Remove a complete report artifact from disk.
+ *
+ * Standalone reports own only their HTML file, while directory-based reports
+ * own the directory containing `index.html`. Callers must decide whether they
+ * own the source artifact and should only invoke this after its replacement
+ * has been produced successfully.
+ *
+ * @param reportFilePath Path to the standalone report or directory report's
+ * `index.html` entry point.
+ * @throws When the owned report artifact cannot be removed.
+ */
+export function removeReportArtifact(reportFilePath: string): void {
+  if (isDirectoryBasedReport(reportFilePath)) {
+    rmSync(path.dirname(reportFilePath), { recursive: true, force: true });
+    return;
+  }
+  unlinkSync(reportFilePath);
+}
+
+/**
  * Deduplicate executions by stable id, keeping only the last occurrence.
  * Old-format executions without id are always preserved.
  */
@@ -429,22 +449,21 @@ export class ReportMergingTool {
 
       // Remove original reports if needed
       if (rmOriginalReports) {
+        let removedReportCount = 0;
+        let reportCountWithFilePath = 0;
         for (const info of this.reportInfos) {
           if (!info.reportFilePath) continue;
+          reportCountWithFilePath += 1;
           try {
-            if (isDirectoryBasedReport(info.reportFilePath)) {
-              // The report owns its directory (`{name}/index.html`) — remove the
-              // whole folder, whether screenshots are external or inlined.
-              const reportDir = path.dirname(info.reportFilePath);
-              rmSync(reportDir, { recursive: true, force: true });
-            } else {
-              unlinkSync(info.reportFilePath);
-            }
+            removeReportArtifact(info.reportFilePath);
+            removedReportCount += 1;
           } catch (error) {
             logMsg(`Error deleting report ${info.reportFilePath}: ${error}`);
           }
         }
-        logMsg(`Removed ${this.reportInfos.length} original reports`);
+        logMsg(
+          `Removed ${removedReportCount}/${reportCountWithFilePath} original reports`,
+        );
       }
       return outputFilePath;
     } catch (error) {
