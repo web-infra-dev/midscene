@@ -257,6 +257,79 @@ describe(
       expect(flushResult?.output).toBe('recovered');
     });
 
+    it('reuses UI context before an action and invalidates it after the action settles', async () => {
+      const now = vi.spyOn(Date, 'now').mockReturnValue(1_000);
+      const uiContextBuilder = vi.fn(fakeUIContextBuilder);
+      const tasks: ExecutionTaskApply[] = [
+        {
+          type: 'Planning',
+          subType: 'Plan',
+          executor: async () => {},
+        },
+        {
+          type: 'Action Space',
+          executor: async () => {},
+        },
+        {
+          type: 'Planning',
+          subType: 'Plan',
+          executor: async () => {},
+        },
+      ];
+
+      try {
+        const runner = new TaskRunner(
+          'action-cache-boundary',
+          uiContextBuilder,
+          {
+            tasks,
+          },
+        );
+        await runner.flush();
+
+        expect(runner.tasks[1].uiContext).toBe(runner.tasks[0].uiContext);
+        expect(runner.tasks[2].uiContext).not.toBe(runner.tasks[1].uiContext);
+        expect(uiContextBuilder).toHaveBeenCalledTimes(3);
+      } finally {
+        now.mockRestore();
+      }
+    });
+
+    it('invalidates UI context when an action throws', async () => {
+      const now = vi.spyOn(Date, 'now').mockReturnValue(1_000);
+      const uiContextBuilder = vi.fn(fakeUIContextBuilder);
+      const failedAction: ExecutionTaskActionApply = {
+        type: 'Action Space',
+        executor: async () => {
+          throw new Error('partial-action-failure');
+        },
+      };
+      const recoveryTask: ExecutionTaskApply = {
+        type: 'Planning',
+        subType: 'Plan',
+        executor: async () => {},
+      };
+
+      try {
+        const runner = new TaskRunner(
+          'failed-action-cache-boundary',
+          uiContextBuilder,
+          {
+            tasks: [failedAction],
+          },
+        );
+        await expect(runner.flush()).rejects.toThrow('partial-action-failure');
+
+        await runner.append(recoveryTask, { allowWhenError: true });
+        await runner.flush({ allowWhenError: true });
+
+        expect(runner.tasks[1].uiContext).not.toBe(runner.tasks[0].uiContext);
+        expect(uiContextBuilder).toHaveBeenCalledTimes(3);
+      } finally {
+        now.mockRestore();
+      }
+    });
+
     it('error message should be from the last failed task when using allowWhenError', async () => {
       const runner = new TaskRunner('error-message-test', fakeUIContextBuilder);
 
