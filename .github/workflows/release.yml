@@ -316,6 +316,7 @@ jobs:
       if: ${{ matrix.platform == 'win32' && steps.install-dependencies.outcome == 'failure' }}
       run: |
         Start-Sleep -Seconds 5
+        git clean -ffdx
         pnpm install --frozen-lockfile --ignore-scripts
 
     - name: Save pnpm store
