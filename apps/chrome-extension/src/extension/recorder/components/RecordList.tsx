@@ -72,7 +72,11 @@ export const RecordList: React.FC<RecordListProps> = ({
         <Empty
           className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
           image={Empty.PRESENTED_IMAGE_SIMPLE}
-          description="Start your first recording"
+          description={
+            <span className="record-list-empty-description">
+              Start your first recording
+            </span>
+          }
         />
       ) : (
         <List

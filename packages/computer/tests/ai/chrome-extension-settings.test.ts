@@ -154,7 +154,7 @@ describe('chrome extension settings and cross-mode tests', () => {
       );
       await sleep(3000);
       await agent.aiAssert(
-        `${SIDE_PANEL} shows Recorder mode UI with a "New Recording" button`,
+        `${SIDE_PANEL} is rendered in a dark theme and shows Recorder mode UI with a "New Recording" button. The empty-state text "Start your first recording" is clearly visible in a light color against the dark background.`,
       );
 
       // 3. Switch back to Playground
