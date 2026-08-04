@@ -231,6 +231,7 @@ jobs:
       FORCE_COLOR: '0'
       MIDSCENE_REQUIRE_MAC_CODESIGN: ${{ needs.release.outputs.is_prerelease != 'true' }}
       MIDSCENE_REQUIRE_MAC_NOTARIZATION: ${{ needs.release.outputs.is_prerelease != 'true' }}
+      NPM_CONFIG_VIRTUAL_STORE_DIR_MAX_LENGTH: ${{ matrix.platform == 'win32' && '40' || '120' }}
       NO_COLOR: '1'
     steps:
     - uses: actions/checkout@ee0669bd1cc54295c223e0bb666b733df41de1c5 # v2.7.0
