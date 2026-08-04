@@ -308,7 +308,15 @@ jobs:
         fi
 
     - name: Install dependencies
+      id: install-dependencies
+      continue-on-error: ${{ matrix.platform == 'win32' }}
       run: pnpm install --frozen-lockfile --ignore-scripts
+
+    - name: Retry dependency installation on Windows
+      if: ${{ matrix.platform == 'win32' && steps.install-dependencies.outcome == 'failure' }}
+      run: |
+        Start-Sleep -Seconds 5
+        pnpm install --frozen-lockfile --ignore-scripts
 
     - name: Save pnpm store
       if: steps.pnpm-cache.outputs.cache-hit != 'true'
