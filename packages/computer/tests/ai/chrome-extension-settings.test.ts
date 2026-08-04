@@ -132,7 +132,7 @@ describe('chrome extension settings and cross-mode tests', () => {
       // Verify Bridge Mode UI elements
       try {
         await agent.aiAssert(
-          `${SIDE_PANEL} shows Bridge mode UI with "Bridge Mode" title and a status indicator (Connected, Listening, or Stopped) at the bottom`,
+          `${SIDE_PANEL} shows Bridge mode UI with "Bridge Mode" title and a readable status indicator (Connected, Listening, or Stopped) on a dark bottom bar. If Bridge activity exists, its clear button is aligned to the top-right of the activity timeline rather than appearing by itself at the page's left edge.`,
         );
       } catch {
         // Retry menu click
