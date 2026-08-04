@@ -98,8 +98,12 @@ jobs:
           security list-keychains -d user -s "$KEYCHAIN_PATH" $CURRENT_KEYCHAINS
           security find-identity -v -p codesigning "$KEYCHAIN_PATH" | grep -Fq "$APPLE_CODESIGN_IDENTITY"
 
+          CODESIGN_TEST_PATH="$RUNNER_TEMP/midscene-codesign-test"
+          cp /usr/bin/true "$CODESIGN_TEST_PATH"
+          codesign --force --sign "$APPLE_CODESIGN_IDENTITY" --options runtime --timestamp "$CODESIGN_TEST_PATH"
+          codesign --verify --strict "$CODESIGN_TEST_PATH"
+
           echo "APPLE_CODESIGN_IDENTITY=$APPLE_CODESIGN_IDENTITY" >> "$GITHUB_ENV"
-          echo "APPLE_CODESIGN_KEYCHAIN=$KEYCHAIN_PATH" >> "$GITHUB_ENV"
           if [ -n "${APPLE_TEAM_ID:-}" ]; then
             echo "APPLE_TEAM_ID=$APPLE_TEAM_ID" >> "$GITHUB_ENV"
           fi
