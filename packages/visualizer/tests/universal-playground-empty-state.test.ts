@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { shouldRenderCustomEmptyState } from '../src/component/universal-playground/empty-state';
+import {
+  shouldRenderCustomEmptyState,
+  shouldShowTimelineActions,
+} from '../src/component/universal-playground/empty-state';
 import type { InfoListItem } from '../src/types';
 
 function createMessage(overrides: Partial<InfoListItem>): InfoListItem {
@@ -12,11 +15,15 @@ function createMessage(overrides: Partial<InfoListItem>): InfoListItem {
   };
 }
 
-describe('shouldRenderCustomEmptyState', () => {
-  it('renders host empty state for the welcome-only conversation', () => {
+describe('UniversalPlayground empty state actions', () => {
+  it('hides timeline actions on a custom homepage', () => {
     expect(
-      shouldRenderCustomEmptyState([createMessage({ id: 'welcome' })], 'empty'),
+      shouldRenderCustomEmptyState(
+        [createMessage({ id: 'welcome' })],
+        'Welcome to Midscene.js Playground!',
+      ),
     ).toBe(true);
+    expect(shouldShowTimelineActions(true)).toBe(false);
   });
 
   it('keeps the normal list once user-visible messages exist', () => {
@@ -33,10 +40,11 @@ describe('shouldRenderCustomEmptyState', () => {
 
   it('keeps the default welcome message when no host empty state is supplied', () => {
     expect(
-      shouldRenderCustomEmptyState(
-        [createMessage({ id: 'welcome' })],
-        undefined,
-      ),
+      shouldRenderCustomEmptyState([createMessage({ id: 'welcome' })]),
     ).toBe(false);
+  });
+
+  it('keeps timeline actions available after execution content is shown', () => {
+    expect(shouldShowTimelineActions(false)).toBe(true);
   });
 });

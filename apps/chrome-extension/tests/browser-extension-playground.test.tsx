@@ -101,6 +101,9 @@ describe('BrowserExtensionPlayground', () => {
       '../src/components/playground'
     );
     const onPlaygroundSDKChange = vi.fn();
+    const onVerify = vi.fn();
+    const onAgentOptionsSave = vi.fn();
+    const agentOptions = { waitAfterAction: 500 };
     const getAgent = vi.fn(() => ({ page: { screenshot: vi.fn() } }));
     const container = document.createElement('div');
     document.body.appendChild(container);
@@ -110,8 +113,11 @@ describe('BrowserExtensionPlayground', () => {
       root.render(
         <BrowserExtensionPlayground
           getAgent={getAgent}
+          agentOptions={agentOptions}
+          onAgentOptionsSave={onAgentOptionsSave}
           showContextPreview={false}
           onPlaygroundSDKChange={onPlaygroundSDKChange}
+          onVerify={onVerify}
         />,
       );
       await Promise.resolve();
@@ -126,6 +132,13 @@ describe('BrowserExtensionPlayground', () => {
     expect(universalPlaygroundProps.at(-1)?.className).toBe(
       'chrome-extension-playground playground-conversation-skin',
     );
+    expect(universalPlaygroundProps.at(-1)?.envConfigReminderProps).toEqual({
+      agentOptions,
+      configModalClassName: 'chrome-extension-model-env-config-modal',
+      envTextareaMinRows: 4,
+      onAgentOptionsSave,
+      onVerify,
+    });
     expect(universalPlaygroundProps.at(-1)?.config).toEqual(
       expect.objectContaining({
         emptyState: expect.anything(),

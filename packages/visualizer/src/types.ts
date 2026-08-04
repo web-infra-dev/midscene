@@ -6,6 +6,7 @@ import type {
 } from '@midscene/core';
 import type { TModelConfig } from '@midscene/shared/env';
 import type { ComponentType, ReactNode } from 'react';
+import type { EnvConfigReminderProps } from './component/env-config-reminder';
 
 // Zod schema related types - compatible with actual zod types
 export interface ZodType {
@@ -468,6 +469,8 @@ export interface UniversalPlaygroundConfig {
    * existing history behaviour.
    */
   clearTimelineBeforeRun?: boolean;
+  /** Hide report fullscreen controls when the embedding host cannot support fullscreen. */
+  hidePlayerFullscreenControl?: boolean;
   /**
    * Whether to render the "clear conversation" button that appears above the
    * message list once there is more than one item. Defaults to `true`.
@@ -600,6 +603,12 @@ export interface UniversalPlaygroundProps {
 
   // UI config
   config?: UniversalPlaygroundConfig;
+
+  /**
+   * Extra capabilities for the empty-model-config reminder shown above the
+   * prompt input. The current Playground SDK is supplied automatically.
+   */
+  envConfigReminderProps?: Omit<EnvConfigReminderProps, 'playgroundSDK'>;
 
   // branding
   branding?: PlaygroundBranding;

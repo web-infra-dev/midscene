@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "build": "rsbuild build && npm run pack-extension",
+    "build": "rimraf dist && rsbuild build && npm run pack-extension",
     "dev": "rimraf dist && concurrently -k -n build,run \"rsbuild dev\" \"node scripts/wait-for-build.js && web-ext run --config web-ext-config.cjs --source-dir dist --target chromium\"",
     "dev:simple": "rsbuild dev --open",
     "preview": "rsbuild preview",

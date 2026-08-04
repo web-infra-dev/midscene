@@ -7,7 +7,7 @@ export const STUDIO_AGENT_OPTION_KEYS = [
 ] as const;
 
 export type StudioAgentOptionKey = (typeof STUDIO_AGENT_OPTION_KEYS)[number];
-export type StudioAgentOptions = Pick<AgentOpt, StudioAgentOptionKey>;
+export type StudioAgentOptions = Partial<Pick<AgentOpt, StudioAgentOptionKey>>;
 
 const isFiniteNumber = (value: unknown): value is number =>
   typeof value === 'number' && Number.isFinite(value);

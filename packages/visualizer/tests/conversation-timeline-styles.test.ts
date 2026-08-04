@@ -13,6 +13,10 @@ const universalPlayground = readFileSync(
   new URL('../src/component/universal-playground/index.tsx', import.meta.url),
   'utf8',
 );
+const player = readFileSync(
+  new URL('../src/component/player/index.tsx', import.meta.url),
+  'utf8',
+);
 
 describe('conversation timeline styles', () => {
   it('uses 13px text for every timeline message type', () => {
@@ -56,6 +60,12 @@ describe('conversation timeline styles', () => {
     expect(playerStyles).toContain('height: 260px;');
     expect(playerStyles).toContain('min-height: 0;');
     expect(playerStyles).toContain('border: 0;');
+  });
+
+  it('allows embedding hosts to hide unsupported fullscreen controls', () => {
+    expect(universalPlayground).toContain('hidePlayerFullscreenControl={');
+    expect(player).toContain('hideFullscreenControl?: boolean;');
+    expect(player).toContain('{!props?.hideFullscreenControl && (');
   });
 
   it('uses the recorder-style Ant Design tooltip for truncated progress rows', () => {

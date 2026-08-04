@@ -5,6 +5,7 @@ import {
   useRecordStore,
   useRecordingSessionStore,
 } from '../../../store';
+import { dbManager } from '../../../utils/indexedDB';
 import { recordLogger } from '../logger';
 import {
   exportAllEventsToZip,
@@ -21,13 +22,14 @@ export const useRecordingSession = (currentTab: chrome.tabs.Tab | null) => {
     deleteSession,
     setCurrentSession,
     getCurrentSession,
+    loadSession,
   } = useRecordingSessionStore();
 
   const { clearEvents } = useRecordStore();
 
   // Create session utility function
   const createNewSession = useCallback(
-    (sessionName?: string) => {
+    async (sessionName?: string) => {
       const name = sessionName || generateDefaultSessionName();
       recordLogger.info('Creating new session', { action: 'create' });
 
@@ -49,9 +51,16 @@ export const useRecordingSession = (currentTab: chrome.tabs.Tab | null) => {
         url: currentTab?.url,
       };
 
-      addSession(newSession);
-      setCurrentSession(newSession.id);
+      const sessionPersistence = addSession(newSession);
+      const currentSessionPersistence = setCurrentSession(newSession.id);
       clearEvents();
+
+      try {
+        await Promise.all([sessionPersistence, currentSessionPersistence]);
+      } catch (error) {
+        await setCurrentSession(null);
+        throw error;
+      }
 
       recordLogger.success('Session created', { sessionId: newSession.id });
       return newSession;
@@ -163,8 +172,12 @@ export const useRecordingSession = (currentTab: chrome.tabs.Tab | null) => {
   );
 
   // Export session events
-  const handleExportSession = useCallback((session: RecordingSession) => {
-    if (session.events.length === 0) {
+  const handleExportSession = useCallback(async (session: RecordingSession) => {
+    const fullSession =
+      session.events.length > 0
+        ? session
+        : await dbManager.getSession(session.id);
+    if (!fullSession || fullSession.events.length === 0) {
       recordLogger.warn('No events to export', { sessionId: session.id });
       message.warning('No events to export in this session');
       return;
@@ -172,9 +185,9 @@ export const useRecordingSession = (currentTab: chrome.tabs.Tab | null) => {
 
     recordLogger.info('Exporting session', {
       sessionId: session.id,
-      eventsCount: session.events.length,
+      eventsCount: fullSession.events.length,
     });
-    exportEventsToFile(session.events, session.name);
+    exportEventsToFile(fullSession.events, fullSession.name);
   }, []);
 
   // Export all sessions events to ZIP
@@ -187,7 +200,8 @@ export const useRecordingSession = (currentTab: chrome.tabs.Tab | null) => {
       0,
     );
     try {
-      await exportAllEventsToZip(sessions);
+      const fullSessions = await dbManager.getAllSessions();
+      await exportAllEventsToZip(fullSessions);
       message.success('Export all events to ZIP file successfully');
     } catch (error) {
       message.error('Failed to export all events to ZIP file');
@@ -202,6 +216,7 @@ export const useRecordingSession = (currentTab: chrome.tabs.Tab | null) => {
     sessions,
     currentSessionId,
     getCurrentSession,
+    loadSession,
     setCurrentSession,
 
     // Actions

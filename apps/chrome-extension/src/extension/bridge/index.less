@@ -69,6 +69,17 @@
     margin-top: 0;
     display: flex;
     flex-direction: column;
+
+    .clear-button-container {
+      position: absolute;
+      right: 0;
+      top: 16px;
+      z-index: 1;
+
+      .clear-button {
+        color: rgba(0, 0, 0, 0.65);
+      }
+    }
   }
 
   .info-list-container {
@@ -231,7 +242,11 @@
     border-radius: 12px;
     border: 1px solid transparent;
     background:
-      linear-gradient(white, white) padding-box,
+      linear-gradient(
+          var(--midscene-surface, #fff),
+          var(--midscene-surface, #fff)
+        )
+        padding-box,
       linear-gradient(
           135deg,
           #4285f4 0%,
@@ -247,6 +262,7 @@
     align-items: center;
     padding: 0 16px;
     box-sizing: border-box;
+    color: var(--midscene-text-primary, rgba(0, 0, 0, 0.88));
 
     .bottom-status-text {
       flex: 1;
@@ -277,7 +293,7 @@
     .bottom-status-divider {
       width: 1px;
       height: 20px;
-      background-color: rgba(0, 0, 0, 0.08);
+      background-color: var(--midscene-divider, rgba(0, 0, 0, 0.08));
       margin-left: 16px;
     }
 
@@ -304,7 +320,11 @@
   @keyframes hue-shift {
     0% {
       background:
-        linear-gradient(white, white) padding-box,
+        linear-gradient(
+            var(--midscene-surface, #fff),
+            var(--midscene-surface, #fff)
+          )
+          padding-box,
         linear-gradient(
             135deg,
             #4285f4 0%,
@@ -318,7 +338,11 @@
 
     25% {
       background:
-        linear-gradient(white, white) padding-box,
+        linear-gradient(
+            var(--midscene-surface, #fff),
+            var(--midscene-surface, #fff)
+          )
+          padding-box,
         linear-gradient(
             135deg,
             #0066ff 0%,
@@ -332,7 +356,11 @@
 
     50% {
       background:
-        linear-gradient(white, white) padding-box,
+        linear-gradient(
+            var(--midscene-surface, #fff),
+            var(--midscene-surface, #fff)
+          )
+          padding-box,
         linear-gradient(
             135deg,
             #7b02c5 0%,
@@ -346,7 +374,11 @@
 
     75% {
       background:
-        linear-gradient(white, white) padding-box,
+        linear-gradient(
+            var(--midscene-surface, #fff),
+            var(--midscene-surface, #fff)
+          )
+          padding-box,
         linear-gradient(
             135deg,
             #ea4335 0%,
@@ -360,7 +392,11 @@
 
     100% {
       background:
-        linear-gradient(white, white) padding-box,
+        linear-gradient(
+            var(--midscene-surface, #fff),
+            var(--midscene-surface, #fff)
+          )
+          padding-box,
         linear-gradient(
             135deg,
             #ff7043 0%,
@@ -419,6 +455,20 @@
   .bottom-input-section {
     background: var(--midscene-surface-elevated);
     border-color: var(--midscene-border-strong);
+  }
+
+  .server-config-input {
+    background: var(--midscene-surface) !important;
+    border-color: var(--midscene-border-control) !important;
+    color: var(--midscene-text-primary);
+
+    &::placeholder {
+      color: var(--midscene-text-placeholder);
+    }
+  }
+
+  .bottom-status-bar {
+    color: var(--midscene-text-primary);
   }
 
   .clear-button-container .clear-button {

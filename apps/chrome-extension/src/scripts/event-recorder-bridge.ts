@@ -1,11 +1,7 @@
 /// <reference types="chrome" />
 
-import {
-  type ChromeRecordedEvent,
-  type RecordedEvent,
-  convertToChromeEvent,
-  convertToChromeEvents,
-} from '@midscene/recorder';
+import type { ChromeRecordedEvent } from '@midscene/recorder';
+import { serializeRecorderEvent } from './recorder-event-serialization';
 
 // Event Recorder Bridge
 // This script bridges the EventRecorder (injected via record-iife.js) with the Chrome Extension
@@ -349,7 +345,7 @@ async function sendSingleEvent(
 ): Promise<void> {
   const message: ChromeMessage = {
     action: 'event-update',
-    data: convertToChromeEvent(event),
+    data: serializeRecorderEvent(event),
     eventIndex,
     totalEvents,
   };
@@ -374,7 +370,7 @@ async function sendSingleEvent(
 async function sendEvents(events: ChromeRecordedEvent[]): Promise<void> {
   const message = {
     action: 'events',
-    data: convertToChromeEvents(events),
+    data: events.map(serializeRecorderEvent),
   } as ChromeMessage;
 
   try {

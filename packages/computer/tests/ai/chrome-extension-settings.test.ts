@@ -2,7 +2,8 @@
  * E2E tests for Chrome extension settings, theme, and cross-mode navigation.
  *
  * Tests combined for speed:
- * - Settings modal: open → verify env config area → close
+ * - Dark theme: verify the side panel and light settings modal render correctly
+ * - Settings modal: open → verify env config area and first viewport → close
  * - Three-mode rotation: Playground → Bridge → Recorder → Playground
  * - Bridge mode UI: verify server config section and status bar
  */
@@ -39,6 +40,7 @@ describe('chrome extension settings and cross-mode tests', () => {
     await launchChromeWithExtension(
       extensionPath,
       'https://todomvc.com/examples/react/dist/',
+      { forceDarkMode: true },
     );
     extId = await readExtensionId();
     console.log('Extension ID:', extId);
@@ -61,6 +63,10 @@ describe('chrome extension settings and cross-mode tests', () => {
       await reloadViaWebSocket(target.webSocketDebuggerUrl);
       await sleep(3000);
     }
+
+    await agent.aiAssert(
+      `${SIDE_PANEL} is rendered in a dark theme. Its background is dark, while the header title, navigation icons, action buttons, prompt input, and other text remain clearly visible and readable. There are no invisible controls, broken color patches, or overlapping elements.`,
+    );
   });
 
   // ── Combined: settings modal open/edit/close ──────────────────────────
@@ -85,12 +91,17 @@ describe('chrome extension settings and cross-mode tests', () => {
       );
     }
 
-    // 2. Verify the text area contains env config (injected earlier)
+    // 2. Verify the dark-theme rendering and compact first viewport visually.
+    await agent.aiAssert(
+      `A light-colored "Config" modal is fully visible on top of ${SIDE_PANEL}, which remains dark. The modal's title, "Model Env Config" section, textarea contents, input borders, close icon, and action buttons are clearly visible and readable. The first visible modal viewport reaches the "Agent Option Config" heading, with no clipped or overlapping content.`,
+    );
+
+    // 3. Verify the text area contains env config (injected earlier)
     await agent.aiAssert(
       'The modal text area contains environment variable text like "MIDSCENE_MODEL" or API configuration',
     );
 
-    // 3. Close settings
+    // 4. Close settings
     await agent.aiAct(
       'Click the X close button in the top-right corner of the "Model Env Config" modal.',
     );
@@ -110,6 +121,9 @@ describe('chrome extension settings and cross-mode tests', () => {
         `In ${SIDE_PANEL}, find and click the hamburger menu icon (three horizontal lines "≡") at the top-left corner`,
       );
       await sleep(2000);
+      await agent.aiAssert(
+        `${SIDE_PANEL} shows the mode selector dropdown with Playground, Recorder (Preview), and Bridge Mode. The dropdown surface and its open hamburger-menu trigger are dark like the side panel, not light gray or white, and every label and icon is clearly readable.`,
+      );
       await agent.aiAct(
         'In the dropdown menu that just appeared, click the menu item labeled "Bridge Mode"',
       );
@@ -118,7 +132,7 @@ describe('chrome extension settings and cross-mode tests', () => {
       // Verify Bridge Mode UI elements
       try {
         await agent.aiAssert(
-          `${SIDE_PANEL} shows Bridge mode UI with "Bridge Mode" title and a status indicator (Connected, Listening, or Stopped) at the bottom`,
+          `${SIDE_PANEL} shows Bridge mode UI with "Bridge Mode" title and a readable status indicator (Connected, Listening, or Stopped) on a dark bottom bar. If Bridge activity exists, its clear button is aligned to the top-right of the activity timeline rather than appearing by itself at the page's left edge.`,
         );
       } catch {
         // Retry menu click
@@ -143,7 +157,7 @@ describe('chrome extension settings and cross-mode tests', () => {
       );
       await sleep(3000);
       await agent.aiAssert(
-        `${SIDE_PANEL} shows Recorder mode UI with a "New Recording" button`,
+        `${SIDE_PANEL} is rendered in a dark theme and shows Recorder mode UI with a "New Recording" button. The empty-state text "Start your first recording" is clearly visible in a light color against the dark background.`,
       );
 
       // 3. Switch back to Playground

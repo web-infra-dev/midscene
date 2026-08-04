@@ -152,3 +152,44 @@
     -webkit-app-region: no-drag;
   }
 }
+
+/* Studio keeps the design's fixed dialog height and scrolls only its body. */
+.studio-model-env-config-modal .ant-modal-content {
+  display: flex;
+  flex-direction: column;
+  height: 720px;
+  max-height: calc(100vh - 48px);
+  overflow: hidden;
+}
+
+.studio-model-env-config-modal .ant-modal-header,
+.studio-model-env-config-modal .ant-modal-footer {
+  flex: 0 0 auto;
+}
+
+.studio-model-env-config-modal .ant-modal-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  padding-bottom: 0;
+}
+
+/* The Figma .env view fits its complete first screen within the 720px dialog.
+ * Form Style may contain more controls, so it retains the body's scroll area. */
+.studio-model-env-config-modal.midscene-config-modal--text .ant-modal-body {
+  overflow: hidden;
+}
+
+/* The updated Studio design reserves a compact, scrollable env editor. */
+.studio-model-env-config-modal .midscene-config-modal-env-textarea {
+  box-sizing: border-box;
+  height: 160px !important;
+  max-height: 160px !important;
+  min-height: 160px !important;
+  overflow-y: auto;
+}
+
+/* The desktop layout has enough room for the longest Agent option label. */
+.studio-model-env-config-modal .midscene-config-modal-option-field > label {
+  white-space: nowrap;
+}

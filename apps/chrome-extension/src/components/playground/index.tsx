@@ -1,5 +1,9 @@
 import { PlaygroundSDK } from '@midscene/playground';
-import { UniversalPlayground } from '@midscene/visualizer';
+import {
+  type CommonAgentOptions,
+  type EnvConfigProps,
+  UniversalPlayground,
+} from '@midscene/visualizer';
 import { useEnvConfig } from '@midscene/visualizer';
 import { Empty } from 'antd';
 import { useEffect, useMemo, useState } from 'react';
@@ -13,6 +17,9 @@ export interface PlaygroundProps {
   showContextPreview?: boolean;
   dryMode?: boolean;
   onPlaygroundSDKChange?: (sdk: PlaygroundSDK | null) => void;
+  onVerify?: EnvConfigProps['onVerify'];
+  agentOptions?: CommonAgentOptions;
+  onAgentOptionsSave?: (options: CommonAgentOptions) => void | Promise<void>;
 }
 
 function ExtensionWelcomeEmptyState() {
@@ -54,6 +61,9 @@ export function BrowserExtensionPlayground({
   showContextPreview = true,
   dryMode = false,
   onPlaygroundSDKChange,
+  onVerify,
+  agentOptions,
+  onAgentOptionsSave,
 }: PlaygroundProps) {
   const extensionVersion = getExtensionVersion();
   const forceSameTabNavigation = useEnvConfig(
@@ -142,6 +152,13 @@ export function BrowserExtensionPlayground({
     <UniversalPlayground
       playgroundSDK={playgroundSDK}
       contextProvider={contextProvider}
+      envConfigReminderProps={{
+        onVerify,
+        agentOptions,
+        onAgentOptionsSave,
+        configModalClassName: 'chrome-extension-model-env-config-modal',
+        envTextareaMinRows: 4,
+      }}
       config={{
         showContextPreview,
         // The SDK is intentionally recreated when the active browser tab
@@ -149,6 +166,10 @@ export function BrowserExtensionPlayground({
         // short-lived SDK instance so a tab switch does not open an empty
         // session.
         storageNamespace: 'chrome-extension-playground',
+        hidePlayerFullscreenControl: true,
+        // The extension is an action console, not a long-lived report archive.
+        // Keep one execution timeline so repeated submits cannot pile up cards.
+        clearTimelineBeforeRun: true,
         layout: 'vertical',
         showVersionInfo: true,
         enableScrollToBottom: true,

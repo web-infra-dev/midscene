@@ -67,7 +67,7 @@
   // own internal spacing instead of inheriting that outer inset.
   &.playground-conversation-skin {
     .middle-dialog-area .info-list-container {
-      padding: 0;
+      padding: 16px 0 0;
     }
 
     .bottom-input-section {
@@ -157,9 +157,17 @@
 
     .clear-button-container {
       position: absolute;
-      top: 16px;
-      right: -6px;
+      top: 24px;
+      right: 8px;
       z-index: 20;
+    }
+
+    // The clear control occupies the timeline's right edge. Reserve its
+    // 24px hit area plus an 8px gap so a right-aligned user bubble never
+    // sits underneath it.
+    .user-message-container {
+      box-sizing: border-box;
+      padding-right: 32px;
     }
 
     .middle-dialog-area .info-list-container {
@@ -185,7 +193,27 @@
 }
 
 [data-theme='dark'] .chrome-extension-playground {
-  --extension-timeline-connector: #444;
+  --extension-timeline-connector: #8c8c8c;
+
+  // Ant Design assigns `rgba(0, 0, 0, 0.88)` directly to list items. That
+  // bypasses the playground root's dark foreground token and makes any
+  // currentColor-based timeline affordance render black. Override it at the
+  // actual list-item element, rather than relying on inheritance.
+  .chrome-extension-execution-timeline-skin
+    .middle-dialog-area
+    .info-list-container
+    .ant-list
+    .ant-list-item {
+    color: var(--midscene-text-primary);
+  }
+
+  // Keep the execution connector high contrast even if a shared playground
+  // skin supplies a darker background declaration later in the cascade.
+  .chrome-extension-execution-timeline-skin
+    .list-item:has(.progress-row)
+    > div:has(> .progress-row)::after {
+    background-color: #8c8c8c !important;
+  }
 
   .system-message-header .system-message-title {
     color: var(--midscene-text-primary);
