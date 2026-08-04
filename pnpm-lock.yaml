@@ -129,7 +129,7 @@ importers:
       '@midscene/playground':
         specifier: workspace:*
         version: link:../../packages/playground
-      '@midscene/recorder':
+      '@midscene/recorder-ui':
         specifier: workspace:*
         version: link:../../packages/recorder
       '@midscene/report':
@@ -345,7 +345,7 @@ importers:
 
   apps/recorder-form:
     dependencies:
-      '@midscene/recorder':
+      '@midscene/recorder-ui':
         specifier: workspace:*
         version: link:../../packages/recorder
       antd:
@@ -543,7 +543,7 @@ importers:
       '@midscene/playground-app':
         specifier: workspace:*
         version: link:../../packages/playground-app
-      '@midscene/recorder':
+      '@midscene/recorder-ui':
         specifier: workspace:*
         version: link:../../packages/recorder
       '@midscene/shared':

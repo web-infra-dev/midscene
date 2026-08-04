@@ -4,7 +4,7 @@ import {
   callAIWithStringResponse,
   getModelRuntime,
 } from '@midscene/core/ai-model';
-import type { ChromeRecordedEvent } from '@midscene/recorder';
+import type { ChromeRecordedEvent } from '@midscene/recorder-ui';
 import type { IModelConfig } from '@midscene/shared/env';
 import { message } from 'antd';
 import { saveAs } from 'file-saver';

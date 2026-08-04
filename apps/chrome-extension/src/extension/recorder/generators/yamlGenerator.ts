@@ -6,7 +6,7 @@ import {
   generateRecorderYamlTest,
   generateRecorderYamlTestStream,
 } from '@midscene/core/ai-model';
-import type { ChromeRecordedEvent } from '@midscene/recorder';
+import type { ChromeRecordedEvent } from '@midscene/recorder-ui';
 import type { IModelConfig } from '@midscene/shared/env';
 import type { MidsceneRecorderTarget } from '@midscene/shared/recorder';
 import { recordLogger } from '../logger';
