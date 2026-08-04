@@ -1,5 +1,5 @@
 // import { generatePlaywrightTest as coreGeneratePlaywrightTest } from '@midscene/core/ai-model';
-import type { ChromeRecordedEvent } from '@midscene/recorder';
+import type { ChromeRecordedEvent } from '@midscene/recorder-ui';
 
 import type {
   StreamingAIResponse,
