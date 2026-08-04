@@ -285,6 +285,22 @@ html[data-theme='dark'] .mode-selector-dropdown {
   }
 }
 
+// Dropdown adds `ant-dropdown-open` to its trigger. Keep that active state
+// on the dark side-panel surface instead of falling back to a light highlight.
+html[data-theme='dark']
+  .popup-wrapper
+  .popup-nav
+  .nav-left
+  .nav-icon.menu-trigger {
+  &:hover,
+  &:focus,
+  &:focus-visible,
+  &.ant-dropdown-open {
+    background: var(--midscene-surface-muted) !important;
+    color: var(--midscene-text-primary);
+  }
+}
+
 // The shared dialog uses the same content structure as Studio. The extension
 // panel has a fixed visual viewport, so only its body scrolls while the title
 // and actions remain visible.

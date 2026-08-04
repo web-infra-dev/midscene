@@ -122,7 +122,7 @@ describe('chrome extension settings and cross-mode tests', () => {
       );
       await sleep(2000);
       await agent.aiAssert(
-        `${SIDE_PANEL} shows the mode selector dropdown with Playground, Recorder (Preview), and Bridge Mode. The dropdown surface is dark like the side panel, not a light gray or white box, and every label and icon is clearly readable.`,
+        `${SIDE_PANEL} shows the mode selector dropdown with Playground, Recorder (Preview), and Bridge Mode. The dropdown surface and its open hamburger-menu trigger are dark like the side panel, not light gray or white, and every label and icon is clearly readable.`,
       );
       await agent.aiAct(
         'In the dropdown menu that just appeared, click the menu item labeled "Bridge Mode"',
