@@ -320,7 +320,7 @@ jobs:
         pnpm install --frozen-lockfile --ignore-scripts
 
     - name: Save pnpm store
-      if: steps.pnpm-cache.outputs.cache-hit != 'true'
+      if: ${{ matrix.platform != 'win32' && steps.pnpm-cache.outputs.cache-hit != 'true' }}
       uses: ./.github/actions/pnpm-cache/save
 
     - name: Install @midscene/computer native build deps (macOS)
