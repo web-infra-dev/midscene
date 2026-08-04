@@ -253,6 +253,38 @@ html[data-theme='dark'] .chrome-extension-model-env-config-modal {
   }
 }
 
+// Dropdown overlays are rendered at the document root, outside the popup
+// shell. Give the mode selector its own dark-theme surface rather than
+// inheriting Ant Design's light menu defaults.
+html[data-theme='dark'] .mode-selector-dropdown {
+  .ant-dropdown-menu {
+    background: var(--midscene-surface-elevated);
+    border: 1px solid var(--midscene-border-strong);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.36);
+
+    .ant-dropdown-menu-item {
+      color: var(--midscene-text-primary);
+
+      .ant-dropdown-menu-title-content {
+        color: var(--midscene-text-primary);
+      }
+
+      svg {
+        color: var(--midscene-text-secondary);
+      }
+
+      &:hover {
+        background: var(--midscene-surface-muted);
+        color: var(--midscene-text-primary);
+
+        svg {
+          color: var(--midscene-text-primary);
+        }
+      }
+    }
+  }
+}
+
 // The shared dialog uses the same content structure as Studio. The extension
 // panel has a fixed visual viewport, so only its body scrolls while the title
 // and actions remain visible.

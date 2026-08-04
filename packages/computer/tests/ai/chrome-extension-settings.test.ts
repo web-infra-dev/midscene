@@ -121,6 +121,9 @@ describe('chrome extension settings and cross-mode tests', () => {
         `In ${SIDE_PANEL}, find and click the hamburger menu icon (three horizontal lines "≡") at the top-left corner`,
       );
       await sleep(2000);
+      await agent.aiAssert(
+        `${SIDE_PANEL} shows the mode selector dropdown with Playground, Recorder (Preview), and Bridge Mode. The dropdown surface is dark like the side panel, not a light gray or white box, and every label and icon is clearly readable.`,
+      );
       await agent.aiAct(
         'In the dropdown menu that just appeared, click the menu item labeled "Bridge Mode"',
       );
