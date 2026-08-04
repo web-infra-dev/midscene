@@ -21,15 +21,19 @@
  * synthesizes, then invoke `fixture.ai({page}, ...)` which is the cheapest
  * code path that runs `createOrReuseAgentForPage`.
  */
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockState = vi.hoisted(() => ({
   ctorOpts: [] as any[],
+  reportFile: undefined as string | undefined,
 }));
 
 vi.mock('@/playwright/index', () => {
   class MockPlaywrightAgent {
-    reportFile?: string;
+    reportFile = mockState.reportFile;
 
     constructor(_page: any, opts: any) {
       mockState.ctorOpts.push(opts);
@@ -55,8 +59,16 @@ const runAi = async (testInfo: any) => {
 };
 
 describe('PlaywrightAiFixture reportFileName derivation', () => {
+  let tempDir: string;
+
   beforeEach(() => {
     mockState.ctorOpts.length = 0;
+    mockState.reportFile = undefined;
+    tempDir = mkdtempSync(join(tmpdir(), 'midscene-fixture-report-'));
+  });
+
+  afterEach(() => {
+    rmSync(tempDir, { recursive: true, force: true });
   });
 
   it('uses the human-readable test title and drops the Playwright UUID testId', async () => {
@@ -160,5 +172,39 @@ describe('PlaywrightAiFixture reportFileName derivation', () => {
     // groupName keeps the original hierarchy-carrying separators.
     expect(opts.groupName).toContain('/');
     expect(opts.groupName).toContain('\\');
+  });
+
+  it('preserves its finalized report when the Playwright reporter is not configured', async () => {
+    const reportPath = join(tempDir, 'fixture-owned-report.html');
+    writeFileSync(reportPath, 'fixture report', 'utf-8');
+    mockState.reportFile = reportPath;
+
+    const fixture = PlaywrightAiFixture();
+    const page = createPage();
+    const testInfo = {
+      testId: 'fixture-only-test',
+      titlePath: ['fixture-only.spec.ts', 'keeps its report'],
+      annotations: [],
+      retry: 0,
+    } as any;
+    let getAgent: any;
+
+    await fixture.agentForPage(
+      { page },
+      async (fn: any) => {
+        getAgent = fn;
+      },
+      testInfo,
+    );
+    await getAgent(page);
+
+    const [finalizeReports] = fixture._midsceneFinalizeReports as any;
+    await finalizeReports({}, async () => {}, testInfo);
+
+    expect(existsSync(reportPath)).toBe(true);
+    expect(testInfo.annotations).toContainEqual({
+      type: 'MIDSCENE_DUMP_ANNOTATION',
+      description: reportPath,
+    });
   });
 });

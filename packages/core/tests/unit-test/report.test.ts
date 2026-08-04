@@ -72,6 +72,11 @@ describe('reportMergingTool', () => {
     expectedContents.forEach((content) => {
       expect(mergedReportContent).contains(content);
     });
+    // Public merge callers own their input reports unless they explicitly opt
+    // into rmOriginalReports.
+    getReportInfos(tool).forEach((el) => {
+      expect(existsSync(el.reportFilePath)).toBe(true);
+    });
   });
 
   it('should merge 3 mocked reports, and delete original reports after that.', async () => {
