@@ -24,7 +24,9 @@ jobs:
     outputs:
       version: ${{ steps.get_version.outputs.version }}
       is_prerelease: ${{ steps.get_version.outputs.is_prerelease }}
-    runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"') }}
+    # npm Trusted Publishing requires a GitHub-hosted runner, and the native
+    # Linux package build requires freerdp3-dev from Ubuntu 24.04.
+    runs-on: ubuntu-24.04
     strategy:
       matrix:
         node-version: [24.13.0]
@@ -62,11 +64,15 @@ jobs:
       uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
       with:
         node-version: '24.13.0'
-        cache: 'pnpm'
         registry-url: 'https://registry.npmjs.org'
 
+    - name: Cache pnpm store
+      id: pnpm-cache
+      uses: ./.github/actions/pnpm-cache/restore
+
     - name: Cache Puppeteer
-      uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+      id: cache-puppeteer
+      uses: ./.github/actions/cache/restore
       with:
         path: ~/.cache/puppeteer
         key: ${{ runner.os }}-puppeteer-${{ hashFiles('**/package-lock.json') }}
@@ -76,8 +82,19 @@ jobs:
     - name: Install dependencies
       run: pnpm install --frozen-lockfile --ignore-scripts
 
+    - name: Save pnpm store
+      if: steps.pnpm-cache.outputs.cache-hit != 'true'
+      uses: ./.github/actions/pnpm-cache/save
+
     - name: Install Puppeteer browser
       run: cd packages/web-integration && npx puppeteer browsers install chrome
+
+    - name: Save Puppeteer cache
+      if: steps.cache-puppeteer.outputs.cache-hit != 'true'
+      uses: ./.github/actions/cache/save
+      with:
+        path: ~/.cache/puppeteer
+        key: ${{ runner.os }}-puppeteer-${{ hashFiles('**/package-lock.json') }}
 
     - name: Install @midscene/computer native build deps (linux/x64)
       # The prepublishOnly hook of @midscene/computer compiles
@@ -200,7 +217,7 @@ jobs:
         - runner: ${{ vars.WINDOWS_SELF_HOSTED_RUNNER_LABELS || '"windows-latest"' }}
           platform: win32
           arch: x64
-        - runner: ${{ vars.MAC_SELF_HOSTED_RUNNER_LABELS || '"macos-latest"' }}
+        - runner: '"macos-15"'
           platform: darwin
           arch: arm64
         - runner: '"macos-15-intel"'
@@ -214,6 +231,7 @@ jobs:
       FORCE_COLOR: '0'
       MIDSCENE_REQUIRE_MAC_CODESIGN: ${{ needs.release.outputs.is_prerelease != 'true' }}
       MIDSCENE_REQUIRE_MAC_NOTARIZATION: ${{ needs.release.outputs.is_prerelease != 'true' }}
+      NPM_CONFIG_VIRTUAL_STORE_DIR_MAX_LENGTH: ${{ matrix.platform == 'win32' && '40' || '120' }}
       NO_COLOR: '1'
     steps:
     - uses: actions/checkout@ee0669bd1cc54295c223e0bb666b733df41de1c5 # v2.7.0
@@ -232,8 +250,11 @@ jobs:
     - name: Setup Node.js
       uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
       with:
-        node-version: '22.11.0'
-        cache: 'pnpm'
+        node-version: '24.13.0'
+
+    - name: Cache pnpm store
+      id: pnpm-cache
+      uses: ./.github/actions/pnpm-cache/restore
 
     - name: Prepare macOS codesigning keychain
       if: ${{ matrix.platform == 'darwin' }}
@@ -288,7 +309,20 @@ jobs:
         fi
 
     - name: Install dependencies
+      id: install-dependencies
+      continue-on-error: ${{ matrix.platform == 'win32' }}
       run: pnpm install --frozen-lockfile --ignore-scripts
+
+    - name: Retry dependency installation on Windows
+      if: ${{ matrix.platform == 'win32' && steps.install-dependencies.outcome == 'failure' }}
+      run: |
+        Start-Sleep -Seconds 5
+        git clean -ffdx
+        pnpm install --frozen-lockfile --ignore-scripts
+
+    - name: Save pnpm store
+      if: ${{ matrix.platform != 'win32' && steps.pnpm-cache.outputs.cache-hit != 'true' }}
+      uses: ./.github/actions/pnpm-cache/save
 
     - name: Install @midscene/computer native build deps (macOS)
       if: ${{ matrix.platform == 'darwin' }}

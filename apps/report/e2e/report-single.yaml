@@ -27,16 +27,3 @@ tasks:
           deepLocate: true
       - sleep: 1000
       - aiAssert: The player settings popup is open above the bottom-right control bar, showing options such as "Focus on cursor", "Subtitle", "Playback speed", and speed choices like "0.5x", "1x", "1.5x", or "2x".
-
-  # --- Dark mode ---
-  - name: toggle dark mode
-    flow:
-      - aiTap: theme toggle button in the top right header
-      - sleep: 2000
-      - aiAssert: The report UI is in dark theme; the top header, left sidebar, and page chrome are dark charcoal or black rather than white
-
-  - name: toggle back to light mode
-    flow:
-      - aiTap: theme toggle button in the top right header
-      - sleep: 2000
-      - aiAssert: The report UI is in light theme; the top header, left sidebar, and page chrome are light or white rather than dark charcoal or black

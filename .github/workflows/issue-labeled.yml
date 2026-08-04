@@ -8,12 +8,11 @@ jobs:
   reply-labeled:
     name: Reply need reproduction
     runs-on: ${{ fromJSON(vars.CI_LINUX_MINI_RUNNER || '"ubuntu-latest"') }}
-    if: github.repository == 'web-infra-dev/midscene'
+    if: github.repository == 'web-infra-dev/midscene' && github.event.label.name == 'need reproduction'
     permissions:
       issues: write
     steps:
       - name: need reproduction
-        if: github.event.label.name == 'need reproduction'
         env:
           GH_TOKEN: ${{ github.token }}
           ISSUE_NUMBER: ${{ github.event.issue.number }}

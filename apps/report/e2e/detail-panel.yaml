@@ -5,21 +5,21 @@ tasks:
   - name: view screenshots tab
     flow:
       - sleep: 2000
-      - ai: Click on the first task row in the left sidebar that has type "Planning" or "Insight" or "Locate"
+      - aiTap: the first task row in the left sidebar that has type "Planning" or "Insight" or "Locate"
       - sleep: 2000
-      - ai: In the center task detail Replay/Screenshots/JSON View switcher, select "Screenshots" (not Replay or JSON View) and wait until screenshot thumbnails are displayed
+      - aiTap: the "Screenshots" option in the center task detail Replay/Screenshots/JSON View switcher
       - sleep: 1500
       - aiAssert: In the center task detail panel, the selected tab among Replay, Screenshots, and JSON View is Screenshots. The content below the tabs shows UI screenshot images for the selected task.
 
   - name: view JSON data tab
     flow:
-      - ai: In the center task detail area, click the "JSON View" option in the Replay/Screenshots/JSON View switcher and wait until the content changes to the text data view
+      - aiTap: the "JSON View" option in the center task detail Replay/Screenshots/JSON View switcher
       - sleep: 1000
       - aiAssert: In the center task detail panel, the selected tab among Replay, Screenshots, and JSON View is JSON View. The content below the tabs shows structured task details as JSON text instead of UI screenshot images.
 
   - name: inspect detail side sections
     flow:
-      - ai: Click on the first Planning task row in the left sidebar
+      - aiTap: the first Planning task row in the left sidebar
       - sleep: 1000
       - aiAssert: The right detail side panel shows collapsible section headers named Param and Output, and the Param section is expanded with task input data
       # Collapse both Param and the Output/Element section so the Meta section
@@ -35,6 +35,6 @@ tasks:
 
   - name: open in playground button
     flow:
-      - ai: Click on a task row in the sidebar that shows "Planning" type
+      - aiTap: a task row in the sidebar that shows "Planning" type
       - sleep: 2000
       - aiAssert: There is a "Open in Playground" button visible on the page

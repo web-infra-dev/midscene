@@ -1,0 +1,28 @@
+name: Save cache
+
+description: Save a cache to GitHub storage or the self-hosted internal cache service
+
+inputs:
+  key:
+    description: An explicit key for saving the cache
+    required: true
+  path:
+    description: Files, directories, and wildcard patterns to save
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Save cache to GitHub storage
+      if: ${{ runner.environment == 'github-hosted' }}
+      uses: actions/cache/save@2c8a9bd7457de244a408f35966fab2fb45fda9c8 # v6
+      with:
+        key: ${{ inputs.key }}
+        path: ${{ inputs.path }}
+
+    - name: Save cache to internal storage
+      if: ${{ runner.environment == 'self-hosted' }}
+      uses: lynx-infra/cache/save@d6bd70bf2182b228ff5cfa9539e5f61b0929a1ba # main
+      with:
+        key: ${{ inputs.key }}
+        path: ${{ inputs.path }}

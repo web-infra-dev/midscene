@@ -23,7 +23,7 @@ jobs:
           - runner: ${{ vars.WINDOWS_SELF_HOSTED_RUNNER_LABELS || '"windows-latest"' }}
             platform: win32
             arch: x64
-          - runner: ${{ vars.MAC_SELF_HOSTED_RUNNER_LABELS || '"macos-latest"' }}
+          - runner: '"macos-15"'
             platform: darwin
             arch: arm64
           - runner: '"macos-15-intel"'
@@ -36,6 +36,7 @@ jobs:
       FORCE_COLOR: '0'
       MIDSCENE_REQUIRE_MAC_CODESIGN: ${{ matrix.platform == 'darwin' }}
       MIDSCENE_REQUIRE_MAC_NOTARIZATION: ${{ matrix.platform == 'darwin' }}
+      NPM_CONFIG_VIRTUAL_STORE_DIR_MAX_LENGTH: ${{ matrix.platform == 'win32' && '40' || '120' }}
       NO_COLOR: '1'
       STUDIO_PACKAGE_VALIDATION_VERSION: v0.0.${{ github.run_number }}
     steps:
@@ -51,8 +52,11 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
-          node-version: '22.11.0'
-          cache: 'pnpm'
+          node-version: '24.13.0'
+
+      - name: Cache pnpm store
+        id: pnpm-cache
+        uses: ./.github/actions/pnpm-cache/restore
 
       - name: Prepare macOS codesigning keychain
         if: ${{ matrix.platform == 'darwin' }}
@@ -107,7 +111,20 @@ jobs:
           fi
 
       - name: Install dependencies
+        id: install-dependencies
+        continue-on-error: ${{ matrix.platform == 'win32' }}
         run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Retry dependency installation on Windows
+        if: ${{ matrix.platform == 'win32' && steps.install-dependencies.outcome == 'failure' }}
+        run: |
+          Start-Sleep -Seconds 5
+          git clean -ffdx
+          pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Save pnpm store
+        if: ${{ matrix.platform != 'win32' && steps.pnpm-cache.outputs.cache-hit != 'true' }}
+        uses: ./.github/actions/pnpm-cache/save
 
       - name: Install @midscene/computer native build deps (macOS)
         if: ${{ matrix.platform == 'darwin' }}
@@ -116,6 +133,45 @@ jobs:
       - name: Build @midscene/computer native helpers
         if: ${{ matrix.platform == 'darwin' }}
         run: pnpm --filter @midscene/computer run build:native
+
+      - name: Build appdmg native bindings
+        if: ${{ matrix.platform == 'darwin' }}
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+
+          ensure_native_pkg() {
+            local pkg="$1"
+            local version="$2"
+            local consumer="$3"
+            PKG_DIRS=(
+              node_modules/.pnpm/${pkg}@*/node_modules/${pkg}
+              node_modules/.pnpm/${consumer}@*/node_modules/${pkg}
+            )
+            if [ "${#PKG_DIRS[@]}" -eq 0 ]; then
+              CONSUMER_STORE_ROOTS=(node_modules/.pnpm/${consumer}@*)
+              if [ "${#CONSUMER_STORE_ROOTS[@]}" -eq 0 ]; then
+                echo "${consumer} store directory not found under node_modules/.pnpm" >&2
+                exit 1
+              fi
+              CONSUMER_STORE_ROOT="${CONSUMER_STORE_ROOTS[0]}"
+              echo "Installing ${pkg}@${version} under ${CONSUMER_STORE_ROOT}"
+              npm install --prefix "${CONSUMER_STORE_ROOT}" --no-save --no-package-lock --ignore-scripts "${pkg}@${version}"
+              PKG_DIRS=(
+                node_modules/.pnpm/${pkg}@*/node_modules/${pkg}
+                node_modules/.pnpm/${consumer}@*/node_modules/${pkg}
+              )
+              if [ "${#PKG_DIRS[@]}" -eq 0 ]; then
+                echo "${pkg} package directory not found under node_modules/.pnpm" >&2
+                exit 1
+              fi
+            fi
+            echo "Rebuilding ${pkg} in ${PKG_DIRS[0]}"
+            (cd "${PKG_DIRS[0]}" && npm rebuild)
+          }
+
+          ensure_native_pkg macos-alias 0.2.12 ds-store
+          ensure_native_pkg fs-xattr 0.3.1 appdmg
 
       - name: Build Studio and Nx dependencies
         run: npx nx build studio

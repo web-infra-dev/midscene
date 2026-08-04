@@ -4,7 +4,17 @@ on:
   push:
     branches:
       - main
+    paths-ignore:
+      - '**/*.md'
+      - 'apps/site/**'
+      - '.changeset/**'
+      - 'docs/**'
   pull_request:
+    paths-ignore:
+      - '**/*.md'
+      - 'apps/site/**'
+      - '.changeset/**'
+      - 'docs/**'
   workflow_dispatch:
 
 permissions:
@@ -24,8 +34,6 @@ jobs:
 
     steps:
     - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
-      with:
-        fetch-depth: 0
 
     - name: Setup pnpm
       uses: pnpm/action-setup@eae0cfeb286e66ffb5155f1a79b90583a127a68b # v2.4.1
@@ -38,7 +46,7 @@ jobs:
         node-version: '24.13.0'
 
     - name: Cache Puppeteer dependencies
-      uses: actions/cache@6f8efc29b200d32929f49075959781ed54ec270c # v3.5.0
+      uses: ./.github/actions/cache/restore
       id: cache-puppeteer
       with:
         path: ~/.cache/puppeteer
@@ -53,6 +61,13 @@ jobs:
       run: |
         cd packages/web-integration
         npx puppeteer browsers install chrome
+
+    - name: Save Puppeteer cache
+      if: steps.cache-puppeteer.outputs.cache-hit != 'true'
+      uses: ./.github/actions/cache/save
+      with:
+        path: ~/.cache/puppeteer
+        key: ${{ runner.os }}-puppeteer-${{ hashFiles('pnpm-lock.yaml') }}
 
     - name: Check tsconfig references
       run: pnpm run check:references

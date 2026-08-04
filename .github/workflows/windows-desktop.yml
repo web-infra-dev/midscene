@@ -169,11 +169,18 @@ jobs:
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: '24.13.0'
-          cache: 'pnpm'
+
+      - name: Cache pnpm store
+        id: pnpm-cache
+        uses: ./.github/actions/pnpm-cache/restore
 
       - name: Install dependencies
         shell: pwsh
         run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Save pnpm store
+        if: steps.pnpm-cache.outputs.cache-hit != 'true'
+        uses: ./.github/actions/pnpm-cache/save
 
       - name: Build report and computer packages
         id: build

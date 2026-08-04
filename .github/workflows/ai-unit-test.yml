@@ -3,7 +3,17 @@ on:
   push:
     branches:
       - main
+    paths-ignore:
+      - '**/*.md'
+      - 'apps/site/**'
+      - '.changeset/**'
+      - 'docs/**'
   pull_request:
+    paths-ignore:
+      - '**/*.md'
+      - 'apps/site/**'
+      - '.changeset/**'
+      - 'docs/**'
   workflow_dispatch:
     inputs:
       branch:
@@ -14,6 +24,10 @@ on:
 
 permissions:
   contents: read
+
+concurrency:
+  group: ai-unit-test-${{ github.event.pull_request.number || inputs.branch || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   main:
@@ -36,30 +50,27 @@ jobs:
     steps:
     - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
       with:
-        fetch-depth: 0
         ref: ${{ github.event.inputs.branch || github.ref }}
 
-    - name: Setup pnpm
-      uses: pnpm/action-setup@eae0cfeb286e66ffb5155f1a79b90583a127a68b # v2.4.1
-      with:
-        version: 9.3.0
-  
-    - name: Setup Node.js
-      uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
-      with:
-        node-version: '24.13.0'
-        cache: 'pnpm'
+    - name: Setup Node.js and pnpm
+      uses: ./.github/actions/setup-node-pnpm
+
+    - name: Cache pnpm store
+      id: pnpm-cache
+      uses: ./.github/actions/pnpm-cache/restore
 
     - name: Install dependencies
       run: pnpm install --frozen-lockfile --ignore-scripts
 
-    - name: Install puppeteer dependencies
-      run: |
-        cd packages/web-integration
-        npx puppeteer browsers install chrome
+    - name: Save pnpm store
+      if: steps.pnpm-cache.outputs.cache-hit != 'true'
+      uses: ./.github/actions/pnpm-cache/save
 
-    - name: Build project
-      run: pnpm run build
+    - name: Setup Puppeteer browser
+      uses: ./.github/actions/setup-puppeteer-browser
+
+    - name: Build AI unit test projects
+      run: pnpm exec nx run-many --target=build --projects="@midscene/report,@midscene/core,@midscene/web,@midscene/cli"
     
     - name: Run tests with coverage
       # Keep model request concurrency comparable to the former 4-core hosted runner.

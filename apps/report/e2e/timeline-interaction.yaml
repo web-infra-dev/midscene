@@ -9,6 +9,6 @@ tasks:
 
   - name: click timeline screenshot to navigate
     flow:
-      - ai: Click on a screenshot thumbnail in the timeline area
+      - aiTap: a screenshot thumbnail in the timeline area
       - sleep: 2000
       - aiAssert: The sidebar highlights a task row and the detail panel shows information for the selected task

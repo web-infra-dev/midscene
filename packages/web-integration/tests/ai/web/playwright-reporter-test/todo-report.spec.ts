@@ -18,9 +18,14 @@ test('ai report', async ({ page, aiAssert, aiQuery }, testInfo) => {
   const options = page.locator('.selector-content .option-item');
   await expect(options.first()).toBeVisible();
 
-  const aiTodoOption = options.filter({ hasText: /ai todo/i });
-  if ((await aiTodoOption.count()) > 0) {
-    await aiTodoOption.first().click();
+  const aiTodoOptions = options.filter({ hasText: /ai todo/i });
+  const successfulAiTodoOptions = aiTodoOptions.filter({
+    has: page.locator('[aria-label="check"]'),
+  });
+  if ((await successfulAiTodoOptions.count()) > 0) {
+    await successfulAiTodoOptions.last().click();
+  } else if ((await aiTodoOptions.count()) > 0) {
+    await aiTodoOptions.last().click();
   } else {
     await options.first().click();
   }

@@ -25,6 +25,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: headless-linux-${{ github.event.pull_request.number || inputs.branch || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 env:
   ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
 
@@ -47,43 +51,25 @@ jobs:
       with:
         ref: ${{ github.event.inputs.branch || github.ref }}
 
-    - name: Setup pnpm
-      uses: pnpm/action-setup@eae0cfeb286e66ffb5155f1a79b90583a127a68b # v2.4.1
-      with:
-        version: 9.3.0
+    - name: Setup Node.js and pnpm
+      uses: ./.github/actions/setup-node-pnpm
 
-    - name: Setup Node.js
-      uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
-      with:
-        node-version: '24.13.0'
-        cache: 'pnpm'
-
-    - name: Install system dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y \
-          xvfb \
-          x11-xserver-utils \
-          imagemagick \
-          libxtst6 \
-          libxinerama1 \
-          libx11-6 \
-          libxkbcommon-x11-0 \
-          libpng16-16 \
-          libnss3 \
-          libatk-bridge2.0-0 \
-          libdrm2 \
-          libgbm1 \
-          libasound2
-        # Install Google Chrome (not snap chromium which can't access Xvfb)
-        wget -q https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
-        sudo dpkg -i google-chrome-stable_current_amd64.deb || sudo apt-get -f install -y
+    - name: Cache pnpm store
+      id: pnpm-cache
+      uses: ./.github/actions/pnpm-cache/restore
 
     - name: Install dependencies
-      run: pnpm install --frozen-lockfile
+      run: pnpm install --frozen-lockfile --ignore-scripts
 
-    - name: Build project
-      run: pnpm run build:skip-cache
+    - name: Save pnpm store
+      if: steps.pnpm-cache.outputs.cache-hit != 'true'
+      uses: ./.github/actions/pnpm-cache/save
+
+    - name: Setup headless browser
+      uses: ./.github/actions/setup-headless-browser
+
+    - name: Build AI todo projects
+      run: pnpm exec nx run-many --target=build --projects="@midscene/report,@midscene/computer" --skip-nx-cache
 
     - name: Verify system setup
       run: |
@@ -94,7 +80,7 @@ jobs:
         echo "--- import (imagemagick) ---"
         which import && echo "import: OK"
         echo "--- Browser ---"
-        google-chrome-stable --version || echo "Chrome not found"
+        chromium --version || echo "Chrome not found"
         echo "--- DISPLAY ---"
         echo "DISPLAY=${DISPLAY:-(not set)}"
 
@@ -137,43 +123,25 @@ jobs:
       with:
         ref: ${{ github.event.inputs.branch || github.ref }}
 
-    - name: Setup pnpm
-      uses: pnpm/action-setup@eae0cfeb286e66ffb5155f1a79b90583a127a68b # v2.4.1
-      with:
-        version: 9.3.0
+    - name: Setup Node.js and pnpm
+      uses: ./.github/actions/setup-node-pnpm
 
-    - name: Setup Node.js
-      uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
-      with:
-        node-version: '24.13.0'
-        cache: 'pnpm'
-
-    - name: Install system dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y \
-          xvfb \
-          x11-xserver-utils \
-          imagemagick \
-          libxtst6 \
-          libxinerama1 \
-          libx11-6 \
-          libxkbcommon-x11-0 \
-          libpng16-16 \
-          libnss3 \
-          libatk-bridge2.0-0 \
-          libdrm2 \
-          libgbm1 \
-          libasound2
-        # Install Google Chrome (not snap chromium which can't access Xvfb)
-        wget -q https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
-        sudo dpkg -i google-chrome-stable_current_amd64.deb || sudo apt-get -f install -y
+    - name: Cache pnpm store
+      id: pnpm-cache
+      uses: ./.github/actions/pnpm-cache/restore
 
     - name: Install dependencies
-      run: pnpm install --frozen-lockfile
+      run: pnpm install --frozen-lockfile --ignore-scripts
 
-    - name: Build project
-      run: pnpm run build:skip-cache
+    - name: Save pnpm store
+      if: steps.pnpm-cache.outputs.cache-hit != 'true'
+      uses: ./.github/actions/pnpm-cache/save
+
+    - name: Setup headless browser
+      uses: ./.github/actions/setup-headless-browser
+
+    - name: Build Chrome extension projects
+      run: pnpm exec nx run-many --target=build --projects="@midscene/report,chrome-extension" --skip-nx-cache
 
     - name: Run Chrome extension test
       run: AI_TEST_TYPE=computer npx nx test @midscene/computer -- tests/ai/chrome-extension.test.ts
@@ -212,46 +180,29 @@ jobs:
       with:
         ref: ${{ github.event.inputs.branch || github.ref }}
 
-    - name: Setup pnpm
-      uses: pnpm/action-setup@eae0cfeb286e66ffb5155f1a79b90583a127a68b # v2.4.1
-      with:
-        version: 9.3.0
+    - name: Setup Node.js and pnpm
+      uses: ./.github/actions/setup-node-pnpm
 
-    - name: Setup Node.js
-      uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
-      with:
-        node-version: '24.13.0'
-        cache: 'pnpm'
-
-    - name: Install system dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y \
-          xvfb \
-          x11-xserver-utils \
-          imagemagick \
-          libxtst6 \
-          libxinerama1 \
-          libx11-6 \
-          libxkbcommon-x11-0 \
-          libpng16-16 \
-          libnss3 \
-          libatk-bridge2.0-0 \
-          libdrm2 \
-          libgbm1 \
-          libasound2
-        wget -q https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
-        sudo dpkg -i google-chrome-stable_current_amd64.deb || sudo apt-get -f install -y
+    - name: Cache pnpm store
+      id: pnpm-cache
+      uses: ./.github/actions/pnpm-cache/restore
 
     - name: Install dependencies
-      run: pnpm install --frozen-lockfile
+      run: pnpm install --frozen-lockfile --ignore-scripts
 
-    - name: Build project
-      run: pnpm run build:skip-cache
+    - name: Save pnpm store
+      if: steps.pnpm-cache.outputs.cache-hit != 'true'
+      uses: ./.github/actions/pnpm-cache/save
+
+    - name: Setup headless browser
+      uses: ./.github/actions/setup-headless-browser
+
+    - name: Build Chrome extension projects
+      run: pnpm exec nx run-many --target=build --projects="@midscene/report,chrome-extension" --skip-nx-cache
 
     - name: Run Bridge mode start/stop test
       run: AI_TEST_TYPE=computer npx nx test @midscene/computer -- tests/ai/chrome-extension-bridge.test.ts
-      timeout-minutes: 25
+      timeout-minutes: 40
       id: test-bridge
       continue-on-error: true
 
@@ -294,42 +245,25 @@ jobs:
       with:
         ref: ${{ github.event.inputs.branch || github.ref }}
 
-    - name: Setup pnpm
-      uses: pnpm/action-setup@eae0cfeb286e66ffb5155f1a79b90583a127a68b # v2.4.1
-      with:
-        version: 9.3.0
+    - name: Setup Node.js and pnpm
+      uses: ./.github/actions/setup-node-pnpm
 
-    - name: Setup Node.js
-      uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
-      with:
-        node-version: '24.13.0'
-        cache: 'pnpm'
-
-    - name: Install system dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y \
-          xvfb \
-          x11-xserver-utils \
-          imagemagick \
-          libxtst6 \
-          libxinerama1 \
-          libx11-6 \
-          libxkbcommon-x11-0 \
-          libpng16-16 \
-          libnss3 \
-          libatk-bridge2.0-0 \
-          libdrm2 \
-          libgbm1 \
-          libasound2
-        wget -q https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
-        sudo dpkg -i google-chrome-stable_current_amd64.deb || sudo apt-get -f install -y
+    - name: Cache pnpm store
+      id: pnpm-cache
+      uses: ./.github/actions/pnpm-cache/restore
 
     - name: Install dependencies
-      run: pnpm install --frozen-lockfile
+      run: pnpm install --frozen-lockfile --ignore-scripts
 
-    - name: Build project
-      run: pnpm run build:skip-cache
+    - name: Save pnpm store
+      if: steps.pnpm-cache.outputs.cache-hit != 'true'
+      uses: ./.github/actions/pnpm-cache/save
+
+    - name: Setup headless browser
+      uses: ./.github/actions/setup-headless-browser
+
+    - name: Build Chrome extension projects
+      run: pnpm exec nx run-many --target=build --projects="@midscene/report,chrome-extension" --skip-nx-cache
 
     - name: Run Playground E2E test
       run: AI_TEST_TYPE=computer npx nx test @midscene/computer -- tests/ai/${{ matrix.test.file }}
@@ -368,42 +302,25 @@ jobs:
       with:
         ref: ${{ github.event.inputs.branch || github.ref }}
 
-    - name: Setup pnpm
-      uses: pnpm/action-setup@eae0cfeb286e66ffb5155f1a79b90583a127a68b # v2.4.1
-      with:
-        version: 9.3.0
+    - name: Setup Node.js and pnpm
+      uses: ./.github/actions/setup-node-pnpm
 
-    - name: Setup Node.js
-      uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
-      with:
-        node-version: '24.13.0'
-        cache: 'pnpm'
-
-    - name: Install system dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y \
-          xvfb \
-          x11-xserver-utils \
-          imagemagick \
-          libxtst6 \
-          libxinerama1 \
-          libx11-6 \
-          libxkbcommon-x11-0 \
-          libpng16-16 \
-          libnss3 \
-          libatk-bridge2.0-0 \
-          libdrm2 \
-          libgbm1 \
-          libasound2
-        wget -q https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
-        sudo dpkg -i google-chrome-stable_current_amd64.deb || sudo apt-get -f install -y
+    - name: Cache pnpm store
+      id: pnpm-cache
+      uses: ./.github/actions/pnpm-cache/restore
 
     - name: Install dependencies
-      run: pnpm install --frozen-lockfile
+      run: pnpm install --frozen-lockfile --ignore-scripts
 
-    - name: Build project
-      run: pnpm run build:skip-cache
+    - name: Save pnpm store
+      if: steps.pnpm-cache.outputs.cache-hit != 'true'
+      uses: ./.github/actions/pnpm-cache/save
+
+    - name: Setup headless browser
+      uses: ./.github/actions/setup-headless-browser
+
+    - name: Build Chrome extension projects
+      run: pnpm exec nx run-many --target=build --projects="@midscene/report,chrome-extension" --skip-nx-cache
 
     - name: Run Recorder mode tests
       run: AI_TEST_TYPE=computer npx nx test @midscene/computer -- tests/ai/chrome-extension-recorder.test.ts
@@ -442,42 +359,25 @@ jobs:
       with:
         ref: ${{ github.event.inputs.branch || github.ref }}
 
-    - name: Setup pnpm
-      uses: pnpm/action-setup@eae0cfeb286e66ffb5155f1a79b90583a127a68b # v2.4.1
-      with:
-        version: 9.3.0
+    - name: Setup Node.js and pnpm
+      uses: ./.github/actions/setup-node-pnpm
 
-    - name: Setup Node.js
-      uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
-      with:
-        node-version: '24.13.0'
-        cache: 'pnpm'
-
-    - name: Install system dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y \
-          xvfb \
-          x11-xserver-utils \
-          imagemagick \
-          libxtst6 \
-          libxinerama1 \
-          libx11-6 \
-          libxkbcommon-x11-0 \
-          libpng16-16 \
-          libnss3 \
-          libatk-bridge2.0-0 \
-          libdrm2 \
-          libgbm1 \
-          libasound2
-        wget -q https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
-        sudo dpkg -i google-chrome-stable_current_amd64.deb || sudo apt-get -f install -y
+    - name: Cache pnpm store
+      id: pnpm-cache
+      uses: ./.github/actions/pnpm-cache/restore
 
     - name: Install dependencies
-      run: pnpm install --frozen-lockfile
+      run: pnpm install --frozen-lockfile --ignore-scripts
 
-    - name: Build project
-      run: pnpm run build:skip-cache
+    - name: Save pnpm store
+      if: steps.pnpm-cache.outputs.cache-hit != 'true'
+      uses: ./.github/actions/pnpm-cache/save
+
+    - name: Setup headless browser
+      uses: ./.github/actions/setup-headless-browser
+
+    - name: Build Chrome extension projects
+      run: pnpm exec nx run-many --target=build --projects="@midscene/report,chrome-extension" --skip-nx-cache
 
     - name: Run Settings and cross-mode tests
       run: AI_TEST_TYPE=computer npx nx test @midscene/computer -- tests/ai/chrome-extension-settings.test.ts
