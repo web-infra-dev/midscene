@@ -1,7 +1,7 @@
 {
   "name": "@midscene/recorder",
   "private": true,
-  "version": "1.10.8",
+  "version": "1.10.9",
   "repository": {
     "type": "git",
     "url": "https://github.com/web-infra-dev/midscene.git",
