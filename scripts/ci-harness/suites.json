@@ -1,0 +1,311 @@
+{
+  "ai-web": [
+    {
+      "id": "snapshot-basic-trace",
+      "name": "Snapshot basic E2E Trace",
+      "kind": "infrastructure"
+    },
+    {
+      "id": "web-e2e",
+      "name": "Web E2E",
+      "kind": "case",
+      "traceRequired": true,
+      "reportPattern": "reports/1-ai-web-basic/**/*.html",
+      "validator": {
+        "type": "test-runner",
+        "expected": "The browser E2E suite exits successfully"
+      }
+    },
+    {
+      "id": "report-e2e",
+      "name": "Report E2E",
+      "kind": "case",
+      "traceRequired": true,
+      "reportPattern": "reports/2-report/**/*.html",
+      "validator": {
+        "type": "midscene.aiAssert",
+        "expected": "The generated report passes its AI assertions"
+      }
+    }
+  ],
+  "ai-report-app": [
+    {
+      "id": "report-app-e2e",
+      "name": "Report app E2E",
+      "kind": "case",
+      "traceRequired": true,
+      "reportPattern": "**/*.html",
+      "validator": {
+        "type": "midscene.aiAssert",
+        "expected": "The report app passes its AI loading assertions"
+      }
+    }
+  ],
+  "ai-unit": [
+    {
+      "id": "ai-unit-tests",
+      "name": "AI unit tests",
+      "kind": "case",
+      "traceRequired": true,
+      "reportPattern": "**/*.html",
+      "validator": {
+        "type": "vitest-ai",
+        "expected": "All model-dependent unit tests pass"
+      }
+    }
+  ],
+  "headless-linux-ai-todo": [
+    {
+      "id": "ai-todo",
+      "name": "AI TodoMVC",
+      "kind": "case",
+      "traceRequired": true,
+      "reportPattern": "**/*.html",
+      "validator": {
+        "type": "midscene-ai-test",
+        "expected": "The computer agent completes the TodoMVC scenario"
+      }
+    }
+  ],
+  "chrome-extension": [
+    {
+      "id": "chrome-extension",
+      "name": "Chrome extension",
+      "kind": "case",
+      "traceRequired": true,
+      "reportPattern": "**/*.html",
+      "validator": {
+        "type": "midscene-ai-test",
+        "expected": "The Chrome extension scenario completes"
+      }
+    }
+  ],
+  "chrome-extension-bridge": [
+    {
+      "id": "bridge-mode",
+      "name": "Bridge mode",
+      "kind": "case",
+      "traceRequired": true,
+      "reportPattern": "**/*.html",
+      "validator": {
+        "type": "midscene-ai-test",
+        "expected": "Bridge mode starts, operates, and stops successfully"
+      }
+    }
+  ],
+  "chrome-extension-playground-report": [
+    {
+      "id": "playground-e2e",
+      "name": "Playground E2E",
+      "kind": "case",
+      "traceRequired": true,
+      "reportPattern": "**/*.html",
+      "validator": {
+        "type": "midscene-ai-test",
+        "expected": "The extension playground scenario completes"
+      }
+    }
+  ],
+  "chrome-extension-playground-dark-timeline-report": [
+    {
+      "id": "playground-e2e",
+      "name": "Playground dark timeline E2E",
+      "kind": "case",
+      "traceRequired": true,
+      "reportPattern": "**/*.html",
+      "validator": {
+        "type": "midscene-ai-test",
+        "expected": "The extension dark timeline scenario completes"
+      }
+    }
+  ],
+  "chrome-extension-recorder": [
+    {
+      "id": "recorder-mode",
+      "name": "Recorder mode",
+      "kind": "case",
+      "traceRequired": true,
+      "reportPattern": "**/*.html",
+      "validator": {
+        "type": "midscene-ai-test",
+        "expected": "Recorder mode scenarios complete"
+      }
+    }
+  ],
+  "chrome-extension-settings": [
+    {
+      "id": "settings-and-cross-mode",
+      "name": "Settings and cross-mode",
+      "kind": "case",
+      "traceRequired": true,
+      "reportPattern": "**/*.html",
+      "validator": {
+        "type": "midscene-ai-test",
+        "expected": "Settings and cross-mode scenarios complete"
+      }
+    }
+  ],
+  "studio-headless-linux": [
+    {
+      "id": "studio-startup",
+      "name": "Studio startup",
+      "kind": "check"
+    },
+    {
+      "id": "studio-web-preview",
+      "name": "Studio Web preview",
+      "kind": "check"
+    },
+    {
+      "id": "studio-ai-startup",
+      "name": "Studio Midscene startup",
+      "kind": "case",
+      "traceRequired": true,
+      "reportPattern": "studio-startup-ai-report.html",
+      "validator": {
+        "type": "midscene-ai-test",
+        "expected": "Studio starts and completes its Midscene AI startup scenario"
+      }
+    }
+  ],
+  "macos-desktop": [
+    {
+      "id": "build",
+      "name": "Build report and computer packages",
+      "kind": "check"
+    },
+    {
+      "id": "package-smoke",
+      "name": "Validate computer package outputs",
+      "kind": "check"
+    },
+    {
+      "id": "unit-tests",
+      "name": "Computer unit tests",
+      "kind": "check"
+    },
+    {
+      "id": "live-smoke",
+      "name": "Live macOS desktop smoke",
+      "kind": "case",
+      "traceRequired": true,
+      "reportPattern": "macos-desktop-smoke.html",
+      "validator": {
+        "type": "midscene-ai-test",
+        "expected": "The live macOS desktop scenario completes"
+      }
+    },
+    {
+      "id": "todo-mvc",
+      "name": "macOS TodoMVC",
+      "kind": "case",
+      "traceRequired": true,
+      "reportPattern": "todo-mvc-darwin.html",
+      "validator": {
+        "type": "midscene-ai-test",
+        "expected": "The computer agent completes TodoMVC"
+      }
+    }
+  ],
+  "windows-desktop": [
+    {
+      "id": "build",
+      "name": "Build report and computer packages",
+      "kind": "check"
+    },
+    {
+      "id": "package-smoke",
+      "name": "Validate computer package outputs",
+      "kind": "check"
+    },
+    {
+      "id": "unit-tests",
+      "name": "Computer unit tests",
+      "kind": "check"
+    },
+    {
+      "id": "live-smoke",
+      "name": "Live Windows desktop smoke",
+      "kind": "case",
+      "traceRequired": true,
+      "reportPattern": "windows-desktop-smoke.html",
+      "validator": {
+        "type": "midscene-ai-test",
+        "expected": "The live Windows desktop scenario completes"
+      }
+    },
+    {
+      "id": "todo-mvc",
+      "name": "Windows TodoMVC",
+      "kind": "case",
+      "traceRequired": true,
+      "reportPattern": "todo-mvc-win32.html",
+      "validator": {
+        "type": "midscene-ai-test",
+        "expected": "The computer agent completes TodoMVC"
+      }
+    }
+  ],
+  "android-emulator": [
+    {
+      "id": "build",
+      "name": "Build report and Android packages",
+      "kind": "check"
+    },
+    {
+      "id": "package-smoke",
+      "name": "Validate Android package outputs",
+      "kind": "check"
+    },
+    {
+      "id": "unit-tests",
+      "name": "Android unit tests",
+      "kind": "check"
+    },
+    {
+      "id": "emulator-tests",
+      "name": "Android Emulator smoke and TodoMVC",
+      "kind": "case",
+      "traceRequired": true,
+      "reportPatterns": [
+        "android-emulator-smoke.html",
+        "todo-mvc-android.html"
+      ],
+      "validator": {
+        "type": "midscene-ai-test",
+        "expected": "The Android smoke and TodoMVC scenarios complete"
+      }
+    }
+  ],
+  "ios-simulator": [
+    {
+      "id": "build",
+      "name": "Build report and iOS packages",
+      "kind": "check"
+    },
+    {
+      "id": "package-smoke",
+      "name": "Validate iOS package outputs",
+      "kind": "check"
+    },
+    {
+      "id": "unit-tests",
+      "name": "iOS unit tests",
+      "kind": "check"
+    },
+    {
+      "id": "simulator-tests",
+      "name": "iOS Simulator smoke and TodoMVC",
+      "kind": "case",
+      "traceRequired": true,
+      "reportPatterns": [
+        "ios-simulator-smoke.html",
+        "todo-mvc-ios.html"
+      ],
+      "validator": {
+        "type": "midscene-ai-test",
+        "expected": "The iOS smoke and TodoMVC scenarios complete"
+      }
+    }
+  ]
+}

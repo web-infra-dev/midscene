@@ -1,14 +1,23 @@
 name: iOS Simulator
 
 on:
+  workflow_call:
+    inputs:
+      branch:
+        description: 'Branch to checkout'
+        required: false
+        default: 'main'
+        type: string
   pull_request:
     paths:
       - '.github/workflows/ios-simulator.yml'
+      - '.github/actions/harness-finalize/**'
       - 'apps/report/**'
       - 'packages/ios/**'
       - 'packages/webdriver/**'
       - 'packages/core/**'
       - 'packages/shared/**'
+      - 'scripts/ci-harness/**'
       - 'scripts/report-template-utils.mjs'
       - 'nx.json'
       - 'package.json'
@@ -147,68 +156,12 @@ jobs:
         shell: bash
         run: bash packages/ios/scripts/run-simulator-ci-smokes.sh
 
-      - name: Collect step outcomes
+      - name: Finalize iOS Simulator harness
         if: always()
-        shell: bash
-        env:
-          BUILD_OUTCOME: ${{ steps.build.outcome }}
-          PACKAGE_OUTCOME: ${{ steps.package-smoke.outcome }}
-          UNIT_OUTCOME: ${{ steps.unit-tests.outcome }}
-          SIMULATOR_OUTCOME: ${{ steps.simulator-tests.outcome }}
-        run: |
-          mkdir -p "$MIDSCENE_IOS_DIAGNOSTICS_DIR"
-          node -e '
-            const fs = require("node:fs");
-            const path = require("node:path");
-            const outcomes = {
-              build: process.env.BUILD_OUTCOME,
-              packageSmoke: process.env.PACKAGE_OUTCOME,
-              unitTests: process.env.UNIT_OUTCOME,
-              simulatorTests: process.env.SIMULATOR_OUTCOME,
-            };
-            fs.writeFileSync(
-              path.join(process.env.MIDSCENE_IOS_DIAGNOSTICS_DIR, "host-step-outcomes.json"),
-              `${JSON.stringify(outcomes, null, 2)}\n`,
-            );
-          '
-
-      - name: Upload iOS Simulator smoke report
-        if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: ./.github/actions/harness-finalize
         with:
-          name: ios-simulator-smoke-report
-          path: midscene_run/report/ios-simulator-smoke.html
-          if-no-files-found: error
-          retention-days: 7
-
-      - name: Upload iOS TodoMVC report
-        if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        with:
-          name: ios-todo-mvc-report
-          path: midscene_run/report/todo-mvc-ios.html
-          if-no-files-found: warn
-          retention-days: 7
-
-      - name: Upload iOS Simulator diagnostics
-        if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        with:
-          name: ios-simulator-diagnostics
-          path: midscene_run/ios-simulator-diagnostics
-          if-no-files-found: error
-          retention-days: 7
-
-      - name: Check iOS validation results
-        if: always()
-        shell: bash
-        run: |
-          failed=()
-          [[ '${{ steps.build.outcome }}' == success ]] || failed+=(build)
-          [[ '${{ steps.package-smoke.outcome }}' == success ]] || failed+=("package smoke")
-          [[ '${{ steps.unit-tests.outcome }}' == success ]] || failed+=("unit tests")
-          [[ '${{ steps.simulator-tests.outcome }}' == success ]] || failed+=("simulator tests")
-          if ((${#failed[@]} > 0)); then
-            printf 'iOS validation failed: %s\n' "${failed[*]}" >&2
-            exit 1
-          fi
+          suite: ios-simulator
+          outcomes: >-
+            {"build":"${{ steps.build.outcome }}","package-smoke":"${{ steps.package-smoke.outcome }}","unit-tests":"${{ steps.unit-tests.outcome }}","simulator-tests":"${{ steps.simulator-tests.outcome }}"}
+          report-roots: midscene_run/report
+          evidence-roots: midscene_run/ios-simulator-diagnostics

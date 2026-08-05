@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://midscenejs.com/schemas/ci-harness/trace-index.schema.json",
+  "title": "Midscene CI harness Trace index",
+  "type": "object",
+  "required": ["schemaVersion", "caseId", "attemptId", "reports", "tasks"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "caseId": { "type": "string", "minLength": 1 },
+    "attemptId": { "type": "string", "minLength": 1 },
+    "reports": { "type": "array" },
+    "tasks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["taskId", "executionId", "status", "anchor"]
+      }
+    }
+  },
+  "additionalProperties": true
+}

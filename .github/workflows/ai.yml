@@ -1,5 +1,12 @@
 name: AI - Playwright e2e
 on:
+  workflow_call:
+    inputs:
+      branch:
+        description: 'Branch to checkout'
+        required: false
+        default: 'main'
+        type: string
   push:
     branches:
       - main
@@ -34,130 +41,128 @@ env:
   MIDSCENE_MODEL_BASE_URL: ${{ vars.MIDSCENE_MODEL_BASE_URL }}
   MIDSCENE_MODEL_NAME: ${{ vars.MIDSCENE_MODEL_NAME }}
   MIDSCENE_MODEL_FAMILY: ${{ vars.MIDSCENE_MODEL_FAMILY }}
-  MIDSCENE_MODEL_RETRY_COUNT: "2"
-  MIDSCENE_MODEL_RETRY_INTERVAL: "60000"
-  MIDSCENE_REPORT_QUIET: "true"
+  MIDSCENE_MODEL_RETRY_COUNT: '2'
+  MIDSCENE_MODEL_RETRY_INTERVAL: '60000'
+  MIDSCENE_REPORT_QUIET: 'true'
   # Avoid intermittent Nx plugin worker IPC startup failures on self-hosted runners.
-  NX_ISOLATE_PLUGINS: "false"
+  NX_ISOLATE_PLUGINS: 'false'
   CI: 1
 
 jobs:
   e2e-web:
     runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"') }}
     steps:
-    - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
-      with:
-        ref: ${{ github.event.inputs.branch || github.ref }}
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          ref: ${{ inputs.branch || github.ref }}
 
-    - name: Setup Node.js and pnpm
-      uses: ./.github/actions/setup-node-pnpm
+      - name: Setup Node.js and pnpm
+        uses: ./.github/actions/setup-node-pnpm
 
-    - name: Cache pnpm store
-      id: pnpm-cache
-      uses: ./.github/actions/pnpm-cache/restore
+      - name: Cache pnpm store
+        id: pnpm-cache
+        uses: ./.github/actions/pnpm-cache/restore
 
-    - name: Cache Playwright dependencies
-      uses: ./.github/actions/cache/restore
-      id: cache-playwright
-      with:
-        path: ~/.cache/ms-playwright
-        key: ${{ runner.os }}-playwright-${{ hashFiles('pnpm-lock.yaml') }}
-        restore-keys: |
-          ${{ runner.os }}-playwright-
+      - name: Cache Playwright dependencies
+        uses: ./.github/actions/cache/restore
+        id: cache-playwright
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-
 
-    - name: Install dependencies
-      run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
 
-    - name: Save pnpm store
-      if: steps.pnpm-cache.outputs.cache-hit != 'true'
-      uses: ./.github/actions/pnpm-cache/save
+      - name: Save pnpm store
+        if: steps.pnpm-cache.outputs.cache-hit != 'true'
+        uses: ./.github/actions/pnpm-cache/save
 
-    - name: Setup headless browser
-      uses: ./.github/actions/setup-headless-browser
+      - name: Setup headless browser
+        uses: ./.github/actions/setup-headless-browser
 
-    - name: Install Playwright Chromium
-      run: pnpm --dir packages/web-integration exec playwright install chromium
+      - name: Install Playwright Chromium
+        run: pnpm --dir packages/web-integration exec playwright install chromium
 
-    - name: Save Playwright dependencies
-      if: steps.cache-playwright.outputs.cache-hit != 'true'
-      uses: ./.github/actions/cache/save
-      with:
-        path: ~/.cache/ms-playwright
-        key: ${{ runner.os }}-playwright-${{ hashFiles('pnpm-lock.yaml') }}
+      - name: Save Playwright dependencies
+        if: steps.cache-playwright.outputs.cache-hit != 'true'
+        uses: ./.github/actions/cache/save
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('pnpm-lock.yaml') }}
 
-    - name: Build web e2e projects
-      run: pnpm exec nx run-many --target=build --projects="@midscene/report,@midscene/web,@midscene/cli"
+      - name: Build web e2e projects
+        run: pnpm exec nx run-many --target=build --projects="@midscene/report,@midscene/web,@midscene/cli"
 
-    # Cache behavior uses explicit fixture configuration in the standard suite.
-    # MIDSCENE_CACHE does not override those options, so a second full run is redundant.
-    - name: Run e2e tests
-      run: pnpm run e2e
-      id: e2e-tests
-      continue-on-error: true
+      # Cache behavior uses explicit fixture configuration in the standard suite.
+      # MIDSCENE_CACHE does not override those options, so a second full run is redundant.
+      - name: Run e2e tests
+        run: pnpm run e2e
+        id: e2e-tests
+        continue-on-error: true
 
-    - name: Upload e2e report
-      if: always()
-      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-      with:
-        name: e2e-report
-        path: ${{ github.workspace }}/packages/web-integration/midscene_run/report
-        if-no-files-found: ignore
+      - name: Snapshot basic E2E Trace
+        id: snapshot-e2e
+        if: always()
+        continue-on-error: true
+        env:
+          HARNESS_SNAPSHOT_SOURCE: packages/web-integration/midscene_run/report
+          HARNESS_SNAPSHOT_DESTINATION: midscene_run/harness-input/ai-web-basic
+        run: node scripts/ci-harness/snapshot-reports.mjs
 
-    - name: Run e2e tests report
-      run: pnpm run e2e:report
-      id: e2e-tests-report
-      continue-on-error: true
+      - name: Run e2e tests report
+        run: pnpm run e2e:report
+        id: e2e-tests-report
+        continue-on-error: true
 
-    - name: Upload e2e report output
-      if: always()
-      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-      with:
-        name: e2e-report-output
-        path: ${{ github.workspace }}/packages/web-integration/midscene_run/report
-        if-no-files-found: ignore
-
-    - name: Check if tests failed
-      if: steps.e2e-tests.outcome == 'failure' || steps.e2e-tests-report.outcome == 'failure'
-      run: |
-        echo "::error::The following e2e tests failed:"
-        if [ "${{ steps.e2e-tests.outcome }}" == "failure" ]; then echo "  - e2e (basic)"; fi
-        if [ "${{ steps.e2e-tests-report.outcome }}" == "failure" ]; then echo "  - e2e:report"; fi
-        exit 1
+      - name: Finalize AI web harness
+        if: always()
+        uses: ./.github/actions/harness-finalize
+        with:
+          suite: ai-web
+          outcomes: >-
+            {"snapshot-basic-trace":"${{ steps.snapshot-e2e.outcome }}","web-e2e":"${{ steps.e2e-tests.outcome }}","report-e2e":"${{ steps.e2e-tests-report.outcome }}"}
+          report-roots: |
+            midscene_run/harness-input/ai-web-basic
+            packages/web-integration/midscene_run/report
 
   e2e-report:
     runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"') }}
     steps:
-    - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
-      with:
-        ref: ${{ github.event.inputs.branch || github.ref }}
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          ref: ${{ inputs.branch || github.ref }}
 
-    - name: Setup Node.js and pnpm
-      uses: ./.github/actions/setup-node-pnpm
+      - name: Setup Node.js and pnpm
+        uses: ./.github/actions/setup-node-pnpm
 
-    - name: Cache pnpm store
-      id: pnpm-cache
-      uses: ./.github/actions/pnpm-cache/restore
+      - name: Cache pnpm store
+        id: pnpm-cache
+        uses: ./.github/actions/pnpm-cache/restore
 
-    - name: Install dependencies
-      run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
 
-    - name: Save pnpm store
-      if: steps.pnpm-cache.outputs.cache-hit != 'true'
-      uses: ./.github/actions/pnpm-cache/save
+      - name: Save pnpm store
+        if: steps.pnpm-cache.outputs.cache-hit != 'true'
+        uses: ./.github/actions/pnpm-cache/save
 
-    - name: Setup Puppeteer browser
-      uses: ./.github/actions/setup-puppeteer-browser
+      - name: Setup Puppeteer browser
+        uses: ./.github/actions/setup-puppeteer-browser
 
-    - name: Run apps/report e2e tests
-      run: cd apps/report && pnpm run e2e
-      id: e2e-tests-app-report
+      - name: Run apps/report e2e tests
+        run: cd apps/report && pnpm run e2e
+        id: e2e-tests-app-report
+        continue-on-error: true
 
-    - name: Upload apps/report e2e report
-      if: always()
-      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-      with:
-        name: e2e-app-report-output
-        path: |
-          ${{ github.workspace }}/midscene_run/report
-          ${{ github.workspace }}/apps/report/midscene_run/report
-        if-no-files-found: ignore
+      - name: Finalize report app harness
+        if: always()
+        uses: ./.github/actions/harness-finalize
+        with:
+          suite: ai-report-app
+          outcomes: >-
+            {"report-app-e2e":"${{ steps.e2e-tests-app-report.outcome }}"}
+          report-roots: |
+            midscene_run/report
+            apps/report/midscene_run/report
