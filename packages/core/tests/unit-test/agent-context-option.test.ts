@@ -11,6 +11,10 @@ const defaultModel = {
   adapter: { planning: { cacheEnabled: false } },
 };
 
+type RuntimeWithInteractionContext = {
+  modelInteractionContext: { interactionId: string };
+};
+
 const createAgentStub = () => {
   const agent = Object.create(Agent.prototype) as Agent<any>;
   const taskExecutor = {
@@ -41,8 +45,11 @@ const createAgentStub = () => {
   };
   (agent as any).taskExecutor = taskExecutor;
   (agent as any).taskCache = taskCache;
-  (agent as any).resolveModelRuntime = vi.fn((slot: string) =>
-    slot === 'planning' ? planningModel : defaultModel,
+  (agent as any).resolveModelRuntime = vi.fn(
+    (slot: string, modelInteractionContext: { interactionId: string }) => ({
+      ...(slot === 'planning' ? planningModel : defaultModel),
+      modelInteractionContext,
+    }),
   );
   (agent as any).resolveReplanningCycleLimit = vi.fn(() => 3);
 
@@ -95,6 +102,31 @@ describe('Agent per-call context option', () => {
     expect(taskExecutor.action.mock.calls[0][4]).toBe('');
   });
 
+  it('uses one interaction ID for all model runtimes in an aiAct', async () => {
+    const { agent, taskExecutor } = createAgentStub();
+
+    await agent.aiAct('Click the submit button');
+
+    const [, firstPlanningModel, firstDefaultModel] = taskExecutor.action.mock
+      .calls[0] as [
+      unknown,
+      RuntimeWithInteractionContext,
+      RuntimeWithInteractionContext,
+    ];
+    expect(firstPlanningModel.modelInteractionContext).toBe(
+      firstDefaultModel.modelInteractionContext,
+    );
+
+    await agent.aiAct('Click the cancel button');
+    const [, secondPlanningModel] = taskExecutor.action.mock.calls[1] as [
+      unknown,
+      RuntimeWithInteractionContext,
+    ];
+    expect(secondPlanningModel.modelInteractionContext).not.toBe(
+      firstPlanningModel.modelInteractionContext,
+    );
+  });
+
   it('does not register a file chooser for an empty fileChooserAccept array', async () => {
     const { agent, taskExecutor, registerFileChooserListener } =
       createAgentStub();
@@ -122,7 +154,7 @@ describe('Agent per-call context option', () => {
     expect(taskExecutor.createTypeQueryExecution).toHaveBeenCalledWith(
       'Assert',
       'The success toast is visible',
-      defaultModel,
+      expect.objectContaining(defaultModel),
       {
         context: 'The current user is a logged-in buyer.',
         domIncluded: false,
@@ -151,7 +183,7 @@ describe('Agent per-call context option', () => {
     expect(taskExecutor.createTypeQueryExecution).toHaveBeenCalledWith(
       'Assert',
       'The success toast is visible',
-      defaultModel,
+      expect.objectContaining(defaultModel),
       {
         domIncluded: false,
         screenshotIncluded: true,

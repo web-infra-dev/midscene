@@ -7,6 +7,7 @@ import type {
   TModelResponseFormat,
 } from '@midscene/shared/env';
 import type OpenAI from 'openai';
+import type { ModelInteractionContext } from '../model-interaction-context';
 import type {
   JsonParser,
   JsonParserContext,
@@ -253,6 +254,12 @@ export interface ModelAdapter {
 export interface ModelRuntime {
   config: IModelConfig;
   adapter: ModelAdapter;
+  /**
+   * Internal per-operation context used to associate model calls. It is
+   * carried on a per-call runtime copy so concurrent Agent operations never
+   * share it.
+   */
+  modelInteractionContext?: ModelInteractionContext;
   /**
    * Optional callback fired after every underlying model call with the shaped
    * usage info. Provides a single collection point for callers that want to

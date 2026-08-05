@@ -1,5 +1,5 @@
 import type { IModelConfig } from '@midscene/shared/env';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockCreate = vi.fn();
 const mockOpenAIConstructor = vi.fn().mockImplementation(() => ({
@@ -32,6 +32,11 @@ describe('service-caller OpenAI error handling', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     globalThis.fetch = originalFetch;
+  });
+
+  afterEach(() => {
+    vi.unmock('@/ai-model/model-call-recorder');
+    vi.resetModules();
   });
 
   it('records non-2xx raw response body without changing the response', async () => {
@@ -83,6 +88,36 @@ describe('service-caller OpenAI error handling', () => {
       wrapOpenAICompatibleFetch(context)('https://example.com'),
     ).resolves.toBe(response);
     expect(context).toEqual({});
+  });
+
+  it('does not include request headers in model record events', async () => {
+    const { wrapOpenAICompatibleFetch } = await import(
+      '@/ai-model/service-caller/openai-error'
+    );
+    const events: Array<Record<string, unknown>> = [];
+    const context = {
+      recordEvent: (event: Record<string, unknown>) => events.push(event),
+    };
+    globalThis.fetch = vi.fn().mockResolvedValue(new Response(null));
+
+    await wrapOpenAICompatibleFetch(context)('https://example.com', {
+      method: 'POST',
+      headers: { authorization: 'Bearer secret-api-key' },
+      body: JSON.stringify({ model: 'example-model' }),
+    });
+
+    expect(events).toEqual([
+      {
+        type: 'request',
+        attempt: 1,
+        request: {
+          url: 'https://example.com/',
+          method: 'POST',
+          body: JSON.stringify({ model: 'example-model' }),
+        },
+      },
+    ]);
+    expect(JSON.stringify(events)).not.toContain('secret-api-key');
   });
 
   it('uses x-model-request-id as usage request_id when x-request-id is absent', async () => {
@@ -267,5 +302,98 @@ describe('service-caller OpenAI error handling', () => {
     await expect(promise).rejects.toThrow(
       /OpenAI error response request ID \(attempt 1, status 422\): model_req_123/,
     );
+  });
+
+  it('uses the successful retry attempt for the final record', async () => {
+    const events: Array<Record<string, unknown>> = [];
+    vi.resetModules();
+    vi.doMock('@/ai-model/model-call-recorder', () => ({
+      isModelCallRecordingEnabled: () => true,
+      recordModelCallEvent: (event: Record<string, unknown>) => {
+        events.push(event);
+      },
+    }));
+    const { callAI } = await import('@/ai-model/service-caller');
+    const { getModelRuntime } = await import('@/ai-model/models');
+    globalThis.fetch = vi
+      .fn()
+      .mockResolvedValueOnce(new Response('temporary failure', { status: 500 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ ok: true })));
+    mockCreate.mockImplementation(async () => {
+      const response = await mockOpenAIConstructor.mock.calls
+        .at(-1)?.[0]
+        .fetch('https://example.com/v1/chat/completions', {
+          method: 'POST',
+          body: JSON.stringify({ model: 'gpt-4o' }),
+        });
+      if (!response.ok) {
+        throw new Error('temporary failure');
+      }
+      return {
+        choices: [{ message: { content: 'hello' } }],
+        usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 },
+      };
+    });
+
+    await callAI(
+      [{ role: 'user', content: 'hello' }],
+      getModelRuntime(baseConfig({ retryCount: 1, retryInterval: 0 })),
+    );
+
+    expect(events.map((event) => [event.type, event.attempt])).toEqual([
+      ['request', 1],
+      ['error', 1],
+      ['request', 2],
+      ['response', 2],
+    ]);
+  });
+
+  it('records every streaming chunk with its sequence', async () => {
+    const events: Array<Record<string, unknown>> = [];
+    vi.resetModules();
+    vi.doMock('@/ai-model/model-call-recorder', () => ({
+      isModelCallRecordingEnabled: () => true,
+      recordModelCallEvent: (event: Record<string, unknown>) => {
+        events.push(event);
+      },
+    }));
+    const { callAI } = await import('@/ai-model/service-caller');
+    const { getModelRuntime } = await import('@/ai-model/models');
+    globalThis.fetch = vi.fn().mockResolvedValue(
+      new Response(null, {
+        headers: { 'content-type': 'text/event-stream' },
+      }),
+    );
+    mockCreate.mockImplementation(async () => {
+      await mockOpenAIConstructor.mock.calls
+        .at(-1)?.[0]
+        .fetch('https://example.com/v1/chat/completions', {
+          method: 'POST',
+          body: JSON.stringify({ model: 'gpt-4o' }),
+        });
+      return (async function* () {
+        yield { choices: [{ delta: { content: 'hel' } }] };
+        yield {
+          choices: [{ delta: { content: 'lo' }, finish_reason: 'stop' }],
+          usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 },
+        };
+      })();
+    });
+
+    await callAI(
+      [{ role: 'user', content: 'hello' }],
+      getModelRuntime(baseConfig()),
+      { stream: true, onChunk: vi.fn() },
+    );
+
+    expect(
+      events
+        .filter((event) => event.type === 'chunk')
+        .map((event) => [event.attempt, event.sequence]),
+    ).toEqual([
+      [1, 1],
+      [1, 2],
+    ]);
+    expect(events.at(-1)).toMatchObject({ type: 'response', attempt: 1 });
   });
 });

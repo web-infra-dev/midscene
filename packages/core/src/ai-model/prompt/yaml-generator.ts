@@ -14,7 +14,8 @@ import {
   callAI,
   callAIWithStringResponse,
 } from '../index';
-import { type ModelRuntime, getModelRuntime } from '../models';
+import { createModelInteractionContext } from '../model-interaction-context';
+import { getModelRuntime } from '../models';
 import {
   type ChromeRecordedEvent,
   type EventCounts,
@@ -194,11 +195,11 @@ function normalizeGeneratedYaml(content: string) {
   return `${(fencedMatch?.[1] ?? trimmed).trim()}\n`;
 }
 
-function resolveModelRuntime(model: IModelConfig | ModelRuntime): ModelRuntime {
-  if ('config' in model && 'adapter' in model) {
-    return model;
-  }
-  return getModelRuntime(model);
+function createModelRuntime(modelConfig: IModelConfig) {
+  return {
+    ...getModelRuntime(modelConfig),
+    modelInteractionContext: createModelInteractionContext(),
+  };
 }
 
 function createRecorderYamlPrompt(
@@ -222,13 +223,13 @@ function createRecorderYamlPrompt(
 
 export const generateRecorderYamlTest = async (
   input: RecorderYamlGenerationInput,
-  model: IModelConfig | ModelRuntime,
+  modelConfig: IModelConfig,
 ): Promise<string> => {
   try {
     const prompt = createRecorderYamlPrompt(input);
     const response = await callAIWithStringResponse(
       prompt,
-      resolveModelRuntime(model),
+      createModelRuntime(modelConfig),
     );
 
     if (response?.content && typeof response.content === 'string') {
@@ -244,11 +245,11 @@ export const generateRecorderYamlTest = async (
 export const generateRecorderYamlTestStream = async (
   input: RecorderYamlGenerationInput,
   options: StreamingCodeGenerationOptions,
-  model: IModelConfig | ModelRuntime,
+  modelConfig: IModelConfig,
 ): Promise<StreamingAIResponse> => {
   try {
     const prompt = createRecorderYamlPrompt(input);
-    const modelRuntime = resolveModelRuntime(model);
+    const modelRuntime = createModelRuntime(modelConfig);
     if (options.stream && options.onChunk) {
       return await callAI(prompt, modelRuntime, {
         stream: true,
@@ -279,7 +280,7 @@ export const generateRecorderYamlTestStream = async (
 export const generateYamlTest = async (
   events: ChromeRecordedEvent[],
   options: YamlGenerationOptions,
-  model: IModelConfig | ModelRuntime,
+  modelConfig: IModelConfig,
 ): Promise<string> => {
   return generateRecorderYamlTest(
     {
@@ -287,7 +288,7 @@ export const generateYamlTest = async (
       target: createDefaultWebTarget(events, options),
       events,
     },
-    model,
+    modelConfig,
   );
 };
 
@@ -297,7 +298,7 @@ export const generateYamlTest = async (
 export const generateYamlTestStream = async (
   events: ChromeRecordedEvent[],
   options: YamlGenerationOptions & StreamingCodeGenerationOptions,
-  model: IModelConfig | ModelRuntime,
+  modelConfig: IModelConfig,
 ): Promise<StreamingAIResponse> => {
   return generateRecorderYamlTestStream(
     {
@@ -306,6 +307,6 @@ export const generateYamlTestStream = async (
       events,
     },
     options,
-    model,
+    modelConfig,
   );
 };

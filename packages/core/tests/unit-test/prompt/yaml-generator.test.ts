@@ -1,7 +1,6 @@
 import type { IModelConfig } from '@midscene/shared/env';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { callAI, callAIWithStringResponse } from '../../../src/ai-model';
-import { getModelRuntime } from '../../../src/ai-model/models';
 import {
   type ChromeRecordedEvent,
   generateRecorderYamlTest,
@@ -46,7 +45,6 @@ const mockedModelConfig = {
   intent: 'default',
   slot: 'default',
 } as const satisfies IModelConfig;
-const mockedModelRuntime = getModelRuntime(mockedModelConfig);
 
 describe('yaml-generator', () => {
   beforeEach(() => {
@@ -65,7 +63,7 @@ describe('yaml-generator', () => {
         testName: 'Recorded session',
         language: 'Chinese',
       },
-      mockedModelRuntime,
+      mockedModelConfig,
     );
 
     const prompt = mockCallAIWithStringResponse.mock.calls[0]?.[0];
@@ -89,7 +87,7 @@ describe('yaml-generator', () => {
         onChunk,
         language: 'English',
       },
-      mockedModelRuntime,
+      mockedModelConfig,
     );
 
     const prompt = mockCallAI.mock.calls[0]?.[0];

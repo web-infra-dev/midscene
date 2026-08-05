@@ -118,6 +118,49 @@ Enable the following variables to print richer debug logs. Regardless of the swi
 | `DEBUG=midscene:android:adb` | Prints Android adb command details |
 | `DEBUG=midscene:*` | Prints every debug log |
 
+### Record model calls
+
+Set `MIDSCENE_RECORD_MODEL_CALL=true` to record Midscene's interactions with model services for debugging and troubleshooting. This is separate from `DEBUG` logging.
+
+:::warning Important notes
+
+- This feature records model request parameters in plaintext (the HTTP body, including custom `extraBody`) and the model service's response body and headers. The files may contain sensitive information. Enable it only in a trusted environment, and protect or delete the generated files when they are no longer needed.
+- Records may include screenshot base64 data and complete streaming responses, so files can become large. Do not leave this feature enabled for long-running tasks.
+- These records are for debugging and troubleshooting only. Event types and field details may change between Midscene versions; do not treat them as a stable programmatic interface.
+
+:::
+
+When enabled, Midscene writes every model call's request and response to a local file. Streaming calls also record every chunk. Files are written to:
+
+```text
+midscene_run/model-requests/<start-time>-<pid>.jsonl
+```
+
+Each process creates a separate JSONL file, where each line is a JSON event. This feature is available only in Node.js and Electron. Browser pages and Worker environments do not write local files.
+
+The file records:
+
+- The HTTP body sent for model requests, including custom `extraBody`. Request HTTP headers are not recorded.
+- HTTP response headers and body returned by the model service.
+- When using Codex App Server, its requests, responses, and available protocol metadata.
+
+The file uses JSONL: every line is a JSON event. For example:
+
+```json
+{"timestamp":"2026-08-05T10:00:00.000Z","type":"request","interactionId":"interaction_1","callId":"call_3","attempt":1,"request":{"url":"https://example.com/v1/chat/completions","method":"POST","body":"{\"model\":\"...\",\"messages\":[...],\"temperature\":0.2,\"stream\":true}"}}
+{"timestamp":"2026-08-05T10:00:01.000Z","type":"chunk","interactionId":"interaction_1","callId":"call_3","attempt":1,"sequence":1,"chunk":{"choices":["..."]}}
+{"timestamp":"2026-08-05T10:00:02.000Z","type":"response","interactionId":"interaction_1","callId":"call_3","attempt":1,"http":{"attempt":1,"status":200,"ok":true,"headers":[["x-request-id","req_..."]],"body":"{...}"},"final":{"content":"...","usage":{"total_tokens":123},"requestId":"req_...","timeCost":1234,"responseModelName":"..."}}
+```
+
+Every event includes `type` and `interactionId`:
+
+- `type` identifies the event:
+  - `request`: the parameters for a model request. Each retry creates a new `request` event.
+  - `chunk`: an SDK chunk received during an OpenAI streaming call, or a server-side notification or response for the current Codex App Server turn.
+  - `response`: the final result after a request completes. OpenAI-compatible calls include HTTP metadata and the final aggregated result; Codex App Server calls include final protocol metadata.
+  - `error`: a failed request attempt, including any available HTTP status, response headers, and response body.
+- `interactionId` distinguishes records produced by different AI operations. One atomic operation such as `aiTap` has one `interactionId`. An `aiAct` can call a model multiple times while planning and executing, and all records from that `aiAct` use the same `interactionId`. Records created by automatic model-call retries also keep that `interactionId`.
+
 ## Still-compatible configs (not recommended)
 
 The following environment variables are deprecated but still compatible. We recommend migrating to the new configuration approach.

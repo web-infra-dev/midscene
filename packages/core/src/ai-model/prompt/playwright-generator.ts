@@ -6,7 +6,8 @@ import { PLAYWRIGHT_EXAMPLE_CODE } from '@midscene/shared/constants';
 import type { IModelConfig } from '@midscene/shared/env';
 import type { ChatCompletionMessageParam } from 'openai/resources/index';
 import { callAI, callAIWithStringResponse } from '../index';
-import { type ModelRuntime, getModelRuntime } from '../models';
+import { createModelInteractionContext } from '../model-interaction-context';
+import { getModelRuntime } from '../models';
 // Import shared utilities and types from yaml generation.
 import {
   type ChromeRecordedEvent,
@@ -57,11 +58,11 @@ export {
   validateEvents,
 };
 
-function resolveModelRuntime(model: IModelConfig | ModelRuntime): ModelRuntime {
-  if ('config' in model && 'adapter' in model) {
-    return model;
-  }
-  return getModelRuntime(model);
+function createModelRuntime(modelConfig: IModelConfig) {
+  return {
+    ...getModelRuntime(modelConfig),
+    modelInteractionContext: createModelInteractionContext(),
+  };
 }
 
 /**
@@ -70,9 +71,9 @@ function resolveModelRuntime(model: IModelConfig | ModelRuntime): ModelRuntime {
 export const generatePlaywrightTest = async (
   events: ChromeRecordedEvent[],
   options: PlaywrightGenerationOptions,
-  model: IModelConfig | ModelRuntime,
+  modelConfig: IModelConfig,
 ): Promise<string> => {
-  const modelRuntime = resolveModelRuntime(model);
+  const modelRuntime = createModelRuntime(modelConfig);
 
   // Validate input
   validateEvents(events);
@@ -151,9 +152,9 @@ ${PLAYWRIGHT_EXAMPLE_CODE}`;
 export const generatePlaywrightTestStream = async (
   events: ChromeRecordedEvent[],
   options: PlaywrightGenerationOptions & StreamingCodeGenerationOptions,
-  model: IModelConfig | ModelRuntime,
+  modelConfig: IModelConfig,
 ): Promise<StreamingAIResponse> => {
-  const modelRuntime = resolveModelRuntime(model);
+  const modelRuntime = createModelRuntime(modelConfig);
 
   // Validate input
   validateEvents(events);

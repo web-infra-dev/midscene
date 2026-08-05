@@ -40,12 +40,18 @@ import { assert, ifInBrowser } from '@midscene/shared/utils';
 import OpenAI from 'openai';
 import type { ChatCompletionMessageParam } from 'openai/resources/index';
 import type { Stream } from 'openai/streaming';
+import {
+  isModelCallRecordingEnabled,
+  recordModelCallEvent,
+} from '../model-call-recorder';
+import { createModelInteractionContext } from '../model-interaction-context';
 import type { ModelRuntime } from '../models';
 import type { AIArgs } from '../types';
 import {
   callAIWithCodexAppServer,
   isCodexAppServerProvider,
 } from './codex-app-server';
+import type { CodexAppServerRecordEvent } from './codex-app-server';
 import type { JsonParserSource } from './json';
 import {
   type OpenAIErrorResponseContext,
@@ -98,6 +104,10 @@ function getLatestSuccessfulResponseRequestId(
   );
 }
 
+function getLatestResponseAttempt(context: OpenAIErrorResponseContext) {
+  return context.httpResponses?.at(-1)?.attempt ?? 1;
+}
+
 function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
@@ -143,8 +153,10 @@ function appendAIRequestFailureSummary<T extends Error>(
 
 export async function createChatClient({
   modelConfig,
+  recordEvent,
 }: {
   modelConfig: IModelConfig;
+  recordEvent?: (event: Record<string, unknown>) => void;
 }): Promise<{
   completion: OpenAI.Chat.Completions;
   modelName: string;
@@ -258,7 +270,9 @@ export async function createChatClient({
   }
 
   const effectiveTimeoutMs = resolveEffectiveTimeoutMs({ timeout });
-  const openAIErrorResponseContext: OpenAIErrorResponseContext = {};
+  const openAIErrorResponseContext: OpenAIErrorResponseContext = {
+    recordEvent,
+  };
   const openAIOptions = {
     baseURL: openaiBaseURL,
     apiKey: openaiApiKey,
@@ -350,13 +364,30 @@ export async function callAI(
   rawChoiceMessage?: unknown;
   usage?: AIUsageInfo;
   isStreamed: boolean;
+  interactionId: string;
 }> {
   const { config: modelConfig, adapter } = modelRuntime;
+  const modelInteractionContext =
+    modelRuntime.modelInteractionContext ??
+    createModelInteractionContext({ fallback: true });
 
   // Stable internal ID for this call, used by the agent to deduplicate usage
   // across the onUsage callback and the task-dump-based collectUsageMetrics()
   // path when the provider does not return a request_id.
   const internalCallId = nextInternalCallId();
+  const recordEvent = isModelCallRecordingEnabled()
+    ? (event: Record<string, unknown>) => {
+        void recordModelCallEvent({
+          interactionId: modelInteractionContext.interactionId,
+          callId: internalCallId,
+          semanticRetryAttempt: options?.semanticRetryAttempt,
+          slot: modelConfig.slot,
+          intent: modelConfig.intent,
+          modelFamily: modelConfig.modelFamily,
+          ...event,
+        });
+      }
+    : undefined;
   const chatCompletionInput = {
     intent: modelConfig.intent,
     userConfig: {
@@ -374,20 +405,81 @@ export async function callAI(
     adapter.chatCompletion.resolveImageDetail(chatCompletionInput);
 
   if (isCodexAppServerProvider(modelConfig.openaiBaseURL)) {
-    const codexResult = await callAIWithCodexAppServer(messages, modelConfig, {
-      stream: options?.stream,
-      onChunk: options?.onChunk,
-      reasoningEnabled: modelConfig.reasoningEnabled,
-      abortSignal: options?.abortSignal,
-      imageDetail,
-    });
-    if (codexResult.usage) {
-      (codexResult.usage as any)[INTERNAL_CALL_ID_FIELD] = internalCallId;
-      if (modelRuntime.onUsage) {
-        modelRuntime.onUsage(codexResult.usage);
+    let protocolChunkSequence = 0;
+    const codexStartTime = Date.now();
+    const recordCodexEvent = recordEvent
+      ? (event: CodexAppServerRecordEvent) => {
+          if (event.type === 'chunk') {
+            protocolChunkSequence += 1;
+            recordEvent({
+              ...event,
+              attempt: 1,
+              sequence: protocolChunkSequence,
+              provider: 'codex-app-server',
+            });
+            return;
+          }
+
+          recordEvent({
+            ...event,
+            attempt: 1,
+            provider: 'codex-app-server',
+          });
+        }
+      : undefined;
+
+    try {
+      const codexResult = await callAIWithCodexAppServer(
+        messages,
+        modelConfig,
+        {
+          stream: options?.stream,
+          onChunk: options?.onChunk,
+          reasoningEnabled: modelConfig.reasoningEnabled,
+          abortSignal: options?.abortSignal,
+          imageDetail,
+          onRecordEvent: recordCodexEvent,
+        },
+      );
+      const { protocolMetadata, ...response } = codexResult;
+      recordEvent?.({
+        type: 'response',
+        attempt: 1,
+        provider: 'codex-app-server',
+        final: {
+          content: response.content,
+          reasoningContent: response.reasoning_content,
+          usage: response.usage,
+          timeCost: Date.now() - codexStartTime,
+          protocol: protocolMetadata,
+        },
+      });
+      if (response.usage) {
+        (response.usage as any)[INTERNAL_CALL_ID_FIELD] = internalCallId;
+        if (modelRuntime.onUsage) {
+          modelRuntime.onUsage(response.usage);
+        }
       }
+      return {
+        ...response,
+        interactionId: modelInteractionContext.interactionId,
+      };
+    } catch (error) {
+      recordEvent?.({
+        type: 'error',
+        attempt: 1,
+        provider: 'codex-app-server',
+        error:
+          error instanceof Error
+            ? {
+                name: error.name,
+                message: error.message,
+                stack: error.stack,
+              }
+            : String(error),
+      });
+      throw error;
     }
-    return codexResult;
   }
 
   const {
@@ -398,6 +490,7 @@ export async function callAI(
     openAIErrorResponseContext,
   } = await createChatClient({
     modelConfig,
+    recordEvent,
   });
   const effectiveTimeoutMs = resolveEffectiveTimeoutMs(modelConfig);
 
@@ -546,8 +639,19 @@ export async function callAI(
         requestId =
           getLatestSuccessfulResponseRequestId(openAIErrorResponseContext) ??
           stream._request_id;
+        const streamAttempt = getLatestResponseAttempt(
+          openAIErrorResponseContext,
+        );
 
+        let chunkSequence = 0;
         for await (const chunk of stream) {
+          chunkSequence += 1;
+          recordEvent?.({
+            type: 'chunk',
+            attempt: streamAttempt,
+            sequence: chunkSequence,
+            chunk,
+          });
           const parsedChunk = adapter.chatCompletion.extractContentAndReasoning(
             chunk.choices?.[0]?.delta,
           );
@@ -757,13 +861,28 @@ export async function callAI(
       modelRuntime.onUsage(finalUsage);
     }
 
-    return {
+    const response = {
       content: content || '',
       reasoning_content: accumulatedReasoning || undefined,
       rawChoiceMessage,
       usage: finalUsage,
       isStreamed: !!isStreaming,
+      interactionId: modelInteractionContext.interactionId,
     };
+    recordEvent?.({
+      type: 'response',
+      attempt: getLatestResponseAttempt(openAIErrorResponseContext),
+      http: openAIErrorResponseContext.httpResponses?.at(-1),
+      final: {
+        content: response.content,
+        reasoningContent: response.reasoning_content,
+        usage: response.usage,
+        requestId,
+        timeCost,
+        responseModelName,
+      },
+    });
+    return response;
   } catch (e: any) {
     warnCall('call AI error', e);
 

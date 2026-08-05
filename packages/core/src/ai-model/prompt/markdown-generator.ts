@@ -12,7 +12,8 @@ import {
 } from '@midscene/shared/recorder';
 import type { ChatCompletionMessageParam } from 'openai/resources/index';
 import { callAIWithStringResponse } from '../index';
-import { type ModelRuntime, getModelRuntime } from '../models';
+import { createModelInteractionContext } from '../model-interaction-context';
+import { getModelRuntime } from '../models';
 import {
   type RecorderGenerationInput,
   prepareRecorderGenerationContext,
@@ -157,11 +158,11 @@ function normalizeGeneratedMarkdown(content: string) {
   return `${(fencedMatch?.[1] ?? trimmed).trim()}\n`;
 }
 
-function resolveModelRuntime(model: IModelConfig | ModelRuntime): ModelRuntime {
-  if ('config' in model && 'adapter' in model) {
-    return model;
-  }
-  return getModelRuntime(model);
+function createModelRuntime(modelConfig: IModelConfig) {
+  return {
+    ...getModelRuntime(modelConfig),
+    modelInteractionContext: createModelInteractionContext(),
+  };
 }
 
 export function createRecorderMarkdownReplayPrompt(
@@ -323,13 +324,13 @@ Important: Return ONLY raw Markdown. Do NOT wrap the response in markdown code b
 
 export async function generateRecorderMarkdownReplay(
   input: RecorderMarkdownGenerationInput,
-  model: IModelConfig | ModelRuntime,
+  modelConfig: IModelConfig,
 ): Promise<string> {
   try {
     const prompt = await createRecorderMarkdownReplayPromptForGeneration(input);
     const response = await callAIWithStringResponse(
       prompt,
-      resolveModelRuntime(model),
+      createModelRuntime(modelConfig),
     );
 
     if (response?.content && typeof response.content === 'string') {
