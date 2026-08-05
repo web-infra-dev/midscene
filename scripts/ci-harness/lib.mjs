@@ -273,8 +273,15 @@ async function scanDumpScripts(filePath) {
     while (pending.length > 0) {
       const start = pending.indexOf(openPrefix);
       if (start === -1) {
-        pending = pending.slice(-openPrefix.length);
+        pending = pending.slice(-(openPrefix.length + 1));
         break;
+      }
+      const previousCharacter = start === 0 ? '' : pending[start - 1];
+      const startsHtmlTag =
+        start === 0 || previousCharacter === '>' || /\s/.test(previousCharacter);
+      if (!startsHtmlTag) {
+        pending = pending.slice(start + openPrefix.length);
+        continue;
       }
       const openEnd = pending.indexOf('>', start + openPrefix.length);
       if (openEnd === -1) {

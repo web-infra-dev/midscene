@@ -109,6 +109,7 @@ jobs:
         env:
           HARNESS_SNAPSHOT_SOURCE: packages/web-integration/midscene_run/report
           HARNESS_SNAPSHOT_DESTINATION: midscene_run/harness-input/ai-web-basic
+          HARNESS_SNAPSHOT_MODE: copy
         run: node scripts/ci-harness/snapshot-reports.mjs
 
       - name: Run e2e tests report

@@ -130,6 +130,7 @@ xcrun simctl list devices > "$diagnostics_dir/simulator-devices-booted.txt"
 rm -rf "$derived_data_dir"
 USE_PORT="$wda_port" \
 MJPEG_SERVER_PORT="$mjpeg_port" \
+env -u MIDSCENE_MODEL_API_KEY \
 xcodebuild \
   -project "$wda_project" \
   -scheme WebDriverAgentRunner \

@@ -1,4 +1,4 @@
-import { access, mkdir, rename } from 'node:fs/promises';
+import { access, cp, mkdir, rename } from 'node:fs/promises';
 import path from 'node:path';
 
 function insideWorkspace(workspace, inputPath) {
@@ -31,7 +31,13 @@ try {
     throw new Error(`Report snapshot is immutable and already exists: ${destination}`);
   }
   await mkdir(path.dirname(destination), { recursive: true });
-  if (await exists(source)) await rename(source, destination);
+  if (await exists(source)) {
+    if (process.env.HARNESS_SNAPSHOT_MODE === 'copy') {
+      await cp(source, destination, { recursive: true, errorOnExist: true });
+    } else {
+      await rename(source, destination);
+    }
+  }
   else await mkdir(destination, { recursive: true });
 } catch (error) {
   console.error(`::error::Unable to snapshot reports: ${error.stack || error}`);

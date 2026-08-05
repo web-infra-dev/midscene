@@ -12,7 +12,7 @@ function reportHtml(dump) {
   const serialized = JSON.stringify(dump)
     .replaceAll('<', '__midscene_lt__')
     .replaceAll('>', '__midscene_gt__');
-  return `<html><body><script type="midscene_web_dump" type="application/json" data-group-id="test">${serialized}</script></body></html>`;
+  return `<html><body><script>const dumpTag = '<script type="midscene_web_dump">';</script><script type="midscene_web_dump" type="application/json" data-group-id="test">${serialized}</script></body></html>`;
 }
 
 function environment(overrides = {}) {
@@ -132,6 +132,25 @@ test('validates every registered scored suite has a report Trace contract', asyn
       assert.equal(stage.traceRequired, true, `${suite}/${stage.id}`);
       assert.ok(stage.reportPatterns.length > 0, `${suite}/${stage.id}`);
     }
+  }
+});
+
+test('keeps model-free desktop smokes outside Pass@k scoring', async () => {
+  for (const suite of ['macos-desktop', 'windows-desktop']) {
+    const stages = await resolveStages({
+      workspace: repositoryRoot,
+      suite,
+      outcomes: JSON.stringify({
+        build: 'success',
+        'package-smoke': 'success',
+        'unit-tests': 'success',
+        'live-smoke': 'success',
+        'todo-mvc': 'success',
+      }),
+    });
+    const liveSmoke = stages.find((stage) => stage.id === 'live-smoke');
+    assert.equal(liveSmoke.kind, 'check');
+    assert.equal(liveSmoke.traceRequired, false);
   }
 });
 

@@ -187,13 +187,7 @@
     {
       "id": "live-smoke",
       "name": "Live macOS desktop smoke",
-      "kind": "case",
-      "traceRequired": true,
-      "reportPattern": "macos-desktop-smoke.html",
-      "validator": {
-        "type": "midscene-ai-test",
-        "expected": "The live macOS desktop scenario completes"
-      }
+      "kind": "check"
     },
     {
       "id": "todo-mvc",
@@ -226,13 +220,7 @@
     {
       "id": "live-smoke",
       "name": "Live Windows desktop smoke",
-      "kind": "case",
-      "traceRequired": true,
-      "reportPattern": "windows-desktop-smoke.html",
-      "validator": {
-        "type": "midscene-ai-test",
-        "expected": "The live Windows desktop scenario completes"
-      }
+      "kind": "check"
     },
     {
       "id": "todo-mvc",
