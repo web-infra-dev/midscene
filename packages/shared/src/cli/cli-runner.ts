@@ -99,10 +99,27 @@ export function removePrefix(name: string, prefix?: string): string {
 
 function printCommandHelp(scriptName: string, cmd: CLICommand): void {
   const { def } = cmd;
-  console.log(`\nUsage: ${scriptName} ${cmd.name} [options]\n`);
+  const positionalUsage = (def.cli?.positionals ?? [])
+    .map((name) => `<${name}>`)
+    .join(' ');
+  console.log(
+    `\nUsage: ${scriptName} ${cmd.name}${positionalUsage ? ` ${positionalUsage}` : ''} [options]\n`,
+  );
   console.log(def.description);
 
-  const schemaEntries = Object.entries(def.schema);
+  const globalOptionFlags = new Set(
+    getGlobalOptions().map((option) => option.flag),
+  );
+  const schemaEntries = Object.entries(def.schema).filter(([key]) => {
+    if (
+      def.cli?.positionals?.includes(key) ||
+      def.cli?.options?.[key]?.hidden
+    ) {
+      return false;
+    }
+    const { label } = getCliOptionDisplay(key, def.cli?.options?.[key]);
+    return !globalOptionFlags.has(label);
+  });
   if (schemaEntries.length > 0) {
     const optionWidth = Math.max(
       22,
@@ -151,23 +168,27 @@ function printHelp(
 }
 
 function printGlobalOptions(): void {
-  const options = [
-    {
-      flag: `--${cliVerboseFlag}`,
-      description:
-        'Print progress while the command is running. act prints readable progress by default. Use --verbose=jsonl for structured events.',
-    },
-    ...TOOL_BEHAVIOR_FLAGS.map((flag) => ({
-      flag: `--${flag.cli}`,
-      description: flag.description,
-    })),
-  ];
+  const options = getGlobalOptions();
   const optionWidth = Math.max(...options.map((option) => option.flag.length));
 
   console.log('\nGlobal Options:');
   for (const option of options) {
     console.log(`  ${option.flag.padEnd(optionWidth)} ${option.description}`);
   }
+}
+
+function getGlobalOptions(): Array<{ flag: string; description: string }> {
+  return [
+    {
+      flag: `--${cliVerboseFlag}`,
+      description:
+        'Print progress while the command is running. act and record print readable progress by default. Use --verbose=jsonl for structured events.',
+    },
+    ...TOOL_BEHAVIOR_FLAGS.map((flag) => ({
+      flag: `--${flag.cli}`,
+      description: flag.description,
+    })),
+  ];
 }
 
 type AnyMidsceneTools = BaseMidsceneTools<any, any>;
@@ -204,7 +225,11 @@ export async function runToolsCLI(
 
   await tools.initTools();
 
-  const commands: CLICommand[] = tools.getToolDefinitions().map((def) => ({
+  const toolDefinitions = [
+    ...tools.getToolDefinitions(),
+    ...(tools.getCliToolDefinitions?.() ?? []),
+  ];
+  const commands: CLICommand[] = toolDefinitions.map((def) => ({
     name: removePrefix(def.name, options?.stripPrefix).toLowerCase(),
     def,
   }));
@@ -256,7 +281,22 @@ export async function runToolsCLI(
     throw new CLIError(`Unknown command: ${commandName}`);
   }
 
-  const parsedArgs = parseCliArgs(restArgs);
+  const positionalNames = match.def.cli?.positionals ?? [];
+  const positionalArgs: Record<string, unknown> = {};
+  let optionStartIndex = 0;
+  while (
+    optionStartIndex < restArgs.length &&
+    optionStartIndex < positionalNames.length &&
+    !restArgs[optionStartIndex].startsWith('-')
+  ) {
+    positionalArgs[positionalNames[optionStartIndex]] =
+      restArgs[optionStartIndex];
+    optionStartIndex += 1;
+  }
+  const parsedArgs = {
+    ...positionalArgs,
+    ...parseCliArgs(restArgs.slice(optionStartIndex)),
+  };
   if (parsedArgs.help === true) {
     debug('showing command help for: %s', match.name);
     printCommandHelp(scriptName, match);
@@ -282,7 +322,8 @@ export async function runToolsCLI(
 
   debug('command: %s, args: %s', match.name, JSON.stringify(handlerArgs));
 
-  const verboseEnabled = verbose || match.name === 'act';
+  const verboseEnabled =
+    verbose || match.name === 'act' || match.name === 'record';
 
   await withCliVerboseContext(
     {

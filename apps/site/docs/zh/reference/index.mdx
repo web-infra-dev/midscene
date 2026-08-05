@@ -1000,36 +1000,46 @@ expect(onesieItem.price).toBe(7.99);
 
 #### `startObserving()` {#agentstartobserving}
 
-在一段时间内持续采样屏幕，后续断言会基于这段有序记录判断状态或变化。它适合捕捉单张截图容易错过的短暂 UI，比如 toast、横幅或页面切换。
+`startObserving()` 会持续记录屏幕。它适合检查短暂出现的 UI，例如 toast、横幅和页面切换。
+
+调用流程很简单：先开始录制，再执行页面操作，最后调用 `stop()`。`stop()` 返回 `UIObservation`。你可以查询或断言录制期间的画面。
 
 ```typescript
 function startObserving(options?: {
-  intervalMs?: number;  // 采样间隔,默认 1000ms,最小 200ms(5fps)
-  maxFrames?: number;   // 帧缓冲上限,默认 30(缓冲满时自动抽稀)
-  watchdogMs?: number;  // 如果一直没有调用 stop(),会在指定毫秒数后自动停止。默认 300000(5 分钟)。设为 0 可禁用。
+  intervalMs?: number; // 采样间隔。默认 1,000 ms，最小 200 ms
+  maxFrames?: number; // 最多保留的帧数。默认 30
+  watchdogMs?: number; // 最长录制时间。默认 300,000 ms；0 表示不限制
 }): Promise<UIObserver>;
 ```
 
-返回的 `UIObserver` 提供：
+`UIObserver` 负责录制：
 
-- `observer.stop(): Promise<void>` - 停止采样，并截取最后一张用于断言的截图。断言前必须先调用。
-- `observer.aiAssert(assertion: string, msg?: string, opt?: object): Promise<void>` - 基于已观察到的时间段执行断言。模型会收到所有缓冲帧和最后一张截图；断言文本决定它应该判断“是否曾经出现”、最终状态，还是按顺序发生的变化。
-- `observer.aiBoolean(prompt: string, opt?: object): Promise<boolean>` - 基于已观察到的时间段做布尔查询。
-- `observer.frameCount: number` - 当前已缓冲的帧数。
+- `observer.bufferedFrameCount: number` - 录制过程中当前缓冲的帧数。
+- `observer.stop(): Promise<UIObservation>` - 停止录制，并返回 `UIObservation`。
+
+`UIObservation` 保存已经录下的画面。调用 `stop()` 后，这些画面不再变化。
+
+你可以调用 `aiQuery()`、`aiBoolean()`、`aiNumber()`、`aiString()`、`aiAsk()` 和 `aiAssert()`。这些方法只读取录制画面，不读取当前页面的 DOM。
+
+因此，这些方法不支持 `domIncluded`。TypeScript 会检查这个错误。JavaScript 在运行时传入该参数，Midscene 也会抛出错误。
+
+`UIObservation` 还包含 `frameCount`、`startedAt` 和 `endedAt`。使用完后，可以调用 `observation.dispose()` 清理临时图片。`agent.destroy()` 也会清理尚未释放的图片。
 
 ```typescript
 const observer = await agent.startObserving();
 await agent.aiAct('提交表单');
-await observer.stop();
-await observer.aiAssert('过程中弹出了成功提示 toast');
+const observation = await observer.stop();
+await observation.aiAssert('过程中弹出了成功提示 toast');
+const toastCount = await observation.aiNumber('共出现了多少次成功 toast？');
+await observation.dispose();
 ```
 
-工作方式与成本：
+采样和资源占用：
 
-- Midscene 会优先从设备的连续帧源采集画面：Android 使用 scrcpy（`scrcpyConfig.enabled`）、iOS 使用 WDA MJPEG（`wdaMjpegFrameSource.enabled`）、Web 使用 CDP screencast（始终可用）。没有帧源时，会退回到定时截图；移动端实际帧率会明显降低。
-- 采样阶段只保存帧句柄。断言时再解码需要发送给模型的帧，避免在后台采样时持续解码。
-- 模型会收到缓冲区内的所有帧（最多 `maxFrames` 帧）和最后一张截图，避免漏掉长时间观察中的短暂 UI。如需控制 token 成本，可增大 `intervalMs`（降低采样密度）或减小 `maxFrames`（缩小缓冲区）。观察帧会显示在报告时间线中，并带有 `Observed` 标签。
-- iOS 的观察帧来自 MJPEG 流，分辨率和质量较低；最后一张截图仍是全质量截图。
+- Midscene 会优先使用连续帧源。Android 使用 scrcpy（`scrcpyConfig.enabled`），iOS 使用 WDA MJPEG（`wdaMjpegFrameSource.enabled`），Web 使用 CDP screencast。无法使用连续帧源时，Midscene 会定时截图。移动端此时的采样频率较低。
+- data URL 形式的帧会在采样时写入文件。`UIObserver` 不会把所有图片长期保存在内存中。其他帧会在录制停止时分批解码并保存。查询或断言时，Midscene 才读取图片。
+- 模型会接收最多 `maxFrames` 帧，以及最后一张截图。增大 `intervalMs` 可以减少采样帧，减小 `maxFrames` 可以限制帧数。观察帧会显示在报告时间线中，并带有 `Observed` 标签。
+- iOS 的观察帧来自 MJPEG 流，分辨率和质量较低。最后一张截图仍使用完整质量。
 
 #### `aiWaitFor()` {#agentaiwaitfor}
 

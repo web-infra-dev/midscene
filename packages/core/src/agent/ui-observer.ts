@@ -1,111 +1,218 @@
+import {
+  type UIObservationRecordMetadata,
+  UIObservationRecordWriter,
+  cloneUIObservationRecord,
+} from '@midscene/shared/agent-tools/observation-record';
+import type {
+  BaseUIObserverOptions,
+  UIObservationFrame,
+  UIObservationRecord,
+} from '@midscene/shared/agent-tools/types';
 import { imageInfoOfBase64, resizeImgBase64 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
+import type { TUserPrompt } from '../common';
 import type { DeviceFrameRef, DeviceFrameSource } from '../device';
 import { ScreenshotItem } from '../screenshot-item';
-import type { AgentAssertOpt, ServiceExtractOption, UIContext } from '../types';
+import type {
+  AgentAssertResult,
+  InsightAPI,
+  ObservationAssertOptions,
+  ObservationQueryOptions,
+  ServiceExtractParam,
+  UIContext,
+} from '../types';
 
 const debug = getDebug('ui-observer');
 const warnObserver = getDebug('ui-observer', { console: true });
 
-// Guardrails from the performance research: cap sampling at 5fps and bound the
-// frame buffer. All buffered frames (up to maxFrames) are sent to the
-// model so transient UI in long windows is not missed by down-sampling.
 const DEFAULT_INTERVAL_MS = 1000;
 const MIN_INTERVAL_MS = 200;
 const DEFAULT_MAX_FRAMES = 30;
-// How long start() waits for a cold stream's first frame before proceeding.
 const FIRST_FRAME_TIMEOUT_MS = 3000;
-// Default watchdog: auto-stop an observer that was never explicitly stopped.
 const DEFAULT_WATCHDOG_MS = 5 * 60 * 1000;
-// Soft cap on frames sent to the model per assertion. We still send all frames
-// (no silent dropping), but warn the user when this is exceeded.
-const MAX_FRAMES_TO_MODEL = 50;
+const MAX_FRAMES_PER_RECORD = 50;
+const DECODE_BATCH_SIZE = 4;
 
-export interface UIObserverOption {
-  /** Sampling interval between frames in ms. Default 1000, min 200 (5fps). */
-  intervalMs?: number;
-  /**
-   * Maximum number of frames to keep in the buffer. When full the buffer is
-   * thinned (change-point frames preserved, static intervals halved) so the
-   * whole window keeps temporal coverage. Default 30.
-   */
-  maxFrames?: number;
-  /**
-   * Auto-stop the observer after this many ms if stop() was never called.
-   * Prevents resource leaks from forgotten observers. Default 5min. Set 0 to
-   * disable.
-   */
-  watchdogMs?: number;
-}
+/** Options for a UI observation window. */
+export type UIObserverOption = BaseUIObserverOptions;
 
 interface UIObserverDeps {
-  /**
-   * Open the device's continuous frame source, if it has one. The observer
-   * falls back to plain screenshots when this returns undefined or throws.
-   */
   openFrameSource: () => Promise<DeviceFrameSource | undefined>;
-  /** Fallback single-frame capture (already a data URL). */
   screenshot: () => Promise<string>;
-  /** Capture the final full-quality UIContext (used as the representative). */
   captureRepresentative: () => Promise<UIContext>;
-  /** Run an assert against a pre-built multi-frame UIContext. */
-  runAssert: (
-    assertion: string,
-    uiContext: UIContext,
-    msg?: string,
-    opt?: AgentAssertOpt & ServiceExtractOption,
-  ) => Promise<
-    undefined | { pass: boolean; thought?: string; message?: string }
-  >;
-  /** Run a boolean query against a pre-built multi-frame UIContext. */
-  runBoolean: (
-    prompt: string,
-    uiContext: UIContext,
-    opt?: ServiceExtractOption,
-  ) => Promise<boolean>;
-  /** Called when stop() completes, so the agent can clear its active-observer reference. */
+  createInsight: (record: UIObservationRecord) => InsightAPI;
   onStopped?: () => void;
-  /** Screenshot shrink factor applied to fallback frames. Default 1 (no shrink). */
+  onDisposed?: () => void;
   screenshotShrinkFactor?: number;
+  /** Test/internal persistence override; not part of the Agent SDK options. */
+  observationRecordWriter?: UIObservationRecordWriter;
+}
+
+/** A fixed screen-recording window that supports read-only AI insights. */
+export interface UIObservation
+  extends InsightAPI<ObservationQueryOptions, ObservationAssertOptions> {
+  /** Number of captured frames in the fixed observation window. */
+  readonly frameCount: number;
+  /** Timestamp when screen sampling started. */
+  readonly startedAt: number;
+  /** Timestamp when screen sampling ended. */
+  readonly endedAt: number;
+  /** Release image files owned by this observation. Failed cleanup is retryable. */
+  dispose(): Promise<void>;
+}
+
+/** Recording lifecycle returned by {@link Agent.startObserving}. */
+export interface UIObserver {
+  /** Number of frames currently buffered while recording. */
+  readonly bufferedFrameCount: number;
+  /** Stop recording and return its fixed observation window. */
+  stop(): Promise<UIObservation>;
+  /** Stop recording if needed and release its image files. */
+  dispose(): Promise<void>;
+}
+
+/** @internal Concrete fixed-window implementation. */
+export class UIObservationImpl implements UIObservation {
+  private disposed = false;
+  private readonly record: UIObservationRecord;
+
+  constructor(
+    record: UIObservationRecord,
+    private readonly insight: InsightAPI,
+    private readonly disposeRecord?: () => void,
+    private readonly onDisposed?: () => void,
+  ) {
+    this.record = cloneUIObservationRecord(record);
+  }
+
+  get frameCount(): number {
+    return this.record.frames.length;
+  }
+
+  get startedAt(): number {
+    return this.record.startedAt;
+  }
+
+  get endedAt(): number {
+    return this.record.endedAt;
+  }
+
+  private ensureUsable(): void {
+    assert(!this.disposed, 'UI observation has been disposed');
+  }
+
+  private ensureFixedWindowOptions(options?: { domIncluded?: unknown }): void {
+    assert(
+      options?.domIncluded === undefined,
+      'UIObservation does not support domIncluded because it only evaluates recorded screenshots',
+    );
+  }
+
+  async aiQuery<ReturnType = any>(
+    demand: ServiceExtractParam,
+    options?: ObservationQueryOptions,
+  ): Promise<ReturnType> {
+    this.ensureUsable();
+    this.ensureFixedWindowOptions(options);
+    return this.insight.aiQuery<ReturnType>(demand, options);
+  }
+
+  async aiBoolean(
+    prompt: TUserPrompt,
+    options?: ObservationQueryOptions,
+  ): Promise<boolean> {
+    this.ensureUsable();
+    this.ensureFixedWindowOptions(options);
+    return this.insight.aiBoolean(prompt, options);
+  }
+
+  async aiNumber(
+    prompt: TUserPrompt,
+    options?: ObservationQueryOptions,
+  ): Promise<number> {
+    this.ensureUsable();
+    this.ensureFixedWindowOptions(options);
+    return this.insight.aiNumber(prompt, options);
+  }
+
+  async aiString(
+    prompt: TUserPrompt,
+    options?: ObservationQueryOptions,
+  ): Promise<string> {
+    this.ensureUsable();
+    this.ensureFixedWindowOptions(options);
+    return this.insight.aiString(prompt, options);
+  }
+
+  async aiAsk(
+    prompt: TUserPrompt,
+    options?: ObservationQueryOptions,
+  ): Promise<string> {
+    this.ensureUsable();
+    this.ensureFixedWindowOptions(options);
+    return this.insight.aiAsk(prompt, options);
+  }
+
+  async aiAssert(
+    assertion: TUserPrompt,
+    message?: string,
+    options?: ObservationAssertOptions,
+  ): Promise<AgentAssertResult | undefined> {
+    this.ensureUsable();
+    this.ensureFixedWindowOptions(options);
+    return this.insight.aiAssert(assertion, message, options);
+  }
+
+  /** @internal Used only by the CLI observation artifact adapter. */
+  async exportRecord(): Promise<UIObservationRecord> {
+    this.ensureUsable();
+    return cloneUIObservationRecord(this.record);
+  }
+
+  async dispose(): Promise<void> {
+    if (this.disposed) return;
+    this.disposeRecord?.();
+    this.disposed = true;
+    this.onDisposed?.();
+  }
+}
+
+interface BufferedFrame extends DeviceFrameRef {
+  /** Present once the frame no longer needs to retain an in-memory data URL. */
+  persisted?: UIObservationFrame;
+}
+
+function isImageDataUrl(value: unknown): value is string {
+  return (
+    typeof value === 'string' &&
+    /^data:image\/(?:png|jpe?g);base64,/i.test(value)
+  );
 }
 
 /**
- * Observes the screen over an explicit window so a later assertion can judge
- * everything that happened while other agent calls ran — including transient
- * UI that appears mid-action:
- *
- * ```ts
- * const observer = await agent.startObserving();
- * await agent.aiAct('submit the form');
- * await observer.stop();
- * await observer.aiAssert('a success toast appeared during the process');
- * ```
- *
- * Sampling is deliberately cheap: when the device exposes a continuous frame
- * source (scrcpy on Android, WDA MJPEG on iOS, CDP screencast on web), each
- * tick only grabs an opaque frame handle; any decode cost is paid ONCE at the
- * end, for all buffered frames actually sent to the model. Devices without a
- * frame source fall back to plain screenshots per tick. To avoid missing
- * short-lived transient UI in long observation windows, every buffered frame
- * is sent to the model — control cost via `intervalMs` and `maxFrames`.
+ * Observe an explicit screen window and produce a fixed UIObservation.
  */
-export class UIObserver {
-  private frames: DeviceFrameRef[] = [];
+export class UIObserverImpl implements UIObserver {
+  private frames: BufferedFrame[] = [];
   private source: DeviceFrameSource | null = null;
   private usingFallback = false;
   private stopped = false;
+  private disposed = false;
   private loopPromise: Promise<void> | null = null;
+  private stopPromise: Promise<UIObservationImpl> | null = null;
   private representative: UIContext | null = null;
+  private representativeFrame: UIObservationFrame | null = null;
   private watchdogTimer: ReturnType<typeof setTimeout> | null = null;
-  /** Cross-assertion decode cache: keyed by frame.ref, avoids re-decoding on Android. */
-  private decodedCache = new Map<unknown, string>();
-  /** Background pre-decode started in stop(), awaited by buildObservedUIContext(). */
-  private preDecodePromise: Promise<void> | null = null;
+  private persistPromise: Promise<void> | null = null;
+  private persistedByRef = new Map<unknown, UIObservationFrame>();
+  private observation: UIObservationImpl | null = null;
+  private startedAt = 0;
   private readonly intervalMs: number;
   private readonly maxFrames: number;
   private readonly watchdogMs: number;
   private readonly screenshotShrinkFactor: number;
+  private readonly writer: UIObservationRecordWriter;
 
   constructor(
     private readonly deps: UIObserverDeps,
@@ -118,20 +225,17 @@ export class UIObserver {
     this.maxFrames = Math.max(2, opt?.maxFrames ?? DEFAULT_MAX_FRAMES);
     this.watchdogMs = opt?.watchdogMs ?? DEFAULT_WATCHDOG_MS;
     this.screenshotShrinkFactor = deps.screenshotShrinkFactor ?? 1;
+    this.writer =
+      deps.observationRecordWriter ?? new UIObservationRecordWriter();
   }
 
-  /** Number of frames currently buffered. */
-  get frameCount(): number {
+  get bufferedFrameCount(): number {
     return this.frames.length;
   }
 
-  /**
-   * Open the frame source (or arm the screenshot fallback), capture the first
-   * baseline frame, then start the background sampling loop. Awaiting this
-   * guarantees at least one pre-action frame exists.
-   */
   async start(): Promise<void> {
     assert(!this.loopPromise && !this.stopped, 'observer has already started');
+    this.startedAt = Date.now();
     try {
       this.source = (await this.deps.openFrameSource()) ?? null;
     } catch (error) {
@@ -142,10 +246,6 @@ export class UIObserver {
     if (this.usingFallback) {
       debug('no continuous frame source; sampling via plain screenshots');
     } else {
-      // A freshly opened stream may not have produced a frame yet. Wait
-      // briefly so the "one baseline frame before your next action" guarantee
-      // holds even on cold streams; if none arrives, continue — frames will
-      // land on later ticks.
       const waitStart = Date.now();
       while (
         !this.source!.latest() &&
@@ -162,13 +262,11 @@ export class UIObserver {
     await this.captureOnce();
     this.loopPromise = this.runLoop();
 
-    // Watchdog: auto-stop if the user forgets to call stop().
     if (this.watchdogMs > 0) {
       this.watchdogTimer = setTimeout(() => {
         warnObserver(
           `UIObserver auto-stopped after ${this.watchdogMs}ms. Call observer.stop() explicitly to avoid this.`,
         );
-        debug(`watchdog fired after ${this.watchdogMs}ms, auto-stopping`);
         this.stop().catch(() => {});
       }, this.watchdogMs);
       if (
@@ -180,74 +278,57 @@ export class UIObserver {
     }
   }
 
-  /**
-   * Stop sampling, kick off background pre-decode, capture the representative,
-   * and release the frame source. Guarantees that the frame source is released
-   * and the agent's active-observer reference is cleared even if intermediate
-   * steps (pre-decode, representative capture) throw.
-   */
-  async stop(): Promise<void> {
-    if (this.stopped) return;
-    this.stopped = true;
+  stop(): Promise<UIObservationImpl> {
+    if (!this.stopPromise) {
+      this.stopPromise = this.finalizeStop();
+    }
+    return this.stopPromise;
+  }
 
-    // Clear the watchdog.
+  private async finalizeStop(): Promise<UIObservationImpl> {
+    this.stopped = true;
     if (this.watchdogTimer) {
       clearTimeout(this.watchdogTimer);
       this.watchdogTimer = null;
     }
-
     await this.loopPromise;
 
     try {
-      // Kick off pre-decode in the background so aiAssert() doesn't have to
-      // wait for decode at call time. This runs concurrently with
-      // captureRepresentative().
-      if (this.source && this.frames.length > 0) {
-        const uniqueRefs = this.dedupeRefs(this.frames);
-        this.preDecodePromise = this.source
-          .decode(uniqueRefs)
-          .then(async (results) => {
-            const shrunk = await this.shrinkAllIfNeeded(results);
-            uniqueRefs.forEach((ref, i) => {
-              this.decodedCache.set(ref.ref, shrunk[i]);
-            });
-            debug(`pre-decoded ${uniqueRefs.length} frames`);
-          })
-          .catch((error) => {
-            debug(`pre-decode failed, will retry at assert time: ${error}`);
-          });
+      if (this.frames.length > 0) {
+        this.persistPromise = this.persistUnstoredFrames().catch((error) => {
+          debug(`frame persistence failed, will retry during export: ${error}`);
+        });
       }
-
-      // Capture representative (DOM, viewport, etc.) — runs in parallel with
-      // pre-decode when possible.
       const representativePromise = this.deps.captureRepresentative();
-
       const [, representative] = await Promise.all([
-        this.preDecodePromise,
+        this.persistPromise,
         representativePromise,
       ]);
 
-      // Temporal alignment: if the last sampled frame is already decoded, use
-      // its image as the representative screenshot so the sequence tail is
-      // consistent with what was actually on screen during sampling.
-      if (this.source && this.frames.length > 0) {
-        const lastFrame = this.frames[this.frames.length - 1];
-        const lastDecoded = this.decodedCache.get(lastFrame.ref);
-        if (lastDecoded) {
-          representative.screenshot = ScreenshotItem.create(
-            lastDecoded,
-            lastFrame.capturedAt,
-          );
-          debug('representative screenshot aligned with last sampled frame');
-        }
+      const lastFrame = this.frames.at(-1);
+      if (this.source && lastFrame?.persisted) {
+        this.representativeFrame = {
+          ...lastFrame.persisted,
+          capturedAt: lastFrame.capturedAt,
+        };
+        representative.screenshot = ScreenshotItem.fromFile(
+          this.writer.resolveFramePath(lastFrame.persisted),
+          lastFrame.persisted.mimeType,
+          lastFrame.capturedAt,
+        );
+        debug('representative screenshot aligned with last sampled frame');
       }
-
       this.representative = representative;
+      const endedAt = Date.now();
+      const record = await this.finalizeRecord(endedAt);
+      this.observation = new UIObservationImpl(
+        record,
+        this.deps.createInsight(record),
+        () => this.writer.dispose(),
+        this.deps.onDisposed,
+      );
+      return this.observation;
     } finally {
-      // Always release the frame source and notify the agent — even if
-      // pre-decode or representative capture threw. Keep the source reference
-      // so buildObservedUIContext() can still call decode() if pre-decode
-      // failed (decode is independent of the stream subscription).
       if (this.source) {
         try {
           await this.source.stop();
@@ -255,242 +336,229 @@ export class UIObserver {
           debug(`error stopping frame source: ${error}`);
         }
       }
-
       debug(
         `observation stopped with ${this.frames.length} buffered frames (+1 representative)`,
       );
-
-      // Notify the agent that this observer is no longer active.
       this.deps.onStopped?.();
     }
   }
 
-  /**
-   * Assert against the observed window. All buffered frames (plus the final
-   * representative) are decoded and sent to the model. To control cost for
-   * long windows, increase `intervalMs` or decrease `maxFrames`.
-   * Throws when the assertion fails, mirroring `agent.aiAssert`.
-   */
-  async aiAssert(
-    assertion: string,
-    msg?: string,
-    opt?: AgentAssertOpt & ServiceExtractOption,
-  ): Promise<
-    undefined | { pass: boolean; thought?: string; message?: string }
-  > {
-    const uiContext = await this.buildObservedUIContext();
-    return this.deps.runAssert(assertion, uiContext, msg, opt);
-  }
-
-  /** Boolean query over the observed window (same frame semantics as aiAssert). */
-  async aiBoolean(
-    prompt: string,
-    opt?: ServiceExtractOption,
-  ): Promise<boolean> {
-    const uiContext = await this.buildObservedUIContext();
-    return this.deps.runBoolean(prompt, uiContext, opt);
-  }
-
-  private async buildObservedUIContext(): Promise<UIContext> {
+  private async finalizeRecord(endedAt: number): Promise<UIObservationRecord> {
     assert(
       this.stopped && this.representative,
-      'call observer.stop() before asserting on the observed window',
+      'observation must be stopped before finalizing the observed window',
     );
-    const representative = this.representative!;
+    if (this.persistPromise) {
+      await this.persistPromise;
+      this.persistPromise = null;
+    }
+    await this.persistUnstoredFrames();
 
-    // If pre-decode is still running (e.g. user called aiAssert very quickly
-    // after stop), wait for it to complete.
-    if (this.preDecodePromise) {
-      await this.preDecodePromise;
-      this.preDecodePromise = null;
+    const sampledFrames = this.frames.map((frame) => {
+      assert(frame.persisted, 'observation frame was not persisted');
+      return { ...frame.persisted, capturedAt: frame.capturedAt };
+    });
+
+    if (!this.representativeFrame) {
+      const representative = this.representative!;
+      this.representativeFrame = this.writer.persistFrame(
+        representative.screenshot.base64,
+        representative.screenshot.capturedAt,
+      );
+      representative.screenshot = ScreenshotItem.fromFile(
+        this.writer.resolveFramePath(this.representativeFrame),
+        this.representativeFrame.mimeType,
+        this.representativeFrame.capturedAt,
+      );
     }
 
-    // Send ALL buffered frames to the model so transient UI in long windows
-    // is not missed by down-sampling. Cost is controlled by intervalMs and
-    // maxFrames instead. Decode each UNIQUE frame once, using the
-    // cross-assertion cache.
-    const sampled = this.frames;
-    const uniqueRefs = this.dedupeRefs(sampled);
-
-    // Find which unique refs are not yet in the decode cache.
-    const uncachedRefs = uniqueRefs.filter(
-      (r) => !this.decodedCache.has(r.ref),
+    const frames = [...sampledFrames, this.representativeFrame];
+    if (frames.length > MAX_FRAMES_PER_RECORD) {
+      warnObserver(
+        `WARNING: exporting ${frames.length} frames (soft limit ${MAX_FRAMES_PER_RECORD}). Running insight against this observation sends every frame to the model; consider increasing intervalMs or decreasing maxFrames to reduce token cost.`,
+      );
+    }
+    debug(
+      `exporting ${frames.length} file-backed observation frames (${this.persistedByRef.size} decoded source refs)`,
     );
-    if (uncachedRefs.length > 0) {
-      const results = this.source
-        ? await this.shrinkAllIfNeeded(await this.source.decode(uncachedRefs))
-        : uncachedRefs.map((f) => f.ref as string);
+    const metadata: UIObservationRecordMetadata = {
+      startedAt: this.startedAt,
+      endedAt,
+      shotSize: { ...this.representative!.shotSize },
+      shrunkShotToLogicalRatio: this.representative!.shrunkShotToLogicalRatio,
+    };
+    return this.writer.finalize(frames, metadata);
+  }
+
+  /** Release writer-owned image files after the observation is no longer needed. */
+  async dispose(): Promise<void> {
+    if (this.disposed) return;
+    try {
+      if (this.stopPromise) {
+        await this.stopPromise;
+      } else if (!this.stopped) {
+        await this.stop();
+      }
+    } finally {
+      if (this.observation) {
+        await this.observation.dispose();
+      } else {
+        this.writer.dispose();
+        this.deps.onDisposed?.();
+      }
+      this.frames = [];
+      this.persistedByRef.clear();
+      this.observation = null;
+      this.disposed = true;
+    }
+  }
+
+  private async persistUnstoredFrames(): Promise<void> {
+    const uniqueFrames = this.dedupeRefs(
+      this.frames.filter((frame) => !frame.persisted),
+    );
+    const uncachedFrames = uniqueFrames.filter(
+      (frame) => !this.persistedByRef.has(frame.ref),
+    );
+
+    for (
+      let start = 0;
+      start < uncachedFrames.length;
+      start += DECODE_BATCH_SIZE
+    ) {
+      const batch = uncachedFrames.slice(start, start + DECODE_BATCH_SIZE);
+      const decoded = this.source
+        ? await this.source.decode(batch)
+        : batch.map((frame) => {
+            assert(
+              isImageDataUrl(frame.ref),
+              'fallback observation frame must be an image data URL',
+            );
+            return frame.ref;
+          });
       assert(
-        results.length === uncachedRefs.length,
+        decoded.length === batch.length,
         'frame source decode() must return one image per frame handle',
       );
-      uncachedRefs.forEach((ref, i) => {
-        this.decodedCache.set(ref.ref, results[i]);
-      });
-      debug(
-        `decoded ${uncachedRefs.length} new frames (${uniqueRefs.length - uncachedRefs.length} from cache)`,
-      );
+      for (let index = 0; index < batch.length; index++) {
+        const dataUrl = await this.shrinkIfNeeded(decoded[index]);
+        this.persistedByRef.set(
+          batch[index].ref,
+          this.writer.persistFrame(dataUrl, batch[index].capturedAt),
+        );
+      }
     }
 
-    // Build the index map for ordered reconstruction.
-    const indexByRef = new Map<unknown, number>();
-    uniqueRefs.forEach((ref, i) => indexByRef.set(ref.ref, i));
-
-    // Reconstruct the full ordered sequence from the cache.
-    const sequence = sampled.map((frame) =>
-      ScreenshotItem.create(
-        this.decodedCache.get(frame.ref)!,
-        frame.capturedAt,
-      ),
-    );
-
-    const totalFrames = sequence.length + 1; // +1 for representative
-    if (totalFrames > MAX_FRAMES_TO_MODEL) {
-      warnObserver(
-        `WARNING: sending ${totalFrames} frames to the model (soft limit ${MAX_FRAMES_TO_MODEL}). Consider increasing intervalMs or decreasing maxFrames to reduce token cost.`,
-      );
+    for (const frame of this.frames) {
+      frame.persisted ??= this.persistedByRef.get(frame.ref);
     }
-
-    debug(
-      `observed context: ${sequence.length}+1 frames ` +
-        `(buffered: ${this.frames.length}, unique: ${uniqueRefs.length}, ` +
-        `newly decoded: ${uncachedRefs.length})`,
-    );
-    return {
-      ...representative,
-      screenshotSequence: [...sequence, representative.screenshot],
-    };
+    if (uncachedFrames.length > 0) {
+      debug(`decoded and persisted ${uncachedFrames.length} source frames`);
+    }
   }
 
   private async captureOnce(): Promise<void> {
     try {
       if (this.source) {
         const frame = this.source.latest();
-        if (frame) this.pushFrame(frame);
+        if (!frame) return;
+        if (isImageDataUrl(frame.ref)) {
+          const dataUrl = await this.shrinkIfNeeded(frame.ref);
+          const persisted = this.writer.persistFrame(dataUrl, frame.capturedAt);
+          this.pushFrame({
+            ref: persisted.path,
+            capturedAt: frame.capturedAt,
+            persisted,
+          });
+        } else {
+          this.pushFrame(frame);
+        }
         return;
       }
-      let base64 = await this.deps.screenshot();
-      // Apply shrink factor to fallback screenshots so they match the
-      // representative frame size and don't inflate token cost.
-      if (this.screenshotShrinkFactor > 1) {
-        const { width, height } = await imageInfoOfBase64(base64);
-        base64 = await resizeImgBase64(base64, {
-          width: Math.round(width / this.screenshotShrinkFactor),
-          height: Math.round(height / this.screenshotShrinkFactor),
-        });
-      }
-      this.pushFrame({ ref: base64, capturedAt: Date.now() });
+      const dataUrl = await this.shrinkIfNeeded(await this.deps.screenshot());
+      const persisted = this.writer.persistFrame(dataUrl, Date.now());
+      this.pushFrame({
+        ref: persisted.path,
+        capturedAt: persisted.capturedAt,
+        persisted,
+      });
     } catch (error) {
       debug(`frame capture failed, skipping tick: ${error}`);
     }
   }
 
-  /**
-   * Apply screenshotShrinkFactor to an array of decoded base64 images in
-   * parallel. Returns the input unchanged when shrink factor is 1. Source
-   * frames come at device-native resolution; shrinking them matches the
-   * representative frame size so the sequence sent to the model has
-   * consistent resolution and token cost.
-   */
-  private async shrinkAllIfNeeded(base64s: string[]): Promise<string[]> {
-    if (this.screenshotShrinkFactor <= 1) return base64s;
-    const factor = this.screenshotShrinkFactor;
-    return Promise.all(
-      base64s.map(async (b64) => {
-        const { width, height } = await imageInfoOfBase64(b64);
-        return resizeImgBase64(b64, {
-          width: Math.round(width / factor),
-          height: Math.round(height / factor),
-        });
-      }),
-    );
+  private async shrinkIfNeeded(dataUrl: string): Promise<string> {
+    if (this.screenshotShrinkFactor <= 1) return dataUrl;
+    const { width, height } = await imageInfoOfBase64(dataUrl);
+    return resizeImgBase64(dataUrl, {
+      width: Math.round(width / this.screenshotShrinkFactor),
+      height: Math.round(height / this.screenshotShrinkFactor),
+    });
   }
 
   private async runLoop(): Promise<void> {
     while (!this.stopped) {
       const tickStart = Date.now();
       await this.captureOnce();
-      // Sleep out the remainder of the interval in short slices so stop()
-      // takes effect promptly.
       while (!this.stopped && Date.now() - tickStart < this.intervalMs) {
         await new Promise((resolve) => setTimeout(resolve, 50));
       }
     }
   }
 
-  private pushFrame(frame: DeviceFrameRef): void {
-    if (this.frames.length >= this.maxFrames) {
+  private pushFrame(frame: DeviceFrameRef | BufferedFrame): void {
+    this.frames.push(frame);
+    if (this.frames.length > this.maxFrames) {
       this.frames = this.thinBuffer(this.frames);
+      this.writer.pruneFrames(
+        this.frames.flatMap((retainedFrame) =>
+          retainedFrame.persisted ? [retainedFrame.persisted] : [],
+        ),
+      );
       debug(`frame buffer thinned to ${this.frames.length} frames`);
     }
-    this.frames.push(frame);
   }
 
-  /**
-   * Smart thinning: preserve all "change point" frames — frames where the
-   * screen content differs from the previous frame (detected by ref identity).
-   * Between change points, keep every other static frame so temporal coverage
-   * is maintained without bloating the buffer. This ensures a brief toast
-   * that produces a new keyframe is never thinned out.
-   *
-   * If smart thinning alone cannot reduce below maxFrames (e.g. the
-   * screen is constantly changing and every frame is a change point), a
-   * second pass of uniform sampling enforces the hard cap while keeping
-   * temporal coverage.
-   */
-  private thinBuffer(frames: DeviceFrameRef[]): DeviceFrameRef[] {
+  private thinBuffer(frames: BufferedFrame[]): BufferedFrame[] {
     if (frames.length <= 1) return frames;
-
-    // Step 1: identify change points.
     const isChangePoint = new Array(frames.length).fill(false);
-    isChangePoint[0] = true; // always keep the first frame
-    for (let i = 1; i < frames.length; i++) {
-      if (frames[i].ref !== frames[i - 1].ref) {
-        isChangePoint[i] = true;
+    isChangePoint[0] = true;
+    for (let index = 1; index < frames.length; index++) {
+      if (frames[index].ref !== frames[index - 1].ref) {
+        isChangePoint[index] = true;
       }
     }
-    // Always keep the last frame too (closest to when stop() fires).
     isChangePoint[frames.length - 1] = true;
 
-    // Step 2: keep change points plus every other static frame.
-    let result: DeviceFrameRef[] = [];
+    let result: BufferedFrame[] = [];
     let staticCounter = 0;
-    for (let i = 0; i < frames.length; i++) {
-      if (isChangePoint[i]) {
-        result.push(frames[i]);
+    for (let index = 0; index < frames.length; index++) {
+      if (isChangePoint[index]) {
+        result.push(frames[index]);
         staticCounter = 0;
       } else if (staticCounter % 2 === 0) {
-        result.push(frames[i]);
+        result.push(frames[index]);
         staticCounter++;
       } else {
         staticCounter++;
       }
     }
 
-    // Step 3: hard cap — if still over maxFrames, uniformly sample
-    // down to the limit. This handles the all-change-points case (animation,
-    // video, scrolling) where Step 2 is effectively a no-op.
     if (result.length > this.maxFrames) {
       const step = result.length / this.maxFrames;
-      const sampled: DeviceFrameRef[] = [];
-      for (let i = 0; i < this.maxFrames; i++) {
-        sampled.push(result[Math.floor(i * step)]);
+      const sampled: BufferedFrame[] = [];
+      for (let index = 0; index < this.maxFrames; index++) {
+        sampled.push(result[Math.floor(index * step)]);
       }
-      // Always keep the last frame — it's the closest to stop().
       sampled[this.maxFrames - 1] = result[result.length - 1];
-      debug(
-        `hard cap: uniformly sampled ${this.maxFrames} frames from ${result.length} change-point frames`,
-      );
       result = sampled;
     }
-
     return result;
   }
 
-  /** Deduplicate frame refs by identity, preserving first-seen order. */
-  private dedupeRefs(frames: DeviceFrameRef[]): DeviceFrameRef[] {
+  private dedupeRefs(frames: BufferedFrame[]): BufferedFrame[] {
     const seen = new Set<unknown>();
-    const result: DeviceFrameRef[] = [];
+    const result: BufferedFrame[] = [];
     for (const frame of frames) {
       if (!seen.has(frame.ref)) {
         seen.add(frame.ref);
@@ -499,4 +567,37 @@ export class UIObserver {
     }
     return result;
   }
+}
+
+/** Rebuild model-facing temporal context from resolved image file paths. */
+export function uiContextFromObservationRecord(
+  record: UIObservationRecord,
+): UIContext {
+  assert(
+    record.type === 'midscene_ui_observation' && record.version === 1,
+    'invalid UI observation record type or version',
+  );
+  assert(record.frames.length > 0, 'UI observation record contains no frames');
+  assert(
+    Number.isFinite(record.shotSize.width) && record.shotSize.width > 0,
+    'UI observation record shot width must be positive',
+  );
+  assert(
+    Number.isFinite(record.shotSize.height) && record.shotSize.height > 0,
+    'UI observation record shot height must be positive',
+  );
+  assert(
+    Number.isFinite(record.shrunkShotToLogicalRatio) &&
+      record.shrunkShotToLogicalRatio > 0,
+    'UI observation record screenshot ratio must be positive',
+  );
+  const screenshotSequence = record.frames.map((frame) =>
+    ScreenshotItem.fromFile(frame.path, frame.mimeType, frame.capturedAt),
+  );
+  return {
+    screenshot: screenshotSequence[screenshotSequence.length - 1],
+    screenshotSequence,
+    shotSize: { ...record.shotSize },
+    shrunkShotToLogicalRatio: record.shrunkShotToLogicalRatio,
+  };
 }

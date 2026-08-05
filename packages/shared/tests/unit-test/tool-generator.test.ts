@@ -1,11 +1,25 @@
-import { existsSync, readFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import {
+  type ObservationArtifactAdapter,
+  observationArtifactAdapterSymbol,
+} from '@/agent-tools/observation-artifact';
 import {
   generateCommonTools,
   generateToolsFromActionSpace,
 } from '@/agent-tools/tool-generator';
 import { composeUserPrompt } from '@/agent-tools/user-prompt';
 import { withCliVerboseContext } from '@/cli';
+import * as cliInterrupt from '@/cli/interrupt';
+import { createRecordCliCommand } from '@/cli/record-command';
 import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 
@@ -43,6 +57,16 @@ const actionSpace = [
 ];
 
 const screenshotBase64 = 'data:image/png;base64,Zm9v';
+
+function withObservationArtifactAdapter<T extends object>(
+  agent: T,
+  adapter: ObservationArtifactAdapter,
+): T {
+  Object.defineProperty(agent, observationArtifactAdapterSymbol, {
+    value: adapter,
+  });
+  return agent;
+}
 
 describe('generateToolsFromActionSpace', () => {
   it('passes structured locate extras through callActionInActionSpace and keeps locate options at top level', async () => {
@@ -286,6 +310,35 @@ describe('generateToolsFromActionSpace', () => {
       initArgCliMetadata,
     );
 
+    const recordTool = createRecordCliCommand(
+      async () => ({
+        getActionSpace: vi.fn().mockResolvedValue([]),
+      }),
+      initArgSchema,
+      initArgCliMetadata,
+    );
+    expect(commonTools.find((tool) => tool.name === 'record')).toBeUndefined();
+    expect(recordTool.schema).toEqual(
+      expect.objectContaining({
+        action: expect.anything(),
+        output: expect.anything(),
+        'android.deviceId': expect.anything(),
+      }),
+    );
+    expect(recordTool.cli).toEqual({
+      positionals: ['action'],
+      options: expect.objectContaining({
+        intervalMs: {
+          preferredName: 'interval-ms',
+          aliases: ['intervalMs'],
+        },
+        'android.deviceId': {
+          preferredName: 'device-id',
+          aliases: ['deviceId'],
+        },
+      }),
+    });
+
     expect(commonTools.find((tool) => tool.name === 'assert')?.schema).toEqual(
       expect.objectContaining({
         prompt: expect.anything(),
@@ -326,6 +379,144 @@ describe('generateToolsFromActionSpace', () => {
         { type: 'text', text: 'Result: Midscene' },
         { type: 'image', data: 'Zm9v', mimeType: 'image/png' },
       ],
+    });
+  });
+
+  it('stops a foreground recording on Ctrl+C before writing its artifact', async () => {
+    const tempDir = mkdtempSync(join(tmpdir(), 'midscene-record-test-'));
+    const output = join(tempDir, 'toast-observation.json');
+    const sourceFrame = join(tempDir, 'source.png');
+    writeFileSync(sourceFrame, Buffer.from('recorded-frame'));
+    const dispose = vi.fn().mockResolvedValue(undefined);
+    const exportRecord = vi.fn().mockResolvedValue({
+      type: 'midscene_ui_observation',
+      version: 1,
+      startedAt: 50,
+      endedAt: 150,
+      frames: [
+        {
+          path: sourceFrame,
+          mimeType: 'image/png',
+          capturedAt: 100,
+        },
+      ],
+      shotSize: { width: 100, height: 50 },
+      shrunkShotToLogicalRatio: 1,
+    });
+    const stop = vi.fn().mockResolvedValue({
+      frameCount: 1,
+      startedAt: 50,
+      endedAt: 150,
+      aiAssert: vi.fn(),
+    });
+    const startObserving = vi.fn().mockResolvedValue({
+      stop,
+      bufferedFrameCount: 1,
+      dispose,
+    });
+    const getAgent = vi.fn(async () =>
+      withObservationArtifactAdapter(
+        {
+          startObserving,
+          getActionSpace: vi.fn().mockResolvedValue([]),
+          page: {
+            screenshotBase64: vi.fn().mockResolvedValue(screenshotBase64),
+          },
+        },
+        {
+          exportRecord,
+          loadRecord: vi.fn(),
+        },
+      ),
+    );
+    const recordTool = createRecordCliCommand(getAgent);
+    const interruptSpy = vi
+      .spyOn(cliInterrupt, 'waitForCliInterrupt')
+      .mockResolvedValue('sigint');
+
+    const result = await withCliVerboseContext(
+      {
+        enabled: false,
+        scriptName: 'midscene-web',
+        commandName: 'record',
+      },
+      () =>
+        recordTool.handler({
+          action: 'start',
+          output,
+          intervalMs: 250,
+          maxFrames: 12,
+          watchdogMs: 5000,
+        }),
+    );
+
+    expect(startObserving).toHaveBeenCalledWith({
+      intervalMs: 250,
+      maxFrames: 12,
+      watchdogMs: 5000,
+    });
+    expect(interruptSpy).toHaveBeenCalledWith(5000);
+    expect(getAgent).toHaveBeenCalledTimes(1);
+    expect(stop).toHaveBeenCalledOnce();
+    expect(exportRecord).toHaveBeenCalledOnce();
+    expect(dispose).toHaveBeenCalledOnce();
+    expect(startObserving.mock.invocationCallOrder[0]).toBeLessThan(
+      stop.mock.invocationCallOrder[0],
+    );
+    expect(result).toEqual({
+      content: [{ type: 'text', text: `Observation record saved: ${output}` }],
+    });
+    interruptSpy.mockRestore();
+    rmSync(tempDir, { recursive: true });
+  });
+
+  it('fails clearly when startObserving is unavailable', async () => {
+    const consoleErrorSpy = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => {});
+    const recordTool = createRecordCliCommand(async () => ({
+      getActionSpace: vi.fn().mockResolvedValue([]),
+      page: {
+        screenshotBase64: vi.fn().mockResolvedValue(screenshotBase64),
+      },
+    }));
+
+    const result = await withCliVerboseContext(
+      {
+        enabled: false,
+        scriptName: 'midscene-web',
+        commandName: 'record',
+      },
+      () => recordTool.handler({ action: 'start' }),
+    );
+
+    expect(result).toEqual({
+      content: [
+        {
+          type: 'text',
+          text: 'Failed to execute record: record is not supported because this agent does not provide startObserving',
+        },
+      ],
+      isError: true,
+    });
+    consoleErrorSpy.mockRestore();
+  });
+
+  it('rejects a missing record operation before creating an agent', async () => {
+    const getAgent = vi.fn();
+    const recordTool = createRecordCliCommand(getAgent);
+
+    const missingAction = await recordTool.handler({});
+
+    expect(getAgent).not.toHaveBeenCalled();
+    expect(missingAction).toEqual({
+      content: [
+        {
+          type: 'text',
+          text: 'record requires the start operation (for example: record start --output ./observation.json)',
+        },
+      ],
+      isError: true,
     });
   });
 
@@ -559,6 +750,141 @@ describe('generateCommonTools — assert image prompts', () => {
     );
   });
 
+  it('loads an observation record and forwards it to aiAssert', async () => {
+    const tempDir = mkdtempSync(join(tmpdir(), 'midscene-assert-record-test-'));
+    const recordPath = join(tempDir, 'toast-observation.json');
+    const framesDir = join(tempDir, 'toast-observation.frames');
+    mkdirSync(framesDir, { recursive: true });
+    const framePath = join(framesDir, 'frame.png');
+    writeFileSync(framePath, Buffer.from('frame'));
+    const observationRecord = {
+      type: 'midscene_ui_observation' as const,
+      version: 1 as const,
+      startedAt: 50,
+      endedAt: 250,
+      frames: [
+        {
+          path: 'toast-observation.frames/frame.png',
+          mimeType: 'image/png' as const,
+          capturedAt: 100,
+        },
+        {
+          path: 'toast-observation.frames/frame.png',
+          mimeType: 'image/png' as const,
+          capturedAt: 200,
+        },
+      ],
+      shotSize: { width: 100, height: 100 },
+      shrunkShotToLogicalRatio: 1,
+    };
+    writeFileSync(recordPath, JSON.stringify(observationRecord), 'utf8');
+    const aiAssert = vi.fn().mockResolvedValue(undefined);
+    const observationAssert = vi.fn().mockResolvedValue(undefined);
+    const dispose = vi.fn().mockResolvedValue(undefined);
+    const loadRecord = vi.fn().mockReturnValue({
+      frameCount: 2,
+      startedAt: 50,
+      endedAt: 250,
+      aiAssert: observationAssert,
+      dispose,
+    });
+    const tools = generateCommonTools(async () =>
+      withObservationArtifactAdapter(
+        {
+          aiAssert,
+          getActionSpace: vi.fn().mockResolvedValue([]),
+          page: {
+            screenshotBase64: vi.fn().mockResolvedValue(screenshotBase64),
+          },
+        },
+        {
+          exportRecord: vi.fn(),
+          loadRecord,
+        },
+      ),
+    );
+
+    const assert = tools.find((t) => t.name === 'assert')!;
+    const result = await assert.handler({
+      prompt: 'a success toast appeared',
+      record: recordPath,
+    });
+
+    expect(loadRecord).toHaveBeenCalledWith({
+      ...observationRecord,
+      frames: observationRecord.frames.map((frame) => ({
+        ...frame,
+        path: framePath,
+      })),
+    });
+    expect(observationAssert).toHaveBeenCalledWith(
+      'a success toast appeared',
+      undefined,
+    );
+    expect(aiAssert).not.toHaveBeenCalled();
+    expect(dispose).toHaveBeenCalledOnce();
+    expect(result).toEqual({
+      content: [{ type: 'text', text: 'Assertion passed.' }],
+    });
+    rmSync(tempDir, { recursive: true });
+  });
+
+  it('rejects a record whose image path escapes the manifest directory', async () => {
+    const tempDir = mkdtempSync(
+      join(tmpdir(), 'midscene-invalid-record-test-'),
+    );
+    const recordPath = join(tempDir, 'invalid-observation.json');
+    writeFileSync(
+      recordPath,
+      JSON.stringify({
+        type: 'midscene_ui_observation',
+        version: 1,
+        startedAt: 50,
+        endedAt: 150,
+        frames: [
+          {
+            path: '../not-an-image.png',
+            mimeType: 'image/png',
+            capturedAt: 100,
+          },
+        ],
+        shotSize: { width: 100, height: 100 },
+        shrunkShotToLogicalRatio: 1,
+      }),
+      'utf8',
+    );
+    const aiAssert = vi.fn().mockResolvedValue(undefined);
+    const consoleErrorSpy = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => {});
+    const tools = generateCommonTools(async () => ({
+      aiAssert,
+      getActionSpace: vi.fn().mockResolvedValue([]),
+      page: { screenshotBase64: vi.fn().mockResolvedValue(screenshotBase64) },
+    }));
+
+    const assert = tools.find((tool) => tool.name === 'assert')!;
+    const result = await assert.handler({
+      prompt: 'a success toast appeared',
+      record: recordPath,
+    });
+
+    expect(aiAssert).not.toHaveBeenCalled();
+    expect(result).toEqual({
+      content: [
+        {
+          type: 'text',
+          text: expect.stringContaining(
+            'Invalid UI observation record at frames.0.path',
+          ),
+        },
+      ],
+      isError: true,
+    });
+    consoleErrorSpy.mockRestore();
+    rmSync(tempDir, { recursive: true });
+  });
+
   it('forwards images to aiAssert as a TUserPrompt-style object', async () => {
     const aiAssert = vi.fn().mockResolvedValue(undefined);
     const tools = generateCommonTools(async () => ({
@@ -616,6 +942,7 @@ describe('generateCommonTools — assert image prompts', () => {
     const assertSchema = tools.find((t) => t.name === 'assert')!.schema;
     expect(assertSchema).toHaveProperty('prompt');
     expect(assertSchema).toHaveProperty('message');
+    expect(assertSchema).toHaveProperty('record');
     expect(assertSchema).toHaveProperty('image');
     expect(assertSchema).toHaveProperty('imageName');
     expect(assertSchema).toHaveProperty('convertHttpImage2Base64');

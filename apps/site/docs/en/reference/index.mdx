@@ -1014,36 +1014,48 @@ expect(onesieItem.price).toBe(7.99);
 
 #### `startObserving()` {#agentstartobserving}
 
-Observe the screen over a defined time window while other Agent calls run. A later assertion can then evaluate transient UI, such as toasts, banners, and screen transitions, that a single screenshot might miss.
+`startObserving()` records the screen continuously. Use it to check transient UI, such as toasts, banners, and page transitions.
+
+The flow is simple: start recording, perform the page actions, and call `stop()`. `stop()` returns a `UIObservation`. You can query or assert against the recorded frames.
 
 ```typescript
 function startObserving(options?: {
-  intervalMs?: number;  // sampling interval, default 1000ms, min 200ms (5fps)
-  maxFrames?: number;   // frame-buffer cap, default 30 (self-thinning when full)
-  watchdogMs?: number;  // auto-stop after this many ms if stop() is never called. Default 300000 (5 min). Set 0 to disable.
+  intervalMs?: number; // sampling interval; default 1,000 ms, minimum 200 ms
+  maxFrames?: number; // maximum number of retained frames; default 30
+  watchdogMs?: number; // maximum recording time; default 300,000 ms; 0 disables the limit
 }): Promise<UIObserver>;
 ```
 
-The returned `UIObserver` provides:
+`UIObserver` manages the recording:
 
-- `observer.stop(): Promise<void>` — Stop sampling and capture the final representative screenshot. Must be called before asserting.
-- `observer.aiAssert(assertion: string, msg?: string, opt?: object): Promise<void>` — Assert against the observed window. All buffered frames (plus the representative) are sent to the model, and the assertion text determines whether the model should look for something that appeared at any point, the final state, or an ordered change.
-- `observer.aiBoolean(prompt: string, opt?: object): Promise<boolean>` — Boolean query over the observed window.
-- `observer.frameCount: number` — Number of frames currently buffered.
+- `observer.bufferedFrameCount: number` — Number of frames currently buffered while recording.
+- `observer.stop(): Promise<UIObservation>` — Stop recording and return a `UIObservation`.
+
+`UIObservation` contains the recorded frames. The frames no longer change after you call `stop()`.
+
+You can call `aiQuery()`, `aiBoolean()`, `aiNumber()`, `aiString()`, `aiAsk()`, and `aiAssert()`. These methods only read recorded frames. They do not read the current page DOM.
+
+For this reason, the methods do not support `domIncluded`. TypeScript reports this mistake. Midscene also throws at runtime if JavaScript passes the option.
+
+`UIObservation` also contains `frameCount`, `startedAt`, and `endedAt`. Call `observation.dispose()` to remove temporary images when you finish. `agent.destroy()` also removes any images that remain.
 
 ```typescript
 const observer = await agent.startObserving();
 await agent.aiAct('submit the form');
-await observer.stop();
-await observer.aiAssert('a success toast appeared during the process');
+const observation = await observer.stop();
+await observation.aiAssert('a success toast appeared during the process');
+const toastCount = await observation.aiNumber(
+  'how many success toasts appeared?',
+);
+await observation.dispose();
 ```
 
-How it works and what it costs:
+Sampling and resource usage:
 
-- Frames come from the device's continuous frame source when available: scrcpy on Android (`scrcpyConfig.enabled`), WDA MJPEG on iOS (`wdaMjpegFrameSource.enabled`), or CDP screencast on the web. Otherwise, Midscene captures individual screenshots at a much lower effective frame rate on mobile.
-- Sampling stores lightweight frame references. Midscene decodes only the frames sent to the model, and only at assertion time.
-- All buffered frames (up to `maxFrames`, plus the final representative screenshot) are sent to the model so transient UI in long windows is not missed. To bound token cost, increase `intervalMs` (lower frame density) or decrease `maxFrames` (smaller buffer). The observed frames are shown in the report timeline with an `Observed` tag.
-- On iOS, observed frames come from the scaled, lower-quality MJPEG stream, while the final representative frame is a full-quality screenshot.
+- Midscene uses a continuous frame source when one is available. Android uses scrcpy (`scrcpyConfig.enabled`), iOS uses WDA MJPEG (`wdaMjpegFrameSource.enabled`), and the web uses CDP screencast. Without a continuous source, Midscene takes screenshots at intervals. Sampling is slower on mobile in this mode.
+- Data URL frames are written to files during sampling. `UIObserver` does not keep every image in memory. Other frame handles are decoded and saved in small batches when recording stops. Midscene reads the images when a query or assertion runs.
+- The model receives up to `maxFrames` frames and the final screenshot. Increase `intervalMs` to sample less often, or decrease `maxFrames` to limit the frame count. Observed frames appear in the report timeline with an `Observed` label.
+- On iOS, observed frames come from the lower-quality MJPEG stream. The final screenshot still uses full quality.
 
 #### `aiWaitFor()` {#agentaiwaitfor}
 

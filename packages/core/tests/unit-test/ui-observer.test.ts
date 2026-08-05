@@ -1,26 +1,44 @@
-import { UIObserver } from '@/agent/ui-observer';
+import { mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { dirname, join } from 'node:path';
+import { UIObservationImpl, UIObserverImpl } from '@/agent/ui-observer';
 import type { DeviceFrameRef, DeviceFrameSource } from '@/device';
 import { ScreenshotItem } from '@/screenshot-item';
 import type { UIContext } from '@/types';
+import { UIObservationRecordWriter } from '@midscene/shared/agent-tools/observation-record';
+import type { UIObservationRecord } from '@midscene/shared/agent-tools/types';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+const createdDirectories: string[] = [];
+
+function recordWriter(): UIObservationRecordWriter {
+  const directory = mkdtempSync(join(tmpdir(), 'midscene-observer-'));
+  createdDirectories.push(directory);
+  return new UIObservationRecordWriter(join(directory, 'observation.json'));
+}
+
+function options(extra: Record<string, unknown> = {}) {
+  return extra;
+}
 
 const fakeRepresentative = (): UIContext =>
   ({
     screenshot: ScreenshotItem.create(
-      'data:image/png;base64,iVBORw0KGgo-rep',
+      `data:image/png;base64,${Buffer.from('representative').toString('base64')}`,
       9999,
     ),
     shotSize: { width: 100, height: 100 },
     shrunkShotToLogicalRatio: 1,
   }) as UIContext;
 
-/** A fake frame source whose latest frame can be swapped from the test. */
 const makeFakeSource = () => {
   let current: DeviceFrameRef | null = null;
   const decode = vi.fn(async (refs: DeviceFrameRef[]) =>
-    refs.map((r) => `decoded:${String(r.ref)}`),
+    refs.map(
+      (frame) =>
+        `data:image/png;base64,${Buffer.from(`decoded:${String(frame.ref)}`).toString('base64')}`,
+    ),
   );
   const stop = vi.fn();
   const source: DeviceFrameSource = {
@@ -39,10 +57,9 @@ const makeFakeSource = () => {
 };
 
 const makeDeps = (fake: ReturnType<typeof makeFakeSource> | null) => {
-  const runAssert = vi.fn(async () => undefined);
-  const runBoolean = vi.fn(async () => true);
   const screenshot = vi.fn(
-    async () => 'data:image/png;base64,iVBORw0KGgo-shot',
+    async () =>
+      `data:image/png;base64,${Buffer.from('fallback').toString('base64')}`,
   );
   const onStopped = vi.fn();
   return {
@@ -50,310 +67,422 @@ const makeDeps = (fake: ReturnType<typeof makeFakeSource> | null) => {
       openFrameSource: async () => fake?.source ?? undefined,
       screenshot,
       captureRepresentative: async () => fakeRepresentative(),
-      runAssert,
-      runBoolean,
+      createInsight: () => ({
+        aiQuery: vi.fn(),
+        aiBoolean: vi.fn(),
+        aiNumber: vi.fn(),
+        aiString: vi.fn(),
+        aiAsk: vi.fn(),
+        aiAssert: vi.fn(),
+      }),
       onStopped,
+      observationRecordWriter: recordWriter(),
     },
-    runAssert,
-    runBoolean,
     screenshot,
     onStopped,
   };
 };
 
+function frameContents(path: string): string {
+  return readFileSync(path).toString('utf8');
+}
+
+function fixedRecord(): UIObservationRecord {
+  return {
+    type: 'midscene_ui_observation',
+    version: 1,
+    startedAt: 100,
+    endedAt: 200,
+    frames: [
+      {
+        path: '/tmp/unused-observation-frame.png',
+        mimeType: 'image/png',
+        capturedAt: 150,
+      },
+    ],
+    shotSize: { width: 100, height: 100 },
+    shrunkShotToLogicalRatio: 1,
+  };
+}
+
 describe('UIObserver', () => {
   afterEach(() => {
     vi.useRealTimers();
+    for (const directory of createdDirectories.splice(0)) {
+      rmSync(directory, { recursive: true, force: true });
+    }
   });
 
-  it('rejects asserting before stop()', async () => {
+  it('exposes records only through the observation returned by stop()', async () => {
     const fake = makeFakeSource();
     fake.setLatest('f0', 0);
     const { deps } = makeDeps(fake);
-    const observer = new UIObserver(deps, { intervalMs: 200 });
+    const observer = new UIObserverImpl(deps, options({ intervalMs: 200 }));
     await observer.start();
 
-    await expect(observer.aiAssert('anything')).rejects.toThrow(
-      /stop\(\) before asserting/,
-    );
-    await observer.stop();
-  });
-
-  it('samples frame refs, pre-decodes during stop(), aligns rep with last frame, and stops the source', async () => {
-    const fake = makeFakeSource();
-    fake.setLatest('f0', 0);
-    const { deps, runAssert, onStopped } = makeDeps(fake);
-    const observer = new UIObserver(deps, { intervalMs: 200 });
-
-    await observer.start(); // baseline frame captured
-    fake.setLatest('f1', 100);
-    await sleep(250);
-    await observer.stop();
-
-    expect(observer.frameCount).toBeGreaterThanOrEqual(2);
-    // Pre-decode happens during stop(), so decode should have been called.
-    expect(fake.decode).toHaveBeenCalledTimes(1);
-    // onStopped callback fires
-    expect(onStopped).toHaveBeenCalledTimes(1);
-
-    const decodedRefs = fake.decode.mock.calls[0][0];
-    // duplicates collapsed: decode is called with UNIQUE refs only
-    const refValues = decodedRefs.map((r: DeviceFrameRef) => r.ref);
-    expect(new Set(refValues).size).toBe(refValues.length);
-
-    await observer.aiAssert('a toast appeared');
-
-    // Second assertion must NOT trigger another decode — cache hit.
-    expect(fake.decode).toHaveBeenCalledTimes(1);
-
-    // the assert received a multi-frame context ending with the representative
-    const uiContext = (runAssert.mock.calls[0] as any[])[1] as UIContext;
-    const sequence = uiContext.screenshotSequence!;
-    expect(sequence.length).toBeGreaterThanOrEqual(3);
-    expect(sequence[0].base64).toBe('decoded:f0');
-    // Representative screenshot is aligned with last sampled frame.
-    expect(sequence[sequence.length - 1].base64).toBe('decoded:f1');
-    expect(fake.stop).toHaveBeenCalledTimes(1);
-  });
-
-  it('decode cache: second assertion reuses decoded frames (no extra decode call)', async () => {
-    const fake = makeFakeSource();
-    fake.setLatest('f0', 0);
-    const { deps } = makeDeps(fake);
-    const observer = new UIObserver(deps, { intervalMs: 200 });
-
-    await observer.start();
-    fake.setLatest('f1', 100);
-    await sleep(250);
-    await observer.stop();
-
-    // Pre-decode happened once during stop.
-    expect(fake.decode).toHaveBeenCalledTimes(1);
-
-    await observer.aiAssert('first assertion');
-    // Still 1 — buildObservedUIContext hit the cache.
-    expect(fake.decode).toHaveBeenCalledTimes(1);
-
-    await observer.aiBoolean('second query');
-    // Still 1.
-    expect(fake.decode).toHaveBeenCalledTimes(1);
-  });
-
-  it('sends all buffered frames to the model (no down-sampling)', async () => {
-    const fake = makeFakeSource();
-    const { deps, runAssert } = makeDeps(fake);
-    const observer = new UIObserver(deps, {
-      intervalMs: 200,
-      maxFrames: 30,
+    expect((observer as any).exportRecord).toBeUndefined();
+    const observation = await observer.stop();
+    await expect(observation.exportRecord()).resolves.toMatchObject({
+      type: 'midscene_ui_observation',
+      version: 1,
     });
-    // inject 25 distinct frames directly (under the 30-frame buffer cap)
-    for (let i = 0; i < 25; i++) {
-      (observer as any).pushFrame({ ref: `f${i}`, capturedAt: i });
+  });
+
+  it('persists source frames, aligns the representative, and stops the source', async () => {
+    const fake = makeFakeSource();
+    fake.setLatest('f0', 0);
+    const { deps, onStopped } = makeDeps(fake);
+    const observer = new UIObserverImpl(deps, options({ intervalMs: 200 }));
+
+    await observer.start();
+    fake.setLatest('f1', 100);
+    await sleep(250);
+    const observation = await observer.stop();
+    const record = await observation.exportRecord();
+
+    expect(observer.bufferedFrameCount).toBeGreaterThanOrEqual(2);
+    expect(observation.frameCount).toBe(record.frames.length);
+    expect(observation.endedAt).toBeGreaterThanOrEqual(observation.startedAt);
+    expect(onStopped).toHaveBeenCalledOnce();
+    expect(fake.stop).toHaveBeenCalledOnce();
+    expect(record.frames.length).toBeGreaterThanOrEqual(3);
+    expect(frameContents(record.frames[0].path)).toBe('decoded:f0');
+    expect(frameContents(record.frames.at(-1)!.path)).toBe('decoded:f1');
+    expect(record.frames[0]).not.toHaveProperty('base64');
+  });
+
+  it('decodes opaque source handles in bounded batches and detaches exports', async () => {
+    const fake = makeFakeSource();
+    const { deps } = makeDeps(fake);
+    const observer = new UIObserverImpl(
+      deps,
+      options({ intervalMs: 200, maxFrames: 30 }),
+    );
+    for (let index = 0; index < 10; index++) {
+      (observer as any).pushFrame({ ref: `f${index}`, capturedAt: index });
     }
     (observer as any).source = fake.source;
-    (observer as any).stopped = true;
-    (observer as any).representative = fakeRepresentative();
+    const observation = await observer.stop();
+    const firstRecord = await observation.exportRecord();
+    const secondRecord = await observation.exportRecord();
 
-    await observer.aiAssert('anything');
-
-    // all 25 buffered frames + 1 representative = 26 frames sent
-    const uiContext = (runAssert.mock.calls[0] as any[])[1] as UIContext;
-    expect(uiContext.screenshotSequence!.length).toBe(26);
-    // decode was called with all 25 unique refs
-    expect(fake.decode).toHaveBeenCalledTimes(1);
-    expect(fake.decode.mock.calls[0][0]).toHaveLength(25);
+    expect(firstRecord).not.toBe(secondRecord);
+    firstRecord.frames.length = 0;
+    expect(secondRecord.frames).toHaveLength(11);
+    expect(fake.decode).toHaveBeenCalledTimes(3);
+    expect(fake.decode.mock.calls.every(([batch]) => batch.length <= 4)).toBe(
+      true,
+    );
+    expect(firstRecord.frames).toHaveLength(0);
   });
 
-  it('smart thinning preserves change-point frames and thins static intervals', () => {
+  it('exports every buffered frame up to the configured cap', async () => {
     const fake = makeFakeSource();
     const { deps } = makeDeps(fake);
-    const observer = new UIObserver(deps, {
-      intervalMs: 200,
-      maxFrames: 10,
-    });
+    const observer = new UIObserverImpl(
+      deps,
+      options({ intervalMs: 200, maxFrames: 30 }),
+    );
+    for (let index = 0; index < 25; index++) {
+      (observer as any).pushFrame({ ref: `f${index}`, capturedAt: index });
+    }
+    (observer as any).source = fake.source;
+    const observation = await observer.stop();
+    const record = await observation.exportRecord();
 
-    // Simulate: static screen (same ref) for 5 ticks, then a change (new ref),
-    // then static again. Total 16 frames, buffer cap 10 → thinning triggers.
-    const frames: DeviceFrameRef[] = [
-      { ref: 'screen-a', capturedAt: 0 },
-      { ref: 'screen-a', capturedAt: 1 },
-      { ref: 'screen-a', capturedAt: 2 },
-      { ref: 'screen-a', capturedAt: 3 },
-      { ref: 'screen-a', capturedAt: 4 },
-      { ref: 'screen-b', capturedAt: 5 }, // change point!
-      { ref: 'screen-b', capturedAt: 6 },
-      { ref: 'screen-b', capturedAt: 7 },
-      { ref: 'screen-b', capturedAt: 8 },
-      { ref: 'screen-b', capturedAt: 9 },
-      { ref: 'screen-c', capturedAt: 10 }, // change point!
-      { ref: 'screen-c', capturedAt: 11 },
-      { ref: 'screen-c', capturedAt: 12 },
-      { ref: 'screen-c', capturedAt: 13 },
-      { ref: 'screen-c', capturedAt: 14 },
-      { ref: 'screen-c', capturedAt: 15 },
+    expect(record.frames).toHaveLength(26);
+    expect(fake.decode.mock.calls.flatMap(([frames]) => frames)).toHaveLength(
+      25,
+    );
+  });
+
+  it('smart thinning preserves change points and temporal endpoints', () => {
+    const fake = makeFakeSource();
+    const { deps } = makeDeps(fake);
+    const observer = new UIObserverImpl(
+      deps,
+      options({ intervalMs: 200, maxFrames: 10 }),
+    );
+    const refs = [
+      'a',
+      'a',
+      'a',
+      'a',
+      'a',
+      'b',
+      'b',
+      'b',
+      'b',
+      'b',
+      'c',
+      'c',
+      'c',
+      'c',
+      'c',
+      'c',
     ];
-    for (const f of frames) {
-      (observer as any).pushFrame(f);
-    }
+    refs.forEach((ref, capturedAt) =>
+      (observer as any).pushFrame({ ref, capturedAt }),
+    );
 
-    const result = (observer as any).frames as DeviceFrameRef[];
-    // After thinning, buffer should be ≤ maxFrames (10)
-    expect(result.length).toBeLessThanOrEqual(11); // 10 after thin + 1 pending push? No, pushFrame pushes after thinning
-
-    // All three change-point refs must be present
-    const refs = result.map((f) => f.ref);
-    expect(refs).toContain('screen-a');
-    expect(refs).toContain('screen-b');
-    expect(refs).toContain('screen-c');
-
-    // First and last frames must survive
-    expect(result[0].ref).toBe('screen-a');
-    expect(result[result.length - 1].ref).toBe('screen-c');
+    const frames = (observer as any).frames as DeviceFrameRef[];
+    expect(frames.map((frame) => frame.ref)).toEqual(
+      expect.arrayContaining(['a', 'b', 'c']),
+    );
+    expect(frames[0].ref).toBe('a');
+    expect(frames.at(-1)!.ref).toBe('c');
   });
 
-  it('thinning with all-unique-ref frames keeps all frames (all are change points)', () => {
+  it('enforces maxFrames even when every frame is a change point', () => {
     const fake = makeFakeSource();
     const { deps } = makeDeps(fake);
-    const observer = new UIObserver(deps, {
-      intervalMs: 200,
-      maxFrames: 10,
-    });
-    // 16 frames, each with a unique ref → every frame is a change point
-    for (let i = 0; i < 16; i++) {
-      (observer as any).pushFrame({ ref: `f${i}`, capturedAt: i });
+    const observer = new UIObserverImpl(
+      deps,
+      options({ intervalMs: 200, maxFrames: 10 }),
+    );
+    for (let index = 0; index < 16; index++) {
+      (observer as any).pushFrame({ ref: `frame-${index}`, capturedAt: index });
     }
+
     const frames = (observer as any).frames as DeviceFrameRef[];
-    // All change points are preserved; static thinning doesn't apply.
-    // Buffer may exceed maxFrames when all frames are change points
-    // (better to keep them than to drop transient UI).
-    expect(frames.length).toBeGreaterThanOrEqual(10);
-    expect(frames[0].ref).toBe('f0');
-    expect(frames[frames.length - 1].ref).toBe('f15');
+    expect(frames).toHaveLength(10);
+    expect(frames[0].ref).toBe('frame-0');
+    expect(frames.at(-1)!.ref).toBe('frame-15');
   });
 
-  it('watchdog auto-stops the observer after timeout', async () => {
+  it('prunes persisted image files when the frame buffer is thinned', () => {
+    const fake = makeFakeSource();
+    const { deps } = makeDeps(fake);
+    const writer = deps.observationRecordWriter;
+    const observer = new UIObserverImpl(
+      deps,
+      options({ intervalMs: 200, maxFrames: 2 }),
+    );
+
+    for (let index = 0; index < 12; index++) {
+      const persisted = writer.persistFrame(
+        `data:image/png;base64,${Buffer.from(`frame-${index}`).toString('base64')}`,
+        index,
+      );
+      (observer as any).pushFrame({
+        ref: persisted.path,
+        capturedAt: index,
+        persisted,
+      });
+    }
+
+    const retainedFrames = (observer as any).frames as Array<{
+      persisted: { path: string };
+    }>;
+    const framesDirectory = dirname(
+      writer.resolveFramePath(retainedFrames[0].persisted as any),
+    );
+    expect(retainedFrames).toHaveLength(2);
+    expect(readdirSync(framesDirectory)).toHaveLength(2);
+  });
+
+  it('disposes the file-backed record after it is no longer needed', async () => {
+    const fake = makeFakeSource();
+    const { deps } = makeDeps(fake);
+    const observer = new UIObserverImpl(deps, options({ intervalMs: 200 }));
+    const persisted = deps.observationRecordWriter.persistFrame(
+      `data:image/png;base64,${Buffer.from('frame').toString('base64')}`,
+      100,
+    );
+    (observer as any).pushFrame({
+      ref: persisted.path,
+      capturedAt: 100,
+      persisted,
+    });
+    const observation = await observer.stop();
+    const record = await observation.exportRecord();
+    expect(readFileSync(record.frames[0].path)).toBeDefined();
+
+    await observation.dispose();
+
+    expect(() => readFileSync(record.frames[0].path)).toThrow();
+    await expect(observation.exportRecord()).rejects.toThrow(/disposed/);
+  });
+
+  it('rejects live DOM options before delegating an observation insight', async () => {
+    const aiBoolean = vi.fn();
+    const observation = new UIObservationImpl(fixedRecord(), {
+      aiQuery: vi.fn(),
+      aiBoolean,
+      aiNumber: vi.fn(),
+      aiString: vi.fn(),
+      aiAsk: vi.fn(),
+      aiAssert: vi.fn(),
+    });
+
+    await expect(
+      observation.aiBoolean('is the old toast visible?', {
+        domIncluded: true,
+      } as never),
+    ).rejects.toThrow(/does not support domIncluded/);
+    expect(aiBoolean).not.toHaveBeenCalled();
+  });
+
+  it('keeps failed observation cleanup retryable', async () => {
+    const disposeRecord = vi
+      .fn()
+      .mockImplementationOnce(() => {
+        throw new Error('directory is busy');
+      })
+      .mockImplementationOnce(() => undefined);
+    const onDisposed = vi.fn();
+    const observation = new UIObservationImpl(
+      fixedRecord(),
+      {
+        aiQuery: vi.fn(),
+        aiBoolean: vi.fn(),
+        aiNumber: vi.fn(),
+        aiString: vi.fn(),
+        aiAsk: vi.fn(),
+        aiAssert: vi.fn(),
+      },
+      disposeRecord,
+      onDisposed,
+    );
+
+    await expect(observation.dispose()).rejects.toThrow('directory is busy');
+    expect(onDisposed).not.toHaveBeenCalled();
+    await expect(observation.dispose()).resolves.toBeUndefined();
+    expect(disposeRecord).toHaveBeenCalledTimes(2);
+    expect(onDisposed).toHaveBeenCalledOnce();
+  });
+
+  it('watchdog auto-stops and can also be disabled', async () => {
     vi.useFakeTimers();
     const fake = makeFakeSource();
     fake.setLatest('f0', 0);
-    const { deps, onStopped } = makeDeps(fake);
-    const observer = new UIObserver(deps, {
-      intervalMs: 200,
-      watchdogMs: 5000, // 5 second watchdog for testing
-    });
-
+    const first = makeDeps(fake);
+    const observer = new UIObserverImpl(
+      first.deps,
+      options({ intervalMs: 200, watchdogMs: 5000 }),
+    );
     await observer.start();
-    expect(onStopped).not.toHaveBeenCalled();
-
-    // Advance past the watchdog timeout
     vi.advanceTimersByTime(5000);
-    await Promise.resolve(); // let microtasks run
     await vi.runAllTimersAsync();
+    expect(first.onStopped).toHaveBeenCalledOnce();
 
-    // Watchdog should have called stop(), which calls onStopped
-    expect(onStopped).toHaveBeenCalledTimes(1);
-    expect(fake.stop).toHaveBeenCalledTimes(1);
-  });
-
-  it('watchdog can be disabled with watchdogMs: 0', async () => {
-    vi.useFakeTimers();
-    const fake = makeFakeSource();
-    fake.setLatest('f0', 0);
-    const { deps, onStopped } = makeDeps(fake);
-    const observer = new UIObserver(deps, {
-      intervalMs: 200,
-      watchdogMs: 0, // disabled
-    });
-
-    await observer.start();
-    // Advance way past any reasonable timeout
+    const secondFake = makeFakeSource();
+    secondFake.setLatest('f0', 0);
+    const second = makeDeps(secondFake);
+    const disabled = new UIObserverImpl(
+      second.deps,
+      options({ intervalMs: 200, watchdogMs: 0 }),
+    );
+    await disabled.start();
     vi.advanceTimersByTime(60000);
     await Promise.resolve();
-
-    // No auto-stop — watchdog is disabled
-    expect(onStopped).not.toHaveBeenCalled();
-    await observer.stop();
-    expect(onStopped).toHaveBeenCalledTimes(1);
+    expect(second.onStopped).not.toHaveBeenCalled();
+    await disabled.stop();
   });
 
-  it('warns when sending more than MAX_FRAMES_TO_MODEL frames', async () => {
+  it('warns without dropping records over the soft frame limit', async () => {
     const fake = makeFakeSource();
-    const { deps, runAssert } = makeDeps(fake);
-    const observer = new UIObserver(deps, {
-      intervalMs: 200,
-      maxFrames: 60,
-    });
-    // Inject 55 frames — over the 50-frame soft limit
-    for (let i = 0; i < 55; i++) {
-      (observer as any).pushFrame({ ref: `f${i}`, capturedAt: i });
+    const { deps } = makeDeps(fake);
+    const observer = new UIObserverImpl(
+      deps,
+      options({ intervalMs: 200, maxFrames: 60 }),
+    );
+    for (let index = 0; index < 55; index++) {
+      (observer as any).pushFrame({ ref: `f${index}`, capturedAt: index });
     }
     (observer as any).source = fake.source;
-    (observer as any).stopped = true;
-    (observer as any).representative = fakeRepresentative();
-
-    const warnSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
-    await observer.aiAssert('anything');
-    warnSpy.mockRestore();
-
-    // 55 frames + 1 representative = 56 > 50, should warn
-    const uiContext = (runAssert.mock.calls[0] as any[])[1] as UIContext;
-    expect(uiContext.screenshotSequence!.length).toBe(56);
-    // Frames are still all sent — warning is advisory, not a hard cap
-    expect(fake.decode.mock.calls[0][0]).toHaveLength(55);
+    const observation = await observer.stop();
+    const record = await observation.exportRecord();
+    expect(record.frames).toHaveLength(56);
   });
 
-  it('falls back to plain screenshots when no frame source is available', async () => {
-    const { deps, runAssert, screenshot } = makeDeps(null);
-    const observer = new UIObserver(deps, { intervalMs: 200 });
-
+  it('persists fallback screenshots immediately as files', async () => {
+    const { deps, screenshot } = makeDeps(null);
+    const observer = new UIObserverImpl(deps, options({ intervalMs: 200 }));
     await observer.start();
     await sleep(250);
-    await observer.stop();
-    await observer.aiAssert('anything');
+    const observation = await observer.stop();
+    const record = await observation.exportRecord();
 
     expect(screenshot).toHaveBeenCalled();
-    const uiContext = (runAssert.mock.calls[0] as any[])[1] as UIContext;
-    expect(
-      uiContext.screenshotSequence![0].base64.startsWith('data:image/png'),
-    ).toBe(true);
+    expect(frameContents(record.frames[0].path)).toBe('fallback');
+    expect((observer as any).frames[0].ref).not.toContain('base64');
   });
 
-  it('falls back to screenshots when openFrameSource throws', async () => {
-    const runAssert = vi.fn(async () => undefined);
-    const screenshot = vi.fn(async () => 'data:image/png;base64,iVBORw0KGgo-x');
-    const observer = new UIObserver(
+  it('falls back when opening the frame source throws', async () => {
+    const screenshot = vi.fn(
+      async () =>
+        `data:image/png;base64,${Buffer.from('fallback').toString('base64')}`,
+    );
+    const observer = new UIObserverImpl(
       {
         openFrameSource: async () => {
           throw new Error('stream unavailable');
         },
         screenshot,
         captureRepresentative: async () => fakeRepresentative(),
-        runAssert,
-        runBoolean: async () => true,
+        createInsight: () => ({
+          aiQuery: vi.fn(),
+          aiBoolean: vi.fn(),
+          aiNumber: vi.fn(),
+          aiString: vi.fn(),
+          aiAsk: vi.fn(),
+          aiAssert: vi.fn(),
+        }),
+        observationRecordWriter: recordWriter(),
       },
-      { intervalMs: 200 },
+      options({ intervalMs: 200 }),
     );
-
     await observer.start();
-    await observer.stop();
-    await observer.aiAssert('anything');
+    const observation = await observer.stop();
+    await observation.exportRecord();
     expect(screenshot).toHaveBeenCalled();
   });
 
-  it('stop() is idempotent and aiBoolean shares the observed context', async () => {
+  it('stop and export are idempotent', async () => {
     const fake = makeFakeSource();
     fake.setLatest('f0', 0);
-    const { deps, runBoolean, onStopped } = makeDeps(fake);
-    const observer = new UIObserver(deps, { intervalMs: 200 });
+    const { deps, onStopped } = makeDeps(fake);
+    const observer = new UIObserverImpl(deps, options({ intervalMs: 200 }));
     await observer.start();
-    await observer.stop();
-    await observer.stop(); // no throw
+    const firstObservation = await observer.stop();
+    const secondObservation = await observer.stop();
+    const first = await firstObservation.exportRecord();
+    const second = await secondObservation.exportRecord();
 
-    // onStopped fires only once even with double stop()
-    expect(onStopped).toHaveBeenCalledTimes(1);
+    expect(onStopped).toHaveBeenCalledOnce();
+    expect(secondObservation).toBe(firstObservation);
+    expect(second).not.toBe(first);
+    expect(second).toEqual(first);
+  });
 
-    const result = await observer.aiBoolean('did anything appear?');
-    expect(result).toBe(true);
-    const uiContext = (runBoolean.mock.calls[0] as any[])[1] as UIContext;
-    expect(uiContext.screenshotSequence!.length).toBeGreaterThanOrEqual(2);
+  it('concurrent stop calls wait for the same finalization', async () => {
+    const fake = makeFakeSource();
+    fake.setLatest('f0', 0);
+    let finishRepresentative: (() => void) | undefined;
+    const representativeReady = new Promise<void>((resolve) => {
+      finishRepresentative = resolve;
+    });
+    const { deps, onStopped } = makeDeps(fake);
+    deps.captureRepresentative = async () => {
+      await representativeReady;
+      return fakeRepresentative();
+    };
+    const observer = new UIObserverImpl(deps, options({ intervalMs: 200 }));
+    await observer.start();
+
+    const firstStop = observer.stop();
+    const secondStop = observer.stop();
+    finishRepresentative?.();
+    const [firstObservation, secondObservation] = await Promise.all([
+      firstStop,
+      secondStop,
+    ]);
+    expect(secondObservation).toBe(firstObservation);
+    await expect(firstObservation.exportRecord()).resolves.toMatchObject({
+      type: 'midscene_ui_observation',
+      version: 1,
+    });
+    expect(onStopped).toHaveBeenCalledOnce();
   });
 });
