@@ -316,6 +316,10 @@ describe('GitHub Release notes ordering', () => {
     expect(formatted).toContain('## Other Changes');
     expect(formatted.match(/^\* /gm)).toHaveLength(5);
     expect(formatted).toMatch(/\*\*Full Changelog\*\*: .*$/);
+    expect(formatted).toContain('## Features\n');
+    expect(formatted).toContain('## Fixes\n');
+    expect(formatted).not.toContain('## Features 🎉');
+    expect(formatted).not.toContain('## Fixes 🐞');
   });
 
   it('places breaking changes and maintenance in explicit categories', () => {

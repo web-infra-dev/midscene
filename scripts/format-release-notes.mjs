@@ -2,15 +2,15 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const categories = [
-  { key: 'breaking', title: 'Breaking Changes 🍭' },
-  { key: 'feat', title: 'Features 🎉' },
-  { key: 'fix', title: 'Fixes 🐞' },
-  { key: 'perf', title: 'Performance 🚀' },
-  { key: 'refactor', title: 'Refactors ♻️' },
-  { key: 'docs', title: 'Documentation 📖' },
-  { key: 'test', title: 'Testing 🧪' },
-  { key: 'build', title: 'Build 📦' },
-  { key: 'maintenance', title: 'CI & Chore ⚙️' },
+  { key: 'breaking', title: 'Breaking Changes' },
+  { key: 'feat', title: 'Features' },
+  { key: 'fix', title: 'Fixes' },
+  { key: 'perf', title: 'Performance' },
+  { key: 'refactor', title: 'Refactors' },
+  { key: 'docs', title: 'Documentation' },
+  { key: 'test', title: 'Testing' },
+  { key: 'build', title: 'Build' },
+  { key: 'maintenance', title: 'CI & Chore' },
   { key: 'other', title: 'Other Changes' },
 ];
 
