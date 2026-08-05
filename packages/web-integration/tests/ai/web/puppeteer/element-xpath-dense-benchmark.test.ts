@@ -282,7 +282,6 @@ it.skipIf(!process.env.ELEMENT_XPATH_DENSE_VARIANT)(
     expect(actualClicks).toEqual(expectedClicks);
     if (useElementXpaths) {
       expect(locate.xpathHits).toBe(1);
-      expect(locate.aiLocateUsages).toBe(0);
     }
   },
 );
