@@ -1354,11 +1354,12 @@ ${Object.keys(size)
 
     // Try scrcpy mode first (if enabled and initialized)
     const adapter = this.getScrcpyAdapter();
+    let scrcpyDeviceInfo: DevicePhysicalInfo | null = null;
     if (adapter.isEnabled()) {
       try {
         debugDevice('Attempting scrcpy screenshot...');
-        const deviceInfo = await this.getDevicePhysicalInfo();
-        const result = await adapter.screenshotBase64(deviceInfo);
+        scrcpyDeviceInfo = await this.getDevicePhysicalInfo();
+        const result = await adapter.screenshotBase64(scrcpyDeviceInfo);
         debugDevice('screenshotBase64 end (scrcpy mode)');
         return result;
       } catch (error) {
@@ -1501,6 +1502,11 @@ ${Object.keys(size)
       });
     }
     debugDevice('screenshotBase64 end');
+    if (scrcpyDeviceInfo) {
+      // Start a new stream only after ADB has finished, so the fallback capture
+      // does not compete with scrcpy startup on the same remote transport.
+      adapter.recoverAfterAdbScreenshot(scrcpyDeviceInfo);
+    }
     return result;
   }
 

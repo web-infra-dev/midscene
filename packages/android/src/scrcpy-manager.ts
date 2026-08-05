@@ -21,14 +21,15 @@ const DEFAULT_IDLE_TIMEOUT_MS = 30_000;
 
 // Timeouts and limits
 const MAX_KEYFRAME_WAIT_MS = 5_000;
-// Maximum time to wait for a frame that crosses the active action barrier
-// before rebuilding the stream epoch.
+// Maximum time to wait for a frame that crosses the active freshness target
+// before closing the stale epoch and letting the caller use ADB fallback.
 const FRESH_FRAME_TIMEOUT_MS = 300;
 const KEYFRAME_POLL_INTERVAL_MS = 200;
 const MAX_SCAN_BYTES = 1_000;
 const CONNECTION_WAIT_MS = 1_000;
 const MAX_SERVER_OUTPUT_LINES = 100;
 const SERVER_OUTPUT_DRAIN_TIMEOUT_MS = 500;
+const MAX_FRAME_AGE_US = 500_000n;
 const FRAME_FRESHNESS_WARN_INTERVAL_MS = 5_000;
 const TRANSPORT_BACKLOG_WARN_INTERVAL_MS = 5_000;
 const DEVICE_UPTIME_COMMAND = ['dumpsys', 'power'] as const;
@@ -72,6 +73,29 @@ export interface RawKeyframe {
   /** Estimated frame age when the packet reached the host. */
   estimatedAgeMs?: number;
   capturedAt: number;
+}
+
+export const SCRCPY_FRESH_FRAME_UNAVAILABLE_ERROR_CODE =
+  'ERR_SCRCPY_FRESH_FRAME_UNAVAILABLE';
+
+export class ScrcpyFreshFrameUnavailableError extends Error {
+  readonly code = SCRCPY_FRESH_FRAME_UNAVAILABLE_ERROR_CODE;
+
+  constructor(message: string, options?: ErrorOptions) {
+    super(message, options);
+    this.name = 'ScrcpyFreshFrameUnavailableError';
+  }
+}
+
+export function isScrcpyFreshFrameUnavailableError(
+  error: unknown,
+): error is ScrcpyFreshFrameUnavailableError {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    error.code === SCRCPY_FRESH_FRAME_UNAVAILABLE_ERROR_CODE
+  );
 }
 
 interface DeviceClockCalibration {
@@ -167,7 +191,7 @@ export class ScrcpyScreenshotManager {
   private isInitialized = false;
   private options: ResolvedScrcpyOptions;
   private ffmpegAvailable: boolean | null = null;
-  private keyframeResolvers: Array<(buf: Buffer) => void> = [];
+  private keyframeResolvers: Array<(frame: RawKeyframe) => void> = [];
   private keyframeListeners = new Set<(frame: RawKeyframe) => void>();
   private lastRawKeyframe: Buffer | null = null;
   private lastRawKeyframeAt = 0;
@@ -504,18 +528,20 @@ export class ScrcpyScreenshotManager {
       this.lastRawKeyframeAt = timing.capturedAt;
       this.lastRawKeyframePtsUs = packet.pts;
       this.lastRawKeyframeEstimatedAgeMs = timing.estimatedAgeMs;
+      const frame: RawKeyframe = {
+        data: frameBuffer,
+        header: this.spsHeader,
+        ptsUs: packet.pts,
+        estimatedAgeMs: timing.estimatedAgeMs,
+        capturedAt: this.lastRawKeyframeAt,
+      };
       if (this.keyframeResolvers.length > 0) {
-        const combined = Buffer.concat([this.spsHeader, frameBuffer]);
-        this.notifyKeyframeWaiters(combined);
+        this.notifyKeyframeWaiters(frame);
       }
-      if (this.keyframeListeners.size > 0) {
-        const frame: RawKeyframe = {
-          data: frameBuffer,
-          header: this.spsHeader,
-          ptsUs: packet.pts,
-          estimatedAgeMs: timing.estimatedAgeMs,
-          capturedAt: this.lastRawKeyframeAt,
-        };
+      if (
+        this.keyframeListeners.size > 0 &&
+        this.isFrameAgeAcceptable(packet.pts, receivedAtUs)
+      ) {
         for (const listener of this.keyframeListeners) {
           try {
             listener(frame);
@@ -564,6 +590,14 @@ export class ScrcpyScreenshotManager {
         startedAtWallMs + (finishedAtWallMs - startedAtWallMs) / 2,
       roundTripUs: finishedAtUs - startedAtUs,
     };
+  }
+
+  async ensureFrameClockCalibration(): Promise<void> {
+    if (this.deviceClockCalibration) return;
+    this.deviceClockCalibration = await this.readDeviceClockCalibration();
+    debugScrcpy(
+      `Calibrated scrcpy frame clock (RTT=${Number(this.deviceClockCalibration.roundTripUs / 1_000n)}ms)`,
+    );
   }
 
   /**
@@ -663,6 +697,53 @@ export class ScrcpyScreenshotManager {
     return false;
   }
 
+  private estimateFrameAgeUs(
+    packetPtsUs: bigint | undefined,
+    hostMonotonicUs = this.monotonicTimeUs(),
+  ): bigint | null {
+    const calibration = this.deviceClockCalibration;
+    if (packetPtsUs === undefined || !calibration) {
+      return null;
+    }
+
+    const estimatedDeviceNowUs =
+      calibration.deviceUptimeUs +
+      (hostMonotonicUs - calibration.hostMonotonicUs);
+    return estimatedDeviceNowUs > packetPtsUs
+      ? estimatedDeviceNowUs - packetPtsUs
+      : 0n;
+  }
+
+  private isFrameAgeAcceptable(
+    packetPtsUs: bigint | undefined,
+    hostMonotonicUs = this.monotonicTimeUs(),
+  ): boolean {
+    const ageUs = this.estimateFrameAgeUs(packetPtsUs, hostMonotonicUs);
+    if (ageUs === null) {
+      this.frameFreshnessError = new Error(
+        packetPtsUs === undefined
+          ? 'Scrcpy frame has no PTS metadata; cannot prove its absolute age'
+          : 'Scrcpy frame clock is not calibrated; cannot prove its absolute age',
+      );
+      this.warnFrameFreshness();
+      return false;
+    }
+
+    if (ageUs <= MAX_FRAME_AGE_US) {
+      if (this.frameFreshnessError) {
+        debugScrcpy(`Scrcpy frame age recovered (${Number(ageUs / 1_000n)}ms)`);
+        this.frameFreshnessError = null;
+      }
+      return true;
+    }
+
+    this.frameFreshnessError = new Error(
+      `Scrcpy frame absolute age is ${Number(ageUs / 1_000n)}ms, exceeding the ${Number(MAX_FRAME_AGE_US / 1_000n)}ms limit`,
+    );
+    this.warnFrameFreshness();
+    return false;
+  }
+
   private warnFrameFreshness(): void {
     if (!this.frameFreshnessError) return;
     const now = Date.now();
@@ -688,7 +769,7 @@ export class ScrcpyScreenshotManager {
     const causeMessage = cause instanceof Error ? cause.message : String(cause);
     const currentBitRateMbps = this.options.videoBitRate / 1_000_000;
     warnScrcpy(
-      `No scrcpy frame crossed the active action barrier within ${FRESH_FRAME_TIMEOUT_MS}ms; rebuilding the stream epoch. This may indicate transport backlog. ${SCRCPY_VIDEO_BIT_RATE_NETWORK_HINT} Current videoBitRate: ${this.options.videoBitRate} bps (${currentBitRateMbps} Mbps).\nError: ${causeMessage}`,
+      `No usable scrcpy frame crossed the active freshness target within ${FRESH_FRAME_TIMEOUT_MS}ms; closing the stale stream epoch and falling back to ADB screenshot. This may indicate transport backlog or a static screen that emitted no new frame. ${SCRCPY_VIDEO_BIT_RATE_NETWORK_HINT} Current videoBitRate: ${this.options.videoBitRate} bps (${currentBitRateMbps} Mbps).\nError: ${causeMessage}`,
     );
     this.lastTransportBacklogWarningAt = now;
   }
@@ -702,12 +783,8 @@ export class ScrcpyScreenshotManager {
       return { capturedAt: Date.now() };
     }
 
-    const estimatedDeviceNowUs =
-      calibration.deviceUptimeUs + (receivedAtUs - calibration.hostMonotonicUs);
     const estimatedAgeUs =
-      estimatedDeviceNowUs > packetPtsUs
-        ? estimatedDeviceNowUs - packetPtsUs
-        : 0n;
+      this.estimateFrameAgeUs(packetPtsUs, receivedAtUs) ?? 0n;
     const estimatedAgeMs = Number(estimatedAgeUs) / 1_000;
     const receivedAtWallTimeMs =
       calibration.hostWallTimeMs +
@@ -764,6 +841,12 @@ export class ScrcpyScreenshotManager {
 
   /** Latest raw keyframe seen on the stream, or null if none yet. */
   getLatestRawKeyframe(): RawKeyframe | null {
+    const frame = this.getCachedKeyframeCandidate();
+    if (!frame || !this.isFrameAgeAcceptable(frame.ptsUs)) return null;
+    return frame;
+  }
+
+  private getCachedKeyframeCandidate(): RawKeyframe | null {
     if (!this.lastRawKeyframe || !this.spsHeader) return null;
     return {
       data: this.lastRawKeyframe,
@@ -784,40 +867,100 @@ export class ScrcpyScreenshotManager {
     return this.decodeH264ToJpeg(Buffer.concat([frame.header, frame.data]));
   }
 
-  private getCachedKeyframeBuffer(): Buffer | null {
-    const frame = this.getLatestRawKeyframe();
-    return frame ? Buffer.concat([frame.header, frame.data]) : null;
+  private async waitForUsableKeyframe(timeoutMs: number): Promise<RawKeyframe> {
+    const deadline = Date.now() + timeoutMs;
+    let candidate = this.getCachedKeyframeCandidate();
+
+    while (true) {
+      if (candidate && this.isFrameAgeAcceptable(candidate.ptsUs)) {
+        return candidate;
+      }
+
+      const remainingMs = deadline - Date.now();
+      if (remainingMs <= 0) {
+        throw new Error(`No fresh keyframe received within ${timeoutMs}ms`);
+      }
+
+      candidate = await this.waitForNextKeyframe(remainingMs);
+    }
   }
 
-  private async waitForUsableKeyframe(timeoutMs: number): Promise<Buffer> {
-    return (
-      this.getCachedKeyframeBuffer() ??
-      (await this.waitForNextKeyframe(timeoutMs))
+  /**
+   * Ensure a newly connected stream has a calibrated, temporally fresh frame
+   * before it is exposed again after ADB fallback.
+   */
+  async prepareFreshFrame(): Promise<void> {
+    await this.ensureConnected();
+    await this.ensureFrameClockCalibration();
+    await this.waitForKeyframe();
+    await this.waitForUsableKeyframe(MAX_KEYFRAME_WAIT_MS);
+  }
+
+  private async waitForPlanningFrame(): Promise<RawKeyframe> {
+    let planningBarrierArmed = false;
+    let deadline = Date.now() + FRESH_FRAME_TIMEOUT_MS;
+    let candidate = this.getCachedKeyframeCandidate();
+
+    while (true) {
+      if (candidate) {
+        if (candidate.ptsUs === undefined) {
+          throw new Error(
+            'Scrcpy frame has no PTS metadata; cannot prove planning freshness',
+          );
+        }
+
+        const ageUs = this.estimateFrameAgeUs(candidate.ptsUs);
+        if (ageUs === null) {
+          throw new Error(
+            'Scrcpy frame clock is not calibrated; cannot prove planning freshness',
+          );
+        }
+
+        if (ageUs <= MAX_FRAME_AGE_US) {
+          return candidate;
+        }
+
+        if (!planningBarrierArmed) {
+          debugScrcpy(
+            `Planning candidate PTS ${candidate.ptsUs}µs has absolute age ${Number(ageUs) / 1_000}ms, exceeding the ${Number(MAX_FRAME_AGE_US / 1_000n)}ms limit; arming a planning freshness barrier`,
+          );
+          await this.setFreshnessBarrier('stale planning frame');
+          planningBarrierArmed = true;
+          deadline = Date.now() + FRESH_FRAME_TIMEOUT_MS;
+        } else {
+          this.clearFrameCache();
+        }
+      }
+
+      const remainingMs = deadline - Date.now();
+      if (remainingMs <= 0) {
+        throw new Error(
+          `No scrcpy frame crossed the active freshness target within ${FRESH_FRAME_TIMEOUT_MS}ms`,
+        );
+      }
+
+      candidate = await this.waitForNextKeyframe(remainingMs);
+    }
+  }
+
+  private async closeStaleStreamAndCreateFallbackError(
+    error: unknown,
+  ): Promise<ScrcpyFreshFrameUnavailableError> {
+    this.warnTransportBacklog(error);
+    const causeMessage = error instanceof Error ? error.message : String(error);
+    await this.disconnect();
+    return new ScrcpyFreshFrameUnavailableError(
+      `Unable to obtain a fresh scrcpy frame; the stale stream epoch was closed so the caller can use ADB screenshot fallback. ${causeMessage}`,
+      { cause: error },
     );
   }
 
   /**
-   * A new stream starts after the active action, so its first frame is a safe
-   * recovery boundary even when a static screen emitted no post-barrier frame
-   * on the previous stream.
-   */
-  private async rebuildStreamEpoch(): Promise<Buffer> {
-    const listeners = [...this.keyframeListeners];
-    await this.disconnect();
-    for (const listener of listeners) {
-      this.keyframeListeners.add(listener);
-    }
-    await this.ensureConnected();
-    await this.waitForKeyframe();
-    return this.waitForUsableKeyframe(MAX_KEYFRAME_WAIT_MS);
-  }
-
-  /**
    * Get screenshot as JPEG.
-   * Reuses the latest frame that already crossed the active action barrier.
-   * Screenshot requests do not advance the barrier because static screens may
-   * not emit another frame. If the active stream cannot cross the barrier, it
-   * is rebuilt once; only a failed rebuild is surfaced for ADB fallback.
+   * Reuses a frame only when it crossed the active action barrier and its
+   * absolute age is within the accepted limit. An over-age candidate arms a
+   * planning barrier on demand. If no frame crosses the resulting freshness
+   * target in time, close this stream epoch and let the caller use ADB.
    */
   async getScreenshotJpeg(): Promise<Buffer> {
     const perfStart = Date.now();
@@ -827,21 +970,16 @@ export class ScrcpyScreenshotManager {
     const connectTime = Date.now() - t1;
 
     const t2 = Date.now();
-    await this.waitForKeyframe();
-    const spsWaitTime = Date.now() - t2;
-
-    const t4 = Date.now();
-    let keyframeBuffer: Buffer;
-    let streamResetTime = 0;
+    let frame: RawKeyframe;
     try {
-      keyframeBuffer = await this.waitForUsableKeyframe(FRESH_FRAME_TIMEOUT_MS);
+      await this.ensureFrameClockCalibration();
+      await this.waitForKeyframe();
+      frame = await this.waitForPlanningFrame();
     } catch (error) {
-      this.warnTransportBacklog(error);
-      const resetStartedAt = Date.now();
-      keyframeBuffer = await this.rebuildStreamEpoch();
-      streamResetTime = Date.now() - resetStartedAt;
+      throw await this.closeStaleStreamAndCreateFallbackError(error);
     }
-    const frameWaitTime = Date.now() - t4;
+    const frameWaitTime = Date.now() - t2;
+    const keyframeBuffer = Buffer.concat([frame.header, frame.data]);
 
     this.resetIdleTimer();
 
@@ -855,7 +993,7 @@ export class ScrcpyScreenshotManager {
 
     const totalTime = Date.now() - perfStart;
     debugScrcpy(
-      `Performance: total=${totalTime}ms (connect=${connectTime}ms, spsWait=${spsWaitTime}ms, frameWait=${frameWaitTime}ms, streamReset=${streamResetTime}ms, decode=${decodeTime}ms)`,
+      `Performance: total=${totalTime}ms (connect=${connectTime}ms, frameWait=${frameWaitTime}ms, decode=${decodeTime}ms)`,
     );
 
     return result;
@@ -872,22 +1010,22 @@ export class ScrcpyScreenshotManager {
   /**
    * Notify all pending keyframe waiters
    */
-  private notifyKeyframeWaiters(buf: Buffer): void {
+  private notifyKeyframeWaiters(frame: RawKeyframe): void {
     const resolvers = this.keyframeResolvers;
     this.keyframeResolvers = [];
     for (const resolve of resolvers) {
-      resolve(buf);
+      resolve(frame);
     }
   }
 
   /**
    * Wait for the next keyframe to arrive
    */
-  private waitForNextKeyframe(timeoutMs: number): Promise<Buffer> {
-    return new Promise<Buffer>((resolve, reject) => {
-      const wrappedResolve = (buf: Buffer) => {
+  private waitForNextKeyframe(timeoutMs: number): Promise<RawKeyframe> {
+    return new Promise<RawKeyframe>((resolve, reject) => {
+      const wrappedResolve = (frame: RawKeyframe) => {
         clearTimeout(timer);
-        resolve(buf);
+        resolve(frame);
       };
       const timer = setTimeout(() => {
         this.keyframeResolvers = this.keyframeResolvers.filter(
