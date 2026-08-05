@@ -262,6 +262,15 @@ async function copyRoots({ workspace, roots, outputDir, category, warnings }) {
   return destinations;
 }
 
+async function removeHiddenFiles(root) {
+  for (const file of await listFiles(root)) {
+    const relative = path.relative(root, file);
+    if (relative.split(path.sep).some((segment) => segment.startsWith('.'))) {
+      await unlink(file);
+    }
+  }
+}
+
 async function scanDumpScripts(filePath) {
   const openPrefix = '<script type="midscene_web_dump"';
   const closeTag = '</script>';
@@ -886,6 +895,7 @@ export async function finalizeHarnessRun(options) {
     category: 'evidence',
     warnings,
   });
+  await removeHiddenFiles(outputDir);
 
   const reportFiles = (
     await Promise.all(reportDestinations.map((root) => listFiles(root)))

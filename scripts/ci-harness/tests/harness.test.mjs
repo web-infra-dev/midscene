@@ -1,5 +1,12 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import {
+  access,
+  mkdtemp,
+  mkdir,
+  readFile,
+  rm,
+  writeFile,
+} from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
@@ -307,4 +314,42 @@ test('removes copied evidence that contains a configured secret', async (t) => {
   assert.equal(result.scorecard.verdict, 'infra_error');
   assert.equal(result.scorecard.securityFindings.length, 1);
   assert.match(result.scorecard.harnessIssues[0], /Removed evidence/);
+});
+
+test('excludes hidden transient evidence from the artifact manifest', async (t) => {
+  const workspace = await fixtureWorkspace();
+  t.after(() => rm(workspace, { recursive: true, force: true }));
+  const diagnostics = path.join(workspace, 'diagnostics');
+  await mkdir(diagnostics);
+  await writeFile(path.join(diagnostics, '.state.json.tmp'), 'partial');
+  await writeFile(path.join(diagnostics, 'state.json'), '{"ready":true}');
+
+  const result = await finalizeHarnessRun({
+    workspace,
+    suite: 'hidden-evidence',
+    stages: [{ id: 'check', kind: 'check', outcome: 'success' }],
+    evidenceRoots: 'diagnostics',
+    environment: environment({ GITHUB_RUN_ID: '7890' }),
+  });
+  const manifest = JSON.parse(
+    await readFile(path.join(result.outputDir, 'manifest.json'), 'utf8'),
+  );
+  assert.equal(
+    manifest.files.some((file) => file.path.includes('.state.json.tmp')),
+    false,
+  );
+  assert.equal(
+    manifest.files.some((file) => file.path.endsWith('/state.json')),
+    true,
+  );
+  await assert.rejects(
+    access(
+      path.join(
+        result.outputDir,
+        'evidence',
+        '1-diagnostics',
+        '.state.json.tmp',
+      ),
+    ),
+  );
 });
