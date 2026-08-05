@@ -4,6 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it } from 'vitest';
+import { formatReleaseNotes } from '../../../scripts/format-release-notes.mjs';
 
 const repositoryRoot = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -160,7 +161,7 @@ afterEach(async () => {
 });
 
 describe.skipIf(!supportsReleaseShell)('Feishu release notification', () => {
-  it('publishes generated notes as part of the GitHub Release', async () => {
+  it('publishes ordered generated notes as part of the GitHub Release', async () => {
     const workflow = await fs.readFile(
       path.join(repositoryRoot, '.github/workflows/release.yml'),
       'utf8',
@@ -169,7 +170,11 @@ describe.skipIf(!supportsReleaseShell)('Feishu release notification', () => {
       /- name: Upload Release Assets[\s\S]*?\n\s+env:/,
     )?.[0];
 
-    expect(releaseUpload).toContain('generate_release_notes: true');
+    expect(workflow).toContain('- name: Generate ordered Release notes');
+    expect(releaseUpload).toContain(
+      'body_path: ${{ runner.temp }}/release-notes.md',
+    );
+    expect(releaseUpload).not.toContain('generate_release_notes: true');
   });
 
   it('delivers to every JSON webhook target', async () => {
@@ -281,6 +286,56 @@ describe.skipIf(!supportsReleaseShell)('Feishu release notification', () => {
     await expect(fs.readFile(harness.curlLog, 'utf8')).rejects.toMatchObject({
       code: 'ENOENT',
     });
+  });
+});
+
+describe('GitHub Release notes ordering', () => {
+  it('uses the same feature-first category order as notifications', () => {
+    const notes = [
+      '<!-- generated -->',
+      '## Other Changes',
+      '* docs(site): refresh docs by @example in https://github.com/web-infra-dev/midscene/pull/4',
+      '* fix(core): second fix by @example in https://github.com/web-infra-dev/midscene/pull/3',
+      '* feat(web): first feature by @example in https://github.com/web-infra-dev/midscene/pull/2',
+      '* fix(ai): first fix by @example in https://github.com/web-infra-dev/midscene/pull/1',
+      '* release entry with an unexpected format',
+      '**Full Changelog**: https://github.com/web-infra-dev/midscene/compare/v1.0.0...v1.1.0',
+    ].join('\n');
+
+    const formatted = formatReleaseNotes(notes);
+
+    expect(formatted.indexOf('## Features')).toBeLessThan(
+      formatted.indexOf('## Fixes'),
+    );
+    expect(formatted.indexOf('## Fixes')).toBeLessThan(
+      formatted.indexOf('## Documentation'),
+    );
+    expect(formatted.indexOf('second fix')).toBeLessThan(
+      formatted.indexOf('first fix'),
+    );
+    expect(formatted).toContain('## Other Changes');
+    expect(formatted.match(/^\* /gm)).toHaveLength(5);
+    expect(formatted).toMatch(/\*\*Full Changelog\*\*: .*$/);
+  });
+
+  it('places breaking changes and maintenance in explicit categories', () => {
+    const notes = [
+      '* chore: update dependencies by @example in https://github.com/web-infra-dev/midscene/pull/3',
+      '* feat(core)!: change API by @example in https://github.com/web-infra-dev/midscene/pull/2',
+      '* ci(workflow): adjust release by @example in https://github.com/web-infra-dev/midscene/pull/1',
+    ].join('\n');
+
+    const formatted = formatReleaseNotes(notes);
+
+    expect(formatted).toContain('## Breaking Changes');
+    expect(formatted).toContain('## CI & Chore');
+    expect(formatted.match(/^\* /gm)).toHaveLength(3);
+  });
+
+  it('leaves a body without generated change entries unchanged', () => {
+    expect(formatReleaseNotes('Manual release notes')).toBe(
+      'Manual release notes',
+    );
   });
 });
 
