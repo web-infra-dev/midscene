@@ -163,6 +163,7 @@ jobs:
         tag_name: ${{ steps.get_version.outputs.version }}
         target_commitish: ${{ github.event.inputs.branch }}
         prerelease: ${{ contains(steps.get_version.outputs.version, 'beta') || contains(steps.get_version.outputs.version, 'alpha') || contains(steps.get_version.outputs.version, 'rc') }}
+        generate_release_notes: true
         files: |
           ${{ github.workspace }}/apps/chrome-extension/extension_output/**/*.zip
       env:
@@ -447,27 +448,50 @@ jobs:
           exit 0
         fi
 
+        ENCODED_RELEASE_VERSION="$(jq -rn --arg value "$RELEASE_VERSION" '$value | @uri')"
         RELEASE_JSON="$(
-          gh release view "$RELEASE_VERSION" \
-            --repo "$GITHUB_REPOSITORY" \
-            --json name,publishedAt,url
+          curl \
+            --fail-with-body \
+            --silent \
+            --show-error \
+            --header 'Accept: application/vnd.github+json' \
+            --header "Authorization: Bearer ${GH_TOKEN}" \
+            --header 'X-GitHub-Api-Version: 2022-11-28' \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/tags/${ENCODED_RELEASE_VERSION}"
         )"
+        jq -e \
+          --arg version "$RELEASE_VERSION" \
+          '
+            .tag_name == $version
+            and .draft == false
+            and (.html_url | type == "string" and length > 0)
+            and (.published_at | type == "string" and length > 0)
+          ' >/dev/null <<< "$RELEASE_JSON"
         RELEASE_NAME="$(jq -r '.name // empty' <<< "$RELEASE_JSON")"
-        RELEASE_URL="$(jq -r '.url' <<< "$RELEASE_JSON")"
-        RELEASE_PUBLISHED_AT="$(jq -r '.publishedAt' <<< "$RELEASE_JSON")"
+        RELEASE_URL="$(jq -r '.html_url' <<< "$RELEASE_JSON")"
+        RELEASE_PUBLISHED_AT="$(jq -r '.published_at' <<< "$RELEASE_JSON")"
         PACKAGE_VERSION="${RELEASE_VERSION#v}"
 
-        GENERATED_NOTES_JSON="$(
-          gh api --method POST \
-            "repos/${GITHUB_REPOSITORY}/releases/generate-notes" \
-            -f tag_name="$RELEASE_VERSION" \
-            -f target_commitish="$RELEASE_TARGET"
-        )"
-        if ! RELEASE_BODY="$(
-          jq -er '.body | strings | select(test("\\S"))' <<< "$GENERATED_NOTES_JSON"
-        )"; then
-          echo "GitHub generated empty release notes for the Discord notification." >&2
-          exit 1
+        RELEASE_BODY="$(jq -r '.body // empty' <<< "$RELEASE_JSON")"
+        if [[ ! "$RELEASE_BODY" =~ [^[:space:]] ]]; then
+          GENERATED_NOTES_JSON="$(
+            jq -cn \
+              --arg tag_name "$RELEASE_VERSION" \
+              --arg target_commitish "$RELEASE_TARGET" \
+              '{tag_name: $tag_name, target_commitish: $target_commitish}' \
+              | curl \
+                  --fail-with-body \
+                  --silent \
+                  --show-error \
+                  --request POST \
+                  --header 'Accept: application/vnd.github+json' \
+                  --header "Authorization: Bearer ${GH_TOKEN}" \
+                  --header 'Content-Type: application/json' \
+                  --header 'X-GitHub-Api-Version: 2022-11-28' \
+                  --data @- \
+                  "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/generate-notes"
+          )"
+          RELEASE_BODY="$(jq -er '.body | strings | select(test("\\S"))' <<< "$GENERATED_NOTES_JSON")"
         fi
 
         PAYLOAD="$(
@@ -709,27 +733,50 @@ jobs:
           )")
         done
 
+        ENCODED_RELEASE_VERSION="$(jq -rn --arg value "$RELEASE_VERSION" '$value | @uri')"
         RELEASE_JSON="$(
-          gh release view "$RELEASE_VERSION" \
-            --repo "$GITHUB_REPOSITORY" \
-            --json name,url
+          curl \
+            --fail-with-body \
+            --silent \
+            --show-error \
+            --header 'Accept: application/vnd.github+json' \
+            --header "Authorization: Bearer ${GH_TOKEN}" \
+            --header 'X-GitHub-Api-Version: 2022-11-28' \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/tags/${ENCODED_RELEASE_VERSION}"
         )"
+        jq -e \
+          --arg version "$RELEASE_VERSION" \
+          '
+            .tag_name == $version
+            and .draft == false
+            and (.html_url | type == "string" and length > 0)
+            and (.published_at | type == "string" and length > 0)
+          ' >/dev/null <<< "$RELEASE_JSON"
         RELEASE_NAME="$(jq -r '.name // empty' <<< "$RELEASE_JSON")"
-        RELEASE_URL="$(jq -r '.url' <<< "$RELEASE_JSON")"
+        RELEASE_URL="$(jq -r '.html_url' <<< "$RELEASE_JSON")"
         PACKAGE_VERSION="${RELEASE_VERSION#v}"
         NPM_URL="https://www.npmjs.com/package/@midscene/core/v/${PACKAGE_VERSION}"
 
-        GENERATED_NOTES_JSON="$(
-          gh api --method POST \
-            "repos/${GITHUB_REPOSITORY}/releases/generate-notes" \
-            -f tag_name="$RELEASE_VERSION" \
-            -f target_commitish="$RELEASE_TARGET"
-        )"
-        if ! RELEASE_BODY="$(
-          jq -er '.body | strings | select(test("\\S"))' <<< "$GENERATED_NOTES_JSON"
-        )"; then
-          echo "GitHub generated empty release notes for the Feishu notification." >&2
-          exit 1
+        RELEASE_BODY="$(jq -r '.body // empty' <<< "$RELEASE_JSON")"
+        if [[ ! "$RELEASE_BODY" =~ [^[:space:]] ]]; then
+          GENERATED_NOTES_JSON="$(
+            jq -cn \
+              --arg tag_name "$RELEASE_VERSION" \
+              --arg target_commitish "$RELEASE_TARGET" \
+              '{tag_name: $tag_name, target_commitish: $target_commitish}' \
+              | curl \
+                  --fail-with-body \
+                  --silent \
+                  --show-error \
+                  --request POST \
+                  --header 'Accept: application/vnd.github+json' \
+                  --header "Authorization: Bearer ${GH_TOKEN}" \
+                  --header 'Content-Type: application/json' \
+                  --header 'X-GitHub-Api-Version: 2022-11-28' \
+                  --data @- \
+                  "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/generate-notes"
+          )"
+          RELEASE_BODY="$(jq -er '.body | strings | select(test("\\S"))' <<< "$GENERATED_NOTES_JSON")"
         fi
 
         CARD_CONTENT="$(
