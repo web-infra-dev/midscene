@@ -208,7 +208,9 @@ describe.skipIf(!supportsReleaseShell)('Feishu release notification', () => {
       .split('\n')
       .map((line) => JSON.parse(line));
     expect(payloads).toHaveLength(targets.length);
-    expect(payloads[0].card.body.elements[0].content).toContain('**Features**');
+    expect(payloads[0].card.body.elements[0].content).toContain(
+      '**Features 🎉**',
+    );
   }, 15_000);
 
   it('uses published release notes without generating them again', async () => {
@@ -237,7 +239,7 @@ describe.skipIf(!supportsReleaseShell)('Feishu release notification', () => {
     const payload = JSON.parse(
       (await fs.readFile(harness.curlPayloadLog, 'utf8')).trim(),
     );
-    expect(payload.card.body.elements[0].content).toContain('**Fixes**');
+    expect(payload.card.body.elements[0].content).toContain('**Fixes 🐞**');
     expect(payload.card.body.elements[0].content).toContain('PR #2');
   });
 
@@ -316,10 +318,8 @@ describe('GitHub Release notes ordering', () => {
     expect(formatted).toContain('## Other Changes');
     expect(formatted.match(/^\* /gm)).toHaveLength(5);
     expect(formatted).toMatch(/\*\*Full Changelog\*\*: .*$/);
-    expect(formatted).toContain('## Features\n');
-    expect(formatted).toContain('## Fixes\n');
-    expect(formatted).not.toContain('## Features 🎉');
-    expect(formatted).not.toContain('## Fixes 🐞');
+    expect(formatted).toContain('## Features 🎉\n');
+    expect(formatted).toContain('## Fixes 🐞\n');
   });
 
   it('places breaking changes and maintenance in explicit categories', () => {
@@ -364,6 +364,6 @@ describe.skipIf(!supportsReleaseShell)('Discord release notification', () => {
     const payload = JSON.parse(
       (await fs.readFile(harness.curlPayloadLog, 'utf8')).trim(),
     );
-    expect(payload.embeds[0].description).toContain('**Features**');
+    expect(payload.embeds[0].description).toContain('**Features 🎉**');
   });
 });

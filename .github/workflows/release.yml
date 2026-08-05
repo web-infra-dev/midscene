@@ -576,8 +576,8 @@ jobs:
                   end;
               def category_definitions:
                 [
-                  {key: "feat", label: "Features"},
-                  {key: "fix", label: "Fixes"}
+                  {key: "feat", label: "Features 🎉"},
+                  {key: "fix", label: "Fixes 🐞"}
                 ];
               def safe_title:
                 gsub("(?<char>[\\\\`*_~\\[\\]<>])"; "\\\\\(.char)");
@@ -860,8 +860,8 @@ jobs:
                   end;
               def category_definitions:
                 [
-                  {key: "feat", label: "Features"},
-                  {key: "fix", label: "Fixes"}
+                  {key: "feat", label: "Features 🎉"},
+                  {key: "fix", label: "Fixes 🐞"}
                 ];
               def safe_title:
                 gsub("(?<char>[\\\\`*_~\\[\\]<>])"; "\\\\\(.char)");
