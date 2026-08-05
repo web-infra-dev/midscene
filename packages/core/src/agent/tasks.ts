@@ -342,12 +342,14 @@ export class TaskExecutor {
     options?: { uiContext?: UIContext },
   ): Promise<ExecutionResult> {
     const session = this.createExecutionSession(title, options);
+    const runner = session.getRunner();
+    const executionPlanningModel = { ...planningModel, executionId: runner.id };
+    const executionDefaultModel = { ...defaultModel, executionId: runner.id };
     const { tasks } = await this.convertPlanToExecutable(
       plans,
-      planningModel,
-      defaultModel,
+      executionPlanningModel,
+      executionDefaultModel,
     );
-    const runner = session.getRunner();
     const result = await session.appendAndRun(tasks);
     const { output } = result ?? {};
     return {
@@ -474,6 +476,8 @@ export class TaskExecutor {
       },
     );
     const runner = session.getRunner();
+    planningModel = { ...planningModel, executionId: runner.id };
+    defaultModel = { ...defaultModel, executionId: runner.id };
 
     let replanCount = 0;
     const yamlFlow: MidsceneYamlFlowItem[] = [];
@@ -1003,16 +1007,17 @@ export class TaskExecutor {
         : undefined,
     );
 
+    const runner = session.getRunner();
+    const executionModelRuntime = { ...modelRuntime, executionId: runner.id };
     const queryTask = await this.createTypeQueryTask(
       type,
       demand,
-      modelRuntime,
+      executionModelRuntime,
       opt,
       multimodalPrompt,
       executionOptions,
     );
 
-    const runner = session.getRunner();
     const result = await session.appendAndRun(queryTask);
 
     if (!result) {
@@ -1042,6 +1047,7 @@ export class TaskExecutor {
       taskTitleStr('WaitFor', description),
     );
     const runner = session.getRunner();
+    const executionModelRuntime = { ...modelRuntime, executionId: runner.id };
     const {
       timeoutMs,
       checkIntervalMs,
@@ -1074,7 +1080,7 @@ export class TaskExecutor {
       const queryTask = await this.createTypeQueryTask(
         'WaitFor',
         textPrompt,
-        modelRuntime,
+        executionModelRuntime,
         serviceExtractOpt,
         multimodalPrompt,
       );

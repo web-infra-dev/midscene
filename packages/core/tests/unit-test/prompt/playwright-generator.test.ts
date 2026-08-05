@@ -354,7 +354,6 @@ test('Generated test', async ({ aiInput, aiAssert, aiTap, page }) => {
         ]),
         expect.objectContaining({
           config: mockedModelConfig,
-          modelInteractionContext: expect.any(Object),
         }),
       );
     });
@@ -366,7 +365,6 @@ test('Generated test', async ({ aiInput, aiAssert, aiTap, page }) => {
         expect.any(Array),
         expect.objectContaining({
           config: mockedModelConfig,
-          modelInteractionContext: expect.any(Object),
         }),
       );
     });

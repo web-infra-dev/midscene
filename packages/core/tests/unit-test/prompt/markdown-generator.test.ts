@@ -427,7 +427,6 @@ describe('markdown-generator', () => {
       expect.any(Array),
       expect.objectContaining({
         config: mockedModelConfig,
-        modelInteractionContext: expect.any(Object),
       }),
     );
   });

@@ -2,7 +2,6 @@ import { ScreenshotItem } from '@/screenshot-item';
 import Service from '@/service';
 import type { UIContext } from '@/types';
 import type { IModelConfig, TIntent } from '@midscene/shared/env';
-import { createModelInteractionContext } from '../model-interaction-context';
 import { getModelRuntime } from '../models';
 import type { ModelRuntime } from '../models';
 import { callAI } from '../service-caller';
@@ -96,10 +95,7 @@ function buildCheckResult(
 function buildConnectivityModelRuntime(
   modelConfig: IModelConfig,
 ): ModelRuntime {
-  return {
-    ...getModelRuntime({ ...modelConfig, retryCount: 0 }),
-    modelInteractionContext: createModelInteractionContext(),
-  };
+  return getModelRuntime({ ...modelConfig, retryCount: 0 });
 }
 
 function formatConnectivityCheckName(

@@ -6,7 +6,6 @@ import {
   getMidsceneRecorderScreenshotsForLLM,
   getMidsceneRecorderSemantic,
 } from '@midscene/shared/recorder';
-import { createModelInteractionContext } from '../model-interaction-context';
 import { getModelRuntime } from '../models';
 import { callAIWithObjectResponse } from '../service-caller/index';
 import { compactRecorderSemanticForGeneration } from './recorder-generation-common';
@@ -125,10 +124,7 @@ Respond with a JSON object containing exactly "title" and "description".`,
         content: messageContent,
       },
     ],
-    {
-      ...getModelRuntime(modelConfig),
-      modelInteractionContext: createModelInteractionContext(),
-    },
+    getModelRuntime(modelConfig),
   );
 
   return {

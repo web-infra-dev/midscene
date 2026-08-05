@@ -6,7 +6,6 @@ import { PLAYWRIGHT_EXAMPLE_CODE } from '@midscene/shared/constants';
 import type { IModelConfig } from '@midscene/shared/env';
 import type { ChatCompletionMessageParam } from 'openai/resources/index';
 import { callAI, callAIWithStringResponse } from '../index';
-import { createModelInteractionContext } from '../model-interaction-context';
 import { getModelRuntime } from '../models';
 // Import shared utilities and types from yaml generation.
 import {
@@ -59,10 +58,7 @@ export {
 };
 
 function createModelRuntime(modelConfig: IModelConfig) {
-  return {
-    ...getModelRuntime(modelConfig),
-    modelInteractionContext: createModelInteractionContext(),
-  };
+  return getModelRuntime(modelConfig);
 }
 
 /**

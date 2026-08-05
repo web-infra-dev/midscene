@@ -1,7 +1,3 @@
-import {
-  type ModelInteractionContext,
-  createModelInteractionContext,
-} from '@/ai-model/model-interaction-context';
 import { type ModelRuntime, getModelRuntime } from '@/ai-model/models';
 import { INTERNAL_CALL_ID_FIELD } from '@/ai-model/service-caller';
 import yaml from 'js-yaml';
@@ -273,16 +269,12 @@ export class Agent<
     );
   }
 
-  private resolveModelRuntime(
-    intent: TIntent,
-    modelInteractionContext: ModelInteractionContext,
-  ): ModelRuntime {
+  private resolveModelRuntime(intent: TIntent): ModelRuntime {
     const runtime = getModelRuntime(
       this.modelConfigManager.getModelConfig(intent),
     );
     return {
       ...runtime,
-      modelInteractionContext,
       onUsage: (usage) => {
         this.usageCallCounter += 1;
         // buildUsageInfo leaves intent undefined; fill it from the model
@@ -733,15 +725,8 @@ export class Agent<
     );
 
     // assume all operation in action space is related to locating
-    const modelInteractionContext = createModelInteractionContext();
-    const defaultModel = this.resolveModelRuntime(
-      'default',
-      modelInteractionContext,
-    );
-    const planningModel = this.resolveModelRuntime(
-      'planning',
-      modelInteractionContext,
-    );
+    const defaultModel = this.resolveModelRuntime('default');
+    const planningModel = this.resolveModelRuntime('planning');
 
     const { output } = await this.taskExecutor.runPlans(
       title,
@@ -1097,16 +1082,9 @@ export class Agent<
       );
     }
 
-    const modelInteractionContext = createModelInteractionContext();
     const runAiAct = async () => {
-      const planningModel = this.resolveModelRuntime(
-        'planning',
-        modelInteractionContext,
-      );
-      const defaultModel = this.resolveModelRuntime(
-        'default',
-        modelInteractionContext,
-      );
+      const planningModel = this.resolveModelRuntime('planning');
+      const defaultModel = this.resolveModelRuntime('default');
       const aiActContext =
         opt?.context !== undefined ? opt.context : this.aiActContext;
       const cachePrompt = buildPromptWithContext(taskPrompt, aiActContext);
@@ -1298,10 +1276,7 @@ export class Agent<
     demand: ServiceExtractParam,
     opt: ServiceExtractOption = defaultServiceExtractOption,
   ): Promise<ReturnType> {
-    const modelRuntime = this.resolveModelRuntime(
-      'insight',
-      createModelInteractionContext(),
-    );
+    const modelRuntime = this.resolveModelRuntime('insight');
     const { output } = await this.taskExecutor.createTypeQueryExecution(
       'Query',
       demand,
@@ -1323,10 +1298,7 @@ export class Agent<
     uiContext?: UIContext,
     opt: ServiceExtractOption = defaultServiceExtractOption,
   ): Promise<boolean> {
-    const modelRuntime = this.resolveModelRuntime(
-      'insight',
-      createModelInteractionContext(),
-    );
+    const modelRuntime = this.resolveModelRuntime('insight');
 
     const { textPrompt, multimodalPrompt } = parsePrompt(prompt);
     const { output } = await this.taskExecutor.createTypeQueryExecution(
@@ -1344,10 +1316,7 @@ export class Agent<
     prompt: TUserPrompt,
     opt: ServiceExtractOption = defaultServiceExtractOption,
   ): Promise<number> {
-    const modelRuntime = this.resolveModelRuntime(
-      'insight',
-      createModelInteractionContext(),
-    );
+    const modelRuntime = this.resolveModelRuntime('insight');
 
     const { textPrompt, multimodalPrompt } = parsePrompt(prompt);
     const { output } = await this.taskExecutor.createTypeQueryExecution(
@@ -1364,10 +1333,7 @@ export class Agent<
     prompt: TUserPrompt,
     opt: ServiceExtractOption = defaultServiceExtractOption,
   ): Promise<string> {
-    const modelRuntime = this.resolveModelRuntime(
-      'insight',
-      createModelInteractionContext(),
-    );
+    const modelRuntime = this.resolveModelRuntime('insight');
 
     const { textPrompt, multimodalPrompt } = parsePrompt(prompt);
     const { output } = await this.taskExecutor.createTypeQueryExecution(
@@ -1404,15 +1370,8 @@ export class Agent<
     assert(locateParam, 'cannot get locate param for aiLocate');
     const locatePlan = locatePlanForLocate(locateParam);
     const plans = [locatePlan];
-    const modelInteractionContext = createModelInteractionContext();
-    const defaultModel = this.resolveModelRuntime(
-      'default',
-      modelInteractionContext,
-    );
-    const planningModel = this.resolveModelRuntime(
-      'planning',
-      modelInteractionContext,
-    );
+    const defaultModel = this.resolveModelRuntime('default');
+    const planningModel = this.resolveModelRuntime('planning');
 
     const { output } = await this.taskExecutor.runPlans(
       taskTitleStr('Locate', locateParamStr(locateParam)),
@@ -1445,10 +1404,7 @@ export class Agent<
     msg?: string,
     opt?: AgentAssertOpt & ServiceExtractOption,
   ) {
-    const modelRuntime = this.resolveModelRuntime(
-      'insight',
-      createModelInteractionContext(),
-    );
+    const modelRuntime = this.resolveModelRuntime('insight');
 
     const serviceOpt: ServiceExtractOption = {
       domIncluded: opt?.domIncluded ?? defaultServiceExtractOption.domIncluded,
@@ -1527,10 +1483,7 @@ export class Agent<
   }
 
   async aiWaitFor(assertion: TUserPrompt, opt?: AgentWaitForOpt) {
-    const modelRuntime = this.resolveModelRuntime(
-      'insight',
-      createModelInteractionContext(),
-    );
+    const modelRuntime = this.resolveModelRuntime('insight');
     await this.taskExecutor.waitFor(
       assertion,
       {

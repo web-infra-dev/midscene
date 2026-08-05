@@ -14,7 +14,6 @@ import {
   callAI,
   callAIWithStringResponse,
 } from '../index';
-import { createModelInteractionContext } from '../model-interaction-context';
 import { getModelRuntime } from '../models';
 import {
   type ChromeRecordedEvent,
@@ -196,10 +195,7 @@ function normalizeGeneratedYaml(content: string) {
 }
 
 function createModelRuntime(modelConfig: IModelConfig) {
-  return {
-    ...getModelRuntime(modelConfig),
-    modelInteractionContext: createModelInteractionContext(),
-  };
+  return getModelRuntime(modelConfig);
 }
 
 function createRecorderYamlPrompt(

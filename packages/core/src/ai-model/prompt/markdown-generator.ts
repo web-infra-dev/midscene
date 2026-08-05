@@ -12,7 +12,6 @@ import {
 } from '@midscene/shared/recorder';
 import type { ChatCompletionMessageParam } from 'openai/resources/index';
 import { callAIWithStringResponse } from '../index';
-import { createModelInteractionContext } from '../model-interaction-context';
 import { getModelRuntime } from '../models';
 import {
   type RecorderGenerationInput,
@@ -159,10 +158,7 @@ function normalizeGeneratedMarkdown(content: string) {
 }
 
 function createModelRuntime(modelConfig: IModelConfig) {
-  return {
-    ...getModelRuntime(modelConfig),
-    modelInteractionContext: createModelInteractionContext(),
-  };
+  return getModelRuntime(modelConfig);
 }
 
 export function createRecorderMarkdownReplayPrompt(

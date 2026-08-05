@@ -36,7 +36,7 @@ import {
 } from '@midscene/shared/env';
 
 import { getDebug } from '@midscene/shared/logger';
-import { assert, ifInBrowser } from '@midscene/shared/utils';
+import { assert, ifInBrowser, uuid } from '@midscene/shared/utils';
 import OpenAI from 'openai';
 import type { ChatCompletionMessageParam } from 'openai/resources/index';
 import type { Stream } from 'openai/streaming';
@@ -44,7 +44,6 @@ import {
   isModelCallRecordingEnabled,
   recordModelCallEvent,
 } from '../model-call-recorder';
-import { createModelInteractionContext } from '../model-interaction-context';
 import type { ModelRuntime } from '../models';
 import type { AIArgs } from '../types';
 import {
@@ -364,12 +363,11 @@ export async function callAI(
   rawChoiceMessage?: unknown;
   usage?: AIUsageInfo;
   isStreamed: boolean;
-  interactionId: string;
 }> {
   const { config: modelConfig, adapter } = modelRuntime;
-  const modelInteractionContext =
-    modelRuntime.modelInteractionContext ??
-    createModelInteractionContext({ fallback: true });
+  // Low-level callers without a TaskRunner still need a stable ID for the
+  // lifetime of this model call (including its network retries).
+  const executionId = modelRuntime.executionId ?? `fallback-${uuid()}`;
 
   // Stable internal ID for this call, used by the agent to deduplicate usage
   // across the onUsage callback and the task-dump-based collectUsageMetrics()
@@ -378,7 +376,7 @@ export async function callAI(
   const recordEvent = isModelCallRecordingEnabled()
     ? (event: Record<string, unknown>) => {
         void recordModelCallEvent({
-          interactionId: modelInteractionContext.interactionId,
+          executionId,
           callId: internalCallId,
           semanticRetryAttempt: options?.semanticRetryAttempt,
           slot: modelConfig.slot,
@@ -462,7 +460,6 @@ export async function callAI(
       }
       return {
         ...response,
-        interactionId: modelInteractionContext.interactionId,
       };
     } catch (error) {
       recordEvent?.({
@@ -867,7 +864,6 @@ export async function callAI(
       rawChoiceMessage,
       usage: finalUsage,
       isStreamed: !!isStreaming,
-      interactionId: modelInteractionContext.interactionId,
     };
     recordEvent?.({
       type: 'response',

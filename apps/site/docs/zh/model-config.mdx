@@ -150,19 +150,19 @@ midscene_run/model-requests/<启动时间>-<pid>.jsonl
 记录采用 JSONL 格式，每行都是一个 JSON 事件。例如：
 
 ```json
-{"timestamp":"2026-08-05T10:00:00.000Z","type":"request","interactionId":"interaction_1","callId":"call_3","attempt":1,"request":{"url":"https://example.com/v1/chat/completions","method":"POST","body":"{\"model\":\"...\",\"messages\":[...],\"temperature\":0.2,\"stream\":true}"}}
-{"timestamp":"2026-08-05T10:00:01.000Z","type":"chunk","interactionId":"interaction_1","callId":"call_3","attempt":1,"sequence":1,"chunk":{"choices":["..."]}}
-{"timestamp":"2026-08-05T10:00:02.000Z","type":"response","interactionId":"interaction_1","callId":"call_3","attempt":1,"http":{"attempt":1,"status":200,"ok":true,"headers":[["x-request-id","req_..."]],"body":"{...}"},"final":{"content":"...","usage":{"total_tokens":123},"requestId":"req_...","timeCost":1234,"responseModelName":"..."}}
+{"timestamp":"2026-08-05T10:00:00.000Z","type":"request","executionId":"execution_1","callId":"call_3","attempt":1,"request":{"url":"https://example.com/v1/chat/completions","method":"POST","body":"{\"model\":\"...\",\"messages\":[...],\"temperature\":0.2,\"stream\":true}"}}
+{"timestamp":"2026-08-05T10:00:01.000Z","type":"chunk","executionId":"execution_1","callId":"call_3","attempt":1,"sequence":1,"chunk":{"choices":["..."]}}
+{"timestamp":"2026-08-05T10:00:02.000Z","type":"response","executionId":"execution_1","callId":"call_3","attempt":1,"http":{"attempt":1,"status":200,"ok":true,"headers":[["x-request-id","req_..."]],"body":"{...}"},"final":{"content":"...","usage":{"total_tokens":123},"requestId":"req_...","timeCost":1234,"responseModelName":"..."}}
 ```
 
-每条 JSON 事件都会包含 `type` 和 `interactionId` 两个字段：
+每条 JSON 事件都会包含 `type` 和 `executionId` 两个字段：
 
 - `type` 表示事件类型，包含以下四种：
   - `request`：本次模型请求的参数；每次重试都会生成新的 `request` 事件。
   - `chunk`：OpenAI 流式调用中收到的 SDK chunk，或 Codex App Server 当前 turn 的服务端通知或响应。
   - `response`：请求完成后的最终结果。OpenAI-compatible 调用包含 HTTP 元数据和最终拼接结果；Codex App Server 包含最终协议元数据。
   - `error`：一次请求尝试失败时的错误，以及可获得的 HTTP 状态码、响应 headers 和响应 body。
-- `interactionId` 用于区分不同 AI 操作产生的模型调用记录。一次 `aiTap` 这样的原子操作对应一个 `interactionId`；对于 `aiAct` 这样会在内部多次调用模型进行规划和执行的操作，同一个 `aiAct` 的所有记录会使用相同的 `interactionId`。如果模型调用发生自动重试，重试产生的记录也会沿用该 `interactionId`。
+- `executionId` 用于关联模型调用与对应的报告 execution。同一个 execution 内发起的模型调用（包括自动重试）会使用相同的 `executionId`。不计入报告 execution 的调用，例如连通性检查，会使用以 `fallback-` 为前缀生成的 ID。
 
 
 ## 仍兼容的模型配置（不推荐）

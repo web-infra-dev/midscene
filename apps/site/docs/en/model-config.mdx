@@ -147,19 +147,19 @@ The file records:
 The file uses JSONL: every line is a JSON event. For example:
 
 ```json
-{"timestamp":"2026-08-05T10:00:00.000Z","type":"request","interactionId":"interaction_1","callId":"call_3","attempt":1,"request":{"url":"https://example.com/v1/chat/completions","method":"POST","body":"{\"model\":\"...\",\"messages\":[...],\"temperature\":0.2,\"stream\":true}"}}
-{"timestamp":"2026-08-05T10:00:01.000Z","type":"chunk","interactionId":"interaction_1","callId":"call_3","attempt":1,"sequence":1,"chunk":{"choices":["..."]}}
-{"timestamp":"2026-08-05T10:00:02.000Z","type":"response","interactionId":"interaction_1","callId":"call_3","attempt":1,"http":{"attempt":1,"status":200,"ok":true,"headers":[["x-request-id","req_..."]],"body":"{...}"},"final":{"content":"...","usage":{"total_tokens":123},"requestId":"req_...","timeCost":1234,"responseModelName":"..."}}
+{"timestamp":"2026-08-05T10:00:00.000Z","type":"request","executionId":"execution_1","callId":"call_3","attempt":1,"request":{"url":"https://example.com/v1/chat/completions","method":"POST","body":"{\"model\":\"...\",\"messages\":[...],\"temperature\":0.2,\"stream\":true}"}}
+{"timestamp":"2026-08-05T10:00:01.000Z","type":"chunk","executionId":"execution_1","callId":"call_3","attempt":1,"sequence":1,"chunk":{"choices":["..."]}}
+{"timestamp":"2026-08-05T10:00:02.000Z","type":"response","executionId":"execution_1","callId":"call_3","attempt":1,"http":{"attempt":1,"status":200,"ok":true,"headers":[["x-request-id","req_..."]],"body":"{...}"},"final":{"content":"...","usage":{"total_tokens":123},"requestId":"req_...","timeCost":1234,"responseModelName":"..."}}
 ```
 
-Every event includes `type` and `interactionId`:
+Every event includes `type` and `executionId`:
 
 - `type` identifies the event:
   - `request`: the parameters for a model request. Each retry creates a new `request` event.
   - `chunk`: an SDK chunk received during an OpenAI streaming call, or a server-side notification or response for the current Codex App Server turn.
   - `response`: the final result after a request completes. OpenAI-compatible calls include HTTP metadata and the final aggregated result; Codex App Server calls include final protocol metadata.
   - `error`: a failed request attempt, including any available HTTP status, response headers, and response body.
-- `interactionId` distinguishes records produced by different AI operations. One atomic operation such as `aiTap` has one `interactionId`. An `aiAct` can call a model multiple times while planning and executing, and all records from that `aiAct` use the same `interactionId`. Records created by automatic model-call retries also keep that `interactionId`.
+- `executionId` associates a model call with its report execution. Calls made within the same execution, including automatic retries, use the same `executionId`. Calls that are not included in a report execution, such as connectivity checks, use a generated ID prefixed with `fallback-`.
 
 ## Still-compatible configs (not recommended)
 
