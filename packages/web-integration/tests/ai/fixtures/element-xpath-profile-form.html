@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Element XPath profile benchmark</title>
+    <style>
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        font-family: Arial, sans-serif;
+        background: #f4f7fb;
+      }
+      main {
+        width: 560px;
+        padding: 28px;
+        border-radius: 14px;
+        background: white;
+        box-shadow: 0 12px 36px rgba(22, 34, 51, 0.12);
+      }
+      form {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+      }
+      label {
+        display: grid;
+        gap: 6px;
+        color: #25364d;
+      }
+      label:last-child {
+        grid-column: 1 / -1;
+      }
+      input,
+      textarea {
+        box-sizing: border-box;
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid #b9c4d2;
+        border-radius: 8px;
+        font: inherit;
+      }
+      textarea {
+        min-height: 80px;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Profile</h1>
+      <form id="profile-form">
+        <label>First name<input id="first-name" type="text" /></label>
+        <label>Last name<input id="last-name" type="text" /></label>
+        <label>Email<input id="email" type="email" /></label>
+        <label>Company<input id="company" type="text" /></label>
+        <label>Phone<input id="phone" type="tel" /></label>
+        <label>Notes<textarea id="notes"></textarea></label>
+      </form>
+    </main>
+  </body>
+</html>

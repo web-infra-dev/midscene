@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dense invoice action benchmark</title>
+    <style>
+      :root {
+        color: #172033;
+        font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+        background: #eef2f7;
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+      }
+      main {
+        width: 1040px;
+        margin: 24px auto;
+        padding: 22px 26px 18px;
+        border: 1px solid #dce3ed;
+        border-radius: 14px;
+        background: white;
+        box-shadow: 0 12px 36px rgba(38, 51, 77, 0.1);
+      }
+      h1 {
+        margin: 0;
+        font-size: 24px;
+      }
+      .subtitle {
+        margin: 5px 0 18px;
+        color: #667085;
+        font-size: 13px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        table-layout: fixed;
+        font-size: 13px;
+      }
+      th,
+      td {
+        height: 42px;
+        padding: 0 12px;
+        border-bottom: 1px solid #e8edf3;
+        text-align: left;
+        white-space: nowrap;
+      }
+      th {
+        height: 38px;
+        color: #475467;
+        background: #f8fafc;
+        font-weight: 600;
+      }
+      th:first-child {
+        border-radius: 8px 0 0 8px;
+      }
+      th:last-child {
+        border-radius: 0 8px 8px 0;
+      }
+      .invoice-id {
+        width: 150px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-weight: 650;
+      }
+      .customer {
+        width: 330px;
+      }
+      .amount {
+        width: 120px;
+        text-align: right;
+      }
+      .status {
+        width: 120px;
+      }
+      .actions {
+        width: 176px;
+        text-align: right;
+      }
+      .icon-button {
+        width: 31px;
+        height: 31px;
+        margin-left: 5px;
+        padding: 6px;
+        border: 1px solid #cfd8e6;
+        border-radius: 7px;
+        color: #344054;
+        background: #fff;
+        cursor: pointer;
+        vertical-align: middle;
+      }
+      .icon-button:hover,
+      .icon-button:focus-visible {
+        color: #175cd3;
+        border-color: #84adff;
+        background: #eff6ff;
+        outline: none;
+      }
+      .icon-button svg {
+        width: 17px;
+        height: 17px;
+        fill: none;
+        stroke: currentColor;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        stroke-width: 1.8;
+        pointer-events: none;
+      }
+      #last-action {
+        margin: 14px 0 0;
+        min-height: 20px;
+        color: #475467;
+        font: 12px ui-monospace, SFMono-Regular, Menlo, monospace;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Invoices</h1>
+      <p class="subtitle">August billing queue · 24 records · use the row actions to manage an invoice</p>
+      <table>
+        <thead>
+          <tr>
+            <th class="invoice-id">Invoice</th>
+            <th class="customer">Customer</th>
+            <th class="amount">Amount</th>
+            <th class="status">Status</th>
+            <th class="actions">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="invoice-rows"></tbody>
+      </table>
+      <p id="last-action">No action selected</p>
+    </main>
+    <script>
+      const invoices = [
+        ['INV-1041', 'Northwind Studio', '$1,240.00', 'Ready'],
+        ['INV-1047', 'Northwind Systems', '$1,204.00', 'Ready'],
+        ['INV-1053', 'Northwind Services', '$1,420.00', 'Review'],
+        ['INV-1068', 'Northridge Studio', '$1,402.00', 'Ready'],
+        ['INV-1072', 'Northridge Systems', '$1,024.00', 'Review'],
+        ['INV-1086', 'Northridge Services', '$1,042.00', 'Ready'],
+        ['INV-1091', 'Southwind Studio', '$2,140.00', 'Review'],
+        ['INV-1104', 'Southwind Systems', '$2,104.00', 'Ready'],
+        ['INV-1118', 'Southwind Services', '$2,410.00', 'Review'],
+        ['INV-1123', 'Southridge Studio', '$2,401.00', 'Ready'],
+        ['INV-1137', 'Southridge Systems', '$2,014.00', 'Review'],
+        ['INV-1142', 'Southridge Services', '$2,041.00', 'Ready'],
+        ['INV-1156', 'Northlake Studio', '$3,140.00', 'Review'],
+        ['INV-1161', 'Northlake Systems', '$3,104.00', 'Ready'],
+        ['INV-1175', 'Northlake Services', '$3,410.00', 'Review'],
+        ['INV-1180', 'Northrun Studio', '$3,401.00', 'Ready'],
+        ['INV-1194', 'Northrun Systems', '$3,014.00', 'Review'],
+        ['INV-1209', 'Northrun Services', '$3,041.00', 'Ready'],
+        ['INV-1215', 'Eastwind Studio', '$4,130.00', 'Review'],
+        ['INV-1228', 'Eastwind Systems', '$4,103.00', 'Ready'],
+        ['INV-1234', 'Eastwind Services', '$4,310.00', 'Review'],
+        ['INV-1249', 'Eastridge Studio', '$4,301.00', 'Ready'],
+        ['INV-1263', 'Eastridge Systems', '$4,013.00', 'Review'],
+        ['INV-1277', 'Eastridge Services', '$4,031.00', 'Ready'],
+      ];
+      const actions = [
+        ['view-details', '<circle cx="12" cy="12" r="2.8"/><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6z"/>'],
+        ['edit-invoice', '<path d="M4 20h4l11-11-4-4L4 16v4z"/><path d="m13.5 6.5 4 4"/>'],
+        ['download-pdf', '<path d="M12 3v12"/><path d="m7.5 10.5 4.5 4.5 4.5-4.5"/><path d="M4 20h16"/>'],
+        ['archive-invoice', '<path d="M4 7h16v13H4z"/><path d="M3 3h18v4H3z"/><path d="M9 11h6"/>'],
+      ];
+      window.__denseActionClicks = [];
+      const rows = document.querySelector('#invoice-rows');
+
+      for (const [invoiceId, customer, amount, status] of invoices) {
+        const row = document.createElement('tr');
+        row.dataset.rowId = invoiceId;
+        row.innerHTML = `
+          <td class="invoice-id">${invoiceId}</td>
+          <td class="customer">${customer}</td>
+          <td class="amount">${amount}</td>
+          <td class="status">${status}</td>
+          <td class="actions"></td>
+        `;
+        const actionCell = row.querySelector('.actions');
+        for (const [action, icon] of actions) {
+          const button = document.createElement('button');
+          button.className = 'icon-button';
+          button.type = 'button';
+          button.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">${icon}</svg>`;
+          button.addEventListener('click', () => {
+            window.__denseActionClicks.push({ invoiceId, action });
+            document.querySelector('#last-action').textContent =
+              `Selected ${action} for ${invoiceId}`;
+          });
+          actionCell.appendChild(button);
+        }
+        rows.appendChild(row);
+      }
+    </script>
+  </body>
+</html>

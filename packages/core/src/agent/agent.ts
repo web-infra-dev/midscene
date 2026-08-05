@@ -71,6 +71,10 @@ import {
 } from '../device';
 import { validateAgentCacheInput } from './cache-config';
 import {
+  elementXpathsPlanningContext,
+  loadElementXpaths,
+} from './element-xpaths';
+import {
   createExtraActionExecutionOptions,
   extraActionsCacheKey,
   loadExtraActions,
@@ -121,6 +125,7 @@ export type AiActOptions = {
   fileChooserAccept?: string | string[];
   fileChooserAllowedDir?: string;
   loadExtraActions?: string[];
+  loadElementXpaths?: string[];
   deepThink?: DeepThinkOption;
   deepLocate?: boolean;
   abortSignal?: AbortSignal;
@@ -1103,9 +1108,18 @@ export class Agent<
         extraActionPaths,
         this.fullActionSpace,
       );
+      const elementXpaths = await loadElementXpaths(
+        opt?.loadElementXpaths ?? [],
+      );
       const defaultModel = this.resolveModelRuntime('default');
-      const aiActContext =
+      const baseAiActContext =
         opt?.context !== undefined ? opt.context : this.aiActContext;
+      const elementXpathContext = elementXpathsPlanningContext(elementXpaths);
+      const aiActContext = elementXpathContext
+        ? [baseAiActContext, elementXpathContext]
+            .filter((context): context is string => Boolean(context?.trim()))
+            .join('\n\n')
+        : baseAiActContext;
       const promptWithContext = buildPromptWithContext(
         taskPrompt,
         aiActContext,
@@ -1136,7 +1150,8 @@ export class Agent<
 
       const noIndividualLocateModel = planningModel.config.slot === 'default';
 
-      const includeLocateInPlanning = !deepThink && noIndividualLocateModel;
+      const includeLocateInPlanning =
+        !deepThink && noIndividualLocateModel && elementXpaths.length === 0;
 
       debug('setting includeLocateInPlanning to', includeLocateInPlanning, {
         deepThink,
@@ -1196,6 +1211,7 @@ export class Agent<
           abortSignal,
           reportOptions: internalReportDisplay,
           extraActions: createExtraActionExecutionOptions(extraActions),
+          elementXpaths,
         },
       );
 

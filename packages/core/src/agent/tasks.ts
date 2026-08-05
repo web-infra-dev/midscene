@@ -38,6 +38,10 @@ import type {
 import { ServiceError, aiActProgressScope } from '@/types';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
+import {
+  type LoadedElementXpath,
+  applyElementXpathsToPlans,
+} from './element-xpaths';
 import { ExecutionSession } from './execution-session';
 import { withFileChooser } from './file-chooser';
 import {
@@ -92,6 +96,7 @@ interface TaskExecutorActionOptions {
       expanded: boolean;
     };
   };
+  elementXpaths?: LoadedElementXpath[];
 }
 
 type TaskExecutorActionResult = Promise<
@@ -513,6 +518,7 @@ export class TaskExecutor {
       abortSignal,
       reportOptions,
       extraActions,
+      elementXpaths = [],
     } = options;
     const conversationHistory = new ConversationHistory();
     const baseActionSpace = this.getActionSpace();
@@ -778,16 +784,21 @@ export class TaskExecutor {
         plans,
         expanded: false,
       };
+      const elementXpathMapping = applyElementXpathsToPlans(
+        expansion.plans,
+        elementXpaths,
+        baseActionSpace,
+      );
       yamlFlow.push(
-        ...(expansion.expanded
-          ? buildYamlFlowFromPlans(expansion.plans, baseActionSpace)
+        ...(expansion.expanded || elementXpathMapping.mapped
+          ? buildYamlFlowFromPlans(elementXpathMapping.plans, baseActionSpace)
           : planResult?.yamlFlow || []),
       );
 
       let executables: Awaited<ReturnType<typeof this.convertPlanToExecutable>>;
       try {
         executables = await this.convertPlanToExecutable(
-          expansion.plans,
+          elementXpathMapping.plans,
           planningModel,
           defaultModel,
           {

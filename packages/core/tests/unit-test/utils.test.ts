@@ -639,6 +639,29 @@ describe('dumpActionParam', () => {
     `);
   });
 
+  it('should preserve a locator object that contains an XPath', () => {
+    const schema = z.object({
+      locator: getMidsceneLocationSchema(),
+    });
+
+    expect(
+      dumpActionParam(
+        {
+          locator: {
+            prompt: 'First name input',
+            xpath: '//*[@id="first-name"]',
+          },
+        },
+        schema,
+      ),
+    ).toEqual({
+      locator: {
+        prompt: 'First name input',
+        xpath: '//*[@id="first-name"]',
+      },
+    });
+  });
+
   it('should handle edge cases and invalid inputs', () => {
     const schema = z.object({
       foo: z.string(),
