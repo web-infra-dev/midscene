@@ -73,6 +73,9 @@ export function getKeyCommands(
     if (includeMeta && (k === 'c' || k === 'C')) {
       return acc.concat([{ key: k, command: 'Copy' }]);
     }
+    if (includeMeta && (k === 'x' || k === 'X')) {
+      return acc.concat([{ key: k, command: 'Cut' }]);
+    }
     if (includeMeta && (k === 'v' || k === 'V')) {
       return acc.concat([{ key: k, command: 'Paste' }]);
     }
@@ -363,6 +366,10 @@ export interface KeyboardAction {
   ) => Promise<void>;
 }
 
+export interface FocusElementOptions {
+  preserveSelection?: boolean;
+}
+
 export interface ChromePageDestroyOptions {
   closeTab?: boolean; // should close the tab when the page object is destroyed
 }
@@ -381,6 +388,15 @@ export abstract class AbstractWebPage extends AbstractInterface {
     timeoutMs?: number;
     target?: ElementInfo;
   }): Promise<void>;
+
+  /**
+   * Focuses an element before a keyboard action. Selection-preserving actions
+   * may avoid a redundant click when this element already owns the focus.
+   */
+  focusElement?(
+    element: ElementInfo,
+    options?: FocusElementOptions,
+  ): Promise<void>;
 
   get mouse(): MouseAction {
     return {
@@ -516,16 +532,21 @@ export function createWebInputPrimitives(
         scheduleVisualUpdate();
       },
       keyboardPress: async (keyName, opts) => {
-        const element = opts?.target as
-          | { center: [number, number] }
-          | undefined;
+        const keys = getKeyCommands(keyName);
+        const element = opts?.target as ElementInfo | undefined;
+        const preserveSelection = keys.some(
+          ({ command }) => command === 'Copy' || command === 'Cut',
+        );
         if (element) {
-          await page.mouse.click(element.center[0], element.center[1], {
-            button: 'left',
-          });
+          if (page.focusElement) {
+            await page.focusElement(element, { preserveSelection });
+          } else {
+            await page.mouse.click(element.center[0], element.center[1], {
+              button: 'left',
+            });
+          }
         }
 
-        const keys = getKeyCommands(keyName);
         await page.keyboard.press(keys as any);
         scheduleVisualUpdate();
       },
