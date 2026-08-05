@@ -1,6 +1,10 @@
 import './index.less';
 import { useAllCurrentTasks, useExecutionDump } from '@/components/store';
-import { CopyOutlined, DownloadOutlined } from '@ant-design/icons';
+import {
+  CopyOutlined,
+  DownloadOutlined,
+  FileMarkdownOutlined,
+} from '@ant-design/icons';
 import type { AIUsageInfo, ExecutionTask } from '@midscene/core';
 import { deriveTaskStatus } from '@midscene/core';
 import { typeStr } from '@midscene/core/agent';
@@ -12,6 +16,7 @@ import {
 } from '@midscene/visualizer';
 import { Alert, Button, Checkbox, Tag, Tooltip } from 'antd';
 import { useEffect, useMemo } from 'react';
+import type { Ref } from 'react';
 import CameraIcon from '../../icons/camera.svg?react';
 import MessageIcon from '../../icons/message.svg?react';
 import PlayIcon from '../../icons/play.svg?react';
@@ -50,8 +55,10 @@ interface SidebarProps {
   replayAllMode?: boolean;
   setReplayAllMode?: (mode: boolean) => void;
   reportViewMode?: ReportViewMode;
+  onReportViewModeChange?: (mode: ReportViewMode) => void;
   reportMarkdownView?: MarkdownView | null;
   onMarkdownImageClick?: (markdownPath: string) => void;
+  markdownScrollContainerRef?: Ref<HTMLDivElement>;
   reportMarkdownActionsDisabled?: boolean;
   onCopyReportMarkdown?: () => void;
   onDownloadReportMarkdownZip?: () => void;
@@ -65,8 +72,10 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
     onProModeChange,
     setReplayAllMode,
     reportViewMode = 'human',
+    onReportViewModeChange,
     reportMarkdownView,
     onMarkdownImageClick,
+    markdownScrollContainerRef,
     reportMarkdownActionsDisabled = true,
     onCopyReportMarkdown,
     onDownloadReportMarkdownZip,
@@ -617,6 +626,8 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
   ) : (
     <span>no tasks</span>
   );
+  const showReportOverview =
+    reportViewMode === 'human' || (dumps?.length ?? 0) > 1;
 
   // Render cell content based on column key
   const renderCellContent = (
@@ -942,6 +953,7 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
         <MarkdownSource
           markdown={reportMarkdownView.markdown}
           onImageClick={onMarkdownImageClick}
+          scrollContainerRef={markdownScrollContainerRef}
         />
       </div>
     );
@@ -999,17 +1011,55 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
       </div>
     );
 
+  const reportViewModeSwitch = (
+    <fieldset className="report-view-mode-switch" aria-label="Report view">
+      <Tooltip title="Human View">
+        <button
+          type="button"
+          className={`report-view-mode-button ${
+            reportViewMode === 'human' ? 'active' : ''
+          }`}
+          aria-label="Human View"
+          aria-pressed={reportViewMode === 'human'}
+          onClick={() => onReportViewModeChange?.('human')}
+        >
+          <MessageIcon width={16} height={16} />
+        </button>
+      </Tooltip>
+      <Tooltip title="Markdown View">
+        <button
+          type="button"
+          className={`report-view-mode-button ${
+            reportViewMode === 'markdown' ? 'active' : ''
+          }`}
+          aria-label="Markdown View"
+          aria-pressed={reportViewMode === 'markdown'}
+          onClick={() => onReportViewModeChange?.('markdown')}
+        >
+          <FileMarkdownOutlined />
+        </button>
+      </Tooltip>
+    </fieldset>
+  );
+
   return (
-    <div className="side-bar">
+    <div className={`side-bar ${reportViewMode}-view`}>
       <div className="page-nav">
         <div className="page-nav-left">
           <div className="page-nav-top">
-            <div className="page-nav-title">Report</div>
+            <div className="page-nav-leading">
+              {reportViewModeSwitch}
+              {reportViewMode === 'human' && (
+                <div className="page-nav-title">
+                  Switch: Command + Up / Down
+                </div>
+              )}
+            </div>
             {pageNavToolbar}
           </div>
         </div>
       </div>
-      {sideList}
+      {showReportOverview && sideList}
       {reportViewMode === 'markdown' ? agentMarkdownContent : executionContent}
     </div>
   );

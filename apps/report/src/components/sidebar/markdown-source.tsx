@@ -1,9 +1,10 @@
 import { useMemo } from 'react';
-import type { ReactNode } from 'react';
+import type { ReactNode, Ref } from 'react';
 
 interface MarkdownSourceProps {
   markdown: string;
   onImageClick?: (markdownPath: string) => void;
+  scrollContainerRef?: Ref<HTMLDivElement>;
 }
 
 type MarkdownLineKind =
@@ -86,6 +87,7 @@ function renderLineContent(
         className="agent-markdown-image-link"
         key={`${markdownPath}-${matchIndex}`}
         title={markdownPath}
+        data-markdown-path={markdownPath}
         onClick={() => onImageClick?.(markdownPath)}
       >
         ![{altText}]({markdownPath})
@@ -104,11 +106,16 @@ function renderLineContent(
 const MarkdownSource = ({
   markdown,
   onImageClick,
+  scrollContainerRef,
 }: MarkdownSourceProps): JSX.Element => {
   const lines = useMemo(() => buildMarkdownLines(markdown), [markdown]);
 
   return (
-    <div className="agent-markdown-source" role="document">
+    <div
+      className="agent-markdown-source"
+      ref={scrollContainerRef}
+      role="document"
+    >
       {lines.map((line, index) => (
         <div
           className={`agent-markdown-line line-${line.kind}`}
