@@ -1,7 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { DevicePhysicalInfo } from '../../src/scrcpy-device-adapter';
 import { ScrcpyDeviceAdapter } from '../../src/scrcpy-device-adapter';
-import { DEFAULT_SCRCPY_CONFIG } from '../../src/scrcpy-manager';
+import {
+  DEFAULT_SCRCPY_CONFIG,
+  SCRCPY_FRESH_FRAME_UNAVAILABLE_ERROR_CODE,
+  ScrcpyFreshFrameUnavailableError,
+} from '../../src/scrcpy-manager';
 
 const mocks = vi.hoisted(() => ({
   AdbServerNodeTcpConnector: vi.fn(),
@@ -23,6 +27,8 @@ vi.mock('@yume-chan/adb-server-node-tcp', () => ({
 const createMockManager = () => ({
   validateEnvironment: vi.fn().mockResolvedValue(undefined),
   ensureConnected: vi.fn().mockResolvedValue(undefined),
+  ensureFrameClockCalibration: vi.fn().mockResolvedValue(undefined),
+  prepareFreshFrame: vi.fn().mockResolvedValue(undefined),
   setFreshnessBarrier: vi.fn().mockResolvedValue(1_000_000n),
   subscribeKeyframes: vi.fn().mockReturnValue(vi.fn()),
   getLatestRawKeyframe: vi.fn().mockReturnValue(null),
@@ -370,6 +376,9 @@ describe('ScrcpyDeviceAdapter', () => {
       await adapter.subscribeKeyframes(defaultDeviceInfo, vi.fn());
 
       expect(currentMockManager.ensureConnected).toHaveBeenCalledTimes(1);
+      expect(
+        currentMockManager.ensureFrameClockCalibration,
+      ).toHaveBeenCalledTimes(1);
       expect(currentMockManager.setFreshnessBarrier).not.toHaveBeenCalled();
       expect(currentMockManager.subscribeKeyframes).toHaveBeenCalledTimes(1);
     });
@@ -402,6 +411,25 @@ describe('ScrcpyDeviceAdapter', () => {
         lastError: 'dumpsys unavailable',
         retryAfter: expect.any(Number),
       });
+    });
+
+    it('defers an action barrier until a recovering stream is connected', async () => {
+      const adapter = new ScrcpyDeviceAdapter('device', { enabled: true });
+      (adapter as any).manager = currentMockManager;
+      currentMockManager.isConnected.mockReturnValue(false);
+
+      await adapter.markActionBarrier();
+      expect(currentMockManager.setFreshnessBarrier).not.toHaveBeenCalled();
+
+      await adapter.screenshotBase64(defaultDeviceInfo);
+      expect(currentMockManager.setFreshnessBarrier).toHaveBeenCalledWith(
+        'completed input action while scrcpy was unavailable',
+      );
+      expect(
+        currentMockManager.setFreshnessBarrier.mock.invocationCallOrder[0],
+      ).toBeLessThan(
+        currentMockManager.getScreenshotJpeg.mock.invocationCallOrder[0],
+      );
     });
   });
 
@@ -479,6 +507,77 @@ describe('ScrcpyDeviceAdapter', () => {
       );
       expect(currentMockManager.getScreenshotJpeg).toHaveBeenCalledTimes(1);
       expect(adapter.getStatus().lastError).toBeNull();
+    });
+  });
+
+  describe('freshness recovery', () => {
+    it('keeps the current screenshot on ADB and warms a new stream afterward', async () => {
+      const adapter = new ScrcpyDeviceAdapter('device', { enabled: true });
+      (adapter as any).manager = currentMockManager;
+      currentMockManager.getScreenshotJpeg.mockRejectedValueOnce(
+        new ScrcpyFreshFrameUnavailableError('stale stream closed'),
+      );
+
+      await expect(adapter.screenshotBase64(defaultDeviceInfo)).rejects.toThrow(
+        'stale stream closed',
+      );
+      expect(adapter.isEnabled()).toBe(false);
+      expect((adapter as any).manager).toBeNull();
+
+      adapter.recoverAfterAdbScreenshot(defaultDeviceInfo);
+      await vi.waitFor(() => {
+        expect(currentMockManager.prepareFreshFrame).toHaveBeenCalledTimes(1);
+        expect(adapter.getStatus().lastError).toBeNull();
+      });
+      expect(adapter.isEnabled()).toBe(true);
+    });
+
+    it('recognizes freshness fallback across duplicated module instances', async () => {
+      const adapter = new ScrcpyDeviceAdapter('device', { enabled: true });
+      (adapter as any).manager = currentMockManager;
+      const crossModuleError = Object.assign(new Error('stale stream closed'), {
+        code: SCRCPY_FRESH_FRAME_UNAVAILABLE_ERROR_CODE,
+      });
+      currentMockManager.getScreenshotJpeg.mockRejectedValueOnce(
+        crossModuleError,
+      );
+
+      await expect(adapter.screenshotBase64(defaultDeviceInfo)).rejects.toBe(
+        crossModuleError,
+      );
+      expect(adapter.isEnabled()).toBe(false);
+      expect(adapter.getStatus().retryAfter).toBeNull();
+
+      adapter.recoverAfterAdbScreenshot(defaultDeviceInfo);
+      await vi.waitFor(() => {
+        expect(currentMockManager.prepareFreshFrame).toHaveBeenCalledTimes(1);
+      });
+    });
+
+    it('reattaches active frame listeners after background recovery', async () => {
+      const adapter = new ScrcpyDeviceAdapter('device', { enabled: true });
+      (adapter as any).manager = currentMockManager;
+      const listener = vi.fn();
+      const unsubscribe = await adapter.subscribeKeyframes(
+        defaultDeviceInfo,
+        listener,
+      );
+      currentMockManager.getScreenshotJpeg.mockRejectedValueOnce(
+        new ScrcpyFreshFrameUnavailableError('stale stream closed'),
+      );
+
+      await expect(adapter.screenshotBase64(defaultDeviceInfo)).rejects.toThrow(
+        'stale stream closed',
+      );
+      adapter.recoverAfterAdbScreenshot(defaultDeviceInfo);
+
+      await vi.waitFor(() => {
+        expect(currentMockManager.subscribeKeyframes).toHaveBeenCalledTimes(2);
+      });
+      unsubscribe();
+      expect(currentMockManager.subscribeKeyframes).toHaveBeenCalledWith(
+        listener,
+      );
     });
   });
 

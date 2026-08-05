@@ -15,6 +15,7 @@ import {
   vi,
 } from 'vitest';
 import { AndroidDevice, escapeForShell } from '../../src/device';
+import { ScrcpyFreshFrameUnavailableError } from '../../src/scrcpy-manager';
 
 // Mock the entire appium-adb module
 const createMockAdb = () => ({
@@ -1151,6 +1152,40 @@ Stdout:
           'scrcpyConfig.videoBitRate to 4_000_000 (4 Mbps)',
         ),
       );
+    });
+
+    it('starts scrcpy recovery only after the ADB fallback screenshot completes', async () => {
+      const adapter = (device as any).getScrcpyAdapter();
+      vi.spyOn(adapter, 'isEnabled').mockReturnValue(true);
+      vi.spyOn(adapter, 'screenshotBase64').mockRejectedValue(
+        new ScrcpyFreshFrameUnavailableError('stale stream closed'),
+      );
+      const recover = vi
+        .spyOn(adapter, 'recoverAfterAdbScreenshot')
+        .mockImplementation(() => {});
+      const deviceInfo = {
+        physicalWidth: 1080,
+        physicalHeight: 1920,
+        dpr: 1,
+        orientation: 0,
+      };
+      vi.spyOn(device as any, 'getDevicePhysicalInfo').mockResolvedValue(
+        deviceInfo,
+      );
+      const mockBuffer = createValidPngBuffer();
+      mockAdb.takeScreenshot.mockImplementation(async () => {
+        expect(recover).not.toHaveBeenCalled();
+        return mockBuffer;
+      });
+      vi.spyOn(ImgUtils, 'createImgBase64ByFormat').mockReturnValue(
+        `data:image/png;base64,${mockBuffer.toString('base64')}`,
+      );
+      vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      await expect(device.screenshotBase64()).resolves.toContain(
+        mockBuffer.toString('base64'),
+      );
+      expect(recover).toHaveBeenCalledWith(deviceInfo);
     });
 
     it('should fall back to screencap and pull if takeScreenshot fails', async () => {
