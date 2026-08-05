@@ -408,15 +408,21 @@ export const dumpActionParam = (
       } else if (typeof fieldValue === 'object') {
         // Check if this field is actually a MidsceneLocationType object
         if (fieldValue.prompt) {
+          const preserveLocatorObject = typeof fieldValue.xpath === 'string';
           // If prompt is a string, use it directly
           if (typeof fieldValue.prompt === 'string') {
-            result[fieldName] = fieldValue.prompt;
+            result[fieldName] = preserveLocatorObject
+              ? fieldValue
+              : fieldValue.prompt;
           } else if (
             typeof fieldValue.prompt === 'object' &&
             fieldValue.prompt.prompt
           ) {
             // If prompt is a TUserPrompt object, extract the prompt string
-            result[fieldName] = formatPromptWithImages(fieldValue.prompt);
+            const prompt = formatPromptWithImages(fieldValue.prompt);
+            result[fieldName] = preserveLocatorObject
+              ? { ...fieldValue, prompt }
+              : prompt;
           }
         }
       }

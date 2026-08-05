@@ -36,6 +36,7 @@ type RuntimeYamlFlowItem =
 import type { Agent } from '@/agent/agent';
 import type { TUserPrompt } from '@/common';
 import type {
+  DetailedLocateParam,
   DeviceAction,
   FreeFn,
   LocateOption,
@@ -502,13 +503,23 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
         value = rawValue;
       }
 
+      let detailedLocateParam: DetailedLocateParam | undefined;
+      if (
+        locatePrompt &&
+        typeof locatePrompt === 'object' &&
+        'prompt' in locatePrompt
+      ) {
+        const { prompt, ...locateOptions } = locatePrompt;
+        detailedLocateParam = buildDetailedLocateParam(prompt, locateOptions);
+      } else if (locatePrompt) {
+        detailedLocateParam = buildDetailedLocateParam(locatePrompt, inputTask);
+      }
+
       // Convert value to string for Input action
       await agent.callActionInActionSpace('Input', {
         ...inputTask,
         ...(value !== undefined ? { value: String(value) } : {}),
-        ...(locatePrompt
-          ? { locate: buildDetailedLocateParam(locatePrompt, inputTask) }
-          : {}),
+        ...(detailedLocateParam ? { locate: detailedLocateParam } : {}),
       });
     } else if ('aiKeyboardPress' in flowItem) {
       const { aiKeyboardPress, ...keyboardPressTask } =
