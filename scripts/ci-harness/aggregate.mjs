@@ -1,4 +1,10 @@
-import { appendFile, mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
+import {
+  appendFile,
+  mkdir,
+  readFile,
+  readdir,
+  writeFile,
+} from 'node:fs/promises';
 import path from 'node:path';
 
 async function findScorecards(root) {
@@ -12,7 +18,8 @@ async function findScorecards(root) {
   for (const entry of entries) {
     const entryPath = path.join(root, entry.name);
     if (entry.isDirectory()) found.push(...(await findScorecards(entryPath)));
-    else if (entry.isFile() && entry.name === 'scorecard.json') found.push(entryPath);
+    else if (entry.isFile() && entry.name === 'scorecard.json')
+      found.push(entryPath);
   }
   return found;
 }
@@ -41,7 +48,8 @@ function summary(aggregate) {
     lines.push('', '### Aggregation issues', '');
     for (const issue of aggregate.issues) lines.push(`- ${issue}`);
   }
-  if (aggregate.runUrl) lines.push('', `[Open workflow run](${aggregate.runUrl})`);
+  if (aggregate.runUrl)
+    lines.push('', `[Open workflow run](${aggregate.runUrl})`);
   lines.push('');
   return lines.join('\n');
 }
@@ -95,7 +103,8 @@ try {
 
   const suiteNames = suites.map((suite) => suite.suite);
   for (const expected of expectedSuites) {
-    if (!suiteNames.includes(expected)) issues.push(`Missing suite: ${expected}`);
+    if (!suiteNames.includes(expected))
+      issues.push(`Missing suite: ${expected}`);
   }
   for (const suiteName of new Set(suiteNames)) {
     if (suiteNames.filter((value) => value === suiteName).length > 1) {
@@ -124,7 +133,8 @@ try {
         : undefined,
     expectedSuites,
     totals: {
-      scored: cases.filter((item) => item.score === 0 || item.score === 1).length,
+      scored: cases.filter((item) => item.score === 0 || item.score === 1)
+        .length,
       passed: cases.filter((item) => item.score === 1).length,
       failed: cases.filter((item) => item.score === 0).length,
     },
@@ -146,6 +156,8 @@ try {
     'output-dir': outputDir,
   });
 } catch (error) {
-  console.error(`::error::Nightly harness aggregation failed: ${error.stack || error}`);
+  console.error(
+    `::error::Nightly harness aggregation failed: ${error.stack || error}`,
+  );
   process.exitCode = 1;
 }

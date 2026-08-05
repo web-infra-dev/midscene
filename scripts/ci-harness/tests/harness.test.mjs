@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import {
   access,
-  mkdtemp,
   mkdir,
+  mkdtemp,
   readFile,
   rm,
   writeFile,
@@ -188,10 +188,7 @@ test('creates a trace-backed passing scorecard', async (t) => {
   assert.equal(result.scorecard.verdict, 'pass');
   assert.equal(result.scorecard.traceHealth.status, 'complete');
   assert.equal(result.scorecard.cases[0].score, 1);
-  assert.equal(
-    result.scorecard.cases[0].stability,
-    'retry_policy_enabled',
-  );
+  assert.equal(result.scorecard.cases[0].stability, 'retry_policy_enabled');
   assert.equal(result.scorecard.cases[0].trace.tasks[0].taskId, 'task-1');
   assert.match(
     result.scorecard.cases[0].trace.tasks[0].anchor,
@@ -302,7 +299,10 @@ test('removes copied evidence that contains a configured secret', async (t) => {
   t.after(() => rm(workspace, { recursive: true, force: true }));
   const diagnostics = path.join(workspace, 'diagnostics');
   await mkdir(diagnostics);
-  await writeFile(path.join(diagnostics, 'leak.log'), 'token=super-secret-value');
+  await writeFile(
+    path.join(diagnostics, 'leak.log'),
+    'token=super-secret-value',
+  );
 
   const result = await finalizeHarnessRun({
     workspace,

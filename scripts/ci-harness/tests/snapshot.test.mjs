@@ -1,6 +1,13 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
-import { access, mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import {
+  access,
+  mkdir,
+  mkdtemp,
+  readFile,
+  rm,
+  writeFile,
+} from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
@@ -29,7 +36,12 @@ test('moves one test stage report into an immutable snapshot', async (t) => {
   const workspace = await mkdtemp(path.join(os.tmpdir(), 'midscene-snapshot-'));
   t.after(() => rm(workspace, { recursive: true, force: true }));
   const source = path.join(workspace, 'midscene_run', 'report');
-  const destination = path.join(workspace, 'midscene_run', 'harness-input', 'basic');
+  const destination = path.join(
+    workspace,
+    'midscene_run',
+    'harness-input',
+    'basic',
+  );
   await mkdir(source, { recursive: true });
   await writeFile(path.join(source, 'case.html'), '<html></html>');
 
@@ -74,7 +86,10 @@ test('copies a report snapshot when a later stage consumes the source', async (t
     HARNESS_SNAPSHOT_MODE: 'copy',
   });
   assert.equal(execution.code, 0, execution.stderr);
-  assert.equal(await readFile(path.join(source, 'case.html'), 'utf8'), '<html></html>');
+  assert.equal(
+    await readFile(path.join(source, 'case.html'), 'utf8'),
+    '<html></html>',
+  );
   assert.equal(
     await readFile(path.join(destination, 'case.html'), 'utf8'),
     '<html></html>',

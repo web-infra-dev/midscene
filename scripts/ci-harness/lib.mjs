@@ -13,12 +13,7 @@ import {
 } from 'node:fs/promises';
 import path from 'node:path';
 
-const VALID_OUTCOMES = new Set([
-  'success',
-  'failure',
-  'cancelled',
-  'skipped',
-]);
+const VALID_OUTCOMES = new Set(['success', 'failure', 'cancelled', 'skipped']);
 const VALID_STAGE_KINDS = new Set(['case', 'check', 'infrastructure']);
 const TEXT_FILE_EXTENSIONS = new Set([
   '.html',
@@ -101,7 +96,9 @@ function resolveWorkspacePath(workspace, inputPath) {
   const resolved = path.resolve(workspace, inputPath);
   const relative = path.relative(workspace, resolved);
   if (relative.startsWith('..') || path.isAbsolute(relative)) {
-    throw new Error(`Harness evidence path must stay inside the workspace: ${inputPath}`);
+    throw new Error(
+      `Harness evidence path must stay inside the workspace: ${inputPath}`,
+    );
   }
   return resolved;
 }
@@ -147,8 +144,7 @@ export function parseStages(value) {
     }
 
     const reportPatterns = (
-      stage.reportPatterns ??
-      (stage.reportPattern ? [stage.reportPattern] : [])
+      stage.reportPatterns ?? (stage.reportPattern ? [stage.reportPattern] : [])
     ).map(String);
 
     return {
@@ -182,11 +178,20 @@ export async function resolveStages({
   } catch (error) {
     throw new Error(`Invalid HARNESS_OUTCOMES JSON: ${error.message}`);
   }
-  if (!outcomeMap || typeof outcomeMap !== 'object' || Array.isArray(outcomeMap)) {
+  if (
+    !outcomeMap ||
+    typeof outcomeMap !== 'object' ||
+    Array.isArray(outcomeMap)
+  ) {
     throw new Error('HARNESS_OUTCOMES must be a JSON object');
   }
 
-  const registryPath = path.join(workspace, 'scripts', 'ci-harness', 'suites.json');
+  const registryPath = path.join(
+    workspace,
+    'scripts',
+    'ci-harness',
+    'suites.json',
+  );
   const registry = JSON.parse(await readFile(registryPath, 'utf8'));
   const registeredStages = registry[suite];
   if (!Array.isArray(registeredStages)) {
@@ -233,7 +238,9 @@ function globToRegExp(pattern) {
 
 function reportMatches(report, pattern) {
   const matcher = globToRegExp(pattern);
-  return matcher.test(report.path) || matcher.test(path.posix.basename(report.path));
+  return (
+    matcher.test(report.path) || matcher.test(path.posix.basename(report.path))
+  );
 }
 
 async function copyRoots({ workspace, roots, outputDir, category, warnings }) {
@@ -287,7 +294,9 @@ async function scanDumpScripts(filePath) {
       }
       const previousCharacter = start === 0 ? '' : pending[start - 1];
       const startsHtmlTag =
-        start === 0 || previousCharacter === '>' || /\s/.test(previousCharacter);
+        start === 0 ||
+        previousCharacter === '>' ||
+        /\s/.test(previousCharacter);
       if (!startsHtmlTag) {
         pending = pending.slice(start + openPrefix.length);
         continue;
@@ -444,11 +453,7 @@ async function extractReport(reportFile, outputDir) {
       modelBriefs: metadata.modelBriefs ?? [],
       deviceType: metadata.deviceType,
       executions: [
-        rebaseFileReferences(
-          execution,
-          path.dirname(reportFile),
-          executionDir,
-        ),
+        rebaseFileReferences(execution, path.dirname(reportFile), executionDir),
       ],
     };
     await writeFile(dumpPath, `${JSON.stringify(executionDump, null, 2)}\n`);
@@ -522,7 +527,9 @@ function provenance(environment, suite, stages) {
   const modelBaseUrl = environment.MIDSCENE_MODEL_BASE_URL || '';
   const runId = environment.GITHUB_RUN_ID ?? 'local';
   const runUrl =
-    environment.GITHUB_SERVER_URL && environment.GITHUB_REPOSITORY && runId !== 'local'
+    environment.GITHUB_SERVER_URL &&
+    environment.GITHUB_REPOSITORY &&
+    runId !== 'local'
       ? `${environment.GITHUB_SERVER_URL}/${environment.GITHUB_REPOSITORY}/actions/runs/${runId}`
       : undefined;
   const environmentInfo = {
@@ -575,13 +582,13 @@ function aggregateVerdict(stages, harnessIssues) {
   const requiredStages = stages.filter((stage) => stage.required);
   if (
     requiredStages.some(
-      (stage) =>
-        stage.kind === 'infrastructure' && stage.outcome !== 'success',
+      (stage) => stage.kind === 'infrastructure' && stage.outcome !== 'success',
     )
   ) {
     return 'infra_error';
   }
-  if (requiredStages.some((stage) => stage.outcome === 'failure')) return 'fail';
+  if (requiredStages.some((stage) => stage.outcome === 'failure'))
+    return 'fail';
   if (
     requiredStages.some(
       (stage) => stage.outcome === 'cancelled' || stage.outcome === 'skipped',
@@ -603,9 +610,7 @@ async function writeCaseFiles(outputDir, attemptId, result) {
   const validator = {
     ...result.validator,
     evidenceRefs: [
-      ...result.trace.tasks.map(
-        (task) => `task:${task.taskId || 'missing'}`,
-      ),
+      ...result.trace.tasks.map((task) => `task:${task.taskId || 'missing'}`),
       ...new Set(
         result.trace.tasks.map(
           (task) => `execution-dump:${task.executionDump}`,
@@ -641,7 +646,9 @@ async function writeCaseFiles(outputDir, attemptId, result) {
 function secretValues(environment) {
   const sensitiveName = /(API_KEY|AUTH_TOKEN|PASSWORD|SECRET|TOKEN)$/i;
   return Object.entries(environment)
-    .filter(([key, value]) => sensitiveName.test(key) && String(value).length >= 8)
+    .filter(
+      ([key, value]) => sensitiveName.test(key) && String(value).length >= 8,
+    )
     .map(([, value]) => String(value));
 }
 
@@ -649,7 +656,10 @@ async function containsSecret(filePath, secrets) {
   if (!TEXT_FILE_EXTENSIONS.has(path.extname(filePath).toLowerCase())) {
     return false;
   }
-  const maxSecretLength = Math.max(0, ...secrets.map((secret) => secret.length));
+  const maxSecretLength = Math.max(
+    0,
+    ...secrets.map((secret) => secret.length),
+  );
   const overlap = Math.max(4096, maxSecretLength);
   let tail = '';
   for await (const chunk of createReadStream(filePath, { encoding: 'utf8' })) {
@@ -728,9 +738,7 @@ export function renderSummary(scorecard, options = {}) {
     const firstAnchor = result.trace.tasks.find((task) => task.anchor)?.anchor;
     const trace = target
       ? `[View Trace](${target})${
-          !traceBaseUrl && firstAnchor
-            ? `<br>${markdownCode(firstAnchor)}`
-            : ''
+          !traceBaseUrl && firstAnchor ? `<br>${markdownCode(firstAnchor)}` : ''
         }`
       : firstAnchor
         ? markdownCode(firstAnchor)
@@ -741,7 +749,13 @@ export function renderSummary(scorecard, options = {}) {
   }
 
   if (scorecard.checks.length > 0) {
-    lines.push('', '### Required checks', '', '| Check | Kind | Outcome |', '| --- | --- | --- |');
+    lines.push(
+      '',
+      '### Required checks',
+      '',
+      '| Check | Kind | Outcome |',
+      '| --- | --- | --- |',
+    );
     for (const check of scorecard.checks) {
       lines.push(
         `| ${markdown(check.name)} | ${check.kind} | ${check.outcome} |`,
@@ -751,11 +765,13 @@ export function renderSummary(scorecard, options = {}) {
 
   if (scorecard.harnessIssues.length > 0) {
     lines.push('', '### Harness issues', '');
-    for (const issue of scorecard.harnessIssues) lines.push(`- ${markdown(issue)}`);
+    for (const issue of scorecard.harnessIssues)
+      lines.push(`- ${markdown(issue)}`);
   }
   if (scorecard.warnings.length > 0) {
     lines.push('', '<details><summary>Collection warnings</summary>', '');
-    for (const warning of scorecard.warnings) lines.push(`- ${markdown(warning)}`);
+    for (const warning of scorecard.warnings)
+      lines.push(`- ${markdown(warning)}`);
     lines.push('', '</details>');
   }
 
@@ -876,7 +892,9 @@ export async function finalizeHarnessRun(options) {
       ),
   );
   if (await exists(outputDir)) {
-    throw new Error(`Harness output is immutable and already exists: ${outputDir}`);
+    throw new Error(
+      `Harness output is immutable and already exists: ${outputDir}`,
+    );
   }
   await mkdir(outputDir, { recursive: true });
 
@@ -924,17 +942,22 @@ export async function finalizeHarnessRun(options) {
       stage.reportPatterns.length === 0
         ? reports
         : reports.filter((report) =>
-            stage.reportPatterns.some((pattern) => reportMatches(report, pattern)),
+            stage.reportPatterns.some((pattern) =>
+              reportMatches(report, pattern),
+            ),
           );
     const tasks = flattenTasks(matchingReports);
     const traceProblems = [];
     if (stage.traceRequired && stage.required && stage.outcome !== 'skipped') {
       for (const pattern of stage.reportPatterns) {
         if (!reports.some((report) => reportMatches(report, pattern))) {
-          traceProblems.push(`required report pattern has no match: ${pattern}`);
+          traceProblems.push(
+            `required report pattern has no match: ${pattern}`,
+          );
         }
       }
-      if (matchingReports.length === 0) traceProblems.push('no report was collected');
+      if (matchingReports.length === 0)
+        traceProblems.push('no report was collected');
       if (tasks.length === 0) traceProblems.push('no Midscene task was found');
       if (tasks.some((task) => !task.taskId)) {
         traceProblems.push('one or more tasks are missing taskId');

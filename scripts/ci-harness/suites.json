@@ -286,10 +286,7 @@
       "name": "iOS Simulator smoke and TodoMVC",
       "kind": "case",
       "traceRequired": true,
-      "reportPatterns": [
-        "ios-simulator-smoke.html",
-        "todo-mvc-ios.html"
-      ],
+      "reportPatterns": ["ios-simulator-smoke.html", "todo-mvc-ios.html"],
       "validator": {
         "type": "midscene-ai-test",
         "expected": "The iOS smoke and TodoMVC scenarios complete"

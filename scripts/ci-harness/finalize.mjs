@@ -41,6 +41,8 @@ try {
     `Harness ${result.scorecard.suite}: ${result.scorecard.verdict} (${result.scorecard.traceHealth.status} trace)`,
   );
 } catch (error) {
-  console.error(`::error::Harness finalization failed: ${error.stack || error}`);
+  console.error(
+    `::error::Harness finalization failed: ${error.stack || error}`,
+  );
   process.exitCode = 1;
 }

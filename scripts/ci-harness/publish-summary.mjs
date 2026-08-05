@@ -14,6 +14,8 @@ try {
   });
   await appendFile(process.env.GITHUB_STEP_SUMMARY, `${summary}\n`);
 } catch (error) {
-  console.error(`::error::Unable to publish harness summary: ${error.stack || error}`);
+  console.error(
+    `::error::Unable to publish harness summary: ${error.stack || error}`,
+  );
   process.exitCode = 1;
 }

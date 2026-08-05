@@ -12,7 +12,9 @@ if (
   failures.push('the harness summary was not published');
 }
 if (process.env.HARNESS_CONCLUSION !== 'success') {
-  failures.push(`the harness conclusion is ${process.env.HARNESS_CONCLUSION || 'missing'}`);
+  failures.push(
+    `the harness conclusion is ${process.env.HARNESS_CONCLUSION || 'missing'}`,
+  );
 }
 
 if (failures.length > 0) {

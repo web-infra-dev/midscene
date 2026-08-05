@@ -1,12 +1,14 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
-import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
-const aggregateScript = fileURLToPath(new URL('../aggregate.mjs', import.meta.url));
+const aggregateScript = fileURLToPath(
+  new URL('../aggregate.mjs', import.meta.url),
+);
 
 function runAggregate(environment) {
   return new Promise((resolve, reject) => {
@@ -28,7 +30,9 @@ function runAggregate(environment) {
 }
 
 test('aggregates suite scorecards and reports missing suites', async (t) => {
-  const workspace = await mkdtemp(path.join(os.tmpdir(), 'midscene-aggregate-'));
+  const workspace = await mkdtemp(
+    path.join(os.tmpdir(), 'midscene-aggregate-'),
+  );
   t.after(() => rm(workspace, { recursive: true, force: true }));
   const inputDir = path.join(workspace, 'midscene_run', 'nightly-input');
   await mkdir(path.join(inputDir, 'harness-suite-a'), { recursive: true });
