@@ -118,6 +118,41 @@ test('resolves a versioned suite contract from outcome-only CI input', async () 
   );
 });
 
+test('isolates sequential AI web stage reports', async () => {
+  const workflow = await readFile(
+    path.join(repositoryRoot, '.github', 'workflows', 'ai.yml'),
+    'utf8',
+  );
+  const reportStageStart = workflow.indexOf(
+    '      - name: Run e2e tests report',
+  );
+  const finalizeStageStart = workflow.indexOf(
+    '      - name: Finalize AI web harness',
+    reportStageStart,
+  );
+  const nextJobStart = workflow.indexOf('\n  e2e-report:', finalizeStageStart);
+
+  assert.notEqual(reportStageStart, -1);
+  assert.notEqual(finalizeStageStart, -1);
+  assert.notEqual(nextJobStart, -1);
+
+  const reportStage = workflow.slice(reportStageStart, finalizeStageStart);
+  assert.match(
+    reportStage,
+    /MIDSCENE_RUN_DIR: \$\{\{ github\.workspace \}\}\/midscene_run\/harness-input\/ai-web-report/,
+  );
+
+  const finalizeStage = workflow.slice(finalizeStageStart, nextJobStart);
+  assert.match(
+    finalizeStage,
+    /midscene_run\/harness-input\/ai-web-report\/report/,
+  );
+  assert.doesNotMatch(
+    finalizeStage,
+    /packages\/web-integration\/midscene_run\/report/,
+  );
+});
+
 test('validates every registered scored suite has a report Trace contract', async () => {
   const registry = JSON.parse(
     await readFile(

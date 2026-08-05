@@ -112,10 +112,14 @@ jobs:
           HARNESS_SNAPSHOT_MODE: copy
         run: node scripts/ci-harness/snapshot-reports.mjs
 
+      # This stage follows the basic E2E suite in the same job. Give it a
+      # separate run directory so each score links only to its own Trace.
       - name: Run e2e tests report
-        run: pnpm run e2e:report
         id: e2e-tests-report
         continue-on-error: true
+        env:
+          MIDSCENE_RUN_DIR: ${{ github.workspace }}/midscene_run/harness-input/ai-web-report
+        run: pnpm run e2e:report
 
       - name: Finalize AI web harness
         if: always()
@@ -126,7 +130,7 @@ jobs:
             {"snapshot-basic-trace":"${{ steps.snapshot-e2e.outcome }}","web-e2e":"${{ steps.e2e-tests.outcome }}","report-e2e":"${{ steps.e2e-tests-report.outcome }}"}
           report-roots: |
             midscene_run/harness-input/ai-web-basic
-            packages/web-integration/midscene_run/report
+            midscene_run/harness-input/ai-web-report/report
 
   e2e-report:
     runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"') }}
