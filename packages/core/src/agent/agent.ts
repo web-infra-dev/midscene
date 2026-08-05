@@ -1115,10 +1115,11 @@ export class Agent<
       const baseAiActContext =
         opt?.context !== undefined ? opt.context : this.aiActContext;
       const elementXpathContext = elementXpathsPlanningContext(elementXpaths);
-      const combinedAiActContext = [baseAiActContext, elementXpathContext]
-        .filter((context): context is string => Boolean(context?.trim()))
-        .join('\n\n');
-      const aiActContext = combinedAiActContext || undefined;
+      const aiActContext = elementXpathContext
+        ? [baseAiActContext, elementXpathContext]
+            .filter((context): context is string => Boolean(context?.trim()))
+            .join('\n\n')
+        : baseAiActContext;
       const promptWithContext = buildPromptWithContext(
         taskPrompt,
         aiActContext,
