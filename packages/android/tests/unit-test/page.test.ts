@@ -1,4 +1,4 @@
-import fs from 'node:fs';
+import fs, { unlink } from 'node:fs';
 import type { ExecutorContext } from '@midscene/core';
 import * as CoreUtils from '@midscene/core/utils';
 import * as ImgUtils from '@midscene/shared/img';
@@ -117,13 +117,19 @@ vi.mock('node:fs', async (importOriginal) => {
   const original = (await importOriginal()) as {
     default: Record<string, unknown>;
   };
+  const unlink = vi.fn(
+    (_path: unknown, callback: (error: NodeJS.ErrnoException | null) => void) =>
+      callback(null),
+  );
   return {
     ...original,
+    unlink,
     promises: {
       readFile: vi.fn(),
     },
     default: {
       ...original.default,
+      unlink,
       promises: {
         readFile: vi.fn(),
       },
@@ -1017,6 +1023,10 @@ Stdout:
 
       await expect(defaultDevice.screenshotBase64()).rejects.toThrow(
         'Fallback screenshot validation failed: buffer size 512 bytes (minimum: 1024)',
+      );
+      expect(unlink).toHaveBeenCalledWith(
+        '/tmp/tiny.png',
+        expect.any(Function),
       );
     });
 
