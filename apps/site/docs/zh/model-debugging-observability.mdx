@@ -55,7 +55,7 @@ npx @midscene/cli@latest model verify
 
 从 1.0 版本开始，Midscene 推荐使用 `MIDSCENE_MODEL_FAMILY` 指定多模态模型类型。旧的 `MIDSCENE_USE_...` 配置仍然兼容，但已经废弃。
 
-正确的模型 family 和完整配置示例请参考[支持的模型与配置](./model-common-config)。
+正确的模型 family 和完整配置示例请参考[配置你的模型](./model-common-config)。
 
 ### Base URL 或模型名称不正确
 
@@ -63,28 +63,23 @@ npx @midscene/cli@latest model verify
 
 同时确认 `MIDSCENE_MODEL_NAME` 与该接入地址提供的模型一致。
 
-## 模型效果不理想
-
-如果模型可以正常连接，但定位、规划或页面理解不稳定，可以尝试以下方法：
-
-- 查看[回放报告](./consume-report-file)，确认任务执行顺序正确，并且没有进入错误页面或逻辑分支。
-- 优先使用同一系列中较新的正式支持版本。
-- 使用代表性任务对比不同服务商的模型，关注成功率、延迟和成本。
-- 复杂任务可以单独配置 Planning 模型或 Insight 模型。具体分工请参考[模型策略](./model-strategy)。
-
 ## 调试能力
 
 ### Debug 日志
 
-需要额外的诊断信息时，可以设置 `DEBUG`。常用选择器包括：
+启用以下选择器可以打印更详细的 Debug 日志。无论是否启用这些选择器，Midscene 都会将日志保存在 `./midscene_run/log` 目录中。
 
-- `DEBUG=midscene:ai:profile:stats`：打印模型延迟和 Token 使用量。
-- `DEBUG=midscene:ai:call`：打印 AI 响应详情。
-- `DEBUG=midscene:*`：打印全部 Midscene Debug 日志。
-
-完整的选择器列表、日志目录和使用注意事项，请参考[运行时配置：Debug 日志](./reference/#debug-logs)。
+| 名称 | 描述 |
+| --- | --- |
+| `DEBUG=midscene:ai:profile:stats` | 使用逗号分隔的格式打印模型延迟和 Token 使用量 |
+| `DEBUG=midscene:ai:profile:detail` | 打印详细的 Token 使用量日志 |
+| `DEBUG=midscene:ai:call` | 打印 AI 响应详情 |
+| `DEBUG=midscene:android:adb` | 打印 Android adb 命令调用详情 |
+| `DEBUG=midscene:*` | 打印全部 Debug 日志 |
 
 生成的[报告文件](./consume-report-file)中也包含模型使用量统计。
+
+Debug 日志可能包含模型输入或输出。分享日志前，请先检查内容。
 
 ### 记录模型调用
 
@@ -203,3 +198,4 @@ DEBUGGING MODE: langfuse wrapper enabled
 
 - 不要将 `.env` 文件、Trace、Debug 日志或模型调用记录提交到源码仓库。
 - 日志和 Trace 可能包含模型输入、输出或截图，分享前请先检查内容。
+- 使用项目已有的密钥管理方式存储 LangSmith 和 Langfuse Key。

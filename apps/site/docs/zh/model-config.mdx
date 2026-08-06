@@ -74,39 +74,6 @@
 | `MIDSCENE_PLANNING_MODEL_EXTRA_BODY_JSON` | 可选，效果等同于 `MIDSCENE_MODEL_EXTRA_BODY_JSON`  |
 | `MIDSCENE_PLANNING_MODEL_RESPONSE_FORMAT` | 可选，在合适的 Planning 场景中控制结构化响应策略 |
 
-### 模型原生思考 {#model-native-reasoning}
-
-Midscene 默认关闭模型原生思考，以获得更好的执行速度和稳定性。如果模型不支持关闭原生思考，Midscene 会通过控制思考粒度或限制思考额度，尽可能减少模型的原生思考。
-
-以下环境变量是 Midscene 对不同模型服务商参数的统一抽象。实际发送给模型的参数由 `MIDSCENE_MODEL_FAMILY` 决定。
-
-`MIDSCENE_MODEL_REASONING_ENABLED` 显式控制是否启用模型原生思考：
-
-- `false`：强制关闭模型原生思考，也是 Midscene 的默认行为。
-- `true`：强制启用模型原生思考。
-- `default`：遵循模型的默认行为。Midscene 不发送启用或关闭思考的参数，并忽略显式配置的 `MIDSCENE_MODEL_REASONING_BUDGET` 和 `MIDSCENE_MODEL_REASONING_EFFORT`。
-
-目前支持 `MIDSCENE_MODEL_REASONING_ENABLED` 的模型系列及参数映射如下：
-
-- Qwen：对应 `enable_thinking`。
-- 豆包：对应 `thinking.type`。
-- 智谱 GLM：对应 `thinking.type`。
-- GPT-5：对应 `reasoning_effort`。启用时使用 `medium`，关闭时使用 `none`。
-- Gemini：对应 `thinking_config.thinking_level`。启用时使用 `medium`，关闭时使用 `minimal`。
-- Kimi K2 系列：对应 `thinking.type`。
-- 小米 MiMo：对应 `thinking.type`。
-
-`MIDSCENE_MODEL_REASONING_BUDGET` 控制模型的思考额度。目前 Qwen 系列支持该配置，对应 `thinking_budget`。
-
-`MIDSCENE_MODEL_REASONING_EFFORT` 控制模型的思考力度。目前支持以下模型系列：
-
-- 豆包：对应 `reasoning_effort`。
-- Gemini：对应 `thinking_config.thinking_level`。
-- GPT-5：对应 `reasoning_effort`。
-- Kimi K3 系列：对应 `reasoning_effort`。
-
-不同模型服务商支持的参数和值不同。具体取值和适用模型版本请参考对应服务商的官方文档。如果当前模型不支持某项显式配置，Midscene 会忽略该配置，不会猜测服务商的私有参数。
-
 ## 仍兼容的模型配置（不推荐）
 
 以下环境变量已废弃但仍然兼容，建议尽快迁移到新的配置方式。
@@ -137,7 +104,21 @@ Midscene 默认关闭模型原生思考，以获得更好的执行速度和稳�
 
 ### Debug 日志
 
-支持的 `DEBUG` 选择器和日志行为请参考[运行时配置：Debug 日志](./reference/#debug-logs)。
+## 调试与可观测性配置
+
+以下配置用于启用模型诊断、Tracing 和本地调用记录。安装步骤、使用示例、问题排查和安全说明。请参考[模型调试与可观测性](./model-debugging-observability)。
+
+### Debug 日志
+
+将 `DEBUG` 环境变量设置为以下选择器之一：
+
+| 取值 | 描述 |
+| --- | --- |
+| `midscene:ai:profile:stats` | 使用逗号分隔的格式打印模型延迟和 Token 使用量 |
+| `midscene:ai:profile:detail` | 打印详细的 Token 使用量日志 |
+| `midscene:ai:call` | 打印 AI 响应详情 |
+| `midscene:android:adb` | 打印 Android adb 命令调用详情 |
+| `midscene:*` | 打印全部 Debug 日志 |
 
 ### LangSmith
 

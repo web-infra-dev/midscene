@@ -560,6 +560,35 @@ Migration mapping:
 
 ## Next steps
 
-- Learn when to use Default, Planning, and Insight models in [Model strategy](./model-strategy).
-- Look up every environment variable in [Model configuration reference](./model-config).
-- Diagnose connectivity and compatibility issues in [Model debugging and observability](./model-debugging-observability).
+For more information on combining multiple models, see [Advanced: Multi-model Collaboration](./model-strategy#advanced-combining-multiple-models).
+
+Below is an example using GPT-5.4 for Planning/Insight and Qwen 3.5 for vision. Use GPT-5.4 for Planning and/or Insight to handle heavy reasoning, while Qwen 3.5 focuses on visual grounding. You can enable either role or both—toggle them based on your workload.
+
+```bash
+# Default multimodal model: Qwen 3.5
+export MIDSCENE_MODEL_BASE_URL="https://..."       # Qwen 3.5 endpoint
+export MIDSCENE_MODEL_API_KEY="..."                # Your Qwen 3.5 API key
+export MIDSCENE_MODEL_NAME="qwen3.5-plus"
+export MIDSCENE_MODEL_FAMILY="qwen3.5"
+
+# Planning model: GPT-5.4
+export MIDSCENE_PLANNING_MODEL_API_KEY="sk-..."    # Your GPT-5.4 API key
+export MIDSCENE_PLANNING_MODEL_BASE_URL="https://..." 
+export MIDSCENE_PLANNING_MODEL_NAME="gpt-5.4"
+export MIDSCENE_PLANNING_MODEL_FAMILY="gpt-5"
+
+# Insight model: GPT-5.4
+export MIDSCENE_INSIGHT_MODEL_API_KEY="sk-..."     # Your GPT-5.4 API key
+export MIDSCENE_INSIGHT_MODEL_BASE_URL="https://..."
+export MIDSCENE_INSIGHT_MODEL_NAME="gpt-5.4"
+export MIDSCENE_INSIGHT_MODEL_FAMILY="gpt-5"
+```
+
+## More
+
+For additional, advanced model settings, see [All configuration options](./model-config).
+
+
+## Troubleshooting
+
+For model connectivity and compatibility issues, see [Model debugging and observability](./model-debugging-observability).

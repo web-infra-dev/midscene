@@ -564,6 +564,34 @@ MIDSCENE_MODEL_FAMILY="vlm-ui-tars-doubao-1.5"
 
 ## 下一步
 
-- 在[模型策略](./model-strategy)中了解何时使用 Default、Planning 和 Insight 模型。
-- 在[模型配置参考](./model-config)中查询全部环境变量。
-- 在[模型调试与可观测性](./model-debugging-observability)中排查连接和兼容性问题。
+关于组合多个模型的更多信息，可查阅 [高阶特性：多模型配合](./model-strategy#高阶特性多模型配合)。
+
+下面以 GPT-5.4 用于 Planning/Insight、Qwen 3.5 负责视觉为例。GPT-5.4 处理重度推理（Planning 和/或 Insight），Qwen 3.5 专注视觉定位。独立的 Planning 和 Insight 模型可按需启用，不需要同时开启。
+
+```bash
+# 默认多模态模型：Qwen 3.5
+export MIDSCENE_MODEL_BASE_URL="https://..."       # Qwen 3.5 接口地址
+export MIDSCENE_MODEL_API_KEY="..."                # 你的 Qwen 3.5 API Key
+export MIDSCENE_MODEL_NAME="qwen3.5-plus"
+export MIDSCENE_MODEL_FAMILY="qwen3.5"
+
+# Planning 模型：GPT-5.4
+export MIDSCENE_PLANNING_MODEL_API_KEY="sk-..."    # 你的 GPT-5.4 API Key
+export MIDSCENE_PLANNING_MODEL_BASE_URL="https://..."
+export MIDSCENE_PLANNING_MODEL_NAME="gpt-5.4"
+export MIDSCENE_PLANNING_MODEL_FAMILY="gpt-5"
+
+# Insight 模型：GPT-5.4
+export MIDSCENE_INSIGHT_MODEL_API_KEY="sk-..."     # 你的 GPT-5.4 API Key
+export MIDSCENE_INSIGHT_MODEL_BASE_URL="https://..."
+export MIDSCENE_INSIGHT_MODEL_NAME="gpt-5.4"
+export MIDSCENE_INSIGHT_MODEL_FAMILY="gpt-5"
+```
+
+## 更多
+
+更多高阶配置请查看 [全部配置项](./model-config) 文档。
+
+## 模型问题排查
+
+模型连接和兼容性问题请参考[模型调试与可观测性](./model-debugging-observability)。
