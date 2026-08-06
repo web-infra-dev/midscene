@@ -121,50 +121,6 @@ export MIDSCENE_MODEL_FAMILY="gpt-5"
 | `DEBUG=midscene:android:adb` | 打印 Android adb 命令调用详情 |
 | `DEBUG=midscene:*` | 打印所有调试日志 |
 
-### 记录模型调用
-
-设置 `MIDSCENE_RECORD_MODEL_CALL=true` 后，Midscene 会记录与模型服务之间的实际交互，便于调试和排查问题。该功能与 `DEBUG` 日志独立。
-
-:::warning 注意事项
-
-- 该功能会以明文记录模型请求时的参数（HTTP body，包括自定义的 `extraBody`）以及模型服务返回的 body 和 headers。记录文件中可能包含敏感信息。请仅在可信环境中启用，并妥善保管或删除生成的文件。
-- 记录内容可能包含截图的 base64 数据和完整的流式响应，因此文件体积可能很大。不建议在长期运行的任务中持续开启该功能。
-- 这些记录仅用于调试与排查。随着 Midscene 版本更新，事件类型和字段细节可能发生变化，请不要将其作为稳定的程序化接口。
-
-:::
-
-开启后，Midscene 会将每次模型调用的请求和响应写入本地文件；流式调用还会记录每个 chunk。记录文件位于：
-
-```text
-midscene_run/model-requests/<启动时间>-<pid>.jsonl
-```
-
-每个进程会创建一个独立的 JSONL 文件；JSONL 中每一行都是一个 JSON 事件。该功能仅在 Node.js 和 Electron 环境中生效；浏览器页面和 Worker 环境不会写入本地文件。
-
-文件会记录：
-
-- 模型请求时的 HTTP body，包括自定义的 `extraBody`；请求 HTTP headers 不会被记录；
-- 模型服务返回的 HTTP 响应 headers 和 body；
-- 如果使用的是 Codex App Server，记录其请求、响应以及可获得的协议元数据。
-
-记录采用 JSONL 格式，每行都是一个 JSON 事件。例如：
-
-```json
-{"timestamp":"2026-08-05T10:00:00.000Z","type":"request","executionId":"execution_1","callId":"call_3","attempt":1,"request":{"url":"https://example.com/v1/chat/completions","method":"POST","body":"{\"model\":\"...\",\"messages\":[...],\"temperature\":0.2,\"stream\":true}"}}
-{"timestamp":"2026-08-05T10:00:01.000Z","type":"chunk","executionId":"execution_1","callId":"call_3","attempt":1,"sequence":1,"chunk":{"choices":["..."]}}
-{"timestamp":"2026-08-05T10:00:02.000Z","type":"response","executionId":"execution_1","callId":"call_3","attempt":1,"http":{"attempt":1,"status":200,"ok":true,"headers":[["x-request-id","req_..."]],"body":"{...}"},"final":{"content":"...","usage":{"total_tokens":123},"requestId":"req_...","timeCost":1234,"responseModelName":"..."}}
-```
-
-每条 JSON 事件都会包含 `type` 和 `executionId` 两个字段：
-
-- `type` 表示事件类型，包含以下四种：
-  - `request`：本次模型请求的参数；每次重试都会生成新的 `request` 事件。
-  - `chunk`：OpenAI 流式调用中收到的 SDK chunk，或 Codex App Server 当前 turn 的服务端通知或响应。
-  - `response`：请求完成后的最终结果。OpenAI-compatible 调用包含 HTTP 元数据和最终拼接结果；Codex App Server 包含最终协议元数据。
-  - `error`：一次请求尝试失败时的错误，以及可获得的 HTTP 状态码、响应 headers 和响应 body。
-- `executionId` 用于关联模型调用与对应的报告 execution。同一个 execution 内发起的模型调用（包括自动重试）会使用相同的 `executionId`。不计入报告 execution 的调用，例如连通性检查，会使用以 `fallback-` 为前缀生成的 ID。
-
-
 ## 仍兼容的模型配置（不推荐）
 
 以下环境变量已废弃但仍然兼容，建议尽快迁移到新的配置方式。
@@ -300,3 +256,21 @@ DEBUGGING MODE: langfuse wrapper enabled
 - LangSmith 和 Langfuse 可以同时启用
 - 仅支持 Node.js 环境，浏览器环境会报错
 - 如果使用 [`createOpenAIClient`](./reference/#自定义-openai-客户端) 参数，环境变量方式会被覆盖
+
+### 记录模型调用
+
+设置 `MIDSCENE_RECORD_MODEL_CALL=true`，可将模型请求、响应和流式 chunk 写入 JSONL 文件：
+
+```text
+midscene_run/model-requests/<启动时间>-<pid>.jsonl
+```
+
+每个进程生成一个文件，每行对应一个 JSON 事件。仅 Node.js 和 Electron 支持写入；浏览器和 Worker 环境下不会写入本地文件。使用 Codex App Server 时，文件还会包含可获取的协议元数据。
+
+:::warning 注意事项
+
+文件包含请求 body（含自定义 `extraBody`）、响应 headers 和 body，以及流式响应。文件还可能包含截图的 base64 数据。请求 headers 不会被记录。文件可能包含敏感信息且体积较大，请仅在排查问题时开启，并在使用后妥善保管或删除。记录格式不保证跨版本兼容。
+
+:::
+
+每个事件的 `type` 为 `request`、`chunk`、`response` 或 `error`。事件还包含 `executionId`，用于关联同一个报告 execution 内的调用及其重试。不属于报告 execution 的调用（例如连通性检查）使用带 `unscoped-` 前缀的生成 ID。

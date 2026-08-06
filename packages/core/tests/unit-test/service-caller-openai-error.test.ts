@@ -348,7 +348,7 @@ describe('service-caller OpenAI error handling', () => {
     ]);
     const executionIds = [...new Set(events.map((event) => event.executionId))];
     expect(executionIds).toHaveLength(1);
-    expect(executionIds[0]).toMatch(/^fallback-/);
+    expect(executionIds[0]).toMatch(/^unscoped-/);
   });
 
   it('records every streaming chunk with its sequence', async () => {

@@ -367,7 +367,7 @@ export async function callAI(
   const { config: modelConfig, adapter } = modelRuntime;
   // Low-level callers without a TaskRunner still need a stable ID for the
   // lifetime of this model call (including its network retries).
-  const executionId = modelRuntime.executionId ?? `fallback-${uuid()}`;
+  const executionId = modelRuntime.executionId ?? `unscoped-${uuid()}`;
 
   // Stable internal ID for this call, used by the agent to deduplicate usage
   // across the onUsage callback and the task-dump-based collectUsageMetrics()
