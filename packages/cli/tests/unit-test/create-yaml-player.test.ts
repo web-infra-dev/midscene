@@ -50,6 +50,7 @@ vi.mock('@midscene/android', () => ({
 
 vi.mock('@midscene/ios', () => ({
   agentFromWebDriverAgent: vi.fn(),
+  agentFromIOSAuto: vi.fn(),
 }));
 
 vi.mock('@midscene/harmony', () => ({
@@ -95,7 +96,7 @@ import { agentFromAdbDevice } from '@midscene/android';
 import { getReportFileName } from '@midscene/core/agent';
 import { ScriptPlayer, parseYamlScript } from '@midscene/core/yaml';
 import { agentFromHdcDevice } from '@midscene/harmony';
-import { agentFromWebDriverAgent } from '@midscene/ios';
+import { agentFromIOSAuto, agentFromWebDriverAgent } from '@midscene/ios';
 import { globalConfigManager } from '@midscene/shared/env';
 import { AgentOverChromeBridge } from '@midscene/web/bridge-mode';
 import { puppeteerAgentForTarget } from '@midscene/web/puppeteer-agent-launcher';
@@ -702,6 +703,60 @@ describe('create-yaml-player', () => {
           launch: mockIOSOptions.launch,
         }),
       );
+    });
+
+    test('should use ios-auto agent when requested by the CLI', async () => {
+      const mockScript: MidsceneYamlScript = {
+        ios: {
+          deviceId: '00008110-000123456789ABCD',
+        },
+        tasks: [],
+      };
+      const mockAgent = { destroy: vi.fn(), launch: vi.fn() };
+      let setupFnCallback: (() => Promise<any>) | undefined;
+
+      vi.mocked(agentFromIOSAuto).mockResolvedValue(mockAgent as any);
+      vi.mocked(ScriptPlayer).mockImplementation((script, setupFn) => {
+        setupFnCallback = setupFn as () => Promise<any>;
+        return {
+          addCleanup: vi.fn(),
+        } as unknown as ScriptPlayer<MidsceneYamlScriptEnv>;
+      });
+
+      await createYamlPlayer(mockFilePath, mockScript, { iosAuto: true });
+      await setupFnCallback?.();
+
+      expect(agentFromIOSAuto).toHaveBeenCalledWith(
+        expect.objectContaining({
+          deviceId: '00008110-000123456789ABCD',
+        }),
+      );
+      expect(agentFromWebDriverAgent).not.toHaveBeenCalled();
+    });
+
+    test('should use ios-auto agent when enabled in the iOS YAML config', async () => {
+      const mockScript: MidsceneYamlScript = {
+        ios: {
+          iosAuto: true,
+        },
+        tasks: [],
+      };
+      const mockAgent = { destroy: vi.fn(), launch: vi.fn() };
+      let setupFnCallback: (() => Promise<any>) | undefined;
+
+      vi.mocked(agentFromIOSAuto).mockResolvedValue(mockAgent as any);
+      vi.mocked(ScriptPlayer).mockImplementation((script, setupFn) => {
+        setupFnCallback = setupFn as () => Promise<any>;
+        return {
+          addCleanup: vi.fn(),
+        } as unknown as ScriptPlayer<MidsceneYamlScriptEnv>;
+      });
+
+      await createYamlPlayer(mockFilePath, mockScript);
+      await setupFnCallback?.();
+
+      expect(agentFromIOSAuto).toHaveBeenCalled();
+      expect(agentFromWebDriverAgent).not.toHaveBeenCalled();
     });
 
     test('should pass all HarmonyOS device options from YAML to agentFromHdcDevice', async () => {

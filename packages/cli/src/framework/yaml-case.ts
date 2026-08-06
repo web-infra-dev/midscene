@@ -28,6 +28,7 @@ export interface RunYamlCaseOptions {
   globalConfig?: RunYamlCaseGlobalConfig;
   headed?: boolean;
   keepWindow?: boolean;
+  iosAuto?: boolean;
 }
 
 export interface RunYamlCaseResult {
@@ -171,6 +172,7 @@ export async function runYamlCaseResult(
   const player = await createYamlPlayer(file, executionConfig, {
     headed: options.headed,
     keepWindow: options.keepWindow,
+    iosAuto: options.iosAuto,
   });
 
   await player.run();

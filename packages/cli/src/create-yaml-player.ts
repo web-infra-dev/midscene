@@ -91,6 +91,7 @@ export async function createYamlPlayer(
   options?: {
     headed?: boolean;
     keepWindow?: boolean;
+    iosAuto?: boolean;
     browser?: Browser;
     page?: Page;
     testId?: string;
@@ -348,15 +349,22 @@ export async function createYamlPlayer(
       // handle iOS
       if (typeof clonedYamlScript.ios !== 'undefined') {
         const iosTarget = clonedYamlScript.ios;
-        const { agentFromWebDriverAgent } = await import('@midscene/ios');
-        const agent = await agentFromWebDriverAgent({
+        const { agentFromIOSAuto, agentFromWebDriverAgent } = await import(
+          '@midscene/ios'
+        );
+        const agentOptions = {
           ...iosTarget, // Pass all iOS config options
           ...buildAgentOptions(
             clonedYamlScript.agent,
             preference.reportFileName,
             fileName,
           ),
-        });
+        };
+        const useIOSAuto =
+          options?.iosAuto === true || iosTarget.iosAuto === true;
+        const agent = useIOSAuto
+          ? await agentFromIOSAuto(agentOptions)
+          : await agentFromWebDriverAgent(agentOptions);
 
         if (iosTarget?.launch) {
           await agent.launch(iosTarget.launch);

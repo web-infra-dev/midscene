@@ -14,6 +14,7 @@ import {
 } from '@midscene/core';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 import {
+  createJsonResultPayload,
   printExecutionPlan,
   printExecutionSummary,
   writeExecutionSummaryFile,
@@ -98,6 +99,93 @@ describe('execution summary', () => {
     expect(consoleLog).toHaveBeenCalledWith(
       '     Output: /tmp/midscene_run/output/passed.json',
     );
+  });
+
+  test('creates a JSON payload with summary and report metadata', () => {
+    const root = mkdtempSync(join(tmpdir(), 'midscene-json-result-'));
+    const outputPath = join(root, 'output.json');
+    const summaryPath = join(root, 'summary.json');
+    const reportPath = join(root, 'case.html');
+    writeFileSync(outputPath, JSON.stringify({ answer: 'done' }));
+
+    try {
+      expect(
+        createJsonResultPayload(
+          [
+            {
+              file: join(root, 'case.yaml'),
+              success: true,
+              executed: true,
+              resultType: 'success',
+              duration: 12,
+              output: outputPath,
+              report: reportPath,
+            },
+          ],
+          summaryPath,
+        ),
+      ).toEqual({
+        summary: {
+          path: summaryPath,
+          total: 1,
+          successful: 1,
+          failed: 0,
+          partialFailed: 0,
+          notExecuted: 0,
+          totalDuration: 12,
+        },
+        results: [
+          {
+            file: join(root, 'case.yaml'),
+            success: true,
+            executed: true,
+            resultType: 'success',
+            duration: 12,
+            error: null,
+            report: reportPath,
+            retryReport: null,
+            outputPath,
+            output: { answer: 'done' },
+          },
+        ],
+      });
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  test('includes every YAML output in a multi-file JSON payload', () => {
+    const root = mkdtempSync(join(tmpdir(), 'midscene-json-result-'));
+    const firstOutputPath = join(root, 'first.json');
+    const secondOutputPath = join(root, 'second.json');
+    writeFileSync(firstOutputPath, JSON.stringify({ answer: 'first' }));
+    writeFileSync(secondOutputPath, JSON.stringify({ answer: 'second' }));
+
+    try {
+      expect(
+        createJsonResultPayload(
+          [
+            {
+              file: join(root, 'first.yaml'),
+              success: true,
+              executed: true,
+              output: firstOutputPath,
+              resultType: 'success',
+            },
+            {
+              file: join(root, 'second.yaml'),
+              success: true,
+              executed: true,
+              output: secondOutputPath,
+              resultType: 'success',
+            },
+          ],
+          join(root, 'summary.json'),
+        ).results.map((result) => result.output),
+      ).toEqual([{ answer: 'first' }, { answer: 'second' }]);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 
   test('writes a retry report with per-attempt statuses', () => {

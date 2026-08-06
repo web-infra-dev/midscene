@@ -404,6 +404,18 @@ concurrent: 2
       expect(result.globalConfig).toEqual(expectedGlobalConfig);
     });
 
+    test('should preserve the iosAuto command-line option', async () => {
+      vi.mocked(readFileSync).mockReturnValue('files:\n  - file1.yml\n');
+      vi.mocked(yamlLoad).mockReturnValue({ files: ['file1.yml'] });
+      vi.mocked(matchYamlFiles).mockResolvedValue(['file1.yml']);
+
+      const result = await createConfig('/test/index.yml', {
+        iosAuto: true,
+      });
+
+      expect(result.iosAuto).toBe(true);
+    });
+
     test('should keep setup when shareBrowserContext is enabled', async () => {
       const mockYamlContent = `
 setup: login.yml

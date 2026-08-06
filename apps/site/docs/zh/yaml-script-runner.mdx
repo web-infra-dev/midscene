@@ -161,6 +161,41 @@ midscene './scripts/**/*.yaml'
 - 每个 YAML 文件对应的独立执行结果（JSON 格式）。
 - 每个脚本生成的可视化报告（HTML 格式）。
 
+### 将最终结果作为 JSON 消费
+
+当需要让其他程序或 Agent 直接消费执行结果时，传入 `--json`：
+
+```bash
+midscene ./bing-search.yaml --json
+```
+
+此模式下，命令只会输出一个可被机器消费的 JSON 对象，不会输出执行进度日志。`summary` 包含执行统计数据和生成的汇总文件路径；`results` 的每项包含 YAML 文件路径、状态、Report 路径、输出文件路径及解析后的 YAML 输出：
+
+```json
+{
+  "summary": {
+    "path": "/path/to/midscene_run/output/summary.json",
+    "total": 1,
+    "successful": 1,
+    "failed": 0,
+    "partialFailed": 0,
+    "notExecuted": 0,
+    "totalDuration": 85490
+  },
+  "results": [
+    {
+      "file": "/path/to/case.yaml",
+      "report": "/path/to/midscene_run/report/case.html",
+      "outputPath": "/path/to/midscene_run/output/case.json",
+      "output": { "key": "value" }
+    }
+  ]
+}
+```
+
+```bash
+midscene ./bing-search.yaml --json | jq .
+```
 
 ### 运行在可视化（Headed）模式
 
@@ -225,6 +260,7 @@ page:
 - `--retry <number>`：失败脚本的重试次数。每一轮只会重新执行上一轮失败的脚本，可缓解网络波动或大模型输出不稳定导致的偶发失败。默认 `0`。（与 `--share-browser-context` 同时使用时不生效，该模式下所有脚本共享同一次执行。）
 - `--share-browser-context`：在多个脚本之间共享浏览器上下文（Cookies、`localStorage` 等），适合需要连续登录态的场景。默认关闭。
 - `--summary <filename>`：指定生成的 JSON 总结报告路径。
+- `--json`：输出一个 JSON 对象，其中包含执行统计和汇总文件路径，以及每个脚本的状态、Report 路径、输出文件路径和解析后的 YAML 输出。不会输出执行进度日志。
 - `--headed`：在带界面的浏览器中运行脚本，而非默认的无头模式。
 - `--keep-window`：脚本执行完成后保持浏览器窗口，会自动开启 `--headed` 模式。
 - `--config <filename>`：指定配置文件，文件中的参数会作为命令行参数的默认值。

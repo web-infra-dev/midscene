@@ -357,6 +357,12 @@ ios:
   # WebDriverAgent host address, optional, defaults to localhost.
   wdaHost: <host>
 
+  # Use the local doubaocli ios-auto backend instead of WebDriverAgent.
+  iosAuto: <boolean>
+
+  # Optional path or command name for doubaocli; defaults to doubaocli.
+  iosAutoCliPath: <path-or-command>
+
   # Whether to auto dismiss keyboard, optional, defaults to false.
   autoDismissKeyboard: <boolean>
 
@@ -378,6 +384,18 @@ ios:
 YAML scripts now support all configuration options from the `IOSDevice` constructor. For the complete list of options, please refer to [IOSDevice constructor in the iOS API reference](./ios-api-reference#iosdevice-constructor).
 
 :::
+
+#### Use `doubaocli ios-auto`
+
+Pass `--ios-auto` to the Midscene CLI to replace WebDriverAgent with the local `doubaocli ios-auto` backend for an iOS YAML script:
+
+```bash
+midscene --ios-auto ./ios-script.yaml
+```
+
+This requires `doubaocli` to be available on `PATH` and its iOS backend to be prepared. You can also set `ios.iosAuto: true` in YAML, and use `iosAutoCliPath` when the executable is not named `doubaocli`.
+
+The backend supports screenshots, logical-point gestures, text input, keyboard dismissal, app launch/termination, URL opening, and Home. It does not provide WebDriverAgent-only operations such as `runWdaRequest` or the iOS app switcher.
 
 #### iOS Platform-Specific Actions
 

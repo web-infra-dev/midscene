@@ -5,8 +5,35 @@ import { version } from '../package.json';
 import { matchYamlFiles, parseProcessArgs } from './cli-utils';
 import { createConfig, createFilesConfig } from './config-factory';
 import { loadDotenvConfig } from './dotenv-loader';
+import { createJsonResultPayload } from './execution-summary';
 import { runFrameworkTestConfig } from './framework';
 import { runModelCommand } from './model-command';
+
+const withJsonOutputSilenced = async <T>(
+  enabled: boolean,
+  callback: () => Promise<T>,
+): Promise<T> => {
+  if (!enabled) return callback();
+
+  const discardWrite = ((...args: unknown[]) => {
+    const callback = args.find((arg) => typeof arg === 'function');
+    if (typeof callback === 'function') {
+      callback();
+    }
+    return true;
+  }) as typeof process.stdout.write;
+  const stdoutWrite = process.stdout.write;
+  const stderrWrite = process.stderr.write;
+  process.stdout.write = discardWrite;
+  process.stderr.write = discardWrite;
+
+  try {
+    return await callback();
+  } finally {
+    process.stdout.write = stdoutWrite;
+    process.stderr.write = stderrWrite;
+  }
+};
 
 Promise.resolve(
   (async () => {
@@ -36,22 +63,23 @@ Promise.resolve(
     }
 
     const { options, path, files: cmdFiles } = await parseProcessArgs();
+    const jsonOutput = options.json === true;
 
     const welcome = `\nWelcome to @midscene/cli v${version}\n`;
-    console.log(welcome);
+    if (!jsonOutput) {
+      console.log(welcome);
+    }
 
     if (options.url) {
-      console.error(
+      throw new Error(
         'the cli mode is no longer supported, please use yaml file instead. See https://midscenejs.com/automate-with-scripts-in-yaml for more information. Sorry for the inconvenience.',
       );
-      process.exit(1);
     }
 
     const configFile = options.config as string | undefined;
 
     if (!configFile && !path && !(cmdFiles && cmdFiles.length > 0)) {
-      console.error('No script path, files, or config provided');
-      process.exit(1);
+      throw new Error('No script path, files, or config provided');
     }
 
     // Extract new configuration options
@@ -68,6 +96,7 @@ Promise.resolve(
       web: options.web,
       android: options.android,
       ios: options.ios,
+      iosAuto: options['ios-auto'],
       files: cmdFiles,
       setup: options.setup as string | undefined,
     };
@@ -75,44 +104,78 @@ Promise.resolve(
     let config;
 
     if (configFile) {
-      config = await createConfig(configFile, configOptions);
-      console.log(`   Config file: ${configFile}`);
-    } else if (cmdFiles && cmdFiles.length > 0) {
-      console.log('   Executing YAML files from --files argument...');
-      config = await createFilesConfig(cmdFiles, configOptions);
-    } else if (path) {
-      const files = await matchYamlFiles(path);
-      if (files.length === 0) {
-        console.error(`No yaml files found in ${path}`);
-        process.exit(1);
+      config = await withJsonOutputSilenced(jsonOutput, () =>
+        createConfig(configFile, configOptions),
+      );
+      if (!jsonOutput) {
+        console.log(`   Config file: ${configFile}`);
       }
-      console.log('   Executing YAML files...');
-      config = await createFilesConfig(files, configOptions);
+    } else if (cmdFiles && cmdFiles.length > 0) {
+      if (!jsonOutput) {
+        console.log('   Executing YAML files from --files argument...');
+      }
+      config = await withJsonOutputSilenced(jsonOutput, () =>
+        createFilesConfig(cmdFiles, configOptions),
+      );
+    } else if (path) {
+      const files = await withJsonOutputSilenced(jsonOutput, () =>
+        matchYamlFiles(path),
+      );
+      if (files.length === 0) {
+        throw new Error(`No yaml files found in ${path}`);
+      }
+      if (!jsonOutput) {
+        console.log('   Executing YAML files...');
+      }
+      config = await withJsonOutputSilenced(jsonOutput, () =>
+        createFilesConfig(files, configOptions),
+      );
     }
 
     if (!config) {
-      console.error('Could not create a valid configuration.');
-      process.exit(1);
+      throw new Error('Could not create a valid configuration.');
     }
 
-    loadDotenvConfig({
-      dotenvDebug: config.dotenvDebug,
-      dotenvOverride: config.dotenvOverride,
-      log: console.log,
+    let jsonResult: string | undefined;
+    const exitCode = await withJsonOutputSilenced(jsonOutput, async () => {
+      loadDotenvConfig({
+        dotenvDebug: config.dotenvDebug,
+        dotenvOverride: config.dotenvOverride,
+        log: console.log,
+      });
+
+      return runFrameworkTestConfig(config, {
+        onComplete: ({ results, summaryPath }) => {
+          if (!jsonOutput) return;
+          jsonResult = `${JSON.stringify(
+            createJsonResultPayload(results, summaryPath),
+            null,
+            2,
+          )}\n`;
+        },
+      });
     });
 
-    const exitCode = await runFrameworkTestConfig(config);
+    if (jsonResult) {
+      process.stdout.write(jsonResult);
+    }
 
     if (config.keepWindow) {
       // hang the process to keep the browser window open
       setInterval(() => {
-        console.log('browser is still running, use ctrl+c to stop it');
+        if (!jsonOutput) {
+          console.log('browser is still running, use ctrl+c to stop it');
+        }
       }, 5000);
     } else {
       process.exit(exitCode);
     }
   })().catch((e) => {
-    console.error(e);
+    if (process.argv.slice(2).includes('--json')) {
+      process.stdout.write('null\n');
+    } else {
+      console.error(e);
+    }
     process.exit(1);
   }),
 );
