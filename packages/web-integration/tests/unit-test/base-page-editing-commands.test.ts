@@ -10,7 +10,7 @@ import puppeteer, {
   type Browser as PuppeteerBrowser,
   type Page as PuppeteerPage,
 } from 'puppeteer';
-import { afterAll, beforeAll, describe, expect, test, vi } from 'vitest';
+import { afterAll, beforeAll, describe, expect, test } from 'vitest';
 
 const TEST_TIMEOUT_MS = 120_000;
 
@@ -24,8 +24,6 @@ const SPOOFED_USER_AGENT_MARKER =
   process.platform === 'darwin' ? 'X11; Linux x86_64' : 'Macintosh';
 const LOCAL_PLATFORM_MODIFIER =
   process.platform === 'darwin' ? 'Meta' : 'Control';
-const LOCAL_SHORTCUT_MODIFIER_NAME =
-  process.platform === 'darwin' ? 'Cmd' : 'Ctrl';
 
 const PAGE_HTML = `
   <!DOCTYPE html>
@@ -155,63 +153,29 @@ describe('BasePage editing commands', () => {
       TEST_TIMEOUT_MS,
     );
 
-    describe('with spoofed browser-level user agent', () => {
-      let spoofedBrowser: PuppeteerBrowser;
+    test(
+      'executes an explicit Cut command independently of target focus',
+      async () => {
+        const page = await browser.newPage();
+        await page.setContent(PAGE_HTML);
 
-      beforeAll(async () => {
-        spoofedBrowser = await puppeteer.launch({
-          headless: true,
-          args: [
-            '--no-sandbox',
-            '--disable-setuid-sandbox',
-            `--user-agent=${SPOOFED_USER_AGENT}`,
-          ],
+        const webPage = new PuppeteerWebPage(page);
+        await page.$eval('#target', (el) => {
+          const input = el as HTMLInputElement;
+          input.focus();
+          input.select();
         });
-      }, TEST_TIMEOUT_MS);
 
-      afterAll(async () => {
-        await spoofedBrowser?.close();
-      }, TEST_TIMEOUT_MS);
+        await webPage.keyboard.press([{ key: 'F12' }]);
+        expect(await puppeteerInputValue(page)).toBe('value to clear');
 
-      test(
-        'uses the Cut editing command when the local shortcut does not match the browser platform',
-        async () => {
-          const page = await spoofedBrowser.newPage();
-          await page.setContent(PAGE_HTML);
+        await webPage.keyboard.press([{ key: 'F12', command: 'Cut' }]);
+        expect(await puppeteerInputValue(page)).toBe('');
 
-          expect(await spoofedBrowser.userAgent()).toContain(
-            SPOOFED_USER_AGENT_MARKER,
-          );
-
-          await page.$eval('#target', (el) => {
-            const input = el as HTMLInputElement;
-            input.focus();
-            input.select();
-          });
-          await page.keyboard.down(LOCAL_PLATFORM_MODIFIER);
-          await page.keyboard.press('x');
-          await page.keyboard.up(LOCAL_PLATFORM_MODIFIER);
-          expect(await puppeteerInputValue(page)).toBe('value to clear');
-
-          await page.$eval('#target', (el) =>
-            (el as HTMLInputElement).select(),
-          );
-          const webPage = new PuppeteerWebPage(page);
-          const focusElementSpy = vi.spyOn(webPage, 'focusElement');
-          const input = createWebInputPrimitives(webPage);
-
-          await input.keyboard.keyboardPress(
-            `${LOCAL_SHORTCUT_MODIFIER_NAME}+X`,
-          );
-
-          expect(focusElementSpy).not.toHaveBeenCalled();
-          expect(await puppeteerInputValue(page)).toBe('');
-
-          await page.close();
-        },
-        TEST_TIMEOUT_MS,
-      );
-    });
+        await page.close();
+      },
+      TEST_TIMEOUT_MS,
+    );
   });
 
   describe('Playwright', () => {
