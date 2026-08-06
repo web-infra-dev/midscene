@@ -51,6 +51,41 @@ async function puppeteerInputValue(page: PuppeteerPage): Promise<string> {
   return page.$eval('#target', (el) => (el as HTMLInputElement).value);
 }
 
+async function puppeteerInputSelection(
+  page: PuppeteerPage,
+): Promise<[number | null, number | null]> {
+  return page.$eval('#target', (el) => {
+    const input = el as HTMLInputElement;
+    return [input.selectionStart, input.selectionEnd] as [
+      number | null,
+      number | null,
+    ];
+  });
+}
+
+async function installPuppeteerEditingEventRecorder(
+  page: PuppeteerPage,
+): Promise<void> {
+  await page.evaluate(() => {
+    const browserWindow = window as typeof window & {
+      __midsceneEditingEvents: string[];
+    };
+    browserWindow.__midsceneEditingEvents = [];
+    document.addEventListener('cut', () =>
+      browserWindow.__midsceneEditingEvents.push('cut'),
+    );
+  });
+}
+
+async function puppeteerEditingEvents(page: PuppeteerPage): Promise<string[]> {
+  return page.evaluate(() => {
+    const browserWindow = window as typeof window & {
+      __midsceneEditingEvents: string[];
+    };
+    return browserWindow.__midsceneEditingEvents;
+  });
+}
+
 async function playwrightInputCenter(
   page: PlaywrightPage,
   selector = '#target',
@@ -171,6 +206,30 @@ describe('BasePage editing commands', () => {
 
         await webPage.keyboard.press([{ key: 'F12', command: 'Cut' }]);
         expect(await puppeteerInputValue(page)).toBe('');
+
+        await page.close();
+      },
+      TEST_TIMEOUT_MS,
+    );
+
+    test(
+      'preserves the selection when the cut shortcut targets the same input',
+      async () => {
+        const page = await browser.newPage();
+        await page.setContent(PAGE_HTML);
+        await installPuppeteerEditingEventRecorder(page);
+
+        const input = createWebInputPrimitives(new PuppeteerWebPage(page));
+        const center = await puppeteerInputCenter(page);
+        const target = { center } as any;
+        const modifier = process.platform === 'darwin' ? 'Cmd' : 'Ctrl';
+
+        await input.keyboard.keyboardPress(`${modifier}+A`, { target });
+        expect(await puppeteerInputSelection(page)).toEqual([0, 14]);
+
+        await input.keyboard.keyboardPress(`${modifier}+X`, { target });
+        expect(await puppeteerInputValue(page)).toBe('');
+        expect(await puppeteerEditingEvents(page)).toEqual(['cut']);
 
         await page.close();
       },
