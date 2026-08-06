@@ -231,18 +231,118 @@ ${tab}${fields.join(`\n${tab}`)}
 `.trim();
 };
 
+type SeedFunctionDefinition = {
+  name: string;
+  description: string;
+  parameters: {
+    type: 'object';
+    properties: Record<
+      string,
+      { type: string; description: string; enum?: string[] }
+    >;
+    required: string[];
+  };
+};
+
+function unwrapSeedSchema(field: unknown): unknown {
+  let current = field as {
+    _def?: { typeName?: string; innerType?: unknown };
+  };
+  while (
+    current?._def &&
+    ['ZodDefault', 'ZodOptional', 'ZodNullable'].includes(
+      current._def.typeName || '',
+    )
+  ) {
+    current = current._def.innerType as typeof current;
+  }
+  return current;
+}
+
+function seedTypeForSchema(field: unknown): string {
+  if (seedEnumForSchema(field)) return 'string';
+  const type = getZodTypeName(unwrapSeedSchema(field), 'object').toLowerCase();
+  if (type.includes('string')) return 'string';
+  if (type.includes('number') || type.includes('integer')) return 'number';
+  if (type.includes('boolean')) return 'boolean';
+  if (type.includes('array')) return 'array';
+  return 'object';
+}
+
+function seedEnumForSchema(field: unknown): string[] | undefined {
+  const schema = unwrapSeedSchema(field) as {
+    _def?: { typeName?: string; values?: unknown };
+  };
+  if (schema?._def?.typeName !== 'ZodEnum') return undefined;
+  const values = schema._def.values;
+  return Array.isArray(values) &&
+    values.every((value) => typeof value === 'string')
+    ? values
+    : undefined;
+}
+
+function buildSeedFunctionDefinitions(
+  actionSpace: DeviceAction<any>[],
+  includeLocateInPlanning: boolean,
+): SeedFunctionDefinition[] {
+  return actionSpace.map((action) => {
+    const schema = action.paramSchema as {
+      _def?: { typeName?: string };
+      shape?: Record<string, unknown>;
+    };
+    const properties: SeedFunctionDefinition['parameters']['properties'] = {};
+    const required: string[] = [];
+    const locateFields = new Set(
+      findAllMidsceneLocatorField(action.paramSchema),
+    );
+
+    if (schema?._def?.typeName === 'ZodObject' && schema.shape) {
+      for (const [name, field] of Object.entries(schema.shape)) {
+        const enumValues = seedEnumForSchema(field);
+        properties[name] = {
+          type:
+            includeLocateInPlanning && locateFields.has(name)
+              ? 'string'
+              : seedTypeForSchema(field),
+          description:
+            (includeLocateInPlanning && locateFields.has(name)
+              ? 'Target coordinates in the format: <point>x y</point>. Coordinates are normalized to a 0-1000 range.'
+              : getZodDescription(field as z.ZodTypeAny)) ||
+            `Parameter ${name} for ${action.name}.`,
+          ...(enumValues ? { enum: enumValues } : {}),
+        };
+        if (
+          typeof (field as { isOptional?: () => boolean }).isOptional !==
+            'function' ||
+          !(field as { isOptional: () => boolean }).isOptional()
+        ) {
+          required.push(name);
+        }
+      }
+    }
+
+    return {
+      name: action.name,
+      description: action.description || 'No description provided.',
+      parameters: { type: 'object', properties, required },
+    };
+  });
+}
+
 export async function systemPromptToTaskPlanning({
   actionSpace,
   locatePromptSpec,
   includeLocateInPlanning,
   includeThought,
   includeSubGoals,
+  actionOutputFormat = 'midscene',
 }: {
   actionSpace: DeviceAction<any>[];
   locatePromptSpec?: LocateResultPromptSpec;
   includeLocateInPlanning: boolean;
   includeThought?: boolean;
   includeSubGoals?: boolean;
+  actionOutputFormat?: 'midscene' | 'seed';
 }) {
   const preferredLanguage = getPreferredLanguage();
 
@@ -265,6 +365,18 @@ export async function systemPromptToTaskPlanning({
 
   const shouldIncludeThought = includeThought ?? true;
   const shouldIncludeSubGoals = includeSubGoals ?? false;
+
+  const useSeedActionOutput = actionOutputFormat === 'seed';
+  const seedFunctionDefinitions = buildSeedFunctionDefinitions(
+    actionSpace,
+    includeLocateInPlanning,
+  )
+    .map((definition) => JSON.stringify(definition))
+    .join('\n');
+  const seedLocateParameterExample = includeLocateInPlanning
+    ? '<parameter name="locate" string="true"><point>500 500</point></parameter>'
+    : '<parameter name="locate" string="false">{"prompt":"the submit button"}</parameter>';
+  const seedThinkingPrefix = `<think_never_used_51bce0c785ca2f68081bfa7d91973934> reasoning process </think_never_used_51bce0c785ca2f68081bfa7d91973934>`;
 
   const locateExample = (prompt: string, exampleValueIndex: number) =>
     locateParamExample(
@@ -472,9 +584,9 @@ ${
 - Use the <complete success="true|false">message</complete> tag to output the result if the goal is accomplished or failed.
   - the 'success' attribute is required. ${shouldIncludeSubGoals ? 'It means whether the expected goal is accomplished based on what you observe in the current screenshot and the current execution history. ' : ''}No matter what errors occurred during execution, set success="true" only when the current execution history shows that all steps required by the user have been completed and the final state satisfies the requirement. If the user asks for explicit operation steps or an ordered workflow, do not treat those steps as completed only because the current screenshot already shows the final expected state. If the ${shouldIncludeSubGoals ? 'expected goal is not accomplished and cannot be accomplished' : 'instruction is not fulfilled and cannot be fulfilled'}, set success="false".
   - the 'message' is the information that will be provided to the user. If the user asks for a specific format, strictly follow that.
-- If you output <complete>, do NOT output <action-type> or <action-param-json>. The task ends here.
+- If you output <complete>, do NOT output an action. The task ends here.
 
-## Step ${actionStepNumber}: Determine Next Action (related tags: <log>, <action-type>, <action-param-json>, <error>)
+## Step ${actionStepNumber}: Determine Next Action (related tags: <log>, ${useSeedActionOutput ? '<seed:tool_call>' : '<action-type>, <action-param-json>'}, <error>)
 
 ONLY if the task is not complete: Think what the next action is according to the current screenshot${shouldIncludeSubGoals ? ' and the plan' : ''}.
 
@@ -484,7 +596,22 @@ ONLY if the task is not complete: Think what the next action is according to the
 - Give just the next ONE action you should do (if any)
 - If there are some error messages reported by the previous actions, don't give up, try parse a new action to recover. If the error persists for more than 3 times, you should think this is an error and set the "error" field to the error message.
 
-${actionStepNotes}
+${
+  useSeedActionOutput
+    ? `## Function Definition
+
+- You have access to the following functions:
+${seedFunctionDefinitions}
+
+- To call a function, use the following structure without any suffix:
+
+<think_never_used_51bce0c785ca2f68081bfa7d91973934> reasoning process </think_never_used_51bce0c785ca2f68081bfa7d91973934>
+<seed:tool_call><function name="Tap">${seedLocateParameterExample}</function></seed:tool_call>
+
+## Important Notes
+- All required parameters must be explicitly provided.
+- Set string="true" for strings. Set string="false" for numbers, booleans, arrays, and objects; encode arrays and objects as JSON.`
+    : `${actionStepNotes}
 
 ${
   includeLocateInPlanning
@@ -494,7 +621,8 @@ ${
     : ''
 }### Supporting actions list
 
-${actionList}
+${actionList}`
+}
 
 ### Log to give user feedback (preamble message)
 
@@ -513,7 +641,11 @@ The <log> tag is a brief preamble message to the user explaining what you're abo
 
 ### If there is some action to do ...
 
-- Use the <action-type> and <action-param-json> tags to output the action to be executed.
+${
+  useSeedActionOutput
+    ? `- Output exactly one <seed:tool_call> using a function from Function Definition.
+- Do not output Midscene action tags or JSON action parameters.`
+    : `- Use the <action-type> and <action-param-json> tags to output the action to be executed.
 - The <action-type> MUST be one of the supporting actions. 'complete' is NOT a valid action-type.
 - Parameter names are strict. Use EXACTLY the field names listed for the selected action. Do NOT invent alias fields. If an action has a "sample" in its description, follow that structure.
 For example:
@@ -522,7 +654,8 @@ For example:
 {
   "locate": ${locateExample1}
 }
-</action-param-json>
+</action-param-json>`
+}
 
 ### If you think there is an error ...
 
@@ -533,13 +666,20 @@ For example:
 
 ### If there is no action to do ...
 
-- Don't output <action-type> or <action-param-json> if there is no action to do.
+${useSeedActionOutput ? "- Don't output <seed:tool_call> if there is no action to do." : "- Don't output <action-type> or <action-param-json> if there is no action to do."}
 
 ## Return Format
 
 Return in XML format following this decision flow:
 
 **Always include (REQUIRED):**
+${
+  useSeedActionOutput
+    ? `<!-- This MUST be the first content in every response. It separates reasoning from the protocol output. -->
+${seedThinkingPrefix}
+`
+    : ''
+}
 <!-- Step 1: Observe${shouldIncludeSubGoals ? ' and Plan' : ''} -->
 <planning>Your planning details here. NEVER skip this tag.</planning>
 ${
@@ -570,14 +710,27 @@ ${
 **Path B: If the ${shouldIncludeSubGoals ? 'goal is NOT complete' : 'instruction is NOT fulfilled'} yet (Step ${actionStepNumber})**
 <!-- Determine next action -->
 <log>...</log>
-<action-type>...</action-type>
-<action-param-json>...</action-param-json>
+${useSeedActionOutput ? '<seed:tool_call><function name="Input"><parameter name="value" string="true">John</parameter></function></seed:tool_call>' : '<action-type>...</action-type>\n<action-param-json>...</action-param-json>'}
 
 <!-- OR if there's an error -->
 <error>...</error>
 ${
-  shouldIncludeSubGoals
+  useSeedActionOutput
     ? `
+## Multi-turn Conversation Example
+
+### Turn 1
+${seedThinkingPrefix}
+<planning>The Name field is visible and empty. I will fill it first.</planning>
+<log>Entering the name</log>
+<seed:tool_call><function name="Input"><parameter name="value" string="true">John</parameter>${seedLocateParameterExample}</function></seed:tool_call>
+
+### Turn 2
+${seedThinkingPrefix}
+<planning>The name is entered. The requested form fields are complete.</planning>
+<complete success="true">Form fields completed.</complete>`
+    : shouldIncludeSubGoals
+      ? `
 ## Multi-turn Conversation Example
 
 Below is an example of a multi-turn conversation for "fill out the registration form with name 'John' and email 'john@example.com', then return the filled email address":
@@ -708,7 +861,7 @@ Actions performed for current sub-goal:
 </mark-sub-goal-done>
 <complete success="true">john@example.com</complete>
 `
-    : `
+      : `
 ## Multi-turn Conversation Example
 
 Below is an example of a multi-turn conversation for "fill out the registration form with name 'John' and email 'john@example.com', then return the filled email address":

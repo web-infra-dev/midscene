@@ -1137,7 +1137,12 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
       }
 
       let deepLocate = opt?.deepLocate;
-      if (
+      if (deepLocate && planningModel.config.modelFamily === 'doubao-y') {
+        warn(
+          'The "deepLocate" option is not supported for aiAct with doubao-y because its Seed CUA planning actions already provide direct coordinates. It will be ignored.',
+        );
+        deepLocate = false;
+      } else if (
         deepLocate &&
         !planningModel.adapter.planning.supportsActionDeepLocate
       ) {

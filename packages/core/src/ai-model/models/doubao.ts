@@ -158,10 +158,20 @@ const doubaoVisionAdapter: ModelAdapterDefinition = {
   },
 };
 
+const doubaoYAdapter: ModelAdapterDefinition = {
+  chatCompletion: doubaoVisionAdapter.chatCompletion,
+  locate: {
+    resultAdapter: {
+      coordinates: doubaoPointCoordinatesMeta,
+    },
+  },
+};
+
 export const doubaoAdapters = {
   'doubao-vision': doubaoVisionAdapter,
   'doubao-seed': doubaoVisionAdapter,
+  'doubao-y': doubaoYAdapter,
 } satisfies Pick<
   Record<TModelFamily, ModelAdapterDefinition>,
-  'doubao-vision' | 'doubao-seed'
+  'doubao-vision' | 'doubao-seed' | 'doubao-y'
 >;

@@ -1,4 +1,8 @@
-import { type TUserPrompt, userPromptToString } from '@/common';
+import {
+  findAllMidsceneLocatorField,
+  type TUserPrompt,
+  userPromptToString,
+} from '@/common';
 import type {
   PlanningAIResponse,
   PlanningAction,
@@ -34,6 +38,68 @@ const warnLog = getDebug('planning', { console: true });
 
 const noPreviousActionsText =
   'No previous actions have been executed in this aiAct execution yet. If the instruction asks for actions, choose the first action to execute.';
+
+function parseSeedPlanningAction(
+  content: string,
+  actionSpace: PlanOptions['actionSpace'],
+): PlanningAction | null {
+  const recoveredContent = content.replace(
+    /(<parameter\b[^>]*>[^<]*)<\/point>(?=\s*<\/function>)/g,
+    '$1</parameter>',
+  );
+  const functionMatches = [
+    ...recoveredContent.matchAll(
+      /<function\s+name="([^"]+)">([\s\S]*?)<\/function>/g,
+    ),
+  ];
+  if (functionMatches.length === 0) return null;
+
+  const [, actionName, parameterXml] = functionMatches[0];
+  const action = actionSpace.find((item) => item.name === actionName);
+  if (!action) {
+    throw new Error(`Unsupported Seed CUA action: ${actionName}`);
+  }
+  const paramSchema = action.paramSchema as {
+    _def?: { typeName?: string };
+    shape?: Record<string, unknown>;
+  };
+  const fields =
+    paramSchema?._def?.typeName === 'ZodObject' ? paramSchema.shape : undefined;
+  const locateFields = new Set(findAllMidsceneLocatorField(action.paramSchema));
+
+  const param: Record<string, unknown> = {};
+  for (const match of parameterXml.matchAll(
+    /<parameter\b([^>]*)>([\s\S]*?)<\/parameter>/g,
+  )) {
+    const [, attributes, rawValue] = match;
+    const name = attributes.match(/\bname="([^"]+)"/)?.[1];
+    if (!name || (fields && !fields[name])) continue;
+    const stringFlag = attributes.match(/\bstring="(true|false)"/)?.[1];
+    const value = rawValue.trim();
+    if (locateFields.has(name)) {
+      const point = value.match(
+        /^<point>\s*(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\s*<\/point>$/,
+      );
+      if (point) {
+        param[name] = { point: [Number(point[1]), Number(point[2])] };
+        continue;
+      }
+    }
+    if (stringFlag !== 'false') {
+      param[name] = value;
+      continue;
+    }
+    try {
+      param[name] = JSON.parse(value);
+    } catch {
+      param[name] =
+        value === 'true' ? true : value === 'false' ? false : Number(value);
+      if (Number.isNaN(param[name])) param[name] = value;
+    }
+  }
+
+  return { type: action.name, param };
+}
 
 /**
  * Parse XML response from LLM and convert to RawResponsePlanningAIResponse.
@@ -160,6 +226,20 @@ async function callAndParsePlanningResponse(
         response.content,
         modelRuntime.adapter.jsonParser,
       );
+      if (modelRuntime.config.modelFamily === 'doubao-y') {
+        const seedAction = parseSeedPlanningAction(
+          response.content,
+          actionSpace,
+        );
+        if (seedAction) {
+          planFromAI.action = seedAction;
+        } else if (planFromAI.finalizeSuccess === undefined) {
+          // The Seed desktop CUA demo treats a response without a tool call as
+          // the model's final text answer.
+          planFromAI.finalizeSuccess = true;
+          planFromAI.finalizeMessage = response.content.trim();
+        }
+      }
       if (planFromAI.action && planFromAI.finalizeSuccess !== undefined) {
         warnLog(
           'Planning response included both an action and <complete>; ignoring <complete> output.',
@@ -212,8 +292,14 @@ export async function plan(
   const { adapter } = modelRuntime;
   const { shotSize } = context;
   const screenshotBase64 = context.screenshot.base64;
+  // Seed CUA actions carry their own 0-1000 coordinates. Unlike the generic
+  // Midscene flow, this is the primary action protocol rather than an optional
+  // deepLocate optimization, so it must not depend on the caller's flag.
+  const includeLocateInPlanning =
+    opts.includeLocateInPlanning ||
+    modelRuntime.config.modelFamily === 'doubao-y';
 
-  if (opts.includeLocateInPlanning && !modelRuntime.config.modelFamily) {
+  if (includeLocateInPlanning && !modelRuntime.config.modelFamily) {
     throw new Error(
       planningModelFamilyRequiredForLocateMessage(modelRuntime.config.slot),
     );
@@ -230,9 +316,11 @@ export async function plan(
   const systemPrompt = await systemPromptToTaskPlanning({
     actionSpace: opts.actionSpace,
     locatePromptSpec: locateResultAdapter?.promptSpec,
-    includeLocateInPlanning: opts.includeLocateInPlanning,
+    includeLocateInPlanning,
     includeThought: true, // always include thought
     includeSubGoals,
+    actionOutputFormat:
+      modelRuntime.config.modelFamily === 'doubao-y' ? 'seed' : 'midscene',
   });
 
   const preparedImage = await prepareModelImage({
@@ -344,7 +432,7 @@ export async function plan(
     messages: msgs,
     modelRuntime,
     abortSignal: opts.abortSignal,
-    includeLocateInPlanning: opts.includeLocateInPlanning,
+    includeLocateInPlanning,
     actionSpace: opts.actionSpace,
     locateResultAdapter,
     locateResultContext: {
