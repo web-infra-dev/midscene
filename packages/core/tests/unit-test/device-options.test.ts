@@ -306,17 +306,11 @@ describe('Device Options Type Definitions', () => {
     });
 
     test('should reject invalid screenshotStrategy values', () => {
-      const invalidStrategies = [
-        // @ts-expect-error - invalid value should cause a type error
-        'invalid',
-        // @ts-expect-error - empty string should cause a type error
-        '',
-        // @ts-expect-error - number should cause a type error
-        123,
-      ];
+      const invalidStrategies = ['invalid', '', 123] as const;
 
       invalidStrategies.forEach((strategy) => {
         const options: AndroidDeviceOpt = {
+          // @ts-expect-error - invalid values should cause a type error
           screenshotStrategy: strategy,
         };
         expect(options).toBeDefined();

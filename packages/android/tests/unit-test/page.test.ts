@@ -155,6 +155,7 @@ describe('AndroidDevice', () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.unstubAllEnvs();
   });
 
   it('should throw error if deviceId is not provided', () => {
@@ -881,6 +882,85 @@ Stdout:
       const result = await device.screenshotBase64();
       expect(result).toContain(mockBuffer.toString('base64'));
       expect(mockAdb.shell).not.toHaveBeenCalled();
+    });
+
+    it('should use yadb directly when screenshotStrategy is always-yadb', async () => {
+      const alwaysYadbDevice = new AndroidDevice('test-device', {
+        minScreenshotBufferSize: 0,
+        screenshotStrategy: 'always-yadb',
+        scrcpyConfig: { enabled: false },
+      });
+      vi.spyOn(alwaysYadbDevice, 'getAdb').mockResolvedValue(mockAdb);
+      const forceScreenshotSpy = vi
+        .spyOn(alwaysYadbDevice, 'forceScreenshot')
+        .mockResolvedValue();
+      const mockBuffer = createValidPngBuffer();
+      vi.spyOn(CoreUtils, 'getTmpFile').mockReturnValue('/tmp/yadb.png');
+      (fs.promises.readFile as Mock).mockResolvedValue(mockBuffer);
+      vi.spyOn(ImgUtils, 'createImgBase64ByFormat').mockReturnValue(
+        `data:image/png;base64,${mockBuffer.toString('base64')}`,
+      );
+
+      const result = await alwaysYadbDevice.screenshotBase64();
+
+      expect(forceScreenshotSpy).toHaveBeenCalledWith(
+        expect.stringMatching(/^\/data\/local\/tmp\/ms_[a-z0-9]+\.png$/),
+      );
+      expect(mockAdb.takeScreenshot).not.toHaveBeenCalled();
+      expect(mockAdb.shell).not.toHaveBeenCalledWith(
+        expect.stringMatching(/screencap/),
+      );
+      expect(mockAdb.pull).toHaveBeenCalledWith(
+        expect.stringMatching(/^\/data\/local\/tmp\/ms_[a-z0-9]+\.png$/),
+        '/tmp/yadb.png',
+      );
+      expect(result).toContain(mockBuffer.toString('base64'));
+    });
+
+    it('should use yadb directly when configured through the environment', async () => {
+      vi.stubEnv('MIDSCENE_ANDROID_SCREENSHOT_STRATEGY', 'always-yadb');
+      const forceScreenshotSpy = vi
+        .spyOn(device, 'forceScreenshot')
+        .mockResolvedValue();
+      const mockBuffer = createValidPngBuffer();
+      vi.spyOn(CoreUtils, 'getTmpFile').mockReturnValue('/tmp/yadb-env.png');
+      (fs.promises.readFile as Mock).mockResolvedValue(mockBuffer);
+      vi.spyOn(ImgUtils, 'createImgBase64ByFormat').mockReturnValue(
+        `data:image/png;base64,${mockBuffer.toString('base64')}`,
+      );
+
+      await device.screenshotBase64();
+
+      expect(forceScreenshotSpy).toHaveBeenCalledOnce();
+      expect(mockAdb.takeScreenshot).not.toHaveBeenCalled();
+      expect(mockAdb.pull).toHaveBeenCalledWith(
+        expect.stringMatching(/^\/data\/local\/tmp\/ms_[a-z0-9]+\.png$/),
+        '/tmp/yadb-env.png',
+      );
+    });
+
+    it('should prefer an explicit auto strategy over the environment', async () => {
+      vi.stubEnv('MIDSCENE_ANDROID_SCREENSHOT_STRATEGY', 'always-yadb');
+      const explicitAutoDevice = new AndroidDevice('test-device', {
+        minScreenshotBufferSize: 0,
+        screenshotStrategy: 'auto',
+        scrcpyConfig: { enabled: false },
+      });
+      vi.spyOn(explicitAutoDevice, 'getAdb').mockResolvedValue(mockAdb);
+      const forceScreenshotSpy = vi.spyOn(
+        explicitAutoDevice,
+        'forceScreenshot',
+      );
+      const mockBuffer = createValidPngBuffer();
+      mockAdb.takeScreenshot.mockResolvedValue(mockBuffer);
+      vi.spyOn(ImgUtils, 'createImgBase64ByFormat').mockReturnValue(
+        `data:image/png;base64,${mockBuffer.toString('base64')}`,
+      );
+
+      await explicitAutoDevice.screenshotBase64();
+
+      expect(mockAdb.takeScreenshot).toHaveBeenCalledOnce();
+      expect(forceScreenshotSpy).not.toHaveBeenCalled();
     });
 
     it('should fall back to screencap and pull if takeScreenshot fails', async () => {

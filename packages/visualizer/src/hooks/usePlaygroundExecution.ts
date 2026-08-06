@@ -479,6 +479,7 @@ export function usePlaygroundExecution(options: UsePlaygroundExecutionOptions) {
       domIncluded,
       deviceType,
       imeStrategy,
+      screenshotStrategy,
       autoDismissKeyboard,
       keyboardDismissStrategy,
       alwaysRefreshScreenInfo,
