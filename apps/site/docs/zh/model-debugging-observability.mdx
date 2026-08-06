@@ -1,0 +1,201 @@
+# 模型调试与可观测性
+
+本文介绍如何排查模型连接和兼容性问题、观察延迟和 Token 使用量、采集 Trace，以及记录模型调用。
+
+## 验证模型连接
+
+本节提供两种验证方法。先直接请求模型服务，确认模型 API 可以连接。再运行 Midscene 验证命令，检查模型兼容性。
+
+### 直接请求模型服务
+
+以下 `curl` 请求用于检查 Base URL、API Key 和模型名称是否可用。该请求只验证模型 API 的基础连接。它不会检查模型是否满足 Midscene 的兼容性要求。
+
+```bash
+MIDSCENE_MODEL_BASE_URL='替换为你的 baseUrl'
+MIDSCENE_MODEL_API_KEY='替换为你的 API Key'
+MIDSCENE_MODEL_NAME='替换为你的 model name'
+
+curl -X POST "${MIDSCENE_MODEL_BASE_URL%/}/chat/completions" \
+  -H "Authorization: Bearer ${MIDSCENE_MODEL_API_KEY}" \
+  -H "Content-Type: application/json" \
+  -d '{
+  "model": "'"${MIDSCENE_MODEL_NAME}"'",
+  "messages": [
+    {
+      "role": "user",
+      "content": "What is 1+1?"
+    }
+  ]
+}'
+```
+
+### 使用 Midscene 验证命令
+
+该命令同时检查模型连接和 Midscene 兼容性。
+
+将模型配置放入 `.env` 文件，然后运行：
+
+```bash
+# 如果当前项目已安装 @midscene/cli，可以使用本地的 midscene 命令
+npx midscene model verify
+
+# 如果当前项目未安装 @midscene/cli，或需要使用最新版本
+npx @midscene/cli@latest model verify
+```
+
+该命令会读取当前工作目录下的 `.env` 文件。Dotenv 的 Debug 日志默认开启。`.env` 中的变量会覆盖已有的 Shell 环境变量。
+
+如果 `curl` 请求成功，但 Midscene 验证命令失败，说明模型 API 可以连接。请继续检查模型能力和 Midscene 配置。
+
+## 常见配置错误
+
+### `MIDSCENE_MODEL_FAMILY` 未设置为多模态模型
+
+如果收到 `MIDSCENE_MODEL_FAMILY is not set to a multimodal model with UI localization` 错误，请确认已正确配置多模态模型的 `MIDSCENE_MODEL_FAMILY` 环境变量。
+
+从 1.0 版本开始，Midscene 推荐使用 `MIDSCENE_MODEL_FAMILY` 指定多模态模型类型。旧的 `MIDSCENE_USE_...` 配置仍然兼容，但已经废弃。
+
+正确的模型 family 和完整配置示例请参考[配置你的模型](./model-common-config)。
+
+### Base URL 或模型名称不正确
+
+确认 `MIDSCENE_MODEL_BASE_URL` 指向服务商的 API 接入地址。该地址通常以 `/v1` 等版本号结尾。请勿添加 `/chat/completion`，底层 SDK 会自动添加请求路径。
+
+同时确认 `MIDSCENE_MODEL_NAME` 与该接入地址提供的模型一致。
+
+## 调试能力
+
+### Debug 日志
+
+启用以下选择器可以打印更详细的 Debug 日志。无论是否启用这些选择器，Midscene 都会将日志保存在 `./midscene_run/log` 目录中。
+
+| 名称 | 描述 |
+| --- | --- |
+| `DEBUG=midscene:ai:profile:stats` | 使用逗号分隔的格式打印模型延迟和 Token 使用量 |
+| `DEBUG=midscene:ai:profile:detail` | 打印详细的 Token 使用量日志 |
+| `DEBUG=midscene:ai:call` | 打印 AI 响应详情 |
+| `DEBUG=midscene:android:adb` | 打印 Android adb 命令调用详情 |
+| `DEBUG=midscene:*` | 打印全部 Debug 日志 |
+
+生成的[报告文件](./consume-report-file)中也包含模型使用量统计。
+
+Debug 日志可能包含模型输入或输出。分享日志前，请先检查内容。
+
+### 记录模型调用
+
+设置 `MIDSCENE_RECORD_MODEL_CALL=true`，可以将模型请求、响应和流式 Chunk 写入 JSONL 文件：
+
+```text
+midscene_run/model-requests/<启动时间>-<pid>.jsonl
+```
+
+每个进程生成一个文件，每行对应一个 JSON 事件。只有 Node.js 和 Electron 支持写入本地文件。浏览器和 Worker 不会写入本地文件。使用 Codex App Server 时，记录还会包含可获取的协议元数据。
+
+每个事件的 `type` 为 `request`、`chunk`、`response` 或 `error`。事件还包含 `executionId`，用于关联同一个报告 execution 内的调用及其重试。不属于报告 execution 的调用，例如连接检查，会使用带 `unscoped-` 前缀的生成 ID。
+
+:::warning 注意事项
+
+文件包含请求 Body（包括自定义 `extraBody`）、响应 Header 和 Body、流式响应，以及可能采用 Base64 编码的截图。请求 Header 不会被记录。
+
+这些文件可能包含敏感信息，且体积较大。请仅在排查问题时启用记录，并在使用后妥善保管或删除文件。记录格式不保证跨版本兼容。
+
+:::
+
+## 可观测性平台
+
+### LangSmith
+
+LangSmith 是用于调试大语言模型的平台。安装依赖并设置环境变量后，Midscene 可以自动接入 LangSmith。
+
+**安装依赖**
+
+```bash
+npm install langsmith
+```
+
+**设置环境变量**
+
+```bash
+# 启用 Midscene 的 LangSmith 自动集成
+export MIDSCENE_LANGSMITH_DEBUG=1
+
+# LangSmith 配置
+export LANGCHAIN_API_KEY="your-langchain-api-key-here"
+export LANGCHAIN_TRACING=true
+export LANGCHAIN_ENDPOINT="https://api.smith.langchain.com"
+# export LANGCHAIN_ENDPOINT="https://eu.api.smith.langchain.com" # 如果在欧洲区域注册
+```
+
+启动 Midscene 后，应该会看到类似以下内容的日志：
+
+```log
+DEBUGGING MODE: langsmith wrapper enabled
+```
+
+注意事项：
+
+- LangSmith 和 Langfuse 可以同时启用。
+- 该集成仅支持 Node.js。浏览器环境会抛出错误。
+- 如果使用 [`createOpenAIClient`](./reference/#自定义-openai-客户端)，它会覆盖通过环境变量启用的自动集成。
+
+如需进行更细粒度的控制，例如只对特定任务启用 LangSmith，请使用 [`createOpenAIClient`](./reference/#自定义-openai-客户端) 手动包装客户端。
+
+### Langfuse
+
+[Langfuse](https://langfuse.com) 是一个 LLM 可观测性平台。Midscene 集成了 Langfuse 的 `observeOpenAI` wrapper，可以自动追踪 OpenAI API 调用。
+
+Langfuse 的追踪基于 OpenTelemetry，因此需要在应用启动时初始化 OpenTelemetry SDK。
+
+**安装依赖**
+
+```bash
+npm install @langfuse/openai @langfuse/otel @opentelemetry/sdk-node
+```
+
+**初始化 OpenTelemetry**
+
+在应用入口文件的最顶部添加以下代码：
+
+```typescript
+import { NodeSDK } from "@opentelemetry/sdk-node";
+import { LangfuseSpanProcessor } from "@langfuse/otel";
+
+const sdk = new NodeSDK({
+  spanProcessors: [new LangfuseSpanProcessor()],
+});
+sdk.start();
+```
+
+**设置环境变量**
+
+```bash
+# 启用 Midscene 的 Langfuse 自动集成
+export MIDSCENE_LANGFUSE_DEBUG=1
+
+# Langfuse 配置
+export LANGFUSE_PUBLIC_KEY="your-langfuse-public-key-here"
+export LANGFUSE_SECRET_KEY="your-langfuse-secret-key-here"
+export LANGFUSE_BASE_URL="https://cloud.langfuse.com" # 🇪🇺 欧洲区域
+# export LANGFUSE_BASE_URL="https://us.cloud.langfuse.com" # 🇺🇸 美国区域
+```
+
+启动 Midscene 后，应该会看到类似以下内容的日志：
+
+```log
+OpenTelemetry SDK initialized for Langfuse tracing
+DEBUGGING MODE: langfuse wrapper enabled
+```
+
+更多配置和最佳实践请参考 [Langfuse OpenAI 集成文档](https://langfuse.com/integrations/model-providers/openai-js)。
+
+注意事项：
+
+- LangSmith 和 Langfuse 可以同时启用。
+- 该集成仅支持 Node.js。浏览器环境会抛出错误。
+- 如果使用 [`createOpenAIClient`](./reference/#自定义-openai-客户端)，它会覆盖通过环境变量启用的自动集成。
+
+## 安全注意事项
+
+- 不要将 `.env` 文件、Trace、Debug 日志或模型调用记录提交到源码仓库。
+- 日志和 Trace 可能包含模型输入、输出或截图，分享前请先检查内容。
+- 使用项目已有的密钥管理方式存储 LangSmith 和 Langfuse Key。

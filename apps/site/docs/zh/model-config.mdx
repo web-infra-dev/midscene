@@ -108,19 +108,6 @@ export MIDSCENE_MODEL_FAMILY="gpt-5"
 | `MIDSCENE_PLANNING_MODEL_EXTRA_BODY_JSON` | 可选，效果等同于 `MIDSCENE_MODEL_EXTRA_BODY_JSON`  |
 | `MIDSCENE_PLANNING_MODEL_RESPONSE_FORMAT` | 可选，在合适的 Planning 场景中控制结构化响应策略 |
 
-### 调试日志开关
-
-通过设置以下配置，可以在命令行打印更多调试日志。
-无论是否配置，这些日志都会打印在 `./midscene_run/log` 文件夹中。
-
-| 名称 | 描述 |
-|------|-------------|
-| `DEBUG=midscene:ai:profile:stats` | 打印 AI 服务消耗的时间、token 使用情况，用逗号分隔，便于分析 |
-| `DEBUG=midscene:ai:profile:detail` | 打印 AI token 消耗信息的详细日志 |
-| `DEBUG=midscene:ai:call` | 打印 AI 响应详情 |
-| `DEBUG=midscene:android:adb` | 打印 Android adb 命令调用详情 |
-| `DEBUG=midscene:*` | 打印所有调试日志 |
-
 ## 仍兼容的模型配置（不推荐）
 
 以下环境变量已废弃但仍然兼容，建议尽快迁移到新的配置方式。
@@ -160,117 +147,42 @@ const agent = new Agent(page, {
 });
 ```
 
-## 常见问题
+## 调试与可观测性配置
 
-### 如何查看模型的 token 使用情况？
+以下配置用于启用模型诊断、Tracing 和本地调用记录。安装步骤、使用示例、问题排查和安全说明。请参考[模型调试与可观测性](./model-debugging-observability)。
 
-通过在环境变量中设置 `DEBUG=midscene:ai:profile:stats`，你可以打印模型的使用信息和响应时间。
+### Debug 日志
 
-你也可以在报告文件中查看模型的使用量统计。
+将 `DEBUG` 环境变量设置为以下选择器之一：
 
-### 使用 LangSmith
+| 取值 | 描述 |
+| --- | --- |
+| `midscene:ai:profile:stats` | 使用逗号分隔的格式打印模型延迟和 Token 使用量 |
+| `midscene:ai:profile:detail` | 打印详细的 Token 使用量日志 |
+| `midscene:ai:call` | 打印 AI 响应详情 |
+| `midscene:android:adb` | 打印 Android adb 命令调用详情 |
+| `midscene:*` | 打印全部 Debug 日志 |
 
-LangSmith 是一个用于调试大语言模型的平台。Midscene 提供了自动集成支持，只需安装依赖并设置环境变量即可。
+### LangSmith
 
-**步骤 1：安装依赖**
+| 名称 | 描述 |
+| --- | --- |
+| `MIDSCENE_LANGSMITH_DEBUG` | 设置为 `1`，启用 Midscene 的 LangSmith 自动集成 |
+| `LANGCHAIN_API_KEY` | LangSmith API Key |
+| `LANGCHAIN_TRACING` | 设置为 `true`，启用 LangSmith Tracing |
+| `LANGCHAIN_ENDPOINT` | LangSmith 服务地址 |
 
-```bash
-npm install langsmith
-```
+### Langfuse
 
-**步骤 2：设置环境变量**
+| 名称 | 描述 |
+| --- | --- |
+| `MIDSCENE_LANGFUSE_DEBUG` | 设置为 `1`，启用 Midscene 的 Langfuse 自动集成 |
+| `LANGFUSE_PUBLIC_KEY` | Langfuse Public Key |
+| `LANGFUSE_SECRET_KEY` | Langfuse Secret Key |
+| `LANGFUSE_BASE_URL` | Langfuse 服务地址 |
 
-```bash
-# 启用 Midscene 的 LangSmith 自动集成
-export MIDSCENE_LANGSMITH_DEBUG=1
+### 模型调用记录
 
-# LangSmith 配置
-export LANGCHAIN_API_KEY="your-langchain-api-key-here"
-export LANGCHAIN_TRACING=true
-export LANGCHAIN_ENDPOINT="https://api.smith.langchain.com"
-# export LANGCHAIN_ENDPOINT="https://eu.api.smith.langchain.com" # 如果在欧洲区域注册
-```
-
-启动 Midscene 后，你应该会看到类似如下的日志：
-
-```log
-DEBUGGING MODE: langsmith wrapper enabled
-```
-
-注意：
-- LangSmith 和 Langfuse 可以同时启用
-- 仅支持 Node.js 环境，浏览器环境会报错
-- 如果使用 [`createOpenAIClient`](./reference/#自定义-openai-客户端) 参数，环境变量方式会被覆盖
-
-如果需要更细粒度的控制（例如只对特定任务启用 LangSmith），可以通过 [`createOpenAIClient`](./reference/#自定义-openai-客户端) 手动包装客户端。
-
-### 使用 Langfuse
-
-[Langfuse](https://langfuse.com) 是另一个流行的 LLM 可观测性平台。Midscene 已经集成了 Langfuse 的 `observeOpenAI` wrapper，自动追踪所有 OpenAI API 调用。
-
-由于 Langfuse 的追踪基于 OpenTelemetry，你需要在应用启动时初始化 OpenTelemetry SDK。
-
-**步骤 1：安装依赖**
-
-```bash
-npm install @langfuse/openai @langfuse/otel @opentelemetry/sdk-node
-```
-
-**步骤 2：初始化 OpenTelemetry（必需）**
-
-在应用入口文件的**最顶部**添加以下代码：
-
-```typescript
-import { NodeSDK } from "@opentelemetry/sdk-node";
-import { LangfuseSpanProcessor } from "@langfuse/otel";
-
-const sdk = new NodeSDK({
-  spanProcessors: [new LangfuseSpanProcessor()],
-});
-sdk.start();
-```
-
-**步骤 3：设置环境变量**
-
-```bash
-# 启用 Midscene 的 Langfuse 自动集成
-export MIDSCENE_LANGFUSE_DEBUG=1
-
-# Langfuse 配置
-export LANGFUSE_PUBLIC_KEY="your-langfuse-public-key-here"
-export LANGFUSE_SECRET_KEY="your-langfuse-secret-key-here"
-export LANGFUSE_BASE_URL="https://cloud.langfuse.com" # 🇪🇺 欧洲区域
-# export LANGFUSE_BASE_URL="https://us.cloud.langfuse.com" # 🇺🇸 美国区域
-```
-
-启动 Midscene 后，你应该会看到类似如下的日志：
-
-```log
-OpenTelemetry SDK initialized for Langfuse tracing
-DEBUGGING MODE: langfuse wrapper enabled
-```
-
-**了解更多**：查看 [Langfuse OpenAI 集成文档](https://langfuse.com/integrations/model-providers/openai-js) 获取更多配置选项和最佳实践。
-
-注意：
-- LangSmith 和 Langfuse 可以同时启用
-- 仅支持 Node.js 环境，浏览器环境会报错
-- 如果使用 [`createOpenAIClient`](./reference/#自定义-openai-客户端) 参数，环境变量方式会被覆盖
-
-### 记录模型调用
-
-设置 `MIDSCENE_RECORD_MODEL_CALL=true`，可将模型请求、响应和流式 chunk 写入 JSONL 文件：
-
-```text
-midscene_run/model-requests/<启动时间>-<pid>.jsonl
-```
-
-每个进程生成一个文件，每行对应一个 JSON 事件。仅 Node.js 和 Electron 支持写入；浏览器和 Worker 环境下不会写入本地文件。使用 Codex App Server 时，文件还会包含可获取的协议元数据。
-
-:::warning 注意事项
-
-文件包含请求 body（含自定义 `extraBody`）、响应 headers 和 body，以及流式响应。文件还可能包含截图的 base64 数据。请求 headers 不会被记录。文件可能包含敏感信息且体积较大，请仅在排查问题时开启，并在使用后妥善保管或删除。记录格式不保证跨版本兼容。
-
-:::
-
-每个事件的 `type` 为 `request`、`chunk`、`response` 或 `error`。事件还包含 `executionId`，用于关联同一个报告 execution 内的调用及其重试。不属于报告 execution 的调用（例如连通性检查）使用带 `unscoped-` 前缀的生成 ID。
+| 名称 | 描述 |
+| --- | --- |
+| `MIDSCENE_RECORD_MODEL_CALL` | 设置为 `true`，将模型请求、响应和流式 Chunk 写入本地 JSONL 文件 |

@@ -106,18 +106,6 @@ Set the following if the Planning intent needs a different model:
 | `MIDSCENE_PLANNING_MODEL_EXTRA_BODY_JSON` | Optional; same effect as `MIDSCENE_MODEL_EXTRA_BODY_JSON` |
 | `MIDSCENE_PLANNING_MODEL_RESPONSE_FORMAT` | Optional; controls the structured response strategy in appropriate Planning scenarios |
 
-### Debug logging switches
-
-Enable the following variables to print richer debug logs. Regardless of the switches, logs are also saved under `./midscene_run/log`.
-
-| Name | Description |
-|------|-------------|
-| `DEBUG=midscene:ai:profile:stats` | Prints model latency, token usage, etc., comma-separated for easier analysis |
-| `DEBUG=midscene:ai:profile:detail` | Prints detailed token-usage logs |
-| `DEBUG=midscene:ai:call` | Prints AI response details |
-| `DEBUG=midscene:android:adb` | Prints Android adb command details |
-| `DEBUG=midscene:*` | Prints every debug log |
-
 ## Still-compatible configs (not recommended)
 
 The following environment variables are deprecated but still compatible. We recommend migrating to the new configuration approach.
@@ -157,118 +145,42 @@ const agent = new Agent(page, {
 });
 ```
 
-## FAQ
+## Debugging and observability settings
 
-### How can I monitor token usage?
+The following settings enable model diagnostics, tracing, and local call recording. See [Model debugging and observability](./model-debugging-observability) for installation steps, usage examples, troubleshooting, and security guidance.
 
-Set `DEBUG=midscene:ai:profile:stats` to print usage and latency.
+### Debug logs
 
-You can also find usage statistics inside the generated report files.
+Set the `DEBUG` environment variable to one of the following selectors:
 
+| Value | Description |
+| --- | --- |
+| `midscene:ai:profile:stats` | Prints model latency and token usage in a comma-separated format |
+| `midscene:ai:profile:detail` | Prints detailed token-usage logs |
+| `midscene:ai:call` | Prints AI response details |
+| `midscene:android:adb` | Prints Android adb command details |
+| `midscene:*` | Prints all debug logs |
 
-### Using LangSmith
+### LangSmith
 
-LangSmith is a platform for debugging large language models. Midscene provides auto-integration support - just install the dependency and set environment variables.
+| Name | Description |
+| --- | --- |
+| `MIDSCENE_LANGSMITH_DEBUG` | Set to `1` to enable Midscene's automatic LangSmith integration |
+| `LANGCHAIN_API_KEY` | LangSmith API key |
+| `LANGCHAIN_TRACING` | Set to `true` to enable LangSmith tracing |
+| `LANGCHAIN_ENDPOINT` | LangSmith service endpoint |
 
-**Step 1: Install dependency**
+### Langfuse
 
-```bash
-npm install langsmith
-```
+| Name | Description |
+| --- | --- |
+| `MIDSCENE_LANGFUSE_DEBUG` | Set to `1` to enable Midscene's automatic Langfuse integration |
+| `LANGFUSE_PUBLIC_KEY` | Langfuse public key |
+| `LANGFUSE_SECRET_KEY` | Langfuse secret key |
+| `LANGFUSE_BASE_URL` | Langfuse service URL |
 
-**Step 2: Set environment variables**
+### Model-call recording
 
-```bash
-# Enable Midscene's LangSmith auto-integration
-export MIDSCENE_LANGSMITH_DEBUG=1
-
-# LangSmith configuration
-export LANGCHAIN_API_KEY="your-langchain-api-key-here"
-export LANGCHAIN_TRACING=true
-export LANGCHAIN_ENDPOINT="https://api.smith.langchain.com"
-# export LANGCHAIN_ENDPOINT="https://eu.api.smith.langchain.com" # If signed up in the EU region
-```
-
-After starting Midscene, you should see logs similar to:
-
-```log
-DEBUGGING MODE: langsmith wrapper enabled
-```
-
-Notes:
-- LangSmith and Langfuse can be enabled simultaneously.
-- Node.js only; browser environments will throw errors.
-- If you use [`createOpenAIClient`](./reference/#custom-openai-client), it overrides the env-based auto-integration.
-
-For finer-grained control (e.g., enabling LangSmith only for specific tasks), use [`createOpenAIClient`](./reference/#custom-openai-client) to wrap the client manually.
-
-### Using Langfuse
-
-[Langfuse](https://langfuse.com) is another popular LLM observability platform. Midscene has integrated Langfuse's `observeOpenAI` wrapper to automatically trace all OpenAI API calls.
-
-Since Langfuse tracing is built on top of OpenTelemetry, you need to initialize the OpenTelemetry SDK at application startup.
-
-**Step 1: Install dependencies**
-
-```bash
-npm install @langfuse/openai @langfuse/otel @opentelemetry/sdk-node
-```
-
-**Step 2: Initialize OpenTelemetry (Required)**
-
-Add the following code at the **very top** of your application entry file:
-
-```typescript
-import { NodeSDK } from "@opentelemetry/sdk-node";
-import { LangfuseSpanProcessor } from "@langfuse/otel";
-
-const sdk = new NodeSDK({
-  spanProcessors: [new LangfuseSpanProcessor()],
-});
-sdk.start();
-```
-
-**Step 3: Set environment variables**
-
-```bash
-# Enable Midscene's Langfuse auto-integration
-export MIDSCENE_LANGFUSE_DEBUG=1
-
-# Langfuse configuration
-export LANGFUSE_PUBLIC_KEY="your-langfuse-public-key-here"
-export LANGFUSE_SECRET_KEY="your-langfuse-secret-key-here"
-export LANGFUSE_BASE_URL="https://cloud.langfuse.com" # 🇪🇺 EU region
-# export LANGFUSE_BASE_URL="https://us.cloud.langfuse.com" # 🇺🇸 US region
-```
-
-After starting Midscene, you should see logs similar to:
-
-```log
-OpenTelemetry SDK initialized for Langfuse tracing
-DEBUGGING MODE: langfuse wrapper enabled
-```
-
-**Learn More**: Check out the [Langfuse OpenAI Integration documentation](https://langfuse.com/integrations/model-providers/openai-js) for additional configuration options and best practices.
-
-Notes:
-- LangSmith and Langfuse can be enabled simultaneously.
-- Node.js only; browser environments will throw errors.
-- If you use [`createOpenAIClient`](./reference/#custom-openai-client), it overrides the env-based auto-integration.
-
-### Record model calls
-
-Set `MIDSCENE_RECORD_MODEL_CALL=true` to write model requests, responses, and streaming chunks to a JSONL file:
-
-```text
-midscene_run/model-requests/<start-time>-<pid>.jsonl
-```
-
-Each process creates one file, with one JSON event per line. Local recording is available only in Node.js and Electron; browsers and Workers do not write files. Codex App Server records also include available protocol metadata.
-
-:::warning Important notes
-
-Files contain request bodies (including custom `extraBody`), response headers and bodies, streaming responses, and possibly base64-encoded screenshots. Request headers are not recorded. The files may be sensitive and large, so enable recording only while troubleshooting and protect or delete the files afterward. The record format is not stable across versions.
-
-:::
-
-Every event includes a `type` of `request`, `chunk`, `response`, or `error`. It also includes an `executionId` that groups calls from the same report execution, including retries. Calls outside a report execution, such as connectivity checks, use a generated ID prefixed with `unscoped-`.
+| Name | Description |
+| --- | --- |
+| `MIDSCENE_RECORD_MODEL_CALL` | Set to `true` to write model requests, responses, and streaming chunks to local JSONL files |

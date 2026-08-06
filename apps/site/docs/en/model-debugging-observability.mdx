@@ -1,0 +1,201 @@
+# Model Debugging and Observability
+
+Use this guide to diagnose model connectivity and compatibility issues, inspect latency and token usage, collect traces, and record model calls.
+
+## Verify model connectivity
+
+This section provides two verification methods. First, send a direct request to confirm that the model API is reachable. Then run the Midscene verification command to check model compatibility.
+
+### Send a direct request to the model service
+
+The following `curl` request checks whether the Base URL, API key, and model name work. It only verifies basic model API connectivity. It does not check whether the model meets Midscene's compatibility requirements.
+
+```bash
+MIDSCENE_MODEL_BASE_URL='replace with your baseUrl'
+MIDSCENE_MODEL_API_KEY='replace with your API key'
+MIDSCENE_MODEL_NAME='replace with your model name'
+
+curl -X POST "${MIDSCENE_MODEL_BASE_URL%/}/chat/completions" \
+  -H "Authorization: Bearer ${MIDSCENE_MODEL_API_KEY}" \
+  -H "Content-Type: application/json" \
+  -d '{
+  "model": "'"${MIDSCENE_MODEL_NAME}"'",
+  "messages": [
+    {
+      "role": "user",
+      "content": "What is 1+1?"
+    }
+  ]
+}'
+```
+
+### Use the Midscene verification command
+
+This command checks both model connectivity and Midscene compatibility.
+
+Put your model configuration in a `.env` file, then run:
+
+```bash
+# If the current project has @midscene/cli installed, use the local midscene command
+npx midscene model verify
+
+# If the current project does not have @midscene/cli installed, or you want to use the latest version
+npx @midscene/cli@latest model verify
+```
+
+The command reads the `.env` file in the current working directory. Dotenv debug logging is enabled by default, and values from `.env` override existing shell environment variables.
+
+If the `curl` request succeeds but the Midscene verification command fails, the model API is reachable. Continue by checking the model capabilities and Midscene configuration.
+
+## Common configuration errors
+
+### `MIDSCENE_MODEL_FAMILY` is not set to a multimodal model
+
+If you see `MIDSCENE_MODEL_FAMILY is not set to a multimodal model with UI localization`, make sure the `MIDSCENE_MODEL_FAMILY` environment variable for the multimodal model is set correctly.
+
+Starting with version 1.0, Midscene recommends using `MIDSCENE_MODEL_FAMILY` to specify the multimodal model type. Legacy `MIDSCENE_USE_...` settings remain compatible but are deprecated.
+
+See [Configure your model](./model-common-config) for the correct model family and a complete configuration example.
+
+### Base URL or model name is incorrect
+
+Confirm that `MIDSCENE_MODEL_BASE_URL` points to the provider's API endpoint. It commonly ends with a version such as `/v1`. Do not append `/chat/completion`, because the underlying SDK adds the request path.
+
+Also confirm that `MIDSCENE_MODEL_NAME` matches a model available from that endpoint.
+
+## Debugging capabilities
+
+### Debug logs
+
+Enable the following selectors to print richer debug logs. Regardless of these selectors, Midscene also saves logs under `./midscene_run/log`.
+
+| Name | Description |
+| --- | --- |
+| `DEBUG=midscene:ai:profile:stats` | Prints model latency and token usage in a comma-separated format |
+| `DEBUG=midscene:ai:profile:detail` | Prints detailed token-usage logs |
+| `DEBUG=midscene:ai:call` | Prints AI response details |
+| `DEBUG=midscene:android:adb` | Prints Android adb command details |
+| `DEBUG=midscene:*` | Prints all debug logs |
+
+Usage statistics are also available in generated [report files](./consume-report-file).
+
+Debug logs can contain model inputs or outputs. Review them before sharing.
+
+### Record model calls
+
+Set `MIDSCENE_RECORD_MODEL_CALL=true` to write model requests, responses, and streaming chunks to a JSONL file:
+
+```text
+midscene_run/model-requests/<start-time>-<pid>.jsonl
+```
+
+Each process creates one file, with one JSON event per line. Local recording is available only in Node.js and Electron. Browsers and Workers do not write local files. Codex App Server records also include available protocol metadata.
+
+Every event has a `type` of `request`, `chunk`, `response`, or `error`. It also includes an `executionId` that groups calls from the same report execution, including retries. Calls outside a report execution, such as connectivity checks, use a generated ID prefixed with `unscoped-`.
+
+:::warning Important notes
+
+Files contain request bodies, including custom `extraBody`, response headers and bodies, streaming responses, and possibly base64-encoded screenshots. Request headers are not recorded.
+
+These files may be sensitive and large. Enable recording only while troubleshooting, and protect or delete the files afterward. The record format is not stable across versions.
+
+:::
+
+## Observability platforms
+
+### LangSmith
+
+LangSmith is a platform for debugging large language models. Midscene provides automatic integration support through a dependency and environment variables.
+
+**Install the dependency**
+
+```bash
+npm install langsmith
+```
+
+**Set environment variables**
+
+```bash
+# Enable Midscene's LangSmith auto-integration
+export MIDSCENE_LANGSMITH_DEBUG=1
+
+# LangSmith configuration
+export LANGCHAIN_API_KEY="your-langchain-api-key-here"
+export LANGCHAIN_TRACING=true
+export LANGCHAIN_ENDPOINT="https://api.smith.langchain.com"
+# export LANGCHAIN_ENDPOINT="https://eu.api.smith.langchain.com" # If signed up in the EU region
+```
+
+After starting Midscene, you should see a log similar to:
+
+```log
+DEBUGGING MODE: langsmith wrapper enabled
+```
+
+Notes:
+
+- LangSmith and Langfuse can be enabled simultaneously.
+- This integration supports Node.js only. Browser environments throw an error.
+- If you use [`createOpenAIClient`](./reference/#custom-openai-client), it overrides the environment-variable integration.
+
+For finer-grained control, such as enabling LangSmith only for specific tasks, use [`createOpenAIClient`](./reference/#custom-openai-client) to wrap the client manually.
+
+### Langfuse
+
+[Langfuse](https://langfuse.com) is an LLM observability platform. Midscene integrates Langfuse's `observeOpenAI` wrapper to trace OpenAI API calls automatically.
+
+Because Langfuse tracing uses OpenTelemetry, initialize the OpenTelemetry SDK when the application starts.
+
+**Install the dependencies**
+
+```bash
+npm install @langfuse/openai @langfuse/otel @opentelemetry/sdk-node
+```
+
+**Initialize OpenTelemetry**
+
+Add this code at the very top of the application entry file:
+
+```typescript
+import { NodeSDK } from "@opentelemetry/sdk-node";
+import { LangfuseSpanProcessor } from "@langfuse/otel";
+
+const sdk = new NodeSDK({
+  spanProcessors: [new LangfuseSpanProcessor()],
+});
+sdk.start();
+```
+
+**Set environment variables**
+
+```bash
+# Enable Midscene's Langfuse auto-integration
+export MIDSCENE_LANGFUSE_DEBUG=1
+
+# Langfuse configuration
+export LANGFUSE_PUBLIC_KEY="your-langfuse-public-key-here"
+export LANGFUSE_SECRET_KEY="your-langfuse-secret-key-here"
+export LANGFUSE_BASE_URL="https://cloud.langfuse.com" # 🇪🇺 EU region
+# export LANGFUSE_BASE_URL="https://us.cloud.langfuse.com" # 🇺🇸 US region
+```
+
+After starting Midscene, you should see logs similar to:
+
+```log
+OpenTelemetry SDK initialized for Langfuse tracing
+DEBUGGING MODE: langfuse wrapper enabled
+```
+
+See the [Langfuse OpenAI integration documentation](https://langfuse.com/integrations/model-providers/openai-js) for more configuration options and best practices.
+
+Notes:
+
+- LangSmith and Langfuse can be enabled simultaneously.
+- This integration supports Node.js only. Browser environments throw an error.
+- If you use [`createOpenAIClient`](./reference/#custom-openai-client), it overrides the environment-variable integration.
+
+## Security considerations
+
+- Do not commit `.env` files, traces, debug logs, or model-call records to source control.
+- Review logs and traces before sharing them because they can contain model inputs, outputs, or screenshots.
+- Store LangSmith and Langfuse keys using the secret-management method used by your project.

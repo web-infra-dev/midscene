@@ -189,6 +189,10 @@ export default defineConfig(async () => {
             link: '/model-config',
           },
           {
+            text: 'Debugging & observability',
+            link: '/model-debugging-observability',
+          },
+          {
             sectionHeaderText: 'Web browser',
           },
           {
@@ -333,6 +337,10 @@ export default defineConfig(async () => {
           {
             text: '全部配置项',
             link: '/zh/model-config',
+          },
+          {
+            text: '调试与可观测性',
+            link: '/zh/model-debugging-observability',
           },
           {
             sectionHeaderText: 'Web 浏览器',

@@ -140,14 +140,6 @@ Midscene 会默认关闭模型原生思考，以获得更好的执行速度和�
 
 - 不同模型厂商控制模型原生思考方式的参数各不相同，具体取值和适用模型版本请参考各模型厂商的官方文档。如果某个显式的 reasoning 配置不被当前模型支持，Midscene 会忽略该配置，而不会猜测服务商的私有参数。
 
-### "MIDSCENE_MODEL_FAMILY is not set to a multimodal model" 错误
-
-如果收到 “MIDSCENE_MODEL_FAMILY is not set to a multimodal model with UI localization” 错误，请确认已经正确配置多模态模型的 `MIDSCENE_MODEL_FAMILY` 环境变量。
-
-从 1.0 版本开始，Midscene 推荐使用 `MIDSCENE_MODEL_FAMILY` 来指定多模态模型类型。旧的 `MIDSCENE_USE_...` 配置仍然兼容但已废弃。
-
-详细配置方法请参考 [常用模型配置](./model-common-config)。
-
 ### 是否可以为每个 Agent 实例单独配置模型？
 
 可以，你可以为每个 Agent 实例单独配置模型，具体请参考 [API 参考](./reference/#common) 中的 `modelConfig` 参数。
