@@ -1,13 +1,22 @@
 name: macOS Desktop
 
 on:
+  workflow_call:
+    inputs:
+      branch:
+        description: 'Branch to checkout'
+        required: false
+        default: 'main'
+        type: string
   pull_request:
     paths:
       - '.github/workflows/macos-desktop.yml'
+      - '.github/actions/harness-finalize/**'
       - 'apps/report/**'
       - 'packages/computer/**'
       - 'packages/core/**'
       - 'packages/shared/**'
+      - 'scripts/ci-harness/**'
       - 'scripts/report-template-utils.mjs'
       - 'nx.json'
       - 'package.json'
@@ -173,71 +182,12 @@ jobs:
           pnpm exec nx test @midscene/computer --skip-nx-cache -- tests/ai/ai-auto-todo.test.ts --retry=0 2>&1 |
             tee "$MIDSCENE_MACOS_DIAGNOSTICS_DIR/todo-mvc.log"
 
-      - name: Collect step outcomes
+      - name: Finalize macOS desktop harness
         if: always()
-        shell: bash
-        env:
-          BUILD_OUTCOME: ${{ steps.build.outcome }}
-          PACKAGE_OUTCOME: ${{ steps.package-smoke.outcome }}
-          UNIT_OUTCOME: ${{ steps.unit-tests.outcome }}
-          LIVE_OUTCOME: ${{ steps.live-smoke.outcome }}
-          TODO_OUTCOME: ${{ steps.todo-mvc.outcome }}
-        run: |
-          mkdir -p "$MIDSCENE_MACOS_DIAGNOSTICS_DIR"
-          node -e '
-            const fs = require("node:fs");
-            const path = require("node:path");
-            const outcomes = {
-              build: process.env.BUILD_OUTCOME,
-              packageSmoke: process.env.PACKAGE_OUTCOME,
-              unitTests: process.env.UNIT_OUTCOME,
-              liveSmoke: process.env.LIVE_OUTCOME,
-              todoMvc: process.env.TODO_OUTCOME,
-            };
-            fs.writeFileSync(
-              path.join(process.env.MIDSCENE_MACOS_DIAGNOSTICS_DIR, "step-outcomes.json"),
-              `${JSON.stringify(outcomes, null, 2)}\n`,
-            );
-          '
-
-      - name: Upload macOS desktop smoke report
-        if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: ./.github/actions/harness-finalize
         with:
-          name: macos-desktop-smoke-report
-          path: midscene_run/report/macos-desktop-smoke.html
-          if-no-files-found: error
-          retention-days: 7
-
-      - name: Upload macOS TodoMVC report
-        if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        with:
-          name: macos-todo-mvc-report
-          path: midscene_run/report/todo-mvc-darwin.html
-          if-no-files-found: warn
-          retention-days: 7
-
-      - name: Upload macOS desktop diagnostics
-        if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        with:
-          name: macos-desktop-diagnostics
-          path: midscene_run/macos-desktop-diagnostics
-          if-no-files-found: error
-          retention-days: 7
-
-      - name: Check macOS validation results
-        if: always()
-        shell: bash
-        run: |
-          failed=()
-          [[ '${{ steps.build.outcome }}' == success ]] || failed+=(build)
-          [[ '${{ steps.package-smoke.outcome }}' == success ]] || failed+=("package smoke")
-          [[ '${{ steps.unit-tests.outcome }}' == success ]] || failed+=("unit tests")
-          [[ '${{ steps.live-smoke.outcome }}' == success ]] || failed+=("live desktop smoke")
-          [[ '${{ steps.todo-mvc.outcome }}' == success ]] || failed+=("TodoMVC")
-          if ((${#failed[@]} > 0)); then
-            printf 'macOS validation failed: %s\n' "${failed[*]}" >&2
-            exit 1
-          fi
+          suite: macos-desktop
+          outcomes: >-
+            {"build":"${{ steps.build.outcome }}","package-smoke":"${{ steps.package-smoke.outcome }}","unit-tests":"${{ steps.unit-tests.outcome }}","live-smoke":"${{ steps.live-smoke.outcome }}","todo-mvc":"${{ steps.todo-mvc.outcome }}"}
+          report-roots: midscene_run/report
+          evidence-roots: midscene_run/macos-desktop-diagnostics

@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://midscenejs.com/schemas/ci-harness/scorecard.schema.json",
+  "title": "Midscene CI harness scorecard",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "scorecardId",
+    "suite",
+    "verdict",
+    "conclusion",
+    "traceHealth",
+    "cases",
+    "checks",
+    "provenance"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "scorecardId": { "type": "string", "minLength": 1 },
+    "suite": { "type": "string", "minLength": 1 },
+    "verdict": { "enum": ["pass", "fail", "infra_error"] },
+    "conclusion": { "enum": ["success", "failure"] },
+    "traceHealth": {
+      "type": "object",
+      "required": ["status", "reportCount", "executionCount", "taskCount"],
+      "properties": {
+        "status": { "enum": ["complete", "incomplete"] }
+      }
+    },
+    "cases": {
+      "type": "array",
+      "items": {
+        "$ref": "result.schema.json"
+      }
+    },
+    "checks": { "type": "array" },
+    "provenance": { "type": "object" }
+  },
+  "additionalProperties": true
+}

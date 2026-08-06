@@ -20,7 +20,6 @@ on:
 permissions:
   contents: read
 
-
 jobs:
   main:
     # The viewport e2e relies on the hosted image's Chrome window behavior.
@@ -33,107 +32,110 @@ jobs:
     # env:
 
     steps:
-    - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
 
-    - name: Setup pnpm
-      uses: pnpm/action-setup@eae0cfeb286e66ffb5155f1a79b90583a127a68b # v2.4.1
-      with:
-        version: 9.3.0
-  
-    - name: Setup Node.js
-      uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
-      with:
-        node-version: '24.13.0'
+      - name: Setup pnpm
+        uses: pnpm/action-setup@eae0cfeb286e66ffb5155f1a79b90583a127a68b # v2.4.1
+        with:
+          version: 9.3.0
 
-    - name: Cache Puppeteer dependencies
-      uses: ./.github/actions/cache/restore
-      id: cache-puppeteer
-      with:
-        path: ~/.cache/puppeteer
-        key: ${{ runner.os }}-puppeteer-${{ hashFiles('pnpm-lock.yaml') }}
-        restore-keys: |
-          ${{ runner.os }}-puppeteer-
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '24.13.0'
 
-    - name: Install dependencies
-      run: pnpm install --frozen-lockfile --ignore-scripts
-    
-    - name: Install puppeteer dependencies
-      run: |
-        cd packages/web-integration
-        npx puppeteer browsers install chrome
+      - name: Cache Puppeteer dependencies
+        uses: ./.github/actions/cache/restore
+        id: cache-puppeteer
+        with:
+          path: ~/.cache/puppeteer
+          key: ${{ runner.os }}-puppeteer-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-puppeteer-
 
-    - name: Save Puppeteer cache
-      if: steps.cache-puppeteer.outputs.cache-hit != 'true'
-      uses: ./.github/actions/cache/save
-      with:
-        path: ~/.cache/puppeteer
-        key: ${{ runner.os }}-puppeteer-${{ hashFiles('pnpm-lock.yaml') }}
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
 
-    - name: Check tsconfig references
-      run: pnpm run check:references
+      - name: Install puppeteer dependencies
+        run: |
+          cd packages/web-integration
+          npx puppeteer browsers install chrome
 
-    - name: Build project
-      run: pnpm run build
+      - name: Save Puppeteer cache
+        if: steps.cache-puppeteer.outputs.cache-hit != 'true'
+        uses: ./.github/actions/cache/save
+        with:
+          path: ~/.cache/puppeteer
+          key: ${{ runner.os }}-puppeteer-${{ hashFiles('pnpm-lock.yaml') }}
 
-    - name: Check CLI CJS bundle on minimum supported Node
-      run: |
-        node - <<'EOF'
-        const { readdirSync, readFileSync, statSync } = require('node:fs');
-        const { join } = require('node:path');
+      - name: Check tsconfig references
+        run: pnpm run check:references
 
-        const root = 'packages/cli/dist/lib';
-        const files = [];
-        const collectJsFiles = (dir) => {
-          for (const entry of readdirSync(dir)) {
-            const file = join(dir, entry);
-            if (statSync(file).isDirectory()) {
-              collectJsFiles(file);
-            } else if (file.endsWith('.js')) {
-              files.push(file);
+      - name: Build project
+        run: pnpm run build
+
+      - name: Check CLI CJS bundle on minimum supported Node
+        run: |
+          node - <<'EOF'
+          const { readdirSync, readFileSync, statSync } = require('node:fs');
+          const { join } = require('node:path');
+
+          const root = 'packages/cli/dist/lib';
+          const files = [];
+          const collectJsFiles = (dir) => {
+            for (const entry of readdirSync(dir)) {
+              const file = join(dir, entry);
+              if (statSync(file).isDirectory()) {
+                collectJsFiles(file);
+              } else if (file.endsWith('.js')) {
+                files.push(file);
+              }
+            }
+          };
+          collectJsFiles(root);
+
+          const staticRequirePatterns = [
+            {
+              name: '@rstest/core',
+              pattern: /require\((['"])@rstest\/core(?:\/[^'"]*)?\1\)/,
+            },
+            {
+              name: '@rsbuild/core',
+              pattern: /require\((['"])@rsbuild\/core(?:\/[^'"]*)?\1\)/,
+            },
+          ];
+
+          for (const file of files) {
+            const content = readFileSync(file, 'utf8');
+            for (const { name, pattern } of staticRequirePatterns) {
+              if (pattern.test(content)) {
+                throw new Error(`${file} contains a static require("${name}")`);
+              }
             }
           }
-        };
-        collectJsFiles(root);
+          EOF
+          npx -y node@20.19.0 packages/cli/dist/lib/index.js --version
 
-        const staticRequirePatterns = [
-          {
-            name: '@rstest/core',
-            pattern: /require\((['"])@rstest\/core(?:\/[^'"]*)?\1\)/,
-          },
-          {
-            name: '@rsbuild/core',
-            pattern: /require\((['"])@rsbuild\/core(?:\/[^'"]*)?\1\)/,
-          },
-        ];
+      - name: Type check tests
+        run: pnpm run type-check:tests
 
-        for (const file of files) {
-          const content = readFileSync(file, 'utf8');
-          for (const { name, pattern } of staticRequirePatterns) {
-            if (pattern.test(content)) {
-              throw new Error(`${file} contains a static require("${name}")`);
-            }
-          }
-        }
-        EOF
-        npx -y node@20.19.0 packages/cli/dist/lib/index.js --version
+      - name: Test CI harness contracts
+        run: pnpm run test:ci-harness
 
-    - name: Type check tests
-      run: pnpm run type-check:tests
+      - name: Run tests with coverage
+        run: pnpm run test:coverage
 
-    - name: Run tests with coverage
-      run: pnpm run test:coverage
+      - name: Upload coverage reports
+        id: upload-coverage
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: coverage
+          path: coverage
+          if-no-files-found: ignore
 
-    - name: Upload coverage reports
-      id: upload-coverage
-      if: always()
-      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-      with:
-        name: coverage
-        path: coverage
-        if-no-files-found: ignore
-
-    - name: Write coverage summary
-      if: always()
-      env:
-        COVERAGE_ARTIFACT_URL: ${{ steps.upload-coverage.outputs.artifact-url }}
-      run: node scripts/github-coverage-summary.js
+      - name: Write coverage summary
+        if: always()
+        env:
+          COVERAGE_ARTIFACT_URL: ${{ steps.upload-coverage.outputs.artifact-url }}
+        run: node scripts/github-coverage-summary.js

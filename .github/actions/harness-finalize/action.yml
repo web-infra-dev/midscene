@@ -1,0 +1,98 @@
+name: Finalize CI harness
+
+description: Build, upload, summarize, and enforce a trace-backed CI harness scorecard
+
+inputs:
+  suite:
+    description: Stable suite identifier used in scorecards and artifact names
+    required: true
+  stages:
+    description: Optional inline stage contract; suite registry is used when omitted
+    required: false
+    default: ''
+  outcomes:
+    description: JSON object mapping registered stage ids to GitHub step outcomes
+    required: false
+    default: ''
+  report-roots:
+    description: Newline-separated report files or directories inside the workspace
+    required: false
+    default: ''
+  evidence-roots:
+    description: Newline-separated diagnostics directories inside the workspace
+    required: false
+    default: ''
+  output-dir:
+    description: Optional immutable output directory inside the workspace
+    required: false
+    default: ''
+  trace-base-url:
+    description: Optional access-controlled URL that serves the uploaded Trace Bundle root
+    required: false
+    default: ''
+  retention-days:
+    description: Trace Bundle artifact retention period
+    required: false
+    default: '7'
+
+outputs:
+  artifact-url:
+    description: GitHub URL for the uploaded Trace Bundle
+    value: ${{ steps.upload.outputs.artifact-url }}
+  conclusion:
+    description: Harness conclusion, success or failure
+    value: ${{ steps.finalize.outputs.conclusion }}
+  verdict:
+    description: Harness verdict, pass, fail, or infra_error
+    value: ${{ steps.finalize.outputs.verdict }}
+  scorecard-path:
+    description: Absolute path to scorecard.json
+    value: ${{ steps.finalize.outputs.scorecard-path }}
+
+runs:
+  using: composite
+  steps:
+    - name: Build Trace Bundle
+      id: finalize
+      continue-on-error: true
+      shell: bash
+      env:
+        HARNESS_SUITE: ${{ inputs.suite }}
+        HARNESS_STAGES: ${{ inputs.stages }}
+        HARNESS_OUTCOMES: ${{ inputs.outcomes }}
+        HARNESS_REPORT_ROOTS: ${{ inputs.report-roots }}
+        HARNESS_EVIDENCE_ROOTS: ${{ inputs.evidence-roots }}
+        HARNESS_OUTPUT_DIR: ${{ inputs.output-dir }}
+      run: node scripts/ci-harness/finalize.mjs
+
+    - name: Upload Trace Bundle
+      id: upload
+      if: always()
+      continue-on-error: true
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      with:
+        name: harness-${{ inputs.suite }}-${{ github.run_id }}-${{ github.run_attempt }}
+        path: ${{ steps.finalize.outputs.output-dir || 'midscene_run/harness' }}
+        if-no-files-found: error
+        retention-days: ${{ inputs.retention-days }}
+
+    - name: Publish harness summary
+      id: summary
+      if: always() && steps.finalize.outcome == 'success'
+      continue-on-error: true
+      shell: bash
+      env:
+        HARNESS_SCORECARD_PATH: ${{ steps.finalize.outputs.scorecard-path }}
+        HARNESS_ARTIFACT_URL: ${{ steps.upload.outputs.artifact-url }}
+        HARNESS_TRACE_BASE_URL: ${{ inputs.trace-base-url }}
+      run: node scripts/ci-harness/publish-summary.mjs
+
+    - name: Enforce harness result
+      if: always()
+      shell: bash
+      env:
+        HARNESS_FINALIZE_OUTCOME: ${{ steps.finalize.outcome }}
+        HARNESS_UPLOAD_OUTCOME: ${{ steps.upload.outcome }}
+        HARNESS_SUMMARY_OUTCOME: ${{ steps.summary.outcome }}
+        HARNESS_CONCLUSION: ${{ steps.finalize.outputs.conclusion }}
+      run: node scripts/ci-harness/enforce.mjs

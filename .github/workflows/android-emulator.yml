@@ -1,13 +1,22 @@
 name: Android Emulator
 
 on:
+  workflow_call:
+    inputs:
+      branch:
+        description: 'Branch to checkout'
+        required: false
+        default: 'main'
+        type: string
   pull_request:
     paths:
       - '.github/workflows/android-emulator.yml'
+      - '.github/actions/harness-finalize/**'
       - 'apps/report/**'
       - 'packages/android/**'
       - 'packages/core/**'
       - 'packages/shared/**'
+      - 'scripts/ci-harness/**'
       - 'scripts/report-template-utils.mjs'
       - 'nx.json'
       - 'package.json'
@@ -157,68 +166,12 @@ jobs:
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot-save -noaudio -no-boot-anim -camera-back none
           script: bash packages/android/scripts/run-emulator-ci-smokes.sh
 
-      - name: Collect host step outcomes
+      - name: Finalize Android Emulator harness
         if: always()
-        shell: bash
-        env:
-          BUILD_OUTCOME: ${{ steps.build.outcome }}
-          PACKAGE_OUTCOME: ${{ steps.package-smoke.outcome }}
-          UNIT_OUTCOME: ${{ steps.unit-tests.outcome }}
-          EMULATOR_OUTCOME: ${{ steps.emulator-tests.outcome }}
-        run: |
-          mkdir -p "$MIDSCENE_ANDROID_DIAGNOSTICS_DIR"
-          node -e '
-            const fs = require("node:fs");
-            const path = require("node:path");
-            const outcomes = {
-              build: process.env.BUILD_OUTCOME,
-              packageSmoke: process.env.PACKAGE_OUTCOME,
-              unitTests: process.env.UNIT_OUTCOME,
-              emulatorTests: process.env.EMULATOR_OUTCOME,
-            };
-            fs.writeFileSync(
-              path.join(process.env.MIDSCENE_ANDROID_DIAGNOSTICS_DIR, "host-step-outcomes.json"),
-              `${JSON.stringify(outcomes, null, 2)}\n`,
-            );
-          '
-
-      - name: Upload Android Emulator smoke report
-        if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: ./.github/actions/harness-finalize
         with:
-          name: android-emulator-smoke-report
-          path: midscene_run/report/android-emulator-smoke.html
-          if-no-files-found: error
-          retention-days: 7
-
-      - name: Upload Android TodoMVC report
-        if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        with:
-          name: android-todo-mvc-report
-          path: midscene_run/report/todo-mvc-android.html
-          if-no-files-found: warn
-          retention-days: 7
-
-      - name: Upload Android Emulator diagnostics
-        if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        with:
-          name: android-emulator-diagnostics
-          path: midscene_run/android-emulator-diagnostics
-          if-no-files-found: error
-          retention-days: 7
-
-      - name: Check Android validation results
-        if: always()
-        shell: bash
-        run: |
-          failed=()
-          [[ '${{ steps.build.outcome }}' == success ]] || failed+=(build)
-          [[ '${{ steps.package-smoke.outcome }}' == success ]] || failed+=("package smoke")
-          [[ '${{ steps.unit-tests.outcome }}' == success ]] || failed+=("unit tests")
-          [[ '${{ steps.emulator-tests.outcome }}' == success ]] || failed+=("emulator tests")
-          if ((${#failed[@]} > 0)); then
-            printf 'Android validation failed: %s\n' "${failed[*]}" >&2
-            exit 1
-          fi
+          suite: android-emulator
+          outcomes: >-
+            {"build":"${{ steps.build.outcome }}","package-smoke":"${{ steps.package-smoke.outcome }}","unit-tests":"${{ steps.unit-tests.outcome }}","emulator-tests":"${{ steps.emulator-tests.outcome }}"}
+          report-roots: midscene_run/report
+          evidence-roots: midscene_run/android-emulator-diagnostics

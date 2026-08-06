@@ -1,14 +1,23 @@
 name: Headless Linux
 
 on:
+  workflow_call:
+    inputs:
+      branch:
+        description: 'Branch to checkout'
+        required: false
+        default: 'main'
+        type: string
   pull_request:
     paths:
       - '.github/workflows/headless-linux.yml'
+      - '.github/actions/harness-finalize/**'
       - 'apps/chrome-extension/**'
       - 'apps/report/**'
       - 'packages/computer/**'
       - 'packages/core/**'
       - 'packages/shared/**'
+      - 'scripts/ci-harness/**'
       - 'scripts/report-template-utils.mjs'
       - 'nx.json'
       - 'package.json'
@@ -30,7 +39,7 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
-  ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
+  ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
 
 jobs:
   headless-linux-ai-todo:
@@ -40,67 +49,64 @@ jobs:
       MIDSCENE_MODEL_BASE_URL: ${{ vars.MIDSCENE_MODEL_BASE_URL }}
       MIDSCENE_MODEL_NAME: ${{ vars.MIDSCENE_MODEL_NAME }}
       MIDSCENE_MODEL_FAMILY: ${{ vars.MIDSCENE_MODEL_FAMILY }}
-      MIDSCENE_MODEL_RETRY_COUNT: "2"
-      MIDSCENE_MODEL_RETRY_INTERVAL: "60000"
-      MIDSCENE_REPORT_QUIET: "true"
-      MIDSCENE_COMPUTER_HEADLESS_LINUX: "true"
-      CI: "1"
+      MIDSCENE_MODEL_RETRY_COUNT: '2'
+      MIDSCENE_MODEL_RETRY_INTERVAL: '60000'
+      MIDSCENE_REPORT_QUIET: 'true'
+      MIDSCENE_COMPUTER_HEADLESS_LINUX: 'true'
+      CI: '1'
 
     steps:
-    - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
-      with:
-        ref: ${{ github.event.inputs.branch || github.ref }}
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          ref: ${{ inputs.branch || github.ref }}
 
-    - name: Setup Node.js and pnpm
-      uses: ./.github/actions/setup-node-pnpm
+      - name: Setup Node.js and pnpm
+        uses: ./.github/actions/setup-node-pnpm
 
-    - name: Cache pnpm store
-      id: pnpm-cache
-      uses: ./.github/actions/pnpm-cache/restore
+      - name: Cache pnpm store
+        id: pnpm-cache
+        uses: ./.github/actions/pnpm-cache/restore
 
-    - name: Install dependencies
-      run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
 
-    - name: Save pnpm store
-      if: steps.pnpm-cache.outputs.cache-hit != 'true'
-      uses: ./.github/actions/pnpm-cache/save
+      - name: Save pnpm store
+        if: steps.pnpm-cache.outputs.cache-hit != 'true'
+        uses: ./.github/actions/pnpm-cache/save
 
-    - name: Setup headless browser
-      uses: ./.github/actions/setup-headless-browser
+      - name: Setup headless browser
+        uses: ./.github/actions/setup-headless-browser
 
-    - name: Build AI todo projects
-      run: pnpm exec nx run-many --target=build --projects="@midscene/report,@midscene/computer" --skip-nx-cache
+      - name: Build AI todo projects
+        run: pnpm exec nx run-many --target=build --projects="@midscene/report,@midscene/computer" --skip-nx-cache
 
-    - name: Verify system setup
-      run: |
-        echo "--- Xvfb ---"
-        which Xvfb && echo "Xvfb: OK"
-        echo "--- xrandr ---"
-        which xrandr && echo "xrandr: OK"
-        echo "--- import (imagemagick) ---"
-        which import && echo "import: OK"
-        echo "--- Browser ---"
-        chromium --version || echo "Chrome not found"
-        echo "--- DISPLAY ---"
-        echo "DISPLAY=${DISPLAY:-(not set)}"
+      - name: Verify system setup
+        run: |
+          echo "--- Xvfb ---"
+          which Xvfb && echo "Xvfb: OK"
+          echo "--- xrandr ---"
+          which xrandr && echo "xrandr: OK"
+          echo "--- import (imagemagick) ---"
+          which import && echo "import: OK"
+          echo "--- Browser ---"
+          chromium --version || echo "Chrome not found"
+          echo "--- DISPLAY ---"
+          echo "DISPLAY=${DISPLAY:-(not set)}"
 
-    - name: Run AI todo test with Xvfb
-      run: AI_TEST_TYPE=computer npx nx test @midscene/computer -- tests/ai/ai-auto-todo.test.ts
-      timeout-minutes: 25
-      id: test-ai
-      continue-on-error: true
+      - name: Run AI todo test with Xvfb
+        run: AI_TEST_TYPE=computer npx nx test @midscene/computer -- tests/ai/ai-auto-todo.test.ts
+        timeout-minutes: 25
+        id: test-ai
+        continue-on-error: true
 
-    - name: Upload test report
-      if: always()
-      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-      with:
-        name: headless-linux-ai-report
-        path: packages/computer/midscene_run/report
-        if-no-files-found: ignore
-
-    - name: Check test result
-      if: steps.test-ai.outcome == 'failure'
-      run: exit 1
+      - name: Finalize AI Todo harness
+        if: always()
+        uses: ./.github/actions/harness-finalize
+        with:
+          suite: headless-linux-ai-todo
+          outcomes: >-
+            {"ai-todo":"${{ steps.test-ai.outcome }}"}
+          report-roots: packages/computer/midscene_run/report
 
   chrome-extension:
     runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"') }}
@@ -110,56 +116,53 @@ jobs:
       MIDSCENE_MODEL_BASE_URL: ${{ vars.MIDSCENE_MODEL_BASE_URL }}
       MIDSCENE_MODEL_NAME: ${{ vars.MIDSCENE_MODEL_NAME }}
       MIDSCENE_MODEL_FAMILY: ${{ vars.MIDSCENE_MODEL_FAMILY }}
-      MIDSCENE_MODEL_RETRY_COUNT: "2"
-      MIDSCENE_MODEL_RETRY_INTERVAL: "60000"
-      MIDSCENE_REPORT_QUIET: "true"
-      MIDSCENE_COMPUTER_HEADLESS_LINUX: "true"
-      CI: "1"
+      MIDSCENE_MODEL_RETRY_COUNT: '2'
+      MIDSCENE_MODEL_RETRY_INTERVAL: '60000'
+      MIDSCENE_REPORT_QUIET: 'true'
+      MIDSCENE_COMPUTER_HEADLESS_LINUX: 'true'
+      CI: '1'
       # Env vars to inject into Chrome extension's config UI via CDP
-      MIDSCENE_USE_QWEN3_VL: "1"
+      MIDSCENE_USE_QWEN3_VL: '1'
 
     steps:
-    - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
-      with:
-        ref: ${{ github.event.inputs.branch || github.ref }}
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          ref: ${{ inputs.branch || github.ref }}
 
-    - name: Setup Node.js and pnpm
-      uses: ./.github/actions/setup-node-pnpm
+      - name: Setup Node.js and pnpm
+        uses: ./.github/actions/setup-node-pnpm
 
-    - name: Cache pnpm store
-      id: pnpm-cache
-      uses: ./.github/actions/pnpm-cache/restore
+      - name: Cache pnpm store
+        id: pnpm-cache
+        uses: ./.github/actions/pnpm-cache/restore
 
-    - name: Install dependencies
-      run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
 
-    - name: Save pnpm store
-      if: steps.pnpm-cache.outputs.cache-hit != 'true'
-      uses: ./.github/actions/pnpm-cache/save
+      - name: Save pnpm store
+        if: steps.pnpm-cache.outputs.cache-hit != 'true'
+        uses: ./.github/actions/pnpm-cache/save
 
-    - name: Setup headless browser
-      uses: ./.github/actions/setup-headless-browser
+      - name: Setup headless browser
+        uses: ./.github/actions/setup-headless-browser
 
-    - name: Build Chrome extension projects
-      run: pnpm exec nx run-many --target=build --projects="@midscene/report,chrome-extension" --skip-nx-cache
+      - name: Build Chrome extension projects
+        run: pnpm exec nx run-many --target=build --projects="@midscene/report,chrome-extension" --skip-nx-cache
 
-    - name: Run Chrome extension test
-      run: AI_TEST_TYPE=computer npx nx test @midscene/computer -- tests/ai/chrome-extension.test.ts
-      timeout-minutes: 40
-      id: test-ext
-      continue-on-error: true
+      - name: Run Chrome extension test
+        run: AI_TEST_TYPE=computer npx nx test @midscene/computer -- tests/ai/chrome-extension.test.ts
+        timeout-minutes: 40
+        id: test-ext
+        continue-on-error: true
 
-    - name: Upload test report
-      if: always()
-      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-      with:
-        name: chrome-extension-report
-        path: packages/computer/midscene_run/report
-        if-no-files-found: ignore
-
-    - name: Check test result
-      if: steps.test-ext.outcome == 'failure'
-      run: exit 1
+      - name: Finalize Chrome extension harness
+        if: always()
+        uses: ./.github/actions/harness-finalize
+        with:
+          suite: chrome-extension
+          outcomes: >-
+            {"chrome-extension":"${{ steps.test-ext.outcome }}"}
+          report-roots: packages/computer/midscene_run/report
 
   chrome-extension-bridge:
     runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"') }}
@@ -168,55 +171,52 @@ jobs:
       MIDSCENE_MODEL_BASE_URL: ${{ vars.MIDSCENE_MODEL_BASE_URL }}
       MIDSCENE_MODEL_NAME: ${{ vars.MIDSCENE_MODEL_NAME }}
       MIDSCENE_MODEL_FAMILY: ${{ vars.MIDSCENE_MODEL_FAMILY }}
-      MIDSCENE_MODEL_RETRY_COUNT: "2"
-      MIDSCENE_MODEL_RETRY_INTERVAL: "60000"
-      MIDSCENE_REPORT_QUIET: "true"
-      MIDSCENE_COMPUTER_HEADLESS_LINUX: "true"
-      CI: "1"
-      MIDSCENE_USE_QWEN3_VL: "1"
+      MIDSCENE_MODEL_RETRY_COUNT: '2'
+      MIDSCENE_MODEL_RETRY_INTERVAL: '60000'
+      MIDSCENE_REPORT_QUIET: 'true'
+      MIDSCENE_COMPUTER_HEADLESS_LINUX: 'true'
+      CI: '1'
+      MIDSCENE_USE_QWEN3_VL: '1'
 
     steps:
-    - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
-      with:
-        ref: ${{ github.event.inputs.branch || github.ref }}
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          ref: ${{ inputs.branch || github.ref }}
 
-    - name: Setup Node.js and pnpm
-      uses: ./.github/actions/setup-node-pnpm
+      - name: Setup Node.js and pnpm
+        uses: ./.github/actions/setup-node-pnpm
 
-    - name: Cache pnpm store
-      id: pnpm-cache
-      uses: ./.github/actions/pnpm-cache/restore
+      - name: Cache pnpm store
+        id: pnpm-cache
+        uses: ./.github/actions/pnpm-cache/restore
 
-    - name: Install dependencies
-      run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
 
-    - name: Save pnpm store
-      if: steps.pnpm-cache.outputs.cache-hit != 'true'
-      uses: ./.github/actions/pnpm-cache/save
+      - name: Save pnpm store
+        if: steps.pnpm-cache.outputs.cache-hit != 'true'
+        uses: ./.github/actions/pnpm-cache/save
 
-    - name: Setup headless browser
-      uses: ./.github/actions/setup-headless-browser
+      - name: Setup headless browser
+        uses: ./.github/actions/setup-headless-browser
 
-    - name: Build Chrome extension projects
-      run: pnpm exec nx run-many --target=build --projects="@midscene/report,chrome-extension" --skip-nx-cache
+      - name: Build Chrome extension projects
+        run: pnpm exec nx run-many --target=build --projects="@midscene/report,chrome-extension" --skip-nx-cache
 
-    - name: Run Bridge mode start/stop test
-      run: AI_TEST_TYPE=computer npx nx test @midscene/computer -- tests/ai/chrome-extension-bridge.test.ts
-      timeout-minutes: 40
-      id: test-bridge
-      continue-on-error: true
+      - name: Run Bridge mode start/stop test
+        run: AI_TEST_TYPE=computer npx nx test @midscene/computer -- tests/ai/chrome-extension-bridge.test.ts
+        timeout-minutes: 40
+        id: test-bridge
+        continue-on-error: true
 
-    - name: Upload bridge test report
-      if: always()
-      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-      with:
-        name: chrome-extension-bridge-report
-        path: packages/computer/midscene_run/report
-        if-no-files-found: ignore
-
-    - name: Check test result
-      if: steps.test-bridge.outcome == 'failure'
-      run: exit 1
+      - name: Finalize Bridge harness
+        if: always()
+        uses: ./.github/actions/harness-finalize
+        with:
+          suite: chrome-extension-bridge
+          outcomes: >-
+            {"bridge-mode":"${{ steps.test-bridge.outcome }}"}
+          report-roots: packages/computer/midscene_run/report
 
   chrome-extension-playground:
     runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"') }}
@@ -233,55 +233,52 @@ jobs:
       MIDSCENE_MODEL_BASE_URL: ${{ vars.MIDSCENE_MODEL_BASE_URL }}
       MIDSCENE_MODEL_NAME: ${{ vars.MIDSCENE_MODEL_NAME }}
       MIDSCENE_MODEL_FAMILY: ${{ vars.MIDSCENE_MODEL_FAMILY }}
-      MIDSCENE_MODEL_RETRY_COUNT: "2"
-      MIDSCENE_MODEL_RETRY_INTERVAL: "60000"
-      MIDSCENE_REPORT_QUIET: "true"
-      MIDSCENE_COMPUTER_HEADLESS_LINUX: "true"
-      CI: "1"
-      MIDSCENE_USE_QWEN3_VL: "1"
+      MIDSCENE_MODEL_RETRY_COUNT: '2'
+      MIDSCENE_MODEL_RETRY_INTERVAL: '60000'
+      MIDSCENE_REPORT_QUIET: 'true'
+      MIDSCENE_COMPUTER_HEADLESS_LINUX: 'true'
+      CI: '1'
+      MIDSCENE_USE_QWEN3_VL: '1'
 
     steps:
-    - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
-      with:
-        ref: ${{ github.event.inputs.branch || github.ref }}
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          ref: ${{ inputs.branch || github.ref }}
 
-    - name: Setup Node.js and pnpm
-      uses: ./.github/actions/setup-node-pnpm
+      - name: Setup Node.js and pnpm
+        uses: ./.github/actions/setup-node-pnpm
 
-    - name: Cache pnpm store
-      id: pnpm-cache
-      uses: ./.github/actions/pnpm-cache/restore
+      - name: Cache pnpm store
+        id: pnpm-cache
+        uses: ./.github/actions/pnpm-cache/restore
 
-    - name: Install dependencies
-      run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
 
-    - name: Save pnpm store
-      if: steps.pnpm-cache.outputs.cache-hit != 'true'
-      uses: ./.github/actions/pnpm-cache/save
+      - name: Save pnpm store
+        if: steps.pnpm-cache.outputs.cache-hit != 'true'
+        uses: ./.github/actions/pnpm-cache/save
 
-    - name: Setup headless browser
-      uses: ./.github/actions/setup-headless-browser
+      - name: Setup headless browser
+        uses: ./.github/actions/setup-headless-browser
 
-    - name: Build Chrome extension projects
-      run: pnpm exec nx run-many --target=build --projects="@midscene/report,chrome-extension" --skip-nx-cache
+      - name: Build Chrome extension projects
+        run: pnpm exec nx run-many --target=build --projects="@midscene/report,chrome-extension" --skip-nx-cache
 
-    - name: Run Playground E2E test
-      run: AI_TEST_TYPE=computer npx nx test @midscene/computer -- tests/ai/${{ matrix.test.file }}
-      timeout-minutes: 40
-      id: test-playground
-      continue-on-error: true
+      - name: Run Playground E2E test
+        run: AI_TEST_TYPE=computer npx nx test @midscene/computer -- tests/ai/${{ matrix.test.file }}
+        timeout-minutes: 40
+        id: test-playground
+        continue-on-error: true
 
-    - name: Upload test report
-      if: always()
-      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-      with:
-        name: ${{ matrix.test.report }}
-        path: packages/computer/midscene_run/report
-        if-no-files-found: ignore
-
-    - name: Check test result
-      if: steps.test-playground.outcome == 'failure'
-      run: exit 1
+      - name: Finalize Playground harness
+        if: always()
+        uses: ./.github/actions/harness-finalize
+        with:
+          suite: ${{ matrix.test.report }}
+          outcomes: >-
+            {"playground-e2e":"${{ steps.test-playground.outcome }}"}
+          report-roots: packages/computer/midscene_run/report
 
   chrome-extension-recorder:
     runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"') }}
@@ -290,55 +287,52 @@ jobs:
       MIDSCENE_MODEL_BASE_URL: ${{ vars.MIDSCENE_MODEL_BASE_URL }}
       MIDSCENE_MODEL_NAME: ${{ vars.MIDSCENE_MODEL_NAME }}
       MIDSCENE_MODEL_FAMILY: ${{ vars.MIDSCENE_MODEL_FAMILY }}
-      MIDSCENE_MODEL_RETRY_COUNT: "2"
-      MIDSCENE_MODEL_RETRY_INTERVAL: "60000"
-      MIDSCENE_REPORT_QUIET: "true"
-      MIDSCENE_COMPUTER_HEADLESS_LINUX: "true"
-      CI: "1"
-      MIDSCENE_USE_QWEN3_VL: "1"
+      MIDSCENE_MODEL_RETRY_COUNT: '2'
+      MIDSCENE_MODEL_RETRY_INTERVAL: '60000'
+      MIDSCENE_REPORT_QUIET: 'true'
+      MIDSCENE_COMPUTER_HEADLESS_LINUX: 'true'
+      CI: '1'
+      MIDSCENE_USE_QWEN3_VL: '1'
 
     steps:
-    - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
-      with:
-        ref: ${{ github.event.inputs.branch || github.ref }}
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          ref: ${{ inputs.branch || github.ref }}
 
-    - name: Setup Node.js and pnpm
-      uses: ./.github/actions/setup-node-pnpm
+      - name: Setup Node.js and pnpm
+        uses: ./.github/actions/setup-node-pnpm
 
-    - name: Cache pnpm store
-      id: pnpm-cache
-      uses: ./.github/actions/pnpm-cache/restore
+      - name: Cache pnpm store
+        id: pnpm-cache
+        uses: ./.github/actions/pnpm-cache/restore
 
-    - name: Install dependencies
-      run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
 
-    - name: Save pnpm store
-      if: steps.pnpm-cache.outputs.cache-hit != 'true'
-      uses: ./.github/actions/pnpm-cache/save
+      - name: Save pnpm store
+        if: steps.pnpm-cache.outputs.cache-hit != 'true'
+        uses: ./.github/actions/pnpm-cache/save
 
-    - name: Setup headless browser
-      uses: ./.github/actions/setup-headless-browser
+      - name: Setup headless browser
+        uses: ./.github/actions/setup-headless-browser
 
-    - name: Build Chrome extension projects
-      run: pnpm exec nx run-many --target=build --projects="@midscene/report,chrome-extension" --skip-nx-cache
+      - name: Build Chrome extension projects
+        run: pnpm exec nx run-many --target=build --projects="@midscene/report,chrome-extension" --skip-nx-cache
 
-    - name: Run Recorder mode tests
-      run: AI_TEST_TYPE=computer npx nx test @midscene/computer -- tests/ai/chrome-extension-recorder.test.ts
-      timeout-minutes: 40
-      id: test-recorder
-      continue-on-error: true
+      - name: Run Recorder mode tests
+        run: AI_TEST_TYPE=computer npx nx test @midscene/computer -- tests/ai/chrome-extension-recorder.test.ts
+        timeout-minutes: 40
+        id: test-recorder
+        continue-on-error: true
 
-    - name: Upload test report
-      if: always()
-      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-      with:
-        name: chrome-extension-recorder-report
-        path: packages/computer/midscene_run/report
-        if-no-files-found: ignore
-
-    - name: Check test result
-      if: steps.test-recorder.outcome == 'failure'
-      run: exit 1
+      - name: Finalize Recorder harness
+        if: always()
+        uses: ./.github/actions/harness-finalize
+        with:
+          suite: chrome-extension-recorder
+          outcomes: >-
+            {"recorder-mode":"${{ steps.test-recorder.outcome }}"}
+          report-roots: packages/computer/midscene_run/report
 
   chrome-extension-settings:
     runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"') }}
@@ -347,52 +341,49 @@ jobs:
       MIDSCENE_MODEL_BASE_URL: ${{ vars.MIDSCENE_MODEL_BASE_URL }}
       MIDSCENE_MODEL_NAME: ${{ vars.MIDSCENE_MODEL_NAME }}
       MIDSCENE_MODEL_FAMILY: ${{ vars.MIDSCENE_MODEL_FAMILY }}
-      MIDSCENE_MODEL_RETRY_COUNT: "2"
-      MIDSCENE_MODEL_RETRY_INTERVAL: "60000"
-      MIDSCENE_REPORT_QUIET: "true"
-      MIDSCENE_COMPUTER_HEADLESS_LINUX: "true"
-      CI: "1"
-      MIDSCENE_USE_QWEN3_VL: "1"
+      MIDSCENE_MODEL_RETRY_COUNT: '2'
+      MIDSCENE_MODEL_RETRY_INTERVAL: '60000'
+      MIDSCENE_REPORT_QUIET: 'true'
+      MIDSCENE_COMPUTER_HEADLESS_LINUX: 'true'
+      CI: '1'
+      MIDSCENE_USE_QWEN3_VL: '1'
 
     steps:
-    - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
-      with:
-        ref: ${{ github.event.inputs.branch || github.ref }}
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          ref: ${{ inputs.branch || github.ref }}
 
-    - name: Setup Node.js and pnpm
-      uses: ./.github/actions/setup-node-pnpm
+      - name: Setup Node.js and pnpm
+        uses: ./.github/actions/setup-node-pnpm
 
-    - name: Cache pnpm store
-      id: pnpm-cache
-      uses: ./.github/actions/pnpm-cache/restore
+      - name: Cache pnpm store
+        id: pnpm-cache
+        uses: ./.github/actions/pnpm-cache/restore
 
-    - name: Install dependencies
-      run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
 
-    - name: Save pnpm store
-      if: steps.pnpm-cache.outputs.cache-hit != 'true'
-      uses: ./.github/actions/pnpm-cache/save
+      - name: Save pnpm store
+        if: steps.pnpm-cache.outputs.cache-hit != 'true'
+        uses: ./.github/actions/pnpm-cache/save
 
-    - name: Setup headless browser
-      uses: ./.github/actions/setup-headless-browser
+      - name: Setup headless browser
+        uses: ./.github/actions/setup-headless-browser
 
-    - name: Build Chrome extension projects
-      run: pnpm exec nx run-many --target=build --projects="@midscene/report,chrome-extension" --skip-nx-cache
+      - name: Build Chrome extension projects
+        run: pnpm exec nx run-many --target=build --projects="@midscene/report,chrome-extension" --skip-nx-cache
 
-    - name: Run Settings and cross-mode tests
-      run: AI_TEST_TYPE=computer npx nx test @midscene/computer -- tests/ai/chrome-extension-settings.test.ts
-      timeout-minutes: 30
-      id: test-settings
-      continue-on-error: true
+      - name: Run Settings and cross-mode tests
+        run: AI_TEST_TYPE=computer npx nx test @midscene/computer -- tests/ai/chrome-extension-settings.test.ts
+        timeout-minutes: 30
+        id: test-settings
+        continue-on-error: true
 
-    - name: Upload test report
-      if: always()
-      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-      with:
-        name: chrome-extension-settings-report
-        path: packages/computer/midscene_run/report
-        if-no-files-found: ignore
-
-    - name: Check test result
-      if: steps.test-settings.outcome == 'failure'
-      run: exit 1
+      - name: Finalize Settings harness
+        if: always()
+        uses: ./.github/actions/harness-finalize
+        with:
+          suite: chrome-extension-settings
+          outcomes: >-
+            {"settings-and-cross-mode":"${{ steps.test-settings.outcome }}"}
+          report-roots: packages/computer/midscene_run/report

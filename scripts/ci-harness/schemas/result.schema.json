@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://midscenejs.com/schemas/ci-harness/result.schema.json",
+  "title": "Midscene CI harness case result",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "caseId",
+    "attemptId",
+    "verdict",
+    "score",
+    "validator",
+    "trace",
+    "provenance"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "caseId": { "type": "string", "minLength": 1 },
+    "attemptId": { "type": "string", "minLength": 1 },
+    "verdict": {
+      "enum": ["pass", "fail", "infra_error", "not_evaluated"]
+    },
+    "score": { "type": ["integer", "null"], "enum": [0, 1, null] },
+    "validator": {
+      "type": "object",
+      "required": ["id", "type", "version", "expected", "observed"]
+    },
+    "trace": {
+      "type": "object",
+      "required": ["complete", "reports", "tasks"]
+    },
+    "provenance": { "type": "object" }
+  },
+  "additionalProperties": true
+}

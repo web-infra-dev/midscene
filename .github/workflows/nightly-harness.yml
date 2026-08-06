@@ -1,0 +1,114 @@
+name: Nightly Harness
+
+on:
+  schedule:
+    - cron: '0 18 * * *'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: nightly-harness-main
+  cancel-in-progress: false
+
+jobs:
+  ai-playwright:
+    uses: ./.github/workflows/ai.yml
+    with:
+      branch: main
+    secrets: inherit
+
+  ai-unit:
+    uses: ./.github/workflows/ai-unit-test.yml
+    with:
+      branch: main
+    secrets: inherit
+
+  headless-linux:
+    uses: ./.github/workflows/headless-linux.yml
+    with:
+      branch: main
+    secrets: inherit
+
+  studio-headless-linux:
+    uses: ./.github/workflows/studio-headless-linux.yml
+    with:
+      branch: main
+    secrets: inherit
+
+  macos-desktop:
+    uses: ./.github/workflows/macos-desktop.yml
+    with:
+      branch: main
+    secrets: inherit
+
+  windows-desktop:
+    uses: ./.github/workflows/windows-desktop.yml
+    with:
+      branch: main
+    secrets: inherit
+
+  android-emulator:
+    uses: ./.github/workflows/android-emulator.yml
+    with:
+      branch: main
+    secrets: inherit
+
+  ios-simulator:
+    uses: ./.github/workflows/ios-simulator.yml
+    with:
+      branch: main
+    secrets: inherit
+
+  aggregate:
+    if: always()
+    needs:
+      - ai-playwright
+      - ai-unit
+      - headless-linux
+      - studio-headless-linux
+      - macos-desktop
+      - windows-desktop
+      - android-emulator
+      - ios-simulator
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Setup Node.js and pnpm
+        uses: ./.github/actions/setup-node-pnpm
+
+      - name: Download harness Trace Bundles
+        id: download
+        continue-on-error: true
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          pattern: harness-*
+          path: midscene_run/nightly-input
+
+      - name: Aggregate nightly scorecards
+        id: aggregate
+        continue-on-error: true
+        run: node scripts/ci-harness/aggregate.mjs
+
+      - name: Upload nightly aggregate
+        id: upload
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: nightly-harness-aggregate-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ steps.aggregate.outputs.output-dir || 'midscene_run/nightly-aggregate' }}
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Enforce nightly aggregate
+        if: always()
+        env:
+          HARNESS_FINALIZE_OUTCOME: ${{ steps.aggregate.outcome }}
+          HARNESS_UPLOAD_OUTCOME: ${{ steps.upload.outcome }}
+          HARNESS_CONCLUSION: ${{ steps.aggregate.outputs.conclusion }}
+        run: node scripts/ci-harness/enforce.mjs

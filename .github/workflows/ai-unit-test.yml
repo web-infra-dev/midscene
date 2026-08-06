@@ -1,5 +1,12 @@
 name: AI unit test
 on:
+  workflow_call:
+    inputs:
+      branch:
+        description: 'Branch to checkout'
+        required: false
+        default: 'main'
+        type: string
   push:
     branches:
       - main
@@ -41,69 +48,66 @@ jobs:
       MIDSCENE_MODEL_BASE_URL: ${{ vars.MIDSCENE_MODEL_BASE_URL }}
       MIDSCENE_MODEL_NAME: ${{ vars.MIDSCENE_MODEL_NAME }}
       MIDSCENE_MODEL_FAMILY: ${{ vars.MIDSCENE_MODEL_FAMILY }}
-      MIDSCENE_MODEL_RETRY_COUNT: "2"
-      MIDSCENE_MODEL_RETRY_INTERVAL: "60000"
-      MIDSCENE_REPORT_QUIET: "true"
+      MIDSCENE_MODEL_RETRY_COUNT: '2'
+      MIDSCENE_MODEL_RETRY_INTERVAL: '60000'
+      MIDSCENE_REPORT_QUIET: 'true'
       # DEBUG: midscene:* # Disabled to prevent log overflow
       CI: 1
 
     steps:
-    - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
-      with:
-        ref: ${{ github.event.inputs.branch || github.ref }}
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          ref: ${{ inputs.branch || github.ref }}
 
-    - name: Setup Node.js and pnpm
-      uses: ./.github/actions/setup-node-pnpm
+      - name: Setup Node.js and pnpm
+        uses: ./.github/actions/setup-node-pnpm
 
-    - name: Cache pnpm store
-      id: pnpm-cache
-      uses: ./.github/actions/pnpm-cache/restore
+      - name: Cache pnpm store
+        id: pnpm-cache
+        uses: ./.github/actions/pnpm-cache/restore
 
-    - name: Install dependencies
-      run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
 
-    - name: Save pnpm store
-      if: steps.pnpm-cache.outputs.cache-hit != 'true'
-      uses: ./.github/actions/pnpm-cache/save
+      - name: Save pnpm store
+        if: steps.pnpm-cache.outputs.cache-hit != 'true'
+        uses: ./.github/actions/pnpm-cache/save
 
-    - name: Setup Puppeteer browser
-      uses: ./.github/actions/setup-puppeteer-browser
+      - name: Setup Puppeteer browser
+        uses: ./.github/actions/setup-puppeteer-browser
 
-    - name: Build AI unit test projects
-      run: pnpm exec nx run-many --target=build --projects="@midscene/report,@midscene/core,@midscene/web,@midscene/cli"
-    
-    - name: Run tests with coverage
-      # Keep model request concurrency comparable to the former 4-core hosted runner.
-      run: MIDSCENE_COVERAGE_DIR=coverage-ai pnpm exec nx run-many --target=test:ai --projects=@midscene/core,@midscene/web,@midscene/cli --verbose -- --coverage --minWorkers=1 --maxWorkers=4
-      id: test-ai
-      continue-on-error: true
+      - name: Build AI unit test projects
+        run: pnpm exec nx run-many --target=build --projects="@midscene/report,@midscene/core,@midscene/web,@midscene/cli"
 
-    - name: Upload test-ai output
-      if: always()
-      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-      with:
-        name: test-ai-output
-        path: ${{ github.workspace }}/packages/web-integration/midscene_run/report
-        if-no-files-found: ignore
+      - name: Run tests with coverage
+        # Keep model request concurrency comparable to the former 4-core hosted runner.
+        run: MIDSCENE_COVERAGE_DIR=coverage-ai pnpm exec nx run-many --target=test:ai --projects=@midscene/core,@midscene/web,@midscene/cli --verbose -- --coverage --minWorkers=1 --maxWorkers=4
+        id: test-ai
+        continue-on-error: true
 
-    - name: Upload AI coverage reports
-      id: upload-ai-coverage
-      if: always()
-      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-      with:
-        name: ai-coverage
-        path: coverage-ai
-        if-no-files-found: ignore
+      - name: Upload AI coverage reports
+        id: upload-ai-coverage
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: ai-coverage
+          path: coverage-ai
+          if-no-files-found: ignore
 
-    - name: Write AI coverage summary
-      if: always()
-      env:
-        COVERAGE_DIR: coverage-ai
-        COVERAGE_TITLE: AI Test Coverage
-        COVERAGE_ARTIFACT_NAME: ai-coverage
-        COVERAGE_ARTIFACT_URL: ${{ steps.upload-ai-coverage.outputs.artifact-url }}
-      run: node scripts/github-coverage-summary.js
+      - name: Write AI coverage summary
+        if: always()
+        env:
+          COVERAGE_DIR: coverage-ai
+          COVERAGE_TITLE: AI Test Coverage
+          COVERAGE_ARTIFACT_NAME: ai-coverage
+          COVERAGE_ARTIFACT_URL: ${{ steps.upload-ai-coverage.outputs.artifact-url }}
+        run: node scripts/github-coverage-summary.js
 
-    - name: Check if script failed
-      if: steps.test-ai.outcome == 'failure'
-      run: exit 1
+      - name: Finalize AI unit harness
+        if: always()
+        uses: ./.github/actions/harness-finalize
+        with:
+          suite: ai-unit
+          outcomes: >-
+            {"ai-unit-tests":"${{ steps.test-ai.outcome }}"}
+          report-roots: packages/web-integration/midscene_run/report
