@@ -269,7 +269,36 @@ android:
 export MIDSCENE_ANDROID_IME_STRATEGY=always-yadb
 ```
 
-这和“输入后被清空”不是同一个问题。如果文本先正确输入、随后消失，请优先检查 `keyboardDismissStrategy` 或 `autoDismissKeyboard`。
+这和”输入后被清空”不是同一个问题。如果文本先正确输入、随后消失，请优先检查 `keyboardDismissStrategy` 或 `autoDismissKeyboard`。
+
+### 截图页面（如密码输入框）截图黑屏
+
+部分页面（如银行、支付类 App 的密码输入页）会通过 `FLAG_SECURE` 禁止截屏。此时使用 `screencap` 截出的图片中，安全区域会显示为黑色。
+
+yadb 工具通过 `SurfaceControl.createDisplay` 的 `secure` 参数创建虚拟显示器，在 Android 11 及以下系统上可以直接截取安全页面内容。在 Android 12 及以上系统中，由于系统限制了该参数，需要配合 root 和 Magisk hook 才能绕过 `FLAG_SECURE`。
+
+使用 `screenshotStrategy` 选项，将截图方式强制改为 yadb：
+
+```typescript
+const device = new AndroidDevice('device-id', {
+  screenshotStrategy: 'always-yadb',
+});
+```
+
+YAML 脚本中可以这样配置：
+
+```yaml
+android:
+  screenshotStrategy: always-yadb
+```
+
+也可以通过环境变量设置：
+
+```bash
+export MIDSCENE_ANDROID_SCREENSHOT_STRATEGY=always-yadb
+```
+
+默认值为 `auto`，即按 scrcpy → `adb.takeScreenshot` → `screencap` → yadb 的顺序依次尝试。设为 `always-yadb` 后将跳过前面的路径，直接使用 yadb 截图。注意 yadb 只能截取默认显示器（displayId=0）的内容。
 
 ### 如何使用自定义的 adb 路径或远程 adb 服务器？
 

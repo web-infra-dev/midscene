@@ -375,6 +375,35 @@ export MIDSCENE_ANDROID_IME_STRATEGY=always-yadb
 
 This is different from text being cleared after typing. If the text is entered correctly and then disappears, check `keyboardDismissStrategy` or `autoDismissKeyboard` instead.
 
+### Screenshot of secure pages (e.g. password input) shows black
+
+Some pages (such as password entry screens in banking or payment apps) set `FLAG_SECURE` to block screenshots. When `screencap` captures such a page, the secure region appears black.
+
+The yadb tool creates a virtual display via the `secure` parameter of `SurfaceControl.createDisplay`, which can capture secure content directly on Android 11 and below. On Android 12 and above, the system restricts this parameter, so you need root plus a Magisk hook to bypass `FLAG_SECURE`.
+
+Use the `screenshotStrategy` option to force yadb for screenshots:
+
+```typescript
+const device = new AndroidDevice('device-id', {
+  screenshotStrategy: 'always-yadb',
+});
+```
+
+For YAML scripts:
+
+```yaml
+android:
+  screenshotStrategy: always-yadb
+```
+
+Or set the environment variable:
+
+```bash
+export MIDSCENE_ANDROID_SCREENSHOT_STRATEGY=always-yadb
+```
+
+The default is `auto`, which tries scrcpy → `adb.takeScreenshot` → `screencap` → yadb in order. Setting it to `always-yadb` skips the earlier paths and uses yadb directly. Note that yadb can only capture the default display (displayId=0).
+
 ### How do I use a custom adb path or remote adb server?
 
 Set the environment variables first:

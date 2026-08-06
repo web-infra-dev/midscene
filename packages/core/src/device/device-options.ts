@@ -34,6 +34,17 @@ export type AndroidDeviceOpt = {
   remoteAdbPort?: number;
   /** Input method editor strategy: 'always-yadb' always uses yadb, 'yadb-for-non-ascii' uses yadb only for non-ASCII characters */
   imeStrategy?: 'always-yadb' | 'yadb-for-non-ascii';
+  /**
+   * Screenshot strategy: 'auto' uses the default fallback chain (scrcpy →
+   * adb.takeScreenshot → screencap → yadb), while 'always-yadb' skips the
+   * earlier paths and captures directly via the yadb tool. Use 'always-yadb'
+   * on devices where `screencap` produces black frames for secure
+   * (FLAG_SECURE) content but yadb succeeds (e.g. with a rooted/Magisk-hooked
+   * system, or on Android versions where yadb's secure virtual display works).
+   *
+   * @default 'auto'
+   */
+  screenshotStrategy?: 'auto' | 'always-yadb';
   /** Display ID to use for this device */
   displayId?: number;
   /** Use physical display ID for screenshot operations */

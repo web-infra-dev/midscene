@@ -26,6 +26,7 @@ vi.mock('../src/store/store', () => ({
     deepThink: 'unset',
     domIncluded: false,
     imeStrategy: undefined,
+    screenshotStrategy: undefined,
     keyboardDismissStrategy: undefined,
     screenshotIncluded: false,
   }),

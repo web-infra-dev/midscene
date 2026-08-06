@@ -13,6 +13,7 @@ import {
   imeStrategyTip,
   keyboardDismissStrategyTip,
   screenshotIncludedTip,
+  screenshotStrategyTip,
   trackingTip,
 } from '../../utils/constants';
 import {
@@ -61,6 +62,10 @@ export const ConfigSelector: React.FC<ConfigSelectorProps> = ({
   // Device-specific configuration
   const imeStrategy = useEnvConfig((state) => state.imeStrategy);
   const setImeStrategy = useEnvConfig((state) => state.setImeStrategy);
+  const screenshotStrategy = useEnvConfig((state) => state.screenshotStrategy);
+  const setScreenshotStrategy = useEnvConfig(
+    (state) => state.setScreenshotStrategy,
+  );
   const autoDismissKeyboard = useEnvConfig(
     (state) => state.autoDismissKeyboard,
   );
@@ -232,6 +237,27 @@ export const ConfigSelector: React.FC<ConfigSelectorProps> = ({
         ),
         key: 'ime-strategy-config',
       });
+
+      if (deviceCapabilities.supportsScreenshotStrategy) {
+        items.push({
+          label: (
+            <div style={{ padding: '4px 0' }}>
+              <div style={{ marginBottom: '4px', fontSize: '14px' }}>
+                {screenshotStrategyTip}
+              </div>
+              <Radio.Group
+                size="small"
+                value={screenshotStrategy}
+                onChange={(e) => setScreenshotStrategy(e.target.value)}
+              >
+                <Radio value="auto">Auto</Radio>
+                <Radio value="always-yadb">Always YADB</Radio>
+              </Radio.Group>
+            </div>
+          ),
+          key: 'screenshot-strategy-config',
+        });
+      }
 
       if (deviceCapabilities.supportsAutoDismissKeyboard) {
         items.push({
