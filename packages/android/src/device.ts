@@ -49,8 +49,12 @@ import {
   ScrcpyDeviceAdapter,
   type ScrcpyStatus,
 } from './scrcpy-device-adapter';
-import type { RawKeyframe } from './scrcpy-manager';
+import {
+  type RawKeyframe,
+  SCRCPY_VIDEO_BIT_RATE_NETWORK_HINT,
+} from './scrcpy-manager';
 import { captureAndroidUITree } from './ui-tree-capture';
+import { createVisualActionRegistry } from './visual-action-registry';
 
 // Re-export AndroidDeviceOpt and AndroidDeviceInputOpt for backward compatibility
 export type {
@@ -66,6 +70,72 @@ const defaultNormalScrollDuration = 1000;
 const IME_STRATEGY_ALWAYS_YADB = 'always-yadb' as const;
 const IME_STRATEGY_YADB_FOR_NON_ASCII = 'yadb-for-non-ascii' as const;
 type ScrollDirection = 'up' | 'down' | 'left' | 'right';
+
+type PullGestureParam = {
+  direction: 'up' | 'down';
+  distance?: number;
+  duration?: number;
+  locate?: LocateResultElement;
+};
+
+type AndroidVisualActions = {
+  tap: MobileInputPrimitives['pointer']['tap'];
+  doubleClick: MobileInputPrimitives['pointer']['doubleClick'];
+  longPress: MobileInputPrimitives['pointer']['longPress'];
+  dragAndDrop: MobileInputPrimitives['pointer']['dragAndDrop'];
+  keyboardPress: MobileInputPrimitives['keyboard']['keyboardPress'];
+  typeText: MobileInputPrimitives['keyboard']['typeText'];
+  clearInput: MobileInputPrimitives['keyboard']['clearInput'];
+  cursorMove: NonNullable<MobileInputPrimitives['keyboard']['cursorMove']>;
+  swipe: MobileInputPrimitives['touch']['swipe'];
+  pinch: NonNullable<MobileInputPrimitives['touch']['pinch']>;
+  actionScroll: NonNullable<MobileInputPrimitives['scroll']>['scroll'];
+  back: () => Promise<void>;
+  home: () => Promise<void>;
+  recentApps: () => Promise<void>;
+  pullGesture: (param: PullGestureParam) => Promise<void>;
+  launch: (uri: string) => Promise<AndroidDevice>;
+  terminate: (uri: string) => Promise<void>;
+  runAdbShell: (
+    param: RunAdbShellParam,
+    context?: ExecutorContext,
+  ) => Promise<string>;
+  execYadb: (keyboardContent: string) => Promise<void>;
+  scrollUntilTop: (startPoint?: Point) => Promise<void>;
+  scrollUntilBottom: (startPoint?: Point) => Promise<void>;
+  scrollUntilLeft: (startPoint?: Point) => Promise<void>;
+  scrollUntilRight: (startPoint?: Point) => Promise<void>;
+  scrollUp: (distance?: number, startPoint?: Point) => Promise<void>;
+  scrollDown: (distance?: number, startPoint?: Point) => Promise<void>;
+  scrollLeft: (distance?: number, startPoint?: Point) => Promise<void>;
+  scrollRight: (distance?: number, startPoint?: Point) => Promise<void>;
+  scroll: (
+    deltaX: number,
+    deltaY: number,
+    duration?: number,
+    warnOnClamp?: boolean,
+    direction?: ScrollDirection,
+  ) => Promise<void>;
+  pullDown: (
+    startPoint?: Point,
+    distance?: number,
+    duration?: number,
+  ) => Promise<void>;
+  pullDrag: (
+    from: PointerPoint,
+    to: PointerPoint,
+    duration: number,
+  ) => Promise<void>;
+  pullUp: (
+    startPoint?: Point,
+    distance?: number,
+    duration?: number,
+  ) => Promise<void>;
+  hideKeyboard: (
+    options?: AndroidDeviceInputOpt,
+    timeoutMs?: number,
+  ) => Promise<boolean>;
+};
 
 const debugDevice = getDebug('android:device');
 const warnDevice = getDebug('android:device', { console: true });
@@ -191,83 +261,133 @@ export class AndroidDevice implements AbstractInterface {
   uri: string | undefined;
   options?: AndroidDeviceOpt;
 
+  private readonly visualActions =
+    createVisualActionRegistry<AndroidVisualActions>(
+      {
+        tap: (point) => this.tapPoint(point),
+        doubleClick: (point) => this.doubleTapPoint(point),
+        longPress: (point, opts) => this.longPressPoint(point, opts?.duration),
+        dragAndDrop: (from, to) => this.dragPoint(from, to),
+        keyboardPress: (keyName) => this.pressKey(keyName),
+        typeText: async (value, opts) => {
+          const target = opts?.target as ElementInfo | undefined;
+          if (target && opts?.replace !== false) {
+            await this.clearInputRaw(target);
+          } else if (target) {
+            await this.tapPoint({ x: target.center[0], y: target.center[1] });
+          }
+
+          if (opts?.focusOnly) {
+            return;
+          }
+
+          await this.typeText(value, opts);
+        },
+        clearInput: (target) =>
+          this.clearInputRaw(target as ElementInfo | undefined),
+        cursorMove: async (direction, times = 1) => {
+          const arrowKey = direction === 'left' ? 'ArrowLeft' : 'ArrowRight';
+          for (let index = 0; index < times; index++) {
+            await this.pressKey(arrowKey);
+          }
+        },
+        swipe: async (start, end, opts) => {
+          const duration = opts?.duration ?? 300;
+          const repeatCount = opts?.repeat ?? 1;
+          for (let index = 0; index < repeatCount; index++) {
+            await this.dragPoint(start, end, duration);
+          }
+        },
+        pinch: async (center, opts) => {
+          // yadb only injects gestures into the default display, so a non-default
+          // display would silently land the pinch on the main screen. Fail fast
+          // instead of misleading the caller.
+          if (
+            typeof this.options?.displayId === 'number' &&
+            this.options.displayId !== 0
+          ) {
+            throw new Error(
+              `Pinch is not supported on a non-default display (displayId=${this.options.displayId}). The underlying yadb tool only injects gestures into the default display.`,
+            );
+          }
+          const { x: adjCenterX, y: adjCenterY } = await this.adjustCoordinates(
+            Math.round(center.x),
+            Math.round(center.y),
+          );
+          const ratio =
+            adjCenterX !== 0 && center.x !== 0 ? adjCenterX / center.x : 1;
+          const adjStartDist = Math.round(opts.startDistance * ratio);
+          const adjEndDist = Math.round(opts.endDistance * ratio);
+          await this.ensureYadb();
+          const adb = await this.getAdb();
+          await adb.shell(
+            // Note: do not append getDisplayArg() here. `app_process` is the ART
+            // runtime launcher and does not accept the `-d <displayId>` flag the
+            // way `input`/`dumpsys` do; passing it makes the VM fail to start.
+            `app_process -Djava.class.path=/data/local/tmp/yadb /data/local/tmp com.ysbing.yadb.Main -pinch ${adjCenterX} ${adjCenterY} ${adjStartDist} ${adjEndDist} ${opts.duration}`,
+          );
+        },
+        actionScroll: (param) => this.performActionScroll(param),
+        back: () => this.backRaw(),
+        home: () => this.homeRaw(),
+        recentApps: () => this.recentAppsRaw(),
+        pullGesture: (param) => this.performPullGesture(param),
+        launch: (uri) => this.launchRaw(uri),
+        terminate: (uri) => this.terminateRaw(uri),
+        runAdbShell: (param, context) => this.runAdbShellRaw(param, context),
+        execYadb: (keyboardContent) => this.execYadbRaw(keyboardContent),
+        scrollUntilTop: (startPoint) => this.scrollUntilTopRaw(startPoint),
+        scrollUntilBottom: (startPoint) =>
+          this.scrollUntilBottomRaw(startPoint),
+        scrollUntilLeft: (startPoint) => this.scrollUntilLeftRaw(startPoint),
+        scrollUntilRight: (startPoint) => this.scrollUntilRightRaw(startPoint),
+        scrollUp: (distance, startPoint) =>
+          this.scrollUpRaw(distance, startPoint),
+        scrollDown: (distance, startPoint) =>
+          this.scrollDownRaw(distance, startPoint),
+        scrollLeft: (distance, startPoint) =>
+          this.scrollLeftRaw(distance, startPoint),
+        scrollRight: (distance, startPoint) =>
+          this.scrollRightRaw(distance, startPoint),
+        scroll: (deltaX, deltaY, duration, warnOnClamp, direction) =>
+          this.scrollRaw(deltaX, deltaY, duration, warnOnClamp, direction),
+        pullDown: (startPoint, distance, duration) =>
+          this.pullDownRaw(startPoint, distance, duration),
+        pullDrag: (from, to, duration) => this.pullDragRaw(from, to, duration),
+        pullUp: (startPoint, distance, duration) =>
+          this.pullUpRaw(startPoint, distance, duration),
+        hideKeyboard: (options, timeoutMs) =>
+          this.hideKeyboardRaw(options, timeoutMs),
+      },
+      async () => {
+        await this.scrcpyAdapter?.markActionBarrier();
+      },
+    );
+
   readonly inputPrimitives: MobileInputPrimitives = {
     pointer: {
-      tap: (point) => this.tapPoint(point),
-      doubleClick: (point) => this.doubleTapPoint(point),
-      longPress: (point, opts) => this.longPressPoint(point, opts?.duration),
-      dragAndDrop: (from, to) => this.dragPoint(from, to),
+      tap: this.visualActions.tap,
+      doubleClick: this.visualActions.doubleClick,
+      longPress: this.visualActions.longPress,
+      dragAndDrop: this.visualActions.dragAndDrop,
     },
     keyboard: {
-      keyboardPress: (keyName) => this.pressKey(keyName),
-      typeText: async (value, opts) => {
-        const target = opts?.target as ElementInfo | undefined;
-        if (target && opts?.replace !== false) {
-          await this.clearInput(target);
-        } else if (target) {
-          await this.tapPoint({ x: target.center[0], y: target.center[1] });
-        }
-
-        if (opts?.focusOnly) {
-          return;
-        }
-
-        await this.typeText(value, opts);
-      },
-      clearInput: (target) =>
-        this.clearInput(target as ElementInfo | undefined),
-      cursorMove: async (direction, times = 1) => {
-        const arrowKey = direction === 'left' ? 'ArrowLeft' : 'ArrowRight';
-        for (let i = 0; i < times; i++) {
-          await this.pressKey(arrowKey);
-        }
-      },
+      keyboardPress: this.visualActions.keyboardPress,
+      typeText: this.visualActions.typeText,
+      clearInput: this.visualActions.clearInput,
+      cursorMove: this.visualActions.cursorMove,
     },
     touch: {
-      swipe: async (start, end, opts) => {
-        const duration = opts?.duration ?? 300;
-        const repeatCount = opts?.repeat ?? 1;
-        for (let i = 0; i < repeatCount; i++) {
-          await this.dragPoint(start, end, duration);
-        }
-      },
-      pinch: async (center, opts) => {
-        // yadb only injects gestures into the default display, so a non-default
-        // display would silently land the pinch on the main screen. Fail fast
-        // instead of misleading the caller.
-        if (
-          typeof this.options?.displayId === 'number' &&
-          this.options.displayId !== 0
-        ) {
-          throw new Error(
-            `Pinch is not supported on a non-default display (displayId=${this.options.displayId}). The underlying yadb tool only injects gestures into the default display.`,
-          );
-        }
-        const { x: adjCenterX, y: adjCenterY } = await this.adjustCoordinates(
-          Math.round(center.x),
-          Math.round(center.y),
-        );
-        const ratio =
-          adjCenterX !== 0 && center.x !== 0 ? adjCenterX / center.x : 1;
-        const adjStartDist = Math.round(opts.startDistance * ratio);
-        const adjEndDist = Math.round(opts.endDistance * ratio);
-        await this.ensureYadb();
-        const adb = await this.getAdb();
-        await adb.shell(
-          // Note: do not append getDisplayArg() here. `app_process` is the ART
-          // runtime launcher and does not accept the `-d <displayId>` flag the
-          // way `input`/`dumpsys` do; passing it makes the VM fail to start.
-          `app_process -Djava.class.path=/data/local/tmp/yadb /data/local/tmp com.ysbing.yadb.Main -pinch ${adjCenterX} ${adjCenterY} ${adjStartDist} ${adjEndDist} ${opts.duration}`,
-        );
-      },
+      swipe: this.visualActions.swipe,
+      pinch: this.visualActions.pinch,
     },
     scroll: {
-      scroll: (param) => this.performActionScroll(param),
+      scroll: this.visualActions.actionScroll,
     },
     system: {
-      backButton: () => this.back(),
-      homeButton: () => this.home(),
-      recentAppsButton: () => this.recentApps(),
+      backButton: this.visualActions.back,
+      homeButton: this.visualActions.home,
+      recentAppsButton: this.visualActions.recentApps,
     },
   };
 
@@ -332,25 +452,15 @@ export class AndroidDevice implements AbstractInterface {
           locate: { prompt: 'the center of the content list area' },
         },
         call: async (param) => {
-          const element = param.locate;
-          const startPoint = element
-            ? { left: element.center[0], top: element.center[1] }
-            : undefined;
           if (!param || !param.direction) {
             throw new Error('PullGesture requires a direction parameter');
           }
-          if (param.direction === 'down') {
-            await this.pullDown(startPoint, param.distance, param.duration);
-          } else if (param.direction === 'up') {
-            await this.pullUp(startPoint, param.distance, param.duration);
-          } else {
-            throw new Error(`Unknown pull direction: ${param.direction}`);
-          }
+          await this.visualActions.pullGesture(param);
         },
       }),
     ];
 
-    const platformActions = createPlatformActions(this);
+    const platformActions = createPlatformActions(this.visualActions);
     let platformSpecificActions = Object.values(platformActions);
 
     if (this.options?.exposeRunAdbShellAction === false) {
@@ -363,6 +473,21 @@ export class AndroidDevice implements AbstractInterface {
     return [...defaultActions, ...platformSpecificActions, ...customActions];
   }
 
+  private async performPullGesture(param: PullGestureParam): Promise<void> {
+    const element = param.locate;
+    const startPoint = element
+      ? { left: element.center[0], top: element.center[1] }
+      : undefined;
+
+    if (param.direction === 'down') {
+      await this.pullDownRaw(startPoint, param.distance, param.duration);
+    } else if (param.direction === 'up') {
+      await this.pullUpRaw(startPoint, param.distance, param.duration);
+    } else {
+      throw new Error(`Unknown pull direction: ${param.direction}`);
+    }
+  }
+
   private async performActionScroll(param: ActionScrollParam): Promise<void> {
     const element = param.locate;
     const startingPoint = element
@@ -373,22 +498,22 @@ export class AndroidDevice implements AbstractInterface {
       : undefined;
     const scrollToEventName = param?.scrollType;
     if (scrollToEventName === 'scrollToTop') {
-      await this.scrollUntilTop(startingPoint);
+      await this.scrollUntilTopRaw(startingPoint);
     } else if (scrollToEventName === 'scrollToBottom') {
-      await this.scrollUntilBottom(startingPoint);
+      await this.scrollUntilBottomRaw(startingPoint);
     } else if (scrollToEventName === 'scrollToRight') {
-      await this.scrollUntilRight(startingPoint);
+      await this.scrollUntilRightRaw(startingPoint);
     } else if (scrollToEventName === 'scrollToLeft') {
-      await this.scrollUntilLeft(startingPoint);
+      await this.scrollUntilLeftRaw(startingPoint);
     } else if (scrollToEventName === 'singleAction' || !scrollToEventName) {
       if (param?.direction === 'down' || !param || !param.direction) {
-        await this.scrollDown(param?.distance || undefined, startingPoint);
+        await this.scrollDownRaw(param?.distance || undefined, startingPoint);
       } else if (param.direction === 'up') {
-        await this.scrollUp(param.distance || undefined, startingPoint);
+        await this.scrollUpRaw(param.distance || undefined, startingPoint);
       } else if (param.direction === 'left') {
-        await this.scrollLeft(param.distance || undefined, startingPoint);
+        await this.scrollLeftRaw(param.distance || undefined, startingPoint);
       } else if (param.direction === 'right') {
-        await this.scrollRight(param.distance || undefined, startingPoint);
+        await this.scrollRightRaw(param.distance || undefined, startingPoint);
       } else {
         throw new Error(`Unknown scroll direction: ${param.direction}`);
       }
@@ -400,6 +525,26 @@ export class AndroidDevice implements AbstractInterface {
         )}`,
       );
     }
+  }
+
+  private async runAdbShellRaw(
+    param: RunAdbShellParam,
+    context?: ExecutorContext,
+  ): Promise<string> {
+    const adb = await this.getAdb();
+    const stdout = await runAdbShellStdoutOrThrow(
+      adb,
+      param.command,
+      param.timeout === undefined ? undefined : { timeout: param.timeout },
+    );
+    const planningFeedback = buildRunAdbShellPlanningFeedback({
+      command: param.command,
+      stdout,
+    });
+    if (planningFeedback && context?.task) {
+      context.task.planningFeedback = planningFeedback;
+    }
+    return stdout;
   }
 
   constructor(deviceId: string, options?: AndroidDeviceOpt) {
@@ -603,17 +748,13 @@ ${Object.keys(size)
     }
     const deviceInfo = await this.getDevicePhysicalInfo();
 
-    let latest: RawKeyframe | null = adapter.getLatestRawKeyframe();
-    const unsubscribe = await adapter.subscribeKeyframes(
-      deviceInfo,
-      (frame) => {
-        latest = frame;
-      },
-    );
+    const unsubscribe = await adapter.subscribeKeyframes(deviceInfo, () => {});
 
     return {
-      latest: () =>
-        latest ? { ref: latest, capturedAt: latest.capturedAt } : null,
+      latest: () => {
+        const latest = adapter.getLatestRawKeyframe();
+        return latest ? { ref: latest, capturedAt: latest.capturedAt } : null;
+      },
       decode: async (refs) => {
         const images: string[] = [];
         for (const frameRef of refs) {
@@ -671,6 +812,10 @@ ${Object.keys(size)
   }
 
   public async launch(uri: string): Promise<AndroidDevice> {
+    return this.visualActions.launch(uri);
+  }
+
+  private async launchRaw(uri: string): Promise<AndroidDevice> {
     const adb = await this.getAdb();
 
     this.uri = uri;
@@ -714,6 +859,10 @@ ${Object.keys(size)
    * If uri contains "/" (e.g. com.example.app/.MainActivity), only the package part is used.
    */
   public async terminate(uri: string): Promise<void> {
+    await this.visualActions.terminate(uri);
+  }
+
+  private async terminateRaw(uri: string): Promise<void> {
     const packagePart = uri.includes('/') ? uri.split('/')[0] : uri;
     const resolved = this.resolvePackageName(packagePart) ?? packagePart;
     const adb = await this.getAdb();
@@ -730,6 +879,10 @@ ${Object.keys(size)
   }
 
   async execYadb(keyboardContent: string): Promise<void> {
+    await this.visualActions.execYadb(keyboardContent);
+  }
+
+  private async execYadbRaw(keyboardContent: string): Promise<void> {
     this.warnYadbOnNonDefaultDisplay('keyboard input');
     await this.ensureYadb();
 
@@ -1201,16 +1354,17 @@ ${Object.keys(size)
 
     // Try scrcpy mode first (if enabled and initialized)
     const adapter = this.getScrcpyAdapter();
+    let scrcpyDeviceInfo: DevicePhysicalInfo | null = null;
     if (adapter.isEnabled()) {
       try {
         debugDevice('Attempting scrcpy screenshot...');
-        const deviceInfo = await this.getDevicePhysicalInfo();
-        const result = await adapter.screenshotBase64(deviceInfo);
+        scrcpyDeviceInfo = await this.getDevicePhysicalInfo();
+        const result = await adapter.screenshotBase64(scrcpyDeviceInfo);
         debugDevice('screenshotBase64 end (scrcpy mode)');
         return result;
       } catch (error) {
         warnDevice(
-          `Scrcpy screenshot failed, falling back to standard ADB method.\nError: ${error}`,
+          `Scrcpy screenshot failed, falling back to standard ADB method. This may be caused by transport backlog. ${SCRCPY_VIDEO_BIT_RATE_NETWORK_HINT}\nError: ${error}`,
         );
         // Continue to standard ADB path
       }
@@ -1348,10 +1502,19 @@ ${Object.keys(size)
       });
     }
     debugDevice('screenshotBase64 end');
+    if (scrcpyDeviceInfo) {
+      // Start a new stream only after ADB has finished, so the fallback capture
+      // does not compete with scrcpy startup on the same remote transport.
+      adapter.recoverAfterAdbScreenshot(scrcpyDeviceInfo);
+    }
     return result;
   }
 
   async clearInput(element?: ElementInfo): Promise<void> {
+    await this.visualActions.clearInput(element);
+  }
+
+  private async clearInputRaw(element?: ElementInfo): Promise<void> {
     if (element) {
       await this.tapPoint({ x: element.center[0], y: element.center[1] });
     }
@@ -1414,6 +1577,10 @@ ${Object.keys(size)
   }
 
   async scrollUntilTop(startPoint?: Point): Promise<void> {
+    await this.visualActions.scrollUntilTop(startPoint);
+  }
+
+  private async scrollUntilTopRaw(startPoint?: Point): Promise<void> {
     if (startPoint) {
       const { height } = await this.size();
       const start = {
@@ -1430,12 +1597,16 @@ ${Object.keys(size)
     }
 
     await repeat(defaultScrollUntilTimes, () =>
-      this.scroll(0, -9999999, defaultFastScrollDuration),
+      this.scrollRaw(0, -9999999, defaultFastScrollDuration),
     );
     await sleep(1000);
   }
 
   async scrollUntilBottom(startPoint?: Point): Promise<void> {
+    await this.visualActions.scrollUntilBottom(startPoint);
+  }
+
+  private async scrollUntilBottomRaw(startPoint?: Point): Promise<void> {
     if (startPoint) {
       const start = {
         x: Math.round(startPoint.left),
@@ -1451,12 +1622,16 @@ ${Object.keys(size)
     }
 
     await repeat(defaultScrollUntilTimes, () =>
-      this.scroll(0, 9999999, defaultFastScrollDuration),
+      this.scrollRaw(0, 9999999, defaultFastScrollDuration),
     );
     await sleep(1000);
   }
 
   async scrollUntilLeft(startPoint?: Point): Promise<void> {
+    await this.visualActions.scrollUntilLeft(startPoint);
+  }
+
+  private async scrollUntilLeftRaw(startPoint?: Point): Promise<void> {
     if (startPoint) {
       const { width } = await this.size();
       const start = {
@@ -1473,12 +1648,16 @@ ${Object.keys(size)
     }
 
     await repeat(defaultScrollUntilTimes, () =>
-      this.scroll(-9999999, 0, defaultFastScrollDuration),
+      this.scrollRaw(-9999999, 0, defaultFastScrollDuration),
     );
     await sleep(1000);
   }
 
   async scrollUntilRight(startPoint?: Point): Promise<void> {
+    await this.visualActions.scrollUntilRight(startPoint);
+  }
+
+  private async scrollUntilRightRaw(startPoint?: Point): Promise<void> {
     if (startPoint) {
       const start = {
         x: Math.round(startPoint.left),
@@ -1494,12 +1673,19 @@ ${Object.keys(size)
     }
 
     await repeat(defaultScrollUntilTimes, () =>
-      this.scroll(9999999, 0, defaultFastScrollDuration),
+      this.scrollRaw(9999999, 0, defaultFastScrollDuration),
     );
     await sleep(1000);
   }
 
   async scrollUp(distance?: number, startPoint?: Point): Promise<void> {
+    await this.visualActions.scrollUp(distance, startPoint);
+  }
+
+  private async scrollUpRaw(
+    distance?: number,
+    startPoint?: Point,
+  ): Promise<void> {
     const { height } = await this.size();
     const scrollDistance = Math.round(distance || height);
     const hasExplicitDistance = distance !== undefined;
@@ -1527,10 +1713,23 @@ ${Object.keys(size)
       return;
     }
 
-    await this.scroll(0, -scrollDistance, undefined, hasExplicitDistance, 'up');
+    await this.scrollRaw(
+      0,
+      -scrollDistance,
+      undefined,
+      hasExplicitDistance,
+      'up',
+    );
   }
 
   async scrollDown(distance?: number, startPoint?: Point): Promise<void> {
+    await this.visualActions.scrollDown(distance, startPoint);
+  }
+
+  private async scrollDownRaw(
+    distance?: number,
+    startPoint?: Point,
+  ): Promise<void> {
     const { height } = await this.size();
     const scrollDistance = Math.round(distance || height);
     const hasExplicitDistance = distance !== undefined;
@@ -1558,7 +1757,7 @@ ${Object.keys(size)
       return;
     }
 
-    await this.scroll(
+    await this.scrollRaw(
       0,
       scrollDistance,
       undefined,
@@ -1568,6 +1767,13 @@ ${Object.keys(size)
   }
 
   async scrollLeft(distance?: number, startPoint?: Point): Promise<void> {
+    await this.visualActions.scrollLeft(distance, startPoint);
+  }
+
+  private async scrollLeftRaw(
+    distance?: number,
+    startPoint?: Point,
+  ): Promise<void> {
     const { width } = await this.size();
     const scrollDistance = Math.round(distance || width);
     const hasExplicitDistance = distance !== undefined;
@@ -1595,7 +1801,7 @@ ${Object.keys(size)
       return;
     }
 
-    await this.scroll(
+    await this.scrollRaw(
       -scrollDistance,
       0,
       undefined,
@@ -1605,6 +1811,13 @@ ${Object.keys(size)
   }
 
   async scrollRight(distance?: number, startPoint?: Point): Promise<void> {
+    await this.visualActions.scrollRight(distance, startPoint);
+  }
+
+  private async scrollRightRaw(
+    distance?: number,
+    startPoint?: Point,
+  ): Promise<void> {
     const { width } = await this.size();
     const scrollDistance = Math.round(distance || width);
     const hasExplicitDistance = distance !== undefined;
@@ -1632,7 +1845,7 @@ ${Object.keys(size)
       return;
     }
 
-    await this.scroll(
+    await this.scrollRaw(
       scrollDistance,
       0,
       undefined,
@@ -1734,7 +1947,7 @@ ${Object.keys(size)
       // yadb handles newlines natively: escapeForShell converts \n (0x0A)
       // to literal \n (two chars), which yadb interprets back as newline.
       // Single adb call for the entire text.
-      await this.execYadb(escapeForShell(text));
+      await this.execYadbRaw(escapeForShell(text));
     } else {
       // Use the display-aware `input text` primitive. Handles shell escaping,
       // newline splitting, and per-character typing delay internally.
@@ -1742,7 +1955,7 @@ ${Object.keys(size)
     }
 
     if (shouldAutoDismissKeyboard === true) {
-      await this.hideKeyboard(options);
+      await this.hideKeyboardRaw(options);
     }
   }
 
@@ -1862,6 +2075,22 @@ ${Object.keys(size)
   }
 
   async scroll(
+    deltaX: number,
+    deltaY: number,
+    duration?: number,
+    warnOnClamp = false,
+    direction?: ScrollDirection,
+  ): Promise<void> {
+    await this.visualActions.scroll(
+      deltaX,
+      deltaY,
+      duration,
+      warnOnClamp,
+      direction,
+    );
+  }
+
+  private async scrollRaw(
     deltaX: number,
     deltaY: number,
     duration?: number,
@@ -2004,14 +2233,26 @@ ${Object.keys(size)
   }
 
   async back(): Promise<void> {
+    await this.visualActions.back();
+  }
+
+  private async backRaw(): Promise<void> {
     await this.shellInputKeyevent(4); // KEYCODE_BACK
   }
 
   async home(): Promise<void> {
+    await this.visualActions.home();
+  }
+
+  private async homeRaw(): Promise<void> {
     await this.shellInputKeyevent(3); // KEYCODE_HOME
   }
 
   async recentApps(): Promise<void> {
+    await this.visualActions.recentApps();
+  }
+
+  private async recentAppsRaw(): Promise<void> {
     await this.shellInputKeyevent(187); // KEYCODE_APP_SWITCH
   }
 
@@ -2036,6 +2277,14 @@ ${Object.keys(size)
     distance?: number,
     duration = 800,
   ): Promise<void> {
+    await this.visualActions.pullDown(startPoint, distance, duration);
+  }
+
+  private async pullDownRaw(
+    startPoint?: Point,
+    distance?: number,
+    duration = 800,
+  ): Promise<void> {
     const { width, height } = await this.size();
 
     // Default start point is near top of screen (but not too close to edge)
@@ -2048,7 +2297,7 @@ ${Object.keys(size)
     const end = { x: start.x, y: start.y + pullDistance };
 
     // Use custom drag with specified duration for better pull-to-refresh detection
-    await this.pullDrag(start, end, duration);
+    await this.pullDragRaw(start, end, duration);
     await sleep(200); // Give more time for refresh to start
   }
 
@@ -2057,10 +2306,26 @@ ${Object.keys(size)
     to: { x: number; y: number },
     duration: number,
   ): Promise<void> {
+    await this.visualActions.pullDrag(from, to, duration);
+  }
+
+  private async pullDragRaw(
+    from: PointerPoint,
+    to: PointerPoint,
+    duration: number,
+  ): Promise<void> {
     await this.swipePoint(from, to, duration);
   }
 
   async pullUp(
+    startPoint?: Point,
+    distance?: number,
+    duration = 600,
+  ): Promise<void> {
+    await this.visualActions.pullUp(startPoint, distance, duration);
+  }
+
+  private async pullUpRaw(
     startPoint?: Point,
     distance?: number,
     duration = 600,
@@ -2077,7 +2342,7 @@ ${Object.keys(size)
     const end = { x: start.x, y: start.y - pullDistance };
 
     // Use pullDrag for consistent pull gesture handling
-    await this.pullDrag(start, end, duration);
+    await this.pullDragRaw(start, end, duration);
     await sleep(100);
   }
 
@@ -2226,6 +2491,13 @@ ${Object.keys(size)
     options?: AndroidDeviceInputOpt,
     timeoutMs = 1000,
   ): Promise<boolean> {
+    return this.visualActions.hideKeyboard(options, timeoutMs);
+  }
+
+  private async hideKeyboardRaw(
+    options?: AndroidDeviceInputOpt,
+    timeoutMs = 1000,
+  ): Promise<boolean> {
     const adb = await this.getAdb();
     const keyboardDismissStrategy =
       options?.keyboardDismissStrategy ??
@@ -2323,8 +2595,13 @@ export type DeviceActionRunAdbShell = DeviceAction<RunAdbShellParam, string>;
 export type DeviceActionLaunch = DeviceAction<LaunchParam, void>;
 export type DeviceActionTerminate = DeviceAction<TerminateParam, void>;
 
+type AndroidPlatformVisualActions = Pick<
+  AndroidVisualActions,
+  'runAdbShell' | 'launch' | 'terminate'
+>;
+
 const createPlatformActions = (
-  device: AndroidDevice,
+  visualActions: AndroidPlatformVisualActions,
 ): {
   RunAdbShell: DeviceActionRunAdbShell;
   Launch: DeviceActionLaunch;
@@ -2348,20 +2625,7 @@ const createPlatformActions = (
         if (!param.command || param.command.trim() === '') {
           throw new Error('RunAdbShell requires a non-empty command parameter');
         }
-        const adb = await device.getAdb();
-        const stdout = await runAdbShellStdoutOrThrow(
-          adb,
-          param.command,
-          param.timeout === undefined ? undefined : { timeout: param.timeout },
-        );
-        const planningFeedback = buildRunAdbShellPlanningFeedback({
-          command: param.command,
-          stdout,
-        });
-        if (planningFeedback && context?.task) {
-          context.task.planningFeedback = planningFeedback;
-        }
-        return stdout;
+        return visualActions.runAdbShell(param, context);
       },
     }),
     Launch: defineAction<typeof launchParamSchema, LaunchParam, void>({
@@ -2376,7 +2640,7 @@ const createPlatformActions = (
         if (!param.uri || param.uri.trim() === '') {
           throw new Error('Launch requires a non-empty uri parameter');
         }
-        await device.launch(param.uri);
+        await visualActions.launch(param.uri);
       },
     }),
     Terminate: defineAction<typeof terminateParamSchema, TerminateParam, void>({
@@ -2388,7 +2652,7 @@ const createPlatformActions = (
         if (!param.uri || param.uri.trim() === '') {
           throw new Error('Terminate requires a non-empty uri parameter');
         }
-        await device.terminate(param.uri);
+        await visualActions.terminate(param.uri);
       },
     }),
   } as const;

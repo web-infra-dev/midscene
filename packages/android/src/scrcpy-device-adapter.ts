@@ -2,7 +2,11 @@ import type { Size } from '@midscene/core';
 import { createImgBase64ByFormat } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import type { RawKeyframe, ScrcpyScreenshotManager } from './scrcpy-manager';
-import { DEFAULT_SCRCPY_CONFIG } from './scrcpy-manager';
+import {
+  DEFAULT_SCRCPY_CONFIG,
+  type ScrcpyFreshFrameUnavailableError,
+  isScrcpyFreshFrameUnavailableError,
+} from './scrcpy-manager';
 
 const debugAdapter = getDebug('android:scrcpy-adapter');
 const SCRCPY_RETRY_COOLDOWN_MS = 5_000;
@@ -59,6 +63,15 @@ export class ScrcpyDeviceAdapter {
   private resolvedConfig: ResolvedScrcpyConfig | null = null;
   private lastError: string | null = null;
   private retryAfter: number | null = null;
+  private freshnessRecoveryPending = false;
+  private recoveryPromise: Promise<void> | null = null;
+  private lifecycleGeneration = 0;
+  private pendingActionBarrier = false;
+  private keyframeListeners = new Set<(frame: RawKeyframe) => void>();
+  private keyframeUnsubscribers = new Map<
+    (frame: RawKeyframe) => void,
+    () => void
+  >();
 
   constructor(
     private deviceId: string,
@@ -69,6 +82,7 @@ export class ScrcpyDeviceAdapter {
 
   isEnabled(): boolean {
     if (!this.isConfigured()) return false;
+    if (this.freshnessRecoveryPending || this.recoveryPromise) return false;
     return this.retryAfter === null || Date.now() >= this.retryAfter;
   }
 
@@ -89,9 +103,15 @@ export class ScrcpyDeviceAdapter {
    * Initialize scrcpy connection. Called during device.connect() and explicit retries.
    */
   async initialize(deviceInfo: DevicePhysicalInfo): Promise<void> {
+    if (this.recoveryPromise) {
+      await this.recoveryPromise;
+      if (this.manager?.isConnected()) return;
+    }
+    this.freshnessRecoveryPending = false;
     try {
       const manager = await this.ensureManager(deviceInfo);
       await manager.ensureConnected();
+      await this.applyPendingActionBarrier(manager);
       this.clearFailure();
     } catch (error) {
       this.recordFailure(error);
@@ -102,14 +122,19 @@ export class ScrcpyDeviceAdapter {
   private recordFailure(error: unknown): void {
     this.lastError = error instanceof Error ? error.message : String(error);
     this.retryAfter = Date.now() + SCRCPY_RETRY_COOLDOWN_MS;
+    this.freshnessRecoveryPending = false;
   }
 
   private clearFailure(): void {
     this.lastError = null;
     this.retryAfter = null;
+    this.freshnessRecoveryPending = false;
   }
 
   private ensureRetryReady(): void {
+    if (this.freshnessRecoveryPending || this.recoveryPromise) {
+      throw new Error('scrcpy freshness recovery is in progress');
+    }
     if (this.retryAfter === null || Date.now() >= this.retryAfter) {
       return;
     }
@@ -204,8 +229,11 @@ export class ScrcpyDeviceAdapter {
   async screenshotBase64(deviceInfo: DevicePhysicalInfo): Promise<string> {
     this.ensureRetryReady();
 
+    let manager: ScrcpyScreenshotManager | null = null;
     try {
-      const manager = await this.ensureManager(deviceInfo);
+      manager = await this.ensureManager(deviceInfo);
+      await manager.ensureConnected();
+      await this.applyPendingActionBarrier(manager);
       const screenshotBuffer = await manager.getScreenshotJpeg();
       this.clearFailure();
 
@@ -214,6 +242,10 @@ export class ScrcpyDeviceAdapter {
         screenshotBuffer.toString('base64'),
       );
     } catch (error) {
+      if (isScrcpyFreshFrameUnavailableError(error)) {
+        this.markFreshnessRecoveryPending(manager, error);
+        throw error;
+      }
       this.recordFailure(error);
       throw error;
     }
@@ -230,13 +262,22 @@ export class ScrcpyDeviceAdapter {
     listener: (frame: RawKeyframe) => void,
   ): Promise<() => void> {
     this.ensureRetryReady();
+    this.keyframeListeners.add(listener);
 
     try {
       const manager = await this.ensureManager(deviceInfo);
       await manager.ensureConnected();
+      await this.applyPendingActionBarrier(manager);
+      await manager.ensureFrameClockCalibration();
       this.clearFailure();
-      return manager.subscribeKeyframes(listener);
+      this.attachKeyframeListener(manager, listener);
+      return () => {
+        this.keyframeListeners.delete(listener);
+        this.keyframeUnsubscribers.get(listener)?.();
+        this.keyframeUnsubscribers.delete(listener);
+      };
     } catch (error) {
+      this.keyframeListeners.delete(listener);
       this.recordFailure(error);
       throw error;
     }
@@ -245,6 +286,128 @@ export class ScrcpyDeviceAdapter {
   /** Latest raw keyframe seen on the stream, or null if none yet. */
   getLatestRawKeyframe(): RawKeyframe | null {
     return this.manager?.getLatestRawKeyframe() ?? null;
+  }
+
+  private attachKeyframeListener(
+    manager: ScrcpyScreenshotManager,
+    listener: (frame: RawKeyframe) => void,
+  ): void {
+    this.keyframeUnsubscribers.get(listener)?.();
+    this.keyframeUnsubscribers.set(
+      listener,
+      manager.subscribeKeyframes(listener),
+    );
+  }
+
+  private attachKeyframeListeners(manager: ScrcpyScreenshotManager): void {
+    this.keyframeUnsubscribers.clear();
+    for (const listener of this.keyframeListeners) {
+      this.attachKeyframeListener(manager, listener);
+    }
+  }
+
+  private markFreshnessRecoveryPending(
+    manager: ScrcpyScreenshotManager | null,
+    error: ScrcpyFreshFrameUnavailableError,
+  ): void {
+    this.lastError = error.message;
+    this.retryAfter = null;
+    this.freshnessRecoveryPending = true;
+    this.keyframeUnsubscribers.clear();
+    if (manager && this.manager === manager) {
+      this.manager = null;
+    }
+  }
+
+  private async applyPendingActionBarrier(
+    manager: ScrcpyScreenshotManager,
+  ): Promise<void> {
+    if (!this.pendingActionBarrier) return;
+    await manager.setFreshnessBarrier(
+      'completed input action while scrcpy was unavailable',
+    );
+    this.pendingActionBarrier = false;
+  }
+
+  /**
+   * Start a new scrcpy epoch only after the independent ADB screenshot has
+   * completed, so stream startup does not compete with the fallback capture.
+   */
+  recoverAfterAdbScreenshot(deviceInfo: DevicePhysicalInfo): void {
+    if (!this.freshnessRecoveryPending || this.recoveryPromise) return;
+
+    const generation = this.lifecycleGeneration;
+    const recovery = (async () => {
+      let manager: ScrcpyScreenshotManager | null = null;
+      try {
+        manager = await this.ensureManager(deviceInfo);
+        await manager.ensureConnected();
+        await this.applyPendingActionBarrier(manager);
+        await manager.prepareFreshFrame();
+        if (generation !== this.lifecycleGeneration) {
+          await manager.disconnect();
+          if (this.manager === manager) this.manager = null;
+          return;
+        }
+        this.attachKeyframeListeners(manager);
+        this.clearFailure();
+        debugAdapter('Scrcpy freshness recovery completed in background');
+      } catch (error) {
+        if (manager) {
+          await manager.disconnect();
+          if (this.manager === manager) this.manager = null;
+        }
+        this.freshnessRecoveryPending = false;
+        this.recordFailure(error);
+        debugAdapter(`Scrcpy background freshness recovery failed: ${error}`);
+        throw error;
+      }
+    })();
+
+    this.recoveryPromise = recovery;
+    void recovery
+      .catch(() => {})
+      .finally(() => {
+        if (this.recoveryPromise === recovery) {
+          this.recoveryPromise = null;
+        }
+      });
+  }
+
+  /**
+   * Move the scrcpy PTS barrier past a completed input action. Barrier failures
+   * must not turn a successfully injected action into an action error; disable
+   * the stream and let subsequent captures use the existing ADB fallback.
+   */
+  async markActionBarrier(): Promise<void> {
+    const manager = this.manager;
+    if (!manager?.isConnected()) {
+      this.pendingActionBarrier = true;
+      return;
+    }
+
+    try {
+      await manager.setFreshnessBarrier('completed input action');
+      this.pendingActionBarrier = false;
+      this.clearFailure();
+    } catch (error) {
+      this.pendingActionBarrier = true;
+      this.recordFailure(error);
+      debugAdapter(
+        `Unable to mark scrcpy action barrier; disabling this stream: ${error}`,
+      );
+      try {
+        await manager.disconnect();
+      } catch (disconnectError) {
+        debugAdapter(
+          `Error disconnecting scrcpy after barrier failure: ${disconnectError}`,
+        );
+      } finally {
+        if (this.manager === manager) {
+          this.manager = null;
+        }
+      }
+    }
   }
 
   /**
@@ -295,6 +458,19 @@ export class ScrcpyDeviceAdapter {
   }
 
   async disconnect(): Promise<void> {
+    this.lifecycleGeneration += 1;
+    this.freshnessRecoveryPending = false;
+    this.pendingActionBarrier = false;
+    for (const unsubscribe of this.keyframeUnsubscribers.values()) {
+      unsubscribe();
+    }
+    this.keyframeUnsubscribers.clear();
+    this.keyframeListeners.clear();
+
+    if (this.recoveryPromise) {
+      await this.recoveryPromise.catch(() => {});
+    }
+
     if (this.manager) {
       try {
         await this.manager.disconnect();
