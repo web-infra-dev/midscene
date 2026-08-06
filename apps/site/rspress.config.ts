@@ -242,21 +242,6 @@ export default defineConfig(async () => {
             link: '/automate-with-scripts-in-yaml',
           },
           {
-            sectionHeaderText: 'More features',
-          },
-          {
-            text: 'Caching AI planning & locate',
-            link: '/caching',
-          },
-          {
-            text: 'Consume report files',
-            link: '/consume-report-file',
-          },
-          {
-            text: 'Integrate Midscene with any interface',
-            link: '/integrate-with-any-interface',
-          },
-          {
             sectionHeaderText: 'API reference',
           },
           {
@@ -264,22 +249,34 @@ export default defineConfig(async () => {
             link: '/reference/',
           },
           {
-            sectionHeaderText: 'Advanced',
+            sectionHeaderText: 'Advanced guides',
           },
           {
-            text: 'BDD-style scripts with Gherkin',
+            text: 'Process report files',
+            link: '/consume-report-file',
+          },
+          {
+            text: 'Write BDD scripts with Gherkin',
             link: '/advanced/bdd-style-scripts-with-gherkin',
+          },
+          {
+            text: 'Integrate with any interface',
+            link: '/integrate-with-any-interface',
+          },
+          {
+            text: 'Cache AI plans & DOM locators',
+            link: '/caching',
+          },
+          {
+            text: 'Optimize automation with JavaScript',
+            link: '/use-javascript-to-optimize-ai-automation-code',
+          },
+          {
+            sectionHeaderText: 'Resources',
           },
           {
             text: 'FAQ',
             link: '/faq',
-          },
-          {
-            text: 'Use JavaScript to optimize your workflow',
-            link: '/use-javascript-to-optimize-ai-automation-code',
-          },
-          {
-            sectionHeaderText: 'More',
           },
           {
             text: 'AndroidWorld Benchmark Report',
@@ -391,21 +388,6 @@ export default defineConfig(async () => {
             link: '/zh/automate-with-scripts-in-yaml',
           },
           {
-            sectionHeaderText: '更多特性',
-          },
-          {
-            text: '缓存 AI 规划和定位',
-            link: '/zh/caching',
-          },
-          {
-            text: '解析报告文件',
-            link: '/zh/consume-report-file',
-          },
-          {
-            text: '将 Midscene 集成到任意界面',
-            link: '/zh/integrate-with-any-interface',
-          },
-          {
             sectionHeaderText: 'API 参考',
           },
           {
@@ -413,22 +395,34 @@ export default defineConfig(async () => {
             link: '/zh/reference/',
           },
           {
-            sectionHeaderText: '进阶',
+            sectionHeaderText: '进阶指南',
           },
           {
-            text: 'BDD 风格脚本（Gherkin）',
+            text: '处理报告文件',
+            link: '/zh/consume-report-file',
+          },
+          {
+            text: '使用 Gherkin 编写 BDD 脚本',
             link: '/zh/advanced/bdd-style-scripts-with-gherkin',
+          },
+          {
+            text: '集成任意界面',
+            link: '/zh/integrate-with-any-interface',
+          },
+          {
+            text: '缓存 AI 规划与 DOM 定位',
+            link: '/zh/caching',
+          },
+          {
+            text: '使用 JavaScript 优化自动化流程',
+            link: '/zh/use-javascript-to-optimize-ai-automation-code',
+          },
+          {
+            sectionHeaderText: '资源',
           },
           {
             text: '常见问题 FAQ',
             link: '/zh/faq',
-          },
-          {
-            text: '使用 JavaScript 优化工作流',
-            link: '/zh/use-javascript-to-optimize-ai-automation-code',
-          },
-          {
-            sectionHeaderText: '更多',
           },
           {
             text: 'AndroidWorld Benchmark 测试报告',
