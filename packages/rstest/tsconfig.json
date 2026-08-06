@@ -1,0 +1,21 @@
+{
+  "extends": "../shared/tsconfig.base.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "rootDir": "./src",
+    "target": "es2022",
+    "types": ["node"]
+  },
+  "include": ["src"],
+  "references": [
+    {
+      "path": "../core"
+    },
+    {
+      "path": "../shared"
+    },
+    {
+      "path": "../web-integration"
+    }
+  ]
+}

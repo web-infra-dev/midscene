@@ -237,7 +237,13 @@ test('c', async () => {
       });
 
       expect(exitCode).toBe(1);
-      expect(readFileSync(marker, 'utf8')).toBe('a\nb\n');
+      // Rstest 0.11 schedules files with a perf-first sequencer (failed-first,
+      // then bundle size), so include order no longer dictates run order. The
+      // invariant under bail=1 + concurrency 1 is that the failing file ran
+      // and at least one file was never scheduled afterwards.
+      const events = readFileSync(marker, 'utf8').trim().split('\n');
+      expect(events).toContain('b');
+      expect(events.length).toBeLessThan(3);
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
