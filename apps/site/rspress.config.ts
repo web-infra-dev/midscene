@@ -242,15 +242,11 @@ export default defineConfig(async () => {
             link: '/automate-with-scripts-in-yaml',
           },
           {
-            sectionHeaderText: 'Reference',
+            sectionHeaderText: 'API reference',
           },
           {
-            text: 'API reference',
+            text: 'API overview',
             link: '/reference/',
-          },
-          {
-            text: 'Model configuration',
-            link: '/model-config',
           },
           {
             sectionHeaderText: 'Advanced guides',
@@ -392,15 +388,11 @@ export default defineConfig(async () => {
             link: '/zh/automate-with-scripts-in-yaml',
           },
           {
-            sectionHeaderText: '参考文档',
+            sectionHeaderText: 'API 参考',
           },
           {
-            text: 'API 参考',
+            text: 'API 概览',
             link: '/zh/reference/',
-          },
-          {
-            text: '模型配置',
-            link: '/zh/model-config',
           },
           {
             sectionHeaderText: '进阶指南',
