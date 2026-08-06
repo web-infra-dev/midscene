@@ -40,14 +40,17 @@ const PAGE_HTML = `
 async function puppeteerInputCenter(
   page: PuppeteerPage,
 ): Promise<[number, number]> {
-  return page.$eval('#target', (el: HTMLInputElement) => {
+  return page.$eval('#target', (el) => {
     const rect = el.getBoundingClientRect();
-    return [rect.left + rect.width / 2, rect.top + rect.height / 2];
+    return [rect.left + rect.width / 2, rect.top + rect.height / 2] as [
+      number,
+      number,
+    ];
   });
 }
 
 async function puppeteerInputValue(page: PuppeteerPage): Promise<string> {
-  return page.$eval('#target', (el: HTMLInputElement) => el.value);
+  return page.$eval('#target', (el) => (el as HTMLInputElement).value);
 }
 
 async function playwrightInputCenter(
@@ -180,16 +183,19 @@ describe('BasePage editing commands', () => {
             SPOOFED_USER_AGENT_MARKER,
           );
 
-          await page.$eval('#target', (el: HTMLInputElement) => {
-            el.focus();
-            el.select();
+          await page.$eval('#target', (el) => {
+            const input = el as HTMLInputElement;
+            input.focus();
+            input.select();
           });
           await page.keyboard.down(LOCAL_PLATFORM_MODIFIER);
           await page.keyboard.press('x');
           await page.keyboard.up(LOCAL_PLATFORM_MODIFIER);
           expect(await puppeteerInputValue(page)).toBe('value to clear');
 
-          await page.$eval('#target', (el: HTMLInputElement) => el.select());
+          await page.$eval('#target', (el) =>
+            (el as HTMLInputElement).select(),
+          );
           const webPage = new PuppeteerWebPage(page);
           const focusElementSpy = vi.spyOn(webPage, 'focusElement');
           const input = createWebInputPrimitives(webPage);
