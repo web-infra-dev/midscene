@@ -402,7 +402,7 @@ Or set the environment variable:
 export MIDSCENE_ANDROID_SCREENSHOT_STRATEGY=always-yadb
 ```
 
-The default is `auto`, which tries scrcpy → `adb.takeScreenshot` → `screencap` → yadb in order. Setting it to `always-yadb` skips the earlier paths and uses yadb directly. Note that yadb can only capture the default display (displayId=0).
+The default is `auto`, which tries scrcpy → `adb.takeScreenshot` → `screencap`. It uses yadb only if the `screencap` command itself fails; it does not detect black frames. For secure pages that produce a valid but black image, set `always-yadb` to skip the earlier paths and use yadb directly. Yadb can only capture the default display (`displayId=0`), so combining `always-yadb` with a non-zero `displayId` throws an error.
 
 ### How do I use a custom adb path or remote adb server?
 

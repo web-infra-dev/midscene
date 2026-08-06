@@ -1361,9 +1361,16 @@ ${Object.keys(size)
       // Fire-and-forget: delete the remote screenshot via a separate process
       // so the main ADB connection cannot be blocked by adb.shell's timeout.
       const adbPath = adb.executable?.path ?? 'adb';
+      const adbDefaultArgs = adb.executable?.defaultArgs ?? [];
       const child = execFile(
         adbPath,
-        ['-s', this.deviceId, 'shell', `rm ${androidScreenshotPath}`],
+        [
+          ...adbDefaultArgs,
+          '-s',
+          this.deviceId,
+          'shell',
+          `rm ${androidScreenshotPath}`,
+        ],
         { timeout: 3000 },
         (error) => {
           if (error) {
@@ -1393,7 +1400,15 @@ ${Object.keys(size)
   private async screenshotBase64ViaYadb(): Promise<string> {
     debugDevice('screenshotBase64ViaYadb begin');
 
-    this.warnYadbOnNonDefaultDisplay('screenshot');
+    if (
+      typeof this.options?.displayId === 'number' &&
+      this.options.displayId !== 0
+    ) {
+      throw new Error(
+        `screenshotStrategy 'always-yadb' cannot target non-default displayId=${this.options.displayId}. Use displayId=0 or screenshotStrategy 'auto'.`,
+      );
+    }
+
     const result = await this.captureScreenshotBase64FromDeviceFile(
       'Yadb screenshot',
       async (androidScreenshotPath) => {

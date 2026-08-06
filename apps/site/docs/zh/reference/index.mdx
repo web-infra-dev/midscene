@@ -2114,8 +2114,8 @@ const device = new AndroidDevice(deviceId, {
   - `'yadb-for-non-ascii'`（默认）—— 对 Unicode 字符（包括 Latin Unicode 如 ö、é、ñ）、中文、日文以及格式化符号（如 %s、%d）使用 yadb。纯 ASCII 文本使用更快的原生 `adb input text`。
   - `'always-yadb'` —— 对所有文本输入始终使用 yadb，提供最大兼容性，但对纯 ASCII 文本稍慢。
 - `screenshotStrategy?: 'auto' | 'always-yadb'` —— 控制截图方式，默认 `'auto'`。
-  - `'auto'`（默认）—— 按 scrcpy → `adb.takeScreenshot` → `screencap` → yadb 的顺序依次尝试。
-  - `'always-yadb'` —— 跳过前面的路径，直接使用 [yadb](https://github.com/ysbing/yadb) 截图。适用于 `screencap` 对安全页面（`FLAG_SECURE`）截出黑屏、但 yadb 能正常截取的场景（如已 root 并通过 Magisk hook 绕过 `FLAG_SECURE` 的设备，或 Android 11 及以下系统）。注意 yadb 只能截取默认显示器（displayId=0）的内容。也可通过环境变量 `MIDSCENE_ANDROID_SCREENSHOT_STRATEGY=always-yadb` 设置。
+  - `'auto'`（默认）—— 按 scrcpy → `adb.takeScreenshot` → `screencap` 的顺序尝试。只有 `screencap` 命令本身执行失败时，才会改用 yadb；该策略不会识别黑屏。
+  - `'always-yadb'` —— 跳过前面的路径，直接使用 [yadb](https://github.com/ysbing/yadb) 截图。适用于 `screencap` 对安全页面（`FLAG_SECURE`）截出黑屏、但 yadb 能正常截取的场景（如已 root 并通过 Magisk hook 绕过 `FLAG_SECURE` 的设备，或 Android 11 及以下系统）。yadb 只能截取默认显示器（`displayId=0`）；如果同时设置该策略和非零 `displayId`，Midscene 会抛出错误。也可通过环境变量 `MIDSCENE_ANDROID_SCREENSHOT_STRATEGY=always-yadb` 设置。
 - `displayId?: number` —— 在设备镜像多个屏幕时，选择特定虚拟屏幕。
 - `exposeRunAdbShellAction?: boolean` —— 是否在动作空间中暴露内置的 `RunAdbShell` 动作。默认值：`true`。设为 `false` 后，AI 规划器、YAML 脚本和 `agent.runAdbShell()` 都无法执行 ADB shell 命令。
 - `screenshotResizeScale?: number` —— **已废弃。** 此选项已移除，不再生效。如需控制发送给 AI 模型的截图尺寸，请使用 `AgentOpt` 中的 `screenshotShrinkFactor`。

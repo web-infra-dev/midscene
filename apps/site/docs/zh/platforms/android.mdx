@@ -298,7 +298,7 @@ android:
 export MIDSCENE_ANDROID_SCREENSHOT_STRATEGY=always-yadb
 ```
 
-默认值为 `auto`，即按 scrcpy → `adb.takeScreenshot` → `screencap` → yadb 的顺序依次尝试。设为 `always-yadb` 后将跳过前面的路径，直接使用 yadb 截图。注意 yadb 只能截取默认显示器（displayId=0）的内容。
+默认值为 `auto`，即按 scrcpy → `adb.takeScreenshot` → `screencap` 的顺序尝试。只有 `screencap` 命令本身执行失败时，才会改用 yadb；`auto` 不会识别黑屏。安全页面生成有效但全黑的图片时，请设置 `always-yadb`，跳过前面的路径并直接使用 yadb 截图。yadb 只能截取默认显示器（`displayId=0`）；如果同时设置 `always-yadb` 和非零 `displayId`，Midscene 会抛出错误。
 
 ### 如何使用自定义的 adb 路径或远程 adb 服务器？
 

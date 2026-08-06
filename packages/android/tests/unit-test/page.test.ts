@@ -1,3 +1,4 @@
+import { execFile } from 'node:child_process';
 import fs, { unlink } from 'node:fs';
 import type { ExecutorContext } from '@midscene/core';
 import * as CoreUtils from '@midscene/core/utils';
@@ -79,6 +80,19 @@ vi.mock('appium-adb', () => {
 });
 
 vi.mock('@midscene/core/utils');
+vi.mock('node:child_process', () => ({
+  execFile: vi.fn(
+    (
+      _file: unknown,
+      _args: unknown,
+      _options: unknown,
+      callback?: (error: Error | null) => void,
+    ) => {
+      callback?.(null);
+      return { unref: vi.fn() };
+    },
+  ),
+}));
 vi.mock('@midscene/shared/img', async (importOriginal) => {
   const original =
     await importOriginal<typeof import('@midscene/shared/img')>();
@@ -143,12 +157,14 @@ describe('AndroidDevice', () => {
   let mockAdb: Mocked<ADB>;
 
   beforeEach(() => {
+    vi.mocked(execFile).mockClear();
     // Ensure mockAdbInstance is available
     if (!mockAdbInstance) {
       mockAdbInstance = createMockAdb();
     }
     // Create a new mock instance for each test
     mockAdb = new (ADB as any)() as Mocked<ADB>;
+    mockAdb.executable.defaultArgs = [];
     // Disable buffer size validation for tests to allow small mock buffers
     // Disable scrcpy to avoid shell calls during normalizeScrcpyConfig
     device = new AndroidDevice('test-device', {
@@ -921,6 +937,69 @@ Stdout:
         '/tmp/yadb.png',
       );
       expect(result).toContain(mockBuffer.toString('base64'));
+    });
+
+    it('should reject always-yadb screenshots on a non-default display', async () => {
+      const nonDefaultDisplayDevice = new AndroidDevice('test-device', {
+        displayId: 1,
+        minScreenshotBufferSize: 0,
+        screenshotStrategy: 'always-yadb',
+        scrcpyConfig: { enabled: false },
+      });
+      vi.spyOn(nonDefaultDisplayDevice, 'getAdb').mockResolvedValue(mockAdb);
+      const forceScreenshotSpy = vi
+        .spyOn(nonDefaultDisplayDevice, 'forceScreenshot')
+        .mockResolvedValue();
+      const mockBuffer = createValidPngBuffer();
+      vi.spyOn(CoreUtils, 'getTmpFile').mockReturnValue(
+        '/tmp/yadb-non-default-display.png',
+      );
+      (fs.promises.readFile as Mock).mockResolvedValue(mockBuffer);
+      vi.spyOn(ImgUtils, 'createImgBase64ByFormat').mockReturnValue(
+        `data:image/png;base64,${mockBuffer.toString('base64')}`,
+      );
+
+      await expect(nonDefaultDisplayDevice.screenshotBase64()).rejects.toThrow(
+        "screenshotStrategy 'always-yadb' cannot target non-default displayId=1",
+      );
+      expect(forceScreenshotSpy).not.toHaveBeenCalled();
+    });
+
+    it('should preserve remote ADB arguments when cleaning up screenshots', async () => {
+      Object.assign(mockAdb.executable, {
+        defaultArgs: ['-H', '192.168.1.10', '-P', '5038'],
+      });
+      const alwaysYadbDevice = new AndroidDevice('test-device', {
+        minScreenshotBufferSize: 0,
+        screenshotStrategy: 'always-yadb',
+        scrcpyConfig: { enabled: false },
+      });
+      vi.spyOn(alwaysYadbDevice, 'getAdb').mockResolvedValue(mockAdb);
+      vi.spyOn(alwaysYadbDevice, 'forceScreenshot').mockResolvedValue();
+      const mockBuffer = createValidPngBuffer();
+      vi.spyOn(CoreUtils, 'getTmpFile').mockReturnValue('/tmp/yadb-remote.png');
+      (fs.promises.readFile as Mock).mockResolvedValue(mockBuffer);
+      vi.spyOn(ImgUtils, 'createImgBase64ByFormat').mockReturnValue(
+        `data:image/png;base64,${mockBuffer.toString('base64')}`,
+      );
+
+      await alwaysYadbDevice.screenshotBase64();
+
+      expect(execFile).toHaveBeenCalledWith(
+        '/mock/platform-tools/adb',
+        [
+          '-H',
+          '192.168.1.10',
+          '-P',
+          '5038',
+          '-s',
+          'test-device',
+          'shell',
+          expect.stringMatching(/^rm \/data\/local\/tmp\/ms_[a-z0-9]+\.png$/),
+        ],
+        { timeout: 3000 },
+        expect.any(Function),
+      );
     });
 
     it('should use yadb directly when configured through the environment', async () => {
