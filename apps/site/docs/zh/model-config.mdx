@@ -121,7 +121,6 @@ export MIDSCENE_MODEL_FAMILY="gpt-5"
 | `DEBUG=midscene:android:adb` | 打印 Android adb 命令调用详情 |
 | `DEBUG=midscene:*` | 打印所有调试日志 |
 
-
 ## 仍兼容的模型配置（不推荐）
 
 以下环境变量已废弃但仍然兼容，建议尽快迁移到新的配置方式。
@@ -257,3 +256,21 @@ DEBUGGING MODE: langfuse wrapper enabled
 - LangSmith 和 Langfuse 可以同时启用
 - 仅支持 Node.js 环境，浏览器环境会报错
 - 如果使用 [`createOpenAIClient`](./reference/#自定义-openai-客户端) 参数，环境变量方式会被覆盖
+
+### 记录模型调用
+
+设置 `MIDSCENE_RECORD_MODEL_CALL=true`，可将模型请求、响应和流式 chunk 写入 JSONL 文件：
+
+```text
+midscene_run/model-requests/<启动时间>-<pid>.jsonl
+```
+
+每个进程生成一个文件，每行对应一个 JSON 事件。仅 Node.js 和 Electron 支持写入；浏览器和 Worker 环境下不会写入本地文件。使用 Codex App Server 时，文件还会包含可获取的协议元数据。
+
+:::warning 注意事项
+
+文件包含请求 body（含自定义 `extraBody`）、响应 headers 和 body，以及流式响应。文件还可能包含截图的 base64 数据。请求 headers 不会被记录。文件可能包含敏感信息且体积较大，请仅在排查问题时开启，并在使用后妥善保管或删除。记录格式不保证跨版本兼容。
+
+:::
+
+每个事件的 `type` 为 `request`、`chunk`、`response` 或 `error`。事件还包含 `executionId`，用于关联同一个报告 execution 内的调用及其重试。不属于报告 execution 的调用（例如连通性检查）使用带 `unscoped-` 前缀的生成 ID。

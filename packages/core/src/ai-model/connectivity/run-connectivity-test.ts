@@ -95,10 +95,7 @@ function buildCheckResult(
 function buildConnectivityModelRuntime(
   modelConfig: IModelConfig,
 ): ModelRuntime {
-  return getModelRuntime({
-    ...modelConfig,
-    retryCount: 0,
-  });
+  return getModelRuntime({ ...modelConfig, retryCount: 0 });
 }
 
 function formatConnectivityCheckName(
