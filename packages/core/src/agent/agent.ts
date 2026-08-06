@@ -35,6 +35,7 @@ import {
   type ReportMeta,
   type ScrollParam,
   type ServiceAction,
+  type ServiceExtractOption,
   type ServiceExtractParam,
   type TestStatus,
   type UIContext,
@@ -89,7 +90,13 @@ import {
 } from './run-gherkin-scenario';
 import { markdownToAiActPrompt } from './run-markdown';
 import { TaskCache } from './task-cache';
-import { TaskExecutionError, TaskExecutor, locatePlanForLocate, locatePlanForLocateAll, withFileChooser } from './tasks';
+import {
+  TaskExecutionError,
+  TaskExecutor,
+  locatePlanForLocate,
+  locatePlanForLocateAll,
+  withFileChooser,
+} from './tasks';
 import {
   UIObservationImpl,
   type UIObserver,
