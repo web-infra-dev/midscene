@@ -10,9 +10,22 @@ import puppeteer, {
   type Browser as PuppeteerBrowser,
   type Page as PuppeteerPage,
 } from 'puppeteer';
-import { afterAll, beforeAll, describe, expect, test } from 'vitest';
+import { afterAll, beforeAll, describe, expect, test, vi } from 'vitest';
 
 const TEST_TIMEOUT_MS = 120_000;
+
+const LINUX_USER_AGENT =
+  'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.7680.31 Safari/537.36';
+const MAC_USER_AGENT =
+  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.7680.31 Safari/537.36';
+const SPOOFED_USER_AGENT =
+  process.platform === 'darwin' ? LINUX_USER_AGENT : MAC_USER_AGENT;
+const SPOOFED_USER_AGENT_MARKER =
+  process.platform === 'darwin' ? 'X11; Linux x86_64' : 'Macintosh';
+const LOCAL_PLATFORM_MODIFIER =
+  process.platform === 'darwin' ? 'Meta' : 'Control';
+const LOCAL_SHORTCUT_MODIFIER_NAME =
+  process.platform === 'darwin' ? 'Cmd' : 'Ctrl';
 
 const PAGE_HTML = `
   <!DOCTYPE html>
@@ -31,6 +44,10 @@ async function puppeteerInputCenter(
     const rect = el.getBoundingClientRect();
     return [rect.left + rect.width / 2, rect.top + rect.height / 2];
   });
+}
+
+async function puppeteerInputValue(page: PuppeteerPage): Promise<string> {
+  return page.$eval('#target', (el: HTMLInputElement) => el.value);
 }
 
 async function playwrightInputCenter(
@@ -134,6 +151,61 @@ describe('BasePage editing commands', () => {
       },
       TEST_TIMEOUT_MS,
     );
+
+    describe('with spoofed browser-level user agent', () => {
+      let spoofedBrowser: PuppeteerBrowser;
+
+      beforeAll(async () => {
+        spoofedBrowser = await puppeteer.launch({
+          headless: true,
+          args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            `--user-agent=${SPOOFED_USER_AGENT}`,
+          ],
+        });
+      }, TEST_TIMEOUT_MS);
+
+      afterAll(async () => {
+        await spoofedBrowser?.close();
+      }, TEST_TIMEOUT_MS);
+
+      test(
+        'uses the Cut editing command when the local shortcut does not match the browser platform',
+        async () => {
+          const page = await spoofedBrowser.newPage();
+          await page.setContent(PAGE_HTML);
+
+          expect(await spoofedBrowser.userAgent()).toContain(
+            SPOOFED_USER_AGENT_MARKER,
+          );
+
+          await page.$eval('#target', (el: HTMLInputElement) => {
+            el.focus();
+            el.select();
+          });
+          await page.keyboard.down(LOCAL_PLATFORM_MODIFIER);
+          await page.keyboard.press('x');
+          await page.keyboard.up(LOCAL_PLATFORM_MODIFIER);
+          expect(await puppeteerInputValue(page)).toBe('value to clear');
+
+          await page.$eval('#target', (el: HTMLInputElement) => el.select());
+          const webPage = new PuppeteerWebPage(page);
+          const focusElementSpy = vi.spyOn(webPage, 'focusElement');
+          const input = createWebInputPrimitives(webPage);
+
+          await input.keyboard.keyboardPress(
+            `${LOCAL_SHORTCUT_MODIFIER_NAME}+X`,
+          );
+
+          expect(focusElementSpy).not.toHaveBeenCalled();
+          expect(await puppeteerInputValue(page)).toBe('');
+
+          await page.close();
+        },
+        TEST_TIMEOUT_MS,
+      );
+    });
   });
 
   describe('Playwright', () => {
@@ -168,6 +240,33 @@ describe('BasePage editing commands', () => {
         await page.close();
 
         expect(value).toBe('');
+      },
+      TEST_TIMEOUT_MS,
+    );
+
+    test(
+      'preserves a selected range that a repeated click would collapse',
+      async () => {
+        const page = await browser.newPage();
+        await page.setContent(PAGE_HTML);
+
+        const webPage = new PlaywrightWebPage(page);
+        const center = await playwrightInputCenter(page);
+        const target = { center } as any;
+
+        await page.locator('#target').focus();
+        await page.locator('#target').selectText();
+        expect(await playwrightInputSelection(page)).toEqual([0, 14]);
+
+        await webPage.focusElement(target, { preserveSelection: true });
+        expect(await playwrightInputSelection(page)).toEqual([0, 14]);
+
+        await page.mouse.click(center[0], center[1]);
+        const [selectionStart, selectionEnd] =
+          await playwrightInputSelection(page);
+        expect(selectionStart).toBe(selectionEnd);
+
+        await page.close();
       },
       TEST_TIMEOUT_MS,
     );
@@ -249,17 +348,6 @@ describe('BasePage editing commands', () => {
     );
 
     describe('with spoofed browser-level user agent', () => {
-      const linuxUserAgent =
-        'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.7680.31 Safari/537.36';
-      const macUserAgent =
-        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.7680.31 Safari/537.36';
-      const spoofedUserAgent =
-        process.platform === 'darwin' ? linuxUserAgent : macUserAgent;
-      const spoofedUserAgentMarker =
-        process.platform === 'darwin' ? 'X11; Linux x86_64' : 'Macintosh';
-      const localSelectAllModifier =
-        process.platform === 'darwin' ? 'Meta' : 'Control';
-
       let spoofedBrowser: PlaywrightBrowser;
 
       beforeAll(async () => {
@@ -269,7 +357,7 @@ describe('BasePage editing commands', () => {
           args: [
             '--no-sandbox',
             '--disable-setuid-sandbox',
-            `--user-agent=${spoofedUserAgent}`,
+            `--user-agent=${SPOOFED_USER_AGENT}`,
           ],
         });
       }, TEST_TIMEOUT_MS);
@@ -285,7 +373,7 @@ describe('BasePage editing commands', () => {
           await page.setContent(PAGE_HTML);
 
           const browserUserAgent = await playwrightBrowserUserAgent(page);
-          expect(browserUserAgent).toContain(spoofedUserAgentMarker);
+          expect(browserUserAgent).toContain(SPOOFED_USER_AGENT_MARKER);
 
           const webPage = new PlaywrightWebPage(page);
           const center = await playwrightInputCenter(page);
@@ -307,13 +395,13 @@ describe('BasePage editing commands', () => {
           await page.setContent(PAGE_HTML);
 
           const browserUserAgent = await playwrightBrowserUserAgent(page);
-          expect(browserUserAgent).toContain(spoofedUserAgentMarker);
+          expect(browserUserAgent).toContain(SPOOFED_USER_AGENT_MARKER);
 
           const center = await playwrightInputCenter(page);
           await page.mouse.click(center[0], center[1]);
-          await page.keyboard.down(localSelectAllModifier);
+          await page.keyboard.down(LOCAL_PLATFORM_MODIFIER);
           await page.keyboard.press('a');
-          await page.keyboard.up(localSelectAllModifier);
+          await page.keyboard.up(LOCAL_PLATFORM_MODIFIER);
           await page.keyboard.press('Backspace');
 
           const value = await playwrightInputValue(page);
