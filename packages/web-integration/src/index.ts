@@ -3,6 +3,13 @@ export type { PlayWrightAiFixtureType } from './playwright';
 
 export { Agent as PageAgent, type AgentOpt } from '@midscene/core/agent';
 export {
+  isAiActProgressEvent,
+  type AiActProgressData,
+  type AiActProgressEvent,
+  type AiActProgressPhase,
+  type AgentProgressEvent,
+} from '@midscene/core';
+export {
   PuppeteerAgent,
   PuppeteerPageAgent,
   PuppeteerBrowserAgent,

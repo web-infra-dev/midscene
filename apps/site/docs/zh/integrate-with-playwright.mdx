@@ -101,6 +101,62 @@ Promise.resolve(
 
 更多 Agent 的 API 讲解请参考 [API 参考](./reference/#interaction-methods)。
 
+### 跟踪每一个原子动作
+
+一次 `aiAct()` 可能执行多个原子动作。订阅 Agent 进度流后，可以在本次
+调用尚未结束时逐个收到动作结果。异步监听器会在下一个动作开始前执行完毕，
+因此可以在回调中截取当前页面、保存排错数据，或向其他服务推送实时进度。
+
+```typescript
+import { mkdir } from 'node:fs/promises';
+import { chromium } from 'playwright';
+import {
+  isAiActProgressEvent,
+  PlaywrightAgent,
+} from '@midscene/web/playwright';
+
+const browser = await chromium.launch();
+const page = await browser.newPage();
+const agent = new PlaywrightAgent(page);
+await mkdir('artifacts', { recursive: true });
+
+let actionIndex = 0;
+const removeProgressListener = agent.addProgressListener(async (event) => {
+  if (
+    !isAiActProgressEvent(event) ||
+    (event.phase !== 'action_done' && event.phase !== 'action_failed')
+  ) {
+    return;
+  }
+
+  actionIndex += 1;
+  const screenshotPath = `artifacts/action-${actionIndex}-${event.phase}.png`;
+  await page.screenshot({ path: screenshotPath });
+
+  // 可替换为 WebSocket、SSE 或自己的进度接收服务。
+  console.log({
+    actionIndex,
+    action: event.data.action?.name,
+    status: event.phase,
+    durationMs: event.data.durationMs,
+    error: event.data.error,
+    screenshotPath,
+  });
+});
+
+try {
+  await agent.aiAct('在搜索框输入「midscene」并点击搜索');
+} finally {
+  removeProgressListener();
+  await browser.close();
+}
+```
+
+监听器会收到该 Agent 上所有 `aiAct()` 调用的进度，因此应按 `event.scope`
+筛选，并在所属对象销毁时移除监听器。由于执行流程会等待回调完成，回调应尽量
+简短。`action_failed` 会在失败现场触发，可以在 `aiAct()` 抛出异常前保留当前
+页面截图。
+
 ### 第三步：运行
 
 使用 `tsx` 来运行，你会看到命令行打印出了耳机的商品信息：

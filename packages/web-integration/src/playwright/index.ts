@@ -4,6 +4,13 @@ export type {
 } from './ai-fixture';
 export { PlaywrightAiFixture } from './ai-fixture';
 export { overrideAIConfig } from '@midscene/shared/env';
+export {
+  isAiActProgressEvent,
+  type AiActProgressData,
+  type AiActProgressEvent,
+  type AiActProgressPhase,
+  type AgentProgressEvent,
+} from '@midscene/core';
 export { WebPage as PlaywrightWebPage } from './page';
 export type { WebPageAgentOpt } from '@/web-element';
 export { PlaywrightPageAgent, PlaywrightAgent } from './page-agent';

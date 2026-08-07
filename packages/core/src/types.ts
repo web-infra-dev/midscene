@@ -531,6 +531,19 @@ export interface AiActProgressData {
 
 export const aiActProgressScope = 'aiAct';
 
+export type AiActProgressEvent = AgentProgressEvent<
+  typeof aiActProgressScope,
+  AiActProgressData,
+  AiActProgressPhase
+>;
+
+/** Narrow a generic agent progress event to the structured `aiAct` stream. */
+export function isAiActProgressEvent(
+  event: AgentProgressEvent,
+): event is AiActProgressEvent {
+  return event.scope === aiActProgressScope;
+}
+
 export interface ExecutionRecorderItem {
   type: 'screenshot';
   ts: number;
