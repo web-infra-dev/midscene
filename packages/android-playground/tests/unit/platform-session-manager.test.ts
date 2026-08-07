@@ -1,30 +1,30 @@
-import { beforeEach, describe, expect, test, vi } from 'vitest';
+import { beforeEach, describe, expect, rs, test } from '@rstest/core';
 
-const connectMock = vi.fn();
+const connectMock = rs.fn();
 const currentDevice = { connect: connectMock };
-const getConnectedDevicesWithDetailsMock = vi.fn();
-const findAvailablePortMock = vi.fn(async (port: number) => port);
-const androidAgentMock = vi.fn().mockImplementation((device) => ({
+const getConnectedDevicesWithDetailsMock = rs.fn();
+const findAvailablePortMock = rs.fn(async (port: number) => port);
+const androidAgentMock = rs.fn().mockImplementation((device) => ({
   interface: {
     interfaceType: 'android',
     describe: () => 'Mock Android device',
     actionSpace: () => [],
   },
-  destroy: vi.fn(),
+  destroy: rs.fn(),
   device,
 }));
 
-vi.mock('@midscene/android', () => ({
+rs.mock('@midscene/android', () => ({
   AndroidAgent: androidAgentMock,
-  AndroidDevice: vi.fn().mockImplementation(() => currentDevice),
+  AndroidDevice: rs.fn().mockImplementation(() => currentDevice),
   getConnectedDevicesWithDetails: getConnectedDevicesWithDetailsMock,
 }));
 
-vi.mock('@midscene/shared/node', () => ({
+rs.mock('@midscene/shared/node', () => ({
   findAvailablePort: findAvailablePortMock,
 }));
 
-vi.mock('@midscene/playground', () => ({
+rs.mock('@midscene/playground', () => ({
   definePlaygroundPlatform: (descriptor: unknown) => descriptor,
   createScrcpyPreviewDescriptor: (
     custom: Record<string, unknown>,
@@ -39,7 +39,7 @@ vi.mock('@midscene/playground', () => ({
 
 describe('androidPlaygroundPlatform session manager', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    rs.clearAllMocks();
     getConnectedDevicesWithDetailsMock.mockResolvedValue([
       {
         udid: 'SERIAL123',
