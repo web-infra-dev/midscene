@@ -1,0 +1,66 @@
+{
+  "name": "@midscene/test",
+  "description": "Extensible YAML test runner and node SDK for Midscene.",
+  "version": "1.10.3",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/web-infra-dev/midscene.git",
+    "directory": "packages/test"
+  },
+  "homepage": "https://midscenejs.com/",
+  "main": "./dist/lib/index.js",
+  "module": "./dist/es/index.mjs",
+  "types": "./dist/types/index.d.ts",
+  "bin": {
+    "midscene-test": "./bin/midscene-test"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/es/index.mjs",
+      "require": "./dist/lib/index.js"
+    },
+    "./config": {
+      "types": "./dist/types/cli/index.d.ts",
+      "import": "./dist/es/cli/index.mjs",
+      "require": "./dist/lib/cli/index.js"
+    },
+    "./midscene": {
+      "types": "./dist/types/midscene/index.d.ts",
+      "import": "./dist/es/midscene/index.mjs",
+      "require": "./dist/lib/midscene/index.js"
+    }
+  },
+  "files": ["dist", "bin"],
+  "scripts": {
+    "build": "rslib build",
+    "build:watch": "rslib build --watch --no-clean",
+    "test": "vitest --run",
+    "test:types": "tsc -p tests/types/tsconfig.json",
+    "e2e": "pnpm run build && vitest --run --config vitest.e2e.config.ts"
+  },
+  "dependencies": {
+    "js-yaml": "4.1.0",
+    "tinyglobby": "0.2.15",
+    "tsx": "^4.19.2",
+    "zod": "^3.25.1"
+  },
+  "devDependencies": {
+    "@midscene/web": "workspace:*",
+    "@rslib/core": "^0.18.3",
+    "@types/js-yaml": "4.0.9",
+    "@types/node": "^18.0.0",
+    "playwright": "^1.45.0",
+    "typescript": "^5.8.3",
+    "vitest": "3.0.5"
+  },
+  "engines": {
+    "node": "^20.19.0 || ^22.12.0 || >=24.0.0"
+  },
+  "sideEffects": false,
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
+  },
+  "license": "MIT"
+}

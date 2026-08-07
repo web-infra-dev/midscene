@@ -1,0 +1,246 @@
+# Write and run YAML test cases
+
+After a framework maintainer configures the Test Project, people and Agents can use its registered Nodes to write YAML test cases. Before writing cases, generate a Node Reference with `describe-nodes` to see the available capabilities and their input fields.
+
+For the overall design, start with the [YAML test runner overview](./yaml-test-runner-overview). If the project is not configured yet, read [Extend and maintain a YAML test runner](./extend-yaml-test-runner).
+
+## Core concepts
+
+```text
+Test Project configuration
+└── Execution Project (web / Android / iOS / computer)
+    └── Workflow Document
+        ├── Lifecycle Step
+        └── Case
+            └── Step
+                └── Node
+```
+
+- **Node**: an executable capability registered by a developer.
+- **Step**: one YAML invocation of a Node.
+- **Case**: a named test made of multiple Steps.
+- **Test Project**: the top-level `midscene.config.ts` configuration. It registers shared Nodes and defines either a default runtime target or a `projects` array.
+- **Execution Project**: a child configuration inside a Test Project. It defines one runtime target, Project setup, file/tag selection, variables, and retry policy; it is not a peer of the Test Project.
+- **Workflow Document**: one YAML file selected by an Execution Project and containing lifecycle Steps and Cases.
+
+Nodes define the capabilities available to the team. YAML defines how each test case combines those capabilities.
+
+## Write YAML test cases
+
+Every Workflow Document must contain a non-empty `cases` array. Each Case must have a `name` and a non-empty `steps` array.
+
+```yaml
+cases:
+  - name: Create an order
+    steps:
+      - order.create:
+          sku: midscene-mug
+          quantity: 1
+      - aiAssert: The page shows "Order created"
+
+  - name: Cancel an order
+    steps:
+      - order.cancel:
+          orderId: example-order-id
+      - aiAssert: The page shows "Order canceled"
+```
+
+The runner executes Cases in declaration order. When a Case fails, the runner records the failure and continues with the remaining Cases.
+
+### Write Steps
+
+Each Step invokes exactly one Node. When the only input is `prompt`, you can use the string shorthand.
+
+```yaml
+steps:
+  - aiAct: Click the submit order button
+```
+
+This is equivalent to:
+
+```yaml
+steps:
+  - aiAct:
+      prompt: Click the submit order button
+```
+
+Domain Nodes can define their own inputs.
+
+```yaml
+steps:
+  - order.create:
+      sku: midscene-mug
+      quantity: 2
+```
+
+### Configure timeouts and error handling
+
+Use `$` for Step options controlled by the runner. These options are not passed to the Node's `input`.
+
+```yaml
+steps:
+  - order.create:
+      sku: midscene-mug
+      $:
+        timeout: 30000
+        continue-on-error: true
+```
+
+The runner supports these options:
+
+- `timeout`: the Step timeout in milliseconds.
+- `continue-on-error`: when `true`, the runner continues with later Steps in the current phase after a failure. The default is `false`.
+
+`continue-on-error` only controls whether execution continues. A Case is `failed` when any of its Steps fail.
+
+### Use project variables and environment variables
+
+The runner resolves variables recursively in Node input before execution:
+
+```yaml
+steps:
+  - launch:
+      uri: ${appUri}
+  - api.createOrder:
+      baseURL: ${{TEST_API_BASE_URL}}
+      payload:
+        count: ${orderCount}
+```
+
+- `${name}` reads a value from the current Execution Project's `variables`. When it occupies the whole scalar, its JSON type is preserved.
+- `${{ENV_NAME}}` reads an environment variable and always produces a string.
+- An object or array project variable can be used as a complete value, but cannot be embedded inside a longer string.
+- Missing variables are collection errors. Variables are resolved only in Node input, never in `$`.
+
+Workflow YAML has no `set`, `saveAs`, or Step-output expression syntax. Natural-language Nodes can reason over prior results through the read-only execution history maintained by the runner.
+
+### Select Cases with tags
+
+Add tags to a Case when different Execution Projects should run different subsets:
+
+```yaml
+cases:
+  - name: Android smoke checkout
+    tags: [smoke, android]
+    steps:
+      - aiAct: Complete checkout
+```
+
+The framework maintainer configures `tags.include` and `tags.exclude` for each Execution Project. An excluded tag always wins. With a non-empty include list, a Case is selected when it has at least one included tag.
+
+## Define the document lifecycle
+
+A Workflow Document can define lifecycle Steps around its Cases.
+
+```yaml
+beforeAll:
+  - data.prepare: Prepare document data
+
+beforeEach:
+  - browser.reset: Reset the page
+
+cases:
+  - name: Create an order
+    steps:
+      - aiAct: Create an order
+      - aiAssert: The page shows "Order created"
+
+  - name: Cancel an order
+    steps:
+      - aiAct: Cancel the latest order
+      - aiAssert: The page shows "Order canceled"
+
+afterEach:
+  - report.save: Save case details
+
+afterAll:
+  - data.cleanup: Delete document data
+```
+
+For one selected Execution Project, the complete execution order is:
+
+```text
+Project setup
+  Workflow Document 1
+    beforeAll
+      Case 1 attempt 1: beforeEach → steps → afterEach
+      Case 1 retry:     beforeEach → steps → afterEach
+      Case 2 attempt 1: beforeEach → steps → afterEach
+    afterAll
+    document-scoped Node cleanup
+  Workflow Document 2
+    ...
+Project teardown
+```
+
+`beforeAll` and `afterAll` run once for each YAML file and own document-level business preparation and cleanup. `beforeEach` and `afterEach` run once per Case attempt. A retry reruns the whole Case with a new run ID, Agent scope, cache scope, and Case history; it does not rerun `beforeAll`. Nodes may register internal attempt- or document-scoped cleanup for resources such as Agents and reports.
+
+`afterEach` still runs when the Case body fails. If `beforeAll` fails, the runner marks the file's Cases as `not-run`, then runs `afterAll` and registered Node cleanup.
+
+Project setup runs once before the Project's Workflow Documents and Project teardown always runs in LIFO order. On interruption, the active Step receives an aborted signal, while cleanup hooks and registered teardown functions receive a usable cleanup signal.
+
+## Run the project
+
+Run the Test Project in the current directory:
+
+```bash
+pnpm exec midscene-test
+```
+
+Run a project in another directory:
+
+```bash
+pnpm exec midscene-test ./e2e
+```
+
+Select a configuration file or result directory:
+
+```bash
+pnpm exec midscene-test \
+  --config ./config/midscene.config.ts \
+  --result-dir ./test-results
+```
+
+Select one or more named Execution Projects:
+
+```bash
+pnpm exec midscene-test --project android-smoke --project ios-regression
+```
+
+Projects, Workflow Documents, Cases, attempts, and Steps execute serially. `projects[].retry` retries the complete failed Case. `test.maxConcurrency` currently accepts only `1`.
+
+### Inspect results
+
+Each run writes a stable public summary and internal fact files:
+
+```text
+midscene_run/
+├── output/
+│   └── summary.json
+└── report/
+    └── <finalized Midscene reports>
+
+.midscene/test-results/<run>/
+├── runs/<case-id>/<run-id>.json
+├── documents/<document-id>/<document-run-id>.json
+└── collection-errors/<error-id>.json
+```
+
+`summary.json` is the public consumer contract. It contains:
+
+- Run metadata: `schemaVersion`, `runId`, start/end time, duration, final `status`, and CLI `exitCode`.
+- The Test Project root and configuration file, plus `factsRoot` and `reportDir` paths relative to the summary so CI and visualizers can move the output tree.
+- Aggregate counts for passed, failed, not-run, and filtered Cases, plus collection, Document, and Project failures.
+- Each Execution Project's platform, retry policy, file/tag selection, discovered/selected/filtered counts, and Project setup/teardown lifecycle status.
+- Each Case, attempt, and Workflow Document status, source location, internal result-file path, and finalized Midscene report index.
+- Each collection error's source file and error-fact path.
+
+Detailed fact files contain the full Step inputs, outputs, timings, and normalized errors. `--result-dir` changes only the internal fact directory; `output.summary` and `output.reportDir` are configured in `midscene.config.ts`.
+
+The CLI exits with code `1` when a Case fails or does not run, a Workflow Document fails, or collection reports an error.
+
+## Current limitations
+
+The runner does not currently support concurrency above `1`, DAGs, branches, loops, Step parallelism, dependencies between Workflow Documents, or remote YAML sources.
+
+The runner collects and validates every YAML file before execution. Unknown top-level fields, unknown Nodes, empty `cases`, and invalid Steps produce collection errors immediately.
