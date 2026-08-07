@@ -2,6 +2,8 @@ import {
   type BrowserAgentAdapter,
   BrowserPageManager,
   WebAgentCore,
+  appendBrowserAgentPageActions,
+  createBrowserAgentPageActions,
   resolveBrowserAgentRuntimeOptions,
 } from '@/common/browser-agent';
 import { applyForceChromeSelectRendering } from '@/common/browser-agent-utils';
@@ -22,6 +24,8 @@ const createPlaywrightBrowserAdapter = (
   newPage: () => context.newPage(),
   isPageClosed: (page) => page.isClosed(),
   bringToFront: (page) => page.bringToFront(),
+  pageTitle: (page) => page.title(),
+  pageUrl: (page) => page.url(),
   onNewPage: (handler) => context.on('page', handler),
   offNewPage: (handler) => context.off('page', handler),
   resolveNewPage: (page) => page,
@@ -71,9 +75,28 @@ export class PlaywrightBrowserAgent extends WebAgentCore<PlaywrightWebPage> {
       newPageTimeout,
     });
     const { forceChromeSelectRendering } = agentOpts;
+    const pageManagerRef: {
+      current?: BrowserPageManager<PlaywrightPage, PlaywrightPage>;
+    } = {};
+    const getPageManager = () => {
+      if (!pageManagerRef.current) {
+        throw new Error(
+          '[midscene] PlaywrightBrowserAgent page manager is not initialized.',
+        );
+      }
+      return pageManagerRef.current;
+    };
+    const browserActions = createBrowserAgentPageActions({
+      agentName: 'PlaywrightBrowserAgent',
+      getPageManager,
+    });
     const webPage = new PlaywrightWebPage(initialPage, {
       ...agentOpts,
       forceSameTabNavigation: runtimeOptions.forceSameTabNavigation,
+      customActions: appendBrowserAgentPageActions(
+        agentOpts.customActions,
+        browserActions,
+      ),
     });
     const pageManager = new BrowserPageManager({
       agentName: 'PlaywrightBrowserAgent',
@@ -86,6 +109,7 @@ export class PlaywrightBrowserAgent extends WebAgentCore<PlaywrightWebPage> {
       newPageTimeout: runtimeOptions.newPageTimeout,
       debug,
     });
+    pageManagerRef.current = pageManager;
     super(webPage, agentOpts);
     this.pageManager = pageManager;
 
