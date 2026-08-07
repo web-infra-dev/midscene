@@ -17,7 +17,8 @@ import type {
   MidsceneYamlScriptWebEnv,
 } from '@midscene/core';
 import { createAgent, getReportFileName } from '@midscene/core/agent';
-import type { AbstractInterface } from '@midscene/core/device';
+import type { AbstractInterface, DeviceAction } from '@midscene/core/device';
+import { defineAction, z } from '@midscene/core/device';
 import { processCacheConfig } from '@midscene/core/utils';
 import { getDebug } from '@midscene/shared/logger';
 import { AgentOverChromeBridge } from '@midscene/web/bridge-mode';
@@ -35,6 +36,141 @@ export interface SingleYamlExecutionResult {
 }
 
 const debug = getDebug('create-yaml-player');
+
+export interface ResolvedCustomActions {
+  actions: DeviceAction<any>[];
+  /**
+   * Optional prompt guidance returned by the custom-actions module via its
+   * optional `getPromptRoutingHints` export. Rendered verbatim in the
+   * planning prompt. Empty string when the module did not provide hints.
+   */
+  promptHints: string;
+}
+
+/**
+ * Resolves and loads project-provided custom DeviceActions from either:
+ *   1. Env:  MIDSCENE_CUSTOM_ACTIONS_MODULE + MIDSCENE_CUSTOM_ACTIONS_CONFIG
+ *   2. YAML: agent.customActionsModule + agent.customActionsConfig
+ *
+ * Contract of the loaded module:
+ *   - Primary:   export function buildCustomActions(config): DeviceAction[]
+ *   - Fallback:  export const buildCustomActions = buildArcDeviceActions (Arc alias)
+ *   - Fallback:  default export of DeviceAction[] or build-function
+ *   - Optional:  export function getPromptRoutingHints({ actions, config }): string
+ *
+ * Returns null when no module is configured.
+ */
+async function resolveCustomActions(
+  yamlAgent:
+    | (MidsceneYamlScriptAgentOpt & {
+        customActionsModule?: string;
+        customActionsConfig?: unknown;
+      })
+    | undefined,
+  yamlFileDir: string,
+): Promise<ResolvedCustomActions | null> {
+  const envModule = process.env.MIDSCENE_CUSTOM_ACTIONS_MODULE;
+  const envConfigRaw = process.env.MIDSCENE_CUSTOM_ACTIONS_CONFIG;
+  const yamlModule = yamlAgent?.customActionsModule;
+  const yamlConfig = yamlAgent?.customActionsConfig;
+
+  const moduleRaw = yamlModule || envModule;
+  if (!moduleRaw) {
+    if (envModule) {
+      debug(
+        'env MIDSCENE_CUSTOM_ACTIONS_MODULE was set but empty string; skipping',
+      );
+    }
+    return null;
+  }
+
+  const modulePath = path.isAbsolute(moduleRaw)
+    ? moduleRaw
+    : path.resolve(yamlFileDir, moduleRaw);
+  let config: unknown;
+  if (yamlConfig !== undefined) {
+    config = yamlConfig;
+  } else if (envConfigRaw?.trim()) {
+    try {
+      config = JSON.parse(envConfigRaw);
+    } catch (err) {
+      throw new Error(
+        `MIDSCENE_CUSTOM_ACTIONS_CONFIG is not valid JSON: ${
+          (err as Error).message
+        }. raw=${envConfigRaw.slice(0, 200)}`,
+      );
+    }
+  } else {
+    config = {};
+  }
+
+  debug(
+    'loading custom actions module',
+    modulePath,
+    'with config keys',
+    typeof config === 'object' && config !== null
+      ? Object.keys(config)
+      : '(non-object)',
+  );
+
+  let mod: any;
+  try {
+    mod = await import(modulePath);
+  } catch (err) {
+    throw new Error(
+      `Failed to load customActionsModule ${modulePath}: ${(err as Error).message}`,
+      { cause: err },
+    );
+  }
+
+  const build: unknown =
+    mod.buildCustomActions ?? mod.buildArcDeviceActions ?? mod.default;
+  const runtimeInjected = {
+    defineAction,
+    z,
+  } as const;
+  const configWithRuntime =
+    typeof config === 'object' && config !== null
+      ? { ...(config as Record<string, unknown>), runtime: runtimeInjected }
+      : { runtime: runtimeInjected };
+  const actions: DeviceAction<any>[] =
+    typeof build === 'function'
+      ? await build(configWithRuntime)
+      : Array.isArray(build)
+        ? build
+        : Array.isArray(mod)
+          ? mod
+          : [];
+
+  if (!Array.isArray(actions)) {
+    throw new Error(
+      `customActionsModule ${modulePath} did not return DeviceAction[] from buildCustomActions/buildArcDeviceActions/default export. Got: ${typeof actions}`,
+    );
+  }
+
+  let promptHints = '';
+  const hintsFn: unknown = mod.getPromptRoutingHints;
+  if (typeof hintsFn === 'function') {
+    try {
+      const hintResult = await hintsFn({ actions, config });
+      if (typeof hintResult === 'string') promptHints = hintResult;
+    } catch (err) {
+      console.warn(
+        `[midscene] customActionsModule getPromptRoutingHints threw; ignoring hints. ${(err as Error).message}`,
+      );
+    }
+  }
+
+  debug(
+    'loaded',
+    actions.length,
+    'custom actions from',
+    modulePath,
+    'with prompt hints length',
+    promptHints.length,
+  );
+  return { actions, promptHints };
+}
 
 export const launchServer = async (
   dir: string,
@@ -124,6 +260,39 @@ export async function createYamlPlayer(
       const webTarget = resolvedWebTarget?.target as
         | MidsceneYamlScriptWebEnv
         | undefined;
+
+      const yamlFileDir = path.dirname(path.resolve(file));
+      const resolvedCustom = await resolveCustomActions(
+        clonedYamlScript.agent as Parameters<typeof resolveCustomActions>[0],
+        yamlFileDir,
+      );
+      const injectCustom = <T extends object>(
+        opts: T,
+      ): T & {
+        customActions?: DeviceAction<any>[];
+        customActionsPromptHints?: string;
+      } => {
+        if (!resolvedCustom || resolvedCustom.actions.length === 0) {
+          return opts as T & {
+            customActions?: DeviceAction<any>[];
+            customActionsPromptHints?: string;
+          };
+        }
+        const existing = (
+          opts as unknown as { customActions?: DeviceAction<any>[] }
+        ).customActions;
+        const existingHints = (
+          opts as unknown as { customActionsPromptHints?: string }
+        ).customActionsPromptHints;
+        return {
+          ...opts,
+          customActions: [...(existing || []), ...resolvedCustom.actions],
+          customActionsPromptHints:
+            existingHints && resolvedCustom.promptHints
+              ? `${existingHints}\n${resolvedCustom.promptHints}`
+              : (existingHints ?? resolvedCustom.promptHints),
+        };
+      };
 
       // Validate that only one target type is specified
       const targetCount = [
@@ -218,14 +387,14 @@ export async function createYamlPlayer(
           // cookie, waitForNetworkIdle, etc.) — pass the CDP browser as the browser param
           const { agent, freeFn: newFreeFn } = await puppeteerAgentForTarget(
             webTarget,
-            {
+            injectCustom({
               ...preference,
               ...buildAgentOptions(
                 clonedYamlScript.agent,
                 preference.reportFileName,
                 fileName,
               ),
-            },
+            }),
             cdpBrowser as Browser,
             options?.page,
           );
@@ -250,14 +419,14 @@ export async function createYamlPlayer(
           // use puppeteer
           const { agent, freeFn: newFreeFn } = await puppeteerAgentForTarget(
             webTarget,
-            {
+            injectCustom({
               ...preference,
               ...buildAgentOptions(
                 clonedYamlScript.agent,
                 preference.reportFileName,
                 fileName,
               ),
-            },
+            }),
             options?.browser,
             options?.page,
           );
@@ -325,14 +494,17 @@ export async function createYamlPlayer(
       if (typeof clonedYamlScript.android !== 'undefined') {
         const androidTarget = clonedYamlScript.android;
         const { agentFromAdbDevice } = await import('@midscene/android');
-        const agent = await agentFromAdbDevice(androidTarget?.deviceId, {
-          ...androidTarget, // Pass all Android config options
-          ...buildAgentOptions(
-            clonedYamlScript.agent,
-            preference.reportFileName,
-            fileName,
-          ),
-        });
+        const agent = await agentFromAdbDevice(
+          androidTarget?.deviceId,
+          injectCustom({
+            ...androidTarget, // Pass all Android config options
+            ...buildAgentOptions(
+              clonedYamlScript.agent,
+              preference.reportFileName,
+              fileName,
+            ),
+          }),
+        );
 
         if (androidTarget?.launch) {
           await agent.launch(androidTarget.launch);
@@ -352,14 +524,14 @@ export async function createYamlPlayer(
         const { agentFromIOSAuto, agentFromWebDriverAgent } = await import(
           '@midscene/ios'
         );
-        const agentOptions = {
+        const agentOptions = injectCustom({
           ...iosTarget, // Pass all iOS config options
           ...buildAgentOptions(
             clonedYamlScript.agent,
             preference.reportFileName,
             fileName,
           ),
-        };
+        });
         const useIOSAuto =
           options?.iosAuto === true || iosTarget.iosAuto === true;
         const agent = useIOSAuto
@@ -382,14 +554,17 @@ export async function createYamlPlayer(
       if (typeof clonedYamlScript.harmony !== 'undefined') {
         const harmonyTarget = clonedYamlScript.harmony;
         const { agentFromHdcDevice } = await import('@midscene/harmony');
-        const agent = await agentFromHdcDevice(harmonyTarget?.deviceId, {
-          ...harmonyTarget, // Pass all HarmonyOS config options
-          ...buildAgentOptions(
-            clonedYamlScript.agent,
-            preference.reportFileName,
-            fileName,
-          ),
-        });
+        const agent = await agentFromHdcDevice(
+          harmonyTarget?.deviceId,
+          injectCustom({
+            ...harmonyTarget, // Pass all HarmonyOS config options
+            ...buildAgentOptions(
+              clonedYamlScript.agent,
+              preference.reportFileName,
+              fileName,
+            ),
+          }),
+        );
 
         if (harmonyTarget?.launch) {
           await agent.launch(harmonyTarget.launch);
@@ -407,14 +582,16 @@ export async function createYamlPlayer(
       if (typeof clonedYamlScript.computer !== 'undefined') {
         const computerTarget = clonedYamlScript.computer;
         const { agentForComputer } = await import('@midscene/computer');
-        const agent = await agentForComputer({
-          ...computerTarget,
-          ...buildAgentOptions(
-            clonedYamlScript.agent,
-            preference.reportFileName,
-            fileName,
-          ),
-        });
+        const agent = await agentForComputer(
+          injectCustom({
+            ...computerTarget,
+            ...buildAgentOptions(
+              clonedYamlScript.agent,
+              preference.reportFileName,
+              fileName,
+            ),
+          }),
+        );
 
         freeFn.push({
           name: 'destroy_computer_agent',
@@ -461,18 +638,35 @@ export async function createYamlPlayer(
         debug('DeviceClass', DeviceClass, 'with param', interfaceTarget.param);
 
         // create device instance with parameters
-        const device: AbstractInterface = new DeviceClass(
-          interfaceTarget.param || {},
-        );
+        const userParam = interfaceTarget.param || {};
+        const deviceParam =
+          resolvedCustom &&
+          resolvedCustom.actions.length > 0 &&
+          typeof userParam === 'object' &&
+          userParam !== null &&
+          !Array.isArray(userParam)
+            ? {
+                ...(userParam as Record<string, unknown>),
+                customActions: [
+                  ...(((userParam as Record<string, unknown>).customActions as
+                    | DeviceAction<any>[]
+                    | undefined) || []),
+                  ...resolvedCustom.actions,
+                ],
+              }
+            : userParam;
+        const device: AbstractInterface = new DeviceClass(deviceParam);
 
         // create agent from device
         debug('creating agent from device', device);
         const agent = createAgent(
           device,
-          buildAgentOptions(
-            clonedYamlScript.agent,
-            preference.reportFileName,
-            fileName,
+          injectCustom(
+            buildAgentOptions(
+              clonedYamlScript.agent,
+              preference.reportFileName,
+              fileName,
+            ),
           ),
         );
 

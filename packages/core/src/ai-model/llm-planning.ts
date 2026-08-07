@@ -28,6 +28,9 @@ import type { PlanOptions } from './workflows/planning/types';
 
 const debug = getDebug('planning');
 const warnLog = getDebug('planning', { console: true });
+const planningPromptDebug = getDebug('ai-model:planning-prompt', {
+  console: true,
+});
 
 const noPreviousActionsText =
   'No previous actions have been executed in this aiAct execution yet. If the instruction asks for actions, choose the first action to execute.';
@@ -225,6 +228,7 @@ export async function plan(
     includeLocateInPlanning: opts.includeLocateInPlanning,
     includeThought: true, // always include thought
     includeSubGoals,
+    customActionsPromptHints: opts.customActionsPromptHints,
   });
 
   const preparedImage = await prepareModelImage({
@@ -321,6 +325,37 @@ export async function plan(
     ...instruction,
     ...historyLog,
   ];
+
+  {
+    const systemLen = systemPrompt.length;
+    const hasBusiness =
+      typeof systemPrompt === 'string' &&
+      (systemPrompt.includes('Business CLI action routing rules') ||
+        systemPrompt.includes('SettingsOverrideSet') ||
+        systemPrompt.includes('AccountVerificationCodeSend') ||
+        systemPrompt.includes('customActionsPromptHints'));
+    const userTextParts: string[] = [];
+    for (const msg of msgs) {
+      if (msg.role === 'user') {
+        const c = (msg as any).content;
+        if (typeof c === 'string') userTextParts.push(c);
+        else if (Array.isArray(c)) {
+          for (const part of c) {
+            if (
+              part &&
+              typeof part === 'object' &&
+              (part as any).type === 'text'
+            )
+              userTextParts.push((part as any).text);
+          }
+        }
+      }
+    }
+    const userText = userTextParts.join('\n---\n');
+    planningPromptDebug(
+      `[plan-call msgs] system.len=${systemLen} hasBusinessRouting=${hasBusiness} history.snapshot.len=${historyLog.length} userText.len=${userText.length}. customActionsPromptHints passed in: opts=${opts.customActionsPromptHints ? `len=${String(opts.customActionsPromptHints).length}` : 'UNDEFINED'}. System prompt first 800 chars:\n${String(systemPrompt).slice(0, 800)}\n======== System prompt last 1500 chars =========\n${String(systemPrompt).slice(-1500)}`,
+    );
+  }
 
   const {
     response: {

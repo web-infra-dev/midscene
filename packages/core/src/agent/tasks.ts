@@ -103,6 +103,8 @@ export class TaskExecutor {
 
   private readonly providedActionSpace: DeviceAction[];
 
+  private readonly customActionsPromptHints: string;
+
   private readonly taskBuilder: TaskBuilder;
 
   onTaskStartCallback?: ExecutionTaskProgressOptions['onTaskStart'];
@@ -131,6 +133,12 @@ export class TaskExecutor {
       useDeviceTime?: boolean;
       hooks?: TaskExecutorHooks;
       actionSpace: DeviceAction[];
+      /**
+       * Optional prompt addendum provided by the project's custom-actions
+       * module (e.g. domain routing rules for discovered business CLI actions).
+       * Rendered verbatim in the planning prompt. Passed through unchanged.
+       */
+      customActionsPromptHints?: string;
     },
   ) {
     this.interface = interfaceInstance;
@@ -142,6 +150,7 @@ export class TaskExecutor {
     this.useDeviceTime = opts.useDeviceTime;
     this.hooks = opts.hooks;
     this.providedActionSpace = opts.actionSpace;
+    this.customActionsPromptHints = opts.customActionsPromptHints ?? '';
     this.taskBuilder = new TaskBuilder({
       interfaceInstance,
       service,
@@ -594,6 +603,7 @@ export class TaskExecutor {
                 deepThink,
                 referenceImageMessages,
                 abortSignal,
+                customActionsPromptHints: this.customActionsPromptHints,
               });
             } catch (planError) {
               if (planError instanceof AIResponseParseError) {

@@ -1016,6 +1016,18 @@ export interface AgentOpt {
    * read `agent.metrics` instead.
    */
   onLLMUsage?: (usage: AIUsageInfo) => void;
+
+  /**
+   * Optional free-form prompt addendum injected into the planning prompt by
+   * the project's custom-actions module. Midscene core never authors or
+   * parses this string — it is rendered verbatim between the Action
+   * Guidelines and the "Supporting actions list".
+   *
+   * Typical usage: the project that registered custom business CLI actions
+   * uses this hook to tell the planner what kind of user instruction should
+   * be routed to each CLI action instead of visual Tap/Input.
+   */
+  customActionsPromptHints?: string;
 }
 
 export type TestStatus =
