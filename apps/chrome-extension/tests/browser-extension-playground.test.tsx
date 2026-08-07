@@ -135,6 +135,8 @@ describe('BrowserExtensionPlayground', () => {
     expect(universalPlaygroundProps.at(-1)?.envConfigReminderProps).toEqual({
       agentOptions,
       configModalClassName: 'chrome-extension-model-env-config-modal',
+      configModalWidth: 360,
+      envTextareaAutoSize: false,
       envTextareaMinRows: 4,
       onAgentOptionsSave,
       onVerify,

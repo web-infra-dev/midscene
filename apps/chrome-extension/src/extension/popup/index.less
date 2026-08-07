@@ -20,6 +20,8 @@ html {
 
 html[data-theme='light'] {
   color-scheme: light;
+  --midscene-accent: #2b83ff;
+  --midscene-accent-hover: #1a6fe6;
   --midscene-surface: #fff;
   --midscene-surface-elevated: #fff;
   --midscene-surface-muted: #f1f2f3;
@@ -30,6 +32,8 @@ html[data-theme='light'] {
 
 html[data-theme='dark'] {
   color-scheme: dark;
+  --midscene-accent: #2d5290;
+  --midscene-accent-hover: #3767b5;
   --midscene-surface: #1f1f1f;
   --midscene-surface-elevated: #262626;
   --midscene-surface-muted: #2a2a2a;
@@ -58,23 +62,6 @@ html[data-theme='dark'] {
   .popup-wrapper .popup-nav .nav-right .nav-icon {
     color: var(--midscene-text-primary);
   }
-}
-
-// The extension popup keeps Config as a light floating surface even when the
-// surrounding recorder or playground follows the system dark theme.
-html[data-theme='dark'] .chrome-extension-model-env-config-modal {
-  --midscene-surface: #fff;
-  --midscene-surface-elevated: #fff;
-  --midscene-surface-muted: #f1f2f3;
-  --midscene-surface-hover: rgba(0, 0, 0, 0.05);
-  --midscene-text-primary: #0d0d0d;
-  --midscene-text-secondary: rgba(0, 0, 0, 0.7);
-  --midscene-text-tertiary: #797a7a;
-  --midscene-text-placeholder: #9d9fa0;
-  --midscene-border-control: #dadada;
-  --midscene-border-strong: rgba(0, 0, 0, 0.08);
-  --midscene-divider: rgba(0, 0, 0, 0.08);
-  --midscene-icon-muted: #b6b6b6;
 }
 
 #root {
@@ -306,7 +293,6 @@ html[data-theme='dark']
 // and actions remain visible.
 .chrome-extension-model-env-config-modal {
   max-width: 100vw;
-  width: 360px !important;
 
   .ant-modal-content {
     display: flex;
@@ -319,7 +305,12 @@ html[data-theme='dark']
     flex: 1 1 auto;
     min-height: 0;
     overflow: auto;
-    scrollbar-gutter: stable;
+    overscroll-behavior: contain;
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
   }
 
   .ant-modal-header,
@@ -328,7 +319,7 @@ html[data-theme='dark']
   }
 
   .midscene-config-modal-env-textarea {
-    min-height: 160px !important;
+    min-height: 160px;
   }
 
   .midscene-config-modal-body-content,

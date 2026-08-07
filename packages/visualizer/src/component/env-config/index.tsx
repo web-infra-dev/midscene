@@ -21,6 +21,8 @@ export interface EnvConfigProps {
   agentOptions?: CommonAgentOptions;
   onAgentOptionsSave?: (options: CommonAgentOptions) => void | Promise<void>;
   configModalClassName?: string;
+  configModalWidth?: ConfigModalProps['width'];
+  envTextareaAutoSize?: ConfigModalProps['envTextareaAutoSize'];
   envTextareaMinRows?: ConfigModalProps['envTextareaMinRows'];
 }
 
@@ -34,6 +36,8 @@ export function EnvConfig({
   agentOptions,
   onAgentOptionsSave,
   configModalClassName,
+  configModalWidth,
+  envTextareaAutoSize,
   envTextareaMinRows,
 }: EnvConfigProps) {
   const { config, configString, loadConfig, syncFromStorage } = useEnvConfig();
@@ -94,7 +98,9 @@ export function EnvConfig({
       <ConfigModal
         agentOptionsValue={agentOptions}
         className={configModalClassName}
+        envTextareaAutoSize={envTextareaAutoSize}
         envTextareaMinRows={envTextareaMinRows}
+        width={configModalWidth}
         onClose={() => setIsModalOpen(false)}
         onSave={async ({ text, agentOptions: nextAgentOptions }) => {
           const previousConfigText = configString;
