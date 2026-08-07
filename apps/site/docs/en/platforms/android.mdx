@@ -375,6 +375,35 @@ export MIDSCENE_ANDROID_IME_STRATEGY=always-yadb
 
 This is different from text being cleared after typing. If the text is entered correctly and then disappears, check `keyboardDismissStrategy` or `autoDismissKeyboard` instead.
 
+### Screenshot of secure pages (e.g. password input) shows black
+
+Some pages (such as password entry screens in banking or payment apps) set `FLAG_SECURE` to block screenshots. When `screencap` captures such a page, the secure region appears black.
+
+The yadb tool creates a virtual display via the `secure` parameter of `SurfaceControl.createDisplay`, which can help capture secure content in some setups. Whether it can actually capture `FLAG_SECURE` pages depends on the Android version, ROM, root/hook environment, and device configuration (for example, some setups may require root plus a Magisk hook). Always verify against your actual device.
+
+Use the `screenshotStrategy` option to force yadb for screenshots:
+
+```typescript
+const device = new AndroidDevice('device-id', {
+  screenshotStrategy: 'always-yadb',
+});
+```
+
+For YAML scripts:
+
+```yaml
+android:
+  screenshotStrategy: always-yadb
+```
+
+Or set the environment variable:
+
+```bash
+export MIDSCENE_ANDROID_SCREENSHOT_STRATEGY=always-yadb
+```
+
+The default is `auto`, which tries `adb.takeScreenshot` first, falls back to shell `screencap`, and uses the yadb tool if `screencap` fails to execute. scrcpy is only tried before these when `scrcpyConfig.enabled` is turned on. `auto` does not analyze screenshot content — even if a method succeeds but returns a black frame, it will not automatically switch to yadb; it only moves to the next method when the previous one fails to execute. For secure pages that produce a valid but black image, set `always-yadb` to bypass the default `auto` flow (`adb.takeScreenshot`, `screencap`, and scrcpy when enabled) and use yadb directly. Yadb can only capture the default display (`displayId=0`), so combining `always-yadb` with a non-zero `displayId` throws an error.
+
 ### How do I use a custom adb path or remote adb server?
 
 Set the environment variables first:

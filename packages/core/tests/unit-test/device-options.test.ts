@@ -20,6 +20,7 @@ describe('Device Options Type Definitions', () => {
         remoteAdbHost: '192.168.1.100',
         remoteAdbPort: 5037,
         imeStrategy: 'yadb-for-non-ascii',
+        screenshotStrategy: 'auto',
         displayId: 1,
         usePhysicalDisplayIdForScreenshot: true,
         usePhysicalDisplayIdForDisplayLookup: true,
@@ -137,6 +138,7 @@ describe('Device Options Type Definitions', () => {
         remoteAdbHost: '192.168.1.100',
         remoteAdbPort: 5037,
         imeStrategy: 'yadb-for-non-ascii',
+        screenshotStrategy: 'always-yadb',
         displayId: 1,
         usePhysicalDisplayIdForScreenshot: true,
         usePhysicalDisplayIdForDisplayLookup: true,
@@ -281,6 +283,35 @@ describe('Device Options Type Definitions', () => {
       validStrategies.forEach((strategy) => {
         const options: HarmonyDeviceOpt = {
           keyboardDismissStrategy: strategy,
+        };
+        expect(options).toBeDefined();
+      });
+    });
+  });
+
+  describe('Screenshot Strategy Types', () => {
+    test('should only accept valid screenshotStrategy values', () => {
+      const validStrategies: Array<AndroidDeviceOpt['screenshotStrategy']> = [
+        'auto',
+        'always-yadb',
+        undefined,
+      ];
+
+      validStrategies.forEach((strategy) => {
+        const options: AndroidDeviceOpt = {
+          screenshotStrategy: strategy,
+        };
+        expect(options).toBeDefined();
+      });
+    });
+
+    test('should reject invalid screenshotStrategy values', () => {
+      const invalidStrategies = ['invalid', '', 123] as const;
+
+      invalidStrategies.forEach((strategy) => {
+        const options: AndroidDeviceOpt = {
+          // @ts-expect-error - invalid values should cause a type error
+          screenshotStrategy: strategy,
         };
         expect(options).toBeDefined();
       });

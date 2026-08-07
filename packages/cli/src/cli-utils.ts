@@ -104,6 +104,7 @@ Usage:
 Examples:
   $0 script.yaml --web.user-agent "Custom Agent" --web.viewport-width 1920
   $0 script.yaml --android.device-id emulator-5554 --android.ime-strategy yadb-for-non-ascii
+  $0 script.yaml --android.device-id emulator-5554 --android.screenshot-strategy always-yadb
   $0 script.yaml --ios.wda-port 8100 --ios.auto-dismiss-keyboard`)
     .wrap(yargs().terminalWidth());
 

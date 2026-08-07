@@ -28,6 +28,7 @@ import {
 import { getTmpFile, sleep } from '@midscene/core/utils';
 import {
   MIDSCENE_ANDROID_IME_STRATEGY,
+  MIDSCENE_ANDROID_SCREENSHOT_STRATEGY,
   globalConfigManager,
 } from '@midscene/shared/env';
 import type { ElementInfo } from '@midscene/shared/extractor';
@@ -65,6 +66,8 @@ const defaultNormalScrollDuration = 1000;
 
 const IME_STRATEGY_ALWAYS_YADB = 'always-yadb' as const;
 const IME_STRATEGY_YADB_FOR_NON_ASCII = 'yadb-for-non-ascii' as const;
+const SCREENSHOT_STRATEGY_ALWAYS_YADB = 'always-yadb' as const;
+const SCREENSHOT_STRATEGY_AUTO = 'auto' as const;
 type ScrollDirection = 'up' | 'down' | 'left' | 'right';
 
 const debugDevice = getDebug('android:device');
@@ -1199,6 +1202,22 @@ ${Object.keys(size)
   async screenshotBase64(): Promise<string> {
     debugDevice('screenshotBase64 begin');
 
+    // Determine screenshot strategy. 'always-yadb' bypasses scrcpy /
+    // adb.takeScreenshot / screencap and captures directly via the yadb tool.
+    // Use it when screencap yields black frames for secure (FLAG_SECURE)
+    // content while yadb captures it correctly (e.g. rooted / Magisk-hooked
+    // devices, or Android versions where yadb's secure virtual display works).
+    const screenshotStrategy =
+      this.options?.screenshotStrategy ||
+      (globalConfigManager.getEnvConfigValue(
+        MIDSCENE_ANDROID_SCREENSHOT_STRATEGY,
+      ) as 'auto' | 'always-yadb' | undefined) ||
+      SCREENSHOT_STRATEGY_AUTO;
+
+    if (screenshotStrategy === SCREENSHOT_STRATEGY_ALWAYS_YADB) {
+      return this.screenshotBase64ViaYadb();
+    }
+
     // Try scrcpy mode first (if enabled and initialized)
     const adapter = this.getScrcpyAdapter();
     if (adapter.isEnabled()) {
@@ -1219,9 +1238,6 @@ ${Object.keys(size)
     // Standard ADB screenshot path
     const adb = await this.getAdb();
     let screenshotBuffer: Buffer | undefined;
-    let localScreenshotPath: string | null = null;
-    const screenshotId = Date.now().toString(36);
-    const androidScreenshotPath = `/data/local/tmp/ms_${screenshotId}.png`;
     const useShellScreencap = typeof this.options?.displayId === 'number';
 
     try {
@@ -1273,61 +1289,28 @@ ${Object.keys(size)
       debugDevice(
         `Taking screenshot via adb.takeScreenshot failed or was skipped: ${error}`,
       );
-      const screenshotPath = getTmpFile('png')!;
-      localScreenshotPath = screenshotPath;
-
-      try {
-        debugDevice('Fallback: taking screenshot via shell screencap');
-        const displayId = this.options?.usePhysicalDisplayIdForScreenshot
-          ? await this.getPhysicalDisplayId()
-          : this.options?.displayId;
-        const displayArg = displayId ? `-d ${displayId}` : '';
-        try {
-          // Take a screenshot and save it locally
-          await adb.shell(
-            `screencap -p ${displayArg} ${androidScreenshotPath}`.trim(),
-          );
-          debugDevice('adb.shell screencap completed');
-        } catch (screencapError) {
-          debugDevice('screencap failed, using forceScreenshot');
-          await this.forceScreenshot(androidScreenshotPath);
-          debugDevice('forceScreenshot completed');
-        }
-
-        debugDevice('Pulling screenshot file from device');
-        await adb.pull(androidScreenshotPath, screenshotPath);
-        debugDevice(`adb.pull completed, local path: ${screenshotPath}`);
-        screenshotBuffer = await fs.promises.readFile(screenshotPath);
-
-        validateScreenshotBuffer(screenshotBuffer, {
-          label: 'Fallback screenshot',
-          minBufferSize:
-            this.options?.minScreenshotBufferSize ??
-            AndroidDevice.DEFAULT_MIN_SCREENSHOT_BUFFER_SIZE,
-        });
-
-        debugDevice(
-          `Fallback screenshot validated successfully: ${screenshotBuffer.length} bytes`,
-        );
-      } finally {
-        // Fire-and-forget: delete remote screenshot via separate process
-        // Using execFile instead of adb.shell to avoid blocking the main ADB connection
-        // (adb.shell has a 60s timeout that can block all subsequent ADB operations)
-        const adbPath = adb.executable?.path ?? 'adb';
-        const child = execFile(
-          adbPath,
-          ['-s', this.deviceId, 'shell', `rm ${androidScreenshotPath}`],
-          { timeout: 3000 },
-          (err) => {
-            if (err)
-              debugDevice(
-                'Failed to delete remote screenshot: %s',
-                err.message,
-              );
-          },
-        );
-        child.unref();
-      }
+      const result = await this.captureScreenshotBase64FromDeviceFile(
+        'Fallback screenshot',
+        async (androidScreenshotPath) => {
+          debugDevice('Fallback: taking screenshot via shell screencap');
+          const displayId = this.options?.usePhysicalDisplayIdForScreenshot
+            ? await this.getPhysicalDisplayId()
+            : this.options?.displayId;
+          const displayArg = displayId ? `-d ${displayId}` : '';
+          try {
+            await adb.shell(
+              `screencap -p ${displayArg} ${androidScreenshotPath}`.trim(),
+            );
+            debugDevice('adb.shell screencap completed');
+          } catch (screencapError) {
+            debugDevice('screencap failed, using forceScreenshot');
+            await this.forceScreenshot(androidScreenshotPath);
+            debugDevice('forceScreenshot completed');
+          }
+        },
+      );
+      debugDevice('screenshotBase64 end (fallback)');
+      return result;
     }
 
     if (!screenshotBuffer) {
@@ -1339,15 +1322,102 @@ ${Object.keys(size)
       'png',
       screenshotBuffer.toString('base64'),
     );
-    if (localScreenshotPath) {
-      debugDevice(`Deleting local screenshot: ${localScreenshotPath}`);
-      unlink(localScreenshotPath, (unlinkError) => {
-        if (unlinkError) {
-          debugDevice(`Failed to delete screenshot: ${unlinkError}`);
+    debugDevice('screenshotBase64 end');
+    return result;
+  }
+
+  private async captureScreenshotBase64FromDeviceFile(
+    label: string,
+    capture: (androidScreenshotPath: string) => Promise<void>,
+  ): Promise<string> {
+    const adb = await this.getAdb();
+    const screenshotId = Date.now().toString(36);
+    const androidScreenshotPath = `/data/local/tmp/ms_${screenshotId}.png`;
+    const localScreenshotPath = getTmpFile('png')!;
+
+    try {
+      await capture(androidScreenshotPath);
+
+      debugDevice('Pulling screenshot file from device');
+      await adb.pull(androidScreenshotPath, localScreenshotPath);
+      debugDevice(`adb.pull completed, local path: ${localScreenshotPath}`);
+
+      const screenshotBuffer = await fs.promises.readFile(localScreenshotPath);
+      validateScreenshotBuffer(screenshotBuffer, {
+        label,
+        minBufferSize:
+          this.options?.minScreenshotBufferSize ??
+          AndroidDevice.DEFAULT_MIN_SCREENSHOT_BUFFER_SIZE,
+      });
+
+      debugDevice(
+        `${label} validated successfully: ${screenshotBuffer.length} bytes`,
+      );
+      return createImgBase64ByFormat(
+        'png',
+        screenshotBuffer.toString('base64'),
+      );
+    } finally {
+      // Fire-and-forget: delete the remote screenshot via a separate process
+      // so the main ADB connection cannot be blocked by adb.shell's timeout.
+      const adbPath = adb.executable?.path ?? 'adb';
+      const adbDefaultArgs = adb.executable?.defaultArgs ?? [];
+      const child = execFile(
+        adbPath,
+        [
+          ...adbDefaultArgs,
+          '-s',
+          this.deviceId,
+          'shell',
+          `rm ${androidScreenshotPath}`,
+        ],
+        { timeout: 3000 },
+        (error) => {
+          if (error) {
+            debugDevice(
+              'Failed to delete remote screenshot: %s',
+              error.message,
+            );
+          }
+        },
+      );
+      child.unref();
+
+      unlink(localScreenshotPath, (error) => {
+        if (error && error.code !== 'ENOENT') {
+          debugDevice('Failed to delete local screenshot: %s', error.message);
         }
       });
     }
-    debugDevice('screenshotBase64 end');
+  }
+
+  /**
+   * Capture a screenshot directly via the yadb tool, bypassing scrcpy,
+   * adb.takeScreenshot, and screencap. Used when the screenshotStrategy is
+   * 'always-yadb', e.g. when screencap produces black frames for secure
+   * (FLAG_SECURE) content but yadb captures it correctly.
+   */
+  private async screenshotBase64ViaYadb(): Promise<string> {
+    debugDevice('screenshotBase64ViaYadb begin');
+
+    if (
+      typeof this.options?.displayId === 'number' &&
+      this.options.displayId !== 0
+    ) {
+      throw new Error(
+        `screenshotStrategy 'always-yadb' cannot target non-default displayId=${this.options.displayId}. Use displayId=0 or screenshotStrategy 'auto'.`,
+      );
+    }
+
+    const result = await this.captureScreenshotBase64FromDeviceFile(
+      'Yadb screenshot',
+      async (androidScreenshotPath) => {
+        debugDevice('Taking screenshot via yadb (always-yadb strategy)');
+        await this.forceScreenshot(androidScreenshotPath);
+        debugDevice('forceScreenshot completed');
+      },
+    );
+    debugDevice('screenshotBase64ViaYadb end');
     return result;
   }
 

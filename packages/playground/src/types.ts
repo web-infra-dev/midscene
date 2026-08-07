@@ -35,6 +35,7 @@ export interface PlaygroundReportRef {
 
 export interface DeviceOptions {
   imeStrategy?: 'always-yadb' | 'yadb-for-non-ascii';
+  screenshotStrategy?: 'auto' | 'always-yadb';
   autoDismissKeyboard?: boolean;
   keyboardDismissStrategy?: 'esc-first' | 'back-first';
   alwaysRefreshScreenInfo?: boolean;

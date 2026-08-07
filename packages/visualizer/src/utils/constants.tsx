@@ -17,6 +17,7 @@ export const domIncludedTip = 'Include DOM info in request';
 
 // Android device options tips
 export const imeStrategyTip = 'IME strategy';
+export const screenshotStrategyTip = 'Screenshot strategy';
 export const autoDismissKeyboardTip = 'Auto dismiss keyboard';
 export const keyboardDismissStrategyTip = 'Keyboard dismiss strategy';
 export const alwaysRefreshScreenInfoTip = 'Always refresh screen info';
