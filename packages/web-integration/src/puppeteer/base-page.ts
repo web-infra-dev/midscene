@@ -43,6 +43,7 @@ import {
   sanitizeXpaths,
 } from '../common/cache-helper';
 import {
+  type FocusElementOptions,
   type KeyInput,
   type MouseButton,
   commonWebActionsForWebPage,
@@ -1078,6 +1079,42 @@ export class Page<
         return this.underlyingPage.keyboard.up(key);
       },
     };
+  }
+
+  async focusElement(
+    element: ElementInfo,
+    options?: FocusElementOptions,
+  ): Promise<void> {
+    if (options?.preserveSelection) {
+      const targetOwnsFocus = await this.evaluate(
+        ([x, y]: [number, number]) => {
+          const target = document.elementFromPoint(x, y);
+          const activeElement = document.activeElement;
+          if (
+            !target ||
+            !activeElement ||
+            activeElement === document.body ||
+            activeElement === document.documentElement
+          ) {
+            return false;
+          }
+
+          return (
+            target === activeElement ||
+            target.contains(activeElement) ||
+            activeElement.contains(target)
+          );
+        },
+        element.center,
+      );
+      if (targetOwnsFocus) {
+        return;
+      }
+    }
+
+    await this.mouse.click(element.center[0], element.center[1], {
+      button: 'left',
+    });
   }
 
   private async selectAllByCdp(): Promise<void> {
