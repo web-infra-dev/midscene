@@ -1,0 +1,53 @@
+apps/chrome-extension/src/components/playground/index.less
+  s_ed1afb1f4e0c9b::t_07a1b02ba6570e 15-68,214,217-231,235,239,325,327
+apps/chrome-extension/src/components/playground/index.tsx
+  s_ed1afb1f4e0c9b::t_3d5b5e9eabe824 160-161
+apps/chrome-extension/src/extension/popup/index.less
+  s_ed1afb1f4e0c9b::t_48a1c60b0f45ca 23-24,35-36,308-313,322
+apps/chrome-extension/src/extension/popup/index.tsx
+  s_ed1afb1f4e0c9b::t_55e31fa994af6e 17-18,40-54,113-115,124,127,133-135,143-155,260,290-291
+apps/chrome-extension/tests/browser-extension-playground.test.tsx
+  s_ed1afb1f4e0c9b::t_664fa3df24fa55 138-139
+apps/chrome-extension/tests/playground-popup.test.tsx
+  s_ed1afb1f4e0c9b::t_06e947b3a03a55 14,16-17,49-51,78-87,89-92,148,150-162,167-193
+apps/studio/tests/model-env-config-modal.test.tsx
+  s_ed1afb1f4e0c9b::t_7bb1dd6d888170 90,118,127-136,163,173-178,181,184,186,200-205,226,228,232,238,252,257-281
+packages/visualizer/src/component/config-modal/index.less
+  s_ed1afb1f4e0c9b::t_a807000536d032 43,45,54-58,60-63,65-68,70-72,76-79,81-85,87-124,128,133,135
+packages/visualizer/src/component/config-modal/index.tsx
+  s_ed1afb1f4e0c9b::t_e5e0633247db1a 3,28,217,344,353,412,419-420,425-430,443
+packages/visualizer/src/component/env-config-reminder/index.tsx
+  s_ed1afb1f4e0c9b::t_0805290153c398 15-16,29-30,49-50
+packages/visualizer/src/component/env-config/index.tsx
+  s_ed1afb1f4e0c9b::t_154a3bcaa3e630 24-25,39-40,101,103
+packages/visualizer/src/component/nav-actions/index.tsx
+  s_ed1afb1f4e0c9b::t_27ef996c6e7d7e 23-24,40-41,60-61
+packages/visualizer/src/component/prompt-input/index.less
+  s_ed1afb1f4e0c9b::t_58101269f12f20 738-739,776-780,783-785,790-794,797-800,804-805,818
+packages/visualizer/src/component/universal-playground/index.less
+  s_ed1afb1f4e0c9b::t_bbc5296a203327 123-124,126-129,134
+packages/visualizer/src/component/universal-playground/index.tsx
+  s_ed1afb1f4e0c9b::t_5ad785c5a956a2 757,823
+packages/visualizer/tests/config-modal-options.test.ts
+  s_ed1afb1f4e0c9b::t_e70decbe0953b8 1,8-16,64-97
+packages/visualizer/tests/conversation-timeline-styles.test.ts
+  s_ed1afb1f4e0c9b::t_5ae5702e8df75c 20-23,105-111
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "c4e6530004d7047a00fb3e8eb422e997c259f2ed",
+  "prompts": {},
+  "sessions": {
+    "s_ed1afb1f4e0c9b": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019fd0da-5b04-7721-8e19-220f39857a90",
+        "model": "unknown"
+      },
+      "human_author": "xiong35 <xiong35@qq.com>"
+    }
+  },
+  "attestation_metadata": {},
+  "remote_transcripts": {}
+}
