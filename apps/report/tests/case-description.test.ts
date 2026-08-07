@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 import { getCaseDescription } from '../src/components/playwright-case-selector/case-description';
 
 describe('getCaseDescription', () => {

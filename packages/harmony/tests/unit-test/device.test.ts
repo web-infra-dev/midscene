@@ -1,55 +1,53 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import * as fsActual from 'node:fs' with { rstest: 'importActual' };
+import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
 import type { HarmonyDeviceInputOpt } from '../../src/device';
 
 // Mock HdcClient
 const mockHdc = {
-  getScreenInfo: vi.fn().mockResolvedValue({ width: 1216, height: 2688 }),
-  shell: vi.fn().mockResolvedValue(''),
-  click: vi.fn().mockResolvedValue(undefined),
-  doubleClick: vi.fn().mockResolvedValue(undefined),
-  longClick: vi.fn().mockResolvedValue(undefined),
-  inputText: vi.fn().mockResolvedValue(undefined),
-  keyEvent: vi.fn().mockResolvedValue(undefined),
-  swipe: vi.fn().mockResolvedValue(undefined),
-  fling: vi.fn().mockResolvedValue(undefined),
-  drag: vi.fn().mockResolvedValue(undefined),
-  screenshot: vi
+  getScreenInfo: rs.fn().mockResolvedValue({ width: 1216, height: 2688 }),
+  shell: rs.fn().mockResolvedValue(''),
+  click: rs.fn().mockResolvedValue(undefined),
+  doubleClick: rs.fn().mockResolvedValue(undefined),
+  longClick: rs.fn().mockResolvedValue(undefined),
+  inputText: rs.fn().mockResolvedValue(undefined),
+  keyEvent: rs.fn().mockResolvedValue(undefined),
+  swipe: rs.fn().mockResolvedValue(undefined),
+  fling: rs.fn().mockResolvedValue(undefined),
+  drag: rs.fn().mockResolvedValue(undefined),
+  screenshot: rs
     .fn()
     .mockResolvedValue(
       'success: snapshot display 0 , write to /data/local/tmp/ms_screen.jpeg as jpeg, width 1216, height 2688',
     ),
-  fileRecv: vi.fn().mockResolvedValue(undefined),
-  startAbility: vi.fn().mockResolvedValue(undefined),
-  queryMainAbility: vi.fn().mockResolvedValue(undefined),
-  forceStop: vi.fn().mockResolvedValue(undefined),
-  clearTextField: vi.fn().mockResolvedValue(undefined),
+  fileRecv: rs.fn().mockResolvedValue(undefined),
+  startAbility: rs.fn().mockResolvedValue(undefined),
+  queryMainAbility: rs.fn().mockResolvedValue(undefined),
+  forceStop: rs.fn().mockResolvedValue(undefined),
+  clearTextField: rs.fn().mockResolvedValue(undefined),
 };
 
-vi.mock('../../src/hdc', () => ({
-  HdcClient: vi.fn().mockImplementation(() => mockHdc),
+rs.mock('../../src/hdc', () => ({
+  HdcClient: rs.fn().mockImplementation(() => mockHdc),
 }));
 
-vi.mock('node:fs', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('node:fs')>();
-  return {
-    ...actual,
-    default: {
-      ...actual,
-      promises: {
-        readFile: vi.fn().mockResolvedValue(Buffer.from('fake-image-data')),
-      },
+rs.mock('node:fs', () => ({
+  ...fsActual,
+  default: {
+    ...fsActual,
+    promises: {
+      readFile: rs.fn().mockResolvedValue(Buffer.from('fake-image-data')),
     },
-    unlink: vi.fn((_path, cb) => cb?.(null)),
-  };
-});
-
-vi.mock('@midscene/core/utils', () => ({
-  getTmpFile: vi.fn().mockReturnValue('/tmp/test-screenshot.jpeg'),
-  sleep: vi.fn().mockResolvedValue(undefined),
+  },
+  unlink: rs.fn((_path, cb) => cb?.(null)),
 }));
 
-vi.mock('@midscene/shared/img', () => ({
-  createImgBase64ByFormat: vi
+rs.mock('@midscene/core/utils', () => ({
+  getTmpFile: rs.fn().mockReturnValue('/tmp/test-screenshot.jpeg'),
+  sleep: rs.fn().mockResolvedValue(undefined),
+}));
+
+rs.mock('@midscene/shared/img', () => ({
+  createImgBase64ByFormat: rs
     .fn()
     .mockReturnValue('data:image/jpeg;base64,fake'),
 }));
@@ -61,7 +59,7 @@ describe('HarmonyDevice', () => {
   let device: InstanceType<typeof HarmonyDevice>;
 
   beforeEach(() => {
-    vi.clearAllMocks();
+    rs.clearAllMocks();
     mockHdc.getScreenInfo.mockResolvedValue({ width: 1216, height: 2688 });
     device = new HarmonyDevice('test-device-id');
   });
@@ -170,7 +168,7 @@ describe('HarmonyDevice', () => {
     });
 
     it('should warn when deprecated screenshotResizeScale is used', () => {
-      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const warnSpy = rs.spyOn(console, 'warn').mockImplementation(() => {});
       const d = new HarmonyDevice('dev', { screenshotResizeScale: 0.5 });
       expect(warnSpy).toHaveBeenCalledWith(
         expect.stringContaining('screenshotResizeScale is deprecated'),
@@ -179,7 +177,7 @@ describe('HarmonyDevice', () => {
     });
 
     it('should ignore deprecated screenshotResizeScale in size()', async () => {
-      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const warnSpy = rs.spyOn(console, 'warn').mockImplementation(() => {});
       const d = new HarmonyDevice('dev', { screenshotResizeScale: 0.5 });
       await d.connect();
       const size = await d.size();
@@ -759,7 +757,7 @@ describe('HarmonyDevice', () => {
       const customAction = {
         name: 'CustomAction',
         description: 'A custom test action',
-        call: vi.fn(),
+        call: rs.fn(),
       };
       const d = new HarmonyDevice('dev', { customActions: [customAction] });
       const actionNames = d.actionSpace().map((a: any) => a.name);

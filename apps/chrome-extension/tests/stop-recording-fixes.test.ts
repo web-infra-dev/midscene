@@ -7,9 +7,9 @@
  * 3. Batched AI description generation: concurrency is bounded
  * 4. Logger sanitization: events arrays are never passed to loggers
  *
- * Run: npx vitest run apps/chrome-extension/tests/stop-recording-fixes.test.ts
+ * Run: npx rstest run apps/chrome-extension/tests/stop-recording-fixes.test.ts
  */
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 
 // --- Helpers ---
 

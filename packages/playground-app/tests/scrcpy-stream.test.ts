@@ -1,5 +1,5 @@
+import { describe, expect, rs, test } from '@rstest/core';
 import type { ScrcpyMediaStreamPacket } from '@yume-chan/scrcpy';
-import { describe, expect, test, vi } from 'vitest';
 import { createScrcpyVideoStream } from '../src/scrcpy-stream';
 
 interface RawVideoPayload {
@@ -124,7 +124,7 @@ describe('createScrcpyVideoStream', () => {
 
   test('reports first usable data only after configuration is available', async () => {
     const socket = new MockScrcpySocket();
-    const onFirstDataPacket = vi.fn();
+    const onFirstDataPacket = rs.fn();
     const stream = createScrcpyVideoStream(socket, { onFirstDataPacket });
     const collected = collectStream(stream);
 

@@ -4,9 +4,9 @@ import type {
   IExecutionDump,
   ServiceDump,
 } from '@midscene/core';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 
-vi.mock('@midscene/core/agent', () => ({
+rs.mock('@midscene/core/agent', () => ({
   paramStr: () => '',
   typeStr: (task: { type: string }) => task.type,
 }));
