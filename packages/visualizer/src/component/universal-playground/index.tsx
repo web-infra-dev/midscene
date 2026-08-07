@@ -754,6 +754,7 @@ export function UniversalPlayground({
                                 false && (
                                 <div className="system-message-header">
                                   <Icon
+                                    className="system-message-icon"
                                     component={branding.icon || PlaygroundIcon}
                                     style={{ fontSize: 20 }}
                                   />
@@ -819,12 +820,11 @@ export function UniversalPlayground({
                 showScrollToBottomButton &&
                 componentConfig.enableScrollToBottom !== false && (
                   <Button
+                    aria-label="Scroll to latest message"
                     className="scroll-to-bottom-button"
-                    type="primary"
                     shape="circle"
                     icon={<ArrowDownOutlined />}
                     onClick={handleScrollToBottom}
-                    size="large"
                   />
                 )}
             </div>,

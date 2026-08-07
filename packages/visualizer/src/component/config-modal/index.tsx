@@ -1,5 +1,6 @@
 import type { AgentOpt, ConnectivityTestResult } from '@midscene/core';
 import { Alert, Button, Divider, Input, Modal, Select, Typography } from 'antd';
+import type { ModalProps } from 'antd';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import './index.less';
 
@@ -24,6 +25,7 @@ export interface ConfigModalEnvField {
 export interface ConfigModalProps {
   open: boolean;
   className?: string;
+  width?: ModalProps['width'];
   textValue?: string;
   agentOptionsValue?: CommonAgentOptions;
   initialTab?: ConfigModalTab;
@@ -44,7 +46,6 @@ export interface ConfigModalProps {
 }
 
 const EMPTY_AGENT_OPTIONS: CommonAgentOptions = {};
-const SUCCESS_FEEDBACK_DURATION_MS = 1800;
 const TEXT_PLACEHOLDER =
   'MIDSCENE_MODEL_BASE_URL=...\nMIDSCENE_MODEL_API_KEY=...\nMIDSCENE_MODEL_NAME=...\nMIDSCENE_MODEL_FAMILY=...';
 
@@ -213,6 +214,7 @@ function VerifyButtonIcon({ isLoading }: { isLoading: boolean }) {
 export function ConfigModal({
   open,
   className,
+  width = 640,
   textValue = '',
   agentOptionsValue = EMPTY_AGENT_OPTIONS,
   initialTab = 'text',
@@ -243,16 +245,8 @@ export function ConfigModal({
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const testRunIdRef = useRef(0);
-  const successDismissTimerRef = useRef<number | null>(null);
-
-  const clearSuccessDismissTimer = () => {
-    if (successDismissTimerRef.current === null) return;
-    window.clearTimeout(successDismissTimerRef.current);
-    successDismissTimerRef.current = null;
-  };
 
   useEffect(() => {
-    clearSuccessDismissTimer();
     if (!open) return;
     testRunIdRef.current += 1;
     setTab(initialTab);
@@ -261,13 +255,6 @@ export function ConfigModal({
     setTestStatus({ kind: 'idle' });
     setSaveError(null);
   }, [agentOptionsValue, initialTab, open, textValue]);
-
-  useEffect(
-    () => () => {
-      clearSuccessDismissTimer();
-    },
-    [],
-  );
 
   const envValues = useMemo(() => parseEnvText(text), [parseEnvText, text]);
   const parsedAgentOptions = useMemo(
@@ -279,7 +266,6 @@ export function ConfigModal({
     envError ?? (testStatus.kind === 'error' ? testStatus.message : null);
 
   const resetFeedback = () => {
-    clearSuccessDismissTimer();
     testRunIdRef.current += 1;
     setTestStatus((current) =>
       current.kind === 'idle' ? current : { kind: 'idle' },
@@ -292,19 +278,12 @@ export function ConfigModal({
 
     const testRunId = testRunIdRef.current + 1;
     testRunIdRef.current = testRunId;
-    clearSuccessDismissTimer();
     setTestStatus({ kind: 'running' });
     try {
       const result = await onVerify(envValues);
       if (testRunIdRef.current !== testRunId) return;
       if (result.passed) {
         setTestStatus({ kind: 'success' });
-        successDismissTimerRef.current = window.setTimeout(() => {
-          if (testRunIdRef.current === testRunId) {
-            setTestStatus({ kind: 'idle' });
-          }
-          successDismissTimerRef.current = null;
-        }, SUCCESS_FEEDBACK_DURATION_MS);
         return;
       }
       setTestStatus({
@@ -362,7 +341,7 @@ export function ConfigModal({
       onCancel={onClose}
       open={open}
       title="Config"
-      width={640}
+      width={width}
     >
       <div className="midscene-config-modal-body-content">
         <section className="midscene-config-modal-env-section">
@@ -371,11 +350,7 @@ export function ConfigModal({
               <Typography.Text strong>Model Env Config</Typography.Text>
               <Typography.Text type="secondary">
                 The format is KEY=VALUE and separated by new lines. These data
-                will be saved{' '}
-                <Typography.Text strong>
-                  locally in your browser
-                </Typography.Text>
-                .
+                will be saved <strong>locally in your browser</strong>.
               </Typography.Text>
             </div>
             {showEnvStyleSelect ? (
@@ -390,7 +365,6 @@ export function ConfigModal({
                   { label: '.env Style', value: 'text' },
                   { label: 'Form Style', value: 'form' },
                 ]}
-                popupClassName="midscene-config-modal-select-dropdown"
                 value={tab}
               />
             ) : null}
@@ -435,22 +409,25 @@ export function ConfigModal({
               placeholder={TEXT_PLACEHOLDER}
               rows={envTextareaMinRows}
               value={text}
-              wrap="off"
+              wrap="soft"
             />
           )}
-
-          {envError ? <Alert message={envError} showIcon type="error" /> : null}
 
           <div className="midscene-config-modal-verify-row">
             {testStatus.kind === 'success' ? (
               <Alert
-                message="Test passed."
+                className="midscene-config-modal-verify-alert"
+                message="Verified"
                 showIcon
-                style={{ height: 32, paddingBlock: 4 }}
                 type="success"
               />
             ) : statusError ? (
-              <Alert message={statusError} showIcon type="error" />
+              <Alert
+                className="midscene-config-modal-verify-alert"
+                message={statusError}
+                showIcon
+                type="error"
+              />
             ) : (
               <span />
             )}
@@ -463,7 +440,7 @@ export function ConfigModal({
                 }
                 onClick={() => void handleVerify()}
               >
-                Verify and Save Model
+                {testStatus.kind === 'running' ? 'Verifying' : 'Verify'}
               </Button>
             ) : null}
           </div>

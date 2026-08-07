@@ -87,7 +87,7 @@ describe('ModelEnvConfigModal', () => {
     expect(
       document.body.querySelector('.midscene-config-modal--text'),
     ).toBeTruthy();
-    const verifyButton = button('Verify and Save Model');
+    const verifyButton = button('Verify');
     expect(
       verifyButton.querySelector(
         'path[d="M5 8.00002V3.95856L8.5 5.97929L12 8.00002L8.5 10.0208L5 12.0415V8.00002Z"]',
@@ -115,7 +115,7 @@ describe('ModelEnvConfigModal', () => {
     const { root } = await renderModal({ onSave });
 
     await act(async () => {
-      button('Verify and Save Model').click();
+      button('Verify').click();
       await Promise.resolve();
     });
 
@@ -124,7 +124,16 @@ describe('ModelEnvConfigModal', () => {
       OPENAI_API_KEY: 'sk-example',
       OPENAI_BASE_URL: 'https://api.example.com/v1',
     });
-    expect(document.body.textContent).toContain('Test passed.');
+    expect(document.body.textContent).toContain('Verified');
+    const successAlert = document.body.querySelector(
+      '.midscene-config-modal-verify-alert.ant-alert-success',
+    );
+    expect(successAlert).toBeTruthy();
+    expect(
+      successAlert
+        ?.closest('.midscene-config-modal-verify-row')
+        ?.contains(button('Verify')),
+    ).toBe(true);
     expect(onSave).not.toHaveBeenCalled();
 
     await act(async () => {
@@ -151,8 +160,7 @@ describe('ModelEnvConfigModal', () => {
     await act(async () => root.unmount());
   });
 
-  it('dismisses successful verification feedback without saving', async () => {
-    vi.useFakeTimers();
+  it('keeps successful verification feedback until the config changes', async () => {
     const onSave = vi.fn();
     vi.stubGlobal('studioRuntime', {
       runConnectivityTest: vi
@@ -162,19 +170,23 @@ describe('ModelEnvConfigModal', () => {
     const { root } = await renderModal({ onSave });
 
     await act(async () => {
-      button('Verify and Save Model').click();
+      button('Verify').click();
       await Promise.resolve();
     });
-    expect(document.body.textContent).toContain('Test passed.');
+    expect(document.body.textContent).toContain('Verified');
 
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(1800);
+      await Promise.resolve();
     });
-    expect(document.body.textContent).not.toContain('Test passed.');
+    expect(document.body.textContent).toContain('Verified');
+
+    await act(async () => {
+      setTextarea(`${VALID_ENV_TEXT}\nMIDSCENE_DEBUG=true`);
+    });
+    expect(document.body.textContent).not.toContain('Verified');
     expect(onSave).not.toHaveBeenCalled();
 
     await act(async () => root.unmount());
-    vi.useRealTimers();
   });
 
   it('rejects invalid model configuration before verification', async () => {
@@ -185,7 +197,12 @@ describe('ModelEnvConfigModal', () => {
     });
 
     expect(document.body.textContent).toContain('Missing required keys:');
-    expect(button('Verify and Save Model').disabled).toBe(true);
+    expect(
+      document.body.querySelectorAll(
+        '.midscene-config-modal-verify-alert.ant-alert-error',
+      ),
+    ).toHaveLength(1);
+    expect(button('Verify').disabled).toBe(true);
     expect(runConnectivityTest).not.toHaveBeenCalled();
 
     await act(async () => root.unmount());
@@ -206,17 +223,19 @@ describe('ModelEnvConfigModal', () => {
     const { root } = await renderModal();
 
     await act(async () => {
-      button('Verify and Save Model').click();
+      button('Verify').click();
     });
+    expect(button('Verifying').disabled).toBe(true);
     await act(async () => {
       setTextarea(`${VALID_ENV_TEXT}\nMIDSCENE_DEBUG=true`);
     });
+    expect(button('Verify').disabled).toBe(false);
     await act(async () => {
       resolveVerification?.(PASSED_CONNECTIVITY_RESULT);
       await Promise.resolve();
     });
 
-    expect(document.body.textContent).not.toContain('Test passed.');
+    expect(document.body.textContent).not.toContain('Verified');
     await act(async () => root.unmount());
   });
 
@@ -230,11 +249,36 @@ describe('ModelEnvConfigModal', () => {
     const { root } = await renderModal();
 
     await act(async () => {
-      button('Verify and Save Model').click();
+      button('Verify').click();
       await Promise.resolve();
     });
 
     expect(document.body.textContent).toContain('Network down');
+    expect(
+      document.body.querySelector(
+        '.midscene-config-modal-verify-alert.ant-alert-error',
+      ),
+    ).toBeTruthy();
+    await act(async () => root.unmount());
+  });
+
+  it('shows connectivity errors thrown by Studio', async () => {
+    vi.stubGlobal('studioRuntime', {
+      runConnectivityTest: vi
+        .fn()
+        .mockRejectedValue(new Error('Request failed')),
+    });
+    const { root } = await renderModal();
+
+    await act(async () => {
+      button('Verify').click();
+      await Promise.resolve();
+    });
+
+    const errorAlert = document.body.querySelector(
+      '.midscene-config-modal-verify-alert.ant-alert-error',
+    );
+    expect(errorAlert?.textContent).toContain('Request failed');
     await act(async () => root.unmount());
   });
 

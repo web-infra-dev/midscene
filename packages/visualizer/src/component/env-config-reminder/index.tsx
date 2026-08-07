@@ -12,6 +12,8 @@ export interface EnvConfigReminderProps
     | 'agentOptions'
     | 'onAgentOptionsSave'
     | 'configModalClassName'
+    | 'configModalWidth'
+    | 'envTextareaAutoSize'
     | 'envTextareaMinRows'
   > {
   className?: string;
@@ -24,6 +26,8 @@ export const EnvConfigReminder: React.FC<EnvConfigReminderProps> = ({
   agentOptions,
   onAgentOptionsSave,
   configModalClassName,
+  configModalWidth,
+  envTextareaAutoSize,
   envTextareaMinRows,
 }) => {
   const { config } = useEnvConfig();
@@ -42,6 +46,8 @@ export const EnvConfigReminder: React.FC<EnvConfigReminderProps> = ({
       <EnvConfig
         agentOptions={agentOptions}
         configModalClassName={configModalClassName}
+        configModalWidth={configModalWidth}
+        envTextareaAutoSize={envTextareaAutoSize}
         envTextareaMinRows={envTextareaMinRows}
         mode="text"
         onAgentOptionsSave={onAgentOptionsSave}
