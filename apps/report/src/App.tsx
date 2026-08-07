@@ -1,11 +1,9 @@
 import './App.less';
 
-import { DownOutlined } from '@ant-design/icons';
 import {
   Alert,
   App as AntdApp,
   ConfigProvider,
-  Dropdown,
   Empty,
   message,
   theme,
@@ -30,10 +28,12 @@ import AgentScreenshotView from './components/agent-screenshot-view';
 import DetailPanel from './components/detail-panel';
 import DetailSide from './components/detail-side';
 import GlobalHoverPreview from './components/global-hover-preview';
+import { useMarkdownScrollSync } from './components/markdown-scroll-sync';
 import Sidebar from './components/sidebar';
 import { type DumpStoreType, useExecutionDump } from './components/store';
 import { useTaskHashAnchor } from './components/store/use-task-hash-anchor';
 import Timeline from './components/timeline';
+import RecordVideocameraIcon from './icons/record-videocamera.svg?react';
 import ThemeDarkIcon from './icons/theme-dark.svg?react';
 import ThemeLightIcon from './icons/theme-light.svg?react';
 import type {
@@ -121,13 +121,13 @@ function Visualizer(props: VisualizerProps): JSX.Element {
   const dump = useExecutionDump((store) => store.dump);
   const [timelineCollapsed, setTimelineCollapsed] = useState(false);
   const [reportViewMode, setReportViewMode] = useState<ReportViewMode>('human');
-  const [reportViewModeDropdownOpen, setReportViewModeDropdownOpen] =
-    useState(false);
   const [selectedMarkdownImagePath, setSelectedMarkdownImagePath] = useState<
     string | null
   >(null);
   const [selectedMarkdownImageRequestId, setSelectedMarkdownImageRequestId] =
     useState(0);
+  const markdownScrollRef = useRef<HTMLDivElement>(null);
+  const screenshotScrollRef = useRef<HTMLDivElement>(null);
   const {
     modelCallDetailsEnabled: proModeEnabled,
     setModelCallDetailsEnabled: setProModeEnabled,
@@ -202,8 +202,6 @@ function Visualizer(props: VisualizerProps): JSX.Element {
     () => markdownArchiveBaseName(dump),
     [dump],
   );
-  const reportViewModeLabel =
-    reportViewMode === 'markdown' ? 'Markdown View' : 'Human View';
   const resetMarkdownImageSelection = () => {
     setSelectedMarkdownImagePath(null);
     setSelectedMarkdownImageRequestId(0);
@@ -259,6 +257,13 @@ function Visualizer(props: VisualizerProps): JSX.Element {
     setSelectedMarkdownImagePath(markdownPath);
     setSelectedMarkdownImageRequestId((current) => current + 1);
   };
+
+  useMarkdownScrollSync({
+    enabled: reportViewMode === 'markdown' && Boolean(readyReportMarkdown),
+    contentKey: executionDumpLoadId,
+    markdownScrollRef,
+    screenshotScrollRef,
+  });
 
   const renderContent = () => {
     if (dump && dump.executions.length === 0) {
@@ -345,8 +350,10 @@ function Visualizer(props: VisualizerProps): JSX.Element {
             replayAllScripts={replayAllScripts}
             setReplayAllMode={setReplayAllMode}
             reportViewMode={reportViewMode}
+            onReportViewModeChange={handleReportViewModeChange}
             reportMarkdownView={reportMarkdownView}
             onMarkdownImageClick={handleMarkdownImageClick}
+            markdownScrollContainerRef={markdownScrollRef}
             reportMarkdownActionsDisabled={!readyReportMarkdown}
             onCopyReportMarkdown={() => void handleCopyReportMarkdown()}
             onDownloadReportMarkdownZip={() =>
@@ -382,29 +389,22 @@ function Visualizer(props: VisualizerProps): JSX.Element {
               markdownView={reportMarkdownView}
               selectedMarkdownImagePath={selectedMarkdownImagePath}
               selectedMarkdownImageRequestId={selectedMarkdownImageRequestId}
+              scrollContainerRef={screenshotScrollRef}
             />
           ) : (
             <>
-              <div
+              <button
+                type="button"
                 className="main-right-header"
-                onClick={() => setTimelineCollapsed(!timelineCollapsed)}
-                style={{ cursor: 'pointer', userSelect: 'none' }}
+                aria-expanded={!timelineCollapsed}
+                onClick={() => setTimelineCollapsed((collapsed) => !collapsed)}
               >
-                <span
-                  className="timeline-collapse-icon"
-                  style={{
-                    display: 'inline-block',
-                    marginRight: 8,
-                    transition: 'transform 0.2s',
-                    transform: timelineCollapsed
-                      ? 'rotate(-90deg)'
-                      : 'rotate(0deg)',
-                  }}
-                >
-                  ▼
-                </span>
-                Record
-              </div>
+                <RecordVideocameraIcon
+                  aria-hidden="true"
+                  className="main-right-header-icon"
+                />
+                <span>Record</span>
+              </button>
               {!timelineCollapsed && <Timeline key={mainLayoutChangeFlag} />}
               <div className="main-content">{content}</div>
             </>
@@ -495,33 +495,7 @@ function Visualizer(props: VisualizerProps): JSX.Element {
               <div className="page-nav">
                 <div className="page-nav-left">
                   <Logo />
-                  {executionDump && (
-                    <Dropdown
-                      trigger={['click']}
-                      placement="bottomLeft"
-                      open={reportViewModeDropdownOpen}
-                      onOpenChange={setReportViewModeDropdownOpen}
-                      menu={{
-                        items: [
-                          { key: 'human', label: 'Human View' },
-                          { key: 'markdown', label: 'Markdown View' },
-                        ],
-                        onClick: ({ key }) => {
-                          handleReportViewModeChange(key as ReportViewMode);
-                          setReportViewModeDropdownOpen(false);
-                        },
-                      }}
-                    >
-                      <button
-                        type="button"
-                        className="report-view-mode-dropdown"
-                        aria-expanded={reportViewModeDropdownOpen}
-                      >
-                        <span>{reportViewModeLabel}</span>
-                        <DownOutlined />
-                      </button>
-                    </Dropdown>
-                  )}
+                  <div className="page-nav-title">Report</div>
                 </div>
                 <div className="page-nav-right">
                   <div className="page-nav-version">

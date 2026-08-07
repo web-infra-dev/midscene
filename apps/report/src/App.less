@@ -153,39 +153,6 @@ footer.mt-8 {
         font-size: 12px;
       }
     }
-
-    .report-view-mode-dropdown {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      height: 32px;
-      padding: 0 8px;
-      border: none;
-      border-radius: 6px;
-      background: transparent;
-      color: #262626;
-      font-size: 14px;
-      line-height: 32px;
-      cursor: pointer;
-      flex-shrink: 0;
-
-      &:hover,
-      &:focus,
-      &:active {
-        background: transparent;
-        color: #262626;
-        outline: none;
-      }
-
-      .anticon {
-        color: #595959;
-        font-size: 12px;
-      }
-
-      span {
-        white-space: nowrap;
-      }
-    }
   }
 
   .page-nav-right {
@@ -236,12 +203,6 @@ footer.mt-8 {
   .page-nav {
     .page-nav-left {
       gap: 8px;
-
-      .report-view-mode-dropdown span {
-        max-width: 128px;
-        overflow: hidden;
-        text-overflow: ellipsis;
-      }
     }
   }
 }
@@ -268,11 +229,34 @@ footer.mt-8 {
   overflow: hidden;
 
   .main-right-header {
-    height: 50px;
-    line-height: 50px;
+    height: @report-pane-header-height;
+    box-sizing: border-box;
     padding-left: 17px;
-    font-size: 16px;
-    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding-right: 17px;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font-family: inherit;
+    text-align: left;
+    cursor: pointer;
+    user-select: none;
+    flex-shrink: 0;
+    .report-pane-title-typography();
+
+    .main-right-header-icon {
+      width: 16px;
+      height: 16px;
+      flex-shrink: 0;
+    }
+
+    &:focus-visible {
+      outline: 2px solid #1677ff;
+      outline-offset: -2px;
+    }
   }
 
   .replay-all-mode-wrapper {
@@ -353,21 +337,6 @@ footer.mt-8 {
   .page-nav {
     .page-nav-title {
       color: #f8fafd;
-    }
-
-    .report-view-mode-dropdown {
-      color: #f8fafd;
-
-      &:hover,
-      &:focus,
-      &:active {
-        background: transparent;
-        color: #f8fafd;
-      }
-
-      .anticon {
-        color: rgba(255, 255, 255, 0.65);
-      }
     }
   }
 

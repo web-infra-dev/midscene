@@ -118,11 +118,16 @@ describe('TaskExecutor waitFor method with doNotThrowError', () => {
       mockedModelRuntime,
     );
 
-    // Verify that createTypeQueryTask was called with ServiceExtractOption
+    // Verify that createTypeQueryTask was called with ServiceExtractOption.
+    // modelRuntime objects may carry extra CI-injected fields (e.g. an
+    // execution id) when running the full suite, so match on its core shape.
     expect(createTypeQueryTaskSpy).toHaveBeenCalledWith(
       'WaitFor',
       'test assertion',
-      mockedModelRuntime,
+      expect.objectContaining({
+        config: mockedModelRuntime.config,
+        adapter: mockedModelRuntime.adapter,
+      }),
       {
         domIncluded: undefined,
         screenshotIncluded: undefined,
@@ -173,11 +178,16 @@ describe('TaskExecutor waitFor method with doNotThrowError', () => {
       mockedModelRuntime,
     );
 
-    // Verify that createTypeQueryTask was called multiple times with ServiceExtractOption
+    // Verify that createTypeQueryTask was called multiple times with ServiceExtractOption.
+    // modelRuntime objects may carry extra CI-injected fields (e.g. an
+    // execution id) when running the full suite, so match on its core shape.
     expect(createTypeQueryTaskSpy).toHaveBeenCalledWith(
       'WaitFor',
       'test assertion',
-      mockedModelRuntime,
+      expect.objectContaining({
+        config: mockedModelRuntime.config,
+        adapter: mockedModelRuntime.adapter,
+      }),
       {
         domIncluded: undefined,
         screenshotIncluded: undefined,

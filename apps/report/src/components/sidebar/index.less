@@ -14,11 +14,18 @@
   background: #fff;
 
   .page-nav {
-    height: 60px;
-    background: #fff;
+    box-sizing: border-box;
     display: flex;
-    align-items: center;
     flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    gap: 24px;
+    width: 100%;
+    height: @report-pane-header-height;
+    padding: 0 10px 0 8px;
+    background: #fff;
+    border-bottom: 1px solid #ededf0;
+    border-radius: 16px 16px 0 0;
     flex-shrink: 0;
 
     .page-nav-left {
@@ -38,11 +45,80 @@
         min-width: 0;
       }
 
+      .page-nav-leading {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-width: 0;
+      }
+
       .page-nav-title {
         min-width: 0;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
+        color: #595959;
+        font-size: 12px;
+        font-weight: 400;
+      }
+
+      .report-view-mode-switch {
+        display: inline-flex;
+        flex-direction: row;
+        align-items: flex-start;
+        flex-shrink: 0;
+        gap: 2px;
+        box-sizing: border-box;
+        width: 86px;
+        height: 32px;
+        min-width: 0;
+        margin: 0;
+        padding: 2px;
+        border: 0;
+        border-radius: 8px;
+        background: #f0f0f0;
+        box-shadow: inset 0 0 0 1px #ebedf0;
+      }
+
+      .report-view-mode-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex: none;
+        gap: 10px;
+        box-sizing: border-box;
+        width: 40px;
+        min-width: 0;
+        height: 28px;
+        margin: 0;
+        padding: 6px 12px;
+        border: 0;
+        border-radius: 6px;
+        background: transparent;
+        color: #595959;
+        font-size: 16px;
+        line-height: 1;
+        cursor: pointer;
+
+        svg {
+          width: 16px;
+          height: 16px;
+        }
+
+        &:hover {
+          color: #262626;
+        }
+
+        &:focus-visible {
+          outline: 2px solid #1677ff;
+          outline-offset: 1px;
+        }
+
+        &.active {
+          background: #fff;
+          color: #262626;
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+        }
       }
 
       .page-nav-toolbar {
@@ -102,9 +178,9 @@
     margin: 0;
     padding: 12px;
     overflow: auto;
-    border: 1px solid @border-color;
-    border-radius: 8px;
-    background: #f8fafc;
+    border: 0;
+    border-radius: 0;
+    background: #fff;
     color: #1f2937;
     font-family:
       'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', 'Fira Mono', monospace;
@@ -167,6 +243,7 @@
 
   .report-overview {
     flex-shrink: 0;
+    padding-top: 12px;
   }
 
   .task-token-section {
@@ -592,6 +669,7 @@
 
     .page-nav {
       background: #1f1f1f;
+      border-bottom-color: rgba(255, 255, 255, 0.12);
 
       .page-nav-left {
         .page-nav-toolbar {
@@ -616,10 +694,29 @@
         }
 
         .page-nav-title {
-          color: #f8fafd;
+          color: rgba(255, 255, 255, 0.65);
 
           .page-nav-title-hint {
             color: rgba(255, 255, 255, 0.45);
+          }
+        }
+
+        .report-view-mode-switch {
+          background: #141414;
+          box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+        }
+
+        .report-view-mode-button {
+          color: rgba(255, 255, 255, 0.65);
+
+          &:hover {
+            color: #f8fafd;
+          }
+
+          &.active {
+            background: #2c2e31;
+            color: #f8fafd;
+            box-shadow: none;
           }
         }
       }
@@ -630,8 +727,7 @@
     }
 
     .agent-markdown-source {
-      border-color: rgba(255, 255, 255, 0.12);
-      background: #141414;
+      background: transparent;
       color: #f8fafd;
 
       .line-heading {
