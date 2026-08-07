@@ -275,7 +275,7 @@ export MIDSCENE_ANDROID_IME_STRATEGY=always-yadb
 
 部分页面（如银行、支付类 App 的密码输入页）会通过 `FLAG_SECURE` 禁止截屏。此时使用 `screencap` 截出的图片中，安全区域会显示为黑色。
 
-yadb 工具通过 `SurfaceControl.createDisplay` 的 `secure` 参数创建虚拟显示器，在 Android 11 及以下系统上可以直接截取安全页面内容。在 Android 12 及以上系统中，由于系统限制了该参数，需要配合 root 和 Magisk hook 才能绕过 `FLAG_SECURE`。
+yadb 工具通过 `SurfaceControl.createDisplay` 的 `secure` 参数创建虚拟显示器，在某些环境下可以截取安全页面内容。能否截取 `FLAG_SECURE` 页面取决于 Android 版本、ROM、root/hook 环境和设备配置（例如某些环境可能需要配合 root 和 Magisk hook）。请以实际设备测试结果为准。
 
 使用 `screenshotStrategy` 选项，将截图方式强制改为 yadb：
 
@@ -298,7 +298,7 @@ android:
 export MIDSCENE_ANDROID_SCREENSHOT_STRATEGY=always-yadb
 ```
 
-默认值为 `auto`，即按 scrcpy → `adb.takeScreenshot` → `screencap` 的顺序尝试。只有 `screencap` 命令本身执行失败时，才会改用 yadb；`auto` 不会识别黑屏。安全页面生成有效但全黑的图片时，请设置 `always-yadb`，跳过前面的路径并直接使用 yadb 截图。yadb 只能截取默认显示器（`displayId=0`）；如果同时设置 `always-yadb` 和非零 `displayId`，Midscene 会抛出错误。
+默认值为 `auto`，即先使用 `adb.takeScreenshot`，失败后回退到 shell `screencap`；如果 `screencap` 执行失败，则改用 yadb 工具。scrcpy 仅当 `scrcpyConfig.enabled` 开启时才会在这些方法之前优先尝试。`auto` 不会分析截图内容：即使某个截图方法执行成功但返回全黑图片，也不会自动切换到 yadb；只有当前一种截图方法执行失败时，才会尝试下一种方法。安全页面生成有效但全黑的图片时，请设置 `always-yadb`，绕过默认的 `auto` 截图流程（`adb.takeScreenshot`、`screencap`，以及开启时的 scrcpy），直接使用 yadb 截图。yadb 只能截取默认显示器（`displayId=0`）；如果同时设置 `always-yadb` 和非零 `displayId`，Midscene 会抛出错误。
 
 ### 如何使用自定义的 adb 路径或远程 adb 服务器？
 
