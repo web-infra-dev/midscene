@@ -308,6 +308,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
 
     this.opts = Object.assign(
       {
+        captureUITree: false,
         generateReport: true,
         persistExecutionDump: false,
         autoPrintReportMsg: true,
@@ -342,8 +343,8 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
 
     this.onTaskStartTip = this.opts.onTaskStartTip;
 
-    this.service = new Service(async () => {
-      return this.getUIContext();
+    this.service = new Service(async (action) => {
+      return this.getUIContext(action);
     });
 
     // Process cache configuration
@@ -491,6 +492,8 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
         return await commonContextParser(this.interface, {
           uploadServerUrl: this.modelConfigManager.getUploadTestServerUrl(),
           screenshotShrinkFactor: this.opts.screenshotShrinkFactor,
+          captureUITree:
+            Boolean(this.opts.captureUITree) && action === 'locate',
         });
       } catch (error) {
         if (attempt < maxRetries && this.isRetryableContextError(error)) {
