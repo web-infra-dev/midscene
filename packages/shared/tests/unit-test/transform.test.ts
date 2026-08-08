@@ -1,6 +1,7 @@
 import path from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 import {
+  convertImgBufferToJpeg,
   inferBase64ImageFormat,
   normalizeBase64Image,
   normalizeScreenshotBase64,
@@ -138,6 +139,26 @@ describe('inferBase64ImageFormat', () => {
   it('detects png payloads and otherwise falls back to jpeg', () => {
     expect(inferBase64ImageFormat('iVBORw0KGgoaaa')).toBe('png');
     expect(inferBase64ImageFormat('/9j/4AAQSkZJRg==')).toBe('jpeg');
+  });
+});
+
+describe('convertImgBufferToJpeg', () => {
+  it('preserves the Sharp failure when Photon is unavailable in Node.js', async () => {
+    const sharpError = new Error('Sharp not available');
+    const getSharpModule = await import('../../src/img/get-sharp');
+    vi.spyOn(getSharpModule, 'default').mockRejectedValue(sharpError);
+
+    try {
+      await expect(
+        convertImgBufferToJpeg(Buffer.from('invalid image')),
+      ).rejects.toMatchObject({
+        message:
+          'Failed to convert image to JPEG with Sharp: Sharp not available',
+        cause: sharpError,
+      });
+    } finally {
+      vi.restoreAllMocks();
+    }
   });
 });
 
