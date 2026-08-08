@@ -66,8 +66,10 @@ describe('Agent per-call context option', () => {
       'Context for this request:\nUse buyer checkout rules.\n\nClick the submit button',
     );
     expect(taskExecutor.action).toHaveBeenCalledTimes(1);
-    expect(taskExecutor.action.mock.calls[0][4]).toBe(
-      'Use buyer checkout rules.',
+    expect(taskExecutor.action.mock.calls[0][4]).toEqual(
+      expect.objectContaining({
+        aiActContext: 'Use buyer checkout rules.',
+      }),
     );
   });
 
@@ -79,7 +81,11 @@ describe('Agent per-call context option', () => {
     expect(taskCache.matchPlanCache).toHaveBeenCalledWith(
       'Context for this request:\nGlobal action context.\n\nClick the submit button',
     );
-    expect(taskExecutor.action.mock.calls[0][4]).toBe('Global action context.');
+    expect(taskExecutor.action.mock.calls[0][4]).toEqual(
+      expect.objectContaining({
+        aiActContext: 'Global action context.',
+      }),
+    );
   });
 
   it('allows blank per-call context to override global aiActContext', async () => {
@@ -92,7 +98,11 @@ describe('Agent per-call context option', () => {
     expect(taskCache.matchPlanCache).toHaveBeenCalledWith(
       'Click the submit button',
     );
-    expect(taskExecutor.action.mock.calls[0][4]).toBe('');
+    expect(taskExecutor.action.mock.calls[0][4]).toEqual(
+      expect.objectContaining({
+        aiActContext: '',
+      }),
+    );
   });
 
   it('does not register a file chooser for an empty fileChooserAccept array', async () => {
