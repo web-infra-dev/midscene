@@ -37,6 +37,7 @@ const createDocAgent = (overrides: Record<string, any> = {}) => {
       { name: 'Hover', interfaceAlias: 'aiHover' },
       { name: 'DoubleClick', interfaceAlias: 'aiDoubleClick' },
       { name: 'RightClick', interfaceAlias: 'aiRightClick' },
+      { name: 'MiddleClick', interfaceAlias: 'aiMiddleClick' },
       { name: 'Launch', interfaceAlias: 'launch' },
       { name: 'Terminate', interfaceAlias: 'terminate' },
       { name: 'RunAdbShell', interfaceAlias: 'runAdbShell' },
@@ -188,6 +189,7 @@ tasks:
           convertHttpImage2Base64: true
       - aiDoubleClick: Double-clickable element
       - aiRightClick: Right-clickable element
+      - aiMiddleClick: Middle-clickable element
       - aiInput: Search box
         value: 12345
         xpath: //*[@id="search"]
@@ -321,6 +323,14 @@ tasks:
     expect(agent.callActionInActionSpace).toHaveBeenCalledWith('RightClick', {
       locate: {
         prompt: 'Right-clickable element',
+        deepLocate: false,
+        cacheable: true,
+        xpath: undefined,
+      },
+    });
+    expect(agent.callActionInActionSpace).toHaveBeenCalledWith('MiddleClick', {
+      locate: {
+        prompt: 'Middle-clickable element',
         deepLocate: false,
         cacheable: true,
         xpath: undefined,
