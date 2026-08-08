@@ -1,5 +1,5 @@
 import type { YamlGenerationOptions as CoreYamlGenerationOptions } from '@midscene/core/ai-model';
-import type { ChromeRecordedEvent } from '@midscene/recorder';
+import type { ChromeRecordedEvent } from '@midscene/recorder-ui';
 
 // Common interfaces for test generation
 export interface EventCounts {

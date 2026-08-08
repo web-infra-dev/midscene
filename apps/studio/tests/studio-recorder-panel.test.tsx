@@ -52,7 +52,7 @@ vi.mock('antd', () => {
   };
 });
 
-vi.mock('@midscene/recorder', () => ({
+vi.mock('@midscene/recorder-ui', () => ({
   RecordTimeline: ({ events }: { events: Array<{ actionSummary?: string }> }) =>
     createElement(
       'div',

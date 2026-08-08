@@ -1,6 +1,6 @@
 /// <reference types="chrome" />
 
-import type { ChromeRecordedEvent } from '@midscene/recorder';
+import type { ChromeRecordedEvent } from '@midscene/recorder-ui';
 import { serializeRecorderEvent } from './recorder-event-serialization';
 
 // Event Recorder Bridge
