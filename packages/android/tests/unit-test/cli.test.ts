@@ -6,6 +6,9 @@
  * instance (only the adb agent factory is mocked). This complements the
  * handler-level unit tests by locking down the CLI argument plumbing.
  */
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { runToolsCLI } from '@midscene/shared/cli';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { agentFromAdbDevice } from '../../src/agent';
@@ -163,6 +166,48 @@ describe('Android CLI integration', () => {
     expect(mockAgent.aiAction).toHaveBeenCalledWith('open settings', {
       deepThink: false,
     });
+  });
+
+  it('inherits connect-time shrink factor on a later stateless command', async () => {
+    // CLI commands run in separate processes, so behavior args set on `connect`
+    // must be persisted to the report session and picked up by the next `act`.
+    const runDir = mkdtempSync(join(tmpdir(), 'midscene-shrink-'));
+    vi.stubEnv('MIDSCENE_RUN_DIR', runDir);
+
+    try {
+      // First process: connect with a shrink factor (no act).
+      vi.mocked(agentFromAdbDevice).mockResolvedValue(createMockAgent() as any);
+      await runToolsCLI(new AndroidMidsceneTools(), 'midscene-android', {
+        stripPrefix: 'android_',
+        argv: [
+          'connect',
+          '--device-id',
+          'shrink-device',
+          '--screenshot-shrink-factor',
+          '2',
+        ],
+      });
+
+      // Second process: act WITHOUT repeating the shrink factor.
+      const actAgent = createMockAgent();
+      vi.mocked(agentFromAdbDevice).mockResolvedValue(actAgent as any);
+      await runToolsCLI(new AndroidMidsceneTools(), 'midscene-android', {
+        stripPrefix: 'android_',
+        argv: ['act', '--prompt', 'open settings'],
+      });
+
+      // The act process should still build the agent with the persisted factor.
+      expect(agentFromAdbDevice).toHaveBeenLastCalledWith(
+        undefined,
+        expect.objectContaining({ screenshotShrinkFactor: 2 }),
+      );
+      expect(actAgent.aiAction).toHaveBeenCalledWith('open settings', {
+        deepThink: false,
+      });
+    } finally {
+      vi.unstubAllEnvs();
+      rmSync(runDir, { recursive: true, force: true });
+    }
   });
 
   it('enables scrcpy when --use-scrcpy is provided', async () => {
