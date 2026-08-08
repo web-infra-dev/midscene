@@ -13,6 +13,16 @@
     "generate-demo": "node scripts/generate-demo-report.mjs",
     "e2e": "pnpm --dir ../.. exec nx run-many --target=build --projects=\"@midscene/report,@midscene/cli\" --verbose && node scripts/inject-report-template.mjs && node scripts/generate-demo-report.mjs && node ../../packages/cli/bin/midscene ./e2e/ --concurrent 2"
   },
+  "nx": {
+    "targets": {
+      "build": {
+        "outputs": [
+          "{projectRoot}/dist",
+          "{workspaceRoot}/packages/core/dist/report-template"
+        ]
+      }
+    }
+  },
   "dependencies": {
     "@ant-design/icons": "^5.3.1",
     "@midscene/core": "workspace:*",
