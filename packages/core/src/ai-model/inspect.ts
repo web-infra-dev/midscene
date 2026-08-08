@@ -71,6 +71,11 @@ export type InspectAIArgs = [
 const debugInspect = getDebug('ai:inspect');
 const debugSection = getDebug('ai:section');
 
+function formatLocateModelContext(modelRuntime: ModelRuntime): string {
+  const { modelFamily, modelName } = modelRuntime.config;
+  return `modelName=${modelName ?? 'unset'} modelFamily=${modelFamily ?? 'unset'}`;
+}
+
 export {
   userPromptToString as extraTextFromUserPrompt,
   multimodalPromptToChatMessages as promptsToChatParam,
@@ -325,6 +330,7 @@ export async function genericLocate(
           const message = [
             locateError && `error in locate result: ${locateError}`,
             `coordinate parsing error: ${errorMessage}`,
+            formatLocateModelContext(modelRuntime),
           ]
             .filter(Boolean)
             .join('\n');
@@ -493,6 +499,7 @@ export async function AiLocateSection(options: {
           const message = [
             sectionError && `error in section locate result: ${sectionError}`,
             `coordinate parsing error: ${errorMessage}`,
+            formatLocateModelContext(modelRuntime),
           ]
             .filter(Boolean)
             .join('\n');
