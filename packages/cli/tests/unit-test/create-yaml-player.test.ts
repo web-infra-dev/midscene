@@ -3,7 +3,7 @@ import path from 'node:path';
 import { createYamlPlayer, launchServer } from '@/create-yaml-player';
 import type { MidsceneYamlScript, MidsceneYamlScriptEnv } from '@midscene/core';
 import { processCacheConfig } from '@midscene/core/utils';
-import { beforeEach, describe, expect, test, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 // Mock the global config manager to control environment variables
 vi.mock('@midscene/shared/env', async (importOriginal) => {
@@ -18,9 +18,13 @@ vi.mock('@midscene/shared/env', async (importOriginal) => {
 });
 
 // Mock dependencies
-vi.mock('node:fs', () => ({
-  readFileSync: vi.fn(),
-}));
+vi.mock('node:fs', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('node:fs')>();
+  return {
+    ...actual,
+    readFileSync: vi.fn(),
+  };
+});
 
 vi.mock('http-server', () => ({
   createServer: vi.fn(),
@@ -120,6 +124,10 @@ describe('create-yaml-player', () => {
     vi.clearAllMocks();
   });
 
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
   describe('launchServer', () => {
     test('should launch HTTP server and resolve with server instance', async () => {
       const mockServer = {
@@ -182,6 +190,64 @@ describe('create-yaml-player', () => {
         mockFilePath,
       );
       expect(result).toBe(mockPlayer);
+    });
+
+    test('should merge YAML custom action modules in declaration order', async () => {
+      const mockScript: MidsceneYamlScript = {
+        web: {
+          url: 'http://example.com',
+        },
+        agent: {
+          customActionsModule: './fixtures/missing-legacy-module.mjs',
+          customActionsModules: [
+            {
+              module: './fixtures/custom-actions-one.mjs',
+              config: { label: 'first' },
+            },
+            {
+              module: './fixtures/custom-actions-two.mjs',
+              config: { label: 'second' },
+            },
+          ],
+        },
+        tasks: [],
+      };
+      const mockAgent = { destroy: vi.fn() };
+      let setupFnCallback: (() => Promise<any>) | undefined;
+
+      vi.stubEnv(
+        'MIDSCENE_CUSTOM_ACTIONS_MODULE',
+        './fixtures/missing-env-module.mjs',
+      );
+      vi.mocked(puppeteerAgentForTarget).mockResolvedValue({
+        agent: mockAgent as any,
+        freeFn: [],
+      });
+      vi.mocked(ScriptPlayer).mockImplementation((script, setupFn) => {
+        setupFnCallback = setupFn as () => Promise<any>;
+        return {
+          addCleanup: vi.fn(),
+        } as unknown as ScriptPlayer<MidsceneYamlScriptEnv>;
+      });
+
+      await createYamlPlayer(
+        path.join(import.meta.dirname, 'custom-actions-script.yml'),
+        mockScript,
+      );
+      await setupFnCallback?.();
+
+      expect(puppeteerAgentForTarget).toHaveBeenCalledWith(
+        expect.any(Object),
+        expect.objectContaining({
+          customActions: [
+            expect.objectContaining({ name: 'ActionOne:first' }),
+            expect.objectContaining({ name: 'ActionTwo:second' }),
+          ],
+          customActionsPromptHints: 'HintOne:first\nHintTwo:second',
+        }),
+        undefined,
+        undefined,
+      );
     });
 
     test('should pass explicit page target to puppeteer launcher', async () => {

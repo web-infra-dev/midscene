@@ -52,6 +52,8 @@ export type {
   MidsceneYamlScriptAndroidEnv,
   MidsceneYamlScriptIOSEnv,
   MidsceneYamlScriptEnv,
+  MidsceneYamlScriptAgentOpt,
+  MidsceneYamlCustomActionsModule,
   LocateOption,
   DetailedLocateParam,
 } from './yaml';

@@ -11,6 +11,7 @@ import assert from 'node:assert';
 import type {
   AgentOpt,
   FreeFn,
+  MidsceneYamlCustomActionsModule,
   MidsceneYamlScript,
   MidsceneYamlScriptAgentOpt,
   MidsceneYamlScriptEnv,
@@ -47,69 +48,28 @@ export interface ResolvedCustomActions {
   promptHints: string;
 }
 
+interface CustomActionsModuleSpec {
+  modulePath: string;
+  config: unknown;
+  /** Label for debug logs (e.g. "yaml[0]", "env") */
+  label: string;
+}
+
 /**
- * Resolves and loads project-provided custom DeviceActions from either:
- *   1. Env:  MIDSCENE_CUSTOM_ACTIONS_MODULE + MIDSCENE_CUSTOM_ACTIONS_CONFIG
- *   2. YAML: agent.customActionsModule + agent.customActionsConfig
- *
- * Contract of the loaded module:
- *   - Primary:   export function buildCustomActions(config): DeviceAction[]
- *   - Fallback:  export const buildCustomActions = buildArcDeviceActions (Arc alias)
- *   - Fallback:  default export of DeviceAction[] or build-function
- *   - Optional:  export function getPromptRoutingHints({ actions, config }): string
- *
- * Returns null when no module is configured.
+ * Load a single custom-actions module by absolute path and merge its
+ * actions + promptHints into a ResolvedCustomActions accumulator.
  */
-async function resolveCustomActions(
-  yamlAgent:
-    | (MidsceneYamlScriptAgentOpt & {
-        customActionsModule?: string;
-        customActionsConfig?: unknown;
-      })
-    | undefined,
-  yamlFileDir: string,
-): Promise<ResolvedCustomActions | null> {
-  const envModule = process.env.MIDSCENE_CUSTOM_ACTIONS_MODULE;
-  const envConfigRaw = process.env.MIDSCENE_CUSTOM_ACTIONS_CONFIG;
-  const yamlModule = yamlAgent?.customActionsModule;
-  const yamlConfig = yamlAgent?.customActionsConfig;
-
-  const moduleRaw = yamlModule || envModule;
-  if (!moduleRaw) {
-    if (envModule) {
-      debug(
-        'env MIDSCENE_CUSTOM_ACTIONS_MODULE was set but empty string; skipping',
-      );
-    }
-    return null;
-  }
-
-  const modulePath = path.isAbsolute(moduleRaw)
-    ? moduleRaw
-    : path.resolve(yamlFileDir, moduleRaw);
-  let config: unknown;
-  if (yamlConfig !== undefined) {
-    config = yamlConfig;
-  } else if (envConfigRaw?.trim()) {
-    try {
-      config = JSON.parse(envConfigRaw);
-    } catch (err) {
-      throw new Error(
-        `MIDSCENE_CUSTOM_ACTIONS_CONFIG is not valid JSON: ${
-          (err as Error).message
-        }. raw=${envConfigRaw.slice(0, 200)}`,
-      );
-    }
-  } else {
-    config = {};
-  }
-
+async function loadSingleCustomActionsModule(
+  spec: CustomActionsModuleSpec,
+): Promise<ResolvedCustomActions> {
+  const { modulePath, config, label } = spec;
   debug(
-    'loading custom actions module',
+    'loading custom actions module [%s]',
+    label,
     modulePath,
     'with config keys',
     typeof config === 'object' && config !== null
-      ? Object.keys(config)
+      ? Object.keys(config as Record<string, unknown>)
       : '(non-object)',
   );
 
@@ -118,7 +78,7 @@ async function resolveCustomActions(
     mod = await import(modulePath);
   } catch (err) {
     throw new Error(
-      `Failed to load customActionsModule ${modulePath}: ${(err as Error).message}`,
+      `Failed to load customActionsModule [${label}] ${modulePath}: ${(err as Error).message}`,
       { cause: err },
     );
   }
@@ -144,7 +104,7 @@ async function resolveCustomActions(
 
   if (!Array.isArray(actions)) {
     throw new Error(
-      `customActionsModule ${modulePath} did not return DeviceAction[] from buildCustomActions/buildArcDeviceActions/default export. Got: ${typeof actions}`,
+      `customActionsModule [${label}] ${modulePath} did not return DeviceAction[] from buildCustomActions/buildArcDeviceActions/default export. Got: ${typeof actions}`,
     );
   }
 
@@ -156,20 +116,117 @@ async function resolveCustomActions(
       if (typeof hintResult === 'string') promptHints = hintResult;
     } catch (err) {
       console.warn(
-        `[midscene] customActionsModule getPromptRoutingHints threw; ignoring hints. ${(err as Error).message}`,
+        `[midscene] customActionsModule [${label}] getPromptRoutingHints threw; ignoring hints. ${(err as Error).message}`,
       );
     }
   }
 
   debug(
-    'loaded',
+    'loaded [%s] %d custom actions from %s (hints length %d)',
+    label,
     actions.length,
-    'custom actions from',
     modulePath,
-    'with prompt hints length',
     promptHints.length,
   );
   return { actions, promptHints };
+}
+
+/**
+ * Builds the list of module specs to load, in priority order:
+ *   1. YAML `agent.customActionsModules[]` (preferred, multi-module form)
+ *   2. YAML `agent.customActionsModule` (single, legacy)
+ *   3. Env  `MIDSCENE_CUSTOM_ACTIONS_MODULE` (env fallback)
+ *
+ * When the multi-module form is present, the single-module form and env
+ * var are ignored so the inject step can fully own the selection.
+ */
+function resolveCustomActionsSpecs(
+  yamlAgent: MidsceneYamlScriptAgentOpt | undefined,
+  yamlFileDir: string,
+): CustomActionsModuleSpec[] {
+  const resolvePath = (raw: string) =>
+    path.isAbsolute(raw) ? raw : path.resolve(yamlFileDir, raw);
+
+  // Preferred form: explicit array from inject step
+  if (yamlAgent?.customActionsModules?.length) {
+    return yamlAgent.customActionsModules.map(
+      (entry: MidsceneYamlCustomActionsModule, i: number) => ({
+        modulePath: resolvePath(entry.module),
+        config: entry.config ?? {},
+        label: `yaml[${i}]`,
+      }),
+    );
+  }
+
+  // Single YAML module
+  if (yamlAgent?.customActionsModule) {
+    return [
+      {
+        modulePath: resolvePath(yamlAgent.customActionsModule),
+        config: yamlAgent.customActionsConfig ?? {},
+        label: 'yaml',
+      },
+    ];
+  }
+
+  // Env var fallback (legacy path used by compile_sh.ts today)
+  const envModule = process.env.MIDSCENE_CUSTOM_ACTIONS_MODULE;
+  if (envModule?.trim()) {
+    let config: unknown = {};
+    const envConfigRaw = process.env.MIDSCENE_CUSTOM_ACTIONS_CONFIG;
+    if (envConfigRaw?.trim()) {
+      try {
+        config = JSON.parse(envConfigRaw);
+      } catch (err) {
+        throw new Error(
+          `MIDSCENE_CUSTOM_ACTIONS_CONFIG is not valid JSON: ${(err as Error).message}. raw=${envConfigRaw.slice(0, 200)}`,
+        );
+      }
+    }
+    return [
+      {
+        modulePath: resolvePath(envModule),
+        config,
+        label: 'env',
+      },
+    ];
+  }
+
+  return [];
+}
+
+/**
+ * Resolves and loads project-provided custom DeviceActions from either:
+ *   1. YAML: agent.customActionsModules[]  (preferred, inject-step output)
+ *   2. YAML: agent.customActionsModule + agent.customActionsConfig
+ *   3. Env:  MIDSCENE_CUSTOM_ACTIONS_MODULE + MIDSCENE_CUSTOM_ACTIONS_CONFIG
+ *
+ * When multiple modules are specified, their actions are concatenated in
+ * list order and their prompt hints are joined with newlines.
+ *
+ * Returns null when no module is configured.
+ */
+async function resolveCustomActions(
+  yamlAgent: MidsceneYamlScriptAgentOpt | undefined,
+  yamlFileDir: string,
+): Promise<ResolvedCustomActions | null> {
+  const specs = resolveCustomActionsSpecs(yamlAgent, yamlFileDir);
+  if (specs.length === 0) return null;
+
+  const results = await Promise.all(specs.map(loadSingleCustomActionsModule));
+  const merged: ResolvedCustomActions = {
+    actions: [],
+    promptHints: '',
+  };
+  for (const r of results) {
+    merged.actions.push(...r.actions);
+    if (r.promptHints) {
+      merged.promptHints = merged.promptHints
+        ? `${merged.promptHints}\n${r.promptHints}`
+        : r.promptHints;
+    }
+  }
+  return merged;
 }
 
 export const launchServer = async (
@@ -263,7 +320,7 @@ export async function createYamlPlayer(
 
       const yamlFileDir = path.dirname(path.resolve(file));
       const resolvedCustom = await resolveCustomActions(
-        clonedYamlScript.agent as Parameters<typeof resolveCustomActions>[0],
+        clonedYamlScript.agent,
         yamlFileDir,
       );
       const injectCustom = <T extends object>(
