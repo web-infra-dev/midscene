@@ -121,6 +121,28 @@ elements:
             locate: { prompt: 'Unmapped input' },
           },
         },
+        {
+          type: 'Input',
+          param: {
+            value: 'Dora',
+            locate: {
+              prompt: 'First name input',
+              bbox: [100, 200, 300, 400],
+              locatedPixelBbox: [10, 20, 30, 40],
+            },
+          },
+        },
+        {
+          type: 'Input',
+          param: {
+            value: 'Eve',
+            locate: {
+              description: 'First name input',
+              rect: { left: 10, top: 20, width: 30, height: 40 },
+              center: [25, 40],
+            },
+          },
+        },
       ],
       [{ name: 'First name input', xpath: '//*[@id="first-name"]' }],
       [action],
@@ -153,6 +175,26 @@ elements:
         param: {
           value: 'Charlie',
           locate: { prompt: 'Unmapped input' },
+        },
+      },
+      {
+        type: 'Input',
+        param: {
+          value: 'Dora',
+          locate: {
+            prompt: 'First name input',
+            xpath: '//*[@id="first-name"]',
+          },
+        },
+      },
+      {
+        type: 'Input',
+        param: {
+          value: 'Eve',
+          locate: {
+            prompt: 'First name input',
+            xpath: '//*[@id="first-name"]',
+          },
         },
       },
     ]);
@@ -261,7 +303,10 @@ elements:
           type: 'Input',
           param: {
             value: 'Alice',
-            locate: { prompt: 'First name input' },
+            locate: {
+              prompt: 'First name input',
+              locatedPixelBbox: [20, 20, 40, 40],
+            },
           },
           thought: 'fill the first name',
         },

@@ -139,15 +139,35 @@ function locatorPromptText(locator: unknown): string | undefined {
   if (isPlainObject(prompt) && typeof prompt.prompt === 'string') {
     return prompt.prompt;
   }
+  if (typeof locator.description === 'string') {
+    return locator.description;
+  }
   return undefined;
 }
 
 function locatorAlreadyResolved(locator: unknown): boolean {
-  return (
-    isPlainObject(locator) &&
-    (typeof locator.xpath === 'string' ||
-      Array.isArray(locator.locatedPixelBbox))
-  );
+  return isPlainObject(locator) && typeof locator.xpath === 'string';
+}
+
+function locatorWithXpath(locator: unknown, prompt: string, xpath: string) {
+  if (typeof locator === 'string') {
+    return { prompt: locator, xpath };
+  }
+
+  const {
+    bbox: _bbox,
+    center: _center,
+    description: _description,
+    locatedPixelBbox: _locatedPixelBbox,
+    rect: _rect,
+    ...locatorWithoutCoordinates
+  } = locator as Record<string, unknown>;
+
+  return {
+    ...locatorWithoutCoordinates,
+    prompt,
+    xpath,
+  };
 }
 
 export function applyElementXpathsToPlans(
@@ -181,18 +201,16 @@ export function applyElementXpathsToPlans(
         continue;
       }
       const prompt = locatorPromptText(locator);
-      const xpath = prompt
-        ? xpathByName.get(normalizedElementName(prompt))
-        : undefined;
+      if (!prompt) {
+        continue;
+      }
+      const xpath = xpathByName.get(normalizedElementName(prompt));
       if (!xpath) {
         continue;
       }
 
       transformedParam ??= { ...plan.param };
-      transformedParam[field] =
-        typeof locator === 'string'
-          ? { prompt: locator, xpath }
-          : { ...locator, xpath };
+      transformedParam[field] = locatorWithXpath(locator, prompt, xpath);
       mapped = true;
     }
 
