@@ -1,0 +1,5 @@
+elements:
+  Top-right close icon in the Help panel drawer: //*[@data-target-id="overlay-help-drawer-close"]
+  Top-right close icon in the Unsaved policy changes dialog: //*[@data-target-id="overlay-policy-dialog-close"]
+  Close icon in the Policy draft saved notification: //*[@data-target-id="overlay-saved-toast-close"]
+  Close icon in the Directory sync paused notification: //*[@data-target-id="overlay-sync-toast-close"]

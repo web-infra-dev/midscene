@@ -1,0 +1,7 @@
+elements:
+  DF20260918_V002 option in the open Demand FCST Version dropdown: //*[@data-target-id="version-option-DF20260918_V002"]
+  DF20260925_V001 option in the open Demand FCST Version dropdown: //*[@data-target-id="version-option-DF20260925_V001"]
+  DF20261002_V003 option in the open Demand FCST Version dropdown: //*[@data-target-id="version-option-DF20261002_V003"]
+  DF20261009_V002 option in the open Demand FCST Version dropdown: //*[@data-target-id="version-option-DF20261009_V002"]
+  DF20261016_V001 option in the open Demand FCST Version dropdown: //*[@data-target-id="version-option-DF20261016_V001"]
+  DF20261023_V004 option in the open Demand FCST Version dropdown: //*[@data-target-id="version-option-DF20261023_V004"]
