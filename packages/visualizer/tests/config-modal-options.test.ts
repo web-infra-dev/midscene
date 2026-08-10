@@ -62,12 +62,28 @@ describe('ConfigModal Agent options', () => {
     ).toMatchObject({ options: null });
   });
 
+  it('keeps model environment entries horizontally scrollable', () => {
+    expect(configModalComponent).toContain('wrap="off"');
+    expect(configModalComponent).not.toContain('wrap="soft"');
+    expect(configModalStyles).toContain('overflow-x: auto;');
+    expect(configModalStyles).toContain('white-space: pre;');
+    expect(configModalStyles).toContain('scrollbar-color:');
+    expect(configModalStyles).toContain(
+      'var(--midscene-border-control, rgba(0, 0, 0, 0.25)) transparent;',
+    );
+    expect(configModalStyles).toMatch(
+      /&::\-webkit-scrollbar\s*\{\s*width: 6px;\s*height: 6px;/,
+    );
+    expect(configModalStyles).toMatch(
+      /&::\-webkit-scrollbar-thumb\s*\{\s*border-radius: 999px;\s*background: var\(--midscene-border-control, rgba\(0, 0, 0, 0\.25\)\);/,
+    );
+  });
+
   it('keeps verification failures compact on their own row', () => {
     expect(configModalComponent).not.toContain('Verify and Save Model');
     expect(configModalComponent).toContain("'Verifying' : 'Verify'");
     expect(configModalComponent).toContain('message="Verified"');
     expect(configModalComponent).not.toContain('Test passed.');
-    expect(configModalComponent).toContain('wrap="soft"');
     expect(configModalStyles).toContain(
       'grid-template-columns: minmax(0, 1fr) auto;',
     );

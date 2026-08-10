@@ -409,7 +409,7 @@ export function ConfigModal({
               placeholder={TEXT_PLACEHOLDER}
               rows={envTextareaMinRows}
               value={text}
-              wrap="soft"
+              wrap="off"
             />
           )}
 

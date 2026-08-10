@@ -53,9 +53,13 @@
   .midscene-config-modal-env-textarea {
     box-sizing: border-box;
     min-height: 274px;
+    overflow-x: auto;
     padding-inline: 12px;
     resize: none;
+    scrollbar-color: var(--midscene-border-control, rgba(0, 0, 0, 0.25))
+      transparent;
     scrollbar-width: thin;
+    white-space: pre;
 
     &::-webkit-scrollbar {
       width: 6px;
