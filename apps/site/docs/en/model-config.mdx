@@ -50,9 +50,9 @@ If you configure a dedicated Insight or Planning model, model-related `MIDSCENE_
 | `MIDSCENE_MODEL_TEMPERATURE` | Sampling temperature for model responses |
 | `MIDSCENE_MODEL_RETRY_COUNT` | Number of retries when AI call fails, default 1 (i.e., retry once after failure). Retries occur when the model request encounters an HTTP error or when the model response cannot be structurally parsed |
 | `MIDSCENE_MODEL_RETRY_INTERVAL` | Interval between retries in milliseconds, default 2000 |
-| `MIDSCENE_MODEL_REASONING_ENABLED` | Controls whether model-native thinking is enabled. Midscene disables it by default. See [Model-Native Thinking Mode](./model-strategy#model-native-thinking-mode) |
-| `MIDSCENE_MODEL_REASONING_EFFORT` | Controls model-native thinking effort, supported by some models. Common values: `low`, `medium`, `high`. See [Model-Native Thinking Mode](./model-strategy#model-native-thinking-mode) |
-| `MIDSCENE_MODEL_REASONING_BUDGET` | Thinking token budget (number), supported by some models. See [Model-Native Thinking Mode](./model-strategy#model-native-thinking-mode) |
+| `MIDSCENE_MODEL_REASONING_ENABLED` | Controls whether model-native thinking is enabled. Midscene disables it by default. See [Model-native thinking](#model-native-reasoning) |
+| `MIDSCENE_MODEL_REASONING_EFFORT` | Controls model-native thinking effort, supported by some models. Common values: `low`, `medium`, `high`. See [Model-native thinking](#model-native-reasoning) |
+| `MIDSCENE_MODEL_REASONING_BUDGET` | Thinking token budget (number), supported by some models. See [Model-native thinking](#model-native-reasoning) |
 | `MIDSCENE_MODEL_RESPONSE_FORMAT` | Structured response strategy: `auto` (default) lets Midscene automatically use `response_format` in appropriate scenarios to specify a structured output format (usually JSON), making the model response as suitable for structured parsing as possible; `none` does not set `response_format`, for models that do not support structured output. |
 | `MIDSCENE_MODEL_HTTP_PROXY` | HTTP/HTTPS proxy, e.g., `http://127.0.0.1:8080` or `https://proxy.example.com:8080`. Takes precedence over `MIDSCENE_MODEL_SOCKS_PROXY` |
 | `MIDSCENE_MODEL_SOCKS_PROXY` | SOCKS proxy, e.g., `socks5://127.0.0.1:1080` |
@@ -106,6 +106,39 @@ Set the following if the Planning intent needs a different model:
 | `MIDSCENE_PLANNING_MODEL_EXTRA_BODY_JSON` | Optional; same effect as `MIDSCENE_MODEL_EXTRA_BODY_JSON` |
 | `MIDSCENE_PLANNING_MODEL_RESPONSE_FORMAT` | Optional; controls the structured response strategy in appropriate Planning scenarios |
 
+### Model-native thinking {#model-native-reasoning}
+
+Midscene disables model-native thinking by default for better execution speed and stability. If a model cannot disable native thinking, Midscene reduces it as much as possible by controlling the thinking granularity or budget.
+
+The following environment variables provide a unified Midscene abstraction over provider-specific parameters. The parameters sent to the model depend on `MIDSCENE_MODEL_FAMILY`.
+
+`MIDSCENE_MODEL_REASONING_ENABLED` explicitly controls whether model-native thinking is enabled:
+
+- `false`: Force-disable model-native thinking. This is the Midscene default.
+- `true`: Force-enable model-native thinking.
+- `default`: Follow the model's default behavior. Midscene does not send a parameter that enables or disables thinking, and it ignores explicit `MIDSCENE_MODEL_REASONING_BUDGET` and `MIDSCENE_MODEL_REASONING_EFFORT` settings.
+
+The following model families currently support `MIDSCENE_MODEL_REASONING_ENABLED`:
+
+- Qwen: Maps to `enable_thinking`.
+- Doubao: Maps to `thinking.type`.
+- Zhipu GLM: Maps to `thinking.type`.
+- GPT-5: Maps to `reasoning_effort`. Midscene uses `medium` when enabled and `none` when disabled.
+- Gemini: Maps to `thinking_config.thinking_level`. Midscene uses `medium` when enabled and `minimal` when disabled.
+- Kimi K2 series: Maps to `thinking.type`.
+- Xiaomi MiMo: Maps to `thinking.type`.
+
+`MIDSCENE_MODEL_REASONING_BUDGET` controls the thinking budget. Qwen currently supports this setting through `thinking_budget`.
+
+`MIDSCENE_MODEL_REASONING_EFFORT` controls thinking effort. The following model families currently support it:
+
+- Doubao: Maps to `reasoning_effort`.
+- Gemini: Maps to `thinking_config.thinking_level`.
+- GPT-5: Maps to `reasoning_effort`.
+- Kimi K3 series: Maps to `reasoning_effort`.
+
+Provider support and accepted values vary. See each provider's official documentation for supported model versions and values. If the current model does not support an explicit setting, Midscene ignores it instead of guessing a provider-specific private parameter.
+
 ## Still-compatible configs (not recommended)
 
 The following environment variables are deprecated but still compatible. We recommend migrating to the new configuration approach.
@@ -129,21 +162,6 @@ The following environment variables are deprecated but still compatible. We reco
 | `MIDSCENE_OPENAI_INIT_CONFIG_JSON` | Deprecated but supported | Prefer `MIDSCENE_MODEL_INIT_CONFIG_JSON` |
 | `MIDSCENE_OPENAI_HTTP_PROXY` | Deprecated but supported | Prefer `MIDSCENE_MODEL_HTTP_PROXY` |
 | `MIDSCENE_OPENAI_SOCKS_PROXY` | Deprecated but supported | Prefer `MIDSCENE_MODEL_SOCKS_PROXY` |
-
-## Configure settings via JavaScript
-
-You can configure models for each agent in JavaScript. See the [API reference](./reference/#common) for details.
-
-```typescript
-const agent = new Agent(page, {
-  // Configure via modelConfig
-  modelConfig: {
-    MIDSCENE_MODEL_TIMEOUT: '60000', // 60 seconds
-    MIDSCENE_MODEL_NAME: 'qwen3.7-plus',
-    // ... other configurations
-  }
-});
-```
 
 ## Debugging and observability settings
 
