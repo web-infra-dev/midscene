@@ -135,7 +135,7 @@ We're building a full record → script → replay loop into Studio: drive a rea
 ### Model and Planning Behavior
 
 - **Usage intent decoupled from config slot**: Model usage intent is now tracked separately from resolved config slots, making multi-model planning, locating, and report display clearer
-- **Native thinking off by default**: For supported model families, Midscene now disables model-native thinking by default to improve execution speed and stability. See: [Model-Native Thinking Mode](./model-strategy#model-native-thinking-mode)
+- **Native thinking off by default**: For supported model families, Midscene now disables model-native thinking by default to improve execution speed and stability. See: [Model-Native Thinking Mode](./model-config#model-native-reasoning)
 - **Doubao fast tier**: Doubao fast tier configuration is now supported through `MIDSCENE_MODEL_EXTRA_BODY_JSON={"service_tier":"fast"}`. See: [Common Model Configuration](./model-common-config)
 - **GLM-5V-Turbo support**: Added support for Zhipu GLM-5V-Turbo. See: [Common Model Configuration](./model-common-config)
 - **Better scrollable select planning**: Planning for scrollable selects (dropdowns, scroll wheels) is more reliable in complex scenarios

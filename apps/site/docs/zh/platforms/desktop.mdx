@@ -8,16 +8,6 @@ Midscene 通过原生键盘和鼠标控制，在 Windows、macOS 和 Linux 上�
 
 本指南介绍平台配置、模型配置、Playground 体验，以及 `@midscene/computer` 的 JavaScript SDK 集成。
 
-## 效果展示
-
-**提示词（macOS）：** 打开 Safari，发布一条介绍 Midscene 支持 AutoGLM 的推文，并使用“下载”文件夹中的 AutoGLM 视频。
-
-<video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/pc-twitter2.mp4" height="300" controls />
-
-查看[完整报告](https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/pc-twitter2-midscene_report.html)，或浏览更多 [Midscene 案例](../showcases.mdx)。
-
-## 核心功能
-
 **跨平台桌面控制**
 
 - 鼠标操作：单击、双击、右键、移动和拖放。
@@ -36,12 +26,20 @@ await agent.aiAct('在文件名字段输入 "我的文档"');
 await agent.aiAct('按回车键');
 ```
 
-## 使用场景
+典型使用场景包括：
 
 - 测试 Electron、Qt 和原生桌面应用。
 - 自动化桌面应用中的重复工作。
 - 按顺序控制多个应用。
 - 使用自然语言指令测试桌面界面。
+
+## 效果展示
+
+**提示词（macOS）：** 打开 Safari，发布一条介绍 Midscene 支持 AutoGLM 的推文，并使用“下载”文件夹中的 AutoGLM 视频。
+
+<video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/pc-twitter2.mp4" height="300" controls />
+
+查看[完整报告](https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/pc-twitter2-midscene_report.html)，或浏览更多 [Midscene 案例](../showcases.mdx)。
 
 ## 快速开始
 
@@ -86,7 +84,7 @@ Playground 是验证连接的最快方式。无需编写代码，即可体验 `a
 npx --yes @midscene/computer-playground
 ```
 
-2. 点击 Playground 窗口中的齿轮按钮，粘贴你的 API Key 配置。如果还没有 API Key，请回到 [模型配置](../model-config) 获取。
+2. 点击 Playground 窗口中的齿轮按钮，粘贴你的 API Key 配置。如果还没有模型配置，请参考[支持的模型与配置](../model-common-config)。
 
 ## 使用 JavaScript SDK
 
@@ -311,7 +309,7 @@ const agent = await agentForComputer({ headless: true });
 MIDSCENE_COMPUTER_HEADLESS_LINUX=true npx tsx example.ts
 ```
 
-## 下一步
+## 更多
 
 - [API 参考](../reference/#desktop)
 - [使用 YAML 格式自动化脚本](../automate-with-scripts-in-yaml)

@@ -14,6 +14,7 @@
 | [iOS](#ios) | iOS Device、Agent、工厂函数和工具 API |
 | [HarmonyOS](#harmonyos) | HarmonyOS Device、Agent、工厂函数和工具 API |
 | [桌面端](#desktop) | 本机桌面和 RDP API |
+| [运行时配置](#runtime-configuration) | 运行产物、语言、Playground 网络和 Debug 日志等全局环境变量 |
 
 ## 共享 Agent API {#common}
 
@@ -87,7 +88,7 @@ Midscene 针对每个不同环境都有对应的 Agent。每个 Agent 的构造�
 `modelConfig: Record<string, string | number>` 可选。它允许你通过代码配置模型，而不是通过环境变量。
 
 > 如果在 Agent 初始化时提供了 `modelConfig`，**系统环境变量中的模型配置将全部被忽略**，仅使用该对象中的值。
-> 这里可配置的 key / value 与 [模型配置](../model-config) 文档中说明的内容完全一致。你也可以参考 [模型策略](../model-strategy) 中的说明。
+> 这里可配置的 key / value 与 [模型配置](../model-config) 文档中说明的内容完全一致。Default、Planning 和 Insight 模型的职责请参考[模型策略](../model-strategy)。
 
 **自定义 OpenAI 客户端**
 
@@ -147,7 +148,7 @@ function ai(prompt: string, options?: Object): Promise<string | undefined>; // �
   - `prompt: string | object` - 用自然语言描述的操作内容，或[使用图片作为提示词](#使用图片作为提示词)。
   - `options?: object` - 可选，一个配置对象，包含：
     - `cacheable?: boolean` - 当启用 [缓存功能](../caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 true
-    - `deepThink?: 'unset' | true | false` - 控制 Midscene 在 `aiAct` 执行规划时的具体实现。开启后，`aiAct` 会更注重任务拆解，并将任务 Planning 和 UI 元素定位拆解为不同的模型调用。为了兼容旧写法，`'unset'` 仍然可以传入，并会被按 `false` 处理。[详情参阅 deepThink 说明](../model-strategy#关于-aiact-方法的-deepthink-参数)。
+    - `deepThink?: 'unset' | true | false` - 控制 Midscene 在 `aiAct` 执行规划时的具体实现。详见 [`deepThink` 规划模式](#aiact-deepthink)。
     - `deepLocate?: boolean` - 是否开启[深度定位](#深度定位deeplocate)。默认值为 false。
     - `context?: string` - 本次调用的额外上下文。详见[单次调用上下文](#单次调用上下文)。
     - `fileChooserAccept?: string | string[]` - 当文件选择器弹出时，指定对应的文件路径。可以是单个文件路径或路径数组。仅在 web 页面（Playwright、Puppeteer 或 Chrome extension Bridge mode）中可用。该选项不受 `fileChooserAllowedDir` 限制。
@@ -183,6 +184,17 @@ await agent.aiAct('填写表单并提交', {
 // 对于复杂任务，可以启用 deepThink 参数
 await agent.aiAct('完成 github 账号注册的表单填写。地区必须选择「加拿大」。确保表单上没有遗漏的字段，确保所有的表单项能够通过校验。 只需要填写表单项即可，不需要发起真实的账号注册。 最终请返回表单上实际填写的字段内容', { deepThink: true });
 ```
+
+##### `deepThink` 规划模式 {#aiact-deepthink}
+
+`deepThink` 控制 `aiAct` 的规划实现：
+
+- 默认情况下，`aiAct` 会在同一次规划请求中完成下一步规划和目标元素定位。
+- 设置为 `true` 后，`aiAct` 会更注重任务拆解，并将任务规划和元素定位分为不同的模型调用。复杂任务可能因此更加稳定，但模型调用次数和延迟也会增加。
+
+`deepThink` 支持 `'unset' | true | false`。`'unset'` 是兼容旧写法的取值，与 `false` 的行为相同。
+
+`deepThink` 不控制模型原生思考。相关环境变量请参考[模型原生思考](../model-config#model-native-reasoning)。
 
 ##### 在 `aiAct` 提示词中上传文件
 
@@ -1515,7 +1527,7 @@ await agent.aiTap('右上角购物车图标', { deepLocate: true });
 
 历史上，`deepThink` 这个名字在不同 API 中承担过两种含义：
 
-- 在 `aiAct()` 中，`deepThink` 从一开始就表示**规划模式**，用于引导任务拆解和专注规划的思考过程。详情请参考 [aiAct deepThink 说明](../model-strategy#关于-aiact-方法的-deepthink-参数)。
+- 在 `aiAct()` 中，`deepThink` 从一开始就表示**规划模式**，用于引导任务拆解和专注规划的思考过程。详情请参考 [`deepThink` 规划模式](#aiact-deepthink)。
 - 在 `aiTap`、`aiHover` 等单步操作方法中，旧的 `deepThink` 表示**定位增强**，等同于现在的 `deepLocate`。
 
 为了区分这两种语义，自 v1.5.1 起，`deepThink` 只用于表示规划模式，定位增强统一命名为 `deepLocate`。
@@ -3161,6 +3173,35 @@ const displays = await ComputerDevice.listDisplays();
 ```
 
 使用 RDP 时，`ListDisplays` 会把当前远程会话视为单个显示器返回。
+
+## 运行时配置 {#runtime-configuration}
+
+以下环境变量控制全局运行时行为，而不是模型请求。Agent 的 `modelConfig` 对象不支持这些参数。
+
+| 名称 | 类型 | 默认值 | 说明 |
+| --- | --- | --- | --- |
+| `MIDSCENE_RUN_DIR` | 字符串 | `midscene_run` | 报告、日志、模型调用记录和其他运行产物的保存目录。支持绝对路径，也支持相对于当前工作目录的路径。 |
+| `MIDSCENE_PREFERRED_LANGUAGE` | 字符串 | `Asia/Shanghai` 时区为 `Chinese`，其他时区为 `English` | 模型响应的首选语言。 |
+| `MIDSCENE_PLAYGROUND_HOST` | 字符串 | `127.0.0.1` | Playground 服务器监听的网络接口。远程设备、虚拟机、容器或其他计算机需要连接时，请设为对方可访问的接口地址。 |
+| `DEBUG` | 字符串 | 未设置 | 启用额外的 Debug 日志命名空间。支持的选择器请参考 [Debug 日志](#debug-logs)。 |
+
+设置 `MIDSCENE_PLAYGROUND_HOST=0.0.0.0` 会监听所有网络接口。请仅在可信网络中使用该值。
+
+### Debug 日志 {#debug-logs}
+
+将 `DEBUG` 设置为以下选择器之一：
+
+| 取值 | 描述 |
+| --- | --- |
+| `midscene:ai:profile:stats` | 使用逗号分隔的格式打印模型延迟和 Token 使用量。 |
+| `midscene:ai:profile:detail` | 打印详细的 Token 使用量日志。 |
+| `midscene:ai:call` | 打印 AI 响应详情。 |
+| `midscene:android:adb` | 打印 Android ADB 命令调用详情。 |
+| `midscene:*` | 打印全部 Midscene Debug 日志。 |
+
+即使未设置 `DEBUG`，Midscene 也会将日志保存在 `<MIDSCENE_RUN_DIR>/log` 目录中。Debug 日志可能包含模型输入、输出或截图。分享前请先检查内容，也不要将日志提交到源码仓库。
+
+模型连接检查、调用记录和 Tracing 集成请参考[模型调试与可观测性](../model-debugging-observability)。
 
 **另请参阅**
 

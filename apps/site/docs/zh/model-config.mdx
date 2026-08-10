@@ -1,10 +1,6 @@
-# 全部配置项
+# 模型配置参考
 
-Midscene 通过读取操作系统中指定的环境变量来完成配置。
-
-Midscene 默认集成了 OpenAI SDK 调用 AI 服务，它限定了推理服务的参数风格，绝大多数模型服务商（或模型部署工具）都提供了满足这种要求的接口。
-
-本篇文档会重点介绍 Midscene 的模型配置参数。如果你对 Midscene 的模型策略感兴趣，请阅读 [模型策略](./model-strategy)。如果你想查看常用模型的配置示例，请阅读 [配置你的模型](./model-common-config)。
+本页汇总 Midscene 的全部模型配置。如需查看支持的模型名称、模型 family 和可复制的配置示例，请参考[支持的模型与配置](./model-common-config)。如需了解模型职责和组合方式，请参考[模型策略](./model-strategy)。如需排查连接问题、查看日志、采集 Trace 或记录调用，请参考[模型调试与可观测性](./model-debugging-observability)。
 
 ## 必选配置
 
@@ -12,31 +8,10 @@ Midscene 默认集成了 OpenAI SDK 调用 AI 服务，它限定了推理服务�
 
 | 名称 | 描述 |
 |------|-------------|
-| `MIDSCENE_MODEL_API_KEY` | OpenAI 兼容 HTTP 服务需要的模型 API Key，如 "sk-abcd..."。当 `MIDSCENE_MODEL_BASE_URL="codex://app-server"` 时不需要 |
+| `MIDSCENE_MODEL_API_KEY` | OpenAI 兼容 HTTP 服务需要的模型 API Key，如 "sk-abcd..."。当 `MIDSCENE_MODEL_BASE_URL="codex://app-server"` 时不需要，具体设置请参考[使用 Codex App Server](./model-common-config#use-codex-app-server-oauth-no-api-key) |
 | `MIDSCENE_MODEL_BASE_URL` | API 的接入 URL，常见以版本号结尾（如`/v1`）；不需要编写最后的 `/chat/completion` 部分，底层 SDK 会自动添加 |
 | `MIDSCENE_MODEL_NAME` | 模型名称 |
 | `MIDSCENE_MODEL_FAMILY` | 模型系列，用于确定坐标处理方式 |
-
-### 使用 Codex App Server（OAuth，无需 API Key）
-
-如果你已经通过 Codex CLI 登录（`codex login`），并希望 Midscene 直接复用该 OAuth 会话，可设置：
-
-```bash
-export MIDSCENE_MODEL_BASE_URL="codex://app-server"
-export MIDSCENE_MODEL_NAME="gpt-5.4" # 或者使用 Codex model/list 可见的其他模型
-export MIDSCENE_MODEL_FAMILY="gpt-5"
-```
-
-说明：
-- 该模式下不需要 `MIDSCENE_MODEL_API_KEY`。
-- Midscene 会通过 stdio 调用 `codex app-server`。
-- 请确保 `codex` 在 PATH 中可用，并通过 `codex login status` 确认登录状态。
-
-:::warning 已知限制
-
-相比于直接调用 OpenAI 兼容 API，我们观察到这种方式可能耗时更长、token 消耗更多，具体原因还在排查中。
-
-:::
 
 ## 高阶配置（可选）
 
@@ -48,23 +23,14 @@ export MIDSCENE_MODEL_FAMILY="gpt-5"
 | `MIDSCENE_MODEL_TEMPERATURE` | 模型采样温度 |
 | `MIDSCENE_MODEL_RETRY_COUNT` | AI 调用失败时的重试次数，默认 1（即失败后重试 1 次）。模型请求遇到 HTTP 错误，或模型返回值无法被结构化解析时，都会发起重试 |
 | `MIDSCENE_MODEL_RETRY_INTERVAL` | AI 调用重试间隔毫秒数，默认 2000 |
-| `MIDSCENE_MODEL_REASONING_ENABLED` | 控制是否启用模型的原生思考能力，Midscene 默认关闭。详见[模型原生的思考模式](./model-strategy#模型原生的思考模式) |
-| `MIDSCENE_MODEL_REASONING_EFFORT` | 控制模型的原生思考力度，部分模型支持。常用值：`low`、`medium`、`high`。详见[模型原生的思考模式](./model-strategy#模型原生的思考模式) |
-| `MIDSCENE_MODEL_REASONING_BUDGET` | 思考 token 预算（数字），部分模型支持。详见[模型原生的思考模式](./model-strategy#模型原生的思考模式) |
+| `MIDSCENE_MODEL_REASONING_ENABLED` | 控制是否启用模型的原生思考能力，Midscene 默认关闭。详见[模型原生思考](#model-native-reasoning) |
+| `MIDSCENE_MODEL_REASONING_EFFORT` | 控制模型的原生思考力度，部分模型支持。常用值：`low`、`medium`、`high`。详见[模型原生思考](#model-native-reasoning) |
+| `MIDSCENE_MODEL_REASONING_BUDGET` | 思考 Token 预算（数字），部分模型支持。详见[模型原生思考](#model-native-reasoning) |
 | `MIDSCENE_MODEL_RESPONSE_FORMAT` | 结构化响应策略：`auto`（默认）表示 Midscene 会在合适的场景自动使用 `response_format` 参数指定模型输出的结构化格式（一般是 JSON），来尽可能保证模型返回值能够被结构化解析；`none` 表示不指定 `response_format` 参数，适用于模型不支持结构化输出的情况。 |
 | `MIDSCENE_MODEL_HTTP_PROXY` | HTTP/HTTPS 代理配置，如 `http://127.0.0.1:8080` 或 `https://proxy.example.com:8080`，优先级高于 `MIDSCENE_MODEL_SOCKS_PROXY` |
 | `MIDSCENE_MODEL_SOCKS_PROXY` | SOCKS 代理配置，如 `socks5://127.0.0.1:1080` |
 | `MIDSCENE_MODEL_INIT_CONFIG_JSON` | 覆盖 OpenAI SDK 初始化配置的 JSON。自定义鉴权 header 请使用 `defaultHeaders`；`extra_headers` 和 `extraHeaders` 也会作为别名兼容 |
 | `MIDSCENE_MODEL_EXTRA_BODY_JSON` | 合并到每次 chat completion 请求体中的 JSON。与 `MIDSCENE_MODEL_INIT_CONFIG_JSON`（配置 SDK 客户端）不同，此参数会展开到每次发送到模型的 `completion.create()` 调用体中，例如在 vLLM 中启用思考模式：`'{"chat_template_kwargs":{"enable_thinking":true}}'` |
-| `MIDSCENE_RUN_DIR` | 运行产物目录，默认值为当前工作目录下的 `midscene_run`，支持设置绝对路径或相对路径 |
-| `MIDSCENE_PREFERRED_LANGUAGE` | 可选，模型响应的语言；如果当前系统时区是 GMT+8 则默认是 `Chinese`，否则是 `English` |
-| `MIDSCENE_PLAYGROUND_HOST` | Playground 服务器的监听地址。默认值为 `127.0.0.1`，仅供本机访问 |
-
-> **Playground 网络访问**
->
-> - 本机访问：无需设置，默认监听 `127.0.0.1`。
-> - 远程访问：物理设备、虚拟机、容器和其他机器需要设置 `MIDSCENE_PLAYGROUND_HOST`。配置值应为远程设备可访问的服务器网卡地址。
-> - 监听所有网络接口：可设为 `0.0.0.0`。只在可信网络中使用这个地址。
 
 > 提示：通过 Agent 的 `replanningCycleLimit` 入参控制重规划次数（默认 20，`vlm-ui-tars` 为 40），不再使用环境变量。
 
@@ -108,24 +74,44 @@ export MIDSCENE_MODEL_FAMILY="gpt-5"
 | `MIDSCENE_PLANNING_MODEL_EXTRA_BODY_JSON` | 可选，效果等同于 `MIDSCENE_MODEL_EXTRA_BODY_JSON`  |
 | `MIDSCENE_PLANNING_MODEL_RESPONSE_FORMAT` | 可选，在合适的 Planning 场景中控制结构化响应策略 |
 
-### 调试日志开关
+### 模型原生思考 {#model-native-reasoning}
 
-通过设置以下配置，可以在命令行打印更多调试日志。
-无论是否配置，这些日志都会打印在 `./midscene_run/log` 文件夹中。
+Midscene 默认关闭模型原生思考，以获得更好的执行速度和稳定性。如果模型不支持关闭原生思考，Midscene 会通过控制思考粒度或限制思考额度，尽可能减少模型的原生思考。
 
-| 名称 | 描述 |
-|------|-------------|
-| `DEBUG=midscene:ai:profile:stats` | 打印 AI 服务消耗的时间、token 使用情况，用逗号分隔，便于分析 |
-| `DEBUG=midscene:ai:profile:detail` | 打印 AI token 消耗信息的详细日志 |
-| `DEBUG=midscene:ai:call` | 打印 AI 响应详情 |
-| `DEBUG=midscene:android:adb` | 打印 Android adb 命令调用详情 |
-| `DEBUG=midscene:*` | 打印所有调试日志 |
+以下环境变量是 Midscene 对不同模型服务商参数的统一抽象。实际发送给模型的参数由 `MIDSCENE_MODEL_FAMILY` 决定。
+
+`MIDSCENE_MODEL_REASONING_ENABLED` 显式控制是否启用模型原生思考：
+
+- `false`：强制关闭模型原生思考，也是 Midscene 的默认行为。
+- `true`：强制启用模型原生思考。
+- `default`：遵循模型的默认行为。Midscene 不发送启用或关闭思考的参数，并忽略显式配置的 `MIDSCENE_MODEL_REASONING_BUDGET` 和 `MIDSCENE_MODEL_REASONING_EFFORT`。
+
+目前支持 `MIDSCENE_MODEL_REASONING_ENABLED` 的模型系列及参数映射如下：
+
+- Qwen：对应 `enable_thinking`。
+- 豆包：对应 `thinking.type`。
+- 智谱 GLM：对应 `thinking.type`。
+- GPT-5：对应 `reasoning_effort`。启用时使用 `medium`，关闭时使用 `none`。
+- Gemini：对应 `thinking_config.thinking_level`。启用时使用 `medium`，关闭时使用 `minimal`。
+- Kimi K2 系列：对应 `thinking.type`。
+- 小米 MiMo：对应 `thinking.type`。
+
+`MIDSCENE_MODEL_REASONING_BUDGET` 控制模型的思考额度。目前 Qwen 系列支持该配置，对应 `thinking_budget`。
+
+`MIDSCENE_MODEL_REASONING_EFFORT` 控制模型的思考力度。目前支持以下模型系列：
+
+- 豆包：对应 `reasoning_effort`。
+- Gemini：对应 `thinking_config.thinking_level`。
+- GPT-5：对应 `reasoning_effort`。
+- Kimi K3 系列：对应 `reasoning_effort`。
+
+不同模型服务商支持的参数和值不同。具体取值和适用模型版本请参考对应服务商的官方文档。如果当前模型不支持某项显式配置，Midscene 会忽略该配置，不会猜测服务商的私有参数。
 
 ## 仍兼容的模型配置（不推荐）
 
 以下环境变量已废弃但仍然兼容，建议尽快迁移到新的配置方式。
 
-### Planning 模型配置
+### 旧版模型类型配置
 
 | 名称 | 描述 | 新配置方式 |
 |------|-------------|-----------|
@@ -145,132 +131,34 @@ export MIDSCENE_MODEL_FAMILY="gpt-5"
 | `MIDSCENE_OPENAI_HTTP_PROXY` | 已弃用但仍兼容 | 使用 `MIDSCENE_MODEL_HTTP_PROXY` |
 | `MIDSCENE_OPENAI_SOCKS_PROXY` | 已弃用但仍兼容 | 使用 `MIDSCENE_MODEL_SOCKS_PROXY` |
 
-## 使用 JavaScript 配置参数
+## 调试与可观测性配置
 
-你也可以使用 JavaScript 来为每个 Agent 配置模型参数，详见 [API 参考](./reference/#common)
+以下配置用于启用模型诊断、Tracing 和本地调用记录。安装步骤、使用示例、问题排查和安全说明。请参考[模型调试与可观测性](./model-debugging-observability)。
 
-```typescript
-const agent = new Agent(page, {
-  // 通过 modelConfig 配置
-  modelConfig: {
-    MIDSCENE_MODEL_TIMEOUT: '60000', // 60 秒
-    MIDSCENE_MODEL_NAME: 'qwen3.7-plus',
-    // ... 其他配置
-  }
-});
-```
+### Debug 日志
 
-## 常见问题
+支持的 `DEBUG` 选择器和日志行为请参考[运行时配置：Debug 日志](./reference/#debug-logs)。
 
-### 如何查看模型的 token 使用情况？
+### LangSmith
 
-通过在环境变量中设置 `DEBUG=midscene:ai:profile:stats`，你可以打印模型的使用信息和响应时间。
+| 名称 | 描述 |
+| --- | --- |
+| `MIDSCENE_LANGSMITH_DEBUG` | 设置为 `1`，启用 Midscene 的 LangSmith 自动集成 |
+| `LANGCHAIN_API_KEY` | LangSmith API Key |
+| `LANGCHAIN_TRACING` | 设置为 `true`，启用 LangSmith Tracing |
+| `LANGCHAIN_ENDPOINT` | LangSmith 服务地址 |
 
-你也可以在报告文件中查看模型的使用量统计。
+### Langfuse
 
-### 使用 LangSmith
+| 名称 | 描述 |
+| --- | --- |
+| `MIDSCENE_LANGFUSE_DEBUG` | 设置为 `1`，启用 Midscene 的 Langfuse 自动集成 |
+| `LANGFUSE_PUBLIC_KEY` | Langfuse Public Key |
+| `LANGFUSE_SECRET_KEY` | Langfuse Secret Key |
+| `LANGFUSE_BASE_URL` | Langfuse 服务地址 |
 
-LangSmith 是一个用于调试大语言模型的平台。Midscene 提供了自动集成支持，只需安装依赖并设置环境变量即可。
+### 模型调用记录
 
-**步骤 1：安装依赖**
-
-```bash
-npm install langsmith
-```
-
-**步骤 2：设置环境变量**
-
-```bash
-# 启用 Midscene 的 LangSmith 自动集成
-export MIDSCENE_LANGSMITH_DEBUG=1
-
-# LangSmith 配置
-export LANGCHAIN_API_KEY="your-langchain-api-key-here"
-export LANGCHAIN_TRACING=true
-export LANGCHAIN_ENDPOINT="https://api.smith.langchain.com"
-# export LANGCHAIN_ENDPOINT="https://eu.api.smith.langchain.com" # 如果在欧洲区域注册
-```
-
-启动 Midscene 后，你应该会看到类似如下的日志：
-
-```log
-DEBUGGING MODE: langsmith wrapper enabled
-```
-
-注意：
-- LangSmith 和 Langfuse 可以同时启用
-- 仅支持 Node.js 环境，浏览器环境会报错
-- 如果使用 [`createOpenAIClient`](./reference/#自定义-openai-客户端) 参数，环境变量方式会被覆盖
-
-如果需要更细粒度的控制（例如只对特定任务启用 LangSmith），可以通过 [`createOpenAIClient`](./reference/#自定义-openai-客户端) 手动包装客户端。
-
-### 使用 Langfuse
-
-[Langfuse](https://langfuse.com) 是另一个流行的 LLM 可观测性平台。Midscene 已经集成了 Langfuse 的 `observeOpenAI` wrapper，自动追踪所有 OpenAI API 调用。
-
-由于 Langfuse 的追踪基于 OpenTelemetry，你需要在应用启动时初始化 OpenTelemetry SDK。
-
-**步骤 1：安装依赖**
-
-```bash
-npm install @langfuse/openai @langfuse/otel @opentelemetry/sdk-node
-```
-
-**步骤 2：初始化 OpenTelemetry（必需）**
-
-在应用入口文件的**最顶部**添加以下代码：
-
-```typescript
-import { NodeSDK } from "@opentelemetry/sdk-node";
-import { LangfuseSpanProcessor } from "@langfuse/otel";
-
-const sdk = new NodeSDK({
-  spanProcessors: [new LangfuseSpanProcessor()],
-});
-sdk.start();
-```
-
-**步骤 3：设置环境变量**
-
-```bash
-# 启用 Midscene 的 Langfuse 自动集成
-export MIDSCENE_LANGFUSE_DEBUG=1
-
-# Langfuse 配置
-export LANGFUSE_PUBLIC_KEY="your-langfuse-public-key-here"
-export LANGFUSE_SECRET_KEY="your-langfuse-secret-key-here"
-export LANGFUSE_BASE_URL="https://cloud.langfuse.com" # 🇪🇺 欧洲区域
-# export LANGFUSE_BASE_URL="https://us.cloud.langfuse.com" # 🇺🇸 美国区域
-```
-
-启动 Midscene 后，你应该会看到类似如下的日志：
-
-```log
-OpenTelemetry SDK initialized for Langfuse tracing
-DEBUGGING MODE: langfuse wrapper enabled
-```
-
-**了解更多**：查看 [Langfuse OpenAI 集成文档](https://langfuse.com/integrations/model-providers/openai-js) 获取更多配置选项和最佳实践。
-
-注意：
-- LangSmith 和 Langfuse 可以同时启用
-- 仅支持 Node.js 环境，浏览器环境会报错
-- 如果使用 [`createOpenAIClient`](./reference/#自定义-openai-客户端) 参数，环境变量方式会被覆盖
-
-### 记录模型调用
-
-设置 `MIDSCENE_RECORD_MODEL_CALL=true`，可将模型请求、响应和流式 chunk 写入 JSONL 文件：
-
-```text
-midscene_run/model-requests/<启动时间>-<pid>.jsonl
-```
-
-每个进程生成一个文件，每行对应一个 JSON 事件。仅 Node.js 和 Electron 支持写入；浏览器和 Worker 环境下不会写入本地文件。使用 Codex App Server 时，文件还会包含可获取的协议元数据。
-
-:::warning 注意事项
-
-文件包含请求 body（含自定义 `extraBody`）、响应 headers 和 body，以及流式响应。文件还可能包含截图的 base64 数据。请求 headers 不会被记录。文件可能包含敏感信息且体积较大，请仅在排查问题时开启，并在使用后妥善保管或删除。记录格式不保证跨版本兼容。
-
-:::
-
-每个事件的 `type` 为 `request`、`chunk`、`response` 或 `error`。事件还包含 `executionId`，用于关联同一个报告 execution 内的调用及其重试。不属于报告 execution 的调用（例如连通性检查）使用带 `unscoped-` 前缀的生成 ID。
+| 名称 | 描述 |
+| --- | --- |
+| `MIDSCENE_RECORD_MODEL_CALL` | 设置为 `true`，将模型请求、响应和流式 Chunk 写入本地 JSONL 文件 |

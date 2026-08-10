@@ -14,6 +14,7 @@ This page retains a small number of complete examples to show how related APIs w
 | [iOS](#ios) | iOS device, Agent, factory, and utility APIs |
 | [HarmonyOS](#harmonyos) | HarmonyOS device, Agent, factory, and utility APIs |
 | [Desktop](#desktop) | Local desktop and RDP APIs |
+| [Runtime configuration](#runtime-configuration) | Global environment variables for run artifacts, language, Playground networking, and Debug logs |
 
 ## Shared Agent APIs {#common}
 
@@ -89,7 +90,7 @@ The device CLIs expose the same Agent behavior options for individual calls. Con
 Use `modelConfig: Record<string, string | number>` to configure models directly in code instead of environment variables.
 
 > If `modelConfig` is provided at agent initialization, **all system environment variables for model config are ignored**. Only the values in this object are used.
-> The supported keys and values are listed in [Model configuration](../model-config). See [Model strategy](../model-strategy) for guidance on choosing models.
+> The supported keys and values are listed in [Model configuration](../model-config). See [Model strategy](../model-strategy) to understand the Default, Planning, and Insight model roles.
 
 **Custom OpenAI client**
 
@@ -149,7 +150,7 @@ function ai(prompt: string, options?: Object): Promise<string | undefined>; // s
   - `prompt: string | object` — A natural language description of the UI steps, or [prompting with images](#prompting-with-images).
   - `options?: object` — Optional configuration:
     - `cacheable?: boolean` — Whether this call can use the [cache](../caching.mdx). Default: `true`.
-    - `deepThink?: 'unset' | true | false` — Controls the planning implementation used by Midscene when `aiAct` performs planning. When enabled, `aiAct` focuses more on task decomposition and separates task planning from UI element locating into different model calls. For compatibility, `'unset'` is accepted and treated the same as `false`. [Learn more about deepThink](../model-strategy#about-the-deepthink-option-in-aiact).
+    - `deepThink?: 'unset' | true | false` — Controls the planning implementation used by Midscene when `aiAct` performs planning. See [`deepThink` planning mode](#aiact-deepthink).
     - `deepLocate?: boolean` — Whether to enable [Deep Locate](#deep-locate-deeplocate). Default: `false`.
     - `context?: string` — Additional context for this call. See [Per-call context](#per-call-context).
     - `fileChooserAccept?: string | string[]` — When a file chooser pops up, specify the file path(s) to accept. Can be a single file path or an array of paths. Only available in web pages (Playwright, Puppeteer, or Chrome extension Bridge mode). This option is not constrained by `fileChooserAllowedDir`.
@@ -188,6 +189,17 @@ await agent.aiAct('Fill in the form and submit', {
 // For complex tasks, you can enable the deepThink parameter
 await agent.aiAct('Complete the GitHub account registration form. The region must be set to "Canada". Make sure no fields on the form are missed and all form fields pass validation. Just fill in the form fields without actually submitting the registration. Finally, return the actual content filled in the form fields', { deepThink: true });
 ```
+
+##### `deepThink` planning mode {#aiact-deepthink}
+
+`deepThink` controls the planning implementation used by `aiAct`:
+
+- By default, `aiAct` plans the next step and locates the target element in the same planning request.
+- When set to `true`, `aiAct` focuses more on task decomposition and separates task planning from element localization into different model calls. This can improve stability for complex tasks, but it also increases model calls and latency.
+
+`deepThink` accepts `'unset' | true | false`. The legacy `'unset'` value behaves the same as `false`.
+
+`deepThink` does not control model-native thinking. See [Model-native thinking](../model-config#model-native-reasoning) for the related environment variables.
 
 ##### Upload files from an `aiAct` prompt
 
@@ -1551,7 +1563,7 @@ await agent.aiTap('Shopping cart icon in the top right', { deepLocate: true });
 
 Historically, the name `deepThink` has carried two different meanings across APIs:
 
-- In `aiAct()`, `deepThink` has always meant **planning mode**, guiding task decomposition and planning-focused reasoning. See [aiAct deepThink documentation](../model-strategy#about-the-deepthink-option-in-aiact) for details.
+- In `aiAct()`, `deepThink` has always meant **planning mode**, guiding task decomposition and planning-focused reasoning. See [`deepThink` planning mode](#aiact-deepthink) for details.
 - In single-step action methods such as `aiTap` and `aiHover`, the old `deepThink` meant **enhanced element location**, equivalent to today's `deepLocate`.
 
 To separate these two meanings, `deepThink` has been reserved for planning mode since v1.5.1, while enhanced element location is consistently named `deepLocate`.
@@ -3211,6 +3223,35 @@ const displays = await ComputerDevice.listDisplays();
 ```
 
 With RDP, `ListDisplays` returns the current remote session as a single display.
+
+## Runtime configuration {#runtime-configuration}
+
+These environment variables control global runtime behavior rather than model requests. They are not supported in an Agent's `modelConfig` object.
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| `MIDSCENE_RUN_DIR` | string | `midscene_run` | Directory for reports, logs, model-call records, and other run artifacts. Accepts an absolute path or a path relative to the current working directory. |
+| `MIDSCENE_PREFERRED_LANGUAGE` | string | `Chinese` in the `Asia/Shanghai` time zone; otherwise `English` | Preferred language for model responses. |
+| `MIDSCENE_PLAYGROUND_HOST` | string | `127.0.0.1` | Network interface used by the Playground server. Set it to a reachable interface address when a remote device, virtual machine, container, or another computer needs to connect. |
+| `DEBUG` | string | Unset | Enables additional debug log namespaces. See [Debug logs](#debug-logs) for supported selectors. |
+
+Setting `MIDSCENE_PLAYGROUND_HOST=0.0.0.0` listens on all network interfaces. Use this value only on a trusted network.
+
+### Debug logs {#debug-logs}
+
+Set `DEBUG` to one of the following selectors:
+
+| Value | Description |
+| --- | --- |
+| `midscene:ai:profile:stats` | Prints model latency and Token usage in a comma-separated format. |
+| `midscene:ai:profile:detail` | Prints detailed Token usage logs. |
+| `midscene:ai:call` | Prints AI response details. |
+| `midscene:android:adb` | Prints Android ADB command details. |
+| `midscene:*` | Prints all Midscene Debug logs. |
+
+Midscene saves logs under `<MIDSCENE_RUN_DIR>/log` even when `DEBUG` is unset. Debug logs may contain model inputs, outputs, or screenshots. Review them before sharing, and do not commit them to a source repository.
+
+For model connectivity checks, call recording, and Tracing integrations, see [Model debugging and observability](../model-debugging-observability).
 
 **See also**
 
