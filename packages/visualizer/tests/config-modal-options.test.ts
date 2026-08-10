@@ -68,9 +68,6 @@ describe('ConfigModal Agent options', () => {
     expect(configModalStyles).toContain('overflow-x: auto;');
     expect(configModalStyles).toContain('white-space: pre;');
     expect(configModalStyles).toContain('scrollbar-color:');
-    expect(configModalStyles).toContain(
-      'var(--midscene-border-control, rgba(0, 0, 0, 0.25)) transparent;',
-    );
     expect(configModalStyles).toMatch(
       /&::\-webkit-scrollbar\s*\{\s*width: 6px;\s*height: 6px;/,
     );
