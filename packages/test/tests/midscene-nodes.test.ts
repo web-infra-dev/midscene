@@ -118,6 +118,75 @@ describe('createMidsceneNodes', () => {
     expect(recordToReport).toHaveBeenCalledWith('Checkpoint', {});
   });
 
+  it('forwards reference images to aiAct and aiAssert as multimodal prompts', async () => {
+    const aiAct = vi.fn(async () => 'opened editor');
+    const aiAssert = vi.fn(async () => undefined);
+    const agent = { aiAct, aiAssert } as unknown as MidsceneUIAgent;
+    const registry = new NodeRegistry(
+      createMidsceneNodes<{ agent: MidsceneUIAgent }>({
+        getAgent: ({ context }) => context.agent,
+      }),
+    );
+    const capsule = {
+      name: '音乐胶囊',
+      url: 'https://example.com/capsule.png',
+    };
+    const editor = {
+      name: '全屏音乐编辑器',
+      url: 'https://example.com/editor.jpg',
+    };
+
+    const result = await runCollectedCase(
+      collected([
+        {
+          node: 'aiAct',
+          input: {
+            prompt: '点击音乐胶囊进入编辑器',
+            images: [capsule, editor],
+            convertHttpImage2Base64: true,
+          },
+          meta: { continueOnError: false },
+        },
+        {
+          node: 'aiAssert',
+          input: {
+            prompt: '当前页面与全屏音乐编辑器参考图一致',
+            images: [editor],
+            convertHttpImage2Base64: true,
+            options: { screenshotIncluded: true },
+          },
+          meta: { continueOnError: false },
+        },
+      ]),
+      {
+        resolveNode: registry.require.bind(registry),
+        context: { agent },
+      },
+    );
+
+    expect(result.status).toBe('success');
+    expect(aiAct).toHaveBeenCalledWith(
+      {
+        prompt: '点击音乐胶囊进入编辑器',
+        images: [capsule, editor],
+        convertHttpImage2Base64: true,
+      },
+      expect.objectContaining({ abortSignal: expect.any(AbortSignal) }),
+    );
+    expect(aiAssert).toHaveBeenCalledWith(
+      {
+        prompt: '当前页面与全屏音乐编辑器参考图一致',
+        images: [editor],
+        convertHttpImage2Base64: true,
+      },
+      undefined,
+      expect.objectContaining({
+        screenshotIncluded: true,
+        abortSignal: expect.any(AbortSignal),
+      }),
+    );
+  });
+
   it('rejects invalid node input and missing Agent methods clearly', async () => {
     const nodes = createMidsceneNodes<{ agent: MidsceneUIAgent }>({
       getAgent: ({ context }) => context.agent,

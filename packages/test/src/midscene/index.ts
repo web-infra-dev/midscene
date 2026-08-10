@@ -25,6 +25,19 @@ export interface MidsceneAiAssertOptions {
   keepRawResponse?: boolean;
 }
 
+export interface MidscenePromptImage {
+  name: string;
+  url: string;
+}
+
+export type MidsceneUserPrompt =
+  | string
+  | {
+      prompt: string;
+      images?: MidscenePromptImage[];
+      convertHttpImage2Base64?: boolean;
+    };
+
 export interface MidsceneReportScreenshot {
   base64: string;
   description?: string;
@@ -38,11 +51,11 @@ export interface MidsceneRecordToReportOptions {
 
 export interface MidsceneUIAgent {
   aiAct(
-    prompt: string,
+    prompt: MidsceneUserPrompt,
     options?: MidsceneAiActOptions,
   ): Promise<string | undefined>;
   aiAssert(
-    prompt: string,
+    prompt: MidsceneUserPrompt,
     message?: string,
     options?: MidsceneAiAssertOptions,
   ): Promise<unknown>;
@@ -90,6 +103,23 @@ const nonBlankPrompt = (description: string) =>
     .regex(/\S/, 'prompt must contain a non-whitespace character')
     .describe(description);
 
+const promptImagesInputSchema = z
+  .array(
+    z.strictObject({
+      name: nonBlankPrompt('The name used to identify this reference image.'),
+      url: nonBlankPrompt(
+        'The URL, data URL, or file path of this reference image.',
+      ),
+    }),
+  )
+  .min(1)
+  .optional();
+
+const promptImageConversionInputSchema = z
+  .boolean()
+  .optional()
+  .describe('Whether HTTP reference images are converted to base64 first.');
+
 const aiActOptionsInputSchema = z.strictObject({
   cacheable: z
     .boolean()
@@ -115,6 +145,8 @@ const aiActOptionsInputSchema = z.strictObject({
 
 export const aiActInputSchema = z.strictObject({
   prompt: nonBlankPrompt('The natural-language UI task to perform.'),
+  images: promptImagesInputSchema,
+  convertHttpImage2Base64: promptImageConversionInputSchema,
   options: aiActOptionsInputSchema.optional(),
 });
 
@@ -135,6 +167,8 @@ const aiAssertOptionsInputSchema = z.strictObject({
 
 export const aiAssertInputSchema = z.strictObject({
   prompt: nonBlankPrompt('The natural-language condition that must be true.'),
+  images: promptImagesInputSchema,
+  convertHttpImage2Base64: promptImageConversionInputSchema,
   message: z.string().optional().describe('The assertion failure message.'),
   options: aiAssertOptionsInputSchema.optional(),
 });
@@ -268,6 +302,26 @@ const mergeContext = (
   [explicit, renderNodeHistory(history)].filter(Boolean).join('\n\n') ||
   undefined;
 
+const toAgentPrompt = (input: {
+  prompt: string;
+  images?: MidscenePromptImage[];
+  convertHttpImage2Base64?: boolean;
+}): MidsceneUserPrompt => {
+  if (
+    input.images === undefined &&
+    input.convertHttpImage2Base64 === undefined
+  ) {
+    return input.prompt;
+  }
+  return {
+    prompt: input.prompt,
+    ...(input.images === undefined ? {} : { images: input.images }),
+    ...(input.convertHttpImage2Base64 === undefined
+      ? {}
+      : { convertHttpImage2Base64: input.convertHttpImage2Base64 }),
+  };
+};
+
 const waitFor = async (durationMs: number, signal: AbortSignal) => {
   if (signal.aborted) {
     throw signal.reason ?? new Error('Wait aborted.');
@@ -337,7 +391,7 @@ export function createMidsceneNodes<TContext>(
       async execute(ctx) {
         const agent = await getAgent(ctx);
         const aiAct = requireAgentMethod(agent, 'aiAct', 'aiAct');
-        const output = await aiAct.call(agent, ctx.input.prompt, {
+        const output = await aiAct.call(agent, toAgentPrompt(ctx.input), {
           ...ctx.input.options,
           context: mergeContext(ctx.input.options?.context, ctx.history),
           abortSignal: ctx.signal,
@@ -353,11 +407,16 @@ export function createMidsceneNodes<TContext>(
       async execute(ctx) {
         const agent = await getAgent(ctx);
         const aiAssert = requireAgentMethod(agent, 'aiAssert', 'aiAssert');
-        await aiAssert.call(agent, ctx.input.prompt, ctx.input.message, {
-          ...ctx.input.options,
-          context: mergeContext(ctx.input.options?.context, ctx.history),
-          abortSignal: ctx.signal,
-        });
+        await aiAssert.call(
+          agent,
+          toAgentPrompt(ctx.input),
+          ctx.input.message,
+          {
+            ...ctx.input.options,
+            context: mergeContext(ctx.input.options?.context, ctx.history),
+            abortSignal: ctx.signal,
+          },
+        );
         return { summary: `Assertion passed: ${ctx.input.prompt}` };
       },
     }),
