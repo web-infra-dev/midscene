@@ -28,6 +28,7 @@ import {
   type OpenDialogOptions,
   app,
   dialog,
+  autoUpdater as electronAutoUpdater,
   ipcMain,
   nativeImage,
   nativeTheme,
@@ -51,19 +52,31 @@ import {
   generateRecorderMetadataInMain,
 } from './recorder/codegen';
 import { configureStudioShellEnvHydration } from './shell-env';
+import {
+  acquireStudioSingleInstanceLock,
+  restoreAndFocusStudioWindow,
+} from './single-instance';
 import { StudioArtifactCleanup } from './studio-artifact-cleanup';
 import { studioUpdater } from './updater';
 import { registerUpdaterHandlers } from './updater-handlers';
-import { registerWindowRevealHandlers } from './window-reveal';
+import {
+  type WindowRevealController,
+  registerWindowRevealHandlers,
+} from './window-reveal';
+
+const shouldBootstrapStudio = acquireStudioSingleInstanceLock(app);
 
 // macOS GUI launches (Finder, Dock) skip the user's login shell, so
 // `ANDROID_HOME`, `PATH` additions for adb/hdc/xcrun, etc. never reach
 // `process.env`. Configure the hydrator once here, but only run it lazily
 // from the device-specific paths that actually need those binaries.
-configureStudioShellEnvHydration({
-  isPackaged: app.isPackaged,
-  log: (message, error) => console.warn(`[studio:shell-env] ${message}`, error),
-});
+if (shouldBootstrapStudio) {
+  configureStudioShellEnvHydration({
+    isPackaged: app.isPackaged,
+    log: (message, error) =>
+      console.warn(`[studio:shell-env] ${message}`, error),
+  });
+}
 
 /**
  * Main process owns native shell concerns only.
@@ -72,11 +85,13 @@ configureStudioShellEnvHydration({
  */
 
 let mainWindow: BrowserWindow | null = null;
+let mainWindowRevealController: WindowRevealController | null = null;
 let cachedAppIcon: NativeImage | null = null;
 let playgroundRuntimePromise: Promise<PlaygroundRuntimeService> | null = null;
 let deviceDiscoveryServicePromise: Promise<DeviceDiscoveryService> | null =
   null;
 let studioRunDir: string | null = null;
+let isQuitting = false;
 const isStudioSmokeTest = process.env.MIDSCENE_STUDIO_SMOKE_TEST === '1';
 const isStudioE2ETest = process.env.MIDSCENE_STUDIO_E2E_TEST === '1';
 const STUDIO_SMOKE_READY_MARKER = 'MIDSCENE_STUDIO_SMOKE_READY';
@@ -89,7 +104,7 @@ const STUDIO_E2E_FAILED_MARKER = 'MIDSCENE_STUDIO_E2E_FAILED';
 // the renderer without the user keeping DevTools open. Production builds never
 // set this — it would be a liability. The port can be overridden with the
 // MIDSCENE_STUDIO_CDP_PORT env var when multiple dev instances are running.
-if (!app.isPackaged) {
+if (shouldBootstrapStudio && !app.isPackaged) {
   const cdpPort = process.env.MIDSCENE_STUDIO_CDP_PORT ?? '9224';
   app.commandLine.appendSwitch('remote-debugging-port', cdpPort);
   // Bind to loopback so the debug endpoint isn't reachable from the network.
@@ -411,7 +426,9 @@ const createMainWindow = () => {
     },
   });
 
-  registerWindowRevealHandlers({
+  mainWindow = window;
+
+  const revealController = registerWindowRevealHandlers({
     isDestroyed: () => window.isDestroyed(),
     onDidFailLoad: (listener) =>
       window.webContents.once('did-fail-load', listener),
@@ -420,6 +437,7 @@ const createMainWindow = () => {
     onReadyToShow: (listener) => window.once('ready-to-show', listener),
     show: () => window.show(),
   });
+  mainWindowRevealController = revealController;
 
   if (isStudioSmokeTest || isStudioE2ETest) {
     window.webContents.once('did-finish-load', () => {
@@ -464,18 +482,16 @@ const createMainWindow = () => {
     });
   }
 
-  mainWindow = window;
-
   // Push every OS appearance change to the renderer so system-follow keeps
   // working even after `themeSource` has been toggled. The renderer
   // matchMedia listener silently stops firing across some Electron versions
   // once themeSource is explicitly set, so we keep nativeTheme as the
   // authoritative signal here.
   const handleNativeThemeUpdated = () => {
-    if (!mainWindow || mainWindow.isDestroyed()) {
+    if (window.isDestroyed()) {
       return;
     }
-    mainWindow.webContents.send(
+    window.webContents.send(
       IPC_CHANNELS.systemThemeChanged,
       nativeTheme.shouldUseDarkColors ? 'dark' : 'light',
     );
@@ -483,7 +499,51 @@ const createMainWindow = () => {
   nativeTheme.on('updated', handleNativeThemeUpdated);
   window.once('closed', () => {
     nativeTheme.off('updated', handleNativeThemeUpdated);
+    if (mainWindow === window) {
+      mainWindow = null;
+      if (mainWindowRevealController === revealController) {
+        mainWindowRevealController = null;
+      }
+    }
   });
+
+  return window;
+};
+
+const ensureMainWindow = (): BrowserWindow => {
+  if (!app.isReady()) {
+    throw new Error('Cannot create the Studio window before Electron is ready');
+  }
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    return mainWindow;
+  }
+
+  return createMainWindow();
+};
+
+const activateMainWindow = (): BrowserWindow | null => {
+  if (isQuitting) {
+    return null;
+  }
+
+  const window = ensureMainWindow();
+  const revealController = mainWindowRevealController;
+  if (!revealController) {
+    throw new Error('Studio window reveal controller is not configured');
+  }
+
+  revealController.requestActivation(() => {
+    if (isQuitting || mainWindow !== window || window.isDestroyed()) {
+      return;
+    }
+
+    restoreAndFocusStudioWindow(
+      window,
+      process.platform === 'darwin' ? app : undefined,
+    );
+  });
+
+  return window;
 };
 
 const registerIpcHandlers = () => {
@@ -771,63 +831,94 @@ const registerIpcHandlers = () => {
   );
 };
 
-app.whenReady().then(() => {
-  ensureStudioRunDir();
-  const stopEventLoopWatchdog = startStudioEventLoopWatchdog();
-  app.once('before-quit', stopEventLoopWatchdog);
+if (shouldBootstrapStudio) {
+  const markStudioQuitting = () => {
+    isQuitting = true;
+  };
 
-  if (process.platform === 'darwin' && app.dock) {
-    app.dock.setIcon(getAppIcon());
-  }
+  app.on('before-quit', markStudioQuitting);
+  electronAutoUpdater.on('before-quit-for-update', markStudioQuitting);
 
-  void getDeviceDiscoveryService()
-    .then((service) =>
-      service.subscribe((devices) => {
-        if (!mainWindow || mainWindow.isDestroyed()) {
-          return;
-        }
+  const primaryReady = app.whenReady().then(() => {
+    if (isQuitting) {
+      return;
+    }
 
-        mainWindow.webContents.send(
-          IPC_CHANNELS.discoveredDevicesUpdated,
-          devices,
-        );
-      }),
-    )
-    .catch((error) => {
-      console.error('Failed to initialize device discovery service:', error);
-    });
+    ensureStudioRunDir();
+    const stopEventLoopWatchdog = startStudioEventLoopWatchdog();
+    app.once('before-quit', stopEventLoopWatchdog);
 
-  registerIpcHandlers();
-  registerUpdaterHandlers(studioUpdater);
-  createMainWindow();
+    if (process.platform === 'darwin' && app.dock) {
+      app.dock.setIcon(getAppIcon());
+    }
 
-  // studioUpdater.init() no-ops when !app.isPackaged, and we skip the
-  // call entirely when running under the smoke/e2e harness so test runs
-  // do not hit the GitHub Releases API.
-  if (!isStudioSmokeTest && !isStudioE2ETest) {
-    studioUpdater.init(() => mainWindow);
-  }
+    void getDeviceDiscoveryService()
+      .then((service) =>
+        service.subscribe((devices) => {
+          if (!mainWindow || mainWindow.isDestroyed()) {
+            return;
+          }
 
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-      createMainWindow();
+          mainWindow.webContents.send(
+            IPC_CHANNELS.discoveredDevicesUpdated,
+            devices,
+          );
+        }),
+      )
+      .catch((error) => {
+        console.error('Failed to initialize device discovery service:', error);
+      });
+
+    registerIpcHandlers();
+    registerUpdaterHandlers(studioUpdater);
+    ensureMainWindow();
+
+    // studioUpdater.init() no-ops when !app.isPackaged, and we skip the
+    // call entirely when running under the smoke/e2e harness so test runs
+    // do not hit the GitHub Releases API.
+    if (!isStudioSmokeTest && !isStudioE2ETest) {
+      studioUpdater.init(() => mainWindow);
     }
   });
-});
 
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
-    app.quit();
+  const requestMainWindowActivation = () => {
+    if (isQuitting) {
+      return;
+    }
+
+    void primaryReady
+      .then(() => {
+        if (!isQuitting) {
+          activateMainWindow();
+        }
+      })
+      .catch((error) => {
+        console.error('Failed to activate Studio window:', error);
+      });
+  };
+
+  if (app.isPackaged) {
+    app.on('second-instance', requestMainWindowActivation);
   }
-});
+  app.on('activate', requestMainWindowActivation);
 
-app.on('before-quit', () => {
-  void closePlaygroundRuntime();
-  void getDeviceDiscoveryService()
-    .then((service) => {
-      service.close();
-    })
-    .catch(() => {
-      // ignore cleanup failures during shutdown
-    });
-});
+  app.on('window-all-closed', () => {
+    if (process.platform !== 'darwin') {
+      app.quit();
+    }
+  });
+
+  app.on('before-quit', () => {
+    void closePlaygroundRuntime();
+    const discoveryService = deviceDiscoveryServicePromise;
+    if (discoveryService) {
+      void discoveryService
+        .then((service) => {
+          service.close();
+        })
+        .catch(() => {
+          // ignore cleanup failures during shutdown
+        });
+    }
+  });
+}
