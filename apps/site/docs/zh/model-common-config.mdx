@@ -216,7 +216,27 @@ MIDSCENE_INSIGHT_MODEL_FAMILY="gpt-5"
   </ModelConfigTab>
 </ModelConfigTabs>
 
-<span id="use-codex-app-server-oauth-no-api-key" />
+#### 使用 Codex App Server（OAuth，无需 API Key） {#use-codex-app-server-oauth-no-api-key}
+
+如果你已经通过 Codex CLI 登录（`codex login`），并希望 Midscene 直接复用该 OAuth 会话，可设置：
+
+```bash
+export MIDSCENE_MODEL_BASE_URL="codex://app-server"
+export MIDSCENE_MODEL_NAME="gpt-5.4" # 或者使用 Codex model/list 可见的其他模型
+export MIDSCENE_MODEL_FAMILY="gpt-5"
+```
+
+说明：
+
+- 该模式下不需要 `MIDSCENE_MODEL_API_KEY`。
+- Midscene 会通过 stdio 调用 `codex app-server`。
+- 请确保 `codex` 在 PATH 中可用，并通过 `codex login status` 确认登录状态。
+
+:::warning 已知限制
+
+相比于直接调用 OpenAI 兼容 API，我们观察到这种方式可能耗时更长、token 消耗更多，具体原因还在排查中。
+
+:::
 
 使用 GPT-5 时，请注意以下事项：
 
