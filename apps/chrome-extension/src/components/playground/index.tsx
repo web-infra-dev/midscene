@@ -157,6 +157,8 @@ export function BrowserExtensionPlayground({
         agentOptions,
         onAgentOptionsSave,
         configModalClassName: 'chrome-extension-model-env-config-modal',
+        configModalWidth: 360,
+        envTextareaAutoSize: false,
         envTextareaMinRows: 4,
       }}
       config={{
