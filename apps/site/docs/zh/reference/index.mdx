@@ -2130,6 +2130,7 @@ const device = new AndroidDevice(deviceId, {
   - `'always-yadb'` —— 绕过默认的 `auto` 截图流程（`adb.takeScreenshot`、`screencap`，以及开启时的 scrcpy），直接使用 [yadb](https://github.com/ysbing/yadb) 截图。适用于 `screencap` 对安全页面（`FLAG_SECURE`）截出黑屏、但 yadb 能正常截取的场景——能否截取取决于 Android 版本、ROM、root/hook 环境和设备配置，请以实际设备测试结果为准。yadb 只能截取默认显示器（`displayId=0`）；如果同时设置该策略和非零 `displayId`，Midscene 会抛出错误。也可通过环境变量 `MIDSCENE_ANDROID_SCREENSHOT_STRATEGY=always-yadb` 设置。
 - `displayId?: number` —— 在设备镜像多个屏幕时，选择特定虚拟屏幕。
 - `exposeRunAdbShellAction?: boolean` —— 是否在动作空间中暴露内置的 `RunAdbShell` 动作。默认值：`true`。设为 `false` 后，AI 规划器、YAML 脚本和 `agent.runAdbShell()` 都无法执行 ADB shell 命令。
+- `customActions?: DeviceAction[]` —— 通过 `defineAction` 扩展规划器的可用动作。
 - `screenshotResizeScale?: number` —— **已废弃。** 此选项已移除，不再生效。如需控制发送给 AI 模型的截图尺寸，请使用 `AgentOpt` 中的 `screenshotShrinkFactor`。
 - `minScreenshotBufferSize?: number` —— 截图 buffer 大小校验阈值，单位为字节；低于该值的 buffer 会被视为截图采集失败或已损坏。默认 `1024`（1KB）。设置为 `0` 仅跳过此大小校验；Midscene 仍会拒绝空 buffer 和无效图片格式。
 - `alwaysRefreshScreenInfo?: boolean` —— 每一步都重新查询旋转角度与屏幕尺寸，默认 `false`。
@@ -2187,7 +2188,6 @@ const agent = new AndroidAgent(device, {
 
 **Android 特有选项**
 
-- `customActions?: DeviceAction[]` —— 通过 `defineAction` 扩展规划器的可用动作。
 - `appNameMapping?: Record<string, string>` —— 将友好的应用名称映射到包名。当你在 `launch(target)` 里传入应用名称时，Agent 会在此映射中查找对应的包名；若未找到映射，则按原样尝试启动 `target`。
 - 其余字段与[通用构造参数](#common-parameters)一致，包括 `generateReport`、`reportFileName`、`aiActContext`、`modelConfig`、`cache`、`createOpenAIClient` 和 `onTaskStartTip` 等。
 
@@ -2196,6 +2196,7 @@ const agent = new AndroidAgent(device, {
 :::info
 
 - 一个设备连接对应一个 Agent。
+- `customActions` 用于配置 `AndroidDevice` 的额外动作。可以将它传给 Device 构造函数或 `agentFromAdbDevice()`。
 - `launch`、`terminate`、`runAdbShell` 等 Android 专属辅助函数也可在 YAML 脚本中使用，语法见 [Android 平台特定动作](../automate-with-scripts-in-yaml#the-android-part)。
 - 通用交互方法请查阅 [API 参考（通用）](#interaction-methods)。
 
@@ -2435,7 +2436,7 @@ const agent = new IOSAgent(device, {
 :::info
 
 - 一个设备连接对应一个 Agent。
-- `customActions` 属于 `IOSDevice` 选项，不属于 `IOSAgent` 构造参数。`agentFromWebDriverAgent()` 可以接收它，是因为这个工厂函数在同一个对象中同时接收 `IOSAgentOpt` 和 `IOSDeviceOpt`。
+- `customActions` 用于配置 `IOSDevice` 的额外动作。可以将它传给 Device 构造函数或 `agentFromWebDriverAgent()`。
 - `launch`、`terminate`、`runWdaRequest` 等 iOS 专属辅助函数也可在 YAML 脚本中使用，语法见 [iOS 平台特定动作](../automate-with-scripts-in-yaml#the-ios-part)。
 - 通用交互方法请查阅 [API 参考（通用）](#interaction-methods)。
 
@@ -2646,7 +2647,6 @@ const agent = new HarmonyAgent(device, {
 
 **HarmonyOS 特有选项**
 
-- `customActions?: DeviceAction[]` —— 通过 `defineAction` 扩展规划器的可用动作。
 - `appNameMapping?: Record<string, string>` —— 将友好的应用名称映射到 bundle name。当你在 `launch(target)` 里传入应用名称时，Agent 会在此映射中查找对应的 bundle name；若未找到映射，则按原样尝试启动 `target`。
 - 其余字段与[通用构造参数](#common-parameters)一致，包括 `generateReport`、`reportFileName`、`aiActContext`、`modelConfig`、`cache`、`createOpenAIClient` 和 `onTaskStartTip` 等。
 
@@ -2655,6 +2655,7 @@ const agent = new HarmonyAgent(device, {
 :::info
 
 - 一个设备连接对应一个 Agent。
+- `customActions` 用于配置 `HarmonyDevice` 的额外动作。可以将它传给 Device 构造函数或 `agentFromHdcDevice()`。
 - `launch`、`terminate`、`runHdcShell` 等 HarmonyOS 专属辅助函数也可在 YAML 脚本中使用，语法见 [HarmonyOS 平台特定动作](../automate-with-scripts-in-yaml#harmony-部分)。
 - 通用交互方法请查阅 [API 参考（通用）](#interaction-methods)。
 

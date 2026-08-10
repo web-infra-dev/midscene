@@ -144,9 +144,7 @@ Promise.resolve(
 npx tsx demo.ts
 ```
 
-### View the report
-
-Successful runs print `Midscene - report file updated: /path/to/report/some_id.html`. Open the generated HTML file in a browser to replay every interaction, query, and assertion.
+After the script finishes, you should see `Midscene - report file updated: /path/to/report/some_id.html` in the console. Open the generated HTML file in a browser to replay every interaction, query, and assertion.
 
 ## Advanced
 
@@ -154,7 +152,7 @@ Use this section to customize device behavior, integrate Midscene into your fram
 
 ### Extend Midscene on Android
 
-Use `defineAction()` for custom gestures and pass them through `customActions`. Midscene will append them to the planner so AI can call your domain-specific action names.
+Use `defineAction()` for custom gestures and pass them through `customActions` when constructing `AndroidDevice`. Midscene will append them to the planner so AI can call your domain-specific action names.
 
 ```typescript
 import { getMidsceneLocationSchema, z } from '@midscene/core';
@@ -176,26 +174,17 @@ const ContinuousClick = defineAction({
 });
 
 const devices = await getConnectedDevices();
-const device = new AndroidDevice(devices[0].udid);
-await device.connect();
-
-const agent = new AndroidAgent(device, {
+const device = new AndroidDevice(devices[0].udid, {
   customActions: [ContinuousClick],
 });
+await device.connect();
+
+const agent = new AndroidAgent(device);
 
 await agent.aiAct('click the red button five times');
 ```
 
 See [Integrate with any interface](../integrate-with-any-interface#define-a-custom-action) for a deeper explanation of custom actions and action schemas.
-
-## More
-
-- For every Agent method, check the [API reference (Common)](../reference/#interaction-methods).
-- For Android-specific APIs, see [API reference (Android)](../reference/#android).
-- Use [YAML automation scripts and command-line tools](../automate-with-scripts-in-yaml).
-- Demo projects
-  - Android JavaScript SDK demo: [https://github.com/web-infra-dev/midscene-example/blob/main/android/javascript-sdk-demo](https://github.com/web-infra-dev/midscene-example/blob/main/android/javascript-sdk-demo)
-  - Android + Vitest demo: [https://github.com/web-infra-dev/midscene-example/tree/main/android/vitest-demo](https://github.com/web-infra-dev/midscene-example/tree/main/android/vitest-demo)
 
 ## FAQ
 
@@ -325,3 +314,12 @@ const device = new AndroidDevice('s4ey59', {
   remoteAdbPort: 5037,
 });
 ```
+
+## More
+
+- For every Agent method, check the [API reference (Common)](../reference/#interaction-methods).
+- For Android-specific APIs, see [API reference (Android)](../reference/#android).
+- Use [YAML automation scripts and command-line tools](../automate-with-scripts-in-yaml).
+- Demo projects
+  - Android JavaScript SDK demo: [https://github.com/web-infra-dev/midscene-example/blob/main/android/javascript-sdk-demo](https://github.com/web-infra-dev/midscene-example/blob/main/android/javascript-sdk-demo)
+  - Android + Vitest demo: [https://github.com/web-infra-dev/midscene-example/tree/main/android/vitest-demo](https://github.com/web-infra-dev/midscene-example/tree/main/android/vitest-demo)

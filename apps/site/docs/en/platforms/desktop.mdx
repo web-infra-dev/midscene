@@ -4,34 +4,11 @@ import { PackageManagerTabs } from '@theme';
 
 # Desktop
 
-Midscene uses native keyboard and mouse controls to automate desktop applications on Windows, macOS, and Linux.
+Midscene uses native keyboard and mouse controls to automate desktop applications on Windows, macOS, and Linux. It supports mouse and keyboard input, screenshots, and multiple displays.
+
+Use it to test Electron, Qt, and native applications, or to automate workflows across desktop applications.
 
 This guide covers platform setup, model configuration, Playground, and JavaScript SDK integration with `@midscene/computer`.
-
-**Cross-platform desktop control**
-
-- Mouse operations: click, double-click, right-click, move, and drag-and-drop.
-- Keyboard input: type text and press keys with Cmd, Ctrl, Alt, or Shift.
-- Screen capture: take screenshots from any display.
-- Multiple displays: work with multiple monitors in one workflow.
-
-**AI-powered automation**
-
-Use natural-language instructions to automate desktop applications:
-
-```typescript
-await agent.aiAct('open the File menu');
-await agent.aiAct('click on Save As');
-await agent.aiAct('type "my-document" in the filename field');
-await agent.aiAct('press Enter');
-```
-
-Typical use cases include:
-
-- Test Electron, Qt, and native desktop applications.
-- Automate repetitive work across desktop applications.
-- Control multiple applications in sequence.
-- Test desktop interfaces with natural-language instructions.
 
 ## See it in action
 
@@ -132,6 +109,8 @@ import { agentForComputer } from '@midscene/computer';
 ```bash
 npx tsx example.ts
 ```
+
+After the script finishes, you should see `Midscene - report file updated: /path/to/report/some_id.html` in the console. Open the generated HTML file in a browser to replay every interaction, query, and assertion.
 
 ## Connect to a Remote Windows Desktop via RDP
 

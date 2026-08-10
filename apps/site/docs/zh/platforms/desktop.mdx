@@ -4,34 +4,11 @@ import { PackageManagerTabs } from '@theme';
 
 # 桌面端
 
-Midscene 通过原生键盘和鼠标控制，在 Windows、macOS 和 Linux 上自动化桌面应用。
+Midscene 通过原生键盘和鼠标控制，在 Windows、macOS 和 Linux 上自动化桌面应用。它支持鼠标与键盘输入、屏幕截图和多显示器。
+
+它适用于测试 Electron、Qt 和原生应用，也可以自动化跨应用工作流。
 
 本指南介绍平台配置、模型配置、Playground 体验，以及 `@midscene/computer` 的 JavaScript SDK 集成。
-
-**跨平台桌面控制**
-
-- 鼠标操作：单击、双击、右键、移动和拖放。
-- 键盘输入：输入文本，并使用 Cmd、Ctrl、Alt 或 Shift 执行组合按键。
-- 屏幕截图：捕获任意显示器的画面。
-- 多显示器：在一个工作流中操作多个显示器。
-
-**AI 驱动的自动化**
-
-使用自然语言指令自动化桌面应用：
-
-```typescript
-await agent.aiAct('打开文件菜单');
-await agent.aiAct('点击另存为');
-await agent.aiAct('在文件名字段输入 "我的文档"');
-await agent.aiAct('按回车键');
-```
-
-典型使用场景包括：
-
-- 测试 Electron、Qt 和原生桌面应用。
-- 自动化桌面应用中的重复工作。
-- 按顺序控制多个应用。
-- 使用自然语言指令测试桌面界面。
 
 ## 效果展示
 
@@ -132,6 +109,8 @@ import { agentForComputer } from '@midscene/computer';
 ```bash
 npx tsx example.ts
 ```
+
+脚本运行结束后，你应该能在控制台看到 `Midscene - report file updated: /path/to/report/some_id.html`。在浏览器中打开生成的 HTML 文件，即可回放每次交互、查询和断言。
 
 ## 通过 RDP 连接远程 Windows 桌面
 
