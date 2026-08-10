@@ -172,7 +172,10 @@ async function puppeteerEditingState(
     return {
       activeElementId: document.activeElement?.id ?? '',
       events: browserWindow.__midsceneEditingEvents,
-      firstSelection: [first.selectionStart, first.selectionEnd],
+      firstSelection: [first.selectionStart, first.selectionEnd] as [
+        number | null,
+        number | null,
+      ],
       firstValue: first.value,
       secondValue: second.value,
     };
@@ -191,7 +194,10 @@ async function playwrightEditingState(
     return {
       activeElementId: document.activeElement?.id ?? '',
       events: browserWindow.__midsceneEditingEvents,
-      firstSelection: [first.selectionStart, first.selectionEnd],
+      firstSelection: [first.selectionStart, first.selectionEnd] as [
+        number | null,
+        number | null,
+      ],
       firstValue: first.value,
       secondValue: second.value,
     };
@@ -242,7 +248,9 @@ describe('input keyboard actions end to end', () => {
             keyName: `${MODIFIER}+X`,
           });
 
-          expect(await page.$eval('#first', (el) => el.value)).toBe('');
+          expect(
+            await page.$eval('#first', (el) => (el as HTMLInputElement).value),
+          ).toBe('');
         } finally {
           await page.close();
         }
@@ -270,9 +278,9 @@ describe('input keyboard actions end to end', () => {
           await input.keyboard.keyboardPress(`${MODIFIER}+C`, {
             target: first,
           });
-          expect(await page.$eval('#first', (el) => el.value)).toBe(
-            'first value',
-          );
+          expect(
+            await page.$eval('#first', (el) => (el as HTMLInputElement).value),
+          ).toBe('first value');
 
           await input.keyboard.keyboardPress(`${MODIFIER}+A`, {
             target: notes,
@@ -280,7 +288,12 @@ describe('input keyboard actions end to end', () => {
           await input.keyboard.keyboardPress(`${MODIFIER}+X`, {
             target: notes,
           });
-          expect(await page.$eval('#notes', (el) => el.value)).toBe('');
+          expect(
+            await page.$eval(
+              '#notes',
+              (el) => (el as HTMLTextAreaElement).value,
+            ),
+          ).toBe('');
           expect(
             await page.evaluate(
               () =>
@@ -305,8 +318,9 @@ describe('input keyboard actions end to end', () => {
         try {
           await page.setContent(TOP_LEVEL_INPUT_HTML);
           await page.$eval('#first', (el) => {
-            el.focus();
-            el.select();
+            const input = el as HTMLInputElement;
+            input.focus();
+            input.select();
           });
           const input = createWebInputPrimitives(new PuppeteerWebPage(page));
           const second = targetAt(
@@ -317,12 +331,12 @@ describe('input keyboard actions end to end', () => {
             target: second,
           });
 
-          expect(await page.$eval('#first', (el) => el.value)).toBe(
-            'first value',
-          );
-          expect(await page.$eval('#second', (el) => el.value)).toBe(
-            'second value',
-          );
+          expect(
+            await page.$eval('#first', (el) => (el as HTMLInputElement).value),
+          ).toBe('first value');
+          expect(
+            await page.$eval('#second', (el) => (el as HTMLInputElement).value),
+          ).toBe('second value');
           expect(await page.evaluate(() => document.activeElement?.id)).toBe(
             'second',
           );
@@ -387,8 +401,9 @@ describe('input keyboard actions end to end', () => {
             .find((candidate) => candidate.url().endsWith('/iframe-input'));
           if (!frame) throw new Error(`Missing Puppeteer ${mode} iframe`);
           await frame.$eval('#first', (el) => {
-            el.focus();
-            el.select();
+            const input = el as HTMLInputElement;
+            input.focus();
+            input.select();
           });
 
           const input = createWebInputPrimitives(new PuppeteerWebPage(page));
