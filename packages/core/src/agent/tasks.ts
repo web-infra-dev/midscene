@@ -343,8 +343,12 @@ export class TaskExecutor {
   ): Promise<ExecutionResult> {
     const session = this.createExecutionSession(title, options);
     const runner = session.getRunner();
-    const executionPlanningModel = { ...planningModel, executionId: runner.id };
-    const executionDefaultModel = { ...defaultModel, executionId: runner.id };
+    const executionPlanningModel = planningModel
+      ? { ...planningModel, executionId: runner.id }
+      : undefined;
+    const executionDefaultModel = defaultModel
+      ? { ...defaultModel, executionId: runner.id }
+      : undefined;
     const { tasks } = await this.convertPlanToExecutable(
       plans,
       executionPlanningModel,
