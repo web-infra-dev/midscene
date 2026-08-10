@@ -216,7 +216,27 @@ MIDSCENE_INSIGHT_MODEL_FAMILY="gpt-5"
   </ModelConfigTab>
 </ModelConfigTabs>
 
-You can also use GPT through [**Use Codex App Server (OAuth, no API Key)**](./model-config#use-codex-app-server-oauth-no-api-key).
+#### Use Codex App Server (OAuth, no API Key) {#use-codex-app-server-oauth-no-api-key}
+
+If you already signed in with Codex CLI (`codex login`) and want Midscene to use that OAuth session directly, set:
+
+```bash
+export MIDSCENE_MODEL_BASE_URL="codex://app-server"
+export MIDSCENE_MODEL_NAME="gpt-5.4" # or another model shown by Codex model/list
+export MIDSCENE_MODEL_FAMILY="gpt-5"
+```
+
+Notes:
+
+- `MIDSCENE_MODEL_API_KEY` is not required in this mode.
+- Midscene will call `codex app-server` through stdio.
+- Make sure `codex` is available in your PATH and verify auth with `codex login status`.
+
+:::warning Known limitation
+
+Compared with calling an OpenAI-compatible API directly, we have observed that this route may take longer and consume more tokens. We are still investigating the cause.
+
+:::
 
 When using GPT-5, note the following:
 
