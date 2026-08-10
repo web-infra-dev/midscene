@@ -152,7 +152,7 @@ Use this section to customize device behavior, integrate Midscene into your fram
 
 ### Extend Midscene on Android
 
-Use `defineAction()` for custom gestures and pass them through `customActions` when constructing `AndroidDevice`. Midscene will append them to the planner so AI can call your domain-specific action names.
+Use `defineAction()` to define custom actions. When constructing `AndroidDevice`, pass these actions through `customActions`. Midscene appends these actions to the planner so the Agent can call the domain-specific actions you define.
 
 ```typescript
 import { getMidsceneLocationSchema, z } from '@midscene/core';

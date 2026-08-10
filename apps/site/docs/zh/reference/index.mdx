@@ -1872,7 +1872,7 @@ const agent = new PuppeteerPageAgent(page, {
 - `enableTouchEventsInActionSpace: boolean` —— 在动作空间里增加触摸手势（如滑动），用于需要触摸事件的页面，默认 `false`。
 - `keyboardTypeDelay: number` —— 透传给 Puppeteer `page.keyboard.type` 的每字符延迟（毫秒）。默认值为 `undefined`，表示 Midscene 不传该选项，使用 Puppeteer 自身默认值。通常无需配置；只有当受控输入框在快速输入下出现丢字等特殊情况时，再调大该值（例如 `80`）。
 - `forceChromeSelectRendering: boolean` —— 强制 `select` 元素使用 Chrome 的 base-select 样式，避免系统原生样式导致截图/元素提取不可见；需要 Puppeteer > `24.6.0`。默认值为 `true`；如需关闭（例如旧版 Chrome/Puppeteer）可设为 `false`。
-- `customActions: DeviceAction[]` —— 借助 `defineAction` 注册自定义动作，让规划器可以调用领域特定步骤。
+- `customActions: DeviceAction[]` —— 添加额外的自定义动作，让 Agent 可以调用你定义的领域特定动作。
 
 **使用说明**
 
@@ -1940,7 +1940,7 @@ const agent = new PlaywrightPageAgent(page, {
 - `enableTouchEventsInActionSpace: boolean` —— 在动作空间里增加触摸手势（如滑动），用于需要触摸事件的页面，默认 `false`。
 - `keyboardTypeDelay: number` —— 透传给 Playwright `page.keyboard.type` 的每字符延迟（毫秒）。默认值为 `undefined`，表示 Midscene 不传该选项，使用 Playwright 自身默认值。通常无需配置；只有当受控输入框在快速输入下出现丢字等特殊情况时，再调大该值（例如 `80`）。
 - `forceChromeSelectRendering: boolean` —— 强制 `select` 元素使用 Chrome 的 base-select 样式，避免系统原生样式导致截图/元素提取不可见；需要 Playwright ≥ `1.52.0`。默认值为 `true`；如需关闭（例如旧版 Chrome/Playwright）可设为 `false`。
-- `customActions: DeviceAction[]` —— 追加项目特有的动作，供规划器调用。
+- `customActions: DeviceAction[]` —— 添加额外的自定义动作，让 Agent 可以调用你定义的领域特定动作。
 
 **使用说明**
 
@@ -2130,7 +2130,7 @@ const device = new AndroidDevice(deviceId, {
   - `'always-yadb'` —— 绕过默认的 `auto` 截图流程（`adb.takeScreenshot`、`screencap`，以及开启时的 scrcpy），直接使用 [yadb](https://github.com/ysbing/yadb) 截图。适用于 `screencap` 对安全页面（`FLAG_SECURE`）截出黑屏、但 yadb 能正常截取的场景——能否截取取决于 Android 版本、ROM、root/hook 环境和设备配置，请以实际设备测试结果为准。yadb 只能截取默认显示器（`displayId=0`）；如果同时设置该策略和非零 `displayId`，Midscene 会抛出错误。也可通过环境变量 `MIDSCENE_ANDROID_SCREENSHOT_STRATEGY=always-yadb` 设置。
 - `displayId?: number` —— 在设备镜像多个屏幕时，选择特定虚拟屏幕。
 - `exposeRunAdbShellAction?: boolean` —— 是否在动作空间中暴露内置的 `RunAdbShell` 动作。默认值：`true`。设为 `false` 后，AI 规划器、YAML 脚本和 `agent.runAdbShell()` 都无法执行 ADB shell 命令。
-- `customActions?: DeviceAction[]` —— 通过 `defineAction` 扩展规划器的可用动作。
+- `customActions?: DeviceAction[]` —— 添加额外的自定义动作，让 Agent 可以调用你定义的领域特定动作。
 - `screenshotResizeScale?: number` —— **已废弃。** 此选项已移除，不再生效。如需控制发送给 AI 模型的截图尺寸，请使用 `AgentOpt` 中的 `screenshotShrinkFactor`。
 - `minScreenshotBufferSize?: number` —— 截图 buffer 大小校验阈值，单位为字节；低于该值的 buffer 会被视为截图采集失败或已损坏。默认 `1024`（1KB）。设置为 `0` 仅跳过此大小校验；Midscene 仍会拒绝空 buffer 和无效图片格式。
 - `alwaysRefreshScreenInfo?: boolean` —— 每一步都重新查询旋转角度与屏幕尺寸，默认 `false`。
@@ -2196,7 +2196,7 @@ const agent = new AndroidAgent(device, {
 :::info
 
 - 一个设备连接对应一个 Agent。
-- `customActions` 用于配置 `AndroidDevice` 的额外动作。可以将它传给 Device 构造函数或 `agentFromAdbDevice()`。
+- `customActions` 用于向 `AndroidDevice` 添加额外的自定义动作。可以将它传给 Device 构造函数或 `agentFromAdbDevice()`。
 - `launch`、`terminate`、`runAdbShell` 等 Android 专属辅助函数也可在 YAML 脚本中使用，语法见 [Android 平台特定动作](../automate-with-scripts-in-yaml#the-android-part)。
 - 通用交互方法请查阅 [API 参考（通用）](#interaction-methods)。
 
@@ -2384,7 +2384,7 @@ const device = new IOSDevice({
 - `wdaMjpegFrameSource?: { enabled?: boolean }` —— 使用 WDA 的 MJPEG stream 作为 `agent.startObserving()` 的连续帧源。默认关闭；关闭时，观察逻辑会退回到连续调用 `screenshotBase64()`。
 - `autoDismissKeyboard?: boolean` —— 文本输入后自动隐藏键盘，默认 `true`。
 - `keyboardTypeDelay?: number` —— 输入文本时每个按键之间的延迟（毫秒）。设置后，通过 WDA 的 `/wda/keys` 接口逐字符输入，每个字符之间等待指定的延迟。适用于输入框在快速输入下丢字的场景。
-- `customActions?: DeviceAction<any>[]` —— 向 Agent 暴露的额外设备动作。
+- `customActions?: DeviceAction<any>[]` —— 添加额外的自定义动作，让 Agent 可以调用你定义的领域特定动作。
 
 **使用说明**
 
@@ -2436,7 +2436,7 @@ const agent = new IOSAgent(device, {
 :::info
 
 - 一个设备连接对应一个 Agent。
-- `customActions` 用于配置 `IOSDevice` 的额外动作。可以将它传给 Device 构造函数或 `agentFromWebDriverAgent()`。
+- `customActions` 用于向 `IOSDevice` 添加额外的自定义动作。可以将它传给 Device 构造函数或 `agentFromWebDriverAgent()`。
 - `launch`、`terminate`、`runWdaRequest` 等 iOS 专属辅助函数也可在 YAML 脚本中使用，语法见 [iOS 平台特定动作](../automate-with-scripts-in-yaml#the-ios-part)。
 - 通用交互方法请查阅 [API 参考（通用）](#interaction-methods)。
 
@@ -2606,7 +2606,7 @@ const device = new HarmonyDevice(deviceId, {
 - `keyboardDismissStrategy?: 'esc-first' | 'back-first'` —— 自动隐藏键盘时优先使用的按键，默认 `'esc-first'`。HarmonyOS 只发送该策略的首选按键：`'esc-first'` 发送 ESC，`'back-first'` 发送 Back。
 - `keyboardTypeDelay?: number` —— 输入文本时每个按键之间的延迟（毫秒）。设置后，通过 `uitest uiInput inputText` 逐字符输入，每个字符之间等待指定的延迟。适用于输入框在快速输入下丢字的场景。
 - `screenshotResizeScale?: number` —— **已废弃。** 此选项已移除，不再生效。如需控制发送给 AI 模型的截图尺寸，请使用 `AgentOpt` 中的 `screenshotShrinkFactor`。
-- `customActions?: DeviceAction[]` —— 通过 `defineAction` 扩展规划器的可用动作。
+- `customActions?: DeviceAction[]` —— 添加额外的自定义动作，让 Agent 可以调用你定义的领域特定动作。
 
 **使用说明**
 
@@ -2655,7 +2655,7 @@ const agent = new HarmonyAgent(device, {
 :::info
 
 - 一个设备连接对应一个 Agent。
-- `customActions` 用于配置 `HarmonyDevice` 的额外动作。可以将它传给 Device 构造函数或 `agentFromHdcDevice()`。
+- `customActions` 用于向 `HarmonyDevice` 添加额外的自定义动作。可以将它传给 Device 构造函数或 `agentFromHdcDevice()`。
 - `launch`、`terminate`、`runHdcShell` 等 HarmonyOS 专属辅助函数也可在 YAML 脚本中使用，语法见 [HarmonyOS 平台特定动作](../automate-with-scripts-in-yaml#harmony-部分)。
 - 通用交互方法请查阅 [API 参考（通用）](#interaction-methods)。
 
@@ -2831,7 +2831,7 @@ interface RDPComputerAgentOpt extends BaseComputerAgentOpt {
 **本机桌面选项**
 
 - `displayId`（可选）：指定要控制的显示器。使用 `ComputerDevice.listDisplays()` 获取可用显示器。
-- `customActions`（可选）：向设备添加自定义操作。
+- `customActions`（可选）：添加额外的自定义动作，让 Agent 可以调用你定义的领域特定动作。
 - `keyboardDriver?: 'applescript' | 'libnut'`：macOS 的键盘事件后端。`'applescript'` 是兼容性更好的默认选项；目标应用支持时，也可以使用输入速度更快的 `'libnut'`。
 - `headless`（可选，仅 Linux）：设为 `true` 时通过 [Xvfb](https://www.x.org/releases/X11R7.6/doc/man/man1/Xvfb.1.xhtml) 启动虚拟显示器，使桌面自动化能在无物理显示器的 Linux 服务器和 CI 环境中运行。也可通过环境变量 `MIDSCENE_COMPUTER_HEADLESS_LINUX=true` 设置。
 - `xvfbResolution`（可选）：Xvfb 虚拟显示器的分辨率，默认为 `'1920x1080x24'`。

@@ -334,7 +334,7 @@ Once connected, keep using `PlaywrightAgent` the same way you would with a local
 
 ### Provide custom actions
 
-Use the `customActions` option to extend the agent's action space with your own actions defined via `defineAction`. When provided, these actions will be appended to the built-in ones so the agent can call them during planning.
+Use `defineAction()` to define custom actions. When constructing the Agent, pass these actions through `customActions`. Midscene appends these actions to the planner so the Agent can call the domain-specific actions you define.
 
 ```typescript
 import { getMidsceneLocationSchema, z } from '@midscene/core';

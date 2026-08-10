@@ -152,7 +152,7 @@ npx tsx demo.ts
 
 ### 扩展 Android 上的 Midscene
 
-使用 `defineAction()` 定义自定义手势。构造 `AndroidDevice` 时，通过 `customActions` 传入这些动作。Midscene 会把自定义动作追加到规划器中，让 AI 可以调用你领域特定的动作名。
+使用 `defineAction()` 定义自定义动作。构造 `AndroidDevice` 时，通过 `customActions` 传入这些动作。Midscene 会把这些动作追加到规划器中，让 Agent 可以调用你定义的领域特定动作。
 
 ```typescript
 import { getMidsceneLocationSchema, z } from '@midscene/core';

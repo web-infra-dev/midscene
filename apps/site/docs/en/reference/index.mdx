@@ -1917,7 +1917,7 @@ In addition to the base agent options, Puppeteer exposes:
 - `enableTouchEventsInActionSpace: boolean` — Whether to add touch gestures such as swipe to the action space. Default: `false`.
 - `keyboardTypeDelay: number` — Per-character delay in milliseconds passed to Puppeteer's `page.keyboard.type`. Increase this value only when a controlled input drops characters during fast input. Default: `undefined`, which uses Puppeteer's default.
 - `forceChromeSelectRendering: boolean` — Whether to render `select` elements with Chrome's base-select styling so they remain visible in screenshots and element extraction. Requires a Puppeteer version later than `24.6.0`. Default: `true`.
-- `customActions: DeviceAction[]` — Register bespoke actions defined via `defineAction` so planning can call domain-specific steps.
+- `customActions: DeviceAction[]` — Add additional custom actions so the Agent can call your domain-specific actions.
 
 **Usage notes**
 
@@ -1985,7 +1985,7 @@ const agent = new PlaywrightPageAgent(page, {
 - `enableTouchEventsInActionSpace: boolean` — Whether to add touch gestures such as swipe to the action space. Default: `false`.
 - `keyboardTypeDelay: number` — Per-character delay in milliseconds passed to Playwright's `page.keyboard.type`. Increase this value only when a controlled input drops characters during fast input. Default: `undefined`, which uses Playwright's default.
 - `forceChromeSelectRendering: boolean` — Whether to render `select` elements with Chrome's base-select styling so they remain visible in screenshots and element extraction. Requires Playwright `1.52.0` or later. Default: `true`.
-- `customActions: DeviceAction[]` — Extend planning with project-specific actions.
+- `customActions: DeviceAction[]` — Add additional custom actions so the Agent can call your domain-specific actions.
 
 **Usage notes**
 
@@ -2177,7 +2177,7 @@ const device = new AndroidDevice(deviceId, {
   - `'always-yadb'` — Bypasses the default `auto` flow (`adb.takeScreenshot`, `screencap`, and scrcpy when enabled) and captures directly via [yadb](https://github.com/ysbing/yadb). Use this when `screencap` produces black frames for secure pages (`FLAG_SECURE`) while yadb captures them correctly — whether that is possible depends on the Android version, ROM, root/hook environment, and device configuration, so verify on your actual device. Yadb can only capture the default display (`displayId=0`); combining this strategy with a non-zero `displayId` throws an error. Can also be set via the `MIDSCENE_ANDROID_SCREENSHOT_STRATEGY=always-yadb` environment variable.
 - `displayId?: number` — Target a specific virtual display if the device mirrors multiple displays.
 - `exposeRunAdbShellAction?: boolean` — Whether to expose the built-in `RunAdbShell` action in the action space. Default: `true`. Set it to `false` to prevent the AI planner, YAML scripts, and `agent.runAdbShell()` from executing ADB shell commands.
-- `customActions?: DeviceAction[]` — Extend planning with actions defined via `defineAction`.
+- `customActions?: DeviceAction[]` — Add additional custom actions so the Agent can call your domain-specific actions.
 - `screenshotResizeScale?: number` — **Deprecated.** This option has been removed and no longer has any effect. Use `screenshotShrinkFactor` in `AgentOpt` instead to control screenshot size sent to the AI model.
 - `minScreenshotBufferSize?: number` — Minimum valid screenshot buffer size in bytes. Smaller buffers are treated as failed or corrupted captures. Set to `0` to skip this size check; Midscene still rejects empty buffers and invalid image formats. Default: `1024` (1 KB).
 - `alwaysRefreshScreenInfo?: boolean` — Whether to query rotation and screen size before every step. Default: `false`.
@@ -2243,7 +2243,7 @@ const agent = new AndroidAgent(device, {
 :::info
 
 - Use one agent per device connection.
-- `customActions` configures additional actions on `AndroidDevice`. Pass it to the Device constructor or to `agentFromAdbDevice()`.
+- `customActions` adds additional custom actions to `AndroidDevice`. Pass it to the Device constructor or to `agentFromAdbDevice()`.
 - Android-only helpers such as `launch`, `terminate`, and `runAdbShell` are also exposed in YAML scripts. See [Android platform-specific actions](../automate-with-scripts-in-yaml#the-android-part).
 - For shared interaction methods, see [Shared Agent APIs](#interaction-methods).
 
@@ -2431,7 +2431,7 @@ const device = new IOSDevice({
 - `wdaMjpegFrameSource?: { enabled?: boolean }` — Use WDA's MJPEG stream as the continuous frame source for `agent.startObserving()`. Disabled by default; when disabled, observers fall back to sequential `screenshotBase64()` capture.
 - `autoDismissKeyboard?: boolean` — Whether to hide the on-screen keyboard after text input. Default: `true`.
 - `keyboardTypeDelay?: number` — Delay in milliseconds between keystrokes. When set, Midscene enters one character at a time through WDA's `/wda/keys` endpoint. Use this option when an input field drops characters during fast input.
-- `customActions?: DeviceAction<any>[]` — Additional device actions exposed to the agent.
+- `customActions?: DeviceAction<any>[]` — Add additional custom actions so the Agent can call your domain-specific actions.
 
 **Usage notes**
 
@@ -2484,7 +2484,7 @@ const agent = new IOSAgent(device, {
 :::info
 
 - Use one agent per device connection.
-- `customActions` configures additional actions on `IOSDevice`. Pass it to the Device constructor or to `agentFromWebDriverAgent()`.
+- `customActions` adds additional custom actions to `IOSDevice`. Pass it to the Device constructor or to `agentFromWebDriverAgent()`.
 - iOS-only helpers such as `launch`, `terminate`, and `runWdaRequest` are also exposed in YAML scripts. See [iOS platform-specific actions](../automate-with-scripts-in-yaml#the-ios-part).
 - For shared interaction methods, see [Shared Agent APIs](#interaction-methods).
 
@@ -2654,7 +2654,7 @@ const device = new HarmonyDevice(deviceId, {
 - `keyboardDismissStrategy?: 'esc-first' | 'back-first'` — Key used to dismiss the on-screen keyboard. `'esc-first'` sends Escape, while `'back-first'` sends Back. Default: `'esc-first'`.
 - `keyboardTypeDelay?: number` — Delay in milliseconds between keystrokes. When set, Midscene enters one character at a time through `uitest uiInput inputText`. Use this option when an input field drops characters during fast input.
 - `screenshotResizeScale?: number` — **Deprecated.** This option has been removed and no longer has any effect. Use `screenshotShrinkFactor` in `AgentOpt` instead to control screenshot size sent to the AI model.
-- `customActions?: DeviceAction[]` — Extend the planner's available actions via `defineAction`.
+- `customActions?: DeviceAction[]` — Add additional custom actions so the Agent can call your domain-specific actions.
 
 **Usage notes**
 
@@ -2705,7 +2705,7 @@ const agent = new HarmonyAgent(device, {
 :::info
 
 - Use one Agent per device connection.
-- `customActions` configures additional actions on `HarmonyDevice`. Pass it to the Device constructor or to `agentFromHdcDevice()`.
+- `customActions` adds additional custom actions to `HarmonyDevice`. Pass it to the Device constructor or to `agentFromHdcDevice()`.
 - HarmonyOS-specific helpers like `launch`, `terminate`, and `runHdcShell` can also be used in YAML scripts. See [HarmonyOS platform-specific actions](../automate-with-scripts-in-yaml#the-harmony-part).
 - For shared interaction methods, see [Shared Agent APIs](#interaction-methods).
 
@@ -2880,7 +2880,7 @@ interface RDPComputerAgentOpt extends BaseComputerAgentOpt {
 **Local desktop options**
 
 - `displayId?: string` — Display to control. Use `ComputerDevice.listDisplays()` to list the available displays. Default: the primary display.
-- `customActions?: DeviceAction<any>[]` — Custom device actions. Default: `undefined`.
+- `customActions?: DeviceAction<any>[]` — Add additional custom actions so the Agent can call your domain-specific actions.
 - `keyboardDriver?: 'applescript' | 'libnut'` — On macOS, keyboard event backend. Use `'applescript'` for the default, more compatible behavior or `'libnut'` for faster input when the target application supports it. Default: `'applescript'`.
 - `headless?: boolean` — On Linux, set this to `true` to start a virtual display with [Xvfb](https://www.x.org/releases/X11R7.6/doc/man/man1/Xvfb.1.xhtml). This enables desktop automation on headless servers and in CI environments. You can also set the `MIDSCENE_COMPUTER_HEADLESS_LINUX=true` environment variable. Default: `false`.
 - `xvfbResolution?: string` — Resolution of the Xvfb virtual display. Default: `'1920x1080x24'`.

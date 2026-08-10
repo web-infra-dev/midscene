@@ -439,10 +439,11 @@ Midscene JavaScript SDK 直接读取 Node.js 进程中的模型配置环境变�
 在运行脚本时所在的目录中创建 `.env` 文件：
 
 ```bash
-MIDSCENE_MODEL_BASE_URL="https://.../compatible-mode/v1"
-MIDSCENE_MODEL_API_KEY="sk-abcdefghijklmnopqrstuvwxyz"
-MIDSCENE_MODEL_NAME="qwen3.7-plus"
-MIDSCENE_MODEL_FAMILY="qwen3"
+# 将全部值替换为所选模型服务商提供的配置
+MIDSCENE_MODEL_BASE_URL="https://替换为你的模型服务地址/v1"
+MIDSCENE_MODEL_API_KEY="替换为你的 API Key"
+MIDSCENE_MODEL_NAME="替换为你的模型名称"
+MIDSCENE_MODEL_FAMILY="替换为你的模型对应的 family"
 ```
 
 在创建 Midscene Agent 之前导入 dotenv：

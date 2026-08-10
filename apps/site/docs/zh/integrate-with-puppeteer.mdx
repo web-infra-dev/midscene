@@ -180,7 +180,7 @@ await browser.disconnect();
 
 ### 提供自定义动作
 
-可以使用 `customActions` 选项，通过 `defineAction` 来扩展 Agent 的动作空间。传入该选项后，这些动作会追加到内置动作中，Agent 在规划（Planning）时就可以调用它们。
+使用 `defineAction()` 定义自定义动作。构造 Agent 时，通过 `customActions` 传入这些动作。Midscene 会把这些动作追加到规划器中，让 Agent 可以调用你定义的领域特定动作。
 
 ```typescript
 import { getMidsceneLocationSchema, z } from '@midscene/core';

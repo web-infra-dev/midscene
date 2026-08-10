@@ -144,7 +144,7 @@ Use this section to customize device behavior, integrate Midscene into a standal
 
 ### Extending Midscene on HarmonyOS
 
-Use `defineAction()` to define custom gestures and pass them via `customActions` when constructing `HarmonyDevice`. Midscene appends custom actions to the planner, allowing AI to invoke your domain-specific action names.
+Use `defineAction()` to define custom actions. When constructing `HarmonyDevice`, pass these actions through `customActions`. Midscene appends these actions to the planner so the Agent can call the domain-specific actions you define.
 
 ```typescript
 import { getMidsceneLocationSchema, z } from '@midscene/core';
