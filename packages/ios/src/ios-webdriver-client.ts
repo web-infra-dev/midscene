@@ -93,20 +93,29 @@ export class IOSWebDriverClient extends WebDriverClient {
     this.ensureSession();
 
     try {
-      // Use swipe gesture to trigger app switcher (as used in device.ts - original working approach)
-      // Get window size for swipe coordinates
       const windowSize = await this.getWindowSize();
+      const centerX = Math.round(windowSize.width / 2);
+      const startY = Math.max(0, windowSize.height - 1);
+      const endY = Math.round(windowSize.height * 0.5);
 
-      // For iOS, use swipe up with slower/longer duration to trigger app switcher
-      debugIOS('Triggering app switcher with slow swipe up gesture');
+      debugIOS('Triggering app switcher with native WDA drag gesture');
 
-      // Swipe up from the very bottom of the screen to trigger app switcher
-      const centerX = windowSize.width / 2;
-      const startY = windowSize.height - 5; // Start from very bottom
-      const endY = windowSize.height * 0.5; // Swipe to middle of screen
-
-      // Use a slower, longer swipe to trigger app switcher without additional tapping
-      await this.swipe(centerX, startY, centerX, endY, 1500); // Slower swipe
+      // W3C pointer actions are scoped to the active application on real
+      // devices, so this system gesture can be interpreted as an in-app
+      // scroll. WDA's native drag endpoint uses screen coordinates and
+      // reliably starts from the home indicator instead. Its duration is in
+      // seconds and represents the hold before dragging.
+      await this.makeRequest(
+        'POST',
+        `/session/${this.sessionId}/wda/dragfromtoforduration`,
+        {
+          fromX: centerX,
+          fromY: startY,
+          toX: centerX,
+          toY: endY,
+          duration: 1,
+        },
+      );
 
       await new Promise((resolve) => setTimeout(resolve, 800)); // Wait for app switcher to appear and stabilize
     } catch (error) {

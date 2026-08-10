@@ -38,6 +38,7 @@ describe('IOSDevice', () => {
       tripleTap: vi.fn().mockResolvedValue(undefined),
       longPress: vi.fn().mockResolvedValue(undefined),
       swipe: vi.fn().mockResolvedValue(undefined),
+      appSwitcher: vi.fn().mockResolvedValue(undefined),
       pinch: vi.fn().mockResolvedValue(undefined),
       typeText: vi.fn().mockResolvedValue(undefined),
       clearActiveElement: vi.fn().mockResolvedValue(true),
@@ -410,7 +411,8 @@ describe('IOSDevice', () => {
       await device.connect();
 
       await device.appSwitcher();
-      expect(mockWdaClient.swipe).toHaveBeenCalled();
+      expect(mockWdaClient.appSwitcher).toHaveBeenCalledOnce();
+      expect(mockWdaClient.swipe).not.toHaveBeenCalled();
     });
 
     it('should handle keyboard dismissal', async () => {

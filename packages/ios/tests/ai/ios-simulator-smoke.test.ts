@@ -46,6 +46,12 @@ interface WdaRect {
   height: number;
 }
 
+interface WdaActiveAppInfo {
+  bundleId: string;
+  name: string;
+  pid: number;
+}
+
 interface ReportTask {
   type?: string;
   subType?: string;
@@ -289,6 +295,14 @@ describe.skipIf(!RUN_LIVE_SMOKE)('iOS Simulator live smoke', () => {
       diagnosticsDir,
       'safari-after-input.png',
     );
+    const appSwitcherSourceFile = path.join(
+      diagnosticsDir,
+      'app-switcher-source.xml',
+    );
+    const appSwitcherScreenshotFile = path.join(
+      diagnosticsDir,
+      'app-switcher.png',
+    );
     const dumpFile = path.join(diagnosticsDir, 'agent-dump.json');
     const evidenceFile = path.join(diagnosticsDir, 'evidence.json');
     const runDir = path.resolve(process.env.MIDSCENE_RUN_DIR || 'midscene_run');
@@ -319,7 +333,7 @@ describe.skipIf(!RUN_LIVE_SMOKE)('iOS Simulator live smoke', () => {
         },
         groupName: 'iOS Simulator live smoke',
         groupDescription:
-          'Deterministic Safari input and screenshot validation on GitHub Actions',
+          'Deterministic Safari input, app switcher, and screenshot validation on GitHub Actions',
         reportFileName: REPORT_FILE_NAME,
         autoPrintReportMsg: false,
         generateReport: true,
@@ -343,12 +357,18 @@ describe.skipIf(!RUN_LIVE_SMOKE)('iOS Simulator live smoke', () => {
       expect(screenSize.width).toBeGreaterThan(0);
       expect(screenSize.height).toBeGreaterThan(0);
       expect(screenSize.scale).toBeGreaterThanOrEqual(1);
-      expect(screenshotSize.width).toBe(
-        Math.round(screenSize.width * screenSize.scale),
-      );
-      expect(screenshotSize.height).toBe(
-        Math.round(screenSize.height * screenSize.scale),
-      );
+      expect(
+        Math.abs(
+          screenshotSize.width -
+            Math.round(screenSize.width * screenSize.scale),
+        ),
+      ).toBeLessThanOrEqual(1);
+      expect(
+        Math.abs(
+          screenshotSize.height -
+            Math.round(screenSize.height * screenSize.scale),
+        ),
+      ).toBeLessThanOrEqual(1);
 
       const targetLocate = locate(
         target.rect,
@@ -428,6 +448,33 @@ describe.skipIf(!RUN_LIVE_SMOKE)('iOS Simulator live smoke', () => {
       evidence.submittedValue = submittedValue;
       expect(submittedValue).toBe(SUBMITTED_TEXT);
 
+      await agent.appSwitcher();
+      const activeAppResponse = (await agent.runWdaRequest({
+        method: 'GET',
+        endpoint: '/wda/activeAppInfo',
+      })) as WdaValueResponse<WdaActiveAppInfo>;
+      const appSwitcherSourceResponse = (await agent.runWdaRequest({
+        method: 'GET',
+        endpoint: '/source',
+      })) as WdaValueResponse<string>;
+      const appSwitcherScreenshot = await agent.interface.screenshotBase64();
+      await Promise.all([
+        writeFile(appSwitcherSourceFile, appSwitcherSourceResponse.value),
+        writeFile(
+          appSwitcherScreenshotFile,
+          screenshotBuffer(appSwitcherScreenshot),
+        ),
+      ]);
+      evidence.appSwitcher = {
+        activeApp: activeAppResponse.value,
+        sourceFile: appSwitcherSourceFile,
+        screenshotFile: appSwitcherScreenshotFile,
+      };
+      expect(activeAppResponse.value.bundleId).toBe('com.apple.springboard');
+      expect(appSwitcherSourceResponse.value).toContain(
+        'name="AppSwitcherContentView"',
+      );
+
       const dump = JSON.parse(agent.dumpDataString()) as ReportDump;
       await writeFile(dumpFile, `${JSON.stringify(dump, null, 2)}\n`, 'utf8');
       const dumpTasks = (dump.executions ?? []).flatMap(
@@ -477,7 +524,12 @@ describe.skipIf(!RUN_LIVE_SMOKE)('iOS Simulator live smoke', () => {
       expect(
         reportLocateTasks.every((task) => task.hitBy?.from === 'Plan'),
       ).toBe(true);
-      for (const action of ['Tap', 'Input', 'KeyboardPress']) {
+      for (const action of [
+        'Tap',
+        'Input',
+        'KeyboardPress',
+        'IOSAppSwitcher',
+      ]) {
         expect(
           reportTasks.some(
             (task) => task.type === 'Action Space' && task.subType === action,

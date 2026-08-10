@@ -861,25 +861,7 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
   }
 
   async appSwitcher(): Promise<void> {
-    try {
-      // For iOS, use swipe up with slower/longer duration to trigger app switcher
-      debugDevice('Triggering app switcher with slow swipe up gesture');
-      const { width, height } = await this.size();
-
-      // Swipe up from the very bottom of the screen to trigger app switcher
-      const centerX = Math.round(width / 2);
-      const startY = Math.round(height - 5); // Start from very bottom
-      const endY = Math.round(height * 0.5); // Swipe to middle of screen
-
-      // Use a slower, longer swipe to trigger app switcher without additional tapping
-      // Longer duration mimics the "hold" behavior during the swipe itself
-      await this.wdaBackend.swipe(centerX, startY, centerX, endY, 1500); // Slower swipe
-
-      await sleep(800); // Wait for app switcher to appear and stabilize
-    } catch (error) {
-      debugDevice(`App switcher failed: ${error}`);
-      throw new Error(`Failed to trigger app switcher: ${error}`);
-    }
+    await this.wdaBackend.appSwitcher();
   }
 
   async hideKeyboard(keyNames?: string[]): Promise<boolean> {
