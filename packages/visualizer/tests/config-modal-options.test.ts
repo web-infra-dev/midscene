@@ -62,7 +62,7 @@ describe('ConfigModal Agent options', () => {
     ).toMatchObject({ options: null });
   });
 
-  it('keeps verification failures readable without growing into the button', () => {
+  it('keeps verification failures compact on their own row', () => {
     expect(configModalComponent).not.toContain('Verify and Save Model');
     expect(configModalComponent).toContain("'Verifying' : 'Verify'");
     expect(configModalComponent).toContain('message="Verified"');
@@ -70,6 +70,15 @@ describe('ConfigModal Agent options', () => {
     expect(configModalComponent).toContain('wrap="soft"');
     expect(configModalStyles).toContain(
       'grid-template-columns: minmax(0, 1fr) auto;',
+    );
+    expect(configModalComponent).toContain(
+      "statusError ? ' midscene-config-modal-verify-row--error' : ''",
+    );
+    expect(configModalStyles).toMatch(
+      /&--error\s*\{\s*grid-template-columns: minmax\(0, 1fr\);/,
+    );
+    expect(configModalStyles).toMatch(
+      /\.midscene-config-modal-verify-button\s*\{\s*justify-self: end;/,
     );
     expect(configModalStyles).toContain('align-items: center;');
     expect(configModalStyles).toContain('padding-block: 4px;');

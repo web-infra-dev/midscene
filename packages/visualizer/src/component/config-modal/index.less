@@ -78,6 +78,14 @@
     grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
     gap: 8px;
+
+    &--error {
+      grid-template-columns: minmax(0, 1fr);
+
+      .midscene-config-modal-verify-button {
+        justify-self: end;
+      }
+    }
   }
 
   .midscene-config-modal-verify-alert {

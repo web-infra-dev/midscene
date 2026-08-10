@@ -413,7 +413,11 @@ export function ConfigModal({
             />
           )}
 
-          <div className="midscene-config-modal-verify-row">
+          <div
+            className={`midscene-config-modal-verify-row${
+              statusError ? ' midscene-config-modal-verify-row--error' : ''
+            }`}
+          >
             {testStatus.kind === 'success' ? (
               <Alert
                 className="midscene-config-modal-verify-alert"
