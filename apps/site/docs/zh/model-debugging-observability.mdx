@@ -96,7 +96,7 @@ midscene_run/model-requests/<启动时间>-<pid>.jsonl
 
 每个进程生成一个文件，每行对应一个 JSON 事件。只有 Node.js 和 Electron 支持写入本地文件。浏览器和 Worker 不会写入本地文件。使用 Codex App Server 时，记录还会包含可获取的协议元数据。
 
-每个事件的 `type` 为 `request`、`chunk`、`response` 或 `error`。事件还包含 `executionId`，用于关联同一个报告 execution 内的调用及其重试。不属于报告 execution 的调用，例如连接检查，会使用带 `unscoped-` 前缀的生成 ID。
+每个事件的 `type` 为 `request`、`chunk`、`response` 或 `error`。事件还包含 `executionId`，用于关联同一个 execution ID 下的调用及其重试。对于 HTTP 模型请求，这个值也会通过 `x-midscene-execution-id` Header 发送。不属于报告 execution 的调用（例如连接检查）会使用带 `unscoped-` 前缀的生成 ID。
 
 :::warning 注意事项
 
@@ -105,6 +105,17 @@ midscene_run/model-requests/<启动时间>-<pid>.jsonl
 这些文件可能包含敏感信息，且体积较大。请仅在排查问题时启用记录，并在使用后妥善保管或删除文件。记录格式不保证跨版本兼容。
 
 :::
+
+### 请求追踪 Header
+
+Midscene 会自动为 OpenAI-compatible HTTP 模型请求添加以下 Header：
+
+| Header | 值 | 用途 |
+| --- | --- | --- |
+| `x-midscene-version` | 当前 `@midscene/core` 版本 | 标识发起请求的 Midscene 版本 |
+| `x-midscene-execution-id` | 当前 execution ID | 关联同一个 execution ID 下的全部模型请求及其重试，例如一次 `aiAct` 调用 |
+
+不属于报告 execution 的调用（例如连接检查）会使用带 `unscoped-` 前缀的生成 execution ID。这两个 Header 会被默认发送，如果 `MIDSCENE_*_INIT_CONFIG_JSON` 中自定义了同名 Header，则会被 Midscene 覆盖。
 
 ## 可观测性平台
 

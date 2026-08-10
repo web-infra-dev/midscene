@@ -221,6 +221,46 @@ describe('service-caller request timeout', () => {
     expect(lastCallOptions?.maxRetries).toBe(0);
   });
 
+  it('adds Midscene tracing headers without replacing configured headers', async () => {
+    const { callAI } = await import('@/ai-model/service-caller');
+    const { getModelRuntime } = await import('@/ai-model/models');
+    const { getVersion } = await import('@/utils');
+    const executionId = 'execution-123';
+
+    mockCreate.mockResolvedValue({
+      choices: [{ message: { content: 'ok' } }],
+      usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 },
+    });
+
+    const modelRuntime = {
+      ...getModelRuntime(
+        baseConfig({
+          openaiExtraConfig: {
+            defaultHeaders: {
+              'x-provider-header': 'provider-value',
+              'x-midscene-version': 'incorrect-version',
+              'x-midscene-execution-id': 'incorrect-execution-id',
+            },
+          },
+        }),
+      ),
+      executionId,
+    };
+
+    await callAI([{ role: 'user', content: 'hello' }], modelRuntime);
+
+    const OpenAI = (await import('openai')).default as unknown as ReturnType<
+      typeof vi.fn
+    >;
+    const defaultHeaders = OpenAI.mock.calls.at(-1)?.[0]?.defaultHeaders as
+      | Record<string, string>
+      | undefined;
+
+    expect(defaultHeaders?.['x-provider-header']).toBe('provider-value');
+    expect(defaultHeaders?.['x-midscene-version']).toBe(getVersion());
+    expect(defaultHeaders?.['x-midscene-execution-id']).toBe(executionId);
+  });
+
   it('retries after a hard timeout and returns the next successful response', async () => {
     const { callAI } = await import('@/ai-model/service-caller');
     const { getModelRuntime } = await import('@/ai-model/models');

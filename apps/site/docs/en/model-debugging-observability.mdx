@@ -96,7 +96,7 @@ midscene_run/model-requests/<start-time>-<pid>.jsonl
 
 Each process creates one file, with one JSON event per line. Local recording is available only in Node.js and Electron. Browsers and Workers do not write local files. Codex App Server records also include available protocol metadata.
 
-Every event has a `type` of `request`, `chunk`, `response`, or `error`. It also includes an `executionId` that groups calls from the same report execution, including retries. Calls outside a report execution, such as connectivity checks, use a generated ID prefixed with `unscoped-`.
+Every event has a `type` of `request`, `chunk`, `response`, or `error`. It also includes an `executionId` that groups calls and retries under the same execution ID. For HTTP model requests, this value is also sent in the `x-midscene-execution-id` header. Calls outside a report execution, such as connectivity checks, use a generated ID prefixed with `unscoped-`.
 
 :::warning Important notes
 
@@ -105,6 +105,17 @@ Files contain request bodies, including custom `extraBody`, response headers and
 These files may be sensitive and large. Enable recording only while troubleshooting, and protect or delete the files afterward. The record format is not stable across versions.
 
 :::
+
+### Request tracing headers
+
+Midscene automatically adds the following headers to OpenAI-compatible HTTP model requests:
+
+| Header | Value | Purpose |
+| --- | --- | --- |
+| `x-midscene-version` | The current `@midscene/core` version | Identify the Midscene version that sent the request |
+| `x-midscene-execution-id` | The current execution ID | Group all model requests and retries under the same execution ID, such as an `aiAct` call |
+
+Calls outside a report execution, such as connectivity checks, use a generated execution ID prefixed with `unscoped-`. These two headers are sent by default; if headers with the same names are customized in `MIDSCENE_*_INIT_CONFIG_JSON`, Midscene overrides them.
 
 ## Observability platforms
 
