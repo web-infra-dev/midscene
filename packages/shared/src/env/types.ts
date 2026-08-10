@@ -310,7 +310,8 @@ export type TModelFamily =
   | 'auto-glm-multilingual'
   | 'gpt-5'
   | 'kimi'
-  | 'xiaomi-mimo';
+  | 'xiaomi-mimo'
+  | 'deepseek';
 
 export const MODEL_FAMILY_VALUES: TModelFamily[] = [
   'doubao-vision',
@@ -330,6 +331,7 @@ export const MODEL_FAMILY_VALUES: TModelFamily[] = [
   'gpt-5',
   'kimi',
   'xiaomi-mimo',
+  'deepseek',
 ];
 
 export interface IModelConfigForInsight {
