@@ -412,7 +412,7 @@ await agent.aiInput('邮箱输入框', { value: 'user@example.com' });
 ```typescript
 // 推荐用法：定位提示在前，其他选项在 opt 中
 function aiKeyboardPress(
-  locate: string | object,
+  locate: string | object | undefined,
   opt: {
     keyName: string;
     deepLocate?: boolean;
@@ -432,7 +432,7 @@ function aiKeyboardPress(
 - 参数：
 
   **推荐用法**：
-  - `locate: string | object` - 用自然语言描述的元素定位，或[使用图片作为提示词](#使用图片作为提示词)。
+  - `locate: string | object | undefined` - 可选的元素定位描述，或[使用图片作为提示词](#使用图片作为提示词)。传入 `undefined` 时，不执行 AI 定位和预先点击，按键会直接作用于当前获得焦点的元素。
   - `opt: object` - 配置对象，包含：
     - `keyName: string` - **必填**，要按下的键，如 `Enter`、`Tab`、`Escape` 等。Web 和 Computer Device 还支持 modifier shortcut，如 `Control+A`、`Shift+Enter`；使用 `+` 连接按键。内置的 Android、iOS 和 Harmony Device 仅支持单键；自定义 Device 是否支持组合键取决于其实现。可在[我们的源码中查看完整的按键名称列表](https://github.com/web-infra-dev/midscene/blob/main/packages/shared/src/us-keyboard-layout.ts)。
     - `deepLocate?: boolean` - 是否开启[深度定位](#深度定位deeplocate)。该参数原来叫 `deepThink`，现已更名为 `deepLocate`。默认值为 false。
@@ -456,13 +456,16 @@ function aiKeyboardPress(
 await agent.aiKeyboardPress('搜索框', { keyName: 'Enter' });
 await agent.aiKeyboardPress('搜索框', { keyName: 'Control+A' });
 
+// 对当前获得焦点的元素执行纯键盘操作
+await agent.aiKeyboardPress(undefined, { keyName: 'Control+X' });
+
 // 兼容用法（不推荐）
 await agent.aiKeyboardPress('Enter', '搜索框');
 ```
 
 :::note 关于签名变更
 
-我们最近更新了 `aiKeyboardPress` 的 API 签名，将定位提示作为第一个参数，使得参数顺序更直观。旧的签名 `aiKeyboardPress(key, locate, options)` 仍然完全兼容，但建议新代码使用推荐的签名。
+我们最近更新了 `aiKeyboardPress` 的 API 签名，将可选的定位提示作为第一个参数，使得参数顺序更直观。如果快捷键应该直接作用于当前焦点，请传入 `undefined`，这样不会执行定位或点击。旧的签名 `aiKeyboardPress(key, locate, options)` 仍然完全兼容，但建议新代码使用推荐的签名。
 
 :::
 
