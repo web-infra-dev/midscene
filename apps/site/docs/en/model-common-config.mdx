@@ -218,28 +218,6 @@ MIDSCENE_INSIGHT_MODEL_FAMILY="gpt-5"
 
 <span id="use-codex-app-server-oauth-no-api-key" />
 
-**Use Codex App Server (OAuth, no API Key)**
-
-If you already signed in with Codex CLI (`codex login`) and want Midscene to use that OAuth session directly, set:
-
-```bash
-export MIDSCENE_MODEL_BASE_URL="codex://app-server"
-export MIDSCENE_MODEL_NAME="gpt-5.4" # or another model shown by Codex model/list
-export MIDSCENE_MODEL_FAMILY="gpt-5"
-```
-
-Notes:
-
-- `MIDSCENE_MODEL_API_KEY` is not required in this mode.
-- Midscene will call `codex app-server` through stdio.
-- Make sure `codex` is available in your PATH and verify auth with `codex login status`.
-
-:::warning Known limitation
-
-Compared with calling an OpenAI-compatible API directly, we have observed that this route may take longer and consume more tokens. We are still investigating the cause.
-
-:::
-
 When using GPT-5, note the following:
 
 - For UI localization with GPT, Midscene currently supports `gpt-5.4` and later models. To get the best localization quality, image requests need `"detail": "original"`. According to OpenAI, this option is available on `gpt-5.4` and future models, while smaller GPT-5 variants such as `gpt-5.4-mini` and `gpt-5.4-nano`, as well as older models, do not support `original` and will fail if you send it. See the [Images and Vision guide](https://developers.openai.com/api/docs/guides/images-vision) and the [Computer use guide](https://developers.openai.com/api/docs/guides/tools-computer-use).
@@ -437,11 +415,10 @@ The Midscene JavaScript SDK reads model configuration directly from the Node.js 
 Create a `.env` file in the directory where you run the script:
 
 ```bash
-# Replace every value with the configuration for your selected model provider
-MIDSCENE_MODEL_BASE_URL="https://replace-with-your-model-service-url/v1"
-MIDSCENE_MODEL_API_KEY="replace-with-your-api-key"
-MIDSCENE_MODEL_NAME="replace-with-your-model-name"
-MIDSCENE_MODEL_FAMILY="replace-with-the-family-for-your-model"
+MIDSCENE_MODEL_BASE_URL="https://.../compatible-mode/v1"
+MIDSCENE_MODEL_API_KEY="sk-abcdefghijklmnopqrstuvwxyz"
+MIDSCENE_MODEL_NAME="qwen3.7-plus"
+MIDSCENE_MODEL_FAMILY="qwen3"
 ```
 
 Import dotenv before creating a Midscene Agent:
@@ -560,35 +537,6 @@ Migration mapping:
 
 ## Next steps
 
-For more information on combining multiple models, see [Advanced: Multi-model Collaboration](./model-strategy#advanced-combining-multiple-models).
-
-Below is an example using GPT-5.4 for Planning/Insight and Qwen 3.5 for vision. Use GPT-5.4 for Planning and/or Insight to handle heavy reasoning, while Qwen 3.5 focuses on visual grounding. You can enable either role or both—toggle them based on your workload.
-
-```bash
-# Default multimodal model: Qwen 3.5
-export MIDSCENE_MODEL_BASE_URL="https://..."       # Qwen 3.5 endpoint
-export MIDSCENE_MODEL_API_KEY="..."                # Your Qwen 3.5 API key
-export MIDSCENE_MODEL_NAME="qwen3.5-plus"
-export MIDSCENE_MODEL_FAMILY="qwen3.5"
-
-# Planning model: GPT-5.4
-export MIDSCENE_PLANNING_MODEL_API_KEY="sk-..."    # Your GPT-5.4 API key
-export MIDSCENE_PLANNING_MODEL_BASE_URL="https://..." 
-export MIDSCENE_PLANNING_MODEL_NAME="gpt-5.4"
-export MIDSCENE_PLANNING_MODEL_FAMILY="gpt-5"
-
-# Insight model: GPT-5.4
-export MIDSCENE_INSIGHT_MODEL_API_KEY="sk-..."     # Your GPT-5.4 API key
-export MIDSCENE_INSIGHT_MODEL_BASE_URL="https://..."
-export MIDSCENE_INSIGHT_MODEL_NAME="gpt-5.4"
-export MIDSCENE_INSIGHT_MODEL_FAMILY="gpt-5"
-```
-
-## More
-
-For additional, advanced model settings, see [All configuration options](./model-config).
-
-
-## Troubleshooting
-
-For model connectivity and compatibility issues, see [Model debugging and observability](./model-debugging-observability).
+- Learn when to use Default, Planning, and Insight models in [Model strategy](./model-strategy).
+- Look up every environment variable in [Model configuration reference](./model-config).
+- Diagnose connectivity and compatibility issues in [Model debugging and observability](./model-debugging-observability).

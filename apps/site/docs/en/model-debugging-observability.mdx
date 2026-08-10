@@ -55,13 +55,22 @@ If you see `MIDSCENE_MODEL_FAMILY is not set to a multimodal model with UI local
 
 Starting with version 1.0, Midscene recommends using `MIDSCENE_MODEL_FAMILY` to specify the multimodal model type. Legacy `MIDSCENE_USE_...` settings remain compatible but are deprecated.
 
-See [Configure your model](./model-common-config) for the correct model family and a complete configuration example.
+See [Supported models and setup](./model-common-config) for the correct model family and a complete configuration example.
 
 ### Base URL or model name is incorrect
 
 Confirm that `MIDSCENE_MODEL_BASE_URL` points to the provider's API endpoint. It commonly ends with a version such as `/v1`. Do not append `/chat/completion`, because the underlying SDK adds the request path.
 
 Also confirm that `MIDSCENE_MODEL_NAME` matches a model available from that endpoint.
+
+## Improve model performance
+
+If the model connects successfully but localization, planning, or page understanding is unstable, try the following:
+
+- Review the [replay report](./consume-report-file) to confirm the task timeline is correct and the flow did not enter the wrong page or branch.
+- Prefer newer officially supported versions within the same model series.
+- Compare models from different providers with representative tasks, focusing on success rate, latency, and cost.
+- For complex tasks, configure a separate Planning or Insight model. See [Model strategy](./model-strategy) for the responsibilities of each model.
 
 ## Debugging capabilities
 

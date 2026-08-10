@@ -218,28 +218,6 @@ MIDSCENE_INSIGHT_MODEL_FAMILY="gpt-5"
 
 <span id="use-codex-app-server-oauth-no-api-key" />
 
-**使用 Codex App Server（OAuth，无需 API Key）**
-
-如果你已经通过 Codex CLI 登录（`codex login`），并希望 Midscene 直接复用该 OAuth 会话，可设置：
-
-```bash
-export MIDSCENE_MODEL_BASE_URL="codex://app-server"
-export MIDSCENE_MODEL_NAME="gpt-5.4" # 或者使用 Codex model/list 可见的其他模型
-export MIDSCENE_MODEL_FAMILY="gpt-5"
-```
-
-说明：
-
-- 该模式下不需要 `MIDSCENE_MODEL_API_KEY`。
-- Midscene 会通过 stdio 调用 `codex app-server`。
-- 请确保 `codex` 在 PATH 中可用，并通过 `codex login status` 确认登录状态。
-
-:::warning 已知限制
-
-相比于直接调用 OpenAI 兼容 API，我们观察到这种方式可能耗时更长、token 消耗更多，具体原因还在排查中。
-
-:::
-
 使用 GPT-5 时，请注意以下事项：
 
 - 使用 GPT 做 UI 定位时，目前只支持使用 `gpt-5.4` 及以后的模型。因为为了获得最佳的定位效果，需要在发送图片时指定 `"detail": "original"` 参数，这一参数仅在 `gpt-5.4` 及后续模型上可用，`gpt-5.4-mini`、`gpt-5.4-nano` 等更小的 GPT-5 变体以及前代模型不支持 `original` 参数，会导致报错。详情请参考 [Images and Vision guide](https://developers.openai.com/api/docs/guides/images-vision) 和 [Computer use guide](https://developers.openai.com/api/docs/guides/tools-computer-use)。
@@ -439,11 +417,10 @@ Midscene JavaScript SDK 直接读取 Node.js 进程中的模型配置环境变�
 在运行脚本时所在的目录中创建 `.env` 文件：
 
 ```bash
-# 将全部值替换为所选模型服务商提供的配置
-MIDSCENE_MODEL_BASE_URL="https://替换为你的模型服务地址/v1"
-MIDSCENE_MODEL_API_KEY="替换为你的 API Key"
-MIDSCENE_MODEL_NAME="替换为你的模型名称"
-MIDSCENE_MODEL_FAMILY="替换为你的模型对应的 family"
+MIDSCENE_MODEL_BASE_URL="https://.../compatible-mode/v1"
+MIDSCENE_MODEL_API_KEY="sk-abcdefghijklmnopqrstuvwxyz"
+MIDSCENE_MODEL_NAME="qwen3.7-plus"
+MIDSCENE_MODEL_FAMILY="qwen3"
 ```
 
 在创建 Midscene Agent 之前导入 dotenv：
@@ -468,7 +445,7 @@ npx @midscene/cli@latest model verify
 
 如果验证失败，请阅读[模型调试与可观测性](./model-debugging-observability)。
 
-## 配置多个模型（可选） {#multi-model-combination-example}
+## 可选：配置多个模型 {#multi-model-combination-example}
 
 多模型配置不是必需项。大多数场景只需配置默认模型，即可完成 UI 定位和操作。仅当复杂规划或页面理解需要使用独立模型时，才需要配置 Planning 模型或 Insight 模型。你可以只配置其中一个，也可以同时配置两者。
 
@@ -564,34 +541,6 @@ MIDSCENE_MODEL_FAMILY="vlm-ui-tars-doubao-1.5"
 
 ## 下一步
 
-关于组合多个模型的更多信息，可查阅 [高阶特性：多模型配合](./model-strategy#高阶特性多模型配合)。
-
-下面以 GPT-5.4 用于 Planning/Insight、Qwen 3.5 负责视觉为例。GPT-5.4 处理重度推理（Planning 和/或 Insight），Qwen 3.5 专注视觉定位。独立的 Planning 和 Insight 模型可按需启用，不需要同时开启。
-
-```bash
-# 默认多模态模型：Qwen 3.5
-export MIDSCENE_MODEL_BASE_URL="https://..."       # Qwen 3.5 接口地址
-export MIDSCENE_MODEL_API_KEY="..."                # 你的 Qwen 3.5 API Key
-export MIDSCENE_MODEL_NAME="qwen3.5-plus"
-export MIDSCENE_MODEL_FAMILY="qwen3.5"
-
-# Planning 模型：GPT-5.4
-export MIDSCENE_PLANNING_MODEL_API_KEY="sk-..."    # 你的 GPT-5.4 API Key
-export MIDSCENE_PLANNING_MODEL_BASE_URL="https://..."
-export MIDSCENE_PLANNING_MODEL_NAME="gpt-5.4"
-export MIDSCENE_PLANNING_MODEL_FAMILY="gpt-5"
-
-# Insight 模型：GPT-5.4
-export MIDSCENE_INSIGHT_MODEL_API_KEY="sk-..."     # 你的 GPT-5.4 API Key
-export MIDSCENE_INSIGHT_MODEL_BASE_URL="https://..."
-export MIDSCENE_INSIGHT_MODEL_NAME="gpt-5.4"
-export MIDSCENE_INSIGHT_MODEL_FAMILY="gpt-5"
-```
-
-## 更多
-
-更多高阶配置请查看 [全部配置项](./model-config) 文档。
-
-## 模型问题排查
-
-模型连接和兼容性问题请参考[模型调试与可观测性](./model-debugging-observability)。
+- 在[模型策略](./model-strategy)中了解何时使用 Default、Planning 和 Insight 模型。
+- 在[模型配置参考](./model-config)中查询全部环境变量。
+- 在[模型调试与可观测性](./model-debugging-observability)中排查连接和兼容性问题。

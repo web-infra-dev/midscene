@@ -185,8 +185,8 @@ export default defineConfig(async () => {
             link: '/model-strategy',
           },
           {
-            text: 'Debugging & observability',
-            link: '/model-debugging-observability',
+            text: 'All configuration options',
+            link: '/model-config',
           },
           {
             text: 'Debugging & observability',
@@ -335,8 +335,8 @@ export default defineConfig(async () => {
             link: '/zh/model-strategy',
           },
           {
-            text: '调试与可观测性',
-            link: '/zh/model-debugging-observability',
+            text: '全部配置项',
+            link: '/zh/model-config',
           },
           {
             text: '调试与可观测性',
