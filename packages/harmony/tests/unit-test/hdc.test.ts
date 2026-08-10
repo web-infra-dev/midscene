@@ -137,6 +137,28 @@ describe('HdcClient', () => {
         expect.any(Object),
       );
     });
+
+    it('should reject a non-finite coordinate before invoking HDC', async () => {
+      const hdc = new HdcClient({});
+
+      await expect(hdc.click(Number.NaN, 200)).rejects.toThrow(
+        'HDC x coordinate must be a non-negative finite number',
+      );
+      expect(mockExecFile).not.toHaveBeenCalled();
+    });
+
+    it('should throw when uiInput reports invalid coordinates', async () => {
+      mockExecFile.mockResolvedValue({
+        stdout: 'Please confirm that the coordinate values are correct.\n',
+        stderr: '',
+      });
+
+      const hdc = new HdcClient({});
+
+      await expect(hdc.click(100, 200)).rejects.toThrow(
+        'HDC uiInput click failed: Please confirm that the coordinate values are correct.',
+      );
+    });
   });
 
   describe('swipe', () => {
@@ -163,6 +185,98 @@ describe('HdcClient', () => {
         expect.any(String),
         ['shell', 'uitest uiInput swipe 10 10 200 200'],
         expect.any(Object),
+      );
+    });
+
+    it.each([199, 40001, Number.NaN])(
+      'should reject invalid swipe speed %s before invoking HDC',
+      async (speed) => {
+        const hdc = new HdcClient({});
+
+        await expect(hdc.swipe(10, 10, 200, 200, speed)).rejects.toThrow(
+          'HDC swipe speed must be a finite number between 200 and 40000',
+        );
+        expect(mockExecFile).not.toHaveBeenCalled();
+      },
+    );
+  });
+
+  describe('keyEvent', () => {
+    it('should execute numeric and supported system key events', async () => {
+      mockExecFile.mockResolvedValue({ stdout: '', stderr: '' });
+
+      const hdc = new HdcClient({});
+      await hdc.keyEvent('2072', '2038');
+      await hdc.keyEvent('Home');
+
+      expect(mockExecFile).toHaveBeenNthCalledWith(
+        1,
+        expect.any(String),
+        ['shell', 'uitest uiInput keyEvent 2072 2038'],
+        expect.any(Object),
+      );
+      expect(mockExecFile).toHaveBeenNthCalledWith(
+        2,
+        expect.any(String),
+        ['shell', 'uitest uiInput keyEvent Home'],
+        expect.any(Object),
+      );
+    });
+
+    it.each(['RecentApps', 'F5', 'Control+A', ';'])(
+      'should reject unsupported string key %s before invoking HDC',
+      async (key) => {
+        const hdc = new HdcClient({});
+
+        await expect(hdc.keyEvent(key)).rejects.toThrow(
+          `Invalid HDC key event: ${key}`,
+        );
+        expect(mockExecFile).not.toHaveBeenCalled();
+      },
+    );
+
+    it('should reject an empty key event', async () => {
+      const hdc = new HdcClient({});
+
+      await expect(hdc.keyEvent()).rejects.toThrow(
+        'HDC keyEvent requires between 1 and 3 keys',
+      );
+      expect(mockExecFile).not.toHaveBeenCalled();
+    });
+
+    it('should reject more than three key events', async () => {
+      const hdc = new HdcClient({});
+
+      await expect(hdc.keyEvent('1', '2', '3', '4')).rejects.toThrow(
+        'HDC keyEvent requires between 1 and 3 keys',
+      );
+      expect(mockExecFile).not.toHaveBeenCalled();
+    });
+
+    it('should reject combining a system key with another key', async () => {
+      const hdc = new HdcClient({});
+
+      await expect(hdc.keyEvent('Home', '2054')).rejects.toThrow(
+        'HDC system key events cannot be combined',
+      );
+      expect(mockExecFile).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      'Invalid parameters.',
+      'Invalid parameters',
+      'Missing parameter.',
+      'Too many parameters.',
+    ])('should throw when uitest reports: %s', async (message) => {
+      mockExecFile.mockResolvedValue({
+        stdout: `${message}\n\nUSAGE: keyEvent <keyID/Back/Home/Power>`,
+        stderr: '',
+      });
+
+      const hdc = new HdcClient({});
+
+      await expect(hdc.keyEvent('2094')).rejects.toThrow(
+        `HDC uiInput keyEvent failed for 2094: ${message}`,
       );
     });
   });
@@ -277,6 +391,31 @@ activeMode: 1216x2688, refreshRate=60`,
   });
 
   describe('clearTextField', () => {
+    it('should throw when a batched key event reports an error', async () => {
+      mockExecFile.mockResolvedValue({
+        stdout: 'Too many parameters.\n',
+        stderr: '',
+      });
+
+      const hdc = new HdcClient({});
+
+      await expect(hdc.clearTextField(4)).rejects.toThrow(
+        'HDC uiInput clearTextField failed: Too many parameters.',
+      );
+    });
+
+    it.each([-1, 1.5, Number.NaN])(
+      'should reject invalid clear length %s before invoking HDC',
+      async (length) => {
+        const hdc = new HdcClient({});
+
+        await expect(hdc.clearTextField(length)).rejects.toThrow(
+          'HDC clearTextField length must be a non-negative safe integer',
+        );
+        expect(mockExecFile).not.toHaveBeenCalled();
+      },
+    );
+
     it('should chain 3-key batches with semicolons in a single shell call', async () => {
       mockExecFile.mockResolvedValue({ stdout: '', stderr: '' });
 

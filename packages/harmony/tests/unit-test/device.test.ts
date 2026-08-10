@@ -383,6 +383,16 @@ describe('HarmonyDevice', () => {
     });
   });
 
+  describe('keyboard validation', () => {
+    it('should reject an unsupported key before connecting to HDC', async () => {
+      await expect(
+        device.inputPrimitives.keyboard.keyboardPress('not-a-key'),
+      ).rejects.toThrow('Unsupported HarmonyOS key: not-a-key');
+      expect(mockHdc.getScreenInfo).not.toHaveBeenCalled();
+      expect(mockHdc.keyEvent).not.toHaveBeenCalled();
+    });
+  });
+
   describe('keyboardPress', () => {
     beforeEach(async () => {
       await device.connect();
@@ -390,56 +400,19 @@ describe('HarmonyDevice', () => {
 
     it.each([
       ['Enter', '2054'],
-      ['Backspace', '2055'],
-      ['Tab', '2049'],
-      ['Escape', '2070'],
-      ['ArrowUp', '2012'],
-      ['ArrowDown', '2013'],
-      ['ArrowLeft', '2014'],
-      ['ArrowRight', '2015'],
-      ['Space', '2050'],
-      ['Delete', '2071'],
+      ['Home', '2081'],
+      ['F5', '2094'],
+      ['F24', '2827'],
+      ['Power', 'Power'],
+      ['2210', '2210'],
     ])('should map %s to keycode %s', async (key, code) => {
       await device.inputPrimitives.keyboard.keyboardPress(key);
       expect(mockHdc.keyEvent).toHaveBeenCalledWith(code);
     });
 
-    it('should map Home to string "Home"', async () => {
-      await device.inputPrimitives.keyboard.keyboardPress('Home');
-      expect(mockHdc.keyEvent).toHaveBeenCalledWith('Home');
-    });
-
-    it('should normalize case-insensitive key names', async () => {
-      await device.inputPrimitives.keyboard.keyboardPress('enter');
-      expect(mockHdc.keyEvent).toHaveBeenCalledWith('2054');
-    });
-
-    it('should normalize aliases (esc -> Escape)', async () => {
-      await device.inputPrimitives.keyboard.keyboardPress('esc');
-      expect(mockHdc.keyEvent).toHaveBeenCalledWith('2070');
-    });
-
-    it('should normalize arrow aliases (up -> ArrowUp)', async () => {
-      await device.inputPrimitives.keyboard.keyboardPress('up');
-      expect(mockHdc.keyEvent).toHaveBeenCalledWith('2012');
-    });
-
-    it('should normalize arrow aliases (down/left/right)', async () => {
-      await device.inputPrimitives.keyboard.keyboardPress('down');
-      expect(mockHdc.keyEvent).toHaveBeenCalledWith('2013');
-
-      mockHdc.keyEvent.mockClear();
-      await device.inputPrimitives.keyboard.keyboardPress('left');
-      expect(mockHdc.keyEvent).toHaveBeenCalledWith('2014');
-
-      mockHdc.keyEvent.mockClear();
-      await device.inputPrimitives.keyboard.keyboardPress('right');
-      expect(mockHdc.keyEvent).toHaveBeenCalledWith('2015');
-    });
-
-    it('should pass through unknown keys as-is', async () => {
-      await device.inputPrimitives.keyboard.keyboardPress('F5');
-      expect(mockHdc.keyEvent).toHaveBeenCalledWith('F5');
+    it('should forward a shifted key as a multi-key event', async () => {
+      await device.inputPrimitives.keyboard.keyboardPress('?');
+      expect(mockHdc.keyEvent).toHaveBeenCalledWith('2047', '2064');
     });
   });
 
@@ -458,9 +431,9 @@ describe('HarmonyDevice', () => {
       expect(mockHdc.keyEvent).toHaveBeenCalledWith('Home');
     });
 
-    it('should send RecentApps key', async () => {
+    it('should send the API 18+ Recent keycode', async () => {
       await device.recentApps();
-      expect(mockHdc.keyEvent).toHaveBeenCalledWith('RecentApps');
+      expect(mockHdc.keyEvent).toHaveBeenCalledWith('10011');
     });
 
     it('should send Escape key for hideKeyboard by default', async () => {

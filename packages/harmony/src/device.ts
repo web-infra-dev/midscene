@@ -24,6 +24,7 @@ import { createImgBase64ByFormat } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { normalizeForComparison, repeat } from '@midscene/shared/utils';
 import { HdcClient } from './hdc';
+import { resolveHarmonyKeyCodes } from './keycode';
 
 type KeyboardDismissStrategy = 'esc-first' | 'back-first';
 
@@ -102,41 +103,6 @@ function pickFieldByPoint(
 function pickLongestField(fields: InputField[]): InputField {
   return fields.reduce((a, b) => (b.text.length > a.text.length ? b : a));
 }
-
-// HarmonyOS uitest only accepts Back/Home/Power as string names.
-// All other keys must use numeric keycodes.
-const harmonyKeyCodeMap = {
-  Enter: '2054',
-  Backspace: '2055',
-  Tab: '2049',
-  Escape: '2070',
-  Home: 'Home',
-  ArrowUp: '2012',
-  ArrowDown: '2013',
-  ArrowLeft: '2014',
-  ArrowRight: '2015',
-  Space: '2050',
-  Delete: '2071',
-} as const;
-
-const keyNameAliasMap: Record<string, string> = {
-  enter: 'Enter',
-  backspace: 'Backspace',
-  tab: 'Tab',
-  escape: 'Escape',
-  esc: 'Escape',
-  home: 'Home',
-  space: 'Space',
-  delete: 'Delete',
-  arrowup: 'ArrowUp',
-  arrowdown: 'ArrowDown',
-  arrowleft: 'ArrowLeft',
-  arrowright: 'ArrowRight',
-  up: 'ArrowUp',
-  down: 'ArrowDown',
-  left: 'ArrowLeft',
-  right: 'ArrowRight',
-} as const;
 
 export class HarmonyDevice implements AbstractInterface {
   private deviceId: string;
@@ -615,12 +581,9 @@ export class HarmonyDevice implements AbstractInterface {
   }
 
   private async pressKey(key: string): Promise<void> {
-    const normalizedKey = keyNameAliasMap[key.toLowerCase()] ?? key;
-    const harmonyKey =
-      harmonyKeyCodeMap[normalizedKey as keyof typeof harmonyKeyCodeMap] ?? key;
-
+    const keyCodes = resolveHarmonyKeyCodes(key);
     const hdc = await this.getHdc();
-    await hdc.keyEvent(harmonyKey);
+    await hdc.keyEvent(...keyCodes);
   }
 
   async scroll(deltaX: number, deltaY: number, speed?: number): Promise<void> {
@@ -787,8 +750,7 @@ export class HarmonyDevice implements AbstractInterface {
 
   async recentApps(): Promise<void> {
     const hdc = await this.getHdc();
-    // HarmonyOS recent apps key event
-    await hdc.keyEvent('RecentApps');
+    await hdc.keyEvent('10011'); // KEYCODE_RECENT (API 18+)
   }
 
   async hideKeyboard(options?: HarmonyDeviceInputOpt): Promise<void> {
@@ -797,11 +759,11 @@ export class HarmonyDevice implements AbstractInterface {
       options?.keyboardDismissStrategy ??
       this.options?.keyboardDismissStrategy ??
       'esc-first';
-    const key =
-      keyboardDismissStrategy === 'back-first'
-        ? 'Back'
-        : harmonyKeyCodeMap.Escape;
-    await hdc.keyEvent(key);
+    if (keyboardDismissStrategy === 'back-first') {
+      await hdc.keyEvent('Back');
+      return;
+    }
+    await hdc.keyEvent(...resolveHarmonyKeyCodes('Escape'));
   }
 
   /**
