@@ -14,6 +14,7 @@ This page retains a small number of complete examples to show how related APIs w
 | [iOS](#ios) | iOS device, Agent, factory, and utility APIs |
 | [HarmonyOS](#harmonyos) | HarmonyOS device, Agent, factory, and utility APIs |
 | [Desktop](#desktop) | Local desktop and RDP APIs |
+| [Runtime configuration](#runtime-configuration) | Global environment variables for run artifacts, language, Playground networking, and Debug logs |
 
 ## Shared Agent APIs {#common}
 
@@ -3219,6 +3220,35 @@ const displays = await ComputerDevice.listDisplays();
 ```
 
 With RDP, `ListDisplays` returns the current remote session as a single display.
+
+## Runtime configuration {#runtime-configuration}
+
+These environment variables control global runtime behavior rather than model requests. They are not supported in an Agent's `modelConfig` object.
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| `MIDSCENE_RUN_DIR` | string | `midscene_run` | Directory for reports, logs, model-call records, and other run artifacts. Accepts an absolute path or a path relative to the current working directory. |
+| `MIDSCENE_PREFERRED_LANGUAGE` | string | `Chinese` in the `Asia/Shanghai` time zone; otherwise `English` | Preferred language for model responses. |
+| `MIDSCENE_PLAYGROUND_HOST` | string | `127.0.0.1` | Network interface used by the Playground server. Set it to a reachable interface address when a remote device, virtual machine, container, or another computer needs to connect. |
+| `DEBUG` | string | Unset | Enables additional debug log namespaces. See [Debug logs](#debug-logs) for supported selectors. |
+
+Setting `MIDSCENE_PLAYGROUND_HOST=0.0.0.0` listens on all network interfaces. Use this value only on a trusted network.
+
+### Debug logs {#debug-logs}
+
+Set `DEBUG` to one of the following selectors:
+
+| Value | Description |
+| --- | --- |
+| `midscene:ai:profile:stats` | Prints model latency and Token usage in a comma-separated format. |
+| `midscene:ai:profile:detail` | Prints detailed Token usage logs. |
+| `midscene:ai:call` | Prints AI response details. |
+| `midscene:android:adb` | Prints Android ADB command details. |
+| `midscene:*` | Prints all Midscene Debug logs. |
+
+Midscene saves logs under `<MIDSCENE_RUN_DIR>/log` even when `DEBUG` is unset. Debug logs may contain model inputs, outputs, or screenshots. Review them before sharing, and do not commit them to a source repository.
+
+For model connectivity checks, call recording, and Tracing integrations, see [Model debugging and observability](../model-debugging-observability).
 
 **See also**
 

@@ -1,10 +1,6 @@
-# 全部配置项
+# 模型配置参考
 
-Midscene 通过读取操作系统中指定的环境变量来完成配置。
-
-Midscene 默认集成了 OpenAI SDK 调用 AI 服务，它限定了推理服务的参数风格，绝大多数模型服务商（或模型部署工具）都提供了满足这种要求的接口。
-
-本篇文档会重点介绍 Midscene 的模型配置参数。如果你对 Midscene 的模型策略感兴趣，请阅读[模型策略](./model-strategy)。如果你想查看常用模型的配置示例，请阅读[支持的模型与配置](./model-common-config)。
+本页汇总 Midscene 的全部模型配置。如需查看支持的模型名称、模型 family 和可复制的配置示例，请参考[支持的模型与配置](./model-common-config)。如需了解模型职责和选择方法，请参考[模型策略](./model-strategy)。如需排查连接问题、查看日志、采集 Trace 或记录调用，请参考[模型调试与可观测性](./model-debugging-observability)。
 
 ## 必选配置
 
@@ -56,15 +52,6 @@ export MIDSCENE_MODEL_FAMILY="gpt-5"
 | `MIDSCENE_MODEL_SOCKS_PROXY` | SOCKS 代理配置，如 `socks5://127.0.0.1:1080` |
 | `MIDSCENE_MODEL_INIT_CONFIG_JSON` | 覆盖 OpenAI SDK 初始化配置的 JSON。自定义鉴权 header 请使用 `defaultHeaders`；`extra_headers` 和 `extraHeaders` 也会作为别名兼容 |
 | `MIDSCENE_MODEL_EXTRA_BODY_JSON` | 合并到每次 chat completion 请求体中的 JSON。与 `MIDSCENE_MODEL_INIT_CONFIG_JSON`（配置 SDK 客户端）不同，此参数会展开到每次发送到模型的 `completion.create()` 调用体中，例如在 vLLM 中启用思考模式：`'{"chat_template_kwargs":{"enable_thinking":true}}'` |
-| `MIDSCENE_RUN_DIR` | 运行产物目录，默认值为当前工作目录下的 `midscene_run`，支持设置绝对路径或相对路径 |
-| `MIDSCENE_PREFERRED_LANGUAGE` | 可选，模型响应的语言；如果当前系统时区是 GMT+8 则默认是 `Chinese`，否则是 `English` |
-| `MIDSCENE_PLAYGROUND_HOST` | Playground 服务器的监听地址。默认值为 `127.0.0.1`，仅供本机访问 |
-
-> **Playground 网络访问**
->
-> - 本机访问：无需设置，默认监听 `127.0.0.1`。
-> - 远程访问：物理设备、虚拟机、容器和其他机器需要设置 `MIDSCENE_PLAYGROUND_HOST`。配置值应为远程设备可访问的服务器网卡地址。
-> - 监听所有网络接口：可设为 `0.0.0.0`。只在可信网络中使用这个地址。
 
 > 提示：通过 Agent 的 `replanningCycleLimit` 入参控制重规划次数（默认 20，`vlm-ui-tars` 为 40），不再使用环境变量。
 
@@ -171,15 +158,7 @@ Midscene 默认关闭模型原生思考，以获得更好的执行速度和稳�
 
 ### Debug 日志
 
-将 `DEBUG` 环境变量设置为以下选择器之一：
-
-| 取值 | 描述 |
-| --- | --- |
-| `midscene:ai:profile:stats` | 使用逗号分隔的格式打印模型延迟和 Token 使用量 |
-| `midscene:ai:profile:detail` | 打印详细的 Token 使用量日志 |
-| `midscene:ai:call` | 打印 AI 响应详情 |
-| `midscene:android:adb` | 打印 Android adb 命令调用详情 |
-| `midscene:*` | 打印全部 Debug 日志 |
+支持的 `DEBUG` 选择器和日志行为请参考[运行时配置：Debug 日志](./reference/#debug-logs)。
 
 ### LangSmith
 

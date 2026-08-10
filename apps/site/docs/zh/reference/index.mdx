@@ -14,6 +14,7 @@
 | [iOS](#ios) | iOS Device、Agent、工厂函数和工具 API |
 | [HarmonyOS](#harmonyos) | HarmonyOS Device、Agent、工厂函数和工具 API |
 | [桌面端](#desktop) | 本机桌面和 RDP API |
+| [运行时配置](#runtime-configuration) | 运行产物、语言、Playground 网络和 Debug 日志等全局环境变量 |
 
 ## 共享 Agent API {#common}
 
@@ -3169,6 +3170,35 @@ const displays = await ComputerDevice.listDisplays();
 ```
 
 使用 RDP 时，`ListDisplays` 会把当前远程会话视为单个显示器返回。
+
+## 运行时配置 {#runtime-configuration}
+
+以下环境变量控制全局运行时行为，而不是模型请求。Agent 的 `modelConfig` 对象不支持这些参数。
+
+| 名称 | 类型 | 默认值 | 说明 |
+| --- | --- | --- | --- |
+| `MIDSCENE_RUN_DIR` | 字符串 | `midscene_run` | 报告、日志、模型调用记录和其他运行产物的保存目录。支持绝对路径，也支持相对于当前工作目录的路径。 |
+| `MIDSCENE_PREFERRED_LANGUAGE` | 字符串 | `Asia/Shanghai` 时区为 `Chinese`，其他时区为 `English` | 模型响应的首选语言。 |
+| `MIDSCENE_PLAYGROUND_HOST` | 字符串 | `127.0.0.1` | Playground 服务器监听的网络接口。远程设备、虚拟机、容器或其他计算机需要连接时，请设为对方可访问的接口地址。 |
+| `DEBUG` | 字符串 | 未设置 | 启用额外的 Debug 日志命名空间。支持的选择器请参考 [Debug 日志](#debug-logs)。 |
+
+设置 `MIDSCENE_PLAYGROUND_HOST=0.0.0.0` 会监听所有网络接口。请仅在可信网络中使用该值。
+
+### Debug 日志 {#debug-logs}
+
+将 `DEBUG` 设置为以下选择器之一：
+
+| 取值 | 描述 |
+| --- | --- |
+| `midscene:ai:profile:stats` | 使用逗号分隔的格式打印模型延迟和 Token 使用量。 |
+| `midscene:ai:profile:detail` | 打印详细的 Token 使用量日志。 |
+| `midscene:ai:call` | 打印 AI 响应详情。 |
+| `midscene:android:adb` | 打印 Android ADB 命令调用详情。 |
+| `midscene:*` | 打印全部 Midscene Debug 日志。 |
+
+即使未设置 `DEBUG`，Midscene 也会将日志保存在 `<MIDSCENE_RUN_DIR>/log` 目录中。Debug 日志可能包含模型输入、输出或截图。分享前请先检查内容，也不要将日志提交到源码仓库。
+
+模型连接检查、调用记录和 Tracing 集成请参考[模型调试与可观测性](../model-debugging-observability)。
 
 **另请参阅**
 

@@ -185,10 +185,6 @@ export default defineConfig(async () => {
             link: '/model-strategy',
           },
           {
-            text: 'All configuration options',
-            link: '/model-config',
-          },
-          {
             text: 'Debugging & observability',
             link: '/model-debugging-observability',
           },
@@ -246,11 +242,15 @@ export default defineConfig(async () => {
             link: '/automate-with-scripts-in-yaml',
           },
           {
-            sectionHeaderText: 'API reference',
+            sectionHeaderText: 'Reference',
           },
           {
-            text: 'API overview',
+            text: 'API reference',
             link: '/reference/',
+          },
+          {
+            text: 'Model configuration',
+            link: '/model-config',
           },
           {
             sectionHeaderText: 'Advanced guides',
@@ -335,10 +335,6 @@ export default defineConfig(async () => {
             link: '/zh/model-strategy',
           },
           {
-            text: '全部配置项',
-            link: '/zh/model-config',
-          },
-          {
             text: '调试与可观测性',
             link: '/zh/model-debugging-observability',
           },
@@ -396,11 +392,15 @@ export default defineConfig(async () => {
             link: '/zh/automate-with-scripts-in-yaml',
           },
           {
-            sectionHeaderText: 'API 参考',
+            sectionHeaderText: '参考文档',
           },
           {
-            text: 'API 概览',
+            text: 'API 参考',
             link: '/zh/reference/',
+          },
+          {
+            text: '模型配置',
+            link: '/zh/model-config',
           },
           {
             sectionHeaderText: '进阶指南',
