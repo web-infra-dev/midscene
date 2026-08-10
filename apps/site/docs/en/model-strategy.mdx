@@ -1,42 +1,38 @@
 # Model Strategy
 
-This guide explains Midscene's model selection strategy.
+Midscene's model strategy serves two goals. First, it uses pure vision to understand the interface that users actually see, keeping automation independent of the rendering stack. Second, it supports flexible single-model and multi-model configurations so users can choose a suitable combination for their business requirements.
 
-## Pure-vision localization in Midscene
+## A pure-vision approach based on the visible interface
 
 AI-powered UI automation requires task planning and element localization. The industry mainly uses two localization approaches: combining DOM data with annotated screenshots, or using screenshots directly for pure-vision localization. Midscene uses pure vision, with the model analyzing the UI screenshot and locating target elements directly. UI actions and element localization do not depend on DOM data or extra annotations.
 
-This approach has the following characteristics:
+This choice makes the visible interface the source of truth for automation and gives Midscene several advantages:
 
-- It does not depend on the UI rendering stack.
-- It works across browser Canvas, Android, iOS, desktop applications, and other types of interfaces.
+- It uses a consistent approach across browser Canvas, Android, iOS, desktop applications, and other types of interfaces.
 - It can validate what users actually see, including colors, highlighted states, and layout.
-- It does not require selectors or extra UI annotations.
+- It is independent of the UI rendering stack and does not require selectors or extra UI annotations.
+- Token consumption depends only on page resolution and task complexity, and does not inflate as the page structure (such as the number of DOM elements) grows.
 
-Pure-vision localization requires strong visual understanding and processes UI screenshots at runtime. On interfaces with complete component trees and accessibility annotations, structure-based approaches may use fewer model resources. Midscene chooses pure vision to provide consistent interaction capabilities across platforms and rendering technologies.
+Pure vision is not a local optimization for one platform. It is the shared foundation of Midscene's cross-platform interaction capabilities. The same task descriptions and interaction patterns can extend across interfaces and devices while staying close to how real users operate software.
 
-Since version 1.0, Midscene has used only pure vision for UI actions and element localization. Data extraction and page-understanding workloads can still include DOM data when needed. See the [API Reference](./reference/#extraction-location-assertion) for the relevant options.
+The vision-based approach also has clear limitations. Pure-vision localization requires models with visual understanding capabilities — only designated models that are stable for GUI operations can be used, not any arbitrary LLM. Midscene accepts higher model capability requirements in exchange for cross-platform consistency and lower UI maintenance costs.
 
-## Model responsibilities
+Data extraction and page-understanding workloads can still include DOM data when needed. See the [API Reference](./reference/#extraction-location-assertion) for the relevant options.
 
-Midscene always requires a Default model. Planning and Insight models are optional. When they are not configured separately, their workloads automatically fall back to the Default model.
+<span id="advanced-combining-multiple-models" />
 
-| Model | Primary responsibility |
+## Single-model and multi-model configurations
+
+Midscene always requires a Default model. It can independently handle task planning, element localization, page understanding, and the rest of the automation workload, or serve as the foundation of a multi-model combination. Depending on their business requirements, users can use only the Default model or add Planning and Insight models as needed. In a multi-model combination, the three model roles can work together in one automation task:
+
+| Model | Role in the combination |
 | --- | --- |
-| Default model | Handles element localization (Locate) and workloads not assigned to Planning or Insight |
-| Planning model | Handles task planning for `aiAct` and `ai` |
-| Insight model | Handles data extraction, assertions, and page understanding for APIs such as `aiQuery`, `aiAsk`, and `aiAssert` |
+| Default model | Provides the foundation, handling element localization (Locate) and workloads not assigned to Planning or Insight |
+| Planning model | Enhances planning for complex goals, multi-step tasks, and branching scenarios |
+| Insight model | Enhances data extraction, assertions, and page understanding |
 
-After you configure a Planning or Insight model, element localization still uses the Default model. Optional models do not replace the Default model.
+A multi-model combination can increase task latency and token usage.
 
-## When to use multiple models
+## Next steps
 
-For most use cases, a Default model is enough. Consider adding a separate model when different workloads have clearly different capability requirements:
-
-- Configure a Planning model when complex multi-step tasks need stronger planning.
-- Configure an Insight model when data extraction, assertions, or page understanding need stronger visual question answering.
-- Use different models when you need to balance quality, latency, and cost separately across localization, planning, and page understanding.
-
-A multi-model setup adds model services, environment variables, and call-path complexity. It can also increase latency and token usage. Start with a Default model, then add a separate model only after identifying a planning or page-understanding need.
-
-If task quality is unstable, use [Model debugging and observability](./model-debugging-observability) to identify the problem first. For setup instructions, see [Optional: configure multiple models](./model-common-config#multi-model-combination-example).
+This page focuses on Midscene's model philosophy and selection principles. For setup instructions, see [Optional: configure multiple models](./model-common-config#multi-model-combination-example). If task quality is unstable, use [Model debugging and observability](./model-debugging-observability) to identify the problem.

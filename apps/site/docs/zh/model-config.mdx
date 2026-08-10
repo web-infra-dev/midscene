@@ -1,10 +1,6 @@
 # 模型配置参考
 
-Midscene 通过读取操作系统中指定的环境变量来完成配置。
-
-Midscene 默认集成了 OpenAI SDK 调用 AI 服务，它限定了推理服务的参数风格，绝大多数模型服务商（或模型部署工具）都提供了满足这种要求的接口。
-
-本篇文档会重点介绍 Midscene 的模型配置参数。如果你对 Midscene 的模型策略感兴趣，请阅读[模型策略](./model-strategy)。如果你想查看常用模型的配置示例，请阅读[支持的模型与配置](./model-common-config)。
+本页汇总 Midscene 的全部模型配置。如需查看支持的模型名称、模型 family 和可复制的配置示例，请参考[支持的模型与配置](./model-common-config)。如需了解模型职责和选择方法，请参考[模型策略](./model-strategy)。如需排查连接问题、查看日志、采集 Trace 或记录调用，请参考[模型调试与可观测性](./model-debugging-observability)。
 
 ## 必选配置
 
@@ -141,15 +137,7 @@ Midscene 默认关闭模型原生思考，以获得更好的执行速度和稳�
 
 ### Debug 日志
 
-将 `DEBUG` 环境变量设置为以下选择器之一：
-
-| 取值 | 描述 |
-| --- | --- |
-| `midscene:ai:profile:stats` | 使用逗号分隔的格式打印模型延迟和 Token 使用量 |
-| `midscene:ai:profile:detail` | 打印详细的 Token 使用量日志 |
-| `midscene:ai:call` | 打印 AI 响应详情 |
-| `midscene:android:adb` | 打印 Android adb 命令调用详情 |
-| `midscene:*` | 打印全部 Debug 日志 |
+支持的 `DEBUG` 选择器和日志行为请参考[运行时配置：Debug 日志](./reference/#debug-logs)。
 
 ### LangSmith
 

@@ -76,19 +76,15 @@ If the model connects successfully but localization, planning, or page understan
 
 ### Debug logs
 
-Enable the following selectors to print richer debug logs. Regardless of these selectors, Midscene also saves logs under `./midscene_run/log`.
+Set `DEBUG` when you need additional diagnostic output. Common selectors include:
 
-| Name | Description |
-| --- | --- |
-| `DEBUG=midscene:ai:profile:stats` | Prints model latency and token usage in a comma-separated format |
-| `DEBUG=midscene:ai:profile:detail` | Prints detailed token-usage logs |
-| `DEBUG=midscene:ai:call` | Prints AI response details |
-| `DEBUG=midscene:android:adb` | Prints Android adb command details |
-| `DEBUG=midscene:*` | Prints all debug logs |
+- `DEBUG=midscene:ai:profile:stats` prints model latency and Token usage.
+- `DEBUG=midscene:ai:call` prints AI response details.
+- `DEBUG=midscene:*` prints all Midscene Debug logs.
+
+For the complete selector list, log location, and handling notes, see [Runtime configuration: Debug logs](./reference/#debug-logs).
 
 Usage statistics are also available in generated [report files](./consume-report-file).
-
-Debug logs can contain model inputs or outputs. Review them before sharing.
 
 ### Record model calls
 
@@ -207,4 +203,3 @@ Notes:
 
 - Do not commit `.env` files, traces, debug logs, or model-call records to source control.
 - Review logs and traces before sharing them because they can contain model inputs, outputs, or screenshots.
-- Store LangSmith and Langfuse keys using the secret-management method used by your project.

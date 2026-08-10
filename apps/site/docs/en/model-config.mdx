@@ -1,12 +1,6 @@
-# All configuration options
+# Model Configuration Reference
 
-Midscene reads all model configuration from operating-system environment variables.
-
-Midscene integrates the OpenAI SDK by default for AI calls. The SDK defines the parameter shape, and most model providers (or deployment tools) offer compatible endpoints.
-
-This doc focuses on Midscene model configuration. For how we choose models, see [Model strategy](./model-strategy). For quick recipes for popular models, see [Supported models and setup](./model-common-config).
-
-Use this page to look up every Midscene model setting. For supported model names, model families, and copyable setup examples, see [Supported models and setup](./model-common-config). For model roles and combination guidance, see [Model strategy](./model-strategy). For connection issues, logs, tracing, and call recording, see [Model debugging and observability](./model-debugging-observability).
+Use this page to look up every Midscene model setting. For supported model names, model families, and copyable setup examples, see [Supported models and setup](./model-common-config). For model roles and selection guidance, see [Model strategy](./model-strategy). For connection issues, logs, tracing, and call recording, see [Model debugging and observability](./model-debugging-observability).
 
 ## Required settings
 
@@ -144,15 +138,7 @@ The following settings enable model diagnostics, tracing, and local call recordi
 
 ### Debug logs
 
-Set the `DEBUG` environment variable to one of the following selectors:
-
-| Value | Description |
-| --- | --- |
-| `midscene:ai:profile:stats` | Prints model latency and token usage in a comma-separated format |
-| `midscene:ai:profile:detail` | Prints detailed token-usage logs |
-| `midscene:ai:call` | Prints AI response details |
-| `midscene:android:adb` | Prints Android adb command details |
-| `midscene:*` | Prints all debug logs |
+For supported `DEBUG` selectors and log behavior, see [Runtime configuration: Debug logs](./reference/#debug-logs).
 
 ### LangSmith
 

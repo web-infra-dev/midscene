@@ -76,19 +76,15 @@ npx @midscene/cli@latest model verify
 
 ### Debug 日志
 
-启用以下选择器可以打印更详细的 Debug 日志。无论是否启用这些选择器，Midscene 都会将日志保存在 `./midscene_run/log` 目录中。
+需要额外的诊断信息时，可以设置 `DEBUG`。常用选择器包括：
 
-| 名称 | 描述 |
-| --- | --- |
-| `DEBUG=midscene:ai:profile:stats` | 使用逗号分隔的格式打印模型延迟和 Token 使用量 |
-| `DEBUG=midscene:ai:profile:detail` | 打印详细的 Token 使用量日志 |
-| `DEBUG=midscene:ai:call` | 打印 AI 响应详情 |
-| `DEBUG=midscene:android:adb` | 打印 Android adb 命令调用详情 |
-| `DEBUG=midscene:*` | 打印全部 Debug 日志 |
+- `DEBUG=midscene:ai:profile:stats`：打印模型延迟和 Token 使用量。
+- `DEBUG=midscene:ai:call`：打印 AI 响应详情。
+- `DEBUG=midscene:*`：打印全部 Midscene Debug 日志。
+
+完整的选择器列表、日志目录和使用注意事项，请参考[运行时配置：Debug 日志](./reference/#debug-logs)。
 
 生成的[报告文件](./consume-report-file)中也包含模型使用量统计。
-
-Debug 日志可能包含模型输入或输出。分享日志前，请先检查内容。
 
 ### 记录模型调用
 
@@ -207,4 +203,3 @@ DEBUGGING MODE: langfuse wrapper enabled
 
 - 不要将 `.env` 文件、Trace、Debug 日志或模型调用记录提交到源码仓库。
 - 日志和 Trace 可能包含模型输入、输出或截图，分享前请先检查内容。
-- 使用项目已有的密钥管理方式存储 LangSmith 和 Langfuse Key。
