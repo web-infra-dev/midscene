@@ -106,7 +106,7 @@ export MIDSCENE_RUN_DIR="/tmp/midscene_output"
 - `log/` - 调试日志文件
 - `cache/` - 缓存文件（详见 [缓存](./caching)）
 
-更多配置选项请参阅 [模型配置](./model-config)。
+更多全局运行参数请参考[运行时配置](./reference/#runtime-configuration)。
 
 ## 如何提升运行效率？
 
@@ -153,7 +153,7 @@ Midscene 的元素定位能力依赖于 AI 模型的视觉理解能力，所以�
 
 通常来说新版本、参数大的模型会比老版本、参数小的模型表现更好。比如 Qwen3-VL 会好于 Qwen2.5-VL，它的 plus 版本会好于 flash 版本。
 
-更多模型选择建议请参考 [模型策略](./model-strategy)。
+当前的模型建议请参考[支持的模型与配置](./model-common-config)。
 
 ### 3. 检查 Model Family 配置
 

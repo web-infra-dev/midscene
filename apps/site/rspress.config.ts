@@ -631,7 +631,7 @@ export default defineConfig(async () => {
           },
           {
             from: '^/choose-a-model(?:\\.html)?/?$',
-            to: '/model-strategy',
+            to: '/model-common-config',
           },
           {
             from: '^/model-provider(?:\\.html)?/?$',
@@ -707,7 +707,7 @@ export default defineConfig(async () => {
           },
           {
             from: '^/zh/choose-a-model(?:\\.html)?/?$',
-            to: '/zh/model-strategy',
+            to: '/zh/model-common-config',
           },
           {
             from: '^/zh/model-provider(?:\\.html)?/?$',

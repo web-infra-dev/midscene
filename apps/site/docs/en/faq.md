@@ -114,7 +114,7 @@ The directory contains the following subdirectories:
 - `log/` - Debug log files
 - `cache/` - Cache files (see [Caching](./caching))
 
-For more configuration options, see [Model configuration](./model-config).
+For global runtime options, see [Runtime configuration](./reference/#runtime-configuration).
 
 ## How do I control the report player's default replay style via a link?
 
@@ -153,7 +153,7 @@ Midscene's element positioning capability relies on the AI model's visual unders
 
 Generally, newer versions and models with larger parameters perform better than older versions and smaller models. For example, Qwen3-VL performs better than Qwen2.5-VL, and its plus version performs better than the flash version.
 
-For more model selection suggestions, please refer to [Model Strategy](./model-strategy).
+For current model recommendations, see [Supported models and setup](./model-common-config).
 
 ### 3. Check Model Family Configuration
 
