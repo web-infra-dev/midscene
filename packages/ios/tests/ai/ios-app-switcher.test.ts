@@ -1,10 +1,13 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { type IOSAgent, agentFromWebDriverAgent } from '@/agent';
-import { checkIOSEnvironment } from '@/utils';
 import { sleep } from '@midscene/core/utils';
 import { DEFAULT_WDA_PORT } from '@midscene/shared/constants';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import {
+  type IOSAgent,
+  agentFromWebDriverAgent,
+  checkIOSEnvironment,
+} from '../../src';
 
 const RUN_APP_SWITCHER_AI_E2E =
   process.env.AI_TEST_TYPE === 'iOS' &&
@@ -15,7 +18,6 @@ const diagnosticsDir = process.env.MIDSCENE_IOS_DIAGNOSTICS_DIR;
 vi.setConfig({
   testTimeout: 300_000,
   hookTimeout: 60_000,
-  retry: process.env.CI ? 1 : 0,
 });
 
 function screenshotBuffer(base64: string): Buffer {

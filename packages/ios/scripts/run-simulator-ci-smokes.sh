@@ -174,7 +174,7 @@ smoke_exit=${PIPESTATUS[0]}
 AI_TEST_TYPE=iOS \
 MIDSCENE_IOS_APP_SWITCHER_AI_E2E=1 \
 pnpm exec nx test @midscene/ios --skip-nx-cache -- \
-  tests/ai/ios-app-switcher.test.ts 2>&1 |
+  tests/ai/ios-app-switcher.test.ts --retry=1 2>&1 |
   tee "$diagnostics_dir/app-switcher-ai-e2e.log"
 app_switcher_ai_exit=${PIPESTATUS[0]}
 
