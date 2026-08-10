@@ -407,11 +407,11 @@ Midscene 从环境变量读取模型配置。请选择与你的使用方式对�
 以下示例适用于 Bash 和 Zsh。变量只在当前 Shell 会话及其启动的子进程中有效。
 
 ```bash
-# 替换为你自己的 API Key
-export MIDSCENE_MODEL_BASE_URL="https://.../compatible-mode/v1"
-export MIDSCENE_MODEL_API_KEY="sk-abcde..."
-export MIDSCENE_MODEL_NAME="qwen3.7-plus"
-export MIDSCENE_MODEL_FAMILY="qwen3"
+# 将全部值替换为所选模型服务商提供的配置
+export MIDSCENE_MODEL_BASE_URL="https://替换为你的模型服务地址/v1"
+export MIDSCENE_MODEL_API_KEY="替换为你的 API Key"
+export MIDSCENE_MODEL_NAME="替换为你的模型名称"
+export MIDSCENE_MODEL_FAMILY="替换为你的模型对应的 family"
 ```
 
 ### 通过 CLI 加载 `.env`
@@ -419,10 +419,11 @@ export MIDSCENE_MODEL_FAMILY="qwen3"
 在运行 `midscene` 命令时所在的目录中创建 `.env` 文件。`@midscene/cli` 会自动读取这个文件。
 
 ```bash
-MIDSCENE_MODEL_BASE_URL="https://.../compatible-mode/v1"
-MIDSCENE_MODEL_API_KEY="sk-abcdefghijklmnopqrstuvwxyz"
-MIDSCENE_MODEL_NAME="qwen3.7-plus"
-MIDSCENE_MODEL_FAMILY="qwen3"
+# 将全部值替换为所选模型服务商提供的配置
+MIDSCENE_MODEL_BASE_URL="https://替换为你的模型服务地址/v1"
+MIDSCENE_MODEL_API_KEY="替换为你的 API Key"
+MIDSCENE_MODEL_NAME="替换为你的模型名称"
+MIDSCENE_MODEL_FAMILY="替换为你的模型对应的 family"
 ```
 
 `.env` 中的每一行都不需要添加 `export`。运行 YAML 任务时，当前 Shell 中已有的同名变量默认优先于 `.env`。如需让 `.env` 覆盖它们，请使用 `--dotenv-override`。
@@ -438,10 +439,11 @@ Midscene JavaScript SDK 直接读取 Node.js 进程中的模型配置环境变�
 在运行脚本时所在的目录中创建 `.env` 文件：
 
 ```bash
-MIDSCENE_MODEL_BASE_URL="https://.../compatible-mode/v1"
-MIDSCENE_MODEL_API_KEY="sk-abcdefghijklmnopqrstuvwxyz"
-MIDSCENE_MODEL_NAME="qwen3.7-plus"
-MIDSCENE_MODEL_FAMILY="qwen3"
+# 将全部值替换为所选模型服务商提供的配置
+MIDSCENE_MODEL_BASE_URL="https://替换为你的模型服务地址/v1"
+MIDSCENE_MODEL_API_KEY="替换为你的 API Key"
+MIDSCENE_MODEL_NAME="替换为你的模型名称"
+MIDSCENE_MODEL_FAMILY="替换为你的模型对应的 family"
 ```
 
 在创建 Midscene Agent 之前导入 dotenv：

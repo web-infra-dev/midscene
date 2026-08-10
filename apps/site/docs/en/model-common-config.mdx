@@ -405,11 +405,11 @@ Midscene reads model configuration from environment variables. Choose the method
 The following example works in Bash and Zsh. These variables are available only to the current shell session and its child processes.
 
 ```bash
-# Replace with your own API key
-export MIDSCENE_MODEL_BASE_URL="https://.../compatible-mode/v1"
-export MIDSCENE_MODEL_API_KEY="sk-abcde..."
-export MIDSCENE_MODEL_NAME="qwen3.7-plus"
-export MIDSCENE_MODEL_FAMILY="qwen3"
+# Replace every value with the configuration for your selected model provider
+export MIDSCENE_MODEL_BASE_URL="https://replace-with-your-model-service-url/v1"
+export MIDSCENE_MODEL_API_KEY="replace-with-your-api-key"
+export MIDSCENE_MODEL_NAME="replace-with-your-model-name"
+export MIDSCENE_MODEL_FAMILY="replace-with-the-family-for-your-model"
 ```
 
 ### Load `.env` with the CLI
@@ -417,10 +417,11 @@ export MIDSCENE_MODEL_FAMILY="qwen3"
 Create a `.env` file in the directory where you run the `midscene` command. `@midscene/cli` loads this file automatically.
 
 ```bash
-MIDSCENE_MODEL_BASE_URL="https://.../compatible-mode/v1"
-MIDSCENE_MODEL_API_KEY="sk-abcdefghijklmnopqrstuvwxyz"
-MIDSCENE_MODEL_NAME="qwen3.7-plus"
-MIDSCENE_MODEL_FAMILY="qwen3"
+# Replace every value with the configuration for your selected model provider
+MIDSCENE_MODEL_BASE_URL="https://replace-with-your-model-service-url/v1"
+MIDSCENE_MODEL_API_KEY="replace-with-your-api-key"
+MIDSCENE_MODEL_NAME="replace-with-your-model-name"
+MIDSCENE_MODEL_FAMILY="replace-with-the-family-for-your-model"
 ```
 
 Do not add `export` at the beginning of each line. When running YAML tasks, existing variables in the current shell take precedence over values with the same name in `.env`. To let `.env` override them, use `--dotenv-override`.
@@ -436,10 +437,11 @@ The Midscene JavaScript SDK reads model configuration directly from the Node.js 
 Create a `.env` file in the directory where you run the script:
 
 ```bash
-MIDSCENE_MODEL_BASE_URL="https://.../compatible-mode/v1"
-MIDSCENE_MODEL_API_KEY="sk-abcdefghijklmnopqrstuvwxyz"
-MIDSCENE_MODEL_NAME="qwen3.7-plus"
-MIDSCENE_MODEL_FAMILY="qwen3"
+# Replace every value with the configuration for your selected model provider
+MIDSCENE_MODEL_BASE_URL="https://replace-with-your-model-service-url/v1"
+MIDSCENE_MODEL_API_KEY="replace-with-your-api-key"
+MIDSCENE_MODEL_NAME="replace-with-your-model-name"
+MIDSCENE_MODEL_FAMILY="replace-with-the-family-for-your-model"
 ```
 
 Import dotenv before creating a Midscene Agent:
