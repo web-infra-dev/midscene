@@ -22,10 +22,10 @@ import type {
   WorkflowDocumentSource,
 } from '../parser/types';
 import {
-  writeCaseRunResult,
+  writeCaseAttemptResult,
   writeCollectionError,
   writeTestProjectRunResult,
-  writeWorkflowDocumentRunResult,
+  writeWorkflowDocumentResult,
 } from './result-store';
 import {
   type ResolvedExecutionProject,
@@ -124,12 +124,24 @@ export const discoverTestConfig = (projectRoot: string): string | undefined => {
 };
 
 const defaultResultDir = (projectRoot: string): string =>
-  join(
-    projectRoot,
-    '.midscene',
-    'test-results',
-    `${Date.now()}-${process.pid}`,
-  );
+  join(projectRoot, '.midscene', 'test-results');
+
+const padDatePart = (value: number): string => String(value).padStart(2, '0');
+
+export const createTestRunId = (
+  date = new Date(),
+  uuid = randomUUID(),
+): string => {
+  const timestamp = [
+    date.getFullYear(),
+    padDatePart(date.getMonth() + 1),
+    padDatePart(date.getDate()),
+    padDatePart(date.getHours()),
+    padDatePart(date.getMinutes()),
+    padDatePart(date.getSeconds()),
+  ].join('');
+  return `${timestamp}-${uuid.slice(0, 8)}`;
+};
 
 const assertDirectory = (path: string, label: string): void => {
   if (!existsSync(path) || !statSync(path).isDirectory()) {
@@ -181,10 +193,12 @@ const filterDocumentCases = (
 };
 
 const asNotRun = (
+  documentId: string,
   collectedCase: CollectedCase,
   projectName: string,
   reason: NonNullable<TestProjectCaseRunResult['notRunReason']>,
 ): TestProjectCaseRunResult => ({
+  documentId,
   caseId: collectedCase.caseId,
   projectName,
   name: collectedCase.definition.name,
@@ -267,7 +281,7 @@ const prepareProject = <TProjectContext>(
   project: ResolvedExecutionProject<TProjectContext>,
   projectRoot: string,
   resolveNode: Parameters<typeof collectWorkflowDocument>[1]['resolveNode'],
-  resultDir: string,
+  runDir: string,
 ): PreparedExecutionProject<TProjectContext> => {
   const fileSelection = project.files ?? DEFAULT_TEST_FILE_SELECTION;
   const files = discoverTestFiles(projectRoot, fileSelection);
@@ -290,7 +304,7 @@ const prepareProject = <TProjectContext>(
       ),
     );
     collectionErrors.push(error);
-    writeCollectionError(resultDir, error);
+    writeCollectionError(runDir, error);
   }
 
   for (const source of sources) {
@@ -310,7 +324,7 @@ const prepareProject = <TProjectContext>(
         error,
       );
       collectionErrors.push(collectionError);
-      writeCollectionError(resultDir, collectionError);
+      writeCollectionError(runDir, collectionError);
     }
   }
 
@@ -333,14 +347,16 @@ const notRunSuite = (
   reason: NonNullable<TestProjectCaseRunResult['notRunReason']>,
 ): TestProjectCaseRunResult[] =>
   prepared.documents.flatMap((document) =>
-    document.cases.map((item) => asNotRun(item, prepared.project.name, reason)),
+    document.cases.map((item) =>
+      asNotRun(document.documentId, item, prepared.project.name, reason),
+    ),
   );
 
 export async function runTestProject(
   options: TestProjectRunOptions = {},
 ): Promise<TestProjectRunResult> {
   const startedAt = new Date();
-  const runId = randomUUID();
+  const runId = createTestRunId(startedAt);
   const cwd = resolve(options.cwd ?? process.cwd());
   assertDirectory(cwd, 'Test working directory');
   const cliProjectRoot = options.projectRoot
@@ -361,16 +377,17 @@ export async function runTestProject(
   const resultDir = options.resultDir
     ? resolve(cwd, options.resultDir)
     : defaultResultDir(projectRoot);
-  const summaryPath = resolve(projectRoot, definition.output.summary);
+  const runDir = join(resultDir, runId);
+  const summaryPath = join(runDir, 'summary.json');
   const reportDir = resolve(projectRoot, definition.output.reportDir);
   mkdirSync(resultDir, { recursive: true });
-  mkdirSync(reportDir, { recursive: true });
+  mkdirSync(runDir);
   const selectedProjects = selectProjects(
     definition.projects,
     options.projectNames,
   );
   const preparedProjects = selectedProjects.map((project) =>
-    prepareProject(project, projectRoot, definition.resolveNode, resultDir),
+    prepareProject(project, projectRoot, definition.resolveNode, runDir),
   );
   const progress = options.onProgress ?? (() => {});
   const totalDocuments = preparedProjects.reduce(
@@ -455,7 +472,7 @@ export async function runTestProject(
                     : 'bail';
                 cases.push(
                   ...document.cases.map((item) =>
-                    asNotRun(item, project.name, reason),
+                    asNotRun(document.documentId, item, project.name, reason),
                   ),
                 );
                 continue;
@@ -496,7 +513,7 @@ export async function runTestProject(
                 onStepResult: (info, result) =>
                   progress(formatStepResult(info, result)),
                 onCaseResult: (attempt) => {
-                  writeCaseRunResult(resultDir, attempt);
+                  writeCaseAttemptResult(runDir, document.documentId, attempt);
                   progress(
                     `    ${attempt.status === 'success' ? '✓' : '✗'} attempt ${attempt.attemptIndex + 1}/${project.retry + 1}: ${attempt.name} (${attempt.durationMs} ms)`,
                   );
@@ -506,9 +523,14 @@ export async function runTestProject(
                   if (caseHasFatalError(outcome)) projectFatal = true;
                 },
                 onDocumentResult: (documentResult) =>
-                  writeWorkflowDocumentRunResult(resultDir, documentResult),
+                  writeWorkflowDocumentResult(runDir, documentResult),
               });
-              cases.push(...execution.cases);
+              cases.push(
+                ...execution.cases.map((outcome) => ({
+                  ...outcome,
+                  documentId: document.documentId,
+                })),
+              );
               documents.push(execution.document);
             }
           }
@@ -562,7 +584,7 @@ export async function runTestProject(
     summary.projectFailures > 0;
   const endedAt = new Date();
   const result: TestProjectRunResult = {
-    schemaVersion: 1,
+    schemaVersion: 2,
     runId,
     startedAt: startedAt.toISOString(),
     endedAt: endedAt.toISOString(),

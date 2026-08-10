@@ -161,7 +161,7 @@ describe('test project config', () => {
           },
         ],
         test: { maxConcurrency: 1, bail: 2, testTimeout: 30000 },
-        output: { summary: './out/summary.json', reportDir: './out/report' },
+        output: { reportDir: './out/report' },
         nodes: [],
       };
     `);
@@ -200,10 +200,7 @@ describe('test project config', () => {
       bail: 2,
       testTimeout: 30000,
     });
-    expect(loaded.output).toEqual({
-      summary: './out/summary.json',
-      reportDir: './out/report',
-    });
+    expect(loaded.output).toEqual({ reportDir: './out/report' });
   });
 
   it.each([
@@ -263,6 +260,11 @@ describe('test project config', () => {
       'unknown Project field',
       `projects: [{ name: 'web', platform: 'web', unknown: true }]`,
       'projects[0].unknown is not supported',
+    ],
+    [
+      'removed output summary',
+      `output: { summary: './out/summary.json' }`,
+      'output.summary is not supported',
     ],
     [
       'negative retry',

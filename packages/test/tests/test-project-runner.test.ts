@@ -10,6 +10,7 @@ import { tmpdir } from 'node:os';
 import { dirname, isAbsolute, join, resolve } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
+  createTestRunId,
   discoverTestConfig,
   discoverTestFiles,
   runTestProject,
@@ -62,6 +63,15 @@ afterEach(() => {
 });
 
 describe('test project main-process runner', () => {
+  it('formats run ids with a local timestamp and UUID prefix', () => {
+    expect(
+      createTestRunId(
+        new Date(2026, 7, 7, 9, 5, 4),
+        '12345678-abcd-4abc-8abc-1234567890ab',
+      ),
+    ).toBe('20260807090504-12345678');
+  });
+
   it('discovers only midscene.config.ts', () => {
     const root = createProject();
     const configPath = join(root, 'midscene.config.ts');
@@ -174,6 +184,74 @@ describe('test project main-process runner', () => {
     expect(result.resultDir).toContain(join(root, '.midscene', 'test-results'));
   });
 
+  it('writes each run into an isolated JSON result tree', async () => {
+    const root = createProject();
+    const resultDir = join(root, 'results');
+    writeFileSync(
+      join(root, 'midscene.config.ts'),
+      `export default {
+        nodes: [{ name: 'noop', execute() {} }],
+      };`,
+    );
+    writeWorkflow(
+      root,
+      'flows/example.yaml',
+      'cases: [{ name: example, steps: [{ noop: run }] }]',
+    );
+
+    const first = await runTestProject({ projectRoot: root, resultDir });
+    const firstRunDir = join(resultDir, first.runId);
+
+    expect(first.runId).toMatch(/^\d{14}-[0-9a-f]{8}$/);
+    expect(first.resultDir).toBe(resultDir);
+    expect(first.summaryPath).toBe(join(firstRunDir, 'summary.json'));
+
+    const summary = JSON.parse(readFileSync(first.summaryPath, 'utf8'));
+    const [document] = summary.projects[0].documents;
+    const [caseResult] = summary.projects[0].cases;
+    const [attempt] = caseResult.attempts;
+
+    expect(summary).toMatchObject({
+      schemaVersion: 2,
+      runId: first.runId,
+      factsRoot: '.',
+    });
+    expect(document).not.toHaveProperty('documentRunId');
+    expect(document.resultFile).toBe(
+      `documents/${document.documentId}/document.json`,
+    );
+    expect(caseResult.documentId).toBe(document.documentId);
+    expect(attempt).not.toHaveProperty('runId');
+    expect(attempt.resultFile).toBe(
+      `documents/${document.documentId}/cases/${caseResult.caseId}/${attempt.attemptId}.json`,
+    );
+
+    const documentFact = JSON.parse(
+      readFileSync(join(firstRunDir, document.resultFile), 'utf8'),
+    );
+    const attemptFact = JSON.parse(
+      readFileSync(join(firstRunDir, attempt.resultFile), 'utf8'),
+    );
+    expect(documentFact).not.toHaveProperty('documentRunId');
+    expect(attemptFact).toMatchObject({
+      caseId: caseResult.caseId,
+      attemptId: attempt.attemptId,
+    });
+    expect(attemptFact).not.toHaveProperty('runId');
+    expect(existsSync(join(resultDir, 'runs'))).toBe(false);
+    expect(existsSync(join(resultDir, 'documents'))).toBe(false);
+    expect(existsSync(join(root, 'midscene_run'))).toBe(false);
+
+    const second = await runTestProject({ projectRoot: root, resultDir });
+    expect(second.runId).not.toBe(first.runId);
+    expect(second.summaryPath).not.toBe(first.summaryPath);
+    expect(existsSync(first.summaryPath)).toBe(true);
+    expect(existsSync(second.summaryPath)).toBe(true);
+    expect(JSON.parse(readFileSync(first.summaryPath, 'utf8')).runId).toBe(
+      first.runId,
+    );
+  });
+
   it('rejects the removed config root field', async () => {
     const cwd = createProject();
     writeFileSync(
@@ -236,7 +314,7 @@ describe('test project main-process runner', () => {
     expect(result.cases[0].sourcePath).toBe('selected/run.yaml');
     const projectResult = JSON.parse(readFileSync(result.summaryPath, 'utf8'));
     expect(projectResult).toMatchObject({
-      schemaVersion: 1,
+      schemaVersion: 2,
       projectRoot: configuredRoot,
       projects: [
         {
@@ -456,7 +534,7 @@ cases:
 
     const projectResult = JSON.parse(readFileSync(result.summaryPath, 'utf8'));
     expect(projectResult).toMatchObject({
-      schemaVersion: 1,
+      schemaVersion: 2,
       status: 'failed',
       summary: result.summary,
       projects: [
@@ -465,15 +543,15 @@ cases:
           cases: [
             {
               status: 'failed',
-              attempts: [{ resultFile: expect.stringContaining('/runs/') }],
+              attempts: [{ resultFile: expect.stringContaining('/cases/') }],
             },
             {
               status: 'success',
-              attempts: [{ resultFile: expect.stringContaining('/runs/') }],
+              attempts: [{ resultFile: expect.stringContaining('/cases/') }],
             },
             {
               status: 'success',
-              attempts: [{ resultFile: expect.stringContaining('/runs/') }],
+              attempts: [{ resultFile: expect.stringContaining('/cases/') }],
             },
           ],
           collectionErrors: [],

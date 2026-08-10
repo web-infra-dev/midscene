@@ -38,12 +38,10 @@ export interface ResolvedTestOptions {
 }
 
 export interface TestOutputDefinition {
-  summary?: string;
   reportDir?: string;
 }
 
 export interface ResolvedTestOutputDefinition {
-  summary: string;
   reportDir: string;
 }
 
@@ -537,12 +535,8 @@ const validateOutput = (value: unknown): ResolvedTestOutputDefinition => {
     throw new TypeError('Midscene config output must be an object.');
   }
   const candidate = (value ?? {}) as Record<string, unknown>;
+  rejectUnknownKeys(candidate, ['reportDir'], 'output');
   return Object.freeze({
-    summary: validateOutputPath(
-      candidate.summary,
-      './midscene_run/output/summary.json',
-      'output.summary',
-    ),
     reportDir: validateOutputPath(
       candidate.reportDir,
       './midscene_run/report',

@@ -124,13 +124,18 @@ Run the project:
 pnpm exec midscene-test
 ```
 
-The CLI automatically loads `midscene.config.ts`, discovers matching YAML files, and runs their Cases serially. The default result directory is:
+The CLI automatically loads `midscene.config.ts`, discovers matching YAML files, and runs their Cases serially. Each run gets its own directory under the default result root:
 
 ```text
-.midscene/test-results/<timestamp>-<process-id>/
+.midscene/test-results/<YYYYMMDDHHmmss>-<uuid-first-8>/
+├── summary.json
+├── documents/<document-id>/
+│   ├── document.json
+│   └── cases/<case-id>/<attempt-id>.json
+└── collection-errors/<error-id>.json
 ```
 
-The stable public summary defaults to `midscene_run/output/summary.json`, while finalized Midscene reports default to `midscene_run/report/`.
+The run ID uses local time followed by the first eight characters of `randomUUID()`. Finalized Midscene reports still default to `midscene_run/report/`.
 
 ## Define Node inputs with Zod
 
@@ -260,7 +265,6 @@ export default defineTestProject<ProjectContext>({
     testTimeout: 120_000,
   },
   output: {
-    summary: './midscene_run/output/summary.json',
     reportDir: './midscene_run/report',
   },
   nodes: [createOrder, ...midsceneNodes],

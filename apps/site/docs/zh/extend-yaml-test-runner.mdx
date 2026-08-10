@@ -273,13 +273,18 @@ pnpm exec midscene-test
 
 CLI 会自动加载 `midscene.config.ts`，查找 `cases` 目录中的 YAML 文件，再按顺序执行其中的 Case。
 
-运行结果默认保存在以下目录：
+每次运行都会在默认结果根目录下创建独立目录：
 
 ```text
-.midscene/test-results/<timestamp>-<process-id>/
+.midscene/test-results/<YYYYMMDDHHmmss>-<UUID前8位>/
+├── summary.json
+├── documents/<document-id>/
+│   ├── document.json
+│   └── cases/<case-id>/<attempt-id>.json
+└── collection-errors/<error-id>.json
 ```
 
-稳定的公开摘要默认写入 `midscene_run/output/summary.json`，最终 Midscene 报告默认写入 `midscene_run/report/`。
+run ID 由本地时间和 `randomUUID()` 的前 8 位组成。最终 Midscene 报告仍默认写入 `midscene_run/report/`。
 
 ## 注册业务 Node
 
@@ -534,7 +539,6 @@ export default defineTestProject<ProjectContext>({
     testTimeout: 120_000,
   },
   output: {
-    summary: './midscene_run/output/summary.json',
     reportDir: './midscene_run/report',
   },
   nodes: [createOrder, ...midsceneNodes],

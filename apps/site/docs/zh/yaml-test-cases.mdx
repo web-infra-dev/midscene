@@ -218,31 +218,33 @@ Project、Workflow Document、Case、attempt 与 Step 都串行执行。`project
 
 ### 查看运行结果
 
-每次运行都会生成稳定的公开摘要和内部事实文件：
+每次运行都会把公开摘要和 fact 文件写入同一个运行目录：
 
 ```text
 midscene_run/
-├── output/
-│   └── summary.json
 └── report/
     └── <最终 Midscene 报告>
 
-.midscene/test-results/<run>/
-├── runs/<case-id>/<run-id>.json
-├── documents/<document-id>/<document-run-id>.json
+<result-dir>/<YYYYMMDDHHmmss>-<UUID前8位>/
+├── summary.json
+├── documents/<document-id>/
+│   ├── document.json
+│   └── cases/<case-id>/<attempt-id>.json
 └── collection-errors/<error-id>.json
 ```
 
+run ID 使用本地时间 `YYYYMMDDHHmmss`，后接 `-` 和 `randomUUID()` 的前 8 位小写十六进制字符。`documentId` 与 `caseId` 的计算逻辑保持不变。在 summary 索引和详细 fact 中，Document 都不再包含 `documentRunId`，Case attempt 都使用 `attemptId`，不再使用 `runId`。
+
 `summary.json` 是公开消费协议，逐项包含：
 
-- 本次运行的 `schemaVersion`、`runId`、开始/结束时间、耗时、最终 `status` 与 CLI `exitCode`。
+- 本次运行的 `schemaVersion`（当前为 `2`）、`runId`、开始/结束时间、耗时、最终 `status` 与 CLI `exitCode`。
 - Test Project 根目录、配置文件，以及相对 summary 文件记录的 `factsRoot` 和 `reportDir`，便于 CI 和可视化工具整体移动产物目录。
 - `summary` 汇总计数，包括通过、失败、未运行、被过滤的 Case，以及收集、Document 和 Project 失败数。
 - 每个 Execution Project 的平台、retry、文件与标签筛选、发现/选择/过滤数量，以及 Project setup/teardown 生命周期状态。
 - 每个 Case、attempt 和 Workflow Document 的状态、来源位置、内部结果文件路径及最终 Midscene 报告索引。
 - 每个收集错误的来源文件和对应错误事实文件路径。
 
-内部 fact 文件保存完整 Step 输入、输出、耗时与规范化错误。`--result-dir` 只修改内部 fact 目录；`output.summary` 与 `output.reportDir` 在 `midscene.config.ts` 中配置。
+内部 fact 文件保存完整 Step 输入、输出、耗时与规范化错误。`--result-dir` 指定包含所有运行目录的结果根目录；`output.reportDir` 仍是 `midscene.config.ts` 中的独立配置。
 
 Case 失败或未运行、Document 失败或发生收集错误时，CLI 会返回退出码 `1`。
 

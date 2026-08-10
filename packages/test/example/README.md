@@ -12,4 +12,4 @@
 packages/test/bin/midscene-test packages/test/example/web-midscene
 ```
 
-公开摘要和报告保存在子项目的 `midscene_run` 目录中，详细 fact 文件保存在 `.midscene/test-results`。
+公开 summary 与全部 fact 保存在子项目的 `.midscene/test-results/<runId>/`，报告仍保存在子项目的 `midscene_run` 目录中。

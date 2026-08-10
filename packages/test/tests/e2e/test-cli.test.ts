@@ -7,7 +7,7 @@ import {
   rmSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join, resolve } from 'node:path';
+import { basename, join, resolve } from 'node:path';
 import { promisify } from 'node:util';
 import { afterAll, describe, expect, it } from 'vitest';
 
@@ -37,9 +37,6 @@ afterAll(() => {
   }
 });
 
-const summaryPathFor = (projectRoot: string) =>
-  join(projectRoot, 'midscene_run', 'output', 'summary.json');
-
 const jsonFilesBelow = (directory: string): string[] => {
   if (!existsSync(directory)) return [];
   const files: string[] = [];
@@ -53,6 +50,33 @@ const jsonFilesBelow = (directory: string): string[] => {
   visit(directory);
   return files;
 };
+
+const runDirFor = (resultDir: string): string => {
+  const runIds = readdirSync(resultDir, { withFileTypes: true })
+    .filter(
+      (entry) => entry.isDirectory() && /^\d{14}-[0-9a-f]{8}$/.test(entry.name),
+    )
+    .map((entry) => entry.name);
+  if (runIds.length !== 1) {
+    throw new Error(
+      `Expected one run directory in ${resultDir}, found ${runIds.length}.`,
+    );
+  }
+  return join(resultDir, runIds[0]);
+};
+
+const summaryPathFor = (resultDir: string) =>
+  join(runDirFor(resultDir), 'summary.json');
+
+const documentResultFiles = (runDir: string): string[] =>
+  jsonFilesBelow(join(runDir, 'documents')).filter(
+    (path) => basename(path) === 'document.json',
+  );
+
+const attemptResultFiles = (runDir: string): string[] =>
+  jsonFilesBelow(join(runDir, 'documents')).filter(
+    (path) => basename(path) !== 'document.json',
+  );
 
 const temporaryRun = (prefix: string) => {
   const temporary = mkdtempSync(join(tmpdir(), prefix));
@@ -122,18 +146,22 @@ describe('midscene-test CLI', () => {
       'nested:one',
       'nested:two',
     ]);
-    expect(jsonFilesBelow(join(resultDir, 'runs'))).toHaveLength(3);
-    expect(jsonFilesBelow(join(resultDir, 'documents'))).toHaveLength(2);
-    expect(existsSync(summaryPathFor(projectRoot))).toBe(true);
+    const runDir = runDirFor(resultDir);
+    expect(attemptResultFiles(runDir)).toHaveLength(3);
+    expect(documentResultFiles(runDir)).toHaveLength(2);
+    expect(existsSync(summaryPathFor(resultDir))).toBe(true);
+    expect(execution.stdout).toContain(`Summary: ${summaryPathFor(resultDir)}`);
     expect(existsSync(join(resultDir, 'project.json'))).toBe(false);
     expect(existsSync(join(resultDir, 'manifest.json'))).toBe(false);
     expect(existsSync(join(resultDir, 'rstest-tests'))).toBe(false);
 
     const projectResult = JSON.parse(
-      readFileSync(summaryPathFor(projectRoot), 'utf8'),
+      readFileSync(summaryPathFor(resultDir), 'utf8'),
     );
     expect(projectResult).toMatchObject({
-      schemaVersion: 1,
+      schemaVersion: 2,
+      runId: basename(runDir),
+      factsRoot: '.',
       status: 'success',
       exitCode: 0,
       summary: {
@@ -209,8 +237,10 @@ describe('midscene-test CLI', () => {
       `projectTeardown:1:1:${pid}`,
     ]);
 
-    const [runResultPath] = jsonFilesBelow(join(resultDir, 'runs'));
+    const [runResultPath] = attemptResultFiles(runDirFor(resultDir));
     const runResult = JSON.parse(readFileSync(runResultPath, 'utf8'));
+    expect(runResult.attemptId).toMatch(/^[0-9a-f-]{36}$/);
+    expect(runResult).not.toHaveProperty('runId');
     expect(runResult).toMatchObject({
       status: 'success',
       beforeEach: [
@@ -253,7 +283,7 @@ describe('midscene-test CLI', () => {
       'third:passed',
     ]);
     const projectResult = JSON.parse(
-      readFileSync(summaryPathFor(projectRoot), 'utf8'),
+      readFileSync(summaryPathFor(resultDir), 'utf8'),
     );
     expect(
       projectResult.projects[0].cases.map(
@@ -284,8 +314,9 @@ describe('midscene-test CLI', () => {
       'afterAll',
       'documentNodeTeardown',
     ]);
-    expect(jsonFilesBelow(join(resultDir, 'runs'))).toHaveLength(0);
-    const [documentResultPath] = jsonFilesBelow(join(resultDir, 'documents'));
+    const runDir = runDirFor(resultDir);
+    expect(attemptResultFiles(runDir)).toHaveLength(0);
+    const [documentResultPath] = documentResultFiles(runDir);
     const documentResult = JSON.parse(readFileSync(documentResultPath, 'utf8'));
     expect(documentResult.status).toBe('failed');
     expect(documentResult.beforeAll[0].error.message).toContain(
@@ -293,7 +324,7 @@ describe('midscene-test CLI', () => {
     );
     expect(documentResult.afterAll[0].status).toBe('success');
     const projectResult = JSON.parse(
-      readFileSync(summaryPathFor(projectRoot), 'utf8'),
+      readFileSync(summaryPathFor(resultDir), 'utf8'),
     );
     expect(projectResult.projects[0].cases).toEqual([
       expect.objectContaining({
@@ -333,7 +364,7 @@ describe('midscene-test CLI', () => {
       'teardown:default',
     ]);
     const projectResult = JSON.parse(
-      readFileSync(summaryPathFor(projectRoot), 'utf8'),
+      readFileSync(summaryPathFor(resultDir), 'utf8'),
     );
     expect(projectResult.projects[0].cases).toEqual([
       expect.objectContaining({ name: 'active case', status: 'success' }),

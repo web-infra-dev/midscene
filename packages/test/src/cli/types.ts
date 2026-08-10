@@ -10,7 +10,9 @@ import type {
   TestTagSelection,
 } from './test-project';
 
-export type TestProjectCaseRunResult = CaseRunOutcome;
+export type TestProjectCaseRunResult = CaseRunOutcome & {
+  documentId: string;
+};
 
 export interface TestProjectCollectionError {
   projectName: string;
@@ -46,7 +48,7 @@ export interface TestExecutionProjectRunResult {
 }
 
 export interface TestProjectRunResult {
-  schemaVersion: 1;
+  schemaVersion: 2;
   runId: string;
   startedAt: string;
   endedAt: string;
