@@ -1,36 +1,23 @@
 # Model Strategy
 
 :::info
-Just want to get running? Jump to [Configure your model](./model-common-config) for ready-to-use setups.
+Just want to get running? Jump to [Supported models and setup](./model-common-config) for ready-to-use setups.
 :::
 
-This guide focuses on how we choose models in Midscene. If you need configuration instructions, head to [Configure your model](./model-common-config).
+This guide focuses on how we choose models in Midscene. If you need configuration instructions, head to [Supported models and setup](./model-common-config).
 
-## Background - UI automation approaches
+## Midscene uses pure vision for element localization
 
-Driving UI automation with AI hinges on two challenges: planning a reasonable set of actions and precisely locating the elements that require interaction. The strength of element localization directly determines how successful an automation task will be.
+AI-powered UI automation requires task planning and element localization. The industry mainly uses two localization approaches: combining DOM data with annotated screenshots, or using screenshots directly for pure-vision localization. Midscene uses pure vision, with the model analyzing the UI screenshot and locating target elements directly. UI actions and element localization do not depend on DOM data or extra annotations.
 
-To solve element localization, UI automation frameworks traditionally follow one of two approaches:
+This approach has the following characteristics:
 
-* **DOM + annotated screenshots**: Extract the DOM tree beforehand, annotate screenshots with DOM metadata, and ask the model to “pick” the right nodes.
-* **Pure vision**: Perform all analysis on screenshots alone by using the visual grounding capabilities of the model. The model only receives the image—no DOM, no annotations.
+- It does not depend on the UI rendering stack.
+- It works across browser Canvas, Android, iOS, desktop applications, and other types of interfaces.
+- It can validate what users actually see, including colors, highlighted states, and layout.
+- It does not require selectors or extra UI annotations.
 
-## Pure vision for element localization
-
-Earlier Midscene releases supported both **DOM localization** and **pure vision** so developers could compare them. After dozens of versions and hundreds of project tests, we have some new findings.
-
-The DOM approach has been less stable than expected. It often misfires with canvas elements, controls rendered via CSS `background-image`, content inside cross-origin iframes, or elements without strong accessibility annotations. These intermittent failures can send teams into long debugging sessions or even a frustrating prompt-tuning loop.
-
-Meanwhile, the pure-vision route has started to show clear advantages:
-
-- **Stable results**: These models pair strong UI planning with element targeting and interface understanding, helping developers get productive quickly.
-- **Works everywhere**: Automation no longer depends on how the UI is rendered. Android, iOS, desktop apps, or a browser `<canvas>`—if you can capture a screenshot, Midscene can interact with it.
-- **Validates what users see**: Because it reasons over the rendered screen, vision can assert on visual results—colors, highlighted states, layout—that DOM-based checks miss entirely.
-- **Developer-friendly**: Removing selectors and DOM fuss makes the model “handshake” easier. Even teammates unfamiliar with rendering tech can become productive quickly.
-- **Far fewer tokens**: Compared to the DOM approach, pure vision can cut token usage by up to ~80%, reducing cost and speeding up local runs.
-- **Open-source options**: Open-source vision models keep improving. Teams can self-host options such as Qwen3-VL 8B/30B with solid results.
-
-Given these advantages, **Midscene 1.0 and later only support the pure-vision approach**—the DOM-extraction compatibility mode has been removed. This applies to UI actions and element localization; for data extraction or page understanding you can still opt in to include DOM when needed.
+Since version 1.0, Midscene has used only pure vision for UI actions and element localization. Data extraction and page-understanding workloads can still include DOM data when needed.
 
 ## Advanced: combining multiple models
 
@@ -75,16 +62,6 @@ Midscene provides page-understanding APIs such as AI assertions (`aiAssert`) and
 Add settings with the `MIDSCENE_INSIGHT_MODEL_` prefix to use a dedicated model for Insight workloads.
 
 We recommend `gpt-5.4` or other models with strong VQA capability.
-
-## How do I tune execution results?
-
-If you see success rates below your target, try these steps.
-
-0. Review Midscene's replay report to confirm the task timeline is correct and the flow didn't veer into the wrong page or branch.
-1. Use the best, newest, and larger model versions to materially improve success rates. For example, Qwen3-VL outperforms Qwen2.5-VL, and a 72B build is more accurate than a 30B build.
-2. Ensure the `MIDSCENE_MODEL_FAMILY` environment variable is set correctly; otherwise element localization can drift significantly.
-3. Tweak the `planningStrategy` option in `aiAct` to increase planning depth.
-4. Try different models, or combine multiple models to compensate for weaker understanding.
 
 ## More
 

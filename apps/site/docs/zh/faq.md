@@ -38,14 +38,14 @@ JSON.stringify({ defaultHeaders: { foo: 'bar' } })
 
 ## 如何使用 Azure OpenAI Service？
 
-使用 Azure OpenAI Service 时，请先按 [模型配置](./model-common-config) 选择并填写对应模型的常规配置。Azure 只需要把模型服务地址和 API Key 换成 Azure 的写法：
+使用 Azure OpenAI Service 时，请先按照[支持的模型与配置](./model-common-config)选择模型，并填写常规配置。Azure 只需要把模型服务地址和 API Key 换成 Azure 的写法：
 
 ```bash
 MIDSCENE_MODEL_BASE_URL="https://<your-resource>.services.ai.azure.com/openai/v1" # 或 https://<your-resource>.openai.azure.com/openai/v1
 MIDSCENE_MODEL_API_KEY="<your-azure-api-key>"
 ```
 
-也就是说，`MIDSCENE_MODEL_NAME`、`MIDSCENE_MODEL_FAMILY` 等其他配置仍然按 [模型配置](./model-common-config) 中对应模型的说明填写；Azure 只是鉴权方式有所差异的模型供应商，而非一种特殊模型。
+`MIDSCENE_MODEL_NAME` 和 `MIDSCENE_MODEL_FAMILY` 等配置，仍应按照[支持的模型与配置](./model-common-config)中的对应模型说明填写。Azure 只是鉴权方式不同的模型供应商，并非一种特殊模型。
 
 这会走普通 OpenAI-compatible 路径，以 `Authorization: Bearer ...` 请求头发送 `POST /openai/v1/chat/completions`。`MIDSCENE_MODEL_BASE_URL` 不要追加 `/chat/completions`。大多数 `/openai/v1` 端点不需要 `api-version`。
 

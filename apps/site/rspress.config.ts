@@ -177,12 +177,12 @@ export default defineConfig(async () => {
             sectionHeaderText: 'Models',
           },
           {
-            text: 'Model strategy',
-            link: '/model-strategy',
+            text: 'Supported models & setup 🔥',
+            link: '/model-common-config',
           },
           {
-            text: 'Configure your model 🔥',
-            link: '/model-common-config',
+            text: 'Model strategy',
+            link: '/model-strategy',
           },
           {
             text: 'All configuration options',
@@ -327,12 +327,12 @@ export default defineConfig(async () => {
             sectionHeaderText: '模型',
           },
           {
-            text: '模型策略',
-            link: '/zh/model-strategy',
+            text: '支持的模型与配置 🔥',
+            link: '/zh/model-common-config',
           },
           {
-            text: '配置你的模型 🔥',
-            link: '/zh/model-common-config',
+            text: '模型策略',
+            link: '/zh/model-strategy',
           },
           {
             text: '全部配置项',
