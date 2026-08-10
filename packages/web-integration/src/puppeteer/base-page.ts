@@ -78,6 +78,53 @@ type ScreencastFrameEvent = {
   };
 };
 
+type BrowserBoundingBox = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
+
+type ParentFrameLike = {
+  parentFrame(): ParentFrameLike | null;
+};
+
+type FocusedElementHandle = {
+  asElement(): {
+    boundingBox(): Promise<BrowserBoundingBox | null>;
+  } | null;
+  dispose(): Promise<void>;
+};
+
+type FocusFrame = ParentFrameLike & {
+  evaluate(pageFunction: () => boolean): Promise<boolean>;
+  evaluateHandle(
+    pageFunction: () => Element | null,
+  ): Promise<FocusedElementHandle>;
+};
+
+function frameDepth(frame: ParentFrameLike): number {
+  let depth = 0;
+  let current = frame.parentFrame();
+  while (current) {
+    depth += 1;
+    current = current.parentFrame();
+  }
+  return depth;
+}
+
+function boundingBoxContainsPoint(
+  box: BrowserBoundingBox,
+  [x, y]: [number, number],
+): boolean {
+  return (
+    x >= box.x &&
+    x <= box.x + box.width &&
+    y >= box.y &&
+    y <= box.y + box.height
+  );
+}
+
 type PageCdpSession = {
   send(method: string, params?: Record<string, unknown>): Promise<unknown>;
   detach(): Promise<void>;
@@ -1086,35 +1133,90 @@ export class Page<
     options?: FocusElementOptions,
   ): Promise<void> {
     if (options?.preserveSelection) {
-      const targetOwnsFocus = await this.evaluate(
-        ([x, y]: [number, number]) => {
-          const target = document.elementFromPoint(x, y);
-          const activeElement = document.activeElement;
-          if (
-            !target ||
-            !activeElement ||
-            activeElement === document.body ||
-            activeElement === document.documentElement
-          ) {
-            return false;
-          }
+      const focusOwnership = await this.evaluate(([x, y]: [number, number]) => {
+        const target = document.elementFromPoint(x, y);
+        const activeElement = document.activeElement;
+        if (
+          !target ||
+          !activeElement ||
+          activeElement === document.body ||
+          activeElement === document.documentElement
+        ) {
+          return 'none';
+        }
 
-          return (
-            target === activeElement ||
-            target.contains(activeElement) ||
-            activeElement.contains(target)
-          );
-        },
-        element.center,
-      );
-      if (targetOwnsFocus) {
+        const targetOwnsFocus =
+          target === activeElement ||
+          target.contains(activeElement) ||
+          activeElement.contains(target);
+        if (!targetOwnsFocus) {
+          return 'none';
+        }
+
+        return target.tagName === 'IFRAME' || target.tagName === 'FRAME'
+          ? 'frame'
+          : 'element';
+      }, element.center);
+      if (focusOwnership === 'element') {
         return;
+      }
+      if (focusOwnership === 'frame') {
+        const focusedElementBox = await this.deepestFocusedElementBox();
+        if (
+          focusedElementBox &&
+          boundingBoxContainsPoint(focusedElementBox, element.center)
+        ) {
+          return;
+        }
       }
     }
 
     await this.mouse.click(element.center[0], element.center[1], {
       button: 'left',
     });
+  }
+
+  private async deepestFocusedElementBox(): Promise<
+    BrowserBoundingBox | undefined
+  > {
+    const frames = (this.interfaceType === 'puppeteer'
+      ? (this.underlyingPage as PuppeteerPage).frames()
+      : (
+          this.underlyingPage as PlaywrightPage
+        ).frames()) as unknown as FocusFrame[];
+    frames.sort((a, b) => frameDepth(b) - frameDepth(a));
+
+    for (const frame of frames) {
+      try {
+        const hasEditableFocus = await frame.evaluate(() => {
+          const activeElement = document.activeElement;
+          return (
+            document.hasFocus() &&
+            !!activeElement &&
+            activeElement !== document.body &&
+            activeElement !== document.documentElement &&
+            activeElement.tagName !== 'IFRAME' &&
+            activeElement.tagName !== 'FRAME'
+          );
+        });
+        if (!hasEditableFocus) continue;
+
+        const activeElementHandle = await frame.evaluateHandle(
+          () => document.activeElement,
+        );
+        try {
+          const activeElement = activeElementHandle.asElement();
+          const box = await activeElement?.boundingBox();
+          if (box) return box;
+        } finally {
+          await activeElementHandle.dispose();
+        }
+      } catch (error) {
+        if (isTransientNavigationError(error)) continue;
+        throw error;
+      }
+    }
+    return undefined;
   }
 
   private async selectAllByCdp(): Promise<void> {
