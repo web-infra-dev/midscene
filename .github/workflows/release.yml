@@ -155,6 +155,47 @@ jobs:
         if-no-files-found: error
         name: chrome_extension
         path: ${{ github.workspace }}/apps/chrome-extension/extension_output
+
+    - name: Generate ordered Release notes
+      if: ${{ steps.get_version.outputs.is_prerelease != 'true' }}
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        RELEASE_TARGET: ${{ github.event.inputs.branch }}
+        RELEASE_VERSION: ${{ steps.get_version.outputs.version }}
+      run: |
+        REQUEST_BODY="$(
+          jq -cn \
+            --arg tag_name "$RELEASE_VERSION" \
+            --arg target_commitish "$RELEASE_TARGET" \
+            '{tag_name: $tag_name, target_commitish: $target_commitish}'
+        )"
+        curl \
+          --fail-with-body \
+          --silent \
+          --show-error \
+          --request POST \
+          --header 'Accept: application/vnd.github+json' \
+          --header "Authorization: Bearer ${GH_TOKEN}" \
+          --header 'Content-Type: application/json' \
+          --header 'X-GitHub-Api-Version: 2022-11-28' \
+          --data "$REQUEST_BODY" \
+          "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/generate-notes" \
+          | jq -er '.body | strings | select(test("\\S"))' \
+          > "$RUNNER_TEMP/generated-release-notes.md"
+        node ./scripts/format-release-notes.mjs \
+          < "$RUNNER_TEMP/generated-release-notes.md" \
+          > "$RUNNER_TEMP/release-notes.md"
+        node ./scripts/format-release-notes.mjs --notification-json \
+          < "$RUNNER_TEMP/generated-release-notes.md" \
+          > "$RUNNER_TEMP/release-notification.json"
+        test -s "$RUNNER_TEMP/release-notes.md"
+        jq -e '
+          .schemaVersion == 1
+          and (.changeCount | type == "number" and . >= 0)
+          and (.categoryCount | type == "number" and . >= 0)
+          and (.markdown | type == "string")
+          and (.groups | type == "array")
+        ' "$RUNNER_TEMP/release-notification.json" >/dev/null
         
     - name: Upload Release Assets
       if: ${{ steps.get_version.outputs.is_prerelease != 'true' }}
@@ -163,10 +204,21 @@ jobs:
         tag_name: ${{ steps.get_version.outputs.version }}
         target_commitish: ${{ github.event.inputs.branch }}
         prerelease: ${{ contains(steps.get_version.outputs.version, 'beta') || contains(steps.get_version.outputs.version, 'alpha') || contains(steps.get_version.outputs.version, 'rc') }}
+        body_path: ${{ runner.temp }}/release-notes.md
         files: |
           ${{ github.workspace }}/apps/chrome-extension/extension_output/**/*.zip
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Upload Release notes metadata
+      if: ${{ steps.get_version.outputs.is_prerelease != 'true' }}
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      with:
+        if-no-files-found: error
+        name: release_notes
+        path: |
+          ${{ runner.temp }}/release-notes.md
+          ${{ runner.temp }}/release-notification.json
 
   publish_chrome_web_store:
     needs: release
@@ -426,15 +478,20 @@ jobs:
     if: ${{ needs.release.result == 'success' && needs.package_studio.result == 'success' && needs.release.outputs.is_prerelease != 'true' }}
     runs-on: ${{ fromJSON(vars.CI_LINUX_MINI_RUNNER || '"ubuntu-latest"') }}
     permissions:
-      contents: write
+      contents: read
     steps:
+    - name: Download Release notes metadata
+      uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+      with:
+        name: release_notes
+        path: ${{ runner.temp }}/release-notes
     - name: Publish release notification to Discord
       id: notify
       continue-on-error: true
       env:
         DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
         GH_TOKEN: ${{ github.token }}
-        RELEASE_TARGET: ${{ github.event.inputs.branch }}
+        RELEASE_NOTES_METADATA_PATH: ${{ runner.temp }}/release-notes/release-notification.json
         RELEASE_VERSION: ${{ needs.release.outputs.version }}
       run: |
         set -euo pipefail
@@ -447,37 +504,65 @@ jobs:
           exit 0
         fi
 
-        RELEASE_JSON="$(
-          gh release view "$RELEASE_VERSION" \
-            --repo "$GITHUB_REPOSITORY" \
-            --json name,publishedAt,url
-        )"
-        RELEASE_NAME="$(jq -r '.name // empty' <<< "$RELEASE_JSON")"
-        RELEASE_URL="$(jq -r '.url' <<< "$RELEASE_JSON")"
-        RELEASE_PUBLISHED_AT="$(jq -r '.publishedAt' <<< "$RELEASE_JSON")"
-        PACKAGE_VERSION="${RELEASE_VERSION#v}"
+        jq -e '
+          . as $metadata
+          | .schemaVersion == 1
+          and (.changeCount | type == "number" and . >= 0)
+          and (.categoryCount | type == "number" and . >= 0)
+          and (.markdown | type == "string")
+          and (.groups | type == "array")
+          and .categoryCount == (.groups | length)
+          and .changeCount == ([.groups[].items[]] | length)
+          and all(.groups[];
+            (.key | type == "string" and length > 0)
+            and (.label | type == "string" and length > 0)
+            and (.items | type == "array")
+            and all(.items[];
+              (.pr | type == "string" and length > 0)
+              and (.title | type == "string" and length > 0)
+              and (.url | type == "string" and length > 0)
+            )
+          )
+          and (if .changeCount > 0 then (.markdown | test("\\S")) else .markdown == "" end)
+        ' "$RELEASE_NOTES_METADATA_PATH" >/dev/null
+        NOTIFICATION_MARKDOWN="$(jq -r '.markdown' "$RELEASE_NOTES_METADATA_PATH")"
+        CHANGE_COUNT="$(jq -r '.changeCount' "$RELEASE_NOTES_METADATA_PATH")"
+        CATEGORY_COUNT="$(jq -r '.categoryCount' "$RELEASE_NOTES_METADATA_PATH")"
 
-        GENERATED_NOTES_JSON="$(
-          gh api --method POST \
-            "repos/${GITHUB_REPOSITORY}/releases/generate-notes" \
-            -f tag_name="$RELEASE_VERSION" \
-            -f target_commitish="$RELEASE_TARGET"
+        ENCODED_RELEASE_VERSION="$(jq -rn --arg value "$RELEASE_VERSION" '$value | @uri')"
+        RELEASE_JSON="$(
+          curl \
+            --fail-with-body \
+            --silent \
+            --show-error \
+            --header 'Accept: application/vnd.github+json' \
+            --header "Authorization: Bearer ${GH_TOKEN}" \
+            --header 'X-GitHub-Api-Version: 2022-11-28' \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/tags/${ENCODED_RELEASE_VERSION}"
         )"
-        if ! RELEASE_BODY="$(
-          jq -er '.body | strings | select(test("\\S"))' <<< "$GENERATED_NOTES_JSON"
-        )"; then
-          echo "GitHub generated empty release notes for the Discord notification." >&2
-          exit 1
-        fi
+        jq -e \
+          --arg version "$RELEASE_VERSION" \
+          '
+            .tag_name == $version
+            and .draft == false
+            and (.html_url | type == "string" and length > 0)
+            and (.published_at | type == "string" and length > 0)
+          ' >/dev/null <<< "$RELEASE_JSON"
+        RELEASE_NAME="$(jq -r '.name // empty' <<< "$RELEASE_JSON")"
+        RELEASE_URL="$(jq -r '.html_url' <<< "$RELEASE_JSON")"
+        RELEASE_PUBLISHED_AT="$(jq -r '.published_at' <<< "$RELEASE_JSON")"
+        PACKAGE_VERSION="${RELEASE_VERSION#v}"
 
         PAYLOAD="$(
           jq -cn \
-            --arg body "$RELEASE_BODY" \
+            --arg notes "$NOTIFICATION_MARKDOWN" \
             --arg package_version "$PACKAGE_VERSION" \
             --arg published_at "$RELEASE_PUBLISHED_AT" \
             --arg release_name "$RELEASE_NAME" \
             --arg release_url "$RELEASE_URL" \
             --arg version "$RELEASE_VERSION" \
+            --argjson category_count "$CATEGORY_COUNT" \
+            --argjson change_count "$CHANGE_COUNT" \
             '
               def release_title:
                 ($release_name | gsub("^\\s+|\\s+$"; "")) as $name
@@ -486,82 +571,7 @@ jobs:
                   else
                     $name
                   end;
-              def normalized_type:
-                ((try capture("^(?<type>[A-Za-z]+)(?:\\([^)]*\\))?!?:").type catch "other") // "other")
-                | ascii_downcase
-                | if . == "feat" then "feat"
-                  elif . == "fix" then "fix"
-                  elif . == "perf" then "perf"
-                  elif . == "refactor" then "refactor"
-                  elif . == "docs" then "docs"
-                  elif . == "test" or . == "tests" then "test"
-                  elif . == "build" then "build"
-                  elif . == "ci" then "ci"
-                  elif . == "chore" then "chore"
-                  else "other"
-                  end;
-              def normalized_scope:
-                ((try capture("^[A-Za-z]+\\((?<scope>[^)]*)\\)!?:").scope catch "") // "")
-                | ascii_downcase;
-              def parse_change:
-                . as $line
-                | if $line | test("^[*-] ") then
-                    (try
-                      ($line
-                        | capture("^[*-] (?<title>.+?) by @[^ ]+ in (?<url>https://github\\.com/[^ ]+/pull/(?<pr>[0-9]+))$")
-                      )
-                    catch
-                      {title: ($line | sub("^[*-] "; "")), url: "", pr: ""}
-                    )
-                    | .title |= gsub("^\\s+|\\s+$"; "")
-                    | .type = (.title | normalized_type)
-                    | .scope = (.title | normalized_scope)
-                  else
-                    empty
-                  end;
-              def category_definitions:
-                [
-                  {key: "feat", label: "Features"},
-                  {key: "fix", label: "Fixes"}
-                ];
-              def safe_title:
-                gsub("(?<char>[\\\\`*_~\\[\\]<>])"; "\\\\\(.char)");
-              def item_line:
-                if .pr != "" then
-                  "- \(.title | safe_title) · [PR #\(.pr)](\(.url))"
-                else
-                  "- \(.title | safe_title)"
-                end;
-
-              ($body | gsub("\\r"; "") | gsub("<!--[^\\n]*-->\\n*"; "")) as $clean_body
-              | [$clean_body | split("\n")[] | parse_change] as $parsed_changes
-              | [
-                  $parsed_changes[]
-                  | select((.type == "feat" or .type == "fix") and .scope != "site")
-                ] as $changes
-              | [
-                  category_definitions[] as $category
-                  | [$changes[] | select(.type == $category.key)] as $items
-                  | select($items | length > 0)
-                  | $category + {items: $items}
-                ] as $groups
-              | ($changes | length) as $change_count
-              | ($groups | length) as $category_count
-              | ($groups
-                  | map("**\(.label)**\n" + (.items | map(item_line) | join("\n")))
-                  | join("\n\n")
-                ) as $grouped_notes
-              | ($clean_body | gsub("^\\s+|\\s+$"; "")) as $raw_notes
-              | (if $change_count > 0 then
-                    $grouped_notes
-                  elif ($parsed_changes | length) > 0 then
-                    "Midscene.js \($version) is now available."
-                  elif $raw_notes != "" then
-                    $raw_notes
-                  else
-                    "Midscene.js \($version) is now available."
-                  end
-                ) as $notes
+              (if $change_count > 0 then $notes else "Midscene.js \($version) is now available." end) as $description_notes
               | (if $change_count > 0 then
                     "\($change_count) \(if $change_count == 1 then "change" else "changes" end)"
                     + " · \($category_count) \(if $category_count == 1 then "category" else "categories" end)"
@@ -571,7 +581,7 @@ jobs:
                 ) as $summary
               | ("Latest stable release\n\n"
                   + (if $change_count > 0 then "**\($summary)**\n\n" else "" end)
-                  + $notes
+                  + $description_notes
                   | if length > 3500 then .[0:3500] + "\n\n…" else . end
                 ) as $description
               | (release_title | .[0:256]) as $title
@@ -652,8 +662,13 @@ jobs:
     if: ${{ needs.release.result == 'success' && needs.package_studio.result == 'success' && needs.release.outputs.is_prerelease != 'true' }}
     runs-on: ${{ fromJSON(vars.CI_LINUX_MINI_RUNNER || '"ubuntu-latest"') }}
     permissions:
-      contents: write
+      contents: read
     steps:
+    - name: Download Release notes metadata
+      uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+      with:
+        name: release_notes
+        path: ${{ runner.temp }}/release-notes
     - name: Publish release notification to Feishu
       id: notify
       continue-on-error: true
@@ -662,7 +677,7 @@ jobs:
         # {"url":"...","secret":"..."} webhook targets.
         FEISHU_WEBHOOK_TARGETS_JSON: ${{ secrets.FEISHU_WEBHOOK_TARGETS_JSON }}
         GH_TOKEN: ${{ github.token }}
-        RELEASE_TARGET: ${{ github.event.inputs.branch }}
+        RELEASE_NOTES_METADATA_PATH: ${{ runner.temp }}/release-notes/release-notification.json
         RELEASE_VERSION: ${{ needs.release.outputs.version }}
       run: |
         set -euo pipefail
@@ -709,36 +724,64 @@ jobs:
           )")
         done
 
+        jq -e '
+          . as $metadata
+          | .schemaVersion == 1
+          and (.changeCount | type == "number" and . >= 0)
+          and (.categoryCount | type == "number" and . >= 0)
+          and (.markdown | type == "string")
+          and (.groups | type == "array")
+          and .categoryCount == (.groups | length)
+          and .changeCount == ([.groups[].items[]] | length)
+          and all(.groups[];
+            (.key | type == "string" and length > 0)
+            and (.label | type == "string" and length > 0)
+            and (.items | type == "array")
+            and all(.items[];
+              (.pr | type == "string" and length > 0)
+              and (.title | type == "string" and length > 0)
+              and (.url | type == "string" and length > 0)
+            )
+          )
+          and (if .changeCount > 0 then (.markdown | test("\\S")) else .markdown == "" end)
+        ' "$RELEASE_NOTES_METADATA_PATH" >/dev/null
+        NOTIFICATION_MARKDOWN="$(jq -r '.markdown' "$RELEASE_NOTES_METADATA_PATH")"
+        CHANGE_COUNT="$(jq -r '.changeCount' "$RELEASE_NOTES_METADATA_PATH")"
+        CATEGORY_COUNT="$(jq -r '.categoryCount' "$RELEASE_NOTES_METADATA_PATH")"
+
+        ENCODED_RELEASE_VERSION="$(jq -rn --arg value "$RELEASE_VERSION" '$value | @uri')"
         RELEASE_JSON="$(
-          gh release view "$RELEASE_VERSION" \
-            --repo "$GITHUB_REPOSITORY" \
-            --json name,url
+          curl \
+            --fail-with-body \
+            --silent \
+            --show-error \
+            --header 'Accept: application/vnd.github+json' \
+            --header "Authorization: Bearer ${GH_TOKEN}" \
+            --header 'X-GitHub-Api-Version: 2022-11-28' \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/tags/${ENCODED_RELEASE_VERSION}"
         )"
+        jq -e \
+          --arg version "$RELEASE_VERSION" \
+          '
+            .tag_name == $version
+            and .draft == false
+            and (.html_url | type == "string" and length > 0)
+            and (.published_at | type == "string" and length > 0)
+          ' >/dev/null <<< "$RELEASE_JSON"
         RELEASE_NAME="$(jq -r '.name // empty' <<< "$RELEASE_JSON")"
-        RELEASE_URL="$(jq -r '.url' <<< "$RELEASE_JSON")"
+        RELEASE_URL="$(jq -r '.html_url' <<< "$RELEASE_JSON")"
         PACKAGE_VERSION="${RELEASE_VERSION#v}"
         NPM_URL="https://www.npmjs.com/package/@midscene/core/v/${PACKAGE_VERSION}"
 
-        GENERATED_NOTES_JSON="$(
-          gh api --method POST \
-            "repos/${GITHUB_REPOSITORY}/releases/generate-notes" \
-            -f tag_name="$RELEASE_VERSION" \
-            -f target_commitish="$RELEASE_TARGET"
-        )"
-        if ! RELEASE_BODY="$(
-          jq -er '.body | strings | select(test("\\S"))' <<< "$GENERATED_NOTES_JSON"
-        )"; then
-          echo "GitHub generated empty release notes for the Feishu notification." >&2
-          exit 1
-        fi
-
         CARD_CONTENT="$(
           jq -cn \
-            --arg body "$RELEASE_BODY" \
+            --arg notes "$NOTIFICATION_MARKDOWN" \
             --arg release_name "$RELEASE_NAME" \
             --arg release_url "$RELEASE_URL" \
             --arg npm_url "$NPM_URL" \
             --arg version "$RELEASE_VERSION" \
+            --argjson category_count "$CATEGORY_COUNT" \
+            --argjson change_count "$CHANGE_COUNT" \
             '
               def release_title:
                 ($release_name | gsub("^\\s+|\\s+$"; "")) as $name
@@ -747,83 +790,8 @@ jobs:
                   else
                     $name
                   end;
-              def normalized_type:
-                ((try capture("^(?<type>[A-Za-z]+)(?:\\([^)]*\\))?!?:").type catch "other") // "other")
-                | ascii_downcase
-                | if . == "feat" then "feat"
-                  elif . == "fix" then "fix"
-                  elif . == "perf" then "perf"
-                  elif . == "refactor" then "refactor"
-                  elif . == "docs" then "docs"
-                  elif . == "test" or . == "tests" then "test"
-                  elif . == "build" then "build"
-                  elif . == "ci" then "ci"
-                  elif . == "chore" then "chore"
-                  else "other"
-                  end;
-              def normalized_scope:
-                ((try capture("^[A-Za-z]+\\((?<scope>[^)]*)\\)!?:").scope catch "") // "")
-                | ascii_downcase;
-              def parse_change:
-                . as $line
-                | if $line | test("^[*-] ") then
-                    (try
-                      ($line
-                        | capture("^[*-] (?<title>.+?) by @[^ ]+ in (?<url>https://github\\.com/[^ ]+/pull/(?<pr>[0-9]+))$")
-                      )
-                    catch
-                      {title: ($line | sub("^[*-] "; "")), url: "", pr: ""}
-                    )
-                    | .title |= gsub("^\\s+|\\s+$"; "")
-                    | .type = (.title | normalized_type)
-                    | .scope = (.title | normalized_scope)
-                  else
-                    empty
-                  end;
-              def category_definitions:
-                [
-                  {key: "feat", label: "Features"},
-                  {key: "fix", label: "Fixes"}
-                ];
-              def safe_title:
-                gsub("(?<char>[\\\\`*_~\\[\\]<>])"; "\\\\\(.char)");
-              def item_line:
-                if .pr != "" then
-                  "- \(.title | safe_title) · [PR #\(.pr)](\(.url))"
-                else
-                  "- \(.title | safe_title)"
-                end;
-
-              ($body | gsub("\\r"; "") | gsub("<!--[^\\n]*-->\\n*"; "")) as $clean_body
-              | [$clean_body | split("\n")[] | parse_change] as $parsed_changes
-              | [
-                  $parsed_changes[]
-                  | select((.type == "feat" or .type == "fix") and .scope != "site")
-                ] as $changes
-              | [
-                  category_definitions[] as $category
-                  | [$changes[] | select(.type == $category.key)] as $items
-                  | select($items | length > 0)
-                  | $category + {items: $items}
-                ] as $groups
-              | ($changes | length) as $change_count
-              | ($groups | length) as $category_count
-              | ($groups
-                  | map("**\(.label)**\n" + (.items | map(item_line) | join("\n")))
-                  | join("\n\n")
-                ) as $grouped_notes
-              | ($clean_body | gsub("^\\s+|\\s+$"; "")) as $raw_notes
-              | (if $change_count > 0 then
-                    $grouped_notes
-                  elif ($parsed_changes | length) > 0 then
-                    "Midscene.js \($version) is now available."
-                  elif $raw_notes != "" then
-                    $raw_notes
-                  else
-                    "Midscene.js \($version) is now available."
-                  end
-                ) as $notes
-              | ($notes
+              (if $change_count > 0 then $notes else "Midscene.js \($version) is now available." end)
+              | (.
                   | if length > 7500 then
                       .[0:7400] + "\n\n… [View the full release notes](\($release_url))"
                     else

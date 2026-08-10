@@ -168,7 +168,12 @@ describe('TaskExecutor custom planning adapters', () => {
 
     expect(convertSpy).toHaveBeenCalledWith(
       expect.any(Array),
-      customPlanningModel,
+      // modelRuntime objects may carry extra CI-injected fields (e.g. an
+      // execution id) when running the full suite, so match on its core shape.
+      expect.objectContaining({
+        config: customPlanningModel.config,
+        adapter: customPlanningModel.adapter,
+      }),
       expect.anything(),
       expect.objectContaining({
         deepLocate: true,

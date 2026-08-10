@@ -14,8 +14,8 @@ import {
   globalThemeConfig,
   useEnvConfig,
 } from '@midscene/visualizer';
-import { App as AntdApp, ConfigProvider, Dropdown } from 'antd';
-import { useCallback, useEffect, useState } from 'react';
+import { App as AntdApp, ConfigProvider, Dropdown, theme } from 'antd';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { BrowserExtensionPlayground } from '../../components/playground';
 import Bridge from '../bridge';
 import Recorder from '../recorder';
@@ -37,6 +37,21 @@ const extensionAgentForTab = (
 
 const STORAGE_KEY = 'midscene-popup-mode';
 const AGENT_OPTIONS_STORAGE_KEY = 'midscene-extension-agent-options';
+const EXTENSION_PRIMARY_COLORS = {
+  dark: '#2D5290',
+  light: '#2B83FF',
+} as const;
+
+type ExtensionThemeMode = keyof typeof EXTENSION_PRIMARY_COLORS;
+
+function getPreferredThemeMode(): ExtensionThemeMode {
+  if (typeof window.matchMedia !== 'function') {
+    return 'light';
+  }
+  return window.matchMedia('(prefers-color-scheme: dark)').matches
+    ? 'dark'
+    : 'light';
+}
 
 async function runChromeConnectivityTest(config: Record<string, string>) {
   const modelConfigManager = new ModelConfigManager(config as TModelConfig);
@@ -95,6 +110,9 @@ export function PlaygroundPopup() {
   );
   const [agentOptions, setAgentOptions] =
     useState<CommonAgentOptions>(loadAgentOptions);
+  const [themeMode, setThemeMode] = useState<ExtensionThemeMode>(
+    getPreferredThemeMode,
+  );
   const [currentMode, setCurrentMode] = useState<
     'playground' | 'bridge' | 'recorder'
   >(() => {
@@ -103,23 +121,37 @@ export function PlaygroundPopup() {
   });
 
   // The extension has no user-selectable theme yet, so follow the system
-  // preference and expose the shared visualizer's data-theme contract.
+  // preference for both Ant Design portals and shared visualizer styles.
   useEffect(() => {
     if (typeof window.matchMedia !== 'function') {
+      document.documentElement.dataset.theme = 'light';
       return;
     }
 
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
     const syncTheme = () => {
-      document.documentElement.dataset.theme = mediaQuery.matches
-        ? 'dark'
-        : 'light';
+      const nextThemeMode = mediaQuery.matches ? 'dark' : 'light';
+      document.documentElement.dataset.theme = nextThemeMode;
+      setThemeMode(nextThemeMode);
     };
 
     syncTheme();
     mediaQuery.addEventListener('change', syncTheme);
     return () => mediaQuery.removeEventListener('change', syncTheme);
   }, []);
+
+  const antdThemeConfig = useMemo(() => {
+    const baseTheme = globalThemeConfig();
+    return {
+      ...baseTheme,
+      algorithm:
+        themeMode === 'dark' ? theme.darkAlgorithm : theme.defaultAlgorithm,
+      token: {
+        ...baseTheme.token,
+        colorPrimary: EXTENSION_PRIMARY_COLORS[themeMode],
+      },
+    };
+  }, [themeMode]);
 
   const config = useEnvConfig((state) => state.config);
 
@@ -225,7 +257,7 @@ export function PlaygroundPopup() {
   };
 
   return (
-    <ConfigProvider theme={globalThemeConfig()}>
+    <ConfigProvider theme={antdThemeConfig}>
       <AntdApp component={false}>
         <div className="popup-wrapper">
           {/* top navigation bar */}
@@ -255,6 +287,8 @@ export function PlaygroundPopup() {
                 onVerify={runChromeConnectivityTest}
                 agentOptions={agentOptions}
                 configModalClassName="chrome-extension-model-env-config-modal"
+                configModalWidth={360}
+                envTextareaAutoSize={false}
                 envTextareaMinRows={4}
                 onAgentOptionsSave={handleAgentOptionsSave}
               />

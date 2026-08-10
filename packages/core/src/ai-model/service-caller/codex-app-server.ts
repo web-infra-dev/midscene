@@ -77,11 +77,22 @@ type CodexTurnInput = CodexTextInput | CodexImageInput | CodexLocalImageInput;
 
 type CodexImageDetail = 'auto' | 'low' | 'high' | 'original';
 
+export type CodexAppServerRecordEvent = {
+  type: 'request' | 'chunk';
+  protocol: Record<string, unknown>;
+};
+
 type CodexTurnResult = {
   content: string;
   reasoning_content?: string;
   usage?: AIUsageInfo;
   isStreamed: boolean;
+  protocolMetadata: {
+    transport: 'json-rpc';
+    threadId: string;
+    turnId: string;
+    turnStatus: string;
+  };
 };
 
 type CodexTurnStartResponse = {
@@ -423,6 +434,7 @@ class CodexAppServerConnection {
     reasoningEnabled,
     abortSignal,
     imageDetail,
+    onRecordEvent,
   }: {
     messages: ChatCompletionMessageParam[];
     modelConfig: IModelConfig;
@@ -431,6 +443,7 @@ class CodexAppServerConnection {
     reasoningEnabled?: TModelReasoningEnabled;
     abortSignal?: AbortSignal;
     imageDetail?: CodexImageDetail;
+    onRecordEvent?: (event: CodexAppServerRecordEvent) => void;
   }): Promise<CodexTurnResult> {
     const startTime = Date.now();
     const timeoutMs = modelConfig.timeout || CODEX_DEFAULT_TIMEOUT_MS;
@@ -476,20 +489,37 @@ class CodexAppServerConnection {
     };
 
     try {
+      const threadStartParams = {
+        model: modelConfig.modelName,
+        cwd: process.cwd(),
+        approvalPolicy: 'never',
+        sandbox: 'read-only',
+        ephemeral: true,
+        experimentalRawEvents: false,
+        persistExtendedHistory: false,
+        developerInstructions: developerInstructions || null,
+      };
+      onRecordEvent?.({
+        type: 'request',
+        protocol: {
+          direction: 'client',
+          method: 'thread/start',
+          params: threadStartParams,
+        },
+      });
       const threadStartResponse = await this.request<CodexThreadStartResponse>({
         method: 'thread/start',
-        params: {
-          model: modelConfig.modelName,
-          cwd: process.cwd(),
-          approvalPolicy: 'never',
-          sandbox: 'read-only',
-          ephemeral: true,
-          experimentalRawEvents: false,
-          persistExtendedHistory: false,
-          developerInstructions: developerInstructions || null,
-        },
+        params: threadStartParams,
         deadlineAt,
         abortSignal,
+      });
+      onRecordEvent?.({
+        type: 'chunk',
+        protocol: {
+          direction: 'server',
+          method: 'thread/start',
+          result: threadStartResponse,
+        },
       });
 
       threadId = threadStartResponse?.thread?.id;
@@ -497,15 +527,32 @@ class CodexAppServerConnection {
         throw new Error('thread/start did not return a thread id');
       }
 
+      const turnStartParams = {
+        threadId,
+        input,
+        effort,
+      };
+      onRecordEvent?.({
+        type: 'request',
+        protocol: {
+          direction: 'client',
+          method: 'turn/start',
+          params: turnStartParams,
+        },
+      });
       const turnStartResponse = await this.request<CodexTurnStartResponse>({
         method: 'turn/start',
-        params: {
-          threadId,
-          input,
-          effort,
-        },
+        params: turnStartParams,
         deadlineAt,
         abortSignal,
+      });
+      onRecordEvent?.({
+        type: 'chunk',
+        protocol: {
+          direction: 'server',
+          method: 'turn/start',
+          result: turnStartResponse,
+        },
       });
 
       turnId = turnStartResponse?.turn?.id;
@@ -530,6 +577,20 @@ class CodexAppServerConnection {
         const notification = message as JsonRpcNotification;
         const method = notification.method;
         const params = notification.params || {};
+        const belongsToCurrentTurn =
+          params.threadId === threadId &&
+          (params.turnId === turnId || params.turn?.id === turnId);
+
+        if (belongsToCurrentTurn) {
+          onRecordEvent?.({
+            type: 'chunk',
+            protocol: {
+              direction: 'server',
+              method,
+              params,
+            },
+          });
+        }
 
         if (method === 'error') {
           const messageText =
@@ -634,6 +695,12 @@ class CodexAppServerConnection {
         reasoning_content: accumulatedReasoning || undefined,
         usage: latestUsage,
         isStreamed: isStreaming,
+        protocolMetadata: {
+          transport: 'json-rpc',
+          threadId,
+          turnId,
+          turnStatus,
+        },
       };
     } catch (error) {
       if (isAbortError(error) && threadId && turnId) {
@@ -962,6 +1029,7 @@ class CodexAppServerConnectionManager {
     reasoningEnabled,
     abortSignal,
     imageDetail,
+    onRecordEvent,
   }: {
     messages: ChatCompletionMessageParam[];
     modelConfig: IModelConfig;
@@ -970,6 +1038,7 @@ class CodexAppServerConnectionManager {
     reasoningEnabled?: TModelReasoningEnabled;
     abortSignal?: AbortSignal;
     imageDetail?: CodexImageDetail;
+    onRecordEvent?: (event: CodexAppServerRecordEvent) => void;
   }): Promise<CodexTurnResult> {
     return this.runner.run(async () => {
       const connection = await this.getConnection();
@@ -982,6 +1051,7 @@ class CodexAppServerConnectionManager {
           reasoningEnabled,
           abortSignal,
           imageDetail,
+          onRecordEvent,
         });
       } catch (error) {
         if (connection.isClosed() || !isAbortError(error)) {
@@ -1024,6 +1094,7 @@ export async function callAIWithCodexAppServer(
     reasoningEnabled?: TModelReasoningEnabled;
     abortSignal?: AbortSignal;
     imageDetail?: CodexImageDetail;
+    onRecordEvent?: (event: CodexAppServerRecordEvent) => void;
   },
 ): Promise<CodexTurnResult> {
   if (ifInBrowser) {
@@ -1040,6 +1111,7 @@ export async function callAIWithCodexAppServer(
     reasoningEnabled: options?.reasoningEnabled,
     abortSignal: options?.abortSignal,
     imageDetail: options?.imageDetail,
+    onRecordEvent: options?.onRecordEvent,
   });
 }
 

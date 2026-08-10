@@ -663,6 +663,39 @@ describe('runToolsCLI', () => {
     consoleSpy.mockRestore();
   });
 
+  it('maps leading command positionals into handler arguments', async () => {
+    const handler = vi.fn().mockResolvedValue({
+      content: [{ type: 'text', text: 'Recording started' }],
+      isError: false,
+    });
+    const tools = {
+      ...createMockTools([]),
+      getCliToolDefinitions: vi.fn().mockReturnValue([
+        {
+          name: 'record',
+          description: 'record command',
+          schema: {
+            action: z.literal('start'),
+            output: z.string().optional(),
+          },
+          cli: { positionals: ['action'] },
+          handler,
+        },
+      ]),
+    } as any;
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+    await runToolsCLI(tools, 'test-cli', {
+      argv: ['record', 'start', '--output', 'toast.json'],
+    });
+
+    expect(handler).toHaveBeenCalledWith({
+      action: 'start',
+      output: 'toast.json',
+    });
+    consoleSpy.mockRestore();
+  });
+
   it('strips global --verbose and emits readable progress lines', async () => {
     const handler = vi.fn().mockResolvedValue({
       content: [{ type: 'text', text: 'Connected' }],
@@ -681,6 +714,27 @@ describe('runToolsCLI', () => {
       '[Midscene] connect started (url=https://example.com)',
       'Connected',
       expect.stringMatching(/^\[Midscene\] connect finished in \d+ms$/),
+    ]);
+    consoleSpy.mockRestore();
+  });
+
+  it('emits readable progress for record without an explicit verbose flag', async () => {
+    const handler = vi.fn().mockResolvedValue({
+      content: [{ type: 'text', text: 'Observation passed' }],
+      isError: false,
+    });
+    const tools = createMockTools([{ name: 'record', handler }]);
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+    await runToolsCLI(tools, 'test-cli', {
+      argv: ['record', '--output', 'toast.json'],
+    });
+
+    const messages = consoleSpy.mock.calls.map(([message]) => String(message));
+    expect(messages).toEqual([
+      '[Midscene] record started (output=toast.json)',
+      'Observation passed',
+      expect.stringMatching(/^\[Midscene\] record finished in \d+ms$/),
     ]);
     consoleSpy.mockRestore();
   });
@@ -873,6 +927,43 @@ describe('runToolsCLI', () => {
 
     expect(handler).not.toHaveBeenCalled();
     expect(consoleSpy).toHaveBeenCalled();
+    consoleSpy.mockRestore();
+  });
+
+  it('shows foreground record help without session or end plumbing', async () => {
+    const tools = {
+      initTools: vi.fn().mockResolvedValue(undefined),
+      destroy: vi.fn().mockResolvedValue(undefined),
+      getToolDefinitions: vi.fn().mockReturnValue([]),
+      getCliToolDefinitions: vi.fn().mockReturnValue([
+        {
+          name: 'record',
+          description: 'record command',
+          schema: {
+            action: z.literal('start'),
+            output: z.string().optional(),
+          },
+          cli: { positionals: ['action'] },
+          handler: vi.fn(),
+        },
+      ]),
+    } as any;
+    const lines: string[] = [];
+    const consoleSpy = vi
+      .spyOn(console, 'log')
+      .mockImplementation((...args: unknown[]) => {
+        lines.push(args.map(String).join(' '));
+      });
+
+    await runToolsCLI(tools, 'test-cli', {
+      argv: ['record', '--help'],
+    });
+
+    const output = lines.join('\n');
+    expect(output).toContain('Usage: test-cli record <action> [options]');
+    expect(output).toContain('--output');
+    expect(output).not.toContain('--session');
+    expect(output).toContain('Global Options:');
     consoleSpy.mockRestore();
   });
 

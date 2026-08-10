@@ -218,6 +218,7 @@ export function usePlaygroundExecution(options: UsePlaygroundExecutionOptions) {
     screenshotIncluded,
     domIncluded,
     imeStrategy,
+    screenshotStrategy,
     autoDismissKeyboard,
     keyboardDismissStrategy,
     alwaysRefreshScreenInfo,
@@ -351,6 +352,7 @@ export function usePlaygroundExecution(options: UsePlaygroundExecutionOptions) {
           domIncluded,
           deviceOptions: {
             imeStrategy,
+            screenshotStrategy,
             autoDismissKeyboard,
             keyboardDismissStrategy,
             alwaysRefreshScreenInfo,
@@ -477,6 +479,7 @@ export function usePlaygroundExecution(options: UsePlaygroundExecutionOptions) {
       domIncluded,
       deviceType,
       imeStrategy,
+      screenshotStrategy,
       autoDismissKeyboard,
       keyboardDismissStrategy,
       alwaysRefreshScreenInfo,

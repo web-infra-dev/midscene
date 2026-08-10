@@ -1,7 +1,10 @@
+import { EventEmitter } from 'node:events';
 import { existsSync } from 'node:fs';
+import { waitForCliInterrupt } from '@midscene/shared/cli/interrupt';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   checkXvfbInstalled,
+  createXvfbSigintCleanup,
   findAvailableDisplay,
   needsXvfb,
 } from '../../src/xvfb';
@@ -82,5 +85,33 @@ describe('checkXvfbInstalled', () => {
     const { execSync } = await import('node:child_process');
     vi.mocked(execSync).mockReturnValueOnce(Buffer.from('/usr/bin/Xvfb'));
     expect(checkXvfbInstalled()).toBe(true);
+  });
+});
+
+describe('createXvfbSigintCleanup', () => {
+  it('cleans up when the host only has unrelated SIGINT listeners', () => {
+    const source = new EventEmitter();
+    const cleanup = vi.fn();
+    source.on('SIGINT', () => {});
+    source.on('SIGINT', createXvfbSigintCleanup(cleanup, source));
+
+    source.emit('SIGINT');
+
+    expect(cleanup).toHaveBeenCalledOnce();
+  });
+
+  it('defers cleanup while a foreground recorder is handling SIGINT', async () => {
+    const source = new EventEmitter();
+    const cleanup = vi.fn();
+    source.on('SIGINT', createXvfbSigintCleanup(cleanup, source));
+    const stopped = waitForCliInterrupt(0, source);
+
+    source.emit('SIGINT');
+
+    await expect(stopped).resolves.toBe('sigint');
+    expect(cleanup).not.toHaveBeenCalled();
+
+    source.emit('SIGINT');
+    expect(cleanup).toHaveBeenCalledOnce();
   });
 });

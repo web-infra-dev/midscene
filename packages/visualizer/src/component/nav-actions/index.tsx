@@ -20,6 +20,8 @@ export interface NavActionsProps {
   agentOptions?: CommonAgentOptions;
   onAgentOptionsSave?: (options: CommonAgentOptions) => void | Promise<void>;
   configModalClassName?: EnvConfigProps['configModalClassName'];
+  configModalWidth?: EnvConfigProps['configModalWidth'];
+  envTextareaAutoSize?: EnvConfigProps['envTextareaAutoSize'];
   envTextareaMinRows?: EnvConfigProps['envTextareaMinRows'];
 }
 
@@ -35,6 +37,8 @@ export function NavActions({
   agentOptions,
   onAgentOptionsSave,
   configModalClassName,
+  configModalWidth,
+  envTextareaAutoSize,
   envTextareaMinRows,
 }: NavActionsProps) {
   return (
@@ -53,6 +57,8 @@ export function NavActions({
           onVerify={onVerify}
           agentOptions={agentOptions}
           configModalClassName={configModalClassName}
+          configModalWidth={configModalWidth}
+          envTextareaAutoSize={envTextareaAutoSize}
           envTextareaMinRows={envTextareaMinRows}
           onAgentOptionsSave={onAgentOptionsSave}
         />

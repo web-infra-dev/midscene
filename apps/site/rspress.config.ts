@@ -177,16 +177,16 @@ export default defineConfig(async () => {
             sectionHeaderText: 'Models',
           },
           {
+            text: 'Supported models & setup 🔥',
+            link: '/model-common-config',
+          },
+          {
             text: 'Model strategy',
             link: '/model-strategy',
           },
           {
-            text: 'Configure your model 🔥',
-            link: '/model-common-config',
-          },
-          {
-            text: 'All configuration options',
-            link: '/model-config',
+            text: 'Debugging & observability',
+            link: '/model-debugging-observability',
           },
           {
             sectionHeaderText: 'Web browser',
@@ -242,44 +242,45 @@ export default defineConfig(async () => {
             link: '/automate-with-scripts-in-yaml',
           },
           {
-            sectionHeaderText: 'More features',
+            sectionHeaderText: 'Reference',
           },
           {
-            text: 'Caching AI planning & locate',
-            link: '/caching',
-          },
-          {
-            text: 'Consume report files',
-            link: '/consume-report-file',
-          },
-          {
-            text: 'Integrate Midscene with any interface',
-            link: '/integrate-with-any-interface',
-          },
-          {
-            sectionHeaderText: 'API reference',
-          },
-          {
-            text: 'API overview',
+            text: 'API reference',
             link: '/reference/',
           },
           {
-            sectionHeaderText: 'Advanced',
+            text: 'Model configuration',
+            link: '/model-config',
           },
           {
-            text: 'BDD-style scripts with Gherkin',
+            sectionHeaderText: 'Advanced guides',
+          },
+          {
+            text: 'Process report files',
+            link: '/consume-report-file',
+          },
+          {
+            text: 'Write BDD scripts with Gherkin',
             link: '/advanced/bdd-style-scripts-with-gherkin',
+          },
+          {
+            text: 'Integrate with any interface',
+            link: '/integrate-with-any-interface',
+          },
+          {
+            text: 'Cache AI plans & DOM locators',
+            link: '/caching',
+          },
+          {
+            text: 'Optimize automation with JavaScript',
+            link: '/use-javascript-to-optimize-ai-automation-code',
+          },
+          {
+            sectionHeaderText: 'Resources',
           },
           {
             text: 'FAQ',
             link: '/faq',
-          },
-          {
-            text: 'Use JavaScript to optimize your workflow',
-            link: '/use-javascript-to-optimize-ai-automation-code',
-          },
-          {
-            sectionHeaderText: 'More',
           },
           {
             text: 'AndroidWorld Benchmark Report',
@@ -326,16 +327,16 @@ export default defineConfig(async () => {
             sectionHeaderText: '模型',
           },
           {
+            text: '支持的模型与配置 🔥',
+            link: '/zh/model-common-config',
+          },
+          {
             text: '模型策略',
             link: '/zh/model-strategy',
           },
           {
-            text: '配置你的模型 🔥',
-            link: '/zh/model-common-config',
-          },
-          {
-            text: '全部配置项',
-            link: '/zh/model-config',
+            text: '调试与可观测性',
+            link: '/zh/model-debugging-observability',
           },
           {
             sectionHeaderText: 'Web 浏览器',
@@ -391,44 +392,45 @@ export default defineConfig(async () => {
             link: '/zh/automate-with-scripts-in-yaml',
           },
           {
-            sectionHeaderText: '更多特性',
+            sectionHeaderText: '参考文档',
           },
           {
-            text: '缓存 AI 规划和定位',
-            link: '/zh/caching',
-          },
-          {
-            text: '解析报告文件',
-            link: '/zh/consume-report-file',
-          },
-          {
-            text: '将 Midscene 集成到任意界面',
-            link: '/zh/integrate-with-any-interface',
-          },
-          {
-            sectionHeaderText: 'API 参考',
-          },
-          {
-            text: 'API 概览',
+            text: 'API 参考',
             link: '/zh/reference/',
           },
           {
-            sectionHeaderText: '进阶',
+            text: '模型配置',
+            link: '/zh/model-config',
           },
           {
-            text: 'BDD 风格脚本（Gherkin）',
+            sectionHeaderText: '进阶指南',
+          },
+          {
+            text: '处理报告文件',
+            link: '/zh/consume-report-file',
+          },
+          {
+            text: '使用 Gherkin 编写 BDD 脚本',
             link: '/zh/advanced/bdd-style-scripts-with-gherkin',
+          },
+          {
+            text: '集成任意界面',
+            link: '/zh/integrate-with-any-interface',
+          },
+          {
+            text: '缓存 AI 规划与 DOM 定位',
+            link: '/zh/caching',
+          },
+          {
+            text: '使用 JavaScript 优化自动化流程',
+            link: '/zh/use-javascript-to-optimize-ai-automation-code',
+          },
+          {
+            sectionHeaderText: '资源',
           },
           {
             text: '常见问题 FAQ',
             link: '/zh/faq',
-          },
-          {
-            text: '使用 JavaScript 优化工作流',
-            link: '/zh/use-javascript-to-optimize-ai-automation-code',
-          },
-          {
-            sectionHeaderText: '更多',
           },
           {
             text: 'AndroidWorld Benchmark 测试报告',
@@ -629,7 +631,7 @@ export default defineConfig(async () => {
           },
           {
             from: '^/choose-a-model(?:\\.html)?/?$',
-            to: '/model-strategy',
+            to: '/model-common-config',
           },
           {
             from: '^/model-provider(?:\\.html)?/?$',
@@ -705,7 +707,7 @@ export default defineConfig(async () => {
           },
           {
             from: '^/zh/choose-a-model(?:\\.html)?/?$',
-            to: '/zh/model-strategy',
+            to: '/zh/model-common-config',
           },
           {
             from: '^/zh/model-provider(?:\\.html)?/?$',

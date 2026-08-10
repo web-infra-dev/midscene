@@ -7,10 +7,21 @@ import { usePlaygroundExecution } from '../src/hooks/usePlaygroundExecution';
 import type { InfoListItem, PlaygroundSDKLike } from '../src/types';
 import type { ReplayScriptsInfo } from '../src/utils/replay-scripts';
 
-const { allScriptsFromDumpMock } = vi.hoisted(() => ({
+const { allScriptsFromDumpMock, envConfigMock } = vi.hoisted(() => ({
   allScriptsFromDumpMock: vi.fn<(dump: unknown) => ReplayScriptsInfo | null>(
     () => null,
   ),
+  envConfigMock: {
+    alwaysRefreshScreenInfo: false,
+    autoDismissKeyboard: false,
+    deepLocate: undefined,
+    deepThink: 'unset' as const,
+    domIncluded: false,
+    imeStrategy: undefined,
+    screenshotStrategy: undefined as 'auto' | 'always-yadb' | undefined,
+    keyboardDismissStrategy: undefined,
+    screenshotIncluded: false,
+  },
 }));
 
 vi.mock('@midscene/core/agent', () => ({
@@ -19,16 +30,7 @@ vi.mock('@midscene/core/agent', () => ({
 }));
 
 vi.mock('../src/store/store', () => ({
-  useEnvConfig: () => ({
-    alwaysRefreshScreenInfo: false,
-    autoDismissKeyboard: false,
-    deepLocate: undefined,
-    deepThink: 'unset',
-    domIncluded: false,
-    imeStrategy: undefined,
-    keyboardDismissStrategy: undefined,
-    screenshotIncluded: false,
-  }),
+  useEnvConfig: () => envConfigMock,
 }));
 
 vi.mock('../src/utils/replay-scripts', () => ({
@@ -138,6 +140,50 @@ describe('usePlaygroundExecution stop handling', () => {
     vi.unstubAllGlobals();
     allScriptsFromDumpMock.mockReset();
     allScriptsFromDumpMock.mockReturnValue(null);
+    envConfigMock.screenshotStrategy = undefined;
+  });
+
+  it('forwards an updated screenshot strategy to the next execution', async () => {
+    let snapshot: HarnessSnapshot | null = null;
+    const getSnapshot = () => {
+      if (!snapshot) throw new Error('Harness snapshot is not ready');
+      return snapshot;
+    };
+    const onSnapshot = (nextSnapshot: HarnessSnapshot) => {
+      snapshot = nextSnapshot;
+    };
+    const playgroundSDK = {
+      executeAction: vi.fn().mockResolvedValue(null),
+      onDumpUpdate: vi.fn(),
+      onProgressUpdate: vi.fn(),
+    } as unknown as PlaygroundSDKLike;
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+
+    await act(async () => {
+      root.render(createElement(Harness, { onSnapshot, playgroundSDK }));
+    });
+
+    envConfigMock.screenshotStrategy = 'always-yadb';
+    await act(async () => {
+      root.render(createElement(Harness, { onSnapshot, playgroundSDK }));
+    });
+    await act(async () => {
+      await getSnapshot().handleRun({ prompt: 'Capture', type: 'aiAct' });
+    });
+
+    expect(playgroundSDK.executeAction).toHaveBeenCalledWith(
+      'aiAct',
+      { prompt: 'Capture', type: 'aiAct' },
+      expect.objectContaining({
+        deviceOptions: expect.objectContaining({
+          screenshotStrategy: 'always-yadb',
+        }),
+      }),
+    );
+
+    await act(async () => root.unmount());
   });
 
   it('restores replay scripts from a report-only stop result', async () => {

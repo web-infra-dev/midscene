@@ -14,6 +14,7 @@ This page retains a small number of complete examples to show how related APIs w
 | [iOS](#ios) | iOS device, Agent, factory, and utility APIs |
 | [HarmonyOS](#harmonyos) | HarmonyOS device, Agent, factory, and utility APIs |
 | [Desktop](#desktop) | Local desktop and RDP APIs |
+| [Runtime configuration](#runtime-configuration) | Global environment variables for run artifacts, language, Playground networking, and Debug logs |
 
 ## Shared Agent APIs {#common}
 
@@ -89,7 +90,7 @@ The device CLIs expose the same Agent behavior options for individual calls. Con
 Use `modelConfig: Record<string, string | number>` to configure models directly in code instead of environment variables.
 
 > If `modelConfig` is provided at agent initialization, **all system environment variables for model config are ignored**. Only the values in this object are used.
-> The supported keys and values are listed in [Model configuration](../model-config). See [Model strategy](../model-strategy) for guidance on choosing models.
+> The supported keys and values are listed in [Model configuration](../model-config). See [Model strategy](../model-strategy) to understand the Default, Planning, and Insight model roles.
 
 **Custom OpenAI client**
 
@@ -149,7 +150,7 @@ function ai(prompt: string, options?: Object): Promise<string | undefined>; // s
   - `prompt: string | object` — A natural language description of the UI steps, or [prompting with images](#prompting-with-images).
   - `options?: object` — Optional configuration:
     - `cacheable?: boolean` — Whether this call can use the [cache](../caching.mdx). Default: `true`.
-    - `deepThink?: 'unset' | true | false` — Controls the planning implementation used by Midscene when `aiAct` performs planning. When enabled, `aiAct` focuses more on task decomposition and separates task planning from UI element locating into different model calls. For compatibility, `'unset'` is accepted and treated the same as `false`. [Learn more about deepThink](../model-strategy#about-the-deepthink-option-in-aiact).
+    - `deepThink?: 'unset' | true | false` — Controls the planning implementation used by Midscene when `aiAct` performs planning. See [`deepThink` planning mode](#aiact-deepthink).
     - `deepLocate?: boolean` — Whether to enable [Deep Locate](#deep-locate-deeplocate). Default: `false`.
     - `context?: string` — Additional context for this call. See [Per-call context](#per-call-context).
     - `fileChooserAccept?: string | string[]` — When a file chooser pops up, specify the file path(s) to accept. Can be a single file path or an array of paths. Only available in web pages (Playwright, Puppeteer, or Chrome extension Bridge mode). This option is not constrained by `fileChooserAllowedDir`.
@@ -188,6 +189,17 @@ await agent.aiAct('Fill in the form and submit', {
 // For complex tasks, you can enable the deepThink parameter
 await agent.aiAct('Complete the GitHub account registration form. The region must be set to "Canada". Make sure no fields on the form are missed and all form fields pass validation. Just fill in the form fields without actually submitting the registration. Finally, return the actual content filled in the form fields', { deepThink: true });
 ```
+
+##### `deepThink` planning mode {#aiact-deepthink}
+
+`deepThink` controls the planning implementation used by `aiAct`:
+
+- By default, `aiAct` plans the next step and locates the target element in the same planning request.
+- When set to `true`, `aiAct` focuses more on task decomposition and separates task planning from element localization into different model calls. This can improve stability for complex tasks, but it also increases model calls and latency.
+
+`deepThink` accepts `'unset' | true | false`. The legacy `'unset'` value behaves the same as `false`.
+
+`deepThink` does not control model-native thinking. See [Model-native thinking](../model-config#model-native-reasoning) for the related environment variables.
 
 ##### Upload files from an `aiAct` prompt
 
@@ -1017,36 +1029,48 @@ expect(onesieItem.price).toBe(7.99);
 
 #### `startObserving()` {#agentstartobserving}
 
-Observe the screen over a defined time window while other Agent calls run. A later assertion can then evaluate transient UI, such as toasts, banners, and screen transitions, that a single screenshot might miss.
+`startObserving()` records the screen continuously. Use it to check transient UI, such as toasts, banners, and page transitions.
+
+The flow is simple: start recording, perform the page actions, and call `stop()`. `stop()` returns a `UIObservation`. You can query or assert against the recorded frames.
 
 ```typescript
 function startObserving(options?: {
-  intervalMs?: number;  // sampling interval, default 1000ms, min 200ms (5fps)
-  maxFrames?: number;   // frame-buffer cap, default 30 (self-thinning when full)
-  watchdogMs?: number;  // auto-stop after this many ms if stop() is never called. Default 300000 (5 min). Set 0 to disable.
+  intervalMs?: number; // sampling interval; default 1,000 ms, minimum 200 ms
+  maxFrames?: number; // maximum number of retained frames; default 30
+  watchdogMs?: number; // maximum recording time; default 300,000 ms; 0 disables the limit
 }): Promise<UIObserver>;
 ```
 
-The returned `UIObserver` provides:
+`UIObserver` manages the recording:
 
-- `observer.stop(): Promise<void>` — Stop sampling and capture the final representative screenshot. Must be called before asserting.
-- `observer.aiAssert(assertion: string, msg?: string, opt?: object): Promise<void>` — Assert against the observed window. All buffered frames (plus the representative) are sent to the model, and the assertion text determines whether the model should look for something that appeared at any point, the final state, or an ordered change.
-- `observer.aiBoolean(prompt: string, opt?: object): Promise<boolean>` — Boolean query over the observed window.
-- `observer.frameCount: number` — Number of frames currently buffered.
+- `observer.bufferedFrameCount: number` — Number of frames currently buffered while recording.
+- `observer.stop(): Promise<UIObservation>` — Stop recording and return a `UIObservation`.
+
+`UIObservation` contains the recorded frames. The frames no longer change after you call `stop()`.
+
+You can call `aiQuery()`, `aiBoolean()`, `aiNumber()`, `aiString()`, `aiAsk()`, and `aiAssert()`. These methods only read recorded frames. They do not read the current page DOM.
+
+For this reason, the methods do not support `domIncluded`. TypeScript reports this mistake. Midscene also throws at runtime if JavaScript passes the option.
+
+`UIObservation` also contains `frameCount`, `startedAt`, and `endedAt`. Call `observation.dispose()` to remove temporary images when you finish. `agent.destroy()` also removes any images that remain.
 
 ```typescript
 const observer = await agent.startObserving();
 await agent.aiAct('submit the form');
-await observer.stop();
-await observer.aiAssert('a success toast appeared during the process');
+const observation = await observer.stop();
+await observation.aiAssert('a success toast appeared during the process');
+const toastCount = await observation.aiNumber(
+  'how many success toasts appeared?',
+);
+await observation.dispose();
 ```
 
-How it works and what it costs:
+Sampling and resource usage:
 
-- Frames come from the device's continuous frame source when available: scrcpy on Android (`scrcpyConfig.enabled`), WDA MJPEG on iOS (`wdaMjpegFrameSource.enabled`), or CDP screencast on the web. Otherwise, Midscene captures individual screenshots at a much lower effective frame rate on mobile.
-- Sampling stores lightweight frame references. Midscene decodes only the frames sent to the model, and only at assertion time.
-- All buffered frames (up to `maxFrames`, plus the final representative screenshot) are sent to the model so transient UI in long windows is not missed. To bound token cost, increase `intervalMs` (lower frame density) or decrease `maxFrames` (smaller buffer). The observed frames are shown in the report timeline with an `Observed` tag.
-- On iOS, observed frames come from the scaled, lower-quality MJPEG stream, while the final representative frame is a full-quality screenshot.
+- Midscene uses a continuous frame source when one is available. Android uses scrcpy (`scrcpyConfig.enabled`), iOS uses WDA MJPEG (`wdaMjpegFrameSource.enabled`), and the web uses CDP screencast. Without a continuous source, Midscene takes screenshots at intervals. Sampling is slower on mobile in this mode.
+- Data URL frames are written to files during sampling. `UIObserver` does not keep every image in memory. Other frame handles are decoded and saved in small batches when recording stops. Midscene reads the images when a query or assertion runs.
+- The model receives up to `maxFrames` frames and the final screenshot. Increase `intervalMs` to sample less often, or decrease `maxFrames` to limit the frame count. Observed frames appear in the report timeline with an `Observed` label.
+- On iOS, observed frames come from the lower-quality MJPEG stream. The final screenshot still uses full quality.
 
 #### `aiWaitFor()` {#agentaiwaitfor}
 
@@ -1542,7 +1566,7 @@ await agent.aiTap('Shopping cart icon in the top right', { deepLocate: true });
 
 Historically, the name `deepThink` has carried two different meanings across APIs:
 
-- In `aiAct()`, `deepThink` has always meant **planning mode**, guiding task decomposition and planning-focused reasoning. See [aiAct deepThink documentation](../model-strategy#about-the-deepthink-option-in-aiact) for details.
+- In `aiAct()`, `deepThink` has always meant **planning mode**, guiding task decomposition and planning-focused reasoning. See [`deepThink` planning mode](#aiact-deepthink) for details.
 - In single-step action methods such as `aiTap` and `aiHover`, the old `deepThink` meant **enhanced element location**, equivalent to today's `deepLocate`.
 
 To separate these two meanings, `deepThink` has been reserved for planning mode since v1.5.1, while enhanced element location is consistently named `deepLocate`.
@@ -2151,6 +2175,9 @@ const device = new AndroidDevice(deviceId, {
 - `imeStrategy?: 'always-yadb' | 'yadb-for-non-ascii'` — When to invoke [yadb](https://github.com/ysbing/yadb) for text input. Default: `'yadb-for-non-ascii'`.
   - `'yadb-for-non-ascii'` — Uses yadb for accented Latin characters such as ö, é, and ñ; Chinese and Japanese text; and format specifiers such as `%s` and `%d`. Pure ASCII text uses the faster native `adb input text`.
   - `'always-yadb'` — Uses yadb for all text input. This provides maximum compatibility but is slightly slower for pure ASCII text.
+- `screenshotStrategy?: 'auto' | 'always-yadb'` — Controls the screenshot method. Default: `'auto'`.
+  - `'auto'` (default) — Tries `adb.takeScreenshot`, falls back to shell `screencap`, and uses the yadb tool if `screencap` fails. scrcpy is tried first only when `scrcpyConfig.enabled` is set. It does not analyze screenshot content — even if a method succeeds but returns a black frame, it will not automatically switch to yadb; it only moves to the next method when the previous one fails to execute.
+  - `'always-yadb'` — Bypasses the default `auto` flow (`adb.takeScreenshot`, `screencap`, and scrcpy when enabled) and captures directly via [yadb](https://github.com/ysbing/yadb). Use this when `screencap` produces black frames for secure pages (`FLAG_SECURE`) while yadb captures them correctly — whether that is possible depends on the Android version, ROM, root/hook environment, and device configuration, so verify on your actual device. Yadb can only capture the default display (`displayId=0`); combining this strategy with a non-zero `displayId` throws an error. Can also be set via the `MIDSCENE_ANDROID_SCREENSHOT_STRATEGY=always-yadb` environment variable.
 - `displayId?: number` — Target a specific virtual display if the device mirrors multiple displays.
 - `exposeRunAdbShellAction?: boolean` — Whether to expose the built-in `RunAdbShell` action in the action space. Default: `true`. Set it to `false` to prevent the AI planner, YAML scripts, and `agent.runAdbShell()` from executing ADB shell commands.
 - `screenshotResizeScale?: number` — **Deprecated.** This option has been removed and no longer has any effect. Use `screenshotShrinkFactor` in `AgentOpt` instead to control screenshot size sent to the AI model.
@@ -3199,6 +3226,35 @@ const displays = await ComputerDevice.listDisplays();
 ```
 
 With RDP, `ListDisplays` returns the current remote session as a single display.
+
+## Runtime configuration {#runtime-configuration}
+
+These environment variables control global runtime behavior rather than model requests. They are not supported in an Agent's `modelConfig` object.
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| `MIDSCENE_RUN_DIR` | string | `midscene_run` | Directory for reports, logs, model-call records, and other run artifacts. Accepts an absolute path or a path relative to the current working directory. |
+| `MIDSCENE_PREFERRED_LANGUAGE` | string | `Chinese` in the `Asia/Shanghai` time zone; otherwise `English` | Preferred language for model responses. |
+| `MIDSCENE_PLAYGROUND_HOST` | string | `127.0.0.1` | Network interface used by the Playground server. Set it to a reachable interface address when a remote device, virtual machine, container, or another computer needs to connect. |
+| `DEBUG` | string | Unset | Enables additional debug log namespaces. See [Debug logs](#debug-logs) for supported selectors. |
+
+Setting `MIDSCENE_PLAYGROUND_HOST=0.0.0.0` listens on all network interfaces. Use this value only on a trusted network.
+
+### Debug logs {#debug-logs}
+
+Set `DEBUG` to one of the following selectors:
+
+| Value | Description |
+| --- | --- |
+| `midscene:ai:profile:stats` | Prints model latency and Token usage in a comma-separated format. |
+| `midscene:ai:profile:detail` | Prints detailed Token usage logs. |
+| `midscene:ai:call` | Prints AI response details. |
+| `midscene:android:adb` | Prints Android ADB command details. |
+| `midscene:*` | Prints all Midscene Debug logs. |
+
+Midscene saves logs under `<MIDSCENE_RUN_DIR>/log` even when `DEBUG` is unset. Debug logs may contain model inputs, outputs, or screenshots. Review them before sharing, and do not commit them to a source repository.
+
+For model connectivity checks, call recording, and Tracing integrations, see [Model debugging and observability](../model-debugging-observability).
 
 **See also**
 

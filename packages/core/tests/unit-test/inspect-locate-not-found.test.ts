@@ -152,6 +152,9 @@ describe('locate not-found parsing', () => {
     expect(result.parseResult.errors?.[0]).toContain(
       'model returned invalid coordinates',
     );
+    expect(result.parseResult.errors?.[0]).toContain(
+      'modelName=test-model modelFamily=qwen2.5-vl',
+    );
   });
 
   it('retries JSON parsing through the same locate retry loop', async () => {

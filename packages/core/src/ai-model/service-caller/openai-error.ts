@@ -6,6 +6,7 @@ const MAX_FETCH_ERROR_LENGTH = 4000;
 const debugOpenAIFetch = getDebug('ai:call');
 
 export interface OpenAIErrorResponseContext {
+  recordEvent?: (event: Record<string, unknown>) => void;
   responseRequestIds?: Array<{
     attempt: number;
     requestId: string;
@@ -20,6 +21,21 @@ export interface OpenAIErrorResponseContext {
     attempt: number;
     error: string;
   }>;
+  httpResponses?: Array<{
+    attempt: number;
+    status: number;
+    ok: boolean;
+    headers: Array<[string, string]>;
+    body?: string;
+  }>;
+}
+
+function headersToEntries(
+  headers: HeadersInit | undefined,
+): Array<[string, string]> {
+  const entries: Array<[string, string]> = [];
+  new Headers(headers).forEach((value, key) => entries.push([key, value]));
+  return entries;
 }
 
 function truncateText(text: string, maxLength: number): string {
@@ -88,6 +104,23 @@ export function wrapOpenAICompatibleFetch(
 
   return async (input, init) => {
     attempt += 1;
+    if (context.recordEvent) {
+      // Midscene does not expose a custom fetch hook. The OpenAI SDK therefore
+      // always invokes this wrapper with standard Fetch API input and init.
+      const request = new Request(input, init);
+      context.recordEvent({
+        type: 'request',
+        attempt,
+        request: {
+          url: request.url,
+          method: request.method,
+          body: await request
+            .clone()
+            .text()
+            .catch(() => undefined),
+        },
+      });
+    }
     let response: Response;
     try {
       response = await baseFetch(input, init);
@@ -96,6 +129,11 @@ export function wrapOpenAICompatibleFetch(
       debugOpenAIFetch('OpenAI-compatible fetch failed', fetchErrorSummary);
       context.fetchErrors ??= [];
       context.fetchErrors.push({
+        attempt,
+        error: fetchErrorSummary,
+      });
+      context.recordEvent?.({
+        type: 'error',
         attempt,
         error: fetchErrorSummary,
       });
@@ -131,6 +169,30 @@ export function wrapOpenAICompatibleFetch(
           attempt,
           body: rawResponseBody,
         });
+      }
+    }
+
+    if (context.recordEvent) {
+      const isStream = response.headers
+        .get('content-type')
+        ?.includes('text/event-stream');
+      const body = isStream
+        ? undefined
+        : await response
+            .clone()
+            .text()
+            .catch(() => undefined);
+      const httpResponse = {
+        attempt,
+        status: response.status,
+        ok: response.ok,
+        headers: headersToEntries(response.headers),
+        ...(body === undefined ? {} : { body }),
+      };
+      context.httpResponses ??= [];
+      context.httpResponses.push(httpResponse);
+      if (!response.ok) {
+        context.recordEvent({ type: 'error', ...httpResponse });
       }
     }
 

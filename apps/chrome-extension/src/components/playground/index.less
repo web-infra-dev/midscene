@@ -12,6 +12,60 @@
   min-height: 0;
   flex: 1 1 auto;
 
+  .system-message-icon {
+    rect,
+    path {
+      fill: var(--midscene-accent, #2b83ff);
+    }
+  }
+
+  .prompt-input-wrapper {
+    .mode-radio-group-wrapper .mode-radio-group {
+      .ant-radio-button-wrapper.ant-radio-button-wrapper-checked,
+      .more-apis-button.selected-from-dropdown {
+        background: var(--midscene-accent, #2b83ff);
+        color: #fff;
+
+        &:hover {
+          background: var(--midscene-accent-hover, #1a6fe6);
+          color: #fff;
+        }
+      }
+    }
+
+    .form-controller-wrapper .ant-btn-primary {
+      background: var(--midscene-accent, #2b83ff);
+      border-color: var(--midscene-accent, #2b83ff);
+
+      &:not(:disabled):hover,
+      &:not(:disabled):focus {
+        background: var(--midscene-accent-hover, #1a6fe6);
+        border-color: var(--midscene-accent-hover, #1a6fe6);
+      }
+
+      &:disabled,
+      &.ant-btn-loading {
+        background: var(--midscene-accent, #2b83ff);
+        border-color: transparent;
+        color: rgba(255, 255, 255, 0.72);
+      }
+    }
+  }
+
+  .middle-dialog-area .scroll-to-bottom-button {
+    right: 8px;
+    bottom: 8px;
+    background: var(--midscene-accent, #2b83ff);
+    border-color: var(--midscene-accent, #2b83ff);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    color: #fff;
+
+    &:not(:disabled):hover {
+      background: var(--midscene-accent-hover, #1a6fe6);
+      border-color: var(--midscene-accent-hover, #1a6fe6);
+    }
+  }
+
   .command-form,
   .playground-timeline-region,
   .middle-dialog-area {
@@ -157,17 +211,32 @@
 
     .clear-button-container {
       position: absolute;
-      top: 24px;
+      top: 16px;
       right: 8px;
       z-index: 20;
+
+      .clear-button {
+        width: 32px;
+        height: 32px;
+        border: 1px solid var(--midscene-border-strong, rgba(0, 0, 0, 0.08));
+        border-radius: 8px;
+        background: var(--midscene-surface-elevated, #fff);
+        color: var(--midscene-text-secondary, #777);
+        opacity: 1;
+
+        &:hover {
+          background: var(--midscene-surface-muted, #f1f2f3);
+          color: var(--midscene-text-primary, #1f2329);
+        }
+      }
     }
 
     // The clear control occupies the timeline's right edge. Reserve its
-    // 24px hit area plus an 8px gap so a right-aligned user bubble never
+    // 32px hit area plus an 8px gap so a right-aligned user bubble never
     // sits underneath it.
     .user-message-container {
       box-sizing: border-box;
-      padding-right: 32px;
+      padding-right: 40px;
     }
 
     .middle-dialog-area .info-list-container {
@@ -253,10 +322,8 @@
     }
   }
 
-  // The shared dark theme restores this overflow fade with `!important`.
-  // It is intentionally disabled in the extension because it covers visible
-  // mode buttons beside the toolbar icons.
+  // The overflow fade covers visible mode buttons in the narrow side panel.
   &.playground-conversation-skin .mode-radio-group-wrapper .action-icons {
-    background: transparent !important;
+    background: transparent;
   }
 }

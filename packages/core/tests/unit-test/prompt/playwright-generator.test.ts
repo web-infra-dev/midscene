@@ -1,7 +1,6 @@
 import type { IModelConfig } from '@midscene/shared/env';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { callAIWithStringResponse } from '../../../src/ai-model';
-import { getModelRuntime } from '../../../src/ai-model/models';
 import {
   type ChromeRecordedEvent,
   type PlaywrightGenerationOptions,
@@ -331,13 +330,11 @@ test('Generated test', async ({ aiInput, aiAssert, aiTap, page }) => {
       intent: 'default',
       slot: 'default',
     } as const satisfies IModelConfig;
-    const mockedModelRuntime = getModelRuntime(mockedModelConfig);
-
     test('should generate Playwright test successfully', async () => {
       const result = await generatePlaywrightTest(
         mockEvents,
         {},
-        mockedModelRuntime,
+        mockedModelConfig,
       );
 
       expect(result).toBe(mockPlaywrightCode);
@@ -355,7 +352,9 @@ test('Generated test', async ({ aiInput, aiAssert, aiTap, page }) => {
             content: expect.any(Array),
           }),
         ]),
-        mockedModelRuntime,
+        expect.objectContaining({
+          config: mockedModelConfig,
+        }),
       );
     });
 
@@ -364,7 +363,9 @@ test('Generated test', async ({ aiInput, aiAssert, aiTap, page }) => {
 
       expect(mockCallAiWithStringResponse).toHaveBeenCalledWith(
         expect.any(Array),
-        mockedModelRuntime,
+        expect.objectContaining({
+          config: mockedModelConfig,
+        }),
       );
     });
 
@@ -377,7 +378,7 @@ test('Generated test', async ({ aiInput, aiAssert, aiTap, page }) => {
         maxScreenshots: 2,
       };
 
-      await generatePlaywrightTest(mockEvents, options, mockedModelRuntime);
+      await generatePlaywrightTest(mockEvents, options, mockedModelConfig);
 
       const callArgs = mockCallAiWithStringResponse.mock.calls[0];
       const userMessage = callArgs[0][1];
@@ -403,7 +404,7 @@ test('Generated test', async ({ aiInput, aiAssert, aiTap, page }) => {
         maxScreenshots: 2,
       };
 
-      await generatePlaywrightTest(mockEvents, options, mockedModelRuntime);
+      await generatePlaywrightTest(mockEvents, options, mockedModelConfig);
 
       const callArgs = mockCallAiWithStringResponse.mock.calls[0];
       const userMessage = callArgs[0][1];
@@ -417,7 +418,7 @@ test('Generated test', async ({ aiInput, aiAssert, aiTap, page }) => {
 
     test('should throw error for empty events', async () => {
       await expect(
-        generatePlaywrightTest([], {}, mockedModelRuntime),
+        generatePlaywrightTest([], {}, mockedModelConfig),
       ).rejects.toThrow('No events provided for test generation');
     });
 
@@ -427,7 +428,7 @@ test('Generated test', async ({ aiInput, aiAssert, aiTap, page }) => {
       );
 
       await expect(
-        generatePlaywrightTest(mockEvents, {}, mockedModelRuntime),
+        generatePlaywrightTest(mockEvents, {}, mockedModelConfig),
       ).rejects.toThrow('AI service unavailable');
     });
   });

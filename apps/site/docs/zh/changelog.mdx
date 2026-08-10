@@ -135,7 +135,7 @@ Midscene Studio 是一个基于 Electron 的桌面应用，把多平台 Playgrou
 ### 模型与规划行为
 
 - **使用意图与配置槽位分离**：模型使用意图与实际解析到的配置槽位分离，多模型 Planning、定位和报告展示更清晰
-- **默认关闭原生思考**：对于已支持的模型系列，Midscene 默认关闭模型原生思考，以提升执行速度和稳定性。详见：[模型原生的思考模式](./model-strategy#模型原生的思考模式)
+- **默认关闭原生思考**：对于已支持的模型系列，Midscene 默认关闭模型原生思考，以提升执行速度和稳定性。详见：[模型原生的思考模式](./model-config#model-native-reasoning)
 - **豆包低延迟模式**：支持豆包低延迟模式配置方式，可通过 `MIDSCENE_MODEL_EXTRA_BODY_JSON={"service_tier":"fast"}` 开启。详见：[常用模型配置](./model-common-config)
 - **GLM-5V-Turbo 支持**：新增智谱 GLM-5V-Turbo 模型支持。详见：[常用模型配置](./model-common-config)
 - **滚动选择规划优化**：优化滚动选择（scrollable select）的规划流程，提升复杂下拉与滚轮选择场景的成功率

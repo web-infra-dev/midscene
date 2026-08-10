@@ -38,14 +38,14 @@ JSON.stringify({ defaultHeaders: { foo: 'bar' } })
 
 ## 如何使用 Azure OpenAI Service？
 
-使用 Azure OpenAI Service 时，请先按 [模型配置](./model-common-config) 选择并填写对应模型的常规配置。Azure 只需要把模型服务地址和 API Key 换成 Azure 的写法：
+使用 Azure OpenAI Service 时，请先按照[支持的模型与配置](./model-common-config)选择模型，并填写常规配置。Azure 只需要把模型服务地址和 API Key 换成 Azure 的写法：
 
 ```bash
 MIDSCENE_MODEL_BASE_URL="https://<your-resource>.services.ai.azure.com/openai/v1" # 或 https://<your-resource>.openai.azure.com/openai/v1
 MIDSCENE_MODEL_API_KEY="<your-azure-api-key>"
 ```
 
-也就是说，`MIDSCENE_MODEL_NAME`、`MIDSCENE_MODEL_FAMILY` 等其他配置仍然按 [模型配置](./model-common-config) 中对应模型的说明填写；Azure 只是鉴权方式有所差异的模型供应商，而非一种特殊模型。
+`MIDSCENE_MODEL_NAME` 和 `MIDSCENE_MODEL_FAMILY` 等配置，仍应按照[支持的模型与配置](./model-common-config)中的对应模型说明填写。Azure 只是鉴权方式不同的模型供应商，并非一种特殊模型。
 
 这会走普通 OpenAI-compatible 路径，以 `Authorization: Bearer ...` 请求头发送 `POST /openai/v1/chat/completions`。`MIDSCENE_MODEL_BASE_URL` 不要追加 `/chat/completions`。大多数 `/openai/v1` 端点不需要 `api-version`。
 
@@ -106,7 +106,7 @@ export MIDSCENE_RUN_DIR="/tmp/midscene_output"
 - `log/` - 调试日志文件
 - `cache/` - 缓存文件（详见 [缓存](./caching)）
 
-更多配置选项请参阅 [模型配置](./model-config)。
+更多全局运行参数请参考[运行时配置](./reference/#runtime-configuration)。
 
 ## 如何提升运行效率？
 
@@ -153,7 +153,7 @@ Midscene 的元素定位能力依赖于 AI 模型的视觉理解能力，所以�
 
 通常来说新版本、参数大的模型会比老版本、参数小的模型表现更好。比如 Qwen3-VL 会好于 Qwen2.5-VL，它的 plus 版本会好于 flash 版本。
 
-更多模型选择建议请参考 [模型策略](./model-strategy)。
+当前的模型建议请参考[支持的模型与配置](./model-common-config)。
 
 ### 3. 检查 Model Family 配置
 

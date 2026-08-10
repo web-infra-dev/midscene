@@ -122,7 +122,7 @@ describe('Agent per-call context option', () => {
     expect(taskExecutor.createTypeQueryExecution).toHaveBeenCalledWith(
       'Assert',
       'The success toast is visible',
-      defaultModel,
+      expect.objectContaining(defaultModel),
       {
         context: 'The current user is a logged-in buyer.',
         domIncluded: false,
@@ -151,7 +151,7 @@ describe('Agent per-call context option', () => {
     expect(taskExecutor.createTypeQueryExecution).toHaveBeenCalledWith(
       'Assert',
       'The success toast is visible',
-      defaultModel,
+      expect.objectContaining(defaultModel),
       {
         domIncluded: false,
         screenshotIncluded: true,

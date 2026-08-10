@@ -14,6 +14,7 @@
 | [iOS](#ios) | iOS Device、Agent、工厂函数和工具 API |
 | [HarmonyOS](#harmonyos) | HarmonyOS Device、Agent、工厂函数和工具 API |
 | [桌面端](#desktop) | 本机桌面和 RDP API |
+| [运行时配置](#runtime-configuration) | 运行产物、语言、Playground 网络和 Debug 日志等全局环境变量 |
 
 ## 共享 Agent API {#common}
 
@@ -87,7 +88,7 @@ Midscene 针对每个不同环境都有对应的 Agent。每个 Agent 的构造�
 `modelConfig: Record<string, string | number>` 可选。它允许你通过代码配置模型，而不是通过环境变量。
 
 > 如果在 Agent 初始化时提供了 `modelConfig`，**系统环境变量中的模型配置将全部被忽略**，仅使用该对象中的值。
-> 这里可配置的 key / value 与 [模型配置](../model-config) 文档中说明的内容完全一致。你也可以参考 [模型策略](../model-strategy) 中的说明。
+> 这里可配置的 key / value 与 [模型配置](../model-config) 文档中说明的内容完全一致。Default、Planning 和 Insight 模型的职责请参考[模型策略](../model-strategy)。
 
 **自定义 OpenAI 客户端**
 
@@ -147,7 +148,7 @@ function ai(prompt: string, options?: Object): Promise<string | undefined>; // �
   - `prompt: string | object` - 用自然语言描述的操作内容，或[使用图片作为提示词](#使用图片作为提示词)。
   - `options?: object` - 可选，一个配置对象，包含：
     - `cacheable?: boolean` - 当启用 [缓存功能](../caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 true
-    - `deepThink?: 'unset' | true | false` - 控制 Midscene 在 `aiAct` 执行规划时的具体实现。开启后，`aiAct` 会更注重任务拆解，并将任务 Planning 和 UI 元素定位拆解为不同的模型调用。为了兼容旧写法，`'unset'` 仍然可以传入，并会被按 `false` 处理。[详情参阅 deepThink 说明](../model-strategy#关于-aiact-方法的-deepthink-参数)。
+    - `deepThink?: 'unset' | true | false` - 控制 Midscene 在 `aiAct` 执行规划时的具体实现。详见 [`deepThink` 规划模式](#aiact-deepthink)。
     - `deepLocate?: boolean` - 是否开启[深度定位](#深度定位deeplocate)。默认值为 false。
     - `context?: string` - 本次调用的额外上下文。详见[单次调用上下文](#单次调用上下文)。
     - `fileChooserAccept?: string | string[]` - 当文件选择器弹出时，指定对应的文件路径。可以是单个文件路径或路径数组。仅在 web 页面（Playwright、Puppeteer 或 Chrome extension Bridge mode）中可用。该选项不受 `fileChooserAllowedDir` 限制。
@@ -183,6 +184,17 @@ await agent.aiAct('填写表单并提交', {
 // 对于复杂任务，可以启用 deepThink 参数
 await agent.aiAct('完成 github 账号注册的表单填写。地区必须选择「加拿大」。确保表单上没有遗漏的字段，确保所有的表单项能够通过校验。 只需要填写表单项即可，不需要发起真实的账号注册。 最终请返回表单上实际填写的字段内容', { deepThink: true });
 ```
+
+##### `deepThink` 规划模式 {#aiact-deepthink}
+
+`deepThink` 控制 `aiAct` 的规划实现：
+
+- 默认情况下，`aiAct` 会在同一次规划请求中完成下一步规划和目标元素定位。
+- 设置为 `true` 后，`aiAct` 会更注重任务拆解，并将任务规划和元素定位分为不同的模型调用。复杂任务可能因此更加稳定，但模型调用次数和延迟也会增加。
+
+`deepThink` 支持 `'unset' | true | false`。`'unset'` 是兼容旧写法的取值，与 `false` 的行为相同。
+
+`deepThink` 不控制模型原生思考。相关环境变量请参考[模型原生思考](../model-config#model-native-reasoning)。
 
 ##### 在 `aiAct` 提示词中上传文件
 
@@ -1003,36 +1015,46 @@ expect(onesieItem.price).toBe(7.99);
 
 #### `startObserving()` {#agentstartobserving}
 
-在一段时间内持续采样屏幕，后续断言会基于这段有序记录判断状态或变化。它适合捕捉单张截图容易错过的短暂 UI，比如 toast、横幅或页面切换。
+`startObserving()` 会持续记录屏幕。它适合检查短暂出现的 UI，例如 toast、横幅和页面切换。
+
+调用流程很简单：先开始录制，再执行页面操作，最后调用 `stop()`。`stop()` 返回 `UIObservation`。你可以查询或断言录制期间的画面。
 
 ```typescript
 function startObserving(options?: {
-  intervalMs?: number;  // 采样间隔,默认 1000ms,最小 200ms(5fps)
-  maxFrames?: number;   // 帧缓冲上限,默认 30(缓冲满时自动抽稀)
-  watchdogMs?: number;  // 如果一直没有调用 stop(),会在指定毫秒数后自动停止。默认 300000(5 分钟)。设为 0 可禁用。
+  intervalMs?: number; // 采样间隔。默认 1,000 ms，最小 200 ms
+  maxFrames?: number; // 最多保留的帧数。默认 30
+  watchdogMs?: number; // 最长录制时间。默认 300,000 ms；0 表示不限制
 }): Promise<UIObserver>;
 ```
 
-返回的 `UIObserver` 提供：
+`UIObserver` 负责录制：
 
-- `observer.stop(): Promise<void>` - 停止采样，并截取最后一张用于断言的截图。断言前必须先调用。
-- `observer.aiAssert(assertion: string, msg?: string, opt?: object): Promise<void>` - 基于已观察到的时间段执行断言。模型会收到所有缓冲帧和最后一张截图；断言文本决定它应该判断“是否曾经出现”、最终状态，还是按顺序发生的变化。
-- `observer.aiBoolean(prompt: string, opt?: object): Promise<boolean>` - 基于已观察到的时间段做布尔查询。
-- `observer.frameCount: number` - 当前已缓冲的帧数。
+- `observer.bufferedFrameCount: number` - 录制过程中当前缓冲的帧数。
+- `observer.stop(): Promise<UIObservation>` - 停止录制，并返回 `UIObservation`。
+
+`UIObservation` 保存已经录下的画面。调用 `stop()` 后，这些画面不再变化。
+
+你可以调用 `aiQuery()`、`aiBoolean()`、`aiNumber()`、`aiString()`、`aiAsk()` 和 `aiAssert()`。这些方法只读取录制画面，不读取当前页面的 DOM。
+
+因此，这些方法不支持 `domIncluded`。TypeScript 会检查这个错误。JavaScript 在运行时传入该参数，Midscene 也会抛出错误。
+
+`UIObservation` 还包含 `frameCount`、`startedAt` 和 `endedAt`。使用完后，可以调用 `observation.dispose()` 清理临时图片。`agent.destroy()` 也会清理尚未释放的图片。
 
 ```typescript
 const observer = await agent.startObserving();
 await agent.aiAct('提交表单');
-await observer.stop();
-await observer.aiAssert('过程中弹出了成功提示 toast');
+const observation = await observer.stop();
+await observation.aiAssert('过程中弹出了成功提示 toast');
+const toastCount = await observation.aiNumber('共出现了多少次成功 toast？');
+await observation.dispose();
 ```
 
-工作方式与成本：
+采样和资源占用：
 
-- Midscene 会优先从设备的连续帧源采集画面：Android 使用 scrcpy（`scrcpyConfig.enabled`）、iOS 使用 WDA MJPEG（`wdaMjpegFrameSource.enabled`）、Web 使用 CDP screencast（始终可用）。没有帧源时，会退回到定时截图；移动端实际帧率会明显降低。
-- 采样阶段只保存帧句柄。断言时再解码需要发送给模型的帧，避免在后台采样时持续解码。
-- 模型会收到缓冲区内的所有帧（最多 `maxFrames` 帧）和最后一张截图，避免漏掉长时间观察中的短暂 UI。如需控制 token 成本，可增大 `intervalMs`（降低采样密度）或减小 `maxFrames`（缩小缓冲区）。观察帧会显示在报告时间线中，并带有 `Observed` 标签。
-- iOS 的观察帧来自 MJPEG 流，分辨率和质量较低；最后一张截图仍是全质量截图。
+- Midscene 会优先使用连续帧源。Android 使用 scrcpy（`scrcpyConfig.enabled`），iOS 使用 WDA MJPEG（`wdaMjpegFrameSource.enabled`），Web 使用 CDP screencast。无法使用连续帧源时，Midscene 会定时截图。移动端此时的采样频率较低。
+- data URL 形式的帧会在采样时写入文件。`UIObserver` 不会把所有图片长期保存在内存中。其他帧会在录制停止时分批解码并保存。查询或断言时，Midscene 才读取图片。
+- 模型会接收最多 `maxFrames` 帧，以及最后一张截图。增大 `intervalMs` 可以减少采样帧，减小 `maxFrames` 可以限制帧数。观察帧会显示在报告时间线中，并带有 `Observed` 标签。
+- iOS 的观察帧来自 MJPEG 流，分辨率和质量较低。最后一张截图仍使用完整质量。
 
 #### `aiWaitFor()` {#agentaiwaitfor}
 
@@ -1508,7 +1530,7 @@ await agent.aiTap('右上角购物车图标', { deepLocate: true });
 
 历史上，`deepThink` 这个名字在不同 API 中承担过两种含义：
 
-- 在 `aiAct()` 中，`deepThink` 从一开始就表示**规划模式**，用于引导任务拆解和专注规划的思考过程。详情请参考 [aiAct deepThink 说明](../model-strategy#关于-aiact-方法的-deepthink-参数)。
+- 在 `aiAct()` 中，`deepThink` 从一开始就表示**规划模式**，用于引导任务拆解和专注规划的思考过程。详情请参考 [`deepThink` 规划模式](#aiact-deepthink)。
 - 在 `aiTap`、`aiHover` 等单步操作方法中，旧的 `deepThink` 表示**定位增强**，等同于现在的 `deepLocate`。
 
 为了区分这两种语义，自 v1.5.1 起，`deepThink` 只用于表示规划模式，定位增强统一命名为 `deepLocate`。
@@ -2106,6 +2128,9 @@ const device = new AndroidDevice(deviceId, {
 - `imeStrategy?: 'always-yadb' | 'yadb-for-non-ascii'` —— 控制何时调用 [yadb](https://github.com/ysbing/yadb) 进行文本输入，默认 `'yadb-for-non-ascii'`。
   - `'yadb-for-non-ascii'`（默认）—— 对 Unicode 字符（包括 Latin Unicode 如 ö、é、ñ）、中文、日文以及格式化符号（如 %s、%d）使用 yadb。纯 ASCII 文本使用更快的原生 `adb input text`。
   - `'always-yadb'` —— 对所有文本输入始终使用 yadb，提供最大兼容性，但对纯 ASCII 文本稍慢。
+- `screenshotStrategy?: 'auto' | 'always-yadb'` —— 控制截图方式，默认 `'auto'`。
+  - `'auto'`（默认）—— 先尝试 `adb.takeScreenshot`，失败后回退到 shell `screencap`；若 `screencap` 执行失败，则改用 yadb 工具。scrcpy 仅当 `scrcpyConfig.enabled` 开启时才会优先尝试。该策略不会分析截图内容：即使某个截图方法执行成功但返回全黑图片，也不会自动切换到 yadb；只有当前一种截图方法执行失败时，才会尝试下一种方法。
+  - `'always-yadb'` —— 绕过默认的 `auto` 截图流程（`adb.takeScreenshot`、`screencap`，以及开启时的 scrcpy），直接使用 [yadb](https://github.com/ysbing/yadb) 截图。适用于 `screencap` 对安全页面（`FLAG_SECURE`）截出黑屏、但 yadb 能正常截取的场景——能否截取取决于 Android 版本、ROM、root/hook 环境和设备配置，请以实际设备测试结果为准。yadb 只能截取默认显示器（`displayId=0`）；如果同时设置该策略和非零 `displayId`，Midscene 会抛出错误。也可通过环境变量 `MIDSCENE_ANDROID_SCREENSHOT_STRATEGY=always-yadb` 设置。
 - `displayId?: number` —— 在设备镜像多个屏幕时，选择特定虚拟屏幕。
 - `exposeRunAdbShellAction?: boolean` —— 是否在动作空间中暴露内置的 `RunAdbShell` 动作。默认值：`true`。设为 `false` 后，AI 规划器、YAML 脚本和 `agent.runAdbShell()` 都无法执行 ADB shell 命令。
 - `screenshotResizeScale?: number` —— **已废弃。** 此选项已移除，不再生效。如需控制发送给 AI 模型的截图尺寸，请使用 `AgentOpt` 中的 `screenshotShrinkFactor`。
@@ -3151,6 +3176,35 @@ const displays = await ComputerDevice.listDisplays();
 ```
 
 使用 RDP 时，`ListDisplays` 会把当前远程会话视为单个显示器返回。
+
+## 运行时配置 {#runtime-configuration}
+
+以下环境变量控制全局运行时行为，而不是模型请求。Agent 的 `modelConfig` 对象不支持这些参数。
+
+| 名称 | 类型 | 默认值 | 说明 |
+| --- | --- | --- | --- |
+| `MIDSCENE_RUN_DIR` | 字符串 | `midscene_run` | 报告、日志、模型调用记录和其他运行产物的保存目录。支持绝对路径，也支持相对于当前工作目录的路径。 |
+| `MIDSCENE_PREFERRED_LANGUAGE` | 字符串 | `Asia/Shanghai` 时区为 `Chinese`，其他时区为 `English` | 模型响应的首选语言。 |
+| `MIDSCENE_PLAYGROUND_HOST` | 字符串 | `127.0.0.1` | Playground 服务器监听的网络接口。远程设备、虚拟机、容器或其他计算机需要连接时，请设为对方可访问的接口地址。 |
+| `DEBUG` | 字符串 | 未设置 | 启用额外的 Debug 日志命名空间。支持的选择器请参考 [Debug 日志](#debug-logs)。 |
+
+设置 `MIDSCENE_PLAYGROUND_HOST=0.0.0.0` 会监听所有网络接口。请仅在可信网络中使用该值。
+
+### Debug 日志 {#debug-logs}
+
+将 `DEBUG` 设置为以下选择器之一：
+
+| 取值 | 描述 |
+| --- | --- |
+| `midscene:ai:profile:stats` | 使用逗号分隔的格式打印模型延迟和 Token 使用量。 |
+| `midscene:ai:profile:detail` | 打印详细的 Token 使用量日志。 |
+| `midscene:ai:call` | 打印 AI 响应详情。 |
+| `midscene:android:adb` | 打印 Android ADB 命令调用详情。 |
+| `midscene:*` | 打印全部 Midscene Debug 日志。 |
+
+即使未设置 `DEBUG`，Midscene 也会将日志保存在 `<MIDSCENE_RUN_DIR>/log` 目录中。Debug 日志可能包含模型输入、输出或截图。分享前请先检查内容，也不要将日志提交到源码仓库。
+
+模型连接检查、调用记录和 Tracing 集成请参考[模型调试与可观测性](../model-debugging-observability)。
 
 **另请参阅**
 

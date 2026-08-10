@@ -344,4 +344,156 @@ describe('codex app-server provider helper', () => {
       ),
     ).rejects.toThrow(/codex app-server process error: spawn ENOENT/);
   });
+
+  it('reports Codex JSON-RPC requests, responses, and turn notifications', async () => {
+    vi.resetModules();
+
+    const lineReader = new EventEmitter() as EventEmitter & {
+      close: ReturnType<typeof vi.fn>;
+      on: EventEmitter['on'];
+    };
+    lineReader.close = vi.fn();
+
+    const stdout = new EventEmitter() as EventEmitter & {
+      unref: ReturnType<typeof vi.fn>;
+    };
+    stdout.unref = vi.fn();
+
+    const stderr = new EventEmitter() as EventEmitter & {
+      unref: ReturnType<typeof vi.fn>;
+    };
+    stderr.unref = vi.fn();
+
+    const sendResponse = (id: number, result: unknown) => {
+      queueMicrotask(() => {
+        lineReader.emit('line', JSON.stringify({ id, result }));
+      });
+    };
+    const stdin = {
+      end: vi.fn(),
+      unref: vi.fn(),
+      write: vi.fn(
+        (
+          line: string,
+          callback?: (error?: Error | null | undefined) => void,
+        ) => {
+          const message = JSON.parse(line);
+          if (message.method === 'initialize') {
+            sendResponse(message.id, {});
+          } else if (message.method === 'thread/start') {
+            sendResponse(message.id, { thread: { id: 'thread-1' } });
+          } else if (message.method === 'turn/start') {
+            sendResponse(message.id, { turn: { id: 'turn-1' } });
+            queueMicrotask(() => {
+              lineReader.emit(
+                'line',
+                JSON.stringify({
+                  method: 'item/agentMessage/delta',
+                  params: {
+                    threadId: 'thread-1',
+                    turnId: 'turn-1',
+                    delta: 'hello',
+                  },
+                }),
+              );
+              lineReader.emit(
+                'line',
+                JSON.stringify({
+                  method: 'turn/completed',
+                  params: {
+                    threadId: 'thread-1',
+                    turn: { id: 'turn-1', status: 'completed' },
+                  },
+                }),
+              );
+            });
+          } else if (message.method === 'thread/unsubscribe') {
+            sendResponse(message.id, {});
+          }
+          callback?.(null);
+          return true;
+        },
+      ),
+    };
+
+    const child = new EventEmitter() as EventEmitter & {
+      stdin: typeof stdin;
+      stdout: typeof stdout;
+      stderr: typeof stderr;
+      kill: ReturnType<typeof vi.fn>;
+      unref: ReturnType<typeof vi.fn>;
+    };
+    child.stdin = stdin;
+    child.stdout = stdout;
+    child.stderr = stderr;
+    child.kill = vi.fn();
+    child.unref = vi.fn();
+
+    vi.doMock('node:child_process', () => ({
+      spawn: vi.fn(() => child),
+    }));
+    vi.doMock('node:readline', () => ({
+      createInterface: vi.fn(() => lineReader),
+    }));
+
+    const mockedModule = await import(
+      '@/ai-model/service-caller/codex-app-server'
+    );
+    const events: unknown[] = [];
+    const result = await mockedModule.callAIWithCodexAppServer(
+      [{ role: 'user', content: 'hello' }],
+      baseModelConfig,
+      { onRecordEvent: (event) => events.push(event) },
+    );
+
+    expect(result).toMatchObject({
+      content: 'hello',
+      protocolMetadata: {
+        transport: 'json-rpc',
+        threadId: 'thread-1',
+        turnId: 'turn-1',
+        turnStatus: 'completed',
+      },
+    });
+    expect(events).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: 'request',
+          protocol: expect.objectContaining({ method: 'thread/start' }),
+        }),
+        expect.objectContaining({
+          type: 'request',
+          protocol: expect.objectContaining({ method: 'turn/start' }),
+        }),
+        expect.objectContaining({
+          type: 'chunk',
+          protocol: expect.objectContaining({
+            direction: 'server',
+            method: 'thread/start',
+            result: { thread: { id: 'thread-1' } },
+          }),
+        }),
+        expect.objectContaining({
+          type: 'chunk',
+          protocol: expect.objectContaining({
+            direction: 'server',
+            method: 'turn/start',
+            result: { turn: { id: 'turn-1' } },
+          }),
+        }),
+        expect.objectContaining({
+          type: 'chunk',
+          protocol: expect.objectContaining({
+            method: 'item/agentMessage/delta',
+          }),
+        }),
+        expect.objectContaining({
+          type: 'chunk',
+          protocol: expect.objectContaining({ method: 'turn/completed' }),
+        }),
+      ]),
+    );
+
+    await mockedModule.__shutdownCodexAppServerForTests();
+  });
 });

@@ -1,27 +1,19 @@
-import QuickModelConfig from './common/quick-model-config.mdx';
-import { ModelConfigTab, ModelConfigTabs } from '@theme';
+import { ModelConfigTab, ModelConfigTabs, PackageManagerTabs } from '@theme';
 
-# 配置你的模型
+# 支持的模型与配置
 
-## 一个快速默认配置
+本文帮助你选择 Midscene 支持的模型、完成首次配置，并验证模型连接。
 
-Midscene 需要配置多模态模型来操作界面。若只想先跑起来，可以直接使用下方示例的环境变量配置快速开始。
+本页列出的模型配置，本质上都是环境变量。你可以根据使用方式提供这些配置：
 
-<QuickModelConfig />
+- 使用 Playground 时，在设置页面直接粘贴本页的配置文本。
+- 使用 SDK 或命令行工具时，按照[设置环境变量](#设置环境变量)中的说明加载配置。
 
-如需了解全部受支持模型及不同的环境变量配置方式，请继续往下阅读。
+如需了解模型职责，请阅读[模型策略](./model-strategy)。如需查询完整参数，请阅读[模型配置参考](./model-config)。
 
 ## 支持的模型
 
-以下是 Midscene 正式支持的模型。配置模型时，除大模型通常需要的 Base URL、API Key 和模型名称外，还需要额外声明正确的 `MIDSCENE_MODEL_FAMILY`，用于标记模型所属的系列，以获得最佳的效果适配。
-
-:::tip 模型选择技巧
-
-- 对于同一厂商的模型，优先使用新版本。新版本通常会在效果、速度和价格上带来更好的综合体验，不建议在旧版本上投入过多调优成本。
-- 对于不同厂商的模型，在效果、速度和价格上可能有较大差距。建议使用你的代表性任务进行小规模对比，再选择最适合实际场景的模型。
-- Midscene 支持多模型配合。通常只需配置一个默认模型，即可完成界面定位和操作；但通过单独配置 Planning 和 Insight 模型，能发挥不同模型在性能、价格等方面的优势，获得更好的综合效果。更多信息可参考[高阶特性：多模型配合](./model-strategy#高阶特性多模型配合)。
-
-:::
+Midscene 支持使用以下多模态模型操作界面。每份配置都需要 Base URL、API Key、模型名称和 `MIDSCENE_MODEL_FAMILY`。模型系列（`MIDSCENE_MODEL_FAMILY`）决定了 Midscene 如何适配所选模型。
 
 ### 豆包 Seed 系列 {#doubao-seed-model}
 
@@ -29,10 +21,10 @@ Midscene 需要配置多模态模型来操作界面。若只想先跑起来，�
 
 <div className="model-series-table">
 
-| 模型版本 | 常用模型名称 | 对应 MODEL_FAMILY | 备注 |
+| 模型版本 | 常用模型名称 | `MIDSCENE_MODEL_FAMILY` | 备注 |
 | --- | --- | --- | --- |
 | 2.x 系列 | `Doubao-Seed-2.1-turbo`、`Doubao-Seed-2.0-Lite` | `doubao-seed` | `Doubao-Seed-2.1-turbo` 目前私有测评集中定位速度最快，且定位效果也很好，推荐使用。 |
-| 1.x 系列 | `Doubao-Seed-1.6-Vision`、`Doubao-Seed-1.8` | `doubao-seed` | 1.x 系列为豆包的旧版本模型，综合表现已不具竞争力，建议优先使用 2.x 系列。 |
+| 1.x 系列 | `Doubao-Seed-1.6-Vision`、`Doubao-Seed-1.8` | `doubao-seed` | 1.x 系列为豆包的旧版本模型，综合表现已不具竞争力，建议优先使用 2.x 系列。为兼容已有配置，仍支持 `MIDSCENE_MODEL_FAMILY="doubao-vision"`；新配置建议使用 `doubao-seed`。 |
 
 </div>
 
@@ -71,17 +63,11 @@ MIDSCENE_INSIGHT_MODEL_FAMILY="doubao-seed"
   </ModelConfigTab>
 </ModelConfigTabs>
 
-如果你的火山引擎账号已开通低延迟模式（Fast），可以追加以下请求体参数来使用该能力。通常可将模型响应速度提升约 30% 至 50%。
+如果你的火山引擎账号已开通低延迟模式（Fast Tier），可以追加以下请求体参数来使用该能力。通常可将模型响应速度提升约 30% 至 50%。
 
 ```bash
 MIDSCENE_MODEL_EXTRA_BODY_JSON={"service_tier":"fast"}
 ```
-
-:::info 兼容性说明
-
-为兼容已有配置，仍支持 `MIDSCENE_MODEL_FAMILY="doubao-vision"`；新配置建议使用 `doubao-seed`。
-
-:::
 
 ### 千问 Qwen 系列 {#qwen}
 
@@ -93,7 +79,7 @@ MIDSCENE_MODEL_EXTRA_BODY_JSON={"service_tier":"fast"}
 
 <div className="model-series-table">
 
-| 模型版本 | 常用模型名称 | 对应 MODEL_FAMILY | 备注 |
+| 模型版本 | 常用模型名称 | `MIDSCENE_MODEL_FAMILY` | 备注 |
 | --- | --- | --- | --- |
 | Qwen3.x 系列 | `qwen3.7-plus`、`qwen3.5-plus`、`qwen3.6-plus` | `qwen3` | 从定位测评的结果看，推荐顺序为 Qwen3.7 > Qwen3.5 > Qwen3.6。`qwen3.5`、`qwen3.6` 作为旧 family 仍然兼容。 |
 | Qwen3-VL 系列 | `qwen3-vl-plus` | `qwen3-vl` | 作为旧版本模型，不推荐使用。建议优先使用 Qwen3.x 系列。 |
@@ -142,7 +128,7 @@ MIDSCENE_INSIGHT_MODEL_FAMILY="qwen3" # 如果你使用了其他版本的 Qwen�
 
 <div className="model-series-table">
 
-| 模型版本 | 常用模型名称 | 对应 MODEL_FAMILY | 备注 |
+| 模型版本 | 常用模型名称 | `MIDSCENE_MODEL_FAMILY` | 备注 |
 | --- | --- | --- | --- |
 | Gemini 3.x 系列 | `gemini-3.5-flash`、`gemini-3-flash-preview` | `gemini` | `gemini-3.5-flash` 是目前我们私有测评集中定位表现最好的模型。 |
 
@@ -189,7 +175,7 @@ MIDSCENE_INSIGHT_MODEL_FAMILY="gemini"
 
 <div className="model-series-table">
 
-| 模型版本 | 常用模型名称 | 对应 MODEL_FAMILY | 备注 |
+| 模型版本 | 常用模型名称 | `MIDSCENE_MODEL_FAMILY` | 备注 |
 | --- | --- | --- | --- |
 | GPT-5 系列 | `gpt-5.4`、`gpt-5.5`、`gpt-5.6-sol`、`gpt-5.6-terra`、`gpt-5.6-luna` | `gpt-5` | GPT-5.4 之前的模型不支持视觉定位，仅可用作 Planning 模型或 Insight 模型。在实际定位测试中，GPT-5.5 和 GPT-5.6 的定位效果明显优于 GPT-5.4，建议优先使用 GPT-5.5 或 GPT-5.6。 |
 
@@ -230,21 +216,37 @@ MIDSCENE_INSIGHT_MODEL_FAMILY="gpt-5"
   </ModelConfigTab>
 </ModelConfigTabs>
 
-你也可以通过[**使用 Codex App Server（OAuth，无需 API Key）**](./model-config#使用-codex-app-serveroauth无需-api-key) 使用 GPT。
+<span id="use-codex-app-server-oauth-no-api-key" />
 
-:::warning GPT-5 使用注意事项
+**使用 Codex App Server（OAuth，无需 API Key）**
+
+如果你已经通过 Codex CLI 登录（`codex login`），并希望 Midscene 直接复用该 OAuth 会话，可设置：
+
+```bash
+export MIDSCENE_MODEL_BASE_URL="codex://app-server"
+export MIDSCENE_MODEL_NAME="gpt-5.4" # 或者使用 Codex model/list 可见的其他模型
+export MIDSCENE_MODEL_FAMILY="gpt-5"
+```
+
+说明：
+
+- 该模式下不需要 `MIDSCENE_MODEL_API_KEY`。
+- Midscene 会通过 stdio 调用 `codex app-server`。
+- 请确保 `codex` 在 PATH 中可用，并通过 `codex login status` 确认登录状态。
+
+:::warning 已知限制
+
+相比于直接调用 OpenAI 兼容 API，我们观察到这种方式可能耗时更长、token 消耗更多，具体原因还在排查中。
+
+:::
+
+使用 GPT-5 时，请注意以下事项：
 
 - 使用 GPT 做 UI 定位时，目前只支持使用 `gpt-5.4` 及以后的模型。因为为了获得最佳的定位效果，需要在发送图片时指定 `"detail": "original"` 参数，这一参数仅在 `gpt-5.4` 及后续模型上可用，`gpt-5.4-mini`、`gpt-5.4-nano` 等更小的 GPT-5 变体以及前代模型不支持 `original` 参数，会导致报错。详情请参考 [Images and Vision guide](https://developers.openai.com/api/docs/guides/images-vision) 和 [Computer use guide](https://developers.openai.com/api/docs/guides/tools-computer-use)。
 - 按照 OpenAI 的文档，GPT-5 在处理非拉丁字母文本、字号太小的文本时效果可能不理想，参见 [Images and Vision guide](https://developers.openai.com/api/docs/guides/images-vision)。
 - OpenAI 在 computer use 文档中提到，他们观察到 `1440x900` 和 `1600x900` 这两种截图尺寸上通常能获得比较好的效果，详见 [Computer use guide](https://developers.openai.com/api/docs/guides/tools-computer-use)。因此，建议按照 OpenAI 的推荐对截图尺寸进行调整。在 Midscene 中，你可以通过 Agent 参数里的 `screenshotShrinkFactor` 控制截图压缩倍率。如果是浏览器自动化，还可以通过浏览器 `viewport` 指定页面的尺寸和比例。
-- 使用 Azure OpenAI 时，Azure 可能不会正确处理 `"detail": "original"`，从而造成点击坐标偏移。详见 [使用 Azure OpenAI 时点击坐标偏移](./faq)。
+- 使用 Azure OpenAI 时，Azure 可能不会正确处理 `"detail": "original"`，从而造成点击坐标偏移。详见 [使用 Azure OpenAI 时点击坐标偏移](./faq#使用-azure-openai-时点击坐标偏移)。
 - 如果你使用的是更老版本的 GPT-5，建议只将其用作规划模型，并搭配其他多模态模型完成定位，参考[多模型组合示例](#multi-model-combination-example)。
-
-:::
-
-:::note 模型原生思考
-Midscene 默认关闭模型原生思考，以获得最佳的执行速度和稳定性。如需为上面任意模型开启，设置 `MIDSCENE_MODEL_REASONING_ENABLED="true"` 即可。部分模型系列还支持 `MIDSCENE_MODEL_REASONING_BUDGET` 和 `MIDSCENE_MODEL_REASONING_EFFORT` 等额外控制项。详见[模型原生的思考模式](./model-strategy#模型原生的思考模式)。
-:::
 
 ### 月之暗面 Kimi 系列 {#kimi}
 
@@ -252,7 +254,7 @@ Midscene 默认关闭模型原生思考，以获得最佳的执行速度和稳�
 
 <div className="model-series-table">
 
-| 模型版本 | 常用模型名称 | 对应 MODEL_FAMILY | 备注 |
+| 模型版本 | 常用模型名称 | `MIDSCENE_MODEL_FAMILY` | 备注 |
 | --- | --- | --- | --- |
 | K3 系列 | `kimi-k3` | `kimi3` | 根据 Kimi 的文档，K3 始终开启思考模式，无法关闭，且推理强度默认为 `max` |
 | K2.x 系列 | `kimi-k2.5`、`kimi-k2.6` | `kimi` | — |
@@ -301,7 +303,7 @@ MIDSCENE_INSIGHT_MODEL_FAMILY="kimi3" # 如果使用 kimi-k2.6，请改为 "kimi
 
 <div className="model-series-table">
 
-| 模型版本 | 常用模型名称 | 对应 MODEL_FAMILY | 备注 |
+| 模型版本 | 常用模型名称 | `MIDSCENE_MODEL_FAMILY` | 备注 |
 | --- | --- | --- | --- |
 | V2.x 系列 | `mimo-v2.5` | `xiaomi-mimo` | 仅 Omni 系列支持多模态输入；Pro 系列是文本模型，不能用于 Midscene 视觉任务。 |
 
@@ -348,7 +350,7 @@ MIDSCENE_INSIGHT_MODEL_FAMILY="xiaomi-mimo"
 
 <div className="model-series-table">
 
-| 模型版本 | 常用模型名称 | 对应 MODEL_FAMILY | 备注 |
+| 模型版本 | 常用模型名称 | `MIDSCENE_MODEL_FAMILY` | 备注 |
 | --- | --- | --- | --- |
 | GLM-5V 系列 | `glm-5v-turbo` | `glm-v` | — |
 | GLM-4.6 系列 | `glm-4.6v` | `glm-v` | `glm-4.6v` 是开源模型。 |
@@ -396,66 +398,107 @@ MIDSCENE_INSIGHT_MODEL_FAMILY="glm-v"
 - Hugging Face: [https://huggingface.co/zai-org/GLM-4.6V](https://huggingface.co/zai-org/GLM-4.6V)
 
 
-## 配置环境变量的方式
+## 设置环境变量
 
-请将所有模型配置项放置在系统环境变量中，Midscene 会自动读取这些环境变量。
+Midscene 从环境变量读取模型配置。请选择与你的使用方式对应的方法，也可以沿用项目已有的环境变量管理方式。
 
-以下介绍一些常见方法，你也可以使用自己项目中的其他配置方案。
+### 在当前 Shell 中设置环境变量
 
-### 方法一：在系统中设置环境变量
-
-> 在 Midscene Chrome 插件中，你也可以使用这种 `export KEY="value"` 配置格式
+以下示例适用于 Bash 和 Zsh。变量只在当前 Shell 会话及其启动的子进程中有效。
 
 ```bash
-# 替换为你自己的 API Key
-export MIDSCENE_MODEL_BASE_URL="https://.../compatible-mode/v1"
-export MIDSCENE_MODEL_API_KEY="sk-abcde..."
-export MIDSCENE_MODEL_NAME="qwen3.7-plus"
-export MIDSCENE_MODEL_FAMILY="qwen3"
+# 将全部值替换为所选模型服务商提供的配置
+export MIDSCENE_MODEL_BASE_URL="https://替换为你的模型服务地址/v1"
+export MIDSCENE_MODEL_API_KEY="替换为你的 API Key"
+export MIDSCENE_MODEL_NAME="替换为你的模型名称"
+export MIDSCENE_MODEL_FAMILY="替换为你的模型对应的 family"
 ```
 
-### 方法二：编写 `.env` 文件（适用于命令行工具）
+### 通过 CLI 加载 `.env`
 
-在项目的运行路径下创建一个 `.env` 文件，并添加以下内容，Midscene 的命令行工具默认会读取这个文件。
+在运行 `midscene` 命令时所在的目录中创建 `.env` 文件。`@midscene/cli` 会自动读取这个文件。
 
 ```bash
-MIDSCENE_MODEL_BASE_URL="https://.../compatible-mode/v1"
-MIDSCENE_MODEL_API_KEY="sk-abcdefghijklmnopqrstuvwxyz"
-MIDSCENE_MODEL_NAME="qwen3.7-plus"
-MIDSCENE_MODEL_FAMILY="qwen3"
+# 将全部值替换为所选模型服务商提供的配置
+MIDSCENE_MODEL_BASE_URL="https://替换为你的模型服务地址/v1"
+MIDSCENE_MODEL_API_KEY="替换为你的 API Key"
+MIDSCENE_MODEL_NAME="替换为你的模型名称"
+MIDSCENE_MODEL_FAMILY="替换为你的模型对应的 family"
 ```
 
-请注意：
+`.env` 中的每一行都不需要添加 `export`。运行 YAML 任务时，当前 Shell 中已有的同名变量默认优先于 `.env`。如需让 `.env` 覆盖它们，请使用 `--dotenv-override`。
 
-1. 这里不需要在每一行前添加 `export`。
-2. 只有 Midscene 命令行工具会默认读取这个文件。如果使用 JavaScript SDK，请参考下一条手动加载。
+`midscene model verify` 是例外。该命令会使用 `.env` 中的值覆盖当前 Shell 中的同名变量。
 
-### 方法三：引用 dotenv 库配置环境变量
+### 通过 dotenv 为 JavaScript SDK 加载 `.env`
 
-[dotenv](https://www.npmjs.com/package/dotenv) 是一个零依赖的 npm 包，用于将 `.env` 文件加载到 Node.js 的环境变量 `process.env` 中。
+Midscene JavaScript SDK 直接读取 Node.js 进程中的模型配置环境变量（`process.env`）。如果 Shell、容器或部署平台已经提供这些变量，无需安装 dotenv。如果配置保存在 `.env` 文件中，可以使用 [dotenv](https://www.npmjs.com/package/dotenv) 将文件中的变量加载到 `process.env`。
 
-我们的 [demo 项目](https://github.com/web-infra-dev/midscene-example) 使用了这种方式。
+<PackageManagerTabs command="install dotenv" />
+
+在运行脚本时所在的目录中创建 `.env` 文件：
 
 ```bash
-# 安装 dotenv
-npm install dotenv --save
+# 将全部值替换为所选模型服务商提供的配置
+MIDSCENE_MODEL_BASE_URL="https://替换为你的模型服务地址/v1"
+MIDSCENE_MODEL_API_KEY="替换为你的 API Key"
+MIDSCENE_MODEL_NAME="替换为你的模型名称"
+MIDSCENE_MODEL_FAMILY="替换为你的模型对应的 family"
 ```
 
-在项目根目录下创建一个 `.env` 文件，并添加以下内容。注意这里不需要在每一行前添加 `export`。
-
-```bash
-MIDSCENE_MODEL_API_KEY="sk-abcdefghijklmnopqrstuvwxyz"
-```
-
-在脚本中导入 dotenv 模块，导入后它会自动读取 `.env` 文件中的环境变量。
+在创建 Midscene Agent 之前导入 dotenv：
 
 ```typescript
 import 'dotenv/config';
 ```
 
+如果当前 Shell 已有同名变量，dotenv 默认保留现有值。[Midscene 示例项目](https://github.com/web-infra-dev/midscene-example)也使用了这种加载方式。
+
+## 验证配置
+
+设置环境变量后，运行以下任一命令：
+
+```bash
+# 使用当前项目中安装的 CLI
+npx midscene model verify
+
+# 或使用最新版本的 CLI
+npx @midscene/cli@latest model verify
+```
+
+如果验证失败，请阅读[模型调试与可观测性](./model-debugging-observability)。
+
+## 配置多个模型（可选） {#multi-model-combination-example}
+
+多模型配置不是必需项。大多数场景只需配置默认模型，即可完成 UI 定位和操作。仅当复杂规划或页面理解需要使用独立模型时，才需要配置 Planning 模型或 Insight 模型。你可以只配置其中一个，也可以同时配置两者。
+
+如需了解何时组合多个模型，请阅读[模型策略](./model-strategy)。
+
+以下示例使用 Qwen 3.5 作为默认模型，负责视觉定位。GPT-5.4 作为 Planning 模型和 Insight 模型，负责复杂推理。
+
+```bash
+# 默认多模态模型：Qwen 3.5
+export MIDSCENE_MODEL_BASE_URL="https://..."       # Qwen 3.5 接口地址
+export MIDSCENE_MODEL_API_KEY="..."                # 你的 Qwen 3.5 API Key
+export MIDSCENE_MODEL_NAME="qwen3.5-plus"
+export MIDSCENE_MODEL_FAMILY="qwen3.5"
+
+# Planning 模型：GPT-5.4
+export MIDSCENE_PLANNING_MODEL_API_KEY="sk-..."    # 你的 GPT-5.4 API Key
+export MIDSCENE_PLANNING_MODEL_BASE_URL="https://..."
+export MIDSCENE_PLANNING_MODEL_NAME="gpt-5.4"
+export MIDSCENE_PLANNING_MODEL_FAMILY="gpt-5"
+
+# Insight 模型：GPT-5.4
+export MIDSCENE_INSIGHT_MODEL_API_KEY="sk-..."     # 你的 GPT-5.4 API Key
+export MIDSCENE_INSIGHT_MODEL_BASE_URL="https://..."
+export MIDSCENE_INSIGHT_MODEL_NAME="gpt-5.4"
+export MIDSCENE_INSIGHT_MODEL_FAMILY="gpt-5"
+```
+
 ## 其他兼容模型
 
-以下是一些与 Midscene 兼容、面向自动化场景的小参数模型。它们的参数规模较小，对部署硬件要求更低；但在处理复杂任务或较大页面截图时，能力可能受限。建议先结合实际任务与部署条件进行评估，再选择合适的模型。
+以下小参数模型也与 Midscene 兼容，主要面向自动化场景。它们对部署硬件的要求较低，但处理复杂任务或大尺寸截图的能力可能受限。选择前，请结合实际任务和部署条件进行评估。
 
 ### 智谱 AutoGLM 系列 {#auto-glm}
 
@@ -479,8 +522,8 @@ AutoGLM 提供了两个版本的模型，通过 `MIDSCENE_MODEL_FAMILY` 区分�
 
 请根据你的应用语言选择合适的版本。
 
-:::note
-AutoGLM 更适合移动端的交互与操作流程。如果要使用 `aiAssert`、`aiQuery` 等需要页面理解或断言的 API，请额外配置一组 `MIDSCENE_INSIGHT_MODEL_...` 环境变量，让独立的 Insight 模型负责页面理解。具体可参考[模型策略](./model-strategy)中关于多模型配合的介绍。
+:::info
+AutoGLM 更适合移动端交互。`aiAssert` 和 `aiQuery` 等 API 需要理解页面。使用这些 API 时，请通过 `MIDSCENE_INSIGHT_MODEL_...` 环境变量配置独立的 Insight 模型。详情请参考[模型策略](./model-strategy)。
 :::
 
 **了解更多关于智谱 AutoGLM**
@@ -519,69 +562,8 @@ MIDSCENE_MODEL_FAMILY="vlm-ui-tars-doubao-1.5"
 
 :::
 
-## 多模型组合示例 {#multi-model-combination-example}
+## 下一步
 
-关于组合多个模型的更多信息，可查阅 [高阶特性：多模型配合](./model-strategy#高阶特性多模型配合)。
-
-下面以 GPT-5.4 用于 Planning/Insight、Qwen 3.5 负责视觉为例。GPT-5.4 处理重度推理（Planning 和/或 Insight），Qwen 3.5 专注视觉定位。独立的 Planning 和 Insight 模型可按需启用，不需要同时开启。
-
-```bash
-# 默认多模态模型：Qwen 3.5
-export MIDSCENE_MODEL_BASE_URL="https://..."       # Qwen 3.5 接口地址
-export MIDSCENE_MODEL_API_KEY="..."                # 你的 Qwen 3.5 API Key
-export MIDSCENE_MODEL_NAME="qwen3.5-plus"
-export MIDSCENE_MODEL_FAMILY="qwen3.5"
-
-# Planning 模型：GPT-5.4
-export MIDSCENE_PLANNING_MODEL_API_KEY="sk-..."    # 你的 GPT-5.4 API Key
-export MIDSCENE_PLANNING_MODEL_BASE_URL="https://..."
-export MIDSCENE_PLANNING_MODEL_NAME="gpt-5.4"
-export MIDSCENE_PLANNING_MODEL_FAMILY="gpt-5"
-
-# Insight 模型：GPT-5.4
-export MIDSCENE_INSIGHT_MODEL_API_KEY="sk-..."     # 你的 GPT-5.4 API Key
-export MIDSCENE_INSIGHT_MODEL_BASE_URL="https://..."
-export MIDSCENE_INSIGHT_MODEL_NAME="gpt-5.4"
-export MIDSCENE_INSIGHT_MODEL_FAMILY="gpt-5"
-```
-
-## 更多
-
-更多高阶配置请查看 [全部配置项](./model-config) 文档。
-
-## 模型服务连接问题排查
-
-Midscene 内置了一个模型验证命令，用于排查模型服务的连通性问题和基础的兼容性问题。
-
-将你的模型配置放在 `.env` 文件中，然后运行下面的模型验证命令，验证当前模型配置是否能支撑 Midscene 正常运行：
-
-```bash
-# 如果当前项目已安装 @midscene/cli，可以使用本地的 midscene 命令
-npx midscene model verify
-
-# 如果当前项目未安装 @midscene/cli，或想要使用最新版
-npx @midscene/cli@latest model verify
-```
-
-这个命令会读取当前工作目录下的 `.env` 文件，同时打开 Dotenv 的 debug 日志，且 `.env` 中的变量会覆盖已有的 shell 环境变量。
-
-为了单独排查模型服务的基础连接性问题，你也可以直接运行下面这段最小化的 `curl` 请求。
-
-```bash
-MIDSCENE_MODEL_BASE_URL='替换为你的 baseUrl'
-MIDSCENE_MODEL_API_KEY='替换为你的 API Key'
-MIDSCENE_MODEL_NAME='替换为你的 model name'
-
-curl -X POST "${MIDSCENE_MODEL_BASE_URL%/}/chat/completions" \
-  -H "Authorization: Bearer ${MIDSCENE_MODEL_API_KEY}" \
-  -H "Content-Type: application/json" \
-  -d '{
-  "model": "'"${MIDSCENE_MODEL_NAME}"'",
-  "messages": [
-    {
-      "role": "user",
-      "content": "What is 1+1?"
-    }
-  ]
-}'
-```
+- 在[模型策略](./model-strategy)中了解何时使用 Default、Planning 和 Insight 模型。
+- 在[模型配置参考](./model-config)中查询全部环境变量。
+- 在[模型调试与可观测性](./model-debugging-observability)中排查连接和兼容性问题。

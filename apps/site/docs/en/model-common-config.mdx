@@ -1,27 +1,19 @@
-import QuickModelConfig from './common/quick-model-config.mdx';
-import { ModelConfigTab, ModelConfigTabs } from '@theme';
+import { ModelConfigTab, ModelConfigTabs, PackageManagerTabs } from '@theme';
 
-# Configure Your Model
+# Supported Models and Setup
 
-## A quick default
+Use this guide to choose a supported model, complete the initial setup, and verify model connectivity.
 
-Midscene requires a multimodal model to operate the UI. If you just want to get running, use the environment variables in the example below.
+The model configuration shown on this page consists of environment variables. Provide it according to how you use Midscene:
 
-<QuickModelConfig />
+- In Playground, paste the configuration text from this page directly into the settings page.
+- With the SDK or CLI, load the configuration as described in [Set environment variables](#set-environment-variables).
 
-For all supported models and the different ways to set environment variables, read on.
+To understand the model roles, see [Model strategy](./model-strategy). For complete parameter definitions, see [Model configuration reference](./model-config).
 
 ## Supported models
 
-The following models are officially supported by Midscene. When configuring a model, in addition to the Base URL, API key, and model name typically required by an LLM, declare the correct `MIDSCENE_MODEL_FAMILY` to identify the model family and get the best compatibility.
-
-:::tip Model selection tips
-
-- For models from the same provider, prioritize newer versions. They generally offer a better overall balance of quality, speed, and pricing; avoid spending too much tuning effort on older versions.
-- Models from different providers can vary significantly in quality, speed, and pricing. Run a small comparison using representative tasks, then choose the best fit for your use case.
-- Midscene supports multi-model collaboration. One default model is usually enough for UI localization and interactions, but configuring separate Planning and Insight models lets you use different models for their strengths in performance, cost, and more, for a better overall result. For more information, see [Advanced: Multi-model Collaboration](./model-strategy#advanced-combining-multiple-models).
-
-:::
+Midscene supports the following multimodal models for operating user interfaces. Each configuration requires a Base URL, API key, model name, and `MIDSCENE_MODEL_FAMILY`. The model family (`MIDSCENE_MODEL_FAMILY`) determines how Midscene adapts to the selected model.
 
 ### Doubao Seed Series {#doubao-seed-model}
 
@@ -29,10 +21,10 @@ The following models are officially supported by Midscene. When configuring a mo
 
 <div className="model-series-table">
 
-| Model version | Commonly used model names | Corresponding MODEL_FAMILY | Notes |
+| Model version | Commonly used model names | `MIDSCENE_MODEL_FAMILY` | Notes |
 | --- | --- | --- | --- |
 | 2.x series | `Doubao-Seed-2.1-turbo`, `Doubao-Seed-2.0-Lite` | `doubao-seed` | `Doubao-Seed-2.1-turbo` has the fastest localization speed and strong localization quality in our current private evaluation set. Recommended. |
-| 1.x series | `Doubao-Seed-1.6-Vision`, `Doubao-Seed-1.8` | `doubao-seed` | The 1.x series is an older generation of Doubao models and is no longer competitive overall. We recommend using the 2.x series instead. |
+| 1.x series | `Doubao-Seed-1.6-Vision`, `Doubao-Seed-1.8` | `doubao-seed` | The 1.x series is an older generation of Doubao models and is no longer competitive overall. We recommend using the 2.x series instead. For compatibility with existing configurations, `MIDSCENE_MODEL_FAMILY="doubao-vision"` remains supported. New configurations should use `doubao-seed`. |
 
 </div>
 
@@ -71,17 +63,11 @@ MIDSCENE_INSIGHT_MODEL_FAMILY="doubao-seed"
   </ModelConfigTab>
 </ModelConfigTabs>
 
-If your Volcano Engine account has fast tier quota enabled, add the extra request body below to use it. This usually improves model response speed by about 30%-50%.
+If your Volcano Engine account has Fast Tier quota enabled, add the extra request body below to use it. This usually improves model response speed by about 30%-50%.
 
 ```bash
 MIDSCENE_MODEL_EXTRA_BODY_JSON={"service_tier":"fast"}
 ```
-
-:::info Compatibility
-
-For compatibility with existing configurations, `MIDSCENE_MODEL_FAMILY="doubao-vision"` remains supported. New configurations should use `doubao-seed`.
-
-:::
 
 ### Qwen Series {#qwen}
 
@@ -93,7 +79,7 @@ For compatibility with existing configurations, `MIDSCENE_MODEL_FAMILY="doubao-v
 
 <div className="model-series-table">
 
-| Model version | Commonly used model names | Corresponding MODEL_FAMILY | Notes |
+| Model version | Commonly used model names | `MIDSCENE_MODEL_FAMILY` | Notes |
 | --- | --- | --- | --- |
 | Qwen3.x series | `qwen3.7-plus`, `qwen3.5-plus`, `qwen3.6-plus` | `qwen3` | Based on localization evaluation results, the recommended order is Qwen3.7 > Qwen3.5 > Qwen3.6. The previous `qwen3.5` and `qwen3.6` families remain compatible. |
 | Qwen3-VL series | `qwen3-vl-plus` | `qwen3-vl` | As an older model generation, it is not recommended. Use the Qwen3.x series instead. |
@@ -142,7 +128,7 @@ MIDSCENE_INSIGHT_MODEL_FAMILY="qwen3" # If you use another Qwen version, replace
 
 <div className="model-series-table">
 
-| Model version | Commonly used model names | Corresponding MODEL_FAMILY | Notes |
+| Model version | Commonly used model names | `MIDSCENE_MODEL_FAMILY` | Notes |
 | --- | --- | --- | --- |
 | Gemini 3.x series | `gemini-3.5-flash`, `gemini-3-flash-preview` | `gemini` | `gemini-3.5-flash` currently performs best for localization in our private evaluation set. |
 
@@ -189,7 +175,7 @@ MIDSCENE_INSIGHT_MODEL_FAMILY="gemini"
 
 <div className="model-series-table">
 
-| Model version | Commonly used model names | Corresponding MODEL_FAMILY | Notes |
+| Model version | Commonly used model names | `MIDSCENE_MODEL_FAMILY` | Notes |
 | --- | --- | --- | --- |
 | GPT-5 series | `gpt-5.4`, `gpt-5.5`, `gpt-5.6-sol`, `gpt-5.6-terra`, `gpt-5.6-luna` | `gpt-5` | Models before GPT-5.4 do not support visual localization and can only be used as Planning or Insight models. In practical localization tests, GPT-5.5 and GPT-5.6 perform noticeably better than GPT-5.4; we recommend using GPT-5.5 or GPT-5.6 first. |
 
@@ -230,21 +216,37 @@ MIDSCENE_INSIGHT_MODEL_FAMILY="gpt-5"
   </ModelConfigTab>
 </ModelConfigTabs>
 
-You can also use GPT through [**Use Codex App Server (OAuth, no API Key)**](./model-config#use-codex-app-server-oauth-no-api-key).
+<span id="use-codex-app-server-oauth-no-api-key" />
 
-:::warning GPT-5 notes
+**Use Codex App Server (OAuth, no API Key)**
+
+If you already signed in with Codex CLI (`codex login`) and want Midscene to use that OAuth session directly, set:
+
+```bash
+export MIDSCENE_MODEL_BASE_URL="codex://app-server"
+export MIDSCENE_MODEL_NAME="gpt-5.4" # or another model shown by Codex model/list
+export MIDSCENE_MODEL_FAMILY="gpt-5"
+```
+
+Notes:
+
+- `MIDSCENE_MODEL_API_KEY` is not required in this mode.
+- Midscene will call `codex app-server` through stdio.
+- Make sure `codex` is available in your PATH and verify auth with `codex login status`.
+
+:::warning Known limitation
+
+Compared with calling an OpenAI-compatible API directly, we have observed that this route may take longer and consume more tokens. We are still investigating the cause.
+
+:::
+
+When using GPT-5, note the following:
 
 - For UI localization with GPT, Midscene currently supports `gpt-5.4` and later models. To get the best localization quality, image requests need `"detail": "original"`. According to OpenAI, this option is available on `gpt-5.4` and future models, while smaller GPT-5 variants such as `gpt-5.4-mini` and `gpt-5.4-nano`, as well as older models, do not support `original` and will fail if you send it. See the [Images and Vision guide](https://developers.openai.com/api/docs/guides/images-vision) and the [Computer use guide](https://developers.openai.com/api/docs/guides/tools-computer-use).
 - According to OpenAI, GPT-5 may still struggle with non-Latin text and with text that is too small in the image. See the [Images and Vision guide](https://developers.openai.com/api/docs/guides/images-vision).
 - In the computer use guide, OpenAI says they observe good performance around `1440x900` and `1600x900`. We recommend adjusting screenshot sizes accordingly. In Midscene, you can control screenshot compression with `screenshotShrinkFactor` in the agent options. For browser automation, you can also control the page size and scale through the browser `viewport`.
-- With Azure OpenAI, Azure may not handle `"detail": "original"` correctly, causing click-coordinate offsets. See [Clicks are offset when using Azure OpenAI](./faq).
+- With Azure OpenAI, Azure may not handle `"detail": "original"` correctly, causing click-coordinate offsets. See [Clicks are offset when using Azure OpenAI](./faq#clicks-are-offset-when-using-azure-openai).
 - If you use an older GPT-5 model, we recommend using it only as the planning model and pairing it with another multimodal model for localization. See the [multi-model combination example](#multi-model-combination-example).
-
-:::
-
-:::note Model-native thinking
-Midscene disables model-native thinking by default for the best execution speed and stability. To turn it on for any of the models above, set `MIDSCENE_MODEL_REASONING_ENABLED="true"`. Some families accept extra controls such as `MIDSCENE_MODEL_REASONING_BUDGET` and `MIDSCENE_MODEL_REASONING_EFFORT`. See [Model-Native Thinking Mode](./model-strategy#model-native-thinking-mode).
-:::
 
 ### Moonshot Kimi Series {#kimi}
 
@@ -252,7 +254,7 @@ Midscene disables model-native thinking by default for the best execution speed 
 
 <div className="model-series-table">
 
-| Model version | Commonly used model names | Corresponding MODEL_FAMILY | Notes |
+| Model version | Commonly used model names | `MIDSCENE_MODEL_FAMILY` | Notes |
 | --- | --- | --- | --- |
 | K3 series | `kimi-k3` | `kimi3` | According to the Kimi documentation, K3 always has reasoning enabled and cannot be disabled. Its reasoning effort defaults to `max`. |
 | K2.x series | `kimi-k2.5`, `kimi-k2.6` | `kimi` | — |
@@ -300,7 +302,7 @@ MIDSCENE_INSIGHT_MODEL_FAMILY="kimi3" # For kimi-k2.6, use "kimi"
 
 <div className="model-series-table">
 
-| Model version | Commonly used model names | Corresponding MODEL_FAMILY | Notes |
+| Model version | Commonly used model names | `MIDSCENE_MODEL_FAMILY` | Notes |
 | --- | --- | --- | --- |
 | V2.x series | `mimo-v2.5` | `xiaomi-mimo` | Only the Omni series supports multimodal input; the Pro series is text-only and cannot be used for Midscene visual tasks. |
 
@@ -347,7 +349,7 @@ MIDSCENE_INSIGHT_MODEL_FAMILY="xiaomi-mimo"
 
 <div className="model-series-table">
 
-| Model version | Commonly used model names | Corresponding MODEL_FAMILY | Notes |
+| Model version | Commonly used model names | `MIDSCENE_MODEL_FAMILY` | Notes |
 | --- | --- | --- | --- |
 | GLM-5V series | `glm-5v-turbo` | `glm-v` | — |
 | GLM-4.6 series | `glm-4.6v` | `glm-v` | `glm-4.6v` is open-source. |
@@ -394,63 +396,107 @@ MIDSCENE_INSIGHT_MODEL_FAMILY="glm-v"
 - Github: [https://github.com/zai-org/GLM-V](https://github.com/zai-org/GLM-V)
 - Hugging Face: [https://huggingface.co/zai-org/GLM-4.6V](https://huggingface.co/zai-org/GLM-4.6V)
 
-## Ways to set environment variables
+## Set environment variables
 
-Midscene reads all model configuration from environment variables. Below are common approaches, but feel free to adopt any method used in your project.
+Midscene reads model configuration from environment variables. Choose the method that matches how you use Midscene, or keep using your project's existing environment-management approach.
 
-### Method 1: Set variables in the system
+### Set environment variables in the current shell
 
-> The Midscene Chrome extension also accepts this `export KEY="value"` format.
-
-```bash
-# Replace with your own API key
-export MIDSCENE_MODEL_BASE_URL="https://.../compatible-mode/v1"
-export MIDSCENE_MODEL_API_KEY="sk-abcde..."
-export MIDSCENE_MODEL_NAME="qwen3.7-plus"
-export MIDSCENE_MODEL_FAMILY="qwen3"
-```
-
-### Method 2: Create a `.env` file (for CLI tools)
-
-Create a `.env` file in the directory where you run the project. Midscene CLI tools load this file automatically.
+The following example works in Bash and Zsh. These variables are available only to the current shell session and its child processes.
 
 ```bash
-MIDSCENE_MODEL_BASE_URL="https://.../compatible-mode/v1"
-MIDSCENE_MODEL_API_KEY="sk-abcdefghijklmnopqrstuvwxyz"
-MIDSCENE_MODEL_NAME="qwen3.7-plus"
-MIDSCENE_MODEL_FAMILY="qwen3"
+# Replace every value with the configuration for your selected model provider
+export MIDSCENE_MODEL_BASE_URL="https://replace-with-your-model-service-url/v1"
+export MIDSCENE_MODEL_API_KEY="replace-with-your-api-key"
+export MIDSCENE_MODEL_NAME="replace-with-your-model-name"
+export MIDSCENE_MODEL_FAMILY="replace-with-the-family-for-your-model"
 ```
 
-Keep in mind:
-1. You do **not** need to prefix each line with `export`.
-2. Only the Midscene CLI automatically reads this file. For the JavaScript SDK, load it manually as shown below.
+### Load `.env` with the CLI
 
-### Method 3: Load variables via dotenv
-
-[Dotenv](https://www.npmjs.com/package/dotenv) is a zero-dependency npm package that loads variables from `.env` into Node.js `process.env`.
-
-Our [demo project](https://github.com/web-infra-dev/midscene-example) uses this method.
+Create a `.env` file in the directory where you run the `midscene` command. `@midscene/cli` loads this file automatically.
 
 ```bash
-# install dotenv
-npm install dotenv --save
+# Replace every value with the configuration for your selected model provider
+MIDSCENE_MODEL_BASE_URL="https://replace-with-your-model-service-url/v1"
+MIDSCENE_MODEL_API_KEY="replace-with-your-api-key"
+MIDSCENE_MODEL_NAME="replace-with-your-model-name"
+MIDSCENE_MODEL_FAMILY="replace-with-the-family-for-your-model"
 ```
 
-Create a `.env` file in the project root and add (no `export` prefix):
+Do not add `export` at the beginning of each line. When running YAML tasks, existing variables in the current shell take precedence over values with the same name in `.env`. To let `.env` override them, use `--dotenv-override`.
+
+`midscene model verify` is an exception. This command uses values from `.env` to override variables with the same name in the current shell.
+
+### Load `.env` with dotenv for the JavaScript SDK
+
+The Midscene JavaScript SDK reads model configuration directly from the Node.js process environment (`process.env`). If the shell, container, or deployment platform already provides these variables, you do not need dotenv. Use [dotenv](https://www.npmjs.com/package/dotenv) only when the configuration is stored in a `.env` file and needs to be loaded into `process.env`.
+
+<PackageManagerTabs command="install dotenv" />
+
+Create a `.env` file in the directory where you run the script:
 
 ```bash
-MIDSCENE_MODEL_API_KEY="sk-abcdefghijklmnopqrstuvwxyz"
+# Replace every value with the configuration for your selected model provider
+MIDSCENE_MODEL_BASE_URL="https://replace-with-your-model-service-url/v1"
+MIDSCENE_MODEL_API_KEY="replace-with-your-api-key"
+MIDSCENE_MODEL_NAME="replace-with-your-model-name"
+MIDSCENE_MODEL_FAMILY="replace-with-the-family-for-your-model"
 ```
 
-Import dotenv in your script; it will read `.env` automatically:
+Import dotenv before creating a Midscene Agent:
 
 ```typescript
 import 'dotenv/config';
 ```
 
-## Other Compatible Models
+If a variable with the same name already exists in the current shell, dotenv keeps the existing value by default. The [Midscene demo project](https://github.com/web-infra-dev/midscene-example) uses this loading method as well.
 
-The following are smaller-parameter models compatible with Midscene and designed for automation scenarios. Their smaller size lowers hardware requirements for deployment, but they may be limited when handling complex tasks or large page screenshots. Evaluate them against your tasks and deployment constraints before choosing a model.
+## Verify the setup
+
+After setting the environment variables, run one of the following commands:
+
+```bash
+# Use the CLI installed in the current project
+npx midscene model verify
+
+# Or use the latest CLI version
+npx @midscene/cli@latest model verify
+```
+
+For failed checks and connectivity problems, see [Model debugging and observability](./model-debugging-observability).
+
+## Optional: configure multiple models {#multi-model-combination-example}
+
+Multi-model setup is optional. For most use cases, a Default model is enough for UI localization and actions. Add a Planning or Insight model only when complex planning or page understanding requires a separate model. You can configure either one or both.
+
+For guidance on when to combine models, see [Model strategy](./model-strategy).
+
+The following example uses Qwen 3.5 as the Default model for visual grounding. GPT-5.4 serves as the Planning and Insight models for complex reasoning.
+
+```bash
+# Default multimodal model: Qwen 3.5
+export MIDSCENE_MODEL_BASE_URL="https://..."       # Qwen 3.5 endpoint
+export MIDSCENE_MODEL_API_KEY="..."                # Your Qwen 3.5 API key
+export MIDSCENE_MODEL_NAME="qwen3.5-plus"
+export MIDSCENE_MODEL_FAMILY="qwen3.5"
+
+# Planning model: GPT-5.4
+export MIDSCENE_PLANNING_MODEL_API_KEY="sk-..."    # Your GPT-5.4 API key
+export MIDSCENE_PLANNING_MODEL_BASE_URL="https://..."
+export MIDSCENE_PLANNING_MODEL_NAME="gpt-5.4"
+export MIDSCENE_PLANNING_MODEL_FAMILY="gpt-5"
+
+# Insight model: GPT-5.4
+export MIDSCENE_INSIGHT_MODEL_API_KEY="sk-..."     # Your GPT-5.4 API key
+export MIDSCENE_INSIGHT_MODEL_BASE_URL="https://..."
+export MIDSCENE_INSIGHT_MODEL_NAME="gpt-5.4"
+export MIDSCENE_INSIGHT_MODEL_FAMILY="gpt-5"
+```
+
+## Other compatible models
+
+The following smaller models are also compatible with Midscene and designed for automation. They require less deployment hardware but may struggle with complex tasks or large screenshots. Evaluate them against your tasks and deployment constraints before choosing one.
 
 ### Zhipu AutoGLM Series {#auto-glm}
 
@@ -474,8 +520,8 @@ AutoGLM provides two model versions, distinguished by `MIDSCENE_MODEL_FAMILY`:
 
 Choose the appropriate version based on your application language.
 
-:::note
-AutoGLM is best suited for mobile interactions and operations. If you need to use `aiAssert`, `aiQuery`, or other APIs requiring page understanding/assertions, you should configure separate `MIDSCENE_INSIGHT_MODEL_...` environment variables to let an independent Insight model handle page comprehension. See [Model Strategy](./model-strategy) for more information about multi-model configuration.
+:::info
+AutoGLM is best suited for mobile interaction. APIs such as `aiAssert` and `aiQuery` require page understanding. When using these APIs, configure a separate Insight model with the `MIDSCENE_INSIGHT_MODEL_...` environment variables. See [Model strategy](./model-strategy) for details.
 :::
 
 **Learn more about Zhipu AutoGLM**
@@ -512,70 +558,8 @@ Migration mapping:
 
 :::
 
-## Multi-model combination example {#multi-model-combination-example}
+## Next steps
 
-For more information on combining multiple models, see [Advanced: Multi-model Collaboration](./model-strategy#advanced-combining-multiple-models).
-
-Below is an example using GPT-5.4 for Planning/Insight and Qwen 3.5 for vision. Use GPT-5.4 for Planning and/or Insight to handle heavy reasoning, while Qwen 3.5 focuses on visual grounding. You can enable either role or both—toggle them based on your workload.
-
-```bash
-# Default multimodal model: Qwen 3.5
-export MIDSCENE_MODEL_BASE_URL="https://..."       # Qwen 3.5 endpoint
-export MIDSCENE_MODEL_API_KEY="..."                # Your Qwen 3.5 API key
-export MIDSCENE_MODEL_NAME="qwen3.5-plus"
-export MIDSCENE_MODEL_FAMILY="qwen3.5"
-
-# Planning model: GPT-5.4
-export MIDSCENE_PLANNING_MODEL_API_KEY="sk-..."    # Your GPT-5.4 API key
-export MIDSCENE_PLANNING_MODEL_BASE_URL="https://..." 
-export MIDSCENE_PLANNING_MODEL_NAME="gpt-5.4"
-export MIDSCENE_PLANNING_MODEL_FAMILY="gpt-5"
-
-# Insight model: GPT-5.4
-export MIDSCENE_INSIGHT_MODEL_API_KEY="sk-..."     # Your GPT-5.4 API key
-export MIDSCENE_INSIGHT_MODEL_BASE_URL="https://..."
-export MIDSCENE_INSIGHT_MODEL_NAME="gpt-5.4"
-export MIDSCENE_INSIGHT_MODEL_FAMILY="gpt-5"
-```
-
-## More
-
-For additional, advanced model settings, see [All configuration options](./model-config).
-
-
-## Troubleshooting model service connectivity issues
-
-Midscene includes a built-in model verify command for troubleshooting model service connectivity issues and basic compatibility issues.
-
-Put your model configuration in a `.env` file, then run the following model verify command to verify whether the current model configuration can support Midscene:
-
-```bash
-# If the current project has @midscene/cli installed, use the local midscene command
-npx midscene model verify
-
-# If the current project does not have @midscene/cli installed, or you want to use the latest version
-npx @midscene/cli@latest model verify
-```
-
-The command reads the `.env` file in the current working directory. Dotenv debug logging is enabled by default, and values from `.env` override existing shell environment variables.
-
-To isolate basic model service connectivity issues, you can also run the following minimal `curl` request.
-
-```bash
-MIDSCENE_MODEL_BASE_URL='replace with your baseUrl'
-MIDSCENE_MODEL_API_KEY='replace with your API key'
-MIDSCENE_MODEL_NAME='replace with your model name'
-
-curl -X POST "${MIDSCENE_MODEL_BASE_URL%/}/chat/completions" \
-  -H "Authorization: Bearer ${MIDSCENE_MODEL_API_KEY}" \
-  -H "Content-Type: application/json" \
-  -d '{
-  "model": "'"${MIDSCENE_MODEL_NAME}"'",
-  "messages": [
-    {
-      "role": "user",
-      "content": "What is 1+1?"
-    }
-  ]
-}'
-```
+- Learn when to use Default, Planning, and Insight models in [Model strategy](./model-strategy).
+- Look up every environment variable in [Model configuration reference](./model-config).
+- Diagnose connectivity and compatibility issues in [Model debugging and observability](./model-debugging-observability).

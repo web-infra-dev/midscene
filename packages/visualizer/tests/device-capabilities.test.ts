@@ -8,6 +8,7 @@ describe('device capabilities', () => {
   test('marks android-only capabilities correctly', () => {
     expect(getDeviceCapabilities('android')).toMatchObject({
       supportsImeStrategy: true,
+      supportsScreenshotStrategy: true,
       supportsKeyboardDismissStrategy: true,
       supportsAutoDismissKeyboard: true,
       supportsAlwaysRefreshScreenInfo: true,
@@ -17,6 +18,7 @@ describe('device capabilities', () => {
   test('marks harmony keyboard dismissal capabilities correctly', () => {
     expect(getDeviceCapabilities('harmony')).toMatchObject({
       supportsImeStrategy: false,
+      supportsScreenshotStrategy: false,
       supportsKeyboardDismissStrategy: true,
       supportsAutoDismissKeyboard: true,
       supportsAlwaysRefreshScreenInfo: false,

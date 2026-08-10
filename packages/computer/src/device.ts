@@ -27,7 +27,12 @@ import {
   type ScrollDirection,
 } from './input-driver';
 import type { XvfbInstance } from './xvfb';
-import { checkXvfbInstalled, needsXvfb, startXvfb } from './xvfb';
+import {
+  checkXvfbInstalled,
+  createXvfbSigintCleanup,
+  needsXvfb,
+  startXvfb,
+} from './xvfb';
 
 declare const __VERSION__: string;
 
@@ -738,6 +743,7 @@ export class ComputerDevice implements AbstractInterface {
   private destroyed = false;
   private xvfbInstance?: XvfbInstance;
   private xvfbCleanup?: () => void;
+  private xvfbSigintCleanup?: () => void;
   private readonly inputDriver = new ComputerInputDriver({
     getLibnut: () => libnut,
     useAppleScript: () => this.useAppleScript,
@@ -975,8 +981,11 @@ export class ComputerDevice implements AbstractInterface {
             this.xvfbInstance = undefined;
           }
         };
+        this.xvfbSigintCleanup = createXvfbSigintCleanup(() =>
+          this.xvfbCleanup?.(),
+        );
         process.on('exit', this.xvfbCleanup);
-        process.on('SIGINT', this.xvfbCleanup);
+        process.on('SIGINT', this.xvfbSigintCleanup);
         process.on('SIGTERM', this.xvfbCleanup);
       }
 
@@ -1006,6 +1015,15 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
       if (this.xvfbInstance) {
         this.xvfbInstance.stop();
         this.xvfbInstance = undefined;
+      }
+      if (this.xvfbCleanup) {
+        process.removeListener('exit', this.xvfbCleanup);
+        process.removeListener('SIGTERM', this.xvfbCleanup);
+        this.xvfbCleanup = undefined;
+      }
+      if (this.xvfbSigintCleanup) {
+        process.removeListener('SIGINT', this.xvfbSigintCleanup);
+        this.xvfbSigintCleanup = undefined;
       }
       debugDevice(`Failed to connect: ${error}`);
       throw new Error(`Unable to connect to computer device: ${error}`);
@@ -1579,9 +1597,12 @@ $g.Dispose(); $bmp.Dispose(); $ms.Dispose()
     }
     if (this.xvfbCleanup) {
       process.removeListener('exit', this.xvfbCleanup);
-      process.removeListener('SIGINT', this.xvfbCleanup);
       process.removeListener('SIGTERM', this.xvfbCleanup);
       this.xvfbCleanup = undefined;
+    }
+    if (this.xvfbSigintCleanup) {
+      process.removeListener('SIGINT', this.xvfbSigintCleanup);
+      this.xvfbSigintCleanup = undefined;
     }
 
     debugDevice('Computer device destroyed');

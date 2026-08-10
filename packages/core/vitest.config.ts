@@ -22,6 +22,11 @@ export default defineConfig({
     coverage: createCoverageConfig(__dirname),
     include: enableAiTest ? ['tests/ai/**/**.test.ts'] : basicTest,
     retry: process.env.CI ? 1 : 0,
+    // Keep CI model request concurrency comparable to the former 4-core hosted
+    // runner. Set here (CI-only) instead of as CLI flags in ai-unit-test.yml
+    // because rstest rejects bare --minWorkers/--maxWorkers. Local AI runs
+    // keep the default worker count.
+    ...(enableAiTest && process.env.CI ? { minWorkers: 1, maxWorkers: 4 } : {}),
   },
   define: {
     __VERSION__: `'${version}'`,
