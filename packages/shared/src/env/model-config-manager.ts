@@ -35,13 +35,7 @@ export class ModelConfigManager {
       return;
     }
 
-    let configMap: Record<string, string | undefined>;
-    if (this.modelConfig) {
-      this.isolatedMode = true;
-      configMap = this.normalizeModelConfig(this.modelConfig);
-    } else {
-      configMap = this.globalConfigManager?.getAllEnvConfig() || {};
-    }
+    const configMap = this.getRawConfigMap();
 
     const defaultConfig = decideModelConfigFromIntentConfig(
       'default',
@@ -104,6 +98,14 @@ export class ModelConfigManager {
     );
   }
 
+  private getRawConfigMap(): Record<string, string | undefined> {
+    if (this.modelConfig) {
+      this.isolatedMode = true;
+      return this.normalizeModelConfig(this.modelConfig);
+    }
+    return this.globalConfigManager?.getAllEnvConfig() || {};
+  }
+
   /**
    * should only be called by GlobalConfigManager
    */
@@ -134,9 +136,12 @@ export class ModelConfigManager {
   }
 
   getUploadTestServerUrl(): string | undefined {
-    const { openaiExtraConfig } = this.getModelConfig('default');
-    const serverUrl = openaiExtraConfig?.REPORT_SERVER_URL as string;
-    return serverUrl;
+    const defaultConfig =
+      this.modelConfigMap?.default ??
+      decideModelConfigFromIntentConfig('default', this.getRawConfigMap());
+    return defaultConfig?.openaiExtraConfig?.REPORT_SERVER_URL as
+      | string
+      | undefined;
   }
 
   registerGlobalConfigManager(globalConfigManager: GlobalConfigManager) {

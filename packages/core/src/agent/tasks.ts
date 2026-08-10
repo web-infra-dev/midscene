@@ -272,8 +272,8 @@ export class TaskExecutor {
 
   public async convertPlanToExecutable(
     plans: PlanningAction[],
-    planningModel: ModelRuntime,
-    defaultModel: ModelRuntime,
+    planningModel?: ModelRuntime,
+    defaultModel?: ModelRuntime,
     options?: {
       cacheable?: boolean;
       deepLocate?: boolean;
@@ -337,8 +337,8 @@ export class TaskExecutor {
   async runPlans(
     title: string,
     plans: PlanningAction[],
-    planningModel: ModelRuntime,
-    defaultModel: ModelRuntime,
+    planningModel?: ModelRuntime,
+    defaultModel?: ModelRuntime,
     options?: { uiContext?: UIContext },
   ): Promise<ExecutionResult> {
     const session = this.createExecutionSession(title, options);

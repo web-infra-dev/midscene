@@ -2,6 +2,7 @@ import { type ModelRuntime, getModelRuntime } from '@/ai-model/models';
 import { INTERNAL_CALL_ID_FIELD } from '@/ai-model/service-caller';
 import yaml from 'js-yaml';
 import type { TUserPrompt } from '../ai-model/index';
+import { findAllMidsceneLocatorField } from '../common';
 import { ScreenshotItem } from '../screenshot-item';
 import Service from '../service/index';
 // Import types and values directly from their source files to avoid circular dependency
@@ -724,9 +725,20 @@ export class Agent<
       locateParamStr((opt as any)?.locate || {}),
     );
 
-    // assume all operation in action space is related to locating
-    const defaultModel = this.resolveModelRuntime('default');
-    const planningModel = this.resolveModelRuntime('planning');
+    const action = this.fullActionSpace.find((item) => item.name === type);
+    const locatorFields = action
+      ? findAllMidsceneLocatorField(action.paramSchema)
+      : ['locate'];
+    const params = (opt ?? {}) as Record<string, unknown>;
+    const requiresLocate = locatorFields.some((field) =>
+      Boolean(params[field]),
+    );
+    const defaultModel = requiresLocate
+      ? this.resolveModelRuntime('default')
+      : undefined;
+    const planningModel = requiresLocate
+      ? this.resolveModelRuntime('planning')
+      : undefined;
 
     const { output } = await this.taskExecutor.runPlans(
       title,
@@ -871,7 +883,7 @@ export class Agent<
 
   // New signature
   async aiKeyboardPress(
-    locatePrompt: TUserPrompt,
+    locatePrompt: TUserPrompt | undefined,
     opt: LocateOption & { keyName: string },
   ): Promise<void>;
 
@@ -887,7 +899,7 @@ export class Agent<
 
   // Implementation
   async aiKeyboardPress(
-    locatePromptOrKeyName: TUserPrompt | string,
+    locatePromptOrKeyName: TUserPrompt | string | undefined,
     locatePromptOrOpt:
       | TUserPrompt
       | (LocateOption & { keyName: string })

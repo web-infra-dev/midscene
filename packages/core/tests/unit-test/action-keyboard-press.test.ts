@@ -1,0 +1,83 @@
+import { Agent } from '@/agent';
+import { parseActionParam } from '@/ai-model';
+import {
+  actionKeyboardPressParamSchema,
+  defineActionKeyboardPress,
+} from '@/device';
+import { describe, expect, it, vi } from 'vitest';
+
+const createAgentStub = () => {
+  const agent = Object.create(Agent.prototype) as Agent<any>;
+  (agent as any).callActionInActionSpace = vi.fn(async () => undefined);
+  return agent;
+};
+
+describe('KeyboardPress Action', () => {
+  it('allows the action target to be omitted', () => {
+    const parsed = parseActionParam(
+      { keyName: 'Control+X' },
+      actionKeyboardPressParamSchema,
+    );
+
+    expect(parsed).toEqual({ keyName: 'Control+X' });
+  });
+
+  it('passes an undefined target to the keyboard primitive', async () => {
+    const keyboardPress = vi.fn(async () => undefined);
+    const action = defineActionKeyboardPress(keyboardPress);
+
+    await action.call({ keyName: 'Control+X' });
+
+    expect(keyboardPress).toHaveBeenCalledWith('Control+X', {
+      target: undefined,
+    });
+  });
+
+  it('supports the recommended signature without a locate prompt', async () => {
+    const agent = createAgentStub();
+    const callActionSpy = (agent as any).callActionInActionSpace as ReturnType<
+      typeof vi.fn
+    >;
+
+    await agent.aiKeyboardPress(undefined, { keyName: 'Control+X' });
+
+    expect(callActionSpy).toHaveBeenCalledWith('KeyboardPress', {
+      keyName: 'Control+X',
+      locate: undefined,
+    });
+  });
+
+  it('keeps the legacy key-only signature working', async () => {
+    const agent = createAgentStub();
+    const callActionSpy = (agent as any).callActionInActionSpace as ReturnType<
+      typeof vi.fn
+    >;
+
+    await agent.aiKeyboardPress('Control+X');
+
+    expect(callActionSpy).toHaveBeenCalledWith('KeyboardPress', {
+      keyName: 'Control+X',
+      locate: undefined,
+    });
+  });
+
+  it('still builds a locate parameter when a target is provided', async () => {
+    const agent = createAgentStub();
+    const callActionSpy = (agent as any).callActionInActionSpace as ReturnType<
+      typeof vi.fn
+    >;
+
+    await agent.aiKeyboardPress('the search input', {
+      keyName: 'Enter',
+      xpath: '//input[@type="search"]',
+    });
+
+    expect(callActionSpy).toHaveBeenCalledWith('KeyboardPress', {
+      keyName: 'Enter',
+      locate: expect.objectContaining({
+        prompt: 'the search input',
+        xpath: '//input[@type="search"]',
+      }),
+    });
+  });
+});
