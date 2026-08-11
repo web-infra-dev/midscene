@@ -47,6 +47,37 @@ export interface MidsceneRecorderScreenshotAssetRef {
   bytes: number;
 }
 
+export type MidsceneRecorderCaptureStatus =
+  | 'pending'
+  | 'ready'
+  | 'degraded'
+  | 'failed';
+
+export interface MidsceneRecorderFrameBinding {
+  token: string;
+  capturedAt: number;
+  source: 'shared-frame-stream' | 'screenshot-fallback';
+  /** Frame time relative to interaction start. Negative values are before it. */
+  offsetMs: number;
+}
+
+export interface MidsceneRecorderEnrichmentRevisions {
+  capture: number;
+  semantic: number;
+}
+
+export interface MidsceneRecorderCaptureError {
+  code:
+    | 'capture_failed'
+    | 'stale_frame'
+    | 'asset_quota_exceeded'
+    | 'asset_storage_failed'
+    | 'model_image_invalid'
+    | 'model_image_too_large'
+    | 'model_image_total_too_large';
+  message: string;
+}
+
 export interface MidsceneRecorderEvent {
   type: MidsceneRecorderEventType;
   source?: MidsceneRecorderSourceKind;
@@ -68,6 +99,20 @@ export interface MidsceneRecorderEvent {
   timestamp: number;
   hashId: string;
   mergedHashIds?: string[];
+  /** Stable identity shared by the initial envelope and later patches. */
+  eventId?: string;
+  /** Stable Timeline order within a recorder session. */
+  sequence?: number;
+  /** User action that produced this derived event, such as a late navigation. */
+  parentEventId?: string;
+  /** Monotonic append-only transport cursor value. */
+  logSequence?: number;
+  interactionStartedAt?: number;
+  interactionCompletedAt?: number;
+  frame?: MidsceneRecorderFrameBinding;
+  captureStatus?: MidsceneRecorderCaptureStatus;
+  captureError?: MidsceneRecorderCaptureError;
+  revisions?: MidsceneRecorderEnrichmentRevisions;
 }
 
 export type MidsceneRecorderSemanticSource =

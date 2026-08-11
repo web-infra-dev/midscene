@@ -331,6 +331,27 @@ describe('service-caller request timeout', () => {
     expect(mockCreate).toHaveBeenCalledTimes(1);
   });
 
+  it('does not retry a deterministic image_too_large request error', async () => {
+    const { callAI } = await import('@/ai-model/service-caller');
+    const { getModelRuntime } = await import('@/ai-model/models');
+
+    mockCreate.mockRejectedValue(
+      Object.assign(
+        new Error('image_too_large: image must be less than 10MB'),
+        { status: 400, code: 'image_too_large' },
+      ),
+    );
+
+    const promise = callAI(
+      [{ role: 'user', content: 'hello' }],
+      getModelRuntime(baseConfig({ retryCount: 3, retryInterval: 0 })),
+    );
+
+    await expect(promise).rejects.toThrow(/image_too_large/);
+    await expect(promise).rejects.toThrow(/0 retries \(1\/4 attempts\)/);
+    expect(mockCreate).toHaveBeenCalledTimes(1);
+  });
+
   it.each([
     { retryCount: Number.NaN, expectedRetries: 1, expectedAttempts: 2 },
     {

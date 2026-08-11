@@ -454,6 +454,76 @@ describe('StudioRecorderProvider preview recording', () => {
     }
   });
 
+  it('merges a delayed capture revision without duplicating its event envelope', async () => {
+    vi.useFakeTimers();
+    const envelope = {
+      type: 'click',
+      source: 'studio-preview',
+      actionType: 'Tap',
+      elementRect: { x: 10, y: 20 },
+      pageInfo: { width: 1200, height: 800 },
+      timestamp: 123,
+      hashId: 'click-capture-revision',
+      eventId: 'click-capture-revision',
+      sequence: 1,
+      logSequence: 1,
+      captureStatus: 'pending',
+      revisions: { capture: 0, semantic: 0 },
+      semantic: { source: 'aiDescribe', status: 'pending' },
+    };
+    const capturePatch = {
+      ...envelope,
+      logSequence: 2,
+      captureStatus: 'ready',
+      revisions: { capture: 1, semantic: 0 },
+      screenshotAsset: {
+        id: 'click-capture-revision-screenshot',
+        mimeType: 'image/png',
+        bytes: 128,
+      },
+    };
+    const { context, getRecorderEvents } = createConnectedStudioContext();
+    getRecorderEvents
+      .mockResolvedValueOnce({ events: [envelope], nextIndex: 1 })
+      .mockResolvedValueOnce({ events: [capturePatch], nextIndex: 2 });
+    const mounted = await mountRecorder(context);
+
+    try {
+      await act(async () => {
+        await mounted.recorder?.startRecording();
+      });
+      await flushPromises();
+      expect(mounted.recorder?.currentSession?.events).toHaveLength(1);
+      expect(mounted.recorder?.currentSession?.events[0]).toMatchObject({
+        eventId: 'click-capture-revision',
+        captureStatus: 'pending',
+        revisions: { capture: 0, semantic: 0 },
+      });
+      expect(describeStudioRecorderEventsWithAI).not.toHaveBeenCalled();
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(500);
+      });
+      await flushPromises();
+      await flushPromises();
+
+      expect(mounted.recorder?.currentSession?.events).toHaveLength(1);
+      expect(mounted.recorder?.currentSession?.events[0]).toMatchObject({
+        hashId: 'click-capture-revision',
+        eventId: 'click-capture-revision',
+        captureStatus: 'ready',
+        revisions: { capture: 1, semantic: 0 },
+        screenshotAsset: {
+          id: 'click-capture-revision-screenshot',
+        },
+      });
+      expect(describeStudioRecorderEventsWithAI).toHaveBeenCalledTimes(1);
+    } finally {
+      await mounted.cleanup();
+      vi.useRealTimers();
+    }
+  });
+
   it('falls back from truly failed aiDescribe events to recorderAI descriptions', async () => {
     const event = {
       type: 'click',
@@ -1177,6 +1247,70 @@ describe('StudioRecorderProvider preview recording', () => {
       'delayed-input',
       'click-before-delayed-input',
       'click-after-delayed-input',
+    ]);
+
+    await mounted.cleanup();
+  });
+
+  it('orders async action and navigation envelopes by sequence instead of arrival time', async () => {
+    const firstAction = {
+      type: 'click',
+      source: 'studio-preview',
+      actionType: 'Tap',
+      semantic: {
+        source: 'aiDescribe',
+        status: 'ready',
+        elementDescription: 'Open details',
+      },
+      elementRect: { x: 100, y: 200 },
+      pageInfo: { width: 1200, height: 800 },
+      timestamp: 300,
+      hashId: 'action-sequence-1',
+      eventId: 'action-sequence-1',
+      sequence: 1,
+    };
+    const derivedNavigation = {
+      type: 'navigation',
+      source: 'studio-preview',
+      actionType: 'Navigate',
+      semantic: {
+        source: 'heuristic',
+        status: 'ready',
+        elementDescription: 'https://example.com/details',
+      },
+      rawPayload: { implicitNavigationState: true },
+      pageInfo: { width: 1200, height: 800 },
+      url: 'https://example.com/details',
+      timestamp: 400,
+      hashId: 'navigation-for-action-1',
+      eventId: 'navigation-for-action-1',
+      parentEventId: 'action-sequence-1',
+      sequence: 1,
+    };
+    const secondAction = {
+      ...firstAction,
+      elementRect: { x: 300, y: 400 },
+      timestamp: 100,
+      hashId: 'action-sequence-2',
+      eventId: 'action-sequence-2',
+      sequence: 2,
+    };
+    const { context } = createConnectedStudioContext({
+      events: [secondAction, derivedNavigation, firstAction],
+    });
+    const mounted = await mountRecorder(context);
+
+    await act(async () => {
+      await mounted.recorder?.startRecording();
+    });
+    await flushPromises();
+
+    expect(
+      mounted.recorder?.currentSession?.events.map((event) => event.hashId),
+    ).toEqual([
+      'action-sequence-1',
+      'navigation-for-action-1',
+      'action-sequence-2',
     ]);
 
     await mounted.cleanup();

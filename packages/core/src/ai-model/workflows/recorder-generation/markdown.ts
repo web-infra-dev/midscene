@@ -1,9 +1,5 @@
 import type { IModelConfig } from '@midscene/shared/env';
-import {
-  imageInfoOfBase64,
-  parseBase64,
-  resizeImgBase64,
-} from '@midscene/shared/img';
+import { normalizeImageForModel, parseBase64 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import {
   type MidsceneRecorderMarkdownScreenshotAsset,
@@ -47,17 +43,18 @@ function limitScreenshotAssetsForMarkdownReplay(
 async function compressScreenshotAssetForMarkdownReplay(
   asset: MidsceneRecorderMarkdownScreenshotAsset,
 ): Promise<MidsceneRecorderMarkdownScreenshotAsset> {
-  const { width, height } = await imageInfoOfBase64(asset.dataUrl);
-  const longestEdge = Math.max(width, height);
-  if (longestEdge <= MARKDOWN_REPLAY_SCREENSHOT_MAX_EDGE) {
+  const normalized = await normalizeImageForModel(asset.dataUrl, {
+    maxBytes: Math.floor((MARKDOWN_REPLAY_SCREENSHOT_PAYLOAD_BUDGET * 3) / 4),
+    maxLongEdge: MARKDOWN_REPLAY_SCREENSHOT_MAX_EDGE,
+    minLongEdge: 256,
+  });
+  if (!normalized.ok) {
+    throw new Error(`${normalized.error.code}: ${normalized.error.message}`);
+  }
+  if (!normalized.degradedReason) {
     return asset;
   }
-
-  const scale = MARKDOWN_REPLAY_SCREENSHOT_MAX_EDGE / longestEdge;
-  const dataUrl = await resizeImgBase64(asset.dataUrl, {
-    width: Math.max(1, Math.round(width * scale)),
-    height: Math.max(1, Math.round(height * scale)),
-  });
+  const dataUrl = normalized.imageBase64;
   const { body, mimeType } = parseBase64(dataUrl);
   return {
     ...asset,
@@ -76,8 +73,11 @@ async function prepareScreenshotAssetsForMarkdownReplay(
       compressedAssets.push(
         await compressScreenshotAssetForMarkdownReplay(asset),
       );
-    } catch {
-      compressedAssets.push(asset);
+    } catch (error) {
+      debugMarkdownReplay('markdown screenshot normalization failed %o', {
+        eventHashId: asset.eventHashId,
+        error: error instanceof Error ? error.message : String(error),
+      });
     }
   }
   return limitScreenshotAssetsForMarkdownReplay(compressedAssets);

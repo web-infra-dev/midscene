@@ -434,6 +434,25 @@ function sortRecorderEventsByTimestamp(events: StudioRecordedEvent[]) {
   return events
     .map((event, index) => ({ event, index }))
     .sort((left, right) => {
+      const leftSequence = left.event.sequence;
+      const rightSequence = right.event.sequence;
+      if (
+        typeof leftSequence === 'number' &&
+        Number.isFinite(leftSequence) &&
+        typeof rightSequence === 'number' &&
+        Number.isFinite(rightSequence)
+      ) {
+        const sequenceOrder = leftSequence - rightSequence;
+        if (sequenceOrder !== 0) {
+          return sequenceOrder;
+        }
+        const derivedEventOrder =
+          Number(Boolean(left.event.parentEventId)) -
+          Number(Boolean(right.event.parentEventId));
+        if (derivedEventOrder !== 0) {
+          return derivedEventOrder;
+        }
+      }
       const leftTimestamp = getRecorderEventTimestamp(left.event);
       const rightTimestamp = getRecorderEventTimestamp(right.event);
       if (leftTimestamp !== undefined && rightTimestamp !== undefined) {
@@ -454,6 +473,14 @@ function isRecorderEventBefore(
   current: StudioRecordedEvent,
   next: StudioRecordedEvent,
 ) {
+  if (
+    typeof current.sequence === 'number' &&
+    Number.isFinite(current.sequence) &&
+    typeof next.sequence === 'number' &&
+    Number.isFinite(next.sequence)
+  ) {
+    return current.sequence < next.sequence;
+  }
   const currentTimestamp = getRecorderEventTimestamp(current);
   const nextTimestamp = getRecorderEventTimestamp(next);
   return (

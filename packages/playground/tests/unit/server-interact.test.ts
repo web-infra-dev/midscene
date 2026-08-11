@@ -1,4 +1,4 @@
-import { createReadStream } from 'node:fs';
+import { createReadStream, writeFileSync } from 'node:fs';
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -18,6 +18,11 @@ rs.mock('@midscene/core', () => ({
 
 const VALID_PNG_BASE64 =
   'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAUCAYAAACNiR0NAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAAKklEQVR4nO3MIQEAAAzDsPo3/ePhDi4CwpWxUMMXaaFH4QgLPQpHWHg6fOdROhs7ULsmAAAAAElFTkSuQmCC';
+const RECORDER_FRAME_FIXTURES = [
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAAE0lEQVR4nGP4z8DwnwGM/zMwAAAf7gP9NRsAMwAAAABJRU5ErkJggg==',
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAAD0lEQVR4nGNg+M8AQhAKABvyA/1tVLjHAAAAAElFTkSuQmCC',
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAAD0lEQVR4nGNgYPgPRmAKABf2A/1+6zfzAAAAAElFTkSuQmCC',
+];
 
 function createMockResponse() {
   return {
@@ -69,6 +74,22 @@ function latestRecorderEventsBody(body: any) {
       latest[existingIndex] = event;
     }
   }
+  latest.sort((left: any, right: any) => {
+    if (
+      typeof left?.sequence === 'number' &&
+      typeof right?.sequence === 'number'
+    ) {
+      const sequenceOrder = left.sequence - right.sequence;
+      if (sequenceOrder !== 0) {
+        return sequenceOrder;
+      }
+      return (
+        Number(Boolean(left.parentEventId)) -
+        Number(Boolean(right.parentEventId))
+      );
+    }
+    return 0;
+  });
   return {
     ...body,
     events: latest,
@@ -575,7 +596,7 @@ describe('PlaygroundServer manual interaction APIs', () => {
           { name: 'Tap', description: 'tap', call: actionCall },
         ],
         inputPrimitives,
-        screenshotBase64: async () => 'base64-image',
+        screenshotBase64: async () => VALID_PNG_BASE64,
         size: async () => ({ width: 1080, height: 1920 }),
       },
     } as any);
@@ -769,7 +790,7 @@ describe('PlaygroundServer manual interaction APIs', () => {
         interfaceType: 'android',
         describe: () => 'Android device',
         actionSpace: () => [{ name: 'Tap', description: 'tap', call: tapCall }],
-        screenshotBase64: async () => 'base64-image',
+        screenshotBase64: async () => VALID_PNG_BASE64,
         size: async () => ({ width: 1080, height: 1920 }),
       },
     } as any);
@@ -995,6 +1016,252 @@ describe('PlaygroundServer manual interaction APIs', () => {
     );
   });
 
+  test('recorder publishes an event envelope before its screenshot patch is ready', async () => {
+    const inputPrimitives = makeInputPrimitiveStub();
+    let resolveAfterScreenshot: ((value: string) => void) | undefined;
+    const afterScreenshot = new Promise<string>((resolve) => {
+      resolveAfterScreenshot = resolve;
+    });
+    let screenshotCalls = 0;
+    const screenshotBase64 = vi.fn(async () => {
+      screenshotCalls += 1;
+      if (screenshotCalls === 3) {
+        return afterScreenshot;
+      }
+      return VALID_PNG_BASE64;
+    });
+    const server = new PlaygroundServer({
+      interface: {
+        interfaceType: 'ios',
+        actionSpace: () => [],
+        inputPrimitives,
+        screenshotBase64,
+        size: async () => ({ width: 390, height: 844 }),
+      },
+    } as any);
+
+    await server.launch(6137);
+    const startRecorderHandler = getRouteHandler(
+      server,
+      'post',
+      '/recorder/start',
+    );
+    await startRecorderHandler(
+      { body: { sessionId: 'session-preview-envelope' } },
+      createMockResponse(),
+    );
+
+    const interactHandler = getRouteHandler(server, 'post', '/interact');
+    await interactHandler(
+      { body: { actionType: 'Tap', x: 10, y: 20 } },
+      createMockResponse(),
+    );
+
+    const eventsHandler = getRouteHandler(server, 'get', '/recorder/events');
+    const envelopeResponse = createMockResponse();
+    await eventsHandler({ query: { since: '0' } }, envelopeResponse);
+    expect(envelopeResponse.body).toMatchObject({
+      nextIndex: 1,
+      events: [
+        {
+          type: 'click',
+          eventId: expect.any(String),
+          sequence: 1,
+          logSequence: 1,
+          interactionStartedAt: expect.any(Number),
+          interactionCompletedAt: expect.any(Number),
+          captureStatus: 'pending',
+          revisions: { capture: 0, semantic: 0 },
+          frame: {
+            token: expect.stringMatching(/^screenshot-/),
+            capturedAt: expect.any(Number),
+            source: 'screenshot-fallback',
+            offsetMs: expect.any(Number),
+          },
+        },
+      ],
+    });
+    const envelope = (envelopeResponse.body as any).events[0];
+    expect(envelope.screenshotAsset).toBeUndefined();
+
+    resolveAfterScreenshot?.(VALID_PNG_BASE64);
+    await server.waitForRecorderIdle();
+
+    const patchResponse = createMockResponse();
+    await eventsHandler({ query: { since: '1' } }, patchResponse);
+    expect(patchResponse.body).toMatchObject({
+      nextIndex: 2,
+      events: [
+        {
+          hashId: envelope.hashId,
+          eventId: envelope.eventId,
+          sequence: 1,
+          logSequence: 2,
+          captureStatus: 'ready',
+          revisions: { capture: 1, semantic: 0 },
+          screenshotAsset: {
+            mimeType: 'image/png',
+            bytes: expect.any(Number),
+          },
+        },
+      ],
+    });
+  });
+
+  test('recorder reserves action sequence at interaction start when requests finish out of order', async () => {
+    let releaseFirstTap: (() => void) | undefined;
+    const firstTapGate = new Promise<void>((resolve) => {
+      releaseFirstTap = resolve;
+    });
+    let tapCount = 0;
+    const tap = vi.fn(async () => {
+      tapCount += 1;
+      if (tapCount === 1) {
+        await firstTapGate;
+      }
+    });
+    const inputPrimitives = makeInputPrimitiveStub({
+      pointer: {
+        tap,
+        doubleClick: vi.fn(async () => {}),
+        longPress: vi.fn(async () => {}),
+        dragAndDrop: vi.fn(async () => {}),
+      },
+    });
+    const server = new PlaygroundServer({
+      interface: {
+        interfaceType: 'web',
+        actionSpace: () => [],
+        inputPrimitives,
+        screenshotBase64: async () => VALID_PNG_BASE64,
+        size: async () => ({ width: 1280, height: 720 }),
+      },
+    } as any);
+
+    await server.launch(6140);
+    const startRecorderHandler = getRouteHandler(
+      server,
+      'post',
+      '/recorder/start',
+    );
+    await startRecorderHandler(
+      { body: { sessionId: 'session-preview-sequence-reservation' } },
+      createMockResponse(),
+    );
+    const interactHandler = getRouteHandler(server, 'post', '/interact');
+    const firstInteraction = interactHandler(
+      { body: { actionType: 'Tap', x: 10, y: 20 } },
+      createMockResponse(),
+    );
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    await interactHandler(
+      { body: { actionType: 'Tap', x: 30, y: 40 } },
+      createMockResponse(),
+    );
+    releaseFirstTap?.();
+    await firstInteraction;
+    await server.waitForRecorderIdle();
+
+    const eventsHandler = getRouteHandler(server, 'get', '/recorder/events');
+    const response = createMockResponse();
+    await eventsHandler({ query: { since: '0' } }, response);
+    const events = latestRecorderEventsBody(response.body).events as any[];
+    expect(
+      events.map((event) => [event.elementRect.x, event.sequence]),
+    ).toEqual([
+      [10, 1],
+      [30, 2],
+    ]);
+  });
+
+  test('recorder keeps burst events bound to their interaction-boundary frames', async () => {
+    vi.mocked(writeFileSync).mockClear();
+    let emitFrame:
+      | ((frame: { data: string; contentType: string }) => void)
+      | undefined;
+    let tapIndex = 0;
+    const tap = vi.fn(async () => {
+      const afterFrame =
+        RECORDER_FRAME_FIXTURES[
+          Math.min(++tapIndex, RECORDER_FRAME_FIXTURES.length - 1)
+        ];
+      setTimeout(() => {
+        emitFrame?.({
+          data: afterFrame.split(';base64,')[1],
+          contentType: 'image/png',
+        });
+      }, 0);
+    });
+    const inputPrimitives = makeInputPrimitiveStub({
+      pointer: {
+        tap,
+        doubleClick: vi.fn(async () => {}),
+        longPress: vi.fn(async () => {}),
+        dragAndDrop: vi.fn(async () => {}),
+      },
+    });
+    const startMjpegStream = vi.fn(async ({ onFrame }) => {
+      emitFrame = onFrame;
+      onFrame({
+        data: RECORDER_FRAME_FIXTURES[0].split(';base64,')[1],
+        contentType: 'image/png',
+      });
+      return { stop: vi.fn() };
+    });
+    const server = new PlaygroundServer({
+      interface: {
+        interfaceType: 'web',
+        actionSpace: () => [],
+        inputPrimitives,
+        screenshotBase64: async () => VALID_PNG_BASE64,
+        size: async () => ({ width: 1280, height: 720 }),
+        startMjpegStream,
+      },
+    } as any);
+
+    await server.launch(6139);
+    const startRecorderHandler = getRouteHandler(
+      server,
+      'post',
+      '/recorder/start',
+    );
+    await startRecorderHandler(
+      { body: { sessionId: 'session-preview-frame-binding' } },
+      createMockResponse(),
+    );
+    const interactHandler = getRouteHandler(server, 'post', '/interact');
+    for (let index = 0; index < RECORDER_FRAME_FIXTURES.length; index += 1) {
+      await interactHandler(
+        { body: { actionType: 'Tap', x: 10 + index, y: 20 } },
+        createMockResponse(),
+      );
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    }
+    await server.waitForRecorderIdle();
+
+    const eventsHandler = getRouteHandler(server, 'get', '/recorder/events');
+    const response = createMockResponse();
+    await eventsHandler({ query: { since: '0' } }, response);
+    const events = latestRecorderEventsBody(response.body).events as any[];
+    expect(events).toHaveLength(RECORDER_FRAME_FIXTURES.length);
+    expect(events.map((event) => event.sequence)).toEqual([1, 2, 3]);
+    expect(new Set(events.map((event) => event.frame.token)).size).toBe(3);
+
+    const assetWrites = vi
+      .mocked(writeFileSync)
+      .mock.calls.filter(([filePath]) =>
+        String(filePath).includes('session-preview-frame-binding-'),
+      );
+    expect(assetWrites).toHaveLength(RECORDER_FRAME_FIXTURES.length);
+    expect(
+      assetWrites.map(([, bytes]) => Buffer.from(bytes as Buffer)),
+    ).toEqual(
+      RECORDER_FRAME_FIXTURES.map((frame) =>
+        Buffer.from(frame.split(';base64,')[1], 'base64'),
+      ),
+    );
+  });
+
   test('recorder marks events failed when a screenshot cannot be retained', async () => {
     const inputPrimitives = makeInputPrimitiveStub();
     const server = new PlaygroundServer({
@@ -1033,13 +1300,15 @@ describe('PlaygroundServer manual interaction APIs', () => {
         semantic: {
           source: 'aiDescribe',
           status: 'failed',
-          error: expect.stringContaining('screenshot was not retained'),
+          error: expect.stringContaining('could not capture a screenshot'),
         },
+        captureStatus: 'failed',
+        captureError: { code: 'capture_failed' },
       },
     ]);
   });
 
-  test('recorder dispatches preview interactions before taking the after screenshot', async () => {
+  test('recorder captures a correct before-frame when no shared stream exists', async () => {
     const callOrder: string[] = [];
     const tap = rs.fn(async () => {
       callOrder.push('tap');
@@ -1054,7 +1323,7 @@ describe('PlaygroundServer manual interaction APIs', () => {
     });
     const screenshotBase64 = rs.fn(async () => {
       callOrder.push('screenshot');
-      return 'base64-image';
+      return VALID_PNG_BASE64;
     });
     const size = rs.fn(async () => {
       callOrder.push('size');
@@ -1090,8 +1359,7 @@ describe('PlaygroundServer manual interaction APIs', () => {
     await server.waitForRecorderIdle();
 
     expect(tap).toHaveBeenCalledWith({ x: 10, y: 20 }, { duration: undefined });
-    expect(callOrder[0]).toBe('tap');
-    expect(callOrder).toEqual(['tap', 'screenshot', 'size']);
+    expect(callOrder).toEqual(['screenshot', 'tap', 'screenshot', 'size']);
   });
 
   test('recorder returns input aiDescribe failed when no describe capability is available', async () => {
@@ -1339,6 +1607,7 @@ describe('PlaygroundServer manual interaction APIs', () => {
 
     await server.launch(6129);
 
+    const waitWithRealTimer = setTimeout;
     rs.useFakeTimers();
     try {
       const describePromise = describeRecorderEvent(server, {
@@ -1359,6 +1628,14 @@ describe('PlaygroundServer manual interaction APIs', () => {
         timestamp: 123,
         hashId: 'verify-failed-then-timeout-event',
       });
+      for (
+        let attempt = 0;
+        attempt < 20 && describeElementAtPoint.mock.calls.length === 0;
+        attempt += 1
+      ) {
+        await new Promise((resolve) => waitWithRealTimer(resolve, 1));
+      }
+      expect(describeElementAtPoint).toHaveBeenCalledTimes(1);
       await rs.advanceTimersByTimeAsync(30_000);
 
       const describeResponse = await describePromise;
@@ -1473,7 +1750,7 @@ describe('PlaygroundServer manual interaction APIs', () => {
         interfaceType: 'ios',
         actionSpace: () => [],
         inputPrimitives,
-        screenshotBase64: async () => 'base64-image',
+        screenshotBase64: async () => VALID_PNG_BASE64,
         size: async () => ({ width: 390, height: 844 }),
       },
     } as any);
@@ -1519,13 +1796,8 @@ describe('PlaygroundServer manual interaction APIs', () => {
     });
   });
 
-  test('coalesces typeOnly input before persisting its final screenshot', async () => {
+  test('publishes typeOnly input envelopes immediately for Studio-side coalescing', async () => {
     const inputPrimitives = makeInputPrimitiveStub();
-    const describeElementAtPoint = mockDescribeElementAtPoint(async () => ({
-      prompt: 'phone number input',
-      deepLocate: false,
-      verifyResult: { pass: true },
-    }));
     const server = new PlaygroundServer({
       interface: {
         interfaceType: 'ios',
@@ -1581,58 +1853,23 @@ describe('PlaygroundServer manual interaction APIs', () => {
       pendingEventsResponse,
     );
     expect(pendingEventsResponse.body).toMatchObject({
-      events: [],
-      nextIndex: 0,
-    });
-
-    const eventsResponse = createMockResponse();
-    await eventsHandler({ query: { since: '0' } }, eventsResponse);
-    const events = latestRecorderEventsBody(eventsResponse.body).events;
-    expect(events).toHaveLength(1);
-    const [event] = events;
-    expect(event).toMatchObject({
-      value: 'he',
-      mergedHashIds: expect.any(Array),
-      screenshotAsset: expect.any(Object),
-    });
-
-    const describeResponse = await describeRecorderEvent(server, event);
-
-    expect(describeElementAtPoint).toHaveBeenCalledWith(
-      [10, 20],
-      expect.objectContaining({
-        verifyPrompt: false,
-        screenshotBase64: expect.stringMatching(/^data:image\/png;base64,/),
-        coordinateSpace: 'logical',
-        logicalSize: { width: 390, height: 844 },
-        onProgress: expect.any(Function),
-      }),
-    );
-    expect(describeResponse.statusCode).toBe(200);
-    expect(describeResponse.body).toMatchObject({
-      ok: true,
-      trace: {
-        status: 'ready',
-        eventType: 'input',
-        actionType: 'Input',
-        point: [10, 20],
-        eventSummary: {
-          rawPayloadSummary: {
-            mode: 'typeOnly',
-            valueLength: 2,
-          },
+      nextIndex: 2,
+      events: [
+        {
+          type: 'input',
+          value: 'h',
+          sequence: 1,
+          captureStatus: 'ready',
+          screenshotAsset: expect.any(Object),
         },
-      },
-      event: {
-        type: 'input',
-        actionType: 'Input',
-        value: 'he',
-        semantic: {
-          source: 'aiDescribe',
-          status: 'ready',
-          elementDescription: 'phone number input',
+        {
+          type: 'input',
+          value: 'e',
+          sequence: 2,
+          captureStatus: 'ready',
+          screenshotAsset: expect.any(Object),
         },
-      },
+      ],
     });
   });
 
@@ -1643,7 +1880,7 @@ describe('PlaygroundServer manual interaction APIs', () => {
         interfaceType: 'ios',
         actionSpace: () => [],
         inputPrimitives,
-        screenshotBase64: async () => 'base64-image',
+        screenshotBase64: async () => VALID_PNG_BASE64,
         size: async () => ({ width: 390, height: 844 }),
       },
     } as any);
@@ -1710,7 +1947,7 @@ describe('PlaygroundServer manual interaction APIs', () => {
         interfaceType: 'ios',
         actionSpace: () => [],
         inputPrimitives,
-        screenshotBase64: async () => 'base64-image',
+        screenshotBase64: async () => VALID_PNG_BASE64,
         size: async () => ({ width: 390, height: 844 }),
       },
     } as any);
@@ -1799,7 +2036,7 @@ describe('PlaygroundServer manual interaction APIs', () => {
         interfaceType: 'ios',
         actionSpace: () => [],
         inputPrimitives,
-        screenshotBase64: async () => 'base64-image',
+        screenshotBase64: async () => VALID_PNG_BASE64,
         size: async () => ({ width: 390, height: 844 }),
       },
     } as any);
@@ -1837,7 +2074,7 @@ describe('PlaygroundServer manual interaction APIs', () => {
       [10, 20],
       expect.objectContaining({
         verifyPrompt: false,
-        screenshotBase64: 'base64-image',
+        screenshotBase64: VALID_PNG_BASE64,
         coordinateSpace: 'logical',
         logicalSize: { width: 390, height: 844 },
         onProgress: expect.any(Function),
@@ -1863,9 +2100,9 @@ describe('PlaygroundServer manual interaction APIs', () => {
     const inputPrimitives = makeInputPrimitiveStub();
     const screenshotBase64 = rs
       .fn()
-      .mockResolvedValueOnce('initial-screenshot')
-      .mockResolvedValueOnce('event-screenshot')
-      .mockResolvedValueOnce('stale-live-screenshot');
+      .mockResolvedValueOnce(RECORDER_FRAME_FIXTURES[0])
+      .mockResolvedValueOnce(RECORDER_FRAME_FIXTURES[1])
+      .mockResolvedValueOnce(RECORDER_FRAME_FIXTURES[2]);
     const describeElementAtPoint = mockDescribeElementAtPoint(async () => ({
       prompt: 'login dialog target',
       deepLocate: false,
@@ -1911,7 +2148,7 @@ describe('PlaygroundServer manual interaction APIs', () => {
       [10, 20],
       expect.objectContaining({
         verifyPrompt: false,
-        screenshotBase64: 'initial-screenshot',
+        screenshotBase64: RECORDER_FRAME_FIXTURES[1],
         coordinateSpace: 'logical',
         logicalSize: { width: 390, height: 844 },
         onProgress: expect.any(Function),
@@ -1924,7 +2161,9 @@ describe('PlaygroundServer manual interaction APIs', () => {
         type: 'click',
         source: 'studio-preview',
         actionType: 'Tap',
-        screenshotAfter: 'event-screenshot',
+        screenshotAsset: expect.objectContaining({
+          id: expect.stringContaining('session-preview-stale-live-describe-'),
+        }),
         semantic: {
           source: 'aiDescribe',
           status: 'ready',
@@ -1949,7 +2188,7 @@ describe('PlaygroundServer manual interaction APIs', () => {
         interfaceType: 'ios',
         actionSpace: () => [],
         inputPrimitives,
-        screenshotBase64: async () => 'base64-image',
+        screenshotBase64: async () => VALID_PNG_BASE64,
         size: async () => ({ width: 390, height: 844 }),
       },
     } as any);
@@ -2128,6 +2367,73 @@ describe('PlaygroundServer manual interaction APIs', () => {
     expect(secondClick).toMatchObject({ screenshotAsset: expect.any(Object) });
   });
 
+  test('recorder binds a navigation notification raised during an action to that action', async () => {
+    let currentUrl = 'https://example.com/start';
+    const inputPrimitives = makeInputPrimitiveStub({
+      pointer: {
+        tap: vi.fn(async () => {
+          currentUrl = 'https://example.com/next';
+          (server as any).recordStudioPreviewNavigationState({
+            url: currentUrl,
+            timestamp: Date.now(),
+          });
+        }),
+        doubleClick: vi.fn(async () => {}),
+        longPress: vi.fn(async () => {}),
+        dragAndDrop: vi.fn(async () => {}),
+      },
+    });
+    const server = new PlaygroundServer({
+      interface: {
+        interfaceType: 'web',
+        actionSpace: () => [],
+        inputPrimitives,
+        screenshotBase64: async () => VALID_PNG_BASE64,
+        size: async () => ({ width: 1280, height: 720 }),
+        url: async () => currentUrl,
+        evaluateJavaScript: async () =>
+          currentUrl.endsWith('/next') ? 'Next page' : 'Start page',
+      },
+    } as any);
+
+    await server.launch(6141);
+    const startRecorderHandler = getRouteHandler(
+      server,
+      'post',
+      '/recorder/start',
+    );
+    await startRecorderHandler(
+      { body: { sessionId: 'session-navigation-causal-binding' } },
+      createMockResponse(),
+    );
+    const interactHandler = getRouteHandler(server, 'post', '/interact');
+    await interactHandler(
+      { body: { actionType: 'Tap', x: 120, y: 314 } },
+      createMockResponse(),
+    );
+    await server.waitForRecorderIdle();
+
+    const eventsHandler = getRouteHandler(server, 'get', '/recorder/events');
+    const response = createMockResponse();
+    await eventsHandler({ query: { since: '0' } }, response);
+    const events = latestRecorderEventsBody(response.body).events as any[];
+    const click = events.find((event) => event.type === 'click');
+    const navigations = events.filter(
+      (event) => event.actionType === 'Navigate',
+    );
+    expect(click).toMatchObject({
+      sequence: 1,
+      url: 'https://example.com/start',
+    });
+    expect(navigations).toEqual([
+      expect.objectContaining({
+        sequence: 1,
+        parentEventId: click.eventId,
+        url: 'https://example.com/next',
+      }),
+    ]);
+  });
+
   test('recorder saves delayed navigation state after a click changes the page URL', async () => {
     let currentUrl = 'https://example.com/start';
     let tapCount = 0;
@@ -2175,11 +2481,11 @@ describe('PlaygroundServer manual interaction APIs', () => {
       { body: { actionType: 'Tap', x: 120, y: 314 } },
       createMockResponse(),
     );
-    await interactHandler(
-      { body: { actionType: 'Tap', x: 220, y: 414 } },
-      createMockResponse(),
-    );
     await new Promise((resolve) => setTimeout(resolve, 60));
+    (server as any).recordStudioPreviewNavigationState({
+      url: currentUrl,
+      timestamp: Date.now(),
+    });
     await server.waitForRecorderIdle();
 
     const eventsHandler = getRouteHandler(server, 'get', '/recorder/events');
@@ -2204,7 +2510,17 @@ describe('PlaygroundServer manual interaction APIs', () => {
     expect(latestRecorderEventsBody(eventsResponse.body).events).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ actionType: 'InitialNavigation' }),
-        expect.objectContaining({ type: 'click', actionType: 'Tap' }),
+        expect.objectContaining({
+          type: 'click',
+          actionType: 'Tap',
+          sequence: 1,
+        }),
+        expect.objectContaining({
+          type: 'navigation',
+          actionType: 'Navigate',
+          sequence: 1,
+          parentEventId: expect.any(String),
+        }),
       ]),
     );
   });
@@ -2375,11 +2691,11 @@ describe('PlaygroundServer manual interaction APIs', () => {
   test('POST /interact responds before async recorder capture finishes', async () => {
     const screenshotBase64 = rs
       .fn<() => Promise<string>>()
-      .mockResolvedValueOnce('base64-image')
+      .mockResolvedValueOnce(VALID_PNG_BASE64)
       .mockImplementation(
         async () =>
           new Promise<string>((resolve) => {
-            setTimeout(() => resolve('base64-image'), 25);
+            setTimeout(() => resolve(VALID_PNG_BASE64), 25);
           }),
       );
     const inputPrimitives = makeInputPrimitiveStub({
@@ -2430,8 +2746,17 @@ describe('PlaygroundServer manual interaction APIs', () => {
     const beforeFlushResponse = createMockResponse();
     await eventsHandler({ query: { since: '0' } }, beforeFlushResponse);
     expect(beforeFlushResponse.body).toMatchObject({
-      events: [],
-      nextIndex: 0,
+      events: [
+        {
+          type: 'input',
+          source: 'studio-preview',
+          actionType: 'Input',
+          value: '12343014883',
+          captureStatus: 'pending',
+          revisions: { capture: 0, semantic: 0 },
+        },
+      ],
+      nextIndex: 1,
     });
 
     await server.waitForRecorderIdle();
@@ -2445,6 +2770,8 @@ describe('PlaygroundServer manual interaction APIs', () => {
           source: 'studio-preview',
           actionType: 'Input',
           value: '12343014883',
+          captureStatus: 'ready',
+          revisions: { capture: 1, semantic: 0 },
         },
       ],
       nextIndex: 1,
@@ -2458,7 +2785,7 @@ describe('PlaygroundServer manual interaction APIs', () => {
         interfaceType: 'web',
         actionSpace: () => [],
         inputPrimitives,
-        screenshotBase64: async () => 'base64-image',
+        screenshotBase64: async () => VALID_PNG_BASE64,
         size: async () => ({ width: 1280, height: 720 }),
       },
     } as any);
@@ -2493,14 +2820,14 @@ describe('PlaygroundServer manual interaction APIs', () => {
     );
   });
 
-  test('POST /interact skips recorder snapshot preflight for deferred keyboard input', async () => {
+  test('POST /interact captures a before snapshot for deferred keyboard input without a shared frame', async () => {
     const inputPrimitives = makeInputPrimitiveStub();
     const server = new PlaygroundServer({
       interface: {
         interfaceType: 'web',
         actionSpace: () => [],
         inputPrimitives,
-        screenshotBase64: async () => 'base64-image',
+        screenshotBase64: async () => VALID_PNG_BASE64,
         size: async () => ({ width: 1280, height: 720 }),
       },
     } as any);
@@ -2536,11 +2863,11 @@ describe('PlaygroundServer manual interaction APIs', () => {
 
     expect(response.statusCode).toBe(200);
     expect(response.body).toEqual({});
-    expect(captureRecorderSnapshotBeforeInteract).not.toHaveBeenCalled();
+    expect(captureRecorderSnapshotBeforeInteract).toHaveBeenCalledOnce();
   });
 
   test('GET /interface-info includes device size without fetching a screenshot', async () => {
-    const screenshotBase64 = rs.fn(async () => 'base64-image');
+    const screenshotBase64 = rs.fn(async () => VALID_PNG_BASE64);
     const server = new PlaygroundServer({
       interface: {
         interfaceType: 'ios',
@@ -2579,7 +2906,7 @@ describe('PlaygroundServer manual interaction APIs', () => {
           { name: 'KeyboardPress', description: '', call: rs.fn() },
           { name: 'Input', description: '', call: rs.fn() },
         ],
-        screenshotBase64: async () => 'base64-image',
+        screenshotBase64: async () => VALID_PNG_BASE64,
         size: async () => ({ width: 1920, height: 1080 }),
       },
     } as any);

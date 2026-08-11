@@ -19,6 +19,8 @@ vi.mock('../../../../src/ai-model/service-caller', () => ({
 
 const mockCallAI = vi.mocked(callAI);
 const mockCallAIWithStringResponse = vi.mocked(callAIWithStringResponse);
+const validScreenshot =
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAUCAYAAACNiR0NAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAAKklEQVR4nO3MIQEAAAzDsPo3/ePhDi4CwpWxUMMXaaFH4QgLPQpHWHg6fOdROhs7ULsmAAAAAElFTkSuQmCC';
 
 const mockEvents: ChromeRecordedEvent[] = [
   {
@@ -161,8 +163,7 @@ describe('yaml-generator', () => {
             timestamp: 1000,
             url: 'https://example.com',
             title: 'Example Page',
-            screenshotAfter:
-              'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJ',
+            screenshotAfter: validScreenshot,
             pageInfo: { width: 1280, height: 720 },
             hashId: 'nav-1',
           },
@@ -174,8 +175,7 @@ describe('yaml-generator', () => {
               status: 'ready',
               elementDescription: 'Login button',
             },
-            screenshotWithBox:
-              'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSK',
+            screenshotWithBox: validScreenshot,
             pageInfo: { width: 1280, height: 720 },
             hashId: 'click-1',
           },

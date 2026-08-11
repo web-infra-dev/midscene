@@ -28,7 +28,7 @@ import {
 } from '@midscene/core';
 import type { Agent as PageAgent } from '@midscene/core/agent';
 import { getModelRuntime } from '@midscene/core/ai-model';
-import { getTmpDir, sleep } from '@midscene/core/utils';
+import { getTmpDir } from '@midscene/core/utils';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import { PLAYGROUND_SERVER_PORT } from '@midscene/shared/constants';
 import {
@@ -37,9 +37,14 @@ import {
   overrideAIConfig,
 } from '@midscene/shared/env';
 import { generateElementByPoint } from '@midscene/shared/extractor';
-import { annotateRects, imageInfoOfBase64 } from '@midscene/shared/img';
+import {
+  annotateRects,
+  imageInfoOfBase64,
+  normalizeImageForModel,
+} from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import type {
+  MidsceneRecorderFrameBinding,
   MidsceneRecorderScreenshotAssetRef,
   MidsceneRecorderSemantic,
   MidsceneRecorderSemanticAction,
@@ -51,7 +56,10 @@ import {
 import { antiEscapeScriptTag, uuid } from '@midscene/shared/utils';
 import express, { type Request, type Response } from 'express';
 import { executeAction, formatErrorMessage } from './common';
-import { MjpegStreamHandler } from './mjpeg-stream-handler';
+import {
+  MjpegStreamHandler,
+  type RecorderFrameLease,
+} from './mjpeg-stream-handler';
 import type {
   PlaygroundCreatedSession,
   PlaygroundExecutionHooks,
@@ -189,7 +197,10 @@ function shouldPersistStudioPreviewRecorderScreenshot(actionType: string) {
     'LongPress',
     'RightClick',
     'DragAndDrop',
+    'Swipe',
     'Input',
+    'KeyboardPress',
+    'Scroll',
   ].includes(actionType);
 }
 
@@ -1225,6 +1236,14 @@ interface PlaygroundRecorderPageState {
 interface PlaygroundRecorderSnapshot {
   screenshot?: string;
   pageState: PlaygroundRecorderPageState;
+  frame?: Omit<MidsceneRecorderFrameBinding, 'offsetMs'>;
+}
+
+interface PlaygroundRecorderInteractionIdentity {
+  eventId: string;
+  sequence: number;
+  interactionStartedAt: number;
+  actionType: string;
 }
 
 interface PlaygroundRecorderTargetPoint {
@@ -1324,6 +1343,12 @@ class PlaygroundServer {
     | undefined;
   private _recorderEventQueue: Promise<void> = Promise.resolve();
   private _recorderPendingCaptures = 0;
+  private _recorderActionSequence = 0;
+  private _recorderLogSequence = 0;
+  private _recorderDeliveredLogIndex = 0;
+  private _recorderFrameLease: RecorderFrameLease | null = null;
+  private _recorderActiveInteractions: PlaygroundRecorderInteractionIdentity[] =
+    [];
   private _studioPreviewRecorderLastTargetPoint:
     | PlaygroundRecorderTargetPoint
     | undefined;
@@ -1331,6 +1356,7 @@ class PlaygroundServer {
   private _studioPreviewRecorderLastPageState:
     | PlaygroundRecorderPageState
     | undefined;
+  private _studioPreviewRecorderLastPageStateSequence = 0;
   private _activeConnection: PlaygroundActiveConnection = {
     session: null,
     agent: null,
@@ -1637,13 +1663,21 @@ class PlaygroundServer {
 
   private resetRecorderState(): void {
     this.clearPendingTypeOnlyRecorderInputFlushTimer();
+    this._recorderFrameLease?.release();
+    this._recorderFrameLease = null;
     this._recorderSessionId = null;
     this._recorderEvents = [];
     this._recorderPendingTypeOnlyInput = null;
     this._recorderEventQueue = Promise.resolve();
+    this._recorderPendingCaptures = 0;
+    this._recorderActionSequence = 0;
+    this._recorderLogSequence = 0;
+    this._recorderDeliveredLogIndex = 0;
+    this._recorderActiveInteractions = [];
     this._studioPreviewRecorderLastTargetPoint = undefined;
     this._studioPreviewRecorderLastScreenshot = undefined;
     this._studioPreviewRecorderLastPageState = undefined;
+    this._studioPreviewRecorderLastPageStateSequence = 0;
   }
 
   async waitForRecorderIdle(): Promise<void> {
@@ -1750,8 +1784,19 @@ class PlaygroundServer {
     if (!this._recorderSessionId) {
       return undefined;
     }
+    const screenshot = await this.takeRecorderScreenshot();
+    const capturedAt = Date.now();
     return {
-      screenshot: this._studioPreviewRecorderLastScreenshot,
+      screenshot,
+      ...(screenshot
+        ? {
+            frame: {
+              token: `screenshot-${capturedAt}-${randomUUID()}`,
+              capturedAt,
+              source: 'screenshot-fallback' as const,
+            },
+          }
+        : {}),
       pageState:
         this._studioPreviewRecorderLastPageState ||
         (await this.getActiveRecorderPageState()),
@@ -1761,35 +1806,103 @@ class PlaygroundServer {
   private captureCachedRecorderSnapshotBeforeInteract():
     | PlaygroundRecorderSnapshot
     | undefined {
-    if (
-      !this._recorderSessionId ||
-      !this._studioPreviewRecorderLastPageState ||
-      this._recorderPendingCaptures > 0
-    ) {
+    if (!this._recorderSessionId || !this._studioPreviewRecorderLastPageState) {
       return undefined;
     }
+    const frame =
+      this._recorderFrameLease?.latest() ||
+      this._mjpegHandler.getLastFrameSnapshot();
     return {
       screenshot:
-        this._mjpegHandler.getLastFrameBase64() ||
-        this._studioPreviewRecorderLastScreenshot,
+        frame?.screenshot || this._studioPreviewRecorderLastScreenshot,
+      ...(frame
+        ? {
+            frame: {
+              token: frame.frameToken,
+              capturedAt: frame.capturedAt,
+              source: frame.source,
+            },
+          }
+        : {}),
       pageState: this._studioPreviewRecorderLastPageState,
     };
   }
 
   private async startStudioPreviewRecorder(sessionId: string): Promise<void> {
     this._recorderSessionId = sessionId;
-    this._studioPreviewRecorderLastScreenshot =
-      await this.takeRecorderScreenshot();
+    this._recorderFrameLease = this._mjpegHandler.acquireFrameLease();
+    const initialFrame = await this._recorderFrameLease?.waitForFrameAfter(
+      0,
+      1500,
+    );
+    this._studioPreviewRecorderLastScreenshot = initialFrame?.screenshot;
+    if (!this._studioPreviewRecorderLastScreenshot) {
+      this._studioPreviewRecorderLastScreenshot =
+        await this.takeRecorderScreenshot();
+    }
+    const fallbackCapturedAt = Date.now();
     const initialPageState = await this.getActiveRecorderPageState();
     this._studioPreviewRecorderLastPageState = initialPageState;
+    this._studioPreviewRecorderLastPageStateSequence = 0;
     const initialNavigationEvent =
-      this.buildStudioPreviewInitialNavigationEvent(
-        initialPageState,
-        this._studioPreviewRecorderLastScreenshot,
-      );
+      this.buildStudioPreviewInitialNavigationEvent(initialPageState);
     if (initialNavigationEvent) {
-      this._recorderEvents.push(initialNavigationEvent);
+      this.appendRecorderLogEvent({
+        ...initialNavigationEvent,
+        ...(initialFrame
+          ? {
+              frame: {
+                token: initialFrame.frameToken,
+                capturedAt: initialFrame.capturedAt,
+                source: initialFrame.source,
+                offsetMs: 0,
+              },
+            }
+          : this._studioPreviewRecorderLastScreenshot
+            ? {
+                frame: {
+                  token: `screenshot-${fallbackCapturedAt}-${randomUUID()}`,
+                  capturedAt: fallbackCapturedAt,
+                  source: 'screenshot-fallback',
+                  offsetMs: 0,
+                },
+              }
+            : {}),
+      });
     }
+  }
+
+  private appendRecorderLogEvent(
+    event: PlaygroundRecorderEvent,
+  ): PlaygroundRecorderEvent {
+    const entry = {
+      ...event,
+      eventId: event.eventId || event.hashId,
+      logSequence: ++this._recorderLogSequence,
+    };
+    this._recorderEvents.push(entry);
+    return entry;
+  }
+
+  private publishRecorderEventRevision(
+    event: PlaygroundRecorderEvent,
+  ): PlaygroundRecorderEvent {
+    const eventId = event.eventId || event.hashId;
+    const existingIndex = this._recorderEvents.findLastIndex(
+      (candidate) => (candidate.eventId || candidate.hashId) === eventId,
+    );
+    if (existingIndex >= this._recorderDeliveredLogIndex) {
+      const existing = this._recorderEvents[existingIndex];
+      const replacement = {
+        ...existing,
+        ...event,
+        eventId,
+        logSequence: existing.logSequence,
+      };
+      this._recorderEvents[existingIndex] = replacement;
+      return replacement;
+    }
+    return this.appendRecorderLogEvent({ ...event, eventId });
   }
 
   private persistStudioPreviewRecorderScreenshot(
@@ -1802,67 +1915,198 @@ class PlaygroundServer {
   }
 
   private async storeStudioPreviewRecorderEvent(
+    event: PlaygroundRecorderEvent,
     payload: Record<string, unknown>,
     snapshotBefore?: PlaygroundRecorderSnapshot,
-    agent?: PageAgent,
   ): Promise<void> {
     if (!this._recorderSessionId) {
       return;
     }
-    const before =
-      snapshotBefore || (await this.captureRecorderSnapshotBeforeInteract());
+    const before = snapshotBefore;
     const screenshotBefore = before?.screenshot;
     debugInteract('recorder capture scheduled after action %o', {
+      eventId: event.eventId,
       payload: summarizeInteractPayload(payload),
-      delayMs: RECORDER_CAPTURE_AFTER_INTERACT_DELAY_MS,
       hasBeforeScreenshot: Boolean(screenshotBefore),
       beforeUrl: before?.pageState.url,
     });
-    await sleep(RECORDER_CAPTURE_AFTER_INTERACT_DELAY_MS);
     if (!this._recorderSessionId) {
       return;
     }
-    const screenshotAfter = await this.takeRecorderScreenshot();
+    let afterFrame = await this._recorderFrameLease?.waitForFrameAfter(
+      event.interactionCompletedAt || event.interactionStartedAt || Date.now(),
+      RECORDER_CAPTURE_AFTER_INTERACT_DELAY_MS,
+    );
+    if (!afterFrame) {
+      const screenshot = await this.takeRecorderScreenshot();
+      const capturedAt = Date.now();
+      if (screenshot) {
+        afterFrame = {
+          screenshot,
+          capturedAt,
+          frameToken: `screenshot-${capturedAt}-${randomUUID()}`,
+          source: 'screenshot-fallback',
+        };
+      }
+    }
+    const screenshotAfter = afterFrame?.screenshot;
     const pageStateAfter = await this.getActiveRecorderPageState();
     debugInteract('recorder capture completed after action %o', {
+      eventId: event.eventId,
       payload: summarizeInteractPayload(payload),
       hasAfterScreenshot: Boolean(screenshotAfter),
       afterUrl: pageStateAfter.url,
     });
-    const event = await this.buildStudioPreviewRecorderEvent(
-      payload,
-      before?.pageState || pageStateAfter,
-      screenshotBefore,
-      screenshotAfter,
-    );
-    if (!event) {
-      this._studioPreviewRecorderLastScreenshot = screenshotAfter;
-      this._studioPreviewRecorderLastPageState = pageStateAfter;
-      return;
+
+    const shouldPersistScreenshot =
+      shouldPersistStudioPreviewRecorderScreenshot(event.actionType || '');
+    const retainedScreenshot = shouldPersistScreenshot
+      ? screenshotBefore || screenshotAfter
+      : undefined;
+    let screenshotAsset: MidsceneRecorderScreenshotAssetRef | undefined;
+    let captureError: PlaygroundRecorderEvent['captureError'];
+    if (shouldPersistScreenshot && retainedScreenshot) {
+      const normalized = await normalizeImageForModel(retainedScreenshot);
+      if (!normalized.ok) {
+        captureError = {
+          code: normalized.error.code,
+          message: normalized.error.message,
+        };
+      } else {
+        const usage = getRecorderScreenshotAssetUsage(this._recorderSessionId);
+        const quotaExceeded =
+          usage.sessionBytes + normalized.finalBytes >
+            RECORDER_SCREENSHOT_ASSET_MAX_SESSION_BYTES ||
+          usage.totalBytes + normalized.finalBytes >
+            RECORDER_SCREENSHOT_ASSET_MAX_TOTAL_BYTES;
+        screenshotAsset = this.persistStudioPreviewRecorderScreenshot(
+          normalized.imageBase64,
+        );
+        if (!screenshotAsset) {
+          captureError = {
+            code: quotaExceeded
+              ? 'asset_quota_exceeded'
+              : 'asset_storage_failed',
+            message: quotaExceeded
+              ? 'Recorder screenshot asset quota was reached.'
+              : 'Recorder screenshot could not be written to asset storage.',
+          };
+        }
+        if (normalized.degradedReason) {
+          debugRecorderAssets('recorder generation asset normalized %o', {
+            eventId: event.eventId,
+            originalBytes: normalized.originalBytes,
+            finalBytes: normalized.finalBytes,
+            originalSize: normalized.originalSize,
+            finalSize: normalized.finalSize,
+            reason: normalized.degradedReason,
+          });
+        }
+      }
+    } else if (shouldPersistScreenshot) {
+      captureError = {
+        code: 'capture_failed',
+        message: 'Recorder could not capture a screenshot for this action.',
+      };
     }
+
+    const semantic = screenshotAsset
+      ? {
+          source: 'aiDescribe' as const,
+          status: 'pending' as const,
+        }
+      : captureError
+        ? buildFailedAiDescribeRecorderSemantic(captureError.message)
+        : event.semantic;
+    const frame =
+      event.frame ||
+      (afterFrame
+        ? {
+            token: afterFrame.frameToken,
+            capturedAt: afterFrame.capturedAt,
+            source: afterFrame.source,
+            offsetMs:
+              afterFrame.capturedAt -
+              (event.interactionStartedAt || event.timestamp),
+          }
+        : undefined);
+    const pageStateBefore = this.getRecorderNavigationPageStateBefore(
+      before?.pageState,
+      event.sequence,
+    );
+    const revisedEvent: PlaygroundRecorderEvent = {
+      ...event,
+      pageInfo: pageStateBefore?.pageInfo || event.pageInfo,
+      url: pageStateBefore?.url || event.url,
+      title: pageStateBefore?.title || event.title,
+      ...(screenshotAsset ? { screenshotAsset } : {}),
+      semantic,
+      frame,
+      captureStatus: captureError ? 'failed' : 'ready',
+      ...(captureError ? { captureError } : {}),
+      revisions: {
+        capture: (event.revisions?.capture || 0) + 1,
+        semantic: event.revisions?.semantic || 0,
+      },
+    };
 
     const navigationEvent = this.buildStudioPreviewNavigationStateEvent(
       payload,
-      this.getRecorderNavigationPageStateBefore(before?.pageState),
+      pageStateBefore,
       pageStateAfter,
     );
+    if (navigationEvent) {
+      navigationEvent.sequence = event.sequence;
+      navigationEvent.parentEventId = event.eventId || event.hashId;
+      navigationEvent.interactionStartedAt = event.interactionStartedAt;
+      navigationEvent.interactionCompletedAt = event.interactionCompletedAt;
+      navigationEvent.timestamp =
+        event.interactionCompletedAt ||
+        event.interactionStartedAt ||
+        event.timestamp;
+    }
     this._studioPreviewRecorderLastScreenshot = screenshotAfter;
-    this._studioPreviewRecorderLastPageState = pageStateAfter;
-    this.queueStudioPreviewRecorderEventAppend(event, navigationEvent);
+    this.updateStudioPreviewRecorderLastPageState(
+      pageStateAfter,
+      event.sequence,
+    );
+    this.publishRecorderEventRevision(revisedEvent);
+    if (navigationEvent) {
+      const existingNavigation = this._recorderEvents.findLast(
+        (candidate) =>
+          candidate.type === 'navigation' &&
+          candidate.rawPayload?.implicitNavigationState === true &&
+          candidate.parentEventId === navigationEvent.parentEventId,
+      );
+      if (existingNavigation) {
+        this.publishRecorderEventRevision({
+          ...navigationEvent,
+          hashId: existingNavigation.hashId,
+          eventId: existingNavigation.eventId || existingNavigation.hashId,
+        });
+      } else {
+        this.appendRecorderLogEvent(navigationEvent);
+      }
+    }
   }
 
-  private async buildStudioPreviewRecorderEvent(
+  private buildStudioPreviewRecorderEvent(
     payload: Record<string, unknown>,
     pageState: PlaygroundRecorderPageState,
-    screenshotBefore?: string,
-    screenshotAfter?: string,
-  ): Promise<PlaygroundRecorderEvent | null> {
+    options: {
+      eventId: string;
+      sequence: number;
+      interactionStartedAt: number;
+      interactionCompletedAt: number;
+      frame?: PlaygroundRecorderSnapshot['frame'];
+    },
+  ): PlaygroundRecorderEvent | null {
     const actionType =
       typeof payload.actionType === 'string' ? payload.actionType : undefined;
     if (!actionType) return null;
 
     const { pageInfo, url, title } = pageState;
-    const timestamp = Date.now();
+    const timestamp = options.interactionStartedAt;
     const payloadX = typeof payload.x === 'number' ? payload.x : undefined;
     const payloadY = typeof payload.y === 'number' ? payload.y : undefined;
     const canReuseLastTargetPoint =
@@ -1889,25 +2133,6 @@ class PlaygroundServer {
       endY !== undefined
         ? `${Math.round(x)},${Math.round(y)} -> ${Math.round(endX)},${Math.round(endY)}`
         : undefined;
-    const shouldPersistScreenshot =
-      shouldPersistStudioPreviewRecorderScreenshot(actionType);
-    const retainedScreenshot = shouldPersistScreenshot
-      ? screenshotBefore || screenshotAfter
-      : undefined;
-    const deferScreenshotPersistence =
-      actionType === 'Input' && payload.mode === 'typeOnly';
-    const screenshotAsset = deferScreenshotPersistence
-      ? undefined
-      : this.persistStudioPreviewRecorderScreenshot(retainedScreenshot);
-    const shouldDiscardDataUrlScreenshot = Boolean(
-      retainedScreenshot?.startsWith('data:'),
-    );
-    const hasRetainedScreenshot = Boolean(
-      screenshotAsset ||
-        (deferScreenshotPersistence && retainedScreenshot) ||
-        (!shouldDiscardDataUrlScreenshot && retainedScreenshot),
-    );
-
     const base = {
       source: 'studio-preview' as const,
       actionType,
@@ -1915,30 +2140,26 @@ class PlaygroundServer {
       pageInfo,
       url,
       title,
-      ...(screenshotAsset
-        ? { screenshotAsset }
-        : deferScreenshotPersistence
-          ? retainedScreenshot
-            ? { screenshotWithBox: retainedScreenshot }
-            : {}
-          : shouldDiscardDataUrlScreenshot
-            ? {}
-            : {
-                screenshotBefore,
-                screenshotAfter,
-              }),
-      semantic: hasRetainedScreenshot
-        ? {
-            source: 'aiDescribe' as const,
-            status: 'pending' as const,
-          }
-        : buildFailedAiDescribeRecorderSemantic(
-            'Recorder screenshot was not retained because asset storage is unavailable or its quota was reached.',
-          ),
+      semantic: {
+        source: 'aiDescribe' as const,
+        status: 'pending' as const,
+      },
       timestamp,
-      hashId: `studio-preview-${actionType}-${timestamp}-${Math.random()
-        .toString(36)
-        .slice(2, 8)}`,
+      hashId: options.eventId,
+      eventId: options.eventId,
+      sequence: options.sequence,
+      interactionStartedAt: options.interactionStartedAt,
+      interactionCompletedAt: options.interactionCompletedAt,
+      ...(options.frame
+        ? {
+            frame: {
+              ...options.frame,
+              offsetMs: options.frame.capturedAt - options.interactionStartedAt,
+            },
+          }
+        : {}),
+      captureStatus: 'pending' as const,
+      revisions: { capture: 0, semantic: 0 },
     };
 
     switch (actionType) {
@@ -2154,6 +2375,23 @@ class PlaygroundServer {
           'Skipped aiDescribe because the recorder event has no pageInfo for coordinate mapping.',
         );
       }
+      const normalizedScreenshot =
+        await normalizeImageForModel(eventScreenshot);
+      if (!normalizedScreenshot.ok) {
+        throw new Error(
+          `${normalizedScreenshot.error.code}: ${normalizedScreenshot.error.message}`,
+        );
+      }
+      if (normalizedScreenshot.degradedReason) {
+        debugInteract('recorder aiDescribe image normalized %o', {
+          eventHashId: event.hashId,
+          originalBytes: normalizedScreenshot.originalBytes,
+          finalBytes: normalizedScreenshot.finalBytes,
+          originalSize: normalizedScreenshot.originalSize,
+          finalSize: normalizedScreenshot.finalSize,
+          reason: normalizedScreenshot.degradedReason,
+        });
+      }
       modelCallStartedAt = Date.now();
       const elementDescriber = createElementDescriberRuntime(agent);
       /**
@@ -2162,7 +2400,7 @@ class PlaygroundServer {
       const describeResult = await withTimeout(
         describeElementAtPoint(elementDescriber, [x, y], {
           verifyPrompt,
-          screenshotBase64: eventScreenshot,
+          screenshotBase64: normalizedScreenshot.imageBase64,
           coordinateSpace: 'logical',
           logicalSize: event.pageInfo,
           onProgress: (progress) => {
@@ -2358,9 +2596,9 @@ class PlaygroundServer {
     }
 
     this.flushPendingTypeOnlyRecorderInput();
-    this._recorderEvents.push(event);
+    this.appendRecorderLogEvent(event);
     if (navigationEvent) {
-      this._recorderEvents.push(navigationEvent);
+      this.appendRecorderLogEvent(navigationEvent);
     }
   }
 
@@ -2430,7 +2668,7 @@ class PlaygroundServer {
     const screenshotAsset =
       this.persistStudioPreviewRecorderScreenshot(screenshot);
     if (screenshotAsset) {
-      this._recorderEvents.push({
+      this.appendRecorderLogEvent({
         ...pending,
         screenshotAsset,
         screenshotBefore: undefined,
@@ -2440,7 +2678,7 @@ class PlaygroundServer {
       return;
     }
 
-    this._recorderEvents.push({
+    this.appendRecorderLogEvent({
       ...pending,
       screenshotBefore: undefined,
       screenshotAfter: undefined,
@@ -2469,16 +2707,35 @@ class PlaygroundServer {
 
   private getRecorderNavigationPageStateBefore(
     snapshotPageState: PlaygroundRecorderPageState | undefined,
+    actionSequence: number | undefined,
   ): PlaygroundRecorderPageState | undefined {
     const lastPageState = this._studioPreviewRecorderLastPageState;
     if (
       !snapshotPageState?.url ||
       !lastPageState?.url ||
-      snapshotPageState.url === lastPageState.url
+      snapshotPageState.url === lastPageState.url ||
+      (typeof actionSequence === 'number' &&
+        this._studioPreviewRecorderLastPageStateSequence >= actionSequence)
     ) {
       return snapshotPageState;
     }
     return lastPageState;
+  }
+
+  private updateStudioPreviewRecorderLastPageState(
+    pageState: PlaygroundRecorderPageState,
+    sequence?: number,
+  ): void {
+    if (
+      typeof sequence === 'number' &&
+      sequence < this._studioPreviewRecorderLastPageStateSequence
+    ) {
+      return;
+    }
+    this._studioPreviewRecorderLastPageState = pageState;
+    if (typeof sequence === 'number') {
+      this._studioPreviewRecorderLastPageStateSequence = sequence;
+    }
   }
 
   private buildStudioPreviewNavigationStateEvent(
@@ -2534,6 +2791,23 @@ class PlaygroundServer {
     if (!sessionId || !navigation.url) {
       return;
     }
+    const activeInteraction = this._recorderActiveInteractions.at(-1);
+    const lastSubmittedAction = this._recorderEvents.findLast(
+      (event) =>
+        event.source === 'studio-preview' && event.type !== 'navigation',
+    );
+    // Capture causal identity when the navigation notification arrives. The
+    // recorder queue may process it after several newer actions have already
+    // been submitted, so looking up "the last action" inside the task would
+    // attach the URL change to the wrong event.
+    const parentEventId =
+      activeInteraction?.eventId ||
+      lastSubmittedAction?.eventId ||
+      lastSubmittedAction?.hashId;
+    const parentSequence =
+      activeInteraction?.sequence || lastSubmittedAction?.sequence;
+    const parentActionType =
+      activeInteraction?.actionType || lastSubmittedAction?.actionType;
 
     const task = this._recorderEventQueue
       .catch(() => undefined)
@@ -2546,7 +2820,9 @@ class PlaygroundServer {
           return;
         }
         const navigationEvent = this.buildStudioPreviewNavigationStateEvent(
-          { actionType: 'SessionNavigation' },
+          {
+            actionType: parentActionType || 'SessionNavigation',
+          },
           pageStateBefore,
           {
             pageInfo: pageStateBefore?.pageInfo || { width: 0, height: 0 },
@@ -2561,32 +2837,34 @@ class PlaygroundServer {
           ...navigationEvent.rawPayload,
           navigationSource: 'session-event',
         };
-
-        const lastActionIndex = this._recorderEvents.findLastIndex(
-          (event) =>
-            event.source === 'studio-preview' && event.type !== 'navigation',
-        );
-        const existingState =
-          lastActionIndex >= 0
-            ? this._recorderEvents[lastActionIndex + 1]
-            : undefined;
+        navigationEvent.sequence = parentSequence;
+        navigationEvent.parentEventId = parentEventId;
+        const existingState = parentEventId
+          ? this._recorderEvents.findLast(
+              (event) =>
+                event.type === 'navigation' &&
+                event.rawPayload?.implicitNavigationState === true &&
+                event.parentEventId === parentEventId,
+            )
+          : undefined;
         if (existingState?.rawPayload?.implicitNavigationState === true) {
-          this._recorderEvents.push({
+          this.publishRecorderEventRevision({
             ...navigationEvent,
             // Keep the same Timeline item while incremental polling receives
             // this newer URL for the same user action.
             hashId: existingState.hashId,
           });
-        } else if (lastActionIndex >= 0) {
-          this._recorderEvents.splice(lastActionIndex + 1, 0, navigationEvent);
         } else {
-          this._recorderEvents.push(navigationEvent);
+          this.appendRecorderLogEvent(navigationEvent);
         }
-        this._studioPreviewRecorderLastPageState = {
-          pageInfo: pageStateBefore?.pageInfo || { width: 0, height: 0 },
-          ...(pageStateBefore?.title ? { title: pageStateBefore.title } : {}),
-          url: navigation.url,
-        };
+        this.updateStudioPreviewRecorderLastPageState(
+          {
+            pageInfo: pageStateBefore?.pageInfo || { width: 0, height: 0 },
+            ...(pageStateBefore?.title ? { title: pageStateBefore.title } : {}),
+            url: navigation.url,
+          },
+          parentSequence,
+        );
       });
 
     this._recorderEventQueue = task.catch((error) => {
@@ -2595,9 +2873,9 @@ class PlaygroundServer {
   }
 
   private queueStudioPreviewRecorderEvent(
+    event: PlaygroundRecorderEvent,
     payload: Record<string, unknown>,
     snapshotBefore?: PlaygroundRecorderSnapshot,
-    agent?: PageAgent,
   ): void {
     const sessionId = this._recorderSessionId;
     if (!sessionId) {
@@ -2616,9 +2894,9 @@ class PlaygroundServer {
             return;
           }
           await this.storeStudioPreviewRecorderEvent(
+            event,
             payload,
             snapshotBefore,
-            agent,
           );
         } finally {
           this._recorderPendingCaptures = Math.max(
@@ -2633,9 +2911,73 @@ class PlaygroundServer {
     });
   }
 
+  private reserveStudioPreviewRecorderInteraction(
+    payload: Record<string, unknown>,
+    interactionStartedAt: number,
+  ): PlaygroundRecorderInteractionIdentity | undefined {
+    if (!this._recorderSessionId) {
+      return undefined;
+    }
+    const actionType =
+      typeof payload.actionType === 'string' ? payload.actionType : 'Unknown';
+    return {
+      eventId: `studio-preview-${actionType}-${interactionStartedAt}-${randomUUID()}`,
+      sequence: ++this._recorderActionSequence,
+      interactionStartedAt,
+      actionType,
+    };
+  }
+
+  private beginStudioPreviewRecorderInteraction(
+    interaction: PlaygroundRecorderInteractionIdentity | undefined,
+  ): void {
+    if (interaction) {
+      this._recorderActiveInteractions.push(interaction);
+    }
+  }
+
+  private endStudioPreviewRecorderInteraction(
+    interaction: PlaygroundRecorderInteractionIdentity | undefined,
+  ): void {
+    if (!interaction) {
+      return;
+    }
+    const index = this._recorderActiveInteractions.findIndex(
+      (candidate) => candidate.eventId === interaction.eventId,
+    );
+    if (index >= 0) {
+      this._recorderActiveInteractions.splice(index, 1);
+    }
+  }
+
+  private appendStudioPreviewRecorderEnvelope(
+    payload: Record<string, unknown>,
+    snapshotBefore: PlaygroundRecorderSnapshot | undefined,
+    interaction: PlaygroundRecorderInteractionIdentity | undefined,
+    interactionCompletedAt: number,
+  ): PlaygroundRecorderEvent | null {
+    if (!this._recorderSessionId || !interaction) {
+      return null;
+    }
+    const event = this.buildStudioPreviewRecorderEvent(
+      payload,
+      snapshotBefore?.pageState ||
+        this._studioPreviewRecorderLastPageState || {
+          pageInfo: { width: 0, height: 0 },
+        },
+      {
+        eventId: interaction.eventId,
+        sequence: interaction.sequence,
+        interactionStartedAt: interaction.interactionStartedAt,
+        interactionCompletedAt,
+        frame: snapshotBefore?.frame,
+      },
+    );
+    return event ? this.appendRecorderLogEvent(event) : null;
+  }
+
   private buildStudioPreviewInitialNavigationEvent(
     pageState: PlaygroundRecorderPageState,
-    screenshot?: string,
   ): PlaygroundRecorderEvent | null {
     if (!pageState.url) {
       return null;
@@ -2669,6 +3011,7 @@ class PlaygroundServer {
       hashId: `studio-preview-initial-navigation-${timestamp}-${Math.random()
         .toString(36)
         .slice(2, 8)}`,
+      sequence: 0,
     };
   }
 
@@ -3737,9 +4080,13 @@ class PlaygroundServer {
       // cannot delay finishing the recording.
       await this.waitForQueuedRecorderEvents();
       this.flushPendingTypeOnlyRecorderInput();
+      this._recorderFrameLease?.release();
+      this._recorderFrameLease = null;
       this._recorderSessionId = null;
+      this._recorderActiveInteractions = [];
       this._studioPreviewRecorderLastScreenshot = undefined;
       this._studioPreviewRecorderLastPageState = undefined;
+      this._studioPreviewRecorderLastPageStateSequence = 0;
       res.json({ ok: true });
     });
 
@@ -3752,8 +4099,13 @@ class PlaygroundServer {
           ? Number.parseInt(req.query.since, 10)
           : 0;
       const startIndex = Number.isFinite(since) && since > 0 ? since : 0;
+      const events = this._recorderEvents.slice(startIndex);
+      this._recorderDeliveredLogIndex = Math.max(
+        this._recorderDeliveredLogIndex,
+        this._recorderEvents.length,
+      );
       res.json({
-        events: this._recorderEvents.slice(startIndex),
+        events,
         nextIndex: this._recorderEvents.length,
       });
     });
@@ -3998,18 +4350,36 @@ class PlaygroundServer {
         });
       }
 
+      let recorderInteraction:
+        | PlaygroundRecorderInteractionIdentity
+        | undefined;
       try {
         const interactStartedAt = Date.now();
+        recorderInteraction = this.reserveStudioPreviewRecorderInteraction(
+          req.body ?? {},
+          interactStartedAt,
+        );
         debugInteract('received manual interact %o', {
           payload: summarizeInteractPayload(req.body ?? {}),
           interfaceType: agent.interface.interfaceType,
           recorderActive: Boolean(this._recorderSessionId),
           hasInputPrimitives: Boolean(agent.interface.inputPrimitives),
         });
-        const recorderSnapshotBefore =
+        let recorderSnapshotBefore =
           this.captureCachedRecorderSnapshotBeforeInteract();
+        if (
+          this._recorderSessionId &&
+          (!this._recorderFrameLease || !recorderSnapshotBefore?.frame)
+        ) {
+          // Capability fallback: capture synchronously at the interaction
+          // boundary. This intentionally trades a little input latency for a
+          // correct before-frame when no shared frame producer exists.
+          recorderSnapshotBefore =
+            await this.captureRecorderSnapshotBeforeInteract();
+        }
         const inputPrimitives = agent.interface.inputPrimitives;
         if (inputPrimitives) {
+          this.beginStudioPreviewRecorderInteraction(recorderInteraction);
           await dispatchPointer(inputPrimitives, req.body ?? {}, () =>
             agent.interface.size(),
           );
@@ -4017,12 +4387,22 @@ class PlaygroundServer {
             payload: summarizeInteractPayload(req.body ?? {}),
             elapsedMs: Date.now() - interactStartedAt,
           });
-          res.json({});
-          this.queueStudioPreviewRecorderEvent(
+          const interactionCompletedAt = Date.now();
+          const recorderEvent = this.appendStudioPreviewRecorderEnvelope(
             req.body ?? {},
             recorderSnapshotBefore,
-            agent,
+            recorderInteraction,
+            interactionCompletedAt,
           );
+          this.endStudioPreviewRecorderInteraction(recorderInteraction);
+          res.json({});
+          if (recorderEvent) {
+            this.queueStudioPreviewRecorderEvent(
+              recorderEvent,
+              req.body ?? {},
+              recorderSnapshotBefore,
+            );
+          }
           debugInteract('manual interact completed %o', {
             payload: summarizeInteractPayload(req.body ?? {}),
             elapsedMs: Date.now() - interactStartedAt,
@@ -4042,22 +4422,34 @@ class PlaygroundServer {
         }
 
         const params = buildInteractParams(actionType, req.body ?? {});
+        this.beginStudioPreviewRecorderInteraction(recorderInteraction);
         await this.runInteractAction(agent, actionType, params);
         debugInteract('actionSpace manual interact dispatched %o', {
           payload: summarizeInteractPayload(req.body ?? {}),
           elapsedMs: Date.now() - interactStartedAt,
         });
-        res.json({});
-        this.queueStudioPreviewRecorderEvent(
+        const interactionCompletedAt = Date.now();
+        const recorderEvent = this.appendStudioPreviewRecorderEnvelope(
           req.body ?? {},
           recorderSnapshotBefore,
-          agent,
+          recorderInteraction,
+          interactionCompletedAt,
         );
+        this.endStudioPreviewRecorderInteraction(recorderInteraction);
+        res.json({});
+        if (recorderEvent) {
+          this.queueStudioPreviewRecorderEvent(
+            recorderEvent,
+            req.body ?? {},
+            recorderSnapshotBefore,
+          );
+        }
         debugInteract('manual interact completed %o', {
           payload: summarizeInteractPayload(req.body ?? {}),
           elapsedMs: Date.now() - interactStartedAt,
         });
       } catch (error: unknown) {
+        this.endStudioPreviewRecorderInteraction(recorderInteraction);
         if (error instanceof PointerInputError) {
           return res.status(error.statusCode).json({ error: error.message });
         }

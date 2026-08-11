@@ -1,6 +1,12 @@
 import type { Rect } from '@midscene/core';
-import { type ModelRuntime, getModelRuntime } from '@midscene/core/ai-model';
+import {
+  type ModelRuntime,
+  getModelRuntime,
+  isNonRetryableAIRequestError,
+} from '@midscene/core/ai-model';
 import type { IModelConfig } from '@midscene/shared/env';
+import { normalizeImagesForModel } from '@midscene/shared/img';
+import { getDebug } from '@midscene/shared/logger';
 import type {
   MidsceneRecorderEvent,
   MidsceneRecorderPageInfo,
@@ -44,6 +50,9 @@ interface RecorderUIEventAIResponse {
 const RECORDER_UI_DESCRIBER_DEFAULT_RETRIES = 2;
 const RECORDER_UI_DESCRIBER_DEFAULT_RETRY_DELAY_MS = 200;
 const RECORDER_UI_DESCRIBER_DEFAULT_CONCURRENCY = 2;
+const debugRecorderImages = getDebug('playground:recorder-model-images', {
+  console: true,
+});
 
 function delay(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -451,10 +460,53 @@ async function describeWithRetry(
     Pick<DescribeRecorderUIEventOptions, 'maxRetries' | 'retryDelayMs'>
   >,
 ) {
+  const afterScreenshot = getRecorderEventAfterScreenshot(event);
+  const screenshots = [highlightedScreenshot];
+  if (afterScreenshot && afterScreenshot !== highlightedScreenshot) {
+    screenshots.push(afterScreenshot);
+  }
+  const normalized = await normalizeImagesForModel(screenshots);
+  const highlightedImage = normalized.images.find((image) => image.index === 0);
+  if (!highlightedImage) {
+    const failure = normalized.omitted.find((image) => image.index === 0);
+    throw new Error(
+      `${failure?.error.code || 'model_image_invalid'}: ${
+        failure?.error.message ||
+        'Recorder highlighted screenshot could not be normalized.'
+      }`,
+    );
+  }
+  const normalizedAfterScreenshot = normalized.images.find(
+    (image) => image.index === 1,
+  )?.imageBase64;
+  if (
+    normalized.images.some((image) => image.degradedReason) ||
+    normalized.omitted.length > 0
+  ) {
+    debugRecorderImages('recorder UI image normalization %o', {
+      eventHashId: event.hashId,
+      totalBytes: normalized.totalBytes,
+      degraded: normalized.images
+        .filter((image) => image.degradedReason)
+        .map((image) => ({
+          index: image.index,
+          originalBytes: image.originalBytes,
+          finalBytes: image.finalBytes,
+          originalSize: image.originalSize,
+          finalSize: image.finalSize,
+          reason: image.degradedReason,
+        })),
+      omitted: normalized.omitted.map((image) => ({
+        index: image.index,
+        code: image.error.code,
+        message: image.error.message,
+      })),
+    });
+  }
+
   let lastError: unknown;
   for (let attempt = 1; attempt <= options.maxRetries; attempt += 1) {
     try {
-      const afterScreenshot = getRecorderEventAfterScreenshot(event);
       const pageContext = getPageSemanticContext(event);
       const platformGuidance = getPlatformGuidance(target);
       const userContent: any[] = [
@@ -484,12 +536,12 @@ The target or region is highlighted in the screenshot below. Convert this event 
         {
           type: 'image_url',
           image_url: {
-            url: highlightedScreenshot,
+            url: highlightedImage.imageBase64,
             detail: 'high',
           },
         },
       ];
-      if (afterScreenshot) {
+      if (normalizedAfterScreenshot) {
         userContent.push(
           {
             type: 'text',
@@ -498,7 +550,7 @@ The target or region is highlighted in the screenshot below. Convert this event 
           {
             type: 'image_url',
             image_url: {
-              url: afterScreenshot,
+              url: normalizedAfterScreenshot,
               detail: 'high',
             },
           },
@@ -576,6 +628,9 @@ The target or region is highlighted in the screenshot below. Convert this event 
       };
     } catch (error) {
       lastError = error;
+      if (isNonRetryableAIRequestError(error)) {
+        throw error;
+      }
       if (attempt < options.maxRetries) {
         await delay(options.retryDelayMs);
       }

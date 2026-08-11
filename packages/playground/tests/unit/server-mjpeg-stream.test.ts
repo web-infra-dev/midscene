@@ -226,6 +226,67 @@ describe('PlaygroundServer MJPEG streaming', () => {
     }
   });
 
+  test('recorder lease reuses and keeps the preview frame producer alive', async () => {
+    const stop = vi.fn();
+    const startMjpegStream = vi.fn(async ({ onFrame }) => {
+      onFrame({
+        data: Buffer.from('shared-recorder-frame').toString('base64'),
+        contentType: 'image/jpeg',
+      });
+      return { stop };
+    });
+    const server = new PlaygroundServer({
+      interface: {
+        interfaceType: 'web',
+        actionSpace: () => [],
+        inputPrimitives: {},
+        screenshotBase64: async () => {
+          throw new Error('recorder should use the shared producer frame');
+        },
+        size: async () => ({ width: 800, height: 600 }),
+        startMjpegStream,
+      },
+    } as any);
+
+    await server.launch(6138);
+    vi.useFakeTimers();
+    try {
+      const startRecorderHandler = getRouteHandler(
+        server,
+        'post',
+        '/recorder/start',
+      );
+      const startResponse = createMockStreamResponse();
+      await startRecorderHandler(
+        { body: { sessionId: 'shared-frame-session' } },
+        startResponse,
+      );
+      expect(startResponse.body).toMatchObject({ ok: true });
+      expect(startMjpegStream).toHaveBeenCalledTimes(1);
+
+      const mjpegHandler = getRouteHandler(server, 'get', '/mjpeg');
+      const request = createMockRequest();
+      const response = createMockStreamResponse();
+      await mjpegHandler(request, response);
+      expect(startMjpegStream).toHaveBeenCalledTimes(1);
+
+      request.listeners.get('close')?.();
+      await vi.advanceTimersByTimeAsync(2000);
+      expect(stop).not.toHaveBeenCalled();
+
+      const stopRecorderHandler = getRouteHandler(
+        server,
+        'post',
+        '/recorder/stop',
+      );
+      await stopRecorderHandler({}, createMockStreamResponse());
+      await vi.advanceTimersByTimeAsync(2000);
+      expect(stop).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   test('GET /mjpeg evicts stale subscribers when a new one attaches', async () => {
     // Chromium's <img> with multipart/x-mixed-replace keeps the underlying
     // TCP connection alive even after the element is unmounted, never

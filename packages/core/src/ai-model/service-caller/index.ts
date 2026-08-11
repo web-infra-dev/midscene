@@ -124,6 +124,42 @@ function normalizeRetryCount(retryCount: unknown): number {
   return Math.max(0, Math.floor(retryCount));
 }
 
+function getAIRequestErrorSignals(error: unknown, depth = 0): string[] {
+  if (depth > 3 || !error) return [];
+  if (typeof error === 'string') return [error];
+  if (typeof error !== 'object') return [String(error)];
+  const value = error as {
+    message?: unknown;
+    code?: unknown;
+    type?: unknown;
+    status?: unknown;
+    error?: unknown;
+    cause?: unknown;
+  };
+  return [value.message, value.code, value.type, value.status]
+    .filter((signal): signal is string | number =>
+      ['string', 'number'].includes(typeof signal),
+    )
+    .map(String)
+    .concat(getAIRequestErrorSignals(value.error, depth + 1))
+    .concat(getAIRequestErrorSignals(value.cause, depth + 1));
+}
+
+/** Request-shape failures cannot recover by sending the same payload again. */
+export function isNonRetryableAIRequestError(error: unknown): boolean {
+  const signals = getAIRequestErrorSignals(error).join(' ');
+  return (
+    /\b413\b/.test(signals) ||
+    /image[_\s-]*too[_\s-]*large/i.test(signals) ||
+    /image.{0,100}(?:must be|should be|is).{0,40}(?:less than|smaller than|under).{0,20}\d+\s*(?:mb|mib|bytes?)/i.test(
+      signals,
+    ) ||
+    /(?:Range of input length|InvalidParameter.{0,80}input length)/i.test(
+      signals,
+    )
+  );
+}
+
 function appendAIRequestFailureSummary<T extends Error>(
   error: T,
   attemptErrors: Array<{ attempt: number; error: unknown }>,
@@ -824,6 +860,12 @@ export async function callAI(
           }
           // Do not retry if the request was aborted by the caller
           if (options?.abortSignal?.aborted) {
+            break;
+          }
+          if (isNonRetryableAIRequestError(lastError)) {
+            warnCall(
+              `AI call failed with a deterministic request error; skipping identical retries. Error: ${lastError.message}`,
+            );
             break;
           }
           if (attempt < maxAttempts) {

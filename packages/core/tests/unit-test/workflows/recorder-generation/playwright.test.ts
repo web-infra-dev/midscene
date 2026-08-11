@@ -21,6 +21,11 @@ vi.mock('../../../../src/ai-model/service-caller', () => ({
 }));
 
 const mockCallAiWithStringResponse = vi.mocked(callAIWithStringResponse);
+const validScreenshots = [
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAAE0lEQVR4nGP4z8DwnwGM/zMwAAAf7gP9NRsAMwAAAABJRU5ErkJggg==',
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAAD0lEQVR4nGNg+M8AQhAKABvyA/1tVLjHAAAAAElFTkSuQmCC',
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAAD0lEQVR4nGNgYPgPRmAKABf2A/1+6zfzAAAAAElFTkSuQmCC',
+];
 
 describe('playwright-generator', () => {
   beforeEach(() => {
@@ -69,6 +74,18 @@ describe('playwright-generator', () => {
       hashId: 'scroll-1',
     },
   ];
+  const modelInputEvents = mockEvents.map((event, index) => ({
+    ...event,
+    ...(event.screenshotBefore
+      ? { screenshotBefore: validScreenshots[index] }
+      : {}),
+    ...(event.screenshotAfter
+      ? { screenshotAfter: validScreenshots[index] }
+      : {}),
+    ...(event.screenshotWithBox
+      ? { screenshotWithBox: validScreenshots[index] }
+      : {}),
+  }));
 
   describe('getScreenshotsForLLM', () => {
     test('should keep screenshot context distributed across the timeline', () => {
@@ -332,7 +349,7 @@ test('Generated test', async ({ aiInput, aiAssert, aiTap, page }) => {
     } as const satisfies IModelConfig;
     test('should generate Playwright test successfully', async () => {
       const result = await generatePlaywrightTest(
-        mockEvents,
+        modelInputEvents,
         {},
         mockedModelConfig,
       );
@@ -359,7 +376,7 @@ test('Generated test', async ({ aiInput, aiAssert, aiTap, page }) => {
     });
 
     test('should accept model config for compatibility', async () => {
-      await generatePlaywrightTest(mockEvents, {}, mockedModelConfig);
+      await generatePlaywrightTest(modelInputEvents, {}, mockedModelConfig);
 
       expect(mockCallAiWithStringResponse).toHaveBeenCalledWith(
         expect.any(Array),
@@ -378,7 +395,11 @@ test('Generated test', async ({ aiInput, aiAssert, aiTap, page }) => {
         maxScreenshots: 2,
       };
 
-      await generatePlaywrightTest(mockEvents, options, mockedModelConfig);
+      await generatePlaywrightTest(
+        modelInputEvents,
+        options,
+        mockedModelConfig,
+      );
 
       const callArgs = mockCallAiWithStringResponse.mock.calls[0];
       const userMessage = callArgs[0][1];
@@ -404,7 +425,11 @@ test('Generated test', async ({ aiInput, aiAssert, aiTap, page }) => {
         maxScreenshots: 2,
       };
 
-      await generatePlaywrightTest(mockEvents, options, mockedModelConfig);
+      await generatePlaywrightTest(
+        modelInputEvents,
+        options,
+        mockedModelConfig,
+      );
 
       const callArgs = mockCallAiWithStringResponse.mock.calls[0];
       const userMessage = callArgs[0][1];
@@ -428,7 +453,7 @@ test('Generated test', async ({ aiInput, aiAssert, aiTap, page }) => {
       );
 
       await expect(
-        generatePlaywrightTest(mockEvents, {}, mockedModelConfig),
+        generatePlaywrightTest(modelInputEvents, {}, mockedModelConfig),
       ).rejects.toThrow('AI service unavailable');
     });
   });

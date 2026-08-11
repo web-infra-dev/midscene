@@ -26,6 +26,22 @@ export {
   type NormalizeScreenshotBase64Options,
 } from './transform';
 export {
+  DEFAULT_MODEL_INPUT_IMAGE_MAX_BYTES,
+  DEFAULT_MODEL_INPUT_IMAGE_MAX_LONG_EDGE,
+  DEFAULT_MODEL_INPUT_IMAGE_MIN_LONG_EDGE,
+  DEFAULT_MODEL_INPUT_IMAGE_MAX_TOTAL_BYTES,
+  normalizeImageForModel,
+  normalizeImagesForModel,
+  type ModelInputImageBatchNormalizationOptions,
+  type ModelInputImageBatchNormalizationResult,
+  type ModelInputImageDegradedReason,
+  type ModelInputImageNormalizationDetails,
+  type ModelInputImageNormalizationFailure,
+  type ModelInputImageNormalizationOptions,
+  type ModelInputImageNormalizationResult,
+  type ModelInputImageNormalizationSuccess,
+} from './model-input';
+export {
   processImageElementInfo,
   compositeElementInfoImg,
   compositePointMarkerImg,

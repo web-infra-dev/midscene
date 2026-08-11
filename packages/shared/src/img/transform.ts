@@ -44,6 +44,7 @@ export async function resizeAndConvertImgBuffer(
     width: number;
     height: number;
   },
+  jpegQuality = 90,
 ): Promise<{
   buffer: Buffer;
   // jpg, png, etc.
@@ -78,7 +79,7 @@ export async function resizeAndConvertImgBuffer(
 
     const resizedBuffer = await Sharp(inputData)
       .resize(newSize.width, newSize.height)
-      .jpeg({ quality: 90 })
+      .jpeg({ quality: jpegQuality })
       .toBuffer();
 
     const resizeEndTime = Date.now();
@@ -126,7 +127,7 @@ export async function resizeAndConvertImgBuffer(
     SamplingFilter.CatmullRom,
   );
 
-  const outputBytes = outputImage.get_bytes_jpeg(90);
+  const outputBytes = outputImage.get_bytes_jpeg(jpegQuality);
   const resizedBuffer = Buffer.from(outputBytes);
 
   // Free memory

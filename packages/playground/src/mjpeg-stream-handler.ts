@@ -3,6 +3,7 @@ import type { Agent as PageAgent } from '@midscene/core/agent';
 import { getDebug } from '@midscene/shared/logger';
 import type { Request, Response } from 'express';
 import {
+  type InterfaceMjpegFrameLease,
   type InterfaceMjpegHub,
   createInterfaceMjpegHub,
   writeMjpegFrame,
@@ -21,6 +22,22 @@ const MAX_ERROR_BACKOFF_MS = 3000;
 const ERROR_LOG_THRESHOLD = 3;
 
 type ActiveInterface = PageAgent['interface'];
+
+export interface RecorderFrameSnapshot {
+  screenshot: string;
+  capturedAt: number;
+  frameToken: string;
+  source: 'shared-frame-stream' | 'screenshot-fallback';
+}
+
+export interface RecorderFrameLease {
+  latest(): RecorderFrameSnapshot | undefined;
+  waitForFrameAfter(
+    capturedAt: number,
+    timeoutMs: number,
+  ): Promise<RecorderFrameSnapshot | undefined>;
+  release(): void;
+}
 
 function toMjpegFrameDataUrl(data: string, contentType?: string) {
   if (data.startsWith('data:')) {
@@ -69,7 +86,7 @@ export interface MjpegStreamSource {
 export class MjpegStreamHandler {
   private nativeAvailable: boolean | null = null;
   private nativeFailedAt: number | null = null;
-  private lastPollingFrame?: string;
+  private lastPollingFrame?: RecorderFrameSnapshot;
   private readonly interfaceMjpegHub: InterfaceMjpegHub =
     createInterfaceMjpegHub({
       initialFrameTimeoutMs: INTERFACE_MJPEG_INITIAL_FRAME_TIMEOUT_MS,
@@ -92,16 +109,49 @@ export class MjpegStreamHandler {
   }
 
   getLastFrameBase64(): string | undefined {
+    return this.getLastFrameSnapshot()?.screenshot;
+  }
+
+  getLastFrameSnapshot(): RecorderFrameSnapshot | undefined {
     const interfaceFrame = this.interfaceMjpegHub.getLastFrame();
     if (interfaceFrame) {
-      return toMjpegFrameDataUrl(
-        interfaceFrame.data,
-        interfaceFrame.contentType,
-      );
+      return {
+        screenshot: toMjpegFrameDataUrl(
+          interfaceFrame.data,
+          interfaceFrame.contentType,
+        ),
+        capturedAt: interfaceFrame.capturedAt,
+        frameToken: interfaceFrame.frameToken,
+        source: 'shared-frame-stream',
+      };
     }
-    return this.lastPollingFrame
-      ? toMjpegFrameDataUrl(this.lastPollingFrame)
-      : undefined;
+    return this.lastPollingFrame;
+  }
+
+  acquireFrameLease(): RecorderFrameLease | null {
+    const activeInterface = this.source.getActiveInterface();
+    if (!activeInterface) return null;
+    const lease = this.interfaceMjpegHub.acquireFrameLease(activeInterface);
+    if (!lease) return null;
+    return this.wrapFrameLease(lease);
+  }
+
+  private wrapFrameLease(lease: InterfaceMjpegFrameLease): RecorderFrameLease {
+    const convert = (frame: ReturnType<InterfaceMjpegFrameLease['latest']>) =>
+      frame
+        ? {
+            screenshot: toMjpegFrameDataUrl(frame.data, frame.contentType),
+            capturedAt: frame.capturedAt,
+            frameToken: frame.frameToken,
+            source: 'shared-frame-stream' as const,
+          }
+        : undefined;
+    return {
+      latest: () => convert(lease.latest()),
+      waitForFrameAfter: async (capturedAt, timeoutMs) =>
+        convert(await lease.waitForFrameAfter(capturedAt, timeoutMs)),
+      release: () => lease.release(),
+    };
   }
 
   async serve(req: Request, res: Response): Promise<void> {
@@ -259,7 +309,13 @@ export class MjpegStreamHandler {
         const base64 = await this.source.takeScreenshot();
         if (stopped) break;
         consecutiveErrors = 0;
-        this.lastPollingFrame = base64;
+        const capturedAt = Date.now();
+        this.lastPollingFrame = {
+          screenshot: toMjpegFrameDataUrl(base64),
+          capturedAt,
+          frameToken: `polling-${capturedAt}`,
+          source: 'shared-frame-stream',
+        };
 
         writeMjpegFrame(res, boundary, {
           data: base64,

@@ -17,7 +17,10 @@ rs.mock('../../src/recorder-ai-service', () => ({
 
 rs.mock('@midscene/shared/img', () => ({
   ...sharedImgActual,
-  compositeElementInfoImg: rs.fn(() => 'data:image/png;base64,boxed'),
+  compositeElementInfoImg: rs.fn(
+    () =>
+      'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAAE0lEQVR4nGP4z8DwnwGM/zMwAAAf7gP9NRsAMwAAAABJRU5ErkJggg==',
+  ),
 }));
 
 const modelConfig = {
@@ -202,6 +205,35 @@ describe('recorder-ui-describer', () => {
       error: 'AI returned a weak recorder event description.',
       elementDescription: 'control in Semi Design Form',
     });
+  });
+
+  it('does not retry a deterministic image_too_large recorder request', async () => {
+    vi.mocked(callAIWithObjectResponse).mockRejectedValue(
+      Object.assign(new Error('image_too_large: image must be under 10MB'), {
+        code: 'image_too_large',
+        status: 400,
+      }),
+    );
+
+    const result = await describeRecorderUIEvent(
+      {
+        event: {
+          type: 'click',
+          source: 'studio-preview',
+          timestamp: 1000,
+          hashId: 'click-image-too-large',
+          pageInfo: { width: 1280, height: 720 },
+          elementRect: { x: 537, y: 450 },
+          screenshotWithBox: screenshot,
+        },
+      },
+      modelConfig,
+      { maxRetries: 3, retryDelayMs: 0 },
+    );
+
+    expect(result.usedFallback).toBe(true);
+    expect(result.error).toContain('image_too_large');
+    expect(callAIWithObjectResponse).toHaveBeenCalledTimes(1);
   });
 
   it.each([

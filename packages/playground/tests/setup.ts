@@ -144,11 +144,35 @@ rs.mock('fs', () => {
 
 // Also mock 'node:fs' since some imports use the new node: protocol
 rs.mock('node:fs', () => {
+  const files = new Map<string, string | Buffer>();
+  const isRecorderAssetPath = (filePath: unknown) =>
+    String(filePath).includes('recorder-screenshots');
   const mockFs = {
-    existsSync: rs.fn(() => true),
-    readFileSync: rs.fn(() => '{}'),
-    writeFileSync: rs.fn(),
+    existsSync: rs.fn((filePath: unknown) =>
+      isRecorderAssetPath(filePath) ? files.has(String(filePath)) : true,
+    ),
+    readFileSync: rs.fn((filePath: unknown) => {
+      const value = files.get(String(filePath));
+      return value === undefined ? '{}' : value;
+    }),
+    writeFileSync: rs.fn((filePath: unknown, data: string | Buffer) => {
+      files.set(
+        String(filePath),
+        Buffer.isBuffer(data) ? Buffer.from(data) : data,
+      );
+    }),
     mkdirSync: rs.fn(),
+    readdirSync: rs.fn(() => []),
+    rmSync: rs.fn((filePath: unknown) => {
+      files.delete(String(filePath));
+    }),
+    statSync: rs.fn((filePath: unknown) => ({
+      size:
+        typeof files.get(String(filePath)) === 'string'
+          ? Buffer.byteLength(files.get(String(filePath)) as string)
+          : (files.get(String(filePath)) as Buffer | undefined)?.byteLength ||
+            0,
+    })),
     createReadStream: rs.fn(),
     createWriteStream: rs.fn(() => ({
       write: rs.fn(),

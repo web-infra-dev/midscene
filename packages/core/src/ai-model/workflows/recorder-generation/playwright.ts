@@ -20,6 +20,7 @@ import {
   filterEventsByType,
   getScreenshotsForLLM,
   prepareEventSummary,
+  prepareRecorderModelInputImages,
   processEventsForLLM,
   validateEvents,
 } from './common';
@@ -89,7 +90,10 @@ export const generatePlaywrightTest = async (
   };
 
   // Get screenshots for visual context
-  const screenshots = getScreenshotsForLLM(events, options.maxScreenshots || 3);
+  const screenshots = await prepareRecorderModelInputImages(
+    getScreenshotsForLLM(events, options.maxScreenshots || 3),
+    { context: 'recorder Playwright generation' },
+  );
 
   // Create prompt text
   const promptText = `Generate a Playwright test using @midscene/web/playwright that reproduces this recorded browser session. The test should be based on the following events and follow the structure of the example provided. Make the test descriptive with appropriate assertions and validations.
@@ -170,7 +174,10 @@ export const generatePlaywrightTestStream = async (
   };
 
   // Get screenshots for visual context
-  const screenshots = getScreenshotsForLLM(events, options.maxScreenshots || 3);
+  const screenshots = await prepareRecorderModelInputImages(
+    getScreenshotsForLLM(events, options.maxScreenshots || 3),
+    { context: 'recorder Playwright generation' },
+  );
 
   // Create prompt text
   const promptText = `Generate a Playwright test using @midscene/web/playwright that reproduces this recorded browser session. The test should be based on the following events and follow the structure of the example provided. Make the test descriptive with appropriate assertions and validations.

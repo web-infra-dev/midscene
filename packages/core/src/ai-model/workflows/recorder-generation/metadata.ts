@@ -8,7 +8,10 @@ import {
 } from '@midscene/shared/recorder';
 import { getModelRuntime } from '../../models';
 import { callAIWithObjectResponse } from '../../service-caller';
-import { compactRecorderSemanticForGeneration } from './common';
+import {
+  compactRecorderSemanticForGeneration,
+  prepareRecorderModelInputImages,
+} from './common';
 
 export interface RecorderMetadataGenerationInput {
   target: MidsceneRecorderTarget;
@@ -82,9 +85,12 @@ export async function generateRecorderSessionMetadata(
   }
 
   const summary = summarizeRecorderEvents(input);
-  const screenshots = getMidsceneRecorderScreenshotsForLLM(
-    input.events,
-    input.maxScreenshots ?? 1,
+  const screenshots = await prepareRecorderModelInputImages(
+    getMidsceneRecorderScreenshotsForLLM(
+      input.events,
+      input.maxScreenshots ?? 1,
+    ),
+    { context: 'recorder metadata' },
   );
   const messageContent: any[] = [
     {

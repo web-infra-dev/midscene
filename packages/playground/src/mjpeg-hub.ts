@@ -12,13 +12,21 @@ const noopDebug: DebugFunction = () => {};
 
 type ActiveInterface = PageAgent['interface'];
 
-type Subscriber = (frame: MjpegStreamFrame) => void;
+export interface TimestampedMjpegStreamFrame extends MjpegStreamFrame {
+  capturedAt: number;
+  frameToken: string;
+}
+
+type Subscriber = (frame: TimestampedMjpegStreamFrame) => void;
 
 interface InternalProducer {
   source: ActiveInterface;
   controller: AbortController;
   handle?: MjpegStreamHandle;
-  lastFrame?: MjpegStreamFrame;
+  lastFrame?: TimestampedMjpegStreamFrame;
+  frameSequence: number;
+  leaseCount: number;
+  frameListeners: Set<Subscriber>;
   startupError?: unknown;
   firstFrameReady: Promise<boolean>;
   subscribers: Set<Subscriber>;
@@ -34,6 +42,15 @@ export interface InterfaceMjpegHubOptions {
   idleStopMs: number;
   /** Optional debug logger for hub internals. Defaults to a no-op. */
   debug?: DebugFunction;
+}
+
+export interface InterfaceMjpegFrameLease {
+  latest(): TimestampedMjpegStreamFrame | undefined;
+  waitForFrameAfter(
+    capturedAt: number,
+    timeoutMs: number,
+  ): Promise<TimestampedMjpegStreamFrame | undefined>;
+  release(): void;
 }
 
 /**
@@ -156,8 +173,62 @@ export class InterfaceMjpegHub {
     this.stopProducerInternal(producer);
   }
 
-  getLastFrame(): MjpegStreamFrame | undefined {
+  getLastFrame(): TimestampedMjpegStreamFrame | undefined {
     return this.producer?.lastFrame;
+  }
+
+  acquireFrameLease(
+    activeInterface: ActiveInterface,
+  ): InterfaceMjpegFrameLease | null {
+    const producer = this.getOrCreateProducer(activeInterface);
+    if (!producer) return null;
+    producer.leaseCount += 1;
+    if (producer.stopTimer) {
+      clearTimeout(producer.stopTimer);
+      producer.stopTimer = undefined;
+    }
+    let released = false;
+    const latest = () =>
+      !released && this.producer === producer ? producer.lastFrame : undefined;
+    return {
+      latest,
+      waitForFrameAfter: (capturedAt, timeoutMs) => {
+        const current = latest();
+        if (current && current.capturedAt >= capturedAt) {
+          return Promise.resolve(current);
+        }
+        return new Promise((resolve) => {
+          let settled = false;
+          const finish = (frame?: TimestampedMjpegStreamFrame) => {
+            if (settled) return;
+            settled = true;
+            clearTimeout(timer);
+            producer.frameListeners.delete(onFrame);
+            resolve(frame);
+          };
+          const onFrame: Subscriber = (frame) => {
+            if (frame.capturedAt >= capturedAt) {
+              finish(frame);
+            }
+          };
+          const timer = setTimeout(() => finish(), Math.max(0, timeoutMs));
+          producer.frameListeners.add(onFrame);
+          const latestAfterSubscribe = latest();
+          if (
+            latestAfterSubscribe &&
+            latestAfterSubscribe.capturedAt >= capturedAt
+          ) {
+            finish(latestAfterSubscribe);
+          }
+        });
+      },
+      release: () => {
+        if (released) return;
+        released = true;
+        producer.leaseCount = Math.max(0, producer.leaseCount - 1);
+        this.scheduleProducerStopIfIdle(producer);
+      },
+    };
   }
 
   private async streamRequestInternal(
@@ -271,7 +342,10 @@ export class InterfaceMjpegHub {
     );
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.setHeader('Connection', 'keep-alive');
-    this.flushInitialFrame(subscriber, producer.lastFrame as MjpegStreamFrame);
+    this.flushInitialFrame(
+      subscriber,
+      producer.lastFrame as TimestampedMjpegStreamFrame,
+    );
 
     this.debug('streaming via shared interface frame producer');
   }
@@ -300,7 +374,7 @@ export class InterfaceMjpegHub {
    */
   private flushInitialFrame(
     subscriber: Subscriber,
-    lastFrame: MjpegStreamFrame,
+    lastFrame: TimestampedMjpegStreamFrame,
   ): void {
     subscriber(lastFrame);
     subscriber(lastFrame);
@@ -349,6 +423,9 @@ export class InterfaceMjpegHub {
       firstFrameReady: initialFrameReady,
       subscribers: new Set(),
       responses: new Map(),
+      frameSequence: 0,
+      leaseCount: 0,
+      frameListeners: new Set(),
     };
     this.producer = producer;
 
@@ -359,10 +436,19 @@ export class InterfaceMjpegHub {
             signal: controller.signal,
             onFrame: (frame) => {
               if (controller.signal.aborted) return;
-              producer.lastFrame = frame;
+              const capturedAt = Date.now();
+              const timestampedFrame: TimestampedMjpegStreamFrame = {
+                ...frame,
+                capturedAt,
+                frameToken: `mjpeg-${capturedAt}-${++producer.frameSequence}`,
+              };
+              producer.lastFrame = timestampedFrame;
               resolveInitialFrameOnce(true);
               for (const subscriber of producer.subscribers) {
-                subscriber(frame);
+                subscriber(timestampedFrame);
+              }
+              for (const listener of producer.frameListeners) {
+                listener(timestampedFrame);
               }
             },
             onError: (error) => {
@@ -401,6 +487,7 @@ export class InterfaceMjpegHub {
     }
     producer.responses.clear();
     producer.subscribers.clear();
+    producer.frameListeners.clear();
     producer.controller.abort();
     Promise.resolve(producer.handle?.stop?.()).catch((error) => {
       this.debug('interface stream stop failed: %s', error);
@@ -416,10 +503,20 @@ export class InterfaceMjpegHub {
   ): void {
     producer.subscribers.delete(subscriber);
     producer.responses.delete(subscriber);
-    if (producer.subscribers.size > 0 || producer.stopTimer) return;
+    this.scheduleProducerStopIfIdle(producer);
+  }
+
+  private scheduleProducerStopIfIdle(producer: InternalProducer): void {
+    if (
+      producer.subscribers.size > 0 ||
+      producer.leaseCount > 0 ||
+      producer.stopTimer
+    ) {
+      return;
+    }
     producer.stopTimer = setTimeout(() => {
       producer.stopTimer = undefined;
-      if (producer.subscribers.size === 0) {
+      if (producer.subscribers.size === 0 && producer.leaseCount === 0) {
         this.stopProducerInternal(producer);
       }
     }, this.opts.idleStopMs);

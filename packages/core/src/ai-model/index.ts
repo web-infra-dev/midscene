@@ -3,6 +3,7 @@ export {
   callAIWithStringResponse,
   callAIWithObjectResponse,
   callAI,
+  isNonRetryableAIRequestError,
 } from './service-caller/index';
 export { getModelRuntime, type ModelRuntime } from './models';
 export {

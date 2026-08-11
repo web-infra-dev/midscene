@@ -1,4 +1,9 @@
 import {
+  type ModelInputImageBatchNormalizationOptions,
+  normalizeImagesForModel,
+} from '@midscene/shared/img';
+import { getDebug } from '@midscene/shared/logger';
+import {
   DEFAULT_MIDSCENE_RECORDER_MARKDOWN_MAX_SCREENSHOTS,
   type MidsceneRecorderEvent,
   type MidsceneRecorderMarkdownScreenshotAsset,
@@ -8,6 +13,10 @@ import {
   getMidsceneRecorderEventDescription,
   getMidsceneRecorderSemantic,
 } from '@midscene/shared/recorder';
+
+const debugRecorderModelImages = getDebug('ai:recorder-model-images', {
+  console: true,
+});
 
 export interface EventCounts {
   navigation: number;
@@ -62,6 +71,56 @@ export interface RecorderGenerationContext {
 }
 
 export type ChromeRecordedEvent = MidsceneRecorderEvent;
+
+export async function prepareRecorderModelInputImageEntries(
+  screenshots: string[],
+  options: ModelInputImageBatchNormalizationOptions & {
+    context?: string;
+  } = {},
+) {
+  const { context = 'recorder generation', ...normalizationOptions } = options;
+  const result = await normalizeImagesForModel(
+    screenshots,
+    normalizationOptions,
+  );
+  const degraded = result.images.filter((image) => image.degradedReason);
+  if (degraded.length > 0 || result.omitted.length > 0) {
+    debugRecorderModelImages('%s image normalization %o', context, {
+      inputCount: screenshots.length,
+      outputCount: result.images.length,
+      totalBytes: result.totalBytes,
+      degraded: degraded.map((image) => ({
+        index: image.index,
+        originalBytes: image.originalBytes,
+        finalBytes: image.finalBytes,
+        originalSize: image.originalSize,
+        finalSize: image.finalSize,
+        reason: image.degradedReason,
+      })),
+      omitted: result.omitted.map((image) => ({
+        index: image.index,
+        code: image.error.code,
+        message: image.error.message,
+        originalBytes: image.originalBytes,
+        attemptedBytes: image.attemptedBytes,
+      })),
+    });
+  }
+  return result.images;
+}
+
+export async function prepareRecorderModelInputImages(
+  screenshots: string[],
+  options: ModelInputImageBatchNormalizationOptions & {
+    context?: string;
+  } = {},
+) {
+  const images = await prepareRecorderModelInputImageEntries(
+    screenshots,
+    options,
+  );
+  return images.map((image) => image.imageBase64);
+}
 
 const MAX_RECORDER_GENERATION_SEMANTIC_TEXT_LENGTH = 1200;
 const MAX_RECORDER_GENERATION_SEMANTIC_ERROR_LENGTH = 400;
