@@ -526,6 +526,60 @@ describe('AndroidDevice', () => {
     });
   });
 
+  describe('setClipboardText', () => {
+    it('should write the clipboard through yadb', async () => {
+      await device.setClipboardText('https://example.com/j/123');
+
+      expect(mockAdb.push).toHaveBeenCalled();
+      expect(mockAdb.shell).toHaveBeenCalledWith(
+        "app_process -Djava.class.path=/data/local/tmp/yadb /data/local/tmp com.ysbing.yadb.Main -writeClipboard 'https://example.com/j/123'",
+      );
+    });
+
+    it('should escape quotes and newlines the same way as yadb keyboard input', async () => {
+      await device.setClipboardText("it's\ntwo lines");
+
+      expect(mockAdb.shell).toHaveBeenCalledWith(
+        expect.stringContaining("-writeClipboard 'it'\\''s\\ntwo lines'"),
+      );
+    });
+  });
+
+  describe('clipboard action space', () => {
+    it('should expose both clipboard actions', () => {
+      const actionNames = device.actionSpace().map((action) => action.name);
+      expect(actionNames).toContain('AndroidGetClipboard');
+      expect(actionNames).toContain('AndroidSetClipboard');
+    });
+
+    it('should read the clipboard through AndroidGetClipboard', async () => {
+      mockAdb.shell.mockResolvedValue(
+        'mPrimaryClip: ClipData { text/plain "from-action-space" }',
+      );
+
+      const action = device
+        .actionSpace()
+        .find((candidate) => candidate.name === 'AndroidGetClipboard');
+      expect(action).toBeDefined();
+
+      await expect(action!.call(undefined as never)).resolves.toBe(
+        'from-action-space',
+      );
+    });
+
+    it('should write the clipboard through AndroidSetClipboard', async () => {
+      const action = device
+        .actionSpace()
+        .find((candidate) => candidate.name === 'AndroidSetClipboard');
+      expect(action).toBeDefined();
+
+      await action!.call({ text: 'written-via-action' } as never);
+      expect(mockAdb.shell).toHaveBeenCalledWith(
+        expect.stringContaining("-writeClipboard 'written-via-action'"),
+      );
+    });
+  });
+
   // Cross-platform contract for https://github.com/web-infra-dev/midscene/issues/2313:
   // Launch/Terminate on every mobile platform must expose the SAME `uri` field.
   // The shared tool-generator already rejects non-object schemas, but a future

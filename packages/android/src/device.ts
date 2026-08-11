@@ -1448,6 +1448,28 @@ ${Object.keys(size)
     return '';
   }
 
+  /**
+   * Write plain text to the system clipboard via yadb's `-writeClipboard`, which
+   * goes through the platform `IClipboard` binder.
+   *
+   * Unlike reading, there is no `dumpsys` equivalent for writing and no public
+   * `cmd clipboard set` on stock Android, so yadb -- already required here for IME
+   * input and forced screenshots -- is the mechanism. Text is escaped the same way
+   * as yadb keyboard input, so quotes and newlines survive transport.
+   */
+  async setClipboardText(text: string): Promise<void> {
+    this.warnYadbOnNonDefaultDisplay('clipboard write');
+    await this.ensureYadb();
+
+    const adb = await this.getAdb();
+    await adb.shell(
+      // `app_process` (ART launcher) does not accept the `-d <displayId>` flag.
+      `app_process -Djava.class.path=/data/local/tmp/yadb /data/local/tmp com.ysbing.yadb.Main -writeClipboard '${escapeForShell(
+        text,
+      )}'`,
+    );
+  }
+
   async clearInput(element?: ElementInfo): Promise<void> {
     if (element) {
       await this.tapPoint({ x: element.center[0], y: element.center[1] });
@@ -2420,12 +2442,28 @@ export type DeviceActionRunAdbShell = DeviceAction<RunAdbShellParam, string>;
 export type DeviceActionLaunch = DeviceAction<LaunchParam, void>;
 export type DeviceActionTerminate = DeviceAction<TerminateParam, void>;
 
+const setClipboardParamSchema = z.object({
+  text: z
+    .string()
+    .describe('Plain text to write to the Android system clipboard'),
+});
+
+type SetClipboardParam = z.infer<typeof setClipboardParamSchema>;
+
+export type DeviceActionAndroidGetClipboard = DeviceAction<undefined, string>;
+export type DeviceActionAndroidSetClipboard = DeviceAction<
+  SetClipboardParam,
+  void
+>;
+
 const createPlatformActions = (
   device: AndroidDevice,
 ): {
   RunAdbShell: DeviceActionRunAdbShell;
   Launch: DeviceActionLaunch;
   Terminate: DeviceActionTerminate;
+  AndroidGetClipboard: DeviceActionAndroidGetClipboard;
+  AndroidSetClipboard: DeviceActionAndroidSetClipboard;
 } => {
   return {
     RunAdbShell: defineAction<
@@ -2486,6 +2524,32 @@ const createPlatformActions = (
           throw new Error('Terminate requires a non-empty uri parameter');
         }
         await device.terminate(param.uri);
+      },
+    }),
+    AndroidGetClipboard: defineAction<undefined, undefined, string>({
+      name: 'AndroidGetClipboard',
+      description:
+        'Read the Android system clipboard and return its text. Use this to obtain a value that an app only exposes through a native "Copy" action -- e.g. a share sheet\'s "Copy Link" -- and that is therefore not rendered anywhere on screen.',
+      interfaceAlias: 'getClipboardText',
+      call: async () => {
+        return await device.getClipboardText();
+      },
+    }),
+    AndroidSetClipboard: defineAction<
+      typeof setClipboardParamSchema,
+      SetClipboardParam,
+      void
+    >({
+      name: 'AndroidSetClipboard',
+      description:
+        'Write plain text to the Android system clipboard so it can be pasted into an app.',
+      interfaceAlias: 'setClipboardText',
+      paramSchema: setClipboardParamSchema,
+      sample: {
+        text: 'https://example.com/invite/abc123',
+      },
+      call: async (param) => {
+        await device.setClipboardText(param.text);
       },
     }),
   } as const;
