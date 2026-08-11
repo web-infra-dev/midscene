@@ -1109,6 +1109,14 @@ type TerminateParam = z.infer<typeof terminateParamSchema>;
 
 export type DeviceActionTerminate = DeviceAction<TerminateParam, void>;
 
+const setClipboardParamSchema = z.object({
+  text: z
+    .string()
+    .describe('Plain text to write to the iOS system pasteboard (clipboard)'),
+});
+
+type SetClipboardParam = z.infer<typeof setClipboardParamSchema>;
+
 /**
  * Platform-specific action definitions for iOS
  * Single source of truth for both runtime behavior and type definitions
@@ -1180,9 +1188,39 @@ const createPlatformActions = (device: IOSDevice) => {
         await device.appSwitcher();
       },
     }),
+    IOSGetClipboard: defineAction<undefined, undefined, string>({
+      name: 'IOSGetClipboard',
+      description:
+        'Read the iOS system pasteboard (clipboard) and return its text. Use this to obtain a value that an app only exposes through a native "Copy" action -- e.g. a share sheet\'s "Copy Link" -- and that is therefore not rendered anywhere on screen.',
+      interfaceAlias: 'getClipboardText',
+      call: async () => {
+        return await device.getClipboardText();
+      },
+    }),
+    IOSSetClipboard: defineAction<
+      typeof setClipboardParamSchema,
+      SetClipboardParam,
+      void
+    >({
+      name: 'IOSSetClipboard',
+      description:
+        'Write plain text to the iOS system pasteboard (clipboard) so it can be pasted into an app.',
+      interfaceAlias: 'setClipboardText',
+      paramSchema: setClipboardParamSchema,
+      sample: {
+        text: 'https://example.com/invite/abc123',
+      },
+      call: async (param) => {
+        await device.setClipboardText(param.text);
+      },
+    }),
   } as const;
 };
 
 export type DeviceActionIOSHomeButton = DeviceAction<undefined, void>;
 
 export type DeviceActionIOSAppSwitcher = DeviceAction<undefined, void>;
+
+export type DeviceActionIOSGetClipboard = DeviceAction<undefined, string>;
+
+export type DeviceActionIOSSetClipboard = DeviceAction<SetClipboardParam, void>;

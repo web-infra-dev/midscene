@@ -430,6 +430,33 @@ describe('IOSDevice', () => {
       expect(mockWdaClient.setPasteboard).toHaveBeenCalledWith('new-text');
     });
 
+    it('should expose IOSGetClipboard in the action space and return its text', async () => {
+      await device.connect();
+
+      const action = device
+        .actionSpace()
+        .find((candidate) => candidate.name === 'IOSGetClipboard');
+      expect(action).toBeDefined();
+
+      const text = await action!.call(undefined as never);
+      expect(mockWdaClient.getPasteboard).toHaveBeenCalled();
+      expect(text).toBe('clipboard-text');
+    });
+
+    it('should expose IOSSetClipboard in the action space and forward its text', async () => {
+      await device.connect();
+
+      const action = device
+        .actionSpace()
+        .find((candidate) => candidate.name === 'IOSSetClipboard');
+      expect(action).toBeDefined();
+
+      await action!.call({ text: 'from-action-space' } as never);
+      expect(mockWdaClient.setPasteboard).toHaveBeenCalledWith(
+        'from-action-space',
+      );
+    });
+
     it('should handle keyboard dismissal', async () => {
       await device.connect();
 
