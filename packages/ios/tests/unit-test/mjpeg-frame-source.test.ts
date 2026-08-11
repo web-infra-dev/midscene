@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 import { IOSDevice } from '../../src/device';
 import {
   MjpegFrameSource,
@@ -93,7 +93,7 @@ describe('IOSDevice MJPEG frame source opt-in', () => {
       wdaMjpegPort: 9123,
       wdaMjpegFrameSource: { enabled: true },
     });
-    const stop = vi.fn();
+    const stop = rs.fn();
     const fakeMjpeg = {
       getLatest: () => ({
         base64: 'data:image/jpeg;base64,FRAME',
@@ -101,7 +101,7 @@ describe('IOSDevice MJPEG frame source opt-in', () => {
       }),
       stop,
     };
-    (device as any).ensureMjpegFrameSource = vi
+    (device as any).ensureMjpegFrameSource = rs
       .fn()
       .mockImplementation(async () => {
         (device as any).mjpegFrameSource = fakeMjpeg;

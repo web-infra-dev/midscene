@@ -1,24 +1,24 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 import { LIBNUT_FALLBACK_EDGE_DETENTS } from '../../src/device';
 import { ComputerInputDriver, type LibNut } from '../../src/input-driver';
 
-function makeDriver(scrollMouse = vi.fn()) {
+function makeDriver(scrollMouse = rs.fn()) {
   const lib: LibNut = {
     getScreenSize: () => ({ width: 1, height: 1 }),
     getMousePos: () => ({ x: 0, y: 0 }),
-    moveMouse: vi.fn(),
-    mouseClick: vi.fn(),
-    mouseToggle: vi.fn(),
+    moveMouse: rs.fn(),
+    mouseClick: rs.fn(),
+    mouseToggle: rs.fn(),
     scrollMouse,
-    keyTap: vi.fn(),
-    typeString: vi.fn(),
+    keyTap: rs.fn(),
+    typeString: rs.fn(),
   };
   const driver = new ComputerInputDriver({
     getLibnut: () => lib,
     useAppleScript: () => false,
-    sendKeyViaAppleScript: vi.fn(),
-    runPhasedScroll: vi.fn().mockReturnValue(false),
-    debug: vi.fn(),
+    sendKeyViaAppleScript: rs.fn(),
+    runPhasedScroll: rs.fn().mockReturnValue(false),
+    debug: rs.fn(),
   });
   return { driver, scrollMouse };
 }
@@ -34,7 +34,7 @@ describe('ComputerInputDriver.emitScrollDetents', () => {
   });
 
   it('paces calls with the requested delay between them', async () => {
-    vi.useFakeTimers();
+    rs.useFakeTimers();
     try {
       const { driver, scrollMouse } = makeDriver();
       const promise = driver.emitScrollDetents(0, -120, 3, 50);
@@ -42,10 +42,10 @@ describe('ComputerInputDriver.emitScrollDetents', () => {
       // First call fires synchronously before any delay.
       expect(scrollMouse).toHaveBeenCalledTimes(1);
 
-      await vi.advanceTimersByTimeAsync(50);
+      await rs.advanceTimersByTimeAsync(50);
       expect(scrollMouse).toHaveBeenCalledTimes(2);
 
-      await vi.advanceTimersByTimeAsync(50);
+      await rs.advanceTimersByTimeAsync(50);
       expect(scrollMouse).toHaveBeenCalledTimes(3);
 
       // No trailing delay after the last detent — the resolution scheduler
@@ -53,7 +53,7 @@ describe('ComputerInputDriver.emitScrollDetents', () => {
       await promise;
       expect(scrollMouse).toHaveBeenCalledTimes(3);
     } finally {
-      vi.useRealTimers();
+      rs.useRealTimers();
     }
   });
 
@@ -77,7 +77,7 @@ describe('ComputerInputDriver.emitScrollDetents', () => {
   });
 
   it('rejects in-flight detents when the driver is destroyed mid-scroll', async () => {
-    vi.useFakeTimers();
+    rs.useFakeTimers();
     try {
       const { driver, scrollMouse } = makeDriver();
       const promise = driver.emitScrollDetents(0, -120, 5, 50);
@@ -86,10 +86,10 @@ describe('ComputerInputDriver.emitScrollDetents', () => {
       driver.destroy();
       await expect(promise).rejects.toThrow(/destroyed/);
       // No further calls after destroy().
-      await vi.advanceTimersByTimeAsync(500);
+      await rs.advanceTimersByTimeAsync(500);
       expect(scrollMouse).toHaveBeenCalledTimes(1);
     } finally {
-      vi.useRealTimers();
+      rs.useRealTimers();
     }
   });
 });

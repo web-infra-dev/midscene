@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 import { ComputerDevice } from '../../src';
 
 describe('Input Strategy', () => {
@@ -23,10 +23,10 @@ describe('Input Strategy', () => {
       keyboardTypeDelay: 80,
     });
     const inputDriver = (device as any).inputDriver;
-    const typeString = vi
+    const typeString = rs
       .spyOn(inputDriver, 'typeString')
       .mockImplementation(() => {});
-    const delay = vi.spyOn(inputDriver, 'delay').mockResolvedValue(undefined);
+    const delay = rs.spyOn(inputDriver, 'delay').mockResolvedValue(undefined);
 
     await device.inputPrimitives.keyboard!.typeText('A😀B');
 
@@ -40,13 +40,13 @@ describe('Input Strategy', () => {
       keyboardTypeDelay: 25,
     });
     const inputDriver = (device as any).inputDriver;
-    const typeString = vi
+    const typeString = rs
       .spyOn(inputDriver, 'typeString')
       .mockImplementation(() => {});
-    const sendKey = vi
+    const sendKey = rs
       .spyOn(inputDriver, 'sendKey')
       .mockImplementation(() => {});
-    vi.spyOn(inputDriver, 'delay').mockResolvedValue(undefined);
+    rs.spyOn(inputDriver, 'delay').mockResolvedValue(undefined);
 
     await device.inputPrimitives.keyboard!.typeText('a \r\n\tb');
 
@@ -56,7 +56,7 @@ describe('Input Strategy', () => {
 
   it('lets an action-level zero disable the device delay', async () => {
     const device = new ComputerDevice({ keyboardTypeDelay: 80 });
-    const smartTypeString = vi
+    const smartTypeString = rs
       .spyOn(device as any, 'smartTypeString')
       .mockResolvedValue(undefined);
 

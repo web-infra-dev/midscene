@@ -1,30 +1,30 @@
-import { type Mock, beforeEach, describe, expect, it, vi } from 'vitest';
+import { type Mock, beforeEach, describe, expect, it, rs } from '@rstest/core';
 import {
   getConnectedDevices,
   getConnectedDevicesWithDetails,
 } from '../../src/utils';
 
-const mocks = vi.hoisted(() => ({
+const mocks = rs.hoisted(() => ({
   adb: {
     executable: {
       path: '/mock/platform-tools/adb',
       defaultArgs: [],
     },
-    getConnectedDevices: vi.fn(),
-    setDeviceId: vi.fn(),
-    shell: vi.fn(),
-    getScreenDensity: vi.fn(),
+    getConnectedDevices: rs.fn(),
+    setDeviceId: rs.fn(),
+    shell: rs.fn(),
+    getScreenDensity: rs.fn(),
   },
-  createAndroidAdb: vi.fn(),
+  createAndroidAdb: rs.fn(),
 }));
 
-vi.mock('../../src/adb', () => ({
+rs.mock('../../src/adb', () => ({
   createAndroidAdb: mocks.createAndroidAdb,
 }));
 
 describe('Android Utils', () => {
   beforeEach(async () => {
-    vi.clearAllMocks();
+    rs.clearAllMocks();
     const mockAdbInstance = mocks.adb;
     mocks.createAndroidAdb.mockResolvedValue(mockAdbInstance);
     (mockAdbInstance.setDeviceId as Mock).mockImplementation(() => undefined);
@@ -150,7 +150,7 @@ describe('Android Utils', () => {
     });
 
     it('should timeout slow detail lookups and still return the basic device entry', async () => {
-      vi.useFakeTimers();
+      rs.useFakeTimers();
 
       try {
         const mockDevices = [{ udid: 'device-1', state: 'device' }];
@@ -165,7 +165,7 @@ describe('Android Utils', () => {
         (mockAdbInstance.getScreenDensity as Mock).mockResolvedValue(420);
 
         const devicesPromise = getConnectedDevicesWithDetails();
-        await vi.advanceTimersByTimeAsync(2500);
+        await rs.advanceTimersByTimeAsync(2500);
         const devices = await devicesPromise;
 
         expect(devices).toEqual([
@@ -178,7 +178,7 @@ describe('Android Utils', () => {
           },
         ]);
       } finally {
-        vi.useRealTimers();
+        rs.useRealTimers();
       }
     });
   });

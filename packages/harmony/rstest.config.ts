@@ -2,6 +2,7 @@ import path from 'node:path';
 import { defineConfig } from '@rstest/core';
 import dotenv from 'dotenv';
 import { createCoverageConfig } from '../../scripts/rstest-coverage';
+import { defineVersion, photonExternal } from '../../scripts/rstest-shared';
 import { version } from './package.json';
 
 dotenv.config({
@@ -33,13 +34,9 @@ export default defineConfig({
   errors: process.env.CI ? { unhandled: false } : undefined,
   pool: { maxWorkers: 1 },
   source: {
-    define: {
-      __VERSION__: `'${version}'`,
-    },
+    define: defineVersion(version),
   },
   output: {
-    externals: {
-      '@silvia-odwyer/photon': 'commonjs @silvia-odwyer/photon',
-    },
+    externals: photonExternal,
   },
 });

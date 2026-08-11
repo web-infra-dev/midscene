@@ -1,9 +1,9 @@
 import { existsSync, writeFileSync } from 'node:fs';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, rs } from '@rstest/core';
 
-const screenshot = vi.hoisted(() => vi.fn());
+const screenshot = rs.hoisted(() => rs.fn());
 
-vi.mock('screenshot-desktop', () => ({
+rs.mock('screenshot-desktop', () => ({
   default: screenshot,
 }));
 
@@ -14,7 +14,7 @@ describe('Linux screenshots', () => {
   afterEach(() => {
     Object.defineProperty(process, 'platform', { value: originalPlatform });
     screenshot.mockReset();
-    vi.resetModules();
+    rs.resetModules();
   });
 
   it('captures to a temporary file instead of screenshot-desktop stdout', async () => {
