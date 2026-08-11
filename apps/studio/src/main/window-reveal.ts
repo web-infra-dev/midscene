@@ -6,6 +6,11 @@ interface RevealableWindow {
   show: () => void;
 }
 
+export interface WindowRevealController {
+  hasRevealed: () => boolean;
+  requestActivation: (listener: () => void) => void;
+}
+
 const windowRevealFallbackDelayMs = 2000;
 
 /**
@@ -13,15 +18,19 @@ const windowRevealFallbackDelayMs = 2000;
  * Studio shell, which leaves the app running without a visible window. Reveal
  * the window on the first reliable renderer lifecycle event instead.
  */
-export function registerWindowRevealHandlers(window: RevealableWindow): void {
+export function registerWindowRevealHandlers(
+  window: RevealableWindow,
+): WindowRevealController {
   let revealed = false;
   let fallbackTimer: ReturnType<typeof setTimeout> | null = null;
+  let pendingActivation: (() => void) | null = null;
 
   const reveal = () => {
     if (revealed) {
       return;
     }
     if (window.isDestroyed?.()) {
+      pendingActivation = null;
       return;
     }
 
@@ -30,6 +39,10 @@ export function registerWindowRevealHandlers(window: RevealableWindow): void {
       clearTimeout(fallbackTimer);
     }
     window.show();
+
+    const activation = pendingActivation;
+    pendingActivation = null;
+    activation?.();
   };
 
   fallbackTimer = setTimeout(reveal, windowRevealFallbackDelayMs);
@@ -38,4 +51,19 @@ export function registerWindowRevealHandlers(window: RevealableWindow): void {
   window.onReadyToShow(reveal);
   window.onDidFinishLoad(reveal);
   window.onDidFailLoad(reveal);
+
+  return {
+    hasRevealed: () => revealed,
+    requestActivation: (listener) => {
+      if (window.isDestroyed?.()) {
+        return;
+      }
+      if (revealed) {
+        listener();
+        return;
+      }
+
+      pendingActivation ??= listener;
+    },
+  };
 }
