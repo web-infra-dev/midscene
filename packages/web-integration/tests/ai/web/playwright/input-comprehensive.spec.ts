@@ -103,13 +103,13 @@ test.describe('comprehensive input actions in Playwright', () => {
 
     await expect(page.locator('#text-input')).toHaveValue('Alpha value');
     await agent.aiInput('the text input labeled Text input', {
-      value: 'Public aiInput replacement',
+      value: 'Public replacement complete',
     });
     await expect(page.locator('#text-input')).toHaveValue(
-      'Public aiInput replacement',
+      'Public replacement complete',
     );
     await aiAssert(
-      'The state summary shows Text input value: Public aiInput replacement.',
+      'The state summary shows Text input value: Public replacement complete.',
     );
   });
 
