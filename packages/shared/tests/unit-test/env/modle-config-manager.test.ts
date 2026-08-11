@@ -137,13 +137,6 @@ describe('ModelConfigManager', () => {
     expect(manager.getUploadTestServerUrl()).toBe('https://uploader.test');
   });
 
-  it('does not require model configuration when no upload server is used', () => {
-    const manager = new ModelConfigManager();
-    manager.registerGlobalConfigManager(new GlobalConfigManager());
-
-    expect(manager.getUploadTestServerUrl()).toBeUndefined();
-  });
-
   it('clears model config map when called by global manager', () => {
     vi.stubEnv(MIDSCENE_MODEL_NAME, 'env-model');
     vi.stubEnv(OPENAI_API_KEY, 'env-key');

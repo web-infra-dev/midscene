@@ -763,8 +763,15 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
       locateParamStr((opt as any)?.locate || {}),
     );
 
-    const { output } = await this.taskExecutor.runPlans(title, plans, () =>
-      this.resolveModelRuntime('default'),
+    // assume all operation in action space is related to locating
+    const defaultModel = this.resolveModelRuntime('default');
+    const planningModel = this.resolveModelRuntime('planning');
+
+    const { output } = await this.taskExecutor.runPlans(
+      title,
+      plans,
+      planningModel,
+      defaultModel,
     );
     return output;
   }
@@ -1344,10 +1351,14 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
     assert(locateParam, 'cannot get locate param for aiLocate');
     const locatePlan = locatePlanForLocate(locateParam);
     const plans = [locatePlan];
+    const defaultModel = this.resolveModelRuntime('default');
+    const planningModel = this.resolveModelRuntime('planning');
+
     const { output } = await this.taskExecutor.runPlans(
       taskTitleStr('Locate', locateParamStr(locateParam)),
       plans,
-      () => this.resolveModelRuntime('default'),
+      planningModel,
+      defaultModel,
       opt?.uiContext ? { uiContext: opt.uiContext } : undefined,
     );
 

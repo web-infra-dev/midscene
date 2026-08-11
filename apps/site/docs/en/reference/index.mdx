@@ -488,7 +488,7 @@ await agent.aiKeyboardPress('Enter', 'The search input box');
 
 :::note Signature update
 
-The recommended signature places the optional locate prompt first. Pass `undefined` when the shortcut should operate on the current focus without locating or clicking an element. The legacy signature `aiKeyboardPress(key, locate, options)` remains supported, but new code should use the recommended signature.
+The recommended signature places the optional locate prompt first. Pass `undefined` when the shortcut should operate on the current focus without locating or clicking an element. A valid model configuration is still required and is validated before the action runs, although this targetless form does not send a location request to the model. The legacy signature `aiKeyboardPress(key, locate, options)` remains supported, but new code should use the recommended signature.
 
 :::
 

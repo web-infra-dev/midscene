@@ -466,7 +466,8 @@ describe('element describer utils', () => {
     expect(runPlans).toHaveBeenCalledWith(
       expect.any(String),
       expect.any(Array),
-      expect.any(Function),
+      expect.any(Object),
+      expect.any(Object),
       { uiContext },
     );
 

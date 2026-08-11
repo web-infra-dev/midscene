@@ -4,6 +4,7 @@ import {
   actionKeyboardPressParamSchema,
   defineActionKeyboardPress,
 } from '@/device';
+import { ModelConfigManager } from '@midscene/shared/env';
 import { describe, expect, it, vi } from 'vitest';
 
 const createAgentStub = () => {
@@ -45,6 +46,51 @@ describe('KeyboardPress Action', () => {
       keyName: 'Control+X',
       locate: undefined,
     });
+  });
+
+  it('validates model configuration before a targetless keyboard action', async () => {
+    const agent = Object.create(Agent.prototype) as Agent<any>;
+    (agent as any).modelConfigManager = new ModelConfigManager({});
+
+    await expect(
+      agent.callActionInActionSpace('KeyboardPress', {
+        keyName: 'Control+X',
+      }),
+    ).rejects.toThrow(
+      'Model configuration is incomplete: model name (MIDSCENE_MODEL_NAME) is required',
+    );
+  });
+
+  it('resolves both model runtimes before executing a targetless action', async () => {
+    const agent = Object.create(Agent.prototype) as Agent<any>;
+    const defaultModel = { intent: 'default' };
+    const planningModel = { intent: 'planning' };
+    const resolveModelRuntime = vi.fn((intent: string) =>
+      intent === 'default' ? defaultModel : planningModel,
+    );
+    const runPlans = vi.fn(async () => ({ output: 'done' }));
+    (agent as any).resolveModelRuntime = resolveModelRuntime;
+    (agent as any).taskExecutor = { runPlans };
+
+    await expect(
+      agent.callActionInActionSpace('KeyboardPress', {
+        keyName: 'Control+X',
+      }),
+    ).resolves.toBe('done');
+
+    expect(resolveModelRuntime.mock.calls).toEqual([['default'], ['planning']]);
+    expect(runPlans).toHaveBeenCalledWith(
+      expect.any(String),
+      [
+        {
+          type: 'KeyboardPress',
+          param: { keyName: 'Control+X' },
+          thought: '',
+        },
+      ],
+      planningModel,
+      defaultModel,
+    );
   });
 
   it('keeps the legacy key-only signature working', async () => {

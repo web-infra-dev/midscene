@@ -300,7 +300,7 @@ describe('input keyboard actions end to end', () => {
           await page.focus('#first');
           const agent = new PuppeteerAgent(page, {
             generateReport: false,
-            modelConfig: {},
+            modelConfig: SCRIPTED_MODEL_CONFIG,
           });
 
           await agent.aiKeyboardPress(undefined, {
@@ -561,7 +561,7 @@ describe('input keyboard actions end to end', () => {
           });
           const agent = new PuppeteerAgent(page, {
             generateReport: false,
-            modelConfig: {},
+            modelConfig: SCRIPTED_MODEL_CONFIG,
           });
 
           await agent.aiKeyboardPress(undefined, {
@@ -697,7 +697,7 @@ describe('input keyboard actions end to end', () => {
           await page.locator('#first').focus();
           const agent = new PlaywrightAgent(page, {
             generateReport: false,
-            modelConfig: {},
+            modelConfig: SCRIPTED_MODEL_CONFIG,
           });
 
           await agent.aiKeyboardPress(undefined, {
@@ -858,7 +858,7 @@ describe('input keyboard actions end to end', () => {
           await frame.locator('#first').selectText();
           const agent = new PlaywrightAgent(page, {
             generateReport: false,
-            modelConfig: {},
+            modelConfig: SCRIPTED_MODEL_CONFIG,
           });
 
           await agent.aiKeyboardPress(undefined, {

@@ -477,7 +477,7 @@ await agent.aiKeyboardPress('Enter', '搜索框');
 
 :::note 关于签名变更
 
-我们最近更新了 `aiKeyboardPress` 的 API 签名，将可选的定位提示作为第一个参数，使得参数顺序更直观。如果快捷键应该直接作用于当前焦点，请传入 `undefined`，这样不会执行定位或点击。旧的签名 `aiKeyboardPress(key, locate, options)` 仍然完全兼容，但建议新代码使用推荐的签名。
+我们最近更新了 `aiKeyboardPress` 的 API 签名，将可选的定位提示作为第一个参数，使得参数顺序更直观。如果快捷键应该直接作用于当前焦点，请传入 `undefined`，这样不会执行定位或点击。此时仍需提供有效的模型配置，系统会在执行 action 前完成配置校验，但不会向模型发起定位请求。旧的签名 `aiKeyboardPress(key, locate, options)` 仍然完全兼容，但建议新代码使用推荐的签名。
 
 :::
 
