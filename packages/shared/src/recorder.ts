@@ -59,6 +59,14 @@ export interface MidsceneRecorderFrameBinding {
   source: 'shared-frame-stream' | 'screenshot-fallback';
   /** Frame time relative to interaction start. Negative values are before it. */
   offsetMs: number;
+  /** Age of the selected frame when the interaction boundary froze it. */
+  ageMs?: number;
+  /** Time spent waiting for a fresh producer frame before selecting this one. */
+  waitedMs?: number;
+  /** Whether the producer token matched the previous interaction's before-frame. */
+  reusedPreviousToken?: boolean;
+  /** Why the recorder used the synchronous screenshot fallback. */
+  fallbackReason?: 'missing_frame' | 'stale_frame' | 'reused_frame';
 }
 
 export interface MidsceneRecorderEnrichmentRevisions {
@@ -109,6 +117,10 @@ export interface MidsceneRecorderEvent {
   logSequence?: number;
   interactionStartedAt?: number;
   interactionCompletedAt?: number;
+  /** Time at which the before-frame was frozen for this action. */
+  snapshotFrozenAt?: number;
+  /** Time immediately before the real device action was dispatched. */
+  actionDispatchStartedAt?: number;
   frame?: MidsceneRecorderFrameBinding;
   captureStatus?: MidsceneRecorderCaptureStatus;
   captureError?: MidsceneRecorderCaptureError;

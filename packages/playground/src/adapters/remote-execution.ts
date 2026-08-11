@@ -12,6 +12,7 @@ import type {
   PlaygroundRecorderEventsResult,
   PlaygroundRecorderSourceKind,
   PlaygroundRecorderStartResult,
+  PlaygroundRecorderStopResult,
   PlaygroundSessionSetup,
   PlaygroundSessionState,
   PlaygroundSessionTarget,
@@ -621,7 +622,7 @@ export class RemoteExecutionAdapter extends BasePlaygroundAdapter {
     }
   }
 
-  async stopRecorderSession(): Promise<{ ok: boolean; error?: string }> {
+  async stopRecorderSession(): Promise<PlaygroundRecorderStopResult> {
     if (!this.serverUrl) {
       return { ok: false, error: 'No server URL configured' };
     }
@@ -636,7 +637,10 @@ export class RemoteExecutionAdapter extends BasePlaygroundAdapter {
           error: `Recorder stop request failed (${response.status})`,
         };
       }
-      return { ok: true };
+      const data = (await response
+        .json()
+        .catch(() => null)) as PlaygroundRecorderStopResult | null;
+      return data || { ok: true };
     } catch (error) {
       return {
         ok: false,
@@ -645,32 +649,37 @@ export class RemoteExecutionAdapter extends BasePlaygroundAdapter {
     }
   }
 
-  async getRecorderEvents(since = 0): Promise<PlaygroundRecorderEventsResult> {
+  async getRecorderEvents(
+    afterLogSequence = 0,
+  ): Promise<PlaygroundRecorderEventsResult> {
     if (!this.serverUrl) {
-      return { events: [], nextIndex: since };
+      return { events: [], nextLogSequence: afterLogSequence };
     }
 
     try {
       const response = await fetch(
-        `${this.serverUrl}/recorder/events?since=${encodeURIComponent(String(since))}&flushPending=false`,
+        `${this.serverUrl}/recorder/events?afterLogSequence=${encodeURIComponent(String(afterLogSequence))}&flushPending=false`,
       );
       if (!response.ok) {
-        return { events: [], nextIndex: since };
+        return { events: [], nextLogSequence: afterLogSequence };
       }
       const data = (await response.json().catch(() => null)) as {
         events?: unknown;
-        nextIndex?: unknown;
+        nextLogSequence?: unknown;
+        finalization?: PlaygroundRecorderEventsResult['finalization'];
       } | null;
       return {
         events: Array.isArray(data?.events) ? data.events : [],
-        nextIndex:
-          typeof data?.nextIndex === 'number' && Number.isFinite(data.nextIndex)
-            ? data.nextIndex
-            : since,
+        nextLogSequence:
+          typeof data?.nextLogSequence === 'number' &&
+          Number.isFinite(data.nextLogSequence)
+            ? data.nextLogSequence
+            : afterLogSequence,
+        ...(data?.finalization ? { finalization: data.finalization } : {}),
       };
     } catch (error) {
       console.error('Failed to poll recorder events:', error);
-      return { events: [], nextIndex: since };
+      return { events: [], nextLogSequence: afterLogSequence };
     }
   }
 

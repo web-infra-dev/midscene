@@ -119,9 +119,38 @@ export interface PlaygroundRecorderStartResult {
   error?: string;
 }
 
+export type PlaygroundRecorderFinalizationStatus =
+  | 'finalizing'
+  | 'completed'
+  | 'failed';
+
+export interface PlaygroundRecorderFinalization {
+  jobId: string;
+  sessionId: string;
+  status: PlaygroundRecorderFinalizationStatus;
+  actionHighWaterMark: number;
+  accepted: number;
+  captured: number;
+  degraded: number;
+  pending: number;
+  startedAt: number;
+  completedAt?: number;
+  finalLogSequence?: number;
+  error?: string;
+}
+
+export interface PlaygroundRecorderStopResult {
+  ok: boolean;
+  finalization?: PlaygroundRecorderFinalization;
+  error?: string;
+}
+
 export interface PlaygroundRecorderEventsResult {
   events: PlaygroundRecorderEvent[];
-  nextIndex: number;
+  nextLogSequence: number;
+  /** @deprecated Use nextLogSequence. */
+  nextIndex?: number;
+  finalization?: PlaygroundRecorderFinalization;
 }
 
 export interface PlaygroundRecorderDescribeTrace {

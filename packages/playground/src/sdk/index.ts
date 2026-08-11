@@ -9,7 +9,9 @@ import type {
   PlaygroundRecorderDescribeResult,
   PlaygroundRecorderEvent,
   PlaygroundRecorderEventsResult,
+  PlaygroundRecorderFinalization,
   PlaygroundRecorderStartResult,
+  PlaygroundRecorderStopResult,
   PlaygroundSessionSetup,
   PlaygroundSessionState,
   PlaygroundSessionTarget,
@@ -40,6 +42,8 @@ export type {
   PlaygroundRecorderCapabilitiesResult,
   PlaygroundRecorderDescribeResult,
   PlaygroundRecorderEventsResult,
+  PlaygroundRecorderFinalization,
+  PlaygroundRecorderStopResult,
   PlaygroundRecorderStartResult,
 };
 
@@ -297,18 +301,20 @@ export class PlaygroundSDK {
     };
   }
 
-  async stopRecorderSession(): Promise<PlaygroundInteractResult> {
+  async stopRecorderSession(): Promise<PlaygroundRecorderStopResult> {
     if (this.adapter instanceof RemoteExecutionAdapter) {
       return this.adapter.stopRecorderSession();
     }
     return { ok: true };
   }
 
-  async getRecorderEvents(since = 0): Promise<PlaygroundRecorderEventsResult> {
+  async getRecorderEvents(
+    afterLogSequence = 0,
+  ): Promise<PlaygroundRecorderEventsResult> {
     if (this.adapter instanceof RemoteExecutionAdapter) {
-      return this.adapter.getRecorderEvents(since);
+      return this.adapter.getRecorderEvents(afterLogSequence);
     }
-    return { events: [], nextIndex: since };
+    return { events: [], nextLogSequence: afterLogSequence };
   }
 
   async describeRecorderEventAtPoint(

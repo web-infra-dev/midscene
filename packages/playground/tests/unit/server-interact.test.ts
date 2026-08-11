@@ -173,7 +173,15 @@ describe('PlaygroundServer manual interaction APIs', () => {
 
     await stopRecorderHandler({}, response);
 
-    expect(response.body).toEqual({ ok: true });
+    expect(response.body).toMatchObject({
+      ok: true,
+      finalization: {
+        sessionId: 'session-navigation-pending',
+        status: 'finalizing',
+        actionHighWaterMark: 0,
+      },
+    });
+    await server.waitForRecorderIdle();
     expect((server as any)._recorderSessionId).toBeNull();
   });
 
@@ -1061,6 +1069,7 @@ describe('PlaygroundServer manual interaction APIs', () => {
     const envelopeResponse = createMockResponse();
     await eventsHandler({ query: { since: '0' } }, envelopeResponse);
     expect(envelopeResponse.body).toMatchObject({
+      nextLogSequence: 1,
       nextIndex: 1,
       events: [
         {
@@ -1084,13 +1093,41 @@ describe('PlaygroundServer manual interaction APIs', () => {
     const envelope = (envelopeResponse.body as any).events[0];
     expect(envelope.screenshotAsset).toBeUndefined();
 
+    const stopResponse = createMockResponse();
+    await getRouteHandler(server, 'post', '/recorder/stop')({}, stopResponse);
+    expect(stopResponse.body).toMatchObject({
+      ok: true,
+      finalization: {
+        status: 'finalizing',
+        actionHighWaterMark: 1,
+        accepted: 1,
+        pending: 1,
+      },
+    });
+    const rejectedInteractionResponse = createMockResponse();
+    await interactHandler(
+      { body: { actionType: 'Tap', x: 30, y: 40 } },
+      rejectedInteractionResponse,
+    );
+    expect(rejectedInteractionResponse.statusCode).toBe(409);
+    expect(inputPrimitives.pointer.tap).toHaveBeenCalledTimes(1);
+
     resolveAfterScreenshot?.(VALID_PNG_BASE64);
     await server.waitForRecorderIdle();
 
     const patchResponse = createMockResponse();
-    await eventsHandler({ query: { since: '1' } }, patchResponse);
+    await eventsHandler({ query: { afterLogSequence: '1' } }, patchResponse);
     expect(patchResponse.body).toMatchObject({
+      nextLogSequence: 2,
       nextIndex: 2,
+      finalization: {
+        status: 'completed',
+        actionHighWaterMark: 1,
+        accepted: 1,
+        captured: 1,
+        pending: 0,
+        finalLogSequence: 2,
+      },
       events: [
         {
           hashId: envelope.hashId,
@@ -1108,7 +1145,7 @@ describe('PlaygroundServer manual interaction APIs', () => {
     });
   });
 
-  test('recorder reserves action sequence at interaction start when requests finish out of order', async () => {
+  test('recorder serializes overlapping interaction boundaries in reserved sequence order', async () => {
     let releaseFirstTap: (() => void) | undefined;
     const firstTapGate = new Promise<void>((resolve) => {
       releaseFirstTap = resolve;
@@ -1154,12 +1191,14 @@ describe('PlaygroundServer manual interaction APIs', () => {
       createMockResponse(),
     );
     await new Promise((resolve) => setTimeout(resolve, 0));
-    await interactHandler(
+    const secondInteraction = interactHandler(
       { body: { actionType: 'Tap', x: 30, y: 40 } },
       createMockResponse(),
     );
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(tap).toHaveBeenCalledTimes(1);
     releaseFirstTap?.();
-    await firstInteraction;
+    await Promise.all([firstInteraction, secondInteraction]);
     await server.waitForRecorderIdle();
 
     const eventsHandler = getRouteHandler(server, 'get', '/recorder/events');
@@ -1260,6 +1299,94 @@ describe('PlaygroundServer manual interaction APIs', () => {
         Buffer.from(frame.split(';base64,')[1], 'base64'),
       ),
     );
+    expect((server as any)._recorderFrameRegistry.size).toBe(0);
+    expect((server as any)._recorderFrameRegistryBytes).toBe(0);
+  });
+
+  test('recorder replaces a reused producer frame before dispatching the next action', async () => {
+    let emitFrame:
+      | ((frame: { data: string; contentType: string }) => void)
+      | undefined;
+    const callOrder: string[] = [];
+    let tapCount = 0;
+    const tap = vi.fn(async () => {
+      tapCount += 1;
+      callOrder.push(`tap-${tapCount}`);
+    });
+    const inputPrimitives = makeInputPrimitiveStub({
+      pointer: {
+        tap,
+        doubleClick: vi.fn(async () => {}),
+        longPress: vi.fn(async () => {}),
+        dragAndDrop: vi.fn(async () => {}),
+      },
+    });
+    const screenshotBase64 = vi.fn(async () => {
+      callOrder.push('screenshot');
+      return RECORDER_FRAME_FIXTURES[1];
+    });
+    const startMjpegStream = vi.fn(async ({ onFrame }) => {
+      emitFrame = onFrame;
+      onFrame({
+        data: RECORDER_FRAME_FIXTURES[0].split(';base64,')[1],
+        contentType: 'image/png',
+      });
+      return { stop: vi.fn() };
+    });
+    const server = new PlaygroundServer({
+      interface: {
+        interfaceType: 'web',
+        actionSpace: () => [],
+        inputPrimitives,
+        screenshotBase64,
+        size: async () => ({ width: 1280, height: 720 }),
+        startMjpegStream,
+      },
+    } as any);
+
+    await server.launch(6141);
+    await getRouteHandler(
+      server,
+      'post',
+      '/recorder/start',
+    )(
+      { body: { sessionId: 'session-preview-frame-freshness' } },
+      createMockResponse(),
+    );
+    expect(emitFrame).toBeTypeOf('function');
+    const interactHandler = getRouteHandler(server, 'post', '/interact');
+    await interactHandler(
+      { body: { actionType: 'Tap', x: 10, y: 20 } },
+      createMockResponse(),
+    );
+    await interactHandler(
+      { body: { actionType: 'Tap', x: 30, y: 40 } },
+      createMockResponse(),
+    );
+    await server.waitForRecorderIdle();
+
+    expect(callOrder.indexOf('screenshot')).toBeGreaterThan(
+      callOrder.indexOf('tap-1'),
+    );
+    expect(callOrder.indexOf('screenshot')).toBeLessThan(
+      callOrder.indexOf('tap-2'),
+    );
+    const response = createMockResponse();
+    await getRouteHandler(
+      server,
+      'get',
+      '/recorder/events',
+    )({ query: { afterLogSequence: '0' } }, response);
+    const events = latestRecorderEventsBody(response.body).events as any[];
+    expect(events.map((event) => event.frame.source)).toEqual([
+      'shared-frame-stream',
+      'screenshot-fallback',
+    ]);
+    expect(events[1].frame.fallbackReason).toMatch(/stale_frame|reused_frame/);
+    expect(events[1].snapshotFrozenAt).toBeLessThanOrEqual(
+      events[1].actionDispatchStartedAt,
+    );
+    expect(new Set(events.map((event) => event.frame.token)).size).toBe(2);
   });
 
   test('recorder marks events failed when a screenshot cannot be retained', async () => {
@@ -2365,6 +2492,32 @@ describe('PlaygroundServer manual interaction APIs', () => {
     expect(navigationState).not.toHaveProperty('screenshotAsset');
     expect(firstClick).toMatchObject({ screenshotAsset: expect.any(Object) });
     expect(secondClick).toMatchObject({ screenshotAsset: expect.any(Object) });
+
+    const stopResponse = createMockResponse();
+    await getRouteHandler(server, 'post', '/recorder/stop')({}, stopResponse);
+    expect(stopResponse.body).toMatchObject({
+      finalization: {
+        actionHighWaterMark: 2,
+        accepted: 2,
+        captured: 2,
+        pending: 0,
+      },
+    });
+    await server.waitForRecorderIdle();
+    const finalizedResponse = createMockResponse();
+    await eventsHandler(
+      { query: { afterLogSequence: String(recorderEvents.nextLogSequence) } },
+      finalizedResponse,
+    );
+    expect(finalizedResponse.body).toMatchObject({
+      finalization: {
+        status: 'completed',
+        actionHighWaterMark: 2,
+        accepted: 2,
+        captured: 2,
+        pending: 0,
+      },
+    });
   });
 
   test('recorder binds a navigation notification raised during an action to that action', async () => {
