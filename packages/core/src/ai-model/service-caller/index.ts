@@ -40,6 +40,7 @@ import { assert, ifInBrowser, uuid } from '@midscene/shared/utils';
 import OpenAI from 'openai';
 import type { ChatCompletionMessageParam } from 'openai/resources/index';
 import type { Stream } from 'openai/streaming';
+import { getVersion } from '../../utils';
 import {
   isModelCallRecordingEnabled,
   recordModelCallEvent,
@@ -152,9 +153,11 @@ function appendAIRequestFailureSummary<T extends Error>(
 
 export async function createChatClient({
   modelConfig,
+  executionId,
   recordEvent,
 }: {
   modelConfig: IModelConfig;
+  executionId: string;
   recordEvent?: (event: Record<string, unknown>) => void;
 }): Promise<{
   completion: OpenAI.Chat.Completions;
@@ -279,6 +282,18 @@ export async function createChatClient({
     // Note: Type assertion needed due to undici version mismatch between dependencies
     ...(proxyAgent ? { fetchOptions: { dispatcher: proxyAgent as any } } : {}),
     ...openaiExtraConfig,
+    // Midscene exposes this setting through MIDSCENE_*_INIT_CONFIG_JSON, so
+    // defaultHeaders is expected to be a plain JSON object rather than another
+    // HeadersLike representation supported by the OpenAI SDK.
+    defaultHeaders: {
+      ...(openaiExtraConfig?.defaultHeaders as
+        | Record<string, string>
+        | undefined),
+      // These Midscene-owned headers intentionally override user-supplied
+      // headers with the same names.
+      'x-midscene-version': getVersion(),
+      'x-midscene-execution-id': executionId,
+    },
     fetch: wrapOpenAICompatibleFetch(openAIErrorResponseContext),
     // Midscene already handles retries in callAI(), so disable SDK-level retries
     // to avoid duplicate attempts and duplicated backoff latency.
@@ -487,6 +502,7 @@ export async function callAI(
     openAIErrorResponseContext,
   } = await createChatClient({
     modelConfig,
+    executionId,
     recordEvent,
   });
   const effectiveTimeoutMs = resolveEffectiveTimeoutMs(modelConfig);
