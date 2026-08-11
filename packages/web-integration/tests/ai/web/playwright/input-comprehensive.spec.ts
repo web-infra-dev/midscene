@@ -1,5 +1,4 @@
-import { WebPage as PlaywrightWebPage } from '@/playwright/page';
-import type { ElementInfo } from '@midscene/shared/extractor';
+import type { Agent } from '@midscene/core/agent';
 import type { Frame, Page } from '@playwright/test';
 import { expect } from '@playwright/test';
 import { startInputTestServers } from '../input-e2e-page';
@@ -12,29 +11,34 @@ type InputState = {
   values: Record<string, string>;
 };
 
+type DirectLocate = {
+  locatedPixelBbox: [number, number, number, number];
+  prompt: string;
+};
+
 const inputAction = async (
-  webPage: PlaywrightWebPage,
+  agent: Agent,
   param: {
     keyboardTypeDelay?: number;
-    locate: ElementInfo;
+    locate: DirectLocate;
     mode: InputMode;
     value: string;
   },
 ) => {
-  const action = webPage.actionSpace().find(({ name }) => name === 'Input');
-  expect(action).toBeDefined();
-  await action!.call(param, {} as any);
+  await agent.callActionInActionSpace('Input', param);
 };
 
 const centerOf = async (
   frame: Page | Frame,
   selector: string,
-): Promise<ElementInfo> => {
+  description: string,
+): Promise<DirectLocate> => {
   const box = await frame.locator(selector).boundingBox();
   if (!box) throw new Error(`Missing bounding box: ${selector}`);
   return {
-    center: [box.x + box.width / 2, box.y + box.height / 2],
-  } as ElementInfo;
+    locatedPixelBbox: [box.x, box.y, box.x + box.width, box.y + box.height],
+    prompt: description,
+  };
 };
 
 test.describe('comprehensive input actions in Playwright', () => {
@@ -54,21 +58,20 @@ test.describe('comprehensive input actions in Playwright', () => {
     page,
   }) => {
     await page.goto(servers.topLevelUrl);
-    const webPage = new PlaywrightWebPage(page);
     const agent = await agentForPage(page);
 
-    await inputAction(webPage, {
-      locate: await centerOf(page, '#text-input'),
+    await inputAction(agent, {
+      locate: await centerOf(page, '#text-input', 'Text input'),
       mode: 'replace',
       value: 'Input replaced',
     });
-    await inputAction(webPage, {
-      locate: await centerOf(page, '#notes'),
+    await inputAction(agent, {
+      locate: await centerOf(page, '#notes', 'Notes textarea'),
       mode: 'replace',
       value: 'Textarea replaced',
     });
-    await inputAction(webPage, {
-      locate: await centerOf(page, '#rich-editor'),
+    await inputAction(agent, {
+      locate: await centerOf(page, '#rich-editor', 'Rich text editor'),
       mode: 'replace',
       value: 'Rich text replaced',
     });
@@ -85,24 +88,46 @@ test.describe('comprehensive input actions in Playwright', () => {
     expect(state.events.some(({ type }) => type === 'beforeinput')).toBe(true);
     expect(state.events.some(({ type }) => type === 'input')).toBe(true);
     expect(state.events.some(({ type }) => type === 'change')).toBe(true);
-    await agent.aiInput('the text input labeled Text input', {
-      value: 'Input replaced',
-    });
     await aiAssert(
       'The state summary shows Text input value: Input replaced, Textarea value: Textarea replaced, and Rich text value: Rich text replaced. It also shows non-zero beforeinput, input, and change event counts.',
     );
   });
 
-  test('clears input, textarea, and contenteditable values and emits browser events', async ({
+  test('uses public aiInput to locate and replace a text input from its initial value', async ({
+    agentForPage,
     aiAssert,
     page,
   }) => {
     await page.goto(servers.topLevelUrl);
-    const webPage = new PlaywrightWebPage(page);
+    const agent = await agentForPage(page);
 
-    for (const selector of ['#text-input', '#notes', '#rich-editor']) {
-      await inputAction(webPage, {
-        locate: await centerOf(page, selector),
+    await expect(page.locator('#text-input')).toHaveValue('Alpha value');
+    await agent.aiInput('the text input labeled Text input', {
+      value: 'Public aiInput replacement',
+    });
+    await expect(page.locator('#text-input')).toHaveValue(
+      'Public aiInput replacement',
+    );
+    await aiAssert(
+      'The state summary shows Text input value: Public aiInput replacement.',
+    );
+  });
+
+  test('clears input, textarea, and contenteditable values and emits browser events', async ({
+    agentForPage,
+    aiAssert,
+    page,
+  }) => {
+    await page.goto(servers.topLevelUrl);
+    const agent = await agentForPage(page);
+
+    for (const [selector, description] of [
+      ['#text-input', 'Text input'],
+      ['#notes', 'Notes textarea'],
+      ['#rich-editor', 'Rich text editor'],
+    ] as const) {
+      await inputAction(agent, {
+        locate: await centerOf(page, selector, description),
         mode: 'clear',
         value: '',
       });
@@ -126,14 +151,19 @@ test.describe('comprehensive input actions in Playwright', () => {
   });
 
   test('inserts typeOnly text at the current caret in each editable field', async ({
+    agentForPage,
     aiAssert,
     page,
   }) => {
     await page.goto(servers.topLevelUrl);
-    const webPage = new PlaywrightWebPage(page);
+    const agent = await agentForPage(page);
 
-    const selectors = ['#text-input', '#notes', '#rich-editor'];
-    for (const selector of selectors) {
+    const cases = [
+      ['#text-input', 'Text input'],
+      ['#notes', 'Notes textarea'],
+      ['#rich-editor', 'Rich text editor'],
+    ] as const;
+    for (const [selector, description] of cases) {
       await page.locator(selector).evaluate((element) => {
         (element as HTMLElement).focus();
         if (
@@ -150,8 +180,8 @@ test.describe('comprehensive input actions in Playwright', () => {
         selection?.removeAllRanges();
         selection?.addRange(range);
       });
-      await inputAction(webPage, {
-        locate: await centerOf(page, selector),
+      await inputAction(agent, {
+        locate: await centerOf(page, selector, description),
         mode: 'typeOnly',
         value: '[inserted]',
       });
@@ -172,11 +202,12 @@ test.describe('comprehensive input actions in Playwright', () => {
 
   for (const mode of ['same-origin', 'cross-origin'] as const) {
     test(`replaces and clears an input in a ${mode} iframe`, async ({
+      agentForPage,
       aiAssert,
       page,
     }) => {
       await page.goto(servers.iframeUrl(mode));
-      const webPage = new PlaywrightWebPage(page);
+      const agent = await agentForPage(page);
       const frame = page
         .frames()
         .find((candidate) => candidate.url().endsWith('/frame'));
@@ -185,8 +216,8 @@ test.describe('comprehensive input actions in Playwright', () => {
         mode === 'same-origin',
       );
 
-      await inputAction(webPage, {
-        locate: await centerOf(frame, '#frame-input'),
+      await inputAction(agent, {
+        locate: await centerOf(frame, '#frame-input', `${mode} iframe input`),
         mode: 'replace',
         value: `${mode} replacement`,
       });
@@ -197,8 +228,8 @@ test.describe('comprehensive input actions in Playwright', () => {
         `Inside the iframe, the state summary shows Iframe input value: ${mode} replacement.`,
       );
 
-      await inputAction(webPage, {
-        locate: await centerOf(frame, '#frame-input'),
+      await inputAction(agent, {
+        locate: await centerOf(frame, '#frame-input', `${mode} iframe input`),
         mode: 'clear',
         value: '',
       });
@@ -210,15 +241,20 @@ test.describe('comprehensive input actions in Playwright', () => {
   }
 
   test('keeps every character when a controlled input is replaced after clearing', async ({
+    agentForPage,
     aiAssert,
     page,
   }) => {
     await page.goto(servers.controlledUrl);
-    const webPage = new PlaywrightWebPage(page);
+    const agent = await agentForPage(page);
 
-    await inputAction(webPage, {
+    await inputAction(agent, {
       keyboardTypeDelay: 40,
-      locate: await centerOf(page, '#controlled-input'),
+      locate: await centerOf(
+        page,
+        '#controlled-input',
+        'Controlled text input',
+      ),
       mode: 'replace',
       value: 'Stable controlled text',
     });
