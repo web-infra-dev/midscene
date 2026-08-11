@@ -113,6 +113,7 @@ function createConnectedStudioContext({
   );
   const getRecorderEvents = vi.fn(async (since = 0) => ({
     events: since === 0 ? events : [],
+    nextLogSequence: since === 0 ? events.length : since,
     nextIndex: since === 0 ? events.length : since,
   }));
   const resolvedGetInterfaceInfo =
@@ -376,6 +377,62 @@ describe('StudioRecorderProvider preview recording', () => {
       ),
     ).toBe(true);
 
+    await mounted.cleanup();
+  });
+
+  it('keeps a new recording active when an older session is updated', async () => {
+    const event = {
+      type: 'click',
+      source: 'studio-preview',
+      actionType: 'Click',
+      semantic: {
+        source: 'heuristic',
+        status: 'ready',
+        elementDescription: 'Saved event',
+      },
+      elementRect: { x: 10, y: 20 },
+      pageInfo: { width: 1200, height: 800 },
+      timestamp: 123,
+      hashId: 'click-old-session',
+    };
+    const { context } = createConnectedStudioContext({ events: [event] });
+    const mounted = await mountRecorder(context);
+
+    await act(async () => {
+      await mounted.recorder?.startRecording();
+    });
+    await flushPromises();
+    const oldSessionId = mounted.recorder!.currentSession!.id;
+    await act(async () => {
+      await mounted.recorder?.stopRecording();
+      await mounted.recorder?.generateSessionCode(oldSessionId, {
+        type: 'markdown',
+      });
+      await mounted.recorder?.startRecording();
+    });
+    await flushPromises();
+    const activeSessionId = mounted.recorder!.currentSession!.id;
+    expect(activeSessionId).not.toBe(oldSessionId);
+
+    await act(async () => {
+      await mounted.recorder?.renameSession(
+        oldSessionId,
+        'Updated in background',
+      );
+    });
+    await flushPromises();
+
+    expect(mounted.recorder?.state.isRecording).toBe(true);
+    expect(mounted.recorder?.currentSession?.id).toBe(activeSessionId);
+    expect(
+      mounted.recorder?.state.sessions.find(
+        (session) => session.id === oldSessionId,
+      )?.name,
+    ).toBe('Updated in background');
+
+    await act(async () => {
+      await mounted.recorder?.stopRecording();
+    });
     await mounted.cleanup();
   });
 
@@ -1872,7 +1929,118 @@ describe('StudioRecorderProvider preview recording', () => {
     await mounted.cleanup();
   });
 
-  it('waits for final event descriptions before completing a stopped recording', async () => {
+  it('shows server finalization progress until the high-water log is drained', async () => {
+    vi.useFakeTimers();
+    const finalEvent = {
+      type: 'click',
+      source: 'studio-preview',
+      actionType: 'Click',
+      semantic: {
+        source: 'heuristic',
+        status: 'ready',
+        elementDescription: 'Final click',
+      },
+      elementRect: { x: 30, y: 40 },
+      pageInfo: { width: 1200, height: 800 },
+      timestamp: 456,
+      hashId: 'click-finalization-progress',
+      eventId: 'click-finalization-progress',
+      sequence: 1,
+      logSequence: 1,
+      captureStatus: 'ready',
+    };
+    const startedAt = Date.now();
+    const finalizing = {
+      jobId: 'finalization-job-1',
+      sessionId: 'server-session',
+      status: 'finalizing' as const,
+      actionHighWaterMark: 1,
+      accepted: 1,
+      captured: 0,
+      degraded: 0,
+      pending: 1,
+      startedAt,
+    };
+    const { context, stopRecorderSession, getRecorderEvents } =
+      createConnectedStudioContext();
+    let stopStarted = false;
+    let finalizationPolls = 0;
+    stopRecorderSession.mockImplementation(async () => {
+      stopStarted = true;
+      return { ok: true, finalization: finalizing };
+    });
+    getRecorderEvents.mockImplementation(async (cursor = 0) => {
+      if (!stopStarted) {
+        return { events: [], nextLogSequence: cursor };
+      }
+      finalizationPolls += 1;
+      if (finalizationPolls === 1) {
+        return {
+          events: cursor === 0 ? [finalEvent] : [],
+          nextLogSequence: 1,
+          finalization: {
+            ...finalizing,
+            captured: 1,
+            pending: 0,
+          },
+        };
+      }
+      return {
+        events: [],
+        nextLogSequence: 1,
+        finalization: {
+          ...finalizing,
+          status: 'completed' as const,
+          captured: 1,
+          pending: 0,
+          completedAt: Date.now(),
+          finalLogSequence: 1,
+        },
+      };
+    });
+    const mounted = await mountRecorder(context);
+
+    try {
+      await act(async () => {
+        await mounted.recorder?.startRecording();
+      });
+      await flushPromises();
+
+      let stopPromise!: Promise<void>;
+      await act(async () => {
+        stopPromise = mounted.recorder!.stopRecording();
+        await Promise.resolve();
+      });
+      await flushPromises();
+
+      expect(mounted.recorder?.currentSession).toMatchObject({
+        status: 'finalizing',
+        finalization: {
+          jobId: 'finalization-job-1',
+          accepted: 1,
+          captured: 1,
+          pending: 0,
+        },
+      });
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(100);
+        await stopPromise;
+      });
+      expect(mounted.recorder?.currentSession).toMatchObject({
+        status: 'completed',
+        events: [expect.objectContaining({ hashId: finalEvent.hashId })],
+        finalization: {
+          finalLogSequence: 1,
+        },
+      });
+    } finally {
+      await mounted.cleanup();
+      vi.useRealTimers();
+    }
+  });
+
+  it('completes Stop before final event descriptions settle', async () => {
     const finalEvent = {
       type: 'click',
       source: 'studio-preview',
@@ -1929,12 +2097,12 @@ describe('StudioRecorderProvider preview recording', () => {
     expect(describeRecorderEventAtPoint).toHaveBeenCalledWith(
       expect.objectContaining({ hashId: 'click-final-ai-describe' }),
     );
-    expect(stopSettled).toBe(false);
-    expect(mounted.recorder?.currentSession?.status).toBe('recording');
+    expect(stopSettled).toBe(true);
+    expect(mounted.recorder?.currentSession?.status).toBe('completed');
 
     await act(async () => {
       describeDeferred.resolve({ ok: true, event: describedFinalEvent });
-      await stopPromise;
+      await describeDeferred.promise;
     });
     await flushPromises();
 

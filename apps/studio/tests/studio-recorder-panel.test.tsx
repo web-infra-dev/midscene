@@ -1162,7 +1162,7 @@ describe('StudioRecorderPanel', () => {
     expect(container.textContent).not.toContain('Generating Description...');
     expect(container.textContent).not.toContain('Generate Description');
     const stoppingButton = container.querySelector(
-      'button[aria-label="Stopping recording"]',
+      'button[aria-label="Finalizing recording"]',
     );
     expect(stoppingButton).not.toBeNull();
     expect((stoppingButton as HTMLButtonElement | null)?.disabled).toBe(true);

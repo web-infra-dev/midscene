@@ -575,13 +575,17 @@ export function RecorderFloatingPanel({
 }: RecorderFloatingPanelProps) {
   const timelineScrollRef = useRef<HTMLDivElement>(null);
   const showRecordingVisual = isRecording && !isStoppingRecording;
+  const finalization = recorderPanelSession?.finalization;
+  const finalizationLabel = finalization
+    ? `Finalizing ${finalization.captured + finalization.degraded}/${finalization.accepted}`
+    : 'Finalizing recording';
   const recordingButtonLabel = isStoppingRecording
-    ? 'Stopping recording'
+    ? finalizationLabel
     : showRecordingVisual
       ? 'Stop recording'
       : 'Start recording';
   const recordingButtonTitle = isStoppingRecording
-    ? 'Stopping recording'
+    ? finalizationLabel
     : showRecordingVisual
       ? 'Stop recording'
       : statusText;
@@ -699,7 +703,11 @@ export function RecorderFloatingPanel({
                 <RecorderButtonIcon />
               )}
               <span>
-                {showRecordingVisual ? 'Stop Recording' : 'Start Recording'}
+                {isStoppingRecording
+                  ? finalizationLabel
+                  : showRecordingVisual
+                    ? 'Stop Recording'
+                    : 'Start Recording'}
               </span>
             </button>
           </div>

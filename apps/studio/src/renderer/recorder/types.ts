@@ -16,7 +16,25 @@ export enum StudioModeTab {
 
 export type StudioMode = StudioModeTab;
 
-export type StudioRecordingStatus = 'idle' | 'recording' | 'completed';
+export type StudioRecordingStatus =
+  | 'idle'
+  | 'recording'
+  | 'finalizing'
+  | 'completed';
+
+export interface StudioRecorderFinalization {
+  jobId: string;
+  actionHighWaterMark: number;
+  accepted: number;
+  captured: number;
+  degraded: number;
+  pending: number;
+  described?: number;
+  startedAt: number;
+  completedAt?: number;
+  finalLogSequence?: number;
+  error?: string;
+}
 export type StudioRecorderGenerationStepId = 'prepare' | 'metadata' | 'code';
 export type StudioRecorderGenerationStepStatus =
   | 'pending'
@@ -70,6 +88,7 @@ export interface StudioRecordingSession {
   updatedAt: number;
   startedAt?: number;
   stoppedAt?: number;
+  finalization?: StudioRecorderFinalization;
 }
 
 export interface StudioRecorderState {

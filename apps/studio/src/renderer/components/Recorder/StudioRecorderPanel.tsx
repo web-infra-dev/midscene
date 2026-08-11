@@ -126,6 +126,12 @@ export function StudioRecorderPanel({
     if (state.initializing) {
       return 'Loading recorder...';
     }
+    if (currentSession?.status === 'finalizing') {
+      const progress = currentSession.finalization;
+      return progress
+        ? `Finalizing ${progress.captured + progress.degraded}/${progress.accepted} accepted events`
+        : 'Finalizing recorded events...';
+    }
     if (state.isRecording) {
       return 'Recording';
     }
@@ -135,7 +141,13 @@ export function StudioRecorderPanel({
     return currentTarget
       ? `Ready for ${platformLabel(currentTarget.platformId)}`
       : 'Ready';
-  }, [canStartRecording, currentTarget, state.initializing, state.isRecording]);
+  }, [
+    canStartRecording,
+    currentSession,
+    currentTarget,
+    state.initializing,
+    state.isRecording,
+  ]);
 
   useEffect(() => {
     if (state.isRecording && currentSession?.id) {
