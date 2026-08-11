@@ -33,6 +33,7 @@ const namedHarmonyKeyCodeMap = {
   Pause: '2080',
   PrintScreen: '2079',
   ContextMenu: '2067',
+  Back: 'Back',
   Power: 'Power',
   Eject: '2088',
   Camera: '19',

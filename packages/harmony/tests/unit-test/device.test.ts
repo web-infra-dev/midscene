@@ -403,6 +403,7 @@ describe('HarmonyDevice', () => {
       ['Home', '2081'],
       ['F5', '2094'],
       ['F24', '2827'],
+      ['Back', 'Back'],
       ['Power', 'Power'],
       ['2210', '2210'],
     ])('should map %s to keycode %s', async (key, code) => {

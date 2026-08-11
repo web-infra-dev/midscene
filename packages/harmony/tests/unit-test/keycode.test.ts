@@ -32,6 +32,7 @@ describe('resolveHarmonyKeyCodes', () => {
     ['@', ['2065']],
     ['#', ['2011']],
     ['+', ['2066']],
+    ['Back', ['Back']],
     ['Power', ['Power']],
     ['Abort', ['2648']],
     ['Help', ['2625']],
