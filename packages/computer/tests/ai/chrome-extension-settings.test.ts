@@ -93,7 +93,7 @@ describe('chrome extension settings and cross-mode tests', () => {
 
     // 2. Verify the dark-theme rendering and compact first viewport visually.
     await agent.aiAssert(
-      `A dark-themed "Config" modal is fully visible on top of ${SIDE_PANEL}. The modal's title, "Model Env Config" section, textarea contents, input borders, close icon, and action buttons are clearly visible and readable. The first visible modal viewport reaches the "Agent Option Config" heading, with no clipped or overlapping content.`,
+      `A dark-themed "Config" modal is fully visible on top of ${SIDE_PANEL}, which also remains dark. The modal's title, "Model Env Config" section, textarea contents, input borders, close icon, and action buttons have sufficient contrast and are clearly visible and readable. The first visible modal viewport reaches the "Agent Option Config" heading, with no clipped or overlapping content.`,
     );
 
     // 3. Verify the text area contains env config (injected earlier)

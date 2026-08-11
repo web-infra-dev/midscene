@@ -136,9 +136,7 @@ Promise.resolve(
 npx tsx demo.ts
 ```
 
-### 查看报告
-
-脚本成功后会输出 `Midscene - report file updated: /path/to/report/some_id.html`。在浏览器中打开该 HTML 文件即可回放每一步交互、查询与断言。
+脚本运行结束后，你应该能在控制台看到 `Midscene - report file updated: /path/to/report/some_id.html`。在浏览器中打开生成的 HTML 文件，即可回放每次交互、查询和断言。
 
 ## 进阶
 
@@ -146,7 +144,7 @@ npx tsx demo.ts
 
 ### 扩展 HarmonyOS 上的 Midscene
 
-使用 `defineAction()` 定义自定义手势，并通过 `customActions` 传入。Midscene 会把自定义动作追加到规划器中，让 AI 可以调用你领域特定的动作名。
+使用 `defineAction()` 定义自定义动作。构造 `HarmonyDevice` 时，通过 `customActions` 传入这些动作。Midscene 会把这些动作追加到规划器中，让 Agent 可以调用你定义的领域特定动作。
 
 ```typescript
 import { getMidsceneLocationSchema, z } from '@midscene/core';
@@ -168,26 +166,17 @@ const ContinuousClick = defineAction({
 });
 
 const devices = await getConnectedDevices();
-const device = new HarmonyDevice(devices[0].deviceId, {});
-await device.connect();
-
-const agent = new HarmonyAgent(device, {
+const device = new HarmonyDevice(devices[0].deviceId, {
   customActions: [ContinuousClick],
 });
+await device.connect();
+
+const agent = new HarmonyAgent(device);
 
 await agent.aiAct('click the red button five times');
 ```
 
 关于自定义动作和动作 Schema 的更多解释，请参阅 [与任意界面集成](../integrate-with-any-interface#define-a-custom-action)。
-
-## 更多
-
-- 查看所有 Agent 方法：[API 参考（通用）](../reference/#interaction-methods)
-- HarmonyOS 专属参数与接口：[API 参考（HarmonyOS）](../reference/#harmonyos)
-- 使用 [YAML 自动化脚本和命令行工具](../automate-with-scripts-in-yaml)。
-- 示例项目
-  - HarmonyOS JavaScript SDK 示例：[https://github.com/web-infra-dev/midscene-example/blob/main/harmony/javascript-sdk-demo](https://github.com/web-infra-dev/midscene-example/blob/main/harmony/javascript-sdk-demo)
-  - HarmonyOS + Vitest 示例：[https://github.com/web-infra-dev/midscene-example/tree/main/harmony/vitest-demo](https://github.com/web-infra-dev/midscene-example/tree/main/harmony/vitest-demo)
 
 ## 常见问题
 
@@ -226,3 +215,12 @@ const device = new HarmonyDevice('0123456789ABCDEF', {
   hdcPath: '/path/to/hdc',
 });
 ```
+
+## 更多
+
+- 查看所有 Agent 方法：[API 参考（通用）](../reference/#interaction-methods)
+- HarmonyOS 专属参数与接口：[API 参考（HarmonyOS）](../reference/#harmonyos)
+- 使用 [YAML 自动化脚本和命令行工具](../automate-with-scripts-in-yaml)。
+- 示例项目
+  - HarmonyOS JavaScript SDK 示例：[https://github.com/web-infra-dev/midscene-example/blob/main/harmony/javascript-sdk-demo](https://github.com/web-infra-dev/midscene-example/blob/main/harmony/javascript-sdk-demo)
+  - HarmonyOS + Vitest 示例：[https://github.com/web-infra-dev/midscene-example/tree/main/harmony/vitest-demo](https://github.com/web-infra-dev/midscene-example/tree/main/harmony/vitest-demo)

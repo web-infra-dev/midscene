@@ -268,6 +268,7 @@ import MyDeviceClass from 'my-pkg-name';
 const device = new MyDeviceClass();
 const agent = new Agent(device, {
   output: './data.json',
+  customActions: [], // optional additional custom DeviceAction list
 });
 ```
 

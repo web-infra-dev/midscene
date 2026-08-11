@@ -136,9 +136,7 @@ Promise.resolve(
 npx tsx demo.ts
 ```
 
-### View the report
-
-After a successful run, the console outputs `Midscene - report file updated: /path/to/report/some_id.html`. Open this HTML file in a browser to replay each interaction, query, and assertion.
+After the script finishes, you should see `Midscene - report file updated: /path/to/report/some_id.html` in the console. Open the generated HTML file in a browser to replay every interaction, query, and assertion.
 
 ## Advanced
 
@@ -146,7 +144,7 @@ Use this section to customize device behavior, integrate Midscene into a standal
 
 ### Extending Midscene on HarmonyOS
 
-Use `defineAction()` to define custom gestures and pass them via `customActions`. Midscene appends custom actions to the planner, allowing AI to invoke your domain-specific action names.
+Use `defineAction()` to define custom actions. When constructing `HarmonyDevice`, pass these actions through `customActions`. Midscene appends these actions to the planner so the Agent can call the domain-specific actions you define.
 
 ```typescript
 import { getMidsceneLocationSchema, z } from '@midscene/core';
@@ -168,26 +166,17 @@ const ContinuousClick = defineAction({
 });
 
 const devices = await getConnectedDevices();
-const device = new HarmonyDevice(devices[0].deviceId, {});
-await device.connect();
-
-const agent = new HarmonyAgent(device, {
+const device = new HarmonyDevice(devices[0].deviceId, {
   customActions: [ContinuousClick],
 });
+await device.connect();
+
+const agent = new HarmonyAgent(device);
 
 await agent.aiAct('click the red button five times');
 ```
 
 For more details on custom actions and action schemas, see [Integrate with Any Interface](../integrate-with-any-interface#define-a-custom-action).
-
-## More
-
-- View all Agent methods: [API Reference (Common)](../reference/#interaction-methods)
-- HarmonyOS-specific parameters and interfaces: [API reference (HarmonyOS)](../reference/#harmonyos)
-- Use [YAML automation scripts and command-line tools](../automate-with-scripts-in-yaml).
-- Demo projects
-  - HarmonyOS JavaScript SDK demo: [https://github.com/web-infra-dev/midscene-example/blob/main/harmony/javascript-sdk-demo](https://github.com/web-infra-dev/midscene-example/blob/main/harmony/javascript-sdk-demo)
-  - HarmonyOS + Vitest demo: [https://github.com/web-infra-dev/midscene-example/tree/main/harmony/vitest-demo](https://github.com/web-infra-dev/midscene-example/tree/main/harmony/vitest-demo)
 
 ## FAQ
 
@@ -226,3 +215,12 @@ const device = new HarmonyDevice('0123456789ABCDEF', {
   hdcPath: '/path/to/hdc',
 });
 ```
+
+## More
+
+- View all Agent methods: [API Reference (Common)](../reference/#interaction-methods)
+- HarmonyOS-specific parameters and interfaces: [API reference (HarmonyOS)](../reference/#harmonyos)
+- Use [YAML automation scripts and command-line tools](../automate-with-scripts-in-yaml).
+- Demo projects
+  - HarmonyOS JavaScript SDK demo: [https://github.com/web-infra-dev/midscene-example/blob/main/harmony/javascript-sdk-demo](https://github.com/web-infra-dev/midscene-example/blob/main/harmony/javascript-sdk-demo)
+  - HarmonyOS + Vitest demo: [https://github.com/web-infra-dev/midscene-example/tree/main/harmony/vitest-demo](https://github.com/web-infra-dev/midscene-example/tree/main/harmony/vitest-demo)
