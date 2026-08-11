@@ -1,6 +1,4 @@
 import { PuppeteerAgent } from '@/puppeteer';
-import { PuppeteerWebPage } from '@/puppeteer/page';
-import type { ElementInfo } from '@midscene/shared/extractor';
 import puppeteer, { type Browser, type Frame, type Page } from 'puppeteer';
 import {
   afterAll,
@@ -22,31 +20,36 @@ type InputState = {
   values: Record<string, string>;
 };
 
+type DirectLocate = {
+  locatedPixelBbox: [number, number, number, number];
+  prompt: string;
+};
+
 const inputAction = async (
-  webPage: PuppeteerWebPage,
+  agent: PuppeteerAgent,
   param: {
     keyboardTypeDelay?: number;
-    locate: ElementInfo;
+    locate: DirectLocate;
     mode: InputMode;
     value: string;
   },
 ) => {
-  const action = webPage.actionSpace().find(({ name }) => name === 'Input');
-  expect(action).toBeDefined();
-  await action!.call(param, {} as any);
+  await agent.callActionInActionSpace('Input', param);
 };
 
 const centerOf = async (
   frame: Page | Frame,
   selector: string,
-): Promise<ElementInfo> => {
+  description: string,
+): Promise<DirectLocate> => {
   const element = await frame.$(selector);
   if (!element) throw new Error(`Missing element: ${selector}`);
   const box = await element.boundingBox();
   if (!box) throw new Error(`Missing bounding box: ${selector}`);
   return {
-    center: [box.x + box.width / 2, box.y + box.height / 2],
-  } as ElementInfo;
+    locatedPixelBbox: [box.x, box.y, box.x + box.width, box.y + box.height],
+    prompt: description,
+  };
 };
 
 describe('comprehensive input actions in Puppeteer', () => {
@@ -79,20 +82,19 @@ describe('comprehensive input actions in Puppeteer', () => {
     page = await browser.newPage();
     await page.goto(servers.topLevelUrl, { waitUntil: 'networkidle0' });
     agent = new PuppeteerAgent(page);
-    const webPage = new PuppeteerWebPage(page);
 
-    await inputAction(webPage, {
-      locate: await centerOf(page, '#text-input'),
+    await inputAction(agent, {
+      locate: await centerOf(page, '#text-input', 'Text input'),
       mode: 'replace',
       value: 'Input replaced',
     });
-    await inputAction(webPage, {
-      locate: await centerOf(page, '#notes'),
+    await inputAction(agent, {
+      locate: await centerOf(page, '#notes', 'Notes textarea'),
       mode: 'replace',
       value: 'Textarea replaced',
     });
-    await inputAction(webPage, {
-      locate: await centerOf(page, '#rich-editor'),
+    await inputAction(agent, {
+      locate: await centerOf(page, '#rich-editor', 'Rich text editor'),
       mode: 'replace',
       value: 'Rich text replaced',
     });
@@ -109,11 +111,33 @@ describe('comprehensive input actions in Puppeteer', () => {
     expect(state.events.some(({ type }) => type === 'beforeinput')).toBe(true);
     expect(state.events.some(({ type }) => type === 'input')).toBe(true);
     expect(state.events.some(({ type }) => type === 'change')).toBe(true);
-    await agent.aiInput('the text input labeled Text input', {
-      value: 'Input replaced',
-    });
     await agent.aiAssert(
       'The state summary shows Text input value: Input replaced, Textarea value: Textarea replaced, and Rich text value: Rich text replaced. It also shows non-zero beforeinput, input, and change event counts.',
+    );
+  });
+
+  it('uses public aiInput to locate and replace a text input from its initial value', async () => {
+    page = await browser.newPage();
+    await page.goto(servers.topLevelUrl, { waitUntil: 'networkidle0' });
+    agent = new PuppeteerAgent(page);
+
+    expect(
+      await page.$eval(
+        '#text-input',
+        (element) => (element as HTMLInputElement).value,
+      ),
+    ).toBe('Alpha value');
+    await agent.aiInput('the text input labeled Text input', {
+      value: 'Public aiInput replacement',
+    });
+    expect(
+      await page.$eval(
+        '#text-input',
+        (element) => (element as HTMLInputElement).value,
+      ),
+    ).toBe('Public aiInput replacement');
+    await agent.aiAssert(
+      'The state summary shows Text input value: Public aiInput replacement.',
     );
   });
 
@@ -121,11 +145,14 @@ describe('comprehensive input actions in Puppeteer', () => {
     page = await browser.newPage();
     await page.goto(servers.topLevelUrl, { waitUntil: 'networkidle0' });
     agent = new PuppeteerAgent(page);
-    const webPage = new PuppeteerWebPage(page);
 
-    for (const selector of ['#text-input', '#notes', '#rich-editor']) {
-      await inputAction(webPage, {
-        locate: await centerOf(page, selector),
+    for (const [selector, description] of [
+      ['#text-input', 'Text input'],
+      ['#notes', 'Notes textarea'],
+      ['#rich-editor', 'Rich text editor'],
+    ] as const) {
+      await inputAction(agent, {
+        locate: await centerOf(page, selector, description),
         mode: 'clear',
         value: '',
       });
@@ -152,14 +179,13 @@ describe('comprehensive input actions in Puppeteer', () => {
     page = await browser.newPage();
     await page.goto(servers.topLevelUrl, { waitUntil: 'networkidle0' });
     agent = new PuppeteerAgent(page);
-    const webPage = new PuppeteerWebPage(page);
 
     const cases = [
-      ['#text-input', 'text-input'],
-      ['#notes', 'notes'],
-      ['#rich-editor', 'rich-editor'],
+      ['#text-input', 'Text input'],
+      ['#notes', 'Notes textarea'],
+      ['#rich-editor', 'Rich text editor'],
     ] as const;
-    for (const [selector] of cases) {
+    for (const [selector, description] of cases) {
       await page.$eval(selector, (element) => {
         (element as HTMLElement).focus();
         if (
@@ -176,8 +202,8 @@ describe('comprehensive input actions in Puppeteer', () => {
         selection?.removeAllRanges();
         selection?.addRange(range);
       });
-      await inputAction(webPage, {
-        locate: await centerOf(page, selector),
+      await inputAction(agent, {
+        locate: await centerOf(page, selector, description),
         mode: 'typeOnly',
         value: '[inserted]',
       });
@@ -202,7 +228,6 @@ describe('comprehensive input actions in Puppeteer', () => {
       page = await browser.newPage();
       await page.goto(servers.iframeUrl(mode), { waitUntil: 'networkidle0' });
       agent = new PuppeteerAgent(page);
-      const webPage = new PuppeteerWebPage(page);
       const frame = page
         .frames()
         .find((candidate) => candidate.url().endsWith('/frame'));
@@ -211,8 +236,8 @@ describe('comprehensive input actions in Puppeteer', () => {
         mode === 'same-origin',
       );
 
-      await inputAction(webPage, {
-        locate: await centerOf(frame, '#frame-input'),
+      await inputAction(agent, {
+        locate: await centerOf(frame, '#frame-input', `${mode} iframe input`),
         mode: 'replace',
         value: `${mode} replacement`,
       });
@@ -226,8 +251,8 @@ describe('comprehensive input actions in Puppeteer', () => {
         `Inside the iframe, the state summary shows Iframe input value: ${mode} replacement.`,
       );
 
-      await inputAction(webPage, {
-        locate: await centerOf(frame, '#frame-input'),
+      await inputAction(agent, {
+        locate: await centerOf(frame, '#frame-input', `${mode} iframe input`),
         mode: 'clear',
         value: '',
       });
@@ -247,11 +272,14 @@ describe('comprehensive input actions in Puppeteer', () => {
     page = await browser.newPage();
     await page.goto(servers.controlledUrl, { waitUntil: 'networkidle0' });
     agent = new PuppeteerAgent(page);
-    const webPage = new PuppeteerWebPage(page);
 
-    await inputAction(webPage, {
+    await inputAction(agent, {
       keyboardTypeDelay: 40,
-      locate: await centerOf(page, '#controlled-input'),
+      locate: await centerOf(
+        page,
+        '#controlled-input',
+        'Controlled text input',
+      ),
       mode: 'replace',
       value: 'Stable controlled text',
     });
