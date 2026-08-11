@@ -390,8 +390,8 @@ describe('HarmonyDevice', () => {
       expect(mockHdc.keyEvent).not.toHaveBeenCalled();
     });
 
-    it.each(['?', 'A', '1', '中文'])(
-      'should reject character input %j before connecting to HDC',
+    it.each(['?', 'KeyA', 'Digit1', 'F5', '2210', '中文'])(
+      'should reject unsupported key %j before connecting to HDC',
       async (key) => {
         await expect(
           device.inputPrimitives.keyboard.keyboardPress(key),
@@ -411,29 +411,19 @@ describe('HarmonyDevice', () => {
 
     it.each([
       ['Enter', '2054'],
-      ['Home', '2081'],
-      ['F5', '2094'],
-      ['F24', '2827'],
+      ['Home', 'Home'],
+      ['A', '2017'],
+      ['a', '2017'],
+      ['1', '2001'],
       ['Back', 'Back'],
       ['Power', 'Power'],
-      ['2210', '2210'],
     ])('should map %s to keycode %s', async (key, code) => {
       await device.inputPrimitives.keyboard.keyboardPress(key);
       expect(mockHdc.keyEvent).toHaveBeenCalledWith(code);
     });
 
-    it('should forward physical keys as a multi-key event', async () => {
-      await device.inputPrimitives.keyboard.keyboardPress('Shift+Slash');
-      expect(mockHdc.keyEvent).toHaveBeenCalledWith('2047', '2064');
-    });
-
-    it('should forward a physical letter key', async () => {
-      await device.inputPrimitives.keyboard.keyboardPress('KeyA');
-      expect(mockHdc.keyEvent).toHaveBeenCalledWith('2017');
-    });
-
     it('should forward a supported key combination as one key event', async () => {
-      await device.inputPrimitives.keyboard.keyboardPress('Control+KeyA');
+      await device.inputPrimitives.keyboard.keyboardPress('Control+A');
       expect(mockHdc.keyEvent).toHaveBeenCalledWith('2072', '2017');
     });
   });
