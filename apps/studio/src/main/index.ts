@@ -17,6 +17,7 @@ import {
   IPC_CHANNELS,
   type OpenImagePreviewRequest,
   type PrepareRecorderMarkdownReplayRequest,
+  type StreamRecorderArchiveRequest,
   type WriteFileRequest,
   type WriteReportFileRequest,
 } from '@shared/electron-contract';
@@ -46,6 +47,7 @@ import {
 } from './playground/device-discovery';
 import { createMultiPlatformRuntimeService } from './playground/multi-platform-runtime';
 import type { PlaygroundRuntimeService } from './playground/types';
+import { streamStudioRecorderArchive } from './recorder/archive-export';
 import {
   describeRecorderUIEventsInMain,
   generateRecorderCodeInMain,
@@ -771,6 +773,22 @@ const registerIpcHandlers = () => {
         throw new Error(`writeFile: unsupported encoding ${request.encoding}`);
       }
       await writeFileToDisk(targetPath, request.content, 'utf-8');
+    },
+  );
+  ipcMain.handle(
+    IPC_CHANNELS.streamRecorderArchive,
+    async (event, request: StreamRecorderArchiveRequest) => {
+      const runDir = studioRunDir;
+      if (!runDir) {
+        throw new Error(
+          'streamRecorderArchive: Studio run directory is not configured',
+        );
+      }
+      return streamStudioRecorderArchive(runDir, request, (progress) => {
+        if (!event.sender.isDestroyed()) {
+          event.sender.send(IPC_CHANNELS.recorderArchiveProgress, progress);
+        }
+      });
     },
   );
   // Multi-platform playground — a single server for Android, iOS,

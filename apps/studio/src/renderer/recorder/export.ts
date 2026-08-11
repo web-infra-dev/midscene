@@ -7,9 +7,13 @@ import {
 } from '@midscene/shared/recorder';
 import type {
   ElectronShellApi,
+  RecorderArchiveAssetEntry,
+  RecorderArchiveProgress,
+  RecorderArchiveTextEntry,
   SaveFileFilter,
 } from '@shared/electron-contract';
 import JSZip from 'jszip';
+import { createSecureRecorderId } from './secure-id';
 import type { StudioRecordedEvent, StudioRecordingSession } from './types';
 
 export async function materializeStudioRecorderSessionScreenshots(
@@ -49,6 +53,10 @@ function getElectronShell(): Pick<
     throw new Error('Studio file export bridge is unavailable.');
   }
   return shell;
+}
+
+function getRecorderArchiveShell(): ElectronShellApi | undefined {
+  return (globalThis.window as Window | undefined)?.electronShell;
 }
 
 function isMissingGenericFileBridgeError(error: unknown) {
@@ -448,16 +456,16 @@ export async function createStudioRecorderZipBase64(
     const markdown =
       session.generatedCode?.markdown ||
       generateStudioRecorderMarkdownReplay(session);
-    zip.file(`markdown/${baseName}.md`, markdown);
+    zip.file(`markdown/${baseName}/recording.md`, markdown);
     zip.file(
-      `markdown/${baseName}.manifest.json`,
+      `markdown/${baseName}/recording.manifest.json`,
       createMarkdownReplayManifest(session, markdownSource),
     );
     for (const screenshot of createMidsceneRecorderMarkdownScreenshotAssets(
       session.events,
     )) {
       zip.file(
-        `markdown/${screenshot.relativePath.replace(/^\.\//, '')}`,
+        `markdown/${baseName}/${screenshot.relativePath.replace(/^\.\//, '')}`,
         screenshot.base64Data,
         { base64: true },
       );
@@ -503,6 +511,180 @@ export async function createStudioRecorderMarkdownZipBase64(
     );
   }
   return zip.generateAsync({ type: 'base64' });
+}
+
+export interface StudioRecorderArchivePlan {
+  textEntries: RecorderArchiveTextEntry[];
+  assetEntries: RecorderArchiveAssetEntry[];
+}
+
+function createRecorderArchiveAssetEntries(
+  session: StudioRecordingSession,
+  archiveBaseDir: string,
+  maxScreenshots: number,
+) {
+  const entries: RecorderArchiveAssetEntry[] = [];
+  const seenAssetIds = new Set<string>();
+  for (
+    let eventIndex = 0;
+    eventIndex < session.events.length;
+    eventIndex += 1
+  ) {
+    if (entries.length >= maxScreenshots) {
+      break;
+    }
+    const event = session.events[eventIndex];
+    const asset = event.screenshotAsset;
+    if (!asset || seenAssetIds.has(asset.id)) {
+      continue;
+    }
+    seenAssetIds.add(asset.id);
+    const safeType = event.type.replace(/[^a-zA-Z0-9-]/g, '-');
+    const extension = asset.mimeType.includes('jpeg') ? 'jpg' : 'png';
+    entries.push({
+      archivePath: `${archiveBaseDir}/event-${String(eventIndex + 1).padStart(3, '0')}-${safeType}.${extension}`,
+      assetId: asset.id,
+      mimeType: asset.mimeType,
+      bytes: asset.bytes,
+    });
+  }
+  return entries;
+}
+
+export function createStudioRecorderArchivePlan(
+  sessions: StudioRecordingSession[],
+): StudioRecorderArchivePlan {
+  const textEntries: RecorderArchiveTextEntry[] = [
+    {
+      archivePath: 'recordings.md',
+      content: generateStudioRecorderMarkdown(sessions),
+    },
+  ];
+  const assetEntries: RecorderArchiveAssetEntry[] = [];
+  let remainingScreenshots = DEFAULT_MIDSCENE_RECORDER_MARKDOWN_MAX_SCREENSHOTS;
+  for (const session of sessions) {
+    const baseName = `${sanitizeFileName(session.name)}-${session.id}`;
+    const markdownSource = session.generatedCode?.markdown
+      ? 'ai'
+      : 'local-fallback';
+    const markdown =
+      session.generatedCode?.markdown ||
+      generateStudioRecorderMarkdownReplay(session);
+    textEntries.push(
+      {
+        archivePath: `markdown/${baseName}/recording.md`,
+        content: markdown,
+      },
+      {
+        archivePath: `markdown/${baseName}/recording.manifest.json`,
+        content: createMarkdownReplayManifest(session, markdownSource),
+      },
+      {
+        archivePath: `${baseName}.yaml`,
+        content:
+          session.generatedCode?.yaml || generateStudioRecorderYaml(session),
+      },
+    );
+    const playwright =
+      session.generatedCode?.playwright ||
+      generateStudioRecorderPlaywright(session);
+    if (playwright) {
+      textEntries.push({
+        archivePath: `${baseName}.spec.ts`,
+        content: playwright,
+      });
+    }
+    const sessionAssets = createRecorderArchiveAssetEntries(
+      session,
+      `markdown/${baseName}/screenshots`,
+      remainingScreenshots,
+    );
+    assetEntries.push(...sessionAssets);
+    remainingScreenshots -= sessionAssets.length;
+  }
+  return { textEntries, assetEntries };
+}
+
+export function createStudioRecorderMarkdownArchivePlan(
+  session: StudioRecordingSession,
+): StudioRecorderArchivePlan {
+  const markdownSource = session.generatedCode?.markdown
+    ? 'ai'
+    : 'local-fallback';
+  return {
+    textEntries: [
+      {
+        archivePath: 'recording.md',
+        content:
+          session.generatedCode?.markdown ||
+          generateStudioRecorderMarkdownReplay(session),
+      },
+      {
+        archivePath: 'recording.manifest.json',
+        content: createMarkdownReplayManifest(session, markdownSource),
+      },
+    ],
+    assetEntries: createRecorderArchiveAssetEntries(
+      session,
+      'screenshots',
+      DEFAULT_MIDSCENE_RECORDER_MARKDOWN_MAX_SCREENSHOTS,
+    ),
+  };
+}
+
+export async function saveStudioRecorderArchive(options: {
+  title: string;
+  defaultFileName: string;
+  plan: StudioRecorderArchivePlan;
+  createFallbackContent: () => Promise<string>;
+  onProgress?: (progress: RecorderArchiveProgress) => void;
+}) {
+  const shell = getRecorderArchiveShell();
+  if (!shell?.chooseFileSavePath) {
+    triggerBrowserDownload({
+      defaultFileName: options.defaultFileName,
+      content: await options.createFallbackContent(),
+      encoding: 'base64',
+      filters: [{ name: 'ZIP Archive', extensions: ['zip'] }],
+    });
+    return;
+  }
+
+  const targetPath = await shell.chooseFileSavePath({
+    title: options.title,
+    defaultFileName: options.defaultFileName,
+    filters: [{ name: 'ZIP Archive', extensions: ['zip'] }],
+  });
+  if (!targetPath) {
+    return;
+  }
+
+  if (!shell.streamRecorderArchive) {
+    await shell.writeFile({
+      path: targetPath,
+      content: await options.createFallbackContent(),
+      encoding: 'base64',
+    });
+    return;
+  }
+
+  const jobId = createSecureRecorderId('recorder-archive');
+  const unsubscribe = options.onProgress
+    ? shell.onRecorderArchiveProgress((progress) => {
+        if (progress.jobId === jobId) {
+          options.onProgress?.(progress);
+        }
+      })
+    : undefined;
+  try {
+    await shell.streamRecorderArchive({
+      jobId,
+      path: targetPath,
+      ...options.plan,
+    });
+  } finally {
+    unsubscribe?.();
+  }
 }
 
 export async function saveStudioRecorderFile(options: {

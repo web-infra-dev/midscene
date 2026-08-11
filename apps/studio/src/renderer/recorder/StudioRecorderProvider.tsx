@@ -25,6 +25,8 @@ import {
 } from './codegen';
 import { mapPreviewRecorderEventToStudioRecordedEvent } from './event-mapper';
 import {
+  createStudioRecorderArchivePlan,
+  createStudioRecorderMarkdownArchivePlan,
   createStudioRecorderMarkdownZipBase64,
   createStudioRecorderZipBase64,
   generateStudioRecorderJson,
@@ -32,6 +34,7 @@ import {
   generateStudioRecorderYaml,
   getStudioRecorderExportVariantFileName,
   materializeStudioRecorderSessionScreenshots,
+  saveStudioRecorderArchive,
   saveStudioRecorderFile,
 } from './export';
 import { createSecureRecorderId } from './secure-id';
@@ -1661,6 +1664,55 @@ export function StudioRecorderProvider({ children }: PropsWithChildren) {
     [studioPlayground],
   );
 
+  const reportRecorderArchiveProgress = useCallback(
+    (progress: { processedBytes: number; totalBytes: number }) => {
+      const percent =
+        progress.totalBytes > 0
+          ? Math.min(
+              100,
+              Math.round((progress.processedBytes / progress.totalBytes) * 100),
+            )
+          : 100;
+      message.open({
+        key: 'studio-recorder-archive-export',
+        type: percent >= 100 ? 'success' : 'loading',
+        content:
+          percent >= 100
+            ? 'Recorder archive saved.'
+            : `Exporting recorder archive… ${percent}%`,
+        duration: percent >= 100 ? 2 : 0,
+      });
+    },
+    [message],
+  );
+
+  const saveRecorderArchiveWithProgress = useCallback(
+    async (
+      options: Omit<
+        Parameters<typeof saveStudioRecorderArchive>[0],
+        'onProgress'
+      >,
+    ) => {
+      try {
+        await saveStudioRecorderArchive({
+          ...options,
+          onProgress: reportRecorderArchiveProgress,
+        });
+      } catch (error) {
+        message.open({
+          key: 'studio-recorder-archive-export',
+          type: 'error',
+          content: `Failed to export recorder archive: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+          duration: 4,
+        });
+        throw error;
+      }
+    },
+    [message, reportRecorderArchiveProgress],
+  );
+
   const generateSessionMetadata = useCallback(
     async (session: StudioRecordingSession) => {
       if (session.events.length === 0 || session.metadataGeneratedAt) {
@@ -2638,18 +2690,18 @@ export function StudioRecorderProvider({ children }: PropsWithChildren) {
         if (!session.generatedCode?.markdown) {
           throw new Error('Generate AI Markdown before downloading.');
         }
-        await saveStudioRecorderFile({
+        await saveRecorderArchiveWithProgress({
           title: 'Export Recorder Markdown Replay',
           defaultFileName: getStudioRecorderExportVariantFileName(
             session,
             'markdown',
             'zip',
           ),
-          filters: [{ name: 'ZIP Archive', extensions: ['zip'] }],
-          content: await createStudioRecorderMarkdownZipBase64(
-            await materializeSessionForScreenshotExport(session),
-          ),
-          encoding: 'base64',
+          plan: createStudioRecorderMarkdownArchivePlan(session),
+          createFallbackContent: async () =>
+            createStudioRecorderMarkdownZipBase64(
+              await materializeSessionForScreenshotExport(session),
+            ),
         });
         return;
       }
@@ -2677,6 +2729,7 @@ export function StudioRecorderProvider({ children }: PropsWithChildren) {
       exportSessionYaml,
       flushPendingRecorderInput,
       materializeSessionForScreenshotExport,
+      saveRecorderArchiveWithProgress,
     ],
   );
 
@@ -2712,29 +2765,34 @@ export function StudioRecorderProvider({ children }: PropsWithChildren) {
     if (!sessions.length) {
       return;
     }
-    let remainingScreenshots =
-      DEFAULT_MIDSCENE_RECORDER_MARKDOWN_MAX_SCREENSHOTS;
-    const exportSessions: StudioRecordingSession[] = [];
-    for (const session of sessions) {
-      const exportSession = await materializeSessionForScreenshotExport(
-        session,
-        remainingScreenshots,
-      );
-      remainingScreenshots -= exportSession.events.filter(
-        (event, index) =>
-          Boolean(event.screenshotWithBox) &&
-          !session.events[index]?.screenshotWithBox,
-      ).length;
-      exportSessions.push(exportSession);
-    }
-    await saveStudioRecorderFile({
+    await saveRecorderArchiveWithProgress({
       title: 'Export Recorder Archive',
       defaultFileName: 'midscene-studio-recordings.zip',
-      filters: [{ name: 'ZIP Archive', extensions: ['zip'] }],
-      content: await createStudioRecorderZipBase64(exportSessions),
-      encoding: 'base64',
+      plan: createStudioRecorderArchivePlan(sessions),
+      createFallbackContent: async () => {
+        let remainingScreenshots =
+          DEFAULT_MIDSCENE_RECORDER_MARKDOWN_MAX_SCREENSHOTS;
+        const exportSessions: StudioRecordingSession[] = [];
+        for (const session of sessions) {
+          const exportSession = await materializeSessionForScreenshotExport(
+            session,
+            remainingScreenshots,
+          );
+          remainingScreenshots -= exportSession.events.filter(
+            (event, index) =>
+              Boolean(event.screenshotWithBox) &&
+              !session.events[index]?.screenshotWithBox,
+          ).length;
+          exportSessions.push(exportSession);
+        }
+        return createStudioRecorderZipBase64(exportSessions);
+      },
     });
-  }, [flushPendingRecorderInput, materializeSessionForScreenshotExport]);
+  }, [
+    flushPendingRecorderInput,
+    materializeSessionForScreenshotExport,
+    saveRecorderArchiveWithProgress,
+  ]);
 
   const contextValue = useMemo<StudioRecorderContextValue>(
     () => ({
