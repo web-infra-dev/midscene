@@ -1,18 +1,16 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import * as nodeUtilActual from 'node:util' with { rstest: 'importActual' };
+import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
 
-const mockExecFile = vi.fn();
+const mockExecFile = rs.fn();
 
-vi.mock('node:child_process', () => ({
-  execFile: vi.fn(),
+rs.mock('node:child_process', () => ({
+  execFile: rs.fn(),
 }));
 
-vi.mock('node:util', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('node:util')>();
-  return {
-    ...actual,
-    promisify: () => mockExecFile,
-  };
-});
+rs.mock('node:util', () => ({
+  ...nodeUtilActual,
+  promisify: () => mockExecFile,
+}));
 
 // Must import after mocks are set up.
 // @ts-ignore package tsconfig keeps module=ES2020 for build compatibility; this test intentionally uses top-level dynamic import so mocks are registered first.
@@ -24,7 +22,7 @@ describe('HdcClient', () => {
   });
 
   afterEach(() => {
-    vi.restoreAllMocks();
+    rs.restoreAllMocks();
   });
 
   describe('constructor', () => {

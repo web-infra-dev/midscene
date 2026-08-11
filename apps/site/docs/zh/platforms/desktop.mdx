@@ -4,7 +4,9 @@ import { PackageManagerTabs } from '@theme';
 
 # 桌面端
 
-Midscene 通过原生键盘和鼠标控制，在 Windows、macOS 和 Linux 上自动化桌面应用。
+Midscene 通过原生键盘和鼠标控制，在 Windows、macOS 和 Linux 上自动化桌面应用。它支持鼠标与键盘输入、屏幕截图和多显示器。
+
+它适用于测试 Electron、Qt 和原生应用，也可以自动化跨应用工作流。
 
 本指南介绍平台配置、模型配置、Playground 体验，以及 `@midscene/computer` 的 JavaScript SDK 集成。
 
@@ -15,33 +17,6 @@ Midscene 通过原生键盘和鼠标控制，在 Windows、macOS 和 Linux 上�
 <video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/pc-twitter2.mp4" height="300" controls />
 
 查看[完整报告](https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/pc-twitter2-midscene_report.html)，或浏览更多 [Midscene 案例](../showcases.mdx)。
-
-## 核心功能
-
-**跨平台桌面控制**
-
-- 鼠标操作：单击、双击、右键、移动和拖放。
-- 键盘输入：输入文本，并使用 Cmd、Ctrl、Alt 或 Shift 执行组合按键。
-- 屏幕截图：捕获任意显示器的画面。
-- 多显示器：在一个工作流中操作多个显示器。
-
-**AI 驱动的自动化**
-
-使用自然语言指令自动化桌面应用：
-
-```typescript
-await agent.aiAct('打开文件菜单');
-await agent.aiAct('点击另存为');
-await agent.aiAct('在文件名字段输入 "我的文档"');
-await agent.aiAct('按回车键');
-```
-
-## 使用场景
-
-- 测试 Electron、Qt 和原生桌面应用。
-- 自动化桌面应用中的重复工作。
-- 按顺序控制多个应用。
-- 使用自然语言指令测试桌面界面。
 
 ## 快速开始
 
@@ -86,7 +61,7 @@ Playground 是验证连接的最快方式。无需编写代码，即可体验 `a
 npx --yes @midscene/computer-playground
 ```
 
-2. 点击 Playground 窗口中的齿轮按钮，粘贴你的 API Key 配置。如果还没有 API Key，请回到 [模型配置](../model-config) 获取。
+2. 点击 Playground 窗口中的齿轮按钮，粘贴你的 API Key 配置。如果还没有模型配置，请参考[支持的模型与配置](../model-common-config)。
 
 ## 使用 JavaScript SDK
 
@@ -133,6 +108,38 @@ import { agentForComputer } from '@midscene/computer';
 
 ```bash
 npx tsx example.ts
+```
+
+脚本运行结束后，你应该能在控制台看到 `Midscene - report file updated: /path/to/report/some_id.html`。在浏览器中打开生成的 HTML 文件，即可回放每次交互、查询和断言。
+
+## 自定义动作
+
+使用 `defineAction()` 定义自定义动作。使用 `agentForComputer()` 构造 Agent 时，通过 `customActions` 传入这些动作。Midscene 会把这些动作追加到规划器中，让 Agent 可以调用你定义的领域特定动作。
+
+```typescript
+import { getMidsceneLocationSchema, z } from '@midscene/core';
+import { defineAction } from '@midscene/core/device';
+import { agentForComputer } from '@midscene/computer';
+
+const ContinuousClick = defineAction({
+  name: 'continuousClick',
+  description: 'Click the same target repeatedly',
+  paramSchema: z.object({
+    locate: getMidsceneLocationSchema(),
+    count: z.number().int().positive().describe('How many times to click'),
+  }),
+  async call(param) {
+    console.log('click target center', param.locate.center);
+    console.log('click count', param.count);
+    // Carry out your clicking logic using locate + count.
+  },
+});
+
+const agent = await agentForComputer({
+  customActions: [ContinuousClick],
+});
+
+await agent.aiAct('click the red button five times');
 ```
 
 ## 通过 RDP 连接远程 Windows 桌面
@@ -311,7 +318,7 @@ const agent = await agentForComputer({ headless: true });
 MIDSCENE_COMPUTER_HEADLESS_LINUX=true npx tsx example.ts
 ```
 
-## 下一步
+## 更多
 
 - [API 参考](../reference/#desktop)
 - [使用 YAML 格式自动化脚本](../automate-with-scripts-in-yaml)

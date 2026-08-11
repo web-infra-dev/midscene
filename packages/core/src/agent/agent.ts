@@ -1,5 +1,6 @@
 import { type ModelRuntime, getModelRuntime } from '@/ai-model/models';
 import { INTERNAL_CALL_ID_FIELD } from '@/ai-model/service-caller';
+import { IS_REPORT_BUILD } from '@/constants';
 import yaml from 'js-yaml';
 import type { TUserPrompt } from '../ai-model/index';
 import { ScreenshotItem } from '../screenshot-item';
@@ -695,6 +696,13 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
   }
 
   reportHTMLString(opt?: { inlineScreenshots?: boolean }) {
+    // Short-circuit at the call site because JavaScript evaluates function
+    // arguments first. This avoids serializing the dump (including inline
+    // screenshots) when the Report Viewer build does not need report HTML.
+    if (IS_REPORT_BUILD) {
+      return '';
+    }
+
     // dumpDataString() handles browser environment with inline screenshots
     return reportHTMLContent(this.dumpDataString(opt));
   }

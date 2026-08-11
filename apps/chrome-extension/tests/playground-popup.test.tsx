@@ -1,3 +1,4 @@
+import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
 /**
  * @vitest-environment jsdom
  */
@@ -5,19 +6,21 @@ import { act } from 'react';
 import type React from 'react';
 import { useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const setPopupTab = vi.fn();
+const setPopupTab = rs.fn();
 const getAgentRefs: Array<unknown> = [];
 const constructedAgentOptions: Array<unknown> = [];
 const verifyCallbacks: Array<unknown> = [];
+const configProviderThemes: Array<unknown> = [];
 let sdkSyncEffectCount = 0;
+let prefersDarkMode = false;
+let themeChangeListener: (() => void) | undefined;
 
-vi.mock('@midscene/core/ai-model', () => ({
-  runConnectivityTest: vi.fn(),
+rs.mock('@midscene/core/ai-model', () => ({
+  runConnectivityTest: rs.fn(),
 }));
 
-vi.mock('@midscene/visualizer', () => ({
+rs.mock('@midscene/visualizer', () => ({
   NavActions: ({
     onAgentOptionsSave,
     onVerify,
@@ -43,8 +46,10 @@ vi.mock('@midscene/visualizer', () => ({
       </button>
     </>
   ),
-  globalThemeConfig: () => ({}),
-  safeOverrideAIConfig: vi.fn(),
+  globalThemeConfig: () => ({
+    token: { colorPrimary: '#base-primary' },
+  }),
+  safeOverrideAIConfig: rs.fn(),
   useEnvConfig: (selector?: (state: Record<string, unknown>) => unknown) => {
     const state = {
       config: {
@@ -57,28 +62,41 @@ vi.mock('@midscene/visualizer', () => ({
   },
 }));
 
-vi.mock('antd', () => ({
+rs.mock('antd', () => ({
   App: Object.assign(
     ({ children }: { children: React.ReactNode }) => children,
     {
       useApp: () => ({
         message: {
-          error: vi.fn(),
-          info: vi.fn(),
-          success: vi.fn(),
+          error: rs.fn(),
+          info: rs.fn(),
+          success: rs.fn(),
         },
       }),
     },
   ),
-  ConfigProvider: ({ children }: { children: React.ReactNode }) => children,
+  ConfigProvider: ({
+    children,
+    theme,
+  }: {
+    children: React.ReactNode;
+    theme?: unknown;
+  }) => {
+    configProviderThemes.push(theme);
+    return children;
+  },
   Dropdown: ({ children }: { children: React.ReactNode }) => children,
+  theme: {
+    darkAlgorithm: 'dark-algorithm',
+    defaultAlgorithm: 'default-algorithm',
+  },
 }));
 
-vi.mock('@midscene/shared/env', () => ({
+rs.mock('@midscene/shared/env', () => ({
   MIDSCENE_MODEL_API_KEY: 'test-key',
 }));
 
-vi.mock('@midscene/web/chrome-extension', () => ({
+rs.mock('@midscene/web/chrome-extension', () => ({
   ChromeExtensionProxyPage: class ChromeExtensionProxyPage {},
   ChromeExtensionProxyPageAgent: class ChromeExtensionProxyPageAgent {
     constructor(_page: unknown, options: unknown) {
@@ -87,7 +105,7 @@ vi.mock('@midscene/web/chrome-extension', () => ({
   },
 }));
 
-vi.mock('../src/components/playground', () => ({
+rs.mock('../src/components/playground', () => ({
   BrowserExtensionPlayground: ({
     getAgent,
     onPlaygroundSDKChange,
@@ -106,11 +124,11 @@ vi.mock('../src/components/playground', () => ({
   },
 }));
 
-vi.mock('../src/extension/bridge', () => ({
+rs.mock('../src/extension/bridge', () => ({
   default: () => <div>bridge</div>,
 }));
 
-vi.mock('../src/extension/recorder', () => ({
+rs.mock('../src/extension/recorder', () => ({
   default: () => <div>recorder</div>,
 }));
 
@@ -127,11 +145,52 @@ describe('PlaygroundPopup', () => {
     getAgentRefs.length = 0;
     constructedAgentOptions.length = 0;
     verifyCallbacks.length = 0;
+    configProviderThemes.length = 0;
     sdkSyncEffectCount = 0;
+    prefersDarkMode = false;
+    themeChangeListener = undefined;
+    Object.defineProperty(window, 'matchMedia', {
+      configurable: true,
+      value: rs.fn(() => ({
+        addEventListener: (eventName: string, listener: () => void) => {
+          if (eventName === 'change') themeChangeListener = listener;
+        },
+        matches: prefersDarkMode,
+        media: '(prefers-color-scheme: dark)',
+        removeEventListener: rs.fn(),
+      })),
+    });
   });
 
   afterEach(() => {
     document.body.innerHTML = '';
+    document.documentElement.removeAttribute('data-theme');
+  });
+
+  it('uses Ant Design dark tokens for the system dark theme', async () => {
+    prefersDarkMode = true;
+    const { PlaygroundPopup } = await import('../src/extension/popup');
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+
+    await act(async () => {
+      root.render(<PlaygroundPopup />);
+      await Promise.resolve();
+    });
+
+    expect(document.documentElement.dataset.theme).toBe('dark');
+    expect(configProviderThemes.at(-1)).toEqual(
+      expect.objectContaining({
+        algorithm: 'dark-algorithm',
+        token: expect.objectContaining({ colorPrimary: '#2D5290' }),
+      }),
+    );
+    expect(themeChangeListener).toEqual(expect.any(Function));
+
+    await act(async () => {
+      root.unmount();
+    });
   });
 
   it('keeps getAgent stable when playground SDK state updates', async () => {

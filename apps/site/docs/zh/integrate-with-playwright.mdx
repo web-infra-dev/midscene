@@ -332,7 +332,7 @@ await browser.close();
 
 ### 扩展自定义交互动作
 
-使用 `customActions` 选项，结合 `defineAction` 定义的自定义交互动作，可以扩展 Agent 的动作空间。这些动作会追加在内置动作之后，方便 Agent 在规划阶段调用。
+使用 `defineAction()` 定义自定义动作。构造 Agent 时，通过 `customActions` 传入这些动作。Midscene 会把这些动作追加到规划器中，让 Agent 可以调用你定义的领域特定动作。
 
 ```typescript
 import { getMidsceneLocationSchema, z } from '@midscene/core';

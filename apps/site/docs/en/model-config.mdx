@@ -1,11 +1,6 @@
-# All configuration options
+# Model Configuration Reference
 
-Midscene reads all model configuration from operating-system environment variables.
-
-Midscene integrates the OpenAI SDK by default for AI calls. The SDK defines the parameter shape, and most model providers (or deployment tools) offer compatible endpoints.
-
-This doc focuses on Midscene model configuration. For how we choose models, see [Model strategy](./model-strategy). For quick recipes for popular models, see [Configure your model](./model-common-config).
-
+Use this page to look up every Midscene model setting. For supported model names, model families, and copyable setup examples, see [Supported models and setup](./model-common-config). For model roles and combination guidance, see [Model strategy](./model-strategy). For connection issues, logs, tracing, and call recording, see [Model debugging and observability](./model-debugging-observability).
 
 ## Required settings
 
@@ -14,31 +9,10 @@ You need to set a default model for Midscene; see [Model strategy](./model-strat
 
 | Name | Description |
 |------|-------------|
-| `MIDSCENE_MODEL_API_KEY` | Model API key for OpenAI-compatible HTTP providers, e.g., `"sk-abcd..."`. Not required when `MIDSCENE_MODEL_BASE_URL="codex://app-server"` |
+| `MIDSCENE_MODEL_API_KEY` | Model API key for OpenAI-compatible HTTP providers, e.g., `"sk-abcd..."`. Not required when `MIDSCENE_MODEL_BASE_URL="codex://app-server"`; see [Use Codex App Server](./model-common-config#use-codex-app-server-oauth-no-api-key) |
 | `MIDSCENE_MODEL_BASE_URL` | API endpoint URL, usually ending with a version (e.g., `/v1`); do not append `/chat/completion` here since the underlying sdk will add it automatically |
 | `MIDSCENE_MODEL_NAME` | Model name |
 | `MIDSCENE_MODEL_FAMILY` | Model family, determine the way of dealing with the coordinates |
-
-### Use Codex App Server (OAuth, no API Key)
-
-If you already signed in with Codex CLI (`codex login`) and want Midscene to use that OAuth session directly, set:
-
-```bash
-export MIDSCENE_MODEL_BASE_URL="codex://app-server"
-export MIDSCENE_MODEL_NAME="gpt-5.4" # or another model shown by Codex model/list
-export MIDSCENE_MODEL_FAMILY="gpt-5"
-```
-
-Notes:
-- `MIDSCENE_MODEL_API_KEY` is not required in this mode.
-- Midscene will call `codex app-server` through stdio.
-- Make sure `codex` is available in your PATH and verify auth with `codex login status`.
-
-:::warning Known limitation
-
-Compared with calling an OpenAI-compatible API directly, we have observed that this route may take longer and consume more tokens. We are still investigating the cause.
-
-:::
 
 ## Advanced settings (optional)
 
@@ -50,19 +24,14 @@ If you configure a dedicated Insight or Planning model, model-related `MIDSCENE_
 | `MIDSCENE_MODEL_TEMPERATURE` | Sampling temperature for model responses |
 | `MIDSCENE_MODEL_RETRY_COUNT` | Number of retries when AI call fails, default 1 (i.e., retry once after failure). Retries occur when the model request encounters an HTTP error or when the model response cannot be structurally parsed |
 | `MIDSCENE_MODEL_RETRY_INTERVAL` | Interval between retries in milliseconds, default 2000 |
-| `MIDSCENE_MODEL_REASONING_ENABLED` | Controls whether model-native thinking is enabled. Midscene disables it by default. See [Model-Native Thinking Mode](./model-strategy#model-native-thinking-mode) |
-| `MIDSCENE_MODEL_REASONING_EFFORT` | Controls model-native thinking effort, supported by some models. Common values: `low`, `medium`, `high`. See [Model-Native Thinking Mode](./model-strategy#model-native-thinking-mode) |
-| `MIDSCENE_MODEL_REASONING_BUDGET` | Thinking token budget (number), supported by some models. See [Model-Native Thinking Mode](./model-strategy#model-native-thinking-mode) |
+| `MIDSCENE_MODEL_REASONING_ENABLED` | Controls whether model-native thinking is enabled. Midscene disables it by default. See [Model-native thinking](#model-native-reasoning) |
+| `MIDSCENE_MODEL_REASONING_EFFORT` | Controls model-native thinking effort, supported by some models. Common values: `low`, `medium`, `high`. See [Model-native thinking](#model-native-reasoning) |
+| `MIDSCENE_MODEL_REASONING_BUDGET` | Thinking token budget (number), supported by some models. See [Model-native thinking](#model-native-reasoning) |
 | `MIDSCENE_MODEL_RESPONSE_FORMAT` | Structured response strategy: `auto` (default) lets Midscene automatically use `response_format` in appropriate scenarios to specify a structured output format (usually JSON), making the model response as suitable for structured parsing as possible; `none` does not set `response_format`, for models that do not support structured output. |
 | `MIDSCENE_MODEL_HTTP_PROXY` | HTTP/HTTPS proxy, e.g., `http://127.0.0.1:8080` or `https://proxy.example.com:8080`. Takes precedence over `MIDSCENE_MODEL_SOCKS_PROXY` |
 | `MIDSCENE_MODEL_SOCKS_PROXY` | SOCKS proxy, e.g., `socks5://127.0.0.1:1080` |
 | `MIDSCENE_MODEL_INIT_CONFIG_JSON` | JSON blob that overrides the OpenAI SDK initialization config. Use `defaultHeaders` for custom auth headers; `extra_headers` and `extraHeaders` are accepted as aliases |
 | `MIDSCENE_MODEL_EXTRA_BODY_JSON` | JSON blob merged into each chat completion request body. Unlike `MIDSCENE_MODEL_INIT_CONFIG_JSON` (which configures the SDK client), this is spread into every `completion.create()` call sent to the model, e.g. enabling thinking mode in vLLM: `'{"chat_template_kwargs":{"enable_thinking":true}}'` |
-| `MIDSCENE_RUN_DIR` | Run artifact directory, like report and logs. Defaults to `midscene_run` in the current working directory; accepts absolute or relative paths |
-| `MIDSCENE_PREFERRED_LANGUAGE` | Optional. Preferred response language. Defaults to `Chinese` if timezone is GMT+8, otherwise `English` |
-| `MIDSCENE_PLAYGROUND_HOST` | Playground server listen host. Defaults to `127.0.0.1` for local-only access. Override it when remote device runtimes need to connect, for example with `0.0.0.0` to listen on all network interfaces |
-
-> **Playground network access:** The default loopback address is reachable only from the machine running Playground. If a physical device, virtual machine, container, or another computer connects through the host's network address, set `MIDSCENE_PLAYGROUND_HOST` to a reachable interface address (or `0.0.0.0` to listen on all interfaces). Only expose Playground on a trusted network.
 
 > Note: Control replanning behavior with the agent option `replanningCycleLimit` (defaults to 20, or 40 for `vlm-ui-tars`), not with environment variables.
 
@@ -106,23 +75,44 @@ Set the following if the Planning intent needs a different model:
 | `MIDSCENE_PLANNING_MODEL_EXTRA_BODY_JSON` | Optional; same effect as `MIDSCENE_MODEL_EXTRA_BODY_JSON` |
 | `MIDSCENE_PLANNING_MODEL_RESPONSE_FORMAT` | Optional; controls the structured response strategy in appropriate Planning scenarios |
 
-### Debug logging switches
+### Model-native thinking {#model-native-reasoning}
 
-Enable the following variables to print richer debug logs. Regardless of the switches, logs are also saved under `./midscene_run/log`.
+Midscene disables model-native thinking by default for better execution speed and stability. If a model cannot disable native thinking, Midscene reduces it as much as possible by controlling the thinking granularity or budget.
 
-| Name | Description |
-|------|-------------|
-| `DEBUG=midscene:ai:profile:stats` | Prints model latency, token usage, etc., comma-separated for easier analysis |
-| `DEBUG=midscene:ai:profile:detail` | Prints detailed token-usage logs |
-| `DEBUG=midscene:ai:call` | Prints AI response details |
-| `DEBUG=midscene:android:adb` | Prints Android adb command details |
-| `DEBUG=midscene:*` | Prints every debug log |
+The following environment variables provide a unified Midscene abstraction over provider-specific parameters. The parameters sent to the model depend on `MIDSCENE_MODEL_FAMILY`.
+
+`MIDSCENE_MODEL_REASONING_ENABLED` explicitly controls whether model-native thinking is enabled:
+
+- `false`: Force-disable model-native thinking. This is the Midscene default.
+- `true`: Force-enable model-native thinking.
+- `default`: Follow the model's default behavior. Midscene does not send a parameter that enables or disables thinking, and it ignores explicit `MIDSCENE_MODEL_REASONING_BUDGET` and `MIDSCENE_MODEL_REASONING_EFFORT` settings.
+
+The following model families currently support `MIDSCENE_MODEL_REASONING_ENABLED`:
+
+- Qwen: Maps to `enable_thinking`.
+- Doubao: Maps to `thinking.type`.
+- Zhipu GLM: Maps to `thinking.type`.
+- GPT-5: Maps to `reasoning_effort`. Midscene uses `medium` when enabled and `none` when disabled.
+- Gemini: Maps to `thinking_config.thinking_level`. Midscene uses `medium` when enabled and `minimal` when disabled.
+- Kimi K2 series: Maps to `thinking.type`.
+- Xiaomi MiMo: Maps to `thinking.type`.
+
+`MIDSCENE_MODEL_REASONING_BUDGET` controls the thinking budget. Qwen currently supports this setting through `thinking_budget`.
+
+`MIDSCENE_MODEL_REASONING_EFFORT` controls thinking effort. The following model families currently support it:
+
+- Doubao: Maps to `reasoning_effort`.
+- Gemini: Maps to `thinking_config.thinking_level`.
+- GPT-5: Maps to `reasoning_effort`.
+- Kimi K3 series: Maps to `reasoning_effort`.
+
+Provider support and accepted values vary. See each provider's official documentation for supported model versions and values. If the current model does not support an explicit setting, Midscene ignores it instead of guessing a provider-specific private parameter.
 
 ## Still-compatible configs (not recommended)
 
 The following environment variables are deprecated but still compatible. We recommend migrating to the new configuration approach.
 
-### Planning model configuration
+### Legacy model family configuration
 
 | Name | Description | New approach |
 |------|-------------|--------------|
@@ -142,133 +132,34 @@ The following environment variables are deprecated but still compatible. We reco
 | `MIDSCENE_OPENAI_HTTP_PROXY` | Deprecated but supported | Prefer `MIDSCENE_MODEL_HTTP_PROXY` |
 | `MIDSCENE_OPENAI_SOCKS_PROXY` | Deprecated but supported | Prefer `MIDSCENE_MODEL_SOCKS_PROXY` |
 
-## Configure settings via JavaScript
+## Debugging and observability settings
 
-You can configure models for each agent in JavaScript. See the [API reference](./reference/#common) for details.
+The following settings enable model diagnostics, tracing, and local call recording. See [Model debugging and observability](./model-debugging-observability) for installation steps, usage examples, troubleshooting, and security guidance.
 
-```typescript
-const agent = new Agent(page, {
-  // Configure via modelConfig
-  modelConfig: {
-    MIDSCENE_MODEL_TIMEOUT: '60000', // 60 seconds
-    MIDSCENE_MODEL_NAME: 'qwen3.7-plus',
-    // ... other configurations
-  }
-});
-```
+### Debug logs
 
-## FAQ
+For supported `DEBUG` selectors and log behavior, see [Runtime configuration: Debug logs](./reference/#debug-logs).
 
-### How can I monitor token usage?
+### LangSmith
 
-Set `DEBUG=midscene:ai:profile:stats` to print usage and latency.
+| Name | Description |
+| --- | --- |
+| `MIDSCENE_LANGSMITH_DEBUG` | Set to `1` to enable Midscene's automatic LangSmith integration |
+| `LANGCHAIN_API_KEY` | LangSmith API key |
+| `LANGCHAIN_TRACING` | Set to `true` to enable LangSmith tracing |
+| `LANGCHAIN_ENDPOINT` | LangSmith service endpoint |
 
-You can also find usage statistics inside the generated report files.
+### Langfuse
 
+| Name | Description |
+| --- | --- |
+| `MIDSCENE_LANGFUSE_DEBUG` | Set to `1` to enable Midscene's automatic Langfuse integration |
+| `LANGFUSE_PUBLIC_KEY` | Langfuse public key |
+| `LANGFUSE_SECRET_KEY` | Langfuse secret key |
+| `LANGFUSE_BASE_URL` | Langfuse service URL |
 
-### Using LangSmith
+### Model-call recording
 
-LangSmith is a platform for debugging large language models. Midscene provides auto-integration support - just install the dependency and set environment variables.
-
-**Step 1: Install dependency**
-
-```bash
-npm install langsmith
-```
-
-**Step 2: Set environment variables**
-
-```bash
-# Enable Midscene's LangSmith auto-integration
-export MIDSCENE_LANGSMITH_DEBUG=1
-
-# LangSmith configuration
-export LANGCHAIN_API_KEY="your-langchain-api-key-here"
-export LANGCHAIN_TRACING=true
-export LANGCHAIN_ENDPOINT="https://api.smith.langchain.com"
-# export LANGCHAIN_ENDPOINT="https://eu.api.smith.langchain.com" # If signed up in the EU region
-```
-
-After starting Midscene, you should see logs similar to:
-
-```log
-DEBUGGING MODE: langsmith wrapper enabled
-```
-
-Notes:
-- LangSmith and Langfuse can be enabled simultaneously.
-- Node.js only; browser environments will throw errors.
-- If you use [`createOpenAIClient`](./reference/#custom-openai-client), it overrides the env-based auto-integration.
-
-For finer-grained control (e.g., enabling LangSmith only for specific tasks), use [`createOpenAIClient`](./reference/#custom-openai-client) to wrap the client manually.
-
-### Using Langfuse
-
-[Langfuse](https://langfuse.com) is another popular LLM observability platform. Midscene has integrated Langfuse's `observeOpenAI` wrapper to automatically trace all OpenAI API calls.
-
-Since Langfuse tracing is built on top of OpenTelemetry, you need to initialize the OpenTelemetry SDK at application startup.
-
-**Step 1: Install dependencies**
-
-```bash
-npm install @langfuse/openai @langfuse/otel @opentelemetry/sdk-node
-```
-
-**Step 2: Initialize OpenTelemetry (Required)**
-
-Add the following code at the **very top** of your application entry file:
-
-```typescript
-import { NodeSDK } from "@opentelemetry/sdk-node";
-import { LangfuseSpanProcessor } from "@langfuse/otel";
-
-const sdk = new NodeSDK({
-  spanProcessors: [new LangfuseSpanProcessor()],
-});
-sdk.start();
-```
-
-**Step 3: Set environment variables**
-
-```bash
-# Enable Midscene's Langfuse auto-integration
-export MIDSCENE_LANGFUSE_DEBUG=1
-
-# Langfuse configuration
-export LANGFUSE_PUBLIC_KEY="your-langfuse-public-key-here"
-export LANGFUSE_SECRET_KEY="your-langfuse-secret-key-here"
-export LANGFUSE_BASE_URL="https://cloud.langfuse.com" # 🇪🇺 EU region
-# export LANGFUSE_BASE_URL="https://us.cloud.langfuse.com" # 🇺🇸 US region
-```
-
-After starting Midscene, you should see logs similar to:
-
-```log
-OpenTelemetry SDK initialized for Langfuse tracing
-DEBUGGING MODE: langfuse wrapper enabled
-```
-
-**Learn More**: Check out the [Langfuse OpenAI Integration documentation](https://langfuse.com/integrations/model-providers/openai-js) for additional configuration options and best practices.
-
-Notes:
-- LangSmith and Langfuse can be enabled simultaneously.
-- Node.js only; browser environments will throw errors.
-- If you use [`createOpenAIClient`](./reference/#custom-openai-client), it overrides the env-based auto-integration.
-
-### Record model calls
-
-Set `MIDSCENE_RECORD_MODEL_CALL=true` to write model requests, responses, and streaming chunks to a JSONL file:
-
-```text
-midscene_run/model-requests/<start-time>-<pid>.jsonl
-```
-
-Each process creates one file, with one JSON event per line. Local recording is available only in Node.js and Electron; browsers and Workers do not write files. Codex App Server records also include available protocol metadata.
-
-:::warning Important notes
-
-Files contain request bodies (including custom `extraBody`), response headers and bodies, streaming responses, and possibly base64-encoded screenshots. Request headers are not recorded. The files may be sensitive and large, so enable recording only while troubleshooting and protect or delete the files afterward. The record format is not stable across versions.
-
-:::
-
-Every event includes a `type` of `request`, `chunk`, `response`, or `error`. It also includes an `executionId` that groups calls from the same report execution, including retries. Calls outside a report execution, such as connectivity checks, use a generated ID prefixed with `unscoped-`.
+| Name | Description |
+| --- | --- |
+| `MIDSCENE_RECORD_MODEL_CALL` | Set to `true` to write model requests, responses, and streaming chunks to local JSONL files |

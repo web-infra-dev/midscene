@@ -1,7 +1,7 @@
 {
   "name": "@midscene/visualizer",
   "private": true,
-  "version": "1.10.9",
+  "version": "1.10.10",
   "repository": "https://github.com/web-infra-dev/midscene",
   "homepage": "https://midscenejs.com/",
   "types": "./dist/types/index.d.ts",
@@ -30,7 +30,7 @@
     "dev": "npm run build:watch",
     "build": "rslib build",
     "build:watch": "rslib build --watch --no-clean",
-    "test": "vitest --run",
+    "test": "rstest",
     "serve": "http-server ./dist/ -p 3000"
   },
   "peerDependencies": {
@@ -43,6 +43,7 @@
     "@rsbuild/plugin-react": "^1.4.1",
     "@rsbuild/plugin-svgr": "^1.2.2",
     "@rslib/core": "^0.18.3",
+    "@rstest/core": "0.11.5",
     "@types/chrome": "0.0.279",
     "@types/node": "^18.0.0",
     "@types/react": "^18.3.1",
@@ -56,7 +57,6 @@
     "rimraf": "~5.0.10",
     "tsx": "^4.19.2",
     "typescript": "^5.8.3",
-    "vitest": "3.0.5",
     "zustand": "4.5.2"
   },
   "sideEffects": ["**/*.css", "**/*.less", "**/*.sass", "**/*.scss"],

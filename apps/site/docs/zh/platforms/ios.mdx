@@ -48,7 +48,7 @@ Playground 是验证连接的最快方式。无需编写代码，即可体验 `a
 npx --yes @midscene/ios-playground
 ```
 
-2. 点击窗口中的齿轮按钮进入配置页，粘贴你的 API Key 配置。如果还没有 API Key，请回到 [模型配置](../model-config) 获取。
+2. 点击窗口中的齿轮按钮进入配置页，粘贴你的 API Key 配置。如果还没有模型配置，请参考[支持的模型与配置](../model-common-config)。
 
 ## 使用 JavaScript SDK
 
@@ -129,9 +129,37 @@ Promise.resolve(
 npx tsx demo.ts
 ```
 
-### 查看报告
+脚本运行结束后，你应该能在控制台看到 `Midscene - report file updated: /path/to/report/some_id.html`。在浏览器中打开生成的 HTML 文件，即可回放每次交互、查询和断言。
 
-脚本成功后会输出 `Midscene - report file updated: /path/to/report/some_id.html`。在浏览器中打开对应 HTML 文件即可回放每一步交互、查询与断言。
+## 自定义动作
+
+使用 `defineAction()` 定义自定义动作。使用 `agentFromWebDriverAgent()` 构造 Agent 时，通过 `customActions` 传入这些动作。Midscene 会把这些动作追加到规划器中，让 Agent 可以调用你定义的领域特定动作。
+
+```typescript
+import { getMidsceneLocationSchema, z } from '@midscene/core';
+import { defineAction } from '@midscene/core/device';
+import { agentFromWebDriverAgent } from '@midscene/ios';
+
+const ContinuousClick = defineAction({
+  name: 'continuousClick',
+  description: 'Click the same target repeatedly',
+  paramSchema: z.object({
+    locate: getMidsceneLocationSchema(),
+    count: z.number().int().positive().describe('How many times to click'),
+  }),
+  async call(param) {
+    console.log('click target center', param.locate.center);
+    console.log('click count', param.count);
+    // Carry out your clicking logic using locate + count.
+  },
+});
+
+const agent = await agentFromWebDriverAgent({
+  customActions: [ContinuousClick],
+});
+
+await agent.aiAct('click the red button five times');
+```
 
 ## API 参考与更多资源
 

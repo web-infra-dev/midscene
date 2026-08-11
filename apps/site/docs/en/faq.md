@@ -38,14 +38,14 @@ JSON.stringify({ defaultHeaders: { foo: 'bar' } })
 
 ## How do I use Azure OpenAI Service?
 
-When using Azure OpenAI Service, first choose the model and fill in the regular model configuration from [Model configuration](./model-common-config). Azure only requires changing the model service URL and API Key to the Azure form:
+When using Azure OpenAI Service, first choose the model and fill in the regular configuration from [Supported models and setup](./model-common-config). Azure only requires changing the model service URL and API Key to the Azure form:
 
 ```bash
 MIDSCENE_MODEL_BASE_URL="https://<your-resource>.services.ai.azure.com/openai/v1" # Or https://<your-resource>.openai.azure.com/openai/v1
 MIDSCENE_MODEL_API_KEY="<your-azure-api-key>"
 ```
 
-In other words, other settings such as `MIDSCENE_MODEL_NAME` and `MIDSCENE_MODEL_FAMILY` should still follow the corresponding model section in [Model configuration](./model-common-config). Azure is only a model provider with different authentication, not a special model.
+In other words, other settings such as `MIDSCENE_MODEL_NAME` and `MIDSCENE_MODEL_FAMILY` should still follow the corresponding model section in [Supported models and setup](./model-common-config). Azure is only a model provider with different authentication, not a special model.
 
 This uses the normal OpenAI-compatible path and sends `POST /openai/v1/chat/completions` with `Authorization: Bearer ...`. Do not append `/chat/completions` to `MIDSCENE_MODEL_BASE_URL`. For most `/openai/v1` endpoints you do not need `api-version`.
 
@@ -114,7 +114,7 @@ The directory contains the following subdirectories:
 - `log/` - Debug log files
 - `cache/` - Cache files (see [Caching](./caching))
 
-For more configuration options, see [Model configuration](./model-config).
+For global runtime options, see [Runtime configuration](./reference/#runtime-configuration).
 
 ## How do I control the report player's default replay style via a link?
 
@@ -153,7 +153,7 @@ Midscene's element positioning capability relies on the AI model's visual unders
 
 Generally, newer versions and models with larger parameters perform better than older versions and smaller models. For example, Qwen3-VL performs better than Qwen2.5-VL, and its plus version performs better than the flash version.
 
-For more model selection suggestions, please refer to [Model Strategy](./model-strategy).
+For current model recommendations, see [Supported models and setup](./model-common-config).
 
 ### 3. Check Model Family Configuration
 

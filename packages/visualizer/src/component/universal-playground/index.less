@@ -120,18 +120,18 @@
       z-index: 10;
       background: var(--midscene-surface-elevated, #fff);
       border: 1px solid var(--midscene-border-strong, rgba(0, 0, 0, 0.08));
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+      color: var(--midscene-accent, #2b83ff);
 
-      &:hover {
-        background: #1890ff;
-
-        .anticon {
-          color: #fff;
-        }
+      &:not(:disabled):hover {
+        background: var(--midscene-accent, #2b83ff);
+        border-color: var(--midscene-accent, #2b83ff);
+        color: #fff;
       }
 
       .anticon {
         font-size: 16px;
-        color: #333333;
+        color: inherit;
       }
     }
   }

@@ -1,5 +1,5 @@
 import { overrideAIConfig } from '@midscene/shared/env';
-import { describe, expect, test, vi } from 'vitest';
+import { describe, expect, rs, test } from '@rstest/core';
 import { PlaygroundServer } from '../../src/server';
 import type { PlaygroundAgent } from '../../src/types';
 
@@ -33,18 +33,18 @@ function getRouteHandler(
 
 describe('PlaygroundServer session manager APIs', () => {
   test('supports creating and destroying a session without an initial agent', async () => {
-    const agentFactory = vi.fn(async () => ({
+    const agentFactory = rs.fn(async () => ({
       interface: {
         interfaceType: 'android',
         describe: () => 'Mock Android device',
-        actionSpace: () => [{ name: 'Tap', description: 'tap', call: vi.fn() }],
+        actionSpace: () => [{ name: 'Tap', description: 'tap', call: rs.fn() }],
       },
-      destroy: vi.fn(),
+      destroy: rs.fn(),
     })) as any;
     const sidecar = {
       id: 'session-sidecar',
-      start: vi.fn(async () => {}),
-      stop: vi.fn(async () => {}),
+      start: rs.fn(async () => {}),
+      stop: rs.fn(async () => {}),
     };
 
     const server = new PlaygroundServer();
@@ -171,7 +171,7 @@ describe('PlaygroundServer session manager APIs', () => {
   });
 
   test('returns 409 without logging an error when screenshot is requested without a session', async () => {
-    const consoleErrorSpy = vi
+    const consoleErrorSpy = rs
       .spyOn(console, 'error')
       .mockImplementation(() => {});
     const server = new PlaygroundServer();
@@ -215,8 +215,8 @@ describe('PlaygroundServer session manager APIs', () => {
   test('stops started sidecars and restores base runtime when session creation fails after apply', async () => {
     const sidecar = {
       id: 'session-sidecar',
-      start: vi.fn(async () => {}),
-      stop: vi.fn(async () => {}),
+      start: rs.fn(async () => {}),
+      stop: rs.fn(async () => {}),
     };
     const server = new PlaygroundServer();
     const recreateError = new Error('agent recreate failed');
@@ -236,7 +236,7 @@ describe('PlaygroundServer session manager APIs', () => {
       sessionManager: {
         async createSession() {
           return {
-            agentFactory: vi.fn(
+            agentFactory: rs.fn(
               async () =>
                 ({
                   interface: {
@@ -260,7 +260,7 @@ describe('PlaygroundServer session manager APIs', () => {
 
     await server.launch(6102);
     (server as any)._configDirty = true;
-    vi.spyOn(server as any, 'recreateAgent').mockRejectedValue(recreateError);
+    rs.spyOn(server as any, 'recreateAgent').mockRejectedValue(recreateError);
 
     const createSessionHandler = getRouteHandler(server, 'post', '/session');
     expect(createSessionHandler).toBeTypeOf('function');
@@ -297,8 +297,8 @@ describe('PlaygroundServer session manager APIs', () => {
   test('returns the original session creation error when sidecar cleanup fails', async () => {
     const sidecar = {
       id: 'session-sidecar',
-      start: vi.fn(async () => {}),
-      stop: vi.fn(async () => {
+      start: rs.fn(async () => {}),
+      stop: rs.fn(async () => {
         throw new Error('sidecar stop failed');
       }),
     };
@@ -314,7 +314,7 @@ describe('PlaygroundServer session manager APIs', () => {
       sessionManager: {
         async createSession() {
           return {
-            agentFactory: vi.fn(
+            agentFactory: rs.fn(
               async () =>
                 ({
                   interface: {
@@ -335,7 +335,7 @@ describe('PlaygroundServer session manager APIs', () => {
 
     await server.launch(6103);
     (server as any)._configDirty = true;
-    vi.spyOn(server as any, 'recreateAgent').mockRejectedValue(
+    rs.spyOn(server as any, 'recreateAgent').mockRejectedValue(
       new Error('agent recreate failed'),
     );
 
@@ -381,7 +381,7 @@ describe('PlaygroundServer session manager APIs', () => {
       status: 'ok',
       message: 'AI config updated. New sessions will use it immediately.',
     });
-    expect(vi.mocked(overrideAIConfig)).toHaveBeenCalledWith({
+    expect(rs.mocked(overrideAIConfig)).toHaveBeenCalledWith({
       MIDSCENE_MODEL_NAME: 'gpt-4o-mini',
     });
     expect((server as any)._configDirty).toBe(false);
@@ -393,7 +393,7 @@ describe('PlaygroundServer session manager APIs', () => {
         interfaceType: 'android',
         describe: () => 'Mock Android device',
       },
-      destroy: vi.fn(async () => {}),
+      destroy: rs.fn(async () => {}),
     } as any);
 
     await server.launch(6107);
@@ -433,7 +433,7 @@ describe('PlaygroundServer session manager APIs', () => {
       status: 'ok',
       message: 'AI config not changed because it is identical to current',
     });
-    expect(vi.mocked(overrideAIConfig)).toHaveBeenCalledTimes(1);
+    expect(rs.mocked(overrideAIConfig)).toHaveBeenCalledTimes(1);
     expect((server as any)._configDirty).toBe(false);
   });
 });

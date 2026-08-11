@@ -4,7 +4,9 @@ import { PackageManagerTabs } from '@theme';
 
 # Desktop
 
-Midscene uses native keyboard and mouse controls to automate desktop applications on Windows, macOS, and Linux.
+Midscene uses native keyboard and mouse controls to automate desktop applications on Windows, macOS, and Linux. It supports mouse and keyboard input, screenshots, and multiple displays.
+
+Use it to test Electron, Qt, and native applications, or to automate workflows across desktop applications.
 
 This guide covers platform setup, model configuration, Playground, and JavaScript SDK integration with `@midscene/computer`.
 
@@ -15,33 +17,6 @@ This guide covers platform setup, model configuration, Playground, and JavaScrip
 <video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/pc-twitter2.mp4" height="300" controls />
 
 View the [full report](https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/pc-twitter2-midscene_report.html), or explore more [Midscene showcases](../showcases.mdx).
-
-## Key features
-
-**Cross-platform desktop control**
-
-- Mouse operations: click, double-click, right-click, move, and drag-and-drop.
-- Keyboard input: type text and press keys with Cmd, Ctrl, Alt, or Shift.
-- Screen capture: take screenshots from any display.
-- Multiple displays: work with multiple monitors in one workflow.
-
-**AI-powered automation**
-
-Use natural-language instructions to automate desktop applications:
-
-```typescript
-await agent.aiAct('open the File menu');
-await agent.aiAct('click on Save As');
-await agent.aiAct('type "my-document" in the filename field');
-await agent.aiAct('press Enter');
-```
-
-## Use cases
-
-- Test Electron, Qt, and native desktop applications.
-- Automate repetitive work across desktop applications.
-- Control multiple applications in sequence.
-- Test desktop interfaces with natural-language instructions.
 
 ## Get started
 
@@ -86,7 +61,7 @@ Playground is the fastest way to validate the connection and try core capabiliti
 npx --yes @midscene/computer-playground
 ```
 
-2. Click the gear icon in the Playground window, then paste your API key configuration. Refer back to [Model configuration](../model-config) if you still need credentials.
+2. Click the gear icon in the Playground window, then paste your API Key configuration. See [Supported models and setup](../model-common-config) if you still need a model configuration.
 
 ## Use the JavaScript SDK
 
@@ -133,6 +108,38 @@ import { agentForComputer } from '@midscene/computer';
 
 ```bash
 npx tsx example.ts
+```
+
+After the script finishes, you should see `Midscene - report file updated: /path/to/report/some_id.html` in the console. Open the generated HTML file in a browser to replay every interaction, query, and assertion.
+
+## Custom actions
+
+Use `defineAction()` to define custom actions. When constructing the Agent with `agentForComputer()`, pass these actions through `customActions`. Midscene appends these actions to the planner so the Agent can call the domain-specific actions you define.
+
+```typescript
+import { getMidsceneLocationSchema, z } from '@midscene/core';
+import { defineAction } from '@midscene/core/device';
+import { agentForComputer } from '@midscene/computer';
+
+const ContinuousClick = defineAction({
+  name: 'continuousClick',
+  description: 'Click the same target repeatedly',
+  paramSchema: z.object({
+    locate: getMidsceneLocationSchema(),
+    count: z.number().int().positive().describe('How many times to click'),
+  }),
+  async call(param) {
+    console.log('click target center', param.locate.center);
+    console.log('click count', param.count);
+    // Carry out your clicking logic using locate + count.
+  },
+});
+
+const agent = await agentForComputer({
+  customActions: [ContinuousClick],
+});
+
+await agent.aiAct('click the red button five times');
 ```
 
 ## Connect to a Remote Windows Desktop via RDP
@@ -311,7 +318,7 @@ Or set the environment variable:
 MIDSCENE_COMPUTER_HEADLESS_LINUX=true npx tsx example.ts
 ```
 
-## Next Steps
+## More
 
 - [API Reference](../reference/#desktop)
 - [Use YAML format automation scripts](../automate-with-scripts-in-yaml)

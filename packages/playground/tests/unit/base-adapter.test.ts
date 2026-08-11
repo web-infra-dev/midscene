@@ -1,6 +1,6 @@
 import type { DeviceAction } from '@midscene/core';
 import type { TModelConfig } from '@midscene/shared/env';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, rs } from '@rstest/core';
 import { BasePlaygroundAdapter } from '../../src/adapters/base';
 import type { FormValue } from '../../src/types';
 
@@ -43,7 +43,7 @@ describe('BasePlaygroundAdapter', () => {
       const action: DeviceAction<unknown> = {
         name: 'test',
         description: 'Test action',
-        call: vi.fn(),
+        call: rs.fn(),
       };
       const value: FormValue = { type: 'test', params: { test: 'value' } };
 
@@ -56,7 +56,7 @@ describe('BasePlaygroundAdapter', () => {
         name: 'test',
         description: 'Test action',
         paramSchema: { shape: {} } as any,
-        call: vi.fn(),
+        call: rs.fn(),
       };
       const value: FormValue = { type: 'test', params: { test: 'value' } };
 
@@ -70,9 +70,9 @@ describe('BasePlaygroundAdapter', () => {
         description: 'Test action',
         paramSchema: {
           shape: { requiredField: {} },
-          parse: vi.fn(),
+          parse: rs.fn(),
         } as any,
-        call: vi.fn(),
+        call: rs.fn(),
       };
       const value: FormValue = { type: 'test' }; // No params
 
@@ -82,7 +82,7 @@ describe('BasePlaygroundAdapter', () => {
     });
 
     it('should validate successfully with valid params', () => {
-      const mockParse = vi.fn();
+      const mockParse = rs.fn();
       const action: DeviceAction<unknown> = {
         name: 'test',
         description: 'Test action',
@@ -90,7 +90,7 @@ describe('BasePlaygroundAdapter', () => {
           shape: { field: {} },
           parse: mockParse,
         } as any,
-        call: vi.fn(),
+        call: rs.fn(),
       };
       const value: FormValue = {
         type: 'test',
@@ -103,7 +103,7 @@ describe('BasePlaygroundAdapter', () => {
     });
 
     it('should handle validation errors', () => {
-      const mockParse = vi.fn(() => {
+      const mockParse = rs.fn(() => {
         const error = new Error('Validation failed');
         (error as any).errors = [{ path: ['field'], message: 'Required' }];
         throw error;
@@ -116,7 +116,7 @@ describe('BasePlaygroundAdapter', () => {
           shape: { field: {} },
           parse: mockParse,
         } as any,
-        call: vi.fn(),
+        call: rs.fn(),
       };
       const value: FormValue = {
         type: 'test',
@@ -149,7 +149,7 @@ describe('BasePlaygroundAdapter', () => {
         name: 'test',
         description: 'Test action',
         paramSchema: { shape: { field: {} } } as any,
-        call: vi.fn(),
+        call: rs.fn(),
       };
 
       const result = adapter.createDisplayContent(value, true, action);
@@ -173,7 +173,7 @@ describe('BasePlaygroundAdapter', () => {
             numberField: {},
           },
         } as any,
-        call: vi.fn(),
+        call: rs.fn(),
       };
 
       const result = adapter.createDisplayContent(value, true, action);
@@ -201,7 +201,7 @@ describe('BasePlaygroundAdapter', () => {
         const action: DeviceAction<unknown> = {
           name: 'test',
           description: 'Test action',
-          call: vi.fn(),
+          call: rs.fn(),
         };
         const result = (adapter as any).getSchemaKeys(action);
         expect(result).toEqual([]);
@@ -217,7 +217,7 @@ describe('BasePlaygroundAdapter', () => {
               field2: {},
             },
           } as any,
-          call: vi.fn(),
+          call: rs.fn(),
         };
         const result = (adapter as any).getSchemaKeys(action);
         expect(result).toEqual(['field1', 'field2']);
@@ -259,7 +259,7 @@ describe('BasePlaygroundAdapter', () => {
         const action: DeviceAction<unknown> = {
           name: 'test',
           description: 'Test action',
-          call: vi.fn(),
+          call: rs.fn(),
         };
         const result = (adapter as any).actionNeedsStructuredParams(action);
         expect(result).toBe(true); // Default behavior
@@ -270,7 +270,7 @@ describe('BasePlaygroundAdapter', () => {
           name: 'test',
           description: 'Test action',
           paramSchema: { shape: {} } as any,
-          call: vi.fn(),
+          call: rs.fn(),
         };
         const result = (adapter as any).actionNeedsStructuredParams(action);
         expect(result).toBe(false);
@@ -281,7 +281,7 @@ describe('BasePlaygroundAdapter', () => {
           name: 'test',
           description: 'Test action',
           paramSchema: { shape: { field: {} } } as any,
-          call: vi.fn(),
+          call: rs.fn(),
         };
         const result = (adapter as any).actionNeedsStructuredParams(action);
         expect(result).toBe(true);

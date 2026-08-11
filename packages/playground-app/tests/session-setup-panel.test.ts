@@ -3,7 +3,7 @@ import type {
   PlaygroundSessionField,
   PlaygroundSessionSetup,
 } from '@midscene/playground';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 import { getPlatformSelectorOptions } from '../src/SessionSetupPanel';
 
 const setup: PlaygroundSessionSetup = {

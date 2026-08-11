@@ -21,17 +21,17 @@ tasks:
     flow:
       - aiTap: the first Planning task row in the left sidebar
       - sleep: 1000
-      - aiAssert: The right detail side panel shows collapsible section headers named Param and Output, and the Param section is expanded with task input data
+      - aiAssert: The right detail side panel shows a collapsible Param section and a collapsible section named either Output or Element, and the Param section is expanded with task input data
       # Collapse both Param and the Output/Element section so the Meta section
       # (always rendered last) rises to the top of the panel with its heading
       # and first metadata rows fully on screen. This avoids depending on
       # scroll position: Meta is long, so any partial scroll leaves either the
       # heading or the type/status/start rows out of the viewport.
-      - aiTap: Output section header in the right detail side panel
+      - aiTap: the section header named either Output or Element in the right detail side panel
       - sleep: 500
       - aiTap: Param section header in the right detail side panel
       - sleep: 1000
-      - aiAssert: The Meta section is visible in the right detail side panel and shows entries such as type, status, start, end, or total time; the Param and Output headers remain visible above it, both sections are collapsed, and their content is hidden
+      - aiAssert: The Meta section is visible in the right detail side panel and shows entries such as type, status, start, end, or total time; the Param header and the header named either Output or Element remain visible above it, both sections are collapsed, and their content is hidden
 
   - name: open in playground button
     flow:

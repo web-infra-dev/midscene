@@ -48,7 +48,7 @@ Playground is the fastest way to validate the connection and try core capabiliti
 npx --yes @midscene/ios-playground
 ```
 
-2. Click the gear button to enter the configuration page and paste your API key config. Refer back to [Model configuration](../model-config) if you still need credentials.
+2. Click the gear button to enter the configuration page and paste your API Key configuration. See [Supported models and setup](../model-common-config) if you still need a model configuration.
 
 ## Use the JavaScript SDK
 
@@ -129,9 +129,37 @@ Promise.resolve(
 npx tsx demo.ts
 ```
 
-### View the report
+After the script finishes, you should see `Midscene - report file updated: /path/to/report/some_id.html` in the console. Open the generated HTML file in a browser to replay every interaction, query, and assertion.
 
-Successful runs print `Midscene - report file updated: /path/to/report/some_id.html`. Open the generated HTML file in a browser to replay every interaction, query, and assertion.
+## Custom actions
+
+Use `defineAction()` to define custom actions. When constructing the Agent with `agentFromWebDriverAgent()`, pass these actions through `customActions`. Midscene appends these actions to the planner so the Agent can call the domain-specific actions you define.
+
+```typescript
+import { getMidsceneLocationSchema, z } from '@midscene/core';
+import { defineAction } from '@midscene/core/device';
+import { agentFromWebDriverAgent } from '@midscene/ios';
+
+const ContinuousClick = defineAction({
+  name: 'continuousClick',
+  description: 'Click the same target repeatedly',
+  paramSchema: z.object({
+    locate: getMidsceneLocationSchema(),
+    count: z.number().int().positive().describe('How many times to click'),
+  }),
+  async call(param) {
+    console.log('click target center', param.locate.center);
+    console.log('click count', param.count);
+    // Carry out your clicking logic using locate + count.
+  },
+});
+
+const agent = await agentFromWebDriverAgent({
+  customActions: [ContinuousClick],
+});
+
+await agent.aiAct('click the red button five times');
+```
 
 ## API reference and more resources
 

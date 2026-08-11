@@ -83,7 +83,7 @@ Playground is the fastest way to validate the connection and try core capabiliti
 npx --yes @midscene/android-playground
 ```
 
-2. Click the gear icon in the Playground window, then paste your API key configuration. Refer back to [Model configuration](../model-config) if you still need credentials.
+2. Click the gear icon in the Playground window, then paste your API Key configuration. See [Supported models and setup](../model-common-config) if you still need a model configuration.
 
 ![](/android-set-env.png)
 
@@ -144,9 +144,7 @@ Promise.resolve(
 npx tsx demo.ts
 ```
 
-### View the report
-
-Successful runs print `Midscene - report file updated: /path/to/report/some_id.html`. Open the generated HTML file in a browser to replay every interaction, query, and assertion.
+After the script finishes, you should see `Midscene - report file updated: /path/to/report/some_id.html` in the console. Open the generated HTML file in a browser to replay every interaction, query, and assertion.
 
 ## Advanced
 
@@ -154,7 +152,7 @@ Use this section to customize device behavior, integrate Midscene into your fram
 
 ### Extend Midscene on Android
 
-Use `defineAction()` for custom gestures and pass them through `customActions`. Midscene will append them to the planner so AI can call your domain-specific action names.
+Use `defineAction()` to define custom actions. When constructing `AndroidDevice`, pass these actions through `customActions`. Midscene appends these actions to the planner so the Agent can call the domain-specific actions you define.
 
 ```typescript
 import { getMidsceneLocationSchema, z } from '@midscene/core';
@@ -176,124 +174,17 @@ const ContinuousClick = defineAction({
 });
 
 const devices = await getConnectedDevices();
-const device = new AndroidDevice(devices[0].udid);
-await device.connect();
-
-const agent = new AndroidAgent(device, {
+const device = new AndroidDevice(devices[0].udid, {
   customActions: [ContinuousClick],
 });
+await device.connect();
+
+const agent = new AndroidAgent(device);
 
 await agent.aiAct('click the red button five times');
 ```
 
 See [Integrate with any interface](../integrate-with-any-interface#define-a-custom-action) for a deeper explanation of custom actions and action schemas.
-
-## More
-
-- For every Agent method, check the [API reference (Common)](../reference/#interaction-methods).
-- For Android-specific APIs, see [API reference (Android)](../reference/#android).
-- Use [YAML automation scripts and command-line tools](../automate-with-scripts-in-yaml).
-- Demo projects
-  - Android JavaScript SDK demo: [https://github.com/web-infra-dev/midscene-example/blob/main/android/javascript-sdk-demo](https://github.com/web-infra-dev/midscene-example/blob/main/android/javascript-sdk-demo)
-  - Android + Vitest demo: [https://github.com/web-infra-dev/midscene-example/tree/main/android/vitest-demo](https://github.com/web-infra-dev/midscene-example/tree/main/android/vitest-demo)
-
-### Complete example (Vitest + AndroidAgent)
-
-```typescript
-import {
-  AndroidAgent,
-  AndroidDevice,
-  getConnectedDevices,
-} from '@midscene/android';
-import type { TestStatus } from '@midscene/core';
-import { ReportMergingTool } from '@midscene/core/report';
-import { sleep } from '@midscene/core/utils';
-import type ADB from 'appium-adb';
-import {
-  afterAll,
-  afterEach,
-  beforeAll,
-  beforeEach,
-  describe,
-  it,
-} from 'vitest';
-
-describe('Android Settings Test', () => {
-  let page: AndroidDevice;
-  let adb: ADB;
-  let agent: AndroidAgent;
-  let startTime: number;
-  let itTestStatus: TestStatus = 'passed';
-  const reportMergingTool = new ReportMergingTool();
-
-  beforeAll(async () => {
-    const devices = await getConnectedDevices();
-    page = new AndroidDevice(devices[0].udid);
-    adb = await page.getAdb();
-  });
-
-  beforeEach((ctx) => {
-    startTime = performance.now();
-    agent = new AndroidAgent(page, {
-      groupName: ctx.task.name,
-    });
-  });
-
-  afterEach((ctx) => {
-    if (ctx.task.result?.state === 'pass') {
-      itTestStatus = 'passed';
-    } else if (ctx.task.result?.state === 'skip') {
-      itTestStatus = 'skipped';
-    } else if (ctx.task.result?.errors?.[0].message.includes('timed out')) {
-      itTestStatus = 'timedOut';
-    } else {
-      itTestStatus = 'failed';
-    }
-    reportMergingTool.append({
-      reportFilePath: agent.reportFile as string,
-      reportAttributes: {
-        testId: `${ctx.task.name}`,
-        testTitle: `${ctx.task.name}`,
-        testDescription: 'description',
-        testDuration: (Date.now() - ctx.task.result?.startTime!) | 0,
-        testStatus: itTestStatus,
-      },
-    });
-  });
-
-  afterAll(() => {
-    reportMergingTool.mergeReports('my-android-setting-test-report');
-  });
-
-  it('toggle wlan', async () => {
-    await adb.shell('input keyevent KEYCODE_HOME');
-    await sleep(1000);
-    await adb.shell('am start -n com.android.settings/.Settings');
-    await sleep(1000);
-    await agent.aiAct('find and enter WLAN setting');
-    await agent.aiAct(
-      'toggle WLAN status *once*, if WLAN is off pls turn it on, otherwise turn it off.',
-    );
-  });
-
-  it('toggle bluetooth', async () => {
-    await adb.shell('input keyevent KEYCODE_HOME');
-    await sleep(1000);
-    await adb.shell('am start -n com.android.settings/.Settings');
-    await sleep(1000);
-    await agent.aiAct('find and enter bluetooth setting');
-    await agent.aiAct(
-      'toggle bluetooth status *once*, if bluetooth is off pls turn it on, otherwise turn it off.',
-    );
-  });
-});
-```
-
-:::info
-
-Merged reports are stored inside `midscene_run/report` by default. Override the directory with `MIDSCENE_RUN_DIR` when running in CI.
-
-:::
 
 ## FAQ
 
@@ -423,3 +314,12 @@ const device = new AndroidDevice('s4ey59', {
   remoteAdbPort: 5037,
 });
 ```
+
+## More
+
+- For every Agent method, check the [API reference (Common)](../reference/#interaction-methods).
+- For Android-specific APIs, see [API reference (Android)](../reference/#android).
+- Use [YAML automation scripts and command-line tools](../automate-with-scripts-in-yaml).
+- Demo projects
+  - Android JavaScript SDK demo: [https://github.com/web-infra-dev/midscene-example/blob/main/android/javascript-sdk-demo](https://github.com/web-infra-dev/midscene-example/blob/main/android/javascript-sdk-demo)
+  - Android + Vitest demo: [https://github.com/web-infra-dev/midscene-example/tree/main/android/vitest-demo](https://github.com/web-infra-dev/midscene-example/tree/main/android/vitest-demo)

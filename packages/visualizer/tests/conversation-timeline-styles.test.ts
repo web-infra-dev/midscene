@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 
 const styles = readFileSync(
   new URL('../src/component/universal-playground/index.less', import.meta.url),
@@ -15,6 +15,10 @@ const universalPlayground = readFileSync(
 );
 const player = readFileSync(
   new URL('../src/component/player/index.tsx', import.meta.url),
+  'utf8',
+);
+const promptInputStyles = readFileSync(
+  new URL('../src/component/prompt-input/index.less', import.meta.url),
   'utf8',
 );
 
@@ -97,5 +101,12 @@ describe('conversation timeline styles', () => {
     expect(styles).toMatch(
       /\.playground-timeline-region\s*\{[\s\S]*?flex:\s*1\s+1\s+auto;/,
     );
+  });
+
+  it('keeps the More APIs menu inside compact viewports', () => {
+    expect(promptInputStyles).toMatch(
+      /\.more-apis-dropdown\s*\{[\s\S]*?max-height:\s*clamp\(96px, calc\(100dvh - 280px\), 400px\);/,
+    );
+    expect(promptInputStyles).toContain('overscroll-behavior: contain;');
   });
 });
