@@ -333,6 +333,37 @@ export function extractAllDumpScriptsSync(
   return results;
 }
 
+export type IncompleteReportDumpReason = 'opening-tag' | 'content';
+
+export interface ReportDumpScanResult {
+  stoppedEarly: boolean;
+  incompleteDumpReason: IncompleteReportDumpReason | null;
+}
+
+function hasTrailingOpenTagFragment(
+  value: string,
+  openTagPrefix: string,
+): boolean {
+  if (value.includes(openTagPrefix)) return true;
+
+  const maxLength = Math.min(value.length, openTagPrefix.length - 1);
+  for (let length = maxLength; length > 0; length -= 1) {
+    if (value.endsWith(openTagPrefix.slice(0, length))) return true;
+  }
+
+  return false;
+}
+
+function isCompleteJson(value: string): boolean {
+  if (!value) return false;
+  try {
+    JSON.parse(value);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Stream ALL dump scripts from an HTML file.
  * Calls onMatch for each dump script and keeps memory bounded to a single
@@ -344,7 +375,7 @@ export function extractAllDumpScriptsSync(
 export function streamDumpScriptsSync(
   filePath: string,
   onMatch: (dumpScript: { openTag: string; content: string }) => boolean,
-): void {
+): ReportDumpScanResult {
   const openTagPrefix = '<script type="midscene_web_dump"';
   const closeTag = htmlScriptCloseTag();
 
@@ -381,7 +412,12 @@ export function streamDumpScriptsSync(
                   openTag: currentOpenTag,
                   content: currentContent.slice(0, endIdx).trim(),
                 });
-                if (shouldStop) return;
+                if (shouldStop) {
+                  return {
+                    stoppedEarly: true,
+                    incompleteDumpReason: null,
+                  };
+                }
                 capturing = false;
                 currentContent = '';
                 currentOpenTag = '';
@@ -407,7 +443,12 @@ export function streamDumpScriptsSync(
               openTag: currentOpenTag,
               content: currentContent.trim(),
             });
-            if (shouldStop) return;
+            if (shouldStop) {
+              return {
+                stoppedEarly: true,
+                incompleteDumpReason: null,
+              };
+            }
             capturing = false;
             currentContent = '';
             currentOpenTag = '';
@@ -423,6 +464,29 @@ export function streamDumpScriptsSync(
   } finally {
     closeSync(fd);
   }
+
+  if (capturing) {
+    const trailingContent = `${currentContent}${leftover}`.trim();
+    if (isCompleteJson(trailingContent)) {
+      const shouldStop = onMatch({
+        openTag: currentOpenTag,
+        content: trailingContent,
+      });
+      return {
+        stoppedEarly: shouldStop,
+        incompleteDumpReason: null,
+      };
+    }
+  }
+
+  return {
+    stoppedEarly: false,
+    incompleteDumpReason: capturing
+      ? 'content'
+      : hasTrailingOpenTagFragment(leftover, openTagPrefix)
+        ? 'opening-tag'
+        : null,
+  };
 }
 
 export function parseImageScripts(html: string): Record<string, string> {

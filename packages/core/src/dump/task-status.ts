@@ -30,7 +30,8 @@ export type DerivedTaskStatus =
   | 'warning'
   | 'pending'
   | 'running'
-  | 'cancelled';
+  | 'cancelled'
+  | 'unknown';
 
 /**
  * Derive a single task's semantic status from its raw dump fields. Mirrors the
@@ -65,8 +66,8 @@ export function deriveTaskStatus(task: TaskStatusFields): DerivedTaskStatus {
   if (task.status === 'running') return 'running';
   if (task.status === 'cancelled') return 'cancelled';
 
-  // finished, no error
-  return 'passed';
+  if (isFinished) return 'passed';
+  return 'unknown';
 }
 
 /**
