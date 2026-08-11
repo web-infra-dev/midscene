@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs';
 import { type Server, createServer } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { WebPage as PlaywrightWebPage } from '@/playwright/page';
@@ -323,6 +324,7 @@ describe('input keyboard actions end to end', () => {
       'executes an aiAct-planned cut without a locate target',
       async () => {
         const page = await browser.newPage();
+        let agent: PuppeteerAgent | undefined;
         const createCompletion = vi
           .fn()
           .mockResolvedValueOnce({
@@ -364,8 +366,9 @@ describe('input keyboard actions end to end', () => {
             input.focus();
             input.select();
           });
-          const agent = new PuppeteerAgent(page, {
-            generateReport: false,
+          agent = new PuppeteerAgent(page, {
+            generateReport: true,
+            reportFileName: 'targetless-ai-act-cut',
             modelConfig: SCRIPTED_MODEL_CONFIG,
             createOpenAIClient: async () =>
               ({
@@ -392,7 +395,10 @@ describe('input keyboard actions end to end', () => {
               (element) => (element as HTMLInputElement).value,
             ),
           ).toBe('');
+          expect(agent.reportFile).toBeTruthy();
+          expect(existsSync(agent.reportFile!)).toBe(true);
         } finally {
+          await agent?.destroy();
           await page.close();
         }
       },

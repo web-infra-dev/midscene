@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { PuppeteerAgent } from '@/puppeteer';
 import { sleep } from '@midscene/core/utils';
@@ -80,7 +81,8 @@ describe('puppeteer integration', () => {
       input.select();
     });
     agent = new PuppeteerAgent(originPage, {
-      generateReport: false,
+      generateReport: true,
+      reportFileName: 'targetless-ai-act-cut',
     });
 
     await agent.aiAct(
@@ -104,6 +106,8 @@ describe('puppeteer integration', () => {
         (element) => (element as HTMLInputElement).value,
       ),
     ).resolves.toBe('');
+    expect(agent.reportFile).toBeTruthy();
+    expect(existsSync(agent.reportFile!)).toBe(true);
   });
 
   it('agent with yaml script', async () => {
