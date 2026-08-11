@@ -1,12 +1,12 @@
 import { sleep } from '@midscene/core/utils';
-import { beforeAll, describe, it, vi } from 'vitest';
+import { beforeAll, describe, it, rs } from '@rstest/core';
 import {
   type IOSAgent,
   agentFromWebDriverAgent,
   checkIOSEnvironment,
 } from '../../src';
 
-vi.setConfig({
+rs.setConfig({
   testTimeout: 240 * 1000,
   hookTimeout: 240 * 1000, // Add hook timeout for beforeAll
 });

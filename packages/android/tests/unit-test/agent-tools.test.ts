@@ -1,15 +1,15 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
 import { agentFromAdbDevice } from '../../src/agent';
 import { AndroidMidsceneTools } from '../../src/agent-tools';
 
-vi.mock('../../src/agent', () => ({
-  agentFromAdbDevice: vi.fn(),
+rs.mock('../../src/agent', () => ({
+  agentFromAdbDevice: rs.fn(),
 }));
 
-vi.mock('../../src/device', () => ({
-  AndroidDevice: vi.fn().mockImplementation(() => ({
-    actionSpace: vi.fn().mockReturnValue([]),
-    destroy: vi.fn(),
+rs.mock('../../src/device', () => ({
+  AndroidDevice: rs.fn().mockImplementation(() => ({
+    actionSpace: rs.fn().mockReturnValue([]),
+    destroy: rs.fn(),
   })),
 }));
 
@@ -19,20 +19,20 @@ const validPngBase64 =
 function createMockAgent() {
   return {
     page: {
-      screenshotBase64: vi.fn().mockResolvedValue(validPngBase64),
+      screenshotBase64: rs.fn().mockResolvedValue(validPngBase64),
     },
-    aiAction: vi.fn().mockResolvedValue('done'),
-    destroy: vi.fn(),
+    aiAction: rs.fn().mockResolvedValue('done'),
+    destroy: rs.fn(),
   };
 }
 
 describe('AndroidMidsceneTools', () => {
   beforeEach(() => {
-    vi.mocked(agentFromAdbDevice).mockResolvedValue(createMockAgent() as any);
+    rs.mocked(agentFromAdbDevice).mockResolvedValue(createMockAgent() as any);
   });
 
   afterEach(() => {
-    vi.clearAllMocks();
+    rs.clearAllMocks();
   });
 
   it('passes top-level deviceId to take_screenshot', async () => {
@@ -95,7 +95,7 @@ describe('AndroidMidsceneTools', () => {
 
   it('passes nested android.deviceId to act', async () => {
     const mockAgent = createMockAgent();
-    vi.mocked(agentFromAdbDevice).mockResolvedValue(mockAgent as any);
+    rs.mocked(agentFromAdbDevice).mockResolvedValue(mockAgent as any);
 
     const tools = new AndroidMidsceneTools();
     await tools.initTools();
@@ -189,7 +189,7 @@ describe('AndroidMidsceneTools', () => {
 
   it('reuses the Android agent when called twice with identical init args', async () => {
     const mockAgent = createMockAgent();
-    vi.mocked(agentFromAdbDevice).mockResolvedValue(mockAgent as any);
+    rs.mocked(agentFromAdbDevice).mockResolvedValue(mockAgent as any);
 
     const tools = new AndroidMidsceneTools();
     await tools.initTools();
@@ -212,7 +212,7 @@ describe('AndroidMidsceneTools', () => {
   it('rebuilds the Android agent when init args change', async () => {
     const firstAgent = createMockAgent();
     const secondAgent = createMockAgent();
-    vi.mocked(agentFromAdbDevice)
+    rs.mocked(agentFromAdbDevice)
       .mockResolvedValueOnce(firstAgent as any)
       .mockResolvedValueOnce(secondAgent as any);
 
@@ -241,7 +241,7 @@ describe('AndroidMidsceneTools', () => {
   it('rebuilds the Android agent when init args are omitted after being set', async () => {
     const firstAgent = createMockAgent();
     const secondAgent = createMockAgent();
-    vi.mocked(agentFromAdbDevice)
+    rs.mocked(agentFromAdbDevice)
       .mockResolvedValueOnce(firstAgent as any)
       .mockResolvedValueOnce(secondAgent as any);
 

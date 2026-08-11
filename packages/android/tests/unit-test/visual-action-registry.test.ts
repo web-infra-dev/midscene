@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { describe, expect, it, rs } from '@rstest/core';
 import ts from 'typescript';
-import { describe, expect, it, vi } from 'vitest';
 import { createVisualActionRegistry } from '../../src/visual-action-registry';
 
 const lowLevelVisualMutationMethods = new Set([
@@ -85,7 +85,7 @@ function calledVisualAction(call: ts.CallExpression): string | undefined {
 
 describe('createVisualActionRegistry', () => {
   it('runs the completion hook once with the registered action name', async () => {
-    const onActionSettled = vi.fn().mockResolvedValue(undefined);
+    const onActionSettled = rs.fn().mockResolvedValue(undefined);
     const actions = createVisualActionRegistry(
       {
         launch: async (uri: string) => `launched:${uri}`,
@@ -101,8 +101,8 @@ describe('createVisualActionRegistry', () => {
   });
 
   it('settles a composite action only once', async () => {
-    const dispatchStep = vi.fn().mockResolvedValue(undefined);
-    const onActionSettled = vi.fn().mockResolvedValue(undefined);
+    const dispatchStep = rs.fn().mockResolvedValue(undefined);
+    const onActionSettled = rs.fn().mockResolvedValue(undefined);
     const actions = createVisualActionRegistry(
       {
         swipe: async (repeat: number) => {
@@ -123,11 +123,11 @@ describe('createVisualActionRegistry', () => {
 
   it('settles an action that fails after dispatch begins', async () => {
     const actionError = new Error('second gesture failed');
-    const dispatchStep = vi
+    const dispatchStep = rs
       .fn()
       .mockResolvedValueOnce(undefined)
       .mockRejectedValueOnce(actionError);
-    const onActionSettled = vi.fn().mockResolvedValue(undefined);
+    const onActionSettled = rs.fn().mockResolvedValue(undefined);
     const actions = createVisualActionRegistry(
       {
         swipe: async () => {

@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 
 /**
  * Regression test: executeRequest must auto-prepend /session/{id} to the endpoint.
@@ -21,7 +21,7 @@ describe('IOSWebDriverClient.executeRequest session prefix', () => {
     (client as any).sessionId = 'fake-session-id';
 
     // Spy on the underlying makeRequest to capture the actual endpoint
-    const makeRequestSpy = vi
+    const makeRequestSpy = rs
       .spyOn(client as any, 'makeRequest')
       .mockResolvedValue({ value: { success: true } });
 
@@ -47,7 +47,7 @@ describe('IOSWebDriverClient.executeRequest session prefix', () => {
 
     (client as any).sessionId = 'fake-session-id';
 
-    const makeRequestSpy = vi
+    const makeRequestSpy = rs
       .spyOn(client as any, 'makeRequest')
       .mockResolvedValue({ value: { ok: true } });
 
