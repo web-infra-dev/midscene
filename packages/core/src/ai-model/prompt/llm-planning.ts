@@ -237,12 +237,21 @@ export async function systemPromptToTaskPlanning({
   includeLocateInPlanning,
   includeThought,
   includeSubGoals,
+  customActionsPromptHints,
 }: {
   actionSpace: DeviceAction<any>[];
   locatePromptSpec?: LocateResultPromptSpec;
   includeLocateInPlanning: boolean;
   includeThought?: boolean;
   includeSubGoals?: boolean;
+  /**
+   * Optional free-form guidance injected by the project's custom-actions module
+   * (e.g. domain routing rules for discovered business CLI actions). Rendered
+   * verbatim between Action Guidelines and the Supporting actions list.
+   * Midscene core does not parse or author this string — it is entirely owned
+   * by the project that registered the custom actions.
+   */
+  customActionsPromptHints?: string;
 }) {
   const preferredLanguage = getPreferredLanguage();
 
@@ -262,6 +271,11 @@ export async function systemPromptToTaskPlanning({
   });
   const actionList = actionDescriptionList.join('\n');
   const actionStepNotes = buildActionStepNotes(actionList);
+  const customActionsGuidance =
+    typeof customActionsPromptHints === 'string' &&
+    customActionsPromptHints.trim().length > 0
+      ? `\n${customActionsPromptHints.replace(/\n+$/, '')}\n`
+      : '';
 
   const shouldIncludeThought = includeThought ?? true;
   const shouldIncludeSubGoals = includeSubGoals ?? false;
@@ -485,7 +499,7 @@ ONLY if the task is not complete: Think what the next action is according to the
 - If there are some error messages reported by the previous actions, don't give up, try parse a new action to recover. If the error persists for more than 3 times, you should think this is an error and set the "error" field to the error message.
 
 ${actionStepNotes}
-
+${customActionsGuidance}
 ${
   includeLocateInPlanning
     ? `${locateGroundingRules()}

@@ -237,13 +237,14 @@ export function parseYamlScript(
   filePath?: string,
 ): MidsceneYamlScript {
   let processedContent = content;
-  if (content.indexOf('android') !== -1 && content.match(/deviceId:\s*(\d+)/)) {
-    let matchedDeviceId;
+  const numericDeviceIdPattern = /deviceId:\s*(\d+)([^\S\r\n]*)(?=$|#|\r?\n)/gm;
+  const deviceIdMatch = numericDeviceIdPattern.exec(content);
+  if (content.indexOf('android') !== -1 && deviceIdMatch) {
+    const matchedDeviceId = deviceIdMatch[1];
     processedContent = content.replace(
-      /deviceId:\s*(\d+)/g,
-      (match, deviceId) => {
-        matchedDeviceId = deviceId;
-        return `deviceId: '${deviceId}'`;
+      numericDeviceIdPattern,
+      (_match, deviceId, trailingWhitespace) => {
+        return `deviceId: "${deviceId}"${trailingWhitespace}`;
       },
     );
     console.warn(

@@ -54,6 +54,7 @@ describe('validateModelFamily', () => {
     expect(() => validateModelFamily('gpt-5')).not.toThrow();
     expect(() => validateModelFamily('kimi')).not.toThrow();
     expect(() => validateModelFamily('xiaomi-mimo')).not.toThrow();
+    expect(() => validateModelFamily('deepseek')).not.toThrow();
     expect(() => validateModelFamily('vlm-ui-tars')).not.toThrow();
     expect(() => validateModelFamily(undefined)).not.toThrow();
   });

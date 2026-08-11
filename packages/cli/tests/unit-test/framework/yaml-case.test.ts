@@ -39,7 +39,7 @@ describe('runYamlCase', () => {
       expect(createYamlPlayer).toHaveBeenCalledWith(
         expect.stringMatching(/relative\.yaml$/),
         undefined,
-        { headed: true, keepWindow: undefined },
+        { headed: true, keepWindow: undefined, iosAuto: undefined },
       );
       expect(player.run).toHaveBeenCalledTimes(1);
       expect(result.output).toBe(output);
@@ -65,7 +65,20 @@ describe('runYamlCase', () => {
     expect(createYamlPlayer).toHaveBeenCalledWith(
       expect.stringMatching(/relative\.yaml$/),
       executionConfig,
-      { headed: undefined, keepWindow: undefined },
+      { headed: undefined, keepWindow: undefined, iosAuto: undefined },
+    );
+  });
+
+  test('passes iosAuto to the YAML player', async () => {
+    const player = createPlayer();
+    vi.mocked(createYamlPlayer).mockResolvedValue(player as any);
+
+    await runYamlCase({ file: 'relative.yaml', iosAuto: true });
+
+    expect(createYamlPlayer).toHaveBeenCalledWith(
+      expect.stringMatching(/relative\.yaml$/),
+      undefined,
+      { headed: undefined, keepWindow: undefined, iosAuto: true },
     );
   });
 
@@ -95,7 +108,7 @@ describe('runYamlCase', () => {
           },
           tasks: [],
         }),
-        { headed: undefined, keepWindow: undefined },
+        { headed: undefined, keepWindow: undefined, iosAuto: undefined },
       );
     } finally {
       rmSync(root, { recursive: true, force: true });
@@ -158,7 +171,7 @@ describe('runYamlCase', () => {
           },
           tasks: [],
         },
-        { headed: undefined, keepWindow: undefined },
+        { headed: undefined, keepWindow: undefined, iosAuto: undefined },
       );
     } finally {
       rmSync(root, { recursive: true, force: true });

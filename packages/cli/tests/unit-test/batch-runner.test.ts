@@ -146,6 +146,22 @@ describe('BatchRunner', () => {
   });
 
   describe('shareBrowserContext logic', () => {
+    test('passes iosAuto to each YAML player', async () => {
+      const runner = new BatchRunner({
+        ...mockBatchConfig,
+        files: ['ios.yml'],
+        iosAuto: true,
+      });
+
+      await runner.run();
+
+      expect(createYamlPlayer).toHaveBeenCalledWith(
+        'ios.yml',
+        expect.any(Object),
+        expect.objectContaining({ iosAuto: true }),
+      );
+    });
+
     test('should create one browser instance when shareBrowserContext is true', async () => {
       const config = {
         ...mockBatchConfig,

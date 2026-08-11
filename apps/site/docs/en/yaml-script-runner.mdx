@@ -158,6 +158,42 @@ After execution, the output directory contains:
 - Individual execution results for each YAML file (JSON).
 - Visual reports for each script (HTML).
 
+### Consume the final result as JSON
+
+Pass `--json` when another program or Agent needs to consume the result directly:
+
+```bash
+midscene ./bing-search.yaml --json
+```
+
+In this mode, the command prints one machine-readable JSON object without progress logs. Its `summary` contains execution statistics and the generated summary-file path. Each item in `results` contains the YAML file path, status, report path, output-file path, and parsed YAML output:
+
+```json
+{
+  "summary": {
+    "path": "/path/to/midscene_run/output/summary.json",
+    "total": 1,
+    "successful": 1,
+    "failed": 0,
+    "partialFailed": 0,
+    "notExecuted": 0,
+    "totalDuration": 85490
+  },
+  "results": [
+    {
+      "file": "/path/to/case.yaml",
+      "report": "/path/to/midscene_run/report/case.html",
+      "outputPath": "/path/to/midscene_run/output/case.json",
+      "output": { "key": "value" }
+    }
+  ]
+}
+```
+
+```bash
+midscene ./bing-search.yaml --json | jq .
+```
+
 ### Run in headed mode
 
 > Web page scenarios only
@@ -221,6 +257,7 @@ The CLI provides parameters to control how scripts run:
 - `--retry <number>`: Number of times to retry a failed script. Only the scripts that failed in the previous attempt are retried, which helps with unstable networks or unstable model output. Default `0`. (Not effective together with `--share-browser-context`, where the whole batch shares a single run.)
 - `--share-browser-context`: Share browser context (cookies, `localStorage`, etc.) across scripts. Default off.
 - `--summary <filename>`: Path for the JSON summary report.
+- `--json`: Print one JSON object containing summary statistics and the summary-file path, plus each script's status, report path, output-file path, and parsed YAML output. No progress logs are printed.
 - `--headed`: Run in a headed browser instead of headless.
 - `--keep-window`: Keep the browser window after execution; enables `--headed` automatically.
 - `--config <filename>`: Config file whose values become defaults for CLI arguments.

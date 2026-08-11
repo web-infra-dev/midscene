@@ -16,6 +16,14 @@ export interface PlanOptions {
   deepThink?: boolean;
   referenceImageMessages?: ChatCompletionUserMessageParam[];
   abortSignal?: AbortSignal;
+  /**
+   * Optional free-form prompt addendum owned by the project's custom-actions
+   * module (e.g. domain routing rules for discovered business CLI actions).
+   * Rendered verbatim in the planning prompt between Action Guidelines and
+   * the supporting actions list. Midscene core does not author or parse this
+   * string — it is entirely provided by the project registering the actions.
+   */
+  customActionsPromptHints?: string;
 }
 
 export type PlanFn = (

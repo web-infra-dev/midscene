@@ -13,6 +13,7 @@ import {
   IOSDevice,
   type IOSDeviceOpt,
 } from './device';
+import { IOSAutoDevice } from './ios-auto-device';
 
 const debugAgent = getDebug('ios:agent');
 type IOSDeviceClass = new (opts?: IOSDeviceOpt) => IOSDevice;
@@ -107,6 +108,29 @@ export class IOSAgent extends PageAgent<IOSDevice> {
   }
 }
 
+export class IOSAutoAgent extends PageAgent<IOSAutoDevice> {
+  constructor(device: IOSAutoDevice, opts?: IOSAgentOpt) {
+    super(device, opts);
+    device.setAppNameMapping(
+      mergeAndNormalizeAppNameMapping(
+        defaultAppNameMapping,
+        opts?.appNameMapping,
+      ),
+    );
+  }
+
+  async launch(uri: string): Promise<void> {
+    const action = this.wrapActionInActionSpace<DeviceActionLaunch>('Launch');
+    return action({ uri });
+  }
+
+  async terminate(uri: string): Promise<void> {
+    const action =
+      this.wrapActionInActionSpace<DeviceActionTerminate>('Terminate');
+    return action({ uri });
+  }
+}
+
 export async function agentFromWebDriverAgent(
   opts?: IOSAgentOpt & IOSDeviceOpt,
 ) {
@@ -148,4 +172,11 @@ export async function agentFromWebDriverAgent(
   await device.connect();
 
   return new IOSAgent(device, opts);
+}
+
+export async function agentFromIOSAuto(opts?: IOSAgentOpt & IOSDeviceOpt) {
+  debugAgent('Creating iOS agent with doubaocli ios-auto');
+  const device = new IOSAutoDevice(opts || {});
+  await device.connect();
+  return new IOSAutoAgent(device, opts);
 }

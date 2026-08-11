@@ -3,7 +3,7 @@ import path from 'node:path';
 import { createYamlPlayer, launchServer } from '@/create-yaml-player';
 import type { MidsceneYamlScript, MidsceneYamlScriptEnv } from '@midscene/core';
 import { processCacheConfig } from '@midscene/core/utils';
-import { beforeEach, describe, expect, test, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 // Mock the global config manager to control environment variables
 vi.mock('@midscene/shared/env', async (importOriginal) => {
@@ -18,9 +18,13 @@ vi.mock('@midscene/shared/env', async (importOriginal) => {
 });
 
 // Mock dependencies
-vi.mock('node:fs', () => ({
-  readFileSync: vi.fn(),
-}));
+vi.mock('node:fs', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('node:fs')>();
+  return {
+    ...actual,
+    readFileSync: vi.fn(),
+  };
+});
 
 vi.mock('http-server', () => ({
   createServer: vi.fn(),
@@ -50,6 +54,7 @@ vi.mock('@midscene/android', () => ({
 
 vi.mock('@midscene/ios', () => ({
   agentFromWebDriverAgent: vi.fn(),
+  agentFromIOSAuto: vi.fn(),
 }));
 
 vi.mock('@midscene/harmony', () => ({
@@ -95,7 +100,7 @@ import { agentFromAdbDevice } from '@midscene/android';
 import { getReportFileName } from '@midscene/core/agent';
 import { ScriptPlayer, parseYamlScript } from '@midscene/core/yaml';
 import { agentFromHdcDevice } from '@midscene/harmony';
-import { agentFromWebDriverAgent } from '@midscene/ios';
+import { agentFromIOSAuto, agentFromWebDriverAgent } from '@midscene/ios';
 import { globalConfigManager } from '@midscene/shared/env';
 import { AgentOverChromeBridge } from '@midscene/web/bridge-mode';
 import { puppeteerAgentForTarget } from '@midscene/web/puppeteer-agent-launcher';
@@ -117,6 +122,10 @@ describe('create-yaml-player', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
   });
 
   describe('launchServer', () => {
@@ -181,6 +190,64 @@ describe('create-yaml-player', () => {
         mockFilePath,
       );
       expect(result).toBe(mockPlayer);
+    });
+
+    test('should merge YAML custom action modules in declaration order', async () => {
+      const mockScript: MidsceneYamlScript = {
+        web: {
+          url: 'http://example.com',
+        },
+        agent: {
+          customActionsModule: './fixtures/missing-legacy-module.mjs',
+          customActionsModules: [
+            {
+              module: './fixtures/custom-actions-one.mjs',
+              config: { label: 'first' },
+            },
+            {
+              module: './fixtures/custom-actions-two.mjs',
+              config: { label: 'second' },
+            },
+          ],
+        },
+        tasks: [],
+      };
+      const mockAgent = { destroy: vi.fn() };
+      let setupFnCallback: (() => Promise<any>) | undefined;
+
+      vi.stubEnv(
+        'MIDSCENE_CUSTOM_ACTIONS_MODULE',
+        './fixtures/missing-env-module.mjs',
+      );
+      vi.mocked(puppeteerAgentForTarget).mockResolvedValue({
+        agent: mockAgent as any,
+        freeFn: [],
+      });
+      vi.mocked(ScriptPlayer).mockImplementation((script, setupFn) => {
+        setupFnCallback = setupFn as () => Promise<any>;
+        return {
+          addCleanup: vi.fn(),
+        } as unknown as ScriptPlayer<MidsceneYamlScriptEnv>;
+      });
+
+      await createYamlPlayer(
+        path.join(import.meta.dirname, 'custom-actions-script.yml'),
+        mockScript,
+      );
+      await setupFnCallback?.();
+
+      expect(puppeteerAgentForTarget).toHaveBeenCalledWith(
+        expect.any(Object),
+        expect.objectContaining({
+          customActions: [
+            expect.objectContaining({ name: 'ActionOne:first' }),
+            expect.objectContaining({ name: 'ActionTwo:second' }),
+          ],
+          customActionsPromptHints: 'HintOne:first\nHintTwo:second',
+        }),
+        undefined,
+        undefined,
+      );
     });
 
     test('should pass explicit page target to puppeteer launcher', async () => {
@@ -700,6 +767,60 @@ describe('create-yaml-player', () => {
           launch: mockIOSOptions.launch,
         }),
       );
+    });
+
+    test('should use ios-auto agent when requested by the CLI', async () => {
+      const mockScript: MidsceneYamlScript = {
+        ios: {
+          deviceId: '00008110-000123456789ABCD',
+        },
+        tasks: [],
+      };
+      const mockAgent = { destroy: vi.fn(), launch: vi.fn() };
+      let setupFnCallback: (() => Promise<any>) | undefined;
+
+      vi.mocked(agentFromIOSAuto).mockResolvedValue(mockAgent as any);
+      vi.mocked(ScriptPlayer).mockImplementation((script, setupFn) => {
+        setupFnCallback = setupFn as () => Promise<any>;
+        return {
+          addCleanup: vi.fn(),
+        } as unknown as ScriptPlayer<MidsceneYamlScriptEnv>;
+      });
+
+      await createYamlPlayer(mockFilePath, mockScript, { iosAuto: true });
+      await setupFnCallback?.();
+
+      expect(agentFromIOSAuto).toHaveBeenCalledWith(
+        expect.objectContaining({
+          deviceId: '00008110-000123456789ABCD',
+        }),
+      );
+      expect(agentFromWebDriverAgent).not.toHaveBeenCalled();
+    });
+
+    test('should use ios-auto agent when enabled in the iOS YAML config', async () => {
+      const mockScript: MidsceneYamlScript = {
+        ios: {
+          iosAuto: true,
+        },
+        tasks: [],
+      };
+      const mockAgent = { destroy: vi.fn(), launch: vi.fn() };
+      let setupFnCallback: (() => Promise<any>) | undefined;
+
+      vi.mocked(agentFromIOSAuto).mockResolvedValue(mockAgent as any);
+      vi.mocked(ScriptPlayer).mockImplementation((script, setupFn) => {
+        setupFnCallback = setupFn as () => Promise<any>;
+        return {
+          addCleanup: vi.fn(),
+        } as unknown as ScriptPlayer<MidsceneYamlScriptEnv>;
+      });
+
+      await createYamlPlayer(mockFilePath, mockScript);
+      await setupFnCallback?.();
+
+      expect(agentFromIOSAuto).toHaveBeenCalled();
+      expect(agentFromWebDriverAgent).not.toHaveBeenCalled();
     });
 
     test('should pass all HarmonyOS device options from YAML to agentFromHdcDevice', async () => {

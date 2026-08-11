@@ -362,6 +362,12 @@ ios:
   # WebDriverAgent 主机地址，可选，默认 localhost
   wdaHost: <host>
 
+  # 使用本地 doubaocli ios-auto 后端替代 WebDriverAgent
+  iosAuto: <boolean>
+
+  # 可选。doubaocli 的路径或命令名，默认 doubaocli
+  iosAutoCliPath: <path-or-command>
+
   # 是否自动关闭键盘，可选，默认 false
   autoDismissKeyboard: <boolean>
 
@@ -383,6 +389,18 @@ ios:
 YAML 脚本现在支持 `IOSDevice` 构造函数的所有配置选项。完整的配置项列表请参考 [iOS API 参考中的 IOSDevice](./reference/#iosdevice)。
 
 :::
+
+#### 使用 `doubaocli ios-auto`
+
+在运行 iOS YAML 脚本时，向 Midscene CLI 传入 `--ios-auto`，即可使用本地 `doubaocli ios-auto` 后端替代 WebDriverAgent：
+
+```bash
+midscene --ios-auto ./ios-script.yaml
+```
+
+这要求 `doubaocli` 已在 `PATH` 中可用，且其 iOS 后端已准备就绪。也可以在 YAML 中设置 `ios.iosAuto: true`；当可执行文件不叫 `doubaocli` 时，使用 `iosAutoCliPath` 指定它。
+
+该后端支持截图、逻辑点坐标手势、文本输入、关闭键盘、启动或终止应用、打开 URL 和 Home；不支持 `runWdaRequest`、iOS app switcher 等仅由 WebDriverAgent 提供的操作。
 
 #### iOS 平台特定动作
 

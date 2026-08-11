@@ -7,6 +7,7 @@ import type {
   ModelRuntime,
 } from '../model-adapter/types';
 import { autoGlmAdapters } from './auto-glm/adapter';
+import { deepseekAdapters } from './deepseek';
 import { defaultOpenAICompatibleAdapterConfig } from './default';
 import { doubaoAdapters } from './doubao';
 import { geminiAdapters } from './gemini';
@@ -27,6 +28,7 @@ export const MODEL_ADAPTER_CONFIGS = {
   ...gptAdapters,
   ...kimiAdapters,
   ...mimoAdapters,
+  ...deepseekAdapters,
 } satisfies Record<TModelFamily, ModelAdapterDefinition>;
 
 type ModelAdapterCacheKey = TModelFamily | 'default';

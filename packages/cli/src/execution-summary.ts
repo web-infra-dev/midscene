@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { basename, dirname, extname, relative, resolve } from 'node:path';
 import type {
   MidsceneYamlConfigAttempt,
@@ -140,6 +140,54 @@ export function getResultFilesByType(
 
 export function getSummaryAbsolutePath(summary: string): string {
   return resolve(getMidsceneRunSubDir('output'), summary);
+}
+
+const readJsonOutput = (outputPath: string | null | undefined): unknown => {
+  if (!outputPath || !existsSync(outputPath)) return null;
+
+  try {
+    return JSON.parse(readFileSync(outputPath, 'utf8'));
+  } catch {
+    return null;
+  }
+};
+
+export function createJsonResultPayload(
+  results: MidsceneYamlConfigResult[],
+  summaryPath: string,
+): {
+  summary: ExecutionSummary & { path: string };
+  results: Array<{
+    file: string;
+    success: boolean;
+    executed: boolean;
+    resultType: ResultType;
+    duration: number;
+    error: string | null;
+    report: string | null;
+    retryReport: string | null;
+    outputPath: string | null;
+    output: unknown;
+  }>;
+} {
+  return {
+    summary: {
+      path: summaryPath,
+      ...getExecutionSummary(results),
+    },
+    results: results.map((result) => ({
+      file: result.file,
+      success: result.success,
+      executed: result.executed,
+      resultType: result.resultType,
+      duration: result.duration ?? 0,
+      error: result.error ?? null,
+      report: result.report ?? null,
+      retryReport: result.retryReport ?? null,
+      outputPath: result.output ?? null,
+      output: readJsonOutput(result.output),
+    })),
+  };
 }
 
 const toOutputRelativePath = (outputDir: string, filePath: string): string => {
