@@ -160,6 +160,7 @@ describe('chrome extension bridge mode start/stop (#2119)', () => {
 
   it(
     'open side panel and switch to Bridge Mode',
+    { timeout: 20 * 60 * 1000, retry: 0 },
     async () => {
       await agent.aiAct(
         'Click the puzzle piece icon (Extensions button) in the top-right area of the Chrome toolbar',
@@ -207,7 +208,6 @@ describe('chrome extension bridge mode start/stop (#2119)', () => {
         );
       }
     },
-    { timeout: 20 * 60 * 1000, retry: 0 },
   );
 
   // ── Test: bridge connects to a real server ────────────────────────────
