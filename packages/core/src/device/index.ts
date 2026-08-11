@@ -566,7 +566,9 @@ export const defineActionInput = (
 // KeyboardPress
 export const actionKeyboardPressParamSchema = z.object({
   locate: getMidsceneLocationSchema()
-    .describe('The element to be clicked before pressing the key')
+    .describe(
+      'The optional element to click before pressing the key. Omit this when the key should operate on the currently focused element, especially when copying or cutting an existing text selection.',
+    )
     .optional(),
   keyName: z
     .string()
@@ -588,7 +590,7 @@ export const defineActionKeyboardPress = (
   >({
     name: 'KeyboardPress',
     description:
-      'Press a key or key combination, like "Enter", "Tab", "Escape", or "Control+A", "Shift+Enter". Do not use this to type text.',
+      'Press a key or key combination, like "Enter", "Tab", "Escape", or "Control+A", "Shift+Enter". Do not use this to type text. Omit locate to operate on the current focus without clicking again, especially for Copy or Cut after text has been selected.',
     interfaceAlias: 'aiKeyboardPress',
     paramSchema: actionKeyboardPressParamSchema,
     sample: {
