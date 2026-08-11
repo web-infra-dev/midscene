@@ -1,4 +1,11 @@
-import { resolveHarmonyKeyCodes } from '@/keycode';
+import {
+  explicitlyUnsupportedHarmonyKeyNames,
+  resolveHarmonyKeyCodes,
+} from '@/keycode';
+import {
+  type KeyInput,
+  _keyDefinitions,
+} from '@midscene/shared/us-keyboard-layout';
 import { describe, expect, it } from 'vitest';
 
 describe('resolveHarmonyKeyCodes', () => {
@@ -31,7 +38,6 @@ describe('resolveHarmonyKeyCodes', () => {
     ['Period', ['2044']],
     ['@', ['2065']],
     ['#', ['2011']],
-    ['+', ['2066']],
     ['Back', ['Back']],
     ['Power', ['Power']],
     ['Abort', ['2648']],
@@ -48,7 +54,9 @@ describe('resolveHarmonyKeyCodes', () => {
     ['Execute', ['2621']],
     ['Play', ['2643']],
     ['ZoomOut', ['2699']],
-    ['Mute', ['22']],
+    ['AudioVolumeMute', ['22']],
+    ['Accept', ['2730']],
+    ['CrSel', ['2618']],
   ])('maps %s to %j', (keyName, expectedCodes) => {
     expect(resolveHarmonyKeyCodes(keyName as string)).toEqual(expectedCodes);
   });
@@ -64,10 +72,10 @@ describe('resolveHarmonyKeyCodes', () => {
 
   it.each([
     ['a', ['2017']],
-    ['A', ['2017']],
+    ['A', ['2047', '2017']],
     ['KeyA', ['2017']],
     ['z', ['2042']],
-    ['Z', ['2042']],
+    ['Z', ['2047', '2042']],
     ['KeyZ', ['2042']],
   ])('maps letter key %s to %j', (keyName, expectedCodes) => {
     expect(resolveHarmonyKeyCodes(keyName as string)).toEqual(expectedCodes);
@@ -90,6 +98,18 @@ describe('resolveHarmonyKeyCodes', () => {
   )('maps numpad key %s to %j', (keyName, expectedCodes) => {
     expect(resolveHarmonyKeyCodes(keyName as string)).toEqual(expectedCodes);
   });
+
+  it.each([
+    ['*', ['2114']],
+    ['+', ['2116']],
+    ['-', ['2115']],
+    ['/', ['2113']],
+  ])(
+    'maps character-form numpad operator %s to %j',
+    (keyName, expectedCodes) => {
+      expect(resolveHarmonyKeyCodes(keyName as string)).toEqual(expectedCodes);
+    },
+  );
 
   it.each([
     [':', ['2047', '2062']],
@@ -128,14 +148,62 @@ describe('resolveHarmonyKeyCodes', () => {
     expect(resolveHarmonyKeyCodes(keyName as string)).toEqual(expectedCodes);
   });
 
-  it.each(['Control+A', 'not-a-key'])(
-    'rejects unsupported key %s',
+  it.each([
+    ['Control+A', ['2072', '2017']],
+    ['Shift+A', ['2047', '2017']],
+    ['Control+Shift+A', ['2072', '2047', '2017']],
+    ['Control+?', ['2072', '2047', '2064']],
+    ['Shift+?', ['2047', '2064']],
+    ['Control++', ['2072', '2116']],
+    ['Control + Alt + Delete', ['2072', '2045', '2071']],
+  ])('maps key combination %s to %j', (keyName, expectedCodes) => {
+    expect(resolveHarmonyKeyCodes(keyName as string)).toEqual(expectedCodes);
+  });
+
+  it.each(explicitlyUnsupportedHarmonyKeyNames)(
+    'explicitly rejects unsupported Midscene key %s',
     (keyName) => {
       expect(() => resolveHarmonyKeyCodes(keyName)).toThrow(
-        `Unsupported HarmonyOS key: ${keyName}`,
+        `Unsupported HarmonyOS key: ${keyName} (not available on HarmonyOS)`,
       );
     },
   );
+
+  it('classifies every Midscene KeyInput as supported or explicitly unsupported', () => {
+    const explicitlyUnsupportedKeys = new Set<KeyInput>(
+      explicitlyUnsupportedHarmonyKeyNames,
+    );
+
+    for (const keyName of Object.keys(_keyDefinitions) as KeyInput[]) {
+      if (explicitlyUnsupportedKeys.has(keyName)) {
+        expect(() => resolveHarmonyKeyCodes(keyName)).toThrow(
+          `Unsupported HarmonyOS key: ${keyName} (not available on HarmonyOS)`,
+        );
+      } else {
+        expect(() => resolveHarmonyKeyCodes(keyName)).not.toThrow();
+      }
+    }
+  });
+
+  it.each(['Mute', 'not-a-key'])('rejects unknown key %s', (keyName) => {
+    expect(() => resolveHarmonyKeyCodes(keyName)).toThrow(
+      `Unsupported HarmonyOS key: ${keyName}`,
+    );
+  });
+
+  it.each([
+    [
+      'Control+Alt+Shift+A',
+      'HarmonyOS key combinations support at most 3 key codes: Control+Alt+Shift+A',
+    ],
+    [
+      'Back+Enter',
+      'HarmonyOS system key events cannot be combined: Back+Enter',
+    ],
+    ['Control+', 'Invalid HarmonyOS key combination: Control+'],
+  ])('rejects invalid key combination %s', (keyName, message) => {
+    expect(() => resolveHarmonyKeyCodes(keyName)).toThrow(message);
+  });
 
   it.each(['', '   '])('rejects empty key name %j', (keyName) => {
     expect(() => resolveHarmonyKeyCodes(keyName)).toThrow(

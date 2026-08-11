@@ -415,6 +415,16 @@ describe('HarmonyDevice', () => {
       await device.inputPrimitives.keyboard.keyboardPress('?');
       expect(mockHdc.keyEvent).toHaveBeenCalledWith('2047', '2064');
     });
+
+    it('should add Shift when pressing an uppercase character', async () => {
+      await device.inputPrimitives.keyboard.keyboardPress('A');
+      expect(mockHdc.keyEvent).toHaveBeenCalledWith('2047', '2017');
+    });
+
+    it('should forward a supported key combination as one key event', async () => {
+      await device.inputPrimitives.keyboard.keyboardPress('Control+A');
+      expect(mockHdc.keyEvent).toHaveBeenCalledWith('2072', '2017');
+    });
   });
 
   describe('back / home / recentApps / hideKeyboard', () => {

@@ -1,3 +1,5 @@
+import type { KeyInput } from '@midscene/shared/us-keyboard-layout';
+
 const namedHarmonyKeyCodeMap = {
   Enter: '2054',
   Backspace: '2055',
@@ -42,7 +44,6 @@ const namedHarmonyKeyCodeMap = {
   AudioVolumeUp: '16',
   VolumeDown: '17',
   VolumeUp: '16',
-  Mute: '22',
   MediaPlayPause: '10',
   MediaStop: '11',
   MediaTrackNext: '12',
@@ -68,19 +69,19 @@ const namedHarmonyKeyCodeMap = {
   Slash: '2064',
   Comma: '2043',
   Period: '2044',
-  '*': '2010',
+  '*': '2114',
   '#': '2011',
   '@': '2065',
-  '+': '2066',
+  '+': '2116',
   '`': '2056',
-  '-': '2057',
+  '-': '2115',
   '=': '2058',
   '[': '2059',
   ']': '2060',
   '\\': '2061',
   ';': '2062',
   "'": '2063',
-  '/': '2064',
+  '/': '2113',
   ',': '2043',
   '.': '2044',
   Abort: '2648',
@@ -97,7 +98,26 @@ const namedHarmonyKeyCodeMap = {
   Execute: '2621',
   Play: '2643',
   ZoomOut: '2699',
+  Accept: '2730',
+  CrSel: '2618',
 } as const satisfies Record<string, string>;
+
+export const explicitlyUnsupportedHarmonyKeyNames = [
+  'ModeChange',
+  'Attn',
+  'ExSel',
+  'EraseEof',
+  'SoftLeft',
+  'SoftRight',
+  'Call',
+  'EndCall',
+] as const satisfies readonly KeyInput[];
+
+const explicitlyUnsupportedHarmonyKeySet = new Set<string>(
+  explicitlyUnsupportedHarmonyKeyNames.map((key) => key.toLowerCase()),
+);
+const harmonySystemKeyEvents = new Set(['Back', 'Power']);
+const maxHarmonyKeyCodesPerEvent = 3;
 
 const shiftedSymbolKeyCodeMap = {
   ')': '2000',
@@ -148,13 +168,25 @@ function numericKeyCode(value: number): string {
   return String(value);
 }
 
-/**
- * Resolve a Midscene keyboard key name to the numeric key codes accepted by
- * HarmonyOS `uitest uiInput keyEvent`. Back/Home/Power are the only supported
- * string values at the HDC boundary; keyboard Home intentionally resolves to
- * KEYCODE_MOVE_HOME instead of the system Home action.
- */
-export function resolveHarmonyKeyCodes(keyName: string): string[] {
+function splitHarmonyKeyCombination(keyName: string): string[] | undefined {
+  if (keyName === '+' || !keyName.includes('+')) return undefined;
+
+  const parts = keyName.split('+');
+  if (parts.at(-1) === '' && parts.at(-2) === '') {
+    parts.splice(-2, 2, '+');
+  }
+
+  const keys = parts.map((key) => key.trim());
+  if (keys.some((key) => key.length === 0)) {
+    throw new Error(`Invalid HarmonyOS key combination: ${keyName}`);
+  }
+  return keys;
+}
+
+function resolveSingleHarmonyKeyCodes(
+  keyName: string,
+  options?: { uppercaseLetterAsPhysicalKey?: boolean },
+): string[] {
   if (keyName === ' ') return ['2050'];
   if (keyName === '\r' || keyName === '\n') return ['2054'];
   if (keyName === '\u0000') return ['2117'];
@@ -184,9 +216,20 @@ export function resolveHarmonyKeyCodes(keyName: string): string[] {
     return [numericKeyCode(2000 + Number(digitCodeMatch[1]))];
   }
 
-  const letterMatch = normalizedKeyName.match(/^(?:Key)?([a-z])$/i);
-  if (letterMatch) {
-    const alphabetIndex = letterMatch[1].toUpperCase().charCodeAt(0) - 65;
+  const plainLetterMatch = normalizedKeyName.match(/^([a-z])$/i);
+  if (plainLetterMatch) {
+    const alphabetIndex = plainLetterMatch[1].toUpperCase().charCodeAt(0) - 65;
+    const letterCode = numericKeyCode(2017 + alphabetIndex);
+    const isUppercaseCharacter = /^[A-Z]$/.test(normalizedKeyName);
+    return isUppercaseCharacter && !options?.uppercaseLetterAsPhysicalKey
+      ? ['2047', letterCode]
+      : [letterCode];
+  }
+
+  const physicalLetterMatch = normalizedKeyName.match(/^Key([a-z])$/i);
+  if (physicalLetterMatch) {
+    const alphabetIndex =
+      physicalLetterMatch[1].toUpperCase().charCodeAt(0) - 65;
     return [numericKeyCode(2017 + alphabetIndex)];
   }
 
@@ -213,6 +256,12 @@ export function resolveHarmonyKeyCodes(keyName: string): string[] {
     return [namedCode];
   }
 
+  if (explicitlyUnsupportedHarmonyKeySet.has(normalizedKeyName.toLowerCase())) {
+    throw new Error(
+      `Unsupported HarmonyOS key: ${keyName} (not available on HarmonyOS)`,
+    );
+  }
+
   // Preserve the low-level escape hatch for callers that already have an
   // explicit HarmonyOS keycode. A single digit is handled above as a keyboard
   // digit so it cannot accidentally trigger low system keycodes such as Home.
@@ -224,4 +273,40 @@ export function resolveHarmonyKeyCodes(keyName: string): string[] {
   }
 
   throw new Error(`Unsupported HarmonyOS key: ${keyName}`);
+}
+
+/**
+ * Resolve a Midscene keyboard key name to the numeric key codes accepted by
+ * HarmonyOS `uitest uiInput keyEvent`. Back/Home/Power are the only supported
+ * string values at the HDC boundary; keyboard Home intentionally resolves to
+ * KEYCODE_MOVE_HOME instead of the system Home action.
+ */
+export function resolveHarmonyKeyCodes(keyName: string): string[] {
+  const trimmedKeyName = keyName.trim();
+  if (!trimmedKeyName && keyName !== ' ') {
+    return resolveSingleHarmonyKeyCodes(keyName);
+  }
+
+  const combination = splitHarmonyKeyCombination(trimmedKeyName);
+  if (!combination) return resolveSingleHarmonyKeyCodes(keyName);
+
+  const resolvedCodes = combination.flatMap((key) =>
+    resolveSingleHarmonyKeyCodes(key, {
+      uppercaseLetterAsPhysicalKey: true,
+    }),
+  );
+  const uniqueCodes = [...new Set(resolvedCodes)];
+
+  if (uniqueCodes.some((code) => harmonySystemKeyEvents.has(code))) {
+    throw new Error(
+      `HarmonyOS system key events cannot be combined: ${keyName}`,
+    );
+  }
+  if (uniqueCodes.length > maxHarmonyKeyCodesPerEvent) {
+    throw new Error(
+      `HarmonyOS key combinations support at most ${maxHarmonyKeyCodesPerEvent} key codes: ${keyName}`,
+    );
+  }
+
+  return uniqueCodes;
 }
