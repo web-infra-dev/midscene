@@ -21,6 +21,7 @@ import {
   ifInWorker,
   uuid,
 } from '@midscene/shared/utils';
+import { IS_REPORT_BUILD } from './constants';
 import type { Cache, Rect, ReportDumpWithAttributes } from './types';
 
 let logEnvReady = false;
@@ -150,6 +151,16 @@ export function reportHTMLContent(
   appendReport?: boolean,
   withTpl = true, // whether return with report template, default = true
 ): string {
+  // Short-circuit reportHTMLContent in Report builds so its generated
+  // <script type="midscene_web_dump" ... data-group-id="..."> literal is not
+  // bundled into the Report output. Report merging scans for this opening tag
+  // to locate dump JSON, so a copy inside bundled JS may be mistaken for a real
+  // dump tag. The embedded Playground does not support generating reports
+  // while replaying actions.
+  if (IS_REPORT_BUILD) {
+    return '';
+  }
+
   let tpl = '';
   if (withTpl) {
     tpl = getReportTpl();

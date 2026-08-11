@@ -52,6 +52,15 @@ const copyReportTemplate = () => ({
       const srcPath = path.join(__dirname, 'dist', 'index.html');
       const { sanitizedTplFileContent, finalContent } =
         buildReportTemplateInjection(fs.readFileSync(srcPath, 'utf-8'));
+      // This exact literal comes from reportHTMLContent() when it builds an
+      // Agent dump script. If that implementation is bundled into Report, the
+      // report-merging scanner may mistake the literal for a real dump tag.
+      assert(
+        !sanitizedTplFileContent.includes(
+          '<script type="midscene_web_dump" type="application/json" data-group-id="',
+        ),
+        'Report bundle must not include Agent report HTML generation code',
+      );
       assert(
         !sanitizedTplFileContent.includes(reportTemplateMagicString),
         'magic string should not be in the template file',
@@ -148,6 +157,11 @@ export default defineConfig({
   },
   source: {
     tsconfigPath: 'tsconfig.build.json',
+    define: {
+      // Identify this bundle as the Report Viewer build. Consumers can use
+      // this build context without changing standalone Playground or SDK builds.
+      __MIDSCENE_REPORT_BUILD__: 'true',
+    },
   },
   resolve: {
     alias: {
