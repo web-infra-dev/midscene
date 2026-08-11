@@ -69,6 +69,43 @@ describe('puppeteer integration', () => {
     );
   });
 
+  it('uses a targetless KeyboardPress to cut the current selection', async () => {
+    const htmlPath = getFixturePath('input-test.html');
+    const { originPage, reset } = await launchPage(`file://${htmlPath}`);
+    resetFn = reset;
+    await originPage.$eval('#searchInput', (element) => {
+      const input = element as HTMLInputElement;
+      input.value = 'selected text';
+      input.focus();
+      input.select();
+    });
+    agent = new PuppeteerAgent(originPage, {
+      generateReport: false,
+    });
+
+    await agent.aiAct(
+      'Cut the text that is already selected in the currently focused search input. Keep the current focus and selection until the keyboard shortcut runs.',
+    );
+
+    const log = await agent._unstableLogContent();
+    const keyboardTask = log.executions
+      .flatMap((execution) => execution.tasks)
+      .find((task) => task.subType === 'KeyboardPress');
+    expect(keyboardTask).toBeDefined();
+    expect(
+      (keyboardTask?.param as { locate?: unknown; keyName?: string }).locate,
+    ).toBeUndefined();
+    expect((keyboardTask?.param as { keyName?: string }).keyName).toMatch(
+      /(?:Control|Meta|Cmd)\+X/i,
+    );
+    await expect(
+      originPage.$eval(
+        '#searchInput',
+        (element) => (element as HTMLInputElement).value,
+      ),
+    ).resolves.toBe('');
+  });
+
   it('agent with yaml script', async () => {
     const htmlPath = getFixturePath('search-engine.html');
     const { originPage, reset } = await launchPage(`file://${htmlPath}`);

@@ -5,6 +5,12 @@ import { PlaywrightAgent } from '@/playwright/page-agent';
 import { PuppeteerWebPage } from '@/puppeteer/page';
 import { PuppeteerAgent } from '@/puppeteer/page-agent';
 import { createWebInputPrimitives } from '@/web-page';
+import {
+  MIDSCENE_MODEL_API_KEY,
+  MIDSCENE_MODEL_BASE_URL,
+  MIDSCENE_MODEL_FAMILY,
+  MIDSCENE_MODEL_NAME,
+} from '@midscene/shared/env';
 import type { ElementInfo } from '@midscene/shared/extractor';
 import {
   type Browser as PlaywrightBrowser,
@@ -17,10 +23,16 @@ import puppeteer, {
   type Frame as PuppeteerFrame,
   type Page as PuppeteerPage,
 } from 'puppeteer';
-import { afterAll, beforeAll, describe, expect, test } from 'vitest';
+import { afterAll, beforeAll, describe, expect, test, vi } from 'vitest';
 
 const TEST_TIMEOUT_MS = 120_000;
 const MODIFIER = process.platform === 'darwin' ? 'Cmd' : 'Ctrl';
+const SCRIPTED_MODEL_CONFIG = {
+  [MIDSCENE_MODEL_NAME]: 'scripted-planning-model',
+  [MIDSCENE_MODEL_API_KEY]: 'test-key',
+  [MIDSCENE_MODEL_BASE_URL]: 'https://model.invalid/v1',
+  [MIDSCENE_MODEL_FAMILY]: 'qwen2.5-vl' as const,
+};
 
 const TOP_LEVEL_INPUT_HTML = `
   <!doctype html>
@@ -299,6 +311,86 @@ describe('input keyboard actions end to end', () => {
 
           expect(
             await page.$eval('#first', (el) => (el as HTMLInputElement).value),
+          ).toBe('');
+        } finally {
+          await page.close();
+        }
+      },
+      TEST_TIMEOUT_MS,
+    );
+
+    test(
+      'executes an aiAct-planned cut without a locate target',
+      async () => {
+        const page = await browser.newPage();
+        const createCompletion = vi
+          .fn()
+          .mockResolvedValueOnce({
+            choices: [
+              {
+                message: {
+                  content: `<planning>The selected text is already in the focused input, so I should preserve the current focus and cut it directly.</planning>
+<log>Cutting the current selection</log>
+<action-type>KeyboardPress</action-type>
+<action-param-json>{"keyName":"${MODIFIER}+X"}</action-param-json>`,
+                },
+              },
+            ],
+            usage: {
+              prompt_tokens: 1,
+              completion_tokens: 1,
+              total_tokens: 2,
+            },
+          })
+          .mockResolvedValueOnce({
+            choices: [
+              {
+                message: {
+                  content:
+                    '<planning>The selected text has been cut.</planning><complete success="true">Cut completed</complete>',
+                },
+              },
+            ],
+            usage: {
+              prompt_tokens: 1,
+              completion_tokens: 1,
+              total_tokens: 2,
+            },
+          });
+        try {
+          await page.setContent(TOP_LEVEL_INPUT_HTML);
+          await page.$eval('#first', (element) => {
+            const input = element as HTMLInputElement;
+            input.focus();
+            input.select();
+          });
+          const agent = new PuppeteerAgent(page, {
+            generateReport: false,
+            modelConfig: SCRIPTED_MODEL_CONFIG,
+            createOpenAIClient: async () =>
+              ({
+                chat: { completions: { create: createCompletion } },
+              }) as any,
+          });
+
+          await agent.aiAct(
+            'Cut the text that is already selected in the currently focused input. Keep the current focus and selection until the shortcut runs.',
+          );
+
+          const log = await agent._unstableLogContent();
+          const keyboardTask = log.executions
+            .flatMap((execution) => execution.tasks)
+            .find((task) => task.subType === 'KeyboardPress');
+          expect(createCompletion).toHaveBeenCalledTimes(2);
+          expect(keyboardTask).toBeDefined();
+          expect(
+            (keyboardTask?.param as { locate?: unknown }).locate,
+          ).toBeUndefined();
+          expect(
+            await page.$eval(
+              '#first',
+              (element) => (element as HTMLInputElement).value,
+            ),
           ).toBe('');
         } finally {
           await page.close();
