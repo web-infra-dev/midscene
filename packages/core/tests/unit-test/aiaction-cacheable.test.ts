@@ -145,8 +145,7 @@ describe('aiAction cacheable option propagation', () => {
     // Call convertPlanToExecutable with cacheable: false
     const { tasks } = await taskExecutor.convertPlanToExecutable(
       mockPlans,
-      getModelRuntime(mockModelConfig),
-      getModelRuntime(mockModelConfig),
+      () => getModelRuntime(mockModelConfig),
       {
         cacheable: false,
       },
@@ -236,8 +235,8 @@ describe('aiAction cacheable option propagation', () => {
     // Verify that convertPlanToExecutable was called with cacheable: false
     expect(convertPlanSpy).toHaveBeenCalled();
     const callArgs = convertPlanSpy.mock.calls[0];
-    // The 4th argument is the options object that should contain cacheable: false
-    expect(callArgs[3]).toEqual({ cacheable: false });
+    // The 3rd argument is the options object that should contain cacheable: false
+    expect(callArgs[2]).toEqual({ cacheable: false });
   });
 
   it('should allow caching when cacheable is not specified', async () => {
@@ -266,8 +265,7 @@ describe('aiAction cacheable option propagation', () => {
     // Call convertPlanToExecutable without cacheable option (should default to allowing cache)
     const { tasks } = await taskExecutor.convertPlanToExecutable(
       mockPlans,
-      getModelRuntime(mockModelConfig),
-      getModelRuntime(mockModelConfig),
+      () => getModelRuntime(mockModelConfig),
     );
 
     // Verify that we have tasks
@@ -309,8 +307,7 @@ describe('aiAction cacheable option propagation', () => {
     // Call convertPlanToExecutable with cacheable: true
     const { tasks } = await taskExecutor.convertPlanToExecutable(
       mockPlans,
-      getModelRuntime(mockModelConfig),
-      getModelRuntime(mockModelConfig),
+      () => getModelRuntime(mockModelConfig),
       {
         cacheable: true,
       },

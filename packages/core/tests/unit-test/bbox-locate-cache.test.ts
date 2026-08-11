@@ -188,8 +188,7 @@ describe('bbox locate cache fix', () => {
       // Convert plans to executable tasks
       const { tasks } = await taskBuilder.build(
         plansWithBbox,
-        mockModelRuntime,
-        mockModelRuntime,
+        () => mockModelRuntime,
         { cacheable: true },
       );
 
@@ -242,8 +241,7 @@ describe('bbox locate cache fix', () => {
 
       const { tasks } = await taskBuilder.build(
         plansWithBbox,
-        mockModelRuntime,
-        mockModelRuntime,
+        () => mockModelRuntime,
       );
 
       const locateTask = tasks.find((task) => task.subType === 'Locate');
@@ -279,8 +277,7 @@ describe('bbox locate cache fix', () => {
 
       const { tasks } = await taskBuilder.build(
         plansWithBboxAndDeepLocate,
-        mockModelRuntime,
-        mockModelRuntime,
+        () => mockModelRuntime,
       );
 
       const locateTask = tasks.find((task) => task.subType === 'Locate');
@@ -363,8 +360,7 @@ describe('bbox locate cache fix', () => {
 
       const { tasks } = await taskBuilderWithCache.build(
         plansWithBbox,
-        mockModelRuntime,
-        mockModelRuntime,
+        () => mockModelRuntime,
       );
 
       const locateTask = tasks.find((task) => task.subType === 'Locate');
@@ -417,8 +413,7 @@ describe('bbox locate cache fix', () => {
           thought: 'tap the search box',
         },
       ],
-      mockModelRuntime,
-      mockModelRuntime,
+      () => mockModelRuntime,
       { cacheable: false },
     );
 
@@ -492,8 +487,7 @@ describe('bbox locate cache fix', () => {
 
       const { tasks } = await taskBuilderWithCache.build(
         plansWithoutBbox,
-        mockModelRuntime,
-        mockModelRuntime,
+        () => mockModelRuntime,
       );
 
       const locateTask = tasks.find((task) => task.subType === 'Locate');
@@ -533,8 +527,7 @@ describe('bbox locate cache fix', () => {
 
       const { tasks } = await taskBuilder.build(
         plansWithBbox,
-        mockModelRuntime,
-        mockModelRuntime,
+        () => mockModelRuntime,
       );
 
       const locateTask = tasks.find((task) => task.subType === 'Locate');
@@ -570,8 +563,7 @@ describe('bbox locate cache fix', () => {
 
       const { tasks } = await taskBuilder.build(
         plansWithBbox,
-        mockModelRuntime,
-        mockModelRuntime,
+        () => mockModelRuntime,
         { cacheable: false },
       );
 
@@ -617,8 +609,7 @@ describe('bbox locate cache fix', () => {
 
       const { tasks } = await taskBuilder.build(
         plansWithBbox,
-        mockModelRuntime,
-        mockModelRuntime,
+        () => mockModelRuntime,
       );
 
       const locateTask = tasks.find((task) => task.subType === 'Locate');
@@ -705,8 +696,7 @@ describe('bbox locate cache fix', () => {
 
       const { tasks } = await taskBuilderWithCache.build(
         plans,
-        mockModelRuntime,
-        mockModelRuntime,
+        () => mockModelRuntime,
       );
 
       const locateTask = tasks.find((task) => task.subType === 'Locate');
@@ -799,8 +789,7 @@ describe('bbox locate cache fix', () => {
 
       const { tasks } = await taskBuilderWithCache.build(
         plansWithoutBbox,
-        mockModelRuntime,
-        mockModelRuntime,
+        () => mockModelRuntime,
       );
 
       const locateTask = tasks.find((task) => task.subType === 'Locate');

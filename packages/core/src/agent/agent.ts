@@ -2,7 +2,6 @@ import { type ModelRuntime, getModelRuntime } from '@/ai-model/models';
 import { INTERNAL_CALL_ID_FIELD } from '@/ai-model/service-caller';
 import yaml from 'js-yaml';
 import type { TUserPrompt } from '../ai-model/index';
-import { findAllMidsceneLocatorField } from '../common';
 import { ScreenshotItem } from '../screenshot-item';
 import Service from '../service/index';
 // Import types and values directly from their source files to avoid circular dependency
@@ -764,26 +763,8 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
       locateParamStr((opt as any)?.locate || {}),
     );
 
-    const action = this.fullActionSpace.find((item) => item.name === type);
-    const locatorFields = action
-      ? findAllMidsceneLocatorField(action.paramSchema)
-      : ['locate'];
-    const params = (opt ?? {}) as Record<string, unknown>;
-    const requiresLocate = locatorFields.some((field) =>
-      Boolean(params[field]),
-    );
-    const defaultModel = requiresLocate
-      ? this.resolveModelRuntime('default')
-      : undefined;
-    const planningModel = requiresLocate
-      ? this.resolveModelRuntime('planning')
-      : undefined;
-
-    const { output } = await this.taskExecutor.runPlans(
-      title,
-      plans,
-      planningModel,
-      defaultModel,
+    const { output } = await this.taskExecutor.runPlans(title, plans, () =>
+      this.resolveModelRuntime('default'),
     );
     return output;
   }
@@ -1363,14 +1344,10 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
     assert(locateParam, 'cannot get locate param for aiLocate');
     const locatePlan = locatePlanForLocate(locateParam);
     const plans = [locatePlan];
-    const defaultModel = this.resolveModelRuntime('default');
-    const planningModel = this.resolveModelRuntime('planning');
-
     const { output } = await this.taskExecutor.runPlans(
       taskTitleStr('Locate', locateParamStr(locateParam)),
       plans,
-      planningModel,
-      defaultModel,
+      () => this.resolveModelRuntime('default'),
       opt?.uiContext ? { uiContext: opt.uiContext } : undefined,
     );
 

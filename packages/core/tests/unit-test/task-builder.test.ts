@@ -116,11 +116,7 @@ describe('TaskBuilder', () => {
       },
     ];
 
-    const { tasks } = await taskBuilder.build(
-      plans,
-      mockModelRuntime,
-      mockModelRuntime,
-    );
+    const { tasks } = await taskBuilder.build(plans, () => mockModelRuntime);
 
     expect(tasks.map((task) => [task.type, task.subType])).toEqual([
       ['Planning', 'Locate'],
@@ -129,6 +125,80 @@ describe('TaskBuilder', () => {
       ['Planning', 'Locate'],
       ['Action Space', 'Tap'],
     ]);
+  });
+
+  it('resolves a model lazily only when an action provides a locator', async () => {
+    const keyboardAction: DeviceAction = {
+      name: 'KeyboardPress',
+      description: 'mock keyboard action',
+      paramSchema: z.object({
+        locate: getMidsceneLocationSchema().optional(),
+        keyName: z.string(),
+      }),
+      call: vi.fn(),
+    };
+    const customLocatorAction: DeviceAction = {
+      name: 'CustomTarget',
+      description: 'mock custom locator action',
+      paramSchema: z.object({
+        target: getMidsceneLocationSchema().optional(),
+      }),
+      call: vi.fn(),
+    };
+    const mockInterface = new MockInterface([
+      keyboardAction,
+      customLocatorAction,
+    ]);
+    const taskBuilder = new TaskBuilder({
+      interfaceInstance: mockInterface,
+      service: {
+        contextRetrieverFn: vi.fn(),
+        locate: vi.fn(),
+      } as unknown as Service,
+      actionSpace: mockInterface.actionSpace(),
+    });
+    const resolveModelRuntime = vi.fn(() => mockModelRuntime);
+
+    await taskBuilder.build(
+      [
+        {
+          type: 'KeyboardPress',
+          thought: 'cut the current selection',
+          param: { keyName: 'Control+X' },
+        },
+      ],
+      resolveModelRuntime,
+    );
+    expect(resolveModelRuntime).not.toHaveBeenCalled();
+
+    await taskBuilder.build(
+      [
+        {
+          type: 'KeyboardPress',
+          thought: 'cut the search field',
+          param: {
+            keyName: 'Control+X',
+            locate: { prompt: 'search field' },
+          },
+        },
+      ],
+      resolveModelRuntime,
+    );
+    expect(resolveModelRuntime).toHaveBeenCalledTimes(1);
+    expect(resolveModelRuntime).toHaveBeenLastCalledWith();
+
+    await taskBuilder.build(
+      [
+        {
+          type: 'CustomTarget',
+          thought: 'use a custom locator field',
+          param: { target: { prompt: 'custom target' } },
+        },
+      ],
+      resolveModelRuntime,
+    );
+    expect(resolveModelRuntime).toHaveBeenCalledTimes(2);
+    expect(resolveModelRuntime).toHaveBeenLastCalledWith();
   });
 
   it('uses promptDisplay for the located element passed to an action', async () => {
@@ -184,11 +254,7 @@ describe('TaskBuilder', () => {
       },
     ];
 
-    const { tasks } = await taskBuilder.build(
-      plans,
-      mockModelRuntime,
-      mockModelRuntime,
-    );
+    const { tasks } = await taskBuilder.build(plans, () => mockModelRuntime);
     const locateTask = tasks[0];
     await locateTask.executor(locateTask.param, {
       task: { timing: {} },
@@ -217,8 +283,7 @@ describe('TaskBuilder', () => {
     await expect(
       taskBuilder.build(
         [{ type: 'Tap', thought: 'tap missing action', param: {} }],
-        mockModelRuntime,
-        mockModelRuntime,
+        () => mockModelRuntime,
       ),
     ).rejects.toThrow(
       /Action type 'Tap' is not in the current action space. Available actions: Sleep/,
@@ -275,13 +340,11 @@ describe('TaskBuilder', () => {
 
     const { tasks: defaultTasks } = await defaultTaskBuilder.build(
       [{ type: 'DefaultExit', thought: '', param: {} }],
-      mockModelRuntime,
-      mockModelRuntime,
+      () => mockModelRuntime,
     );
     const { tasks: fastTasks } = await fastTaskBuilder.build(
       [{ type: 'FastExit', thought: '', param: {} }],
-      mockModelRuntime,
-      mockModelRuntime,
+      () => mockModelRuntime,
     );
 
     const defaultTask = defaultTasks[0];
@@ -351,8 +414,7 @@ describe('TaskBuilder', () => {
           param: { key: 'brightness' },
         },
       ],
-      mockModelRuntime,
-      mockModelRuntime,
+      () => mockModelRuntime,
     );
     const taskContext = {
       task: { timing: {} },

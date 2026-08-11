@@ -44,7 +44,7 @@ import {
   createAiActActionReporter,
   errorMessageForAiAct,
 } from './progress';
-import { TaskBuilder } from './task-builder';
+import { type DefaultModelRuntimeResolver, TaskBuilder } from './task-builder';
 import type { TaskCache } from './task-cache';
 export { locatePlanForLocate } from './task-builder';
 import { setTimingFieldOnce } from '@/task-timing';
@@ -272,15 +272,14 @@ export class TaskExecutor {
 
   public async convertPlanToExecutable(
     plans: PlanningAction[],
-    planningModel?: ModelRuntime,
-    defaultModel?: ModelRuntime,
+    resolveDefaultModelRuntime: DefaultModelRuntimeResolver,
     options?: {
       cacheable?: boolean;
       deepLocate?: boolean;
       abortSignal?: AbortSignal;
     },
   ) {
-    return this.taskBuilder.build(plans, planningModel, defaultModel, options);
+    return this.taskBuilder.build(plans, resolveDefaultModelRuntime, options);
   }
 
   async loadYamlFlowAsPlanning(
@@ -337,22 +336,24 @@ export class TaskExecutor {
   async runPlans(
     title: string,
     plans: PlanningAction[],
-    planningModel?: ModelRuntime,
-    defaultModel?: ModelRuntime,
+    resolveDefaultModelRuntime: DefaultModelRuntimeResolver,
     options?: { uiContext?: UIContext },
   ): Promise<ExecutionResult> {
     const session = this.createExecutionSession(title, options);
     const runner = session.getRunner();
-    const executionPlanningModel = planningModel
-      ? { ...planningModel, executionId: runner.id }
-      : undefined;
-    const executionDefaultModel = defaultModel
-      ? { ...defaultModel, executionId: runner.id }
-      : undefined;
+    let executionModelRuntime: ModelRuntime | undefined;
+    const resolveExecutionModelRuntime: DefaultModelRuntimeResolver = () => {
+      if (executionModelRuntime) return executionModelRuntime;
+
+      executionModelRuntime = {
+        ...resolveDefaultModelRuntime(),
+        executionId: runner.id,
+      };
+      return executionModelRuntime;
+    };
     const { tasks } = await this.convertPlanToExecutable(
       plans,
-      executionPlanningModel,
-      executionDefaultModel,
+      resolveExecutionModelRuntime,
     );
     const result = await session.appendAndRun(tasks);
     const { output } = result ?? {};
@@ -723,8 +724,7 @@ export class TaskExecutor {
       try {
         executables = await this.convertPlanToExecutable(
           plans,
-          planningModel,
-          defaultModel,
+          () => defaultModel,
           {
             cacheable,
             deepLocate,
@@ -1114,8 +1114,7 @@ export class TaskExecutor {
         const thought = `Check interval is ${checkIntervalMs}ms, ${elapsed}ms elapsed since last check, sleeping for ${timeRemaining}ms`;
         const { tasks: sleepTasks } = await this.convertPlanToExecutable(
           [{ type: 'Sleep', param: { timeMs: timeRemaining }, thought }],
-          modelRuntime,
-          modelRuntime,
+          () => modelRuntime,
         );
         if (sleepTasks[0]) {
           await session.appendAndRun(sleepTasks[0]);

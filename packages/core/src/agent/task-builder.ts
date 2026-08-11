@@ -112,10 +112,11 @@ interface BuildOptions {
   abortSignal?: AbortSignal;
 }
 
+export type DefaultModelRuntimeResolver = () => ModelRuntime;
+
 interface PlanBuildContext {
   tasks: ExecutionTaskApply[];
-  planningModel?: ModelRuntime;
-  defaultModel?: ModelRuntime;
+  resolveDefaultModelRuntime: DefaultModelRuntimeResolver;
   cacheable?: boolean;
   deepLocate?: boolean;
   abortSignal?: AbortSignal;
@@ -148,8 +149,7 @@ export class TaskBuilder {
 
   public async build(
     plans: PlanningAction[],
-    planningModel?: ModelRuntime,
-    defaultModel?: ModelRuntime,
+    resolveDefaultModelRuntime: DefaultModelRuntimeResolver,
     options?: BuildOptions,
   ): Promise<{ tasks: ExecutionTaskApply[] }> {
     const tasks: ExecutionTaskApply[] = [];
@@ -157,8 +157,7 @@ export class TaskBuilder {
 
     const context: PlanBuildContext = {
       tasks,
-      planningModel,
-      defaultModel,
+      resolveDefaultModelRuntime,
       cacheable,
       deepLocate: options?.deepLocate,
       abortSignal: options?.abortSignal,
@@ -390,8 +389,9 @@ export class TaskBuilder {
     context: PlanBuildContext,
     onResult?: (result: LocateResultElement) => void,
   ): ExecutionTaskPlanningLocateApply {
-    const { cacheable, defaultModel, deepLocate, abortSignal } = context;
-    assert(defaultModel, 'A default model is required to execute Locate');
+    const { cacheable, resolveDefaultModelRuntime, deepLocate, abortSignal } =
+      context;
+    const defaultModel = resolveDefaultModelRuntime();
 
     let locateParam = normalizeLocateParam(detailedLocateParam);
 
