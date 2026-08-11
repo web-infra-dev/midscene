@@ -44,6 +44,10 @@ const IFRAME_INPUT_HTML = `
     <body style="padding: 20px">
       <input id="first" value="frame first" style="display: block; width: 220px; margin: 16px; padding: 8px" />
       <input id="second" value="frame second" style="display: block; width: 220px; margin: 16px; padding: 8px" />
+      <div style="position: relative; width: 260px; height: 48px; margin: 16px">
+        <input id="overlap-first" value="overlap first" style="position: absolute; inset: 0; width: 220px; padding: 8px" />
+        <input id="overlap-second" value="overlap second" style="position: absolute; inset: 0; width: 220px; padding: 8px; z-index: 1" />
+      </div>
       <script>
         window.__midsceneEditingEvents = [];
         document.addEventListener('copy', () => window.__midsceneEditingEvents.push('copy'));
@@ -104,6 +108,10 @@ async function startEditingServers(): Promise<EditingServers> {
     response.end(IFRAME_INPUT_HTML);
   });
   const crossOrigin = await listen(crossOriginServer);
+  const crossSiteOrigin = crossOrigin.replace(
+    '127.0.0.1',
+    'midscene-cross-site.test',
+  );
 
   const parentServer = createServer((request, response) => {
     const requestUrl = new URL(request.url ?? '/', 'http://127.0.0.1');
@@ -115,7 +123,9 @@ async function startEditingServers(): Promise<EditingServers> {
 
     const mode = requestUrl.searchParams.get('mode');
     const iframeSource =
-      mode === 'cross-origin' ? `${crossOrigin}/iframe-input` : '/iframe-input';
+      mode === 'cross-origin'
+        ? `${crossSiteOrigin}/iframe-input`
+        : '/iframe-input';
     response.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
     response.end(`
       <!doctype html>
@@ -204,6 +214,40 @@ async function playwrightEditingState(
   });
 }
 
+async function expectPuppeteerOopif(
+  page: PuppeteerPage,
+  frame: PuppeteerFrame,
+): Promise<void> {
+  const client = await page.createCDPSession();
+  try {
+    const { targetInfos } = await client.send('Target.getTargets');
+    expect(
+      targetInfos.some(
+        (target) => target.type === 'iframe' && target.url === frame.url(),
+      ),
+    ).toBe(true);
+  } finally {
+    await client.detach();
+  }
+}
+
+async function expectPlaywrightOopif(
+  page: PlaywrightPage,
+  frame: PlaywrightFrame,
+): Promise<void> {
+  const client = await page.context().newCDPSession(page);
+  try {
+    const { targetInfos } = await client.send('Target.getTargets');
+    expect(
+      targetInfos.some(
+        (target) => target.type === 'iframe' && target.url === frame.url(),
+      ),
+    ).toBe(true);
+  } finally {
+    await client.detach();
+  }
+}
+
 describe('input keyboard actions end to end', () => {
   let servers: EditingServers;
 
@@ -221,7 +265,12 @@ describe('input keyboard actions end to end', () => {
     beforeAll(async () => {
       browser = await puppeteer.launch({
         headless: true,
-        args: ['--no-sandbox', '--disable-setuid-sandbox'],
+        args: [
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--site-per-process',
+          '--host-resolver-rules=MAP midscene-cross-site.test 127.0.0.1',
+        ],
       });
     }, TEST_TIMEOUT_MS);
 
@@ -362,6 +411,12 @@ describe('input keyboard actions end to end', () => {
           expect(
             new URL(frame.url()).origin === new URL(page.url()).origin,
           ).toBe(mode === 'same-origin');
+          if (mode === 'cross-origin') {
+            expect(new URL(frame.url()).hostname).not.toBe(
+              new URL(page.url()).hostname,
+            );
+            await expectPuppeteerOopif(page, frame);
+          }
 
           const input = createWebInputPrimitives(new PuppeteerWebPage(page));
           const first = targetAt(await puppeteerElementCenter(frame, '#first'));
@@ -388,8 +443,96 @@ describe('input keyboard actions end to end', () => {
       TEST_TIMEOUT_MS,
     );
 
+    test(
+      'runs targetless shortcuts in a cross-site iframe',
+      async () => {
+        const page = await browser.newPage();
+        try {
+          await page.goto(servers.iframePageUrl('cross-origin'), {
+            waitUntil: 'networkidle0',
+          });
+          const frame = page
+            .frames()
+            .find((candidate) => candidate.url().endsWith('/iframe-input'));
+          if (!frame) throw new Error('Missing Puppeteer cross-site iframe');
+          await expectPuppeteerOopif(page, frame);
+          await frame.$eval('#first', (el) => {
+            const input = el as HTMLInputElement;
+            input.focus();
+            input.select();
+          });
+          const agent = new PuppeteerAgent(page, {
+            generateReport: false,
+            modelConfig: {},
+          });
+
+          await agent.aiKeyboardPress(undefined, {
+            keyName: `${MODIFIER}+A`,
+          });
+          await agent.aiKeyboardPress(undefined, {
+            keyName: `${MODIFIER}+X`,
+          });
+
+          expect(await puppeteerEditingState(frame)).toMatchObject({
+            activeElementId: 'first',
+            events: ['cut'],
+            firstValue: '',
+          });
+        } finally {
+          await page.close();
+        }
+      },
+      TEST_TIMEOUT_MS,
+    );
+
+    test(
+      'does not confuse overlapping inputs in a cross-site iframe',
+      async () => {
+        const page = await browser.newPage();
+        try {
+          await page.goto(servers.iframePageUrl('cross-origin'), {
+            waitUntil: 'networkidle0',
+          });
+          const frame = page
+            .frames()
+            .find((candidate) => candidate.url().endsWith('/iframe-input'));
+          if (!frame) throw new Error('Missing Puppeteer cross-site iframe');
+          await frame.$eval('#overlap-first', (el) => {
+            const input = el as HTMLInputElement;
+            input.focus();
+            input.select();
+          });
+          const input = createWebInputPrimitives(new PuppeteerWebPage(page));
+          const target = targetAt(
+            await puppeteerElementCenter(frame, '#overlap-second'),
+          );
+
+          await input.keyboard.keyboardPress(`${MODIFIER}+X`, { target });
+
+          expect(
+            await frame.evaluate(() => ({
+              activeElementId: document.activeElement?.id,
+              firstValue: (
+                document.querySelector('#overlap-first') as HTMLInputElement
+              ).value,
+              secondValue: (
+                document.querySelector('#overlap-second') as HTMLInputElement
+              ).value,
+            })),
+          ).toEqual({
+            activeElementId: 'overlap-second',
+            firstValue: 'overlap first',
+            secondValue: 'overlap second',
+          });
+        } finally {
+          await page.close();
+        }
+      },
+      TEST_TIMEOUT_MS,
+    );
+
     test.each<IframeMode>(['same-origin', 'cross-origin'])(
-      'does not confuse two inputs in the same %s iframe',
+      'does not confuse two inputs within a %s iframe',
       async (mode) => {
         const page = await browser.newPage();
         try {
@@ -434,7 +577,12 @@ describe('input keyboard actions end to end', () => {
       browser = await chromium.launch({
         headless: true,
         executablePath: puppeteer.executablePath(),
-        args: ['--no-sandbox', '--disable-setuid-sandbox'],
+        args: [
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--site-per-process',
+          '--host-resolver-rules=MAP midscene-cross-site.test 127.0.0.1',
+        ],
       });
     }, TEST_TIMEOUT_MS);
 
@@ -561,6 +709,12 @@ describe('input keyboard actions end to end', () => {
           expect(
             new URL(frame.url()).origin === new URL(page.url()).origin,
           ).toBe(mode === 'same-origin');
+          if (mode === 'cross-origin') {
+            expect(new URL(frame.url()).hostname).not.toBe(
+              new URL(page.url()).hostname,
+            );
+            await expectPlaywrightOopif(page, frame);
+          }
 
           const input = createWebInputPrimitives(new PlaywrightWebPage(page));
           const first = targetAt(
@@ -589,8 +743,90 @@ describe('input keyboard actions end to end', () => {
       TEST_TIMEOUT_MS,
     );
 
+    test(
+      'runs targetless shortcuts in a cross-site iframe',
+      async () => {
+        const page = await browser.newPage();
+        try {
+          await page.goto(servers.iframePageUrl('cross-origin'), {
+            waitUntil: 'networkidle',
+          });
+          const frame = page
+            .frames()
+            .find((candidate) => candidate.url().endsWith('/iframe-input'));
+          if (!frame) throw new Error('Missing Playwright cross-site iframe');
+          await expectPlaywrightOopif(page, frame);
+          await frame.locator('#first').focus();
+          await frame.locator('#first').selectText();
+          const agent = new PlaywrightAgent(page, {
+            generateReport: false,
+            modelConfig: {},
+          });
+
+          await agent.aiKeyboardPress(undefined, {
+            keyName: `${MODIFIER}+A`,
+          });
+          await agent.aiKeyboardPress(undefined, {
+            keyName: `${MODIFIER}+X`,
+          });
+
+          expect(await playwrightEditingState(frame)).toMatchObject({
+            activeElementId: 'first',
+            events: ['cut'],
+            firstValue: '',
+          });
+        } finally {
+          await page.close();
+        }
+      },
+      TEST_TIMEOUT_MS,
+    );
+
+    test(
+      'does not confuse overlapping inputs in a cross-site iframe',
+      async () => {
+        const page = await browser.newPage();
+        try {
+          await page.goto(servers.iframePageUrl('cross-origin'), {
+            waitUntil: 'networkidle',
+          });
+          const frame = page
+            .frames()
+            .find((candidate) => candidate.url().endsWith('/iframe-input'));
+          if (!frame) throw new Error('Missing Playwright cross-site iframe');
+          await frame.locator('#overlap-first').focus();
+          await frame.locator('#overlap-first').selectText();
+          const input = createWebInputPrimitives(new PlaywrightWebPage(page));
+          const target = targetAt(
+            await playwrightElementCenter(frame, '#overlap-second'),
+          );
+
+          await input.keyboard.keyboardPress(`${MODIFIER}+X`, { target });
+
+          expect(
+            await frame.evaluate(() => ({
+              activeElementId: document.activeElement?.id,
+              firstValue: (
+                document.querySelector('#overlap-first') as HTMLInputElement
+              ).value,
+              secondValue: (
+                document.querySelector('#overlap-second') as HTMLInputElement
+              ).value,
+            })),
+          ).toEqual({
+            activeElementId: 'overlap-second',
+            firstValue: 'overlap first',
+            secondValue: 'overlap second',
+          });
+        } finally {
+          await page.close();
+        }
+      },
+      TEST_TIMEOUT_MS,
+    );
+
     test.each<IframeMode>(['same-origin', 'cross-origin'])(
-      'does not confuse two inputs in the same %s iframe',
+      'does not confuse two inputs within a %s iframe',
       async (mode) => {
         const page = await browser.newPage();
         try {

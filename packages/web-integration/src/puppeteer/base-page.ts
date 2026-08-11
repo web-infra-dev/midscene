@@ -89,18 +89,27 @@ type ParentFrameLike = {
   parentFrame(): ParentFrameLike | null;
 };
 
-type FocusedElementHandle = {
-  asElement(): {
-    boundingBox(): Promise<BrowserBoundingBox | null>;
-  } | null;
+type FrameElementMetrics = {
+  clientLeft: number;
+  clientTop: number;
+  offsetWidth: number;
+  offsetHeight: number;
+};
+
+type FrameElementHandle = {
+  boundingBox(): Promise<BrowserBoundingBox | null>;
+  evaluate(
+    pageFunction: (element: Element) => FrameElementMetrics,
+  ): Promise<FrameElementMetrics>;
   dispose(): Promise<void>;
 };
 
 type FocusFrame = ParentFrameLike & {
-  evaluate(pageFunction: () => boolean): Promise<boolean>;
-  evaluateHandle(
-    pageFunction: () => Element | null,
-  ): Promise<FocusedElementHandle>;
+  evaluate(
+    pageFunction: (point: [number, number]) => boolean,
+    point: [number, number],
+  ): Promise<boolean>;
+  frameElement(): Promise<FrameElementHandle>;
 };
 
 function frameDepth(frame: ParentFrameLike): number {
@@ -111,18 +120,6 @@ function frameDepth(frame: ParentFrameLike): number {
     current = current.parentFrame();
   }
   return depth;
-}
-
-function boundingBoxContainsPoint(
-  box: BrowserBoundingBox,
-  [x, y]: [number, number],
-): boolean {
-  return (
-    x >= box.x &&
-    x <= box.x + box.width &&
-    y >= box.y &&
-    y <= box.y + box.height
-  );
 }
 
 type PageCdpSession = {
@@ -1161,11 +1158,7 @@ export class Page<
         return;
       }
       if (focusOwnership === 'frame') {
-        const focusedElementBox = await this.deepestFocusedElementBox();
-        if (
-          focusedElementBox &&
-          boundingBoxContainsPoint(focusedElementBox, element.center)
-        ) {
+        if (await this.focusedFrameElementOwnsPoint(element.center)) {
           return;
         }
       }
@@ -1176,9 +1169,9 @@ export class Page<
     });
   }
 
-  private async deepestFocusedElementBox(): Promise<
-    BrowserBoundingBox | undefined
-  > {
+  private async focusedFrameElementOwnsPoint(
+    browserPoint: [number, number],
+  ): Promise<boolean> {
     const frames = (this.interfaceType === 'puppeteer'
       ? (this.underlyingPage as PuppeteerPage).frames()
       : (
@@ -1188,35 +1181,70 @@ export class Page<
 
     for (const frame of frames) {
       try {
-        const hasEditableFocus = await frame.evaluate(() => {
+        const framePoint = await this.browserPointToFramePoint(
+          frame,
+          browserPoint,
+        );
+        if (!framePoint) continue;
+
+        const targetOwnsFocus = await frame.evaluate((point) => {
+          const target = document.elementFromPoint(point[0], point[1]);
           const activeElement = document.activeElement;
           return (
             document.hasFocus() &&
+            !!target &&
             !!activeElement &&
             activeElement !== document.body &&
             activeElement !== document.documentElement &&
             activeElement.tagName !== 'IFRAME' &&
-            activeElement.tagName !== 'FRAME'
+            activeElement.tagName !== 'FRAME' &&
+            (target === activeElement ||
+              target.contains(activeElement) ||
+              activeElement.contains(target))
           );
-        });
-        if (!hasEditableFocus) continue;
-
-        const activeElementHandle = await frame.evaluateHandle(
-          () => document.activeElement,
-        );
-        try {
-          const activeElement = activeElementHandle.asElement();
-          const box = await activeElement?.boundingBox();
-          if (box) return box;
-        } finally {
-          await activeElementHandle.dispose();
-        }
+        }, framePoint);
+        if (targetOwnsFocus) return true;
       } catch (error) {
         if (isTransientNavigationError(error)) continue;
         throw error;
       }
     }
-    return undefined;
+    return false;
+  }
+
+  private async browserPointToFramePoint(
+    frame: FocusFrame,
+    browserPoint: [number, number],
+  ): Promise<[number, number] | undefined> {
+    if (!frame.parentFrame()) return browserPoint;
+
+    const frameElement = await frame.frameElement();
+    try {
+      const [box, metrics] = await Promise.all([
+        frameElement.boundingBox(),
+        frameElement.evaluate((element) => {
+          const htmlElement = element as HTMLElement;
+          return {
+            clientLeft: htmlElement.clientLeft,
+            clientTop: htmlElement.clientTop,
+            offsetWidth: htmlElement.offsetWidth,
+            offsetHeight: htmlElement.offsetHeight,
+          };
+        }),
+      ]);
+      if (!box || metrics.offsetWidth <= 0 || metrics.offsetHeight <= 0) {
+        return undefined;
+      }
+
+      const scaleX = box.width / metrics.offsetWidth;
+      const scaleY = box.height / metrics.offsetHeight;
+      return [
+        (browserPoint[0] - box.x) / scaleX - metrics.clientLeft,
+        (browserPoint[1] - box.y) / scaleY - metrics.clientTop,
+      ];
+    } finally {
+      await frameElement.dispose();
+    }
   }
 
   private async selectAllByCdp(): Promise<void> {

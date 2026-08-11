@@ -71,8 +71,7 @@ describe('TaskExecutor RightClick Action', () => {
     // Test plan conversion instead of full execution
     const { tasks } = await (taskExecutor as any).convertPlanToExecutable(
       [rightClickPlan],
-      mockModelRuntime,
-      mockModelRuntime,
+      () => mockModelRuntime,
     );
 
     expect(tasks).toHaveLength(1);
@@ -109,8 +108,7 @@ describe('TaskExecutor RightClick Action', () => {
     // Convert plans to executable tasks
     const { tasks } = await (taskExecutor as any).convertPlanToExecutable(
       plans,
-      mockModelRuntime,
-      mockModelRuntime,
+      () => mockModelRuntime,
     );
 
     expect(tasks).toHaveLength(2);
@@ -138,8 +136,7 @@ describe('TaskExecutor RightClick Action', () => {
 
     const { tasks } = await (taskExecutor as any).convertPlanToExecutable(
       [rightClickPlan],
-      mockModelRuntime,
-      mockModelRuntime,
+      () => mockModelRuntime,
     );
     const rightClickTask = tasks[0];
 
@@ -194,8 +191,7 @@ describe('TaskExecutor RightClick Action', () => {
 
     const { tasks } = await (taskExecutor as any).convertPlanToExecutable(
       [rightClickPlan],
-      mockModelRuntime,
-      mockModelRuntime,
+      () => mockModelRuntime,
     );
     const rightClickTask = tasks[0];
 

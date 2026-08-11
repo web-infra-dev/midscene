@@ -393,10 +393,14 @@ export abstract class AbstractWebPage extends AbstractInterface {
    * Focuses an element before a keyboard action. Selection-preserving actions
    * may avoid a redundant click when this element already owns the focus.
    */
-  focusElement?(
+  async focusElement(
     element: ElementInfo,
-    options?: FocusElementOptions,
-  ): Promise<void>;
+    _options?: FocusElementOptions,
+  ): Promise<void> {
+    await this.mouse.click(element.center[0], element.center[1], {
+      button: 'left',
+    });
+  }
 
   get mouse(): MouseAction {
     return {
@@ -538,13 +542,7 @@ export function createWebInputPrimitives(
           ({ command }) => command === 'Copy' || command === 'Cut',
         );
         if (element) {
-          if (page.focusElement) {
-            await page.focusElement(element, { preserveSelection });
-          } else {
-            await page.mouse.click(element.center[0], element.center[1], {
-              button: 'left',
-            });
-          }
+          await page.focusElement(element, { preserveSelection });
         }
 
         await page.keyboard.press(keys as any);
