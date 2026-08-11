@@ -128,16 +128,16 @@ describe('comprehensive input actions in Puppeteer', () => {
       ),
     ).toBe('Alpha value');
     await agent.aiInput('the text input labeled Text input', {
-      value: 'Public aiInput replacement',
+      value: 'Public replacement complete',
     });
     expect(
       await page.$eval(
         '#text-input',
         (element) => (element as HTMLInputElement).value,
       ),
-    ).toBe('Public aiInput replacement');
+    ).toBe('Public replacement complete');
     await agent.aiAssert(
-      'The state summary shows Text input value: Public aiInput replacement.',
+      'The state summary shows Text input value: Public replacement complete.',
     );
   });
 
