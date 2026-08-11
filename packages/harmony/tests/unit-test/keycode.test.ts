@@ -3,7 +3,7 @@ import {
   resolveHarmonyKeyCodes,
 } from '@/keycode';
 import { _keyDefinitions } from '@midscene/shared/us-keyboard-layout';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 
 describe('resolveHarmonyKeyCodes', () => {
   it.each([
@@ -63,7 +63,7 @@ describe('resolveHarmonyKeyCodes', () => {
   });
 
   it.each(
-    Array.from({ length: 10 }, (_, digit) => [
+    Array.from({ length: 10 }, (_, digit): [string, string[]] => [
       `Digit${digit}`,
       [String(2000 + digit)],
     ]),
@@ -72,7 +72,7 @@ describe('resolveHarmonyKeyCodes', () => {
   });
 
   it.each(
-    Array.from({ length: 26 }, (_, index) => [
+    Array.from({ length: 26 }, (_, index): [string, string[]] => [
       `Key${String.fromCharCode(65 + index)}`,
       [String(2017 + index)],
     ]),
@@ -81,7 +81,7 @@ describe('resolveHarmonyKeyCodes', () => {
   });
 
   it.each(
-    Array.from({ length: 24 }, (_, index) => [
+    Array.from({ length: 24 }, (_, index): [string, string[]] => [
       `F${index + 1}`,
       [String(index < 12 ? 2090 + index : 2816 + index - 12)],
     ]),
@@ -90,7 +90,7 @@ describe('resolveHarmonyKeyCodes', () => {
   });
 
   it.each(
-    Array.from({ length: 10 }, (_, digit) => [
+    Array.from({ length: 10 }, (_, digit): [string, string[]] => [
       `Numpad${digit}`,
       [String(2103 + digit)],
     ]),
