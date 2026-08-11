@@ -88,6 +88,9 @@ describe('puppeteer integration', () => {
     await agent.aiAct(
       'Cut the text that is already selected in the currently focused search input. Keep the current focus and selection until the keyboard shortcut runs.',
     );
+    await agent.aiAssert(
+      'The search input box is empty and contains no entered text. The placeholder "Enter your search query..." may be visible and does not count as entered text.',
+    );
 
     const log = await agent._unstableLogContent();
     const keyboardTask = log.executions
