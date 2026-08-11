@@ -434,7 +434,7 @@ function aiKeyboardPress(
   **推荐用法**：
   - `locate: string | object` - 用自然语言描述的元素定位，或[使用图片作为提示词](#使用图片作为提示词)。
   - `opt: object` - 配置对象，包含：
-    - `keyName: string` - **必填**，要按下的键，如 `Enter`、`Tab`、`Escape` 等。Web 和 Computer Device 还支持 modifier shortcut，如 `Control+A`、`Shift+Enter`；使用 `+` 连接按键。内置的 Android、iOS 和 Harmony Device 仅支持单键；自定义 Device 是否支持组合键取决于其实现。可在[我们的源码中查看完整的按键名称列表](https://github.com/web-infra-dev/midscene/blob/main/packages/shared/src/us-keyboard-layout.ts)。
+    - `keyName: string` - **必填**，要按下的键，如 `Enter`、`Tab`、`Escape` 等。Web 和 Computer Device 支持 `Control+A`、`Shift+Enter` 等 modifier shortcut，使用 `+` 连接按键。Harmony 也支持组合键，但必须使用 `Control+KeyA`、`Shift+Slash` 这类具名键或物理键。Harmony 不会把 `A`、`?` 等可打印字符转换成物理键，因为转换结果取决于当前键盘布局；输入文本请使用 `aiInput()`。内置的 Android 和 iOS Device 仅支持单键；自定义 Device 是否支持组合键取决于其实现。可在[共享按键名称定义](https://github.com/web-infra-dev/midscene/blob/main/packages/shared/src/us-keyboard-layout.ts)中查看候选名称，实际支持情况以平台为准。
     - `deepLocate?: boolean` - 是否开启[深度定位](#深度定位deeplocate)。该参数原来叫 `deepThink`，现已更名为 `deepLocate`。默认值为 false。
     - `context?: string` - 本次调用的额外上下文。详见[单次调用上下文](#单次调用上下文)。
     - `xpath?: string` - 目标元素的 xpath 路径，用于执行当前操作。如果提供了这个 xpath，Midscene 会优先使用该 xpath 来找到元素，然后依次使用缓存和 AI 模型。默认值为空

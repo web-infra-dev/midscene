@@ -387,10 +387,23 @@ describe('HarmonyDevice', () => {
     it('should reject an unsupported key before connecting to HDC', async () => {
       await expect(
         device.inputPrimitives.keyboard.keyboardPress('not-a-key'),
-      ).rejects.toThrow('Unsupported HarmonyOS key: not-a-key');
+      ).rejects.toThrow('Unsupported HarmonyOS keyboardPress key: "not-a-key"');
       expect(mockHdc.getScreenInfo).not.toHaveBeenCalled();
       expect(mockHdc.keyEvent).not.toHaveBeenCalled();
     });
+
+    it.each(['?', 'A', '1', '中文'])(
+      'should reject character input %j before connecting to HDC',
+      async (key) => {
+        await expect(
+          device.inputPrimitives.keyboard.keyboardPress(key),
+        ).rejects.toThrow(
+          `Unsupported HarmonyOS keyboardPress key: ${JSON.stringify(key)}`,
+        );
+        expect(mockHdc.getScreenInfo).not.toHaveBeenCalled();
+        expect(mockHdc.keyEvent).not.toHaveBeenCalled();
+      },
+    );
   });
 
   describe('keyboardPress', () => {
@@ -411,18 +424,18 @@ describe('HarmonyDevice', () => {
       expect(mockHdc.keyEvent).toHaveBeenCalledWith(code);
     });
 
-    it('should forward a shifted key as a multi-key event', async () => {
-      await device.inputPrimitives.keyboard.keyboardPress('?');
+    it('should forward physical keys as a multi-key event', async () => {
+      await device.inputPrimitives.keyboard.keyboardPress('Shift+Slash');
       expect(mockHdc.keyEvent).toHaveBeenCalledWith('2047', '2064');
     });
 
-    it('should add Shift when pressing an uppercase character', async () => {
-      await device.inputPrimitives.keyboard.keyboardPress('A');
-      expect(mockHdc.keyEvent).toHaveBeenCalledWith('2047', '2017');
+    it('should forward a physical letter key', async () => {
+      await device.inputPrimitives.keyboard.keyboardPress('KeyA');
+      expect(mockHdc.keyEvent).toHaveBeenCalledWith('2017');
     });
 
     it('should forward a supported key combination as one key event', async () => {
-      await device.inputPrimitives.keyboard.keyboardPress('Control+A');
+      await device.inputPrimitives.keyboard.keyboardPress('Control+KeyA');
       expect(mockHdc.keyEvent).toHaveBeenCalledWith('2072', '2017');
     });
   });
