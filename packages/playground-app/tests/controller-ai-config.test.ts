@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 import {
   applyPlaygroundAiConfig,
   hasPlaygroundAiConfig,
@@ -14,7 +14,7 @@ describe('playground ai config helpers', () => {
   });
 
   it('skips override when ai config is empty', async () => {
-    const overrideConfig = vi.fn();
+    const overrideConfig = rs.fn();
 
     const applied = await applyPlaygroundAiConfig({ overrideConfig }, {});
 
@@ -23,7 +23,7 @@ describe('playground ai config helpers', () => {
   });
 
   it('pushes ai config to the playground sdk', async () => {
-    const overrideConfig = vi.fn().mockResolvedValue(undefined);
+    const overrideConfig = rs.fn().mockResolvedValue(undefined);
     const config = {
       MIDSCENE_MODEL_BASE_URL: 'https://example.com/v1',
       MIDSCENE_MODEL_NAME: 'gpt-4o-mini',

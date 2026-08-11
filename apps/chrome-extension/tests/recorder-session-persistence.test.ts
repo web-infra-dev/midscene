@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 import { startNewRecording } from '../src/extension/recorder/startNewRecording';
 import type { RecordingSession } from '../src/store';
 import { toRecordingSessionMetadata } from '../src/utils/indexedDB';
@@ -18,13 +18,13 @@ const session: RecordingSession = {
 describe('Recorder session persistence', () => {
   it('starts recording only after the new session has persisted', async () => {
     let finishPersistence: ((value: RecordingSession) => void) | undefined;
-    const createNewSession = vi.fn(
+    const createNewSession = rs.fn(
       () =>
         new Promise<RecordingSession>((resolve) => {
           finishPersistence = resolve;
         }),
     );
-    const startRecording = vi.fn(async () => undefined);
+    const startRecording = rs.fn(async () => undefined);
 
     const operation = startNewRecording(createNewSession, startRecording);
     expect(startRecording).not.toHaveBeenCalled();

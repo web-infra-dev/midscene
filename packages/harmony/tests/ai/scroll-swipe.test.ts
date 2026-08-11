@@ -1,7 +1,7 @@
-import { describe, it, vi } from 'vitest';
+import { describe, it, rs } from '@rstest/core';
 import { agentFromHdcDevice } from '../../src';
 
-vi.setConfig({
+rs.setConfig({
   testTimeout: 90 * 1000,
 });
 

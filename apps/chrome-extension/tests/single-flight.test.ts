@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 import { runSingleFlight } from '../src/extension/recorder/hooks/singleFlight';
 
 describe('runSingleFlight', () => {
@@ -7,7 +7,7 @@ describe('runSingleFlight', () => {
     const operation = new Promise<void>((resolve) => {
       resolveOperation = resolve;
     });
-    const action = vi.fn(() => operation);
+    const action = rs.fn(() => operation);
     const inFlightOperation = { current: null as Promise<void> | null };
 
     const firstRequest = runSingleFlight(inFlightOperation, action);

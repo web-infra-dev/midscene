@@ -1,11 +1,11 @@
+import { beforeAll, describe, expect, it, rs } from '@rstest/core';
 /** @vitest-environment jsdom */
 import { act, createElement } from 'react';
 import { createRoot } from 'react-dom/client';
-import { beforeAll, describe, expect, it, vi } from 'vitest';
 
-const screenshotViewerMock = vi.fn((props: unknown) => null);
+const screenshotViewerMock = rs.fn((props: unknown) => null);
 
-vi.mock('@midscene/visualizer', () => ({
+rs.mock('@midscene/visualizer', () => ({
   ScreenshotViewer: (props: unknown) => screenshotViewerMock(props),
 }));
 
@@ -34,9 +34,9 @@ describe('PreviewRenderer screenshot viewer defaults', () => {
   it('defaults the ScreenshotViewer to screen-only when no mode is provided', async () => {
     screenshotViewerMock.mockClear();
     const playgroundSDK = {
-      getInterfaceInfo: vi.fn(async () => null),
-      getScreenshot: vi.fn(async () => null),
-      interact: vi.fn(async () => ({ ok: true })),
+      getInterfaceInfo: rs.fn(async () => null),
+      getScreenshot: rs.fn(async () => null),
+      interact: rs.fn(async () => ({ ok: true })),
     };
     const container = document.createElement('div');
     document.body.appendChild(container);
@@ -78,9 +78,9 @@ describe('PreviewRenderer screenshot viewer defaults', () => {
   it('honors an explicit mode override (Studio passes "default")', async () => {
     screenshotViewerMock.mockClear();
     const playgroundSDK = {
-      getInterfaceInfo: vi.fn(async () => null),
-      getScreenshot: vi.fn(async () => null),
-      interact: vi.fn(async () => ({ ok: true })),
+      getInterfaceInfo: rs.fn(async () => null),
+      getScreenshot: rs.fn(async () => null),
+      interact: rs.fn(async () => ({ ok: true })),
     };
     const container = document.createElement('div');
     document.body.appendChild(container);

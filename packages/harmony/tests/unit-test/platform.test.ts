@@ -1,9 +1,9 @@
-import { beforeEach, describe, expect, test, vi } from 'vitest';
+import { beforeEach, describe, expect, rs, test } from '@rstest/core';
 
-const connectMock = vi.fn();
-const getConnectedDevicesMock = vi.fn();
-const findAvailablePortMock = vi.fn(async () => 5810);
-const harmonyAgentMock = vi.fn().mockImplementation((device) => ({
+const connectMock = rs.fn();
+const getConnectedDevicesMock = rs.fn();
+const findAvailablePortMock = rs.fn(async () => 5810);
+const harmonyAgentMock = rs.fn().mockImplementation((device) => ({
   device,
   interface: {
     interfaceType: 'harmony',
@@ -12,7 +12,7 @@ const harmonyAgentMock = vi.fn().mockImplementation((device) => ({
   },
 }));
 
-vi.mock('@midscene/playground', () => ({
+rs.mock('@midscene/playground', () => ({
   createScreenshotPreviewDescriptor: (overrides = {}) => ({
     kind: 'screenshot',
     screenshotPath: '/screenshot',
@@ -21,27 +21,27 @@ vi.mock('@midscene/playground', () => ({
   definePlaygroundPlatform: (descriptor: unknown) => descriptor,
 }));
 
-vi.mock('@midscene/shared/node', () => ({
+rs.mock('@midscene/shared/node', () => ({
   findAvailablePort: findAvailablePortMock,
 }));
 
-vi.mock('../../src/agent', () => ({
+rs.mock('../../src/agent', () => ({
   HarmonyAgent: harmonyAgentMock,
 }));
 
-vi.mock('../../src/device', () => ({
-  HarmonyDevice: vi.fn().mockImplementation(() => ({
+rs.mock('../../src/device', () => ({
+  HarmonyDevice: rs.fn().mockImplementation(() => ({
     connect: connectMock,
   })),
 }));
 
-vi.mock('../../src/utils', () => ({
+rs.mock('../../src/utils', () => ({
   getConnectedDevices: getConnectedDevicesMock,
 }));
 
 describe('harmonyPlaygroundPlatform', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    rs.clearAllMocks();
     getConnectedDevicesMock.mockResolvedValue([{ deviceId: 'SERIAL123' }]);
     connectMock.mockResolvedValue(undefined);
     findAvailablePortMock.mockResolvedValue(5810);

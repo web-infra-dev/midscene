@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 import { serializeRecorderEvent } from '../src/scripts/recorder-event-serialization';
 
 describe('serializeRecorderEvent', () => {
