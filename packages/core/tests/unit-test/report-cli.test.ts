@@ -77,6 +77,9 @@ describe('createReportCliCommands', () => {
     const [command] = createReportCliCommands();
     expect(command.name).toBe('report-tool');
     expect('aliases' in command).toBe(false);
+    expect(command.def.schema).toHaveProperty('report');
+    expect(command.def.schema).not.toHaveProperty('reportStatus');
+    expect(command.def.schema).not.toHaveProperty('resultAssessment');
   });
 
   it('runs report split through the generic report command', async () => {
@@ -195,7 +198,7 @@ describe('createReportCliCommands', () => {
   });
 
   it('supports to-markdown via the JS SDK API', async () => {
-    const reportPath = join(tmpDir, 'input-report-sdk-md', 'index.html');
+    const reportPath = join(tmpDir, 'input-report-sdk-md', 'sdk-report.html');
     mkdirSync(join(tmpDir, 'input-report-sdk-md'), { recursive: true });
 
     const screenshot = ScreenshotItem.create(fakeBase64(100), Date.now());
@@ -219,7 +222,7 @@ describe('createReportCliCommands', () => {
       outputDir,
     });
 
-    expect(result.markdownFiles.length).toBe(1);
+    expect(result.markdownFiles).toEqual([join(outputDir, 'report.md')]);
     expect(existsSync(join(outputDir, 'report.md'))).toBe(true);
   });
 
@@ -325,7 +328,7 @@ describe('createReportCliCommands', () => {
         outputDir: join(tmpDir, 'unused-output'),
       }),
     ).rejects.toThrow(
-      'report-tool: unsupported --action value "invalid-action". Currently supported: split, to-markdown, merge-html',
+      'report-tool: unsupported --action value "invalid-action". Currently supported: metadata, split, to-markdown, merge-html',
     );
   });
 

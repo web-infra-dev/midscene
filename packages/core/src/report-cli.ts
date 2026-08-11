@@ -1,10 +1,4 @@
-import {
-  copyFileSync,
-  existsSync,
-  mkdirSync,
-  statSync,
-  writeFileSync,
-} from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import * as path from 'node:path';
 import { z } from 'zod';
 import { extractAllDumpScriptsSync } from './dump/html-utils';
@@ -17,6 +11,7 @@ import {
 } from './report';
 import { reportToMarkdown } from './report-markdown';
 import type { MarkdownAttachment } from './report-markdown';
+import { getReportMetadata, resolveReportHtmlPath } from './report-metadata';
 import type { ReportFileAttributes, TestStatus } from './types';
 import { ReportActionDump } from './types';
 
@@ -42,7 +37,11 @@ export interface ReportCliCommandEntry {
   def: ReportCliCommandDefinition;
 }
 
-export type ConsumeReportFileAction = 'split' | 'to-markdown' | 'merge-html';
+export type ConsumeReportFileAction =
+  | 'metadata'
+  | 'split'
+  | 'to-markdown'
+  | 'merge-html';
 
 export interface ConsumeReportFileOptions {
   htmlPath: string;
@@ -145,28 +144,6 @@ async function markdownFromReport(
       .sort()
       .map((f) => path.join(screenshotsDir, f)),
   };
-}
-
-function resolveReportHtmlPath(htmlPath: string): string {
-  const normalizedPath = path.resolve(htmlPath);
-
-  if (!existsSync(normalizedPath)) {
-    throw new Error(`report-tool: --htmlPath does not exist: ${htmlPath}`);
-  }
-
-  const stats = statSync(normalizedPath);
-  if (!stats.isDirectory()) {
-    return normalizedPath;
-  }
-
-  const indexHtmlPath = path.join(normalizedPath, 'index.html');
-  if (!existsSync(indexHtmlPath)) {
-    throw new Error(
-      `report-tool: "${htmlPath}" is not an HTML report file, and no index.html was found under this directory.`,
-    );
-  }
-
-  return indexHtmlPath;
 }
 
 export function splitReportFile(options: SplitReportFileOptions): {
@@ -321,19 +298,25 @@ function normalizeHtmlReportArg(raw: unknown): string[] | undefined {
 const reportCommandDefinition: ReportCliCommandDefinition = {
   name: 'report-tool',
   description:
-    'Transform Midscene report artifacts, including splitting executions, converting to markdown, and merging multiple reports.',
+    'Read Midscene report metadata and transform report artifacts by splitting executions, converting to markdown, or merging multiple reports.',
   schema: {
     action: z
-      .enum(['split', 'to-markdown', 'merge-html'])
+      .enum(['metadata', 'split', 'to-markdown', 'merge-html'])
       .optional()
       .describe(
-        'Report action to run. Supports: split, to-markdown, merge-html. Defaults to split.',
+        'Report action to run. Supports: metadata, split, to-markdown, merge-html. Defaults to split.',
+      ),
+    report: z
+      .string()
+      .optional()
+      .describe(
+        'Report HTTP(S) URL, absolute HTML path, or directory containing index.html for the metadata action.',
       ),
     htmlPath: z
       .string()
       .optional()
       .describe(
-        'Input report HTML path (e.g. ./report/index.html). Used by split and to-markdown.',
+        'Input report HTML path or report directory for split and to-markdown.',
       ),
     htmlReport: z
       .union([z.string(), z.array(z.string())])
@@ -345,7 +328,7 @@ const reportCommandDefinition: ReportCliCommandDefinition = {
       .string()
       .optional()
       .describe(
-        'Output directory for generated report artifacts. For merge, defaults to the Midscene report directory.',
+        'Output directory for split and to-markdown artifacts. Merge defaults to the Midscene report directory.',
       ),
     outputName: z
       .string()
@@ -363,6 +346,7 @@ const reportCommandDefinition: ReportCliCommandDefinition = {
   handler: async (args) => {
     const {
       action = 'split',
+      report,
       htmlPath,
       htmlReport,
       outputDir,
@@ -370,6 +354,7 @@ const reportCommandDefinition: ReportCliCommandDefinition = {
       overwrite,
     } = args as {
       action?: string;
+      report?: string;
       htmlPath?: string;
       htmlReport?: unknown;
       outputDir?: string;
@@ -377,13 +362,32 @@ const reportCommandDefinition: ReportCliCommandDefinition = {
       overwrite?: unknown;
     };
     if (
+      action !== 'metadata' &&
       action !== 'split' &&
       action !== 'to-markdown' &&
       action !== 'merge-html'
     ) {
       throw new Error(
-        `report-tool: unsupported --action value "${action}". Currently supported: split, to-markdown, merge-html`,
+        `report-tool: unsupported --action value "${action}". Currently supported: metadata, split, to-markdown, merge-html`,
       );
+    }
+
+    if (action === 'metadata') {
+      if (!report) {
+        throw new Error(
+          'report-tool: --report is required for action "metadata"',
+        );
+      }
+      const metadata = await getReportMetadata({ report });
+      return {
+        isError: false,
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(metadata, null, 2),
+          },
+        ],
+      };
     }
 
     if (action === 'merge-html') {
