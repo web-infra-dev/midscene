@@ -1,6 +1,6 @@
 import { execFile } from 'node:child_process';
 import { readFile } from 'node:fs/promises';
-import { beforeEach, describe, expect, test, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { IOSAutoDevice } from '../../src/ios-auto-device';
 
 const mocks = vi.hoisted(() => ({
@@ -25,6 +25,10 @@ const ok = (data: unknown) => JSON.stringify({ status: 'ok', data });
 describe('IOSAutoDevice', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
   });
 
   test('connects using device display and info from doubaocli', async () => {
@@ -181,6 +185,54 @@ describe('IOSAutoDevice', () => {
 
     await expect(device.screenshotBase64()).rejects.toThrow(
       'IOS_UI_BDC_SERVER_UNAVAILABLE: BDC Server endpoint is unavailable: Run doubaocli ios-auto bootstrap prepare',
+    );
+  });
+
+  test('passes login-account doubaocli state paths to ios-auto commands', async () => {
+    vi.stubEnv('DOUBAOCLI_TEST_HOME', '/tmp/midscene-test-home');
+    vi.stubEnv('DOUBAOCLI_CONFIG_DIR', '');
+    vi.stubEnv('DOUBAOCLI_DATABASE_DIR', '');
+    mockedExecFileAsync.mockResolvedValue({
+      stdout: ok({}),
+      stderr: '',
+    } as any);
+    const device = new IOSAutoDevice();
+
+    await device.home();
+
+    expect(mockedExecFileAsync).toHaveBeenCalledWith(
+      'doubaocli',
+      ['ios-auto', 'device', 'home', '--json'],
+      expect.objectContaining({
+        env: expect.objectContaining({
+          DOUBAOCLI_CONFIG_DIR: '/tmp/midscene-test-home',
+          DOUBAOCLI_DATABASE_DIR: '/tmp/midscene-test-home/.doubaocli',
+        }),
+      }),
+    );
+  });
+
+  test('does not override explicit doubaocli state paths', async () => {
+    vi.stubEnv('DOUBAOCLI_TEST_HOME', '/tmp/midscene-test-home');
+    vi.stubEnv('DOUBAOCLI_CONFIG_DIR', '/tmp/custom-config');
+    vi.stubEnv('DOUBAOCLI_DATABASE_DIR', '/tmp/custom-database');
+    mockedExecFileAsync.mockResolvedValue({
+      stdout: ok({}),
+      stderr: '',
+    } as any);
+    const device = new IOSAutoDevice();
+
+    await device.home();
+
+    expect(mockedExecFileAsync).toHaveBeenCalledWith(
+      'doubaocli',
+      ['ios-auto', 'device', 'home', '--json'],
+      expect.objectContaining({
+        env: expect.objectContaining({
+          DOUBAOCLI_CONFIG_DIR: '/tmp/custom-config',
+          DOUBAOCLI_DATABASE_DIR: '/tmp/custom-database',
+        }),
+      }),
     );
   });
 });

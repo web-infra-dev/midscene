@@ -1,6 +1,8 @@
 import assert from 'node:assert';
 import { execFile } from 'node:child_process';
 import { readFile } from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
 import { promisify } from 'node:util';
 import {
   type ActionScrollParam,
@@ -31,6 +33,10 @@ const execFileAsync = promisify(execFile);
 const debugDevice = getDebug('ios:auto-device');
 
 type IOSAutoDeviceOpt = IOSDeviceOpt;
+
+const DOUBAOCLI_CONFIG_DIR = 'DOUBAOCLI_CONFIG_DIR';
+const DOUBAOCLI_DATABASE_DIR = 'DOUBAOCLI_DATABASE_DIR';
+const DOUBAOCLI_TEST_HOME = 'DOUBAOCLI_TEST_HOME';
 
 type IOSAutoCommandResponse = {
   status: 'ok' | 'error';
@@ -428,6 +434,7 @@ export class IOSAutoDevice implements AbstractInterface {
     let stderr = '';
     try {
       const result = await execFileAsync(this.cliPath, commandArgs, {
+        env: createIOSAutoCommandEnv(),
         maxBuffer: 16 * 1024 * 1024,
       });
       stdout = result.stdout;
@@ -483,6 +490,23 @@ export class IOSAutoDevice implements AbstractInterface {
   private resolveBundleId(appName: string): string | undefined {
     return this.appNameMapping[normalizeForComparison(appName)];
   }
+}
+
+function createIOSAutoCommandEnv(): NodeJS.ProcessEnv {
+  const env = { ...process.env };
+  const configDir =
+    env[DOUBAOCLI_CONFIG_DIR]?.trim() ||
+    env[DOUBAOCLI_TEST_HOME]?.trim() ||
+    os.homedir()?.trim();
+
+  if (configDir && !env[DOUBAOCLI_CONFIG_DIR]?.trim()) {
+    env[DOUBAOCLI_CONFIG_DIR] = configDir;
+  }
+  if (configDir && !env[DOUBAOCLI_DATABASE_DIR]?.trim()) {
+    env[DOUBAOCLI_DATABASE_DIR] = path.join(configDir, '.doubaocli');
+  }
+
+  return env;
 }
 
 function parseResponse(value: string): IOSAutoCommandResponse | undefined {
