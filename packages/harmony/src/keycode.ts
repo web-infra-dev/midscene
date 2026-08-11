@@ -1,5 +1,7 @@
 import type { KeyInput } from '@midscene/shared/us-keyboard-layout';
 
+// Numeric values follow the public OpenHarmony Input Kit KeyCode enum:
+// https://github.com/openharmony/docs/blob/master/en/application-dev/reference/apis-input-kit/js-apis-keycode.md
 const namedHarmonyKeyCodeMap = {
   Enter: '2054',
   Backspace: '2055',
@@ -88,7 +90,6 @@ const namedHarmonyKeyCodeMap = {
   Help: '2625',
   Convert: '2606',
   NonConvert: '2608',
-  Select: '2016',
   Open: '2621',
   AltGraph: '2046',
   Props: '2618',
@@ -111,6 +112,9 @@ export const explicitlyUnsupportedHarmonyKeyNames = [
   'SoftRight',
   'Call',
   'EndCall',
+  // OpenHarmony only exposes D-pad and game-controller Select events. Neither
+  // has the keyboard Select semantics represented by this Midscene key name.
+  'Select',
 ] as const satisfies readonly KeyInput[];
 
 const explicitlyUnsupportedHarmonyKeySet = new Set<string>(

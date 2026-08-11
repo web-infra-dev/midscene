@@ -44,7 +44,6 @@ describe('resolveHarmonyKeyCodes', () => {
     ['Help', ['2625']],
     ['Convert', ['2606']],
     ['NonConvert', ['2608']],
-    ['Select', ['2016']],
     ['Open', ['2621']],
     ['AltGraph', ['2046']],
     ['Props', ['2618']],

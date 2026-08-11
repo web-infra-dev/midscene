@@ -750,7 +750,10 @@ export class HarmonyDevice implements AbstractInterface {
 
   async recentApps(): Promise<void> {
     const hdc = await this.getHdc();
-    await hdc.keyEvent('10011'); // KEYCODE_RECENT (API 18+)
+    // HarmonyOS NEXT devices use this system event for Recent Apps. The public
+    // KEYCODE_VIRTUAL_MULTITASK (2210) is accepted but does not open the app
+    // switcher on the Huawei devices covered by our physical-device tests.
+    await hdc.keyEvent('10011');
   }
 
   async hideKeyboard(options?: HarmonyDeviceInputOpt): Promise<void> {
