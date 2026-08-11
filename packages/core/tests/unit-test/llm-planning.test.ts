@@ -752,6 +752,29 @@ describe('parseXMLPlanningResponse', () => {
     });
   });
 
+  it('should ignore planning reasoning when thought parsing is disabled', () => {
+    const modelFamily = 'doubao-vision';
+    const xml = `
+<planning>This should not be exposed in fast mode</planning>
+<log>Tap the button</log>
+<action-type>Tap</action-type>
+<action-param-json>{"locate":{"prompt":"Button"}}</action-param-json>
+    `.trim();
+
+    const result = parseXMLPlanningResponse(
+      xml,
+      getModelAdapter(modelFamily).jsonParser,
+      { includeThought: false },
+    );
+
+    expect(result).not.toHaveProperty('thought');
+    expect(result.log).toBe('Tap the button');
+    expect(result.action).toEqual({
+      type: 'Tap',
+      param: { locate: { prompt: 'Button' } },
+    });
+  });
+
   it('should parse XML response with null action', () => {
     const modelFamily = 'doubao-vision';
     const xml = `

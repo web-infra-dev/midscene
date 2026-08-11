@@ -11,29 +11,43 @@ import {
 } from '../src/utils/report-task-tags';
 
 describe('report task tag flags', () => {
-  it('consumes deepThink from aiAct planning task dump params', () => {
+  it('shows DeepThink for deepThink effort in aiAct planning task dump params', () => {
     const task = {
       type: 'Planning',
       taskId: 'plan-deep-think',
       status: 'finished',
       param: {
-        deepThink: true,
+        effort: 'deepThink',
       },
     } satisfies Pick<ExecutionTask, 'type' | 'taskId' | 'status'> & {
-      param: Pick<ExecutionTaskPlanningParam, 'deepThink'>;
+      param: Pick<ExecutionTaskPlanningParam, 'effort'>;
     };
 
     expect(hasDeepThinkFlag(task as ExecutionTask)).toBe(true);
   });
 
-  it('does not mark planning tasks without deepThink', () => {
+  it.each(['balance', 'fast'] as const)(
+    'does not show DeepThink for %s effort',
+    (effort) => {
+      const task = {
+        type: 'Planning',
+        taskId: `plan-${effort}`,
+        status: 'finished',
+        param: { effort },
+      } satisfies Pick<ExecutionTask, 'type' | 'taskId' | 'status'> & {
+        param: Pick<ExecutionTaskPlanningParam, 'effort'>;
+      };
+
+      expect(hasDeepThinkFlag(task as ExecutionTask)).toBe(false);
+    },
+  );
+
+  it('does not read the legacy planning deepThink dump field', () => {
     const task = {
       type: 'Planning',
-      taskId: 'plan-normal',
+      taskId: 'plan-legacy-deep-think',
       status: 'finished',
-      param: {},
-    } satisfies Pick<ExecutionTask, 'type' | 'taskId' | 'status'> & {
-      param: Pick<ExecutionTaskPlanningParam, 'deepThink'>;
+      param: { deepThink: true },
     };
 
     expect(hasDeepThinkFlag(task as ExecutionTask)).toBe(false);

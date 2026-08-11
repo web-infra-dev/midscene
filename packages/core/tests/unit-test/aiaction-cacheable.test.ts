@@ -224,7 +224,6 @@ describe('aiAction cacheable option propagation', () => {
         modelDescription: 'test model',
         intent: 'default',
       } as any),
-      true, // includeLocateInPlanning: true
       undefined,
       false, // cacheable: false
     );

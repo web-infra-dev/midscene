@@ -41,11 +41,15 @@ const noPreviousActionsText =
 export function parseXMLPlanningResponse(
   xmlString: string,
   jsonParser: JsonParser,
+  options?: { includeThought?: boolean },
 ): RawResponsePlanningAIResponse {
   // Use <planning> instead of <thought> to avoid colliding with Gemini thought
   // summaries, which may also be emitted as <thought> in OpenAI-compatible
   // response content.
-  const thought = extractXMLTag(xmlString, 'planning');
+  const thought =
+    options?.includeThought === false
+      ? undefined
+      : extractXMLTag(xmlString, 'planning');
   const memory = extractXMLTag(xmlString, 'memory');
   const log = extractXMLTag(xmlString, 'log') || '';
   const error = extractXMLTag(xmlString, 'error');
@@ -125,6 +129,7 @@ type CallAndParsePlanningResponseOptions = {
   actionSpace: PlanOptions['actionSpace'];
   locateResultAdapter?: LocateResultAdapter;
   locateResultContext: LocateResultContext;
+  includeThought: boolean;
 };
 
 async function callAndParsePlanningResponse(
@@ -143,6 +148,7 @@ async function callAndParsePlanningResponse(
     actionSpace,
     locateResultAdapter,
     locateResultContext,
+    includeThought,
   } = options;
   return callAiAndParseWithRetry({
     callAi: (retryAttempt, previousParseError) =>
@@ -159,6 +165,7 @@ async function callAndParsePlanningResponse(
       const planFromAI = parseXMLPlanningResponse(
         response.content,
         modelRuntime.adapter.jsonParser,
+        { includeThought },
       );
       if (planFromAI.action && planFromAI.finalizeSuccess !== undefined) {
         warnLog(
@@ -225,13 +232,14 @@ export async function plan(
       : undefined;
 
   // Only enable sub-goals when aiAct is in deep-thinking planning mode.
-  const includeSubGoals = opts.deepThink === true;
+  const includeSubGoals = opts.effort === 'deepThink';
+  const includeThought = opts.effort !== 'fast';
 
   const systemPrompt = await systemPromptToTaskPlanning({
     actionSpace: opts.actionSpace,
     locatePromptSpec: locateResultAdapter?.promptSpec,
     includeLocateInPlanning: opts.includeLocateInPlanning,
-    includeThought: true, // always include thought
+    includeThought,
     includeSubGoals,
   });
 
@@ -351,6 +359,7 @@ export async function plan(
       preparedSize: preparedImage.preparedSize,
       contentSize: preparedImage.contentSize,
     },
+    includeThought,
   });
 
   let shouldContinuePlanning = true;

@@ -292,7 +292,9 @@ export async function systemPromptToTaskPlanning({
   // Sub-goals related content - only included when shouldIncludeSubGoals is true
   const step1Title = shouldIncludeSubGoals
     ? '## Step 1: Observe and Plan (related tags: <planning>, <update-plan-content>, <mark-sub-goal-done>)'
-    : '## Step 1: Observe (related tags: <planning>)';
+    : shouldIncludeThought
+      ? '## Step 1: Observe (related tags: <planning>)'
+      : '## Step 1: Observe';
 
   const step1Description = shouldIncludeSubGoals
     ? "First, observe the current screenshot and previous logs, then break down the user's instruction into multiple high-level sub-goals. Update the status of sub-goals based on what you see in the current screenshot."
@@ -384,9 +386,13 @@ ${step1Title}
 
 ${step1Description}
 ${shouldIncludeSubGoals ? `\n${OBSERVE_STEP_NOTES}\n` : ''}
-* <planning> tag (REQUIRED)
+${
+  shouldIncludeThought
+    ? `* <planning> tag (REQUIRED)
 
-${planningTagDescription}
+${planningTagDescription}`
+    : ''
+}
 ${subGoalTags}
 ${
   shouldIncludeSubGoals
@@ -539,9 +545,13 @@ For example:
 
 Return in XML format following this decision flow:
 
-**Always include (REQUIRED):**
+${
+  shouldIncludeThought
+    ? `**Always include (REQUIRED):**
 <!-- Step 1: Observe${shouldIncludeSubGoals ? ' and Plan' : ''} -->
-<planning>Your planning details here. NEVER skip this tag.</planning>
+<planning>Your planning details here. NEVER skip this tag.</planning>`
+    : ''
+}
 ${
   shouldIncludeSubGoals
     ? `
@@ -721,8 +731,7 @@ Below is an example of a multi-turn conversation for "fill out the registration 
 **Screenshot:** [Shows a registration form with empty Name and Email fields]
 
 **Your response:**
-<planning>The user wants me to fill out the registration form with specific values and return the email address. I can see the form has two fields: Name and Email. Both are currently empty. I should start by clicking on the Name field. Note: The instruction is to fill the form only (not submit), and return the email at the end.</planning>
-<log>Click on the Name field to start filling the form</log>
+${planningTag('The user wants me to fill out the registration form with specific values and return the email address. I can see the form has two fields: Name and Email. Both are currently empty. I should start by clicking on the Name field. Note: The instruction is to fill the form only (not submit), and return the email at the end.')}<log>Click on the Name field to start filling the form</log>
 <action-type>Tap</action-type>
 <action-param-json>
 {
@@ -738,8 +747,7 @@ The previous action has been executed, here is the latest screenshot. Please con
 **Screenshot:** [Shows the form with Name field now focused/active]
 
 **Your response:**
-<planning>The Name field is now focused. I need to type 'John' into this field. After this, I'll need to fill the Email field as well.</planning>
-<log>Typing 'John' into the Name field</log>
+${planningTag("The Name field is now focused. I need to type 'John' into this field. After this, I'll need to fill the Email field as well.")}<log>Typing 'John' into the Name field</log>
 <action-type>Input</action-type>
 <action-param-json>
 {
@@ -755,8 +763,7 @@ The previous action has been executed, here is the latest screenshot. Please con
 **Screenshot:** [Shows the form with Name field containing 'John']
 
 **Your response:**
-<planning>The Name field now shows 'John'. Next, I need to fill the Email field with 'john@example.com'. I'll click on the Email field first.</planning>
-<log>Moving to the Email field</log>
+${planningTag("The Name field now shows 'John'. Next, I need to fill the Email field with 'john@example.com'. I'll click on the Email field first.")}<log>Moving to the Email field</log>
 <action-type>Tap</action-type>
 <action-param-json>
 {
@@ -772,8 +779,7 @@ The previous action has been executed, here is the latest screenshot. Please con
 **Screenshot:** [Shows the form with Name='John' and Email field focused]
 
 **Your response:**
-<planning>The Email field is now focused. I'll enter 'john@example.com'. After this, both required fields will be filled and my task will be complete.</planning>
-<log>Typing email address into the Email field</log>
+${planningTag("The Email field is now focused. I'll enter 'john@example.com'. After this, both required fields will be filled and my task will be complete.")}<log>Typing email address into the Email field</log>
 <action-type>Input</action-type>
 <action-param-json>
 {
@@ -789,8 +795,7 @@ The previous action has been executed, here is the latest screenshot. Please con
 **Screenshot:** [Shows the form with Name='John' and Email='john@example.com']
 
 **Your response:**
-<planning>Both fields are now filled: Name shows 'John' and Email shows 'john@example.com'. The user asked me to return the filled email address, so I should include 'john@example.com' in my response. The instruction has been fulfilled.</planning>
-<complete success="true">john@example.com</complete>
+${planningTag("Both fields are now filled: Name shows 'John' and Email shows 'john@example.com'. The user asked me to return the filled email address, so I should include 'john@example.com' in my response. The instruction has been fulfilled.")}<complete success="true">john@example.com</complete>
 `
 }`;
 }

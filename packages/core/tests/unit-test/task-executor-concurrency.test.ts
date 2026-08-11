@@ -93,6 +93,76 @@ describe('TaskExecutor concurrency isolation', () => {
     vi.useRealTimers();
   });
 
+  it.each([
+    {
+      effort: 'balance' as const,
+      useDefaultAsPlanning: true,
+      expectedIncludeLocateInPlanning: true,
+      expectedImagesIncludeCount: 1,
+    },
+    {
+      effort: 'balance' as const,
+      useDefaultAsPlanning: false,
+      expectedIncludeLocateInPlanning: false,
+      expectedImagesIncludeCount: 1,
+    },
+    {
+      effort: 'fast' as const,
+      useDefaultAsPlanning: true,
+      expectedIncludeLocateInPlanning: true,
+      expectedImagesIncludeCount: 1,
+    },
+    {
+      effort: 'deepThink' as const,
+      useDefaultAsPlanning: true,
+      expectedIncludeLocateInPlanning: false,
+      expectedImagesIncludeCount: 2,
+    },
+  ])(
+    'derives planning options for $effort effort',
+    async ({
+      effort,
+      useDefaultAsPlanning,
+      expectedIncludeLocateInPlanning,
+      expectedImagesIncludeCount,
+    }) => {
+      vi.mocked(genericXmlPlan).mockResolvedValue({
+        actions: [],
+        yamlFlow: [],
+        shouldContinuePlanning: false,
+        log: '',
+        rawResponse: '',
+        finalizeSuccess: true,
+        finalizeMessage: 'done',
+      });
+
+      const resolvedPlanningModel = useDefaultAsPlanning
+        ? defaultModel()
+        : planningModel();
+      const result = await taskExecutor.action(
+        'prompt',
+        resolvedPlanningModel,
+        defaultModel(),
+        undefined,
+        undefined,
+        undefined,
+        effort,
+      );
+
+      expect(genericXmlPlan).toHaveBeenCalledWith(
+        'prompt',
+        expect.objectContaining({
+          effort,
+          includeLocateInPlanning: expectedIncludeLocateInPlanning,
+          imagesIncludeCount: expectedImagesIncludeCount,
+        }),
+      );
+      expect(result.runner.tasks[0].param).toEqual(
+        expect.objectContaining({ effort }),
+      );
+    },
+  );
+
   it('should isolate conversation history between concurrent action calls', async () => {
     const waitForBothCalls = createDeferred();
     const releasePlans = createDeferred();
@@ -126,13 +196,11 @@ describe('TaskExecutor concurrency isolation', () => {
       'first prompt',
       planningModel(),
       defaultModel(),
-      true,
     );
     const actionPromiseB = taskExecutor.action(
       'second prompt',
       planningModel(),
       defaultModel(),
-      true,
     );
 
     await waitForBothCalls.promise;
@@ -227,7 +295,6 @@ describe('TaskExecutor concurrency isolation', () => {
       'A',
       planningModel(),
       defaultModel(),
-      true,
       undefined,
       undefined,
       5,
@@ -236,7 +303,6 @@ describe('TaskExecutor concurrency isolation', () => {
       'B',
       planningModel(),
       defaultModel(),
-      true,
       undefined,
       undefined,
       9,
@@ -327,12 +393,7 @@ describe('TaskExecutor concurrency isolation', () => {
       yamlFlow: [],
     } as any);
 
-    await taskExecutor.action(
-      'run noop',
-      planningModel(),
-      defaultModel(),
-      true,
-    );
+    await taskExecutor.action('run noop', planningModel(), defaultModel());
 
     expect(progressEvents).toEqual([
       'start|3|run noop',
@@ -392,7 +453,7 @@ describe('TaskExecutor concurrency isolation', () => {
         };
       });
 
-    await taskExecutor.action('prompt', planningModel(), defaultModel(), true);
+    await taskExecutor.action('prompt', planningModel(), defaultModel());
 
     expect(mockInterface.getDeviceLocalTimeString).toHaveBeenCalledWith(
       undefined,
@@ -472,7 +533,6 @@ Stdout:
       'check brightness with adb shell',
       planningModel(),
       defaultModel(),
-      true,
     );
 
     expect(seenPendingFeedback[0]).toBe('');
@@ -545,7 +605,6 @@ Stdout:
       'read big file with adb shell',
       planningModel(),
       defaultModel(),
-      true,
     );
 
     expect(seenPendingFeedback[1]).toContain('x'.repeat(500));
@@ -679,7 +738,6 @@ mCurrentFocus=Window{abc}`;
       'check brightness',
       planningModel(),
       defaultModel(),
-      true,
     );
 
     expect(
@@ -760,7 +818,6 @@ ${thirdPlanningFeedback}`);
       'copy clipboard',
       planningModel(),
       defaultModel(),
-      true,
     );
 
     expect(seenPendingFeedback[1]).not.toContain('WriteState');
@@ -811,7 +868,7 @@ ${thirdPlanningFeedback}`);
         };
       });
 
-    await taskExecutor.action('prompt', planningModel(), defaultModel(), true);
+    await taskExecutor.action('prompt', planningModel(), defaultModel());
 
     expect(seenPendingFeedback).toEqual([
       '',

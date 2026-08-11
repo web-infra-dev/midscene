@@ -403,7 +403,6 @@ describe('TaskExecutor - Null Data Handling', () => {
         'complete the task',
         getModelRuntime(planningModelConfig),
         getModelRuntime(defaultModelConfig),
-        false,
       );
 
       const planningTask = result.runner.tasks[0];
