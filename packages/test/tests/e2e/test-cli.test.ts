@@ -7,7 +7,7 @@ import {
   rmSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { basename, join, resolve } from 'node:path';
+import { basename, join, relative, resolve, sep } from 'node:path';
 import { promisify } from 'node:util';
 import { afterAll, describe, expect, it } from 'vitest';
 
@@ -69,13 +69,13 @@ const summaryPathFor = (resultDir: string) =>
   join(runDirFor(resultDir), 'summary.json');
 
 const documentResultFiles = (runDir: string): string[] =>
-  jsonFilesBelow(join(runDir, 'documents')).filter(
-    (path) => basename(path) === 'document.json',
-  );
+  jsonFilesBelow(runDir).filter((path) => basename(path) === 'document.json');
 
 const attemptResultFiles = (runDir: string): string[] =>
-  jsonFilesBelow(join(runDir, 'documents')).filter(
-    (path) => basename(path) !== 'document.json',
+  jsonFilesBelow(runDir).filter(
+    (path) =>
+      relative(runDir, path).split(sep).includes('documents') &&
+      basename(path) !== 'document.json',
   );
 
 const temporaryRun = (prefix: string) => {
@@ -159,7 +159,7 @@ describe('midscene-test CLI', () => {
       readFileSync(summaryPathFor(resultDir), 'utf8'),
     );
     expect(projectResult).toMatchObject({
-      schemaVersion: 2,
+      schemaVersion: 3,
       runId: basename(runDir),
       factsRoot: '.',
       status: 'success',
@@ -174,6 +174,7 @@ describe('midscene-test CLI', () => {
       },
       projects: [
         {
+          projectId: 'project-0',
           name: 'web',
           platform: 'web',
           cases: [

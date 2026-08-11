@@ -129,13 +129,14 @@ The CLI automatically loads `midscene.config.ts`, discovers matching YAML files,
 ```text
 .midscene/test-results/<YYYYMMDDHHmmss>-<uuid-first-8>/
 ├── summary.json
-├── documents/<document-id>/
-│   ├── document.json
-│   └── cases/<case-id>/<attempt-id>.json
-└── collection-errors/<error-id>.json
+└── project-<zero-based-index>/
+    ├── documents/<document-id>/
+    │   ├── document.json
+    │   └── cases/<case-id>/<attempt-id>.json
+    └── collection-errors/<error-id>.json
 ```
 
-The run ID uses local time followed by the first eight characters of `randomUUID()`. Finalized Midscene reports still default to `midscene_run/report/`.
+The run ID uses local time followed by the first eight characters of `randomUUID()`. A Project ID is `project-<index>`, using the Project's zero-based index in `projects`; the implicit default Project uses `project-0`, and Project selection does not renumber it. Finalized Midscene reports still default to `midscene_run/report/`.
 
 ## Define Node inputs with Zod
 

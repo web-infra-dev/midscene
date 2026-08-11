@@ -12,11 +12,13 @@ const writeJson = (path: string, value: unknown) => {
 const toPosix = (value: string): string => value.split(sep).join('/');
 
 export const caseAttemptResultPath = (
+  projectId: string,
   documentId: string,
   result: CaseRunResult,
 ): string =>
   toPosix(
     join(
+      projectId,
       'documents',
       documentId,
       'cases',
@@ -27,16 +29,19 @@ export const caseAttemptResultPath = (
 
 export const workflowDocumentResultPath = (
   result: WorkflowDocumentRunResult,
-): string => toPosix(join('documents', result.documentId, 'document.json'));
+): string =>
+  toPosix(
+    join(result.projectId, 'documents', result.documentId, 'document.json'),
+  );
 
 export const collectionErrorPath = (
-  projectName: string,
+  projectId: string,
   sourcePath: string,
 ): string => {
   const id = createHash('sha256')
-    .update(JSON.stringify([projectName, sourcePath]))
+    .update(JSON.stringify([projectId, sourcePath]))
     .digest('hex');
-  return toPosix(join('collection-errors', `${id}.json`));
+  return toPosix(join(projectId, 'collection-errors', `${id}.json`));
 };
 
 export const writeWorkflowDocumentResult = (
@@ -49,14 +54,18 @@ export const writeWorkflowDocumentResult = (
 
 export const writeCaseAttemptResult = (
   runDir: string,
+  projectId: string,
   documentId: string,
   result: CaseRunResult,
 ) => {
   const { runId: attemptId, ...persistedResult } = result;
-  writeJson(join(runDir, caseAttemptResultPath(documentId, result)), {
-    ...persistedResult,
-    attemptId,
-  });
+  writeJson(
+    join(runDir, caseAttemptResultPath(projectId, documentId, result)),
+    {
+      ...persistedResult,
+      attemptId,
+    },
+  );
 };
 
 export const writeCollectionError = (
@@ -67,7 +76,7 @@ export const writeCollectionError = (
     join(
       runDir,
       collectionErrorPath(
-        collectionError.projectName,
+        collectionError.projectId,
         collectionError.sourcePath,
       ),
     ),
@@ -111,6 +120,7 @@ export const writeTestProjectRunResult = (
     reportDir: relativeToSummary(result.summaryPath, result.reportDir),
     summary: result.summary,
     projects: result.projects.map((project) => ({
+      projectId: project.projectId,
       name: project.name,
       platform: project.platform,
       status: project.status,
@@ -154,7 +164,11 @@ export const writeTestProjectRunResult = (
                 attemptIndex: attempt.attemptIndex,
                 status: attempt.status,
                 resultFile: fact(
-                  caseAttemptResultPath(outcome.documentId, attempt),
+                  caseAttemptResultPath(
+                    project.projectId,
+                    outcome.documentId,
+                    attempt,
+                  ),
                 ),
                 ...(attempt.reportPaths?.length
                   ? {
@@ -182,9 +196,7 @@ export const writeTestProjectRunResult = (
       })),
       collectionErrors: project.collectionErrors.map((error) => ({
         sourcePath: error.sourcePath,
-        errorFile: fact(
-          collectionErrorPath(error.projectName, error.sourcePath),
-        ),
+        errorFile: fact(collectionErrorPath(error.projectId, error.sourcePath)),
       })),
     })),
   });

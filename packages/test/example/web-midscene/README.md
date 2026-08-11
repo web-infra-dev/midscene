@@ -18,4 +18,4 @@
 packages/test/bin/midscene-test packages/test/example/web-midscene
 ```
 
-命令行会实时输出 Project、文档、用例、attempt、生命周期和 Step 的执行进度。公开 summary 与全部 fact 保存在 `.midscene/test-results/<runId>/`，报告仍保存在 `midscene_run`。
+命令行会实时输出 Project、文档、用例、attempt、生命周期和 Step 的执行进度。公开 summary 保存在 `.midscene/test-results/<runId>/summary.json`，各 Project 的 fact 保存在同一 run 目录下的 `project-<index>/` 子目录中；报告仍保存在 `midscene_run`。

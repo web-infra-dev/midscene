@@ -12,4 +12,4 @@
 packages/test/bin/midscene-test packages/test/example/web-midscene
 ```
 
-公开 summary 与全部 fact 保存在子项目的 `.midscene/test-results/<runId>/`，报告仍保存在子项目的 `midscene_run` 目录中。
+公开 summary 保存在子项目的 `.midscene/test-results/<runId>/summary.json`，各 Project 的 fact 保存在同一 run 目录下的 `project-<index>/` 子目录中；报告仍保存在子项目的 `midscene_run` 目录中。

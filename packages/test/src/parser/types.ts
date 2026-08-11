@@ -48,6 +48,7 @@ export type NormalizedCaseDefinition = CaseDefinition<NormalizedStep>;
 
 export interface WorkflowDocumentSource {
   projectId: string;
+  projectName?: string;
   sourcePath: string;
   absolutePath: string;
 }

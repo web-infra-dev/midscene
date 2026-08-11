@@ -90,6 +90,7 @@ describe('test project config', () => {
 
     expect(marker).not.toHaveBeenCalled();
     expect(project.projects[0]).toMatchObject({
+      projectId: 'project-0',
       name: 'default',
       platform: 'android',
       setup: { name: 'android', platform: 'android' },
@@ -116,6 +117,7 @@ describe('test project config', () => {
     expect(loaded.hasExplicitProjects).toBe(false);
     expect(loaded.projects).toEqual([
       {
+        projectId: 'project-0',
         name: 'default',
         platform: 'web',
         tags: { include: [], exclude: [] },
@@ -172,6 +174,7 @@ describe('test project config', () => {
     expect(setupMarker).not.toHaveBeenCalled();
     expect(loaded.hasExplicitProjects).toBe(true);
     expect(loaded.projects[0]).toMatchObject({
+      projectId: 'project-0',
       name: 'android-smoke',
       platform: 'android',
       files: {
@@ -192,6 +195,7 @@ describe('test project config', () => {
     expect(Object.isFrozen(loaded.projects[0].files)).toBe(true);
     expect(Object.isFrozen(loaded.projects[0].files?.include)).toBe(true);
     expect(loaded.projects[1]).toMatchObject({
+      projectId: 'project-1',
       files: { include: ['ios/**/*.yaml'], exclude: [] },
       tags: { include: [], exclude: [] },
       retry: 0,

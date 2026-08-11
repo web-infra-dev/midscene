@@ -231,20 +231,21 @@ midscene_run/
 
 <result-dir>/<YYYYMMDDHHmmss>-<UUID前8位>/
 ├── summary.json
-├── documents/<document-id>/
-│   ├── document.json
-│   └── cases/<case-id>/<attempt-id>.json
-└── collection-errors/<error-id>.json
+└── project-<零基 index>/
+    ├── documents/<document-id>/
+    │   ├── document.json
+    │   └── cases/<case-id>/<attempt-id>.json
+    └── collection-errors/<error-id>.json
 ```
 
-run ID 使用本地时间 `YYYYMMDDHHmmss`，后接 `-` 和 `randomUUID()` 的前 8 位小写十六进制字符。`documentId` 与 `caseId` 的计算逻辑保持不变。在 summary 索引和详细 fact 中，Document 都不再包含 `documentRunId`，Case attempt 都使用 `attemptId`，不再使用 `runId`。
+run ID 使用本地时间 `YYYYMMDDHHmmss`，后接 `-` 和 `randomUUID()` 的前 8 位小写十六进制字符。Project ID 格式为 `project-<index>`，其中 index 是 Project 在完整 `projects` 配置中的零基下标；隐式 default Project 使用 `project-0`，筛选 Project 时不会重新编号。`documentId` 与 `caseId` 继续按照 Project ID、规范化后的源文件路径以及（对 Case 而言）源文件内 index 计算。在 summary 索引和详细 fact 中，Document 都不再包含 `documentRunId`，Case attempt 都使用 `attemptId`，不再使用 `runId`。
 
 `summary.json` 是公开消费协议，逐项包含：
 
-- 本次运行的 `schemaVersion`（当前为 `2`）、`runId`、开始/结束时间、耗时、最终 `status` 与 CLI `exitCode`。
+- 本次运行的 `schemaVersion`（当前为 `3`）、`runId`、开始/结束时间、耗时、最终 `status` 与 CLI `exitCode`。
 - Test Project 根目录、配置文件，以及相对 summary 文件记录的 `factsRoot` 和 `reportDir`，便于 CI 和可视化工具整体移动产物目录。
 - `summary` 汇总计数，包括通过、失败、未运行、被过滤的 Case，以及收集、Document 和 Project 失败数。
-- 每个 Execution Project 的平台、retry、文件与标签筛选、发现/选择/过滤数量，以及 Project setup/teardown 生命周期状态。
+- 每个 Execution Project 的 `projectId`、展示名称、平台、retry、文件与标签筛选、发现/选择/过滤数量，以及 Project setup/teardown 生命周期状态。
 - 每个 Case、attempt 和 Workflow Document 的状态、来源位置、内部结果文件路径及最终 Midscene 报告索引。
 - 每个收集错误的来源文件和对应错误事实文件路径。
 

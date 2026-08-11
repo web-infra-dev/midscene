@@ -224,20 +224,21 @@ midscene_run/
 
 <result-dir>/<YYYYMMDDHHmmss>-<uuid-first-8>/
 ├── summary.json
-├── documents/<document-id>/
-│   ├── document.json
-│   └── cases/<case-id>/<attempt-id>.json
-└── collection-errors/<error-id>.json
+└── project-<zero-based-index>/
+    ├── documents/<document-id>/
+    │   ├── document.json
+    │   └── cases/<case-id>/<attempt-id>.json
+    └── collection-errors/<error-id>.json
 ```
 
-The run ID uses local time in `YYYYMMDDHHmmss` format followed by `-` and the first eight lowercase hexadecimal characters of `randomUUID()`. The `documentId` and `caseId` calculations are unchanged. Both the summary index and detailed facts omit `documentRunId` for Documents and use `attemptId` instead of `runId` for Case attempts.
+The run ID uses local time in `YYYYMMDDHHmmss` format followed by `-` and the first eight lowercase hexadecimal characters of `randomUUID()`. A Project ID is `project-<index>`, using that Project's zero-based index in the complete `projects` configuration. The implicit default Project uses `project-0`, and selecting a subset of Projects does not renumber them. The `documentId` and `caseId` algorithms continue to hash the Project ID, normalized source path, and (for Cases) source index. Both the summary index and detailed facts omit `documentRunId` for Documents and use `attemptId` instead of `runId` for Case attempts.
 
 `summary.json` is the public consumer contract. It contains:
 
-- Run metadata: `schemaVersion` (currently `2`), `runId`, start/end time, duration, final `status`, and CLI `exitCode`.
+- Run metadata: `schemaVersion` (currently `3`), `runId`, start/end time, duration, final `status`, and CLI `exitCode`.
 - The Test Project root and configuration file, plus `factsRoot` and `reportDir` paths relative to the summary so CI and visualizers can move the output tree.
 - Aggregate counts for passed, failed, not-run, and filtered Cases, plus collection, Document, and Project failures.
-- Each Execution Project's platform, retry policy, file/tag selection, discovered/selected/filtered counts, and Project setup/teardown lifecycle status.
+- Each Execution Project's `projectId`, display name, platform, retry policy, file/tag selection, discovered/selected/filtered counts, and Project setup/teardown lifecycle status.
 - Each Case, attempt, and Workflow Document status, source location, internal result-file path, and finalized Midscene report index.
 - Each collection error's source file and error-fact path.
 

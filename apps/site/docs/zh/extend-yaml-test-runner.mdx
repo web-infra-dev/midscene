@@ -278,13 +278,14 @@ CLI 会自动加载 `midscene.config.ts`，查找 `cases` 目录中的 YAML 文�
 ```text
 .midscene/test-results/<YYYYMMDDHHmmss>-<UUID前8位>/
 ├── summary.json
-├── documents/<document-id>/
-│   ├── document.json
-│   └── cases/<case-id>/<attempt-id>.json
-└── collection-errors/<error-id>.json
+└── project-<零基 index>/
+    ├── documents/<document-id>/
+    │   ├── document.json
+    │   └── cases/<case-id>/<attempt-id>.json
+    └── collection-errors/<error-id>.json
 ```
 
-run ID 由本地时间和 `randomUUID()` 的前 8 位组成。最终 Midscene 报告仍默认写入 `midscene_run/report/`。
+run ID 由本地时间和 `randomUUID()` 的前 8 位组成。Project ID 格式为 `project-<index>`，其中 index 是 Project 在完整 `projects` 配置中的零基下标；隐式 default Project 使用 `project-0`，筛选 Project 时不会重新编号。最终 Midscene 报告仍默认写入 `midscene_run/report/`。
 
 ## 注册业务 Node
 

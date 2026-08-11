@@ -97,7 +97,7 @@ export function collectWorkflowDocument(
       variables: options.variables,
       env: options.env ?? process.env,
       location: {
-        projectName: source.projectId,
+        projectName: source.projectName ?? source.projectId,
         sourcePath,
         phase,
         stepIndex,

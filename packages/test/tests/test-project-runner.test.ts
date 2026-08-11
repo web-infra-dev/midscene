@@ -180,6 +180,23 @@ describe('test project main-process runner', () => {
         },
       ],
     });
+    const summary = JSON.parse(readFileSync(result.summaryPath, 'utf8'));
+    expect(summary.projects[0]).toMatchObject({
+      projectId: 'project-0',
+      collectionErrors: [
+        {
+          errorFile: expect.stringMatching(/^project-0\/collection-errors\//),
+        },
+      ],
+    });
+    expect(
+      existsSync(
+        resolve(
+          dirname(result.summaryPath),
+          summary.projects[0].collectionErrors[0].errorFile,
+        ),
+      ),
+    ).toBe(true);
     expect(existsSync(result.summaryPath)).toBe(true);
   });
 
@@ -220,18 +237,19 @@ describe('test project main-process runner', () => {
     const [attempt] = caseResult.attempts;
 
     expect(summary).toMatchObject({
-      schemaVersion: 2,
+      schemaVersion: 3,
       runId: first.runId,
       factsRoot: '.',
+      projects: [{ projectId: 'project-0' }],
     });
     expect(document).not.toHaveProperty('documentRunId');
     expect(document.resultFile).toBe(
-      `documents/${document.documentId}/document.json`,
+      `project-0/documents/${document.documentId}/document.json`,
     );
     expect(caseResult.documentId).toBe(document.documentId);
     expect(attempt).not.toHaveProperty('runId');
     expect(attempt.resultFile).toBe(
-      `documents/${document.documentId}/cases/${caseResult.caseId}/${attempt.attemptId}.json`,
+      `project-0/documents/${document.documentId}/cases/${caseResult.caseId}/${attempt.attemptId}.json`,
     );
 
     const documentFact = JSON.parse(
@@ -248,6 +266,8 @@ describe('test project main-process runner', () => {
     expect(attemptFact).not.toHaveProperty('runId');
     expect(existsSync(join(resultDir, 'runs'))).toBe(false);
     expect(existsSync(join(resultDir, 'documents'))).toBe(false);
+    expect(existsSync(join(firstRunDir, 'documents'))).toBe(false);
+    expect(existsSync(join(firstRunDir, 'project-0', 'documents'))).toBe(true);
     expect(existsSync(join(root, 'midscene_run'))).toBe(false);
 
     const second = await runTestProject({ projectRoot: root, resultDir });
@@ -322,10 +342,11 @@ describe('test project main-process runner', () => {
     expect(result.cases[0].sourcePath).toBe('selected/run.yaml');
     const projectResult = JSON.parse(readFileSync(result.summaryPath, 'utf8'));
     expect(projectResult).toMatchObject({
-      schemaVersion: 2,
+      schemaVersion: 3,
       projectRoot: configuredRoot,
       projects: [
         {
+          projectId: 'project-0',
           name: 'web',
           sourceCount: 1,
           fileSelection: {
@@ -542,11 +563,12 @@ cases:
 
     const projectResult = JSON.parse(readFileSync(result.summaryPath, 'utf8'));
     expect(projectResult).toMatchObject({
-      schemaVersion: 2,
+      schemaVersion: 3,
       status: 'failed',
       summary: result.summary,
       projects: [
         {
+          projectId: 'project-0',
           fileSelection: { include: ['**/*.{yaml,yml}'] },
           cases: [
             {
@@ -722,6 +744,11 @@ cases:
       summary.projects.map((project: { name: string }) => project.name),
     ).toEqual(['alpha', 'beta', 'gamma']);
     expect(
+      summary.projects.map(
+        (project: { projectId: string }) => project.projectId,
+      ),
+    ).toEqual(['project-0', 'project-1', 'project-2']);
+    expect(
       new Set(
         summary.projects.flatMap(
           (project: { documents: Array<{ documentId: string }> }) =>
@@ -730,8 +757,19 @@ cases:
       ).size,
     ).toBe(3);
     for (const project of summary.projects) {
+      for (const document of project.documents) {
+        expect(document.resultFile).toMatch(
+          new RegExp(`^${project.projectId}/documents/`),
+        );
+        expect(
+          existsSync(resolve(dirname(result.summaryPath), document.resultFile)),
+        ).toBe(true);
+      }
       for (const caseResult of project.cases) {
         for (const attempt of caseResult.attempts) {
+          expect(attempt.resultFile).toMatch(
+            new RegExp(`^${project.projectId}/documents/`),
+          );
           expect(
             existsSync(
               resolve(dirname(result.summaryPath), attempt.resultFile),
@@ -1430,6 +1468,10 @@ cases:
       'android-smoke',
       'ios-regression',
     ]);
+    expect(result.projects.map((project) => project.projectId)).toEqual([
+      'project-0',
+      'project-1',
+    ]);
     expect(
       state.events.filter((event) => event.startsWith('project-setup')),
     ).toEqual(['project-setup:android-smoke', 'project-setup:ios-regression']);
@@ -1465,12 +1507,32 @@ cases:
     expect(
       summary.projects.map((project: { name: string }) => project.name),
     ).toEqual(['android-smoke', 'ios-regression']);
+    expect(
+      summary.projects.map(
+        (project: { projectId: string }) => project.projectId,
+      ),
+    ).toEqual(['project-0', 'project-1']);
     expect(summary.projects[0].cases[0].attempts).toHaveLength(2);
     for (const attempt of summary.projects[0].cases[0].attempts) {
       expect(
         existsSync(join(result.summaryPath, '..', attempt.resultFile)),
       ).toBe(true);
     }
+
+    const selectedResult = await runTestProject({
+      projectRoot: root,
+      resultDir: join(root, 'selected-results'),
+      projectNames: ['ios-regression'],
+    });
+    expect(selectedResult.projects.map((project) => project.projectId)).toEqual(
+      ['project-1'],
+    );
+    const selectedSummary = JSON.parse(
+      readFileSync(selectedResult.summaryPath, 'utf8'),
+    );
+    expect(selectedSummary.projects[0].cases[0].attempts[0].resultFile).toMatch(
+      /^project-1\/documents\//,
+    );
   });
 
   it('indexes finalized attempt reports from node teardown in summary.json', async () => {

@@ -135,4 +135,38 @@ cases:
       meta: { timeoutMs: 1234, continueOnError: true },
     });
   });
+
+  it('keeps the display Project name in variable errors', () => {
+    const directory = mkdtempSync(join(tmpdir(), 'workflow-variables-'));
+    directories.push(directory);
+    const absolutePath = join(directory, 'case.yaml');
+    writeFileSync(
+      absolutePath,
+      'cases: [{ name: missing, steps: [{ inspect: "${missing}" }] }]',
+    );
+
+    expect(() =>
+      collectWorkflowDocument(
+        {
+          projectId: 'project-1',
+          projectName: 'ios-regression',
+          sourcePath: 'case.yaml',
+          absolutePath,
+        },
+        {
+          resolveNode: (name) =>
+            name === 'inspect' ? { name, execute() {} } : undefined,
+          variables: {},
+          env: {},
+        },
+      ),
+    ).toThrowError(
+      expect.objectContaining({
+        details: expect.objectContaining({
+          projectName: 'ios-regression',
+          variable: 'missing',
+        }),
+      }),
+    );
+  });
 });

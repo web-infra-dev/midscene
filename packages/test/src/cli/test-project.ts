@@ -56,6 +56,7 @@ export interface ExecutionProjectDefinition<TProjectContext = unknown> {
 }
 
 export interface ResolvedExecutionProject<TProjectContext = unknown> {
+  readonly projectId: string;
   readonly name: string;
   readonly platform: TestPlatform;
   readonly setup?: ProjectSetupDefinition<TProjectContext>;
@@ -64,6 +65,8 @@ export interface ResolvedExecutionProject<TProjectContext = unknown> {
   readonly retry: number;
   readonly variables: Readonly<Record<string, JsonValue>>;
 }
+
+const projectIdFromIndex = (index: number): string => `project-${index}`;
 
 export interface ProjectSetupContext<TProjectContext = unknown> {
   readonly project: ResolvedExecutionProject<TProjectContext>;
@@ -426,6 +429,7 @@ const validateExecutionProjects = <TProjectContext>(
       hasExplicitProjects: false,
       projects: Object.freeze([
         Object.freeze({
+          projectId: projectIdFromIndex(0),
           name: 'default',
           platform,
           ...(setup ? { setup } : {}),
@@ -472,6 +476,7 @@ const validateExecutionProjects = <TProjectContext>(
     const platform = validatePlatform(candidate.platform, `${label}.platform`);
     const files = validateTestFileSelection(candidate.files, `${label}.files`);
     return Object.freeze({
+      projectId: projectIdFromIndex(index),
       name: candidate.name,
       platform,
       ...(files ? { files } : {}),

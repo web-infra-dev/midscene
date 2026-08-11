@@ -3,6 +3,7 @@ import type { ResolvedExecutionProject } from '../src/cli/test-project';
 import { createProjectRuntime } from '../src/engine/project-runtime';
 
 const project = (): ResolvedExecutionProject<{ lease: string }> => ({
+  projectId: 'project-0',
   name: 'android-smoke',
   platform: 'android',
   tags: { include: [], exclude: [] },

@@ -15,6 +15,7 @@ export type TestProjectCaseRunResult = CaseRunOutcome & {
 };
 
 export interface TestProjectCollectionError {
+  projectId: string;
   projectName: string;
   sourcePath: string;
   error: WorkflowError;
@@ -32,6 +33,7 @@ export interface TestProjectRunSummary {
 }
 
 export interface TestExecutionProjectRunResult {
+  projectId: string;
   name: string;
   platform: TestPlatform;
   status: 'success' | 'failed';
@@ -48,7 +50,7 @@ export interface TestExecutionProjectRunResult {
 }
 
 export interface TestProjectRunResult {
-  schemaVersion: 2;
+  schemaVersion: 3;
   runId: string;
   startedAt: string;
   endedAt: string;

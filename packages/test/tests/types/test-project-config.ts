@@ -41,6 +41,7 @@ const webSetup = defineProjectSetup<ProjectContext>({
   name: 'web',
   platform: 'web',
   setup({ project, onTeardown }) {
+    project.projectId satisfies string;
     project.platform satisfies 'web' | 'android' | 'ios' | 'computer';
     onTeardown(({ context }) => {
       context?.baseURL satisfies string | undefined;

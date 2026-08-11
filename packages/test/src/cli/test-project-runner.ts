@@ -151,10 +151,12 @@ const assertDirectory = (path: string, label: string): void => {
 };
 
 const asCollectionError = (
+  projectId: string,
   projectName: string,
   sourcePath: string,
   error: unknown,
 ): TestProjectCollectionError => ({
+  projectId,
   projectName,
   sourcePath,
   error:
@@ -292,7 +294,8 @@ const prepareProject = <TProjectContext>(
   const fileSelection = project.files ?? DEFAULT_TEST_FILE_SELECTION;
   const files = discoverTestFiles(projectRoot, fileSelection);
   const sources = files.map((absolutePath) => ({
-    projectId: project.name,
+    projectId: project.projectId,
+    projectName: project.name,
     sourcePath: toPosix(relative(projectRoot, absolutePath)),
     absolutePath,
   }));
@@ -302,6 +305,7 @@ const prepareProject = <TProjectContext>(
 
   if (sources.length === 0) {
     const error = asCollectionError(
+      project.projectId,
       project.name,
       '<project>',
       new WorkflowParseError(
@@ -325,6 +329,7 @@ const prepareProject = <TProjectContext>(
       if (filtered.document) documents.push(filtered.document);
     } catch (error) {
       const collectionError = asCollectionError(
+        project.projectId,
         project.name,
         source.sourcePath,
         error,
@@ -470,6 +475,7 @@ export async function runTestProject(
       documents.some((item) => item.status === 'failed') ||
       lifecycle?.status === 'failed';
     return {
+      projectId: project.projectId,
       name: project.name,
       platform: project.platform,
       status: projectFailed ? 'failed' : 'success',
@@ -592,7 +598,12 @@ export async function runTestProject(
                 projectProgress(formatStepResult(info, result)),
               onCaseResult: (attempt) => {
                 runInfrastructureCallback(() =>
-                  writeCaseAttemptResult(runDir, document.documentId, attempt),
+                  writeCaseAttemptResult(
+                    runDir,
+                    project.projectId,
+                    document.documentId,
+                    attempt,
+                  ),
                 );
                 projectProgress(
                   `    ${attempt.status === 'success' ? '✓' : '✗'} attempt ${attempt.attemptIndex + 1}/${project.retry + 1}: ${attempt.name} (${attempt.durationMs} ms)`,
@@ -709,7 +720,7 @@ export async function runTestProject(
     summary.projectFailures > 0;
   const endedAt = new Date();
   const result: TestProjectRunResult = {
-    schemaVersion: 2,
+    schemaVersion: 3,
     runId,
     startedAt: startedAt.toISOString(),
     endedAt: endedAt.toISOString(),
