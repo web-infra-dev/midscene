@@ -16,14 +16,18 @@ midscene.config.ts ── Projects / setup / Node Registry
                               │
 Workflow YAML ── collect and validate ── Normalized Steps
                                            │
-                         serial lifecycle scheduler
+                    bounded Execution Project scheduler
+                                           │
+                  serial Document / Case / Step lifecycles
                                            │
                          Node execution + read-only history
                                            │
                          summary.json + facts + reports
 ```
 
-A Test Project configuration can contain multiple Execution Project child configurations. Each Execution Project selects files and tags, binds one platform setup, and controls whole-Case retry. Project setup owns long-lived resources such as a browser or device connection; YAML `beforeAll` / `afterAll` own business preparation and cleanup for one Workflow Document; Node teardown owns internal attempt- or document-scoped resources such as an Agent report.
+A Test Project configuration can contain multiple Execution Project child configurations. Each Execution Project selects files and tags, binds one platform setup, and controls whole-Case retry. `test.maxConcurrency` limits how many Execution Projects can be active in one run; the default is `1`. One concurrency slot covers the complete Project lifetime from the start of setup through the end of teardown. Inside each Project, Workflow Documents, Cases, retries, and Steps remain serial.
+
+Project setup owns long-lived resources such as a browser or device connection; YAML `beforeAll` / `afterAll` own business preparation and cleanup for one Workflow Document; Node teardown owns internal attempt- or document-scoped resources such as an Agent report.
 
 ## Example: validate an order refund flow
 

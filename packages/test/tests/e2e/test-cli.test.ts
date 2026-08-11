@@ -334,7 +334,7 @@ describe('midscene-test CLI', () => {
     ]);
   });
 
-  it('rejects non-serial scheduling flags', async () => {
+  it('rejects scheduling options that are not supported as CLI flags', async () => {
     const projectRoot = join(__dirname, 'fixtures', 'test-project');
     for (const option of [
       '--parallel',

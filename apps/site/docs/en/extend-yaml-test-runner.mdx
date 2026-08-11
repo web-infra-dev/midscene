@@ -124,7 +124,7 @@ Run the project:
 pnpm exec midscene-test
 ```
 
-The CLI automatically loads `midscene.config.ts`, discovers matching YAML files, and runs their Cases serially. Each run gets its own directory under the default result root:
+The CLI automatically loads `midscene.config.ts`, discovers matching YAML files, and runs the selected Execution Projects with the configured concurrency bound. Cases remain serial inside each Project. Each run gets its own directory under the default result root:
 
 ```text
 .midscene/test-results/<YYYYMMDDHHmmss>-<uuid-first-8>/
@@ -277,7 +277,11 @@ When `projects` is omitted, a root `setup` is attached to the implicit `default`
 
 Each `projects[]` entry requires a unique `name` and a `platform` of `web`, `android`, `ios`, or `computer`. It may configure `files`, `tags`, one setup definition, JSON-compatible `variables`, and whole-Case `retry`. File selection belongs only to an Execution Project; when `files` is omitted, that Project recursively selects all `.yaml` and `.yml` files.
 
-`test.maxConcurrency` currently supports only `1`. `test.bail` stops scheduling after the configured number of final Case failures, and `test.testTimeout` is the default Step timeout.
+`test.maxConcurrency` is a positive integer and defaults to `1`. It limits the number of active Execution Projects in one `runTestProject()` call. A Project holds one slot for its complete lifecycle, beginning when setup starts and ending only after teardown finishes. Increasing the value enables concurrency between Projects; it does not make Workflow Documents, Cases, retries, or Steps concurrent inside a Project. Final results retain configuration order, while live progress from active Projects can interleave.
+
+Project setup, its returned Context, acquired resources, and mutable state captured by Node closures must be isolated per Project or safe for concurrent access. For example, two concurrent Projects must not drive the same browser page or physical device unless that integration explicitly supports it. Keep `maxConcurrency: 1` when Project resources are shared or cannot be used concurrently.
+
+`test.bail` stops new Project scheduling after the configured number of final Case failures. Interruption also prevents new Projects from starting. In both cases, already-started Projects are drained so registered cleanup and Project teardown can finish before their slots are released. `test.testTimeout` is the default Step timeout.
 
 The Test Project directory is selected in this order:
 

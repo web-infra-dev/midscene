@@ -74,7 +74,7 @@ defineTestProject<ProjectContext>({
       variables: { locale: 'en-US' },
     },
   ],
-  test: { maxConcurrency: 1, bail: 1, testTimeout: 30_000 },
+  test: { maxConcurrency: 2, bail: 1, testTimeout: 30_000 },
   nodes: [projectNode],
 });
 

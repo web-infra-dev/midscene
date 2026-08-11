@@ -123,6 +123,7 @@ describe('test project config', () => {
         variables: {},
       },
     ]);
+    expect(loaded.test.maxConcurrency).toBe(1);
   });
 
   it('resolves Project selectors, setup binding, test options, and output', async () => {
@@ -160,7 +161,7 @@ describe('test project config', () => {
             files: { include: ['ios/**/*.yaml'], exclude: [] },
           },
         ],
-        test: { maxConcurrency: 1, bail: 2, testTimeout: 30000 },
+        test: { maxConcurrency: 2, bail: 2, testTimeout: 30000 },
         output: { reportDir: './out/report' },
         nodes: [],
       };
@@ -196,7 +197,7 @@ describe('test project config', () => {
       retry: 0,
     });
     expect(loaded.test).toEqual({
-      maxConcurrency: 1,
+      maxConcurrency: 2,
       bail: 2,
       testTimeout: 30000,
     });
@@ -286,9 +287,29 @@ describe('test project config', () => {
       'projects[0].variables.bad must be JSON-compatible',
     ],
     [
-      'parallel runner',
-      'test: { maxConcurrency: 2 }',
-      'test.maxConcurrency currently only supports 1',
+      'zero max concurrency',
+      'test: { maxConcurrency: 0 }',
+      'test.maxConcurrency must be a positive integer',
+    ],
+    [
+      'negative max concurrency',
+      'test: { maxConcurrency: -1 }',
+      'test.maxConcurrency must be a positive integer',
+    ],
+    [
+      'fractional max concurrency',
+      'test: { maxConcurrency: 1.5 }',
+      'test.maxConcurrency must be a positive integer',
+    ],
+    [
+      'string max concurrency',
+      `test: { maxConcurrency: '2' }`,
+      'test.maxConcurrency must be a positive integer',
+    ],
+    [
+      'infinite max concurrency',
+      'test: { maxConcurrency: Infinity }',
+      'test.maxConcurrency must be a positive integer',
     ],
     [
       'negative bail',

@@ -214,7 +214,11 @@ pnpm exec midscene-test \
 pnpm exec midscene-test --project android-smoke --project ios-regression
 ```
 
-Project、Workflow Document、Case、attempt 与 Step 都串行执行。`projects[].retry` 会重试整个失败 Case。`test.maxConcurrency` 当前只接受 `1`。
+Execution Project 之间可以并发执行。`test.maxConcurrency` 是正整数，限制一次 run 中同时处于 active 状态的已选 Project 数量，默认为 `1`。Project 从 setup 开始到 teardown 完成一直占用一个 slot。在单个 Project 内部，Workflow Document、Case、attempt 与 Step 仍然串行，`projects[].retry` 会重试整个失败 Case。
+
+即使各 Project 的完成顺序不同，最终结果仍始终按配置顺序列出 Project。并发 Project 的实时 progress 可能交错，每行会带有 Project 名称，便于识别来源。
+
+`test.bail` 达到配置的最终失败 Case 数，或运行收到中断时，调度器不再启动新 Project。已启动的 Project 会在下一个调度边界停止后续工作，完成生命周期清理，并在 teardown 结束后才释放并发 slot。中断还会按上文说明取消当前 Step。
 
 ### 查看运行结果
 
@@ -252,8 +256,8 @@ Case 失败或未运行、Document 失败或发生收集错误时，CLI 会返�
 
 当前版本暂不支持以下能力：
 
-- 大于 `1` 的并发执行。
-- DAG、分支、循环或 Step 并行。
+- 单个 Execution Project 内的 Workflow Document、Case、retry 或 Step 并行。
+- DAG、分支或循环。
 - Workflow Document 之间的数据依赖。
 - 从远程 URL、npm 包或 Git 仓库加载 YAML。
 

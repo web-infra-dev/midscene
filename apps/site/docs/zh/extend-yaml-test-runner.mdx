@@ -271,7 +271,7 @@ cases:
 pnpm exec midscene-test
 ```
 
-CLI 会自动加载 `midscene.config.ts`，查找 `cases` 目录中的 YAML 文件，再按顺序执行其中的 Case。
+CLI 会自动加载 `midscene.config.ts`，查找 `cases` 目录中的 YAML 文件，并在配置的并发上限内执行已选 Execution Project。每个 Project 内部的 Case 仍按顺序执行。
 
 每次运行都会在默认结果根目录下创建独立目录：
 
@@ -551,7 +551,11 @@ export default defineTestProject<ProjectContext>({
 
 每个 `projects[]` 条目都需要唯一 `name`，`platform` 可为 `web`、`android`、`ios` 或 `computer`。条目可以配置 `files`、`tags`，绑定一个 setup，提供 JSON 兼容的 `variables`，并设置整 Case `retry`。文件筛选只属于 Execution Project；省略 `files` 时，该 Project 会递归选择全部 `.yaml` 和 `.yml` 文件。
 
-`test.maxConcurrency` 当前只支持 `1`；`test.bail` 按最终失败 Case 数量停止后续调度；`test.testTimeout` 是默认 Step 超时。
+`test.maxConcurrency` 是正整数，默认值为 `1`。它限制一次 `runTestProject()` 调用中同时处于 active 状态的 Execution Project 数量。Project 从 setup 开始一直占用一个 slot，直到 teardown 完成才释放。增大该值只会让 Project 之间并发，不会让单个 Project 内的 Workflow Document、Case、retry 或 Step 并发。最终结果保持配置顺序，但 active Project 的实时 progress 可能交错。
+
+Project setup、它返回的 Context、获取的资源，以及 Node 闭包捕获的可变状态，都必须按 Project 隔离或能够安全地被并发访问。例如，两个并发 Project 不应驱动同一个浏览器 page 或物理设备，除非对应集成明确支持这种用法。如果 Project 共享资源或资源无法并发使用，请保持 `maxConcurrency: 1`。
+
+`test.bail` 在达到配置的最终失败 Case 数后停止调度新 Project，中断也会防止新 Project 启动。这两种情况下，已启动的 Project 都会先完成已注册清理和 Project teardown，再释放并发 slot。`test.testTimeout` 是默认 Step 超时。
 
 ### 选择 Test Project 目录
 

@@ -207,7 +207,11 @@ Select one or more named Execution Projects:
 pnpm exec midscene-test --project android-smoke --project ios-regression
 ```
 
-Projects, Workflow Documents, Cases, attempts, and Steps execute serially. `projects[].retry` retries the complete failed Case. `test.maxConcurrency` currently accepts only `1`.
+Execution Projects can run concurrently. `test.maxConcurrency` is a positive integer that limits how many selected Projects are active in one run and defaults to `1`. A Project occupies one slot from the start of its setup until its teardown has finished. Inside that Project, Workflow Documents, Cases, attempts, and Steps still execute serially, and `projects[].retry` retries the complete failed Case.
+
+The final result always lists Projects in configuration order, even when they finish in a different order. Live progress from concurrent Projects can interleave and includes the Project name so each line remains attributable.
+
+After `test.bail` reaches its configured number of final Case failures, or after an interrupt, the scheduler does not start another Project. Already-started Projects stop at their next scheduling boundary, drain their lifecycle cleanup, and release their concurrency slots only after teardown finishes. An interrupt also aborts the active Step as described above.
 
 ### Inspect results
 
@@ -243,6 +247,6 @@ The CLI exits with code `1` when a Case fails or does not run, a Workflow Docume
 
 ## Current limitations
 
-The runner does not currently support concurrency above `1`, DAGs, branches, loops, Step parallelism, dependencies between Workflow Documents, or remote YAML sources.
+Concurrency is available only between Execution Projects. The runner does not currently run Workflow Documents, Cases, retries, or Steps concurrently inside one Project. It also does not support DAGs, branches, loops, dependencies between Workflow Documents, or remote YAML sources.
 
 The runner collects and validates every YAML file before execution. Unknown top-level fields, unknown Nodes, empty `cases`, and invalid Steps produce collection errors immediately.

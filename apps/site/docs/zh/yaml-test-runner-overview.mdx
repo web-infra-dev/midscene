@@ -16,14 +16,18 @@ midscene.config.ts ── Projects / setup / Node Registry
                               │
 Workflow YAML ── collect and validate ── Normalized Steps
                                            │
-                            串行生命周期调度器
+                        Execution Project 有界调度器
+                                           │
+                     Document / Case / Step 串行生命周期
                                            │
                          Node 执行 + 只读 history
                                            │
                          summary.json + facts + reports
 ```
 
-一份 Test Project 配置可以定义多个作为子配置的 Execution Project。每个 Execution Project 负责文件与 tags 筛选、平台 setup 和整 Case retry。Project setup 管理浏览器或设备连接等长生命周期资源；YAML 的 `beforeAll` / `afterAll` 管理一个 Workflow Document 的业务准备与清理；Node teardown 管理 attempt 或 Document scope 的内部资源，例如 Agent 报告。
+一份 Test Project 配置可以定义多个作为子配置的 Execution Project。每个 Execution Project 负责文件与 tags 筛选、平台 setup 和整 Case retry。`test.maxConcurrency` 限制一次 run 中同时处于 active 状态的 Execution Project 数量，默认值为 `1`。一个并发 slot 覆盖从 Project setup 开始到 teardown 完成的完整生命周期。每个 Project 内部的 Workflow Document、Case、retry 和 Step 仍保持串行。
+
+Project setup 管理浏览器或设备连接等长生命周期资源；YAML 的 `beforeAll` / `afterAll` 管理一个 Workflow Document 的业务准备与清理；Node teardown 管理 attempt 或 Document scope 的内部资源，例如 Agent 报告。
 
 ## 实战场景：验证订单退款流程
 

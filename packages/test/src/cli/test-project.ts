@@ -32,7 +32,7 @@ export interface TestOptions {
 }
 
 export interface ResolvedTestOptions {
-  maxConcurrency: 1;
+  maxConcurrency: number;
   bail: number;
   testTimeout: number;
 }
@@ -497,14 +497,12 @@ const validateTestOptions = (value: unknown): ResolvedTestOptions => {
     throw new TypeError('Midscene config test must be an object.');
   }
   const candidate = value ?? {};
-  const maxConcurrency = (candidate as Record<string, unknown>).maxConcurrency;
-  if (maxConcurrency !== undefined && maxConcurrency !== 1) {
-    throw new TypeError(
-      'Midscene config test.maxConcurrency currently only supports 1.',
-    );
-  }
   return Object.freeze({
-    maxConcurrency: 1,
+    maxConcurrency: validatePositiveInteger(
+      (candidate as Record<string, unknown>).maxConcurrency,
+      1,
+      'test.maxConcurrency',
+    ),
     bail: validateNonNegativeInteger(
       (candidate as Record<string, unknown>).bail,
       0,

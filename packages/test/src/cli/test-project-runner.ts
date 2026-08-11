@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { setMaxListeners } from 'node:events';
 import { existsSync, mkdirSync, readdirSync, statSync } from 'node:fs';
 import { join, relative, resolve, sep } from 'node:path';
 import { globSync } from 'tinyglobby';
@@ -262,6 +263,11 @@ const caseHasFatalError = (outcome: CaseRunOutcome): boolean =>
       ) || (attempt.teardownErrors ?? []).some(isFatalDeviceError),
   );
 
+const documentHasFatalError = (result: WorkflowDocumentRunResult): boolean =>
+  [...result.beforeAll, ...result.afterAll].some(
+    (step) => step.error && isFatalDeviceError(step.error),
+  ) || (result.teardownErrors ?? []).some(isFatalDeviceError);
+
 const selectProjects = <TProjectContext>(
   projects: readonly ResolvedExecutionProject<TProjectContext>[],
   names: readonly string[] | undefined,
@@ -406,7 +412,15 @@ export async function runTestProject(
     `midscene-test: preflighted ${preparedProjects.length} projects, ${totalDocuments} documents, ${totalCases} cases, ${totalErrors} collection errors`,
   );
 
+  const effectiveConcurrency = Math.min(
+    definition.test.maxConcurrency,
+    preparedProjects.length,
+  );
   const rootController = new AbortController();
+  setMaxListeners(
+    Math.max(10, effectiveConcurrency + 1),
+    rootController.signal,
+  );
   const handleSignal = (signal: NodeJS.Signals) => {
     rootController.abort(new Error(`Workflow interrupted by ${signal}.`));
   };
@@ -415,166 +429,277 @@ export async function runTestProject(
   process.on('SIGINT', sigint);
   process.on('SIGTERM', sigterm);
 
-  const projectResults: TestExecutionProjectRunResult[] = [];
   let failedCaseCount = 0;
   const bailReached = () =>
     definition.test.bail > 0 && failedCaseCount >= definition.test.bail;
-
-  try {
-    for (const [projectIndex, prepared] of preparedProjects.entries()) {
-      const { project } = prepared;
+  let hasInfrastructureError = false;
+  let firstInfrastructureError: unknown;
+  const recordInfrastructureError = (error: unknown) => {
+    if (hasInfrastructureError) return;
+    hasInfrastructureError = true;
+    firstInfrastructureError = error;
+    rootController.abort(error);
+  };
+  const runInfrastructureCallback = <T>(callback: () => T): T => {
+    try {
+      return callback();
+    } catch (error) {
+      recordInfrastructureError(error);
+      throw error;
+    }
+  };
+  type PreparedProject = (typeof preparedProjects)[number];
+  const announceProject = (prepared: PreparedProject, projectIndex: number) => {
+    const { project } = prepared;
+    runInfrastructureCallback(() =>
       progress(
         `[project ${projectIndex + 1}/${preparedProjects.length}] ${project.name} (${project.platform})`,
+      ),
+    );
+  };
+  const buildProjectResult = (
+    prepared: PreparedProject,
+    cases: readonly TestProjectCaseRunResult[],
+    documents: readonly WorkflowDocumentRunResult[],
+    lifecycle?: TestExecutionProjectRunResult['lifecycle'],
+  ): TestExecutionProjectRunResult => {
+    const { project } = prepared;
+    const projectFailed =
+      prepared.collectionErrors.length > 0 ||
+      cases.some((item) => item.status !== 'success') ||
+      documents.some((item) => item.status === 'failed') ||
+      lifecycle?.status === 'failed';
+    return {
+      name: project.name,
+      platform: project.platform,
+      status: projectFailed ? 'failed' : 'success',
+      retry: project.retry,
+      fileSelection: prepared.fileSelection,
+      tagSelection: project.tags,
+      sourceCount: prepared.sources.length,
+      selectedCaseCount: prepared.selectedCaseCount,
+      filteredCaseCount: prepared.filteredCaseCount,
+      ...(lifecycle ? { lifecycle } : {}),
+      cases,
+      documents,
+      collectionErrors: prepared.collectionErrors,
+    };
+  };
+  const buildSkippedProjectResult = (
+    prepared: PreparedProject,
+    projectIndex: number,
+    reason: NonNullable<TestProjectCaseRunResult['notRunReason']>,
+  ): TestExecutionProjectRunResult => {
+    announceProject(prepared, projectIndex);
+    return buildProjectResult(prepared, notRunSuite(prepared, reason), []);
+  };
+  const runPreparedProject = async (
+    prepared: PreparedProject,
+    projectIndex: number,
+  ): Promise<TestExecutionProjectRunResult> => {
+    const { project } = prepared;
+    announceProject(prepared, projectIndex);
+    const projectProgress = (message: string) =>
+      runInfrastructureCallback(() =>
+        progress(
+          effectiveConcurrency > 1 ? `[${project.name}]${message}` : message,
+        ),
       );
-      const cases: TestProjectCaseRunResult[] = [];
-      const documents: WorkflowDocumentRunResult[] = [];
-      let lifecycle: TestExecutionProjectRunResult['lifecycle'];
-      let projectFatal = false;
+    const cases: TestProjectCaseRunResult[] = [];
+    const documents: WorkflowDocumentRunResult[] = [];
+    let lifecycle: TestExecutionProjectRunResult['lifecycle'];
+    let projectFatal = false;
 
-      if (prepared.collectionErrors.length > 0) {
-        cases.push(...notRunSuite(prepared, 'project-preflight-failed'));
-      } else if (rootController.signal.aborted) {
-        cases.push(...notRunSuite(prepared, 'interrupted'));
-      } else if (bailReached()) {
-        cases.push(...notRunSuite(prepared, 'bail'));
-      } else {
-        const runtime = createProjectRuntime({
-          project,
-          setup: project.setup,
-          signal: rootController.signal,
-        });
-        let projectExecutionError: unknown;
-        try {
-          await runtime.start();
-          if (!runtime.canRun) {
-            cases.push(
-              ...notRunSuite(
-                prepared,
-                rootController.signal.aborted
-                  ? 'interrupted'
-                  : 'project-setup-failed',
-              ),
+    if (prepared.collectionErrors.length > 0) {
+      cases.push(...notRunSuite(prepared, 'project-preflight-failed'));
+    } else if (rootController.signal.aborted) {
+      cases.push(...notRunSuite(prepared, 'interrupted'));
+    } else if (bailReached()) {
+      cases.push(...notRunSuite(prepared, 'bail'));
+    } else {
+      const runtime = createProjectRuntime({
+        project,
+        setup: project.setup,
+        signal: rootController.signal,
+      });
+      let hasProjectExecutionError = false;
+      let projectExecutionError: unknown;
+      try {
+        await runtime.start();
+        if (!runtime.canRun) {
+          cases.push(
+            ...notRunSuite(
+              prepared,
+              rootController.signal.aborted
+                ? 'interrupted'
+                : 'project-setup-failed',
+            ),
+          );
+        } else {
+          for (const [
+            documentIndex,
+            document,
+          ] of prepared.documents.entries()) {
+            if (
+              rootController.signal.aborted ||
+              bailReached() ||
+              projectFatal
+            ) {
+              const reason = rootController.signal.aborted
+                ? 'interrupted'
+                : projectFatal
+                  ? 'fatal-error'
+                  : 'bail';
+              cases.push(
+                ...document.cases.map((item) =>
+                  asNotRun(document.documentId, item, project.name, reason),
+                ),
+              );
+              continue;
+            }
+            projectProgress(
+              `  [document ${documentIndex + 1}/${prepared.documents.length}] ${document.sourcePath}`,
             );
-          } else {
-            for (const [
-              documentIndex,
-              document,
-            ] of prepared.documents.entries()) {
-              if (
-                rootController.signal.aborted ||
-                bailReached() ||
-                projectFatal
-              ) {
-                const reason = rootController.signal.aborted
+            const execution = await runWorkflowDocument(document, {
+              resolveNode: definition.nodes.require.bind(definition.nodes),
+              project,
+              projectContext: runtime.context,
+              retry: project.retry,
+              signal: runtime.signal,
+              defaultTimeoutMs: definition.test.testTimeout,
+              shouldStop: () =>
+                rootController.signal.aborted || bailReached() || projectFatal,
+              stopReason: () =>
+                rootController.signal.aborted
                   ? 'interrupted'
                   : projectFatal
                     ? 'fatal-error'
-                    : 'bail';
-                cases.push(
-                  ...document.cases.map((item) =>
-                    asNotRun(document.documentId, item, project.name, reason),
-                  ),
+                    : 'bail',
+              isFatalError: (run) =>
+                [...run.beforeEach, ...run.steps, ...run.afterEach].some(
+                  (step) => step.error && isFatalDeviceError(step.error),
+                ) || (run.teardownErrors ?? []).some(isFatalDeviceError),
+              onCaseStart: (collectedCase) => {
+                projectProgress(
+                  `    [case ${collectedCase.caseIndex + 1}/${document.cases.length}] ${collectedCase.definition.name}`,
                 );
-                continue;
-              }
-              progress(
-                `  [document ${documentIndex + 1}/${prepared.documents.length}] ${document.sourcePath}`,
-              );
-              const execution = await runWorkflowDocument(document, {
-                resolveNode: definition.nodes.require.bind(definition.nodes),
-                project,
-                projectContext: runtime.context,
-                retry: project.retry,
-                signal: runtime.signal,
-                defaultTimeoutMs: definition.test.testTimeout,
-                shouldStop: () =>
-                  rootController.signal.aborted ||
-                  bailReached() ||
-                  projectFatal,
-                stopReason: () =>
-                  rootController.signal.aborted
-                    ? 'interrupted'
-                    : projectFatal
-                      ? 'fatal-error'
-                      : 'bail',
-                isFatalError: (run) =>
-                  [...run.beforeEach, ...run.steps, ...run.afterEach].some(
-                    (step) => step.error && isFatalDeviceError(step.error),
-                  ) || (run.teardownErrors ?? []).some(isFatalDeviceError),
-                onCaseStart: (collectedCase) => {
-                  progress(
-                    `    [case ${collectedCase.caseIndex + 1}/${document.cases.length}] ${collectedCase.definition.name}`,
-                  );
-                },
-                onStepStart: (info) => {
-                  const indent = info.scope === 'case' ? '      ' : '    ';
-                  progress(`${indent}→ ${formatStep(info)}`);
-                },
-                onStepResult: (info, result) =>
-                  progress(formatStepResult(info, result)),
-                onCaseResult: (attempt) => {
-                  writeCaseAttemptResult(runDir, document.documentId, attempt);
-                  progress(
-                    `    ${attempt.status === 'success' ? '✓' : '✗'} attempt ${attempt.attemptIndex + 1}/${project.retry + 1}: ${attempt.name} (${attempt.durationMs} ms)`,
-                  );
-                },
-                onCaseOutcome: (outcome) => {
-                  if (outcome.status === 'failed') failedCaseCount += 1;
-                  if (caseHasFatalError(outcome)) projectFatal = true;
-                },
-                onDocumentResult: (documentResult) =>
+              },
+              onStepStart: (info) => {
+                const indent = info.scope === 'case' ? '      ' : '    ';
+                projectProgress(`${indent}→ ${formatStep(info)}`);
+              },
+              onStepResult: (info, result) =>
+                projectProgress(formatStepResult(info, result)),
+              onCaseResult: (attempt) => {
+                runInfrastructureCallback(() =>
+                  writeCaseAttemptResult(runDir, document.documentId, attempt),
+                );
+                projectProgress(
+                  `    ${attempt.status === 'success' ? '✓' : '✗'} attempt ${attempt.attemptIndex + 1}/${project.retry + 1}: ${attempt.name} (${attempt.durationMs} ms)`,
+                );
+              },
+              onCaseOutcome: (outcome) => {
+                if (outcome.status === 'failed') failedCaseCount += 1;
+                if (caseHasFatalError(outcome)) projectFatal = true;
+              },
+              onDocumentResult: (documentResult) =>
+                runInfrastructureCallback(() =>
                   writeWorkflowDocumentResult(runDir, documentResult),
-              });
-              cases.push(
-                ...execution.cases.map((outcome) => ({
-                  ...outcome,
-                  documentId: document.documentId,
-                })),
-              );
-              documents.push(execution.document);
+                ),
+            });
+            cases.push(
+              ...execution.cases.map((outcome) => ({
+                ...outcome,
+                documentId: document.documentId,
+              })),
+            );
+            if (documentHasFatalError(execution.document)) {
+              projectFatal = true;
             }
+            documents.push(execution.document);
           }
-        } catch (error) {
-          projectExecutionError = error;
-        } finally {
-          const hasFailure =
-            projectExecutionError !== undefined ||
-            cases.some((item) => item.status !== 'success') ||
-            documents.some((item) => item.status === 'failed') ||
-            projectFatal ||
-            rootController.signal.aborted;
-          lifecycle = await runtime.finish(hasFailure ? 'failed' : 'success');
         }
-        if (projectExecutionError) throw projectExecutionError;
+      } catch (error) {
+        hasProjectExecutionError = true;
+        projectExecutionError = error;
+        recordInfrastructureError(error);
+      } finally {
+        const hasFailure =
+          hasProjectExecutionError ||
+          cases.some((item) => item.status !== 'success') ||
+          documents.some((item) => item.status === 'failed') ||
+          projectFatal ||
+          rootController.signal.aborted;
+        lifecycle = await runtime.finish(hasFailure ? 'failed' : 'success');
       }
-
-      const projectFailed =
-        prepared.collectionErrors.length > 0 ||
-        cases.some((item) => item.status !== 'success') ||
-        documents.some((item) => item.status === 'failed') ||
-        lifecycle?.status === 'failed';
-      projectResults.push({
-        name: project.name,
-        platform: project.platform,
-        status: projectFailed ? 'failed' : 'success',
-        retry: project.retry,
-        fileSelection: prepared.fileSelection,
-        tagSelection: project.tags,
-        sourceCount: prepared.sources.length,
-        selectedCaseCount: prepared.selectedCaseCount,
-        filteredCaseCount: prepared.filteredCaseCount,
-        ...(lifecycle ? { lifecycle } : {}),
-        cases,
-        documents,
-        collectionErrors: prepared.collectionErrors,
-      });
+      if (hasProjectExecutionError) throw projectExecutionError;
     }
+
+    return buildProjectResult(prepared, cases, documents, lifecycle);
+  };
+
+  const projectResults: Array<TestExecutionProjectRunResult | undefined> =
+    new Array(preparedProjects.length);
+  let nextProjectIndex = 0;
+  const claimNextProject = (): number | undefined => {
+    if (
+      hasInfrastructureError ||
+      rootController.signal.aborted ||
+      bailReached() ||
+      nextProjectIndex >= preparedProjects.length
+    ) {
+      return undefined;
+    }
+    const projectIndex = nextProjectIndex;
+    nextProjectIndex += 1;
+    return projectIndex;
+  };
+  const worker = async () => {
+    try {
+      while (true) {
+        const projectIndex = claimNextProject();
+        if (projectIndex === undefined) return;
+        projectResults[projectIndex] = await runPreparedProject(
+          preparedProjects[projectIndex],
+          projectIndex,
+        );
+      }
+    } catch (error) {
+      recordInfrastructureError(error);
+    }
+  };
+
+  try {
+    await Promise.allSettled(
+      Array.from({ length: effectiveConcurrency }, () => worker()),
+    );
   } finally {
     process.off('SIGINT', sigint);
     process.off('SIGTERM', sigterm);
   }
+  if (hasInfrastructureError) throw firstInfrastructureError;
 
-  const summary = summarize(projectResults);
+  const completedProjectResults = preparedProjects.map(
+    (prepared, projectIndex) => {
+      const result = projectResults[projectIndex];
+      if (result) return result;
+      const reason = prepared.collectionErrors.length
+        ? 'project-preflight-failed'
+        : rootController.signal.aborted
+          ? 'interrupted'
+          : bailReached()
+            ? 'bail'
+            : undefined;
+      if (!reason) {
+        throw new Error(
+          `Project scheduler did not produce a result for "${prepared.project.name}".`,
+        );
+      }
+      return buildSkippedProjectResult(prepared, projectIndex, reason);
+    },
+  );
+
+  const summary = summarize(completedProjectResults);
   const failed =
     rootController.signal.aborted ||
     summary.failed > 0 ||
@@ -595,10 +720,10 @@ export async function runTestProject(
     summaryPath,
     reportDir,
     summary,
-    projects: projectResults,
-    cases: projectResults.flatMap((project) => project.cases),
-    documents: projectResults.flatMap((project) => project.documents),
-    collectionErrors: projectResults.flatMap(
+    projects: completedProjectResults,
+    cases: completedProjectResults.flatMap((project) => project.cases),
+    documents: completedProjectResults.flatMap((project) => project.documents),
+    collectionErrors: completedProjectResults.flatMap(
       (project) => project.collectionErrors,
     ),
   };
