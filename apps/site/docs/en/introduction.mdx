@@ -1,6 +1,6 @@
 # Midscene.js - Vision-Driven UI Testing & Automation
 
-Midscene is an open-source SDK for vision-driven UI testing and automation. You describe each step in natural language, and Midscene drives a multimodal model to plan and operate the interface for you — across web, mobile, desktop, and even `<canvas>` surfaces.
+Midscene is an open-source SDK for vision-driven UI testing and automation. You describe an operation goal in natural language, and Midscene drives a multimodal model to plan and operate the interface for you — across web, mobile, desktop, and even `<canvas>` surfaces.
 
 :::info Ready to build?
 Head to the [Quick start](./quick-start) to run your first automation in a few minutes, or try it with no code via the [Chrome extension](./quick-experience).
@@ -10,7 +10,7 @@ Head to the [Quick start](./quick-start) to run your first automation in a few m
 
 Most UI automation — including AI tools that read the DOM or the accessibility tree — depends on page structure. That structure is fragile and incomplete: selectors break on every refactor; elements without semantic markup (icon-only buttons, custom-rendered controls, `<canvas>`) are invisible to it; native apps and cross-origin iframes are out of reach; and it cannot tell whether something actually *looks* right.
 
-Midscene takes a different route: it **works from the screenshot alone**, using a multimodal model, and you describe each step in natural language — the way a human tester would. That changes what UI testing feels like:
+Midscene takes a different route: it **works from the screenshot alone**, using a multimodal model, and you describe operation goals and validation conditions in natural language — the way a human tester would. That changes what UI testing feels like:
 
 - **Tests stop breaking on every refactor.** There are no selectors to chase when markup or styles change, so the maintenance cost of your suite drops sharply.
 - **Reach every element and every surface.** If a human can see it, Midscene can target it — even elements with no semantic annotations, `<canvas>`, native apps, and cross-origin iframes that structure-based tools cannot reach.
@@ -24,33 +24,7 @@ Midscene takes a different route: it **works from the screenshot alone**, using 
 
 Midscene works anywhere you can take a screenshot — web browsers, Android, iOS, HarmonyOS, desktop apps, and [any custom interface](./integrate-with-any-interface) — all through one API. Each platform has its own getting-started guide in the sidebar.
 
-Write your automation with the JavaScript SDK or in YAML, and look up every method — `aiAct`, `aiQuery`, `aiAssert`, and more — in the [API reference](./reference/#common).
-
-## Two styles of automation
-
-### Auto planning
-
-AI autonomously plans and executes the flow to complete the task.
-
-```javascript
-await aiAct('click all the records one by one. If one record contains the text "completed", skip it');
-```
-
-### Workflow style
-
-Split complex logic into multiple steps to improve the stability of the automation code.
-
-```javascript
-const recordList = await agent.aiQuery('string[], the record list')
-for (const record of recordList) {
-  const hasCompleted = await agent.aiBoolean(`check if the record ${record}" contains the text "completed"`)
-  if (!hasCompleted) {
-    await agent.aiTap(record)
-  }
-}
-```
-
-> For more on the workflow style, see [Orchestrate workflows with JavaScript](./basics#javascript-orchestration).
+Write your automation with the JavaScript SDK or in YAML, and look up every method — `aiAct`, `aiQuery`, `aiAssert`, and more — in the [API reference](./reference/#common). To understand the role of each API and how to choose between `aiAct` and JavaScript orchestration, see [The Basics](./basics).
 
 ## Driven by Multimodal Models
 
@@ -65,6 +39,17 @@ Register the GitHub form autonomously in a web browser and pass all field valida
 <video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/github2.mp4" height="300" controls />
 
 See more real-world examples across iOS, Android, desktop, and custom interfaces in [Showcases](./showcases).
+
+## Benchmark results
+
+Midscene achieved the following results on two Android Agent benchmarks:
+
+| Benchmark | Result | Evaluation setup | Full report |
+| --- | --- | --- | --- |
+| AndroidWorld | Pass@1 **93.10%**, Pass@2 **95.69%**, Pass@3 **97.41%** | Midscene 1.9.5, Gemini-3.5-Flash | [View report](./android-world-benchmark-report) |
+| MobileWorld | Pass@1 **78.63% (92/117)** | Midscene 1.10.3, Gemini-3.6-Flash | [View report](./mobile-world-benchmark-report) |
+
+The full reports include the run configuration, validation notes, and execution trace for each task.
 
 ## Resources & community
 
