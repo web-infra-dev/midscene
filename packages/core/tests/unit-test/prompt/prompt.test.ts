@@ -6,7 +6,11 @@ import {
 } from '@/ai-model/prompt/llm-planning';
 import { systemPromptToLocateSection } from '@/ai-model/prompt/llm-section-locator';
 import type { LocateResultPromptSpec } from '@/ai-model/shared/model-locate-result';
-import { defineActionInput, defineActionSwipe } from '@/device';
+import {
+  defineActionInput,
+  defineActionKeyboardPress,
+  defineActionSwipe,
+} from '@/device';
 import { getMidsceneLocationSchema } from '@/index';
 import type { TModelFamily } from '@midscene/shared/env';
 import { describe, expect, it, vi } from 'vitest';
@@ -183,6 +187,22 @@ describe('action space', () => {
     expect(action).toContain(
       'should be set explicitly for incremental edits after moving the cursor',
     );
+  });
+
+  it('keyboard press tells the planner to omit locate for the current selection', () => {
+    const action = descriptionForAction(
+      defineActionKeyboardPress(async () => {}),
+      mockLocatorScheme,
+    );
+
+    expect(action).toContain('locate?:');
+    expect(action).toContain(
+      'Omit locate to operate on the current focus without clicking again',
+    );
+    expect(action).toContain(
+      'especially when copying or cutting an existing text selection',
+    );
+    expect(action).toContain('"keyName": "Enter"');
   });
 
   it('swipe action explains touch slider use', () => {
