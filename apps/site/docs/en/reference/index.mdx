@@ -435,7 +435,7 @@ Press a keyboard key.
 ```typescript
 // Recommended: locate first, then options with keyName
 function aiKeyboardPress(
-  locate: string | object,
+  locate: string | object | undefined,
   opt: {
     keyName: string;
     deepLocate?: boolean;
@@ -455,7 +455,7 @@ function aiKeyboardPress(
 - Parameters:
 
   **Recommended usage:**
-  - `locate: string | object` — A natural language description of the element to press the key on, or [prompting with images](#prompting-with-images).
+  - `locate: string | object | undefined` — An optional natural language description of the element to press the key on, or [prompting with images](#prompting-with-images). Pass `undefined` to press the key against the currently focused element without AI location or a preliminary click.
   - `opt: object` — Configuration:
     - `keyName: string` — **Required.** Keyboard key to press, such as `'Enter'`, `'Tab'`, or `'Escape'`. Use `aiInput()` to enter text. Web and Computer devices support modifier shortcuts such as `'Control+A'` and `'Shift+Enter'`; use `'+'` to join the keys. See the [shared key-name definitions](https://github.com/web-infra-dev/midscene/blob/main/packages/shared/src/us-keyboard-layout.ts) for candidate names on non-mobile devices; actual support is platform-specific. The built-in Android, iOS, and Harmony devices support single keys only. Harmony supports a conservative set of named keys plus `A`-`Z` and `0`-`9`; output characters that do not have their own key code, such as `'?'`, are not key names. Unsupported keys and mobile key combinations throw an error. Support in custom devices depends on their implementation.
     - `deepLocate?: boolean` — Whether to enable [Deep Locate](#deep-locate-deeplocate). The deprecated `deepThink` name remains supported. Default: `false`.
@@ -479,13 +479,16 @@ function aiKeyboardPress(
 await agent.aiKeyboardPress('The search input box', { keyName: 'Enter' });
 await agent.aiKeyboardPress('The search input box', { keyName: 'Control+A' });
 
+// Pure keyboard operation on the currently focused element
+await agent.aiKeyboardPress(undefined, { keyName: 'Control+X' });
+
 // Backward compatible (not recommended)
 await agent.aiKeyboardPress('Enter', 'The search input box');
 ```
 
 :::note Signature update
 
-The recommended signature places the locate prompt first. The legacy signature `aiKeyboardPress(key, locate, options)` remains supported, but new code should use the recommended signature.
+The recommended signature places the optional locate prompt first. Pass `undefined` when the shortcut should operate on the current focus without locating or clicking an element. A valid model configuration is still required and is validated before the action runs, although this targetless form does not send a location request to the model. The legacy signature `aiKeyboardPress(key, locate, options)` remains supported, but new code should use the recommended signature.
 
 :::
 

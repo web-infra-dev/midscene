@@ -918,7 +918,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
 
   // New signature
   async aiKeyboardPress(
-    locatePrompt: TUserPrompt,
+    locatePrompt: TUserPrompt | undefined,
     opt: LocateOption & { keyName: string },
   ): Promise<void>;
 
@@ -934,7 +934,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
 
   // Implementation
   async aiKeyboardPress(
-    locatePromptOrKeyName: TUserPrompt | string,
+    locatePromptOrKeyName: TUserPrompt | string | undefined,
     locatePromptOrOpt:
       | TUserPrompt
       | (LocateOption & { keyName: string })
