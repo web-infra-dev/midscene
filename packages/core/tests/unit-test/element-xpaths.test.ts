@@ -324,7 +324,7 @@ elements:
       locate,
     } as unknown as Service;
     const taskExecutor = new TaskExecutor(mockInterface, mockService, {
-      replanningCycleLimit: 1,
+      replanningCycleLimit: 20,
       actionSpace: [action],
     });
     vi.mocked(genericXmlPlan).mockResolvedValue({
@@ -405,5 +405,81 @@ elements:
         }),
       }),
     );
+  });
+
+  it('preserves the locator prompt when a mapped XPath falls back to AI locate', async () => {
+    const inputCall = vi.fn();
+    const locate = vi.fn().mockResolvedValue({
+      element: {
+        description: 'first name input found by AI',
+        center: [1, 1],
+        rect: { left: 0, top: 0, width: 1, height: 1 },
+      },
+    });
+    const action = inputAction(inputCall);
+    const mockInterface = {
+      interfaceType: 'web',
+      actionSpace: () => [action],
+      rectMatchesCacheFeature: vi
+        .fn()
+        .mockRejectedValue(new Error('stale XPath')),
+    } as unknown as AbstractInterface;
+    const mockService = {
+      contextRetrieverFn: vi.fn().mockResolvedValue({
+        screenshot: ScreenshotItem.create(validBase64Image, Date.now()),
+        shotSize: { width: 1, height: 1 },
+        shrunkShotToLogicalRatio: 1,
+        tree: { id: 'root', attributes: {}, children: [] },
+      }),
+      locate,
+    } as unknown as Service;
+    const taskExecutor = new TaskExecutor(mockInterface, mockService, {
+      replanningCycleLimit: 1,
+      actionSpace: [action],
+    });
+    vi.mocked(genericXmlPlan).mockResolvedValue({
+      actions: [
+        {
+          type: 'Input',
+          param: {
+            value: 'Alice',
+            locate: {
+              prompt: 'First name input',
+              locatedPixelBbox: [20, 20, 40, 40],
+            },
+          },
+        },
+      ],
+      yamlFlow: [],
+      shouldContinuePlanning: false,
+    } as any);
+
+    await taskExecutor.action(
+      'Fill the profile form',
+      modelRuntime(),
+      modelRuntime(),
+      false,
+      {
+        elementXpaths: [
+          {
+            name: 'First name input',
+            xpath: '//*[@id="stale-first-name"]',
+          },
+        ],
+      },
+    );
+
+    expect(mockInterface.rectMatchesCacheFeature).toHaveBeenCalledWith({
+      xpaths: ['//*[@id="stale-first-name"]'],
+    });
+    expect(locate).toHaveBeenCalledOnce();
+    expect(locate.mock.calls[0][0]).toEqual(
+      expect.objectContaining({
+        prompt: 'First name input',
+        xpath: '//*[@id="stale-first-name"]',
+      }),
+    );
+    expect(locate.mock.calls[0][0]).not.toHaveProperty('locatedPixelBbox');
+    expect(inputCall).toHaveBeenCalledOnce();
   });
 });
