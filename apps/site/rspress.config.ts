@@ -174,7 +174,7 @@ export default defineConfig(async () => {
             link: '/showcases',
           },
           {
-            text: 'Control any platform with Skills 🔥',
+            text: 'Control any platform with Skills',
             link: '/skills',
           },
           {
@@ -324,7 +324,7 @@ export default defineConfig(async () => {
             link: '/zh/showcases',
           },
           {
-            text: '使用 Skills 控制任意平台 🔥',
+            text: '使用 Skills 控制任意平台',
             link: '/zh/skills',
           },
           {
