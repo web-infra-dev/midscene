@@ -259,6 +259,7 @@ describe('Page startMjpegStream', () => {
       type: 'jpeg',
       quality: 90,
       encoding: 'base64',
+      optimizeForSpeed: true,
     });
     // Hub contract: MjpegStreamFrame.data is bare base64, never a data URL.
     expect(onFrame).toHaveBeenCalledWith({
@@ -339,6 +340,7 @@ describe('Page startMjpegStream', () => {
       type: 'jpeg',
       quality: 90,
       encoding: 'base64',
+      optimizeForSpeed: true,
     });
     expect(onFrame).toHaveBeenCalledWith({
       data: jpegBase64(1280, 720),

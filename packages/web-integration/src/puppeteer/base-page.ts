@@ -67,6 +67,7 @@ const VISUAL_UPDATE_FOLLOWUP_DELAY_MS = 800;
 // flushPendingVisualUpdate so the call does not hang forever if the page
 // stops scheduling animation frames (e.g. backgrounded tab).
 const FLUSH_VISUAL_UPDATE_TIMEOUT_MS = 50;
+const PREVIEW_SCREENSHOT_MAX_LONG_EDGE = 3840;
 const DATA_URL_BASE64_PREFIX = /^data:image\/\w+;base64,/;
 
 type ScreencastFrameEvent = {
@@ -228,6 +229,7 @@ export class Page<
     onFrame: MjpegStreamOptions['onFrame'];
     onError?: MjpegStreamOptions['onError'];
   };
+  private screenshotCaptureQueue: Promise<void> = Promise.resolve();
   private visualUpdateFlushInFlight: Promise<void> | null = null;
   private visualUpdateFlushQueued = false;
   private visualUpdateForceQueued = false;
@@ -485,13 +487,14 @@ export class Page<
       };
     });
     const physicalLongEdge =
-      Math.max(viewport.width, viewport.height) * viewport.deviceScaleFactor;
+      Math.max(viewport.width, viewport.height) *
+      (viewport.deviceScaleFactor || 1);
     if (physicalLongEdge <= maxLongEdge) {
       return undefined;
     }
     return {
-      x: viewport.x,
-      y: viewport.y,
+      x: viewport.x ?? 0,
+      y: viewport.y ?? 0,
       width: viewport.width,
       height: viewport.height,
       scale: maxLongEdge / physicalLongEdge,
@@ -501,10 +504,25 @@ export class Page<
   async screenshotBase64(
     options: ScreenshotBase64Options = {},
   ): Promise<string> {
+    const queuedAt = Date.now();
+    const capture = this.screenshotCaptureQueue.then(() =>
+      this.captureScreenshotBase64(options, queuedAt),
+    );
+    this.screenshotCaptureQueue = capture.then(
+      () => undefined,
+      () => undefined,
+    );
+    return capture;
+  }
+
+  private async captureScreenshotBase64(
+    options: ScreenshotBase64Options,
+    queuedAt: number,
+  ): Promise<string> {
     const imgType = 'jpeg' as const;
     const quality = 90;
     const startTime = Date.now();
-    debugPage('screenshotBase64 begin');
+    debugPage(`screenshotBase64 begin, queue wait: ${startTime - queuedAt}ms`);
     const clip = await this.boundedScreenshotClip(options.maxLongEdge);
 
     let base64: string;
@@ -543,8 +561,8 @@ export class Page<
         }
 
         const errorMsg = error instanceof Error ? error.message : String(error);
-        console.warn(
-          `[Midscene] Playwright screenshot failed: ${errorMsg}. Falling back to CDP screenshot.`,
+        warnPage(
+          `Playwright screenshot failed: ${errorMsg}. Falling back to CDP screenshot.`,
         );
         debugPage(
           'playwright screenshot failed, trying CDP fallback: %s',
@@ -723,7 +741,10 @@ export class Page<
       ) {
         return;
       }
-      const dataUrl = await this.screenshotBase64();
+      const dataUrl = await this.screenshotBase64({
+        maxLongEdge: PREVIEW_SCREENSHOT_MAX_LONG_EDGE,
+        optimizeForSpeed: true,
+      });
       if (
         this.activeMjpegStream?.token !== activeStream.token ||
         (!force && activeStream.hasReceivedScreencastFrame)

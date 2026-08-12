@@ -259,4 +259,42 @@ describe('Page screenshotBase64', () => {
 
     vi.useRealTimers();
   });
+
+  it('serializes captures and keeps the queue usable after a failure', async () => {
+    let rejectFirst!: (reason?: unknown) => void;
+    const first = new Promise<string>((_resolve, reject) => {
+      rejectFirst = reject;
+    });
+    const screenshot = vi
+      .fn()
+      .mockImplementationOnce(() => first)
+      .mockResolvedValueOnce('c2Vjb25k')
+      .mockResolvedValueOnce('dGhpcmQ=');
+    const page = new Page(
+      {
+        screenshot,
+        evaluate: vi.fn(),
+        url: () => 'http://example.com',
+      } as any,
+      'puppeteer',
+    );
+
+    const firstCapture = page.screenshotBase64();
+    const secondCapture = page.screenshotBase64();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(screenshot).toHaveBeenCalledTimes(1);
+    rejectFirst(new Error('first capture failed'));
+    await expect(firstCapture).rejects.toThrow('first capture failed');
+    await expect(secondCapture).resolves.toContain(
+      'data:image/jpeg;base64,c2Vjb25k',
+    );
+    expect(screenshot).toHaveBeenCalledTimes(2);
+
+    await expect(page.screenshotBase64()).resolves.toContain(
+      'data:image/jpeg;base64,dGhpcmQ=',
+    );
+    expect(screenshot).toHaveBeenCalledTimes(3);
+  });
 });
