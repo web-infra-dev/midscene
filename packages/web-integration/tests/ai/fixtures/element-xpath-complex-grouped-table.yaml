@@ -1,0 +1,13 @@
+elements:
+  Priority control in the row for task Finish quarterly close: //*[@data-target-id="grouped-quarterly-close-priority"]
+  Priority control in the row for task Organize employee team offsite: //*[@data-target-id="grouped-team-offsite-priority"]
+  Priority control in the row for task Complete security review: //*[@data-target-id="grouped-security-review-priority"]
+  Priority control in the row for task Renew partner contract: //*[@data-target-id="grouped-renew-contract-priority"]
+  Priority control in the row for task Launch customer survey: //*[@data-target-id="grouped-launch-survey-priority"]
+  Priority control in the row for task Update incident runbook: //*[@data-target-id="grouped-update-runbook-priority"]
+  Priority control in the row for task Book compliance training: //*[@data-target-id="grouped-book-training-priority"]
+  Priority control in the row for task Repair usage dashboard: //*[@data-target-id="grouped-repair-dashboard-priority"]
+  Priority control in the row for task Review strategic suppliers: //*[@data-target-id="grouped-supplier-review-priority"]
+  Priority control in the row for task Improve remote workspace: //*[@data-target-id="grouped-improve-workspace-priority"]
+  Priority control in the row for task Prepare capacity plan: //*[@data-target-id="grouped-capacity-plan-priority"]
+  Priority control in the row for task Plan staff training: //*[@data-target-id="grouped-staff-training-priority"]

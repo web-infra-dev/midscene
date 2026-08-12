@@ -120,6 +120,12 @@ export {
   type MergeReportFilesOptions,
   type MergeReportFilesResult,
 } from './report-cli';
+export {
+  analyzeReportActions,
+  type AnalyzeReportActionsOptions,
+  type AnalyzeReportActionsResult,
+  type UIActionDefinition,
+} from './report-analyzer';
 
 // ScreenshotItem
 export { ScreenshotItem } from './screenshot-item';

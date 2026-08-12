@@ -5,6 +5,7 @@ import { genericXmlPlan } from '@/ai-model/workflows/planning';
 import {
   type TMultimodalPrompt,
   type TUserPrompt,
+  buildYamlFlowFromPlans,
   getReadableTimeString,
   multimodalPromptToChatMessages,
   userPromptToMultimodalPrompt,
@@ -38,6 +39,10 @@ import type {
 import { ServiceError, aiActProgressScope } from '@/types';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
+import {
+  type LoadedElementXpath,
+  applyElementXpathsToPlans,
+} from './element-xpaths';
 import { ExecutionSession } from './execution-session';
 import { withFileChooser } from './file-chooser';
 import {
@@ -74,6 +79,36 @@ export type ActionReportOptions = {
   type?: TaskTitleType;
   prompt?: string;
 };
+
+interface TaskExecutorActionOptions {
+  aiActContext?: string;
+  cacheable?: boolean;
+  replanningCycleLimitOverride?: number;
+  imagesIncludeCount?: number;
+  effort?: AiActEffort;
+  fileChooserAccept?: string[];
+  deepLocate?: boolean;
+  abortSignal?: AbortSignal;
+  reportOptions?: ActionReportOptions;
+  extraActions?: {
+    actionSpace: DeviceAction[];
+    expandPlans: (plans: PlanningAction[]) => {
+      plans: PlanningAction[];
+      expanded: boolean;
+    };
+  };
+  elementXpaths?: LoadedElementXpath[];
+}
+
+type TaskExecutorActionResult = Promise<
+  ExecutionResult<
+    | {
+        yamlFlow?: MidsceneYamlFlowItem[];
+        output?: string;
+      }
+    | undefined
+  >
+>;
 
 const debug = getDebug('device-task-executor');
 const warnLog = getDebug('device-task-executor', { console: true });
@@ -363,37 +398,77 @@ export class TaskExecutor {
     userPrompt: TUserPrompt,
     planningModel: ModelRuntime,
     defaultModel: ModelRuntime,
+    includeLocateInPlanning: boolean,
+    options?: TaskExecutorActionOptions,
+  ): TaskExecutorActionResult;
+  async action(
+    userPrompt: TUserPrompt,
+    planningModel: ModelRuntime,
+    defaultModel: ModelRuntime,
     aiActContext?: string,
     cacheable?: boolean,
+    replanningCycleLimitOverride?: number,
+    effort?: AiActEffort,
+    fileChooserAccept?: string[],
+    deepLocate?: boolean,
+    abortSignal?: AbortSignal,
+    reportOptions?: ActionReportOptions,
+  ): TaskExecutorActionResult;
+  async action(
+    userPrompt: TUserPrompt,
+    planningModel: ModelRuntime,
+    defaultModel: ModelRuntime,
+    includeLocateInPlanningOrAiActContext?: boolean | string,
+    optionsOrCacheable?: TaskExecutorActionOptions | boolean,
     replanningCycleLimitOverride?: number,
     effort: AiActEffort = 'balance',
     fileChooserAccept?: string[],
     deepLocate?: boolean,
     abortSignal?: AbortSignal,
     reportOptions?: ActionReportOptions,
-  ): Promise<
-    ExecutionResult<
-      | {
-          yamlFlow?: MidsceneYamlFlowItem[]; // for cache use
-          output?: string;
-        }
-      | undefined
-    >
-  > {
-    return withFileChooser(this.interface, fileChooserAccept, async () => {
-      return this.runAction(
-        userPrompt,
-        planningModel,
-        defaultModel,
-        aiActContext,
-        cacheable,
-        replanningCycleLimitOverride,
-        effort,
-        deepLocate,
-        abortSignal,
-        reportOptions,
-      );
-    });
+  ): TaskExecutorActionResult {
+    const includeLocateInPlanning =
+      typeof includeLocateInPlanningOrAiActContext === 'boolean'
+        ? includeLocateInPlanningOrAiActContext
+        : undefined;
+    const options: TaskExecutorActionOptions = includeLocateInPlanning
+      ? typeof optionsOrCacheable === 'object' && optionsOrCacheable !== null
+        ? optionsOrCacheable
+        : {}
+      : typeof includeLocateInPlanningOrAiActContext === 'boolean' &&
+          typeof optionsOrCacheable === 'object' &&
+          optionsOrCacheable !== null
+        ? optionsOrCacheable
+        : {
+            aiActContext:
+              typeof includeLocateInPlanningOrAiActContext === 'string'
+                ? includeLocateInPlanningOrAiActContext
+                : undefined,
+            cacheable:
+              typeof optionsOrCacheable === 'boolean'
+                ? optionsOrCacheable
+                : undefined,
+            replanningCycleLimitOverride,
+            effort,
+            fileChooserAccept,
+            deepLocate,
+            abortSignal,
+            reportOptions,
+          };
+
+    return withFileChooser(
+      this.interface,
+      options.fileChooserAccept,
+      async () => {
+        return this.runAction(
+          userPrompt,
+          planningModel,
+          defaultModel,
+          includeLocateInPlanning,
+          options,
+        );
+      },
+    );
   }
 
   /**
@@ -434,13 +509,8 @@ export class TaskExecutor {
     userPrompt: TUserPrompt,
     planningModel: ModelRuntime,
     defaultModel: ModelRuntime,
-    aiActContext?: string,
-    cacheable?: boolean,
-    replanningCycleLimitOverride?: number,
-    effort: AiActEffort = 'balance',
-    deepLocate?: boolean,
-    abortSignal?: AbortSignal,
-    reportOptions?: ActionReportOptions,
+    includeLocateInPlanningOverride: boolean | undefined,
+    options: TaskExecutorActionOptions = {},
   ): Promise<
     ExecutionResult<
       | {
@@ -450,7 +520,23 @@ export class TaskExecutor {
       | undefined
     >
   > {
+    const {
+      aiActContext,
+      cacheable,
+      replanningCycleLimitOverride,
+      effort = 'balance',
+      deepLocate,
+      abortSignal,
+      reportOptions,
+      extraActions,
+      elementXpaths = [],
+    } = options;
     const conversationHistory = new ConversationHistory();
+    const baseActionSpace = this.getActionSpace();
+    const actionSpace = [
+      ...baseActionSpace,
+      ...(extraActions?.actionSpace ?? []),
+    ];
     const promptDisplay =
       reportOptions?.prompt || userPromptToString(userPrompt);
 
@@ -476,12 +562,17 @@ export class TaskExecutor {
 
     const noIndividualLocateModel = planningModel.config.slot === 'default';
     const includeLocateInPlanning =
-      effort !== 'deepThink' && noIndividualLocateModel;
-    const imagesIncludeCount = effort === 'deepThink' ? 2 : 1;
+      includeLocateInPlanningOverride ??
+      (effort !== 'deepThink' &&
+        noIndividualLocateModel &&
+        elementXpaths.length === 0);
+    const imagesIncludeCount =
+      options.imagesIncludeCount ?? (effort === 'deepThink' ? 2 : 1);
 
     debug('setting includeLocateInPlanning to', includeLocateInPlanning, {
       effort,
       noIndividualLocateModel,
+      hasElementXpaths: elementXpaths.length > 0,
     });
 
     let replanCount = 0;
@@ -575,7 +666,6 @@ export class TaskExecutor {
               screenshot: planningUiContext.screenshot,
             });
 
-            const actionSpace = this.getActionSpace();
             debug(
               'actionSpace for this interface is:',
               actionSpace.map((action) => action.name).join(', '),
@@ -719,12 +809,25 @@ export class TaskExecutor {
 
       // Execute planned actions
       const plans = planResult?.actions || [];
-      yamlFlow.push(...(planResult?.yamlFlow || []));
+      const expansion = extraActions?.expandPlans(plans) ?? {
+        plans,
+        expanded: false,
+      };
+      const elementXpathMapping = applyElementXpathsToPlans(
+        expansion.plans,
+        elementXpaths,
+        baseActionSpace,
+      );
+      yamlFlow.push(
+        ...(expansion.expanded || elementXpathMapping.mapped
+          ? buildYamlFlowFromPlans(elementXpathMapping.plans, baseActionSpace)
+          : planResult?.yamlFlow || []),
+      );
 
       let executables: Awaited<ReturnType<typeof this.convertPlanToExecutable>>;
       try {
         executables = await this.convertPlanToExecutable(
-          plans,
+          elementXpathMapping.plans,
           planningModel,
           defaultModel,
           {

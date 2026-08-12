@@ -1,0 +1,742 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Complex XPath benchmark</title>
+    <style>
+      :root {
+        color: #172033;
+        font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+        background: #eef2f7;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+      }
+      button {
+        font: inherit;
+      }
+      .app-shell {
+        min-height: 100vh;
+        display: grid;
+        grid-template-columns: 220px 1fr;
+      }
+      .sidebar {
+        padding: 22px 16px;
+        border-right: 1px solid #dbe2ec;
+        background: #f8fafc;
+      }
+      .brand {
+        margin: 0 8px 24px;
+        color: #175cd3;
+        font-size: 19px;
+        font-weight: 750;
+      }
+      .nav-item {
+        margin: 4px 0;
+        padding: 10px 12px;
+        border-radius: 8px;
+        color: #475467;
+        font-size: 13px;
+      }
+      .nav-item.active {
+        color: #175cd3;
+        background: #eaf2ff;
+        font-weight: 650;
+      }
+      .workspace {
+        min-width: 0;
+      }
+      .topbar {
+        height: 58px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 28px;
+        border-bottom: 1px solid #e4e9f0;
+        background: white;
+      }
+      .topbar h1 {
+        margin: 0;
+        font-size: 18px;
+      }
+      .top-actions {
+        display: flex;
+        gap: 8px;
+      }
+      .soft-button {
+        padding: 7px 12px;
+        border: 1px solid #d0d7e2;
+        border-radius: 7px;
+        color: #344054;
+        background: white;
+      }
+      .content {
+        padding: 22px 26px 72px;
+      }
+      .subtitle {
+        margin: 5px 0 18px;
+        color: #667085;
+        font-size: 13px;
+      }
+      .panel {
+        border: 1px solid #dce3ed;
+        border-radius: 12px;
+        background: white;
+        box-shadow: 0 8px 24px rgba(38, 51, 77, 0.07);
+      }
+      .feedback {
+        position: fixed;
+        right: 22px;
+        bottom: 18px;
+        z-index: 50;
+        min-width: 310px;
+        padding: 10px 14px;
+        border: 1px solid #b2ccff;
+        border-radius: 8px;
+        color: #1849a9;
+        background: #eff6ff;
+        font: 12px ui-monospace, SFMono-Regular, Menlo, monospace;
+      }
+
+      /* Grouped table */
+      .group-panel {
+        overflow: hidden;
+      }
+      .group-table {
+        width: 100%;
+        border-collapse: collapse;
+        table-layout: fixed;
+        font-size: 13px;
+      }
+      .group-table th,
+      .group-table td {
+        height: 38px;
+        padding: 0 12px;
+        border-bottom: 1px solid #e8edf3;
+        text-align: left;
+      }
+      .group-table th {
+        color: #475467;
+        background: #f8fafc;
+        font-weight: 650;
+      }
+      .group-table .group-row td {
+        height: 43px;
+        color: #344054;
+        background: #fcfcfd;
+        font-weight: 700;
+      }
+      .task-name {
+        width: 30%;
+      }
+      .task-note {
+        width: 34%;
+        overflow: hidden;
+        color: #667085;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .priority-button {
+        min-width: 118px;
+        padding: 5px 10px;
+        border: 0;
+        border-radius: 999px;
+        cursor: pointer;
+        font-weight: 650;
+      }
+      .priority-critical {
+        color: #b42318;
+        background: #fee4e2;
+      }
+      .priority-urgent {
+        color: #b54708;
+        background: #fef0c7;
+      }
+      .priority-normal {
+        color: #027a48;
+        background: #dcfae6;
+      }
+
+      /* Version picker */
+      .filters {
+        position: relative;
+        z-index: 4;
+        display: grid;
+        grid-template-columns: 1.2fr 1fr 1fr;
+        gap: 12px;
+        padding: 18px;
+      }
+      .field label {
+        display: block;
+        margin-bottom: 6px;
+        color: #475467;
+        font-size: 12px;
+        font-weight: 650;
+      }
+      .input-like {
+        height: 38px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 11px;
+        border: 1px solid #98a2b3;
+        border-radius: 7px;
+        background: white;
+        font-size: 13px;
+      }
+      .dropdown {
+        position: absolute;
+        top: 82px;
+        left: 18px;
+        width: calc((100% - 60px) * 0.375);
+        padding: 6px;
+        border: 1px solid #d0d5dd;
+        border-radius: 8px;
+        background: white;
+        box-shadow: 0 12px 28px rgba(16, 24, 40, 0.18);
+      }
+      .version-option {
+        width: 100%;
+        padding: 9px 10px;
+        border: 0;
+        border-radius: 6px;
+        text-align: left;
+        color: #344054;
+        background: white;
+        cursor: pointer;
+      }
+      .version-option:hover,
+      .version-option:focus-visible {
+        color: #175cd3;
+        background: #eff6ff;
+        outline: none;
+      }
+      .version-table-wrap {
+        margin-top: 54px;
+        overflow: hidden;
+      }
+      .version-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 12px;
+      }
+      .version-table th,
+      .version-table td {
+        height: 38px;
+        padding: 0 12px;
+        border-bottom: 1px solid #eaecf0;
+        text-align: left;
+      }
+      .version-table th {
+        color: #475467;
+        background: #f9fafb;
+      }
+
+      /* Workflow cards */
+      .canvas-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 18px;
+      }
+      .workflow-card {
+        min-height: 148px;
+        border: 1px solid #cfd8e6;
+        border-radius: 11px;
+        background: white;
+        box-shadow: 0 5px 16px rgba(38, 51, 77, 0.08);
+      }
+      .card-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 14px;
+        border-bottom: 1px solid #eaecf0;
+        background: #f8fbff;
+      }
+      .card-title {
+        font-size: 13px;
+        font-weight: 700;
+      }
+      .card-tools {
+        display: flex;
+        gap: 4px;
+      }
+      .icon-button {
+        width: 29px;
+        height: 29px;
+        display: inline-grid;
+        place-items: center;
+        padding: 0;
+        border: 1px solid transparent;
+        border-radius: 6px;
+        color: #475467;
+        background: transparent;
+        cursor: pointer;
+      }
+      .icon-button:hover,
+      .icon-button:focus-visible {
+        color: #175cd3;
+        border-color: #b2ccff;
+        background: #eff6ff;
+        outline: none;
+      }
+      .icon-button svg {
+        width: 16px;
+        height: 16px;
+        fill: none;
+        stroke: currentColor;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        stroke-width: 1.8;
+        pointer-events: none;
+      }
+      .card-body {
+        display: grid;
+        grid-template-columns: 110px 1fr;
+        gap: 9px 12px;
+        padding: 14px;
+        color: #667085;
+        font-size: 12px;
+      }
+      .card-body strong {
+        color: #344054;
+      }
+
+      /* Overlay scene */
+      .settings-page {
+        min-height: 640px;
+        padding: 22px;
+      }
+      .settings-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 16px 0;
+        border-bottom: 1px solid #eaecf0;
+      }
+      .settings-row p {
+        margin: 3px 0 0;
+        color: #667085;
+        font-size: 12px;
+      }
+      .overlay-scrim {
+        position: fixed;
+        inset: 58px 0 0 220px;
+        z-index: 8;
+        background: rgba(16, 24, 40, 0.28);
+      }
+      .dialog {
+        position: fixed;
+        left: calc(50% + 110px);
+        top: 50%;
+        z-index: 10;
+        width: 520px;
+        transform: translate(-50%, -50%);
+        border-radius: 13px;
+        background: white;
+        box-shadow: 0 22px 56px rgba(16, 24, 40, 0.28);
+      }
+      .dialog-head,
+      .drawer-head,
+      .toast-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .dialog-head {
+        padding: 16px 18px;
+        border-bottom: 1px solid #eaecf0;
+      }
+      .dialog h2,
+      .drawer h2 {
+        margin: 0;
+        font-size: 16px;
+      }
+      .dialog-body {
+        padding: 18px;
+        color: #475467;
+        font-size: 13px;
+        line-height: 1.6;
+      }
+      .dialog-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+        padding: 0 18px 18px;
+      }
+      .drawer {
+        position: fixed;
+        top: 58px;
+        right: 0;
+        z-index: 9;
+        width: 310px;
+        height: calc(100vh - 58px);
+        padding: 16px;
+        background: white;
+        box-shadow: -12px 0 32px rgba(16, 24, 40, 0.14);
+      }
+      .drawer-body {
+        margin-top: 16px;
+        color: #667085;
+        font-size: 13px;
+        line-height: 1.6;
+      }
+      .toast {
+        position: fixed;
+        right: 330px;
+        top: 76px;
+        z-index: 12;
+        width: 330px;
+        padding: 12px 14px;
+        border: 1px solid #abefc6;
+        border-radius: 9px;
+        background: #ecfdf3;
+        box-shadow: 0 10px 24px rgba(16, 24, 40, 0.14);
+      }
+      .toast.warning {
+        top: 182px;
+        border-color: #fedf89;
+        background: #fffaeb;
+      }
+      .toast.warning strong {
+        color: #b54708;
+      }
+      .toast strong {
+        color: #067647;
+        font-size: 13px;
+      }
+      .toast p {
+        margin: 4px 30px 0 0;
+        color: #475467;
+        font-size: 12px;
+      }
+      .close-button {
+        width: 30px;
+        height: 30px;
+        display: grid;
+        place-items: center;
+        border: 0;
+        border-radius: 6px;
+        color: #667085;
+        background: transparent;
+        cursor: pointer;
+        font-size: 19px;
+      }
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        margin: 12px 8px 0 0;
+        padding: 5px 8px;
+        border-radius: 999px;
+        color: #344054;
+        background: #f2f4f7;
+        font-size: 12px;
+      }
+      .chip button {
+        border: 0;
+        color: #667085;
+        background: transparent;
+        cursor: pointer;
+      }
+
+      /* Canvas boundary */
+      .canvas-panel {
+        position: relative;
+        min-height: 690px;
+        overflow: hidden;
+        background:
+          radial-gradient(circle, #d0d5dd 1px, transparent 1px) 0 0 / 18px 18px,
+          #f9fafb;
+      }
+      #workflow-canvas {
+        display: block;
+        width: 100%;
+        height: 690px;
+      }
+      .canvas-toolbar {
+        position: absolute;
+        left: 14px;
+        bottom: 14px;
+        display: flex;
+        gap: 6px;
+        padding: 6px;
+        border: 1px solid #d0d5dd;
+        border-radius: 8px;
+        background: white;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <div class="feedback" id="last-action">No action selected</div>
+    <script>
+      const params = new URLSearchParams(location.search);
+      const scene = params.get('scene') || 'grouped-table';
+      window.__complexBenchmarkActions = [];
+
+      function record(targetId, action) {
+        window.__complexBenchmarkActions.push({ targetId, action });
+        document.querySelector('#last-action').textContent =
+          `Selected ${action} for ${targetId}`;
+      }
+
+      function shell(title, subtitle, content) {
+        return `
+          <div class="app-shell">
+            <aside class="sidebar">
+              <div class="brand">Orbit Console</div>
+              <div class="nav-item">Overview</div>
+              <div class="nav-item active">${title}</div>
+              <div class="nav-item">Automations</div>
+              <div class="nav-item">Audit log</div>
+              <div class="nav-item">Settings</div>
+            </aside>
+            <section class="workspace">
+              <header class="topbar">
+                <h1>${title}</h1>
+                <div class="top-actions">
+                  <button class="soft-button">Export</button>
+                  <button class="soft-button">Help</button>
+                </div>
+              </header>
+              <main class="content">
+                <p class="subtitle">${subtitle}</p>
+                ${content}
+              </main>
+            </section>
+          </div>`;
+      }
+
+      const priorityGroups = [
+        ['Critical and urgent', 'priority-critical', [
+          ['quarterly-close', 'Finish quarterly close', 'Finance review is awaiting final confirmation'],
+          ['team-offsite', 'Organize employee team offsite', 'Venue and travel plan are ready'],
+          ['security-review', 'Complete security review', 'Two findings remain open'],
+          ['renew-contract', 'Renew partner contract', 'Legal review is in progress'],
+        ]],
+        ['Urgent, not critical', 'priority-urgent', [
+          ['launch-survey', 'Launch customer survey', 'Questionnaire copy needs approval'],
+          ['update-runbook', 'Update incident runbook', 'New escalation contacts added'],
+          ['book-training', 'Book compliance training', 'Select an available date'],
+          ['repair-dashboard', 'Repair usage dashboard', 'Two metrics are delayed'],
+        ]],
+        ['Critical, not urgent', 'priority-urgent', [
+          ['supplier-review', 'Review strategic suppliers', 'Risk scoring is ready'],
+          ['improve-workspace', 'Improve remote workspace', 'Collecting employee feedback'],
+          ['capacity-plan', 'Prepare capacity plan', 'Forecast covers the next two quarters'],
+          ['staff-training', 'Plan staff training', 'Draft curriculum is available'],
+        ]],
+      ];
+
+      function renderGroupedTable() {
+        const rows = priorityGroups
+          .map(([label, className, tasks]) => `
+            <tr class="group-row"><td colspan="4">▾ ${label} · ${tasks.length} records</td></tr>
+            ${tasks.map(([id, name, note], index) => `
+              <tr data-task-id="${id}">
+                <td>${index + 1}</td>
+                <td class="task-name">${name}</td>
+                <td class="task-note">${note}</td>
+                <td><button class="priority-button ${className}" data-target-id="grouped-${id}-priority">${label}</button></td>
+              </tr>`).join('')}`)
+          .join('');
+        document.querySelector('#root').innerHTML = shell(
+          'Prioritized tasks',
+          'Grouped task grid · repeated priority controls · relation-heavy targets',
+          `<div class="panel group-panel"><table class="group-table">
+            <thead><tr><th>#</th><th>Task description</th><th>Latest progress</th><th>Priority</th></tr></thead>
+            <tbody>${rows}</tbody>
+          </table></div>`,
+        );
+        document.querySelectorAll('.priority-button').forEach((button) => {
+          button.addEventListener('click', () =>
+            record(button.dataset.targetId, 'select-priority'),
+          );
+        });
+      }
+
+      const versions = [
+        'DF20260918_V002',
+        'DF20260925_V001',
+        'DF20261002_V003',
+        'DF20261009_V002',
+        'DF20261016_V001',
+        'DF20261023_V004',
+      ];
+
+      function renderVersionPicker() {
+        document.querySelector('#root').innerHTML = shell(
+          'Demand forecast',
+          'An open selector repeats the same version values shown in the data table below',
+          `<section class="panel filters">
+            <div class="field"><label>Demand FCST Version</label><div class="input-like">Select a version <span>⌄</span></div></div>
+            <div class="field"><label>Business unit</label><div class="input-like">Private cloud <span>⌄</span></div></div>
+            <div class="field"><label>Configuration</label><div class="input-like">All configs <span>⌄</span></div></div>
+            <div class="dropdown" role="listbox" aria-label="Demand FCST Version options">
+              ${versions.map((version) => `<button class="version-option" data-target-id="version-option-${version}">${version}</button>`).join('')}
+            </div>
+          </section>
+          <section class="panel version-table-wrap">
+            <table class="version-table"><thead><tr><th>Demand FCST Version</th><th>Region</th><th>Configuration</th><th>Demand date</th></tr></thead>
+            <tbody>${versions.map((version, index) => `<tr><td>${version}</td><td>${index % 2 ? 'East' : 'North'}</td><td>Cache-${String.fromCharCode(65 + index)}</td><td>2027/${String(index + 1).padStart(2, '0')}/12</td></tr>`).join('')}</tbody></table>
+          </section>`,
+        );
+        document.querySelectorAll('.version-option').forEach((button) => {
+          button.addEventListener('click', () =>
+            record(button.dataset.targetId, 'choose-version'),
+          );
+        });
+      }
+
+      const toolIcons = {
+        collapse: '<path d="m7 10 5 5 5-5"/>',
+        copy: '<rect x="8" y="8" width="11" height="11" rx="2"/><path d="M5 16H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v1"/>',
+        settings: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1A1.7 1.7 0 0 0 9 4.6 1.7 1.7 0 0 0 10 3V2.8h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1z"/>',
+        more: '<circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>',
+      };
+      const cards = [
+        ['load-orders', 'Load customer orders', 'Source', 'Order service'],
+        ['normalize-orders', 'Normalize order fields', 'Transform', 'Schema v4'],
+        ['validate-address', 'Validate delivery address', 'Decision', 'Strict mode'],
+        ['calculate-risk', 'Calculate fulfillment risk', 'Model', 'Risk scorer'],
+        ['reserve-stock', 'Reserve warehouse stock', 'Action', 'Inventory API'],
+        ['notify-customer', 'Notify customer', 'Message', 'Email and SMS'],
+        ['write-audit-log', 'Write audit log', 'Storage', 'Compliance archive'],
+        ['finish-workflow', 'Finish workflow', 'End', 'Return success'],
+      ];
+
+      function renderWorkflowCards() {
+        document.querySelector('#root').innerHTML = shell(
+          'Workflow designer',
+          'Eight visually similar cards · four icon-only tools on every card',
+          `<div class="canvas-grid">${cards.map(([id, title, type, detail]) => `
+            <article class="workflow-card" data-card-id="${id}">
+              <header class="card-head"><span class="card-title">${title}</span>
+                <span class="card-tools">${Object.entries(toolIcons).map(([action, icon]) => `
+                  <button class="icon-button" aria-label="${action}" data-target-id="card-${id}-${action}"><svg viewBox="0 0 24 24">${icon}</svg></button>`).join('')}
+                </span>
+              </header>
+              <div class="card-body"><span>Node type</span><strong>${type}</strong><span>Configuration</span><strong>${detail}</strong></div>
+            </article>`).join('')}</div>`,
+        );
+        document.querySelectorAll('.card-tools button').forEach((button) => {
+          const action = button.getAttribute('aria-label');
+          button.addEventListener('click', () =>
+            record(button.dataset.targetId, action),
+          );
+        });
+      }
+
+      function renderOverlay() {
+        document.querySelector('#root').innerHTML = shell(
+          'Workspace settings',
+          'Several overlapping surfaces expose visually identical close or clear controls',
+          `<section class="panel settings-page">
+            <div class="settings-row"><div><strong>Usage alerts</strong><p>Notify owners when consumption exceeds a threshold.</p></div><button class="soft-button">Configure</button></div>
+            <div class="settings-row"><div><strong>Audit export</strong><p>Send daily audit snapshots to long-term storage.</p></div><button class="soft-button">Configure</button></div>
+            <div><span class="chip">Production <button aria-label="clear Production filter">×</button></span><span class="chip">High priority <button aria-label="clear High priority filter">×</button></span></div>
+          </section>
+          <div class="overlay-scrim"></div>
+          <aside class="drawer"><div class="drawer-head"><h2>Help panel</h2><button class="close-button" data-target-id="overlay-help-drawer-close" aria-label="close Help panel">×</button></div><div class="drawer-body">Review workspace policies, role permissions, and audit retention guidance.</div></aside>
+          <section class="dialog" role="dialog" aria-label="Unsaved policy changes"><header class="dialog-head"><h2>Unsaved policy changes</h2><button class="close-button" data-target-id="overlay-policy-dialog-close" aria-label="close Unsaved policy changes dialog">×</button></header><div class="dialog-body">You have edited the retention policy. Close this dialog to continue editing or save the changes.</div><footer class="dialog-actions"><button class="soft-button">Discard</button><button class="soft-button">Save changes</button></footer></section>
+          <section class="toast" role="status"><div class="toast-head"><strong>Policy draft saved</strong><button class="close-button" data-target-id="overlay-saved-toast-close" aria-label="dismiss Policy draft saved notification">×</button></div><p>The draft is available to workspace administrators.</p></section>
+          <section class="toast warning" role="status"><div class="toast-head"><strong>Directory sync paused</strong><button class="close-button" data-target-id="overlay-sync-toast-close" aria-label="dismiss Directory sync paused notification">×</button></div><p>Reconnect the directory provider to resume synchronization.</p></section>`,
+        );
+        document.querySelectorAll('[data-target-id^="overlay-"]').forEach((button) => {
+          const targetId = button.dataset.targetId;
+          button.addEventListener('click', () =>
+            record(targetId, targetId.endsWith('-clear') ? 'clear' : 'close'),
+          );
+        });
+      }
+
+      function renderCanvasWorkflow() {
+        document.querySelector('#root').innerHTML = shell(
+          'Canvas workflow',
+          'Negative boundary: connection controls are pixels inside one canvas, not DOM elements',
+          `<section class="panel canvas-panel"><canvas id="workflow-canvas" width="1120" height="690"></canvas><div class="canvas-toolbar"><button class="soft-button" data-target-id="canvas-zoom-out">−</button><button class="soft-button" data-target-id="canvas-fit-view">Fit view</button><button class="soft-button" data-target-id="canvas-zoom-in">＋</button></div></section>`,
+        );
+        const canvas = document.querySelector('#workflow-canvas');
+        const ctx = canvas.getContext('2d');
+        const nodes = [
+          { x: 90, y: 80, w: 270, h: 120, title: 'Receive request' },
+          { x: 440, y: 275, w: 270, h: 120, title: 'Run policy checks' },
+          { x: 790, y: 470, w: 240, h: 120, title: 'Finish workflow' },
+        ];
+        const pluses = [
+          { x: 400, y: 238, targetId: 'canvas-plus-receive-to-policy' },
+          { x: 750, y: 432, targetId: 'canvas-plus-policy-to-finish' },
+        ];
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = '#98a2b3';
+        ctx.beginPath();
+        ctx.moveTo(360, 140);
+        ctx.lineTo(440, 335);
+        ctx.moveTo(710, 335);
+        ctx.lineTo(790, 530);
+        ctx.stroke();
+        for (const node of nodes) {
+          ctx.fillStyle = '#ffffff';
+          ctx.strokeStyle = '#84adff';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.roundRect(node.x, node.y, node.w, node.h, 12);
+          ctx.fill();
+          ctx.stroke();
+          ctx.fillStyle = '#175cd3';
+          ctx.font = '600 17px system-ui';
+          ctx.fillText(node.title, node.x + 18, node.y + 34);
+          ctx.fillStyle = '#667085';
+          ctx.font = '13px system-ui';
+          ctx.fillText('Configure this workflow stage', node.x + 18, node.y + 68);
+        }
+        for (const plus of pluses) {
+          ctx.fillStyle = '#ffffff';
+          ctx.strokeStyle = '#175cd3';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(plus.x, plus.y, 13, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+          ctx.fillStyle = '#175cd3';
+          ctx.font = '20px system-ui';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText('+', plus.x, plus.y - 1);
+        }
+        canvas.addEventListener('click', (event) => {
+          const rect = canvas.getBoundingClientRect();
+          const scaleX = canvas.width / rect.width;
+          const scaleY = canvas.height / rect.height;
+          const x = (event.clientX - rect.left) * scaleX;
+          const y = (event.clientY - rect.top) * scaleY;
+          const hit = pluses.find((plus) => Math.hypot(x - plus.x, y - plus.y) <= 18);
+          if (hit) record(hit.targetId, 'add-step');
+          else record('canvas-miss', 'canvas-click');
+        });
+        document.querySelectorAll('.canvas-toolbar button').forEach((button) => {
+          button.addEventListener('click', () =>
+            record(button.dataset.targetId, 'toolbar'),
+          );
+        });
+      }
+
+      const renderers = {
+        'grouped-table': renderGroupedTable,
+        'version-picker': renderVersionPicker,
+        'workflow-cards': renderWorkflowCards,
+        overlay: renderOverlay,
+        'canvas-workflow': renderCanvasWorkflow,
+      };
+      const render = renderers[scene];
+      if (!render) throw new Error(`Unknown scene: ${scene}`);
+      render();
+    </script>
+  </body>
+</html>

@@ -503,7 +503,9 @@ describe('Agent with custom OpenAI client', () => {
       await agent.aiAct('click the submit button');
 
       expect(actionSpy).toHaveBeenCalled();
-      expect(actionSpy.mock.calls[0][6]).toBe('balance');
+      expect(actionSpy.mock.calls[0][4]).toEqual(
+        expect.objectContaining({ effort: 'balance' }),
+      );
       expect(
         (agent as any).modelConfigManager.getModelConfig('planning').slot,
       ).toBe('planning');
@@ -525,7 +527,9 @@ describe('Agent with custom OpenAI client', () => {
       await agent.aiAct('click the submit button');
 
       expect(actionSpy).toHaveBeenCalled();
-      expect(actionSpy.mock.calls[0][6]).toBe('balance');
+      expect(actionSpy.mock.calls[0][4]).toEqual(
+        expect.objectContaining({ effort: 'balance' }),
+      );
       expect(
         (agent as any).modelConfigManager.getModelConfig('planning').slot,
       ).toBe('default');
@@ -556,7 +560,9 @@ describe('Agent with custom OpenAI client', () => {
         '[Midscene]',
         'The "effort" option is experimental and not yet open for public use. Do not use it. When both "effort" and "deepThink" are provided, "effort" takes precedence.',
       );
-      expect(actionSpy.mock.calls[0][6]).toBe('deepThink');
+      expect(actionSpy.mock.calls[0][4]).toEqual(
+        expect.objectContaining({ effort: 'deepThink' }),
+      );
     });
 
     it('should prefer balance effort over deepThink and use the experimental warning', async () => {
@@ -584,7 +590,9 @@ describe('Agent with custom OpenAI client', () => {
         '[Midscene]',
         'The "effort" option is experimental and not yet open for public use. Do not use it. When both "effort" and "deepThink" are provided, "effort" takes precedence.',
       );
-      expect(actionSpy.mock.calls[0][6]).toBe('balance');
+      expect(actionSpy.mock.calls[0][4]).toEqual(
+        expect.objectContaining({ effort: 'balance' }),
+      );
     });
 
     it('should keep supporting deepThink without an experimental warning', async () => {
@@ -606,7 +614,9 @@ describe('Agent with custom OpenAI client', () => {
       await agent.aiAct('click the submit button', { deepThink: true });
 
       expect(warnSpy).not.toHaveBeenCalled();
-      expect(actionSpy.mock.calls[0][6]).toBe('deepThink');
+      expect(actionSpy.mock.calls[0][4]).toEqual(
+        expect.objectContaining({ effort: 'deepThink' }),
+      );
     });
 
     it('should use the unified experimental warning for fast effort', async () => {
@@ -631,7 +641,9 @@ describe('Agent with custom OpenAI client', () => {
         '[Midscene]',
         'The "effort" option is experimental and not yet open for public use. Do not use it. When both "effort" and "deepThink" are provided, "effort" takes precedence.',
       );
-      expect(actionSpy.mock.calls[0][6]).toBe('fast');
+      expect(actionSpy.mock.calls[0][4]).toEqual(
+        expect.objectContaining({ effort: 'fast' }),
+      );
     });
 
     it('should support deepThink and normalize unsupported custom planning', async () => {
@@ -660,7 +672,13 @@ describe('Agent with custom OpenAI client', () => {
         'The "deepThink" aiAct effort is not supported with custom planning adapters (modelFamily: auto-glm). It will be ignored.',
       );
       expect(actionSpy).toHaveBeenCalled();
-      expect(actionSpy.mock.calls[0][6]).toBe('balance');
+      expect(actionSpy.mock.calls[0][3]).toBe(true);
+      expect(actionSpy.mock.calls[0][4]).toEqual(
+        expect.objectContaining({
+          imagesIncludeCount: 1,
+          effort: 'balance',
+        }),
+      );
     });
 
     it('should disable deepLocate before running custom planning', async () => {
@@ -689,7 +707,9 @@ describe('Agent with custom OpenAI client', () => {
         'The "deepLocate" option is not supported for aiAct with the current planning adapter (modelFamily: auto-glm). It will be ignored.',
       );
       expect(actionSpy).toHaveBeenCalled();
-      expect(actionSpy.mock.calls[0][8]).toBe(false);
+      expect(actionSpy.mock.calls[0][4]).toEqual(
+        expect.objectContaining({ deepLocate: false }),
+      );
     });
   });
 });

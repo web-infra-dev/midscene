@@ -78,6 +78,15 @@ import {
   defineActionSleep,
 } from '../device';
 import { validateAgentCacheInput } from './cache-config';
+import {
+  elementXpathsPlanningContext,
+  loadElementXpaths,
+} from './element-xpaths';
+import {
+  createExtraActionExecutionOptions,
+  extraActionsCacheKey,
+  loadExtraActions,
+} from './extra-actions';
 import { FileChooserAccepter } from './file-chooser';
 import { Insight } from './insight';
 import { MetricsCollector, type MidsceneUsageMetrics } from './metrics';
@@ -120,6 +129,8 @@ export type AiActOptions = {
   fileChooserAccept?: string | string[];
   fileChooserAllowedDir?: string;
   effort?: AiActEffort;
+  loadExtraActions?: string[];
+  loadElementXpaths?: string[];
   deepThink?: DeepThinkOption;
   deepLocate?: boolean;
   abortSignal?: AbortSignal;
@@ -1133,10 +1144,40 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
 
     const runAiAct = async () => {
       const planningModel = this.resolveModelRuntime('planning');
+      const extraActionPaths = opt?.loadExtraActions ?? [];
+      if (
+        extraActionPaths.length > 0 &&
+        planningModel.adapter.planning.kind === 'custom'
+      ) {
+        throw new Error(
+          `The "loadExtraActions" option is not supported by custom planning adapters (modelFamily: ${planningModel.config.modelFamily ?? 'unknown'}). Use a model with the generic planning adapter.`,
+        );
+      }
+      const extraActions = await loadExtraActions(
+        extraActionPaths,
+        this.fullActionSpace,
+      );
+      const elementXpaths = await loadElementXpaths(
+        opt?.loadElementXpaths ?? [],
+      );
       const defaultModel = this.resolveModelRuntime('default');
-      const aiActContext =
+      const baseAiActContext =
         opt?.context !== undefined ? opt.context : this.aiActContext;
-      const cachePrompt = buildPromptWithContext(taskPrompt, aiActContext);
+      const elementXpathContext = elementXpathsPlanningContext(elementXpaths);
+      const aiActContext = elementXpathContext
+        ? [baseAiActContext, elementXpathContext]
+            .filter((context): context is string => Boolean(context?.trim()))
+            .join('\n\n')
+        : baseAiActContext;
+      const promptWithContext = buildPromptWithContext(
+        taskPrompt,
+        aiActContext,
+      );
+      const extraActionKey = extraActionsCacheKey(extraActions);
+      const cachePrompt = extraActionKey
+        ? `${promptWithContext}\n\n<midscene_extra_actions>${extraActionKey}</midscene_extra_actions>`
+        : promptWithContext;
+
       // Resolve the public planning controls at the API boundary. Internal
       // aiAct plumbing only uses effort from this point onward. The explicit
       // effort option takes precedence over deepThink when both are provided.
@@ -1174,6 +1215,19 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
         deepLocate = false;
       }
 
+      const noIndividualLocateModel = planningModel.config.slot === 'default';
+
+      const includeLocateInPlanning =
+        effort !== 'deepThink' &&
+        noIndividualLocateModel &&
+        elementXpaths.length === 0;
+      const imagesIncludeCount = effort === 'deepThink' ? 2 : 1;
+
+      debug('setting includeLocateInPlanning to', includeLocateInPlanning, {
+        effort,
+        noIndividualLocateModel,
+        hasElementXpaths: elementXpaths.length > 0,
+      });
       const cacheable = opt?.cacheable;
       const replanningCycleLimit =
         this.resolveReplanningCycleLimit(planningModel);
@@ -1215,14 +1269,19 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
         taskPrompt,
         planningModel,
         defaultModel,
-        aiActContext,
-        cacheable,
-        replanningCycleLimit,
-        effort,
-        undefined,
-        deepLocate,
-        abortSignal,
-        internalReportDisplay,
+        includeLocateInPlanning,
+        {
+          aiActContext,
+          cacheable,
+          replanningCycleLimitOverride: replanningCycleLimit,
+          imagesIncludeCount,
+          effort,
+          deepLocate,
+          abortSignal,
+          reportOptions: internalReportDisplay,
+          extraActions: createExtraActionExecutionOptions(extraActions),
+          elementXpaths,
+        },
       );
 
       // update cache

@@ -41,6 +41,8 @@ const MEMORY_STEP_NOTES = [
 
 const RUN_ADB_SHELL_ACTION_GUIDANCE =
   "- If the user's task can be completed with the RunAdbShell action, prefer using the RunAdbShell action.";
+const EXTRA_ACTION_GUIDANCE =
+  '- Actions named MidsceneExtraAction_* are exact pre-recorded operations. When one matches the next requested operation, you MUST use it instead of rebuilding that operation with a low-level action such as Tap or Input.';
 
 const buildActionStepNotes = (actionList: string) =>
   [
@@ -48,6 +50,9 @@ const buildActionStepNotes = (actionList: string) =>
     '',
     ...(actionList.includes('RunAdbShell')
       ? [RUN_ADB_SHELL_ACTION_GUIDANCE]
+      : []),
+    ...(actionList.includes('MidsceneExtraAction_')
+      ? [EXTRA_ACTION_GUIDANCE]
       : []),
     '- For touch continuous controls that set a value along a track, such as a slider, prefer Swipe from the current handle or filled position to the requested track endpoint instead of tapping the endpoint.',
     '- When editing existing text in a UI field, preserve all existing text by moving the cursor and typing/deleting the minimal necessary characters.',

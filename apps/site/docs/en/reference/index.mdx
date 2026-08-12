@@ -138,6 +138,8 @@ function aiAct(
     deepLocate?: boolean;
     fileChooserAccept?: string | string[];
     fileChooserAllowedDir?: string;
+    loadExtraActions?: string[];
+    loadElementXpaths?: string[];
     abortSignal?: AbortSignal;
     context?: string;
   },
@@ -159,6 +161,8 @@ function ai(prompt: string, options?: Object): Promise<string | undefined>; // s
       - **Note**: In Chrome extension Bridge mode, local file uploads require the Midscene extension's "Allow access to file URLs" permission. Enable it in `chrome://extensions` > Midscene > "Details", then reconnect Bridge mode from the target `http(s)://` page.
       - **Note**: Chrome extension Bridge mode does not support directory upload inputs (`webkitdirectory` / `directory`). Use Playwright for directory uploads.
     - `fileChooserAllowedDir?: string` — Explicitly authorizes the directory this `aiAct` call may access for prompt-driven file uploads. Without it, model-planned file uploads are rejected. Relative paths in the prompt are resolved against this directory and then validated; absolute paths are validated directly against this directory. Symlinks located within this directory are also allowed. We recommend using the test case's `fixtures` directory to reduce the risk of sensitive-file uploads caused by AI hallucinations or page prompt injection.
+    - `loadExtraActions?: string[]` — Load pre-recorded UI action YAML files for this call. The default is `undefined`, which loads no extra actions. Each file represents one device operation and becomes a parameterless action available to the generic planner. If selected, Midscene expands it into the recorded low-level action before execution. This option is available only in Node.js and is not supported by custom planning adapters. Relative paths are resolved from the current working directory. Invalid files, duplicate names, unsupported planning adapters, and unavailable underlying actions throw errors before planning starts.
+    - `loadElementXpaths?: string[]` — Load YAML maps of known UI element names to XPath strings for this call. Midscene gives the map to the planner, then injects a matching XPath into the planned Action before execution. A matching XPath uses deterministic DOM resolution and skips model-based locating. Unmatched names or XPaths that no longer resolve fall back to normal AI locating. This option is available only in Node.js. Relative paths are resolved from the current working directory.
     - `abortSignal?: AbortSignal` — Signal used to cancel the `aiAct` call. When aborted, Midscene stops the planning loop and throws an error. Use it to implement timeouts or user-initiated cancellation.
 
 - Return value:
@@ -200,6 +204,55 @@ await agent.aiAct('Complete the GitHub account registration form. The region mus
 `deepThink` accepts `'unset' | true | false`. The legacy `'unset'` value behaves the same as `false`.
 
 `deepThink` does not control model-native thinking. See [Model-native thinking](../model-config#model-native-reasoning) for the related environment variables.
+
+##### Load pre-recorded UI actions
+
+An extra action file represents one reusable device operation. It names the operation, identifies an action from the current interface's Action Space, and provides exactly one parameter entry:
+
+```yaml title="extra-action.yaml"
+name: Click the confirm button
+actionName: tap
+actionParam:
+  - xpath: /path/to/#confirm-button
+```
+
+Pass one or more files to a single `aiAct` call:
+
+```typescript
+await agent.aiAct('Fill in the form', {
+  loadExtraActions: ['./extra-action.yaml'],
+});
+```
+
+This Node.js-only option works with the generic planning adapter. If the configured model uses a custom planning adapter, such as UI-TARS or AutoGLM, `aiAct` throws an error before reading the files or calling the model.
+
+The extra action is visible only to this call's planner and does not modify the Agent's Action Space. `name` is the description shown to the planner. It must not contain angle brackets, line breaks, or control characters. `actionName` accepts an Action Space name or `interfaceAlias`, without regard to case. `actionParam` must contain exactly one item, which Midscene validates against the referenced Action before planning starts. To replay multiple operations, record each operation in a separate file and pass all file paths through `loadExtraActions`.
+
+For an Action with one locate field, a parameter containing `prompt`, `xpath`, or `locatedPixelBbox` can use the shortcut shown above. Midscene moves only locator properties into the locate field and keeps other Action parameters, such as Input's `value` and `mode`, at the top level. If a locator contains an XPath or `locatedPixelBbox` but no prompt, the extra action's `name` is used as the fallback locate prompt.
+
+##### Load known element XPaths
+
+Unlike Extra Actions, an element XPath map records no operation type or value. One file can contain any number of elements:
+
+```yaml title="element-xpaths.yaml"
+elements:
+  First name input: //*[@id="first-name"]
+  Last name input: //*[@id="last-name"]
+  Notes input: //*[@id="notes"]
+```
+
+Pass the file to one `aiAct` call:
+
+```typescript
+await agent.aiAct(
+  'Fill first name with Alice, last name with Chen, and notes with "Hello"',
+  {
+    loadElementXpaths: ['./element-xpaths.yaml'],
+  },
+);
+```
+
+The planner still decides which Action to use and generates dynamic parameters such as Input values. When an Action requires a locator for a mapped element, it uses the map key as the locator prompt and Midscene injects the corresponding XPath before building executable tasks. An Action that can operate on the currently focused element does not need to add a redundant locator. If the XPath resolves, the locate task makes no model call. If the planner uses an unmapped prompt or the XPath is stale, Midscene preserves the existing AI-locate fallback. The map is per-call, does not modify the Agent, and participates in the Plan Cache key. Cached YAML retains the XPath so cache replay also avoids model-based locating.
 
 ##### Upload files from an `aiAct` prompt
 

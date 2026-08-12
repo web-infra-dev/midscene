@@ -1,0 +1,7 @@
+elements:
+  First name input: //*[@id="first-name"]
+  Last name input: //*[@id="last-name"]
+  Email input: //*[@id="email"]
+  Company input: //*[@id="company"]
+  Phone input: //*[@id="phone"]
+  Notes input: //*[@id="notes"]

@@ -1,0 +1,4 @@
+elements:
+  Canvas zoom out button: //*[@data-target-id="canvas-zoom-out"]
+  Canvas fit view button: //*[@data-target-id="canvas-fit-view"]
+  Canvas zoom in button: //*[@data-target-id="canvas-zoom-in"]
