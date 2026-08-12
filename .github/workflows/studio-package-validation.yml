@@ -6,12 +6,79 @@ on:
         description: 'Branch to package'
         required: true
         default: 'main'
+      mode:
+        description: 'Validation mode'
+        required: true
+        type: choice
+        default: package
+        options:
+          - package
+          - diagnose-windows-network
 
 permissions:
   contents: read
 
 jobs:
+  diagnose_windows_network:
+    if: ${{ inputs.mode == 'diagnose-windows-network' }}
+    name: Diagnose Windows runner network
+    runs-on: ${{ fromJSON(vars.WINDOWS_SELF_HOSTED_RUNNER_LABELS || '"windows-latest"') }}
+    timeout-minutes: 5
+    steps:
+      - name: Diagnose GitHub connectivity
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Continue'
+          $dnsSucceeded = $false
+          $tcpSucceeded = $false
+
+          Write-Host "Runner name: $env:RUNNER_NAME"
+          Write-Host "Runner OS: $env:RUNNER_OS"
+          Write-Host "Runner architecture: $env:RUNNER_ARCH"
+
+          Write-Host "::group::DNS resolution"
+          try {
+            Resolve-DnsName github.com -ErrorAction Stop |
+              Select-Object Name, Type, IPAddress |
+              Format-Table -AutoSize
+            $dnsSucceeded = $true
+          } catch {
+            Write-Host "::error title=DNS resolution failed::$($_.Exception.Message)"
+          }
+          Write-Host "::endgroup::"
+
+          Write-Host "::group::TCP connectivity"
+          try {
+            $connection = Test-NetConnection github.com -Port 443 -WarningAction SilentlyContinue
+            $connection |
+              Select-Object ComputerName, RemoteAddress, RemotePort, SourceAddress, TcpTestSucceeded |
+              Format-List
+            $tcpSucceeded = [bool]$connection.TcpTestSucceeded
+            if (-not $tcpSucceeded) {
+              Write-Host "::error title=TCP connection failed::Could not connect to github.com:443"
+            }
+          } catch {
+            Write-Host "::error title=TCP connection failed::$($_.Exception.Message)"
+          }
+          Write-Host "::endgroup::"
+
+          Write-Host "::group::Git HTTPS connectivity"
+          git ls-remote `
+            https://github.com/web-infra-dev/midscene.git `
+            refs/tags/v1.10.11
+          $gitExitCode = $LASTEXITCODE
+          Write-Host "git ls-remote exit code: $gitExitCode"
+          if ($gitExitCode -ne 0) {
+            Write-Host "::error title=Git HTTPS request failed::git ls-remote exited with code $gitExitCode"
+          }
+          Write-Host "::endgroup::"
+
+          if (-not $dnsSucceeded -or -not $tcpSucceeded -or $gitExitCode -ne 0) {
+            throw 'GitHub connectivity diagnostics failed.'
+          }
+
   package_studio:
+    if: ${{ inputs.mode == 'package' }}
     runs-on: ${{ fromJSON(matrix.runner) }}
     strategy:
       fail-fast: false
