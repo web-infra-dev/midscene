@@ -26,6 +26,20 @@ export interface RecorderGeneratedMetadata {
   description?: string;
 }
 
+const RECORDER_METADATA_MAX_EVENT_SAMPLES = 20;
+
+function selectRecorderMetadataEventIndexes(
+  eventCount: number,
+  maxEvents = RECORDER_METADATA_MAX_EVENT_SAMPLES,
+) {
+  if (eventCount <= maxEvents) {
+    return Array.from({ length: eventCount }, (_, index) => index);
+  }
+  return Array.from({ length: maxEvents }, (_, index) =>
+    Math.round((index * (eventCount - 1)) / (maxEvents - 1)),
+  );
+}
+
 function summarizeRecorderEvents(input: RecorderMetadataGenerationInput) {
   const events = input.events;
   const navigationEvents = events.filter(
@@ -40,6 +54,44 @@ function summarizeRecorderEvents(input: RecorderMetadataGenerationInput) {
   const titles = navigationEvents
     .map((event) => event.title)
     .filter((title): title is string => Boolean(title));
+  const userActionEvents = events.filter(
+    (event) =>
+      !event.parentEventId &&
+      event.type !== 'navigation' &&
+      event.type !== 'setViewport',
+  );
+  const actionSequences = userActionEvents
+    .map((event) => event.sequence)
+    .filter(
+      (sequence): sequence is number =>
+        typeof sequence === 'number' && Number.isFinite(sequence),
+    );
+  const selectedEventIndexes = selectRecorderMetadataEventIndexes(
+    events.length,
+  );
+  const eventTypeCounts = events.reduce<Record<string, number>>(
+    (counts, event) => {
+      counts[event.type] = (counts[event.type] || 0) + 1;
+      return counts;
+    },
+    {},
+  );
+  const summarizeEvent = (
+    event: MidsceneRecorderEvent,
+    eventIndex: number,
+  ) => ({
+    eventIndex: eventIndex + 1,
+    type: event.type,
+    actionType: event.actionType,
+    sequence: event.sequence,
+    url: event.url,
+    title: event.title,
+    value: event.value,
+    description: getMidsceneRecorderEventDescription(event),
+    semantic: compactRecorderSemanticForGeneration(
+      getMidsceneRecorderSemantic(event),
+    ),
+  });
 
   return {
     platform: input.target.platformId,
@@ -51,20 +103,36 @@ function summarizeRecorderEvents(input: RecorderMetadataGenerationInput) {
     clickCount: clickEvents.length,
     inputCount: inputEvents.length,
     scrollCount: scrollEvents.length,
-    totalActions: events.length,
+    totalEvents: events.length,
+    userActionCount: userActionEvents.length,
+    eventTypeCounts,
+    actionSequence:
+      actionSequences.length > 0
+        ? {
+            first: Math.min(...actionSequences),
+            last: Math.max(...actionSequences),
+            uniqueCount: new Set(actionSequences).size,
+          }
+        : undefined,
     firstUrl: urls[0] || input.target.values.url || '',
     lastUrl: urls[urls.length - 1] || '',
-    events: events.slice(0, 20).map((event) => ({
-      type: event.type,
-      actionType: event.actionType,
-      url: event.url,
-      title: event.title,
-      value: event.value,
-      description: getMidsceneRecorderEventDescription(event),
-      semantic: compactRecorderSemanticForGeneration(
-        getMidsceneRecorderSemantic(event),
-      ),
-    })),
+    firstUserAction: userActionEvents[0]
+      ? summarizeEvent(userActionEvents[0], events.indexOf(userActionEvents[0]))
+      : undefined,
+    lastUserAction: userActionEvents.at(-1)
+      ? summarizeEvent(
+          userActionEvents.at(-1)!,
+          events.lastIndexOf(userActionEvents.at(-1)!),
+        )
+      : undefined,
+    eventSelection: {
+      maxEvents: RECORDER_METADATA_MAX_EVENT_SAMPLES,
+      selectedEventIndexes: selectedEventIndexes.map((index) => index + 1),
+      omittedEventCount: events.length - selectedEventIndexes.length,
+    },
+    events: selectedEventIndexes.map((eventIndex) =>
+      summarizeEvent(events[eventIndex], eventIndex),
+    ),
   };
 }
 
@@ -104,6 +172,7 @@ export async function generateRecorderSessionMetadata(
 The recording can target Web, Android, iOS, HarmonyOS, or Computer. Do not assume it is a browser session unless the platform is web.
 Describe what the user did or accomplished. The description should use the user as the subject, preferably starting with "The user ...". Do not start the description with "The session ...".
 The title should be action-oriented and highlight the main task accomplished.
+The full-session counts, actionSequence, firstUserAction, and lastUserAction below are authoritative. The events array is a bounded sample across the complete recording, not a truncated prefix. If the title or description mentions a count, range, or final item, copy it only from those authoritative fields.
 
 Summary:
 ${JSON.stringify(summary, null, 2)}
