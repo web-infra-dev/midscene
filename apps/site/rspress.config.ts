@@ -162,6 +162,10 @@ export default defineConfig(async () => {
             link: '/introduction',
           },
           {
+            text: 'The Basics',
+            link: '/basics',
+          },
+          {
             text: 'Quick start 🔥',
             link: '/quick-start',
           },
@@ -310,6 +314,10 @@ export default defineConfig(async () => {
           {
             text: '介绍',
             link: '/zh/introduction',
+          },
+          {
+            text: '基本概念',
+            link: '/zh/basics',
           },
           {
             text: '快速开始 🔥',
