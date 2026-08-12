@@ -5,6 +5,7 @@ import type { BasePlaygroundAdapter } from '../adapters/base';
 import { LocalExecutionAdapter } from '../adapters/local-execution';
 import { RemoteExecutionAdapter } from '../adapters/remote-execution';
 import type {
+  PlaygroundRecorderCancelFinalizationResult,
   PlaygroundRecorderCapabilitiesResult,
   PlaygroundRecorderDescribeResult,
   PlaygroundRecorderEvent,
@@ -40,6 +41,7 @@ export interface PlaygroundInteractResult {
 export type PlaygroundPageRecordedEvent = PlaygroundRecorderEvent;
 export type {
   PlaygroundRecorderCapabilitiesResult,
+  PlaygroundRecorderCancelFinalizationResult,
   PlaygroundRecorderDescribeResult,
   PlaygroundRecorderEventsResult,
   PlaygroundRecorderFinalization,
@@ -308,11 +310,21 @@ export class PlaygroundSDK {
     return { ok: true };
   }
 
+  async cancelRecorderFinalization(
+    jobId: string,
+  ): Promise<PlaygroundRecorderCancelFinalizationResult> {
+    if (this.adapter instanceof RemoteExecutionAdapter) {
+      return this.adapter.cancelRecorderFinalization(jobId);
+    }
+    return { ok: false, error: 'Recorder requires remote execution' };
+  }
+
   async getRecorderEvents(
     afterLogSequence = 0,
+    waitMs = 0,
   ): Promise<PlaygroundRecorderEventsResult> {
     if (this.adapter instanceof RemoteExecutionAdapter) {
-      return this.adapter.getRecorderEvents(afterLogSequence);
+      return this.adapter.getRecorderEvents(afterLogSequence, waitMs);
     }
     return { events: [], nextLogSequence: afterLogSequence };
   }
@@ -352,6 +364,31 @@ export class PlaygroundSDK {
   ): Promise<void> {
     if (this.adapter instanceof RemoteExecutionAdapter) {
       await this.adapter.pruneRecorderScreenshotAssets(sessionId, assetIds);
+    }
+  }
+
+  async acquireRecorderScreenshotAssetLease(
+    sessionId: string,
+    purpose: 'describe' | 'finalization' | 'generation' | 'export' | string,
+  ): Promise<string | null> {
+    if (this.adapter instanceof RemoteExecutionAdapter) {
+      return this.adapter.acquireRecorderScreenshotAssetLease(
+        sessionId,
+        purpose,
+      );
+    }
+    return null;
+  }
+
+  async releaseRecorderScreenshotAssetLease(
+    sessionId: string,
+    leaseId: string,
+  ): Promise<void> {
+    if (this.adapter instanceof RemoteExecutionAdapter) {
+      await this.adapter.releaseRecorderScreenshotAssetLease(
+        sessionId,
+        leaseId,
+      );
     }
   }
 

@@ -162,7 +162,32 @@ rs.mock('node:fs', () => {
       );
     }),
     mkdirSync: rs.fn(),
-    readdirSync: rs.fn(() => []),
+    readdirSync: rs.fn((directoryPath: unknown) => {
+      if (!isRecorderAssetPath(directoryPath)) {
+        return [];
+      }
+      const prefix = `${String(directoryPath).replace(/\/$/, '')}/`;
+      return Array.from(files.keys())
+        .filter((filePath) => {
+          if (!filePath.startsWith(prefix)) {
+            return false;
+          }
+          return !filePath.slice(prefix.length).includes('/');
+        })
+        .map((filePath) => ({
+          name: filePath.slice(prefix.length),
+          isFile: () => true,
+        }));
+    }),
+    renameSync: rs.fn((sourcePath: unknown, targetPath: unknown) => {
+      const source = String(sourcePath);
+      const value = files.get(source);
+      if (value === undefined) {
+        throw new Error(`Mock rename source is unavailable: ${source}`);
+      }
+      files.set(String(targetPath), value);
+      files.delete(source);
+    }),
     rmSync: rs.fn((filePath: unknown) => {
       files.delete(String(filePath));
     }),

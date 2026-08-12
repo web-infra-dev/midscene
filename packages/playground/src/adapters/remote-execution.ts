@@ -6,6 +6,7 @@ import type {
 import type { TModelConfig } from '@midscene/shared/env';
 import { parseStructuredParams } from '../common';
 import type {
+  PlaygroundRecorderCancelFinalizationResult,
   PlaygroundRecorderCapabilitiesResult,
   PlaygroundRecorderDescribeResult,
   PlaygroundRecorderEvent,
@@ -649,16 +650,59 @@ export class RemoteExecutionAdapter extends BasePlaygroundAdapter {
     }
   }
 
+  async cancelRecorderFinalization(
+    jobId: string,
+  ): Promise<PlaygroundRecorderCancelFinalizationResult> {
+    if (!this.serverUrl) {
+      return { ok: false, error: 'No server URL configured' };
+    }
+    try {
+      const response = await fetch(
+        `${this.serverUrl}/recorder/finalization/${encodeURIComponent(jobId)}/cancel`,
+        { method: 'POST' },
+      );
+      const data = (await response
+        .json()
+        .catch(
+          () => null,
+        )) as PlaygroundRecorderCancelFinalizationResult | null;
+      if (!response.ok) {
+        return {
+          ok: false,
+          error:
+            data?.error ||
+            `Recorder finalization cancellation failed (${response.status})`,
+        };
+      }
+      return data || { ok: true };
+    } catch (error) {
+      return {
+        ok: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  }
+
   async getRecorderEvents(
     afterLogSequence = 0,
+    waitMs = 0,
   ): Promise<PlaygroundRecorderEventsResult> {
     if (!this.serverUrl) {
       return { events: [], nextLogSequence: afterLogSequence };
     }
 
+    const controller = new AbortController();
+    const requestTimeoutMs = Math.max(
+      5_000,
+      Math.min(Math.max(waitMs, 0), 15_000) + 5_000,
+    );
+    const requestTimeout = setTimeout(() => {
+      controller.abort('Recorder event polling timed out');
+    }, requestTimeoutMs);
     try {
       const response = await fetch(
-        `${this.serverUrl}/recorder/events?afterLogSequence=${encodeURIComponent(String(afterLogSequence))}&flushPending=false`,
+        `${this.serverUrl}/recorder/events?afterLogSequence=${encodeURIComponent(String(afterLogSequence))}&waitMs=${encodeURIComponent(String(waitMs))}&flushPending=false`,
+        { signal: controller.signal },
       );
       if (!response.ok) {
         return { events: [], nextLogSequence: afterLogSequence };
@@ -680,6 +724,8 @@ export class RemoteExecutionAdapter extends BasePlaygroundAdapter {
     } catch (error) {
       console.error('Failed to poll recorder events:', error);
       return { events: [], nextLogSequence: afterLogSequence };
+    } finally {
+      clearTimeout(requestTimeout);
     }
   }
 
@@ -787,6 +833,57 @@ export class RemoteExecutionAdapter extends BasePlaygroundAdapter {
     if (!response.ok) {
       throw new Error(
         `Recorder screenshot prune request failed (${response.status})`,
+      );
+    }
+  }
+
+  async acquireRecorderScreenshotAssetLease(
+    sessionId: string,
+    purpose: string,
+  ): Promise<string> {
+    if (!this.serverUrl || !sessionId) {
+      throw new Error('Recorder screenshot lease requires a remote session.');
+    }
+    const response = await fetch(
+      `${this.serverUrl}/recorder/assets/session/${encodeURIComponent(sessionId)}/leases`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ purpose }),
+      },
+    );
+    const result = (await response.json().catch(() => null)) as {
+      ok?: boolean;
+      leaseId?: string;
+      error?: string;
+    } | null;
+    if (!response.ok || !result?.leaseId) {
+      throw new Error(
+        result?.error ||
+          `Recorder screenshot lease request failed (${response.status})`,
+      );
+    }
+    return result.leaseId;
+  }
+
+  async releaseRecorderScreenshotAssetLease(
+    sessionId: string,
+    leaseId: string,
+  ): Promise<void> {
+    if (!this.serverUrl || !sessionId || !leaseId) {
+      return;
+    }
+    const response = await fetch(
+      `${this.serverUrl}/recorder/assets/session/${encodeURIComponent(sessionId)}/leases/${encodeURIComponent(leaseId)}`,
+      { method: 'DELETE' },
+    );
+    if (!response.ok) {
+      const result = (await response.json().catch(() => null)) as {
+        error?: string;
+      } | null;
+      throw new Error(
+        result?.error ||
+          `Recorder screenshot lease release failed (${response.status})`,
       );
     }
   }

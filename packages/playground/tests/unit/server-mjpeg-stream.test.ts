@@ -287,6 +287,132 @@ describe('PlaygroundServer MJPEG streaming', () => {
     }
   });
 
+  test('recorder lease consumes opaque cross-platform frame refs and decodes each frame once', async () => {
+    const frame = { ref: { opaque: 'frame-1' }, capturedAt: 100 };
+    const decode = vi.fn(async () => [
+      `data:image/jpeg;base64,${Buffer.from('decoded-frame').toString('base64')}`,
+    ]);
+    const stop = vi.fn(async () => undefined);
+    const openFrameSource = vi.fn(async () => ({
+      latest: () => frame,
+      decode,
+      stop,
+    }));
+    const server = new PlaygroundServer({
+      interface: {
+        interfaceType: 'ios',
+        actionSpace: () => [],
+        inputPrimitives: {},
+        screenshotBase64: async () => {
+          throw new Error('recorder should decode the shared frame ref');
+        },
+        size: async () => ({ width: 390, height: 844 }),
+        openFrameSource,
+      },
+    } as any);
+
+    await server.launch(6146);
+    vi.useFakeTimers();
+    try {
+      const startResponse = createMockStreamResponse();
+      await getRouteHandler(
+        server,
+        'post',
+        '/recorder/start',
+      )({ body: { sessionId: 'opaque-frame-session' } }, startResponse);
+      expect(startResponse.body).toMatchObject({ ok: true });
+      expect(openFrameSource).toHaveBeenCalledOnce();
+      expect(decode).toHaveBeenCalledOnce();
+
+      const lease = (server as any)._recorderFrameLease;
+      const [first, second] = await Promise.all([
+        lease.latest(),
+        lease.latest(),
+      ]);
+      expect(first).toMatchObject({
+        capturedAt: 100,
+        source: 'shared-frame-stream',
+        screenshot: expect.stringContaining('data:image/jpeg;base64,'),
+      });
+      expect(second?.frameToken).toBe(first?.frameToken);
+      expect(decode).toHaveBeenCalledOnce();
+
+      await getRouteHandler(
+        server,
+        'post',
+        '/recorder/stop',
+      )({}, createMockStreamResponse());
+      await server.waitForRecorderIdle();
+      expect(stop).not.toHaveBeenCalled();
+      await vi.advanceTimersByTimeAsync(2000);
+      expect(stop).toHaveBeenCalledOnce();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  test('reset stops a frame source that finishes opening after invalidation', async () => {
+    let resolveSource:
+      | ((source: {
+          latest: () => { ref: string; capturedAt: number };
+          decode: () => Promise<string[]>;
+          stop: () => Promise<void>;
+        }) => void)
+      | undefined;
+    const staleStop = vi.fn(async () => undefined);
+    const openFrameSource = vi.fn(
+      () =>
+        new Promise<any>((resolve) => {
+          resolveSource = resolve;
+        }),
+    );
+    const screenshotBase64 = vi.fn(
+      async () =>
+        `data:image/png;base64,${Buffer.from('fallback-frame').toString('base64')}`,
+    );
+    const server = new PlaygroundServer({
+      interface: {
+        interfaceType: 'ios',
+        actionSpace: () => [],
+        inputPrimitives: {},
+        screenshotBase64,
+        size: async () => ({ width: 390, height: 844 }),
+        openFrameSource,
+      },
+    } as any);
+    await server.launch(6147);
+
+    const startPromise = getRouteHandler(
+      server,
+      'post',
+      '/recorder/start',
+    )(
+      { body: { sessionId: 'stale-frame-source-session' } },
+      createMockStreamResponse(),
+    );
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(openFrameSource).toHaveBeenCalledOnce();
+    (server as any)._mjpegHandler.reset();
+    resolveSource?.({
+      latest: () => ({ ref: 'stale-frame', capturedAt: 100 }),
+      decode: async () => [
+        `data:image/jpeg;base64,${Buffer.from('stale-frame').toString('base64')}`,
+      ],
+      stop: staleStop,
+    });
+    await startPromise;
+
+    expect(staleStop).toHaveBeenCalledOnce();
+    expect(screenshotBase64).toHaveBeenCalled();
+    await getRouteHandler(
+      server,
+      'post',
+      '/recorder/stop',
+    )({}, createMockStreamResponse());
+    await server.waitForRecorderIdle();
+  });
+
   test('GET /mjpeg evicts stale subscribers when a new one attaches', async () => {
     // Chromium's <img> with multipart/x-mixed-replace keeps the underlying
     // TCP connection alive even after the element is unmounted, never

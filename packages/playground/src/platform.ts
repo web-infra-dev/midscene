@@ -122,7 +122,17 @@ export interface PlaygroundRecorderStartResult {
 export type PlaygroundRecorderFinalizationStatus =
   | 'finalizing'
   | 'completed'
+  | 'completed_with_warnings'
+  | 'cancelled'
   | 'failed';
+
+export interface PlaygroundRecorderFinalizationTimings {
+  stopRequestedAt: number;
+  queueDrainedAt?: number;
+  assetsReleasedAt?: number;
+  completedAt?: number;
+  durationMs?: number;
+}
 
 export interface PlaygroundRecorderFinalization {
   jobId: string;
@@ -134,8 +144,17 @@ export interface PlaygroundRecorderFinalization {
   degraded: number;
   pending: number;
   startedAt: number;
+  deadlineAt: number;
   completedAt?: number;
   finalLogSequence?: number;
+  timings: PlaygroundRecorderFinalizationTimings;
+  reason?: 'deadline_exceeded' | 'cancelled' | 'capture_failed';
+  error?: string;
+}
+
+export interface PlaygroundRecorderCancelFinalizationResult {
+  ok: boolean;
+  finalization?: PlaygroundRecorderFinalization;
   error?: string;
 }
 

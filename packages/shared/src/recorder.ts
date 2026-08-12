@@ -45,6 +45,8 @@ export interface MidsceneRecorderScreenshotAssetRef {
   id: string;
   mimeType: string;
   bytes: number;
+  /** Content digest used for deterministic de-duplication and auditing. */
+  sha256?: string;
 }
 
 export type MidsceneRecorderCaptureStatus =

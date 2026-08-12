@@ -5,6 +5,7 @@ import {
   mkdirSync,
   readFileSync,
   readdirSync,
+  renameSync,
   rmSync,
   statSync,
   writeFileSync,
@@ -41,6 +42,7 @@ import {
   annotateRects,
   imageInfoOfBase64,
   normalizeImageForModel,
+  resolveModelInputImageCapabilities,
 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import type {
@@ -93,6 +95,8 @@ const RECORDER_BEFORE_FRAME_WAIT_MS = 180;
 const RECORDER_BOUNDARY_SCREENSHOT_TIMEOUT_MS = 1500;
 const RECORDER_CAPTURE_TASK_TIMEOUT_MS = 3000;
 const RECORDER_CAPTURE_WORKER_COUNT = 2;
+const RECORDER_FINALIZATION_DEADLINE_MS = 60_000;
+const RECORDER_EVENTS_LONG_POLL_MAX_MS = 15_000;
 const RECORDER_FRAME_REGISTRY_MAX_ENTRIES = 32;
 const RECORDER_FRAME_REGISTRY_MAX_BYTES = 64 * 1024 * 1024;
 const RECORDER_TYPE_ONLY_INPUT_SETTLE_DELAY_MS = 750;
@@ -103,11 +107,46 @@ const RECORDER_AI_DESCRIBE_SCREENSHOT_DUMP_DIR =
 const RECORDER_SCREENSHOT_ASSET_DIR = 'recorder-screenshots';
 const RECORDER_SCREENSHOT_ASSET_MAX_SESSION_BYTES = 128 * 1024 * 1024;
 const RECORDER_SCREENSHOT_ASSET_MAX_TOTAL_BYTES = 512 * 1024 * 1024;
+const RECORDER_SCREENSHOT_ASSET_LEASE_TTL_MS = 30 * 60 * 1000;
 const PLAYGROUND_REPORT_REF_TTL_MS = 60 * 60 * 1000;
 const REPORT_DUMP_OPEN_TAG = '<script type="midscene_web_dump"';
 const REPORT_IMAGE_CLOSE_TAG = '</script>';
 const recorderScreenshotAssetQuotaExceededSessions = new Set<string>();
 const recorderScreenshotAssetBytesBySession = new Map<string, number>();
+interface RecorderScreenshotAssetManifestEntry {
+  id: string;
+  mimeType: string;
+  bytes: number;
+  sha256: string;
+  kind: 'generation';
+  createdAt: number;
+}
+interface RecorderScreenshotAssetManifest {
+  version: 1;
+  sessionId: string;
+  updatedAt: number;
+  assets: Record<string, RecorderScreenshotAssetManifestEntry>;
+}
+type RecorderScreenshotAssetCleanupRequest =
+  | { type: 'clear' }
+  | { type: 'prune'; retainedAssetIds: string[] };
+const recorderScreenshotAssetManifests = new Map<
+  string,
+  RecorderScreenshotAssetManifest
+>();
+interface RecorderScreenshotAssetLease {
+  purpose: string;
+  expiresAt: number;
+  timer: ReturnType<typeof setTimeout>;
+}
+const recorderScreenshotAssetLeases = new Map<
+  string,
+  Map<string, RecorderScreenshotAssetLease>
+>();
+const recorderScreenshotAssetPendingCleanup = new Map<
+  string,
+  RecorderScreenshotAssetCleanupRequest
+>();
 let recorderScreenshotAssetUsageInitialized = false;
 
 async function extractLastReportDump(reportPath: string): Promise<string> {
@@ -404,6 +443,79 @@ function getRecorderScreenshotAssetRoot() {
   return root;
 }
 
+function recorderScreenshotAssetManifestPath(sessionId: string) {
+  const safeSessionId = sanitizeRecorderPathSegment(sessionId, 'session');
+  const root = getRecorderScreenshotAssetRoot();
+  return assertPathInsideDirectory(
+    root,
+    join(root, `${safeSessionId}.manifest.json`),
+  );
+}
+
+function createRecorderScreenshotAssetManifest(
+  sessionId: string,
+): RecorderScreenshotAssetManifest {
+  const safeSessionId = sanitizeRecorderPathSegment(sessionId, 'session');
+  return {
+    version: 1,
+    sessionId: safeSessionId,
+    updatedAt: Date.now(),
+    assets: {},
+  };
+}
+
+function readRecorderScreenshotAssetManifest(
+  sessionId: string,
+): RecorderScreenshotAssetManifest {
+  const safeSessionId = sanitizeRecorderPathSegment(sessionId, 'session');
+  const cached = recorderScreenshotAssetManifests.get(safeSessionId);
+  if (cached) {
+    return cached;
+  }
+  const filePath = recorderScreenshotAssetManifestPath(safeSessionId);
+  let manifest = createRecorderScreenshotAssetManifest(safeSessionId);
+  if (existsSync(filePath)) {
+    const parsed = JSON.parse(
+      readFileSync(filePath, 'utf-8'),
+    ) as Partial<RecorderScreenshotAssetManifest>;
+    if (
+      parsed.version !== 1 ||
+      parsed.sessionId !== safeSessionId ||
+      !parsed.assets ||
+      typeof parsed.assets !== 'object'
+    ) {
+      throw new Error(
+        `Invalid recorder screenshot asset manifest for ${safeSessionId}`,
+      );
+    }
+    manifest = parsed as RecorderScreenshotAssetManifest;
+  }
+  recorderScreenshotAssetManifests.set(safeSessionId, manifest);
+  return manifest;
+}
+
+function writeRecorderScreenshotAssetManifest(
+  manifest: RecorderScreenshotAssetManifest,
+) {
+  const nextManifest: RecorderScreenshotAssetManifest = {
+    ...manifest,
+    updatedAt: Date.now(),
+  };
+  const filePath = recorderScreenshotAssetManifestPath(manifest.sessionId);
+  const temporaryPath = assertPathInsideDirectory(
+    getRecorderScreenshotAssetRoot(),
+    `${filePath}.${process.pid}.${randomUUID()}.tmp`,
+  );
+  try {
+    writeFileSync(temporaryPath, `${JSON.stringify(nextManifest, null, 2)}\n`);
+    renameSync(temporaryPath, filePath);
+  } finally {
+    rmSync(temporaryPath, { force: true });
+  }
+  recorderScreenshotAssetManifests.set(manifest.sessionId, nextManifest);
+  return nextManifest;
+}
+
 function assertRecorderScreenshotAssetId(assetId: string) {
   if (!/^[a-zA-Z0-9_-]+$/.test(assetId)) {
     throw new Error('Invalid recorder screenshot asset id');
@@ -442,14 +554,51 @@ function initializeRecorderScreenshotAssetUsage() {
   recorderScreenshotAssetUsageInitialized = true;
   const root = getRecorderScreenshotAssetRoot();
   try {
-    for (const entry of readdirSync(root, { withFileTypes: true })) {
+    const entries = readdirSync(root, { withFileTypes: true });
+    const manifestAssetIds = new Set<string>();
+    for (const entry of entries) {
+      const manifestMatch = entry.isFile()
+        ? entry.name.match(/^(.*)\.manifest\.json$/i)
+        : null;
+      if (!manifestMatch?.[1]) {
+        continue;
+      }
+      let manifest: RecorderScreenshotAssetManifest;
+      try {
+        manifest = readRecorderScreenshotAssetManifest(manifestMatch[1]);
+      } catch (error) {
+        debugRecorderAssets(
+          'failed to read recorder screenshot asset manifest during startup:',
+          error,
+        );
+        continue;
+      }
+      let sessionBytes = 0;
+      for (const asset of Object.values(manifest.assets)) {
+        const filePath = recorderScreenshotAssetPath(asset.id, asset.mimeType);
+        if (!existsSync(filePath)) {
+          continue;
+        }
+        manifestAssetIds.add(asset.id);
+        sessionBytes += statSync(filePath).size;
+      }
+      recorderScreenshotAssetBytesBySession.set(
+        manifest.sessionId,
+        sessionBytes,
+      );
+    }
+    for (const entry of entries) {
       if (!entry.isFile()) {
         continue;
       }
       const match = entry.name.match(
-        /^(.*)-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.(?:png|jpg)$/i,
+        /^(.*)-(?:[0-9a-f]{64}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\.(?:png|jpg)$/i,
       );
       if (!match?.[1]) {
+        continue;
+      }
+      const assetId = entry.name.replace(/\.(?:png|jpg)$/i, '');
+      if (manifestAssetIds.has(assetId)) {
         continue;
       }
       const sessionId = match[1];
@@ -472,11 +621,43 @@ function persistRecorderScreenshotAsset(
   imageBase64?: string,
 ): MidsceneRecorderScreenshotAssetRef | undefined {
   if (!imageBase64?.startsWith('data:')) {
+    debugRecorderAssets(
+      'recorder screenshot asset rejected because the payload is not a data URL %o',
+      { sessionId },
+    );
     return undefined;
   }
   const { base64, mimeType } = extractBase64Payload(imageBase64);
   const bytes = Buffer.from(base64, 'base64');
   const safeSessionId = sanitizeRecorderPathSegment(sessionId, 'session');
+  const sha256 = createHash('sha256').update(bytes).digest('hex');
+  const assetId = `${safeSessionId}-${sha256}`;
+  const normalizedMimeType = mimeType || 'image/png';
+  let manifest: RecorderScreenshotAssetManifest;
+  try {
+    manifest = readRecorderScreenshotAssetManifest(safeSessionId);
+  } catch (error) {
+    debugRecorderAssets(
+      'failed to read recorder screenshot asset manifest:',
+      error,
+    );
+    return undefined;
+  }
+  const existingEntry = manifest.assets[assetId];
+  if (existingEntry) {
+    const existingPath = recorderScreenshotAssetPath(
+      assetId,
+      existingEntry.mimeType,
+    );
+    if (existsSync(existingPath)) {
+      return {
+        id: existingEntry.id,
+        mimeType: existingEntry.mimeType,
+        bytes: existingEntry.bytes,
+        sha256: existingEntry.sha256,
+      };
+    }
+  }
   const usage = getRecorderScreenshotAssetUsage(sessionId);
   if (
     usage.sessionBytes + bytes.byteLength >
@@ -494,12 +675,30 @@ function persistRecorderScreenshotAsset(
     }
     return undefined;
   }
-  const assetId = `${safeSessionId}-${randomUUID()}`;
-  const normalizedMimeType = mimeType || 'image/png';
   const filePath = recorderScreenshotAssetPath(assetId, normalizedMimeType);
+  const assetFileAlreadyExists = existsSync(filePath);
   try {
-    writeFileSync(filePath, bytes);
+    if (!assetFileAlreadyExists) {
+      writeFileSync(filePath, bytes);
+    }
+    writeRecorderScreenshotAssetManifest({
+      ...manifest,
+      assets: {
+        ...manifest.assets,
+        [assetId]: {
+          id: assetId,
+          mimeType: normalizedMimeType,
+          bytes: bytes.byteLength,
+          sha256,
+          kind: 'generation',
+          createdAt: existingEntry?.createdAt || Date.now(),
+        },
+      },
+    });
   } catch (error) {
+    if (!assetFileAlreadyExists) {
+      rmSync(filePath, { force: true });
+    }
     debugRecorderAssets('failed to persist recorder screenshot asset:', error);
     return undefined;
   }
@@ -511,6 +710,7 @@ function persistRecorderScreenshotAsset(
     id: assetId,
     mimeType: normalizedMimeType,
     bytes: bytes.byteLength,
+    sha256,
   };
 }
 
@@ -539,20 +739,31 @@ function findRecorderScreenshotAssetPath(assetId: string) {
   return undefined;
 }
 
-function removeRecorderScreenshotAssetsForSession(sessionId: string) {
+function hasRecorderScreenshotAssetLeases(sessionId: string) {
+  const safeSessionId = sanitizeRecorderPathSegment(sessionId, 'session');
+  return (recorderScreenshotAssetLeases.get(safeSessionId)?.size || 0) > 0;
+}
+
+function removeRecorderScreenshotAssetsForSessionNow(sessionId: string) {
   const safeSessionId = sanitizeRecorderPathSegment(sessionId, 'session');
   const prefix = `${safeSessionId}-`;
   const root = getRecorderScreenshotAssetRoot();
   for (const entry of readdirSync(root, { withFileTypes: true })) {
-    if (entry.isFile() && entry.name.startsWith(prefix)) {
+    if (
+      entry.isFile() &&
+      entry.name.startsWith(prefix) &&
+      /\.(?:png|jpg)$/i.test(entry.name)
+    ) {
       rmSync(join(root, entry.name), { force: true });
     }
   }
+  rmSync(recorderScreenshotAssetManifestPath(safeSessionId), { force: true });
   recorderScreenshotAssetQuotaExceededSessions.delete(safeSessionId);
   recorderScreenshotAssetBytesBySession.delete(safeSessionId);
+  recorderScreenshotAssetManifests.delete(safeSessionId);
 }
 
-function pruneRecorderScreenshotAssetsForSession(
+function pruneRecorderScreenshotAssetsForSessionNow(
   sessionId: string,
   retainedAssetIds: string[],
 ) {
@@ -570,7 +781,11 @@ function pruneRecorderScreenshotAssetsForSession(
   const root = getRecorderScreenshotAssetRoot();
   let sessionBytes = 0;
   for (const entry of readdirSync(root, { withFileTypes: true })) {
-    if (!entry.isFile() || !entry.name.startsWith(prefix)) {
+    if (
+      !entry.isFile() ||
+      !entry.name.startsWith(prefix) ||
+      !/\.(?:png|jpg)$/i.test(entry.name)
+    ) {
       continue;
     }
     const assetId = entry.name.replace(/\.(?:png|jpg)$/i, '');
@@ -582,6 +797,119 @@ function pruneRecorderScreenshotAssetsForSession(
     sessionBytes += statSync(filePath).size;
   }
   recorderScreenshotAssetBytesBySession.set(safeSessionId, sessionBytes);
+  const manifest = readRecorderScreenshotAssetManifest(safeSessionId);
+  writeRecorderScreenshotAssetManifest({
+    ...manifest,
+    assets: Object.fromEntries(
+      Object.entries(manifest.assets).filter(([assetId]) =>
+        retained.has(assetId),
+      ),
+    ),
+  });
+}
+
+function requestRecorderScreenshotAssetCleanup(
+  sessionId: string,
+  request: RecorderScreenshotAssetCleanupRequest,
+) {
+  const safeSessionId = sanitizeRecorderPathSegment(sessionId, 'session');
+  if (hasRecorderScreenshotAssetLeases(safeSessionId)) {
+    const existing = recorderScreenshotAssetPendingCleanup.get(safeSessionId);
+    recorderScreenshotAssetPendingCleanup.set(
+      safeSessionId,
+      existing?.type === 'clear' ? existing : request,
+    );
+    debugRecorderAssets('recorder screenshot cleanup deferred by lease %o', {
+      sessionId: safeSessionId,
+      cleanup: request.type,
+      leaseCount: recorderScreenshotAssetLeases.get(safeSessionId)?.size || 0,
+    });
+    return { deferred: true };
+  }
+  if (request.type === 'clear') {
+    removeRecorderScreenshotAssetsForSessionNow(safeSessionId);
+  } else {
+    pruneRecorderScreenshotAssetsForSessionNow(
+      safeSessionId,
+      request.retainedAssetIds,
+    );
+  }
+  return { deferred: false };
+}
+
+function acquireRecorderScreenshotAssetLease(
+  sessionId: string,
+  purpose: string,
+) {
+  const safeSessionId = sanitizeRecorderPathSegment(sessionId, 'session');
+  const leaseId = `recorder-asset-lease-${randomUUID()}`;
+  const leases =
+    recorderScreenshotAssetLeases.get(safeSessionId) ||
+    new Map<string, RecorderScreenshotAssetLease>();
+  const expiresAt = Date.now() + RECORDER_SCREENSHOT_ASSET_LEASE_TTL_MS;
+  const timer = setTimeout(() => {
+    try {
+      releaseRecorderScreenshotAssetLease(safeSessionId, leaseId);
+      debugRecorderAssets('recorder screenshot asset lease expired %o', {
+        sessionId: safeSessionId,
+        leaseId,
+        purpose: purpose || 'unspecified',
+      });
+    } catch (error) {
+      debugRecorderAssets(
+        'failed to expire recorder screenshot asset lease:',
+        error,
+      );
+    }
+  }, RECORDER_SCREENSHOT_ASSET_LEASE_TTL_MS);
+  timer.unref?.();
+  leases.set(leaseId, {
+    purpose: purpose || 'unspecified',
+    expiresAt,
+    timer,
+  });
+  recorderScreenshotAssetLeases.set(safeSessionId, leases);
+  debugRecorderAssets('recorder screenshot asset lease acquired %o', {
+    sessionId: safeSessionId,
+    leaseId,
+    purpose: purpose || 'unspecified',
+    expiresAt,
+    leaseCount: leases.size,
+  });
+  return leaseId;
+}
+
+function releaseRecorderScreenshotAssetLease(
+  sessionId: string,
+  leaseId: string,
+) {
+  const safeSessionId = sanitizeRecorderPathSegment(sessionId, 'session');
+  const leases = recorderScreenshotAssetLeases.get(safeSessionId);
+  if (!leases) {
+    throw new Error('Recorder screenshot asset lease was not found');
+  }
+  const lease = leases.get(leaseId);
+  if (!lease) {
+    throw new Error('Recorder screenshot asset lease was not found');
+  }
+  clearTimeout(lease.timer);
+  leases.delete(leaseId);
+  if (leases.size > 0) {
+    return { cleanupApplied: false };
+  }
+  recorderScreenshotAssetLeases.delete(safeSessionId);
+  const pendingCleanup =
+    recorderScreenshotAssetPendingCleanup.get(safeSessionId);
+  recorderScreenshotAssetPendingCleanup.delete(safeSessionId);
+  if (pendingCleanup) {
+    requestRecorderScreenshotAssetCleanup(safeSessionId, pendingCleanup);
+  }
+  debugRecorderAssets('recorder screenshot asset lease released %o', {
+    sessionId: safeSessionId,
+    leaseId,
+    cleanupApplied: Boolean(pendingCleanup),
+  });
+  return { cleanupApplied: Boolean(pendingCleanup) };
 }
 
 function calculateRecorderScreenshotAnnotation(
@@ -877,6 +1205,9 @@ const debugInteract = getDebug('playground:interact', { console: true });
 const debugCancel = getDebug('playground:cancel', { console: true });
 const debugReport = getDebug('playground:report', { console: true });
 const debugRecorderAssets = getDebug('playground:recorder-assets', {
+  console: true,
+});
+const debugRecorderFinalization = getDebug('playground:recorder-finalization', {
   console: true,
 });
 
@@ -1254,6 +1585,14 @@ interface PlaygroundRecorderInteractionIdentity {
   sequence: number;
   interactionStartedAt: number;
   actionType: string;
+  sessionId: string;
+  generation: number;
+}
+
+interface PlaygroundRecorderWorkContext {
+  sessionId: string;
+  generation: number;
+  signal: AbortSignal;
 }
 
 interface PlaygroundRecorderFrameRegistryEntry {
@@ -1372,6 +1711,9 @@ class PlaygroundServer {
   private _recorderLastBeforeFrameToken: string | undefined;
   private _recorderFinalization: PlaygroundRecorderFinalization | undefined;
   private _recorderFinalizationPromise: Promise<void> | undefined;
+  private _recorderGeneration = 0;
+  private _recorderAbortController: AbortController | undefined;
+  private readonly _recorderEventWaiters = new Set<() => void>();
   private _recorderFrameRegistry = new Map<
     string,
     PlaygroundRecorderFrameRegistryEntry
@@ -1692,7 +2034,67 @@ class PlaygroundServer {
     };
   }
 
+  private notifyRecorderStateChanged(): void {
+    const waiters = Array.from(this._recorderEventWaiters);
+    this._recorderEventWaiters.clear();
+    for (const resolveWaiter of waiters) {
+      resolveWaiter();
+    }
+  }
+
+  private waitForRecorderStateChange(waitMs: number): Promise<void> {
+    const boundedWaitMs = Math.max(
+      0,
+      Math.min(waitMs, RECORDER_EVENTS_LONG_POLL_MAX_MS),
+    );
+    if (boundedWaitMs === 0) {
+      return Promise.resolve();
+    }
+    return new Promise((resolveWait) => {
+      let settled = false;
+      const finish = () => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        clearTimeout(timeout);
+        this._recorderEventWaiters.delete(finish);
+        resolveWait();
+      };
+      const timeout = setTimeout(finish, boundedWaitMs);
+      this._recorderEventWaiters.add(finish);
+    });
+  }
+
+  private getRecorderWorkContext(): PlaygroundRecorderWorkContext | undefined {
+    const sessionId = this._recorderSessionId;
+    if (!sessionId) {
+      return undefined;
+    }
+    this._recorderAbortController ??= new AbortController();
+    const controller = this._recorderAbortController;
+    return {
+      sessionId,
+      generation: this._recorderGeneration,
+      signal: controller.signal,
+    };
+  }
+
+  private isRecorderWorkCurrent(
+    context: PlaygroundRecorderWorkContext,
+  ): boolean {
+    return (
+      !context.signal.aborted &&
+      context.generation === this._recorderGeneration &&
+      (this._recorderSessionId === context.sessionId ||
+        this._recorderFinalization?.sessionId === context.sessionId)
+    );
+  }
+
   private resetRecorderState(): void {
+    this._recorderAbortController?.abort('recorder state reset');
+    this._recorderGeneration += 1;
+    this.notifyRecorderStateChanged();
     this.clearPendingTypeOnlyRecorderInputFlushTimer();
     this._recorderFrameLease?.release();
     this._recorderFrameLease = null;
@@ -1714,6 +2116,7 @@ class PlaygroundServer {
     this._recorderLastBeforeFrameToken = undefined;
     this._recorderFinalization = undefined;
     this._recorderFinalizationPromise = undefined;
+    this._recorderAbortController = undefined;
     this._recorderFrameRegistry.clear();
     this._recorderFrameRegistryBytes = 0;
     this._recorderActiveInteractions = [];
@@ -1724,8 +2127,11 @@ class PlaygroundServer {
   }
 
   async waitForRecorderIdle(): Promise<void> {
+    if (this._recorderFinalizationPromise) {
+      await this._recorderFinalizationPromise;
+      return;
+    }
     await this.waitForQueuedRecorderEvents();
-    await this._recorderFinalizationPromise;
   }
 
   private async waitForQueuedRecorderEvents(): Promise<void> {
@@ -1775,6 +2181,118 @@ class PlaygroundServer {
     };
   }
 
+  private markPendingRecorderActionsDegraded(message: string): void {
+    const finalization = this._recorderFinalization;
+    if (!finalization) {
+      return;
+    }
+    const actions = new Map<string, PlaygroundRecorderEvent>();
+    for (const event of this._recorderEvents) {
+      if (
+        typeof event.sequence !== 'number' ||
+        event.sequence <= 0 ||
+        event.sequence > finalization.actionHighWaterMark ||
+        event.parentEventId
+      ) {
+        continue;
+      }
+      actions.set(event.eventId || event.hashId, event);
+    }
+    for (const event of actions.values()) {
+      if (event.captureStatus !== 'pending') {
+        continue;
+      }
+      this.publishRecorderEventRevision({
+        ...event,
+        captureStatus: 'degraded',
+        captureError: {
+          code: 'capture_failed',
+          message,
+        },
+        semantic:
+          event.semantic?.status === 'pending'
+            ? buildFailedAiDescribeRecorderSemantic(message)
+            : event.semantic,
+        revisions: {
+          capture: (event.revisions?.capture || 0) + 1,
+          semantic: event.revisions?.semantic || 0,
+        },
+      });
+    }
+  }
+
+  private finishRecorderFinalization(
+    status: Exclude<PlaygroundRecorderFinalization['status'], 'finalizing'>,
+    options: {
+      reason?: PlaygroundRecorderFinalization['reason'];
+      error?: string;
+      queueDrainedAt?: number;
+    } = {},
+  ): void {
+    const finalization = this._recorderFinalization;
+    if (!finalization || finalization.status !== 'finalizing') {
+      return;
+    }
+
+    const initialSnapshot = this.getRecorderFinalizationSnapshot()!;
+    if (status !== 'completed' || initialSnapshot.pending > 0) {
+      this.markPendingRecorderActionsDegraded(
+        options.error || 'Recorder capture did not finish before finalization.',
+      );
+    }
+    this._recorderAbortController?.abort(
+      options.reason || status || 'recorder finalization completed',
+    );
+    this._recorderFrameLease?.release();
+    this._recorderFrameLease = null;
+    this._recorderFrameRegistry.clear();
+    this._recorderFrameRegistryBytes = 0;
+    if (this._recorderSessionId === finalization.sessionId) {
+      this._recorderSessionId = null;
+    }
+    this._recorderAcceptingInteractions = false;
+    this._recorderActiveInteractions = [];
+    this._studioPreviewRecorderLastScreenshot = undefined;
+    this._studioPreviewRecorderLastPageState = undefined;
+    this._studioPreviewRecorderLastPageStateSequence = 0;
+
+    const completedAt = Date.now();
+    const snapshot = this.getRecorderFinalizationSnapshot()!;
+    const terminalStatus =
+      status === 'completed' && (snapshot.degraded > 0 || snapshot.pending > 0)
+        ? 'completed_with_warnings'
+        : status;
+    this._recorderFinalization = {
+      ...snapshot,
+      status: terminalStatus,
+      completedAt,
+      finalLogSequence: this._recorderLogSequence,
+      timings: {
+        ...snapshot.timings,
+        ...(options.queueDrainedAt
+          ? { queueDrainedAt: options.queueDrainedAt }
+          : {}),
+        assetsReleasedAt: completedAt,
+        completedAt,
+        durationMs: completedAt - snapshot.startedAt,
+      },
+      ...(options.reason || terminalStatus === 'completed_with_warnings'
+        ? {
+            reason: options.reason || ('capture_failed' as const),
+          }
+        : {}),
+      ...(options.error ? { error: options.error } : {}),
+    };
+    debugRecorderFinalization(
+      'recorder finalization reached terminal state %o',
+      {
+        ...this._recorderFinalization,
+        logCursor: this._recorderLogSequence,
+      },
+    );
+    this.notifyRecorderStateChanged();
+  }
+
   private beginRecorderFinalization():
     | PlaygroundRecorderFinalization
     | undefined {
@@ -1787,6 +2305,8 @@ class PlaygroundServer {
     }
 
     this._recorderAcceptingInteractions = false;
+    this._recorderAbortController ??= new AbortController();
+    const startedAt = Date.now();
     this._recorderFinalization = {
       jobId: `recorder-finalization-${randomUUID()}`,
       sessionId,
@@ -1796,40 +2316,100 @@ class PlaygroundServer {
       captured: 0,
       degraded: 0,
       pending: 0,
-      startedAt: Date.now(),
+      startedAt,
+      deadlineAt: startedAt + RECORDER_FINALIZATION_DEADLINE_MS,
+      timings: { stopRequestedAt: startedAt },
     };
+    debugRecorderFinalization('recorder finalization started %o', {
+      jobId: this._recorderFinalization.jobId,
+      sessionId,
+      actionHighWaterMark: this._recorderFinalization.actionHighWaterMark,
+      accepted: this.getRecorderFinalizationSnapshot()?.accepted,
+      pendingCaptures: this._recorderPendingCaptures,
+      deadlineAt: this._recorderFinalization.deadlineAt,
+      logCursor: this._recorderLogSequence,
+    });
+    this.notifyRecorderStateChanged();
     this._recorderFinalizationPromise = (async () => {
+      let deadlineTimer: ReturnType<typeof setTimeout> | undefined;
       try {
-        await this.waitForQueuedRecorderEvents();
-        this.flushPendingTypeOnlyRecorderInput();
-        this._recorderFrameLease?.release();
-        this._recorderFrameLease = null;
-        this._recorderSessionId = null;
-        this._recorderActiveInteractions = [];
-        this._studioPreviewRecorderLastScreenshot = undefined;
-        this._studioPreviewRecorderLastPageState = undefined;
-        this._studioPreviewRecorderLastPageStateSequence = 0;
-        if (this._recorderFinalization) {
-          this._recorderFinalization = {
-            ...this.getRecorderFinalizationSnapshot()!,
-            status: 'completed',
-            completedAt: Date.now(),
-            finalLogSequence: this._recorderLogSequence,
-          };
+        const controller = this._recorderAbortController;
+        const result = await Promise.race([
+          this.waitForQueuedRecorderEvents().then(() => 'drained' as const),
+          new Promise<'deadline'>((resolveDeadline) => {
+            deadlineTimer = setTimeout(
+              () => resolveDeadline('deadline'),
+              RECORDER_FINALIZATION_DEADLINE_MS,
+            );
+          }),
+          new Promise<'cancelled'>((resolveCancelled) => {
+            if (!controller || controller.signal.aborted) {
+              resolveCancelled('cancelled');
+              return;
+            }
+            controller.signal.addEventListener(
+              'abort',
+              () => resolveCancelled('cancelled'),
+              { once: true },
+            );
+          }),
+        ]);
+        if (result === 'drained') {
+          this.flushPendingTypeOnlyRecorderInput();
+          this.finishRecorderFinalization('completed', {
+            queueDrainedAt: Date.now(),
+          });
+        } else if (result === 'deadline') {
+          this.finishRecorderFinalization('completed_with_warnings', {
+            reason: 'deadline_exceeded',
+            error: `Recorder finalization exceeded its ${RECORDER_FINALIZATION_DEADLINE_MS}ms deadline. Pending captures were degraded.`,
+          });
+        } else {
+          this.finishRecorderFinalization('cancelled', {
+            reason: 'cancelled',
+            error:
+              'Recorder finalization was cancelled. Pending captures were degraded.',
+          });
         }
       } catch (error) {
-        if (this._recorderFinalization) {
-          this._recorderFinalization = {
-            ...this.getRecorderFinalizationSnapshot()!,
-            status: 'failed',
-            completedAt: Date.now(),
-            finalLogSequence: this._recorderLogSequence,
-            error: error instanceof Error ? error.message : String(error),
-          };
+        this.finishRecorderFinalization('failed', {
+          reason: 'capture_failed',
+          error: error instanceof Error ? error.message : String(error),
+        });
+      } finally {
+        if (deadlineTimer) {
+          clearTimeout(deadlineTimer);
         }
       }
     })();
     return this.getRecorderFinalizationSnapshot();
+  }
+
+  private async cancelRecorderFinalization(jobId: string) {
+    const finalization = this._recorderFinalization;
+    if (!finalization || finalization.jobId !== jobId) {
+      return {
+        ok: false,
+        error: 'Recorder finalization job was not found.',
+      };
+    }
+    if (finalization.status === 'finalizing') {
+      debugRecorderFinalization(
+        'recorder finalization cancellation requested %o',
+        {
+          jobId,
+          sessionId: finalization.sessionId,
+          actionHighWaterMark: finalization.actionHighWaterMark,
+          logCursor: this._recorderLogSequence,
+        },
+      );
+      this._recorderAbortController?.abort('cancelled');
+      await this._recorderFinalizationPromise;
+    }
+    return {
+      ok: true,
+      finalization: this.getRecorderFinalizationSnapshot(),
+    };
   }
 
   private canRecordStudioPreviewInteractions(): boolean {
@@ -1985,7 +2565,7 @@ class PlaygroundServer {
   }
 
   private buildRetainedRecorderSnapshot(
-    frame: NonNullable<ReturnType<RecorderFrameLease['latest']>>,
+    frame: NonNullable<Awaited<ReturnType<RecorderFrameLease['latest']>>>,
     pageState: PlaygroundRecorderPageState,
     options: {
       snapshotFrozenAt: number;
@@ -2094,7 +2674,7 @@ class PlaygroundServer {
     }
     const waitStartedAt = Date.now();
     let frame =
-      this._recorderFrameLease?.latest() ||
+      (await this._recorderFrameLease?.latest()) ||
       this._mjpegHandler.getLastFrameSnapshot();
     let rejectedFrame = frame;
     const previousCompletedAt = this._recorderPreviousInteractionCompletedAt;
@@ -2150,7 +2730,8 @@ class PlaygroundServer {
 
   private async startStudioPreviewRecorder(sessionId: string): Promise<void> {
     this._recorderSessionId = sessionId;
-    this._recorderFrameLease = this._mjpegHandler.acquireFrameLease();
+    this._recorderAbortController = new AbortController();
+    this._recorderFrameLease = await this._mjpegHandler.acquireFrameLease();
     const initialFrame = await this._recorderFrameLease?.waitForFrameAfter(
       0,
       1500,
@@ -2202,6 +2783,7 @@ class PlaygroundServer {
       logSequence: ++this._recorderLogSequence,
     };
     this._recorderEvents.push(entry);
+    this.notifyRecorderStateChanged();
     return entry;
   }
 
@@ -2225,26 +2807,26 @@ class PlaygroundServer {
         logSequence: existing.logSequence,
       };
       this._recorderEvents[existingIndex] = replacement;
+      this.notifyRecorderStateChanged();
       return replacement;
     }
     return this.appendRecorderLogEvent({ ...event, eventId });
   }
 
   private persistStudioPreviewRecorderScreenshot(
+    sessionId: string,
     screenshot?: string,
   ): MidsceneRecorderScreenshotAssetRef | undefined {
-    if (!this._recorderSessionId) {
-      return undefined;
-    }
-    return persistRecorderScreenshotAsset(this._recorderSessionId, screenshot);
+    return persistRecorderScreenshotAsset(sessionId, screenshot);
   }
 
   private async storeStudioPreviewRecorderEvent(
+    context: PlaygroundRecorderWorkContext,
     event: PlaygroundRecorderEvent,
     payload: Record<string, unknown>,
     snapshotBefore?: PlaygroundRecorderSnapshot,
   ): Promise<void> {
-    if (!this._recorderSessionId) {
+    if (!this.isRecorderWorkCurrent(context)) {
       return;
     }
     const before = snapshotBefore;
@@ -2255,7 +2837,7 @@ class PlaygroundServer {
       hasBeforeScreenshot: Boolean(screenshotBefore),
       beforeUrl: before?.pageState.url,
     });
-    if (!this._recorderSessionId) {
+    if (!this.isRecorderWorkCurrent(context)) {
       return;
     }
     let afterFrame = await this._recorderFrameLease?.waitForFrameAfter(
@@ -2290,6 +2872,9 @@ class PlaygroundServer {
           pageInfo: { width: 0, height: 0 },
         },
     );
+    if (!this.isRecorderWorkCurrent(context)) {
+      return;
+    }
     debugInteract('recorder capture completed after action %o', {
       eventId: event.eventId,
       payload: summarizeInteractPayload(payload),
@@ -2323,13 +2908,14 @@ class PlaygroundServer {
           message: normalized.error.message,
         };
       } else {
-        const usage = getRecorderScreenshotAssetUsage(this._recorderSessionId);
+        const usage = getRecorderScreenshotAssetUsage(context.sessionId);
         const quotaExceeded =
           usage.sessionBytes + normalized.finalBytes >
             RECORDER_SCREENSHOT_ASSET_MAX_SESSION_BYTES ||
           usage.totalBytes + normalized.finalBytes >
             RECORDER_SCREENSHOT_ASSET_MAX_TOTAL_BYTES;
         screenshotAsset = this.persistStudioPreviewRecorderScreenshot(
+          context.sessionId,
           normalized.imageBase64,
         );
         if (!screenshotAsset) {
@@ -2414,6 +3000,9 @@ class PlaygroundServer {
         event.interactionCompletedAt ||
         event.interactionStartedAt ||
         event.timestamp;
+    }
+    if (!this.isRecorderWorkCurrent(context)) {
+      return;
     }
     this._studioPreviewRecorderLastScreenshot = screenshotAfter;
     this.updateStudioPreviewRecorderLastPageState(
@@ -2729,8 +3318,13 @@ class PlaygroundServer {
           'Skipped aiDescribe because the recorder event has no pageInfo for coordinate mapping.',
         );
       }
-      const normalizedScreenshot =
-        await normalizeImageForModel(eventScreenshot);
+      const imageInputCapabilities = resolveModelInputImageCapabilities(
+        agent.modelConfigManager?.getModelConfig('insight').imageInput,
+      );
+      const normalizedScreenshot = await normalizeImageForModel(
+        eventScreenshot,
+        imageInputCapabilities,
+      );
       if (!normalizedScreenshot.ok) {
         throw new Error(
           `${normalizedScreenshot.error.code}: ${normalizedScreenshot.error.message}`,
@@ -2928,8 +3522,8 @@ class PlaygroundServer {
     event: PlaygroundRecorderEvent,
     navigationEvent: PlaygroundRecorderEvent | null,
   ): void {
-    const sessionId = this._recorderSessionId;
-    if (!sessionId) {
+    const context = this.getRecorderWorkContext();
+    if (!context) {
       return;
     }
 
@@ -3019,8 +3613,11 @@ class PlaygroundServer {
       pending.screenshotWithBox ||
       pending.screenshotAfter ||
       pending.screenshotBefore;
-    const screenshotAsset =
-      this.persistStudioPreviewRecorderScreenshot(screenshot);
+    const sessionId =
+      this._recorderSessionId || this._recorderFinalization?.sessionId;
+    const screenshotAsset = sessionId
+      ? this.persistStudioPreviewRecorderScreenshot(sessionId, screenshot)
+      : undefined;
     if (screenshotAsset) {
       this.appendRecorderLogEvent({
         ...pending,
@@ -3141,8 +3738,8 @@ class PlaygroundServer {
   private recordStudioPreviewNavigationState(
     navigation: PlaygroundSessionNavigationEvent,
   ): void {
-    const sessionId = this._recorderSessionId;
-    if (!sessionId || !navigation.url) {
+    const context = this.getRecorderWorkContext();
+    if (!context || !navigation.url) {
       return;
     }
     const activeInteraction = this._recorderActiveInteractions.at(-1);
@@ -3166,7 +3763,7 @@ class PlaygroundServer {
     const task = this._recorderEventQueue
       .catch(() => undefined)
       .then(() => {
-        if (this._recorderSessionId !== sessionId) {
+        if (!this.isRecorderWorkCurrent(context)) {
           return;
         }
         const pageStateBefore = this._studioPreviewRecorderLastPageState;
@@ -3231,8 +3828,8 @@ class PlaygroundServer {
     payload: Record<string, unknown>,
     snapshotBefore?: PlaygroundRecorderSnapshot,
   ): void {
-    const sessionId = this._recorderSessionId;
-    if (!sessionId) {
+    const context = this.getRecorderWorkContext();
+    if (!context) {
       return;
     }
 
@@ -3244,23 +3841,23 @@ class PlaygroundServer {
       .catch(() => undefined)
       .then(async () => {
         try {
-          if (
-            !this._recorderSessionId ||
-            this._recorderSessionId !== sessionId
-          ) {
+          if (!this.isRecorderWorkCurrent(context)) {
             return;
           }
           await this.storeStudioPreviewRecorderEvent(
+            context,
             event,
             payload,
             snapshotBefore,
           );
         } finally {
           this.releaseRecorderFrame(snapshotBefore?.frameRefToken);
-          this._recorderPendingCaptures = Math.max(
-            0,
-            this._recorderPendingCaptures - 1,
-          );
+          if (context.generation === this._recorderGeneration) {
+            this._recorderPendingCaptures = Math.max(
+              0,
+              this._recorderPendingCaptures - 1,
+            );
+          }
         }
       });
 
@@ -3278,11 +3875,17 @@ class PlaygroundServer {
     }
     const actionType =
       typeof payload.actionType === 'string' ? payload.actionType : 'Unknown';
+    const sessionId = this._recorderSessionId;
+    if (!sessionId) {
+      return undefined;
+    }
     return {
       eventId: `studio-preview-${actionType}-${interactionStartedAt}-${randomUUID()}`,
       sequence: ++this._recorderActionSequence,
       interactionStartedAt,
       actionType,
+      sessionId,
+      generation: this._recorderGeneration,
     };
   }
 
@@ -3332,7 +3935,13 @@ class PlaygroundServer {
     interactionCompletedAt: number,
     actionDispatchStartedAt: number,
   ): PlaygroundRecorderEvent | null {
-    if (!this._recorderSessionId || !interaction) {
+    if (
+      !this._recorderSessionId ||
+      !interaction ||
+      interaction.sessionId !== this._recorderSessionId ||
+      interaction.generation !== this._recorderGeneration ||
+      this._recorderAbortController?.signal.aborted
+    ) {
       return null;
     }
     const event = this.buildStudioPreviewRecorderEvent(
@@ -4470,6 +5079,19 @@ class PlaygroundServer {
       });
     });
 
+    this._app.post(
+      '/recorder/finalization/:jobId/cancel',
+      async (req: Request, res: Response) => {
+        const result = await this.cancelRecorderFinalization(
+          String(req.params.jobId || ''),
+        );
+        if (!result.ok) {
+          return res.status(404).json(result);
+        }
+        return res.json(result);
+      },
+    );
+
     this._app.get('/recorder/events', async (req: Request, res: Response) => {
       if (req.query.flushPending !== 'false') {
         this.flushPendingTypeOnlyRecorderInput();
@@ -4484,6 +5106,19 @@ class PlaygroundServer {
         Number.isFinite(afterLogSequence) && afterLogSequence > 0
           ? afterLogSequence
           : 0;
+      const requestedWaitMs =
+        typeof req.query.waitMs === 'string'
+          ? Number.parseInt(req.query.waitMs, 10)
+          : 0;
+      const shouldWait =
+        Number.isFinite(requestedWaitMs) &&
+        requestedWaitMs > 0 &&
+        this._recorderLogSequence <= cursor &&
+        (!this._recorderFinalization ||
+          this._recorderFinalization.status === 'finalizing');
+      if (shouldWait) {
+        await this.waitForRecorderStateChange(requestedWaitMs);
+      }
       const events = this._recorderEvents.filter(
         (event) => (event.logSequence || 0) > cursor,
       );
@@ -4491,15 +5126,28 @@ class PlaygroundServer {
         this._recorderDeliveredLogSequence,
         this._recorderLogSequence,
       );
+      const finalization = this.getRecorderFinalizationSnapshot();
+      if (finalization) {
+        debugRecorderFinalization('recorder finalization progress polled %o', {
+          jobId: finalization.jobId,
+          status: finalization.status,
+          actionHighWaterMark: finalization.actionHighWaterMark,
+          accepted: finalization.accepted,
+          captured: finalization.captured,
+          degraded: finalization.degraded,
+          pending: finalization.pending,
+          finalLogSequence: finalization.finalLogSequence,
+          studioCursor: cursor,
+          nextLogSequence: this._recorderLogSequence,
+        });
+      }
       res.json({
         events,
         nextLogSequence: this._recorderLogSequence,
         // Keep the old response field during the local protocol transition;
         // its value is now a log sequence, not an array index.
         nextIndex: this._recorderLogSequence,
-        ...(this._recorderFinalization
-          ? { finalization: this.getRecorderFinalizationSnapshot() }
-          : {}),
+        ...(finalization ? { finalization } : {}),
       });
     });
 
@@ -4531,10 +5179,11 @@ class PlaygroundServer {
       '/recorder/assets/session/:sessionId',
       async (req: Request, res: Response) => {
         try {
-          removeRecorderScreenshotAssetsForSession(
+          const cleanup = requestRecorderScreenshotAssetCleanup(
             String(req.params.sessionId || ''),
+            { type: 'clear' },
           );
-          return res.json({ ok: true });
+          return res.json({ ok: true, ...cleanup });
         } catch (error) {
           return res.status(400).json({
             ok: false,
@@ -4557,11 +5206,11 @@ class PlaygroundServer {
                   typeof assetId === 'string',
               )
             : [];
-          pruneRecorderScreenshotAssetsForSession(
+          const cleanup = requestRecorderScreenshotAssetCleanup(
             String(req.params.sessionId || ''),
-            assetIds,
+            { type: 'prune', retainedAssetIds: assetIds },
           );
-          return res.json({ ok: true });
+          return res.json({ ok: true, ...cleanup });
         } catch (error) {
           return res.status(400).json({
             ok: false,
@@ -4569,6 +5218,50 @@ class PlaygroundServer {
               error instanceof Error
                 ? error.message
                 : 'Invalid recorder screenshot cleanup request',
+          });
+        }
+      },
+    );
+
+    this._app.post(
+      '/recorder/assets/session/:sessionId/leases',
+      async (req: Request, res: Response) => {
+        try {
+          const leaseId = acquireRecorderScreenshotAssetLease(
+            String(req.params.sessionId || ''),
+            typeof req.body?.purpose === 'string'
+              ? req.body.purpose.slice(0, 64)
+              : 'unspecified',
+          );
+          return res.json({ ok: true, leaseId });
+        } catch (error) {
+          return res.status(400).json({
+            ok: false,
+            error:
+              error instanceof Error
+                ? error.message
+                : 'Invalid recorder screenshot lease request',
+          });
+        }
+      },
+    );
+
+    this._app.delete(
+      '/recorder/assets/session/:sessionId/leases/:leaseId',
+      async (req: Request, res: Response) => {
+        try {
+          const result = releaseRecorderScreenshotAssetLease(
+            String(req.params.sessionId || ''),
+            String(req.params.leaseId || ''),
+          );
+          return res.json({ ok: true, ...result });
+        } catch (error) {
+          return res.status(404).json({
+            ok: false,
+            error:
+              error instanceof Error
+                ? error.message
+                : 'Recorder screenshot lease was not found',
           });
         }
       },

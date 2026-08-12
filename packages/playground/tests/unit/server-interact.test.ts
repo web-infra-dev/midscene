@@ -99,7 +99,7 @@ function latestRecorderEventsBody(body: any) {
 
 function getRouteHandler(
   server: PlaygroundServer,
-  method: 'get' | 'post',
+  method: 'delete' | 'get' | 'post',
   route: string,
 ) {
   const calls = (server.app[method] as any).mock.calls as Array<[string, any]>;
@@ -183,6 +183,300 @@ describe('PlaygroundServer manual interaction APIs', () => {
     });
     await server.waitForRecorderIdle();
     expect((server as any)._recorderSessionId).toBeNull();
+  });
+
+  test('recorder event long polling wakes as soon as the log advances', async () => {
+    const server = new PlaygroundServer({ interface: {} } as any);
+    (server as any)._recorderSessionId = 'session-long-poll';
+    await server.launch(6142);
+    const eventsHandler = getRouteHandler(server, 'get', '/recorder/events');
+    const response = createMockResponse();
+    let settled = false;
+
+    const request = eventsHandler(
+      {
+        query: {
+          afterLogSequence: '0',
+          waitMs: '15000',
+          flushPending: 'false',
+        },
+      },
+      response,
+    ).then(() => {
+      settled = true;
+    });
+    await Promise.resolve();
+    expect(settled).toBe(false);
+
+    (server as any).appendRecorderLogEvent({
+      type: 'click',
+      source: 'studio-preview',
+      pageInfo: { width: 100, height: 100 },
+      timestamp: 1,
+      hashId: 'long-poll-click',
+    });
+    await request;
+
+    expect(response.body).toMatchObject({
+      nextLogSequence: 1,
+      events: [
+        expect.objectContaining({
+          hashId: 'long-poll-click',
+          logSequence: 1,
+        }),
+      ],
+    });
+  });
+
+  test('recorder finalization reaches a bounded warning state at its deadline', async () => {
+    const server = new PlaygroundServer({ interface: {} } as any);
+    (server as any)._recorderSessionId = 'session-finalization-deadline';
+    (server as any)._recorderAbortController = new AbortController();
+    (server as any)._recorderActionSequence = 1;
+    (server as any)._recorderLogSequence = 1;
+    (server as any)._recorderEvents = [
+      {
+        type: 'click',
+        source: 'studio-preview',
+        pageInfo: { width: 100, height: 100 },
+        timestamp: 1,
+        hashId: 'deadline-click',
+        eventId: 'deadline-click',
+        sequence: 1,
+        logSequence: 1,
+        captureStatus: 'pending',
+        revisions: { capture: 0, semantic: 0 },
+      },
+    ];
+    (server as any)._recorderCaptureWorkers = [new Promise(() => {})];
+    await server.launch(6143);
+    vi.useFakeTimers();
+    try {
+      const stopResponse = createMockResponse();
+      await getRouteHandler(server, 'post', '/recorder/stop')({}, stopResponse);
+      expect(stopResponse.body).toMatchObject({
+        finalization: {
+          status: 'finalizing',
+          accepted: 1,
+          pending: 1,
+          deadlineAt: expect.any(Number),
+        },
+      });
+
+      await vi.advanceTimersByTimeAsync(60_000);
+      await server.waitForRecorderIdle();
+      const eventsResponse = createMockResponse();
+      await getRouteHandler(
+        server,
+        'get',
+        '/recorder/events',
+      )(
+        { query: { afterLogSequence: '0', flushPending: 'false' } },
+        eventsResponse,
+      );
+
+      expect(eventsResponse.body).toMatchObject({
+        finalization: {
+          status: 'completed_with_warnings',
+          reason: 'deadline_exceeded',
+          accepted: 1,
+          captured: 0,
+          degraded: 1,
+          pending: 0,
+          finalLogSequence: 1,
+          timings: {
+            stopRequestedAt: expect.any(Number),
+            assetsReleasedAt: expect.any(Number),
+            completedAt: expect.any(Number),
+            durationMs: 60_000,
+          },
+        },
+        events: [
+          expect.objectContaining({
+            hashId: 'deadline-click',
+            captureStatus: 'degraded',
+            captureError: expect.objectContaining({
+              code: 'capture_failed',
+            }),
+          }),
+        ],
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  test('cancelled finalization isolates a late screenshot from the next session', async () => {
+    const inputPrimitives = makeInputPrimitiveStub();
+    let resolveLateScreenshot: ((value: string) => void) | undefined;
+    const lateScreenshot = new Promise<string>((resolve) => {
+      resolveLateScreenshot = resolve;
+    });
+    let screenshotCalls = 0;
+    const screenshotBase64 = vi.fn(async () => {
+      screenshotCalls += 1;
+      return screenshotCalls === 3 ? lateScreenshot : VALID_PNG_BASE64;
+    });
+    const server = new PlaygroundServer({
+      interface: {
+        interfaceType: 'ios',
+        actionSpace: () => [],
+        inputPrimitives,
+        screenshotBase64,
+        size: async () => ({ width: 390, height: 844 }),
+      },
+    } as any);
+    await server.launch(6144);
+    const startRecorderHandler = getRouteHandler(
+      server,
+      'post',
+      '/recorder/start',
+    );
+    await startRecorderHandler(
+      { body: { sessionId: 'session-cancelled-old' } },
+      createMockResponse(),
+    );
+    await getRouteHandler(
+      server,
+      'post',
+      '/interact',
+    )({ body: { actionType: 'Tap', x: 10, y: 20 } }, createMockResponse());
+    const stopResponse = createMockResponse();
+    await getRouteHandler(server, 'post', '/recorder/stop')({}, stopResponse);
+    const jobId = (stopResponse.body as any).finalization.jobId;
+    const cancelResponse = createMockResponse();
+    await getRouteHandler(
+      server,
+      'post',
+      '/recorder/finalization/:jobId/cancel',
+    )({ params: { jobId } }, cancelResponse);
+    expect(cancelResponse.body).toMatchObject({
+      ok: true,
+      finalization: {
+        status: 'cancelled',
+        reason: 'cancelled',
+        degraded: 1,
+        pending: 0,
+      },
+    });
+
+    await startRecorderHandler(
+      { body: { sessionId: 'session-after-cancel' } },
+      createMockResponse(),
+    );
+    resolveLateScreenshot?.(VALID_PNG_BASE64);
+    await lateScreenshot;
+    await Promise.resolve();
+    await Promise.resolve();
+
+    const eventsResponse = createMockResponse();
+    await getRouteHandler(
+      server,
+      'get',
+      '/recorder/events',
+    )(
+      { query: { afterLogSequence: '0', flushPending: 'false' } },
+      eventsResponse,
+    );
+    expect(eventsResponse.body).toMatchObject({
+      events: [],
+      nextLogSequence: 0,
+    });
+    await getRouteHandler(
+      server,
+      'post',
+      '/recorder/stop',
+    )({}, createMockResponse());
+    await server.waitForRecorderIdle();
+  });
+
+  test('content-addresses duplicate screenshots and defers cleanup while leased', async () => {
+    const inputPrimitives = makeInputPrimitiveStub();
+    const server = new PlaygroundServer({
+      interface: {
+        interfaceType: 'ios',
+        actionSpace: () => [],
+        inputPrimitives,
+        screenshotBase64: async () => VALID_PNG_BASE64,
+        size: async () => ({ width: 390, height: 844 }),
+      },
+    } as any);
+    await server.launch(6145);
+    const sessionId = 'session-asset-lease';
+    await getRouteHandler(
+      server,
+      'post',
+      '/recorder/start',
+    )({ body: { sessionId } }, createMockResponse());
+    const interactHandler = getRouteHandler(server, 'post', '/interact');
+    await interactHandler(
+      { body: { actionType: 'Tap', x: 10, y: 20 } },
+      createMockResponse(),
+    );
+    await interactHandler(
+      { body: { actionType: 'Tap', x: 30, y: 40 } },
+      createMockResponse(),
+    );
+    await server.waitForRecorderIdle();
+
+    const eventsResponse = createMockResponse();
+    await getRouteHandler(
+      server,
+      'get',
+      '/recorder/events',
+    )({ query: { afterLogSequence: '0' } }, eventsResponse);
+    const events = latestRecorderEventsBody(eventsResponse.body)
+      .events as any[];
+    const assetIds = events.map((event) => event.screenshotAsset?.id);
+    expect(assetIds).toEqual([assetIds[0], assetIds[0]]);
+    expect(events[0].screenshotAsset).toMatchObject({
+      id: expect.stringMatching(/^session-asset-lease-[a-f0-9]{64}$/),
+      sha256: expect.stringMatching(/^[a-f0-9]{64}$/),
+    });
+
+    const leaseResponse = createMockResponse();
+    await getRouteHandler(
+      server,
+      'post',
+      '/recorder/assets/session/:sessionId/leases',
+    )({ params: { sessionId }, body: { purpose: 'export' } }, leaseResponse);
+    const leaseId = (leaseResponse.body as any).leaseId;
+    const clearResponse = createMockResponse();
+    await getRouteHandler(
+      server,
+      'delete',
+      '/recorder/assets/session/:sessionId',
+    )({ params: { sessionId } }, clearResponse);
+    expect(clearResponse.body).toMatchObject({ ok: true, deferred: true });
+
+    const assetHandler = getRouteHandler(
+      server,
+      'get',
+      '/recorder/assets/:assetId',
+    );
+    const retainedAssetResponse = createMockResponse();
+    await assetHandler(
+      { params: { assetId: assetIds[0] } },
+      retainedAssetResponse,
+    );
+    expect(retainedAssetResponse.statusCode).toBe(200);
+
+    const releaseResponse = createMockResponse();
+    await getRouteHandler(
+      server,
+      'delete',
+      '/recorder/assets/session/:sessionId/leases/:leaseId',
+    )({ params: { sessionId, leaseId } }, releaseResponse);
+    expect(releaseResponse.body).toMatchObject({
+      ok: true,
+      cleanupApplied: true,
+    });
+    const removedAssetResponse = createMockResponse();
+    await assetHandler(
+      { params: { assetId: assetIds[0] } },
+      removedAssetResponse,
+    );
+    expect(removedAssetResponse.statusCode).toBe(404);
   });
 
   test('records a session navigation event without polling for page idle', async () => {

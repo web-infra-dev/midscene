@@ -1,5 +1,6 @@
 import http from 'node:http';
 import type { Agent as PageAgent } from '@midscene/core/agent';
+import type { DeviceFrameRef, DeviceFrameSource } from '@midscene/core/device';
 import { getDebug } from '@midscene/shared/logger';
 import type { Request, Response } from 'express';
 import {
@@ -31,12 +32,27 @@ export interface RecorderFrameSnapshot {
 }
 
 export interface RecorderFrameLease {
-  latest(): RecorderFrameSnapshot | undefined;
+  latest(): Promise<RecorderFrameSnapshot | undefined>;
   waitForFrameAfter(
     capturedAt: number,
     timeoutMs: number,
   ): Promise<RecorderFrameSnapshot | undefined>;
   release(): void;
+}
+
+interface DeviceFrameSourceLeaseState {
+  activeInterface: ActiveInterface;
+  source: DeviceFrameSource;
+  leaseCount: number;
+  stopTimer?: ReturnType<typeof setTimeout>;
+  lastOpaqueRef?: unknown;
+  lastCapturedAt?: number;
+  lastFrameToken?: string;
+  decoded?: {
+    opaqueRef: unknown;
+    capturedAt: number;
+    snapshot: Promise<RecorderFrameSnapshot | undefined>;
+  };
 }
 
 function toMjpegFrameDataUrl(data: string, contentType?: string) {
@@ -87,6 +103,14 @@ export class MjpegStreamHandler {
   private nativeAvailable: boolean | null = null;
   private nativeFailedAt: number | null = null;
   private lastPollingFrame?: RecorderFrameSnapshot;
+  private deviceFrameSourceLeaseState?: DeviceFrameSourceLeaseState;
+  private deviceFrameSourceOpening?: {
+    activeInterface: ActiveInterface;
+    generation: number;
+    promise: Promise<DeviceFrameSourceLeaseState | undefined>;
+  };
+  private deviceFrameSourceGeneration = 0;
+  private deviceFrameTokenSequence = 0;
   private readonly interfaceMjpegHub: InterfaceMjpegHub =
     createInterfaceMjpegHub({
       initialFrameTimeoutMs: INTERFACE_MJPEG_INITIAL_FRAME_TIMEOUT_MS,
@@ -102,10 +126,12 @@ export class MjpegStreamHandler {
     this.nativeFailedAt = null;
     this.lastPollingFrame = undefined;
     this.interfaceMjpegHub.stopProducer();
+    this.invalidateDeviceFrameSource();
   }
 
   shutdown(): void {
     this.interfaceMjpegHub.shutdown();
+    this.invalidateDeviceFrameSource();
   }
 
   getLastFrameBase64(): string | undefined {
@@ -128,12 +154,12 @@ export class MjpegStreamHandler {
     return this.lastPollingFrame;
   }
 
-  acquireFrameLease(): RecorderFrameLease | null {
+  async acquireFrameLease(): Promise<RecorderFrameLease | null> {
     const activeInterface = this.source.getActiveInterface();
     if (!activeInterface) return null;
     const lease = this.interfaceMjpegHub.acquireFrameLease(activeInterface);
-    if (!lease) return null;
-    return this.wrapFrameLease(lease);
+    if (lease) return this.wrapFrameLease(lease);
+    return this.acquireDeviceFrameSourceLease(activeInterface);
   }
 
   private wrapFrameLease(lease: InterfaceMjpegFrameLease): RecorderFrameLease {
@@ -147,10 +173,209 @@ export class MjpegStreamHandler {
           }
         : undefined;
     return {
-      latest: () => convert(lease.latest()),
+      latest: async () => convert(lease.latest()),
       waitForFrameAfter: async (capturedAt, timeoutMs) =>
         convert(await lease.waitForFrameAfter(capturedAt, timeoutMs)),
       release: () => lease.release(),
+    };
+  }
+
+  private stopDeviceFrameSource(
+    state = this.deviceFrameSourceLeaseState,
+  ): void {
+    if (!state || this.deviceFrameSourceLeaseState !== state) {
+      return;
+    }
+    if (state.stopTimer) {
+      clearTimeout(state.stopTimer);
+    }
+    this.deviceFrameSourceLeaseState = undefined;
+    void Promise.resolve(state.source.stop()).catch((error) => {
+      debugMjpeg('failed to stop device frame source: %s', error);
+    });
+  }
+
+  private invalidateDeviceFrameSource(): void {
+    this.deviceFrameSourceGeneration += 1;
+    this.deviceFrameSourceOpening = undefined;
+    this.stopDeviceFrameSource();
+  }
+
+  private stopDetachedDeviceFrameSource(source: DeviceFrameSource): void {
+    void Promise.resolve(source.stop()).catch((error) => {
+      debugMjpeg('failed to stop stale device frame source: %s', error);
+    });
+  }
+
+  private async getOrOpenDeviceFrameSource(
+    activeInterface: ActiveInterface,
+  ): Promise<DeviceFrameSourceLeaseState | undefined> {
+    const current = this.deviceFrameSourceLeaseState;
+    if (current && current.activeInterface === activeInterface) {
+      if (current.stopTimer) {
+        clearTimeout(current.stopTimer);
+        current.stopTimer = undefined;
+      }
+      return current;
+    }
+    if (current && current.activeInterface !== activeInterface) {
+      this.invalidateDeviceFrameSource();
+    }
+    if (!activeInterface.openFrameSource) {
+      return undefined;
+    }
+    const existingOpening = this.deviceFrameSourceOpening;
+    if (
+      existingOpening?.activeInterface === activeInterface &&
+      existingOpening.generation === this.deviceFrameSourceGeneration
+    ) {
+      return existingOpening.promise;
+    }
+    if (existingOpening) {
+      this.invalidateDeviceFrameSource();
+    }
+    const generation = this.deviceFrameSourceGeneration;
+    const openingPromise: Promise<DeviceFrameSourceLeaseState | undefined> =
+      Promise.resolve()
+        .then(() => activeInterface.openFrameSource?.())
+        .then((source) => {
+          if (!source) {
+            return undefined;
+          }
+          if (
+            generation !== this.deviceFrameSourceGeneration ||
+            this.source.getActiveInterface() !== activeInterface
+          ) {
+            this.stopDetachedDeviceFrameSource(source);
+            return undefined;
+          }
+          const state: DeviceFrameSourceLeaseState = {
+            activeInterface,
+            source,
+            leaseCount: 0,
+          };
+          this.stopDeviceFrameSource();
+          this.deviceFrameSourceLeaseState = state;
+          return state;
+        })
+        .catch((error) => {
+          debugMjpeg('device frame source unavailable: %s', error);
+          return undefined;
+        })
+        .finally(() => {
+          if (this.deviceFrameSourceOpening?.promise === openingPromise) {
+            this.deviceFrameSourceOpening = undefined;
+          }
+        });
+    this.deviceFrameSourceOpening = {
+      activeInterface,
+      generation,
+      promise: openingPromise,
+    };
+    return openingPromise;
+  }
+
+  private getDeviceFrameToken(
+    state: DeviceFrameSourceLeaseState,
+    frame: DeviceFrameRef,
+  ) {
+    if (
+      state.lastOpaqueRef === frame.ref &&
+      state.lastCapturedAt === frame.capturedAt &&
+      state.lastFrameToken
+    ) {
+      return state.lastFrameToken;
+    }
+    state.lastOpaqueRef = frame.ref;
+    state.lastCapturedAt = frame.capturedAt;
+    state.lastFrameToken = `device-frame-${frame.capturedAt}-${++this.deviceFrameTokenSequence}`;
+    return state.lastFrameToken;
+  }
+
+  private materializeDeviceFrame(
+    state: DeviceFrameSourceLeaseState,
+    frame: DeviceFrameRef,
+  ): Promise<RecorderFrameSnapshot | undefined> {
+    const decoded = state.decoded;
+    if (
+      decoded &&
+      decoded.opaqueRef === frame.ref &&
+      decoded.capturedAt === frame.capturedAt
+    ) {
+      return decoded.snapshot;
+    }
+    const frameToken = this.getDeviceFrameToken(state, frame);
+    const snapshot = state.source
+      .decode([frame])
+      .then((images) =>
+        images[0]
+          ? {
+              screenshot: images[0],
+              capturedAt: frame.capturedAt,
+              frameToken,
+              source: 'shared-frame-stream' as const,
+            }
+          : undefined,
+      )
+      .catch((error) => {
+        debugMjpeg('failed to decode device frame ref: %s', error);
+        return undefined;
+      });
+    state.decoded = {
+      opaqueRef: frame.ref,
+      capturedAt: frame.capturedAt,
+      snapshot,
+    };
+    return snapshot;
+  }
+
+  private async acquireDeviceFrameSourceLease(
+    activeInterface: ActiveInterface,
+  ): Promise<RecorderFrameLease | null> {
+    const state = await this.getOrOpenDeviceFrameSource(activeInterface);
+    if (!state) {
+      return null;
+    }
+    state.leaseCount += 1;
+    let released = false;
+    const latest = async () => {
+      if (released || this.deviceFrameSourceLeaseState !== state) {
+        return undefined;
+      }
+      const frame = state.source.latest();
+      return frame ? this.materializeDeviceFrame(state, frame) : undefined;
+    };
+    return {
+      latest,
+      waitForFrameAfter: async (capturedAt, timeoutMs) => {
+        const deadlineAt = Date.now() + Math.max(0, timeoutMs);
+        while (!released && this.deviceFrameSourceLeaseState === state) {
+          const frame = state.source.latest();
+          if (frame && frame.capturedAt >= capturedAt) {
+            return this.materializeDeviceFrame(state, frame);
+          }
+          const remainingMs = deadlineAt - Date.now();
+          if (remainingMs <= 0) {
+            return undefined;
+          }
+          await new Promise((resolve) =>
+            setTimeout(resolve, Math.min(25, remainingMs)),
+          );
+        }
+        return undefined;
+      },
+      release: () => {
+        if (released) return;
+        released = true;
+        state.leaseCount = Math.max(0, state.leaseCount - 1);
+        if (state.leaseCount === 0) {
+          state.stopTimer = setTimeout(
+            () => this.stopDeviceFrameSource(state),
+            INTERFACE_MJPEG_IDLE_STOP_MS,
+          );
+          state.stopTimer.unref?.();
+        }
+      },
     };
   }
 
