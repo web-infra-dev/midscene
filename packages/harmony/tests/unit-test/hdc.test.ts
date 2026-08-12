@@ -3,6 +3,18 @@ import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
 
 const mockExecFile = rs.fn();
 
+function commandResult(stdout: string) {
+  return { stdout, stderr: '' };
+}
+
+function bundleDump(bundleInfo: Record<string, unknown>): string {
+  return `com.example.app:\n${JSON.stringify(bundleInfo)}`;
+}
+
+function shellCommands(): string[] {
+  return mockExecFile.mock.calls.map((call) => call[1][1] as string);
+}
+
 rs.mock('node:child_process', () => ({
   execFile: rs.fn(),
 }));
@@ -87,6 +99,368 @@ describe('HdcClient', () => {
         expect.any(Object),
       );
       expect(result).toBe('shell output');
+    });
+  });
+
+  describe('startAbility', () => {
+    it('should include the module name when provided', async () => {
+      mockExecFile.mockResolvedValue({ stdout: '', stderr: '' });
+
+      const hdc = new HdcClient({});
+      await hdc.startAbility('com.example.app', 'AppAbility', 'video');
+
+      expect(mockExecFile).toHaveBeenCalledWith(
+        expect.any(String),
+        ['shell', 'aa start -a AppAbility -b com.example.app -m video'],
+        expect.any(Object),
+      );
+    });
+
+    it('should omit the module flag when no module name is provided', async () => {
+      mockExecFile.mockResolvedValue({ stdout: '', stderr: '' });
+
+      const hdc = new HdcClient({});
+      await hdc.startAbility('com.example.app', 'AppAbility');
+
+      expect(mockExecFile).toHaveBeenCalledWith(
+        expect.any(String),
+        ['shell', 'aa start -a AppAbility -b com.example.app'],
+        expect.any(Object),
+      );
+    });
+  });
+
+  describe('launchBundle', () => {
+    it('should launch the declared main element from the entry module', async () => {
+      mockExecFile
+        .mockResolvedValueOnce(
+          commandResult(
+            bundleDump({
+              entryModuleName: 'video',
+              hapModuleInfos: [
+                {
+                  moduleName: 'feature',
+                  moduleType: 2,
+                  mainElementName: 'FeatureAbility',
+                  abilityInfos: [{ name: 'FeatureAbility' }],
+                },
+                {
+                  moduleName: 'video',
+                  moduleType: 1,
+                  mainElementName: 'AppAbility',
+                  abilityInfos: [{ name: 'AppAbility' }],
+                },
+              ],
+            }),
+          ),
+        )
+        .mockResolvedValueOnce(commandResult(''));
+
+      const hdc = new HdcClient({});
+      await hdc.launchBundle('com.example.app');
+
+      expect(shellCommands()).toEqual([
+        'bm dump -n com.example.app',
+        'aa start -a AppAbility -b com.example.app -m video',
+      ]);
+    });
+
+    it.each([
+      ['MainAbility', 'com.example.app.MainAbility'],
+      ['com.example.app.MainAbility', 'MainAbility'],
+    ])(
+      'should match short and fully-qualified ability names: %s / %s',
+      async (mainElementName, abilityName) => {
+        mockExecFile
+          .mockResolvedValueOnce(
+            commandResult(
+              bundleDump({
+                mainEntry: 'entry',
+                hapModuleInfos: [
+                  {
+                    moduleName: 'entry',
+                    mainElementName,
+                    abilityInfos: [{ name: abilityName }],
+                  },
+                ],
+              }),
+            ),
+          )
+          .mockResolvedValueOnce(commandResult(''));
+
+        const hdc = new HdcClient({});
+        await hdc.launchBundle('com.example.app');
+
+        expect(shellCommands()).toEqual([
+          'bm dump -n com.example.app',
+          `aa start -a ${abilityName} -b com.example.app -m entry`,
+        ]);
+      },
+    );
+
+    it.each(['action.system.home', 'ohos.want.action.home'])(
+      'should use the launcher skill when main element fields are absent: %s',
+      async (homeAction) => {
+        mockExecFile
+          .mockResolvedValueOnce(
+            commandResult(
+              bundleDump({
+                hapModuleInfos: [
+                  {
+                    moduleName: 'entry',
+                    moduleType: 'entry',
+                    abilityInfos: [
+                      { name: 'UnrelatedAbility' },
+                      {
+                        name: 'LauncherAbility',
+                        skills: [
+                          {
+                            actions: [homeAction],
+                            entities: ['entity.system.home'],
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                ],
+              }),
+            ),
+          )
+          .mockResolvedValueOnce(commandResult(''));
+
+        const hdc = new HdcClient({});
+        await hdc.launchBundle('com.example.app');
+
+        expect(shellCommands()).toEqual([
+          'bm dump -n com.example.app',
+          'aa start -a LauncherAbility -b com.example.app -m entry',
+        ]);
+      },
+    );
+
+    it('should prefer a launcher skill over an unrelated module main element', async () => {
+      mockExecFile
+        .mockResolvedValueOnce(
+          commandResult(
+            bundleDump({
+              hapModuleInfos: [
+                {
+                  moduleName: 'feature',
+                  mainElementName: 'FeatureAbility',
+                  abilityInfos: [{ name: 'FeatureAbility' }],
+                },
+                {
+                  moduleName: 'app',
+                  abilityInfos: [
+                    {
+                      name: 'AppAbility',
+                      skills: [
+                        {
+                          actions: ['action.system.home'],
+                          entities: ['entity.system.home'],
+                        },
+                      ],
+                    },
+                  ],
+                },
+              ],
+            }),
+          ),
+        )
+        .mockResolvedValueOnce(commandResult(''));
+
+      const hdc = new HdcClient({});
+      await hdc.launchBundle('com.example.app');
+
+      expect(shellCommands()).toEqual([
+        'bm dump -n com.example.app',
+        'aa start -a AppAbility -b com.example.app -m app',
+      ]);
+    });
+
+    it('should ignore a main element that refers to an extension', async () => {
+      mockExecFile
+        .mockResolvedValueOnce(
+          commandResult(
+            bundleDump({
+              entryModuleName: 'entry',
+              hapModuleInfos: [
+                {
+                  moduleName: 'entry',
+                  mainElementName: 'FormExtensionAbility',
+                  extensionInfos: [{ name: 'FormExtensionAbility' }],
+                  abilityInfos: [
+                    {
+                      name: 'AppAbility',
+                      skills: [
+                        {
+                          actions: ['ohos.want.action.home'],
+                          entities: ['entity.system.home'],
+                        },
+                      ],
+                    },
+                  ],
+                },
+              ],
+            }),
+          ),
+        )
+        .mockResolvedValueOnce(commandResult(''));
+
+      const hdc = new HdcClient({});
+      await hdc.launchBundle('com.example.app');
+
+      expect(shellCommands()).toEqual([
+        'bm dump -n com.example.app',
+        'aa start -a AppAbility -b com.example.app -m entry',
+      ]);
+    });
+
+    it('should cache a successful launch target', async () => {
+      const dump = bundleDump({
+        mainEntry: 'entry',
+        hapModuleInfos: [
+          {
+            moduleName: 'entry',
+            mainElementName: 'AppAbility',
+            abilityInfos: [{ name: 'AppAbility' }],
+          },
+        ],
+      });
+      mockExecFile
+        .mockResolvedValueOnce(commandResult(dump))
+        .mockResolvedValueOnce(commandResult(''))
+        .mockResolvedValueOnce(commandResult(''));
+
+      const hdc = new HdcClient({});
+      await hdc.launchBundle('com.example.app');
+      await hdc.launchBundle('com.example.app');
+
+      expect(shellCommands()).toEqual([
+        'bm dump -n com.example.app',
+        'aa start -a AppAbility -b com.example.app -m entry',
+        'aa start -a AppAbility -b com.example.app -m entry',
+      ]);
+    });
+
+    it('should refresh a stale cached target when the declaration changes', async () => {
+      const entryDump = bundleDump({
+        mainEntry: 'entry',
+        hapModuleInfos: [
+          {
+            moduleName: 'entry',
+            mainElementName: 'EntryAbility',
+            abilityInfos: [{ name: 'EntryAbility' }],
+          },
+        ],
+      });
+      const appDump = bundleDump({
+        mainEntry: 'video',
+        hapModuleInfos: [
+          {
+            moduleName: 'video',
+            mainElementName: 'AppAbility',
+            abilityInfos: [{ name: 'AppAbility' }],
+          },
+        ],
+      });
+      mockExecFile
+        .mockResolvedValueOnce(commandResult(entryDump))
+        .mockResolvedValueOnce(commandResult(''))
+        .mockResolvedValueOnce(commandResult('error: stale target'))
+        .mockResolvedValueOnce(commandResult(appDump))
+        .mockResolvedValueOnce(commandResult(''));
+
+      const hdc = new HdcClient({});
+      await hdc.launchBundle('com.example.app');
+      await hdc.launchBundle('com.example.app');
+
+      expect(shellCommands()).toEqual([
+        'bm dump -n com.example.app',
+        'aa start -a EntryAbility -b com.example.app -m entry',
+        'aa start -a EntryAbility -b com.example.app -m entry',
+        'bm dump -n com.example.app',
+        'aa start -a AppAbility -b com.example.app -m video',
+      ]);
+    });
+
+    it('should preserve an error and clear the cache when the target is unchanged', async () => {
+      const dump = bundleDump({
+        mainEntry: 'entry',
+        hapModuleInfos: [
+          {
+            moduleName: 'entry',
+            mainElementName: 'AppAbility',
+            abilityInfos: [{ name: 'AppAbility' }],
+          },
+        ],
+      });
+      mockExecFile
+        .mockResolvedValueOnce(commandResult(dump))
+        .mockResolvedValueOnce(commandResult(''))
+        .mockResolvedValueOnce(commandResult('error: connection lost'))
+        .mockResolvedValueOnce(commandResult(dump))
+        .mockResolvedValueOnce(commandResult(dump))
+        .mockResolvedValueOnce(commandResult(''));
+
+      const hdc = new HdcClient({});
+      await hdc.launchBundle('com.example.app');
+      await expect(hdc.launchBundle('com.example.app')).rejects.toThrow(
+        'connection lost',
+      );
+      await hdc.launchBundle('com.example.app');
+
+      expect(shellCommands()).toEqual([
+        'bm dump -n com.example.app',
+        'aa start -a AppAbility -b com.example.app -m entry',
+        'aa start -a AppAbility -b com.example.app -m entry',
+        'bm dump -n com.example.app',
+        'bm dump -n com.example.app',
+        'aa start -a AppAbility -b com.example.app -m entry',
+      ]);
+    });
+
+    it('should throw when bundle information is malformed', async () => {
+      mockExecFile.mockResolvedValueOnce(
+        commandResult('error: failed to get bundle information'),
+      );
+
+      const hdc = new HdcClient({});
+
+      await expect(hdc.launchBundle('com.example.app')).rejects.toThrow(
+        'Cannot parse bundle information for com.example.app',
+      );
+    });
+
+    it('should throw when bundle information contains invalid JSON', async () => {
+      mockExecFile.mockResolvedValueOnce(commandResult('com.example.app: {'));
+
+      const hdc = new HdcClient({});
+
+      await expect(hdc.launchBundle('com.example.app')).rejects.toThrow(
+        'Cannot parse bundle information for com.example.app',
+      );
+    });
+
+    it('should throw rather than guessing an undeclared ability', async () => {
+      mockExecFile.mockResolvedValueOnce(
+        commandResult(
+          bundleDump({
+            hapModuleInfos: [
+              {
+                moduleName: 'entry',
+                abilityInfos: [{ name: 'SomeAbility' }],
+              },
+            ],
+          }),
+        ),
+      );
+
+      const hdc = new HdcClient({});
+
+      await expect(hdc.launchBundle('com.example.app')).rejects.toThrow(
+        'Cannot find a launchable ability for com.example.app',
+      );
     });
   });
 
