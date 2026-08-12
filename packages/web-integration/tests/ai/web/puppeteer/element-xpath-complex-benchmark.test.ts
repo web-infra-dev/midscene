@@ -4,7 +4,7 @@ import path from 'node:path';
 import { performance } from 'node:perf_hooks';
 import { PuppeteerAgent } from '@/puppeteer';
 import { expect, it, vi } from 'vitest';
-import { generateTeacherXpathMap } from './teacher-replay-utils';
+import { generateRecordXpathMap } from './record-replay-utils';
 import { createTestContext, getFixturePath } from './test-utils';
 import { launchPage } from './utils';
 
@@ -264,8 +264,8 @@ it.skipIf(!process.env.ELEMENT_XPATH_COMPLEX_VARIANT)(
     const cacheable = process.env.ELEMENT_XPATH_COMPLEX_CACHEABLE === 'true';
     const recordXpath =
       process.env.ELEMENT_XPATH_COMPLEX_RECORD_XPATH === 'true';
-    const generateTeacherMap =
-      process.env.ELEMENT_XPATH_COMPLEX_GENERATE_TEACHER_MAP === 'true';
+    const generateRecordMap =
+      process.env.ELEMENT_XPATH_COMPLEX_GENERATE_RECORD_MAP === 'true';
     const caseId =
       process.env.ELEMENT_XPATH_COMPLEX_CASE ?? 'grouped-team-offsite';
     const round = process.env.ELEMENT_XPATH_COMPLEX_ROUND ?? '1';
@@ -391,7 +391,7 @@ it.skipIf(!process.env.ELEMENT_XPATH_COMPLEX_VARIANT)(
             cache: {
               id: artifactId,
               strategy: 'write-only' as const,
-              cacheDir: path.join(evidenceDir, 'teacher-cache'),
+              cacheDir: path.join(evidenceDir, 'record-cache'),
             },
           }
         : {}),
@@ -496,8 +496,8 @@ it.skipIf(!process.env.ELEMENT_XPATH_COMPLEX_VARIANT)(
       `${artifactId}.report.html`,
     );
     let reportSha256: string | undefined;
-    let teacherMapArtifact:
-      | Awaited<ReturnType<typeof generateTeacherXpathMap>>
+    let recordMapArtifact:
+      | Awaited<ReturnType<typeof generateRecordXpathMap>>
       | undefined;
     try {
       await copyFile(generatedReportPath, copiedReportPath);
@@ -507,20 +507,15 @@ it.skipIf(!process.env.ELEMENT_XPATH_COMPLEX_VARIANT)(
     } catch {
       // Preserve the primary model or action error in the evidence below.
     }
-    if (
-      generateTeacherMap &&
-      !runError &&
-      domMatched &&
-      stateEvidence.matched
-    ) {
+    if (generateRecordMap && !runError && domMatched && stateEvidence.matched) {
       if (!reportSha256) {
         throw new Error(
-          `Cannot generate the teacher XPath Map because the report was not copied: ${copiedReportPath}`,
+          `Cannot generate the record XPath Map because the report was not copied: ${copiedReportPath}`,
         );
       }
-      teacherMapArtifact = await generateTeacherXpathMap(
+      recordMapArtifact = await generateRecordXpathMap(
         copiedReportPath,
-        path.join(evidenceDir, 'teacher-replay', artifactId),
+        path.join(evidenceDir, 'record-replay', artifactId),
       );
     }
     await reset();
@@ -544,7 +539,7 @@ it.skipIf(!process.env.ELEMENT_XPATH_COMPLEX_VARIANT)(
         cacheable,
         effort,
         recordXpath,
-        generateTeacherMap,
+        generateRecordMap,
         modelRetryCount: process.env.MIDSCENE_MODEL_RETRY_COUNT,
         modelReasoningEnabled: process.env.MIDSCENE_MODEL_REASONING_ENABLED,
       },
@@ -566,24 +561,24 @@ it.skipIf(!process.env.ELEMENT_XPATH_COMPLEX_VARIANT)(
       errorClass,
       validForComparison: errorClass !== 'transport',
       reportSha256,
-      teacherMapArtifact: teacherMapArtifact
+      recordMapArtifact: recordMapArtifact
         ? {
-            actionDir: path.relative(evidenceDir, teacherMapArtifact.actionDir),
-            actionFiles: teacherMapArtifact.actionFiles.map((file) =>
+            actionDir: path.relative(evidenceDir, recordMapArtifact.actionDir),
+            actionFiles: recordMapArtifact.actionFiles.map((file) =>
               path.relative(evidenceDir, file),
             ),
             coordinateFallbackFiles:
-              teacherMapArtifact.coordinateFallbackFiles.map((file) =>
+              recordMapArtifact.coordinateFallbackFiles.map((file) =>
                 path.relative(evidenceDir, file),
               ),
-            mapPath: path.relative(evidenceDir, teacherMapArtifact.mapPath),
+            mapPath: path.relative(evidenceDir, recordMapArtifact.mapPath),
             manifestPath: path.relative(
               evidenceDir,
-              teacherMapArtifact.manifestPath,
+              recordMapArtifact.manifestPath,
             ),
-            elementCount: teacherMapArtifact.elementCount,
-            mapSha256: teacherMapArtifact.mapSha256,
-            steps: teacherMapArtifact.steps,
+            elementCount: recordMapArtifact.elementCount,
+            mapSha256: recordMapArtifact.mapSha256,
+            steps: recordMapArtifact.steps,
           }
         : undefined,
       success:

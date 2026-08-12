@@ -5,7 +5,7 @@ import { performance } from 'node:perf_hooks';
 import { pathToFileURL } from 'node:url';
 import { PuppeteerAgent } from '@/puppeteer';
 import { expect, it, vi } from 'vitest';
-import { generateTeacherXpathMap } from './teacher-replay-utils';
+import { generateRecordXpathMap } from './record-replay-utils';
 import { createTestContext } from './test-utils';
 import { launchPage } from './utils';
 
@@ -13,12 +13,12 @@ vi.setConfig({ testTimeout: 10 * 60 * 1000 });
 
 const context = createTestContext();
 
-type ExperimentRole = 'teacher' | 'replay';
+type ExperimentRole = 'record' | 'replay';
 
 function parseRole(value: string | undefined): ExperimentRole {
-  if (value === 'teacher' || value === 'replay') return value;
+  if (value === 'record' || value === 'replay') return value;
   throw new Error(
-    `Unknown TEACHER_FAST_REPLAY_ROLE "${value}". Expected "teacher" or "replay".`,
+    `Unknown RECORD_FAST_REPLAY_ROLE "${value}". Expected "record" or "replay".`,
   );
 }
 
@@ -102,22 +102,22 @@ function classifyError(error: unknown): 'none' | 'transport' | 'model' {
   return 'model';
 }
 
-it.skipIf(!process.env.TEACHER_FAST_REPLAY_ROLE)(
-  'records one teacher-to-fast-replay login sample',
+it.skipIf(!process.env.RECORD_FAST_REPLAY_ROLE)(
+  'records one record-to-fast-replay login sample',
   async () => {
-    const role = parseRole(process.env.TEACHER_FAST_REPLAY_ROLE);
-    const round = process.env.TEACHER_FAST_REPLAY_ROUND ?? '1';
+    const role = parseRole(process.env.RECORD_FAST_REPLAY_ROLE);
+    const round = process.env.RECORD_FAST_REPLAY_ROUND ?? '1';
     const experimentId =
-      process.env.TEACHER_FAST_REPLAY_EXPERIMENT_ID ?? 'teacher-fast-replay';
+      process.env.RECORD_FAST_REPLAY_EXPERIMENT_ID ?? 'record-fast-replay';
     const modelName = process.env.MIDSCENE_MODEL_NAME ?? 'unknown-model';
     const modelArtifactId = modelName
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-|-$/g, '');
     const artifactId = `${modelArtifactId}-${experimentId}-${role}-login-popup-r${round}`;
-    const reportFileName = `teacher-fast-replay-${artifactId}`;
+    const reportFileName = `record-fast-replay-${artifactId}`;
     const reportRoot = path.join(process.cwd(), 'midscene_run', 'report');
-    const evidenceDir = path.join(reportRoot, 'teacher-fast-replay-evidence');
+    const evidenceDir = path.join(reportRoot, 'record-fast-replay-evidence');
     await mkdir(evidenceDir, { recursive: true });
 
     const fixturePath = path.resolve(
@@ -130,13 +130,13 @@ it.skipIf(!process.env.TEACHER_FAST_REPLAY_ROLE)(
       'ai',
       'web',
       'puppeteer',
-      'teacher-fast-replay-benchmark.test.ts',
+      'record-fast-replay-benchmark.test.ts',
     );
     const mapPath =
-      role === 'replay' ? process.env.TEACHER_FAST_REPLAY_MAP_PATH : undefined;
+      role === 'replay' ? process.env.RECORD_FAST_REPLAY_MAP_PATH : undefined;
     if (role === 'replay' && !mapPath) {
       throw new Error(
-        'TEACHER_FAST_REPLAY_MAP_PATH is required for the replay role.',
+        'RECORD_FAST_REPLAY_MAP_PATH is required for the replay role.',
       );
     }
     if (
@@ -155,9 +155,9 @@ it.skipIf(!process.env.TEACHER_FAST_REPLAY_ROLE)(
     context.resetFn = reset;
     await originPage.evaluate(() => {
       const targetWindow = window as typeof window & {
-        __teacherReplayEvents: string[];
+        __recordReplayEvents: string[];
       };
-      targetWindow.__teacherReplayEvents = [];
+      targetWindow.__recordReplayEvents = [];
       const username = document.querySelector<HTMLInputElement>('#username');
       const password = document.querySelector<HTMLInputElement>('#password');
       const overlay = document.querySelector<HTMLElement>('#ad-overlay');
@@ -169,27 +169,27 @@ it.skipIf(!process.env.TEACHER_FAST_REPLAY_ROLE)(
       username?.addEventListener('input', () => {
         if (!usernameStarted && username.value) {
           usernameStarted = true;
-          targetWindow.__teacherReplayEvents.push('username-input-started');
+          targetWindow.__recordReplayEvents.push('username-input-started');
         }
       });
       password?.addEventListener('input', () => {
         if (!passwordStarted && password.value) {
           passwordStarted = true;
-          targetWindow.__teacherReplayEvents.push('password-input-started');
+          targetWindow.__recordReplayEvents.push('password-input-started');
         }
       });
       if (overlay) {
         new MutationObserver(() => {
           if (!overlay.hidden && !advertisementOpened) {
             advertisementOpened = true;
-            targetWindow.__teacherReplayEvents.push('advertisement-opened');
+            targetWindow.__recordReplayEvents.push('advertisement-opened');
           } else if (overlay.hidden && advertisementOpened) {
-            targetWindow.__teacherReplayEvents.push('advertisement-closed');
+            targetWindow.__recordReplayEvents.push('advertisement-closed');
           }
         }).observe(overlay, { attributes: true, attributeFilter: ['hidden'] });
       }
       form?.addEventListener('submit', () => {
-        targetWindow.__teacherReplayEvents.push('login-submitted');
+        targetWindow.__recordReplayEvents.push('login-submitted');
       });
     });
 
@@ -198,15 +198,15 @@ it.skipIf(!process.env.TEACHER_FAST_REPLAY_ROLE)(
       persistExecutionDump: false,
       outputFormat: 'single-html',
       reportFileName,
-      groupName: `Teacher to fast replay evidence: ${artifactId}`,
+      groupName: `Record to fast replay evidence: ${artifactId}`,
       groupDescription:
         'A dynamic advertisement interrupts a multi-step login workflow.',
-      ...(role === 'teacher'
+      ...(role === 'record'
         ? {
             cache: {
               id: artifactId,
               strategy: 'write-only' as const,
-              cacheDir: path.join(evidenceDir, 'teacher-cache'),
+              cacheDir: path.join(evidenceDir, 'record-cache'),
             },
           }
         : {}),
@@ -219,8 +219,8 @@ it.skipIf(!process.env.TEACHER_FAST_REPLAY_ROLE)(
       await agent.aiAct(
         'Log in with username "demo-user" and password "demo-password".',
         {
-          cacheable: role === 'teacher',
-          effort: role === 'teacher' ? 'balance' : 'fast',
+          cacheable: role === 'record',
+          effort: role === 'record' ? 'balance' : 'fast',
           ...(mapPath ? { loadElementXpaths: [mapPath] } : {}),
         },
       );
@@ -235,7 +235,7 @@ it.skipIf(!process.env.TEACHER_FAST_REPLAY_ROLE)(
     const tasks = taskEvidence(dumpObject);
     const pageEvidence = await originPage.evaluate(() => {
       const targetWindow = window as typeof window & {
-        __teacherReplayEvents: string[];
+        __recordReplayEvents: string[];
       };
       const overlay = document.querySelector<HTMLElement>('#ad-overlay');
       const success = document.querySelector<HTMLElement>('#success');
@@ -247,7 +247,7 @@ it.skipIf(!process.env.TEACHER_FAST_REPLAY_ROLE)(
         successVisible: success
           ? getComputedStyle(success).display !== 'none'
           : false,
-        events: targetWindow.__teacherReplayEvents,
+        events: targetWindow.__recordReplayEvents,
       };
     });
     const openedIndex = pageEvidence.events.indexOf('advertisement-opened');
@@ -264,7 +264,7 @@ it.skipIf(!process.env.TEACHER_FAST_REPLAY_ROLE)(
       pageEvidence.overlayHidden === true &&
       pageEvidence.successVisible;
     const xpathReplayMatched =
-      role === 'teacher' ||
+      role === 'record' ||
       (locate.locateTasks > 0 &&
         locate.xpathHits === locate.locateTasks &&
         locate.aiLocateUsages === 0);
@@ -280,11 +280,11 @@ it.skipIf(!process.env.TEACHER_FAST_REPLAY_ROLE)(
     const reportSha256 = createHash('sha256')
       .update(await readFile(copiedReportPath))
       .digest('hex');
-    const teacherMapArtifact =
-      role === 'teacher' && !runError && stateMatched && interruptionObserved
-        ? await generateTeacherXpathMap(
+    const recordMapArtifact =
+      role === 'record' && !runError && stateMatched && interruptionObserved
+        ? await generateRecordXpathMap(
             copiedReportPath,
-            path.join(evidenceDir, 'teacher-maps', artifactId),
+            path.join(evidenceDir, 'record-maps', artifactId),
           )
         : undefined;
     await reset();
@@ -294,7 +294,7 @@ it.skipIf(!process.env.TEACHER_FAST_REPLAY_ROLE)(
     const evidence = {
       schemaVersion: 1,
       createdAt: new Date().toISOString(),
-      gitCommit: process.env.TEACHER_FAST_REPLAY_COMMIT,
+      gitCommit: process.env.RECORD_FAST_REPLAY_COMMIT,
       experimentId,
       role,
       round,
@@ -305,8 +305,8 @@ it.skipIf(!process.env.TEACHER_FAST_REPLAY_ROLE)(
         reasoningEnabled: process.env.MIDSCENE_MODEL_REASONING_ENABLED,
       },
       options: {
-        effort: role === 'teacher' ? 'balance' : 'fast',
-        cacheable: role === 'teacher',
+        effort: role === 'record' ? 'balance' : 'fast',
+        cacheable: role === 'record',
         loadElementXpaths: role === 'replay',
         elementXpathFile: mapPath ? path.basename(mapPath) : undefined,
       },
@@ -333,16 +333,16 @@ it.skipIf(!process.env.TEACHER_FAST_REPLAY_ROLE)(
       xpathReplayMatched,
       errorClass,
       reportSha256,
-      teacherMapArtifact: teacherMapArtifact
+      recordMapArtifact: recordMapArtifact
         ? {
-            mapPath: path.relative(evidenceDir, teacherMapArtifact.mapPath),
+            mapPath: path.relative(evidenceDir, recordMapArtifact.mapPath),
             manifestPath: path.relative(
               evidenceDir,
-              teacherMapArtifact.manifestPath,
+              recordMapArtifact.manifestPath,
             ),
-            elementCount: teacherMapArtifact.elementCount,
-            mapSha256: teacherMapArtifact.mapSha256,
-            steps: teacherMapArtifact.steps,
+            elementCount: recordMapArtifact.elementCount,
+            mapSha256: recordMapArtifact.mapSha256,
+            steps: recordMapArtifact.steps,
           }
         : undefined,
       success:

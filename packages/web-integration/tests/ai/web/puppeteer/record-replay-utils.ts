@@ -45,7 +45,7 @@ function xpathLocators(value: unknown): XpathLocator[] {
   ];
 }
 
-export interface TeacherXpathMapArtifact {
+export interface RecordXpathMapArtifact {
   actionDir: string;
   actionFiles: string[];
   coordinateFallbackFiles: string[];
@@ -63,10 +63,10 @@ export interface TeacherXpathMapArtifact {
   }>;
 }
 
-export async function generateTeacherXpathMap(
+export async function generateRecordXpathMap(
   reportPath: string,
   outputDir: string,
-): Promise<TeacherXpathMapArtifact> {
+): Promise<RecordXpathMapArtifact> {
   const actionDir = path.join(outputDir, 'ui-actions');
   const analysis = analyzeReportActions({
     htmlPath: reportPath,
@@ -74,7 +74,7 @@ export async function generateTeacherXpathMap(
     overwrite: true,
   });
   const elements: Record<string, string> = {};
-  const steps: TeacherXpathMapArtifact['steps'] = [];
+  const steps: RecordXpathMapArtifact['steps'] = [];
 
   for (const [actionIndex, actionFile] of analysis.actionFiles.entries()) {
     const definition = yaml.load(
@@ -107,12 +107,12 @@ export async function generateTeacherXpathMap(
 
   if (Object.keys(elements).length === 0) {
     throw new Error(
-      `Teacher report did not contain a reusable XPath: ${reportPath}`,
+      `Record report did not contain a reusable XPath: ${reportPath}`,
     );
   }
   if (analysis.coordinateFallbackFiles.length > 0) {
     throw new Error(
-      `Teacher report contains ${analysis.coordinateFallbackFiles.length} coordinate-only action(s); cannot build a complete XPath Map: ${reportPath}`,
+      `Record report contains ${analysis.coordinateFallbackFiles.length} coordinate-only action(s); cannot build a complete XPath Map: ${reportPath}`,
     );
   }
 
