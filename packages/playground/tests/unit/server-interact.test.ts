@@ -1665,6 +1665,10 @@ describe('PlaygroundServer manual interaction APIs', () => {
     expect(callOrder.indexOf('screenshot')).toBeLessThan(
       callOrder.indexOf('tap-2'),
     );
+    expect(screenshotBase64).toHaveBeenCalledWith({
+      maxLongEdge: 3840,
+      optimizeForSpeed: true,
+    });
     const response = createMockResponse();
     await getRouteHandler(
       server,

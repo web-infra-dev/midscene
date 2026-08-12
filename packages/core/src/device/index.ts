@@ -43,6 +43,13 @@ export interface MjpegStreamOptions {
   onError?(error: unknown): void;
 }
 
+export interface ScreenshotBase64Options {
+  /** Bound encoded pixels at the capture source instead of resizing later. */
+  maxLongEdge?: number;
+  /** Prefer lower capture latency over the smallest encoded payload. */
+  optimizeForSpeed?: boolean;
+}
+
 /**
  * A cheap, not-yet-decoded handle to one screen frame from a
  * {@link DeviceFrameSource}. `ref` is platform-specific (a raw H.264 keyframe
@@ -172,7 +179,7 @@ export interface ComputerInputPrimitives extends InputPrimitives {
 export abstract class AbstractInterface {
   abstract interfaceType: string;
 
-  abstract screenshotBase64(): Promise<string>;
+  abstract screenshotBase64(options?: ScreenshotBase64Options): Promise<string>;
   abstract size(): Promise<Size>;
   abstract actionSpace(): DeviceAction[];
 

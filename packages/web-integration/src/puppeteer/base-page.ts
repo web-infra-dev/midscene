@@ -14,6 +14,7 @@ import type {
   DeviceFrameSource,
   MjpegStreamHandle,
   MjpegStreamOptions,
+  ScreenshotBase64Options,
 } from '@midscene/core/device';
 import { sleep } from '@midscene/core/utils';
 import {
@@ -80,6 +81,14 @@ type ScreencastFrameEvent = {
 type PageCdpSession = {
   send(method: string, params?: Record<string, unknown>): Promise<unknown>;
   detach(): Promise<void>;
+};
+
+type ScreenshotClip = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  scale: number;
 };
 
 type ScreencastCdpSession = PageCdpSession & {
@@ -456,11 +465,47 @@ export class Page<
     return sizeInfo;
   }
 
-  async screenshotBase64(): Promise<string> {
+  private async boundedScreenshotClip(
+    maxLongEdge?: number,
+  ): Promise<ScreenshotClip | undefined> {
+    if (maxLongEdge === undefined) {
+      return undefined;
+    }
+    if (!Number.isFinite(maxLongEdge) || maxLongEdge <= 0) {
+      throw new Error('screenshotBase64 maxLongEdge must be positive.');
+    }
+    const viewport = await this.evaluate(() => {
+      const visualViewport = window.visualViewport;
+      return {
+        x: visualViewport?.pageLeft ?? window.scrollX,
+        y: visualViewport?.pageTop ?? window.scrollY,
+        width: visualViewport?.width ?? window.innerWidth,
+        height: visualViewport?.height ?? window.innerHeight,
+        deviceScaleFactor: window.devicePixelRatio || 1,
+      };
+    });
+    const physicalLongEdge =
+      Math.max(viewport.width, viewport.height) * viewport.deviceScaleFactor;
+    if (physicalLongEdge <= maxLongEdge) {
+      return undefined;
+    }
+    return {
+      x: viewport.x,
+      y: viewport.y,
+      width: viewport.width,
+      height: viewport.height,
+      scale: maxLongEdge / physicalLongEdge,
+    };
+  }
+
+  async screenshotBase64(
+    options: ScreenshotBase64Options = {},
+  ): Promise<string> {
     const imgType = 'jpeg' as const;
     const quality = 90;
     const startTime = Date.now();
     debugPage('screenshotBase64 begin');
+    const clip = await this.boundedScreenshotClip(options.maxLongEdge);
 
     let base64: string;
     if (this.interfaceType === 'puppeteer') {
@@ -468,9 +513,22 @@ export class Page<
         type: imgType,
         quality,
         encoding: 'base64',
+        ...(options.optimizeForSpeed !== undefined
+          ? { optimizeForSpeed: options.optimizeForSpeed }
+          : {}),
+        ...(clip ? { clip, captureBeyondViewport: true } : {}),
       });
       base64 = createImgBase64ByFormat(imgType, result);
     } else if (this.interfaceType === 'playwright') {
+      if (clip) {
+        base64 = await this.screenshotBase64ByPlaywrightCdp(imgType, quality, {
+          clip,
+          optimizeForSpeed: options.optimizeForSpeed,
+        });
+        const endTime = Date.now();
+        debugPage(`screenshotBase64 end, cost: ${endTime - startTime}ms`);
+        return base64;
+      }
       const page = this.underlyingPage as PlaywrightPage;
       try {
         const buffer = await page.screenshot({
@@ -505,6 +563,10 @@ export class Page<
   private async screenshotBase64ByPlaywrightCdp(
     imgType: 'jpeg' | 'png',
     quality?: number,
+    options: {
+      clip?: ScreenshotClip;
+      optimizeForSpeed?: boolean;
+    } = {},
   ) {
     const client = await this.createPageCdpSession('CDP screenshot fallback');
     try {
@@ -519,6 +581,10 @@ export class Page<
           .send('Page.captureScreenshot', {
             format: imgType,
             ...(quality ? { quality } : {}),
+            ...(options.clip ? { clip: options.clip } : {}),
+            ...(options.optimizeForSpeed !== undefined
+              ? { optimizeForSpeed: options.optimizeForSpeed }
+              : {}),
           })
           .then(
             (value) => {

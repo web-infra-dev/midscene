@@ -24,6 +24,39 @@ vi.mock('@/web-page', () => ({
 }));
 
 describe('Page screenshotBase64', () => {
+  it('bounds a high-DPR Puppeteer screenshot at the capture source', async () => {
+    const screenshot = vi.fn().mockResolvedValue('Ym91bmRlZC1zaG90');
+    const evaluate = vi.fn().mockResolvedValue({
+      x: 0,
+      y: 0,
+      width: 3840,
+      height: 2160,
+      deviceScaleFactor: 2,
+    });
+    const page = new Page({ evaluate, screenshot } as any, 'puppeteer');
+
+    const result = await page.screenshotBase64({
+      maxLongEdge: 3840,
+      optimizeForSpeed: true,
+    });
+
+    expect(result).toContain('data:image/jpeg;base64,');
+    expect(screenshot).toHaveBeenCalledWith({
+      type: 'jpeg',
+      quality: 90,
+      encoding: 'base64',
+      optimizeForSpeed: true,
+      clip: {
+        x: 0,
+        y: 0,
+        width: 3840,
+        height: 2160,
+        scale: 0.5,
+      },
+      captureBeyondViewport: true,
+    });
+  });
+
   it('uses the regular playwright screenshot path when it succeeds', async () => {
     const screenshot = vi.fn().mockResolvedValue(Buffer.from('plain-shot'));
     const newCDPSession = vi.fn();
@@ -83,6 +116,53 @@ describe('Page screenshotBase64', () => {
     expect(send).toHaveBeenCalledWith('Page.captureScreenshot', {
       format: 'jpeg',
       quality: 90,
+    });
+    expect(detach).toHaveBeenCalledTimes(1);
+  });
+
+  it('uses a bounded CDP screenshot directly for Playwright', async () => {
+    const screenshot = vi.fn();
+    const evaluate = vi.fn().mockResolvedValue({
+      x: 10,
+      y: 20,
+      width: 3840,
+      height: 2160,
+      deviceScaleFactor: 2,
+    });
+    const detach = vi.fn().mockResolvedValue(undefined);
+    const send = vi.fn().mockResolvedValue({ data: 'Y2RwLXNob3Q=' });
+    const newCDPSession = vi.fn().mockResolvedValue({ send, detach });
+    const mockPage = {
+      evaluate,
+      url: () => 'http://example.com',
+      isClosed: () => false,
+      screenshot,
+      context: () => ({
+        browser: () => ({
+          browserType: () => ({ name: () => 'chromium' }),
+        }),
+        newCDPSession,
+      }),
+    } as any;
+    const page = new Page(mockPage, 'playwright');
+
+    await page.screenshotBase64({
+      maxLongEdge: 3840,
+      optimizeForSpeed: true,
+    });
+
+    expect(screenshot).not.toHaveBeenCalled();
+    expect(send).toHaveBeenCalledWith('Page.captureScreenshot', {
+      format: 'jpeg',
+      quality: 90,
+      clip: {
+        x: 10,
+        y: 20,
+        width: 3840,
+        height: 2160,
+        scale: 0.5,
+      },
+      optimizeForSpeed: true,
     });
     expect(detach).toHaveBeenCalledTimes(1);
   });

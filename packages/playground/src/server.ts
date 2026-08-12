@@ -93,6 +93,7 @@ const RECORDER_CAPTURE_AFTER_INTERACT_DELAY_MS = 250;
 const RECORDER_BEFORE_FRAME_MAX_AGE_MS = 500;
 const RECORDER_BEFORE_FRAME_WAIT_MS = 180;
 const RECORDER_BOUNDARY_SCREENSHOT_TIMEOUT_MS = 1500;
+const RECORDER_BOUNDARY_SCREENSHOT_MAX_LONG_EDGE = 3840;
 const RECORDER_CAPTURE_TASK_TIMEOUT_MS = 3000;
 const RECORDER_CAPTURE_WORKER_COUNT = 2;
 const RECORDER_FINALIZATION_DEADLINE_MS = 60_000;
@@ -2433,7 +2434,10 @@ class PlaygroundServer {
     }
 
     try {
-      return await agent.interface.screenshotBase64();
+      return await agent.interface.screenshotBase64({
+        maxLongEdge: RECORDER_BOUNDARY_SCREENSHOT_MAX_LONG_EDGE,
+        optimizeForSpeed: true,
+      });
     } catch (error) {
       debugScreenshot('recorder screenshot failed:', error);
       return undefined;
