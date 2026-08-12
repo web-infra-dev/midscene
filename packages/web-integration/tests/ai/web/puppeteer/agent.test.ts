@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { PuppeteerAgent } from '@/puppeteer';
 import { sleep } from '@midscene/core/utils';
@@ -67,6 +68,49 @@ describe('puppeteer integration', () => {
           - aiAssert: 'the text in the input box is "Amazon"'
     `,
     );
+  });
+
+  it('uses a targetless KeyboardPress on the current selection', async () => {
+    const htmlPath = getFixturePath('input-test.html');
+    const { originPage, reset } = await launchPage(`file://${htmlPath}`);
+    resetFn = reset;
+    await originPage.$eval('#searchInput', (element) => {
+      const input = element as HTMLInputElement;
+      input.value = 'selected text';
+      input.focus();
+      input.select();
+    });
+    agent = new PuppeteerAgent(originPage, {
+      generateReport: true,
+      reportFileName: 'targetless-ai-act-backspace',
+    });
+
+    await agent.aiAct(
+      'Press Backspace once to delete the text that is already selected in the currently focused search input. Do not locate or click the input before pressing the key.',
+    );
+    await agent.aiAssert(
+      'The search input box is empty and contains no entered text. The placeholder "Enter your search query..." may be visible and does not count as entered text.',
+    );
+
+    const log = await agent._unstableLogContent();
+    const keyboardTask = log.executions
+      .flatMap((execution) => execution.tasks)
+      .find((task) => task.subType === 'KeyboardPress');
+    expect(keyboardTask).toBeDefined();
+    expect(
+      (keyboardTask?.param as { locate?: unknown; keyName?: string }).locate,
+    ).toBeUndefined();
+    expect((keyboardTask?.param as { keyName?: string }).keyName).toBe(
+      'Backspace',
+    );
+    await expect(
+      originPage.$eval(
+        '#searchInput',
+        (element) => (element as HTMLInputElement).value,
+      ),
+    ).resolves.toBe('');
+    expect(agent.reportFile).toBeTruthy();
+    expect(existsSync(agent.reportFile!)).toBe(true);
   });
 
   it('agent with yaml script', async () => {
