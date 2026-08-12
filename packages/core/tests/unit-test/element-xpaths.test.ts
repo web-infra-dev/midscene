@@ -13,7 +13,7 @@ import { getModelRuntime } from '@/ai-model/models';
 import { genericXmlPlan } from '@/ai-model/workflows/planning';
 import type { AbstractInterface } from '@/device';
 import { ScreenshotItem } from '@/screenshot-item';
-import type { DeviceAction } from '@/types';
+import type { DeviceAction, PlanningAction } from '@/types';
 import yaml from 'js-yaml';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
@@ -101,7 +101,10 @@ elements:
           type: 'Input',
           param: {
             value: 'Alice',
-            locate: { prompt: 'the "first NAME input"' },
+            locate: {
+              prompt:
+                'the "first NAME input" as specified in known UI elements',
+            },
           },
         },
         {
@@ -144,7 +147,10 @@ elements:
           },
         },
       ],
-      [{ name: 'First name input', xpath: '//*[@id="first-name"]' }],
+      [
+        { name: 'Name input', xpath: '//*[@id="generic-name"]' },
+        { name: 'First name input', xpath: '//*[@id="first-name"]' },
+      ],
       [action],
     );
 
@@ -155,7 +161,7 @@ elements:
         param: {
           value: 'Alice',
           locate: {
-            prompt: 'the "first NAME input"',
+            prompt: 'the "first NAME input" as specified in known UI elements',
             xpath: '//*[@id="first-name"]',
           },
         },
@@ -198,6 +204,30 @@ elements:
         },
       },
     ]);
+  });
+
+  it('falls back when a locator prompt contains equally specific map keys', () => {
+    const action = inputAction();
+    const plans: PlanningAction[] = [
+      {
+        type: 'Input',
+        param: {
+          value: 'Alice',
+          locate: { prompt: 'Use Alpha input or Bravo input' },
+        },
+      },
+    ];
+
+    const mapped = applyElementXpathsToPlans(
+      plans,
+      [
+        { name: 'Alpha input', xpath: '//*[@id="alpha"]' },
+        { name: 'Bravo input', xpath: '//*[@id="bravo"]' },
+      ],
+      [action],
+    );
+
+    expect(mapped).toEqual({ plans, mapped: false });
   });
 
   it('rejects invalid and conflicting map entries before planning', async () => {

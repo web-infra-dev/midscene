@@ -156,6 +156,43 @@ function locatorAlreadyResolved(locator: unknown): boolean {
   return isPlainObject(locator) && typeof locator.xpath === 'string';
 }
 
+function xpathForLocatorPrompt(
+  prompt: string,
+  elements: LoadedElementXpath[],
+): string | undefined {
+  const normalizedPrompt = normalizedElementName(prompt);
+  const exactMatch = elements.find(
+    ({ name }) => normalizedElementName(name) === normalizedPrompt,
+  );
+  if (exactMatch) {
+    return exactMatch.xpath;
+  }
+
+  const paddedPrompt = ` ${normalizedPrompt} `;
+  const containedMatches = elements
+    .map((element) => ({
+      ...element,
+      normalizedName: normalizedElementName(element.name),
+    }))
+    .filter(({ normalizedName }) =>
+      paddedPrompt.includes(` ${normalizedName} `),
+    )
+    .sort(
+      (left, right) => right.normalizedName.length - left.normalizedName.length,
+    );
+
+  if (containedMatches.length === 0) {
+    return undefined;
+  }
+  if (
+    containedMatches[1]?.normalizedName.length ===
+    containedMatches[0].normalizedName.length
+  ) {
+    return undefined;
+  }
+  return containedMatches[0].xpath;
+}
+
 function locatorWithXpath(locator: unknown, prompt: string, xpath: string) {
   if (typeof locator === 'string') {
     return { prompt: locator, xpath };
@@ -186,9 +223,6 @@ export function applyElementXpathsToPlans(
     return { plans, mapped: false };
   }
 
-  const xpathByName = new Map(
-    elements.map(({ name, xpath }) => [normalizedElementName(name), xpath]),
-  );
   let mapped = false;
 
   const transformedPlans = plans.map((plan) => {
@@ -211,7 +245,7 @@ export function applyElementXpathsToPlans(
       if (!prompt) {
         continue;
       }
-      const xpath = xpathByName.get(normalizedElementName(prompt));
+      const xpath = xpathForLocatorPrompt(prompt, elements);
       if (!xpath) {
         continue;
       }
