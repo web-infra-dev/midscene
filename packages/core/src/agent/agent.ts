@@ -396,6 +396,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
       waitAfterAction: this.opts.waitAfterAction,
       useDeviceTime: this.opts.useDeviceTime,
       actionSpace: this.fullActionSpace,
+      customActionsPromptHints: this.opts.customActionsPromptHints,
       hooks: {
         onSnapshotChange: async (runner) => {
           const executionDump = runner.dump();

@@ -160,6 +160,16 @@ export type IOSDeviceInputOpt = {
  */
 export type IOSDeviceOpt = {
   /**
+   * Use the locally configured `doubaocli ios-auto` backend instead of
+   * WebDriverAgent. This is intended for YAML CLI execution.
+   */
+  iosAuto?: boolean;
+  /**
+   * Path or command name for the `doubaocli` executable used by the
+   * ios-auto backend. Defaults to `doubaocli`.
+   */
+  iosAutoCliPath?: string;
+  /**
    * Optional npm module path used to override the default iOS device implementation.
    * The target module must export an `IOSDevice` class (or default export) compatible with Midscene's iOS device interface.
    */

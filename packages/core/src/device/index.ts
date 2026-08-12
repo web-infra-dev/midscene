@@ -1206,3 +1206,8 @@ export type {
   HarmonyDeviceOpt,
   HarmonyDeviceInputOpt,
 } from './device-options';
+
+// Re-exported for loader-side runtime injection into user modules that live
+// outside the monorepo (e.g. /tmp workspace custom actions) so they don't
+// need their own node_modules / package dependency on zod.
+export { z };

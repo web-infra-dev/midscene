@@ -93,6 +93,16 @@ Usage:
         type: 'boolean',
         description: `Turn on logging to help debug why certain keys or values are not being set as you expect, default is ${defaultConfig.dotenvDebug}`,
       },
+      json: {
+        type: 'boolean',
+        description:
+          'Print one JSON result with summary statistics, report paths, and YAML output data, without progress logs.',
+      },
+      'ios-auto': {
+        type: 'boolean',
+        description:
+          'Use the locally configured doubaocli ios-auto backend for iOS YAML scripts instead of WebDriverAgent',
+      },
     })
     .version('version', 'Show version number', __VERSION__)
     .help()

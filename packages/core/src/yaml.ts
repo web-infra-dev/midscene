@@ -62,6 +62,26 @@ export type ActionScrollParam = {
 
 export type ScrollParam = Omit<ActionScrollParam, 'locate'>;
 
+/**
+ * A single custom-actions module declaration in YAML.
+ *
+ * The module must export one of:
+ *   - `buildCustomActions(config)` returning `DeviceAction[]`
+ *   - `buildArcDeviceActions(config)` (legacy alias)
+ *   - `default` (either a `DeviceAction[]` or a build function)
+ * It may optionally export `getPromptRoutingHints({ actions, config }): string`.
+ */
+export interface MidsceneYamlCustomActionsModule {
+  /**
+   * Path to the JS module, absolute or relative to the YAML file's directory.
+   */
+  module: string;
+  /**
+   * Optional config object passed to the module's build function.
+   */
+  config?: unknown;
+}
+
 export interface MidsceneYamlScript {
   // @deprecated
   target?: MidsceneYamlScriptWebEnv;
@@ -124,7 +144,31 @@ export type MidsceneYamlScriptAgentOpt = Pick<
   | 'aiActionContext'
   | 'cache'
   | 'screenshotShrinkFactor'
->;
+> & {
+  /**
+   * Path to a JS module that exports project custom DeviceActions.
+   * Absolute path or relative to the YAML file's directory.
+   *
+   * Prefer `customActionsModules` (array) when declaring multiple groups
+   * of actions, e.g. after an inject step that selects only the CLIs
+   * relevant to this case.
+   */
+  customActionsModule?: string;
+  /**
+   * Config object for the single `customActionsModule`. Ignored when
+   * `customActionsModules` is used.
+   */
+  customActionsConfig?: unknown;
+  /**
+   * Multiple custom-actions modules to load and merge. Each entry declares
+   * its own module path and optional config. This is the preferred form
+   * for inject-step output: the planner selects the relevant CLI groups
+   * and writes them here so the runtime only loads what the case needs.
+   *
+   * When present, `customActionsModule`/`customActionsConfig` are ignored.
+   */
+  customActionsModules?: MidsceneYamlCustomActionsModule[];
+};
 
 export interface MidsceneYamlScriptConfig {
   output?: string;

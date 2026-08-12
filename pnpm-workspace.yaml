@@ -1,3 +1,22 @@
 packages:
   - apps/*
   - packages/*
+allowBuilds:
+  '@biomejs/biome': set this to true or false
+  '@ffmpeg-installer/darwin-arm64': set this to true or false
+  '@tailwindcss/oxide': set this to true or false
+  bufferutil: set this to true or false
+  core-js: set this to true or false
+  electron: set this to true or false
+  electron-winstaller: set this to true or false
+  esbuild: set this to true or false
+  fs-xattr: set this to true or false
+  macos-alias: set this to true or false
+  node-mac-permissions: set this to true or false
+  nx: set this to true or false
+  protobufjs: set this to true or false
+  puppeteer: set this to true or false
+  sharp: set this to true or false
+  simple-git-hooks: set this to true or false
+  spawn-sync: set this to true or false
+  utf-8-validate: set this to true or false

@@ -8,7 +8,7 @@ import {
 import { tmpdir } from 'node:os';
 import { basename, dirname, join } from 'node:path';
 import { runFrameworkTestConfig } from '@/framework/command';
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test, vi } from 'vitest';
 
 const createTempDir = () => mkdtempSync(join(tmpdir(), 'midscene-command-'));
 
@@ -94,6 +94,133 @@ export function defineYamlCaseTest(test: any, options: any) {
       expect(summary.results[0].success).toBe(true);
       expect(summary.results[0].output).toBe('./case-output.json');
       expect(summary.results[0].report).toBe('../report/case-report.html');
+    } finally {
+      if (previousRunDir === undefined) {
+        Reflect.deleteProperty(process.env, 'MIDSCENE_RUN_DIR');
+      } else {
+        process.env.MIDSCENE_RUN_DIR = previousRunDir;
+      }
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  test('passes iosAuto to generated Rstest case options', async () => {
+    const root = createTempDir();
+    const outputDir = join(root, 'generated-runner');
+    const yaml = join(root, 'ios-case.yaml');
+    writeFileSync(yaml, 'ios: {}\ntasks: []\n');
+
+    try {
+      const exitCode = await runFrameworkTestConfig(
+        {
+          files: [yaml],
+          concurrent: 1,
+          continueOnError: false,
+          summary: 'summary.json',
+          shareBrowserContext: false,
+          globalConfig: {},
+          headed: false,
+          keepWindow: false,
+          dotenvOverride: false,
+          dotenvDebug: false,
+          iosAuto: true,
+        },
+        {
+          outputDir,
+          frameworkImport: '@test/framework',
+          stdio: 'pipe',
+          rstestRunner: async ({ project }) => {
+            const testModule = project.cases[0].testModule;
+            expect(project.virtualModules[testModule]).toContain(
+              '"iosAuto": true',
+            );
+            mkdirSync(dirname(project.cases[0].resultFile), {
+              recursive: true,
+            });
+            writeFileSync(
+              project.cases[0].resultFile,
+              JSON.stringify({
+                file: yaml,
+                success: true,
+                executed: true,
+                duration: 1,
+                resultType: 'success',
+              }),
+            );
+            return 0;
+          },
+        },
+      );
+
+      expect(exitCode).toBe(0);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  test('reports results and summary path through onComplete', async () => {
+    const root = createTempDir();
+    const runDir = join(root, 'midscene-run');
+    const outputDir = join(root, 'generated-runner');
+    const yaml = join(root, 'case.yaml');
+    const previousRunDir = process.env.MIDSCENE_RUN_DIR;
+
+    process.env.MIDSCENE_RUN_DIR = runDir;
+    writeFileSync(yaml, 'web:\n  url: about:blank\ntasks: []\n');
+
+    try {
+      const onComplete = vi.fn();
+      const exitCode = await runFrameworkTestConfig(
+        {
+          files: [yaml],
+          concurrent: 1,
+          continueOnError: false,
+          summary: 'summary.json',
+          shareBrowserContext: false,
+          globalConfig: {},
+          headed: false,
+          keepWindow: false,
+          dotenvOverride: false,
+          dotenvDebug: false,
+        },
+        {
+          outputDir,
+          frameworkImport: '@test/framework',
+          stdio: 'pipe',
+          onComplete,
+          rstestRunner: async ({ project }) => {
+            mkdirSync(dirname(project.cases[0].resultFile), {
+              recursive: true,
+            });
+            writeFileSync(
+              project.cases[0].resultFile,
+              JSON.stringify({
+                file: yaml,
+                success: true,
+                executed: true,
+                output: join(runDir, 'output', 'case-output.json'),
+                report: join(runDir, 'report', 'case.html'),
+                duration: 5,
+                resultType: 'success',
+              }),
+            );
+            return 0;
+          },
+        },
+      );
+
+      expect(exitCode).toBe(0);
+      expect(onComplete).toHaveBeenCalledWith({
+        exitCode: 0,
+        results: [
+          expect.objectContaining({
+            file: yaml,
+            success: true,
+            resultType: 'success',
+          }),
+        ],
+        summaryPath: join(runDir, 'output', 'summary.json'),
+      });
     } finally {
       if (previousRunDir === undefined) {
         Reflect.deleteProperty(process.env, 'MIDSCENE_RUN_DIR');

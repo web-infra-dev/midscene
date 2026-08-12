@@ -30,6 +30,11 @@ export interface FrameworkTestCommandOptions extends WebRuntimeOptions {
   outputDir?: string;
   frameworkImport?: string;
   stdio?: 'inherit' | 'pipe';
+  onComplete?: (result: {
+    exitCode: number;
+    results: MidsceneYamlConfigResult[];
+    summaryPath: string;
+  }) => void | Promise<void>;
   rstestRunner?: typeof runRstestYamlProject;
   /**
    * In-process executor used for the `keepWindow` path. Injectable so tests can
@@ -58,11 +63,15 @@ async function runConfigInMainProcess(
 ): Promise<number> {
   const runner = commandOptions.inProcessRunner ?? defaultInProcessRunner;
   const results = await runner(config);
-  const success = printExecutionSummary(
+  const summaryPath = getSummaryAbsolutePath(config.summary);
+  const success = printExecutionSummary(results, summaryPath);
+  const exitCode = success ? 0 : 1;
+  await commandOptions.onComplete?.({
+    exitCode,
     results,
-    getSummaryAbsolutePath(config.summary),
-  );
-  return success ? 0 : 1;
+    summaryPath,
+  });
+  return exitCode;
 }
 
 const createCaseOptions = (
@@ -72,6 +81,7 @@ const createCaseOptions = (
   for (const file of config.files) {
     caseOptions[resolve(file)] = {
       globalConfig: config.globalConfig,
+      iosAuto: config.iosAuto,
     };
   }
   return caseOptions;
@@ -140,5 +150,11 @@ export async function runFrameworkTestConfig(
   printExecutionFinished();
   const success = printExecutionSummary(results, summaryPath);
 
-  return success ? exitCode : 1;
+  const finalExitCode = success ? exitCode : 1;
+  await commandOptions.onComplete?.({
+    exitCode: finalExitCode,
+    results,
+    summaryPath,
+  });
+  return finalExitCode;
 }

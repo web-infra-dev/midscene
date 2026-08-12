@@ -72,6 +72,7 @@ export interface BatchRunnerConfig {
   keepWindow: boolean;
   dotenvOverride: boolean;
   dotenvDebug: boolean;
+  iosAuto?: boolean;
 }
 
 interface BatchFileContext {
@@ -81,6 +82,7 @@ interface BatchFileContext {
   options: {
     headed?: boolean;
     keepWindow?: boolean;
+    iosAuto?: boolean;
     browser?: Browser;
     page?: Page;
   };
@@ -135,6 +137,7 @@ class YamlBatchExecutor {
         setupContext = await this.createFileContext(setup, fileConfig, {
           headed,
           keepWindow,
+          iosAuto: this.config.iosAuto,
         });
       }
 
@@ -144,6 +147,7 @@ class YamlBatchExecutor {
         const context = await this.createFileContext(file, fileConfig, {
           headed,
           keepWindow,
+          iosAuto: this.config.iosAuto,
         });
         fileContextList.push(context);
       }
@@ -255,7 +259,12 @@ class YamlBatchExecutor {
   private async createFileContext(
     file: string,
     fileConfig: MidsceneYamlScript,
-    options: { headed?: boolean; keepWindow?: boolean; browser?: Browser },
+    options: {
+      headed?: boolean;
+      keepWindow?: boolean;
+      iosAuto?: boolean;
+      browser?: Browser;
+    },
   ): Promise<BatchFileContext> {
     const { globalConfig } = this.config;
 

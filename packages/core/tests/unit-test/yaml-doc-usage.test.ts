@@ -144,6 +144,40 @@ tasks:
     expect(script.computer).toMatchObject({ displayId: 'main' });
   });
 
+  it('normalizes numeric Android device IDs without damaging comments or string IDs', () => {
+    const warning = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    const numericScript = parseYamlScript(`
+android:
+  deviceId: 123
+tasks:
+  - name: Numeric device ID
+    flow:
+      - ai: Continue
+`);
+    const commentedScript = parseYamlScript(`
+android:
+  deviceId: 456 # connected device
+tasks:
+  - name: Commented numeric device ID
+    flow:
+      - ai: Continue
+`);
+    const stringScript = parseYamlScript(`
+android:
+  deviceId: 789-abc
+tasks:
+  - name: String device ID
+    flow:
+      - ai: Continue
+`);
+
+    expect(numericScript.android?.deviceId).toBe('123');
+    expect(commentedScript.android?.deviceId).toBe('456');
+    expect(stringScript.android?.deviceId).toBe('789-abc');
+    expect(warning).toHaveBeenCalledTimes(2);
+  });
+
   it('executes documented task flow items and preserves their options', async () => {
     const script = parseYamlScript(`
 web:

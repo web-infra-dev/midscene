@@ -34,6 +34,7 @@ export interface ConfigFactoryOptions {
   keepWindow?: boolean;
   dotenvOverride?: boolean;
   dotenvDebug?: boolean;
+  iosAuto?: boolean;
   target?: Partial<MidsceneYamlScriptWebEnv>;
   page?: Partial<MidsceneYamlScriptWebEnv>;
   browser?: Partial<MidsceneYamlScriptWebEnv>;
@@ -63,6 +64,7 @@ export interface ParsedConfig {
   keepWindow: boolean;
   dotenvOverride: boolean;
   dotenvDebug: boolean;
+  iosAuto?: boolean;
 }
 
 async function expandFilePatterns(
@@ -253,6 +255,7 @@ export async function createConfig(
     keepWindow: keepWindow,
     dotenvOverride: options?.dotenvOverride ?? parsedConfig.dotenvOverride,
     dotenvDebug: options?.dotenvDebug ?? parsedConfig.dotenvDebug,
+    iosAuto: options?.iosAuto,
     globalConfig,
   };
 }
@@ -289,6 +292,7 @@ export async function createFilesConfig(
     keepWindow: keepWindow,
     dotenvOverride: options.dotenvOverride ?? defaultConfig.dotenvOverride,
     dotenvDebug: options.dotenvDebug ?? defaultConfig.dotenvDebug,
+    iosAuto: options.iosAuto,
     globalConfig: {
       page: options.page as MidsceneYamlScriptWebEnv | undefined,
       browser: options.browser as MidsceneYamlScriptWebEnv | undefined,
