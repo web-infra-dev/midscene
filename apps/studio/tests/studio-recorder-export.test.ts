@@ -3,8 +3,10 @@ import JSZip from 'jszip';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   createStudioRecorderArchivePlan,
+  createStudioRecorderDeterministicDescription,
   createStudioRecorderMarkdownArchivePlan,
   createStudioRecorderMarkdownZipBase64,
+  createStudioRecorderSessionFacts,
   createStudioRecorderZipBase64,
   generateStudioRecorderMarkdown,
   materializeStudioRecorderSessionScreenshots,
@@ -17,8 +19,11 @@ import type { ElectronShellApi } from '../src/shared/electron-contract';
 describe('studio recorder export', () => {
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
     document.body.innerHTML = '';
     (window as Window & { electronShell?: unknown }).electronShell = undefined;
+    (window as Window & { showSaveFilePicker?: unknown }).showSaveFilePicker =
+      undefined;
   });
 
   it('materializes screenshot assets only in the export copy', async () => {
@@ -303,6 +308,257 @@ describe('studio recorder export', () => {
     expect(streamRecorderArchive).toHaveBeenCalledTimes(1);
   });
 
+  it('streams a browser ZIP to the selected file without materializing asset data URLs', async () => {
+    const assetBytes = new TextEncoder().encode('already-compressed-png');
+    const archiveChunks: Uint8Array[] = [];
+    const write = vi.fn(async (data: Uint8Array) => {
+      archiveChunks.push(data.slice());
+    });
+    const close = vi.fn(async () => undefined);
+    const abort = vi.fn(async () => undefined);
+    const showSaveFilePicker = vi.fn(async () => ({
+      createWritable: vi.fn(async () => ({ write, close, abort })),
+    }));
+    Object.defineProperty(window, 'showSaveFilePicker', {
+      configurable: true,
+      value: showSaveFilePicker,
+    });
+    const read = vi
+      .fn()
+      .mockResolvedValueOnce({
+        done: false,
+        value: assetBytes.slice(0, 7),
+      })
+      .mockResolvedValueOnce({
+        done: false,
+        value: assetBytes.slice(7),
+      })
+      .mockResolvedValueOnce({ done: true });
+    const fetchAsset = vi.fn(async () => ({
+      ok: true,
+      status: 200,
+      body: { getReader: () => ({ read }) },
+    }));
+    vi.stubGlobal('fetch', fetchAsset);
+    const fallback = vi.fn(async () => 'unused');
+    const loadAsset = vi.fn(async () => null);
+    const onProgress = vi.fn();
+
+    await saveStudioRecorderArchive({
+      title: 'Export Recorder Markdown Replay',
+      defaultFileName: 'browser-stream.zip',
+      plan: {
+        textEntries: [
+          { archivePath: 'recording.md', content: '# Browser stream' },
+        ],
+        assetEntries: [
+          {
+            archivePath: 'screenshots/event-001-click.png',
+            assetId: 'asset-browser-stream',
+            mimeType: 'image/png',
+            bytes: assetBytes.byteLength,
+          },
+        ],
+      },
+      createFallbackContent: fallback,
+      getAssetUrl: (assetId) => `/recorder/assets/${assetId}`,
+      loadAsset,
+      onProgress,
+    });
+
+    const archiveLength = archiveChunks.reduce(
+      (total, chunk) => total + chunk.byteLength,
+      0,
+    );
+    const archiveBytes = new Uint8Array(archiveLength);
+    let offset = 0;
+    for (const chunk of archiveChunks) {
+      archiveBytes.set(chunk, offset);
+      offset += chunk.byteLength;
+    }
+    const zip = await JSZip.loadAsync(archiveBytes);
+    await expect(zip.file('recording.md')?.async('string')).resolves.toBe(
+      '# Browser stream',
+    );
+    const archivedAsset = await zip
+      .file('screenshots/event-001-click.png')
+      ?.async('uint8array');
+    expect(Array.from(archivedAsset || [])).toEqual(Array.from(assetBytes));
+    expect(showSaveFilePicker).toHaveBeenCalledBefore(fetchAsset);
+    expect(fetchAsset).toHaveBeenCalledWith(
+      '/recorder/assets/asset-browser-stream',
+      { signal: undefined },
+    );
+    expect(loadAsset).not.toHaveBeenCalled();
+    expect(fallback).not.toHaveBeenCalled();
+    expect(close).toHaveBeenCalledOnce();
+    expect(abort).not.toHaveBeenCalled();
+    expect(onProgress).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        phase: 'completed',
+        processedBytes:
+          new TextEncoder().encode('# Browser stream').byteLength +
+          assetBytes.byteLength,
+        elapsedMs: expect.any(Number),
+      }),
+    );
+  });
+
+  it('uses the same full-timeline visual selection for model materialization and archive export', async () => {
+    const target = {
+      platformId: 'web' as const,
+      label: 'Web',
+      values: { url: 'https://example.com' },
+    };
+    const session: StudioRecordingSession = {
+      id: 'session-selection',
+      name: 'Selection consistency',
+      status: 'completed',
+      target,
+      events: Array.from({ length: 25 }, (_, index) => ({
+        type: 'click' as const,
+        platformId: 'web' as const,
+        actionType: 'Click',
+        rawPayload: {},
+        target,
+        pageInfo: { width: 1280, height: 720 },
+        screenshotAsset: {
+          id: `asset-${index + 1}`,
+          mimeType: 'image/png',
+          bytes: index + 1,
+        },
+        timestamp: index + 1,
+        hashId: `click-${index + 1}`,
+        eventId: `event-${index + 1}`,
+        sequence: index + 1,
+      })),
+      createdAt: 1,
+      updatedAt: 2,
+    };
+    const loadAsset = vi.fn(
+      async (assetId: string) => `data:image/png;base64,${assetId}`,
+    );
+
+    const materialized = await materializeStudioRecorderSessionScreenshots(
+      session,
+      loadAsset,
+    );
+    const materializedAssetIds = materialized.events
+      .map((event) => event.screenshotWithBox?.split(',')[1])
+      .filter(Boolean);
+    const plan = createStudioRecorderMarkdownArchivePlan(session);
+    const archivedAssetIds = plan.assetEntries.map((entry) => entry.assetId);
+
+    expect(materializedAssetIds).toEqual(archivedAssetIds);
+    expect(archivedAssetIds).toHaveLength(20);
+    expect(archivedAssetIds[0]).toBe('asset-1');
+    expect(archivedAssetIds.at(-1)).toBe('asset-25');
+    expect(loadAsset).toHaveBeenCalledTimes(20);
+  });
+
+  it('records exact sequence facts and keeps AI narrative separate in the manifest', () => {
+    const target = {
+      platformId: 'web' as const,
+      label: 'Web',
+      values: { url: 'https://example.com' },
+    };
+    const makeEvent = (
+      hashId: string,
+      sequence: number,
+      options: { type?: 'click' | 'navigation'; parentEventId?: string } = {},
+    ) => ({
+      type: options.type || ('click' as const),
+      platformId: 'web' as const,
+      actionType: options.type === 'navigation' ? 'Navigate' : 'Click',
+      rawPayload: {},
+      target,
+      pageInfo: { width: 1280, height: 720 },
+      timestamp: sequence,
+      hashId,
+      eventId: hashId,
+      sequence,
+      parentEventId: options.parentEventId,
+    });
+    const session: StudioRecordingSession = {
+      id: 'session-facts',
+      name: 'Deterministic facts',
+      status: 'completed',
+      target,
+      metadataDescription: 'A fluent but non-canonical AI narrative.',
+      events: [
+        {
+          ...makeEvent('event-1', 1),
+          captureStatus: 'ready',
+          frame: {
+            token: 'frame-1',
+            capturedAt: 10,
+            source: 'shared-frame-stream',
+            offsetMs: -2,
+          },
+          screenshotAsset: {
+            id: 'session-facts-deadbeef',
+            mimeType: 'image/png',
+            bytes: 12,
+            sha256: 'deadbeef',
+          },
+        },
+        makeEvent('event-1-nav', 1, {
+          type: 'navigation',
+          parentEventId: 'event-1',
+        }),
+        makeEvent('event-2-a', 2),
+        makeEvent('event-2-b', 2),
+        makeEvent('event-4', 4),
+      ],
+      createdAt: 1,
+      updatedAt: 2,
+    };
+
+    expect(createStudioRecorderSessionFacts(session)).toEqual({
+      totalEvents: 5,
+      actionCount: 3,
+      eventTypeCounts: { click: 4, navigation: 1 },
+      actionSequence: {
+        first: 1,
+        last: 4,
+        uniqueCount: 3,
+        missing: [3],
+        duplicates: [2],
+      },
+    });
+    const plan = createStudioRecorderMarkdownArchivePlan(session);
+    const manifestEntry = plan.textEntries.find(
+      (entry) => entry.archivePath === 'recording.manifest.json',
+    );
+    const manifest = JSON.parse(manifestEntry?.content || '{}');
+    expect(manifest).toMatchObject({
+      facts: createStudioRecorderSessionFacts(session),
+      deterministicDescription:
+        createStudioRecorderDeterministicDescription(session),
+      aiNarrative: 'A fluent but non-canonical AI narrative.',
+    });
+    expect(manifest.events).toHaveLength(5);
+    expect(manifest.events[0]).toMatchObject({
+      index: 1,
+      eventId: 'event-1',
+      sequence: 1,
+      capture: { status: 'ready' },
+      frame: expect.objectContaining({ token: 'frame-1' }),
+      screenshot: {
+        path: 'screenshots/event-001-click.png',
+        assetId: 'session-facts-deadbeef',
+        mimeType: 'image/png',
+        bytes: 12,
+        sha256: 'deadbeef',
+      },
+    });
+    expect(manifest.events[1]).toMatchObject({
+      index: 2,
+      parentEventId: 'event-1',
+      type: 'navigation',
+    });
+  });
+
   it('includes Markdown replay files with screenshots in export-all zip', async () => {
     const session: StudioRecordingSession = {
       id: 'session-1',
@@ -325,8 +581,7 @@ describe('studio recorder export', () => {
             values: { url: 'https://example.com' },
           },
           pageInfo: { width: 1280, height: 720 },
-          screenshotAfter:
-            'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJ',
+          screenshotAfter: 'data:image/png;base64,c2NyZWVuc2hvdA==',
           timestamp: 1,
           hashId: 'nav-1',
           url: 'https://example.com',
@@ -367,6 +622,9 @@ describe('studio recorder export', () => {
         {
           hashId: 'nav-1',
           type: 'navigation',
+          screenshot: {
+            bytes: 10,
+          },
           semantic: {
             source: 'heuristic',
             status: 'ready',

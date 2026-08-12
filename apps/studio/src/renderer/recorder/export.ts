@@ -1,9 +1,11 @@
+import { getDebug } from '@midscene/shared/logger';
 import {
   DEFAULT_MIDSCENE_RECORDER_MARKDOWN_MAX_SCREENSHOTS,
   createMidsceneRecorderMarkdownScreenshotAssets,
   getMidsceneRecorderEventDescription,
   getMidsceneRecorderSemantic,
   sanitizeMidsceneRecorderFileName,
+  selectMidsceneRecorderScreenshotEvents,
 } from '@midscene/shared/recorder';
 import type {
   ElectronShellApi,
@@ -12,19 +14,40 @@ import type {
   RecorderArchiveTextEntry,
   SaveFileFilter,
 } from '@shared/electron-contract';
+import { Zip, ZipDeflate, ZipPassThrough, strToU8 } from 'fflate';
 import JSZip from 'jszip';
 import { createSecureRecorderId } from './secure-id';
 import type { StudioRecordedEvent, StudioRecordingSession } from './types';
+
+const debugRecorderExport = getDebug('studio:recorder-export', {
+  console: true,
+});
 
 export async function materializeStudioRecorderSessionScreenshots(
   session: StudioRecordingSession,
   loadScreenshot: (assetId: string) => Promise<string | null>,
   maxScreenshots = DEFAULT_MIDSCENE_RECORDER_MARKDOWN_MAX_SCREENSHOTS,
 ): Promise<StudioRecordingSession> {
+  const selectedIndexes = new Set(
+    selectMidsceneRecorderScreenshotEvents(
+      session.events,
+      Math.max(0, maxScreenshots),
+    ).map((selection) => selection.eventIndex),
+  );
   const events: StudioRecordedEvent[] = [];
-  let remainingScreenshots = Math.max(0, maxScreenshots);
-  for (const event of session.events) {
-    if (!event.screenshotAsset || remainingScreenshots === 0) {
+  for (const [eventIndex, event] of session.events.entries()) {
+    if (!selectedIndexes.has(eventIndex)) {
+      const {
+        screenshotAsset: _screenshotAsset,
+        screenshotBefore: _screenshotBefore,
+        screenshotAfter: _screenshotAfter,
+        screenshotWithBox: _screenshotWithBox,
+        ...eventWithoutScreenshot
+      } = event;
+      events.push(eventWithoutScreenshot as StudioRecordedEvent);
+      continue;
+    }
+    if (!event.screenshotAsset) {
       events.push(event);
       continue;
     }
@@ -34,7 +57,6 @@ export async function materializeStudioRecorderSessionScreenshots(
         `Recorder screenshot asset is unavailable: ${event.screenshotAsset.id}`,
       );
     }
-    remainingScreenshots -= 1;
     events.push({
       ...event,
       screenshotAsset: undefined,
@@ -95,6 +117,245 @@ function base64ToBytes(value: string) {
   return bytes;
 }
 
+function decodedBase64ByteLength(value: string) {
+  const padding = value.endsWith('==') ? 2 : value.endsWith('=') ? 1 : 0;
+  return Math.max(0, Math.floor((value.length * 3) / 4) - padding);
+}
+
+function recorderArchiveAbortError() {
+  const error = new Error('Recorder archive export was cancelled.');
+  error.name = 'AbortError';
+  return error;
+}
+
+function throwIfRecorderArchiveAborted(signal?: AbortSignal) {
+  if (signal?.aborted) {
+    throw recorderArchiveAbortError();
+  }
+}
+
+interface BrowserFileSystemWritable {
+  write(data: Uint8Array): Promise<void>;
+  close(): Promise<void>;
+  abort?(reason?: unknown): Promise<void>;
+}
+
+export interface BrowserRecorderArchiveFileHandle {
+  createWritable(): Promise<BrowserFileSystemWritable>;
+}
+
+type BrowserFilePickerWindow = Window & {
+  showSaveFilePicker?: (options: {
+    suggestedName: string;
+    types: Array<{
+      description: string;
+      accept: Record<string, string[]>;
+    }>;
+  }) => Promise<BrowserRecorderArchiveFileHandle>;
+};
+
+function browserRecorderArchivePickerOptions(defaultFileName: string) {
+  return {
+    suggestedName: defaultFileName,
+    types: [
+      {
+        description: 'ZIP Archive',
+        accept: { 'application/zip': ['.zip'] },
+      },
+    ],
+  };
+}
+
+/**
+ * Opens the browser picker while the caller still owns transient user
+ * activation. `undefined` means unsupported; `null` means user-cancelled.
+ */
+export async function chooseBrowserRecorderArchiveFile(
+  defaultFileName: string,
+): Promise<BrowserRecorderArchiveFileHandle | null | undefined> {
+  const picker = (window as BrowserFilePickerWindow).showSaveFilePicker;
+  if (!picker) {
+    return undefined;
+  }
+  try {
+    return await picker(browserRecorderArchivePickerOptions(defaultFileName));
+  } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      return null;
+    }
+    if (
+      error instanceof Error &&
+      (error.name === 'SecurityError' || error.name === 'NotAllowedError')
+    ) {
+      debugRecorderExport(
+        'browser recorder archive picker is unavailable; using download fallback %o',
+        { error: error.message },
+      );
+      return undefined;
+    }
+    throw error;
+  }
+}
+
+async function saveBrowserRecorderArchiveStream(options: {
+  defaultFileName: string;
+  plan: StudioRecorderArchivePlan;
+  fileHandle?: BrowserRecorderArchiveFileHandle | null;
+  getAssetUrl?: (assetId: string) => string | null;
+  loadAsset?: (assetId: string) => Promise<string | null>;
+  onProgress?: (progress: RecorderArchiveProgress) => void;
+  signal?: AbortSignal;
+}) {
+  const hasPreselectedHandle = Object.prototype.hasOwnProperty.call(
+    options,
+    'fileHandle',
+  );
+  const selectedHandle = hasPreselectedHandle
+    ? options.fileHandle
+    : await chooseBrowserRecorderArchiveFile(options.defaultFileName);
+  if (selectedHandle === undefined) {
+    return false;
+  }
+  if (selectedHandle === null) {
+    return true;
+  }
+  throwIfRecorderArchiveAborted(options.signal);
+  const writable = await selectedHandle.createWritable();
+  const jobId = createSecureRecorderId('browser-recorder-archive');
+  const startedAt = performance.now();
+  const totalBytes =
+    options.plan.textEntries.reduce(
+      (total, entry) => total + strToU8(entry.content).byteLength,
+      0,
+    ) +
+    options.plan.assetEntries.reduce((total, entry) => total + entry.bytes, 0);
+  let processedBytes = 0;
+  let outputBytes = 0;
+  let writeChain = Promise.resolve();
+  let resolveCompleted!: () => void;
+  let rejectCompleted!: (error: unknown) => void;
+  const completed = new Promise<void>((resolve, reject) => {
+    resolveCompleted = resolve;
+    rejectCompleted = reject;
+  });
+  const zip = new Zip((error, data, final) => {
+    if (error) {
+      rejectCompleted(error);
+      return;
+    }
+    outputBytes += data.byteLength;
+    writeChain = writeChain.then(() => writable.write(data));
+    if (final) {
+      writeChain.then(resolveCompleted, rejectCompleted);
+    }
+  });
+  const reportProgress = (phase: RecorderArchiveProgress['phase']) => {
+    options.onProgress?.({
+      jobId,
+      processedBytes: Math.min(processedBytes, totalBytes),
+      totalBytes,
+      phase,
+      elapsedMs: performance.now() - startedAt,
+    });
+  };
+
+  try {
+    debugRecorderExport('browser recorder archive write started %o', {
+      jobId,
+      textEntryCount: options.plan.textEntries.length,
+      assetEntryCount: options.plan.assetEntries.length,
+      inputBytes: totalBytes,
+    });
+    reportProgress('write');
+    for (const entry of options.plan.textEntries) {
+      throwIfRecorderArchiveAborted(options.signal);
+      const data = strToU8(entry.content);
+      const file = new ZipDeflate(entry.archivePath, { level: 6 });
+      zip.add(file);
+      file.push(data, true);
+      processedBytes += data.byteLength;
+      await writeChain;
+      reportProgress('write');
+    }
+    for (const entry of options.plan.assetEntries) {
+      throwIfRecorderArchiveAborted(options.signal);
+      const file = new ZipPassThrough(entry.archivePath);
+      zip.add(file);
+      const assetUrl = options.getAssetUrl?.(entry.assetId);
+      if (assetUrl) {
+        const response = await fetch(assetUrl, { signal: options.signal });
+        if (!response.ok) {
+          throw new Error(
+            `Recorder screenshot asset request failed (${response.status}): ${entry.assetId}`,
+          );
+        }
+        if (response.body) {
+          const reader = response.body.getReader();
+          while (true) {
+            const result = await reader.read();
+            if (result.done) {
+              break;
+            }
+            throwIfRecorderArchiveAborted(options.signal);
+            file.push(result.value);
+            processedBytes += result.value.byteLength;
+            await writeChain;
+            reportProgress('write');
+          }
+          file.push(new Uint8Array(), true);
+        } else {
+          const bytes = new Uint8Array(await response.arrayBuffer());
+          file.push(bytes, true);
+          processedBytes += bytes.byteLength;
+        }
+      } else {
+        const asset = await options.loadAsset?.(entry.assetId);
+        if (!asset) {
+          throw new Error(
+            `Recorder screenshot asset is unavailable: ${entry.assetId}`,
+          );
+        }
+        const base64 = asset.split(';base64,')[1];
+        if (!base64) {
+          throw new Error(
+            `Recorder screenshot asset is not a data URL: ${entry.assetId}`,
+          );
+        }
+        const bytes = base64ToBytes(base64);
+        file.push(bytes, true);
+        processedBytes += bytes.byteLength;
+      }
+      await writeChain;
+      reportProgress('write');
+    }
+    zip.end();
+    await completed;
+    throwIfRecorderArchiveAborted(options.signal);
+    reportProgress('commit');
+    await writable.close();
+    processedBytes = totalBytes;
+    reportProgress('completed');
+    debugRecorderExport('browser recorder archive write completed %o', {
+      jobId,
+      inputBytes: totalBytes,
+      outputBytes,
+      textEntryCount: options.plan.textEntries.length,
+      assetEntryCount: options.plan.assetEntries.length,
+      totalDurationMs: performance.now() - startedAt,
+    });
+    return true;
+  } catch (error) {
+    zip.terminate();
+    await writable.abort?.(error).catch(() => undefined);
+    debugRecorderExport('browser recorder archive write failed %o', {
+      jobId,
+      elapsedMs: performance.now() - startedAt,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    throw error;
+  }
+}
+
 function triggerBrowserDownload(options: {
   defaultFileName: string;
   content: string;
@@ -140,9 +401,117 @@ function markdownTableCell(value: string) {
     .replace(/\r?\n/g, '<br>');
 }
 
+export interface StudioRecorderSessionFacts {
+  totalEvents: number;
+  actionCount: number;
+  eventTypeCounts: Record<string, number>;
+  actionSequence?: {
+    first: number;
+    last: number;
+    uniqueCount: number;
+    missing: number[];
+    duplicates: number[];
+  };
+}
+
+export function createStudioRecorderSessionFacts(
+  session: Pick<StudioRecordingSession, 'events'>,
+): StudioRecorderSessionFacts {
+  const eventTypeCounts = session.events.reduce<Record<string, number>>(
+    (counts, event) => {
+      counts[event.type] = (counts[event.type] || 0) + 1;
+      return counts;
+    },
+    {},
+  );
+  const actionSequences = session.events
+    .filter(
+      (event) =>
+        !event.parentEventId &&
+        typeof event.sequence === 'number' &&
+        Number.isFinite(event.sequence) &&
+        event.sequence > 0,
+    )
+    .map((event) => event.sequence as number);
+  const sequenceCounts = new Map<number, number>();
+  for (const sequence of actionSequences) {
+    sequenceCounts.set(sequence, (sequenceCounts.get(sequence) || 0) + 1);
+  }
+  const uniqueSequences = Array.from(sequenceCounts.keys()).sort(
+    (left, right) => left - right,
+  );
+  const first = uniqueSequences[0];
+  const last = uniqueSequences.at(-1);
+  const missing =
+    first === undefined || last === undefined
+      ? []
+      : Array.from(
+          { length: last - first + 1 },
+          (_, index) => first + index,
+        ).filter((sequence) => !sequenceCounts.has(sequence));
+  const duplicates = Array.from(sequenceCounts.entries())
+    .filter(([, count]) => count > 1)
+    .map(([sequence]) => sequence);
+  const fallbackActionCount = session.events.filter(
+    (event) =>
+      !event.parentEventId &&
+      event.type !== 'navigation' &&
+      event.type !== 'setViewport',
+  ).length;
+  return {
+    totalEvents: session.events.length,
+    actionCount:
+      actionSequences.length > 0 ? uniqueSequences.length : fallbackActionCount,
+    eventTypeCounts: Object.fromEntries(
+      Object.entries(eventTypeCounts).sort(([left], [right]) =>
+        left.localeCompare(right),
+      ),
+    ),
+    ...(first !== undefined && last !== undefined
+      ? {
+          actionSequence: {
+            first,
+            last,
+            uniqueCount: uniqueSequences.length,
+            missing,
+            duplicates,
+          },
+        }
+      : {}),
+  };
+}
+
+export function createStudioRecorderDeterministicDescription(
+  session: Pick<StudioRecordingSession, 'events'>,
+) {
+  const facts = createStudioRecorderSessionFacts(session);
+  const typeSummary = Object.entries(facts.eventTypeCounts)
+    .map(([type, count]) => `${type}: ${count}`)
+    .join(', ');
+  const sequenceSummary = facts.actionSequence
+    ? ` Action sequence ${facts.actionSequence.first}-${facts.actionSequence.last}` +
+      ` (${facts.actionSequence.uniqueCount} unique` +
+      `${facts.actionSequence.missing.length ? `, missing ${facts.actionSequence.missing.join(', ')}` : ''}` +
+      `${facts.actionSequence.duplicates.length ? `, duplicates ${facts.actionSequence.duplicates.join(', ')}` : ''}).`
+    : '';
+  return `Recorded ${facts.totalEvents} events and ${facts.actionCount} user actions${
+    typeSummary ? ` (${typeSummary})` : ''
+  }.${sequenceSummary}`;
+}
+
+interface RecorderManifestScreenshotEvidence {
+  eventIndex: number;
+  relativePath: string;
+  assetId?: string;
+  mimeType: string;
+  bytes?: number;
+  sha256?: string;
+}
+
 function createMarkdownReplayManifest(
   session: StudioRecordingSession,
   source: 'ai' | 'local-fallback',
+  screenshotEvidence: RecorderManifestScreenshotEvidence[] = [],
 ) {
   type ManifestSemantic = {
     source: string;
@@ -184,11 +553,36 @@ function createMarkdownReplayManifest(
         : {}),
     };
   };
-  const events = session.events.map((event) => {
+  const screenshotEvidenceByEventIndex = new Map(
+    screenshotEvidence.map((evidence) => [evidence.eventIndex, evidence]),
+  );
+  const events = session.events.map((event, eventIndex) => {
     const semantic = getMidsceneRecorderSemantic(event);
+    const evidence = screenshotEvidenceByEventIndex.get(eventIndex);
     return {
+      index: eventIndex + 1,
       hashId: event.hashId,
+      eventId: event.eventId,
+      sequence: event.sequence,
+      parentEventId: event.parentEventId,
       type: event.type,
+      actionType: event.actionType,
+      capture: {
+        status: event.captureStatus,
+        error: event.captureError,
+      },
+      frame: event.frame,
+      ...(evidence
+        ? {
+            screenshot: {
+              path: evidence.relativePath,
+              assetId: evidence.assetId,
+              mimeType: evidence.mimeType,
+              bytes: evidence.bytes,
+              sha256: evidence.sha256,
+            },
+          }
+        : {}),
       semantic: serializeSemantic(semantic) || {
         source: 'heuristic',
         status: 'ready',
@@ -212,6 +606,11 @@ function createMarkdownReplayManifest(
       sessionId: session.id,
       sessionName: session.name,
       exportedAt: new Date().toISOString(),
+      facts: createStudioRecorderSessionFacts(session),
+      deterministicDescription:
+        createStudioRecorderDeterministicDescription(session),
+      aiNarrative: session.metadataDescription,
+      finalization: session.finalization,
       descriptionSourceCounts,
       events,
     },
@@ -456,14 +855,24 @@ export async function createStudioRecorderZipBase64(
     const markdown =
       session.generatedCode?.markdown ||
       generateStudioRecorderMarkdownReplay(session);
+    const screenshots = createMidsceneRecorderMarkdownScreenshotAssets(
+      session.events,
+    );
     zip.file(`markdown/${baseName}/recording.md`, markdown);
     zip.file(
       `markdown/${baseName}/recording.manifest.json`,
-      createMarkdownReplayManifest(session, markdownSource),
+      createMarkdownReplayManifest(
+        session,
+        markdownSource,
+        screenshots.map((screenshot) => ({
+          eventIndex: screenshot.eventIndex,
+          relativePath: screenshot.relativePath.replace(/^\.\//, ''),
+          mimeType: screenshot.mimeType,
+          bytes: decodedBase64ByteLength(screenshot.base64Data),
+        })),
+      ),
     );
-    for (const screenshot of createMidsceneRecorderMarkdownScreenshotAssets(
-      session.events,
-    )) {
+    for (const screenshot of screenshots) {
       zip.file(
         `markdown/${baseName}/${screenshot.relativePath.replace(/^\.\//, '')}`,
         screenshot.base64Data,
@@ -494,14 +903,24 @@ export async function createStudioRecorderMarkdownZipBase64(
   const markdown =
     session.generatedCode?.markdown ||
     generateStudioRecorderMarkdownReplay(session);
+  const screenshots = createMidsceneRecorderMarkdownScreenshotAssets(
+    session.events,
+  );
   zip.file('recording.md', markdown);
   zip.file(
     'recording.manifest.json',
-    createMarkdownReplayManifest(session, markdownSource),
+    createMarkdownReplayManifest(
+      session,
+      markdownSource,
+      screenshots.map((screenshot) => ({
+        eventIndex: screenshot.eventIndex,
+        relativePath: screenshot.relativePath.replace(/^\.\//, ''),
+        mimeType: screenshot.mimeType,
+        bytes: decodedBase64ByteLength(screenshot.base64Data),
+      })),
+    ),
   );
-  for (const screenshot of createMidsceneRecorderMarkdownScreenshotAssets(
-    session.events,
-  )) {
+  for (const screenshot of screenshots) {
     zip.file(
       screenshot.relativePath.replace(/^\.\//, ''),
       screenshot.base64Data,
@@ -524,31 +943,37 @@ function createRecorderArchiveAssetEntries(
   maxScreenshots: number,
 ) {
   const entries: RecorderArchiveAssetEntry[] = [];
-  const seenAssetIds = new Set<string>();
-  for (
-    let eventIndex = 0;
-    eventIndex < session.events.length;
-    eventIndex += 1
-  ) {
-    if (entries.length >= maxScreenshots) {
-      break;
-    }
+  const evidence: RecorderManifestScreenshotEvidence[] = [];
+  const selections = selectMidsceneRecorderScreenshotEvents(
+    session.events,
+    maxScreenshots,
+  );
+  for (const { eventIndex } of selections) {
     const event = session.events[eventIndex];
     const asset = event.screenshotAsset;
-    if (!asset || seenAssetIds.has(asset.id)) {
+    if (!asset) {
       continue;
     }
-    seenAssetIds.add(asset.id);
     const safeType = event.type.replace(/[^a-zA-Z0-9-]/g, '-');
     const extension = asset.mimeType.includes('jpeg') ? 'jpg' : 'png';
+    const fileName = `event-${String(eventIndex + 1).padStart(3, '0')}-${safeType}.${extension}`;
     entries.push({
-      archivePath: `${archiveBaseDir}/event-${String(eventIndex + 1).padStart(3, '0')}-${safeType}.${extension}`,
+      archivePath: `${archiveBaseDir}/${fileName}`,
       assetId: asset.id,
       mimeType: asset.mimeType,
       bytes: asset.bytes,
+      sha256: asset.sha256,
+    });
+    evidence.push({
+      eventIndex,
+      relativePath: `screenshots/${fileName}`,
+      assetId: asset.id,
+      mimeType: asset.mimeType,
+      bytes: asset.bytes,
+      sha256: asset.sha256,
     });
   }
-  return entries;
+  return { entries, evidence };
 }
 
 export function createStudioRecorderArchivePlan(
@@ -570,6 +995,11 @@ export function createStudioRecorderArchivePlan(
     const markdown =
       session.generatedCode?.markdown ||
       generateStudioRecorderMarkdownReplay(session);
+    const sessionAssets = createRecorderArchiveAssetEntries(
+      session,
+      `markdown/${baseName}/screenshots`,
+      remainingScreenshots,
+    );
     textEntries.push(
       {
         archivePath: `markdown/${baseName}/recording.md`,
@@ -577,7 +1007,11 @@ export function createStudioRecorderArchivePlan(
       },
       {
         archivePath: `markdown/${baseName}/recording.manifest.json`,
-        content: createMarkdownReplayManifest(session, markdownSource),
+        content: createMarkdownReplayManifest(
+          session,
+          markdownSource,
+          sessionAssets.evidence,
+        ),
       },
       {
         archivePath: `${baseName}.yaml`,
@@ -594,13 +1028,8 @@ export function createStudioRecorderArchivePlan(
         content: playwright,
       });
     }
-    const sessionAssets = createRecorderArchiveAssetEntries(
-      session,
-      `markdown/${baseName}/screenshots`,
-      remainingScreenshots,
-    );
-    assetEntries.push(...sessionAssets);
-    remainingScreenshots -= sessionAssets.length;
+    assetEntries.push(...sessionAssets.entries);
+    remainingScreenshots -= sessionAssets.entries.length;
   }
   return { textEntries, assetEntries };
 }
@@ -611,6 +1040,11 @@ export function createStudioRecorderMarkdownArchivePlan(
   const markdownSource = session.generatedCode?.markdown
     ? 'ai'
     : 'local-fallback';
+  const assets = createRecorderArchiveAssetEntries(
+    session,
+    'screenshots',
+    DEFAULT_MIDSCENE_RECORDER_MARKDOWN_MAX_SCREENSHOTS,
+  );
   return {
     textEntries: [
       {
@@ -621,14 +1055,14 @@ export function createStudioRecorderMarkdownArchivePlan(
       },
       {
         archivePath: 'recording.manifest.json',
-        content: createMarkdownReplayManifest(session, markdownSource),
+        content: createMarkdownReplayManifest(
+          session,
+          markdownSource,
+          assets.evidence,
+        ),
       },
     ],
-    assetEntries: createRecorderArchiveAssetEntries(
-      session,
-      'screenshots',
-      DEFAULT_MIDSCENE_RECORDER_MARKDOWN_MAX_SCREENSHOTS,
-    ),
+    assetEntries: assets.entries,
   };
 }
 
@@ -638,9 +1072,29 @@ export async function saveStudioRecorderArchive(options: {
   plan: StudioRecorderArchivePlan;
   createFallbackContent: () => Promise<string>;
   onProgress?: (progress: RecorderArchiveProgress) => void;
+  signal?: AbortSignal;
+  browserFileHandle?: BrowserRecorderArchiveFileHandle | null;
+  getAssetUrl?: (assetId: string) => string | null;
+  loadAsset?: (assetId: string) => Promise<string | null>;
 }) {
+  throwIfRecorderArchiveAborted(options.signal);
   const shell = getRecorderArchiveShell();
   if (!shell?.chooseFileSavePath) {
+    if (
+      await saveBrowserRecorderArchiveStream({
+        defaultFileName: options.defaultFileName,
+        plan: options.plan,
+        ...(Object.prototype.hasOwnProperty.call(options, 'browserFileHandle')
+          ? { fileHandle: options.browserFileHandle }
+          : {}),
+        getAssetUrl: options.getAssetUrl,
+        loadAsset: options.loadAsset,
+        onProgress: options.onProgress,
+        signal: options.signal,
+      })
+    ) {
+      return;
+    }
     triggerBrowserDownload({
       defaultFileName: options.defaultFileName,
       content: await options.createFallbackContent(),
@@ -650,6 +1104,7 @@ export async function saveStudioRecorderArchive(options: {
     return;
   }
 
+  const chooseStartedAt = performance.now();
   const targetPath = await shell.chooseFileSavePath({
     title: options.title,
     defaultFileName: options.defaultFileName,
@@ -658,6 +1113,13 @@ export async function saveStudioRecorderArchive(options: {
   if (!targetPath) {
     return;
   }
+  debugRecorderExport('recorder archive destination selected %o', {
+    targetPath,
+    chooseDurationMs: performance.now() - chooseStartedAt,
+    textEntryCount: options.plan.textEntries.length,
+    assetEntryCount: options.plan.assetEntries.length,
+  });
+  throwIfRecorderArchiveAborted(options.signal);
 
   if (!shell.streamRecorderArchive) {
     await shell.writeFile({
@@ -676,13 +1138,38 @@ export async function saveStudioRecorderArchive(options: {
         }
       })
     : undefined;
+  const cancelArchive = () => {
+    if (shell.cancelRecorderArchive) {
+      void shell.cancelRecorderArchive(jobId);
+    }
+  };
+  options.signal?.addEventListener('abort', cancelArchive, { once: true });
   try {
-    await shell.streamRecorderArchive({
+    let result: Awaited<ReturnType<ElectronShellApi['streamRecorderArchive']>>;
+    try {
+      result = await shell.streamRecorderArchive({
+        jobId,
+        path: targetPath,
+        ...options.plan,
+      });
+    } catch (error) {
+      // Electron serializes main-process errors and may not preserve `name`.
+      // The renderer owns the cancellation signal, so use it as the canonical
+      // source when normalizing the result for callers.
+      if (options.signal?.aborted) {
+        throw recorderArchiveAbortError();
+      }
+      throw error;
+    }
+    debugRecorderExport('recorder archive stream completed %o', {
       jobId,
-      path: targetPath,
-      ...options.plan,
+      targetPath,
+      bytesWritten: result.bytesWritten,
+      metrics: result.metrics,
     });
+    return result;
   } finally {
+    options.signal?.removeEventListener('abort', cancelArchive);
     unsubscribe?.();
   }
 }

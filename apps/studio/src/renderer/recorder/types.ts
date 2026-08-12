@@ -84,6 +84,8 @@ export interface StudioRecordingSession {
   events: StudioRecordedEvent[];
   generatedCode?: MidsceneRecorderGeneratedCode;
   metadataGeneratedAt?: number;
+  /** Optional AI narrative kept separate from deterministic event facts. */
+  metadataDescription?: string;
   createdAt: number;
   updatedAt: number;
   startedAt?: number;

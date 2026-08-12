@@ -32,6 +32,7 @@
     "antd": "^5.21.6",
     "archiver": "^6.0.0",
     "electron-updater": "6.8.3",
+    "fflate": "0.8.2",
     "jszip": "3.10.1",
     "puppeteer": "24.6.0",
     "react": "18.3.1",

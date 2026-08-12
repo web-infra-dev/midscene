@@ -198,6 +198,12 @@ export interface MidsceneRecorderMarkdownScreenshotOptions {
   maxScreenshots?: number;
 }
 
+export interface MidsceneRecorderScreenshotSelection {
+  eventIndex: number;
+  eventHashId: string;
+  eventType: MidsceneRecorderEventType;
+}
+
 export const DEFAULT_MIDSCENE_RECORDER_MARKDOWN_MAX_SCREENSHOTS = 20;
 
 function isMidsceneRecorderPendingDescription(value?: string) {
@@ -622,6 +628,49 @@ function getRecorderScreenshotCandidates(
   }
 
   return candidates;
+}
+
+/**
+ * Selects visual evidence from the complete event set without loading assets.
+ * Data-URL and external-asset export paths use the same deterministic indexes.
+ */
+export function selectMidsceneRecorderScreenshotEvents(
+  events: MidsceneRecorderEvent[],
+  maxScreenshots = DEFAULT_MIDSCENE_RECORDER_MARKDOWN_MAX_SCREENSHOTS,
+): MidsceneRecorderScreenshotSelection[] {
+  const candidates: RecorderScreenshotCandidate[] = [];
+  const seenEvidence = new Set<string>();
+  const lastEventIndex = events.length - 1;
+  for (let eventIndex = 0; eventIndex < events.length; eventIndex += 1) {
+    const event = events[eventIndex];
+    const embeddedScreenshot = getRecorderEventScreenshot(event);
+    const evidenceIdentity = event.screenshotAsset
+      ? `asset:${event.screenshotAsset.id}`
+      : embeddedScreenshot
+        ? `data:${embeddedScreenshot}`
+        : undefined;
+    if (
+      !evidenceIdentity ||
+      seenEvidence.has(evidenceIdentity) ||
+      (!event.screenshotAsset &&
+        !shouldIncludeMarkdownScreenshot(event, eventIndex, lastEventIndex))
+    ) {
+      continue;
+    }
+    seenEvidence.add(evidenceIdentity);
+    candidates.push({
+      event,
+      eventIndex,
+      screenshot: evidenceIdentity,
+    });
+  }
+  return selectRecorderScreenshotCandidates(candidates, maxScreenshots).map(
+    ({ event, eventIndex }) => ({
+      eventIndex,
+      eventHashId: event.hashId,
+      eventType: event.type,
+    }),
+  );
 }
 
 export function createMidsceneRecorderMarkdownScreenshotAssets(

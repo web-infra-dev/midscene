@@ -26,6 +26,7 @@ export const IPC_CHANNELS = {
   writeReportFile: 'shell:write-report-file',
   writeFile: 'shell:write-file',
   streamRecorderArchive: 'shell:stream-recorder-archive',
+  cancelRecorderArchive: 'shell:cancel-recorder-archive',
   recorderArchiveProgress: 'shell:recorder-archive-progress',
   setNativeTheme: 'shell:set-native-theme',
   systemThemeChanged: 'shell:system-theme-changed',
@@ -90,6 +91,7 @@ export interface RecorderArchiveAssetEntry {
   assetId: string;
   mimeType: string;
   bytes: number;
+  sha256?: string;
 }
 
 export interface StreamRecorderArchiveRequest {
@@ -103,11 +105,29 @@ export interface RecorderArchiveProgress {
   jobId: string;
   processedBytes: number;
   totalBytes: number;
+  phase?: 'write' | 'commit' | 'completed';
+  elapsedMs?: number;
+}
+
+export interface RecorderArchiveMetrics {
+  inputBytes: number;
+  outputBytes: number;
+  textEntryCount: number;
+  assetEntryCount: number;
+  writeDurationMs: number;
+  commitDurationMs: number;
+  totalDurationMs: number;
+  rssStartBytes: number;
+  rssPeakBytes: number;
+  rssEndBytes: number;
+  eventLoopDelayP99Ms: number;
+  eventLoopDelayMaxMs: number;
 }
 
 export interface StreamRecorderArchiveResult {
   path: string;
   bytesWritten: number;
+  metrics?: RecorderArchiveMetrics;
 }
 
 export interface OpenImagePreviewRequest {
@@ -291,6 +311,7 @@ export interface ElectronShellApi {
   streamRecorderArchive: (
     request: StreamRecorderArchiveRequest,
   ) => Promise<StreamRecorderArchiveResult>;
+  cancelRecorderArchive: (jobId: string) => Promise<{ cancelled: boolean }>;
   onRecorderArchiveProgress: (
     listener: (progress: RecorderArchiveProgress) => void,
   ) => () => void;

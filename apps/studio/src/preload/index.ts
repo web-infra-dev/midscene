@@ -30,6 +30,8 @@ const electronShellApi: ElectronShellApi = {
   writeFile: (request) => ipcRenderer.invoke(IPC_CHANNELS.writeFile, request),
   streamRecorderArchive: (request) =>
     ipcRenderer.invoke(IPC_CHANNELS.streamRecorderArchive, request),
+  cancelRecorderArchive: (jobId) =>
+    ipcRenderer.invoke(IPC_CHANNELS.cancelRecorderArchive, jobId),
   onRecorderArchiveProgress: (listener) => {
     const handler = (_event: unknown, progress: unknown) => {
       listener(progress as Parameters<typeof listener>[0]);

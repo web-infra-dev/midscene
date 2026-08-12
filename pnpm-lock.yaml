@@ -570,6 +570,9 @@ importers:
       electron-updater:
         specifier: 6.8.3
         version: 6.8.3
+      fflate:
+        specifier: 0.8.2
+        version: 0.8.2
       jszip:
         specifier: 3.10.1
         version: 3.10.1

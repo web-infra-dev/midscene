@@ -94,6 +94,7 @@ let deviceDiscoveryServicePromise: Promise<DeviceDiscoveryService> | null =
   null;
 let studioRunDir: string | null = null;
 let isQuitting = false;
+const recorderArchiveJobs = new Map<string, AbortController>();
 const isStudioSmokeTest = process.env.MIDSCENE_STUDIO_SMOKE_TEST === '1';
 const isStudioE2ETest = process.env.MIDSCENE_STUDIO_E2E_TEST === '1';
 const STUDIO_SMOKE_READY_MARKER = 'MIDSCENE_STUDIO_SMOKE_READY';
@@ -784,11 +785,38 @@ const registerIpcHandlers = () => {
           'streamRecorderArchive: Studio run directory is not configured',
         );
       }
-      return streamStudioRecorderArchive(runDir, request, (progress) => {
-        if (!event.sender.isDestroyed()) {
-          event.sender.send(IPC_CHANNELS.recorderArchiveProgress, progress);
-        }
-      });
+      if (recorderArchiveJobs.has(request.jobId)) {
+        throw new Error(
+          `streamRecorderArchive: duplicate job id ${request.jobId}`,
+        );
+      }
+      const controller = new AbortController();
+      recorderArchiveJobs.set(request.jobId, controller);
+      try {
+        return await streamStudioRecorderArchive(
+          runDir,
+          request,
+          (progress) => {
+            if (!event.sender.isDestroyed()) {
+              event.sender.send(IPC_CHANNELS.recorderArchiveProgress, progress);
+            }
+          },
+          controller.signal,
+        );
+      } finally {
+        recorderArchiveJobs.delete(request.jobId);
+      }
+    },
+  );
+  ipcMain.handle(
+    IPC_CHANNELS.cancelRecorderArchive,
+    async (_event, jobId: string) => {
+      const controller = recorderArchiveJobs.get(String(jobId || ''));
+      if (!controller) {
+        return { cancelled: false };
+      }
+      controller.abort();
+      return { cancelled: true };
     },
   );
   // Multi-platform playground — a single server for Android, iOS,
