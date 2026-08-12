@@ -4,6 +4,7 @@ import path from 'node:path';
 import { performance } from 'node:perf_hooks';
 import { PuppeteerAgent } from '@/puppeteer';
 import { expect, it, vi } from 'vitest';
+import { generateTeacherXpathMap } from './teacher-replay-utils';
 import { createTestContext, getFixturePath } from './test-utils';
 import { launchPage } from './utils';
 
@@ -25,6 +26,19 @@ interface BenchmarkCase {
   targetId: string;
   action: string;
   expectXpathHit: boolean;
+}
+
+const aiActEfforts = ['fast', 'balance', 'deepThink'] as const;
+type AiActEffort = (typeof aiActEfforts)[number];
+
+function parseAiActEffort(value: string | undefined): AiActEffort {
+  const effort = value ?? 'balance';
+  if (!aiActEfforts.includes(effort as AiActEffort)) {
+    throw new Error(
+      `Unknown ELEMENT_XPATH_COMPLEX_EFFORT "${effort}". Expected one of: ${aiActEfforts.join(', ')}`,
+    );
+  }
+  return effort as AiActEffort;
 }
 
 const sceneMapFiles: Record<Scene, string> = {
@@ -165,6 +179,21 @@ const benchmarkCases: Record<string, BenchmarkCase> = {
   ),
 };
 
+const targetOnlyElementNames: Record<string, string> = {
+  'version-0918':
+    'DF20260918_V002 option in the open Demand FCST Version dropdown',
+  'version-1002':
+    'DF20261002_V003 option in the open Demand FCST Version dropdown',
+  'version-1016':
+    'DF20261016_V001 option in the open Demand FCST Version dropdown',
+  'version-1023':
+    'DF20261023_V004 option in the open Demand FCST Version dropdown',
+  'card-normalize-settings': 'Settings icon in the Normalize order fields card',
+  'card-address-more': 'More icon in the Validate delivery address card',
+  'card-reserve-copy': 'Copy icon in the Reserve warehouse stock card',
+  'card-audit-collapse': 'Collapse icon in the Write audit log card',
+};
+
 function locateEvidence(value: unknown) {
   const evidence = {
     locateTasks: 0,
@@ -230,6 +259,13 @@ it.skipIf(!process.env.ELEMENT_XPATH_COMPLEX_VARIANT)(
   'records one cross-scene element XPath benchmark sample',
   async () => {
     const variant = process.env.ELEMENT_XPATH_COMPLEX_VARIANT ?? 'baseline';
+    const experimentId = process.env.ELEMENT_XPATH_COMPLEX_EXPERIMENT_ID;
+    const effort = parseAiActEffort(process.env.ELEMENT_XPATH_COMPLEX_EFFORT);
+    const cacheable = process.env.ELEMENT_XPATH_COMPLEX_CACHEABLE === 'true';
+    const recordXpath =
+      process.env.ELEMENT_XPATH_COMPLEX_RECORD_XPATH === 'true';
+    const generateTeacherMap =
+      process.env.ELEMENT_XPATH_COMPLEX_GENERATE_TEACHER_MAP === 'true';
     const caseId =
       process.env.ELEMENT_XPATH_COMPLEX_CASE ?? 'grouped-team-offsite';
     const round = process.env.ELEMENT_XPATH_COMPLEX_ROUND ?? '1';
@@ -245,22 +281,98 @@ it.skipIf(!process.env.ELEMENT_XPATH_COMPLEX_VARIANT)(
       );
     }
 
-    const useElementXpaths = variant === 'element-xpath';
+    const useFullElementXpaths = variant === 'element-xpath';
+    const useTargetOnlyXpath = variant === 'target-only-xpath';
+    const useGeneratedXpath = variant === 'generated-xpath';
+    const useElementXpaths =
+      useFullElementXpaths || useTargetOnlyXpath || useGeneratedXpath;
     if (!useElementXpaths && variant !== 'baseline') {
       throw new Error(
-        `Unknown ELEMENT_XPATH_COMPLEX_VARIANT "${variant}". Expected "baseline" or "element-xpath".`,
+        `Unknown ELEMENT_XPATH_COMPLEX_VARIANT "${variant}". Expected "baseline", "element-xpath", "target-only-xpath", or "generated-xpath".`,
       );
     }
 
-    const artifactId = `${modelArtifactId}-${variant}-${caseId}-r${round}`;
+    const targetOnlyElementName = targetOnlyElementNames[caseId];
+    if (useTargetOnlyXpath && !targetOnlyElementName) {
+      throw new Error(
+        `Target-only XPath is not configured for ELEMENT_XPATH_COMPLEX_CASE "${caseId}".`,
+      );
+    }
+
+    const experimentArtifactId = experimentId
+      ? experimentId
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-|-$/g, '')
+      : undefined;
+    const artifactId = [
+      modelArtifactId,
+      experimentArtifactId,
+      variant,
+      caseId,
+      `r${round}`,
+    ]
+      .filter(Boolean)
+      .join('-');
     const reportFileName = `element-xpath-complex-${artifactId}`;
     const reportRoot = path.join(process.cwd(), 'midscene_run', 'report');
     const evidenceDir = path.join(reportRoot, 'element-xpath-complex-evidence');
     await mkdir(evidenceDir, { recursive: true });
 
-    const fixtureUrl = new URL(
-      `file://${getFixturePath('element-xpath-complex-scenes.html')}`,
+    const fixturePath = getFixturePath('element-xpath-complex-scenes.html');
+    const expectedXpath = selectedCase.expectXpathHit
+      ? `//*[@data-target-id="${selectedCase.targetId}"]`
+      : undefined;
+    let mapPath: string | undefined;
+    let mapFileName: string | undefined;
+    if (useFullElementXpaths) {
+      mapPath = getFixturePath(selectedCase.mapFile);
+      mapFileName = selectedCase.mapFile;
+    } else if (useTargetOnlyXpath) {
+      mapFileName = `${artifactId}.element-xpaths.yaml`;
+      mapPath = path.join(evidenceDir, mapFileName);
+      await writeFile(
+        mapPath,
+        `elements:\n  ${JSON.stringify(targetOnlyElementName)}: ${JSON.stringify(expectedXpath)}\n`,
+        'utf8',
+      );
+    } else if (useGeneratedXpath) {
+      mapPath = process.env.ELEMENT_XPATH_COMPLEX_MAP_PATH;
+      if (!mapPath) {
+        throw new Error(
+          'ELEMENT_XPATH_COMPLEX_MAP_PATH is required for the "generated-xpath" variant.',
+        );
+      }
+      mapFileName = path.relative(evidenceDir, mapPath);
+    }
+    const elementXpathEntryCount = mapPath
+      ? (await readFile(mapPath, 'utf8'))
+          .split('\n')
+          .filter((line) => /^ {2}\S/.test(line)).length
+      : 0;
+    const benchmarkPath = path.join(
+      process.cwd(),
+      'tests',
+      'ai',
+      'web',
+      'puppeteer',
+      'element-xpath-complex-benchmark.test.ts',
     );
+    const sourceEvidence = {
+      fixtureSha256: createHash('sha256')
+        .update(await readFile(fixturePath))
+        .digest('hex'),
+      benchmarkSha256: createHash('sha256')
+        .update(await readFile(benchmarkPath))
+        .digest('hex'),
+      elementXpathFileSha256: mapPath
+        ? createHash('sha256')
+            .update(await readFile(mapPath))
+            .digest('hex')
+        : undefined,
+    };
+
+    const fixtureUrl = new URL(`file://${fixturePath}`);
     fixtureUrl.searchParams.set('scene', selectedCase.scene);
     const { originPage, reset } = await launchPage(fixtureUrl.toString(), {
       viewport: { width: 1440, height: 900 },
@@ -274,15 +386,24 @@ it.skipIf(!process.env.ELEMENT_XPATH_COMPLEX_VARIANT)(
       groupName: `Cross-scene element XPath evidence: ${artifactId}`,
       groupDescription:
         'One atomic click in a complex page archetype derived from hard grounding cases.',
+      ...(recordXpath
+        ? {
+            cache: {
+              id: artifactId,
+              strategy: 'write-only' as const,
+              cacheDir: path.join(evidenceDir, 'teacher-cache'),
+            },
+          }
+        : {}),
     });
     context.agent = agent;
 
     const options = {
-      cacheable: false,
-      deepThink: false as const,
+      cacheable,
+      effort,
       ...(useElementXpaths
         ? {
-            loadElementXpaths: [getFixturePath(selectedCase.mapFile)],
+            loadElementXpaths: [mapPath as string],
           }
         : {}),
     };
@@ -310,6 +431,45 @@ it.skipIf(!process.env.ELEMENT_XPATH_COMPLEX_VARIANT)(
           }
         ).__complexBenchmarkActions,
     );
+    const stateEvidence = await originPage.evaluate(
+      ({ scene, targetId }) => {
+        if (scene === 'overlay') {
+          const targetElementPresent = Array.from(
+            document.querySelectorAll<HTMLElement>('[data-target-id]'),
+          ).some((element) => element.dataset.targetId === targetId);
+          return {
+            expectation: 'target-removed',
+            expectedTargetRemoved: true,
+            targetElementPresent,
+            matched: !targetElementPresent,
+          };
+        }
+
+        if (scene === 'version-picker') {
+          const expectedValue = targetId.replace('version-option-', '');
+          const trigger =
+            document.querySelector<HTMLElement>('.version-trigger');
+          const dropdown = document.querySelector<HTMLElement>(
+            '[data-version-dropdown]',
+          );
+          const actualValue = trigger?.dataset.selectedVersion;
+          const dropdownOpen = !dropdown?.hidden;
+          return {
+            expectation: 'version-selected-and-dropdown-closed',
+            expectedValue,
+            actualValue,
+            dropdownOpen,
+            matched: actualValue === expectedValue && !dropdownOpen,
+          };
+        }
+
+        return {
+          expectation: 'event-only',
+          matched: true,
+        };
+      },
+      { scene: selectedCase.scene, targetId: selectedCase.targetId },
+    );
     const expectedClicks = [
       {
         targetId: selectedCase.targetId,
@@ -318,16 +478,15 @@ it.skipIf(!process.env.ELEMENT_XPATH_COMPLEX_VARIANT)(
     ];
     const domMatched =
       JSON.stringify(actualClicks) === JSON.stringify(expectedClicks);
-    const expectedXpath = selectedCase.expectXpathHit
-      ? `//*[@data-target-id="${selectedCase.targetId}"]`
-      : undefined;
-    const xpathResolved = useElementXpaths
-      ? selectedCase.expectXpathHit
-        ? locate.xpathHits === 1 &&
-          locate.resolvedXpaths.length === 1 &&
-          locate.resolvedXpaths[0] === expectedXpath
-        : locate.xpathHits === 0
-      : locate.xpathHits === 0;
+    const xpathResolved = useGeneratedXpath
+      ? locate.xpathHits > 0
+      : useElementXpaths
+        ? selectedCase.expectXpathHit
+          ? locate.xpathHits === 1 &&
+            locate.resolvedXpaths.length === 1 &&
+            locate.resolvedXpaths[0] === expectedXpath
+          : locate.xpathHits === 0
+        : locate.xpathHits === 0;
 
     await agent.destroy();
     context.agent = null;
@@ -337,6 +496,9 @@ it.skipIf(!process.env.ELEMENT_XPATH_COMPLEX_VARIANT)(
       `${artifactId}.report.html`,
     );
     let reportSha256: string | undefined;
+    let teacherMapArtifact:
+      | Awaited<ReturnType<typeof generateTeacherXpathMap>>
+      | undefined;
     try {
       await copyFile(generatedReportPath, copiedReportPath);
       reportSha256 = createHash('sha256')
@@ -344,6 +506,22 @@ it.skipIf(!process.env.ELEMENT_XPATH_COMPLEX_VARIANT)(
         .digest('hex');
     } catch {
       // Preserve the primary model or action error in the evidence below.
+    }
+    if (
+      generateTeacherMap &&
+      !runError &&
+      domMatched &&
+      stateEvidence.matched
+    ) {
+      if (!reportSha256) {
+        throw new Error(
+          `Cannot generate the teacher XPath Map because the report was not copied: ${copiedReportPath}`,
+        );
+      }
+      teacherMapArtifact = await generateTeacherXpathMap(
+        copiedReportPath,
+        path.join(evidenceDir, 'teacher-replay', artifactId),
+      );
     }
     await reset();
     context.resetFn = null;
@@ -353,6 +531,7 @@ it.skipIf(!process.env.ELEMENT_XPATH_COMPLEX_VARIANT)(
       schemaVersion: 1,
       createdAt: new Date().toISOString(),
       gitCommit: process.env.ELEMENT_XPATH_COMPLEX_COMMIT,
+      experimentId,
       variant,
       caseId,
       scene: selectedCase.scene,
@@ -360,9 +539,12 @@ it.skipIf(!process.env.ELEMENT_XPATH_COMPLEX_VARIANT)(
       prompt: selectedCase.prompt,
       options: {
         loadElementXpaths: useElementXpaths,
-        elementXpathFile: useElementXpaths ? selectedCase.mapFile : undefined,
-        cacheable: false,
-        deepThink: false,
+        elementXpathFile: mapFileName,
+        elementXpathEntryCount,
+        cacheable,
+        effort,
+        recordXpath,
+        generateTeacherMap,
         modelRetryCount: process.env.MIDSCENE_MODEL_RETRY_COUNT,
         modelReasoningEnabled: process.env.MIDSCENE_MODEL_REASONING_ENABLED,
       },
@@ -371,18 +553,41 @@ it.skipIf(!process.env.ELEMENT_XPATH_COMPLEX_VARIANT)(
         family: process.env.MIDSCENE_MODEL_FAMILY,
       },
       node: process.version,
+      sourceEvidence,
       wallTimeMs,
       metrics,
       locateEvidence: locate,
       expectedClicks,
       actualClicks,
+      stateEvidence,
       expectedXpath,
       domMatched,
       xpathResolved,
       errorClass,
       validForComparison: errorClass !== 'transport',
       reportSha256,
-      success: !runError && domMatched && xpathResolved,
+      teacherMapArtifact: teacherMapArtifact
+        ? {
+            actionDir: path.relative(evidenceDir, teacherMapArtifact.actionDir),
+            actionFiles: teacherMapArtifact.actionFiles.map((file) =>
+              path.relative(evidenceDir, file),
+            ),
+            coordinateFallbackFiles:
+              teacherMapArtifact.coordinateFallbackFiles.map((file) =>
+                path.relative(evidenceDir, file),
+              ),
+            mapPath: path.relative(evidenceDir, teacherMapArtifact.mapPath),
+            manifestPath: path.relative(
+              evidenceDir,
+              teacherMapArtifact.manifestPath,
+            ),
+            elementCount: teacherMapArtifact.elementCount,
+            mapSha256: teacherMapArtifact.mapSha256,
+            steps: teacherMapArtifact.steps,
+          }
+        : undefined,
+      success:
+        !runError && domMatched && xpathResolved && stateEvidence.matched,
       error:
         runError instanceof Error
           ? { name: runError.name, message: runError.message }
@@ -403,5 +608,6 @@ it.skipIf(!process.env.ELEMENT_XPATH_COMPLEX_VARIANT)(
     if (runError) throw runError;
     expect(actualClicks).toEqual(expectedClicks);
     expect(xpathResolved).toBe(true);
+    expect(stateEvidence.matched).toBe(true);
   },
 );

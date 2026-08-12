@@ -189,6 +189,12 @@
         background: white;
         font-size: 13px;
       }
+      .version-trigger {
+        width: 100%;
+        color: #101828;
+        font-family: inherit;
+        cursor: pointer;
+      }
       .dropdown {
         position: absolute;
         top: 82px;
@@ -199,6 +205,9 @@
         border-radius: 8px;
         background: white;
         box-shadow: 0 12px 28px rgba(16, 24, 40, 0.18);
+      }
+      .dropdown[hidden] {
+        display: none;
       }
       .version-option {
         width: 100%;
@@ -575,10 +584,10 @@
           'Demand forecast',
           'An open selector repeats the same version values shown in the data table below',
           `<section class="panel filters">
-            <div class="field"><label>Demand FCST Version</label><div class="input-like">Select a version <span>⌄</span></div></div>
+            <div class="field"><label for="demand-fcst-version">Demand FCST Version</label><button id="demand-fcst-version" type="button" class="input-like version-trigger" aria-haspopup="listbox" aria-expanded="true"><span class="version-value">Select a version</span><span>⌄</span></button></div>
             <div class="field"><label>Business unit</label><div class="input-like">Private cloud <span>⌄</span></div></div>
             <div class="field"><label>Configuration</label><div class="input-like">All configs <span>⌄</span></div></div>
-            <div class="dropdown" role="listbox" aria-label="Demand FCST Version options">
+            <div class="dropdown" role="listbox" aria-label="Demand FCST Version options" data-version-dropdown>
               ${versions.map((version) => `<button class="version-option" data-target-id="version-option-${version}">${version}</button>`).join('')}
             </div>
           </section>
@@ -587,10 +596,21 @@
             <tbody>${versions.map((version, index) => `<tr><td>${version}</td><td>${index % 2 ? 'East' : 'North'}</td><td>Cache-${String.fromCharCode(65 + index)}</td><td>2027/${String(index + 1).padStart(2, '0')}/12</td></tr>`).join('')}</tbody></table>
           </section>`,
         );
+        const trigger = document.querySelector('.version-trigger');
+        const dropdown = document.querySelector('[data-version-dropdown]');
+        trigger.addEventListener('click', () => {
+          dropdown.hidden = !dropdown.hidden;
+          trigger.setAttribute('aria-expanded', String(!dropdown.hidden));
+        });
         document.querySelectorAll('.version-option').forEach((button) => {
-          button.addEventListener('click', () =>
-            record(button.dataset.targetId, 'choose-version'),
-          );
+          button.addEventListener('click', () => {
+            const version = button.textContent.trim();
+            record(button.dataset.targetId, 'choose-version');
+            trigger.dataset.selectedVersion = version;
+            trigger.querySelector('.version-value').textContent = version;
+            dropdown.hidden = true;
+            trigger.setAttribute('aria-expanded', 'false');
+          });
         });
       }
 
@@ -650,9 +670,10 @@
         );
         document.querySelectorAll('[data-target-id^="overlay-"]').forEach((button) => {
           const targetId = button.dataset.targetId;
-          button.addEventListener('click', () =>
-            record(targetId, targetId.endsWith('-clear') ? 'clear' : 'close'),
-          );
+          button.addEventListener('click', () => {
+            record(targetId, targetId.endsWith('-clear') ? 'clear' : 'close');
+            button.closest('.drawer, .dialog, .toast')?.remove();
+          });
         });
       }
 
