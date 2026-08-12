@@ -1,6 +1,7 @@
 import type { Size } from '@midscene/core';
 import { createImgBase64ByFormat } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
+import { createAdbServerTransport } from './adb-server-transport';
 import type { RawKeyframe, ScrcpyScreenshotManager } from './scrcpy-manager';
 import { DEFAULT_SCRCPY_CONFIG } from './scrcpy-manager';
 
@@ -170,7 +171,7 @@ export class ScrcpyDeviceAdapter {
         new AdbServerNodeTcpConnector(adbServerEndpoint),
       );
       const adb = new Adb(
-        await adbClient.createTransport({ serial: this.deviceId }),
+        await createAdbServerTransport(adbClient, { serial: this.deviceId }),
       );
 
       const config = this.resolveConfig(deviceInfo);
