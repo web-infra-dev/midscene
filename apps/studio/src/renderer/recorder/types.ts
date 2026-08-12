@@ -54,6 +54,15 @@ export interface StudioRecorderFinalization {
   reason?: 'deadline_exceeded' | 'cancelled' | 'capture_failed';
   error?: string;
 }
+
+export interface StudioRecorderEnrichment {
+  status: 'pending' | 'completed' | 'completed_with_warnings';
+  pendingDescriptions: number;
+  startedAt: number;
+  completedAt?: number;
+  warningCount?: number;
+}
+
 export type StudioRecorderGenerationStepId = 'prepare' | 'metadata' | 'code';
 export type StudioRecorderGenerationStepStatus =
   | 'pending'
@@ -110,6 +119,8 @@ export interface StudioRecordingSession {
   startedAt?: number;
   stoppedAt?: number;
   finalization?: StudioRecorderFinalization;
+  /** Background event descriptions and metadata that do not block Stop. */
+  enrichment?: StudioRecorderEnrichment;
 }
 
 export interface StudioRecorderState {

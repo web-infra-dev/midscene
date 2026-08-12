@@ -983,7 +983,12 @@ export function StudioRecorderProvider({ children }: PropsWithChildren) {
   const pendingRecorderInputRef = useRef<PendingRecorderInput | null>(null);
   const descriptionQueueRef = useRef<RecorderDescriptionTask[]>([]);
   const descriptionInFlightRef = useRef(0);
-  const descriptionIdleResolversRef = useRef<Set<() => void>>(new Set());
+  const descriptionInFlightBySessionRef = useRef<Map<string, number>>(
+    new Map(),
+  );
+  const descriptionIdleResolversRef = useRef<Map<string, Set<() => void>>>(
+    new Map(),
+  );
   const pendingDescriptionRetryKeysRef = useRef<Set<string>>(new Set());
   const pendingSessionCheckpointsRef = useRef<
     Map<string, StudioRecordingSession>
@@ -994,19 +999,43 @@ export function StudioRecorderProvider({ children }: PropsWithChildren) {
   const sessionCheckpointFlushPromiseRef = useRef<Promise<void> | null>(null);
   const activeArchiveControllerRef = useRef<AbortController | null>(null);
 
-  const notifyDescriptionIdle = useCallback(() => {
-    if (
-      descriptionQueueRef.current.length > 0 ||
-      descriptionInFlightRef.current > 0
-    ) {
-      return;
-    }
-    const resolvers = Array.from(descriptionIdleResolversRef.current);
-    descriptionIdleResolversRef.current.clear();
-    for (const resolve of resolvers) {
-      resolve();
-    }
+  const getDescriptionWork = useCallback((sessionId: string) => {
+    const queued = descriptionQueueRef.current.filter(
+      (task) => task.sessionId === sessionId,
+    ).length;
+    const inFlight =
+      descriptionInFlightBySessionRef.current.get(sessionId) ?? 0;
+    return { queued, inFlight, total: queued + inFlight };
   }, []);
+
+  const notifyDescriptionIdle = useCallback(
+    (sessionId: string) => {
+      if (getDescriptionWork(sessionId).total > 0) {
+        return;
+      }
+      const resolvers = Array.from(
+        descriptionIdleResolversRef.current.get(sessionId) ?? [],
+      );
+      descriptionIdleResolversRef.current.delete(sessionId);
+      for (const resolve of resolvers) {
+        resolve();
+      }
+    },
+    [getDescriptionWork],
+  );
+
+  const updateDescriptionInFlight = useCallback(
+    (sessionId: string, delta: 1 | -1) => {
+      const next =
+        (descriptionInFlightBySessionRef.current.get(sessionId) ?? 0) + delta;
+      if (next > 0) {
+        descriptionInFlightBySessionRef.current.set(sessionId, next);
+      } else {
+        descriptionInFlightBySessionRef.current.delete(sessionId);
+      }
+    },
+    [],
+  );
 
   const clearRecorderScreenshotAssets = useCallback(
     async (sessionId: string) => {
@@ -1134,6 +1163,42 @@ export function StudioRecorderProvider({ children }: PropsWithChildren) {
       return checkpointSessionSnapshot(updatedSession);
     },
     [checkpointSessionSnapshot],
+  );
+
+  const checkpointDescriptionTaskResult = useCallback(
+    (sessionId: string, event: StudioRecordedEvent) => {
+      const snapshot = stateRef.current;
+      const session = snapshot.sessions.find((item) => item.id === sessionId);
+      if (!session) {
+        return null;
+      }
+
+      let updatedSession = updateEvent(session, event);
+      if (
+        updatedSession.status === 'completed' &&
+        updatedSession.enrichment?.status === 'pending'
+      ) {
+        const pendingDescriptions = getDescriptionWork(sessionId).total;
+        if (
+          updatedSession.enrichment.pendingDescriptions !== pendingDescriptions
+        ) {
+          updatedSession = {
+            ...updatedSession,
+            enrichment: {
+              ...updatedSession.enrichment,
+              pendingDescriptions,
+            },
+            updatedAt: Date.now(),
+          };
+        }
+      }
+
+      if (updatedSession === session) {
+        return session;
+      }
+      return checkpointSessionSnapshot(updatedSession);
+    },
+    [checkpointSessionSnapshot, getDescriptionWork],
   );
 
   const describeRecorderEventWithAiDescribe = useCallback(
@@ -1346,7 +1411,9 @@ export function StudioRecorderProvider({ children }: PropsWithChildren) {
         break;
       }
       descriptionInFlightRef.current += 1;
+      updateDescriptionInFlight(task.sessionId, 1);
       void (async () => {
+        let describedEvent: StudioRecordedEvent | undefined;
         try {
           const session = stateRef.current.sessions.find(
             (item) => item.id === task.sessionId,
@@ -1354,27 +1421,29 @@ export function StudioRecorderProvider({ children }: PropsWithChildren) {
           if (!session) {
             return;
           }
-          const [describedEvent] = await describeRecorderEventsNow(session, [
+          [describedEvent] = await describeRecorderEventsNow(session, [
             task.event,
           ]);
-          if (describedEvent) {
-            await updateRecordedEvent(task.sessionId, describedEvent);
-          }
         } catch (error) {
           debugRecorder('failed to describe recorder event:', error);
-          await updateRecordedEvent(
-            task.sessionId,
-            createFallbackRecorderEvent(task.event, error),
-          );
+          describedEvent = createFallbackRecorderEvent(task.event, error);
         } finally {
           descriptionInFlightRef.current -= 1;
-          notifyDescriptionIdle();
+          updateDescriptionInFlight(task.sessionId, -1);
+          if (describedEvent) {
+            checkpointDescriptionTaskResult(task.sessionId, describedEvent);
+          }
+          notifyDescriptionIdle(task.sessionId);
           processDescriptionQueue();
         }
       })();
     }
-    notifyDescriptionIdle();
-  }, [describeRecorderEventsNow, notifyDescriptionIdle, updateRecordedEvent]);
+  }, [
+    checkpointDescriptionTaskResult,
+    describeRecorderEventsNow,
+    notifyDescriptionIdle,
+    updateDescriptionInFlight,
+  ]);
 
   const enqueueRecorderEventDescription = useCallback(
     (sessionId: string, event: StudioRecordedEvent) => {
@@ -1451,13 +1520,43 @@ export function StudioRecorderProvider({ children }: PropsWithChildren) {
     [upsertSessionSnapshot],
   );
 
+  const completeRecorderEnrichment = useCallback(
+    async (sessionId: string) => {
+      const session = stateRef.current.sessions.find(
+        (item) => item.id === sessionId,
+      );
+      if (!session?.enrichment || session.enrichment.status !== 'pending') {
+        return session ?? null;
+      }
+      const unresolvedCount = session.events.filter((event) =>
+        hasUnresolvedRecorderSemantic(getMidsceneRecorderSemantic(event)),
+      ).length;
+      const warningCount = session.events.filter((event) =>
+        Boolean(getMidsceneRecorderSemantic(event)?.error),
+      ).length;
+      const updatedSession: StudioRecordingSession = {
+        ...session,
+        enrichment: {
+          ...session.enrichment,
+          status:
+            unresolvedCount > 0 || warningCount > 0
+              ? 'completed_with_warnings'
+              : 'completed',
+          pendingDescriptions: 0,
+          completedAt: Date.now(),
+          ...(warningCount > 0 ? { warningCount } : {}),
+        },
+        updatedAt: Date.now(),
+      };
+      return upsertSessionSnapshot(updatedSession);
+    },
+    [upsertSessionSnapshot],
+  );
+
   const waitForRecorderEventDescriptions = useCallback(
     async (sessionId: string, timeoutMs?: number) => {
       await flushPendingRecorderInput(sessionId);
-      if (
-        descriptionQueueRef.current.length === 0 &&
-        descriptionInFlightRef.current === 0
-      ) {
+      if (getDescriptionWork(sessionId).total === 0) {
         const session = stateRef.current.sessions.find(
           (item) => item.id === sessionId,
         );
@@ -1465,8 +1564,7 @@ export function StudioRecorderProvider({ children }: PropsWithChildren) {
           hasUnresolvedRecorderSemantic(getMidsceneRecorderSemantic(event)),
         );
       }
-      const pendingDescriptionCount =
-        descriptionQueueRef.current.length + descriptionInFlightRef.current;
+      const pendingDescriptionCount = getDescriptionWork(sessionId).total;
       const effectiveTimeoutMs =
         timeoutMs ??
         calculateRecorderDescriptionQueueTimeoutMs(pendingDescriptionCount);
@@ -1479,7 +1577,13 @@ export function StudioRecorderProvider({ children }: PropsWithChildren) {
             settled = true;
             resolve();
           };
-          descriptionIdleResolversRef.current.add(idleResolver);
+          const resolvers =
+            descriptionIdleResolversRef.current.get(sessionId) ?? new Set();
+          resolvers.add(idleResolver);
+          descriptionIdleResolversRef.current.set(sessionId, resolvers);
+          if (getDescriptionWork(sessionId).total === 0) {
+            idleResolver();
+          }
         }),
         new Promise<void>((resolve) => {
           timeout = window.setTimeout(resolve, effectiveTimeoutMs);
@@ -1489,7 +1593,11 @@ export function StudioRecorderProvider({ children }: PropsWithChildren) {
         window.clearTimeout(timeout);
       }
       if (idleResolver) {
-        descriptionIdleResolversRef.current.delete(idleResolver);
+        const resolvers = descriptionIdleResolversRef.current.get(sessionId);
+        resolvers?.delete(idleResolver);
+        if (resolvers?.size === 0) {
+          descriptionIdleResolversRef.current.delete(sessionId);
+        }
       }
       if (!settled) {
         return false;
@@ -1501,7 +1609,7 @@ export function StudioRecorderProvider({ children }: PropsWithChildren) {
         hasUnresolvedRecorderSemantic(getMidsceneRecorderSemantic(event)),
       );
     },
-    [flushPendingRecorderInput],
+    [flushPendingRecorderInput, getDescriptionWork],
   );
 
   const updateRecorderFinalizationProgress = useCallback(
@@ -2069,7 +2177,8 @@ export function StudioRecorderProvider({ children }: PropsWithChildren) {
       !currentSession ||
       currentSession.status === 'recording' ||
       currentSession.status === 'finalizing' ||
-      descriptionInFlightRef.current > 0 ||
+      (descriptionInFlightBySessionRef.current.get(currentSession.id) ?? 0) >
+        0 ||
       descriptionQueueRef.current.some(
         (task) => task.sessionId === currentSession.id,
       )
@@ -2142,12 +2251,29 @@ export function StudioRecorderProvider({ children }: PropsWithChildren) {
     const latestSnapshot = stateRef.current;
     const latestSession =
       latestSnapshot.sessions.find((item) => item.id === session.id) ?? session;
+    const stoppedAt = Date.now();
+    const pendingDescriptions = getDescriptionWork(session.id).total;
+    const hasUnresolvedDescriptions = latestSession.events.some((event) =>
+      hasUnresolvedRecorderSemantic(getMidsceneRecorderSemantic(event)),
+    );
+    const hasPendingMetadata =
+      latestSession.events.length > 0 && !latestSession.metadataGeneratedAt;
+    const hasPendingEnrichment =
+      pendingDescriptions > 0 ||
+      hasUnresolvedDescriptions ||
+      hasPendingMetadata;
 
     const updatedSession: StudioRecordingSession = {
       ...latestSession,
       status: 'completed',
-      stoppedAt: Date.now(),
-      updatedAt: Date.now(),
+      stoppedAt,
+      enrichment: {
+        status: hasPendingEnrichment ? 'pending' : 'completed',
+        pendingDescriptions,
+        startedAt: stoppedAt,
+        ...(!hasPendingEnrichment ? { completedAt: stoppedAt } : {}),
+      },
+      updatedAt: stoppedAt,
     };
     stateRef.current = upsertSessionInState(latestSnapshot, updatedSession);
     dispatch({ type: 'upsert-session', session: updatedSession });
@@ -2169,12 +2295,22 @@ export function StudioRecorderProvider({ children }: PropsWithChildren) {
           stateRef.current.sessions.find((item) => item.id === session.id) ??
           updatedSession;
         await generateSessionMetadata(sessionForMetadata);
+      } catch (error) {
+        debugRecorder('failed to finish recorder enrichment:', error);
       } finally {
-        clearRecorderRuntime(session.id);
+        try {
+          await completeRecorderEnrichment(session.id);
+        } catch (error) {
+          debugRecorder('failed to persist recorder enrichment status:', error);
+        } finally {
+          clearRecorderRuntime(session.id);
+        }
       }
     })();
   }, [
+    completeRecorderEnrichment,
     generateSessionMetadata,
+    getDescriptionWork,
     markPendingDescriptionsAsFallback,
     clearRecorderRuntime,
     flushPendingRecorderInput,

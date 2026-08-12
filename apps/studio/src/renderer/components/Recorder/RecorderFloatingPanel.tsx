@@ -31,6 +31,7 @@ interface RecorderFloatingPanelProps {
   canGenerateMarkdown: boolean;
   error?: string | null;
   isMarkdownGenerating: boolean;
+  isEnriching: boolean;
   isRecording: boolean;
   isStoppingRecording: boolean;
   onGenerateMarkdown: () => void;
@@ -561,6 +562,7 @@ export function RecorderFloatingPanel({
   detailView,
   error,
   isMarkdownGenerating,
+  isEnriching,
   isRecording,
   isStoppingRecording,
   onGenerateMarkdown,
@@ -672,11 +674,13 @@ export function RecorderFloatingPanel({
                 }
               />
               <span className="studio-recorder-floating-primer-status-copy">
-                Record &amp; Generate Markdown
+                {isEnriching ? statusText : 'Record & Generate Markdown'}
               </span>
             </div>
             <span className="studio-recorder-floating-primer-description">
-              Record interactions, then generate a natural language description.
+              {isEnriching
+                ? 'All interactions are saved. AI details will continue updating in the background.'
+                : 'Record interactions, then generate a natural language description.'}
             </span>
           </div>
           <div className="studio-recorder-floating-start-button-shell">

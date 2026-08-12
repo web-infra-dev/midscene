@@ -267,6 +267,38 @@ describe('StudioRecorderPanel', () => {
     await unmount(root);
   });
 
+  it('distinguishes stopped recording from background AI enrichment', async () => {
+    const session = {
+      ...createRecorderMock().state.sessions[0],
+      enrichment: {
+        status: 'pending',
+        pendingDescriptions: 3,
+        startedAt: Date.now(),
+      },
+    };
+    mocks.recorder = createRecorderMock({
+      currentSession: session,
+      sessionOverrides: session,
+    });
+    mocks.playground = {
+      controller: {
+        state: {
+          serverOnline: true,
+          sessionViewState: { connected: true },
+        },
+      },
+      phase: 'ready',
+    };
+
+    const { container, root } = await renderRecorderPanel();
+
+    expect(container.textContent).toContain(
+      'Recording stopped · Enriching 3 event descriptions',
+    );
+
+    await unmount(root);
+  });
+
   it('scrolls the record timeline to the newest event', async () => {
     vi.useFakeTimers();
     const session = createRecorderMock().state.sessions[0];

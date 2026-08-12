@@ -135,6 +135,15 @@ export function StudioRecorderPanel({
     if (state.isRecording) {
       return 'Recording';
     }
+    if (
+      currentSession?.status === 'completed' &&
+      currentSession.enrichment?.status === 'pending'
+    ) {
+      const pendingDescriptions = currentSession.enrichment.pendingDescriptions;
+      return pendingDescriptions > 0
+        ? `Recording stopped · Enriching ${pendingDescriptions} event description${pendingDescriptions === 1 ? '' : 's'}`
+        : 'Recording stopped · Finalizing AI details';
+    }
     if (!canStartRecording) {
       return 'Connect a device to start recording.';
     }
@@ -459,6 +468,10 @@ export function StudioRecorderPanel({
       canGenerateMarkdown={canGenerateMarkdown}
       detailView={detailView}
       error={state.error}
+      isEnriching={
+        currentSession?.status === 'completed' &&
+        currentSession.enrichment?.status === 'pending'
+      }
       isMarkdownGenerating={isMarkdownGenerating}
       isRecording={state.isRecording}
       isStoppingRecording={isStoppingRecording}

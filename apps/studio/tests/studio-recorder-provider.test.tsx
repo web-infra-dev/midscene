@@ -2115,6 +2115,10 @@ describe('StudioRecorderProvider preview recording', () => {
     );
     expect(stopSettled).toBe(true);
     expect(mounted.recorder?.currentSession?.status).toBe('completed');
+    expect(mounted.recorder?.currentSession?.enrichment).toMatchObject({
+      status: 'pending',
+      pendingDescriptions: 1,
+    });
 
     await act(async () => {
       describeDeferred.resolve({ ok: true, event: describedFinalEvent });
@@ -2131,6 +2135,11 @@ describe('StudioRecorderProvider preview recording', () => {
         status: 'ready',
         elementDescription: 'Save button in the login dialog',
       },
+    });
+    expect(mounted.recorder?.currentSession?.enrichment).toMatchObject({
+      status: 'completed',
+      pendingDescriptions: 0,
+      completedAt: expect.any(Number),
     });
 
     await mounted.cleanup();
