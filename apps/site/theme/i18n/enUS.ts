@@ -73,6 +73,11 @@ and more`,
   debuggingDesc2: 'Supports extending your own UI action agents',
   debuggingDesc3: 'Lowers the maintenance cost of your UI tests',
 
+  // Feature Sections - BENCHMARKS
+  benchmarksTitle: 'EVALUATION',
+  benchmarksHeading: 'Benchmarks',
+  benchmarksDesc: "Explore Midscene's results on AndroidWorld and MobileWorld.",
+
   // Feature Cards
   featureRichAPIs: 'Rich APIs',
   featureRichAPIsDesc:
@@ -86,10 +91,6 @@ and more`,
   featureFlexibleIntegration: 'Flexible Integration',
   featureFlexibleIntegrationDesc:
     'Write flows in YAML, integrate with your test runner, and customize agent execution strategies.',
-  featureBenchmarkDesc:
-    'Review the AndroidWorld benchmark score, run configuration, reports, and validation notes.',
-  featureMobileWorldBenchmarkDesc:
-    'Review the MobileWorld benchmark score, run configuration, reports, and validation notes.',
   featureRichAPIsLink: '/api',
   featureSkillsLink: '/skills',
   featureReportsPlaygroundLink: '/quick-experience',
