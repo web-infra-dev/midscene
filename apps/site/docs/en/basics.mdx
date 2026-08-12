@@ -1,35 +1,155 @@
 # The Basics
 
-Midscene provides four core capabilities for interacting with and understanding interfaces:
+This page provides a conceptual overview of Midscene, including how to use an Agent, its architecture and abstractions, and the boundaries of its capabilities. You will learn how an Agent connects AI models to a target interface and how to choose among planning and interaction, instant interaction, and Insight.
 
-- **Act**: interact with the interface through Auto Planning. This corresponds to `aiAct`. For example:
+## Plan and interact
 
-```text
-Type “Midscene” in the search box, run the search, and open the first result
+### `aiAct`
+
+[`aiAct`](./reference/#agentaiact) accepts a goal described in natural language. It observes the interface, plans the next steps, locates the target elements, and executes the actions until the goal is complete. The prompt can also include assertions that Midscene should verify during execution.
+
+`aiAct` is flexible and autonomous, so it works well when a task has multiple steps, conditional branches, or an uncertain execution path. Each planning cycle can require model calls, which means it usually takes more time and tokens than an instant interaction.
+
+Typical usage:
+
+```typescript
+await agent.aiAct(
+  'Search for headphones, add the first item to the cart, and confirm that the cart count changes to 1',
+);
 ```
 
-```text
-Fill out the registration form and make sure every field passes validation
+To give every subsequent `aiAct` call more business context, use [`agent.setAIActContext()`](./reference/#agentsetaiactcontext):
+
+```typescript
+agent.setAIActContext(
+  'Close the cookie consent dialog first if it appears. Prices are shown in USD.',
+);
 ```
 
-- **Query**: extract structured data from the interface. This corresponds to `aiQuery`.
+The key per-call options are:
 
-Similar methods include `aiBoolean()`, `aiNumber()`, and `aiString()` for directly extracting booleans, numbers, and strings.
+- `deepThink`: focuses more on task decomposition and separates planning from element localization. It can make complex tasks more stable, but increases model calls and latency.
+- `deepLocate`: uses an additional model call to improve element localization. Enable it when a target is small or difficult to distinguish from nearby elements.
+- `context`: provides business knowledge or other background for this call only. For `aiAct`, it overrides the Agent-level `aiActContext`, including when it is explicitly set to an empty string.
 
-```text
-Extract the user ID from the page and return JSON data in the { id: string } structure
+```typescript
+await agent.aiAct('Complete the checkout form and stop before placing the order', {
+  deepThink: true,
+  deepLocate: true,
+  context: 'The test account already has a saved shipping address.',
+});
 ```
 
-- **Assert**: verify a condition in the interface and throw an error when it is not met. This corresponds to `aiAssert`.
+## Instant interactions
 
-```text
-There is a login button on the page, with a user agreement link below it
+Instant interaction APIs perform one specified action. Their main job is to locate a UI element and execute a fixed operation on it.
+
+These APIs do not plan a sequence of steps. A request such as “close the popup if it appears, then click the checkout button” should use `aiAct`; an instant interaction treats its prompt as a description of the target element, not as a workflow.
+
+### `aiTap`
+
+[`aiTap`](./reference/#agentaitap) locates and taps or clicks one element.
+
+Typical usage:
+
+```typescript
+await agent.aiTap('The checkout button in the shopping cart');
 ```
 
-- **Tap**: click an element through Instant Action. This corresponds to `aiTap`.
+Use `deepLocate` when the target is small or visually ambiguous:
 
-```text
-Click the login button
+```typescript
+await agent.aiTap('The cart icon in the upper-right corner', {
+  deepLocate: true,
+});
 ```
 
-For the difference between Auto Planning and Instant Action, see the [common API reference](./reference/#common).
+### `aiInput`
+
+[`aiInput`](./reference/#agentaiinput) locates an input field and enters a specified value. Its default `replace` mode clears the existing content before entering the new value.
+
+Typical usage:
+
+```typescript
+await agent.aiInput('The email address input', {
+  value: 'user@example.com',
+});
+```
+
+Other input modes are `typeOnly`, which preserves the existing content, and `clear`, which only clears the field.
+
+Other instant interaction APIs include `aiHover`, `aiClearInput`, `aiKeyboardPress`, `aiScroll`, `aiPinch`, `aiLongPress`, `aiDoubleClick`, and `aiRightClick`. Platform support varies; see [Planning and interaction](./reference/#planning-interaction) in the API reference.
+
+## Insight
+
+Insight APIs observe the interface and return an analysis result without interacting with it. They use the current screenshot by default. On web pages, you can also pass `domIncluded` when the task requires DOM information that is not visible in the screenshot.
+
+### `aiAssert`
+
+[`aiAssert`](./reference/#agentaiassert) checks a condition described in natural language. It resolves when the condition is true. When the condition is false, it throws an error that includes the reason returned by the model.
+
+Typical usage:
+
+```typescript
+await agent.aiAssert('The shopping cart contains one item and shows a subtotal');
+```
+
+### `aiQuery`
+
+[`aiQuery`](./reference/#agentaiquery) extracts structured data from the interface. Describe both the required data and its expected type or shape in the prompt.
+
+Typical usage:
+
+```typescript
+const items = await agent.aiQuery<
+  Array<{ name: string; price: number }>
+>('The products in the shopping cart, {name: string, price: number}[]');
+```
+
+### `aiBoolean`
+
+[`aiBoolean`](./reference/#agentaiboolean) answers a question about the interface and returns a boolean.
+
+Typical usage:
+
+```typescript
+const loginDialogVisible = await agent.aiBoolean(
+  'Is the login dialog visible?',
+);
+```
+
+Related convenience methods include `aiNumber` for numbers and `aiString` or `aiAsk` for strings.
+
+## Orchestrate workflows with JavaScript {#javascript-orchestration}
+
+`aiAct` delegates the execution path to the Agent. JavaScript orchestration keeps conditions, loops, and step order in code. Insight APIs provide the state used by the control flow, while instant interaction APIs execute the specified actions.
+
+JavaScript orchestration is a practical and highly deterministic approach. Because the execution path is explicit, developers can use familiar debugging tools and control how each branch behaves.
+
+That determinism comes at the cost of flexibility. Code only handles situations that it explicitly describes. A resolution change may require an unexpected scroll, and a popup may block the next action. Unless the script includes logic for those cases, the entire workflow can become fragile. By contrast, `aiAct` can observe the current interface and replan as it runs.
+
+For example, the following workflow puts the loop and condition in JavaScript. Midscene reads the UI state and performs each click:
+
+```typescript
+const recordNames = await agent.aiQuery<string[]>('All record names in the list');
+
+for (const recordName of recordNames) {
+  const completed = await agent.aiBoolean(
+    `Is the record named "${recordName}" marked as completed?`,
+  );
+
+  if (!completed) {
+    await agent.aiTap(`The record named "${recordName}"`);
+  }
+}
+```
+
+There is no single best approach for every automation script:
+
+| Approach | Who controls the execution path | Ability to adapt to UI changes | Suitable scenarios |
+| --- | --- | --- | --- |
+| `aiAct` | Agent | Can observe the interface and replan | The goal is clear, but the steps or UI state may vary |
+| JavaScript orchestration | Code | Changes must be handled explicitly | The flow is stable and requires precise branches, loops, or debugging |
+| Hybrid | Agent and code | Balance autonomy with explicit control | The overall flow is fixed, but some local tasks have uncertain paths |
+
+Choose at the level of each task rather than applying one approach to the entire script. Stable business rules and control flow can live in JavaScript. Steps that need to adapt to unexpected UI states can remain in `aiAct`. Consider stability, flexibility, model cost, latency, and maintenance together.

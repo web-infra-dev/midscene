@@ -276,10 +276,6 @@ export default defineConfig(async () => {
             link: '/caching',
           },
           {
-            text: 'Optimize automation with JavaScript',
-            link: '/use-javascript-to-optimize-ai-automation-code',
-          },
-          {
             sectionHeaderText: 'Resources',
           },
           {
@@ -428,10 +424,6 @@ export default defineConfig(async () => {
           {
             text: '缓存 AI 规划与 DOM 定位',
             link: '/zh/caching',
-          },
-          {
-            text: '使用 JavaScript 优化自动化流程',
-            link: '/zh/use-javascript-to-optimize-ai-automation-code',
           },
           {
             sectionHeaderText: '资源',
@@ -647,7 +639,11 @@ export default defineConfig(async () => {
           },
           {
             from: '^/blog-use-javascript-to-optimize-ai-automation-code(?:\\.html)?/?$',
-            to: '/use-javascript-to-optimize-ai-automation-code',
+            to: '/basics#javascript-orchestration',
+          },
+          {
+            from: '^/use-javascript-to-optimize-ai-automation-code(?:\\.html)?/?$',
+            to: '/basics#javascript-orchestration',
           },
           {
             from: '^/bridge-mode-by-chrome-extension(?:\\.html)?/?$',
@@ -723,7 +719,11 @@ export default defineConfig(async () => {
           },
           {
             from: '^/zh/blog-use-javascript-to-optimize-ai-automation-code(?:\\.html)?/?$',
-            to: '/zh/use-javascript-to-optimize-ai-automation-code',
+            to: '/zh/basics#javascript-orchestration',
+          },
+          {
+            from: '^/zh/use-javascript-to-optimize-ai-automation-code(?:\\.html)?/?$',
+            to: '/zh/basics#javascript-orchestration',
           },
           {
             from: '^/zh/bridge-mode-by-chrome-extension(?:\\.html)?/?$',
