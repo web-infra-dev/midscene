@@ -1,3 +1,6 @@
+import type { UITreeSnapshot } from '@midscene/core';
+import { summarizeUITreeSnapshot } from './ui-tree-data';
+
 export const OMITTED_SCREENSHOT_BASE64_TEXT = '[omitted screenshot base64]';
 
 function isScreenshotPath(path: string[]): boolean {
@@ -42,6 +45,16 @@ export function sanitizeJsonViewData(
       } else if (descriptor.get) {
         fieldValue = descriptor.get.call(value);
       } else {
+        continue;
+      }
+
+      if (
+        key === 'uiTree' &&
+        typeof fieldValue === 'object' &&
+        fieldValue !== null &&
+        'root' in fieldValue
+      ) {
+        result[key] = summarizeUITreeSnapshot(fieldValue as UITreeSnapshot);
         continue;
       }
 
