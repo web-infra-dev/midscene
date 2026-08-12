@@ -36,6 +36,8 @@
     "build:watch": "rslib build --watch --no-clean",
     "prepack": "node scripts/download-scrcpy-server.mjs && node scripts/download-yadb.mjs",
     "playground": "DEBUG=midscene:* tsx demo/playground.ts",
+    "build:webview-tap-repro": "node scripts/build-webview-tap-repro.mjs",
+    "repro:webview-tap": "tsx scripts/reproduce-webview-first-tap.ts",
     "test": "vitest --run",
     "test:u": "vitest --run -u",
     "test:ai": "AI_TEST_TYPE=android vitest --run",

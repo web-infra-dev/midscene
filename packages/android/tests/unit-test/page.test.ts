@@ -749,9 +749,7 @@ Stdout:
       });
 
       await device.inputPrimitives.pointer.tap({ x: 100, y: 200 });
-      expect(mockAdb.shell).toHaveBeenCalledWith(
-        'input swipe 200 400 200 400 150',
-      );
+      expect(mockAdb.shell).toHaveBeenCalledWith('input tap 200 400');
     });
 
     it('should handle 1:1 scale (no scaling)', async () => {
@@ -1136,16 +1134,14 @@ Stdout:
     });
   });
 
-  describe('mouse', () => {
-    it('click should call shell with adjusted coordinates', async () => {
+  describe('pointer input', () => {
+    it('tap should use the native adb tap command with adjusted coordinates', async () => {
       vi.spyOn(device as any, 'adjustCoordinates').mockResolvedValue({
         x: 200,
         y: 300,
       });
       await device.inputPrimitives.pointer.tap({ x: 100, y: 150 });
-      expect(mockAdb.shell).toHaveBeenCalledWith(
-        'input swipe 200 300 200 300 150',
-      );
+      expect(mockAdb.shell).toHaveBeenCalledWith('input tap 200 300');
     });
 
     it('drag should call shell with adjusted coordinates', async () => {
@@ -2833,13 +2829,13 @@ Stdout:
         // Set device pixel ratio for coordinate adjustment
         (deviceWithDisplay as any).devicePixelRatio = 1;
 
-        // Test mouse click command
+        // Test pointer tap command
         await deviceWithDisplay.inputPrimitives.pointer.tap({
           x: 100,
           y: 200,
         });
         expect(mockAdbInstance.shell).toHaveBeenCalledWith(
-          expect.stringContaining('input -d 2 swipe'),
+          expect.stringMatching(/^input -d 2 tap \d+ \d+$/),
         );
       });
 
@@ -2974,10 +2970,10 @@ Stdout:
       // Set device pixel ratio for coordinate adjustment
       (deviceWithDisplay as any).devicePixelRatio = 1;
 
-      // Test mouse click command
+      // Test pointer tap command
       await deviceWithDisplay.inputPrimitives.pointer.tap({ x: 100, y: 200 });
       expect(mockAdbInstance.shell).toHaveBeenCalledWith(
-        expect.stringContaining('input swipe'),
+        expect.stringMatching(/^input tap \d+ \d+$/),
       );
       expect(mockAdbInstance.shell).not.toHaveBeenCalledWith(
         expect.stringContaining('input -d'),

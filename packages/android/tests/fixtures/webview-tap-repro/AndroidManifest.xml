@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+  package="io.midscene.taprepro">
+  <application
+    android:allowBackup="false"
+    android:debuggable="true"
+    android:label="Midscene Tap Repro"
+    android:supportsRtl="true"
+    android:theme="@android:style/Theme.Material.Light.NoActionBar">
+    <activity
+      android:name=".MainActivity"
+      android:exported="true"
+      android:launchMode="singleTop"
+      android:screenOrientation="portrait">
+      <intent-filter>
+        <action android:name="android.intent.action.VIEW" />
+        <category android:name="android.intent.category.DEFAULT" />
+        <category android:name="android.intent.category.BROWSABLE" />
+        <data
+          android:host="open"
+          android:scheme="midscene-tap-repro" />
+      </intent-filter>
+    </activity>
+  </application>
+</manifest>

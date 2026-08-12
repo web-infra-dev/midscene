@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Midscene WebView tap reproduction</title>
+    <style>
+      :root {
+        color: #172033;
+        font-family: system-ui, -apple-system, sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        min-height: 100vh;
+        margin: 0;
+        overflow: hidden;
+        background: #f4f7fb;
+      }
+
+      header {
+        padding: 5vh 7vw 0;
+      }
+
+      h1 {
+        margin: 0 0 1.5vh;
+        font-size: clamp(28px, 7vw, 46px);
+        line-height: 1.05;
+      }
+
+      p {
+        margin: 0;
+        color: #536078;
+        font-size: clamp(16px, 4vw, 24px);
+        line-height: 1.35;
+      }
+
+      #target {
+        position: fixed;
+        top: 42vh;
+        right: 8vw;
+        left: 8vw;
+        height: 20vh;
+        border: 0;
+        border-radius: 28px;
+        background: #1769e0;
+        box-shadow: 0 14px 32px rgb(23 105 224 / 25%);
+        color: white;
+        font-size: clamp(28px, 9vw, 56px);
+        font-weight: 800;
+        touch-action: manipulation;
+      }
+
+      #target:active {
+        background: #0d4fae;
+      }
+
+      #result {
+        position: fixed;
+        right: 8vw;
+        bottom: 10vh;
+        left: 8vw;
+        min-height: 15vh;
+        padding: 3vh 5vw;
+        border: 2px solid #ccd5e4;
+        border-radius: 22px;
+        background: white;
+        font-size: clamp(18px, 4.5vw, 28px);
+        line-height: 1.45;
+      }
+
+      #count {
+        color: #0b7a3e;
+        font-size: 1.35em;
+        font-weight: 800;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>WebView first-tap repro</h1>
+      <p id="mode">Loading deeplink state…</p>
+    </header>
+
+    <button id="target" type="button">TAP TARGET</button>
+
+    <section id="result" aria-live="polite">
+      <div>Tap count: <span id="count">0</span></div>
+      <div id="state">Waiting for WebView…</div>
+    </section>
+
+    <script>
+      const params = new URLSearchParams(location.search);
+      const runId = params.get('run') || 'manual';
+      const guarded = params.get('guard') === '1';
+      const mode = document.querySelector('#mode');
+      const count = document.querySelector('#count');
+      const state = document.querySelector('#state');
+      const target = document.querySelector('#target');
+      let tapCount = 0;
+
+      mode.textContent = guarded
+        ? 'Deterministic mode: the first MOVE gesture after deeplink is swallowed.'
+        : 'Natural mode: no gesture is swallowed by the fixture.';
+
+      window.onNativeState = (nextState, detail) => {
+        state.textContent = `${nextState.toUpperCase()}: ${detail}`;
+      };
+
+      target.addEventListener('click', () => {
+        tapCount += 1;
+        count.textContent = String(tapCount);
+        state.textContent = `REGISTERED: tap ${tapCount} at ${new Date().toISOString()}`;
+        document.title = `tap-count:${tapCount}`;
+        window.AndroidBridge?.onTap(runId, tapCount);
+      });
+    </script>
+  </body>
+</html>

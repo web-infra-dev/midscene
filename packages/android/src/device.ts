@@ -1888,8 +1888,10 @@ ${Object.keys(size)
       point.x,
       point.y,
     );
+    // Keep tap semantics distinct from swipe: even a zero-distance swipe emits
+    // MOVE events for its entire duration.
     await adb.shell(
-      `input${this.getDisplayArg()} swipe ${adjustedX} ${adjustedY} ${adjustedX} ${adjustedY} 150`,
+      `input${this.getDisplayArg()} tap ${adjustedX} ${adjustedY}`,
     );
   }
 

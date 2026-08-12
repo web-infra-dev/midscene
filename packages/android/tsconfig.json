@@ -6,7 +6,7 @@
     "declarationDir": "dist/types",
     "types": ["node"]
   },
-  "include": ["src", "tests", "scripts/*.mjs"],
+  "include": ["src", "tests", "scripts/*.mjs", "scripts/*.ts"],
   "references": [
     {
       "path": "../core"
