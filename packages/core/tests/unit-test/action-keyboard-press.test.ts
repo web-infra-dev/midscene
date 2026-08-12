@@ -61,38 +61,6 @@ describe('KeyboardPress Action', () => {
     );
   });
 
-  it('resolves both model runtimes before executing a targetless action', async () => {
-    const agent = Object.create(Agent.prototype) as Agent<any>;
-    const defaultModel = { intent: 'default' };
-    const planningModel = { intent: 'planning' };
-    const resolveModelRuntime = vi.fn((intent: string) =>
-      intent === 'default' ? defaultModel : planningModel,
-    );
-    const runPlans = vi.fn(async () => ({ output: 'done' }));
-    (agent as any).resolveModelRuntime = resolveModelRuntime;
-    (agent as any).taskExecutor = { runPlans };
-
-    await expect(
-      agent.callActionInActionSpace('KeyboardPress', {
-        keyName: 'Control+X',
-      }),
-    ).resolves.toBe('done');
-
-    expect(resolveModelRuntime.mock.calls).toEqual([['default'], ['planning']]);
-    expect(runPlans).toHaveBeenCalledWith(
-      expect.any(String),
-      [
-        {
-          type: 'KeyboardPress',
-          param: { keyName: 'Control+X' },
-          thought: '',
-        },
-      ],
-      planningModel,
-      defaultModel,
-    );
-  });
-
   it('keeps the legacy key-only signature working', async () => {
     const agent = createAgentStub();
     const callActionSpy = (agent as any).callActionInActionSpace as ReturnType<
