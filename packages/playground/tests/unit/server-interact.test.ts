@@ -29,6 +29,9 @@ function createMockResponse() {
     statusCode: 200,
     body: undefined as unknown,
     headers: {} as Record<string, string>,
+    writableEnded: false,
+    once: vi.fn(),
+    off: vi.fn(),
     status(code: number) {
       this.statusCode = code;
       return this;
@@ -113,7 +116,10 @@ async function describeRecorderEvent(server: PlaygroundServer, event: unknown) {
     '/recorder/describe-event',
   );
   const describeResponse = createMockResponse();
-  await describeHandler({ body: { event } }, describeResponse);
+  await describeHandler(
+    { body: { event }, once: vi.fn(), off: vi.fn() },
+    describeResponse,
+  );
   return describeResponse;
 }
 
@@ -2001,11 +2007,14 @@ describe('PlaygroundServer manual interaction APIs', () => {
 
   test('recorder reports timeout instead of verification failure when verifyPrompt is disabled', async () => {
     const inputPrimitives = makeInputPrimitiveStub();
+    let aiDescribeSignal: AbortSignal | undefined;
     const describeElementAtPoint = mockDescribeElementAtPoint(
       (
         _center: [number, number],
         opt?: { onProgress?: (progress: Record<string, unknown>) => void },
       ) => {
+        aiDescribeSignal = (opt as { abortSignal?: AbortSignal } | undefined)
+          ?.abortSignal;
         opt?.onProgress?.({
           prompt: 'sidebar Icon menu item',
           deepLocate: true,
@@ -2085,6 +2094,7 @@ describe('PlaygroundServer manual interaction APIs', () => {
       });
       expect((describeResponse.body as any).trace.verifyPassed).toBeUndefined();
       expect((describeResponse.body as any).trace.verifyResult).toBeUndefined();
+      expect(aiDescribeSignal?.aborted).toBe(true);
       expect(
         (describeResponse.body as any).event.semantic.aiDescribe,
       ).toBeUndefined();

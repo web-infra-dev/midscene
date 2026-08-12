@@ -236,6 +236,50 @@ describe('recorder-ui-describer', () => {
     expect(callAIWithObjectResponse).toHaveBeenCalledTimes(1);
   });
 
+  it('propagates cancellation to the recorder model request', async () => {
+    const controller = new AbortController();
+    let resolveStarted!: () => void;
+    const started = new Promise<void>((resolve) => {
+      resolveStarted = resolve;
+    });
+    vi.mocked(callAIWithObjectResponse).mockImplementationOnce(
+      async (_messages, _runtime, options) => {
+        resolveStarted();
+        return new Promise((_resolve, reject) => {
+          options?.abortSignal?.addEventListener(
+            'abort',
+            () => reject(new Error('model request cancelled')),
+            { once: true },
+          );
+        });
+      },
+    );
+
+    const promise = describeRecorderUIEvent(
+      {
+        event: {
+          type: 'click',
+          source: 'studio-preview',
+          timestamp: 1000,
+          hashId: 'click-cancelled',
+          pageInfo: { width: 1280, height: 720 },
+          elementRect: { x: 537, y: 450 },
+          screenshotWithBox: screenshot,
+        },
+      },
+      modelConfig,
+      { abortSignal: controller.signal, maxRetries: 3 },
+    );
+    await started;
+    controller.abort(new Error('model request cancelled'));
+
+    await expect(promise).rejects.toThrow('model request cancelled');
+    expect(callAIWithObjectResponse).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(callAIWithObjectResponse).mock.calls[0][2]).toEqual({
+      abortSignal: controller.signal,
+    });
+  });
+
   it.each([
     [
       'Tap',

@@ -49,6 +49,7 @@ import { createMultiPlatformRuntimeService } from './playground/multi-platform-r
 import type { PlaygroundRuntimeService } from './playground/types';
 import { streamStudioRecorderArchive } from './recorder/archive-export';
 import {
+  cancelDescribeRecorderUIEventsInMain,
   describeRecorderUIEventsInMain,
   generateRecorderCodeInMain,
   generateRecorderMetadataInMain,
@@ -870,6 +871,11 @@ const registerIpcHandlers = () => {
     async (_event, request) => {
       return describeRecorderUIEventsInMain(request);
     },
+  );
+  ipcMain.handle(
+    IPC_CHANNELS.cancelDescribeRecorderUIEvents,
+    async (_event, jobId: string) =>
+      cancelDescribeRecorderUIEventsInMain(jobId),
   );
   ipcMain.handle(
     IPC_CHANNELS.prepareRecorderMarkdownReplay,

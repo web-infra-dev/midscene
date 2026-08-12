@@ -114,7 +114,7 @@ function createConnectedStudioContext({
   );
   const releaseRecorderScreenshotAssetLease = vi.fn(async () => undefined);
   const getRecorderScreenshotAsset = vi.fn(
-    async (): Promise<string | null> => null,
+    async (): Promise<string | null> => 'data:image/png;base64,c2hvdA==',
   );
   const getRecorderEvents = vi.fn(async (since = 0) => ({
     events: since === 0 ? events : [],
@@ -653,7 +653,11 @@ describe('StudioRecorderProvider preview recording', () => {
       timestamp: 123,
       hashId: 'click-ai-describe-failed',
     };
-    const { context } = createConnectedStudioContext({ events: [event] });
+    const {
+      context,
+      acquireRecorderScreenshotAssetLease,
+      releaseRecorderScreenshotAssetLease,
+    } = createConnectedStudioContext({ events: [event] });
     const mounted = await mountRecorder(context);
 
     await act(async () => {
@@ -663,7 +667,13 @@ describe('StudioRecorderProvider preview recording', () => {
     await flushPromises();
 
     expect(describeStudioRecorderEventsWithAI).toHaveBeenCalledWith(
-      [expect.objectContaining({ hashId: 'click-ai-describe-failed' })],
+      [
+        expect.objectContaining({
+          hashId: 'click-ai-describe-failed',
+          screenshotAsset: undefined,
+          screenshotWithBox: 'data:image/png;base64,c2hvdA==',
+        }),
+      ],
       expect.any(Object),
     );
     expect(mounted.recorder?.currentSession?.events[0]).toMatchObject({
@@ -679,6 +689,15 @@ describe('StudioRecorderProvider preview recording', () => {
         },
       },
     });
+    const sessionId = mounted.recorder?.currentSession?.id;
+    expect(acquireRecorderScreenshotAssetLease).toHaveBeenCalledWith(
+      sessionId,
+      'description',
+    );
+    expect(releaseRecorderScreenshotAssetLease).toHaveBeenCalledWith(
+      sessionId,
+      `lease-${sessionId}-description`,
+    );
 
     await mounted.cleanup();
   });
@@ -852,6 +871,64 @@ describe('StudioRecorderProvider preview recording', () => {
     await mounted.cleanup();
   });
 
+  it('aborts recorderAI before using a heuristic timeout fallback', async () => {
+    vi.useFakeTimers();
+    let recorderAiSignal: AbortSignal | undefined;
+    vi.mocked(describeStudioRecorderEventsWithAI).mockImplementationOnce(
+      async (_events, options) => {
+        recorderAiSignal = options?.abortSignal;
+        return new Promise<never>(() => undefined);
+      },
+    );
+    const event = {
+      type: 'scroll',
+      source: 'studio-preview',
+      actionType: 'Scroll',
+      rawPayload: {
+        actionType: 'Scroll',
+        direction: 'down',
+        distance: 640,
+        x: 500,
+        y: 650,
+      },
+      value: 'down 640',
+      title: 'Semi Design List',
+      elementRect: { x: 500, y: 650 },
+      pageInfo: { width: 1200, height: 800 },
+      screenshotAfter: 'data:image/png;base64,shot',
+      timestamp: 123,
+      hashId: 'scroll-recorder-ai-timeout',
+    };
+    const { context } = createConnectedStudioContext({ events: [event] });
+    const mounted = await mountRecorder(context);
+
+    try {
+      await act(async () => {
+        await mounted.recorder?.startRecording();
+      });
+      await flushPromises();
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(25_000);
+      });
+      await flushPromises();
+      await flushPromises();
+
+      expect(recorderAiSignal?.aborted).toBe(true);
+      expect(mounted.recorder?.currentSession?.events[0]).toMatchObject({
+        hashId: 'scroll-recorder-ai-timeout',
+        semantic: {
+          source: 'heuristic',
+          status: 'ready',
+          error: 'Timed out while analyzing recorder event with recorderAI.',
+        },
+      });
+    } finally {
+      await mounted.cleanup();
+      vi.useRealTimers();
+    }
+  });
+
   it('falls back to recorderAI when aiDescribe times out', async () => {
     vi.useFakeTimers();
     const event = {
@@ -864,8 +941,12 @@ describe('StudioRecorderProvider preview recording', () => {
       timestamp: 123,
       hashId: 'click-ai-describe-timeout',
     };
+    let describeSignal: AbortSignal | undefined;
     const describeRecorderEventAtPoint = vi.fn(
-      () => new Promise<never>(() => undefined),
+      (_event, options?: { signal?: AbortSignal }) => {
+        describeSignal = options?.signal;
+        return new Promise<never>(() => undefined);
+      },
     );
     const { context } = createConnectedStudioContext({
       events: [event],
@@ -885,6 +966,7 @@ describe('StudioRecorderProvider preview recording', () => {
       await flushPromises();
       await flushPromises();
 
+      expect(describeSignal?.aborted).toBe(true);
       expect(describeStudioRecorderEventsWithAI).toHaveBeenCalledWith(
         [expect.objectContaining({ hashId: 'click-ai-describe-timeout' })],
         expect.any(Object),
@@ -1714,6 +1796,7 @@ describe('StudioRecorderProvider preview recording', () => {
           'studio-preview-Input-1781087662206-phone-rest',
         ],
       }),
+      { signal: expect.any(AbortSignal) },
     );
     expect(describeStudioRecorderEventsWithAI).toHaveBeenCalledWith(
       [
@@ -2155,6 +2238,7 @@ describe('StudioRecorderProvider preview recording', () => {
 
     expect(describeRecorderEventAtPoint).toHaveBeenCalledWith(
       expect.objectContaining({ hashId: 'click-final-ai-describe' }),
+      { signal: expect.any(AbortSignal) },
     );
     expect(stopSettled).toBe(true);
     expect(mounted.recorder?.currentSession?.status).toBe('completed');
@@ -2335,6 +2419,7 @@ describe('StudioRecorderProvider preview recording', () => {
     expect(describeRecorderEventAtPoint).toHaveBeenCalledTimes(3);
     expect(describeRecorderEventAtPoint).toHaveBeenLastCalledWith(
       expect.objectContaining({ hashId: 'queued-click-3' }),
+      { signal: expect.any(AbortSignal) },
     );
     expect(mounted.recorder?.currentSession?.events[2]).toMatchObject({
       hashId: 'queued-click-3',

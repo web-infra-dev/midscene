@@ -440,9 +440,11 @@ export default class Service {
     opt?: {
       deepDescribe?: boolean;
       context?: UIContext;
+      abortSignal?: AbortSignal;
     },
   ): Promise<Pick<AIDescribeElementResponse, 'description'>> {
     assert(target, 'target is required for service.describe');
+    opt?.abortSignal?.throwIfAborted();
     const context = opt?.context || (await this.contextRetrieverFn());
     const { shotSize } = context;
     const screenshotBase64 = context.screenshot.base64;
@@ -592,6 +594,7 @@ export default class Service {
       res = await callAIWithObjectResponse<AIDescribeElementResponse>(
         msgs,
         modelRuntime,
+        { abortSignal: opt?.abortSignal },
       );
     } catch (error) {
       const recoveredResponse = recoverDescribeResponseFromParseError(error);

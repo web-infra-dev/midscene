@@ -137,6 +137,26 @@ describe('preload bridge', () => {
         slot: 'default',
       },
     });
+    await studioRuntimeApi.describeRecorderUIEvents({
+      jobId: 'description-job-1',
+      input: {
+        events: [
+          {
+            type: 'click',
+            pageInfo: { width: 1280, height: 720 },
+            timestamp: 2,
+            hashId: 'event-2',
+          },
+        ],
+      },
+      modelConfig: {
+        modelName: 'gpt-4o',
+        modelDescription: '',
+        intent: 'default',
+        slot: 'default',
+      },
+    });
+    await studioRuntimeApi.cancelDescribeRecorderUIEvents('description-job-1');
     stopListening();
 
     await updaterApi.check();
@@ -252,6 +272,29 @@ describe('preload bridge', () => {
           },
         },
       ],
+      [
+        IPC_CHANNELS.describeRecorderUIEvents,
+        {
+          jobId: 'description-job-1',
+          input: {
+            events: [
+              {
+                type: 'click',
+                pageInfo: { width: 1280, height: 720 },
+                timestamp: 2,
+                hashId: 'event-2',
+              },
+            ],
+          },
+          modelConfig: {
+            modelName: 'gpt-4o',
+            modelDescription: '',
+            intent: 'default',
+            slot: 'default',
+          },
+        },
+      ],
+      [IPC_CHANNELS.cancelDescribeRecorderUIEvents, 'description-job-1'],
       [IPC_CHANNELS.updaterCheck],
       [IPC_CHANNELS.updaterDownload],
       [IPC_CHANNELS.updaterInstall],

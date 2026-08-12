@@ -18,6 +18,16 @@ import type {
 const debugRecorderCodegen = getDebug('studio:recorder-codegen', {
   console: true,
 });
+const recorderDescriptionControllers = new Map<string, AbortController>();
+
+export function cancelDescribeRecorderUIEventsInMain(jobId: string) {
+  const controller = recorderDescriptionControllers.get(jobId);
+  if (!controller) {
+    return { cancelled: false };
+  }
+  controller.abort('Recorder event description was cancelled.');
+  return { cancelled: true };
+}
 
 function validateRecorderCodeRequest(request: GenerateRecorderCodeRequest) {
   if (!request?.input) {
@@ -174,22 +184,40 @@ export async function describeRecorderUIEventsInMain(
   if (!request?.input?.events?.length) {
     return { events: [], results: [] };
   }
+  if (!request.jobId) {
+    throw new Error('describeRecorderUIEvents: jobId is required.');
+  }
   if (!request.modelConfig?.modelName) {
     throw new Error(
       'describeRecorderUIEvents: modelConfig.modelName is required.',
     );
   }
 
-  const results = await describeRecorderUIEvents(
-    request.input.events.map((event) => ({
-      event,
-      target: request.input.target,
-    })),
-    request.modelConfig,
-    {
-      concurrency: 2,
-    },
-  );
+  const controller = new AbortController();
+  if (recorderDescriptionControllers.has(request.jobId)) {
+    throw new Error(
+      `describeRecorderUIEvents: duplicate jobId ${request.jobId}.`,
+    );
+  }
+  recorderDescriptionControllers.set(request.jobId, controller);
+  let results: Awaited<ReturnType<typeof describeRecorderUIEvents>>;
+  try {
+    results = await describeRecorderUIEvents(
+      request.input.events.map((event) => ({
+        event,
+        target: request.input.target,
+      })),
+      request.modelConfig,
+      {
+        abortSignal: controller.signal,
+        concurrency: 2,
+      },
+    );
+  } finally {
+    if (recorderDescriptionControllers.get(request.jobId) === controller) {
+      recorderDescriptionControllers.delete(request.jobId);
+    }
+  }
 
   return {
     events: results.map((result) => result.event),

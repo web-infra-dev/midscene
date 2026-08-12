@@ -28,6 +28,7 @@ import {
 } from '@midscene/core/ai-model';
 import { describeRecorderUIEvents } from '@midscene/playground/recorder-ui-describer';
 import {
+  cancelDescribeRecorderUIEventsInMain,
   describeRecorderUIEventsInMain,
   generateRecorderCodeInMain,
   generateRecorderMetadataInMain,
@@ -218,6 +219,7 @@ describe('Studio recorder codegen in main', () => {
 
     await expect(
       describeRecorderUIEventsInMain({
+        jobId: 'describe-job-1',
         input: {
           target: yamlRequest.input.target,
           events: [event],
@@ -237,7 +239,49 @@ describe('Studio recorder codegen in main', () => {
         },
       ],
       yamlRequest.modelConfig,
-      { concurrency: 2 },
+      {
+        abortSignal: expect.any(AbortSignal),
+        concurrency: 2,
+      },
+    );
+  });
+
+  it('cancels an in-flight recorder UI description job', async () => {
+    let observedSignal: AbortSignal | undefined;
+    vi.mocked(describeRecorderUIEvents).mockImplementationOnce(
+      async (_inputs, _modelConfig, options) => {
+        observedSignal = options.abortSignal;
+        await new Promise<void>((_resolve, reject) => {
+          options.abortSignal?.addEventListener(
+            'abort',
+            () => reject(new Error('cancelled')),
+            { once: true },
+          );
+        });
+        return [];
+      },
+    );
+    const promise = describeRecorderUIEventsInMain({
+      jobId: 'describe-job-cancel',
+      input: {
+        target: yamlRequest.input.target,
+        events: [yamlRequest.input.events[0]],
+      },
+      modelConfig: yamlRequest.modelConfig,
+    });
+    await Promise.resolve();
+
+    expect(cancelDescribeRecorderUIEventsInMain('describe-job-cancel')).toEqual(
+      {
+        cancelled: true,
+      },
+    );
+    expect(observedSignal?.aborted).toBe(true);
+    await expect(promise).rejects.toThrow('cancelled');
+    expect(cancelDescribeRecorderUIEventsInMain('describe-job-cancel')).toEqual(
+      {
+        cancelled: false,
+      },
     );
   });
 });

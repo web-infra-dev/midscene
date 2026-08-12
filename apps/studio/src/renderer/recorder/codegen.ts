@@ -9,6 +9,7 @@ import {
   toStudioRecorderCodegenInput,
 } from './codegen-adapter';
 import { resolveStudioRecorderModelConfig } from './model-config';
+import { createSecureRecorderId } from './secure-id';
 import type { StudioRecorderTarget, StudioRecordingSession } from './types';
 
 function normalizeGeneratedCode(content: string, type: StudioRecorderCodeType) {
@@ -131,6 +132,7 @@ export async function describeStudioRecorderEventsWithAI(
   options: {
     target?: StudioRecorderTarget;
     modelConfig?: IModelConfig;
+    abortSignal?: AbortSignal;
   } = {},
 ) {
   if (events.length === 0) {
@@ -143,12 +145,30 @@ export async function describeStudioRecorderEventsWithAI(
   }
 
   const modelConfig = resolveStudioRecorderModelConfig(options.modelConfig);
-  const result = await runtime.describeRecorderUIEvents({
-    input: {
-      target: options.target,
-      events: toStudioRecorderCodegenEvents(events),
-    },
-    modelConfig: toSerializableModelConfig(modelConfig),
-  });
+  const jobId = createSecureRecorderId('recorder-description');
+  const cancel = () => {
+    if (typeof runtime.cancelDescribeRecorderUIEvents === 'function') {
+      void runtime.cancelDescribeRecorderUIEvents(jobId).catch(() => undefined);
+    }
+  };
+  options.abortSignal?.addEventListener('abort', cancel, { once: true });
+  if (options.abortSignal?.aborted) {
+    cancel();
+    options.abortSignal.throwIfAborted();
+  }
+  let result: Awaited<ReturnType<typeof runtime.describeRecorderUIEvents>>;
+  try {
+    result = await runtime.describeRecorderUIEvents({
+      jobId,
+      input: {
+        target: options.target,
+        events: toStudioRecorderCodegenEvents(events),
+      },
+      modelConfig: toSerializableModelConfig(modelConfig),
+    });
+    options.abortSignal?.throwIfAborted();
+  } finally {
+    options.abortSignal?.removeEventListener('abort', cancel);
+  }
   return result.events;
 }

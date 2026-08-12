@@ -34,6 +34,7 @@ export interface DescribeRecorderUIEventOptions {
   maxRetries?: number;
   retryDelayMs?: number;
   concurrency?: number;
+  abortSignal?: AbortSignal;
 }
 
 export interface DescribeRecorderUIEventResult {
@@ -58,8 +59,40 @@ const debugRecorderImages = getDebug('playground:recorder-model-images', {
   console: true,
 });
 
-function delay(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+function throwIfRecorderDescriptionAborted(signal?: AbortSignal) {
+  if (!signal?.aborted) {
+    return;
+  }
+  if (signal.reason instanceof Error) {
+    throw signal.reason;
+  }
+  throw new Error(
+    typeof signal.reason === 'string'
+      ? signal.reason
+      : 'Recorder event description was cancelled.',
+  );
+}
+
+function delay(ms: number, signal?: AbortSignal) {
+  return new Promise<void>((resolve, reject) => {
+    const timer = setTimeout(() => {
+      signal?.removeEventListener('abort', handleAbort);
+      resolve();
+    }, ms);
+    const handleAbort = () => {
+      clearTimeout(timer);
+      signal?.removeEventListener('abort', handleAbort);
+      try {
+        throwIfRecorderDescriptionAborted(signal);
+      } catch (error) {
+        reject(error);
+      }
+    };
+    signal?.addEventListener('abort', handleAbort, { once: true });
+    if (signal?.aborted) {
+      handleAbort();
+    }
+  });
 }
 
 function clamp(value: number, min: number, max: number) {
@@ -461,16 +494,19 @@ async function describeWithRetry(
   highlightedScreenshot: string,
   modelRuntime: ModelRuntime,
   imageInput: ModelInputImageBatchNormalizationOptions,
-  options: Required<
-    Pick<DescribeRecorderUIEventOptions, 'maxRetries' | 'retryDelayMs'>
-  >,
+  options: Pick<DescribeRecorderUIEventOptions, 'abortSignal'> &
+    Required<
+      Pick<DescribeRecorderUIEventOptions, 'maxRetries' | 'retryDelayMs'>
+    >,
 ) {
+  throwIfRecorderDescriptionAborted(options.abortSignal);
   const afterScreenshot = getRecorderEventAfterScreenshot(event);
   const screenshots = [highlightedScreenshot];
   if (afterScreenshot && afterScreenshot !== highlightedScreenshot) {
     screenshots.push(afterScreenshot);
   }
   const normalized = await normalizeImagesForModel(screenshots, imageInput);
+  throwIfRecorderDescriptionAborted(options.abortSignal);
   const highlightedImage = normalized.images.find((image) => image.index === 0);
   if (!highlightedImage) {
     const failure = normalized.omitted.find((image) => image.index === 0);
@@ -511,6 +547,7 @@ async function describeWithRetry(
 
   let lastError: unknown;
   for (let attempt = 1; attempt <= options.maxRetries; attempt += 1) {
+    throwIfRecorderDescriptionAborted(options.abortSignal);
     try {
       const pageContext = getPageSemanticContext(event);
       const platformGuidance = getPlatformGuidance(target);
@@ -574,6 +611,7 @@ The target or region is highlighted in the screenshot below. Convert this event 
             },
           ],
           modelRuntime,
+          { abortSignal: options.abortSignal },
         );
 
       const content = response.content;
@@ -632,12 +670,13 @@ The target or region is highlighted in the screenshot below. Convert this event 
         confidence: content.confidence || 'medium',
       };
     } catch (error) {
+      throwIfRecorderDescriptionAborted(options.abortSignal);
       lastError = error;
       if (isNonRetryableAIRequestError(error)) {
         throw error;
       }
       if (attempt < options.maxRetries) {
-        await delay(options.retryDelayMs);
+        await delay(options.retryDelayMs, options.abortSignal);
       }
     }
   }
@@ -701,6 +740,7 @@ export async function describeRecorderUIEvent(
   options: DescribeRecorderUIEventOptions = {},
 ): Promise<DescribeRecorderUIEventResult> {
   const event = input.event;
+  throwIfRecorderDescriptionAborted(options.abortSignal);
   const rect = getRecorderUIEventTargetRect(event);
   const screenshot = getRecorderEventScreenshot(event);
 
@@ -725,6 +765,7 @@ export async function describeRecorderUIEvent(
       modelRuntime,
       resolveModelInputImageCapabilities(modelConfig.imageInput),
       {
+        abortSignal: options.abortSignal,
         maxRetries: options.maxRetries ?? RECORDER_UI_DESCRIBER_DEFAULT_RETRIES,
         retryDelayMs:
           options.retryDelayMs ?? RECORDER_UI_DESCRIBER_DEFAULT_RETRY_DELAY_MS,
@@ -739,6 +780,7 @@ export async function describeRecorderUIEvent(
       },
     };
   } catch (error) {
+    throwIfRecorderDescriptionAborted(options.abortSignal);
     const message = error instanceof Error ? error.message : String(error);
     return {
       usedFallback: true,
@@ -767,6 +809,7 @@ export async function describeRecorderUIEvents(
 
   async function worker() {
     while (cursor < inputs.length) {
+      throwIfRecorderDescriptionAborted(options.abortSignal);
       const index = cursor;
       cursor += 1;
       results[index] = await describeRecorderUIEvent(

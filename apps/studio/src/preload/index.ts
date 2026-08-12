@@ -86,6 +86,8 @@ const studioRuntimeApi: StudioRuntimeApi = {
     ipcRenderer.invoke(IPC_CHANNELS.generateRecorderMetadata, request),
   describeRecorderUIEvents: (request) =>
     ipcRenderer.invoke(IPC_CHANNELS.describeRecorderUIEvents, request),
+  cancelDescribeRecorderUIEvents: (jobId) =>
+    ipcRenderer.invoke(IPC_CHANNELS.cancelDescribeRecorderUIEvents, jobId),
   prepareRecorderMarkdownReplay: (request) =>
     ipcRenderer.invoke(IPC_CHANNELS.prepareRecorderMarkdownReplay, request),
   chooseReplayFile: () => ipcRenderer.invoke(IPC_CHANNELS.chooseReplayFile),

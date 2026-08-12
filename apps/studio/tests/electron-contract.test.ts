@@ -28,5 +28,8 @@ describe('IPC_CHANNELS', () => {
     expect(IPC_CHANNELS.generateRecorderMetadata).toBe(
       'studio:generate-recorder-metadata',
     );
+    expect(IPC_CHANNELS.cancelDescribeRecorderUIEvents).toBe(
+      'studio:cancel-describe-recorder-ui-events',
+    );
   });
 });

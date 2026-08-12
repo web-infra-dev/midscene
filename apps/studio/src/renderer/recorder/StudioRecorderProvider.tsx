@@ -656,6 +656,28 @@ function withTimeout<T>(
   });
 }
 
+function withAbortTimeout<T>(
+  task: (signal: AbortSignal) => Promise<T>,
+  timeoutMs: number,
+  message: string,
+): Promise<T> {
+  const controller = new AbortController();
+  let timeout: number | null = null;
+  const timeoutPromise = new Promise<never>((_resolve, reject) => {
+    timeout = window.setTimeout(() => {
+      const error = new Error(message);
+      controller.abort(error);
+      reject(error);
+    }, timeoutMs);
+  });
+  const taskPromise = Promise.resolve().then(() => task(controller.signal));
+  return Promise.race([taskPromise, timeoutPromise]).finally(() => {
+    if (timeout !== null) {
+      window.clearTimeout(timeout);
+    }
+  });
+}
+
 function calculateRecorderDescriptionQueueTimeoutMs(eventCount: number) {
   const descriptionBatches = Math.max(
     1,
@@ -688,6 +710,7 @@ type StudioRecorderRuntime = {
   }>;
   describeRecorderEventAtPoint?: (
     event: StudioRecordedEvent,
+    options?: { signal?: AbortSignal },
   ) => Promise<PlaygroundRecorderDescribeResult>;
   stopRecorderSession?: () => Promise<PlaygroundRecorderStopResult>;
   cancelRecorderFinalization?: (jobId: string) => Promise<{
@@ -1201,6 +1224,69 @@ export function StudioRecorderProvider({ children }: PropsWithChildren) {
     [checkpointSessionSnapshot, getDescriptionWork],
   );
 
+  const materializeRecorderEventsForDescription = useCallback(
+    async (
+      session: StudioRecordingSession,
+      events: StudioRecordedEvent[],
+    ): Promise<StudioRecordedEvent[]> => {
+      if (
+        studioPlayground.phase !== 'ready' ||
+        !events.some((event) => event.screenshotAsset)
+      ) {
+        return events;
+      }
+      const { playgroundSDK } = studioPlayground.controller.state;
+      const leaseId = await playgroundSDK.acquireRecorderScreenshotAssetLease(
+        session.id,
+        'description',
+      );
+      try {
+        const screenshots = new Map<string, string>();
+        const materializedEvents: StudioRecordedEvent[] = [];
+        for (const event of events) {
+          const asset = event.screenshotAsset;
+          if (!asset) {
+            materializedEvents.push(event);
+            continue;
+          }
+          let screenshot = screenshots.get(asset.id);
+          if (!screenshot) {
+            screenshot =
+              (await playgroundSDK.getRecorderScreenshotAsset(asset.id)) ||
+              undefined;
+            if (!screenshot) {
+              throw new Error(
+                `Recorder screenshot asset is unavailable: ${asset.id}`,
+              );
+            }
+            screenshots.set(asset.id, screenshot);
+          }
+          materializedEvents.push({
+            ...event,
+            screenshotAsset: undefined,
+            screenshotWithBox: screenshot,
+          });
+        }
+        return materializedEvents;
+      } finally {
+        if (leaseId) {
+          try {
+            await playgroundSDK.releaseRecorderScreenshotAssetLease(
+              session.id,
+              leaseId,
+            );
+          } catch (error) {
+            debugRecorder(
+              'failed to release recorder description asset lease:',
+              error,
+            );
+          }
+        }
+      }
+    },
+    [studioPlayground],
+  );
+
   const describeRecorderEventWithAiDescribe = useCallback(
     async (
       sessionId: string,
@@ -1219,8 +1305,8 @@ export function StudioRecorderProvider({ children }: PropsWithChildren) {
       }
       let result: PlaygroundRecorderDescribeResult;
       try {
-        result = await withTimeout(
-          runtime.describeRecorderEventAtPoint(event),
+        result = await withAbortTimeout(
+          (signal) => runtime.describeRecorderEventAtPoint!(event, { signal }),
           RECORDER_AI_DESCRIBE_TASK_TIMEOUT_MS,
           'Timed out while analyzing recorder event with aiDescribe.',
         );
@@ -1314,6 +1400,14 @@ export function StudioRecorderProvider({ children }: PropsWithChildren) {
         target: base.target,
         actionType: described.actionType || base.actionType,
         rawPayload: base.rawPayload,
+        // Description calls may temporarily materialize an asset as inline
+        // image data. Keep the canonical event's visual storage fields so a
+        // semantic revision never drops its asset ref or persists a large
+        // renderer-only data URL.
+        screenshotAsset: base.screenshotAsset,
+        screenshotBefore: base.screenshotBefore,
+        screenshotAfter: base.screenshotAfter,
+        screenshotWithBox: base.screenshotWithBox,
       });
     },
     [],
@@ -1361,10 +1455,17 @@ export function StudioRecorderProvider({ children }: PropsWithChildren) {
       if (fallbackEvents.length > 0) {
         let describedEvents: StudioRecordedEvent[];
         try {
-          describedEvents = (await withTimeout(
-            describeStudioRecorderEventsWithAI(fallbackEvents, {
-              target: session.target,
-            }),
+          const materializedFallbackEvents =
+            await materializeRecorderEventsForDescription(
+              session,
+              fallbackEvents,
+            );
+          describedEvents = (await withAbortTimeout(
+            (signal) =>
+              describeStudioRecorderEventsWithAI(materializedFallbackEvents, {
+                target: session.target,
+                abortSignal: signal,
+              }),
             RECORDER_AI_FALLBACK_TASK_TIMEOUT_MS,
             'Timed out while analyzing recorder event with recorderAI.',
           )) as StudioRecordedEvent[];
@@ -1398,7 +1499,11 @@ export function StudioRecorderProvider({ children }: PropsWithChildren) {
 
       return results.map((event, index) => event || events[index]);
     },
-    [describeRecorderEventWithAiDescribe, mergeDescribedRecorderEvent],
+    [
+      describeRecorderEventWithAiDescribe,
+      materializeRecorderEventsForDescription,
+      mergeDescribedRecorderEvent,
+    ],
   );
 
   const processDescriptionQueue = useCallback(() => {

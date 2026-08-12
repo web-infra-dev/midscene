@@ -1517,6 +1517,50 @@ function withTimeout<T>(
   });
 }
 
+function withAbortTimeout<T>(
+  task: (signal: AbortSignal) => Promise<T>,
+  timeoutMs: number,
+  message: string,
+  parentSignal?: AbortSignal,
+): Promise<T> {
+  const controller = new AbortController();
+  const abortPromise = new Promise<never>((_resolve, reject) => {
+    controller.signal.addEventListener(
+      'abort',
+      () => {
+        reject(
+          controller.signal.reason instanceof Error
+            ? controller.signal.reason
+            : new Error(
+                typeof controller.signal.reason === 'string'
+                  ? controller.signal.reason
+                  : message,
+              ),
+        );
+      },
+      { once: true },
+    );
+  });
+  const handleParentAbort = () => {
+    controller.abort(
+      parentSignal?.reason || 'Recorder describe request closed.',
+    );
+  };
+  parentSignal?.addEventListener('abort', handleParentAbort, { once: true });
+  if (parentSignal?.aborted) {
+    handleParentAbort();
+  }
+  const timeout = setTimeout(() => {
+    controller.abort(new Error(message));
+  }, timeoutMs);
+
+  const taskPromise = Promise.resolve().then(() => task(controller.signal));
+  return Promise.race([taskPromise, abortPromise]).finally(() => {
+    clearTimeout(timeout);
+    parentSignal?.removeEventListener('abort', handleParentAbort);
+  });
+}
+
 export function createManualExecutorContext(
   actionType: string,
   param: unknown,
@@ -3214,6 +3258,7 @@ class PlaygroundServer {
   private async enrichStudioPreviewRecorderEventWithAiDescribe(
     event: PlaygroundRecorderEvent,
     agent?: PageAgent,
+    abortSignal?: AbortSignal,
   ): Promise<{
     event: PlaygroundRecorderEvent;
     trace: PlaygroundRecorderDescribeTrace;
@@ -3349,20 +3394,24 @@ class PlaygroundServer {
       /**
        * Verification is disabled for recorder aiDescribe because it took too long and caused timeouts.
        */
-      const describeResult = await withTimeout(
-        describeElementAtPoint(elementDescriber, [x, y], {
-          verifyPrompt,
-          screenshotBase64: normalizedScreenshot.imageBase64,
-          coordinateSpace: 'logical',
-          logicalSize: event.pageInfo,
-          onProgress: (progress) => {
-            elementDescription = progress.prompt?.trim() || elementDescription;
-            deepLocate = progress.deepLocate;
-            verifyResult = verifyPrompt ? progress.verifyResult : undefined;
-          },
-        }),
+      const describeResult = await withAbortTimeout(
+        (signal) =>
+          describeElementAtPoint(elementDescriber, [x, y], {
+            verifyPrompt,
+            screenshotBase64: normalizedScreenshot.imageBase64,
+            coordinateSpace: 'logical',
+            logicalSize: event.pageInfo,
+            abortSignal: signal,
+            onProgress: (progress) => {
+              elementDescription =
+                progress.prompt?.trim() || elementDescription;
+              deepLocate = progress.deepLocate;
+              verifyResult = verifyPrompt ? progress.verifyResult : undefined;
+            },
+          }),
         RECORDER_AI_DESCRIBE_AFTER_INTERACT_TIMEOUT_MS,
         'Timed out while analyzing recorder event with aiDescribe.',
+        abortSignal,
       );
       modelCallDurationMs = Date.now() - modelCallStartedAt;
       elementDescription = describeResult.prompt?.trim();
@@ -5282,15 +5331,33 @@ class PlaygroundServer {
           });
         }
 
+        const requestAbortController = new AbortController();
+        const abortClosedRequest = () => {
+          requestAbortController.abort('Recorder describe request closed.');
+        };
+        const abortClosedResponse = () => {
+          if (!res.writableEnded) {
+            abortClosedRequest();
+          }
+        };
+        req.once('aborted', abortClosedRequest);
+        res.once('close', abortClosedResponse);
+
         try {
           const agent = this.getActiveAgentOrThrow();
           const { event: describedEvent, trace } =
             await this.enrichStudioPreviewRecorderEventWithAiDescribe(
               event,
               agent,
+              requestAbortController.signal,
             );
-          res.json({ ok: true, event: describedEvent, trace });
+          if (!requestAbortController.signal.aborted && !res.writableEnded) {
+            res.json({ ok: true, event: describedEvent, trace });
+          }
         } catch (error) {
+          if (requestAbortController.signal.aborted || res.writableEnded) {
+            return;
+          }
           const startedAt = new Date();
           const traceBase = createRecorderAiDescribeTraceBase(event);
           const trace: PlaygroundRecorderDescribeTrace = {
@@ -5306,6 +5373,9 @@ class PlaygroundServer {
             error: error instanceof Error ? error.message : String(error),
             trace,
           });
+        } finally {
+          req.off('aborted', abortClosedRequest);
+          res.off('close', abortClosedResponse);
         }
       },
     );

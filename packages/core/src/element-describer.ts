@@ -28,6 +28,7 @@ export type DescribeElementAtPointOptions = {
   retryLimit?: number;
   deepDescribe?: boolean;
   deepLocate?: boolean;
+  abortSignal?: AbortSignal;
   locatorVerifyFn?: LocatorVerifyFn;
   screenshotBase64?: string;
   screenshotSize?: Size;
@@ -225,9 +226,11 @@ export async function describeElementAtPoint(
       ? {
           deepDescribe,
           context: screenshotContext,
+          abortSignal: opt?.abortSignal,
         }
       : {
           deepDescribe,
+          abortSignal: opt?.abortSignal,
         };
     let text: Awaited<
       ReturnType<ElementDescriberRuntime['service']['describe']>
