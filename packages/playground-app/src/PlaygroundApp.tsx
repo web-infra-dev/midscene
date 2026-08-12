@@ -6,16 +6,29 @@ import {
   type UniversalPlaygroundConfig,
 } from '@midscene/visualizer';
 import { Layout } from 'antd';
-import { useEffect, useState } from 'react';
+import type { ReactNode } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import { DisconnectedPreview } from './DisconnectedPreview';
 import { PlaygroundPreview } from './PlaygroundPreview';
 import { PlaygroundThemeProvider } from './PlaygroundThemeProvider';
+import { PreviewInspectorLayout } from './PreviewInspectorLayout';
+import type { PlaygroundControllerResult } from './controller/types';
 import { usePlaygroundController } from './controller/usePlaygroundController';
 import ServerOfflineBackground from './icons/server-offline-background.svg';
 import ServerOfflineForeground from './icons/server-offline-foreground.svg';
 import { PlaygroundConversationPanel } from './panels/PlaygroundConversationPanel';
 import './PlaygroundApp.less';
+import type { PreviewOverlayRenderContext } from './PreviewOverlayLayer';
+
+export interface PlaygroundExtensionContext {
+  isUserOperating: boolean;
+  playgroundSDK: PlaygroundControllerResult['state']['playgroundSDK'];
+  runtimeInfo: PlaygroundControllerResult['state']['runtimeInfo'];
+  serverOnline: boolean;
+  serverUrl: string;
+  sessionConnected: boolean;
+}
 
 const { Content } = Layout;
 
@@ -29,6 +42,13 @@ export interface PlaygroundAppProps {
   offlineTitle?: string;
   offlineStatusText?: string;
   pollIntervalMs?: number;
+  manualPreviewInteractionEnabled?: boolean;
+  inspectorOpen?: boolean;
+  renderHeaderActions?: (context: PlaygroundExtensionContext) => ReactNode;
+  renderInspector?: (context: PlaygroundExtensionContext) => ReactNode;
+  renderPreviewOverlay?: (
+    context: PlaygroundExtensionContext & PreviewOverlayRenderContext,
+  ) => ReactNode;
 }
 
 export function PlaygroundApp({
@@ -41,14 +61,56 @@ export function PlaygroundApp({
   offlineTitle = 'Midscene Playground',
   offlineStatusText = 'Server offline...',
   pollIntervalMs = 5000,
+  manualPreviewInteractionEnabled = true,
+  inspectorOpen,
+  renderHeaderActions,
+  renderInspector,
+  renderPreviewOverlay,
 }: PlaygroundAppProps) {
   const [isNarrowScreen, setIsNarrowScreen] = useState(false);
+  const inspectorVisible = inspectorOpen ?? Boolean(renderInspector);
   const controller = usePlaygroundController({
     serverUrl,
     defaultDeviceType,
     countdownSeconds: playgroundConfig?.executionUx?.countdownSeconds,
     pollIntervalMs,
   });
+  const extensionContext = useMemo<PlaygroundExtensionContext>(
+    () => ({
+      isUserOperating: controller.state.isUserOperating,
+      playgroundSDK: controller.state.playgroundSDK,
+      runtimeInfo: controller.state.runtimeInfo,
+      serverOnline: controller.state.serverOnline,
+      serverUrl,
+      sessionConnected: controller.state.sessionViewState.connected,
+    }),
+    [
+      controller.state.isUserOperating,
+      controller.state.playgroundSDK,
+      controller.state.runtimeInfo,
+      controller.state.serverOnline,
+      controller.state.sessionViewState.connected,
+      serverUrl,
+    ],
+  );
+  const preview = controller.state.sessionViewState.connected ? (
+    <PlaygroundPreview
+      playgroundSDK={controller.state.playgroundSDK}
+      runtimeInfo={controller.state.runtimeInfo}
+      serverUrl={serverUrl}
+      serverOnline={controller.state.serverOnline}
+      isUserOperating={controller.state.isUserOperating}
+      manualInteractionEnabled={manualPreviewInteractionEnabled}
+      renderOverlay={
+        renderPreviewOverlay
+          ? (context) =>
+              renderPreviewOverlay({ ...extensionContext, ...context })
+          : undefined
+      }
+    />
+  ) : (
+    <DisconnectedPreview />
+  );
 
   useEffect(() => {
     const handleResize = () => {
@@ -98,11 +160,22 @@ export function PlaygroundApp({
                 <div className="playground-panel-header">
                   <div className="header-row">
                     <Logo />
-                    <NavActions
-                      showTooltipWhenEmpty={false}
-                      showModelName={false}
-                      playgroundSDK={controller.state.playgroundSDK}
-                    />
+                    {renderHeaderActions ? (
+                      <div className="playground-header-actions">
+                        {renderHeaderActions(extensionContext)}
+                        <NavActions
+                          showTooltipWhenEmpty={false}
+                          showModelName={false}
+                          playgroundSDK={controller.state.playgroundSDK}
+                        />
+                      </div>
+                    ) : (
+                      <NavActions
+                        showTooltipWhenEmpty={false}
+                        showModelName={false}
+                        playgroundSDK={controller.state.playgroundSDK}
+                      />
+                    )}
                   </div>
                 </div>
 
@@ -126,16 +199,19 @@ export function PlaygroundApp({
               className="app-panel right-panel"
             >
               <div className="panel-content right-panel-content">
-                {controller.state.sessionViewState.connected ? (
-                  <PlaygroundPreview
-                    playgroundSDK={controller.state.playgroundSDK}
-                    runtimeInfo={controller.state.runtimeInfo}
-                    serverUrl={serverUrl}
-                    serverOnline={controller.state.serverOnline}
-                    isUserOperating={controller.state.isUserOperating}
+                {renderInspector &&
+                controller.state.sessionViewState.connected ? (
+                  <PreviewInspectorLayout
+                    inspector={
+                      inspectorVisible
+                        ? renderInspector(extensionContext)
+                        : null
+                    }
+                    inspectorOpen={inspectorVisible}
+                    preview={preview}
                   />
                 ) : (
-                  <DisconnectedPreview />
+                  preview
                 )}
               </div>
             </Panel>
