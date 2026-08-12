@@ -1183,6 +1183,13 @@ export default function MainContent({
                   playgroundSDK={
                     studioPlayground.controller.state.playgroundSDK
                   }
+                  manualControlCoordinator={
+                    studioPlayground.manualControlCoordinator
+                  }
+                  manualInteractionEnabled={
+                    !recorder?.state.isRecording ||
+                    recorder.currentSession?.status === 'recording'
+                  }
                   screenshotViewerMode="screen-only"
                   scrcpyViewportStyle={{
                     ...(shouldFrameMobilePreview

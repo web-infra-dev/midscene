@@ -1,4 +1,7 @@
-import type { PlaygroundControllerResult } from '@midscene/playground-app';
+import type {
+  ManualControlCoordinator,
+  PlaygroundControllerResult,
+} from '@midscene/playground-app';
 import type {
   DiscoveredDevice,
   PlatformDiscoveryError,
@@ -59,6 +62,7 @@ export type StudioPlaygroundContextValue =
       phase: 'ready';
       serverUrl: string;
       controller: PlaygroundControllerResult;
+      manualControlCoordinator?: ManualControlCoordinator;
       restartPlayground: () => Promise<void>;
       refreshDiscoveredDevices: () => Promise<void>;
       setDiscoveryPollingPaused: (paused: boolean) => void;

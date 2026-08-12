@@ -1,5 +1,6 @@
 import {
   PlaygroundThemeProvider,
+  createManualControlCoordinator,
   usePlaygroundController,
 } from '@midscene/playground-app';
 import type { StudioPlatformId } from '@shared/electron-contract';
@@ -45,6 +46,10 @@ export default function StudioPlaygroundReadyProvider({
     // of the Studio chrome.
     onCountdownFinish: handleCountdownFinish,
   });
+  const manualControlCoordinator = useMemo(
+    () => createManualControlCoordinator(),
+    [serverUrl],
+  );
 
   useEffect(() => {
     const selectionPatch = resolveDiscoveredDeviceSelectionFormValues({
@@ -63,6 +68,7 @@ export default function StudioPlaygroundReadyProvider({
       phase: 'ready' as const,
       serverUrl,
       controller,
+      manualControlCoordinator,
       restartPlayground,
       refreshDiscoveredDevices,
       setDiscoveryPollingPaused,
@@ -71,6 +77,7 @@ export default function StudioPlaygroundReadyProvider({
     }),
     [
       controller,
+      manualControlCoordinator,
       discoveredDevices,
       discoveryErrors,
       refreshDiscoveredDevices,

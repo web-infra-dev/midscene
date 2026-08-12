@@ -2245,9 +2245,21 @@ export function StudioRecorderProvider({ children }: PropsWithChildren) {
       scheduleStudioRecorderSessionCheckpoint(finalizingSession);
     }
 
-    await stopRecorderRuntime(session.id, { preserveRuntime: true });
-    await flushPendingRecorderInput(session.id);
-    await flushStudioRecorderSessionCheckpoints();
+    const manualControlCoordinator =
+      studioPlayground.phase === 'ready'
+        ? studioPlayground.manualControlCoordinator
+        : undefined;
+    try {
+      // Freeze the preview synchronously, publish any batched text input, and
+      // wait for every physical action accepted before Stop to reach the
+      // Playground server before it captures the recorder high-water mark.
+      await manualControlCoordinator?.freezeAndDrain();
+      await stopRecorderRuntime(session.id, { preserveRuntime: true });
+      await flushPendingRecorderInput(session.id);
+      await flushStudioRecorderSessionCheckpoints();
+    } finally {
+      manualControlCoordinator?.resume();
+    }
     const latestSnapshot = stateRef.current;
     const latestSession =
       latestSnapshot.sessions.find((item) => item.id === session.id) ?? session;
@@ -2316,6 +2328,7 @@ export function StudioRecorderProvider({ children }: PropsWithChildren) {
     flushPendingRecorderInput,
     flushStudioRecorderSessionCheckpoints,
     scheduleStudioRecorderSessionCheckpoint,
+    studioPlayground,
     stopRecorderRuntime,
     waitForRecorderEventDescriptions,
     persistStudioRecorderSession,

@@ -1,5 +1,15 @@
 export { PlaygroundApp } from './PlaygroundApp';
 export { PlaygroundPreview } from './PlaygroundPreview';
+export {
+  ManualControlFrozenError,
+  createManualControlCoordinator,
+  isManualControlFrozenError,
+} from './manual-control-coordinator';
+export type {
+  ManualControlCoordinator,
+  ManualControlTask,
+  PendingManualControlTaskSource,
+} from './manual-control-coordinator';
 export type { ManualDragActionType } from './manual-interaction';
 export { PlaygroundThemeProvider } from './PlaygroundThemeProvider';
 export { DeviceInteractionLayer } from './DeviceInteractionLayer';

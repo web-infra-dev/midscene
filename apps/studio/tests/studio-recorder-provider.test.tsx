@@ -389,6 +389,49 @@ describe('StudioRecorderProvider preview recording', () => {
     await mounted.cleanup();
   });
 
+  it('drains preview actions accepted before Stop before starting finalization', async () => {
+    const { context, stopRecorderSession } = createConnectedStudioContext();
+    const drain = createDeferred<void>();
+    let frozen = false;
+    const manualControlCoordinator = {
+      enqueue: async <T,>(task: () => Promise<T>) => task(),
+      freezeAndDrain: vi.fn(async () => {
+        frozen = true;
+        await drain.promise;
+      }),
+      isFrozen: () => frozen,
+      registerPendingTaskSource: () => () => undefined,
+      resume: vi.fn(() => {
+        frozen = false;
+      }),
+    };
+    const mounted = await mountRecorder({
+      ...context,
+      manualControlCoordinator,
+    });
+
+    await act(async () => {
+      await mounted.recorder?.startRecording();
+    });
+    let stopPromise!: Promise<void>;
+    await act(async () => {
+      stopPromise = mounted.recorder!.stopRecording();
+      await Promise.resolve();
+    });
+    expect(stopRecorderSession).not.toHaveBeenCalled();
+
+    await act(async () => {
+      drain.resolve();
+      await stopPromise;
+    });
+
+    expect(manualControlCoordinator.freezeAndDrain).toHaveBeenCalledTimes(1);
+    expect(stopRecorderSession).toHaveBeenCalledTimes(1);
+    expect(manualControlCoordinator.isFrozen()).toBe(false);
+    expect(manualControlCoordinator.resume).toHaveBeenCalledTimes(1);
+    await mounted.cleanup();
+  });
+
   it('keeps a new recording active when an older session is updated', async () => {
     const event = {
       type: 'click',

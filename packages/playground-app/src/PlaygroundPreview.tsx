@@ -6,6 +6,7 @@ import type { ScreenshotViewerMode } from '@midscene/visualizer';
 import type { CSSProperties, ReactNode } from 'react';
 import { PreviewRenderer } from './PreviewRenderer';
 import type { ScrcpyErrorOverlayRenderer } from './ScrcpyPanel';
+import type { ManualControlCoordinator } from './manual-control-coordinator';
 import type { ScrcpyPreviewStatus } from './scrcpy-preview';
 
 export interface PlaygroundPreviewProps {
@@ -29,6 +30,8 @@ export interface PlaygroundPreviewProps {
   serverUrl: string;
   serverOnline: boolean;
   isUserOperating: boolean;
+  manualControlCoordinator?: ManualControlCoordinator;
+  manualInteractionEnabled?: boolean;
 }
 
 export function PlaygroundPreview(props: PlaygroundPreviewProps) {
