@@ -172,6 +172,13 @@ pnpm exec nx test @midscene/ios --skip-nx-cache -- \
 smoke_exit=${PIPESTATUS[0]}
 
 AI_TEST_TYPE=iOS \
+MIDSCENE_IOS_APP_SWITCHER_AI_E2E=1 \
+pnpm exec nx test @midscene/ios --skip-nx-cache -- \
+  tests/ai/ios-app-switcher.test.ts --retry=1 2>&1 |
+  tee "$diagnostics_dir/app-switcher-ai-e2e.log"
+app_switcher_ai_exit=${PIPESTATUS[0]}
+
+AI_TEST_TYPE=iOS \
 pnpm exec nx test @midscene/ios --skip-nx-cache -- \
   tests/ai/todo.test.ts --retry=0 2>&1 |
   tee "$diagnostics_dir/todo-mvc.log"
@@ -179,12 +186,14 @@ todo_exit=${PIPESTATUS[0]}
 set -e
 
 SMOKE_EXIT="$smoke_exit" \
+APP_SWITCHER_AI_EXIT="$app_switcher_ai_exit" \
 TODO_EXIT="$todo_exit" \
 node -e '
   const fs = require("node:fs");
   const path = require("node:path");
   const outcomes = {
     deterministicSmoke: Number(process.env.SMOKE_EXIT),
+    appSwitcherAiE2e: Number(process.env.APP_SWITCHER_AI_EXIT),
     todoMvc: Number(process.env.TODO_EXIT),
   };
   fs.writeFileSync(
@@ -193,7 +202,7 @@ node -e '
   );
 '
 
-if ((smoke_exit != 0 || todo_exit != 0)); then
-  echo "iOS Simulator validation failed: smoke=$smoke_exit todo=$todo_exit" >&2
+if ((smoke_exit != 0 || app_switcher_ai_exit != 0 || todo_exit != 0)); then
+  echo "iOS Simulator validation failed: smoke=$smoke_exit app-switcher-ai=$app_switcher_ai_exit todo=$todo_exit" >&2
   exit 1
 fi

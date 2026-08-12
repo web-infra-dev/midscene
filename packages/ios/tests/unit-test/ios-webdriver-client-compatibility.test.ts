@@ -97,6 +97,51 @@ describe('IOSWebDriverClient - WDA 5.x-7.x Compatibility', () => {
     });
   });
 
+  describe('appSwitcher()', () => {
+    it('should use the native WDA drag endpoint with screen coordinates', async () => {
+      vi.useFakeTimers();
+      const getWindowSizeSpy = vi
+        .spyOn(client, 'getWindowSize')
+        .mockResolvedValue({ width: 393, height: 852 });
+      const makeRequestSpy = vi
+        .spyOn(client as any, 'makeRequest')
+        .mockResolvedValue({ status: 0 });
+
+      try {
+        const appSwitcherPromise = client.appSwitcher();
+        await vi.runAllTimersAsync();
+        await appSwitcherPromise;
+
+        expect(getWindowSizeSpy).toHaveBeenCalledOnce();
+        expect(makeRequestSpy).toHaveBeenCalledOnce();
+        expect(makeRequestSpy).toHaveBeenCalledWith(
+          'POST',
+          '/session/test-session-id/wda/dragfromtoforduration',
+          {
+            fromX: 197,
+            fromY: 851,
+            toX: 197,
+            toY: 426,
+            duration: 1,
+          },
+        );
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+  });
+
+  describe('pressKey()', () => {
+    it('should reject key combinations before invoking WDA', async () => {
+      const makeRequestSpy = vi.spyOn(client as any, 'makeRequest');
+
+      await expect(client.pressKey('Control+A')).rejects.toThrow(
+        'iOS keyboardPress does not support key combinations: "Control+A"',
+      );
+      expect(makeRequestSpy).not.toHaveBeenCalled();
+    });
+  });
+
   describe('getScreenScale() fallback logic', () => {
     it('should return scale when endpoint succeeds with scale value', async () => {
       const makeRequestSpy = vi.spyOn(client as any, 'makeRequest');

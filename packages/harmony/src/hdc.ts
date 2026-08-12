@@ -5,6 +5,49 @@ import { getDebug } from '@midscene/shared/logger';
 
 const execFileAsync = promisify(execFile);
 const debugHdc = getDebug('harmony:hdc');
+const supportedStringKeyEvents = new Set(['Back', 'Home', 'Power']);
+const numericKeyEventPattern = /^\d+$/;
+const uiInputErrorPattern =
+  /(?:(?:Invalid parameters|Missing parameter|Too many parameters)\.?|Please confirm that the coordinate values are correct\.?)/i;
+const minUiInputSpeed = 200;
+const maxUiInputSpeed = 40000;
+
+type UiInputOperation =
+  | 'click'
+  | 'doubleClick'
+  | 'longClick'
+  | 'swipe'
+  | 'fling'
+  | 'drag'
+  | 'inputText'
+  | 'keyEvent'
+  | 'clearTextField';
+type PointerMovementOperation = 'swipe' | 'fling' | 'drag';
+
+function roundUiCoordinate(value: number, name: string): number {
+  if (!Number.isFinite(value) || value < 0) {
+    throw new Error(
+      `HDC ${name} coordinate must be a non-negative finite number`,
+    );
+  }
+  return Math.round(value);
+}
+
+function roundUiInputSpeed(
+  value: number,
+  operation: PointerMovementOperation,
+): number {
+  if (
+    !Number.isFinite(value) ||
+    value < minUiInputSpeed ||
+    value > maxUiInputSpeed
+  ) {
+    throw new Error(
+      `HDC ${operation} speed must be a finite number between ${minUiInputSpeed} and ${maxUiInputSpeed}`,
+    );
+  }
+  return Math.round(value);
+}
 
 export interface HdcOptions {
   hdcPath?: string;
@@ -105,6 +148,49 @@ export class HdcClient {
     return this.exec('shell', command);
   }
 
+  private assertUiInputSucceeded(
+    operation: UiInputOperation,
+    output: string,
+    detail?: string,
+  ): void {
+    const errorMatch = output.match(uiInputErrorPattern);
+    if (!errorMatch) return;
+
+    const detailText = detail ? ` for ${detail}` : '';
+    throw new Error(
+      `HDC uiInput ${operation} failed${detailText}: ${errorMatch[0]}`,
+    );
+  }
+
+  private async runUiInput(
+    operation: Exclude<UiInputOperation, 'clearTextField'>,
+    args: string,
+    detail?: string,
+  ): Promise<void> {
+    const output = await this.shell(`uitest uiInput ${operation} ${args}`);
+    this.assertUiInputSucceeded(operation, output, detail);
+  }
+
+  private buildPointerMovementArgs(
+    operation: PointerMovementOperation,
+    fromX: number,
+    fromY: number,
+    toX: number,
+    toY: number,
+    speed?: number,
+  ): string {
+    const args = [
+      roundUiCoordinate(fromX, 'fromX'),
+      roundUiCoordinate(fromY, 'fromY'),
+      roundUiCoordinate(toX, 'toX'),
+      roundUiCoordinate(toY, 'toY'),
+    ];
+    if (speed !== undefined) {
+      args.push(roundUiInputSpeed(speed, operation));
+    }
+    return args.join(' ');
+  }
+
   async fileSend(localPath: string, remotePath: string): Promise<void> {
     await this.exec('file', 'send', localPath, remotePath);
   }
@@ -139,18 +225,23 @@ export class HdcClient {
   }
 
   async click(x: number, y: number): Promise<void> {
-    await this.shell(`uitest uiInput click ${Math.round(x)} ${Math.round(y)}`);
+    await this.runUiInput(
+      'click',
+      `${roundUiCoordinate(x, 'x')} ${roundUiCoordinate(y, 'y')}`,
+    );
   }
 
   async doubleClick(x: number, y: number): Promise<void> {
-    await this.shell(
-      `uitest uiInput doubleClick ${Math.round(x)} ${Math.round(y)}`,
+    await this.runUiInput(
+      'doubleClick',
+      `${roundUiCoordinate(x, 'x')} ${roundUiCoordinate(y, 'y')}`,
     );
   }
 
   async longClick(x: number, y: number): Promise<void> {
-    await this.shell(
-      `uitest uiInput longClick ${Math.round(x)} ${Math.round(y)}`,
+    await this.runUiInput(
+      'longClick',
+      `${roundUiCoordinate(x, 'x')} ${roundUiCoordinate(y, 'y')}`,
     );
   }
 
@@ -161,16 +252,10 @@ export class HdcClient {
     toY: number,
     speed?: number,
   ): Promise<void> {
-    const args = [
-      Math.round(fromX),
-      Math.round(fromY),
-      Math.round(toX),
-      Math.round(toY),
-    ];
-    if (speed !== undefined) {
-      args.push(Math.round(speed));
-    }
-    await this.shell(`uitest uiInput swipe ${args.join(' ')}`);
+    await this.runUiInput(
+      'swipe',
+      this.buildPointerMovementArgs('swipe', fromX, fromY, toX, toY, speed),
+    );
   }
 
   async fling(
@@ -180,16 +265,10 @@ export class HdcClient {
     toY: number,
     speed?: number,
   ): Promise<void> {
-    const args = [
-      Math.round(fromX),
-      Math.round(fromY),
-      Math.round(toX),
-      Math.round(toY),
-    ];
-    if (speed !== undefined) {
-      args.push(Math.round(speed));
-    }
-    await this.shell(`uitest uiInput fling ${args.join(' ')}`);
+    await this.runUiInput(
+      'fling',
+      this.buildPointerMovementArgs('fling', fromX, fromY, toX, toY, speed),
+    );
   }
 
   async drag(
@@ -199,27 +278,43 @@ export class HdcClient {
     toY: number,
     speed?: number,
   ): Promise<void> {
-    const args = [
-      Math.round(fromX),
-      Math.round(fromY),
-      Math.round(toX),
-      Math.round(toY),
-    ];
-    if (speed !== undefined) {
-      args.push(Math.round(speed));
-    }
-    await this.shell(`uitest uiInput drag ${args.join(' ')}`);
+    await this.runUiInput(
+      'drag',
+      this.buildPointerMovementArgs('drag', fromX, fromY, toX, toY, speed),
+    );
   }
 
   async inputText(x: number, y: number, text: string): Promise<void> {
     const escapedText = text.replace(/'/g, "'\\''");
-    await this.shell(
-      `uitest uiInput inputText ${Math.round(x)} ${Math.round(y)} '${escapedText}'`,
+    await this.runUiInput(
+      'inputText',
+      `${roundUiCoordinate(x, 'x')} ${roundUiCoordinate(y, 'y')} '${escapedText}'`,
     );
   }
 
   async keyEvent(...keys: string[]): Promise<void> {
-    await this.shell(`uitest uiInput keyEvent ${keys.join(' ')}`);
+    if (keys.length < 1 || keys.length > 3) {
+      throw new Error('HDC keyEvent requires between 1 and 3 keys');
+    }
+
+    if (
+      keys.length > 1 &&
+      keys.some((key) => supportedStringKeyEvents.has(key))
+    ) {
+      throw new Error('HDC system key events cannot be combined');
+    }
+
+    for (const key of keys) {
+      if (
+        !supportedStringKeyEvents.has(key) &&
+        !numericKeyEventPattern.test(key)
+      ) {
+        throw new Error(`Invalid HDC key event: ${key}`);
+      }
+    }
+
+    const joinedKeys = keys.join(' ');
+    await this.runUiInput('keyEvent', joinedKeys, joinedKeys);
   }
 
   /**
@@ -231,17 +326,25 @@ export class HdcClient {
    * "one shell, many keys" design despite the per-call cap.
    */
   async clearTextField(length = 100): Promise<void> {
-    if (length <= 0) return;
-    const MAX_KEYS_PER_CALL = 3;
+    if (!Number.isSafeInteger(length) || length < 0) {
+      throw new Error(
+        'HDC clearTextField length must be a non-negative safe integer',
+      );
+    }
+    if (length === 0) return;
+
+    const maxKeysPerCall = 3;
+    const backspaceKeyCode = '2055';
     const cmds: string[] = [];
     let remaining = length;
     while (remaining > 0) {
-      const n = Math.min(MAX_KEYS_PER_CALL, remaining);
-      const codes = Array(n).fill('2055').join(' '); // 2055 = Backspace
+      const n = Math.min(maxKeysPerCall, remaining);
+      const codes = Array(n).fill(backspaceKeyCode).join(' ');
       cmds.push(`uitest uiInput keyEvent ${codes}`);
       remaining -= n;
     }
-    await this.shell(cmds.join(';'));
+    const output = await this.shell(cmds.join(';'));
+    this.assertUiInputSucceeded('clearTextField', output);
   }
 
   async startAbility(bundleName: string, abilityName: string): Promise<void> {

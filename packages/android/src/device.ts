@@ -1843,6 +1843,12 @@ ${Object.keys(size)
   }
 
   private async pressKey(key: string): Promise<void> {
+    if (key.trim() !== '+' && key.includes('+')) {
+      throw new Error(
+        `Android keyboardPress does not support key combinations: ${JSON.stringify(key)}`,
+      );
+    }
+
     // Map web keys to Android key codes (numbers)
     const keyCodeMap: Record<string, number> = {
       Enter: 66,

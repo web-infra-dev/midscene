@@ -3,7 +3,10 @@
   "compilerOptions": {
     "rootDir": ".",
     "declarationDir": "dist/types",
-    "types": ["node"]
+    "types": ["node"],
+    "paths": {
+      "@/*": ["./src/*"]
+    }
   },
   "include": ["src", "tests"],
   "references": [

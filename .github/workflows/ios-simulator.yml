@@ -140,7 +140,7 @@ jobs:
           pnpm exec nx test @midscene/ios --skip-nx-cache 2>&1 |
             tee "$MIDSCENE_IOS_DIAGNOSTICS_DIR/unit-tests.log"
 
-      - name: Run iOS Simulator smoke and TodoMVC tests
+      - name: Run iOS Simulator smoke, IOSAppSwitcher AI E2E, and TodoMVC tests
         id: simulator-tests
         continue-on-error: true
         timeout-minutes: 50
@@ -178,6 +178,15 @@ jobs:
         with:
           name: ios-simulator-smoke-report
           path: midscene_run/report/ios-simulator-smoke.html
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Upload IOSAppSwitcher AI E2E report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: ios-app-switcher-ai-e2e-report
+          path: midscene_run/report/ios-app-switcher-ai-e2e.html
           if-no-files-found: error
           retention-days: 7
 
